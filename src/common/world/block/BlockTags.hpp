@@ -173,6 +173,8 @@ public:
     static BlockTag& WOOL();
 
     /// 羊毛地毯标签（所有颜色的地毯方块）
+    /// 参考: net.minecraft.tags.BlockTags.WOOL_CARPETS
+    /// 用于 DAMPENS_VIBRATIONS 标签（地毯方块阻尼振动）和 LlamaEntity 装饰槽位判断
     static BlockTag& WOOL_CARPETS();
 
     /// 木质栅栏标签（所有木质栅栏，不含下界砖栅栏）

@@ -388,6 +388,7 @@ add_executable(mc_tests
     common/world/block/blocks/end/ChorusPlantBlockTest.cpp
     common/world/block/blocks/end/DragonEggBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
+    common/world/gameevent/VibrationSystemTest.cpp
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp
     common/world/block/blocks/StemBlocksTest.cpp

@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -265,4 +265,64 @@ TEST_F(BlockTagsTest, StriderWarmBlocksDoesNotContainStone)
 TEST_F(BlockTagsTest, StriderWarmBlocksIdIsCorrect)
 {
     EXPECT_EQ(BlockTags::STRIDER_WARM_BLOCKS().getId(), ResourceLocation("minecraft", "strider_warm_blocks"));
+}
+
+// ============================================================================
+// WOOL_CARPETS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, WoolCarpetsContainsWhiteCarpet)
+{
+    EXPECT_TRUE(BlockTags::WOOL_CARPETS().contains(ResourceLocation("minecraft", "white_carpet")));
+}
+
+TEST_F(BlockTagsTest, WoolCarpetsContainsBlackCarpet)
+{
+    EXPECT_TRUE(BlockTags::WOOL_CARPETS().contains(ResourceLocation("minecraft", "black_carpet")));
+}
+
+TEST_F(BlockTagsTest, WoolCarpetsDoesNotContainWhiteWool)
+{
+    // WOOL_CARPETS 不包含羊毛方块，只有地毯
+    EXPECT_FALSE(BlockTags::WOOL_CARPETS().contains(ResourceLocation("minecraft", "white_wool")));
+}
+
+TEST_F(BlockTagsTest, WoolCarpetsIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::WOOL_CARPETS().getId(), ResourceLocation("minecraft", "wool_carpets"));
+}
+
+// ============================================================================
+// DAMPENS_VIBRATIONS 标签测试 - 包含羊毛和地毯
+// ============================================================================
+
+TEST_F(BlockTagsTest, DampensVibrationsContainsWhiteWool)
+{
+    EXPECT_TRUE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "white_wool")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsContainsBlackWool)
+{
+    EXPECT_TRUE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "black_wool")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsContainsWhiteCarpet)
+{
+    // MC 原版 DAMPENS_VIBRATIONS 包含地毯方块
+    EXPECT_TRUE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "white_carpet")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsContainsBlackCarpet)
+{
+    EXPECT_TRUE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "black_carpet")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::DAMPENS_VIBRATIONS().getId(), ResourceLocation("minecraft", "dampens_vibrations"));
 }

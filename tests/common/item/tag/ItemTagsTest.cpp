@@ -23,11 +23,11 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include "item/items/block/BlockItemRegistry.hpp"
 #include "item/tag/ItemTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -278,4 +278,74 @@ TEST_F(ItemTagsTest, InitializeCanBeCalledMultipleTimes)
     // 初始化应该可以多次调用（幂等性）
     EXPECT_NO_THROW(item::tag::ItemTags::initialize());
     EXPECT_NO_THROW(item::tag::ItemTags::initialize());
+}
+
+// ============================================================================
+// DAMPENS_VIBRATIONS 标签测试 - 羊毛物品
+// ============================================================================
+
+TEST_F(ItemTagsTest, DampensVibrationsContainsWhiteWool)
+{
+    Item* whiteWool = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_wool"));
+    ASSERT_NE(whiteWool, nullptr);
+    EXPECT_TRUE(whiteWool->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS()));
+}
+
+TEST_F(ItemTagsTest, DampensVibrationsContainsBlackWool)
+{
+    Item* blackWool = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_wool"));
+    ASSERT_NE(blackWool, nullptr);
+    EXPECT_TRUE(blackWool->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS()));
+}
+
+// ============================================================================
+// DAMPENS_VIBRATIONS 标签测试 - 地毯物品
+// ============================================================================
+
+TEST_F(ItemTagsTest, DampensVibrationsContainsWhiteCarpet)
+{
+    Item* whiteCarpet = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_carpet"));
+    ASSERT_NE(whiteCarpet, nullptr);
+    EXPECT_TRUE(whiteCarpet->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS()));
+}
+
+TEST_F(ItemTagsTest, DampensVibrationsContainsBlackCarpet)
+{
+    Item* blackCarpet = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_carpet"));
+    ASSERT_NE(blackCarpet, nullptr);
+    EXPECT_TRUE(blackCarpet->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS()));
+}
+
+// ============================================================================
+// DAMPENS_VIBRATIONS 标签测试 - 非阻尼物品
+// ============================================================================
+
+TEST_F(ItemTagsTest, DampensVibrationsDoesNotContainStone)
+{
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+    EXPECT_FALSE(stone->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS()));
+}
+
+TEST_F(ItemTagsTest, DampensVibrationsDoesNotContainDirt)
+{
+    Item* dirt = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dirt"));
+    ASSERT_NE(dirt, nullptr);
+    EXPECT_FALSE(dirt->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS()));
+}
+
+// ============================================================================
+// DAMPENS_VIBRATIONS 标签属性
+// ============================================================================
+
+TEST_F(ItemTagsTest, DampensVibrationsTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::DAMPENS_VIBRATIONS().getId(), ResourceLocation("minecraft", "dampens_vibrations"));
+}
+
+TEST_F(ItemTagsTest, DampensVibrationsContains32Items)
+{
+    // 16 色羊毛 + 16 色地毯 = 32 项
+    const auto& items = item::tag::ItemTags::DAMPENS_VIBRATIONS().getItems();
+    EXPECT_EQ(items.size(), 32u);
 }
