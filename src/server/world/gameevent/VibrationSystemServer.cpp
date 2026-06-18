@@ -222,9 +222,10 @@ bool VibrationSystem::Ticker::receiveVibration(
                                                               static_cast<i32>(std::floor(listenerPos->z)))
                                                         : sourceBlockPos;
 
-    // 检查相邻区块是否正在 tick（如果需要）
-    // 参考: net.minecraft.world.level.gameevent.vibrations.VibrationSystem.Ticker.receiveVibration
-    // 幽匿感测体要求相邻区块在 EntityTicking 级别才接收振动
+    // TODO: 当前仅检查源区块本身的加载级别是否为 EntityTicking，
+    // MC 原版检查的是源位置周围 3x3 区块范围是否均在 EntityTicking 级别，
+    // 未来需扩展为遍历 (chunkX-1..chunkX+1, chunkZ-1..chunkZ+1) 全部9个区块进行检查，
+    // 以防止振动穿透区块边界的问题。参见 README 中"容易踩的坑"第4点。
     if (user.requiresAdjacentChunksToBeTicking()) {
         auto* chunkManager = world.chunkManager();
         if (chunkManager != nullptr) {
