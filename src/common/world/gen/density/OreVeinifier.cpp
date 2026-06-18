@@ -23,6 +23,7 @@
 
 #include "OreVeinifier.hpp"
 
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Xoroshiro128ppRandom.hpp"
 #include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/CopperBlocks.hpp"
@@ -77,23 +78,6 @@ static constexpr i32 IRON_MIN_Y = -60;
 static constexpr i32 IRON_MAX_Y = -8;
 
 // ============================================================================
-// 辅助函数
-// ============================================================================
-
-/**
- * @brief MC Mth.clampedMap 的本地复刻
- *
- * 将 value 从 [fromMin, fromMax] 线性映射到 [toMin, toMax]，超出范围则 clamp。
- */
-[[nodiscard]] static f64 clampedMap(f64 value, f64 fromMin, f64 fromMax, f64 toMin, f64 toMax)
-{
-    f64 t = (value - fromMin) / (fromMax - fromMin);
-    if (t < 0.0) t = 0.0;
-    if (t > 1.0) t = 1.0;
-    return toMin + t * (toMax - toMin);
-}
-
-// ============================================================================
 // 构造函数
 // ============================================================================
 
@@ -137,7 +121,7 @@ const BlockState* OreVeinifier::calculate(i32 blockX, i32 blockY, i32 blockZ, f6
     }
 
     // 边缘衰减：接近 Y 边界时变薄
-    const f64 edgeRoundoff = clampedMap(static_cast<f64>(std::min(distToTop, distToBottom)),
+    const f64 edgeRoundoff = math::clampedMap(static_cast<f64>(std::min(distToTop, distToBottom)),
         0.0,
         static_cast<f64>(EDGE_ROUNDOFF_BEGIN),
         -MAX_EDGE_ROUNDOFF,
@@ -148,20 +132,21 @@ const BlockState* OreVeinifier::calculate(i32 blockX, i32 blockY, i32 blockZ, f6
         return nullptr;
     }
 
-    // 位置化随机决定是否放置
-    auto rng = m_randomFactory.at(blockX, blockY, blockZ);
-    if (rng->nextFloat() > static_cast<f32>(VEIN_SOLIDNESS)) {
-        return nullptr; // ~30% 跳过
-    }
-
-    // veinRidged >= 0 表示不在矿脉脊线内
+    // veinRidged >= 0 表示不在矿脉脊线内（先检查，避免昂贵的 RNG 创建）
     const f64 veinRidgedValue = m_veinRidged.compute(blockX, blockY, blockZ);
     if (veinRidgedValue >= 0.0) {
         return nullptr;
     }
 
+    // 位置化随机决定是否放置（延迟到密度检查通过后）
+    auto rng = m_randomFactory.at(blockX, blockY, blockZ);
+    if (rng->nextFloat() > static_cast<f32>(VEIN_SOLIDNESS)) {
+        return nullptr; // ~30% 跳过
+    }
+
     // 计算丰富度
-    const f64 richness = clampedMap(absToggle, VEININESS_THRESHOLD, MAX_RICHNESS_THRESHOLD, MIN_RICHNESS, MAX_RICHNESS);
+    const f64 richness =
+        math::clampedMap(absToggle, VEININESS_THRESHOLD, MAX_RICHNESS_THRESHOLD, MIN_RICHNESS, MAX_RICHNESS);
 
     // gap noise 过滤
     const f64 gapValue = m_veinGap.compute(blockX, blockY, blockZ);

@@ -106,9 +106,6 @@ private:
     /// MC 1.21: Beardifier.BEARD_KERNEL_RADIUS = 12
     static constexpr i32 BEARD_KERNEL_RADIUS = 12;
 
-    /// MC 1.21: Beardifier.BEARD_KERNEL 尺寸 = 24
-    static constexpr i32 BEARD_KERNEL_SIZE = 24;
-
     std::vector<Rigid> m_pieces;
     std::vector<jigsaw::JigsawJunction> m_junctions;
 

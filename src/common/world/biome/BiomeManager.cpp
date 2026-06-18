@@ -23,7 +23,8 @@
 
 #include "BiomeManager.hpp"
 
-#include <cmath>
+#include "common/util/math/MathUtils.hpp"
+#include <limits>
 
 namespace mc::world::biome {
 
@@ -93,9 +94,6 @@ BiomeId BiomeManager::getBiome(i32 blockX, i32 blockY, i32 blockZ) const
         const i32 z = j1 + flag2;
 
         // 子 quart 偏移调整：upper 角点需要减 1（偏移量相对于角点）
-        const f64 d3 = d0 - static_cast<f64>(flag) + static_cast<f64>(flag) * 0.0;
-        // 修正：MC 中 d3 = d0 - (flag == 0 ? 0 : 1) + 0.0
-        // 等价于 d3 = d0 - flag（flag 为 0 或 1）
         const f64 adjX = d0 - static_cast<f64>(flag);
         const f64 adjY = d1 - static_cast<f64>(flag1);
         const f64 adjZ = d2 - static_cast<f64>(flag2);
@@ -169,18 +167,9 @@ f64 BiomeManager::getFiddledDistance(u64 seed, i32 x, i32 y, i32 z, f64 fudgeX, 
 f64 BiomeManager::getFiddle(i64 seed)
 {
     // MC 1.21.11: BiomeManager.getFiddle()
-    // Math.floorMod(seed >> 24, 1024) / 1024.0
-    // Java 的 >> 是算术右移，& 0x3FF 等价于 floorMod(>>>, 1024)
-    // 但 Java 中 seed 是 long，seed >> 24 是算术右移
-    // floorMod(negative, 1024) 会返回正数
-    // 我们用 unsigned 操作来等价：
-    // (seed >> 24) & 1023 与 floorMod(seed >> 24, 1024) 在 Java 中不同
-    // 因为 Java >> 是算术右移，floorMod 需要处理负数
-    // 正确实现：Java Math.floorMod(seed >> 24, 1024)
+    // Math.floorMod(seed >> 24, 1024) / 1024.0，映射到 [-0.45, 0.45)
     const i64 shifted = seed >> 24;
-    const i64 mod = shifted % 1024;
-    const i64 result = (mod >= 0) ? mod : mod + 1024;
-    const f64 d = static_cast<f64>(result) / 1024.0;
+    const f64 d = static_cast<f64>(math::floorMod(shifted, static_cast<i64>(1024))) / 1024.0;
     return (d - 0.5) * 0.9;
 }
 

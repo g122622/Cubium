@@ -54,14 +54,8 @@ static const std::array<f32, 24 * 24 * 24> BEARD_KERNEL = []() {
     for (i32 i = 0; i < 24; ++i) {
         for (i32 j = 0; j < 24; ++j) {
             for (i32 k = 0; k < 24; ++k) {
-                // computeBeardContribution(j - 12, i - 12, k - 12)
-                const f64 d0 = static_cast<f64>((j - 12) * (j - 12)) + static_cast<f64>((k - 12) * (k - 12));
-                const f64 d1 = static_cast<f64>(i - 12) + 0.5;
-                const f64 d2 = d1 * d1;
-                const f64 gaussian = std::exp(-(d2 / 16.0 + d0 / 16.0));
-                const f64 invSqrt = math::fastInverseSqrt(static_cast<f32>((d2 / 2.0 + d0 / 2.0)));
-                const f64 beard = -d1 * invSqrt / 2.0;
-                kernel[i * 24 * 24 + j * 24 + k] = static_cast<f32>(beard * gaussian);
+                kernel[i * 24 * 24 + j * 24 + k] =
+                    static_cast<f32>(Beardifier::computeBeardContribution(j - 12, i - 12, k - 12));
             }
         }
     }
@@ -207,19 +201,14 @@ f64 Beardifier::getBuryContribution(f64 dx, f64 dy, f64 dz)
 
 f64 Beardifier::computeBeardContribution(i32 dx, i32 dy, i32 dz)
 {
-    // 旧版兼容：NoiseChunkGenerator::calculateStructureDensityOffset 的精确复刻
-    // 高斯衰减 × 胡须曲线
-    const f64 d0 = static_cast<f64>(dx * dx) + static_cast<f64>(dz * dz);
-    const f64 d1 = static_cast<f64>(dy) + 0.5;
-    const f64 d2 = d1 * d1;
-
-    // 高斯衰减
-    const f64 d3 = std::exp(-(d2 / 16.0 + d0 / 16.0));
-
-    // 快速逆平方根
-    const f64 d4 = -d1 * math::fastInverseSqrt(static_cast<f32>((d2 / 2.0 + d0 / 2.0))) / 2.0;
-
-    return d4 * d3;
+    // 独立计算，不使用 BEARD_KERNEL 查表。
+    // BEARD_KERNEL 初始化时调用此函数，因此不能委托给 getBeardContribution。
+    const f64 adjustedY = static_cast<f64>(dy) + 0.5;
+    const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);
+    const f64 gaussian = std::exp(-distSq / 16.0);
+    const f64 invSqrt = math::fastInverseSqrt(static_cast<f32>(distSq / 2.0));
+    const f64 beard = -adjustedY * invSqrt / 2.0;
+    return beard * gaussian;
 }
 
 // ============================================================================

@@ -60,31 +60,18 @@ class RandomState;
 class CarvingContext : public world::gen::valueprovider::WorldGenerationContext {
 public:
     /**
-     * @brief 最小构造（向后兼容）
+     * @brief MC 1.21 构造函数（向后兼容，noiseChunk/randomState 默认 nullptr）
      * @param minGenY 最低生成高度
      * @param genDepth 生成深度
      * @param aquifer 含水层采样器引用（可为 nullptr 表示禁用含水层）
-     */
-    CarvingContext(i32 minGenY, i32 genDepth, world::gen::aquifer::Aquifer* aquifer)
-        : WorldGenerationContext(minGenY, genDepth)
-        , m_aquifer(aquifer)
-        , m_noiseChunk(nullptr)
-        , m_randomState(nullptr)
-    {}
-
-    /**
-     * @brief MC 1.21 完整构造函数
-     * @param minGenY 最低生成高度
-     * @param genDepth 生成深度
-     * @param aquifer 含水层采样器引用（可为 nullptr）
      * @param noiseChunk 噪声区块（可为 nullptr）
      * @param randomState 随机状态（可为 nullptr）
      */
     CarvingContext(i32 minGenY,
         i32 genDepth,
         world::gen::aquifer::Aquifer* aquifer,
-        const world::gen::density::NoiseChunk* noiseChunk,
-        const world::gen::RandomState* randomState)
+        const world::gen::density::NoiseChunk* noiseChunk = nullptr,
+        const world::gen::RandomState* randomState = nullptr)
         : WorldGenerationContext(minGenY, genDepth)
         , m_aquifer(aquifer)
         , m_noiseChunk(noiseChunk)

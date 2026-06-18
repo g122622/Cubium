@@ -216,6 +216,19 @@ template <typename T>
 }
 
 /**
+ * @brief 钳位线性映射，将值从 [fromMin, fromMax] 映射到 [toMin, toMax] 并 clamp
+ *
+ * 参考 MC 1.21: Mth.clampedMap
+ */
+[[nodiscard]] inline f64 clampedMap(f64 value, f64 fromMin, f64 fromMax, f64 toMin, f64 toMax) noexcept
+{
+    f64 t = (value - fromMin) / (fromMax - fromMin);
+    if (t < 0.0) t = 0.0;
+    if (t > 1.0) t = 1.0;
+    return toMin + t * (toMax - toMin);
+}
+
+/**
  * @brief 立方
  */
 template <typename T>
