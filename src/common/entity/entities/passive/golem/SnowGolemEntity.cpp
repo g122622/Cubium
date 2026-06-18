@@ -304,10 +304,7 @@ bool SnowGolemEntity::_canPlaceSnow() const
     // 1. mobGriefing 规则允许
     // 2. 实体存活
     // 3. 不是客户端
-
-    // TODO: world() 在 const 方法中返回 const IWorld*，但 isClientSide() 和 getGameRules()
-    // 是非 const 方法。考虑改进 IWorld 接口，使这些方法成为 const，或提供一个非 const 重载。
-    IWorld* worldPtr = const_cast<IWorld*>(world());
+    const IWorld* worldPtr = world();
     if (worldPtr == nullptr || worldPtr->isClientSide()) {
         return false;
     }
@@ -331,7 +328,7 @@ void SnowGolemEntity::_placeSnowLayer()
         return;
     }
 
-    IWorld* worldPtr = const_cast<IWorld*>(world());
+    IWorld* worldPtr = world();
 
     for (i32 i = 0; i < 4; ++i) {
         // 计算偏移位置

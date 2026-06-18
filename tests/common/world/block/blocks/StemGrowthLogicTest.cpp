@@ -134,7 +134,7 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 6000; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {

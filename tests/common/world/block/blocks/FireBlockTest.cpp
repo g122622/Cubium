@@ -109,7 +109,7 @@ public:
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }
 
     [[nodiscard]] bool doFireTick() const override { return m_doFireTick; }

@@ -382,7 +382,7 @@ public:
 
     void setBlockEntity(const BlockPos& pos, BlockEntity* entity) { m_blockEntities[pos] = entity; }
 
-    bool isClientSide() override { return false; }
+    bool isClientSide() const override { return false; }
 
     // 获取指定位置的方块，如果未设置则返回空气
     const BlockState* getBlockStateOrAir(const BlockPos& pos) const

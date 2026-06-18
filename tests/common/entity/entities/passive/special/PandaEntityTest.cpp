@@ -79,7 +79,7 @@ public:
     }
 
     // 服务端世界
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
 
     // 生成实体（返回假ID）
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override

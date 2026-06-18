@@ -456,7 +456,7 @@ public:
     }
 
     // 客户端/服务端模式控制
-    [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
     void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override

@@ -414,7 +414,7 @@ public:
     /**
      * @brief 是否客户端
      */
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
 
     /**
      * @brief 是否困难模式

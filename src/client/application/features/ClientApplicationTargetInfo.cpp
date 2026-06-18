@@ -90,7 +90,7 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
-    [[nodiscard]] bool isClientSide() override { return true; }
+    [[nodiscard]] bool isClientSide() const override { return true; }
 
     // tickManager 不适用于只读的客户端世界适配器
     [[nodiscard]] world::tick::TickManager& tickManager() override

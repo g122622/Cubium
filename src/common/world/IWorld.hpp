@@ -860,7 +860,7 @@ public:
      * @brief 检查是否为客户端世界
      * @return 如果是客户端返回true，服务端返回false
      */
-    [[nodiscard]] virtual bool isClientSide() = 0;
+    [[nodiscard]] virtual bool isClientSide() const = 0;
 
     /**
      * @brief 检查维度是否有天空光照

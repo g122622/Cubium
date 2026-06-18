@@ -200,8 +200,8 @@ void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)
 bool MagmaCubeEntity::canDamagePlayer() const
 {
     // 小型岩浆怪也能伤害玩家（与史莱姆不同）
-    auto* nonConstWorld = const_cast<IWorld*>(world());
-    return nonConstWorld != nullptr && !nonConstWorld->isClientSide();
+    const IWorld* worldPtr = world();
+    return worldPtr != nullptr && !worldPtr->isClientSide();
 }
 
 f32 MagmaCubeEntity::getAttackDamage() const

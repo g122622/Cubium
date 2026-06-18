@@ -320,7 +320,7 @@ public:
     [[nodiscard]] u64 seed() const noexcept override { return m_config.seed; }
     [[nodiscard]] bool isHardcore() const noexcept override { return false; }
     [[nodiscard]] Difficulty difficulty() const override;
-    [[nodiscard]] bool isClientSide() noexcept override { return false; }
+    [[nodiscard]] bool isClientSide() const noexcept override { return false; }
 
     // ========== 随机数生成器 ==========
 

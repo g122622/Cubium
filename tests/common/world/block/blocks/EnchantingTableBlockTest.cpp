@@ -74,7 +74,7 @@ public:
 
     // ========== IWorld 核心接口 ==========
 
-    [[nodiscard]] bool isClientSide() override { return m_isClient; }
+    [[nodiscard]] bool isClientSide() const override { return m_isClient; }
 
     [[nodiscard]] server::ServerWorld* asServerWorld() override
     {

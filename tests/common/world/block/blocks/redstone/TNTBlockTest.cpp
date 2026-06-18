@@ -88,7 +88,7 @@ public:
     }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
 
     void setClientSide(bool isClient) { m_isClientSide = isClient; }
 

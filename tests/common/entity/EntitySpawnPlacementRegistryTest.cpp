@@ -147,7 +147,7 @@ public:
 
     [[nodiscard]] i32 getMaxLocalRawBrightness(i32, i32, i32) const override { return 15; }
 
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override

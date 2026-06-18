@@ -103,7 +103,7 @@ public:
 
     // ========== 其他必需方法 ==========
 
-    [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
     void setClientSide(bool isClient) { m_isClientSide = isClient; }
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
