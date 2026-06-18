@@ -249,10 +249,9 @@ finalizeSpawn(world, difficulty, spawnReason)
 - 大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`）
 - `isEquipmentDropPreserved(slot)` 检查掉落概率 > 1.0
 - `setGuaranteedDrop(slot)` 设置掉落概率为 2.0（保整掉落）
-- NBT 序列化支持两种格式：
-  - 旧格式：`HandDropChances`（float[2]）和 `ArmorDropChances`（float[4]）
-  - 新格式（MC 1.21.4+）：`drop_chances`（compound，仅包含非默认值）
-- 读取时优先使用新格式，然后回退到旧格式
+- NBT 序列化格式：
+  - 保存时仅写入新格式（MC 1.21.4+）：`drop_chances`（compound，仅包含非默认值）
+  - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
 
 ### 死亡掉落表 (DeathLootTable)
 - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/zombie"`）
