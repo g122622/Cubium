@@ -27,6 +27,7 @@
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -136,7 +137,7 @@ ActionResultType BarrelBlock::onBlockActivated(const BlockState& state,
         auto* barrel = static_cast<blockentity::BarrelEntity*>(entity);
         if (world.openContainer(ContainerType::Generic9x3, pos, player)) {
             barrel->openContainer(&player);
-            // TODO: 当统计系统实现后，添加 player.awardStat(Stats::OPEN_BARREL)
+            player.awardCustomStat(ResourceLocation(stats::OPEN_BARREL), 1);
             // TODO: 当猪灵AI实现后，添加 PiglinAi::angerNearbyPiglins(world, player, true)
             return ActionResultType::Consume;
         }

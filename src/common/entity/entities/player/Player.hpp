@@ -452,6 +452,22 @@ public:
     }
 
     /**
+     * @brief 增加自定义统计
+     *
+     * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。
+     * ServerPlayer 重写此方法以实际更新统计。
+     *
+     * @param statId 自定义统计的资源位置（使用 mc::stats 命名空间中的常量）
+     * @param count 增量值
+     */
+    virtual void awardCustomStat(const ResourceLocation& statId, i32 count)
+    {
+        MC_UNUSED(statId);
+        MC_UNUSED(count);
+        // 基类默认空实现
+    }
+
+    /**
      * @brief 解锁配方
      *
      * 当玩家首次合成某配方时调用，用于解锁配方书和触发成就。

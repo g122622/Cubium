@@ -129,11 +129,8 @@ public:
     /**
      * @brief 玩家右键交互时打开铁砧容器
      *
-     * 在服务端打开铁砧修复界面（ContainerType::Anvil）。
+     * 在服务端打开铁砧修复界面（ContainerType::Anvil），并触发交互统计。
      * 铁砧不需要方块实体，容器通过世界位置直接访问。
-     *
-     * TODO: MC原版在交互时触发 INTERACT_WITH_ANVIL 统计（Stats.INTERACT_WITH_ANVIL），
-     *       待统计系统实现后应在此添加 player.awardStat(Stats.INTERACT_WITH_ANVIL)。
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,

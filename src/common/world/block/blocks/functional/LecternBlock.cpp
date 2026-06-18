@@ -30,6 +30,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -210,7 +211,7 @@ ActionResultType LecternBlock::onBlockActivated(const BlockState& state,
                 auto* lectern = static_cast<blockentity::LecternEntity*>(entity);
                 if (world.openContainer(ContainerType::Lectern, pos, player)) {
                     lectern->openContainer();
-                    // TODO: 当统计系统实现后，添加 player.awardStat(Stats::INTERACT_WITH_LECTERN)
+                    player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_LECTERN), 1);
                 }
             }
         }

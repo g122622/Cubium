@@ -30,6 +30,7 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -219,6 +220,12 @@ ActionResultType ChestBlock::onBlockActivated(const BlockState& state,
     // 单个箱子是27格 (3行)，使用 Generic9x3 类型
     if (world.openContainer(ContainerType::Generic9x3, pos, player)) {
         chest->openContainer(&player);
+        // 陷阱箱子与普通箱子使用不同的统计
+        if (getBlockEntityType() == BlockEntityType::TrappedChest) {
+            player.awardCustomStat(ResourceLocation(stats::TRAPPED_CHEST_TRIGGERED), 1);
+        } else {
+            player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 1);
+        }
 
         // 双箱时，同步增加另一半的打开计数
         // 参考 MC Java: CompoundContainer.startOpen() 会转发到两个半箱

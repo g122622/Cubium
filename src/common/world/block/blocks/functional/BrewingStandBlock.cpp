@@ -28,6 +28,7 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -127,7 +128,7 @@ ActionResultType BrewingStandBlock::onBlockActivated(const BlockState& state,
         auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
         if (world.openContainer(ContainerType::BrewingStand, pos, player)) {
             brewingStand->openContainer(&player);
-            // TODO: 当统计系统实现后，添加 player.awardStat(Stats::INTERACT_WITH_BREWINGSTAND)
+            player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_BREWINGSTAND), 1);
             return ActionResultType::Consume;
         }
     }

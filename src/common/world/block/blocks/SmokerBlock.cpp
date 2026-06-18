@@ -25,6 +25,7 @@
 
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/blockentity/processing/SmokerEntity.hpp"
 
@@ -42,7 +43,11 @@ std::unique_ptr<BlockEntity> SmokerBlock::createBlockEntity(const BlockPos& pos)
 
 bool SmokerBlock::interactWith(IWorld& world, const BlockPos& pos, Player& player)
 {
-    return world.openContainer(ContainerType::Furnace, pos, player);
+    if (world.openContainer(ContainerType::Furnace, pos, player)) {
+        player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_SMOKER), 1);
+        return true;
+    }
+    return false;
 }
 
 } // namespace blocks

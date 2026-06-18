@@ -237,6 +237,13 @@ public:
     void awardCraftedStat(const ResourceLocation& itemId, i32 count) override;
 
     /**
+     * @brief 增加自定义统计（重写 Player 基类）
+     * @param statId 自定义统计的资源位置（使用 mc::stats 命名空间中的常量）
+     * @param count 增量值
+     */
+    void awardCustomStat(const ResourceLocation& statId, i32 count) override;
+
+    /**
      * @brief 物品合成完成时调用（重写 Player 基类）
      * @param stack 合成的物品堆
      * @param amount 合成数量

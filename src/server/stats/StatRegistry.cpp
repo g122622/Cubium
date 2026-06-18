@@ -134,6 +134,9 @@ void StatRegistry::_registerAllCustomStats()
     registerCustomStat(ResourceLocation("minecraft:interact_with_loom"));
     registerCustomStat(ResourceLocation("minecraft:interact_with_stonecutter"));
     registerCustomStat(ResourceLocation("minecraft:interact_with_smithing_table"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_lectern"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_campfire"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_composter"));
     registerCustomStat(ResourceLocation("minecraft:bell_ring"));
     registerCustomStat(ResourceLocation("minecraft:raid_trigger"));
     registerCustomStat(ResourceLocation("minecraft:raid_win"));
@@ -157,41 +160,24 @@ void StatRegistry::_registerAllCustomStats()
     // ========== 目标相关 ==========
     registerCustomStat(ResourceLocation("minecraft:target_hit"));
 
-    // ========== 物品交互 ==========
-    registerCustomStat(ResourceLocation("minecraft:interact_with_blast_furnace"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_smoker"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_lectern"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_campfire"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_composter"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_barrel"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_smithing_table"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_stonecutter"));
+    // ========== 载具距离 ==========
+    registerCustomStat(ResourceLocation("minecraft:walk_under_water_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:walk_on_water_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:minecart_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:boat_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:pig_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:horse_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:llama_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:aviate_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:stride_one_cm"));
 
     // ========== 其他 ==========
     registerCustomStat(ResourceLocation("minecraft:leave_game"));
     registerCustomStat(ResourceLocation("minecraft:time_since_death"));
     registerCustomStat(ResourceLocation("minecraft:time_since_rest"));
     registerCustomStat(ResourceLocation("minecraft:sneak_time"));
-    registerCustomStat(ResourceLocation("minecraft:walk_under_water_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:walk_on_water_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:boat_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:aviate_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:horse_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:llama_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:pig_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:minecart_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:trigger_trapped_chest"));
-    registerCustomStat(ResourceLocation("minecraft:open_barrel"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_beacon"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_brewingstand"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_crafting_table"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_furnace"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_anvil"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_grindstone"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_cartography_table"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_loom"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_stonecutter"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_smithing_table"));
+    registerCustomStat(ResourceLocation("minecraft:trapped_chest_triggered"));
+    registerCustomStat(ResourceLocation("minecraft:beacon_interaction"));
 }
 
 void StatRegistry::registerMinedStat(const ResourceLocation& blockId)

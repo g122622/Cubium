@@ -27,6 +27,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/IWorld.hpp"
@@ -228,8 +229,8 @@ ActionResultType AnvilBlock::onBlockActivated(const BlockState& /*state*/,
         return ActionResultType::Success;
     }
 
-    // TODO: MC原版在交互时触发 INTERACT_WITH_ANVIL 统计（Stats.INTERACT_WITH_ANVIL），
-    //       待统计系统实现后应在此添加 player.awardStat(Stats.INTERACT_WITH_ANVIL)。
+    // 触发与铁砧交互统计
+    player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_ANVIL), 1);
 
     // 打开铁砧修复容器
     if (world.openContainer(ContainerType::Anvil, pos, player)) {

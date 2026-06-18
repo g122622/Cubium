@@ -206,6 +206,11 @@ void ServerPlayer::awardCraftedStat(const ResourceLocation& itemId, i32 count)
     m_statistics.incrementCrafted(itemId, count);
 }
 
+void ServerPlayer::awardCustomStat(const ResourceLocation& statId, i32 count)
+{
+    m_statistics.incrementCustom(statId, count);
+}
+
 void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount)
 {
     // 更新合成统计

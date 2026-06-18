@@ -23,8 +23,10 @@
 
 #include "LoomBlock.hpp"
 
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -115,6 +117,7 @@ ActionResultType LoomBlock::onBlockActivated(const BlockState& state,
 
     // 打开织布机容器
     if (world.openContainer(ContainerType::Loom, pos, player)) {
+        player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_LOOM), 1);
         return ActionResultType::Consume;
     }
 
