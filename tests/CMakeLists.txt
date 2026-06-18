@@ -636,6 +636,8 @@ add_executable(mc_tests
     common/entity/loot/ReferenceConditionTest.cpp
     # NBT选择器过滤和谓词条件过滤测试
     common/entity/loot/NBTSelectorFilterTest.cpp
+    # LootParameterSet 参数验证测试
+    common/entity/loot/LootParameterSetValidationTest.cpp
     # BlockPredicate 和 StatePropertiesPredicate 测试
     common/advancement/BlockPredicateTest.cpp
     # AdvancementVisibilityEvaluator 成就可见性评估器测试

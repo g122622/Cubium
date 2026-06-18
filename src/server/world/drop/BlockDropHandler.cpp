@@ -81,13 +81,12 @@ std::vector<ItemStack> BlockDropHandler::generateDrops(IWorld& world,
         if (context) {
             spdlog::info(
                 "BlockDropHandler::generateDrops built loot context for block='{}': hasBlockState={} hasBlockPos={} "
-                "hasTool={} hasThisEntity={} hasKillerPlayer={} hasExplosionRadius={} luck={} lootingModifier={}",
+                "hasTool={} hasThisEntity={} hasExplosionRadius={} luck={} lootingModifier={}",
                 block.blockLocation().toString(),
                 context->has(loot::LootParams::BLOCK_STATE),
                 context->has(loot::LootParams::BLOCK_POS),
                 context->has(loot::LootParams::TOOL),
                 context->has(loot::LootParams::THIS_ENTITY),
-                context->has(loot::LootParams::KILLER_PLAYER),
                 context->has(loot::LootParams::EXPLOSION_RADIUS),
                 context->getLuck(),
                 context->getLootingModifier());
