@@ -155,6 +155,9 @@ public:
      * 当 onBlockAdded 被调用时，触发方块本身已知是南瓜头部，无需额外检查；
      * 此方法预留供未来 canSpawnGolem API 使用（仅检测身体部分是否满足傀儡模式）。
      *
+     * TODO: 实现 canSpawnGolem 公共 API 时，此方法将作为头部检测的核心判断，
+     * 允许外部查询某位置是否可生成傀儡（仅检查身体部分，头部由调用方提供）。
+     *
      * @param state 方块状态
      * @return 是否为南瓜类型
      */
