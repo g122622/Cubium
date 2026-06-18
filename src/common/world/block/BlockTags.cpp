@@ -235,6 +235,33 @@ BlockTag& BlockTags::WOOL()
     return *tag;
 }
 
+BlockTag& BlockTags::WOODEN_FENCES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_fences"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::FENCES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "fences"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::FENCE_GATES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "fence_gates"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::BAMBOO_PLANTABLE_ON()
 {
     static BlockTag* tag = nullptr;
@@ -881,6 +908,55 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "red_wool"),
         ResourceLocation("minecraft", "black_wool")});
     tags[wool->getId()] = std::move(wool);
+
+    // 创建 WOODEN_FENCES 标签（所有木质栅栏，不含下界砖栅栏）
+    auto woodenFences = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_fences"));
+    woodenFences->addAll({ResourceLocation("minecraft", "oak_fence"),
+        ResourceLocation("minecraft", "spruce_fence"),
+        ResourceLocation("minecraft", "birch_fence"),
+        ResourceLocation("minecraft", "jungle_fence"),
+        ResourceLocation("minecraft", "acacia_fence"),
+        ResourceLocation("minecraft", "dark_oak_fence"),
+        ResourceLocation("minecraft", "mangrove_fence"),
+        ResourceLocation("minecraft", "cherry_fence"),
+        ResourceLocation("minecraft", "bamboo_fence"),
+        ResourceLocation("minecraft", "pale_oak_fence"),
+        ResourceLocation("minecraft", "crimson_fence"),
+        ResourceLocation("minecraft", "warped_fence")});
+    tags[woodenFences->getId()] = std::move(woodenFences);
+
+    // 创建 FENCES 标签（所有木质栅栏 + 下界砖栅栏）
+    auto fences = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fences"));
+    fences->addAll({ResourceLocation("minecraft", "oak_fence"),
+        ResourceLocation("minecraft", "spruce_fence"),
+        ResourceLocation("minecraft", "birch_fence"),
+        ResourceLocation("minecraft", "jungle_fence"),
+        ResourceLocation("minecraft", "acacia_fence"),
+        ResourceLocation("minecraft", "dark_oak_fence"),
+        ResourceLocation("minecraft", "mangrove_fence"),
+        ResourceLocation("minecraft", "cherry_fence"),
+        ResourceLocation("minecraft", "bamboo_fence"),
+        ResourceLocation("minecraft", "pale_oak_fence"),
+        ResourceLocation("minecraft", "crimson_fence"),
+        ResourceLocation("minecraft", "warped_fence"),
+        ResourceLocation("minecraft", "nether_brick_fence")});
+    tags[fences->getId()] = std::move(fences);
+
+    // 创建 FENCE_GATES 标签
+    auto fenceGates = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fence_gates"));
+    fenceGates->addAll({ResourceLocation("minecraft", "oak_fence_gate"),
+        ResourceLocation("minecraft", "spruce_fence_gate"),
+        ResourceLocation("minecraft", "birch_fence_gate"),
+        ResourceLocation("minecraft", "jungle_fence_gate"),
+        ResourceLocation("minecraft", "acacia_fence_gate"),
+        ResourceLocation("minecraft", "dark_oak_fence_gate"),
+        ResourceLocation("minecraft", "mangrove_fence_gate"),
+        ResourceLocation("minecraft", "cherry_fence_gate"),
+        ResourceLocation("minecraft", "bamboo_fence_gate"),
+        ResourceLocation("minecraft", "pale_oak_fence_gate"),
+        ResourceLocation("minecraft", "crimson_fence_gate"),
+        ResourceLocation("minecraft", "warped_fence_gate")});
+    tags[fenceGates->getId()] = std::move(fenceGates);
 
     // 创建 BAMBOO_PLANTABLE_ON 标签
     auto bambooPlantableOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bamboo_plantable_on"));

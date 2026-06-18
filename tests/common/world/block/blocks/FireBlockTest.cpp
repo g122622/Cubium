@@ -23,11 +23,13 @@
 
 #include <gtest/gtest.h>
 
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/combat/DifficultyHelper.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/block/FireInfoRegistry.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
@@ -914,4 +916,108 @@ TEST_F(FireInfoRegistryTest, Beehive_BeeNest_FireInfo)
     // 蜂巢 (ignite=30, burn=20) — 自然方块，更易点燃
     EXPECT_EQ(registry.getEncouragement(NaturalBlocks::BEE_NEST->blockId()), 30);
     EXPECT_EQ(registry.getFlammability(NaturalBlocks::BEE_NEST->blockId()), 20);
+}
+
+// ============================================================================
+// 集成测试：方块标签包含性验证
+// ============================================================================
+
+class BlockTagIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+};
+
+// 验证 WOODEN_FENCES 标签包含所有木质栅栏
+TEST_F(BlockTagIntegrationTest, WoodenFences_ContainsAllWoodenFences)
+{
+    auto& tag = BlockTags::WOODEN_FENCES();
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::OAK_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::SPRUCE_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BIRCH_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::JUNGLE_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::ACACIA_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::DARK_OAK_FENCE));
+}
+
+// 验证 FENCES 标签包含所有木质栅栏
+TEST_F(BlockTagIntegrationTest, Fences_ContainsAllWoodenFences)
+{
+    auto& tag = BlockTags::FENCES();
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::OAK_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::SPRUCE_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BIRCH_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::JUNGLE_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::ACACIA_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::DARK_OAK_FENCE));
+    // 注：nether_brick_fence 也应在 FENCES 标签中，但尚未注册方块指针
+}
+
+// 验证 FENCE_GATES 标签包含所有栅栏门
+TEST_F(BlockTagIntegrationTest, FenceGates_ContainsAllFenceGates)
+{
+    auto& tag = BlockTags::FENCE_GATES();
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::OAK_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::SPRUCE_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BIRCH_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::JUNGLE_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::ACACIA_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::DARK_OAK_FENCE_GATE));
+}
+
+// 验证 BEEHIVES 标签包含蜂箱和蜂巢
+TEST_F(BlockTagIntegrationTest, Beehives_ContainsBeehiveAndBeeNest)
+{
+    auto& tag = BlockTags::BEEHIVES();
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BEEHIVE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BEE_NEST));
+}
+
+// ============================================================================
+// 集成测试：新方块 BlockState 创建验证
+// ============================================================================
+
+class NewBlockIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+};
+
+// 验证新注册栅栏方块能够创建有效的 BlockState
+TEST_F(NewBlockIntegrationTest, FenceBlocks_CreateValidBlockStates)
+{
+    // 验证新注册的5种栅栏方块可以创建默认 BlockState
+    EXPECT_NE(VanillaBlocks::SPRUCE_FENCE, nullptr);
+    EXPECT_NE(VanillaBlocks::BIRCH_FENCE, nullptr);
+    EXPECT_NE(VanillaBlocks::JUNGLE_FENCE, nullptr);
+    EXPECT_NE(VanillaBlocks::ACACIA_FENCE, nullptr);
+    EXPECT_NE(VanillaBlocks::DARK_OAK_FENCE, nullptr);
+    // 验证方块 ID 有效
+    EXPECT_GT(VanillaBlocks::SPRUCE_FENCE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::BIRCH_FENCE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::JUNGLE_FENCE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::ACACIA_FENCE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::DARK_OAK_FENCE->blockId(), 0u);
+}
+
+// 验证蜂箱和蜂巢方块能够创建有效的 BlockState
+TEST_F(NewBlockIntegrationTest, BeehiveBlocks_CreateValidBlockStates)
+{
+    EXPECT_NE(VanillaBlocks::BEEHIVE, nullptr);
+    EXPECT_NE(VanillaBlocks::BEE_NEST, nullptr);
+    EXPECT_GT(VanillaBlocks::BEEHIVE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::BEE_NEST->blockId(), 0u);
+    // 验证蜂箱和蜂巢是不同的方块
+    EXPECT_NE(VanillaBlocks::BEEHIVE->blockId(), VanillaBlocks::BEE_NEST->blockId());
+    // 验证蜂箱和蜂巢具有方块实体
+    EXPECT_TRUE(VanillaBlocks::BEEHIVE->hasBlockEntity());
+    EXPECT_TRUE(VanillaBlocks::BEE_NEST->hasBlockEntity());
+}
+
+// 验证蜂箱和蜂巢具有蜂蜜等级属性
+TEST_F(NewBlockIntegrationTest, BeehiveBlocks_HaveHoneyLevelProperty)
+{
+    const auto& beehiveState = VanillaBlocks::BEEHIVE->defaultState();
+    const auto& beeNestState = VanillaBlocks::BEE_NEST->defaultState();
+    // 默认蜂蜜等级应为0
+    EXPECT_EQ(beehiveState.get(BlockStateProperties::HONEY_LEVEL_0_5()), 0);
+    EXPECT_EQ(beeNestState.get(BlockStateProperties::HONEY_LEVEL_0_5()), 0);
 }

@@ -172,6 +172,15 @@ public:
     /// 羊毛标签
     static BlockTag& WOOL();
 
+    /// 木质栅栏标签（所有木质栅栏，不含下界砖栅栏）
+    static BlockTag& WOODEN_FENCES();
+
+    /// 栅栏标签（所有木质栅栏 + 下界砖栅栏）
+    static BlockTag& FENCES();
+
+    /// 栅栏门标签
+    static BlockTag& FENCE_GATES();
+
     /// 竹子可种植标签（草、泥土、沙子、沙砾、竹林土）
     static BlockTag& BAMBOO_PLANTABLE_ON();
 
