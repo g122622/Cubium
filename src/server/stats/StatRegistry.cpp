@@ -96,7 +96,6 @@ void StatRegistry::_registerAllCustomStats()
     registerCustomStat(ResourceLocation("minecraft:minecart_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:boat_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:pig_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:hopper_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:happy_ghast_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:horse_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:aviate_one_cm"));

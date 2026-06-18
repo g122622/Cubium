@@ -279,6 +279,8 @@ ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
 
     // 堆肥失败但仍播放了音效
     return ActionResultType::Success;
+    // TODO: MC Java 中 ComposterBlock 没有 interact_with_composter 统计（Stats.java 中不存在此统计），
+    //       但当堆肥成功时需要播放音效和粒子效果（参考 MC Java: ComposterBlock.animateTick）
 }
 
 } // namespace blocks

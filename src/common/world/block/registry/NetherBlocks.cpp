@@ -556,6 +556,10 @@ void registerNetherBlocks()
         ResourceLocation("minecraft:brewing_stand"), BlockProperties(Material::IRON).hardness(0.5f));
 
     // 末影箱 - 发光7级
+    // TODO: 当前使用 SimpleBlock 注册，缺少 onBlockActivated 交互逻辑。
+    //       需要创建 EnderChestBlock 类，实现 onBlockActivated 以打开末影箱 GUI 并调用
+    //       player.awardCustomStat(ResourceLocation(stats::OPEN_ENDERCHEST), 1);
+    //       参考 MC Java: EnderChestBlock.onBlockActivated() → player.awardStat(Stats.OPEN_ENDERCHEST)
     NetherBlocks::ENDER_CHEST = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ender_chest"),
         BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7));
 

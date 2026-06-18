@@ -77,5 +77,9 @@ i32 BeaconBlock::getComparatorInputOverride(const BlockState& state, IWorld& wor
     return 0;
 }
 
+// TODO: 实现 onBlockActivated 方法，打开信标 GUI 并调用
+//       player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_BEACON), 1);
+//       参考 MC Java: BeaconBlock.onBlockActivated() → player.awardStat(Stats.INTERACT_WITH_BEACON)
+
 } // namespace blocks
 } // namespace mc

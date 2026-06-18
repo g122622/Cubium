@@ -192,3 +192,21 @@ TEST_F(AwardCustomStatTest, StatRegistry_NewlyAddedStats)
     EXPECT_TRUE(StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:happy_ghast_one_cm")));
     EXPECT_TRUE(StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:nautilus_one_cm")));
 }
+
+// ========== StatRegistry 不应存在的统计测试 ==========
+
+TEST_F(AwardCustomStatTest, StatRegistry_NonExistentStats)
+{
+    // 验证 MC Java 1.21.11 中不存在的统计确实没有注册
+    // interact_with_composter: MC Java 中无此统计
+    EXPECT_FALSE(
+        StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:interact_with_composter")));
+    // hopper_one_cm: 不存在于 MC Java（只有 inspect_hopper 交互统计）
+    EXPECT_FALSE(StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:hopper_one_cm")));
+    // play_one_minute: 已更名为 play_time
+    EXPECT_FALSE(StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:play_one_minute")));
+    // dive_one_cm: 不存在于 MC Java
+    EXPECT_FALSE(StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:dive_one_cm")));
+    // llama_one_cm: 不存在于 MC Java
+    EXPECT_FALSE(StatRegistry::instance().hasStat(StatType::Custom, ResourceLocation("minecraft:llama_one_cm")));
+}

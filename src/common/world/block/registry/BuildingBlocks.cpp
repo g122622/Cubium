@@ -170,6 +170,10 @@ void registerBuildingBlocks()
         ResourceLocation("minecraft:wet_sponge"), BlockProperties(Material::SPONGE).hardness(0.6f));
 
     // 工作台
+    // TODO: 当前使用 SimpleBlock 注册，缺少 onBlockActivated 交互逻辑。
+    //       需要创建 CraftingTableBlock 类，实现 onBlockActivated 以打开合成台 GUI 并调用
+    //       player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_CRAFTING_TABLE), 1);
+    //       参考 MC Java: CraftingTableBlock.onBlockActivated() → player.awardStat(Stats.INTERACT_WITH_CRAFTING_TABLE)
     BuildingBlocks::CRAFTING_TABLE = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crafting_table"),
         BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 

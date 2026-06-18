@@ -380,5 +380,9 @@ const CollisionShape& GrindstoneBlock::getCollisionShape(const BlockState& state
     return getShape(state);
 }
 
+// TODO: 实现 onBlockActivated 方法，打开砂轮 GUI 并调用
+//       player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_GRINDSTONE), 1);
+//       参考 MC Java: GrindstoneBlock.onBlockActivated() → player.awardStat(Stats.INTERACT_WITH_GRINDSTONE)
+
 } // namespace blocks
 } // namespace mc

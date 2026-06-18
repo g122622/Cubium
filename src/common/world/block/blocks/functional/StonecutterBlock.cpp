@@ -88,5 +88,9 @@ const CollisionShape& StonecutterBlock::getShape(const BlockState& state) const
     return m_shape;
 }
 
+// TODO: 实现 onBlockActivated 方法，打开切石机 GUI 并调用
+//       player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_STONECUTTER), 1);
+//       参考 MC Java: StonecutterBlock.onBlockActivated() → player.awardStat(Stats.INTERACT_WITH_STONECUTTER)
+
 } // namespace blocks
 } // namespace mc
