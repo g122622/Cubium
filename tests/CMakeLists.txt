@@ -1747,6 +1747,7 @@ add_executable(mc_command_tests
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
     common/command/arguments/TimeArgumentTest.cpp
+    common/command/arguments/Vec2ArgumentTest.cpp
 )
 
 target_sources(mc_command_tests
