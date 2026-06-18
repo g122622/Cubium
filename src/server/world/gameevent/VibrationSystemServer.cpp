@@ -32,6 +32,11 @@
 #include "common/world/gameevent/VibrationSystem.hpp"
 
 #include "common/entity/entities/player/Player.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/chunk/load/ChunkLoadLevel.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
 namespace mc::gameevent {
@@ -48,21 +53,35 @@ bool VibrationSystem::User::isValidVibration(const GameEvent& event, const GameE
         return false;
     }
 
-    // 检查源实体是否在潜行且事件忽略潜行
-    // TODO: 当实体潜行系统实现后，添加潜行检查
-
-    // 检查源实体是否阻尼振动（如羊毛覆盖的实体）
-    // TODO: 当 dampensVibrations 实现后，添加阻尼检查
-
-    // 检查受影响方块是否阻尼振动（如羊毛）
-    // TODO: 当 BlockTags::DAMPENS_VIBRATIONS 实现后，添加方块阻尼检查
-
-    // 源实体不可为旁观者
-    if (context.sourceEntity() != nullptr) {
-        const auto* player = dynamic_cast<const Player*>(context.sourceEntity());
+    // 检查源实体
+    const Entity* sourceEntity = context.sourceEntity();
+    if (sourceEntity != nullptr) {
+        // 源实体不可为旁观者
+        const auto* player = dynamic_cast<const Player*>(sourceEntity);
         if (player != nullptr && player->isSpectator()) {
             return false;
         }
+
+        // 源实体正在潜行且事件可被潜行忽略
+        // 参考: net.minecraft.tags.GameEventTags.IGNORE_VIBRATIONS_SNEAKING
+        // 当实体潜行时，HIT_GROUND/PROJECTILE_SHOOT/STEP/SWIM/
+        // ITEM_INTERACT_START/ITEM_INTERACT_FINISH 不触发振动
+        if (sourceEntity->isSteppingCarefully() && isIgnoredBySneaking(event)) {
+            // 如果监听器支持规避振动成就触发且源实体是服务端玩家，触发 AVOID_VIBRATION 进度
+            // TODO: 当 AVOID_VIBRATION 成就触发器实现后，在此触发 ServerPlayer 进度
+            return false;
+        }
+
+        // 源实体阻尼振动（如监守者、羊毛物品）
+        if (sourceEntity->dampensVibrations()) {
+            return false;
+        }
+    }
+
+    // 受影响方块阻尼振动（如羊毛方块/地毯）
+    // 参考: net.minecraft.tags.BlockTags.DAMPENS_VIBRATIONS
+    if (context.affectedState() != nullptr && BlockTags::DAMPENS_VIBRATIONS().contains(*context.affectedState())) {
+        return false;
     }
 
     return true;
@@ -204,8 +223,21 @@ bool VibrationSystem::Ticker::receiveVibration(
                                                         : sourceBlockPos;
 
     // 检查相邻区块是否正在 tick（如果需要）
+    // 参考: net.minecraft.world.level.gameevent.vibrations.VibrationSystem.Ticker.receiveVibration
+    // 幽匿感测体要求相邻区块在 EntityTicking 级别才接收振动
     if (user.requiresAdjacentChunksToBeTicking()) {
-        // TODO: 当区块 tick 追踪实现后，检查相邻区块是否在 tick
+        auto* chunkManager = world.chunkManager();
+        if (chunkManager != nullptr) {
+            using mc::world::chunk::ChunkLoadLevel;
+            i32 chunkX = mc::world::toChunkCoord(sourceBlockPos.x);
+            i32 chunkZ = mc::world::toChunkCoord(sourceBlockPos.z);
+            i32 level = chunkManager->ticketManager().getChunkLevel(chunkX, chunkZ);
+            if (level > static_cast<i32>(ChunkLoadLevel::EntityTicking)) {
+                // 源区块不在 EntityTicking 级别，拒绝振动
+                data.clearCurrentVibration();
+                return false;
+            }
+        }
     }
 
     // 查找源实体

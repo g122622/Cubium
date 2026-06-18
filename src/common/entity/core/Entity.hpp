@@ -1716,6 +1716,17 @@ public:
     [[nodiscard]] virtual bool isSteppingCarefully() const { return isSneaking(); }
 
     /**
+     * @brief 检查实体是否阻尼振动
+     *
+     * 阻尼振动的实体不会触发振动信号。
+     * 监守者始终阻尼振动，掉落的羊毛物品也阻尼振动。
+     * 参考: net.minecraft.world.entity.Entity.dampensVibrations()
+     *
+     * @return 如果实体阻尼振动返回true
+     */
+    [[nodiscard]] virtual bool dampensVibrations() const { return false; }
+
+    /**
      * @brief 检查实体是否可以触发行走事件
      *
      * 某些实体（如盔甲架、船等）不会触发行走相关事件。

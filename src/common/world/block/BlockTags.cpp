@@ -235,6 +235,15 @@ BlockTag& BlockTags::WOOL()
     return *tag;
 }
 
+BlockTag& BlockTags::WOOL_CARPETS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wool_carpets"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WOODEN_FENCES()
 {
     static BlockTag* tag = nullptr;
@@ -909,6 +918,27 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "black_wool")});
     tags[wool->getId()] = std::move(wool);
 
+    // 创建 WOOL_CARPETS 标签（所有颜色的地毯方块）
+    // 参考: net.minecraft.tags.BlockTags.WOOL_CARPETS
+    auto woolCarpets = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wool_carpets"));
+    woolCarpets->addAll({ResourceLocation("minecraft", "white_carpet"),
+        ResourceLocation("minecraft", "orange_carpet"),
+        ResourceLocation("minecraft", "magenta_carpet"),
+        ResourceLocation("minecraft", "light_blue_carpet"),
+        ResourceLocation("minecraft", "yellow_carpet"),
+        ResourceLocation("minecraft", "lime_carpet"),
+        ResourceLocation("minecraft", "pink_carpet"),
+        ResourceLocation("minecraft", "gray_carpet"),
+        ResourceLocation("minecraft", "light_gray_carpet"),
+        ResourceLocation("minecraft", "cyan_carpet"),
+        ResourceLocation("minecraft", "purple_carpet"),
+        ResourceLocation("minecraft", "blue_carpet"),
+        ResourceLocation("minecraft", "brown_carpet"),
+        ResourceLocation("minecraft", "green_carpet"),
+        ResourceLocation("minecraft", "red_carpet"),
+        ResourceLocation("minecraft", "black_carpet")});
+    tags[woolCarpets->getId()] = std::move(woolCarpets);
+
     // 创建 WOODEN_FENCES 标签（所有木质栅栏，不含下界砖栅栏）
     auto woodenFences = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_fences"));
     woodenFences->addAll({ResourceLocation("minecraft", "oak_fence"),
@@ -1461,7 +1491,8 @@ void BlockTags::initialize()
     lightningRods->addAll({ResourceLocation("minecraft", "lightning_rod")});
     tags[lightningRods->getId()] = std::move(lightningRods);
 
-    // 减振方块标签（羊毛等）
+    // 减振方块标签（羊毛和地毯）
+    // 参考: net.minecraft.data.tags.BlockItemTagsProvider - DAMPENS_VIBRATIONS 包含 wool 和 wool_carpets
     auto dampensVibrations = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dampens_vibrations"));
     dampensVibrations->addAll({// 所有羊毛颜色
         ResourceLocation("minecraft", "white_wool"),
@@ -1479,7 +1510,24 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "brown_wool"),
         ResourceLocation("minecraft", "green_wool"),
         ResourceLocation("minecraft", "red_wool"),
-        ResourceLocation("minecraft", "black_wool")});
+        ResourceLocation("minecraft", "black_wool"),
+        // 所有地毯颜色
+        ResourceLocation("minecraft", "white_carpet"),
+        ResourceLocation("minecraft", "orange_carpet"),
+        ResourceLocation("minecraft", "magenta_carpet"),
+        ResourceLocation("minecraft", "light_blue_carpet"),
+        ResourceLocation("minecraft", "yellow_carpet"),
+        ResourceLocation("minecraft", "lime_carpet"),
+        ResourceLocation("minecraft", "pink_carpet"),
+        ResourceLocation("minecraft", "gray_carpet"),
+        ResourceLocation("minecraft", "light_gray_carpet"),
+        ResourceLocation("minecraft", "cyan_carpet"),
+        ResourceLocation("minecraft", "purple_carpet"),
+        ResourceLocation("minecraft", "blue_carpet"),
+        ResourceLocation("minecraft", "brown_carpet"),
+        ResourceLocation("minecraft", "green_carpet"),
+        ResourceLocation("minecraft", "red_carpet"),
+        ResourceLocation("minecraft", "black_carpet")});
     tags[dampensVibrations->getId()] = std::move(dampensVibrations);
 
     // 遮挡振动信号方块标签

@@ -172,6 +172,9 @@ public:
     /// 羊毛标签
     static BlockTag& WOOL();
 
+    /// 羊毛地毯标签（所有颜色的地毯方块）
+    static BlockTag& WOOL_CARPETS();
+
     /// 木质栅栏标签（所有木质栅栏，不含下界砖栅栏）
     static BlockTag& WOODEN_FENCES();
 

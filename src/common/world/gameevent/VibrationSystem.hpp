@@ -142,6 +142,21 @@ public:
     [[nodiscard]] static i32 getGameEventFrequency(const GameEvent& event);
 
     /**
+     * @brief 检查游戏事件是否可被潜行状态忽略
+     *
+     * 当源实体正在潜行（isSteppingCarefully）时，
+     * 属于此类别的事件不会触发振动信号。
+     * 参考: net.minecraft.tags.GameEventTags.IGNORE_VIBRATIONS_SNEAKING
+     *
+     * 包含的事件：HIT_GROUND, PROJECTILE_SHOOT, STEP, SWIM,
+     *            ITEM_INTERACT_START, ITEM_INTERACT_FINISH
+     *
+     * @param event 游戏事件
+     * @return 如果事件可被潜行忽略返回true
+     */
+    [[nodiscard]] static bool isIgnoredBySneaking(const GameEvent& event);
+
+    /**
      * @brief 根据频率获取共鸣事件
      * @param frequency 振动频率 (1-15)
      * @return 对应的共鸣事件，频率无效时返回 nullptr

@@ -221,6 +221,16 @@ i32 VibrationSystem::getGameEventFrequency(const GameEvent& event)
     return getVibrationFrequencyForEvent(event.id());
 }
 
+bool VibrationSystem::isIgnoredBySneaking(const GameEvent& event)
+{
+    // 参考: net.minecraft.tags.GameEventTags.IGNORE_VIBRATIONS_SNEAKING
+    // 当源实体正在潜行（isSteppingCarefully）时，这些事件不触发振动
+    const char* id = event.id();
+    return std::strcmp(id, "hit_ground") == 0 || std::strcmp(id, "projectile_shoot") == 0 ||
+        std::strcmp(id, "step") == 0 || std::strcmp(id, "swim") == 0 || std::strcmp(id, "item_interact_start") == 0 ||
+        std::strcmp(id, "item_interact_finish") == 0;
+}
+
 const GameEvent* VibrationSystem::getResonanceEventByFrequency(i32 frequency)
 {
     switch (frequency) {
