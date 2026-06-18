@@ -490,12 +490,11 @@ void ZombieEntity::finalizeSpawn(
     }
 
     // 处理属性修饰符（随机增援概率、击退抗性、跟随范围、领袖僵尸判定）
-    _handleAttributes(specialMultiplier);
+    _handleAttributes(rng, specialMultiplier);
 }
 
-void ZombieEntity::_handleAttributes(f32 specialMultiplier)
+void ZombieEntity::_handleAttributes(math::Random& rng, f32 specialMultiplier)
 {
-    math::Random rng = getRandom();
 
     // 随机设置增援概率基础值（0.0 ~ 0.1）
     m_attributes.setBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, rng.nextDouble() * 0.1);

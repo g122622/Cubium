@@ -287,9 +287,10 @@ private:
      * - 跟随范围随机加成（条件性，>1.0时生效）
      * - 领袖僵尸判定（增援+生命+破门）
      *
+     * @param rng 共享的随机数生成器（由调用方传入，避免同tick多次调用getRandom导致种子重复）
      * @param specialMultiplier 区域难度特殊乘数
      */
-    void _handleAttributes(f32 specialMultiplier);
+    void _handleAttributes(math::Random& rng, f32 specialMultiplier);
 };
 
 } // namespace mc
