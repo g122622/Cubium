@@ -19,6 +19,7 @@ src/server/command/commands/
 ├── KickCommand.hpp / KickCommand.cpp             # 踢出在线玩家
 ├── KillCommand.hpp / KillCommand.cpp             # 杀死实体或自己（使用 EntityResolver 支持所有实体类型）
 ├── ListCommand.hpp / ListCommand.cpp             # 列出在线玩家
+├── ReloadCommand.hpp / ReloadCommand.cpp         # 重新加载战利品表、配方、函数、谓词和进度
 ├── SayCommand.hpp / SayCommand.cpp               # 广播聊天消息
 ├── ReplaceItemCommand.hpp / ReplaceItemCommand.cpp  # 替换物品栏/容器槽位物品（支持槽位名称解析）
 ├── ScoreboardCommand.hpp / ScoreboardCommand.cpp # 记分板目标管理

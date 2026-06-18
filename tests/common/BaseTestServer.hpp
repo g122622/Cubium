@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/item/loot/LootPredicateManager.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -120,6 +121,8 @@ public:
     [[nodiscard]] const resource::DataPackRepository& dataPackList() const override;
     [[nodiscard]] loot::LootTableManager& lootTableManager() override;
     [[nodiscard]] const loot::LootTableManager& lootTableManager() const override;
+    [[nodiscard]] loot::LootPredicateManager& predicateManager() override { return m_predicateManager; }
+    [[nodiscard]] const loot::LootPredicateManager& predicateManager() const override { return m_predicateManager; }
     [[nodiscard]] function::FunctionManager& functionManager() override { return m_functionManager; }
     [[nodiscard]] const function::FunctionManager& functionManager() const override { return m_functionManager; }
     [[nodiscard]] function::TimerQueue& functionTimerQueue() override { return m_functionTimerQueue; }
@@ -205,6 +208,7 @@ protected:
     command::CommandRegistry m_commandRegistry;
     command::CommandStorage m_commandStorage;
     server::ServerScoreboard m_scoreboard;
+    loot::LootPredicateManager m_predicateManager;
     function::FunctionManager m_functionManager;
     function::TimerQueue m_functionTimerQueue;
     std::vector<std::shared_ptr<FakeServerConnection>> m_connections;

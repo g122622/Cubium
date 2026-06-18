@@ -634,6 +634,8 @@ add_executable(mc_tests
     common/advancement/BlockPredicateTest.cpp
     # AdvancementVisibilityEvaluator 成就可见性评估器测试
     common/advancement/AdvancementVisibilityEvaluatorTest.cpp
+    # AdvancementLoader 成就加载器测试
+    common/advancement/AdvancementLoaderTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
     # EffectAttributeModifiers 效果属性修改器测试
