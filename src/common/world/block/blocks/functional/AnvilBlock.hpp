@@ -27,6 +27,8 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 
+#include <array>
+
 namespace mc {
 
 class BlockState;
@@ -105,13 +107,15 @@ public:
     /**
      * @brief 获取方块的视觉形状
      *
-     * 铁砧形状由四个部分组成（自下而上）：
-     * - 底座：宽12px，高0-4px
-     * - 中段：宽10px，高4-5px
-     * - 窄颈：宽8px，高5-10px
-     * - 顶面：宽10px，高10-16px
+     * 铁砧形状根据朝向轴（X轴或Z轴）返回不同的预计算形状。
+     * MC 原版铁砧形状是 X/Z 不对称的：顶部沿朝向方向延伸至满16像素宽，
+     * 垂直于朝向方向仅10像素宽。中段和窄颈也是 X/Z 不对称的。
      *
-     * 由于铁砧形状围绕Y轴中心对称，所有朝向使用同一形状。
+     * 形状由四个部分组成（以Z轴/北南朝向为例）：
+     * - 底座：X/Z=2~14, Y=0~4 (12×12)
+     * - 中段：X=4~12, Z=3~13, Y=4~5 (8×10)
+     * - 窄颈：X=6~10, Z=4~12, Y=5~10 (4×8)
+     * - 顶面：X=3~13, Z=0~16, Y=10~16 (10×16)
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
@@ -149,8 +153,15 @@ public:
     [[nodiscard]] static const BlockState* damageAnvil(const BlockState& state);
 
 private:
-    /// 预计算的铁砧形状（所有朝向共用，因为形状围绕Y轴中心对称）
-    CollisionShape m_shape;
+    /**
+     * @brief 根据朝向轴获取形状索引
+     *
+     * North/South 映射到 Z 轴形状（index 0），East/West 映射到 X 轴形状（index 1）。
+     */
+    [[nodiscard]] static size_t _getAxisIndex(Direction facing);
+
+    /// 预计算的形状，按轴索引：[0]=Z轴(North/South), [1]=X轴(East/West)
+    std::array<CollisionShape, 2> m_shapesByAxis;
 };
 
 } // namespace blocks

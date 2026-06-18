@@ -11,7 +11,7 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -47,14 +47,20 @@ static constexpr i32 ANVIL_FALL_DAMAGE_MAX = 40;
 
 // ========== 铁砧形状常量（像素坐标，0-16范围） ==========
 //
-// MC 原版铁砧形状由四个柱体组成（围绕Y轴中心对称，所有朝向共用）：
-//   底座：宽12像素（偏移2~14），高0~4
-//   中段：宽10像素（偏移3~13），高4~5
-//   窄颈：宽8像素（偏移4~12），高5~10
-//   顶面：宽10像素（偏移3~13），高10~16
+// MC 原版铁砧形状由四个柱体组成，且 X/Z 轴不对称：
+//   顶面沿朝向方向延伸至满16像素宽，垂直方向仅10像素宽。
 //
-// 由于 CollisionShape 不支持锥形（每段只能用矩形包围盒），
-// 对 MC 原版中的锥形部分取最大包围矩形。
+// Z轴形状（North/South朝向，铁砧长轴沿Z方向）：
+//   底座：X=2~14,  Z=2~14,  Y=0~4   (12×12，对称)
+//   中段：X=4~12,  Z=3~13,  Y=4~5   (8×10，Z更宽)
+//   窄颈：X=6~10,  Z=4~12,  Y=5~10  (4×8，Z更宽)
+//   顶面：X=3~13,  Z=0~16,  Y=10~16 (10×16，Z满宽)
+//
+// X轴形状（East/West朝向，铁砧长轴沿X方向）：
+//   由Z轴形状绕Y轴旋转90度得到，X/Z坐标互换。
+//
+// 参考: MC 1.21.11 AnvilBlock.java 中的 SHAPES 常量，
+//       Block.column(xDiameter, zDiameter, minY, maxY) 的参数为直径而非半径。
 
 /// 像素单位常量
 static constexpr f32 P = 1.0f / 16.0f;
@@ -79,16 +85,32 @@ AnvilBlock::AnvilBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
     // ========== 构建铁砧形状 ==========
-    // 底座：Y=0~4，宽12像素，居中偏移2
-    CollisionShape base = CollisionShape::box(2 * P, 0 * P, 2 * P, 14 * P, 4 * P, 14 * P);
-    // 中段收缩：Y=4~5，宽10像素，居中偏移3
-    CollisionShape mid = CollisionShape::box(3 * P, 4 * P, 3 * P, 13 * P, 5 * P, 13 * P);
-    // 窄颈：Y=5~10，宽8像素，居中偏移4
-    CollisionShape neck = CollisionShape::box(4 * P, 5 * P, 4 * P, 12 * P, 10 * P, 12 * P);
-    // 顶面：Y=10~16，宽10像素，居中偏移3
-    CollisionShape top = CollisionShape::box(3 * P, 10 * P, 3 * P, 13 * P, 16 * P, 13 * P);
 
-    m_shape = CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(base, mid), neck), top);
+    // Z轴形状（North/South朝向）：铁砧长轴沿Z方向
+    // 底座：X=2~14, Z=2~14, Y=0~4
+    CollisionShape zBase = CollisionShape::box(2 * P, 0 * P, 2 * P, 14 * P, 4 * P, 14 * P);
+    // 中段：X=4~12, Z=3~13, Y=4~5
+    CollisionShape zMid = CollisionShape::box(4 * P, 4 * P, 3 * P, 12 * P, 5 * P, 13 * P);
+    // 窄颈：X=6~10, Z=4~12, Y=5~10
+    CollisionShape zNeck = CollisionShape::box(6 * P, 5 * P, 4 * P, 10 * P, 10 * P, 12 * P);
+    // 顶面：X=3~13, Z=0~16, Y=10~16（Z方向满宽）
+    CollisionShape zTop = CollisionShape::box(3 * P, 10 * P, 0 * P, 13 * P, 16 * P, 16 * P);
+
+    m_shapesByAxis[0] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(zBase, zMid), zNeck), zTop);
+
+    // X轴形状（East/West朝向）：铁砧长轴沿X方向，由Z轴形状X/Z互换得到
+    // 底座：X=2~14, Z=2~14, Y=0~4（对称，与Z轴相同）
+    CollisionShape xBase = CollisionShape::box(2 * P, 0 * P, 2 * P, 14 * P, 4 * P, 14 * P);
+    // 中段：X=3~13, Z=4~12, Y=4~5
+    CollisionShape xMid = CollisionShape::box(3 * P, 4 * P, 4 * P, 13 * P, 5 * P, 12 * P);
+    // 窄颈：X=4~12, Z=6~10, Y=5~10
+    CollisionShape xNeck = CollisionShape::box(4 * P, 5 * P, 6 * P, 12 * P, 10 * P, 10 * P);
+    // 顶面：X=0~16, Z=3~13, Y=10~16（X方向满宽）
+    CollisionShape xTop = CollisionShape::box(0 * P, 10 * P, 3 * P, 16 * P, 16 * P, 13 * P);
+
+    m_shapesByAxis[1] =
+        CollisionShape::combine(CollisionShape::combine(CollisionShape::combine(xBase, xMid), xNeck), xTop);
 }
 
 void AnvilBlock::onStartFalling(IWorld& /*world*/, const BlockPos& /*pos*/, entity::FallingBlockEntity& entity)
@@ -177,10 +199,10 @@ const BlockState& AnvilBlock::mirror(const BlockState& state, Mirror mirror) con
     return state.with(BlockStateProperties::HORIZONTAL_FACING(), newFacing);
 }
 
-const CollisionShape& AnvilBlock::getShape(const BlockState& /*state*/) const
+const CollisionShape& AnvilBlock::getShape(const BlockState& state) const
 {
-    // 铁砧形状围绕Y轴中心对称，所有朝向共用同一形状
-    return m_shape;
+    const Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    return m_shapesByAxis[_getAxisIndex(facing)];
 }
 
 const CollisionShape& AnvilBlock::getCollisionShape(const BlockState& state) const
@@ -245,6 +267,21 @@ const BlockState* AnvilBlock::damageAnvil(const BlockState& state)
 
     // 非铁砧方块，不进行损坏
     return nullptr;
+}
+
+size_t AnvilBlock::_getAxisIndex(Direction facing)
+{
+    // North/South → Z轴 (index 0)，East/West → X轴 (index 1)
+    switch (facing) {
+        case Direction::North:
+        case Direction::South:
+            return 0;
+        case Direction::East:
+        case Direction::West:
+            return 1;
+        default:
+            return 0;
+    }
 }
 
 } // namespace blocks
