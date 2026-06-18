@@ -109,29 +109,33 @@ BlockState TallSeagrassBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-
-    MC_UNUSED(world);
-    MC_UNUSED(currentPos);
     MC_UNUSED(facingPos);
 
     auto half = getHalf(state);
 
-    if (half == DoubleBlockHalf::Upper) {
-        // 上半部分检查下方
-        if (facing == Direction::Down) {
-            if (!facingState.is(this) ||
-                facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != DoubleBlockHalf::Lower) {
-                if (auto* airState = BlockRegistry::instance().airState()) {
-                    return *airState;
-                }
+    // 仅处理 Y 轴方向的邻居变化
+    if (Directions::getAxis(facing) == Axis::Y) {
+        bool isLower = half == DoubleBlockHalf::Lower;
+        bool isUpDirection = facing == Direction::Up;
+
+        // 当变化来自连接另一半的方向时（下半部分→上方，上半部分→下方）
+        if (isLower == isUpDirection) {
+            // 如果邻居仍然是同类型方块的另一半，保持当前状态
+            if (facingState.is(this) && facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != half) {
+                return state;
+            }
+            // 另一半已消失，当前半部分也应消失
+            if (auto* airState = BlockRegistry::instance().airState()) {
+                return *airState;
             }
         }
-    } else {
-        // 下半部分检查上方
-        if (facing == Direction::Up) {
-            if (!facingState.is(this) ||
-                facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != DoubleBlockHalf::Upper) {
-                // TODO: 上方没有上半部分时的处理逻辑待实现
+    }
+
+    // 下半部分额外检查：如果下方支撑方块不再有效，也应消失
+    if (half == DoubleBlockHalf::Lower && facing == Direction::Down) {
+        if (!isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+            if (auto* airState = BlockRegistry::instance().airState()) {
+                return *airState;
             }
         }
     }

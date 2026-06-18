@@ -82,12 +82,29 @@ BlockState SmallDripleafBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
-    MC_UNUSED(facingState);
-    MC_UNUSED(facingPos);
+    MC_UNUSED(currentPos);
 
+    // 含水时调度水流 tick
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);
+    }
+
+    auto half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+
+    // 仅处理 Y 轴方向的邻居变化
+    if (Directions::getAxis(facing) == Axis::Y) {
+        bool isLower = half == BlockStateProperties::DoubleBlockHalf::Lower;
+        bool isUpDirection = facing == Direction::Up;
+
+        // 当变化来自连接另一半的方向时（下半部分→上方，上半部分→下方）
+        if (isLower == isUpDirection) {
+            // 如果邻居仍然是同类型方块的另一半，保持当前状态
+            if (facingState.is(this) && facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != half) {
+                return state;
+            }
+            // 另一半已消失，当前半部分也应消失
+            return VanillaBlocks::AIR->defaultState();
+        }
     }
 
     return state;
