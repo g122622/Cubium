@@ -22,10 +22,10 @@
  */
 
 #include "ChestRenderer.hpp"
+#include "common/util/SpecialDates.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include <cmath>
-#include <ctime>
 
 namespace mc::client::renderer::trident::blockentity {
 
@@ -36,18 +36,7 @@ ChestRenderer::ChestRenderer()
 
 bool ChestRenderer::isChristmas()
 {
-    const std::time_t now = std::time(nullptr);
-    std::tm localTime{};
-#ifdef _WIN32
-    localtime_s(&localTime, &now);
-#else
-    localtime_r(&now, &localTime);
-#endif
-
-    const i32 month = localTime.tm_mon + 1; // tm_mon 是 0-11
-    const i32 day = localTime.tm_mday;
-
-    return month == 12 && day >= 24 && day <= 26;
+    return util::SpecialDates::isExtendedChristmas();
 }
 
 mc::client::renderer::blockentity::model::ChestModel::ChestType ChestRenderer::_determineChestType(

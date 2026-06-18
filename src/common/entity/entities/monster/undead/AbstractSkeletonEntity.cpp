@@ -23,10 +23,6 @@
 
 #include "AbstractSkeletonEntity.hpp"
 
-#include "../../../../core/Types.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/FleeSunGoal.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
@@ -40,6 +36,15 @@
 #include "../../passive/golem/IronGolemEntity.hpp"
 #include "../../player/Player.hpp"
 #include "../../projectile/AbstractArrowEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/SpecialDates.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 
@@ -206,6 +211,31 @@ void AbstractSkeletonEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ARROW_DAMAGE);
+}
+
+void AbstractSkeletonEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    MonsterEntity::finalizeSpawn(world, difficulty, spawnReason);
+
+    math::Random rng = getRandom();
+
+    // 重新评估战斗目标（远程/近战）
+    setCombatTask();
+
+    // 设置拾取物品能力
+    setCanPickUpLoot(rng.nextFloat() < 0.55f * difficulty.getSpecialMultiplier());
+
+    // 万圣节南瓜头：10月31日，25% 概率
+    if (util::SpecialDates::isHalloween() && rng.nextFloat() < 0.25f) {
+        if (getEquipment(EquipmentSlot::Head).isEmpty()) {
+            const Item* pumpkinItem = rng.nextFloat() < 0.1f ? Items::JACK_O_LANTERN : Items::CARVED_PUMPKIN;
+            if (pumpkinItem != nullptr) {
+                setEquipment(EquipmentSlot::Head, ItemStack(*pumpkinItem, 1));
+                setEquipmentDropChance(EquipmentSlot::Head, 0.0f);
+            }
+        }
+    }
 }
 
 } // namespace mc

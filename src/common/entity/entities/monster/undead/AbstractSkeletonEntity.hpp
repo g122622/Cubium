@@ -110,6 +110,23 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 完成骷髅的生成初始化
+     *
+     * 重写 MobEntity::finalizeSpawn() 以实现骷髅特有的初始化：
+     * - 填充默认装备和附魔
+     * - 重新评估战斗目标（远程/近战）
+     * - 设置拾取物品能力
+     * - 万圣节南瓜头（10月31日，25% 概率）
+     *
+     * @param world 世界引用
+     * @param difficulty 区域难度实例
+     * @param spawnReason 生成原因
+     */
+    void finalizeSpawn(mc::IWorld& world,
+        const mc::entity::combat::DifficultyInstance& difficulty,
+        mc::world::spawn::SpawnReason spawnReason) override;
+
 protected:
     AbstractSkeletonEntity(EntityId id);
 

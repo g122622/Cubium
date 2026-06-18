@@ -220,6 +220,7 @@ public:
      * - 调用父类的装备填充和附魔逻辑
      * - 僵尸特有主手武器（铁剑/铁锹，Hard 难度下概率 5%，其他难度 1%）
      * - 万圣节南瓜头（10月31日，25% 概率）
+     * - 属性修饰符（随机增援概率、击退抗性、跟随范围、领袖僵尸判定）
      *
      * @param world 世界引用
      * @param difficulty 区域难度实例
@@ -276,6 +277,19 @@ private:
      * @brief 更新溺水转化
      */
     void _updateDrowning();
+
+    /**
+     * @brief 根据难度设置属性修饰符
+     *
+     * 在 finalizeSpawn 末尾调用，设置：
+     * - 随机增援概率基础值（0.0~0.1）
+     * - 击退抗性随机加成（0~0.05）
+     * - 跟随范围随机加成（条件性，>1.0时生效）
+     * - 领袖僵尸判定（增援+生命+破门）
+     *
+     * @param specialMultiplier 区域难度特殊乘数
+     */
+    void _handleAttributes(f32 specialMultiplier);
 };
 
 } // namespace mc

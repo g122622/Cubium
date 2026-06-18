@@ -73,6 +73,7 @@ util/
 ├── RateLimiter.hpp                # 限流器
 ├── StringUtils.hpp                # 字符串工具
 ├── TimeUtils.hpp                  # 时间工具
+├── SpecialDates.hpp               # 特殊日期工具
 └── UuidUtils.hpp/cpp              # UUID 工具（离线 UUID 生成）
 ```
 
@@ -100,6 +101,7 @@ util/
 │  RateLimiter (独立)                                               │
 │  StringUtils (独立)                                               │
 │  TimeUtils (独立)                                                 │
+│  SpecialDates (独立)                                              │
 │  UuidUtils ← Md5                                                  │
 │  CompressionUtils (依赖 zlib)                                    │
 └─────────────────────────────────────────────────────────────────┘
