@@ -260,10 +260,9 @@ public:
 
     /**
      * @brief 设置字体
-     * @param font 字体对象指针（Font* 以void*传递，避免头文件依赖）
-     *            // TODO: 改为 Font* 类型，避免类型不安全
+     * @param font 字体对象指针（外部管理生命周期）
      */
-    void setFont(void* font)
+    void setFont(::mc::client::Font* font)
     {
         if (m_font != font) {
             m_font = font;
@@ -274,7 +273,7 @@ public:
     /**
      * @brief 获取字体指针
      */
-    [[nodiscard]] void* font() const { return m_font; }
+    [[nodiscard]] ::mc::client::Font* font() const { return m_font; }
 
 protected:
     /**
@@ -292,7 +291,7 @@ protected:
     bool m_wordWrap = false;                         ///< 是否启用自动换行
     i32 m_lineHeight = DEFAULT_LINE_HEIGHT;          ///< 行高（像素）
     f32 m_scale = 1.0f;                              ///< 文本缩放比例
-    void* m_font = nullptr;                          ///< 字体指针 // TODO: 改为 Font* 类型
+    ::mc::client::Font* m_font = nullptr;            ///< 字体指针（外部管理生命周期）
     mutable std::vector<std::string> m_lines;        ///< 行缓存（mutable支持延迟计算）
     mutable bool m_linesDirty = true;                ///< 行缓存是否需要重建
 
@@ -305,19 +304,14 @@ private:
     static constexpr i32 DEFAULT_LINE_HEIGHT = 9;
 
     /**
-     * @brief 获取外部字体对象
-     */
-    [[nodiscard]] ::mc::client::Font* _resolvedFont() const { return static_cast<::mc::client::Font*>(m_font); }
-
-    /**
      * @brief 计算单个码点的水平步进宽度
      * @param codePoint Unicode码点
      * @return 步进宽度（像素）
      */
     [[nodiscard]] f32 _measureGlyphAdvance(char32_t codePoint) const
     {
-        if (auto* font = _resolvedFont()) {
-            if (const auto* glyph = font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
+        if (m_font) {
+            if (const auto* glyph = m_font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
                 return glyph->advance;
             }
             return MISSING_GLYPH_ADVANCE;

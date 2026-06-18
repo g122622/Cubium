@@ -334,7 +334,7 @@ public:
         m_maxLines = maxLines;
         m_linesDirty = true;
     }
-    void setFont(void* font)
+    void setFont(::mc::client::Font* font)
     {
         m_font = font;
         m_linesDirty = true;
@@ -524,10 +524,10 @@ private:
      */
     [[nodiscard]] f32 _measureTextWidth(const std::string& text) const
     {
-        if (auto* font = _resolvedFont()) {
+        if (m_font) {
             f32 width = 0.0f;
             for (char32_t codePoint : text) {
-                if (const auto* glyph = font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
+                if (const auto* glyph = m_font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
                     width += glyph->advance;
                 } else {
                     // 缺失字形的回退宽度
@@ -541,11 +541,6 @@ private:
         constexpr f32 FALLBACK_CHAR_WIDTH = 8.0f;
         return static_cast<f32>(text.length()) * FALLBACK_CHAR_WIDTH;
     }
-
-    /**
-     * @brief 获取字体对象
-     */
-    [[nodiscard]] ::mc::client::Font* _resolvedFont() const { return static_cast<::mc::client::Font*>(m_font); }
 
     /**
      * @brief 查找指定位置的文本运行
@@ -615,8 +610,8 @@ private:
     bool m_wordWrap = true;
     TextAlignment m_alignment = TextAlignment::Left;
     f32 m_lineSpacing = 1.0f;
-    i32 m_maxLines = 0;     // 0 = 无限制
-    void* m_font = nullptr; // TODO: 改为 Font* 类型，避免类型不安全
+    i32 m_maxLines = 0;                   // 0 = 无限制
+    ::mc::client::Font* m_font = nullptr; ///< 字体指针（外部管理生命周期）
     constexpr static f32 s_fontHeight = 9.0f;
 
     // 事件处理

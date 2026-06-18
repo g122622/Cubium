@@ -426,7 +426,7 @@ public:
      *
      * @note 该指针由外部管理生命周期，TextFieldWidget 不接管所有权。
      */
-    void setFont(void* font)
+    void setFont(::mc::client::Font* font)
     {
         m_font = font;
         updateScrollOffset();
@@ -435,7 +435,7 @@ public:
     /**
      * @brief 获取字体
      */
-    [[nodiscard]] void* font() const { return m_font; }
+    [[nodiscard]] ::mc::client::Font* font() const { return m_font; }
 
     /**
      * @brief 是否允许写入文本
@@ -499,19 +499,12 @@ protected:
     }
 
     /**
-     * @brief 获取外部字体对象（将 void* 转型为 Font*）
-     *
-     * TODO: m_font 应改为类型安全的指针，避免 void* 强转
-     */
-    [[nodiscard]] ::mc::client::Font* resolvedFont() const { return static_cast<::mc::client::Font*>(m_font); }
-
-    /**
      * @brief 计算单个码点的水平推进宽度
      */
     [[nodiscard]] f32 measureGlyphAdvance(char32_t codePoint) const
     {
-        if (auto* font = resolvedFont()) {
-            if (const auto* glyph = font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
+        if (m_font) {
+            if (const auto* glyph = m_font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
                 return glyph->advance;
             }
             // 字体中未找到字形时的回退宽度
@@ -683,23 +676,23 @@ protected:
 
     // ---- 成员变量 ----
 
-    std::string m_text;                  ///< 当前文本内容
-    std::string m_placeholder;           ///< 占位符文本（文本为空时显示）
-    i32 m_maxLength = 32;                ///< 最大文本长度
-    i32 m_cursorPosition = 0;            ///< 光标位置（字符索引）
-    i32 m_selectionEnd = 0;              ///< 选区结束位置
-    i32 m_scrollOffset = 0;              ///< 水平滚动偏移（像素）
-    i32 m_cursorBlinkCounter = 0;        ///< 光标闪烁计数器（TODO: 用于光标闪烁视觉反馈，尚未实现）
-    bool m_enabled = true;               ///< 是否启用输入
-    bool m_canLoseFocus = true;          ///< 失去焦点时是否清除选区
-    bool m_drawBackground = true;        ///< 是否绘制背景
-    bool m_shiftHeld = false;            ///< Shift 键是否按下（用于选区扩展）
-    u32 m_textColor = 0xE0E0E0;          ///< 正常状态文本颜色
-    u32 m_disabledTextColor = 0x707070;  ///< 禁用状态文本颜色
-    u32 m_selectionColor = 0xFF0000FF;   ///< 选区高亮颜色（TODO: 选区高亮渲染尚未实现）
-    void* m_font = nullptr;              ///< 字体指针（外部管理生命周期）
-    TextChangedCallback m_onTextChanged; ///< 文本变化回调
-    TextValidator m_validator;           ///< 文本验证器
+    std::string m_text;                   ///< 当前文本内容
+    std::string m_placeholder;            ///< 占位符文本（文本为空时显示）
+    i32 m_maxLength = 32;                 ///< 最大文本长度
+    i32 m_cursorPosition = 0;             ///< 光标位置（字符索引）
+    i32 m_selectionEnd = 0;               ///< 选区结束位置
+    i32 m_scrollOffset = 0;               ///< 水平滚动偏移（像素）
+    i32 m_cursorBlinkCounter = 0;         ///< 光标闪烁计数器（TODO: 用于光标闪烁视觉反馈，尚未实现）
+    bool m_enabled = true;                ///< 是否启用输入
+    bool m_canLoseFocus = true;           ///< 失去焦点时是否清除选区
+    bool m_drawBackground = true;         ///< 是否绘制背景
+    bool m_shiftHeld = false;             ///< Shift 键是否按下（用于选区扩展）
+    u32 m_textColor = 0xE0E0E0;           ///< 正常状态文本颜色
+    u32 m_disabledTextColor = 0x707070;   ///< 禁用状态文本颜色
+    u32 m_selectionColor = 0xFF0000FF;    ///< 选区高亮颜色（TODO: 选区高亮渲染尚未实现）
+    ::mc::client::Font* m_font = nullptr; ///< 字体指针（外部管理生命周期）
+    TextChangedCallback m_onTextChanged;  ///< 文本变化回调
+    TextValidator m_validator;            ///< 文本验证器
 };
 
 } // namespace mc::client::ui::kagero::widget
