@@ -385,6 +385,12 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
+    # 游戏事件系统（服务端实现）
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
     # 事件系统

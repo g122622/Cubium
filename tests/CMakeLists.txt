@@ -299,6 +299,8 @@ add_executable(mc_tests
     # GameEvent 游戏事件测试
     common/world/gameevent/GameEventTest.cpp
     common/world/gameevent/GameEventSystemTest.cpp
+    # GameEvent 服务端集成测试
+    server/world/gameevent/GameEventServerTest.cpp
     common/world/lighting/InternalLightUtilsTest.cpp
     common/world/LightLevelTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
@@ -942,6 +944,12 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
+        # 游戏事件系统（服务端实现）
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         # 事件系统
@@ -1805,6 +1813,12 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
+        # 游戏事件系统（服务端实现）
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp

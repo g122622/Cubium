@@ -906,10 +906,7 @@ add_library(mc_common STATIC
     world/chunk/load/ChunkLoadTicketManager.cpp
 
     # World - Game Event System
-    world/gameevent/GameEventListenerRegistry.cpp
-    world/gameevent/GameEventDispatcher.cpp
-    world/gameevent/PositionSource.cpp
-    world/gameevent/DynamicGameEventListener.cpp
+    # Note: .cpp files that depend on server headers are in src/server/world/gameevent/
     world/gameevent/VibrationSystem.cpp
 
     # World - Generation - Noise

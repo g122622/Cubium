@@ -42,6 +42,12 @@ add_executable(minecraft-server
     world/entity/ItemPickupManager.cpp
     world/player/ServerPlayerEntityManager.cpp
     world/weather/WeatherManager.cpp
+    # 世界模块 - 游戏事件系统
+    world/gameevent/PositionSource.cpp
+    world/gameevent/GameEventListenerRegistry.cpp
+    world/gameevent/GameEventDispatcher.cpp
+    world/gameevent/DynamicGameEventListener.cpp
+    world/gameevent/VibrationSystemServer.cpp
     player/ServerPlayer.cpp
     # 成就系统
     advancement/PlayerAdvancements.cpp
