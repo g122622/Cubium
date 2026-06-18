@@ -22,6 +22,8 @@
  */
 
 #include "MinecraftServer.hpp"
+#include "common/advancement/AdvancementLoader.hpp"
+#include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
@@ -859,6 +861,22 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             }
         }
         m_functionManager.notifyReload();
+    }
+
+    // 加载进度（从数据包加载）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Advancements");
+        mc::advancement::AdvancementLoader advancementLoader;
+        auto advancementLoadResult = advancementLoader.loadFromDataPackRepository(m_dataPackList);
+        if (advancementLoadResult.failed()) {
+            spdlog::error("Failed to load advancements from data packs: {}", advancementLoadResult.error().toString());
+        } else {
+            const auto& result = advancementLoadResult.value();
+            spdlog::info("Loaded {} advancements from data packs ({} failed)", result.successCount, result.failedCount);
+            for (const auto& err : result.errors) {
+                spdlog::error("Advancement error: {}", err);
+            }
+        }
     }
 
     // 加载模板池（从数据包加载）

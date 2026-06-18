@@ -23,8 +23,11 @@
 
 #include "ReloadCommand.hpp"
 
+#include "common/advancement/AdvancementLoader.hpp"
+#include "common/advancement/AdvancementManager.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
+#include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
 #include "server/application/IServer.hpp"
@@ -41,7 +44,11 @@ void ReloadCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     auto reloadNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("reload");
     reloadNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(reloadNode,
-        support::makeMetadata("Reloads loot tables, advancements, and functions from disk.", "/reload", 2, {}, true));
+        support::makeMetadata("Reloads loot tables, recipes, functions, predicates, and advancements from data packs.",
+            "/reload",
+            2,
+            {},
+            true));
 
     reloadNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _reload(ctx); });
 
@@ -109,6 +116,43 @@ i32 ReloadCommand::_reload(CommandContext<ServerCommandSource>& context)
         }
         // 通知函数管理器重新加载完成，下次 tick 时执行 minecraft:load 标签
         functionManager.notifyReload();
+    }
+
+    // 4. 重新加载战利品谓词
+    {
+        auto& predicateMgr = server->predicateManager();
+        loot::LootPredicateLoader predicateLoader(predicateMgr);
+        auto predicateResult = predicateLoader.loadFromDataPackRepository(dataPacks);
+        if (predicateResult.failed()) {
+            source.sendMessage("Failed to reload predicates: " + predicateResult.error().toString());
+            spdlog::error("Failed to reload predicates: {}", predicateResult.error().toString());
+        } else {
+            const auto& result = predicateResult.value();
+            source.sendMessage("Reloaded " + std::to_string(result.successCount) + " predicates" +
+                (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+            for (const auto& err : result.errors) {
+                spdlog::error("Predicate error: {}", err);
+            }
+        }
+        // 重新关联谓词管理器到掉落表管理器
+        server->lootTableManager().setPredicateManager(&predicateMgr);
+    }
+
+    // 5. 重新加载进度
+    {
+        advancement::AdvancementLoader advancementLoader;
+        auto advancementResult = advancementLoader.loadFromDataPackRepository(dataPacks);
+        if (advancementResult.failed()) {
+            source.sendMessage("Failed to reload advancements: " + advancementResult.error().toString());
+            spdlog::error("Failed to reload advancements: {}", advancementResult.error().toString());
+        } else {
+            const auto& result = advancementResult.value();
+            source.sendMessage("Reloaded " + std::to_string(result.successCount) + " advancements" +
+                (result.failedCount > 0 ? (" (" + std::to_string(result.failedCount) + " failed)") : ""));
+            for (const auto& err : result.errors) {
+                spdlog::error("Advancement error: {}", err);
+            }
+        }
     }
 
     source.sendMessage("Reload complete!");

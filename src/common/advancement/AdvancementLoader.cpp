@@ -23,12 +23,88 @@
 
 #include "AdvancementLoader.hpp"
 #include "AdvancementManager.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
+#include "perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <spdlog/spdlog.h>
 
 namespace mc::advancement {
+
+Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDataPackRepository(
+    const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback)
+{
+    MC_TRACE_EVENT("io.resource", "AdvancementLoader::loadFromDataPackRepository");
+
+    m_lastResult = LoadResult{};
+    _clearIfNeeded();
+
+    auto listResult = dataPacks.listResources("", ".json");
+    if (!listResult.success()) {
+        return listResult.error();
+    }
+
+    // 筛选成就资源路径：data/<namespace>/advancement/<path>.json 或 data/<namespace>/advancements/<path>.json
+    // MC 1.21+ 使用单数形式 "advancement"，MC 1.16.5 使用复数形式 "advancements"，两种格式都需要支持
+    std::vector<std::string> advancementResources;
+    for (const auto& path : listResult.value()) {
+        if (path.find("/advancement/") == std::string::npos && path.find("advancement/") == std::string::npos &&
+            path.find("/advancements/") == std::string::npos && path.find("advancements/") == std::string::npos) {
+            continue;
+        }
+        advancementResources.push_back(path);
+    }
+
+    Size current = 0;
+    const Size total = advancementResources.size();
+    for (const auto& resourcePath : advancementResources) {
+        const ResourceLocation id = pathToAdvancementId(resourcePath);
+        const std::string idStr = id.toString();
+        if (callback) {
+            callback(current, total, idStr);
+        }
+
+        auto readResult = dataPacks.readTextResource(resourcePath);
+        if (!readResult.success()) {
+            ++m_lastResult.failedCount;
+            m_lastResult.errors.push_back(resourcePath + ": " + readResult.error().toString());
+            ++current;
+            continue;
+        }
+
+        auto loadResult = loadJson(id, readResult.value());
+        if (loadResult.failed()) {
+            ++m_lastResult.failedCount;
+            m_lastResult.errors.push_back(resourcePath + ": " + loadResult.error().toString());
+            ++current;
+            continue;
+        }
+
+        // 注册到管理器
+        auto advancement = std::make_shared<Advancement>(std::move(loadResult.value()));
+        if (!AdvancementManager::instance().registerAdvancement(advancement)) {
+            ++m_lastResult.failedCount;
+            m_lastResult.errors.push_back(resourcePath + ": Duplicate advancement ID: " + idStr);
+        } else {
+            ++m_lastResult.successCount;
+        }
+        ++current;
+    }
+
+    if (callback) {
+        callback(total, total, "");
+    }
+
+    return m_lastResult;
+}
+
+void AdvancementLoader::_clearIfNeeded()
+{
+    if (m_clearBeforeLoad) {
+        AdvancementManager::instance().clear();
+    }
+}
 
 Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDirectory(
     const std::string& directoryPath, ProgressCallback callback)
@@ -42,9 +118,7 @@ Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDirectory(
     }
 
     // 如果设置，清空管理器
-    if (m_clearBeforeLoad) {
-        AdvancementManager::instance().clear();
-    }
+    _clearIfNeeded();
 
     // 查找所有JSON文件
     auto jsonFiles = _findJsonFiles(directoryPath);
@@ -52,10 +126,10 @@ Result<AdvancementLoader::LoadResult> AdvancementLoader::loadFromDirectory(
 
     spdlog::info("Loading advancements from: {} ({} files)", directoryPath, jsonFiles.size());
 
-    size_t index = 0;
+    Size index = 0;
     for (const auto& filePath : jsonFiles) {
         if (callback) {
-            callback(index, jsonFiles.size(), filePath.filename().string());
+            callback(index, static_cast<Size>(jsonFiles.size()), filePath.filename().string());
         }
         ++index;
 
@@ -131,12 +205,11 @@ Result<Advancement> AdvancementLoader::loadJson(const ResourceLocation& id, cons
 
 ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& filePath) const
 {
-    // 路径格式: "data/minecraft/advancements/story/mine_stone.json"
+    // 路径格式: "data/minecraft/advancements/story/mine_stone.json" 或 "minecraft/advancement/story/mine_stone.json"
     // ID格式: "minecraft:story/mine_stone"
 
     std::filesystem::path path(filePath);
 
-    // 查找 "advancements" 目录
     std::string namespaceName;
     std::string advancementPath;
 
@@ -154,9 +227,10 @@ ResourceLocation AdvancementLoader::pathToAdvancementId(const std::string& fileP
         }
     }
 
-    // 继续查找 "advancements" 目录
+    // 继续查找 "advancements" 或 "advancement" 目录（MC 1.21+ 使用单数，MC 1.16.5 使用复数）
     for (; it != path.end(); ++it) {
-        if (it->string() == "advancements") {
+        const std::string segment = it->string();
+        if (segment == "advancements" || segment == "advancement") {
             foundAdvancements = true;
             ++it;
             break;

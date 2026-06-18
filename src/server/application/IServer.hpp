@@ -40,7 +40,8 @@ class TimerQueue;
 } // namespace function
 namespace loot {
 class LootTableManager;
-}
+class LootPredicateManager;
+} // namespace loot
 namespace resource {
 class DataPackRepository;
 }
@@ -283,6 +284,13 @@ public:
      */
     [[nodiscard]] virtual loot::LootTableManager& lootTableManager() = 0;
     [[nodiscard]] virtual const loot::LootTableManager& lootTableManager() const = 0;
+
+    /**
+     * @brief 获取战利品谓词管理器
+     * @return 战利品谓词管理器引用
+     */
+    [[nodiscard]] virtual loot::LootPredicateManager& predicateManager() = 0;
+    [[nodiscard]] virtual const loot::LootPredicateManager& predicateManager() const = 0;
 
     /**
      * @brief 获取函数管理器

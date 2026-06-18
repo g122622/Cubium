@@ -36,9 +36,12 @@ namespace command {
  * 用法: /reload
  * 权限: 2 (游戏管理员)
  *
- * TODO: 当前仅实现了战利品表和配方的重新加载，还需要添加：
- * - 进度（advancements）重新加载
- * - 函数（functions）重新加载
+ * 重新加载以下资源：
+ * - 战利品表
+ * - 配方
+ * - 函数
+ * - 战利品谓词
+ * - 进度
  */
 class ReloadCommand {
 public:

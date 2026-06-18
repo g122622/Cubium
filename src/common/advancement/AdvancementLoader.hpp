@@ -26,7 +26,9 @@
 #include "Advancement.hpp"
 #include "AdvancementManager.hpp"
 #include "common/core/Result.hpp"
+#include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/repository/DataPackRepository.hpp"
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -73,8 +75,8 @@ public:
      * @brief 加载结果
      */
     struct LoadResult {
-        size_t successCount = 0;         ///< 成功加载的成就数
-        size_t failedCount = 0;          ///< 加载失败的成就数
+        Size successCount = 0;           ///< 成功加载的成就数
+        Size failedCount = 0;            ///< 加载失败的成就数
         std::vector<std::string> errors; ///< 错误信息列表
     };
 
@@ -84,7 +86,20 @@ public:
      * @param total 总文件数
      * @param filename 当前文件名
      */
-    using ProgressCallback = std::function<void(size_t current, size_t total, const std::string& filename)>;
+    using ProgressCallback = std::function<void(Size current, Size total, const std::string& filename)>;
+
+    /**
+     * @brief 从数据包列表加载所有成就
+     *
+     * 使用 DataPackRepository 的 PackType::ServerData 限定接口从数据包加载成就。
+     * 按数据包优先级从低到高加载，同名成就由高优先级数据包覆盖。
+     *
+     * @param dataPacks 数据包列表
+     * @param callback 进度回调（可选）
+     * @return 加载结果
+     */
+    Result<LoadResult> loadFromDataPackRepository(
+        const mc::resource::DataPackRepository& dataPacks, ProgressCallback callback = nullptr);
 
     /**
      * @brief 从目录加载所有成就
@@ -151,6 +166,11 @@ public:
 private:
     LoadResult m_lastResult;
     bool m_clearBeforeLoad = true;
+
+    /**
+     * @brief 如果设置了清空标志，则清空管理器
+     */
+    void _clearIfNeeded();
 
     /**
      * @brief 递归遍历目录查找JSON文件

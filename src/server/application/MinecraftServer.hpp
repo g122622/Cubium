@@ -317,8 +317,8 @@ public:
 
     [[nodiscard]] mc::function::TimerQueue& functionTimerQueue() override { return m_functionTimerQueue; }
     [[nodiscard]] const mc::function::TimerQueue& functionTimerQueue() const override { return m_functionTimerQueue; }
-    [[nodiscard]] mc::loot::LootPredicateManager& predicateManager() { return m_predicateManager; }
-    [[nodiscard]] const mc::loot::LootPredicateManager& predicateManager() const { return m_predicateManager; }
+    [[nodiscard]] mc::loot::LootPredicateManager& predicateManager() override { return m_predicateManager; }
+    [[nodiscard]] const mc::loot::LootPredicateManager& predicateManager() const override { return m_predicateManager; }
     [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return m_storage.get(); }
     [[nodiscard]] const world::storage::SingleLevelStorageManager* sharedStorage() const override
     {
