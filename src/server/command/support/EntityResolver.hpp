@@ -54,10 +54,8 @@ namespace command::support {
  * - advancements= 进度过滤（仅玩家）
  * - sort=         排序方式
  * - limit=        数量限制
- *
- * 当前不支持的选择器参数：
- * - nbt=          NBT 条件过滤（待 Entity 实现 serializeNBT()）
- * - predicate=    谓词条件过滤（待 LootConditionManager 集成）
+ * - nbt=          NBT 条件过滤（子集匹配，支持取反 nbt=!{...}）
+ * - predicate=    谓词条件过滤（通过 LootCondition 评估，支持取反 predicate=!id）
  */
 class EntityResolver {
 public:

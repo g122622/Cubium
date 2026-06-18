@@ -96,7 +96,7 @@ bool NBTPredicate::test(const nbt::tags::compound_tag* tag) const
         return false;
     }
 
-    return _matchNBT(*m_tag, *tag);
+    return matchNBT(*m_tag, *tag);
 }
 
 Result<NBTPredicate> NBTPredicate::fromJson(const nlohmann::json& json)
@@ -139,7 +139,7 @@ nlohmann::json NBTPredicate::toJson() const
     return mojangson;
 }
 
-bool NBTPredicate::_matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual) noexcept
+bool NBTPredicate::matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual) noexcept
 {
     // 遍历期望的所有字段，检查在实际NBT中是否存在且值相等
     for (const auto& [key, value] : expected.value) {
@@ -150,7 +150,7 @@ bool NBTPredicate::_matchNBT(const nbt::tags::compound_tag& expected, const nbt:
         }
 
         // 递归比较标签值
-        if (!_matchTag(*value, *it->second)) {
+        if (!matchTag(*value, *it->second)) {
             return false;
         }
     }
@@ -158,7 +158,7 @@ bool NBTPredicate::_matchNBT(const nbt::tags::compound_tag& expected, const nbt:
     return true;
 }
 
-bool NBTPredicate::_matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual) noexcept
+bool NBTPredicate::matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual) noexcept
 {
     // 类型不同，不匹配
     if (expected.id() != actual.id()) {
@@ -244,7 +244,7 @@ bool NBTPredicate::_matchTag(const nbt::tags::tag& expected, const nbt::tags::ta
                 bool found = false;
                 for (size_t j = 0; j < act.size(); ++j) {
                     auto actElem = act[j];
-                    if (_matchTag(*expElem, *actElem)) {
+                    if (matchTag(*expElem, *actElem)) {
                         found = true;
                         break;
                     }
@@ -259,7 +259,7 @@ bool NBTPredicate::_matchTag(const nbt::tags::tag& expected, const nbt::tags::ta
         case nbt::TagId::Compound: {
             const auto& exp = static_cast<const nbt::tags::compound_tag&>(expected);
             const auto& act = static_cast<const nbt::tags::compound_tag&>(actual);
-            return _matchNBT(exp, act);
+            return matchNBT(exp, act);
         }
 
         case nbt::TagId::IntArray: {

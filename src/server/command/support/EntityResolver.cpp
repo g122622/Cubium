@@ -24,13 +24,20 @@
 #include "EntityResolver.hpp"
 
 #include "common/advancement/AdvancementManager.hpp"
+#include "common/advancement/trigger/conditions/NBTPredicate.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/loot/LootPredicateManager.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -346,13 +353,77 @@ namespace {
         }
     }
 
-    // TODO(待完善): NBT 条件过滤逻辑
-    // 依赖：Entity 类需要实现 serializeNBT() 方法以获取实体的 NBT 数据
-    // 当前行为：跳过 NBT 检查，不排除任何实体
+    // NBT 条件过滤
+    // MC 原版行为：将实体序列化为 NBT，对玩家额外添加 SelectedItem 字段，
+    // 然后使用子集匹配（compareNbt）比较查询 NBT 与实体 NBT，结果根据 negated 取反。
+    if (selector.hasNbtCondition()) {
+        const auto& nbtCond = selector.nbtCondition();
+        // 将实体序列化为 NBT
+        nbt::tags::compound_tag entityNbt;
+        entity.writeToNBT(entityNbt);
+        // 对玩家实体，额外添加 SelectedItem 字段（MC 原版行为）
+        auto* player = dynamic_cast<Player*>(&entity);
+        if (player != nullptr) {
+            const auto& selectedStack = player->inventory().getSelectedStackRef();
+            if (!selectedStack.isEmpty()) {
+                nbt::tags::compound_tag selectedItemTag;
+                selectedStack.toNbt(selectedItemTag);
+                entityNbt.value["SelectedItem"] = selectedItemTag.copy();
+            }
+        }
+        // 使用子集匹配：查询 NBT 中的所有字段必须在实体 NBT 中存在且值相等
+        const auto* queryTag = nbtCond.nbt.get();
+        bool matches = (queryTag != nullptr) && advancement::NBTPredicate::matchNBT(*queryTag, entityNbt);
+        if (nbtCond.negated) {
+            matches = !matches;
+        }
+        if (!matches) {
+            return false;
+        }
+    }
 
-    // TODO(待完善): 谓词条件过滤逻辑
-    // 依赖：需要 LootConditionManager 和 LootContext 支持战利品表谓词评估
-    // 当前行为：跳过谓词检查，不排除任何实体
+    // 谓词条件过滤
+    // MC 原版行为：通过谓词管理器查找命名的 LootCondition，构建 LootContext（SELECTOR 参数集：
+    // THIS_ENTITY + ORIGIN），执行谓词评估，结果根据 negated 取反。
+    if (selector.hasPredicateCondition()) {
+        const auto& predCond = selector.predicateCondition();
+        bool matches = false;
+        if (server != nullptr && world != nullptr) {
+            // 从谓词管理器查找命名谓词
+            const std::string predicateId = predCond.predicate.toString();
+            const auto* condition = server->predicateManager().getPredicate(predicateId);
+            if (condition != nullptr) {
+                // 构建 LootContext（SELECTOR 参数集：THIS_ENTITY + ORIGIN）
+                const auto& pos = entity.position();
+                math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+                auto context =
+                    loot::LootContextBuilder(*world)
+                        .withRandom(rng)
+                        .withParameter(loot::LootParams::THIS_ENTITY, &entity)
+                        .withOwnedValue(loot::LootParams::BLOCK_POS,
+                            BlockPos(static_cast<i32>(pos.x), static_cast<i32>(pos.y), static_cast<i32>(pos.z)))
+                        .withPredicateResolver([&predicateManager = server->predicateManager()](
+                                                   const std::string& id) -> const loot::LootCondition* {
+                            return predicateManager.getPredicate(id);
+                        })
+                        .build(loot::LootParameterSet());
+                // 循环引用检测
+                if (!context->pushPredicate(condition)) {
+                    matches = false;
+                } else {
+                    matches = condition->test(*context);
+                    context->popPredicate(condition);
+                }
+            }
+            // 谓词不存在时，MC 原版返回 false（不匹配）
+        }
+        if (predCond.negated) {
+            matches = !matches;
+        }
+        if (!matches) {
+            return false;
+        }
+    }
 
     return true;
 }
