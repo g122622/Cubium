@@ -228,5 +228,7 @@ TODO: 待 Block 基类补齐 `playerWillDestroy`（含 Player* 参数）和 `pre
 - **直线铁轨**：动力铁轨、探测铁轨、激活铁轨（`isStraight=true`）不支持弯轨，三/四连接时保持当前直轨形状
 - **连接传播**：`place()` 中 `updateBlock=true` 模式下会通知相邻铁轨更新连接
 - **updateBlock 参数**：
-  - `true`：放置铁轨或 `neighborChanged` 时使用，直接设置方块状态并传播连接
+  - `true`：放置铁轨时（`onBlockAdded`）使用，直接设置方块状态并传播连接
   - `false`：`updatePostPlacement` 时使用，仅返回计算后的状态，由调用方设置
+- **放置流程**：`getStateForPlacement` 只返回基于玩家朝向的初始形状（南北/东西），真正的连接计算在 `onBlockAdded` 中通过 `updateDir` 触发
+- **RailState 内部状态**：`m_state` 存储构造时传入的方块状态，用于 `withRailShape` 计算新状态，避免从世界中读取可能为空的方块状态

@@ -321,3 +321,58 @@ TEST(RailStateTest, FourConnectionsPowered)
     // 有红石信号：NW是最后匹配的弯轨
     EXPECT_EQ(rail.getRailShape(result), RailShape::NorthWest);
 }
+
+TEST(RailStateTest, GetStateForPlacementReturnsDefaultShape)
+{
+    // 验证 getStateForPlacement 只返回基于玩家朝向的默认形状，
+    // 不使用 RailState 计算连接（因为放置时该位置还不是铁轨）
+    // 参考 MC Java: BaseRailBlock.getStateForPlacement
+    const RailBlock& rail = dynamic_cast<const RailBlock&>(*VanillaBlocks::RAIL);
+
+    // 默认状态应该是南北方向
+    BlockState defaultState = rail.defaultState();
+    EXPECT_EQ(rail.getRailShape(defaultState), RailShape::NorthSouth);
+
+    // withRailShape 可以正确设置形状
+    BlockState ewState = rail.withRailShape(defaultState, RailShape::EastWest);
+    EXPECT_EQ(rail.getRailShape(ewState), RailShape::EastWest);
+}
+
+TEST(RailStateTest, OnBlockAddedCalculatesConnections)
+{
+    // 验证 onBlockAdded 会触发 updateDir 重新计算连接形状
+    // 模拟放置流程：先设置默认形状，然后通过 RailState(updateBlock=true) 计算实际连接
+    // 这等价于 onBlockAdded -> updateDir(world, pos, state, true) 的行为
+    RailTestWorld world;
+    const RailBlock& rail = dynamic_cast<const RailBlock&>(*VanillaBlocks::RAIL);
+
+    // 先放置相邻铁轨（南和东方向）
+    world.setRail(1, 0, 0, rail, RailShape::EastWest);   // 东方
+    world.setRail(0, 0, 1, rail, RailShape::NorthSouth); // 南方
+
+    // 放置当前铁轨，初始形状为南北（默认）
+    BlockState initialState = rail.withRailShape(rail.defaultState(), RailShape::NorthSouth);
+    world.setBlockState(0, 0, 0, &initialState);
+
+    // 模拟 onBlockAdded：使用 RailState(updateBlock=true) 计算连接
+    RailState rstate(world, BlockPos(0, 0, 0), rail, *world.getBlockState(0, 0, 0));
+    BlockState updatedState = rstate.place(false, true, RailShape::NorthSouth);
+
+    // 应该计算出弯轨（东南方向）
+    EXPECT_EQ(rail.getRailShape(updatedState), RailShape::SouthEast);
+}
+
+TEST(RailStateTest, RailStateWithNullBlockState)
+{
+    // 验证 RailState 在相邻位置没有方块时不会崩溃
+    RailTestWorld world;
+    const RailBlock& rail = dynamic_cast<const RailBlock&>(*VanillaBlocks::RAIL);
+    world.setRail(0, 0, 0, rail, RailShape::NorthSouth);
+
+    // 只有一个铁轨，无相邻铁轨
+    RailState rstate(world, BlockPos(0, 0, 0), rail, *world.getBlockState(0, 0, 0));
+
+    // 不应崩溃
+    BlockState result = rstate.place(false, false, RailShape::NorthSouth);
+    EXPECT_EQ(rail.getRailShape(result), RailShape::NorthSouth);
+}

@@ -158,6 +158,10 @@ private:
     /// 是否为直轨（不支持弯轨，动力铁轨/探测铁轨/激活铁轨为true）
     bool m_isStraight;
 
+    /// 当前方块状态（构造时传入，用于计算新状态）
+    /// 参考 MC Java: RailState.state — 在构造时从外部传入，而非从世界中读取
+    BlockState m_state;
+
     /// 连接位置列表（最多2个连接）
     std::vector<BlockPos> m_connections;
 };

@@ -88,24 +88,31 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isS
 
 BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 根据相邻铁轨计算初始形状
-    // 使用 RailState 进行完整的连接计算
-    BlockPos pos = context.placementPos();
-    IWorld& world = context.getWorld();
-
-    // 先根据玩家朝向确定默认形状
+    // 参考 MC Java: BaseRailBlock.getStateForPlacement
+    // 放置时只根据玩家朝向确定初始形状（南北或东西），不做邻居连接计算。
+    // 邻居连接计算在方块放置后由 updatePostPlacement / neighborChanged 触发，
+    // 因为此时该位置还不是铁轨，RailState 无法获取正确的方块状态。
     Direction facing = context.horizontalDirection();
     RailShape defaultShape = RailShape::EastWest;
     if (facing == Direction::North || facing == Direction::South) {
         defaultShape = RailShape::NorthSouth;
     }
 
-    BlockState initialState = withRailShape(defaultState(), defaultShape);
+    // TODO: MC Java 的 getStateForPlacement 还会检测放置位置是否含水，
+    // 并设置 WATERLOGGED 属性。当前项目中铁轨尚未实现含水逻辑，
+    // 需要在实现 WaterLoggable 接口后补充此部分。
+    return withRailShape(defaultState(), defaultShape);
+}
 
-    // 通过 RailState 计算完整连接
-    RailState railState(world, pos, *this, initialState);
-    bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
-    return railState.place(hasPower, false, defaultShape);
+void AbstractRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 参考 MC Java: BaseRailBlock.onPlace
+    // 铁轨放置后立即重新计算连接形状。
+    // getStateForPlacement 只根据玩家朝向返回初始形状，
+    // 真正的邻居连接计算在此处通过 updateDir 触发。
+    // 注意：MC Java 中此处使用 updateDir(world, pos, state, true)，
+    // 第二个参数 true 表示初始放置，会强制更新世界并传播连接到相邻铁轨。
+    (void)updateDir(world, pos, state, true);
 }
 
 BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
@@ -195,6 +202,8 @@ const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const
 
 BlockState AbstractRailBlock::updateDir(IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock)
 {
+    // TODO: MC Java 的 BaseRailBlock.updateDir 在客户端（isClientSide）直接返回原状态，
+    // 不执行 RailState 计算。当前项目尚未实现客户端/服务端区分，待实现后需补充此检查。
     RailState railState(world, pos, *this, state);
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
     return railState.place(hasPower, updateBlock, getRailShape(state));

@@ -105,6 +105,16 @@ public:
         const BlockPos& facingPos) override;
 
     /**
+     * @brief 方块放置后的处理
+     *
+     * 参考 MC Java: BaseRailBlock.onPlace
+     * 铁轨放置后立即重新计算连接形状。
+     * getStateForPlacement 只根据玩家朝向返回初始形状，
+     * 真正的邻居连接计算在此处触发。
+     */
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
      * @brief 邻居变化通知
      *
      * 检查铁轨是否仍有支撑，并在邻居变化时重新计算铁轨形状。
