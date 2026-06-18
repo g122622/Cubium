@@ -44,7 +44,6 @@ namespace mc::gameevent {
 /**
  * @brief 事件ID到振动频率的映射
  *
- * 参考 MC: VibrationSystem.VIBRATION_FREQUENCY_FOR_EVENT
  * 频率0表示不产生振动，1-15对应RESONATE_1到RESONATE_15
  */
 static i32 getVibrationFrequencyForEvent(const char* eventId)

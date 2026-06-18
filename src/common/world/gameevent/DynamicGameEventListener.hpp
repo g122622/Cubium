@@ -47,8 +47,6 @@ namespace gameevent {
  *
  * 适用于监守者、悦灵等基于实体的监听器。方块实体（如幽匿感测体）
  * 的位置固定，不需要此类。
- *
- * 参考: net.minecraft.world.level.gameevent.DynamicGameEventListener
  */
 class DynamicGameEventListener final {
 public:
@@ -99,7 +97,7 @@ private:
     static void _ifChunkExists(server::ServerWorld& world,
         const std::optional<mc::world::chunk::SectionPos>& sectionPos,
         const std::function<void(GameEventListenerRegistry&)>& action,
-        bool createIfMissing = false);
+        bool createIfMissing);
 
     GameEventListener& m_listener;
     std::optional<mc::world::chunk::SectionPos> m_lastSection;

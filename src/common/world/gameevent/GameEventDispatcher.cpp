@@ -44,8 +44,6 @@ namespace mc::gameevent {
 
 /**
  * @brief 将方块坐标转换为区块段坐标
- *
- * 等价于 MC 的 SectionPos.blockToSectionCoord()
  */
 static i32 blockToSectionCoord(i32 blockCoord)
 {
@@ -65,7 +63,6 @@ void GameEventDispatcher::post(const GameEvent& event, const Vector3d& pos, cons
     const i32 notificationRadius = event.notificationRadius();
 
     // 计算受影响的区块段坐标范围
-    // 参考 MC: GameEventDispatcher.post()
     const BlockPos blockPos(
         static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
 

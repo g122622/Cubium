@@ -47,7 +47,6 @@ namespace gameevent {
  * 对于 DeliveryMode::BY_DISTANCE 的监听器，事件会先收集到队列中，
  * 按距离排序后再投递，确保最近的监听器优先接收事件。
  *
- * 参考: net.minecraft.world.level.gameevent.GameEventDispatcher
  */
 class GameEventDispatcher {
 public:
@@ -66,8 +65,6 @@ public:
      * DeliveryMode::Unspecified 的监听器立即接收事件；
      * DeliveryMode::ByDistance 的监听器先收集到队列中，
      * 按距离排序后依次投递。
-     *
-     * 参考: net.minecraft.world.level.gameevent.GameEventDispatcher.post()
      *
      * @param event 游戏事件
      * @param pos 事件位置（世界坐标）

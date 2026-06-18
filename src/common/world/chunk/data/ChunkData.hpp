@@ -368,6 +368,16 @@ public:
     [[nodiscard]] gameevent::GameEventListenerRegistry& getOrCreateGameEventListenerRegistry(
         i32 sectionY, std::function<std::unique_ptr<gameevent::EuclideanGameEventListenerRegistry>(i32)> factory);
 
+    /**
+     * @brief 移除指定段的监听器注册表
+     *
+     * 当注册表变为空时由 OnEmptyAction 回调调用，从映射中移除该段的注册表，
+     * 防止空注册表长期累积导致内存泄漏。
+     *
+     * @param sectionY 段Y坐标
+     */
+    void removeGameEventListenerRegistry(i32 sectionY);
+
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;

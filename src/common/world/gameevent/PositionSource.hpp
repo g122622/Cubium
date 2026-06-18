@@ -45,7 +45,6 @@ namespace gameevent {
  * （BlockPositionSource，如幽匿感测体）或跟随实体移动的位置
  * （EntityPositionSource，如监守者）。
  *
- * 参考: net.minecraft.world.level.gameevent.PositionSource
  */
 class PositionSource {
 public:
@@ -71,7 +70,6 @@ public:
  * 固定的方块位置，用于附着在方块上的监听器（如幽匿感测体、幽匿尖啸体）。
  * 位置始终为方块中心坐标 (x+0.5, y+0.5, z+0.5)。
  *
- * 参考: net.minecraft.world.level.gameevent.BlockPositionSource
  */
 class BlockPositionSource final : public PositionSource {
 public:
@@ -98,7 +96,6 @@ private:
  * 跟随实体移动的位置，用于实体上的监听器（如监守者、悦灵）。
  * 位置从实体的当前位置获取，支持Y轴偏移。
  *
- * 参考: net.minecraft.world.level.gameevent.EntityPositionSource
  */
 class EntityPositionSource final : public PositionSource {
 public:

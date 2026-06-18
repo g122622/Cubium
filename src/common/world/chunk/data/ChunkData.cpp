@@ -1164,4 +1164,9 @@ gameevent::GameEventListenerRegistry& ChunkData::getOrCreateGameEventListenerReg
     return ref;
 }
 
+void ChunkData::removeGameEventListenerRegistry(i32 sectionY)
+{
+    m_gameEventListenerRegistries.erase(sectionY);
+}
+
 } // namespace mc::world::chunk

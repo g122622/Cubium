@@ -42,8 +42,6 @@ namespace gameevent {
  *
  * GameEvent 不会发送网络包给客户端，而是在服务端通过 GameEventDispatcher
  * 将事件分发给附近的 GameEventListener（如幽匿感测体）。
- *
- * 参考: net.minecraft.world.level.gameevent.GameEvent
  */
 class GameEvent {
 public:
@@ -53,7 +51,6 @@ public:
      * 携带触发事件的源实体和受影响的方块状态。
      * 两个字段均为可空，通过静态工厂方法构造。
      *
-     * 参考: net.minecraft.world.level.gameevent.GameEvent.Context
      */
     class Context {
     public:

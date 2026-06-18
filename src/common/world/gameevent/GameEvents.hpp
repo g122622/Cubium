@@ -37,7 +37,6 @@ namespace mc::gameevent {
  * - WorldEvents 是服务端向客户端广播的音效/粒子事件（如门开关、唱片播放）
  * - GameEvents 是服务端内部事件分发，通知附近的 GameEventListener（如幽匿感测体）
  *
- * 参考: net.minecraft.world.level.gameevent.GameEvent (MC 1.21.11)
  */
 namespace GameEvents {
 

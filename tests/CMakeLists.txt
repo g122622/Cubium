@@ -298,6 +298,7 @@ add_executable(mc_tests
     common/world/gamerule/GameRulesTest.cpp
     # GameEvent 游戏事件测试
     common/world/gameevent/GameEventTest.cpp
+    common/world/gameevent/GameEventSystemTest.cpp
     common/world/lighting/InternalLightUtilsTest.cpp
     common/world/LightLevelTest.cpp
     common/world/blockentity/BlockEntityTest.cpp

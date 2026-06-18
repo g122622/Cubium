@@ -46,7 +46,6 @@ namespace gameevent {
  * 可以接收游戏事件的监听器。由需要响应振动信号的方块实体
  * （如幽匿感测体、幽匿尖啸体）或实体（如监守者、悦灵）实现。
  *
- * 参考: net.minecraft.world.level.gameevent.GameEventListener
  */
 class GameEventListener {
 public:
@@ -100,7 +99,6 @@ public:
      * 方块实体本身不直接继承 GameEventListener，而是通过此接口
      * 间接提供监听器实例。
      *
-     * 参考: net.minecraft.world.level.gameevent.GameEventListener.Provider
      */
     template <typename T>
     class Provider {
@@ -122,7 +120,6 @@ public:
  * 用于 BY_DISTANCE 投递模式时排序和延迟投递事件。
  * 按照监听器到事件源的距离排序，距离近的优先投递。
  *
- * 参考: net.minecraft.world.level.gameevent.GameEvent.ListenerInfo
  */
 struct ListenerInfo {
     const GameEvent* event;

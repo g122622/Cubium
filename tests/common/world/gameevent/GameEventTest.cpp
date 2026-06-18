@@ -107,14 +107,14 @@ TEST(GameEventsTest, BlockEvents_HaveDefaultRadius)
 
 TEST(GameEventsTest, JukeboxEvents_HaveRadius10)
 {
-    // MC 原版中 JUKEBOX_PLAY 和 JUKEBOX_STOP_PLAY 的通知半径为 10 格
+    // JUKEBOX_PLAY 和 JUKEBOX_STOP_PLAY 的通知半径为 10 格
     EXPECT_EQ(GameEvents::JUKEBOX_PLAY.notificationRadius(), 10);
     EXPECT_EQ(GameEvents::JUKEBOX_STOP_PLAY.notificationRadius(), 10);
 }
 
 TEST(GameEventsTest, ShriekEvent_HasRadius32)
 {
-    // MC 原版中 SHRIEK 的通知半径为 32 格
+    // SHRIEK 的通知半径为 32 格
     EXPECT_EQ(GameEvents::SHRIEK.notificationRadius(), 32);
 }
 

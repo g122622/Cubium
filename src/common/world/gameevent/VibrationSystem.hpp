@@ -46,7 +46,6 @@ namespace gameevent {
  * 记录一次振动的详细信息，包括事件类型、距离、来源位置和源实体。
  * 由 VibrationSelector 管理候选振动，被 VibrationSystem.Ticker 消费。
  *
- * 参考: net.minecraft.world.level.gameevent.vibrations.VibrationInfo
  */
 struct VibrationInfo {
     /** 触发的游戏事件 */
@@ -76,7 +75,6 @@ struct VibrationInfo {
  * 选择规则：同一 tick 内，距离最近的振动优先；距离相同时，
  * 频率更高的振动优先。
  *
- * 参考: net.minecraft.world.level.gameevent.vibrations.VibrationSelector
  */
 class VibrationSelector {
 public:
@@ -125,7 +123,6 @@ private:
  * - Listener: 实现 GameEventListener 接口的监听器
  * - Ticker: 每 tick 更新振动传播状态
  *
- * 参考: net.minecraft.world.level.gameevent.vibrations.VibrationSystem
  */
 class VibrationSystem {
 public:
@@ -333,7 +330,6 @@ public:
      * 实现 GameEventListener 接口，作为 VibrationSystem 的监听器组件。
      * 当游戏事件到达时，验证事件有效性并添加到 VibrationSelector。
      *
-     * 参考: net.minecraft.world.level.gameevent.vibrations.VibrationSystem.Listener
      */
     class Listener final : public GameEventListener {
     public:
@@ -390,7 +386,6 @@ public:
      * 2. 递减传播时间
      * 3. 传播时间归零时，触发 onReceiveVibration 回调
      *
-     * 参考: net.minecraft.world.level.gameevent.vibrations.VibrationSystem.Ticker
      */
     class Ticker {
     public:

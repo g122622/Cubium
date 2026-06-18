@@ -76,11 +76,12 @@ void EuclideanGameEventListenerRegistry::unregisterListener(GameEventListener& l
         if (it != m_listeners.end()) {
             m_listeners.erase(it);
         }
-    }
 
-    // 如果注册表为空，通知上层移除
-    if (m_listeners.empty() && m_onEmpty) {
-        m_onEmpty(m_sectionY);
+        // 如果注册表为空，通知上层移除
+        // 注意：仅在非遍历状态下调用，避免在 visitInRangeListeners 中销毁自身
+        if (m_listeners.empty() && m_onEmpty) {
+            m_onEmpty(m_sectionY);
+        }
     }
 }
 
@@ -90,32 +91,28 @@ bool EuclideanGameEventListenerRegistry::visitInRangeListeners(
     m_processing = true;
     bool foundAny = false;
 
-    try {
-        auto it = m_listeners.begin();
-        while (it != m_listeners.end()) {
-            GameEventListener* listener = *it;
+    auto it = m_listeners.begin();
+    auto endIt = m_listeners.end();
+    while (it != endIt) {
+        GameEventListener* listener = *it;
 
-            // 处理遍历期间待移除的监听器
-            auto removeIt = std::find(m_listenersToRemove.begin(), m_listenersToRemove.end(), listener);
-            if (removeIt != m_listenersToRemove.end()) {
-                m_listenersToRemove.erase(removeIt);
-                it = m_listeners.erase(it);
-                continue;
-            }
-
-            // 获取监听器位置并检查是否在通知半径内
-            auto listenerPos = getPostableListenerPosition(pos, *listener);
-            if (listenerPos.has_value()) {
-                visitor(*listener, listenerPos.value());
-                foundAny = true;
-            }
-
-            ++it;
+        // 处理遍历期间待移除的监听器
+        auto removeIt = std::find(m_listenersToRemove.begin(), m_listenersToRemove.end(), listener);
+        if (removeIt != m_listenersToRemove.end()) {
+            m_listenersToRemove.erase(removeIt);
+            it = m_listeners.erase(it);
+            endIt = m_listeners.end();
+            continue;
         }
-    }
-    catch (...) {
-        m_processing = false;
-        throw;
+
+        // 获取监听器位置并检查是否在通知半径内
+        auto listenerPos = getPostableListenerPosition(pos, *listener);
+        if (listenerPos.has_value()) {
+            visitor(*listener, listenerPos.value());
+            foundAny = true;
+        }
+
+        ++it;
     }
 
     m_processing = false;
@@ -143,10 +140,10 @@ bool EuclideanGameEventListenerRegistry::visitInRangeListeners(
         m_listenersToRemove.clear();
     }
 
-    // 如果注册表变为空，通知上层移除
-    if (m_listeners.empty() && m_onEmpty) {
-        m_onEmpty(m_sectionY);
-    }
+    // 注意：不在此处调用 m_onEmpty，因为调用者可能在遍历过程中持有对此注册表的引用。
+    // 空注册表的清理由调用方（如 GameEventDispatcher）在完成所有遍历后负责检查。
+    // DynamicGameEventListener::_ifChunkExists 的 OnEmptyAction 回调会在
+    // unregisterListener 的非遍历路径中被调用，确保安全的清理时机。
 
     return foundAny;
 }
@@ -160,7 +157,7 @@ std::optional<Vector3d> EuclideanGameEventListenerRegistry::getPostableListenerP
         return std::nullopt;
     }
 
-    // 计算方块级别距离（与 MC 原版一致，使用 BlockPos.distanceSq）
+    // 计算方块级别距离（使用 BlockPos.distanceSq）
     BlockPos eventBlockPos(static_cast<i32>(std::floor(eventPos.x)),
         static_cast<i32>(std::floor(eventPos.y)),
         static_cast<i32>(std::floor(eventPos.z)));

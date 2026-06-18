@@ -44,7 +44,6 @@ namespace gameevent {
  * 用于在 visitInRangeListeners 中回调访问匹配的监听器。
  * 参数为监听器引用和其在世界中的位置。
  *
- * 参考: net.minecraft.world.level.gameevent.GameEventListenerRegistry.ListenerVisitor
  */
 using ListenerVisitor = std::function<void(GameEventListener& listener, const Vector3d& listenerPos)>;
 
@@ -54,7 +53,6 @@ using ListenerVisitor = std::function<void(GameEventListener& listener, const Ve
  * 管理一个区域（通常是区块段）内的游戏事件监听器。
  * 提供注册、注销和范围查询功能。
  *
- * 参考: net.minecraft.world.level.gameevent.GameEventListenerRegistry
  */
 class GameEventListenerRegistry {
 public:
@@ -103,7 +101,6 @@ public:
  * 对于未完全加载的区块或客户端世界返回此单例，
  * 避免不必要的注册表创建。
  *
- * 参考: net.minecraft.world.level.gameevent.GameEventListenerRegistry.NOOP
  */
 class NoopGameEventListenerRegistry final : public GameEventListenerRegistry {
 public:
@@ -140,7 +137,6 @@ public:
  * 当注册表为空时，通过 OnEmptyAction 回调通知上层移除该注册表，
  * 节省内存。
  *
- * 参考: net.minecraft.world.level.gameevent.EuclideanGameEventListenerRegistry
  */
 class EuclideanGameEventListenerRegistry final : public GameEventListenerRegistry {
 public:
@@ -171,7 +167,7 @@ private:
      * @brief 检查监听器是否在事件的通知半径内，并返回其位置
      *
      * 通过监听器的 PositionSource 获取其位置，然后计算与事件位置的距离。
-     * 使用整数坐标的方块距离（与 MC 原版一致）。
+     * 使用整数坐标的方块距离。
      *
      * @param eventPos 事件位置
      * @param listener 监听器

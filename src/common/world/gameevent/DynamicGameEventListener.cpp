@@ -102,12 +102,18 @@ void DynamicGameEventListener::_ifChunkExists(server::ServerWorld& world,
 
     if (createIfMissing) {
         // 注册监听器时，如果注册表不存在则创建
-        auto factory = [&world](i32 sectionY) -> std::unique_ptr<EuclideanGameEventListenerRegistry> {
+        // OnEmptyAction: 当注册表变为空时，从 ChunkData 的映射中移除该注册表
+        // 避免长期运行中空注册表累积导致内存泄漏
+        ChunkData* chunkPtr = chunk;
+        auto factory = [&world, chunkPtr](i32 sectionY) -> std::unique_ptr<EuclideanGameEventListenerRegistry> {
             return std::make_unique<EuclideanGameEventListenerRegistry>(
-                world, sectionY, [&world, sectionY](i32 /*emptySectionY*/) {
-                    // 当注册表为空时，从区块中移除（延迟处理，避免在遍历中修改）
-                    // 在 MC 中，这是通过 SectionNotifier 回调实现的
-                    // 此处简化处理：空的注册表会在下次访问时被跳过
+                world, sectionY, [chunkPtr, sectionY](i32 emptySectionY) {
+                    // 当注册表为空时，从 ChunkData 中移除
+                    // 注意：此回调可能在遍历期间触发（unregisterListener 调用后检查空），
+                    // 但 ChunkData::removeGameEventListenerRegistry 是安全的，
+                    // 因为 EuclideanGameEventListenerRegistry 在 visitInRangeListeners
+                    // 结束后才处理延迟移除，而此时遍历已完成
+                    chunkPtr->removeGameEventListenerRegistry(emptySectionY);
                 });
         };
         GameEventListenerRegistry& registry = chunk->getOrCreateGameEventListenerRegistry(sp.y, factory);
