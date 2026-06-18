@@ -651,30 +651,10 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // NoAI (byte) - 无 AI
     tag.put(nbt_keys::NO_AI, static_cast<i8>(m_aiEnabled ? 0 : 1));
 
-    // HandDropChances / ArmorDropChances (float list)
-    // 掉落概率序列化，同时写入旧格式（float 列表）和新格式（drop_chances
-    // compound）以保证兼容性。TODO：彻底移除旧的格式及其兼容代码 新格式 drop_chances 只写入非默认值（不等于 0.085
-    // 的槽位）。
-
-    // 旧格式：HandDropChances（主手、副手）
-    {
-        auto handChances = std::make_unique<nbt::tags::float_list_tag>();
-        handChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::MainHand)]);
-        handChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::OffHand)]);
-        tag.value.emplace(nbt_keys::HAND_DROP_CHANCES, std::move(handChances));
-    }
-
-    // 旧格式：ArmorDropChances（脚、腿、胸、头）
-    {
-        auto armorChances = std::make_unique<nbt::tags::float_list_tag>();
-        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Feet)]);
-        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Legs)]);
-        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Chest)]);
-        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Head)]);
-        tag.value.emplace(nbt_keys::ARMOR_DROP_CHANCES, std::move(armorChances));
-    }
-
-    // 新格式：drop_chances（compound，仅包含非默认值）
+    // DropChances（compound，仅包含非默认值）
+    // 新格式：drop_chances compound，与 MC Java DropChances.filterDefaultValues 一致。
+    // 旧格式 HandDropChances/ArmorDropChances（float list）已废弃，不再写入，
+    // 但加载时仍兼容旧格式以保证存档兼容性。
     {
         nbt::tags::compound_tag dropChancesTag;
         // 装备槽位名称映射
