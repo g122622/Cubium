@@ -38,6 +38,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/ConcretePowderBlock.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -81,6 +82,31 @@ void FallingBlockEntity::tick()
     vel.y *= 0.98f;
     vel.z *= 0.98f;
     setVelocity(vel);
+
+    // 混凝土粉末下落过程中遇水提前固化
+    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中 ConcretePowderBlock 特殊处理：
+    // 如果下落方块是混凝土粉末，且当前位置有水，则立即固化
+    if (auto* block = Block::getBlock(m_blockId)) {
+        if (auto* concretePowder = dynamic_cast<blocks::ConcretePowderBlock*>(block)) {
+            IWorld* worldPtr = world();
+            if (worldPtr != nullptr) {
+                BlockPos currentPos(static_cast<i32>(std::floor(x())),
+                    static_cast<i32>(std::floor(y())),
+                    static_cast<i32>(std::floor(z())));
+
+                // 检查当前位置是否有水流体
+                const fluid::FluidState* fluidState = worldPtr->getFluidState(currentPos);
+                if (fluidState != nullptr && !fluidState->isEmpty() &&
+                    fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+                    // 混凝土粉末接触水，立即固化为混凝土
+                    const BlockState* concreteState = &concretePowder->getConcreteBlock()->defaultState();
+                    worldPtr->setBlockState(currentPos, concreteState, 3);
+                    remove();
+                    return;
+                }
+            }
+        }
+    }
 
     // 检查是否落地
     if (onGround()) {
