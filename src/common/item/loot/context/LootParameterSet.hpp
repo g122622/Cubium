@@ -54,7 +54,8 @@ public:
         Chest,   ///< 容器，如宝箱战利品
         Fishing, ///< 钓鱼
         Gift,    ///< 礼物，如猫的礼物
-        Barter   ///< 以物易物，如猪灵交易
+        Barter,  ///< 以物易物，如猪灵交易
+        Selector ///< 实体选择器谓词评估，需要 THIS_ENTITY + BLOCK_POS
     };
 
     LootParameterSet() = default;
@@ -96,6 +97,8 @@ public:
                 return "minecraft:gift";
             case Type::Barter:
                 return "minecraft:barter";
+            case Type::Selector:
+                return "minecraft:selector";
             default:
                 return "minecraft:generic";
         }

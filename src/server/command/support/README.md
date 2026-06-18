@@ -7,7 +7,7 @@ support/
 ├── PlayerResolver.hpp               # 玩家选择器解析接口（含 resolvePlayerName 辅助函数）
 ├── PlayerResolver.cpp               # 玩家选择器解析实现（@p/@a/@r/@s 及各种过滤条件）
 ├── EntityResolver.hpp               # 通用实体选择器解析接口（支持 @e 选择器和所有实体类型）
-├── EntityResolver.cpp               # 通用实体选择器解析实现（type/tag/team/name/distance/volume/level/gamemode 过滤）
+├── EntityResolver.cpp               # 通用实体选择器解析实现（type/tag/team/name/distance/volume/level/gamemode/nbt/predicate 过滤）
 ├── EffectResolver.hpp               # 效果类型解析接口
 ├── EffectResolver.cpp               # 效果类型解析实现（命令名称与EffectType的映射）
 ├── FunctionSuggestionProvider.hpp   # 函数参数 Tab 补全建议（查询 FunctionManager 提供函数名和标签名）
@@ -32,7 +32,7 @@ support/
 ```
 
 - **PlayerResolver** - 将 EntitySelector 解析为实际的玩家 ID 列表，支持名称、游戏模式、距离、等级、角度、记分板、进度等过滤条件；提供 `resolvePlayerName()` 辅助函数，通过 PlayerId 获取真实玩家名称。仅处理玩家实体（@p/@a/@r/@s），不支持非玩家实体。
-- **EntityResolver** - 将 EntitySelector 解析为通用实体指针列表（`std::vector<Entity*>`），支持所有实体类型包括非玩家实体（@e）。支持 type/tag/team/name/distance/dx/dy/dz/x_rotation/y_rotation/level/gamemode/scores/advancements 过滤条件。体积过滤（dx/dy/dz）使用实体碰撞箱与选择 AABB 的相交检查（`AABB.intersects(entity.boundingBox())`），而非位置点包含检查，以确保大型实体跨越选择边界时的正确行为。优先用于需要非玩家实体支持的命令。
+- **EntityResolver** - 将 EntitySelector 解析为通用实体指针列表（`std::vector<Entity*>`），支持所有实体类型包括非玩家实体（@e）。支持 type/tag/team/name/distance/dx/dy/dz/x_rotation/y_rotation/level/gamemode/scores/advancements/nbt/predicate 过滤条件。NBT 过滤使用 `NBTPredicate::matchNBT()` 子集匹配，对玩家额外添加 SelectedItem 字段；谓词过滤通过 `IServer::predicateManager()` 查找命名谓词并使用 `LootParameterSets::selector()` 参数集构建 LootContext 评估。体积过滤（dx/dy/dz）使用实体碰撞箱与选择 AABB 的相交检查（`AABB.intersects(entity.boundingBox())`），而非位置点包含检查，以确保大型实体跨越选择边界时的正确行为。优先用于需要非玩家实体支持的命令。
 - **EffectResolver** - 提供效果名称与 EffectType 枚举的双向转换
 
 ## 上下游外部依赖关系
@@ -49,6 +49,10 @@ support/
 - `server/player/PlayerManager.hpp` - 玩家数据管理器
 - `server/scoreboard/ServerScoreboard.hpp` - 记分板（scores 过滤）
 - `common/advancement/AdvancementManager.hpp` - 进度管理器（advancements 过滤）
+- `common/advancement/trigger/conditions/NBTPredicate.hpp` - NBT 子集匹配（nbt= 过滤）
+- `common/item/loot/LootPredicateManager.hpp` - 谓词管理器（predicate= 过滤）
+- `common/item/loot/context/LootContext.hpp` - 战利品上下文（谓词评估）
+- `common/item/loot/context/LootParameterSets.hpp` - 参数集合定义（selector 参数集）
 
 ### 下游依赖（依赖本目录的模块）
 
@@ -84,9 +88,12 @@ EntityResolver 返回的 `Entity*` 指针是临时的，不应跨 tick 存储。
 
 `x_rotation`（俯仰角/pitch）和 `y_rotation`（偏航角/yaw）参数使用 `FloatRange::testAngle()` 处理 -180/180 度边界环绕。
 
-### 7. NBT 和 predicate 过滤当前仅解析未完全实现
+### 7. NBT 和 predicate 过滤
 
-`nbt` 和 `predicate` 选择器参数已实现解析，但过滤逻辑待完善（依赖 Entity NBT 序列化和 LootConditionManager）。
+`nbt` 和 `predicate` 选择器参数已完整实现：
+- **nbt=** - 使用 `NBTPredicate::matchNBT()` 子集匹配，对玩家额外添加 SelectedItem 字段，支持 `nbt=!{...}` 取反
+- **predicate=** - 通过 `IServer::predicateManager()` 查找命名谓词，使用 `LootParameterSets::selector()` 参数集构建 LootContext，支持 `predicate=!id` 取反
+- 谓词不存在时返回 false（不匹配），循环引用时也返回 false
 
 ### 8. resolvePlayerName 回退行为
 
