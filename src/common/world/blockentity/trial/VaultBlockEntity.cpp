@@ -231,7 +231,7 @@ bool VaultBlockEntity::tryInsertKey(Player& player)
     }
 
     // 检查玩家是否已领取过奖励
-    if (m_rewardedPlayers.count(player.uuid()) > 0) {
+    if (m_rewardedPlayers.contains(player.uuid())) {
         // 播放拒绝已奖励玩家音效（带冷却防刷）
         IWorld* playerWorld = player.world();
         if (playerWorld != nullptr) {
@@ -258,11 +258,10 @@ bool VaultBlockEntity::tryInsertKey(Player& player)
     // 消耗钥匙物品
     heldItem.shrink(1);
 
-    // 记录已奖励玩家
+    // 记录已奖励玩家（按插入顺序排列）
     m_rewardedPlayers.insert(player.uuid());
     if (static_cast<i32>(m_rewardedPlayers.size()) > MAX_REWARDED_PLAYERS) {
-        // 超过上限时移除最早的玩家（unordered_set无法保证顺序，
-        // 应使用有序集合保持插入顺序，此处简化处理：移除第一个元素）
+        // 超过上限时按 FIFO 策略移除最早插入的玩家
         m_rewardedPlayers.erase(m_rewardedPlayers.begin());
     }
 

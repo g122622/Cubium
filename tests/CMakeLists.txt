@@ -830,6 +830,8 @@ add_executable(mc_tests
     common/util/UuidUtilsTest.cpp
     # 特殊日期工具测试
     common/util/SpecialDatesTest.cpp
+    # LinkedHashSet 有序集合测试
+    common/util/LinkedHashSetTest.cpp
     # NbtJsonUtils NBT-JSON转换工具测试
     util/NbtJsonUtilsTest.cpp
     # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    common/world/gen/DebugChunkGeneratorTest.cpp

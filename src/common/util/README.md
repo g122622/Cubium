@@ -68,6 +68,7 @@ util/
 ├── AxisAlignedBB.hpp/cpp          # 轴对齐包围盒
 ├── CompressionUtils.hpp/cpp       # gzip 压缩/解压
 ├── Direction.hpp                  # 方向枚举及工具
+├── LinkedHashSet.hpp              # 保持插入顺序的哈希集合
 ├── NibbleArray.hpp/cpp            # 4 位数组（光照数据）
 ├── PlatformInfo.hpp/cpp           # 平台信息
 ├── RateLimiter.hpp                # 限流器
@@ -96,6 +97,7 @@ util/
 │                                                                   │
 │  根级文件:                                                         │
 │  AxisAlignedBB ← Direction, Vector3                              │
+│  LinkedHashSet (独立, 仅依赖 STL)                                 │
 │  NibbleArray (独立)                                               │
 │  PlatformInfo (独立)                                              │
 │  RateLimiter (独立)                                               │
