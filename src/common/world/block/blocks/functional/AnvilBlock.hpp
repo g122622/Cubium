@@ -131,6 +131,9 @@ public:
      *
      * 在服务端打开铁砧修复界面（ContainerType::Anvil）。
      * 铁砧不需要方块实体，容器通过世界位置直接访问。
+     *
+     * TODO: MC原版在交互时触发 INTERACT_WITH_ANVIL 统计（Stats.INTERACT_WITH_ANVIL），
+     *       待统计系统实现后应在此添加 player.awardStat(Stats.INTERACT_WITH_ANVIL)。
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -151,6 +154,9 @@ public:
      * @return 损坏后的方块状态指针，如果已完全损坏则返回 nullptr
      */
     [[nodiscard]] static const BlockState* damageAnvil(const BlockState& state);
+
+    // TODO: MC原版 AnvilBlock 覆盖 isPathfindable 返回 false（铁砧不可作为寻路路径），
+    //       待寻路系统实现 isPathfindable 接口后应在此添加覆盖。
 
 private:
     /**

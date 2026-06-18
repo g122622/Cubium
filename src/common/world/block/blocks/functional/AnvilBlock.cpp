@@ -61,6 +61,11 @@ static constexpr i32 ANVIL_FALL_DAMAGE_MAX = 40;
 //
 // 参考: MC 1.21.11 AnvilBlock.java 中的 SHAPES 常量，
 //       Block.column(xDiameter, zDiameter, minY, maxY) 的参数为直径而非半径。
+//
+// TODO: MC原版中段和窄颈使用 Block.column 的4参数版本（底顶直径不同的锥形），
+//       例如 Z轴中段底部8×10、顶部4×8，窄颈底部4×8、顶部10×16。
+//       当前 CollisionShape 系统不支持锥形，只能用最大包围矩形近似，
+//       待 CollisionShape 支持锥形后应改用精确形状。
 
 /// 像素单位常量
 static constexpr f32 P = 1.0f / 16.0f;
@@ -222,6 +227,9 @@ ActionResultType AnvilBlock::onBlockActivated(const BlockState& /*state*/,
     if (world.asServerWorld() == nullptr) {
         return ActionResultType::Success;
     }
+
+    // TODO: MC原版在交互时触发 INTERACT_WITH_ANVIL 统计（Stats.INTERACT_WITH_ANVIL），
+    //       待统计系统实现后应在此添加 player.awardStat(Stats.INTERACT_WITH_ANVIL)。
 
     // 打开铁砧修复容器
     if (world.openContainer(ContainerType::Anvil, pos, player)) {
