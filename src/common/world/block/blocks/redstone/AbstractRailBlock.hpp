@@ -197,8 +197,7 @@ public:
      * @param updateBlock 是否更新世界中的方块状态
      * @return 更新后的方块状态
      */
-    [[nodiscard]] BlockState updateDir(
-        IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock);
+    [[nodiscard]] BlockState updateDir(IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock);
 
     /**
      * @brief 铁轨状态更新

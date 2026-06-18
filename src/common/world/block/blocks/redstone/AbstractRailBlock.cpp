@@ -193,8 +193,7 @@ const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const
     return m_shapes[0];
 }
 
-BlockState AbstractRailBlock::updateDir(
-    IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock)
+BlockState AbstractRailBlock::updateDir(IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock)
 {
     RailState railState(world, pos, *this, state);
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);

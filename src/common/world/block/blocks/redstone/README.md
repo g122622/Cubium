@@ -36,6 +36,7 @@ redstone/
 ├── TargetBlock.hpp/cpp                # 标靶（箭矢命中→信号）
 ├── RedstoneLampBlock.hpp/cpp          # 红石灯（信号控制发光）
 ├── AbstractRailBlock.hpp/cpp          # 铁轨基类
+├── RailState.hpp/cpp                 # 铁轨连接状态计算器（形状计算、三连接道岔）
 ├── RailBlock.hpp/cpp                  # 普通铁轨
 ├── PoweredRailBlock.hpp/cpp           # 动力铁轨
 ├── DetectorRailBlock.hpp/cpp          # 探测铁轨
@@ -212,3 +213,20 @@ TNT 需要检测相邻位置的火焰（包括灵魂火）和熔岩，不仅检�
 - **类型匹配**：Normal 活塞头对应 PISTON，Sticky 活塞头对应 STICKY_PISTON，类型不匹配则无法存活
 
 TODO: 待 Block 基类补齐 `playerWillDestroy`（含 Player* 参数）和 `preventsBlockDrops` 机制后，需实现创造模式破坏活塞头时同时销毁活塞基座且不产生掉落物的逻辑。
+
+### 20. 铁轨连接系统（RailState）
+
+铁轨的连接形状计算由 `RailState` 类负责，完整复刻了 MC Java 的 `RailState` 逻辑：
+
+- **三层级Y轴搜索**：`hasNeighborRail` 和 `getRail` 检查同层、上方(+1)、下方(-1)三个Y层级，确保斜坡铁轨能正确发现和连接不同Y高度的相邻铁轨
+- **双向连接验证**：`removeSoftConnections` 验证对方铁轨是否仍然连接回来，`canConnectTo` 限制每条铁轨最多2个连接
+- **三连接道岔切换**：普通铁轨在三连接时根据红石信号选择弯轨方向（T型道岔的核心逻辑）
+  - 有红石信号：优先级 SE → SW → NE → NW（最后匹配胜出）
+  - 无红石信号：优先级 NW → NE → SW → SE（反方向）
+  - 通过 `RailBlock::updateState` 在邻居信号源变化且铁轨有三连接时触发重算
+- **四连接处理**：保持当前形状，红石信号决定弯轨方向
+- **直线铁轨**：动力铁轨、探测铁轨、激活铁轨（`isStraight=true`）不支持弯轨，三/四连接时保持当前直轨形状
+- **连接传播**：`place()` 中 `updateBlock=true` 模式下会通知相邻铁轨更新连接
+- **updateBlock 参数**：
+  - `true`：放置铁轨或 `neighborChanged` 时使用，直接设置方块状态并传播连接
+  - `false`：`updatePostPlacement` 时使用，仅返回计算后的状态，由调用方设置

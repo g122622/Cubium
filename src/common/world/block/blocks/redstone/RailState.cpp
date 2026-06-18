@@ -368,11 +368,15 @@ BlockState RailState::place(bool hasPower, bool updateBlock, RailShape currentSh
     // 构建新状态
     BlockState newState = m_block.withRailShape(*m_world.getBlockState(m_pos), shape);
     const BlockState* oldState = m_world.getBlockState(m_pos);
+    bool shapeChanged = oldState == nullptr || *oldState != newState;
 
-    // 第六步：传播连接到相邻铁轨
-    if (updateBlock || oldState == nullptr || *oldState != newState) {
+    // 第六步：根据模式决定是否直接写入世界和传播连接
+    // updateBlock=true 时（放置或neighborChanged），直接设置方块状态并传播连接
+    // updateBlock=false 时（updatePostPlacement），仅返回计算后的状态，由调用方设置
+    if (shapeChanged && updateBlock) {
         m_world.setBlockState(m_pos.x, m_pos.y, m_pos.z, &newState, 3);
 
+        // 传播连接到相邻铁轨
         for (const auto& connPos : m_connections) {
             auto rail = getRail(connPos);
             if (rail != nullptr) {
@@ -384,9 +388,12 @@ BlockState RailState::place(bool hasPower, bool updateBlock, RailShape currentSh
         }
     }
 
-    // 返回世界中的当前状态
-    const BlockState* resultState = m_world.getBlockState(m_pos);
-    return resultState != nullptr ? *resultState : newState;
+    // 返回结果：updateBlock模式下从世界读取最终状态，否则返回计算值
+    if (updateBlock) {
+        const BlockState* resultState = m_world.getBlockState(m_pos);
+        return resultState != nullptr ? *resultState : newState;
+    }
+    return newState;
 }
 
 int RailState::countPotentialConnections() const
