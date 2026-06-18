@@ -378,6 +378,11 @@ public:
 
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
 
+    // ========== 游戏事件 ==========
+
+    void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override;
+
     // ========== 方块更新通知 ==========
 
     void notifyBlockUpdate(const BlockPos& pos) override;

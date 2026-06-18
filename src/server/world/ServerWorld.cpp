@@ -309,6 +309,18 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
     }
 }
 
+void ServerWorld::gameEvent(
+    const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context)
+{
+    // TODO: 当 GameEventDispatcher 实现后，将事件分发给附近的 GameEventListener
+    // （如幽匿感测体 SculkSensor、幽匿尖啸体 SculkShrieker 等）。
+    // 当前仅作为接口占位，不执行任何分发逻辑。
+    // 参考 MC: Level.gameEvent() -> GameEventDispatcher.post()
+    (void)event;
+    (void)pos;
+    (void)context;
+}
+
 void ServerWorld::notifyBlockUpdate(const BlockPos& pos)
 {
     // 即使方块状态未改变，也触发客户端同步通知

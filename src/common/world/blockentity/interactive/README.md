@@ -150,8 +150,8 @@
                 JukeboxEntity 使用 JukeboxSongPlayer 管理播放状态，支持：
             - 歌曲自动结束：通过 JukeboxSongs 注册表获取歌曲长度，当 `ticksSinceSongStarted
         >= lengthInTicks + 20` 时自动停止 - 音符粒子效果：每20tick（1秒）在唱片机上方生成音符粒子 -
-            游戏事件：每20tick触发 GameEvent.JUKEBOX_PLAY（TODO：待游戏事件系统实现后补充），停止时触发 GameEvent
-                .JUKEBOX_STOP_PLAY
+            游戏事件：每20tick触发 GameEvent.JUKEBOX_PLAY（已通过 IWorld::gameEvent() 接口实现），停止时触发 GameEvent
+                .JUKEBOX_STOP_PLAY（当前 ServerWorld::gameEvent() 为空操作占位，待 GameEventDispatcher 实现后自动生效）
             -
             存档恢复：从存档加载时通过 `setSongWithoutPlaying()` 恢复播放进度
 

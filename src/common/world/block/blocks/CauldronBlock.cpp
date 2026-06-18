@@ -36,6 +36,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 
 namespace mc {
 namespace blocks {
@@ -155,10 +156,10 @@ void CauldronBlock::handlePrecipitation(
     BlockState newState = currentState->with(BlockStateProperties::LEVEL_0_3(), level + 1);
     world.setBlockState(pos, &newState, 3);
 
-    // TODO: 触发 GameEvent::BLOCK_CHANGE 事件（用于幽匿感测体检测）
+    // 触发 BLOCK_CHANGE 游戏事件，通知附近的幽匿感测体
     // 参考: net.minecraft.block.CauldronBlock#handlePrecipitation 中调用
     //       world.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state, newState))
-    // 当前项目尚未实现 GameEvent 系统，待该系统实现后补充此处调用
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
 }
 
 // ========== 交互 ==========

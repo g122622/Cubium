@@ -34,6 +34,7 @@
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "explosion/ExplosionMode.hpp"
+#include "gameevent/GameEvent.hpp"
 #include "lighting/InternalLightUtils.hpp"
 #include "tick/base/TickPriority.hpp"
 #include <limits>
@@ -105,6 +106,10 @@ class FluidState;
 namespace client::renderer::trident::particle {
 enum class ParticleTypeId : u16;
 }
+
+namespace gameevent {
+class GameEvent; // 前向声明
+} // namespace gameevent
 
 /**
  * @brief 世界访问接口
@@ -365,6 +370,43 @@ public:
         (void)eventId;
         (void)pos;
         (void)data;
+    }
+
+    // ========== 游戏事件 ==========
+
+    /**
+     * @brief 触发游戏事件
+     *
+     * 游戏事件是服务端内部事件分发机制，通知附近的 GameEventListener（如幽匿感测体）
+     * 有振动信号产生。与 playEvent（世界事件/levelEvent）不同，gameEvent 不会发送
+     * 网络包给客户端，而是用于服务端内部的信号传播。
+     *
+     * 参考 MC: LevelAccessor.gameEvent(Holder<GameEvent>, Vec3, GameEvent.Context)
+     *
+     * @param event 游戏事件，参见 GameEvents 命名空间
+     * @param pos 事件位置
+     * @param context 事件上下文（源实体和受影响方块状态）
+     */
+    virtual void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context)
+    {
+        (void)event;
+        (void)pos;
+        (void)context;
+    }
+
+    /**
+     * @brief 触发游戏事件（仅传入方块状态）
+     *
+     * 便捷方法，等价于 gameEvent(event, pos, GameEvent::Context::of(blockState))。
+     *
+     * @param event 游戏事件
+     * @param pos 事件位置
+     * @param blockState 受影响的方块状态
+     */
+    void gameEvent(const gameevent::GameEvent& event, const BlockPos& pos, const BlockState* blockState)
+    {
+        gameEvent(event, pos, gameevent::GameEvent::Context::of(blockState));
     }
 
     // ========== 方块更新通知 ==========
