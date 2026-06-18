@@ -23,11 +23,12 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "world/block/blocks/ConcretePowderBlock.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/border/WorldBorder.hpp"
@@ -178,4 +179,74 @@ TEST(FallingBlockBehaviorTest, RedSandIsRegisteredAsFallingBlock)
     const Block* redSandBlock = VanillaBlocks::RED_SAND;
     const FallingBlock* fallingBlock = dynamic_cast<const FallingBlock*>(redSandBlock);
     EXPECT_NE(fallingBlock, nullptr);
+}
+
+// ============================================================================
+// canFallThrough 行为变更测试
+//
+// MC 1.21.11 FallingBlock.isFree() 对齐后的 canFallThrough 逻辑：
+// nullptr/air → true, FIRE tag → true, isLiquid → true, canBeReplaced → true
+// 旧逻辑额外包含 !blocksMovement()（如火把等非阻挡移动方块），
+// 这在 MC 原版中不存在，已移除。
+// ============================================================================
+
+TEST(FallingBlockCanFallThroughTest, Torch_NotPenetrableAfterFix)
+{
+    // 火把 blocksMovement=false，但不是空气、火焰、液体、可替换
+    // 旧逻辑(!blocksMovement)：穿透 → 新逻辑：不穿透
+    // 对齐 MC 1.21.11：火把不应被下落方块穿透
+    if (VanillaBlocks::TORCH != nullptr) {
+        const BlockState* torchState = &VanillaBlocks::TORCH->defaultState();
+        ASSERT_NE(torchState, nullptr);
+        EXPECT_FALSE(FallingBlock::canFallThrough(torchState));
+    }
+}
+
+TEST(FallingBlockCanFallThroughTest, SnowLayer_ReturnsTrueBecauseReplaceable)
+{
+    // 雪层 canBeReplaced=true，应该可以穿透
+    if (VanillaBlocks::SNOW != nullptr) {
+        const BlockState* snowState = &VanillaBlocks::SNOW->defaultState();
+        ASSERT_NE(snowState, nullptr);
+        EXPECT_TRUE(FallingBlock::canFallThrough(snowState));
+    }
+}
+
+TEST(FallingBlockCanFallThroughTest, LiquidBlocksArePenetrable)
+{
+    // 水/岩浆方块 isLiquid=true，应该可以穿透
+    // 这在旧逻辑中可能通过 canBeReplaced 间接支持，
+    // 新逻辑通过 isLiquid 明确支持
+    ASSERT_NE(VanillaBlocks::WATER, nullptr);
+    const BlockState* waterState = &VanillaBlocks::WATER->defaultState();
+    EXPECT_TRUE(FallingBlock::canFallThrough(waterState));
+
+    ASSERT_NE(VanillaBlocks::LAVA, nullptr);
+    const BlockState* lavaState = &VanillaBlocks::LAVA->defaultState();
+    EXPECT_TRUE(FallingBlock::canFallThrough(lavaState));
+}
+
+TEST(FallingBlockCanFallThroughTest, ConcretePowderIsFallingBlock)
+{
+    // 验证混凝土粉末是下落方块
+    ASSERT_NE(VanillaBlocks::WHITE_CONCRETE_POWDER, nullptr);
+    const Block* concretePowder = VanillaBlocks::WHITE_CONCRETE_POWDER;
+    const FallingBlock* fallingBlock = dynamic_cast<const FallingBlock*>(concretePowder);
+    EXPECT_NE(fallingBlock, nullptr);
+}
+
+TEST(FallingBlockCanFallThroughTest, ConcretePowderIsConcretePowderBlock)
+{
+    // 验证混凝土粉末注册为 ConcretePowderBlock
+    ASSERT_NE(VanillaBlocks::WHITE_CONCRETE_POWDER, nullptr);
+    const ConcretePowderBlock* cpb = dynamic_cast<const ConcretePowderBlock*>(VanillaBlocks::WHITE_CONCRETE_POWDER);
+    EXPECT_NE(cpb, nullptr);
+}
+
+TEST(FallingBlockCanFallThroughTest, ConcreteBlockIsNotFallingBlock)
+{
+    // 验证混凝土不是下落方块
+    ASSERT_NE(VanillaBlocks::WHITE_CONCRETE, nullptr);
+    const FallingBlock* fallingBlock = dynamic_cast<const FallingBlock*>(VanillaBlocks::WHITE_CONCRETE);
+    EXPECT_EQ(fallingBlock, nullptr);
 }
