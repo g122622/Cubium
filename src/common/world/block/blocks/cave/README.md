@@ -111,6 +111,10 @@ Block
 
 关键静态方法：`canGrow`、`findTip`、`findRootBlock`、`canDrip`、`canTipGrow`、`calculateDripstoneThickness`、`maybeTransferFluid`
 
-### #6. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
+### #7. SmallDripleafBlock 双格完整性检查
+
+`SmallDripleafBlock::updatePostPlacement()` 实现了双格方块完整性检查（另一半消失时当前半部也变为空气），但**缺少 `isValidPosition` 覆写**，导致下半部分的下方支撑失效检查缺失。MC 原版中 `SmallDripleafBlock.canSurvive()` 对下半部分检查 `mayPlaceOn()`，需要实现 `isValidPosition` 后补充此逻辑。
+
+### #8. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
 
 洞穴藤蔓的中键选取（`getCloneItemStack`）返回的是 `GLOW_BERRIES` 物品而非方块物品，因为原版MC中玩家中键点击洞穴藤蔓获得的是发光浆果。右键收获时掉落1个发光浆果并播放 `BLOCK_CAVE_VINES_PICK_BERRIES` 音效。骨粉效果是设置 `BERRIES=true`（不是生长），`setBlockState` 标志位为2。

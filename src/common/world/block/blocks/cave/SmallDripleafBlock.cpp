@@ -107,6 +107,10 @@ BlockState SmallDripleafBlock::updatePostPlacement(const BlockState& state,
         }
     }
 
+    // TODO: SmallDripleafBlock 缺少 isValidPosition 覆写，下方支撑检查（facing == Down）无法执行。
+    // MC 原版中 SmallDripleafBlock.canSurvive 对下半部分检查 mayPlaceOn，需要实现 isValidPosition 后
+    // 在此处添加与 DoublePlantBlock/TallSeagrassBlock 相同的下方支撑失效断裂逻辑。
+
     return state;
 }
 

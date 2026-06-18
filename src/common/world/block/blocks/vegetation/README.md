@@ -74,9 +74,16 @@ Block (基类)
 
 ## 容易踩的坑
 
-### 1. 双格植物状态丢失
+### 1. 双格植物半部断裂逻辑
 
-只更新下半部分而忘记更新上半部分会导致植物状态不一致。**必须使用 `DoublePlantBlock::placeAt()` 静态方法**同时放置两部分。
+`DoublePlantBlock::updatePostPlacement()` 实现了完整的双格方块完整性检查，与 MC 原版 `DoublePlantBlock.updateShape` 一致：
+- 使用 `isLower == isUpDirection` 条件统一处理：下半部分收到上方向更新或上半部分收到下方向更新时，检查另一半是否存在
+- 当另一半消失时，当前半部分变为空气（返回 `airState`）
+- 下半部分额外检查下方支撑（`isValidPosition`），支撑失效时也变为空气
+- 水平方向（非 Y 轴）的邻居变化不触发断裂
+- 所有继承 `DoublePlantBlock` 的子类（`LilacBlock`、`RoseBushBlock`、`PeonyBlock`、`SunflowerBlock`、`LargeFernBlock`）自动继承此逻辑
+
+放置时**必须使用 `DoublePlantBlock::placeAt()` 静态方法**同时放置两部分，避免状态不一致。
 
 ### 2. 仙人掌周围固体检测
 
