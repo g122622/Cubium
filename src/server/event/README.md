@@ -65,10 +65,15 @@ server/event/
 | `server/interaction/BlockInteractionManager` | BlockBreakEvent, BlockPlaceEvent |
 | `server/player/ServerPlayer` | PlayerLoginEvent, PlayerLogoutEvent, InventoryChangedEvent |
 | `common/entity/core/LivingEntity` | EntityDeathEvent, EntityHurtEvent |
-| `server/advancement/AdvancementEventHandler` | 订阅 InventoryChangedEvent 触发成就 |
+| `common/entity/ai/goal/goals/BreedGoal` | BredAnimalsEvent（通过 IWorld::onBredAnimals） |
+| `common/entity/entities/passive/tamable/ParrotEntity` | TameAnimalEvent（通过 IWorld::onTameAnimal） |
+| `common/entity/entities/passive/horse/AbstractHorseEntity` | TameAnimalEvent（通过 IWorld::onTameAnimal） |
+| `server/command/commands/SummonCommand` | SummonedEntityEvent（通过 IWorld::onSummonedEntity） |
+| `server/world/ServerWorld` | CuredZombieVillagerEvent, ChanneledLightningEvent, BredAnimalsEvent 等（IWorld 回调重写） |
+| `server/advancement/AdvancementEventHandler` | 订阅 22 种事件触发成就（InventoryChangedEvent, PlayerKillEntityEvent, TameAnimalEvent, SummonedEntityEvent 等） |
 | `server/application/MinecraftServer` | 初始化和关闭 AdvancementEventHandler |
 
-**注意**：当前事件系统已定义完成，但尚未与游戏逻辑集成。事件定义和总线实现均已就绪，等待各模块在适当位置调用 `publish()` 发布事件。
+**注意**：部分事件已与游戏逻辑集成（通过 IWorld 回调 + ServerWorld 重写发布），部分事件已定义但尚未在游戏逻辑中发布（等待对应模块实现）。
 
 ## 容易踩的坑
 

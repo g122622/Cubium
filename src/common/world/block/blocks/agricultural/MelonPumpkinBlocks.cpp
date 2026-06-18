@@ -273,6 +273,12 @@ bool CarvedPumpkinBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
                 }
 
                 world.spawnEntity(std::move(entity));
+
+                // TODO: 触发 SummonedEntity 进度检测
+                // 参考 MC: CarvedPumpkinBlock.spawnGolemInWorld() 中，
+                // CriteriaTriggers.SUMMONED_ENTITY.trigger() 为傀儡位置5格内的所有 ServerPlayer 触发。
+                // 当前 onBlockAdded() 无放置者信息，需要重构为接收 PlayerId 参数，
+                // 或在 IWorld 中添加查找附近玩家的方法后为范围内玩家触发 onSummonedEntity。
             }
         }
 
@@ -342,6 +348,12 @@ bool CarvedPumpkinBlock::_trySpawnGolem(IWorld& world, const BlockPos& pos)
                 }
 
                 world.spawnEntity(std::move(entity));
+
+                // TODO: 触发 SummonedEntity 进度检测
+                // 参考 MC: CarvedPumpkinBlock.spawnGolemInWorld() 中，
+                // CriteriaTriggers.SUMMONED_ENTITY.trigger() 为傀儡位置5格内的所有 ServerPlayer 触发。
+                // 当前 onBlockAdded() 无放置者信息，需要重构为接收 PlayerId 参数，
+                // 或在 IWorld 中添加查找附近玩家的方法后为范围内玩家触发 onSummonedEntity。
             }
         }
 

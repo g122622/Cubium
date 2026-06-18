@@ -311,3 +311,32 @@ world/
 - `ServerWorld` 覆写实现，返回实际的 `m_raidManager`
 - 客户端世界（`ClientWorld`）返回 `nullptr`，不触发袭击相关逻辑
 - 典型使用场景：`VillagerEntity::tick()` 通过 `world->raidManager()` 检查当前区域是否有活跃袭击，若有则广播恐慌粒子
+
+### 14. IWorld 进度触发回调
+
+`IWorld` 定义了一组虚方法用于通知世界进度相关事件，`ServerWorld` 重写这些方法来发布 `ServerEventBus` 事件，由 `AdvancementEventHandler` 订阅并触发对应的成就检测。完整回调列表：
+
+| 回调方法 | 发布事件 | 触发的 CriterionTrigger |
+|---------|---------|----------------------|
+| `onBlockPlaced()` | `BlockPlaceEvent` | `PlacedBlockTrigger` |
+| `onBredAnimals()` | `BredAnimalsEvent` | `BredAnimalsTrigger` |
+| `onVillagerTrade()` | `VillagerTradeEvent` | `VillagerTradeTrigger` |
+| `onZombieVillagerCured()` | `CuredZombieVillagerEvent` | `CuredZombieVillagerTrigger` |
+| `onChanneledLightning()` | `ChanneledLightningEvent` | `ChanneledLightningTrigger` |
+| `onTameAnimal()` | `TameAnimalEvent` | `TameAnimalTrigger` |
+| `onSummonedEntity()` | `SummonedEntityEvent` | `SummonedEntityTrigger` |
+| `onConsumeItem()` | `ConsumeItemEvent` | `ConsumeItemTrigger` |
+| `onItemDurabilityChange()` | `ItemDurabilityEvent` | `ItemDurabilityTrigger` |
+| `onEnchantItem()` | `EnchantItemEvent` | `EnchantedItemTrigger` |
+| `onFilledBucket()` | `FilledBucketEvent` | `FilledBucketTrigger` |
+| `onEnterBlock()` | `EnterBlockEvent` | `EnterBlockTrigger` |
+| `onSlideDownBlock()` | `SlideDownBlockEvent` | `SlideDownBlockTrigger` |
+| `onBeeNestDestroyed()` | `BeeNestDestroyedEvent` | `BeeNestDestroyedTrigger` |
+| `onPlayerDestroyItem()` | `PlayerDestroyItemEvent` | （暂无对应触发器） |
+
+**调用模式**：游戏逻辑（common 模块）调用 `m_world->onXxx(...)` → `ServerWorld::onXxx()` 重写 → `ServerEventBus::publish(event)` → `AdvancementEventHandler` 事件处理器 → `CriterionTriggers::getTrigger<T>()` → `AbstractCriterionTrigger<T>::trigger()`。
+
+**注意事项**：
+- `ClientWorld` 不重写这些回调，默认空实现（void 参数），不触发任何事件
+- `PlayerInteractedWithEntityTrigger` 不通过 IWorld 回调触发，而是在 `PacketHandler::handleUseEntity()` 中直接调用 `AbstractCriterionTrigger::trigger()`
+- `SummonedEntityTrigger` 当前仅在 `/summon` 命令中触发。MC Java 中还会在建造铁傀儡/雪傀儡/凋灵时触发，但当前傀儡建造代码缺少玩家上下文信息，需要重构后才能添加

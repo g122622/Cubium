@@ -19,7 +19,8 @@ server/advancement/
 │  ┌────────────────────────────────────────────────────────────────┐  │
 │  │ 订阅事件：InventoryChangedEvent、PlayerKillEntityEvent、        │  │
 │  │ BlockPlaceEvent、CuredZombieVillagerEvent、ServerTickEvent、    │  │
-│  │ VillagerTradeEvent、BredAnimalsEvent、ConsumeItemEvent 等      │  │
+│  │ VillagerTradeEvent、BredAnimalsEvent、ConsumeItemEvent、       │  │
+│  │ TameAnimalEvent、SummonedEntityEvent 等                        │  │
 │  └────────────────────────────────────────────────────────────────┘  │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ 触发
@@ -165,3 +166,14 @@ server/advancement/
 17. **m_manager 缓存**：`PlayerAdvancements` 在 `flushAdvancements()` 和 `onAdvancementsReloaded()` 中缓存 `AdvancementManager` 指针到 `m_manager`，用于 `_ensureVisibility()` 和 `_shouldShow()` 查找父成就。如果 `m_manager` 为空，`_ensureVisibility()` 回退到 `_shouldShow()` 的简化逻辑，`_shouldShow()` 在无 manager 时默认可见（非隐藏且有 display）。
 
 18. **战利品表奖励的物品溢出**：`_grantRewards()` 将战利品表生成的物品添加到玩家物品栏，如果物品栏已满，剩余物品通过 `ItemDropHelper::spawnItemEntity()` 掉落在玩家位置，使用玩家的 UUID 作为掉落者标识以设置拾取延迟。
+
+19. **TameAnimalTrigger 事件链**：玩家成功驯服动物时触发。驯服路径包括：
+    - 鹦鹉驯服：`ParrotEntity::interactMob()` → `setTamed(true)` + `setOwnerId()` → `IWorld::onTameAnimal()` → `ServerWorld::onTameAnimal()` → `ServerEventBus::publish(TameAnimalEvent)` → `AdvancementEventHandler::_onTameAnimal()`
+    - 马驯服：`RunAroundLikeCrazyGoal` → `AbstractHorseEntity::setTamedBy()` → `IWorld::onTameAnimal()` → 同上
+    - **未实现**：狼（WolfEntity）和猫（CatEntity）尚未实现 `interactMob()` 驯服交互，驯服触发点待实现后接入
+
+20. **SummonedEntityTrigger 事件链**：玩家召唤实体时触发。当前触发路径：
+    - `/summon` 命令：`SummonCommand` → `world->spawnEntity()` → `IWorld::onSummonedEntity()` → `ServerWorld::onSummonedEntity()` → `ServerEventBus::publish(SummonedEntityEvent)` → `AdvancementEventHandler::_onSummonedEntity()`
+    - **未实现**：铁傀儡/雪傀儡建造（`CarvedPumpkinBlock`）、凋灵建造（`WitherSkullBlock` 未实现）、末影龙重生（`EndDragonFight` 未实现）。这些场景需要重构以获取附近玩家信息后触发
+
+21. **PlayerInteractedWithEntityTrigger 触发路径**：不通过 IWorld 回调，而是在 `PacketHandler::handleUseEntity()` 中直接调用 `AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger()`。当交互结果为 `Success` 或 `Consume` 时，获取玩家手持物品和目标实体进行谓词匹配。

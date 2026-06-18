@@ -260,6 +260,10 @@ add_executable(mc_tests
     server/advancement/PlayerAdvancementsTest.cpp
     # PlayerDestroyItemEvent 物品销毁事件测试
     server/event/PlayerDestroyItemEventTest.cpp
+    # TameAnimalEvent 驯服动物事件测试
+    server/event/TameAnimalEventTest.cpp
+    # SummonedEntityEvent 召唤实体事件测试
+    server/event/SummonedEntityEventTest.cpp
     # 村庄声望治愈僵尸村民测试
     server/advancement/VillageReputationTest.cpp
     # ItemDropHelper 测试
