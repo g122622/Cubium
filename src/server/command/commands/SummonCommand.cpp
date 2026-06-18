@@ -121,6 +121,16 @@ i32 SummonCommand::_summonEntity(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
+    // 触发进度检测：召唤实体
+    // 参考 MC: CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, entity)
+    // /summon 命令由玩家执行，触发 SummonedEntityTrigger
+    if (source.isPlayer()) {
+        Entity* spawnedEntity = world->getEntity(spawnedId);
+        if (spawnedEntity != nullptr) {
+            world->onSummonedEntity(source.playerId(), spawnedEntity);
+        }
+    }
+
     // 发送反馈
     std::ostringstream ss;
     ss << "Summoned " << entityId.toString();
@@ -183,6 +193,16 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
     if (spawnedId == 0) {
         source.sendError("commands.summon.failed.spawnFailed");
         return 0;
+    }
+
+    // 触发进度检测：召唤实体
+    // 参考 MC: CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, entity)
+    // /summon 命令由玩家执行，触发 SummonedEntityTrigger
+    if (source.isPlayer()) {
+        Entity* spawnedEntity = world->getEntity(spawnedId);
+        if (spawnedEntity != nullptr) {
+            world->onSummonedEntity(source.playerId(), spawnedEntity);
+        }
     }
 
     // 发送反馈

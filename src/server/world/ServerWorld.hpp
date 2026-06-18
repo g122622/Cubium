@@ -1015,6 +1015,26 @@ public:
         const ItemStack& tool,
         i32 numBeesInside) override;
 
+    /**
+     * @brief 通知世界动物被驯服
+     *
+     * 重写 IWorld::onTameAnimal()，发布 TameAnimalEvent 用于进度触发。
+     *
+     * @param playerId 驯服动物的玩家ID
+     * @param animal 被驯服的动物实体
+     */
+    void onTameAnimal(PlayerId playerId, Entity* animal) override;
+
+    /**
+     * @brief 通知世界实体被召唤
+     *
+     * 重写 IWorld::onSummonedEntity()，发布 SummonedEntityEvent 用于进度触发。
+     *
+     * @param playerId 召唤实体的玩家ID
+     * @param entity 被召唤的实体
+     */
+    void onSummonedEntity(PlayerId playerId, Entity* entity) override;
+
     // ========== 结构定位 ==========
 
     /**

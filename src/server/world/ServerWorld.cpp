@@ -2236,6 +2236,20 @@ void ServerWorld::onBeeNestDestroyed(
     event::ServerEventBus::instance().publish(beeEvent);
 }
 
+void ServerWorld::onTameAnimal(PlayerId playerId, Entity* animal)
+{
+    // 发布 TameAnimalEvent 用于进度触发
+    event::TameAnimalEvent tameEvent{currentTick(), playerId, animal};
+    event::ServerEventBus::instance().publish(tameEvent);
+}
+
+void ServerWorld::onSummonedEntity(PlayerId playerId, Entity* entity)
+{
+    // 发布 SummonedEntityEvent 用于进度触发
+    event::SummonedEntityEvent summonEvent{currentTick(), playerId, entity};
+    event::ServerEventBus::instance().publish(summonEvent);
+}
+
 // ============================================================================
 // 结构定位
 // ============================================================================

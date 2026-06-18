@@ -80,21 +80,11 @@ Result<std::shared_ptr<ICriterionInstance>> TameAnimalTrigger::fromJson(const nl
 
 void TameAnimalTrigger::trigger(ServerPlayer& player, const Entity& entity)
 {
-    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
-    // 服务端代码应使用以下方式之一触发检测：
-    //
-    // 方法1：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
-    // #include "server/advancement/TriggerInstantiation.hpp"
-    // auto* trigger = CriterionTriggers::instance().getTrigger<TameAnimalTrigger>();
-    // trigger->AbstractCriterionTrigger<TameAnimalTriggerInstance>::trigger(
-    //     *player.getAdvancements(),
-    //     [&entity](const TameAnimalTriggerInstance& instance) {
-    //         return instance.test(entity);
-    //     }
-    // );
-    //
-    // 方法2：在 setTamedBy 中直接调用（推荐服务端代码处理）
-    // 参考：server/advancement/AdvancementEventHandler.hpp
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端通过 AdvancementEventHandler::_onTameAnimal() 订阅 TameAnimalEvent，
+    // 然后直接调用 AbstractCriterionTrigger<TameAnimalTriggerInstance>::trigger() 触发检测。
+    // 游戏逻辑通过 IWorld::onTameAnimal() -> ServerWorld::onTameAnimal() 发布事件。
+    // 触发场景：鹦鹉驯服 (ParrotEntity::interactMob)、马驯服 (AbstractHorseEntity::setTamedBy) 等。
     MC_UNUSED(player);
     MC_UNUSED(entity);
 }
@@ -186,20 +176,10 @@ Result<std::shared_ptr<ICriterionInstance>> BredAnimalsTrigger::fromJson(const n
 
 void BredAnimalsTrigger::trigger(ServerPlayer& player, const Entity& child, const Entity& parent, const Entity& partner)
 {
-    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
-    // 服务端代码应使用以下方式触发检测：
-    //
-    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
-    // #include "server/advancement/TriggerInstantiation.hpp"
-    // auto* trigger = CriterionTriggers::instance().getTrigger<BredAnimalsTrigger>();
-    // trigger->AbstractCriterionTrigger<BredAnimalsTriggerInstance>::trigger(
-    //     *player.getAdvancements(),
-    //     [&child, &parent, &partner](const BredAnimalsTriggerInstance& instance) {
-    //         return instance.test(child, parent, partner);
-    //     }
-    // );
-    //
-    // 参考：server/advancement/AdvancementEventHandler.hpp 中的 onBredAnimals()
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端通过 AdvancementEventHandler::_onBredAnimals() 订阅 BredAnimalsEvent，
+    // 然后直接调用 AbstractCriterionTrigger<BredAnimalsTriggerInstance>::trigger() 触发检测。
+    // 游戏逻辑通过 IWorld::onBredAnimals() -> ServerWorld::onBredAnimals() 发布事件。
     MC_UNUSED(player);
     MC_UNUSED(child);
     MC_UNUSED(parent);
@@ -256,20 +236,11 @@ Result<std::shared_ptr<ICriterionInstance>> SummonedEntityTrigger::fromJson(cons
 
 void SummonedEntityTrigger::trigger(ServerPlayer& player, const Entity& entity)
 {
-    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
-    // 服务端代码应使用以下方式触发检测：
-    //
-    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
-    // #include "server/advancement/TriggerInstantiation.hpp"
-    // auto* trigger = CriterionTriggers::instance().getTrigger<SummonedEntityTrigger>();
-    // trigger->AbstractCriterionTrigger<SummonedEntityTriggerInstance>::trigger(
-    //     *player.getAdvancements(),
-    //     [&entity](const SummonedEntityTriggerInstance& instance) {
-    //         return instance.test(entity);
-    //     }
-    // );
-    //
-    // 参考：server/advancement/AdvancementEventHandler.hpp（待实现 onSummonedEntity）
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端通过 AdvancementEventHandler::_onSummonedEntity() 订阅 SummonedEntityEvent，
+    // 然后直接调用 AbstractCriterionTrigger<SummonedEntityTriggerInstance>::trigger() 触发检测。
+    // 游戏逻辑通过 IWorld::onSummonedEntity() -> ServerWorld::onSummonedEntity() 发布事件。
+    // 触发场景：/summon 命令、建造铁傀儡/雪傀儡、建造凋灵、重生末影龙等。
     MC_UNUSED(player);
     MC_UNUSED(entity);
 }
@@ -345,20 +316,10 @@ Result<std::shared_ptr<ICriterionInstance>> CuredZombieVillagerTrigger::fromJson
 
 void CuredZombieVillagerTrigger::trigger(ServerPlayer& player, const Entity& zombie, const Entity& villager)
 {
-    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
-    // 服务端代码应使用以下方式触发检测：
-    //
-    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
-    // #include "server/advancement/TriggerInstantiation.hpp"
-    // auto* trigger = CriterionTriggers::instance().getTrigger<CuredZombieVillagerTrigger>();
-    // trigger->AbstractCriterionTrigger<CuredZombieVillagerTriggerInstance>::trigger(
-    //     *player.getAdvancements(),
-    //     [&zombie, &villager](const CuredZombieVillagerTriggerInstance& instance) {
-    //         return instance.test(zombie, villager);
-    //     }
-    // );
-    //
-    // 参考：server/advancement/AdvancementEventHandler.hpp 中的 onCuredZombieVillager()
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端通过 AdvancementEventHandler::_onCuredZombieVillager() 订阅 CuredZombieVillagerEvent，
+    // 然后直接调用 AbstractCriterionTrigger<CuredZombieVillagerTriggerInstance>::trigger() 触发检测。
+    // 游戏逻辑通过 IWorld::onZombieVillagerCured() -> ServerWorld::onZombieVillagerCured() 发布事件。
     MC_UNUSED(player);
     MC_UNUSED(zombie);
     MC_UNUSED(villager);
@@ -515,20 +476,11 @@ Result<std::shared_ptr<ICriterionInstance>> PlayerInteractedWithEntityTrigger::f
 
 void PlayerInteractedWithEntityTrigger::trigger(ServerPlayer& player, const ItemStack& item, const Entity& entity)
 {
-    // TODO: 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
-    // 服务端代码应使用以下方式触发检测：
-    //
-    // 方法：使用 TriggerInstantiation.hpp 中的 trigger 模板方法
-    // #include "server/advancement/TriggerInstantiation.hpp"
-    // auto* trigger = CriterionTriggers::instance().getTrigger<PlayerInteractedWithEntityTrigger>();
-    // trigger->AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger(
-    //     *player.getAdvancements(),
-    //     [&item, &entity](const PlayerInteractedWithEntityTriggerInstance& instance) {
-    //         return instance.test(item, entity);
-    //     }
-    // );
-    //
-    // 参考：server/advancement/AdvancementEventHandler.hpp
+    // 此方法在 common 模块中无法完整实现，因为需要访问 PlayerAdvancements 的完整定义
+    // 服务端在 PacketHandler::handleUseEntity() 中直接调用
+    // AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger() 触发检测，
+    // 当玩家成功与实体交互（ActionResultType::Success 或 Consume）时触发。
+    // 参考：server/core/PacketHandler.cpp
     MC_UNUSED(player);
     MC_UNUSED(item);
     MC_UNUSED(entity);

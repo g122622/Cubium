@@ -1447,6 +1447,43 @@ public:
         // 默认空实现
     }
 
+    /**
+     * @brief 通知世界动物被驯服
+     *
+     * 当玩家成功驯服动物时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 TameAnimalEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * @param playerId 驯服动物的玩家ID
+     * @param animal 被驯服的动物实体
+     */
+    virtual void onTameAnimal(PlayerId playerId, Entity* animal)
+    {
+        (void)playerId;
+        (void)animal;
+        // 默认空实现
+    }
+
+    /**
+     * @brief 通知世界实体被召唤
+     *
+     * 当玩家通过建造或命令召唤实体时调用，用于触发进度检测。
+     * ServerWorld 重写此方法来发布 SummonedEntityEvent。
+     * ClientWorld 和其他实现返回空实现。
+     *
+     * 参考 MC: CriteriaTriggers.SUMMONED_ENTITY.trigger()
+     * 触发场景：建造铁傀儡/雪傀儡、建造凋灵、重生末影龙、/summon 命令
+     *
+     * @param playerId 召唤实体的玩家ID
+     * @param entity 被召唤的实体
+     */
+    virtual void onSummonedEntity(PlayerId playerId, Entity* entity)
+    {
+        (void)playerId;
+        (void)entity;
+        // 默认空实现
+    }
+
     // ========== 结构定位 ==========
 
     /**
