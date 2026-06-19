@@ -49,7 +49,7 @@ server/advancement/
 │              → 配方解锁（Player::unlockRecipes）                      │
 │              → 战利品表（LootTable::generate + PlayerInventory::add  │
 │                + ItemDropHelper::spawnItemEntity 处理溢出）           │
-│              → 函数执行（TODO: 需要命令/函数系统实现）                 │
+│              → 函数执行（FunctionManager::execute，通过 ServerCommandSource 执行） │
 │                                                                      │
 │  持久化：                                                             │
 │  onAdvancementsReloaded → toJson() → loadFromJson() → flushAdvanc-  │
@@ -123,7 +123,7 @@ server/advancement/
 1. **经验值**：调用 `ServerPlayer::addExperience()`，无 ServerPlayer 时跳过
 2. **配方解锁**：调用 `ServerPlayer::unlockRecipes()`，无 ServerPlayer 时跳过
 3. **战利品表**：通过 `LootTableManager` 获取战利品表，使用 `LootContextBuilder` 构建 `chest` 参数集上下文（THIS_ENTITY=玩家, KILLER_PLAYER=玩家），生成物品后添加到玩家物品栏，溢出部分通过 `ItemDropHelper::spawnItemEntity()` 掉落在玩家位置
-4. **函数执行**：TODO，需要命令/函数系统（`FunctionManager`）实现后集成
+4. **函数执行**：通过 `IServer::functionManager()` 获取 `FunctionManager`，使用 `gamemaster` 权限等级的 `ServerCommandSource` 执行函数中的命令。函数不存在时输出警告。
 
 ## 容易踩的坑
 

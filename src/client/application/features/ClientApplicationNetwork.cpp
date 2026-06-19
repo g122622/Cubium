@@ -321,13 +321,18 @@ void ClientApplication::setupNetworkCallbacks()
             auto* chatWidget =
                 static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId));
             if (chatWidget) {
-                const auto it = m_knownPlayerNames.find(senderId);
-                const std::string senderName =
-                    (senderId != 0 && it != m_knownPlayerNames.end()) ? it->second : std::string();
-                if (!senderName.empty()) {
-                    chatWidget->addMessage(senderName + ": " + message, 0xFFFFFFFF);
+                // senderId == 0 表示系统消息，非零表示玩家聊天消息
+                // 与 MC Java 一致：系统消息使用灰色文本，玩家消息使用白色文本
+                if (senderId == 0) {
+                    chatWidget->addMessage(message, chat::ChatMessageType::System);
                 } else {
-                    chatWidget->addMessage(message, 0xFFFFFFFF);
+                    const auto it = m_knownPlayerNames.find(senderId);
+                    const std::string senderName = (it != m_knownPlayerNames.end()) ? it->second : std::string();
+                    if (!senderName.empty()) {
+                        chatWidget->addMessage(senderName + ": " + message, chat::ChatMessageType::Chat);
+                    } else {
+                        chatWidget->addMessage(message, chat::ChatMessageType::Chat);
+                    }
                 }
             }
         }
@@ -1647,7 +1652,8 @@ void ClientApplication::handleChatCommand(const std::string& input)
         : nullptr;
 
     if (chatWidget) {
-        chatWidget->addMessage(input, 0xFFFFFFFF);
+        // 本地回显：用户输入的消息显示在聊天窗口中
+        chatWidget->addMessage(input, chat::ChatMessageType::Chat);
     }
 
     if (input[0] == '/') {

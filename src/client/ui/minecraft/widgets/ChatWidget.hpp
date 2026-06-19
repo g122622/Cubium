@@ -65,6 +65,14 @@ public:
      */
     using CommandCallback = std::function<void(const std::string&)>;
 
+    /**
+     * @brief 动作栏消息回调类型
+     *
+     * 当收到 Actionbar/GameInfo 类型的消息时触发，用于将消息路由到 TitleWidget 显示。
+     * @param text 消息文本
+     */
+    using ActionbarCallback = std::function<void(const std::string& text)>;
+
     ChatWidget();
     ~ChatWidget() override = default;
 
@@ -98,6 +106,16 @@ public:
         m_commandManager = commandManager;
         _updateCommandSuggestions();
     }
+
+    /**
+     * @brief 设置动作栏回调
+     *
+     * 当收到 Actionbar/GameInfo 类型的消息时，调用此回调将消息
+     * 路由到 TitleWidget 进行动作栏显示（屏幕中央偏下位置），
+     * 而非在聊天窗口中显示。与 MC Java 版一致：
+     * Chat/System 消息显示在聊天窗口，Actionbar/GameInfo 消息显示在动作栏。
+     */
+    void setActionbarCallback(ActionbarCallback callback) { m_actionbarCallback = std::move(callback); }
 
     // ========== 状态 ==========
 
@@ -153,8 +171,10 @@ public:
 
     /**
      * @brief 添加聊天消息
+     * @param message 消息文本
+     * @param type 消息类型（默认 Chat）
      */
-    void addMessage(const std::string& message, u32 color);
+    void addMessage(const std::string& message, ChatMessageType type = ChatMessageType::Chat);
 
     /**
      * @brief 添加富文本消息
@@ -309,6 +329,9 @@ private:
 
     // 命令回调
     CommandCallback m_commandCallback;
+
+    // 动作栏回调
+    ActionbarCallback m_actionbarCallback;
 };
 
 } // namespace mc::client::ui::minecraft::widgets

@@ -637,7 +637,25 @@ void ClientApplication::initializeUi()
                 chatWidget->setGuiRenderer(&m_renderer->guiRenderer());
                 chatWidget->setCommandManager(m_commandManager.get());
                 chatWidget->setCommandCallback([this](const std::string& input) { handleChatCommand(input); });
+                // Actionbar 回调需要在 chatWidget 和 titleWidget 都加入引擎后设置，
+                // 因为回调需要通过 layer ID 访问 titleWidget（见下方 setActionbarCallback）
                 m_chatLayerId = m_kageroEngine->addLayer(std::move(chatWidget), 20);
+
+                // 设置动作栏回调：当 ChatWidget 收到 Actionbar/GameInfo 消息时，
+                // 路由到 TitleWidget 在动作栏区域显示（与 MC Java 一致）
+                auto* chatWidgetPtr =
+                    static_cast<ui::minecraft::widgets::ChatWidget*>(m_kageroEngine->getLayer(m_chatLayerId));
+                if (chatWidgetPtr != nullptr) {
+                    chatWidgetPtr->setActionbarCallback([this](const std::string& text) {
+                        if (m_kageroEngine) {
+                            auto* titleWidget = static_cast<ui::minecraft::widgets::TitleWidget*>(
+                                m_kageroEngine->getLayer(m_titleLayerId));
+                            if (titleWidget != nullptr) {
+                                titleWidget->setActionbar(text);
+                            }
+                        }
+                    });
+                }
 
                 // 层 Z=30: Screen 栈
                 auto screenStackWidget = std::make_unique<ui::minecraft::widgets::ScreenStackWidget>();

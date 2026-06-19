@@ -366,19 +366,29 @@ bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
     return true;
 }
 
-void ChatWidget::addMessage(const std::string& message, u32 color)
+void ChatWidget::addMessage(const std::string& message, ChatMessageType type)
 {
-    // 将颜色转换为消息类型
-    // TODO: 当前仅通过一个硬编码的颜色值判断消息类型，后续应改为直接传入消息类型
-    ChatMessageType type = ChatMessageType::Chat;
-    if (color == 0xFFFFFF00) { // 黄色 -> 系统消息
-        type = ChatMessageType::System;
+    // Actionbar/GameInfo 消息不进入聊天历史，而是路由到动作栏回调
+    if (type == ChatMessageType::Actionbar || type == ChatMessageType::GameInfo) {
+        if (m_actionbarCallback) {
+            m_actionbarCallback(message);
+        }
+        return;
     }
+
     m_history.addMessage(message, type);
 }
 
 void ChatWidget::addMessage(std::unique_ptr<text::ITextComponent> message, ChatMessageType type)
 {
+    // Actionbar/GameInfo 消息不进入聊天历史，而是路由到动作栏回调
+    if (type == ChatMessageType::Actionbar || type == ChatMessageType::GameInfo) {
+        if (m_actionbarCallback) {
+            m_actionbarCallback(message ? message->getUnformattedText() : "");
+        }
+        return;
+    }
+
     m_history.addMessage(std::move(message), type);
 }
 
@@ -650,6 +660,12 @@ void ChatWidget::_renderMessages(kagero::widget::PaintContext& ctx)
             break; // 超出屏幕顶部
         }
 
+        // Actionbar/GameInfo 消息不应出现在聊天窗口中，跳过
+        // （正常情况下不会出现在历史中，因为 addMessage 已路由到动作栏回调）
+        if (it->type == ChatMessageType::Actionbar || it->type == ChatMessageType::GameInfo) {
+            continue;
+        }
+
         // 计算消息透明度（旧消息淡出）
         f32 alpha = 1.0f;
         if (!m_open && !it->permanent) {
@@ -673,8 +689,13 @@ void ChatWidget::_renderMessages(kagero::widget::PaintContext& ctx)
                                    static_cast<i32>(LINE_HEIGHT + 2)),
                 static_cast<u32>(0x80000000 * alpha));
 
-            // 渲染消息文本
-            u32 baseColor = 0xFFFFFFFF; // 白色默认
+            // 根据消息类型选择文本颜色
+            // 与 MC Java 一致：玩家消息为白色，系统消息为灰色
+            u32 baseColor = 0xFFFFFFFF; // 白色默认（玩家聊天消息）
+            if (it->type == ChatMessageType::System) {
+                baseColor = 0xFFAAAAAA; // 灰色（与 ChatHistory::addSystemMessage 的 Gray 样式一致）
+            }
+
             u8 a = static_cast<u8>(255 * alpha);
             u32 color = (baseColor & 0x00FFFFFF) | (static_cast<u32>(a) << 24);
             m_gui->drawText(plainText, padding + 2.0f, y - LINE_HEIGHT, color, true);

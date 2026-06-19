@@ -96,6 +96,10 @@ void ServerPlayer::sendChatMessage(const std::string& message)
 
     const auto fullPacket =
         server::core::ConnectionManager::encapsulatePacket(network::PacketType::ChatBroadcast, payload.buffer());
+
+    if (!_sendFullPacket(fullPacket)) {
+        spdlog::warn("ServerPlayer: chat message not sent (player={}, no connection)", username());
+    }
 }
 
 void ServerPlayer::sendSystemMessage(const std::string& message)
