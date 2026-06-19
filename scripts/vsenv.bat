@@ -4,8 +4,8 @@
 :: This script calls VsDevCmd.bat silently and can be used by
 :: other scripts (via `call vsenv.bat`) to get VS env vars.
 ::
-/// Can also be sourced in PowerShell:
-///   cmd /c '"D:\path\vsenv.bat" && set' | ForEach-Object { ... }
+REM Can also be sourced in PowerShell:
+REM   cmd /c '"D:\path\vsenv.bat" && set' | ForEach-Object { ... }
 :: ============================================================
 
 set "VSBASE=D:\Program Files\Microsoft Visual Studio\18\Community"
