@@ -26,9 +26,11 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -78,7 +80,6 @@ bool BigDripleafStemBlock::isValidPosition(const BlockState& state, IBlockReader
     // 大滴叶茎可以存活当且仅当：
     // 1. 下方是另一个大滴叶茎 或 BIG_DRIPLEAF_PLACEABLE 标签中的方块
     // 2. 上方是另一个大滴叶茎 或 大滴叶（BigDripleafBlock）
-    // 参考: net.minecraft.block.BigDripleafStemBlock.canSurvive
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
     if (belowState == nullptr) {
@@ -106,11 +107,9 @@ BlockState BigDripleafStemBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& facingPos)
 {
     // 当上方或下方方块变化导致无法存活时，延迟1tick后销毁
-    // 参考: net.minecraft.block.BigDripleafStemBlock.updateShape
     if ((facing == Direction::Down || facing == Direction::Up) &&
         !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
-        // TODO: MC原版使用 scheduleTick(this, 1) 延迟1tick后销毁，当前暂直接返回空气，待tick调度系统完善后改为延迟销毁
-        return VanillaBlocks::AIR->defaultState();
+        world.tickManager().scheduleBlockTick(currentPos, *this, 1);
     }
 
     if (state.get(BlockStateProperties::WATERLOGGED())) {
@@ -118,6 +117,21 @@ BlockState BigDripleafStemBlock::updatePostPlacement(const BlockState& state,
     }
 
     return state;
+}
+
+void BigDripleafStemBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+
+    // 延迟 tick 触发后，重新检查存活条件
+    // 如果仍然无法存活，则销毁方块并掉落物品
+    if (!isValidPosition(state, static_cast<IBlockReader&>(world), pos)) {
+        const BlockState* airState = BlockRegistry::instance().airState();
+        if (airState != nullptr) {
+            spawnAfterBreak(world, pos, state, nullptr, false);
+            world.setBlockState(pos, airState, 3);
+        }
+    }
 }
 
 const CollisionShape& BigDripleafStemBlock::getShape(const BlockState& state) const

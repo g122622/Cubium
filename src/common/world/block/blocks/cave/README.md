@@ -124,7 +124,7 @@ Block
 
 ### #8. BigDripleafBlock/BigDripleafStemBlock 支撑检查
 
-`BigDripleafBlock::isValidPosition()` 检查下方是否为大滴叶、大滴叶茎或 `BIG_DRIPLEAF_PLACEABLE` 标签方块。`BigDripleafStemBlock::isValidPosition()` 检查下方是否为茎/标签方块**且**上方是否为茎/大滴叶。两者在 `updatePostPlacement` 中支撑失效时返回空气。`BigDripleafBlock` 还会在上方也是大滴叶时将自身转换为大滴叶茎。
+`BigDripleafBlock::isValidPosition()` 检查下方是否为大滴叶、大滴叶茎或 `BIG_DRIPLEAF_PLACEABLE` 标签方块。`BigDripleafStemBlock::isValidPosition()` 检查下方是否为茎/标签方块**且**上方是否为茎/大滴叶。`BigDripleafBlock` 在下方支撑失效时直接返回空气；`BigDripleafStemBlock` 在上方或下方支撑失效时通过 `scheduleBlockTick(pos, this, 1)` 延迟1tick后再检查，若仍无法存活则在 `tick()` 中销毁方块并掉落物品——延迟机制可避免邻居更新期间的级联问题。`BigDripleafBlock` 还会在上方也是大滴叶时将自身转换为大滴叶茎。
 
 ### #9. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
 

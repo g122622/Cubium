@@ -104,7 +104,6 @@ BlockState BigDripleafBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& facingPos)
 {
     // 下方支撑失效时销毁自身
-    // 参考: net.minecraft.block.BigDripleafBlock.updateShape
     if (facing == Direction::Down && !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
         return VanillaBlocks::AIR->defaultState();
     }
@@ -115,8 +114,6 @@ BlockState BigDripleafBlock::updatePostPlacement(const BlockState& state,
     }
 
     // 当上方也是大滴叶时，自身转换为大滴叶茎
-    // 参考: net.minecraft.block.BigDripleafBlock.updateShape
-    // "if the block above is also a BigDripleaf, replace self with BigDripleafStem"
     if (facing == Direction::Up && facingState.is(this)) {
         const BlockState& stemState =
             VanillaBlocks::BIG_DRIPLEAF_STEM->defaultState()
