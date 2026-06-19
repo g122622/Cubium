@@ -28,6 +28,7 @@
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -353,21 +354,21 @@ TEST_F(WolfEntityTestFixture, CollarColor_DefaultIsRed)
 {
     WolfEntity wolf(EntityId(0));
 
-    // 默认颈圈颜色为红色 (14)
-    EXPECT_EQ(wolf.getCollarColor(), 14);
+    // 默认颈圈颜色为红色
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
 }
 
 TEST_F(WolfEntityTestFixture, CollarColor_CanBeSet)
 {
     WolfEntity wolf(EntityId(0));
 
-    // 设置为蓝色 (11)
-    wolf.setCollarColor(11);
-    EXPECT_EQ(wolf.getCollarColor(), 11);
+    // 设置为蓝色
+    wolf.setCollarColor(DyeColor::Blue);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
 
-    // 设置为绿色 (13)
-    wolf.setCollarColor(13);
-    EXPECT_EQ(wolf.getCollarColor(), 13);
+    // 设置为绿色
+    wolf.setCollarColor(DyeColor::Green);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Green);
 }
 
 // ============================================================================

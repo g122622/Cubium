@@ -28,6 +28,7 @@
 #include "entity/core/MobEntity.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "entity/entities/monster/end/EndermanEntity.hpp"
+#include "entity/entities/passive/tamable/WolfEntity.hpp"
 #include "entity/entities/monster/nether/NetherEntities.hpp"
 #include "entity/entities/passive/basic/ChickenEntity.hpp"
 #include "entity/entities/passive/golem/IronGolemEntity.hpp"
@@ -583,5 +584,6 @@ template class NonTamedTargetGoal<TurtleEntity>;
 
 // ResetAngerGoal 用于实现了 IAngerable 接口的 MobEntity 子类
 template class ResetAngerGoal<EndermanEntity>;
+template class ResetAngerGoal<WolfEntity>;
 
 } // namespace mc::entity::ai::goal

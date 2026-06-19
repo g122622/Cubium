@@ -140,7 +140,7 @@ bool WolfCollarLayer::shouldRender(const ::mc::WolfEntity& entity) const
 
 Vector3f WolfCollarLayer::_getCollarColor(const ::mc::WolfEntity& entity)
 {
-    u8 colorIndex = entity.getCollarColor();
+    u8 colorIndex = static_cast<u8>(entity.getCollarColor());
     if (colorIndex < 16) {
         return COLLAR_COLORS[colorIndex];
     }
