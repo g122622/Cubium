@@ -55,6 +55,7 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 
 #include <algorithm>
@@ -1609,6 +1610,12 @@ void ClientApplication::setupNetworkCallbacks()
             }
         };
 
+    // 世界事件回调（对应 MC Java 的 LevelEventHandler.levelEvent）
+    // 服务端通过 IWorld::playEvent() 发送 WorldEventPacket，客户端接收后根据事件ID播放音效和粒子
+    callbacks.onWorldEvent = [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) {
+        _handleWorldEvent(eventId, x, y, z, data);
+    };
+
     m_networkClient->setCallbacks(callbacks);
 }
 
@@ -1672,6 +1679,289 @@ void ClientApplication::handleChatCommand(const std::string& input)
         } else if (chatWidget) {
             chatWidget->addSystemMessage("Message sent locally (not connected to server)");
         }
+    }
+}
+
+void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data)
+{
+    using namespace mc::world;
+    using namespace mc::sound;
+    using namespace mc::client::renderer::trident::particle;
+
+    const f32 px = static_cast<f32>(x) + 0.5f;
+    const f32 py = static_cast<f32>(y) + 0.5f;
+    const f32 pz = static_cast<f32>(z) + 0.5f;
+    math::Random random;
+
+    switch (eventId) {
+        // ========================================================================
+        // 音效事件 (1000-1043)
+        // ========================================================================
+        case WorldEvents::DISPENSER_DISPENSE_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_DISPENSER_DISPENSE, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
+        case WorldEvents::DISPENSER_FAIL_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_DISPENSER_FAIL, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
+        case WorldEvents::DISPENSER_LAUNCH_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_DISPENSER_LAUNCH, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
+        case WorldEvents::FIRE_EXTINGUISH_SOUND:
+            if (m_audioService) {
+                if (data == 0) {
+                    m_audioService->play(std::make_unique<sound::SoundInstance>(
+                        sound::SoundInstance::createLocated(SoundEvents::BLOCK_FIRE_EXTINGUISH,
+                            SoundCategory::Blocks,
+                            px,
+                            py,
+                            pz,
+                            0.5f,
+                            2.6f + (random.nextFloat() - random.nextFloat()) * 0.8f)));
+                } else {
+                    m_audioService->play(std::make_unique<sound::SoundInstance>(
+                        sound::SoundInstance::createLocated(SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE,
+                            SoundCategory::Blocks,
+                            px,
+                            py,
+                            pz,
+                            0.7f,
+                            1.6f + (random.nextFloat() - random.nextFloat()) * 0.4f)));
+                }
+            }
+            break;
+
+        case WorldEvents::GHAST_WARN_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(SoundEvents::ENTITY_GHAST_WARN,
+                        SoundCategory::Hostile,
+                        px,
+                        py,
+                        pz,
+                        10.0f,
+                        random.nextFloat() * 0.2f + 0.85f)));
+            }
+            break;
+
+        case WorldEvents::BLAZE_SHOOT_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(SoundEvents::ENTITY_BLAZE_SHOOT,
+                        SoundCategory::Hostile,
+                        px,
+                        py,
+                        pz,
+                        1.0f,
+                        random.nextFloat() * 0.2f + 0.85f)));
+            }
+            break;
+
+        case WorldEvents::ANVIL_DESTROYED_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_ANVIL_DESTROY, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
+        case WorldEvents::ANVIL_LAND_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_ANVIL_LAND, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
+        case WorldEvents::PHANTOM_BITE_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::ENTITY_PHANTOM_BITE, SoundCategory::Hostile, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
+        case WorldEvents::ZOMBIE_CONVERT_TO_DROWNED_SOUND:
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::ENTITY_ZOMBIE_VILLAGER_CONVERTED, SoundCategory::Hostile, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
+            // ========================================================================
+            // 特殊效果事件 (1500-1504)
+            // ========================================================================
+
+        case WorldEvents::COMPOSTER_FILLED_UP: {
+            // 堆肥桶填充事件
+            // data > 0: 堆肥成功升级，播放 COMPOSTER_FILL_SUCCESS 音效
+            // data <= 0: 仅填充未升级，播放 COMPOSTER_FILL 音效
+            // 无论成功与否，都生成 10 个 HAPPY_VILLAGER 粒子
+            // 参考 MC Java: ComposterBlock.handleFill()
+            if (m_audioService) {
+                const auto& soundEvent =
+                    (data > 0) ? SoundEvents::BLOCK_COMPOSTER_FILL_SUCCESS : SoundEvents::BLOCK_COMPOSTER_FILL;
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(soundEvent, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+
+            // 计算堆肥桶填充高度处的粒子位置
+            // MC Java: d0 = blockstate.getShape(level, pos).max(Direction.Axis.Y, 0.5, 0.5) + 0.03125
+            // 由于客户端可能还没有最新方块状态，使用方块中心偏上作为近似位置
+            const f32 particleBaseY = static_cast<f32>(y) + 0.53125f;
+            for (int i = 0; i < 10; ++i) {
+                f32 ppx = static_cast<f32>(x) + 0.1875f + 0.625f * random.nextFloat();
+                f32 ppy = particleBaseY + random.nextFloat() * 0.46875f;
+                f32 ppz = static_cast<f32>(z) + 0.1875f + 0.625f * random.nextFloat();
+                f32 vx = static_cast<f32>(random.nextGaussian()) * 0.02f;
+                f32 vy = static_cast<f32>(random.nextGaussian()) * 0.02f;
+                f32 vz = static_cast<f32>(random.nextGaussian()) * 0.02f;
+
+                m_world.addParticle(ParticleTypeId::HappyVillager, Vector3(ppx, ppy, ppz), Vector3(vx, vy, vz));
+            }
+            break;
+        }
+
+        case WorldEvents::LAVA_EXTINGUISH: {
+            // 岩浆熄灭事件：播放音效 + 8个大烟雾粒子
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(SoundEvents::BLOCK_LAVA_EXTINGUISH,
+                        SoundCategory::Blocks,
+                        px,
+                        py,
+                        pz,
+                        0.5f,
+                        2.6f + (random.nextFloat() - random.nextFloat()) * 0.8f)));
+            }
+
+            for (int i = 0; i < 8; ++i) {
+                f32 lpx = static_cast<f32>(x) + random.nextFloat();
+                f32 lpy = static_cast<f32>(y) + 1.2f;
+                f32 lpz = static_cast<f32>(z) + random.nextFloat();
+                m_world.addParticle(ParticleTypeId::LargeSmoke, Vector3(lpx, lpy, lpz), Vector3(0.0f, 0.0f, 0.0f));
+            }
+            break;
+        }
+
+        case WorldEvents::BONEMEAL_PARTICLES: {
+            // 骨粉粒子效果
+            // data 为粒子数量，0 则生成 15 个
+            i32 count = (data == 0) ? 15 : data;
+            m_world.addParticle(ParticleTypeId::HappyVillager,
+                Vector3(px, py, pz),
+                Vector3(0.0f, 0.0f, 0.0f),
+                Vector3(1.0f, 1.0f, 1.0f),
+                static_cast<u32>(count));
+
+            // 播放骨粉使用音效
+            // TODO: 定义 ITEM_BONE_MEAL_USE 音效常量后替换为正确的音效
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_BONE_BLOCK_STEP, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+        }
+
+        case WorldEvents::BREAK_BLOCK_EFFECTS: {
+            // 方块破坏效果：播放方块破坏音效
+            // data = 方块状态ID（Block.getId(blockstate)）
+            if (m_audioService) {
+                // TODO: 使用 BlockState 的 SoundType 获取正确的破坏音效，当前使用通用音效
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_STONE_BREAK, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            // TODO: 生成方块破碎粒子（Breaking 粒子需要方块状态数据作为附加参数，暂不实现）
+            break;
+        }
+
+        case WorldEvents::DISPENSER_SMOKE: {
+            // 发射器烟雾粒子，data 为方向（Direction.getIndex()）
+            // 参考 MC Java: LevelEventHandler.shootParticles()
+            for (int i = 0; i < 10; ++i) {
+                // 简化实现：在发射器位置周围生成烟雾粒子
+                f32 spx = static_cast<f32>(x) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
+                f32 spy = static_cast<f32>(y) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
+                f32 spz = static_cast<f32>(z) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
+                f32 svx = static_cast<f32>(random.nextGaussian()) * 0.02f;
+                f32 svy = static_cast<f32>(random.nextGaussian()) * 0.02f + 0.05f;
+                f32 svz = static_cast<f32>(random.nextGaussian()) * 0.02f;
+                m_world.addParticle(ParticleTypeId::Smoke, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
+            }
+            break;
+        }
+
+        case WorldEvents::SPAWN_EXPLOSION_PARTICLE: {
+            // 爆炸粒子
+            m_world.addParticle(ParticleTypeId::HugeExplosion, Vector3(px, py, pz), Vector3(0.0f, 0.0f, 0.0f));
+            break;
+        }
+
+        case WorldEvents::WET_SPONGE_DRY: {
+            // 湿海绵在下界变干：8个云粒子（蒸汽） + 火焰熄灭音效
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(SoundEvents::BLOCK_FIRE_EXTINGUISH,
+                        SoundCategory::Blocks,
+                        px,
+                        py,
+                        pz,
+                        0.5f,
+                        2.6f + (random.nextFloat() - random.nextFloat()) * 0.8f)));
+            }
+
+            for (int i = 0; i < 8; ++i) {
+                f32 lpx = static_cast<f32>(x) + random.nextFloat();
+                f32 lpy = static_cast<f32>(y) + 1.2f;
+                f32 lpz = static_cast<f32>(z) + random.nextFloat();
+                m_world.addParticle(ParticleTypeId::LargeSmoke, Vector3(lpx, lpy, lpz), Vector3(0.0f, 0.0f, 0.0f));
+            }
+            break;
+        }
+
+        case WorldEvents::DRIPSTONE_DRIP: {
+            // 滴石滴水效果
+            // TODO: 实现滴石滴水的完整粒子效果，当前仅生成水滴粒子
+            m_world.addParticle(ParticleTypeId::DrippingWater, Vector3(px, py, pz), Vector3(0.0f, 0.0f, 0.0f));
+            break;
+        }
+
+        case WorldEvents::END_PORTAL_FRAME_FILL: {
+            // 末地传送门框填充：播放音效
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_END_PORTAL_FRAME_FILL, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+        }
+
+        case WorldEvents::REDSTONE_TORCH_BURNOUT: {
+            // 红石火把烧断：播放音效 + 烟雾粒子
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_REDSTONE_TORCH_BURNOUT, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+
+            for (int i = 0; i < 3; ++i) {
+                f32 rspx = static_cast<f32>(x) + 0.5f + (random.nextFloat() - 0.5f) * 0.3f;
+                f32 rspy = static_cast<f32>(y) + 0.7f;
+                f32 rspz = static_cast<f32>(z) + 0.5f + (random.nextFloat() - 0.5f) * 0.3f;
+                m_world.addParticle(ParticleTypeId::Smoke, Vector3(rspx, rspy, rspz), Vector3(0.0f, 0.0f, 0.0f));
+            }
+            break;
+        }
+
+        default:
+            // 未知事件ID，忽略
+            break;
     }
 }
 

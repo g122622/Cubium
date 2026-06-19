@@ -30,6 +30,7 @@
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../WorldEvents.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "CompostableItems.hpp"
 
@@ -171,10 +172,11 @@ BlockState ComposterBlock::attemptCompost(
         BlockState newState = state.with(BlockStateProperties::LEVEL_0_8(), newLevel);
         world.setBlockState(pos, &newState, 3);
 
-        // 播放成功音效
+        // 通过 WorldEvent 广播堆肥成功事件（客户端同时播放音效和粒子效果）
+        // data=1 表示成功升级，data=0 表示仅填充未升级
+        // 参考 MC Java: ComposterBlock 使用 levelEvent(1500, pos, state != blockstate ? 1 : 0)
         if (!world.isClientSide()) {
-            world.playSound(
-                SoundEvents::BLOCK_COMPOSTER_FILL_SUCCESS, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+            world.playEvent(world::WorldEvents::COMPOSTER_FILLED_UP, pos, 1);
         }
 
         // 如果达到等级7，调度 20 tick 后的转变
@@ -185,9 +187,10 @@ BlockState ComposterBlock::attemptCompost(
         return newState;
     }
 
-    // 播放失败音效（尝试堆肥但没增加等级）
+    // 堆肥失败（尝试堆肥但没增加等级）
+    // 通过 WorldEvent 广播堆肥失败事件
     if (!world.isClientSide()) {
-        world.playSound(SoundEvents::BLOCK_COMPOSTER_FILL, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+        world.playEvent(world::WorldEvents::COMPOSTER_FILLED_UP, pos, 0);
     }
 
     return state;
@@ -294,7 +297,6 @@ ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
 
     // 堆肥失败但仍播放了音效
     return ActionResultType::Success;
-    // TODO: 堆肥成功时需要播放粒子效果（参考 MC Java: ComposterBlock.animateTick）
 }
 
 } // namespace blocks
