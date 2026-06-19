@@ -863,39 +863,47 @@ void ClientApplication::setupNetworkCallbacks()
                 break;
             }
             case static_cast<u8>(EntityStatusPacket::Status::TamingSucceeded): {
-                // 状态 7: 驯服成功 - 显示爱心粒子
+                // 状态 7: 驯服成功 - 生成 7 个爱心粒子
+                // MC 原版: TamableAnimal.spawnTamingParticles — 7个粒子，位置围绕实体包围盒随机分布
                 if (m_world.particleManager() != nullptr) {
-                    // 在实体头顶位置生成爱心粒子
-                    glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
-                    m_world.particleManager()->addPendingParticle(
-                        client::renderer::trident::particle::ParticleTypeId::Heart,
-                        heartPos,
-                        glm::vec3(0.0f, 0.0f, 0.0f),
-                        &m_world);
-                }
-                break;
-            }
-            case static_cast<u8>(EntityStatusPacket::Status::TamingFailed): {
-                // 状态 6: 驯服失败 - 显示烟雾粒子
-                if (m_world.particleManager() != nullptr) {
-                    // 生成7个烟雾粒子，随机分布在实体周围
+                    f32 entityWidth = entity != nullptr ? entity->width() : 0.6f;
+                    f32 entityHeight = entity != nullptr ? entity->height() : 1.8f;
                     for (i32 i = 0; i < 7; ++i) {
-                        // 计算随机位置：实体中心 + 随机偏移
-                        // getPosXRandom(1.0D) = posX + (rand.nextDouble() - 0.5) * width * 2.0
-                        // getPosYRandom() + 0.5D = posY + rand.nextDouble() * height + 0.5
-                        // getPosZRandom(1.0D) = posZ + (rand.nextDouble() - 0.5) * width * 2.0
-                        f32 randomWidth = m_random.nextFloat(-1.0f, 1.0f); // [-1, 1]
-                        f32 randomHeight = m_random.nextFloat();           // [0, 1)
-                        glm::vec3 smokePos = entityPos +
-                            glm::vec3(randomWidth * 0.5f,   // width 假设约 0.5
-                                randomHeight * 1.0f + 0.5f, // height + 0.5
-                                randomWidth * 0.5f);
-                        // 速度：高斯分布，标准差 0.02
+                        f32 rx = (m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                        f32 ry = m_random.nextFloat() * entityHeight + 0.5f;
+                        f32 rz = (m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx, ry, rz);
                         glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Smoke, smokePos, velocity, &m_world);
+                            client::renderer::trident::particle::ParticleTypeId::Heart,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::TamingFailed): {
+                // 状态 6: 驯服失败 - 生成 7 个烟雾粒子
+                // MC 原版: TamableAnimal.spawnTamingParticles — 7个粒子，位置围绕实体包围盒随机分布
+                if (m_world.particleManager() != nullptr) {
+                    f32 entityWidth = entity != nullptr ? entity->width() : 0.6f;
+                    f32 entityHeight = entity != nullptr ? entity->height() : 1.8f;
+                    for (i32 i = 0; i < 7; ++i) {
+                        f32 rx = (m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                        f32 ry = m_random.nextFloat() * entityHeight + 0.5f;
+                        f32 rz = (m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx, ry, rz);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Smoke,
+                            particlePos,
+                            velocity,
+                            &m_world);
                     }
                 }
                 break;
@@ -920,6 +928,52 @@ void ClientApplication::setupNetworkCallbacks()
                         entity->setFuseTimer(80);
                     } else {
                         entity->setEatAnimationTimer(40);
+                    }
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::OcelotTrustSucceeded): {
+                // 状态 41: 豹猫信任成功 - 生成 7 个爱心粒子
+                // MC 原版: Ocelot.spawnTrustingParticles(true) — 与 TamableAnimal.spawnTamingParticles 逻辑相同
+                if (m_world.particleManager() != nullptr) {
+                    f32 entityWidth = entity != nullptr ? entity->width() : 0.6f;
+                    f32 entityHeight = entity != nullptr ? entity->height() : 0.7f;
+                    for (i32 i = 0; i < 7; ++i) {
+                        f32 rx = (m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                        f32 ry = m_random.nextFloat() * entityHeight + 0.5f;
+                        f32 rz = (m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx, ry, rz);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Heart,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
+                break;
+            }
+            case static_cast<u8>(EntityStatusPacket::Status::OcelotTrustFailed): {
+                // 状态 40: 豹猫信任失败 - 生成 7 个烟雾粒子
+                // MC 原版: Ocelot.spawnTrustingParticles(false) — 与 TamableAnimal.spawnTamingParticles 逻辑相同
+                if (m_world.particleManager() != nullptr) {
+                    f32 entityWidth = entity != nullptr ? entity->width() : 0.6f;
+                    f32 entityHeight = entity != nullptr ? entity->height() : 0.7f;
+                    for (i32 i = 0; i < 7; ++i) {
+                        f32 rx = (m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                        f32 ry = m_random.nextFloat() * entityHeight + 0.5f;
+                        f32 rz = (m_random.nextFloat() * 2.0f - 1.0f) * entityWidth;
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx, ry, rz);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f),
+                            m_random.nextGaussian(0.0f, 0.02f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Smoke,
+                            particlePos,
+                            velocity,
+                            &m_world);
                     }
                 }
                 break;

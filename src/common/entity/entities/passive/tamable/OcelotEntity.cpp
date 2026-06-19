@@ -48,6 +48,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include <cmath>
@@ -288,12 +289,18 @@ void OcelotEntity::_setupTrustingAI()
 
 void OcelotEntity::_spawnTrustingParticles(bool success)
 {
-    // 生成 7 个粒子
-    if (!m_world) return;
+    if (!m_world) {
+        return;
+    }
 
-    // TODO: 当粒子系统完善后，添加心形/烟雾粒子
-    // ParticleTypeId particleType = success ? ParticleTypeId::Heart : ParticleTypeId::Smoke;
-    MC_UNUSED(success);
+    // 通过 broadcastEntityStatus 广播事件码，由客户端在 handleEntityEvent 中生成粒子
+    // 豹猫使用独立事件码 40/41（不同于 TamableAnimal 的 6/7）
+    if (success) {
+        m_world->broadcastEntityStatus(
+            id(), static_cast<u8>(network::EntityStatusPacket::Status::OcelotTrustSucceeded));
+    } else {
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::OcelotTrustFailed));
+    }
 }
 
 // ==================== OcelotAvoidPlayerGoal ====================

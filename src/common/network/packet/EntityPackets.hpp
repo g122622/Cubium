@@ -488,11 +488,13 @@ public:
 
         // 特殊状态
         FireworkExplosion = 17,
-        GuardianAttack = 21,    // 守卫者攻击音效
-        ArrowHit = 30,          // 箭矢命中音效
-        TotemActivate = 35,     // 不死图腾激活
-        Dolphin = 38,           // 海豚寻宝粒子
-        TeleportParticles = 46, // 传送粒子效果
+        GuardianAttack = 21,       // 守卫者攻击音效
+        ArrowHit = 30,             // 箭矢命中音效
+        TotemActivate = 35,        // 不死图腾激活
+        Dolphin = 38,              // 海豚寻宝粒子
+        OcelotTrustFailed = 40,    // 豹猫信任失败（烟雾粒子）
+        OcelotTrustSucceeded = 41, // 豹猫信任成功（心形粒子）
+        TeleportParticles = 46,    // 传送粒子效果
 
         // 铁傀儡状态
         IronGolemAttack = 4,    // 铁傀儡攻击动画（举臂）+ 播放攻击音效
