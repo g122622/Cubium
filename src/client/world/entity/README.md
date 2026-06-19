@@ -31,7 +31,7 @@ ClientEntity
 ├── 动画状态：limbSwing, swingProgress, hurtTime
 ├── 实体状态：onGround, sneaking, swimming, riding, sleeping
 ├── 元数据缓存：EntityDataManager, metadata bytes
-└── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), ironGolemAttackTimer/ironGolemArmsRaised/ironGolemHoldingRose(铁傀儡), itemStack(物品实体)
+└── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), ironGolemAttackTimer/ironGolemArmsRaised/ironGolemHoldingRose(铁傀儡), itemStack(物品实体), fuseTimer(TNT矿车), eatAnimationTimer(羊等吃草动画)
 ```
 
 ## 上下游外部依赖关系
@@ -86,3 +86,9 @@ ClientEntity
    - 客户端在 `onEntityStatus` 回调中直接设置 `ClientEntity` 的 `ironGolemAttackTimer` / `ironGolemArmsRaised` / `ironGolemHoldingRose`
    - `ClientEntity::tick()` 中递减 `ironGolemAttackTimer`
    - 新增铁傀儡动画状态时不要误走 metadata 路径
+
+9. **TNT矿车引信计时器不走元数据同步**：
+   - TNT矿车的 `fuseTimer` 通过 `EntityStatusPacket::Status::EatBlock` (status code 10) 触发，**不经过** `EntityMetadataPacket` / `syncMetadataFromDataManager()`
+   - 客户端在 `onEntityStatus` 回调中根据 `typeId() == TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+   - `ClientEntity::tick()` 中递减 `m_fuseTimer`
+   - 与铁傀儡状态同步模式一致：服务端 `broadcastEntityStatus()` → 网络包 → 客户端回调设置字段

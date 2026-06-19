@@ -84,6 +84,17 @@ Entity (基类)
 
 参考 MC 1.16.5：`TNTMinecartEntity.attackEntityFrom()` 和 `killMinecart()`
 
+### 3.5 TNT矿车引燃同步
+
+**问题**：TNT矿车引燃时的音效和客户端同步需要三端协同。
+
+**要点**：
+- **服务端**：`_ignite()` 设置 `m_fuse = 80`，调用 `broadcastEntityStatus(EatBlock)` 通知客户端，调用 `playSound(ENTITY_TNT_PRIMED)` 播放音效
+- **网络**：`EntityStatusPacket` 使用 status code 10 (`EatBlock`)，此状态码被羊吃草和TNT矿车引燃共用
+- **客户端**：`onEntityStatus` 回调根据 `typeId() == TNT_MINECART` 区分处理：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+- `Entity::playSound()` 自动检查 `isSilent()`，无需手动判断
+- 修改引燃或新增实体状态处理时，三端（服务端实体、网络包、客户端回调）必须同步更新
+
 ### 4. 熔炉矿车掉落逻辑
 
 **问题**：熔炉矿车的掉落逻辑与伤害类型相关。

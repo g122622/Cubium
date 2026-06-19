@@ -1307,6 +1307,10 @@ void TNTMinecartEntity::tick()
 
 void TNTMinecartEntity::_ignite()
 {
+    // TODO: MC 原版 primeFuse() 检查 GameRules.TNT_EXPLODES，如果为 false 则不点燃
+    // TODO: MC 原版 primeFuse(DamageSource) 接受 DamageSource 参数用于记录 ignitionSource（爆炸来源），
+    //       当前 _ignite() 不接受 DamageSource，需要在 dropItem() 等调用处传入并存储
+
     m_fuse = DEFAULT_FUSE; // 80 ticks = 4 seconds
 
     IWorld* worldPtr = Entity::world();

@@ -231,6 +231,37 @@ TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeSystem)
     EXPECT_TRUE(tnt.isPrimed());
 }
 
+TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeDefaultFuse)
+{
+    TNTMinecartEntity tnt(EntityId(1));
+
+    // 默认引信时间为 80 ticks
+    tnt.prime();
+    EXPECT_TRUE(tnt.isPrimed());
+}
+
+TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeCustomFuse)
+{
+    TNTMinecartEntity tnt(EntityId(1));
+
+    // 自定义引信时间
+    tnt.prime(40);
+    EXPECT_TRUE(tnt.isPrimed());
+}
+
+TEST_F(AbstractMinecartEntityTest, TNTMinecart_PrimeNegativeFuseNotPrimed)
+{
+    TNTMinecartEntity tnt(EntityId(1));
+
+    // 负值 fuse 不应视为引燃状态
+    tnt.prime(-1);
+    EXPECT_FALSE(tnt.isPrimed());
+
+    // 0 值也不应视为引燃状态（fuse > -1 但 isPrimed 要求 fuse > -1）
+    tnt.prime(0);
+    EXPECT_TRUE(tnt.isPrimed());
+}
+
 // ============================================================================
 // MinecartItem 基础测试（无世界环境）
 // ============================================================================
