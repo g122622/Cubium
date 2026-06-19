@@ -141,12 +141,22 @@ public:
     [[nodiscard]] bool hasRaidAt(BlockPos pos) const;
 
     /**
-     * @brief 获取指定村庄的袭击。
+     * @brief 获取指定村庄的袭击（含所有状态）。
      *
      * @param village 村庄指针。
      * @return 关联袭击；若不存在则返回 `nullptr`。
      */
     [[nodiscard]] Raid* getRaidForVillage(village::Village* village);
+
+    /**
+     * @brief 获取指定村庄的进行中袭击。
+     *
+     * 仅返回状态为 Ongoing 的袭击，用于村庄袭击状态验证。
+     *
+     * @param village 村庄指针。
+     * @return 关联的进行中袭击；若不存在则返回 `nullptr`。
+     */
+    [[nodiscard]] Raid* getOngoingRaidForVillage(village::Village* village);
 
     /**
      * @brief 获取全部袭击列表。

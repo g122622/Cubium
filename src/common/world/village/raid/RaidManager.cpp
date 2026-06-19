@@ -101,6 +101,18 @@ Raid* RaidManager::getRaidForVillage(village::Village* village)
     return nullptr;
 }
 
+Raid* RaidManager::getOngoingRaidForVillage(village::Village* village)
+{
+    if (village == nullptr) return nullptr;
+
+    for (auto& raid : m_raids) {
+        if (raid && raid->village() == village && raid->status() == RaidStatus::Ongoing) {
+            return raid.get();
+        }
+    }
+    return nullptr;
+}
+
 size_t RaidManager::getActiveRaidCount() const
 {
     size_t count = 0;
