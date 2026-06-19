@@ -116,7 +116,7 @@ TEST(GetAltTexturePathTest, PathWithSubdirectories)
 TEST(GetAltTexturePathTest, EntitySubdirectoryToFlat)
 {
     // MC 1.13+ 子目录格式 -> MC 1.12 扁平格式
-    // textures/entity/pig/pig -> textures/entity/pig
+    // 不含 .png 后缀
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/pig/pig"), "textures/entity/pig");
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/creeper/creeper"), "textures/entity/creeper");
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/zombie/zombie"), "textures/entity/zombie");
@@ -125,7 +125,7 @@ TEST(GetAltTexturePathTest, EntitySubdirectoryToFlat)
 TEST(GetAltTexturePathTest, EntityFlatToSubdirectory)
 {
     // MC 1.12 扁平格式 -> MC 1.13+ 子目录格式
-    // textures/entity/pig -> textures/entity/pig/pig
+    // 不含 .png 后缀
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/pig"), "textures/entity/pig/pig");
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/creeper"), "textures/entity/creeper/creeper");
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/bat"), "textures/entity/bat/bat");
@@ -133,9 +133,13 @@ TEST(GetAltTexturePathTest, EntityFlatToSubdirectory)
 
 TEST(GetAltTexturePathTest, EntitySubdirectoryWithPngSuffix)
 {
-    // 带 .png 后缀的路径也能正确处理
-    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/pig/pig.png"), "textures/entity/pig");
-    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/zombie/zombie.png"), "textures/entity/zombie");
+    // 带 .png 后缀的路径：转换后保留 .png 后缀
+    // 子目录 -> 扁平
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/pig/pig.png"), "textures/entity/pig.png");
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/zombie/zombie.png"), "textures/entity/zombie.png");
+    // 扁平 -> 子目录
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/pig.png"), "textures/entity/pig/pig.png");
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/bat.png"), "textures/entity/bat/bat.png");
 }
 
 TEST(GetAltTexturePathTest, EntitySubdirectoryMismatchedNameReturnsEmpty)
@@ -143,6 +147,9 @@ TEST(GetAltTexturePathTest, EntitySubdirectoryMismatchedNameReturnsEmpty)
     // 子目录名与文件名不匹配时不转换（如 textures/entity/horse/horse_brown）
     EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/entity/horse/horse_brown").empty());
     EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/entity/cow/red_mooshroom").empty());
+    // 带 .png 后缀也不匹配
+    EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/entity/horse/horse_brown.png").empty());
+    EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/entity/cow/red_mooshroom.png").empty());
 }
 
 TEST(GetAltTexturePathTest, EntityPrefixOnlyReturnsEmpty)

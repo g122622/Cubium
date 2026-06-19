@@ -843,8 +843,10 @@ std::string ResourceManager::getAltTexturePath(const std::string& path)
     }
 
     // 实体纹理路径变体：MC 1.13+ 子目录格式 <-> MC 1.12 扁平格式
-    // 例如：textures/entity/pig/pig -> textures/entity/pig
-    //       textures/entity/pig     -> textures/entity/pig/pig
+    // 例如：textures/entity/pig/pig.png -> textures/entity/pig.png
+    //       textures/entity/pig.png    -> textures/entity/pig/pig.png
+    //       textures/entity/pig/pig    -> textures/entity/pig
+    //       textures/entity/pig        -> textures/entity/pig/pig
     constexpr std::string_view entityPrefix = "textures/entity/";
     if (path.size() > entityPrefix.size() && path.compare(0, entityPrefix.size(), entityPrefix) == 0) {
         std::string_view afterPrefix(path.data() + entityPrefix.size(), path.size() - entityPrefix.size());
@@ -854,18 +856,29 @@ std::string ResourceManager::getAltTexturePath(const std::string& path)
             // 检查 <name> 与 <filename> 是否相同（不含扩展名）
             std::string_view dirName = afterPrefix.substr(0, slashPos);
             std::string_view fileName = afterPrefix.substr(slashPos + 1);
-            // 去掉可能的 .png 扩展名进行比较
-            if (fileName.size() > 4 && fileName.compare(fileName.size() - 4, 4, ".png") == 0) {
-                fileName = fileName.substr(0, fileName.size() - 4);
+            // 提取扩展名（如 .png）以便在转换后保留
+            std::string_view extension;
+            auto dotPos = fileName.rfind('.');
+            if (dotPos != std::string_view::npos) {
+                extension = fileName.substr(dotPos);
+                fileName = fileName.substr(0, dotPos);
             }
             if (dirName == fileName) {
-                // textures/entity/<name>/<name> -> textures/entity/<name>
-                return std::string(entityPrefix) + std::string(dirName);
+                // textures/entity/<name>/<name>[.ext] -> textures/entity/<name>[.ext]
+                return std::string(entityPrefix) + std::string(dirName) + std::string(extension);
             }
         } else {
-            // 扁平格式：textures/entity/<name>
-            // -> textures/entity/<name>/<name>
-            return std::string(entityPrefix) + std::string(afterPrefix) + "/" + std::string(afterPrefix);
+            // 扁平格式：textures/entity/<name>[.ext]
+            // -> textures/entity/<name>/<name>[.ext]
+            std::string_view namePart = afterPrefix;
+            std::string_view extension;
+            auto dotPos = afterPrefix.rfind('.');
+            if (dotPos != std::string_view::npos) {
+                namePart = afterPrefix.substr(0, dotPos);
+                extension = afterPrefix.substr(dotPos);
+            }
+            return std::string(entityPrefix) + std::string(namePart) + "/" + std::string(namePart) +
+                std::string(extension);
         }
     }
 

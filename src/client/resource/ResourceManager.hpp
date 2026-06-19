@@ -252,10 +252,12 @@ public:
      * 此方法在两种格式之间互相转换，用于纹理查找的兼容回退。
      *
      * 此外，还支持实体纹理的子目录/扁平格式互转：
-     *   textures/entity/<name>/<name> -> textures/entity/<name>
-     *   textures/entity/<name>        -> textures/entity/<name>/<name>
+     *   textures/entity/<name>/<name>[.ext] -> textures/entity/<name>[.ext]
+     *   textures/entity/<name>[.ext]        -> textures/entity/<name>/<name>[.ext]
+     * 注意：实体路径转换会保留文件扩展名（如 .png），仅在目录名与文件名
+     * （不含扩展名）相同时才执行转换。
      *
-     * @param path 纹理路径（例如 "textures/block/stone"）
+     * @param path 纹理路径（例如 "textures/block/stone" 或 "textures/entity/pig/pig.png"）
      * @return 对应的替代路径，如果路径不匹配已知前缀则返回空字符串
      */
     [[nodiscard]] static std::string getAltTexturePath(const std::string& path);
