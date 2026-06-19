@@ -347,10 +347,12 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 `Block::getFlammability()` 和 `Block::getFireSpreadSpeed()` 的默认实现已改为查询 `FireInfoRegistry`，无需子类重写即可获得正确的燃烧参数。
 
 - `FireInfoRegistry::initializeVanillaFireInfos()` 在 `VanillaBlocks::initialize()` 末尾自动调用
-- 所有原版可燃方块的 encouragement（蔓延速度）和 flammability（可燃性）参数已注册
+- 仅注册 MC 原版 `FireBlock.bootStrap()` 中注册的可燃方块，未注册的方块火焰不会蔓延到其上
 - 新增可燃方块时，在 `FireInfoRegistry::initializeVanillaFireInfos()` 中注册即可
 - 子类仍可通过重写 `getFlammability()`/`getFireSpreadSpeed()` 提供自定义值，会覆盖注册表值
 - 部分方块（如 SHELF）尚待对应方块指针注册后补充
+
+**火焰蔓延 vs 岩浆点燃**：火焰蔓延（FireBlock）仅依赖本注册表，不检查 Material。岩浆点燃（LavaFluid）通过 `Material::isFlammable()` 判断，是独立系统。因此，告示牌、树苗等虽然未在本注册表中注册（与原版一致），但由于使用 WOOD/PLANT 材质，仍可被岩浆点燃。
 
 ### 22. canBeReplaced / canBeReplacedByFluid 语义
 

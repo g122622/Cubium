@@ -69,6 +69,24 @@ void FireInfoRegistry::clear()
 // ============================================================================
 // 原版火焰参数常量
 // 参考: net.minecraft.world.level.block.FireBlock.bootStrap()
+//
+// 【重要】火焰蔓延系统架构说明：
+//
+// 本项目中火焰蔓延（FireBlock 火焰扩散/燃烧）与岩浆点燃（LavaFluid 点燃）是两个独立系统：
+//
+// 1. 火焰蔓延：仅依赖本注册表（FireInfoRegistry）。FireBlock::canCatchFire()、
+//    FireBlock::tryCatchFire()、FireBlock::areNeighborsFlammable() 等方法全部通过
+//    BlockState::getFlammability()/getFireSpreadSpeed() 查询本注册表，不检查 Material。
+//    如果方块未在本注册表中注册，火焰不会蔓延到该方块，该方块也不会被火焰烧毁。
+//    这与 MC 原版行为一致：原版 FireBlock.bootStrap() 也仅注册特定方块，无材质回退机制。
+//
+// 2. 岩浆点燃：通过 Material::isFlammable() 判断。LavaFluid 使用 Material 的可燃性
+//    标记来决定岩浆是否可以点燃相邻方块。这与火焰蔓延完全独立。
+//    Material::WOOD、Material::PLANT 等标记为 isFlammable=true 的方块可以被岩浆点燃，
+//    即使它们未在本注册表中注册。
+//
+// 因此，告示牌、树苗、蘑菇方块等虽然未在本注册表中注册（与 MC 原版 bootStrap() 一致），
+// 但由于它们使用 Material::WOOD 或 Material::PLANT 材质，仍可被岩浆点燃。
 // ============================================================================
 
 // 点燃概率常量
