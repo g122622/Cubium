@@ -63,3 +63,16 @@ src/client/chat/
 ### 7. ChatMessageType 枚举
 
 消息类型包括 `Chat`、`System`、`Actionbar`、`GameInfo`，而非简单的颜色值。`addSystemMessage()` 会自动应用灰色样式。
+
+- **Chat**：玩家聊天消息，白色文本，显示在聊天窗口
+- **System**：系统消息，灰色文本（`TextFormatting::Gray`），显示在聊天窗口
+- **Actionbar**：动作栏消息，不进入聊天历史，通过 `ActionbarCallback` 路由到 `TitleWidget` 显示在屏幕底部动作栏区域
+- **GameInfo**：游戏信息消息，同 Actionbar 路由到动作栏
+
+### 8. ChatWidget 消息类型路由
+
+`ChatWidget::addMessage()` 根据 `ChatMessageType` 路由消息：
+- `Chat` 和 `System` 类型消息存入 `ChatHistory`，在聊天窗口中渲染（白色/灰色）
+- `Actionbar` 和 `GameInfo` 类型消息不存入聊天历史，而是通过 `ActionbarCallback` 路由到 `TitleWidget::setActionbar()` 显示
+
+`ActionbarCallback` 在 `ClientApplicationBootstrap` 中设置，连接 `ChatWidget` 和 `TitleWidget`。这与 MC Java 版的消息路由行为一致：`ClientboundSystemChatPacket(overlay=true)` 显示在动作栏，`overlay=false` 显示在聊天窗口。

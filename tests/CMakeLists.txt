@@ -875,6 +875,8 @@ add_executable(mc_tests
     client/sound/SoundRegistryTest.cpp
     client/sound/TickableSoundTest.cpp
     client/sound/MovingTickableSoundTest.cpp
+    # 聊天历史与消息类型测试
+    client/chat/ChatHistoryTest.cpp
     # 皮肤系统测试
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
@@ -1531,6 +1533,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/EntitySoundHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/WeatherSoundHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/command/ClientCommandManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/chat/ChatHistory.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，暂时不纳入该测试目标
 )
 
