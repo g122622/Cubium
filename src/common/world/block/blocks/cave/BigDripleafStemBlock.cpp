@@ -123,6 +123,12 @@ void BigDripleafStemBlock::tick(IWorld& world, const BlockPos& pos, BlockState& 
 {
     MC_UNUSED(random);
 
+    // 防护检查：确认方块尚未被替换（TickManager 回调也会检查，此处双重保障）
+    const BlockState* currentState = world.getBlockState(pos);
+    if (currentState == nullptr || !currentState->is(this)) {
+        return;
+    }
+
     // 延迟 tick 触发后，重新检查存活条件
     // 如果仍然无法存活，则销毁方块并掉落物品
     if (!isValidPosition(state, static_cast<IBlockReader&>(world), pos)) {
