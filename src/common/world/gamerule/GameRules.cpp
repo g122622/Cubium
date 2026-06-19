@@ -116,6 +116,7 @@ struct RuleRegistry {
 
         // 杂项
         registerBoolean("reducedDebugInfo", GameRuleCategory::Misc, false);
+        registerBoolean("tntExplodes", GameRuleCategory::Misc, true);
     }
 
     void registerIntegerRules()
@@ -209,6 +210,7 @@ const BooleanGameRuleKey ANNOUNCE_ADVANCEMENTS("announceAdvancements", GameRuleC
 
 // 杂项
 const BooleanGameRuleKey REDUCED_DEBUG_INFO("reducedDebugInfo", GameRuleCategory::Misc);
+const BooleanGameRuleKey TNT_EXPLODES("tntExplodes", GameRuleCategory::Misc);
 const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH("maxCommandChainLength", GameRuleCategory::Misc);
 
 } // namespace GameRuleKeys

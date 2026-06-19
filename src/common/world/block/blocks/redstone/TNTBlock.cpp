@@ -34,6 +34,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 
 namespace mc {
@@ -72,7 +73,9 @@ void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState
     bool hasFire = _hasFlammableNeighbor(world, pos);
 
     if (hasPower || hasFire) {
-        ignite(world, pos, state);
+        // ignite() 返回是否成功点燃；此处不处理返回值，
+        // 如果 tntExplodes 规则为 false，方块将保留在原位不点燃
+        static_cast<void>(ignite(world, pos, state));
     }
 }
 
@@ -92,24 +95,32 @@ void TNTBlock::neighborChanged(
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
 
     if (hasPower) {
-        ignite(world, pos, *state);
+        // ignite() 返回是否成功点燃；此处不处理返回值，
+        // 如果 tntExplodes 规则为 false，方块将保留在原位不点燃
+        static_cast<void>(ignite(world, pos, *state));
         return;
     }
 
     // 检查是否有火焰或熔岩
     bool hasFire = _hasFlammableNeighbor(world, pos);
     if (hasFire) {
-        ignite(world, pos, *state);
+        static_cast<void>(ignite(world, pos, *state));
     }
 }
 
-void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& state)
+bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     MC_UNUSED(state);
 
     // 仅服务端执行
     if (world.isClientSide()) {
-        return;
+        return false;
+    }
+
+    // 检查 tntExplodes 游戏规则，如果为 false 则不点燃
+    // 对应 MC Java 的 TntBlock.prime() 中的 GameRules.TNT_EXPLODES 检查
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+        return false;
     }
 
     // 移除TNT方块
@@ -156,10 +167,19 @@ void TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
         1.0f,
         1.0f);
+
+    return true;
 }
 
 void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power)
 {
+    // 检查 tntExplodes 游戏规则
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+        // 即使不允许爆炸，也要移除方块（与 MC Java 行为一致）
+        world.setBlockState(pos, nullptr, 11);
+        return;
+    }
+
     // 移除TNT方块
     world.setBlockState(pos, nullptr, 11);
 
@@ -171,6 +191,43 @@ void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power)
         false,  // 不生成火焰
         nullptr // 无爆炸源实体
     );
+}
+
+void TNTBlock::onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
+    MC_UNUSED(state);
+
+    // 对应 MC Java 的 TntBlock.wasExploded()
+    // 当 TNT 方块被其他爆炸摧毁时，如果 tntExplodes 游戏规则为 true，
+    // 生成一个随机短引信的点燃 TNT 实体（连锁爆炸）
+    if (!world.isClientSide() && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+        auto& registry = entity::EntityRegistry::instance();
+        const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
+
+        if (tntType != nullptr && tntType->isValid()) {
+            auto tntEntity = tntType->create(&world);
+            if (tntEntity != nullptr) {
+                // 设置TNT位置（方块中心）
+                f32 centerX = static_cast<f32>(pos.x) + 0.5f;
+                f32 centerY = static_cast<f32>(pos.y);
+                f32 centerZ = static_cast<f32>(pos.z) + 0.5f;
+
+                auto* tnt = dynamic_cast<entity::TNTEntity*>(tntEntity.get());
+                if (tnt != nullptr) {
+                    tnt->setPosition(centerX, centerY, centerZ);
+
+                    // 设置随机短引信：MC Java 的公式为 random.nextInt(fuse / 4) + fuse / 8
+                    // 其中 fuse = 80 (DEFAULT_FUSE)，即 random.nextInt(20) + 10，范围 [10, 29] ticks
+                    math::Random& rng = world.getRandom();
+                    constexpr i32 DEFAULT_FUSE = 80;
+                    i32 shortFuse = rng.nextInt(DEFAULT_FUSE / 4) + DEFAULT_FUSE / 8;
+                    tnt->ignite(shortFuse);
+                }
+
+                world.spawnEntity(std::move(tntEntity));
+            }
+        }
+    }
 }
 
 bool TNTBlock::_hasFlammableNeighbor(IWorld& world, const BlockPos& pos) const

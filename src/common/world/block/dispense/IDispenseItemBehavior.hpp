@@ -425,5 +425,23 @@ public:
         IInventory* dispenserInventory) override;
 };
 
+/**
+ * @brief TNT 发射行为
+ *
+ * 发射器发射 TNT 物品时，生成一个已点燃的 TNT 实体。
+ * 如果 tntExplodes 游戏规则为 false，则发射失败（物品不被消耗）。
+ * 对应 MC Java 的 DispenseItemBehavior 中 Blocks.TNT 的发射行为。
+ */
+class TNTDispenseBehavior : public OptionalDispenseItemBehavior {
+public:
+    TNTDispenseBehavior() = default;
+
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
+};
+
 } // namespace blocks
 } // namespace mc

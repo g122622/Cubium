@@ -488,6 +488,11 @@ void TNTEntity::ignite()
     m_fuse = DEFAULT_FUSE;
 }
 
+void TNTEntity::ignite(i32 fuseTicks)
+{
+    m_fuse = fuseTicks;
+}
+
 void TNTEntity::explode()
 {
     if (m_exploded) return;
@@ -495,15 +500,20 @@ void TNTEntity::explode()
 
     IWorld* worldPtr = world();
     if (worldPtr != nullptr) {
-        // TNT 爆炸半径 4.0，模式 BREAK（破坏方块但不掉落物品）
-        // 爆炸位置在 TNT 底部（Y 偏移 0.0625，即 1/16 格）
-        worldPtr->createExplosion(
-            Vector3(static_cast<f32>(x()), static_cast<f32>(y()) + 0.0625f, static_cast<f32>(z())),
-            m_explosionRadius,
-            world::explosion::ExplosionMode::Break,
-            false, // 不生成火焰
-            this   // 爆炸源实体
-        );
+        // 检查 tntExplodes 游戏规则
+        // 对应 MC Java 的 PrimedTnt.explode() 中的 GameRules.TNT_EXPLODES 检查
+        // 当规则为 false 时，TNT 实体仍然消失（remove），但不产生爆炸
+        if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+            // TNT 爆炸半径 4.0，模式 BREAK（破坏方块但不掉落物品）
+            // 爆炸位置在 TNT 底部（Y 偏移 0.0625，即 1/16 格）
+            worldPtr->createExplosion(
+                Vector3(static_cast<f32>(x()), static_cast<f32>(y()) + 0.0625f, static_cast<f32>(z())),
+                m_explosionRadius,
+                world::explosion::ExplosionMode::Break,
+                false, // 不生成火焰
+                this   // 爆炸源实体
+            );
+        }
     }
 
     remove();

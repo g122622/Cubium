@@ -313,8 +313,9 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
 
     // ========================================================================
     // TNT 发射行为
+    // 生成点燃的 TNT 实体；如果 tntExplodes 游戏规则为 false 则不发射
     // ========================================================================
-    registerBehavior("minecraft:tnt", std::make_unique<DefaultDispenseItemBehavior>());
+    registerBehavior("minecraft:tnt", std::make_unique<TNTDispenseBehavior>());
 
     // ========================================================================
     // 船发射行为

@@ -196,6 +196,9 @@ extern const BooleanGameRuleKey ANNOUNCE_ADVANCEMENTS;
 /// 是否减少调试信息
 extern const BooleanGameRuleKey REDUCED_DEBUG_INFO;
 
+/// TNT 是否允许爆炸（控制 TNT 方块点燃、TNT 实体爆炸、TNT 矿车引爆等）
+extern const BooleanGameRuleKey TNT_EXPLODES;
+
 /// 最大命令链长度
 extern const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH;
 

@@ -228,9 +228,16 @@ public:
     /**
      * @brief 点燃TNT
      *
-     * 设置引信时间并开始倒计时。
+     * 设置引信时间为默认值（80 ticks）并开始倒计时。
      */
     void ignite();
+
+    /**
+     * @brief 点燃TNT并指定引信时间
+     *
+     * @param fuseTicks 引信时间（ticks）
+     */
+    void ignite(i32 fuseTicks);
 
     /**
      * @brief 设置点燃者

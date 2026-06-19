@@ -24,7 +24,9 @@
 #include "IDispenseItemBehavior.hpp"
 
 #include "../../../core/Types.hpp"
+#include "../../../entity/core/EntityRegistry.hpp"
 #include "../../../entity/entities/item/ItemEntity.hpp"
+#include "../../../entity/entities/misc/MiscEntities.hpp"
 #include "../../../entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "../../../entity/entities/projectile/OtherProjectiles.hpp"
 #include "../../../entity/entities/projectile/ProjectileEntity.hpp"
@@ -51,6 +53,7 @@
 #include "../../fluid/Fluid.hpp"
 #include "../../fluid/FluidRegistry.hpp"
 #include "../../fluid/FluidTags.hpp"
+#include "../../gamerule/GameRules.hpp"
 #include "../../tick/manager/TickManager.hpp"
 #include "../Block.hpp"
 
@@ -586,7 +589,10 @@ ItemStack FlintAndSteelDispenseBehavior::dispense(
         Block* tntBlock = Block::getBlock(targetState->blockId());
         if (tntBlock != nullptr) {
             auto* tnt = static_cast<TNTBlock*>(tntBlock);
-            tnt->ignite(world, targetPos, *targetState);
+            // ignite() 返回 false 表示 tntExplodes 游戏规则禁止点燃
+            if (!tnt->ignite(world, targetPos, *targetState)) {
+                _setSuccess(false);
+            }
         }
     }
     // 无法点燃
@@ -645,6 +651,74 @@ ItemStack BonemealDispenseBehavior::dispense(
             world.playEvent(world::WorldEvents::BONEMEAL_PARTICLES, targetPos, 15);
         }
     }
+
+    _playSound(world, pos);
+    _spawnParticles(world, pos, direction);
+
+    return stack.isEmpty() ? ItemStack() : stack;
+}
+
+// ============================================================================
+// TNTDispenseBehavior
+// ============================================================================
+
+ItemStack TNTDispenseBehavior::dispense(
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
+{
+    MC_UNUSED(dispenserInventory);
+
+    // 对应 MC Java 的 DispenseItemBehavior 中 Blocks.TNT 的发射行为
+    // 如果 tntExplodes 游戏规则为 false，发射失败（物品不被消耗）
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+        _setSuccess(false);
+        return stack;
+    }
+
+    Direction direction = state.get(BlockStateProperties::FACING());
+    BlockPos targetPos = pos.offset(direction);
+
+    // 生成点燃的 TNT 实体
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
+
+    if (tntType != nullptr && tntType->isValid()) {
+        auto tntEntity = tntType->create(&world);
+        if (tntEntity != nullptr) {
+            // 设置 TNT 位置：在发射器前方偏移
+            static constexpr f32 TNT_OFFSET = 1.125f;
+            f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(direction)) * TNT_OFFSET;
+            f32 y = static_cast<f32>(pos.y) + 0.5f + static_cast<f32>(Directions::yOffset(direction)) * TNT_OFFSET;
+            f32 z = static_cast<f32>(pos.z) + 0.5f + static_cast<f32>(Directions::zOffset(direction)) * TNT_OFFSET;
+
+            auto* tnt = dynamic_cast<entity::TNTEntity*>(tntEntity.get());
+            if (tnt != nullptr) {
+                tnt->setPosition(x, y, z);
+
+                // 设置发射方向的速度
+                f32 vx = static_cast<f32>(Directions::xOffset(direction)) * 0.5f;
+                f32 vy = static_cast<f32>(Directions::yOffset(direction)) * 0.5f + 0.1f;
+                f32 vz = static_cast<f32>(Directions::zOffset(direction)) * 0.5f;
+                tnt->setVelocity(Vector3(vx, vy, vz));
+
+                // 点燃 TNT
+                tnt->ignite();
+            }
+
+            world.spawnEntity(std::move(tntEntity));
+        }
+    }
+
+    // 播放 TNT 引燃音效
+    world.playSound(SoundEvents::ENTITY_TNT_PRIMED,
+        sound::SoundCategory::Blocks,
+        Vector3(
+            static_cast<f32>(targetPos.x) + 0.5f, static_cast<f32>(targetPos.y), static_cast<f32>(targetPos.z) + 0.5f),
+        1.0f,
+        1.0f);
+
+    // 消耗一个 TNT 物品
+    stack.shrink(1);
+    _setSuccess(true);
 
     _playSound(world, pos);
     _spawnParticles(world, pos, direction);

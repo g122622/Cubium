@@ -52,11 +52,16 @@ GameRules.hpp (容器类)
   - `entity/entities/monster/illager/RavagerEntity` - 劫掠兽破坏检查 mobGriefing
   - `entity/entities/passive/golem/SnowGolemEntity` - 雪傀儡放置雪检查 mobGriefing
   - `entity/entities/projectile/AbstractFireballEntity` - 火球点燃检查 mobGriefing
-  - `entity/entities/misc/MiscEntities` - 实体掉落检查 doEntityDrops
+  - `entity/entities/misc/MiscEntities` - TNTEntity 爆炸检查 tntExplodes；实体掉落检查 doEntityDrops
   - `entity/entities/passive/special/PandaEntity` - 熊猫掉落检查 doMobLoot
   - `entity/entities/player/Player` - 玩家自然回血检查 naturalRegeneration
+  - `entity/entities/vehicle/MinecartEntity` - TNT 矿车引爆和爆炸检查 tntExplodes
   - `entity/inventory/IRecipeHolder` - 限制合成检查 doLimitedCrafting
 - **方块行为** - `block/blocks/mob/TurtleEggBlock` 检查 mobGriefing
+- **TNT 行为** - 以下检查 tntExplodes：
+  - `block/blocks/redstone/TNTBlock` - 点燃、爆炸和连锁爆炸检查 tntExplodes
+  - `block/dispense/IDispenseItemBehavior` - 打火石发射器点燃 TNT 检查 tntExplodes
+  - `block/dispense/DispenseItemBehaviorRegistry` - TNT 发射器行为检查 tntExplodes
 - **降水系统** - `server/world/ServerWorld::tickPrecipitation()` 检查 snowAccumulationHeight
 
 ## 容易踩的坑

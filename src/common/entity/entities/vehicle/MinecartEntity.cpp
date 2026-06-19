@@ -1307,13 +1307,20 @@ void TNTMinecartEntity::tick()
 
 void TNTMinecartEntity::_ignite()
 {
-    // TODO: MC 原版 primeFuse() 检查 GameRules.TNT_EXPLODES，如果为 false 则不点燃
+    // 对应 MC Java 的 MinecartTNT.primeFuse() 中的 GameRules.TNT_EXPLODES 检查
+    // 如果 tntExplodes 游戏规则为 false，则不点燃
+    IWorld* worldPtr = Entity::world();
+    if (worldPtr && !worldPtr->isClientSide()) {
+        if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+            return;
+        }
+    }
+
     // TODO: MC 原版 primeFuse(DamageSource) 接受 DamageSource 参数用于记录 ignitionSource（爆炸来源），
     //       当前 _ignite() 不接受 DamageSource，需要在 dropItem() 等调用处传入并存储
 
     m_fuse = DEFAULT_FUSE; // 80 ticks = 4 seconds
 
-    IWorld* worldPtr = Entity::world();
     if (worldPtr && !worldPtr->isClientSide()) {
         // 广播实体状态 10，通知客户端 TNT 矿车已被引燃
         // 客户端收到 status 10 后设置 fuse 值以渲染闪烁效果
@@ -1428,6 +1435,16 @@ void TNTMinecartEntity::_explode(f32 speedFactor)
     IWorld* worldPtr = Entity::world();
     if (!worldPtr || worldPtr->isClientSide()) {
         remove();
+        return;
+    }
+
+    // 对应 MC Java 的 MinecartTNT.explode() 中的 GameRules.TNT_EXPLODES 检查
+    // 如果 tntExplodes 游戏规则为 false，不产生爆炸；
+    // 如果矿车已被点燃，则移除实体；否则实体保持不变
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+        if (isPrimed()) {
+            remove();
+        }
         return;
     }
 

@@ -69,6 +69,19 @@ public:
         return Material::PushReaction::Normal;
     }
 
+    /**
+     * @brief TNT 方块被爆炸摧毁时的回调
+     *
+     * 当其他爆炸摧毁 TNT 方块时调用。如果 tntExplodes 游戏规则为 true，
+     * 生成一个随机短引信的点燃 TNT 实体（连锁爆炸）。
+     * 对应 MC Java 的 TntBlock.wasExploded()。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
+
     // ========== TNT特有方法 ==========
 
     /**
@@ -81,11 +94,14 @@ public:
     /**
      * @brief 点燃TNT
      *
+     * 如果 tntExplodes 游戏规则为 false，则不会点燃。
+     *
      * @param world 世界引用
      * @param pos TNT位置
-     * @param source 点燃来源（可为nullptr）
+     * @param state 方块状态
+     * @return true 如果成功点燃（生成点燃的TNT实体），false 如果游戏规则禁止
      */
-    void ignite(IWorld& world, const BlockPos& pos, const BlockState& state);
+    [[nodiscard]] bool ignite(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
      * @brief 爆炸TNT
