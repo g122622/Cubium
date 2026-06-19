@@ -37,6 +37,11 @@ namespace mc {
 class Player;
 class ItemStack;
 
+namespace entity::ai::goal {
+class PanicGoal;
+class TemptGoal;
+} // namespace entity::ai::goal
+
 /**
  * @brief 炽足兽实体
  *
@@ -221,6 +226,40 @@ public:
             static_cast<f64>(0.12f * std::cos(limbSwingValue * 1.5f) * 2.0f * limbSwingAmountClamped);
     }
 
+    // ========== 音效 ==========
+
+    /**
+     * @brief 获取环境音效
+     * 恐慌或被诱惑时不播放环境音，返回 nullopt
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
+
+    /**
+     * @brief 获取受伤音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
+
+    /**
+     * @brief 获取死亡音效
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
+
+    /**
+     * @brief 播放脚步声
+     * 在熔岩上播放 ENTITY_STRIDER_STEP_LAVA，否则播放 ENTITY_STRIDER_STEP
+     */
+    void playStepSound(const BlockPos& pos, const BlockState* blockState) override;
+
+    /**
+     * @brief 是否正在恐慌（PanicGoal 正在运行）
+     */
+    [[nodiscard]] bool isPanicking() const;
+
+    /**
+     * @brief 是否正在被诱惑（TemptGoal 正在运行）
+     */
+    [[nodiscard]] bool isBeingTempted() const;
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -285,6 +324,10 @@ private:
     // 骑乘状态
     bool m_saddled = false;
     bool m_isBeingRidden = false;
+
+    // AI 目标指针（用于查询运行状态）
+    entity::ai::goal::PanicGoal* m_panicGoal = nullptr;
+    entity::ai::goal::TemptGoal* m_temptGoal = nullptr;
 
     // 加速状态
     BoostHelper m_boostHelper;

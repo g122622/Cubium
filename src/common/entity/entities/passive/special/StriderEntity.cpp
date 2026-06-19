@@ -30,6 +30,8 @@
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/Block.hpp"
+#include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/block/BlockTags.hpp"
 #include "../../../../world/fluid/Fluid.hpp"
 #include "../../../../world/fluid/FluidTags.hpp"
@@ -88,6 +90,47 @@ bool StriderEntity::isInLava() const
 {
     // 炽足兽可以站在熔岩表面
     return Entity::isInLava() || m_onLavaSurface;
+}
+
+// ========== 音效 ==========
+
+std::optional<ResourceLocation> StriderEntity::getAmbientSound() const
+{
+    // 恐慌或被诱惑时不播放环境音
+    if (isPanicking() || isBeingTempted()) {
+        return std::nullopt;
+    }
+    return makeSoundEventId("ambient");
+}
+
+std::optional<ResourceLocation> StriderEntity::getHurtSound(DamageSource& /*source*/) const
+{
+    return makeSoundEventId("hurt");
+}
+
+std::optional<ResourceLocation> StriderEntity::getDeathSound() const
+{
+    return makeSoundEventId("death");
+}
+
+void StriderEntity::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
+{
+    // 在熔岩上行走播放 ENTITY_STRIDER_STEP_LAVA，否则播放 ENTITY_STRIDER_STEP
+    if (isInLava()) {
+        playSound(SoundEvents::ENTITY_STRIDER_STEP_LAVA, 1.0f, 1.0f);
+    } else {
+        playSound(SoundEvents::ENTITY_STRIDER_STEP, 1.0f, 1.0f);
+    }
+}
+
+bool StriderEntity::isPanicking() const
+{
+    return m_panicGoal != nullptr && m_panicGoal->isRunning();
+}
+
+bool StriderEntity::isBeingTempted() const
+{
+    return m_temptGoal != nullptr && m_temptGoal->isRunning();
 }
 
 // ========== 骑乘系统 (IRideable) ==========
@@ -154,16 +197,14 @@ std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/
 
 void StriderEntity::tick()
 {
-    // TODO: 检查是否在恐慌或诱惑状态（用于音效）
-    // bool isTempted = m_temptGoal != nullptr && m_temptGoal->isRunning();
-    // bool isPanicked = m_panicGoal != nullptr && m_panicGoal->isRunning();
-
-    // TODO: 播放随机音效
-    // if (isTempted && m_random.nextInt(140) == 0) {
-    //     playSound(SoundEvents::ENTITY_STRIDER_HAPPY, 1.0f, getSoundPitch());
-    // } else if (isPanicked && m_random.nextInt(60) == 0) {
-    //     playSound(SoundEvents::ENTITY_STRIDER_RETREAT, 1.0f, getSoundPitch());
-    // }
+    // 诱惑状态：每tick有1/140概率播放 happy 音效
+    // 恐慌状态：每tick有1/60概率播放 retreat 音效
+    // 两者互斥：先检查诱惑，再检查恐慌
+    if (isBeingTempted() && getRandom().nextInt(140) == 0) {
+        playSound(SoundEvents::ENTITY_STRIDER_HAPPY, 1.0f, getSoundPitch());
+    } else if (isPanicking() && getRandom().nextInt(60) == 0) {
+        playSound(SoundEvents::ENTITY_STRIDER_RETREAT, 1.0f, getSoundPitch());
+    }
 
     // 更新寒冷状态
     _updateColdStatus();
@@ -337,30 +378,33 @@ void StriderEntity::registerGoals()
     // m_goalSelector.addGoal(0, new SwimGoal(this));
 
     // 优先级 1: 恐慌逃跑
-    m_goalSelector.addGoal(1, new entity::ai::goal::PanicGoal(this, 1.65));
+    auto* panicGoal = new entity::ai::goal::PanicGoal(this, 1.65);
+    m_panicGoal = panicGoal;
+    m_goalSelector.addGoal(1, panicGoal);
 
     // 优先级 2: 繁殖
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 1.0));
 
     // 优先级 3: 食物诱惑（诡异菌、诡异菌钓竿）
-    m_goalSelector.addGoal(3,
-        std::make_unique<::mc::entity::ai::goal::TemptGoal>(
-            this,
-            1.4,
-            [](const ItemStack& stack) -> bool {
-                const Item* item = stack.getItem();
-                if (item == nullptr) return false;
-                // 检查是否为诡异菌或诡异菌钓竿
-                // 注意：Items 可能在初始化期间为 nullptr
-                if (Items::WARPED_FUNGUS != nullptr && item == Items::WARPED_FUNGUS) {
-                    return true;
-                }
-                if (Items::WARPED_FUNGUS_ON_A_STICK != nullptr && item == Items::WARPED_FUNGUS_ON_A_STICK) {
-                    return true;
-                }
-                return false;
-            },
-            false));
+    auto* temptGoal = new entity::ai::goal::TemptGoal(
+        this,
+        1.4,
+        [](const ItemStack& stack) -> bool {
+            const Item* item = stack.getItem();
+            if (item == nullptr) return false;
+            // 检查是否为诡异菌或诡异菌钓竿
+            // 注意：Items 可能在初始化期间为 nullptr
+            if (Items::WARPED_FUNGUS != nullptr && item == Items::WARPED_FUNGUS) {
+                return true;
+            }
+            if (Items::WARPED_FUNGUS_ON_A_STICK != nullptr && item == Items::WARPED_FUNGUS_ON_A_STICK) {
+                return true;
+            }
+            return false;
+        },
+        false);
+    m_temptGoal = temptGoal;
+    m_goalSelector.addGoal(3, temptGoal);
 
     // 优先级 4: 寻找熔岩目标
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::MoveToLavaGoal>(this, 1.5));
@@ -446,8 +490,14 @@ void StriderEntity::setEquipment(i32 slot, const ItemStack& item)
 
     // 设置鞍状态
     // 注意：炽足兽不存储实际的物品，只存储布尔值
+    bool wasSaddled = hasSaddle();
     bool isSaddle = !item.isEmpty() && item.getItem() == Items::SADDLE;
     setSaddle(isSaddle);
+
+    // 装鞍时播放鞍音效
+    if (!wasSaddled && isSaddle && !isSilent()) {
+        playSound(SoundEvents::ENTITY_STRIDER_SADDLE, 1.0f, 1.0f);
+    }
 }
 
 bool StriderEntity::canEquip(const ItemStack& item, i32 slot) const
