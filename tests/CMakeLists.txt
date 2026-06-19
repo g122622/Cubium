@@ -254,6 +254,8 @@ add_executable(mc_tests
     advancement/NBTPredicateTest.cpp
     # BredAnimalsTrigger 动物繁殖触发器测试
     advancement/BredAnimalsTriggerTest.cpp
+    # AvoidVibrationTrigger 避免振动触发器测试
+    advancement/AvoidVibrationTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
     # PlayerAdvancements 监听器注册/注销、进度管理、可见性测试

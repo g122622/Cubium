@@ -105,8 +105,10 @@ Minecraft 1.17 +
                            验证振动有效性 -
                            添加到 VibrationSelector 候选
 
-                           ####VibrationSystem::Ticker 每 tick 驱动振动传播： 1. 没有当前振动时，从选择器选择候选
-                           2. 设置传播时间 = floor(distance) tick 3. 递减传播时间，归零时调用 `onReceiveVibration()`
+                           ####VibrationSystem::Ticker 每 tick 驱动振动传播： 1. `tryReloadVibrationParticle()` — 区块重载后重发振动粒子
+                           2. 没有当前振动时，从选择器选择候选
+                           3. 设置传播时间 = floor(distance) tick，在振动源位置发送 `ParticleTypeId::Vibration` 粒子
+                           4. 递减传播时间，归零时调用 `onReceiveVibration()`
 
                                              ####VibrationSystem::Data 振动系统运行时状态：当前振动、选择器、传播时间
 
@@ -117,7 +119,7 @@ Minecraft 1.17 +
                                              1. *
             *频率检查 * *：事件频率为 0 则拒绝（非振动事件） 2. * *旁观者检查 * *：源实体为旁观者模式玩家则拒绝 3. *
             *潜行忽略检查 *
-            *：源实体正在潜行（`isSteppingCarefully()`）且事件可被潜行忽略（`isIgnoredBySneaking()`）则拒绝 4. *
+            *：源实体正在潜行（`isSteppingCarefully()`）且事件可被潜行忽略（`isIgnoredBySneaking()`）则拒绝。若 `canTriggerAvoidVibration()` 返回 true 且源实体为玩家，则触发 `AvoidVibrationTrigger`（`minecraft:avoid_vibration`）进度 4. *
             *实体阻尼检查 * *：源实体 `dampensVibrations()` 返回 true 则拒绝（如监守者、羊毛物品实体） 5. *
             *方块阻尼检查 * *：受影响方块属于 `BlockTags::DAMPENS_VIBRATIONS`（羊毛 /
             地毯）则拒绝
@@ -169,6 +171,9 @@ Minecraft 1.17 +
     | `VibrationSelector` | `net.minecraft.world.level.gameevent.vibrations.VibrationSelector` |
     | `isIgnoredBySneaking()` | `GameEventTags.IGNORE_VIBRATIONS_SNEAKING` 标签 |
     | `Entity::dampensVibrations()` | `Entity.dampensVibrations()` |
+    | `User::canTriggerAvoidVibration()` + `AvoidVibrationTrigger` | `CriteriaTriggers.AVOID_VIBRATION` |
+    | `Ticker::tryReloadVibrationParticle()` | `VibrationSystem.Ticker.reloadVibrationParticle()` |
+    | `ServerWorld::addParticle(ParticleTypeId::Vibration)` | `ServerLevel.sendParticles(VibrationParticleOption)` |
     | `IWorld::gameEvent()` | `LevelAccessor.gameEvent()` | | `ServerWorld::gameEvent()` | `ServerLevel.gameEvent()` |
 
     ##数据流
@@ -182,10 +187,10 @@ Minecraft 1.17 +
       → (距离过滤 + PositionSource 解析)
     → GameEventListener::handleGameEvent()
       → (对于 VibrationSystem.Listener)isValidVibration() 验证
-        → 频率检查 → 旁观者检查 → 潜行忽略检查 → 实体阻尼检查 → 方块阻尼检查
+        → 频率检查 → 旁观者检查 → 潜行忽略检查（+ AvoidVibrationTrigger 进度触发）→ 实体阻尼检查 → 方块阻尼检查
       → VibrationSelector::addCandidate() → 选择最佳振动
       → (每 tick 由 VibrationSystem.Ticker 处理)
-        → VibrationSystem.Ticker::tick() → 递减传播时间 → receiveVibration()
+        → VibrationSystem.Ticker::tick() → tryReloadVibrationParticle() → 递减传播时间 → receiveVibration()
           → requiresAdjacentChunksToBeTicking 区块级别检查
           → onReceiveVibration() 具体接收者响应
 ```

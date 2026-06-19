@@ -101,7 +101,7 @@ AbstractCriterionTrigger<T>（监听器管理基类）
 
 9. **触发器模板模式**：创建新触发器需继承 `AbstractCriterionTrigger<T>`，其中 `T` 是触发器实例类型。`CriterionInstance<T>` 提供条件检测的 `test()` 方法。
 
-10. **服务端触发路径**：服务端触发成就需通过 `AdvancementEventHandler` 订阅事件，然后调用 `trigger->trigger(*advancements, predicate)`。直接调用触发器不会生效，因为没有监听器上下文。
+10. **服务端触发路径**：服务端触发成就需通过 `AdvancementEventHandler` 订阅事件，然后调用 `trigger->trigger(*advancements, predicate)`。直接调用触发器不会生效，因为没有监听器上下文。特殊例外：`AvoidVibrationTrigger` 在 `VibrationSystemServer.cpp` 的 `isValidVibration()` 中直接调用基类模板方法 `AbstractCriterionTrigger<AvoidVibrationTriggerInstance>::trigger(*advancements, predicate)`，因为其触发时机不在事件系统中，而是在振动验证逻辑中。
 
 11. **命名空间注意**：`mc::advancement::PlayerAdvancements` 是前向声明，实际定义在 `mc::server::PlayerAdvancements`。触发器接口使用 `mc::server::PlayerAdvancements&` 作为参数类型。
 
