@@ -34,6 +34,7 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
 
 namespace blocks {
 
@@ -90,6 +91,21 @@ public:
      * @return 碰撞形状引用
      */
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 处理玩家右键交互
+     *
+     * 打开切石机GUI并记录交互统计。
+     * 参考: MC Java StonecutterBlock.useWithoutItem()
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     /// 切石机形状

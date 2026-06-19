@@ -190,10 +190,10 @@
           | LoomBlock | `INTERACT_WITH_LOOM` | ✅ 已集成 |
           | ShulkerBoxBlock | `OPEN_SHULKER_BOX` | ✅ 已集成 |
           | SmokerBlock | `INTERACT_WITH_SMOKER` | ✅ 已集成 |
-          | BeaconBlock | `INTERACT_WITH_BEACON` | ❌ 缺少 onBlockActivated（TODO） |
-          | GrindstoneBlock | `INTERACT_WITH_GRINDSTONE` | ❌ 缺少 onBlockActivated（TODO） |
-          | SmithingTableBlock | `INTERACT_WITH_SMITHING_TABLE` | ❌ 缺少 onBlockActivated（TODO） |
-          | StonecutterBlock | `INTERACT_WITH_STONECUTTER` | ❌ 缺少 onBlockActivated（TODO） |
+          | BeaconBlock | `INTERACT_WITH_BEACON` | ✅ 已集成 |
+          | GrindstoneBlock | `INTERACT_WITH_GRINDSTONE` | ✅ 已集成 |
+          | SmithingTableBlock | `INTERACT_WITH_SMITHING_TABLE` | ✅ 已集成 |
+          | StonecutterBlock | `INTERACT_WITH_STONECUTTER` | ✅ 已集成 |
           | ComposterBlock | — | MC Java 中无交互统计 |
           | CraftingTable (CraftingTableBlock) | `INTERACT_WITH_CRAFTING_TABLE` | ✅ 已集成 |
           | EnderChest (EnderChestBlock) | `OPEN_ENDERCHEST` | ✅ 已集成（容器打开待 PlayerEnderChestInventory 实现） |
