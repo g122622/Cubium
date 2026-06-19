@@ -26,7 +26,6 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
-#include "common/entity/damage/DamageSources.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
@@ -376,7 +375,10 @@ public:
         , m_hurtCount(0)
         , m_lastDamage(0.0f)
         , m_lastDamageType(static_cast<DamageType>(255))
-    {}
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
 
     bool hurt(DamageSource& source, f32 amount) override
     {
@@ -600,7 +602,7 @@ TEST_F(PointedDripstoneBlockTest, CanDripThrough_AirBlock_ReturnsTrue)
     // 空气方块可穿透
     DripstoneTestWorld world;
     BlockPos pos(0, 64, 0);
-    const BlockState* airState = VanillaBlocks::AIR->defaultStatePointer();
+    const BlockState* airState = &VanillaBlocks::AIR->defaultState();
     ASSERT_NE(airState, nullptr);
     EXPECT_TRUE(block_->canDripThrough(world, pos, airState));
 }
@@ -610,7 +612,7 @@ TEST_F(PointedDripstoneBlockTest, CanDripThrough_OpaqueBlock_ReturnsFalse)
     // 实心不透明方块不可穿透
     DripstoneTestWorld world;
     BlockPos pos(0, 64, 0);
-    const BlockState* stoneState = VanillaBlocks::STONE->defaultStatePointer();
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
     ASSERT_NE(stoneState, nullptr);
     EXPECT_FALSE(block_->canDripThrough(world, pos, stoneState));
 }

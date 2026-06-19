@@ -22,6 +22,7 @@
 
 #include "PointedDripstoneBlock.hpp"
 
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -865,6 +866,7 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
 
         // 创建掉落方块实体
         auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
+        fallingEntity->setTypeId(entity::EntityTypes::FALLING_BLOCK);
         fallingEntity->setPosition(static_cast<f32>(currentPos.x) + 0.5f,
             static_cast<f32>(currentPos.y),
             static_cast<f32>(currentPos.z) + 0.5f);

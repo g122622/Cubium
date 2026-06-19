@@ -24,6 +24,7 @@
 #include "FallingBlock.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -98,6 +99,7 @@ void FallingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, m
     }
 
     auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
+    fallingEntity->setTypeId(entity::EntityTypes::FALLING_BLOCK);
     fallingEntity->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
     fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);
     fallingEntity->setBlockId(currentState->blockId());

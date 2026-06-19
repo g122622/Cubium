@@ -1442,6 +1442,7 @@ private:
      */
     void _handleLandingOnBlock();
 
+public:
     // ========== 闪电击中 ==========
 
     /**

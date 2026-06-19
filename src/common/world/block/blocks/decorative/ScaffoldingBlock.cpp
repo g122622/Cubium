@@ -23,6 +23,7 @@
 
 #include "ScaffoldingBlock.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -202,6 +203,7 @@ void ScaffoldingBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
             if (airState != nullptr && world.setBlockState(pos, airState, 3)) {
                 // 创建下落实体
                 auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
+                fallingEntity->setTypeId(entity::EntityTypes::FALLING_BLOCK);
                 fallingEntity->setPosition(
                     static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
                 fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);

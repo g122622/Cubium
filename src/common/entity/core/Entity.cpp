@@ -866,7 +866,10 @@ void Entity::propagateFallToPassengers(f32 distance, f32 damageMultiplier, const
     if (!hasPassengers() || m_world == nullptr) {
         return;
     }
-    for (EntityId passengerId : m_passengers) {
+    // 拷贝乘客列表后再遍历，避免乘客在 causeFallDamage 过程中死亡
+    // 导致从 m_passengers 移除时迭代器失效
+    auto passengers = m_passengers;
+    for (EntityId passengerId : passengers) {
         Entity* passenger = m_world->getEntity(passengerId);
         if (passenger != nullptr) {
             passenger->causeFallDamage(distance, damageMultiplier, source);
