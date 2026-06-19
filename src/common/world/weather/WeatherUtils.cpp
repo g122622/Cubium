@@ -70,7 +70,9 @@ bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
-    // MC 1.21.11: 使用高度调整温度而非基础温度，高海拔位置可能降温至降雪阈值
+    // MC 1.21.11: 使用高度调整温度，高海拔位置可能降温至降雪阈值
+    // 注意：不使用缓存的 getTemperature()，因为天气检查可能在同一位置
+    // 遇到不同生物群系（如测试场景），直接计算更安全
     const f32 adjustedTemp = biome->getHeightAdjustedTemperature(pos.x, pos.y, pos.z, mc::world::SEA_LEVEL);
     return getPrecipitationType(adjustedTemp) == 1;
 }
@@ -90,7 +92,9 @@ bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
-    // MC 1.21.11: 使用高度调整温度而非基础温度，高海拔位置可能降温至降雪阈值
+    // MC 1.21.11: 使用高度调整温度，高海拔位置可能降温至降雪阈值
+    // 注意：不使用缓存的 getTemperature()，因为天气检查可能在同一位置
+    // 遇到不同生物群系（如测试场景），直接计算更安全
     const f32 adjustedTemp = biome->getHeightAdjustedTemperature(pos.x, pos.y, pos.z, mc::world::SEA_LEVEL);
     return getPrecipitationType(adjustedTemp) == 2;
 }

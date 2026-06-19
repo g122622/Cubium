@@ -214,6 +214,7 @@ void BiomeRegistry::_registerDefaultBiomes()
     registerBiome(BiomeFactory::createMangroveSwamp());  // ID: 183
     registerBiome(BiomeFactory::createCherryGrove());    // ID: 184
     registerBiome(BiomeFactory::createPaleGarden());     // ID: 185
+    registerBiome(BiomeFactory::createTheVoid());        // ID: 55
 }
 
 } // namespace biome

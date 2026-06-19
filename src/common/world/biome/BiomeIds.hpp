@@ -117,7 +117,9 @@ constexpr BiomeId DeepLukewarmOcean = 48;
 constexpr BiomeId DeepColdOcean = 49;
 constexpr BiomeId DeepFrozenOcean = 50;
 
-// TheVoid (55)
+/// 虚空生物群系 (55)，用于超平坦世界等
+constexpr BiomeId TheVoid = 55;
+
 // 56-127 保留
 
 // 变体生物群系（129-169，稀有变体）

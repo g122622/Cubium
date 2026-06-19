@@ -28,6 +28,7 @@
 #include "BiomeEffects.hpp"
 #include "BiomeGenerationSettings.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/cache/Long2FloatLRUCache.hpp"
 #include "common/world/spawn/MobSpawnInfo.hpp"
 #include <string>
 #include <string_view>
@@ -77,12 +78,35 @@ public:
     [[nodiscard]] const BiomeClimate& climate() const { return m_climate; }
 
     /**
-     * @brief 获取指定位置的高度调整温度
+     * @brief 获取指定位置的高度调整温度（带缓存）
      *
+     * 使用 ThreadLocal LRU 缓存避免重复计算噪声。
      * 算法：
      * 1. 先应用 TemperatureModifier（None 或 Frozen）
      * 2. 如果 Y > seaLevel + 17，应用高度降温
      *    降温公式: temperature - (noiseValue * 8.0 + y - seaLevel - 17) * 0.00125
+     *    其中 noiseValue = TEMPERATURE_NOISE.getValue(x / 8.0, z / 8.0, false)
+     *
+     * MC 1.21.11: Biome.getTemperature(BlockPos, int seaLevel)
+     * 使用 ThreadLocal<Long2FloatLinkedOpenHashMap> 缓存（容量 1024，不 rehash）
+     *
+     * @param x 方块 X 坐标（世界坐标）
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标（世界坐标）
+     * @param seaLevel 海平面高度
+     * @return 高度调整后的温度
+     */
+    [[nodiscard]] f32 getTemperature(i32 x, i32 y, i32 z, i32 seaLevel) const;
+
+    /**
+     * @brief 获取指定位置的高度调整温度（无缓存）
+     *
+     * 直接计算，不使用缓存。用于测试和特殊场景。
+     *
+     * 算法：
+     * 1. 先应用 TemperatureModifier（None 或 Frozen）
+     * 2. 如果 Y > seaLevel + 17，应用高度降温
+     *    降温公式: temperature - (noiseValue * 8.0 + y - seaLevel - 17) * 0.05 / 40.0
      *    其中 noiseValue = TEMPERATURE_NOISE.getValue(x / 8.0, z / 8.0, false)
      *
      * @param x 方块 X 坐标（世界坐标）
@@ -111,7 +135,7 @@ public:
      */
     [[nodiscard]] bool doesSnowGenerate(i32 x, i32 y, i32 z, i32 seaLevel) const
     {
-        return getHeightAdjustedTemperature(x, y, z, seaLevel) < SNOW_TEMPERATURE_THRESHOLD;
+        return getTemperature(x, y, z, seaLevel) < SNOW_TEMPERATURE_THRESHOLD;
     }
 
     /**
@@ -129,7 +153,7 @@ public:
      */
     [[nodiscard]] bool shouldMeltFrozenOceanIcebergSlightly(i32 x, i32 y, i32 z, i32 seaLevel) const
     {
-        return getHeightAdjustedTemperature(x, y, z, seaLevel) > ICEBERG_MELT_TEMPERATURE_THRESHOLD;
+        return getTemperature(x, y, z, seaLevel) > ICEBERG_MELT_TEMPERATURE_THRESHOLD;
     }
 
     /**
@@ -143,7 +167,7 @@ public:
      */
     [[nodiscard]] bool doesWaterFreeze(i32 x, i32 y, i32 z, i32 seaLevel) const
     {
-        return getHeightAdjustedTemperature(x, y, z, seaLevel) < FREEZE_TEMPERATURE_THRESHOLD;
+        return getTemperature(x, y, z, seaLevel) < FREEZE_TEMPERATURE_THRESHOLD;
     }
 
     // === 方块设置 ===
@@ -219,6 +243,26 @@ public:
      * @param sounds 环境音效配置
      */
     void setAmbientSounds(const BiomeAmbientSounds& sounds) { m_ambientSounds = sounds; }
+
+    // === 温度缓存 ===
+
+    /// MC 1.21.11: Biome.TEMPERATURE_CACHE_SIZE = 1024
+    static constexpr i32 TEMPERATURE_CACHE_SIZE = 1024;
+
+    /**
+     * @brief 获取当前线程的温度缓存
+     *
+     * MC 1.21.11 使用 ThreadLocal<Long2FloatLinkedOpenHashMap>，
+     * 每个线程有独立的缓存实例，无需加锁。
+     */
+    [[nodiscard]] static Long2FloatLRUCache& getTemperatureCache();
+
+    /**
+     * @brief 清除温度缓存
+     *
+     * 用于世界卸载或种子变更时重置缓存。
+     */
+    static void clearTemperatureCache();
 
 private:
     BiomeId m_id = 0;

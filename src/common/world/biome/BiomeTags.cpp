@@ -392,6 +392,228 @@ BiomeTag& BiomeTags::IS_RIVER()
     return *tag;
 }
 
+// ========== 维度标签 ==========
+
+BiomeTag& BiomeTags::IS_OVERWORLD()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_overworld"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_NETHER()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_nether"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_END()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_end"));
+    }
+    return *tag;
+}
+
+// ========== 地形类型标签 ==========
+
+BiomeTag& BiomeTags::IS_DEEP_OCEAN()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_deep_ocean"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_BEACH()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_beach"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_MOUNTAIN()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_mountain"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_HILL()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_hill"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_TAIGA()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_taiga"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_JUNGLE()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_jungle"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_FOREST()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_forest"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_SAVANNA()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_savanna"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_BADLANDS()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_badlands"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_MUSHROOM()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_mushroom"));
+    }
+    return *tag;
+}
+
+// ========== 更多游戏玩法标签 ==========
+
+BiomeTag& BiomeTags::SPAWNS_COLD_VARIANT_FROGS()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "spawns_cold_variant_frogs"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::SPAWNS_WARM_VARIANT_FROGS()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "spawns_warm_variant_frogs"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::WITHOUT_ZOMBIE_SIEGES()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "without_zombie_sieges"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::WITHOUT_WANDERING_TRADER_SPAWNS()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "without_wandering_trader_spawns"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::WITHOUT_PATROL_SPAWNS()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "without_patrol_spawns"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::STRONGHOLD_BIASED_TO()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "stronghold_biased_to"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::REQUIRED_OCEAN_MONUMENT_SURROUNDING()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "required_ocean_monument_surrounding"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::MINESHAFT_BLOCKING()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "mineshaft_blocking"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::WATER_ON_MAP_OUTLINES()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "water_on_map_outlines"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::PRODUCES_CORALS_FROM_BONEMEAL()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "produces_corals_from_bonemeal"));
+    }
+    return *tag;
+}
+
+BiomeTag& BiomeTags::IS_VOID()
+{
+    static BiomeTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "is_void"));
+    }
+    return *tag;
+}
+
 // ============================================================================
 // 初始化
 // ============================================================================
@@ -1027,6 +1249,358 @@ void BiomeTags::initialize()
     {
         auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_river"));
         tag->addAll({Biomes::River, Biomes::FrozenRiver});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // ========== 维度标签 ==========
+
+    // is_overworld: 主世界所有生物群系（与 stronghold 标签的生物群系列表相同）
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_overworld"));
+        tag->addAll({
+            Biomes::Ocean,
+            Biomes::Plains,
+            Biomes::Desert,
+            Biomes::Mountains,
+            Biomes::Forest,
+            Biomes::Taiga,
+            Biomes::Swamp,
+            Biomes::River,
+            Biomes::FrozenOcean,
+            Biomes::FrozenRiver,
+            Biomes::SnowyPlains,
+            Biomes::SnowyMountains,
+            Biomes::MushroomFields,
+            Biomes::MushroomFieldShore,
+            Biomes::Beach,
+            Biomes::DesertHills,
+            Biomes::WoodedHills,
+            Biomes::TaigaHills,
+            Biomes::MountainEdge,
+            Biomes::Jungle,
+            Biomes::JungleHills,
+            Biomes::JungleEdge,
+            Biomes::DeepOcean,
+            Biomes::StoneShore,
+            Biomes::SnowyBeach,
+            Biomes::BirchForest,
+            Biomes::BirchForestHills,
+            Biomes::DarkForest,
+            Biomes::SnowyTaiga,
+            Biomes::SnowyTaigaHills,
+            Biomes::GiantTreeTaiga,
+            Biomes::GiantTreeTaigaHills,
+            Biomes::WoodedMountains,
+            Biomes::Savanna,
+            Biomes::SavannaPlateau,
+            Biomes::Badlands,
+            Biomes::WoodedBadlandsPlateau,
+            Biomes::BadlandsPlateau,
+            Biomes::WarmOcean,
+            Biomes::LukewarmOcean,
+            Biomes::ColdOcean,
+            Biomes::DeepWarmOcean,
+            Biomes::DeepLukewarmOcean,
+            Biomes::DeepColdOcean,
+            Biomes::DeepFrozenOcean,
+            Biomes::SunflowerPlains,
+            Biomes::DesertLakes,
+            Biomes::GravellyMountains,
+            Biomes::FlowerForest,
+            Biomes::TaigaMountains,
+            Biomes::SwampHills,
+            Biomes::IceSpikes,
+            Biomes::ModifiedJungle,
+            Biomes::ModifiedJungleEdge,
+            Biomes::TallBirchForest,
+            Biomes::TallBirchHills,
+            Biomes::DarkForestHills,
+            Biomes::SnowyTaigaMountains,
+            Biomes::GiantSpruceTaiga,
+            Biomes::GiantSpruceTaigaHills,
+            Biomes::ModifiedGravellyMountains,
+            Biomes::ShatteredSavanna,
+            Biomes::ShatteredSavannaPlateau,
+            Biomes::ErodedBadlands,
+            Biomes::ModifiedWoodedBadlandsPlateau,
+            Biomes::ModifiedBadlandsPlateau,
+            Biomes::BambooJungle,
+            Biomes::BambooJungleHills,
+            Biomes::Meadow,
+            Biomes::Grove,
+            Biomes::SnowySlopes,
+            Biomes::JaggedPeaks,
+            Biomes::FrozenPeaks,
+            Biomes::StonyPeaks,
+            Biomes::DripstoneCaves,
+            Biomes::LushCaves,
+            Biomes::DeepDark,
+            Biomes::MangroveSwamp,
+            Biomes::CherryGrove,
+            Biomes::PaleGarden,
+        });
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_nether: 下界所有生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_nether"));
+        tag->addAll({Biomes::NetherWastes,
+            Biomes::SoulSandValley,
+            Biomes::CrimsonForest,
+            Biomes::WarpedForest,
+            Biomes::BasaltDeltas});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_end: 末地所有生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_end"));
+        tag->addAll(
+            {Biomes::TheEnd, Biomes::SmallEndIslands, Biomes::EndMidlands, Biomes::EndHighlands, Biomes::EndBarrens});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // ========== 地形类型标签 ==========
+
+    // is_deep_ocean: 深海生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_deep_ocean"));
+        tag->addAll({Biomes::DeepOcean,
+            Biomes::DeepFrozenOcean,
+            Biomes::DeepWarmOcean,
+            Biomes::DeepLukewarmOcean,
+            Biomes::DeepColdOcean});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_beach: 海滩生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_beach"));
+        tag->addAll({Biomes::Beach, Biomes::SnowyBeach, Biomes::StoneShore});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_mountain: 山地生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_mountain"));
+        tag->addAll({Biomes::Mountains,
+            Biomes::WoodedMountains,
+            Biomes::GravellyMountains,
+            Biomes::JaggedPeaks,
+            Biomes::FrozenPeaks,
+            Biomes::StonyPeaks,
+            Biomes::ModifiedGravellyMountains});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_hill: 丘陵生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_hill"));
+        tag->addAll({Biomes::WoodedHills,
+            Biomes::TaigaHills,
+            Biomes::DesertHills,
+            Biomes::JungleHills,
+            Biomes::BirchForestHills,
+            Biomes::DarkForestHills,
+            Biomes::SnowyTaigaHills,
+            Biomes::GiantTreeTaigaHills,
+            Biomes::SnowyMountains,
+            Biomes::TallBirchHills,
+            Biomes::GiantSpruceTaigaHills});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_taiga: 针叶林生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_taiga"));
+        tag->addAll({Biomes::Taiga, Biomes::SnowyTaiga, Biomes::GiantTreeTaiga, Biomes::GiantSpruceTaiga});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_jungle: 丛林生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_jungle"));
+        tag->addAll({Biomes::Jungle,
+            Biomes::JungleHills,
+            Biomes::JungleEdge,
+            Biomes::BambooJungle,
+            Biomes::BambooJungleHills,
+            Biomes::ModifiedJungle,
+            Biomes::ModifiedJungleEdge});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_forest: 森林生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_forest"));
+        tag->addAll({Biomes::Forest,
+            Biomes::BirchForest,
+            Biomes::DarkForest,
+            Biomes::FlowerForest,
+            Biomes::TallBirchForest,
+            Biomes::CherryGrove,
+            Biomes::PaleGarden});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_savanna: 热带草原生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_savanna"));
+        tag->addAll(
+            {Biomes::Savanna, Biomes::SavannaPlateau, Biomes::ShatteredSavanna, Biomes::ShatteredSavannaPlateau});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_badlands: 恶地生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_badlands"));
+        tag->addAll({Biomes::Badlands,
+            Biomes::WoodedBadlandsPlateau,
+            Biomes::BadlandsPlateau,
+            Biomes::ErodedBadlands,
+            Biomes::ModifiedWoodedBadlandsPlateau,
+            Biomes::ModifiedBadlandsPlateau});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_mushroom: 蘑菇岛生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_mushroom"));
+        tag->addAll({Biomes::MushroomFields, Biomes::MushroomFieldShore});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // ========== 更多游戏玩法标签 ==========
+
+    // spawns_cold_variant_frogs: 寒冷变体青蛙生成
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "spawns_cold_variant_frogs"));
+        tag->addAll({Biomes::SnowyPlains,
+            Biomes::IceSpikes,
+            Biomes::SnowyTaiga,
+            Biomes::SnowyBeach,
+            Biomes::FrozenOcean,
+            Biomes::FrozenRiver,
+            Biomes::SnowyMountains,
+            Biomes::Grove,
+            Biomes::SnowySlopes,
+            Biomes::JaggedPeaks,
+            Biomes::FrozenPeaks,
+            Biomes::DeepFrozenOcean,
+            Biomes::SnowyTaigaHills,
+            Biomes::SnowyTaigaMountains});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // spawns_warm_variant_frogs: 温暖变体青蛙生成
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "spawns_warm_variant_frogs"));
+        tag->addAll({Biomes::Desert,
+            Biomes::Badlands,
+            Biomes::ErodedBadlands,
+            Biomes::WoodedBadlandsPlateau,
+            Biomes::BadlandsPlateau,
+            Biomes::ModifiedWoodedBadlandsPlateau,
+            Biomes::ModifiedBadlandsPlateau,
+            Biomes::WarmOcean,
+            Biomes::DeepWarmOcean,
+            Biomes::Savanna,
+            Biomes::SavannaPlateau,
+            Biomes::ShatteredSavanna,
+            Biomes::ShatteredSavannaPlateau,
+            Biomes::StonyPeaks,
+            Biomes::MangroveSwamp,
+            Biomes::BasaltDeltas,
+            Biomes::CrimsonForest,
+            Biomes::NetherWastes,
+            Biomes::SoulSandValley,
+            Biomes::WarpedForest});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // without_zombie_sieges: 无僵尸围城
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "without_zombie_sieges"));
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // without_wandering_trader_spawns: 无流浪商人
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "without_wandering_trader_spawns"));
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // without_patrol_spawns: 无巡逻队
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "without_patrol_spawns"));
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // stronghold_biased_to: 偏向要塞生成
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "stronghold_biased_to"));
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // required_ocean_monument_surrounding: 需要海底神殿周围
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "required_ocean_monument_surrounding"));
+        tag->addAll({Biomes::Ocean,
+            Biomes::DeepOcean,
+            Biomes::FrozenOcean,
+            Biomes::DeepFrozenOcean,
+            Biomes::WarmOcean,
+            Biomes::DeepWarmOcean,
+            Biomes::LukewarmOcean,
+            Biomes::DeepLukewarmOcean,
+            Biomes::ColdOcean,
+            Biomes::DeepColdOcean,
+            Biomes::River,
+            Biomes::FrozenRiver,
+            Biomes::Beach,
+            Biomes::SnowyBeach,
+            Biomes::StoneShore});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // mineshaft_blocking: 阻止矿井生成
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "mineshaft_blocking"));
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // water_on_map_outlines: 地图上显示水
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "water_on_map_outlines"));
+        tag->addAll({Biomes::Ocean,
+            Biomes::DeepOcean,
+            Biomes::FrozenOcean,
+            Biomes::DeepFrozenOcean,
+            Biomes::WarmOcean,
+            Biomes::DeepWarmOcean,
+            Biomes::LukewarmOcean,
+            Biomes::DeepLukewarmOcean,
+            Biomes::ColdOcean,
+            Biomes::DeepColdOcean,
+            Biomes::River,
+            Biomes::FrozenRiver,
+            Biomes::Swamp,
+            Biomes::MangroveSwamp});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // produces_corals_from_bonemeal: 骨粉可生成珊瑚
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "produces_corals_from_bonemeal"));
+        tag->addAll({Biomes::WarmOcean, Biomes::DeepWarmOcean});
+        tags[tag->getId()] = std::move(tag);
+    }
+
+    // is_void: 虚空生物群系
+    {
+        auto tag = std::make_unique<BiomeTag>(ResourceLocation("minecraft", "is_void"));
+        tag->addAll({Biomes::TheVoid});
         tags[tag->getId()] = std::move(tag);
     }
 

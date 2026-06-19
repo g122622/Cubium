@@ -154,6 +154,63 @@ public:
     /// 河流生物群系标签（#minecraft:is_river）
     static BiomeTag& IS_RIVER();
 
+    // ========== 维度标签 ==========
+
+    /// 主世界生物群系标签（#minecraft:is_overworld）
+    static BiomeTag& IS_OVERWORLD();
+    /// 下界生物群系标签（#minecraft:is_nether）
+    static BiomeTag& IS_NETHER();
+    /// 末地生物群系标签（#minecraft:is_end）
+    static BiomeTag& IS_END();
+
+    // ========== 地形类型标签 ==========
+
+    /// 深海生物群系标签（#minecraft:is_deep_ocean）
+    static BiomeTag& IS_DEEP_OCEAN();
+    /// 海滩生物群系标签（#minecraft:is_beach）
+    static BiomeTag& IS_BEACH();
+    /// 山地生物群系标签（#minecraft:is_mountain）
+    static BiomeTag& IS_MOUNTAIN();
+    /// 丘陵生物群系标签（#minecraft:is_hill）
+    static BiomeTag& IS_HILL();
+    /// 针叶林生物群系标签（#minecraft:is_taiga）
+    static BiomeTag& IS_TAIGA();
+    /// 丛林生物群系标签（#minecraft:is_jungle）
+    static BiomeTag& IS_JUNGLE();
+    /// 森林生物群系标签（#minecraft:is_forest）
+    static BiomeTag& IS_FOREST();
+    /// 热带草原生物群系标签（#minecraft:is_savanna）
+    static BiomeTag& IS_SAVANNA();
+    /// 恶地生物群系标签（#minecraft:is_badlands）
+    static BiomeTag& IS_BADLANDS();
+    /// 蘑菇岛生物群系标签（#minecraft:is_mushroom）
+    static BiomeTag& IS_MUSHROOM();
+
+    // ========== 更多游戏玩法标签 ==========
+
+    /// 生成寒冷变体青蛙的生物群系
+    static BiomeTag& SPAWNS_COLD_VARIANT_FROGS();
+    /// 生成温暖变体青蛙的生物群系
+    static BiomeTag& SPAWNS_WARM_VARIANT_FROGS();
+    /// 无僵尸围城的生物群系
+    static BiomeTag& WITHOUT_ZOMBIE_SIEGES();
+    /// 无流浪商人生成的生物群系
+    static BiomeTag& WITHOUT_WANDERING_TRADER_SPAWNS();
+    /// 无巡逻队生成的生物群系
+    static BiomeTag& WITHOUT_PATROL_SPAWNS();
+    /// 偏向要塞生成的生物群系
+    static BiomeTag& STRONGHOLD_BIASED_TO();
+    /// 需要海底神殿周围生成的生物群系
+    static BiomeTag& REQUIRED_OCEAN_MONUMENT_SURROUNDING();
+    /// 阻止矿井生成的生物群系
+    static BiomeTag& MINESHAFT_BLOCKING();
+    /// 地图上显示水体的生物群系
+    static BiomeTag& WATER_ON_MAP_OUTLINES();
+    /// 骨粉可以生成珊瑚的生物群系
+    static BiomeTag& PRODUCES_CORALS_FROM_BONEMEAL();
+    /// 虚空生物群系标签
+    static BiomeTag& IS_VOID();
+
     /**
      * @brief 初始化所有内置标签
      *

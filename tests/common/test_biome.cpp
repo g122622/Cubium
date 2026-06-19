@@ -139,7 +139,8 @@ TEST_F(BiomeRegistryTest, HasBiome)
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::DeepFrozenOcean));
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::CrimsonForest));
     EXPECT_TRUE(BiomeRegistry::instance().hasBiome(Biomes::EndHighlands));
-    EXPECT_FALSE(BiomeRegistry::instance().hasBiome(static_cast<BiomeId>(55)));
+    // ID 55 (TheVoid) is now registered, use a truly unregistered ID
+    EXPECT_FALSE(BiomeRegistry::instance().hasBiome(static_cast<BiomeId>(56)));
     EXPECT_FALSE(BiomeRegistry::instance().hasBiome(static_cast<BiomeId>(9999)));
 }
 
@@ -192,7 +193,8 @@ TEST_F(BiomeRegistryTest, RepresentativeBiomesAreRegisteredWithExpectedNames)
 
 TEST_F(BiomeRegistryTest, GetUnregisteredBiomeReturnsDefault)
 {
-    const Biome& biome = BiomeRegistry::instance().get(static_cast<BiomeId>(55));
+    // ID 56 is unregistered (gap between TheVoid=55 and variant biomes=129)
+    const Biome& biome = BiomeRegistry::instance().get(static_cast<BiomeId>(56));
 
     EXPECT_EQ(biome.id(), Biomes::Plains);
     EXPECT_EQ(biome.name(), "plains");

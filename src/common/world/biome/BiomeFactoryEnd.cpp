@@ -452,6 +452,28 @@ Biome createPaleGarden()
     biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
     return biome;
 }
+
+Biome createTheVoid()
+{
+    // MC 1.21.11: TheVoid 生物群系 — 空生物群系，用于超平坦世界和调试世界
+    Biome biome(Biomes::TheVoid, "the_void");
+    biome.setDepth(0.1f);
+    biome.setScale(0.2f);
+    biome.setTemperature(0.5f);
+    biome.setHumidity(0.5f);
+    // MC: precipitation=none, temperature=0.5, downfall=0.5
+    biome.setClimate(BiomeClimate(
+        BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setEffects(BiomeEffects::Builder()
+            .fogColor(0xC0D8FF)
+            .waterColor(0x3F76E4)
+            .waterFogColor(0x050533)
+            .skyColor(0x78A7FF)
+            .build());
+    biome.setGenerationSettings(BiomeGenerationSettings::createDefault());
+    return biome;
+}
+
 } // namespace BiomeFactory
 
 } // namespace biome

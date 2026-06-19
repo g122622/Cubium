@@ -24,15 +24,54 @@
 #include "Biome.hpp"
 #include "BiomeClimate.hpp"
 #include "common/world/gen/noise/PerlinSimplexNoise.hpp"
+#include <cmath>
 
 namespace mc {
 namespace world {
 namespace biome {
 
+// ============================================================================
+// 构造函数
+// ============================================================================
+
 Biome::Biome(BiomeId id, std::string_view name) noexcept
     : m_id(id)
     , m_name(name)
 {}
+
+// ============================================================================
+// 温度缓存
+// ============================================================================
+
+Long2FloatLRUCache& Biome::getTemperatureCache()
+{
+    // MC 1.21.11: ThreadLocal<Long2FloatLinkedOpenHashMap> 容量 1024
+    // 每个 Biome 实例有自己的缓存，但由于 Biome 是只读的（温度不变），
+    // 使用线程局部静态缓存即可，key 已经包含位置信息。
+    thread_local Long2FloatLRUCache cache(TEMPERATURE_CACHE_SIZE);
+    return cache;
+}
+
+void Biome::clearTemperatureCache()
+{
+    getTemperatureCache().clear();
+}
+
+f32 Biome::getTemperature(i32 x, i32 y, i32 z, i32 seaLevel) const
+{
+    // MC 1.21.11: Biome.getTemperature(BlockPos, int seaLevel)
+    // 使用 Long2FloatLinkedOpenHashMap 缓存，key = BlockPos.asLong()
+    const i64 key = Long2FloatLRUCache::packBlockPos(x, y, z);
+    auto& cache = getTemperatureCache();
+    const f32 cached = cache.get(key);
+    if (!std::isnan(cached)) {
+        return cached;
+    }
+
+    const f32 temp = getHeightAdjustedTemperature(x, y, z, seaLevel);
+    cache.put(key, temp);
+    return temp;
+}
 
 f32 Biome::getHeightAdjustedTemperature(i32 x, i32 y, i32 z, i32 seaLevel) const
 {

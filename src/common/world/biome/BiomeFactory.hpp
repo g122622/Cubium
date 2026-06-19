@@ -545,6 +545,12 @@ Biome createCherryGrove();
  */
 Biome createPaleGarden();
 
+/**
+ * @brief 创建虚空生物群系 (ID: 55)
+ * @note 空生物群系，用于超平坦世界和调试世界
+ */
+Biome createTheVoid();
+
 } // namespace BiomeFactory
 
 } // namespace biome

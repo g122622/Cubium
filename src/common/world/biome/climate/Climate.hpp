@@ -24,6 +24,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -402,6 +403,40 @@ public:
      */
     [[nodiscard]] TargetPoint sample(i32 quartX, i32 quartY, i32 quartZ) const;
 
+    /**
+     * @brief 获取生成目标参数列表
+     *
+     * MC 1.21.11: Climate.Sampler.spawnTarget
+     * 用于 SpawnFinder 计算出生点。
+     */
+    [[nodiscard]] const std::vector<ParameterPoint>& spawnTarget() const { return m_spawnTarget; }
+
+    /**
+     * @brief 设置生成目标参数列表
+     */
+    void setSpawnTarget(std::vector<ParameterPoint> target) { m_spawnTarget = std::move(target); }
+
+    /**
+     * @brief 使用气候采样器查找出生点
+     *
+     * MC 1.21.11: Climate.Sampler.findSpawnPosition()
+     * 如果 spawnTarget 为空，返回 (0, 0)。
+     */
+    [[nodiscard]] BlockPos findSpawnPosition() const;
+
+    /**
+     * @brief 创建空的气候采样器
+     *
+     * MC 1.21.11: Climate.empty()
+     * 返回一个使用零密度函数的采样器，spawnTarget 为空。
+     */
+    [[nodiscard]] static std::unique_ptr<Sampler> empty();
+
+    /**
+     * @brief 检查采样器是否有效（非空）
+     */
+    [[nodiscard]] bool isEmpty() const { return m_temperature == nullptr; }
+
 private:
     const mc::world::gen::density::DensityFunction* m_temperature;
     const mc::world::gen::density::DensityFunction* m_humidity;
@@ -409,6 +444,100 @@ private:
     const mc::world::gen::density::DensityFunction* m_erosion;
     const mc::world::gen::density::DensityFunction* m_depth;
     const mc::world::gen::density::DensityFunction* m_weirdness;
+    std::vector<ParameterPoint> m_spawnTarget;
 };
+
+// ============================================================================
+// SpawnFinder - 出生点查找器
+// ============================================================================
+
+/**
+ * @brief 气候空间中的出生点查找器
+ *
+ * MC 1.21.11: Climate.SpawnFinder
+ * 通过径向搜索在气候参数空间中找到最佳出生点。
+ *
+ * 搜索策略：
+ * 1. 从 (0, 0) 开始计算初始 fitness
+ * 2. 粗搜索：半径 512..2048，步长 512
+ * 3. 精搜索：半径 32..512，步长 32
+ *
+ * fitness = minParameterFitness * 2048² + distanceFromOrigin²
+ * 其中 minParameterFitness 是所有 spawn target 中最小的 fitness 值，
+ * depth 参数被置零。
+ */
+class SpawnFinder {
+public:
+    /**
+     * @brief 搜索结果
+     */
+    struct Result {
+        i32 x;       ///< 出生点 X 坐标
+        i32 z;       ///< 出生点 Z 坐标
+        i64 fitness; ///< fitness 值（越小越好）
+    };
+
+    /**
+     * @brief 构造出生点查找器
+     *
+     * @param spawnTargets 生成目标参数列表
+     * @param sampler 气候采样器
+     */
+    SpawnFinder(std::vector<ParameterPoint> spawnTargets, const Sampler& sampler);
+
+    /**
+     * @brief 获取搜索结果
+     */
+    [[nodiscard]] const Result& result() const { return m_result; }
+
+    /**
+     * @brief 静态方法：查找出生点
+     *
+     * MC 1.21.11: Climate.findSpawnPosition(List<ParameterPoint>, Sampler)
+     *
+     * @param spawnTargets 生成目标参数列表
+     * @param sampler 气候采样器
+     * @return 出生点坐标 (x, 0, z)
+     */
+    [[nodiscard]] static BlockPos findSpawnPosition(
+        const std::vector<ParameterPoint>& spawnTargets, const Sampler& sampler);
+
+private:
+    static constexpr f64 MAX_RADIUS = 2048.0;
+    static constexpr i64 SQUARE_MAX_RADIUS = 2048LL * 2048LL;
+
+    /**
+     * @brief 计算指定位置的 fitness
+     *
+     * fitness = minParameterFitness * 2048² + distanceFromOrigin²
+     * depth 参数被置零。
+     */
+    [[nodiscard]] static Result getSpawnPositionAndFitness(
+        const std::vector<ParameterPoint>& spawnTargets, const Sampler& sampler, i32 x, i32 z);
+
+    /**
+     * @brief 径向搜索
+     *
+     * @param spawnTargets 生成目标参数列表
+     * @param sampler 气候采样器
+     * @param maxRadius 最大搜索半径
+     * @param stepSize 搜索步长
+     */
+    void radialSearch(
+        const std::vector<ParameterPoint>& spawnTargets, const Sampler& sampler, f32 maxRadius, f32 stepSize);
+
+    Result m_result;
+};
+
+/**
+ * @brief 查找出生点的便捷函数
+ *
+ * MC 1.21.11: Climate.findSpawnPosition()
+ * 如果 spawnTargets 为空，返回 BlockPos(0, 0, 0)。
+ */
+[[nodiscard]] inline BlockPos findSpawnPosition(const std::vector<ParameterPoint>& spawnTargets, const Sampler& sampler)
+{
+    return SpawnFinder::findSpawnPosition(spawnTargets, sampler);
+}
 
 } // namespace mc::world::biome::climate
