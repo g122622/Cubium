@@ -396,6 +396,20 @@ public:
     /// 参考: net.minecraft.tags.BlockTags.BIG_DRIPLEAF_PLACEABLE
     static BlockTag& BIG_DRIPLEAF_PLACEABLE();
 
+    // ========== 建筑方块形状标签 ==========
+
+    /// 楼梯方块标签（所有楼梯方块）
+    /// 参考: net.minecraft.tags.BlockTags.STAIRS
+    static BlockTag& STAIRS();
+
+    /// 台阶方块标签（所有台阶方块）
+    /// 参考: net.minecraft.tags.BlockTags.SLABS
+    static BlockTag& SLABS();
+
+    /// 墙壁方块标签（所有墙壁方块，不含墙上的告示牌/旗帜等）
+    /// 参考: net.minecraft.tags.BlockTags.WALLS
+    static BlockTag& WALLS();
+
     /**
      * @brief 初始化所有内置标签
      *

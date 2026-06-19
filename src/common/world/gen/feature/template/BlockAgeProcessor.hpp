@@ -27,6 +27,14 @@
 #include "common/core/Types.hpp"
 
 namespace mc {
+
+class BlockState;
+class Block;
+
+namespace math {
+class Random;
+}
+
 namespace world {
 namespace gen {
 namespace feature {
@@ -34,8 +42,16 @@ namespace template_ {
 
 /**
  * @brief 方块老化结构处理器（苔藓化处理器）
+ *
  * 根据苔藓概率随机将石砖相关方块替换为苔藓化或裂变版本。
  * 用于村庄等结构的老化效果。
+ *
+ * 处理规则（对齐 MC 1.21.11 BlockAgeProcessor）：
+ * - 石砖/石头/錾刻石砖 -> 50%不替换，否则随机替换为裂纹石砖/石砖楼梯/苔藓石砖/苔藓石砖楼梯
+ * - 任意楼梯 -> 50%不替换，否则随机替换为苔藓石砖楼梯（保留属性）/苔藓石砖台阶/石台阶/石砖台阶
+ * - 任意台阶 -> mossiness概率替换为苔藓石砖台阶（保留属性）
+ * - 任意墙壁 -> mossiness概率替换为苔藓石砖墙（保留属性）
+ * - 黑曜石 -> 15%替换为哭泣黑曜石
  */
 class BlockAgeProcessor : public StructureProcessor {
 public:
@@ -60,6 +76,32 @@ public:
 
 private:
     f32 m_mossiness;
+
+    /// 尝试替换完整石砖方块（石砖、石头、錾刻石砖）
+    [[nodiscard]] const BlockState* _maybeReplaceFullStoneBlock(math::Random& rng);
+
+    /// 尝试替换楼梯方块，使用 withPropertiesOf 保留原朝向/半部分属性
+    [[nodiscard]] const BlockState* _maybeReplaceStairs(const BlockState& state, math::Random& rng);
+
+    /// 尝试替换台阶方块，使用 withPropertiesOf 保留原类型属性
+    [[nodiscard]] const BlockState* _maybeReplaceSlab(const BlockState& state, math::Random& rng);
+
+    /// 尝试替换墙壁方块，使用 withPropertiesOf 保留原连接属性
+    [[nodiscard]] const BlockState* _maybeReplaceWall(const BlockState& state, math::Random& rng);
+
+    /// 尝试替换黑曜石为哭泣黑曜石
+    [[nodiscard]] static const BlockState* _maybeReplaceObsidian(math::Random& rng);
+
+    /// 生成随机朝向的楼梯状态（随机水平朝向 + 随机上半/下半）
+    [[nodiscard]] static const BlockState& _getRandomFacingStairs(math::Random& rng, const Block& stairsBlock);
+
+    /// 根据 mossiness 概率从两组候选中随机选择
+    [[nodiscard]] const BlockState* _getRandomBlock(
+        math::Random& rng, const BlockState* const nonMossy[], const BlockState* const mossy[]);
+
+    /// 从选项数组中随机选取一个非空元素
+    [[nodiscard]] static const BlockState* _pickRandomNonNull(
+        math::Random& rng, const BlockState* const options[], size_t count);
 };
 
 } // namespace template_

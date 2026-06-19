@@ -23,10 +23,12 @@
 
 #include "BlockAgeProcessor.hpp"
 
+#include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -35,17 +37,21 @@ namespace gen {
 namespace feature {
 namespace template_ {
 
-// 黑曜石 -> 哭泣黑曜石的概率（固定 15%，不受 mossiness 影响）
-inline constexpr f32 OBSIDIAN_TO_CRYING_PROBABILITY = 0.15f;
+// ============================================================================
+// BlockAgeProcessor 常量
+// ============================================================================
 
-// 石砖类方块不替换的概率（50%）
-inline constexpr f32 STONE_BRICK_NO_REPLACE_CHANCE = 0.5f;
+// 完整石砖方块被替换的概率（50%）
+static constexpr f32 PROBABILITY_OF_REPLACING_FULL_BLOCK = 0.5f;
 
-// 石砖楼梯苔藓化概率
-inline constexpr f32 STONE_BRICK_STAIRS_MOSS_CHANCE = 0.5f;
+// 楼梯方块被替换的概率（50%）
+static constexpr f32 PROBABILITY_OF_REPLACING_STAIRS = 0.5f;
 
-// 裂纹石砖出现概率（非 mossiness 分支中）
-inline constexpr f32 CRACKED_STONE_BRICK_CHANCE = 0.3f;
+// 黑曜石变哭泣黑曜石的概率（固定 15%，不受 mossiness 影响）
+static constexpr f32 PROBABILITY_OF_REPLACING_OBSIDIAN = 0.15f;
+
+// 非 mossiness 组候选数组大小
+static constexpr size_t REPLACEMENT_OPTIONS_COUNT = 2;
 
 BlockAgeProcessor::BlockAgeProcessor(f32 mossiness)
     : m_mossiness(mossiness)
@@ -69,105 +75,171 @@ std::optional<ProcessedBlockInfo> BlockAgeProcessor::process(const BlockPos& see
     u64 hash = math::hashBlockPos(blockInfo.pos.x, blockInfo.pos.y, blockInfo.pos.z);
     math::Random rng(static_cast<u64>(hash) ^ static_cast<u64>(seedPos.x * 31 + seedPos.z * 17));
 
-    ProcessedBlockInfo result;
-    result.pos = blockInfo.pos;
-    result.blockStateId = blockInfo.blockStateId; // 默认保持原样
+    const BlockState* newState = nullptr;
 
-    // 黑曜石 -> 哭泣黑曜石（固定 15% 概率，不受 mossiness 影响）
-    if (VanillaBlocks::OBSIDIAN && &block == VanillaBlocks::OBSIDIAN) {
-        if (rng.nextFloat() < OBSIDIAN_TO_CRYING_PROBABILITY && VanillaBlocks::CRYING_OBSIDIAN) {
-            result.blockStateId = VanillaBlocks::CRYING_OBSIDIAN->defaultState().stateId();
-        }
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
-    }
-
-    // 石砖类方块处理（石砖、石头、錾刻石砖）
-    bool isStoneBrickType = (VanillaBlocks::STONE_BRICKS && &block == VanillaBlocks::STONE_BRICKS) ||
+    // 石砖类完整方块（石砖、石头、錾刻石砖）
+    if ((VanillaBlocks::STONE_BRICKS && &block == VanillaBlocks::STONE_BRICKS) ||
         (VanillaBlocks::STONE && &block == VanillaBlocks::STONE) ||
-        (VanillaBlocks::CHISELED_STONE_BRICKS && &block == VanillaBlocks::CHISELED_STONE_BRICKS);
+        (VanillaBlocks::CHISELED_STONE_BRICKS && &block == VanillaBlocks::CHISELED_STONE_BRICKS)) {
+        newState = _maybeReplaceFullStoneBlock(rng);
+    }
+    // 楼梯方块（使用标签匹配，保留 facing/half/shape/waterlogged 属性）
+    else if (BlockTags::STAIRS().contains(block)) {
+        newState = _maybeReplaceStairs(*state, rng);
+    }
+    // 台阶方块（使用标签匹配，保留 type/waterlogged 属性）
+    else if (BlockTags::SLABS().contains(block)) {
+        newState = _maybeReplaceSlab(*state, rng);
+    }
+    // 墙壁方块（使用标签匹配，保留 up/north/south/east/west/waterlogged 属性）
+    else if (BlockTags::WALLS().contains(block)) {
+        newState = _maybeReplaceWall(*state, rng);
+    }
+    // 黑曜石
+    else if (VanillaBlocks::OBSIDIAN && &block == VanillaBlocks::OBSIDIAN) {
+        newState = _maybeReplaceObsidian(rng);
+    }
 
-    if (isStoneBrickType) {
-        // 50% 概率不替换
-        if (rng.nextFloat() < STONE_BRICK_NO_REPLACE_CHANCE) {
-            if (blockInfo.nbt) {
-                result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+    if (newState) {
+        ProcessedBlockInfo result;
+        result.pos = blockInfo.pos;
+        result.blockStateId = newState->stateId();
+        if (blockInfo.nbt) {
+            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
+        }
+        return result;
+    }
+
+    // 未被替换，返回原始方块
+    return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+}
+
+const BlockState* BlockAgeProcessor::_maybeReplaceFullStoneBlock(math::Random& rng)
+{
+    // 50% 概率不替换
+    if (rng.nextFloat() >= PROBABILITY_OF_REPLACING_FULL_BLOCK) {
+        return nullptr;
+    }
+
+    // 非 mossiness 组候选：裂纹石砖 或 随机朝向的石砖楼梯
+    const BlockState* nonMossyOptions[] = {
+        VanillaBlocks::CRACKED_STONE_BRICKS ? &VanillaBlocks::CRACKED_STONE_BRICKS->defaultState() : nullptr,
+        VanillaBlocks::STONE_BRICK_STAIRS ? &_getRandomFacingStairs(rng, *VanillaBlocks::STONE_BRICK_STAIRS) : nullptr};
+
+    // mossiness 组候选：苔藓石砖 或 随机朝向的苔藓石砖楼梯
+    const BlockState* mossyOptions[] = {
+        VanillaBlocks::MOSSY_STONE_BRICKS ? &VanillaBlocks::MOSSY_STONE_BRICKS->defaultState() : nullptr,
+        VanillaBlocks::MOSSY_STONE_BRICK_STAIRS ? &_getRandomFacingStairs(rng, *VanillaBlocks::MOSSY_STONE_BRICK_STAIRS)
+                                                : nullptr};
+
+    return _getRandomBlock(rng, nonMossyOptions, mossyOptions);
+}
+
+const BlockState* BlockAgeProcessor::_maybeReplaceStairs(const BlockState& state, math::Random& rng)
+{
+    // 50% 概率不替换
+    if (rng.nextFloat() >= PROBABILITY_OF_REPLACING_STAIRS) {
+        return nullptr;
+    }
+
+    // mossiness 组候选：苔藓石砖楼梯（保留原属性）或 苔藓石砖台阶（默认状态）
+    const BlockState* mossyOptions[] = {VanillaBlocks::MOSSY_STONE_BRICK_STAIRS
+            ? &VanillaBlocks::MOSSY_STONE_BRICK_STAIRS->defaultState().withPropertiesOf(state)
+            : nullptr,
+        VanillaBlocks::MOSSY_STONE_BRICK_SLAB ? &VanillaBlocks::MOSSY_STONE_BRICK_SLAB->defaultState() : nullptr};
+
+    // 非 mossiness 组候选：石台阶 或 石砖台阶（默认状态）
+    const BlockState* nonMossyOptions[] = {
+        VanillaBlocks::STONE_SLAB ? &VanillaBlocks::STONE_SLAB->defaultState() : nullptr,
+        VanillaBlocks::STONE_BRICK_SLAB ? &VanillaBlocks::STONE_BRICK_SLAB->defaultState() : nullptr};
+
+    return _getRandomBlock(rng, nonMossyOptions, mossyOptions);
+}
+
+const BlockState* BlockAgeProcessor::_maybeReplaceSlab(const BlockState& state, math::Random& rng)
+{
+    // mossiness 概率替换为苔藓石砖台阶，保留原属性
+    if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_SLAB) {
+        return &VanillaBlocks::MOSSY_STONE_BRICK_SLAB->defaultState().withPropertiesOf(state);
+    }
+    return nullptr;
+}
+
+const BlockState* BlockAgeProcessor::_maybeReplaceWall(const BlockState& state, math::Random& rng)
+{
+    // mossiness 概率替换为苔藓石砖墙，保留原属性
+    if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_WALL) {
+        return &VanillaBlocks::MOSSY_STONE_BRICK_WALL->defaultState().withPropertiesOf(state);
+    }
+    return nullptr;
+}
+
+const BlockState* BlockAgeProcessor::_maybeReplaceObsidian(math::Random& rng)
+{
+    // 固定 15% 概率替换为哭泣黑曜石
+    if (rng.nextFloat() < PROBABILITY_OF_REPLACING_OBSIDIAN && VanillaBlocks::CRYING_OBSIDIAN) {
+        return &VanillaBlocks::CRYING_OBSIDIAN->defaultState();
+    }
+    return nullptr;
+}
+
+const BlockState& BlockAgeProcessor::_getRandomFacingStairs(math::Random& rng, const Block& stairsBlock)
+{
+    // 生成随机朝向的楼梯状态：随机水平朝向 + 随机上半/下半
+    const BlockState& defaultState = stairsBlock.defaultState();
+    const BlockState* result = &defaultState;
+
+    // 设置随机水平朝向
+    static constexpr Direction horizontalDirs[] = {
+        Direction::North, Direction::South, Direction::East, Direction::West};
+    Direction facing = horizontalDirs[rng.nextInt(4)];
+    if (defaultState.hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
+        result = &defaultState.with(BlockStateProperties::HORIZONTAL_FACING(), facing);
+    }
+
+    // 设置随机上半/下半
+    if (result->hasProperty(BlockStateProperties::HALF())) {
+        auto half = static_cast<BlockStateProperties::Half>(rng.nextInt(2));
+        result = &result->with(BlockStateProperties::HALF(), half);
+    }
+
+    return *result;
+}
+
+const BlockState* BlockAgeProcessor::_getRandomBlock(
+    math::Random& rng, const BlockState* const nonMossy[], const BlockState* const mossy[])
+{
+    // mossiness 概率选择 mossy 组，否则选择 non-mossy 组
+    if (rng.nextFloat() < m_mossiness) {
+        return _pickRandomNonNull(rng, mossy, REPLACEMENT_OPTIONS_COUNT);
+    }
+    return _pickRandomNonNull(rng, nonMossy, REPLACEMENT_OPTIONS_COUNT);
+}
+
+const BlockState* BlockAgeProcessor::_pickRandomNonNull(
+    math::Random& rng, const BlockState* const options[], size_t count)
+{
+    // 从选项数组中随机选取一个非空元素
+    size_t nonNullCount = 0;
+    for (size_t i = 0; i < count; ++i) {
+        if (options[i] != nullptr) {
+            ++nonNullCount;
+        }
+    }
+    if (nonNullCount == 0) {
+        return nullptr;
+    }
+    size_t targetIndex = static_cast<size_t>(rng.nextInt(static_cast<i32>(nonNullCount)));
+    size_t currentIndex = 0;
+    for (size_t i = 0; i < count; ++i) {
+        if (options[i] != nullptr) {
+            if (currentIndex == targetIndex) {
+                return options[i];
             }
-            return result;
+            ++currentIndex;
         }
-
-        // mossiness 概率组 vs 非 mossiness 组
-        if (rng.nextFloat() < m_mossiness) {
-            // Mossiness 组：苔藓石砖
-            if (VanillaBlocks::MOSSY_STONE_BRICKS) {
-                result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICKS->defaultState().stateId();
-            }
-        } else {
-            // 非 mossiness 组：裂纹石砖
-            if (rng.nextFloat() < CRACKED_STONE_BRICK_CHANCE && VanillaBlocks::CRACKED_STONE_BRICKS) {
-                result.blockStateId = VanillaBlocks::CRACKED_STONE_BRICKS->defaultState().stateId();
-            }
-        }
-
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
     }
-
-    // 圆石 -> 苔藓圆石
-    if (VanillaBlocks::COBBLESTONE && &block == VanillaBlocks::COBBLESTONE) {
-        if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_COBBLESTONE) {
-            result.blockStateId = VanillaBlocks::MOSSY_COBBLESTONE->defaultState().stateId();
-        }
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
-    }
-
-    // 石砖楼梯 -> 苔藓石砖楼梯
-    // TODO: 保留原方块的属性
-    if (VanillaBlocks::STONE_BRICK_STAIRS && &block == VanillaBlocks::STONE_BRICK_STAIRS) {
-        if (rng.nextFloat() < STONE_BRICK_STAIRS_MOSS_CHANCE && VanillaBlocks::MOSSY_STONE_BRICK_STAIRS) {
-            result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_STAIRS->defaultState().stateId();
-        }
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
-    }
-
-    // 石砖台阶 -> 苔藓石砖台阶
-    if (VanillaBlocks::STONE_BRICK_SLAB && &block == VanillaBlocks::STONE_BRICK_SLAB) {
-        if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_SLAB) {
-            result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_SLAB->defaultState().stateId();
-        }
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
-    }
-
-    // 石砖墙 -> 苔藓石砖墙
-    if (VanillaBlocks::STONE_BRICK_WALL && &block == VanillaBlocks::STONE_BRICK_WALL) {
-        if (rng.nextFloat() < m_mossiness && VanillaBlocks::MOSSY_STONE_BRICK_WALL) {
-            result.blockStateId = VanillaBlocks::MOSSY_STONE_BRICK_WALL->defaultState().stateId();
-        }
-        if (blockInfo.nbt) {
-            result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-        }
-        return result;
-    }
-
-    // 复制 NBT（如果有）
-    if (blockInfo.nbt) {
-        result.nbt = std::make_unique<nbt::CompoundTag>(*blockInfo.nbt);
-    }
-
-    return result;
+    return nullptr;
 }
 
 } // namespace template_
