@@ -351,11 +351,17 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     Block* block = Block::getBlock(m_blockId);
     bool isAnvil = (block != nullptr && BlockTags::ANVIL().contains(*block));
 
-    // 创建伤害来源
-    EnvironmentalDamage anvilDamage = DamageSources::anvil();
-    EnvironmentalDamage fallingBlockDamageSource = DamageSources::fallingBlock();
-    DamageSource* damageSource =
-        isAnvil ? static_cast<DamageSource*>(&anvilDamage) : static_cast<DamageSource*>(&fallingBlockDamageSource);
+    // 创建伤害来源（根据伤害类型选择）
+    // 钟乳石掉落使用 fallingStalactite 伤害类型，携带实体引用
+    // 铁砧使用 anvil 伤害类型，其他使用 fallingBlock
+    std::unique_ptr<DamageSource> damageSource;
+    if (m_fallDamageType == DamageType::FallingStalactite) {
+        damageSource = std::make_unique<EntityDamageSource>(DamageSources::fallingStalactite(this));
+    } else if (isAnvil) {
+        damageSource = std::make_unique<EnvironmentalDamage>(DamageSources::anvil());
+    } else {
+        damageSource = std::make_unique<EnvironmentalDamage>(DamageSources::fallingBlock());
+    }
 
     // 对每个实体造成伤害
     for (Entity* entity : entities) {

@@ -1439,6 +1439,11 @@ void Player::handleFallDamage(f32 distance, f32 damageMultiplier)
     LivingEntity::handleFallDamage(distance, damageMultiplier);
 }
 
+void Player::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
+{
+    LivingEntity::causeFallDamage(distance, damageMultiplier, source);
+}
+
 // ============================================================================
 // 受伤/死亡声音
 // ============================================================================

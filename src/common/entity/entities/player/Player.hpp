@@ -895,6 +895,13 @@ public:
      */
     void handleFallDamage(f32 distance, f32 damageMultiplier) override;
 
+    /**
+     * @brief 使用自定义伤害来源处理摔落伤害
+     *
+     * Player 不需要特殊处理，直接委托给 LivingEntity::causeFallDamage()。
+     */
+    void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
+
 protected:
     /**
      * @brief 获取受伤声音

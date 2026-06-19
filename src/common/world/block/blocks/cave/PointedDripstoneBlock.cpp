@@ -22,6 +22,8 @@
 
 #include "PointedDripstoneBlock.hpp"
 
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -30,6 +32,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
@@ -38,6 +41,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/fluid/Fluids.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
@@ -275,25 +279,14 @@ void PointedDripstoneBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
         // 石笋失去支撑：直接破坏并掉落物品
         const BlockState* airState = BlockRegistry::instance().airState();
         if (airState != nullptr) {
-            // 使用 Block 的 spawnAfterBreak 掉落物品
             spawnAfterBreak(world, pos, state, nullptr, false);
             world.setBlockState(pos, airState, 3);
         }
     } else if (isStalactite(state)) {
-        // 钟乳石失去支撑：整个钟乳石柱掉落
-        // TODO: 当 FallingBlockEntity 完善后，应逐个生成掉落方块实体
-        // 钟乳石掉落时应对下方实体造成伤害：伤害 = max(高度差, 6) * 1.0，上限 40
-        BlockPosMutable mutablePos(pos.x, pos.y, pos.z);
-        const BlockState* currentState = world.getBlockState(pos);
-        while (currentState != nullptr && isStalactite(*currentState)) {
-            spawnAfterBreak(world, mutablePos.toImmutable(), *currentState, nullptr, false);
-            const BlockState* air = BlockRegistry::instance().airState();
-            if (air != nullptr) {
-                world.setBlockState(mutablePos.toImmutable(), air, 3);
-            }
-            mutablePos.move(Direction::Down);
-            currentState = world.getBlockState(mutablePos.toImmutable());
-        }
+        // 钟乳石失去支撑：从最高处开始逐个生成掉落方块实体
+        // 找到钟乳石柱的起始位置（最高处），然后逐个掉落
+        // MC: spawnFallingStalactite - 从触发位置开始向下遍历
+        _spawnFallingStalactite(world, pos, state);
     }
 }
 
@@ -310,9 +303,11 @@ void PointedDripstoneBlock::onFallenUpon(
     // 只有朝上的TIP厚度才增加摔落伤害
     if (state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Up &&
         state.get(BlockStateProperties::DRIPSTONE_THICKNESS()) == BlockStateProperties::DripstoneThickness::Tip) {
-        // MC: causeFallDamage(fallDistance + 2.5, 2.0, damageSources.stalagmite())
-        // TODO: 当伤害系统完善后实现正确的石笋伤害倍率
-        // 当前委托给基类处理
+        // 石笋伤害：摔落距离 + 2.5，伤害倍率 2.0
+        entity.causeFallDamage(fallDistance + STALAGMITE_FALL_DISTANCE_OFFSET,
+            static_cast<f32>(STALAGMITE_FALL_DAMAGE_MODIFIER),
+            DamageSources::stalagmite());
+        return;
     }
 
     Block::onFallenUpon(world, pos, state, entity, fallDistance);
@@ -565,7 +560,8 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
             if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
                 return mutablePos.toImmutable();
             }
-            // TODO: 岩浆可以滴入岩浆炼药锅（当 LavaCauldronBlock 实现后）
+            // TODO: 岩浆可以滴入岩浆炼药锅（当 LavaCauldronBlock 实现后，需在此处检查 LAVA_CAULDRON
+            // 方块并增加岩浆液面）
         }
 
         // 检查是否可以穿过
@@ -591,9 +587,23 @@ bool PointedDripstoneBlock::canDripThrough(IWorld& world, const BlockPos& pos, c
     if (fluidState != nullptr && !fluidState->isEmpty()) {
         return false;
     }
-    // 其他方块检查碰撞箱
-    // TODO: 完整实现需要检查碰撞箱是否与 4x16x4 中心柱相交
-    // 当前简化实现：非实心非流体的方块视为可穿透
+    // 检查碰撞箱是否与 4x16x4 中心柱相交
+    // MC: Block.column(4.0, 0.0, 16.0) → 像素坐标中心区域 (6,0,6)-(10,16,10)
+    // 即方块本地坐标 (0.375, 0, 0.375)-(0.625, 1, 0.625)
+    static const AxisAlignedBB DRIP_SPACE_LOCAL(0.375f, 0.0f, 0.375f, 0.625f, 1.0f, 0.625f);
+    const CollisionShape& shape = state->getCollisionShape();
+    if (shape.isFullBlock()) {
+        return false;
+    }
+    if (shape.isEmpty()) {
+        return true;
+    }
+    // 检查方块碰撞箱是否与滴水通道区域重叠
+    for (const auto& box : shape.boxes()) {
+        if (DRIP_SPACE_LOCAL.intersects(box)) {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -769,7 +779,6 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
     }
 
     // 确定流体类型
-    // TODO: 泥巴变粘土的逻辑需要 Mud 方块和 Clay 方块支持，当前跳过
     const fluid::FluidState* fluidState = world.getFluidState(fluidPos);
     if (fluidState == nullptr || fluidState->isEmpty()) {
         return;
@@ -798,26 +807,84 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
 
     // MC 1.21.11: 泥巴变粘土逻辑
     // 如果根方块上方是泥巴且流体为水，将泥巴替换为粘土
-    // TODO: 当 Mud 方块和 Clay 方块注册后，启用此逻辑
-    // if (fluidBlockState != nullptr && fluidBlockState->is(VanillaBlocks::MUD) && isWater) {
-    //     const BlockState* clayState = &VanillaBlocks::CLAY->defaultState();
-    //     world.setBlockState(fluidPos, clayState, 3);
-    //     // TODO: 触发 GameEvent::BLOCK_CHANGE
-    //     // TODO: 播放 levelEvent 1504（滴水粒子/音效）
-    //     return;
-    // }
+    if (fluidBlockState != nullptr && fluidBlockState->is(VanillaBlocks::MUD) && isWater) {
+        const BlockState* clayState = &VanillaBlocks::CLAY->defaultState();
+        world.setBlockState(fluidPos, clayState, 3);
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, fluidPos, clayState);
+        world.playEvent(world::WorldEvents::DRIPSTONE_DRIP, tipPos, 0);
+        return;
+    }
 
     // MC 1.21.11: 寻找下方可接收流体的炼药锅
     std::optional<BlockPos> cauldronPosOpt = findFillableCauldronBelow(world, tipPos, fluid);
     if (cauldronPosOpt.has_value()) {
         BlockPos cauldronPos = cauldronPosOpt.value();
-        // TODO: 播放 levelEvent 1504（尖端滴水粒子/音效）
+        world.playEvent(world::WorldEvents::DRIPSTONE_DRIP, tipPos, 0);
         // 计算延迟：50 + (尖端Y - 炼药锅Y) tick
         i32 delay = 50 + (tipPos.y - cauldronPos.y);
         const BlockState* cauldronState = world.getBlockState(cauldronPos);
         if (cauldronState != nullptr) {
             world.tickManager().scheduleBlockTick(cauldronPos, const_cast<Block&>(cauldronState->getBlock()), delay);
         }
+    }
+}
+
+void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // MC 1.21.11: spawnFallingStalactite
+    // 从当前位置开始向下遍历，逐个生成掉落方块实体
+    // 只有最底部的尖端（TIP 或 TIP_MERGE）会设置伤害参数
+    const BlockState* airState = BlockRegistry::instance().airState();
+    if (airState == nullptr) {
+        return;
+    }
+
+    BlockPosMutable mutablePos(pos.x, pos.y, pos.z);
+    const BlockState* currentState = &state;
+
+    while (currentState != nullptr && isStalactite(*currentState)) {
+        BlockPos currentPos = mutablePos.toImmutable();
+
+        // 将当前位置替换为空气（含水则替换为水）
+        const fluid::FluidState* fluidState = world.getFluidState(currentPos);
+        if (fluidState != nullptr && !fluidState->isEmpty()) {
+            // 含水滴石掉落时替换为流体方块
+            const BlockState* fluidBlockState = fluidState->createLegacyBlock();
+            if (fluidBlockState != nullptr) {
+                world.setBlockState(currentPos, fluidBlockState, 3);
+            } else {
+                world.setBlockState(currentPos, airState, 3);
+            }
+        } else {
+            world.setBlockState(currentPos, airState, 3);
+        }
+
+        // 创建掉落方块实体
+        auto fallingEntity = std::make_unique<entity::FallingBlockEntity>();
+        fallingEntity->setPosition(static_cast<f32>(currentPos.x) + 0.5f,
+            static_cast<f32>(currentPos.y),
+            static_cast<f32>(currentPos.z) + 0.5f);
+        fallingEntity->setVelocity(0.0f, 0.0f, 0.0f);
+        fallingEntity->setBlockId(currentState->blockId());
+        fallingEntity->setFallingState(currentState);
+        fallingEntity->setFallStartPos(static_cast<f64>(currentPos.y));
+
+        // MC: 只有尖端（TIP 或 TIP_MERGE）设置伤害
+        // 伤害 = max(高度差, 6) * 每格伤害系数，上限 MAX_DAMAGE
+        if (isTip(currentState, true)) {
+            i32 fallHeight = std::max(pos.y - currentPos.y + 1, 6);
+            f32 damagePerDist = FALLING_STALACTITE_FALL_DAMAGE_PER_DISTANCE * static_cast<f32>(fallHeight);
+            fallingEntity->setHurtEntities(true);
+            fallingEntity->setFallDamagePerDistance(damagePerDist);
+            fallingEntity->setFallDamageMax(FALLING_STALACTITE_MAX_DAMAGE);
+            fallingEntity->setFallDamageType(DamageType::FallingStalactite);
+        }
+
+        world.spawnEntity(std::move(fallingEntity));
+
+        // 向下移动
+        mutablePos.move(Direction::Down);
+        currentState = world.getBlockState(mutablePos.toImmutable());
     }
 }
 

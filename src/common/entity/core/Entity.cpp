@@ -837,6 +837,8 @@ void Entity::updateFallDistance()
     if (!m_onGround && m_velocity.y < 0.0f) {
         m_fallDistance -= m_velocity.y;
     } else if (m_onGround && m_fallDistance > 0.0f) {
+        // 着地时触发踩上方块的回调
+        _handleLandingOnBlock();
         handleFallDamage(m_fallDistance, 1.0f);
         m_fallDistance = 0.0f;
     }
@@ -846,6 +848,29 @@ void Entity::handleFallDamage(f32 /* distance */, f32 /* damageMultiplier */)
 {
     // 基础实体不处理摔落伤害
     // LivingEntity 会重写此方法
+}
+
+void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& /* source */)
+{
+    // 基类默认委托给 handleFallDamage，使用默认摔落伤害来源
+    handleFallDamage(distance, damageMultiplier);
+}
+
+void Entity::_handleLandingOnBlock()
+{
+    // 着地时踩上所在方块的 onFallenUpon 回调
+    if (m_world == nullptr) {
+        return;
+    }
+    // 获取实体脚下方块
+    BlockPos landingPos(static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(m_position.y) - 1,
+        static_cast<i32>(std::floor(m_position.z)));
+    const BlockState* state = m_world->getBlockState(landingPos);
+    if (state != nullptr) {
+        // onFallenUpon 是非 const 方法，但逻辑上不会修改方块本身
+        const_cast<Block&>(state->getBlock()).onFallenUpon(*m_world, landingPos, *state, *this, m_fallDistance);
+    }
 }
 
 void Entity::update()

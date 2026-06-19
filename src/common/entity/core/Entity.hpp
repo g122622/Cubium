@@ -1384,14 +1384,36 @@ public:
      * @brief 处理摔落伤害
      * @param distance 摔落距离
      * @param damageMultiplier 伤害倍率
+     *
+     * 使用默认的摔落伤害来源（DamageSources::fall()）。
+     * 如需自定义伤害来源，使用 causeFallDamage()。
      */
     virtual void handleFallDamage(f32 distance, f32 damageMultiplier);
+
+    /**
+     * @brief 使用自定义伤害来源处理摔落伤害
+     * @param distance 摔落距离
+     * @param damageMultiplier 伤害倍率
+     * @param source 伤害来源
+     *
+     * 方块可以通过此方法施加自定义类型的摔落伤害，
+     * 例如石笋（Stalagmite）使用 DamageSources::stalagmite()。
+     * 基类实现调用 handleFallDamage(distance, damageMultiplier)。
+     * LivingEntity 重写此方法以使用自定义伤害来源。
+     */
+    virtual void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source);
 
     /**
      * @brief 更新摔落距离
      * 在移动时调用，跟踪摔落距离以便着地时计算伤害
      */
     void updateFallDistance();
+
+private:
+    /**
+     * @brief 着地时触发踩上方块的 onFallenUpon 回调
+     */
+    void _handleLandingOnBlock();
 
     // ========== 闪电击中 ==========
 

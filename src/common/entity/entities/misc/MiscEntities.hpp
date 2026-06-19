@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
 
@@ -34,7 +35,6 @@ class Block;
 class BlockState;
 class Player;
 class LivingEntity;
-class DamageSource;
 
 namespace entity {
 
@@ -133,6 +133,14 @@ public:
     void setCancelDrop(bool cancel) { m_cancelDrop = cancel; }
     [[nodiscard]] bool cancelDrop() const { return m_cancelDrop; }
 
+    /**
+     * @brief 设置下落伤害类型
+     *
+     * 默认为 FallingBlock。钟乳石掉落时应设置为 FallingStalactite。
+     */
+    void setFallDamageType(DamageType type) { m_fallDamageType = type; }
+    [[nodiscard]] DamageType getFallDamageType() const { return m_fallDamageType; }
+
 private:
     void _handleLanding();
 
@@ -163,20 +171,21 @@ private:
      */
     void _hurtEntities(IWorld* world);
 
-    u32 m_blockId = 0;                          ///< 方块ID
-    const BlockState* m_fallingState = nullptr; ///< 下落时的方块状态（含属性，如朝向）
-    bool m_hurtEntities = false;                ///< 是否伤害实体（铁砧=true）
-    bool m_placeBlock = true;                   ///< 是否应该放置方块
-    bool m_shouldDropItem = true;               ///< 是否应该掉落物品
-    bool m_dontSetBlock = false;                ///< 是否不放置方块（铁砧损坏时）
-    bool m_cancelDrop = false;                  ///< 是否取消掉落物品（铁砧完全摧毁时）
-    f64 m_fallStartY = 0.0;                     ///< 下落起始Y坐标
-    f32 m_fallDamagePerDistance = 2.0f;         ///< 每格下落伤害系数
-    i32 m_fallDamageMax = 40;                   ///< 最大伤害值
-    i32 m_fallTime = 0;                         ///< 下落时间（tick）
-    static constexpr f32 HURT_AMOUNT = 2.0f;    ///< 默认每格下落伤害系数
-    static constexpr i32 MAX_HURT_AMOUNT = 40;  ///< 默认最大伤害值
-    static constexpr i32 MAX_FALL_TIME = 600;   ///< 最大下落时间（30秒）
+    u32 m_blockId = 0;                                      ///< 方块ID
+    const BlockState* m_fallingState = nullptr;             ///< 下落时的方块状态（含属性，如朝向）
+    bool m_hurtEntities = false;                            ///< 是否伤害实体（铁砧=true）
+    bool m_placeBlock = true;                               ///< 是否应该放置方块
+    bool m_shouldDropItem = true;                           ///< 是否应该掉落物品
+    bool m_dontSetBlock = false;                            ///< 是否不放置方块（铁砧损坏时）
+    bool m_cancelDrop = false;                              ///< 是否取消掉落物品（铁砧完全摧毁时）
+    f64 m_fallStartY = 0.0;                                 ///< 下落起始Y坐标
+    f32 m_fallDamagePerDistance = 2.0f;                     ///< 每格下落伤害系数
+    i32 m_fallDamageMax = 40;                               ///< 最大伤害值
+    DamageType m_fallDamageType = DamageType::FallingBlock; ///< 下落伤害类型
+    i32 m_fallTime = 0;                                     ///< 下落时间（tick）
+    static constexpr f32 HURT_AMOUNT = 2.0f;                ///< 默认每格下落伤害系数
+    static constexpr i32 MAX_HURT_AMOUNT = 40;              ///< 默认最大伤害值
+    static constexpr i32 MAX_FALL_TIME = 600;               ///< 最大下落时间（30秒）
 };
 
 /**

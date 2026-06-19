@@ -643,14 +643,18 @@ void LivingEntity::tickDeath()
 
 void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
 {
+    // 默认使用普通摔落伤害来源
+    causeFallDamage(distance, damageMultiplier, DamageSources::fall());
+}
+
+void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
+{
     // 缓降效果免疫摔落伤害
     if (hasEffect(entity::effect::EffectType::SlowFalling)) {
-        // 缓降效果下不受到摔落伤害
         return;
     }
 
     // 跳跃增强药水减少摔落距离
-    // 每级跳跃增强减少 1 格有效摔落距离
     const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
     f32 effectiveDistance = distance - static_cast<f32>(jumpBoostLevel);
 
@@ -660,28 +664,28 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
         f32 damage = (effectiveDistance - 3.0f) * damageMultiplier;
 
         // 计算摔落保护附魔减伤
-        // 摔落保护 EPF = 羽毛落地等级 * 3
-        std::array<const ItemStack*, 4> armorSlots = {&getEquipment(EquipmentSlot::Head),
-            &getEquipment(EquipmentSlot::Chest),
-            &getEquipment(EquipmentSlot::Legs),
-            &getEquipment(EquipmentSlot::Feet)};
-        // 使用统一伤害类型标志
-        i32 fallProtectionEPF =
-            item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, DamageFlags::FALL);
-        if (fallProtectionEPF > 0) {
-            damage =
-                entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(fallProtectionEPF));
+        // 只有 source.isFall() 为 true 时才应用摔落保护附魔
+        if (source.isFall()) {
+            std::array<const ItemStack*, 4> armorSlots = {&getEquipment(EquipmentSlot::Head),
+                &getEquipment(EquipmentSlot::Chest),
+                &getEquipment(EquipmentSlot::Legs),
+                &getEquipment(EquipmentSlot::Feet)};
+            i32 fallProtectionEPF =
+                item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, DamageFlags::FALL);
+            if (fallProtectionEPF > 0) {
+                damage =
+                    entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(fallProtectionEPF));
+            }
         }
 
         if (damage > 0.0f) {
-            // 创建摔落伤害来源
-            EnvironmentalDamage source = DamageSources::fall();
-            hurt(source, damage);
+            // 克隆伤害来源以获得可变引用
+            auto sourceClone = source.clone();
+            hurt(*sourceClone, damage);
         }
     }
 
     // 播放摔落音效
-    // 在 handleFallDamage 后 fallDistance 已被重置为 0，所以使用传入的 distance
     playFallSound(distance);
 }
 

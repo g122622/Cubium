@@ -936,6 +936,17 @@ public:
      */
     void handleFallDamage(f32 distance, f32 damageMultiplier) override;
 
+    /**
+     * @brief 使用自定义伤害来源处理摔落伤害
+     * @param distance 摔落距离
+     * @param damageMultiplier 伤害倍率
+     * @param source 伤害来源
+     *
+     * 重写 Entity::causeFallDamage 以支持自定义伤害来源。
+     * 计算逻辑与 handleFallDamage 相同，但使用传入的伤害来源而非默认的 DamageSources::fall()。
+     */
+    void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
+
     // ========== NBT 序列化 ==========
 
     /**
