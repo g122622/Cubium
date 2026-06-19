@@ -11,7 +11,7 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -30,15 +30,15 @@
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/AttributeRegistry.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
+
 #include <sstream>
 
 namespace mc {
@@ -51,7 +51,7 @@ namespace command {
 bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCommandSource>& context,
     ServerCommandSource& source,
     const std::string& attrName,
-    Player*& outPlayer,
+    LivingEntity*& outLivingEntity,
     entity::attribute::AttributeMap*& outAttrMap)
 {
     auto* server = source.server();
@@ -62,42 +62,23 @@ bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCom
 
     auto* world = source.world();
     if (world == nullptr) {
-        source.sendMessage("World not available");
-        return false;
-    }
-
-    const EntitySelector& selector = context.getArgument<EntitySelector>("target");
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
         source.sendError("No matching entities were found");
         return false;
     }
 
-    if (playerIds.size() > 1) {
-        source.sendMessage("Only one entity is allowed, but the provided selector allows more");
+    const EntitySelector& selector = context.getArgument<EntitySelector>("target");
+    Entity* entity = support::EntityResolver::resolveSingle(source, selector);
+    if (entity == nullptr) {
+        source.sendError("No matching entities were found");
         return false;
     }
 
-    PlayerId playerId = playerIds[0];
-
-    // TODO: 当前仅支持 Player 实体（通过 resolvePlayerIds 获取），
-    // MC 原版 /attribute 命令支持所有 LivingEntity（僵尸、马等）。
-    // 需要扩展实体选择器系统以支持非玩家活体实体后，此处应改为通用的 LivingEntity 获取逻辑。
-    // 获取玩家实体
-    Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-    if (player == nullptr) {
-        auto* playerData = server->playerManager().getPlayer(playerId);
-        if (playerData == nullptr) {
-            source.sendMessage("Player not found");
-            return false;
-        }
-        source.sendMessage("Player entity not available");
+    // 检查实体是否为 LivingEntity（MC 原版：非活体实体不支持属性命令）
+    auto* livingEntity = dynamic_cast<LivingEntity*>(entity);
+    if (livingEntity == nullptr) {
+        source.sendError(_getEntityDisplayName(entity) + " is not a living entity");
         return false;
     }
-
-    // Player 继承自 LivingEntity，dynamic_cast 用于未来扩展到非玩家活体实体
-    auto* livingEntity = dynamic_cast<LivingEntity*>(player);
-    MC_ASSERT_RELEASE(livingEntity != nullptr);
 
     // 检查属性是否存在
     if (!_isKnownAttribute(attrName)) {
@@ -107,11 +88,11 @@ bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCom
 
     auto& attrMap = livingEntity->attributes();
     if (!attrMap.hasAttribute(attrName)) {
-        source.sendError("Entity " + player->username() + " doesn't have attribute " + attrName);
+        source.sendError(_getEntityDisplayName(livingEntity) + " doesn't have attribute " + attrName);
         return false;
     }
 
-    outPlayer = player;
+    outLivingEntity = livingEntity;
     outAttrMap = &attrMap;
     return true;
 }
@@ -119,22 +100,39 @@ bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCom
 bool AttributeCommand::_tryGetAttributeInstance(CommandContext<ServerCommandSource>& context,
     ServerCommandSource& source,
     const std::string& attrName,
-    Player*& outPlayer,
+    LivingEntity*& outLivingEntity,
     entity::attribute::AttributeInstance*& outInstance)
 {
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, outPlayer, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, outLivingEntity, attrMap)) {
         return false;
     }
 
     auto* instance = attrMap->getInstance(attrName);
     if (instance == nullptr) {
-        source.sendError("Entity " + outPlayer->username() + " doesn't have attribute instance for " + attrName);
+        source.sendError(_getEntityDisplayName(outLivingEntity) + " doesn't have attribute instance for " + attrName);
         return false;
     }
 
     outInstance = instance;
     return true;
+}
+
+std::string AttributeCommand::_getEntityDisplayName(Entity* entity)
+{
+    auto* player = dynamic_cast<Player*>(entity);
+    if (player != nullptr) {
+        return player->username();
+    }
+    if (entity->hasCustomName()) {
+        return entity->customNameText();
+    }
+    return entity->getTypeId();
+}
+
+std::string AttributeCommand::_getEntityDisplayName(LivingEntity* livingEntity)
+{
+    return _getEntityDisplayName(static_cast<Entity*>(livingEntity));
 }
 
 // ============================================================================
@@ -281,9 +279,9 @@ i32 AttributeCommand::_getAttribute(CommandContext<ServerCommandSource>& context
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, player, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
         return 0;
     }
 
@@ -291,7 +289,7 @@ i32 AttributeCommand::_getAttribute(CommandContext<ServerCommandSource>& context
     i32 result = static_cast<i32>(value);
 
     std::ostringstream ss;
-    ss << attrName << " for " << player->username() << ": " << result;
+    ss << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
     source.sendMessage(ss.str());
 
     return result;
@@ -303,9 +301,9 @@ i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>
     const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
     f32 scale = context.getArgument<f32>("scale");
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, player, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
         return 0;
     }
 
@@ -313,7 +311,7 @@ i32 AttributeCommand::_getAttributeWithScale(CommandContext<ServerCommandSource>
     i32 result = static_cast<i32>(value * static_cast<f64>(scale));
 
     std::ostringstream ss;
-    ss << attrName << " for " << player->username() << ": " << result;
+    ss << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
     source.sendMessage(ss.str());
 
     return result;
@@ -328,9 +326,9 @@ i32 AttributeCommand::_getBaseValue(CommandContext<ServerCommandSource>& context
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, player, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
         return 0;
     }
 
@@ -338,7 +336,7 @@ i32 AttributeCommand::_getBaseValue(CommandContext<ServerCommandSource>& context
     i32 result = static_cast<i32>(baseValue);
 
     std::ostringstream ss;
-    ss << "Base value of " << attrName << " for " << player->username() << ": " << result;
+    ss << "Base value of " << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
     source.sendMessage(ss.str());
 
     return result;
@@ -350,9 +348,9 @@ i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>
     const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
     f32 scale = context.getArgument<f32>("scale");
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, player, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
         return 0;
     }
 
@@ -360,7 +358,7 @@ i32 AttributeCommand::_getBaseValueWithScale(CommandContext<ServerCommandSource>
     i32 result = static_cast<i32>(baseValue * static_cast<f64>(scale));
 
     std::ostringstream ss;
-    ss << "Base value of " << attrName << " for " << player->username() << ": " << result;
+    ss << "Base value of " << attrName << " for " << _getEntityDisplayName(livingEntity) << ": " << result;
     source.sendMessage(ss.str());
 
     return result;
@@ -376,9 +374,9 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
     const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
     f32 value = context.getArgument<f32>("value");
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
-    if (!_tryGetAttributeInstance(context, source, attrName, player, instance)) {
+    if (!_tryGetAttributeInstance(context, source, attrName, livingEntity, instance)) {
         return 0;
     }
 
@@ -394,7 +392,7 @@ i32 AttributeCommand::_setBaseValue(CommandContext<ServerCommandSource>& context
     instance->setBaseValue(static_cast<f64>(value));
 
     std::ostringstream ss;
-    ss << "Set base value of " << attrName << " to " << value << " for " << player->username();
+    ss << "Set base value of " << attrName << " to " << value << " for " << _getEntityDisplayName(livingEntity);
     source.sendMessage(ss.str());
 
     return 1;
@@ -409,20 +407,20 @@ i32 AttributeCommand::_resetBaseValue(CommandContext<ServerCommandSource>& conte
     auto& source = context.getSource();
     const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, player, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
         return 0;
     }
 
     if (!attrMap->resetBaseValue(attrName)) {
-        source.sendError("Entity " + player->username() + " doesn't have attribute " + attrName);
+        source.sendError(_getEntityDisplayName(livingEntity) + " doesn't have attribute " + attrName);
         return 0;
     }
 
     f64 resetValue = attrMap->getBaseValue(attrName);
     std::ostringstream ss;
-    ss << "Reset base value of " << attrName << " to " << resetValue << " for " << player->username();
+    ss << "Reset base value of " << attrName << " to " << resetValue << " for " << _getEntityDisplayName(livingEntity);
     source.sendMessage(ss.str());
 
     return 1;
@@ -455,16 +453,16 @@ i32 AttributeCommand::_addModifierImpl(
     const std::string modifierId = context.getArgument<std::string>("id");
     f32 value = context.getArgument<f32>("value");
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
-    if (!_tryGetAttributeInstance(context, source, attrName, player, instance)) {
+    if (!_tryGetAttributeInstance(context, source, attrName, livingEntity, instance)) {
         return 0;
     }
 
     // 检查修饰符是否已存在
     if (instance->hasModifier(modifierId)) {
-        source.sendError(
-            "Modifier " + modifierId + " already exists on attribute " + attrName + " for " + player->username());
+        source.sendError("Modifier " + modifierId + " already exists on attribute " + attrName + " for " +
+            _getEntityDisplayName(livingEntity));
         return 0;
     }
 
@@ -482,7 +480,7 @@ i32 AttributeCommand::_addModifierImpl(
 
     std::ostringstream ss;
     ss << "Added modifier " << modifierId << " with value " << value << " and operation " << operationName;
-    ss << " to attribute " << attrName << " for " << player->username();
+    ss << " to attribute " << attrName << " for " << _getEntityDisplayName(livingEntity);
     source.sendMessage(ss.str());
 
     return 1;
@@ -498,20 +496,21 @@ i32 AttributeCommand::_removeModifier(CommandContext<ServerCommandSource>& conte
     const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
     const std::string modifierId = context.getArgument<std::string>("id");
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeInstance* instance = nullptr;
-    if (!_tryGetAttributeInstance(context, source, attrName, player, instance)) {
+    if (!_tryGetAttributeInstance(context, source, attrName, livingEntity, instance)) {
         return 0;
     }
 
     if (!instance->removeModifier(modifierId)) {
-        source.sendError(
-            "Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " + player->username());
+        source.sendError("Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " +
+            _getEntityDisplayName(livingEntity));
         return 0;
     }
 
     std::ostringstream ss;
-    ss << "Removed modifier " << modifierId << " from attribute " << attrName << " for " << player->username();
+    ss << "Removed modifier " << modifierId << " from attribute " << attrName << " for "
+       << _getEntityDisplayName(livingEntity);
     source.sendMessage(ss.str());
 
     return 1;
@@ -527,15 +526,15 @@ i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& con
     const std::string attrName = _normalizeAttributeName(context.getArgument<std::string>("attribute"));
     const std::string modifierId = context.getArgument<std::string>("id");
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, player, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
         return 0;
     }
 
     if (!attrMap->hasModifier(attrName, modifierId)) {
-        source.sendError(
-            "Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " + player->username());
+        source.sendError("Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " +
+            _getEntityDisplayName(livingEntity));
         return 0;
     }
 
@@ -543,7 +542,8 @@ i32 AttributeCommand::_getModifierValue(CommandContext<ServerCommandSource>& con
     i32 result = static_cast<i32>(modifierValue);
 
     std::ostringstream ss;
-    ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << player->username() << ": " << result;
+    ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << _getEntityDisplayName(livingEntity)
+       << ": " << result;
     source.sendMessage(ss.str());
 
     return result;
@@ -556,15 +556,15 @@ i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSou
     const std::string modifierId = context.getArgument<std::string>("id");
     f32 scale = context.getArgument<f32>("scale");
 
-    Player* player = nullptr;
+    LivingEntity* livingEntity = nullptr;
     entity::attribute::AttributeMap* attrMap = nullptr;
-    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, player, attrMap)) {
+    if (!_tryGetLivingEntityWithAttribute(context, source, attrName, livingEntity, attrMap)) {
         return 0;
     }
 
     if (!attrMap->hasModifier(attrName, modifierId)) {
-        source.sendError(
-            "Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " + player->username());
+        source.sendError("Modifier " + modifierId + " doesn't exist on attribute " + attrName + " for " +
+            _getEntityDisplayName(livingEntity));
         return 0;
     }
 
@@ -572,7 +572,8 @@ i32 AttributeCommand::_getModifierValueWithScale(CommandContext<ServerCommandSou
     i32 result = static_cast<i32>(modifierValue * static_cast<f64>(scale));
 
     std::ostringstream ss;
-    ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << player->username() << ": " << result;
+    ss << "Modifier " << modifierId << " on attribute " << attrName << " for " << _getEntityDisplayName(livingEntity)
+       << ": " << result;
     source.sendMessage(ss.str());
 
     return result;
