@@ -188,6 +188,38 @@ public:
         Data() = default;
 
         /**
+         * @brief 从存档数据构造振动系统状态
+         *
+         * 对齐 MC 原版 VibrationSystem.Data CODEC 反序列化行为：
+         * 从 NBT 加载时 reloadVibrationParticle 固定为 true，以便在区块重新加载后
+         * 重发正在传播的振动粒子效果。新创建的 Data 使用默认构造函数，
+         * reloadVibrationParticle 为 false。
+         *
+         * @param currentVibration 当前正在传播的振动（可为 nullopt）
+         * @param selectionStrategy 振动选择器
+         * @param travelTimeInTicks 传播剩余时间
+         * @param reloadVibrationParticle 是否需要重发振动粒子（从存档加载时为 true）
+         *
+         * TODO: 当 SculkSensorBlockEntity、SculkShriekerBlockEntity、WardenEntity、AllayEntity
+         * 实现振动系统 NBT 序列化时，应使用此构造函数（或调用 setReloadVibrationParticle(true)）
+         * 从存档数据加载 VibrationSystem.Data。参考 MC 原版：
+         * - SculkSensorBlockEntity.load() → read("listener", VibrationSystem.Data.CODEC)
+         * - SculkShriekerBlockEntity.load() → read("listener", VibrationSystem.Data.CODEC)
+         * - Warden.load() → read("listener", VibrationSystem.Data.CODEC)
+         * - Allay.load() → read("listener", VibrationSystem.Data.CODEC)
+         * MC CODEC 反序列化时硬编码 reloadVibrationParticle = true。
+         */
+        Data(std::optional<VibrationInfo> currentVibration,
+            VibrationSelector selectionStrategy,
+            i32 travelTimeInTicks,
+            bool reloadVibrationParticle)
+            : m_currentVibration(std::move(currentVibration))
+            , m_selectionStrategy(std::move(selectionStrategy))
+            , m_travelTimeInTicks(travelTimeInTicks)
+            , m_reloadVibrationParticle(reloadVibrationParticle)
+        {}
+
+        /**
          * @brief 获取当前正在传播的振动
          */
         [[nodiscard]] const VibrationInfo* currentVibration() const

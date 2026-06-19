@@ -57,7 +57,7 @@ Minecraft 1.17 +
         必须包含地毯**：该标签不仅包含16色羊毛，还包含16色地毯方块（对齐 MC 原版 `#minecraft
     : dampens_vibrations = #minecraft : wool +
                                         #minecraft
-    : wool_carpets`）。如果未来新增地毯颜色，需同步更新此标签。 4. **requiresAdjacentChunksToBeTicking 的检查逻辑**：`receiveVibration()` 中调用 `areAdjacentChunksTicking(world, listenerBlockPos)` 检查监听器位置周围 3x3 区块是否全部处于 BlockTicking 级别且已加载。注意两点：（1）检查位置是监听器位置而非振动源位置；（2）检查级别是 BlockTicking（level ≤ 32）而非 EntityTicking（level ≤ 31）。检查不通过时返回 false 但不清除当前振动，下次 tick 会重试。
+    : wool_carpets`）。如果未来新增地毯颜色，需同步更新此标签。 4. **requiresAdjacentChunksToBeTicking 的检查逻辑**：`receiveVibration()` 中调用 `areAdjacentChunksTicking(world, listenerBlockPos)` 检查监听器位置周围 3x3 区块是否全部处于 BlockTicking 级别且已加载。注意两点：（1）检查位置是监听器位置而非振动源位置；（2）检查级别是 BlockTicking（level ≤ 32）而非 EntityTicking（level ≤ 31）。检查不通过时返回 false 但不清除当前振动，下次 tick 会重试。 5. **reloadVibrationParticle 的设置时机**：`tryReloadVibrationParticle()` 依赖 `data.shouldReloadVibrationParticle()` 标志，该标志必须从存档加载时设为 `true`。MC 原版在 `Data.CODEC` 反序列化时硬编码 `reloadVibrationParticle = true`。实现 SculkSensorBlockEntity、SculkShriekerBlockEntity、WardenEntity、AllayEntity 的 NBT 加载时，应使用 `Data(currentVibration, selector, travelTime, true)` 构造函数或调用 `setReloadVibrationParticle(true)`，否则区块重新加载后不会重发振动粒子效果。
 
       ##核心类
 

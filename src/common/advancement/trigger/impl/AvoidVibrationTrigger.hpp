@@ -28,10 +28,6 @@
 
 namespace mc::advancement {
 
-namespace server {
-class PlayerAdvancements;
-}
-
 /**
  * @brief 避免振动触发器实例
  *

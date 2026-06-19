@@ -276,3 +276,106 @@ TEST(VibrationSystemTest, VibrationInfo_DefaultConstructor)
     EXPECT_FLOAT_EQ(info.distance, 0.0f);
     EXPECT_FALSE(info.hasSourceEntity);
 }
+
+// ============================================================================
+// VibrationSystem::Data 构造函数测试
+// ============================================================================
+
+TEST(VibrationSystemTest, Data_DefaultConstructor_ReloadParticleFalse)
+{
+    // 默认构造函数应将 reloadVibrationParticle 设为 false
+    VibrationSystem::Data data;
+    EXPECT_FALSE(data.shouldReloadVibrationParticle());
+    EXPECT_EQ(data.currentVibration(), nullptr);
+    EXPECT_EQ(data.travelTimeInTicks(), 0);
+}
+
+TEST(VibrationSystemTest, Data_ArchiveConstructor_ReloadParticleTrue)
+{
+    // 从存档加载时 reloadVibrationParticle 应为 true
+    // 对齐 MC 原版 VibrationSystem.Data.CODEC 反序列化行为
+    VibrationSelector selector;
+    GameEvent event("test_event", 16);
+    VibrationInfo info(event, 5.0f, Vector3d(0, 0, 0), nullptr);
+
+    VibrationSystem::Data data(info, std::move(selector), 3, true);
+    EXPECT_TRUE(data.shouldReloadVibrationParticle());
+    ASSERT_NE(data.currentVibration(), nullptr);
+    EXPECT_FLOAT_EQ(data.currentVibration()->distance, 5.0f);
+    EXPECT_EQ(data.travelTimeInTicks(), 3);
+}
+
+TEST(VibrationSystemTest, Data_ArchiveConstructor_ReloadParticleFalse)
+{
+    // 也可以显式传 false（用于不需要重载粒子的场景）
+    VibrationSelector selector;
+    VibrationSystem::Data data(std::nullopt, std::move(selector), 0, false);
+    EXPECT_FALSE(data.shouldReloadVibrationParticle());
+    EXPECT_EQ(data.currentVibration(), nullptr);
+}
+
+TEST(VibrationSystemTest, Data_SetReloadVibrationParticle)
+{
+    VibrationSystem::Data data;
+    EXPECT_FALSE(data.shouldReloadVibrationParticle());
+
+    data.setReloadVibrationParticle(true);
+    EXPECT_TRUE(data.shouldReloadVibrationParticle());
+
+    data.setReloadVibrationParticle(false);
+    EXPECT_FALSE(data.shouldReloadVibrationParticle());
+}
+
+// ============================================================================
+// VibrationSystem::User 默认行为测试
+// ============================================================================
+
+TEST(VibrationSystemTest, User_CanTriggerAvoidVibration_DefaultFalse)
+{
+    // 默认 canTriggerAvoidVibration() 返回 false
+    // 只有 SculkSensorBlockEntity 等具体实现才应返回 true
+    // 此测试使用一个最小的 User 子类来验证默认行为
+    class TestUser : public VibrationSystem::User {
+    public:
+        [[nodiscard]] i32 getListenerRadius() const override { return 8; }
+        [[nodiscard]] PositionSource& getPositionSource() override { return m_source; }
+        [[nodiscard]] const PositionSource& getPositionSource() const override { return m_source; }
+        [[nodiscard]] bool canReceiveVibration(
+            server::ServerWorld&, const BlockPos&, const GameEvent&, const GameEvent::Context&) const override
+        {
+            return true;
+        }
+        void onReceiveVibration(server::ServerWorld&, const BlockPos&, const GameEvent&, const Entity*, f32) override {}
+        void onDataChanged() override {}
+
+    private:
+        BlockPositionSource m_source{BlockPos(0, 0, 0)};
+    };
+
+    TestUser user;
+    EXPECT_FALSE(user.canTriggerAvoidVibration());
+}
+
+TEST(VibrationSystemTest, User_RequiresAdjacentChunksToBeTicking_DefaultFalse)
+{
+    // 默认 requiresAdjacentChunksToBeTicking() 返回 false
+    class TestUser : public VibrationSystem::User {
+    public:
+        [[nodiscard]] i32 getListenerRadius() const override { return 8; }
+        [[nodiscard]] PositionSource& getPositionSource() override { return m_source; }
+        [[nodiscard]] const PositionSource& getPositionSource() const override { return m_source; }
+        [[nodiscard]] bool canReceiveVibration(
+            server::ServerWorld&, const BlockPos&, const GameEvent&, const GameEvent::Context&) const override
+        {
+            return true;
+        }
+        void onReceiveVibration(server::ServerWorld&, const BlockPos&, const GameEvent&, const Entity*, f32) override {}
+        void onDataChanged() override {}
+
+    private:
+        BlockPositionSource m_source{BlockPos(0, 0, 0)};
+    };
+
+    TestUser user;
+    EXPECT_FALSE(user.requiresAdjacentChunksToBeTicking());
+}

@@ -69,6 +69,22 @@ VibrationSystem::User::isValidVibration()
 （需要 `VibrationParticleOption` 携带 PositionSource 和 arrivalInTicks 参数，
 待粒子系统扩展后实现）。
 
+### tryReloadVibrationParticle 集成说明
+
+`tryReloadVibrationParticle()` 检查 `data.shouldReloadVibrationParticle()` 标志，
+该标志在 `VibrationSystem::Data` 的存档加载构造函数中被设为 `true`。
+
+在 MC 原版中，`Data.CODEC` 反序列化时硬编码 `reloadVibrationParticle = true`，
+由以下方块/实体在 NBT 加载时触发：
+- `SculkSensorBlockEntity.load()` → `read("listener", Data.CODEC)`
+- `SculkShriekerBlockEntity.load()` → `read("listener", Data.CODEC)`
+- `Warden.load()` → `read("listener", Data.CODEC)`
+- `Allay.load()` → `read("listener", Data.CODEC)`
+
+当前项目中这些方块/实体尚未实现，因此 `tryReloadVibrationParticle()` 暂时不会执行实际逻辑。
+当实现上述方块/实体的 NBT 序列化时，应使用 `Data(currentVibration, selector, travelTime, true)`
+构造函数或调用 `data.setReloadVibrationParticle(true)` 来设置重载标志。
+
 ## 依赖关系
 
 ```
