@@ -1969,6 +1969,7 @@ add_executable(mc_village_tests
     common/world/village/VillageTest.cpp
     common/world/village/trade/MerchantOfferTest.cpp
     common/world/village/raid/RaidHeroTrackingTest.cpp
+    common/world/village/raid/RaidManagerTest.cpp
 )
 
 target_sources(mc_village_tests
