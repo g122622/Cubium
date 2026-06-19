@@ -46,6 +46,7 @@
 #include "world/block/blocks/functional/BrewingStandBlock.hpp"
 #include "world/block/blocks/functional/LodestoneBlock.hpp"
 #include "world/block/blocks/functional/RespawnAnchorBlock.hpp"
+#include "world/block/blocks/nether/EnderChestBlock.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/block/blocks/nether/MagmaBlock.hpp"
 #include "world/block/blocks/nether/NetherPortalBlock.hpp"
@@ -557,12 +558,12 @@ void registerNetherBlocks()
         ResourceLocation("minecraft:brewing_stand"), BlockProperties(Material::IRON).hardness(0.5f));
 
     // 末影箱 - 发光7级
-    // TODO: 当前使用 SimpleBlock 注册，缺少 onBlockActivated 交互逻辑。
-    //       需要创建 EnderChestBlock 类，实现 onBlockActivated 以打开末影箱 GUI 并调用
-    //       player.awardCustomStat(ResourceLocation(stats::OPEN_ENDERCHEST), 1);
-    //       参考 MC Java: EnderChestBlock.onBlockActivated() → player.awardStat(Stats.OPEN_ENDERCHEST)
-    NetherBlocks::ENDER_CHEST = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ender_chest"),
-        BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7));
+    // 右键打开末影箱界面（物品存储在玩家数据中），记录统计 OPEN_ENDERCHEST。
+    // 方块上方有红石导体时无法打开。支持含水放置和水平朝向。
+    // 参考 MC Java: EnderChestBlock.onBlockActivated() → player.openMenu() + player.awardStat(Stats.OPEN_ENDERCHEST)
+    NetherBlocks::ENDER_CHEST =
+        &registry.registerBlock<blocks::EnderChestBlock>(ResourceLocation("minecraft:ender_chest"),
+            BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7).notSolid());
 
     // 灯笼 - 发光15级（通过构造函数参数）
     NetherBlocks::LANTERN = &registry.registerBlock<blocks::LanternBlock>(ResourceLocation("minecraft:lantern"),

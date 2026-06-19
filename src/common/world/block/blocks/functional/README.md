@@ -24,6 +24,7 @@
 ├── RespawnAnchorBlock.hpp / cpp #重生锚（下界重生点，4级充能）
 ├── LodestoneBlock.hpp / cpp #磁石（指南针绑定）
 ├── CartographyTableBlock.hpp / cpp #制图台（地图复制 / 扩展）
+├── CraftingTableBlock.hpp / cpp #工作台（3x3合成界面，INTERACT_WITH_CRAFTING_TABLE统计）
 ├── FletchingTableBlock.hpp / cpp #制箭台（箭矢制作）
 ├── SmithingTableBlock.hpp / cpp #锻造台（装备升级）
 ├── TrailsBlocks.hpp / cpp #考古方块（雕纹书架、饰纹陶罐、可疑沙 /
@@ -194,8 +195,8 @@
           | SmithingTableBlock | `INTERACT_WITH_SMITHING_TABLE` | ❌ 缺少 onBlockActivated（TODO） |
           | StonecutterBlock | `INTERACT_WITH_STONECUTTER` | ❌ 缺少 onBlockActivated（TODO） |
           | ComposterBlock | — | MC Java 中无交互统计 |
-          | CraftingTable (SimpleBlock) | `INTERACT_WITH_CRAFTING_TABLE` | ❌ 需创建 CraftingTableBlock（TODO） |
-          | EnderChest (SimpleBlock) | `OPEN_ENDERCHEST` | ❌ 需创建 EnderChestBlock（TODO） |
+          | CraftingTable (CraftingTableBlock) | `INTERACT_WITH_CRAFTING_TABLE` | ✅ 已集成 |
+          | EnderChest (EnderChestBlock) | `OPEN_ENDERCHEST` | ✅ 已集成（容器打开待 PlayerEnderChestInventory 实现） |
 
           添加新的方块统计时，请确保：
           1. 在 `onBlockActivated` 成功打开容器/交互后调用 `player.awardCustomStat(ResourceLocation(stats::XXX), 1)`

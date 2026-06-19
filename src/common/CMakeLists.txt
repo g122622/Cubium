@@ -677,6 +677,7 @@ add_library(mc_common STATIC
     world/block/blocks/functional/RespawnAnchorBlock.cpp
     world/block/blocks/functional/LodestoneBlock.cpp
     world/block/blocks/functional/CartographyTableBlock.cpp
+    world/block/blocks/functional/CraftingTableBlock.cpp
     world/block/blocks/functional/FletchingTableBlock.cpp
     world/block/blocks/functional/SmithingTableBlock.cpp
     world/block/blocks/functional/AnvilBlock.cpp
@@ -774,6 +775,7 @@ add_library(mc_common STATIC
     world/block/blocks/copper/WeatheringCopperTrapDoorBlock.cpp
 
     # World - Block - Nether
+    world/block/blocks/nether/EnderChestBlock.cpp
     world/block/blocks/nether/FireBlock.cpp
     world/block/blocks/nether/SoulFireBlock.cpp
     world/block/blocks/nether/NetherPortalBlock.cpp
