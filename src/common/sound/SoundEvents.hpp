@@ -552,6 +552,9 @@ extern const ResourceLocation ENTITY_GENERIC_EXPLODE;
 // 试炼密室相关音效 (Trial Chambers)
 // ============================================================================
 
+/// 风弹投掷声
+extern const ResourceLocation ENTITY_WIND_CHARGE_THROW;
+
 /// 风弹风爆声
 extern const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST;
 
