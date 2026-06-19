@@ -338,6 +338,8 @@ void MobEntity::burnUndead()
             if (addedDamage > 0) {
                 i32 newDamage = protectionItem.getDamage() + addedDamage;
                 protectionItem.setDamage(newDamage);
+                // TODO: 当物品损坏时应调用 onEquippedItemBroken 回调
+                // （播放装备破损动画/音效，停止基于位置的效果），待该基建完成后集成
             }
         }
         // 如果物品不可损坏（如附魔绑定/无限耐久），实体也不会燃烧

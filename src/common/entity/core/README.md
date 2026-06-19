@@ -157,6 +157,41 @@ finalizeSpawn(world, difficulty, spawnReason)
 - 火焰免疫由 `EntityType::immuneToFire()` 标志决定
 - 烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
 
+### 亡灵日光燃烧系统 (burnUndead)
+
+对应 MC 原版 `Mob.burnUndead()`，统一处理亡灵生物在阳光下的燃烧逻辑。
+
+#### 核心方法
+
+- **`isInDaylight()`** — 检查实体是否暴露在日光下。条件：白天（dayTime < 12000）、亮度 > 0.4、天空可见、不在水中且不在雨中（`isWet()`）、随机检查通过
+- **`sunProtectionSlot()`** — 虚方法，返回阳光防护装备槽位。默认 `EquipmentSlot::Head`（头盔），僵尸马覆写为 `EquipmentSlot::Chest`（马铠/胸甲槽位）
+- **`burnUndead()`** — 亡灵日光燃烧主逻辑：
+  1. 如果不在日光下 → 直接返回
+  2. 如果防护槽位有可损坏物品 → 物品承受耐久损耗（`setDamage()`，绕过耐久保护附魔）
+  3. 如果防护槽位为空 → `setFire(8)` 点燃实体 8 秒
+
+#### 调用位置
+
+- `MonsterEntity::handleDaylightBurning()` — 当 `m_burnsInDaylight == true` 时调用 `burnUndead()`（僵尸、骷髅等）
+- `ZombieHorseEntity::tick()` — 僵尸马在 BURN_IN_DAYLIGHT 标签中，直接调用 `burnUndead()`
+- `PhantomEntity::tick()` — 幻翼在 BURN_IN_DAYLIGHT 标签中，直接调用 `burnUndead()`
+- **注意**：骷髅马不在 BURN_IN_DAYLIGHT 标签中，不会在阳光下燃烧
+
+#### 骷髅马与僵尸马的区别
+
+| 行为 | 骷髅马 | 僵尸马 |
+|------|--------|--------|
+| BURN_IN_DAYLIGHT | ✗ | ✓ |
+| 阳光下燃烧 | ✗ | ✓ |
+| 阳光防护槽位 | N/A | Chest（马铠） |
+| canBreatheUnderwater | ✓ | ✗ |
+
+#### 实现注意事项
+
+- `burnUndead()` 使用 `ItemStack::setDamage()` 直接增加伤害值，**绕过耐久保护附魔**（与 MC 原版一致）
+- `isInDaylight()` 中 `isWet()` 检查确保雨中和水中的亡灵不会燃烧
+- 物品耐久耗尽后应该调用 `onEquippedItemBroken` 回调（播放损坏音效/动画），此基建尚待实现，已在代码中标注 TODO
+
 ### 空气供应与溺水
 - 空气值可从正数变成负数（用于溺水计时）
 - 当空气值降到 -20 时重置为 0 并触发溺水伤害
