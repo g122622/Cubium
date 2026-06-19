@@ -1030,6 +1030,30 @@ public:
     virtual void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
+     * @brief 玩家即将破坏方块时调用
+     *
+     * 在方块被破坏之前调用，允许方块在破坏前执行逻辑（如级联销毁关联方块）。
+     * 与 onBlockRemoved 的区别：此方法接收玩家信息，可区分创造/生存模式。
+     * onBlockRemoved 在方块状态变更后调用，不包含玩家上下文。
+     *
+     * 默认实现为空。需要特殊行为的方块应重写此方法。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态（破坏前的状态）
+     * @param player 破坏方块的玩家
+     *
+     * 参考: net.minecraft.block.Block#playerWillDestroy
+     */
+    virtual void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+        MC_UNUSED(player);
+    }
+
+    /**
      * @brief 方块被破坏后的额外生成处理
      *
      * 当方块被玩家或爆炸破坏后调用，用于执行额外的生成逻辑（如蠹虫生成）。

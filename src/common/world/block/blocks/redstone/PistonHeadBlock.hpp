@@ -81,15 +81,20 @@ public:
 
     void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
-    // TODO: 实现 playerWillDestroy 方法
-    // MC 原版中，玩家在创造模式破坏活塞头时，应同时销毁匹配的活塞基座且不产生掉落物。
-    // 当前项目 Block 基类尚未提供 playerWillDestroy 虚方法（含 Player* 参数用于区分创造/生存模式），
-    // 也缺少 preventsBlockDrops 机制来跳过创造模式的掉落物生成。
-    // 待 Block 基类补齐这些功能后，在此实现：
-    //   1. 检查反方向是否有匹配的已伸出活塞基座（isFittingBase）
-    //   2. 将活塞基座设为空气（setBlockState）
-    //   3. 非创造模式下生成活塞基座掉落物
-    // 参考原版: PistonHeadBlock.playerWillDestroy()
+    /**
+     * @brief 玩家即将破坏活塞头时调用
+     *
+     * 在创造模式下，破坏活塞头时应同时销毁匹配的活塞基座且不产生掉落物。
+     * 在生存模式下，掉落物由 onBlockRemoved 中的一般逻辑处理。
+     *
+     * 参考: net.minecraft.block.piston.PistonHeadBlock#playerWillDestroy
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态（破坏前的状态）
+     * @param player 破坏方块的玩家
+     */
+    void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player) override;
 
     [[nodiscard]] Material::PushReaction getPushReaction(const BlockState& state) const noexcept override
     {

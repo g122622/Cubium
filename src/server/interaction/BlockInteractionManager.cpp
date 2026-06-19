@@ -212,8 +212,18 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
                 // 获取手持物品作为工具
                 ItemStack tool = _getHeldTool(playerId);
 
-                // 生成掉落物
-                _generateBlockDrops(*world, pos, *state, playerId, tool.isEmpty() ? nullptr : &tool);
+                // 通知方块玩家即将破坏（如活塞头在创造模式下级联销毁活塞基座）
+                Player* stopPlayer = _getPlayerEntity(playerId, *world);
+                if (stopPlayer != nullptr) {
+                    const_cast<Block&>(state->getBlock()).playerWillDestroy(*world, pos, *state, *stopPlayer);
+                }
+
+                // 创造模式不产生掉落物
+                bool isCreativeStop = stopPlayer != nullptr && stopPlayer->isCreative();
+                if (!isCreativeStop) {
+                    // 生成掉落物
+                    _generateBlockDrops(*world, pos, *state, playerId, tool.isEmpty() ? nullptr : &tool);
+                }
 
                 // 设置为空气
                 _setBlockToAir(*world, pos, *state, playerId);
@@ -520,8 +530,18 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
         blockCompReg.dispatchBreak(blockTypeId, breakEvent);
     }
 
-    // 生成掉落物
-    _generateBlockDrops(*world, pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
+    // 通知方块玩家即将破坏（如活塞头在创造模式下级联销毁活塞基座）
+    Player* playerEntity = _getPlayerEntity(playerId, *world);
+    if (playerEntity != nullptr) {
+        const_cast<Block&>(oldState.getBlock()).playerWillDestroy(*world, pos, oldState, *playerEntity);
+    }
+
+    // 创造模式不产生掉落物
+    bool isCreative = playerEntity != nullptr && playerEntity->isCreative();
+    if (!isCreative) {
+        // 生成掉落物
+        _generateBlockDrops(*world, pos, oldState, playerId, tool.isEmpty() ? nullptr : &tool);
+    }
 
     // 调用工具的 onBlockDestroyed 回调（用于耐久消耗等）
     if (!tool.isEmpty()) {

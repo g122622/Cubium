@@ -208,11 +208,10 @@ TNT 需要检测相邻位置的火焰（包括灵魂火）和熔岩，不仅检�
 - **存活条件**（`isValidPosition`）：反方向有匹配的已伸出活塞基座（类型+EXTENDED+FACING 三重匹配），或反方向是方向匹配的 MOVING_PISTON
 - **自动消失**（`updatePostPlacement`）：当活塞基座消失或收回时，活塞头收到更新后返回空气状态
 - **级联销毁**（`onBlockRemoved`）：活塞头被移除时，检查反方向是否有匹配的已伸出活塞基座，如有则销毁基座并生成掉落物
+- **创造模式级联销毁**（`playerWillDestroy`）：玩家在创造模式破坏活塞头时，同时销毁匹配的活塞基座但不产生掉落物
 - **通知转发**（`neighborChanged`）：活塞头存活时将邻居变化通知转发到活塞基座方向，确保红石信号能传导到活塞
 - **推动反应**：活塞头的 `getPushReaction` 返回 `Block`，不能被活塞推动
 - **类型匹配**：Normal 活塞头对应 PISTON，Sticky 活塞头对应 STICKY_PISTON，类型不匹配则无法存活
-
-TODO: 待 Block 基类补齐 `playerWillDestroy`（含 Player* 参数）和 `preventsBlockDrops` 机制后，需实现创造模式破坏活塞头时同时销毁活塞基座且不产生掉落物的逻辑。
 
 ### 20. 铁轨连接系统（RailState）
 

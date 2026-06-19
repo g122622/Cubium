@@ -22,6 +22,7 @@
 
 #include "PistonHeadBlock.hpp"
 #include "PistonBlock.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
@@ -196,6 +197,8 @@ void PistonHeadBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const B
 
     // 活塞头被移除时，检查反方向是否有匹配的已伸出活塞基座
     // 如果有，级联销毁活塞基座并产生掉落物
+    // 注意：当玩家在创造模式下破坏活塞头时，playerWillDestroy 已先将基座设为空气，
+    // 因此此处 isFittingBase 检查会失败，不会重复销毁
     Direction facing = getFacing(state);
     BlockPos basePos = pos.offset(Directions::opposite(facing));
     const BlockState* baseState = world.getBlockState(basePos);
@@ -222,6 +225,26 @@ void PistonHeadBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const B
 
         // 调用活塞基座的 spawnAfterBreak（如蠹虫生成等特殊逻辑）
         baseBlock.spawnAfterBreak(world, basePos, *baseState, nullptr, false);
+    }
+}
+
+void PistonHeadBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+{
+    // 创造模式下，破坏活塞头时应同时销毁匹配的活塞基座且不产生掉落物
+    // 生存模式下，掉落物由 onBlockRemoved 中的一般逻辑处理
+    if (!player.isCreative()) {
+        return;
+    }
+
+    Direction facing = getFacing(state);
+    BlockPos basePos = pos.offset(Directions::opposite(facing));
+    const BlockState* baseState = world.getBlockState(basePos);
+
+    if (baseState != nullptr && isFittingBase(state, *baseState)) {
+        // 创造模式：销毁活塞基座但不产生掉落物
+        if (auto* airState = BlockRegistry::instance().airState()) {
+            world.setBlockState(basePos, airState);
+        }
     }
 }
 
