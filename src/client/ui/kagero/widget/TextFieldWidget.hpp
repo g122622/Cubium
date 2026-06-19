@@ -609,13 +609,15 @@ protected:
     {
         f32 width = 0.0f;
         i32 count = 0;
-        util::text::utf8ForEachCodepoint(m_text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) {
-            if (count >= codepointPosition) {
-                return;
-            }
-            width += measureGlyphAdvance(codePoint);
-            ++count;
-        });
+        util::text::utf8ForEachCodepoint(
+            m_text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) -> bool {
+                if (count >= codepointPosition) {
+                    return false;
+                }
+                width += measureGlyphAdvance(codePoint);
+                ++count;
+                return true;
+            });
         return width;
     }
 
@@ -630,14 +632,16 @@ protected:
 
         f32 width = 0.0f;
         i32 codepointIndex = 0;
-        util::text::utf8ForEachCodepoint(m_text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) {
-            const f32 advance = measureGlyphAdvance(codePoint);
-            if (width + advance > offset) {
-                return;
-            }
-            width += advance;
-            ++codepointIndex;
-        });
+        util::text::utf8ForEachCodepoint(
+            m_text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) -> bool {
+                const f32 advance = measureGlyphAdvance(codePoint);
+                if (width + advance > offset) {
+                    return false;
+                }
+                width += advance;
+                ++codepointIndex;
+                return true;
+            });
 
         return codepointIndex;
     }

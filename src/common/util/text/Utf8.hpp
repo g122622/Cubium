@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 namespace mc::util::text {
 
@@ -276,8 +277,13 @@ inline void utf8Append(std::string& output, u32 codePoint)
 /**
  * @brief 对 UTF-8 字符串中的每个码点执行回调
  *
+ * 回调函数可以返回 void（始终继续遍历）或 bool（返回 false 提前退出）。
+ * 在需要提前退出的场景（如测量前 N 个码点的宽度、搜索特定字符等）中，
+ * 返回 false 可避免遍历剩余全部码点，提升长文本处理性能。
+ *
  * @param text UTF-8 字符串
- * @param callback 回调函数，签名为 void(u32 codePoint, size_t byteOffset, size_t byteLength)
+ * @param callback 回调函数，签名为 void(u32, size_t, size_t) 或 bool(u32, size_t, size_t)。
+ *                 返回 false 时提前退出遍历。
  */
 template <typename Callback>
 void utf8ForEachCodepoint(const std::string& text, Callback&& callback)
@@ -320,7 +326,13 @@ void utf8ForEachCodepoint(const std::string& text, Callback&& callback)
             codePoint = U'?';
         }
 
-        callback(codePoint, start, nextIndex - start);
+        if constexpr (std::is_same_v<decltype(callback(codePoint, start, nextIndex - start)), bool>) {
+            if (!callback(codePoint, start, nextIndex - start)) {
+                return;
+            }
+        } else {
+            callback(codePoint, start, nextIndex - start);
+        }
         index = nextIndex;
     }
 }
