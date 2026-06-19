@@ -332,7 +332,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
         std::vector<ResourceLocation> candidates;
         candidates.push_back(texLoc);
 
-        std::string altPath = _getAltTexturePath(texLoc.path());
+        std::string altPath = getAltTexturePath(texLoc.path());
         if (!altPath.empty()) {
             candidates.emplace_back(texLoc.namespace_(), std::move(altPath));
         }
@@ -439,7 +439,7 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
     {
         std::vector<std::pair<ResourceLocation, TextureRegion>> aliases;
         for (const auto& [loc, region] : m_textureRegions) {
-            std::string altPath = _getAltTexturePath(loc.path());
+            std::string altPath = getAltTexturePath(loc.path());
             if (!altPath.empty()) {
                 ResourceLocation altLoc(loc.namespace_(), std::move(altPath));
                 // 仅在别名不存在时添加，避免覆盖已有纹理
@@ -818,7 +818,7 @@ void ResourceManager::_computeBlockAppearances()
     spdlog::info("computeBlockAppearances: {} total, {} with textures", totalAppearances, appearancesWithTextures);
 }
 
-std::string ResourceManager::_getAltTexturePath(const std::string& path)
+std::string ResourceManager::getAltTexturePath(const std::string& path)
 {
     constexpr std::string_view blockModern = "textures/block/";
     constexpr std::string_view blockLegacy = "textures/blocks/";
@@ -859,7 +859,7 @@ const TextureRegion* ResourceManager::_findTextureRegion(const ResourceLocation&
     //    MC 1.13+ 使用 textures/block/ 和 textures/item/（单数）
     //    MC 1.12  使用 textures/blocks/ 和 textures/items/（复数）
     //    当原始路径未找到时，自动尝试对应的另一种路径形式。
-    std::string altPath = _getAltTexturePath(texLoc.path());
+    std::string altPath = getAltTexturePath(texLoc.path());
     if (!altPath.empty()) {
         ResourceLocation altLoc(texLoc.namespace_(), std::move(altPath));
         it = m_textureRegions.find(altLoc);

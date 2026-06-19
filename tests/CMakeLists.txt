@@ -1581,6 +1581,7 @@ mc_copy_runtime_dlls(mc_tests)
 add_executable(mc_resource_tests
     client/resource/test_resource_location.cpp
     client/resource/test_model_loader.cpp
+    client/resource/TexturePathVariantTest.cpp
 )
 
 target_link_libraries(mc_resource_tests

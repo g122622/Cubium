@@ -208,6 +208,12 @@ public:
     [[nodiscard]] bool isAtlasBuilt() const { return m_atlasBuilt; }
 
     /**
+     * @brief 获取纹理区域映射（用于测试）
+     */
+    [[nodiscard]] std::map<ResourceLocation, TextureRegion>& textureRegions() { return m_textureRegions; }
+    [[nodiscard]] const std::map<ResourceLocation, TextureRegion>& textureRegions() const { return m_textureRegions; }
+
+    /**
      * @brief 获取第一个资源包（用于纹理加载）
      * @return 资源包指针，如果没有则返回 nullptr
      */
@@ -233,6 +239,22 @@ public:
      * @brief 清除所有缓存
      */
     void clear();
+
+    // ========================================================================
+    // 路径兼容性工具
+    // ========================================================================
+
+    /**
+     * @brief 获取 MC 1.12/1.13+ 路径变体的替代路径
+     *
+     * MC 1.13+ 使用 textures/block/ 和 textures/item/（单数），
+     * MC 1.12  使用 textures/blocks/ 和 textures/items/（复数）。
+     * 此方法在两种格式之间互相转换，用于纹理查找的兼容回退。
+     *
+     * @param path 纹理路径（例如 "textures/block/stone"）
+     * @return 对应的替代路径，如果路径不匹配已知前缀则返回空字符串
+     */
+    [[nodiscard]] static std::string getAltTexturePath(const std::string& path);
 
 private:
     std::vector<ResourcePackPtr> m_resourcePacks;
@@ -265,12 +287,6 @@ private:
 
     // 将纹理路径转换为资源位置
     [[nodiscard]] static ResourceLocation _texturePathToLocation(std::string_view path);
-
-    // 获取 MC 1.12/1.13+ 路径变体的替代路径
-    // 如果 path 以 textures/block/ 开头，返回 textures/blocks/ 版本（反之亦然）
-    // 如果 path 以 textures/item/ 开头，返回 textures/items/ 版本（反之亦然）
-    // 如果不匹配任何已知前缀，返回空字符串
-    [[nodiscard]] static std::string _getAltTexturePath(const std::string& path);
 
     // 使用 compat 层查找纹理区域（支持 MC 1.12/1.13+ 路径变体）
     // 优先尝试原始路径，若未找到则自动尝试 MC 1.12/1.13+ 路径变体：
