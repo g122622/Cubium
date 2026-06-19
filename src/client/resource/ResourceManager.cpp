@@ -842,6 +842,33 @@ std::string ResourceManager::getAltTexturePath(const std::string& path)
         return "textures/item/" + path.substr(itemLegacy.size());
     }
 
+    // 实体纹理路径变体：MC 1.13+ 子目录格式 <-> MC 1.12 扁平格式
+    // 例如：textures/entity/pig/pig -> textures/entity/pig
+    //       textures/entity/pig     -> textures/entity/pig/pig
+    constexpr std::string_view entityPrefix = "textures/entity/";
+    if (path.size() > entityPrefix.size() && path.compare(0, entityPrefix.size(), entityPrefix) == 0) {
+        std::string_view afterPrefix(path.data() + entityPrefix.size(), path.size() - entityPrefix.size());
+        auto slashPos = afterPrefix.find('/');
+        if (slashPos != std::string_view::npos) {
+            // 子目录格式：textures/entity/<name>/<filename>
+            // 检查 <name> 与 <filename> 是否相同（不含扩展名）
+            std::string_view dirName = afterPrefix.substr(0, slashPos);
+            std::string_view fileName = afterPrefix.substr(slashPos + 1);
+            // 去掉可能的 .png 扩展名进行比较
+            if (fileName.size() > 4 && fileName.compare(fileName.size() - 4, 4, ".png") == 0) {
+                fileName = fileName.substr(0, fileName.size() - 4);
+            }
+            if (dirName == fileName) {
+                // textures/entity/<name>/<name> -> textures/entity/<name>
+                return std::string(entityPrefix) + std::string(dirName);
+            }
+        } else {
+            // 扁平格式：textures/entity/<name>
+            // -> textures/entity/<name>/<name>
+            return std::string(entityPrefix) + std::string(afterPrefix) + "/" + std::string(afterPrefix);
+        }
+    }
+
     return {};
 }
 

@@ -251,6 +251,10 @@ public:
      * MC 1.12  使用 textures/blocks/ 和 textures/items/（复数）。
      * 此方法在两种格式之间互相转换，用于纹理查找的兼容回退。
      *
+     * 此外，还支持实体纹理的子目录/扁平格式互转：
+     *   textures/entity/<name>/<name> -> textures/entity/<name>
+     *   textures/entity/<name>        -> textures/entity/<name>/<name>
+     *
      * @param path 纹理路径（例如 "textures/block/stone"）
      * @return 对应的替代路径，如果路径不匹配已知前缀则返回空字符串
      */

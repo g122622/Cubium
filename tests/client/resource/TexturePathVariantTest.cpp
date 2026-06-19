@@ -84,7 +84,8 @@ TEST(GetAltTexturePathTest, NonTexturePathReturnsEmpty)
     // 不匹配任何已知前缀时返回空字符串
     EXPECT_TRUE(ResourceManager::getAltTexturePath("models/block/stone").empty());
     EXPECT_TRUE(ResourceManager::getAltTexturePath("blockstates/stone").empty());
-    EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/entity/steve").empty());
+    // 注意：textures/entity/steve 现在会返回 textures/entity/steve/steve（实体路径变体）
+    // 而不是返回空字符串
     EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/environment/clouds").empty());
     EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/painting/kebab").empty());
     EXPECT_TRUE(ResourceManager::getAltTexturePath("").empty());
@@ -105,6 +106,49 @@ TEST(GetAltTexturePathTest, PathWithSubdirectories)
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/block/flower/rose"), "textures/blocks/flower/rose");
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/blocks/flower/rose"), "textures/block/flower/rose");
     EXPECT_EQ(ResourceManager::getAltTexturePath("textures/item/diamond_helmet"), "textures/items/diamond_helmet");
+}
+
+// ============================================================================
+// 实体纹理路径变体测试
+// getAltTexturePath 扩展支持 textures/entity/<name>/<name> <-> textures/entity/<name>
+// ============================================================================
+
+TEST(GetAltTexturePathTest, EntitySubdirectoryToFlat)
+{
+    // MC 1.13+ 子目录格式 -> MC 1.12 扁平格式
+    // textures/entity/pig/pig -> textures/entity/pig
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/pig/pig"), "textures/entity/pig");
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/creeper/creeper"), "textures/entity/creeper");
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/zombie/zombie"), "textures/entity/zombie");
+}
+
+TEST(GetAltTexturePathTest, EntityFlatToSubdirectory)
+{
+    // MC 1.12 扁平格式 -> MC 1.13+ 子目录格式
+    // textures/entity/pig -> textures/entity/pig/pig
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/pig"), "textures/entity/pig/pig");
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/creeper"), "textures/entity/creeper/creeper");
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/bat"), "textures/entity/bat/bat");
+}
+
+TEST(GetAltTexturePathTest, EntitySubdirectoryWithPngSuffix)
+{
+    // 带 .png 后缀的路径也能正确处理
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/pig/pig.png"), "textures/entity/pig");
+    EXPECT_EQ(ResourceManager::getAltTexturePath("textures/entity/zombie/zombie.png"), "textures/entity/zombie");
+}
+
+TEST(GetAltTexturePathTest, EntitySubdirectoryMismatchedNameReturnsEmpty)
+{
+    // 子目录名与文件名不匹配时不转换（如 textures/entity/horse/horse_brown）
+    EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/entity/horse/horse_brown").empty());
+    EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/entity/cow/red_mooshroom").empty());
+}
+
+TEST(GetAltTexturePathTest, EntityPrefixOnlyReturnsEmpty)
+{
+    // 仅有 textures/entity/ 前缀没有实体名时返回空
+    EXPECT_TRUE(ResourceManager::getAltTexturePath("textures/entity/").empty());
 }
 
 // ============================================================================
@@ -215,10 +259,10 @@ TEST_F(FindTextureRegionFallbackTest, LegacyPathFallbackToNonexistentReturnsNull
     EXPECT_EQ(region, nullptr);
 }
 
-// 测试：非 textures/block/ 或 textures/item/ 前缀的路径不做回退
+// 测试：非 textures/block/ 或 textures/item/ 前缀且非实体路径的路径不做回退
 TEST_F(FindTextureRegionFallbackTest, NonTexturePathNoFallback)
 {
-    const TextureRegion* region = modernMgr.getTextureRegion(ResourceLocation("minecraft", "textures/entity/steve"));
+    const TextureRegion* region = modernMgr.getTextureRegion(ResourceLocation("minecraft", "textures/painting/kebab"));
     EXPECT_EQ(region, nullptr);
 }
 

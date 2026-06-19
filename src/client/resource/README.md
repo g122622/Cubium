@@ -131,9 +131,12 @@ MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。Resource
 
 1. **图集构建阶段**（`buildTextureAtlas()`）：当原始路径在资源包中找不到纹理时，自动尝试变体路径加载；构建完成后，将路径变体别名注册到 `m_textureRegions`，确保后续直接查找即可命中。
 2. **纹理查找阶段**（`_findTextureRegion()` / `getTextureRegion()`）：查找纹理区域时，原始路径未命中则自动尝试对应的变体路径。
-3. **集中化工具方法**（`getAltTexturePath()`）：公共静态方法，将 `textures/block/` ↔ `textures/blocks/`、`textures/item/` ↔ `textures/items/` 互相转换，可供其他模块复用以消除重复的路径变体逻辑。
+3. **集中化工具方法**（`getAltTexturePath()`）：公共静态方法，支持以下路径变体互转：
+   - `textures/block/` ↔ `textures/blocks/`（MC 1.13+ 单数 ↔ MC 1.12 复数）
+   - `textures/item/` ↔ `textures/items/`（MC 1.13+ 单数 ↔ MC 1.12 复数）
+   - `textures/entity/<name>/<name>` ↔ `textures/entity/<name>`（MC 1.13+ 子目录 ↔ MC 1.12 扁平格式）
 
-> **注意**：`DestroyStageTextures`、`ItemTextureAtlas`、`EntityTextureLoader` 中仍存在独立的路径变体回退逻辑（已标记 TODO），后续可迁移至使用 `getAltTexturePath()` 统一处理。
+   所有模块（`DestroyStageTextures`、`ItemTextureAtlas`、`EntityTextureLoader`、`EntityTextureAtlas`）均复用此方法，消除了独立的路径变体回退逻辑。
 
 ### 3. 模型烘焙依赖顺序
 

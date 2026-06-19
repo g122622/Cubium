@@ -23,6 +23,7 @@
 
 #include "EntityTextureAtlas.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
+#include "client/resource/ResourceManager.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include <cstring>
 #include <fstream>
@@ -506,33 +507,29 @@ Result<void> EntityTextureAtlas::_loadTextureWithFallback(
         }
     }
 
-    // 尝试路径变体 - MC 1.12格式
-    // 例如: textures/entity/pig/pig.png -> textures/entity/pig.png
-    std::string path = location.path();
+    // 尝试路径变体（使用 getAltTexturePath 集中化转换）
+    // 例如：textures/entity/pig/pig -> textures/entity/pig
+    //       textures/entity/pig     -> textures/entity/pig/pig
+    //       textures/block/stone    -> textures/blocks/stone
+    std::string altPath = ResourceManager::getAltTexturePath(location.path());
+    if (!altPath.empty()) {
+        ResourceLocation altLoc(location.namespace_(), altPath);
+        std::string altFilePath = altLoc.toFilePath(resource::PackType::ClientResources);
+        altFilePath.erase(0, std::string("assets/").size());
 
-    // 如果路径包含目录但加载失败，尝试无目录版本
-    if (path.find('/') != std::string::npos) {
-        size_t lastSlash = path.rfind('/');
-        if (lastSlash != std::string::npos) {
-            std::string fileName = path.substr(lastSlash + 1);
-            ResourceLocation altLoc(location.namespace_(), "textures/entity/" + fileName);
-            std::string altPath = altLoc.toFilePath(resource::PackType::ClientResources);
-            altPath.erase(0, std::string("assets/").size());
-
-            result = pack.readResource(resource::PackType::ClientResources, altPath);
-            if (result.success()) {
-                auto& data = result.value();
-                int width, height, channels;
-                u8* pixels =
-                    stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &width, &height, &channels, 4);
-                if (pixels) {
-                    outWidth = static_cast<u32>(width);
-                    outHeight = static_cast<u32>(height);
-                    outData.resize(width * height * 4);
-                    std::memcpy(outData.data(), pixels, outData.size());
-                    stbi_image_free(pixels);
-                    return {};
-                }
+        result = pack.readResource(resource::PackType::ClientResources, altFilePath);
+        if (result.success()) {
+            auto& data = result.value();
+            int width, height, channels;
+            u8* pixels =
+                stbi_load_from_memory(data.data(), static_cast<int>(data.size()), &width, &height, &channels, 4);
+            if (pixels) {
+                outWidth = static_cast<u32>(width);
+                outHeight = static_cast<u32>(height);
+                outData.resize(width * height * 4);
+                std::memcpy(outData.data(), pixels, outData.size());
+                stbi_image_free(pixels);
+                return {};
             }
         }
     }

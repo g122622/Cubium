@@ -22,6 +22,7 @@
  */
 
 #include "EntityTextureLoader.hpp"
+#include "ResourceManager.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
@@ -460,13 +461,15 @@ std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::st
     }
 
     // 默认约定: textures/entity/<name>/<name>.png (MC 1.13+ 格式)
-    paths.emplace_back("minecraft:textures/entity/" + name + "/" + name + ".png");
+    ResourceLocation modernLoc("minecraft:textures/entity/" + name + "/" + name + ".png");
+    paths.push_back(modernLoc);
 
-    // 备用: textures/entity/<name>.png (MC 1.12 格式)
-    // TODO: 此处的实体纹理路径变体（1.13+ 子目录 vs 1.12 扁平格式）是实体纹理特有的回退逻辑，
-    //       与 ResourceManager::getAltTexturePath() 处理的 block/blocks、item/items 变体不同，
-    //       但仍属于路径兼容性范畴。如果未来统一管理所有路径变体，可在此处复用。
-    paths.emplace_back("minecraft:textures/entity/" + name + ".png");
+    // 使用 getAltTexturePath() 自动计算 MC 1.12 扁平格式变体
+    // 例如：textures/entity/pig/pig -> textures/entity/pig
+    std::string altPath = ResourceManager::getAltTexturePath(modernLoc.path());
+    if (!altPath.empty()) {
+        paths.emplace_back("minecraft", std::move(altPath));
+    }
 
     return paths;
 }

@@ -215,33 +215,23 @@ void DestroyStageTextures::_generateDefaultTexture(size_t stage, std::vector<u8>
 bool DestroyStageTextures::_loadTextureFromResourcePack(
     ResourceManager* resourceManager, size_t stage, std::vector<u8>& data)
 {
-    // 构建资源位置
-    // 现代 MC 1.13+ 路径: textures/block/destroy_stage_X
-    // 旧版 MC 1.12 路径: textures/blocks/destroy_stage_X
-    // ResourceLocation 会自动添加 .png 后缀
-    // TODO: 此处的路径变体回退逻辑与 ResourceManager::getAltTexturePath() 功能重复，
-    //       可考虑复用集中化的路径变体转换方法消除重复代码。
+    // 构建候选路径列表：现代路径 + 旧版路径变体（MC 1.12/1.13+ 兼容）
+    // 使用 ResourceManager::getAltTexturePath() 集中化路径变体转换，消除硬编码回退逻辑
+    ResourceLocation modernLoc("minecraft", fmt::format("textures/block/destroy_stage_{}", stage));
+
+    std::vector<ResourceLocation> candidates;
+    candidates.push_back(modernLoc);
+
+    std::string altPath = ResourceManager::getAltTexturePath(modernLoc.path());
+    if (!altPath.empty()) {
+        candidates.emplace_back(modernLoc.namespace_(), std::move(altPath));
+    }
 
     std::vector<u8> rawData;
     u32 srcWidth = 0, srcHeight = 0;
 
-    // 尝试现代路径
-    ResourceLocation modernLoc("minecraft", fmt::format("textures/block/destroy_stage_{}", stage));
-    auto result = resourceManager->loadTextureRGBA(modernLoc);
-
-    if (result.success()) {
-        auto& decoded = result.value();
-        if (decoded.width > 0 && decoded.height > 0 && !decoded.pixels.empty()) {
-            rawData = std::move(decoded.pixels);
-            srcWidth = decoded.width;
-            srcHeight = decoded.height;
-        }
-    }
-
-    if (rawData.empty()) {
-        // 尝试旧版路径
-        ResourceLocation legacyLoc("minecraft", fmt::format("textures/blocks/destroy_stage_{}", stage));
-        result = resourceManager->loadTextureRGBA(legacyLoc);
+    for (const auto& candidateLoc : candidates) {
+        auto result = resourceManager->loadTextureRGBA(candidateLoc);
 
         if (result.success()) {
             auto& decoded = result.value();
@@ -249,6 +239,7 @@ bool DestroyStageTextures::_loadTextureFromResourcePack(
                 rawData = std::move(decoded.pixels);
                 srcWidth = decoded.width;
                 srcHeight = decoded.height;
+                break;
             }
         }
     }
