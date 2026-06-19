@@ -44,9 +44,9 @@ Block
 ├── CaveVinesBlock → GrowingPlantHeadBlock, IGrowable
 ├── CaveVinesPlantBlock → GrowingPlantBodyBlock, IGrowable
 ├── FrogspawnBlock → Block
-├── BigDripleafBlock → Block
-├── BigDripleafStemBlock → Block
-└── SmallDripleafBlock → BushBlock, IGrowable
+├── BigDripleafBlock → Block, IWaterLoggable, IGrowable
+├── BigDripleafStemBlock → Block, IWaterLoggable
+└── SmallDripleafBlock → Block, IWaterLoggable, IGrowable, IPlantable
 ```
 
 ## 上下游外部依赖关系
@@ -73,7 +73,7 @@ Block
 | 模块 | 用途 |
 |------|------|
 | `world/block/registry/CaveBlocks` | 注册所有洞穴方块 |
-| `world/block/BlockTags` | `CRYSTAL_SOUND_BLOCKS`等标签 |
+| `world/block/BlockTags` | `CRYSTAL_SOUND_BLOCKS`、`SMALL_DRIPLEAF_PLACEABLE`、`BIG_DRIPLEAF_PLACEABLE`等标签 |
 
 ## 容易踩的坑
 
@@ -111,10 +111,17 @@ Block
 
 关键静态方法：`canGrow`、`findTip`、`findRootBlock`、`canDrip`、`canTipGrow`、`calculateDripstoneThickness`、`maybeTransferFluid`
 
-### #7. SmallDripleafBlock 双格完整性检查
+### #7. SmallDripleafBlock 双格完整性与放置检查
 
-`SmallDripleafBlock::updatePostPlacement()` 实现了双格方块完整性检查（另一半消失时当前半部也变为空气），但**缺少 `isValidPosition` 覆写**，导致下半部分的下方支撑失效检查缺失。MC 原版中 `SmallDripleafBlock.canSurvive()` 对下半部分检查 `mayPlaceOn()`，需要实现 `isValidPosition` 后补充此逻辑。
+`SmallDripleafBlock` 实现了双格方块完整性检查（`updatePostPlacement` 中另一半消失时当前半部也变为空气），以及 `isValidPosition` 放置检查：
+- 下半部分：通过 `mayPlaceOn()` 检查下方支撑，条件为 `SMALL_DRIPLEAF_PLACEABLE` 标签（黏土、苔藓块）或水源+`DIRT` 标签/耕地
+- 上半部分：下方必须是同类型方块的下半部分
+- 下方支撑失效时（`facing == Down`），下半部分也会断裂变为空气
 
-### #8. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
+### #8. BigDripleafBlock/BigDripleafStemBlock 支撑检查
+
+`BigDripleafBlock::isValidPosition()` 检查下方是否为大滴叶、大滴叶茎或 `BIG_DRIPLEAF_PLACEABLE` 标签方块。`BigDripleafStemBlock::isValidPosition()` 检查下方是否为茎/标签方块**且**上方是否为茎/大滴叶。两者在 `updatePostPlacement` 中支撑失效时返回空气。`BigDripleafBlock` 还会在上方也是大滴叶时将自身转换为大滴叶茎。
+
+### #9. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
 
 洞穴藤蔓的中键选取（`getCloneItemStack`）返回的是 `GLOW_BERRIES` 物品而非方块物品，因为原版MC中玩家中键点击洞穴藤蔓获得的是发光浆果。右键收获时掉落1个发光浆果并播放 `BLOCK_CAVE_VINES_PICK_BERRIES` 音效。骨粉效果是设置 `BERRIES=true`（不是生长），`setBlockState` 标志位为2。

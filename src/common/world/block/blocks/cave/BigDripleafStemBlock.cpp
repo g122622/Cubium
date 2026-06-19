@@ -25,7 +25,10 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -69,6 +72,32 @@ BlockState BigDripleafStemBlock::getStateForPlacement(BlockItemUseContext& conte
     return state;
 }
 
+bool BigDripleafStemBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+    // 大滴叶茎可以存活当且仅当：
+    // 1. 下方是另一个大滴叶茎 或 BIG_DRIPLEAF_PLACEABLE 标签中的方块
+    // 2. 上方是另一个大滴叶茎 或 大滴叶（BigDripleafBlock）
+    // 参考: net.minecraft.block.BigDripleafStemBlock.canSurvive
+    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (belowState == nullptr) {
+        return false;
+    }
+    bool validBelow = belowState->is(this) || BlockTags::BIG_DRIPLEAF_PLACEABLE().contains(*belowState);
+    if (!validBelow) {
+        return false;
+    }
+
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    if (aboveState == nullptr) {
+        return false;
+    }
+    bool validAbove = aboveState->is(this) || aboveState->is(VanillaBlocks::BIG_DRIPLEAF);
+    return validAbove;
+}
+
 BlockState BigDripleafStemBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -76,9 +105,14 @@ BlockState BigDripleafStemBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
-    MC_UNUSED(facingState);
-    MC_UNUSED(facingPos);
+    // 当上方或下方方块变化导致无法存活时，延迟1tick后销毁
+    // 参考: net.minecraft.block.BigDripleafStemBlock.updateShape
+    if ((facing == Direction::Down || facing == Direction::Up) &&
+        !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+        // 延迟销毁：MC原版使用scheduleTick(this, 1)来延迟销毁
+        // 当前项目中暂时直接返回空气
+        return VanillaBlocks::AIR->defaultState();
+    }
 
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);

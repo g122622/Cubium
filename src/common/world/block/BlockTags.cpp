@@ -763,6 +763,24 @@ BlockTag& BlockTags::SNOW_LAYER_CAN_SURVIVE_ON()
     return *tag;
 }
 
+BlockTag& BlockTags::SMALL_DRIPLEAF_PLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "small_dripleaf_placeable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BIG_DRIPLEAF_PLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "big_dripleaf_placeable"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -2064,6 +2082,32 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "soul_sand"),
         ResourceLocation("minecraft", "mud")});
     tags[snowLayerCanSurviveOn->getId()] = std::move(snowLayerCanSurviveOn);
+
+    // 创建 SMALL_DRIPLEAF_PLACEABLE 标签（小滴叶可放置方块）
+    // 参考: net.minecraft.tags.BlockTags.SMALL_DRIPLEAF_PLACEABLE
+    auto smallDripleafPlaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "small_dripleaf_placeable"));
+    smallDripleafPlaceable->addAll(
+        {ResourceLocation("minecraft", "clay"), ResourceLocation("minecraft", "moss_block")});
+    tags[smallDripleafPlaceable->getId()] = std::move(smallDripleafPlaceable);
+
+    // 创建 BIG_DRIPLEAF_PLACEABLE 标签（大滴叶可放置方块）
+    // 参考: net.minecraft.tags.BlockTags.BIG_DRIPLEAF_PLACEABLE
+    // 包含: 黏土、泥土、砂土、灰化土、耕地、苔藓块、缠根泥土、泥巴、泥泞红树林根、草方块、菌丝、沙子、小滴叶
+    auto bigDripleafPlaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "big_dripleaf_placeable"));
+    bigDripleafPlaceable->addAll({ResourceLocation("minecraft", "clay"),
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "farmland"),
+        ResourceLocation("minecraft", "moss_block"),
+        ResourceLocation("minecraft", "rooted_dirt"),
+        ResourceLocation("minecraft", "mud"),
+        ResourceLocation("minecraft", "muddy_mangrove_roots"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "small_dripleaf")});
+    tags[bigDripleafPlaceable->getId()] = std::move(bigDripleafPlaceable);
 
     s_initialized = true;
 }

@@ -386,6 +386,16 @@ public:
     /// 雪层可以在这些方块上方存活（即使它们没有完整的上表面碰撞箱）
     static BlockTag& SNOW_LAYER_CAN_SURVIVE_ON();
 
+    // ========== 滴叶标签 ==========
+
+    /// 小滴叶可放置标签（黏土、苔藓块）
+    /// 参考: net.minecraft.tags.BlockTags.SMALL_DRIPLEAF_PLACEABLE
+    static BlockTag& SMALL_DRIPLEAF_PLACEABLE();
+
+    /// 大滴叶可放置标签（黏土、泥土、砂土、灰化土、耕地、苔藓块、缠根泥土、泥巴、泥泞红树林根、草方块、菌丝、沙子、小滴叶等）
+    /// 参考: net.minecraft.tags.BlockTags.BIG_DRIPLEAF_PLACEABLE
+    static BlockTag& BIG_DRIPLEAF_PLACEABLE();
+
     /**
      * @brief 初始化所有内置标签
      *

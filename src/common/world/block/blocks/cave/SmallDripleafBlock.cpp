@@ -25,8 +25,10 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 namespace mc {
 namespace blocks {
@@ -75,6 +77,48 @@ BlockState SmallDripleafBlock::getStateForPlacement(BlockItemUseContext& context
     return state;
 }
 
+bool SmallDripleafBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    auto half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    if (half == BlockStateProperties::DoubleBlockHalf::Upper) {
+        // 上半部分：下方必须是同类型方块的下半部分
+        BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
+        return belowState != nullptr && belowState->is(this) &&
+            belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+    } else {
+        // 下半部分：检查下方支撑是否适合放置
+        BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
+        if (belowState == nullptr) {
+            return false;
+        }
+        return mayPlaceOn(*belowState, world, belowPos);
+    }
+}
+
+bool SmallDripleafBlock::mayPlaceOn(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 条件1：下方方块在 SMALL_DRIPLEAF_PLACEABLE 标签中（黏土、苔藓块）
+    if (BlockTags::SMALL_DRIPLEAF_PLACEABLE().contains(state)) {
+        return true;
+    }
+
+    // 条件2：支撑方块上方有水源，且支撑方块在 DIRT 标签中或为耕地
+    // 参考 MC 原版: super.mayPlaceOn() 检查 DIRT 标签或 FARMLAND
+    const fluid::FluidState* fluidAbove = world.getFluidState(BlockPos(pos.x, pos.y + 1, pos.z));
+    bool hasWaterSourceAbove =
+        fluidAbove != nullptr && fluidAbove->isSource() && fluidAbove->getFluid().isIn(fluid::FluidTags::WATER());
+
+    if (hasWaterSourceAbove) {
+        if (BlockTags::DIRT().contains(state) || state.is(VanillaBlocks::FARMLAND)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 BlockState SmallDripleafBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -107,9 +151,12 @@ BlockState SmallDripleafBlock::updatePostPlacement(const BlockState& state,
         }
     }
 
-    // TODO: SmallDripleafBlock 缺少 isValidPosition 覆写，下方支撑检查（facing == Down）无法执行。
-    // MC 原版中 SmallDripleafBlock.canSurvive 对下半部分检查 mayPlaceOn，需要实现 isValidPosition 后
-    // 在此处添加与 DoublePlantBlock/TallSeagrassBlock 相同的下方支撑失效断裂逻辑。
+    // 下半部分：下方支撑失效时也应当断裂
+    if (half == BlockStateProperties::DoubleBlockHalf::Lower && facing == Direction::Down) {
+        if (!isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+            return VanillaBlocks::AIR->defaultState();
+        }
+    }
 
     return state;
 }

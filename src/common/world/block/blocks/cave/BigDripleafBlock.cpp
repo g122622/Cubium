@@ -25,7 +25,9 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
@@ -77,6 +79,23 @@ BlockState BigDripleafBlock::getStateForPlacement(BlockItemUseContext& context)
     return state;
 }
 
+bool BigDripleafBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+    // 大滴叶可以放置在以下方块上方：
+    // 1. 另一个大滴叶（BigDripleafBlock）
+    // 2. 大滴叶茎（BigDripleafStemBlock）
+    // 3. BIG_DRIPLEAF_PLACEABLE 标签中的方块
+    // 参考: net.minecraft.block.BigDripleafBlock.canSurvive
+    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+    const BlockState* belowState = world.getBlockState(belowPos);
+    if (belowState == nullptr) {
+        return false;
+    }
+    return belowState->is(this) || belowState->is(VanillaBlocks::BIG_DRIPLEAF_STEM) ||
+        BlockTags::BIG_DRIPLEAF_PLACEABLE().contains(*belowState);
+}
+
 BlockState BigDripleafBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -84,12 +103,26 @@ BlockState BigDripleafBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
-    MC_UNUSED(facingState);
-    MC_UNUSED(facingPos);
+    // 下方支撑失效时销毁自身
+    // 参考: net.minecraft.block.BigDripleafBlock.updateShape
+    if (facing == Direction::Down && !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+        return VanillaBlocks::AIR->defaultState();
+    }
 
+    // 含水时调度水流tick
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);
+    }
+
+    // 当上方也是大滴叶时，自身转换为大滴叶茎
+    // 参考: net.minecraft.block.BigDripleafBlock.updateShape
+    // "if the block above is also a BigDripleaf, replace self with BigDripleafStem"
+    if (facing == Direction::Up && facingState.is(this)) {
+        const BlockState& stemState =
+            VanillaBlocks::BIG_DRIPLEAF_STEM->defaultState()
+                .with(BlockStateProperties::HORIZONTAL_FACING(), state.get(BlockStateProperties::HORIZONTAL_FACING()))
+                .with(BlockStateProperties::WATERLOGGED(), state.get(BlockStateProperties::WATERLOGGED()));
+        return stemState;
     }
 
     return state;
