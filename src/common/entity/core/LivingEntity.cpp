@@ -649,6 +649,10 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
 
 void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
+    // MC 1.21.11: LivingEntity.causeFallDamage 先调用 super.causeFallDamage（传播给乘客）
+    // 参考: net.minecraft.world.entity.LivingEntity.causeFallDamage → super.causeFallDamage
+    Entity::causeFallDamage(distance, damageMultiplier, source);
+
     // 缓降效果免疫摔落伤害
     if (hasEffect(entity::effect::EffectType::SlowFalling)) {
         return;

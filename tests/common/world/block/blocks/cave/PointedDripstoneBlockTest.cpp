@@ -23,6 +23,10 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/DamageSources.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
@@ -31,6 +35,7 @@
 
 using namespace mc;
 using namespace mc::blocks;
+using namespace mc::test;
 
 // ========== PointedDripstoneBlock 测试 ==========
 
@@ -268,7 +273,7 @@ TEST_F(PointedDripstoneBlockTest, GetFluidState_NotWaterlogged_MayBeNull)
 }
 
 // ============================================================================
-// onFallenUpon 行为测试
+// onFallenUpon 行为测试 — 石笋/钟乳石判定逻辑
 // ============================================================================
 
 TEST_F(PointedDripstoneBlockTest, OnFallenUpon_StalagmiteTipUp_CallsCauseFallDamage)
@@ -327,10 +332,9 @@ TEST_F(PointedDripstoneBlockTest, StalagmiteCondition_UpTipOnly)
 {
     // 石笋（Stalagmite）条件：Direction::Up + DripstoneThickness::Tip
     // 只有同时满足朝上和TIP厚度时，onFallenUpon才施加石笋伤害
-    auto upTip =
-        block_->defaultState()
-            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
-            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+    auto upTip = block_->defaultState()
+                     .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
+                     .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_EQ(upTip.get(BlockStateProperties::VERTICAL_DIRECTION()), Direction::Up);
     EXPECT_EQ(upTip.get(BlockStateProperties::DRIPSTONE_THICKNESS()), BlockStateProperties::DripstoneThickness::Tip);
 
@@ -339,7 +343,8 @@ TEST_F(PointedDripstoneBlockTest, StalagmiteCondition_UpTipOnly)
         block_->defaultState()
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Frustum);
-    EXPECT_NE(upFrustum.get(BlockStateProperties::DRIPSTONE_THICKNESS()), BlockStateProperties::DripstoneThickness::Tip);
+    EXPECT_NE(
+        upFrustum.get(BlockStateProperties::DRIPSTONE_THICKNESS()), BlockStateProperties::DripstoneThickness::Tip);
 
     // 朝下 + TIP = 非石笋（是钟乳石尖端）
     auto downTip =
@@ -357,4 +362,394 @@ TEST_F(PointedDripstoneBlockTest, TipMerge_NotTipForStalagmiteDamage)
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::TipMerge);
     EXPECT_NE(tipMerge.get(BlockStateProperties::DRIPSTONE_THICKNESS()), BlockStateProperties::DripstoneThickness::Tip);
+}
+
+// ============================================================================
+// 集成测试：onFallenUpon 伤害验证
+// ============================================================================
+
+// 测试用 LivingEntity，追踪 hurt 调用以验证摔落伤害类型和数值
+class DamageTrackingEntity final : public LivingEntity {
+public:
+    explicit DamageTrackingEntity(IWorld* world = nullptr)
+        : LivingEntity(EntityId(1), world)
+        , m_hurtCount(0)
+        , m_lastDamage(0.0f)
+        , m_lastDamageType(static_cast<DamageType>(255))
+    {}
+
+    bool hurt(DamageSource& source, f32 amount) override
+    {
+        m_hurtCount++;
+        m_lastDamage = amount;
+        m_lastDamageType = source.type();
+        return LivingEntity::hurt(source, amount);
+    }
+
+    [[nodiscard]] i32 hurtCount() const { return m_hurtCount; }
+    [[nodiscard]] f32 lastDamage() const { return m_lastDamage; }
+    [[nodiscard]] DamageType lastDamageType() const { return m_lastDamageType; }
+
+    void tick() override {}
+    [[nodiscard]] f32 width() const override { return 0.6f; }
+    [[nodiscard]] f32 height() const override { return 1.8f; }
+    [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+
+private:
+    i32 m_hurtCount = 0;
+    f32 m_lastDamage = 0.0f;
+    DamageType m_lastDamageType;
+};
+
+// 测试用世界，支持方块状态存储和实体伤害追踪
+class DripstoneTestWorld final : public BaseTestWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        auto it = m_blocks.find(BlockPos(x, y, z));
+        return it != m_blocks.end() ? it->second : nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        if (state != nullptr) {
+            m_blocks[BlockPos(x, y, z)] = state;
+        } else {
+            m_blocks.erase(BlockPos(x, y, z));
+        }
+        return true;
+    }
+
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { m_blocks[pos] = state; }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+};
+
+// ============================================================================
+// onFallenUpon 石笋伤害集成测试
+// ============================================================================
+
+class PointedDripstoneFallDamageTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        block_ =
+            std::make_unique<PointedDripstoneBlock>(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    }
+
+    std::unique_ptr<PointedDripstoneBlock> block_;
+    DripstoneTestWorld world_;
+};
+
+TEST_F(PointedDripstoneFallDamageTest, StalagmiteTip_AppliesEnhancedDamage)
+{
+    // 朝上的TIP（石笋）应该触发增强的摔落伤害
+    auto stalagmiteState =
+        block_->defaultState()
+            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
+            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+
+    DamageTrackingEntity entity(&world_);
+    BlockPos pos(0, 64, 0);
+
+    // 从5格高摔落到石笋上
+    f32 fallDistance = 5.0f;
+    block_->onFallenUpon(world_, pos, stalagmiteState, entity, fallDistance);
+
+    // 石笋伤害：摔落距离 + 2.5，伤害倍率 2.0
+    // causeFallDamage(fallDistance + 2.5, 2.0, stalagmite())
+    // LivingEntity::causeFallDamage: effectiveDistance = (5.0 + 2.5) - 0(jump boost) = 7.5
+    // damage = (7.5 - 3.0) * 2.0 = 9.0
+    // hurt() 应被调用一次
+    EXPECT_EQ(entity.hurtCount(), 1);
+    // 伤害类型应为 Stalagmite
+    EXPECT_EQ(entity.lastDamageType(), DamageType::Stalagmite);
+    // 伤害值：((5.0 + 2.5) - 3.0) * 2.0 = 9.0
+    EXPECT_FLOAT_EQ(entity.lastDamage(), 9.0f);
+}
+
+TEST_F(PointedDripstoneFallDamageTest, StalactiteTip_AppliesNormalDamage)
+{
+    // 朝下的TIP（钟乳石尖端）应该触发普通摔落伤害（调用父类 Block::onFallenUpon）
+    auto stalactiteState =
+        block_->defaultState()
+            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
+            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+
+    DamageTrackingEntity entity(&world_);
+    entity.setHealth(20.0f);
+    BlockPos pos(0, 64, 0);
+
+    f32 fallDistance = 5.0f;
+    block_->onFallenUpon(world_, pos, stalactiteState, entity, fallDistance);
+
+    // 普通摔落伤害：causeFallDamage(5.0, 1.0, fall())
+    // LivingEntity::causeFallDamage: effectiveDistance = 5.0 - 0 = 5.0
+    // damage = (5.0 - 3.0) * 1.0 = 2.0
+    EXPECT_EQ(entity.hurtCount(), 1);
+    // 伤害类型应为 Fall（普通摔落）
+    EXPECT_EQ(entity.lastDamageType(), DamageType::Fall);
+    // 伤害值：(5.0 - 3.0) * 1.0 = 2.0
+    EXPECT_FLOAT_EQ(entity.lastDamage(), 2.0f);
+}
+
+TEST_F(PointedDripstoneFallDamageTest, NonTip_AppliesNormalDamage)
+{
+    // 非TIP厚度的滴石应该触发普通摔落伤害
+    auto baseState =
+        block_->defaultState()
+            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
+            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Base);
+
+    DamageTrackingEntity entity(&world_);
+    entity.setHealth(20.0f);
+    BlockPos pos(0, 64, 0);
+
+    f32 fallDistance = 5.0f;
+    block_->onFallenUpon(world_, pos, baseState, entity, fallDistance);
+
+    // 普通摔落伤害
+    EXPECT_EQ(entity.hurtCount(), 1);
+    EXPECT_EQ(entity.lastDamageType(), DamageType::Fall);
+    EXPECT_FLOAT_EQ(entity.lastDamage(), 2.0f);
+}
+
+TEST_F(PointedDripstoneFallDamageTest, TipMerge_AppliesNormalDamage)
+{
+    // TIP_MERGE 厚度不是石笋尖端，应触发普通摔落伤害
+    auto tipMergeState =
+        block_->defaultState()
+            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
+            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::TipMerge);
+
+    DamageTrackingEntity entity(&world_);
+    entity.setHealth(20.0f);
+    BlockPos pos(0, 64, 0);
+
+    f32 fallDistance = 5.0f;
+    block_->onFallenUpon(world_, pos, tipMergeState, entity, fallDistance);
+
+    // 普通摔落伤害
+    EXPECT_EQ(entity.hurtCount(), 1);
+    EXPECT_EQ(entity.lastDamageType(), DamageType::Fall);
+    EXPECT_FLOAT_EQ(entity.lastDamage(), 2.0f);
+}
+
+TEST_F(PointedDripstoneFallDamageTest, Stalagmite_ShortFall_NoDamage)
+{
+    // 短距离摔落（< 3格）不应造成伤害，即使落在石笋上
+    // causeFallDamage(0.5 + 2.5, 2.0, stalagmite())
+    // effectiveDistance = 3.0 - 0 = 3.0，不大于3.0，不造成伤害
+    auto stalagmiteState =
+        block_->defaultState()
+            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
+            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+
+    DamageTrackingEntity entity(&world_);
+    entity.setHealth(20.0f);
+    BlockPos pos(0, 64, 0);
+
+    f32 fallDistance = 0.5f;
+    block_->onFallenUpon(world_, pos, stalagmiteState, entity, fallDistance);
+
+    // effectiveDistance = (0.5 + 2.5) = 3.0, 不 > 3.0, 无伤害
+    EXPECT_EQ(entity.hurtCount(), 0);
+}
+
+TEST_F(PointedDripstoneFallDamageTest, Stalagmite_HighFall_MoreDamageThanNormal)
+{
+    // 高距离摔落时，石笋伤害应远大于普通摔落伤害
+    auto stalagmiteState =
+        block_->defaultState()
+            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
+            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+
+    DamageTrackingEntity entity(&world_);
+    entity.setHealth(20.0f);
+    BlockPos pos(0, 64, 0);
+
+    // 10格摔落
+    f32 fallDistance = 10.0f;
+    block_->onFallenUpon(world_, pos, stalagmiteState, entity, fallDistance);
+
+    // 石笋伤害：effectiveDistance = 10.0 + 2.5 = 12.5, damage = (12.5 - 3.0) * 2.0 = 19.0
+    // 普通伤害：effectiveDistance = 10.0, damage = (10.0 - 3.0) * 1.0 = 7.0
+    EXPECT_EQ(entity.hurtCount(), 1);
+    EXPECT_EQ(entity.lastDamageType(), DamageType::Stalagmite);
+    EXPECT_FLOAT_EQ(entity.lastDamage(), 19.0f);
+}
+
+// ============================================================================
+// canDripThrough 穿透检测测试
+// ============================================================================
+
+TEST_F(PointedDripstoneBlockTest, CanDripThrough_NullState_ReturnsTrue)
+{
+    // 空指针状态可穿透
+    DripstoneTestWorld world;
+    BlockPos pos(0, 64, 0);
+    EXPECT_TRUE(block_->canDripThrough(world, pos, nullptr));
+}
+
+TEST_F(PointedDripstoneBlockTest, CanDripThrough_AirBlock_ReturnsTrue)
+{
+    // 空气方块可穿透
+    DripstoneTestWorld world;
+    BlockPos pos(0, 64, 0);
+    const BlockState* airState = VanillaBlocks::AIR->defaultStatePointer();
+    ASSERT_NE(airState, nullptr);
+    EXPECT_TRUE(block_->canDripThrough(world, pos, airState));
+}
+
+TEST_F(PointedDripstoneBlockTest, CanDripThrough_OpaqueBlock_ReturnsFalse)
+{
+    // 实心不透明方块不可穿透
+    DripstoneTestWorld world;
+    BlockPos pos(0, 64, 0);
+    const BlockState* stoneState = VanillaBlocks::STONE->defaultStatePointer();
+    ASSERT_NE(stoneState, nullptr);
+    EXPECT_FALSE(block_->canDripThrough(world, pos, stoneState));
+}
+
+TEST_F(PointedDripstoneBlockTest, CanDripThrough_PointedDripstoneBlock_ReturnsTrue)
+{
+    // 滴石锥自身可穿透（滴石锥不是不透明方块，且碰撞形状不覆盖中心柱）
+    DripstoneTestWorld world;
+    BlockPos pos(0, 64, 0);
+    const BlockState* dripstoneState = &VanillaBlocks::POINTED_DRIPSTONE->defaultState();
+    ASSERT_NE(dripstoneState, nullptr);
+    // 滴石锥不是不透明方块（useShapeForLightOcclusion=true），所以 canDripThrough 取决于碰撞形状
+    // 滴石锥的碰撞形状是细柱，不应覆盖4x16x4的中心区域
+    // 注意：这取决于实际的碰撞形状计算
+    EXPECT_TRUE(block_->canDripThrough(world, pos, dripstoneState));
+}
+
+// ============================================================================
+// canDrip 尖端滴水条件测试
+// ============================================================================
+
+TEST_F(PointedDripstoneBlockTest, CanDrip_StalactiteTipNotWaterlogged)
+{
+    // 朝下TIP + 非含水 = 可滴水
+    auto state = block_->defaultState()
+                     .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
+                     .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
+                     .with(BlockStateProperties::WATERLOGGED(), false);
+    EXPECT_TRUE(block_->canDrip(state));
+}
+
+TEST_F(PointedDripstoneBlockTest, CanDrip_StalactiteTipWaterlogged_CannotDrip)
+{
+    // 朝下TIP + 含水 = 不可滴水
+    auto state = block_->defaultState()
+                     .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
+                     .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
+                     .with(BlockStateProperties::WATERLOGGED(), true);
+    EXPECT_FALSE(block_->canDrip(state));
+}
+
+TEST_F(PointedDripstoneBlockTest, CanDrip_StalagmiteTip_CannotDrip)
+{
+    // 朝上TIP = 不是钟乳石，不能滴水
+    auto state = block_->defaultState()
+                     .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
+                     .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
+                     .with(BlockStateProperties::WATERLOGGED(), false);
+    EXPECT_FALSE(block_->canDrip(state));
+}
+
+TEST_F(PointedDripstoneBlockTest, CanDrip_NonTipStalactite_CannotDrip)
+{
+    // 朝下非TIP = 不是尖端，不能滴水
+    auto state =
+        block_->defaultState()
+            .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
+            .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Middle)
+            .with(BlockStateProperties::WATERLOGGED(), false);
+    EXPECT_FALSE(block_->canDrip(state));
+}
+
+// ============================================================================
+// 静态辅助方法测试
+// ============================================================================
+
+TEST_F(PointedDripstoneBlockTest, IsStalactite_DownDirection)
+{
+    auto state = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
+    EXPECT_TRUE(PointedDripstoneBlock::isStalactite(state));
+}
+
+TEST_F(PointedDripstoneBlockTest, IsStalactite_UpDirection)
+{
+    auto state = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
+    EXPECT_FALSE(PointedDripstoneBlock::isStalactite(state));
+}
+
+TEST_F(PointedDripstoneBlockTest, IsStalagmite_UpDirection)
+{
+    auto state = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
+    EXPECT_TRUE(PointedDripstoneBlock::isStalagmite(state));
+}
+
+TEST_F(PointedDripstoneBlockTest, IsStalagmite_DownDirection)
+{
+    auto state = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
+    EXPECT_FALSE(PointedDripstoneBlock::isStalagmite(state));
+}
+
+TEST_F(PointedDripstoneBlockTest, IsTip_TrueForTip)
+{
+    auto state = block_->defaultState().with(
+        BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
+    EXPECT_TRUE(PointedDripstoneBlock::isTip(&state, false));
+    EXPECT_TRUE(PointedDripstoneBlock::isTip(&state, true));
+}
+
+TEST_F(PointedDripstoneBlockTest, IsTip_TrueForTipMergeWhenAllowMerge)
+{
+    auto state = block_->defaultState().with(
+        BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::TipMerge);
+    // 不允许合并 → TIP_MERGE 不是 TIP
+    EXPECT_FALSE(PointedDripstoneBlock::isTip(&state, false));
+    // 允许合并 → TIP_MERGE 算作 TIP
+    EXPECT_TRUE(PointedDripstoneBlock::isTip(&state, true));
+}
+
+TEST_F(PointedDripstoneBlockTest, IsTip_FalseForOtherThicknesses)
+{
+    const auto nonTipThicknesses = {BlockStateProperties::DripstoneThickness::Frustum,
+        BlockStateProperties::DripstoneThickness::Middle,
+        BlockStateProperties::DripstoneThickness::Base};
+
+    for (const auto& thickness : nonTipThicknesses) {
+        auto state = block_->defaultState().with(BlockStateProperties::DRIPSTONE_THICKNESS(), thickness);
+        EXPECT_FALSE(PointedDripstoneBlock::isTip(&state, false));
+        EXPECT_FALSE(PointedDripstoneBlock::isTip(&state, true));
+    }
+}
+
+TEST_F(PointedDripstoneBlockTest, IsTip_NullState_ReturnsFalse)
+{
+    EXPECT_FALSE(PointedDripstoneBlock::isTip(nullptr, false));
+    EXPECT_FALSE(PointedDripstoneBlock::isTip(nullptr, true));
+}
+
+TEST_F(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_NullState_ReturnsFalse)
+{
+    EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(nullptr, Direction::Up));
+}
+
+TEST_F(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_CorrectDirection)
+{
+    auto upState = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
+    EXPECT_TRUE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&upState, Direction::Up));
+    EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&upState, Direction::Down));
+
+    auto downState = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
+    EXPECT_TRUE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&downState, Direction::Down));
+    EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&downState, Direction::Up));
 }

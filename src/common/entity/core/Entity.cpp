@@ -851,10 +851,27 @@ void Entity::handleFallDamage(f32 /* distance */, f32 /* damageMultiplier */)
     // LivingEntity 会重写此方法
 }
 
-void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& /* source */)
+void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
-    // 基类默认委托给 handleFallDamage，使用默认摔落伤害来源
-    handleFallDamage(distance, damageMultiplier);
+    // MC 1.21.11: Entity.causeFallDamage 首先传播摔落伤害给所有乘客，基类不处理自身伤害
+    // 参考: net.minecraft.world.entity.Entity.causeFallDamage → propagateFallToPassengers
+    // LivingEntity.causeFallDamage 调用 super.causeFallDamage（传播给乘客）后自行计算伤害
+    propagateFallToPassengers(distance, damageMultiplier, source);
+}
+
+void Entity::propagateFallToPassengers(f32 distance, f32 damageMultiplier, const DamageSource& source)
+{
+    // MC 1.21.11: 当载具受到摔落伤害时，所有乘客也受到相同的摔落伤害
+    // 参考: net.minecraft.world.entity.Entity.propagateFallToPassengers
+    if (!hasPassengers() || m_world == nullptr) {
+        return;
+    }
+    for (EntityId passengerId : m_passengers) {
+        Entity* passenger = m_world->getEntity(passengerId);
+        if (passenger != nullptr) {
+            passenger->causeFallDamage(distance, damageMultiplier, source);
+        }
+    }
 }
 
 void Entity::_handleLandingOnBlock()

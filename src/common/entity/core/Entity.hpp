@@ -1381,13 +1381,18 @@ public:
     // ========== 摔落伤害 ==========
 
     /**
-     * @brief 处理摔落伤害
+     * @brief 处理摔落伤害（使用默认伤害来源）
      * @param distance 摔落距离
      * @param damageMultiplier 伤害倍率
      *
      * 使用默认的摔落伤害来源（DamageSources::fall()）。
      * 内部委托给 causeFallDamage(distance, damageMultiplier, DamageSources::fall())。
      * 如需自定义伤害来源，使用 causeFallDamage()。
+     *
+     * 注意：Entity 基类的 causeFallDamage 仅传播给乘客，不施加伤害。
+     * LivingEntity 重写 causeFallDamage 以实际计算和施加摔落伤害。
+     * handleFallDamage 主要用于 LivingEntity::handleFallDamage 中将默认伤害来源
+     * 转换为 causeFallDamage 调用的便捷方法。
      */
     virtual void handleFallDamage(f32 distance, f32 damageMultiplier);
 
@@ -1403,10 +1408,23 @@ public:
      * - 耕地方块：先执行踩踏逻辑，再调用父类 onFallenUpon（保留普通摔落伤害）
      * - 海龟蛋方块：先执行踩破逻辑，再调用父类 onFallenUpon（保留普通摔落伤害）
      *
-     * 基类实现调用 handleFallDamage(distance, damageMultiplier)。
-     * LivingEntity 重写此方法以使用自定义伤害来源计算伤害。
+     * 基类实现仅调用 propagateFallToPassengers 将摔落伤害传播给所有乘客（不对自身施加伤害）。
+     * LivingEntity 重写此方法：先调用 Entity::causeFallDamage（传播给乘客），
+     * 然后使用自定义伤害来源对自身计算伤害。
+     * 参考: MC Entity.causeFallDamage → propagateFallToPassengers
      */
     virtual void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source);
+
+    /**
+     * @brief 将摔落伤害传播给所有乘客
+     * @param distance 摔落距离
+     * @param damageMultiplier 伤害倍率
+     * @param source 伤害来源
+     *
+     * 当载具受到摔落伤害时，所有乘客也受到相同的摔落伤害。
+     * 参考: MC Entity.propagateFallToPassengers
+     */
+    void propagateFallToPassengers(f32 distance, f32 damageMultiplier, const DamageSource& source);
 
     /**
      * @brief 更新摔落距离

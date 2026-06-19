@@ -288,6 +288,23 @@ Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::o
 
 **重要**：`Entity::updateFallDistance()` 不再直接调用 `handleFallDamage()`，摔落伤害完全由 `Block::onFallenUpon` 负责。
 
+#### 摔落伤害传播给乘客
+
+`Entity::causeFallDamage` 基类实现会先将摔落伤害传播给所有乘客（`propagateFallToPassengers`），然后对自身不施加伤害。`LivingEntity::causeFallDamage` 重写时先调用 `Entity::causeFallDamage`（传播给乘客），再对自身计算伤害。
+
+```
+Entity::causeFallDamage(distance, multiplier, source)
+  → propagateFallToPassengers(distance, multiplier, source)  // 传播给所有乘客
+  // 基类不对自身施加伤害
+
+LivingEntity::causeFallDamage(distance, multiplier, source)
+  → Entity::causeFallDamage(distance, multiplier, source)    // 先传播给乘客
+  → 计算自身摔落伤害（缓降免疫、跳跃增强减距、摔落保护附魔减伤）
+  → hurt(source, damage)
+```
+
+参考 MC 1.21.11：`Entity.causeFallDamage` → `propagateFallToPassengers`，`LivingEntity.causeFallDamage` → `super.causeFallDamage` + 自身伤害计算。
+
 ### canAttackType 攻击类型判断
 - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()`
 - 基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob 徒劳地试图攻击一个它们够不着的敌人

@@ -481,3 +481,6 @@ Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::o
 **与 onLanded 的区别**：
 - `onLanded`：实体着地时修改运动向量（蜂蜜块取消摔落距离、史莱姆块弹跳），在 `updateFallDistance` 之前调用
 - `onFallenUpon`：实体着地后施加摔落伤害，由 `updateFallDistance` 内部调用
+
+**乘客摔落伤害传播**：
+`Entity::causeFallDamage` 会先将摔落伤害传播给所有乘客（`propagateFallToPassengers`），因此当载具（如马、船、矿车）受到摔落伤害时，乘客也会受到相同的摔落伤害。参考 MC 1.21.11 `Entity.propagateFallToPassengers`。

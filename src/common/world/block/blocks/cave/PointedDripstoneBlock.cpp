@@ -39,6 +39,7 @@
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/fluid/Fluids.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
