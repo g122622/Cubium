@@ -135,7 +135,7 @@ void Noises::initialize()
     registerNoise(NETHER_STATE_SELECTOR, -4, {1.0});
 
     // ========== 其他噪声 ==========
-    registerNoise(JAGGED, -16, {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+    registerNoise(JAGGED, -16, {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
 }
 
 } // namespace mc::world::gen::noise

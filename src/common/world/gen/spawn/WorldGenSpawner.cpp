@@ -31,7 +31,6 @@
 #include "../../block/BlockRegistry.hpp"
 #include "../../lighting/InternalLightUtils.hpp"
 #include "../chunk/IChunkGenerator.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -105,7 +104,7 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
     i32 chunkX,
     i32 chunkZ,
     IChunkGenerator& /*generator*/,
-    math::Random& random,
+    math::IRandom& random,
     std::vector<SpawnedEntityData>& outEntities)
 {
     if (!m_enabled) {
@@ -171,10 +170,11 @@ i32 WorldGenSpawner::spawnInitialMobs(WorldGenRegion& region,
             continue;
         }
 
-        // 确定生成数量（使用 nextInt(min, max) 包含两端）
+        // MC 1.21.11: nextInt(maxCount - minCount) 结果范围 [0, maxCount-minCount)
+        // 即 count 范围 [minCount, maxCount)，maxCount 不包含（与 Java Random.nextInt(bound) 一致）
         i32 count = selectedEntry->minCount;
         if (selectedEntry->maxCount > selectedEntry->minCount) {
-            count = random.nextInt(selectedEntry->minCount, selectedEntry->maxCount);
+            count = selectedEntry->minCount + random.nextInt(selectedEntry->maxCount - selectedEntry->minCount);
         }
 
         // 随机生成位置
@@ -233,7 +233,7 @@ i32 WorldGenSpawner::_spawnGroup(WorldGenRegion& region,
     [[maybe_unused]] f32 y,
     f32 z,
     i32 count,
-    math::Random& random,
+    math::IRandom& random,
     std::vector<SpawnedEntityData>& outEntities)
 {
     i32 spawned = 0;
@@ -401,40 +401,8 @@ bool WorldGenSpawner::_canSpawnAt(
     }
 
     // 检查特定实体的生成规则（如果有）
-    return _checkSpawnRules(region, entityType, x, y, z);
-}
-
-bool WorldGenSpawner::_checkSpawnRules(
-    WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const
-{
-    const BlockState* ground = region.getBlockState(x, y - 1, z);
-    if (!ground || ground->isAir() || ground->isLiquid()) {
-        return false;
-    }
-
-    const std::string& typeName = entityType.name();
-
-    // 常见被动生物规则：羊、牛、马、驴偏好草方块
-    if (typeName == "minecraft:sheep" || typeName == "minecraft:cow" || typeName == "minecraft:horse" ||
-        typeName == "minecraft:donkey") {
-        if (!ground->is(VanillaBlocks::GRASS_BLOCK)) {
-            return false;
-        }
-    }
-
-    // 马与驴对地形平坦度要求更高
-    if (typeName == "minecraft:horse" || typeName == "minecraft:donkey") {
-        const i32 centerTop = region.getTopBlockY(x, z, HeightmapType::MotionBlockingNoLeaves);
-        for (i32 dx = -1; dx <= 1; ++dx) {
-            for (i32 dz = -1; dz <= 1; ++dz) {
-                const i32 h = region.getTopBlockY(x + dx, z + dz, HeightmapType::MotionBlockingNoLeaves);
-                if (std::abs(h - centerTop) > 1) {
-                    return false;
-                }
-            }
-        }
-    }
-
+    // MC 1.21.11: 初始区块生物生成仅使用 EntitySpawnPlacementRegistry 数据驱动的检查，
+    // 不执行额外生成规则（如羊/牛偏好草方块等硬编码逻辑）
     return true;
 }
 

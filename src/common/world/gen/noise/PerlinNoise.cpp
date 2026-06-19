@@ -236,16 +236,12 @@ void PerlinNoise::initLayers(const math::PositionalRandomFactory& factory)
 
     // 计算最低频率的输入和值缩放因子
     // 参考 MC 1.21.11: PerlinNoise 构造函数
-    // Java: j = -firstOctave, lowestFreqInputFactor = pow(2.0, -j) = pow(2.0, firstOctave)
-    // Java: i = amplitudes.size(), lowestFreqValueFactor = pow(2.0, i-1) / (pow(2.0, i) - 1)
-    // 注意：inputFactor 从 2^(firstOctave) 开始，每次迭代乘以 2，
-    // 在索引 i 时为 2^(firstOctave + i)，与 Java 完全一致
-    if (minNonZero < octaveCount) {
-        m_lowestFreqInputFactor = std::pow(2.0, static_cast<f64>(m_firstOctave));
-        const auto amplitudeCount = static_cast<i32>(m_amplitudes.size());
-        m_lowestFreqValueFactor = std::pow(2.0, static_cast<f64>(amplitudeCount - 1)) /
-            (std::pow(2.0, static_cast<f64>(amplitudeCount)) - 1.0);
-    }
+    // Java 无条件计算这两个因子，C++ 同样无条件计算
+    // 注：amplitudes.size() 而非非零振幅数，与 MC 一致
+    m_lowestFreqInputFactor = std::pow(2.0, static_cast<f64>(m_firstOctave));
+    const auto amplitudeCount = static_cast<i32>(m_amplitudes.size());
+    m_lowestFreqValueFactor =
+        std::pow(2.0, static_cast<f64>(amplitudeCount - 1)) / (std::pow(2.0, static_cast<f64>(amplitudeCount)) - 1.0);
 
     m_maxValue = edgeValue(2.0);
 }

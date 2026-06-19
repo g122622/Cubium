@@ -22,7 +22,7 @@
  */
 
 #include "common/world/gen/noise/PerlinSimplexNoise.hpp"
-#include "common/util/math/random/Random.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include <cmath>
 #include <gtest/gtest.h>
 
@@ -37,12 +37,12 @@ using namespace world::gen::noise;
 
 TEST(PerlinSimplexNoiseTest, SameSeedProducesIdenticalResults)
 {
-    // MC: PerlinSimplexNoise 使用 IRandom& 构造
+    // MC: PerlinSimplexNoise 使用 JavaLegacyRandom 构造
     // 同样的随机源应产生相同的噪声
-    math::Random rng1(12345);
+    math::JavaLegacyRandom rng1(12345);
     PerlinSimplexNoise noise1(rng1, {-2, -1, 0});
 
-    math::Random rng2(12345);
+    math::JavaLegacyRandom rng2(12345);
     PerlinSimplexNoise noise2(rng2, {-2, -1, 0});
 
     for (int i = 0; i < 100; ++i) {
@@ -55,10 +55,10 @@ TEST(PerlinSimplexNoiseTest, SameSeedProducesIdenticalResults)
 
 TEST(PerlinSimplexNoiseTest, SameSeedWithOffsetProducesIdenticalResults)
 {
-    math::Random rng1(12345);
+    math::JavaLegacyRandom rng1(12345);
     PerlinSimplexNoise noise1(rng1, {-2, -1, 0});
 
-    math::Random rng2(12345);
+    math::JavaLegacyRandom rng2(12345);
     PerlinSimplexNoise noise2(rng2, {-2, -1, 0});
 
     for (int i = 0; i < 50; ++i) {
@@ -71,10 +71,10 @@ TEST(PerlinSimplexNoiseTest, SameSeedWithOffsetProducesIdenticalResults)
 
 TEST(PerlinSimplexNoiseTest, DifferentSeedsProduceDifferentResults)
 {
-    math::Random rng1(12345);
+    math::JavaLegacyRandom rng1(12345);
     PerlinSimplexNoise noise1(rng1, {-2, -1, 0});
 
-    math::Random rng2(54321);
+    math::JavaLegacyRandom rng2(54321);
     PerlinSimplexNoise noise2(rng2, {-2, -1, 0});
 
     bool anyDifferent = false;
@@ -96,7 +96,7 @@ TEST(PerlinSimplexNoiseTest, DifferentSeedsProduceDifferentResults)
 TEST(PerlinSimplexNoiseTest, SingleOctaveZero)
 {
     // 只使用 octave 0 (最高频)
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {0});
 
     const f64 value = noise.getValue(100.0, 200.0, false);
@@ -107,7 +107,7 @@ TEST(PerlinSimplexNoiseTest, ThreeOctavesWithNegatives)
 {
     // {-2, -1, 0}: 使用负倍频 (低频) 和 0 倍频 (高频)
     // MC: OverworldBiomeBuilder 气候噪声使用类似配置
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-2, -1, 0});
 
     const f64 value = noise.getValue(100.0, 200.0, false);
@@ -117,7 +117,7 @@ TEST(PerlinSimplexNoiseTest, ThreeOctavesWithNegatives)
 TEST(PerlinSimplexNoiseTest, SingleNegativeOctave)
 {
     // 只使用 -3 倍频 (低频)
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-3});
 
     const f64 value = noise.getValue(100.0, 200.0, false);
@@ -127,7 +127,7 @@ TEST(PerlinSimplexNoiseTest, SingleNegativeOctave)
 TEST(PerlinSimplexNoiseTest, ManyOctaves)
 {
     // 多倍频配置
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-6, -5, -4, -3, -2, -1, 0});
 
     for (int i = 0; i < 20; ++i) {
@@ -145,7 +145,7 @@ TEST(PerlinSimplexNoiseTest, ManyOctaves)
 TEST(PerlinSimplexNoiseTest, UseOffsetChangesOutput)
 {
     // useOffset=true 时添加每个 SimplexNoise 的偏移，结果应不同
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-2, -1, 0});
 
     bool anyDifferent = false;
@@ -165,7 +165,7 @@ TEST(PerlinSimplexNoiseTest, UseOffsetChangesOutput)
 
 TEST(PerlinSimplexNoiseTest, GetValueAtOrigin)
 {
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-2, -1, 0});
 
     const f64 value = noise.getValue(0.0, 0.0, false);
@@ -174,7 +174,7 @@ TEST(PerlinSimplexNoiseTest, GetValueAtOrigin)
 
 TEST(PerlinSimplexNoiseTest, GetValueRangeReasonable)
 {
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-2, -1, 0});
 
     f64 minValue = std::numeric_limits<f64>::max();
@@ -200,7 +200,7 @@ TEST(PerlinSimplexNoiseTest, GetValueRangeReasonable)
 TEST(PerlinSimplexNoiseTest, FirstNoiseNotNull)
 {
     // PerlinSimplexNoise 应始终有一个非空的 firstNoise
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-2, -1, 0});
 
     const SimplexNoise* first = noise.firstNoise();
@@ -209,7 +209,7 @@ TEST(PerlinSimplexNoiseTest, FirstNoiseNotNull)
 
 TEST(PerlinSimplexNoiseTest, FirstNoiseHasValidOffsets)
 {
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-2, -1, 0});
 
     const SimplexNoise* first = noise.firstNoise();
@@ -232,10 +232,10 @@ TEST(PerlinSimplexNoiseTest, NegativeOctaveSeedDerivation)
     // 这个值与 JavaLegacyRandom 一起用于创建负倍频层的 SimplexNoise
     // 验证使用负倍频时噪声仍然正确
 
-    math::Random rng1(42);
+    math::JavaLegacyRandom rng1(42);
     PerlinSimplexNoise noise1(rng1, {-3, -2, -1, 0});
 
-    math::Random rng2(42);
+    math::JavaLegacyRandom rng2(42);
     PerlinSimplexNoise noise2(rng2, {-3, -2, -1, 0});
 
     // 确定性测试
@@ -253,7 +253,7 @@ TEST(PerlinSimplexNoiseTest, NegativeOctaveSeedDerivation)
 
 TEST(PerlinSimplexNoiseTest, GetValueIsSmooth)
 {
-    math::Random rng(42);
+    math::JavaLegacyRandom rng(42);
     PerlinSimplexNoise noise(rng, {-2, -1, 0});
 
     const f64 step = 0.01;

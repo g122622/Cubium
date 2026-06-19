@@ -23,7 +23,7 @@
 
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "util/assert/AssertAll.hpp"
-#include "util/math/random/Random.hpp"
+#include "util/math/random/IRandom.hpp"
 #include "world/IWorld.hpp"
 #include "world/biome/BiomeTags.hpp"
 #include "world/block/Block.hpp"
@@ -119,7 +119,7 @@ bool EntitySpawnPlacementRegistry::canSpawnEntity(const std::string& entityTypeI
     ISpawnWorldReader& world,
     SpawnReason reason,
     const Vector3i& pos,
-    math::Random& random)
+    math::IRandom& random)
 {
     // 获取放置条目
     const PlacementEntry* entry = getPlacementEntry(entityTypeId);
@@ -299,7 +299,7 @@ namespace {
 bool canBatSpawn(const ISpawnWorldReader& /*world*/,
     const Vector3i& /*pos*/,
     const std::string& /*entityTypeId*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     SpawnReason /*reason*/)
 {
     // 光照检查在 NaturalSpawner 中进行，这里返回 true
@@ -315,7 +315,7 @@ bool canBatSpawn(const ISpawnWorldReader& /*world*/,
 bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/,
     const Vector3i& /*pos*/,
     const std::string& /*entityTypeId*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     SpawnReason /*reason*/)
 {
     // 光照检查在 NaturalSpawner 中进行，这里返回 true
@@ -337,7 +337,7 @@ bool canMonsterSpawnInLightPredicate(const ISpawnWorldReader& /*world*/,
 bool canSlimeSpawn(const ISpawnWorldReader& world,
     const Vector3i& pos,
     const std::string& /*entityTypeId*/,
-    math::Random& random,
+    math::IRandom& random,
     SpawnReason reason)
 {
     // 和平难度不生成史莱姆
@@ -393,7 +393,7 @@ bool canSlimeSpawn(const ISpawnWorldReader& world,
 bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/,
     const Vector3i& /*pos*/,
     const std::string& /*entityTypeId*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     SpawnReason /*reason*/)
 {
     // 岩浆怪在下界生成，无特殊条件
@@ -408,7 +408,7 @@ bool canMagmaCubeSpawn(const ISpawnWorldReader& /*world*/,
 bool canGhastSpawn(const ISpawnWorldReader& world,
     const Vector3i& pos,
     const std::string& /*entityTypeId*/,
-    math::Random& /*random*/,
+    math::IRandom& /*random*/,
     SpawnReason /*reason*/)
 {
     // 恶魂需要 4x4x4 的空间

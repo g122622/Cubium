@@ -25,7 +25,7 @@
 
 #include "SimplexNoise.hpp"
 #include "common/core/Types.hpp"
-#include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include <memory>
 #include <vector>
 
@@ -52,10 +52,10 @@ public:
      *
      * 参考 MC 1.21.11: PerlinSimplexNoise(RandomSource, List<Integer>)
      *
-     * @param rng 随机源（调用者应使用 LegacyRandomSource 或等效实现）
+     * @param rng 随机源（必须为 JavaLegacyRandom，对应 MC 的 LegacyRandomSource）
      * @param octaves 倍频索引列表（如 {-2, -1, 0} 或 {0}）
      */
-    PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octaves);
+    PerlinSimplexNoise(math::JavaLegacyRandom& rng, std::vector<i32> octaves);
 
     ~PerlinSimplexNoise() = default;
 

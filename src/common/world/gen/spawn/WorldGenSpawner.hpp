@@ -26,7 +26,7 @@
 #include "../../../core/Types.hpp"
 #include "../../../entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "../../../util/math/Vector3.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/random/IRandom.hpp"
 #include "../../biome/Biome.hpp"
 #include "../../spawn/MobSpawnInfo.hpp"
 #include <memory>
@@ -124,7 +124,7 @@ public:
         i32 chunkX,
         i32 chunkZ,
         IChunkGenerator& generator,
-        math::Random& random,
+        math::IRandom& random,
         std::vector<SpawnedEntityData>& outEntities);
 
     /**
@@ -159,7 +159,7 @@ private:
         f32 y,
         f32 z,
         i32 count,
-        math::Random& random,
+        math::IRandom& random,
         std::vector<SpawnedEntityData>& outEntities);
 
     /**
@@ -184,12 +184,6 @@ private:
      * @return 是否可以生成
      */
     [[nodiscard]] bool _canSpawnAt(
-        WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const;
-
-    /**
-     * @brief 检查方块是否允许实体生成
-     */
-    [[nodiscard]] bool _checkSpawnRules(
         WorldGenRegion& region, const entity::EntityType& entityType, i32 x, i32 y, i32 z) const;
 };
 

@@ -87,7 +87,10 @@ void DebugChunkGenerator::initializeValidStates()
         [&tempStates](const BlockState& state) { tempStates.emplace_back(state.blockId(), &state); });
 
     // 按方块 ID 排序，确保迭代顺序与注册顺序一致
-    std::sort(tempStates.begin(), tempStates.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    // MC 1.21.11: 同一方块的多个状态按 getPossibleStates() 的顺序排列，
+    // 必须使用稳定排序以保持同一方块内状态的相对顺序
+    std::stable_sort(
+        tempStates.begin(), tempStates.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
 
     s_allValidStates.reserve(tempStates.size());
     for (const auto& [id, state] : tempStates) {
@@ -233,10 +236,9 @@ void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
             region.setBlockState(worldX, 60, worldZ, s_barrierState);
 
             // Y=70: 方块状态网格（MC 1.21.11: 无条件放置，包括空气状态）
+            // getBlockStateFor 在条件不满足时返回空气状态，不会返回 nullptr
             const BlockState* state = getBlockStateFor(worldX, worldZ);
-            if (state != nullptr) {
-                region.setBlockState(worldX, 70, worldZ, state);
-            }
+            region.setBlockState(worldX, 70, worldZ, state);
         }
     }
     chunk.setChunkStatus(ChunkStatuses::FEATURES);

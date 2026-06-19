@@ -25,7 +25,7 @@
 
 #include "core/Types.hpp"
 #include "util/math/Vector3.hpp"
-#include "util/math/random/Random.hpp"
+#include "util/math/random/IRandom.hpp"
 #include "world/chunk/data/IChunk.hpp"
 #include <functional>
 #include <unordered_map>
@@ -295,7 +295,7 @@ public:
     using PlacementPredicate = std::function<bool(const ISpawnWorldReader& world,
         const Vector3i& pos,
         const std::string& entityTypeId,
-        math::Random& random,
+        math::IRandom& random,
         SpawnReason reason)>;
 
     /**
@@ -391,7 +391,7 @@ public:
         ISpawnWorldReader& world,
         SpawnReason reason,
         const Vector3i& pos,
-        math::Random& random);
+        math::IRandom& random);
 
     /**
      * @brief 检查地面生成条件

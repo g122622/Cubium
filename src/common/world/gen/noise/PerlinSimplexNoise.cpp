@@ -29,11 +29,15 @@
 
 namespace mc::world::gen::noise {
 
-PerlinSimplexNoise::PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octaves)
+PerlinSimplexNoise::PerlinSimplexNoise(math::JavaLegacyRandom& rng, std::vector<i32> octaves)
 {
     if (octaves.empty()) {
         MC_ASSERT_RELEASE(false && "PerlinSimplexNoise needs at least one octave");
     }
+
+    // MC: PerlinSimplexNoise 的构造需要 JavaLegacyRandom（MC 的 LegacyRandomSource）
+    // consumeCount(262) 推进 262 步 LCG 状态，与 IRandom::skip(262) 不同
+    // skip(262) 调用 nextU64() 262 次（每次 2 步 LCG，共 524 步），consumeCount(262) 每次只 1 步
 
     // MC: 排序倍频索引并找到范围
     std::set<i32> octaveSet(octaves.begin(), octaves.end());
@@ -62,7 +66,8 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octa
         if (i1 >= 0 && octaveSet.count(maxOctave - i1)) {
             m_noiseLevels[static_cast<size_t>(i1)] = std::make_unique<SimplexNoise>(rng);
         } else {
-            rng.skip(262);
+            // MC: p_230543_.consumeCount(262) — 推进 262 步 LCG 状态
+            rng.consumeCount(262);
         }
     }
 
@@ -90,7 +95,8 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::IRandom& rng, std::vector<i32> octa
             if (j1 < k && octaveSet.count(maxOctave - j1)) {
                 m_noiseLevels[static_cast<size_t>(j1)] = std::make_unique<SimplexNoise>(secondaryRng);
             } else {
-                secondaryRng.skip(262);
+                // MC: secondaryRng.consumeCount(262)
+                secondaryRng.consumeCount(262);
             }
         }
     }

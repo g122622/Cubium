@@ -23,6 +23,7 @@
 
 #include "IChunkGenerator.hpp"
 #include "../../../util/assert/AssertAll.hpp"
+#include "../../../util/math/random/JavaLegacyRandom.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../biome/BiomeRegistry.hpp"
@@ -630,15 +631,9 @@ i32 BaseChunkGenerator::spawnInitialMobs(
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
     // MC 1.21.11: WorldgenRandom.setDecorationSeed(worldSeed, blockX, blockZ)
-    // 算法：setSeed(worldSeed), nextLong()|1 -> l, nextLong()|1 -> j,
-    //       k = blockX * l + blockZ * j ^ worldSeed, setSeed(k)
-    math::Random rng;
-    rng.setSeed(m_seed);
-    const i64 l = static_cast<i64>(rng.nextU64()) | 1LL;
-    const i64 j = static_cast<i64>(rng.nextU64()) | 1LL;
-    const i64 k =
-        (static_cast<i64>(chunk.x() << 4) * l + static_cast<i64>(chunk.z() << 4) * j) ^ static_cast<i64>(m_seed);
-    rng.setSeed(static_cast<u64>(k));
+    // 必须使用 JavaLegacyRandom 以匹配 MC 的 LegacyRandomSource 种子序列
+    math::JavaLegacyRandom rng;
+    const u64 decorSeed = rng.setDecorationSeed(m_seed, chunk.x() << 4, chunk.z() << 4);
 
     return m_worldGenSpawner->spawnInitialMobs(region, biome, chunk.x(), chunk.z(), *this, rng, outEntities);
 }

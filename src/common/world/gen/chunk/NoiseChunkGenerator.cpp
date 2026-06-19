@@ -24,6 +24,7 @@
 #include "NoiseChunkGenerator.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
+#include "../../../util/math/random/JavaLegacyRandom.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../WorldConstants.hpp"
 #include "../../biome/BiomeGenerationSettings.hpp"
@@ -154,8 +155,9 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         }
 
         // 按权重选择结构
-        math::Random rng(
-            static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL + m_seed);
+        // MC: WorldgenRandom(LegacyRandomSource(341873128712L * chunkX + 132897987541L * chunkZ + seed + 0))
+        math::Random rng;
+        rng.setLargeFeatureWithSalt(static_cast<i64>(m_seed), chunkX, chunkZ, 0);
         const auto* entry = structureSet.selectEntry(rng);
         if (!entry) continue;
 
@@ -363,15 +365,20 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer, noiseChunkPtr, m_randomState.get());
 
     // MC 1.21: 使用 BiomeManager 的 Voronoi 缩放查询生物群系
-    // TODO: MC 使用 biomeManager.withDifferentSource() 创建直接从 NoiseRouter 查询的 BiomeManager，
+    // MC 使用 biomeManager.withDifferentSource() 创建直接从 NoiseRouter 查询的 BiomeManager，
     // 而非从区块缓存的 Voronoi 缩放结果查询。当前使用 m_biomeManager->getBiome() 近似。
-    const auto getBiomeAt = [this](i32 x, i32 y, i32 z) -> BiomeId { return m_biomeManager->getBiome(x, y, z); };
+    // TODO: 创建 withDifferentSource 的 BiomeManager 以精确匹配 MC 行为
+    // withDifferentSource 应使用 m_biomeSource->getNoiseBiome() 作为底层查询，
+    // 保留 Voronoi 缩放但直接查询噪声而非区块缓存
 
     // MC 1.21.11: 按生物群系选择雕刻器
     // 遍历 [-8, +8] 范围内的起始区块坐标
     // 对于每个起始区块，采样其中心生物群系的雕刻器列表
     // 参考: NoiseBasedChunkGenerator.applyCarvers
-    math::Random worldgenRandom;
+    // MC 使用 WorldgenRandom(new LegacyRandomSource(RandomSupport.generateUniqueSeed()))
+    // 然后对每个雕刻器调用 setLargeFeatureSeed(seed + carverIndex, chunkX, chunkZ)
+    // setLargeFeatureSeed 使用 LegacyRandomSource 的 nextLong() 生成乘数
+    math::JavaLegacyRandom worldgenRandom;
 
     for (i32 dx = -8; dx <= 8; ++dx) {
         for (i32 dz = -8; dz <= 8; ++dz) {
@@ -498,6 +505,11 @@ void NoiseChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
     // === MC 1.21: 按装饰阶段交错放置结构和特征 ===
     // 对应 Java: ChunkGenerator.applyBiomeDecoration()
     // 每个阶段：先放结构，再放特征
+    // MC 使用 WorldgenRandom(new LegacyRandomSource(RandomSupport.generateUniqueSeed()))
+    // 然后调用 setDecorationSeed(worldSeed, blockX, blockZ)
+    // 注意：ConfiguredFeature::place 当前签名需要 math::Random&（Xoroshiro128++），
+    // 但 setDecorationSeed 的种子推导算法需要 JavaLegacyRandom 才能与 MC 一致
+    // TODO: 将 ConfiguredFeature::place 等方法的签名改为 IRandom& 以支持 JavaLegacyRandom
     math::Random worldgenRandom;
     const u64 decorSeed = worldgenRandom.setDecorationSeed(m_seed, startX, startZ);
     const BlockPos chunkOrigin(startX, 0, startZ);
@@ -718,22 +730,21 @@ i32 NoiseChunkGenerator::spawnInitialMobs(
     }
 
     // 获取区块中心位置的生物群系
-    // MC 1.21.11: 在区块中心的最大 Y 处采样 (getMaxY() = getMaxBuildHeight() - 1)
+    // MC 1.21.11: 在区块中心的最大 Y 处采样
     // Java: p_64379_.getBiome(chunkpos.getWorldPosition().atY(p_64379_.getMaxY()))
+    // 通过 WorldGenRegion 的 BiomeManager 查询（带 Voronoi 缩放）
+    const i32 sampleX = (chunk.x() << 4) + 8;
+    const i32 sampleZ = (chunk.z() << 4) + 8;
     const i32 sampleY = region.getMaxBuildHeight() - 1;
-    const BiomeId biomeId = chunk.getBiomeAtBlock(8, sampleY, 8);
+    const BiomeId biomeId = m_biomeManager->getBiome(sampleX, sampleY, sampleZ);
     const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
 
     // MC 1.21.11: WorldgenRandom.setDecorationSeed(worldSeed, blockX, blockZ)
     // 算法：setSeed(worldSeed), nextLong()|1 -> l, nextLong()|1 -> j,
     //       k = blockX * l + blockZ * j ^ worldSeed, setSeed(k)
-    math::Random rng;
-    rng.setSeed(m_seed);
-    const i64 l = static_cast<i64>(rng.nextU64()) | 1LL;
-    const i64 j = static_cast<i64>(rng.nextU64()) | 1LL;
-    const i64 k =
-        (static_cast<i64>(chunk.x() << 4) * l + static_cast<i64>(chunk.z() << 4) * j) ^ static_cast<i64>(m_seed);
-    rng.setSeed(static_cast<u64>(k));
+    // 必须使用 JavaLegacyRandom 以匹配 MC 的 LegacyRandomSource 种子序列
+    math::JavaLegacyRandom rng;
+    const u64 decorSeed = rng.setDecorationSeed(m_seed, chunk.x() << 4, chunk.z() << 4);
 
     return m_worldGenSpawner->spawnInitialMobs(region, biome, chunk.x(), chunk.z(), *this, rng, outEntities);
 }
@@ -995,6 +1006,10 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRe
     // MC 1.21.11: 使用跨区块结构引用收集 Beardifier 数据
     // 对应 Java: StructureManager.startsForStructure(chunkPos, s -> s.terrainAdaptation() != NONE)
     // 遍历当前区块的 structureReferences，从源区块获取 StructureStart
+    // MC 的 startsForStructure 已包含当前区块自身的结构起点（通过引用机制），
+    // 因此不需要额外遍历 structureStarts
+    std::unordered_set<const world::gen::structure::StructureStart*> processedStarts;
+
     if (chunk.hasStructureReferences()) {
         for (const auto& [structureId, refs] : chunk.structureReferences()) {
             const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
@@ -1020,23 +1035,15 @@ world::gen::density::Beardifier NoiseChunkGenerator::_buildBeardifier(WorldGenRe
                     continue;
                 }
 
+                // 去重：同一个 StructureStart 可能通过多个引用条目被多次发现
+                if (processedStarts.count(start)) {
+                    continue;
+                }
+                processedStarts.insert(start);
+
                 processStart(*start, structure);
             }
         }
-    }
-
-    // 也处理当前区块自身的 structureStarts（这些可能不在 references 中）
-    for (const auto& [structureId, start] : chunk.structureStarts()) {
-        if (!start || !start->isValid()) {
-            continue;
-        }
-        const auto* structure = world::gen::structure::StructureRegistry::get(structureId);
-        if (!structure || structure->terrainAdaptation() == TerrainAdaptation::None) {
-            continue;
-        }
-        // 当前区块的 StructureStart 已在 references 中（结构起点的引用包含自身），
-        // 但为安全起见也检查（避免去重逻辑遗漏）
-        processStart(*start, structure);
     }
 
     return world::gen::density::Beardifier(std::move(pieces), std::move(junctions));

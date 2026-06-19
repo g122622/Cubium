@@ -118,9 +118,11 @@ f64 maxBrokenValue(f64 maxInputValue) const { return edgeValue(maxInputValue + 2
 ### 6. PerlinSimplexNoise 种子派生精度
 
 ```cpp
-// Java 使用 float 精度: (long)(simplexnoise.getValue(...) * 9.223372E18F)
-// C++ 必须使用 static_cast<f32>(derivedSeed) * 9.223372E18f 保持一致
-const i64 seed = static_cast<i64>(static_cast<f32>(derivedSeed) * 9.223372E18f);
+// Java: (long)(simplexnoise.getValue(...) * 9.223372E18F)
+// Java 二元数值提升：getValue() 返回 double，9.223372E18F 是 float 字面量
+// 乘法在 double 精度下进行（float 自动拓宽为 double）
+// C++ 必须先拓宽 float 常量为 double，再在 double 精度下做乘法
+const i64 seed = static_cast<i64>(derivedSeed * static_cast<f64>(9.223372E18f));
 ```
 
 ## 容易踩的坑
