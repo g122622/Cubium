@@ -173,6 +173,9 @@ void StriderEntity::travel(const Vector3& travelVec)
 bool StriderEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 炽足兽使用诡异菌繁殖
+    // TODO: 当 interactMob() 实现后，需在玩家喂食炽足兽时播放 ENTITY_STRIDER_EAT 音效，
+    // 参考 MC Java Strider.mobInteract() 中的 eat 音效播放逻辑：
+    // playSound(SoundEvents.STRIDER_EAT, 1.0F, 1.0F + (random.nextFloat() - random.nextFloat()) * 0.2F)
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
