@@ -848,11 +848,11 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
     while (currentState != nullptr && isStalactite(*currentState)) {
         BlockPos currentPos = mutablePos.toImmutable();
 
-        // 将当前位置替换为空气（含水则替换为水）
+        // 将当前位置替换为空气（含水则替换为流体方块）
         const fluid::FluidState* fluidState = world.getFluidState(currentPos);
         if (fluidState != nullptr && !fluidState->isEmpty()) {
-            // 含水滴石掉落时替换为流体方块
-            const BlockState* fluidBlockState = fluidState->createLegacyBlock();
+            // 含水滴石掉落时替换为流体对应的方块状态
+            const BlockState* fluidBlockState = fluidState->getBlockState();
             if (fluidBlockState != nullptr) {
                 world.setBlockState(currentPos, fluidBlockState, 3);
             } else {
