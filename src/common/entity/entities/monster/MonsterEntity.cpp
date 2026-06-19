@@ -125,19 +125,8 @@ void MonsterEntity::registerGoals()
 
 void MonsterEntity::handleDaylightBurning()
 {
-    if (m_burnsInDaylight && isInDaylight()) {
-        // 在阳光下燃烧
-        m_burnTime++;
-        if (m_burnTime >= 20) { // 1秒后开始燃烧
-            // 造成火焰伤害
-            auto fireDamage = DamageSources::onFire();
-            hurt(fireDamage, 1.0f);
-
-            // 设置视觉上的燃烧效果
-            setFire(8); // 燃烧8秒
-        }
-    } else {
-        m_burnTime = 0;
+    if (m_burnsInDaylight) {
+        burnUndead();
     }
 }
 

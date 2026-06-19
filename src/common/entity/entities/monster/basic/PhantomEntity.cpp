@@ -84,10 +84,8 @@ void PhantomEntity::tick()
 {
     FlyingEntity::tick();
 
-    // 在阳光下着火8秒
-    if (isAlive() && isInDaylight()) {
-        setFire(8);
-    }
+    // 幻翼在阳光下燃烧（MC 原版中在 BURN_IN_DAYLIGHT 标签中）
+    burnUndead();
 }
 
 bool PhantomEntity::canAttackType(entity::EntityTypeId /*typeId*/) const

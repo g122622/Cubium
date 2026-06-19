@@ -264,11 +264,12 @@ void MobEntity::dropExperience()
 bool MobEntity::isInDaylight() const
 {
     // 检查条件：
-    // 1. 世界为白天 (isDaytime)
-    // 2. 不在客户端
+    // 1. 不在客户端
+    // 2. 世界为白天 (isDaytime)
     // 3. 亮度 > 0.5
-    // 4. 随机检查
-    // 5. 天空可见 (canSeeSky)
+    // 4. 随机检查（亮度越高概率越大）
+    // 5. 不在水中或雨中
+    // 6. 天空可见 (canSeeSky)
 
     if (m_world == nullptr || m_world->isClientSide()) {
         return false;
@@ -293,6 +294,11 @@ bool MobEntity::isInDaylight() const
         return false;
     }
 
+    // 在水中或雨中时不燃烧
+    if (isWet()) {
+        return false;
+    }
+
     // 获取检测位置
     // 如果骑乘船，检测位置向上偏移一格
     BlockPos pos(
@@ -311,6 +317,34 @@ bool MobEntity::isInDaylight() const
     }
 
     return m_world->canSeeSky(pos);
+}
+
+void MobEntity::burnUndead()
+{
+    if (!isAlive() || !isInDaylight()) {
+        return;
+    }
+
+    // 获取防护槽位中的物品
+    EquipmentSlot protectionSlot = sunProtectionSlot();
+    ItemStack& protectionItem = m_equipment[static_cast<size_t>(protectionSlot)];
+
+    if (!protectionItem.isEmpty()) {
+        // 防护槽位有物品：如果物品可损坏，则物品承受耐久损耗
+        // 注意：此处直接增加伤害值，绕过耐久保护附魔，与 MC 原版行为一致
+        if (protectionItem.isDamageable()) {
+            math::Random rng = getRandom();
+            i32 addedDamage = rng.nextInt(2); // 0 或 1
+            if (addedDamage > 0) {
+                i32 newDamage = protectionItem.getDamage() + addedDamage;
+                protectionItem.setDamage(newDamage);
+            }
+        }
+        // 如果物品不可损坏（如附魔绑定/无限耐久），实体也不会燃烧
+    } else {
+        // 防护槽位为空：实体被点燃 8 秒
+        setFire(8);
+    }
 }
 
 bool MobEntity::canAttackType(entity::EntityTypeId typeId) const

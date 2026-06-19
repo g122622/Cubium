@@ -166,7 +166,6 @@ public:
 
 protected:
     bool m_burnsInDaylight = true;
-    i32 m_burnTime = 0;
 
     // ========== 敌对行为 ==========
 

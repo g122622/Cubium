@@ -55,7 +55,9 @@ bool ZombieHorseEntity::canBeRiddenBy(Player* player) const
 void ZombieHorseEntity::tick()
 {
     AbstractHorseEntity::tick();
-    // 僵尸马不需要额外的 tick 逻辑
+
+    // 僵尸马在阳光下燃烧（MC 原版中在 BURN_IN_DAYLIGHT 标签中）
+    burnUndead();
 }
 
 void ZombieHorseEntity::registerGoals()

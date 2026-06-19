@@ -659,22 +659,46 @@ public:
      */
     [[nodiscard]] virtual bool isDespawnPeaceful() const { return false; }
 
-    // ========== 日光检测 ==========
+    // ========== 日光检测与亡灵燃烧 ==========
 
     /**
      * @brief 检查是否暴露在日光下
      *
-     * 用于怪物燃烧（僵尸、骷髅等）和幻翼燃烧。
+     * 用于亡灵生物燃烧判断。
      *
      * 检查条件：
-     * 1. 世界为白天 (dayTime < 12000)
-     * 2. 天空可见 (canSeeSky)
+     * 1. 不在客户端
+     * 2. 世界为白天 (dayTime < 12000)
      * 3. 亮度 > 0.5
-     * 4. 不在水中或雨中
+     * 4. 随机检查（亮度越高概率越大）
+     * 5. 不在水中或雨中
+     * 6. 天空可见 (canSeeSky)
      *
      * @return 如果暴露在日光下返回 true
      */
     [[nodiscard]] bool isInDaylight() const;
+
+    /**
+     * @brief 获取阳光防护装备槽位
+     *
+     * 当亡灵生物暴露在阳光下时，此槽位中的物品会替代实体承受耐久损耗。
+     * 默认为头部槽位（头盔），僵尸马等覆写为身体槽位。
+     *
+     * @return 阳光防护装备槽位
+     */
+    [[nodiscard]] virtual EquipmentSlot sunProtectionSlot() const { return EquipmentSlot::Head; }
+
+    /**
+     * @brief 处理亡灵生物在阳光下的燃烧逻辑
+     *
+     * 当亡灵生物暴露在阳光下时：
+     * - 如果防护槽位有可损坏物品，则物品承受耐久损耗而非实体燃烧
+     * - 如果防护槽位为空，则实体被点燃 8 秒
+     *
+     * 物品耐久损耗直接通过 setDamage() 增加，绕过耐久保护附魔，
+     * 与 MC 原版 burnUndead() 行为一致。
+     */
+    void burnUndead();
 
     // ========== 攻击目标类型判断 ==========
 
