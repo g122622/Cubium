@@ -109,8 +109,7 @@ BlockState BigDripleafStemBlock::updatePostPlacement(const BlockState& state,
     // 参考: net.minecraft.block.BigDripleafStemBlock.updateShape
     if ((facing == Direction::Down || facing == Direction::Up) &&
         !isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
-        // 延迟销毁：MC原版使用scheduleTick(this, 1)来延迟销毁
-        // 当前项目中暂时直接返回空气
+        // TODO: MC原版使用 scheduleTick(this, 1) 延迟1tick后销毁，当前暂直接返回空气，待tick调度系统完善后改为延迟销毁
         return VanillaBlocks::AIR->defaultState();
     }
 
