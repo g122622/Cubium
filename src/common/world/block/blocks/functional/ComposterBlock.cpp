@@ -59,21 +59,43 @@ ComposterBlock::ComposterBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::LEVEL_0_8(), 0));
 
     // 预计算各等级的形状
-    // 堆肥桶内部填充高度随等级变化
+    // 堆肥桶形状 = 完整方块 - 内部12像素宽的柱体（从 fillHeight 到顶部）
+    // 由于 CollisionShape 暂不支持布尔减法，采用与 CauldronBlock 相同的方式手动拼接外壁：
+    // 底板 + 四面墙壁（2像素厚），内部柱体区域为空心
     constexpr f32 P = 1.0f / 16.0f;
 
-    // 外部形状是完整方块
+    // 碰撞形状始终是完整方块
     m_collisionShape = CollisionShape::fullBlock();
 
-    // 内部空洞随等级变化
-    // 等级0-7：内部空洞从下到上
-    // 等级8：满的
+    // 各等级的渲染形状：
+    // 底板厚度随等级增加（内部柱体底部上移，即空心区域减小）
+    // MC Java: Block.column(12.0, clamp(1 + level * 2, 2, 16), 16.0)
+    // 内部柱体宽度 = 12像素，从 y = clamp(1+level*2, 2, 16) 到 y = 16
+    // 外壁 = 底板（y: 0 ~ fillHeight）+ 四面墙壁（y: fillHeight ~ 16, 2像素厚）
     for (i32 i = 0; i < 8; ++i) {
-        // 内部填充高度 = max(2, 1 + i * 2) 像素
-        f32 fillHeight = static_cast<f32>(std::max(2, 1 + i * 2)) * P;
-        // 形状 = 完整方块 - 内部空洞
-        // 简化实现：只计算填充部分的形状
-        m_shapesByLevel[i] = CollisionShape::box(2.0f * P, fillHeight, 2.0f * P, 14.0f * P, 16.0f * P, 14.0f * P);
+        i32 fillHeightPixels = std::max(2, 1 + i * 2);
+        f32 fillHeight = static_cast<f32>(fillHeightPixels) * P;
+        f32 innerMin = 2.0f * P;  // 内壁起始 X/Z
+        f32 innerMax = 14.0f * P; // 内壁结束 X/Z
+        f32 top = 1.0f;           // 方块顶部
+
+        // 底板：完整方块，从 y=0 到 y=fillHeight
+        CollisionShape base = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, fillHeight, 1.0f);
+
+        // 北墙：x: 0~16, y: fillHeight~16, z: 0~2
+        CollisionShape northWall = CollisionShape::box(0.0f, fillHeight, 0.0f, 1.0f, top, innerMin);
+        // 南墙：x: 0~16, y: fillHeight~16, z: 14~16
+        CollisionShape southWall = CollisionShape::box(0.0f, fillHeight, innerMax, 1.0f, top, 1.0f);
+        // 西墙：x: 0~2, y: fillHeight~16, z: 2~14
+        CollisionShape westWall = CollisionShape::box(0.0f, fillHeight, innerMin, innerMin, top, innerMax);
+        // 东墙：x: 14~16, y: fillHeight~16, z: 2~14
+        CollisionShape eastWall = CollisionShape::box(innerMax, fillHeight, innerMin, 1.0f, top, innerMax);
+
+        // 合并所有部分
+        m_shapesByLevel[i] = CollisionShape::combine(
+            CollisionShape::combine(
+                CollisionShape::combine(CollisionShape::combine(base, northWall), southWall), westWall),
+            eastWall);
     }
     // 等级7和8形状相同
     m_shapesByLevel[8] = m_shapesByLevel[7];
@@ -104,10 +126,6 @@ const CollisionShape& ComposterBlock::getShape(const BlockState& state) const
 {
     i32 level = getLevel(state);
     MC_ASSERT(level >= 0 && level <= 8);
-    // 等级0时返回完整方块形状
-    if (level == 0) {
-        return m_collisionShape;
-    }
     return m_shapesByLevel[level];
 }
 
@@ -279,8 +297,7 @@ ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
 
     // 堆肥失败但仍播放了音效
     return ActionResultType::Success;
-    // TODO: MC Java 中 ComposterBlock 没有 interact_with_composter 统计（Stats.java 中不存在此统计），
-    //       但当堆肥成功时需要播放音效和粒子效果（参考 MC Java: ComposterBlock.animateTick）
+    // TODO: 堆肥成功时需要播放粒子效果（参考 MC Java: ComposterBlock.animateTick）
 }
 
 } // namespace blocks
