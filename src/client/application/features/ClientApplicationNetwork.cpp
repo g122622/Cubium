@@ -57,6 +57,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockSoundType.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -1861,23 +1862,31 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                 static_cast<u32>(count));
 
             // 播放骨粉使用音效
-            // TODO: 定义 ITEM_BONE_MEAL_USE 音效常量后替换为正确的音效
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
-                    SoundEvents::BLOCK_BONE_BLOCK_STEP, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+                    SoundEvents::ITEM_BONE_MEAL_USE, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
             }
             break;
         }
 
         case WorldEvents::BREAK_BLOCK_EFFECTS: {
-            // 方块破坏效果：播放方块破坏音效
-            // data = 方块状态ID（Block.getId(blockstate)）
-            if (m_audioService) {
-                // TODO: 使用 BlockState 的 SoundType 获取正确的破坏音效，当前使用通用音效
-                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
-                    SoundEvents::BLOCK_STONE_BREAK, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            // 方块破坏效果：根据方块状态ID获取正确的破坏音效和破坏粒子
+            // data = 方块状态ID（BlockState::stateId()）
+            const BlockState* blockState = BlockRegistry::instance().getBlockState(static_cast<u32>(data));
+            if (blockState && !blockState->isAir()) {
+                const BlockSoundType& soundType = blockState->getSoundType();
+                if (m_audioService) {
+                    m_audioService->play(std::make_unique<sound::SoundInstance>(
+                        sound::SoundInstance::createLocated(soundType.getBreakSound(),
+                            SoundCategory::Blocks,
+                            px,
+                            py,
+                            pz,
+                            (soundType.getVolume() + 1.0f) / 2.0f,
+                            soundType.getPitch() * 0.8f)));
+                }
+                // TODO: 生成方块破碎粒子（Breaking 粒子需要方块状态纹理作为附加参数，暂不实现）
             }
-            // TODO: 生成方块破碎粒子（Breaking 粒子需要方块状态数据作为附加参数，暂不实现）
             break;
         }
 

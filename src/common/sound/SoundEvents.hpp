@@ -1394,6 +1394,7 @@ extern const ResourceLocation ITEM_FIRECHARGE_USE;
 extern const ResourceLocation ITEM_TOTEM_USE;
 extern const ResourceLocation ITEM_BOOK_PAGE_TURN;
 extern const ResourceLocation ITEM_BOOK_PUT;
+extern const ResourceLocation ITEM_BONE_MEAL_USE;
 extern const ResourceLocation ITEM_BOTTLE_EMPTY;
 extern const ResourceLocation ITEM_BOTTLE_FILL;
 extern const ResourceLocation ITEM_BOTTLE_FILL_DRAGONBREATH;
