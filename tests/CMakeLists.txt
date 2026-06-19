@@ -652,6 +652,8 @@ add_executable(mc_tests
     common/world/gen/BiomeManagerTest.cpp
     # Beardifier (BEARD_KERNEL + affectedBox) 和 CarvingContext 扩展单元测试
     common/world/gen/BeardifierCarvingContextTest.cpp
+    # DensityFunctions (Invert, Mul 边界值) 和 CaveDensityFunctions 噪声参数测试
+    common/world/gen/density/DensityFunctionsTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/structure/test_ocean_ruin_structure.cpp

@@ -42,22 +42,34 @@ const BeardifierMarker BeardifierMarker::INSTANCE;
 /**
  * MC 1.21.11 预计算 BEARD_KERNEL[24][24][24] 查找表。
  *
- * BEARD_KERNEL[i][j][k] = gaussian(j-12, i-12, k-12)
- * 其中 i = Y 索引, j = X 索引, k = Z 索引。
+ * MC Java 的 BEARD_KERNEL 存储布局：
+ *   BEARD_KERNEL[i * 24 * 24 + j * 24 + k] = computeBeardContribution(j-12, k-12, i-12)
+ * 其中 computeBeardContribution 的第二个参数 (k-12) 获得 +0.5 偏移。
  *
- * MC Java 的 computeBeardContribution 只计算高斯部分：exp(-distSq/16)。
- * 胡须因子在 getBeardContribution 中单独计算并乘以核值。
+ * 在 getBeardContribution 的查找中：
+ *   i = dx+12 (X), j = dy+12 (Y), k = dz+12 (Z)
+ *   BEARD_KERNEL[k * 24 * 24 + i * 24 + j]  →  [Z+12][X+12][Y+12]
+ *
+ * 因此预计算循环变量映射为：
+ *   外循环 i → 对应查找的 k → Z 轴
+ *   中循环 j → 对应查找的 i → X 轴
+ *   内循环 k → 对应查找的 j → Y 轴
+ *
+ * MC 的 computeBeardContribution(j-12, k-12, i-12) 对第二个参数 (k-12) +0.5，
+ * 即对 Y 轴偏移加 0.5。在内循环变量中 k 对应 Y 轴，因此 +0.5 应加在 dz (=k-12) 上。
  */
 static const std::array<f32, 24 * 24 * 24> BEARD_KERNEL = []() {
     std::array<f32, 24 * 24 * 24> kernel{};
     for (i32 i = 0; i < 24; ++i) {
         for (i32 j = 0; j < 24; ++j) {
             for (i32 k = 0; k < 24; ++k) {
-                const i32 dx = j - 12;
-                const i32 dy = i - 12;
-                const i32 dz = k - 12;
-                const f64 adjustedY = static_cast<f64>(dy) + 0.5;
-                const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);
+                const i32 dx = j - 12;     // X 偏移（中循环 j → 查找 i → X）
+                const i32 dz_pre = i - 12; // Z 偏移（外循环 i → 查找 k → Z）
+                const i32 dy_pre = k - 12; // Y 偏移（内循环 k → 查找 j → Y）
+                // MC: +0.5 应用于第二个参数 (k-12)，即 Y 轴偏移
+                const f64 adjustedY = static_cast<f64>(dy_pre) + 0.5;
+                const f64 distSq =
+                    static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz_pre * dz_pre);
                 kernel[i * 24 * 24 + j * 24 + k] = static_cast<f32>(std::exp(-distSq / 16.0));
             }
         }
@@ -213,7 +225,8 @@ f64 Beardifier::getBuryContribution(f64 dx, f64 dy, f64 dz)
 f64 Beardifier::computeBeardContribution(i32 dx, i32 dy, i32 dz)
 {
     // MC 1.21: Beardifier.computeBeardContribution(dx, dy, dz)
-    // 只计算高斯部分，用于 BEARD_KERNEL 预计算表。
+    // computeBeardContribution(int, int, int) 调用 computeBeardContribution(int, double, int)
+    // 对第二个参数（Y 轴）加 0.5
     // 注意：此方法现在仅作为备用，BEARD_KERNEL 已直接在初始化时计算。
     const f64 adjustedY = static_cast<f64>(dy) + 0.5;
     const f64 distSq = static_cast<f64>(dx * dx) + adjustedY * adjustedY + static_cast<f64>(dz * dz);

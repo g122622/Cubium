@@ -328,13 +328,16 @@ private:
                 break;
             case MappedType::Invert: {
                 // 1/x 的范围取决于输入范围是否跨零
-                // MC 1.21: 跨越零点时使用 Double.NEGATIVE_INFINITY / Double.POSITIVE_INFINITY
+                // MC 1.21: Mapped(INVERT, input, transform(inMax), transform(inMin))
+                // 即 minValue = 1/inMax, maxValue = 1/inMin（两个值交换）
+                // 当输入范围跨越零点时使用 Double.NEGATIVE_INFINITY / Double.POSITIVE_INFINITY
                 if (inMin > 0.0) {
                     m_minValue = 1.0 / inMax;
                     m_maxValue = 1.0 / inMin;
                 } else if (inMax < 0.0) {
-                    m_minValue = 1.0 / inMin;
-                    m_maxValue = 1.0 / inMax;
+                    // 两个负数：1/inMax 更负（更小），1/inMin 更接近0（更大）
+                    m_minValue = 1.0 / inMax;
+                    m_maxValue = 1.0 / inMin;
                 } else {
                     // 跨越零点，范围无界
                     m_minValue = -std::numeric_limits<f64>::infinity();
@@ -425,7 +428,10 @@ private:
                 m_maxValue = max1 + max2;
                 break;
             case TwoArgumentType::Mul:
-                // 考虑符号组合
+                // MC 1.21: MUL 的 minValue/maxValue 计算
+                // minValue: d0>0 && d1>0 ? d0*d1 : (d2<0 && d3<0 ? d2*d3 : min(d0*d3, d2*d1))
+                // maxValue: d0>0 && d1>0 ? d2*d3 : (d2<0 && d3<0 ? d0*d1 : max(d0*d1, d2*d3))
+                // 其中 d0=min1, d1=min2, d2=max1, d3=max2
                 if (min1 > 0.0 && min2 > 0.0) {
                     m_minValue = min1 * min2;
                 } else if (max1 < 0.0 && max2 < 0.0) {
@@ -433,9 +439,9 @@ private:
                 } else {
                     m_minValue = std::min(min1 * max2, max1 * min2);
                 }
-                if (min1 > 0.0 && max2 > 0.0) {
+                if (min1 > 0.0 && min2 > 0.0) {
                     m_maxValue = max1 * max2;
-                } else if (max1 < 0.0 && min2 < 0.0) {
+                } else if (max1 < 0.0 && max2 < 0.0) {
                     m_maxValue = min1 * min2;
                 } else {
                     m_maxValue = std::max(min1 * min2, max1 * max2);

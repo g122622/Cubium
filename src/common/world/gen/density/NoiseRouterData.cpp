@@ -110,6 +110,8 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     // depth 使用 YClampedGradient（Y 轴线性映射）
     // MC 1.21: fromY=-64, toY=320, fromValue=1.5, toValue=-1.5
     // 这意味着表面 depth≈1.5，高空 depth≈-1.5
+    // 注意: NoiseRouter 的 depth 字段需要包含 offset（MC 的 offsetToDepth 函数），
+    // 但 createOverworldClimate 仅创建基础 yClampedGradient，offset 在 overworld() 管线中通过 add 添加
     climate.depth = factory::yClampedGradient(world::MIN_BUILD_HEIGHT, world::MAX_BUILD_HEIGHT, 1.5, -1.5);
 
     // ridges（奇异度）使用 shiftedNoise2d
@@ -229,16 +231,27 @@ NoiseRouter NoiseRouterData::noNewCaves(u64 seed, std::unique_ptr<DensityFunctio
     auto shiftZ = factory::flatCacheMarker(
         factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    auto temperature = factory::cache2DMarker(factory::shiftedNoise2d(
-        std::move(shiftX), std::move(shiftZ), 0.25, seed ^ 0x11111111ULL, -4, {1.0, 1.0, 1.0, 1.0}));
+    // MC 1.21: noNewCaves 使用与主世界相同的 TEMPERATURE 和 VEGETATION 噪声参数
+    // TEMPERATURE: firstOctave=-10, amplitudes={1.5, 0.0, 1.0, 0.0, 0.0, 0.0}
+    // VEGETATION: firstOctave=-8, amplitudes={1.0, 1.0, 0.0, 0.0, 0.0, 0.0}
+    auto temperature = factory::cache2DMarker(factory::shiftedNoise2d(std::move(shiftX),
+        std::move(shiftZ),
+        0.25,
+        seed ^ 0x11111111ULL,
+        TEMPERATURE_FIRST_OCTAVE,
+        toVector(TEMPERATURE_AMPLITUDES)));
 
     auto shiftX2 = factory::flatCacheMarker(
         factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ2 = factory::flatCacheMarker(
         factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    auto vegetation = factory::cache2DMarker(factory::shiftedNoise2d(
-        std::move(shiftX2), std::move(shiftZ2), 0.25, seed ^ 0x22222222ULL, -4, {1.0, 1.0, 1.0, 1.0}));
+    auto vegetation = factory::cache2DMarker(factory::shiftedNoise2d(std::move(shiftX2),
+        std::move(shiftZ2),
+        0.25,
+        seed ^ 0x22222222ULL,
+        VEGETATION_FIRST_OCTAVE,
+        toVector(VEGETATION_AMPLITUDES)));
 
     return NoiseRouter(factory::constant(0.0), // barrierNoise
         factory::constant(0.0),                // fluidLevelFloodednessNoise
@@ -264,11 +277,15 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     // ========== 含水层噪声 ==========
     // MC 1.21: AQUIFER_BARRIER, AQUIFER_FLUID_LEVEL_FLOODEDNESS,
     //          AQUIFER_FLUID_LEVEL_SPREAD, AQUIFER_LAVA
-    auto barrierNoise = factory::noise(seed ^ 0xA5100001ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.5, 0.0);
-    auto fluidLevelFloodednessNoise = factory::noise(seed ^ 0xA5100002ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.67, 0.0);
-    auto fluidLevelSpreadNoise =
-        factory::noise(seed ^ 0xA5100003ULL, -3, {1.0, 1.0, 0.0, 1.0}, 0.7142857142857143, 0.0);
-    auto lavaNoise = factory::noise(seed ^ 0xA5100004ULL, -1, {1.0}, 1.0, 0.0);
+    // MC 1.21: AQUIFER_BARRIER: firstOctave=-3, amplitudes={1.0}, xzScale=1.0, yScale=0.5
+    // MC 的 noise(holder, 0.5) 表示 xzScale=1.0, yScale=0.5
+    auto barrierNoise = factory::noise(seed ^ 0xA5100001ULL, -3, {1.0}, 1.0, 0.5);
+    // MC 1.21: AQUIFER_FLUID_LEVEL_FLOODEDNESS: firstOctave=-7, amplitudes={1.0}, xzScale=1.0, yScale=0.67
+    auto fluidLevelFloodednessNoise = factory::noise(seed ^ 0xA5100002ULL, -7, {1.0}, 1.0, 0.67);
+    // MC 1.21: AQUIFER_FLUID_LEVEL_SPREAD: firstOctave=-5, amplitudes={1.0}, xzScale=1.0, yScale=0.714...
+    auto fluidLevelSpreadNoise = factory::noise(seed ^ 0xA5100003ULL, -5, {1.0}, 1.0, 0.7142857142857143);
+    // MC 1.21: AQUIFER_LAVA: firstOctave=-1, amplitudes={1.0}, xzScale=1.0, yScale=1.0
+    auto lavaNoise = factory::noise(seed ^ 0xA5100004ULL, -1, {1.0}, 1.0, 1.0);
 
     // 为 NoiseRouter 的气候字段创建独立副本
     auto climateForRouter = createOverworldClimate(seed, largeBiomes);
@@ -305,6 +322,18 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto offsetWithGlobal = factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET), std::move(offsetSpline));
     // blendOffset 暂时为 constant(0.0)
     auto offset = TerrainProvider::splineWithBlending(std::move(offsetWithGlobal), factory::constant(0.0));
+
+    // MC 1.21: NoiseRouter 的 depth 字段 = offsetToDepth = yClampedGradient + offset
+    // 为 climateForRouter.depth 创建独立的 offset 副本（使用 climateForRouter 的 continents/erosion）
+    // 注意：climateForRouter 的 continents 和 erosion 需要在 NoiseRouter 构造时使用，不能被 move
+    // 因此使用 shared_ptr 方式引用
+    auto continentsForDepthShared = std::shared_ptr<DensityFunction>(std::move(climateForRouter.continents));
+    auto erosionForDepthShared = std::shared_ptr<DensityFunction>(std::move(climateForRouter.erosion));
+    auto offsetForDepth = TerrainProvider::splineWithBlending(
+        factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET),
+            TerrainProvider::overworldOffset(continentsForDepthShared, erosionForDepthShared, ridgesPVShared)),
+        factory::constant(0.0));
+    climateForRouter.depth = factory::add(std::move(climateForRouter.depth), std::move(offsetForDepth));
 
     // --- factor: splineWithBlending(spline(overworldFactor), BLENDING_FACTOR=10.0) ---
     // overworldFactor 需要 weirdness，即 ridges（原始值，非 peaksAndValleys）
@@ -389,7 +418,12 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto depthPlusOffset = factory::add(std::move(depth), std::move(offset));
 
     // jaggedNoise = noise(JAGGED, 1500.0, 0.0) — MC 1.21
-    auto jaggedNoise = factory::noise(seed ^ 0x77777777ULL, -7, {1.0, 1.0, 1.0, 1.0}, 1500.0, 0.0);
+    // MC 1.21: firstOctave=-16, amplitudes={1.0}×17
+    auto jaggedNoise = factory::noise(seed ^ 0x77777777ULL,
+        -16,
+        {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0},
+        1500.0,
+        0.0);
     auto jaggedContribution = factory::mul(std::move(jaggedness), factory::halfNegative(std::move(jaggedNoise)));
 
     auto depthPlusOffsetPlusJagged = factory::add(std::move(depthPlusOffset), std::move(jaggedContribution));
@@ -414,19 +448,21 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto entrancesFunc = CaveDensityFunctions::entrances(seed);
     auto pillarsFunc = CaveDensityFunctions::pillars(seed);
 
-    // caveLayer = 4.0 * square(noise(CAVE_LAYER, 8.0, 8.0))
+    // caveLayer = 4.0 * square(noise(CAVE_LAYER, 8.0))
+    // MC 1.21: noise(CAVE_LAYER, 8.0) 表示 xzScale=1.0, yScale=8.0
     auto caveLayer = factory::mul(factory::constant(4.0),
         factory::square(factory::noise(seed ^ 0xB0000013ULL,
             CaveDensityFunctions::CAVE_LAYER_OCTAVE,
             toVector(CaveDensityFunctions::CAVE_LAYER_AMPS),
-            8.0,
+            1.0,
             8.0)));
 
-    // caveCheese = noise(CAVE_CHEESE, 2/3, 2/3)
+    // caveCheese = noise(CAVE_CHEESE, 2/3)
+    // MC 1.21: noise(CAVE_CHEESE, 0.666...) 表示 xzScale=1.0, yScale=0.666...
     auto caveCheese = factory::noise(seed ^ 0xB0000014ULL,
         CaveDensityFunctions::CAVE_CHEESE_OCTAVE,
         toVector(CaveDensityFunctions::CAVE_CHEESE_AMPS),
-        0.6666666666666666,
+        1.0,
         0.6666666666666666);
 
     // caveCheeseFactor = clamp(0.27 + caveCheese, -1, 1) + clamp(1.5 - 0.64*slopedCheese, 0, 0.5)
@@ -461,13 +497,13 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 
     // --- noCavesOrNoodle = rangeChoice(slopedCheese, -1e6, 1.5625, min(slopedCheese + 5*entrances, underground),
     // underground) ---
-    // MC 1.21: 当 slopedCheese < 1.5625 时（地表附近），密度由 slopedCheese + 5*entrances 与 underground
-    // 的较小值决定 当 slopedCheese >= 1.5625 时（深层），直接使用 underground
-    // slopedCheese 和 underground 均通过 SharedHolder 引用
+    // MC 1.21: 当 slopedCheese < 1.5625 时（地表附近），密度由 min(slopedCheese, 5*entrances) 与 underground
+    // 的较小值决定；当 slopedCheese >= 1.5625 时（深层），直接使用 underground
+    // 注意: MC 使用 min(slopedCheese, 5*entrances)，而非 add(slopedCheese, 5*entrances)
     auto entrancesForRange = CaveDensityFunctions::entrances(seed);
-    auto slopedCheesePlus5Entrances = factory::add(
+    auto minSlopedCheese5Entrances = factory::min(
         factory::sharedHolder(slopedCheeseShared), factory::mul(factory::constant(5.0), std::move(entrancesForRange)));
-    auto whenInRange = factory::min(std::move(slopedCheesePlus5Entrances), factory::sharedHolder(undergroundShared));
+    auto whenInRange = factory::min(std::move(minSlopedCheese5Entrances), factory::sharedHolder(undergroundShared));
 
     auto noCavesOrNoodle = factory::rangeChoice(factory::sharedHolder(slopedCheeseShared),
         -1000000.0,
@@ -544,43 +580,42 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     //       需要实现 findTopSurface 后替换为正确的密度函数
     auto preliminarySurfaceLevel = factory::constant(0.0);
 
-    return NoiseRouter(std::move(barrierNoise), // barrierNoise
-        std::move(fluidLevelFloodednessNoise),  // fluidLevelFloodednessNoise
-        std::move(fluidLevelSpreadNoise),       // fluidLevelSpreadNoise
-        std::move(lavaNoise),                   // lavaNoise
-        std::move(climate.temperature),         // temperature
-        std::move(climate.vegetation),          // vegetation
-        std::move(climateForRouter.continents), // continents
-        std::move(climateForRouter.erosion),    // erosion
-        std::move(climateForRouter.depth),      // depth
-        std::move(climateForRouter.ridges),     // ridges
-        std::move(preliminarySurfaceLevel),     // preliminarySurfaceLevel
-        std::move(finalDensity),                // finalDensity
-        std::move(veinToggle),                  // veinToggle
-        std::move(veinRidged),                  // veinRidged
-        std::move(veinGap));                    // veinGap
+    return NoiseRouter(std::move(barrierNoise),          // barrierNoise
+        std::move(fluidLevelFloodednessNoise),           // fluidLevelFloodednessNoise
+        std::move(fluidLevelSpreadNoise),                // fluidLevelSpreadNoise
+        std::move(lavaNoise),                            // lavaNoise
+        std::move(climate.temperature),                  // temperature
+        std::move(climate.vegetation),                   // vegetation
+        factory::sharedHolder(continentsForDepthShared), // continents
+        factory::sharedHolder(erosionForDepthShared),    // erosion
+        std::move(climateForRouter.depth),               // depth
+        std::move(climateForRouter.ridges),              // ridges
+        std::move(preliminarySurfaceLevel),              // preliminarySurfaceLevel
+        std::move(finalDensity),                         // finalDensity
+        std::move(veinToggle),                           // veinToggle
+        std::move(veinRidged),                           // veinRidged
+        std::move(veinGap));                             // veinGap
 }
 
 NoiseRouter NoiseRouterData::nether(u64 seed)
 {
-    // MC 1.21: nether finalDensity = postProcess(slideNetherLike(add(blendedNoise, yClampedGradient(0, 128, 1.5,
-    // -1.5))))
+    // MC 1.21: nether finalDensity = noNewCaves(slideNetherLike(BASE_3D_NOISE_NETHER, 0, 128))
+    // 没有 yClampedGradient！下界的深度为 constant(0.0)
     auto base3dNoise = factory::blendedNoise(seed, 0.25, 0.375, 80.0, 60.0, 8.0);
-    auto depth = factory::yClampedGradient(0, 128, 1.5, -1.5);
-    auto density = factory::add(std::move(base3dNoise), std::move(depth));
-    auto slid = slideNetherLike(std::move(density), 0, 128);
+    auto slid = slideNetherLike(std::move(base3dNoise), 0, 128);
     return noNewCaves(seed, std::move(slid));
 }
 
 NoiseRouter NoiseRouterData::end(u64 seed)
 {
-    // MC 1.21: end finalDensity = postProcess(slideEndLike(add(cache2d(endIslands), blendedNoise_end)))
-    // erosion 槽位使用 endIslands，用于 EndBiomeSource 选择生物群系
-    auto endIslandsNoise = factory::endIslands(seed);
-    auto endIslands2d = factory::cache2DMarker(factory::endIslands(seed));
+    // MC 1.21: end finalDensity = postProcess(slideEndLike(add(endIslands(0L), blendedNoise_end)))
+    // 注意: finalDensity 中的 endIslands 不需要 cache2d 包装
+    // erosion 槽位使用 cache2d(endIslands(0L))，用于 EndBiomeSource 选择生物群系
+    auto endIslandsForErosion = factory::cache2DMarker(factory::endIslands(seed));
+    auto endIslandsForDensity = factory::endIslands(seed);
 
     auto base3dNoise = factory::blendedNoise(seed, 0.25, 0.25, 80.0, 160.0, 4.0);
-    auto slopedCheese = factory::add(std::move(endIslands2d), std::move(base3dNoise));
+    auto slopedCheese = factory::add(std::move(endIslandsForDensity), std::move(base3dNoise));
     auto slid = slideEndLike(std::move(slopedCheese), 0, 128);
     auto finalDensity = postProcess(std::move(slid));
 
@@ -591,7 +626,7 @@ NoiseRouter NoiseRouterData::end(u64 seed)
         factory::constant(0.0),                // temperature
         factory::constant(0.0),                // vegetation
         factory::constant(0.0),                // continents
-        std::move(endIslandsNoise),            // erosion（用于 EndBiomeSource）
+        std::move(endIslandsForErosion),       // erosion = cache2d(endIslands(0L))
         factory::constant(0.0),                // depth
         factory::constant(0.0),                // ridges
         factory::constant(0.0),                // preliminarySurfaceLevel

@@ -60,25 +60,17 @@ std::unique_ptr<DensityFunction> CaveDensityFunctions::spaghetti2d(u64 seed)
         toVector(SPAGHETTI_2D_AMPS),
         WeirdScaledSamplerType::Type2);
 
-    // mappedNoise(SPAGHETTI_2D_ELEVATION, 0.0, floorDiv(-64, 8) * 8.0, 8.0)
-    // MC: mapFromUnitTo(noise, 0.0, floorDiv(-64, 8)) 然后乘以 8
-    // floorDiv(-64, 8) = -8, 所以 fromValue = 0.0, toValue = -8.0*8 = -64.0... 不对
-    // 实际 MC: mappedNoise(NOISE, xzScale=1.0, yScale=1.0, fromValue=0.0, toValue=-8)
-    // 然后 densityFunction2 = mappedNoise * 8 ... 不对
-    // MC 代码: densityFunction2 = MappedNoise(SPAGHETTI_2D_ELEVATION, 0.0, Math.floor(-64 / 8))
-    // 即 fromValue=0.0, toValue=-8, 然后 scale=8.0
-    // 实际上 MC 的 MappedNoise 构造是 (noise, xzScale, yScale, fromValue, toValue)
-    // spaghetti_2d_elevation 的 mappedNoise: xzScale=1.0, yScale=1.0, fromValue=0.0, toValue=-8
-    // 然后整体乘以 8
-    // 但我们的 mappedNoise 已经是 fromValue + noise * (toValue - fromValue)
-    // 所以 densityFunction2 = 8.0 * mappedNoise(seed, octave, amps, 1.0, 1.0, 0.0, -8.0)
+    // MC 1.21: mappedNoise(SPAGHETTI_2D_ELEVATION, 0.0, -8, 8.0)
+    // 四参数版 mappedNoise(noise, yScale=0.0, fromValue=-8, toValue=8.0)，隐含 xzScale=1.0
+    // yScale=0.0 使得 elevation 成为纯 2D 噪声（忽略 Y 坐标）
+    // mapFromUnitTo(noise, -8, 8) = constant(-8) + mul(constant(8), noise)
     auto elevation = factory::mappedNoise(seed ^ 0xB0000003ULL,
         SPAGHETTI_2D_ELEVATION_OCTAVE,
         toVector(SPAGHETTI_2D_ELEVATION_AMPS),
         1.0,
-        1.0,
         0.0,
-        -8.0);
+        -8.0,
+        8.0);
 
     // densityFunction3 = cacheOnce(mappedNoise(SPAGHETTI_2D_THICKNESS, 2.0, 1.0, -0.6, -1.3))
     auto thickness = factory::cacheOnce(factory::mappedNoise(seed ^ 0xB0000004ULL,
