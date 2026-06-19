@@ -1261,6 +1261,7 @@ add_library(mc_common STATIC
     util/nbt/NbtJsonUtils.cpp
 
     # Text System (Rich Text)
+    util/text/Utf8.cpp
     util/text/TextStyle.cpp
     util/text/ITextComponent.cpp
     util/text/TextParser.cpp

@@ -27,6 +27,7 @@
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/util/text/Utf8.hpp"
 #include <algorithm>
 #include <string>
 #include <utility>
@@ -308,10 +309,10 @@ private:
      * @param codePoint Unicode码点
      * @return 步进宽度（像素）
      */
-    [[nodiscard]] f32 _measureGlyphAdvance(char32_t codePoint) const
+    [[nodiscard]] f32 _measureGlyphAdvance(u32 codePoint) const
     {
         if (m_font) {
-            if (const auto* glyph = m_font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
+            if (const auto* glyph = m_font->getGlyph(codePoint); glyph != nullptr) {
                 return glyph->advance;
             }
             return MISSING_GLYPH_ADVANCE;
@@ -320,16 +321,16 @@ private:
     }
 
     /**
-     * @brief 计算单行文本的总宽度
+     * @brief 计算单行文本的总宽度（按码点迭代 UTF-8）
      * @param text 文本内容
      * @return 文本宽度（像素）
      */
     [[nodiscard]] f32 _measureLineWidth(const std::string& text) const
     {
         f32 width = 0.0f;
-        for (char32_t codePoint : text) {
+        util::text::utf8ForEachCodepoint(text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) {
             width += _measureGlyphAdvance(codePoint);
-        }
+        });
         return width;
     }
 
@@ -375,18 +376,18 @@ private:
         currentLine.reserve(m_text.size());
         f32 currentWidth = 0.0f;
 
-        for (char32_t codePoint : m_text) {
+        util::text::utf8ForEachCodepoint(m_text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) {
             if (codePoint == U'\n') {
                 _appendLine(std::move(currentLine));
                 currentLine.clear();
                 currentWidth = 0.0f;
-                continue;
+                return;
             }
 
             const f32 advance = _measureGlyphAdvance(codePoint);
             // 跳过行首空格
             if (codePoint == U' ' && currentLine.empty()) {
-                continue;
+                return;
             }
 
             // 当前行已有内容且加入当前字符会超宽时，换行
@@ -396,15 +397,13 @@ private:
                 currentWidth = 0.0f;
                 // 换行后跳过空格
                 if (codePoint == U' ') {
-                    continue;
+                    return;
                 }
             }
 
-            // TODO: 当前 push_back(char32_t) 会截断为 char，非ASCII字符会丢失。
-            //       需要实现正确的 UTF-8 编码追加以支持 Unicode 文本。
-            currentLine.push_back(codePoint);
+            util::text::utf8Append(currentLine, codePoint);
             currentWidth += advance;
-        }
+        });
 
         _appendLine(std::move(currentLine));
         return m_lines;
@@ -417,7 +416,7 @@ private:
     {
         size_t start = 0;
         while (start <= m_text.size()) {
-            const size_t end = m_text.find(U'\n', start);
+            const size_t end = m_text.find('\n', start);
             _appendLine(m_text.substr(start, end == std::string::npos ? std::string::npos : end - start));
             if (end == std::string::npos) {
                 break;

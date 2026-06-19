@@ -6,6 +6,7 @@
 
 ```
 text/
+├── Utf8.hpp/cpp             # UTF-8 编码/解码/迭代工具函数
 ├── TextStyle.hpp/cpp       # 文本样式和格式化类型（颜色、粗体、斜体等）
 ├── TextEvents.hpp          # 点击和悬停事件定义
 ├── ITextComponent.hpp/cpp  # 文本组件抽象接口及 BaseTextComponent

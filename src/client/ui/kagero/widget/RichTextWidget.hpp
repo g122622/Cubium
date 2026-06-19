@@ -34,6 +34,7 @@
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextParser.hpp"
 #include "common/util/text/TextStyle.hpp"
+#include "common/util/text/Utf8.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -526,20 +527,20 @@ private:
     {
         if (m_font) {
             f32 width = 0.0f;
-            for (char32_t codePoint : text) {
-                if (const auto* glyph = m_font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
+            util::text::utf8ForEachCodepoint(text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) {
+                if (const auto* glyph = m_font->getGlyph(codePoint); glyph != nullptr) {
                     width += glyph->advance;
                 } else {
                     // 缺失字形的回退宽度
                     constexpr f32 MISSING_GLYPH_WIDTH = 4.0f;
                     width += MISSING_GLYPH_WIDTH;
                 }
-            }
+            });
             return width;
         }
-        // 无字体时的回退宽度：每字符8像素
+        // 无字体时的回退宽度：每码点8像素
         constexpr f32 FALLBACK_CHAR_WIDTH = 8.0f;
-        return static_cast<f32>(text.length()) * FALLBACK_CHAR_WIDTH;
+        return static_cast<f32>(util::text::utf8CodepointCount(text)) * FALLBACK_CHAR_WIDTH;
     }
 
     /**
