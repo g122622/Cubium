@@ -64,9 +64,6 @@ ComposterBlock::ComposterBlock(const BlockProperties& properties)
     // 底板 + 四面墙壁（2像素厚），内部柱体区域为空心
     constexpr f32 P = 1.0f / 16.0f;
 
-    // 碰撞形状始终是完整方块
-    m_collisionShape = CollisionShape::fullBlock();
-
     // 各等级的渲染形状：
     // 底板厚度随等级增加（内部柱体底部上移，即空心区域减小）
     // MC Java: Block.column(12.0, clamp(1 + level * 2, 2, 16), 16.0)
@@ -132,8 +129,8 @@ const CollisionShape& ComposterBlock::getShape(const BlockState& state) const
 const CollisionShape& ComposterBlock::getCollisionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // 碰撞箱始终是完整方块
-    return m_collisionShape;
+    // MC Java: 碰撞形状始终为等级0的外壳形状（底板2像素 + 四面墙壁）
+    return m_shapesByLevel[0];
 }
 
 i32 ComposterBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const

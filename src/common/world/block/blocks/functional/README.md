@@ -11,7 +11,7 @@
 ├── BrewingStandBlock.hpp / cpp #酿造台（药水酿造，3瓶槽位）
 ├── CauldronBlock.hpp / cpp #炼药锅（储水、物品清洗，4级水位）
 ├── CompostableItems.hpp / cpp #可堆肥物品注册表（ ~66种物品概率表）
-├── ComposterBlock.hpp / cpp #堆肥桶（8层填充，产出骨粉）
+├── ComposterBlock.hpp / cpp #堆肥桶（8层填充，产出骨粉，碰撞形状为外壁拼接：底板+四面墙壁）
 ├── CakeBlock.hpp / cpp #蛋糕（可食用，7片）
 ├── BeaconBlock.hpp / cpp #信标（增益效果，金字塔基座）
 ├── BarrelBlock.hpp / cpp #木桶（存储容器，6方向放置）
@@ -107,9 +107,15 @@
         在下界 /
             末地使用会爆炸（爆炸强度5.0）
 
-            ## #2. ComposterBlock 堆肥延迟
+            ## #2. ComposterBlock 堆肥延迟与碰撞形状
 
             等级7→8的转换需要20 tick延迟，通过 `TickManager` 调度。不要在 `onBlockActivated` 中直接产出骨粉。
+
+            碰撞形状注意事项：
+            - `getShape()` 根据等级返回不同的外壁形状（底板 + 四面墙壁），底板高度随等级增加
+            - `getCollisionShape()` 始终返回等级0的外壁形状（MC Java: SHAPES[0]）
+            - 碰撞形状不是完整方块，等级0时底板高2像素 + 四面墙壁
+            - 形状使用 `CollisionShape::combine(OR)` 手动拼接，因为 `CombineOp::NOT` 尚未实现
 
             ## #3. GrindstoneBlock 附着面
 
