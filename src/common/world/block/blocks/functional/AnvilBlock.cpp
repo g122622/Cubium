@@ -48,25 +48,18 @@ static constexpr i32 ANVIL_FALL_DAMAGE_MAX = 40;
 
 // ========== 铁砧形状常量（像素坐标，0-16范围） ==========
 //
-// MC 原版铁砧形状由四个柱体组成，且 X/Z 轴不对称：
-//   顶面沿朝向方向延伸至满16像素宽，垂直方向仅10像素宽。
+// 铁砧形状由四个长方体组成，与 MC 原版 AnvilBlock.SHAPES 完全一致。
+// MC 原版使用 Block.column(xDiameter, zDiameter, minY, maxY) 构造形状：
+//   column(xD, zD, yMin, yMax) = box(8-xD/2, yMin, 8-zD/2, 8+xD/2, yMax, 8+zD/2)
 //
 // Z轴形状（North/South朝向，铁砧长轴沿Z方向）：
-//   底座：X=2~14,  Z=2~14,  Y=0~4   (12×12，对称)
-//   中段：X=4~12,  Z=3~13,  Y=4~5   (8×10，Z更宽)
-//   窄颈：X=6~10,  Z=4~12,  Y=5~10  (4×8，Z更宽)
-//   顶面：X=3~13,  Z=0~16,  Y=10~16 (10×16，Z满宽)
+//   底座：column(12, 12, 0, 4)    → box(2, 0, 2, 14, 4, 14)     (12×4×12，对称)
+//   中段：column(8, 10, 4, 5)     → box(4, 4, 3, 12, 5, 13)     (8×1×10)
+//   窄颈：column(4, 8, 5, 10)     → box(6, 5, 4, 10, 10, 12)    (4×5×8)
+//   顶面：column(10, 16, 10, 16)  → box(3, 10, 0, 13, 16, 16)   (10×6×16，Z方向满宽)
 //
-// X轴形状（East/West朝向，铁砧长轴沿X方向）：
-//   由Z轴形状绕Y轴旋转90度得到，X/Z坐标互换。
+// X轴形状（East/West朝向）：由Z轴形状绕Y轴旋转90度得到，X/Z坐标互换。
 //
-// 参考: MC 1.21.11 AnvilBlock.java 中的 SHAPES 常量，
-//       Block.column(xDiameter, zDiameter, minY, maxY) 的参数为直径而非半径。
-//
-// TODO: MC原版中段和窄颈使用 Block.column 的4参数版本（底顶直径不同的锥形），
-//       例如 Z轴中段底部8×10、顶部4×8，窄颈底部4×8、顶部10×16。
-//       当前 CollisionShape 系统不支持锥形，只能用最大包围矩形近似，
-//       待 CollisionShape 支持锥形后应改用精确形状。
 
 /// 像素单位常量
 static constexpr f32 P = 1.0f / 16.0f;

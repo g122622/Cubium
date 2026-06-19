@@ -139,6 +139,20 @@ public:
         Hand hand,
         const BlockRaycastResult& hit) override;
 
+    /**
+     * @brief 铁砧不允许作为寻路路径
+     *
+     * 铁砧的材质虽然阻挡移动（默认 allowsMovement 返回 false），
+     * 但这里显式覆盖以确保行为与 MC 原版一致。
+     */
+    [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override
+    {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return false;
+    }
+
     // ========== 静态工具方法 ==========
 
     /**
@@ -151,9 +165,6 @@ public:
      * @return 损坏后的方块状态指针，如果已完全损坏则返回 nullptr
      */
     [[nodiscard]] static const BlockState* damageAnvil(const BlockState& state);
-
-    // TODO: MC原版 AnvilBlock 覆盖 isPathfindable 返回 false（铁砧不可作为寻路路径），
-    //       待寻路系统实现 isPathfindable 接口后应在此添加覆盖。
 
 private:
     /**

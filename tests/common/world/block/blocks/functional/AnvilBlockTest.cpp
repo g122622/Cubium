@@ -433,6 +433,53 @@ TEST_F(AnvilBlockTest, GetCollisionShape_SameAsShape)
     EXPECT_EQ(&shape, &collisionShape);
 }
 
+// ========== 寻路测试 ==========
+
+/**
+ * @brief 测试铁砧不允许寻路通过
+ *
+ * MC 原版：AnvilBlock.isPathfindable() 返回 false，
+ * 铁砧不应作为实体寻路的目标方块。
+ */
+TEST_F(AnvilBlockTest, AllowsMovement_ReturnsFalse)
+{
+    const Block* anvil = block_registry::BuildingBlocks::ANVIL;
+    ASSERT_NE(anvil, nullptr);
+
+    AnvilTestWorld world;
+    BlockPos pos(10, 64, 20);
+
+    const BlockState& northState =
+        anvil->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    const BlockState& eastState =
+        anvil->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East);
+
+    // 所有朝向的铁砧都不允许寻路
+    EXPECT_FALSE(anvil->allowsMovement(northState, world, pos));
+    EXPECT_FALSE(anvil->allowsMovement(eastState, world, pos));
+}
+
+/**
+ * @brief 测试三种铁砧变体都不允许寻路
+ */
+TEST_F(AnvilBlockTest, AllAnvilVariants_AllowMovementFalse)
+{
+    const Block* anvil = block_registry::BuildingBlocks::ANVIL;
+    const Block* chipped = block_registry::BuildingBlocks::CHIPPED_ANVIL;
+    const Block* damaged = block_registry::BuildingBlocks::DAMAGED_ANVIL;
+
+    ASSERT_NE(anvil, nullptr);
+    ASSERT_NE(chipped, nullptr);
+    ASSERT_NE(damaged, nullptr);
+
+    AnvilTestWorld world;
+    BlockPos pos(10, 64, 20);
+
+    EXPECT_FALSE(anvil->allowsMovement(anvil->defaultState(), world, pos));
+    EXPECT_FALSE(chipped->allowsMovement(chipped->defaultState(), world, pos));
+    EXPECT_FALSE(damaged->allowsMovement(damaged->defaultState(), world, pos));
+}
+
 // ========== 铁砧放置朝向测试 ==========
 
 /**

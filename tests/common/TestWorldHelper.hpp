@@ -59,7 +59,7 @@ private:
  * 提供 tests 中最常见的 IWorld 默认实现，避免每个测试重复样板代码。
  * 需要特殊行为的测试只覆写自己关心的方法即可。
  */
-class BaseTestWorld : public IWorld {
+class BaseTestWorld : public IBlockReader {
 public:
     [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
     bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
