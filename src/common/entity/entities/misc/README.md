@@ -38,7 +38,9 @@ MiscEntities.hpp
 │   ├── 依赖 BlockStateProperties::WATERLOGGED 进行水浸透处理
 │   └── 依赖 VanillaBlocks::MOVING_PISTON 进行活塞移动检查
 ├── TNTEntity 继承 Entity
-│   └── 依赖 IWorld::createExplosion() 进行爆炸
+│   ├── 依赖 IWorld::createExplosion() 进行爆炸
+│   ├── 依赖 GameRules::TNT_EXPLODES 控制 tntExplodes 规则（为 false 时不创建爆炸，实体直接移除）
+│   └── 支持自定义引信时间 ignite(i32 fuseTicks)，用于连锁爆炸短引信
 ├── WardenWarningEffect（独立类，非实体）
 └── OminousItemSpawnerEntity 继承 Entity
 ```
@@ -61,6 +63,7 @@ MiscEntities.hpp
 - `BlockItemRegistry` (`item/items/block/BlockItemRegistry.hpp`)
 - `Explosion` 系统 (`world/explosion/`)
 - `DamageSource` (`entity/damage/DamageSource.hpp`)
+- `GameRules` (`world/gamerule/GameRules.hpp`) - TNTEntity 爆炸检查 tntExplodes 规则
 - `ParticleTypes` (客户端粒子)
 - `BlockStateProperties` (`util/property/Properties.hpp`) - 水浸透属性
 - `VanillaBlocks` (`world/block/registry/VanillaBlocks.hpp`) - 活塞检查
@@ -80,15 +83,19 @@ MiscEntities.hpp
 
 6. **TNTEntity 爆炸模式**：TNT 爆炸使用 `ExplosionMode::Break`（破坏方块但不掉落物品），与苦力怕的 `ExplosionMode::Destroy` 不同。
 
-7. **FallingBlockEntity 落地放置逻辑（_tryPlaceBlock）**：落地时依次检查以下条件，任一不满足则放置失败并掉落物品：
+7. **TNTEntity 受 tntExplodes 游戏规则控制**：当 `tntExplodes=false` 时，`explode()` 方法不会调用 `createExplosion()`，但仍会移除实体（`remove()`）。这是与 MC Java 一致的行为——TNT 实体会消失但不产生爆炸效果。
+
+8. **TNTEntity 自定义引信时间**：`ignite(i32 fuseTicks)` 重载允许设置自定义引信时间，主要用于连锁爆炸场景（TNTBlock::onBlockExploded 生成的短引信 TNT，公式 `nextInt(fuse/4) + fuse/8`）。默认 `ignite()` 使用 80 tick 引信。
+
+9. **FallingBlockEntity 落地放置逻辑（_tryPlaceBlock）**：落地时依次检查以下条件，任一不满足则放置失败并掉落物品：
    - 目标位置不是移动中的活塞（`VanillaBlocks::MOVING_PISTON`）
    - 下方方块不可穿透（`FallingBlock::canFallThrough()` 返回 false）
    - 目标位置可替换（`canBeReplaced()` 或 `!blocksMovement()`）
    - 方块可以在该位置放置（`Block::isValidPosition()`）
    - 水浸透处理：如果方块支持 `WATERLOGGED` 属性且目标位置有水源，设置 `waterlogged=true`
 
-8. **FallingBlockEntity 对 ConcretePowderBlock 的特殊处理**：下落过程中，如果下落方块是混凝土粉末且当前位置有水，立即固化为对应颜色的混凝土。此逻辑在 `tick()` 中检测，优先于落地处理。
+10. **FallingBlockEntity 对 ConcretePowderBlock 的特殊处理**：下落过程中，如果下落方块是混凝土粉末且当前位置有水，立即固化为对应颜色的混凝土。此逻辑在 `tick()` 中检测，优先于落地处理。
 
-9. **FallingBlockEntity 铁砧完全摧毁的标志选择**：铁砧完全损坏时使用 `m_dontSetBlock=true`（而非 `m_cancelDrop`），因为 `m_cancelDrop` 会跳过 `onBroken` 回调，而铁砧需要 `onBroken` 来播放破碎音效。`m_dontSetBlock` 路径会调用 `onBroken` 但不放置方块也不掉落物品。
+11. **FallingBlockEntity 铁砧完全摧毁的标志选择**：铁砧完全损坏时使用 `m_dontSetBlock=true`（而非 `m_cancelDrop`），因为 `m_cancelDrop` 会跳过 `onBroken` 回调，而铁砧需要 `onBroken` 来播放破碎音效。`m_dontSetBlock` 路径会调用 `onBroken` 但不放置方块也不掉落物品。
 
-10. **MAX_FALL_TIME 超时处理**：FallingBlockEntity 下落超过 600 tick（30秒）后会强制放置，防止永久下落。
+12. **MAX_FALL_TIME 超时处理**：FallingBlockEntity 下落超过 600 tick（30秒）后会强制放置，防止永久下落。

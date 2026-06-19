@@ -25,8 +25,9 @@ IDispenseItemBehavior (接口)
         ├── OptionalDispenseItemBehavior (可能失败的行为基类)
         │   ├── BucketDispenseBehavior (放置流体，成功后替换为空桶)
         │   ├── EmptyBucketDispenseBehavior (收集流体，成功后替换为满桶)
-        │   ├── FlintAndSteelDispenseBehavior (点火/点燃/引燃TNT，消耗耐久)
-        │   └── BonemealDispenseBehavior (骨粉催熟/水中海草，消耗数量)
+        │   ├── FlintAndSteelDispenseBehavior (点火/点燃/引燃TNT，消耗耐久；tntExplodes=false时点燃失败)
+        │   ├── BonemealDispenseBehavior (骨粉催熟/水中海草，消耗数量)
+        │   └── TNTDispenseBehavior (TNT物品发射，检查tntExplodes规则后生成点燃的TNT实体)
         ├── ProjectileDispenseBehavior (投掷物发射)
         └── BoatDispenseBehavior (放置船)
 ```
@@ -44,6 +45,8 @@ IDispenseItemBehavior (接口)
 - `ItemEntity` - 默认发射行为和 `_spawnItemEntity` 创建物品实体
 - `ProjectileEntity` 及其子类 - 投掷物发射行为
 - `BoatEntity` - 船发射行为
+- `TNTEntity` - TNT 发射行为（TNTDispenseBehavior 生成点燃的 TNT 实体）
+- `EntityRegistry` / `VanillaEntities` - TNTDispenseBehavior 通过实体注册表创建 TNTEntity
 
 **世界接口：**
 - `IWorld` - 世界操作（spawnEntity、playEvent、getFluidState、setBlockState、getBlockState 等）
@@ -72,6 +75,7 @@ IDispenseItemBehavior (接口)
 - `Random` - 高斯随机速度计算
 - `Vector3` / `BlockPos` - 位置计算
 - `WorldEvents` - 世界事件 ID（音效、粒子）
+- `GameRules` / `GameRuleKeys` - tntExplodes 游戏规则（TNTDispenseBehavior 检查，FlintAndSteelDispenseBehavior 点燃 TNT 时检查）
 
 ## 容易踩的坑
 
@@ -98,3 +102,7 @@ IDispenseItemBehavior (接口)
    - `1009` - 火焰熄灭音效（水桶在超热维度蒸发时使用）
 
 9. **注册行为时使用物品 ID 字符串**：`registerBehavior("minecraft:arrow", ...)` 使用完整物品 ID，而非 `Items::ARROW` 枚举，确保与 ItemStack 查询一致。
+
+10. **TNTDispenseBehavior 受 tntExplodes 游戏规则控制**：当 `tntExplodes=false` 时，发射器不会发射 TNT 物品（行为失败，播放失败音效）。这与 MC Java 一致——TNT 物品在发射器中受游戏规则限制。TNTDispenseBehavior 继承自 `DefaultDispenseItemBehavior`（非 OptionalDispenseItemBehavior），因为失败时不消耗物品。
+
+11. **FlintAndSteelDispenseBehavior 点燃 TNT 时检查 ignite() 返回值**：打火石发射器尝试点燃 TNT 方块时，若 `tntExplodes=false`，`ignite()` 返回 `false`，发射器设置 `_setSuccess(false)` 并播放失败音效，不消耗打火石耐久。

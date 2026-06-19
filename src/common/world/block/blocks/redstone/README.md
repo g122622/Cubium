@@ -32,7 +32,7 @@ redstone/
 ├── TripWireBlock.hpp/cpp              # 绊线（实体穿越检测，潜行不触发）
 ├── TripWireHookBlock.hpp/cpp          # 绊线钩
 ├── NoteBlock.hpp/cpp                  # 音符盒（16种乐器，25个音高）
-├── TNTBlock.hpp/cpp                   # TNT（红石/火焰触发爆炸）
+├── TNTBlock.hpp/cpp                   # TNT（红石/火焰触发爆炸，受 tntExplodes 游戏规则控制）
 ├── TargetBlock.hpp/cpp                # 标靶（箭矢命中→信号）
 ├── RedstoneLampBlock.hpp/cpp          # 红石灯（信号控制发光）
 ├── AbstractRailBlock.hpp/cpp          # 铁轨基类
@@ -197,11 +197,25 @@ if (!redstone.isUpdating(pos)) {
 
 音符盒根据下方方块材质决定乐器类型，必须使用 `NoteBlockInstrument.byState` 进行映射。
 
-### 18. TNT 火焰检测
+### 18. TNT 方块与 tntExplodes 游戏规则
+
+TNT 方块的三个关键方法均受 `tntExplodes` 游戏规则控制：
+
+- **`ignite()`**：当 `tntExplodes=false` 时返回 `false`，不生成 TNT 实体、不播放音效、不移除方块。返回值为 `[[nodiscard]] bool`，调用方需根据返回值决定后续行为（如打火石发射器需要 `_setSuccess(false)`）。
+- **`explode()`**：当 `tntExplodes=false` 时仅移除方块（不创建爆炸效果），与 MC Java 行为一致。
+- **`onBlockExploded()`**：当 `tntExplodes=false` 时不生成连锁 TNT 实体（对应 MC Java 的 `wasExploded()`）。
+
+此外：
+- `_hasFlammableNeighbor()` 检测相邻火焰/熔岩，通过 `onBlockAdded()` 和 `neighborChanged()` 间接调用。
+- `onBlockExploded()` 在 `Explosion::_destroyBlocks()` 中被调用，当其他爆炸摧毁 TNT 方块时生成短引信 TNT 实体（引信公式：`nextInt(fuse/4) + fuse/8`，即 [10, 29] ticks）。
+- **TODO**：`onBlockActivated()`（玩家使用打火石/火焰弹右键点燃）尚未实现，实现时需检查 `tntExplodes` 并在为 false 时显示 action bar 消息 "block.minecraft.tnt.disabled"。
+- **TODO**：`onProjectileHit()`（燃烧箭矢命中点燃）尚未实现。
+
+### 19. TNT 火焰检测
 
 TNT 需要检测相邻位置的火焰（包括灵魂火）和熔岩，不仅检测红石信号。
 
-### 19. 活塞头存活检查与级联销毁
+### 20. 活塞头存活检查与级联销毁
 
 活塞头（PistonHeadBlock）不是独立方块，必须依赖已伸出的活塞基座才能存活：
 
@@ -213,7 +227,7 @@ TNT 需要检测相邻位置的火焰（包括灵魂火）和熔岩，不仅检�
 - **推动反应**：活塞头的 `getPushReaction` 返回 `Block`，不能被活塞推动
 - **类型匹配**：Normal 活塞头对应 PISTON，Sticky 活塞头对应 STICKY_PISTON，类型不匹配则无法存活
 
-### 20. 铁轨连接系统（RailState）
+### 21. 铁轨连接系统（RailState）
 
 铁轨的连接形状计算由 `RailState` 类负责，完整复刻了 MC Java 的 `RailState` 逻辑：
 

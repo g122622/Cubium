@@ -40,6 +40,7 @@ Entity (基类)
 | `entity/core/BoostHelper.hpp` | 加速辅助类（鞍和加速状态管理） |
 | `entity/interfaces/IRideable.hpp` | 可骑乘接口（船不实现，供其他骑乘实体用） |
 | `entity/damage/DamageSource.hpp` | 伤害源系统 |
+| `world/gamerule/GameRules.hpp` | 游戏规则（tntExplodes 控制 TNT 矿车引爆/爆炸） |
 | `world/block/blocks/redstone/AbstractRailBlock.hpp` | 铁轨形状定义 |
 | `world/blockentity/transport/IHopper.hpp` | 漏斗接口（HopperMinecartEntity 实现） |
 | `world/blockentity/core/SimpleInventory.hpp` | 简单库存实现 |
@@ -81,6 +82,7 @@ Entity (基类)
 - 普通伤害 + 低速度(<0.01) → 掉落矿车 + TNT方块
 - 普通伤害 + 高速度(≥0.01) → 碰撞爆炸
 - 燃烧箭矢 → 根据箭矢速度计算爆炸威力
+- `_ignite()` 和 `_explode()` 均受 `tntExplodes` 游戏规则控制：当 `tntExplodes=false` 时，`_ignite()` 不点燃（直接返回），`_explode()` 不创建爆炸（若已点燃则丢弃实体）
 
 参考 MC 1.16.5：`TNTMinecartEntity.attackEntityFrom()` 和 `killMinecart()`
 

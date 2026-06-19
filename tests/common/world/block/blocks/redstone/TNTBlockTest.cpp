@@ -43,6 +43,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -91,6 +92,9 @@ public:
     [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
 
     void setClientSide(bool isClient) { m_isClientSide = isClient; }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -193,6 +197,7 @@ private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
+    world::gamerule::GameRules m_gameRules;
 
     // TNT 生成记录
     i32 m_spawnedTNTCount = 0;
@@ -467,6 +472,112 @@ TEST_F(TNTBlockTest, TNTEntityIsRegistered)
 
     ASSERT_NE(tntType, nullptr);
     EXPECT_TRUE(tntType->isValid());
+}
+
+/**
+ * @brief 测试 tntExplodes=false 时 ignite 不点燃
+ *
+ * 当 tntExplodes 游戏规则为 false 时，ignite() 应该返回 false，
+ * 不生成 TNT 实体，不播放音效，不移除方块。
+ */
+TEST_F(TNTBlockTest, IgniteDoesNotPrimeWhenRuleDisabled)
+{
+    // 设置 tntExplodes=false
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+
+    // 尝试点燃
+    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
+
+    // 应该返回 false
+    EXPECT_FALSE(result);
+
+    // TNT 方块应该仍然存在（未被移除）
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
+
+    // 不应该生成 TNT 实体
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+
+    // 不应该播放音效
+    EXPECT_FALSE(m_world.soundPlayed());
+}
+
+/**
+ * @brief 测试 tntExplodes=true（默认）时 ignite 正常点燃
+ */
+TEST_F(TNTBlockTest, IgnitePrimesWhenRuleEnabled)
+{
+    // 默认 tntExplodes=true
+    EXPECT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES));
+
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+
+    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
+
+    // 应该返回 true
+    EXPECT_TRUE(result);
+
+    // 应该生成 TNT 实体
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+
+    // 应该播放音效
+    EXPECT_TRUE(m_world.soundPlayed());
+}
+
+/**
+ * @brief 测试 tntExplodes=false 时 explode 不创建爆炸
+ *
+ * 当 tntExplodes 为 false 时，explode() 应该移除方块但不创建爆炸。
+ */
+TEST_F(TNTBlockTest, ExplodeRemovesBlockWithoutExplosionWhenRuleDisabled)
+{
+    // 设置 tntExplodes=false
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+
+    tntBlock->explode(m_world, tntPos, 4.0f);
+
+    // 方块应该被移除
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
+
+    // 不应该创建爆炸
+    EXPECT_EQ(m_world.explosionCount(), 0);
+}
+
+/**
+ * @brief 测试 tntExplodes=true 时 explode 正常创建爆炸
+ */
+TEST_F(TNTBlockTest, ExplodeCreatesExplosionWhenRuleEnabled)
+{
+    EXPECT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES));
+
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+
+    tntBlock->explode(m_world, tntPos, 4.0f);
+
+    // 应该创建爆炸
+    EXPECT_EQ(m_world.explosionCount(), 1);
+    EXPECT_FLOAT_EQ(m_world.lastExplosionRadius(), 4.0f);
 }
 
 } // namespace test
