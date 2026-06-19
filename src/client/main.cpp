@@ -134,13 +134,15 @@ int main(int argc, char* argv[])
         if (arg == "--quick-play" && i + 1 < argc) {
             params.quickPlayLevelId = argv[++i];
         }
-        if (arg == "--quick-play-new") {
+         if (arg == "--quick-play-new") {
             params.quickPlayNew = true;
-        }
+         }
         if (arg == "--benchmark-exit-after-initialize") {
             params.benchmarkExitAfterInitialize = true;
         }
     }
+
+    params.quickPlayNew = true;
 
     try {
         // 创建客户端实例

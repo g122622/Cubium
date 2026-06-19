@@ -364,12 +364,14 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     // MC 1.21: 扩展 CarvingContext 包含 NoiseChunk 和 RandomState
     CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer, noiseChunkPtr, m_randomState.get());
 
-    // MC 1.21: 使用 BiomeManager 的 Voronoi 缩放查询生物群系
-    // MC 使用 biomeManager.withDifferentSource() 创建直接从 NoiseRouter 查询的 BiomeManager，
-    // 而非从区块缓存的 Voronoi 缩放结果查询。当前使用 m_biomeManager->getBiome() 近似。
-    // TODO: 创建 withDifferentSource 的 BiomeManager 以精确匹配 MC 行为
-    // withDifferentSource 应使用 m_biomeSource->getNoiseBiome() 作为底层查询，
-    // 保留 Voronoi 缩放但直接查询噪声而非区块缓存
+    // MC 1.21.11: 使用 withDifferentSource() 创建直接从噪声源查询的 BiomeManager
+    // 参考: NoiseBasedChunkGenerator.applyCarvers()
+    //   BiomeManager biomemanager = p_224227_.withDifferentSource(
+    //       (x, y, z) -> this.biomeSource.getNoiseBiome(x, y, z, p_224226_.sampler()));
+    // withDifferentSource 保留 Voronoi 缩放（biomeZoomSeed），但将底层查询源
+    // 替换为直接从 NoiseRouter 查询，而非从区块缓存的生物群系数据查询。
+    // 这确保雕刻器看到的生物群系边界与玩家实际看到的 Voronoi 缩放边界一致。
+    const auto carvingBiomeManager = m_biomeManager->withDifferentSource(*m_biomeSource);
 
     // MC 1.21.11: 按生物群系选择雕刻器
     // 遍历 [-8, +8] 范围内的起始区块坐标
@@ -385,11 +387,13 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
             const ChunkCoord originChunkX = targetChunkX + dx;
             const ChunkCoord originChunkZ = targetChunkZ + dz;
 
-            // 采样起始区块中心位置的四分位生物群系
-            // MC 1.21.11: 使用 Y=0 的四分位坐标 (QuartPos.fromBlock(0) = 0)
+            // 采样起始区块中心位置的生物群系（使用 Voronoi 缩放）
+            // MC 1.21.11: biomeManager.getBiome() 先进行 Voronoi 缩放选择最近角点，
+            // 再查询 noiseBiomeSource.getNoiseBiome()，确保雕刻器看到的生物群系边界
+            // 与实际游戏中的 Voronoi 缩放边界一致
             const i32 originBlockX = (originChunkX << 4) + 8;
             const i32 originBlockZ = (originChunkZ << 4) + 8;
-            const BiomeId biomeId = m_biomeSource->getNoiseBiome(originBlockX >> 2, 0, originBlockZ >> 2);
+            const BiomeId biomeId = carvingBiomeManager.getBiome(originBlockX, 0, originBlockZ);
             const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
             const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
 
