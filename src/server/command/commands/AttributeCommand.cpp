@@ -258,7 +258,7 @@ void AttributeCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
 
     modifierValueGetIdArg->addChild(modifierValueGetScaleArg);
     modifierValueGetNode->addChild(modifierValueGetIdArg);
-    modifierNode->addChild(modifierValueNode);
+    modifierValueNode->addChild(modifierValueGetNode);
 
     modifierNode->addChild(modifierAddNode);
     modifierNode->addChild(modifierRemoveNode);

@@ -399,7 +399,7 @@ public:
         ResourceLocation predicate; // 谓词 ID
         bool negated = false;       // 是否取反
 
-        [[nodiscard]] bool hasCondition() const noexcept { return predicate.isValid(); }
+        [[nodiscard]] bool hasCondition() const noexcept { return predicate.isValid() && !predicate.path().empty(); }
     };
 
     [[nodiscard]] const PredicateCondition& predicateCondition() const noexcept { return m_predicate; }

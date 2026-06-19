@@ -211,8 +211,11 @@ TCP 网络通信实现。
 - `/reload` - 重新加载数据包内容（战利品表、配方、函数等）
 - `/function` - 执行数据包函数
 - `/schedule` - 调度函数延迟执行（function/clear 模式）
+- `/attribute` - 查询和修改活体实体属性（支持所有 LivingEntity，使用 EntityResolver 选择器）
 
 命令建议现在直接从命令树生成，参数节点可以挂接自定义建议提供器，因此别名、重定向和未来的动态候选项都能统一走同一条补全路径。
+
+**架构变更**：`/attribute` 命令已从 PlayerResolver 迁移到 EntityResolver，现在支持 @e 选择器选取非玩家活体实体（僵尸、猪、马等）。非 LivingEntity 实体使用 `/attribute` 时会返回错误提示。
 
 ### function/ - 数据包函数系统
 
