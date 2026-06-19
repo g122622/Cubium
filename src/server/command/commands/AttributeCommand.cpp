@@ -60,6 +60,10 @@ bool AttributeCommand::_tryGetLivingEntityWithAttribute(CommandContext<ServerCom
         return false;
     }
 
+    // TODO: source.world() 间接调用 dimensionManager()，在测试环境中 BaseTestServer 的
+    // dimensionManager() 会抛出 std::logic_error，导致命令无法在简易测试环境中执行。
+    // 需要为 AttributeCommand 测试创建完整的 TestServer（参考 EntityResolverTestServer），
+    // 或者在 EntityResolver 中增加异常安全保护。
     auto* world = source.world();
     if (world == nullptr) {
         source.sendError("No matching entities were found");
