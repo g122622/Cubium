@@ -57,10 +57,7 @@ Minecraft 1.17 +
         必须包含地毯**：该标签不仅包含16色羊毛，还包含16色地毯方块（对齐 MC 原版 `#minecraft
     : dampens_vibrations = #minecraft : wool +
                                         #minecraft
-    : wool_carpets`）。如果未来新增地毯颜色，需同步更新此标签。 4. *
-      *requiresAdjacentChunksToBeTicking 的检查粒度 *
-      *：当前仅检查源区块本身的加载级别是否为 EntityTicking 或更高，未检查相邻8个区块。MC
-      原版检查的是源位置周围3x3区块范围，未来如果发现振动穿透区块边界的问题，需扩展此检查。
+    : wool_carpets`）。如果未来新增地毯颜色，需同步更新此标签。 4. **requiresAdjacentChunksToBeTicking 的检查逻辑**：`receiveVibration()` 中调用 `areAdjacentChunksTicking(world, listenerBlockPos)` 检查监听器位置周围 3x3 区块是否全部处于 BlockTicking 级别且已加载。注意两点：（1）检查位置是监听器位置而非振动源位置；（2）检查级别是 BlockTicking（level ≤ 32）而非 EntityTicking（level ≤ 31）。检查不通过时返回 false 但不清除当前振动，下次 tick 会重试。
 
       ##核心类
 

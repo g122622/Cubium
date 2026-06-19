@@ -28,7 +28,7 @@
   3. 潜行实体 + `isIgnoredBySneaking()` 事件拒绝（潜行可忽略的事件：HIT_GROUND、PROJECTILE_SHOOT、STEP、SWIM、ITEM_INTERACT_START、ITEM_INTERACT_FINISH）
   4. `dampensVibrations()` 实体拒绝（如监守者、羊毛物品实体）
   5. `BlockTags::DAMPENS_VIBRATIONS` 方块拒绝（羊毛方块、羊毛地毯）
-- **`Ticker::receiveVibration()`** — 振动接收处理，包含 `requiresAdjacentChunksToBeTicking()` 区块加载级别检查（源区块必须在 EntityTicking 级别）
+- **`Ticker::receiveVibration()`** — 振动接收处理，包含 `requiresAdjacentChunksToBeTicking()` 区块加载级别检查（监听器周围 3x3 区块必须全部处于 BlockTicking 级别且已加载，检查不通过时不清除振动，等待下次 tick 重试）
 
 ## 依赖关系
 

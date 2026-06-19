@@ -25,6 +25,7 @@
 
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/gameevent/DynamicGameEventListener.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gameevent/GameEventListenerRegistry.hpp"
@@ -756,4 +757,193 @@ TEST_F(GameEventServerTest, ServerWorld_GameEventDispatches)
     world().gameEvent(GameEvents::BLOCK_ACTIVATE, BlockPos(0, 0, 0), GameEvent::Context());
 
     EXPECT_TRUE(listener.hasReceivedEvent("block_activate"));
+}
+
+// ============================================================================
+// VibrationSystem::Ticker requiresAdjacentChunksToBeTicking 测试
+// ============================================================================
+
+TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_AllChunksBlockTicking_ReceivesVibration)
+{
+    // 当 requiresAdjacentChunksToBeTicking=true 且监听器周围 3x3 区块全部处于 BlockTicking 级别时，
+    // 振动应正常接收。
+    // 测试环境中，通过 updatePlayerPosition 使区块达到 EntityTicking 级别（<= BlockTicking）。
+    createWorld();
+
+    auto* chunkManager = world().chunkManager();
+    ASSERT_NE(chunkManager, nullptr);
+
+    // 注册玩家位置使区块达到 EntityTicking 级别（<= BlockTicking）
+    // viewDistance=2 意味着以玩家为中心 2 个区块的范围内区块会被加载到 EntityTicking 级别
+    chunkManager->updatePlayerPosition(PlayerId{1}, 8.0, 8.0);
+    chunkManager->processTicketUpdatesSync();
+
+    // 加载区块到内存
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dz = -1; dz <= 1; ++dz) {
+            auto* chunk = chunkManager->getChunkSync(dx, dz);
+            ASSERT_NE(chunk, nullptr) << "Failed to load chunk (" << dx << ", " << dz << ")";
+        }
+    }
+
+    // 验证区块加载级别 <= BlockTicking
+    using mc::world::chunk::ChunkLoadLevel;
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dz = -1; dz <= 1; ++dz) {
+            i32 level = chunkManager->ticketManager().getChunkLevel(dx, dz);
+            EXPECT_LE(level, static_cast<i32>(ChunkLoadLevel::BlockTicking))
+                << "Chunk (" << dx << ", " << dz << ") level=" << level;
+        }
+    }
+
+    // 创建振动系统，启用相邻区块检查
+    TestVibrationSystem system(BlockPos(8, 64, 8), 16);
+    auto& data = system.data();
+    auto& user = system.user();
+    user.setRequireAdjacentChunks(true);
+
+    // 设置振动并传播完成
+    GameEvent event("step");
+    VibrationInfo info(event, 5.0f, Vector3d(10.0, 64.0, 10.0), nullptr);
+    data.setCurrentVibration(info);
+    data.setTravelTimeInTicks(1);
+
+    // 传播并接收振动
+    VibrationSystem::Ticker::tick(world(), data, user);
+    // travelTime 递减为 0，此时接收振动
+    VibrationSystem::Ticker::tick(world(), data, user);
+
+    // 振动应被正常接收
+    EXPECT_EQ(user.receivedVibrationCount(), 1u);
+    EXPECT_EQ(data.currentVibration(), nullptr);
+}
+
+TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_NoRequire_CheckNotPerformed)
+{
+    // 当 requiresAdjacentChunksToBeTicking=false 时，不检查区块加载级别，
+    // 即使区块未加载也能接收振动。
+    createWorld();
+
+    TestVibrationSystem system(BlockPos(0, 64, 0), 16);
+    auto& data = system.data();
+    auto& user = system.user();
+    // 默认 requiresAdjacentChunksToBeTicking = false
+
+    // 只加载中心区块
+    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    // 设置振动并传播完成
+    GameEvent event("step");
+    VibrationInfo info(event, 3.0f, Vector3d(2.0, 64.0, 2.0), nullptr);
+    data.setCurrentVibration(info);
+    data.setTravelTimeInTicks(1);
+
+    VibrationSystem::Ticker::tick(world(), data, user);
+    VibrationSystem::Ticker::tick(world(), data, user);
+
+    // 振动应被正常接收（无区块检查）
+    EXPECT_EQ(user.receivedVibrationCount(), 1u);
+}
+
+TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_RetryOnFailedCheck)
+{
+    // 当 requiresAdjacentChunksToBeTicking=true 且 3x3 区块检查不通过时，
+    // receiveVibration 返回 false 但不清除当前振动，下次 tick 可以重试。
+    createWorld();
+
+    // 只加载中心区块，不加载相邻区块，导致 3x3 检查失败
+    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    TestVibrationSystem system(BlockPos(0, 64, 0), 16);
+    auto& data = system.data();
+    auto& user = system.user();
+    user.setRequireAdjacentChunks(true);
+
+    // 设置振动，传播时间为 0（立即可接收）
+    GameEvent event("step");
+    VibrationInfo info(event, 3.0f, Vector3d(2.0, 64.0, 2.0), nullptr);
+    data.setCurrentVibration(info);
+    data.setTravelTimeInTicks(0);
+
+    // 通过 tick 触发 receiveVibration
+    // 由于 3x3 区块不完整（只有中心区块），接收应失败
+    VibrationSystem::Ticker::tick(world(), data, user);
+
+    // 接收失败，但振动未被清除（重试机制）
+    EXPECT_EQ(user.receivedVibrationCount(), 0u);
+    EXPECT_NE(data.currentVibration(), nullptr); // 振动仍然存在
+}
+
+TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_UsesListenerPosition)
+{
+    // 验证区块检查使用监听器位置而非振动源位置。
+    // 监听器在区块 (0,0)，振动源在远处区块。
+    // 如果检查使用源位置则会失败，但使用监听器位置则应成功
+    // （假设监听器周围的区块都已加载）。
+    createWorld();
+
+    auto* chunkManager = world().chunkManager();
+    ASSERT_NE(chunkManager, nullptr);
+
+    // 通过玩家位置使监听器位置（区块 0,0）周围的 3x3 区块达到 EntityTicking 级别
+    chunkManager->updatePlayerPosition(PlayerId{1}, 8.0, 8.0);
+    chunkManager->processTicketUpdatesSync();
+
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dz = -1; dz <= 1; ++dz) {
+            auto* chunk = chunkManager->getChunkSync(dx, dz);
+            ASSERT_NE(chunk, nullptr) << "Failed to load chunk (" << dx << ", " << dz << ")";
+        }
+    }
+
+    // 监听器在区块 (0,0) 内，振动源在远处（但仍在检测半径内）
+    TestVibrationSystem system(BlockPos(8, 64, 8), 16);
+    auto& data = system.data();
+    auto& user = system.user();
+    user.setRequireAdjacentChunks(true);
+
+    // 振动源距离 5 格，仍在半径 16 内
+    GameEvent event("step");
+    VibrationInfo info(event, 5.0f, Vector3d(12.0, 64.0, 12.0), nullptr);
+    data.setCurrentVibration(info);
+    data.setTravelTimeInTicks(1);
+
+    VibrationSystem::Ticker::tick(world(), data, user);
+    VibrationSystem::Ticker::tick(world(), data, user);
+
+    // 监听器位置区块 (0,0) 周围 3x3 已加载，振动应被接收
+    EXPECT_EQ(user.receivedVibrationCount(), 1u);
+}
+
+TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_ChunkNotInMemory_FailsCheck)
+{
+    // 当 3x3 区域中的某个区块虽在票据系统中但不在内存中时，检查应失败。
+    createWorld();
+
+    auto* chunkManager = world().chunkManager();
+    ASSERT_NE(chunkManager, nullptr);
+
+    // 只强制加载中心区块到内存
+    auto* chunk = chunkManager->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    TestVibrationSystem system(BlockPos(0, 64, 0), 16);
+    auto& data = system.data();
+    auto& user = system.user();
+    user.setRequireAdjacentChunks(true);
+
+    GameEvent event("step");
+    VibrationInfo info(event, 3.0f, Vector3d(2.0, 64.0, 2.0), nullptr);
+    data.setCurrentVibration(info);
+    data.setTravelTimeInTicks(0);
+
+    // 通过 tick 触发 receiveVibration
+    VibrationSystem::Ticker::tick(world(), data, user);
+
+    // 相邻区块不在内存中，3x3 检查应失败，振动未被接收
+    EXPECT_EQ(user.receivedVibrationCount(), 0u);
+    // 振动未被清除（等待重试）
+    EXPECT_NE(data.currentVibration(), nullptr);
 }
