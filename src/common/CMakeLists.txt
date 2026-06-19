@@ -1358,6 +1358,7 @@ add_library(mc_common STATIC
     advancement/trigger/impl/ItemTriggers.cpp
     advancement/trigger/impl/EntityTriggers.cpp
     advancement/trigger/impl/ChanneledLightningTrigger.cpp
+    advancement/trigger/impl/AvoidVibrationTrigger.cpp
 
     # Scoreboard System - Core
     scoreboard/core/Scoreboard.cpp

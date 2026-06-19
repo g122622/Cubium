@@ -675,7 +675,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createNether()
     // 岩浆池
     settings.addFeature(DecorationStage::UndergroundDecoration, MagmaFeatureIds::PatchNormal);
 
-    // TODO: 添加下界要塞、堡垒遗迹等结构
+    // 注意：下界要塞和堡垒遗迹通过 BiomeTags::HAS_STRUCTURE_FORTRESS 和
+    // HAS_STRUCTURE_BASTION_REMNANT 标签系统独立管理，不通过 BiomeGenerationSettings 添加。
 
     return settings;
 }
@@ -697,7 +698,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createSoulSandValley()
     // 下界火焰
     settings.addFeature(DecorationStage::VegetalDecoration, NetherFungusIds::NetherFire);
 
-    // TODO: 添加下界化石结构
+    // 注意：下界化石通过 BiomeTags::HAS_STRUCTURE_NETHER_FOSSIL 标签系统独立管理，
+    // 不通过 BiomeGenerationSettings 添加。
 
     return settings;
 }
@@ -808,7 +810,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createSmallEndIslands()
     // 小型末地岛屿：末地岛特征
     BiomeGenerationSettings settings;
 
-    // TODO: 添加末地岛特征
+    // TODO: 添加末地岛特征（EndIslandFeature 尚未实现）
 
     return settings;
 }
@@ -823,14 +825,16 @@ BiomeGenerationSettings BiomeGenerationSettings::createEndMidlands()
 
 BiomeGenerationSettings BiomeGenerationSettings::createEndHighlands()
 {
-    // 末地高地：末地城 + 紫颂树
+    // 末地高地：末地折跃门 + 紫颂树
     BiomeGenerationSettings settings;
 
     // 末地折跃门（用于连接外岛区域）
     settings.addFeature(DecorationStage::SurfaceStructures, EndSurfaceFeatureIds::EndGateway);
 
-    // TODO: 添加末地城结构
-    // TODO: 添加紫颂树特征
+    // 注意：末地城通过 BiomeTags::HAS_STRUCTURE_END_CITY 标签系统独立管理，
+    // 不通过 BiomeGenerationSettings 添加。
+
+    // TODO: 添加紫颂树特征（ChorusPlantFeature 尚未实现）
 
     return settings;
 }

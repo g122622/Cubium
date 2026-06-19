@@ -31,11 +31,16 @@
 
 #include "common/world/gameevent/VibrationSystem.hpp"
 
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/advancement/trigger/CriterionTriggers.hpp"
+#include "common/advancement/trigger/impl/AvoidVibrationTrigger.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include "server/advancement/TriggerInstantiation.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -113,12 +118,32 @@ bool VibrationSystem::User::isValidVibration(const GameEvent& event, const GameE
         }
 
         // 源实体正在潜行且事件可被潜行忽略
-        // 参考: net.minecraft.tags.GameEventTags.IGNORE_VIBRATIONS_SNEAKING
         // 当实体潜行时，HIT_GROUND/PROJECTILE_SHOOT/STEP/SWIM/
         // ITEM_INTERACT_START/ITEM_INTERACT_FINISH 不触发振动
         if (sourceEntity->isSteppingCarefully() && isIgnoredBySneaking(event)) {
             // 如果监听器支持规避振动成就触发且源实体是服务端玩家，触发 AVOID_VIBRATION 进度
-            // TODO: 当 AVOID_VIBRATION 成就触发器实现后，在此触发 ServerPlayer 进度
+            if (canTriggerAvoidVibration()) {
+                // const_cast 是安全的：触达成就是游戏逻辑副作用，不修改实体状态
+                auto* nonConstEntity = const_cast<Entity*>(sourceEntity);
+                auto* nonConstPlayer = dynamic_cast<Player*>(nonConstEntity);
+                if (nonConstPlayer != nullptr) {
+                    auto* serverPlayer = nonConstPlayer->asServerPlayer();
+                    if (serverPlayer != nullptr) {
+                        auto* advancements = serverPlayer->getAdvancements();
+                        if (advancements != nullptr) {
+                            auto* trigger = advancement::CriterionTriggers::instance()
+                                                .getTrigger<advancement::AvoidVibrationTrigger>();
+                            if (trigger != nullptr) {
+                                // 使用基类的 trigger 模板方法，匹配所有监听此触发器的进度实例
+                                trigger->AbstractCriterionTrigger<advancement::AvoidVibrationTriggerInstance>::trigger(
+                                    *advancements, [](const advancement::AvoidVibrationTriggerInstance& /*instance*/) {
+                                        return true;
+                                    });
+                            }
+                        }
+                    }
+                }
+            }
             return false;
         }
 
@@ -208,6 +233,9 @@ void VibrationSystem::Listener::scheduleVibration(server::ServerWorld& world,
 
 void VibrationSystem::Ticker::tick(server::ServerWorld& world, Data& data, User& user)
 {
+    // 区块重新加载后重发振动粒子
+    tryReloadVibrationParticle(world, data, user);
+
     // 如果没有当前振动，尝试选择候选
     if (data.currentVibration() == nullptr) {
         trySelectAndScheduleVibration(world, data, user);
@@ -244,7 +272,18 @@ void VibrationSystem::Ticker::trySelectAndScheduleVibration(server::ServerWorld&
         i32 travelTime = user.calculateTravelTimeInTicks(info.distance);
         data.setTravelTimeInTicks(travelTime);
 
-        // TODO: 当粒子系统实现后，发送振动粒子效果
+        // 发送振动粒子效果，从振动源位置飞向监听器位置
+        // 粒子类型为 Vibration，在振动源位置生成
+        Vector3 particlePos(static_cast<f32>(info.pos.x), static_cast<f32>(info.pos.y), static_cast<f32>(info.pos.z));
+        world.addParticle(client::renderer::trident::particle::ParticleTypeId::Vibration,
+            particlePos,
+            Vector3(0.0f, 0.0f, 0.0f),
+            Vector3(0.0f, 0.0f, 0.0f),
+            1);
+
+        // TODO: 当前粒子系统不支持携带 PositionSource 和 arrivalInTicks 的 VibrationParticleOption，
+        // 因此无法实现 MC 原版的从源位置到监听器位置的定向飞行粒子效果。
+        // 未来需要扩展 ParticlePacket 支持自定义粒子数据后，改用：
         // world.sendParticles(VibrationParticleOption(user.getPositionSource(), travelTime),
         //     info.pos.x, info.pos.y, info.pos.z, 1, 0, 0, 0, 0);
 
@@ -292,6 +331,52 @@ bool VibrationSystem::Ticker::receiveVibration(
     // 清除当前振动
     data.clearCurrentVibration();
     return true;
+}
+
+void VibrationSystem::Ticker::tryReloadVibrationParticle(server::ServerWorld& world, Data& data, User& user)
+{
+    if (!data.shouldReloadVibrationParticle()) {
+        return;
+    }
+
+    // 如果没有正在传播的振动，清除重载标志
+    if (data.currentVibration() == nullptr) {
+        data.setReloadVibrationParticle(false);
+        return;
+    }
+
+    const VibrationInfo& info = *data.currentVibration();
+
+    // 获取监听器位置
+    auto listenerPos = user.getPositionSource().getPosition(world);
+    if (!listenerPos.has_value()) {
+        return;
+    }
+
+    // 计算当前传播进度：已传播时间 / 总传播时间
+    i32 remainingTicks = data.travelTimeInTicks();
+    i32 totalTicks = user.calculateTravelTimeInTicks(info.distance);
+    if (totalTicks <= 0) {
+        data.setReloadVibrationParticle(false);
+        return;
+    }
+
+    // 从振动源位置到监听器位置插值计算粒子当前位置
+    f64 progress = 1.0 - static_cast<f64>(remainingTicks) / static_cast<f64>(totalTicks);
+    f32 particleX = static_cast<f32>(info.pos.x + (listenerPos->x - info.pos.x) * progress);
+    f32 particleY = static_cast<f32>(info.pos.y + (listenerPos->y - info.pos.y) * progress);
+    f32 particleZ = static_cast<f32>(info.pos.z + (listenerPos->z - info.pos.z) * progress);
+
+    // 在插值位置发送振动粒子
+    Vector3 particlePos(particleX, particleY, particleZ);
+    world.addParticle(client::renderer::trident::particle::ParticleTypeId::Vibration,
+        particlePos,
+        Vector3(0.0f, 0.0f, 0.0f),
+        Vector3(0.0f, 0.0f, 0.0f),
+        1);
+
+    // 重载完成，清除标志
+    data.setReloadVibrationParticle(false);
 }
 
 } // namespace mc::gameevent

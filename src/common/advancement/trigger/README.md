@@ -29,7 +29,8 @@ trigger/
     ├── ItemTriggers.hpp/cpp            # 物品触发器（消耗、耐久变化、附魔、装桶）
     ├── EntityTriggers.hpp/cpp          # 实体触发器（驯服、繁殖、交易、治愈、召唤、互动）
     ├── EffectTriggers.hpp/cpp          # 效果触发器（效果变化、酿造药水）
-    └── ChanneledLightningTrigger.hpp/cpp # 引雷附魔触发器
+    ├── ChanneledLightningTrigger.hpp/cpp # 引雷附魔触发器
+    └── AvoidVibrationTrigger.hpp/cpp   # 避免振动触发器（潜行避开幽匿感测体振动时触发）
 ```
 
 ## 内部模块关系

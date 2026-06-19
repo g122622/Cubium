@@ -419,6 +419,14 @@ public:
         static void trySelectAndScheduleVibration(server::ServerWorld& world, Data& data, User& user);
 
         /**
+         * @brief 区块重新加载后重发振动粒子
+         *
+         * 当区块重新加载且存在正在传播的振动时，根据当前传播进度
+         * 计算粒子插值位置并重新发送粒子效果。
+         */
+        static void tryReloadVibrationParticle(server::ServerWorld& world, Data& data, User& user);
+
+        /**
          * @brief 接收振动（传播完成回调）
          */
         [[nodiscard]] static bool receiveVibration(
