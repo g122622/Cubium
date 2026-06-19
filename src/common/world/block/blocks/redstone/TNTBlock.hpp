@@ -36,9 +36,14 @@ namespace blocks {
  * ## 特性
  * - 红石触发点燃
  * - 火焰/熔岩点燃
- * - 被箭矢点燃
+ * - 爆炸连锁反应（通过 onBlockExploded）
  * - 爆炸产生伤害和破坏
- * - 爆炸后掉落物品（如果未点燃）
+ * - 受 tntExplodes 游戏规则控制
+ *
+ * ## TODO
+ * - 实现 onBlockActivated()（玩家使用打火石/火焰弹右键 TNT 点燃），
+ *   当 tntExplodes 为 false 时需显示 action bar 消息 "block.minecraft.tnt.disabled"
+ * - 实现 onProjectileHit()（燃烧箭矢命中 TNT 时点燃）
  *
  * 参考: net.minecraft.block.TNTBlock
  */

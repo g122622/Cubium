@@ -644,6 +644,23 @@ TEST_F(TNTEntityTest, ServerSideNoParticles)
     EXPECT_EQ(m_world.particleCount(), 0);
 }
 
+/**
+ * @brief ignite(fuseTicks) 设置自定义引信时间
+ */
+TEST_F(TNTEntityTest, IgniteWithCustomFuse)
+{
+    auto tnt = std::make_unique<TNTEntity>();
+    tnt->ignite(20);
+    EXPECT_EQ(tnt->getFuse(), 20);
+
+    tnt->ignite(100);
+    EXPECT_EQ(tnt->getFuse(), 100);
+
+    // 默认引信
+    tnt->ignite();
+    EXPECT_EQ(tnt->getFuse(), 80);
+}
+
 } // namespace test
 } // namespace entity
 } // namespace mc
