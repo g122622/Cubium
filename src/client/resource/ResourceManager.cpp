@@ -328,50 +328,70 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
     for (const auto& texLoc : textures) {
         bool added = false;
 
-        // 遍历资源包（后添加的优先级更高）
-        for (auto it = m_resourcePacks.rbegin(); it != m_resourcePacks.rend() && !added; ++it) {
-            auto& pack = *it;
-            std::string relativePath = texLoc.toFilePath(resource::PackType::ClientResources, "png");
-            relativePath.erase(0, std::string("assets/").size());
+        // 构建候选路径列表：原始路径 + MC 1.12/1.13+ 路径变体
+        std::vector<ResourceLocation> candidates;
+        candidates.push_back(texLoc);
 
-            if (!pack->hasResource(resource::PackType::ClientResources, relativePath)) {
-                continue;
+        std::string altPath = _getAltTexturePath(texLoc.path());
+        if (!altPath.empty()) {
+            candidates.emplace_back(texLoc.namespace_(), std::move(altPath));
+        }
+
+        // 遍历候选路径和资源包（后添加的优先级更高）
+        for (const auto& candidateLoc : candidates) {
+            if (added) {
+                break;
             }
 
-            auto readResult = pack->readResource(resource::PackType::ClientResources, relativePath);
-            if (!readResult.success()) {
-                continue;
-            }
+            for (auto it = m_resourcePacks.rbegin(); it != m_resourcePacks.rend() && !added; ++it) {
+                auto& pack = *it;
+                std::string relativePath = candidateLoc.toFilePath(resource::PackType::ClientResources, "png");
+                relativePath.erase(0, std::string("assets/").size());
 
-            int width = 0;
-            int height = 0;
-            int channels = 0;
-            stbi_uc* pixels = stbi_load_from_memory(
-                readResult.value().data(), static_cast<int>(readResult.value().size()), &width, &height, &channels, 4);
-
-            if (pixels) {
-                std::vector<u8> pixelData(pixels, pixels + width * height * 4);
-                stbi_image_free(pixels);
-
-                u32 frameWidth = static_cast<u32>(width);
-                u32 frameHeight = static_cast<u32>(height);
-
-                const std::string mcmetaPath = relativePath + ".mcmeta";
-                if (pack->hasResource(resource::PackType::ClientResources, mcmetaPath)) {
-                    const auto mcmetaResult = pack->readResource(resource::PackType::ClientResources, mcmetaPath);
-                    if (mcmetaResult.success()) {
-                        static_cast<void>(parseAnimatedFrameSizeFromMcmeta(mcmetaResult.value(),
-                            static_cast<u32>(width),
-                            static_cast<u32>(height),
-                            frameWidth,
-                            frameHeight));
-                    }
+                if (!pack->hasResource(resource::PackType::ClientResources, relativePath)) {
+                    continue;
                 }
 
-                builder.addTextureFrame(
-                    texLoc, pixelData, static_cast<u32>(width), static_cast<u32>(height), frameWidth, frameHeight);
-                added = true;
-                addedCount++;
+                auto readResult = pack->readResource(resource::PackType::ClientResources, relativePath);
+                if (!readResult.success()) {
+                    continue;
+                }
+
+                int width = 0;
+                int height = 0;
+                int channels = 0;
+                stbi_uc* pixels = stbi_load_from_memory(readResult.value().data(),
+                    static_cast<int>(readResult.value().size()),
+                    &width,
+                    &height,
+                    &channels,
+                    4);
+
+                if (pixels) {
+                    std::vector<u8> pixelData(pixels, pixels + width * height * 4);
+                    stbi_image_free(pixels);
+
+                    u32 frameWidth = static_cast<u32>(width);
+                    u32 frameHeight = static_cast<u32>(height);
+
+                    const std::string mcmetaPath = relativePath + ".mcmeta";
+                    if (pack->hasResource(resource::PackType::ClientResources, mcmetaPath)) {
+                        const auto mcmetaResult = pack->readResource(resource::PackType::ClientResources, mcmetaPath);
+                        if (mcmetaResult.success()) {
+                            static_cast<void>(parseAnimatedFrameSizeFromMcmeta(mcmetaResult.value(),
+                                static_cast<u32>(width),
+                                static_cast<u32>(height),
+                                frameWidth,
+                                frameHeight));
+                        }
+                    }
+
+                    // 使用原始 texLoc 作为图集键（而非候选路径），保持一致性
+                    builder.addTextureFrame(
+                        texLoc, pixelData, static_cast<u32>(width), static_cast<u32>(height), frameWidth, frameHeight);
+                    added = true;
+                    addedCount++;
+                }
             }
         }
 
@@ -411,6 +431,27 @@ Result<AtlasBuildResult> ResourceManager::buildTextureAtlas()
     m_atlasResult = result.value();
     m_textureRegions = m_atlasResult.regions;
     m_atlasBuilt = true;
+
+    // 注册 MC 1.12/1.13+ 路径变体别名
+    // 例如：如果图集中存在 minecraft:textures/block/stone，则同时注册
+    // minecraft:textures/blocks/stone 指向同一纹理区域，反之亦然。
+    // 这样无论模型使用哪种路径格式，都能通过直接查找找到纹理。
+    {
+        std::vector<std::pair<ResourceLocation, TextureRegion>> aliases;
+        for (const auto& [loc, region] : m_textureRegions) {
+            std::string altPath = _getAltTexturePath(loc.path());
+            if (!altPath.empty()) {
+                ResourceLocation altLoc(loc.namespace_(), std::move(altPath));
+                // 仅在别名不存在时添加，避免覆盖已有纹理
+                if (m_textureRegions.find(altLoc) == m_textureRegions.end()) {
+                    aliases.emplace_back(std::move(altLoc), region);
+                }
+            }
+        }
+        for (auto& [altLoc, region] : aliases) {
+            m_textureRegions.emplace(std::move(altLoc), std::move(region));
+        }
+    }
 
     // 构建纹理图集后计算方块外观（这样纹理区域可用）
     _computeBlockAppearances();
@@ -508,13 +549,8 @@ const TextureRegion* ResourceManager::getTextureRegion(const ResourceLocation& t
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::getTextureRegion");
 
-    // 先尝试直接查找
-    auto it = m_textureRegions.find(textureLocation);
-    if (it != m_textureRegions.end()) {
-        return &it->second;
-    }
-
-    return nullptr;
+    // 直接委托给 _findTextureRegion（已包含 MC 1.12/1.13+ 路径变体兼容查找）
+    return _findTextureRegion(textureLocation);
 }
 
 Result<DecodedTexture> ResourceManager::loadTextureRGBA(const ResourceLocation& textureLocation) const
@@ -782,6 +818,33 @@ void ResourceManager::_computeBlockAppearances()
     spdlog::info("computeBlockAppearances: {} total, {} with textures", totalAppearances, appearancesWithTextures);
 }
 
+std::string ResourceManager::_getAltTexturePath(const std::string& path)
+{
+    constexpr std::string_view blockModern = "textures/block/";
+    constexpr std::string_view blockLegacy = "textures/blocks/";
+    constexpr std::string_view itemModern = "textures/item/";
+    constexpr std::string_view itemLegacy = "textures/items/";
+
+    if (path.size() > blockModern.size() && path.compare(0, blockModern.size(), blockModern) == 0) {
+        // Modern (1.13+) -> Legacy (1.12): textures/block/ -> textures/blocks/
+        return "textures/blocks/" + path.substr(blockModern.size());
+    }
+    if (path.size() > blockLegacy.size() && path.compare(0, blockLegacy.size(), blockLegacy) == 0) {
+        // Legacy (1.12) -> Modern (1.13+): textures/blocks/ -> textures/block/
+        return "textures/block/" + path.substr(blockLegacy.size());
+    }
+    if (path.size() > itemModern.size() && path.compare(0, itemModern.size(), itemModern) == 0) {
+        // Modern (1.13+) -> Legacy (1.12): textures/item/ -> textures/items/
+        return "textures/items/" + path.substr(itemModern.size());
+    }
+    if (path.size() > itemLegacy.size() && path.compare(0, itemLegacy.size(), itemLegacy) == 0) {
+        // Legacy (1.12) -> Modern (1.13+): textures/items/ -> textures/item/
+        return "textures/item/" + path.substr(itemLegacy.size());
+    }
+
+    return {};
+}
+
 const TextureRegion* ResourceManager::_findTextureRegion(const ResourceLocation& texLoc) const
 {
     MC_TRACE_EVENT("client.resource", "ResourceManager::findTextureRegion");
@@ -790,6 +853,19 @@ const TextureRegion* ResourceManager::_findTextureRegion(const ResourceLocation&
     auto it = m_textureRegions.find(texLoc);
     if (it != m_textureRegions.end()) {
         return &it->second;
+    }
+
+    // 2. 尝试 MC 1.12/1.13+ 路径变体兼容查找
+    //    MC 1.13+ 使用 textures/block/ 和 textures/item/（单数）
+    //    MC 1.12  使用 textures/blocks/ 和 textures/items/（复数）
+    //    当原始路径未找到时，自动尝试对应的另一种路径形式。
+    std::string altPath = _getAltTexturePath(texLoc.path());
+    if (!altPath.empty()) {
+        ResourceLocation altLoc(texLoc.namespace_(), std::move(altPath));
+        it = m_textureRegions.find(altLoc);
+        if (it != m_textureRegions.end()) {
+            return &it->second;
+        }
     }
 
     return nullptr;

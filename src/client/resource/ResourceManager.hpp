@@ -266,8 +266,16 @@ private:
     // 将纹理路径转换为资源位置
     [[nodiscard]] static ResourceLocation _texturePathToLocation(std::string_view path);
 
+    // 获取 MC 1.12/1.13+ 路径变体的替代路径
+    // 如果 path 以 textures/block/ 开头，返回 textures/blocks/ 版本（反之亦然）
+    // 如果 path 以 textures/item/ 开头，返回 textures/items/ 版本（反之亦然）
+    // 如果不匹配任何已知前缀，返回空字符串
+    [[nodiscard]] static std::string _getAltTexturePath(const std::string& path);
+
     // 使用 compat 层查找纹理区域（支持 MC 1.12/1.13+ 路径变体）
-    // TODO: 当前仅尝试原始路径，尚未实现 MC 1.12/1.13+ 路径变体兼容查找
+    // 优先尝试原始路径，若未找到则自动尝试 MC 1.12/1.13+ 路径变体：
+    //   textures/block/ ↔ textures/blocks/
+    //   textures/item/  ↔ textures/items/
     [[nodiscard]] const TextureRegion* _findTextureRegion(const ResourceLocation& texLoc) const;
 };
 
