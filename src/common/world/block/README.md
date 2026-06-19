@@ -484,3 +484,22 @@ Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::o
 
 **乘客摔落伤害传播**：
 `Entity::causeFallDamage` 会先将摔落伤害传播给所有乘客（`propagateFallToPassengers`），因此当载具（如马、船、矿车）受到摔落伤害时，乘客也会受到相同的摔落伤害。参考 MC 1.21.11 `Entity.propagateFallToPassengers`。
+
+### 29. Block::playerWillDestroy 玩家即将破坏方块回调
+
+`Block::playerWillDestroy(IWorld&, const BlockPos&, const BlockState&, Player&)` 是玩家即将破坏方块时调用的虚方法。对应 MC Java 的 `Block.playerWillDestroy()`。
+
+**默认实现**：空操作。需要特殊行为的方块应重写此方法。
+
+**与 onBlockRemoved 的区别**：
+- `playerWillDestroy`：在方块被移除**之前**调用，接收玩家信息，可区分创造/生存模式
+- `onBlockRemoved`：在方块状态变更**之后**调用，不包含玩家上下文，由 `ServerWorld::setBlockState` 触发
+
+**调用时机**：`BlockInteractionManager::handleBlockBreak` 和 `StopDestroyBlock` 中，在生成掉落物和设置方块为空气之前调用
+
+**已实现方块**：
+- `PistonHeadBlock`：创造模式下破坏活塞头时，级联销毁匹配的活塞基座且不产生掉落物；生存模式不执行操作（级联销毁和掉落物由 `onBlockRemoved` 处理）
+
+**创造模式掉落物抑制**：`BlockInteractionManager` 在 `playerWillDestroy` 之后检查 `player.isCreative()`，创造模式下跳过 `_generateBlockDrops`，与 MC Java 行为一致
+
+**注意**：新增方块如需在破坏时区分创造/生存模式行为，应重写 `playerWillDestroy` 而非在 `onBlockRemoved` 中判断
