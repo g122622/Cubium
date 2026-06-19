@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal enabledelayedexpansion
 
 :: ============================================================
 :: Cubium - Build Environment Setup Script
@@ -36,8 +36,38 @@ if /i "%~1"=="build" (
     if errorlevel 1 exit /b %errorlevel%
     echo.
     echo Building...
+
+    :: Record start time (centiseconds since midnight)
+    set START_TIME=%time%
+
     cmake --build --preset windows-clang-relwithdebinfo
-    exit /b %errorlevel%
+    set BUILD_EXIT=!errorlevel!
+
+    set END_TIME=%time%
+
+    :: Parse start time
+    for /f "tokens=1-3 delims=:.," %%a in ("!START_TIME!") do (
+        set /a START_H=%%a, START_M=1%%b-100, START_S=1%%c-100
+    )
+    :: Parse end time
+    for /f "tokens=1-3 delims=:.," %%a in ("!END_TIME!") do (
+        set /a END_H=%%a, END_M=1%%b-100, END_S=1%%c-100
+    )
+
+    :: Calculate total seconds
+    set /a ELAPSED=((END_H - START_H) * 3600) + ((END_M - START_M) * 60) + (END_S - START_S)
+    set /a DURATION_M=ELAPSED / 60
+    set /a DURATION_S=ELAPSED %% 60
+
+    :: Pad with leading zero
+    if !DURATION_M! LSS 10 set DURATION_M=0!DURATION_M!
+    if !DURATION_S! LSS 10 set DURATION_S=0!DURATION_S!
+
+    echo.
+    echo === Build Summary ===
+    echo   Duration:  !DURATION_M!:!DURATION_S!
+    echo   Exit code: !BUILD_EXIT!
+    exit /b !BUILD_EXIT!
 )
 
 :: Otherwise, pass all args through to cmake
