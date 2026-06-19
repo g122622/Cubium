@@ -617,17 +617,18 @@ TEST_F(PointedDripstoneBlockTest, CanDripThrough_OpaqueBlock_ReturnsFalse)
     EXPECT_FALSE(block_->canDripThrough(world, pos, stoneState));
 }
 
-TEST_F(PointedDripstoneBlockTest, CanDripThrough_PointedDripstoneBlock_ReturnsTrue)
+TEST_F(PointedDripstoneBlockTest, CanDripThrough_PointedDripstoneBlock_ReturnsFalse)
 {
-    // 滴石锥自身可穿透（滴石锥不是不透明方块，且碰撞形状不覆盖中心柱）
+    // 滴石锥的碰撞形状覆盖了滴水通道区域（4x16x4 中心柱），
+    // 因此 canDripThrough 返回 false。这与 MC 1.21.11 行为一致：
+    // MC 中 REQUIRED_SPACE_TO_DRIP_THROUGH = Block.column(4.0, 0.0, 16.0)，
+    // 而滴石锥的碰撞形状（最小半径6像素的圆柱）完全覆盖该区域。
+    // findFillableCauldronBelow 从尖端下方的位置开始搜索，不会检查滴石锥自身。
     DripstoneTestWorld world;
     BlockPos pos(0, 64, 0);
     const BlockState* dripstoneState = &VanillaBlocks::POINTED_DRIPSTONE->defaultState();
     ASSERT_NE(dripstoneState, nullptr);
-    // 滴石锥不是不透明方块（useShapeForLightOcclusion=true），所以 canDripThrough 取决于碰撞形状
-    // 滴石锥的碰撞形状是细柱，不应覆盖4x16x4的中心区域
-    // 注意：这取决于实际的碰撞形状计算
-    EXPECT_TRUE(block_->canDripThrough(world, pos, dripstoneState));
+    EXPECT_FALSE(block_->canDripThrough(world, pos, dripstoneState));
 }
 
 // ============================================================================
@@ -637,75 +638,84 @@ TEST_F(PointedDripstoneBlockTest, CanDripThrough_PointedDripstoneBlock_ReturnsTr
 TEST_F(PointedDripstoneBlockTest, CanDrip_StalactiteTipNotWaterlogged)
 {
     // 朝下TIP + 非含水 = 可滴水
-    auto state = block_->defaultState()
+    // 注意：必须使用 VanillaBlocks::POINTED_DRIPSTONE 的状态，
+    // 因为 canDrip 调用 isStalactite，而 isStalactite 使用 state->is() 检查方块身份
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState()
                      .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
                      .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
                      .with(BlockStateProperties::WATERLOGGED(), false);
-    EXPECT_TRUE(block_->canDrip(state));
+    EXPECT_TRUE(PointedDripstoneBlock::canDrip(state));
 }
 
 TEST_F(PointedDripstoneBlockTest, CanDrip_StalactiteTipWaterlogged_CannotDrip)
 {
     // 朝下TIP + 含水 = 不可滴水
-    auto state = block_->defaultState()
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState()
                      .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
                      .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
                      .with(BlockStateProperties::WATERLOGGED(), true);
-    EXPECT_FALSE(block_->canDrip(state));
+    EXPECT_FALSE(PointedDripstoneBlock::canDrip(state));
 }
 
 TEST_F(PointedDripstoneBlockTest, CanDrip_StalagmiteTip_CannotDrip)
 {
     // 朝上TIP = 不是钟乳石，不能滴水
-    auto state = block_->defaultState()
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState()
                      .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up)
                      .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip)
                      .with(BlockStateProperties::WATERLOGGED(), false);
-    EXPECT_FALSE(block_->canDrip(state));
+    EXPECT_FALSE(PointedDripstoneBlock::canDrip(state));
 }
 
 TEST_F(PointedDripstoneBlockTest, CanDrip_NonTipStalactite_CannotDrip)
 {
     // 朝下非TIP = 不是尖端，不能滴水
     auto state =
-        block_->defaultState()
+        VanillaBlocks::POINTED_DRIPSTONE->defaultState()
             .with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down)
             .with(BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Middle)
             .with(BlockStateProperties::WATERLOGGED(), false);
-    EXPECT_FALSE(block_->canDrip(state));
+    EXPECT_FALSE(PointedDripstoneBlock::canDrip(state));
 }
 
 // ============================================================================
 // 静态辅助方法测试
+// 注意：静态方法 isStalactite/isStalagmite/isTip/isPointedDripstoneWithDirection
+// 使用 state->is(VanillaBlocks::POINTED_DRIPSTONE) 检查方块身份，
+// 因此必须使用 VanillaBlocks::POINTED_DRIPSTONE 的状态，而非 block_ 实例的状态。
 // ============================================================================
 
 TEST_F(PointedDripstoneBlockTest, IsStalactite_DownDirection)
 {
-    auto state = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
+        BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
     EXPECT_TRUE(PointedDripstoneBlock::isStalactite(state));
 }
 
 TEST_F(PointedDripstoneBlockTest, IsStalactite_UpDirection)
 {
-    auto state = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
+        BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
     EXPECT_FALSE(PointedDripstoneBlock::isStalactite(state));
 }
 
 TEST_F(PointedDripstoneBlockTest, IsStalagmite_UpDirection)
 {
-    auto state = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
+        BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
     EXPECT_TRUE(PointedDripstoneBlock::isStalagmite(state));
 }
 
 TEST_F(PointedDripstoneBlockTest, IsStalagmite_DownDirection)
 {
-    auto state = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
+        BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
     EXPECT_FALSE(PointedDripstoneBlock::isStalagmite(state));
 }
 
 TEST_F(PointedDripstoneBlockTest, IsTip_TrueForTip)
 {
-    auto state = block_->defaultState().with(
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
         BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::Tip);
     EXPECT_TRUE(PointedDripstoneBlock::isTip(&state, false));
     EXPECT_TRUE(PointedDripstoneBlock::isTip(&state, true));
@@ -713,7 +723,7 @@ TEST_F(PointedDripstoneBlockTest, IsTip_TrueForTip)
 
 TEST_F(PointedDripstoneBlockTest, IsTip_TrueForTipMergeWhenAllowMerge)
 {
-    auto state = block_->defaultState().with(
+    auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
         BlockStateProperties::DRIPSTONE_THICKNESS(), BlockStateProperties::DripstoneThickness::TipMerge);
     // 不允许合并 → TIP_MERGE 不是 TIP
     EXPECT_FALSE(PointedDripstoneBlock::isTip(&state, false));
@@ -728,7 +738,8 @@ TEST_F(PointedDripstoneBlockTest, IsTip_FalseForOtherThicknesses)
         BlockStateProperties::DripstoneThickness::Base};
 
     for (const auto& thickness : nonTipThicknesses) {
-        auto state = block_->defaultState().with(BlockStateProperties::DRIPSTONE_THICKNESS(), thickness);
+        auto state = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
+            BlockStateProperties::DRIPSTONE_THICKNESS(), thickness);
         EXPECT_FALSE(PointedDripstoneBlock::isTip(&state, false));
         EXPECT_FALSE(PointedDripstoneBlock::isTip(&state, true));
     }
@@ -747,11 +758,13 @@ TEST_F(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_NullState_Retu
 
 TEST_F(PointedDripstoneBlockTest, IsPointedDripstoneWithDirection_CorrectDirection)
 {
-    auto upState = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
+    auto upState = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
+        BlockStateProperties::VERTICAL_DIRECTION(), Direction::Up);
     EXPECT_TRUE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&upState, Direction::Up));
     EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&upState, Direction::Down));
 
-    auto downState = block_->defaultState().with(BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
+    auto downState = VanillaBlocks::POINTED_DRIPSTONE->defaultState().with(
+        BlockStateProperties::VERTICAL_DIRECTION(), Direction::Down);
     EXPECT_TRUE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&downState, Direction::Down));
     EXPECT_FALSE(PointedDripstoneBlock::isPointedDripstoneWithDirection(&downState, Direction::Up));
 }
