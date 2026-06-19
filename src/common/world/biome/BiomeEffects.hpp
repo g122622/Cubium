@@ -37,9 +37,9 @@ namespace biome {
  */
 enum class GrassColorModifier : u8 {
     None,       ///< 无修改，使用默认 colormap
-    Swamp,      ///< 沼泽：基于噪声的双色混合（深绿/浅绿）
-    DarkForest, ///< 黑森林：整体变暗
-    Badlands    ///< 恶地：特殊的黄褐色调
+    Swamp,      ///< 沼泽：基于 BIOME_INFO_NOISE 的双色混合（深绿/浅绿）
+    DarkForest, ///< 黑森林：对 colormap 颜色应用位运算变暗 (color & 16711422 + 2634762) >> 1
+    Badlands    ///< 恶地：使用固定草颜色覆盖（MC 1.21.11 中不作为修改器，而是直接设置 grassColor）
 };
 
 /**

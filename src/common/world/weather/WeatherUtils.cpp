@@ -25,6 +25,7 @@
 
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -69,7 +70,9 @@ bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
-    return getPrecipitationType(biome->climate().temperature) == 1;
+    // MC 1.21.11: 使用高度调整温度而非基础温度，高海拔位置可能降温至降雪阈值
+    const f32 adjustedTemp = biome->getHeightAdjustedTemperature(pos.x, pos.y, pos.z, mc::world::SEA_LEVEL);
+    return getPrecipitationType(adjustedTemp) == 1;
 }
 
 bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos)
@@ -87,7 +90,9 @@ bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
-    return getPrecipitationType(biome->climate().temperature) == 2;
+    // MC 1.21.11: 使用高度调整温度而非基础温度，高海拔位置可能降温至降雪阈值
+    const f32 adjustedTemp = biome->getHeightAdjustedTemperature(pos.x, pos.y, pos.z, mc::world::SEA_LEVEL);
+    return getPrecipitationType(adjustedTemp) == 2;
 }
 
 i32 WeatherUtils::getRandomWeatherDuration(mc::math::IRandom& rng, i32 minTime, i32 maxTime)

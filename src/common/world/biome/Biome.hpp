@@ -160,6 +160,9 @@ public:
     void setHumidity(f32 value) { m_climate.humidity = value; }
     void setContinentalness(f32 value) { m_climate.continentalness = value; }
     void setErosion(f32 value) { m_climate.erosion = value; }
+    void setDownfall(f32 value) { m_climate.downfall = value; }
+    void setPrecipitation(BiomeClimate::Precipitation value) { m_climate.precipitation = value; }
+    void setTemperatureModifier(BiomeClimate::TemperatureModifier value) { m_climate.temperatureModifier = value; }
     void setSurfaceBlock(const BlockState* block) { m_surfaceBlock = block; }
     void setSubSurfaceBlock(const BlockState* block) { m_subSurfaceBlock = block; }
     void setUnderWaterBlock(const BlockState* block) { m_underWaterBlock = block; }

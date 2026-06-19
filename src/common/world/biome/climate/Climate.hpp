@@ -46,6 +46,9 @@ namespace mc::world::biome::climate {
 /// 量化因子：将浮点气候参数转换为整数以优化比较性能
 inline constexpr f32 QUANTIZATION_FACTOR = 10000.0f;
 
+/// 气候参数维度数量（temperature, humidity, continentalness, erosion, depth, weirdness + offset = 7）
+inline constexpr i32 PARAMETER_COUNT = 7;
+
 // ============================================================================
 // Parameter - 气候参数范围
 // ============================================================================
@@ -71,11 +74,40 @@ struct Parameter {
     /** 创建范围参数 */
     static Parameter span(f32 minValue, f32 maxValue)
     {
+        MC_ASSERT_RELEASE(minValue <= maxValue && "Climate::Parameter::span: minValue must be <= maxValue");
         return {static_cast<i64>(minValue * QUANTIZATION_FACTOR), static_cast<i64>(maxValue * QUANTIZATION_FACTOR)};
     }
 
     /** 从两个参数的范围创建跨度参数（使用 first.min 和 second.max） */
-    static Parameter span(const Parameter& first, const Parameter& second) { return {first.min, second.max}; }
+    static Parameter span(const Parameter& first, const Parameter& second)
+    {
+        MC_ASSERT_RELEASE(first.min <= second.max && "Climate::Parameter::span: first.min must be <= second.max");
+        return {first.min, second.max};
+    }
+
+    /**
+     * @brief 合并两个参数的范围（用于 RTree 构建时的参数空间合并）
+     *
+     * 如果 other 为 nullptr，返回当前参数自身。
+     * 否则返回 min(this.min, other.min) ~ max(this.max, other.max) 的范围。
+     */
+    [[nodiscard]] static Parameter merge(const Parameter& a, const Parameter& b)
+    {
+        return {std::min(a.min, b.min), std::max(a.max, b.max)};
+    }
+
+    /**
+     * @brief 计算两个参数范围之间的距离
+     *
+     * 用于 RTree 构建时计算节点间距离。
+     * 如果两个范围重叠，返回 0。
+     */
+    [[nodiscard]] i64 distance(const Parameter& other) const
+    {
+        const i64 above = min - other.max;
+        const i64 below = other.min - max;
+        return above > 0 ? above : (below > 0 ? below : i64{0});
+    }
 
     /** 全范围参数 [-2, 2] */
     static Parameter fullRange() { return span(-2.0f, 2.0f); }
@@ -173,6 +205,18 @@ struct ParameterPoint {
         return temperature == other.temperature && humidity == other.humidity &&
             continentalness == other.continentalness && erosion == other.erosion && depth == other.depth &&
             weirdness == other.weirdness && offset == other.offset;
+    }
+
+    /**
+     * @brief 获取参数空间数组（7 个 Parameter，用于 RTree 构建）
+     *
+     * 将 6 个气候参数和 offset 转换为 7 个 Parameter 对象数组。
+     * offset 被包装为 point(offset, offset) 形式的 Parameter。
+     * MC 1.21.11: Climate.ParameterPoint.parameterSpace()
+     */
+    [[nodiscard]] std::array<Parameter, 7> parameterSpace() const
+    {
+        return {temperature, humidity, continentalness, erosion, depth, weirdness, Parameter{offset, offset}};
     }
 };
 
@@ -284,6 +328,33 @@ public:
         }
 
         return m_entries[bestIndex].second;
+    }
+
+    /**
+     * @brief 暴力搜索最匹配的值（用于测试验证 RTree 结果）
+     *
+     * 与 findValue 算法相同，但使用 MC 1.21.11 风格的初始化方式：
+     * 从第一个元素的 fitness 开始比较。
+     * MC: Climate.ParameterList.findValueBruteForce()
+     */
+    [[nodiscard]] const T& findValueBruteForce(const TargetPoint& target) const
+    {
+        MC_ASSERT_RELEASE(!m_entries.empty());
+
+        auto it = m_entries.begin();
+        i64 bestFitness = it->first.fitness(target);
+        const T* bestValue = &it->second;
+        ++it;
+
+        for (; it != m_entries.end(); ++it) {
+            const i64 fitness = it->first.fitness(target);
+            if (fitness < bestFitness) {
+                bestFitness = fitness;
+                bestValue = &it->second;
+            }
+        }
+
+        return *bestValue;
     }
 
 private:

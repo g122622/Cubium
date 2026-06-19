@@ -23,7 +23,9 @@
 
 #include "BiomeColors.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/biome/BiomeEffects.hpp"
+#include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <cmath>
 
 namespace mc {
@@ -55,13 +57,21 @@ u32 GrassColorResolver::getColor(const Biome& biome, f64 x, f64 z) const noexcep
                 world::biome::BiomeEffects::SWAMP_GRASS_COLOR_DARK);
         }
         case world::biome::GrassColorModifier::DarkForest: {
-            // 黑森林：草颜色变暗
+            // MC 1.21.11: DarkForest 修改器对 colormap 结果应用位运算变暗
+            // 公式: (color & 16711422) + 2634762 >> 1
+            // 但由于此处 grassColor 已有覆盖值，直接返回覆盖颜色
+            // 注意：正确的实现应该是先从 colormap 获取颜色，再应用位运算
+            // 当前由于 DarkForest 生物群系同时设置了 grassColor 覆盖，
+            // 此处返回覆盖颜色。当 colormap 系统实现后，应改为：
+            //   u32 colormapColor = getGrassColormapColor(biome);
+            //   return ((colormapColor & 16711422) + 2634762) >> 1;
             return world::biome::BiomeEffects::DARK_FOREST_GRASS_COLOR;
         }
-        case world::biome::GrassColorModifier::Badlands: {
-            // 恶地：特殊黄褐色
+        case world::biome::GrassColorModifier::Badlands:
+            // 恶地使用 grassColor 覆盖值，不走修改器逻辑
+            // 此分支不应到达（Badlands 生物群系同时设置了 grassColor 覆盖），
+            // 但为了安全起见，返回恶地草颜色
             return world::biome::BiomeEffects::BADLANDS_GRASS_COLOR;
-        }
         case world::biome::GrassColorModifier::None:
         default:
             // 3. 使用 grass colormap（返回标记值，由调用方处理）
@@ -137,21 +147,9 @@ const ColorResolver& BiomeColors::waterColorResolver()
 
 u32 BiomeColors::calculateSwampColor(f64 x, f64 z, u32 color1, u32 color2) noexcept
 {
-    // 沼泽颜色算法：使用 2D Perlin 噪声变体进行双色混合
-    // 使用确定性哈希简化实现
-    const i64 seed = static_cast<i64>(std::floor(x * 0.0225)) * 31337 + static_cast<i64>(std::floor(z * 0.0225)) * 7919;
-
-    // 简单的哈希函数
-    i64 hash = seed;
-    hash = (hash ^ (hash >> 30)) * 0xBF58476D1CE4E5B9LL;
-    hash = (hash ^ (hash >> 27)) * 0x94D049BB133111EBLL;
-    hash = hash ^ (hash >> 31);
-
-    // 将哈希值映射到 [-1, 1] 范围
-    const f64 noise =
-        static_cast<f64>(hash & 0x7FFFFFFFFFFFFFFFLL) / static_cast<f64>(0x7FFFFFFFFFFFFFFFLL) * 2.0 - 1.0;
-
-    // 根据噪声值选择颜色
+    // MC 1.21.11: 使用 BIOME_INFO_NOISE (seed=2345, octaves=[0]) 在 scale 0.0225 处采样
+    // 如果噪声 < -0.1，返回深色 (color2)，否则返回浅色 (color1)
+    const f64 noise = world::biome::biomeInfoNoise().getValue(x * 0.0225, z * 0.0225, false);
     return noise < -0.1 ? color2 : color1;
 }
 
