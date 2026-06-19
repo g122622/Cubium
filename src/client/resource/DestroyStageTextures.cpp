@@ -219,6 +219,8 @@ bool DestroyStageTextures::_loadTextureFromResourcePack(
     // 现代 MC 1.13+ 路径: textures/block/destroy_stage_X
     // 旧版 MC 1.12 路径: textures/blocks/destroy_stage_X
     // ResourceLocation 会自动添加 .png 后缀
+    // TODO: 此处的路径变体回退逻辑与 ResourceManager::getAltTexturePath() 功能重复，
+    //       可考虑复用集中化的路径变体转换方法消除重复代码。
 
     std::vector<u8> rawData;
     u32 srcWidth = 0, srcHeight = 0;

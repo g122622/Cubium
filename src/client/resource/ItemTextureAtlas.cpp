@@ -343,6 +343,8 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
 
     // 遍历所有物品并尝试加载纹理。
     // 规则：优先 textures/item/<item>，若是方块物品再回退到 block 纹理。
+    // TODO: 此处的路径变体候选列表（item/items、block/blocks）与 ResourceManager::getAltTexturePath()
+    //       功能重复，可考虑复用集中化的路径变体转换方法消除重复代码。
     ItemRegistry::instance().forEachItem([&](Item& item) {
         const ResourceLocation& itemId = item.itemLocation();
         const ResourceLocation atlasKey(itemId.namespace_(), "textures/item/" + itemId.path());
@@ -401,6 +403,9 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
 
         m_regionsByLocation[atlasKey] = region;
         m_regionsByLocation[ResourceLocation(itemId.namespace_(), "item/" + itemId.path())] = region;
+        // TODO: 以下路径变体别名注册（textures/items/、textures/block/、textures/blocks/）
+        //       与 ResourceManager::buildTextureAtlas() 中的别名注册逻辑重复，
+        //       可考虑复用 ResourceManager::getAltTexturePath() 消除重复代码。
         m_regionsByLocation[ResourceLocation(itemId.namespace_(), "textures/items/" + itemId.path())] = region;
 
         const BlockItem* blockItem = dynamic_cast<const BlockItem*>(&item);

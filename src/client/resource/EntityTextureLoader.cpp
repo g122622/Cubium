@@ -463,6 +463,9 @@ std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::st
     paths.emplace_back("minecraft:textures/entity/" + name + "/" + name + ".png");
 
     // 备用: textures/entity/<name>.png (MC 1.12 格式)
+    // TODO: 此处的实体纹理路径变体（1.13+ 子目录 vs 1.12 扁平格式）是实体纹理特有的回退逻辑，
+    //       与 ResourceManager::getAltTexturePath() 处理的 block/blocks、item/items 变体不同，
+    //       但仍属于路径兼容性范畴。如果未来统一管理所有路径变体，可在此处复用。
     paths.emplace_back("minecraft:textures/entity/" + name + ".png");
 
     return paths;

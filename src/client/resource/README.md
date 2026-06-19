@@ -6,7 +6,7 @@
 
 ```
 src/client/resource/
-├── ResourceManager.hpp/cpp      # 资源管理器核心入口，协调各加载器
+├── ResourceManager.hpp/cpp      # 资源管理器核心入口，协调各加载器；含 getAltTexturePath() 路径变体兼容方法
 ├── BlockModelLoader.hpp/cpp     # 方块模型 JSON 解析，支持继承和纹理变量
 ├── BlockStateLoader.hpp/cpp     # 方块状态 JSON 解析，管理状态到模型映射
 ├── BlockModelCache.hpp/cpp      # 连接 BlockRegistry 和 ResourceManager 的缓存层
@@ -127,7 +127,13 @@ BlockModelLoader::resolveTextureReferences(baked.textures);
 
 ### 2. 纹理路径兼容性
 
-MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。加载器会自动尝试两种路径。
+MC 1.12 使用 `textures/blocks/`，MC 1.13+ 使用 `textures/block/`。ResourceManager 通过 `getAltTexturePath()` 集中管理路径变体转换，在以下三个层面自动处理兼容性：
+
+1. **图集构建阶段**（`buildTextureAtlas()`）：当原始路径在资源包中找不到纹理时，自动尝试变体路径加载；构建完成后，将路径变体别名注册到 `m_textureRegions`，确保后续直接查找即可命中。
+2. **纹理查找阶段**（`_findTextureRegion()` / `getTextureRegion()`）：查找纹理区域时，原始路径未命中则自动尝试对应的变体路径。
+3. **集中化工具方法**（`getAltTexturePath()`）：公共静态方法，将 `textures/block/` ↔ `textures/blocks/`、`textures/item/` ↔ `textures/items/` 互相转换，可供其他模块复用以消除重复的路径变体逻辑。
+
+> **注意**：`DestroyStageTextures`、`ItemTextureAtlas`、`EntityTextureLoader` 中仍存在独立的路径变体回退逻辑（已标记 TODO），后续可迁移至使用 `getAltTexturePath()` 统一处理。
 
 ### 3. 模型烘焙依赖顺序
 
