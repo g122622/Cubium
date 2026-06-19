@@ -62,7 +62,7 @@ items/
 │   ├── OminousTrialKeyItem.hpp/cpp # 不祥试炼钥匙
 │   ├── TrialChamberSpecialItems.hpp # 试炼密室物品汇总头文件
 │   ├── TrialKeyItem.hpp/cpp     # 试炼钥匙
-│   └── WindChargeItem.hpp/cpp   # 风弹（击退效果）
+│   └── WindChargeItem.hpp/cpp   # 风弹（右键投掷+冷却，产生风爆击退）
 ├── vehicle/                     # 载具物品
 │   ├── BoatItem.hpp/cpp         # 船（水域交通工具）
 │   └── MinecartItem.hpp/cpp     # 矿车（轨道交通工具）
