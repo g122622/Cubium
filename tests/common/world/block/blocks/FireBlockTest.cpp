@@ -849,25 +849,13 @@ TEST_F(FireInfoRegistryTest, AgriculturalAndVegetationBlockFireInfo)
     EXPECT_EQ(sweetBerryState.getFlammability(), 100);
     EXPECT_EQ(sweetBerryState.getFireSpreadSpeed(), 60);
 
-    // 可可豆：ignite=60, burn=0（IGNITE_INSTANT=60, 可被点燃但不蔓延）
-    const BlockState& cocoaState = VanillaBlocks::COCOA->defaultState();
-    EXPECT_EQ(cocoaState.getFlammability(), 0);
-    EXPECT_EQ(cocoaState.getFireSpreadSpeed(), 60);
+    // 注意: 可可豆（COCOA）、小麦（WHEAT）、南瓜茎（PUMPKIN_STEM）、甘蔗（SUGAR_CANE）
+    //       在 MC 原版 FireBlock.bootStrap() 中未注册为可燃方块，因此此处不测试其火焰参数。
 
-    // 小麦：ignite=60, burn=0（IGNITE_INSTANT=60）
-    const BlockState& wheatState = VanillaBlocks::WHEAT->defaultState();
-    EXPECT_EQ(wheatState.getFlammability(), 0);
-    EXPECT_EQ(wheatState.getFireSpreadSpeed(), 60);
-
-    // 南瓜茎：ignite=60, burn=0
-    const BlockState& pumpkinStemState = VanillaBlocks::PUMPKIN_STEM->defaultState();
-    EXPECT_EQ(pumpkinStemState.getFlammability(), 0);
-    EXPECT_EQ(pumpkinStemState.getFireSpreadSpeed(), 60);
-
-    // 甘蔗：ignite=60, burn=0
-    const BlockState& sugarCaneState = VanillaBlocks::SUGAR_CANE->defaultState();
-    EXPECT_EQ(sugarCaneState.getFlammability(), 0);
-    EXPECT_EQ(sugarCaneState.getFireSpreadSpeed(), 60);
+    // 萤火虫灌木：ignite=60, burn=100
+    const BlockState& fireflyBushState = VanillaBlocks::FIREFLY_BUSH->defaultState();
+    EXPECT_EQ(fireflyBushState.getFlammability(), 100);
+    EXPECT_EQ(fireflyBushState.getFireSpreadSpeed(), 60);
 }
 
 // 验证所有主世界木材栅栏的燃烧参数 (ignite=5, burn=20)

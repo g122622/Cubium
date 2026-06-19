@@ -539,13 +539,13 @@ TEST_F(FireInfoRegistryStairsSlabsTest, StoneStairsHasNoFireInfo)
     EXPECT_EQ(blocks::FireInfoRegistry::instance().getEncouragement(VanillaBlocks::STONE_STAIRS->blockId()), 0);
 }
 
-TEST_F(FireInfoRegistryStairsSlabsTest, BrownMushroomBlockHasFireInfo)
+TEST_F(FireInfoRegistryStairsSlabsTest, BrownMushroomBlockNotFlammable)
 {
-    // 蘑菇方块（BROWN_MUSHROOM_BLOCK）在 MC 原版中注册了火焰信息
-    // ignite=5(IGNITE_HARD), burn=20(BURN_MEDIUM)
+    // 蘑菇方块（BROWN_MUSHROOM_BLOCK）在 MC 原版 FireBlock.bootStrap() 中
+    // 未注册为可燃方块，因此火焰参数应为 0
     if (VanillaBlocks::BROWN_MUSHROOM_BLOCK == nullptr) {
         GTEST_SKIP() << "BROWN_MUSHROOM_BLOCK not registered";
     }
-    EXPECT_EQ(blocks::FireInfoRegistry::instance().getEncouragement(VanillaBlocks::BROWN_MUSHROOM_BLOCK->blockId()), 5);
-    EXPECT_EQ(blocks::FireInfoRegistry::instance().getFlammability(VanillaBlocks::BROWN_MUSHROOM_BLOCK->blockId()), 20);
+    EXPECT_EQ(blocks::FireInfoRegistry::instance().getEncouragement(VanillaBlocks::BROWN_MUSHROOM_BLOCK->blockId()), 0);
+    EXPECT_EQ(blocks::FireInfoRegistry::instance().getFlammability(VanillaBlocks::BROWN_MUSHROOM_BLOCK->blockId()), 0);
 }

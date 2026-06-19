@@ -322,7 +322,6 @@ void FireInfoRegistry::initializeVanillaFireInfos()
 
     // 书架 — ignite=30, burn=20
     registerFireInfo(BuildingBlocks::BOOKSHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
-    registerFireInfo(TrailsBlocks::CHISELED_BOOKSHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
 
     // TNT — ignite=15, burn=100
     registerFireInfo(BuildingBlocks::TNT->blockId(), IGNITE_MEDIUM, BURN_INSTANT);
@@ -373,9 +372,6 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     // 发光地衣 — ignite=15, burn=100
     registerFireInfo(CaveBlocks::GLOW_LICHEN->blockId(), IGNITE_MEDIUM, BURN_INSTANT);
 
-    // 苔藓地毯 — ignite=5, burn=100
-    registerFireInfo(CaveBlocks::MOSS_CARPET->blockId(), IGNITE_HARD, BURN_INSTANT);
-
     // ========================================================================
     // 苍白花园方块 — ignite=5, burn=100
     // ========================================================================
@@ -383,144 +379,30 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     registerFireInfo(PaleGardenBlocks::PALE_MOSS_CARPET->blockId(), IGNITE_HARD, BURN_INSTANT);
     registerFireInfo(PaleGardenBlocks::PALE_HANGING_MOSS->blockId(), IGNITE_HARD, BURN_INSTANT);
 
-    // ========================================================================
-    // 告示牌类 — ignite=5, burn=20 (仅主世界木材告示牌，下界木材不可燃)
-    // 注意: 告示牌在MC原版中注册了相同的火焰参数
-    // ========================================================================
+    // 注意: 告示牌（SIGN/WALL_SIGN）和悬挂告示牌（HANGING_SIGN/WALL_HANGING_SIGN）
+    // 在 MC 原版 FireBlock.bootStrap() 中未注册为可燃方块，此处不注册以保持一致。
+    // 绯红木和诡异木告示牌同样不可燃。
 
-    // 橡木告示牌
-    registerFireInfo(SignBannerBlocks::OAK_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::OAK_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::OAK_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::OAK_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    // 注意: 音符盒（NOTE_BLOCK）和唱片机（JUKEBOX）在 MC 原版 FireBlock.bootStrap()
+    //       中未注册为可燃方块，此处不注册以保持一致。
 
-    // 云杉木告示牌
-    registerFireInfo(SignBannerBlocks::SPRUCE_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::SPRUCE_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::SPRUCE_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::SPRUCE_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    // 注意: 树苗（SAPLING）在 MC 原版 FireBlock.bootStrap() 中未注册为可燃方块，
+    //       此处不注册以保持一致。
 
-    // 白桦木告示牌
-    registerFireInfo(SignBannerBlocks::BIRCH_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::BIRCH_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::BIRCH_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::BIRCH_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    // 注意: 蘑菇方块（BROWN_MUSHROOM_BLOCK/RED_MUSHROOM_BLOCK/MUSHROOM_STEM）
+    //       在 MC 原版 FireBlock.bootStrap() 中未注册为可燃方块，此处不注册以保持一致。
 
-    // 丛林木告示牌
-    registerFireInfo(SignBannerBlocks::JUNGLE_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::JUNGLE_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::JUNGLE_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::JUNGLE_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // 金合欢木告示牌
-    registerFireInfo(SignBannerBlocks::ACACIA_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::ACACIA_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::ACACIA_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::ACACIA_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // 深色橡木告示牌
-    registerFireInfo(SignBannerBlocks::DARK_OAK_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::DARK_OAK_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::DARK_OAK_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::DARK_OAK_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // 红树木告示牌
-    registerFireInfo(SignBannerBlocks::MANGROVE_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::MANGROVE_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::MANGROVE_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::MANGROVE_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // 樱花木告示牌
-    registerFireInfo(SignBannerBlocks::CHERRY_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::CHERRY_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::CHERRY_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::CHERRY_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // 竹子告示牌
-    registerFireInfo(SignBannerBlocks::BAMBOO_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::BAMBOO_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::BAMBOO_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::BAMBOO_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // 苍白橡木告示牌
-    registerFireInfo(SignBannerBlocks::PALE_OAK_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::PALE_OAK_WALL_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::PALE_OAK_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(SignBannerBlocks::PALE_OAK_WALL_HANGING_SIGN->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // 注意: 绯红木和诡异木告示牌（CRIMSON_*/WARPED_*）不可燃，不注册
-
-    // ========================================================================
-    // 音符盒与唱片机 — ignite=5, burn=20 (木质方块)
-    // 参考: MC原版 FireBlock.bootStrap() 中 NOTEBLOCK 和 JUKEBOX 未单独注册，
-    //       但它们使用 Material::WOOD，原版通过 IForgeBlock.isFlammable() 返回 true
-    //       这里显式注册以确保火焰蔓延行为正确
-    // ========================================================================
-    registerFireInfo(RedstoneBlocks::NOTE_BLOCK->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(BuildingBlocks::JUKEBOX->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // ========================================================================
-    // 树苗 — ignite=30, burn=60 (与树叶一致)
-    // 参考: MC原版树苗在 FireBlock.bootStrap() 中未单独注册，
-    //       但它们使用 Material::PLANT，原版通过 IForgeBlock.isFlammable() 返回 true
-    //       这里显式注册以确保火焰蔓延行为与树叶一致
-    // ========================================================================
-    registerFireInfo(VegetationBlocks::OAK_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(VegetationBlocks::SPRUCE_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(VegetationBlocks::BIRCH_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(VegetationBlocks::JUNGLE_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(VegetationBlocks::ACACIA_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(VegetationBlocks::DARK_OAK_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(CherryBlocks::CHERRY_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(MangroveBlocks::MANGROVE_PROPAGULE->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(PaleGardenBlocks::PALE_OAK_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-    registerFireInfo(VegetationBlocks::BAMBOO_SAPLING->blockId(), IGNITE_EASY, BURN_EASY);
-
-    // ========================================================================
-    // 蘑菇方块 — ignite=5, burn=20 (MC原版中注册了相同参数)
-    // 参考: FireBlock.bootStrap() 中 BROWN_MUSHROOM_BLOCK/RED_MUSHROOM_BLOCK/MUSHROOM_STEM
-    //       都以 ignite=5, burn=20 注册
-    // ========================================================================
-    registerFireInfo(VegetationBlocks::BROWN_MUSHROOM_BLOCK->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(VegetationBlocks::RED_MUSHROOM_BLOCK->blockId(), IGNITE_HARD, BURN_MEDIUM);
-    registerFireInfo(VegetationBlocks::MUSHROOM_STEM->blockId(), IGNITE_HARD, BURN_MEDIUM);
-
-    // ========================================================================
-    // 苍白橡木心材 — ignite=5, burn=20 (与木板一致，木质方块)
-    // 参考: MC 1.21.4+ 中 CREAKING_HEART 注册为可燃方块
-    // ========================================================================
-    registerFireInfo(PaleGardenBlocks::CREAKING_HEART->blockId(), IGNITE_HARD, BURN_MEDIUM);
+    // 注意: 苍白橡木心材（CREAKING_HEART）在 MC 原版 FireBlock.bootStrap() 中
+    //       未注册为可燃方块，此处不注册以保持一致。
 
     // ========================================================================
     // 甜浆果丛 — ignite=60, burn=100 (MC原版 FireBlock.bootStrap())
     // ========================================================================
     registerFireInfo(VegetationBlocks::SWEET_BERRY_BUSH->blockId(), IGNITE_INSTANT, BURN_INSTANT);
 
-    // ========================================================================
-    // 可可豆 — ignite=60, burn=0 (MC原版 FireBlock.bootStrap(), 可被点燃但不蔓延)
-    // ========================================================================
-    registerFireInfo(AgriculturalBlocks::COCOA->blockId(), IGNITE_INSTANT, 0);
-
-    // ========================================================================
-    // 农作物 — ignite=60, burn=0 (MC原版 FireBlock.bootStrap(), 可被点燃但不蔓延)
-    // ========================================================================
-    registerFireInfo(AgriculturalBlocks::WHEAT->blockId(), IGNITE_INSTANT, 0);
-    registerFireInfo(AgriculturalBlocks::CARROTS->blockId(), IGNITE_INSTANT, 0);
-    registerFireInfo(AgriculturalBlocks::POTATOES->blockId(), IGNITE_INSTANT, 0);
-    registerFireInfo(AgriculturalBlocks::BEETROOTS->blockId(), IGNITE_INSTANT, 0);
-
-    // ========================================================================
-    // 南瓜/西瓜茎 — ignite=60, burn=0 (MC原版 FireBlock.bootStrap())
-    // ========================================================================
-    registerFireInfo(VegetationBlocks::PUMPKIN_STEM->blockId(), IGNITE_INSTANT, 0);
-    registerFireInfo(VegetationBlocks::MELON_STEM->blockId(), IGNITE_INSTANT, 0);
-    registerFireInfo(VegetationBlocks::ATTACHED_PUMPKIN_STEM->blockId(), IGNITE_INSTANT, 0);
-    registerFireInfo(VegetationBlocks::ATTACHED_MELON_STEM->blockId(), IGNITE_INSTANT, 0);
-
-    // ========================================================================
-    // 甘蔗 — ignite=60, burn=0 (MC原版 FireBlock.bootStrap(), 可被点燃但不蔓延)
-    // ========================================================================
-    registerFireInfo(NaturalBlocks::SUGAR_CANE->blockId(), IGNITE_INSTANT, 0);
+    // 注意: 可可豆（COCOA）、农作物（WHEAT/CARROTS/POTATOES/BEETROOTS）、
+    //       南瓜/西瓜茎（PUMPKIN_STEM/MELON_STEM/ATTACHED_*_STEM）和甘蔗（SUGAR_CANE）
+    //       在 MC 原版 FireBlock.bootStrap() 中未注册为可燃方块，此处不注册以保持一致。
 
     // ========================================================================
     // 蜂箱 — ignite=5, burn=20 (木质方块)
@@ -530,9 +412,14 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     registerFireInfo(NaturalBlocks::BEEHIVE->blockId(), IGNITE_HARD, BURN_MEDIUM);
     registerFireInfo(NaturalBlocks::BEE_NEST->blockId(), IGNITE_EASY, BURN_MEDIUM);
 
+    // 萤火虫灌木 — ignite=60, burn=100
+    registerFireInfo(GardenBlocks::FIREFLY_BUSH->blockId(), IGNITE_INSTANT, BURN_INSTANT);
+
     // ========================================================================
     // TODO: MC 1.21.4+ 新增的木质书架（SHELF）方块：
-    // - 各木材类型的 SHELF (ignite=30, burn=20)
+    // - OAK_SHELF, SPRUCE_SHELF, BIRCH_SHELF, JUNGLE_SHELF, ACACIA_SHELF,
+    //   DARK_OAK_SHELF, MANGROVE_SHELF, CHERRY_SHELF, PALE_OAK_SHELF, BAMBOO_SHELF
+    //   (ignite=30, burn=20, 即 IGNITE_EASY, BURN_MEDIUM)
     //   当前项目中尚无 SHELF 方块指针，待注册后补充。
     // ========================================================================
 }
