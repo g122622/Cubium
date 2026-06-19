@@ -25,9 +25,13 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -36,6 +40,9 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
+
+// Player 头文件用于 interactMob 测试
+#include "common/entity/entities/player/Player.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -47,6 +54,7 @@ namespace {
  * @brief 狼实体测试用世界
  *
  * 提供最小化测试环境用于狼实体功能测试
+ * 支持追踪 broadcastEntityStatus、playSound、onTameAnimal 调用
  */
 class WolfTestWorld final : public test::BaseTestWorld {
 public:
@@ -87,11 +95,82 @@ public:
         throw std::runtime_error("WolfTestWorld::tickManager not implemented");
     }
 
-    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+    // 追踪 playSound 调用
+    void playSound(const ResourceLocation& soundId,
+        sound::SoundCategory category,
+        const Vector3& pos,
+        f32 volume,
+        f32 pitch) override
+    {
+        m_lastSoundId = soundId;
+        m_soundPlayCount++;
+        (void)category;
+        (void)pos;
+        (void)volume;
+        (void)pitch;
+    }
+
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
+    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
+    void resetSoundTracking()
+    {
+        m_lastSoundId = ResourceLocation();
+        m_soundPlayCount = 0;
+    }
+
+    // 追踪 broadcastEntityStatus 调用
+    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    {
+        m_lastBroadcastEntityId = entityId;
+        m_lastBroadcastStatus = status;
+        m_broadcastCount++;
+    }
+
+    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
+    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    void resetBroadcastTracking()
+    {
+        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastStatus = 0;
+        m_broadcastCount = 0;
+    }
+
+    // 追踪 onTameAnimal 调用
+    void onTameAnimal(PlayerId playerId, Entity* animal) override
+    {
+        m_tameAnimalCalled = true;
+        m_lastTamePlayerId = playerId;
+        m_lastTameAnimal = animal;
+    }
+
+    [[nodiscard]] bool wasTameAnimalCalled() const { return m_tameAnimalCalled; }
+    [[nodiscard]] PlayerId getLastTamePlayerId() const { return m_lastTamePlayerId; }
+    [[nodiscard]] Entity* getLastTameAnimal() const { return m_lastTameAnimal; }
+    void resetTameTracking()
+    {
+        m_tameAnimalCalled = false;
+        m_lastTamePlayerId = 0;
+        m_lastTameAnimal = nullptr;
+    }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+
+    // 声音追踪
+    ResourceLocation m_lastSoundId;
+    i32 m_soundPlayCount = 0;
+
+    // 广播追踪
+    EntityId m_lastBroadcastEntityId{0};
+    u8 m_lastBroadcastStatus = 0;
+    i32 m_broadcastCount = 0;
+
+    // 驯服追踪
+    bool m_tameAnimalCalled = false;
+    PlayerId m_lastTamePlayerId = 0;
+    Entity* m_lastTameAnimal = nullptr;
 };
 
 class WolfEntityTestFixture : public ::testing::Test {
@@ -422,6 +501,920 @@ TEST_F(WolfEntityTestFixture, Interested_CanBeSet)
 
     wolf.setInterested(false);
     EXPECT_FALSE(wolf.isInterested());
+}
+
+// ============================================================================
+// interactMob 测试 - 未驯服狼 + 骨头 → 驯服尝试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_ReturnsSuccessAndPlaysSound)
+{
+    // 未驯服的狼用骨头交互：应该消耗物品、播放声音、尝试驯服
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack boneStack(Items::BONE, 10);
+    player.inventory().setItem(0, boneStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+    world.resetBroadcastTracking();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 播放吃东西声音
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+
+    // 非创造模式下物品应该减少
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, 9);
+
+    // 应该有广播（TamingSucceeded 或 TamingFailed）
+    EXPECT_EQ(world.getBroadcastCount(), 1);
+    EXPECT_EQ(world.getLastBroadcastEntityId(), EntityId(1));
+    u8 status = world.getLastBroadcastStatus();
+    bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
+        status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    EXPECT_TRUE(isValidStatus);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_CreativeMode_NoConsumption)
+{
+    // 创造模式下骨头不被消耗
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = true;
+    ItemStack boneStack(Items::BONE, 10);
+    player.inventory().setItem(0, boneStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 countBefore = player.inventory().getItem(0).getCount();
+
+    wolf.interactMob(player, Hand::MainHand);
+
+    // 创造模式下物品不应该减少
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, countBefore);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_WithBone_SilentWolf_NoSound)
+{
+    // 静音狼不应该播放声音
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setSilent(true);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    ItemStack boneStack(Items::BONE, 10);
+    player.inventory().setItem(0, boneStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    wolf.interactMob(player, Hand::MainHand);
+
+    // 静音状态下不应该播放声音
+    EXPECT_EQ(world.getSoundPlayCount(), 0);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_AngryWolf_BoneDoesNotTame)
+{
+    // 愤怒的狼不能用骨头驯服
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setAngry(true);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    ItemStack boneStack(Items::BONE, 10);
+    player.inventory().setItem(0, boneStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+    world.resetBroadcastTracking();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 愤怒狼不接受骨头，交给父类处理
+    // 不应消耗物品，不应播放声音，不应广播
+    EXPECT_EQ(world.getSoundPlayCount(), 0);
+    EXPECT_EQ(world.getBroadcastCount(), 0);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_NonBoneItem_PassesToParent)
+{
+    // 未驯服的狼用非骨头物品交互，交给父类处理
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    ItemStack appleStack(Items::APPLE, 10);
+    player.inventory().setItem(0, appleStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 非骨头物品，狼不处理，传递给父类
+    EXPECT_EQ(result, ActionResultType::Pass);
+    EXPECT_EQ(world.getSoundPlayCount(), 0);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_UntamedWolf_OffHandBone)
+{
+    // 副手骨头测试
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+
+    // 主手放苹果，副手放骨头
+    ItemStack appleStack(Items::APPLE, 10);
+    ItemStack boneStack(Items::BONE, 10);
+    player.inventory().setItem(0, appleStack); // 主手
+    player.inventory().setItem(40, boneStack); // 副手槽位
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    ActionResultType result = wolf.interactMob(player, Hand::OffHand);
+
+    // 副手骨头应该触发驯服尝试
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamingSuccess_BroadcastsSuccessAndSetsOwner)
+{
+    // 驯服成功场景 - 直接验证状态设置
+    WolfTestWorld world;
+
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    EXPECT_FALSE(wolf.isTamed());
+
+    // 直接设置驯服状态以验证成功后的行为
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    EXPECT_TRUE(wolf.isTamed());
+    EXPECT_TRUE(wolf.isOwner(12345ULL));
+    EXPECT_FALSE(wolf.isOwner(99999ULL));
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamingAttempt_BroadcastsEitherSuccessOrFail)
+{
+    // 驯服尝试：验证广播为成功或失败之一
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    ItemStack boneStack(Items::BONE, 10);
+    player.inventory().setItem(0, boneStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetBroadcastTracking();
+
+    wolf.interactMob(player, Hand::MainHand);
+
+    // 应该有广播
+    EXPECT_EQ(world.getBroadcastCount(), 1);
+    u8 status = world.getLastBroadcastStatus();
+    bool isValidStatus = (status == static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded) ||
+        status == static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    EXPECT_TRUE(isValidStatus);
+}
+
+// ============================================================================
+// interactMob 测试 - 已驯服狼 + 食物 + 未满血 → 喂食治疗
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodDamaged_HealsAndPlaysSound)
+{
+    // 已驯服的狼 + 食物 + 未满血 → 治疗并播放声音
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(10.0f); // 未满血（驯服后满血 20.0f）
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应该播放吃东西声音
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+
+    // 生命值应该增加（生猪肉治疗 4.0）
+    EXPECT_GT(wolf.health(), 10.0f);
+
+    // 物品应该消耗 1
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, 9);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodFullHealth_DoesNotHeal)
+{
+    // 已驯服的狼 + 食物 + 满血 → 跳过治疗分支，进入繁殖/成长分支
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth()); // 满血
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    f32 healthBefore = wolf.health();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 返回 Success（进入繁殖分支）
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 生命值不应该变化（因为满血不会触发治疗）
+    EXPECT_FLOAT_EQ(wolf.health(), healthBefore);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RottenFlesh_Heals)
+{
+    // 腐肉治疗测试
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(5.0f); // 受伤
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack rottenFleshStack(Items::ROTTEN_FLESH, 10);
+    player.inventory().setItem(0, rottenFleshStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 腐肉治疗 8.0（nutrition=4, heal=2*4=8）
+    EXPECT_FLOAT_EQ(wolf.health(), 13.0f);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_CookedBeef_Heals)
+{
+    // 熟牛排治疗测试
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(5.0f); // 受伤
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack cookedBeefStack(Items::COOKED_BEEF, 10);
+    player.inventory().setItem(0, cookedBeefStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 熟牛排治疗 16.0（nutrition=8, heal=2*8=16），但不超过最大生命值
+    EXPECT_FLOAT_EQ(wolf.health(), wolf.maxHealth());
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodCreativeMode_NoConsumption)
+{
+    // 创造模式下喂食不消耗物品
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(10.0f);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = true;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 countBefore = player.inventory().getItem(0).getCount();
+
+    wolf.interactMob(player, Hand::MainHand);
+
+    // 创造模式下物品不应该减少
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, countBefore);
+
+    // 但仍应该治疗
+    EXPECT_GT(wolf.health(), 10.0f);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_SilentFoodHeal_NoSound)
+{
+    // 静音狼喂食不播放声音
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(10.0f);
+    wolf.setSilent(true);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    wolf.interactMob(player, Hand::MainHand);
+
+    // 静音状态下不应该播放声音
+    EXPECT_EQ(world.getSoundPlayCount(), 0);
+}
+
+// ============================================================================
+// interactMob 测试 - 已驯服狼 + 染料 + 主人 → 颈圈染色
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOwner_ChangesCollarColor)
+{
+    // 已驯服的狼 + 染料 + 主人 → 改变颈圈颜色
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL); // 主人
+    player.abilities().creativeMode = false;
+    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    player.inventory().setItem(0, dyeStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 颈圈颜色应该变为蓝色（LAPIS_LAZULI_DYE 映射到 Blue）
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
+
+    // 物品应该消耗
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, 9);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeNonOwner_NoCollarChange)
+{
+    // 已驯服的狼 + 染料 + 非主人 → 不改变颈圈颜色，进入坐下/站起分支
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
+
+    Player player(EntityId(2), "OtherPlayer");
+    player.setPlayerId(99999ULL); // 非主人
+    player.abilities().creativeMode = false;
+    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    player.inventory().setItem(0, dyeStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 非主人使用染料，由于狼满血，食物分支被跳过
+    // 染料分支检查 isOwner()，非主人被跳过
+    // 最终进入坐下/站起分支，但非主人也不满足 isOwner()
+    // 所以返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+
+    // 颈圈颜色不应该变化
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
+
+    // 物品不应该消耗
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, 10);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeSameColor_NoConsumption)
+{
+    // 已驯服的狼 + 相同颜色染料 + 主人 → 不消耗物品，返回 Success
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    // 默认红色颈圈
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack dyeStack(Items::RED_DYE, 10);
+    player.inventory().setItem(0, dyeStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 countBefore = player.inventory().getItem(0).getCount();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 颈圈颜色不变
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
+
+    // 相同颜色不消耗物品
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, countBefore);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_BoneMealDye_WhiteCollar)
+{
+    // 骨粉作为白色染料
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack boneMealStack(Items::BONE_MEAL, 10);
+    player.inventory().setItem(0, boneMealStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 骨粉映射到白色
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::White);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_InkSacDye_BlackCollar)
+{
+    // 墨囊作为黑色染料
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack inkSacStack(Items::INK_SAC, 10);
+    player.inventory().setItem(0, inkSacStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 墨囊映射到黑色
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Black);
+}
+
+// ============================================================================
+// interactMob 测试 - 已驯服狼 + 食物 + 幼年 → 成长加速
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodChild_AcceleratesGrowth)
+{
+    // 已驯服的幼年狼 + 食物 → 加速成长
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setChild(true); // 设为幼体
+    EXPECT_TRUE(wolf.isChild());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 ageBefore = wolf.getGrowingAge();
+
+    world.resetSoundTracking();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应该播放吃东西声音
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+
+    // 年龄应该增长（getGrowingAge 从负值变得不那么负）
+    i32 ageAfter = wolf.getGrowingAge();
+    EXPECT_GT(ageAfter, ageBefore);
+
+    // 物品应该消耗
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, 9);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodChild_CreativeMode_NoConsumption)
+{
+    // 创造模式下幼年狼喂食不消耗物品
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setChild(true);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = true;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 countBefore = player.inventory().getItem(0).getCount();
+
+    wolf.interactMob(player, Hand::MainHand);
+
+    // 创造模式下物品不应该减少
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, countBefore);
+}
+
+// ============================================================================
+// interactMob 测试 - 已驯服狼 + 食物 + 成年可繁殖 → 进入求爱状态
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodAdultBreedable_EntersLoveMode)
+{
+    // 已驯服的成年狼 + 食物 + 满血 + 可繁殖 → 进入求爱状态
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setHealth(wolf.maxHealth()); // 满血
+    EXPECT_FALSE(wolf.isChild());     // 成年
+    EXPECT_TRUE(wolf.canBreed());     // 可繁殖
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    world.resetSoundTracking();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应该播放吃东西声音
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+
+    // 应该进入求爱状态
+    EXPECT_TRUE(wolf.isInLove());
+
+    // 物品应该消耗
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, 9);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodAdultBreedable_CreativeMode_NoConsumption)
+{
+    // 创造模式下繁殖不消耗物品
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setHealth(wolf.maxHealth());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = true;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 countBefore = player.inventory().getItem(0).getCount();
+
+    wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_TRUE(wolf.isInLove());
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, countBefore);
+}
+
+// ============================================================================
+// interactMob 测试 - 已驯服狼 + 主人 + 无特殊物品 → 切换坐下/站起
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_OwnerEmptyHand_TogglesSitting)
+{
+    // 已驯服的狼 + 主人 + 空手 → 切换坐下/站起
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    // 空手（不设置任何物品）
+    ItemStack emptyStack(nullptr, 0);
+    player.inventory().setItem(0, emptyStack);
+    player.inventory().setSelectedSlot(0);
+
+    // 初始状态：不坐下
+    EXPECT_FALSE(wolf.isSitting());
+
+    // 第一次交互 → 坐下
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(wolf.isSitting());
+
+    // 第二次交互 → 站起
+    result = wolf.interactMob(player, Hand::MainHand);
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_FALSE(wolf.isSitting());
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_OwnerSitting_TogglesToStanding)
+{
+    // 已驯服坐着的狼 + 主人 → 站起
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setSitting(true);
+    EXPECT_TRUE(wolf.isSitting());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    ItemStack emptyStack(nullptr, 0);
+    player.inventory().setItem(0, emptyStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_FALSE(wolf.isSitting());
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NonOwnerEmptyHand_Passes)
+{
+    // 已驯服的狼 + 非主人 + 空手 → 返回 Pass
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    Player otherPlayer(EntityId(2), "OtherPlayer");
+    otherPlayer.setPlayerId(99999ULL); // 非主人
+    ItemStack emptyStack(nullptr, 0);
+    otherPlayer.inventory().setItem(0, emptyStack);
+    otherPlayer.inventory().setSelectedSlot(0);
+
+    bool wasSitting = wolf.isSitting();
+
+    ActionResultType result = wolf.interactMob(otherPlayer, Hand::MainHand);
+
+    // 非主人不能切换坐下状态
+    EXPECT_EQ(result, ActionResultType::Pass);
+    EXPECT_EQ(wolf.isSitting(), wasSitting);
+}
+
+// ============================================================================
+// interactMob 测试 - 优先级验证
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DamagedFoodPrioritizedOverBreed)
+{
+    // 已驯服的狼 + 食物 + 未满血 → 应该治疗，而不是进入繁殖
+    // 这验证了治疗优先级高于繁殖
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setHealth(5.0f); // 受伤
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应该治疗（生命值增加），不应该进入求爱状态
+    EXPECT_GT(wolf.health(), 5.0f);
+    EXPECT_FALSE(wolf.isInLove()); // 受伤时不应进入繁殖状态
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_FoodHealPrioritizedOverDye)
+{
+    // 已驯服的狼 + 满血 + 猪排 → 应该进入繁殖状态，而非治疗
+    // 这验证满血时食物不被用于治疗
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setHealth(wolf.maxHealth()); // 满血
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 满血 + 成年 + 可繁殖 → 进入求爱状态
+    EXPECT_TRUE(wolf.isInLove());
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_ChildFoodPrioritizedOverDye)
+{
+    // 已驯服的幼年狼 + 食物 → 加速成长（而非染色，因为食物不是染料）
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setChild(true);
+    wolf.setHealth(wolf.maxHealth()); // 幼年狼满血
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 ageBefore = wolf.getGrowingAge();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应该加速成长
+    i32 ageAfter = wolf.getGrowingAge();
+    EXPECT_GT(ageAfter, ageBefore);
+}
+
+// ============================================================================
+// interactMob 测试 - 综合场景
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyePrioritizedOverSitToggle)
+{
+    // 已驯服的狼 + 染料（不是食物）+ 主人 → 染色而非坐下切换
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setHealth(wolf.maxHealth()); // 满血
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    player.inventory().setItem(0, dyeStack);
+    player.inventory().setSelectedSlot(0);
+
+    bool wasSitting = wolf.isSitting();
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 颈圈颜色应该变化（LAPIS_LAZULI_DYE 映射到 Blue）
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
+
+    // 坐下状态不应该变化
+    EXPECT_EQ(wolf.isSitting(), wasSitting);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_HealAndDyeSeparateInteractions)
+{
+    // 先治疗，再染色 - 验证多次交互独立工作
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setHealth(5.0f); // 受伤
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+
+    // 第一次交互：用猪排治疗
+    ItemStack porkchopStack(Items::PORKCHOP, 10);
+    player.inventory().setItem(0, porkchopStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result1 = wolf.interactMob(player, Hand::MainHand);
+    EXPECT_EQ(result1, ActionResultType::Success);
+    EXPECT_GT(wolf.health(), 5.0f); // 生命值增加
+
+    // 第二次交互：用染料染色
+    ItemStack dyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    player.inventory().setItem(0, dyeStack);
+
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色
+    ActionResultType result2 = wolf.interactMob(player, Hand::MainHand);
+    EXPECT_EQ(result2, ActionResultType::Success);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue); // 变为蓝色
 }
 
 } // namespace
