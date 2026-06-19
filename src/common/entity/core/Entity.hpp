@@ -1386,6 +1386,7 @@ public:
      * @param damageMultiplier 伤害倍率
      *
      * 使用默认的摔落伤害来源（DamageSources::fall()）。
+     * 内部委托给 causeFallDamage(distance, damageMultiplier, DamageSources::fall())。
      * 如需自定义伤害来源，使用 causeFallDamage()。
      */
     virtual void handleFallDamage(f32 distance, f32 damageMultiplier);
@@ -1396,22 +1397,30 @@ public:
      * @param damageMultiplier 伤害倍率
      * @param source 伤害来源
      *
-     * 方块可以通过此方法施加自定义类型的摔落伤害，
-     * 例如石笋（Stalagmite）使用 DamageSources::stalagmite()。
+     * Block::onFallenUpon 默认实现调用此方法施加摔落伤害。
+     * 方块可以重写 onFallenUpon 以自定义摔落行为：
+     * - 石笋方块：调用 causeFallDamage 并传入 DamageSources::stalagmite()，不调用父类（替代普通摔落伤害）
+     * - 耕地方块：先执行踩踏逻辑，再调用父类 onFallenUpon（保留普通摔落伤害）
+     * - 海龟蛋方块：先执行踩破逻辑，再调用父类 onFallenUpon（保留普通摔落伤害）
+     *
      * 基类实现调用 handleFallDamage(distance, damageMultiplier)。
-     * LivingEntity 重写此方法以使用自定义伤害来源。
+     * LivingEntity 重写此方法以使用自定义伤害来源计算伤害。
      */
     virtual void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source);
 
     /**
      * @brief 更新摔落距离
-     * 在移动时调用，跟踪摔落距离以便着地时计算伤害
+     * 在移动时调用，跟踪摔落距离以便着地时计算伤害。
+     * 着地时调用 Block::onFallenUpon，由方块决定摔落伤害类型和大小。
      */
     void updateFallDistance();
 
 private:
     /**
      * @brief 着地时触发踩上方块的 onFallenUpon 回调
+     *
+     * 调用实体脚下方块的 onFallenUpon 方法。
+     * Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害。
      */
     void _handleLandingOnBlock();
 

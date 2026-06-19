@@ -301,15 +301,18 @@ void PointedDripstoneBlock::onFallenUpon(
     MC_UNUSED(pos);
 
     // 只有朝上的TIP厚度才增加摔落伤害
+    // 参考: MC 1.21 PointedDripstoneBlock.fallOn — 石笋替代普通摔落伤害
     if (state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Up &&
         state.get(BlockStateProperties::DRIPSTONE_THICKNESS()) == BlockStateProperties::DripstoneThickness::Tip) {
         // 石笋伤害：摔落距离 + 2.5，伤害倍率 2.0
+        // 不调用父类 onFallenUpon，替代普通摔落伤害
         entity.causeFallDamage(fallDistance + STALAGMITE_FALL_DISTANCE_OFFSET,
             static_cast<f32>(STALAGMITE_FALL_DAMAGE_MODIFIER),
             DamageSources::stalagmite());
         return;
     }
 
+    // 非尖端滴石：使用父类默认行为（施加普通摔落伤害）
     Block::onFallenUpon(world, pos, state, entity, fallDistance);
 }
 

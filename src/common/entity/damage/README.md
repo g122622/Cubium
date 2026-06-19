@@ -122,9 +122,13 @@ if (entry.timestamp() < currentTime) { ... }
 
 ### 6. DamageType 枚举值
 
-**问题**：`DamageType` 定义了 28+ 种伤害类型，但 `deathMessageKey()` 需要为每种类型返回对应的翻译键。
+**问题**：`DamageType` 定义了 30+ 种伤害类型，但 `deathMessageKey()` 需要为每种类型返回对应的翻译键。
 
 **解决**：新增伤害类型时务必同步更新 `deathMessageKey()` 方法。
+
+**特别说明**：新增的伤害类型及其语义：
+- `Stalagmite`：石笋摔落伤害（踩在朝上的滴石尖端上），属于环境伤害，`isFall()` 返回 `true`（受摔落保护附魔减免），`bypassesArmor()` 返回 `true`（无视护甲）
+- `FallingStalactite`：坠落钟乳石伤害（钟乳石从上方掉落砸中实体），属于实体伤害，由 `FallingBlockEntity` 使用
 
 ### 7. DamageFlags 标志位
 

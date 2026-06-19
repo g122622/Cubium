@@ -1933,9 +1933,13 @@ public:
      * @brief 实体摔落在方块上
      *
      * 当实体从高处摔落到方块上时调用。
-     * 用于实现耕地被踩踏变回泥土、蜂蜜块缓冲等效果。
+     * 默认实现调用 entity.causeFallDamage() 施加普通摔落伤害。
+     * 子类可重写此方法以自定义摔落行为：
+     * - 石笋方块：施加增大的石笋伤害，不调用父类方法（替代普通摔落伤害）
+     * - 海龟蛋方块：不调用父类方法（取消摔落伤害）
+     * - 耕地方块：先执行踩踏逻辑，再调用父类方法（保留普通摔落伤害）
      *
-     * 参考: net.minecraft.block.Block#onFallenUpon
+     * 参考: net.minecraft.block.Block#fallOn
      *
      * @param world 世界
      * @param pos 方块位置
@@ -1944,14 +1948,7 @@ public:
      * @param fallDistance 摔落距离
      */
     virtual void onFallenUpon(
-        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
-    {
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(state);
-        MC_UNUSED(entity);
-        MC_UNUSED(fallDistance);
-    }
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance);
 
     /**
      * @brief 降水处理

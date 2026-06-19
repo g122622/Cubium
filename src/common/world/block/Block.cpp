@@ -23,6 +23,7 @@
 
 #include "Block.hpp"
 #include "../../entity/core/Entity.hpp"
+#include "../../entity/damage/DamageSource.hpp"
 #include "../../entity/entities/player/Player.hpp"
 #include "../../item/context/BlockItemUseContext.hpp"
 #include "../../item/context/ItemUseContext.hpp"
@@ -259,6 +260,21 @@ void Block::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos&
     MC_UNUSED(entity);
     // 默认实现：无操作
     // 子类可以重写此方法实现特殊行为（如岩浆块造成伤害、岩浆方块产生气泡等）
+}
+
+void Block::onFallenUpon(IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+
+    // 默认实现：施加普通摔落伤害
+    // 参考: net.minecraft.block.Block#fallOn — 调用 entity.causeFallDamage(fallDistance, 1.0F, damageSources().fall())
+    // 子类可重写此方法以自定义摔落行为：
+    // - 石笋方块：施加增大伤害，不调用父类（替代普通摔落伤害）
+    // - 海龟蛋方块：不调用父类（取消摔落伤害）
+    // - 耕地方块：先执行踩踏逻辑，再调用父类（保留普通摔落伤害）
+    entity.causeFallDamage(fallDistance, 1.0f, DamageSources::fall());
 }
 
 const CollisionShape& Block::getShape(const BlockState& state) const

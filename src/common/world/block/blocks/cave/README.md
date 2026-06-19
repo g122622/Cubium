@@ -104,12 +104,16 @@ Block
 - **随机刻生长**：以 0.011377778/tick 的概率触发，条件为上方1格是滴水石块且上方2格是水源
 - **厚度计算**：根据邻居滴石方向和厚度推断当前位置的厚度（TipMerge/Tip/Frustum/Middle/Base）
 - **放置方向**：根据点击面确定方向（顶面→朝下，底面→朝上），潜行时不合并尖端
-- **支撑失效**：钟乳石失去支撑时延迟2tick掉落，石笋失去支撑时立即破坏
-- **流体传输**：钟乳石可传输水/岩浆到下方炼药锅（水0.17578125/tick，岩浆0.05859375/tick）
-- **泥巴变粘土**：当泥巴在滴水石块上方时，钟乳石可将水滴穿泥巴变为粘土（TODO：需要 Mud/Clay 方块注册后启用）
+- **支撑失效**：钟乳石失去支撑时延迟2tick掉落（生成 FallingBlockEntity），石笋失去支撑时立即破坏
+- **坠落伤害**：钟乳石掉落砸中实体造成 `FallingStalactite` 类型伤害（每格1点，上限40点）
+- **石笋伤害**：实体踩在朝上的TIP尖端时触发 `Stalagmite` 类型摔落伤害（摔落距离+2.5，伤害倍率2.0），替代普通摔落伤害
+- **流体传输**：钟乳石可传输水/岩浆到下方炼药锅（水0.17578125/tick，岩浆0.05859375/tick），传输时触发 `WorldEvents::DRIPSTONE_DRIP` 事件
+- **泥巴变粘土**：当泥巴在滴水石块上方时，钟乳石可将水滴穿泥巴变为粘土，触发 `GameEvents::BLOCK_CHANGE` 和 `WorldEvents::DRIPSTONE_DRIP`
 - **碰撞箱**：Tip朝上/朝下有不同形状，其他厚度均为全高柱状
 
 关键静态方法：`canGrow`、`findTip`、`findRootBlock`、`canDrip`、`canTipGrow`、`calculateDripstoneThickness`、`maybeTransferFluid`
+
+**摔落伤害架构**：`Block::onFallenUpon` 默认实现调用 `entity.causeFallDamage()` 施加普通摔落伤害。`PointedDripstoneBlock::onFallenUpon` 重写：石笋尖端调用 `causeFallDamage` 并传入 `DamageSources::stalagmite()` 但不调用父类（替代普通摔落伤害）；非尖端调用父类 `Block::onFallenUpon`（保留普通摔落伤害）。
 
 ### #7. SmallDripleafBlock 双格完整性与放置检查
 

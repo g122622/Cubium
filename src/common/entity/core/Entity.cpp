@@ -837,9 +837,10 @@ void Entity::updateFallDistance()
     if (!m_onGround && m_velocity.y < 0.0f) {
         m_fallDistance -= m_velocity.y;
     } else if (m_onGround && m_fallDistance > 0.0f) {
-        // 着地时触发踩上方块的回调
+        // 着地时触发踩上方块的 onFallenUpon 回调
+        // Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害
+        // 子类（如 PointedDripstoneBlock）可替代默认摔落伤害
         _handleLandingOnBlock();
-        handleFallDamage(m_fallDistance, 1.0f);
         m_fallDistance = 0.0f;
     }
 }
@@ -859,6 +860,8 @@ void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSou
 void Entity::_handleLandingOnBlock()
 {
     // 着地时踩上所在方块的 onFallenUpon 回调
+    // Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害
+    // 子类可重写 onFallenUpon 以自定义摔落行为（如石笋增加伤害、蜂蜜块取消伤害等）
     if (m_world == nullptr) {
         return;
     }

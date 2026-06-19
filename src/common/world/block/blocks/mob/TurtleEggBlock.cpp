@@ -223,14 +223,14 @@ void TurtleEggBlock::onEntityWalk(const BlockState& state, IWorld& world, const 
 void TurtleEggBlock::onFallenUpon(
     IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
 {
-    MC_UNUSED(fallDistance);
-
     // 僵尸类生物不会踩破蛋（它们会直接走过去）
-    if (_isZombieType(entity)) {
-        return;
+    if (!_isZombieType(entity)) {
+        _tryTrample(world, pos, state, entity, 3);
     }
 
-    _tryTrample(world, pos, state, entity, 3);
+    // 调用父类方法处理实体着地（摔落伤害等）
+    // 参考: MC 1.21 TurtleEggBlock.fallOn — 总是调用 super.fallOn()
+    Block::onFallenUpon(world, pos, state, entity, fallDistance);
 }
 
 bool TurtleEggBlock::_hasProperHabitat(IBlockReader& world, const BlockPos& pos) const

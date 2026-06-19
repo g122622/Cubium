@@ -269,6 +269,25 @@ finalizeSpawn(world, difficulty, spawnReason)
 - `setLeashedToFence(pos)`：拴到栅栏柱
 - `clearLeash()`：解除拴绳
 
+### 摔落伤害流程
+
+实体着地时的摔落伤害由 `Block::onFallenUpon` 驱动，而非由 Entity 自行施加。流程如下：
+
+```
+Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::onFallenUpon()
+```
+
+1. `Entity::updateFallDistance()`：当实体着地且 `fallDistance > 0` 时，调用 `_handleLandingOnBlock()`
+2. `Entity::_handleLandingOnBlock()`：获取实体脚下方块，调用 `Block::onFallenUpon()`
+3. `Block::onFallenUpon()` 默认实现：调用 `entity.causeFallDamage(fallDistance, 1.0f, DamageSources::fall())` 施加普通摔落伤害
+4. 方块子类可重写 `onFallenUpon()` 自定义摔落行为：
+   - **石笋（PointedDripstoneBlock）**：调用 `causeFallDamage(dist + 2.5, 2.0, stalagmite())` 但不调用父类，替代普通摔落伤害
+   - **耕地（FarmlandBlock）**：先执行踩踏逻辑，再调用父类 `Block::onFallenUpon`，保留普通摔落伤害
+   - **海龟蛋（TurtleEggBlock）**：先执行踩破逻辑，再调用父类 `Block::onFallenUpon`，保留普通摔落伤害
+   - **蜂蜜块/史莱姆块**：通过 `onLanded()` 重置 `fallDistance = 0`，根本不会触发 `onFallenUpon`
+
+**重要**：`Entity::updateFallDistance()` 不再直接调用 `handleFallDamage()`，摔落伤害完全由 `Block::onFallenUpon` 负责。
+
 ### canAttackType 攻击类型判断
 - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()`
 - 基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob 徒劳地试图攻击一个它们够不着的敌人

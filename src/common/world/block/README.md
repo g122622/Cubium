@@ -457,3 +457,27 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 - 此方法替代了旧的 `fillWithRain()` 方法，增加了降水类型参数（Rain/Snow/None）
 - 降水类型由 `Biome::getPrecipitationAt()` 确定，综合考虑生物群系降水设置和高度调整后的温度
 - 只有 `isRaining()` 为 true 时才会调用 `handlePrecipitation`（在 `tickPrecipitation` 中判断）
+
+### 28. Block::onFallenUpon 摔落伤害系统
+
+`Block::onFallenUpon(IWorld&, const BlockPos&, const BlockState&, Entity&, f32 fallDistance)` 是方块响应实体摔落的虚方法。对应 MC Java 的 `Block.fallOn()`。
+
+**默认实现**：调用 `entity.causeFallDamage(fallDistance, 1.0f, DamageSources::fall())` 施加普通摔落伤害。
+
+**调用链**：
+```
+Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::onFallenUpon()
+```
+
+**重要**：`Entity::updateFallDistance()` 不再直接调用 `handleFallDamage()`，摔落伤害完全由 `Block::onFallenUpon` 负责。方块子类通过重写此方法自定义摔落行为：
+
+| 方块 | onFallenUpon 行为 | 摔落伤害 |
+|------|-------------------|---------|
+| Block（基类） | 调用 `causeFallDamage(dist, 1.0, fall())` | 普通摔落伤害 |
+| PointedDripstoneBlock（石笋尖端） | 调用 `causeFallDamage(dist+2.5, 2.0, stalagmite())`，不调用父类 | 增大石笋伤害，替代普通摔落 |
+| FarmlandBlock | 先执行踩踏逻辑，再调用 `Block::onFallenUpon` | 保留普通摔落伤害 |
+| TurtleEggBlock | 先执行踩破逻辑，再调用 `Block::onFallenUpon` | 保留普通摔落伤害 |
+
+**与 onLanded 的区别**：
+- `onLanded`：实体着地时修改运动向量（蜂蜜块取消摔落距离、史莱姆块弹跳），在 `updateFallDistance` 之前调用
+- `onFallenUpon`：实体着地后施加摔落伤害，由 `updateFallDistance` 内部调用
