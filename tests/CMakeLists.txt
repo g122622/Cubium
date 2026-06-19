@@ -360,6 +360,8 @@ add_executable(mc_tests
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
     common/world/block/blocks/functional/AnvilBlockTest.cpp
+    common/world/block/blocks/functional/CraftingTableBlockTest.cpp
+    common/world/block/blocks/nether/EnderChestBlockTest.cpp
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
     # SignBlock 告示牌方块测试（onBlockActivated、状态属性）
@@ -1306,6 +1308,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/BlockEntityRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/ChestEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/TrappedChestEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/EnderChestEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/DoubleSidedInventory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/AbstractFurnaceEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/FurnaceEntity.cpp

@@ -60,7 +60,6 @@ EnderChestBlock::EnderChestBlock(const BlockProperties& properties)
             .with(BlockStateProperties::WATERLOGGED(), false));
 
     // 末影箱形状：14x14底部（与普通箱子相同）
-    // MC原版: Block.column(14.0, 0.0, 14.0) — 底面14像素宽，顶面14像素宽，高度16像素
     m_shape = CollisionShape::fullBlock();
 }
 
@@ -137,12 +136,7 @@ ActionResultType EnderChestBlock::onBlockActivated(const BlockState& state,
 
         // 打开末影箱容器
         // TODO: 当 PlayerEnderChestInventory 实现后，应使用玩家的末影箱物品栏打开 Generic9x3 容器，
-        //       而非直接调用 openContainer。MC原版逻辑：
-        //       1. player.getEnderChestInventory().setActiveChest(enderChestEntity)
-        //       2. player.openMenu(new SimpleMenuProvider(
-        //              (id, inv, player) -> ChestMenu.threeRows(id, inv, playerEnderChestInventory),
-        //              CONTAINER_TITLE))
-        //       当前暂使用 EnderChestEntity 的 openContainer 触发开盖动画和音效，
+        //       而非直接调用 openContainer。当前暂使用 EnderChestEntity 的 openContainer 触发开盖动画和音效，
         //       容器打开部分待 PlayerEnderChestInventory 集成后完善。
         enderChest->openContainer(&player);
 

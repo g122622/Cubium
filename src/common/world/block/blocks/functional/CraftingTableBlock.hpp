@@ -44,8 +44,6 @@ namespace blocks {
  *
  * 用于3x3合成网格的功能方块。
  * 右键点击打开合成台容器界面。
- *
- * 参考: net.minecraft.world.level.block.CraftingTableBlock
  */
 class CraftingTableBlock : public Block {
 public:

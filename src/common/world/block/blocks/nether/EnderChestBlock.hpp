@@ -57,8 +57,6 @@ namespace blocks {
  * 状态属性：
  * - HORIZONTAL_FACING: 朝向 (NORTH, SOUTH, EAST, WEST)
  * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.world.level.block.EnderChestBlock
  */
 class EnderChestBlock : public Block, public IWaterLoggable {
 public:
