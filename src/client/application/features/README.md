@@ -11,7 +11,7 @@ src/client/application/features/
 ├── ClientApplicationHelpers.cpp        # 非模板辅助函数实现
 ├── ClientApplicationAudio.cpp          # 音频初始化、音效、听者同步
 ├── ClientApplicationInput.cpp          # 输入绑定、相机初始化、鼠标捕获、挖掘状态机
-├── ClientApplicationNetwork.cpp        # 网络回调、补全候选、聊天命令、维度切换
+├── ClientApplicationNetwork.cpp        # 网络回调、补全候选、聊天命令、维度切换、世界事件处理
 ├── ClientApplicationResource.cpp       # 资源初始化、重载、资源包变更回调
 ├── ClientApplicationUi.cpp             # 背包/创造屏、屏幕切换、事件分发
 ├── ClientApplicationUiFrame.cpp        # 每帧 UI 状态更新

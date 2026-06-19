@@ -67,7 +67,6 @@ ComposterBlock::ComposterBlock(const BlockProperties& properties)
 
     // 各等级的渲染形状：
     // 底板厚度随等级增加（内部柱体底部上移，即空心区域减小）
-    // MC Java: Block.column(12.0, clamp(1 + level * 2, 2, 16), 16.0)
     // 内部柱体宽度 = 12像素，从 y = clamp(1+level*2, 2, 16) 到 y = 16
     // 外壁 = 底板（y: 0 ~ fillHeight）+ 四面墙壁（y: fillHeight ~ 16, 2像素厚）
     for (i32 i = 0; i < 8; ++i) {
@@ -130,7 +129,7 @@ const CollisionShape& ComposterBlock::getShape(const BlockState& state) const
 const CollisionShape& ComposterBlock::getCollisionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // MC Java: 碰撞形状始终为等级0的外壳形状（底板2像素 + 四面墙壁）
+    // 碰撞形状始终为等级0的外壳形状（底板2像素 + 四面墙壁）
     return m_shapesByLevel[0];
 }
 
@@ -174,7 +173,6 @@ BlockState ComposterBlock::attemptCompost(
 
         // 通过 WorldEvent 广播堆肥成功事件（客户端同时播放音效和粒子效果）
         // data=1 表示成功升级，data=0 表示仅填充未升级
-        // 参考 MC Java: ComposterBlock 使用 levelEvent(1500, pos, state != blockstate ? 1 : 0)
         if (!world.isClientSide()) {
             world.playEvent(world::WorldEvents::COMPOSTER_FILLED_UP, pos, 1);
         }

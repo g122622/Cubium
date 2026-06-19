@@ -113,7 +113,7 @@
 
             碰撞形状注意事项：
             - `getShape()` 根据等级返回不同的外壁形状（底板 + 四面墙壁），底板高度随等级增加
-            - `getCollisionShape()` 始终返回等级0的外壁形状（MC Java: SHAPES[0]）
+            - `getCollisionShape()` 始终返回等级0的外壁形状（SHAPES[0]）
             - 碰撞形状不是完整方块，等级0时底板高2像素 + 四面墙壁
             - 形状使用 `CollisionShape::combine(OR)` 手动拼接，因为 `CombineOp::NOT` 尚未实现
 

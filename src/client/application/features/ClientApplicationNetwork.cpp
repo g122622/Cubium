@@ -1610,7 +1610,7 @@ void ClientApplication::setupNetworkCallbacks()
             }
         };
 
-    // 世界事件回调（对应 MC Java 的 LevelEventHandler.levelEvent）
+    // 世界事件回调（服务端通过 IWorld::playEvent() 发送 WorldEventPacket，客户端接收后根据事件ID播放音效和粒子）
     // 服务端通过 IWorld::playEvent() 发送 WorldEventPacket，客户端接收后根据事件ID播放音效和粒子
     callbacks.onWorldEvent = [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) {
         _handleWorldEvent(eventId, x, y, z, data);
@@ -1805,7 +1805,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             // data > 0: 堆肥成功升级，播放 COMPOSTER_FILL_SUCCESS 音效
             // data <= 0: 仅填充未升级，播放 COMPOSTER_FILL 音效
             // 无论成功与否，都生成 10 个 HAPPY_VILLAGER 粒子
-            // 参考 MC Java: ComposterBlock.handleFill()
             if (m_audioService) {
                 const auto& soundEvent =
                     (data > 0) ? SoundEvents::BLOCK_COMPOSTER_FILL_SUCCESS : SoundEvents::BLOCK_COMPOSTER_FILL;
@@ -1814,7 +1813,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             }
 
             // 计算堆肥桶填充高度处的粒子位置
-            // MC Java: d0 = blockstate.getShape(level, pos).max(Direction.Axis.Y, 0.5, 0.5) + 0.03125
             // 由于客户端可能还没有最新方块状态，使用方块中心偏上作为近似位置
             const f32 particleBaseY = static_cast<f32>(y) + 0.53125f;
             for (int i = 0; i < 10; ++i) {
@@ -1885,7 +1883,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::DISPENSER_SMOKE: {
             // 发射器烟雾粒子，data 为方向（Direction.getIndex()）
-            // 参考 MC Java: LevelEventHandler.shootParticles()
             for (int i = 0; i < 10; ++i) {
                 // 简化实现：在发射器位置周围生成烟雾粒子
                 f32 spx = static_cast<f32>(x) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
