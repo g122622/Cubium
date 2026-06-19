@@ -575,6 +575,24 @@ public:
      */
     void setEatAnimationTimer(i32 timer) { m_eatAnimationTimer = timer; }
 
+    // ========== TNT 矿车引信状态 ==========
+
+    /**
+     * @brief 获取 TNT 矿车引信计时器
+     * TNT 矿车被引燃后的倒计时值，-1 表示未引燃。
+     * 收到 EatBlock 状态包时设为 80（4秒），每tick递减。
+     *
+     * 数据流：ClientApplicationNetwork.onEntityStatus(EatBlock, typeId == "minecraft:tnt_minecart")
+     * → setFuseTimer(80) → ClientEntity.tick() 递减 → 渲染器用于闪烁效果
+     */
+    [[nodiscard]] i32 fuseTimer() const { return m_fuseTimer; }
+
+    /**
+     * @brief 设置 TNT 矿车引信计时器
+     * @param timer 引信计时器值（原版为 80 ticks，-1 表示未引燃）
+     */
+    void setFuseTimer(i32 timer) { m_fuseTimer = timer; }
+
     // ========== 美西螈状态 ==========
 
     /**
@@ -847,6 +865,9 @@ private:
 
     // 吃草动画计时器（羊等实体的头部低头动画，收到 EatBlock 状态包时设为 40）
     i32 m_eatAnimationTimer = 0;
+
+    // TNT 矿车引信计时器（-1 表示未引燃，收到 EatBlock 状态包时设为 80）
+    i32 m_fuseTimer = -1;
 
     // 美西螈变体 (0=Lucy, 1=Wild, 2=Gold, 3=Cyan, 4=Blue)
     i32 m_axolotlVariant = 0;

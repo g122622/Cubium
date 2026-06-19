@@ -397,6 +397,11 @@ void ClientEntity::tick()
         --m_eatAnimationTimer;
     }
 
+    // 更新 TNT 矿车引信计时器
+    if (m_fuseTimer > 0) {
+        --m_fuseTimer;
+    }
+
     // 更新铁傀儡攻击动画计时器
     if (m_ironGolemAttackTimer > 0) {
         --m_ironGolemAttackTimer;

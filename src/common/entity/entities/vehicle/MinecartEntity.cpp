@@ -32,6 +32,8 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -1309,12 +1311,12 @@ void TNTMinecartEntity::_ignite()
 
     IWorld* worldPtr = Entity::world();
     if (worldPtr && !worldPtr->isClientSide()) {
-        // TODO: 发送状态更新和播放点燃音效
-        // worldPtr->setEntityState(this, (byte)10);
-        // if (!isSilent()) {
-        //     worldPtr->playSound(nullptr, x(), y(), z(), SoundEvents::ENTITY_TNT_PRIMED,
-        //     SoundCategory::BLOCKS, 1.0f, 1.0f);
-        // }
+        // 广播实体状态 10，通知客户端 TNT 矿车已被引燃
+        // 客户端收到 status 10 后设置 fuse 值以渲染闪烁效果
+        worldPtr->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
+
+        // 播放 TNT 引燃音效
+        playSound(SoundEvents::ENTITY_TNT_PRIMED, 1.0f, 1.0f);
     }
 }
 

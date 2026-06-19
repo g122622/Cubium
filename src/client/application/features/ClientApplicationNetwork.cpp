@@ -913,9 +913,14 @@ void ClientApplication::setupNetworkCallbacks()
                 break;
             }
             case static_cast<u8>(EntityStatusPacket::Status::EatBlock): {
-                // 状态 10: 吃草/方块动画（羊低头吃草、TNT 矿车引燃）
+                // 状态 10: 吃草/方块动画（羊低头吃草）或 TNT 矿车引燃
                 if (entity != nullptr) {
-                    entity->setEatAnimationTimer(40);
+                    // TNT 矿车收到 status 10 时设置引信值
+                    if (entity->typeId() == mc::entity::EntityTypes::TNT_MINECART) {
+                        entity->setFuseTimer(80);
+                    } else {
+                        entity->setEatAnimationTimer(40);
+                    }
                 }
                 break;
             }
