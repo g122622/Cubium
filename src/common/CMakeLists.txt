@@ -1069,6 +1069,7 @@ add_library(mc_common STATIC
     world/gen/structure/Structure.cpp
     world/gen/structure/StructureBoundingBox.cpp
     world/gen/structure/StructureDefinitionLoader.cpp
+    world/gen/structure/StructureCheck.cpp
     world/gen/structure/StructureManager.cpp
     world/gen/structure/StructureSet.cpp
     world/gen/structure/StructureSetLoader.cpp

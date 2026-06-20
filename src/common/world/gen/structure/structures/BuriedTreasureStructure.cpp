@@ -97,16 +97,16 @@ std::unique_ptr<StructureStart> BuriedTreasureStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 在区块中心附近找一个合适的位置
+    // MC 原版 BuriedTreasureStructure.generatePieces() 使用区块中心偏移 9 格
     i32 baseX = (chunkX << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
     i32 baseZ = (chunkZ << world::CHUNK_SHIFT) + rng.nextInt(world::CHUNK_WIDTH);
 
-    // 找到地表高度（在沙子下面 3-6 格）
-    // TODO: seaLevel 应该用于进一步验证宝藏位置的合理性
-    i32 seaLevel = generator.seaLevel();
-    MC_UNUSED(seaLevel);
+    // 使用 OceanFloorWG 高度图获取海底（最高固体方块）的 Y 坐标
+    // MC 原版通过 onTopOfChunkCenter() 回调使用 OCEAN_FLOOR_WG 高度图确定生成高度
     i32 surfaceY = generator.getHeight(baseX, baseZ, HeightmapType::OceanFloorWG);
 
-    // 宝藏应该埋在沙子下面
+    // 宝藏应该埋在沙子下面 3-6 格
+    // MC 原版在 BuriedTreasurePiece.postProcess() 中从海底向下搜索合适位置
     i32 treasureY = surfaceY - rng.nextInt(3, 6);
     if (treasureY < world::MIN_BUILD_HEIGHT) {
         treasureY = world::MIN_BUILD_HEIGHT;

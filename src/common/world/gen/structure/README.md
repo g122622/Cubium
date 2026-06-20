@@ -20,6 +20,8 @@
 ├── JigsawStructure.cpp
 ├── StructureManager.hpp #结构管理器（注册、查询、生成协调）
 ├── StructureManager.cpp
+├── StructureCheck.hpp   #结构存在性检查缓存（对齐 MC StructureCheck）
+├── StructureCheck.cpp
 ├── placement / #结构放置策略（MC 1.21.11 对齐）
 │   ├── StructurePlacement.hpp #放置基类、FrequencyReductionMethod、ExclusionZone
 │   ├── StructurePlacement.cpp #频率缩减检查、排斥区检查

@@ -166,6 +166,24 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         }
     }
 
+    // 通知 StructureCheck 缓存此区块的结构引用数据
+    // 对齐 MC 1.21.11 ServerLevel.onStructureStartsAvailable() 通过 structureCheck.onStructureLoad() 的调用
+    {
+        auto& structureCheck = m_structureManager->structureCheck();
+        const u64 chunkPosId =
+            (static_cast<u64>(static_cast<u32>(chunkX)) << 32) | static_cast<u64>(static_cast<u32>(chunkZ));
+
+        // 从 ChunkPrimer 的 m_structureStarts 构建引用计数映射
+        std::unordered_map<ResourceLocation, i32> refCounts;
+        for (const auto& [structureId, start] : chunk.structureStarts()) {
+            if (start && start->isValid()) {
+                // 有效结构起点：记录其引用计数
+                refCounts[structureId] = start->getRefCount();
+            }
+        }
+        structureCheck.onStructureLoad(chunkPosId, refCounts);
+    }
+
     chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
 }
 
@@ -201,6 +219,15 @@ void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& region, Ch
                     auto* start = const_cast<ChunkPrimer*>(neighborPrimer)->getStructureStart(structureId);
                     if (start) {
                         start->incrementRefCount();
+
+                        // 通知 StructureCheck 缓存递增引用计数
+                        // 对齐 MC 1.21.11 StructureManager.addReference() 中
+                        // 通过 structureCheck.incrementReference() 的调用
+                        if (m_structureManager) {
+                            const u64 srcChunkPosId = (static_cast<u64>(static_cast<u32>(srcX)) << 32) |
+                                static_cast<u64>(static_cast<u32>(srcZ));
+                            m_structureManager->structureCheck().incrementReference(srcChunkPosId, structureId);
+                        }
                     }
                 }
             }

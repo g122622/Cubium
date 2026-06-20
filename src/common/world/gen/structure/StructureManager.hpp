@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "StructureCheck.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
@@ -100,6 +101,7 @@ private:
  * @brief 结构管理器
  *
  * 协调结构生成，管理结构引用和起始点。
+ * 持有 StructureCheck 缓存，缓存结构存在性检查结果以避免重复计算。
  */
 class StructureManager {
 public:
@@ -158,13 +160,31 @@ public:
         i32 chunkZ);
 
     /**
-     * @brief 清理缓存
+     * @brief 清理所有结构检查缓存
+     *
+     * 清空 StructureCheck 的两层缓存：
+     * 1. m_loadedChunks：已加载区块的结构引用计数
+     * 2. m_featureChecks：生物群系检查结果
+     *
+     * 在世界卸载或维度重新加载时调用。
      */
     void clearCache();
+
+    /**
+     * @brief 获取结构检查缓存
+     *
+     * 允许外部代码访问 StructureCheck 以进行结构存在性查询和缓存通知。
+     * 对齐 MC 1.21.11 中 StructureManager 持有 StructureCheck 的架构。
+     */
+    [[nodiscard]] StructureCheck& structureCheck() { return m_structureCheck; }
+    [[nodiscard]] const StructureCheck& structureCheck() const { return m_structureCheck; }
 
 private:
     i64 m_seed;
     i32 m_referenceDistance = 8;
+
+    /// 结构存在性检查缓存，避免重复执行昂贵的生物群系检查和频率计算
+    StructureCheck m_structureCheck;
 
     /**
      * @brief 创建结构随机数生成器
