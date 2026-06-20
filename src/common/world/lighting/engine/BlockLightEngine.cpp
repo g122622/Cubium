@@ -170,8 +170,14 @@ void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ)
 {
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble != nullptr) {
-        // 方块光照去初始化时设为 Hidden 状态，保持外观但停止传播
-        nibble->setHidden();
+        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
+        if (isDataRetained(columnPos)) {
+            // 数据被保留时使用 Hidden 状态，保持数据但停止传播
+            nibble->setHidden();
+        } else {
+            // 非保留区块列，完全清除数据
+            nibble->setNull();
+        }
     }
 }
 
@@ -375,10 +381,13 @@ i32 BlockStarLightEngine::_getLightEmission(
     StarLightLightingProvider* lightAccess, const BlockState* state, i32 x, i32 y, i32 z) const
 {
     (void)lightAccess; // 暂时未使用，保留参数以保持接口一致性
-    (void)x;           // 暂时未使用
-    (void)y;           // 暂时未使用
-    (void)z;           // 暂时未使用
     if (state == nullptr) {
+        return 0;
+    }
+    // 如果区块列未启用，方块不产生光照
+    i64 columnPos = (static_cast<i64>(x >> world::CHUNK_SHIFT) & 0x3FFFFFLL) << 42 |
+        (static_cast<i64>(z >> world::CHUNK_SHIFT) & 0x3FFFFFLL) << 20;
+    if (!isColumnEnabled(columnPos)) {
         return 0;
     }
     return state->getBlock().getLightLevel(*state) & m_emittedLightMask;

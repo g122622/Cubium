@@ -205,9 +205,12 @@ void SkyStarLightEngine::initNibble(SWMRNibbleArray* currNibble, i32 chunkX, i32
     }
 
     if (chunkY > lowestY) {
-        // 在最高非空区块段之上，设置为全亮
+        // 在最高非空区块段之上，设置为全亮（仅在区块列已启用时）
         currNibble->setNonNull();
-        currNibble->setFull();
+        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
+        if (isColumnEnabled(columnPos)) {
+            currNibble->setFull();
+        }
         return;
     }
 
@@ -230,7 +233,14 @@ void SkyStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ)
 {
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble != nullptr) {
-        nibble->setNull();
+        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
+        if (isDataRetained(columnPos)) {
+            // 数据被保留时使用 Hidden 状态，保持数据但停止传播
+            nibble->setHidden();
+        } else {
+            // 非保留区块列，完全清除数据
+            nibble->setNull();
+        }
     }
 }
 
