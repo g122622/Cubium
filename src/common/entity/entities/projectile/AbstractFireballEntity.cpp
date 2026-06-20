@@ -31,6 +31,7 @@
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/blocks/nether/FireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
@@ -259,8 +260,11 @@ void DragonFireballEntity::_createDragonBreathCloud()
     // 生成区域效果云
     worldPtr->spawnEntity(std::move(cloud));
 
-    // TODO: 播放龙息效果音（事件ID 2006）
-    // worldPtr->playEvent(2006, position(), isSilent() ? -1 : 1);
+    // 播放龙息效果音和粒子（事件ID 2006）
+    // data: 1 = 播放粒子和声音, -1 = 仅播放粒子（实体静音时）
+    worldPtr->playEvent(world::WorldEvents::DRAGON_FIREBALL_HIT,
+        BlockPos(math::floorTo<i32>(x()), math::floorTo<i32>(y()), math::floorTo<i32>(z())),
+        isSilent() ? -1 : 1);
 }
 
 client::renderer::trident::particle::ParticleTypeId DragonFireballEntity::getParticleType() const
