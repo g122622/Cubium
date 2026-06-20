@@ -205,6 +205,11 @@ void ServerPlayer::setExperience(i32 level, f32 progress, i32 totalExperience)
 
 // ========== 统计系统实现 ==========
 
+void ServerPlayer::awardUsedStat(const ResourceLocation& itemId, i32 count)
+{
+    m_statistics.increment(server::stats::StatType::Used, itemId, count);
+}
+
 void ServerPlayer::awardCraftedStat(const ResourceLocation& itemId, i32 count)
 {
     m_statistics.incrementCrafted(itemId, count);

@@ -25,12 +25,14 @@
 
 #include "ProjectileHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 #include <cmath>
 
@@ -188,6 +190,23 @@ bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
         }
     }
 
+    return true;
+}
+
+bool ProjectileEntity::mayInteract(IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(pos);
+    const Entity* shooter = getShooter();
+    if (shooter != nullptr) {
+        auto* player = dynamic_cast<const Player*>(shooter);
+        if (player != nullptr) {
+            // 发射者是玩家：委托给玩家的 mayInteract
+            return player->mayInteract(world, pos);
+        }
+        // 发射者是非玩家实体：取决于 MOB_GRIEFING 游戏规则
+        return world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
+    }
+    // 无主投掷物（如发射器发射的）：允许交互
     return true;
 }
 

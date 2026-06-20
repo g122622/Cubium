@@ -161,10 +161,8 @@ ActionResultType TNTBlock::onBlockActivated(const BlockState& state,
             }
         }
 
-        // TODO: MC Java 调用 player.awardStat(Stats.ITEM_USED.get(item))
-        // 当前项目统计系统使用 StatisticsManager::incrementUsed()，需要 ServerPlayer 才能调用。
-        // 未来应在 Player 基类添加 awardUsedStat(ResourceLocation itemId, i32 count) 虚方法，
-        // 然后在此处调用：player.awardUsedStat(item->resourceLocation(), 1);
+        // 对应 MC Java 的 player.awardStat(Stats.ITEM_USED.get(item))
+        player.awardUsedStat(item->itemLocation(), 1);
     } else if (!world.isClientSide() && !world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
         // tntExplodes 游戏规则为 false，不消耗物品，显示 action bar 消息
         // 对应 MC Java: return InteractionResult.PASS（不消耗物品，将交互传递给下一个处理器）
@@ -193,9 +191,11 @@ void TNTBlock::onProjectileHit(
     // 对应 MC Java 的 TntBlock.onProjectileHit()
     // 当燃烧的投掷物命中TNT时，点燃TNT
     if (!world.isClientSide() && projectile.isOnFire()) {
-        // TODO: MC Java 检查 projectile.mayInteract(serverlevel, blockpos)，
-        // 用于冒险模式下的交互权限判断。当前项目尚未实现 mayInteract，
-        // 待 Entity 添加 mayInteract 方法后应在此处添加检查。
+        // 对应 MC Java 的 projectile.mayInteract(serverlevel, blockpos)
+        // 检查投掷物是否可以在该位置交互（冒险模式权限判断）
+        if (!projectile.mayInteract(world, hitResult.blockPos())) {
+            return;
+        }
 
         // 获取投掷物的发射者作为点燃者
         LivingEntity* igniter = nullptr;
@@ -318,7 +318,8 @@ void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power)
     );
 }
 
-void TNTBlock::onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const
+void TNTBlock::onBlockExploded(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const world::explosion::Explosion* explosion) const
 {
     MC_UNUSED(state);
 
@@ -347,14 +348,16 @@ void TNTBlock::onBlockExploded(IWorld& world, const BlockPos& pos, const BlockSt
                     constexpr i32 DEFAULT_FUSE = 80;
                     i32 shortFuse = rng.nextInt(DEFAULT_FUSE / 4) + DEFAULT_FUSE / 8;
                     tnt->ignite(shortFuse);
-                }
 
-                // TODO: MC Java 的 wasExploded 接收 Explosion 参数，
-                // 通过 explosion.getIndirectSourceEntity() 获取爆炸的间接源实体，
-                // 并将其作为连锁 TNT 的 owner。当前项目的 onBlockExploded 签名
-                // 不包含 Explosion 参数，因此无法获取爆炸源实体。
-                // 待 onBlockExploded 签名扩展为包含 Explosion& 参数后，
-                // 应将间接源实体传递给 tnt->setOwner()。
+                    // 对应 MC Java 的 explosion.getIndirectSourceEntity()
+                    // 获取爆炸的间接源实体，作为连锁 TNT 的 owner
+                    if (explosion != nullptr) {
+                        LivingEntity* indirectSource = explosion->getIndirectSourceEntity();
+                        if (indirectSource != nullptr) {
+                            tnt->setOwner(indirectSource);
+                        }
+                    }
+                }
 
                 world.spawnEntity(std::move(tntEntity));
             }

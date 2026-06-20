@@ -216,10 +216,7 @@ TNT 方块的关键方法均受 `tntExplodes` 游戏规则控制：
 
 此外：
 - `_hasFlammableNeighbor()` 检测相邻火焰/熔岩，通过 `onBlockAdded()` 和 `neighborChanged()` 间接调用。
-- `onBlockExploded()` 在 `Explosion::_destroyBlocks()` 中被调用，当其他爆炸摧毁 TNT 方块时生成短引信 TNT 实体（引信公式：`nextInt(fuse/4) + fuse/8`，即 [10, 29] ticks）。
-- TODO: `onBlockActivated` 中缺少 `awardStat` 调用（MC Java 的 `player.awardStat(Stats.ITEM_USED.get(item))`），待 Player 基类添加 `awardUsedStat` 虚方法后补充。
-- TODO: `onProjectileHit` 中缺少 `mayInteract` 检查（MC Java 的 `projectile.mayInteract(serverlevel, blockpos)`），待 Entity 添加 `mayInteract` 方法后补充。
-- TODO: `onBlockExploded` 缺少爆炸源实体传递（MC Java 的 `explosion.getIndirectSourceEntity()`），待 `onBlockExploded` 签名扩展为包含 `Explosion&` 参数后补充。
+- `onBlockExploded()` 在 `Explosion::_destroyBlocks()` 中被调用，当其他爆炸摧毁 TNT 方块时生成短引信 TNT 实体（引信公式：`nextInt(fuse/4) + fuse/8`，即 [10, 29] ticks）。连锁 TNT 的 owner 通过 `explosion->getIndirectSourceEntity()` 追溯爆炸源链。
 
 ### 19. TNT 火焰检测
 

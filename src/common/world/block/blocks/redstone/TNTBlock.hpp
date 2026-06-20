@@ -127,13 +127,18 @@ public:
      *
      * 当其他爆炸摧毁 TNT 方块时调用。如果 tntExplodes 游戏规则为 true，
      * 生成一个随机短引信的点燃 TNT 实体（连锁爆炸）。
+     * 通过 explosion 参数获取间接源实体，作为连锁 TNT 的 owner。
      * 对应 MC Java 的 TntBlock.wasExploded()。
      *
      * @param world 世界引用
      * @param pos 方块位置
      * @param state 方块状态
+     * @param explosion 引发此方块破坏的爆炸，可能为 nullptr
      */
-    void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
+    void onBlockExploded(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const world::explosion::Explosion* explosion) const override;
 
     // ========== TNT特有方法 ==========
 

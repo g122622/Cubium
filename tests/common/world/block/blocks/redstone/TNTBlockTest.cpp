@@ -1035,7 +1035,7 @@ TEST_F(TNTBlockTest, OnBlockExploded_SpawnsPrimedTNTWithShortFuse)
     m_world.setBlockAt(tntPos, &tntBlock->defaultState());
     m_world.setClientSide(false);
 
-    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState());
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState(), nullptr);
 
     // 应该生成 TNT 实体
     EXPECT_EQ(m_world.spawnedTNTCount(), 1);
@@ -1056,7 +1056,7 @@ TEST_F(TNTBlockTest, OnBlockExploded_ClientSide_DoesNothing)
     m_world.setBlockAt(tntPos, &tntBlock->defaultState());
     m_world.setClientSide(true);
 
-    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState());
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState(), nullptr);
 
     EXPECT_EQ(m_world.spawnedTNTCount(), 0);
 }
@@ -1072,7 +1072,7 @@ TEST_F(TNTBlockTest, OnBlockExploded_TntExplodesFalse_DoesNothing)
     m_world.setBlockAt(tntPos, &tntBlock->defaultState());
     m_world.setClientSide(false);
 
-    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState());
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState(), nullptr);
 
     EXPECT_EQ(m_world.spawnedTNTCount(), 0);
 }

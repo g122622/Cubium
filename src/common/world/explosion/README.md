@@ -118,3 +118,4 @@ EntityExplosionContext      ┌────────────────�
 - 这意味着虫蚀方块（InfestedBlock）在爆炸中不会因为精准采集而不生成蠹虫（因为 tool=nullptr）
 - 但 `doTileDrops` 游戏规则仍然生效：`doTileDrops=false` 时不生成蠹虫
 - 调用顺序：`onBlockExploded` → `setBlockState(air)` → `spawnAfterBreak`，与 MC Java 一致
+- `onBlockExploded` 签名包含 `const Explosion* explosion` 参数，允许方块在爆炸回调中访问爆炸信息（如间接源实体）

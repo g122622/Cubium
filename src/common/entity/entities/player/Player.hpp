@@ -210,6 +210,28 @@ public:
      */
     [[nodiscard]] bool isAdventure() const { return m_gameMode == GameMode::Adventure; }
 
+    /**
+     * @brief 检查玩家是否可以在指定位置与方块交互
+     *
+     * 重写 Entity::mayInteract。在冒险/旁观模式下禁止交互，
+     * 其他模式允许交互。
+     *
+     * 对应 MC Java 的 Player.mayInteract(ServerLevel, BlockPos)。
+     * 目前未实现冒险模式下物品的 CanPlaceOn/CanDestroy NBT 标签检查。
+     *
+     * @param world 世界引用
+     * @param pos 目标方块位置
+     * @return 如果允许交互返回 true
+     */
+    [[nodiscard]] bool mayInteract(IWorld& world, const BlockPos& pos) const override
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        // 旁观者和冒险模式下不允许与非自身方块交互
+        // TODO: 冒险模式下应检查物品的 CanPlaceOn/CanDestroy NBT 标签
+        return !isSpectator() && !isAdventure();
+    }
+
     // ========== 权限等级 ==========
 
     /**
@@ -418,6 +440,22 @@ public:
     [[nodiscard]] virtual bool canReceiveMessages() const { return false; }
 
     // ========== 统计系统 ==========
+
+    /**
+     * @brief 增加物品使用统计
+     *
+     * 当玩家使用物品时调用（如打火石点燃TNT、使用火焰弹等）。
+     * ServerPlayer 重写此方法以实际更新统计。
+     *
+     * @param itemId 物品资源位置
+     * @param count 使用次数
+     */
+    virtual void awardUsedStat(const ResourceLocation& itemId, i32 count)
+    {
+        MC_UNUSED(itemId);
+        MC_UNUSED(count);
+        // 基类默认空实现
+    }
 
     /**
      * @brief 增加物品合成统计

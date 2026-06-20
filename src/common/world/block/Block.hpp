@@ -52,6 +52,10 @@ class Entity;
 class IPlantable; // 前向声明植物接口
 class ItemStack;  // 前向声明物品堆
 
+namespace world::explosion {
+class Explosion;
+} // namespace world::explosion
+
 namespace math {
 class IRandom;
 }
@@ -1120,14 +1124,17 @@ public:
      * @param world 世界引用
      * @param pos 方块位置
      * @param state 方块状态
+     * @param explosion 引发此方块破坏的爆炸，可能为 nullptr
      *
      * 参考: net.minecraft.block.Block.onBlockExploded
      */
-    virtual void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const
+    virtual void onBlockExploded(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const world::explosion::Explosion* explosion) const
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
         MC_UNUSED(state);
+        MC_UNUSED(explosion);
     }
 
     /**

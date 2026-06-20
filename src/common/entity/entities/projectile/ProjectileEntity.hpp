@@ -100,6 +100,22 @@ public:
     // ========== 投掷物属性 ==========
 
     /**
+     * @brief 检查投掷物是否可以在指定位置与方块交互
+     *
+     * 重写 Entity::mayInteract。投掷物的交互权限取决于发射者：
+     * - 发射者是玩家：委托给玩家的 mayInteract
+     * - 发射者为空：允许交互
+     * - 发射者是非玩家实体：取决于 MOB_GRIEFING 游戏规则
+     *
+     * 对应 MC Java 的 Projectile.mayInteract(ServerLevel, BlockPos)。
+     *
+     * @param world 世界引用
+     * @param pos 目标方块位置
+     * @return 如果允许交互返回 true
+     */
+    [[nodiscard]] bool mayInteract(IWorld& world, const BlockPos& pos) const override;
+
+    /**
      * @brief 获取发射者
      * @return 发射此投掷物的实体（可能为nullptr）
      */
