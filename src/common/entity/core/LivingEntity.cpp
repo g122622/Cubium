@@ -32,8 +32,10 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -399,6 +401,30 @@ void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
     size_t index = static_cast<size_t>(slot);
     if (index < m_equipment.size()) {
         m_equipment[index] = stack;
+    }
+}
+
+void LivingEntity::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
+{
+    // 广播装备破损动画给追踪玩家
+    broadcastBreakEvent(slot);
+
+    // 播放装备破损音效
+    if (m_world != nullptr && !isSilent()) {
+        m_world->playSound(SoundEvents::ENTITY_ITEM_BREAK,
+            getSoundCategory(),
+            m_position,
+            0.8f,
+            0.8f + m_world->getRandom().nextFloat() * 0.4f);
+    }
+}
+
+void LivingEntity::broadcastBreakEvent(EquipmentSlot slot)
+{
+    if (m_world != nullptr) {
+        u8 slotIndex = static_cast<u8>(slot);
+        auto status = network::EntityStatusPacket::equipmentBreakStatus(slotIndex);
+        m_world->broadcastEntityStatus(m_id, static_cast<u8>(status));
     }
 }
 

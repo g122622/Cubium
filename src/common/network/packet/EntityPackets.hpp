@@ -501,6 +501,14 @@ public:
         IronGolemHoldRose = 11, // 铁傀儡开始手持罂粟花
         IronGolemStopRose = 34, // 铁傀儡停止手持罂粟花
 
+        // 装备破损状态
+        EquipmentBreakMainHand = 47, // 主手装备破损动画 + 音效
+        EquipmentBreakOffHand = 48,  // 副手装备破损动画 + 音效
+        EquipmentBreakHead = 49,     // 头盔破损动画 + 音效
+        EquipmentBreakChest = 50,    // 胸甲破损动画 + 音效
+        EquipmentBreakLegs = 51,     // 护腿破损动画 + 音效
+        EquipmentBreakFeet = 52,     // 靴子破损动画 + 音效
+
         // Mob 特定状态
         MobPoof = 60, // 生物变形/消失烟雾粒子
     };
@@ -527,6 +535,32 @@ public:
             return static_cast<i32>(status - 24);
         }
         return -1;
+    }
+
+    /**
+     * @brief 根据装备槽位索引获取对应的破损状态码
+     *
+     * 对应 MC 原版 LivingEntity.entityEventForEquipmentBreak()
+     * 槽位索引与 EquipmentSlot 枚举值对应：
+     * 0=MainHand→47, 1=OffHand→48, 2=Feet→52, 3=Legs→51, 4=Chest→50, 5=Head→49
+     *
+     * @param slotIndex 装备槽位索引（EquipmentSlot 枚举值）
+     * @return 破损状态码
+     */
+    [[nodiscard]] static Status equipmentBreakStatus(u8 slotIndex)
+    {
+        // 槽位索引与 MC 原版 entityEventForEquipmentBreak 映射
+        // EquipmentSlot: MainHand=0, OffHand=1, Feet=2, Legs=3, Chest=4, Head=5
+        // EntityStatus:  47=MainHand, 48=OffHand, 49=Head, 50=Chest, 51=Legs, 52=Feet
+        switch (slotIndex) {
+        case 0: return static_cast<Status>(47); // MainHand
+        case 1: return static_cast<Status>(48); // OffHand
+        case 5: return static_cast<Status>(49); // Head
+        case 4: return static_cast<Status>(50); // Chest
+        case 3: return static_cast<Status>(51); // Legs
+        case 2: return static_cast<Status>(52); // Feet
+        default: return static_cast<Status>(47);
+        }
     }
 
     EntityStatusPacket()

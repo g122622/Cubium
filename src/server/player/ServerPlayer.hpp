@@ -244,6 +244,18 @@ public:
     void awardCustomStat(const ResourceLocation& statId, i32 count) override;
 
     /**
+     * @brief 装备损坏回调（重写）
+     *
+     * 在基类实现（广播破损动画 + 播放音效）基础上，
+     * 额外更新玩家的物品损坏统计（minecraft.broken:{item_id}）。
+     * 对应 MC 原版 ServerPlayer.onEquippedItemBroken()。
+     *
+     * @param item 损坏的物品类型
+     * @param slot 损坏物品所在的装备槽位
+     */
+    void onEquippedItemBroken(const Item& item, EquipmentSlot slot) override;
+
+    /**
      * @brief 物品合成完成时调用（重写 Player 基类）
      * @param stack 合成的物品堆
      * @param amount 合成数量

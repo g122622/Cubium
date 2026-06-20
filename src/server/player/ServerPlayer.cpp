@@ -215,6 +215,16 @@ void ServerPlayer::awardCustomStat(const ResourceLocation& statId, i32 count)
     m_statistics.incrementCustom(statId, count);
 }
 
+void ServerPlayer::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
+{
+    // 基类实现：广播装备破损动画 + 播放音效
+    Player::onEquippedItemBroken(item, slot);
+
+    // 玩家额外更新物品损坏统计
+    // 对应 MC 原版 ServerPlayer.onEquippedItemBroken() 中的 awardStat(Stats.ITEM_BROKEN)
+    m_statistics.incrementBroken(item.itemLocation());
+}
+
 void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount)
 {
     // 更新合成统计

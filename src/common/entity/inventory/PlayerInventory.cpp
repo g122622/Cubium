@@ -745,6 +745,15 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage)
         damage = 1.0f;
     }
 
+    // 护甲槽位索引到 EquipmentSlot 的映射
+    // ARMOR_HEAD(36)→Head(5), ARMOR_CHEST(37)→Chest(4), ARMOR_LEGS(38)→Legs(3), ARMOR_FEET(39)→Feet(2)
+    static constexpr EquipmentSlot armorEquipmentSlots[] = {
+        EquipmentSlot::Head,  // ARMOR_HEAD  = 36
+        EquipmentSlot::Chest, // ARMOR_CHEST = 37
+        EquipmentSlot::Legs,  // ARMOR_LEGS  = 38
+        EquipmentSlot::Feet,  // ARMOR_FEET  = 39
+    };
+
     for (i32 i = InventorySlots::ARMOR_START; i <= InventorySlots::ARMOR_END; ++i) {
         ItemStack& armor = m_items[static_cast<size_t>(i)];
         if (armor.isEmpty()) {
@@ -756,16 +765,19 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage)
             continue;
         }
 
-        // 对护甲造成耐久损耗
         // MC 1.16.5: 只有 ArmorItem 和 ElytraItem 才会损坏
         if (armor.getItem()->isArmor() && armor.isDamageable()) {
             i32 damageAmount = static_cast<i32>(damage);
+            // 在物品被 attemptDamageItem 销毁之前保存物品引用
+            const Item* brokenItem =
+                (armor.getDamage() + damageAmount >= armor.getMaxDamage()) ? armor.getItem() : nullptr;
+            EquipmentSlot slot = armorEquipmentSlots[static_cast<size_t>(i - InventorySlots::ARMOR_START)];
+
             armor.attemptDamageItem(damageAmount, m_player);
 
-            // 物品损坏后清空槽位
-            if (armor.isEmpty()) {
-                // MC 1.16.5: 发送装备损坏动画
-                // m_player->sendBreakAnimation(EquipmentSlot::fromIndex(i));
+            // 物品损坏后触发回调：广播装备破损动画、播放音效、更新统计
+            if (brokenItem != nullptr && armor.isEmpty()) {
+                m_player->onEquippedItemBroken(*brokenItem, slot);
             }
         }
     }

@@ -219,7 +219,29 @@ finalizeSpawn(world, difficulty, spawnReason)
 
 - `burnUndead()` 使用 `ItemStack::setDamage()` 直接增加伤害值，**绕过耐久保护附魔**（与 MC 原版一致）
 - `isInDaylight()` 中 `isWet()` 检查确保雨中和水中的亡灵不会燃烧
-- 物品耐久耗尽后应该调用 `onEquippedItemBroken` 回调（播放损坏音效/动画），此基建尚待实现，已在代码中标注 TODO
+- 物品耐久耗尽后调用 `onEquippedItemBroken` 回调（广播装备破损动画 + 播放 ENTITY_ITEM_BREAK 音效）
+
+### 装备损坏回调
+
+当装备物品耐久度耗尽时，需要调用 `onEquippedItemBroken` 回调，对应 MC 原版 `LivingEntity.onEquippedItemBroken()`。
+
+**调用链**：
+1. 物品损坏路径（`setDamage`/`attemptDamageItem`）检测到 `damage >= maxDamage` 后物品自动清空
+2. 调用方检测物品已损坏（`isEmpty()`），调用 `entity->onEquippedItemBroken(item, slot)`
+
+**已集成的调用位置**：
+- `MobEntity::burnUndead()` — 亡灵日光燃烧头盔受损
+- `PlayerInventory::damageArmor()` — 护甲受伤耐久消耗
+
+**方法实现**：
+- `LivingEntity::onEquippedItemBroken()` — 广播 EntityStatus 装备破损状态码 + 播放 ENTITY_ITEM_BREAK 音效
+- `ServerPlayer::onEquippedItemBroken()` — 额外更新物品损坏统计（`minecraft.broken:{item_id}`）
+
+**EntityStatus 状态码**：
+- 47=MainHand, 48=OffHand, 49=Head, 50=Chest, 51=Legs, 52=Feet
+
+**客户端处理**：
+- 收到状态码 47-52 时，播放 ENTITY_ITEM_BREAK 音效 + Breaking 粒子效果
 
 ### 空气供应与溺水
 - 空气值可从正数变成负数（用于溺水计时）

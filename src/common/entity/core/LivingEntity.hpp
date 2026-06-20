@@ -305,6 +305,28 @@ public:
     virtual void setEquipment(EquipmentSlot slot, const ItemStack& stack);
 
     /**
+     * @brief 装备损坏回调
+     *
+     * 当装备物品耐久度耗尽时调用，广播装备破损动画并播放音效。
+     * 对应 MC 原版 LivingEntity.onEquippedItemBroken()。
+     * ServerPlayer 重写此方法以额外更新物品损坏统计。
+     *
+     * @param item 损坏的物品类型
+     * @param slot 损坏物品所在的装备槽位
+     */
+    virtual void onEquippedItemBroken(const Item& item, EquipmentSlot slot);
+
+    /**
+     * @brief 广播装备破损事件
+     *
+     * 向追踪玩家广播装备破损状态码，客户端据此播放破损动画和音效。
+     * 对应 MC 原版 LivingEntity.broadcastBreakEvent()。
+     *
+     * @param slot 破损的装备槽位
+     */
+    void broadcastBreakEvent(EquipmentSlot slot);
+
+    /**
      * @brief 获取主手物品
      */
     [[nodiscard]] const ItemStack& getMainHandItem() const { return getEquipment(EquipmentSlot::MainHand); }

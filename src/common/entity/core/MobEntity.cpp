@@ -337,9 +337,17 @@ void MobEntity::burnUndead()
             i32 addedDamage = rng.nextInt(2); // 0 或 1
             if (addedDamage > 0) {
                 i32 newDamage = protectionItem.getDamage() + addedDamage;
+                i32 maxDamage = protectionItem.getMaxDamage();
+
+                // 在物品被销毁之前保存物品引用，用于 onEquippedItemBroken 回调
+                const Item* brokenItem = (newDamage >= maxDamage) ? protectionItem.getItem() : nullptr;
+
                 protectionItem.setDamage(newDamage);
-                // TODO: 当物品损坏时应调用 onEquippedItemBroken 回调
-                // （播放装备破损动画/音效，停止基于位置的效果），待该基建完成后集成
+
+                // 物品损坏时触发回调：广播装备破损动画、播放音效
+                if (brokenItem != nullptr) {
+                    onEquippedItemBroken(*brokenItem, protectionSlot);
+                }
             }
         }
         // 如果物品不可损坏（如附魔绑定/无限耐久），实体也不会燃烧

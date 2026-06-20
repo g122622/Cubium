@@ -1122,6 +1122,44 @@ void ClientApplication::setupNetworkCallbacks()
                 }
                 break;
             }
+            // 装备破损状态 (47-52): 播放物品破碎粒子 + 音效
+            // 对应 MC 原版 LivingEntity.handleEntityEvent() 中的 EQUIPMENT_BREAK 处理
+            case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakMainHand):
+            case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakOffHand):
+            case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakHead):
+            case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakChest):
+            case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakLegs):
+            case static_cast<u8>(EntityStatusPacket::Status::EquipmentBreakFeet): {
+                // 播放物品破碎音效
+                if (m_audioService) {
+                    auto sound = sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_ITEM_BREAK,
+                        mc::sound::SoundCategory::Players,
+                        entityPos.x,
+                        entityPos.y,
+                        entityPos.z,
+                        0.8f,
+                        0.8f + m_random.nextFloat() * 0.4f);
+                    m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+                }
+                // 生成物品破碎粒子
+                if (m_world.particleManager() != nullptr) {
+                    for (i32 i = 0; i < 10; ++i) {
+                        f32 rx = m_random.nextFloat() * 2.0f - 1.0f;
+                        f32 ry = m_random.nextFloat() * 2.0f;
+                        f32 rz = m_random.nextFloat() * 2.0f - 1.0f;
+                        glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.3f, ry * 0.6f + 0.5f, rz * 0.3f);
+                        glm::vec3 velocity(m_random.nextGaussian(0.0f, 0.05f),
+                            m_random.nextGaussian(0.0f, 0.05f) + 0.1f,
+                            m_random.nextGaussian(0.0f, 0.05f));
+                        m_world.particleManager()->addPendingParticle(
+                            client::renderer::trident::particle::ParticleTypeId::Breaking,
+                            particlePos,
+                            velocity,
+                            &m_world);
+                    }
+                }
+                break;
+            }
             default: {
                 // 检查是否为权限等级变更状态 (status byte 24-28, 其中 level = status - 24)
                 i32 permLevel = EntityStatusPacket::toPermissionLevel(status);
