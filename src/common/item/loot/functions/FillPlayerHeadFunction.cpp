@@ -46,7 +46,7 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
     // 检查物品是否是玩家头颅
     // 使用 ResourceLocation 运行时查找玩家头颅物品。当 player_head 物品尚未注册时，
     // sPlayerHead 为 nullptr，跳过类型检查（兼容当前未注册状态）。
-    // 当 Items::PLAYER_HEAD 定义后，应改为 stack.getItem() != Items::PLAYER_HEAD
+    // TODO: 当 Items::PLAYER_HEAD 定义后，应改为 stack.getItem() != Items::PLAYER_HEAD
     static const Item* sPlayerHead = Item::getItem(ResourceLocation("minecraft:player_head"));
     if (sPlayerHead != nullptr && stack.getItem() != sPlayerHead) {
         return stack;
