@@ -254,5 +254,30 @@ if (!redstone.isUpdating(pos)) {
     **放置流程 * *：`getStateForPlacement` 只返回基于玩家朝向的初始形状（南北
         / 东西），真正的连接计算在 `onBlockAdded` 中通过 `updateDir` 触发
     -
-    **RailState 内部状态 *
-        *：`m_state` 存储构造时传入的方块状态，用于 `withRailShape` 计算新状态，避免从世界中读取可能为空的方块状态
+    **RailState 内部状态**：`m_state` 存储构造时传入的方块状态，用于 `withRailShape` 计算新状态，避免从世界中读取可能为空的方块状态
+
+## #22. 铁轨含水功能（IWaterLoggable）
+
+所有铁轨方块（RailBlock、PoweredRailBlock、DetectorRailBlock、ActivatorRailBlock）均通过 `AbstractRailBlock` 继承 `IWaterLoggable` 接口，支持在水下放置。这与 MC Java 的 `BaseRailBlock implements SimpleWaterloggedBlock` 行为一致。
+
+### 方块状态属性
+
+| 方块 | 状态属性 | WATERLOGGED 默认值 |
+|------|---------|-------------------|
+| RailBlock | SHAPE (10值) + WATERLOGGED | false |
+| PoweredRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
+| DetectorRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
+| ActivatorRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
+
+### 含水功能实现
+
+- **getStateForPlacement**：检测放置位置是否有水源，如果有则设置 `WATERLOGGED=true`
+- **updatePostPlacement**：当 `WATERLOGGED=true` 时调用 `waterloggable::scheduleWaterTick()` 调度流体 tick
+- **getFluidState**：含水时返回水的 FluidState，否则返回默认空流体
+- **isWaterlogged**：读取 `WATERLOGGED` 属性值
+- **canContainFluid / receiveFluid / pickupFluid**：继承自 `IWaterLoggable` 默认实现
+
+### 客户端/服务端区分
+
+- **updateDir**：客户端（`isClientSide() == true`）直接返回原状态，不执行 RailState 计算
+- **neighborChanged**：客户端跳过邻居更新处理，避免铁轨形状在客户端与服务端不同步
