@@ -39,9 +39,10 @@ namespace mc::client::sound {
 // OpenALSource 实现
 // ============================================================================
 
-OpenALSource::OpenALSource(AudioSourceId id, ALuint source)
+OpenALSource::OpenALSource(AudioSourceId id, ALuint source, OnDestroyCallback onDestroy)
     : m_id(id)
     , m_source(source)
+    , m_onDestroy(std::move(onDestroy))
 {}
 
 OpenALSource::~OpenALSource()
@@ -52,29 +53,45 @@ OpenALSource::~OpenALSource()
         alDeleteSources(1, &m_source);
     }
     m_source = 0;
+
+    // 通知后端释放源计数
+    if (m_onDestroy) {
+        m_onDestroy();
+    }
 }
 
 OpenALSource::OpenALSource(OpenALSource&& other) noexcept
     : m_id(other.m_id)
     , m_source(other.m_source)
     , m_buffer(std::move(other.m_buffer))
+    , m_onDestroy(std::move(other.m_onDestroy))
 {
     other.m_id = 0;
     other.m_source = 0;
+    other.m_onDestroy = nullptr;
 }
 
 OpenALSource& OpenALSource::operator=(OpenALSource&& other) noexcept
 {
     if (this != &other) {
+        // 先释放当前资源
         if (m_source != 0 && alcGetCurrentContext() != nullptr) {
             alDeleteSources(1, &m_source);
+        }
+
+        // 通知后端释放当前源的计数（如果不是从自身移动）
+        if (m_onDestroy) {
+            m_onDestroy();
         }
 
         m_id = other.m_id;
         m_source = other.m_source;
         m_buffer = std::move(other.m_buffer);
+        m_onDestroy = std::move(other.m_onDestroy);
+
         other.m_id = 0;
         other.m_source = 0;
+        other.m_onDestroy = nullptr;
     }
     return *this;
 }
@@ -619,6 +636,23 @@ Result<void> OpenALBackend::initialize()
 
     spdlog::info("[OpenALBackend] Max mono sources: {}, max stereo sources: {}", maxMonoSources, maxStereoSources);
 
+    // 根据设备属性确定最大源数量
+    // ALC_MONO_SOURCES 和 ALC_STEREO_SOURCES 是提示属性，某些驱动可能返回 0
+    // 参考 MC Library.getChannelCount() 的做法，使用总源数作为上限
+    constexpr u32 MIN_SOURCES = 16;
+    if (maxMonoSources > 0 || maxStereoSources > 0) {
+        m_maxSources = static_cast<u32>(maxMonoSources) + static_cast<u32>(maxStereoSources);
+        // 确保不超过合理上限
+        m_maxSources = std::min(m_maxSources, ::mc::sound::MAX_CONCURRENT_SOUNDS);
+        // 确保至少有最小源数量
+        m_maxSources = std::max(m_maxSources, MIN_SOURCES);
+    } else {
+        // 驱动未提供信息，使用默认值
+        m_maxSources = ::mc::sound::MAX_CONCURRENT_SOUNDS;
+    }
+
+    spdlog::info("[OpenALBackend] Max sources: {}", m_maxSources);
+
     // 设置默认距离模型
     alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
     static_cast<void>(_checkALError("alDistanceModel"));
@@ -662,6 +696,9 @@ void OpenALBackend::shutdown()
         m_device = nullptr;
     }
 
+    // 重置状态
+    m_activeSourceCount.store(0, std::memory_order_relaxed);
+    m_maxSources = ::mc::sound::MAX_CONCURRENT_SOUNDS;
     m_initialized = false;
     spdlog::info("[OpenALBackend] Shutdown complete");
 }
@@ -817,7 +854,13 @@ Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource()
     // 分配 ID
     AudioSourceId id = m_nextSourceId++;
 
-    std::unique_ptr<IAudioSource> audioSource = std::make_unique<OpenALSource>(id, source);
+    // 递增活跃源计数
+    m_activeSourceCount.fetch_add(1, std::memory_order_relaxed);
+
+    // 创建源销毁回调，当源被销毁时递减活跃源计数
+    auto onDestroy = [this]() { m_activeSourceCount.fetch_sub(1, std::memory_order_relaxed); };
+
+    std::unique_ptr<IAudioSource> audioSource = std::make_unique<OpenALSource>(id, source, std::move(onDestroy));
     return audioSource;
 }
 
@@ -827,13 +870,19 @@ u32 OpenALBackend::getAvailableSources() const noexcept
         return 0;
     }
 
-    // TODO: OpenAL 不直接提供查询已创建源数量的方法，当前使用固定最大源数量，实际可用数量应动态跟踪
-    return MAX_SOURCES;
+    u32 active = m_activeSourceCount.load(std::memory_order_relaxed);
+    return active >= m_maxSources ? 0 : m_maxSources - active;
+}
+
+u32 OpenALBackend::getActiveSourceCount() const noexcept
+{
+    return m_activeSourceCount.load(std::memory_order_relaxed);
 }
 
 void OpenALBackend::process()
 {
-    // TODO: 当前实现没有需要每帧处理的逻辑，流式播放的处理将在 SoundEngine 层实现
+    // 流式播放的缓冲区队列管理在 SoundEngine 层通过 ActiveChannel 实现，
+    // 后端层无需每帧处理逻辑
 }
 
 std::string OpenALBackend::getDeviceName() const
@@ -863,6 +912,8 @@ std::string OpenALBackend::getDebugString() const
         result += fmt::format("Buffers: {}\n", m_buffers.size());
     }
 
+    u32 activeSources = m_activeSourceCount.load(std::memory_order_relaxed);
+    result += fmt::format("Sources: {}/{}\n", activeSources, m_maxSources);
     result += fmt::format(
         "Listener position: ({}, {}, {})\n", m_listenerPosition.x, m_listenerPosition.y, m_listenerPosition.z);
     result += fmt::format("Listener gain: {}\n", m_listenerGain);

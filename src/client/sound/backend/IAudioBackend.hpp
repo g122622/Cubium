@@ -497,6 +497,15 @@ public:
      */
     [[nodiscard]] virtual u32 getMaxSources() const noexcept = 0;
 
+    /**
+     * @brief 获取当前活跃的音频源数量
+     *
+     * 活跃源指已通过 createSource() 创建但尚未销毁的源。
+     *
+     * @return 当前活跃的音频源数量
+     */
+    [[nodiscard]] virtual u32 getActiveSourceCount() const noexcept = 0;
+
     // ========================================================================
     // 更新
     // ========================================================================

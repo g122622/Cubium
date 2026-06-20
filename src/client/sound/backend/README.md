@@ -28,6 +28,7 @@ src/client/sound/backend/
 ## 容易踩的坑
 
 - **格式限制**：`OpenALBuffer::getALFormat()` 仅支持 mono/stereo × 8bit/16bit 四种 PCM 格式。stb_vorbis 解码恒为 16-bit，因此运行时只会产生 `AL_FORMAT_MONO16` 或 `AL_FORMAT_STEREO16`
-- **线程安全**：`m_buffers` 由 `m_bufferMutex` 保护；`OpenALSource`/`OpenALBuffer` 非线程安全，必须在音频线程调用
-- **源数量上限**：`MAX_SOURCES = 256` 硬编码，`getAvailableSources()` 未动态追踪实际已用数量
+- **线程安全**：`m_buffers` 由 `m_bufferMutex` 保护；`OpenALSource`/`OpenALBuffer` 非线程安全，必须在音频线程调用；`m_activeSourceCount` 使用 `std::atomic`，可跨线程安全读取
+- **源数量追踪**：`m_activeSourceCount` 通过 `OpenALSource` 析构回调自动递减，`getAvailableSources()` 返回 `m_maxSources - m_activeSourceCount`。当源耗尽时 `createSource()` 返回 `ResourceExhausted` 错误
+- **源数量上限**：`m_maxSources` 从设备属性 `ALC_MONO_SOURCES + ALC_STEREO_SOURCES` 查询，回退到 `MAX_CONCURRENT_SOURCES = 256`
 - **流式播放未完成**：`queueBuffers`/`unqueueBuffers` 为占位实现，流式播放逻辑将在 `SoundEngine` 层完成
