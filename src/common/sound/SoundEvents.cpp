@@ -272,6 +272,9 @@ const ResourceLocation BLOCK_SWEET_BERRY_BUSH_PLACE("minecraft:block.sweet_berry
 const ResourceLocation BLOCK_CAVE_VINES_PICK_BERRIES("minecraft:block.cave_vines.pick_berries");
 const ResourceLocation BLOCK_LILY_PAD_PLACE("minecraft:block.lily_pad.place");
 
+const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_DOWN("minecraft:block.big_dripleaf.tilt_down");
+const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_UP("minecraft:block.big_dripleaf.tilt_up");
+
 const ResourceLocation BLOCK_WATER_AMBIENT("minecraft:block.water.ambient");
 
 const ResourceLocation BLOCK_BARREL_CLOSE("minecraft:block.barrel.close");

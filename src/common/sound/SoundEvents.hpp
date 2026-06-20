@@ -291,6 +291,10 @@ extern const ResourceLocation BLOCK_SWEET_BERRY_BUSH_PLACE;
 extern const ResourceLocation BLOCK_CAVE_VINES_PICK_BERRIES;
 extern const ResourceLocation BLOCK_LILY_PAD_PLACE;
 
+/// 大滴叶倾斜音效
+extern const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_DOWN;
+extern const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_UP;
+
 extern const ResourceLocation BLOCK_WATER_AMBIENT;
 
 extern const ResourceLocation BLOCK_BARREL_CLOSE;

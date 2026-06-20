@@ -28,6 +28,10 @@
 #include "../../IWaterLoggable.hpp"
 
 namespace mc {
+
+// 前向声明
+class Entity;
+class BlockRaycastResult;
 namespace blocks {
 
 /**
@@ -91,6 +95,12 @@ public:
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
+    /**
+     * @brief 投掷物击中时直接设为FULL倾斜
+     */
+    void onProjectileHit(
+        IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile) override;
+
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
@@ -140,6 +150,9 @@ protected:
 private:
     CollisionShape m_fullShape;
 
+    /// 实体检测最小Y偏移（像素 11/16 = 0.6875）
+    static constexpr f32 ENTITY_DETECTION_MIN_Y = 0.6875f;
+
     /**
      * @brief 获取倾斜状态的tick延迟
      */
@@ -151,9 +164,38 @@ private:
     void _scheduleTiltTick(IWorld& world, const BlockPos& pos, BlockStateProperties::Tilt tilt) const;
 
     /**
-     * @brief 重置倾斜状态为NONE
+     * @brief 设置倾斜状态并调度下一次tick
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param tilt 目标倾斜状态
+     * @param playSound 是否播放倾斜音效
+     */
+    void _setTiltAndScheduleTick(
+        IWorld& world, const BlockPos& pos, BlockState& state, BlockStateProperties::Tilt tilt, bool playSound);
+
+    /**
+     * @brief 设置倾斜状态
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param tilt 目标倾斜状态
+     */
+    static void _setTilt(IWorld& world, const BlockPos& pos, BlockState& state, BlockStateProperties::Tilt tilt);
+
+    /**
+     * @brief 重置倾斜状态为NONE，如果之前不是NONE则播放音效
      */
     void _resetTilt(IWorld& world, const BlockPos& pos, BlockState& state);
+
+    /**
+     * @brief 检查实体是否能触发倾斜
+     *
+     * 实体必须站在地面上，且Y坐标高于方块顶部 11/16（0.6875）
+     */
+    [[nodiscard]] static bool _canEntityTilt(const BlockPos& pos, const Entity& entity);
 };
 
 } // namespace blocks
