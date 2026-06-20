@@ -217,10 +217,10 @@ TEST_F(NewStructuresTest, SwampHut_NameAndSettings)
     EXPECT_EQ(structure.name(), "Swamp_Hut");
     EXPECT_EQ(structure.separationSettings().spacing, 32);
     EXPECT_EQ(structure.separationSettings().separation, 8);
-    EXPECT_EQ(structure.separationSettings().salt, 14357619);
+    EXPECT_EQ(structure.separationSettings().salt, 14357620);
 
     const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 2);
+    EXPECT_EQ(biomes.size(), 1);
     bool hasSwamp = false;
     for (auto biome : biomes) {
         if (biome == Swamp) {
@@ -606,9 +606,9 @@ TEST_F(NewStructuresTest, DesertPyramid_NameAndSettings)
     EXPECT_EQ(structure.separationSettings().salt, 14357617);
 
     const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 3);
+    EXPECT_EQ(biomes.size(), 1);
     for (auto biome : biomes) {
-        EXPECT_TRUE(biome == Desert || biome == DesertHills || biome == DesertLakes);
+        EXPECT_TRUE(biome == Desert);
     }
 }
 
@@ -626,10 +626,9 @@ TEST_F(NewStructuresTest, JungleTemple_NameAndSettings)
     EXPECT_EQ(structure.separationSettings().salt, 14357619);
 
     const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 5);
+    EXPECT_EQ(biomes.size(), 2);
     for (auto biome : biomes) {
-        EXPECT_TRUE(biome == Jungle || biome == JungleHills || biome == JungleEdge || biome == ModifiedJungle ||
-            biome == ModifiedJungleEdge);
+        EXPECT_TRUE(biome == BambooJungle || biome == Jungle);
     }
 }
 

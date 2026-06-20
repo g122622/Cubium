@@ -452,7 +452,8 @@ JungleTempleStructure::JungleTempleStructure() noexcept
 
 void JungleTempleStructure::_initializeBiomes() noexcept
 {
-    m_validBiomes = {Jungle, JungleHills, JungleEdge, ModifiedJungle, ModifiedJungleEdge};
+    // 与数据包 has_structure/jungle_pyramid 标签一致
+    m_validBiomes = {BambooJungle, Jungle};
 }
 
 const biome::BiomeTag* JungleTempleStructure::biomeTag() const

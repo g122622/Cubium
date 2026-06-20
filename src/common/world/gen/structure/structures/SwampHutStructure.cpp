@@ -27,6 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -47,26 +48,24 @@ const std::string SwampHutStructure::s_name = "Swamp_Hut";
 const SpawnOverrides SwampHutStructure::s_spawnOverrides = {
     SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 1, 1}}};
 
-const std::vector<BiomeId> SwampHutStructure::s_validBiomes = {Swamp, SwampHills};
+// 仅包含 Swamp，与数据包 has_structure/swamp_hut 标签一致
+const std::vector<BiomeId> SwampHutStructure::s_validBiomes = {Swamp};
 
 SwampHutStructure::SwampHutStructure()
     : Structure(ResourceLocation("minecraft", "swamp_hut"))
 {}
 
-bool SwampHutStructure::canGenerate(
-    IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+const biome::BiomeTag* SwampHutStructure::biomeTag() const
 {
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
+    return &biome::BiomeTags::HAS_STRUCTURE_SWAMP_HUT();
+}
 
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            return true;
-        }
-    }
-    return false;
+bool SwampHutStructure::canGenerate(
+    IWorld& /*world*/, IChunkGenerator& generator, math::Random& /*rng*/, i32 chunkX, i32 chunkZ)
+{
+    // 检查区块中心位置的生物群系是否为沼泽
+    const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
+    return isValidBiome(biome);
 }
 
 std::unique_ptr<StructureStart> SwampHutStructure::generate(

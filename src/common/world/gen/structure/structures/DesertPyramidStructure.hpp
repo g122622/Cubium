@@ -28,6 +28,9 @@
 #include <memory>
 
 namespace mc {
+namespace biome {
+class BiomeTag;
+}
 namespace world {
 namespace gen {
 namespace structure {
@@ -58,7 +61,7 @@ private:
  * 沙漠神殿是生成在沙漠生物群系的结构，包含隐藏的宝藏室。
  *
  * 特点：
- * - 生成在沙漠生物群系
+ * - 仅在沙漠生物群系（minecraft:desert）生成
  * - 包含 4 个宝箱和可能的 TNT 陷阱
  * - 底部有隐藏的地窖
  * - 橙色陶瓦装饰
@@ -72,7 +75,16 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/desert_pyramid 标签，用于 O(1) 生物群系查找。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
+    /**
      * @brief 检查是否可以生成
+     *
+     * 检查区块中心生物群系是否为沙漠，以及结构四角最低高度是否不低于海平面。
      */
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;

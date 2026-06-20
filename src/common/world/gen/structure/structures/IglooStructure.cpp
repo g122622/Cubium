@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -48,8 +49,8 @@ using namespace mc::Biomes;
 // ============================================================================
 
 const std::string IglooStructure::s_name = "Igloo";
-const std::vector<BiomeId> IglooStructure::s_validBiomes = {
-    SnowyPlains, SnowyTaiga, SnowyTaigaHills, SnowyTaigaMountains};
+// 与数据包 has_structure/igloo 标签一致
+const std::vector<BiomeId> IglooStructure::s_validBiomes = {SnowyTaiga, SnowyPlains, SnowySlopes};
 
 // 雪屋模板名称
 const std::string IglooStructure::s_topTemplateName = "igloo/top";
@@ -251,19 +252,17 @@ IglooStructure::IglooStructure()
     : Structure(ResourceLocation("minecraft", "igloo"))
 {}
 
-bool IglooStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+const biome::BiomeTag* IglooStructure::biomeTag() const
 {
-    MC_UNUSED(world);
-    MC_UNUSED(rng);
+    return &biome::BiomeTags::HAS_STRUCTURE_IGLOO();
+}
 
-    // 检查生物群系
-    BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            return true;
-        }
-    }
-    return false;
+bool IglooStructure::canGenerate(
+    IWorld& /*world*/, IChunkGenerator& generator, math::Random& /*rng*/, i32 chunkX, i32 chunkZ)
+{
+    // 检查区块中心位置的生物群系是否为雪地
+    const BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
+    return isValidBiome(biome);
 }
 
 std::unique_ptr<StructureStart> IglooStructure::generate(
