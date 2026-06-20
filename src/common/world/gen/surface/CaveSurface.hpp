@@ -22,13 +22,17 @@
 
 #pragma once
 
-// 地表构建系统聚合头文件
-// 包含所有 SurfaceRules 相关类型、上下文、系统和工厂
+#include "common/core/Types.hpp"
 
-#include "common/world/gen/surface/CaveSurface.hpp"
-#include "common/world/gen/surface/SurfaceCondition.hpp"
-#include "common/world/gen/surface/SurfaceRule.hpp"
-#include "common/world/gen/surface/SurfaceRuleContext.hpp"
-#include "common/world/gen/surface/SurfaceRulesFactory.hpp"
-#include "common/world/gen/surface/SurfaceSystem.hpp"
-#include "common/world/gen/surface/VerticalAnchor.hpp"
+namespace mc::world::gen::surface {
+
+/**
+ * @brief 地表/洞穴顶部方向枚举
+ *
+ * 用于 StoneDepthCondition 指定检测方向：
+ * Floor 表示从地表向下计算石头深度，
+ * Ceiling 表示从洞穴顶部向上计算石头深度。
+ */
+enum class CaveSurface : u8 { Floor, Ceiling };
+
+} // namespace mc::world::gen::surface

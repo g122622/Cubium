@@ -20,15 +20,21 @@
  * SOFTWARE.
  */
 
-#pragma once
-
-// 地表构建系统聚合头文件
-// 包含所有 SurfaceRules 相关类型、上下文、系统和工厂
-
-#include "common/world/gen/surface/CaveSurface.hpp"
-#include "common/world/gen/surface/SurfaceCondition.hpp"
-#include "common/world/gen/surface/SurfaceRule.hpp"
-#include "common/world/gen/surface/SurfaceRuleContext.hpp"
-#include "common/world/gen/surface/SurfaceRulesFactory.hpp"
-#include "common/world/gen/surface/SurfaceSystem.hpp"
 #include "common/world/gen/surface/VerticalAnchor.hpp"
+
+namespace mc::world::gen::surface {
+
+i32 VerticalAnchor::resolveY(i32 minY, i32 height) const
+{
+    switch (type) {
+        case VerticalAnchorType::Absolute:
+            return value;
+        case VerticalAnchorType::AboveBottom:
+            return minY + value;
+        case VerticalAnchorType::BelowTop:
+            return minY + height - 1 - value;
+    }
+    return value;
+}
+
+} // namespace mc::world::gen::surface

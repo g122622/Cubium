@@ -989,7 +989,12 @@ add_library(mc_common STATIC
     world/biome/source/EndBiomeSource.cpp
 
     # World - Generation - Surface
-    world/gen/surface/SurfaceRules.cpp
+    world/gen/surface/VerticalAnchor.cpp
+    world/gen/surface/SurfaceCondition.cpp
+    world/gen/surface/SurfaceRule.cpp
+    world/gen/surface/SurfaceRuleContext.cpp
+    world/gen/surface/SurfaceSystem.cpp
+    world/gen/surface/SurfaceRulesFactory.cpp
 
     # World - Generation - Aquifer
     world/gen/aquifer/Aquifer.cpp
