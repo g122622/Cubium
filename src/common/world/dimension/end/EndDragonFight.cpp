@@ -92,6 +92,8 @@ EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
         math::Random rng(worldSeed);
         rng.shuffle(m_gateways);
 
+        // TODO: 新世界首次创建时应设置 needsStateScanning = false，
+        // 因为新世界不存在旧状态需要扫描。当前 needsStateScanning 逻辑尚未实现。
         m_needsStateScanning = true;
         m_dragonKilled = false;
         m_previouslyKilled = false;

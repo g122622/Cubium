@@ -53,6 +53,8 @@ public:
      * @brief 战斗数据，用于存档保存/加载
      */
     struct Data {
+        // TODO: needsStateScanning 用于旧存档首次加载时检测龙是否曾被击杀，
+        // 需要扫描出口传送门是否存在来判断 previouslyKilled 状态。当前未实现扫描逻辑。
         bool needsStateScanning = true;           ///< 是否需要扫描旧世界状态
         bool dragonKilled = false;                ///< 龙当前是否已死
         bool previouslyKilled = false;            ///< 是否曾经击杀过龙
@@ -88,7 +90,7 @@ public:
      * @param worldSeed 世界种子，用于初始化折跃门列表的随机顺序
      * @param data 存档数据，nullopt 表示新世界首次创建
      */
-    explicit EndDragonFight(u64 worldSeed, const std::optional<Data>& data = std::nullopt);
+    explicit EndDragonFight(u64 worldSeed, const std::optional<Data>& data);
 
     ~EndDragonFight() = default;
 
@@ -184,11 +186,19 @@ private:
 
     // ========== 成员变量 ==========
 
-    u64 m_worldSeed;                  ///< 世界种子
-    bool m_previouslyKilled = false;  ///< 是否曾经击杀过龙
-    bool m_dragonKilled = false;      ///< 龙当前是否已死
+    u64 m_worldSeed;                 ///< 世界种子
+    bool m_previouslyKilled = false; ///< 是否曾经击杀过龙
+    bool m_dragonKilled = false;     ///< 龙当前是否已死
+    // TODO: needsStateScanning 需要实现旧存档状态扫描逻辑，
+    // 首次加载旧世界时应检查出口传送门是否存在以推断 previouslyKilled。
     bool m_needsStateScanning = true; ///< 是否需要扫描旧世界状态
     std::vector<i32> m_gateways;      ///< 剩余折跃门索引列表（随机打乱）
+
+    // TODO: 末影龙重生系统尚未实现。需要：
+    // 1. 末影水晶管理：检测末地黑曜石柱上的末影水晶放置/破坏
+    // 2. 重生序列：4个末影水晶同时存在时启动重生动画（ crystals -> beam -> dragon spawn ）
+    // 3. 重生计时器：重生过程约 10 秒，期间需播放粒子效果和光柱动画
+    // 4. 重生后状态重置：dragonKilled = false, needsStateScanning = false
 };
 
 } // namespace mc

@@ -127,7 +127,7 @@ protected:
 TEST_F(EndDragonFightTest, NewWorldInitialState)
 {
     // 新世界：不传入存档数据
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
 
     EXPECT_FALSE(fight.hasPreviouslyKilled());
     EXPECT_FALSE(fight.isDragonKilled());
@@ -137,14 +137,14 @@ TEST_F(EndDragonFightTest, NewWorldInitialState)
 
 TEST_F(EndDragonFightTest, NewWorldGatewaysInitializedTo20)
 {
-    EndDragonFight fight(0);
+    EndDragonFight fight(0, std::nullopt);
     EXPECT_EQ(fight.remainingGatewayCount(), 20);
 }
 
 TEST_F(EndDragonFightTest, DifferentSeedsProduceDifferentGatewayOrders)
 {
-    EndDragonFight fight1(12345);
-    EndDragonFight fight2(67890);
+    EndDragonFight fight1(12345, std::nullopt);
+    EndDragonFight fight2(67890, std::nullopt);
 
     // 不同种子应产生不同的折跃门顺序（概率极高）
     // 保存数据后比较 gateways
@@ -160,8 +160,8 @@ TEST_F(EndDragonFightTest, DifferentSeedsProduceDifferentGatewayOrders)
 
 TEST_F(EndDragonFightTest, SameSeedProducesSameGatewayOrder)
 {
-    EndDragonFight fight1(99999);
-    EndDragonFight fight2(99999);
+    EndDragonFight fight1(99999, std::nullopt);
+    EndDragonFight fight2(99999, std::nullopt);
 
     auto data1 = fight1.saveData();
     auto data2 = fight2.saveData();
@@ -220,7 +220,7 @@ TEST_F(EndDragonFightTest, LoadFromDataNulloptGatewaysMatchesNewWorldSameSeed)
     data.gateways = std::nullopt;
 
     EndDragonFight fightFromData(42, data);
-    EndDragonFight fightNew(42);
+    EndDragonFight fightNew(42, std::nullopt);
 
     auto dataFromLoad = fightFromData.saveData();
     auto dataFromNew = fightNew.saveData();
@@ -302,7 +302,7 @@ TEST_F(EndDragonFightTest, DataFromJsonDefaults)
 TEST_F(EndDragonFightTest, SaveLoadRoundTripPreservesFullState)
 {
     // 创建战斗管理器并模拟一次击杀
-    EndDragonFight fight1(42);
+    EndDragonFight fight1(42, std::nullopt);
     fight1.setDragonKilled(m_world);
 
     auto savedData = fight1.saveData();
@@ -328,7 +328,7 @@ TEST_F(EndDragonFightTest, SaveLoadRoundTripPreservesFullState)
 
 TEST_F(EndDragonFightTest, SetDragonKilled_MarksPreviouslyKilled)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     EXPECT_FALSE(fight.hasPreviouslyKilled());
 
     fight.setDragonKilled(m_world);
@@ -338,7 +338,7 @@ TEST_F(EndDragonFightTest, SetDragonKilled_MarksPreviouslyKilled)
 
 TEST_F(EndDragonFightTest, SetDragonKilled_ConsumesOneGateway)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     i32 initialCount = fight.remainingGatewayCount();
     EXPECT_EQ(initialCount, EndDragonFight::GATEWAY_COUNT);
 
@@ -351,7 +351,7 @@ TEST_F(EndDragonFightTest, SetDragonKilled_FirstKillPlacesDragonEgg)
     // 设置出生点高度以便龙蛋放置
     m_world.setHeight(0, 0, 75);
 
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     EXPECT_FALSE(fight.hasPreviouslyKilled());
 
     fight.setDragonKilled(m_world);
@@ -388,7 +388,7 @@ TEST_F(EndDragonFightTest, SetDragonKilled_SubsequentKillNoDragonEgg)
 
 TEST_F(EndDragonFightTest, SetDragonKilled_PlayGatewayEvent3000)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     fight.setDragonKilled(m_world);
 
     // 应播放折跃门生成效果事件 3000
@@ -426,7 +426,7 @@ TEST_F(EndDragonFightTest, SetDragonKilled_NoGatewayEventWhenAllConsumed)
 
 TEST_F(EndDragonFightTest, SetDragonKilled_MultipleKillsConsumeAllGateways)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     EXPECT_EQ(fight.remainingGatewayCount(), EndDragonFight::GATEWAY_COUNT);
 
     // 消耗所有 20 个折跃门
@@ -484,7 +484,7 @@ TEST_F(EndDragonFightTest, GatewayDistanceIs96)
 
 TEST_F(EndDragonFightTest, SaveDataReflectsCurrentState)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
 
     auto data = fight.saveData();
     EXPECT_EQ(data.needsStateScanning, true); // 新世界需要状态扫描
@@ -496,7 +496,7 @@ TEST_F(EndDragonFightTest, SaveDataReflectsCurrentState)
 
 TEST_F(EndDragonFightTest, SaveDataAfterKillReflectsChanges)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     fight.setDragonKilled(m_world);
 
     auto data = fight.saveData();
@@ -512,14 +512,14 @@ TEST_F(EndDragonFightTest, SaveDataAfterKillReflectsChanges)
 
 TEST_F(EndDragonFightTest, FirstKillPreviouslyKilledIsFalse)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     // 首次击杀前：hasPreviouslyKilled() 为 false，应给予 12000 XP
     EXPECT_FALSE(fight.hasPreviouslyKilled());
 }
 
 TEST_F(EndDragonFightTest, AfterFirstKillPreviouslyKilledIsTrue)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     fight.setDragonKilled(m_world);
     // 首次击杀后：hasPreviouslyKilled() 为 true，后续击杀应给予 500 XP
     EXPECT_TRUE(fight.hasPreviouslyKilled());
@@ -527,7 +527,7 @@ TEST_F(EndDragonFightTest, AfterFirstKillPreviouslyKilledIsTrue)
 
 TEST_F(EndDragonFightTest, PreviouslyKilledPersistsThroughLoad)
 {
-    EndDragonFight fight(42);
+    EndDragonFight fight(42, std::nullopt);
     fight.setDragonKilled(m_world);
 
     auto data = fight.saveData();
@@ -543,7 +543,7 @@ TEST_F(EndDragonFightTest, PreviouslyKilledPersistsThroughLoad)
 
 TEST_F(EndDragonFightTest, MoveConstructionPreservesState)
 {
-    EndDragonFight fight1(42);
+    EndDragonFight fight1(42, std::nullopt);
     fight1.setDragonKilled(m_world);
 
     i32 expectedGatewayCount = fight1.remainingGatewayCount();
