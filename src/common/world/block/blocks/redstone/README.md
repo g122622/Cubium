@@ -201,18 +201,25 @@ if (!redstone.isUpdating(pos)) {
 
 TNT 方块的关键方法均受 `tntExplodes` 游戏规则控制：
 
-- **`ignite()`**：当 `tntExplodes=false` 时返回 `false`，不生成 TNT 实体、不播放音效、不移除方块。返回值为 `[[nodiscard]] bool`，调用方需根据返回值决定后续行为（如打火石发射器需要 `_setSuccess(false)`）。带 `LivingEntity*` 参数的重载版本会将点燃者信息传递给 TNT 实体，用于伤害归属判定。
+- **`prime()`**（静态方法）：对应 MC Java 的 `TntBlock.prime()`，仅生成点燃的 TNT 实体、播放音效、发出 `PRIME_FUSE` 游戏事件，**不移除方块**。调用方需自行负责移除方块。当 `tntExplodes=false` 时返回 `false`。
+- **`ignite()`**：调用 `prime()` 成功后移除 TNT 方块（`setBlockState(pos, nullptr, 11)`）。是 `prime() + 移除方块` 的便捷组合。返回值为 `[[nodiscard]] bool`，调用方需根据返回值决定后续行为。带 `LivingEntity*` 参数的重载版本会将点燃者信息传递给 TNT 实体。
 - **`explode()`**：当 `tntExplodes=false` 时仅移除方块（不创建爆炸效果），与 MC Java 行为一致。
 - **`onBlockExploded()`**：当 `tntExplodes=false` 时不生成连锁 TNT 实体（对应 MC Java 的 `wasExploded()`）。
-- **`onBlockActivated()`**：玩家使用打火石/火焰弹右键点燃 TNT。打火石消耗耐久度，火焰弹消耗一个物品（创造模式不消耗）。`tntExplodes=false` 时显示 action bar 消息 "block.minecraft.tnt.disabled"。
-- **`onProjectileHit()`**：燃烧投掷物命中 TNT 时点燃。从 ProjectileEntity 获取发射者作为点燃者。
-- **`playerWillDestroy()`**：玩家破坏不稳定 TNT（UNSTABLE=true）时自动点燃，创造模式例外。
+- **`onBlockActivated()`**：玩家使用打火石/火焰弹右键点燃 TNT。先调用 `prime()`，成功后移除方块并消耗物品。打火石消耗耐久度，火焰弹消耗一个物品（创造模式不消耗）。`tntExplodes=false` 时显示 action bar 消息 "block.minecraft.tnt.disabled"。
+- **`onProjectileHit()`**：燃烧投掷物命中 TNT 时点燃。从 ProjectileEntity 获取发射者作为点燃者。先调用 `prime()`，成功后移除方块。
+- **`playerWillDestroy()`**：玩家破坏不稳定 TNT（UNSTABLE=true）时自动点燃，创造模式例外。**只调用 `prime()`，不移除方块**（方块移除由破坏流程处理，避免双重移除）。
 - **`canDropFromExplosion()`**：返回 `false`，TNT 被爆炸摧毁时不掉落物品（对应 MC Java 的 `dropFromExplosion` 返回 `false`）。
+
+**`prime()` 与 `ignite()` 的区别**（对应 MC Java 设计）：
+- `prime()`：仅生成实体+音效+事件，**调用方自行处理方块移除**。适用于 `playerWillDestroy`（破坏流程移除方块）。
+- `ignite()`：`prime()` + 移除方块。适用于 `onBlockAdded`、`neighborChanged`、`onBlockActivated`、`onProjectileHit` 等场景。
 
 此外：
 - `_hasFlammableNeighbor()` 检测相邻火焰/熔岩，通过 `onBlockAdded()` 和 `neighborChanged()` 间接调用。
 - `onBlockExploded()` 在 `Explosion::_destroyBlocks()` 中被调用，当其他爆炸摧毁 TNT 方块时生成短引信 TNT 实体（引信公式：`nextInt(fuse/4) + fuse/8`，即 [10, 29] ticks）。
-- `ignite()` 内部会发出 `PRIME_FUSE` 游戏事件（用于幽匿感测体检测）。
+- TODO: `onBlockActivated` 中缺少 `awardStat` 调用（MC Java 的 `player.awardStat(Stats.ITEM_USED.get(item))`），待 Player 基类添加 `awardUsedStat` 虚方法后补充。
+- TODO: `onProjectileHit` 中缺少 `mayInteract` 检查（MC Java 的 `projectile.mayInteract(serverlevel, blockpos)`），待 Entity 添加 `mayInteract` 方法后补充。
+- TODO: `onBlockExploded` 缺少爆炸源实体传递（MC Java 的 `explosion.getIndirectSourceEntity()`），待 `onBlockExploded` 签名扩展为包含 `Explosion&` 参数后补充。
 
 ### 19. TNT 火焰检测
 

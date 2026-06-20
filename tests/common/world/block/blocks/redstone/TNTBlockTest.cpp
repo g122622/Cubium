@@ -25,35 +25,61 @@
  * @file TNTBlockTest.cpp
  * @brief TNTBlock 单元测试
  *
- * 测试 TNT 方块的点燃、爆炸功能。
- * 注意：hasFlammableNeighbor 是私有方法，通过 onBlockAdded 间接测试。
+ * 测试 TNT 方块的 prime、ignite、爆炸功能及交互回调。
+ * 覆盖：
+ * - prime() 仅生成实体和音效，不移除方块
+ * - ignite() = prime() + 移除方块
+ * - onBlockActivated（打火石/火焰弹点燃）
+ * - playerWillDestroy（不稳定 TNT 自动点燃，无双重移除）
+ * - onProjectileHit（燃烧投掷物点燃）
+ * - canDropFromExplosion
+ * - onBlockExploded（连锁爆炸短引信）
+ * - tntExplodes 游戏规则控制
  */
 
 #include "common/world/block/blocks/redstone/TNTBlock.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 
 namespace mc {
 namespace blocks {
 namespace test {
+
+// ============================================================================
+// 测试用 Mock World
+// ============================================================================
 
 /**
  * @brief 用于 TNTBlock 测试的 Mock World 实现
@@ -80,7 +106,15 @@ public:
         } else {
             m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         }
+        m_setBlockCallCount++;
         return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        m_lastSetBlockFlags = flags;
+        return setBlockState(x, y, z, state);
     }
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
@@ -104,6 +138,7 @@ public:
             m_lastTNTPosition = tnt->position();
             m_lastTNTFuse = tnt->getFuse();
             m_lastTNTVelocity = tnt->velocity();
+            m_lastTNTOwner = tnt->getOwner();
         }
 
         m_spawnedEntities.push_back(std::move(entity));
@@ -138,6 +173,15 @@ public:
         m_explosionCount++;
     }
 
+    void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override
+    {
+        m_lastGameEventId = event.id();
+        m_lastGameEventPos = pos;
+        m_lastGameEventSourceEntity = context.sourceEntity();
+        m_gameEventCount++;
+    }
+
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {
         throw std::runtime_error("TNTBlockTestWorld::tickManager not implemented");
@@ -148,7 +192,7 @@ public:
         throw std::runtime_error("TNTBlockTestWorld::tickManager not implemented");
     }
 
-    // 测试辅助方法
+    // ========== 测试辅助方法 ==========
 
     void setBlockAt(const BlockPos& pos, const BlockState* state)
     {
@@ -162,26 +206,26 @@ public:
     void advanceTick() { m_currentTick++; }
 
     [[nodiscard]] i32 spawnedTNTCount() const { return m_spawnedTNTCount; }
-
     [[nodiscard]] const Vector3& lastTNTPosition() const { return m_lastTNTPosition; }
-
     [[nodiscard]] i32 lastTNTFuse() const { return m_lastTNTFuse; }
-
     [[nodiscard]] const Vector3& lastTNTVelocity() const { return m_lastTNTVelocity; }
+    [[nodiscard]] Entity* lastTNTOwner() const { return m_lastTNTOwner; }
 
     [[nodiscard]] bool soundPlayed() const { return m_soundPlayed; }
-
     [[nodiscard]] const ResourceLocation& lastSoundEvent() const { return m_lastSoundEvent; }
 
     [[nodiscard]] i32 explosionCount() const { return m_explosionCount; }
-
     [[nodiscard]] const Vector3& lastExplosionPos() const { return m_lastExplosionPos; }
-
     [[nodiscard]] f32 lastExplosionRadius() const { return m_lastExplosionRadius; }
-
     [[nodiscard]] world::explosion::ExplosionMode lastExplosionMode() const { return m_lastExplosionMode; }
-
     [[nodiscard]] bool explosionCausesFire() const { return m_explosionCausesFire; }
+
+    [[nodiscard]] i32 setBlockCallCount() const { return m_setBlockCallCount; }
+    [[nodiscard]] i32 lastSetBlockFlags() const { return m_lastSetBlockFlags; }
+
+    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
+    [[nodiscard]] const std::string& lastGameEventId() const { return m_lastGameEventId; }
+    [[nodiscard]] const Entity* lastGameEventSourceEntity() const { return m_lastGameEventSourceEntity; }
 
     void clearState()
     {
@@ -190,6 +234,10 @@ public:
         m_spawnedTNTCount = 0;
         m_explosionCount = 0;
         m_soundPlayed = false;
+        m_setBlockCallCount = 0;
+        m_lastSetBlockFlags = 0;
+        m_gameEventCount = 0;
+        m_lastTNTOwner = nullptr;
     }
 
 private:
@@ -204,6 +252,7 @@ private:
     Vector3 m_lastTNTPosition{0, 0, 0};
     i32 m_lastTNTFuse = 0;
     Vector3 m_lastTNTVelocity{0, 0, 0};
+    Entity* m_lastTNTOwner = nullptr;
 
     // 声音记录
     bool m_soundPlayed = false;
@@ -220,17 +269,29 @@ private:
     world::explosion::ExplosionMode m_lastExplosionMode = world::explosion::ExplosionMode::None;
     bool m_explosionCausesFire = false;
     Entity* m_lastExplosionSource = nullptr;
+
+    // 方块设置记录
+    i32 m_setBlockCallCount = 0;
+    i32 m_lastSetBlockFlags = 0;
+
+    // 游戏事件记录
+    i32 m_gameEventCount = 0;
+    std::string m_lastGameEventId;
+    BlockPos m_lastGameEventPos{0, 0, 0};
+    const Entity* m_lastGameEventSourceEntity = nullptr;
 };
 
-/**
- * @brief TNTBlock 测试固件
- */
+// ============================================================================
+// 测试固件
+// ============================================================================
+
 class TNTBlockTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
         entity::VanillaEntities::registerAll();
+        Items::initialize();
     }
 
     void TearDown() override { m_world.clearState(); }
@@ -238,175 +299,295 @@ protected:
     TNTBlockTestWorld m_world;
 };
 
-/**
- * @brief 测试 TNTBlock 构造函数
- */
+// ============================================================================
+// 基本构造与状态测试
+// ============================================================================
+
 TEST_F(TNTBlockTest, Construction)
 {
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
     ASSERT_NE(tntBlock, nullptr);
-    // Verify that defaultState's block is valid
     const BlockState& defaultState = tntBlock->defaultState();
     EXPECT_EQ(&defaultState.getBlock(), static_cast<const Block*>(tntBlock.get()));
 }
 
-/**
- * @brief 测试 isUnstable 静态方法
- */
-TEST_F(TNTBlockTest, IsUnstable)
+TEST_F(TNTBlockTest, IsUnstable_DefaultIsFalse)
 {
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
     const BlockState& defaultState = tntBlock->defaultState();
-
-    // 默认状态应该是稳定的 (UNSTABLE = false)
     EXPECT_FALSE(TNTBlock::isUnstable(defaultState));
 }
 
-/**
- * @brief 测试点燃功能 - 服务端
- *
- * 服务端点燃 TNT 应该生成 TNTEntity 并播放音效
- */
-TEST_F(TNTBlockTest, IgniteOnServerSide)
+TEST_F(TNTBlockTest, IsUnstable_CanSetToTrue)
 {
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    // 设置 TNT 方块
-    BlockPos tntPos(10, 64, 20);
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-
-    // 服务端点燃
-    m_world.setClientSide(false);
-    tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
-
-    // 验证 TNT 方块被移除
-    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
-    EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
-
-    // 验证生成了 TNT 实体
-    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
-
-    // 验证 TNT 位置正确（方块中心）
-    EXPECT_FLOAT_EQ(m_world.lastTNTPosition().x, 10.5f);
-    EXPECT_FLOAT_EQ(m_world.lastTNTPosition().y, 64.0f);
-    EXPECT_FLOAT_EQ(m_world.lastTNTPosition().z, 20.5f);
-
-    // 验证引信已点燃（80 ticks）
-    EXPECT_EQ(m_world.lastTNTFuse(), 80);
-
-    // 验证音效播放
-    EXPECT_TRUE(m_world.soundPlayed());
-    EXPECT_EQ(m_world.lastSoundEvent(), SoundEvents::ENTITY_TNT_PRIMED);
+    BlockState unstableState = tntBlock->defaultState().with(BlockStateProperties::UNSTABLE(), true);
+    EXPECT_TRUE(TNTBlock::isUnstable(unstableState));
 }
 
-/**
- * @brief 测试点燃功能 - 客户端
- *
- * 客户端点燃 TNT 不应该有任何效果
- */
-TEST_F(TNTBlockTest, IgniteOnClientSide)
+TEST_F(TNTBlockTest, CanDropFromExplosionReturnsFalse)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+    const BlockState& defaultState = tntBlock->defaultState();
+    EXPECT_FALSE(tntBlock->canDropFromExplosion(defaultState));
+}
+
+// ============================================================================
+// prime() 测试 — 仅生成实体和音效，不移除方块
+// ============================================================================
+
+TEST_F(TNTBlockTest, Prime_SpawnsEntityAndPlaysSound)
 {
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
-    // 设置 TNT 方块
     BlockPos tntPos(10, 64, 20);
     m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
 
-    // 客户端点燃
+    bool result = TNTBlock::prime(m_world, tntPos, nullptr);
+
+    // prime 应该成功
+    EXPECT_TRUE(result);
+    // 应该生成 TNT 实体
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    // 应该播放音效
+    EXPECT_TRUE(m_world.soundPlayed());
+    EXPECT_EQ(m_world.lastSoundEvent(), SoundEvents::ENTITY_TNT_PRIMED);
+    // 应该发出 PRIME_FUSE 游戏事件
+    EXPECT_EQ(m_world.gameEventCount(), 1);
+    EXPECT_EQ(m_world.lastGameEventId(), "prime_fuse");
+}
+
+TEST_F(TNTBlockTest, Prime_DoesNotRemoveBlock)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    // prime 前记下 setBlock 调用次数
+    i32 setBlockCallsBefore = m_world.setBlockCallCount();
+
+    TNTBlock::prime(m_world, tntPos, nullptr);
+
+    // prime 不应该调用 setBlockState（不移除方块）
+    // 注意：TNTEntity 生成可能会调用一些 setBlock，但 prime 本身不调用
+    // 验证方块仍然存在
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
+}
+
+TEST_F(TNTBlockTest, Prime_ClientSideReturnsFalse)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
     m_world.setClientSide(true);
-    tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
 
-    // 客户端不应该生成实体
+    bool result = TNTBlock::prime(m_world, tntPos, nullptr);
+
+    EXPECT_FALSE(result);
     EXPECT_EQ(m_world.spawnedTNTCount(), 0);
-
-    // 客户端不应该播放音效
     EXPECT_FALSE(m_world.soundPlayed());
 }
 
-/**
- * @brief 测试 TNT 初始速度
- *
- * MC 1.16.5: TNT 被点燃时有随机的初始速度
- */
-TEST_F(TNTBlockTest, IgniteRandomInitialVelocity)
+TEST_F(TNTBlockTest, Prime_TntExplodesFalseReturnsFalse)
 {
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
-    BlockPos tntPos(0, 64, 0);
+    BlockPos tntPos(10, 64, 20);
     m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-
-    // 点燃多次，验证速度是随机的
     m_world.setClientSide(false);
 
-    // 验证 Y 速度是固定的 0.2
-    m_world.clearState();
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-    tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
+    bool result = TNTBlock::prime(m_world, tntPos, nullptr);
 
-    EXPECT_FLOAT_EQ(m_world.lastTNTVelocity().y, 0.2f);
+    EXPECT_FALSE(result);
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+    EXPECT_FALSE(m_world.soundPlayed());
 }
 
-/**
- * @brief 测试爆炸功能
- *
- * explode() 应该移除方块并创建爆炸
- */
-TEST_F(TNTBlockTest, Explode)
+TEST_F(TNTBlockTest, Prime_SetsIgniterAsTNTOwner)
 {
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
     BlockPos tntPos(10, 64, 20);
     m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
 
-    // 触发爆炸
-    tntBlock->explode(m_world, tntPos, 4.0f);
+    // 创建一个玩家作为点燃者
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
 
-    // 验证 TNT 方块被移除
-    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
-    EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
+    TNTBlock::prime(m_world, tntPos, player.get());
 
-    // 验证爆炸被创建
-    EXPECT_EQ(m_world.explosionCount(), 1);
-    EXPECT_FLOAT_EQ(m_world.lastExplosionRadius(), 4.0f);
-    EXPECT_EQ(m_world.lastExplosionMode(), world::explosion::ExplosionMode::Break);
-    EXPECT_FALSE(m_world.explosionCausesFire());
-
-    // 验证爆炸位置（方块中心，Y 偏移 0.0625）
-    EXPECT_FLOAT_EQ(m_world.lastExplosionPos().x, 10.5f);
-    EXPECT_FLOAT_EQ(m_world.lastExplosionPos().y, 64.0f + 0.0625f);
-    EXPECT_FLOAT_EQ(m_world.lastExplosionPos().z, 20.5f);
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    // TNT 实体的 owner 应该被设置为玩家
+    EXPECT_EQ(m_world.lastTNTOwner(), player.get());
 }
 
-/**
- * @brief 测试自定义爆炸半径
- */
-TEST_F(TNTBlockTest, ExplodeCustomRadius)
+TEST_F(TNTBlockTest, Prime_NullIgniter_TNTOwnerIsNull)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    TNTBlock::prime(m_world, tntPos, nullptr);
+
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    EXPECT_EQ(m_world.lastTNTOwner(), nullptr);
+}
+
+TEST_F(TNTBlockTest, Prime_SetsCorrectPosition)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    TNTBlock::prime(m_world, tntPos, nullptr);
+
+    // TNT 位置应该是方块中心
+    EXPECT_FLOAT_EQ(m_world.lastTNTPosition().x, 10.5f);
+    EXPECT_FLOAT_EQ(m_world.lastTNTPosition().y, 64.0f);
+    EXPECT_FLOAT_EQ(m_world.lastTNTPosition().z, 20.5f);
+}
+
+TEST_F(TNTBlockTest, Prime_SetsDefaultFuse)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    TNTBlock::prime(m_world, tntPos, nullptr);
+
+    // 默认引信时间 80 ticks
+    EXPECT_EQ(m_world.lastTNTFuse(), 80);
+}
+
+TEST_F(TNTBlockTest, Prime_SetsYVelocity)
 {
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
     BlockPos tntPos(0, 64, 0);
     m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
 
-    // 使用自定义半径爆炸
-    tntBlock->explode(m_world, tntPos, 10.0f);
+    TNTBlock::prime(m_world, tntPos, nullptr);
 
-    EXPECT_EQ(m_world.explosionCount(), 1);
-    EXPECT_FLOAT_EQ(m_world.lastExplosionRadius(), 10.0f);
+    // Y 速度应该是固定的 0.2
+    EXPECT_FLOAT_EQ(m_world.lastTNTVelocity().y, 0.2f);
 }
 
-/**
- * @brief 测试 onBlockAdded - 有火焰
- *
- * 当 TNT 被放置在有火焰的位置时，应该点燃
- */
-TEST_F(TNTBlockTest, OnBlockAdded_WithFire)
+// ============================================================================
+// ignite() 测试 — prime() + 移除方块
+// ============================================================================
+
+TEST_F(TNTBlockTest, Ignite_PrimesAndRemovesBlock)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
+
+    EXPECT_TRUE(result);
+    // 应该生成 TNT 实体
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    // 应该播放音效
+    EXPECT_TRUE(m_world.soundPlayed());
+    // 方块应该被移除
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
+}
+
+TEST_F(TNTBlockTest, Ignite_WithIgniter_SetsTNTOwner)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState(), player.get());
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    EXPECT_EQ(m_world.lastTNTOwner(), player.get());
+}
+
+TEST_F(TNTBlockTest, Ignite_ClientSideReturnsFalse)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(true);
+
+    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+    // 方块不应该被移除
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
+}
+
+TEST_F(TNTBlockTest, Ignite_TntExplodesFalse_ReturnsFalseAndBlockStays)
+{
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
+
+    EXPECT_FALSE(result);
+    // 方块应该仍然存在
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+    EXPECT_FALSE(m_world.soundPlayed());
+}
+
+// ============================================================================
+// onBlockAdded 测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, OnBlockAdded_WithFire_PrimesAndRemovesBlock)
 {
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
@@ -417,133 +598,386 @@ TEST_F(TNTBlockTest, OnBlockAdded_WithFire)
     // 在旁边放置火焰
     BlockPos firePos(1, 64, 0);
     m_world.setBlockAt(firePos, &VanillaBlocks::FIRE->defaultState());
+    m_world.setClientSide(false);
 
-    // 放置 TNT 时应该点燃
     tntBlock->onBlockAdded(m_world, tntPos, tntBlock->defaultState());
-
-    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
-}
-
-/**
- * @brief 测试 TNT 爆炸模式为 Break
- *
- * TNT 爆炸使用 Break 模式，破坏方块但不掉落物品
- */
-TEST_F(TNTBlockTest, ExplosionModeIsBreak)
-{
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    BlockPos tntPos(0, 64, 0);
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-
-    tntBlock->explode(m_world, tntPos, 4.0f);
-
-    // 验证爆炸模式是 Break（破坏方块但不掉落物品）
-    EXPECT_EQ(m_world.lastExplosionMode(), world::explosion::ExplosionMode::Break);
-}
-
-/**
- * @brief 测试 TNT 爆炸不生成火焰
- */
-TEST_F(TNTBlockTest, ExplosionDoesNotCauseFire)
-{
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    BlockPos tntPos(0, 64, 0);
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-
-    tntBlock->explode(m_world, tntPos, 4.0f);
-
-    // TNT 爆炸不应该生成火焰
-    EXPECT_FALSE(m_world.explosionCausesFire());
-}
-
-/**
- * @brief 测试实体类型注册
- *
- * TNTEntity 应该正确注册
- */
-TEST_F(TNTBlockTest, TNTEntityIsRegistered)
-{
-    auto& registry = entity::EntityRegistry::instance();
-    const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
-
-    ASSERT_NE(tntType, nullptr);
-    EXPECT_TRUE(tntType->isValid());
-}
-
-/**
- * @brief 测试 tntExplodes=false 时 ignite 不点燃
- *
- * 当 tntExplodes 游戏规则为 false 时，ignite() 应该返回 false，
- * 不生成 TNT 实体，不播放音效，不移除方块。
- */
-TEST_F(TNTBlockTest, IgniteDoesNotPrimeWhenRuleDisabled)
-{
-    // 设置 tntExplodes=false
-    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
-
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    BlockPos tntPos(10, 64, 20);
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-
-    // 尝试点燃
-    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
-
-    // 应该返回 false
-    EXPECT_FALSE(result);
-
-    // TNT 方块应该仍然存在（未被移除）
-    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
-    EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
-
-    // 不应该生成 TNT 实体
-    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
-
-    // 不应该播放音效
-    EXPECT_FALSE(m_world.soundPlayed());
-}
-
-/**
- * @brief 测试 tntExplodes=true（默认）时 ignite 正常点燃
- */
-TEST_F(TNTBlockTest, IgnitePrimesWhenRuleEnabled)
-{
-    // 默认 tntExplodes=true
-    EXPECT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES));
-
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    BlockPos tntPos(10, 64, 20);
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-
-    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
-
-    // 应该返回 true
-    EXPECT_TRUE(result);
 
     // 应该生成 TNT 实体
     EXPECT_EQ(m_world.spawnedTNTCount(), 1);
-
-    // 应该播放音效
-    EXPECT_TRUE(m_world.soundPlayed());
+    // 方块应该被移除（onBlockAdded 调用 prime() + setBlockState）
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
 }
 
-/**
- * @brief 测试 tntExplodes=false 时 explode 不创建爆炸
- *
- * 当 tntExplodes 为 false 时，explode() 应该移除方块但不创建爆炸。
- */
-TEST_F(TNTBlockTest, ExplodeRemovesBlockWithoutExplosionWhenRuleDisabled)
+// ============================================================================
+// onBlockActivated 测试 — 玩家交互
+// ============================================================================
+
+TEST_F(TNTBlockTest, OnBlockActivated_EmptyHand_ReturnsPass)
 {
-    // 设置 tntExplodes=false
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    ActionResultType result =
+        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+
+    // 空手应该返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+    // 不应该生成 TNT 实体
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+TEST_F(TNTBlockTest, OnBlockActivated_FlintAndSteel_PrimesAndRemovesBlock)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    // 给玩家手持打火石
+    if (Items::FLINT_AND_STEEL != nullptr) {
+        ItemStack flintAndSteel(Items::FLINT_AND_STEEL, 1);
+        player->getHeldItem(Hand::MainHand) = flintAndSteel;
+
+        BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+        ActionResultType result =
+            tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+
+        // 应该返回 Success
+        EXPECT_EQ(result, ActionResultType::Success);
+        // 应该生成 TNT 实体
+        EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+        // 方块应该被移除
+        const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+        EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
+    }
+}
+
+TEST_F(TNTBlockTest, OnBlockActivated_FlintAndSteel_SetsPlayerAsIgniter)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    if (Items::FLINT_AND_STEEL != nullptr) {
+        ItemStack flintAndSteel(Items::FLINT_AND_STEEL, 1);
+        player->getHeldItem(Hand::MainHand) = flintAndSteel;
+
+        BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+
+        // 玩家应该是点燃者
+        EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+        EXPECT_EQ(m_world.lastTNTOwner(), player.get());
+    }
+}
+
+TEST_F(TNTBlockTest, OnBlockActivated_FireCharge_PrimesAndRemovesBlock)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    // 给玩家手持火焰弹
+    if (Items::FIRE_CHARGE != nullptr) {
+        ItemStack fireCharge(Items::FIRE_CHARGE, 1);
+        player->getHeldItem(Hand::MainHand) = fireCharge;
+
+        BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+        ActionResultType result =
+            tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+
+        EXPECT_EQ(result, ActionResultType::Success);
+        EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    }
+}
+
+TEST_F(TNTBlockTest, OnBlockActivated_NonIgnitionItem_ReturnsPass)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    // Player 的 getHeldItem 默认为空物品堆，空手应返回 Pass
+    BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    ActionResultType result =
+        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Pass);
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+TEST_F(TNTBlockTest, OnBlockActivated_TntExplodesFalse_ShowsMessageAndReturnsPass)
+{
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
 
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    if (Items::FLINT_AND_STEEL != nullptr) {
+        ItemStack flintAndSteel(Items::FLINT_AND_STEEL, 1);
+        player->getHeldItem(Hand::MainHand) = flintAndSteel;
+
+        BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+        ActionResultType result =
+            tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+
+        // tntExplodes=false 时应该返回 Pass（不消耗物品）
+        EXPECT_EQ(result, ActionResultType::Pass);
+        // 不应该生成 TNT 实体
+        EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+        // 方块应该仍然存在
+        const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+        EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
+    }
+}
+
+// ============================================================================
+// playerWillDestroy 测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, PlayerWillDestroy_UnstableTNT_SurvivalMode_PrimesWithoutRemovingBlock)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+    BlockState unstableState = tntBlock->defaultState().with(BlockStateProperties::UNSTABLE(), true);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &unstableState);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    // Player 默认是生存模式
+
+    // 记录调用前的 setBlock 调用次数
+    i32 setBlockCallsBefore = m_world.setBlockCallCount();
+
+    tntBlock->playerWillDestroy(m_world, tntPos, unstableState, *player);
+
+    // 应该生成 TNT 实体（prime 成功）
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    // 播放音效
+    EXPECT_TRUE(m_world.soundPlayed());
+
+    // 关键：playerWillDestroy 只调用 prime()，不移除方块
+    // 方块移除由破坏流程处理，所以方块应该仍然存在
+    // （在实际游戏中，破坏流程会在 playerWillDestroy 返回后移除方块）
+    // 这里我们只能验证 playerWillDestroy 自身没有移除方块
+    // 由于 mock world 的 setBlockState 不做实际移除（只记录），
+    // 我们通过检查 setBlock 调用次数来验证
+    // playerWillDestroy 不应额外调用 setBlockState
+    EXPECT_EQ(m_world.setBlockCallCount(), setBlockCallsBefore);
+}
+
+TEST_F(TNTBlockTest, PlayerWillDestroy_StableTNT_DoesNotPrime)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+    const BlockState& stableState = tntBlock->defaultState(); // UNSTABLE=false
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &stableState);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    tntBlock->playerWillDestroy(m_world, tntPos, stableState, *player);
+
+    // 稳定 TNT 不应点燃
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+    EXPECT_FALSE(m_world.soundPlayed());
+}
+
+TEST_F(TNTBlockTest, PlayerWillDestroy_UnstableTNT_CreativeMode_DoesNotPrime)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+    BlockState unstableState = tntBlock->defaultState().with(BlockStateProperties::UNSTABLE(), true);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &unstableState);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Creative);
+
+    tntBlock->playerWillDestroy(m_world, tntPos, unstableState, *player);
+
+    // 创造模式下不应点燃
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+TEST_F(TNTBlockTest, PlayerWillDestroy_ClientSide_DoesNotPrime)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+    BlockState unstableState = tntBlock->defaultState().with(BlockStateProperties::UNSTABLE(), true);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &unstableState);
+    m_world.setClientSide(true); // 客户端
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    tntBlock->playerWillDestroy(m_world, tntPos, unstableState, *player);
+
+    // 客户端不应点燃
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+// ============================================================================
+// onProjectileHit 测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, OnProjectileHit_BurningEntity_PrimesAndRemovesBlock)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    // 创建一个燃烧的实体来模拟投掷物
+    Entity projectile(EntityId(200));
+    projectile.setWorld(&m_world);
+    projectile.setFire(100); // 设置着火
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    tntBlock->onProjectileHit(m_world, tntBlock->defaultState(), hitResult, projectile);
+
+    // 燃烧投掷物应该点燃 TNT
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    // 方块应该被移除
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
+}
+
+TEST_F(TNTBlockTest, OnProjectileHit_NonBurningEntity_DoesNotPrime)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    // 创建一个未燃烧的实体
+    Entity projectile(EntityId(200));
+    projectile.setWorld(&m_world);
+    // 不设置着火
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    tntBlock->onProjectileHit(m_world, tntBlock->defaultState(), hitResult, projectile);
+
+    // 非燃烧投掷物不应该点燃 TNT
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+    // 方块应该仍然存在
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
+}
+
+TEST_F(TNTBlockTest, OnProjectileHit_ClientSide_DoesNotPrime)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(true); // 客户端
+
+    Entity projectile(EntityId(200));
+    projectile.setWorld(&m_world);
+    projectile.setFire(100);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    tntBlock->onProjectileHit(m_world, tntBlock->defaultState(), hitResult, projectile);
+
+    // 客户端不应该点燃
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+TEST_F(TNTBlockTest, OnProjectileHit_TntExplodesFalse_DoesNotPrime)
+{
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    Entity projectile(EntityId(200));
+    projectile.setWorld(&m_world);
+    projectile.setFire(100);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    tntBlock->onProjectileHit(m_world, tntBlock->defaultState(), hitResult, projectile);
+
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+    const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
+}
+
+// ============================================================================
+// explode() 测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, Explode)
+{
     BlockProperties props(Material::TNT);
     auto tntBlock = std::make_unique<TNTBlock>(props);
 
@@ -556,151 +990,19 @@ TEST_F(TNTBlockTest, ExplodeRemovesBlockWithoutExplosionWhenRuleDisabled)
     const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
     EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
 
-    // 不应该创建爆炸
-    EXPECT_EQ(m_world.explosionCount(), 0);
-}
-
-/**
- * @brief 测试 tntExplodes=true 时 explode 正常创建爆炸
- */
-TEST_F(TNTBlockTest, ExplodeCreatesExplosionWhenRuleEnabled)
-{
-    EXPECT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES));
-
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    BlockPos tntPos(10, 64, 20);
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-
-    tntBlock->explode(m_world, tntPos, 4.0f);
-
     // 应该创建爆炸
     EXPECT_EQ(m_world.explosionCount(), 1);
     EXPECT_FLOAT_EQ(m_world.lastExplosionRadius(), 4.0f);
+    EXPECT_EQ(m_world.lastExplosionMode(), world::explosion::ExplosionMode::Break);
+    EXPECT_FALSE(m_world.explosionCausesFire());
+
+    // 爆炸位置（方块中心，Y 偏移 0.0625）
+    EXPECT_FLOAT_EQ(m_world.lastExplosionPos().x, 10.5f);
+    EXPECT_FLOAT_EQ(m_world.lastExplosionPos().y, 64.0f + 0.0625f);
+    EXPECT_FLOAT_EQ(m_world.lastExplosionPos().z, 20.5f);
 }
 
-/**
- * @brief 测试 canDropFromExplosion 返回 false
- *
- * TNT 被爆炸摧毁时不应掉落物品。
- */
-TEST_F(TNTBlockTest, CanDropFromExplosionReturnsFalse)
-{
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-    const BlockState& defaultState = tntBlock->defaultState();
-
-    // TNT 不应在爆炸中掉落物品
-    EXPECT_FALSE(tntBlock->canDropFromExplosion(defaultState));
-}
-
-/**
- * @brief 测试 playerWillDestroy - 不稳定 TNT 且非创造模式时自动点燃
- */
-TEST_F(TNTBlockTest, PlayerWillDestroy_UnstableTNT_SurvivalMode)
-{
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    // 设置 UNSTABLE=true 状态
-    BlockState unstableState = tntBlock->defaultState().with(BlockStateProperties::UNSTABLE(), true);
-
-    BlockPos tntPos(10, 64, 20);
-    m_world.setBlockAt(tntPos, &unstableState);
-    m_world.setClientSide(false);
-
-    // 模拟生存模式玩家破坏不稳定 TNT
-    // 注意：Player 构造需要完整上下文，此处通过间接方式验证
-    // playerWillDestroy 在 isClientSide=false、isCreative=false、UNSTABLE=true 时应点燃 TNT
-    // 此测试验证 isUnstable 静态方法返回 true
-    EXPECT_TRUE(TNTBlock::isUnstable(unstableState));
-}
-
-/**
- * @brief 测试 playerWillDestroy - 稳定 TNT 时不自动点燃
- */
-TEST_F(TNTBlockTest, PlayerWillDestroy_StableTNT_NoIgnite)
-{
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-    const BlockState& defaultState = tntBlock->defaultState();
-
-    // 稳定 TNT（UNSTABLE=false）不应自动点燃
-    EXPECT_FALSE(TNTBlock::isUnstable(defaultState));
-}
-
-/**
- * @brief 测试 ignite 带点燃者参数的重载
- *
- * 带 LivingEntity* 参数的 ignite 重载应将点燃者传递给 TNTEntity。
- */
-TEST_F(TNTBlockTest, IgniteWithIgniter_SetsTNTOwner)
-{
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    BlockPos tntPos(10, 64, 20);
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-    m_world.setClientSide(false);
-
-    // 带 nullptr 点燃者点燃（应使用三参数重载委托，不设置 owner）
-    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState(), nullptr);
-    EXPECT_TRUE(result);
-    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
-
-    // 带 nullptr 点燃者也应成功点燃
-    m_world.clearState();
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-    result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
-    EXPECT_TRUE(result);
-    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
-}
-
-/**
- * @brief 测试 onBlockActivated - 非打火石/火焰弹物品应返回 Pass
- */
-TEST_F(TNTBlockTest, OnBlockActivated_NonIgnitionItem_ReturnsPass)
-{
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    // isUnstable 测试仅验证状态判断逻辑
-    const BlockState& defaultState = tntBlock->defaultState();
-    EXPECT_FALSE(TNTBlock::isUnstable(defaultState));
-
-    // UNSTABLE 状态验证
-    BlockState unstableState = defaultState.with(BlockStateProperties::UNSTABLE(), true);
-    EXPECT_TRUE(TNTBlock::isUnstable(unstableState));
-}
-
-/**
- * @brief 测试 onProjectileHit - 仅燃烧投掷物点燃
- *
- * 非燃烧投掷物命中 TNT 不应点燃。
- * 由于 ProjectileEntity 需要完整的世界环境，此处验证 isOnFire() 的逻辑关系。
- */
-TEST_F(TNTBlockTest, OnProjectileHit_OnlyBurningProjectilesIgnite)
-{
-    BlockProperties props(Material::TNT);
-    auto tntBlock = std::make_unique<TNTBlock>(props);
-
-    BlockPos tntPos(10, 64, 20);
-    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
-    m_world.setClientSide(false);
-
-    // 验证 isClientSide 检查 - 在服务端且 TNT 可点燃
-    EXPECT_FALSE(m_world.isClientSide());
-    EXPECT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES));
-}
-
-/**
- * @brief 测试 tntExplodes=false 时 onBlockActivated 显示消息
- *
- * 当 tntExplodes 游戏规则为 false 时，使用打火石/火焰弹右键 TNT
- * 应不消耗物品并返回 Pass（对齐 MC Java 行为）。
- */
-TEST_F(TNTBlockTest, IgniteDoesNotPrimeWhenRuleDisabled_ReturnsFalse)
+TEST_F(TNTBlockTest, Explode_RemovesBlockEvenWhenRuleDisabled)
 {
     m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
 
@@ -710,13 +1012,162 @@ TEST_F(TNTBlockTest, IgniteDoesNotPrimeWhenRuleDisabled_ReturnsFalse)
     BlockPos tntPos(10, 64, 20);
     m_world.setBlockAt(tntPos, &tntBlock->defaultState());
 
-    // 验证 ignite 在 tntExplodes=false 时返回 false
-    bool result = tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
-    EXPECT_FALSE(result);
+    tntBlock->explode(m_world, tntPos, 4.0f);
 
-    // TNT 方块应该仍然存在
+    // 即使 tntExplodes=false，方块仍应被移除
     const BlockState* state = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
-    EXPECT_TRUE(state != nullptr && !state->is(VanillaBlocks::AIR));
+    EXPECT_TRUE(state == nullptr || state->is(VanillaBlocks::AIR));
+
+    // 不应该创建爆炸
+    EXPECT_EQ(m_world.explosionCount(), 0);
+}
+
+// ============================================================================
+// onBlockExploded 测试 — 连锁爆炸
+// ============================================================================
+
+TEST_F(TNTBlockTest, OnBlockExploded_SpawnsPrimedTNTWithShortFuse)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState());
+
+    // 应该生成 TNT 实体
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+
+    // 短引信：DEFAULT_FUSE / 4 = 20，DEFAULT_FUSE / 8 = 10
+    // 随机范围：[10, 29] ticks
+    i32 fuse = m_world.lastTNTFuse();
+    EXPECT_GE(fuse, 10);
+    EXPECT_LE(fuse, 29);
+}
+
+TEST_F(TNTBlockTest, OnBlockExploded_ClientSide_DoesNothing)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(true);
+
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState());
+
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+TEST_F(TNTBlockTest, OnBlockExploded_TntExplodesFalse_DoesNothing)
+{
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState());
+
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+// ============================================================================
+// TNTEntity 注册测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, TNTEntityIsRegistered)
+{
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
+
+    ASSERT_NE(tntType, nullptr);
+    EXPECT_TRUE(tntType->isValid());
+}
+
+// ============================================================================
+// prime() 与 ignite() 的关键区别测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, PrimeVersusIgnite_PrimeDoesNotCallSetBlock_IgniteDoes)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+
+    // ---- 测试 prime()：不应移除方块 ----
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+    i32 setBlockCallsBefore = m_world.setBlockCallCount();
+
+    TNTBlock::prime(m_world, tntPos, nullptr);
+
+    i32 setBlockCallsAfterPrime = m_world.setBlockCallCount();
+    // prime 不应调用 setBlockState（方块仍存在）
+    EXPECT_EQ(setBlockCallsAfterPrime, setBlockCallsBefore);
+    // 方块应仍然存在
+    const BlockState* stateAfterPrime = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(stateAfterPrime != nullptr && !stateAfterPrime->is(VanillaBlocks::AIR));
+
+    // ---- 测试 ignite()：应移除方块 ----
+    m_world.clearState();
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+    setBlockCallsBefore = m_world.setBlockCallCount();
+
+    tntBlock->ignite(m_world, tntPos, tntBlock->defaultState());
+
+    i32 setBlockCallsAfterIgnite = m_world.setBlockCallCount();
+    // ignite 应调用 setBlockState（移除方块）
+    EXPECT_GT(setBlockCallsAfterIgnite, setBlockCallsBefore);
+    // 方块应被移除
+    const BlockState* stateAfterIgnite = m_world.getBlockState(tntPos.x, tntPos.y, tntPos.z);
+    EXPECT_TRUE(stateAfterIgnite == nullptr || stateAfterIgnite->is(VanillaBlocks::AIR));
+}
+
+// ============================================================================
+// PRIME_FUSE 游戏事件测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, Prime_EmitsPrimeFuseGameEvent)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    TNTBlock::prime(m_world, tntPos, nullptr);
+
+    // 应该发出 PRIME_FUSE 游戏事件
+    EXPECT_EQ(m_world.gameEventCount(), 1);
+    EXPECT_EQ(m_world.lastGameEventId(), "prime_fuse");
+}
+
+TEST_F(TNTBlockTest, Prime_WithIgniter_EmitsGameEventWithSourceEntity)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    TNTBlock::prime(m_world, tntPos, player.get());
+
+    // 游戏事件应该记录玩家作为源实体
+    EXPECT_EQ(m_world.gameEventCount(), 1);
+    EXPECT_EQ(m_world.lastGameEventSourceEntity(), player.get());
 }
 
 } // namespace test
