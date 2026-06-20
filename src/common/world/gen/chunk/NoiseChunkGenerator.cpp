@@ -75,7 +75,14 @@ NoiseChunkGenerator::NoiseChunkGenerator(
     _initDensityFunctionPipeline();
 }
 
-NoiseChunkGenerator::~NoiseChunkGenerator() = default;
+NoiseChunkGenerator::~NoiseChunkGenerator()
+{
+    // 主动清理结构检查缓存，释放 StructureCheck 中已加载区块的引用计数数据。
+    // 对齐 MC 1.21.11 中 StructureCheck 随 ServerLevel 生命周期销毁时清理缓存的行为。
+    if (m_structureManager) {
+        m_structureManager->clearCache();
+    }
+}
 
 // ============================================================================
 // 初始化
