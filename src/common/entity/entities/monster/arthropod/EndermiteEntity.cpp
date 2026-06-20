@@ -35,6 +35,8 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/blocks/mob/InfestedBlock.hpp"
+#include <cmath>
 
 namespace mc {
 
@@ -201,6 +203,26 @@ void SilverfishEntity::notifySummonCooldown()
     if (m_summonGoal != nullptr) {
         m_summonGoal->notifyHurt();
     }
+}
+
+f32 SilverfishEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    // MC Silverfish.getWalkTargetValue: 脚下是虫蚀方块返回 10.0f，否则委托父类
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+
+    // 检查脚下方块（y - 1）是否为虫蚀方块
+    BlockPos belowPos(
+        static_cast<i32>(std::floor(x)), static_cast<i32>(std::floor(y)) - 1, static_cast<i32>(std::floor(z)));
+    const BlockState* belowState = worldPtr->getBlockState(belowPos);
+    if (belowState != nullptr && blocks::InfestedBlock::canContainSilverfish(*belowState)) {
+        return 10.0f;
+    }
+
+    // 非虫蚀方块：委托给 MonsterEntity 的默认实现
+    return MonsterEntity::getPathWeight(x, y, z);
 }
 
 } // namespace mc

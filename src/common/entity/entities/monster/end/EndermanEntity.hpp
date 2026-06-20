@@ -193,16 +193,6 @@ public:
      */
     void setHeldBlockState(const BlockState* state);
 
-    /**
-     * @brief 放下拿着的方块
-     */
-    void placeHeldBlock();
-
-    /**
-     * @brief 拿起方块
-     */
-    void pickUpBlock();
-
     // ========== 阳光燃烧 ==========
 
     /**

@@ -50,7 +50,8 @@ FletchingTableBlock::FletchingTableBlock(const BlockProperties& properties)
 
 BlockState FletchingTableBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // TODO: 实现制箭台的朝向状态（根据玩家面向方向）
+    // MC 原版制箭台没有朝向状态，放置时直接返回默认状态
+    // 制箭台是制箭师村民的工作站方块，玩家右键不会打开任何界面
     return defaultState();
 }
 
@@ -59,9 +60,6 @@ const CollisionShape& FletchingTableBlock::getShape(const BlockState& state) con
     MC_UNUSED(state);
     return m_shape;
 }
-
-// TODO: 实现制箭台的交互功能（打开制箭台界面）
-// 参考: 原版制箭台右键可打开制箭台GUI，用于制作箭矢
 
 } // namespace blocks
 } // namespace mc

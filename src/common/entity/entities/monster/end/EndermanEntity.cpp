@@ -209,28 +209,6 @@ bool EndermanEntity::teleportAwayFromWater()
     return false;
 }
 
-void EndermanEntity::placeHeldBlock()
-{
-    // 注意：实际的放置逻辑由 EndermanPlaceBlockGoal 处理
-    // 这个方法作为一个 API 入口，可以被外部调用或测试
-    if (!m_holdingBlock || m_heldBlockState == nullptr) {
-        return;
-    }
-
-    // TODO: 委托给 AI 目标处理，实际逻辑在 EndermanGoals.cpp 的 EndermanPlaceBlockGoal::tick() 中
-}
-
-void EndermanEntity::pickUpBlock()
-{
-    // 注意：实际的拾取逻辑由 EndermanTakeBlockGoal 处理
-    // 这个方法作为一个 API 入口，可以被外部调用或测试
-    if (m_holdingBlock) {
-        return;
-    }
-
-    // TODO: 委托给 AI 目标处理，实际逻辑在 EndermanGoals.cpp 的 EndermanTakeBlockGoal::tick() 中
-}
-
 bool EndermanEntity::isInWaterOrRain() const
 {
     // 对于末影人，气泡柱不会造成伤害，所以只检查水和雨
