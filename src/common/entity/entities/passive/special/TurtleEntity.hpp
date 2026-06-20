@@ -188,6 +188,12 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.2f : 0.4f; }
 
+    // ========== 寻路权重 ==========
+
+    // TODO: 重写 getPathWeight — 海龟的寻路权重需要特殊逻辑：
+    // 回家状态下水中返回10.0f，沙滩上返回10.0f，否则返回亮度相关值
+    // 对应 MC Turtle.getWalkTargetValue
+
     // ========== 生命周期 ==========
 
     void tick() override;

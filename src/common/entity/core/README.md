@@ -9,7 +9,7 @@ src/common/entity/core/
 ├── Entity.hpp/cpp                  # 所有实体的基类（位置、运动、碰撞、火焰、队伍联盟判断等）
 ├── LivingEntity.hpp/cpp            # 有生命值的生物实体基类（生命值、吸收值、装备、药水效果）
 ├── MobEntity.hpp/cpp               # 有AI的生物实体基类（AI系统、目标选择）
-├── CreatureEntity.hpp/cpp          # 陆地生物基类（寻路、步进）
+├── CreatureEntity.hpp/cpp          # 陆地生物基类（寻路、生成条件判断）
 ├── FlyingEntity.hpp/cpp            # 飞行生物基类
 ├── AgeableEntity.hpp/cpp           # 成长系统基类（幼体→成体）
 ├── EntityType.hpp/cpp              # 实体类型定义
@@ -35,7 +35,7 @@ src/common/entity/core/
 Entity（基类：位置、运动、碰撞、火焰、流体检测）
 ├── LivingEntity（生命值、装备、药水效果、击退、空气供应、setLastHurtBy虚方法）
 │   ├── MobEntity（AI系统、目标选择、控制器、日光检测）
-│   │   ├── CreatureEntity（陆地移动、寻路）
+│   │   ├── CreatureEntity（陆地移动、寻路、生成条件判断）
 │   │   │   ├── AgeableEntity（成长系统）
 │   │   │   │   └── AnimalEntity（繁殖系统，在../passive/）
 │   │   │   └── MonsterEntity（敌对行为，在../monster/）
@@ -136,6 +136,29 @@ finalizeSpawn(world, difficulty, spawnReason)
 | 5 | 钻石 | DIAMOND_HELMET | DIAMOND_CHESTPLATE | DIAMOND_LEGGINGS | DIAMOND_BOOTS |
 
 注意：armorLevel=1 对应铜材质，但铜护甲尚未实现，当前回退为铁护甲。
+
+## CreatureEntity 寻路权重与生成条件
+
+### getPathWeight 寻路权重系统
+
+`CreatureEntity::getPathWeight(f32 x, f32 y, f32 z)` 返回实体偏好移动到该位置的程度，正值越高越偏好，负值越避开，0为中性。对应 MC `PathfinderMob.getWalkTargetValue`，被 `RandomPositionGenerator` 用于 AI 随机位置选择。
+
+| 实体类 | 重写逻辑 | 对应 MC |
+|--------|----------|---------|
+| CreatureEntity（默认） | 返回 0.0f | `PathfinderMob` 返回 0.0F |
+| AnimalEntity | 草方块 → 10.0f，否则 brightness - 0.5f | `Animal.getWalkTargetValue` |
+| MonsterEntity | 0.5f - brightness | `Monster.getWalkTargetValue` |
+| WaterMobEntity | 水中 → 10.0f，否则 → 0.0f | MC 中未重写（返回0.0F），但水生子类重写 |
+| GuardianEntity | 水中 → 10.0f + lightCost，否则委托 MonsterEntity | `Guardian.getWalkTargetValue` |
+| StriderEntity | 岩浆中 → 10.0f，非岩浆但自身在岩浆 → -∞，否则 → 0.0f | `Strider.getWalkTargetValue` |
+| MooshroomEntity | 菌丝 → 10.0f，否则委托 AnimalEntity | `MushroomCow.getWalkTargetValue` |
+| EndermanEntity | 返回 0.0f | `EnderMan.getWalkTargetValue` |
+
+**待实现**：TurtleEntity（水陆两栖）、HoglinEntity（诡异菌排斥/绯红菌岩偏好）、SilverfishEntity（虫蚀方块偏好）、GiantEntity（亮度不取反）。
+
+### canSpawnAt 生成条件
+
+`CreatureEntity::canSpawnAt(f32 x, f32 y, f32 z)` 基于 `getPathWeight >= 0.0f` 判断位置是否适合生成，对应 MC `PathfinderMob.checkSpawnRules`。当前此方法尚未接入生成系统（NaturalSpawner/EntitySpawnPlacementRegistry），待后续集成。
 
 ## 容易踩的坑
 

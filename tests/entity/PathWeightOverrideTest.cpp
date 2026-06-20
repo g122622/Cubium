@@ -1,0 +1,382 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include <gtest/gtest.h>
+
+#include "common/TestWorldHelper.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/monster/end/EndermanEntity.hpp"
+#include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
+#include "common/entity/entities/passive/basic/AnimalEntity.hpp"
+#include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
+#include "common/entity/entities/passive/special/StriderEntity.hpp"
+#include "common/entity/entities/passive/water/WaterMobEntity.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/Fluids.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+
+using namespace mc;
+
+namespace {
+
+/**
+ * @brief 测试用 Mock World，支持亮度、方块状态、流体状态
+ */
+class PathWeightOverrideTestWorld final : public test::BaseTestWorld {
+public:
+    void setBrightness(f32 brightness) { m_brightness = brightness; }
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[BlockPos(x, y, z)] = state; }
+    void setGrassBlockAt(i32 x, i32 y, i32 z)
+    {
+        m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::GRASS_BLOCK->defaultState();
+    }
+    void setMyceliumAt(i32 x, i32 y, i32 z)
+    {
+        m_blockStates[BlockPos(x, y, z)] = &block_registry::NaturalBlocks::MYCELIUM->defaultState();
+    }
+    void setWaterAt(i32 x, i32 y, i32 z) { m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::WATER->defaultState(); }
+    void setLavaAt(i32 x, i32 y, i32 z) { m_blockStates[BlockPos(x, y, z)] = &VanillaBlocks::LAVA->defaultState(); }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        auto it = m_blockStates.find(BlockPos(x, y, z));
+        if (it != m_blockStates.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockState* state = getBlockState(x, y, z);
+        return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+    }
+
+    [[nodiscard]] f32 getBrightness(const BlockPos& pos) const override
+    {
+        (void)pos;
+        return m_brightness;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        m_blockStates[BlockPos(x, y, z)] = state;
+        return true;
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    EntityId spawnEntity(std::unique_ptr<Entity>) override { return 0; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("PathWeightOverrideTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("PathWeightOverrideTestWorld::tickManager not implemented");
+    }
+
+private:
+    f32 m_brightness = 0.5f;
+    std::unordered_map<BlockPos, const BlockState*> m_blockStates;
+};
+
+// ============================================================================
+// CreatureEntity::canSpawnAt 测试
+// ============================================================================
+
+class CreatureEntityCanSpawnAtTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(CreatureEntityCanSpawnAtTest, CreatureCanSpawnAtNeutralWeight)
+{
+    // CreatureEntity 默认 getPathWeight 返回 0.0f，canSpawnAt 应返回 true
+    TestCreatureEntity creature;
+    creature.setWorld(&world);
+    EXPECT_TRUE(creature.canSpawnAt(0.0f, 64.0f, 0.0f));
+}
+
+TEST_F(CreatureEntityCanSpawnAtTest, AnimalCanSpawnAtOnGrass)
+{
+    // AnimalEntity 在草方块上 getPathWeight 返回 10.0f，canSpawnAt 应返回 true
+    world.setGrassBlockAt(0, 63, 0);
+    TestAnimalEntity animal;
+    animal.setWorld(&world);
+    EXPECT_TRUE(animal.canSpawnAt(0.0f, 64.0f, 0.0f));
+}
+
+TEST_F(CreatureEntityCanSpawnAtTest, AnimalCannotSpawnInDarkness)
+{
+    // AnimalEntity 在黑暗中 getPathWeight 返回 -0.5f，canSpawnAt 应返回 false
+    world.setBrightness(0.0f);
+    TestAnimalEntity animal;
+    animal.setWorld(&world);
+    EXPECT_FALSE(animal.canSpawnAt(0.0f, 64.0f, 0.0f));
+}
+
+TEST_F(CreatureEntityCanSpawnAtTest, MonsterCanSpawnInDarkness)
+{
+    // MonsterEntity 在黑暗中 getPathWeight 返回 0.5f，canSpawnAt 应返回 true
+    world.setBrightness(0.0f);
+    TestMonsterEntity monster;
+    monster.setWorld(&world);
+    EXPECT_TRUE(monster.canSpawnAt(0.0f, 64.0f, 0.0f));
+}
+
+TEST_F(CreatureEntityCanSpawnAtTest, MonsterCannotSpawnInBrightLight)
+{
+    // MonsterEntity 在明亮中 getPathWeight 返回 -0.5f，canSpawnAt 应返回 false
+    world.setBrightness(1.0f);
+    TestMonsterEntity monster;
+    monster.setWorld(&world);
+    EXPECT_FALSE(monster.canSpawnAt(0.0f, 64.0f, 0.0f));
+}
+
+TEST_F(CreatureEntityCanSpawnAtTest, MonsterAtBoundaryBrightness)
+{
+    // MonsterEntity 在亮度 0.5 时 getPathWeight 返回 0.0f，canSpawnAt 应返回 true
+    world.setBrightness(0.5f);
+    TestMonsterEntity monster;
+    monster.setWorld(&world);
+    EXPECT_TRUE(monster.canSpawnAt(0.0f, 64.0f, 0.0f));
+}
+
+// ============================================================================
+// WaterMobEntity::getPathWeight 测试
+// ============================================================================
+
+class WaterMobPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(WaterMobPathWeightTest, ReturnsHighWeightInWater)
+{
+    // 水生生物在水中应返回 10.0f
+    world.setWaterAt(0, 64, 0);
+
+    WaterMobEntity waterMob(EntityId(10));
+    waterMob.setWorld(&world);
+    EXPECT_FLOAT_EQ(waterMob.getPathWeight(0.0f, 64.0f, 0.0f), 10.0f);
+}
+
+TEST_F(WaterMobPathWeightTest, ReturnsZeroOnLand)
+{
+    // 水生生物在陆地上应返回 0.0f
+    WaterMobEntity waterMob(EntityId(10));
+    waterMob.setWorld(&world);
+    EXPECT_FLOAT_EQ(waterMob.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(WaterMobPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    // 没有世界时返回 0.0f
+    WaterMobEntity waterMob(EntityId(10));
+    EXPECT_FLOAT_EQ(waterMob.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+// ============================================================================
+// GuardianEntity::getPathWeight 测试
+// ============================================================================
+
+class GuardianPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(GuardianPathWeightTest, PrefersWaterOverLand)
+{
+    // 守卫者在水中权重应高于陆地
+    world.setWaterAt(0, 64, 0);
+    world.setBrightness(0.5f);
+
+    GuardianEntity guardian(EntityId(20));
+    guardian.setWorld(&world);
+    f32 waterWeight = guardian.getPathWeight(0.0f, 64.0f, 0.0f);
+
+    // 水中: 10.0 + (0.5 - 0.5) = 10.0
+    EXPECT_FLOAT_EQ(waterWeight, 10.0f);
+}
+
+TEST_F(GuardianPathWeightTest, ReturnsMonsterWeightOnLand)
+{
+    // 守卫者在陆地上应使用 MonsterEntity 的权重逻辑
+    world.setBrightness(0.0f); // 黑暗中怪物偏好高
+    GuardianEntity guardian(EntityId(20));
+    guardian.setWorld(&world);
+    f32 weight = guardian.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.5f); // MonsterEntity: 0.5 - 0.0 = 0.5
+}
+
+TEST_F(GuardianPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    GuardianEntity guardian(EntityId(20));
+    EXPECT_FLOAT_EQ(guardian.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+// ============================================================================
+// StriderEntity::getPathWeight 测试
+// ============================================================================
+
+class StriderPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(StriderPathWeightTest, PrefersLava)
+{
+    // 炽足兽在岩浆中应返回 10.0f
+    world.setLavaAt(0, 64, 0);
+
+    StriderEntity strider(EntityId(30));
+    strider.setWorld(&world);
+    f32 lavaWeight = strider.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(lavaWeight, 10.0f);
+}
+
+TEST_F(StriderPathWeightTest, ReturnsZeroOnLandWhenNotInLava)
+{
+    // 炽足兽在陆地上且自身不在岩浆中——返回 0.0f
+    StriderEntity strider(EntityId(30));
+    strider.setWorld(&world);
+    EXPECT_FLOAT_EQ(strider.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(StriderPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    StriderEntity strider(EntityId(30));
+    EXPECT_FLOAT_EQ(strider.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+// ============================================================================
+// MooshroomEntity::getPathWeight 测试
+// ============================================================================
+
+class MooshroomPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(MooshroomPathWeightTest, PrefersMycelium)
+{
+    // 哞菇在菌丝上应返回 10.0f
+    world.setMyceliumAt(0, 63, 0);
+
+    MooshroomEntity mooshroom(EntityId(40));
+    mooshroom.setWorld(&world);
+    f32 myceliumWeight = mooshroom.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(myceliumWeight, 10.0f);
+}
+
+TEST_F(MooshroomPathWeightTest, FallsBackToAnimalWeightOnNonMycelium)
+{
+    // 哞菇在非菌丝上应委托 AnimalEntity 的逻辑
+    world.setBrightness(1.0f);
+    MooshroomEntity mooshroom(EntityId(40));
+    mooshroom.setWorld(&world);
+
+    // 不在菌丝上，也不在草方块上，应返回 brightness - 0.5 = 0.5
+    f32 weight = mooshroom.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.5f);
+}
+
+TEST_F(MooshroomPathWeightTest, PrefersMyceliumOverDarkness)
+{
+    // 哞菇在菌丝上应优于黑暗位置
+    world.setMyceliumAt(0, 63, 0);
+    MooshroomEntity mooshroom(EntityId(40));
+    mooshroom.setWorld(&world);
+    f32 myceliumWeight = mooshroom.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(myceliumWeight, 10.0f);
+
+    // 菌丝位置权重应远高于黑暗非菌丝位置
+    world.setBrightness(0.0f);
+    f32 darkWeight = mooshroom.getPathWeight(10.0f, 64.0f, 10.0f);
+    EXPECT_GT(myceliumWeight, darkWeight);
+}
+
+TEST_F(MooshroomPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    MooshroomEntity mooshroom(EntityId(40));
+    EXPECT_FLOAT_EQ(mooshroom.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+// ============================================================================
+// EndermanEntity::getPathWeight 测试
+// ============================================================================
+
+class EndermanPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(EndermanPathWeightTest, ReturnsZeroInDarkness)
+{
+    // 末影人不依赖光照，在黑暗中返回 0.0f
+    world.setBrightness(0.0f);
+    EndermanEntity enderman(EntityId(50));
+    enderman.setWorld(&world);
+    EXPECT_FLOAT_EQ(enderman.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(EndermanPathWeightTest, ReturnsZeroInBrightLight)
+{
+    // 末影人在明亮中也返回 0.0f
+    world.setBrightness(1.0f);
+    EndermanEntity enderman(EntityId(50));
+    enderman.setWorld(&world);
+    EXPECT_FLOAT_EQ(enderman.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(EndermanPathWeightTest, AlwaysReturnsZero)
+{
+    // 末影人始终返回 0.0f
+    EndermanEntity enderman(EntityId(50));
+    enderman.setWorld(&world);
+    EXPECT_FLOAT_EQ(enderman.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(enderman.getPathWeight(100.0f, -10.0f, 200.0f), 0.0f);
+}
+
+TEST_F(EndermanPathWeightTest, CanSpawnAnywhere)
+{
+    // 由于 getPathWeight 始终返回 0.0f，canSpawnAt 始终返回 true
+    EndermanEntity enderman(EntityId(50));
+    enderman.setWorld(&world);
+    EXPECT_TRUE(enderman.canSpawnAt(0.0f, 64.0f, 0.0f));
+}
+
+} // namespace
