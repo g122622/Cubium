@@ -23,25 +23,31 @@
 
 #include "CatEntity.hpp"
 
-#include "core/Types.hpp"
-#include "entity/ai/goal/GoalSelector.hpp"
-#include "entity/ai/goal/goals/BreedGoal.hpp"
-#include "entity/ai/goal/goals/FollowParentGoal.hpp"
-#include "entity/ai/goal/goals/LookAtGoal.hpp"
-#include "entity/ai/goal/goals/PanicGoal.hpp"
-#include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
-#include "entity/ai/goal/goals/SwimGoal.hpp"
-#include "entity/ai/goal/goals/interact/TameableGoals.hpp"
-#include "entity/ai/goal/goals/movement/MovementGoals.hpp"
-#include "entity/attribute/Attributes.hpp"
-#include "entity/core/EntityRegistry.hpp"
-#include "entity/core/LivingEntity.hpp"
-#include "entity/core/MobEntity.hpp"
-#include "entity/entities/player/Player.hpp"
-#include "item/Items.hpp"
-#include "item/core/ItemStack.hpp"
-#include "sound/SoundEvents.hpp"
-#include "util/math/random/Random.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/BreedGoal.hpp"
+#include "common/entity/ai/goal/goals/FollowParentGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/PanicGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/interact/TameableGoals.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+
+#include <unordered_map>
 
 namespace mc {
 
@@ -287,7 +293,146 @@ std::optional<ResourceLocation> CatEntity::getDeathSound() const
 
 void CatEntity::playEatSound()
 {
-    playSound(SoundEvents::ENTITY_CAT_EAT, 1.0f, 1.0f);
+    playSound(SoundEvents::ENTITY_CAT_EAT, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+}
+
+// ============================================================================
+// interactMob 实现
+// ============================================================================
+
+ActionResultType CatEntity::interactMob(Player& player, Hand hand)
+{
+    ItemStack& itemStack = player.getHeldItem(hand);
+    const Item* item = itemStack.getItem();
+
+    if (isTamed()) {
+        // ========== 已驯服的猫 ==========
+
+        // 仅主人可以交互
+        if (isOwner(player.playerId())) {
+            // 优先级1: 项圈染色（染料 + 颜色不同）
+            auto dyeColor = _getDyeColorFromItem(item);
+            if (dyeColor.has_value() && dyeColor.value() != m_collarColor) {
+                if (!player.abilities().creativeMode) {
+                    itemStack.shrink(1);
+                }
+                setCollarColor(dyeColor.value());
+                return ActionResultType::Success;
+            }
+
+            // 优先级2: 喂食治疗（猫食 + 生命值未满）
+            if (isFoodItem(itemStack) && health() < maxHealth()) {
+                if (!player.abilities().creativeMode) {
+                    itemStack.shrink(1);
+                }
+                heal(FOOD_HEAL_AMOUNT);
+
+                // 播放吃东西声音
+                if (!isSilent()) {
+                    playEatSound();
+                }
+
+                return ActionResultType::Success;
+            }
+
+            // 优先级3: 调用父类处理（繁殖/成长），若父类未处理则切换坐下/站起
+            ActionResultType result = TameableEntity::interactMob(player, hand);
+            if (result != ActionResultType::Success && result != ActionResultType::Consume) {
+                // 父类未处理，切换坐下/站起状态
+                setSitting(!isSitting());
+                clearNavigation();
+                return ActionResultType::Success;
+            }
+            return result;
+        }
+    } else {
+        // ========== 未驯服的猫 ==========
+
+        // 手持猫食（生鳕鱼/生鲑鱼）时尝试驯服
+        if (isFoodItem(itemStack)) {
+            if (!player.abilities().creativeMode) {
+                itemStack.shrink(1);
+            }
+
+            // 服务端处理驯服逻辑
+            if (m_world != nullptr && !m_world->isClientSide()) {
+                _tryToTame(player);
+            }
+
+            // 播放吃东西声音
+            if (!isSilent()) {
+                playEatSound();
+            }
+
+            return ActionResultType::Success;
+        }
+    }
+
+    // 其他情况交给父类处理
+    return TameableEntity::interactMob(player, hand);
+}
+
+// ============================================================================
+// _tryToTame 实现
+// ============================================================================
+
+void CatEntity::_tryToTame(Player& player)
+{
+    // 1/3 概率驯服成功
+    math::Random rng = getRandom();
+    if (rng.nextInt(3) == 0) {
+        // 驯服成功
+        setTamed(true);
+        setOwnerId(player.playerId());
+        setSitting(true);
+        clearNavigation();
+
+        // 通知世界触发进度检测
+        m_world->onTameAnimal(player.playerId(), this);
+
+        // 广播驯服成功状态（心形粒子）
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+    } else {
+        // 驯服失败，广播烟雾粒子
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    }
+}
+
+// ============================================================================
+// _getDyeColorFromItem 实现
+// ============================================================================
+
+std::optional<DyeColor> CatEntity::_getDyeColorFromItem(const Item* item)
+{
+    if (item == nullptr) {
+        return std::nullopt;
+    }
+
+    static const std::unordered_map<const Item*, DyeColor> dyeMap = {
+        {Items::INK_SAC, DyeColor::Black},
+        {Items::RED_DYE, DyeColor::Red},
+        {Items::GREEN_DYE, DyeColor::Green},
+        {Items::COCOA_BEANS, DyeColor::Brown},
+        {Items::LAPIS_LAZULI_DYE, DyeColor::Blue},
+        {Items::PURPLE_DYE, DyeColor::Purple},
+        {Items::CYAN_DYE, DyeColor::Cyan},
+        {Items::LIGHT_GRAY_DYE, DyeColor::LightGray},
+        {Items::GRAY_DYE, DyeColor::Gray},
+        {Items::PINK_DYE, DyeColor::Pink},
+        {Items::LIME_DYE, DyeColor::Lime},
+        {Items::YELLOW_DYE, DyeColor::Yellow},
+        {Items::LIGHT_BLUE_DYE, DyeColor::LightBlue},
+        {Items::MAGENTA_DYE, DyeColor::Magenta},
+        {Items::ORANGE_DYE, DyeColor::Orange},
+        {Items::WHITE_DYE, DyeColor::White},
+        {Items::BONE_MEAL, DyeColor::White},
+    };
+
+    auto it = dyeMap.find(item);
+    if (it != dyeMap.end()) {
+        return it->second;
+    }
+    return std::nullopt;
 }
 
 } // namespace mc
