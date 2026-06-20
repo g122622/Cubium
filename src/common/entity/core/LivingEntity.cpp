@@ -442,14 +442,16 @@ bool LivingEntity::hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* enti
     // 因为 attemptDamageItem 会在耐久耗尽时清空 ItemStack（setItem(nullptr)）
     const Item* brokenItem = (stack.getDamage() + amount >= stack.getMaxDamage()) ? stack.getItem() : nullptr;
 
-    bool broken = stack.attemptDamageItem(amount, entity);
+    stack.attemptDamageItem(amount, entity);
 
     // 物品损坏时触发回调：广播装备破损动画、播放音效、更新统计
-    if (broken && brokenItem != nullptr && entity != nullptr) {
+    // 使用 isEmpty() 检查而非 attemptDamageItem 返回值，与 PlayerInventory::damageArmor
+    // 和 MobEntity::burnUndead 中已验证的模式保持一致
+    if (brokenItem != nullptr && stack.isEmpty() && entity != nullptr) {
         entity->onEquippedItemBroken(*brokenItem, slot);
     }
 
-    return broken;
+    return stack.isEmpty();
 }
 
 // ============================================================================
