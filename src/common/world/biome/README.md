@@ -154,12 +154,12 @@
 
 ### 11. getPrecipitationAt 降水类型判定
 
- 根据生物群系的降水设置和高度调整后的温度，返回指定位置的降水类型：
+根据生物群系的降水设置和高度调整后的温度，返回指定位置的降水类型：
 
-- 如果生物群系 ，返回 
-- 如果高度调整后的温度 < 0.15（即  返回 true），返回 
-- 否则返回 
+- 如果生物群系 `hasPrecipitation() == false`，返回 `Precipitation::None`
+- 如果高度调整后的温度 < 0.15（即 `shouldFreeze()` 返回 true），返回 `Precipitation::Snow`
+- 否则返回 `Precipitation::Rain`
 
-**调用场景**： 在降水 tick 中调用此方法确定表面方块位置的降水类型，然后调用  将降水事件传递给方块（如炼药锅填充水、避雷针雷暴激活等）。
+**注意**：`BiomeClimate` 中的 `Precipitation precipitation` 字段已重构为 `bool hasPrecipitation`。`Precipitation` 枚举（`None`/`Rain`/`Snow`）仍作为 `getPrecipitationAt()` 的返回类型使用，但不再作为 `BiomeClimate` 的字段。设置降水属性使用 `setHasPrecipitation(bool)` 而非旧的 `setPrecipitation()`。
 
-参考: 
+**调用场景**：`tickPrecipitation()` 在降水 tick 中调用此方法确定表面方块位置的降水类型，然后调用 `Block::handlePrecipitation()` 将降水事件传递给方块（如炼药锅填充水、避雷针雷暴激活等）。

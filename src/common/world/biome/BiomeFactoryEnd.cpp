@@ -54,8 +54,7 @@ Biome createTheEnd()
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 10518688 (暗紫色)
     biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
@@ -80,8 +79,7 @@ Biome createSmallEndIslands()
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
     biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
@@ -105,8 +103,7 @@ Biome createEndMidlands()
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
     biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
@@ -130,8 +127,7 @@ Biome createEndHighlands()
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
     biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
@@ -155,8 +151,7 @@ Biome createEndBarrens()
     biome.setHumidity(0.5f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::END_STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
 
     biome.setEffects(BiomeEffects::Builder().fogColor(10518688).waterColor(4159204).waterFogColor(329011).build());
 
@@ -184,8 +179,7 @@ Biome createMeadow()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Rain, 0.5f, BiomeClimate::TemperatureModifier::None, 0.8f, 0.8f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 0.5f, BiomeClimate::TemperatureModifier::None, 0.8f, 0.8f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x0E4F2F)
@@ -207,8 +201,7 @@ Biome createGrove()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Snow, -0.2f, BiomeClimate::TemperatureModifier::None, 0.8f, 0.8f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, -0.2f, BiomeClimate::TemperatureModifier::None, 0.8f, 0.8f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
@@ -229,8 +222,7 @@ Biome createSnowySlopes()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SNOW_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Snow, -0.3f, BiomeClimate::TemperatureModifier::None, 0.9f, 0.9f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, -0.3f, BiomeClimate::TemperatureModifier::None, 0.9f, 0.9f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
@@ -251,8 +243,7 @@ Biome createJaggedPeaks()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Snow, -0.7f, BiomeClimate::TemperatureModifier::None, 0.9f, 0.9f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, -0.7f, BiomeClimate::TemperatureModifier::None, 0.9f, 0.9f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
@@ -273,8 +264,7 @@ Biome createFrozenPeaks()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Snow, -0.7f, BiomeClimate::TemperatureModifier::None, 0.9f, 0.9f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, -0.7f, BiomeClimate::TemperatureModifier::None, 0.9f, 0.9f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
@@ -295,8 +285,7 @@ Biome createStonyPeaks()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Rain, 1.0f, BiomeClimate::TemperatureModifier::None, 0.3f, 0.3f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 1.0f, BiomeClimate::TemperatureModifier::None, 0.3f, 0.3f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
@@ -317,8 +306,7 @@ Biome createDripstoneCaves()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Rain, 0.8f, BiomeClimate::TemperatureModifier::None, 0.4f, 0.4f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 0.8f, BiomeClimate::TemperatureModifier::None, 0.4f, 0.4f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
@@ -339,8 +327,7 @@ Biome createLushCaves()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Rain, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
@@ -368,8 +355,7 @@ Biome createDeepDark()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::STONE));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::STONE));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Rain, 0.8f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.4f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 0.8f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.4f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)
@@ -390,8 +376,7 @@ Biome createMangroveSwamp()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Rain, 0.8f, BiomeClimate::TemperatureModifier::None, 0.9f, 0.9f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 0.8f, BiomeClimate::TemperatureModifier::None, 0.9f, 0.9f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0x8DC4B0)
             .waterColor(0x3A7F3E)
@@ -414,8 +399,7 @@ Biome createCherryGrove()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Rain, 0.5f, BiomeClimate::TemperatureModifier::None, 0.8f, 0.8f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 0.5f, BiomeClimate::TemperatureModifier::None, 0.8f, 0.8f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x5D93DF)
@@ -438,8 +422,7 @@ Biome createPaleGarden()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::DIRT));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::Rain, 0.7f, BiomeClimate::TemperatureModifier::None, 0.8f, 0.8f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(true, 0.7f, BiomeClimate::TemperatureModifier::None, 0.8f, 0.8f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0x819EA2)
             .waterColor(0x768765)
@@ -462,8 +445,7 @@ Biome createTheVoid()
     biome.setTemperature(0.5f);
     biome.setHumidity(0.5f);
     // MC: precipitation=none, temperature=0.5, downfall=0.5
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 0.5f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f));
     biome.setEffects(BiomeEffects::Builder()
             .fogColor(0xC0D8FF)
             .waterColor(0x3F76E4)

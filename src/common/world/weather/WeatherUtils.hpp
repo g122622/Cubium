@@ -53,7 +53,8 @@ namespace WeatherUtils {
  * @brief 根据生物群系温度判断降水类型
  *
  * 温度 < 0.15 时降雪，>= 0.15 时降雨。
- * 无降水生物群系需要由调用者结合 BiomeClimate::Precipitation::None 额外过滤。
+ * 无降水生物群系需要由调用者结合 Biome::hasPrecipitation() 额外过滤，
+ * 或直接使用 canRainAt()/canSnowAt() 方法。
  *
  * @param temperature 生物群系温度
  * @return 1=降雨, 2=降雪

@@ -147,8 +147,8 @@ bool Biome::shouldFreeze(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel,
 
 bool Biome::shouldSnow(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel) const
 {
-    // 降水类型检查：生物群系必须支持降水，且在此位置降水类型为雪
-    if (m_climate.precipitation == BiomeClimate::Precipitation::None) {
+    // 降水类型检查：生物群系必须支持降水
+    if (!m_climate.hasPrecipitation) {
         return false;
     }
     if (!coldEnoughToSnow(x, y, z, seaLevel)) {

@@ -137,8 +137,7 @@ TEST_F(BiomeFreezeTest, WarmEnoughToRain_AtExactThreshold)
     // 沼泽温度 0.8 > 0.15，沙漠温度 2.0 > 0.15
     // 直接构造一个温度恰好为 0.15 的生物群系
     Biome biome(Biomes::Plains, "test_threshold");
-    BiomeClimate climate(
-        BiomeClimate::Precipitation::Rain, 0.15f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
+    BiomeClimate climate(true, 0.15f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
     biome.setClimate(climate);
     EXPECT_TRUE(biome.warmEnoughToRain(0, 64, 0, SEA_LEVEL));
 }
@@ -152,8 +151,7 @@ TEST_F(BiomeFreezeTest, WarmEnoughToRain_HighAltitudeCold)
     // 改用构造低温生物群系来测试高度降温效果
     Biome biome(Biomes::Plains, "test_altitude");
     // 设置温度为 0.2（略高于 0.15 阈值），使得高度降温能把它推到 0.15 以下
-    BiomeClimate climate(
-        BiomeClimate::Precipitation::Rain, 0.2f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
+    BiomeClimate climate(true, 0.2f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
     biome.setClimate(climate);
     // 海平面处温暖
     EXPECT_TRUE(biome.warmEnoughToRain(0, 64, 0, SEA_LEVEL));

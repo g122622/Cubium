@@ -1185,7 +1185,7 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
             if (isRaining) {
                 auto precipitation =
                     biome.getPrecipitationAt(surfacePos.x, surfacePos.y, surfacePos.z, world::SEA_LEVEL);
-                if (precipitation != world::biome::BiomeClimate::Precipitation::None) {
+                if (precipitation != BiomeClimate::Precipitation::None) {
                     const BlockState* surfaceState = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
                     if (surfaceState != nullptr) {
                         Block& block = const_cast<Block&>(surfaceState->getBlock());

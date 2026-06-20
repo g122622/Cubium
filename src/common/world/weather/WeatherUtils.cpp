@@ -66,7 +66,7 @@ bool WeatherUtils::canRainAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
-    if (biome->climate().precipitation == mc::BiomeClimate::Precipitation::None) {
+    if (!biome->hasPrecipitation()) {
         return false;
     }
 
@@ -88,7 +88,7 @@ bool WeatherUtils::canSnowAt(const mc::IWorld& world, const mc::BlockPos& pos)
         return false;
     }
 
-    if (biome->climate().precipitation == mc::BiomeClimate::Precipitation::None) {
+    if (!biome->hasPrecipitation()) {
         return false;
     }
 

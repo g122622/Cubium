@@ -303,7 +303,7 @@ u32 stateId = state.stateId();       // 状态ID
 
 ### 13. 天气降水判定
 
-`WeatherUtils::canRainAt()` / `canSnowAt()` 需要结合生物群系的 `BiomeClimate::Precipitation::None` 以及温度阈值一起判断。沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式标记为 `None`。
+`WeatherUtils::canRainAt()` / `canSnowAt()` 需要结合生物群系的 `hasPrecipitation()` 布尔值以及温度阈值一起判断。沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式设置 `hasPrecipitation` 为 `false`（通过 `setHasPrecipitation(false)`）。
 
 ### 14. PaneBlock 连接形状
 

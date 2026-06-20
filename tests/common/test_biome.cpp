@@ -71,10 +71,10 @@ TEST_F(BiomeTest, SettersAndGetters)
     EXPECT_FLOAT_EQ(biome.scale(), 0.3f);
 
     // 设置气候
-    BiomeClimate climate(BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f);
+    BiomeClimate climate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f);
     biome.setClimate(climate);
     EXPECT_FLOAT_EQ(biome.climate().temperature, 2.0f);
-    EXPECT_EQ(biome.climate().precipitation, BiomeClimate::Precipitation::None);
+    EXPECT_FALSE(biome.climate().hasPrecipitation);
 
     // 设置方块 - 使用 VanillaBlocks
     biome.setSurfaceBlock(&VanillaBlocks::SAND->defaultState());
@@ -91,7 +91,7 @@ TEST_F(BiomeTest, SettersAndGetters)
 TEST_F(BiomeTest, ClimateDefaults)
 {
     BiomeClimate climate;
-    EXPECT_EQ(climate.precipitation, BiomeClimate::Precipitation::Rain);
+    EXPECT_TRUE(climate.hasPrecipitation);
     EXPECT_FLOAT_EQ(climate.temperature, 0.5f);
     EXPECT_FLOAT_EQ(climate.downfall, 0.5f);
 }
