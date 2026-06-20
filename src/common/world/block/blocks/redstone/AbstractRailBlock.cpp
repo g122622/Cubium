@@ -27,6 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
@@ -98,10 +99,11 @@ BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
         defaultShape = RailShape::NorthSouth;
     }
 
-    // TODO: MC Java 的 getStateForPlacement 还会检测放置位置是否含水，
-    // 并设置 WATERLOGGED 属性。当前项目中铁轨尚未实现含水逻辑，
-    // 需要在实现 WaterLoggable 接口后补充此部分。
-    return withRailShape(defaultState(), defaultShape);
+    // 检测放置位置是否含水，如果位于水中则设置 WATERLOGGED=true
+    // 参考 MC Java: BaseRailBlock.getStateForPlacement 中检测 FluidState
+    bool waterlogged = waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos());
+
+    return withRailShape(defaultState(), defaultShape).with(BlockStateProperties::WATERLOGGED(), waterlogged);
 }
 
 void AbstractRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
@@ -122,9 +124,14 @@ BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
     MC_UNUSED(facingState);
     MC_UNUSED(facingPos);
+
+    // 含水铁轨需要调度流体 tick，确保水流模拟正确运行
+    // 参考 MC Java: BaseRailBlock.updateShape 中 WATERLOGGED 检查
+    if (state.hasProperty(BlockStateProperties::WATERLOGGED()) && state.get(BlockStateProperties::WATERLOGGED())) {
+        waterloggable::scheduleWaterTick(world, currentPos);
+    }
 
     // 检查是否还能放置
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
@@ -147,12 +154,22 @@ BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
 void AbstractRailBlock::neighborChanged(
     IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
 {
-    MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
+    // 客户端不处理邻居更新
+    // 参考 MC Java: BaseRailBlock.neighborChanged 中的 isClientSide 检查
+    if (world.isClientSide()) {
+        return;
+    }
+
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
+        return;
+    }
+
+    // 确保该位置仍然是同类型的铁轨方块
+    if (!state->is(this)) {
         return;
     }
 
@@ -202,8 +219,11 @@ const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const
 
 BlockState AbstractRailBlock::updateDir(IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock)
 {
-    // TODO: MC Java 的 BaseRailBlock.updateDir 在客户端（isClientSide）直接返回原状态，
-    // 不执行 RailState 计算。当前项目尚未实现客户端/服务端区分，待实现后需补充此检查。
+    // 客户端直接返回原状态，不执行 RailState 计算
+    // 参考 MC Java: BaseRailBlock.updateDir 中的 isClientSide 检查
+    if (world.isClientSide()) {
+        return state;
+    }
     RailState railState(world, pos, *this, state);
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
     return railState.place(hasPower, updateBlock, getRailShape(state));
@@ -257,6 +277,13 @@ bool AbstractRailBlock::shouldBeRemoved(const BlockState& state, IBlockReader& w
         default:
             return false;
     }
+}
+
+const fluid::FluidState* AbstractRailBlock::getFluidState(const BlockState& state) const
+{
+    // 如果铁轨含水，返回水的流体状态；否则返回默认（空）流体状态
+    const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
+    return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
 } // namespace blocks

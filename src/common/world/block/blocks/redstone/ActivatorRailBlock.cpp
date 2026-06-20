@@ -22,6 +22,7 @@
  */
 
 #include "ActivatorRailBlock.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/redstone/RedstonePower.hpp"
 
@@ -31,17 +32,28 @@ namespace blocks {
 ActivatorRailBlock::ActivatorRailBlock(const BlockProperties& properties)
     : AbstractRailBlock(properties, true, false) // isStraight=true: 激活铁轨不支持弯轨, isPowered=false: 不提供红石信号
 {
-    // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this).add(SHAPE()).add(POWERED()).create(
-        [this](const Block& block,
-            std::vector<size_t> values,
-            const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-            const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+    // 创建状态容器（含 SHAPE、POWERED 和 WATERLOGGED 属性）
+    // 参考 MC Java: ActivatorRailBlock.createBlockStateDefinition 注册 SHAPE、POWERED 和 WATERLOGGED
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(SHAPE())
+            .add(POWERED())
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState().with(SHAPE(), RailShape::NorthSouth).with(POWERED(), false));
+    // 参考 MC Java: ActivatorRailBlock 构造函数设置 WATERLOGGED 默认值为 false
+    setDefaultState(defaultState()
+            .with(SHAPE(), RailShape::NorthSouth)
+            .with(POWERED(), false)
+            .with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 void ActivatorRailBlock::fillStateContainer(StateContainer<Block, BlockState>& container)

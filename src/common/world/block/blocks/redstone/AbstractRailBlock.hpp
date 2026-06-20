@@ -27,6 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
 #include "common/world/block/Material.hpp"
 #include <memory>
 
@@ -72,10 +73,11 @@ enum class RailShape : u8 {
  * - 通过 RailState 计算连接形状
  * - 普通铁轨支持三连接道岔（红石切换弯轨方向）
  * - 无碰撞箱（可以穿过）
+ * - 实现 IWaterLoggable 接口，支持含水放置
  *
  * 参考: net.minecraft.block.BaseRailBlock
  */
-class AbstractRailBlock : public Block {
+class AbstractRailBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -234,6 +236,31 @@ public:
      * @return 如果铁轨缺少支撑应被移除则返回true
      */
     [[nodiscard]] static bool shouldBeRemoved(const BlockState& state, IBlockReader& world, const BlockPos& pos);
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 检查方块是否含水
+     *
+     * 读取 WATERLOGGED 属性值。
+     *
+     * @param state 方块状态
+     * @return 是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
+        return state.hasProperty(BlockStateProperties::WATERLOGGED()) && state.get(BlockStateProperties::WATERLOGGED());
+    }
+
+    /**
+     * @brief 获取流体状态
+     *
+     * 如果方块含水，返回水的流体状态；否则返回默认（空）流体状态。
+     *
+     * @param state 方块状态
+     * @return 流体状态指针
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
 protected:
     /// 是否为直线铁轨（不支持弯轨）
