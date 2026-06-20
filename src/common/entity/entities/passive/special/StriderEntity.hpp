@@ -104,6 +104,17 @@ public:
      */
     [[nodiscard]] bool isCold() const { return m_coldTimer > 0; }
 
+    // ========== 寻路权重 ==========
+
+    /**
+     * @brief 获取路径权重
+     *
+     * 炽足兽偏好岩浆位置：在岩浆中返回10.0f，不在岩浆但自身在岩浆中
+     * 返回负无穷（强烈避免离开岩浆），否则返回0.0f。
+     * 对应 MC Strider.getWalkTargetValue。
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
+
     /**
      * @brief 获取寒冷计时器
      */

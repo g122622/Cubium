@@ -100,6 +100,9 @@ public:
 
     /**
      * @brief 检查是否可以生成在该位置
+     *
+     * 基于 getPathWeight 的返回值判断：权重 >= 0 表示该位置适合生成。
+     * 对应 MC PathfinderMob.checkSpawnRules。
      */
     [[nodiscard]] virtual bool canSpawnAt(f32 x, f32 y, f32 z) const;
 

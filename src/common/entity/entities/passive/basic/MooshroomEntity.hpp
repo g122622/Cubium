@@ -138,6 +138,16 @@ public:
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
+    // ========== 寻路权重 ==========
+
+    /**
+     * @brief 获取路径权重
+     *
+     * 哞菇偏好菌丝：站在菌丝上返回10.0f，否则返回亮度相关值。
+     * 对应 MC MushroomCow.getWalkTargetValue。
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
+
     // ========== 雷击 ==========
 
     /**

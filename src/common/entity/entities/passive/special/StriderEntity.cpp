@@ -49,6 +49,7 @@
 #include "../../../utils/ItemDropHelper.hpp"
 #include "../../player/Player.hpp"
 #include <cmath>
+#include <limits>
 
 namespace mc {
 
@@ -516,6 +517,34 @@ bool StriderEntity::canEquip(const ItemStack& item, i32 slot) const
 
     // 检查是否是鞍物品
     return item.getItem() == Items::SADDLE;
+}
+
+// ========== 寻路权重 ==========
+
+f32 StriderEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    // 炽足兽偏好岩浆位置
+    // 对应 MC Strider.getWalkTargetValue:
+    //   return block.fluid.is(LAVA) ? 10.0F
+    //        : isInLava() ? Float.NEGATIVE_INFINITY
+    //        : 0.0F;
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+
+    BlockPos pos(static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(z));
+    const fluid::FluidState* fluid = worldPtr->getFluidState(pos);
+    if (fluid != nullptr && !fluid->isEmpty() && fluid->getFluid().isIn(fluid::FluidTags::LAVA())) {
+        return 10.0f;
+    }
+
+    // 不在岩浆中，但自身当前在岩浆中——强烈避免离开岩浆
+    if (isInLava()) {
+        return -std::numeric_limits<f32>::infinity();
+    }
+
+    return 0.0f;
 }
 
 } // namespace mc

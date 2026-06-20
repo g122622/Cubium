@@ -24,7 +24,10 @@
 #include "WaterMobEntity.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/damage/DamageSource.hpp"
 #include <cmath>
@@ -69,6 +72,23 @@ bool WaterMobEntity::isInWaterOrBubble() const
 
     // 检查是否为气泡柱方块
     return &state->owner() == VanillaBlocks::BUBBLE_COLUMN;
+}
+
+f32 WaterMobEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    // 水生生物偏好水中位置：在水中返回10.0f，否则返回0.0f
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+
+    BlockPos pos(static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(z));
+    const fluid::FluidState* fluid = worldPtr->getFluidState(pos);
+    if (fluid != nullptr && !fluid->isEmpty() && fluid->getFluid().isIn(fluid::FluidTags::WATER())) {
+        return 10.0f;
+    }
+
+    return 0.0f;
 }
 
 void WaterMobEntity::tick()

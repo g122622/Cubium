@@ -118,6 +118,16 @@ public:
      */
     [[nodiscard]] bool isInWater() const override;
 
+    // ========== 寻路权重 ==========
+
+    /**
+     * @brief 获取路径权重
+     *
+     * 守卫者偏好水中位置：在水中返回 10.0f + lightCost，否则返回父类值。
+     * 对应 MC Guardian.getWalkTargetValue。
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
+
     // ========== 阳光燃烧 ==========
 
     /**

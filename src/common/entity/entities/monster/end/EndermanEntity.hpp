@@ -210,6 +210,16 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 
+    // ========== 寻路权重 ==========
+
+    /**
+     * @brief 获取路径权重
+     *
+     * 末影人返回0.0f（无偏好），不依赖光照。
+     * 对应 MC EnderMan.getWalkTargetValue 返回 0.0F。
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
+
     // ========== 水敏感检测 ==========
 
     /**
