@@ -199,17 +199,20 @@ if (!redstone.isUpdating(pos)) {
 
 ### 18. TNT 方块与 tntExplodes 游戏规则
 
-TNT 方块的三个关键方法均受 `tntExplodes` 游戏规则控制：
+TNT 方块的关键方法均受 `tntExplodes` 游戏规则控制：
 
-- **`ignite()`**：当 `tntExplodes=false` 时返回 `false`，不生成 TNT 实体、不播放音效、不移除方块。返回值为 `[[nodiscard]] bool`，调用方需根据返回值决定后续行为（如打火石发射器需要 `_setSuccess(false)`）。
+- **`ignite()`**：当 `tntExplodes=false` 时返回 `false`，不生成 TNT 实体、不播放音效、不移除方块。返回值为 `[[nodiscard]] bool`，调用方需根据返回值决定后续行为（如打火石发射器需要 `_setSuccess(false)`）。带 `LivingEntity*` 参数的重载版本会将点燃者信息传递给 TNT 实体，用于伤害归属判定。
 - **`explode()`**：当 `tntExplodes=false` 时仅移除方块（不创建爆炸效果），与 MC Java 行为一致。
 - **`onBlockExploded()`**：当 `tntExplodes=false` 时不生成连锁 TNT 实体（对应 MC Java 的 `wasExploded()`）。
+- **`onBlockActivated()`**：玩家使用打火石/火焰弹右键点燃 TNT。打火石消耗耐久度，火焰弹消耗一个物品（创造模式不消耗）。`tntExplodes=false` 时显示 action bar 消息 "block.minecraft.tnt.disabled"。
+- **`onProjectileHit()`**：燃烧投掷物命中 TNT 时点燃。从 ProjectileEntity 获取发射者作为点燃者。
+- **`playerWillDestroy()`**：玩家破坏不稳定 TNT（UNSTABLE=true）时自动点燃，创造模式例外。
+- **`canDropFromExplosion()`**：返回 `false`，TNT 被爆炸摧毁时不掉落物品（对应 MC Java 的 `dropFromExplosion` 返回 `false`）。
 
 此外：
 - `_hasFlammableNeighbor()` 检测相邻火焰/熔岩，通过 `onBlockAdded()` 和 `neighborChanged()` 间接调用。
 - `onBlockExploded()` 在 `Explosion::_destroyBlocks()` 中被调用，当其他爆炸摧毁 TNT 方块时生成短引信 TNT 实体（引信公式：`nextInt(fuse/4) + fuse/8`，即 [10, 29] ticks）。
-- **TODO**：`onBlockActivated()`（玩家使用打火石/火焰弹右键点燃）尚未实现，实现时需检查 `tntExplodes` 并在为 false 时显示 action bar 消息 "block.minecraft.tnt.disabled"。
-- **TODO**：`onProjectileHit()`（燃烧箭矢命中点燃）尚未实现。
+- `ignite()` 内部会发出 `PRIME_FUSE` 游戏事件（用于幽匿感测体检测）。
 
 ### 19. TNT 火焰检测
 

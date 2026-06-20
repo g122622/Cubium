@@ -14,17 +14,22 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABILITY FOR ANY ACTION OF CONTRACT, TORT OR
+ * OTHERWISE, ARISING FROM, IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "TNTBlock.hpp"
 
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
@@ -34,6 +39,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/gameevent/GameEvent.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
 
@@ -68,13 +75,11 @@ bool TNTBlock::isUnstable(const BlockState& state)
 
 void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 检查是否有红石信号或火焰
+    // TNT 放置后检查是否有红石信号或火焰，如果有则自动点燃
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
     bool hasFire = _hasFlammableNeighbor(world, pos);
 
     if (hasPower || hasFire) {
-        // ignite() 返回是否成功点燃；此处不处理返回值，
-        // 如果 tntExplodes 规则为 false，方块将保留在原位不点燃
         static_cast<void>(ignite(world, pos, state));
     }
 }
@@ -95,8 +100,6 @@ void TNTBlock::neighborChanged(
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
 
     if (hasPower) {
-        // ignite() 返回是否成功点燃；此处不处理返回值，
-        // 如果 tntExplodes 规则为 false，方块将保留在原位不点燃
         static_cast<void>(ignite(world, pos, *state));
         return;
     }
@@ -108,7 +111,92 @@ void TNTBlock::neighborChanged(
     }
 }
 
+ActionResultType TNTBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(hit);
+
+    ItemStack& heldItem = player.getHeldItem(hand);
+    if (heldItem.isEmpty()) {
+        return ActionResultType::Pass;
+    }
+
+    const Item* item = heldItem.getItem();
+    if (item == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    bool isFlintAndSteel = (item == Items::FLINT_AND_STEEL);
+    bool isFireCharge = (item == Items::FIRE_CHARGE);
+
+    if (!isFlintAndSteel && !isFireCharge) {
+        return ActionResultType::Pass;
+    }
+
+    // 尝试点燃TNT
+    if (ignite(world, pos, state)) {
+        // 点燃成功：ignite() 已经移除TNT方块并生成实体
+
+        // 消耗物品
+        if (isFlintAndSteel) {
+            // 打火石：消耗耐久度
+            LivingEntity::hurtAndBreak(heldItem, 1, &player, LivingEntity::handToEquipmentSlot(hand));
+        } else {
+            // 火焰弹：消耗一个物品（创造模式不消耗）
+            if (!player.isCreative()) {
+                heldItem.shrink(1);
+            }
+        }
+    } else if (!world.isClientSide() && !world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+        // tntExplodes 游戏规则为 false，显示 action bar 消息
+        player.sendStatusMessage("block.minecraft.tnt.disabled", true);
+        return ActionResultType::Fail;
+    }
+
+    return ActionResultType::Success;
+}
+
+void TNTBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+{
+    // 对应 MC Java 的 TntBlock.playerWillDestroy()
+    // 当玩家破坏不稳定的TNT（UNSTABLE=true）且不在创造模式下时，自动点燃TNT
+    if (!world.isClientSide() && !player.isCreative() && isUnstable(state)) {
+        static_cast<void>(ignite(world, pos, state));
+    }
+}
+
+void TNTBlock::onProjectileHit(
+    IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile)
+{
+    MC_UNUSED(hitResult);
+
+    // 对应 MC Java 的 TntBlock.onProjectileHit()
+    // 当燃烧的投掷物命中TNT时，点燃TNT
+    if (!world.isClientSide() && projectile.isOnFire()) {
+        // 获取投掷物的发射者作为点燃者
+        LivingEntity* igniter = nullptr;
+        // 尝试从 ProjectileEntity 获取发射者
+        auto* projEntity = dynamic_cast<entity::ProjectileEntity*>(&projectile);
+        if (projEntity != nullptr) {
+            Entity* shooter = projEntity->getShooter();
+            igniter = dynamic_cast<LivingEntity*>(shooter);
+        }
+
+        // ignite() 会移除TNT方块并生成实体
+        static_cast<void>(ignite(world, hitResult.blockPos(), state, igniter));
+    }
+}
+
 bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    return ignite(world, pos, state, nullptr);
+}
+
+bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& state, LivingEntity* igniter)
 {
     MC_UNUSED(state);
 
@@ -118,7 +206,6 @@ bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
     }
 
     // 检查 tntExplodes 游戏规则，如果为 false 则不点燃
-    // 对应 MC Java 的 TntBlock.prime() 中的 GameRules.TNT_EXPLODES 检查
     if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
         return false;
     }
@@ -152,6 +239,11 @@ bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
                 f32 vz = -std::cos(angle) * 0.02f;
                 tnt->setVelocity(Vector3(vx, vy, vz));
 
+                // 设置点燃者
+                if (igniter != nullptr) {
+                    tnt->setOwner(igniter);
+                }
+
                 // 点燃TNT（设置引信时间）
                 tnt->ignite();
             }
@@ -167,6 +259,11 @@ bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
         1.0f,
         1.0f);
+
+    // 发出 PRIME_FUSE 游戏事件
+    world.gameEvent(gameevent::GameEvents::PRIME_FUSE,
+        pos,
+        gameevent::GameEvent::Context::of(static_cast<const Entity*>(igniter), &state));
 
     return true;
 }
@@ -197,7 +294,6 @@ void TNTBlock::onBlockExploded(IWorld& world, const BlockPos& pos, const BlockSt
 {
     MC_UNUSED(state);
 
-    // 对应 MC Java 的 TntBlock.wasExploded()
     // 当 TNT 方块被其他爆炸摧毁时，如果 tntExplodes 游戏规则为 true，
     // 生成一个随机短引信的点燃 TNT 实体（连锁爆炸）
     if (!world.isClientSide() && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {

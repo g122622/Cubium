@@ -25,6 +25,7 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include <memory>
@@ -53,16 +54,18 @@ struct RayTraceResult {
     RayTraceResultType type = RayTraceResultType::Miss;
     Vector3 hitPosition;
     BlockPos blockPos;
+    Direction face = Direction::None;
     mc::Entity* hitEntity = nullptr;
 
     static RayTraceResult miss() { return RayTraceResult{}; }
 
-    static RayTraceResult block(const Vector3& pos, const BlockPos& blockPos)
+    static RayTraceResult block(const Vector3& pos, const BlockPos& blockPos, Direction hitFace = Direction::None)
     {
         RayTraceResult result;
         result.type = RayTraceResultType::Block;
         result.hitPosition = pos;
         result.blockPos = blockPos;
+        result.face = hitFace;
         return result;
     }
 

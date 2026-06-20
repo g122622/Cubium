@@ -26,6 +26,10 @@
 #include "world/block/Block.hpp"
 
 namespace mc {
+
+// 前向声明
+class LivingEntity;
+
 namespace blocks {
 
 /**
@@ -36,16 +40,15 @@ namespace blocks {
  * ## 特性
  * - 红石触发点燃
  * - 火焰/熔岩点燃
+ * - 玩家使用打火石/火焰弹右键点燃
+ * - 燃烧投掷物命中点燃
  * - 爆炸连锁反应（通过 onBlockExploded）
  * - 爆炸产生伤害和破坏
  * - 受 tntExplodes 游戏规则控制
+ * - 玩家破坏不稳定的TNT时自动点燃
+ * - 爆炸时不会掉落物品
  *
- * ## TODO
- * - 实现 onBlockActivated()（玩家使用打火石/火焰弹右键 TNT 点燃），
- *   当 tntExplodes 为 false 时需显示 action bar 消息 "block.minecraft.tnt.disabled"
- * - 实现 onProjectileHit()（燃烧箭矢命中 TNT 时点燃）
- *
- * 参考: net.minecraft.block.TNTBlock
+ * 参考: net.minecraft.block.TntBlock
  */
 class TNTBlock : public Block {
 public:
@@ -62,6 +65,38 @@ public:
 
     void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
 
+    /**
+     * @brief 玩家使用物品右键TNT时的交互
+     *
+     * 当玩家手持打火石或火焰弹右键TNT时，点燃TNT。
+     * 如果 tntExplodes 游戏规则为 false，则显示 action bar 消息。
+     * 对应 MC Java 的 TntBlock.useItemOn()。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    /**
+     * @brief 玩家破坏方块前的回调
+     *
+     * 如果TNT处于不稳定状态（UNSTABLE=true）且玩家不在创造模式下，
+     * 则自动点燃TNT。
+     * 对应 MC Java 的 TntBlock.playerWillDestroy()。
+     */
+    void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player) override;
+
+    /**
+     * @brief 投掷物命中TNT时的回调
+     *
+     * 当燃烧的投掷物（如箭矢、火球等）命中TNT时，点燃TNT。
+     * 对应 MC Java 的 TntBlock.onProjectileHit()。
+     */
+    void onProjectileHit(
+        IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile) override;
+
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
@@ -72,6 +107,19 @@ public:
     {
         MC_UNUSED(state);
         return Material::PushReaction::Normal;
+    }
+
+    /**
+     * @brief TNT方块是否可以在爆炸中掉落物品
+     *
+     * TNT方块在爆炸中不应掉落物品（对应MC Java的TntBlock.dropFromExplosion返回false）。
+     * 当TNT被其他爆炸（如苦力怕）摧毁时，不应产生TNT物品掉落，
+     * 因为 onBlockExploded 已经生成了点燃的TNT实体。
+     */
+    [[nodiscard]] bool canDropFromExplosion(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return false;
     }
 
     /**
@@ -107,6 +155,20 @@ public:
      * @return true 如果成功点燃（生成点燃的TNT实体），false 如果游戏规则禁止
      */
     [[nodiscard]] bool ignite(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 点燃TNT（带点燃者信息）
+     *
+     * 如果 tntExplodes 游戏规则为 false，则不会点燃。
+     * 点燃者信息会传递给生成的TNT实体，用于伤害归属判定。
+     *
+     * @param world 世界引用
+     * @param pos TNT位置
+     * @param state 方块状态
+     * @param igniter 点燃者（可能为nullptr）
+     * @return true 如果成功点燃（生成点燃的TNT实体），false 如果游戏规则禁止
+     */
+    [[nodiscard]] bool ignite(IWorld& world, const BlockPos& pos, const BlockState& state, LivingEntity* igniter);
 
     /**
      * @brief 爆炸TNT
