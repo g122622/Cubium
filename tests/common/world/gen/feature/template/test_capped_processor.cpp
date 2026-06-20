@@ -398,3 +398,25 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_SizeMismatch_ReturnsUnmodified)
         EXPECT_EQ(block.blockStateId, 1u);
     }
 }
+
+TEST_F(CappedProcessorTest, FinalizeProcessing_NullDelegate_NoCrash)
+{
+    // 当 delegate 为 nullptr 时，finalizeProcessing 不应崩溃，直接返回未修改的列表
+    CappedStructureProcessor processor(nullptr, 5);
+
+    PlacementSettings settings;
+    std::vector<BlockInfo> originalBlocks;
+    std::vector<ProcessedBlockInfo> processedBlocks;
+
+    for (int i = 0; i < 10; ++i) {
+        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
+        processedBlocks.emplace_back(BlockPos(i, 0, 0), 1);
+    }
+
+    auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
+
+    ASSERT_EQ(result.size(), 10u);
+    for (const auto& block : result) {
+        EXPECT_EQ(block.blockStateId, 1u);
+    }
+}

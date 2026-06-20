@@ -57,8 +57,8 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
     const std::vector<BlockInfo>& originalBlocks,
     std::vector<ProcessedBlockInfo> processedBlocks)
 {
-    // 快速退出：limit 为 0 或列表为空
-    if (m_limit <= 0 || processedBlocks.empty()) {
+    // 快速退出：delegate 为空、limit 为 0 或列表为空
+    if (!m_delegate || m_limit <= 0 || processedBlocks.empty()) {
         return processedBlocks;
     }
 
