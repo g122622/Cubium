@@ -49,7 +49,7 @@ JigsawPiece ──包含──> JigsawJoint ──使用──> JigsawOrientatio
 - **ProcessorListRegistry**：按 ResourceLocation 注册和查找 StructureProcessorList
 - **PoolAliasBinding**：池别名绑定，实现结构生成时的池随机化（如试炼密室刷怪笼类型）
 - **TemplatePoolLoader**：从数据包 JSON 加载模板池，支持所有原版元素类型
-- **ProcessorListLoader**：从数据包 JSON 加载处理器列表，支持所有原版处理器类型
+- **ProcessorListLoader**：从数据包 JSON 加载处理器列表，支持所有原版处理器类型。capped 处理器的 limit 字段通过 IntProviderParser 解析，支持完整 IntProvider 格式（constant/uniform/biased_to_bottom/clamped/clamped_normal/weighted_list）
 
 ## 拼图块类型
 

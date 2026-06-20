@@ -290,22 +290,21 @@ Result<std::unique_ptr<IntProvider>> parse(const nlohmann::json& json, i32 minIn
     }
 
     // 校验范围约束
-    if (minInclusive >= 0 && result.value()->getMinValue() < minInclusive) {
+    auto provider = result.value();
+    if (minInclusive >= 0 && provider->getMinValue() < minInclusive) {
         return Error(ErrorCode::InvalidData,
             fmt::format("IntProvider {} minValue {} is less than required minimum {}",
                 type,
-                result.value()->getMinValue(),
+                provider->getMinValue(),
                 minInclusive));
     }
-    if (maxInclusive >= 0 && result.value()->getMaxValue() > maxInclusive) {
+    if (maxInclusive >= 0 && provider->getMaxValue() > maxInclusive) {
         return Error(ErrorCode::InvalidData,
-            fmt::format("IntProvider {} maxValue {} exceeds required maximum {}",
-                type,
-                result.value()->getMaxValue(),
-                maxInclusive));
+            fmt::format(
+                "IntProvider {} maxValue {} exceeds required maximum {}", type, provider->getMaxValue(), maxInclusive));
     }
 
-    return result;
+    return Result<std::unique_ptr<IntProvider>>(std::move(provider));
 }
 
 } // namespace IntProviderParser
