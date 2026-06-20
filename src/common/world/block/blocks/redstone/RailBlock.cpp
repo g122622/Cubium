@@ -13,21 +13,23 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN AN EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
 #include "RailBlock.hpp"
+#include "RailState.hpp"
+#include "common/world/block/Block.hpp"
 
 namespace mc {
 namespace blocks {
 
 RailBlock::RailBlock(const BlockProperties& properties)
-    : AbstractRailBlock(properties, false)
+    : AbstractRailBlock(properties, false) // isStraight = false: 普通铁轨支持弯轨
 {
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(SHAPE()).create(
@@ -46,6 +48,20 @@ void RailBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 {
     // 状态容器在构造函数中创建，此方法留空
     MC_UNUSED(container);
+}
+
+void RailBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock)
+{
+    // 参考 MC Java: RailBlock.updateState
+    // 普通铁轨的特殊行为：当邻居信号源变化且铁轨有三连接时，重新计算方向
+    // 这是红石道岔（T型道岔）切换的核心逻辑
+    if (neighborBlock.canProvidePower(neighborBlock.defaultState())) {
+        RailState railState(world, pos, *this, state);
+        if (railState.countPotentialConnections() == 3) {
+            // 三连接 + 信号源变化 = 道岔切换
+            (void)updateDir(world, pos, state, false);
+        }
+    }
 }
 
 RailShape RailBlock::getRailShape(const BlockState& state) const

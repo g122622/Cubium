@@ -95,7 +95,7 @@ public:
 
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
-    [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override
     {

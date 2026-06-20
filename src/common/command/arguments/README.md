@@ -9,11 +9,13 @@ src/common/command/arguments/
 ├── ArgumentType.hpp            # 参数类型基类 + 基础参数类型（字符串、整数、浮点、布尔、枚举）
 ├── BlockStateArgument.hpp      # 方块状态参数类型（支持属性解析）
 ├── EntityArgument.hpp/.cpp     # 实体选择器参数类型（@p, @a, @e, @r, @s）
-├── GameModeArgument.hpp        # 游戏模式、资源位置、坐标参数类型
+├── FunctionArgument.hpp/.cpp   # 函数参数类型（支持 # 标签前缀和函数名解析）
+├── GameModeArgument.hpp        # 游戏模式、资源位置、坐标参数类型（含 Vec2ArgumentType、Vec3ArgumentType、RotationArgumentType 等）
 ├── ItemArgument.hpp            # 物品参数类型 + ItemInput 包装器
 ├── ItemSlotArgument.hpp        # 物品槽位参数类型 + ItemSlot 索引类
 ├── NbtPath.hpp/.cpp            # NBT 路径类和节点实现
-└── NbtPathArgumentType.hpp/.cpp # NBT 路径/复合标签/标签参数类型
+├── NbtPathArgumentType.hpp/.cpp # NBT 路径/复合标签/标签参数类型
+└── TimeArgument.hpp            # 时间参数类型（支持 s/d/t 后缀，解析为 tick 数）
 ```
 
 ## 内部模块关系
@@ -21,11 +23,18 @@ src/common/command/arguments/
 ```
 ArgumentType.hpp (基类模板)
     ├── EntityArgument.hpp      → 继承 ArgumentType<EntitySelector>
-    ├── GameModeArgument.hpp    → 继承 ArgumentType<T> (GameMode/ResourceLocation/Vector3i/Vector3d/Vector2f)
+    ├── FunctionArgument.hpp    → 继承 ArgumentType<FunctionArgumentResult>（# 标签前缀 + 函数名解析）
+    ├── GameModeArgument.hpp    → 继承 ArgumentType<T> (GameMode/ResourceLocation/Vector3i/Vector3d/Vector2d/Vector2f)
     ├── BlockStateArgument.hpp  → 继承 ArgumentType<BlockStateInput>
     ├── ItemArgument.hpp        → 继承 ArgumentType<ItemInput>
     ├── ItemSlotArgument.hpp    → 继承 ArgumentType<ItemSlot>（槽位名称→索引映射）
-    └── NbtPathArgumentType.hpp → 继承 ArgumentType<NbtPath>
+    ├── NbtPathArgumentType.hpp → 继承 ArgumentType<NbtPath>
+    └── TimeArgument.hpp        → 继承 ArgumentType<i32>（时间字符串→tick 数，支持 s/d/t 后缀）
+
+FunctionArgument.hpp
+    └── FunctionArgumentResult  → 解析结果数据类（ResourceLocation + isTag 标志，延迟解析）
+    └── FunctionArgumentType    → 解析器（# 前缀检测 → 标签引用，否则 → 函数引用）
+    └── FunctionSuggestionProvider (server/command/support/) → Tab 补全建议
 
 NbtPath.hpp
     └── NbtPathArgumentType.hpp → 使用 NbtPath 作为返回类型
@@ -35,6 +44,7 @@ ItemSlotArgument.hpp
 
 EntityArgument.hpp
     └── EntityArgument.cpp      → 实现复杂的选择器解析逻辑
+    └── EntitySelector           → 选择器数据模型（含 createAabb/hasVolume 等体积过滤方法）
 ```
 
 ## 上下游外部依赖关系
@@ -115,3 +125,11 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 ### 9. ItemSlot 槽位编号重叠
 
 `ItemSlotArgument` 中 `player.cursor`(499) 与 `horse.chest`(499) 编号重叠，`player.crafting.0~3`(500-503) 与 `horse.0~3`(500-503) 编号重叠。原版中通过不同命令上下文区分，当前实现中 `player.crafting` 优先匹配，需在后续根据上下文细化。
+
+### 10. EntitySelector 体积过滤（createAabb）
+
+`EntitySelector::createAabb()` 按 MC 原版 `EntitySelectorParser.createAabb` 逻辑从 `dx/dy/dz` 构造选择 AABB：负值 delta 赋给 min 侧，正值赋给 max 侧，max 侧额外加 1.0。当无 `dx/dy/dz` 但有 `distance` 最大值时，从最大距离构造立方体 AABB。返回 `std::optional<AxisAlignedBB>`，无体积约束时为 `std::nullopt`。EntityResolver 中的体积过滤使用 `AABB.intersects(entity.boundingBox())` 进行碰撞箱相交检查，而非位置点包含检查——两者在实体体积较大或跨越选择边界时行为不同。
+
+### 11. TimeArgumentType 单位映射
+
+`TimeArgumentType` 解析数字加可选后缀并转换为 tick 数。单位映射表：`"d"` → 24000（天）、`"s"` → 20（秒）、`"t"` → 1（tick）、`""`（无后缀）→ 1（tick）。与 MC Java 版 `TimeArgument` 完全对齐。支持浮点数输入（如 `"1.5d"` → 36000 tick），最终通过 `std::round` 四舍五入为整数。无效后缀抛出 `CommandErrorType::Unknown` 异常；计算结果低于 minimum 抛出 `CommandErrorType::IntegerTooLow` 异常。

@@ -24,6 +24,7 @@
 #include "BlastFurnaceBlock.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../entity/inventory/ContainerTypes.hpp"
+#include "../../../stats/Stats.hpp"
 #include "../../IWorld.hpp"
 #include "../../blockentity/processing/BlastFurnaceEntity.hpp"
 
@@ -41,7 +42,11 @@ std::unique_ptr<BlockEntity> BlastFurnaceBlock::createBlockEntity(const BlockPos
 
 bool BlastFurnaceBlock::interactWith(IWorld& world, const BlockPos& pos, Player& player)
 {
-    return world.openContainer(ContainerType::Furnace, pos, player);
+    if (world.openContainer(ContainerType::Furnace, pos, player)) {
+        player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_BLAST_FURNACE), 1);
+        return true;
+    }
+    return false;
 }
 
 } // namespace blocks

@@ -73,7 +73,7 @@ TEST_F(SpreadPlayersCommandTest, SpreadPlayersCommandRequiresPermissionLevel2)
     ServerCommandSource lowPermSource(&m_server, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 0, "test");
     bool permissionDenied = false;
     try {
-        const auto result = m_server.commandRegistry().execute("spreadplayers 0 0 0 1 10 false @a", lowPermSource);
+        const auto result = m_server.commandRegistry().execute("spreadplayers 0 0 1 10 false @a", lowPermSource);
         permissionDenied = (result.value() == 0);
     }
     catch (...) {
@@ -192,6 +192,43 @@ TEST_F(SpreadPlayersCommandTest, UnderSubcommandMaxHeightAcceptsNegativeValues)
     // 当前 BaseTestServer 的 dimensionManager() 未实现，无法提供 world。
     // maxHeight 验证逻辑的测试在 SpreadAlgorithmTest 中通过算法层面覆盖。
     EXPECT_TRUE(true) << "IntegerArgumentType 默认接受负值，maxHeight 验证在执行时进行";
+}
+
+// ============================================================================
+// Vec2ArgumentType 集成测试
+// ============================================================================
+
+TEST_F(SpreadPlayersCommandTest, CenterArgumentUsesVec2Type)
+{
+    // 验证 spreadplayers 命令的 center 参数使用了 vec2 类型（而非 vec3）
+    const auto& registry = m_server.commandRegistry();
+    const auto snapshot = registry.getCommandTreeSnapshot();
+
+    // 查找 center 参数节点，确认其类型为 vec2
+    bool foundVec2Center = false;
+    for (const auto& node : snapshot.nodes) {
+        if (node.name == "center" && node.typeName == "vec2") {
+            foundVec2Center = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundVec2Center) << "spreadplayers 的 center 参数应使用 vec2 类型";
+}
+
+TEST_F(SpreadPlayersCommandTest, CenterArgumentParsesTwoCoordinates)
+{
+    // 验证 spreadplayers 命令可以解析 2 个坐标参数（Vec2ArgumentType）
+    // "spreadplayers 10 20 5 100 false @a" 应该能解析成功
+    // （执行会因为无玩家和世界而失败，但不应在解析阶段崩溃）
+    ServerCommandSource permSource(&m_server, nullptr, 2, Vector3d(0, 0, 0), Vector2f(0, 0), 0, 0, "admin");
+    EXPECT_NO_THROW({
+        try {
+            m_server.commandRegistry().execute("spreadplayers 10 20 5 100 false @a", permSource);
+        }
+        catch (const mc::command::CommandException&) {
+            // 命令执行期间可能因无玩家匹配而抛出异常，这是正常的
+        }
+    });
 }
 
 } // namespace command

@@ -23,11 +23,13 @@
 
 #include <gtest/gtest.h>
 
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/combat/DifficultyHelper.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/block/FireInfoRegistry.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/block/blocks/nether/SoulFireBlock.hpp"
@@ -109,7 +111,7 @@ public:
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }
 
     [[nodiscard]] bool doFireTick() const override { return m_doFireTick; }
@@ -847,23 +849,163 @@ TEST_F(FireInfoRegistryTest, AgriculturalAndVegetationBlockFireInfo)
     EXPECT_EQ(sweetBerryState.getFlammability(), 100);
     EXPECT_EQ(sweetBerryState.getFireSpreadSpeed(), 60);
 
-    // 可可豆：ignite=60, burn=0（IGNITE_INSTANT=60, 可被点燃但不蔓延）
-    const BlockState& cocoaState = VanillaBlocks::COCOA->defaultState();
-    EXPECT_EQ(cocoaState.getFlammability(), 0);
-    EXPECT_EQ(cocoaState.getFireSpreadSpeed(), 60);
+    // 注意: 可可豆（COCOA）、小麦（WHEAT）、南瓜茎（PUMPKIN_STEM）、甘蔗（SUGAR_CANE）
+    //       在 MC 原版 FireBlock.bootStrap() 中未注册为可燃方块，因此此处不测试其火焰参数。
 
-    // 小麦：ignite=60, burn=0（IGNITE_INSTANT=60）
-    const BlockState& wheatState = VanillaBlocks::WHEAT->defaultState();
-    EXPECT_EQ(wheatState.getFlammability(), 0);
-    EXPECT_EQ(wheatState.getFireSpreadSpeed(), 60);
+    // 萤火虫灌木：ignite=60, burn=100
+    const BlockState& fireflyBushState = VanillaBlocks::FIREFLY_BUSH->defaultState();
+    EXPECT_EQ(fireflyBushState.getFlammability(), 100);
+    EXPECT_EQ(fireflyBushState.getFireSpreadSpeed(), 60);
+}
 
-    // 南瓜茎：ignite=60, burn=0
-    const BlockState& pumpkinStemState = VanillaBlocks::PUMPKIN_STEM->defaultState();
-    EXPECT_EQ(pumpkinStemState.getFlammability(), 0);
-    EXPECT_EQ(pumpkinStemState.getFireSpreadSpeed(), 60);
+// 验证所有主世界木材栅栏的燃烧参数 (ignite=5, burn=20)
+TEST_F(FireInfoRegistryTest, Fence_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    // 橡木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::OAK_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::OAK_FENCE->blockId()), 20);
+    // 云杉木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::SPRUCE_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::SPRUCE_FENCE->blockId()), 20);
+    // 白桦木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::BIRCH_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::BIRCH_FENCE->blockId()), 20);
+    // 丛林木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::JUNGLE_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::JUNGLE_FENCE->blockId()), 20);
+    // 金合欢木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::ACACIA_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::ACACIA_FENCE->blockId()), 20);
+    // 深色橡木栅栏
+    EXPECT_EQ(registry.getEncouragement(BuildingVariantBlocks::DARK_OAK_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BuildingVariantBlocks::DARK_OAK_FENCE->blockId()), 20);
+    // 樱花木栅栏
+    EXPECT_EQ(registry.getEncouragement(CherryBlocks::CHERRY_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(CherryBlocks::CHERRY_FENCE->blockId()), 20);
+    // 红树木栅栏
+    EXPECT_EQ(registry.getEncouragement(MangroveBlocks::MANGROVE_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(MangroveBlocks::MANGROVE_FENCE->blockId()), 20);
+    // 苍白橡木栅栏
+    EXPECT_EQ(registry.getEncouragement(PaleGardenBlocks::PALE_OAK_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(PaleGardenBlocks::PALE_OAK_FENCE->blockId()), 20);
+    // 竹栅栏
+    EXPECT_EQ(registry.getEncouragement(BambooBlocks::BAMBOO_FENCE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(BambooBlocks::BAMBOO_FENCE->blockId()), 20);
+}
 
-    // 甘蔗：ignite=60, burn=0
-    const BlockState& sugarCaneState = VanillaBlocks::SUGAR_CANE->defaultState();
-    EXPECT_EQ(sugarCaneState.getFlammability(), 0);
-    EXPECT_EQ(sugarCaneState.getFireSpreadSpeed(), 60);
+// 验证蜂箱和蜂巢的燃烧参数
+TEST_F(FireInfoRegistryTest, Beehive_BeeNest_FireInfo)
+{
+    auto& registry = FireInfoRegistry::instance();
+    // 蜂箱 (ignite=5, burn=20) — 木质方块，较难点燃
+    EXPECT_EQ(registry.getEncouragement(NaturalBlocks::BEEHIVE->blockId()), 5);
+    EXPECT_EQ(registry.getFlammability(NaturalBlocks::BEEHIVE->blockId()), 20);
+    // 蜂巢 (ignite=30, burn=20) — 自然方块，更易点燃
+    EXPECT_EQ(registry.getEncouragement(NaturalBlocks::BEE_NEST->blockId()), 30);
+    EXPECT_EQ(registry.getFlammability(NaturalBlocks::BEE_NEST->blockId()), 20);
+}
+
+// ============================================================================
+// 集成测试：方块标签包含性验证
+// ============================================================================
+
+class BlockTagIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+};
+
+// 验证 WOODEN_FENCES 标签包含所有木质栅栏
+TEST_F(BlockTagIntegrationTest, WoodenFences_ContainsAllWoodenFences)
+{
+    auto& tag = BlockTags::WOODEN_FENCES();
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::OAK_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::SPRUCE_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BIRCH_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::JUNGLE_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::ACACIA_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::DARK_OAK_FENCE));
+}
+
+// 验证 FENCES 标签包含所有木质栅栏
+TEST_F(BlockTagIntegrationTest, Fences_ContainsAllWoodenFences)
+{
+    auto& tag = BlockTags::FENCES();
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::OAK_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::SPRUCE_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BIRCH_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::JUNGLE_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::ACACIA_FENCE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::DARK_OAK_FENCE));
+    // 注：nether_brick_fence 也应在 FENCES 标签中，但尚未注册方块指针
+}
+
+// 验证 FENCE_GATES 标签包含所有栅栏门
+TEST_F(BlockTagIntegrationTest, FenceGates_ContainsAllFenceGates)
+{
+    auto& tag = BlockTags::FENCE_GATES();
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::OAK_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::SPRUCE_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BIRCH_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::JUNGLE_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::ACACIA_FENCE_GATE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::DARK_OAK_FENCE_GATE));
+}
+
+// 验证 BEEHIVES 标签包含蜂箱和蜂巢
+TEST_F(BlockTagIntegrationTest, Beehives_ContainsBeehiveAndBeeNest)
+{
+    auto& tag = BlockTags::BEEHIVES();
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BEEHIVE));
+    EXPECT_TRUE(tag.contains(*VanillaBlocks::BEE_NEST));
+}
+
+// ============================================================================
+// 集成测试：新方块 BlockState 创建验证
+// ============================================================================
+
+class NewBlockIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+};
+
+// 验证新注册栅栏方块能够创建有效的 BlockState
+TEST_F(NewBlockIntegrationTest, FenceBlocks_CreateValidBlockStates)
+{
+    // 验证新注册的5种栅栏方块可以创建默认 BlockState
+    EXPECT_NE(VanillaBlocks::SPRUCE_FENCE, nullptr);
+    EXPECT_NE(VanillaBlocks::BIRCH_FENCE, nullptr);
+    EXPECT_NE(VanillaBlocks::JUNGLE_FENCE, nullptr);
+    EXPECT_NE(VanillaBlocks::ACACIA_FENCE, nullptr);
+    EXPECT_NE(VanillaBlocks::DARK_OAK_FENCE, nullptr);
+    // 验证方块 ID 有效
+    EXPECT_GT(VanillaBlocks::SPRUCE_FENCE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::BIRCH_FENCE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::JUNGLE_FENCE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::ACACIA_FENCE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::DARK_OAK_FENCE->blockId(), 0u);
+}
+
+// 验证蜂箱和蜂巢方块能够创建有效的 BlockState
+TEST_F(NewBlockIntegrationTest, BeehiveBlocks_CreateValidBlockStates)
+{
+    EXPECT_NE(VanillaBlocks::BEEHIVE, nullptr);
+    EXPECT_NE(VanillaBlocks::BEE_NEST, nullptr);
+    EXPECT_GT(VanillaBlocks::BEEHIVE->blockId(), 0u);
+    EXPECT_GT(VanillaBlocks::BEE_NEST->blockId(), 0u);
+    // 验证蜂箱和蜂巢是不同的方块
+    EXPECT_NE(VanillaBlocks::BEEHIVE->blockId(), VanillaBlocks::BEE_NEST->blockId());
+    // 验证蜂箱和蜂巢具有方块实体
+    EXPECT_TRUE(VanillaBlocks::BEEHIVE->hasBlockEntity());
+    EXPECT_TRUE(VanillaBlocks::BEE_NEST->hasBlockEntity());
+}
+
+// 验证蜂箱和蜂巢具有蜂蜜等级属性
+TEST_F(NewBlockIntegrationTest, BeehiveBlocks_HaveHoneyLevelProperty)
+{
+    const auto& beehiveState = VanillaBlocks::BEEHIVE->defaultState();
+    const auto& beeNestState = VanillaBlocks::BEE_NEST->defaultState();
+    // 默认蜂蜜等级应为0
+    EXPECT_EQ(beehiveState.get(BlockStateProperties::HONEY_LEVEL_0_5()), 0);
+    EXPECT_EQ(beeNestState.get(BlockStateProperties::HONEY_LEVEL_0_5()), 0);
 }

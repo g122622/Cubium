@@ -13,6 +13,7 @@ feature/
 ├── FeatureIds.hpp                    # 特征ID常量定义
 ├── FeatureSpread.hpp/cpp             # 特征扩散配置
 ├── LakeFeature.hpp/cpp               # 湖泊特征（水湖/熔岩湖）
+├── SnowAndFreezeFeature.hpp/cpp      # 雪和冰冻结特征（TopLayerModification 阶段）
 ├── SimpleBlockFeature.hpp/cpp        # 简单方块放置特征
 ├── BlockColumnFeature.hpp/cpp        # 方块柱特征
 ├── RandomBooleanSelectorFeature.hpp/cpp  # 随机布尔选择器特征
@@ -165,3 +166,26 @@ NBT 模板文件路径格式：`data/<namespace>/structure/<path>.nbt`
 ### 8. 区块尺寸常量使用
 
 【重要】必须使用 `mc::world::CHUNK_WIDTH`、`CHUNK_HEIGHT`、`CHUNK_SECTION_HEIGHT` 等常量，禁止硬编码 16 等数字。
+
+### 9. 末地折跃门结构
+
+`EndGatewayFeature._generateGateway()` 和 `EndGatewayEntity::createGatewayStructure()` 生成相同的 3x5x3 十字框架结构，与 MC Java 的 `EndGatewayFeature.place()` 一致：
+
+```
+顶/底盖层（dy = ±2）：仅中心列为基岩
+  . . .
+  . B .
+  . . .
+
+十字臂层（dy = ±1）：十字形基岩框架
+  . B .
+  B B B
+  . B .
+
+中心层（dy = 0）：中心为折跃门方块，其余为空气
+  . . .
+  . G .
+  . . .
+```
+
+结构以 pos 为中心，范围 `pos + (-1, -2, -1)` 到 `pos + (1, 2, 1)`。修改结构时需同步更新两处代码。

@@ -22,6 +22,7 @@
  */
 
 #include "EntityTextureLoader.hpp"
+#include "ResourceManager.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
@@ -460,10 +461,15 @@ std::vector<ResourceLocation> EntityTextureLoader::getTexturePaths(const std::st
     }
 
     // 默认约定: textures/entity/<name>/<name>.png (MC 1.13+ 格式)
-    paths.emplace_back("minecraft:textures/entity/" + name + "/" + name + ".png");
+    ResourceLocation modernLoc("minecraft:textures/entity/" + name + "/" + name + ".png");
+    paths.push_back(modernLoc);
 
-    // 备用: textures/entity/<name>.png (MC 1.12 格式)
-    paths.emplace_back("minecraft:textures/entity/" + name + ".png");
+    // 使用 getAltTexturePath() 自动计算 MC 1.12 扁平格式变体
+    // 例如：textures/entity/pig/pig -> textures/entity/pig
+    std::string altPath = ResourceManager::getAltTexturePath(modernLoc.path());
+    if (!altPath.empty()) {
+        paths.emplace_back("minecraft", std::move(altPath));
+    }
 
     return paths;
 }

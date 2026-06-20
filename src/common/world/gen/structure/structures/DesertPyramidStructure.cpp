@@ -27,9 +27,12 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
+
+#include <algorithm>
 
 namespace mc {
 namespace world {
@@ -246,31 +249,51 @@ DesertPyramidStructure::DesertPyramidStructure()
 
 void DesertPyramidStructure::_initializeBiomes()
 {
-    m_validBiomes = {Desert, DesertHills, DesertLakes};
+    // 仅包含 Desert，与数据包 has_structure/desert_pyramid 标签一致
+    m_validBiomes = {Desert};
+}
+
+const biome::BiomeTag* DesertPyramidStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_DESERT_PYRAMID();
 }
 
 bool DesertPyramidStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& /*rng*/, i32 /*chunkX*/, i32 /*chunkZ*/)
+    IWorld& /*world*/, IChunkGenerator& generator, math::Random& /*rng*/, i32 chunkX, i32 chunkZ)
 {
-    // TODO: 实现完整的生物群系检查逻辑
-    return true;
+    // 检查区块中心位置的生物群系是否为沙漠
+    const BiomeId centerBiome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
+    if (!isValidBiome(centerBiome)) {
+        return false;
+    }
+
+    // 检查结构四角最低高度不低于海平面
+    // 沙漠神殿尺寸为 21x21，起始位置为区块最小方块坐标
+    const i32 startX = chunkX * CHUNK_WIDTH;
+    const i32 startZ = chunkZ * CHUNK_WIDTH;
+    constexpr i32 width = 21;
+    constexpr i32 depth = 21;
+
+    const i32 h00 = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
+    const i32 h10 = generator.getHeight(startX + width, startZ, HeightmapType::WorldSurfaceWG);
+    const i32 h01 = generator.getHeight(startX, startZ + depth, HeightmapType::WorldSurfaceWG);
+    const i32 h11 = generator.getHeight(startX + width, startZ + depth, HeightmapType::WorldSurfaceWG);
+    const i32 lowestY = std::min({h00, h10, h01, h11});
+
+    return lowestY >= generator.seaLevel();
 }
 
 std::unique_ptr<StructureStart> DesertPyramidStructure::generate(
-    IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
+    IChunkGenerator& generator, math::Random& /*rng*/, i32 chunkX, i32 chunkZ) const
 {
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
-    // 沙漠神殿尺寸: 21x21 地面部分，深度 12
-    // 计算起始位置（居中）
-    i32 startX = chunkX * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
-    i32 startZ = chunkZ * CHUNK_WIDTH + rng.nextInt(CHUNK_WIDTH);
+    // 使用区块中心位置作为生成点
+    const i32 centerX = chunkX * CHUNK_WIDTH + 8;
+    const i32 centerZ = chunkZ * CHUNK_WIDTH + 8;
+    const i32 centerY = generator.getHeight(centerX, centerZ, HeightmapType::WorldSurfaceWG);
 
-    // 获取地表高度
-    i32 startY = generator.getHeight(startX, startZ, HeightmapType::WorldSurfaceWG);
-    if (startY < 60) startY = 64;
-
-    BlockPos startPos(startX, startY, startZ);
+    BlockPos startPos(centerX, centerY, centerZ);
 
     // 创建片段（方块写入延迟到 FEATURES 阶段由 placeInChunk() 执行）
     auto piece = std::make_unique<DesertPyramidPiece>(startPos);

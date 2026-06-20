@@ -28,6 +28,7 @@
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
@@ -40,6 +41,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/SpecialDates.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -49,6 +51,16 @@ namespace mc {
 
 // 使用序列化命名空间
 using namespace entity::serialization;
+
+// 属性修饰符ID常量
+namespace {
+const std::string BABY_SPEED_BOOST_ID = "baby";
+const std::string REINFORCEMENT_CALLER_CHARGE_ID = "reinforcement_caller_charge";
+const std::string ZOMBIE_REINFORCEMENT_CALLEE_CHARGE_ID = "reinforcement_callee_charge";
+const std::string LEADER_ZOMBIE_BONUS_ID = "leader_zombie_bonus";
+const std::string ZOMBIE_RANDOM_SPAWN_BONUS_ID = "zombie_random_spawn_bonus";
+const std::string RANDOM_SPAWN_BONUS_ID = "random_spawn_bonus";
+} // namespace
 
 ZombieEntity::ZombieEntity(EntityId id)
     : MonsterEntity(id)
@@ -132,22 +144,19 @@ void ZombieEntity::setBaby(bool baby)
     m_isBaby = baby;
     refreshDimensions();
 
-    // 婴儿僵尸速度加成
+    // 婴儿僵尸速度加成：+50%（MultiplyBase 操作）
     if (baby) {
-        // TODO: 需要属性修饰符系统支持
-        // m_attributes.applyModifier(SPEED_MODIFIER_BABY);
+        entity::attribute::AttributeModifier modifier(
+            BABY_SPEED_BOOST_ID, "Baby speed boost", 0.5, entity::attribute::Operation::MultiplyBase);
+        m_attributes.addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, modifier);
     } else {
-        // m_attributes.removeModifier(SPEED_MODIFIER_BABY);
+        m_attributes.removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, BABY_SPEED_BOOST_ID);
     }
 }
 
 bool ZombieEntity::canSummonReinforcements() const
 {
-    // 检查 ZOMBIE_SPAWN_REINFORCEMENTS 属性
-    // 属性值范围 0.0-1.0，表示召唤概率
-    // TODO: 需要属性系统支持 ZOMBIE_SPAWN_REINFORCEMENTS 属性
-    // return m_attributes.getValue(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS) > 0.0;
-    return true;
+    return m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS) > 0.0;
 }
 
 void ZombieEntity::trySummonReinforcements()
@@ -166,11 +175,10 @@ bool ZombieEntity::hurt(DamageSource& source, f32 amount)
     // 只在困难模式下有概率召唤增援
     IWorld* worldPtr = world();
     if (worldPtr && entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty())) {
-        // TODO: 需要属性系统获取召唤概率
-        // f32 spawnChance = m_attributes.getValue(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
-        // if (worldPtr->random().nextFloat() < spawnChance) {
-        //     // TODO 在附近生成僵尸
-        // }
+        f64 spawnChance = m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
+        if (getRandom().nextDouble() < spawnChance) {
+            // TODO: 在附近生成增援僵尸实体（需要实体生成系统完善后实现）
+        }
     }
 
     return true;
@@ -272,10 +280,11 @@ void ZombieEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.23);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 3.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 2.0);
-    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 35.0); // 35 而非默认 32
+    m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 35.0);
 
-    // TODO: 需要属性系统支持 ZOMBIE_SPAWN_REINFORCEMENTS 属性
-    // m_attributes.registerAttribute(Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
+    // 注册僵尸增援概率属性
+    auto reinforcementAttr = entity::attribute::Attributes::zombieSpawnReinforcements();
+    m_attributes.registerAttribute(*reinforcementAttr);
 }
 
 void ZombieEntity::convertToDrowned()
@@ -470,13 +479,61 @@ void ZombieEntity::finalizeSpawn(
     // 僵尸特有的装备已在 populateDefaultEquipmentSlots 覆写中处理
 
     // 万圣节南瓜头：10月31日，25% 概率
-    // TODO: 实现日期检查和南瓜头装备（需要 SpecialDates 工具类）
-    // if (SpecialDates::isHalloween() && rng.nextFloat() < 0.25f) {
-    //     if (getEquipment(EquipmentSlot::Head).isEmpty()) {
-    //         ItemStack pumpkin(rng.nextFloat() < 0.1f ? Items::JACK_O_LANTERN : Items::CARVED_PUMPKIN, 1);
-    //         setEquipment(EquipmentSlot::Head, pumpkin);
-    //     }
-    // }
+    if (util::SpecialDates::isHalloween() && rng.nextFloat() < 0.25f) {
+        if (getEquipment(EquipmentSlot::Head).isEmpty()) {
+            const Item* pumpkinItem = rng.nextFloat() < 0.1f ? Items::JACK_O_LANTERN : Items::CARVED_PUMPKIN;
+            if (pumpkinItem != nullptr) {
+                setEquipment(EquipmentSlot::Head, ItemStack(*pumpkinItem, 1));
+                setEquipmentDropChance(EquipmentSlot::Head, 0.0f);
+            }
+        }
+    }
+
+    // 处理属性修饰符（随机增援概率、击退抗性、跟随范围、领袖僵尸判定）
+    _handleAttributes(rng, specialMultiplier);
+}
+
+void ZombieEntity::_handleAttributes(math::Random& rng, f32 specialMultiplier)
+{
+
+    // 随机设置增援概率基础值（0.0 ~ 0.1）
+    m_attributes.setBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, rng.nextDouble() * 0.1);
+
+    // 击退抗性添加随机生成加成
+    entity::attribute::AttributeModifier knockbackModifier(
+        RANDOM_SPAWN_BONUS_ID, "Random spawn bonus", rng.nextDouble() * 0.05, entity::attribute::Operation::Addition);
+    m_attributes.addModifier(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, knockbackModifier);
+
+    // 跟随范围添加随机生成加成（条件性）
+    f64 followRangeBonus = rng.nextDouble() * 1.5 * static_cast<f64>(specialMultiplier);
+    if (followRangeBonus > 1.0) {
+        entity::attribute::AttributeModifier followModifier(ZOMBIE_RANDOM_SPAWN_BONUS_ID,
+            "Zombie random spawn bonus",
+            followRangeBonus,
+            entity::attribute::Operation::MultiplyTotal);
+        m_attributes.addModifier(entity::attribute::Attributes::FOLLOW_RANGE, followModifier);
+    }
+
+    // 领袖僵尸判定（概率 = specialMultiplier * 0.05）
+    if (rng.nextFloat() < specialMultiplier * 0.05f) {
+        // 领袖僵尸增援概率增加
+        entity::attribute::AttributeModifier leaderReinforcementModifier(LEADER_ZOMBIE_BONUS_ID,
+            "Leader zombie bonus",
+            rng.nextDouble() * 0.25 + 0.5,
+            entity::attribute::Operation::Addition);
+        m_attributes.addModifier(
+            entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, leaderReinforcementModifier);
+
+        // 领袖僵尸最大生命值增加
+        entity::attribute::AttributeModifier leaderHealthModifier(LEADER_ZOMBIE_BONUS_ID,
+            "Leader zombie bonus",
+            rng.nextDouble() * 3.0 + 1.0,
+            entity::attribute::Operation::MultiplyTotal);
+        m_attributes.addModifier(entity::attribute::Attributes::MAX_HEALTH, leaderHealthModifier);
+
+        // 领袖僵尸可以破门
+        setBreakDoorsAbility(true);
+    }
 }
 
 void ZombieEntity::populateDefaultEquipmentSlots(

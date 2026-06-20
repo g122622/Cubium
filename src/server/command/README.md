@@ -105,6 +105,8 @@ src/server/command/
     ├── ExecuteCommand.cpp
     ├── SpawnPointCommand.hpp     # /spawnpoint - 设置重生点
     ├── SpawnPointCommand.cpp
+    ├── SetWorldSpawnCommand.hpp  # /setworldspawn - 设置世界出生点（支持朝向参数）
+    ├── SetWorldSpawnCommand.cpp
     ├── TagCommand.hpp            # /tag - 管理实体标签
     ├── TagCommand.cpp
     ├── TeamCommand.hpp           # /team - 管理队伍
@@ -154,7 +156,7 @@ src/server/command/
 
 - `CommandRegistry` - 管理全局命令分发器单例，注册所有默认命令，提供命令执行和建议入口
 - `ServerCommandSource` - 命令执行上下文，封装服务器、玩家、世界、位置、权限等信息，支持派生创建
-- `support/` - 解析器工具，PlayerResolver 处理 @a/@p/@r 等选择器，EffectResolver 处理效果参数
+- `support/` - 解析器工具，PlayerResolver 处理玩家选择器（@a/@p/@r），EntityResolver 处理实体选择器（@e/@s），EffectResolver 处理效果参数
 - `commands/` - 各具体命令实现，每个命令类提供 `registerTo()` 方法注册到分发器
 
 ## 上下游依赖关系
@@ -200,9 +202,10 @@ server/command
    - 问题：使用 `getArgument<T>()` 时模板参数与注册时不一致
    - 解决：确保模板参数与 `ArgumentCommandNode` 的类型一致
 
-6. **EntitySelector 未完整实现**
-   - 问题：`EntityArgument` 返回选择器但解析逻辑未完成
-   - 解决：当前使用占位符实现，完整实现需要实体选择器解析系统
+6. **EntitySelector 已完整实现**
+   - `EntityArgument` 返回的 `EntitySelector` 已包含完整的选择器解析逻辑
+   - `EntityResolver` 支持 @e/@p/@a/@r/@s 等选择器及全部过滤条件（type/name/tag/team/distance/volume/level/gamemode/scores/advancements/nbt/predicate）
+   - 注意：`PredicateCondition::hasCondition()` 检查 `predicate.path()` 非空，因为 `ResourceLocation` 默认构造函数设置 namespace 为 "minecraft"
 
 7. **天气命令世界获取**
    - 问题：天气命令不应通过 `getOverworld()` 获取天气管理器
@@ -219,3 +222,8 @@ server/command
 10. **命令反馈未发送**
     - 问题：命令执行后玩家看不到反馈
     - 解决：确保通过 `source.sendMessage()` 发送反馈消息
+
+11. **SetWorldSpawnCommand 朝向参数**
+    - `/setworldspawn` 支持三种语法：无参数（使用玩家朝向）、仅位置（朝向默认 0.0）、位置+角度
+    - 角度参数通过 `FloatArgumentType(-180.0f, 180.0f)` 解析，并通过 `math::wrapDegrees()` 归一化
+    - 修改出生点后需同时更新 `ServerWorld::setWorldSpawnPoint(pos, angle)` 和广播 `SpawnPositionPacket(angle)`

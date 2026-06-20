@@ -68,11 +68,13 @@ util/
 ├── AxisAlignedBB.hpp/cpp          # 轴对齐包围盒
 ├── CompressionUtils.hpp/cpp       # gzip 压缩/解压
 ├── Direction.hpp                  # 方向枚举及工具
+├── LinkedHashSet.hpp              # 保持插入顺序的哈希集合
 ├── NibbleArray.hpp/cpp            # 4 位数组（光照数据）
 ├── PlatformInfo.hpp/cpp           # 平台信息
 ├── RateLimiter.hpp                # 限流器
 ├── StringUtils.hpp                # 字符串工具
 ├── TimeUtils.hpp                  # 时间工具
+├── SpecialDates.hpp               # 特殊日期工具
 └── UuidUtils.hpp/cpp              # UUID 工具（离线 UUID 生成）
 ```
 
@@ -95,11 +97,13 @@ util/
 │                                                                   │
 │  根级文件:                                                         │
 │  AxisAlignedBB ← Direction, Vector3                              │
+│  LinkedHashSet (独立, 仅依赖 STL)                                 │
 │  NibbleArray (独立)                                               │
 │  PlatformInfo (独立)                                              │
 │  RateLimiter (独立)                                               │
 │  StringUtils (独立)                                               │
 │  TimeUtils (独立)                                                 │
+│  SpecialDates (独立)                                              │
 │  UuidUtils ← Md5                                                  │
 │  CompressionUtils (依赖 zlib)                                    │
 └─────────────────────────────────────────────────────────────────┘

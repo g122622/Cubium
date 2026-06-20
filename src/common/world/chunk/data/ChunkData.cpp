@@ -1126,4 +1126,47 @@ void ChunkData::clearAllPostProcessing()
     }
 }
 
+// ============================================================================
+// 游戏事件监听器注册表
+// ============================================================================
+
+gameevent::GameEventListenerRegistry* ChunkData::getGameEventListenerRegistry(i32 sectionY)
+{
+    auto it = m_gameEventListenerRegistries.find(sectionY);
+    if (it != m_gameEventListenerRegistries.end()) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
+const gameevent::GameEventListenerRegistry* ChunkData::getGameEventListenerRegistry(i32 sectionY) const
+{
+    auto it = m_gameEventListenerRegistries.find(sectionY);
+    if (it != m_gameEventListenerRegistries.end()) {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
+gameevent::GameEventListenerRegistry& ChunkData::getOrCreateGameEventListenerRegistry(
+    i32 sectionY, std::function<std::unique_ptr<gameevent::EuclideanGameEventListenerRegistry>(i32)> factory)
+{
+    auto it = m_gameEventListenerRegistries.find(sectionY);
+    if (it != m_gameEventListenerRegistries.end()) {
+        return *it->second;
+    }
+
+    // 使用工厂函数创建注册表，当为空时自动从映射中移除
+    auto registry = factory(sectionY);
+
+    auto& ref = *registry;
+    m_gameEventListenerRegistries.emplace(sectionY, std::move(registry));
+    return ref;
+}
+
+void ChunkData::removeGameEventListenerRegistry(i32 sectionY)
+{
+    m_gameEventListenerRegistries.erase(sectionY);
+}
+
 } // namespace mc::world::chunk

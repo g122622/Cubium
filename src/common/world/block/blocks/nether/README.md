@@ -7,6 +7,7 @@
 ```
 nether/
 ├── README.md                   # 本文档
+├── EnderChestBlock.hpp/cpp     # 末影箱方块（含水、水平朝向、开盖动画）
 ├── FireBlock.hpp               # 普通火焰方块（可蔓延）
 ├── SoulFireBlock.hpp           # 灵魂火焰方块（蓝色火焰，更高伤害）
 ├── NetherPortalBlock.hpp       # 下界传送门方块
@@ -21,6 +22,7 @@ nether/
 
 | 类名 | 说明 | 状态属性 |
 |------|------|----------|
+| `EnderChestBlock` | 末影箱（含水、水平朝向、开盖动画） | HORIZONTAL_FACING, WATERLOGGED |
 | `FireBlock` | 普通火焰，可蔓延 | AGE_0_15, NORTH/SOUTH/EAST/WEST/UP |
 | `SoulFireBlock` | 灵魂火焰（继承 FireBlock） | 同 FireBlock |
 | `NetherPortalBlock` | 下界传送门 | HORIZONTAL_AXIS |

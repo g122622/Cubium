@@ -70,11 +70,13 @@ enum class DamageType : u8 {
     Fireworks,    // 烟花
 
     // 新增环境伤害类型
-    InWall,         // 窒息（在方块内）
-    Cramming,       // 拥挤伤害（实体过多）
-    Dryout,         // 干涸伤害（鱼离开水）
-    LightningBolt,  // 闪电
-    SweetBerryBush, // 甜浆果丛
+    InWall,            // 窒息（在方块内）
+    Cramming,          // 拥挤伤害（实体过多）
+    Dryout,            // 干涸伤害（鱼离开水）
+    LightningBolt,     // 闪电
+    SweetBerryBush,    // 甜浆果丛
+    Stalagmite,        // 石笋摔落伤害（踩在朝上的滴石尖端上）
+    FallingStalactite, // 坠落钟乳石伤害（钟乳石掉落砸中实体）
 
     // 实体伤害
     MobAttack,       // 生物攻击
@@ -216,7 +218,10 @@ public:
     /**
      * @brief 是否是摔落伤害
      */
-    [[nodiscard]] bool isFall() const { return type() == DamageType::Fall || type() == DamageType::FlyIntoWall; }
+    [[nodiscard]] bool isFall() const
+    {
+        return type() == DamageType::Fall || type() == DamageType::FlyIntoWall || type() == DamageType::Stalagmite;
+    }
 
     /**
      * @brief 是否是岩浆伤害
@@ -281,7 +286,8 @@ public:
         return m_type == DamageType::OutOfWorld || m_type == DamageType::Starve || m_type == DamageType::Drown ||
             m_type == DamageType::Fall || m_type == DamageType::FlyIntoWall || m_type == DamageType::InWall ||
             m_type == DamageType::Cramming || m_type == DamageType::Generic || m_type == DamageType::Magic ||
-            m_type == DamageType::Wither || m_type == DamageType::DragonBreath || m_type == DamageType::WindBurst;
+            m_type == DamageType::Wither || m_type == DamageType::DragonBreath || m_type == DamageType::WindBurst ||
+            m_type == DamageType::Stalagmite;
     }
 
     [[nodiscard]] bool bypassesInvulnerability() const override { return m_type == DamageType::OutOfWorld; }
@@ -352,6 +358,10 @@ public:
                 return "death.attack.lightningBolt";
             case DamageType::SweetBerryBush:
                 return "death.attack.sweetBerryBush";
+            case DamageType::Stalagmite:
+                return "death.attack.stalagmite";
+            case DamageType::FallingStalactite:
+                return "death.attack.fallingStalactite";
             case DamageType::WindBurst:
                 return "death.attack.windBurst";
             default:
@@ -854,6 +864,18 @@ inline EnvironmentalDamage anvil()
 inline EnvironmentalDamage fallingBlock()
 {
     return EnvironmentalDamage(DamageType::FallingBlock);
+}
+
+/** 创建石笋摔落伤害（踩在朝上的滴石尖端上） */
+inline EnvironmentalDamage stalagmite()
+{
+    return EnvironmentalDamage(DamageType::Stalagmite);
+}
+
+/** 创建坠落钟乳石伤害 */
+inline EntityDamageSource fallingStalactite(Entity* stalactite)
+{
+    return EntityDamageSource(DamageType::FallingStalactite, stalactite);
 }
 
 /** 创建龙息伤害 */

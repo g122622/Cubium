@@ -52,10 +52,14 @@ bool CreatureEntity::tryMoveTo(f64 x, f64 y, f64 z, f64 speed)
     return false;
 }
 
-f32 CreatureEntity::getPathWeight(f32 /*x*/, f32 /*y*/, f32 /*z*/) const
+f32 CreatureEntity::getPathWeight(f32 x, f32 y, f32 z) const
 {
-    // 默认实现：返回0表示中性权重
-    // TODO: 子类应该重写此方法来提供更准确的权重
+    // 默认实现：返回0.0f（中性权重）
+    // 子类应根据环境偏好重写此方法：
+    // - AnimalEntity: 草方块返回10.0f，否则返回亮度相关值
+    // - MonsterEntity: 返回 0.5f - 亮度（偏好黑暗）
+    // - WaterMobEntity: 水中返回10.0f，否则返回0.0f
+    // - 特殊实体（守卫者、炽足兽、疣猪兽等）有各自的偏好
     return 0.0f;
 }
 
@@ -64,11 +68,13 @@ f32 CreatureEntity::getPathWeight(const BlockPos& pos) const
     return getPathWeight(static_cast<f32>(pos.x), static_cast<f32>(pos.y), static_cast<f32>(pos.z));
 }
 
-bool CreatureEntity::canSpawnAt(f32 /*x*/, f32 y, f32 /*z*/) const
+bool CreatureEntity::canSpawnAt(f32 x, f32 y, f32 z) const
 {
-    // TODO: 子类应该重写此方法提供更完整的生成条件检查
-    // 默认实现：检查是否在有效高度范围内
-    return y >= static_cast<f32>(world::MIN_BUILD_HEIGHT);
+    // 检查当前位置的路径权重是否非负
+    // 对应 MC PathfinderMob.checkSpawnRules:
+    // return this.getWalkTargetValue(this.blockPosition(), level) >= 0.0F;
+    // 当 getPathWeight >= 0 时，表示该位置适合生成
+    return getPathWeight(x, y, z) >= 0.0f;
 }
 
 } // namespace mc

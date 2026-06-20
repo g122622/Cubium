@@ -40,6 +40,7 @@ Entity (基类)
 | `entity/core/BoostHelper.hpp` | 加速辅助类（鞍和加速状态管理） |
 | `entity/interfaces/IRideable.hpp` | 可骑乘接口（船不实现，供其他骑乘实体用） |
 | `entity/damage/DamageSource.hpp` | 伤害源系统 |
+| `world/gamerule/GameRules.hpp` | 游戏规则（tntExplodes 控制 TNT 矿车引爆/爆炸） |
 | `world/block/blocks/redstone/AbstractRailBlock.hpp` | 铁轨形状定义 |
 | `world/blockentity/transport/IHopper.hpp` | 漏斗接口（HopperMinecartEntity 实现） |
 | `world/blockentity/core/SimpleInventory.hpp` | 简单库存实现 |
@@ -81,8 +82,20 @@ Entity (基类)
 - 普通伤害 + 低速度(<0.01) → 掉落矿车 + TNT方块
 - 普通伤害 + 高速度(≥0.01) → 碰撞爆炸
 - 燃烧箭矢 → 根据箭矢速度计算爆炸威力
+- `_ignite()` 和 `_explode()` 均受 `tntExplodes` 游戏规则控制：当 `tntExplodes=false` 时，`_ignite()` 不点燃（直接返回），`_explode()` 不创建爆炸（若已点燃则丢弃实体）
 
 参考 MC 1.16.5：`TNTMinecartEntity.attackEntityFrom()` 和 `killMinecart()`
+
+### 3.5 TNT矿车引燃同步
+
+**问题**：TNT矿车引燃时的音效和客户端同步需要三端协同。
+
+**要点**：
+- **服务端**：`_ignite()` 设置 `m_fuse = 80`，调用 `broadcastEntityStatus(EatBlock)` 通知客户端，调用 `playSound(ENTITY_TNT_PRIMED)` 播放音效
+- **网络**：`EntityStatusPacket` 使用 status code 10 (`EatBlock`)，此状态码被羊吃草和TNT矿车引燃共用
+- **客户端**：`onEntityStatus` 回调根据 `typeId() == TNT_MINECART` 区分处理：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+- `Entity::playSound()` 自动检查 `isSilent()`，无需手动判断
+- 修改引燃或新增实体状态处理时，三端（服务端实体、网络包、客户端回调）必须同步更新
 
 ### 4. 熔炉矿车掉落逻辑
 

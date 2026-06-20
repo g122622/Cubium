@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <glm/glm.hpp>
 
 namespace mc::client::renderer::entity::model {
 
@@ -382,20 +383,26 @@ ModelVertex ModelRenderer::_transformVertex(const ModelVertex& vertex, const std
     result.position.z =
         static_cast<f32>(m[8] * vertex.position.x + m[9] * vertex.position.y + m[10] * vertex.position.z + m[11]);
 
-    // 变换法线 (只使用旋转部分，假设矩阵是正交的)
-    // TODO: 对于包含缩放的矩阵，需要使用逆转置矩阵来正确变换法线
-    result.normal.x = static_cast<f32>(m[0] * vertex.normal.x + m[1] * vertex.normal.y + m[2] * vertex.normal.z);
-    result.normal.y = static_cast<f32>(m[4] * vertex.normal.x + m[5] * vertex.normal.y + m[6] * vertex.normal.z);
-    result.normal.z = static_cast<f32>(m[8] * vertex.normal.x + m[9] * vertex.normal.y + m[10] * vertex.normal.z);
+    // 变换法线：使用逆转置矩阵确保非均匀缩放时法线正确
+    // 从行主序 f64[16] 矩阵提取左上 3x3 子矩阵构造 glm::dmat3
+    // 行主序布局：m[0..3] 是第0行, m[4..7] 是第1行, m[8..11] 是第2行
+    glm::dmat3 transform3x3(m[0],
+        m[4],
+        m[8], // 第0列
+        m[1],
+        m[5],
+        m[9], // 第1列
+        m[2],
+        m[6],
+        m[10] // 第2列
+    );
+    glm::dmat3 normalMatrix = glm::transpose(glm::inverse(transform3x3));
+    glm::dvec3 normal(vertex.normal.x, vertex.normal.y, vertex.normal.z);
+    normal = glm::normalize(normalMatrix * normal);
 
-    // 归一化法线
-    f64 len = std::sqrt(
-        result.normal.x * result.normal.x + result.normal.y * result.normal.y + result.normal.z * result.normal.z);
-    if (len > 0.0) {
-        result.normal.x = static_cast<f32>(static_cast<f64>(result.normal.x) / len);
-        result.normal.y = static_cast<f32>(static_cast<f64>(result.normal.y) / len);
-        result.normal.z = static_cast<f32>(static_cast<f64>(result.normal.z) / len);
-    }
+    result.normal.x = static_cast<f32>(normal.x);
+    result.normal.y = static_cast<f32>(normal.y);
+    result.normal.z = static_cast<f32>(normal.z);
 
     // 纹理坐标不变
     result.texCoord = vertex.texCoord;

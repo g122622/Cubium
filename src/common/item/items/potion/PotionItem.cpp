@@ -140,7 +140,9 @@ std::string PotionItem::getTranslationKey(const ItemStack& stack) const
 /**
  * @brief 将药水效果应用到实体
  *
- * 瞬间效果直接应用（治疗/伤害根据目标是否亡灵），非瞬间效果添加到实体
+ * 瞬间效果（瞬间治疗、瞬间伤害）直接应用治疗/伤害逻辑。
+ * 饱和效果通过 addEffect 路径处理（EffectManager 会对瞬间效果立即执行后移除）。
+ * 其他非瞬间效果通过 addEffect 添加到实体的效果列表。
  */
 void PotionItem::_applyEffects(const potion::Potion* potion, Entity& entity, IWorld& /*world*/)
 {
@@ -154,7 +156,7 @@ void PotionItem::_applyEffects(const potion::Potion* potion, Entity& entity, IWo
     }
 
     for (const auto& effect : potion->effects()) {
-        // 瞬间效果直接应用
+        // 瞬间治疗/伤害效果直接应用（不通过 addEffect 系统）
         if (effect.type() == entity::effect::EffectType::InstantHealth ||
             effect.type() == entity::effect::EffectType::InstantDamage) {
             // 计算效果等级对应的治疗/伤害量（基础值 4.0，每级增加 2.0）
@@ -183,7 +185,8 @@ void PotionItem::_applyEffects(const potion::Potion* potion, Entity& entity, IWo
             continue;
         }
 
-        // 非瞬间效果添加到实体
+        // 其他效果（包括饱和效果）通过 addEffect 添加
+        // EffectManager::addEffect 对瞬间效果（如饱和）会立即执行效果逻辑后移除
         entity::effect::EffectInstance newEffect(effect);
         livingEntity->addEffect(std::move(newEffect));
     }

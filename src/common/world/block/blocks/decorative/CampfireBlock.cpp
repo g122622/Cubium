@@ -28,12 +28,13 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "../../../../stats/Stats.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/processing/CampfireBlockEntity.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <memory>
 
 namespace mc {
@@ -198,7 +199,8 @@ ActionResultType CampfireBlock::onBlockActivated(const BlockState& state,
         // 添加物品到营火
         // 创造模式传入副本，生存模式传入原物品
         if (campfire->addItem(heldItem, cookTime)) {
-            // 成功添加
+            // 成功添加，触发营火交互统计
+            player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_CAMPFIRE), 1);
             return ActionResultType::Success;
         }
     }

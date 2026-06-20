@@ -138,6 +138,8 @@ kagero/
 **依赖方（Kagero使用了谁）：**
 - `common/core/Types.hpp` - 基础类型定义（i32, u32, String等）
 - `common/core/Result.hpp` - 错误处理
+- `common/util/text/Utf8.hpp` - UTF-8 编码/解码/迭代工具（所有文本Widget依赖此模块处理多字节字符）
+- `client/ui/Font.hpp` - 字体渲染和字形查找
 - `client/ui/Glyph.hpp` - 字形渲染
 - `client/renderer/api/` - 渲染抽象接口（ICanvas实现）
 - GLFW - 窗口/输入事件
@@ -218,3 +220,12 @@ save()/restore()必须配对使用，否则会导致绘图状态错乱。建议�
 ### 10. ScrollableWidget 内容尺寸
 
 ScrollableWidget需要正确设置内容尺寸（setContentSize），否则滚动条不会出现或滚动范围不正确。
+
+### 11. TextFieldWidget UTF-8 注意事项
+
+TextFieldWidget 内部所有位置/索引操作基于 **码点**（而非字节偏移），使用 `util::text::Utf8.hpp` 工具函数进行码点索引与字节偏移之间的转换。修改此组件时务必注意：
+- `m_cursorPosition` 和 `m_selectionEnd` 是码点索引，不是字节偏移
+- 字符串截断/删除操作必须通过 `utf8CodepointToByteOffset` 转换后再操作 `std::string`
+- `measureTextWidth`、`_measurePrefixWidth`、`positionFromTextOffset` 均按码点迭代
+- 光标闪烁使用 `m_cursorBlinkTimer`（秒）+ `m_cursorVisible` 布尔值，周期 500ms
+- 选区高亮使用 `m_selectionColor`（默认半透明蓝色 `0x8000AAFF`），在 `paint()` 中通过 `drawFilledRect` 绘制

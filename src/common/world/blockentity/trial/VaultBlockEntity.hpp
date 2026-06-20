@@ -26,8 +26,8 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/LinkedHashSet.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
-#include <unordered_set>
 #include <vector>
 
 namespace mc {
@@ -205,8 +205,10 @@ private:
     /// 配置
     Config m_config;
 
-    /// 已领取奖励的玩家UUID集合（最多MAX_REWARDED_PLAYERS人）
-    std::unordered_set<std::string> m_rewardedPlayers;
+    /// 已领取奖励的玩家UUID集合（按插入顺序排列，最多MAX_REWARDED_PLAYERS人）
+    /// 参考 MC Java VaultServerData 使用 ObjectLinkedOpenHashSet 保持插入顺序，
+    /// 超上限时按 FIFO 策略淘汰最早插入的玩家
+    LinkedHashSet<std::string> m_rewardedPlayers;
 
     /// 解锁动画开始tick
     i64 m_unlockingStartTick = 0;

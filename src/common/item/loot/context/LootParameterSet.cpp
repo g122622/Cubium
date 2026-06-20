@@ -49,16 +49,51 @@ bool LootParameterSet::contains(std::string_view paramId) const noexcept
 
 bool LootParameterSet::validate(const std::vector<std::string>& providedParams) const noexcept
 {
-    // 检查所有必需参数是否都在提供的参数中
+    std::vector<std::string> missingParams;
+    std::vector<std::string> unexpectedParams;
+    return validate(providedParams, missingParams, unexpectedParams);
+}
+
+bool LootParameterSet::validate(const std::vector<std::string>& providedParams,
+    std::vector<std::string>& missingParams,
+    std::vector<std::string>& unexpectedParams) const noexcept
+{
+    missingParams.clear();
+    unexpectedParams.clear();
+
+    // 检查1：提供的参数中是否包含此参数集不允许的参数
+    for (const auto& provided : providedParams) {
+        if (!isAllowed(provided)) {
+            unexpectedParams.push_back(provided);
+        }
+    }
+
+    // 检查2：是否缺少此参数集必需的参数
     for (const auto& required : m_requiredParams) {
         bool found = std::any_of(providedParams.begin(),
             providedParams.end(),
             [&required](const std::string& provided) { return required == provided; });
         if (!found) {
-            return false;
+            missingParams.push_back(required);
         }
     }
-    return true;
+
+    return missingParams.empty() && unexpectedParams.empty();
+}
+
+bool LootParameterSet::isAllowed(std::string_view paramId) const noexcept
+{
+    // 在必需参数中查找
+    auto requiredIt = std::find_if(
+        m_requiredParams.begin(), m_requiredParams.end(), [&paramId](const std::string& id) { return id == paramId; });
+    if (requiredIt != m_requiredParams.end()) {
+        return true;
+    }
+
+    // 在可选参数中查找
+    auto optionalIt = std::find_if(
+        m_optionalParams.begin(), m_optionalParams.end(), [&paramId](const std::string& id) { return id == paramId; });
+    return optionalIt != m_optionalParams.end();
 }
 
 } // namespace loot

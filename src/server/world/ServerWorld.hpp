@@ -34,6 +34,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/lighting/IChunkLightProvider.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
@@ -226,6 +227,20 @@ public:
 
     void tick();
 
+    /**
+     * @brief 处理降水对方块的影响（结冰和降雪）
+     *
+     * 对每个已加载区块，以 1/48 的概率选择一个位置，
+     * 检查生物群系温度并执行结冰或降雪操作。
+     * 结冰不受天气状态影响（低温即结冰），降雪仅在下雪时执行。
+     *
+     * 冰形成：生物群系温度 < 0.15 且方块光照 < 10 且流体为水的位置，
+     *         将水替换为冰（checkNeighbors=true，防止深海大面积结冰）。
+     * 降雪：下雪时，生物群系温度 < 0.15 且方块光照 < 10 且位置为空气/已有雪层，
+     *        放置或增加雪层（受 snowAccumulationHeight 游戏规则控制）。
+     */
+    void tickPrecipitation(i32 randomTickSpeed);
+
 private:
     /**
      * @brief 执行环境随机刻
@@ -306,7 +321,7 @@ public:
     [[nodiscard]] u64 seed() const noexcept override { return m_config.seed; }
     [[nodiscard]] bool isHardcore() const noexcept override { return false; }
     [[nodiscard]] Difficulty difficulty() const override;
-    [[nodiscard]] bool isClientSide() noexcept override { return false; }
+    [[nodiscard]] bool isClientSide() const noexcept override { return false; }
 
     // ========== 随机数生成器 ==========
 
@@ -328,6 +343,14 @@ public:
      * @return GameRules 引用
      */
     [[nodiscard]] world::gamerule::GameRules& getGameRules() noexcept override { return m_gameRules; }
+
+    // ========== 游戏事件分发 ==========
+
+    /**
+     * @brief 获取游戏事件分发器
+     */
+    [[nodiscard]] gameevent::GameEventDispatcher& gameEventDispatcher() { return *m_gameEventDispatcher; }
+    [[nodiscard]] const gameevent::GameEventDispatcher& gameEventDispatcher() const { return *m_gameEventDispatcher; }
 
     // ========== 类型转换 ==========
 
@@ -363,6 +386,11 @@ public:
     // ========== 世界事件 ==========
 
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
+
+    // ========== 游戏事件 ==========
+
+    void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override;
 
     // ========== 方块更新通知 ==========
 
@@ -716,8 +744,27 @@ public:
      * @brief 设置世界出生点
      *
      * @param pos 新的出生点位置
+     * @param angle 新的出生点朝向（度），默认 0.0f
      */
-    void setWorldSpawnPoint(const Vector3d& pos) noexcept { m_worldSpawnPoint = pos; }
+    void setWorldSpawnPoint(const Vector3d& pos, f32 angle = 0.0f) noexcept
+    {
+        m_worldSpawnPoint = pos;
+        m_spawnAngle = angle;
+    }
+
+    /**
+     * @brief 获取世界出生点朝向
+     *
+     * @return 出生点朝向角度（度）
+     */
+    [[nodiscard]] f32 spawnAngle() const noexcept { return m_spawnAngle; }
+
+    /**
+     * @brief 设置世界出生点朝向
+     *
+     * @param angle 出生点朝向角度（度）
+     */
+    void setSpawnAngle(f32 angle) noexcept { m_spawnAngle = angle; }
 
     /**
      * @brief 应用 level.dat 读取到的运行时世界状态
@@ -977,6 +1024,26 @@ public:
         const ItemStack& tool,
         i32 numBeesInside) override;
 
+    /**
+     * @brief 通知世界动物被驯服
+     *
+     * 重写 IWorld::onTameAnimal()，发布 TameAnimalEvent 用于进度触发。
+     *
+     * @param playerId 驯服动物的玩家ID
+     * @param animal 被驯服的动物实体
+     */
+    void onTameAnimal(PlayerId playerId, Entity* animal) override;
+
+    /**
+     * @brief 通知世界实体被召唤
+     *
+     * 重写 IWorld::onSummonedEntity()，发布 SummonedEntityEvent 用于进度触发。
+     *
+     * @param playerId 召唤实体的玩家ID
+     * @param entity 被召唤的实体
+     */
+    void onSummonedEntity(PlayerId playerId, Entity* entity) override;
+
     // ========== 结构定位 ==========
 
     /**
@@ -1035,6 +1102,7 @@ private:
     bool m_initialized = false;
     bool m_allPlayersSleeping = false;                                              // 全员睡眠标志
     Vector3d m_worldSpawnPoint{0.0, static_cast<f64>(world::SEA_LEVEL) + 1.0, 0.0}; // 世界出生点
+    f32 m_spawnAngle = 0.0f;                                                        // 世界出生点朝向（度）
 
     OpenContainerCallback m_onOpenContainer;
     OpenEntityContainerCallback m_onOpenEntityContainer;
@@ -1063,6 +1131,9 @@ private:
 
     // 游戏规则
     world::gamerule::GameRules m_gameRules; ///< 游戏规则管理器
+
+    // 游戏事件分发器
+    std::unique_ptr<gameevent::GameEventDispatcher> m_gameEventDispatcher; ///< 游戏事件分发器
 
     // 世界边界
     world::border::WorldBorder m_worldBorder; ///< 世界边界

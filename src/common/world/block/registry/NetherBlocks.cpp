@@ -21,16 +21,20 @@
  */
 
 #include "world/block/registry/NetherBlocks.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/decorative/CampfireBlock.hpp"
 #include "world/block/blocks/decorative/LanternBlock.hpp"
+#include "world/block/blocks/decorative/TorchBlock.hpp"
+#include "world/block/blocks/decorative/WallTorchBlock.hpp"
 #include "world/block/blocks/end/ChorusFlowerBlock.hpp"
 #include "world/block/blocks/end/ChorusPlantBlock.hpp"
 #include "world/block/blocks/end/DragonEggBlock.hpp"
@@ -42,6 +46,7 @@
 #include "world/block/blocks/functional/BrewingStandBlock.hpp"
 #include "world/block/blocks/functional/LodestoneBlock.hpp"
 #include "world/block/blocks/functional/RespawnAnchorBlock.hpp"
+#include "world/block/blocks/nether/EnderChestBlock.hpp"
 #include "world/block/blocks/nether/FireBlock.hpp"
 #include "world/block/blocks/nether/MagmaBlock.hpp"
 #include "world/block/blocks/nether/NetherPortalBlock.hpp"
@@ -315,12 +320,15 @@ void registerNetherBlocks()
                 .soundType(BlockSoundTypes::NETHER_SPROUT));
 
     // 灵魂火把 - 发光等级10，蓝色火焰
-    NetherBlocks::SOUL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:soul_torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10));
+    NetherBlocks::SOUL_TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:soul_torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10),
+        client::renderer::trident::particle::ParticleTypeId::SoulFireFlame);
 
     // 墙上的灵魂火把
-    NetherBlocks::SOUL_WALL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:soul_wall_torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10));
+    NetherBlocks::SOUL_WALL_TORCH =
+        &registry.registerBlock<blocks::WallTorchBlock>(ResourceLocation("minecraft:soul_wall_torch"),
+            BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10),
+            client::renderer::trident::particle::ParticleTypeId::SoulFireFlame);
 
     // ============================================================================
     // 黑石建筑方块
@@ -550,8 +558,12 @@ void registerNetherBlocks()
         ResourceLocation("minecraft:brewing_stand"), BlockProperties(Material::IRON).hardness(0.5f));
 
     // 末影箱 - 发光7级
-    NetherBlocks::ENDER_CHEST = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:ender_chest"),
-        BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7));
+    // 右键打开末影箱界面（物品存储在玩家数据中），记录统计 OPEN_ENDERCHEST。
+    // 方块上方有红石导体时无法打开。支持含水放置和水平朝向。
+    // 参考 MC Java: EnderChestBlock.onBlockActivated() → player.openMenu() + player.awardStat(Stats.OPEN_ENDERCHEST)
+    NetherBlocks::ENDER_CHEST =
+        &registry.registerBlock<blocks::EnderChestBlock>(ResourceLocation("minecraft:ender_chest"),
+            BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7).notSolid());
 
     // 灯笼 - 发光15级（通过构造函数参数）
     NetherBlocks::LANTERN = &registry.registerBlock<blocks::LanternBlock>(ResourceLocation("minecraft:lantern"),
@@ -576,8 +588,8 @@ void registerNetherBlocks()
     NetherBlocks::SOUL_CAMPFIRE = &registry.registerBlock<blocks::SoulCampfireBlock>(
         ResourceLocation("minecraft:soul_campfire"), BlockProperties(Material::WOOD).hardness(2.0f));
 
-    // 南瓜灯 - 发光15级
-    NetherBlocks::JACK_O_LANTERN = &registry.registerBlock<SimpleBlock>(
+    // 南瓜灯 - 发光15级，支持 FACING 属性和傀儡生成
+    NetherBlocks::JACK_O_LANTERN = &registry.registerBlock<blocks::JackOLanternBlock>(
         ResourceLocation("minecraft:jack_o_lantern"), BlockProperties(Material::EARTH).hardness(1.0f).lightLevel(15));
 }
 

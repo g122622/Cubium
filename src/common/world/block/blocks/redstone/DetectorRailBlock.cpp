@@ -34,7 +34,7 @@ namespace mc {
 namespace blocks {
 
 DetectorRailBlock::DetectorRailBlock(const BlockProperties& properties)
-    : AbstractRailBlock(properties, true)
+    : AbstractRailBlock(properties, true, true) // isStraight=true: 探测铁轨不支持弯轨, isPowered=true: 可提供红石信号
 {
     // 创建状态容器
     auto container = StateContainer<Block, BlockState>::Builder(*this).add(SHAPE()).add(POWERED()).create(

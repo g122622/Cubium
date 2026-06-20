@@ -73,9 +73,9 @@ void MagmaCubeEntity::registerGoals() {
 
 岩浆怪的护甲属性必须在`registerAttributes()`中注册后才能在`setSlimeSize()`中设置值，否则会崩溃。
 
-### 3. isClientSide() const 问题
+### 3. isClientSide() const 问题（已修复）
 
-`IWorld::isClientSide()`不是const方法，在const成员函数中调用需要使用`const_cast`。
+`IWorld::isClientSide()`已改为const方法，在const成员函数中可直接调用，无需`const_cast`。
 
 ### 4. 猪灵蛮兵 vs 普通猪灵的目标选择差异
 

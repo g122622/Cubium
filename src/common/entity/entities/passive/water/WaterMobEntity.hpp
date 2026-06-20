@@ -110,6 +110,17 @@ public:
      */
     [[nodiscard]] virtual bool canBePushedByWater() const { return true; }
 
+    // ========== 寻路权重 ==========
+
+    /**
+     * @brief 获取路径权重
+     *
+     * 水生生物偏好水中位置：在水中返回10.0f，否则返回0.0f。
+     * 对应 MC WaterAnimal.getWalkTargetValue 中不重写此方法（返回0.0f），
+     * 但水生生物的子类（如守卫者）会重写以增加水中偏好。
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
+
     // ========== 生命周期 ==========
 
     void tick() override;

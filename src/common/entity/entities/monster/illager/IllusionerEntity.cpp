@@ -36,6 +36,7 @@
 #include "../../../ai/goal/goals/special/IllusionerGoals.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "../../../combat/DifficultyHelper.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../entities/passive/golem/IronGolemEntity.hpp"
@@ -76,9 +77,9 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
     f64 dz = target->z() - z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
-    // 计算不精确度
-    i32 difficulty = static_cast<i32>(world()->difficulty());
-    f32 inaccuracy = static_cast<f32>(14 - difficulty * 4);
+    // 不精确度：难度越高，不精确度越低，箭矢越精准
+    // Peaceful=14, Easy=10, Normal=6, Hard=2
+    f32 inaccuracy = entity::combat::DifficultyHelper::getRangedAttackInaccuracy(world()->difficulty());
 
     // 使用生物箭矢伤害公式设置基础伤害
     arrow->setBaseDamageFromMob(charge);

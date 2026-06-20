@@ -100,6 +100,16 @@ public:
 
     /**
      * @brief 检查是否可以生成在该位置
+     *
+     * 基于 getPathWeight 的返回值判断：权重 >= 0 表示该位置适合生成。
+     * 对应 MC PathfinderMob.checkSpawnRules。
+     *
+     * 已集成到以下生成路径：
+     * - NaturalSpawner::_trySpawnAt：自然生成时在 finalizeSpawn 之前调用
+     * - ServerWorld::spawnEntitiesFromChunkGeneration：区块生成时在 finalizeSpawn 之前调用
+     *
+     * 注意：WorldGenSpawner 在区块生成阶段只记录 SpawnedEntityData（无实体实例），
+     * 因此实例级检查延迟到 ServerWorld 创建实体时执行。
      */
     [[nodiscard]] virtual bool canSpawnAt(f32 x, f32 y, f32 z) const;
 

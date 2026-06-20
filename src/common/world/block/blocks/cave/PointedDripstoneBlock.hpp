@@ -88,31 +88,7 @@ public:
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
-private:
-    /// 碰撞形状，按厚度和方向索引
-    std::unordered_map<BlockStateProperties::DripstoneThickness, CollisionShape> m_shapes;
-    /// 朝下尖端的额外形状
-    CollisionShape m_tipDownShape;
-
-    // ========== 常量 ==========
-
-    /// 搜索流体时最大搜索距离
-    static constexpr i32 MAX_SEARCH_LENGTH_WHEN_CHECKING_DRIP_TYPE = 11;
-    /// 钟乳石掉落延迟(tick)
-    static constexpr i32 DELAY_BEFORE_FALLING = 2;
-    /// 水传输概率
-    static constexpr f32 WATER_TRANSFER_PROBABILITY_PER_RANDOM_TICK = 0.17578125F;
-    /// 岩浆传输概率
-    static constexpr f32 LAVA_TRANSFER_PROBABILITY_PER_RANDOM_TICK = 0.05859375F;
-    /// 每随机刻生长概率
-    static constexpr f32 GROWTH_PROBABILITY_PER_RANDOM_TICK = 0.011377778F;
-    /// 最大生长长度
-    static constexpr i32 MAX_GROWTH_LENGTH = 7;
-    /// 向下搜索石笋生长位置的最大距离
-    static constexpr i32 MAX_STALAGMITE_SEARCH_RANGE_WHEN_GROWING = 10;
-    /// 尖端到炼药锅最大搜索距离
-    static constexpr i32 MAX_SEARCH_LENGTH_BETWEEN_TIP_AND_CAULDRON = 11;
-
+public:
     // ========== 静态辅助方法 ==========
 
     /// 判断方块状态是否为指定方向的滴石
@@ -186,6 +162,42 @@ private:
 
     /// 流体传输逻辑
     static void maybeTransferFluid(const BlockState& state, IWorld& world, const BlockPos& pos, f32 chance);
+
+private:
+    /// 碰撞形状，按厚度和方向索引
+    std::unordered_map<BlockStateProperties::DripstoneThickness, CollisionShape> m_shapes;
+    /// 朝下尖端的额外形状
+    CollisionShape m_tipDownShape;
+
+    // ========== 常量 ==========
+
+    /// 搜索流体时最大搜索距离
+    static constexpr i32 MAX_SEARCH_LENGTH_WHEN_CHECKING_DRIP_TYPE = 11;
+    /// 钟乳石掉落延迟(tick)
+    static constexpr i32 DELAY_BEFORE_FALLING = 2;
+    /// 水传输概率
+    static constexpr f32 WATER_TRANSFER_PROBABILITY_PER_RANDOM_TICK = 0.17578125F;
+    /// 岩浆传输概率
+    static constexpr f32 LAVA_TRANSFER_PROBABILITY_PER_RANDOM_TICK = 0.05859375F;
+    /// 每随机刻生长概率
+    static constexpr f32 GROWTH_PROBABILITY_PER_RANDOM_TICK = 0.011377778F;
+    /// 最大生长长度
+    static constexpr i32 MAX_GROWTH_LENGTH = 7;
+    /// 向下搜索石笋生长位置的最大距离
+    static constexpr i32 MAX_STALAGMITE_SEARCH_RANGE_WHEN_GROWING = 10;
+    /// 尖端到炼药锅最大搜索距离
+    static constexpr i32 MAX_SEARCH_LENGTH_BETWEEN_TIP_AND_CAULDRON = 11;
+    /// 石笋摔落伤害距离偏移
+    static constexpr f32 STALAGMITE_FALL_DISTANCE_OFFSET = 2.5F;
+    /// 石笋摔落伤害倍率
+    static constexpr i32 STALAGMITE_FALL_DAMAGE_MODIFIER = 2;
+    /// 坠落钟乳石每格伤害系数
+    static constexpr f32 FALLING_STALACTITE_FALL_DAMAGE_PER_DISTANCE = 1.0F;
+    /// 坠落钟乳石最大伤害
+    static constexpr i32 FALLING_STALACTITE_MAX_DAMAGE = 40;
+
+    /// 钟乳石失去支撑时生成掉落方块实体
+    static void _spawnFallingStalactite(IWorld& world, const BlockPos& pos, const BlockState& state);
 };
 
 } // namespace blocks

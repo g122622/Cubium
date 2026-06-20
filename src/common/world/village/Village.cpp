@@ -28,6 +28,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
+#include "common/world/village/raid/RaidManager.hpp"
 
 #include <algorithm>
 #include <array>
@@ -178,8 +179,11 @@ void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poi
         m_lastPOIStatUpdateTime = gameTime;
     }
 
-    // 4. 检查袭击状态
-    _tickRaidCheck(world, gameTime);
+    // 4. 定期验证袭击状态（与 MC Java 村民袭击检查频率一致，每 20 tick 一次）
+    if (gameTime - m_lastRaidCheckTime >= RAID_CHECK_INTERVAL) {
+        _tickRaidCheck(world, gameTime);
+        m_lastRaidCheckTime = gameTime;
+    }
 }
 
 void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage)
@@ -285,29 +289,34 @@ void Village::_tickPOIStats(const poi::PointOfInterestStorage& poiStorage)
 
 void Village::_tickRaidCheck(IWorld& world, i64 gameTime)
 {
-    // 如果村庄当前不在袭击中，无需检查
-    if (!m_underRaid) {
+    // 通过 IWorld 获取 RaidManager，验证村庄的袭击状态与实际袭击同步。
+    // 参考 MC Java 中 Raid 与 Village 的关系：
+    //   - MC Java 没有 Village 对象，袭击状态通过 ServerLevel.getRaidAt(pos) 位置性查询。
+    //   - 本项目中 Village 持有 m_underRaid 标志，由 RaidManager 在 tryStartRaid/onRaidEnd 设置。
+    //   - _tickRaidCheck 作为冗余验证，确保标志与 RaidManager 中的实际袭击状态一致，
+    //     防止因异常情况（如 RaidManager 跳过 onRaidEnd）导致标志永远为 true。
+    auto* raidManager = world.raidManager();
+    if (raidManager == nullptr) {
+        // 非 ServerWorld 环境（如客户端）没有 RaidManager，跳过检查
         return;
     }
 
-    // 获取 RaidManager 检查袭击状态
-    world::village::VillageManager* vm = world.villageManager();
-    if (vm == nullptr) {
-        return;
+    raid::Raid* raid = raidManager->getOngoingRaidForVillage(this);
+
+    if (m_underRaid) {
+        // 村庄标记为袭击中，但 RaidManager 中没有对应的进行中袭击
+        // 说明袭击已经结束但 onRaidEnd 未正确同步（防御性检查）
+        if (raid == nullptr) {
+            m_underRaid = false;
+            m_lastRaidTime = gameTime;
+        }
+    } else {
+        // 村庄标记为非袭击中，但 RaidManager 中存在针对此村庄的进行中袭击
+        // 可能是外部直接创建了袭击而未设置 village 标志（防御性检查）
+        if (raid != nullptr) {
+            m_underRaid = true;
+        }
     }
-
-    // RaidManager 可以通过 VillageManager 访问
-    // 但当前设计中 RaidManager 是独立的服务
-    // 这里需要通过 ServerWorld 访问 RaidManager
-
-    // TODO: 当 RaidManager 集成到 VillageManager 后，
-    // 应该检查 RaidManager::getRaidForVillage(this) 来获取袭击状态
-    // 当前袭击状态由 RaidManager::onRaidEnd() 通过 Village::setUnderRaid() 更新
-    // 所以这里不需要主动检查
-
-    // 作为备用，可以检查是否有活跃的袭击者实体在村庄范围内
-    // 但这需要遍历实体，效率较低，暂时跳过
-    (void)gameTime; // 暂时未使用
 }
 
 std::optional<BlockPos> Village::_findMeetingPoint(const poi::PointOfInterestStorage& poiStorage) const

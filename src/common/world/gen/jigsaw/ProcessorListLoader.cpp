@@ -29,6 +29,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/template/CappedStructureProcessor.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -41,15 +42,18 @@ namespace jigsaw {
 // 导入处理器类型（来自 Template.hpp 的 template_ 命名空间）
 using feature::template_::AlwaysTruePosRuleTest;
 using feature::template_::AlwaysTrueRuleTest;
+using feature::template_::AxisAlignedLinearPosTest;
 using feature::template_::BlackstoneReplacementProcessor;
 using feature::template_::BlockAgeProcessor;
 using feature::template_::BlockIgnoreStructureProcessor;
 using feature::template_::BlockMatchRuleTest;
 using feature::template_::BlockStateMatchRuleTest;
+using feature::template_::CappedStructureProcessor;
 using feature::template_::GravityStructureProcessor;
 using feature::template_::IntegrityProcessor;
 using feature::template_::JigsawReplacementStructureProcessor;
 using feature::template_::LavaSubmergingProcessor;
+using feature::template_::LinearPosRuleTest;
 using feature::template_::NopStructureProcessor;
 using feature::template_::RandomBlockMatchRuleTest;
 using feature::template_::RandomBlockStateMatchRuleTest;
@@ -217,6 +221,113 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
 
     spdlog::warn("ProcessorListLoader: unknown predicate_type '{}', using always_true", predicateType);
     return std::make_unique<AlwaysTrueRuleTest>();
+}
+
+/**
+ * @brief 从 JSON 解析位置谓词 (PosRuleTest)
+ *
+ * JSON 格式：
+ *   { "predicate_type": "minecraft:always_true" }
+ *   { "predicate_type": "minecraft:linear_pos", "min_chance": 0.0, "max_chance": 1.0, "min_dist": 0, "max_dist": 10 }
+ *   { "predicate_type": "minecraft:axis_aligned_linear_pos", "min_chance": 0.0, "max_chance": 0.05, "min_dist": 0,
+ * "max_dist": 100, "axis": "y" }
+ */
+std::unique_ptr<feature::template_::PosRuleTest> _parsePosRuleTest(const nlohmann::json& predicateObj)
+{
+    if (!predicateObj.contains("predicate_type") || !predicateObj["predicate_type"].is_string()) {
+        spdlog::warn("ProcessorListLoader: pos_predicate missing 'predicate_type', using always_true");
+        return std::make_unique<AlwaysTruePosRuleTest>();
+    }
+
+    std::string predicateType = predicateObj["predicate_type"].get<std::string>();
+
+    // 移除 minecraft: 前缀
+    if (predicateType.size() > 10 && predicateType.substr(0, 10) == "minecraft:") {
+        predicateType = predicateType.substr(10);
+    }
+
+    if (predicateType == "always_true") {
+        return std::make_unique<AlwaysTruePosRuleTest>();
+    }
+
+    if (predicateType == "linear_pos") {
+        // min_chance/max_chance (f32, 默认 0.0), min_dist/max_dist (i32, 默认 0)
+        f32 minChance = 0.0f;
+        f32 maxChance = 0.0f;
+        i32 minDist = 0;
+        i32 maxDist = 0;
+
+        if (predicateObj.contains("min_chance") && predicateObj["min_chance"].is_number()) {
+            minChance = predicateObj["min_chance"].get<f32>();
+        }
+        if (predicateObj.contains("max_chance") && predicateObj["max_chance"].is_number()) {
+            maxChance = predicateObj["max_chance"].get<f32>();
+        }
+        if (predicateObj.contains("min_dist") && predicateObj["min_dist"].is_number()) {
+            minDist = predicateObj["min_dist"].get<i32>();
+        }
+        if (predicateObj.contains("max_dist") && predicateObj["max_dist"].is_number()) {
+            maxDist = predicateObj["max_dist"].get<i32>();
+        }
+
+        // min_dist >= maxDist 时回退到 always_true
+        if (minDist >= maxDist) {
+            spdlog::warn(
+                "ProcessorListLoader: linear_pos min_dist ({}) >= max_dist ({}), using always_true", minDist, maxDist);
+            return std::make_unique<AlwaysTruePosRuleTest>();
+        }
+
+        return std::make_unique<LinearPosRuleTest>(minDist, maxDist, minChance, maxChance);
+    }
+
+    if (predicateType == "axis_aligned_linear_pos") {
+        // min_chance/max_chance (f32, 默认 0.0), min_dist/max_dist (i32, 默认 0), axis (默认 Y)
+        f32 minChance = 0.0f;
+        f32 maxChance = 0.0f;
+        i32 minDist = 0;
+        i32 maxDist = 0;
+        Axis axis = Axis::Y; // 默认轴为 Y
+
+        if (predicateObj.contains("min_chance") && predicateObj["min_chance"].is_number()) {
+            minChance = predicateObj["min_chance"].get<f32>();
+        }
+        if (predicateObj.contains("max_chance") && predicateObj["max_chance"].is_number()) {
+            maxChance = predicateObj["max_chance"].get<f32>();
+        }
+        if (predicateObj.contains("min_dist") && predicateObj["min_dist"].is_number()) {
+            minDist = predicateObj["min_dist"].get<i32>();
+        }
+        if (predicateObj.contains("max_dist") && predicateObj["max_dist"].is_number()) {
+            maxDist = predicateObj["max_dist"].get<i32>();
+        }
+        if (predicateObj.contains("axis") && predicateObj["axis"].is_string()) {
+            std::string axisStr = predicateObj["axis"].get<std::string>();
+            if (axisStr == "x") {
+                axis = Axis::X;
+            } else if (axisStr == "y") {
+                axis = Axis::Y;
+            } else if (axisStr == "z") {
+                axis = Axis::Z;
+            } else {
+                spdlog::warn(
+                    "ProcessorListLoader: axis_aligned_linear_pos unknown axis '{}', defaulting to Y", axisStr);
+            }
+        }
+
+        // min_dist >= maxDist 时回退到 always_true
+        if (minDist >= maxDist) {
+            spdlog::warn(
+                "ProcessorListLoader: axis_aligned_linear_pos min_dist ({}) >= max_dist ({}), using always_true",
+                minDist,
+                maxDist);
+            return std::make_unique<AlwaysTruePosRuleTest>();
+        }
+
+        return std::make_unique<AxisAlignedLinearPosTest>(minChance, maxChance, minDist, maxDist, axis);
+    }
+
+    spdlog::warn("ProcessorListLoader: unknown pos_predicate_type '{}', using always_true", predicateType);
+    return std::make_unique<AlwaysTruePosRuleTest>();
 }
 
 } // namespace
@@ -517,8 +628,7 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseRuleProcessor(con
         // 解析 pos_predicate（可选）
         std::unique_ptr<feature::template_::PosRuleTest> posPredicate;
         if (ruleObj.contains("pos_predicate") && ruleObj["pos_predicate"].is_object()) {
-            // TODO: 解析 linear_pos 和 axis_aligned_linear_pos 位置谓词
-            posPredicate = std::make_unique<AlwaysTruePosRuleTest>();
+            posPredicate = _parsePosRuleTest(ruleObj["pos_predicate"]);
         } else {
             posPredicate = std::make_unique<AlwaysTruePosRuleTest>();
         }
@@ -592,20 +702,49 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(c
     // capped 处理器：限制内部处理器应用次数的上限
     // JSON: { "processor_type": "minecraft:capped", "delegate": {...}, "limit": 4 }
     // delegate 是嵌套的处理器定义，limit 是最大应用次数
-    // TODO: 实现 CappedStructureProcessor 以支持次数限制
-    // 当前使用 delegate 处理器但不限制次数，作为近似实现
-    if (processorObj.contains("delegate") && processorObj["delegate"].is_object()) {
-        auto delegateProcessor = _parseProcessor(processorObj["delegate"]);
-        if (delegateProcessor) {
-            // 返回 delegate 处理器（不限制次数）
-            // 完整实现需要 CappedStructureProcessor 包装器
-            spdlog::info("capped processor: limit not enforced, using delegate processor directly");
-            return delegateProcessor;
+    // 对齐 MC Java 版 CappedProcessor：在 finalizeProcessing 阶段随机选取位置调用 delegate，
+    // 限制成功替换的次数不超过 limit
+    if (!processorObj.contains("delegate") || !processorObj["delegate"].is_object()) {
+        spdlog::warn("capped processor: missing or invalid 'delegate' field, using nop processor");
+        return std::make_unique<NopStructureProcessor>();
+    }
+
+    auto delegateProcessor = _parseProcessor(processorObj["delegate"]);
+    if (!delegateProcessor) {
+        spdlog::warn("capped processor: failed to parse delegate processor, using nop processor");
+        return std::make_unique<NopStructureProcessor>();
+    }
+
+    // 解析 limit 参数
+    // TODO: MC 原版使用 IntProvider（支持 constant/uniform/binomial 等随机范围），
+    //       当前仅支持固定整数值和 constant 类型 IntProvider，需要实现完整 IntProvider 解析
+    i32 limit = 4;
+    if (processorObj.contains("limit")) {
+        if (processorObj["limit"].is_number_integer()) {
+            limit = processorObj["limit"].get<i32>();
+            if (limit < 0) {
+                spdlog::warn("capped processor: negative limit {}, clamping to 0", limit);
+                limit = 0;
+            }
+        } else if (processorObj["limit"].is_object()) {
+            // IntProvider 格式: { "type": "minecraft:constant", "value": 4 }
+            // 或 { "type": "minecraft:uniform", "min_inclusive": 2, "max_inclusive": 6 }
+            // 当前仅支持 constant 类型
+            if (processorObj["limit"].contains("value") && processorObj["limit"]["value"].is_number_integer()) {
+                limit = processorObj["limit"]["value"].get<i32>();
+                if (limit < 0) {
+                    spdlog::warn("capped processor: negative limit {}, clamping to 0", limit);
+                    limit = 0;
+                }
+            } else {
+                spdlog::info("capped processor: unsupported IntProvider format for limit, using default value 4");
+            }
+        } else {
+            spdlog::info("capped processor: invalid limit type, using default value 4");
         }
     }
 
-    spdlog::info("capped processor: no valid delegate, using nop processor");
-    return std::make_unique<NopStructureProcessor>();
+    return std::make_unique<CappedStructureProcessor>(std::move(delegateProcessor), limit);
 }
 
 } // namespace jigsaw

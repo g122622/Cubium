@@ -77,34 +77,37 @@ void StatRegistry::_registerAllEntities()
 void StatRegistry::_registerAllCustomStats()
 {
     // 注册所有自定义统计
+    // 与 MC Java 1.21.11 Stats.java 对齐，常量定义在 common/stats/Stats.hpp 中
 
     // ========== 时间相关 ==========
-    registerCustomStat(ResourceLocation("minecraft:play_one_minute"));
-    registerCustomStat(ResourceLocation("minecraft:play_time")); // 1.17+
+    registerCustomStat(ResourceLocation("minecraft:play_time"));
     registerCustomStat(ResourceLocation("minecraft:total_world_time"));
 
     // ========== 距离相关（单位：厘米）==========
     registerCustomStat(ResourceLocation("minecraft:walk_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:sprint_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:swim_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:walk_on_water_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:walk_under_water_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:fall_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:climb_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:fly_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:dive_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:crouch_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:minecart_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:boat_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:pig_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:happy_ghast_one_cm"));
     registerCustomStat(ResourceLocation("minecraft:horse_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:aviate_one_cm")); // 鞘翅飞行
-    registerCustomStat(ResourceLocation("minecraft:llama_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:stride_one_cm")); // 炽足兽
-    registerCustomStat(ResourceLocation("minecraft:crouch_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:sneak_time")); // 潜行时间（tick）
+    registerCustomStat(ResourceLocation("minecraft:aviate_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:strider_one_cm"));
+    registerCustomStat(ResourceLocation("minecraft:nautilus_one_cm"));
 
     // ========== 动作计数 ==========
     registerCustomStat(ResourceLocation("minecraft:jump"));
     registerCustomStat(ResourceLocation("minecraft:drop"));
     registerCustomStat(ResourceLocation("minecraft:damage_dealt"));
+    registerCustomStat(ResourceLocation("minecraft:damage_dealt_absorbed"));
+    registerCustomStat(ResourceLocation("minecraft:damage_dealt_resisted"));
     registerCustomStat(ResourceLocation("minecraft:damage_taken"));
     registerCustomStat(ResourceLocation("minecraft:damage_blocked_by_shield"));
     registerCustomStat(ResourceLocation("minecraft:damage_absorbed"));
@@ -117,81 +120,57 @@ void StatRegistry::_registerAllCustomStats()
     registerCustomStat(ResourceLocation("minecraft:talked_to_villager"));
     registerCustomStat(ResourceLocation("minecraft:traded_with_villager"));
     registerCustomStat(ResourceLocation("minecraft:eat_cake_slice"));
+    registerCustomStat(ResourceLocation("minecraft:enchant_item"));
+
+    // ========== 容器交互 ==========
+    registerCustomStat(ResourceLocation("minecraft:open_barrel"));
+    registerCustomStat(ResourceLocation("minecraft:open_chest"));
+    registerCustomStat(ResourceLocation("minecraft:open_enderchest"));
+    registerCustomStat(ResourceLocation("minecraft:open_shulker_box"));
+
+    // ========== 方块交互 ==========
+    registerCustomStat(ResourceLocation("minecraft:interact_with_anvil"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_beacon"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_blast_furnace"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_brewingstand"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_campfire"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_cartography_table"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_crafting_table"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_furnace"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_grindstone"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_lectern"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_loom"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_smithing_table"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_smoker"));
+    registerCustomStat(ResourceLocation("minecraft:interact_with_stonecutter"));
+
+    // ========== 物品/方块操作 ==========
     registerCustomStat(ResourceLocation("minecraft:fill_cauldron"));
     registerCustomStat(ResourceLocation("minecraft:use_cauldron"));
     registerCustomStat(ResourceLocation("minecraft:clean_armor"));
     registerCustomStat(ResourceLocation("minecraft:clean_banner"));
     registerCustomStat(ResourceLocation("minecraft:clean_shulker_box"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_crafting_table"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_furnace"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_blast_furnace"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_smoker"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_brewingstand"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_beacon"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_anvil"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_grindstone"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_cartography_table"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_loom"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_stonecutter"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_smithing_table"));
+    registerCustomStat(ResourceLocation("minecraft:play_record"));
+    registerCustomStat(ResourceLocation("minecraft:play_noteblock"));
+    registerCustomStat(ResourceLocation("minecraft:tune_noteblock"));
+    registerCustomStat(ResourceLocation("minecraft:pot_flower"));
+    registerCustomStat(ResourceLocation("minecraft:trigger_trapped_chest"));
+    registerCustomStat(ResourceLocation("minecraft:inspect_dispenser"));
+    registerCustomStat(ResourceLocation("minecraft:inspect_dropper"));
+    registerCustomStat(ResourceLocation("minecraft:inspect_hopper"));
+
+    // ========== 游戏事件 ==========
     registerCustomStat(ResourceLocation("minecraft:bell_ring"));
     registerCustomStat(ResourceLocation("minecraft:raid_trigger"));
     registerCustomStat(ResourceLocation("minecraft:raid_win"));
     registerCustomStat(ResourceLocation("minecraft:sleep_in_bed"));
-    registerCustomStat(ResourceLocation("minecraft:open_chest"));
-    registerCustomStat(ResourceLocation("minecraft:open_enderchest"));
-    registerCustomStat(ResourceLocation("minecraft:open_shulker_box"));
-    registerCustomStat(ResourceLocation("minecraft:open_barrel"));
-    registerCustomStat(ResourceLocation("minecraft:inspect_dispenser"));
-    registerCustomStat(ResourceLocation("minecraft:inspect_dropper"));
-    registerCustomStat(ResourceLocation("minecraft:inspect_hopper"));
-    registerCustomStat(ResourceLocation("minecraft:ender_pearls_used"));
-    registerCustomStat(ResourceLocation("minecraft:firework_rocket_used"));
-    registerCustomStat(ResourceLocation("minecraft:record_played"));
-    registerCustomStat(ResourceLocation("minecraft:noteblock_played"));
-    registerCustomStat(ResourceLocation("minecraft:noteblock_tuned"));
-    registerCustomStat(ResourceLocation("minecraft:flower_potted"));
-    registerCustomStat(ResourceLocation("minecraft:trapped_chest_triggered"));
-    registerCustomStat(ResourceLocation("minecraft:beacon_interaction"));
-
-    // ========== 目标相关 ==========
     registerCustomStat(ResourceLocation("minecraft:target_hit"));
 
-    // ========== 物品交互 ==========
-    registerCustomStat(ResourceLocation("minecraft:interact_with_blast_furnace"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_smoker"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_lectern"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_campfire"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_composter"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_barrel"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_smithing_table"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_stonecutter"));
-
     // ========== 其他 ==========
+    registerCustomStat(ResourceLocation("minecraft:sneak_time"));
     registerCustomStat(ResourceLocation("minecraft:leave_game"));
     registerCustomStat(ResourceLocation("minecraft:time_since_death"));
     registerCustomStat(ResourceLocation("minecraft:time_since_rest"));
-    registerCustomStat(ResourceLocation("minecraft:sneak_time"));
-    registerCustomStat(ResourceLocation("minecraft:walk_under_water_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:walk_on_water_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:boat_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:aviate_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:horse_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:llama_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:pig_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:minecart_one_cm"));
-    registerCustomStat(ResourceLocation("minecraft:trigger_trapped_chest"));
-    registerCustomStat(ResourceLocation("minecraft:open_barrel"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_beacon"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_brewingstand"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_crafting_table"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_furnace"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_anvil"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_grindstone"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_cartography_table"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_loom"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_stonecutter"));
-    registerCustomStat(ResourceLocation("minecraft:interact_with_smithing_table"));
 }
 
 void StatRegistry::registerMinedStat(const ResourceLocation& blockId)

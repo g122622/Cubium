@@ -25,6 +25,7 @@
 
 #include "TameableEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include <memory>
 
 namespace mc {
@@ -71,7 +72,19 @@ public:
      */
     static std::unique_ptr<Entity> create(IWorld* world);
 
-    // ========== 驯服系统 ==========
+    // ========== 交互 ==========
+
+    /**
+     * @brief 玩家与狼交互
+     *
+     * 交互逻辑（按优先级）：
+     * 1. 未驯服 + 骨头 → 尝试驯服（1/3概率）
+     * 2. 已驯服 + 食物 + 未满血 → 喂食治疗
+     * 3. 已驯服 + 染料 + 是主人 → 改变颈圈颜色
+     * 4. 已驯服 + 调用父类（处理繁殖/成长）
+     * 5. 已驯服 + 是主人 + 父类未处理 → 切换坐下/站起
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
     /**
      * @brief 检查物品是否可用于驯服
@@ -149,15 +162,15 @@ public:
 
     /**
      * @brief 获取颈圈颜色
-     * @return 颜色ID（0-15）
+     * @return 染料颜色
      */
-    [[nodiscard]] u8 getCollarColor() const { return m_collarColor; }
+    [[nodiscard]] DyeColor getCollarColor() const { return m_collarColor; }
 
     /**
      * @brief 设置颈圈颜色
-     * @param color 颜色ID（0-15）
+     * @param color 染料颜色
      */
-    void setCollarColor(u8 color) { m_collarColor = color; }
+    void setCollarColor(DyeColor color) { m_collarColor = color; }
 
     // ========== 水域行为 ==========
 
@@ -224,8 +237,8 @@ private:
     // 兴趣状态（乞求食物）
     bool m_interested = false;
 
-    // 颈圈颜色（0-15，对应16种染色）
-    u8 m_collarColor = 14; // 默认红色
+    // 颈圈颜色（默认红色，对应 DyeColor::Red = 14）
+    DyeColor m_collarColor = DyeColor::Red;
 
     // 常量
     static constexpr f32 TAIL_ANGLE_HEALTHY = 0.698f;    // 健康时尾巴角度（弧度）
@@ -235,6 +248,34 @@ private:
     bool m_wasInWater = false;
     f32 m_stepSoundDistance = 0.0f;
     f32 m_nextStepSoundDistance = 1.0f;
+
+    // ========== 私有辅助方法 ==========
+
+    /**
+     * @brief 尝试驯服狼
+     * @param player 尝试驯服的玩家
+     *
+     * 1/3 概率驯服成功，成功时设置驯服状态和主人，
+     * 广播 TamingSucceeded/TamingFailed 粒子效果。
+     */
+    void _tryToTame(Player& player);
+
+    /**
+     * @brief 获取狼食物的治疗量
+     * @param item 食物物品
+     * @return 治疗量（生命值），非食物返回 0
+     *
+     * MC 原版中治疗量为 2.0 * food.nutrition，
+     * 此处使用硬编码映射近似 MC 原版的营养值。
+     */
+    [[nodiscard]] f32 _getFoodHealAmount(const Item* item) const;
+
+    /**
+     * @brief 获取染料物品对应的颜色
+     * @param item 物品指针
+     * @return 对应的 DyeColor，如果不是染料返回 std::nullopt
+     */
+    [[nodiscard]] static std::optional<DyeColor> _getDyeColorFromItem(const Item* item);
 };
 
 } // namespace mc

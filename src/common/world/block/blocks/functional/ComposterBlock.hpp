@@ -141,11 +141,10 @@ public:
     [[nodiscard]] static f32 getCompostChance(u32 itemId);
 
 protected:
-    /// 各等级的形状缓存
+    /// 各等级的渲染形状缓存（等级0-8，等级8与等级7相同）
+    /// 形状为完整方块减去内部12像素宽柱体后的外壁：底板 + 四面墙壁
+    /// MC Java: Shapes.join(Shapes.block(), Block.column(12, clamp(1+level*2, 2, 16), 16), ONLY_FIRST)
     std::array<CollisionShape, 9> m_shapesByLevel;
-
-    /// 碰撞形状（等级0的形状）
-    CollisionShape m_collisionShape;
 };
 
 } // namespace blocks

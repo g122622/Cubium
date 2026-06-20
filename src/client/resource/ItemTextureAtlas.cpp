@@ -22,6 +22,7 @@
  */
 
 #include "ItemTextureAtlas.hpp"
+#include "ResourceManager.hpp"
 #include "TextureAtlasBuilder.hpp"
 #include "client/renderer/trident/util/VulkanUtils.hpp"
 #include "common/item/core/Item.hpp"
@@ -343,19 +344,30 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
 
     // 遍历所有物品并尝试加载纹理。
     // 规则：优先 textures/item/<item>，若是方块物品再回退到 block 纹理。
+    // 使用 ResourceManager::getAltTexturePath() 集中化路径变体转换，消除硬编码回退逻辑。
     ItemRegistry::instance().forEachItem([&](Item& item) {
         const ResourceLocation& itemId = item.itemLocation();
         const ResourceLocation atlasKey(itemId.namespace_(), "textures/item/" + itemId.path());
 
+        // 构建候选路径列表：现代路径 + getAltTexturePath() 自动计算的旧版路径变体
         std::vector<ResourceLocation> sourceCandidates;
-        sourceCandidates.emplace_back(itemId.namespace_(), "textures/item/" + itemId.path());
-        sourceCandidates.emplace_back(itemId.namespace_(), "textures/items/" + itemId.path());
+        sourceCandidates.push_back(atlasKey);
+
+        std::string altItemPath = ResourceManager::getAltTexturePath(atlasKey.path());
+        if (!altItemPath.empty()) {
+            sourceCandidates.emplace_back(itemId.namespace_(), std::move(altItemPath));
+        }
 
         const BlockItem* blockItem = dynamic_cast<const BlockItem*>(&item);
         if (blockItem != nullptr) {
             const ResourceLocation& blockId = blockItem->block().blockLocation();
-            sourceCandidates.emplace_back(blockId.namespace_(), "textures/block/" + blockId.path());
-            sourceCandidates.emplace_back(blockId.namespace_(), "textures/blocks/" + blockId.path());
+            ResourceLocation blockLoc(blockId.namespace_(), "textures/block/" + blockId.path());
+            sourceCandidates.push_back(blockLoc);
+
+            std::string altBlockPath = ResourceManager::getAltTexturePath(blockLoc.path());
+            if (!altBlockPath.empty()) {
+                sourceCandidates.emplace_back(blockId.namespace_(), std::move(altBlockPath));
+            }
         }
 
         if (tryLoadToBuilder(atlasKey, sourceCandidates)) {
@@ -401,14 +413,25 @@ Result<void> ItemTextureAtlas::loadFromResourcePacks(const std::vector<std::shar
 
         m_regionsByLocation[atlasKey] = region;
         m_regionsByLocation[ResourceLocation(itemId.namespace_(), "item/" + itemId.path())] = region;
-        m_regionsByLocation[ResourceLocation(itemId.namespace_(), "textures/items/" + itemId.path())] = region;
+
+        // 使用 getAltTexturePath() 自动注册路径变体别名（如 textures/items/ 旧版路径）
+        std::string altItemPath = ResourceManager::getAltTexturePath(atlasKey.path());
+        if (!altItemPath.empty()) {
+            m_regionsByLocation[ResourceLocation(itemId.namespace_(), std::move(altItemPath))] = region;
+        }
 
         const BlockItem* blockItem = dynamic_cast<const BlockItem*>(&item);
         if (blockItem != nullptr) {
             const ResourceLocation& blockId = blockItem->block().blockLocation();
             m_regionsByLocation[ResourceLocation(blockId.namespace_(), "block/" + blockId.path())] = region;
-            m_regionsByLocation[ResourceLocation(blockId.namespace_(), "textures/block/" + blockId.path())] = region;
-            m_regionsByLocation[ResourceLocation(blockId.namespace_(), "textures/blocks/" + blockId.path())] = region;
+
+            ResourceLocation blockTextureLoc(blockId.namespace_(), "textures/block/" + blockId.path());
+            m_regionsByLocation[blockTextureLoc] = region;
+
+            std::string altBlockPath = ResourceManager::getAltTexturePath(blockTextureLoc.path());
+            if (!altBlockPath.empty()) {
+                m_regionsByLocation[ResourceLocation(blockId.namespace_(), std::move(altBlockPath))] = region;
+            }
         }
     });
 

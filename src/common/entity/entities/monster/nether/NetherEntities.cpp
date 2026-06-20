@@ -35,6 +35,7 @@
 #include "common/entity/ai/goal/goals/special/GhastGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -199,8 +200,8 @@ void MagmaCubeEntity::setSlimeSize(i32 size, bool resetHealth)
 bool MagmaCubeEntity::canDamagePlayer() const
 {
     // 小型岩浆怪也能伤害玩家（与史莱姆不同）
-    auto* nonConstWorld = const_cast<IWorld*>(world());
-    return nonConstWorld != nullptr && !nonConstWorld->isClientSide();
+    const IWorld* worldPtr = world();
+    return worldPtr != nullptr && !worldPtr->isClientSide();
 }
 
 f32 MagmaCubeEntity::getAttackDamage() const
@@ -351,10 +352,9 @@ void PiglinEntity::shootCrossbow(LivingEntity* target, ItemStack& crossbow, f32 
     // 确定速度
     f32 velocity = 3.15f; // 箭矢速度
 
-    // 计算不精确度
-    // TODO: 根据难度调整不精确度 (14 - difficulty.getId() * 4)
-    // 目前简化为固定值 6（普通难度）
-    f32 inaccuracy = 6.0f;
+    // 计算不精确度：14 - difficulty.getId() * 4
+    // Peaceful=14, Easy=10, Normal=6, Hard=2
+    f32 inaccuracy = entity::combat::DifficultyHelper::getRangedAttackInaccuracy(m_world->difficulty());
 
     // 创建箭矢实体
     auto arrow = std::make_unique<entity::ArrowEntity>(EntityId(0));

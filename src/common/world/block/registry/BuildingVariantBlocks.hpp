@@ -61,6 +61,11 @@ struct BuildingVariantBlocks {
 
     // 栅栏
     static Block* OAK_FENCE;
+    static Block* SPRUCE_FENCE;
+    static Block* BIRCH_FENCE;
+    static Block* JUNGLE_FENCE;
+    static Block* ACACIA_FENCE;
+    static Block* DARK_OAK_FENCE;
 
     // 门和栅栏门
     static Block* OAK_DOOR;

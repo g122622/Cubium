@@ -27,6 +27,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/TimeUtils.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
@@ -62,32 +63,6 @@ std::string getCurrentTimeString()
 
     std::ostringstream ss;
     ss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S %z");
-    return ss.str();
-}
-
-/**
- * @brief 从用户名生成临时 UUID
- * @param name 用户名
- * @return UUID 字符串
- */
-std::string generateUuidFromName(const std::string& name)
-{
-    std::hash<std::string> hasher;
-    size_t hash = hasher(name);
-
-    std::ostringstream ss;
-    ss << std::hex;
-
-    ss << ((hash >> 0) & 0xFFFFFFFF);
-    ss << "-";
-    ss << ((hash >> 32) & 0xFFFF);
-    ss << "-";
-    ss << ((hash >> 48) & 0xFFFF);
-    ss << "-";
-    ss << ((hasher(name + "salt1") >> 0) & 0xFFFF);
-    ss << "-";
-    ss << ((hasher(name + "salt2") >> 0) & 0xFFFFFFFFFFFF);
-
     return ss.str();
 }
 
@@ -143,7 +118,14 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
             auto* playerData = server->playerManager().getPlayer(playerId);
             if (playerData != nullptr) {
                 playerName = playerData->username;
-                playerUuid = playerData->uuid;
+                // 在线玩家使用其真实 UUID
+                // ServerPlayerData::uuid 存储为 32 字符无连字符格式，
+                // 封禁列表 JSON 使用带连字符的标准格式，需要转换
+                const auto& rawUuid = playerData->uuid;
+                if (!rawUuid.empty()) {
+                    Uuid parsed = util::uuidFromString(rawUuid);
+                    playerUuid = util::uuidToStringWithDashes(parsed);
+                }
             }
         }
     }
@@ -151,8 +133,10 @@ i32 BanCommand::_banPlayer(CommandContext<ServerCommandSource>& context)
     // 如果玩家不在线，尝试从选择器获取用户名
     if (playerName.empty() && selector.hasUsername()) {
         playerName = selector.username();
-        // 离线玩家使用生成的 UUID
-        playerUuid = generateUuidFromName(playerName);
+        // 离线玩家使用 MC 原版离线模式 UUID 算法
+        // 算法：UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(UTF_8))
+        // 参考: net.minecraft.core.UUIDUtil.createOfflinePlayerUUID
+        playerUuid = util::uuidToStringWithDashes(util::generateOfflineUuid(playerName));
     }
 
     if (playerName.empty()) {

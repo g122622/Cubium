@@ -33,6 +33,7 @@
 #include "HarvestTool.hpp"
 #include "IBlockAnimateContext.hpp"
 #include "Material.hpp"
+#include "world/biome/BiomeClimate.hpp"
 #include "world/map/MaterialColor.hpp"
 #include <functional>
 #include <memory>
@@ -815,6 +816,20 @@ public:
     [[nodiscard]] virtual const CollisionShape& getOcclusionShape(const BlockState& state) const;
 
     /**
+     * @brief 获取方块支撑形状
+     *
+     * 支撑形状用于判断方块面是否足够坚固以支撑其他方块放置。
+     * 默认返回碰撞形状。某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，
+     * 但支撑形状是完整方块，因此需要在子类中重写此方法。
+     *
+     * 参考: net.minecraft.block.Block#getBlockSupportShape
+     *
+     * @param state 方块状态
+     * @return 支撑形状引用
+     */
+    [[nodiscard]] virtual const CollisionShape& getBlockSupportShape(const BlockState& state) const;
+
+    /**
      * @brief 获取指定面的遮挡形状
      *
      * 用于光照遮挡检测。返回方块在指定方向上的投影形状。
@@ -1013,6 +1028,30 @@ public:
      * @param state 方块状态
      */
     virtual void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 玩家即将破坏方块时调用
+     *
+     * 在方块被破坏之前调用，允许方块在破坏前执行逻辑（如级联销毁关联方块）。
+     * 与 onBlockRemoved 的区别：此方法接收玩家信息，可区分创造/生存模式。
+     * onBlockRemoved 在方块状态变更后调用，不包含玩家上下文。
+     *
+     * 默认实现为空。需要特殊行为的方块应重写此方法。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 方块状态（破坏前的状态）
+     * @param player 破坏方块的玩家
+     *
+     * 参考: net.minecraft.block.Block#playerWillDestroy
+     */
+    virtual void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+    {
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        MC_UNUSED(state);
+        MC_UNUSED(player);
+    }
 
     /**
      * @brief 方块被破坏后的额外生成处理
@@ -1823,13 +1862,49 @@ public:
      *
      * 用于判断遮挡形状是否完全覆盖面，影响邻居方块的渲染。
      *
-     * 参考: net.minecraft.block.Block#doesSideFillSquare
+     * 参考: net.minecraft.block.Block#doesSideFillSquare (旧名)
+     * 等价于 net.minecraft.block.Block#isFaceFull (1.21.11)
      *
      * @param shape 面的遮挡形状
      * @param direction 面方向
      * @return 如果形状填充整个面返回 true
      */
     [[nodiscard]] static bool doesSideFillSquare(const CollisionShape& shape, Direction direction);
+
+    /**
+     * @brief 判断形状的指定面是否完全填充
+     *
+     * 提取形状在指定方向的面投影，然后判断投影是否覆盖整个单位方块面。
+     * 这是 isFaceSturdy 的核心判定逻辑。
+     *
+     * 参考: net.minecraft.block.Block#isFaceFull
+     *
+     * @param shape 3D 形状（通常是碰撞形状或支撑形状）
+     * @param direction 要检查的面方向
+     * @return 如果面的投影覆盖整个 1x1 区域返回 true
+     */
+    [[nodiscard]] static bool isFaceFull(const CollisionShape& shape, Direction direction);
+
+    /**
+     * @brief 当方块碰撞形状增大时，将嵌入方块内的实体向上推出
+     *
+     * 计算 oldState 和 newState 之间的碰撞形状差异（新增部分），
+     * 找到与新形状重叠的实体，并将它们向上推出。
+     *
+     * 典型用途：
+     * - 雪层增加时推出站在上面的实体
+     * - 耕地变为泥土时推出上面的实体（FarmlandBlock::turnToDirt）
+     *
+     * 参考: net.minecraft.block.Block#pushEntitiesUp
+     *
+     * @param oldState 变化前的方块状态
+     * @param newState 变化后的方块状态
+     * @param world 世界接口
+     * @param pos 方块位置
+     * @return 变化后的方块状态（即 newState）
+     */
+    static const BlockState& pushEntitiesUp(
+        const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos);
 
     // ========================================================================
     // 攻击和交互
@@ -1882,9 +1957,13 @@ public:
      * @brief 实体摔落在方块上
      *
      * 当实体从高处摔落到方块上时调用。
-     * 用于实现耕地被踩踏变回泥土、蜂蜜块缓冲等效果。
+     * 默认实现调用 entity.causeFallDamage() 施加普通摔落伤害。
+     * 子类可重写此方法以自定义摔落行为：
+     * - 石笋方块：施加增大的石笋伤害，不调用父类方法（替代普通摔落伤害）
+     * - 海龟蛋方块：不调用父类方法（取消摔落伤害）
+     * - 耕地方块：先执行踩踏逻辑，再调用父类方法（保留普通摔落伤害）
      *
-     * 参考: net.minecraft.block.Block#onFallenUpon
+     * 参考: net.minecraft.block.Block#fallOn
      *
      * @param world 世界
      * @param pos 方块位置
@@ -1893,30 +1972,30 @@ public:
      * @param fallDistance 摔落距离
      */
     virtual void onFallenUpon(
-        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
-    {
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(state);
-        MC_UNUSED(entity);
-        MC_UNUSED(fallDistance);
-    }
+        IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance);
 
     /**
-     * @brief 雨水填充
+     * @brief 降水处理
      *
-     * 在下雨时每 tick 调用，用于实现炼药锅收集雨水等功能。
-     * 默认实现为空。
+     * 在降水 tick 中对每个降水位置调用，让方块响应降水（雨/雪）。
+     * 默认实现为空。方块可以重写此方法来响应降水，例如：
+     * - 炼药锅在雨天填充水、在雪天填充细雪
+     * - 避雷针在雷暴时被激活
      *
-     * 参考: net.minecraft.block.Block#fillWithRain
+     * 调用条件：世界正在下雨（isRaining()）且生物群系的降水类型不为 None。
+     *
+     * 参考: net.minecraft.block.Block#handlePrecipitation
      *
      * @param world 世界
      * @param pos 方块位置
+     * @param precipitation 降水类型（Rain / Snow）
      */
-    virtual void fillWithRain(IWorld& world, const BlockPos& pos)
+    virtual void handlePrecipitation(
+        IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation)
     {
         MC_UNUSED(world);
         MC_UNUSED(pos);
+        MC_UNUSED(precipitation);
     }
 
     /**

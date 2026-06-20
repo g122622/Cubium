@@ -260,6 +260,9 @@ MinecartRenderer::MinecartRenderer()
 void MinecartRenderer::render(Entity& entity, f64 partialTicks)
 {
     // TODO: 完整实现矿车渲染：方向计算、受损抖动、内容物（乘客/箱子/TNT等）渲染
+    // TODO: TNT矿车引燃闪烁效果：读取 ClientEntity::fuseTimer()，当 fuseTimer > 0 且 (fuseTimer / 5) % 2 == 0
+    // 时渲染白色闪烁叠加层，
+    //       闪烁缩放因子 = (1.0 - fuseTimer / 10.0)^4（参考 MC TntMinecartRenderer）
     m_model->setInsideOffset(0.0f);
     m_model->render(1.0 / 16.0);
     (void)entity;

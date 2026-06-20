@@ -104,6 +104,8 @@ struct RuleRegistry {
         registerBoolean("doFireTick", GameRuleCategory::Updates, true);
         registerBoolean("doDaylightCycle", GameRuleCategory::Updates, true);
         registerBoolean("doWeatherCycle", GameRuleCategory::Updates, true);
+        registerInteger("randomTickSpeed", GameRuleCategory::Updates, 3);
+        registerInteger("snowAccumulationHeight", GameRuleCategory::Updates, 1);
 
         // 聊天相关
         registerBoolean("commandBlockOutput", GameRuleCategory::Chat, true);
@@ -114,6 +116,7 @@ struct RuleRegistry {
 
         // 杂项
         registerBoolean("reducedDebugInfo", GameRuleCategory::Misc, false);
+        registerBoolean("tntExplodes", GameRuleCategory::Misc, true);
     }
 
     void registerIntegerRules()
@@ -196,6 +199,7 @@ const BooleanGameRuleKey DO_FIRE_TICK("doFireTick", GameRuleCategory::Updates);
 const BooleanGameRuleKey DO_DAYLIGHT_CYCLE("doDaylightCycle", GameRuleCategory::Updates);
 const IntegerGameRuleKey RANDOM_TICK_SPEED("randomTickSpeed", GameRuleCategory::Updates);
 const BooleanGameRuleKey DO_WEATHER_CYCLE("doWeatherCycle", GameRuleCategory::Updates);
+const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT("snowAccumulationHeight", GameRuleCategory::Updates);
 
 // 聊天相关
 const BooleanGameRuleKey COMMAND_BLOCK_OUTPUT("commandBlockOutput", GameRuleCategory::Chat);
@@ -206,6 +210,7 @@ const BooleanGameRuleKey ANNOUNCE_ADVANCEMENTS("announceAdvancements", GameRuleC
 
 // 杂项
 const BooleanGameRuleKey REDUCED_DEBUG_INFO("reducedDebugInfo", GameRuleCategory::Misc);
+const BooleanGameRuleKey TNT_EXPLODES("tntExplodes", GameRuleCategory::Misc);
 const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH("maxCommandChainLength", GameRuleCategory::Misc);
 
 } // namespace GameRuleKeys

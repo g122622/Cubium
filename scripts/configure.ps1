@@ -71,8 +71,16 @@ if ($Build) {
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Write-Host ""
     Write-Host "Building..."
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     & cmake --build --preset $Preset
-    exit $LASTEXITCODE
+    $buildExit = $LASTEXITCODE
+    $sw.Stop()
+    $duration = "{0:00}:{1:00}" -f [math]::Floor($sw.Elapsed.TotalMinutes), $sw.Elapsed.Seconds
+    Write-Host ""
+    Write-Host "=== Build Summary ===" -ForegroundColor Cyan
+    Write-Host "  Duration:  $duration" -ForegroundColor Cyan
+    Write-Host "  Exit code: $buildExit" -ForegroundColor Cyan
+    exit $buildExit
 }
 
 if ($CmakeArgs) {

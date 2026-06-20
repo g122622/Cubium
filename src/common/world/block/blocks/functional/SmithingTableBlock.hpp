@@ -33,6 +33,7 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
 
 namespace blocks {
 
@@ -57,6 +58,21 @@ public:
     // ========== 形状 ==========
 
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 处理玩家右键交互
+     *
+     * 打开锻造台GUI并记录交互统计。
+     * 参考: MC Java SmithingTableBlock.useWithoutItem()
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     /// 锻造台形状

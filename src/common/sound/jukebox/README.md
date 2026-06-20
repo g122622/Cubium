@@ -59,6 +59,7 @@
         使用 `DataComponents.JUKEBOX_PLAYABLE` 附加到物品上关联歌曲，本项目通过 `MusicDiscItem::
             getSoundEventId()` + `JukeboxSongs::getSongBySoundEvent()` 查找。 3. *
             *游戏事件**：MC 的 `GameEvent.JUKEBOX_PLAY
-            / JUKEBOX_STOP_PLAY` 在本项目中标记为 TODO，待游戏事件系统实现后补充。 4. *
+            / JUKEBOX_STOP_PLAY` 已通过 `IWorld::gameEvent()` 接口实现，当前 ServerWorld 中的
+            `gameEvent()` 方法为空操作占位，待 GameEventDispatcher 和幽匿感测体系统实现后将自动生效。 4. *
             *播放事件**：MC 使用歌曲注册表ID作为 `levelEvent(
                 1010, pos, id)` 的 data 参数，本项目使用比较器输出信号强度（兼容旧版协议）。

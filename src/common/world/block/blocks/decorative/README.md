@@ -17,6 +17,8 @@ decorative/
 ├── ScaffoldingBlock.hpp/cpp    # 脚手架（攀爬、距离支撑计算、含水支持）
 ├── CampfireBlock.hpp/cpp       # 营火（烹饪、光照、信号火、含水支持）
 ├── BannerBlock.hpp/cpp         # 旗帜（站立式+墙壁式、含水支持）
+├── TorchBlock.hpp/cpp          # 火把（地面放置、火焰/烟雾粒子）
+├── WallTorchBlock.hpp/cpp      # 墙上火把（墙面附着、方向碰撞箱、偏移粒子）
 └── README.md
 ```
 
@@ -49,6 +51,7 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 - **PaneBlock**: 玻璃板/铁栏杆共享连接逻辑，形状按4位连接掩码缓存为16种组合
 - **BannerBlock**: 抽象基类 `AbstractBannerBlock` 派生 `StandingBannerBlock`（16方向旋转）和 `WallBannerBlock`（4方向水平朝向）
 - **CampfireBlock**: 派生 `SoulCampfireBlock`（灵魂营火，光照10 vs 普通15）
+- **TorchBlock/WallTorchBlock**: 继承关系，WallTorchBlock 继承 TorchBlock 添加 HORIZONTAL_FACING 属性；普通火把用 Flame 粒子，灵魂火把用 SoulFireFlame 粒子
 
 ## 上下游外部依赖关系
 
@@ -105,3 +108,8 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 ### IWaterLoggable 实现
 - **坑**: 所有含水方块必须在 `updatePostPlacement` 中处理水流体状态变化
 - **解**: 调用 `getFluidState()` 返回水状态，并在邻居更新时调度水 tick
+
+### TorchBlock/WallTorchBlock 放置与粒子
+- **坑**: 墙上火把的粒子位置需要根据 FACING 偏移，否则粒子出现在方块中心
+- **解**: 粒子 X/Z 偏移 `0.27 * oppositeDir.stepX/stepZ`，Y 偏移 `0.22`；火把放置验证用 `isSolidSide` 检查附着面
+- **坑**: TorchBlock 的 `isValidPosition` 检查下方方块的上表面是否坚固，`updatePostPlacement` 仅在 `Direction::Down` 变化时触发

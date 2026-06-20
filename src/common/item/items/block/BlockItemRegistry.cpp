@@ -606,7 +606,19 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 栅栏
     registerSimpleBlock(VanillaBlocks::OAK_FENCE, "oak_fence");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_FENCE, "spruce_fence");
+    registerSimpleBlock(VanillaBlocks::BIRCH_FENCE, "birch_fence");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_FENCE, "jungle_fence");
+    registerSimpleBlock(VanillaBlocks::ACACIA_FENCE, "acacia_fence");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_FENCE, "dark_oak_fence");
     registerSimpleBlock(VanillaBlocks::OAK_FENCE_GATE, "oak_fence_gate");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_FENCE_GATE, "spruce_fence_gate");
+    registerSimpleBlock(VanillaBlocks::BIRCH_FENCE_GATE, "birch_fence_gate");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_FENCE_GATE, "jungle_fence_gate");
+    registerSimpleBlock(VanillaBlocks::ACACIA_FENCE_GATE, "acacia_fence_gate");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_FENCE_GATE, "dark_oak_fence_gate");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_FENCE_GATE, "crimson_fence_gate");
+    registerSimpleBlock(VanillaBlocks::WARPED_FENCE_GATE, "warped_fence_gate");
 
     // 门和活板门
     registerSimpleBlock(VanillaBlocks::OAK_DOOR, "oak_door");
@@ -618,7 +630,12 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
     // REDSTONE_BLOCK 已在矿物方块中注册
     registerSimpleBlock(VanillaBlocks::TORCH, "torch");
+    // 墙上变体映射到同一物品
+    registerSimpleBlock(VanillaBlocks::WALL_TORCH, "torch");
     registerSimpleBlock(VanillaBlocks::REDSTONE_TORCH, "redstone_torch");
+    registerSimpleBlock(VanillaBlocks::REDSTONE_WALL_TORCH, "redstone_torch");
+    registerSimpleBlock(VanillaBlocks::SOUL_TORCH, "soul_torch");
+    registerSimpleBlock(VanillaBlocks::SOUL_WALL_TORCH, "soul_torch");
     registerSimpleBlock(VanillaBlocks::REDSTONE_LAMP, "redstone_lamp");
     registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "redstone_repeater");
     registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "redstone_comparator");
@@ -654,6 +671,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 其他未分类方块
     registerSimpleBlock(VanillaBlocks::DEAD_BUSH, "dead_bush");
     registerSimpleBlock(VanillaBlocks::TURTLE_EGG, "turtle_egg");
+    registerSimpleBlock(VanillaBlocks::BEE_NEST, "bee_nest");
+    registerSimpleBlock(VanillaBlocks::BEEHIVE, "beehive");
     registerSimpleBlock(VanillaBlocks::WARPED_WART_BLOCK, "warped_wart_block");
     registerSimpleBlock(VanillaBlocks::WEEPING_VINES, "weeping_vines");
     registerSimpleBlock(VanillaBlocks::TWISTING_VINES, "twisting_vines");

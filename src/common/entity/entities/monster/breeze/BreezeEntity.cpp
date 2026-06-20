@@ -32,6 +32,10 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 
@@ -99,12 +103,9 @@ bool BreezeEntity::canAttackType(entity::EntityTypeId typeId) const
 bool BreezeEntity::shouldDeflectProjectile(const entity::ProjectileEntity& projectile) const
 {
     // 风弹不应被偏转
-    // TODO(trial_chambers): 检查投射物是否是WindChargeEntity
-    // if (dynamic_cast<const WindChargeEntity*>(&projectile) != nullptr) {
-    //     return false;
-    // }
-    // return true;
-    (void)projectile;
+    if (dynamic_cast<const entity::WindChargeEntity*>(&projectile) != nullptr) {
+        return false;
+    }
     return true;
 }
 
@@ -118,15 +119,35 @@ void BreezeEntity::shootWindCharge()
         return;
     }
 
-    // TODO(trial_chambers): 完整实现风弹投掷逻辑
-    // 1. 创建WindChargeEntity
-    // 2. 设置射击者为this
-    // 3. 计算射击方向（朝向目标，加少量随机偏移）
-    // 4. 调用shoot()方法设定初速度
-    // 5. 将弹射物添加到世界
-    // 6. 设置射击冷却
-    // 7. 播放射击音效
+    // 计算从旋风人到目标的方向向量
+    // 旋风人发射位置：身体中心偏上0.3格
+    const f32 firingY = y() + height() * 0.5f + 0.3f;
+    const Vector3 firingPos(x(), firingY, z());
+    const Vector3 targetPos = m_attackTarget->position();
 
+    // 方向向量
+    const f32 dx = targetPos.x - firingPos.x;
+    const f32 dy = targetPos.y + m_attackTarget->height() * 0.5f - firingPos.y;
+    const f32 dz = targetPos.z - firingPos.z;
+
+    // 创建风弹弹射物实体（通过发射者类型自动判定为旋风人风弹）
+    auto entity = std::make_unique<entity::WindChargeEntity>(EntityId(0));
+    entity->setWorld(m_world);
+    entity->setPosition(firingPos.x, firingPos.y, firingPos.z);
+    entity->setShooter(this);
+
+    entity::WindChargeEntity* projectile = entity.get();
+    m_world->spawnEntity(std::move(entity));
+
+    // 设置射击参数：速度0.7，散布随难度降低（简单=1, 普通=1, 困难=0）
+    // 项目中散布暂时使用1.0
+    projectile->shoot(dx, dy, dz, 0.7f, 1.0f);
+
+    // 播放旋风人射击音效
+    m_world->playSound(
+        SoundEvents::ENTITY_BREEZE_WIND_CHARGE_BURST, sound::SoundCategory::Hostile, firingPos, 1.0f, 1.0f);
+
+    // 设置射击冷却
     m_shootCooldown = 20; // 1秒冷却
 }
 

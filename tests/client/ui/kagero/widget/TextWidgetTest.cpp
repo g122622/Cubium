@@ -259,9 +259,9 @@ TEST(TextWidgetTest, SetFont)
 
     EXPECT_EQ(nullptr, text.font());
 
-    void* mockFont = reinterpret_cast<void*>(0x1234);
-    text.setFont(mockFont);
-    EXPECT_EQ(mockFont, text.font());
+    mc::client::Font font;
+    text.setFont(&font);
+    EXPECT_EQ(&font, text.font());
 }
 
 // ==================== TextAlignment枚举测试 ====================

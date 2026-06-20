@@ -33,6 +33,7 @@ add_executable(mc_tests
     # common/test_collision.cpp  # 鏆傛椂绂佺敤 - 渚濊禆鏃х殑纰版挒绯荤粺
     common/test_property.cpp
     common/util/StateHolderTest.cpp
+    common/util/text/Utf8Test.cpp
     common/TestWorldHelper.cpp
     common/BaseTestServer.cpp
     common/test_block.cpp
@@ -45,6 +46,8 @@ add_executable(mc_tests
     common/world/biome/BiomeFactoryClimateTest.cpp
     common/world/biome/ClimateTest.cpp
     common/world/biome/OverworldBiomeBuilderTest.cpp
+    common/test_biome_freeze.cpp
+    common/world/biome/BiomeGetPrecipitationAtTest.cpp
     common/test_ore_feature.cpp
     common/test_carver.cpp
     common/test_tree_feature.cpp
@@ -73,6 +76,8 @@ add_executable(mc_tests
     common/item/potion/PotionUtilsTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
     common/item/weapon/WeaponItemTest.cpp
+    # WindChargeItem 风弹物品测试（投掷、冷却、消耗）
+    common/item/WindChargeItemTest.cpp
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp
@@ -205,6 +210,8 @@ add_executable(mc_tests
     common/entity/core/LivingEntityArrowCountTest.cpp
     # LivingEntity 吸收值 getter/setter 和边界 clamping 测试
     common/entity/core/LivingEntityAbsorptionTest.cpp
+    # LivingEntity 装备破损回调（onEquippedItemBroken、broadcastBreakEvent）测试
+    common/entity/core/LivingEntityBreakEventTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
@@ -258,12 +265,18 @@ add_executable(mc_tests
     advancement/NBTPredicateTest.cpp
     # BredAnimalsTrigger 动物繁殖触发器测试
     advancement/BredAnimalsTriggerTest.cpp
+    # AvoidVibrationTrigger 避免振动触发器测试
+    advancement/AvoidVibrationTriggerTest.cpp
     # AdvancementEventHandler 测试（getServerPlayer 架构验证）
     server/advancement/AdvancementEventHandlerTest.cpp
     # PlayerAdvancements 监听器注册/注销、进度管理、可见性测试
     server/advancement/PlayerAdvancementsTest.cpp
     # PlayerDestroyItemEvent 物品销毁事件测试
     server/event/PlayerDestroyItemEventTest.cpp
+    # TameAnimalEvent 驯服动物事件测试
+    server/event/TameAnimalEventTest.cpp
+    # SummonedEntityEvent 召唤实体事件测试
+    server/event/SummonedEntityEventTest.cpp
     # 村庄声望治愈僵尸村民测试
     server/advancement/VillageReputationTest.cpp
     # ItemDropHelper 测试
@@ -296,6 +309,11 @@ add_executable(mc_tests
     common/entity/combat/SweepAttackConditionTest.cpp
     # GameRules 游戏规则测试
     common/world/gamerule/GameRulesTest.cpp
+    # GameEvent 游戏事件测试
+    common/world/gameevent/GameEventTest.cpp
+    common/world/gameevent/GameEventSystemTest.cpp
+    # GameEvent 服务端集成测试
+    server/world/gameevent/GameEventServerTest.cpp
     common/world/lighting/InternalLightUtilsTest.cpp
     common/world/LightLevelTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
@@ -336,6 +354,8 @@ add_executable(mc_tests
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
+    common/world/block/blocks/LightningRodBlockTest.cpp
+    common/world/block/blocks/LecternBlockTest.cpp
     common/world/block/blocks/MobBlocksTest.cpp
     common/world/block/DispenseItemBehaviorTest.cpp
     common/world/storage/StorageTaskTest.cpp
@@ -349,14 +369,22 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/DecorativeBlockTest.cpp
     common/world/block/blocks/decorative/StainedGlassBlockTest.cpp
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
+    common/world/block/blocks/decorative/TorchBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
+    common/world/block/blocks/functional/ComposterBlockTest.cpp
     common/world/block/blocks/functional/AnvilBlockTest.cpp
+    common/world/block/blocks/functional/CraftingTableBlockTest.cpp
+    common/world/block/blocks/functional/StonecutterBlockTest.cpp
+    common/world/block/blocks/functional/SmithingTableBlockTest.cpp
+    common/world/block/blocks/functional/BeaconBlockTest.cpp
+    common/world/block/blocks/nether/EnderChestBlockTest.cpp
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
     # SignBlock 告示牌方块测试（onBlockActivated、状态属性）
     common/world/block/blocks/SignBlockTest.cpp
     common/world/block/blocks/IceBlockTest.cpp
+    common/world/block/blocks/SnowBlockTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp
     common/world/block/blocks/FireBlockCollisionTest.cpp
@@ -365,20 +393,26 @@ add_executable(mc_tests
     common/world/block/blocks/BubbleColumnBlockTest.cpp
     common/world/block/blocks/AnimateTickTest.cpp
     common/world/block/blocks/FallingBlockTest.cpp
+    common/world/block/blocks/ConcretePowderBlockTest.cpp
     common/world/block/blocks/VegetationBlockTest.cpp
     common/world/block/blocks/SweetBerryBushBlockTest.cpp
     common/world/block/blocks/CaveVinesBlockTest.cpp
     common/world/block/blocks/SeagrassBlockTest.cpp
+    common/world/block/blocks/DoubleBlockTest.cpp
     common/world/block/blocks/PlantTypeTest.cpp
+    common/world/block/blocks/MushroomBlockTest.cpp
     common/world/block/blocks/cave/GlowLichenBlockTest.cpp
+    common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp
     common/world/block/blocks/cave/PointedDripstoneBlockTest.cpp
     common/world/block/blocks/pale_garden/PaleHangingMossBlockTest.cpp
     common/world/block/blocks/end/ChorusPlantBlockTest.cpp
     common/world/block/blocks/end/DragonEggBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
+    common/world/gameevent/VibrationSystemTest.cpp
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp
     common/world/block/blocks/StemBlocksTest.cpp
+    common/world/block/blocks/StemGrowthLogicTest.cpp
     common/world/block/blocks/GolemBlockTest.cpp
     common/world/block/blocks/PumpkinCarveTest.cpp
     common/world/block/blocks/RespawnAnchorBlockTest.cpp
@@ -386,6 +420,7 @@ add_executable(mc_tests
     common/world/block/blocks/OxidizableBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
     common/world/CanSeeSkyTest.cpp
+    common/world/EndTeleporterTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp
@@ -438,6 +473,7 @@ add_executable(mc_tests
     entity/EvokerFangsTest.cpp
     entity/VexGoalsTest.cpp
     entity/BrainScheduleTests.cpp
+    entity/BrainMovementTaskTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
     entity/FishSupportTypesTest.cpp
@@ -503,6 +539,7 @@ add_executable(mc_tests
     common/entity/ai/util/RandomPositionGeneratorTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
+    entity/PathWeightOverrideTest.cpp
     entity/MinecartTests.cpp
     entity/ElytraAndSpinAttackTest.cpp
     common/entity/entities/EntityDaylightTest.cpp
@@ -543,6 +580,7 @@ add_executable(mc_tests
     server/command/CloneCommandTest.cpp
     server/command/GiveCommandTest.cpp
     server/command/LootCommandTest.cpp
+    server/command/WhitelistBanCommandTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/EntityResolverTest.cpp
     server/command/MessageCommandTest.cpp
@@ -551,6 +589,7 @@ add_executable(mc_tests
     server/command/AttributeCommandTest.cpp
     server/command/EnchantCommandTest.cpp
     server/command/SpawnPointCommandTest.cpp
+    server/command/SetWorldSpawnCommandTest.cpp
     server/command/PublishCommandTest.cpp
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
@@ -599,6 +638,8 @@ add_executable(mc_tests
     client/renderer/trident/entity/layer/effect/EnergyGlintLayerTest.cpp
     # PlayerRenderer 层渲染器测试（HeadLayer、CapeLayer、ElytraLayer）
     client/renderer/entity/test_player_layers.cpp
+    # ItemMeshBuilder 回退网格、法线变换、纹理坐标解析测试
+    client/renderer/trident/item/ItemMeshBuilderTest.cpp
     client/renderer/test_gui_item_color.cpp
     client/resource/test_entity_texture_loader.cpp
     client/resource/ItemTextureAtlasTest.cpp
@@ -625,16 +666,24 @@ add_executable(mc_tests
     common/entity/loot/LootPredicateLoaderTest.cpp
     # ReferenceCondition 谓词引用条件测试
     common/entity/loot/ReferenceConditionTest.cpp
+    # NBT选择器过滤和谓词条件过滤测试
+    common/entity/loot/NBTSelectorFilterTest.cpp
+    # LootParameterSet 参数验证测试
+    common/entity/loot/LootParameterSetValidationTest.cpp
     # BlockPredicate 和 StatePropertiesPredicate 测试
     common/advancement/BlockPredicateTest.cpp
     # AdvancementVisibilityEvaluator 成就可见性评估器测试
     common/advancement/AdvancementVisibilityEvaluatorTest.cpp
+    # AdvancementLoader 成就加载器测试
+    common/advancement/AdvancementLoaderTest.cpp
     # EffectType 工具函数测试
     common/entity/effect/EffectTypeTest.cpp
     # EffectAttributeModifiers 效果属性修改器测试
     common/entity/effect/EffectAttributeModifiersTest.cpp
     # EffectManager 效果合并行为测试
     common/entity/effect/EffectManagerMergeTest.cpp
+    # 饱和效果测试
+    common/entity/effect/SaturationEffectTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
     common/world/gen/OceanFeatureTest.cpp
     common/world/gen/WaterContentRegistryTest.cpp
@@ -661,16 +710,21 @@ add_executable(mc_tests
     # DensityFunctions (Invert, Mul 边界值) 和 CaveDensityFunctions 噪声参数测试
     common/world/gen/density/DensityFunctionsTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
+    common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
+    common/world/gen/feature/template/BlockAgeProcessorTest.cpp
+    common/world/gen/feature/template/test_capped_processor.cpp
     common/world/gen/structure/test_ocean_ruin_structure.cpp
     common/world/gen/structure/test_shipwreck_structure.cpp
     common/world/gen/structure/test_new_structures.cpp
     common/world/gen/structure/test_structure_type_mapping.cpp
+    common/world/gen/structure/StructureCheckTest.cpp
     common/world/gen/structure/StructurePieceChestDispenserTest.cpp
     common/world/gen/structure/StrongholdPiecesTest.cpp
     common/world/gen/structure/TemplatedStructuresTest.cpp
     common/world/gen/jigsaw/test_jigsaw.cpp
     common/world/gen/jigsaw/test_jigsaw_matcher.cpp
+    common/world/gen/jigsaw/test_pos_rule_test.cpp
     common/world/gen/jigsaw/test_template_pool_loader.cpp
     common/entity/EntitySpawnPlacementRegistryTest.cpp
     common/world/gen/ChunkSpawnIntegrationTest.cpp
@@ -701,6 +755,7 @@ add_executable(mc_tests
     common/world/block/blocks/redstone/TripwireHookBlockTest.cpp
     common/world/block/blocks/redstone/AbstractPressurePlateBlockTest.cpp
     common/world/block/blocks/redstone/DetectorRailBlockTest.cpp
+    common/world/block/blocks/redstone/RailStateTest.cpp
     # Explosion system tests
     common/world/explosion/test_explosion.cpp
     common/world/explosion/ExplosionIntegrationTest.cpp
@@ -727,8 +782,12 @@ add_executable(mc_tests
     # 鐗╁搧鎷惧彇绠＄悊鍣ㄦ祴璇?    server/world/ItemPickupManagerTest.cpp
     # ServerWorld 方块实体测试
     server/world/ServerWorldBlockEntityTest.cpp
+    # ServerWorld 出生点朝向测试
+    server/world/ServerWorldSpawnAngleTest.cpp
     # ServerWorld 命令执行回调测试
     server/world/ServerWorldCommandExecuteTest.cpp
+    # ServerWorld tickPrecipitation 测试
+    server/world/TickPrecipitationTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）
@@ -821,6 +880,10 @@ add_executable(mc_tests
     common/util/crypto/Md5Test.cpp
     # UUID 工具测试
     common/util/UuidUtilsTest.cpp
+    # 特殊日期工具测试
+    common/util/SpecialDatesTest.cpp
+    # LinkedHashSet 有序集合测试
+    common/util/LinkedHashSetTest.cpp
     # NbtJsonUtils NBT-JSON转换工具测试
     util/NbtJsonUtilsTest.cpp
     # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    common/world/gen/DebugChunkGeneratorTest.cpp
@@ -854,6 +917,8 @@ add_executable(mc_tests
     client/sound/SoundRegistryTest.cpp
     client/sound/TickableSoundTest.cpp
     client/sound/MovingTickableSoundTest.cpp
+    # 聊天历史与消息类型测试
+    client/chat/ChatHistoryTest.cpp
     # 皮肤系统测试
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
@@ -892,6 +957,11 @@ add_executable(mc_tests
     server/bossbar/BossBarTest.cpp
     # 统计系统测试
     server/stats/StatisticsTest.cpp
+    server/stats/AwardCustomStatTest.cpp
+    # 函数系统测试
+    server/function/FunctionLoaderTest.cpp
+    server/function/FunctionManagerTest.cpp
+    server/function/TimerQueueTest.cpp
 )
 
 # 娣诲姞鏈嶅姟绔簮鏂囦欢
@@ -924,6 +994,12 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
+        # 游戏事件系统（服务端实现）
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         # 事件系统
@@ -949,6 +1025,11 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+        # 函数系统
+        ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
         # 统计系统
         ${CMAKE_SOURCE_DIR}/src/server/stats/StatType.cpp
         ${CMAKE_SOURCE_DIR}/src/server/stats/Stat.cpp
@@ -970,6 +1051,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/support/FunctionSuggestionProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
@@ -1279,6 +1361,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/core/BlockEntityRegistry.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/ChestEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/TrappedChestEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/EnderChestEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/storage/DoubleSidedInventory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/AbstractFurnaceEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/processing/FurnaceEntity.cpp
@@ -1365,6 +1448,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/InventoryChangedTrigger.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EntityTriggers.cpp
         ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/EffectTriggers.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/advancement/trigger/impl/AvoidVibrationTrigger.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
         # 澶╀綋璁＄畻
@@ -1392,6 +1476,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/ModelRenderer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/EntityModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/core/AgeableModel.cpp
+        # ItemMeshBuilder 物品网格构建测试
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/item/ItemMeshBuilder.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/BipedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/base/QuadrupedModel.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/entity/model/animal/AnimalModels.cpp
@@ -1496,6 +1582,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/EntitySoundHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/sound/handler/WeatherSoundHandler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/command/ClientCommandManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/chat/ChatHistory.cpp
         # TemplateInstance.cpp 依赖 Widget 实现，暂时不纳入该测试目标
 )
 
@@ -1534,6 +1621,7 @@ mc_copy_runtime_dlls(mc_tests)
 add_executable(mc_resource_tests
     client/resource/test_resource_location.cpp
     client/resource/test_model_loader.cpp
+    client/resource/TexturePathVariantTest.cpp
 )
 
 target_link_libraries(mc_resource_tests
@@ -1742,8 +1830,11 @@ add_executable(mc_command_tests
     server/command/TriggerCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
+    common/command/arguments/FunctionArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
+    common/command/arguments/TimeArgumentTest.cpp
+    common/command/arguments/Vec2ArgumentTest.cpp
 )
 
 target_sources(mc_command_tests
@@ -1782,6 +1873,12 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/interaction/InventoryManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
+        # 游戏事件系统（服务端实现）
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp
@@ -1791,6 +1888,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/support/FunctionSuggestionProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DifficultyCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/DefaultGameModeCommand.cpp
@@ -1890,6 +1988,11 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+        # 函数系统
+        ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
 )
 
 target_link_libraries(mc_command_tests
@@ -1925,6 +2028,7 @@ add_executable(mc_village_tests
     common/world/village/VillageTest.cpp
     common/world/village/trade/MerchantOfferTest.cpp
     common/world/village/raid/RaidHeroTrackingTest.cpp
+    common/world/village/raid/RaidManagerTest.cpp
 )
 
 target_sources(mc_village_tests

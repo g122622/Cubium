@@ -302,6 +302,145 @@ TEST_F(EntitySelectorTest, SetTeam)
     EXPECT_FALSE(selector.teamNegated());
 }
 
+// ========== EntitySelector 体积与 AABB 测试 ==========
+
+TEST_F(EntitySelectorTest, HasVolumeNoDimensionsSet)
+{
+    // 未设置任何 dx/dy/dz，不应有体积约束
+    EXPECT_FALSE(selector.hasVolume());
+}
+
+TEST_F(EntitySelectorTest, HasVolumeWithDxOnly)
+{
+    selector.setDx(5.0f);
+    EXPECT_TRUE(selector.hasVolume());
+}
+
+TEST_F(EntitySelectorTest, HasVolumeWithDyOnly)
+{
+    selector.setDy(3.0f);
+    EXPECT_TRUE(selector.hasVolume());
+}
+
+TEST_F(EntitySelectorTest, HasVolumeWithDzOnly)
+{
+    selector.setDz(7.0f);
+    EXPECT_TRUE(selector.hasVolume());
+}
+
+TEST_F(EntitySelectorTest, HasVolumeWithAllDimensions)
+{
+    selector.setDx(10.0f);
+    selector.setDy(5.0f);
+    selector.setDz(8.0f);
+    EXPECT_TRUE(selector.hasVolume());
+}
+
+TEST_F(EntitySelectorTest, CreateAabbPositiveDeltas)
+{
+    // 正值 delta：min=0，max=delta+1
+    selector.setDx(5.0f);
+    selector.setDy(2.0f);
+    selector.setDz(3.0f);
+    auto aabb = selector.createAabb();
+    ASSERT_TRUE(aabb.has_value());
+    EXPECT_FLOAT_EQ(aabb->minX, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->minY, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->minZ, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->maxX, 6.0f); // 5 + 1
+    EXPECT_FLOAT_EQ(aabb->maxY, 3.0f); // 2 + 1
+    EXPECT_FLOAT_EQ(aabb->maxZ, 4.0f); // 3 + 1
+}
+
+TEST_F(EntitySelectorTest, CreateAabbNegativeDeltas)
+{
+    // 负值 delta：min=delta，max=1
+    selector.setDx(-5.0f);
+    selector.setDy(-2.0f);
+    selector.setDz(-3.0f);
+    auto aabb = selector.createAabb();
+    ASSERT_TRUE(aabb.has_value());
+    EXPECT_FLOAT_EQ(aabb->minX, -5.0f);
+    EXPECT_FLOAT_EQ(aabb->minY, -2.0f);
+    EXPECT_FLOAT_EQ(aabb->minZ, -3.0f);
+    EXPECT_FLOAT_EQ(aabb->maxX, 1.0f); // 0 + 1
+    EXPECT_FLOAT_EQ(aabb->maxY, 1.0f); // 0 + 1
+    EXPECT_FLOAT_EQ(aabb->maxZ, 1.0f); // 0 + 1
+}
+
+TEST_F(EntitySelectorTest, CreateAabbMixedDeltas)
+{
+    // 混合正负值
+    selector.setDx(5.0f);  // 正值：minX=0, maxX=6
+    selector.setDy(-2.0f); // 负值：minY=-2, maxY=1
+    selector.setDz(3.0f);  // 正值：minZ=0, maxZ=4
+    auto aabb = selector.createAabb();
+    ASSERT_TRUE(aabb.has_value());
+    EXPECT_FLOAT_EQ(aabb->minX, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->minY, -2.0f);
+    EXPECT_FLOAT_EQ(aabb->minZ, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->maxX, 6.0f);
+    EXPECT_FLOAT_EQ(aabb->maxY, 1.0f);
+    EXPECT_FLOAT_EQ(aabb->maxZ, 4.0f);
+}
+
+TEST_F(EntitySelectorTest, CreateAabbZeroDelta)
+{
+    // dx=0：minX=0, maxX=1（+1.0 保证至少包含 1 格）
+    selector.setDx(0.0f);
+    auto aabb = selector.createAabb();
+    ASSERT_TRUE(aabb.has_value());
+    EXPECT_FLOAT_EQ(aabb->minX, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->maxX, 1.0f); // 0 + 1
+}
+
+TEST_F(EntitySelectorTest, CreateAabbPartialDimensions)
+{
+    // 只设 dx，未设 dy/dz：dy/dz 默认 0，各自 max 侧仍 +1
+    selector.setDx(10.0f);
+    auto aabb = selector.createAabb();
+    ASSERT_TRUE(aabb.has_value());
+    EXPECT_FLOAT_EQ(aabb->minX, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->maxX, 11.0f); // 10 + 1
+    EXPECT_FLOAT_EQ(aabb->minY, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->maxY, 1.0f); // 0 + 1
+    EXPECT_FLOAT_EQ(aabb->minZ, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->maxZ, 1.0f); // 0 + 1
+}
+
+TEST_F(EntitySelectorTest, CreateAabbNoDimensionsNoDistance)
+{
+    // 无 dx/dy/dz 且无 distance 最大值：无体积约束
+    auto aabb = selector.createAabb();
+    EXPECT_FALSE(aabb.has_value());
+}
+
+TEST_F(EntitySelectorTest, CreateAabbNoDimensionsWithDistanceMax)
+{
+    // 无 dx/dy/dz 但有 distance 最大值时：从最大距离构造立方体 AABB
+    selector.distance().setMax(5.0f);
+    auto aabb = selector.createAabb();
+    ASSERT_TRUE(aabb.has_value());
+    EXPECT_FLOAT_EQ(aabb->minX, -5.0f);
+    EXPECT_FLOAT_EQ(aabb->minY, -5.0f);
+    EXPECT_FLOAT_EQ(aabb->minZ, -5.0f);
+    EXPECT_FLOAT_EQ(aabb->maxX, 6.0f); // 5 + 1
+    EXPECT_FLOAT_EQ(aabb->maxY, 6.0f); // 5 + 1
+    EXPECT_FLOAT_EQ(aabb->maxZ, 6.0f); // 5 + 1
+}
+
+TEST_F(EntitySelectorTest, CreateAabbDimensionsOverrideDistanceAabb)
+{
+    // 当有 dx/dy/dz 时，优先使用它们构造 AABB（忽略 distance 最大值）
+    selector.setDx(3.0f);
+    selector.distance().setMax(10.0f);
+    auto aabb = selector.createAabb();
+    ASSERT_TRUE(aabb.has_value());
+    // 应该使用 dx=3 构造的 AABB，而非 distance=10 的立方体
+    EXPECT_FLOAT_EQ(aabb->minX, 0.0f);
+    EXPECT_FLOAT_EQ(aabb->maxX, 4.0f); // 3 + 1
+}
+
 // ========== EntitySelector 角度范围测试 ==========
 
 class EntitySelectorRotationTest : public ::testing::Test {

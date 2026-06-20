@@ -405,10 +405,14 @@ TEST_F(NetherFirePlaceTest, NoFireOnInvalidBase)
 
 TEST_F(NetherFirePlaceTest, NoFireWhenNoAirAbove)
 {
-    // 在 y=41 位置填满方块（没有空气空间放置火焰）
+    // 在 y=41 到 y=44 位置填满方块（覆盖整个可能的高度范围）
+    // 默认配置 minHeight=1, maxHeight=3，火焰可放置在 y=40 到 y=44
+    // y=40 是基座（下界岩），y=41~44 全部填满后无法放置火焰
     for (i32 x = 0; x < 16; ++x) {
         for (i32 z = 0; z < 16; ++z) {
-            setWorldBlock(x, 41, z, &VanillaBlocks::NETHERRACK->defaultState());
+            for (i32 y = 41; y <= 44; ++y) {
+                setWorldBlock(x, y, z, &VanillaBlocks::NETHERRACK->defaultState());
+            }
         }
     }
 
@@ -416,7 +420,7 @@ TEST_F(NetherFirePlaceTest, NoFireWhenNoAirAbove)
     NetherFireFeatureConfig config(4, 1, 3);
     math::Random random(22222);
 
-    // 火焰放置位置 y=41 已被填满，无法放置
+    // 火焰放置位置已被填满，无法放置
     EXPECT_FALSE(feature.place(*m_region, random, BlockPos(8, 41, 8), config));
 }
 
@@ -466,6 +470,64 @@ TEST_F(NetherFirePlaceTest, FireBlockTypeMatchesBaseBlock)
 
     EXPECT_TRUE(foundNormalFireOnNetherrack);
     EXPECT_TRUE(foundSoulFireOnSoulSand);
+}
+
+TEST_F(NetherFirePlaceTest, HeightVariationPlacesFireAtDifferentLevels)
+{
+    // 构建 y=38..44 为下界岩的立体场景，火焰可放置在 y=39..45 的空气位置
+    for (i32 x = 0; x < 16; ++x) {
+        for (i32 z = 0; z < 16; ++z) {
+            for (i32 y = 38; y <= 44; ++y) {
+                setWorldBlock(x, y, z, &VanillaBlocks::NETHERRACK->defaultState());
+            }
+        }
+    }
+
+    NetherFireFeature feature;
+    NetherFireFeatureConfig config(8, 2, 4); // 大范围 + 允许垂直偏移
+    math::Random random(55555);
+
+    bool result = feature.place(*m_region, random, BlockPos(8, 41, 8), config);
+    EXPECT_TRUE(result);
+
+    // 检查火焰是否出现在不同 Y 层级（不仅是 y=41）
+    bool foundAtDifferentY = false;
+    for (i32 x = 0; x < 16 && !foundAtDifferentY; ++x) {
+        for (i32 z = 0; z < 16 && !foundAtDifferentY; ++z) {
+            for (i32 y = 39; y <= 45; ++y) {
+                // 跳过 y=41（原始层级），检查其他层级是否有火焰
+                if (y == 41) continue;
+                const BlockState* state = getWorldBlock(x, y, z);
+                if (state != nullptr && (state->is(VanillaBlocks::FIRE) || state->is(VanillaBlocks::SOUL_FIRE))) {
+                    foundAtDifferentY = true;
+                    break;
+                }
+            }
+        }
+    }
+    // 注意：由于随机性，可能不会总是找到，但概率很高
+    // 如果测试不够稳定，可以移除此断言
+    EXPECT_TRUE(foundAtDifferentY);
+}
+
+TEST_F(NetherFirePlaceTest, ZeroHeightVariationOnlyPlacesAtOriginLevel)
+{
+    // minHeight=0, maxHeight=0 时，火焰只能在原点 Y 层级放置
+    NetherFireFeature feature;
+    NetherFireFeatureConfig config(4, 0, 0); // 无垂直偏移
+    math::Random random(77777);
+
+    bool result = feature.place(*m_region, random, BlockPos(8, 41, 8), config);
+    EXPECT_TRUE(result);
+
+    // 所有火焰应仅在 y=41（空气）位置，y=40 是下界岩，y=42 应该没有火焰
+    for (i32 x = 0; x < 16; ++x) {
+        for (i32 z = 0; z < 16; ++z) {
+            const BlockState* state = getWorldBlock(x, 42, z);
+            EXPECT_FALSE(state && state->is(VanillaBlocks::FIRE))
+                << "Fire should not be placed at y=42 with zero height variation";
+        }
+    }
 }
 
 // ============================================================================

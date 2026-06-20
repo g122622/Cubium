@@ -26,6 +26,7 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/ui/Font.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "common/util/text/Utf8.hpp"
 #include <algorithm>
 #include <GLFW/glfw3.h>
 
@@ -48,28 +49,7 @@ using mc::client::renderer::trident::gui::GuiRenderer;
     }
 
     // TODO: 当 font 和 gui 均不可用时，应提供更好的回退策略，而非简单估算
-    return static_cast<f32>(text.size() * 6);
-}
-
-[[nodiscard]] size_t nextUtf8CodepointEnd(const std::string& text, size_t index)
-{
-    if (index >= text.size()) {
-        return text.size();
-    }
-
-    const unsigned char lead = static_cast<unsigned char>(text[index]);
-    size_t length = 1;
-    if ((lead & 0x80u) == 0u) {
-        length = 1;
-    } else if ((lead & 0xE0u) == 0xC0u) {
-        length = 2;
-    } else if ((lead & 0xF0u) == 0xE0u) {
-        length = 3;
-    } else if ((lead & 0xF8u) == 0xF0u) {
-        length = 4;
-    }
-
-    return std::min(index + length, text.size());
+    return static_cast<f32>(util::text::utf8CodepointCount(text) * 6);
 }
 
 [[nodiscard]] size_t findCursorIndexFromClick(const std::string& text, Font* font, GuiRenderer* gui, f32 clickX)
@@ -86,7 +66,7 @@ using mc::client::renderer::trident::gui::GuiRenderer;
     size_t index = 0;
     f32 previousWidth = 0.0f;
     while (index < text.size()) {
-        const size_t nextIndex = nextUtf8CodepointEnd(text, index);
+        const size_t nextIndex = util::text::utf8NextCodepointIndex(text, index);
         const f32 nextWidth = measureTextWidth(font, gui, text.substr(0, nextIndex));
 
         if (clickX <= nextWidth) {
@@ -105,14 +85,24 @@ using mc::client::renderer::trident::gui::GuiRenderer;
 
 [[nodiscard]] std::string sanitizeClipboardText(std::string text)
 {
-    for (char& ch : text) {
-        const unsigned char value = static_cast<unsigned char>(ch);
-        if (value < 32u || value == 127u) {
-            ch = ' ';
+    // 按码点过滤：移除控制字符（保留换行符），替换为空格
+    std::string result;
+    result.reserve(text.size());
+    util::text::utf8ForEachCodepoint(text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) {
+        if (codePoint < 32u) {
+            if (codePoint == U'\n') {
+                result += '\n';
+            } else {
+                result += ' ';
+            }
+        } else if (codePoint == 127u) {
+            result += ' ';
+        } else {
+            util::text::utf8Append(result, codePoint);
         }
-    }
+    });
 
-    return text;
+    return result;
 }
 
 } // namespace
@@ -313,25 +303,8 @@ bool ChatWidget::onChar(u32 codePoint)
         _deleteSelection();
     }
 
-    // 插入字符
-    char utf8[5] = {0};
-    if (codePoint < 0x80) {
-        utf8[0] = static_cast<char>(codePoint);
-    } else if (codePoint < 0x800) {
-        utf8[0] = static_cast<char>(0xC0 | (codePoint >> 6));
-        utf8[1] = static_cast<char>(0x80 | (codePoint & 0x3F));
-    } else if (codePoint < 0x10000) {
-        utf8[0] = static_cast<char>(0xE0 | (codePoint >> 12));
-        utf8[1] = static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F));
-        utf8[2] = static_cast<char>(0x80 | (codePoint & 0x3F));
-    } else {
-        utf8[0] = static_cast<char>(0xF0 | (codePoint >> 18));
-        utf8[1] = static_cast<char>(0x80 | ((codePoint >> 12) & 0x3F));
-        utf8[2] = static_cast<char>(0x80 | ((codePoint >> 6) & 0x3F));
-        utf8[3] = static_cast<char>(0x80 | (codePoint & 0x3F));
-    }
-
-    _insertText(utf8);
+    // 插入字符（使用 UTF-8 编码）
+    _insertText(util::text::utf8Encode(codePoint));
     return true;
 }
 
@@ -366,19 +339,29 @@ bool ChatWidget::onClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
     return true;
 }
 
-void ChatWidget::addMessage(const std::string& message, u32 color)
+void ChatWidget::addMessage(const std::string& message, ChatMessageType type)
 {
-    // 将颜色转换为消息类型
-    // TODO: 当前仅通过一个硬编码的颜色值判断消息类型，后续应改为直接传入消息类型
-    ChatMessageType type = ChatMessageType::Chat;
-    if (color == 0xFFFFFF00) { // 黄色 -> 系统消息
-        type = ChatMessageType::System;
+    // Actionbar/GameInfo 消息不进入聊天历史，而是路由到动作栏回调
+    if (type == ChatMessageType::Actionbar || type == ChatMessageType::GameInfo) {
+        if (m_actionbarCallback) {
+            m_actionbarCallback(message);
+        }
+        return;
     }
+
     m_history.addMessage(message, type);
 }
 
 void ChatWidget::addMessage(std::unique_ptr<text::ITextComponent> message, ChatMessageType type)
 {
+    // Actionbar/GameInfo 消息不进入聊天历史，而是路由到动作栏回调
+    if (type == ChatMessageType::Actionbar || type == ChatMessageType::GameInfo) {
+        if (m_actionbarCallback) {
+            m_actionbarCallback(message ? message->getUnformattedText() : "");
+        }
+        return;
+    }
+
     m_history.addMessage(std::move(message), type);
 }
 
@@ -433,8 +416,9 @@ void ChatWidget::_deleteSelection()
 void ChatWidget::_deleteBeforeCursor()
 {
     if (m_cursorPos > 0) {
-        m_input.erase(m_cursorPos - 1, 1);
-        --m_cursorPos;
+        const size_t prevPos = util::text::utf8PrevCodepointIndex(m_input, m_cursorPos);
+        m_input.erase(prevPos, m_cursorPos - prevPos);
+        m_cursorPos = prevPos;
         _updateCommandSuggestions();
     }
 }
@@ -442,7 +426,8 @@ void ChatWidget::_deleteBeforeCursor()
 void ChatWidget::_deleteAfterCursor()
 {
     if (m_cursorPos < m_input.size()) {
-        m_input.erase(m_cursorPos, 1);
+        const size_t nextPos = util::text::utf8NextCodepointIndex(m_input, m_cursorPos);
+        m_input.erase(m_cursorPos, nextPos - m_cursorPos);
         _updateCommandSuggestions();
     }
 }
@@ -454,10 +439,15 @@ void ChatWidget::_moveCursor(i32 offset, bool selecting)
         m_hasSelection = true;
     }
 
-    if (offset < 0) {
-        m_cursorPos = m_cursorPos > static_cast<size_t>(-offset) ? m_cursorPos + offset : 0;
-    } else {
-        m_cursorPos = m_cursorPos + offset < m_input.size() ? m_cursorPos + offset : m_input.size();
+    // 按码点移动光标，offset = +1 向右移动一个码点，-1 向左移动一个码点
+    if (offset > 0) {
+        for (i32 i = 0; i < offset && m_cursorPos < m_input.size(); ++i) {
+            m_cursorPos = util::text::utf8NextCodepointIndex(m_input, m_cursorPos);
+        }
+    } else if (offset < 0) {
+        for (i32 i = 0; i < -offset && m_cursorPos > 0; ++i) {
+            m_cursorPos = util::text::utf8PrevCodepointIndex(m_input, m_cursorPos);
+        }
     }
 
     if (selecting) {
@@ -650,6 +640,12 @@ void ChatWidget::_renderMessages(kagero::widget::PaintContext& ctx)
             break; // 超出屏幕顶部
         }
 
+        // Actionbar/GameInfo 消息不应出现在聊天窗口中，跳过
+        // （正常情况下不会出现在历史中，因为 addMessage 已路由到动作栏回调）
+        if (it->type == ChatMessageType::Actionbar || it->type == ChatMessageType::GameInfo) {
+            continue;
+        }
+
         // 计算消息透明度（旧消息淡出）
         f32 alpha = 1.0f;
         if (!m_open && !it->permanent) {
@@ -673,8 +669,13 @@ void ChatWidget::_renderMessages(kagero::widget::PaintContext& ctx)
                                    static_cast<i32>(LINE_HEIGHT + 2)),
                 static_cast<u32>(0x80000000 * alpha));
 
-            // 渲染消息文本
-            u32 baseColor = 0xFFFFFFFF; // 白色默认
+            // 根据消息类型选择文本颜色
+            // 与 MC Java 一致：玩家消息为白色，系统消息为灰色
+            u32 baseColor = 0xFFFFFFFF; // 白色默认（玩家聊天消息）
+            if (it->type == ChatMessageType::System) {
+                baseColor = 0xFFAAAAAA; // 灰色（与 ChatHistory::addSystemMessage 的 Gray 样式一致）
+            }
+
             u8 a = static_cast<u8>(255 * alpha);
             u32 color = (baseColor & 0x00FFFFFF) | (static_cast<u32>(a) << 24);
             m_gui->drawText(plainText, padding + 2.0f, y - LINE_HEIGHT, color, true);

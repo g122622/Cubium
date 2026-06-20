@@ -53,8 +53,8 @@ monster/
 │   ├── WitchEntity.hpp/cpp            # 女巫（药水攻击）
 │   └── README.md
 ├── breeze/                        # 旋风人（1.20+）
-│   ├── BreezeEntity.hpp/cpp           # 旋风人
-│   └── (暂无 README)
+│   ├── BreezeEntity.hpp/cpp           # 旋风人（风弹攻击、偏转投射物、滑行）
+│   └── README.md
 └── README.md
 ```
 

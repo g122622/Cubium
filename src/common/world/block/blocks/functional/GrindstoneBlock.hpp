@@ -34,6 +34,7 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
 
 namespace blocks {
 
@@ -89,6 +90,21 @@ public:
         MC_UNUSED(state);
         return false;
     }
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 处理玩家右键交互
+     *
+     * 打开砂轮GUI并记录交互统计。
+     * 参考: MC Java GrindstoneBlock.useWithoutItem()
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     /// 附着面类型别名

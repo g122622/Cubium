@@ -163,6 +163,18 @@ public:
      */
     [[nodiscard]] virtual u32 getSeedItem() const = 0;
 
+public:
+    /**
+     * @brief 计算生长速度（静态方法，供 StemBlock 等使用）
+     *
+     * 考虑周围 3x3 耕地湿润度和同类作物拥挤程度。
+     * 基础值 1.0，每格湿润耕地 +3.0（中心）或 +0.75（周围），
+     * 干燥耕地 +1.0（中心）或 +0.25（周围）。
+     * 同类作物拥挤时乘以 0.5。
+     * 返回值不低于 1.0。
+     */
+    [[nodiscard]] static f32 getGrowthChance(const Block& block, IBlockReader& world, const BlockPos& pos);
+
 protected:
     /**
      * @brief 检查下方是否可支撑
@@ -174,13 +186,6 @@ protected:
      * @brief 获取植物类型 - 农作物返回 PlantType::Crop
      */
     [[nodiscard]] PlantType getPlantType(IBlockReader& world, const BlockPos& pos) const override;
-
-    /**
-     * @brief 计算生长速度（静态方法，供 StemBlock 使用）
-     *
-     * 考虑周围耕地湿润度和同类作物拥挤程度
-     */
-    [[nodiscard]] static f32 getGrowthChance(const Block& block, IBlockReader& world, const BlockPos& pos);
 
     /// 各年龄阶段的形状缓存
     std::array<CollisionShape, 8> m_shapesByAge;

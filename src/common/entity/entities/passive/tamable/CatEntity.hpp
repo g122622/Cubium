@@ -124,6 +124,14 @@ public:
 
     // ========== 驯服系统 ==========
 
+    // TODO: Cat 尚未实现 interactMob() 交互驯服逻辑。
+    // 参考鹦鹉 ParrotEntity::interactMob() 的实现模式：
+    // 1. 检查 isTameItem()（生鳕鱼/生鲑鱼）
+    // 2. 有 1/3 概率驯服成功
+    // 3. 成功时调用 setTamed(true) + setOwnerId(player.playerId())
+    // 4. 调用 m_world->onTameAnimal(player.playerId(), this) 触发 TameAnimalTrigger 进度检测
+    // 5. 广播 TamingSucceeded/TamingFailed 实体状态
+
     /**
      * @brief 检查物品是否可用于驯服
      * @param itemStack 物品堆

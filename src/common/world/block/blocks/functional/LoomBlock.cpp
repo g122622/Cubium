@@ -23,8 +23,10 @@
 
 #include "LoomBlock.hpp"
 
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -56,10 +58,11 @@ LoomBlock::LoomBlock(const BlockProperties& properties)
     setDefaultState(defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North));
 
     // 创建织布机形状
-    // 简化实现：完整方块形状
+    // MC Java 中 LoomBlock 未重写 getShape()，使用默认的完整方块形状
+    // 织布机的视觉模型虽然不是完整方块，但碰撞箱确实是完整的方块
     CollisionShape base = CollisionShape::fullBlock();
 
-    // 各朝向形状相同
+    // 各朝向形状相同（完整方块）
     for (size_t i = 0; i < Directions::COUNT; ++i) {
         m_shapesByFacing[i] = base;
     }
@@ -115,6 +118,7 @@ ActionResultType LoomBlock::onBlockActivated(const BlockState& state,
 
     // 打开织布机容器
     if (world.openContainer(ContainerType::Loom, pos, player)) {
+        player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_LOOM), 1);
         return ActionResultType::Consume;
     }
 

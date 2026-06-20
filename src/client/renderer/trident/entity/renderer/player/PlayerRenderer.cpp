@@ -264,14 +264,14 @@ ResourceLocation PlayerRenderer::getEntityTexture(::mc::Player& entity)
 {
     // 返回玩家皮肤纹理位置
     // 如果设置了自定义纹理，使用纹理区域的位置
-    // 否则返回默认 Steve 皮肤
+    // 否则返回规范默认皮肤 (slim/steve)
     (void)entity;
     if (m_skinRegion) {
         // 使用皮肤纹理区域的位置
         return ResourceLocation("minecraft:textures/entity/player/custom_skin.png");
     }
-    // 返回默认 Steve 皮肤
-    return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
+    // 返回规范默认皮肤 (MC 1.21.1: slim/steve，索引 6)
+    return ResourceLocation("minecraft:textures/entity/player/slim/steve.png");
 }
 
 ResourceLocation PlayerRenderer::getEntityTexture(const ::mc::Player& entity) const
@@ -280,7 +280,7 @@ ResourceLocation PlayerRenderer::getEntityTexture(const ::mc::Player& entity) co
     if (m_skinRegion) {
         return ResourceLocation("minecraft:textures/entity/player/custom_skin.png");
     }
-    return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
+    return ResourceLocation("minecraft:textures/entity/player/slim/steve.png");
 }
 
 void PlayerRenderer::_setupLayers()

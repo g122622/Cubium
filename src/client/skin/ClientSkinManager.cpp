@@ -33,10 +33,16 @@
 
 namespace mc::client::skin {
 
+using ::mc::skin::DefaultSkinVariant;
+using ::mc::skin::getDefaultSkinVariants;
+using ::mc::skin::getDefaultSkinVariantForUUID;
+
 ClientSkinManager::ClientSkinManager()
     : m_skinManager(std::make_unique<::mc::skin::SkinManager>(""))
     , m_textureAtlas(std::make_unique<renderer::entity::pipeline::EntityTextureAtlas>())
-{}
+{
+    m_defaultSkinRegions.fill(nullptr);
+}
 
 ClientSkinManager::~ClientSkinManager()
 {
@@ -116,8 +122,7 @@ void ClientSkinManager::shutdown()
         m_skinManager->shutdown();
     }
 
-    m_steveRegion = nullptr;
-    m_alexRegion = nullptr;
+    m_defaultSkinRegions.fill(nullptr);
     m_device = VK_NULL_HANDLE;
     m_initialized = false;
 
@@ -158,11 +163,13 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
     // 检查是否为默认皮肤
     if (m_skinManager->defaultSkinProvider().isDefaultSkin(location)) {
         // 使用默认皮肤的纹理区域
-        if (info->getSkinType() == ::mc::skin::SkinType::Slim) {
-            return m_alexRegion ? ResourceLocation("minecraft:textures/entity/player/slim/alex.png") : location;
-        } else {
-            return m_steveRegion ? ResourceLocation("minecraft:textures/entity/player/wide/steve.png") : location;
+        const DefaultSkinVariant& variant = getDefaultSkinVariantForUUID(profile.uuid());
+        const TextureRegion* region = m_defaultSkinRegions[variant.index];
+        if (region) {
+            return variant.textureLocation();
         }
+        // 如果该默认皮肤区域未加载，返回其 ResourceLocation
+        return variant.textureLocation();
     }
 
     // 尝试从缓存加载皮肤 PNG 数据并上传到图集
@@ -205,13 +212,9 @@ Result<ResourceLocation> ClientSkinManager::registerPlayerSkin(const ::mc::skin:
         }
     }
 
-    // TODO: MC 1.21.1 有 18 种默认皮肤（9 slim + 9 wide），通过 UUID 哈希选择。
-    // 当前项目仅支持 Steve（wide）和 Alex（slim）2 种默认皮肤，
-    // 需要扩展 DefaultSkinProvider 支持 18 种皮肤并通过 UUID 哈希选择。
-    if (info && info->getSkinType() == ::mc::skin::SkinType::Slim) {
-        return ResourceLocation("minecraft:textures/entity/player/slim/alex.png");
-    }
-    return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
+    // 没有缓存，使用 UUID 哈希选择的默认皮肤
+    const DefaultSkinVariant& variant = getDefaultSkinVariantForUUID(profile.uuid());
+    return variant.textureLocation();
 }
 
 const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& uuid) const
@@ -227,11 +230,13 @@ const TextureRegion* ClientSkinManager::getSkinRegion(const std::array<u8, 16>& 
     }
 
     // 返回默认皮肤
-    auto info = m_skinManager->getPlayerInfo(uuid);
-    if (info && info->getSkinType() == ::mc::skin::SkinType::Slim) {
-        return m_alexRegion;
-    }
-    return m_steveRegion;
+    return getDefaultSkinRegion(uuid);
+}
+
+const TextureRegion* ClientSkinManager::getDefaultSkinRegion(const std::array<u8, 16>& uuid) const
+{
+    const DefaultSkinVariant& variant = getDefaultSkinVariantForUUID(uuid);
+    return m_defaultSkinRegions[variant.index];
 }
 
 const TextureRegion* ClientSkinManager::getCapeRegion(const std::array<u8, 16>& uuid) const
@@ -283,9 +288,11 @@ Result<void> ClientSkinManager::rebuildAtlas()
         return buildResult.error();
     }
 
-    // 更新默认皮肤纹理区域引用
-    m_steveRegion = m_textureAtlas->getRegion(ResourceLocation("minecraft:textures/entity/player/wide/steve.png"));
-    m_alexRegion = m_textureAtlas->getRegion(ResourceLocation("minecraft:textures/entity/player/slim/alex.png"));
+    // 更新 18 个默认皮肤纹理区域引用
+    const auto& variants = getDefaultSkinVariants();
+    for (size_t i = 0; i < ::mc::skin::DEFAULT_SKIN_COUNT; ++i) {
+        m_defaultSkinRegions[i] = m_textureAtlas->getRegion(variants[i].textureLocation());
+    }
 
     // 更新所有已注册玩家的纹理区域引用
     {
@@ -338,36 +345,28 @@ Result<void> ClientSkinManager::rebuildAtlas()
 
 Result<void> ClientSkinManager::_loadDefaultSkins()
 {
-    // 使用默认皮肤提供者的内置数据
-    const auto& steveData = m_skinManager->defaultSkinProvider().getSteveSkinData();
-    const auto& alexData = m_skinManager->defaultSkinProvider().getAlexSkinData();
+    // 加载 MC 1.21.1 的 18 种默认皮肤（9 slim + 9 wide）
+    const auto& variants = getDefaultSkinVariants();
+    const auto& provider = m_skinManager->defaultSkinProvider();
 
-    // 添加 Steve 皮肤
-    if (!steveData.empty()) {
-        ResourceLocation steveLocation("minecraft:textures/entity/player/wide/steve.png");
-        auto result = m_textureAtlas->addTextureFromPixels(steveData,
-            64, // Steve 皮肤是 64x64
-            64,
-            steveLocation);
-        if (!result.success()) {
-            spdlog::warn("ClientSkinManager: Failed to add Steve skin: {}", result.error().toString());
-        }
-    } else {
-        spdlog::warn("ClientSkinManager: No Steve skin data available");
-    }
+    for (size_t i = 0; i < ::mc::skin::DEFAULT_SKIN_COUNT; ++i) {
+        const auto& variant = variants[i];
+        const auto& skinData = provider.getSkinData(i);
 
-    // 添加 Alex 皮肤
-    if (!alexData.empty()) {
-        ResourceLocation alexLocation("minecraft:textures/entity/player/slim/alex.png");
-        auto result = m_textureAtlas->addTextureFromPixels(alexData,
-            64, // Alex 皮肤是 64x64
-            64,
-            alexLocation);
-        if (!result.success()) {
-            spdlog::warn("ClientSkinManager: Failed to add Alex skin: {}", result.error().toString());
+        if (!skinData.empty()) {
+            ResourceLocation location = variant.textureLocation();
+            auto result = m_textureAtlas->addTextureFromPixels(skinData,
+                64, // 皮肤是 64x64
+                64,
+                location);
+            if (!result.success()) {
+                spdlog::warn("ClientSkinManager: Failed to add default skin {}: {}",
+                    location.toString(),
+                    result.error().toString());
+            }
+        } else {
+            spdlog::warn("ClientSkinManager: No skin data for default skin variant {} ({})", i, variant.name);
         }
-    } else {
-        spdlog::warn("ClientSkinManager: No Alex skin data available");
     }
 
     return {};

@@ -27,6 +27,7 @@
 #include "item/core/ItemStack.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
+#include "world/block/blocks/functional/LecternBlock.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -132,6 +133,9 @@ void LecternEntity::setPage(i32 page)
     if (m_page != page) {
         m_page = page;
         setChanged();
+
+        // 页码变化时触发红石脉冲
+        _signalPageChange();
     }
 }
 
@@ -142,8 +146,7 @@ bool LecternEntity::nextPage()
         return false;
     }
 
-    ++m_page;
-    setChanged();
+    setPage(m_page + 1);
     return true;
 }
 
@@ -153,8 +156,7 @@ bool LecternEntity::prevPage()
         return false;
     }
 
-    --m_page;
-    setChanged();
+    setPage(m_page - 1);
     return true;
 }
 
@@ -203,6 +205,22 @@ bool LecternEntity::_isValidBook(const ItemStack& stack)
 void LecternEntity::_updateBlockState(IWorld& world)
 {
     MC_UNUSED(world);
+}
+
+void LecternEntity::_signalPageChange()
+{
+    IWorld* world = getWorld();
+    if (world == nullptr || world->isClientSide()) {
+        return;
+    }
+
+    const BlockState* state = world->getBlockState(m_pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    // 翻页时触发红石脉冲（POWERED=true + 2 tick 后自动恢复）
+    blocks::LecternBlock::pulse(*world, m_pos, *state);
 }
 
 bool LecternEntity::load(const nlohmann::json& data)

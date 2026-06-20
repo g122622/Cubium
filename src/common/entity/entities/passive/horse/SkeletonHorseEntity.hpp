@@ -42,7 +42,7 @@ class TriggerSkeletonTrapGoal;
  * 特性：
  * - 可骑乘：可直接骑乘，无需驯服
  * - 不死生物：免疫溺水、中毒
- * - 阳光燃烧：在阳光下燃烧（如果不是戴着头盔）
+ * - 不在阳光下燃烧：MC 原版中骷髅马不在 BURN_IN_DAYLIGHT 标签中
  * - 不繁殖：无法繁殖
  * - 陷阱触发：玩家接近时触发陷阱，生成骷髅骑手
  * - 捕获：击败骷髅骑手后可以骑乘
@@ -107,12 +107,6 @@ public:
      * @brief 是否免疫溺水
      */
     [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
-
-    /**
-     * @brief 是否应该燃烧（阳光）
-     * 骷髅马在阳光下燃烧
-     */
-    [[nodiscard]] bool shouldBurnInDaylight() const { return true; }
 
     // ========== 属性 ==========
 

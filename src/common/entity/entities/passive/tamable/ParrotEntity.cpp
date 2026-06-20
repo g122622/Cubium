@@ -184,6 +184,9 @@ ActionResultType ParrotEntity::interactMob(Player& player, Hand hand)
                 setTamed(true);
                 setOwnerId(player.playerId());
 
+                // 通知世界动物被驯服，触发进度检测
+                m_world->onTameAnimal(player.playerId(), this);
+
                 // 广播驯服成功状态（心形粒子）
                 m_world->broadcastEntityStatus(
                     id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));

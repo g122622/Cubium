@@ -47,6 +47,10 @@ nether/
 - 如果聚合注册层做了"一次性初始化"且不允许重复初始化，容易在二次构建时拿到空特征列表
 - VegetalDecoration 阶段 ID 必须与 FeatureRegistry 注册顺序一致，否则会出现"生物群系配置指向错误特征槽位"的错配
 - `HugeFungusFeatures` 位于 `fungus/` 子目录而非本目录，但通过 `NetherFeatures.hpp` 统一聚合
+- `NetherFireFeature` 的 `minHeight`/`maxHeight` 配置字段控制火焰的垂直偏移范围：
+  - `dy = nextInt(maxHeight + 1) - nextInt(minHeight + 1)`（三角分布，参考 MC Java NetherForestVegetationFeature）
+  - 默认配置 `createNormal()` 使用 `minHeight=1, maxHeight=3`，火焰可在原点 Y 向上 0~3 格、向下 0~1 格
+  - 放置时自动检查 `isWithinWorldBounds` 边界
 
 ```mermaid
 flowchart LR

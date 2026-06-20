@@ -24,6 +24,13 @@ RaidManager
 
 `RaidManager` 负责世界级别的袭击生命周期管理，每个 `Raid` 实例管理单次袭击的波次推进和袭击者追踪。**RaidWave 是 Raid.hpp 内定义的结构体，不是独立文件。**
 
+## RaidManager 查询方法
+
+- `getRaidAt(BlockPos)` — 返回指定位置附近的进行中袭击（按距离匹配，仅 Ongoing 状态）
+- `getRaidForVillage(Village*)` — 返回指定村庄关联的袭击（含所有状态，用于防重复检查）
+- `getOngoingRaidForVillage(Village*)` — 返回指定村庄的进行中袭击（仅 Ongoing 状态，用于 Village 袭击状态验证）
+- `hasRaidAt(BlockPos)` — 判断指定位置是否在进行中袭击范围内
+
 ## 上下游外部依赖关系
 
 **上游依赖（本目录依赖）：**

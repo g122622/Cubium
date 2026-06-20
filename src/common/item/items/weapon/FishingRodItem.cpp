@@ -67,7 +67,7 @@ i32 FishingRodItem::getItemEnchantability() const
 
 ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
 {
-    ItemStack rodStack = player.getHeldItem(hand);
+    ItemStack& rodStack = player.getHeldItem(hand);
 
     // 检查玩家是否已经有浮标
     if (hasBobber(player)) {
@@ -75,7 +75,8 @@ ItemActionResult FishingRodItem::onItemRightClick(IWorld& world, Player& player,
         entity::FishingBobberEntity* bobber = getBobber(player);
         if (bobber != nullptr) {
             i32 damage = bobber->reelIn();
-            rodStack.attemptDamageItem(damage, &player);
+            // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
+            LivingEntity::hurtAndBreak(rodStack, damage, &player, LivingEntity::handToEquipmentSlot(hand));
             // 播放收杆音效
             player.playSound(
                 SoundEvents::ENTITY_FISHING_BOBBER_RETRIEVE, 0.5f, 0.4f / (math::Random().nextFloat() * 0.4f + 0.8f));

@@ -305,6 +305,54 @@ public:
     virtual void setEquipment(EquipmentSlot slot, const ItemStack& stack);
 
     /**
+     * @brief 装备损坏回调
+     *
+     * 当装备物品耐久度耗尽时调用，广播装备破损动画并播放音效。
+     * 对应 MC 原版 LivingEntity.onEquippedItemBroken()。
+     * ServerPlayer 重写此方法以额外更新物品损坏统计。
+     *
+     * @param item 损坏的物品类型
+     * @param slot 损坏物品所在的装备槽位
+     */
+    virtual void onEquippedItemBroken(const Item& item, EquipmentSlot slot);
+
+    /**
+     * @brief 广播装备破损事件
+     *
+     * 向追踪玩家广播装备破损状态码，客户端据此播放破损动画和音效。
+     * 对应 MC 原版 LivingEntity.broadcastBreakEvent()。
+     *
+     * @param slot 破损的装备槽位
+     */
+    void broadcastBreakEvent(EquipmentSlot slot);
+
+    /**
+     * @brief 将 Hand 转换为 EquipmentSlot
+     *
+     * @param hand 手部槽位
+     * @return 对应的装备槽位
+     */
+    [[nodiscard]] static EquipmentSlot handToEquipmentSlot(Hand hand)
+    {
+        return hand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand;
+    }
+
+    /**
+     * @brief 对物品施加耐久损耗，若物品损坏则触发 onEquippedItemBroken 回调
+     *
+     * 对应 MC 原版 ItemStack.hurtAndBreak(int, LivingEntity, EquipmentSlot)。
+     * 在调用 attemptDamageItem 之前保存物品指针（因为损坏后 ItemStack 会被清空），
+     * 若物品损坏则调用 onEquippedItemBroken 广播破损动画、播放音效、更新统计。
+     *
+     * @param stack 要损坏的物品堆引用
+     * @param amount 耐久损耗量
+     * @param entity 执行损坏的实体（用于耐久保护附魔和回调），可以为 nullptr
+     * @param slot 物品所在的装备槽位
+     * @return true 若物品损坏（耐久耗尽），false 否则
+     */
+    static bool hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot);
+
+    /**
      * @brief 获取主手物品
      */
     [[nodiscard]] const ItemStack& getMainHandItem() const { return getEquipment(EquipmentSlot::MainHand); }
@@ -935,6 +983,17 @@ public:
      * @param damageMultiplier 伤害倍率
      */
     void handleFallDamage(f32 distance, f32 damageMultiplier) override;
+
+    /**
+     * @brief 使用自定义伤害来源处理摔落伤害
+     * @param distance 摔落距离
+     * @param damageMultiplier 伤害倍率
+     * @param source 伤害来源
+     *
+     * 重写 Entity::causeFallDamage 以支持自定义伤害来源。
+     * 计算逻辑与 handleFallDamage 相同，但使用传入的伤害来源而非默认的 DamageSources::fall()。
+     */
+    void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
 
     // ========== NBT 序列化 ==========
 

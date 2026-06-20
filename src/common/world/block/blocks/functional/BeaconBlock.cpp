@@ -22,7 +22,10 @@
  */
 
 #include "BeaconBlock.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -75,6 +78,33 @@ i32 BeaconBlock::getComparatorInputOverride(const BlockState& state, IWorld& wor
     }
 
     return 0;
+}
+
+ActionResultType BeaconBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    // MC Java: 信标方块必须存在 BeaconBlockEntity 才能打开 GUI
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::Beacon) {
+        if (world.openContainer(ContainerType::Beacon, pos, player)) {
+            player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_BEACON), 1);
+            return ActionResultType::Consume;
+        }
+    }
+
+    return ActionResultType::Pass;
 }
 
 } // namespace blocks

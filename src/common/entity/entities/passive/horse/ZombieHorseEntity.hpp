@@ -37,7 +37,8 @@ namespace mc {
  * 特性：
  * - 可骑乘：可直接骑乘，无需驯服
  * - 不死生物：免疫溺水、中毒
- * - 不燃烧：僵尸马不会在阳光下燃烧
+ * - 阳光燃烧：MC 原版中僵尸马在 BURN_IN_DAYLIGHT 标签中，会在阳光下燃烧
+ * - 防护槽位为身体（EquipmentSlot::Chest），即马铠槽位提供阳光防护
  * - 不繁殖：无法繁殖
  * - 稀有：只能通过命令生成
  */
@@ -103,10 +104,13 @@ public:
     [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
 
     /**
-     * @brief 是否应该燃烧（阳光）
-     * 僵尸马不会燃烧
+     * @brief 阳光防护装备槽位
+     *
+     * 僵尸马使用身体槽位（EquipmentSlot::Chest）作为阳光防护，
+     * 对应 MC 原版中 ZombieHorse.sunProtectionSlot() 返回 EquipmentSlot.BODY。
+     * 这意味着马铠槽位中的物品可以替代僵尸马承受阳光下的耐久损耗。
      */
-    [[nodiscard]] bool shouldBurnInDaylight() const { return false; }
+    [[nodiscard]] EquipmentSlot sunProtectionSlot() const override { return EquipmentSlot::Chest; }
 
     // ========== 属性 ==========
 

@@ -385,6 +385,12 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/drop/BlockDropHandler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/weather/WeatherManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/player/ServerPlayerEntityManager.cpp
+    # 游戏事件系统（服务端实现）
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/PositionSource.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventListenerRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
     # 事件系统
@@ -400,6 +406,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/command/support/PlayerResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/support/EntityResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/support/EffectResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/command/support/FunctionSuggestionProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/support/SpreadAlgorithm.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/data/DataAccessor.cpp
     ${CMAKE_SOURCE_DIR}/src/server/command/commands/GameModeCommand.cpp
@@ -505,6 +512,11 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfo.cpp
     ${CMAKE_SOURCE_DIR}/src/server/bossbar/CustomServerBossInfoManager.cpp
+    # 函数系统
+    ${CMAKE_SOURCE_DIR}/src/server/function/CommandFunction.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/function/FunctionLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/function/FunctionManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/function/TimerQueue.cpp
 )
 
 target_link_libraries(minecraft-client

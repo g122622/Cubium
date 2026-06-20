@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "StructureCheck.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
@@ -100,6 +101,7 @@ private:
  * @brief 结构管理器
  *
  * 协调结构生成，管理结构引用和起始点。
+ * 持有 StructureCheck 缓存，缓存结构存在性检查结果以避免重复计算。
  */
 class StructureManager {
 public:
@@ -158,13 +160,40 @@ public:
         i32 chunkZ);
 
     /**
-     * @brief 清理缓存
+     * @brief 清理所有结构检查缓存
+     *
+     * 清空 StructureCheck 的精确缓存（m_loadedChunks）。
+     * 当前在 NoiseChunkGenerator 析构时自动调用。
+     *
+     * TODO: 后续在维度热重载场景中，需在维度卸载前显式调用此方法
+     * （而非等到生成器析构），对齐 MC 1.21.11 中 ServerLevel 卸载时
+     * 立即清理 StructureCheck 的行为。
      */
     void clearCache();
+
+    /**
+     * @brief 获取结构检查缓存
+     *
+     * 允许外部代码访问 StructureCheck 以进行结构存在性查询和缓存通知。
+     * 对齐 MC 1.21.11 中 StructureManager 持有 StructureCheck 的架构。
+     *
+     * 当前调用方：
+     * - NoiseChunkGenerator::generateStructureStarts() 通过此方法调用 onStructureLoad()
+     * - NoiseChunkGenerator::generateStructureReferences() 通过此方法调用 incrementReference()
+     *
+     * TODO: 后续需添加以下调用方：
+     * - NoiseChunkGenerator::shouldGenerateStructureStart() 调用 checkStart() 避免重复生成
+     * - ServerWorld::findNearestStructure() 调用 checkStart() 快速跳过不含结构的区块
+     */
+    [[nodiscard]] StructureCheck& structureCheck() { return m_structureCheck; }
+    [[nodiscard]] const StructureCheck& structureCheck() const { return m_structureCheck; }
 
 private:
     i64 m_seed;
     i32 m_referenceDistance = 8;
+
+    /// 结构存在性检查缓存，避免重复执行昂贵的生物群系检查和频率计算
+    StructureCheck m_structureCheck;
 
     /**
      * @brief 创建结构随机数生成器

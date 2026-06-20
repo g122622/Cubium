@@ -44,6 +44,9 @@ namespace command {
  * 用法:
  * - /setworldspawn - 设置世界出生点到当前位置
  * - /setworldspawn <pos> - 设置世界出生点到指定位置
+ * - /setworldspawn <pos> <angle> - 设置世界出生点到指定位置和朝向
+ *
+ * 参考 MC 1.21.11: SetWorldSpawnCommand
  */
 class SetWorldSpawnCommand {
 public:
@@ -55,7 +58,7 @@ public:
 
 private:
     /**
-     * @brief 设置世界出生点到当前位置
+     * @brief 设置世界出生点到当前位置（使用玩家的朝向作为出生朝向）
      * @param context 命令上下文
      * @return 命令结果
      */
@@ -69,11 +72,19 @@ private:
     static i32 _setPosition(CommandContext<ServerCommandSource>& context);
 
     /**
+     * @brief 设置世界出生点到指定位置和朝向
+     * @param context 命令上下文
+     * @return 命令结果
+     */
+    static i32 _setPositionWithAngle(CommandContext<ServerCommandSource>& context);
+
+    /**
      * @brief 广播新的世界出生点到所有玩家
      * @param server 服务器实例
      * @param pos 新的出生点位置
+     * @param angle 新的出生点朝向（度）
      */
-    static void _broadcastSpawnPosition(server::IServer* server, const Vector3d& pos);
+    static void _broadcastSpawnPosition(server::IServer* server, const Vector3d& pos, f32 angle);
 };
 
 } // namespace command

@@ -560,10 +560,11 @@ TEST_F(FurnaceBurnTimeTest, OakFenceGate_HasCorrectBurnTime)
 
 TEST_F(FurnaceBurnTimeTest, OakDoor_HasCorrectBurnTime)
 {
+    // MC Java: 木质门燃烧时间 200 tick（比其他木质建筑方块的 300 tick 短）
     const BlockItem* doorItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::OAK_DOOR);
     ASSERT_NE(doorItem, nullptr) << "OAK_DOOR should have a BlockItem";
     ItemStack stack(static_cast<const Item*>(doorItem), 1);
-    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 200);
 }
 
 TEST_F(FurnaceBurnTimeTest, OakTrapdoor_HasCorrectBurnTime)
@@ -793,31 +794,31 @@ TEST_F(FurnaceBurnTimeTest, DarkOakSign_HasCorrectBurnTime)
     EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "深色橡木告示牌燃烧时间应为 200 tick";
 }
 
-TEST_F(FurnaceBurnTimeTest, CrimsonSign_HasCorrectBurnTime)
+TEST_F(FurnaceBurnTimeTest, CrimsonSign_NotBurnable)
 {
+    // MC Java: 绯红告示牌属于 NON_FLAMMABLE_WOOD，不可作为燃料
     ASSERT_NE(Items::CRIMSON_SIGN, nullptr) << "CRIMSON_SIGN should be registered";
     ItemStack sign(Items::CRIMSON_SIGN, 1);
-    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "绯红告示牌燃烧时间应为 200 tick";
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 0) << "绯红告示牌属于 NON_FLAMMABLE_WOOD，不可燃";
 }
 
-TEST_F(FurnaceBurnTimeTest, WarpedSign_HasCorrectBurnTime)
+TEST_F(FurnaceBurnTimeTest, WarpedSign_NotBurnable)
 {
+    // MC Java: 诡异告示牌属于 NON_FLAMMABLE_WOOD，不可作为燃料
     ASSERT_NE(Items::WARPED_SIGN, nullptr) << "WARPED_SIGN should be registered";
     ItemStack sign(Items::WARPED_SIGN, 1);
-    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "诡异告示牌燃烧时间应为 200 tick";
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 0) << "诡异告示牌属于 NON_FLAMMABLE_WOOD，不可燃";
 }
 
 TEST_F(FurnaceBurnTimeTest, SignItemsAreFuel)
 {
-    // 所有告示牌都应被视为燃料
+    // 主世界木材告示牌应被视为燃料（绯红/诡异告示牌属于 NON_FLAMMABLE_WOOD，不可燃）
     ASSERT_NE(Items::OAK_SIGN, nullptr);
     ASSERT_NE(Items::SPRUCE_SIGN, nullptr);
     ASSERT_NE(Items::BIRCH_SIGN, nullptr);
     ASSERT_NE(Items::JUNGLE_SIGN, nullptr);
     ASSERT_NE(Items::ACACIA_SIGN, nullptr);
     ASSERT_NE(Items::DARK_OAK_SIGN, nullptr);
-    ASSERT_NE(Items::CRIMSON_SIGN, nullptr);
-    ASSERT_NE(Items::WARPED_SIGN, nullptr);
 
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::OAK_SIGN, 1)));
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::SPRUCE_SIGN, 1)));
@@ -825,8 +826,12 @@ TEST_F(FurnaceBurnTimeTest, SignItemsAreFuel)
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::JUNGLE_SIGN, 1)));
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::ACACIA_SIGN, 1)));
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::DARK_OAK_SIGN, 1)));
-    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::CRIMSON_SIGN, 1)));
-    EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::WARPED_SIGN, 1)));
+
+    // 绯红/诡异告示牌属于 NON_FLAMMABLE_WOOD，不可燃
+    ASSERT_NE(Items::CRIMSON_SIGN, nullptr);
+    ASSERT_NE(Items::WARPED_SIGN, nullptr);
+    EXPECT_FALSE(AbstractFurnaceEntity::isFuel(ItemStack(Items::CRIMSON_SIGN, 1)));
+    EXPECT_FALSE(AbstractFurnaceEntity::isFuel(ItemStack(Items::WARPED_SIGN, 1)));
 }
 
 // ========== 旗帜燃烧时间测试 (300 tick) ==========
@@ -869,4 +874,260 @@ TEST_F(FurnaceBurnTimeTest, Scaffolding_IsFuel)
 {
     ASSERT_NE(Items::SCAFFOLDING, nullptr);
     EXPECT_TRUE(AbstractFurnaceEntity::isFuel(ItemStack(Items::SCAFFOLDING, 1)));
+}
+
+// ========== 新增燃料测试 - 多木材类型楼梯 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, SpruceStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SPRUCE_STAIRS);
+    if (item == nullptr) {
+        GTEST_SKIP() << "SPRUCE_STAIRS BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BirchStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BIRCH_STAIRS);
+    if (item == nullptr) {
+        GTEST_SKIP() << "BIRCH_STAIRS BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, JungleStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::JUNGLE_STAIRS);
+    if (item == nullptr) {
+        GTEST_SKIP() << "JUNGLE_STAIRS BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, AcaciaStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::ACACIA_STAIRS);
+    if (item == nullptr) {
+        GTEST_SKIP() << "ACACIA_STAIRS BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, DarkOakStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::DARK_OAK_STAIRS);
+    if (item == nullptr) {
+        GTEST_SKIP() << "DARK_OAK_STAIRS BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增燃料测试 - 多木材类型台阶 (150 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, SpruceSlab_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SPRUCE_SLAB);
+    if (item == nullptr) {
+        GTEST_SKIP() << "SPRUCE_SLAB BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 150);
+}
+
+TEST_F(FurnaceBurnTimeTest, BirchSlab_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BIRCH_SLAB);
+    if (item == nullptr) {
+        GTEST_SKIP() << "BIRCH_SLAB BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 150);
+}
+
+// ========== 新增燃料测试 - 多木材类型栅栏 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, SpruceFence_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SPRUCE_FENCE);
+    if (item == nullptr) {
+        GTEST_SKIP() << "SPRUCE_FENCE BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BirchFence_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BIRCH_FENCE);
+    if (item == nullptr) {
+        GTEST_SKIP() << "BIRCH_FENCE BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增燃料测试 - 多木材类型栅栏门 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, SpruceFenceGate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SPRUCE_FENCE_GATE);
+    if (item == nullptr) {
+        GTEST_SKIP() << "SPRUCE_FENCE_GATE BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BirchFenceGate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BIRCH_FENCE_GATE);
+    if (item == nullptr) {
+        GTEST_SKIP() << "BIRCH_FENCE_GATE BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增燃料测试 - 雕纹书架 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, ChiseledBookshelf_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHISELED_BOOKSHELF);
+    if (item == nullptr) {
+        GTEST_SKIP() << "CHISELED_BOOKSHELF BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增燃料测试 - 红树木相关 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveRoots_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_ROOTS);
+    if (item == nullptr) {
+        GTEST_SKIP() << "MANGROVE_ROOTS BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增燃料测试 - 杜鹃花 (100 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, Azalea_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::AZALEA);
+    if (item == nullptr) {
+        GTEST_SKIP() << "AZALEA BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, FloweringAzalea_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::FLOWERING_AZALEA);
+    if (item == nullptr) {
+        GTEST_SKIP() << "FLOWERING_AZALEA BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+// ========== 新增燃料测试 - 枯草 (100 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, ShortDryGrass_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::SHORT_DRY_GRASS);
+    if (item == nullptr) {
+        GTEST_SKIP() << "SHORT_DRY_GRASS BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, TallDryGrass_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::TALL_DRY_GRASS);
+    if (item == nullptr) {
+        GTEST_SKIP() << "TALL_DRY_GRASS BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+// ========== 新增燃料测试 - 落叶 (100 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, LeafLitter_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::LEAF_LITTER);
+    if (item == nullptr) {
+        GTEST_SKIP() << "LEAF_LITTER BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+// ========== 边界情况：绯红/诡异木质不可燃测试 ==========
+
+TEST_F(FurnaceBurnTimeTest, CrimsonFenceGate_NotBurnable)
+{
+    // MC Java: 绯红栅栏门属于 NON_FLAMMABLE_WOOD，不可作为燃料
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CRIMSON_FENCE_GATE);
+    if (item == nullptr) {
+        GTEST_SKIP() << "CRIMSON_FENCE_GATE BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "绯红栅栏门属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, WarpedFenceGate_NotBurnable)
+{
+    // MC Java: 诡异栅栏门属于 NON_FLAMMABLE_WOOD，不可作为燃料
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::WARPED_FENCE_GATE);
+    if (item == nullptr) {
+        GTEST_SKIP() << "WARPED_FENCE_GATE BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "诡异栅栏门属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, CrimsonStem_NotBurnable)
+{
+    // MC Java: 绯红茎属于 NON_FLAMMABLE_WOOD，不可作为燃料
+    // 绯红茎和诡异茎不在燃料列表中，返回 0
+    ASSERT_NE(Items::CRIMSON_STEM, nullptr) << "CRIMSON_STEM should be registered";
+    ItemStack stack(Items::CRIMSON_STEM, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "绯红茎属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, WarpedStem_NotBurnable)
+{
+    // MC Java: 诡异茎属于 NON_FLAMMABLE_WOOD，不可作为燃料
+    ASSERT_NE(Items::WARPED_STEM, nullptr) << "WARPED_STEM should be registered";
+    ItemStack stack(Items::WARPED_STEM, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "诡异茎属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+// ========== 非燃料物品测试 ==========
+
+TEST_F(FurnaceBurnTimeTest, IronIngot_IsNotFuel)
+{
+    ASSERT_NE(Items::IRON_INGOT, nullptr);
+    ItemStack stack(Items::IRON_INGOT, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0);
+}
+
+TEST_F(FurnaceBurnTimeTest, Stone_IsNotFuel)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::STONE);
+    ASSERT_NE(item, nullptr);
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0);
 }

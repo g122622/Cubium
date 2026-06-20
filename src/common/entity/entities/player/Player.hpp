@@ -452,6 +452,22 @@ public:
     }
 
     /**
+     * @brief 增加自定义统计
+     *
+     * 当玩家触发自定义统计事件时调用（如打开容器、与方块交互等）。
+     * ServerPlayer 重写此方法以实际更新统计。
+     *
+     * @param statId 自定义统计的资源位置（使用 mc::stats 命名空间中的常量）
+     * @param count 增量值
+     */
+    virtual void awardCustomStat(const ResourceLocation& statId, i32 count)
+    {
+        MC_UNUSED(statId);
+        MC_UNUSED(count);
+        // 基类默认空实现
+    }
+
+    /**
      * @brief 解锁配方
      *
      * 当玩家首次合成某配方时调用，用于解锁配方书和触发成就。
@@ -878,6 +894,13 @@ public:
      * 覆盖 LivingEntity::handleFallDamage()，添加玩家特有摔落音效。
      */
     void handleFallDamage(f32 distance, f32 damageMultiplier) override;
+
+    /**
+     * @brief 使用自定义伤害来源处理摔落伤害
+     *
+     * Player 不需要特殊处理，直接委托给 LivingEntity::causeFallDamage()。
+     */
+    void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
 
 protected:
     /**

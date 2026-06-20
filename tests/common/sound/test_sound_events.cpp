@@ -152,6 +152,9 @@ TEST_F(SoundEventsTest, ItemSoundEvents_ValidResourceLocations)
     EXPECT_EQ(SoundEvents::ITEM_BUCKET_FILL.toString(), "minecraft:item.bucket.fill");
     EXPECT_EQ(SoundEvents::ITEM_BUCKET_EMPTY_LAVA.toString(), "minecraft:item.bucket.empty_lava");
     EXPECT_EQ(SoundEvents::ITEM_BUCKET_FILL_LAVA.toString(), "minecraft:item.bucket.fill_lava");
+
+    // 骨粉
+    EXPECT_EQ(SoundEvents::ITEM_BONE_MEAL_USE.toString(), "minecraft:item.bone_meal.use");
 }
 
 // ========== 武器音效测试 ==========

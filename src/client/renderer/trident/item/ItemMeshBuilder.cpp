@@ -41,6 +41,14 @@ using ::mc::Direction;
 using ::mc::ModelElement;
 using ::mc::ModelFace;
 
+// 静态成员初始化
+const ::mc::client::ItemTextureAtlas* ItemMeshBuilder::s_itemTextureAtlas = nullptr;
+
+void ItemMeshBuilder::setItemTextureAtlas(const ::mc::client::ItemTextureAtlas* atlas)
+{
+    s_itemTextureAtlas = atlas;
+}
+
 namespace {
 
 // 将 ItemTransformType 转换为 ItemDisplayContext
@@ -387,8 +395,11 @@ void ItemMeshBuilder::_buildGeneratedMesh(const resource::BakedItemModel& model,
         return;
     }
 
-    // 获取 ItemTextureAtlas
-    // TODO: 从 ItemTextureAtlas 获取实际纹理坐标，当前使用占位符 UV
+    // 从 ItemTextureAtlas 解析各层的纹理坐标
+    std::vector<::mc::TextureRegion> textureRegions;
+    if (s_itemTextureAtlas != nullptr) {
+        textureRegions = s_itemTextureAtlas->getItemTextureLayers(layers);
+    }
 
     f64 size = ITEM_SCALE * 16.0;
     f64 halfSize = size * 0.5;
@@ -397,8 +408,18 @@ void ItemMeshBuilder::_buildGeneratedMesh(const resource::BakedItemModel& model,
     for (size_t layer = 0; layer < layers.size(); ++layer) {
         f32 zOffset = static_cast<f32>(layer * 0.001); // 防止 z-fighting
 
-        // TODO: 从 ItemTextureAtlas 获取实际纹理坐标，当前使用占位符 UV
+        // 获取该层的纹理坐标，无纹理时跳过该层
         f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
+        if (layer < textureRegions.size()) {
+            const auto& region = textureRegions[layer];
+            u0 = static_cast<f32>(region.u0);
+            v0 = static_cast<f32>(region.v0);
+            u1 = static_cast<f32>(region.u1);
+            v1 = static_cast<f32>(region.v1);
+        } else if (s_itemTextureAtlas != nullptr) {
+            // 图集中未找到该层纹理，跳过
+            continue;
+        }
 
         // 前面
         u32 baseIndex = static_cast<u32>(vertices.size());
@@ -415,12 +436,12 @@ void ItemMeshBuilder::_buildGeneratedMesh(const resource::BakedItemModel& model,
         indices.push_back(baseIndex + 3);
 
         // 后面（镜像）
-        zOffset = -zOffset;
+        f32 backZ = -zOffset;
         baseIndex = static_cast<u32>(vertices.size());
-        vertices.push_back(model::ModelVertex(halfSize, -halfSize, zOffset, u0, v1, 0.0, 0.0, -1.0));
-        vertices.push_back(model::ModelVertex(-halfSize, -halfSize, zOffset, u1, v1, 0.0, 0.0, -1.0));
-        vertices.push_back(model::ModelVertex(-halfSize, halfSize, zOffset, u1, v0, 0.0, 0.0, -1.0));
-        vertices.push_back(model::ModelVertex(halfSize, halfSize, zOffset, u0, v0, 0.0, 0.0, -1.0));
+        vertices.push_back(model::ModelVertex(halfSize, -halfSize, backZ, u0, v1, 0.0, 0.0, -1.0));
+        vertices.push_back(model::ModelVertex(-halfSize, -halfSize, backZ, u1, v1, 0.0, 0.0, -1.0));
+        vertices.push_back(model::ModelVertex(-halfSize, halfSize, backZ, u1, v0, 0.0, 0.0, -1.0));
+        vertices.push_back(model::ModelVertex(halfSize, halfSize, backZ, u0, v0, 0.0, 0.0, -1.0));
 
         indices.push_back(baseIndex + 0);
         indices.push_back(baseIndex + 1);
@@ -453,6 +474,11 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         return;
     }
 
+    // TODO: 元素旋转（ModelRotation）尚未处理。当 element.rotation.angle != 0 时，
+    // 顶点位置需要绕旋转轴旋转。当前实现仅支持无旋转的元素，对于带旋转的元素
+    // （如活塞臂、楼梯转角等）会渲染不正确。需要参考 MC 的 FaceBakery.bakeQuad()
+    // 实现旋转矩阵应用到元素顶点。
+
     f64 scale = ITEM_SCALE;
 
     for (const auto& element : model.elements) {
@@ -462,8 +488,6 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         f64 x2 = element.to.x * scale;
         f64 y2 = element.to.y * scale;
         f64 z2 = element.to.z * scale;
-
-        u32 baseIndex = static_cast<u32>(vertices.size());
 
         // 为每个面生成顶点
         for (const auto& [dir, face] : element.faces) {
@@ -546,52 +570,109 @@ void ItemMeshBuilder::_buildCustomMesh(const resource::BakedItemModel& model,
     std::vector<model::ModelVertex>& vertices,
     std::vector<u32>& indices)
 {
-    // TODO: 实现自定义模型的专用网格构建逻辑，当前复用方块物品网格构建
+    // 自定义物品模型使用与方块物品相同的 elements 系统，直接复用方块物品网格构建
     _buildBlockItemMesh(model, item, transformType, vertices, indices);
 }
 
 void ItemMeshBuilder::_buildFallbackMesh(
     const ::mc::Item& item, std::vector<model::ModelVertex>& vertices, std::vector<u32>& indices)
 {
-    // TODO: 回退网格当前只有前后两面，应补全其余四个面以形成完整立方体
     f64 size = ITEM_SCALE * 16.0;
-    f64 halfSize = size * 0.5;
+    f64 x1 = -size * 0.5;
+    f64 y1 = -size * 0.5;
+    f64 z1 = -size * 0.5;
+    f64 x2 = size * 0.5;
+    f64 y2 = size * 0.5;
+    f64 z2 = size * 0.5;
 
     f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
 
-    // 前面 (Z+)
-    vertices.push_back(model::ModelVertex(-halfSize, -halfSize, halfSize, u0, v1, 0.0, 0.0, 1.0));
-    vertices.push_back(model::ModelVertex(halfSize, -halfSize, halfSize, u1, v1, 0.0, 0.0, 1.0));
-    vertices.push_back(model::ModelVertex(halfSize, halfSize, halfSize, u1, v0, 0.0, 0.0, 1.0));
-    vertices.push_back(model::ModelVertex(-halfSize, halfSize, halfSize, u0, v0, 0.0, 0.0, 1.0));
+    // 北面 (Z-) - 法线 (0, 0, -1)
+    u32 baseIndex = static_cast<u32>(vertices.size());
+    vertices.push_back(model::ModelVertex(x1, y1, z1, u0, v1, 0.0, 0.0, -1.0));
+    vertices.push_back(model::ModelVertex(x2, y1, z1, u1, v1, 0.0, 0.0, -1.0));
+    vertices.push_back(model::ModelVertex(x2, y2, z1, u1, v0, 0.0, 0.0, -1.0));
+    vertices.push_back(model::ModelVertex(x1, y2, z1, u0, v0, 0.0, 0.0, -1.0));
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 1);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 3);
 
-    // 后面 (Z-)
-    vertices.push_back(model::ModelVertex(halfSize, -halfSize, -halfSize, u0, v1, 0.0, 0.0, -1.0));
-    vertices.push_back(model::ModelVertex(-halfSize, -halfSize, -halfSize, u1, v1, 0.0, 0.0, -1.0));
-    vertices.push_back(model::ModelVertex(-halfSize, halfSize, -halfSize, u1, v0, 0.0, 0.0, -1.0));
-    vertices.push_back(model::ModelVertex(halfSize, halfSize, -halfSize, u0, v0, 0.0, 0.0, -1.0));
+    // 南面 (Z+) - 法线 (0, 0, 1)
+    baseIndex = static_cast<u32>(vertices.size());
+    vertices.push_back(model::ModelVertex(x2, y1, z2, u0, v1, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(x1, y1, z2, u1, v1, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(x1, y2, z2, u1, v0, 0.0, 0.0, 1.0));
+    vertices.push_back(model::ModelVertex(x2, y2, z2, u0, v0, 0.0, 0.0, 1.0));
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 1);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 3);
 
-    // 前面三角形
-    indices.push_back(0);
-    indices.push_back(1);
-    indices.push_back(2);
-    indices.push_back(0);
-    indices.push_back(2);
-    indices.push_back(3);
+    // 西面 (X-) - 法线 (-1, 0, 0)
+    baseIndex = static_cast<u32>(vertices.size());
+    vertices.push_back(model::ModelVertex(x1, y1, z2, u0, v1, -1.0, 0.0, 0.0));
+    vertices.push_back(model::ModelVertex(x1, y1, z1, u1, v1, -1.0, 0.0, 0.0));
+    vertices.push_back(model::ModelVertex(x1, y2, z1, u1, v0, -1.0, 0.0, 0.0));
+    vertices.push_back(model::ModelVertex(x1, y2, z2, u0, v0, -1.0, 0.0, 0.0));
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 1);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 3);
 
-    // 后面三角形
-    indices.push_back(4);
-    indices.push_back(5);
-    indices.push_back(6);
-    indices.push_back(4);
-    indices.push_back(6);
-    indices.push_back(7);
+    // 东面 (X+) - 法线 (1, 0, 0)
+    baseIndex = static_cast<u32>(vertices.size());
+    vertices.push_back(model::ModelVertex(x2, y1, z1, u0, v1, 1.0, 0.0, 0.0));
+    vertices.push_back(model::ModelVertex(x2, y1, z2, u1, v1, 1.0, 0.0, 0.0));
+    vertices.push_back(model::ModelVertex(x2, y2, z2, u1, v0, 1.0, 0.0, 0.0));
+    vertices.push_back(model::ModelVertex(x2, y2, z1, u0, v0, 1.0, 0.0, 0.0));
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 1);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 3);
+
+    // 底面 (Y-) - 法线 (0, -1, 0)
+    baseIndex = static_cast<u32>(vertices.size());
+    vertices.push_back(model::ModelVertex(x1, y1, z2, u0, v1, 0.0, -1.0, 0.0));
+    vertices.push_back(model::ModelVertex(x2, y1, z2, u1, v1, 0.0, -1.0, 0.0));
+    vertices.push_back(model::ModelVertex(x2, y1, z1, u1, v0, 0.0, -1.0, 0.0));
+    vertices.push_back(model::ModelVertex(x1, y1, z1, u0, v0, 0.0, -1.0, 0.0));
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 1);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 3);
+
+    // 顶面 (Y+) - 法线 (0, 1, 0)
+    baseIndex = static_cast<u32>(vertices.size());
+    vertices.push_back(model::ModelVertex(x1, y2, z1, u0, v1, 0.0, 1.0, 0.0));
+    vertices.push_back(model::ModelVertex(x2, y2, z1, u1, v1, 0.0, 1.0, 0.0));
+    vertices.push_back(model::ModelVertex(x2, y2, z2, u1, v0, 0.0, 1.0, 0.0));
+    vertices.push_back(model::ModelVertex(x1, y2, z2, u0, v0, 0.0, 1.0, 0.0));
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 1);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 0);
+    indices.push_back(baseIndex + 2);
+    indices.push_back(baseIndex + 3);
 
     MC_UNUSED(item);
 }
 
 void ItemMeshBuilder::_applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix)
 {
+    // 计算逆转置矩阵用于法线变换，确保非均匀缩放时法线正确
+    glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(matrix)));
+
     for (auto& vertex : vertices) {
         glm::vec4 pos(vertex.position.x, vertex.position.y, vertex.position.z, 1.0f);
         pos = matrix * pos;
@@ -599,12 +680,8 @@ void ItemMeshBuilder::_applyMatrixToVertices(std::vector<model::ModelVertex>& ve
         vertex.position.y = pos.y;
         vertex.position.z = pos.z;
 
-        // TODO: 使用逆转置矩阵进行法线变换，当前简化处理可能导致光照异常
-        glm::vec4 normal(vertex.normal.x, vertex.normal.y, vertex.normal.z, 0.0f);
-        normal = matrix * normal;
-        if (glm::length(glm::vec3(normal)) > 0.0001f) {
-            normal = glm::normalize(normal);
-        }
+        glm::vec3 normal(vertex.normal.x, vertex.normal.y, vertex.normal.z);
+        normal = glm::normalize(normalMatrix * normal);
         vertex.normal.x = normal.x;
         vertex.normal.y = normal.y;
         vertex.normal.z = normal.z;

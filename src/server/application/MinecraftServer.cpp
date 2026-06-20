@@ -22,6 +22,8 @@
  */
 
 #include "MinecraftServer.hpp"
+#include "common/advancement/AdvancementLoader.hpp"
+#include "common/advancement/AdvancementManager.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
@@ -83,9 +85,11 @@
 #include "common/world/village/raid/RaidManager.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "server/command/CommandRegistry.hpp"
+#include "server/command/ServerCommandSource.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/dimension/ServerDimension.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/function/FunctionLoader.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
@@ -261,6 +265,31 @@ void MinecraftServer::tick()
     if (m_dimensionManager) {
         MC_TRACE_EVENT("server.tick", "TickAllDimensions");
         m_dimensionManager->tick();
+    }
+
+    // 函数系统 tick：执行 minecraft:tick 标签中的函数和处理调度的函数
+    {
+        MC_TRACE_EVENT("server.tick", "TickFunctions");
+        // 创建游戏循环命令源（权限等级2，抑制输出，无关联玩家）
+        command::ServerCommandSource gameLoopSource(this, nullptr, 0, Vector3d(0, 0, 0), Vector2f(0, 0), 2, 0, "");
+
+        // 执行 tick 和 load 标签中的函数
+        m_functionManager.tick(gameLoopSource);
+
+        // 处理到期的调度事件
+        auto dueEvents = m_functionTimerQueue.tick(currentTick());
+        for (const auto& event : dueEvents) {
+            if (event.type == function::TimerQueue::EventType::Function) {
+                // 执行单个函数
+                m_functionManager.execute(event.loc, gameLoopSource);
+            } else if (event.type == function::TimerQueue::EventType::FunctionTag) {
+                // 执行函数标签中的所有函数
+                const auto& functionIds = m_functionManager.getTag(event.loc);
+                for (const auto& funcId : functionIds) {
+                    m_functionManager.execute(funcId, gameLoopSource);
+                }
+            }
+        }
     }
 
     if (m_storage) {
@@ -514,7 +543,7 @@ Result<size_t> MinecraftServer::saveAllWorldData()
         i32 spawnX = static_cast<i32>(std::floor(spawnPoint.x));
         i32 spawnY = static_cast<i32>(std::floor(spawnPoint.y));
         i32 spawnZ = static_cast<i32>(std::floor(spawnPoint.z));
-        f32 spawnAngle = 0.0f; // 出生点朝向暂时固定为 0
+        f32 spawnAngle = world->spawnAngle();
 
         // 获取天气数据
         i32 clearWeatherTime = 0;
@@ -547,6 +576,13 @@ Result<size_t> MinecraftServer::saveAllWorldData()
 
         if (levelResult.failed()) {
             spdlog::error("Failed to save level.dat: {}", levelResult.error().message());
+        }
+
+        // 保存调度事件到 level.dat
+        auto serializedEvents = m_functionTimerQueue.serialize();
+        auto eventsResult = m_storage->saveScheduledEvents(*serializedEvents);
+        if (eventsResult.failed()) {
+            spdlog::error("Failed to save scheduled events: {}", eventsResult.error().message());
         }
     }
 
@@ -601,6 +637,15 @@ Result<void> MinecraftServer::initializeWorld()
                     world->initializeWorldSpawn();
                 }
             });
+        }
+
+        // 加载调度事件
+        auto eventsResult = m_storage->loadScheduledEvents();
+        if (eventsResult.success() && !eventsResult.value()->value.empty()) {
+            m_functionTimerQueue.deserialize(*eventsResult.value());
+            spdlog::info("Loaded {} scheduled event(s) from level.dat", m_functionTimerQueue.size());
+        } else if (eventsResult.failed()) {
+            spdlog::warn("Failed to load scheduled events: {}", eventsResult.error().message());
         }
     }
 
@@ -812,6 +857,42 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
 
         // 注册特殊配方（动态配方，不从数据包加载）
         registerSpecialRecipes();
+    }
+
+    // 加载函数（从数据包加载 .mcfunction 文件）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Functions");
+        function::FunctionLoader functionLoader(m_functionManager);
+        auto funcLoadResult = functionLoader.loadFromDataPackRepository(m_dataPackList);
+        if (funcLoadResult.failed()) {
+            spdlog::error("Failed to load functions from data packs: {}", funcLoadResult.error().toString());
+        } else {
+            const auto& result = funcLoadResult.value();
+            spdlog::info("Loaded {} functions from data packs ({} failed, {} macros skipped)",
+                result.successCount,
+                result.failedCount,
+                result.skippedCount);
+            for (const auto& err : result.errors) {
+                spdlog::error("Function error: {}", err);
+            }
+        }
+        m_functionManager.notifyReload();
+    }
+
+    // 加载进度（从数据包加载）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Advancements");
+        mc::advancement::AdvancementLoader advancementLoader;
+        auto advancementLoadResult = advancementLoader.loadFromDataPackRepository(m_dataPackList);
+        if (advancementLoadResult.failed()) {
+            spdlog::error("Failed to load advancements from data packs: {}", advancementLoadResult.error().toString());
+        } else {
+            const auto& result = advancementLoadResult.value();
+            spdlog::info("Loaded {} advancements from data packs ({} failed)", result.successCount, result.failedCount);
+            for (const auto& err : result.errors) {
+                spdlog::error("Advancement error: {}", err);
+            }
+        }
     }
 
     // 加载模板池（从数据包加载）
@@ -1908,13 +1989,16 @@ void MinecraftServer::sendInitialGameState(PlayerId playerId, f64 x, f64 y, f64 
 
     // 发送世界出生点（指南针指向位置，从主世界维度获取）
     Vector3d worldSpawn(0.0, 64.0, 0.0);
+    f32 spawnAngle = 0.0f;
     auto* overworld = m_dimensionManager->getOverworld();
     if (overworld && overworld->world()) {
         worldSpawn = overworld->world()->worldSpawnPoint();
+        spawnAngle = overworld->world()->spawnAngle();
     }
     network::SpawnPositionPacket spawnPosPacket(BlockPos(static_cast<BlockCoord>(worldSpawn.x),
-        static_cast<BlockCoord>(worldSpawn.y),
-        static_cast<BlockCoord>(worldSpawn.z)));
+                                                    static_cast<BlockCoord>(worldSpawn.y),
+                                                    static_cast<BlockCoord>(worldSpawn.z)),
+        spawnAngle);
     auto spawnPosResult = spawnPosPacket.serialize();
     if (spawnPosResult.success()) {
         auto fullSpawnPacket =

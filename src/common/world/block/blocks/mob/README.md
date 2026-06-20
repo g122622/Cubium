@@ -47,7 +47,8 @@ Block (基类)
 - **沙子检测**：`isValidPosition` 和 `_hasProperHabitat` 都需要检查 `BlockTags::SAND`，不能硬编码方块 ID
 - **孵化生成小海龟**：必须调用 `setChild(true)` 设置为幼体，并调用 `setHomePos(pos)` 设置出生位置
 - **踩踏检查**：`_canTrample` 需要检查 `mobGriefing` 游戏规则，玩家例外（总是可踩破）
-- **僵尸类特殊处理**：Zombie、Husk、Drowned 在 `onFallenUpon` 中直接返回不踩破，但在 `onEntityWalk` 中正常处理
+- **僵尸类特殊处理**：Zombie、Husk、Drowned 在 `onFallenUpon` 中不踩破蛋，但仍然调用父类 `Block::onFallenUpon` 施加普通摔落伤害
+- **摔落伤害**：`onFallenUpon` 先执行踩破逻辑，再调用父类 `Block::onFallenUpon` 保留普通摔落伤害（对齐 MC 1.21 TurtleEggBlock.fallOn）
 
 ### InfestedBlock
 - **映射表初始化**：必须在使用 `canContainSilverfish` 或 `infest` 前调用 `initializeMappings()`，由 `VanillaBlocks::initialize()` 自动调用

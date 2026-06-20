@@ -389,6 +389,87 @@ TEST_F(ZombieEntityTest, Attributes)
     EXPECT_FLOAT_EQ(static_cast<f32>(m_zombie->getAttributeValue(entity::attribute::Attributes::ARMOR, 0.0)), 2.0f);
     EXPECT_FLOAT_EQ(
         static_cast<f32>(m_zombie->getAttributeValue(entity::attribute::Attributes::FOLLOW_RANGE, 0.0)), 35.0f);
+
+    // 僵尸增援概率属性已注册，默认基础值为 0.0
+    f64 reinforcementValue =
+        m_zombie->getAttributeValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, -1.0);
+    EXPECT_NE(reinforcementValue, -1.0) << "ZOMBIE_SPAWN_REINFORCEMENTS 属性应已注册";
+    EXPECT_DOUBLE_EQ(reinforcementValue, 0.0) << "ZOMBIE_SPAWN_REINFORCEMENTS 默认值应为 0.0";
+}
+
+// ============================================================================
+// 属性修饰符测试
+// ============================================================================
+
+TEST_F(ZombieEntityTest, BabySpeedModifier)
+{
+    // 成年僵尸的移动速度
+    f64 adultSpeed = m_zombie->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+
+    // 设置为婴儿
+    m_zombie->setBaby(true);
+    EXPECT_TRUE(m_zombie->isBaby());
+
+    // 婴儿僵尸速度应增加 50%（MultiplyBase 操作）
+    f64 babySpeed = m_zombie->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_NEAR(babySpeed, adultSpeed * 1.5, 0.001) << "婴儿速度应为成年速度的1.5倍";
+
+    // 设回成年
+    m_zombie->setBaby(false);
+    EXPECT_FALSE(m_zombie->isBaby());
+
+    // 速度应恢复
+    f64 restoredSpeed = m_zombie->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_NEAR(restoredSpeed, adultSpeed, 0.001) << "成年后速度应恢复原始值";
+}
+
+TEST_F(ZombieEntityTest, BabySpeedModifierToggle)
+{
+    // 多次切换婴儿状态
+    f64 originalSpeed = m_zombie->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+
+    m_zombie->setBaby(true);
+    m_zombie->setBaby(false);
+    m_zombie->setBaby(true);
+    m_zombie->setBaby(false);
+    m_zombie->setBaby(true);
+
+    f64 babySpeed = m_zombie->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_NEAR(babySpeed, originalSpeed * 1.5, 0.001) << "多次切换后婴儿速度仍应为1.5倍";
+
+    m_zombie->setBaby(false);
+    f64 restoredSpeed = m_zombie->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_NEAR(restoredSpeed, originalSpeed, 0.001) << "多次切换后恢复成年速度应正确";
+}
+
+TEST_F(ZombieEntityTest, BabySpeedModifierNoDuplicate)
+{
+    // 重复设置婴儿状态不应叠加修饰符
+    f64 originalSpeed = m_zombie->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+
+    m_zombie->setBaby(true);
+    m_zombie->setBaby(true); // 重复设置
+    m_zombie->setBaby(true); // 再重复
+
+    f64 babySpeed = m_zombie->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_NEAR(babySpeed, originalSpeed * 1.5, 0.001) << "重复设置婴儿状态不应叠加修饰符";
+}
+
+TEST_F(ZombieEntityTest, CanSummonReinforcementsDefaultValue)
+{
+    // 注册后默认基础值为 0.0，所以 canSummonReinforcements 应返回 false
+    EXPECT_FALSE(m_zombie->canSummonReinforcements());
+}
+
+TEST_F(ZombieEntityTest, CanSummonReinforcementsWithNonZeroValue)
+{
+    // 手动设置增援概率基础值为正值
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.5);
+    EXPECT_TRUE(m_zombie->canSummonReinforcements());
+
+    // 设置为 0
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.0);
+    EXPECT_FALSE(m_zombie->canSummonReinforcements());
 }
 
 } // namespace

@@ -837,7 +837,10 @@ void Entity::updateFallDistance()
     if (!m_onGround && m_velocity.y < 0.0f) {
         m_fallDistance -= m_velocity.y;
     } else if (m_onGround && m_fallDistance > 0.0f) {
-        handleFallDamage(m_fallDistance, 1.0f);
+        // 着地时触发踩上方块的 onFallenUpon 回调
+        // Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害
+        // 子类（如 PointedDripstoneBlock）可替代默认摔落伤害
+        _handleLandingOnBlock();
         m_fallDistance = 0.0f;
     }
 }
@@ -846,6 +849,51 @@ void Entity::handleFallDamage(f32 /* distance */, f32 /* damageMultiplier */)
 {
     // 基础实体不处理摔落伤害
     // LivingEntity 会重写此方法
+}
+
+void Entity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
+{
+    // MC 1.21.11: Entity.causeFallDamage 首先传播摔落伤害给所有乘客，基类不处理自身伤害
+    // 参考: net.minecraft.world.entity.Entity.causeFallDamage → propagateFallToPassengers
+    // LivingEntity.causeFallDamage 调用 super.causeFallDamage（传播给乘客）后自行计算伤害
+    propagateFallToPassengers(distance, damageMultiplier, source);
+}
+
+void Entity::propagateFallToPassengers(f32 distance, f32 damageMultiplier, const DamageSource& source)
+{
+    // MC 1.21.11: 当载具受到摔落伤害时，所有乘客也受到相同的摔落伤害
+    // 参考: net.minecraft.world.entity.Entity.propagateFallToPassengers
+    if (!hasPassengers() || m_world == nullptr) {
+        return;
+    }
+    // 拷贝乘客列表后再遍历，避免乘客在 causeFallDamage 过程中死亡
+    // 导致从 m_passengers 移除时迭代器失效
+    auto passengers = m_passengers;
+    for (EntityId passengerId : passengers) {
+        Entity* passenger = m_world->getEntity(passengerId);
+        if (passenger != nullptr) {
+            passenger->causeFallDamage(distance, damageMultiplier, source);
+        }
+    }
+}
+
+void Entity::_handleLandingOnBlock()
+{
+    // 着地时踩上所在方块的 onFallenUpon 回调
+    // Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害
+    // 子类可重写 onFallenUpon 以自定义摔落行为（如石笋增加伤害、蜂蜜块取消伤害等）
+    if (m_world == nullptr) {
+        return;
+    }
+    // 获取实体脚下方块
+    BlockPos landingPos(static_cast<i32>(std::floor(m_position.x)),
+        static_cast<i32>(m_position.y) - 1,
+        static_cast<i32>(std::floor(m_position.z)));
+    const BlockState* state = m_world->getBlockState(landingPos);
+    if (state != nullptr) {
+        // onFallenUpon 是非 const 方法，但逻辑上不会修改方块本身
+        const_cast<Block&>(state->getBlock()).onFallenUpon(*m_world, landingPos, *state, *this, m_fallDistance);
+    }
 }
 
 void Entity::update()

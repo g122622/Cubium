@@ -46,6 +46,7 @@
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -461,7 +462,7 @@ i32 FishingBobberEntity::_spawnCatchItems()
                        .withPredicateResolver([this](const std::string& id) -> const loot::LootCondition* {
                            return m_world->lootTableManager() ? m_world->lootTableManager()->getPredicate(id) : nullptr;
                        })
-                       .build(loot::LootParameterSet(loot::LootParameterSet::Type::Fishing));
+                       .build(loot::LootParameterSets::fishing());
 
     if (!context) {
         return 1;

@@ -21,6 +21,12 @@
  *
  */
 
+// ============================================================================
+// 注意：本文件不在 CMakeLists.txt 编译列表中，仅供参考。
+// 实际实现在 Template.hpp/cpp 中。
+// 修改逻辑时，务必修改 Template.hpp/cpp，而非仅修改本文件。
+// ============================================================================
+
 #include "StructureProcessor.hpp"
 #include "Template.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -43,6 +49,15 @@ std::optional<ProcessedBlockInfo> StructureProcessor::process(const BlockPos& /*
 {
     // 默认实现：不修改，直接返回处理后的方块信息
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
+}
+
+std::vector<ProcessedBlockInfo> StructureProcessor::finalizeProcessing(const BlockPos& /*seedPos*/,
+    const PlacementSettings& /*settings*/,
+    const std::vector<BlockInfo>& /*originalBlocks*/,
+    std::vector<ProcessedBlockInfo> processedBlocks)
+{
+    // 默认实现：直接返回处理后的方块列表，不做任何修改
+    return processedBlocks;
 }
 
 // ============================================================================

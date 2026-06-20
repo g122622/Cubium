@@ -161,8 +161,32 @@ public:
 
     /**
      * @brief 发出红石脉冲
+     *
+     * 翻页时调用，将 POWERED 设为 true，通知下方方块红石更新，
+     * 并调度 2 tick 后的 tick 事件将 POWERED 设回 false。
      */
-    static void pulse(IWorld& world, const BlockPos& pos, BlockState& state);
+    static void pulse(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 切换供电状态并通知下方方块更新红石信号
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param powered 是否供电
+     */
+    static void changePowered(IWorld& world, const BlockPos& pos, const BlockState& state, bool powered);
+
+    /**
+     * @brief 通知讲台下方方块更新红石信号
+     *
+     * 讲台向下输出强信号，所有方向输出弱信号，
+     * 因此红石更新只需通知正下方位置即可。
+     *
+     * @param world 世界引用
+     * @param pos 讲台位置
+     * @param block 讲台方块引用
+     */
+    static void updateBelow(IWorld& world, const BlockPos& pos, const Block& block);
 
 protected:
     /// 各朝向的形状缓存

@@ -988,6 +988,14 @@ public:
     [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
 
     /**
+     * @brief 设置岩浆状态（测试用）
+     *
+     * 正常情况下应该通过 updateEnvironmentState() 自动更新。
+     * 此方法主要用于测试目的。
+     */
+    void setInLava(bool inLava) { m_inLava = inLava; }
+
+    /**
      * @brief 检查实体是否在雨中
      *
      * 需要满足：世界正在下雨 + 实体位置可以看到天空 + 生物群系允许降水
@@ -1381,18 +1389,68 @@ public:
     // ========== 摔落伤害 ==========
 
     /**
-     * @brief 处理摔落伤害
+     * @brief 处理摔落伤害（使用默认伤害来源）
      * @param distance 摔落距离
      * @param damageMultiplier 伤害倍率
+     *
+     * 使用默认的摔落伤害来源（DamageSources::fall()）。
+     * 内部委托给 causeFallDamage(distance, damageMultiplier, DamageSources::fall())。
+     * 如需自定义伤害来源，使用 causeFallDamage()。
+     *
+     * 注意：Entity 基类的 causeFallDamage 仅传播给乘客，不施加伤害。
+     * LivingEntity 重写 causeFallDamage 以实际计算和施加摔落伤害。
+     * handleFallDamage 主要用于 LivingEntity::handleFallDamage 中将默认伤害来源
+     * 转换为 causeFallDamage 调用的便捷方法。
      */
     virtual void handleFallDamage(f32 distance, f32 damageMultiplier);
 
     /**
+     * @brief 使用自定义伤害来源处理摔落伤害
+     * @param distance 摔落距离
+     * @param damageMultiplier 伤害倍率
+     * @param source 伤害来源
+     *
+     * Block::onFallenUpon 默认实现调用此方法施加摔落伤害。
+     * 方块可以重写 onFallenUpon 以自定义摔落行为：
+     * - 石笋方块：调用 causeFallDamage 并传入 DamageSources::stalagmite()，不调用父类（替代普通摔落伤害）
+     * - 耕地方块：先执行踩踏逻辑，再调用父类 onFallenUpon（保留普通摔落伤害）
+     * - 海龟蛋方块：先执行踩破逻辑，再调用父类 onFallenUpon（保留普通摔落伤害）
+     *
+     * 基类实现仅调用 propagateFallToPassengers 将摔落伤害传播给所有乘客（不对自身施加伤害）。
+     * LivingEntity 重写此方法：先调用 Entity::causeFallDamage（传播给乘客），
+     * 然后使用自定义伤害来源对自身计算伤害。
+     * 参考: MC Entity.causeFallDamage → propagateFallToPassengers
+     */
+    virtual void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source);
+
+    /**
+     * @brief 将摔落伤害传播给所有乘客
+     * @param distance 摔落距离
+     * @param damageMultiplier 伤害倍率
+     * @param source 伤害来源
+     *
+     * 当载具受到摔落伤害时，所有乘客也受到相同的摔落伤害。
+     * 参考: MC Entity.propagateFallToPassengers
+     */
+    void propagateFallToPassengers(f32 distance, f32 damageMultiplier, const DamageSource& source);
+
+    /**
      * @brief 更新摔落距离
-     * 在移动时调用，跟踪摔落距离以便着地时计算伤害
+     * 在移动时调用，跟踪摔落距离以便着地时计算伤害。
+     * 着地时调用 Block::onFallenUpon，由方块决定摔落伤害类型和大小。
      */
     void updateFallDistance();
 
+private:
+    /**
+     * @brief 着地时触发踩上方块的 onFallenUpon 回调
+     *
+     * 调用实体脚下方块的 onFallenUpon 方法。
+     * Block::onFallenUpon 默认实现会调用 entity.causeFallDamage() 施加普通摔落伤害。
+     */
+    void _handleLandingOnBlock();
+
+public:
     // ========== 闪电击中 ==========
 
     /**
@@ -1714,6 +1772,17 @@ public:
      * @return 如果实体正在潜行返回true
      */
     [[nodiscard]] virtual bool isSteppingCarefully() const { return isSneaking(); }
+
+    /**
+     * @brief 检查实体是否阻尼振动
+     *
+     * 阻尼振动的实体不会触发振动信号。
+     * 监守者始终阻尼振动，掉落的羊毛物品也阻尼振动。
+     * 参考: net.minecraft.world.entity.Entity.dampensVibrations()
+     *
+     * @return 如果实体阻尼振动返回true
+     */
+    [[nodiscard]] virtual bool dampensVibrations() const { return false; }
 
     /**
      * @brief 检查实体是否可以触发行走事件

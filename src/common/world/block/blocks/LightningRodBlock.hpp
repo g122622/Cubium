@@ -25,6 +25,7 @@
 
 #include "../IWaterLoggable.hpp"
 #include "DirectionalBlock.hpp"
+#include "common/world/biome/BiomeClimate.hpp"
 
 namespace mc {
 namespace blocks {
@@ -123,6 +124,19 @@ public:
      * 设置POWERED为true并安排tick来关闭
      */
     void onLightningStrike(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 降水处理
+     *
+     * 在雷暴天气且避雷针朝上时，有概率被闪电击中而激活。
+     * 参考: net.minecraft.block.LightningRodBlock#handlePrecipitation
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param precipitation 降水类型（Rain / Snow）
+     */
+    void handlePrecipitation(
+        IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation) override;
 
     /// 充能持续tick数
     static constexpr i32 ACTIVATION_TICKS = 8;

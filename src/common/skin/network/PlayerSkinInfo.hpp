@@ -189,7 +189,8 @@ public:
     /**
      * @brief 获取默认皮肤位置
      *
-     * 根据UUID返回 Steve 或 Alex 皮肤位置。
+     * 根据 UUID 哈希从 18 种默认皮肤中选择，
+     * 与 MC Java 版 DefaultPlayerSkin.get(UUID) 一致。
      */
     [[nodiscard]] ResourceLocation getDefaultSkinLocation() const;
 

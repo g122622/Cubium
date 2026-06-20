@@ -35,6 +35,10 @@
 namespace mc {
 class ItemStack;
 class Item;
+
+namespace client {
+class ItemTextureAtlas;
+}
 } // namespace mc
 
 namespace mc::client::renderer::api {
@@ -76,6 +80,15 @@ enum class ItemTransformType : u8 {
  */
 class ItemMeshBuilder {
 public:
+    /**
+     * @brief 设置物品纹理图集
+     *
+     * 必须在首次使用网格构建方法之前调用，用于解析物品纹理坐标。
+     *
+     * @param atlas 物品纹理图集指针
+     */
+    static void setItemTextureAtlas(const ::mc::client::ItemTextureAtlas* atlas);
+
     /**
      * @brief 构建手持物品网格
      *
@@ -219,6 +232,9 @@ private:
     static constexpr f64 ITEM_GUI_SCALE = 1.0 / 32.0; // GUI 物品缩放
     static constexpr f64 ARM_SWING_ANGLE = 45.0;      // 手臂挥动角度
     static constexpr f64 ITEM_ROTATION_SPEED = 2.0;   // 物品旋转速度（度/tick）
+
+    // 物品纹理图集（由 setItemTextureAtlas 设置）
+    static const ::mc::client::ItemTextureAtlas* s_itemTextureAtlas;
 };
 
 } // namespace mc::client::renderer::entity::item

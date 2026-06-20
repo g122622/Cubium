@@ -105,6 +105,14 @@ LootParameterSet generic()
     return LootParameterSet(LootParameterSet::Type::Generic);
 }
 
+LootParameterSet selector()
+{
+    LootParameterSet set(LootParameterSet::Type::Selector);
+    set.addRequired(LootParams::THIS_ENTITY);
+    set.addRequired(LootParams::BLOCK_POS);
+    return set;
+}
+
 } // namespace LootParameterSets
 
 } // namespace loot

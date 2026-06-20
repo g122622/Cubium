@@ -701,10 +701,10 @@ bool AbstractHorseEntity::setTamedBy(Player* player)
     // MC 1.16.5: if (player instanceof ServerPlayerEntity) {
     //     CriteriaTriggers.TAME_ANIMAL.trigger((ServerPlayerEntity)player, this);
     // }
-    // 注意：进度触发需要在 server 模块中处理，这里只调用 Player::asServerPlayer()
-    // 服务端代码可以重写此方法来添加进度触发逻辑
-    // ServerPlayer* serverPlayer = player->asServerPlayer();
-    // if (serverPlayer != nullptr) { ... }
+    // 通过 IWorld 回调触发进度检测
+    if (m_world != nullptr) {
+        m_world->onTameAnimal(player->playerId(), this);
+    }
 
     // MC 1.16.5: this.world.setEntityState(this, (byte)7);
     // 发送实体状态包，让客户端显示爱心粒子

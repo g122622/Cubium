@@ -39,8 +39,10 @@
 #include "../../../fluid/FluidTags.hpp"
 #include "../../../gen/jigsaw/JigsawOrientation.hpp"
 #include "../../../redstone/RedstonePower.hpp"
+#include "../../../redstone/RedstoneSystem.hpp"
 #include "../../../tick/manager/TickManager.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include <algorithm>
 #include <queue>
 #include <unordered_set>
 #include <utility>
@@ -318,6 +320,46 @@ i32 CommandBlock::getWeakPower(
     return 0;
 }
 
+i32 CommandBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::CommandBlock) {
+        auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
+        return std::min(commandEntity->getSuccessCount(), 15);
+    }
+    return 0;
+}
+
+void CommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+
+    // 获取方块实体
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity == nullptr || entity->getType() != BlockEntityType::CommandBlock) {
+        return;
+    }
+
+    auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
+
+    // 脉冲模式（REDSTONE）：由红石信号上升沿触发的 tick 执行
+    if (commandEntity->getMode() == blockentity::CommandBlockMode::Redstone) {
+        // 检查条件
+        bool conditional = isConditional(state);
+        if (!commandEntity->checkCondition(world, getFacing(state), conditional)) {
+            commandEntity->setSuccessCount(0);
+        } else {
+            // 执行命令
+            execute(world, pos, state, commandEntity);
+        }
+
+        // 无条件通知比较器更新信号（无论条件是否满足，成功计数可能已变化）
+        world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
+    }
+}
+
 const BlockState& CommandBlock::rotate(const BlockState& state, Rotation rotation) const
 {
     Direction facing = state.get(BlockStateProperties::FACING());
@@ -382,9 +424,6 @@ void CommandBlock::execute(
 
     // 触发连锁命令方块
     executeChain(world, pos, getFacing(state));
-
-    // TODO: 更新比较器输出（需要 IWorld::updateComparators 支持）
-    // 比较器可以检测命令方块的成功计数
 }
 
 void CommandBlock::executeChain(IWorld& world, const BlockPos& pos, Direction facing)
@@ -451,8 +490,8 @@ void CommandBlock::executeChain(IWorld& world, const BlockPos& pos, Direction fa
             }
         }
 
-        // TODO: 更新比较器输出（需要 IWorld::updateComparators 支持）
-        // 比较器可以检测命令方块的成功计数
+        // 通知周围比较器更新信号（连锁命令方块的成功计数可作为比较器输入）
+        world::redstone::RedstoneSystem::instance().updateComparators(world, currentPos);
 
         // 继续链
         currentFacing = blockFacing;
@@ -477,20 +516,24 @@ void RepeatingCommandBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
 
     auto* commandEntity = static_cast<blockentity::CommandBlockEntity*>(entity);
 
-    // 检查条件
-    bool conditional = isConditional(state);
-    if (!commandEntity->checkCondition(world, getFacing(state), conditional)) {
-        // 条件不满足时重置成功计数
-        commandEntity->setSuccessCount(0);
-        return;
-    }
+    // 循环模式（AUTO）：每 tick 执行
+    if (commandEntity->getMode() == blockentity::CommandBlockMode::Auto) {
+        // 检查条件
+        bool conditional = isConditional(state);
+        if (!commandEntity->checkCondition(world, getFacing(state), conditional)) {
+            commandEntity->setSuccessCount(0);
+        } else {
+            // 执行命令
+            execute(world, pos, state, commandEntity);
+        }
 
-    // 执行命令
-    execute(world, pos, state, commandEntity);
+        // 无条件通知比较器更新信号
+        world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
 
-    // 如果仍然被供电或自动执行，重新调度下一 tick
-    if (commandEntity->isPowered() || commandEntity->isAuto()) {
-        world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+        // 如果仍然被供电或自动执行，重新调度下一 tick
+        if (commandEntity->isPowered() || commandEntity->isAuto()) {
+            world.tickManager().scheduleBlockTick(pos, *this, 1, world::tick::TickPriority::High);
+        }
     }
 }
 

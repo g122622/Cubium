@@ -33,14 +33,19 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/ConcretePowderBlock.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 #include "common/world/block/blocks/functional/AnvilBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <cmath>
 
@@ -77,6 +82,31 @@ void FallingBlockEntity::tick()
     vel.y *= 0.98f;
     vel.z *= 0.98f;
     setVelocity(vel);
+
+    // 混凝土粉末下落过程中遇水提前固化
+    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中 ConcretePowderBlock 特殊处理：
+    // 如果下落方块是混凝土粉末，且当前位置有水，则立即固化
+    if (auto* block = Block::getBlock(m_blockId)) {
+        if (auto* concretePowder = dynamic_cast<blocks::ConcretePowderBlock*>(block)) {
+            IWorld* worldPtr = world();
+            if (worldPtr != nullptr) {
+                BlockPos currentPos(static_cast<i32>(std::floor(x())),
+                    static_cast<i32>(std::floor(y())),
+                    static_cast<i32>(std::floor(z())));
+
+                // 检查当前位置是否有水流体
+                const fluid::FluidState* fluidState = worldPtr->getFluidState(currentPos);
+                if (fluidState != nullptr && !fluidState->isEmpty() &&
+                    fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+                    // 混凝土粉末接触水，立即固化为混凝土
+                    const BlockState* concreteState = &concretePowder->getConcreteBlock()->defaultState();
+                    worldPtr->setBlockState(currentPos, concreteState, 3);
+                    remove();
+                    return;
+                }
+            }
+        }
+    }
 
     // 检查是否落地
     if (onGround()) {
@@ -185,8 +215,10 @@ bool FallingBlockEntity::_tryPlaceBlock(
         return false;
     }
 
-    // TODO: 检查目标位置是否为移动中的活塞（活塞推动的方块不能放置）
-    // 当前项目可能还没有实现活塞，这里暂时跳过这个检查
+    // 检查目标位置是否为移动中的活塞（活塞推动的方块不能放置）
+    if (hitState != nullptr && hitState->is(VanillaBlocks::MOVING_PISTON)) {
+        return false;
+    }
 
     // 获取下方方块状态
     BlockPos belowPos(landingPos.x, landingPos.y - 1, landingPos.z);
@@ -209,15 +241,27 @@ bool FallingBlockEntity::_tryPlaceBlock(
         return false;
     }
 
-    // TODO: 检查方块是否可以在该位置放置
-    // 完整实现需要调用 fallingState->getBlock().isValidPosition()
+    // 检查方块是否可以在该位置放置（如脚手架需要支撑、火把需要墙壁等）
+    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中的 canSurvive 检查
+    IBlockReader& blockReader = static_cast<IBlockReader&>(*world);
+    if (!fallingState->getBlock().isValidPosition(*fallingState, blockReader, landingPos)) {
+        return false;
+    }
 
-    // TODO: 处理水浸透方块（如沙子落入水中）
-    // 如果方块有 waterlogged 属性且目标位置有水，设置 waterlogged = true
+    // 处理水浸透方块：如果方块支持 waterlogged 属性且目标位置有水源，设置 waterlogged = true
+    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中的水浸透处理
+    const BlockState* placementState = fallingState;
+    if (fallingState->hasProperty(BlockStateProperties::WATERLOGGED())) {
+        const fluid::FluidState* fluidState = world->getFluidState(landingPos);
+        if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->isSource() &&
+            fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+            placementState = &fallingState->with(BlockStateProperties::WATERLOGGED(), true);
+        }
+    }
 
     // 尝试放置方块
     // flags = 3 表示通知邻居 + 同步客户端
-    bool success = world->setBlockState(landingPos, fallingState, 3);
+    bool success = world->setBlockState(landingPos, placementState, 3);
 
     if (success) {
         // 调用 FallingBlock 的 onEndFalling 回调
@@ -307,11 +351,17 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     Block* block = Block::getBlock(m_blockId);
     bool isAnvil = (block != nullptr && BlockTags::ANVIL().contains(*block));
 
-    // 创建伤害来源
-    EnvironmentalDamage anvilDamage = DamageSources::anvil();
-    EnvironmentalDamage fallingBlockDamageSource = DamageSources::fallingBlock();
-    DamageSource* damageSource =
-        isAnvil ? static_cast<DamageSource*>(&anvilDamage) : static_cast<DamageSource*>(&fallingBlockDamageSource);
+    // 创建伤害来源（根据伤害类型选择）
+    // 钟乳石掉落使用 fallingStalactite 伤害类型，携带实体引用
+    // 铁砧使用 anvil 伤害类型，其他使用 fallingBlock
+    std::unique_ptr<DamageSource> damageSource;
+    if (m_fallDamageType == DamageType::FallingStalactite) {
+        damageSource = std::make_unique<EntityDamageSource>(DamageSources::fallingStalactite(this));
+    } else if (isAnvil) {
+        damageSource = std::make_unique<EnvironmentalDamage>(DamageSources::anvil());
+    } else {
+        damageSource = std::make_unique<EnvironmentalDamage>(DamageSources::fallingBlock());
+    }
 
     // 对每个实体造成伤害
     for (Entity* entity : entities) {
@@ -438,6 +488,11 @@ void TNTEntity::ignite()
     m_fuse = DEFAULT_FUSE;
 }
 
+void TNTEntity::ignite(i32 fuseTicks)
+{
+    m_fuse = fuseTicks;
+}
+
 void TNTEntity::explode()
 {
     if (m_exploded) return;
@@ -445,15 +500,20 @@ void TNTEntity::explode()
 
     IWorld* worldPtr = world();
     if (worldPtr != nullptr) {
-        // TNT 爆炸半径 4.0，模式 BREAK（破坏方块但不掉落物品）
-        // 爆炸位置在 TNT 底部（Y 偏移 0.0625，即 1/16 格）
-        worldPtr->createExplosion(
-            Vector3(static_cast<f32>(x()), static_cast<f32>(y()) + 0.0625f, static_cast<f32>(z())),
-            m_explosionRadius,
-            world::explosion::ExplosionMode::Break,
-            false, // 不生成火焰
-            this   // 爆炸源实体
-        );
+        // 检查 tntExplodes 游戏规则
+        // 对应 MC Java 的 PrimedTnt.explode() 中的 GameRules.TNT_EXPLODES 检查
+        // 当规则为 false 时，TNT 实体仍然消失（remove），但不产生爆炸
+        if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+            // TNT 爆炸半径 4.0，模式 BREAK（破坏方块但不掉落物品）
+            // 爆炸位置在 TNT 底部（Y 偏移 0.0625，即 1/16 格）
+            worldPtr->createExplosion(
+                Vector3(static_cast<f32>(x()), static_cast<f32>(y()) + 0.0625f, static_cast<f32>(z())),
+                m_explosionRadius,
+                world::explosion::ExplosionMode::Break,
+                false, // 不生成火焰
+                this   // 爆炸源实体
+            );
+        }
     }
 
     remove();

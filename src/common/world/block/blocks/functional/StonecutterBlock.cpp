@@ -22,7 +22,10 @@
  */
 
 #include "StonecutterBlock.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -86,6 +89,29 @@ const CollisionShape& StonecutterBlock::getShape(const BlockState& state) const
 {
     MC_UNUSED(state);
     return m_shape;
+}
+
+ActionResultType StonecutterBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    if (world.openContainer(ContainerType::Stonecutter, pos, player)) {
+        player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_STONECUTTER), 1);
+        return ActionResultType::Consume;
+    }
+
+    return ActionResultType::Pass;
 }
 
 } // namespace blocks

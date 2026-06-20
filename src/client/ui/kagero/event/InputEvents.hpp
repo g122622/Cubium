@@ -25,6 +25,7 @@
 
 #include "Event.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "common/util/text/Utf8.hpp"
 
 namespace mc::client::ui::kagero::event {
 
@@ -328,26 +329,7 @@ public:
     /**
      * @brief 获取UTF-8字符串
      */
-    [[nodiscard]] std::string toUtf8() const
-    {
-        std::string result;
-        if (m_codePoint < 0x80) {
-            result += static_cast<char>(m_codePoint);
-        } else if (m_codePoint < 0x800) {
-            result += static_cast<char>(0xC0 | (m_codePoint >> 6));
-            result += static_cast<char>(0x80 | (m_codePoint & 0x3F));
-        } else if (m_codePoint < 0x10000) {
-            result += static_cast<char>(0xE0 | (m_codePoint >> 12));
-            result += static_cast<char>(0x80 | ((m_codePoint >> 6) & 0x3F));
-            result += static_cast<char>(0x80 | (m_codePoint & 0x3F));
-        } else {
-            result += static_cast<char>(0xF0 | (m_codePoint >> 18));
-            result += static_cast<char>(0x80 | ((m_codePoint >> 12) & 0x3F));
-            result += static_cast<char>(0x80 | ((m_codePoint >> 6) & 0x3F));
-            result += static_cast<char>(0x80 | (m_codePoint & 0x3F));
-        }
-        return result;
-    }
+    [[nodiscard]] std::string toUtf8() const { return util::text::utf8Encode(m_codePoint); }
 
 private:
     u32 m_codePoint;

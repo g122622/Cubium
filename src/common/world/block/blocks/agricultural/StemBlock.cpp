@@ -28,6 +28,8 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <functional>
@@ -118,32 +120,25 @@ bool StemBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
 
 void StemBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // 如果已经成熟，尝试生成果实
-    if (isMaxAge(state)) {
-        tryGrowFruit(state, world, pos, random);
-        return;
-    }
-
-    // 光照检查：使用 getLightSubtracted 在方块位置本身，不是上方
+    // 光照检查
     if (world.getLightSubtracted(pos, 0) < game::CROP_GROWTH_LIGHT_THRESHOLD) {
         return;
     }
 
-    // 简化生长概率计算：基础概率 1/25，加上湿润度加成
-    float growthChance = 1.0f / 25.0f;
-
-    // 检查下方耕地是否湿润
-    BlockPos belowPos(pos.x, pos.y - 1, pos.z);
-    const BlockState* belowState = world.getBlockState(belowPos);
-    if (belowState != nullptr && belowState->hasProperty(BlockStateProperties::MOISTURE_0_7())) {
-        i32 moisture = belowState->get(BlockStateProperties::MOISTURE_0_7());
-        if (moisture > 0) {
-            growthChance *= (1.0f + moisture / 8.0f);
-        }
+    // 使用与 CropBlock 相同的生长概率公式
+    const f32 growthChance = CropBlock::getGrowthChance(*this, static_cast<IBlockReader&>(world), pos);
+    const i32 randomBound = static_cast<i32>(25.0f / growthChance) + 1;
+    if (random.nextInt(randomBound) != 0) {
+        return;
     }
 
-    if (random.nextFloat() < growthChance) {
-        world.setBlockState(pos, &withAge(getAge(state) + 1), 2);
+    const i32 age = getAge(state);
+    if (age < 7) {
+        // 未成熟：增加年龄
+        world.setBlockState(pos, &withAge(age + 1), 2);
+    } else {
+        // 已成熟：尝试生成果实
+        tryGrowFruit(state, world, pos, random);
     }
 }
 
@@ -156,7 +151,7 @@ bool StemBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockSta
     MC_UNUSED(pos);
     MC_UNUSED(isClientSide);
 
-    // 只有未成熟时才能生长
+    // 只有未成熟时才能生长（原版：AGE != 7 时才能使用骨粉）
     return !isMaxAge(state);
 }
 
@@ -180,11 +175,11 @@ void StemBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, 
     const BlockState& newState = withAge(newAge);
     world.setBlockState(pos, &newState, 2);
 
-    // 如果达到最大年龄，尝试生成果实
+    // 骨粉使茎达到最大年龄后，调用 randomTick 尝试生成果实
+    // 这与原版逻辑一致：performBonemeal 中 AGE 达到 7 后调用 blockstate.randomTick()
+    // randomTick 内部会再次检查光照和生长概率，果实生成并非 100%
     if (newAge == getMaxAge()) {
-        const mc::u64 seed = world.seed() ^ static_cast<mc::u64>(std::hash<BlockPos>{}(pos));
-        math::Random localRandom(seed);
-        tryGrowFruit(newState, world, pos, localRandom);
+        randomTick(world, pos, const_cast<BlockState&>(newState), random);
     }
 }
 
@@ -227,13 +222,13 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
 
     BlockPos fruitPos(pos.x + Directions::xOffset(dir), pos.y, pos.z + Directions::zOffset(dir));
 
-    // 检查果实位置是否为空
+    // 检查果实位置是否为空气
     const BlockState* fruitState = world.getBlockState(fruitPos);
-    if (fruitState != nullptr && !fruitState->isAir()) {
+    if (fruitState == nullptr || !fruitState->isAir()) {
         return false;
     }
 
-    // 检查果实下方是否可以支撑
+    // 检查果实下方是否为耕地或 DIRT 标签方块
     BlockPos belowFruitPos(fruitPos.x, fruitPos.y - 1, fruitPos.z);
     const BlockState* belowFruitState = world.getBlockState(belowFruitPos);
 
@@ -242,8 +237,7 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
     }
 
     const bool canSupportFruit = (VanillaBlocks::FARMLAND != nullptr && belowFruitState->is(VanillaBlocks::FARMLAND)) ||
-        (VanillaBlocks::DIRT != nullptr && belowFruitState->is(VanillaBlocks::DIRT)) ||
-        (VanillaBlocks::GRASS_BLOCK != nullptr && belowFruitState->is(VanillaBlocks::GRASS_BLOCK));
+        BlockTags::DIRT().contains(*belowFruitState);
     if (!canSupportFruit) {
         return false;
     }

@@ -39,7 +39,7 @@ namespace command {
  *
  * 权限: 2 (游戏管理员)
  *
- * center 使用 Vec3ArgumentType 解析（TODO: 应改用 Vec2ArgumentType 仅解析 x, z）
+ * center 使用 Vec2ArgumentType 解析水平面坐标 (x, z)
  * under 子命令允许指定分散的最大高度，默认使用世界的最高建筑高度
  */
 class SpreadPlayersCommand {

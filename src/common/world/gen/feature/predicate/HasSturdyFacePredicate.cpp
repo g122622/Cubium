@@ -22,6 +22,7 @@
 
 #include "HasSturdyFacePredicate.hpp"
 #include "common/util/Direction.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockState.hpp"
 
 namespace mc::world::gen::feature::predicate {
@@ -33,9 +34,11 @@ bool HasSturdyFacePredicate::test(const IWorld& world, const BlockPos& pos) cons
     if (state == nullptr) {
         return false;
     }
-    // hasSturdyFace 检查方块自身某面是否坚固
-    // isSolidSide 检查的是从 side 方向看该面是否坚固，因此需要取反方向
-    return state->isSolidSide(const_cast<IWorld&>(world), checkPos, Directions::opposite(m_direction));
+    // 参考: net.minecraft.world.level.levelgen.feature.configurations.HasSturdyFacePredicate
+    // 使用 isFaceFull 检查方块支撑形状的指定面是否完全覆盖
+    // isSolidSide 只检查材质和碰撞标志，无法区分灵魂沙等碰撞箱较矮但支撑完整的方块
+    // hasSturdyFace 需要检查方块自身某面是否坚固，因此使用方块的反方向
+    return Block::isFaceFull(state->getBlockSupportShape(), Directions::opposite(m_direction));
 }
 
 } // namespace mc::world::gen::feature::predicate

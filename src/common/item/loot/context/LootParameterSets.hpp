@@ -42,6 +42,7 @@ extern LootParameterSet fishing();
 extern LootParameterSet gift();
 extern LootParameterSet barter();
 extern LootParameterSet generic();
+extern LootParameterSet selector();
 } // namespace LootParameterSets
 
 } // namespace loot

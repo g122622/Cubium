@@ -54,7 +54,8 @@ public:
         Chest,   ///< 容器，如宝箱战利品
         Fishing, ///< 钓鱼
         Gift,    ///< 礼物，如猫的礼物
-        Barter   ///< 以物易物，如猪灵交易
+        Barter,  ///< 以物易物，如猪灵交易
+        Selector ///< 实体选择器谓词评估，需要 THIS_ENTITY + BLOCK_POS
     };
 
     LootParameterSet() = default;
@@ -96,6 +97,8 @@ public:
                 return "minecraft:gift";
             case Type::Barter:
                 return "minecraft:barter";
+            case Type::Selector:
+                return "minecraft:selector";
             default:
                 return "minecraft:generic";
         }
@@ -136,6 +139,39 @@ public:
      * @return 如果所有必需参数都存在返回true
      */
     [[nodiscard]] bool validate(const std::vector<std::string>& providedParams) const noexcept;
+
+    /**
+     * @brief 验证提供的参数是否满足此参数集的要求
+     *
+     * 执行两项检查：
+     * 1. 提供的参数中是否包含此参数集不允许的参数
+     * 2. 是否缺少此参数集必需的参数
+     *
+     * @param providedParams 提供的参数ID列表
+     * @param missingParams [out] 缺少的必需参数ID列表
+     * @param unexpectedParams [out] 不允许的参数ID列表
+     * @return 如果所有必需参数都存在且没有不允许的参数返回true
+     */
+    [[nodiscard]] bool validate(const std::vector<std::string>& providedParams,
+        std::vector<std::string>& missingParams,
+        std::vector<std::string>& unexpectedParams) const noexcept;
+
+    /**
+     * @brief 获取必需参数ID列表
+     */
+    [[nodiscard]] const std::vector<std::string>& getRequiredParams() const noexcept { return m_requiredParams; }
+
+    /**
+     * @brief 获取可选参数ID列表
+     */
+    [[nodiscard]] const std::vector<std::string>& getOptionalParams() const noexcept { return m_optionalParams; }
+
+    /**
+     * @brief 检查参数集是否允许指定的参数（必需或可选）
+     * @param paramId 参数ID
+     * @return 如果参数在必需或可选列表中返回true
+     */
+    [[nodiscard]] bool isAllowed(std::string_view paramId) const noexcept;
 
 private:
     Type m_type = Type::Generic;               ///< 参数集合类型

@@ -34,6 +34,7 @@
 #include "entity/entities/passive/special/FoxEntity.hpp"
 #include "entity/entities/passive/special/TurtleEntity.hpp"
 #include "entity/entities/passive/tamable/TameableEntity.hpp"
+#include "entity/entities/passive/tamable/WolfEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/villager/VillagerEntity.hpp"
 #include "entity/interfaces/IAngerable.hpp"
@@ -583,5 +584,6 @@ template class NonTamedTargetGoal<TurtleEntity>;
 
 // ResetAngerGoal 用于实现了 IAngerable 接口的 MobEntity 子类
 template class ResetAngerGoal<EndermanEntity>;
+template class ResetAngerGoal<WolfEntity>;
 
 } // namespace mc::entity::ai::goal

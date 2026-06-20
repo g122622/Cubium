@@ -212,6 +212,26 @@ public:
         bool thundering);
 
     /**
+     * @brief 读取调度事件列表
+     *
+     * 从 level.dat 的 ScheduledEvents 字段读取 NBT 事件列表。
+     * 如果字段不存在，返回空列表。
+     *
+     * @return 成功返回 NBT 复合列表，失败返回错误
+     */
+    [[nodiscard]] Result<std::unique_ptr<nbt::tags::compound_list_tag>> loadScheduledEvents();
+
+    /**
+     * @brief 保存调度事件列表
+     *
+     * 将调度事件 NBT 列表写入 level.dat 的 ScheduledEvents 字段。
+     *
+     * @param events 调度事件 NBT 列表（可为空）
+     * @return 成功或错误
+     */
+    Result<void> saveScheduledEvents(const nbt::tags::compound_list_tag& events);
+
+    /**
      * @brief 注入存储 IO 线程池
      *
      * 注入后会同步创建/更新 `StorageTaskManager`，并传播到所有已创建的 `SectionManager`。

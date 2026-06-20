@@ -23,9 +23,15 @@
 
 #pragma once
 
-#include "../../core/Item.hpp"
+#include "common/core/Types.hpp"
+#include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 
 namespace mc {
+
+class IWorld;
+class Player;
+
 namespace item {
 
 /**
@@ -39,6 +45,8 @@ namespace item {
  * - 冷却时间：10 tick（玩家投掷）
  * - 伤害：1
  * - 风爆范围：内圈4格/中圈8格/外圈24格
+ * - 投掷速度：1.5
+ * - 投掷散布：1.0
  *
  * 获取方式：
  * - 旋风人掉落 (0-1，受抢夺影响)
@@ -63,6 +71,12 @@ public:
     /// 风爆外圈半径
     static constexpr f32 WIND_BURST_OUTER_RADIUS = 24.0f;
 
+    /// 投掷速度因子
+    static constexpr f32 THROW_VELOCITY = 1.5f;
+
+    /// 投掷散布精度
+    static constexpr f32 THROW_INACCURACY = 1.0f;
+
     /**
      * @brief 构造风弹物品
      * @param properties 物品属性
@@ -70,10 +84,12 @@ public:
     explicit WindChargeItem(const ItemProperties& properties);
 
     /**
-     * @brief 使用风弹（投掷弹射物）
-     * @return 是否成功使用
+     * @brief 右键使用风弹（投掷弹射物）
+     *
+     * 创建 WindChargeEntity 弹射物实体并投掷。
+     * 非创造模式消耗1个风弹，使用后进入 10 tick 冷却。
      */
-    // TODO(trial_chambers): 实现use方法，创建WindCharge弹射物实体
+    [[nodiscard]] ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
 };
 
 } // namespace item

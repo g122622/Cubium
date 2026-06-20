@@ -172,4 +172,12 @@ f32 DifficultyHelper::getRegionalDifficultyBase(Difficulty difficulty)
     }
 }
 
+f32 DifficultyHelper::getRangedAttackInaccuracy(Difficulty difficulty)
+{
+    // 对应 MC 原版 CrossbowAttackMob.performCrossbowAttack：
+    // 14 - difficulty.getId() * 4
+    // 难度越高不精确度越低，射击越精准
+    return static_cast<f32>(14 - static_cast<i32>(difficulty) * 4);
+}
+
 } // namespace mc::entity::combat

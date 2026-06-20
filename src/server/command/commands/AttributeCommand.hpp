@@ -36,7 +36,7 @@ class AttributeInstance;
 } // namespace attribute
 } // namespace entity
 
-class Player;
+class Entity;
 class LivingEntity;
 
 namespace command {
@@ -44,7 +44,7 @@ namespace command {
 /**
  * @brief /attribute 命令
  *
- * 查询和修改实体属性。
+ * 查询和修改活体实体属性。支持所有 LivingEntity（玩家、僵尸、马等）。
  * 权限等级: 2 (游戏管理员)
  *
  * 用法:
@@ -86,16 +86,18 @@ private:
     static bool _tryGetLivingEntityWithAttribute(CommandContext<ServerCommandSource>& context,
         ServerCommandSource& source,
         const std::string& attrName,
-        Player*& outPlayer,
+        LivingEntity*& outLivingEntity,
         entity::attribute::AttributeMap*& outAttrMap);
 
     static bool _tryGetAttributeInstance(CommandContext<ServerCommandSource>& context,
         ServerCommandSource& source,
         const std::string& attrName,
-        Player*& outPlayer,
+        LivingEntity*& outLivingEntity,
         entity::attribute::AttributeInstance*& outInstance);
 
     // 辅助方法
+    static std::string _getEntityDisplayName(Entity* entity);
+    static std::string _getEntityDisplayName(LivingEntity* livingEntity);
     static std::string _normalizeAttributeName(const std::string& name);
     static bool _isKnownAttribute(const std::string& name) noexcept;
     static std::pair<f64, f64> _getAttributeRange(const std::string& name) noexcept;

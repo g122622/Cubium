@@ -41,6 +41,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -100,9 +101,12 @@ public:
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
 
-    [[nodiscard]] bool isClientSide() override { return m_isClientSide; }
+    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
 
     void setClientSide(bool isClient) { m_isClientSide = isClient; }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -185,6 +189,7 @@ private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
+    world::gamerule::GameRules m_gameRules;
 
     // 爆炸记录
     i32 m_explosionCount = 0;
@@ -642,6 +647,65 @@ TEST_F(TNTEntityTest, ServerSideNoParticles)
 
     // 服务端不应该生成粒子
     EXPECT_EQ(m_world.particleCount(), 0);
+}
+
+/**
+ * @brief ignite(fuseTicks) 设置自定义引信时间
+ */
+TEST_F(TNTEntityTest, IgniteWithCustomFuse)
+{
+    auto tnt = std::make_unique<TNTEntity>();
+    tnt->ignite(20);
+    EXPECT_EQ(tnt->getFuse(), 20);
+
+    tnt->ignite(100);
+    EXPECT_EQ(tnt->getFuse(), 100);
+
+    // 默认引信
+    tnt->ignite();
+    EXPECT_EQ(tnt->getFuse(), 80);
+}
+
+/**
+ * @brief tntExplodes=false 时 TNT 实体不创建爆炸
+ *
+ * 当 tntExplodes 游戏规则为 false 时，点燃的 TNT 实体在引信归零后
+ * 应该被移除但不创建爆炸效果。
+ */
+TEST_F(TNTEntityTest, ExplodeDoesNotCreateExplosionWhenRuleDisabled)
+{
+    // 设置 tntExplodes=false
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES, false, nullptr);
+
+    auto tnt = std::make_unique<TNTEntity>();
+    tnt->setWorld(&m_world);
+    tnt->setPosition(10.0f, 64.0f, 20.0f);
+    tnt->setFuse(1);
+
+    // tick 一次后引信归零
+    tnt->tick();
+
+    // 不应该创建爆炸
+    EXPECT_EQ(m_world.explosionCount(), 0);
+}
+
+/**
+ * @brief tntExplodes=true（默认）时 TNT 实体正常爆炸
+ */
+TEST_F(TNTEntityTest, ExplodeCreatesExplosionWhenRuleEnabled)
+{
+    // 默认 tntExplodes=true
+    EXPECT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES));
+
+    auto tnt = std::make_unique<TNTEntity>();
+    tnt->setWorld(&m_world);
+    tnt->setPosition(10.0f, 64.0f, 20.0f);
+    tnt->setFuse(1);
+
+    tnt->tick();
+
+    // 应该创建爆炸
+    EXPECT_EQ(m_world.explosionCount(), 1);
 }
 
 } // namespace test

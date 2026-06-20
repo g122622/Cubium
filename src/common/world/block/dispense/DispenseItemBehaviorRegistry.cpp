@@ -34,6 +34,7 @@
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/entity/entities/projectile/WindChargeEntity.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/potion/PotionUtils.hpp"
@@ -275,6 +276,22 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
         6.0f); // inaccuracy
 
     // ========================================================================
+    // 风弹发射行为
+    // ========================================================================
+    registerBehavior<ProjectileDispenseBehavior>(
+        "minecraft:wind_charge",
+        [](IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
+            MC_UNUSED(stack);
+            auto entity = entity::WindChargeEntity::create(&world);
+            if (entity) {
+                entity->setPosition(pos.x, pos.y, pos.z);
+            }
+            return entity;
+        },
+        1.0f,     // velocity
+        6.6667f); // inaccuracy
+
+    // ========================================================================
     // 烟花火箭发射行为
     // ========================================================================
     registerBehavior<ProjectileDispenseBehavior>(
@@ -296,8 +313,9 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
 
     // ========================================================================
     // TNT 发射行为
+    // 生成点燃的 TNT 实体；如果 tntExplodes 游戏规则为 false 则不发射
     // ========================================================================
-    registerBehavior("minecraft:tnt", std::make_unique<DefaultDispenseItemBehavior>());
+    registerBehavior("minecraft:tnt", std::make_unique<TNTDispenseBehavior>());
 
     // ========================================================================
     // 船发射行为

@@ -12,7 +12,7 @@
 ├── EnchantingTableEntity.hpp / cpp #附魔台方块实体（附魔力量计算、书本动画）
 ├── EndGatewayEntity.hpp / cpp #末地折跃门方块实体（传送逻辑、两套冷却时间）
 ├── JukeboxEntity.hpp / cpp #唱片机方块实体（唱片播放、比较器信号、1槽位，通过MusicDiscItem获取信号强度）
-├── LecternEntity.hpp / cpp #讲台方块实体（书本展示、翻页、红石信号）
+├── LecternEntity.hpp / cpp #讲台方块实体（书本展示、翻页红石脉冲、比较器信号）
 ├── PistonBlockEntity.hpp / cpp #活塞方块实体（方块移动动画）
 ├── SignEntity.hpp /
         cpp #告示牌方块实体（富文本存储、点击事件）
@@ -80,11 +80,15 @@
 `onlyOpsCanSetNbt()` 返回 true，讲台的 NBT 数据只能由 OP
         级玩家修改（MC Java 中 Lectern 属于 `OP_ONLY_CUSTOM_DATA` 集合）。
 
-        ## #5. EndGatewayEntity 的两套冷却时间
+        ## #5. EndGatewayEntity 的两套冷却时间与结构生成
 
     - `TELEPORT_COOLDOWN = 100 tick`：传送后的冷却时间 - `TRIGGER_COOLDOWN = 40 tick`：触发后设置的冷却时间
 
         两者用途不同，不要混淆。
+
+        `createGatewayStructure()` 生成 3x5x3 十字框架结构。顶/底盖（dy=±2）仅中心列为基岩，十字臂层（dy=±1）为十字形基岩框架，中心层（dy=0）为折跃门方块+空气。与 MC 原版 EndGatewayFeature.place() 一致。
+
+        `_generateExitPortal()` 在出口折跃门方块实体上设置返回位置（`setExitPortal(m_pos, false)`），形成双向传送链。
 
         ## #6. BannerEntity 序列化键名差异
 
@@ -126,7 +130,9 @@
 
             ## #8. LecternEntity 页码从 0 开始
 
-`getPage()` 返回的页码从 0 开始，而非 1。红石比较器信号计算为 `min(page + 1, 15)`。
+	`getPage()` 返回的页码从 0 开始，而非 1。红石比较器信号计算为 `min(page + 1, 15)`。
+
+	翻页时自动触发红石脉冲：`setPage()`/`nextPage()`/`prevPage()` 在页码变化时调用 `_signalPageChange()` → `LecternBlock::pulse()`，发出2tick的红石脉冲信号。从NBT加载时不会触发脉冲（`m_world` 为空时跳过）。
 
             ## #9. JukeboxEntity 继承 ContainerBlockEntity 而非 LootableContainerBlockEntity
 
@@ -144,8 +150,8 @@
                 JukeboxEntity 使用 JukeboxSongPlayer 管理播放状态，支持：
             - 歌曲自动结束：通过 JukeboxSongs 注册表获取歌曲长度，当 `ticksSinceSongStarted
         >= lengthInTicks + 20` 时自动停止 - 音符粒子效果：每20tick（1秒）在唱片机上方生成音符粒子 -
-            游戏事件：每20tick触发 GameEvent.JUKEBOX_PLAY（TODO：待游戏事件系统实现后补充），停止时触发 GameEvent
-                .JUKEBOX_STOP_PLAY
+            游戏事件：每20tick触发 GameEvent.JUKEBOX_PLAY（已通过 IWorld::gameEvent() 接口实现），停止时触发 GameEvent
+                .JUKEBOX_STOP_PLAY（当前 ServerWorld::gameEvent() 为空操作占位，待 GameEventDispatcher 实现后自动生效）
             -
             存档恢复：从存档加载时通过 `setSongWithoutPlaying()` 恢复播放进度
 

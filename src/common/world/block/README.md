@@ -11,7 +11,7 @@ block/
 ├── BlockPos.hpp                    # 方块位置坐标类
 ├── BlockRegistry.hpp/cpp           # 方块注册表（单例）
 ├── BlockSoundType.hpp/cpp          # 方块声音类型定义
-├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT 等）
+├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、STAIRS、SLABS、WALLS 等）
 ├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
 ├── GameMasterBlock.hpp             # 游戏管理员方块标记接口（命令方块、结构方块等）
 ├── HarvestTool.hpp                 # 挖掘工具类型定义
@@ -347,10 +347,12 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 `Block::getFlammability()` 和 `Block::getFireSpreadSpeed()` 的默认实现已改为查询 `FireInfoRegistry`，无需子类重写即可获得正确的燃烧参数。
 
 - `FireInfoRegistry::initializeVanillaFireInfos()` 在 `VanillaBlocks::initialize()` 末尾自动调用
-- 所有原版可燃方块的 encouragement（蔓延速度）和 flammability（可燃性）参数已注册
+- 仅注册 MC 原版 `FireBlock.bootStrap()` 中注册的可燃方块，未注册的方块火焰不会蔓延到其上
 - 新增可燃方块时，在 `FireInfoRegistry::initializeVanillaFireInfos()` 中注册即可
 - 子类仍可通过重写 `getFlammability()`/`getFireSpreadSpeed()` 提供自定义值，会覆盖注册表值
-- 部分方块（如 BEEHIVE、BEE_NEST、各木材楼梯/台阶/栅栏变体）尚待对应方块指针注册后补充
+- 部分方块（如 SHELF）尚待对应方块指针注册后补充
+
+**火焰蔓延 vs 岩浆点燃**：火焰蔓延（FireBlock）仅依赖本注册表，不检查 Material。岩浆点燃（LavaFluid）通过 `Material::isFlammable()` 判断，是独立系统。因此，告示牌、树苗等虽然未在本注册表中注册（与原版一致），但由于使用 WOOD/PLANT 材质，仍可被岩浆点燃。
 
 ### 22. canBeReplaced / canBeReplacedByFluid 语义
 
@@ -406,3 +408,98 @@ CauldronBlock 使用 `LEVEL_0_3` 属性存储水位（0-3），交互操作直�
 #### 液体方块的 canBeReplacedByFluid
 
 液体方块（水、岩浆）的 `canBeReplacedByFluid()` 返回 `true`（因为 `canBeReplaced()=true`）。这与 MC Java 一致：`BucketItem.emptyContents()` 允许在已有液体上放置桶装流体。旧代码中 `canBeReplaced() && !isLiquid()` 的 `!isLiquid()` 检查是错误的——MC Java 不检查目标方块是否已是液体。放置在已有液体上的行为是 `setBlock` 替换同类型液体（无操作）或水/岩浆交互。
+
+### 25. MUSHROOM_GROW_BLOCK 标签与蘑菇放置
+
+`BlockTags::MUSHROOM_GROW_BLOCK()` 标签包含菌丝（mycelium）、灰化土（podzol）、绯红菌岩（crimson_nylium）、诡异菌岩（warped_nylium），用于蘑菇放置判定。
+
+蘑菇（`MushroomBlock`）的放置判定分两层：
+1. **`Block::canSustainPlant()`**（`PlantType::Cave` 分支）：检查下方方块是否属于 `MUSHROOM_GROW_BLOCK` 标签，只有标签内的方块才返回 true
+2. **`MushroomBlock::isValidPosition()`**：在标签方块上无条件允许放置，在其他固体方块上需光照 < 13
+
+**注意**：不要在 `canSustainPlant` 的 `PlantType::Cave` 分支中添加光照检查——光照检查由 `MushroomBlock::isValidPosition()` 独立完成。`canSustainPlant` 只负责判断土壤类型兼容性。
+
+蘑菇注册使用 `blocks::MushroomBlock` 而非 `SimpleBlock`，巨型蘑菇方块使用 `blocks::HugeMushroomBlock`（具有 6 方向布尔属性）。
+
+### 26. Block::pushEntitiesUp 实体推出
+
+`Block::pushEntitiesUp(oldState, newState, world, pos)` 是一个静态工具方法，当方块碰撞形状增大时将嵌入方块内的实体向上推出。对应 MC Java 的 `Block.pushEntitiesUp()`。
+
+**工作原理**：
+1. 获取新方块状态的碰撞形状，如果为空则直接返回
+2. 计算新形状的世界包围盒，获取旧形状的最大Y
+3. 如果新形状最大Y没有增大（`maxY <= oldMaxY`），不需要推出实体
+4. 使用整体包围盒查找其中的实体
+5. 对每个与新形状相交的实体，计算需要向上推出的距离并移动
+
+**使用场景**：
+- **雪层增加**：`tickPrecipitation()` 中雪层层数增加时调用 `pushEntitiesUp` 推出站在雪上的实体
+- **耕地变泥土**：`FarmlandBlock::turnToDirt()` 中耕地（15/16格高）变为泥土（1格高）时推出实体
+- **其他碰撞形状增大的场景**：任何方块状态变化导致碰撞形状增大的情况
+
+**签名**：`static const BlockState& pushEntitiesUp(const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)`
+
+**注意**：
+- 方法返回 `newState`，方便链式调用
+- 当前实现使用简化算法（整体包围盒），未来可迁移到 VoxelShape 布尔运算实现更精确的形状差异计算
+- 必须在 `setBlockState` **之前**调用，先推出实体再更新方块状态
+
+### 27. Block::handlePrecipitation 降水方块处理
+
+`Block::handlePrecipitation(IWorld&, const BlockPos&, BiomeClimate::Precipitation)` 是方块的降水处理虚方法，默认实现为空操作。方块可以重写此方法来响应降水：
+
+- **CauldronBlock**：雨天 5% 概率增加水位、雪天 10% 概率增加水位，水位上限为 3
+- **LightningRodBlock**：雷暴天气且避雷针朝上时，通过 `onLightningStrike()` 激活避雷针
+
+**调用时机**：`ServerWorld::tickPrecipitation()` 在每个降水 tick 中，对表面方块调用 `biome.getPrecipitationAt()` 确定降水类型后，调用 `block.handlePrecipitation(world, pos, precipitation)`。
+
+**注意**：
+- 此方法替代了旧的 `fillWithRain()` 方法，增加了降水类型参数（Rain/Snow/None）
+- 降水类型由 `Biome::getPrecipitationAt()` 确定，综合考虑生物群系降水设置和高度调整后的温度
+- 只有 `isRaining()` 为 true 时才会调用 `handlePrecipitation`（在 `tickPrecipitation` 中判断）
+
+### 28. Block::onFallenUpon 摔落伤害系统
+
+`Block::onFallenUpon(IWorld&, const BlockPos&, const BlockState&, Entity&, f32 fallDistance)` 是方块响应实体摔落的虚方法。对应 MC Java 的 `Block.fallOn()`。
+
+**默认实现**：调用 `entity.causeFallDamage(fallDistance, 1.0f, DamageSources::fall())` 施加普通摔落伤害。
+
+**调用链**：
+```
+Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::onFallenUpon()
+```
+
+**重要**：`Entity::updateFallDistance()` 不再直接调用 `handleFallDamage()`，摔落伤害完全由 `Block::onFallenUpon` 负责。方块子类通过重写此方法自定义摔落行为：
+
+| 方块 | onFallenUpon 行为 | 摔落伤害 |
+|------|-------------------|---------|
+| Block（基类） | 调用 `causeFallDamage(dist, 1.0, fall())` | 普通摔落伤害 |
+| PointedDripstoneBlock（石笋尖端） | 调用 `causeFallDamage(dist+2.5, 2.0, stalagmite())`，不调用父类 | 增大石笋伤害，替代普通摔落 |
+| FarmlandBlock | 先执行踩踏逻辑，再调用 `Block::onFallenUpon` | 保留普通摔落伤害 |
+| TurtleEggBlock | 先执行踩破逻辑，再调用 `Block::onFallenUpon` | 保留普通摔落伤害 |
+
+**与 onLanded 的区别**：
+- `onLanded`：实体着地时修改运动向量（蜂蜜块取消摔落距离、史莱姆块弹跳），在 `updateFallDistance` 之前调用
+- `onFallenUpon`：实体着地后施加摔落伤害，由 `updateFallDistance` 内部调用
+
+**乘客摔落伤害传播**：
+`Entity::causeFallDamage` 会先将摔落伤害传播给所有乘客（`propagateFallToPassengers`），因此当载具（如马、船、矿车）受到摔落伤害时，乘客也会受到相同的摔落伤害。参考 MC 1.21.11 `Entity.propagateFallToPassengers`。
+
+### 29. Block::playerWillDestroy 玩家即将破坏方块回调
+
+`Block::playerWillDestroy(IWorld&, const BlockPos&, const BlockState&, Player&)` 是玩家即将破坏方块时调用的虚方法。对应 MC Java 的 `Block.playerWillDestroy()`。
+
+**默认实现**：空操作。需要特殊行为的方块应重写此方法。
+
+**与 onBlockRemoved 的区别**：
+- `playerWillDestroy`：在方块被移除**之前**调用，接收玩家信息，可区分创造/生存模式
+- `onBlockRemoved`：在方块状态变更**之后**调用，不包含玩家上下文，由 `ServerWorld::setBlockState` 触发
+
+**调用时机**：`BlockInteractionManager::handleBlockBreak` 和 `StopDestroyBlock` 中，在生成掉落物和设置方块为空气之前调用
+
+**已实现方块**：
+- `PistonHeadBlock`：创造模式下破坏活塞头时，级联销毁匹配的活塞基座且不产生掉落物；生存模式不执行操作（级联销毁和掉落物由 `onBlockRemoved` 处理）
+
+**创造模式掉落物抑制**：`BlockInteractionManager` 在 `playerWillDestroy` 之后检查 `player.isCreative()`，创造模式下跳过 `_generateBlockDrops`，与 MC Java 行为一致
+
+**注意**：新增方块如需在破坏时区分创造/生存模式行为，应重写 `playerWillDestroy` 而非在 `onBlockRemoved` 中判断

@@ -32,6 +32,8 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -233,10 +235,8 @@ void AbstractMinecartEntity::_moveAlongTrack(const BlockPos& pos)
     // 检查是否为动力铁轨（非激活铁轨）
     bool isPoweredRailFlag = false;
     bool isUnpoweredRailFlag = false;
-    if (abstractRailBlock && abstractRailBlock->isPowered() && !abstractRailBlock->isPowered()) {
-        // 这里需要特殊处理动力铁轨 vs 激活铁轨
-        // 普通动力铁轨返回 false，激活铁轨返回 true
-    }
+    // 注意：动力铁轨和探测铁轨属于 isPoweredType()，激活铁轨属于 isStraight 但非 isPoweredType()
+    // 此处暂不在此处做特殊区分，由 _isPoweredRail 和 _isRailPowered 方法处理
 
     // 检查是否为动力铁轨且被充能
     if (_isPoweredRail(m_railPos)) {
@@ -1307,16 +1307,27 @@ void TNTMinecartEntity::tick()
 
 void TNTMinecartEntity::_ignite()
 {
-    m_fuse = DEFAULT_FUSE; // 80 ticks = 4 seconds
-
+    // 对应 MC Java 的 MinecartTNT.primeFuse() 中的 GameRules.TNT_EXPLODES 检查
+    // 如果 tntExplodes 游戏规则为 false，则不点燃
     IWorld* worldPtr = Entity::world();
     if (worldPtr && !worldPtr->isClientSide()) {
-        // TODO: 发送状态更新和播放点燃音效
-        // worldPtr->setEntityState(this, (byte)10);
-        // if (!isSilent()) {
-        //     worldPtr->playSound(nullptr, x(), y(), z(), SoundEvents::ENTITY_TNT_PRIMED,
-        //     SoundCategory::BLOCKS, 1.0f, 1.0f);
-        // }
+        if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+            return;
+        }
+    }
+
+    // TODO: MC 原版 primeFuse(DamageSource) 接受 DamageSource 参数用于记录 ignitionSource（爆炸来源），
+    //       当前 _ignite() 不接受 DamageSource，需要在 dropItem() 等调用处传入并存储
+
+    m_fuse = DEFAULT_FUSE; // 80 ticks = 4 seconds
+
+    if (worldPtr && !worldPtr->isClientSide()) {
+        // 广播实体状态 10，通知客户端 TNT 矿车已被引燃
+        // 客户端收到 status 10 后设置 fuse 值以渲染闪烁效果
+        worldPtr->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::EatBlock));
+
+        // 播放 TNT 引燃音效
+        playSound(SoundEvents::ENTITY_TNT_PRIMED, 1.0f, 1.0f);
     }
 }
 
@@ -1424,6 +1435,16 @@ void TNTMinecartEntity::_explode(f32 speedFactor)
     IWorld* worldPtr = Entity::world();
     if (!worldPtr || worldPtr->isClientSide()) {
         remove();
+        return;
+    }
+
+    // 对应 MC Java 的 MinecartTNT.explode() 中的 GameRules.TNT_EXPLODES 检查
+    // 如果 tntExplodes 游戏规则为 false，不产生爆炸；
+    // 如果矿车已被点燃，则移除实体；否则实体保持不变
+    if (!worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
+        if (isPrimed()) {
+            remove();
+        }
         return;
     }
 

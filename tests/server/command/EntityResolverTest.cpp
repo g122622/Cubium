@@ -598,6 +598,163 @@ TEST_F(EntityResolverTest, VolumeFilterOnlyDxFindsEntityAtY0)
     EXPECT_EQ(result.size(), 1u);
 }
 
+TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionEntityOverlap)
+{
+    // AABB 相交检查：实体碰撞箱与选择 AABB 部分重叠时应被选中
+    // 猪的碰撞箱宽度约 0.9，高度约 0.9
+    // 将猪放在 x=10.5（刚好在 AABB 边界外，但碰撞箱延伸到 x=10.05，仍与 AABB [0,11] 相交）
+    auto entity = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(entity, nullptr);
+    entity->setPosition(10.5f, 0.0f, 0.5f);
+    m_server.spawnEntity(std::move(entity));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setDx(10.0f); // AABB: x∈[0, 11]
+
+    auto result = EntityResolver::resolve(source, selector);
+    // 猪的碰撞箱约 [10.05, 10.95] x [0, 0.9] x [0.05, 0.95]
+    // AABB 为 [0, 11] x [0, 1] x [0, 1]，碰撞箱与 AABB 相交
+    EXPECT_EQ(result.size(), 1u);
+}
+
+TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionEntityOutsideAABB)
+{
+    // 实体碰撞箱完全在选择 AABB 之外时不应被选中
+    auto entity = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(entity, nullptr);
+    entity->setPosition(15.0f, 0.0f, 0.5f);
+    m_server.spawnEntity(std::move(entity));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setDx(10.0f); // AABB: x∈[0, 11]
+
+    auto result = EntityResolver::resolve(source, selector);
+    // 猪在 x=15，碰撞箱约 [14.55, 15.45]，完全在 AABB 外
+    EXPECT_TRUE(result.empty());
+}
+
+TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionLargeEntity)
+{
+    // 大型实体（如恶魂/巨人，碰撞箱远大于 1x1x1）跨越选择边界时应被选中
+    // 这里用僵尸测试（碰撞箱约 0.6 x 1.95 x 0.6）
+    // 将僵尸放在 x=0.0，AABB 为 x∈[0, 1]
+    // 僵尸碰撞箱 x 约 [-0.3, 0.3]，与 AABB [0, 1] 在 x=0 处相交
+    auto entity = createEntityByType(EntityTypes::ZOMBIE);
+    ASSERT_NE(entity, nullptr);
+    entity->setPosition(0.0f, 0.0f, 0.5f);
+    m_server.spawnEntity(std::move(entity));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setDx(0.0f); // AABB: x∈[0, 1], y∈[0, 1], z∈[0, 1]
+
+    auto result = EntityResolver::resolve(source, selector);
+    // 僵尸碰撞箱约 [-0.3, 0.3] x [0, 1.95] x [0.2, 0.8]
+    // 与 AABB [0, 1] x [0, 1] x [0, 1] 有交集（x=0 处、y∈[0,1]、z∈[0.2,0.8]）
+    EXPECT_EQ(result.size(), 1u);
+}
+
+TEST_F(EntityResolverTest, VolumeFilterAABBIntersectionWithPositionOverride)
+{
+    // 使用 x/y/z 覆盖参考坐标，验证 AABB 在绝对坐标下的正确构造
+    auto inside = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(inside, nullptr);
+    inside->setPosition(105.0f, 5.0f, 5.0f);
+    m_server.spawnEntity(std::move(inside));
+
+    auto outside = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(outside, nullptr);
+    outside->setPosition(95.0f, 5.0f, 5.0f);
+    m_server.spawnEntity(std::move(outside));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setX(100.0f);
+    selector.setY(0.0f);
+    selector.setZ(0.0f);
+    selector.setDx(10.0f);
+    selector.setDy(10.0f);
+    selector.setDz(10.0f);
+    // AABB: x∈[100, 111], y∈[0, 11], z∈[0, 11]
+
+    auto result = EntityResolver::resolve(source, selector);
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_FLOAT_EQ(result[0]->position().x, 105.0f);
+}
+
+TEST_F(EntityResolverTest, VolumeFilterSelfSelectorWithDx)
+{
+    // @s 选择器也支持体积过滤
+    auto serverPlayerEntity = std::make_unique<mc::ServerPlayer>(EntityId(1000), "TestPlayer");
+    serverPlayerEntity->setPosition(5.0f, 64.0f, 5.0f);
+    serverPlayerEntity->setPlayerId(42);
+    auto* serverPlayerPtr = serverPlayerEntity.get();
+    m_server.spawnEntity(std::move(serverPlayerEntity));
+
+    ServerCommandSource source(
+        &m_server, serverPlayerPtr, 0, Vector3d(5.0, 64.0, 5.0), Vector2f(0.0f, 0.0f), 2, 42, "TestPlayer");
+
+    // 在体积范围内
+    EntitySelector selector1 = EntitySelector::self();
+    selector1.setDx(10.0f);
+    selector1.setDy(10.0f);
+    selector1.setDz(10.0f);
+    auto result1 = EntityResolver::resolve(source, selector1);
+    EXPECT_EQ(result1.size(), 1u);
+
+    // 在体积范围外（使用远处的参考坐标）
+    EntitySelector selector2 = EntitySelector::self();
+    selector2.setX(1000.0f);
+    selector2.setY(64.0f);
+    selector2.setZ(5.0f);
+    selector2.setDx(1.0f);
+    auto result2 = EntityResolver::resolve(source, selector2);
+    EXPECT_TRUE(result2.empty());
+}
+
+TEST_F(EntityResolverTest, VolumeFilterDistanceMaxCreatesCubicAABB)
+{
+    // 无 dx/dy/dz 但有 distance 最大值时，应构造立方体 AABB
+    auto inside = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(inside, nullptr);
+    inside->setPosition(3.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(inside));
+
+    auto outside = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(outside, nullptr);
+    outside->setPosition(20.0f, 0.0f, 0.0f);
+    m_server.spawnEntity(std::move(outside));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.distance().setMax(5.0f);
+    // 立方体 AABB: x∈[-5, 6], y∈[-5, 6], z∈[-5, 6]
+
+    auto result = EntityResolver::resolve(source, selector);
+    // inside 在 x=3（AABB 内），outside 在 x=20（AABB 外）
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_FLOAT_EQ(result[0]->position().x, 3.0f);
+}
+
+TEST_F(EntityResolverTest, VolumeFilterNegativeDeltasReversedAABB)
+{
+    // 负值 dx：AABB 范围反向扩展
+    auto entity = createEntityByType(EntityTypes::PIG);
+    ASSERT_NE(entity, nullptr);
+    entity->setPosition(3.0f, 0.5f, 0.5f);
+    m_server.spawnEntity(std::move(entity));
+
+    ServerCommandSource source = ServerCommandSource::forConsole(&m_server);
+    EntitySelector selector = EntitySelector::allEntities();
+    selector.setX(5.0f);
+    selector.setDx(-10.0f); // AABB: x∈[5+(-10), 5+1] = [-5, 6]
+
+    auto result = EntityResolver::resolve(source, selector);
+    EXPECT_EQ(result.size(), 1u);
+}
+
 // ============================================================================
 // 5. sort= 排序测试
 // ============================================================================

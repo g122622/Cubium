@@ -65,7 +65,7 @@ public:
     void setClientSide(bool clientSide) { m_clientSide = clientSide; }
 
     // IWorld 接口实现
-    [[nodiscard]] bool isClientSide() override { return m_clientSide; }
+    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {

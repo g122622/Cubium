@@ -96,6 +96,10 @@ void ServerPlayer::sendChatMessage(const std::string& message)
 
     const auto fullPacket =
         server::core::ConnectionManager::encapsulatePacket(network::PacketType::ChatBroadcast, payload.buffer());
+
+    if (!_sendFullPacket(fullPacket)) {
+        spdlog::warn("ServerPlayer: chat message not sent (player={}, no connection)", username());
+    }
 }
 
 void ServerPlayer::sendSystemMessage(const std::string& message)
@@ -204,6 +208,21 @@ void ServerPlayer::setExperience(i32 level, f32 progress, i32 totalExperience)
 void ServerPlayer::awardCraftedStat(const ResourceLocation& itemId, i32 count)
 {
     m_statistics.incrementCrafted(itemId, count);
+}
+
+void ServerPlayer::awardCustomStat(const ResourceLocation& statId, i32 count)
+{
+    m_statistics.incrementCustom(statId, count);
+}
+
+void ServerPlayer::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
+{
+    // 基类实现：广播装备破损动画 + 播放音效
+    Player::onEquippedItemBroken(item, slot);
+
+    // 玩家额外更新物品损坏统计
+    // 对应 MC 原版 ServerPlayer.onEquippedItemBroken() 中的 awardStat(Stats.ITEM_BROKEN)
+    m_statistics.incrementBroken(item.itemLocation());
 }
 
 void ServerPlayer::onItemCrafted(ItemStack& stack, i32 amount)
@@ -615,6 +634,12 @@ bool ServerPlayer::changeDimension(DimensionId targetDim)
     if (targetDim == DimensionManager::THE_END) {
         // 末地传送：固定出生位置
         targetPos = Teleporter::getEndSpawnPosition();
+
+        // 创建末地出生平台（黑曜石平台和清空空间）
+        ServerDimension* targetDimension = m_server->dimensionManager().getDimension(targetDim);
+        if (targetDimension != nullptr && targetDimension->world() != nullptr) {
+            EndTeleporter::createEndSpawnPlatform(*targetDimension->world());
+        }
     } else {
         // 下界/主世界传送：搜索传送门
         // 获取目标维度的世界

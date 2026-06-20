@@ -13,7 +13,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN AN EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -67,20 +67,23 @@ enum class RailShape : u8 {
  * @brief 铁轨方块基类
  *
  * 铁轨是矿车行驶的基础：
- * - 自动连接到相邻铁轨
+ * - 自动连接到相邻铁轨（包括上下Y层级）
  * - 支持弯轨和斜轨
+ * - 通过 RailState 计算连接形状
+ * - 普通铁轨支持三连接道岔（红石切换弯轨方向）
  * - 无碰撞箱（可以穿过）
  *
- * 参考: net.minecraft.block.AbstractRailBlock
+ * 参考: net.minecraft.block.BaseRailBlock
  */
 class AbstractRailBlock : public Block {
 public:
     /**
      * @brief 构造函数
      * @param properties 方块属性
-     * @param isPowered 是否为动力铁轨
+     * @param isStraight 是否为直线铁轨（动力铁轨/探测铁轨/激活铁轨不支持弯轨）
+     * @param isPowered 是否为动力铁轨类型（影响canProvidePower返回值）
      */
-    AbstractRailBlock(const BlockProperties& properties, bool isPowered = false);
+    AbstractRailBlock(const BlockProperties& properties, bool isStraight = false, bool isPowered = false);
 
     // ========== 状态创建 ==========
 
@@ -100,6 +103,25 @@ public:
         IWorld& world,
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
+
+    /**
+     * @brief 方块放置后的处理
+     *
+     * 参考 MC Java: BaseRailBlock.onPlace
+     * 铁轨放置后立即重新计算连接形状。
+     * getStateForPlacement 只根据玩家朝向返回初始形状，
+     * 真正的邻居连接计算在此处触发。
+     */
+    void onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 邻居变化通知
+     *
+     * 检查铁轨是否仍有支撑，并在邻居变化时重新计算铁轨形状。
+     * 参考: net.minecraft.block.BaseRailBlock.neighborChanged
+     */
+    void neighborChanged(
+        IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
     // ========== 放置检测 ==========
 
@@ -150,9 +172,20 @@ public:
     [[nodiscard]] virtual BlockState withRailShape(const BlockState& state, RailShape shape) const = 0;
 
     /**
-     * @brief 是否为动力铁轨
+     * @brief 是否为直线铁轨（不支持弯轨）
+     *
+     * 普通铁轨返回false（支持弯轨），动力铁轨/探测铁轨/激活铁轨返回true。
+     * 参考: net.minecraft.block.BaseRailBlock.isStraight
      */
-    [[nodiscard]] bool isPowered() const noexcept { return m_isPowered; }
+    [[nodiscard]] bool isStraight() const noexcept { return m_isStraight; }
+
+    /**
+     * @brief 是否为动力铁轨类型（可提供红石信号）
+     *
+     * 动力铁轨和探测铁轨返回true，普通铁轨和激活铁轨返回false。
+     * 注意：这不代表铁轨当前是否被充能，仅表示铁轨类型。
+     */
+    [[nodiscard]] bool isPoweredType() const noexcept { return m_isPowered; }
 
     /**
      * @brief 检查状态是否有铁轨形状属性
@@ -160,31 +193,57 @@ public:
      */
     [[nodiscard]] virtual bool hasRailShapeProperty(const BlockState& state) const = 0;
 
+    // ========== 铁轨形状更新 ==========
+
+    /**
+     * @brief 重新计算铁轨方向
+     *
+     * 创建 RailState 并调用 place() 来计算铁轨形状。
+     * 这是铁轨形状计算的主要入口方法。
+     *
+     * @param world 世界
+     * @param pos 铁轨位置
+     * @param state 当前方块状态
+     * @param updateBlock 是否更新世界中的方块状态
+     * @return 更新后的方块状态
+     */
+    [[nodiscard]] BlockState updateDir(IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock);
+
+    /**
+     * @brief 铁轨状态更新
+     *
+     * 在邻居变化时调用 updateDir 重新计算形状，然后根据需要传播更新。
+     * 子类可以重写此方法添加额外行为（如 RailBlock 的三连接红石道岔）。
+     *
+     * @param world 世界
+     * @param pos 铁轨位置
+     * @param state 当前方块状态
+     * @param neighborBlock 触发更新的邻居方块
+     */
+    virtual void updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock);
+
+    /**
+     * @brief 检查铁轨是否应该被移除（斜坡支撑检测）
+     *
+     * 斜坡铁轨需要在其上升方向上方有支撑方块。
+     * 参考: net.minecraft.block.BaseRailBlock.shouldBeRemoved
+     *
+     * @param state 铁轨状态
+     * @param world 世界
+     * @param pos 铁轨位置
+     * @return 如果铁轨缺少支撑应被移除则返回true
+     */
+    [[nodiscard]] static bool shouldBeRemoved(const BlockState& state, IBlockReader& world, const BlockPos& pos);
+
 protected:
-    /// 是否为动力铁轨
+    /// 是否为直线铁轨（不支持弯轨）
+    bool m_isStraight;
+
+    /// 是否为动力铁轨（可提供红石信号）
     bool m_isPowered;
 
     /// 各形状的碰撞箱
     std::array<CollisionShape, 10> m_shapes;
-
-    /**
-     * @brief 计算铁轨形状
-     * @param world 世界
-     * @param pos 位置
-     * @param state 当前状态
-     * @return 计算出的形状
-     */
-    [[nodiscard]] RailShape calculateRailShape(IWorld& world, const BlockPos& pos, const BlockState& state) const;
-
-    /**
-     * @brief 检查相邻是否有铁轨
-     */
-    [[nodiscard]] bool isRailAt(IBlockReader& world, const BlockPos& pos) const;
-
-    /**
-     * @brief 检查相邻是否有可上升的铁轨
-     */
-    [[nodiscard]] bool canAscendTo(IBlockReader& world, const BlockPos& pos, Direction direction) const;
 };
 
 /**

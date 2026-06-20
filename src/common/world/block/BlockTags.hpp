@@ -172,6 +172,23 @@ public:
     /// 羊毛标签
     static BlockTag& WOOL();
 
+    /// 羊毛地毯标签（所有颜色的地毯方块）
+    /// 参考: net.minecraft.tags.BlockTags.WOOL_CARPETS
+    /// 用于 DAMPENS_VIBRATIONS 标签（地毯方块阻尼振动）和 LlamaEntity 装饰槽位判断
+    /// TODO: 当前仅有测试引用此标签，尚未在运行时游戏逻辑中被消费。
+    ///       需在 LlamaEntity 装饰槽位判断等逻辑中引用此标签，
+    ///       以确保 WOOL_CARPETS 标签不是孤岛代码。
+    static BlockTag& WOOL_CARPETS();
+
+    /// 木质栅栏标签（所有木质栅栏，不含下界砖栅栏）
+    static BlockTag& WOODEN_FENCES();
+
+    /// 栅栏标签（所有木质栅栏 + 下界砖栅栏）
+    static BlockTag& FENCES();
+
+    /// 栅栏门标签
+    static BlockTag& FENCE_GATES();
+
     /// 竹子可种植标签（草、泥土、沙子、沙砾、竹林土）
     static BlockTag& BAMBOO_PLANTABLE_ON();
 
@@ -358,6 +375,40 @@ public:
     /// 铁砧标签（包含 anvil、chipped_anvil、damaged_anvil）
     /// 用于下落铁砧损坏判定
     static BlockTag& ANVIL();
+
+    // ========== 雪层放置标签 ==========
+
+    /// 雪层不可放置标签（冰、浮冰、屏障）
+    /// 雪层不能在这些方块上方存活
+    static BlockTag& SNOW_LAYER_CANNOT_SURVIVE_ON();
+
+    /// 雪层可放置标签（蜂蜜块、灵魂沙、泥巴）
+    /// 雪层可以在这些方块上方存活（即使它们没有完整的上表面碰撞箱）
+    static BlockTag& SNOW_LAYER_CAN_SURVIVE_ON();
+
+    // ========== 滴叶标签 ==========
+
+    /// 小滴叶可放置标签（黏土、苔藓块）
+    /// 参考: net.minecraft.tags.BlockTags.SMALL_DRIPLEAF_PLACEABLE
+    static BlockTag& SMALL_DRIPLEAF_PLACEABLE();
+
+    /// 大滴叶可放置标签（黏土、泥土、砂土、灰化土、耕地、苔藓块、缠根泥土、泥巴、泥泞红树林根、草方块、菌丝、沙子、小滴叶等）
+    /// 参考: net.minecraft.tags.BlockTags.BIG_DRIPLEAF_PLACEABLE
+    static BlockTag& BIG_DRIPLEAF_PLACEABLE();
+
+    // ========== 建筑方块形状标签 ==========
+
+    /// 楼梯方块标签（所有楼梯方块）
+    /// 参考: net.minecraft.tags.BlockTags.STAIRS
+    static BlockTag& STAIRS();
+
+    /// 台阶方块标签（所有台阶方块）
+    /// 参考: net.minecraft.tags.BlockTags.SLABS
+    static BlockTag& SLABS();
+
+    /// 墙壁方块标签（所有墙壁方块，不含墙上的告示牌/旗帜等）
+    /// 参考: net.minecraft.tags.BlockTags.WALLS
+    static BlockTag& WALLS();
 
     /**
      * @brief 初始化所有内置标签

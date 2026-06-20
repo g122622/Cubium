@@ -27,6 +27,57 @@
 
 namespace mc::skin {
 
+namespace {
+
+/// 默认皮肤变体表，与 MC Java 版 DefaultPlayerSkin.DEFAULT_SKINS 一致
+/// 索引 0-8: slim (alex, ari, efe, kai, makena, noor, steve, sunny, zuri)
+/// 索引 9-17: wide (alex, ari, efe, kai, makena, noor, steve, sunny, zuri)
+const std::array<DefaultSkinVariant, DEFAULT_SKIN_COUNT> DEFAULT_SKINS = {{
+    {"alex", SkinType::Slim, 0},
+    {"ari", SkinType::Slim, 1},
+    {"efe", SkinType::Slim, 2},
+    {"kai", SkinType::Slim, 3},
+    {"makena", SkinType::Slim, 4},
+    {"noor", SkinType::Slim, 5},
+    {"steve", SkinType::Slim, 6},
+    {"sunny", SkinType::Slim, 7},
+    {"zuri", SkinType::Slim, 8},
+    {"alex", SkinType::Default, 9},
+    {"ari", SkinType::Default, 10},
+    {"efe", SkinType::Default, 11},
+    {"kai", SkinType::Default, 12},
+    {"makena", SkinType::Default, 13},
+    {"noor", SkinType::Default, 14},
+    {"steve", SkinType::Default, 15},
+    {"sunny", SkinType::Default, 16},
+    {"zuri", SkinType::Default, 17},
+}};
+
+} // anonymous namespace
+
+const std::array<DefaultSkinVariant, DEFAULT_SKIN_COUNT>& getDefaultSkinVariants()
+{
+    return DEFAULT_SKINS;
+}
+
+const DefaultSkinVariant& getDefaultSkinVariantForUUID(const std::array<u8, 16>& uuid)
+{
+    // MC Java: DEFAULT_SKINS[Math.floorMod(uuid.hashCode(), DEFAULT_SKINS.length)]
+    // Math.floorMod 确保结果为非负数（即使 hashCode 为负）
+    i32 hashCode = calculateUUIDHashCode(uuid);
+    i32 index = hashCode % static_cast<i32>(DEFAULT_SKIN_COUNT);
+    if (index < 0) {
+        index += static_cast<i32>(DEFAULT_SKIN_COUNT);
+    }
+    return DEFAULT_SKINS[static_cast<size_t>(index)];
+}
+
+const DefaultSkinVariant& getCanonicalDefaultSkin()
+{
+    // MC Java: DefaultPlayerSkin.getDefaultSkin() returns DEFAULT_SKINS[6] (slim/steve)
+    return DEFAULT_SKINS[6];
+}
+
 SkinType parseSkinType(const std::string& typeStr)
 {
     // 转换为小写进行比较
@@ -87,9 +138,9 @@ i32 calculateUUIDHashCode(const std::array<u8, 16>& uuid)
 
 SkinType getDefaultSkinTypeForUUID(const std::array<u8, 16>& uuid)
 {
-    // 基于 UUID 哈希值的最低位确定皮肤类型
-    i32 hashCode = calculateUUIDHashCode(uuid);
-    return (hashCode & 1) == 1 ? SkinType::Slim : SkinType::Default;
+    // 通过 18 种默认皮肤变体确定皮肤类型，与 getDefaultSkinVariantForUUID 保持一致
+    // 旧算法 (hashCode & 1) 仅支持 2 种皮肤（Steve/Alex），不再使用
+    return getDefaultSkinVariantForUUID(uuid).skinType;
 }
 
 } // namespace mc::skin

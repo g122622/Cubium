@@ -188,6 +188,28 @@ public:
      */
     [[nodiscard]] static f32 getRegionalDifficultyBase(Difficulty difficulty);
 
+    // ========== 远程攻击 ==========
+
+    /**
+     * @brief 获取弩/弓远程攻击的不精确度
+     *
+     * 对应 MC 原版 CrossbowAttackMob.performCrossbowAttack 和
+     * AbstractSkeleton.performRangedAttack 中的公式：
+     * `14 - difficulty.getId() * 4`
+     *
+     * 难度越高，不精确度越低，射击越精准：
+     * - Peaceful: 14
+     * - Easy: 10
+     * - Normal: 6
+     * - Hard: 2
+     *
+     * 适用于所有使用弩或弓的怪物（掠夺者、猪灵、骷髅、幻术师等）。
+     *
+     * @param difficulty 难度
+     * @return 不精确度值
+     */
+    [[nodiscard]] static f32 getRangedAttackInaccuracy(Difficulty difficulty);
+
 private:
     // 常量
     static constexpr f32 NORMAL_PLAYER_DAMAGE_MULT = 1.0f;

@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/command/arguments/TimeArgument.hpp"
 #include "common/network/packet/TitlePacket.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -132,11 +133,10 @@ void TitleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
     // times <fadeIn> <stay> <fadeOut> 子命令
     auto timesNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("times");
     auto fadeInNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("fadeIn", IntegerArgumentType::integer(0));
-    auto stayNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("stay", IntegerArgumentType::integer(0));
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("fadeIn", TimeArgumentType::time());
+    auto stayNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("stay", TimeArgumentType::time());
     auto fadeOutNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("fadeOut", IntegerArgumentType::integer(0));
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("fadeOut", TimeArgumentType::time());
     fadeOutNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setTimes(ctx); });
 
     fadeInNode->addChild(stayNode);

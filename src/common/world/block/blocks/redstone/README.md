@@ -32,10 +32,11 @@ redstone/
 ├── TripWireBlock.hpp/cpp              # 绊线（实体穿越检测，潜行不触发）
 ├── TripWireHookBlock.hpp/cpp          # 绊线钩
 ├── NoteBlock.hpp/cpp                  # 音符盒（16种乐器，25个音高）
-├── TNTBlock.hpp/cpp                   # TNT（红石/火焰触发爆炸）
+├── TNTBlock.hpp/cpp                   # TNT（红石/火焰触发爆炸，受 tntExplodes 游戏规则控制）
 ├── TargetBlock.hpp/cpp                # 标靶（箭矢命中→信号）
 ├── RedstoneLampBlock.hpp/cpp          # 红石灯（信号控制发光）
 ├── AbstractRailBlock.hpp/cpp          # 铁轨基类
+├── RailState.hpp/cpp                 # 铁轨连接状态计算器（形状计算、三连接道岔）
 ├── RailBlock.hpp/cpp                  # 普通铁轨
 ├── PoweredRailBlock.hpp/cpp           # 动力铁轨
 ├── DetectorRailBlock.hpp/cpp          # 探测铁轨
@@ -196,19 +197,54 @@ if (!redstone.isUpdating(pos)) {
 
 音符盒根据下方方块材质决定乐器类型，必须使用 `NoteBlockInstrument.byState` 进行映射。
 
-### 18. TNT 火焰检测
+### 18. TNT 方块与 tntExplodes 游戏规则
+
+TNT 方块的关键方法均受 `tntExplodes` 游戏规则控制：
+
+- **`ignite()`**：当 `tntExplodes=false` 时返回 `false`，不生成 TNT 实体、不播放音效、不移除方块。返回值为 `[[nodiscard]] bool`，调用方需根据返回值决定后续行为（如打火石发射器需要 `_setSuccess(false)`）。带 `LivingEntity*` 参数的重载版本会将点燃者信息传递给 TNT 实体，用于伤害归属判定。
+- **`explode()`**：当 `tntExplodes=false` 时仅移除方块（不创建爆炸效果），与 MC Java 行为一致。
+- **`onBlockExploded()`**：当 `tntExplodes=false` 时不生成连锁 TNT 实体（对应 MC Java 的 `wasExploded()`）。
+- **`onBlockActivated()`**：玩家使用打火石/火焰弹右键点燃 TNT。打火石消耗耐久度，火焰弹消耗一个物品（创造模式不消耗）。`tntExplodes=false` 时显示 action bar 消息 "block.minecraft.tnt.disabled"。
+- **`onProjectileHit()`**：燃烧投掷物命中 TNT 时点燃。从 ProjectileEntity 获取发射者作为点燃者。
+- **`playerWillDestroy()`**：玩家破坏不稳定 TNT（UNSTABLE=true）时自动点燃，创造模式例外。
+- **`canDropFromExplosion()`**：返回 `false`，TNT 被爆炸摧毁时不掉落物品（对应 MC Java 的 `dropFromExplosion` 返回 `false`）。
+
+此外：
+- `_hasFlammableNeighbor()` 检测相邻火焰/熔岩，通过 `onBlockAdded()` 和 `neighborChanged()` 间接调用。
+- `onBlockExploded()` 在 `Explosion::_destroyBlocks()` 中被调用，当其他爆炸摧毁 TNT 方块时生成短引信 TNT 实体（引信公式：`nextInt(fuse/4) + fuse/8`，即 [10, 29] ticks）。
+- `ignite()` 内部会发出 `PRIME_FUSE` 游戏事件（用于幽匿感测体检测）。
+
+### 19. TNT 火焰检测
 
 TNT 需要检测相邻位置的火焰（包括灵魂火）和熔岩，不仅检测红石信号。
 
-### 19. 活塞头存活检查与级联销毁
+### 20. 活塞头存活检查与级联销毁
 
 活塞头（PistonHeadBlock）不是独立方块，必须依赖已伸出的活塞基座才能存活：
 
 - **存活条件**（`isValidPosition`）：反方向有匹配的已伸出活塞基座（类型+EXTENDED+FACING 三重匹配），或反方向是方向匹配的 MOVING_PISTON
 - **自动消失**（`updatePostPlacement`）：当活塞基座消失或收回时，活塞头收到更新后返回空气状态
 - **级联销毁**（`onBlockRemoved`）：活塞头被移除时，检查反方向是否有匹配的已伸出活塞基座，如有则销毁基座并生成掉落物
+- **创造模式级联销毁**（`playerWillDestroy`）：玩家在创造模式破坏活塞头时，同时销毁匹配的活塞基座但不产生掉落物
 - **通知转发**（`neighborChanged`）：活塞头存活时将邻居变化通知转发到活塞基座方向，确保红石信号能传导到活塞
 - **推动反应**：活塞头的 `getPushReaction` 返回 `Block`，不能被活塞推动
 - **类型匹配**：Normal 活塞头对应 PISTON，Sticky 活塞头对应 STICKY_PISTON，类型不匹配则无法存活
 
-TODO: 待 Block 基类补齐 `playerWillDestroy`（含 Player* 参数）和 `preventsBlockDrops` 机制后，需实现创造模式破坏活塞头时同时销毁活塞基座且不产生掉落物的逻辑。
+### 21. 铁轨连接系统（RailState）
+
+铁轨的连接形状计算由 `RailState` 类负责，完整复刻了 MC Java 的 `RailState` 逻辑：
+
+- **三层级Y轴搜索**：`hasNeighborRail` 和 `getRail` 检查同层、上方(+1)、下方(-1)三个Y层级，确保斜坡铁轨能正确发现和连接不同Y高度的相邻铁轨
+- **双向连接验证**：`removeSoftConnections` 验证对方铁轨是否仍然连接回来，`canConnectTo` 限制每条铁轨最多2个连接
+- **三连接道岔切换**：普通铁轨在三连接时根据红石信号选择弯轨方向（T型道岔的核心逻辑）
+  - 有红石信号：优先级 SE → SW → NE → NW（最后匹配胜出）
+  - 无红石信号：优先级 NW → NE → SW → SE（反方向）
+  - 通过 `RailBlock::updateState` 在邻居信号源变化且铁轨有三连接时触发重算
+- **四连接处理**：保持当前形状，红石信号决定弯轨方向
+- **直线铁轨**：动力铁轨、探测铁轨、激活铁轨（`isStraight=true`）不支持弯轨，三/四连接时保持当前直轨形状
+- **连接传播**：`place()` 中 `updateBlock=true` 模式下会通知相邻铁轨更新连接
+- **updateBlock 参数**：
+  - `true`：放置铁轨时（`onBlockAdded`）使用，直接设置方块状态并传播连接
+  - `false`：`updatePostPlacement` 时使用，仅返回计算后的状态，由调用方设置
+- **放置流程**：`getStateForPlacement` 只返回基于玩家朝向的初始形状（南北/东西），真正的连接计算在 `onBlockAdded` 中通过 `updateDir` 触发
+- **RailState 内部状态**：`m_state` 存储构造时传入的方块状态，用于 `withRailShape` 计算新状态，避免从世界中读取可能为空的方块状态

@@ -35,8 +35,6 @@ namespace blocks {
  *
  * 大滴叶的茎部，无碰撞，支持含水。
  * 用于大滴叶的生长结构。
- *
- * 参考: net.minecraft.block.BigDripleafStemBlock
  */
 class BigDripleafStemBlock : public Block, public IWaterLoggable {
 public:
@@ -45,6 +43,9 @@ public:
     ~BigDripleafStemBlock() override = default;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
+
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
@@ -66,6 +67,14 @@ public:
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
+
+    /**
+     * @brief 处理延迟销毁 tick
+     *
+     * 当大滴叶茎因上下方块变化导致无法存活时，updatePostPlacement 会调度 1 tick 延迟。
+     * tick 触发后重新检查存活条件，若仍无法存活则销毁方块并掉落物品。
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;

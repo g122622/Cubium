@@ -23,6 +23,13 @@
 
 #include "Biome.hpp"
 #include "BiomeClimate.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/ice/SnowBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 #include "common/world/gen/noise/PerlinSimplexNoise.hpp"
 #include <cmath>
 
@@ -89,6 +96,92 @@ f32 Biome::getHeightAdjustedTemperature(i32 x, i32 y, i32 z, i32 seaLevel) const
 f32 Biome::getBaseTemperature() const
 {
     return applyTemperatureModifier(0, 0, m_climate.temperature, m_climate.temperatureModifier);
+}
+
+bool Biome::shouldFreeze(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel, bool checkNeighbors) const
+{
+    // 温度检查：如果足够温暖可以下雨，则不冻结
+    if (warmEnoughToRain(x, y, z, seaLevel)) {
+        return false;
+    }
+
+    // 高度检查：位置必须在建造高度范围内
+    if (!world::isValidY(y)) {
+        return false;
+    }
+
+    // 光照检查：方块光照必须 < 10（MC 使用 LightLayer.BLOCK）
+    if (world.getBlockLight(x, y, z) >= 10) {
+        return false;
+    }
+
+    // 方块状态和流体状态检查
+    // 注意：getBlockState 可能返回 nullptr（表示区块未加载或空段，等同于空气）
+    // 只有液体方块才可能冻结，空气/固体方块不会冻结
+    const BlockState* blockState = world.getBlockState(x, y, z);
+    if (blockState == nullptr || !blockState->isLiquid()) {
+        return false;
+    }
+
+    const fluid::FluidState* fluidState = world.getFluidState(x, y, z);
+    if (fluidState == nullptr || fluidState->isEmpty()) {
+        return false;
+    }
+
+    // 流体必须是水（排除岩浆等其他液体）
+    if (!fluidState->getFluid().isIn(fluid::FluidTags::WATER())) {
+        return false;
+    }
+
+    // 邻居水域暴露检查：如果四个水平邻居全是水，则不冻结
+    // 这防止了深海中心大面积结冰，只在水的边缘冻结
+    if (checkNeighbors) {
+        if (world.isWaterAt(x - 1, y, z) && world.isWaterAt(x + 1, y, z) && world.isWaterAt(x, y, z - 1) &&
+            world.isWaterAt(x, y, z + 1)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool Biome::shouldSnow(const IWorld& world, i32 x, i32 y, i32 z, i32 seaLevel) const
+{
+    // 降水类型检查：生物群系必须支持降水，且在此位置降水类型为雪
+    if (m_climate.precipitation == BiomeClimate::Precipitation::None) {
+        return false;
+    }
+    if (!coldEnoughToSnow(x, y, z, seaLevel)) {
+        return false;
+    }
+
+    // 高度检查：位置必须在建造高度范围内
+    if (!world::isValidY(y)) {
+        return false;
+    }
+
+    // 光照检查：方块光照必须 < 10
+    if (world.getBlockLight(x, y, z) >= 10) {
+        return false;
+    }
+
+    // 方块检查：该位置的方块必须是空气或已有雪层
+    const BlockState* blockState = world.getBlockState(x, y, z);
+    if (blockState != nullptr && !blockState->isAir() && !blockState->is(VanillaBlocks::SNOW)) {
+        return false;
+    }
+
+    // 雪层方块必须能在此处存活
+    // 使用 SnowBlock::canSurviveAt 检查下方方块是否支持雪层放置：
+    //   - 下方不能是冰/浮冰/屏障（SNOW_LAYER_CANNOT_SURVIVE_ON）
+    //   - 下方是蜂蜜块/灵魂沙/泥巴时允许（SNOW_LAYER_CAN_SURVIVE_ON）
+    //   - 否则下方碰撞形状上表面必须完整，或下方为满层(8层)雪层
+    BlockPos pos(x, y, z);
+    if (!blocks::SnowBlock::canSurviveAt(world, pos)) {
+        return false;
+    }
+
+    return true;
 }
 
 } // namespace biome

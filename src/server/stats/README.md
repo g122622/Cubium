@@ -32,9 +32,12 @@ StatType ──→ Stat ──→ StatisticsManager
 - `common/core/Types.hpp` - 基本类型
 - `common/resource/ResourceLocation.hpp` - 资源位置
 - `common/util/nbt/Nbt.hpp` - NBT 序列化
+- `common/stats/Stats.hpp` - 自定义统计常量（与 StatRegistry 注册名对应）
 
 **下游依赖（使用本目录的）：**
 - `server/player/ServerPlayer.hpp` - 每个玩家持有 `StatisticsManager` 实例
+- `common/entity/entities/player/Player.hpp` - `awardCustomStat()` 虚方法（基类空实现）
+- 各种方块（BarrelBlock、BrewingStandBlock 等）- 调用 `player.awardCustomStat()`
 - 记分板系统 - 统计判据 `minecraft.{type}:{id}` 可用于记分板目标
 
 ## 容易踩的坑
@@ -43,3 +46,5 @@ StatType ──→ Stat ──→ StatisticsManager
 - **零增量不创建条目**：`StatisticsManager::increment()` 对零增量不会创建新条目，避免无意义的存储开销。
 - **脏数据标记**：修改统计后会自动标记 `dirty`，增量保存时需检查 `isDirty()` 以避免全量写入。
 - **线程安全**：`StatisticsManager` 非线程安全，多线程访问需外部同步。`StatRegistry` 是单例，初始化时需确保单线程。
+- **常量与注册名对应**：`common/stats/Stats.hpp` 中的常量字符串必须与 `StatRegistry._registerAllCustomStats()` 中注册的完全一致，否则统计不会生效。
+- **awardCustomStat 客户端安全**：`Player::awardCustomStat()` 基类为空实现，客户端调用不会崩溃也不会更新统计；仅 `ServerPlayer` 重写版本实际更新 `StatisticsManager`。

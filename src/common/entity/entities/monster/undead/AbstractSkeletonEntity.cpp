@@ -23,23 +23,29 @@
 
 #include "AbstractSkeletonEntity.hpp"
 
-#include "../../../../core/Types.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/FleeSunGoal.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/MeleeAttackGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/RestrictSunGoal.hpp"
-#include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
-#include "../../../ai/goal/goals/movement/MovementGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../passive/golem/IronGolemEntity.hpp"
-#include "../../player/Player.hpp"
-#include "../../projectile/AbstractArrowEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/FleeSunGoal.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/RestrictSunGoal.hpp"
+#include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/SpecialDates.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 
@@ -81,10 +87,9 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
     f64 dz = target->z() - z();
     f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
 
-    // 不精确度计算：难度越高，不精确度越低，箭矢越精准
-    // 和平/简单: 14, 普通: 10, 困难: 6
-    i32 difficultyId = static_cast<i32>(world()->difficulty());
-    f32 inaccuracy = static_cast<f32>(14 - difficultyId * 4);
+    // 不精确度：难度越高，不精确度越低，箭矢越精准
+    // Peaceful=14, Easy=10, Normal=6, Hard=2
+    f32 inaccuracy = entity::combat::DifficultyHelper::getRangedAttackInaccuracy(world()->difficulty());
 
     // 使用生物箭矢伤害公式设置基础伤害
     arrow->setBaseDamageFromMob(charge);
@@ -206,6 +211,31 @@ void AbstractSkeletonEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, ARROW_DAMAGE);
+}
+
+void AbstractSkeletonEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    MonsterEntity::finalizeSpawn(world, difficulty, spawnReason);
+
+    math::Random rng = getRandom();
+
+    // 重新评估战斗目标（远程/近战）
+    setCombatTask();
+
+    // 设置拾取物品能力
+    setCanPickUpLoot(rng.nextFloat() < 0.55f * difficulty.getSpecialMultiplier());
+
+    // 万圣节南瓜头：10月31日，25% 概率
+    if (util::SpecialDates::isHalloween() && rng.nextFloat() < 0.25f) {
+        if (getEquipment(EquipmentSlot::Head).isEmpty()) {
+            const Item* pumpkinItem = rng.nextFloat() < 0.1f ? Items::JACK_O_LANTERN : Items::CARVED_PUMPKIN;
+            if (pumpkinItem != nullptr) {
+                setEquipment(EquipmentSlot::Head, ItemStack(*pumpkinItem, 1));
+                setEquipmentDropChance(EquipmentSlot::Head, 0.0f);
+            }
+        }
+    }
 }
 
 } // namespace mc

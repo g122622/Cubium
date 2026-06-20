@@ -343,6 +343,19 @@ private:
      */
     [[nodiscard]] std::vector<std::string> collectEntityCompletionCandidates() const;
 
+    /**
+     * @brief 处理服务端广播的世界事件
+     *
+     * 对应 MC Java 的 LevelEventHandler.levelEvent()，根据事件ID播放音效和粒子效果。
+     *
+     * @param eventId 事件ID（参见 WorldEvents 命名空间）
+     * @param x 事件位置 X
+     * @param y 事件位置 Y
+     * @param z 事件位置 Z
+     * @param data 事件数据（含义因事件类型而异）
+     */
+    void _handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 data);
+
     // 初始化资源系统
     [[nodiscard]] Result<void> initializeResources();
 

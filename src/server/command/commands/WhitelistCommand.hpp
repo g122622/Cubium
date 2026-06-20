@@ -61,14 +61,6 @@ private:
      * @param source 命令源
      */
     static void _kickNonWhitelistedPlayers(ServerCommandSource& source);
-
-    /**
-     * @brief 从玩家名生成临时 UUID
-     * @param name 玩家名
-     * @return 临时 UUID
-     * @note 实际服务器应从 Mojang API 获取真实 UUID
-     */
-    static std::string _generateUuidFromName(const std::string& name);
 };
 
 } // namespace command

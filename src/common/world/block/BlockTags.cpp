@@ -235,6 +235,42 @@ BlockTag& BlockTags::WOOL()
     return *tag;
 }
 
+BlockTag& BlockTags::WOOL_CARPETS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wool_carpets"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::WOODEN_FENCES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_fences"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::FENCES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "fences"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::FENCE_GATES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "fence_gates"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::BAMBOO_PLANTABLE_ON()
 {
     static BlockTag* tag = nullptr;
@@ -709,6 +745,73 @@ BlockTag& BlockTags::ANVIL()
     return *tag;
 }
 
+BlockTag& BlockTags::SNOW_LAYER_CANNOT_SURVIVE_ON()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "snow_layer_cannot_survive_on"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SNOW_LAYER_CAN_SURVIVE_ON()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "snow_layer_can_survive_on"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SMALL_DRIPLEAF_PLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "small_dripleaf_placeable"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::BIG_DRIPLEAF_PLACEABLE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "big_dripleaf_placeable"));
+    }
+    return *tag;
+}
+
+// ============================================================================
+// 建筑方块形状标签
+// ============================================================================
+
+BlockTag& BlockTags::STAIRS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "stairs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SLABS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "slabs"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::WALLS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "walls"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -863,6 +966,76 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "red_wool"),
         ResourceLocation("minecraft", "black_wool")});
     tags[wool->getId()] = std::move(wool);
+
+    // 创建 WOOL_CARPETS 标签（所有颜色的地毯方块）
+    // 参考: net.minecraft.tags.BlockTags.WOOL_CARPETS
+    auto woolCarpets = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wool_carpets"));
+    woolCarpets->addAll({ResourceLocation("minecraft", "white_carpet"),
+        ResourceLocation("minecraft", "orange_carpet"),
+        ResourceLocation("minecraft", "magenta_carpet"),
+        ResourceLocation("minecraft", "light_blue_carpet"),
+        ResourceLocation("minecraft", "yellow_carpet"),
+        ResourceLocation("minecraft", "lime_carpet"),
+        ResourceLocation("minecraft", "pink_carpet"),
+        ResourceLocation("minecraft", "gray_carpet"),
+        ResourceLocation("minecraft", "light_gray_carpet"),
+        ResourceLocation("minecraft", "cyan_carpet"),
+        ResourceLocation("minecraft", "purple_carpet"),
+        ResourceLocation("minecraft", "blue_carpet"),
+        ResourceLocation("minecraft", "brown_carpet"),
+        ResourceLocation("minecraft", "green_carpet"),
+        ResourceLocation("minecraft", "red_carpet"),
+        ResourceLocation("minecraft", "black_carpet")});
+    tags[woolCarpets->getId()] = std::move(woolCarpets);
+
+    // 创建 WOODEN_FENCES 标签（所有木质栅栏，不含下界砖栅栏）
+    auto woodenFences = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_fences"));
+    woodenFences->addAll({ResourceLocation("minecraft", "oak_fence"),
+        ResourceLocation("minecraft", "spruce_fence"),
+        ResourceLocation("minecraft", "birch_fence"),
+        ResourceLocation("minecraft", "jungle_fence"),
+        ResourceLocation("minecraft", "acacia_fence"),
+        ResourceLocation("minecraft", "dark_oak_fence"),
+        ResourceLocation("minecraft", "mangrove_fence"),
+        ResourceLocation("minecraft", "cherry_fence"),
+        ResourceLocation("minecraft", "bamboo_fence"),
+        ResourceLocation("minecraft", "pale_oak_fence"),
+        ResourceLocation("minecraft", "crimson_fence"),
+        ResourceLocation("minecraft", "warped_fence")});
+    tags[woodenFences->getId()] = std::move(woodenFences);
+
+    // 创建 FENCES 标签（所有木质栅栏 + 下界砖栅栏）
+    auto fences = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fences"));
+    fences->addAll({ResourceLocation("minecraft", "oak_fence"),
+        ResourceLocation("minecraft", "spruce_fence"),
+        ResourceLocation("minecraft", "birch_fence"),
+        ResourceLocation("minecraft", "jungle_fence"),
+        ResourceLocation("minecraft", "acacia_fence"),
+        ResourceLocation("minecraft", "dark_oak_fence"),
+        ResourceLocation("minecraft", "mangrove_fence"),
+        ResourceLocation("minecraft", "cherry_fence"),
+        ResourceLocation("minecraft", "bamboo_fence"),
+        ResourceLocation("minecraft", "pale_oak_fence"),
+        ResourceLocation("minecraft", "crimson_fence"),
+        ResourceLocation("minecraft", "warped_fence"),
+        ResourceLocation("minecraft", "nether_brick_fence")});
+    tags[fences->getId()] = std::move(fences);
+
+    // 创建 FENCE_GATES 标签
+    auto fenceGates = std::make_unique<BlockTag>(ResourceLocation("minecraft", "fence_gates"));
+    fenceGates->addAll({ResourceLocation("minecraft", "oak_fence_gate"),
+        ResourceLocation("minecraft", "spruce_fence_gate"),
+        ResourceLocation("minecraft", "birch_fence_gate"),
+        ResourceLocation("minecraft", "jungle_fence_gate"),
+        ResourceLocation("minecraft", "acacia_fence_gate"),
+        ResourceLocation("minecraft", "dark_oak_fence_gate"),
+        ResourceLocation("minecraft", "mangrove_fence_gate"),
+        ResourceLocation("minecraft", "cherry_fence_gate"),
+        ResourceLocation("minecraft", "bamboo_fence_gate"),
+        ResourceLocation("minecraft", "pale_oak_fence_gate"),
+        ResourceLocation("minecraft", "crimson_fence_gate"),
+        ResourceLocation("minecraft", "warped_fence_gate")});
+    tags[fenceGates->getId()] = std::move(fenceGates);
 
     // 创建 BAMBOO_PLANTABLE_ON 标签
     auto bambooPlantableOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bamboo_plantable_on"));
@@ -1367,7 +1540,8 @@ void BlockTags::initialize()
     lightningRods->addAll({ResourceLocation("minecraft", "lightning_rod")});
     tags[lightningRods->getId()] = std::move(lightningRods);
 
-    // 减振方块标签（羊毛等）
+    // 减振方块标签（羊毛和地毯）
+    // 参考: net.minecraft.data.tags.BlockItemTagsProvider - DAMPENS_VIBRATIONS 包含 wool 和 wool_carpets
     auto dampensVibrations = std::make_unique<BlockTag>(ResourceLocation("minecraft", "dampens_vibrations"));
     dampensVibrations->addAll({// 所有羊毛颜色
         ResourceLocation("minecraft", "white_wool"),
@@ -1385,7 +1559,24 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "brown_wool"),
         ResourceLocation("minecraft", "green_wool"),
         ResourceLocation("minecraft", "red_wool"),
-        ResourceLocation("minecraft", "black_wool")});
+        ResourceLocation("minecraft", "black_wool"),
+        // 所有地毯颜色
+        ResourceLocation("minecraft", "white_carpet"),
+        ResourceLocation("minecraft", "orange_carpet"),
+        ResourceLocation("minecraft", "magenta_carpet"),
+        ResourceLocation("minecraft", "light_blue_carpet"),
+        ResourceLocation("minecraft", "yellow_carpet"),
+        ResourceLocation("minecraft", "lime_carpet"),
+        ResourceLocation("minecraft", "pink_carpet"),
+        ResourceLocation("minecraft", "gray_carpet"),
+        ResourceLocation("minecraft", "light_gray_carpet"),
+        ResourceLocation("minecraft", "cyan_carpet"),
+        ResourceLocation("minecraft", "purple_carpet"),
+        ResourceLocation("minecraft", "blue_carpet"),
+        ResourceLocation("minecraft", "brown_carpet"),
+        ResourceLocation("minecraft", "green_carpet"),
+        ResourceLocation("minecraft", "red_carpet"),
+        ResourceLocation("minecraft", "black_carpet")});
     tags[dampensVibrations->getId()] = std::move(dampensVibrations);
 
     // 遮挡振动信号方块标签
@@ -1905,6 +2096,230 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "chipped_anvil"),
         ResourceLocation("minecraft", "damaged_anvil")});
     tags[anvilTag->getId()] = std::move(anvilTag);
+
+    // 创建 SNOW_LAYER_CANNOT_SURVIVE_ON 标签（雪层不可放置方块）
+    // 雪层不能在这些方块上方存活（即使它们有完整的上表面碰撞箱）
+    auto snowLayerCannotSurviveOn =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "snow_layer_cannot_survive_on"));
+    snowLayerCannotSurviveOn->addAll({ResourceLocation("minecraft", "ice"),
+        ResourceLocation("minecraft", "packed_ice"),
+        ResourceLocation("minecraft", "barrier")});
+    tags[snowLayerCannotSurviveOn->getId()] = std::move(snowLayerCannotSurviveOn);
+
+    // 创建 SNOW_LAYER_CAN_SURVIVE_ON 标签（雪层可放置方块）
+    // 雪层可以在这些方块上方存活（即使它们没有完整的上表面碰撞箱）
+    auto snowLayerCanSurviveOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "snow_layer_can_survive_on"));
+    snowLayerCanSurviveOn->addAll({ResourceLocation("minecraft", "honey_block"),
+        ResourceLocation("minecraft", "soul_sand"),
+        ResourceLocation("minecraft", "mud")});
+    tags[snowLayerCanSurviveOn->getId()] = std::move(snowLayerCanSurviveOn);
+
+    // 创建 SMALL_DRIPLEAF_PLACEABLE 标签（小滴叶可放置方块）
+    // 参考: net.minecraft.tags.BlockTags.SMALL_DRIPLEAF_PLACEABLE
+    auto smallDripleafPlaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "small_dripleaf_placeable"));
+    smallDripleafPlaceable->addAll(
+        {ResourceLocation("minecraft", "clay"), ResourceLocation("minecraft", "moss_block")});
+    tags[smallDripleafPlaceable->getId()] = std::move(smallDripleafPlaceable);
+
+    // 创建 BIG_DRIPLEAF_PLACEABLE 标签（大滴叶可放置方块）
+    // 参考: net.minecraft.tags.BlockTags.BIG_DRIPLEAF_PLACEABLE
+    // 包含: 黏土、泥土、砂土、灰化土、耕地、苔藓块、缠根泥土、泥巴、泥泞红树林根、草方块、菌丝、沙子、小滴叶
+    auto bigDripleafPlaceable = std::make_unique<BlockTag>(ResourceLocation("minecraft", "big_dripleaf_placeable"));
+    bigDripleafPlaceable->addAll({ResourceLocation("minecraft", "clay"),
+        ResourceLocation("minecraft", "dirt"),
+        ResourceLocation("minecraft", "coarse_dirt"),
+        ResourceLocation("minecraft", "podzol"),
+        ResourceLocation("minecraft", "farmland"),
+        ResourceLocation("minecraft", "moss_block"),
+        ResourceLocation("minecraft", "rooted_dirt"),
+        ResourceLocation("minecraft", "mud"),
+        ResourceLocation("minecraft", "muddy_mangrove_roots"),
+        ResourceLocation("minecraft", "grass_block"),
+        ResourceLocation("minecraft", "mycelium"),
+        ResourceLocation("minecraft", "sand"),
+        ResourceLocation("minecraft", "small_dripleaf")});
+    tags[bigDripleafPlaceable->getId()] = std::move(bigDripleafPlaceable);
+
+    // ============================================================================
+    // 建筑方块形状标签
+    // ============================================================================
+
+    // 楼梯方块标签（所有楼梯方块）
+    auto stairs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "stairs"));
+    stairs->addAll({// 木质楼梯
+        ResourceLocation("minecraft", "oak_stairs"),
+        ResourceLocation("minecraft", "spruce_stairs"),
+        ResourceLocation("minecraft", "birch_stairs"),
+        ResourceLocation("minecraft", "jungle_stairs"),
+        ResourceLocation("minecraft", "acacia_stairs"),
+        ResourceLocation("minecraft", "dark_oak_stairs"),
+        ResourceLocation("minecraft", "mangrove_stairs"),
+        ResourceLocation("minecraft", "cherry_stairs"),
+        ResourceLocation("minecraft", "bamboo_stairs"),
+        ResourceLocation("minecraft", "bamboo_mosaic_stairs"),
+        ResourceLocation("minecraft", "pale_oak_stairs"),
+        ResourceLocation("minecraft", "crimson_stairs"),
+        ResourceLocation("minecraft", "warped_stairs"),
+        // 石质楼梯
+        ResourceLocation("minecraft", "stone_stairs"),
+        ResourceLocation("minecraft", "cobblestone_stairs"),
+        ResourceLocation("minecraft", "stone_brick_stairs"),
+        ResourceLocation("minecraft", "mossy_stone_brick_stairs"),
+        ResourceLocation("minecraft", "sandstone_stairs"),
+        ResourceLocation("minecraft", "smooth_sandstone_stairs"),
+        ResourceLocation("minecraft", "granite_stairs"),
+        ResourceLocation("minecraft", "polished_granite_stairs"),
+        ResourceLocation("minecraft", "diorite_stairs"),
+        ResourceLocation("minecraft", "polished_diorite_stairs"),
+        ResourceLocation("minecraft", "andesite_stairs"),
+        ResourceLocation("minecraft", "polished_andesite_stairs"),
+        ResourceLocation("minecraft", "brick_stairs"),
+        ResourceLocation("minecraft", "prismarine_stairs"),
+        ResourceLocation("minecraft", "prismarine_brick_stairs"),
+        ResourceLocation("minecraft", "dark_prismarine_stairs"),
+        ResourceLocation("minecraft", "nether_brick_stairs"),
+        ResourceLocation("minecraft", "red_nether_brick_stairs"),
+        ResourceLocation("minecraft", "quartz_stairs"),
+        ResourceLocation("minecraft", "smooth_quartz_stairs"),
+        ResourceLocation("minecraft", "purpur_stairs"),
+        ResourceLocation("minecraft", "end_stone_brick_stairs"),
+        ResourceLocation("minecraft", "red_sandstone_stairs"),
+        ResourceLocation("minecraft", "smooth_red_sandstone_stairs"),
+        // 深板岩楼梯
+        ResourceLocation("minecraft", "cobbled_deepslate_stairs"),
+        ResourceLocation("minecraft", "polished_deepslate_stairs"),
+        ResourceLocation("minecraft", "deepslate_brick_stairs"),
+        ResourceLocation("minecraft", "deepslate_tile_stairs"),
+        // 黑石楼梯
+        ResourceLocation("minecraft", "blackstone_stairs"),
+        ResourceLocation("minecraft", "polished_blackstone_stairs"),
+        ResourceLocation("minecraft", "polished_blackstone_brick_stairs"),
+        // 凝灰岩楼梯
+        ResourceLocation("minecraft", "tuff_stairs"),
+        ResourceLocation("minecraft", "polished_tuff_stairs"),
+        ResourceLocation("minecraft", "tuff_brick_stairs"),
+        // 泥砖楼梯
+        ResourceLocation("minecraft", "mud_brick_stairs"),
+        // 树脂砖楼梯
+        ResourceLocation("minecraft", "resin_brick_stairs"),
+        // 铜楼梯
+        ResourceLocation("minecraft", "cut_copper_stairs"),
+        ResourceLocation("minecraft", "exposed_cut_copper_stairs"),
+        ResourceLocation("minecraft", "weathered_cut_copper_stairs"),
+        ResourceLocation("minecraft", "oxidized_cut_copper_stairs"),
+        ResourceLocation("minecraft", "waxed_cut_copper_stairs"),
+        ResourceLocation("minecraft", "waxed_exposed_cut_copper_stairs"),
+        ResourceLocation("minecraft", "waxed_weathered_cut_copper_stairs"),
+        ResourceLocation("minecraft", "waxed_oxidized_cut_copper_stairs")});
+    tags[stairs->getId()] = std::move(stairs);
+
+    // 台阶方块标签（所有台阶方块）
+    auto slabs = std::make_unique<BlockTag>(ResourceLocation("minecraft", "slabs"));
+    slabs->addAll({// 木质台阶
+        ResourceLocation("minecraft", "oak_slab"),
+        ResourceLocation("minecraft", "spruce_slab"),
+        ResourceLocation("minecraft", "birch_slab"),
+        ResourceLocation("minecraft", "jungle_slab"),
+        ResourceLocation("minecraft", "acacia_slab"),
+        ResourceLocation("minecraft", "dark_oak_slab"),
+        ResourceLocation("minecraft", "mangrove_slab"),
+        ResourceLocation("minecraft", "cherry_slab"),
+        ResourceLocation("minecraft", "bamboo_slab"),
+        ResourceLocation("minecraft", "bamboo_mosaic_slab"),
+        ResourceLocation("minecraft", "pale_oak_slab"),
+        ResourceLocation("minecraft", "crimson_slab"),
+        ResourceLocation("minecraft", "warped_slab"),
+        // 石质台阶
+        ResourceLocation("minecraft", "stone_slab"),
+        ResourceLocation("minecraft", "cobblestone_slab"),
+        ResourceLocation("minecraft", "stone_brick_slab"),
+        ResourceLocation("minecraft", "mossy_stone_brick_slab"),
+        ResourceLocation("minecraft", "sandstone_slab"),
+        ResourceLocation("minecraft", "smooth_sandstone_slab"),
+        ResourceLocation("minecraft", "granite_slab"),
+        ResourceLocation("minecraft", "polished_granite_slab"),
+        ResourceLocation("minecraft", "diorite_slab"),
+        ResourceLocation("minecraft", "polished_diorite_slab"),
+        ResourceLocation("minecraft", "andesite_slab"),
+        ResourceLocation("minecraft", "polished_andesite_slab"),
+        ResourceLocation("minecraft", "brick_slab"),
+        ResourceLocation("minecraft", "prismarine_slab"),
+        ResourceLocation("minecraft", "prismarine_brick_slab"),
+        ResourceLocation("minecraft", "dark_prismarine_slab"),
+        ResourceLocation("minecraft", "nether_brick_slab"),
+        ResourceLocation("minecraft", "red_nether_brick_slab"),
+        ResourceLocation("minecraft", "quartz_slab"),
+        ResourceLocation("minecraft", "smooth_quartz_slab"),
+        ResourceLocation("minecraft", "purpur_slab"),
+        ResourceLocation("minecraft", "end_stone_brick_slab"),
+        ResourceLocation("minecraft", "red_sandstone_slab"),
+        ResourceLocation("minecraft", "smooth_red_sandstone_slab"),
+        // 深板岩台阶
+        ResourceLocation("minecraft", "cobbled_deepslate_slab"),
+        ResourceLocation("minecraft", "polished_deepslate_slab"),
+        ResourceLocation("minecraft", "deepslate_brick_slab"),
+        ResourceLocation("minecraft", "deepslate_tile_slab"),
+        // 黑石台阶
+        ResourceLocation("minecraft", "blackstone_slab"),
+        ResourceLocation("minecraft", "polished_blackstone_slab"),
+        ResourceLocation("minecraft", "polished_blackstone_brick_slab"),
+        // 凝灰岩台阶
+        ResourceLocation("minecraft", "tuff_slab"),
+        ResourceLocation("minecraft", "polished_tuff_slab"),
+        ResourceLocation("minecraft", "tuff_brick_slab"),
+        // 泥砖台阶
+        ResourceLocation("minecraft", "mud_brick_slab"),
+        // 树脂砖台阶
+        ResourceLocation("minecraft", "resin_brick_slab"),
+        // 铜台阶
+        ResourceLocation("minecraft", "cut_copper_slab"),
+        ResourceLocation("minecraft", "exposed_cut_copper_slab"),
+        ResourceLocation("minecraft", "weathered_cut_copper_slab"),
+        ResourceLocation("minecraft", "oxidized_cut_copper_slab"),
+        ResourceLocation("minecraft", "waxed_cut_copper_slab"),
+        ResourceLocation("minecraft", "waxed_exposed_cut_copper_slab"),
+        ResourceLocation("minecraft", "waxed_weathered_cut_copper_slab"),
+        ResourceLocation("minecraft", "waxed_oxidized_cut_copper_slab"),
+        // 切石台阶（petrified_oak_slab 在新版本中归入此类）
+        ResourceLocation("minecraft", "petrified_oak_slab")});
+    tags[slabs->getId()] = std::move(slabs);
+
+    // 墙壁方块标签（所有 WallBlock 类型的墙壁方块）
+    auto walls = std::make_unique<BlockTag>(ResourceLocation("minecraft", "walls"));
+    walls->addAll({ResourceLocation("minecraft", "cobblestone_wall"),
+        ResourceLocation("minecraft", "mossy_cobblestone_wall"),
+        ResourceLocation("minecraft", "stone_brick_wall"),
+        ResourceLocation("minecraft", "mossy_stone_brick_wall"),
+        ResourceLocation("minecraft", "granite_wall"),
+        ResourceLocation("minecraft", "diorite_wall"),
+        ResourceLocation("minecraft", "andesite_wall"),
+        ResourceLocation("minecraft", "brick_wall"),
+        ResourceLocation("minecraft", "prismarine_wall"),
+        ResourceLocation("minecraft", "nether_brick_wall"),
+        ResourceLocation("minecraft", "red_nether_brick_wall"),
+        ResourceLocation("minecraft", "sandstone_wall"),
+        ResourceLocation("minecraft", "red_sandstone_wall"),
+        ResourceLocation("minecraft", "end_stone_brick_wall"),
+        ResourceLocation("minecraft", "quartz_wall"),
+        ResourceLocation("minecraft", "purpur_wall"),
+        // 深板岩墙
+        ResourceLocation("minecraft", "cobbled_deepslate_wall"),
+        ResourceLocation("minecraft", "polished_deepslate_wall"),
+        ResourceLocation("minecraft", "deepslate_brick_wall"),
+        ResourceLocation("minecraft", "deepslate_tile_wall"),
+        // 黑石墙
+        ResourceLocation("minecraft", "blackstone_wall"),
+        ResourceLocation("minecraft", "polished_blackstone_wall"),
+        ResourceLocation("minecraft", "polished_blackstone_brick_wall"),
+        // 凝灰岩墙
+        ResourceLocation("minecraft", "tuff_wall"),
+        ResourceLocation("minecraft", "polished_tuff_wall"),
+        ResourceLocation("minecraft", "tuff_brick_wall"),
+        // 泥砖墙
+        ResourceLocation("minecraft", "mud_brick_wall"),
+        // 树脂砖墙
+        ResourceLocation("minecraft", "resin_brick_wall")});
+    tags[walls->getId()] = std::move(walls);
 
     s_initialized = true;
 }

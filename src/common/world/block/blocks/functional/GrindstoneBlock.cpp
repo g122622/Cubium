@@ -22,10 +22,13 @@
  */
 
 #include "GrindstoneBlock.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -378,6 +381,29 @@ const CollisionShape& GrindstoneBlock::getCollisionShape(const BlockState& state
 {
     // 碰撞形状与渲染形状相同
     return getShape(state);
+}
+
+ActionResultType GrindstoneBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    if (world.openContainer(ContainerType::Grindstone, pos, player)) {
+        player.awardCustomStat(ResourceLocation(stats::INTERACT_WITH_GRINDSTONE), 1);
+        return ActionResultType::Consume;
+    }
+
+    return ActionResultType::Pass;
 }
 
 } // namespace blocks

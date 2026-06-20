@@ -24,12 +24,21 @@
 #include "EntityResolver.hpp"
 
 #include "common/advancement/AdvancementManager.hpp"
+#include "common/advancement/trigger/conditions/NBTPredicate.hpp"
+#include "common/command/arguments/EntityArgument.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/item/loot/LootPredicateManager.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/scoreboard/core/Score.hpp"
 #include "common/scoreboard/core/ScoreObjective.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -47,6 +56,36 @@ namespace mc {
 namespace command::support {
 
 namespace {
+
+/**
+ * @brief 根据选择器的 dx/dy/dz 参数和参考坐标，构造绝对坐标下的选择 AABB。
+ *
+ * 遵循 MC 原版 EntitySelectorParser.createAabb + getAbsoluteAabb 逻辑。
+ * 如果选择器没有体积约束，返回 std::nullopt。
+ */
+[[nodiscard]] std::optional<AxisAlignedBB> createSelectorAabb(
+    const EntitySelector& selector, f32 refX, f32 refY, f32 refZ)
+{
+    auto relativeAabb = selector.createAabb();
+    if (!relativeAabb.has_value()) {
+        return std::nullopt;
+    }
+    // 将相对 AABB 平移到绝对坐标
+    const auto& rel = relativeAabb.value();
+    return AxisAlignedBB(
+        rel.minX + refX, rel.minY + refY, rel.minZ + refZ, rel.maxX + refX, rel.maxY + refY, rel.maxZ + refZ);
+}
+
+/**
+ * @brief 检查实体碰撞箱是否与选择器 AABB 相交。
+ *
+ * MC 原版使用 AABB.intersects(entity.boundingBox()) 进行体积过滤，
+ * 而非简单的位置点包含检查。这样实体体积较大或跨越边界时行为正确。
+ */
+[[nodiscard]] bool matchesVolume(const Entity& entity, const AxisAlignedBB& selectorAabb)
+{
+    return selectorAabb.intersects(entity.boundingBox());
+}
 
 /**
  * @brief 计算实体到参考点的距离平方。
@@ -315,13 +354,73 @@ namespace {
         }
     }
 
-    // TODO(待完善): NBT 条件过滤逻辑
-    // 依赖：Entity 类需要实现 serializeNBT() 方法以获取实体的 NBT 数据
-    // 当前行为：跳过 NBT 检查，不排除任何实体
+    // NBT 条件过滤
+    if (selector.hasNbtCondition()) {
+        const auto& nbtCond = selector.nbtCondition();
+        // 将实体序列化为 NBT
+        nbt::tags::compound_tag entityNbt;
+        entity.writeToNBT(entityNbt);
+        // 对玩家实体，额外添加 SelectedItem 字段
+        auto* player = dynamic_cast<Player*>(&entity);
+        if (player != nullptr) {
+            const auto& selectedStack = player->inventory().getSelectedStackRef();
+            if (!selectedStack.isEmpty()) {
+                nbt::tags::compound_tag selectedItemTag;
+                selectedStack.toNbt(selectedItemTag);
+                entityNbt.value["SelectedItem"] = selectedItemTag.copy();
+            }
+        }
+        // 子集匹配：查询 NBT 中的所有字段必须在实体 NBT 中存在且值相等
+        const auto* queryTag = nbtCond.nbt.get();
+        bool matches = (queryTag != nullptr) && advancement::NBTPredicate::matchNBT(*queryTag, entityNbt);
+        if (nbtCond.negated) {
+            matches = !matches;
+        }
+        if (!matches) {
+            return false;
+        }
+    }
 
-    // TODO(待完善): 谓词条件过滤逻辑
-    // 依赖：需要 LootConditionManager 和 LootContext 支持战利品表谓词评估
-    // 当前行为：跳过谓词检查，不排除任何实体
+    // 谓词条件过滤
+    if (selector.hasPredicateCondition()) {
+        const auto& predCond = selector.predicateCondition();
+        bool matches = false;
+        if (server != nullptr && world != nullptr) {
+            // 从谓词管理器查找命名谓词
+            const std::string predicateId = predCond.predicate.toString();
+            const auto* condition = server->predicateManager().getPredicate(predicateId);
+            if (condition != nullptr) {
+                // 构建 LootContext（THIS_ENTITY + ORIGIN）
+                const auto& pos = entity.position();
+                math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+                auto context =
+                    loot::LootContextBuilder(*world)
+                        .withRandom(rng)
+                        .withParameter(loot::LootParams::THIS_ENTITY, &entity)
+                        .withOwnedValue(loot::LootParams::BLOCK_POS,
+                            BlockPos(static_cast<i32>(pos.x), static_cast<i32>(pos.y), static_cast<i32>(pos.z)))
+                        .withPredicateResolver([&predicateManager = server->predicateManager()](
+                                                   const std::string& id) -> const loot::LootCondition* {
+                            return predicateManager.getPredicate(id);
+                        })
+                        .build(loot::LootParameterSets::selector());
+                // 循环引用检测
+                if (!context->pushPredicate(condition)) {
+                    matches = false;
+                } else {
+                    matches = condition->test(*context);
+                    context->popPredicate(condition);
+                }
+            }
+            // 谓词不存在时返回 false（不匹配）
+        }
+        if (predCond.negated) {
+            matches = !matches;
+        }
+        if (!matches) {
+            return false;
+        }
+    }
 
     return true;
 }
@@ -387,6 +486,8 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
     }
 
     // 收集所有在线玩家
+    auto selectorAabb = createSelectorAabb(selector, refX, refY, refZ);
+
     server->playerManager().forEachPlayer([&](const server::ServerPlayerData& playerData) {
         Player* player = server->playerEntityManager().getPlayerEntity(playerData.playerId, *world);
         if (player == nullptr) {
@@ -406,28 +507,9 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
             }
         }
 
-        // 体积过滤（dx/dy/dz，MC 原版行为：未指定轴默认 delta=0，max 侧加 1.0）
-        if (selector.hasDx() || selector.hasDy() || selector.hasDz()) {
-            const auto& pos = entity->position();
-            f32 dx = selector.hasDx() ? selector.getDx() : 0.0f;
-            f32 dy = selector.hasDy() ? selector.getDy() : 0.0f;
-            f32 dz = selector.hasDz() ? selector.getDz() : 0.0f;
-
-            f32 minX = (dx < 0.0f) ? (refX + dx) : refX;
-            f32 minY = (dy < 0.0f) ? (refY + dy) : refY;
-            f32 minZ = (dz < 0.0f) ? (refZ + dz) : refZ;
-            f32 maxX = (dx < 0.0f) ? refX : (refX + dx);
-            f32 maxY = (dy < 0.0f) ? refY : (refY + dy);
-            f32 maxZ = (dz < 0.0f) ? refZ : (refZ + dz);
-
-            // MC 原版行为：max 侧额外加 1.0
-            maxX += 1.0f;
-            maxY += 1.0f;
-            maxZ += 1.0f;
-
-            if (pos.x < minX || pos.x > maxX || pos.y < minY || pos.y > maxY || pos.z < minZ || pos.z > maxZ) {
-                return;
-            }
+        // 体积过滤（MC 原版行为：使用实体碰撞箱与选择 AABB 的相交检查）
+        if (selectorAabb.has_value() && !matchesVolume(*entity, selectorAabb.value())) {
+            return;
         }
 
         // 名称过滤
@@ -477,44 +559,13 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
 
     std::vector<Entity*> result;
 
-    // 计算体积范围（如果有的话）
-    // MC 原版行为：如果有 dx/dy/dz 或 distance 有最大值，则使用空间查询优化
-    std::optional<f32> maxDistSq;
-    if (!selector.distance().isUnbounded() && selector.distance().hasMax()) {
-        f32 maxDist = selector.distance().getMax();
-        maxDistSq = maxDist * maxDist;
-    }
+    // 构造选择器 AABB（绝对坐标）
+    auto selectorAabb = createSelectorAabb(selector, refX, refY, refZ);
 
     // 使用空间查询收集候选实体
-    if (maxDistSq.has_value()) {
-        f32 maxDist = std::sqrt(maxDistSq.value());
-        result = world->getEntitiesInRange(Vector3(refX, refY, refZ), maxDist);
-    } else if (selector.hasDx() || selector.hasDy() || selector.hasDz()) {
-        // 根据 MC 原版行为构建体积 AABB
-        // 未指定的轴默认 delta=0，但仍会在 max 侧加 1.0
-        // 例如 @e[dx=5] 的 AABB 为 (0,0,0, 6,1,1) 相对坐标
-        // TODO(待改进): 当前体积过滤使用实体位置点包含检查（pos.x < minX || pos.x > maxX），
-        // MC 原版使用实体碰撞箱与选择 AABB 的相交检查（AABB.intersects(entityBox)），
-        // 两者在实体体积较大或跨越边界时行为不同，未来应改为碰撞箱相交检查。
-        f32 dx = selector.hasDx() ? selector.getDx() : 0.0f;
-        f32 dy = selector.hasDy() ? selector.getDy() : 0.0f;
-        f32 dz = selector.hasDz() ? selector.getDz() : 0.0f;
-
-        // MC 原版 createAabb 逻辑：负 delta 赋给 min 侧，正 delta 赋给 max 侧，max 侧再加 1.0
-        f32 minX = (dx < 0.0f) ? (refX + dx) : refX;
-        f32 minY = (dy < 0.0f) ? (refY + dy) : refY;
-        f32 minZ = (dz < 0.0f) ? (refZ + dz) : refZ;
-        f32 maxX = (dx < 0.0f) ? refX : (refX + dx);
-        f32 maxY = (dy < 0.0f) ? refY : (refY + dy);
-        f32 maxZ = (dz < 0.0f) ? refZ : (refZ + dz);
-
-        // MC 原版行为：max 侧额外加 1.0（确保选择体积至少包含 1 格）
-        maxX += 1.0f;
-        maxY += 1.0f;
-        maxZ += 1.0f;
-
-        AxisAlignedBB aabb(minX, minY, minZ, maxX, maxY, maxZ);
-        result = world->getEntitiesInAABB(aabb);
+    if (selectorAabb.has_value()) {
+        // 使用 AABB 相交查询作为空间预过滤
+        result = world->getEntitiesInAABB(selectorAabb.value());
     } else {
         // 没有空间约束，遍历所有实体
         world->entityManager().forEachEntity([&](Entity* entity) {
@@ -524,74 +575,54 @@ void sortEntities(std::vector<Entity*>& entities, const EntitySelector& selector
     }
 
     // 应用过滤条件
-    result.erase(
-        std::remove_if(result.begin(),
-            result.end(),
-            [&](Entity* entity) {
-                // @e 选择器排除死亡实体（MC 原版行为）
-                if (!entity->isAlive()) {
-                    return true;
-                }
+    result.erase(std::remove_if(result.begin(),
+                     result.end(),
+                     [&](Entity* entity) {
+                         // @e 选择器排除死亡实体（MC 原版行为）
+                         if (!entity->isAlive()) {
+                             return true;
+                         }
 
-                // 距离过滤
-                if (!selector.distance().isUnbounded()) {
-                    f32 distSq = entityDistanceSq(*entity, refX, refY, refZ);
-                    if (!selector.distance().testSquared(distSq)) {
-                        return true;
-                    }
-                }
+                         // 距离过滤
+                         if (!selector.distance().isUnbounded()) {
+                             f32 distSq = entityDistanceSq(*entity, refX, refY, refZ);
+                             if (!selector.distance().testSquared(distSq)) {
+                                 return true;
+                             }
+                         }
 
-                // 体积过滤（MC 原版行为：未指定轴默认 delta=0，max 侧加 1.0）
-                if (selector.hasDx() || selector.hasDy() || selector.hasDz()) {
-                    const auto& pos = entity->position();
-                    f32 dx = selector.hasDx() ? selector.getDx() : 0.0f;
-                    f32 dy = selector.hasDy() ? selector.getDy() : 0.0f;
-                    f32 dz = selector.hasDz() ? selector.getDz() : 0.0f;
+                         // 体积过滤（MC 原版行为：使用实体碰撞箱与选择 AABB 的相交检查）
+                         if (selectorAabb.has_value() && !matchesVolume(*entity, selectorAabb.value())) {
+                             return true;
+                         }
 
-                    f32 minX = (dx < 0.0f) ? (refX + dx) : refX;
-                    f32 minY = (dy < 0.0f) ? (refY + dy) : refY;
-                    f32 minZ = (dz < 0.0f) ? (refZ + dz) : refZ;
-                    f32 maxX = (dx < 0.0f) ? refX : (refX + dx);
-                    f32 maxY = (dy < 0.0f) ? refY : (refY + dy);
-                    f32 maxZ = (dz < 0.0f) ? refZ : (refZ + dz);
+                         // 名称过滤
+                         if (!matchesName(*entity, selector)) {
+                             return true;
+                         }
 
-                    // MC 原版行为：max 侧额外加 1.0
-                    maxX += 1.0f;
-                    maxY += 1.0f;
-                    maxZ += 1.0f;
+                         // 实体类型过滤
+                         if (!matchesEntityType(*entity, selector)) {
+                             return true;
+                         }
 
-                    if (pos.x < minX || pos.x > maxX || pos.y < minY || pos.y > maxY || pos.z < minZ || pos.z > maxZ) {
-                        return true;
-                    }
-                }
+                         // 标签过滤
+                         if (!matchesEntityTags(*entity, selector)) {
+                             return true;
+                         }
 
-                // 名称过滤
-                if (!matchesName(*entity, selector)) {
-                    return true;
-                }
+                         // 队伍过滤
+                         if (!matchesTeam(*entity, selector)) {
+                             return true;
+                         }
 
-                // 实体类型过滤
-                if (!matchesEntityType(*entity, selector)) {
-                    return true;
-                }
+                         // 玩家特有条件（等级、游戏模式、角度、记分板、进度）
+                         if (!matchesPlayerConditions(*entity, selector, server, world)) {
+                             return true;
+                         }
 
-                // 标签过滤
-                if (!matchesEntityTags(*entity, selector)) {
-                    return true;
-                }
-
-                // 队伍过滤
-                if (!matchesTeam(*entity, selector)) {
-                    return true;
-                }
-
-                // 玩家特有条件（等级、游戏模式、角度、记分板、进度）
-                if (!matchesPlayerConditions(*entity, selector, server, world)) {
-                    return true;
-                }
-
-                return false;
-            }),
+                         return false;
+                     }),
         result.end());
 
     return result;
@@ -636,6 +667,11 @@ std::vector<Entity*> EntityResolver::resolve(const ServerCommandSource& source, 
                 if (!selector.distance().testSquared(distSq)) {
                     return {};
                 }
+            }
+            // 体积过滤
+            auto selectorAabb = createSelectorAabb(selector, refX, refY, refZ);
+            if (selectorAabb.has_value() && !matchesVolume(*entity, selectorAabb.value())) {
+                return {};
             }
             if (!matchesName(*entity, selector)) {
                 return {};

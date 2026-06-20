@@ -87,6 +87,12 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override { return false; }
 
+    // ========== 寻路权重 ==========
+
+    // TODO: 重写 getPathWeight — 巨人返回亮度相关值（不取反）：
+    // 返回 brightness - 0.5f，与 AnimalEntity 类似但不检查草方块
+    // 对应 MC Giant.getWalkTargetValue（唯一不取反的 Monster 子类）
+
     // ========== 生命周期 ==========
 
     void tick() override;

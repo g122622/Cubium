@@ -33,6 +33,7 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
 
 namespace blocks {
 
@@ -100,6 +101,21 @@ public:
 
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 处理玩家右键交互
+     *
+     * 打开信标GUI并记录交互统计。
+     * 参考: MC Java BeaconBlock.useWithoutItem()
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
 protected:
     /// 信标形状

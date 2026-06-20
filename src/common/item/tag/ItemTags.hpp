@@ -59,6 +59,15 @@ public:
     static ItemTag& CARPETS();
 
     /**
+     * @brief 减振物品标签
+     *
+     * 包含所有羊毛物品和地毯物品。
+     * 掉落的羊毛物品不会触发振动信号。
+     * 参考: net.minecraft.tags.ItemTags.DAMPENS_VIBRATIONS
+     */
+    static ItemTag& DAMPENS_VIBRATIONS();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

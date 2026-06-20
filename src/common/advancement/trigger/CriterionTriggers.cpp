@@ -22,6 +22,7 @@
  */
 
 #include "CriterionTriggers.hpp"
+#include "impl/AvoidVibrationTrigger.hpp"
 #include "impl/BlockTriggers.hpp"
 #include "impl/ChanneledLightningTrigger.hpp"
 #include "impl/EffectTriggers.hpp"
@@ -118,6 +119,9 @@ void CriterionTriggers::registerBuiltinTriggers()
     registerTrigger(std::make_unique<ItemDurabilityTrigger>());
     registerTrigger(std::make_unique<EnchantedItemTrigger>());
     registerTrigger(std::make_unique<FilledBucketTrigger>());
+
+    // 注册振动相关触发器
+    registerTrigger(std::make_unique<AvoidVibrationTrigger>());
 
     spdlog::info("Registered {} builtin triggers", m_triggers.size());
 }

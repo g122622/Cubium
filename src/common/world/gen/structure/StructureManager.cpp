@@ -171,7 +171,7 @@ void StructureManager::placeStructureInChunk(
 
 void StructureManager::clearCache()
 {
-    // TODO: 实现结构缓存清理逻辑
+    m_structureCheck.clearCache();
 }
 
 math::Random StructureManager::_createRandom(i32 chunkX, i32 chunkZ, i32 salt) const

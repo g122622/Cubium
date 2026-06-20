@@ -140,6 +140,7 @@ public:
      *
      * 用于判断下落方块是否可以穿过指定方块。
      * 可穿透的方块包括：空气、液体、火焰、可替换材质。
+     * 对齐 MC 1.21.11 FallingBlock.isFree()。
      *
      * @param state 方块状态
      * @return 如果可穿透返回 true

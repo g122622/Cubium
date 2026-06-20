@@ -156,9 +156,9 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
             // 应用弓类附魔效果（力量/冲击/火焰）
             arrow->applyBowEnchantments(*player);
 
-            // 消耗耐久度（非创造模式）
+            // 消耗耐久度（非创造模式），若物品损坏则触发 onEquippedItemBroken 回调
             if (!isCreative) {
-                stack.attemptDamageItem(1, &entity);
+                LivingEntity::hurtAndBreak(stack, 1, &entity, EquipmentSlot::MainHand);
             }
 
             // 设置拾取状态

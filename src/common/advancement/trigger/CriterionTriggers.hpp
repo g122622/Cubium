@@ -156,6 +156,9 @@ constexpr const char* ITEM_USED_ON_BLOCK = "minecraft:item_used_on_block";
 constexpr const char* EFFECTS_CHANGED = "minecraft:effects_changed";
 constexpr const char* BREWED_POTION = "minecraft:brewed_potion";
 
+// 振动相关
+constexpr const char* AVOID_VIBRATION = "minecraft:avoid_vibration";
+
 // 其他
 constexpr const char* IMPOSSIBLE = "minecraft:impossible";
 constexpr const char* TICK = "minecraft:tick";

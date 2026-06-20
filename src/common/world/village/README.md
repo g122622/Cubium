@@ -62,6 +62,7 @@ trade::（独立模块，被VillagerEntity使用）
 - `Village` 通过 POI 存储计算边界、统计床位/工作站
 - `VillageGossipManager` 管理 `Village` 内的玩家声誉
 - `RaidManager` 独立运行，但通过 `Village` 获取袭击位置和状态
+- `Village::_tickRaidCheck` 每 20 tick 通过 `IWorld::raidManager()` 验证 `m_underRaid` 标志与实际袭击状态一致
 
 ## 上下游外部依赖关系
 
@@ -85,6 +86,13 @@ trade::（独立模块，被VillagerEntity使用）
 
 ### Village ID 管理
 `Village::setId()` 仅由 `VillageManager` 调用。创建村庄后必须先设置 ID 才能进行后续操作。
+
+### 袭击状态验证
+`Village::_tickRaidCheck` 通过 `IWorld::raidManager()` -> `RaidManager::getOngoingRaidForVillage()` 验证 `m_underRaid` 标志：
+- 每 20 tick 检查一次（`RAID_CHECK_INTERVAL`），与 MC Java 村民袭击检查频率一致
+- 如果 `m_underRaid=true` 但无进行中袭击 → 清除标志并记录 `lastRaidTime`
+- 如果 `m_underRaid=false` 但存在进行中袭击 → 设置标志
+- 正常情况下标志由 `RaidManager::tryStartRaid()` 和 `RaidManager::onRaidEnd()` 维护，`_tickRaidCheck` 是防御性冗余检查
 
 ### 村庄指针可能为空
 `Raid` 构造时传入的 `Village*` 可能为 `nullptr`，调用方必须在关键操作前检查 `isValid()` 或做防御性判断。村庄被销毁时关联的袭击会自动失效。

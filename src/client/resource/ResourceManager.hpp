@@ -208,6 +208,12 @@ public:
     [[nodiscard]] bool isAtlasBuilt() const { return m_atlasBuilt; }
 
     /**
+     * @brief 获取纹理区域映射（用于测试）
+     */
+    [[nodiscard]] std::map<ResourceLocation, TextureRegion>& textureRegions() { return m_textureRegions; }
+    [[nodiscard]] const std::map<ResourceLocation, TextureRegion>& textureRegions() const { return m_textureRegions; }
+
+    /**
      * @brief 获取第一个资源包（用于纹理加载）
      * @return 资源包指针，如果没有则返回 nullptr
      */
@@ -233,6 +239,28 @@ public:
      * @brief 清除所有缓存
      */
     void clear();
+
+    // ========================================================================
+    // 路径兼容性工具
+    // ========================================================================
+
+    /**
+     * @brief 获取 MC 1.12/1.13+ 路径变体的替代路径
+     *
+     * MC 1.13+ 使用 textures/block/ 和 textures/item/（单数），
+     * MC 1.12  使用 textures/blocks/ 和 textures/items/（复数）。
+     * 此方法在两种格式之间互相转换，用于纹理查找的兼容回退。
+     *
+     * 此外，还支持实体纹理的子目录/扁平格式互转：
+     *   textures/entity/<name>/<name>[.ext] -> textures/entity/<name>[.ext]
+     *   textures/entity/<name>[.ext]        -> textures/entity/<name>/<name>[.ext]
+     * 注意：实体路径转换会保留文件扩展名（如 .png），仅在目录名与文件名
+     * （不含扩展名）相同时才执行转换。
+     *
+     * @param path 纹理路径（例如 "textures/block/stone" 或 "textures/entity/pig/pig.png"）
+     * @return 对应的替代路径，如果路径不匹配已知前缀则返回空字符串
+     */
+    [[nodiscard]] static std::string getAltTexturePath(const std::string& path);
 
 private:
     std::vector<ResourcePackPtr> m_resourcePacks;
@@ -267,7 +295,9 @@ private:
     [[nodiscard]] static ResourceLocation _texturePathToLocation(std::string_view path);
 
     // 使用 compat 层查找纹理区域（支持 MC 1.12/1.13+ 路径变体）
-    // TODO: 当前仅尝试原始路径，尚未实现 MC 1.12/1.13+ 路径变体兼容查找
+    // 优先尝试原始路径，若未找到则自动尝试 MC 1.12/1.13+ 路径变体：
+    //   textures/block/ ↔ textures/blocks/
+    //   textures/item/  ↔ textures/items/
     [[nodiscard]] const TextureRegion* _findTextureRegion(const ResourceLocation& texLoc) const;
 };
 

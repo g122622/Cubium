@@ -41,9 +41,11 @@
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/chunk/data/ChunkSection.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/gameevent/GameEventListenerRegistry.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <array>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -331,6 +333,51 @@ public:
      */
     void clearAllPostProcessing();
 
+    // ========================================================================
+    // 游戏事件监听器注册表（按区块段）
+    // ========================================================================
+
+    /**
+     * @brief 获取指定段的监听器注册表
+     *
+     * 返回该段对应的注册表指针。如果该段没有注册表（没有监听器），
+     * 返回 nullptr。
+     *
+     * @param sectionY 段Y坐标（世界坐标，非数组索引）
+     * @return 监听器注册表指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] gameevent::GameEventListenerRegistry* getGameEventListenerRegistry(i32 sectionY);
+
+    /**
+     * @brief 获取指定段的监听器注册表（const 版本）
+     * @param sectionY 段Y坐标
+     * @return 监听器注册表指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] const gameevent::GameEventListenerRegistry* getGameEventListenerRegistry(i32 sectionY) const;
+
+    /**
+     * @brief 获取或创建指定段的监听器注册表
+     *
+     * 如果该段没有注册表，则使用提供的工厂函数创建一个新的。
+     * 当注册表变为空时，通过 OnEmptyAction 自动从映射中移除。
+     *
+     * @param sectionY 段Y坐标
+     * @param factory 创建注册表的工厂函数，接收段Y坐标，返回注册表 unique_ptr
+     * @return 监听器注册表引用
+     */
+    [[nodiscard]] gameevent::GameEventListenerRegistry& getOrCreateGameEventListenerRegistry(
+        i32 sectionY, std::function<std::unique_ptr<gameevent::EuclideanGameEventListenerRegistry>(i32)> factory);
+
+    /**
+     * @brief 移除指定段的监听器注册表
+     *
+     * 当注册表变为空时由 OnEmptyAction 回调调用，从映射中移除该段的注册表，
+     * 防止空注册表长期累积导致内存泄漏。
+     *
+     * @param sectionY 段Y坐标
+     */
+    void removeGameEventListenerRegistry(i32 sectionY);
+
 private:
     ChunkCoord m_x = 0;
     ChunkCoord m_z = 0;
@@ -396,6 +443,11 @@ private:
     // 后处理位置（按区块段索引存储）
     // 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
     std::array<std::vector<u16>, mc::world::CHUNK_SECTIONS> m_postProcessingSections;
+
+    // 游戏事件监听器注册表（按段Y坐标索引，惰性创建）
+    // 当注册表为空时自动从映射中移除，节省内存
+    std::unordered_map<i32, std::unique_ptr<gameevent::EuclideanGameEventListenerRegistry>>
+        m_gameEventListenerRegistries;
 
     /**
      * @brief 初始化 Nibble 指针数组

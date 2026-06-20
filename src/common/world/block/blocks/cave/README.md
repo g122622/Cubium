@@ -44,9 +44,9 @@ Block
 ├── CaveVinesBlock → GrowingPlantHeadBlock, IGrowable
 ├── CaveVinesPlantBlock → GrowingPlantBodyBlock, IGrowable
 ├── FrogspawnBlock → Block
-├── BigDripleafBlock → Block
-├── BigDripleafStemBlock → Block
-└── SmallDripleafBlock → BushBlock, IGrowable
+├── BigDripleafBlock → Block, IWaterLoggable, IGrowable
+├── BigDripleafStemBlock → Block, IWaterLoggable
+└── SmallDripleafBlock → Block, IWaterLoggable, IGrowable, IPlantable
 ```
 
 ## 上下游外部依赖关系
@@ -73,7 +73,7 @@ Block
 | 模块 | 用途 |
 |------|------|
 | `world/block/registry/CaveBlocks` | 注册所有洞穴方块 |
-| `world/block/BlockTags` | `CRYSTAL_SOUND_BLOCKS`等标签 |
+| `world/block/BlockTags` | `CRYSTAL_SOUND_BLOCKS`、`SMALL_DRIPLEAF_PLACEABLE`、`BIG_DRIPLEAF_PLACEABLE`等标签 |
 
 ## 容易踩的坑
 
@@ -104,13 +104,28 @@ Block
 - **随机刻生长**：以 0.011377778/tick 的概率触发，条件为上方1格是滴水石块且上方2格是水源
 - **厚度计算**：根据邻居滴石方向和厚度推断当前位置的厚度（TipMerge/Tip/Frustum/Middle/Base）
 - **放置方向**：根据点击面确定方向（顶面→朝下，底面→朝上），潜行时不合并尖端
-- **支撑失效**：钟乳石失去支撑时延迟2tick掉落，石笋失去支撑时立即破坏
-- **流体传输**：钟乳石可传输水/岩浆到下方炼药锅（水0.17578125/tick，岩浆0.05859375/tick）
-- **泥巴变粘土**：当泥巴在滴水石块上方时，钟乳石可将水滴穿泥巴变为粘土（TODO：需要 Mud/Clay 方块注册后启用）
+- **支撑失效**：钟乳石失去支撑时延迟2tick掉落（生成 FallingBlockEntity），石笋失去支撑时立即破坏
+- **坠落伤害**：钟乳石掉落砸中实体造成 `FallingStalactite` 类型伤害（每格1点，上限40点）
+- **石笋伤害**：实体踩在朝上的TIP尖端时触发 `Stalagmite` 类型摔落伤害（摔落距离+2.5，伤害倍率2.0），替代普通摔落伤害
+- **流体传输**：钟乳石可传输水/岩浆到下方炼药锅（水0.17578125/tick，岩浆0.05859375/tick），传输时触发 `WorldEvents::DRIPSTONE_DRIP` 事件
+- **泥巴变粘土**：当泥巴在滴水石块上方时，钟乳石可将水滴穿泥巴变为粘土，触发 `GameEvents::BLOCK_CHANGE` 和 `WorldEvents::DRIPSTONE_DRIP`
 - **碰撞箱**：Tip朝上/朝下有不同形状，其他厚度均为全高柱状
 
 关键静态方法：`canGrow`、`findTip`、`findRootBlock`、`canDrip`、`canTipGrow`、`calculateDripstoneThickness`、`maybeTransferFluid`
 
-### #6. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
+**摔落伤害架构**：`Block::onFallenUpon` 默认实现调用 `entity.causeFallDamage()` 施加普通摔落伤害。`PointedDripstoneBlock::onFallenUpon` 重写：石笋尖端调用 `causeFallDamage` 并传入 `DamageSources::stalagmite()` 但不调用父类（替代普通摔落伤害）；非尖端调用父类 `Block::onFallenUpon`（保留普通摔落伤害）。
+
+### #7. SmallDripleafBlock 双格完整性与放置检查
+
+`SmallDripleafBlock` 实现了双格方块完整性检查（`updatePostPlacement` 中另一半消失时当前半部也变为空气），以及 `isValidPosition` 放置检查：
+- 下半部分：通过 `mayPlaceOn()` 检查下方支撑，条件为 `SMALL_DRIPLEAF_PLACEABLE` 标签（黏土、苔藓块）或水源+`DIRT` 标签/耕地
+- 上半部分：下方必须是同类型方块的下半部分
+- 下方支撑失效时（`facing == Down`），下半部分也会断裂变为空气
+
+### #8. BigDripleafBlock/BigDripleafStemBlock 支撑检查
+
+`BigDripleafBlock::isValidPosition()` 检查下方是否为大滴叶、大滴叶茎或 `BIG_DRIPLEAF_PLACEABLE` 标签方块。`BigDripleafStemBlock::isValidPosition()` 检查下方是否为茎/标签方块**且**上方是否为茎/大滴叶。`BigDripleafBlock` 在下方支撑失效时直接返回空气；`BigDripleafStemBlock` 在上方或下方支撑失效时通过 `scheduleBlockTick(pos, this, 1)` 延迟1tick后再检查，若仍无法存活则在 `tick()` 中销毁方块并掉落物品——延迟机制可避免邻居更新期间的级联问题。`BigDripleafBlock` 还会在上方也是大滴叶时将自身转换为大滴叶茎。
+
+### #9. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
 
 洞穴藤蔓的中键选取（`getCloneItemStack`）返回的是 `GLOW_BERRIES` 物品而非方块物品，因为原版MC中玩家中键点击洞穴藤蔓获得的是发光浆果。右键收获时掉落1个发光浆果并播放 `BLOCK_CAVE_VINES_PICK_BERRIES` 音效。骨粉效果是设置 `BERRIES=true`（不是生长），`setBlockState` 标志位为2。

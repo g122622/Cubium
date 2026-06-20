@@ -23,6 +23,7 @@
 
 #include "EffectManager.hpp"
 #include "../core/LivingEntity.hpp"
+#include "EffectType.hpp"
 
 namespace mc {
 namespace entity {
@@ -34,6 +35,16 @@ namespace effect {
 
 bool EffectManager::addEffect(EffectInstance effect, LivingEntity& entity)
 {
+    // 瞬间效果始终立即执行，不参与合并逻辑
+    if (isInstantEffect(effect.type())) {
+        // MC 原版行为: InstantenousMobEffect 在添加时立即触发一次，然后效果结束
+        // 瞬间效果没有属性修改器，apply() 为空操作
+        // applyInstantly() 直接调用 _applyEffect() 执行效果逻辑
+        effect.apply(entity);
+        effect.applyInstantly(entity);
+        return true;
+    }
+
     // 查找是否已存在相同类型的效果
     i32 index = _findEffectIndex(effect.type());
 

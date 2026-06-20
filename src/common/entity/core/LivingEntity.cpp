@@ -32,8 +32,10 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/physics/PhysicsEngine.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -402,6 +404,56 @@ void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
     }
 }
 
+void LivingEntity::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
+{
+    // 广播装备破损动画给追踪玩家
+    broadcastBreakEvent(slot);
+
+    // TODO: 调用 stopLocationBasedEffects() 停止基于位置的持续效果（如指南针、时钟等
+    // 基于位置的物品效果），待属性修饰符系统完善后集成。对应 MC 原版
+    // LivingEntity.onEquippedItemBroken() 中的 stopLocationBasedEffects() 调用。
+
+    // 播放装备破损音效
+    if (m_world != nullptr && !isSilent()) {
+        m_world->playSound(SoundEvents::ENTITY_ITEM_BREAK,
+            getSoundCategory(),
+            m_position,
+            0.8f,
+            0.8f + m_world->getRandom().nextFloat() * 0.4f);
+    }
+}
+
+void LivingEntity::broadcastBreakEvent(EquipmentSlot slot)
+{
+    if (m_world != nullptr) {
+        u8 slotIndex = static_cast<u8>(slot);
+        auto status = network::EntityStatusPacket::equipmentBreakStatus(slotIndex);
+        m_world->broadcastEntityStatus(m_id, static_cast<u8>(status));
+    }
+}
+
+bool LivingEntity::hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot)
+{
+    if (!stack.isDamageable() || amount <= 0) {
+        return false;
+    }
+
+    // 在物品被销毁之前保存物品引用，用于 onEquippedItemBroken 回调
+    // 因为 attemptDamageItem 会在耐久耗尽时清空 ItemStack（setItem(nullptr)）
+    const Item* brokenItem = (stack.getDamage() + amount >= stack.getMaxDamage()) ? stack.getItem() : nullptr;
+
+    stack.attemptDamageItem(amount, entity);
+
+    // 物品损坏时触发回调：广播装备破损动画、播放音效、更新统计
+    // 使用 isEmpty() 检查而非 attemptDamageItem 返回值，与 PlayerInventory::damageArmor
+    // 和 MobEntity::burnUndead 中已验证的模式保持一致
+    if (brokenItem != nullptr && stack.isEmpty() && entity != nullptr) {
+        entity->onEquippedItemBroken(*brokenItem, slot);
+    }
+
+    return stack.isEmpty();
+}
+
 // ============================================================================
 // 受伤无敌帧
 // ============================================================================
@@ -643,14 +695,22 @@ void LivingEntity::tickDeath()
 
 void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
 {
+    // 默认使用普通摔落伤害来源
+    causeFallDamage(distance, damageMultiplier, DamageSources::fall());
+}
+
+void LivingEntity::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
+{
+    // MC 1.21.11: LivingEntity.causeFallDamage 先调用 super.causeFallDamage（传播给乘客）
+    // 参考: net.minecraft.world.entity.LivingEntity.causeFallDamage → super.causeFallDamage
+    Entity::causeFallDamage(distance, damageMultiplier, source);
+
     // 缓降效果免疫摔落伤害
     if (hasEffect(entity::effect::EffectType::SlowFalling)) {
-        // 缓降效果下不受到摔落伤害
         return;
     }
 
     // 跳跃增强药水减少摔落距离
-    // 每级跳跃增强减少 1 格有效摔落距离
     const i32 jumpBoostLevel = getEffectLevel(entity::effect::EffectType::JumpBoost);
     f32 effectiveDistance = distance - static_cast<f32>(jumpBoostLevel);
 
@@ -660,28 +720,28 @@ void LivingEntity::handleFallDamage(f32 distance, f32 damageMultiplier)
         f32 damage = (effectiveDistance - 3.0f) * damageMultiplier;
 
         // 计算摔落保护附魔减伤
-        // 摔落保护 EPF = 羽毛落地等级 * 3
-        std::array<const ItemStack*, 4> armorSlots = {&getEquipment(EquipmentSlot::Head),
-            &getEquipment(EquipmentSlot::Chest),
-            &getEquipment(EquipmentSlot::Legs),
-            &getEquipment(EquipmentSlot::Feet)};
-        // 使用统一伤害类型标志
-        i32 fallProtectionEPF =
-            item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, DamageFlags::FALL);
-        if (fallProtectionEPF > 0) {
-            damage =
-                entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(fallProtectionEPF));
+        // 只有 source.isFall() 为 true 时才应用摔落保护附魔
+        if (source.isFall()) {
+            std::array<const ItemStack*, 4> armorSlots = {&getEquipment(EquipmentSlot::Head),
+                &getEquipment(EquipmentSlot::Chest),
+                &getEquipment(EquipmentSlot::Legs),
+                &getEquipment(EquipmentSlot::Feet)};
+            i32 fallProtectionEPF =
+                item::enchant::EnchantmentHelper::getTotalArmorProtection(armorSlots, DamageFlags::FALL);
+            if (fallProtectionEPF > 0) {
+                damage =
+                    entity::combat::CombatRules::getDamageAfterMagicAbsorb(damage, static_cast<f32>(fallProtectionEPF));
+            }
         }
 
         if (damage > 0.0f) {
-            // 创建摔落伤害来源
-            EnvironmentalDamage source = DamageSources::fall();
-            hurt(source, damage);
+            // 克隆伤害来源以获得可变引用
+            auto sourceClone = source.clone();
+            hurt(*sourceClone, damage);
         }
     }
 
     // 播放摔落音效
-    // 在 handleFallDamage 后 fallDistance 已被重置为 0，所以使用传入的 distance
     playFallSound(distance);
 }
 

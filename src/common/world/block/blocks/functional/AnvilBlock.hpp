@@ -27,6 +27,8 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/blocks/FallingBlock.hpp"
 
+#include <array>
+
 namespace mc {
 
 class BlockState;
@@ -42,10 +44,6 @@ namespace blocks {
  *
  * 三个铁砧变体（anvil、chipped_anvil、damaged_anvil）均为 AnvilBlock 实例，
  * 通过不同的 Block 注册来区分。
- *
- * TODO: 实现铁砧碰撞箱（MC原版为不规则形状，底部宽、顶部窄）
- * TODO: 实现铁砧GUI（AnvilContainer与AnvilBlock的交互，含使用时12%概率降级）
- * TODO: 实现铁砧放置位置验证（需要在稳固方块上方）
  *
  * 参考: net.minecraft.world.level.block.AnvilBlock
  */
@@ -91,7 +89,8 @@ public:
     /**
      * @brief 获取放置时的方块状态
      *
-     * 根据玩家水平朝向设置 HORIZONTAL_FACING。
+     * 根据玩家水平朝向的顺时针旋转90度设置 HORIZONTAL_FACING，
+     * 与 MC 原版一致：铁砧的正面朝向玩家右手边。
      */
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
@@ -105,6 +104,55 @@ public:
      */
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
+    /**
+     * @brief 获取方块的视觉形状
+     *
+     * 铁砧形状根据朝向轴（X轴或Z轴）返回不同的预计算形状。
+     * MC 原版铁砧形状是 X/Z 不对称的：顶部沿朝向方向延伸至满16像素宽，
+     * 垂直于朝向方向仅10像素宽。中段和窄颈也是 X/Z 不对称的。
+     *
+     * 形状由四个部分组成（以Z轴/北南朝向为例）：
+     * - 底座：X/Z=2~14, Y=0~4 (12×12)
+     * - 中段：X=4~12, Z=3~13, Y=4~5 (8×10)
+     * - 窄颈：X=6~10, Z=4~12, Y=5~10 (4×8)
+     * - 顶面：X=3~13, Z=0~16, Y=10~16 (10×16)
+     */
+    [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
+
+    /**
+     * @brief 获取方块的碰撞形状
+     *
+     * 与视觉形状相同。
+     */
+    [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
+     * @brief 玩家右键交互时打开铁砧容器
+     *
+     * 在服务端打开铁砧修复界面（ContainerType::Anvil），并触发交互统计。
+     * 铁砧不需要方块实体，容器通过世界位置直接访问。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    /**
+     * @brief 铁砧不允许作为寻路路径
+     *
+     * 铁砧的材质虽然阻挡移动（默认 allowsMovement 返回 false），
+     * 但这里显式覆盖以确保行为与 MC 原版一致。
+     */
+    [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override
+    {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return false;
+    }
+
     // ========== 静态工具方法 ==========
 
     /**
@@ -117,6 +165,17 @@ public:
      * @return 损坏后的方块状态指针，如果已完全损坏则返回 nullptr
      */
     [[nodiscard]] static const BlockState* damageAnvil(const BlockState& state);
+
+private:
+    /**
+     * @brief 根据朝向轴获取形状索引
+     *
+     * North/South 映射到 Z 轴形状（index 0），East/West 映射到 X 轴形状（index 1）。
+     */
+    [[nodiscard]] static size_t _getAxisIndex(Direction facing);
+
+    /// 预计算的形状，按轴索引：[0]=Z轴(North/South), [1]=X轴(East/West)
+    std::array<CollisionShape, 2> m_shapesByAxis;
 };
 
 } // namespace blocks

@@ -98,11 +98,9 @@ void PlayerSkinInfo::setModelPartEnabled(PlayerModelPart part, bool enabled) noe
 
 ResourceLocation PlayerSkinInfo::getDefaultSkinLocation() const
 {
-    SkinType type = getDefaultSkinTypeForUUID(m_profile.uuid());
-    if (type == SkinType::Slim) {
-        return ResourceLocation("minecraft:textures/entity/player/slim/alex.png");
-    }
-    return ResourceLocation("minecraft:textures/entity/player/wide/steve.png");
+    // MC 1.21.1: 根据 UUID 哈希从 18 种默认皮肤中选择
+    const DefaultSkinVariant& variant = getDefaultSkinVariantForUUID(m_profile.uuid());
+    return variant.textureLocation();
 }
 
 } // namespace mc::skin

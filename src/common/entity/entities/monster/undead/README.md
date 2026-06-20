@@ -49,7 +49,7 @@ Entity
 - `shouldBurnInDaylight()`：HuskEntity/DrownedEntity 返回 false
 - `shouldDrown()`：ZombieVillagerEntity 返回 false，DrownedEntity 返回 false
 - `setCombatTask()`：WitherSkeletonEntity 重写使用近战，其他骷髅使用远程
-- `finalizeSpawn()`：ZombieEntity 覆写，设置破门能力（概率 = specialMultiplier × 0.1）和万圣节南瓜头
+- `finalizeSpawn()`：ZombieEntity 覆写，设置破门能力（概率 = specialMultiplier × 0.1）、万圣节南瓜头（10月31日 25% 概率）、属性修饰符（随机增援概率、击退抗性、跟随范围、领袖僵尸判定）
 - `populateDefaultEquipmentSlots()`：ZombieEntity 覆写，Hard 难度 5%/其他 1% 概率生成铁剑或铁锹
 
 ## 上下游外部依赖关系

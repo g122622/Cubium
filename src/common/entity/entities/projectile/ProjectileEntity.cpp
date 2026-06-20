@@ -24,10 +24,13 @@
 #include "ProjectileEntity.hpp"
 
 #include "ProjectileHelper.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 
 #include <cmath>
 
@@ -196,7 +199,18 @@ void ProjectileEntity::onEntityHit(const RayTraceResult& result)
 void ProjectileEntity::onBlockHit(const RayTraceResult& result)
 {
     m_velocity = Vector3(0.0f, 0.0f, 0.0f);
-    (void)result;
+
+    // 通知命中方块有投掷物命中
+    if (m_world != nullptr && result.type == RayTraceResultType::Block) {
+        const BlockState* state = m_world->getBlockState(result.blockPos);
+        if (state != nullptr) {
+            // onProjectileHit 是非 const 方法，需要 const_cast
+            Block& block = const_cast<Block&>(state->owner());
+            BlockRaycastResult hitResult =
+                BlockRaycastResult::hit(result.hitPosition, result.blockPos, result.face, 0.0f);
+            block.onProjectileHit(*m_world, *state, hitResult, *this);
+        }
+    }
 }
 
 void ProjectileEntity::onImpact(const RayTraceResult& result)
@@ -278,7 +292,7 @@ RayTraceResult ProjectileEntity::rayTraceBlocks(const Vector3& start, const Vect
         return RayTraceResult::miss();
     }
 
-    return RayTraceResult::block(blockResult.hitPosition(), blockResult.blockPos());
+    return RayTraceResult::block(blockResult.hitPosition(), blockResult.blockPos(), blockResult.face());
 }
 
 } // namespace entity

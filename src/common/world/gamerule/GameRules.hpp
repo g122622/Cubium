@@ -167,6 +167,9 @@ extern const IntegerGameRuleKey RANDOM_TICK_SPEED;
 /// 天气循环是否进行
 extern const BooleanGameRuleKey DO_WEATHER_CYCLE;
 
+/// 雪层最大堆积高度（0=不允许堆积，1-8=最大雪层数）
+extern const IntegerGameRuleKey MAX_SNOW_ACCUMULATION_HEIGHT;
+
 // ============================================================================
 // 聊天相关 (Chat)
 // ============================================================================
@@ -192,6 +195,9 @@ extern const BooleanGameRuleKey ANNOUNCE_ADVANCEMENTS;
 
 /// 是否减少调试信息
 extern const BooleanGameRuleKey REDUCED_DEBUG_INFO;
+
+/// TNT 是否允许爆炸（控制 TNT 方块点燃、TNT 实体爆炸、TNT 矿车引爆等）
+extern const BooleanGameRuleKey TNT_EXPLODES;
 
 /// 最大命令链长度
 extern const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH;

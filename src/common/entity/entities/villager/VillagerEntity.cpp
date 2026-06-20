@@ -22,10 +22,12 @@
  */
 
 #include "VillagerEntity.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
 #include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/sensor/Sensors.hpp"
+#include "common/entity/ai/brain/task/tasks/movement/MovementTasks.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
@@ -230,6 +232,13 @@ void VillagerEntity::initializeBrain()
     m_brain->registerMemory(MemoryModuleTypes::VISIBLE_VILLAGER_BABIES);
     m_brain->registerMemory(MemoryModuleTypes::NEAREST_VISIBLE_ADULT);
 
+    // 移动任务所需的额外记忆模块
+    m_brain->registerMemory(MemoryModuleTypes::PATH);
+    m_brain->registerMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE);
+    m_brain->registerMemory(MemoryModuleTypes::HIDING_PLACE);
+    m_brain->registerMemory(MemoryModuleTypes::ATTACK_TARGET);
+    m_brain->registerMemory(MemoryModuleTypes::INTERACTION_TARGET);
+
     // 注册传感器
     m_brain->registerSensor(std::make_unique<NearestPlayersSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<NearestVisibleLivingEntitySensor<VillagerEntity>>());
@@ -245,6 +254,107 @@ void VillagerEntity::initializeBrain()
     // 设置默认活动
     m_brain->setDefaultActivities({ai::brain::schedule::Activity::IDLE});
     m_brain->setFallbackActivity(ai::brain::schedule::Activity::IDLE);
+
+    // 注册核心移动任务 - 所有活动都使用
+    using namespace ai::brain::task::movement;
+    using TaskPtr = std::unique_ptr<ai::brain::task::Task<VillagerEntity>>;
+
+    // 辅助函数：从 unique_ptr 列表构建 vector
+    auto makeTasks = [](TaskPtr first, auto&&... rest) -> std::vector<TaskPtr> {
+        std::vector<TaskPtr> tasks;
+        tasks.push_back(std::move(first));
+        (tasks.push_back(std::move(rest)), ...);
+        return tasks;
+    };
+
+    // IDLE 活动：随机漫步、看向实体
+    m_brain->registerActivity(ai::brain::schedule::Activity::IDLE,
+        1,
+        makeTasks(
+            std::make_unique<MoveToTargetTask<VillagerEntity>>(), std::make_unique<StrollTask<VillagerEntity>>(0.6f)),
+        {},
+        {});
+
+    m_brain->registerActivity(ai::brain::schedule::Activity::IDLE,
+        2,
+        makeTasks(std::make_unique<LookAtEntityTask<VillagerEntity>>()),
+        {},
+        {});
+
+    // WORK 活动：移动到目标、随机漫步（低频率）
+    m_brain->registerActivity(ai::brain::schedule::Activity::WORK,
+        1,
+        makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
+            std::make_unique<StrollTask<VillagerEntity>>(0.4f, 80)),
+        {},
+        {});
+
+    m_brain->registerActivity(ai::brain::schedule::Activity::WORK,
+        2,
+        makeTasks(std::make_unique<LookAtEntityTask<VillagerEntity>>()),
+        {},
+        {});
+
+    // MEET 活动：移动到目标、随机漫步（较高频率）、看向实体
+    m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
+        1,
+        makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
+            std::make_unique<StrollTask<VillagerEntity>>(0.5f, 60)),
+        {},
+        {});
+
+    m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
+        2,
+        makeTasks(std::make_unique<LookAtEntityTask<VillagerEntity>>(8.0f, 0.05f)),
+        {},
+        {});
+
+    // PANIC 活动：逃跑、移动到目标
+    m_brain->registerActivity(ai::brain::schedule::Activity::PANIC,
+        0,
+        makeTasks(std::make_unique<FleeTask<VillagerEntity>>(0.6f, 10.0f),
+            std::make_unique<MoveToTargetTask<VillagerEntity>>()),
+        {{MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
+        {MemoryModuleTypes::WALK_TARGET});
+
+    // HIDE 活动：寻找隐蔽点、移动到目标
+    m_brain->registerActivity(ai::brain::schedule::Activity::HIDE,
+        0,
+        makeTasks(std::make_unique<FindHiddenBlockTask<VillagerEntity>>(1.0f),
+            std::make_unique<MoveToTargetTask<VillagerEntity>>()),
+        {},
+        {});
+
+    // PRE_RAID / RAID / FIGHT 活动：追逐攻击目标、移动到目标
+    m_brain->registerActivity(ai::brain::schedule::Activity::FIGHT,
+        0,
+        makeTasks(std::make_unique<ChaseTask<VillagerEntity>>(1.0f, 2.0f),
+            std::make_unique<MoveToTargetTask<VillagerEntity>>()),
+        {{MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
+        {});
+
+    m_brain->registerActivity(ai::brain::schedule::Activity::RAID,
+        0,
+        makeTasks(std::make_unique<ChaseTask<VillagerEntity>>(1.0f, 2.0f),
+            std::make_unique<MoveToTargetTask<VillagerEntity>>()),
+        {{MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
+        {});
+
+    // AVOID 活动：逃跑、移动到目标
+    m_brain->registerActivity(ai::brain::schedule::Activity::AVOID,
+        0,
+        makeTasks(
+            std::make_unique<FleeTask<VillagerEntity>>(1.0f), std::make_unique<MoveToTargetTask<VillagerEntity>>()),
+        {{MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
+        {});
+
+    // REST 活动：随机漫步（低频率）、看向实体
+    m_brain->registerActivity(ai::brain::schedule::Activity::REST,
+        1,
+        makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
+            std::make_unique<StrollTask<VillagerEntity>>(0.3f, 120)),
+        {},
+        {});
 }
 
 void VillagerEntity::setProfession(VillagerProfession profession)

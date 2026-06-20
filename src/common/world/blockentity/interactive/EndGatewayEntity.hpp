@@ -194,6 +194,18 @@ public:
      */
     void triggerCooldown(IWorld& world);
 
+    // ========== 结构生成 ==========
+
+    /**
+     * @brief 在指定位置创建折跃门结构
+     * @param world 世界
+     * @param pos 基础位置（折跃门方块所在位置）
+     *
+     * 生成 3x5x3 的基岩十字框架结构，中心为末地折跃门方块。
+     * 此方法不依赖实例状态，可独立调用。
+     */
+    static void createGatewayStructure(IWorld& world, const BlockPos& pos);
+
     // ========== 方块事件 ==========
 
     /**
@@ -221,13 +233,6 @@ private:
      * 在外岛生成新的折跃门结构。
      */
     void _generateExitPortal(IWorld& world);
-
-    /**
-     * @brief 在指定位置创建折跃门结构
-     * @param world 世界
-     * @param pos 基础位置
-     */
-    void _createGatewayStructure(IWorld& world, const BlockPos& pos);
 
     /**
      * @brief 查找最高方块

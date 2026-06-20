@@ -28,6 +28,8 @@
  */
 
 #include "common/world/block/blocks/redstone/PistonHeadBlock.hpp"
+#include "common/entity/entities/player/GameModeUtils.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -112,7 +114,7 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
     [[nodiscard]] bool isUltraWarm() const override { return false; }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
@@ -661,6 +663,236 @@ TEST_F(PistonHeadBlockTest, GetPushReaction_ReturnsBlock)
                                       .with(BlockStateProperties::FACING(), Direction::North)
                                       .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
     EXPECT_EQ(VanillaBlocks::PISTON_HEAD->getPushReaction(headState), Material::PushReaction::Block);
+}
+
+// ========== playerWillDestroy 测试 ==========
+
+/**
+ * @brief 测试 playerWillDestroy - 创造模式下销毁匹配的活塞基座
+ *
+ * 创造模式破坏活塞头时，应同时销毁匹配的已伸出活塞基座且不产生掉落物。
+ * playerWillDestroy 将基座设为空气后，后续 onBlockRemoved 的 isFittingBase 检查会失败，
+ * 避免重复销毁。
+ */
+TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_DestroysFittingBase)
+{
+    // 设置已伸出的活塞基座在 (0, 64, 0)
+    const BlockState& pistonState = VanillaBlocks::PISTON->defaultState()
+                                        .with(BlockStateProperties::FACING(), Direction::North)
+                                        .with(BlockStateProperties::EXTENDED(), true);
+    m_world.setBlockAt(BlockPos(0, 64, 0), &pistonState);
+
+    // 活塞头在 (0, 64, -1)，朝北
+    const BlockState& headState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                      .with(BlockStateProperties::FACING(), Direction::North)
+                                      .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 创建创造模式玩家
+    Player player(1, "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+    ASSERT_TRUE(player.isCreative());
+
+    // 验证基座存在
+    const BlockState* baseBefore = m_world.getBlockState(basePos);
+    ASSERT_NE(baseBefore, nullptr);
+    EXPECT_TRUE(baseBefore->is(VanillaBlocks::PISTON));
+
+    // 调用 playerWillDestroy
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->playerWillDestroy(m_world, headPos, headState, player));
+
+    // 验证基座已被设为空气（创造模式下不产生掉落物）
+    const BlockState* baseAfter = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfter, nullptr);
+    EXPECT_TRUE(baseAfter->isAir());
+}
+
+/**
+ * @brief 测试 playerWillDestroy - 创造模式下无匹配基座时不修改世界
+ *
+ * 创造模式破坏活塞头时，如果反方向没有匹配的活塞基座，
+ * playerWillDestroy 不应修改任何方块。
+ */
+TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_NoFittingBase_NoChange)
+{
+    // 活塞头在 (0, 64, -1)，朝北，反方向 (0, 64, 0) 没有匹配的活塞基座
+    const BlockState& headState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                      .with(BlockStateProperties::FACING(), Direction::North)
+                                      .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 创建创造模式玩家
+    Player player(1, "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+
+    // 反方向原本是空气
+    const BlockState* baseBefore = m_world.getBlockState(basePos);
+    ASSERT_NE(baseBefore, nullptr);
+    EXPECT_TRUE(baseBefore->isAir());
+
+    // 调用 playerWillDestroy
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->playerWillDestroy(m_world, headPos, headState, player));
+
+    // 反方向应仍然为空气（未被修改）
+    const BlockState* baseAfter = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfter, nullptr);
+    EXPECT_TRUE(baseAfter->isAir());
+}
+
+/**
+ * @brief 测试 playerWillDestroy - 生存模式下不销毁基座
+ *
+ * 生存模式破坏活塞头时，playerWillDestroy 不执行任何操作。
+ * 基座的级联销毁和掉落物由 onBlockRemoved 处理。
+ */
+TEST_F(PistonHeadBlockTest, PlayerWillDestroy_SurvivalMode_DoesNotDestroyBase)
+{
+    // 设置已伸出的活塞基座在 (0, 64, 0)
+    const BlockState& pistonState = VanillaBlocks::PISTON->defaultState()
+                                        .with(BlockStateProperties::FACING(), Direction::North)
+                                        .with(BlockStateProperties::EXTENDED(), true);
+    m_world.setBlockAt(BlockPos(0, 64, 0), &pistonState);
+
+    const BlockState& headState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                      .with(BlockStateProperties::FACING(), Direction::North)
+                                      .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 创建生存模式玩家
+    Player player(1, "TestPlayer");
+    player.setGameMode(GameMode::Survival);
+    ASSERT_FALSE(player.isCreative());
+
+    // 验证基座存在
+    const BlockState* baseBefore = m_world.getBlockState(basePos);
+    ASSERT_NE(baseBefore, nullptr);
+    EXPECT_TRUE(baseBefore->is(VanillaBlocks::PISTON));
+
+    // 调用 playerWillDestroy
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->playerWillDestroy(m_world, headPos, headState, player));
+
+    // 生存模式下基座应保持不变（由 onBlockRemoved 处理级联销毁和掉落物）
+    const BlockState* baseAfter = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfter, nullptr);
+    EXPECT_TRUE(baseAfter->is(VanillaBlocks::PISTON));
+}
+
+/**
+ * @brief 测试 playerWillDestroy - 创造模式下基座未伸出时不销毁
+ *
+ * 创造模式破坏活塞头时，如果反方向有活塞基座但未伸出（EXTENDED=false），
+ * isFittingBase 返回 false，不应级联销毁。
+ */
+TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_BaseNotExtended_NoCascade)
+{
+    // 设置未伸出的活塞基座在 (0, 64, 0)
+    const BlockState& pistonState = VanillaBlocks::PISTON->defaultState()
+                                        .with(BlockStateProperties::FACING(), Direction::North)
+                                        .with(BlockStateProperties::EXTENDED(), false);
+    m_world.setBlockAt(BlockPos(0, 64, 0), &pistonState);
+
+    const BlockState& headState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                      .with(BlockStateProperties::FACING(), Direction::North)
+                                      .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 创建创造模式玩家
+    Player player(1, "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+
+    // 调用 playerWillDestroy
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->playerWillDestroy(m_world, headPos, headState, player));
+
+    // 基座应保持不变（未伸出，不匹配 isFittingBase）
+    const BlockState* baseAfter = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfter, nullptr);
+    EXPECT_TRUE(baseAfter->is(VanillaBlocks::PISTON));
+}
+
+/**
+ * @brief 测试 playerWillDestroy 与 onBlockRemoved 的协同 - 创造模式不重复销毁
+ *
+ * 创造模式下，playerWillDestroy 先将基座设为空气，
+ * 后续 onBlockRemoved 中 isFittingBase 检查会失败（基座已不存在），
+ * 因此不会重复销毁或产生掉落物。
+ */
+TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_ThenOnBlockRemoved_NoDuplicate)
+{
+    // 设置已伸出的活塞基座在 (0, 64, 0)
+    const BlockState& pistonState = VanillaBlocks::PISTON->defaultState()
+                                        .with(BlockStateProperties::FACING(), Direction::North)
+                                        .with(BlockStateProperties::EXTENDED(), true);
+    m_world.setBlockAt(BlockPos(0, 64, 0), &pistonState);
+
+    const BlockState& headState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                      .with(BlockStateProperties::FACING(), Direction::North)
+                                      .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Normal);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 创建创造模式玩家
+    Player player(1, "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+
+    // 先调用 playerWillDestroy（创造模式下销毁基座）
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->playerWillDestroy(m_world, headPos, headState, player));
+
+    // 验证基座已被 playerWillDestroy 设为空气
+    const BlockState* baseAfterPlayerWill = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfterPlayerWill, nullptr);
+    EXPECT_TRUE(baseAfterPlayerWill->isAir());
+
+    // 然后调用 onBlockRemoved（模拟方块实际被移除时的回调）
+    // 由于基座已被设为空气，isFittingBase 应返回 false，不会重复销毁
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->onBlockRemoved(m_world, headPos, headState));
+
+    // 基座应仍然为空气（未被重复操作）
+    const BlockState* baseAfterOnRemoved = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfterOnRemoved, nullptr);
+    EXPECT_TRUE(baseAfterOnRemoved->isAir());
+}
+
+/**
+ * @brief 测试 playerWillDestroy - 粘性活塞头匹配粘性活塞基座
+ *
+ * 创造模式下破坏粘性活塞头时，应销毁粘性活塞基座（而非普通活塞基座）。
+ */
+TEST_F(PistonHeadBlockTest, PlayerWillDestroy_CreativeMode_StickyPistonHead_MatchesStickyBase)
+{
+    // 设置已伸出的粘性活塞基座在 (0, 64, 0)
+    const BlockState& stickyPistonState = VanillaBlocks::STICKY_PISTON->defaultState()
+                                              .with(BlockStateProperties::FACING(), Direction::North)
+                                              .with(BlockStateProperties::EXTENDED(), true);
+    m_world.setBlockAt(BlockPos(0, 64, 0), &stickyPistonState);
+
+    // 粘性活塞头在 (0, 64, -1)，朝北
+    const BlockState& stickyHeadState = VanillaBlocks::PISTON_HEAD->defaultState()
+                                            .with(BlockStateProperties::FACING(), Direction::North)
+                                            .with(PistonHeadBlock::getTypeProperty(), PistonHeadBlock::Type::Sticky);
+
+    BlockPos headPos(0, 64, -1);
+    BlockPos basePos(0, 64, 0);
+
+    // 创建创造模式玩家
+    Player player(1, "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+
+    // 调用 playerWillDestroy
+    EXPECT_NO_THROW(VanillaBlocks::PISTON_HEAD->playerWillDestroy(m_world, headPos, stickyHeadState, player));
+
+    // 验证粘性活塞基座已被设为空气
+    const BlockState* baseAfter = m_world.getBlockState(basePos);
+    ASSERT_NE(baseAfter, nullptr);
+    EXPECT_TRUE(baseAfter->isAir());
 }
 
 } // namespace test

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "Widget.hpp"
+#include "common/util/text/Utf8.hpp"
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -40,9 +41,8 @@ namespace mc::client::ui::kagero::widget {
  * @brief 文本输入框组件
  *
  * 支持文本输入、光标定位、文本选区、滚动、验证等功能。
- * TODO: 选区高亮渲染尚未实现（m_selectionColor 已预留但未使用）
- * TODO: UTF-8 多字节字符的迭代处理尚未完善，当前按字节遍历而非按码点遍历
- * TODO: 光标闪烁视觉反馈尚未实现（m_cursorBlinkCounter 已预留但未使用）
+ * 内部存储使用 UTF-8 编码的 std::string，所有位置/索引操作基于码点
+ * （而非字节偏移），确保对 CJK、emoji 等多字节字符的正确处理。
  */
 class TextFieldWidget : public Widget {
 public:
@@ -67,12 +67,21 @@ public:
     }
 
     /**
-     * @brief 每帧更新，用于光标闪烁计时等
+     * @brief 每帧更新，用于光标闪烁计时
      */
     void tick(f32 dt) override
     {
-        (void)dt;
-        ++m_cursorBlinkCounter;
+        if (!isFocused()) {
+            m_cursorBlinkTimer = 0.0f;
+            m_cursorVisible = true;
+            return;
+        }
+
+        m_cursorBlinkTimer += dt;
+        if (m_cursorBlinkTimer >= CURSOR_BLINK_RATE) {
+            m_cursorBlinkTimer -= CURSOR_BLINK_RATE;
+            m_cursorVisible = !m_cursorVisible;
+        }
     }
 
     /**
@@ -82,6 +91,7 @@ public:
     {
         if (!isVisible()) return;
 
+        // 绘制背景
         if (m_drawBackground) {
             const u32 bg = isFocused() ? Colors::fromARGB(255, 30, 30, 30) : Colors::fromARGB(255, 22, 22, 22);
             ctx.drawFilledRect(bounds(), bg);
@@ -89,7 +99,11 @@ public:
         ctx.drawBorder(bounds(), 1.0f, Colors::fromARGB(255, 120, 120, 120));
 
         const std::string& displayText = m_text.empty() ? m_placeholder : m_text;
-        if (displayText.empty()) {
+        if (displayText.empty() && !hasSelection()) {
+            // 无文本且无选区时仍需绘制光标
+            if (isFocused() && m_cursorVisible) {
+                _drawCursor(ctx, textStartX() - m_scrollOffset);
+            }
             return;
         }
 
@@ -102,7 +116,31 @@ public:
         const u32 textColor = m_text.empty() ? m_disabledTextColor : (m_enabled ? m_textColor : m_disabledTextColor);
 
         ctx.pushClip(textClip);
+
+        // 绘制选区高亮（在文本下方）
+        if (hasSelection() && !m_text.empty()) {
+            const i32 selStart = std::min(m_cursorPosition, m_selectionEnd);
+            const i32 selEnd = std::max(m_cursorPosition, m_selectionEnd);
+            const f32 selStartX =
+                static_cast<f32>(textStartX()) + _measurePrefixWidth(selStart) - static_cast<f32>(m_scrollOffset);
+            const f32 selEndX =
+                static_cast<f32>(textStartX()) + _measurePrefixWidth(selEnd) - static_cast<f32>(m_scrollOffset);
+            const i32 fontHeight = static_cast<i32>(ctx.getFontHeight());
+            const Rect selectionRect(
+                static_cast<i32>(selStartX), baselineY - 1, static_cast<i32>(selEndX - selStartX), fontHeight + 2);
+            ctx.drawFilledRect(selectionRect, m_selectionColor);
+        }
+
+        // 绘制文本
         ctx.drawText(displayText, textStartX() - m_scrollOffset, baselineY, textColor);
+
+        // 绘制光标
+        if (isFocused() && m_cursorVisible && !hasSelection()) {
+            const f32 cursorX = static_cast<f32>(textStartX()) + _measurePrefixWidth(m_cursorPosition) -
+                static_cast<f32>(m_scrollOffset);
+            _drawCursor(ctx, cursorX);
+        }
+
         ctx.popClip();
     }
 
@@ -118,6 +156,7 @@ public:
         if (button != 0) return false;
 
         setFocused(true);
+        _resetCursorBlink();
         setCursorPosition(positionFromMouseX(mouseX));
         return true;
     }
@@ -169,7 +208,7 @@ public:
                 return true;
             // GLFW_KEY_END
             case 269:
-                setCursorPosition(static_cast<i32>(m_text.size()));
+                setCursorPositionEnd();
                 restoreShift();
                 return true;
             default:
@@ -186,7 +225,7 @@ public:
         if (!canWrite()) return false;
         if (!isAllowedCharacter(codePoint)) return false;
 
-        writeText(codePointToString(codePoint));
+        writeText(util::text::utf8Encode(codePoint));
         return true;
     }
 
@@ -198,8 +237,12 @@ public:
         if (m_validator && !m_validator(text)) return;
 
         std::string newText = text;
-        if (static_cast<i32>(newText.size()) > m_maxLength) {
-            newText = newText.substr(0, m_maxLength);
+        // 按码点数截断，确保不截断多字节字符
+        const size_t maxCodepoints = static_cast<size_t>(m_maxLength);
+        const size_t currentCodepoints = util::text::utf8CodepointCount(newText);
+        if (currentCodepoints > maxCodepoints) {
+            const size_t byteOffset = util::text::utf8CodepointToByteOffset(newText, maxCodepoints);
+            newText = newText.substr(0, byteOffset);
         }
 
         if (m_text != newText) {
@@ -226,18 +269,35 @@ public:
         const i32 selStart = std::min(m_cursorPosition, m_selectionEnd);
         const i32 selEnd = std::max(m_cursorPosition, m_selectionEnd);
 
-        // 替换选区会释放可写空间，因此这里要把被替换的字符数加回去。
-        const i32 availableSpace = m_maxLength - static_cast<i32>(m_text.size()) + (selEnd - selStart);
+        // 计算被替换选区的码点数
+        const i32 replacedCodepoints = selEnd - selStart;
+
+        // 过滤输入文本中的非法字符
         std::string toWrite = filterAllowedCharacters(text);
-        if (static_cast<i32>(toWrite.size()) > availableSpace) {
-            toWrite = toWrite.substr(0, std::max(0, availableSpace));
+
+        // 计算可用空间（以码点计）
+        const i32 currentCodepoints = static_cast<i32>(util::text::utf8CodepointCount(m_text));
+        const i32 availableSpace = m_maxLength - currentCodepoints + replacedCodepoints;
+        if (availableSpace <= 0) return;
+
+        // 按码点数截断 toWrite
+        const size_t toWriteCodepoints = util::text::utf8CodepointCount(toWrite);
+        if (static_cast<i32>(toWriteCodepoints) > availableSpace) {
+            const size_t byteOffset =
+                util::text::utf8CodepointToByteOffset(toWrite, static_cast<size_t>(availableSpace));
+            toWrite = toWrite.substr(0, byteOffset);
         }
 
-        std::string newText = m_text.substr(0, selStart) + toWrite + m_text.substr(selEnd);
+        // 计算字节偏移
+        const size_t selStartByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(selStart));
+        const size_t selEndByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(selEnd));
+
+        std::string newText = m_text.substr(0, selStartByte) + toWrite + m_text.substr(selEndByte);
         if (m_validator && !m_validator(newText)) return;
 
         m_text = newText;
-        setCursorPosition(selStart + static_cast<i32>(toWrite.size()));
+        const size_t writeCodepoints = util::text::utf8CodepointCount(toWrite);
+        setCursorPosition(selStart + static_cast<i32>(writeCodepoints));
         setSelectionPosition(m_cursorPosition);
         onTextChanged();
     }
@@ -249,7 +309,9 @@ public:
     {
         const i32 start = std::min(m_cursorPosition, m_selectionEnd);
         const i32 end = std::max(m_cursorPosition, m_selectionEnd);
-        return m_text.substr(start, end - start);
+        const size_t startByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(start));
+        const size_t endByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(end));
+        return m_text.substr(startByte, endByte - startByte);
     }
 
     /**
@@ -262,7 +324,10 @@ public:
         const i32 start = std::min(m_cursorPosition, m_selectionEnd);
         const i32 end = std::max(m_cursorPosition, m_selectionEnd);
 
-        std::string newText = m_text.substr(0, start) + m_text.substr(end);
+        const size_t startByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(start));
+        const size_t endByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(end));
+
+        std::string newText = m_text.substr(0, startByte) + m_text.substr(endByte);
         if (m_validator && !m_validator(newText)) return;
 
         m_text = newText;
@@ -272,7 +337,7 @@ public:
     }
 
     /**
-     * @brief 设置光标位置
+     * @brief 设置光标位置（码点索引）
      */
     void setCursorPosition(i32 position)
     {
@@ -291,20 +356,20 @@ public:
     /**
      * @brief 将光标移到结尾
      */
-    void setCursorPositionEnd() { setCursorPosition(static_cast<i32>(m_text.size())); }
+    void setCursorPositionEnd() { setCursorPosition(static_cast<i32>(util::text::utf8CodepointCount(m_text))); }
 
     /**
-     * @brief 按偏移量移动光标
+     * @brief 按码点偏移量移动光标
      */
     void moveCursorBy(i32 delta) { setCursorPosition(m_cursorPosition + delta); }
 
     /**
-     * @brief 获取光标位置
+     * @brief 获取光标位置（码点索引）
      */
     [[nodiscard]] i32 cursorPosition() const { return m_cursorPosition; }
 
     /**
-     * @brief 设置选区结束位置
+     * @brief 设置选区结束位置（码点索引）
      */
     void setSelectionPosition(i32 position)
     {
@@ -332,13 +397,15 @@ public:
     [[nodiscard]] bool hasSelection() const { return m_cursorPosition != m_selectionEnd; }
 
     /**
-     * @brief 设置最大长度
+     * @brief 设置最大长度（码点数）
      */
     void setMaxLength(i32 maxLength)
     {
         m_maxLength = std::max(0, maxLength);
-        if (static_cast<i32>(m_text.size()) > m_maxLength) {
-            m_text = m_text.substr(0, m_maxLength);
+        const size_t currentCodepoints = util::text::utf8CodepointCount(m_text);
+        if (static_cast<i32>(currentCodepoints) > m_maxLength) {
+            const size_t byteOffset = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(m_maxLength));
+            m_text = m_text.substr(0, byteOffset);
             m_cursorPosition = clampPosition(m_cursorPosition);
             m_selectionEnd = clampPosition(m_selectionEnd);
             updateScrollOffset();
@@ -347,7 +414,7 @@ public:
     }
 
     /**
-     * @brief 获取最大长度
+     * @brief 获取最大长度（码点数）
      */
     [[nodiscard]] i32 maxLength() const { return m_maxLength; }
 
@@ -422,11 +489,16 @@ public:
     [[nodiscard]] u32 disabledTextColor() const { return m_disabledTextColor; }
 
     /**
+     * @brief 设置选区高亮颜色（ARGB 格式）
+     */
+    void setSelectionColor(u32 color) { m_selectionColor = color; }
+
+    /**
      * @brief 设置字体
      *
      * @note 该指针由外部管理生命周期，TextFieldWidget 不接管所有权。
      */
-    void setFont(void* font)
+    void setFont(::mc::client::Font* font)
     {
         m_font = font;
         updateScrollOffset();
@@ -435,7 +507,7 @@ public:
     /**
      * @brief 获取字体
      */
-    [[nodiscard]] void* font() const { return m_font; }
+    [[nodiscard]] ::mc::client::Font* font() const { return m_font; }
 
     /**
      * @brief 是否允许写入文本
@@ -464,9 +536,9 @@ protected:
     }
 
     /**
-     * @brief 从光标处删除字符
+     * @brief 从光标处删除字符（按码点移动）
      *
-     * @param delta 删除方向和数量，负数向左删除，正数向右删除
+     * @param delta 删除方向和数量（码点），负数向左删除，正数向右删除
      */
     void deleteFromCursor(i32 delta)
     {
@@ -481,15 +553,19 @@ protected:
         i32 end;
 
         if (delta < 0) {
-            start = std::max(0, m_cursorPosition + delta);
             end = m_cursorPosition;
+            start = std::max(0, m_cursorPosition + delta);
         } else {
             start = m_cursorPosition;
-            end = std::min(static_cast<i32>(m_text.size()), m_cursorPosition + delta);
+            const i32 totalCodepoints = static_cast<i32>(util::text::utf8CodepointCount(m_text));
+            end = std::min(totalCodepoints, m_cursorPosition + delta);
         }
 
         if (start != end) {
-            std::string newText = m_text.substr(0, start) + m_text.substr(end);
+            const size_t startByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(start));
+            const size_t endByte = util::text::utf8CodepointToByteOffset(m_text, static_cast<size_t>(end));
+
+            std::string newText = m_text.substr(0, startByte) + m_text.substr(endByte);
             if (m_validator && !m_validator(newText)) return;
 
             m_text = newText;
@@ -499,57 +575,54 @@ protected:
     }
 
     /**
-     * @brief 获取外部字体对象（将 void* 转型为 Font*）
-     *
-     * TODO: m_font 应改为类型安全的指针，避免 void* 强转
+     * @brief 计算单个码点的水平步进宽度
      */
-    [[nodiscard]] ::mc::client::Font* resolvedFont() const { return static_cast<::mc::client::Font*>(m_font); }
-
-    /**
-     * @brief 计算单个码点的水平推进宽度
-     */
-    [[nodiscard]] f32 measureGlyphAdvance(char32_t codePoint) const
+    [[nodiscard]] f32 measureGlyphAdvance(u32 codePoint) const
     {
-        if (auto* font = resolvedFont()) {
-            if (const auto* glyph = font->getGlyph(static_cast<u32>(codePoint)); glyph != nullptr) {
+        if (m_font) {
+            if (const auto* glyph = m_font->getGlyph(codePoint); glyph != nullptr) {
                 return glyph->advance;
             }
-            // 字体中未找到字形时的回退宽度
-            return 4.0f;
+            return MISSING_GLYPH_ADVANCE;
         }
-        // 无字体时的回退宽度
-        return 8.0f;
+        return FALLBACK_CHAR_ADVANCE;
     }
 
     /**
-     * @brief 计算文本宽度
-     *
-     * TODO: 当前按字节遍历 std::string，对 UTF-8 多字节字符的处理不正确，需要按码点迭代
+     * @brief 计算文本宽度（按码点迭代 UTF-8）
      */
     [[nodiscard]] f32 measureTextWidth(const std::string& text) const
     {
         f32 width = 0.0f;
-        for (char32_t codePoint : text) {
+        util::text::utf8ForEachCodepoint(text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) {
             width += measureGlyphAdvance(codePoint);
-        }
+        });
         return width;
     }
 
     /**
-     * @brief 计算从文本开头到指定位置之间的宽度
+     * @brief 计算从文本开头到指定码点位置之间的宽度
+     *
+     * @param codepointPosition 码点索引
      */
-    [[nodiscard]] f32 measurePrefixWidth(i32 position) const
+    [[nodiscard]] f32 _measurePrefixWidth(i32 codepointPosition) const
     {
-        const i32 clamped = clampPosition(position);
         f32 width = 0.0f;
-        for (i32 index = 0; index < clamped; ++index) {
-            width += measureGlyphAdvance(m_text[static_cast<size_t>(index)]);
-        }
+        i32 count = 0;
+        util::text::utf8ForEachCodepoint(
+            m_text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) -> bool {
+                if (count >= codepointPosition) {
+                    return false;
+                }
+                width += measureGlyphAdvance(codePoint);
+                ++count;
+                return true;
+            });
         return width;
     }
 
     /**
-     * @brief 根据像素偏移量计算对应的光标位置
+     * @brief 根据像素偏移量计算对应的码点索引
      */
     [[nodiscard]] i32 positionFromTextOffset(f32 offset) const
     {
@@ -558,20 +631,23 @@ protected:
         }
 
         f32 width = 0.0f;
-        const i32 textLength = static_cast<i32>(m_text.size());
-        for (i32 index = 0; index < textLength; ++index) {
-            const f32 advance = measureGlyphAdvance(m_text[static_cast<size_t>(index)]);
-            if (width + advance > offset) {
-                return index;
-            }
-            width += advance;
-        }
+        i32 codepointIndex = 0;
+        util::text::utf8ForEachCodepoint(
+            m_text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) -> bool {
+                const f32 advance = measureGlyphAdvance(codePoint);
+                if (width + advance > offset) {
+                    return false;
+                }
+                width += advance;
+                ++codepointIndex;
+                return true;
+            });
 
-        return textLength;
+        return codepointIndex;
     }
 
     /**
-     * @brief 根据鼠标 X 坐标计算光标位置
+     * @brief 根据鼠标 X 坐标计算码点索引
      */
     [[nodiscard]] i32 positionFromMouseX(i32 mouseX) const
     {
@@ -622,7 +698,7 @@ protected:
             return;
         }
 
-        const i32 cursorX = static_cast<i32>(std::floor(measurePrefixWidth(m_cursorPosition)));
+        const i32 cursorX = static_cast<i32>(std::floor(_measurePrefixWidth(m_cursorPosition)));
         const i32 maxScroll = std::max(0, static_cast<i32>(std::ceil(measureTextWidth(m_text))) - visibleWidth);
 
         if (cursorX < m_scrollOffset) {
@@ -635,71 +711,90 @@ protected:
     }
 
     /**
-     * @brief 将光标位置限制在 [0, text.size()] 范围内
+     * @brief 将码点位置限制在 [0, codepointCount] 范围内
      */
     [[nodiscard]] i32 clampPosition(i32 pos) const
     {
-        return std::max(0, std::min(pos, static_cast<i32>(m_text.size())));
+        const i32 totalCodepoints = static_cast<i32>(util::text::utf8CodepointCount(m_text));
+        return std::max(0, std::min(pos, totalCodepoints));
     }
 
     /**
-     * @brief 检查字符码点是否允许输入（过滤控制字符）
+     * @brief 检查字符码点是否允许输入（过滤控制字符和 § 符号）
+     *
+     * 参考 MC Java 版 StringUtil.isAllowedChatCharacter()，
+     * 除控制字符外还禁止 § (0xA7) 符号（Minecraft 格式化前缀）。
      */
     static bool isAllowedCharacter(u32 codePoint)
     {
         if (codePoint < 32) return false;
         if (codePoint == 127) return false;
+        if (codePoint == 167) return false; // § 符号
         return true;
     }
 
     /**
-     * @brief 过滤字符串中不允许输入的字符
-     *
-     * TODO: 当前按字节遍历，对 UTF-8 多字节字符的过滤不正确
+     * @brief 过滤字符串中不允许输入的字符（按码点过滤）
      */
     static std::string filterAllowedCharacters(const std::string& text)
     {
         std::string result;
         result.reserve(text.size());
-        for (char32_t codePoint : text) {
-            if (isAllowedCharacter(static_cast<u32>(codePoint))) {
-                result.push_back(codePoint);
+        util::text::utf8ForEachCodepoint(text, [&](u32 codePoint, size_t /*byteOffset*/, size_t /*byteLength*/) {
+            if (isAllowedCharacter(codePoint)) {
+                util::text::utf8Append(result, codePoint);
             }
-        }
-        return result;
-    }
-
-    /**
-     * @brief 将 Unicode 码点转换为 UTF-8 字符串
-     *
-     * TODO: 当前仅使用 push_back 单字节，对非 ASCII 码点会丢失数据，需实现正确的 UTF-8 编码
-     */
-    static std::string codePointToString(u32 codePoint)
-    {
-        std::string result;
-        result.push_back(static_cast<char32_t>(codePoint));
+        });
         return result;
     }
 
     // ---- 成员变量 ----
 
-    std::string m_text;                  ///< 当前文本内容
-    std::string m_placeholder;           ///< 占位符文本（文本为空时显示）
-    i32 m_maxLength = 32;                ///< 最大文本长度
-    i32 m_cursorPosition = 0;            ///< 光标位置（字符索引）
-    i32 m_selectionEnd = 0;              ///< 选区结束位置
-    i32 m_scrollOffset = 0;              ///< 水平滚动偏移（像素）
-    i32 m_cursorBlinkCounter = 0;        ///< 光标闪烁计数器（TODO: 用于光标闪烁视觉反馈，尚未实现）
-    bool m_enabled = true;               ///< 是否启用输入
-    bool m_canLoseFocus = true;          ///< 失去焦点时是否清除选区
-    bool m_drawBackground = true;        ///< 是否绘制背景
-    bool m_shiftHeld = false;            ///< Shift 键是否按下（用于选区扩展）
-    u32 m_textColor = 0xE0E0E0;          ///< 正常状态文本颜色
-    u32 m_disabledTextColor = 0x707070;  ///< 禁用状态文本颜色
-    u32 m_selectionColor = 0xFF0000FF;   ///< 选区高亮颜色（TODO: 选区高亮渲染尚未实现）
-    void* m_font = nullptr;              ///< 字体指针（外部管理生命周期）
-    TextChangedCallback m_onTextChanged; ///< 文本变化回调
-    TextValidator m_validator;           ///< 文本验证器
+    /// 缺失字形的回退步进宽度（像素）
+    static constexpr f32 MISSING_GLYPH_ADVANCE = 4.0f;
+    /// 无字体时的每字符回退宽度（像素）
+    static constexpr f32 FALLBACK_CHAR_ADVANCE = 8.0f;
+    /// 光标闪烁周期（秒）
+    static constexpr f32 CURSOR_BLINK_RATE = 0.5f;
+
+    std::string m_text;                   ///< 当前文本内容（UTF-8 编码）
+    std::string m_placeholder;            ///< 占位符文本（文本为空时显示）
+    i32 m_maxLength = 32;                 ///< 最大文本长度（码点数）
+    i32 m_cursorPosition = 0;             ///< 光标位置（码点索引）
+    i32 m_selectionEnd = 0;               ///< 选区结束位置（码点索引）
+    i32 m_scrollOffset = 0;               ///< 水平滚动偏移（像素）
+    f32 m_cursorBlinkTimer = 0.0f;        ///< 光标闪烁计时器（秒）
+    bool m_cursorVisible = true;          ///< 光标是否可见（闪烁状态）
+    bool m_enabled = true;                ///< 是否启用输入
+    bool m_canLoseFocus = true;           ///< 失去焦点时是否清除选区
+    bool m_drawBackground = true;         ///< 是否绘制背景
+    bool m_shiftHeld = false;             ///< Shift 键是否按下（用于选区扩展）
+    u32 m_textColor = 0xE0E0E0;           ///< 正常状态文本颜色
+    u32 m_disabledTextColor = 0x707070;   ///< 禁用状态文本颜色
+    u32 m_selectionColor = 0x8000AAFF;    ///< 选区高亮颜色（半透明蓝色）
+    ::mc::client::Font* m_font = nullptr; ///< 字体指针（外部管理生命周期）
+    TextChangedCallback m_onTextChanged;  ///< 文本变化回调
+    TextValidator m_validator;            ///< 文本验证器
+
+private:
+    /**
+     * @brief 重置光标闪烁（输入事件后光标重新可见）
+     */
+    void _resetCursorBlink()
+    {
+        m_cursorBlinkTimer = 0.0f;
+        m_cursorVisible = true;
+    }
+
+    /**
+     * @brief 绘制光标线
+     */
+    void _drawCursor(PaintContext& ctx, f32 x) const
+    {
+        const i32 baselineY = getTextBaselineY(ctx);
+        const i32 fontHeight = static_cast<i32>(ctx.getFontHeight());
+        ctx.drawFilledRect(Rect(static_cast<i32>(x), baselineY - 1, 1, fontHeight + 2), 0xFFFFFFFF);
+    }
 };
 
 } // namespace mc::client::ui::kagero::widget

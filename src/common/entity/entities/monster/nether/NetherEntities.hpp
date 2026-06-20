@@ -354,6 +354,12 @@ public:
     void tick() override;
     bool attackLivingTarget(LivingEntity& target);
 
+    // ========== 寻路权重 ==========
+
+    // TODO: 重写 getPathWeight — 疣猪兽需要检查诡异菌距离和绯红菌岩方块：
+    // 靠近诡异菌返回 -1.0f，站在绯红菌岩上返回 10.0f，否则返回 0.0f
+    // 对应 MC Hoglin.getWalkTargetValue
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;

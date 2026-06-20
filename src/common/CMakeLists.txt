@@ -579,6 +579,7 @@ add_library(mc_common STATIC
     # Command
     command/CommandTreeSnapshot.cpp
     command/arguments/EntityArgument.cpp
+    command/arguments/FunctionArgument.cpp
     command/arguments/NbtPath.cpp
     command/arguments/NbtPathArgumentType.cpp
 
@@ -619,6 +620,7 @@ add_library(mc_common STATIC
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
     world/block/blocks/FallingBlock.cpp
+    world/block/blocks/ConcretePowderBlock.cpp
     world/block/blocks/RotatedPillarBlock.cpp
     world/block/blocks/DirectionalBlock.cpp
     world/block/blocks/HorizontalBlock.cpp
@@ -676,6 +678,7 @@ add_library(mc_common STATIC
     world/block/blocks/functional/RespawnAnchorBlock.cpp
     world/block/blocks/functional/LodestoneBlock.cpp
     world/block/blocks/functional/CartographyTableBlock.cpp
+    world/block/blocks/functional/CraftingTableBlock.cpp
     world/block/blocks/functional/FletchingTableBlock.cpp
     world/block/blocks/functional/SmithingTableBlock.cpp
     world/block/blocks/functional/AnvilBlock.cpp
@@ -693,6 +696,8 @@ add_library(mc_common STATIC
     world/block/blocks/decorative/CampfireBlock.cpp
     world/block/blocks/decorative/StainedGlassBlock.cpp
     world/block/blocks/decorative/BannerBlock.cpp
+    world/block/blocks/decorative/TorchBlock.cpp
+    world/block/blocks/decorative/WallTorchBlock.cpp
 
     # World - Block - Vegetation
     world/block/blocks/vegetation/DoublePlantBlock.cpp
@@ -771,6 +776,7 @@ add_library(mc_common STATIC
     world/block/blocks/copper/WeatheringCopperTrapDoorBlock.cpp
 
     # World - Block - Nether
+    world/block/blocks/nether/EnderChestBlock.cpp
     world/block/blocks/nether/FireBlock.cpp
     world/block/blocks/nether/SoulFireBlock.cpp
     world/block/blocks/nether/NetherPortalBlock.cpp
@@ -837,6 +843,7 @@ add_library(mc_common STATIC
     world/block/blocks/redstone/TargetBlock.cpp
     world/block/blocks/redstone/RedstoneOreBlock.cpp
     # World - Block - Redstone - Rails
+    world/block/blocks/redstone/RailState.cpp
     world/block/blocks/redstone/AbstractRailBlock.cpp
     world/block/blocks/redstone/RailBlock.cpp
     world/block/blocks/redstone/PoweredRailBlock.cpp
@@ -900,6 +907,10 @@ add_library(mc_common STATIC
     world/chunk/gen/ChunkStatus.cpp
     world/chunk/load/ChunkDistanceGraph.cpp
     world/chunk/load/ChunkLoadTicketManager.cpp
+
+    # World - Game Event System
+    # Note: .cpp files that depend on server headers are in src/server/world/gameevent/
+    world/gameevent/VibrationSystem.cpp
 
     # World - Generation - Noise
     world/gen/noise/PerlinNoise.cpp
@@ -1043,6 +1054,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Feature - Lake
     world/gen/feature/LakeFeature.cpp
+    world/gen/feature/SnowAndFreezeFeature.cpp
 
     # World - Generation - Feature - Predicate
     world/gen/feature/predicate/BlockPredicate.cpp
@@ -1052,12 +1064,18 @@ add_library(mc_common STATIC
     world/gen/feature/template/TemplateManager.cpp
     world/gen/feature/template/TemplateLoader.cpp
     world/gen/feature/template/RuleTest.cpp
+    world/gen/feature/ruletest/PosRuleTest.cpp
+    world/gen/feature/ruletest/RuleEntry.cpp
+    world/gen/feature/ruletest/StoneRuleTest.cpp
+    world/gen/feature/ruletest/DeepslateRuleTest.cpp
     world/gen/feature/template/CopperBulbDegradationProcessor.cpp
+    world/gen/feature/template/CappedStructureProcessor.cpp
 
     # World - Generation - Structure
     world/gen/structure/Structure.cpp
     world/gen/structure/StructureBoundingBox.cpp
     world/gen/structure/StructureDefinitionLoader.cpp
+    world/gen/structure/StructureCheck.cpp
     world/gen/structure/StructureManager.cpp
     world/gen/structure/StructureSet.cpp
     world/gen/structure/StructureSetLoader.cpp
@@ -1250,6 +1268,7 @@ add_library(mc_common STATIC
     util/nbt/NbtJsonUtils.cpp
 
     # Text System (Rich Text)
+    util/text/Utf8.cpp
     util/text/TextStyle.cpp
     util/text/ITextComponent.cpp
     util/text/TextParser.cpp
@@ -1347,6 +1366,7 @@ add_library(mc_common STATIC
     advancement/trigger/impl/ItemTriggers.cpp
     advancement/trigger/impl/EntityTriggers.cpp
     advancement/trigger/impl/ChanneledLightningTrigger.cpp
+    advancement/trigger/impl/AvoidVibrationTrigger.cpp
 
     # Scoreboard System - Core
     scoreboard/core/Scoreboard.cpp

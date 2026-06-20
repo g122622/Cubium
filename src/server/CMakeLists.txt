@@ -42,6 +42,12 @@ add_executable(minecraft-server
     world/entity/ItemPickupManager.cpp
     world/player/ServerPlayerEntityManager.cpp
     world/weather/WeatherManager.cpp
+    # 世界模块 - 游戏事件系统
+    world/gameevent/PositionSource.cpp
+    world/gameevent/GameEventListenerRegistry.cpp
+    world/gameevent/GameEventDispatcher.cpp
+    world/gameevent/DynamicGameEventListener.cpp
+    world/gameevent/VibrationSystemServer.cpp
     player/ServerPlayer.cpp
     # 成就系统
     advancement/PlayerAdvancements.cpp
@@ -71,6 +77,7 @@ add_executable(minecraft-server
     command/support/PlayerResolver.cpp
     command/support/EntityResolver.cpp
     command/support/EffectResolver.cpp
+    command/support/FunctionSuggestionProvider.cpp
     command/support/SpreadAlgorithm.cpp
     command/data/DataAccessor.cpp
     command/commands/GameModeCommand.cpp
@@ -147,6 +154,11 @@ add_executable(minecraft-server
     bossbar/ServerBossInfo.cpp
     bossbar/CustomServerBossInfo.cpp
     bossbar/CustomServerBossInfoManager.cpp
+    # 函数系统
+    function/CommandFunction.cpp
+    function/FunctionLoader.cpp
+    function/FunctionManager.cpp
+    function/TimerQueue.cpp
     # 脚本系统集成
     mod/bedrock/addon/ServerScriptManager.cpp
     mod/bedrock/addon/bridge/EventBridge.cpp

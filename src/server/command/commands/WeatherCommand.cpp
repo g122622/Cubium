@@ -24,7 +24,7 @@
 #include "WeatherCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/TimeArgument.hpp"
 #include "common/world/weather/WeatherState.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -71,7 +71,7 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
     auto clearDurationArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", IntegerArgumentType::integer(0));
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", TimeArgumentType::time(1));
     clearDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setClear(ctx); });
     clearNode->addChild(clearDurationArg);
     clearNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -81,7 +81,7 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     auto rainNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("rain");
     auto rainDurationArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", IntegerArgumentType::integer(0));
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", TimeArgumentType::time(1));
     rainDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setRain(ctx); });
     rainNode->addChild(rainDurationArg);
     rainNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {
@@ -91,7 +91,7 @@ void WeatherCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     auto thunderNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("thunder");
     auto thunderDurationArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", IntegerArgumentType::integer(0));
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("duration", TimeArgumentType::time(1));
     thunderDurationArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setThunder(ctx); });
     thunderNode->addChild(thunderDurationArg);
     thunderNode->setCommand([](CommandContext<ServerCommandSource>& ctx) {

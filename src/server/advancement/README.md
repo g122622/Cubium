@@ -19,7 +19,8 @@ server/advancement/
 │  ┌────────────────────────────────────────────────────────────────┐  │
 │  │ 订阅事件：InventoryChangedEvent、PlayerKillEntityEvent、        │  │
 │  │ BlockPlaceEvent、CuredZombieVillagerEvent、ServerTickEvent、    │  │
-│  │ VillagerTradeEvent、BredAnimalsEvent、ConsumeItemEvent 等      │  │
+│  │ VillagerTradeEvent、BredAnimalsEvent、ConsumeItemEvent、       │  │
+│  │ TameAnimalEvent、SummonedEntityEvent 等                        │  │
 │  └────────────────────────────────────────────────────────────────┘  │
 └───────────────────────────────┬──────────────────────────────────────┘
                                 │ 触发
@@ -48,7 +49,7 @@ server/advancement/
 │              → 配方解锁（Player::unlockRecipes）                      │
 │              → 战利品表（LootTable::generate + PlayerInventory::add  │
 │                + ItemDropHelper::spawnItemEntity 处理溢出）           │
-│              → 函数执行（TODO: 需要命令/函数系统实现）                 │
+│              → 函数执行（FunctionManager::execute，通过 ServerCommandSource 执行） │
 │                                                                      │
 │  持久化：                                                             │
 │  onAdvancementsReloaded → toJson() → loadFromJson() → flushAdvanc-  │
@@ -122,7 +123,7 @@ server/advancement/
 1. **经验值**：调用 `ServerPlayer::addExperience()`，无 ServerPlayer 时跳过
 2. **配方解锁**：调用 `ServerPlayer::unlockRecipes()`，无 ServerPlayer 时跳过
 3. **战利品表**：通过 `LootTableManager` 获取战利品表，使用 `LootContextBuilder` 构建 `chest` 参数集上下文（THIS_ENTITY=玩家, KILLER_PLAYER=玩家），生成物品后添加到玩家物品栏，溢出部分通过 `ItemDropHelper::spawnItemEntity()` 掉落在玩家位置
-4. **函数执行**：TODO，需要命令/函数系统（`FunctionManager`）实现后集成
+4. **函数执行**：通过 `IServer::functionManager()` 获取 `FunctionManager`，使用 `gamemaster` 权限等级的 `ServerCommandSource` 执行函数中的命令。函数不存在时输出警告。
 
 ## 容易踩的坑
 
@@ -165,3 +166,14 @@ server/advancement/
 17. **m_manager 缓存**：`PlayerAdvancements` 在 `flushAdvancements()` 和 `onAdvancementsReloaded()` 中缓存 `AdvancementManager` 指针到 `m_manager`，用于 `_ensureVisibility()` 和 `_shouldShow()` 查找父成就。如果 `m_manager` 为空，`_ensureVisibility()` 回退到 `_shouldShow()` 的简化逻辑，`_shouldShow()` 在无 manager 时默认可见（非隐藏且有 display）。
 
 18. **战利品表奖励的物品溢出**：`_grantRewards()` 将战利品表生成的物品添加到玩家物品栏，如果物品栏已满，剩余物品通过 `ItemDropHelper::spawnItemEntity()` 掉落在玩家位置，使用玩家的 UUID 作为掉落者标识以设置拾取延迟。
+
+19. **TameAnimalTrigger 事件链**：玩家成功驯服动物时触发。驯服路径包括：
+    - 鹦鹉驯服：`ParrotEntity::interactMob()` → `setTamed(true)` + `setOwnerId()` → `IWorld::onTameAnimal()` → `ServerWorld::onTameAnimal()` → `ServerEventBus::publish(TameAnimalEvent)` → `AdvancementEventHandler::_onTameAnimal()`
+    - 马驯服：`RunAroundLikeCrazyGoal` → `AbstractHorseEntity::setTamedBy()` → `IWorld::onTameAnimal()` → 同上
+    - **未实现**：狼（WolfEntity）和猫（CatEntity）尚未实现 `interactMob()` 驯服交互，驯服触发点待实现后接入
+
+20. **SummonedEntityTrigger 事件链**：玩家召唤实体时触发。当前触发路径：
+    - `/summon` 命令：`SummonCommand` → `world->spawnEntity()` → `IWorld::onSummonedEntity()` → `ServerWorld::onSummonedEntity()` → `ServerEventBus::publish(SummonedEntityEvent)` → `AdvancementEventHandler::_onSummonedEntity()`
+    - **未实现**：铁傀儡/雪傀儡建造（`CarvedPumpkinBlock`）、凋灵建造（`WitherSkullBlock` 未实现）、末影龙重生（`EndDragonFight` 未实现）。这些场景需要重构以获取附近玩家信息后触发
+
+21. **PlayerInteractedWithEntityTrigger 触发路径**：不通过 IWorld 回调，而是在 `PacketHandler::handleUseEntity()` 中直接调用 `AbstractCriterionTrigger<PlayerInteractedWithEntityTriggerInstance>::trigger()`。当交互结果为 `Success` 或 `Consume` 时，获取玩家手持物品和目标实体进行谓词匹配。

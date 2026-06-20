@@ -29,7 +29,9 @@
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/block/registry/NaturalBlocks.hpp"
+#include "../../../../world/block/registry/VanillaBlocks.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../entities/passive/basic/CowEntity.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
@@ -220,6 +222,28 @@ void MooshroomEntity::registerGoals()
     CowEntity::registerGoals();
 
     // 哞菇没有额外行为，完全继承牛的行为
+}
+
+// ========== 寻路权重 ==========
+
+f32 MooshroomEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    // 哞菇偏好菌丝：站在菌丝上返回10.0f，否则返回亮度相关值
+    // 对应 MC MushroomCow.getWalkTargetValue:
+    //   return level.getBlockState(pos.below()).is(Blocks.MYCELIUM) ? 10.0F
+    //        : level.getPathfindingCostFromLightLevels(pos);
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+
+    BlockPos posBelow(static_cast<i32>(x), static_cast<i32>(y) - 1, static_cast<i32>(z));
+    const BlockState* groundBlock = worldPtr->getBlockState(posBelow);
+    if (groundBlock != nullptr && groundBlock->is(block_registry::NaturalBlocks::MYCELIUM)) {
+        return 10.0f;
+    }
+
+    return AnimalEntity::getPathWeight(x, y, z);
 }
 
 } // namespace mc

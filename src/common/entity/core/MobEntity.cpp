@@ -264,11 +264,12 @@ void MobEntity::dropExperience()
 bool MobEntity::isInDaylight() const
 {
     // 检查条件：
-    // 1. 世界为白天 (isDaytime)
-    // 2. 不在客户端
+    // 1. 不在客户端
+    // 2. 世界为白天 (isDaytime)
     // 3. 亮度 > 0.5
-    // 4. 随机检查
-    // 5. 天空可见 (canSeeSky)
+    // 4. 随机检查（亮度越高概率越大）
+    // 5. 不在水中或雨中
+    // 6. 天空可见 (canSeeSky)
 
     if (m_world == nullptr || m_world->isClientSide()) {
         return false;
@@ -293,6 +294,11 @@ bool MobEntity::isInDaylight() const
         return false;
     }
 
+    // 在水中或雨中时不燃烧
+    if (isWet()) {
+        return false;
+    }
+
     // 获取检测位置
     // 如果骑乘船，检测位置向上偏移一格
     BlockPos pos(
@@ -311,6 +317,44 @@ bool MobEntity::isInDaylight() const
     }
 
     return m_world->canSeeSky(pos);
+}
+
+void MobEntity::burnUndead()
+{
+    if (!isAlive() || !isInDaylight()) {
+        return;
+    }
+
+    // 获取防护槽位中的物品
+    EquipmentSlot protectionSlot = sunProtectionSlot();
+    ItemStack& protectionItem = m_equipment[static_cast<size_t>(protectionSlot)];
+
+    if (!protectionItem.isEmpty()) {
+        // 防护槽位有物品：如果物品可损坏，则物品承受耐久损耗
+        // 注意：此处直接增加伤害值，绕过耐久保护附魔，与 MC 原版行为一致
+        if (protectionItem.isDamageable()) {
+            math::Random rng = getRandom();
+            i32 addedDamage = rng.nextInt(2); // 0 或 1
+            if (addedDamage > 0) {
+                i32 newDamage = protectionItem.getDamage() + addedDamage;
+                i32 maxDamage = protectionItem.getMaxDamage();
+
+                // 在物品被销毁之前保存物品引用，用于 onEquippedItemBroken 回调
+                const Item* brokenItem = (newDamage >= maxDamage) ? protectionItem.getItem() : nullptr;
+
+                protectionItem.setDamage(newDamage);
+
+                // 物品损坏时触发回调：广播装备破损动画、播放音效
+                if (brokenItem != nullptr) {
+                    onEquippedItemBroken(*brokenItem, protectionSlot);
+                }
+            }
+        }
+        // 如果物品不可损坏（如附魔绑定/无限耐久），实体也不会燃烧
+    } else {
+        // 防护槽位为空：实体被点燃 8 秒
+        setFire(8);
+    }
 }
 
 bool MobEntity::canAttackType(entity::EntityTypeId typeId) const
@@ -651,30 +695,10 @@ void MobEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // NoAI (byte) - 无 AI
     tag.put(nbt_keys::NO_AI, static_cast<i8>(m_aiEnabled ? 0 : 1));
 
-    // HandDropChances / ArmorDropChances (float list)
-    // 掉落概率序列化，同时写入旧格式（float 列表）和新格式（drop_chances
-    // compound）以保证兼容性。TODO：彻底移除旧的格式及其兼容代码 新格式 drop_chances 只写入非默认值（不等于 0.085
-    // 的槽位）。
-
-    // 旧格式：HandDropChances（主手、副手）
-    {
-        auto handChances = std::make_unique<nbt::tags::float_list_tag>();
-        handChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::MainHand)]);
-        handChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::OffHand)]);
-        tag.value.emplace(nbt_keys::HAND_DROP_CHANCES, std::move(handChances));
-    }
-
-    // 旧格式：ArmorDropChances（脚、腿、胸、头）
-    {
-        auto armorChances = std::make_unique<nbt::tags::float_list_tag>();
-        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Feet)]);
-        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Legs)]);
-        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Chest)]);
-        armorChances->value.push_back(m_equipmentDropChances[static_cast<size_t>(EquipmentSlot::Head)]);
-        tag.value.emplace(nbt_keys::ARMOR_DROP_CHANCES, std::move(armorChances));
-    }
-
-    // 新格式：drop_chances（compound，仅包含非默认值）
+    // DropChances（compound，仅包含非默认值）
+    // 新格式：drop_chances compound，与 MC Java DropChances.filterDefaultValues 一致。
+    // 旧格式 HandDropChances/ArmorDropChances（float list）已废弃，不再写入，
+    // 但加载时仍兼容旧格式以保证存档兼容性。
     {
         nbt::tags::compound_tag dropChancesTag;
         // 装备槽位名称映射

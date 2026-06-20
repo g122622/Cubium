@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 
 using namespace mc;
 
@@ -265,4 +265,189 @@ TEST_F(BlockTagsTest, StriderWarmBlocksDoesNotContainStone)
 TEST_F(BlockTagsTest, StriderWarmBlocksIdIsCorrect)
 {
     EXPECT_EQ(BlockTags::STRIDER_WARM_BLOCKS().getId(), ResourceLocation("minecraft", "strider_warm_blocks"));
+}
+
+// ============================================================================
+// WOOL_CARPETS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, WoolCarpetsContainsWhiteCarpet)
+{
+    EXPECT_TRUE(BlockTags::WOOL_CARPETS().contains(ResourceLocation("minecraft", "white_carpet")));
+}
+
+TEST_F(BlockTagsTest, WoolCarpetsContainsBlackCarpet)
+{
+    EXPECT_TRUE(BlockTags::WOOL_CARPETS().contains(ResourceLocation("minecraft", "black_carpet")));
+}
+
+TEST_F(BlockTagsTest, WoolCarpetsDoesNotContainWhiteWool)
+{
+    // WOOL_CARPETS 不包含羊毛方块，只有地毯
+    EXPECT_FALSE(BlockTags::WOOL_CARPETS().contains(ResourceLocation("minecraft", "white_wool")));
+}
+
+TEST_F(BlockTagsTest, WoolCarpetsIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::WOOL_CARPETS().getId(), ResourceLocation("minecraft", "wool_carpets"));
+}
+
+// ============================================================================
+// DAMPENS_VIBRATIONS 标签测试 - 包含羊毛和地毯
+// ============================================================================
+
+TEST_F(BlockTagsTest, DampensVibrationsContainsWhiteWool)
+{
+    EXPECT_TRUE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "white_wool")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsContainsBlackWool)
+{
+    EXPECT_TRUE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "black_wool")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsContainsWhiteCarpet)
+{
+    // MC 原版 DAMPENS_VIBRATIONS 包含地毯方块
+    EXPECT_TRUE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "white_carpet")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsContainsBlackCarpet)
+{
+    EXPECT_TRUE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "black_carpet")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::DAMPENS_VIBRATIONS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, DampensVibrationsIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::DAMPENS_VIBRATIONS().getId(), ResourceLocation("minecraft", "dampens_vibrations"));
+}
+
+// ============================================================================
+// STAIRS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, StairsTagContainsStoneBrickStairs)
+{
+    if (!VanillaBlocks::STONE_BRICK_STAIRS) {
+        GTEST_SKIP() << "STONE_BRICK_STAIRS block not registered";
+    }
+    EXPECT_TRUE(BlockTags::STAIRS().contains(*VanillaBlocks::STONE_BRICK_STAIRS));
+}
+
+TEST_F(BlockTagsTest, StairsTagContainsMossyStoneBrickStairs)
+{
+    if (!VanillaBlocks::MOSSY_STONE_BRICK_STAIRS) {
+        GTEST_SKIP() << "MOSSY_STONE_BRICK_STAIRS block not registered";
+    }
+    EXPECT_TRUE(BlockTags::STAIRS().contains(*VanillaBlocks::MOSSY_STONE_BRICK_STAIRS));
+}
+
+TEST_F(BlockTagsTest, StairsTagDoesNotContainStoneBricks)
+{
+    // 石砖不是楼梯
+    if (!VanillaBlocks::STONE_BRICKS) {
+        GTEST_SKIP() << "STONE_BRICKS block not registered";
+    }
+    EXPECT_FALSE(BlockTags::STAIRS().contains(*VanillaBlocks::STONE_BRICKS));
+}
+
+TEST_F(BlockTagsTest, StairsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::STAIRS().getId(), ResourceLocation("minecraft", "stairs"));
+}
+
+TEST_F(BlockTagsTest, StairsTagContainsResourceLocation)
+{
+    EXPECT_TRUE(BlockTags::STAIRS().contains(ResourceLocation("minecraft", "oak_stairs")));
+    EXPECT_TRUE(BlockTags::STAIRS().contains(ResourceLocation("minecraft", "stone_brick_stairs")));
+    EXPECT_TRUE(BlockTags::STAIRS().contains(ResourceLocation("minecraft", "mossy_stone_brick_stairs")));
+    EXPECT_FALSE(BlockTags::STAIRS().contains(ResourceLocation("minecraft", "stone_bricks")));
+}
+
+// ============================================================================
+// SLABS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, SlabsTagContainsStoneBrickSlab)
+{
+    if (!VanillaBlocks::STONE_BRICK_SLAB) {
+        GTEST_SKIP() << "STONE_BRICK_SLAB block not registered";
+    }
+    EXPECT_TRUE(BlockTags::SLABS().contains(*VanillaBlocks::STONE_BRICK_SLAB));
+}
+
+TEST_F(BlockTagsTest, SlabsTagContainsMossyStoneBrickSlab)
+{
+    if (!VanillaBlocks::MOSSY_STONE_BRICK_SLAB) {
+        GTEST_SKIP() << "MOSSY_STONE_BRICK_SLAB block not registered";
+    }
+    EXPECT_TRUE(BlockTags::SLABS().contains(*VanillaBlocks::MOSSY_STONE_BRICK_SLAB));
+}
+
+TEST_F(BlockTagsTest, SlabsTagDoesNotContainStoneBrickStairs)
+{
+    // 楼梯不是台阶
+    if (!VanillaBlocks::STONE_BRICK_STAIRS) {
+        GTEST_SKIP() << "STONE_BRICK_STAIRS block not registered";
+    }
+    EXPECT_FALSE(BlockTags::SLABS().contains(*VanillaBlocks::STONE_BRICK_STAIRS));
+}
+
+TEST_F(BlockTagsTest, SlabsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::SLABS().getId(), ResourceLocation("minecraft", "slabs"));
+}
+
+TEST_F(BlockTagsTest, SlabsTagContainsResourceLocation)
+{
+    EXPECT_TRUE(BlockTags::SLABS().contains(ResourceLocation("minecraft", "oak_slab")));
+    EXPECT_TRUE(BlockTags::SLABS().contains(ResourceLocation("minecraft", "stone_brick_slab")));
+    EXPECT_FALSE(BlockTags::SLABS().contains(ResourceLocation("minecraft", "stone_brick_stairs")));
+}
+
+// ============================================================================
+// WALLS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, WallsTagContainsStoneBrickWall)
+{
+    if (!VanillaBlocks::STONE_BRICK_WALL) {
+        GTEST_SKIP() << "STONE_BRICK_WALL block not registered";
+    }
+    EXPECT_TRUE(BlockTags::WALLS().contains(*VanillaBlocks::STONE_BRICK_WALL));
+}
+
+TEST_F(BlockTagsTest, WallsTagContainsMossyStoneBrickWall)
+{
+    if (!VanillaBlocks::MOSSY_STONE_BRICK_WALL) {
+        GTEST_SKIP() << "MOSSY_STONE_BRICK_WALL block not registered";
+    }
+    EXPECT_TRUE(BlockTags::WALLS().contains(*VanillaBlocks::MOSSY_STONE_BRICK_WALL));
+}
+
+TEST_F(BlockTagsTest, WallsTagDoesNotContainStoneBricks)
+{
+    // 石砖不是墙
+    if (!VanillaBlocks::STONE_BRICKS) {
+        GTEST_SKIP() << "STONE_BRICKS block not registered";
+    }
+    EXPECT_FALSE(BlockTags::WALLS().contains(*VanillaBlocks::STONE_BRICKS));
+}
+
+TEST_F(BlockTagsTest, WallsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::WALLS().getId(), ResourceLocation("minecraft", "walls"));
+}
+
+TEST_F(BlockTagsTest, WallsTagContainsResourceLocation)
+{
+    EXPECT_TRUE(BlockTags::WALLS().contains(ResourceLocation("minecraft", "cobblestone_wall")));
+    EXPECT_TRUE(BlockTags::WALLS().contains(ResourceLocation("minecraft", "stone_brick_wall")));
+    EXPECT_TRUE(BlockTags::WALLS().contains(ResourceLocation("minecraft", "mossy_stone_brick_wall")));
+    EXPECT_FALSE(BlockTags::WALLS().contains(ResourceLocation("minecraft", "stone_bricks")));
 }

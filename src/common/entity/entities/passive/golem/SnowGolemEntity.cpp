@@ -42,6 +42,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -303,10 +304,7 @@ bool SnowGolemEntity::_canPlaceSnow() const
     // 1. mobGriefing 规则允许
     // 2. 实体存活
     // 3. 不是客户端
-
-    // TODO: world() 在 const 方法中返回 const IWorld*，但 isClientSide() 和 getGameRules()
-    // 是非 const 方法。考虑改进 IWorld 接口，使这些方法成为 const，或提供一个非 const 重载。
-    IWorld* worldPtr = const_cast<IWorld*>(world());
+    const IWorld* worldPtr = world();
     if (worldPtr == nullptr || worldPtr->isClientSide()) {
         return false;
     }
@@ -330,7 +328,7 @@ void SnowGolemEntity::_placeSnowLayer()
         return;
     }
 
-    IWorld* worldPtr = const_cast<IWorld*>(world());
+    IWorld* worldPtr = world();
 
     for (i32 i = 0; i < 4; ++i) {
         // 计算偏移位置
@@ -362,7 +360,10 @@ void SnowGolemEntity::_placeSnowLayer()
         }
 
         // 放置雪层
-        // TODO: 完整实现需要检查 blockstate.isValidPosition()
+        // 放置前需检查雪层能否存活
+        if (!blocks::SnowBlock::canSurviveAt(*worldPtr, pos)) {
+            continue;
+        }
         worldPtr->setBlockState(pos.x, pos.y, pos.z, snowState, 3);
     }
 }

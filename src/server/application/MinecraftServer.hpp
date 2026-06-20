@@ -57,6 +57,8 @@
 #include "server/core/TimeManager.hpp"
 #include "server/core/WhitelistManager.hpp"
 #include "server/dimension/ServerDimensionManager.hpp"
+#include "server/function/FunctionManager.hpp"
+#include "server/function/TimerQueue.hpp"
 #include "server/interaction/BlockInteractionManager.hpp"
 #include "server/interaction/ContainerManager.hpp"
 #include "server/interaction/InventoryManager.hpp"
@@ -309,8 +311,14 @@ public:
      */
     [[nodiscard]] mc::loot::LootTableManager& lootTableManager() override { return m_lootTableManager; }
     [[nodiscard]] const mc::loot::LootTableManager& lootTableManager() const override { return m_lootTableManager; }
-    [[nodiscard]] mc::loot::LootPredicateManager& predicateManager() { return m_predicateManager; }
-    [[nodiscard]] const mc::loot::LootPredicateManager& predicateManager() const { return m_predicateManager; }
+
+    [[nodiscard]] mc::function::FunctionManager& functionManager() override { return m_functionManager; }
+    [[nodiscard]] const mc::function::FunctionManager& functionManager() const override { return m_functionManager; }
+
+    [[nodiscard]] mc::function::TimerQueue& functionTimerQueue() override { return m_functionTimerQueue; }
+    [[nodiscard]] const mc::function::TimerQueue& functionTimerQueue() const override { return m_functionTimerQueue; }
+    [[nodiscard]] mc::loot::LootPredicateManager& predicateManager() override { return m_predicateManager; }
+    [[nodiscard]] const mc::loot::LootPredicateManager& predicateManager() const override { return m_predicateManager; }
     [[nodiscard]] world::storage::SingleLevelStorageManager* sharedStorage() override { return m_storage.get(); }
     [[nodiscard]] const world::storage::SingleLevelStorageManager* sharedStorage() const override
     {
@@ -902,6 +910,10 @@ protected:
     mc::loot::LootPredicateManager m_predicateManager;
     PackRepository m_resourcePackList;
     mc::resource::DataPackRepository m_dataPackList;
+
+    // 函数系统
+    mc::function::FunctionManager m_functionManager;
+    mc::function::TimerQueue m_functionTimerQueue;
 
     // 脚本系统
     std::unique_ptr<ServerScriptManager> m_scriptManager;

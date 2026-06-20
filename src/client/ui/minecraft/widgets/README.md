@@ -60,6 +60,8 @@ Widgets 模块负责把游戏状态转换成玩家可见的 UI 表达。它既�
 
 - **命名空间不一致**：本目录下存在两个命名空间。`ChatWidget`、`CrosshairWidget`、`HudWidget`、`ScreenStackWidget`、`TitleWidget` 位于 `mc::client::ui::minecraft::widgets`；而 `HealthBarWidget`、`HotbarWidget`、`HungerBarWidget`、`ExperienceBar`、`InventorySlot`、`SlotWidget`、`Viewport3DWidget` 位于 `mc::client::ui::minecraft`（少一层 widgets）。引用时需注意。
 - `ChatWidget` 必须在命令管理器绑定后再进入交互状态，否则补全不会刷新。
+- `ChatWidget` 光标移动、删除和宽度计算均基于码点索引（使用 `util::text::Utf8.hpp`），而非字节偏移。修改时务必使用 `utf8NextCodepointIndex`、`utf8PrevCodepointIndex`、`utf8CodepointToByteOffset` 等工具函数操作字符串，避免截断多字节字符。
+- `ChatWidget` 根据 `ChatMessageType` 路由消息：`Chat`/`System` 进入聊天历史并渲染，`Actionbar`/`GameInfo` 通过 `ActionbarCallback` 路由到 `TitleWidget` 的动作栏区域。
 - 断开连接或切换世界后，聊天补全需要同步清空，不能继续使用旧命令树。
 - `ScreenStackWidget` 同时兼容旧屏幕接口和新 `Screen` 类型，迁移时不要把两套栈混用。
 - HUD 组件依赖渲染资源和玩家状态都已初始化，否则会出现空白或闪烁。

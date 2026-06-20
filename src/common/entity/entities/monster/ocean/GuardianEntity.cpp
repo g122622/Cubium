@@ -24,6 +24,10 @@
 #include "GuardianEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../sound/SoundEvents.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/fluid/Fluid.hpp"
+#include "../../../../world/fluid/FluidTags.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
@@ -196,6 +200,27 @@ std::optional<ResourceLocation> GuardianEntity::getDeathSound() const
 void GuardianEntity::playLaserSound()
 {
     playSound(SoundEvents::ENTITY_GUARDIAN_ATTACK, 1.0f, 1.0f);
+}
+
+f32 GuardianEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    // 守卫者偏好水中位置：在水中返回 10.0f + lightCost，否则返回父类值
+    // 对应 MC Guardian.getWalkTargetValue:
+    //   return fluid.is(WATER) ? 10.0F + level.getPathfindingCostFromLightLevels(pos)
+    //                          : super.getWalkTargetValue(pos, level);
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+
+    BlockPos pos(static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(z));
+    const fluid::FluidState* fluid = worldPtr->getFluidState(pos);
+    if (fluid != nullptr && !fluid->isEmpty() && fluid->getFluid().isIn(fluid::FluidTags::WATER())) {
+        f32 brightness = worldPtr->getBrightness(pos);
+        return 10.0f + (brightness - 0.5f);
+    }
+
+    return MonsterEntity::getPathWeight(x, y, z);
 }
 
 } // namespace mc

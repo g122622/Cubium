@@ -289,20 +289,9 @@ void SkeletonHorseEntity::tick()
         }
     }
 
-    // 骷髅马阳光燃烧逻辑
-    // 注意：骷髅马不是 MonsterEntity 的子类，所以需要手动实现阳光燃烧
-    if (isAlive() && shouldBurnInDaylight() && isInDaylight()) {
-        // 检查头盔保护
-        // 如果戴着头盔，头盔会受损而不是燃烧
-        // 骷髅马通常不戴头盔，但为完整性保留此逻辑
-        const ItemStack& helmet = getEquipment(EquipmentSlot::Head);
-        if (helmet.isEmpty()) {
-            // 没有头盔，燃烧 8 秒
-            setFire(8);
-        }
-        // TODO: 如果有头盔，应该损坏头盔而不是燃烧
-        // 这需要实现 ItemStack.damage() 方法
-    }
+    // 注意：MC 原版中骷髅马不在 BURN_IN_DAYLIGHT 标签中，不会在阳光下燃烧。
+    // 骷髅马是被动生物（AnimalEntity 子类），不是亡灵怪物，因此不参与
+    // MobEntity::burnUndead() 的燃烧逻辑。
 }
 
 void SkeletonHorseEntity::registerGoals()

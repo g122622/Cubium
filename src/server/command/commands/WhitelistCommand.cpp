@@ -25,6 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/PlayerResolver.hpp"
@@ -190,9 +191,10 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
 
     if (selector.hasUsername()) {
         playerName = selector.username();
-        // 离线玩家无法获取真实 UUID，使用玩家名生成离线模式 UUID
-        // TODO: 正式服务器应从 Mojang API 获取真实 UUID
-        playerUuid = _generateUuidFromName(playerName);
+        // 离线玩家无法获取真实 UUID，使用 MC 原版离线模式 UUID 算法
+        // 算法：UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(UTF_8))
+        // 参考: net.minecraft.core.UUIDUtil.createOfflinePlayerUUID
+        playerUuid = util::uuidToStringWithDashes(util::generateOfflineUuid(playerName));
     } else {
         std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
         if (!playerIds.empty()) {
@@ -202,10 +204,16 @@ i32 WhitelistCommand::_whitelistAdd(CommandContext<ServerCommandSource>& context
                 if (playerData != nullptr) {
                     playerName = playerData->username;
                     // 在线玩家使用其真实 UUID
-                    playerUuid = playerData->uuid;
+                    // ServerPlayerData::uuid 存储为 32 字符无连字符格式，
+                    // 白名单 JSON 使用带连字符的标准格式，需要转换
+                    const auto& rawUuid = playerData->uuid;
+                    if (!rawUuid.empty()) {
+                        Uuid parsed = util::uuidFromString(rawUuid);
+                        playerUuid = util::uuidToStringWithDashes(parsed);
+                    }
                     if (playerUuid.empty()) {
-                        // UUID 为空时回退到离线模式 UUID
-                        playerUuid = _generateUuidFromName(playerName);
+                        // UUID 为空或解析失败时回退到离线模式 UUID
+                        playerUuid = util::uuidToStringWithDashes(util::generateOfflineUuid(playerName));
                     }
                 }
             }
@@ -369,36 +377,6 @@ void WhitelistCommand::_kickNonWhitelistedPlayers(ServerCommandSource& source)
     if (!playersToKick.empty()) {
         spdlog::info("Kicked {} player(s) not on the whitelist", playersToKick.size());
     }
-}
-
-std::string WhitelistCommand::_generateUuidFromName(const std::string& name)
-{
-    // 生成离线模式 UUID（与 MC 原版 OfflineUUID 算法一致）
-    // 原版使用 UUID.nameUUIDFromBytes("OfflinePlayer:" + name)
-    // TODO: 正式服务器应从 Mojang API 获取真实 UUID
-    std::hash<std::string> hasher;
-    size_t hash = hasher(name);
-
-    // 格式化为 UUID 格式：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-    std::ostringstream ss;
-    ss << std::hex;
-
-    // 第一段 (8 字符)
-    ss << ((hash >> 0) & 0xFFFFFFFF);
-    ss << "-";
-    // 第二段 (4 字符)
-    ss << ((hash >> 32) & 0xFFFF);
-    ss << "-";
-    // 第三段 (4 字符)
-    ss << ((hash >> 48) & 0xFFFF);
-    ss << "-";
-    // 第四段 (4 字符)
-    ss << ((hasher(name + "salt1") >> 0) & 0xFFFF);
-    ss << "-";
-    // 第五段 (12 字符)
-    ss << ((hasher(name + "salt2") >> 0) & 0xFFFFFFFFFFFF);
-
-    return ss.str();
 }
 
 } // namespace command

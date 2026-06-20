@@ -58,10 +58,7 @@ TEST_F(SkeletonHorseEntityTest, Construction)
     // 骷髅马默认已驯服
     EXPECT_TRUE(m_horse->isTame());
 
-    // 骷髅马可以在阳光下燃烧
-    EXPECT_TRUE(m_horse->shouldBurnInDaylight());
-
-    // 骷髅马可以水下呼吸
+    // 骷髅马可以在水下呼吸
     EXPECT_TRUE(m_horse->canBreatheUnderwater());
 
     // 骷髅马不能繁殖
@@ -128,19 +125,6 @@ TEST_F(SkeletonHorseEntityTest, TrapStateRegistersGoal)
 
     // 陷阱马状态应该取消
     EXPECT_FALSE(m_horse->isTrap());
-}
-
-// ============================================================================
-// 阳光燃烧测试
-// ============================================================================
-
-/**
- * @brief 测试阳光燃烧标志
- */
-TEST_F(SkeletonHorseEntityTest, ShouldBurnInDaylight)
-{
-    // 骷髅马应该在阳光下燃烧
-    EXPECT_TRUE(m_horse->shouldBurnInDaylight());
 }
 
 // ============================================================================

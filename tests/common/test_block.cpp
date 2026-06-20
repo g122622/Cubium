@@ -229,7 +229,7 @@ public:
     [[nodiscard]] i64 dayTime() const override { return 0; }
     [[nodiscard]] bool isHardcore() const override { return false; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
-    [[nodiscard]] bool isClientSide() override { return false; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
     [[nodiscard]] bool isRaining() const override { return m_isRaining; }
     [[nodiscard]] bool canRainAt(const BlockPos&) const override { return m_canRainAt; }
 

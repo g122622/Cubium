@@ -370,7 +370,16 @@ if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
 
 新增或修改铁傀儡的任何动画/状态时，三端缺一不可。
 
-### 28. Entity::getComparatorOutput() 比较器信号
+### 28. TNT矿车引燃状态同步
+
+TNT矿车引燃涉及服务端、网络包、客户端三端同步，与铁傀儡状态同步模式一致：
+- **服务端**：`TNTMinecartEntity::_ignite()` 通过 `IWorld::broadcastEntityStatus()` 广播 `EntityStatusPacket::Status::EatBlock(10)`，并调用 `Entity::playSound(ENTITY_TNT_PRIMED)` 播放音效
+- **网络包**：`EntityPackets.hpp` 中 `EntityStatusPacket::Status::EatBlock` 被羊吃草和TNT矿车引燃共用（status code 10）
+- **客户端**：`ClientApplicationNetwork.cpp` 的 `onEntityStatus` 回调根据 `typeId() == TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
+
+修改引燃逻辑或新增共用 status code 的实体状态时，三端必须同步更新。
+
+### 29. Entity::getComparatorOutput() 比较器信号
 
 `Entity` 基类提供 `virtual i32 getComparatorOutput() const` 方法，返回 0-15 的红石比较器信号强度。默认返回 0，需要输出信号的实体重写此方法。
 

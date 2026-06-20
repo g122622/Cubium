@@ -32,8 +32,9 @@ brain/
 │   ├── Task.hpp                 # 任务基类
 │   ├── README.md                # Task模块说明
 │   └── tasks/                   # 具体任务实现
-│       ├── movement/            # 移动相关任务
-│       │   └── MovementTasks.hpp
+│       ├── movement/            # 移动相关任务（6个已实现）
+│       │   ├── MovementTasks.hpp
+│       │   └── README.md
 │       ├── action/              # 行动相关任务
 │       │   └── ActionTasks.hpp
 │       └── interact/            # 互动相关任务
@@ -63,6 +64,9 @@ Brain.hpp (主控制器)
     └── task/ (行为执行)
         ├── Task.hpp (基类)
         └── tasks/ (具体任务)
+            ├── movement/ (6个移动任务已实现：MoveToTargetTask, StrollTask, LookAtEntityTask, FindHiddenBlockTask, ChaseTask, FleeTask)
+            ├── action/ (行动任务)
+            └── interact/ (互动任务)
 ```
 
 数据流：`Sensor` 更新 `Memory` → `Schedule` 选择 `Activity` → `Task` 根据 `Memory` 执行行为
@@ -70,7 +74,7 @@ Brain.hpp (主控制器)
 ## 上下游外部依赖关系
 
 **被依赖（下游）**：
-- `entity/entities/villager/VillagerEntity.hpp` - 村民使用 Brain 系统
+- `entity/entities/villager/VillagerEntity.hpp` - 村民使用 Brain 系统，已集成全部 6 个移动任务
 - `entity/entities/monster/nether/PiglinEntity.hpp` - 猪灵使用 Brain 系统（框架就绪，待集成）
 
 **依赖（上游）**：
@@ -79,6 +83,21 @@ Brain.hpp (主控制器)
 - `world/IWorld.hpp` / `server/world/ServerWorld.hpp` - 世界访问
 - `world/GlobalPos.hpp` - 全局位置（记忆存储）
 - `world/village/poi/` - 兴趣点系统（工作站点、床等）
+
+## 任务系统
+
+移动类任务（6个）已实现并集成到 VillagerEntity：
+
+| 任务类 | 记忆依赖 | 功能 |
+|--------|---------|------|
+| `MoveToTargetTask` | WALK_TARGET(present) | 执行实际寻路和移动 |
+| `StrollTask` | WALK_TARGET(absent) | 随机漫步 |
+| `LookAtEntityTask` | LOOK_TARGET(absent) | 看向附近实体 |
+| `FindHiddenBlockTask` | HIDING_PLACE(absent), WALK_TARGET(absent) | 寻找隐蔽点 |
+| `ChaseTask` | ATTACK_TARGET(present) | 追逐攻击目标 |
+| `FleeTask` | AVOID_TARGET(present), WALK_TARGET(absent) | 逃离威胁 |
+
+任务之间通过记忆模块解耦：StrollTask/ChaseTask/FleeTask 写入 WALK_TARGET → MoveToTargetTask 读取并执行导航。
 
 ## 与 Goal 系统的区别
 

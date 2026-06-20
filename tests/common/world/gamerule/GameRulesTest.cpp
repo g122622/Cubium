@@ -420,5 +420,53 @@ TEST(GameRulesIntegrationTest, AllKeysWorkWithGameRules)
     rules.getBoolean(GameRuleKeys::NATURAL_REGENERATION);
     rules.getInt(GameRuleKeys::RANDOM_TICK_SPEED);
     rules.getInt(GameRuleKeys::MAX_ENTITY_CRAMMING);
+    rules.getBoolean(GameRuleKeys::TNT_EXPLODES);
     // No exceptions should be thrown
+}
+
+// ============================================================================
+// TNT Explodes Rule Tests
+// ============================================================================
+
+TEST(GameRulesTest, TntExplodes_DefaultIsTrue)
+{
+    GameRules rules;
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::TNT_EXPLODES));
+}
+
+TEST(GameRulesTest, TntExplodes_CanSetToFalse)
+{
+    GameRules rules;
+    rules.setBoolean(GameRuleKeys::TNT_EXPLODES, false);
+    EXPECT_FALSE(rules.getBoolean(GameRuleKeys::TNT_EXPLODES));
+}
+
+TEST(GameRulesTest, TntExplodes_CanReset)
+{
+    GameRules rules;
+    rules.setBoolean(GameRuleKeys::TNT_EXPLODES, false);
+    rules.reset("tntExplodes");
+    EXPECT_TRUE(rules.getBoolean(GameRuleKeys::TNT_EXPLODES)); // default is true
+}
+
+TEST(GameRulesTest, TntExplodes_RuleExists)
+{
+    EXPECT_TRUE(GameRules::hasRule("tntExplodes"));
+    EXPECT_EQ(GameRules::getRuleType("tntExplodes"), GameRuleValueType::Boolean);
+}
+
+TEST(GameRulesTest, TntExplodes_CategoryIsMisc)
+{
+    BooleanGameRuleKey key("tntExplodes", GameRuleCategory::Misc);
+    EXPECT_EQ(key.getCategory(), GameRuleCategory::Misc);
+}
+
+TEST(GameRulesTest, TntExplodes_NbtRoundTrip)
+{
+    GameRules rules;
+    rules.setBoolean(GameRuleKeys::TNT_EXPLODES, false);
+    auto nbt = rules.write();
+
+    GameRules rules2(*nbt);
+    EXPECT_FALSE(rules2.getBoolean(GameRuleKeys::TNT_EXPLODES));
 }

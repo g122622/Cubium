@@ -13,7 +13,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN AN EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -22,10 +22,12 @@
  */
 
 #include "AbstractRailBlock.hpp"
+#include "RailState.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 
 namespace mc {
 namespace blocks {
@@ -57,8 +59,9 @@ std::unique_ptr<RailShapeProperty> RailShapeProperty::create(const std::string& 
 // AbstractRailBlock
 // ============================================================================
 
-AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isPowered)
+AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isStraight, bool isPowered)
     : Block(properties)
+    , m_isStraight(isStraight)
     , m_isPowered(isPowered)
 {
     // 初始化形状
@@ -85,20 +88,31 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isP
 
 BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 根据相邻铁轨计算初始形状
-    BlockPos pos = context.placementPos();
-    const IWorld& world = context.getWorld();
-
-    // 简化实现：默认东西方向
-    RailShape shape = RailShape::EastWest;
-
-    // 根据玩家朝向调整
+    // 参考 MC Java: BaseRailBlock.getStateForPlacement
+    // 放置时只根据玩家朝向确定初始形状（南北或东西），不做邻居连接计算。
+    // 邻居连接计算在方块放置后由 updatePostPlacement / neighborChanged 触发，
+    // 因为此时该位置还不是铁轨，RailState 无法获取正确的方块状态。
     Direction facing = context.horizontalDirection();
+    RailShape defaultShape = RailShape::EastWest;
     if (facing == Direction::North || facing == Direction::South) {
-        shape = RailShape::NorthSouth;
+        defaultShape = RailShape::NorthSouth;
     }
 
-    return withRailShape(defaultState(), shape);
+    // TODO: MC Java 的 getStateForPlacement 还会检测放置位置是否含水，
+    // 并设置 WATERLOGGED 属性。当前项目中铁轨尚未实现含水逻辑，
+    // 需要在实现 WaterLoggable 接口后补充此部分。
+    return withRailShape(defaultState(), defaultShape);
+}
+
+void AbstractRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 参考 MC Java: BaseRailBlock.onPlace
+    // 铁轨放置后立即重新计算连接形状。
+    // getStateForPlacement 只根据玩家朝向返回初始形状，
+    // 真正的邻居连接计算在此处通过 updateDir 触发。
+    // 注意：MC Java 中此处使用 updateDir(world, pos, state, true)，
+    // 第二个参数 true 表示初始放置，会强制更新世界并传播连接到相邻铁轨。
+    (void)updateDir(world, pos, state, true);
 }
 
 BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
@@ -119,9 +133,45 @@ BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
         return state;
     }
 
-    // 重新计算铁轨形状
-    RailShape newShape = calculateRailShape(world, currentPos, state);
-    return withRailShape(state, newShape);
+    // 检查斜坡铁轨是否仍有支撑
+    if (shouldBeRemoved(state, blockReader, currentPos)) {
+        return state;
+    }
+
+    // 通过 RailState 重新计算铁轨形状
+    bool hasPower = world::redstone::RedstonePower::isPowered(world, currentPos);
+    RailState railState(world, currentPos, *this, state);
+    return railState.place(hasPower, false, getRailShape(state));
+}
+
+void AbstractRailBlock::neighborChanged(
+    IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving)
+{
+    MC_UNUSED(neighborBlock);
+    MC_UNUSED(neighborPos);
+    MC_UNUSED(isMoving);
+
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    // 检查是否仍然有效放置
+    IBlockReader& blockReader = static_cast<IBlockReader&>(world);
+    if (!isValidPosition(*state, blockReader, pos)) {
+        // 铁轨下方无支撑，移除方块（掉落物由 onBlockRemoved 处理）
+        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
+        return;
+    }
+
+    // 检查斜坡铁轨支撑
+    if (shouldBeRemoved(*state, blockReader, pos)) {
+        world.setBlockState(pos.x, pos.y, pos.z, nullptr, 3);
+        return;
+    }
+
+    // 更新铁轨状态
+    updateState(world, pos, *state, neighborBlock);
 }
 
 bool AbstractRailBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
@@ -150,124 +200,63 @@ const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const
     return m_shapes[0];
 }
 
-RailShape AbstractRailBlock::calculateRailShape(IWorld& world, const BlockPos& pos, const BlockState& state) const
+BlockState AbstractRailBlock::updateDir(IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock)
 {
-    // 检查四个方向的铁轨连接
-    bool north = isRailAt(static_cast<IBlockReader&>(world), pos.offset(Direction::North));
-    bool south = isRailAt(static_cast<IBlockReader&>(world), pos.offset(Direction::South));
-    bool east = isRailAt(static_cast<IBlockReader&>(world), pos.offset(Direction::East));
-    bool west = isRailAt(static_cast<IBlockReader&>(world), pos.offset(Direction::West));
-
-    // 检查斜坡
-    bool northUp = canAscendTo(static_cast<IBlockReader&>(world), pos, Direction::North);
-    bool southUp = canAscendTo(static_cast<IBlockReader&>(world), pos, Direction::South);
-    bool eastUp = canAscendTo(static_cast<IBlockReader&>(world), pos, Direction::East);
-    bool westUp = canAscendTo(static_cast<IBlockReader&>(world), pos, Direction::West);
-
-    // 计算连接数
-    i32 connections = (north ? 1 : 0) + (south ? 1 : 0) + (east ? 1 : 0) + (west ? 1 : 0);
-
-    // 优先处理斜坡
-    if (northUp) {
-        return RailShape::AscendingNorth;
-    }
-    if (southUp) {
-        return RailShape::AscendingSouth;
-    }
-    if (eastUp) {
-        return RailShape::AscendingEast;
-    }
-    if (westUp) {
-        return RailShape::AscendingWest;
-    }
-
-    // 根据连接数确定形状
-    if (connections == 0) {
-        // 无连接，保持当前方向或默认
-        RailShape currentShape = getRailShape(state);
-        if (currentShape == RailShape::NorthSouth || currentShape == RailShape::EastWest) {
-            return currentShape;
-        }
-        return RailShape::NorthSouth;
-    }
-
-    if (connections == 1) {
-        // 单连接，变成直轨
-        if (north || south) {
-            return RailShape::NorthSouth;
-        }
-        return RailShape::EastWest;
-    }
-
-    if (connections == 2) {
-        // 双连接
-        if (north && south) {
-            return RailShape::NorthSouth;
-        }
-        if (east && west) {
-            return RailShape::EastWest;
-        }
-        // 弯轨
-        if (north && east) {
-            return RailShape::NorthEast;
-        }
-        if (north && west) {
-            return RailShape::NorthWest;
-        }
-        if (south && east) {
-            return RailShape::SouthEast;
-        }
-        if (south && west) {
-            return RailShape::SouthWest;
-        }
-    }
-
-    // 三连接或四连接：保持当前形状
-    // TODO: 实际MC中三连接和四连接的处理更复杂，需要根据周围铁轨状态选择最佳形状
-    return getRailShape(state);
+    // TODO: MC Java 的 BaseRailBlock.updateDir 在客户端（isClientSide）直接返回原状态，
+    // 不执行 RailState 计算。当前项目尚未实现客户端/服务端区分，待实现后需补充此检查。
+    RailState railState(world, pos, *this, state);
+    bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
+    return railState.place(hasPower, updateBlock, getRailShape(state));
 }
 
-bool AbstractRailBlock::isRailAt(IBlockReader& world, const BlockPos& pos) const
+void AbstractRailBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock)
 {
-    const BlockState* state = world.getBlockState(pos);
-    if (state == nullptr) {
-        return false;
-    }
+    MC_UNUSED(neighborBlock);
 
-    // 检查方块是否为铁轨类型
-    const Block* block = &state->owner();
+    // 基类实现：重新计算铁轨方向
+    (void)updateDir(world, pos, state, false);
+
+    // 如果是动力铁轨类型，还需要传播更新
+    if (m_isPowered) {
+        world.updateNeighbors(pos, *this);
+    }
+}
+
+bool AbstractRailBlock::shouldBeRemoved(const BlockState& state, IBlockReader& world, const BlockPos& pos)
+{
+    // 获取铁轨方块并查询形状
+    const Block* block = &state.owner();
     const AbstractRailBlock* rail = dynamic_cast<const AbstractRailBlock*>(block);
     if (rail == nullptr) {
         return false;
     }
+    RailShape shape = rail->getRailShape(state);
 
-    // 使用该铁轨的属性检查方法
-    return rail->hasRailShapeProperty(*state);
-}
-
-bool AbstractRailBlock::canAscendTo(IBlockReader& world, const BlockPos& pos, Direction direction) const
-{
-    // 检查目标位置是否有铁轨
-    BlockPos targetPos = pos.offset(direction);
-    const BlockState* targetState = world.getBlockState(targetPos);
-
-    if (targetState == nullptr) {
-        return false;
+    // 斜坡铁轨需要在其上升方向上方有支撑方块
+    switch (shape) {
+        case RailShape::AscendingNorth: {
+            BlockPos supportPos = pos.north().up();
+            const BlockState* supportState = world.getBlockState(supportPos);
+            return supportState == nullptr || !supportState->isSolid();
+        }
+        case RailShape::AscendingSouth: {
+            BlockPos supportPos = pos.south().up();
+            const BlockState* supportState = world.getBlockState(supportPos);
+            return supportState == nullptr || !supportState->isSolid();
+        }
+        case RailShape::AscendingEast: {
+            BlockPos supportPos = pos.east().up();
+            const BlockState* supportState = world.getBlockState(supportPos);
+            return supportState == nullptr || !supportState->isSolid();
+        }
+        case RailShape::AscendingWest: {
+            BlockPos supportPos = pos.west().up();
+            const BlockState* supportState = world.getBlockState(supportPos);
+            return supportState == nullptr || !supportState->isSolid();
+        }
+        default:
+            return false;
     }
-
-    // 检查目标位置是否为铁轨类型
-    const Block* block = &targetState->owner();
-    const AbstractRailBlock* rail = dynamic_cast<const AbstractRailBlock*>(block);
-    if (rail == nullptr) {
-        return false;
-    }
-
-    // 检查目标位置上方是否有空间（矿车需要通过）
-    BlockPos abovePos(targetPos.x, targetPos.y + 1, targetPos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos);
-
-    // 上方需要是空气或非固体方块
-    return aboveState == nullptr || !aboveState->isSolid();
 }
 
 } // namespace blocks

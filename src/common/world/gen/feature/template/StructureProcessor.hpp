@@ -21,6 +21,12 @@
  *
  */
 
+// ============================================================================
+// 注意：本文件不在 CMakeLists.txt 编译列表中，仅供参考。
+// 实际实现在 Template.hpp/cpp 中。
+// 修改逻辑时，务必修改 Template.hpp/cpp，而非仅修改本文件。
+// ============================================================================
+
 #pragma once
 
 #include "BlockInfo.hpp"
@@ -57,6 +63,24 @@ public:
         const BlockInfo& rawBlockInfo,
         const BlockInfo& blockInfo,
         const PlacementSettings& settings);
+
+    /**
+     * @brief 后处理阶段：在所有方块的 process() 调用完成后，对完整方块列表进行批量处理
+     *
+     * 此方法在所有方块逐一经过 process() 处理完毕后被调用，允许处理器对完整列表做
+     * 跨方块批量操作（如 CappedStructureProcessor 限制替换次数）。
+     * 默认实现直接返回 processedBlocks，不做任何修改。
+     *
+     * @param seedPos 结构放置的锚点位置
+     * @param settings 放置设置
+     * @param originalBlocks 原始方块信息列表（变换坐标前，对应模板内坐标和状态）
+     * @param processedBlocks 经处理器链处理后的方块信息列表，可直接修改
+     * @return 处理后的方块信息列表（通常返回修改后的 processedBlocks）
+     */
+    [[nodiscard]] virtual std::vector<ProcessedBlockInfo> finalizeProcessing(const BlockPos& seedPos,
+        const PlacementSettings& settings,
+        const std::vector<BlockInfo>& originalBlocks,
+        std::vector<ProcessedBlockInfo> processedBlocks);
 
     /**
      * @brief 克隆处理器

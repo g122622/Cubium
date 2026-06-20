@@ -23,6 +23,7 @@
 
 #include "Block.hpp"
 #include "../../entity/core/Entity.hpp"
+#include "../../entity/damage/DamageSource.hpp"
 #include "../../entity/entities/player/Player.hpp"
 #include "../../item/context/BlockItemUseContext.hpp"
 #include "../../item/context/ItemUseContext.hpp"
@@ -261,6 +262,21 @@ void Block::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos&
     // 子类可以重写此方法实现特殊行为（如岩浆块造成伤害、岩浆方块产生气泡等）
 }
 
+void Block::onFallenUpon(IWorld& world, const BlockPos& pos, const BlockState& state, Entity& entity, f32 fallDistance)
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+
+    // 默认实现：施加普通摔落伤害
+    // 参考: net.minecraft.block.Block#fallOn — 调用 entity.causeFallDamage(fallDistance, 1.0F, damageSources().fall())
+    // 子类可重写此方法以自定义摔落行为：
+    // - 石笋方块：施加增大伤害，不调用父类（替代普通摔落伤害）
+    // - 海龟蛋方块：不调用父类（取消摔落伤害）
+    // - 耕地方块：先执行踩踏逻辑，再调用父类（保留普通摔落伤害）
+    entity.causeFallDamage(fallDistance, 1.0f, DamageSources::fall());
+}
+
 const CollisionShape& Block::getShape(const BlockState& state) const
 {
     (void)state;
@@ -278,6 +294,14 @@ const CollisionShape& Block::getCollisionShape(const BlockState& state) const
 const CollisionShape& Block::getOcclusionShape(const BlockState& state) const
 {
     return getShape(state);
+}
+
+const CollisionShape& Block::getBlockSupportShape(const BlockState& state) const
+{
+    // 默认返回碰撞形状，与 MC 一致
+    // 某些方块（如泥巴、灵魂沙）的碰撞形状比完整方块矮，但支撑形状是完整方块
+    // 参考: net.minecraft.block.Block#getBlockSupportShape
+    return getCollisionShape(state);
 }
 
 CollisionShape Block::getFaceOcclusionShape(const BlockState& state, Direction direction) const
@@ -675,8 +699,13 @@ bool Block::hasEnoughSolidSide(IWorld& world, const BlockPos& pos, Direction dir
         return false;
     }
 
-    // 检查指定方向是否有足够大的固体面
-    return state->isSolidSide(world, pos, direction);
+    // 参考: net.minecraft.block.Block#hasEnoughSolidSide
+    // 需要同时满足：1) 方块面是固体面  2) 碰撞形状在该方向的面投影覆盖整个面
+    if (!state->isSolidSide(world, pos, direction)) {
+        return false;
+    }
+
+    return doesSideFillSquare(state->getCollisionShape(), direction);
 }
 
 bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
@@ -686,11 +715,93 @@ bool Block::doesSideFillSquare(const CollisionShape& shape, Direction direction)
         return true;
     }
 
-    // 检查形状在指定面上的投影是否填充整个面
-    // 对于非完整方块，需要检查投影面积
-    // 简化实现：非完整方块的面不填充方形
-    (void)direction;
-    return false;
+    // 获取形状在指定方向上的面投影，检查投影是否覆盖整个面
+    // 参考: net.minecraft.block.Block#isFaceFull
+    CollisionShape faceShape = shape.getFaceShape(direction);
+    return faceShape.coversFullBlock();
+}
+
+bool Block::isFaceFull(const CollisionShape& shape, Direction direction)
+{
+    // 提取面投影并检查是否覆盖整个面
+    // 参考: net.minecraft.block.Block#isFaceFull(VoxelShape, Direction)
+    CollisionShape faceShape = shape.getFaceShape(direction);
+    return faceShape.coversFullBlock();
+}
+
+const BlockState& Block::pushEntitiesUp(
+    const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)
+{
+    // 参考: net.minecraft.block.Block#pushEntitiesUp
+    // 当方块碰撞形状增大时，将嵌入方块内的实体向上推出。
+    // 简化实现：使用新形状的世界包围盒找到实体，推出到新形状最大Y之上。
+    // 未来可迁移到 VoxelShape 布尔运算实现更精确的形状差异计算。
+
+    const CollisionShape& newShape = newState.getCollisionShape();
+    if (newShape.isEmpty()) {
+        return newState;
+    }
+
+    // 获取新形状在世界坐标中的所有碰撞箱
+    auto worldBoxes = newShape.getWorldBoxes(pos.x, pos.y, pos.z);
+    if (worldBoxes.empty()) {
+        return newState;
+    }
+
+    // 计算新形状的整体包围盒
+    f64 minX = worldBoxes[0].minX, minY = worldBoxes[0].minY, minZ = worldBoxes[0].minZ;
+    f64 maxX = worldBoxes[0].maxX, maxY = worldBoxes[0].maxY, maxZ = worldBoxes[0].maxZ;
+    for (size_t i = 1; i < worldBoxes.size(); ++i) {
+        minX = std::min(minX, static_cast<f64>(worldBoxes[i].minX));
+        minY = std::min(minY, static_cast<f64>(worldBoxes[i].minY));
+        minZ = std::min(minZ, static_cast<f64>(worldBoxes[i].minZ));
+        maxX = std::max(maxX, static_cast<f64>(worldBoxes[i].maxX));
+        maxY = std::max(maxY, static_cast<f64>(worldBoxes[i].maxY));
+        maxZ = std::max(maxZ, static_cast<f64>(worldBoxes[i].maxZ));
+    }
+
+    // 获取旧形状的最大Y（用于判断是否需要推出）
+    const CollisionShape& oldShape = oldState.getCollisionShape();
+    f64 oldMaxY = static_cast<f64>(pos.y);
+    if (!oldShape.isEmpty()) {
+        const auto& oldBoxes = oldShape.boxes();
+        for (const auto& box : oldBoxes) {
+            oldMaxY = std::max(oldMaxY, static_cast<f64>(pos.y) + box.maxY);
+        }
+    }
+
+    // 如果新形状的最大Y没有增大，不需要推出实体
+    if (maxY <= oldMaxY) {
+        return newState;
+    }
+
+    // 使用整体包围盒查找实体
+    AxisAlignedBB worldBox(static_cast<f32>(minX),
+        static_cast<f32>(minY),
+        static_cast<f32>(minZ),
+        static_cast<f32>(maxX),
+        static_cast<f32>(maxY),
+        static_cast<f32>(maxZ));
+
+    auto entities = world.getEntitiesInAABB(worldBox, nullptr);
+    for (auto* entity : entities) {
+        if (entity == nullptr) {
+            continue;
+        }
+
+        AxisAlignedBB entityBox = entity->boundingBox();
+        if (!entityBox.intersects(worldBox)) {
+            continue;
+        }
+
+        // 实体需要被推到新形状最大Y之上
+        f64 pushUp = maxY - static_cast<f64>(entityBox.minY);
+        if (pushUp > 0.0) {
+            entity->move(entity::MoverType::Piston, Vector3(0.0f, static_cast<f32>(pushUp), 0.0f));
+        }
+    }
+
+    return newState;
 }
 
 // ============================================================================

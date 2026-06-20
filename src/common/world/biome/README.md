@@ -132,16 +132,34 @@
         /
         cpp` 已移除，生物群系存储现由 `IChunk` 内部管理。
 
-        ## #8. 已删除的文件和接口
-    - **BiomeEffects.cpp * * — 已删除，`BiomeEffects.hpp` 现为 header - only（所有方法内联） -
-    **Biome::Category * * — 已删除，生物群系分类改由 BiomeTags 系统替代 -
-    **isOceanOrRiverBiome() * * — 已删除，改用 `BiomeTags::IS_OCEAN` / `BiomeTags::IS_RIVER` 判断 -
-    **Biome::temperature() *
-        * — 已移除，请使用 `biome.climate().temperature` 替代
+### 8. 已删除的文件和接口
+- **BiomeEffects.cpp** — 已删除， 现为 header-only（所有方法内联）
+- **Biome::Category** — 已删除，生物群系分类改由 BiomeTags 系统替代
+- **isOceanOrRiverBiome()** — 已删除，改用  /  判断
+- **Biome::temperature()** — 已移除，请使用  替代
 
-          ## #9. BiomeTag 标签系统
-`BiomeTag`/`BiomeTags`/`BiomeTagLoader` 提供基于标签的生物群系分类，替代了旧的 `Biome::
-            Category` 枚举和硬编码判断函数（如 `isOceanOrRiverBiome`）： - `BiomeTag.hpp
-        / cpp` — 标签类型定义，每个标签对应一组生物群系 ID
-    - `BiomeTags.hpp / cpp` — 原版标签常量（`IS_OCEAN`、`IS_RIVER`、`IS_MOUNTAIN` 等）
-    - `BiomeTagLoader.hpp / cpp` — 从数据包加载标签定义的加载器
+### 9. BiomeTag 标签系统
+// 提供基于标签的生物群系分类，替代了旧的  枚举和硬编码判断函数（如 ）：
+-  — 标签类型定义，每个标签对应一组生物群系 ID
+-  — 原版标签常量（、、 等）
+-  — 从数据包加载标签定义的加载器
+
+### 10. shouldFreeze/shouldSnow 与 doesWaterFreeze/doesSnowGenerate 的区别
+-  — 完整实现，需要 IWorld，检查温度、光照、流体类型、邻居水域
+-  — 完整实现，需要 IWorld，检查降水类型、温度、光照、方块状态，并通过  检查下方方块是否支撑雪层
+-  — 仅温度判断，不需要 IWorld，适用于生成阶段（无光照/方块状态可用时）
+-  — 仅温度判断，不需要 IWorld，适用于 SurfaceRules 等生成阶段
+
+**shouldFreeze/shouldSnow 已集成调用：SnowAndFreezeFeature（TopLayerModification 生成阶段）、ServerWorld::tickPrecipitation()（运行时逐 tick 结冰和降雪）、LakeFeature（湖泊冻结，checkNeighbors=false）。**
+
+### 11. getPrecipitationAt 降水类型判定
+
+ 根据生物群系的降水设置和高度调整后的温度，返回指定位置的降水类型：
+
+- 如果生物群系 ，返回 
+- 如果高度调整后的温度 < 0.15（即  返回 true），返回 
+- 否则返回 
+
+**调用场景**： 在降水 tick 中调用此方法确定表面方块位置的降水类型，然后调用  将降水事件传递给方块（如炼药锅填充水、避雷针雷暴激活等）。
+
+参考: 

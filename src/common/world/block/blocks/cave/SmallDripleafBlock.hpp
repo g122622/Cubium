@@ -48,6 +48,9 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    [[nodiscard]] bool isValidPosition(
+        const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
+
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
         const BlockState& facingState,
@@ -100,6 +103,17 @@ public:
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+
+    /**
+     * @brief 检查此方块是否可以放置在指定方块上方
+     *
+     * 小滴叶可放置在以下方块上：
+     * - #minecraft:small_dripleaf_placeable 标签中的方块（黏土、苔藓块）
+     * - 下方位置有水源时，#minecraft:dirt 标签中的方块或耕地
+     *
+     * 参考: net.minecraft.block.SmallDripleafBlock.mayPlaceOn
+     */
+    [[nodiscard]] virtual bool mayPlaceOn(const BlockState& state, IBlockReader& world, const BlockPos& pos) const;
 
 private:
     CollisionShape m_shape;

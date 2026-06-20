@@ -289,6 +289,9 @@ public:
     /// POI 统计更新间隔（每 1200 tick = 1 分钟更新一次）
     static constexpr i64 POI_STAT_UPDATE_INTERVAL = 1200;
 
+    /// 袭击状态验证间隔（每 20 tick 验证一次，与 MC Java 村民袭击检查频率一致）
+    static constexpr i64 RAID_CHECK_INTERVAL = 20;
+
     /// 村民超时时间（6000 tick = 5 分钟不在村庄范围内视为离开）
     /// 使用超时作为简化的离开检测
     static constexpr i64 VILLAGER_TIMEOUT = 6000;
@@ -327,11 +330,13 @@ private:
     void _tickPOIStats(const poi::PointOfInterestStorage& poiStorage);
 
     /**
-     * @brief 检查袭击状态
+     * @brief 检查并同步袭击状态
      *
-     * 如果袭击结束，更新袭击状态和时间。
+     * 通过 RaidManager 验证村庄的 m_underRaid 标志与实际袭击状态一致。
+     * 正常情况下 RaidManager::onRaidEnd() 会同步更新此标志，
+     * 此方法作为防御性冗余检查，防止因异常导致标志不同步。
      *
-     * @param world 世界接口
+     * @param world 世界接口（用于获取 RaidManager）
      * @param gameTime 当前游戏时间
      */
     void _tickRaidCheck(IWorld& world, i64 gameTime);
@@ -385,6 +390,9 @@ private:
 
     /// 上次 POI 统计更新时间
     i64 m_lastPOIStatUpdateTime = 0;
+
+    /// 上次袭击状态验证时间
+    i64 m_lastRaidCheckTime = 0;
 };
 
 } // namespace village

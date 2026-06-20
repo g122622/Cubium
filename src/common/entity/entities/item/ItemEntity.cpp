@@ -27,6 +27,8 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -99,6 +101,14 @@ void ItemEntity::setItemStack(const ItemStack& stack)
 // ============================================================================
 // Entity 接口
 // ============================================================================
+
+bool ItemEntity::dampensVibrations() const
+{
+    // 羊毛物品掉落时阻尼振动，与 MC 原版行为一致
+    // 参考: net.minecraft.world.entity.item.ItemEntity.dampensVibrations()
+    const auto* item = m_itemStack.getItem();
+    return item != nullptr && item->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS());
+}
 
 void ItemEntity::tick()
 {

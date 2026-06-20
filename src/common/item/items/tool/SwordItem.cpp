@@ -73,8 +73,8 @@ bool SwordItem::canHarvestBlock(const BlockState& state) const
 bool SwordItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker)
 {
     (void)target;
-    // 剑攻击实体只消耗 1 点耐久（其他工具消耗 2 点）
-    stack.attemptDamageItem(1, &attacker);
+    // 剑攻击实体只消耗 1 点耐久（其他工具消耗 2 点），若物品损坏则触发 onEquippedItemBroken 回调
+    LivingEntity::hurtAndBreak(stack, 1, &attacker, EquipmentSlot::MainHand);
     return true;
 }
 
@@ -83,9 +83,9 @@ bool SwordItem::onBlockDestroyed(
 {
     (void)world;
     (void)pos;
-    // 剑破坏方块消耗 2 点耐久（其他工具消耗 1 点）
+    // 剑破坏方块消耗 2 点耐久（其他工具消耗 1 点），若物品损坏则触发 onEquippedItemBroken 回调
     if (state.hardness() > 0.0f) {
-        stack.attemptDamageItem(2, &entity);
+        LivingEntity::hurtAndBreak(stack, 2, &entity, EquipmentSlot::MainHand);
     }
     return true;
 }

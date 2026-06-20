@@ -424,4 +424,13 @@ void EndermanEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 64.0);
 }
 
+// ========== 寻路权重 ==========
+
+f32 EndermanEntity::getPathWeight(f32 /*x*/, f32 /*y*/, f32 /*z*/) const
+{
+    // 末影人不依赖光照偏好，返回0.0f（中性）
+    // 对应 MC EnderMan.getWalkTargetValue 返回 0.0F
+    return 0.0f;
+}
+
 } // namespace mc

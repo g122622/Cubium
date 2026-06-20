@@ -137,7 +137,6 @@ public:
      */
     [[nodiscard]] const nbt::tags::compound_tag* getTag() const noexcept { return m_tag.get(); }
 
-private:
     /**
      * @brief 递归比较NBT标签是否匹配（子集匹配）
      *
@@ -146,19 +145,26 @@ private:
      * 对于列表类型，使用无序子集匹配：期望列表中的每个元素
      * 必须在实际列表中存在一个匹配的元素。
      *
+     * 此方法与 MC Java 的 NbtUtils.compareNbt(listCompare=true) 行为一致。
+     *
      * @param expected 期望的NBT数据
      * @param actual 实际的NBT数据
      * @return 是否匹配
      */
-    static bool _matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual) noexcept;
+    static bool matchNBT(const nbt::tags::compound_tag& expected, const nbt::tags::compound_tag& actual) noexcept;
 
     /**
      * @brief 比较两个NBT标签是否相等
      *
-     * 对于列表标签，使用无序子集匹配（compareList=true）。
+     * 对于列表标签，使用无序子集匹配。
+     *
+     * @param expected 期望的NBT标签
+     * @param actual 实际的NBT标签
+     * @return 是否匹配
      */
-    static bool _matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual) noexcept;
+    static bool matchTag(const nbt::tags::tag& expected, const nbt::tags::tag& actual) noexcept;
 
+private:
     /**
      * @brief 将物品堆序列化为NBT并获取tag字段
      *

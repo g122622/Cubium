@@ -26,6 +26,7 @@
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/stats/Stats.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
@@ -128,6 +129,7 @@ ActionResultType ShulkerBoxBlock::onBlockActivated(const BlockState& state,
     // 打开潜影盒 GUI
     if (world.openContainer(ContainerType::ShulkerBox, pos, player)) {
         shulkerBox->openContainer(&player);
+        player.awardCustomStat(ResourceLocation(stats::OPEN_SHULKER_BOX), 1);
         return ActionResultType::Consume;
     }
 

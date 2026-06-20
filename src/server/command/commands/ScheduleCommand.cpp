@@ -9,9 +9,9 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies of substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -24,13 +24,27 @@
 #include "ScheduleCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/FunctionArgument.hpp"
+#include "common/command/arguments/TimeArgument.hpp"
+#include "common/command/exceptions/CommandExceptions.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/FunctionSuggestionProvider.hpp"
+#include "server/function/FunctionManager.hpp"
+#include "server/function/TimerQueue.hpp"
+#include <limits>
 #include <sstream>
 
 namespace mc {
 namespace command {
+
+/// 错误：尝试在同 tick 调度函数（time == 0）
+static const CommandException ERROR_SAME_TICK =
+    CommandException(CommandErrorType::DispatcherUnknownCommand, "Cannot schedule a function to run in the same tick");
+
+/// 错误：尝试清除不存在的调度
+static const CommandException ERROR_CANT_REMOVE =
+    CommandException(CommandErrorType::DispatcherUnknownCommand, "No scheduled function found");
 
 void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 {
@@ -45,10 +59,10 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /schedule function <function> <time> [append|replace]
     auto functionNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("function");
-    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "function", StringArgumentType::string());
-    auto timeArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", IntegerArgumentType::integer(1));
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
+        "function", FunctionArgumentType::functions());
+    nameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
+    auto timeArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, i32>>("time", TimeArgumentType::time());
 
     // append 模式
     auto appendNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("append");
@@ -69,8 +83,9 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 
     // /schedule clear <function>
     auto clearNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("clear");
-    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
-        "function", StringArgumentType::string());
+    auto clearNameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
+        "function", FunctionArgumentType::functions());
+    clearNameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
     clearNameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearSchedule(ctx); });
     clearNode->addChild(clearNameArg);
     scheduleNode->addChild(clearNode);
@@ -81,11 +96,54 @@ void ScheduleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& context, bool append)
 {
     auto& source = context.getSource();
-    const std::string functionName = context.getArgument<std::string>("function");
+    auto funcResult = FunctionArgumentType::getFunctionResult(context, "function");
     const i32 time = context.getArgument<i32>("time");
 
+    // 不允许在同 tick 调度
+    if (time == 0) {
+        throw ERROR_SAME_TICK;
+    }
+
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("Schedule command requires a server instance");
+        return 0;
+    }
+
+    // /schedule 仅支持直接函数引用，不支持标签引用
+    if (funcResult.isTag()) {
+        source.sendError("Cannot schedule a function tag, only individual functions can be scheduled");
+        return 0;
+    }
+
+    const auto& functionId = funcResult.id();
+    auto& functionManager = server->functionManager();
+    auto& timerQueue = server->functionTimerQueue();
+
+    // 检查函数是否存在
+    if (!functionManager.hasFunction(functionId)) {
+        std::ostringstream ss;
+        ss << "Unknown function '" << functionId.toString() << "'";
+        source.sendError(ss.str());
+        return 0;
+    }
+
+    // 计算目标 tick
+    u64 currentTick = server->currentTick();
+    u64 targetTick = currentTick + static_cast<u64>(time);
+    std::string eventId = functionId.toString();
+
+    // replace 模式：先移除同名的已有调度
+    if (!append) {
+        timerQueue.remove(eventId);
+    }
+
+    // 添加调度事件
+    timerQueue.scheduleFunction(eventId, functionId, targetTick);
+
+    // 反馈
     std::ostringstream ss;
-    ss << "Scheduled function '" << functionName << "' to run in " << time << " ticks";
+    ss << "Scheduled function '" << functionId.toString() << "' to run in " << time << " ticks";
     if (append) {
         ss << " (append mode)";
     } else {
@@ -93,27 +151,36 @@ i32 ScheduleCommand::_scheduleFunction(CommandContext<ServerCommandSource>& cont
     }
     source.sendMessage(ss.str());
 
-    // TODO: 实现函数调度系统
-    // 1. 将函数添加到调度队列
-    // 2. 设置执行时间
-    // 3. 在 tick 系统中检查和执行到期的函数
-
-    return 1;
+    return static_cast<i32>(targetTick % static_cast<u64>(std::numeric_limits<i32>::max()));
 }
 
 i32 ScheduleCommand::_clearSchedule(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string functionName = context.getArgument<std::string>("function");
+    auto funcResult = FunctionArgumentType::getFunctionResult(context, "function");
+
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("Schedule command requires a server instance");
+        return 0;
+    }
+
+    auto& timerQueue = server->functionTimerQueue();
+
+    // 使用函数 ID 作为事件名
+    std::string eventId = funcResult.id().toString();
+
+    i32 removedCount = timerQueue.remove(eventId);
+
+    if (removedCount == 0) {
+        throw ERROR_CANT_REMOVE;
+    }
 
     std::ostringstream ss;
-    ss << "Cleared scheduled function '" << functionName << "'";
+    ss << "Cleared " << removedCount << " scheduled function(s) for '" << funcResult.id().toString() << "'";
     source.sendMessage(ss.str());
 
-    // TODO: 实现调度清除
-    // 从调度队列中移除指定函数的所有待执行实例
-
-    return 1;
+    return removedCount;
 }
 
 } // namespace command

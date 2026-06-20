@@ -25,8 +25,10 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 namespace mc {
 namespace blocks {
@@ -75,6 +77,48 @@ BlockState SmallDripleafBlock::getStateForPlacement(BlockItemUseContext& context
     return state;
 }
 
+bool SmallDripleafBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    auto half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+    if (half == BlockStateProperties::DoubleBlockHalf::Upper) {
+        // 上半部分：下方必须是同类型方块的下半部分
+        BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
+        return belowState != nullptr && belowState->is(this) &&
+            belowState->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) == BlockStateProperties::DoubleBlockHalf::Lower;
+    } else {
+        // 下半部分：检查下方支撑是否适合放置
+        BlockPos belowPos(pos.x, pos.y - 1, pos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
+        if (belowState == nullptr) {
+            return false;
+        }
+        return mayPlaceOn(*belowState, world, belowPos);
+    }
+}
+
+bool SmallDripleafBlock::mayPlaceOn(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
+{
+    // 条件1：下方方块在 SMALL_DRIPLEAF_PLACEABLE 标签中（黏土、苔藓块）
+    if (BlockTags::SMALL_DRIPLEAF_PLACEABLE().contains(state)) {
+        return true;
+    }
+
+    // 条件2：支撑方块上方有水源，且支撑方块在 DIRT 标签中或为耕地
+    // 参考 MC 原版: super.mayPlaceOn() 检查 DIRT 标签或 FARMLAND
+    const fluid::FluidState* fluidAbove = world.getFluidState(BlockPos(pos.x, pos.y + 1, pos.z));
+    bool hasWaterSourceAbove =
+        fluidAbove != nullptr && fluidAbove->isSource() && fluidAbove->getFluid().isIn(fluid::FluidTags::WATER());
+
+    if (hasWaterSourceAbove) {
+        if (BlockTags::DIRT().contains(state) || state.is(VanillaBlocks::FARMLAND)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 BlockState SmallDripleafBlock::updatePostPlacement(const BlockState& state,
     Direction facing,
     const BlockState& facingState,
@@ -82,12 +126,36 @@ BlockState SmallDripleafBlock::updatePostPlacement(const BlockState& state,
     const BlockPos& currentPos,
     const BlockPos& facingPos)
 {
-    MC_UNUSED(facing);
-    MC_UNUSED(facingState);
-    MC_UNUSED(facingPos);
+    MC_UNUSED(currentPos);
 
+    // 含水时调度水流 tick
     if (state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);
+    }
+
+    auto half = state.get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+
+    // 仅处理 Y 轴方向的邻居变化
+    if (Directions::getAxis(facing) == Axis::Y) {
+        bool isLower = half == BlockStateProperties::DoubleBlockHalf::Lower;
+        bool isUpDirection = facing == Direction::Up;
+
+        // 当变化来自连接另一半的方向时（下半部分→上方，上半部分→下方）
+        if (isLower == isUpDirection) {
+            // 如果邻居仍然是同类型方块的另一半，保持当前状态
+            if (facingState.is(this) && facingState.get(BlockStateProperties::DOUBLE_BLOCK_HALF()) != half) {
+                return state;
+            }
+            // 另一半已消失，当前半部分也应消失
+            return VanillaBlocks::AIR->defaultState();
+        }
+    }
+
+    // 下半部分：下方支撑失效时也应当断裂
+    if (half == BlockStateProperties::DoubleBlockHalf::Lower && facing == Direction::Down) {
+        if (!isValidPosition(state, static_cast<IBlockReader&>(world), currentPos)) {
+            return VanillaBlocks::AIR->defaultState();
+        }
     }
 
     return state;

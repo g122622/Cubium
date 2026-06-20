@@ -43,8 +43,6 @@ bool EntityPredicate::test(const Entity& entity) const
         return true;
     }
 
-    // TODO 这是不带世界和参考位置的简化版本
-
     // 1. 检查实体类型
     if (m_type.has_value()) {
         std::string entityTypeId = entity.getTypeId();
@@ -73,7 +71,8 @@ bool EntityPredicate::test(const Entity& entity) const
         return false;
     }
 
-    // 注意：距离和位置检查需要参考位置，在无参考位置版本中跳过
+    // 注意：距离和位置检查需要参考位置，在无参考位置版本中跳过。
+    // 需要距离和位置检查的调用者应使用 test(world, x, y, z, entity) 重载。
 
     return true;
 }
@@ -131,6 +130,10 @@ bool EntityPredicate::test(const IWorld& world, f64 x, f64 y, f64 z, const Entit
 
 bool EntityPredicate::test(const Entity& entity, const DamageSource& source) const
 {
+    // 注意：EntityPredicate 不检查 DamageSource，DamageSource 由 DamageSourcePredicate 独立检查。
+    // 参考 MC Java: EntityPredicate.matches() 不接受 DamageSource 参数，
+    // DamageSource 的匹配由 KilledTrigger.TriggerInstance 中独立的 killingBlow 谓词完成。
+    // 此重载仅为调用方便而保留，委托给 test(entity)。
     MC_UNUSED(source);
     return test(entity);
 }

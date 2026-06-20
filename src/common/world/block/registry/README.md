@@ -10,7 +10,7 @@ registry/
 ├── VanillaBlocks.hpp/.cpp       # 主入口，VanillaBlocks 类继承所有分类结构体
 ├── BaseBlocks.hpp/.cpp          # 基础方块、矿石、矿物、原木、木板、冰、玻璃等
 ├── BuildingBlocks.hpp/.cpp      # 建筑、功能、含水、石砖、虫蚀、石英、海晶、紫珀、骨块等
-├── BuildingVariantBlocks.hpp/.cpp # 楼梯、台阶、墙、门、栅栏门、活板门、染色玻璃板、特殊方块
+├── BuildingVariantBlocks.hpp/.cpp # 楼梯、台阶、墙、栅栏、门、栅栏门、活板门、染色玻璃板、特殊方块
 ├── BambooBlocks.hpp/.cpp        # 竹子方块系列
 ├── CaveBlocks.hpp/.cpp          # 洞穴方块（紫水晶、滴水石、苔藓等）
 ├── CherryBlocks.hpp/.cpp        # 樱花木系列
@@ -20,7 +20,7 @@ registry/
 ├── GardenBlocks.hpp/.cpp        # 花园方块
 ├── MangroveBlocks.hpp/.cpp      # 红树林系列
 ├── MudBlocks.hpp/.cpp           # 泥土系列
-├── NaturalBlocks.hpp/.cpp       # 自然方块：冰变种、粘液、珊瑚、海洋方块、仙人掌等
+├── NaturalBlocks.hpp/.cpp       # 自然方块：冰变种、粘液、珊瑚、海洋方块、仙人掌、蜂巢/蜂箱等
 ├── NetherBlocks.hpp/.cpp        # 下界方块、末地方块、下界扩展植物
 ├── PaleGardenBlocks.hpp/.cpp    # 苍白花园系列
 ├── RedstoneBlocks.hpp/.cpp      # 红石方块、铁轨方块

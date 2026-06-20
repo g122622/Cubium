@@ -138,6 +138,17 @@ public:
      */
     void remove(LivingEntity& entity);
 
+    /**
+     * @brief 立即执行效果逻辑（用于瞬间效果）
+     *
+     * 直接调用效果的 tick 逻辑，不递减持续时间。
+     * 用于瞬间效果（InstantHealth、InstantDamage、Saturation）
+     * 在添加时立即触发效果。
+     *
+     * @param entity 受影响的实体
+     */
+    void applyInstantly(LivingEntity& entity);
+
     // ========== 静态工厂方法 ==========
 
     /**

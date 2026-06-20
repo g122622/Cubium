@@ -72,6 +72,7 @@ golem/
    - 实体存活
    - 不在客户端
    - 生物群系温度 < 0.8
+   - 目标位置雪层可以存活（通过 `SnowBlock::canSurviveAt` 检查，受 `SNOW_LAYER_CANNOT_SURVIVE_ON` 和 `SNOW_LAYER_CAN_SURVIVE_ON` 标签约束）
 
 4. **剪切物品获取**：通过 `BlockItemRegistry::getBlockItem()` 获取 CARVED_PUMPKIN 对应的物品，确保物品系统已初始化后再调用。
 

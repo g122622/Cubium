@@ -208,6 +208,24 @@ public:
         const PlacementSettings& settings);
 
     /**
+     * @brief 后处理阶段：在所有方块的 process() 调用完成后，对完整方块列表进行批量处理
+     *
+     * 此方法在所有方块逐一经过 process() 处理完毕后被调用，允许处理器对完整列表做
+     * 跨方块批量操作（如 CappedStructureProcessor 限制替换次数）。
+     * 默认实现直接返回 processedBlocks，不做任何修改。
+     *
+     * @param seedPos 结构放置的锚点位置
+     * @param settings 放置设置
+     * @param originalBlocks 原始方块信息列表（变换坐标前，对应模板内坐标和状态）
+     * @param processedBlocks 经处理器链处理后的方块信息列表，可直接修改
+     * @return 处理后的方块信息列表（通常返回修改后的 processedBlocks）
+     */
+    [[nodiscard]] virtual std::vector<ProcessedBlockInfo> finalizeProcessing(const BlockPos& seedPos,
+        const PlacementSettings& settings,
+        const std::vector<BlockInfo>& originalBlocks,
+        std::vector<ProcessedBlockInfo> processedBlocks);
+
+    /**
      * @brief 克隆处理器
      *
      * 用于在放置链路中组合多个处理器列表时深拷贝处理器。
@@ -659,6 +677,33 @@ public:
 
 private:
     f32 m_mossiness;
+
+    /// 尝试替换完整石砖方块（石砖、石头、錾刻石砖）
+    /// 可能替换为裂纹石砖、苔藓石砖、随机朝向石砖楼梯或苔藓石砖楼梯
+    [[nodiscard]] const BlockState* _maybeReplaceFullStoneBlock(math::Random& rng);
+
+    /// 尝试替换楼梯方块，使用 withPropertiesOf 保留原朝向/半部分属性
+    [[nodiscard]] const BlockState* _maybeReplaceStairs(const BlockState& state, math::Random& rng);
+
+    /// 尝试替换台阶方块，使用 withPropertiesOf 保留原类型属性
+    [[nodiscard]] const BlockState* _maybeReplaceSlab(const BlockState& state, math::Random& rng);
+
+    /// 尝试替换墙壁方块，使用 withPropertiesOf 保留原连接属性
+    [[nodiscard]] const BlockState* _maybeReplaceWall(const BlockState& state, math::Random& rng);
+
+    /// 尝试替换黑曜石为哭泣黑曜石
+    [[nodiscard]] static const BlockState* _maybeReplaceObsidian(math::Random& rng);
+
+    /// 生成随机朝向的楼梯状态（随机水平朝向 + 随机上半/下半）
+    [[nodiscard]] static const BlockState& _getRandomFacingStairs(math::Random& rng, const Block& stairsBlock);
+
+    /// 根据 mossiness 概率从两组候选中随机选择
+    [[nodiscard]] const BlockState* _getRandomBlock(
+        math::Random& rng, const BlockState* const nonMossy[], const BlockState* const mossy[]);
+
+    /// 从选项数组中随机选取一个非空元素
+    [[nodiscard]] static const BlockState* _pickRandomNonNull(
+        math::Random& rng, const BlockState* const options[], size_t count);
 };
 
 /**

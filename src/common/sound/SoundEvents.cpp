@@ -479,6 +479,7 @@ const ResourceLocation ENTITY_GENERIC_EXPLODE("minecraft:entity.generic.explode"
 // 试炼密室相关音效 (Trial Chambers)
 // ============================================================================
 
+const ResourceLocation ENTITY_WIND_CHARGE_THROW("minecraft:entity.wind_charge.throw");
 const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST("minecraft:entity.wind_charge.wind_burst");
 const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST("minecraft:entity.breeze.wind_charge_burst");
 
@@ -1276,6 +1277,7 @@ const ResourceLocation ITEM_FIRECHARGE_USE("minecraft:item.firecharge.use");
 const ResourceLocation ITEM_TOTEM_USE("minecraft:item.totem.use");
 const ResourceLocation ITEM_BOOK_PAGE_TURN("minecraft:item.book.page_turn");
 const ResourceLocation ITEM_BOOK_PUT("minecraft:item.book.put");
+const ResourceLocation ITEM_BONE_MEAL_USE("minecraft:item.bone_meal.use");
 const ResourceLocation ITEM_BOTTLE_EMPTY("minecraft:item.bottle.empty");
 const ResourceLocation ITEM_BOTTLE_FILL("minecraft:item.bottle.fill");
 const ResourceLocation ITEM_BOTTLE_FILL_DRAGONBREATH("minecraft:item.bottle.fill_dragonbreath");

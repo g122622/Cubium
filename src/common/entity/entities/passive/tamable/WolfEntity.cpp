@@ -51,8 +51,15 @@
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/color/DyeColor.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+
+#include <unordered_map>
 
 #include <cmath>
 
@@ -99,6 +106,226 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const
     return isBreedingItem(itemStack);
 }
 
+// ========== 交互 ==========
+
+ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
+{
+    ItemStack& itemStack = player.getHeldItem(hand);
+    const Item* item = itemStack.getItem();
+
+    if (isTamed()) {
+        // ========== 已驯服的狼 ==========
+
+        // 优先级1: 喂食治疗（食物 + 生命值未满）
+        if (isFoodItem(itemStack) && health() < maxHealth()) {
+            // 消耗物品（非创造模式）
+            if (!player.abilities().creativeMode) {
+                itemStack.shrink(1);
+            }
+
+            // 计算治疗量
+            f32 healAmount = _getFoodHealAmount(item);
+            heal(healAmount);
+
+            // 播放吃东西声音
+            if (!isSilent()) {
+                auto soundEvent = makeSoundEventId("eat");
+                if (soundEvent.has_value()) {
+                    playSound(*soundEvent, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+                }
+            }
+
+            return ActionResultType::Success;
+        }
+
+        // 优先级2: 颈圈染色（染料 + 主人）
+        auto dyeColor = _getDyeColorFromItem(item);
+        if (dyeColor.has_value() && isOwner(player.playerId())) {
+            if (dyeColor.value() != m_collarColor) {
+                setCollarColor(dyeColor.value());
+                if (!player.abilities().creativeMode) {
+                    itemStack.shrink(1);
+                }
+            }
+            return ActionResultType::Success;
+        }
+
+        // 优先级3: 繁殖/成长（食物 + 满血）
+        // 对应 MC 原版 Animal.mobInteract() 的逻辑
+        if (isBreedingItem(itemStack)) {
+            if (isChild()) {
+                // 幼年狼喂食加速成长
+                if (!player.abilities().creativeMode) {
+                    itemStack.shrink(1);
+                }
+                // 加速成长：减少 10% 的剩余成长时间
+                // getGrowingAge() 返回负值（tick），-getGrowingAge() 是剩余成长 tick
+                i32 remainingTicks = -getGrowingAge();
+                i32 accelerateSeconds = static_cast<i32>(remainingTicks * 0.1f) / 20;
+                ageUp(accelerateSeconds);
+
+                // 播放吃东西声音
+                if (!isSilent()) {
+                    auto soundEvent = makeSoundEventId("eat");
+                    if (soundEvent.has_value()) {
+                        playSound(*soundEvent, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+                    }
+                }
+                return ActionResultType::Success;
+            }
+
+            if (canBreed()) {
+                // 成年狼喂食进入求爱状态
+                if (!player.abilities().creativeMode) {
+                    itemStack.shrink(1);
+                }
+                setInLove(player.playerId());
+
+                // 播放吃东西声音
+                if (!isSilent()) {
+                    auto soundEvent = makeSoundEventId("eat");
+                    if (soundEvent.has_value()) {
+                        playSound(*soundEvent, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+                    }
+                }
+                return ActionResultType::Success;
+            }
+        }
+
+        // 优先级4: 坐下/站起切换（主人 + 非特殊物品）
+        if (isOwner(player.playerId())) {
+            setSitting(!isSitting());
+            clearNavigation();
+            setAttackTarget(nullptr);
+            return ActionResultType::Success;
+        }
+
+        return ActionResultType::Pass;
+    }
+
+    // ========== 未驯服的狼 ==========
+
+    // 手持骨头 + 未愤怒时尝试驯服
+    if (isTameItem(itemStack) && !isAngry()) {
+        if (!player.abilities().creativeMode) {
+            itemStack.shrink(1);
+        }
+
+        // 播放吃东西声音
+        if (!isSilent()) {
+            auto soundEvent = makeSoundEventId("eat");
+            if (soundEvent.has_value()) {
+                playSound(*soundEvent, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+            }
+        }
+
+        // 服务端处理驯服逻辑
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            _tryToTame(player);
+        }
+
+        return ActionResultType::Success;
+    }
+
+    // 其他情况交给父类处理
+    return TameableEntity::interactMob(player, hand);
+}
+
+void WolfEntity::_tryToTame(Player& player)
+{
+    // 1/3 概率驯服成功
+    math::Random rng = getRandom();
+    if (rng.nextInt(3) == 0) {
+        // 驯服成功
+        setTamed(true);
+        setOwnerId(player.playerId());
+
+        // 停止导航和攻击
+        clearNavigation();
+        setAttackTarget(nullptr);
+
+        // 默认坐下
+        setSitting(true);
+
+        // 通知世界触发进度检测
+        m_world->onTameAnimal(player.playerId(), this);
+
+        // 广播驯服成功状态（心形粒子）
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
+    } else {
+        // 驯服失败，广播烟雾粒子
+        m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingFailed));
+    }
+}
+
+f32 WolfEntity::_getFoodHealAmount(const Item* item) const
+{
+    // MC 原版中治疗量为 2.0 * food.nutrition
+    // 狼的食物营养值映射（硬编码，因为没有 FoodProperties 系统）：
+    //   生猪肉/牛肉/鸡肉/兔肉/羊肉: nutrition = 2, 治疗 4.0
+    //   熟猪肉/牛肉: nutrition = 8, 治疗 16.0
+    //   熟鸡肉/兔肉/羊肉: nutrition = 6, 治疗 12.0
+    //   腐肉: nutrition = 4, 治疗 8.0
+    f32 nutrition = 0.0f;
+    if (item == Items::PORKCHOP) {
+        nutrition = 2.0f;
+    } else if (item == Items::COOKED_PORKCHOP) {
+        nutrition = 8.0f;
+    } else if (item == Items::BEEF) {
+        nutrition = 2.0f;
+    } else if (item == Items::COOKED_BEEF) {
+        nutrition = 8.0f;
+    } else if (item == Items::CHICKEN) {
+        nutrition = 2.0f;
+    } else if (item == Items::COOKED_CHICKEN) {
+        nutrition = 6.0f;
+    } else if (item == Items::RABBIT) {
+        nutrition = 2.0f;
+    } else if (item == Items::COOKED_RABBIT) {
+        nutrition = 6.0f;
+    } else if (item == Items::MUTTON) {
+        nutrition = 2.0f;
+    } else if (item == Items::COOKED_MUTTON) {
+        nutrition = 6.0f;
+    } else if (item == Items::ROTTEN_FLESH) {
+        nutrition = 4.0f;
+    }
+    return 2.0f * nutrition;
+}
+
+std::optional<DyeColor> WolfEntity::_getDyeColorFromItem(const Item* item)
+{
+    if (item == nullptr) {
+        return std::nullopt;
+    }
+
+    static const std::unordered_map<const Item*, DyeColor> dyeMap = {
+        {Items::INK_SAC, DyeColor::Black},
+        {Items::RED_DYE, DyeColor::Red},
+        {Items::GREEN_DYE, DyeColor::Green},
+        {Items::COCOA_BEANS, DyeColor::Brown},
+        {Items::LAPIS_LAZULI_DYE, DyeColor::Blue},
+        {Items::PURPLE_DYE, DyeColor::Purple},
+        {Items::CYAN_DYE, DyeColor::Cyan},
+        {Items::LIGHT_GRAY_DYE, DyeColor::LightGray},
+        {Items::GRAY_DYE, DyeColor::Gray},
+        {Items::PINK_DYE, DyeColor::Pink},
+        {Items::LIME_DYE, DyeColor::Lime},
+        {Items::YELLOW_DYE, DyeColor::Yellow},
+        {Items::LIGHT_BLUE_DYE, DyeColor::LightBlue},
+        {Items::MAGENTA_DYE, DyeColor::Magenta},
+        {Items::ORANGE_DYE, DyeColor::Orange},
+        {Items::WHITE_DYE, DyeColor::White},
+        {Items::BONE_MEAL, DyeColor::White},
+    };
+
+    auto it = dyeMap.find(item);
+    if (it != dyeMap.end()) {
+        return it->second;
+    }
+    return std::nullopt;
+}
+
 bool WolfEntity::wantsToAttack(const LivingEntity& target, const LivingEntity* owner) const
 {
     // 苦力怕、恶魂：永远不攻击（MC 使用 instanceof，此处使用 dynamic_cast）
@@ -124,14 +351,6 @@ bool WolfEntity::wantsToAttack(const LivingEntity& target, const LivingEntity* o
 
     // TODO: 玩家PvP保护检查（需要实现 Player::canHarmPlayer）
     // 如果目标和主人都是玩家，需要检查 PvP 规则
-    // if (dynamic_cast<const Player*>(&target) != nullptr && owner != nullptr) {
-    //     const Player* ownerPlayer = dynamic_cast<const Player*>(owner);
-    //     const Player* targetPlayer = dynamic_cast<const Player*>(&target);
-    //     if (ownerPlayer != nullptr && targetPlayer != nullptr && !ownerPlayer->canHarmPlayer(*targetPlayer))
-    //     {
-    //         return false;
-    //     }
-    // }
 
     // 已驯服的马：不攻击
     const AbstractHorseEntity* horse = dynamic_cast<const AbstractHorseEntity*>(&target);
@@ -383,8 +602,8 @@ void WolfEntity::registerGoals()
                     type == entity::EntityTypeIdNumber::WITHER_SKELETON;
             }));
 
-    // 注意：优先级 8 的 ResetAngerGoal 需要 IAngerable 接口完整实现
-    // 当前简化处理，不注册此目标
+    // 优先级 8: 愤怒重置目标（驯服后未设置攻击目标时重置愤怒状态）
+    m_targetSelector.addGoal(8, std::make_unique<entity::ai::goal::ResetAngerGoal<WolfEntity>>(this, false));
 }
 
 void WolfEntity::registerAttributes()

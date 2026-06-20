@@ -65,7 +65,7 @@ public:
     u64 seed() const override { return 0; }
     u64 currentTick() const override { return 0; }
     i64 dayTime() const override { return 0; }
-    bool isClientSide() override { return false; }
+    bool isClientSide() const override { return false; }
     bool isHardcore() const override { return false; }
     Difficulty difficulty() const override { return Difficulty::Normal; }
     math::Random& getRandom() override { return m_random; }

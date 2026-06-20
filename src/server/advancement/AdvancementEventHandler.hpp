@@ -181,6 +181,14 @@ public:
         m_villagerTradeSubscription = event::ServerEventBus::instance().makeSubscription<event::VillagerTradeEvent>(
             [this](const event::VillagerTradeEvent& e) { _onVillagerTrade(e); });
 
+        // 订阅动物驯服事件
+        m_tameAnimalSubscription = event::ServerEventBus::instance().makeSubscription<event::TameAnimalEvent>(
+            [this](const event::TameAnimalEvent& e) { _onTameAnimal(e); });
+
+        // 订阅实体召唤事件
+        m_summonedEntitySubscription = event::ServerEventBus::instance().makeSubscription<event::SummonedEntityEvent>(
+            [this](const event::SummonedEntityEvent& e) { _onSummonedEntity(e); });
+
         // 订阅服务端Tick事件（触发 TickTrigger）
         m_serverTickSubscription = event::ServerEventBus::instance().makeSubscription<event::ServerTickEvent>(
             [this](const event::ServerTickEvent& e) { _onServerTick(e); });
@@ -214,6 +222,8 @@ public:
         m_beeNestDestroyedSubscription.unsubscribe();
         m_bredAnimalsSubscription.unsubscribe();
         m_villagerTradeSubscription.unsubscribe();
+        m_tameAnimalSubscription.unsubscribe();
+        m_summonedEntitySubscription.unsubscribe();
         m_serverTickSubscription.unsubscribe();
         m_initialized = false;
     }
@@ -1079,6 +1089,86 @@ private:
     }
 
     /**
+     * @brief 处理动物驯服事件
+     *
+     * 触发 TameAnimalTrigger。
+     * 当玩家成功驯服动物时触发（狼、猫、鹦鹉、马等）。
+     */
+    void _onTameAnimal(const event::TameAnimalEvent& e)
+    {
+        // 获取触发器
+        auto* trigger = mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::TameAnimalTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 检查动物实体是否有效
+        if (e.animal == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::TameAnimalTriggerInstance>::trigger(*advancements,
+            [&e](const mc::advancement::TameAnimalTriggerInstance& instance) { return instance.test(*e.animal); });
+    }
+
+    /**
+     * @brief 处理实体召唤事件
+     *
+     * 触发 SummonedEntityTrigger。
+     * 当玩家建造铁傀儡/雪傀儡/凋灵或使用 /summon 命令时触发。
+     */
+    void _onSummonedEntity(const event::SummonedEntityEvent& e)
+    {
+        // 召唤者玩家ID可能为0（非玩家召唤），跳过
+        if (e.playerId == 0) {
+            return;
+        }
+
+        // 获取触发器
+        auto* trigger =
+            mc::advancement::CriterionTriggers::instance().getTrigger<mc::advancement::SummonedEntityTrigger>();
+
+        if (trigger == nullptr) {
+            return;
+        }
+
+        // 获取 ServerPlayer
+        mc::ServerPlayer* serverPlayer = _getServerPlayer(e.playerId);
+        if (serverPlayer == nullptr) {
+            return;
+        }
+
+        // 检查是否有监听器
+        auto* advancements = serverPlayer->getAdvancements();
+        if (advancements == nullptr) {
+            return;
+        }
+
+        // 检查实体是否有效
+        if (e.entity == nullptr) {
+            return;
+        }
+
+        // 触发检测 - 使用基类模板方法
+        trigger->AbstractCriterionTrigger<mc::advancement::SummonedEntityTriggerInstance>::trigger(*advancements,
+            [&e](const mc::advancement::SummonedEntityTriggerInstance& instance) { return instance.test(*e.entity); });
+    }
+
+    /**
      * @brief 处理服务端Tick事件
      *
      * 每tick触发一次 TickTrigger，用于检测持续条件。
@@ -1171,6 +1261,8 @@ private:
     event::ServerEventBus::Subscription<event::BeeNestDestroyedEvent> m_beeNestDestroyedSubscription;
     event::ServerEventBus::Subscription<event::BredAnimalsEvent> m_bredAnimalsSubscription;
     event::ServerEventBus::Subscription<event::VillagerTradeEvent> m_villagerTradeSubscription;
+    event::ServerEventBus::Subscription<event::TameAnimalEvent> m_tameAnimalSubscription;
+    event::ServerEventBus::Subscription<event::SummonedEntityEvent> m_summonedEntitySubscription;
     event::ServerEventBus::Subscription<event::ServerTickEvent> m_serverTickSubscription;
 
     // 服务器接口（用于获取 ServerPlayerEntityManager 和 ServerWorld）

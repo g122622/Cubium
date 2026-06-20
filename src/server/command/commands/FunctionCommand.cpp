@@ -9,9 +9,9 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies of substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -24,9 +24,11 @@
 #include "FunctionCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
-#include "common/command/arguments/ArgumentType.hpp"
+#include "common/command/arguments/FunctionArgument.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/FunctionSuggestionProvider.hpp"
+#include "server/function/FunctionManager.hpp"
 #include <sstream>
 
 namespace mc {
@@ -39,8 +41,9 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
     support::applyMetadata(
         functionNode, support::makeMetadata("Runs a function from a data pack.", "/function <name>", 2, {}, true));
 
-    auto nameArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
+    auto nameArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, FunctionArgumentResult>>(
+        "name", FunctionArgumentType::functions());
+    nameArg->setCustomSuggestions(std::make_shared<FunctionSuggestionProvider>());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _runFunction(ctx); });
     functionNode->addChild(nameArg);
 
@@ -50,24 +53,76 @@ void FunctionCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
 i32 FunctionCommand::_runFunction(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    const std::string name = context.getArgument<std::string>("name");
+    auto result = FunctionArgumentType::getFunctionResult(context, "name");
 
-    // 解析函数命名空间
-    size_t colonPos = name.find(':');
-    std::string namespaceName = colonPos != std::string::npos ? name.substr(0, colonPos) : "minecraft";
-    std::string functionName = colonPos != std::string::npos ? name.substr(colonPos + 1) : name;
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("Function command requires a server instance");
+        return 0;
+    }
 
+    auto& functionManager = server->functionManager();
+
+    if (result.isTag()) {
+        // 标签引用: #namespace:path
+        const auto& tagId = result.id();
+
+        if (!functionManager.hasTag(tagId)) {
+            std::ostringstream ss;
+            ss << "Unknown function tag '" << tagId.toString() << "'";
+            source.sendError(ss.str());
+            return 0;
+        }
+
+        // 执行标签中的所有函数
+        const auto& functionIds = functionManager.getTag(tagId);
+        i32 totalSuccess = 0;
+        i32 totalFailure = 0;
+        Size executedCount = 0;
+
+        for (const auto& funcId : functionIds) {
+            auto execResult = functionManager.execute(funcId, source);
+            totalSuccess += execResult.successCount;
+            totalFailure += execResult.failureCount;
+            ++executedCount;
+        }
+
+        std::ostringstream ss;
+        ss << "Executed " << executedCount << " functions from tag '" << tagId.toString() << "' (" << totalSuccess
+           << " commands succeeded";
+        if (totalFailure > 0) {
+            ss << ", " << totalFailure << " failed";
+        }
+        ss << ")";
+        source.sendMessage(ss.str());
+
+        return totalSuccess;
+    }
+
+    // 普通函数引用
+    const auto& functionId = result.id();
+
+    // 检查函数是否存在
+    if (!functionManager.hasFunction(functionId)) {
+        std::ostringstream ss;
+        ss << "Unknown function '" << functionId.toString() << "'";
+        source.sendError(ss.str());
+        return 0;
+    }
+
+    // 执行函数
+    auto execResult = functionManager.execute(functionId, source);
+
+    // 反馈执行结果
     std::ostringstream ss;
-    ss << "Running function " << namespaceName << ":" << functionName;
+    ss << "Executed function '" << functionId.toString() << "' (" << execResult.successCount << " commands succeeded";
+    if (execResult.failureCount > 0) {
+        ss << ", " << execResult.failureCount << " failed";
+    }
+    ss << ")";
     source.sendMessage(ss.str());
 
-    // TODO: 实现数据包函数系统
-    // 1. 从数据包加载函数文件
-    // 2. 解析函数中的命令
-    // 3. 按顺序执行命令
-    // 4. 处理递归调用限制
-
-    return 1;
+    return execResult.successCount;
 }
 
 } // namespace command

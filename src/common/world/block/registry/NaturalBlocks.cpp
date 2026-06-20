@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/NaturalBlocks.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
@@ -28,9 +29,12 @@
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "world/block/blocks/coral/CoralBlock.hpp"
+#include "world/block/blocks/decorative/TorchBlock.hpp"
+#include "world/block/blocks/decorative/WallTorchBlock.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
+#include "world/block/blocks/mob/BeehiveBlock.hpp"
 #include "world/block/blocks/mob/TurtleEggBlock.hpp"
 #include "world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "world/block/blocks/ocean/ConduitBlock.hpp"
@@ -113,6 +117,10 @@ Block* NaturalBlocks::FIRE_CORAL_WALL_FAN = nullptr;
 Block* NaturalBlocks::HORN_CORAL_WALL_FAN = nullptr;
 
 Block* NaturalBlocks::CONDUIT = nullptr;
+
+// 蜂巢/蜂箱
+Block* NaturalBlocks::BEE_NEST = nullptr;
+Block* NaturalBlocks::BEEHIVE = nullptr;
 
 // 火把
 Block* NaturalBlocks::TORCH = nullptr;
@@ -354,15 +362,30 @@ void registerNaturalBlocks()
         BlockProperties(Material::GLASS).hardness(3.0f).resistance(3.0f).notSolid());
 
     // ========== 火把 ==========
-    // 火把 - 发光等级14
-    // TODO: 实现 TorchBlock 专用类，支持墙上放置方向和粒子效果
-    NaturalBlocks::TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14));
+    // 火把 - 发光等级14，生成火焰和烟雾粒子
+    NaturalBlocks::TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:torch"),
+        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
+        client::renderer::trident::particle::ParticleTypeId::Flame);
 
-    // 墙上的火把
-    // TODO: 实现 WallTorchBlock 专用类，支持方向属性和墙上放置逻辑
-    NaturalBlocks::WALL_TORCH = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:wall_torch"),
-        BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14));
+    // 墙上的火把 - 附着在墙上，根据朝向有不同碰撞箱和粒子位置
+    NaturalBlocks::WALL_TORCH =
+        &registry.registerBlock<blocks::WallTorchBlock>(ResourceLocation("minecraft:wall_torch"),
+            BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
+            client::renderer::trident::particle::ParticleTypeId::Flame);
+
+    // ========== 蜂巢/蜂箱 ==========
+    // 蜂巢 - 自然生成于树上，材质较软
+    NaturalBlocks::BEE_NEST = &registry.registerBlock<blocks::BeehiveBlock>(ResourceLocation("minecraft:bee_nest"),
+        BlockProperties(Material::WOOD).hardness(0.3f).resistance(0.3f).flammable().ignitedByLava());
+
+    // 蜂箱 - 玩家合成，用木板制作，需要斧头加速挖掘
+    NaturalBlocks::BEEHIVE = &registry.registerBlock<blocks::BeehiveBlock>(ResourceLocation("minecraft:beehive"),
+        BlockProperties(Material::WOOD)
+            .hardness(0.6f)
+            .resistance(0.6f)
+            .flammable()
+            .ignitedByLava()
+            .harvestTool(HarvestTool::Axe));
 }
 
 } // namespace block_registry

@@ -7,7 +7,7 @@
 ```
 template/
 ├── Template.hpp                      # 模板类（BlockInfo、PlacementSettings、StructureProcessor、Palette等）
-├── Template.cpp                      # 模板类实现
+├── Template.cpp                      # 模板类实现（含所有处理器实现）
 ├── TemplateLoader.hpp                # NBT 模板加载器，从资源包加载 .nbt 文件
 ├── TemplateLoader.cpp                # 模板加载实现
 ├── TemplateManager.hpp               # 模板管理器（缓存、资源包集成）
@@ -15,8 +15,38 @@ template/
 ├── RuleTest.hpp                      # 规则测试类（用于 RuleStructureProcessor）
 ├── RuleTest.cpp                      # 规则测试实现
 ├── CopperBulbDegradationProcessor.hpp # 铜灯降级处理器（试炼密室用）
-└── CopperBulbDegradationProcessor.cpp # 铜灯降级处理器实现
+├── CopperBulbDegradationProcessor.cpp # 铜灯降级处理器实现
+├── CappedStructureProcessor.hpp  # 限制次数处理器（Capped Processor，包装器模式）
+├── CappedStructureProcessor.cpp  # 限制次数处理器实现
+├── BlockAgeProcessor.hpp             # [未编译] 方块老化处理器独立声明（实现在 Template.cpp）
+├── BlockAgeProcessor.cpp             # [未编译] 方块老化处理器独立实现（实现在 Template.cpp）
+├── BlackstoneReplacementProcessor.hpp # [未编译] 黑石替换处理器
+├── BlackstoneReplacementProcessor.cpp # [未编译] 黑石替换处理器
+├── BlockIgnoreStructureProcessor.hpp # [未编译] 方块忽略处理器
+├── BlockIgnoreStructureProcessor.cpp # [未编译] 方块忽略处理器
+├── GravityStructureProcessor.hpp     # [未编译] 重力处理器
+├── GravityStructureProcessor.cpp     # [未编译] 重力处理器
+├── IntegrityProcessor.hpp            # [未编译] 完整度处理器
+├── IntegrityProcessor.cpp            # [未编译] 完整度处理器
+├── JigsawReplacementStructureProcessor.hpp # [未编译] 拼图替换处理器
+├── JigsawReplacementStructureProcessor.cpp # [未编译] 拼图替换处理器
+├── LavaSubmergingProcessor.hpp       # [未编译] 岩浆淹没处理器
+├── LavaSubmergingProcessor.cpp       # [未编译] 岩浆淹没处理器
+├── NopStructureProcessor.hpp         # [未编译] 空处理器
+├── NopStructureProcessor.cpp         # [未编译] 空处理器
+├── RuleStructureProcessor.hpp        # [未编译] 规则处理器
+├── RuleStructureProcessor.cpp        # [未编译] 规则处理器
+├── BlockInfo.hpp                     # [未编译] 方块信息
+├── BlockInfo.cpp                     # [未编译] 方块信息
+├── PlacementSettings.hpp             # [未编译] 放置设置
+├── PlacementSettings.cpp             # [未编译] 放置设置
+├── StructureProcessor.hpp            # [未编译] 处理器基类
+├── StructureProcessor.cpp            # [未编译] 处理器基类
+├── TemplateEntityInfo.hpp            # [未编译] 模板实体信息
+└── TemplateEntityInfo.cpp            # [未编译] 模板实体信息
 ```
+
+**注意**：标记为 `[未编译]` 的文件不在 CMakeLists.txt 编译列表中，其功能已在 `Template.hpp/cpp` 中统一实现。这些文件保留作为参考，未来可能重构为独立编译单元。
 
 ## 内部模块关系
 
@@ -34,9 +64,10 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
                                       ├── RuleStructureProcessor ──依赖──> RuleTest
                                       ├── NopStructureProcessor
                                       ├── LavaSubmergingProcessor
-                                      ├── BlockAgeProcessor
+                                      ├── BlockAgeProcessor ──依赖──> BlockTags（STAIRS/SLABS/WALLS）
                                       ├── BlackstoneReplacementProcessor
-                                      └── CopperBulbDegradationProcessor
+                                      ├── CopperBulbDegradationProcessor
+                                      └── CappedStructureProcessor ──包装──> StructureProcessor（delegate）
 ```
 
 **关键依赖链**：
@@ -44,6 +75,7 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
 - `TemplateManager` 提供模板缓存和资源包集成
 - `Template::place()` 遍历方块并调用 `StructureProcessor` 链处理
 - `RuleStructureProcessor` 使用 `RuleTest` 进行条件匹配
+- `BlockAgeProcessor` 使用 `BlockTags::STAIRS/SLABS/WALLS` 进行标签化方块匹配，使用 `withPropertiesOf()` 保留原方块属性
 
 ## 上下游外部依赖关系
 
@@ -51,11 +83,12 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
 
 - `mc::core` - 基础类型（u32, i32, f32 等）
 - `mc::util::math::Random` - 确定性随机数生成
-- `mc::world::block` - BlockState、Block、BlockRegistry、VanillaBlocks
+- `mc::world::block` - BlockState、Block、BlockRegistry、VanillaBlocks、BlockTags
 - `mc::world::gen::structure` - StructureBoundingBox
 - `mc::resource` - ResourceLocation、IResourcePack、DataPackList
 - `mc::nbt` - NBT 解析（CompoundTag、ListTag）
 - `mc::util::Direction` - Rotation、Mirror 枚举
+- `mc::util::property::Properties` - BlockStateProperties（HORIZONTAL_FACING、HALF 等属性）
 
 ### 下游依赖（依赖本模块的外部模块）
 
@@ -118,3 +151,18 @@ IntegrityProcessor 等使用位置哈希进行确定性随机。必须使用 `Ma
 ### 10. 区块尺寸常量使用
 
 【重要】必须使用 `mc::world::CHUNK_WIDTH`、`CHUNK_HEIGHT`、`CHUNK_SECTION_HEIGHT` 等常量，禁止硬编码 16 等数字。
+
+### 11. BlockAgeProcessor 标签匹配与属性保留
+
+`BlockAgeProcessor` 使用 `BlockTags` 标签匹配替代硬编码方块指针比较：
+- **楼梯方块**：通过 `BlockTags::STAIRS()` 标签匹配所有楼梯
+- **台阶方块**：通过 `BlockTags::SLABS()` 标签匹配所有台阶
+- **墙壁方块**：通过 `BlockTags::WALLS()` 标签匹配所有墙壁
+
+替换时使用 `withPropertiesOf()` 保留原方块的共享属性（如朝向、含水状态等），确保楼梯/台阶/墙壁的朝向和形状不会丢失。
+
+**注意**：`withPropertiesOf()` 只复制两个方块状态共有的属性，不会添加目标方块不支持的属性，也不会删除目标方块独有的属性。
+
+### 12. 未编译的独立处理器文件
+
+目录中存在多个标记为 `[未编译]` 的独立处理器文件（如 `BlockAgeProcessor.hpp/cpp`、`BlackstoneReplacementProcessor.hpp/cpp` 等），这些文件不在 `CMakeLists.txt` 编译列表中。它们的功能已在 `Template.hpp/cpp` 中统一实现。修改处理器逻辑时，务必修改 `Template.hpp/cpp` 中的实现，而非仅修改独立文件。

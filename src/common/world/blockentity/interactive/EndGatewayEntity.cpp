@@ -30,6 +30,8 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/chunk/data/ChunkSection.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -246,8 +248,6 @@ BlockPos EndGatewayEntity::_findExitPosition(IWorld& world) const
 void EndGatewayEntity::_generateExitPortal(IWorld& world)
 {
     // 从主岛向外约 1024 格生成出口传送门
-    // 使用位置坐标作为随机种子
-    math::Random rng(static_cast<u64>(static_cast<i64>(m_pos.x) * 3129871LL + static_cast<i64>(m_pos.z) * 116129781LL));
 
     // 计算方向向量（从原点指向当前位置）并归一化
     f64 length = std::sqrt(static_cast<f64>(m_pos.x * m_pos.x + m_pos.z * m_pos.z));
@@ -258,13 +258,74 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     f64 dirX = static_cast<f64>(m_pos.x) / length;
     f64 dirZ = static_cast<f64>(m_pos.z) / length;
 
-    // 缩放到 1024 格距离
-    f64 distance = 1024.0 + rng.nextDouble() * 256.0;
-    i32 targetX = static_cast<i32>(dirX * distance);
-    i32 targetZ = static_cast<i32>(dirZ * distance);
+    // 沿方向搜索合适的区块
+    // 先沿方向前进 1024 格，然后跳过非空区块（回退），再跳过空区块（前进）
+    // 与 MC Java 的 TheEndGatewayBlockEntity.findExitPortalXZPosTentative 一致
+    // TODO: MC 原版在区块未加载时会触发区块加载/生成来判断是否为空，
+    // 当前实现将未加载区块（getChunk 返回 nullptr）视为空区块继续前进，
+    // 可能导致出口传送门定位到未生成区域。后续应在 ServerWorld 层面
+    // 支持按需加载区块以完整复刻原版行为。
+    f64 vecX = dirX * 1024.0;
+    f64 vecZ = dirZ * 1024.0;
 
-    // TODO: 硬编码的初始高度75应该根据末地维度的地形生成规则来确定
-    // 目前使用固定值，后续应改为根据生物群系或地形生成器获取
+    // 回退跳过非空区块（主岛区域）
+    for (i32 i = 0; i < 16; ++i) {
+        i32 chunkX = world::toChunkCoord(static_cast<i32>(std::floor(vecX)));
+        i32 chunkZ = world::toChunkCoord(static_cast<i32>(std::floor(vecZ)));
+        const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+
+        // 检查区块是否非空（有内容）
+        bool chunkHasContent = false;
+        if (chunk != nullptr) {
+            for (i32 sectionIdx = 0; sectionIdx < world::CHUNK_SECTIONS; ++sectionIdx) {
+                const ChunkSection* section = chunk->getSection(sectionIdx);
+                if (section != nullptr && !section->isEmpty()) {
+                    chunkHasContent = true;
+                    break;
+                }
+            }
+        }
+
+        if (chunkHasContent) {
+            // 非空区块，继续回退
+            vecX -= dirX * static_cast<f64>(world::CHUNK_WIDTH);
+            vecZ -= dirZ * static_cast<f64>(world::CHUNK_WIDTH);
+        } else {
+            break;
+        }
+    }
+
+    // 前进跳过空区块（寻找外岛边缘）
+    for (i32 i = 0; i < 16; ++i) {
+        i32 chunkX = world::toChunkCoord(static_cast<i32>(std::floor(vecX)));
+        i32 chunkZ = world::toChunkCoord(static_cast<i32>(std::floor(vecZ)));
+        const ChunkData* chunk = world.getChunk(chunkX, chunkZ);
+
+        // 检查区块是否为空
+        bool chunkHasContent = false;
+        if (chunk != nullptr) {
+            for (i32 sectionIdx = 0; sectionIdx < world::CHUNK_SECTIONS; ++sectionIdx) {
+                const ChunkSection* section = chunk->getSection(sectionIdx);
+                if (section != nullptr && !section->isEmpty()) {
+                    chunkHasContent = true;
+                    break;
+                }
+            }
+        }
+
+        if (!chunkHasContent) {
+            // 空区块，继续前进
+            vecX += dirX * static_cast<f64>(world::CHUNK_WIDTH);
+            vecZ += dirZ * static_cast<f64>(world::CHUNK_WIDTH);
+        } else {
+            break;
+        }
+    }
+
+    i32 targetX = static_cast<i32>(vecX + 0.5);
+    i32 targetZ = static_cast<i32>(vecZ + 0.5);
+
+    // 末地外岛的默认生成高度为75，与 MC Java 的 TheEndGatewayBlockEntity.findOrCreateValidTeleportPos 一致
     BlockPos targetPos(targetX, 75, targetZ);
 
     // 查找最高方块
@@ -274,30 +335,78 @@ void EndGatewayEntity::_generateExitPortal(IWorld& world)
     m_exitPortal = groundPos.up(10);
 
     // 创建折跃门结构
-    _createGatewayStructure(world, m_exitPortal.value());
+    createGatewayStructure(world, m_exitPortal.value());
+
+    // 在出口折跃门的方块实体上设置返回位置，指向当前折跃门
+    // 与 MC Java 的 TheEndGatewayBlockEntity.getPortalPosition 一致
+    const BlockState* exitState = world.getBlockState(m_exitPortal.value());
+    if (exitState != nullptr && &exitState->getBlock() == VanillaBlocks::END_GATEWAY) {
+        BlockEntity* exitBe = world.getBlockEntity(m_exitPortal.value());
+        if (exitBe != nullptr && exitBe->getType() == BlockEntityType::EndGateway) {
+            auto* exitGateway = static_cast<EndGatewayEntity*>(exitBe);
+            exitGateway->setExitPortal(m_pos, false);
+        }
+    }
 
     setChanged();
 }
 
-void EndGatewayEntity::_createGatewayStructure(IWorld& world, const BlockPos& pos)
+void EndGatewayEntity::createGatewayStructure(IWorld& world, const BlockPos& pos)
 {
-    // 折跃门结构是一个单独的折跃门方块，周围是基岩框架
+    // 折跃门结构：3x5x3 的基岩框架，中心为折跃门方块
+    // 结构以 pos 为中心，范围从 pos + (-1, -2, -1) 到 pos + (1, 2, 1)
+    //
+    // 顶/底盖层（dy = ±2）：仅中心列为基岩
+    //   . . .
+    //   . B .
+    //   . . .
+    //
+    // 十字臂层（dy = ±1）：十字形基岩框架
+    //   . B .
+    //   B B B
+    //   . B .
+    //
+    // 中心层（dy = 0）：中心为折跃门方块，其余为空气
+    //   . . .
+    //   . G .
+    //   . . .
 
-    // 获取方块
-    Block* bedrockBlock = VanillaBlocks::BEDROCK;
-    Block* endGatewayBlock = VanillaBlocks::END_GATEWAY;
+    const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
+    const BlockState* endGateway = VanillaBlocks::getState(VanillaBlocks::END_GATEWAY);
+    const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
 
-    if (bedrockBlock == nullptr || endGatewayBlock == nullptr) {
+    if (bedrock == nullptr || endGateway == nullptr || air == nullptr) {
         return;
     }
 
-    // 获取默认方块状态
-    const BlockState& bedrock = bedrockBlock->defaultState();
-    const BlockState& endGateway = endGatewayBlock->defaultState();
+    for (i32 dx = -1; dx <= 1; ++dx) {
+        for (i32 dy = -2; dy <= 2; ++dy) {
+            for (i32 dz = -1; dz <= 1; ++dz) {
+                BlockPos blockPos(pos.x + dx, pos.y + dy, pos.z + dz);
+                bool sameX = (dx == 0);
+                bool sameY = (dy == 0);
+                bool sameZ = (dz == 0);
+                bool isTopBottomCap = (dy == 2 || dy == -2);
 
-    // 简化版：只放置折跃门方块本身
-    // TODO: 完整实现应该在周围放置基岩框架
-    world.setBlockState(pos, &endGateway);
+                if (sameX && sameY && sameZ) {
+                    // 中心位置：末地折跃门方块
+                    world.setBlockState(blockPos, endGateway);
+                } else if (sameY) {
+                    // 与中心同层但不在中心列：空气（通道）
+                    world.setBlockState(blockPos, air);
+                } else if (isTopBottomCap && sameX && sameZ) {
+                    // 顶/底盖的中心列：基岩
+                    world.setBlockState(blockPos, bedrock);
+                } else if ((sameX || sameZ) && !isTopBottomCap) {
+                    // 侧面十字臂（非顶底盖）：基岩
+                    world.setBlockState(blockPos, bedrock);
+                } else {
+                    // 四角（非中心Y 且非十字臂）：空气
+                    world.setBlockState(blockPos, air);
+                }
+            }
+        }
+    }
 }
 
 BlockPos EndGatewayEntity::_findHighestBlock(IWorld& world, const BlockPos& center, i32 radius, bool allowBedrock)
@@ -307,37 +416,36 @@ BlockPos EndGatewayEntity::_findHighestBlock(IWorld& world, const BlockPos& cent
 
     for (i32 dx = -radius; dx <= radius; ++dx) {
         for (i32 dz = -radius; dz <= radius; ++dz) {
-            // 跳过中心（除非允许基岩）
+            // 跳过中心（除非允许基岩），与 MC Java 的 findTallestBlock 一致
             if (dx == 0 && dz == 0 && !allowBedrock) {
                 continue;
             }
 
-            // 从顶部向下搜索
+            // 从顶部向下搜索，只记录比当前最高点更高的方块
             for (i32 y = world::MAX_BUILD_HEIGHT - 1; y > highestY; --y) {
                 BlockPos checkPos(center.x + dx, y, center.z + dz);
                 const BlockState* state = world.getBlockState(checkPos);
 
-                if (state != nullptr) {
+                if (state != nullptr && !state->isAir()) {
                     const Block& block = state->getBlock();
-                    // 检查是否有碰撞箱（非透明方块）
-                    if (!block.isAir(*state)) {
-                        const CollisionShape& shape = block.getCollisionShape(*state);
-                        if (!shape.isEmpty()) {
-                            // 如果不允许基岩，跳过基岩
-                            if (!allowBedrock && &block == VanillaBlocks::BEDROCK) {
-                                continue;
-                            }
-
-                            highestY = y;
-                            result = checkPos;
-                            break;
+                    // 与 MC Java 的 isCollisionShapeFullBlock 一致：碰撞形状为完整方块
+                    const CollisionShape& shape = block.getCollisionShape(*state);
+                    if (shape.isFullBlock()) {
+                        // 如果不允许基岩，跳过基岩
+                        if (!allowBedrock && &block == VanillaBlocks::BEDROCK) {
+                            continue;
                         }
+
+                        highestY = y;
+                        result = checkPos;
+                        break;
                     }
                 }
             }
         }
     }
 
+    // 如果没找到任何方块，返回中心位置（与 MC Java 的回退逻辑一致）
     return result;
 }
 

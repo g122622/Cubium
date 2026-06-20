@@ -582,6 +582,38 @@ Result<void> SingleLevelStorageManager::saveLevelData(i64 gameTime,
     return Result<void>::ok();
 }
 
+Result<std::unique_ptr<nbt::tags::compound_list_tag>> SingleLevelStorageManager::loadScheduledEvents()
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    // 外来格式返回空列表
+    if (m_backend) {
+        return std::make_unique<nbt::tags::compound_list_tag>();
+    }
+
+    return LevelDatCodec::readScheduledEvents(m_worldPath);
+}
+
+Result<void> SingleLevelStorageManager::saveScheduledEvents(const nbt::tags::compound_list_tag& events)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_config.readonly) {
+        return Result<void>::ok();
+    }
+
+    // 外来格式：只读，不保存
+    if (m_backend) {
+        return Result<void>::ok();
+    }
+
+    return LevelDatCodec::updateScheduledEvents(m_worldPath, events);
+}
+
 SectionManager& SingleLevelStorageManager::_sectionManager(DimensionId dimension)
 {
     if (!isOpen()) {

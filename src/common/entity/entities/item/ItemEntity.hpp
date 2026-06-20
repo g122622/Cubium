@@ -120,6 +120,14 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 检查物品实体是否阻尼振动
+     *
+     * 当物品是羊毛物品时阻尼振动，与 MC 原版行为一致。
+     * 参考: net.minecraft.world.entity.item.ItemEntity.dampensVibrations()
+     */
+    [[nodiscard]] bool dampensVibrations() const override;
+
     // ========== 物品相关 ==========
 
     /**

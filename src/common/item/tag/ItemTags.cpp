@@ -92,6 +92,15 @@ ItemTag& ItemTags::CARPETS()
     return *tag;
 }
 
+ItemTag& ItemTags::DAMPENS_VIBRATIONS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dampens_vibrations"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -151,6 +160,49 @@ void ItemTags::initialize()
     carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_carpet")));
 
     allTags[carpets->getId()] = std::move(carpets);
+
+    // 创建 DAMPENS_VIBRATIONS 标签
+    // 包含所有羊毛物品和地毯物品
+    // 参考: net.minecraft.data.tags.BlockItemTagsProvider - DAMPENS_VIBRATIONS 包含 wool 和 wool_carpets
+    auto dampensVibrations = std::make_unique<ItemTag>(ResourceLocation("minecraft", "dampens_vibrations"));
+
+    // 16 色羊毛物品
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_wool")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_wool")));
+
+    // 16 色地毯物品
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_carpet")));
+    dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_carpet")));
+
+    allTags[dampensVibrations->getId()] = std::move(dampensVibrations);
 
     s_initialized = true;
 }

@@ -61,7 +61,7 @@ void ElytraItem::inventoryTick(ItemStack& stack, IWorld& world, Entity& entity, 
     LivingEntity* living = dynamic_cast<LivingEntity*>(&entity);
     if (living != nullptr && itemSlot == InventorySlots::ARMOR_CHEST && isGliding(*living)) {
         if (world.currentTick() % 20 == 0) {
-            damageElytra(stack, *living);
+            damageElytra(stack, *living, EquipmentSlot::Chest);
         }
     }
 
@@ -80,10 +80,10 @@ bool ElytraItem::isGliding(const LivingEntity& entity)
     return entity.pose() == EntityPose::FallFlying || entity.hasFlag(EntityFlags::FallFlying);
 }
 
-void ElytraItem::damageElytra(ItemStack& stack, LivingEntity& entity)
+void ElytraItem::damageElytra(ItemStack& stack, LivingEntity& entity, EquipmentSlot slot)
 {
     if (stack.isDamageable()) {
-        stack.attemptDamageItem(1, &entity);
+        LivingEntity::hurtAndBreak(stack, 1, &entity, slot);
     }
 }
 

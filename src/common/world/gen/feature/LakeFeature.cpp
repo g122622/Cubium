@@ -25,6 +25,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -218,15 +219,24 @@ bool LakeFeature::place(WorldGenRegion& world, math::Random& rng, i32 x, i32 y, 
         for (i32 bx = 0; bx < LAKE_SIZE_X; ++bx) {
             for (i32 bz = 0; bz < LAKE_SIZE_Z; ++bz) {
                 const i32 surfaceY = y + FLUID_SURFACE_Y;
-                const BlockState* state = world.getBlockState(x + bx, surfaceY, z + bz);
+                const i32 wx = x + bx;
+                const i32 wz = z + bz;
+                const BlockState* state = world.getBlockState(wx, surfaceY, wz);
 
                 if (state && state->is(VanillaBlocks::WATER)) {
-                    // 检查生物群系是否足够冷以冻结
-                    auto biomeId = world.getBiome(x + bx, surfaceY, z + bz);
-                    // 简化：通过高度判断冻结（MC 使用 Biome.shouldFreeze）
-                    // TODO: 完整实现需要 Biome.shouldFreeze(world, pos)
-                    // 当前使用 Biome 的温度方法判断
-                    // 此处保守处理，先不冻结，待 Biome 集成完善后补充
+                    // 获取生物群系并检查是否应该冻结
+                    // 使用 checkNeighbors=false，因为湖面冻结不需要检查邻居水域暴露
+                    auto biomeId = world.getBiome(wx, surfaceY, wz);
+                    const Biome& biome = BiomeRegistry::instance().get(biomeId);
+                    if (biome.shouldFreeze(world, wx, surfaceY, wz, world::SEA_LEVEL, false)) {
+                        // 仅冻结可替换的方块（避免冻结不可替换的方块）
+                        if (canReplaceBlock(*state)) {
+                            const BlockState* iceState = VanillaBlocks::getState(VanillaBlocks::ICE);
+                            if (iceState) {
+                                world.setBlockState(wx, surfaceY, wz, iceState);
+                            }
+                        }
+                    }
                 }
             }
         }

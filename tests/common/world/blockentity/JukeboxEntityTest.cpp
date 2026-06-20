@@ -33,6 +33,7 @@
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/JukeboxEntity.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -44,7 +45,7 @@ using namespace mc::blockentity;
 namespace {
 
 /**
- * @brief 测试用世界存根 - 记录 playEvent 调用
+ * @brief 测试用世界存根 - 记录 playEvent 和 gameEvent 调用
  */
 class JukeboxTestWorld final : public test::BaseTestWorld {
 public:
@@ -54,16 +55,32 @@ public:
         i32 data;
     };
 
+    struct GameEventCall {
+        const gameevent::GameEvent* event;
+        BlockPos pos;
+    };
+
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
     {
         m_playEventCalls.push_back({eventId, pos, data});
     }
 
+    void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override
+    {
+        m_gameEventCalls.push_back({&event, pos});
+        (void)context;
+    }
+
     [[nodiscard]] const std::vector<PlayEventCall>& playEventCalls() const { return m_playEventCalls; }
     void clearPlayEventCalls() { m_playEventCalls.clear(); }
 
+    [[nodiscard]] const std::vector<GameEventCall>& gameEventCalls() const { return m_gameEventCalls; }
+    void clearGameEventCalls() { m_gameEventCalls.clear(); }
+
 private:
     std::vector<PlayEventCall> m_playEventCalls;
+    std::vector<GameEventCall> m_gameEventCalls;
 };
 
 class JukeboxEntityTest : public ::testing::Test {
@@ -432,6 +449,126 @@ TEST_F(JukeboxEntityTest, Inventory_ClearRemovesDisc)
     IInventory* inv = jukebox_->getInventory();
     inv->clear();
     EXPECT_TRUE(jukebox_->getRecord().isEmpty());
+}
+
+// ========== gameEvent 游戏事件测试 ==========
+
+TEST_F(JukeboxEntityTest, StopPlaying_TriggersJukeboxStopPlayGameEvent)
+{
+    // 放入唱片开始播放
+    ItemStack disc(Items::MUSIC_DISC_13, 1);
+    jukebox_->setRecord(disc, *world_);
+    EXPECT_TRUE(jukebox_->isPlaying());
+
+    world_->clearGameEventCalls();
+    world_->clearPlayEventCalls();
+
+    // 停止播放应触发 JUKEBOX_STOP_PLAY 游戏事件
+    jukebox_->stopPlaying(*world_);
+    EXPECT_FALSE(jukebox_->isPlaying());
+
+    ASSERT_FALSE(world_->gameEventCalls().empty());
+    const auto& gameEventCall = world_->gameEventCalls().back();
+    EXPECT_STREQ(gameEventCall.event->id(), "jukebox_stop_play");
+    EXPECT_EQ(gameEventCall.pos, pos_);
+
+    // 也应广播 STOP_RECORD_SOUND 世界事件
+    ASSERT_FALSE(world_->playEventCalls().empty());
+    const auto& playEventCall = world_->playEventCalls().back();
+    EXPECT_EQ(playEventCall.eventId, world::WorldEvents::STOP_RECORD_SOUND);
+}
+
+TEST_F(JukeboxEntityTest, StopPlaying_GameEventBeforeLevelEvent)
+{
+    // MC 原版中先触发 gameEvent 再触发 levelEvent，验证顺序一致
+    ItemStack disc(Items::MUSIC_DISC_13, 1);
+    jukebox_->setRecord(disc, *world_);
+    world_->clearGameEventCalls();
+    world_->clearPlayEventCalls();
+
+    jukebox_->stopPlaying(*world_);
+
+    // gameEvent 应该在 playEvent 之前被记录
+    // 由于两者在 stop() 中按顺序调用，gameEvent 应先于 playEvent
+    ASSERT_GE(world_->gameEventCalls().size(), 1u);
+    ASSERT_GE(world_->playEventCalls().size(), 1u);
+    EXPECT_STREQ(world_->gameEventCalls()[0].event->id(), "jukebox_stop_play");
+    EXPECT_EQ(world_->playEventCalls()[0].eventId, world::WorldEvents::STOP_RECORD_SOUND);
+}
+
+TEST_F(JukeboxEntityTest, SetRecord_TriggersJukeboxStopPlayGameEventWhenStopping)
+{
+    // 放入唱片
+    ItemStack disc(Items::MUSIC_DISC_13, 1);
+    jukebox_->setRecord(disc, *world_);
+    EXPECT_TRUE(jukebox_->isPlaying());
+
+    world_->clearGameEventCalls();
+
+    // 设置为空应触发停止，从而触发 JUKEBOX_STOP_PLAY
+    jukebox_->setRecord(ItemStack::EMPTY, *world_);
+    EXPECT_FALSE(jukebox_->isPlaying());
+
+    ASSERT_FALSE(world_->gameEventCalls().empty());
+    EXPECT_STREQ(world_->gameEventCalls().back().event->id(), "jukebox_stop_play");
+}
+
+TEST_F(JukeboxEntityTest, StopPlayingWhenNotPlaying_NoGameEvent)
+{
+    // 不在播放时调用 stopPlaying 不应触发任何 gameEvent
+    EXPECT_FALSE(jukebox_->isPlaying());
+    jukebox_->stopPlaying(*world_);
+    EXPECT_TRUE(world_->gameEventCalls().empty());
+}
+
+TEST_F(JukeboxEntityTest, Tick_TriggersJukeboxPlayGameEventEvery20Ticks)
+{
+    // 放入唱片开始播放
+    ItemStack disc(Items::MUSIC_DISC_13, 1);
+    jukebox_->setRecord(disc, *world_);
+
+    // 第一次 tick 时 ticksSinceSongStarted == 0，0 % 20 == 0，会触发 JUKEBOX_PLAY
+    world_->clearGameEventCalls();
+    jukebox_->tick(*world_);
+    ASSERT_FALSE(world_->gameEventCalls().empty());
+    EXPECT_STREQ(world_->gameEventCalls().back().event->id(), "jukebox_play");
+
+    // 之后 19 次 tick 不会触发（ticksSinceSongStarted 从 1 到 19，都不满足 % 20 == 0）
+    world_->clearGameEventCalls();
+    for (int i = 0; i < 19; ++i) {
+        jukebox_->tick(*world_);
+    }
+    EXPECT_TRUE(world_->gameEventCalls().empty());
+
+    // 第 20 次 tick 后再次触发（ticksSinceSongStarted == 20，20 % 20 == 0）
+    jukebox_->tick(*world_);
+    ASSERT_FALSE(world_->gameEventCalls().empty());
+    EXPECT_STREQ(world_->gameEventCalls().back().event->id(), "jukebox_play");
+}
+
+TEST_F(JukeboxEntityTest, Tick_JukeboxPlayGameEventHasCorrectPosition)
+{
+    ItemStack disc(Items::MUSIC_DISC_13, 1);
+    jukebox_->setRecord(disc, *world_);
+    world_->clearGameEventCalls();
+
+    // 第一次 tick 触发 JUKEBOX_PLAY（ticksSinceSongStarted == 0）
+    jukebox_->tick(*world_);
+
+    ASSERT_FALSE(world_->gameEventCalls().empty());
+    EXPECT_EQ(world_->gameEventCalls().back().pos, pos_);
+}
+
+TEST_F(JukeboxEntityTest, JukeboxStopPlayEventNotificationRadius)
+{
+    // 验证 JUKEBOX_STOP_PLAY 的通知半径为 10（MC 原版值）
+    EXPECT_EQ(gameevent::GameEvents::JUKEBOX_STOP_PLAY.notificationRadius(), 10);
+}
+
+TEST_F(JukeboxEntityTest, JukeboxPlayEventNotificationRadius)
+{
+    // 验证 JUKEBOX_PLAY 的通知半径为 10（MC 原版值）
+    EXPECT_EQ(gameevent::GameEvents::JUKEBOX_PLAY.notificationRadius(), 10);
 }
 
 } // namespace

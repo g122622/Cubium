@@ -186,6 +186,61 @@ TEST_F(ClientEntityAnimationTest, EatAnimationTimer_DoesNotGoNegative)
     EXPECT_EQ(entity->eatAnimationTimer(), 0);
 }
 
+// ========== TNT Minecart Fuse Timer ==========
+
+TEST_F(ClientEntityAnimationTest, FuseTimer_DefaultIsMinusOne)
+{
+    // 默认值 -1 表示未引燃
+    EXPECT_EQ(entity->fuseTimer(), -1);
+}
+
+TEST_F(ClientEntityAnimationTest, FuseTimer_SetAndGet)
+{
+    entity->setFuseTimer(80);
+    EXPECT_EQ(entity->fuseTimer(), 80);
+}
+
+TEST_F(ClientEntityAnimationTest, FuseTimer_DecrementsOnTick)
+{
+    entity->setFuseTimer(80);
+    entity->tick();
+    EXPECT_EQ(entity->fuseTimer(), 79);
+}
+
+TEST_F(ClientEntityAnimationTest, FuseTimer_ReachesZero)
+{
+    entity->setFuseTimer(5);
+    for (int i = 0; i < 5; ++i) {
+        entity->tick();
+    }
+    EXPECT_EQ(entity->fuseTimer(), 0);
+}
+
+TEST_F(ClientEntityAnimationTest, FuseTimer_DoesNotGoNegative)
+{
+    entity->setFuseTimer(2);
+    entity->tick(); // 1
+    entity->tick(); // 0
+    entity->tick(); // 仍然 0，不会变为 -1
+    EXPECT_EQ(entity->fuseTimer(), 0);
+}
+
+TEST_F(ClientEntityAnimationTest, FuseTimer_MinusOneDoesNotDecrement)
+{
+    // 未引燃状态（-1）不应该递减
+    entity->setFuseTimer(-1);
+    entity->tick();
+    EXPECT_EQ(entity->fuseTimer(), -1);
+}
+
+TEST_F(ClientEntityAnimationTest, FuseTimer_ResetToMinusOne)
+{
+    entity->setFuseTimer(80);
+    EXPECT_EQ(entity->fuseTimer(), 80);
+    entity->setFuseTimer(-1);
+    EXPECT_EQ(entity->fuseTimer(), -1);
+}
+
 // ========== Interpolated Swing Progress ==========
 
 TEST_F(ClientEntityAnimationTest, InterpolatedSwingProgress_NoSwing)

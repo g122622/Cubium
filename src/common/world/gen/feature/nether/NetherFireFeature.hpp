@@ -32,14 +32,20 @@ namespace mc {
 
 /**
  * @brief 下界火焰特征配置
+ *
+ * 参考 MC Java NetherForestVegetationConfig 的 spreadWidth/spreadHeight 设计。
+ * - spread：水平蔓延范围，对应 Java 的 spreadWidth
+ * - minHeight：火焰生成位置的最低相对 Y 偏移
+ * - maxHeight：火焰生成位置的最高相对 Y 偏移
  */
 struct NetherFireFeatureConfig : public IFeatureConfig {
-    /// 火焰蔓延范围
+    /// 火焰水平蔓延范围
     i32 spread = 4;
 
-    /// 每个火焰的高度范围
-    // TODO: minHeight 和 maxHeight 尚未在生成逻辑中使用，待实现火焰高度变化
+    /// 火焰生成位置的最低相对 Y 偏移（相对特征原点向下）
     i32 minHeight = 1;
+
+    /// 火焰生成位置的最高相对 Y 偏移（相对特征原点向上）
     i32 maxHeight = 3;
 
     NetherFireFeatureConfig() = default;
