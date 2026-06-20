@@ -61,6 +61,10 @@ MonsterEntity (敌对生物基类)
 
 `SilverfishEntity::hurt()` 中检查 `source.isEntitySource() || source.isMagic()` 才触发召唤。这意味着摔落伤害、窒息伤害等不会触发召唤同伴。修改伤害来源判断时需谨慎。
 
+### 蠹虫寻路权重
+
+`SilverfishEntity::getPathWeight()` 重写了 MonsterEntity 的默认行为：当脚下方块（y-1）为可被虫蚀的宿主方块（如石头、圆石、石砖等，通过 `InfestedBlock::canContainSilverfish()` 判断，对应 MC 的 `InfestedBlock.isCompatibleHostBlock`）时返回 10.0f（强烈偏好），否则委托给 `MonsterEntity::getPathWeight()`（基于光照的默认逻辑）。这对应 MC 中 `Silverfish.getWalkTargetValue` 的行为。
+
 ### CaveSpiderEntity 的中毒持续时间
 
 中毒持续时间取决于游戏难度，默认值 `m_poisonDuration = 7` 是普通难度的值。`attackEntityAsMob()` 中需要从世界获取难度来决定实际持续时间：

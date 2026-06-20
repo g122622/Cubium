@@ -82,7 +82,11 @@ Entity → LivingEntity → MobEntity → FlyingEntity → PhantomEntity
 
 GiantEntity 没有注册任何AI目标，只能通过命令生成，不会自然行动。
 
-### 5. CreeperEntity 爆炸状态
+### 5. GiantEntity 寻路权重
+
+GiantEntity 是唯一偏好明亮区域的 Monster 子类，`getPathWeight()` 返回 `brightness - 0.5f`（而非其他怪物的 `0.5f - brightness`），与 AnimalEntity 类似但不检查草方块。
+
+### 6. CreeperEntity 爆炸状态
 
 苦力怕的状态使用 -1（idle）和 1（igniting/fusing），不是 0/1。获取状态时注意返回值的语义。
 

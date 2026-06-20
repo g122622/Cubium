@@ -207,13 +207,14 @@ void SilverfishEntity::notifySummonCooldown()
 
 f32 SilverfishEntity::getPathWeight(f32 x, f32 y, f32 z) const
 {
-    // MC Silverfish.getWalkTargetValue: 脚下是虫蚀方块返回 10.0f，否则委托父类
+    // MC Silverfish.getWalkTargetValue: 脚下是可被虫蚀的方块（宿主方块）返回 10.0f，否则委托父类
+    // 对应 MC: InfestedBlock.isCompatibleHostBlock(level.getBlockState(pos.below()))
     const IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
         return 0.0f;
     }
 
-    // 检查脚下方块（y - 1）是否为虫蚀方块
+    // 检查脚下方块（y - 1）是否为可被虫蚀的宿主方块
     BlockPos belowPos(
         static_cast<i32>(std::floor(x)), static_cast<i32>(std::floor(y)) - 1, static_cast<i32>(std::floor(z)));
     const BlockState* belowState = worldPtr->getBlockState(belowPos);
@@ -221,7 +222,7 @@ f32 SilverfishEntity::getPathWeight(f32 x, f32 y, f32 z) const
         return 10.0f;
     }
 
-    // 非虫蚀方块：委托给 MonsterEntity 的默认实现
+    // 非宿主方块：委托给 MonsterEntity 的默认实现
     return MonsterEntity::getPathWeight(x, y, z);
 }
 
