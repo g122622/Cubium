@@ -22,7 +22,6 @@
 
 #include "common/util/math/random/PositionalRandomFactory.hpp"
 #include "common/util/crypto/Md5.hpp"
-#include <cstring>
 
 namespace mc::math {
 
@@ -59,15 +58,26 @@ PositionalRandomFactory::PositionalRandomFactory(u64 seedLo, u64 seedHi)
 
 std::unique_ptr<Xoroshiro128ppRandom> PositionalRandomFactory::fromHashOf(const std::string& key) const
 {
-    // MC 1.21: 使用 MD5 哈希字符串，将 128 位哈希与工厂种子 XOR
-    // 然后经过 mixStafford13 混合
+    // MC 1.21: XoroshiroPositionalRandomFactory.fromHashOf(String)
+    // 使用 MD5 哈希字符串，将 128 位哈希与工厂种子 XOR
+    // 然后经过 mixStafford13 混合后作为新 RNG 的种子
+    //
+    // Java 的 Longs.fromBytes() 使用大端序解释字节：
+    //   long lo = Longs.fromBytes(bytes[0], bytes[1], ..., bytes[7])
+    //   long hi = Longs.fromBytes(bytes[8], bytes[9], ..., bytes[15])
+    // 其中 Longs.fromBytes(b0..b7) = b0<<56 | b1<<48 | ... | b7
+    // 即 bytes[0] 是最高有效字节（大端序）
     const util::crypto::Md5::Digest digest = util::crypto::Md5::hash(key);
 
-    // 从 MD5 结果中提取两个 64 位值（小端序）
-    u64 hashLo = 0;
-    u64 hashHi = 0;
-    std::memcpy(&hashLo, digest.data(), 8);
-    std::memcpy(&hashHi, digest.data() + 8, 8);
+    // 大端序解释：第一个字节是最高有效字节
+    u64 hashLo = (static_cast<u64>(digest[0]) << 56) | (static_cast<u64>(digest[1]) << 48) |
+        (static_cast<u64>(digest[2]) << 40) | (static_cast<u64>(digest[3]) << 32) |
+        (static_cast<u64>(digest[4]) << 24) | (static_cast<u64>(digest[5]) << 16) | (static_cast<u64>(digest[6]) << 8) |
+        static_cast<u64>(digest[7]);
+    u64 hashHi = (static_cast<u64>(digest[8]) << 56) | (static_cast<u64>(digest[9]) << 48) |
+        (static_cast<u64>(digest[10]) << 40) | (static_cast<u64>(digest[11]) << 32) |
+        (static_cast<u64>(digest[12]) << 24) | (static_cast<u64>(digest[13]) << 16) |
+        (static_cast<u64>(digest[14]) << 8) | static_cast<u64>(digest[15]);
 
     // XOR 工厂种子并混合
     const u64 finalLo = mixStafford13(hashLo ^ m_seedLo);

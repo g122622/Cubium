@@ -21,18 +21,21 @@
  */
 
 #include "Noises.hpp"
+#include <mutex>
 #include <stdexcept>
 
 namespace mc::world::gen::noise {
 
-std::unordered_map<std::string, NoiseParameters> Noises::s_registry;
-bool Noises::s_initialized = false;
+namespace {
+std::unordered_map<std::string, NoiseParameters> s_registry;
+
+// 线程安全的初始化守卫
+std::once_flag s_initFlag;
+} // namespace
 
 const NoiseParameters& Noises::get(const std::string& name)
 {
-    if (!s_initialized) {
-        initialize();
-    }
+    std::call_once(s_initFlag, initialize);
     auto it = s_registry.find(name);
     if (it == s_registry.end()) {
         throw std::out_of_range("Unknown noise: " + name);
@@ -42,9 +45,7 @@ const NoiseParameters& Noises::get(const std::string& name)
 
 bool Noises::has(const std::string& name)
 {
-    if (!s_initialized) {
-        initialize();
-    }
+    std::call_once(s_initFlag, initialize);
     return s_registry.contains(name);
 }
 
@@ -55,10 +56,7 @@ void Noises::registerNoise(const std::string& name, i32 firstOctave, std::vector
 
 void Noises::initialize()
 {
-    if (s_initialized) {
-        return;
-    }
-    s_initialized = true;
+    // 由 std::call_once 保证只调用一次
 
     // ========== 气候噪声 ==========
     // MC 1.21 NoiseData.java — registerBiomeNoises(offset=0)

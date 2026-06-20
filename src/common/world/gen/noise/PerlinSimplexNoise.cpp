@@ -49,6 +49,7 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::JavaLegacyRandom& rng, std::vector<
     MC_ASSERT_RELEASE(k >= 1 && "Total number of octaves needs to be >= 1");
 
     m_noiseLevels.resize(static_cast<size_t>(k));
+    m_maxOctave = maxOctave;
 
     // MC: 创建第一个 SimplexNoise（用于种子派生，也共享给 octave 0）
     auto firstNoise = std::make_unique<SimplexNoise>(rng);
@@ -101,8 +102,8 @@ PerlinSimplexNoise::PerlinSimplexNoise(math::JavaLegacyRandom& rng, std::vector<
         }
     }
 
-    m_highestFreqInputFactor = std::pow(2.0, static_cast<f64>(maxOctave));
-    m_highestFreqValueFactor = 1.0 / (std::pow(2.0, static_cast<f64>(k)) - 1.0);
+    m_highestFreqInputFactor = std::ldexp(1.0, maxOctave);
+    m_highestFreqValueFactor = 1.0 / (std::ldexp(1.0, k) - 1.0);
 }
 
 f64 PerlinSimplexNoise::getValue(f64 x, f64 y, bool useOffset) const

@@ -77,24 +77,26 @@ public:
     [[nodiscard]] f64 getValue(f64 x, f64 y, bool useOffset) const;
 
     /**
-     * @brief 获取最低倍频层的 SimplexNoise
+     * @brief 获取最高倍频层的 SimplexNoise
      *
-     * 返回 noiseLevels 中索引 0 的 SimplexNoise（最低倍频）。
-     * 注意：MC Java 的 PerlinSimplexNoise.firstNoise 指向最高倍频
-     * （索引 maxOctave），与本方法的索引 0 不同。
-     * 当前此方法未被外部调用。
+     * 对应 MC Java PerlinSimplexNoise.firstNoise 字段，
+     * 指向构造时创建的第一个 SimplexNoise 实例（最高频率层）。
+     * 用于负倍频层的种子派生。
      */
     [[nodiscard]] const SimplexNoise* firstNoise() const
     {
-        if (m_noiseLevels.empty()) {
+        if (m_maxOctave < 0 || m_maxOctave >= static_cast<i32>(m_noiseLevels.size())) {
             return nullptr;
         }
-        return m_noiseLevels[0].get();
+        return m_noiseLevels[static_cast<size_t>(m_maxOctave)].get();
     }
 
 private:
-    /// 倍频层 SimplexNoise 数组（索引 0 对应最低倍频）
+    /// 倍频层 SimplexNoise 数组（索引 0 对应最低倍频，索引 maxOctave 对应最高倍频）
     std::vector<std::unique_ptr<SimplexNoise>> m_noiseLevels;
+
+    /// 最高倍频索引（MC Java 的 j = lastInt()，对应 octaves 列表中的最大值）
+    i32 m_maxOctave = 0;
 
     /// 最高频率输入因子 = 2^maxOctave
     f64 m_highestFreqInputFactor = 0.0;

@@ -145,9 +145,6 @@ public:
     static constexpr const char* JAGGED = "minecraft:jagged";
 
 private:
-    static std::unordered_map<std::string, NoiseParameters> s_registry;
-    static bool s_initialized;
-
     static void registerNoise(const std::string& name, i32 firstOctave, std::vector<f64> amplitudes);
 };
 

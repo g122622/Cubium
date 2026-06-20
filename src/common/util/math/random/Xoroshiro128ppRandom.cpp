@@ -23,8 +23,22 @@
 
 #include "Xoroshiro128ppRandom.hpp"
 #include "PositionalRandomFactory.hpp"
+#include "common/util/assert/AssertAll.hpp"
 
 namespace mc::math {
+
+// ============================================================================
+// Stafford13 混合函数（与 MC RandomSupport.mixStafford13 一致）
+// ============================================================================
+
+static u64 mixStafford13(u64 z)
+{
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+    return z ^ (z >> 31);
+}
+
+// ============================================================================
 
 Xoroshiro128ppRandom::Xoroshiro128ppRandom(u64 seed)
 {
@@ -37,9 +51,10 @@ Xoroshiro128ppRandom::Xoroshiro128ppRandom(u64 seedLo, u64 seedHi)
     m_state[1] = seedHi;
 
     // 与 MC Xoroshiro128PlusPlus 一致：全零状态时使用默认值
+    // 这些默认值与 upgradeSeedTo128bit 中使用的常量一致
     if ((m_state[0] | m_state[1]) == 0ULL) {
-        m_state[0] = 0x9e3779b97f4a7c15ULL; // GOLDEN_RATIO_64
-        m_state[1] = 0x6a09e667f3bcc909ULL;
+        m_state[0] = 0x9e3779b97f4a7c15ULL; // SILVER_RATIO_64
+        m_state[1] = 0x6a09e667f3bcc909ULL; // GOLDEN_RATIO_64
     }
 
     m_hasGaussian = false;
@@ -47,14 +62,25 @@ Xoroshiro128ppRandom::Xoroshiro128ppRandom(u64 seedLo, u64 seedHi)
 
 void Xoroshiro128ppRandom::setSeed(u64 seed)
 {
-    // 使用 SplitMix64 扩展种子
-    u64 state = seed;
-    m_state[0] = splitMix64(state);
-    m_state[1] = splitMix64(state);
+    // MC 1.21: XoroshiroRandomSource.setSeed(long)
+    // 使用 upgradeSeedTo128bit 扩展种子，而非 SplitMix64
+    // Java 流程：
+    //   long lo = mixStafford13(seed ^ SILVER_RATIO_64)
+    //   long hi = mixStafford13(seed + GOLDEN_RATIO_64)
+    //   new Xoroshiro128PlusPlus(Seed128bit(lo, hi))
+    //
+    // 其中 SILVER_RATIO_64 = 0x9e3779b97f4a7c15L
+    //      GOLDEN_RATIO_64 = 0x6a09e667f3bcc909L
+    constexpr u64 SILVER_RATIO_64 = 0x9e3779b97f4a7c15ULL;
+    constexpr u64 GOLDEN_RATIO_64 = 0x6a09e667f3bcc909ULL;
 
-    // 确保状态不全为零
-    if (m_state[0] == 0 && m_state[1] == 0) {
-        m_state[0] = 1;
+    m_state[0] = mixStafford13(seed ^ SILVER_RATIO_64);
+    m_state[1] = mixStafford13(seed + GOLDEN_RATIO_64);
+
+    // 与 MC Xoroshiro128PlusPlus 一致：全零状态时使用默认值
+    if ((m_state[0] | m_state[1]) == 0ULL) {
+        m_state[0] = SILVER_RATIO_64;
+        m_state[1] = GOLDEN_RATIO_64;
     }
 
     m_hasGaussian = false;
@@ -74,6 +100,62 @@ u64 Xoroshiro128ppRandom::nextU64()
     m_state[1] = rotl(s1, 28);
 
     return result;
+}
+
+f64 Xoroshiro128ppRandom::nextDouble()
+{
+    // MC XoroshiroRandomSource.nextDouble():
+    //   return (double)((float)(this.nextLong() >>> 11) * 1.1102230246251565E-16F);
+    // Java 的 >>> 是无符号右移，C++ 需要先转 u64 再右移
+    // Java 二元数值提升：long * float → long 拓宽为 float（约24位精度），乘法结果为 float
+    // 然后 float 拓宽为 double 返回
+    const u64 val = static_cast<u64>(nextLong()) >> 11;
+    return static_cast<f64>(static_cast<f32>(static_cast<f64>(val)) * 1.1102230246251565E-16f);
+}
+
+f32 Xoroshiro128ppRandom::nextFloat()
+{
+    // MC XoroshiroRandomSource.nextFloat():
+    //   return (float)this.next(24) * 5.9604645E-8F;
+    // next(24) = (int)(nextLong() >>> 40)，取高24位
+    // Java 的 >>> 是无符号右移
+    const i32 bits = static_cast<i32>(static_cast<u64>(nextLong()) >> 40);
+    return static_cast<f32>(bits) * 5.9604645E-8f;
+}
+
+i32 Xoroshiro128ppRandom::nextInt(i32 bound)
+{
+    // MC XoroshiroRandomSource.nextInt(int) — Lemire nearly-divisionless algorithm
+    // Java 源码 (XoroshiroRandomSource.java):
+    //   long i = Integer.toUnsignedLong(this.nextInt());
+    //   long j = i * p_190118_;
+    //   long k = j & 4294967295L;
+    //   if (k < p_190118_) {
+    //       for (int l = Integer.remainderUnsigned(~p_190118_ + 1, p_190118_); k < l; k = j & 4294967295L) {
+    //           i = Integer.toUnsignedLong(this.nextInt());
+    //           j = i * p_190118_;
+    //       }
+    //   }
+    //   return (int)(j >> 32);
+    MC_ASSERT_RELEASE(bound > 0);
+
+    // this.nextInt() = (int)nextLong() — 低32位作为有符号int
+    // Integer.toUnsignedLong: 将 int 视为无符号 32 位转为 long
+    const u64 i = static_cast<u64>(static_cast<u32>(nextLong())); // nextInt() as unsigned
+    u64 j = i * static_cast<u64>(bound);
+    u64 k = j & 0xFFFFFFFFULL; // 低 32 位
+
+    if (k < static_cast<u64>(bound)) {
+        // Integer.remainderUnsigned(~bound + 1, bound) = (-bound) % bound as unsigned
+        // ~bound + 1 = -bound (two's complement)
+        const u64 threshold = (static_cast<u64>(-static_cast<i64>(bound))) % static_cast<u64>(bound);
+        while (k < threshold) {
+            j = static_cast<u64>(static_cast<u32>(nextLong())) * static_cast<u64>(bound);
+            k = j & 0xFFFFFFFFULL;
+        }
+    }
+
+    return static_cast<i32>(j >> 32);
 }
 
 void Xoroshiro128ppRandom::skip(u64 /* count */)
@@ -101,15 +183,6 @@ void Xoroshiro128ppRandom::skip(u64 /* count */)
 
     m_state[0] = s0;
     m_state[1] = s1;
-}
-
-u64 Xoroshiro128ppRandom::splitMix64(u64& state)
-{
-    state += 0x9e3779b97f4a7c15ULL;
-    u64 z = state;
-    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
-    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
-    return z ^ (z >> 31);
 }
 
 PositionalRandomFactory Xoroshiro128ppRandom::forkPositional()

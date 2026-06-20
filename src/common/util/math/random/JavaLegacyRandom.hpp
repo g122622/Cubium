@@ -55,6 +55,12 @@ public:
 
     void setSeed(u64 seed) override;
     [[nodiscard]] u64 nextU64() override;
+
+    // 将基类的所有 nextInt/nextFloat/nextDouble 重载引入作用域，避免 override 隐藏
+    using IRandom::nextDouble;
+    using IRandom::nextFloat;
+    using IRandom::nextInt;
+
     [[nodiscard]] i32 nextInt() override;
     [[nodiscard]] i32 nextInt(i32 bound) override;
     [[nodiscard]] bool nextBoolean() override;

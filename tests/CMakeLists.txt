@@ -646,8 +646,14 @@ add_executable(mc_tests
     common/world/gen/NormalNoiseTest.cpp
     common/world/gen/SimplexNoiseTest.cpp
     common/world/gen/PerlinSimplexNoiseTest.cpp
+    # Noises 注册表单元测试
+    common/world/gen/NoisesTest.cpp
     # JavaLegacyRandom 单元测试
     common/world/gen/JavaLegacyRandomTest.cpp
+    # Xoroshiro128ppRandom 单元测试
+    common/world/gen/Xoroshiro128ppRandomTest.cpp
+    # PositionalRandomFactory 单元测试
+    common/world/gen/PositionalRandomFactoryTest.cpp
     # BiomeManager 和 LinearCongruentialGenerator 单元测试
     common/world/gen/BiomeManagerTest.cpp
     # Beardifier (BEARD_KERNEL + affectedBox) 和 CarvingContext 扩展单元测试

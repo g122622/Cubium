@@ -54,7 +54,8 @@ public:
      * @brief 使用种子构造随机数生成器
      * @param seed 随机种子
      *
-     * @note 种子通过 SplitMix64 算法扩展为 128 位状态
+     * @note 种子通过 MC 的 upgradeSeedTo128bit 算法扩展为 128 位状态
+     *       （mixStafford13(seed ^ SILVER_RATIO_64), mixStafford13(seed + GOLDEN_RATIO_64)）
      */
     explicit Xoroshiro128ppRandom(u64 seed = 0);
 
@@ -63,7 +64,7 @@ public:
      * @param seedLo 种子低 64 位
      * @param seedHi 种子高 64 位
      *
-     * @note 直接设置 128 位状态，不经过 SplitMix64 扩展。
+     * @note 直接设置 128 位状态，不经过 upgradeSeedTo128bit 扩展。
      *       对应 MC Xoroshiro128PlusPlus(long, long) 构造函数。
      */
     Xoroshiro128ppRandom(u64 seedLo, u64 seedHi);
@@ -73,11 +74,43 @@ public:
     void setSeed(u64 seed) override;
     [[nodiscard]] u64 nextU64() override;
 
+    // 将基类的所有 nextInt/nextFloat/nextDouble 重载引入作用域，避免 override 隐藏
+    using IRandom::nextDouble;
+    using IRandom::nextFloat;
+    using IRandom::nextInt;
+
+    /**
+     * @brief 返回 [0.0, 1.0) 范围的随机双精度浮点数
+     *
+     * MC XoroshiroRandomSource.nextDouble() 使用 float 精度：
+     *   (float)(nextLong() >>> 11) * 1.1102230246251565E-16F
+     * Java 的 long * float 运算会将 long 拓宽为 float（丢失约29位精度），
+     * 结果为 float 精度后再拓宽为 double。
+     */
+    [[nodiscard]] f64 nextDouble() override;
+
+    /**
+     * @brief 返回 [0.0, 1.0) 范围的随机浮点数
+     *
+     * MC XoroshiroRandomSource.nextFloat() 使用 24 位精度：
+     *   (float)next(24) * 5.9604645E-8F
+     */
+    [[nodiscard]] f32 nextFloat() override;
+
+    /**
+     * @brief 返回 [0, bound) 范围的随机整数
+     *
+     * MC XoroshiroRandomSource.nextInt(int) 使用 Lemire 无除法算法：
+     *   long i = Integer.toUnsignedLong(nextInt());
+     *   long j = i * bound;
+     *   long k = j & 0xFFFFFFFFL;
+     *   if (k < bound) { rejection loop } return (int)(j >> 32);
+     */
+    [[nodiscard]] i32 nextInt(i32 bound) override;
+
     /**
      * @brief 跳过指定数量的随机数
-     * @param count 要跳过的随机数数量
-     *
-     * xoroshiro128++ 支持快速跳转，时间复杂度 O(log count)
+     * @param count 要跳过的随机数数量（注意：当前实现每次跳过 2^64 个状态）
      */
     void skip(u64 count) override;
 
@@ -98,11 +131,6 @@ private:
      * @brief 左旋转
      */
     [[nodiscard]] static u64 rotl(u64 x, int k) { return (x << k) | (x >> (64 - k)); }
-
-    /**
-     * @brief 使用 SplitMix64 扩展种子
-     */
-    static u64 splitMix64(u64& state);
 };
 
 } // namespace mc::math
