@@ -38,7 +38,6 @@ DetectorRailBlock::DetectorRailBlock(const BlockProperties& properties)
     : AbstractRailBlock(properties, true, true) // isStraight=true: 探测铁轨不支持弯轨, isPowered=true: 可提供红石信号
 {
     // 创建状态容器（含 SHAPE、POWERED 和 WATERLOGGED 属性）
-    // 参考 MC Java: DetectorRailBlock.createBlockStateDefinition 注册 SHAPE、POWERED 和 WATERLOGGED
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(SHAPE())
@@ -54,7 +53,6 @@ DetectorRailBlock::DetectorRailBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    // 参考 MC Java: DetectorRailBlock 构造函数设置 WATERLOGGED 默认值为 false
     setDefaultState(defaultState()
             .with(POWERED(), false)
             .with(SHAPE(), RailShape::NorthSouth)

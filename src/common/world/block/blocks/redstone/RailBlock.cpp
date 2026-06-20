@@ -33,7 +33,6 @@ RailBlock::RailBlock(const BlockProperties& properties)
     : AbstractRailBlock(properties, false) // isStraight = false: 普通铁轨支持弯轨
 {
     // 创建状态容器（含 SHAPE 和 WATERLOGGED 属性）
-    // 参考 MC Java: RailBlock.createBlockStateDefinition 注册 SHAPE 和 WATERLOGGED
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(SHAPE())
@@ -48,7 +47,6 @@ RailBlock::RailBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    // 参考 MC Java: RailBlock 构造函数设置 WATERLOGGED 默认值为 false
     setDefaultState(
         defaultState().with(SHAPE(), RailShape::NorthSouth).with(BlockStateProperties::WATERLOGGED(), false));
 }
@@ -61,7 +59,6 @@ void RailBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 
 void RailBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock)
 {
-    // 参考 MC Java: RailBlock.updateState
     // 普通铁轨的特殊行为：当邻居信号源变化且铁轨有三连接时，重新计算方向
     // 这是红石道岔（T型道岔）切换的核心逻辑
     if (neighborBlock.canProvidePower(neighborBlock.defaultState())) {

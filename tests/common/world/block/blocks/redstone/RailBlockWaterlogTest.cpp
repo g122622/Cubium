@@ -58,10 +58,14 @@ namespace {
  *
  * 提供方块状态存储和流体状态检测功能。
  * 支持手动设置流体状态以测试含水放置行为。
+ * 支持切换客户端/服务端模式以测试 isClientSide 守卫。
+ * 提供 DummyTickManager 以支持 updatePostPlacement 中含水铁轨的 scheduleWaterTick 调用。
  */
 class RailWaterlogTestWorld : public test::BaseTestWorld {
 public:
-    RailWaterlogTestWorld() { m_airState = &VanillaBlocks::AIR->defaultState(); }
+    RailWaterlogTestWorld()
+        : m_airState(&VanillaBlocks::AIR->defaultState())
+    {}
 
     [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
     {
@@ -105,6 +109,12 @@ public:
         return fluid::Fluid::getFluidState(0);
     }
 
+    [[nodiscard]] world::tick::TickManager& tickManager() override { return m_tickManager; }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override { return m_tickManager; }
+
+    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+    void setClientSide(bool isClient) { m_isClientSide = isClient; }
+
     void setBlockDirectly(const BlockPos& pos, const BlockState* state)
     {
         m_blocks[packPos(pos.x, pos.y, pos.z)] = state;
@@ -122,9 +132,11 @@ public:
     }
 
 private:
+    test::DummyTickManager m_tickManager;
     std::unordered_map<i64, const BlockState*> m_blocks;
     std::unordered_map<i64, const fluid::FluidState*> m_fluids;
     const BlockState* m_airState;
+    bool m_isClientSide = false;
 };
 
 /**
@@ -631,4 +643,231 @@ TEST_F(RailBlockWaterlogTest, ActivatorRailBlock_WaterloggedWithPoweredChange)
 
     EXPECT_TRUE(state.get(BlockStateProperties::WATERLOGGED()));
     EXPECT_TRUE(ActivatorRailBlock::isPowered(state));
+}
+
+// ============================================================================
+// 9. updatePostPlacement 含水流体 tick 调度
+// ============================================================================
+
+TEST_F(RailBlockWaterlogTest, RailBlock_UpdatePostPlacement_WaterloggedPreservesState)
+{
+    // updatePostPlacement 在含水状态下应调度水流 tick 并返回有效状态
+    RailWaterlogTestWorld world;
+    BlockPos pos(5, 10, 5);
+    BlockPos belowPos(5, 9, 5);
+
+    // 下方放置固体方块以通过 isValidPosition 检查
+    world.setBlockDirectly(belowPos, &VanillaBlocks::STONE->defaultState());
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::RAIL);
+    BlockState waterloggedState = rail.defaultState()
+                                      .with(BlockStateProperties::WATERLOGGED(), true)
+                                      .with(RailBlock::SHAPE(), RailShape::NorthSouth);
+
+    // 设置世界中的铁轨状态
+    world.setBlockDirectly(pos, &waterloggedState);
+
+    // 调用 updatePostPlacement，含水状态应被保留
+    BlockState updatedState = rail.updatePostPlacement(
+        waterloggedState, Direction::Up, *world.getBlockState(pos.x, pos.y + 1, pos.z), world, pos, pos.up());
+
+    // WATERLOGGED 属性应保留
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::WATERLOGGED()));
+}
+
+TEST_F(RailBlockWaterlogTest, RailBlock_UpdatePostPlacement_NonWaterloggedNoCrash)
+{
+    // updatePostPlacement 在非含水状态下应正常工作不崩溃
+    RailWaterlogTestWorld world;
+    BlockPos pos(5, 10, 5);
+    BlockPos belowPos(5, 9, 5);
+
+    world.setBlockDirectly(belowPos, &VanillaBlocks::STONE->defaultState());
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::RAIL);
+    BlockState normalState = rail.defaultState().with(RailBlock::SHAPE(), RailShape::NorthSouth);
+
+    world.setBlockDirectly(pos, &normalState);
+
+    BlockState updatedState = rail.updatePostPlacement(
+        normalState, Direction::Up, *world.getBlockState(pos.x, pos.y + 1, pos.z), world, pos, pos.up());
+
+    // 非含水铁轨的 WATERLOGGED 应保持 false
+    EXPECT_FALSE(updatedState.get(BlockStateProperties::WATERLOGGED()));
+}
+
+TEST_F(RailBlockWaterlogTest, PoweredRailBlock_UpdatePostPlacement_WaterloggedPreservesState)
+{
+    RailWaterlogTestWorld world;
+    BlockPos pos(5, 10, 5);
+    BlockPos belowPos(5, 9, 5);
+
+    world.setBlockDirectly(belowPos, &VanillaBlocks::STONE->defaultState());
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::POWERED_RAIL);
+    BlockState waterloggedState = rail.defaultState()
+                                      .with(BlockStateProperties::WATERLOGGED(), true)
+                                      .with(PoweredRailBlock::SHAPE(), RailShape::EastWest);
+
+    world.setBlockDirectly(pos, &waterloggedState);
+
+    BlockState updatedState = rail.updatePostPlacement(
+        waterloggedState, Direction::Up, *world.getBlockState(pos.x, pos.y + 1, pos.z), world, pos, pos.up());
+
+    EXPECT_TRUE(updatedState.get(BlockStateProperties::WATERLOGGED()));
+}
+
+// ============================================================================
+// 10. updateDir isClientSide 客户端早返回
+// ============================================================================
+
+TEST_F(RailBlockWaterlogTest, RailBlock_UpdateDir_ClientSideReturnsOriginalState)
+{
+    // 在客户端模式下，updateDir 应直接返回原状态，不执行 RailState 计算
+    RailWaterlogTestWorld world;
+    world.setClientSide(true);
+    BlockPos pos(5, 10, 5);
+    BlockPos belowPos(5, 9, 5);
+
+    world.setBlockDirectly(belowPos, &VanillaBlocks::STONE->defaultState());
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::RAIL);
+    BlockState originalState = rail.defaultState().with(RailBlock::SHAPE(), RailShape::EastWest);
+
+    world.setBlockDirectly(pos, &originalState);
+
+    // 客户端调用 updateDir 应返回与输入完全一致的状态
+    BlockState result = rail.updateDir(world, pos, originalState, true);
+    EXPECT_EQ(result.get(RailBlock::SHAPE()), RailShape::EastWest);
+    // 状态不应改变
+    EXPECT_EQ(result.get(RailBlock::SHAPE()), originalState.get(RailBlock::SHAPE()));
+}
+
+TEST_F(RailBlockWaterlogTest, RailBlock_UpdateDir_ServerSidePerformsCalculation)
+{
+    // 服务端模式下，updateDir 应执行 RailState 计算并可能改变铁轨形状
+    RailWaterlogTestWorld world;
+    // 默认 isClientSide() == false
+    EXPECT_FALSE(world.isClientSide());
+    BlockPos pos(5, 10, 5);
+    BlockPos belowPos(5, 9, 5);
+
+    world.setBlockDirectly(belowPos, &VanillaBlocks::STONE->defaultState());
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::RAIL);
+    BlockState originalState = rail.defaultState().with(RailBlock::SHAPE(), RailShape::EastWest);
+
+    world.setBlockDirectly(pos, &originalState);
+
+    // 服务端调用 updateDir 应正常执行 RailState 计算
+    BlockState result = rail.updateDir(world, pos, originalState, false);
+    // 结果应为有效铁轨形状（RailState 重新计算连接）
+    RailShape resultShape = rail.getRailShape(result);
+    EXPECT_TRUE(resultShape == RailShape::NorthSouth || resultShape == RailShape::EastWest ||
+        resultShape == RailShape::AscendingEast || resultShape == RailShape::AscendingWest ||
+        resultShape == RailShape::AscendingNorth || resultShape == RailShape::AscendingSouth ||
+        resultShape == RailShape::SouthEast || resultShape == RailShape::SouthWest ||
+        resultShape == RailShape::NorthWest || resultShape == RailShape::NorthEast);
+}
+
+// ============================================================================
+// 11. neighborChanged isClientSide 守卫
+// ============================================================================
+
+TEST_F(RailBlockWaterlogTest, RailBlock_NeighborChanged_ClientSideNoOp)
+{
+    // 客户端模式下 neighborChanged 应直接返回，不修改方块状态
+    RailWaterlogTestWorld world;
+    world.setClientSide(true);
+    BlockPos pos(5, 10, 5);
+    BlockPos belowPos(5, 9, 5);
+
+    world.setBlockDirectly(belowPos, &VanillaBlocks::STONE->defaultState());
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::RAIL);
+    BlockState originalState = rail.defaultState().with(RailBlock::SHAPE(), RailShape::NorthSouth);
+
+    world.setBlockDirectly(pos, &originalState);
+
+    // 在客户端调用 neighborChanged
+    rail.neighborChanged(world, pos, *VanillaBlocks::STONE, belowPos, false);
+
+    // 方块状态不应被改变（客户端应跳过邻居更新处理）
+    const BlockState* stateAfter = world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(stateAfter, nullptr);
+    EXPECT_EQ(stateAfter->get(RailBlock::SHAPE()), RailShape::NorthSouth);
+}
+
+TEST_F(RailBlockWaterlogTest, RailBlock_NeighborChanged_ServerSideProcessesUpdate)
+{
+    // 服务端模式下 neighborChanged 应正常处理
+    RailWaterlogTestWorld world;
+    EXPECT_FALSE(world.isClientSide());
+    BlockPos pos(5, 10, 5);
+    BlockPos belowPos(5, 9, 5);
+
+    world.setBlockDirectly(belowPos, &VanillaBlocks::STONE->defaultState());
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::RAIL);
+    BlockState originalState = rail.defaultState().with(RailBlock::SHAPE(), RailShape::NorthSouth);
+
+    world.setBlockDirectly(pos, &originalState);
+
+    // 服务端调用 neighborChanged 应正常处理
+    // 不会崩溃，铁轨仍在原位（有固体支撑）
+    rail.neighborChanged(world, pos, *VanillaBlocks::STONE, belowPos, false);
+
+    const BlockState* stateAfter = world.getBlockState(pos.x, pos.y, pos.z);
+    // 铁轨应仍在原位（有支撑方块）
+    ASSERT_NE(stateAfter, nullptr);
+    EXPECT_TRUE(stateAfter->is(&rail));
+}
+
+TEST_F(RailBlockWaterlogTest, RailBlock_NeighborChanged_ClientSideDoesNotRemoveRail)
+{
+    // 客户端模式下，即使铁轨下方无支撑，neighborChanged 也不应移除铁轨
+    RailWaterlogTestWorld world;
+    world.setClientSide(true);
+    BlockPos pos(5, 10, 5);
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::RAIL);
+    BlockState originalState = rail.defaultState().with(RailBlock::SHAPE(), RailShape::NorthSouth);
+
+    world.setBlockDirectly(pos, &originalState);
+    // 不在下方放置固体方块
+
+    // 客户端调用 neighborChanged，即使无支撑也不应移除
+    rail.neighborChanged(world, pos, *VanillaBlocks::STONE, BlockPos(5, 9, 5), false);
+
+    const BlockState* stateAfter = world.getBlockState(pos.x, pos.y, pos.z);
+    // 客户端跳过处理，铁轨仍在
+    ASSERT_NE(stateAfter, nullptr);
+    EXPECT_TRUE(stateAfter->is(&rail));
+}
+
+TEST_F(RailBlockWaterlogTest, PoweredRailBlock_NeighborChanged_ClientSideNoOp)
+{
+    // 客户端模式下激活铁轨的 neighborChanged 也应跳过
+    RailWaterlogTestWorld world;
+    world.setClientSide(true);
+    BlockPos pos(5, 10, 5);
+    BlockPos belowPos(5, 9, 5);
+
+    world.setBlockDirectly(belowPos, &VanillaBlocks::STONE->defaultState());
+
+    AbstractRailBlock& rail = dynamic_cast<AbstractRailBlock&>(*RedstoneBlocks::POWERED_RAIL);
+    BlockState originalState = rail.defaultState()
+                                   .with(PoweredRailBlock::SHAPE(), RailShape::NorthSouth)
+                                   .with(PoweredRailBlock::POWERED(), false);
+
+    world.setBlockDirectly(pos, &originalState);
+
+    // 客户端调用 neighborChanged
+    rail.neighborChanged(world, pos, *VanillaBlocks::STONE, belowPos, false);
+
+    const BlockState* stateAfter = world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(stateAfter, nullptr);
+    // POWERED 不应被改变
+    EXPECT_FALSE(PoweredRailBlock::isPowered(*stateAfter));
+    EXPECT_EQ(stateAfter->get(PoweredRailBlock::SHAPE()), RailShape::NorthSouth);
 }

@@ -38,7 +38,6 @@ namespace blocks {
  * @brief 铁轨形状枚举
  *
  * 定义铁轨的连接形状。
- * 参考: net.minecraft.state.properties.RailShape
  */
 enum class RailShape : u8 {
     NorthSouth = 0,     // 南北直轨
@@ -74,8 +73,6 @@ enum class RailShape : u8 {
  * - 普通铁轨支持三连接道岔（红石切换弯轨方向）
  * - 无碰撞箱（可以穿过）
  * - 实现 IWaterLoggable 接口，支持含水放置
- *
- * 参考: net.minecraft.block.BaseRailBlock
  */
 class AbstractRailBlock : public Block, public IWaterLoggable {
 public:
@@ -109,7 +106,6 @@ public:
     /**
      * @brief 方块放置后的处理
      *
-     * 参考 MC Java: BaseRailBlock.onPlace
      * 铁轨放置后立即重新计算连接形状。
      * getStateForPlacement 只根据玩家朝向返回初始形状，
      * 真正的邻居连接计算在此处触发。
@@ -120,7 +116,6 @@ public:
      * @brief 邻居变化通知
      *
      * 检查铁轨是否仍有支撑，并在邻居变化时重新计算铁轨形状。
-     * 参考: net.minecraft.block.BaseRailBlock.neighborChanged
      */
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
@@ -177,7 +172,6 @@ public:
      * @brief 是否为直线铁轨（不支持弯轨）
      *
      * 普通铁轨返回false（支持弯轨），动力铁轨/探测铁轨/激活铁轨返回true。
-     * 参考: net.minecraft.block.BaseRailBlock.isStraight
      */
     [[nodiscard]] bool isStraight() const noexcept { return m_isStraight; }
 
@@ -228,7 +222,6 @@ public:
      * @brief 检查铁轨是否应该被移除（斜坡支撑检测）
      *
      * 斜坡铁轨需要在其上升方向上方有支撑方块。
-     * 参考: net.minecraft.block.BaseRailBlock.shouldBeRemoved
      *
      * @param state 铁轨状态
      * @param world 世界

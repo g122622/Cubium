@@ -89,7 +89,6 @@ AbstractRailBlock::AbstractRailBlock(const BlockProperties& properties, bool isS
 
 BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
 {
-    // 参考 MC Java: BaseRailBlock.getStateForPlacement
     // 放置时只根据玩家朝向确定初始形状（南北或东西），不做邻居连接计算。
     // 邻居连接计算在方块放置后由 updatePostPlacement / neighborChanged 触发，
     // 因为此时该位置还不是铁轨，RailState 无法获取正确的方块状态。
@@ -100,7 +99,6 @@ BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
     }
 
     // 检测放置位置是否含水，如果位于水中则设置 WATERLOGGED=true
-    // 参考 MC Java: BaseRailBlock.getStateForPlacement 中检测 FluidState
     bool waterlogged = waterloggable::shouldWaterlogAt(context.getWorld(), context.placementPos());
 
     return withRailShape(defaultState(), defaultShape).with(BlockStateProperties::WATERLOGGED(), waterlogged);
@@ -108,7 +106,6 @@ BlockState AbstractRailBlock::getStateForPlacement(BlockItemUseContext& context)
 
 void AbstractRailBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考 MC Java: BaseRailBlock.onPlace
     // 铁轨放置后立即重新计算连接形状。
     // getStateForPlacement 只根据玩家朝向返回初始形状，
     // 真正的邻居连接计算在此处通过 updateDir 触发。
@@ -128,7 +125,6 @@ BlockState AbstractRailBlock::updatePostPlacement(const BlockState& state,
     MC_UNUSED(facingPos);
 
     // 含水铁轨需要调度流体 tick，确保水流模拟正确运行
-    // 参考 MC Java: BaseRailBlock.updateShape 中 WATERLOGGED 检查
     if (state.hasProperty(BlockStateProperties::WATERLOGGED()) && state.get(BlockStateProperties::WATERLOGGED())) {
         waterloggable::scheduleWaterTick(world, currentPos);
     }
@@ -158,7 +154,6 @@ void AbstractRailBlock::neighborChanged(
     MC_UNUSED(isMoving);
 
     // 客户端不处理邻居更新
-    // 参考 MC Java: BaseRailBlock.neighborChanged 中的 isClientSide 检查
     if (world.isClientSide()) {
         return;
     }
@@ -220,7 +215,6 @@ const CollisionShape& AbstractRailBlock::getShape(const BlockState& state) const
 BlockState AbstractRailBlock::updateDir(IWorld& world, const BlockPos& pos, const BlockState& state, bool updateBlock)
 {
     // 客户端直接返回原状态，不执行 RailState 计算
-    // 参考 MC Java: BaseRailBlock.updateDir 中的 isClientSide 检查
     if (world.isClientSide()) {
         return state;
     }

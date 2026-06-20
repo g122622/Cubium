@@ -33,7 +33,6 @@ ActivatorRailBlock::ActivatorRailBlock(const BlockProperties& properties)
     : AbstractRailBlock(properties, true, false) // isStraight=true: 激活铁轨不支持弯轨, isPowered=false: 不提供红石信号
 {
     // 创建状态容器（含 SHAPE、POWERED 和 WATERLOGGED 属性）
-    // 参考 MC Java: ActivatorRailBlock.createBlockStateDefinition 注册 SHAPE、POWERED 和 WATERLOGGED
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(SHAPE())
@@ -49,7 +48,6 @@ ActivatorRailBlock::ActivatorRailBlock(const BlockProperties& properties)
     createBlockState(std::move(container));
 
     // 设置默认状态
-    // 参考 MC Java: ActivatorRailBlock 构造函数设置 WATERLOGGED 默认值为 false
     setDefaultState(defaultState()
             .with(SHAPE(), RailShape::NorthSouth)
             .with(POWERED(), false)
