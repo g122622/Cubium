@@ -26,6 +26,7 @@
 #include "SpawnConditions.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -555,6 +556,15 @@ i32 NaturalSpawner::_trySpawnAt(
         // 设置实体位置和旋转
         entity->setPosition(spawnX, static_cast<f32>(y), spawnZ);
         entity->setRotation(random.nextFloat() * 360.0f, 0.0f);
+
+        // 实例级生成规则检查（对应 MC PathfinderMob.checkSpawnRules）
+        // 在实体创建后、finalizeSpawn之前，检查该位置是否适合该实体的寻路偏好
+        auto* creatureEntity = dynamic_cast<CreatureEntity*>(entity.get());
+        if (creatureEntity != nullptr) {
+            if (!creatureEntity->canSpawnAt(spawnX, static_cast<f32>(y), spawnZ)) {
+                continue;
+            }
+        }
 
         // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
         auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());

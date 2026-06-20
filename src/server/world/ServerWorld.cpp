@@ -30,6 +30,7 @@
 #include "ServerChunkManager.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
@@ -1634,6 +1635,15 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
 
         entity->setWorld(this);
         entity->setPosition(Vector3(entityData.x, entityData.y, entityData.z));
+
+        // 实例级生成规则检查（对应 MC PathfinderMob.checkSpawnRules）
+        // 在实体创建后、finalizeSpawn之前，检查该位置是否适合该实体的寻路偏好
+        auto* creatureEntity = dynamic_cast<CreatureEntity*>(entity.get());
+        if (creatureEntity != nullptr) {
+            if (!creatureEntity->canSpawnAt(entityData.x, entityData.y, entityData.z)) {
+                continue;
+            }
+        }
 
         // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
         auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());

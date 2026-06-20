@@ -988,6 +988,14 @@ public:
     [[nodiscard]] virtual bool isInLava() const { return m_inLava; }
 
     /**
+     * @brief 设置岩浆状态（测试用）
+     *
+     * 正常情况下应该通过 updateEnvironmentState() 自动更新。
+     * 此方法主要用于测试目的。
+     */
+    void setInLava(bool inLava) { m_inLava = inLava; }
+
+    /**
      * @brief 检查实体是否在雨中
      *
      * 需要满足：世界正在下雨 + 实体位置可以看到天空 + 生物群系允许降水

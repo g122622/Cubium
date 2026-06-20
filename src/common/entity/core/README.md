@@ -158,7 +158,13 @@ finalizeSpawn(world, difficulty, spawnReason)
 
 ### canSpawnAt 生成条件
 
-`CreatureEntity::canSpawnAt(f32 x, f32 y, f32 z)` 基于 `getPathWeight >= 0.0f` 判断位置是否适合生成，对应 MC `PathfinderMob.checkSpawnRules`。当前此方法尚未接入生成系统（NaturalSpawner/EntitySpawnPlacementRegistry），待后续集成。
+`CreatureEntity::canSpawnAt(f32 x, f32 y, f32 z)` 基于 `getPathWeight >= 0.0f` 判断位置是否适合生成，对应 MC `PathfinderMob.checkSpawnRules`。
+
+已集成到以下生成路径：
+- **NaturalSpawner::_trySpawnAt**：自然生成时，在实体创建并设置位置后、`finalizeSpawn` 之前调用 `canSpawnAt` 检查
+- **ServerWorld::spawnEntitiesFromChunkGeneration**：区块生成时，在实体创建并设置位置后、`finalizeSpawn` 之前调用 `canSpawnAt` 检查
+
+注意：WorldGenSpawner 在区块生成阶段只记录 `SpawnedEntityData`（无实体实例），无法执行实例级检查，因此实例级检查延迟到 `ServerWorld::spawnEntitiesFromChunkGeneration` 创建实体时执行。
 
 ## 容易踩的坑
 

@@ -531,6 +531,7 @@ add_executable(mc_tests
     common/entity/ai/util/RandomPositionGeneratorTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
+    entity/PathWeightOverrideTest.cpp
     entity/MinecartTests.cpp
     entity/ElytraAndSpinAttackTest.cpp
     common/entity/entities/EntityDaylightTest.cpp

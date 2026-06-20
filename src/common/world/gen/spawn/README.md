@@ -78,3 +78,7 @@ spawnX = std::clamp(spawnX, chunkStartX + width, chunkStartX + CHUNK_WIDTH - wid
 | 生成分类 | 仅 Creature | Monster、Creature、Ambient 等 |
 | 生成条件 | 不检查光照、玩家距离 | 需检查光照、玩家距离等 |
 | 数据流 | 输出 SpawnedEntityData | 直接创建实体 |
+| 实例级检查 | 不适用（无实体实例），延迟到 ServerWorld | 在 _trySpawnAt 中调用 canSpawnAt |
+
+注意：WorldGenSpawner 输出的 `SpawnedEntityData` 不包含实体实例，无法执行实例级生成检查（如 `CreatureEntity::canSpawnAt`）。
+该检查延迟到 `ServerWorld::spawnEntitiesFromChunkGeneration` 创建实体实例后执行，对应 MC `spawnMobsForChunkGeneration` 中的 `mob.checkSpawnRules` 调用。

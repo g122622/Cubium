@@ -23,8 +23,11 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
@@ -75,7 +78,13 @@ public:
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
     {
         const BlockState* state = getBlockState(x, y, z);
-        return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+        if (state != nullptr) {
+            const fluid::FluidState* fs = state->getFluidState();
+            if (fs != nullptr && !fs->isEmpty()) {
+                return fs;
+            }
+        }
+        return nullptr; // 没有方块或空流体时返回 nullptr
     }
 
     [[nodiscard]] f32 getBrightness(const BlockPos& pos) const override
@@ -105,6 +114,63 @@ public:
 private:
     f32 m_brightness = 0.5f;
     std::unordered_map<BlockPos, const BlockState*> m_blockStates;
+};
+
+/**
+ * @brief 测试用基础生物实体
+ */
+class TestCreatureEntity final : public CreatureEntity {
+public:
+    TestCreatureEntity()
+        : CreatureEntity(EntityId(0))
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+};
+
+/**
+ * @brief 测试用具体动物实体
+ */
+class TestAnimalEntity final : public AnimalEntity {
+public:
+    TestAnimalEntity()
+        : AnimalEntity(EntityId(1))
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override { return std::nullopt; }
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource&) const override { return std::nullopt; }
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override { return std::nullopt; }
+    [[nodiscard]] bool isBreedingItem(const ItemStack&) const override { return false; }
+    std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity&) override { return nullptr; }
+
+protected:
+    [[nodiscard]] f32 getBaseWidth() const override { return 0.9f; }
+    [[nodiscard]] f32 getBaseHeight() const override { return 0.9f; }
+    [[nodiscard]] f32 eyeHeight() const override { return 0.4f * height(); }
+};
+
+/**
+ * @brief 测试用具体怪物实体
+ */
+class TestMonsterEntity final : public MonsterEntity {
+public:
+    TestMonsterEntity()
+        : MonsterEntity(EntityId(2))
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+
+    [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override { return std::nullopt; }
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource&) const override { return std::nullopt; }
+    [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override { return std::nullopt; }
+
+protected:
+    void registerGoals() override { MonsterEntity::registerGoals(); }
 };
 
 // ============================================================================
@@ -272,6 +338,19 @@ TEST_F(StriderPathWeightTest, ReturnsZeroOnLandWhenNotInLava)
     StriderEntity strider(EntityId(30));
     strider.setWorld(&world);
     EXPECT_FLOAT_EQ(strider.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(StriderPathWeightTest, ReturnsNegInfOnLandWhenInLava)
+{
+    // 炽足兽自身在岩浆中，但目标位置不是岩浆——返回 -∞（强烈避免离开岩浆）
+    // 对应 MC: isInLava() ? Float.NEGATIVE_INFINITY
+    StriderEntity strider(EntityId(30));
+    strider.setWorld(&world);
+    strider.setInLava(true); // 模拟炽足兽当前站在岩浆中
+
+    // 目标位置没有岩浆
+    EXPECT_TRUE(std::isinf(strider.getPathWeight(10.0f, 64.0f, 10.0f)));
+    EXPECT_LT(strider.getPathWeight(10.0f, 64.0f, 10.0f), 0.0f);
 }
 
 TEST_F(StriderPathWeightTest, ReturnsZeroWhenNoWorld)

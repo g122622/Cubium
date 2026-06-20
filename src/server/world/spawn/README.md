@@ -33,6 +33,8 @@ DespawnManager（消失管理）
 
 **finalizeSpawn 调用**：所有 MobEntity 生成路径在 `spawnEntity()` 前必须调用 `finalizeSpawn(world, difficulty, spawnReason)`，以完成基于难度的初始化（拾取物品能力、默认装备、附魔等）。NaturalSpawner 使用 `SpawnReason::Natural`，VillageSiege 使用 `SpawnReason::Event`。详见 `entity/core/README.md`。
 
+**canSpawnAt 实例级检查**：NaturalSpawner 在创建实体并设置位置后、`finalizeSpawn` 之前，对 CreatureEntity 调用 `canSpawnAt(x, y, z)` 进行实例级生成规则检查（对应 MC `PathfinderMob.checkSpawnRules`，即 `getWalkTargetValue >= 0`）。这确保了动物不会在黑暗处生成、怪物不会在明亮处生成等寻路权重约束。详见 `CreatureEntity::canSpawnAt` 和 `CreatureEntity::getPathWeight`。
+
 ## 上下游外部依赖关系
 
 ### 上游依赖（本模块依赖的外部模块）

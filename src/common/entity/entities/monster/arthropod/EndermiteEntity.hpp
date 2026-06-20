@@ -112,14 +112,14 @@ public:
     /**
      * @brief 获取召唤同伴目标
      * @return 召唤同伴目标的指针
+     */
+    [[nodiscard]] entity::ai::goal::SilverfishSummonOthersGoal* getSummonGoal() noexcept { return m_summonGoal; }
 
     // ========== 寻路权重 ==========
 
     // TODO: 重写 getPathWeight — 蠹虫需要检查脚下方块是否为虫蚀方块：
     // 脚下是虫蚀方块返回 10.0f，否则委托 MonsterEntity::getPathWeight
     // 对应 MC Silverfish.getWalkTargetValue
-     */
-    [[nodiscard]] entity::ai::goal::SilverfishSummonOthersGoal* getSummonGoal() noexcept { return m_summonGoal; }
 
     /**
      * @brief 通知召唤同伴目标
