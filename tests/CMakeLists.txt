@@ -922,6 +922,8 @@ add_executable(mc_tests
     client/sound/SoundRegistryTest.cpp
     client/sound/TickableSoundTest.cpp
     client/sound/MovingTickableSoundTest.cpp
+    # OpenALBackend 音频后端源计数追踪与功能测试
+    client/sound/OpenALBackendTest.cpp
     # 聊天历史与消息类型测试
     client/chat/ChatHistoryTest.cpp
     # 皮肤系统测试
