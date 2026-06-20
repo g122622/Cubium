@@ -550,6 +550,21 @@ BlockState Block::updatePostPlacement(const BlockState& state,
     return state;
 }
 
+BlockState Block::updateFromNeighbourShapes(const BlockState& state, IWorld& world, const BlockPos& pos)
+{
+    BlockState currentState = state;
+    for (Direction direction : UPDATE_SHAPE_ORDER) {
+        BlockPos neighborPos = pos.offset(direction);
+        const BlockState* neighborState = world.getBlockState(neighborPos);
+        if (neighborState == nullptr) {
+            continue;
+        }
+        currentState = const_cast<Block&>(currentState.getBlock()).updatePostPlacement(
+            currentState, direction, *neighborState, world, pos, neighborPos);
+    }
+    return currentState;
+}
+
 bool Block::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     // 默认实现：总是有效

@@ -35,6 +35,7 @@
 #include "Material.hpp"
 #include "world/biome/BiomeClimate.hpp"
 #include "world/map/MaterialColor.hpp"
+#include <array>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -1905,6 +1906,33 @@ public:
      */
     static const BlockState& pushEntitiesUp(
         const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos);
+
+    // ========================================================================
+    // 方块形状更新
+    // ========================================================================
+
+    /**
+     * @brief 方块形状更新的方向迭代顺序
+     *
+     * 按照 WEST→EAST→NORTH→SOUTH→DOWN→UP 的轴对顺序遍历邻居方向。
+     * 同轴的两个方向连续处理，确保方块形状更新在轴向上一致收敛。
+     */
+    static constexpr std::array<Direction, 6> UPDATE_SHAPE_ORDER = {
+        Direction::West, Direction::East, Direction::North, Direction::South, Direction::Down, Direction::Up};
+
+    /**
+     * @brief 根据邻居方块状态更新当前方块的形状
+     *
+     * 遍历 UPDATE_SHAPE_ORDER 中的 6 个方向，对每个方向调用 updatePostPlacement，
+     * 累积结果并返回最终状态。用于区块后处理生成、结构放置、活塞移动等场景。
+     *
+     * @param state 当前方块状态
+     * @param world 世界接口
+     * @param pos 当前方块位置
+     * @return 根据邻居状态更新后的方块状态
+     */
+    [[nodiscard]] static BlockState updateFromNeighbourShapes(
+        const BlockState& state, IWorld& world, const BlockPos& pos);
 
     // ========================================================================
     // 攻击和交互

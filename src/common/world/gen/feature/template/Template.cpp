@@ -919,6 +919,19 @@ bool Template::placeInWorld(
         }
     }
 
+    // 形状更新：对所有放置的方块根据邻居状态更新其形状
+    // 如栅栏连接、楼梯朝向、红石线路形状等需要根据邻居方块确定状态的方块
+    for (const auto& processedBlock : processedBlocks) {
+        const BlockState* currentState = world.getBlockState(processedBlock.pos);
+        if (currentState == nullptr || currentState->isAir()) {
+            continue;
+        }
+        BlockState updated = Block::updateFromNeighbourShapes(*currentState, world, processedBlock.pos);
+        if (updated != *currentState) {
+            world.setBlockState(processedBlock.pos, &updated, 276);
+        }
+    }
+
     // 处理实体
     if (!settings.ignoreEntities() && !m_entities.empty()) {
         for (const auto& entityInfo : m_entities) {
