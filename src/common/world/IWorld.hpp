@@ -61,6 +61,7 @@ class ItemStack;
 class INamedContainerProvider;
 enum class Direction : u8;
 enum class ContainerType : u8;
+class EndDragonFight;
 
 namespace world::tick {
 class TickManager;
@@ -1111,6 +1112,19 @@ public:
      */
     [[nodiscard]] virtual world::village::raid::RaidManager* raidManager() { return nullptr; }
     [[nodiscard]] virtual const world::village::raid::RaidManager* raidManager() const { return nullptr; }
+
+    // ========== 末影龙战斗管理 ==========
+
+    /**
+     * @brief 获取末影龙战斗管理器
+     *
+     * 只有末地维度的ServerWorld会返回有效的指针，其他实现返回nullptr。
+     * 用于末影龙死亡后放置龙蛋、生成折跃门等战斗奖励逻辑。
+     *
+     * @return EndDragonFight指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] virtual class EndDragonFight* dragonFight() { return nullptr; }
+    [[nodiscard]] virtual const class EndDragonFight* dragonFight() const { return nullptr; }
 
     // ========== 战利品表管理 ==========
 

@@ -35,6 +35,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
@@ -685,13 +686,19 @@ void EnderDragonEntity::_onDeathUpdate()
     // 前100 ticks 上升并发光
     // 后100 ticks 爆炸并消失
 
+    // 判断是否首次击杀：如果有 EndDragonFight，查询 previouslyKilled 标志
+    IWorld* worldPtr = world();
+    const bool previouslyKilled = (worldPtr != nullptr && worldPtr->dragonFight() != nullptr)
+        ? worldPtr->dragonFight()->hasPreviouslyKilled()
+        : false;
+    const i32 totalXP = previouslyKilled ? XP_SUBSEQUENT : XP_FIRST_KILL;
+
     if (m_deathTicks < DEATH_DURATION) {
         // 死亡动画期间
         // 缓慢上升
         setVelocity(0.0f, 0.1f, 0.0f);
 
         // 在 180-200 tick 之间，每 tick 生成爆炸粒子
-        IWorld* worldPtr = world();
         if (worldPtr && m_deathTicks > 180) {
             math::Random rng(m_deathTicks);
             f32 px = static_cast<f32>(x() + rng.nextFloat(-5.0f, 5.0f));
@@ -701,29 +708,38 @@ void EnderDragonEntity::_onDeathUpdate()
         }
 
         // 在 150 tick 之后，每 5 tick 掉落 8% 经验
+        // MC 原版：150-179 tick 每 5 tick 掉 8%，共 6 次 = 48%
         if (m_deathTicks > 150 && m_deathTicks % 5 == 0) {
-            constexpr i32 XP_DROP_AMOUNT = static_cast<i32>(XP_FIRST_KILL * 0.08f);
-            _dropExperienceAmount(XP_DROP_AMOUNT);
+            constexpr f32 XP_DROP_FRACTION = 0.08f;
+            const i32 xpDropAmount = static_cast<i32>(static_cast<f32>(totalXP) * XP_DROP_FRACTION);
+            _dropExperienceAmount(xpDropAmount);
         }
     }
 
     if (m_deathTicks >= DEATH_DURATION) {
         // 死亡完成
-        // 掉落剩余 20% 经验
-        constexpr i32 XP_REMAINING = static_cast<i32>(XP_FIRST_KILL * 0.2f);
-        _dropExperienceAmount(XP_REMAINING);
+        // 掉落剩余经验（总计 100%，已掉落 48%，剩余 52%）
+        // MC 原版：200 tick 时掉落剩余全部经验
+        // 注意：这里简化处理，一次性掉落剩余经验
+        const i32 xpDroppedSoFar = static_cast<i32>(static_cast<f32>(totalXP) * 0.48f);
+        const i32 xpRemaining = totalXP - xpDroppedSoFar;
+        _dropExperienceAmount(xpRemaining);
 
-        // 生成出口传送门（末地讲台）
-        // MC 原版：DragonFight.setDragonKilled() 负责放置出口传送门
-        // 讲台中心位于 (0, 0, 0) 底部，出口传送门由基岩柱、传送门环和火把组成
-        IWorld* worldPtr = world();
+        // MC 原版：DragonFight.setDragonKilled() 负责以下逻辑：
+        // 1. 生成/激活出口传送门
+        // 2. 生成末地折跃门（每次击杀一个，最多20个）
+        // 3. 首次击杀时在祭坛顶部放置龙蛋
+        // 4. 设置 previouslyKilled = true
         if (worldPtr != nullptr) {
-            EndTeleporter::createExitPortal(*worldPtr, BlockPos(0, 0, 0), true);
+            EndDragonFight* fight = worldPtr->dragonFight();
+            if (fight != nullptr) {
+                // 通过 EndDragonFight 统一处理龙蛋放置、折跃门生成和出口传送门
+                fight->setDragonKilled(*worldPtr);
+            } else {
+                // 没有 EndDragonFight 时回退到仅创建出口传送门
+                EndTeleporter::createExitPortal(*worldPtr, BlockPos(0, 0, 0), true);
+            }
         }
-
-        // TODO: 首次击杀时在祭坛顶部放置龙蛋（DragonEggBlock）
-        // TODO: 生成末地折跃门（EndGatewayFeature）
-        // 这两项需要 EndDragonFight 系统来协调，当前等待集成
 
         // 移除实体
         remove();

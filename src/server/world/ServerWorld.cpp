@@ -58,6 +58,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -165,6 +166,11 @@ Result<void> ServerWorld::initialize()
     // 初始化村庄和袭击管理器
     m_villageManager = std::make_unique<world::village::VillageManager>(*this);
     m_raidManager = std::make_unique<world::village::raid::RaidManager>(*this, *m_villageManager);
+
+    // 初始化末影龙战斗管理器（仅末地维度）
+    if (m_config.dimension == DimensionManager::THE_END) {
+        m_dragonFight = std::make_unique<EndDragonFight>(m_config.seed);
+    }
 
     // 初始化地图数据管理器
     m_mapDataManager = std::make_unique<world::map::MapDataManager>();

@@ -941,6 +941,7 @@ add_library(mc_common STATIC
     world/dimension/DimensionType.cpp
     world/dimension/Dimension.cpp
     world/dimension/DimensionManager.cpp
+    world/dimension/end/EndDragonFight.cpp
     world/dimension/teleport/PortalSize.cpp
     world/dimension/teleport/Teleporter.cpp
 
