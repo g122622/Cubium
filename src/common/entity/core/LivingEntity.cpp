@@ -409,6 +409,10 @@ void LivingEntity::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
     // 广播装备破损动画给追踪玩家
     broadcastBreakEvent(slot);
 
+    // TODO: 调用 stopLocationBasedEffects() 停止基于位置的持续效果（如指南针、时钟等
+    // 基于位置的物品效果），待属性修饰符系统完善后集成。对应 MC 原版
+    // LivingEntity.onEquippedItemBroken() 中的 stopLocationBasedEffects() 调用。
+
     // 播放装备破损音效
     if (m_world != nullptr && !isSilent()) {
         m_world->playSound(SoundEvents::ENTITY_ITEM_BREAK,

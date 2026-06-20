@@ -63,6 +63,8 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久
             if (player != nullptr) {
+                // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+                // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
                 context.getItemStackMut().attemptDamageItem(1, player);
             }
             return ActionResultType::Success;
@@ -83,6 +85,8 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久
             if (player != nullptr) {
+                // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+                // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
                 context.getItemStackMut().attemptDamageItem(1, player);
             }
 

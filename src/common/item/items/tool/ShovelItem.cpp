@@ -72,6 +72,8 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久度
             ItemStack& stack = context.getItemStackMut();
+            // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+            // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
             stack.attemptDamageItem(1, context.getPlayer());
 
             return ActionResultType::Success;
@@ -92,6 +94,8 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
 
             // 消耗耐久度
             ItemStack& stack = context.getItemStackMut();
+            // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+            // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
             stack.attemptDamageItem(1, context.getPlayer());
 
             return ActionResultType::Success;
@@ -130,6 +134,8 @@ ActionResultType ShovelItem::onItemUse(ItemUseContext& context)
     world.setBlockState(pos, &newState, 11);
 
     // 消耗耐久度
+    // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+    // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
     ItemStack& stack = context.getItemStackMut();
     stack.attemptDamageItem(1, context.getPlayer());
 

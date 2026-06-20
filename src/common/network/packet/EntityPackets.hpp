@@ -553,13 +553,13 @@ public:
         // EquipmentSlot: MainHand=0, OffHand=1, Feet=2, Legs=3, Chest=4, Head=5
         // EntityStatus:  47=MainHand, 48=OffHand, 49=Head, 50=Chest, 51=Legs, 52=Feet
         switch (slotIndex) {
-        case 0: return static_cast<Status>(47); // MainHand
-        case 1: return static_cast<Status>(48); // OffHand
-        case 5: return static_cast<Status>(49); // Head
-        case 4: return static_cast<Status>(50); // Chest
-        case 3: return static_cast<Status>(51); // Legs
-        case 2: return static_cast<Status>(52); // Feet
-        default: return static_cast<Status>(47);
+        case 0: return Status::EquipmentBreakMainHand;
+        case 1: return Status::EquipmentBreakOffHand;
+        case 5: return Status::EquipmentBreakHead;
+        case 4: return Status::EquipmentBreakChest;
+        case 3: return Status::EquipmentBreakLegs;
+        case 2: return Status::EquipmentBreakFeet;
+        default: return Status::EquipmentBreakMainHand;
         }
     }
 

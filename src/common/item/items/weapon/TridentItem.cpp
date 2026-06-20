@@ -111,6 +111,8 @@ void TridentItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEn
 
     // 消耗耐久度
     if (!player->isCreative()) {
+        // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+        // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
         stack.attemptDamageItem(1, player);
     }
 
@@ -200,6 +202,8 @@ bool TridentItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity
     (void)target;
 
     // 消耗耐久度
+    // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+    // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
     stack.attemptDamageItem(1, &attacker);
     return true;
 }
@@ -213,6 +217,8 @@ bool TridentItem::onBlockDestroyed(
 
     // 如果方块硬度不为0，消耗耐久度（三叉戟作为工具破坏方块消耗2点耐久）
     if (state.hardness() > 0.0f) {
+        // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+        // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
         stack.attemptDamageItem(2, &breaker);
     }
     return true;

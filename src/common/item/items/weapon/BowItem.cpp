@@ -158,6 +158,8 @@ void BowItem::onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity
 
             // 消耗耐久度（非创造模式）
             if (!isCreative) {
+                // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+                // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
                 stack.attemptDamageItem(1, &entity);
             }
 

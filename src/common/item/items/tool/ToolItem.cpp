@@ -94,6 +94,8 @@ bool ToolItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& a
 {
     (void)target;
     // 攻击实体消耗 2 点耐久
+    // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+    // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
     stack.attemptDamageItem(2, &attacker);
     return true;
 }
@@ -105,6 +107,8 @@ bool ToolItem::onBlockDestroyed(
     (void)pos;
     // 只有硬度 > 0 的方块才消耗耐久
     if (state.hardness() > 0.0f) {
+        // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+        // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
         stack.attemptDamageItem(1, &entity);
     }
     return true;

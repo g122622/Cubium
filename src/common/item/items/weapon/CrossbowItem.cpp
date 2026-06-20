@@ -335,6 +335,9 @@ void CrossbowItem::_fireProjectiles(
             world.spawnEntity(std::move(firework));
 
             // 消耗耐久度（烟花消耗3点）
+            // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+            // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式。需要将 slot 信息传播到
+            // _fireProjectiles
             crossbow.attemptDamageItem(3, &shooter);
         } else {
             // 创建箭矢实体
@@ -370,6 +373,9 @@ void CrossbowItem::_fireProjectiles(
             }
 
             // 消耗耐久度（箭矢消耗1点）
+            // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+            // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式。需要将 slot 信息传播到
+            // _fireProjectiles
             crossbow.attemptDamageItem(1, &shooter);
         }
     }

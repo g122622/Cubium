@@ -74,6 +74,8 @@ bool SwordItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& 
 {
     (void)target;
     // 剑攻击实体只消耗 1 点耐久（其他工具消耗 2 点）
+    // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+    // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
     stack.attemptDamageItem(1, &attacker);
     return true;
 }
@@ -85,6 +87,8 @@ bool SwordItem::onBlockDestroyed(
     (void)pos;
     // 剑破坏方块消耗 2 点耐久（其他工具消耗 1 点）
     if (state.hardness() > 0.0f) {
+        // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
+        // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
         stack.attemptDamageItem(2, &entity);
     }
     return true;
