@@ -544,6 +544,39 @@ SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos)
     return nibbles[index];
 }
 
+const SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) const
+{
+    i32 chunkY = pos.y;
+    if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
+        return nullptr;
+    }
+
+    // 首先尝试从缓存获取
+    const SWMRNibbleArray* cached = getNibbleFromCache(pos.x, chunkY, pos.z);
+    if (cached != nullptr) {
+        return cached;
+    }
+
+    // 如果缓存中没有，尝试从区块获取
+    const IChunk* chunk = getChunkInCache(pos.x, pos.z);
+    if (chunk == nullptr) {
+        return nullptr;
+    }
+
+    SWMRNibbleArray* const* nibbles = getNibblesOnChunk(chunk);
+    if (nibbles == nullptr) {
+        return nullptr;
+    }
+
+    i32 index = chunkY - m_minLightSection;
+    i32 totalSections = m_maxLightSection - m_minLightSection + 1;
+    if (index < 0 || index >= totalSections) {
+        return nullptr;
+    }
+
+    return nibbles[index];
+}
+
 void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk)
 {
     MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::updateEmptinessMap");
@@ -565,6 +598,38 @@ void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const Chun
         bool isEmpty = (section == nullptr || section->isEmpty());
         updateSectionStatus(SectionPos(chunkX, sectionY, chunkZ), isEmpty);
     }
+}
+
+// ============================================================================
+// 区块列管理
+// ============================================================================
+
+void BlockStarLightEngine::setColumnEnabled(i64 columnPos, bool enabled)
+{
+    if (enabled) {
+        m_enabledColumns.insert(columnPos);
+    } else {
+        m_enabledColumns.erase(columnPos);
+    }
+}
+
+void BlockStarLightEngine::retainData(i64 columnPos, bool retain)
+{
+    if (retain) {
+        m_columnsToRetainDataFor.insert(columnPos);
+    } else {
+        m_columnsToRetainDataFor.erase(columnPos);
+    }
+}
+
+bool BlockStarLightEngine::isColumnEnabled(i64 columnPos) const
+{
+    return m_enabledColumns.contains(columnPos);
+}
+
+bool BlockStarLightEngine::isDataRetained(i64 columnPos) const
+{
+    return m_columnsToRetainDataFor.contains(columnPos);
 }
 
 } // namespace mc

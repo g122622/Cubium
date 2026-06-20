@@ -84,6 +84,7 @@ public:
     [[nodiscard]] mc::u8 getLightFor(mc::i32, mc::i32, mc::i32) const override { return 0; }
     void setData(const mc::SectionPos&, const mc::NibbleArray&, bool) override {}
     [[nodiscard]] mc::SWMRNibbleArray* getData(const mc::SectionPos&) override { return nullptr; }
+    [[nodiscard]] const mc::SWMRNibbleArray* getData(const mc::SectionPos&) const override { return nullptr; }
 
     // 暴露 protected 方法用于测试
     using mc::StarLightEngine::appendToDecreaseQueue;

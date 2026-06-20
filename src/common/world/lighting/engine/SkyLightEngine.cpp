@@ -836,15 +836,41 @@ SWMRNibbleArray* SkyStarLightEngine::getData(const SectionPos& pos)
     return getNibbleFromCache(pos.x, sectionY, pos.z);
 }
 
+const SWMRNibbleArray* SkyStarLightEngine::getData(const SectionPos& pos) const
+{
+    i32 sectionY = pos.y;
+    if (sectionY < m_minLightSection || sectionY > m_maxLightSection) {
+        return nullptr;
+    }
+    return getNibbleFromCache(pos.x, sectionY, pos.z);
+}
+
 void SkyStarLightEngine::setColumnEnabled(i64 columnPos, bool enabled)
 {
-    // 启用或禁用区块列的光照更新
-    // 这用于控制光照引擎的活动区域
     if (enabled) {
         m_enabledColumns.insert(columnPos);
     } else {
         m_enabledColumns.erase(columnPos);
     }
+}
+
+void SkyStarLightEngine::retainData(i64 columnPos, bool retain)
+{
+    if (retain) {
+        m_columnsToRetainDataFor.insert(columnPos);
+    } else {
+        m_columnsToRetainDataFor.erase(columnPos);
+    }
+}
+
+bool SkyStarLightEngine::isColumnEnabled(i64 columnPos) const
+{
+    return m_enabledColumns.contains(columnPos);
+}
+
+bool SkyStarLightEngine::isDataRetained(i64 columnPos) const
+{
+    return m_columnsToRetainDataFor.contains(columnPos);
 }
 
 } // namespace mc

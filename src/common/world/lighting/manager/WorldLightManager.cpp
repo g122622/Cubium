@@ -27,6 +27,7 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
 #include <algorithm>
+#include <fmt/format.h>
 
 namespace mc {
 
@@ -174,7 +175,7 @@ void WorldLightManager::enableLightSources(const ChunkPos& pos, bool enable)
     i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
 
     if (m_blockLight != nullptr) {
-        // TODO: 方块光照需要启用区块列，目前通过存储层处理，待实现
+        m_blockLight->setColumnEnabled(columnPos, enable);
     }
 
     if (m_skyLight != nullptr) {
@@ -294,9 +295,16 @@ void WorldLightManager::retainData(const ChunkPos& pos, bool retain)
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // TODO: 通过存储层保留数据，目前简化实现
-    (void)pos;
-    (void)retain;
+    // 区块列位置编码，与 enableLightSources 保持一致
+    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
+
+    if (m_blockLight != nullptr) {
+        m_blockLight->retainData(columnPos, retain);
+    }
+
+    if (m_skyLight != nullptr) {
+        m_skyLight->retainData(columnPos, retain);
+    }
 }
 
 // ============================================================================
@@ -380,20 +388,96 @@ std::string WorldLightManager::getDebugInfo(LightType type, const SectionPos& po
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // TODO: 使用 pos 参数获取更详细的调试信息
-    (void)pos;
+    // 区块列位置编码
+    i64 columnPos = (static_cast<i64>(pos.x) & 0x3FFFFFLL) << 42 | (static_cast<i64>(pos.z) & 0x3FFFFFLL) << 20;
 
     switch (type) {
-        case LightType::BLOCK:
-            if (m_blockLight != nullptr) {
-                return "BlockLight: active";
+        case LightType::BLOCK: {
+            if (m_blockLight == nullptr) {
+                return "BlockLight: N/A";
             }
-            return "BlockLight: N/A";
-        case LightType::SKY:
-            if (m_skyLight != nullptr) {
-                return "SkyLight: active";
+
+            // 获取区块段的 Nibble 数据状态
+            const SWMRNibbleArray* nibble = m_blockLight->getData(pos);
+            std::string sectionState;
+            if (nibble == nullptr) {
+                sectionState = "2"; // EMPTY - 无数据
+            } else if (nibble->isNullUpdating()) {
+                sectionState = "2"; // EMPTY - Null 状态
+            } else if (nibble->isUninitializedUpdating()) {
+                sectionState = "1"; // LIGHT_ONLY - 未初始化
+            } else if (nibble->isHiddenUpdating()) {
+                sectionState = "1"; // LIGHT_ONLY - 隐藏状态
+            } else if (nibble->isInitializedUpdating()) {
+                sectionState = "0"; // LIGHT_AND_DATA - 有完整数据
             }
-            return "SkyLight: N/A";
+
+            std::string result = "BlockLight:" + sectionState;
+
+            // 附加脏标记
+            if (nibble != nullptr && nibble->isDirty()) {
+                result += "[dirty]";
+            }
+
+            // 附加引擎队列状态
+            i32 queueSize = m_blockLight->queuedUpdateSize();
+            if (queueSize > 0) {
+                result += "[q:" + std::to_string(queueSize) + "]";
+            }
+
+            // 附加区块列状态
+            if (m_blockLight->isColumnEnabled(columnPos)) {
+                result += "[col:on]";
+            }
+            if (m_blockLight->isDataRetained(columnPos)) {
+                result += "[retained]";
+            }
+
+            return result;
+        }
+        case LightType::SKY: {
+            if (m_skyLight == nullptr) {
+                return "SkyLight: N/A";
+            }
+
+            // 获取区块段的 Nibble 数据状态
+            const SWMRNibbleArray* nibble = m_skyLight->getData(pos);
+            std::string sectionState;
+            if (nibble == nullptr) {
+                sectionState = "2"; // EMPTY - 无数据
+            } else if (nibble->isNullUpdating()) {
+                sectionState = "2"; // EMPTY - Null 状态
+            } else if (nibble->isUninitializedUpdating()) {
+                sectionState = "1"; // LIGHT_ONLY - 未初始化
+            } else if (nibble->isHiddenUpdating()) {
+                sectionState = "1"; // LIGHT_ONLY - 隐藏状态
+            } else if (nibble->isInitializedUpdating()) {
+                sectionState = "0"; // LIGHT_AND_DATA - 有完整数据
+            }
+
+            std::string result = "SkyLight:" + sectionState;
+
+            // 附加脏标记
+            if (nibble != nullptr && nibble->isDirty()) {
+                result += "[dirty]";
+            }
+
+            // 附加引擎队列状态
+            i32 queueSize = m_skyLight->queuedUpdateSize();
+            if (queueSize > 0) {
+                result += "[q:" + std::to_string(queueSize) + "]";
+            }
+
+            // 附加区块列状态
+            if (m_skyLight->isColumnEnabled(columnPos)) {
+                result += "[col:on]";
+            }
+            if (m_skyLight->isDataRetained(columnPos)) {
+                result += "[retained]";
+            }
+
+            return result;
+        }
     }
     return "Unknown";
 }

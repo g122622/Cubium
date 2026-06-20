@@ -161,9 +161,35 @@ public:
     [[nodiscard]] SWMRNibbleArray* getData(const SectionPos& pos) override;
 
     /**
+     * @brief 获取光照数据（只读）
+     */
+    [[nodiscard]] const SWMRNibbleArray* getData(const SectionPos& pos) const override;
+
+    /**
      * @brief 设置区块列启用状态
      */
     void setColumnEnabled(i64 columnPos, bool enabled);
+
+    /**
+     * @brief 保留/释放区块列的光照数据
+     *
+     * 当区块从存档加载时，调用 retainData(pos, true) 来保护光照数据
+     * 不被过早清除。光照完成后调用 retainData(pos, false) 释放保护。
+     *
+     * @param columnPos 编码后的区块列位置
+     * @param retain true 表示保留数据，false 表示允许清除
+     */
+    void retainData(i64 columnPos, bool retain);
+
+    /**
+     * @brief 检查区块列是否已启用
+     */
+    [[nodiscard]] bool isColumnEnabled(i64 columnPos) const;
+
+    /**
+     * @brief 检查区块列的光照数据是否被保留
+     */
+    [[nodiscard]] bool isDataRetained(i64 columnPos) const;
 
 protected:
     /**
@@ -216,6 +242,9 @@ private:
 
     // 启用的区块列（用于控制光照更新范围）
     std::unordered_set<i64> m_enabledColumns;
+
+    // 保留数据的区块列（防止光照数据在区块卸载时被清除）
+    std::unordered_set<i64> m_columnsToRetainDataFor;
 
     /**
      * @brief 获取发射光照等级（天空光照始终为 0）

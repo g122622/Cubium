@@ -305,6 +305,11 @@ public:
      */
     [[nodiscard]] virtual SWMRNibbleArray* getData(const SectionPos& pos) = 0;
 
+    /**
+     * @brief 获取光照数据（只读）
+     */
+    [[nodiscard]] virtual const SWMRNibbleArray* getData(const SectionPos& pos) const = 0;
+
     // ========================================================================
     // 缓存管理
     // ========================================================================
