@@ -40,7 +40,7 @@ const BlockState* DebugChunkGenerator::s_airState = nullptr;
 std::vector<const BlockState*> DebugChunkGenerator::s_allValidStates;
 i32 DebugChunkGenerator::s_gridWidth = 0;
 i32 DebugChunkGenerator::s_gridHeight = 0;
-bool DebugChunkGenerator::s_initialized = false;
+std::once_flag DebugChunkGenerator::s_initFlag;
 
 // ============================================================================
 // 构造函数
@@ -48,11 +48,9 @@ bool DebugChunkGenerator::s_initialized = false;
 
 DebugChunkGenerator::DebugChunkGenerator() noexcept
     : BaseChunkGenerator(0, DimensionSettings{}) // 种子和设置对调试模式无意义
+    , m_biomeSource(std::make_unique<world::biome::source::FixedBiomeSource>(0, Biomes::Plains))
 {
-    // 确保已初始化
-    if (!s_initialized) {
-        initializeValidStates();
-    }
+    std::call_once(s_initFlag, initializeValidStates);
 }
 
 // ============================================================================
@@ -61,10 +59,6 @@ DebugChunkGenerator::DebugChunkGenerator() noexcept
 
 void DebugChunkGenerator::initializeValidStates()
 {
-    if (s_initialized) {
-        return;
-    }
-
     auto& registry = BlockRegistry::instance();
 
     // 获取屏障和空气方块
@@ -107,8 +101,6 @@ void DebugChunkGenerator::initializeValidStates()
         s_gridWidth = 0;
         s_gridHeight = 0;
     }
-
-    s_initialized = true;
 }
 
 // ============================================================================
@@ -151,78 +143,32 @@ const BlockState* DebugChunkGenerator::getBlockStateFor(i32 x, i32 z)
 
 bool DebugChunkGenerator::isInitialized()
 {
-    return s_initialized;
+    return !s_allValidStates.empty();
 }
 
 // ============================================================================
 // 区块生成接口
 // ============================================================================
 
-void DebugChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
-{
-    // 调试模式不生成结构
-    MC_UNUSED(region);
-    MC_UNUSED(chunk);
-    chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
-}
-
-void DebugChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk)
-{
-    // 调试模式不生成结构引用
-    MC_UNUSED(region);
-    MC_UNUSED(chunk);
-    chunk.setChunkStatus(ChunkStatuses::STRUCTURE_REFERENCES);
-}
-
-void DebugChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk)
-{
-    // 调试模式使用平原生物群系
-    MC_UNUSED(region);
-    auto& biomes = chunk.getBiomes();
-    // 填充平原生物群系到所有位置
-    for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
-        for (i32 y = 0; y < BiomeContainer::VERT_SIZE; ++y) {
-            for (i32 z = 0; z < BiomeContainer::HORIZ_SIZE; ++z) {
-                for (i32 x = 0; x < BiomeContainer::HORIZ_SIZE; ++x) {
-                    biomes.setBiome(sectionIndex, x, y, z, Biomes::Plains);
-                }
-            }
-        }
-    }
-    chunk.setChunkStatus(ChunkStatuses::BIOMES);
-}
-
 void DebugChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    // MC 1.21.11: 调试世界在 generateNoise 阶段不做任何操作
+    // 调试世界在 generateNoise 阶段不做任何操作
     // 方块放置在 placeFeatures (applyBiomeDecoration) 阶段进行
     MC_UNUSED(region);
     chunk.setChunkStatus(ChunkStatuses::NOISE);
 }
 
-void DebugChunkGenerator::buildSurface(WorldGenRegion& region, ChunkPrimer& chunk)
+void DebugChunkGenerator::buildSurface(WorldGenRegion& /*region*/, ChunkPrimer& chunk)
 {
     // 调试模式不需要地表生成
-    MC_UNUSED(region);
-    MC_UNUSED(chunk);
     chunk.setChunkStatus(ChunkStatuses::SURFACE);
-}
-
-void DebugChunkGenerator::applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk)
-{
-    // 调试模式不应用雕刻器
-    MC_UNUSED(region);
-    MC_UNUSED(chunk);
-    chunk.setChunkStatus(ChunkStatuses::CARVERS);
 }
 
 void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk)
 {
-    // MC 1.21.11: 调试世界在 applyBiomeDecoration 阶段放置方块
-    // Y=60 屏障基座 + Y=70 方块状态网格（包括空气状态）
-    if (!s_initialized) {
-        initializeValidStates();
-    }
+    // 调试世界在 applyBiomeDecoration 阶段放置方块
+    // Y=屏障层（SEA_LEVEL-3）基座 + Y=SEA_LEVEL+7 方块状态网格
+    std::call_once(s_initFlag, initializeValidStates);
 
     ChunkCoord chunkX = chunk.x();
     ChunkCoord chunkZ = chunk.z();
@@ -232,13 +178,13 @@ void DebugChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chu
             i32 worldX = (chunkX << world::CHUNK_SHIFT) + localX;
             i32 worldZ = (chunkZ << world::CHUNK_SHIFT) + localZ;
 
-            // Y=60: 屏障基座
-            region.setBlockState(worldX, 60, worldZ, s_barrierState);
+            // Y=屏障层（SEA_LEVEL - 3）
+            region.setBlockState(worldX, world::SEA_LEVEL - 3, worldZ, s_barrierState);
 
-            // Y=70: 方块状态网格（MC 1.21.11: 无条件放置，包括空气状态）
+            // Y=方块状态网格（无条件放置，包括空气状态）
             // getBlockStateFor 在条件不满足时返回空气状态，不会返回 nullptr
             const BlockState* state = getBlockStateFor(worldX, worldZ);
-            region.setBlockState(worldX, 70, worldZ, state);
+            region.setBlockState(worldX, world::SEA_LEVEL + 7, worldZ, state);
         }
     }
     chunk.setChunkStatus(ChunkStatuses::FEATURES);

@@ -493,6 +493,18 @@ public:
     void selectCellXYZ(i32 cellX, i32 cellY, i32 cellZ);
 
     /**
+     * @brief 选中当前 cell 的 YZ 位置（不更新 X 相关状态）
+     *
+     * MC 1.21: iterateNoiseColumn 使用此方法而非 selectCellXYZ，
+     * 因为 advanceCellX(0) 已经设置了 X 方向的 slice 数据。
+     * 与 selectCellXYZ 的区别：不更新 m_selectedCellX 和 m_cellStartBlockX。
+     *
+     * @param cellY Y 方向 cell 索引
+     * @param cellZ Z 方向 cell 索引
+     */
+    void selectCellYZ(i32 cellY, i32 cellZ);
+
+    /**
      * @brief 更新 Y 方向插值
      * MC 1.21: 接受方块 Y 坐标，计算 inCellY = blockY - cellStartBlockY
      * @param blockY 方块 Y 坐标

@@ -23,9 +23,11 @@
 
 #pragma once
 
+#include "common/world/biome/source/FixedBiomeSource.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include <mutex>
 #include <vector>
 
 namespace mc {
@@ -57,12 +59,8 @@ public:
 
     // === IChunkGenerator 接口 ===
 
-    void generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    void generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    void generateBiomes(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
-    void applyCarvers(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
     i32 spawnInitialMobs(
         WorldGenRegion& region, ChunkPrimer& chunk, std::vector<SpawnedEntityData>& outEntities) override;
@@ -71,7 +69,19 @@ public:
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
     [[nodiscard]] i32 getGroundHeight() const override { return 0; }
-    [[nodiscard]] i32 seaLevel() const override { return 63; }
+    [[nodiscard]] i32 seaLevel() const override { return world::SEA_LEVEL; }
+
+    [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
+    [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
+
+    [[nodiscard]] i32 getGenDepth() const override { return world::CHUNK_HEIGHT; }
+    [[nodiscard]] i32 getMinY() const override { return 0; }
+    [[nodiscard]] NoiseColumn getBaseColumn(i32 x, i32 z) const override
+    {
+        MC_UNUSED(x);
+        MC_UNUSED(z);
+        return NoiseColumn(0, 0);
+    }
 
     /**
      * @brief 调试世界生成器标识
@@ -126,6 +136,9 @@ public:
     [[nodiscard]] static bool isInitialized();
 
 private:
+    /// FixedBiomeSource(Plains)
+    std::unique_ptr<world::biome::IBiomeSource> m_biomeSource;
+
     /// 屏障方块状态
     static const BlockState* s_barrierState;
 
@@ -141,8 +154,8 @@ private:
     /// 网格高度（Z方向）
     static i32 s_gridHeight;
 
-    /// 是否已初始化
-    static bool s_initialized;
+    /// 线程安全初始化标志
+    static std::once_flag s_initFlag;
 };
 
 } // namespace mc

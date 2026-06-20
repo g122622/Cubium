@@ -924,8 +924,9 @@ add_library(mc_common STATIC
     world/gen/chunk/IChunkGenerator.cpp
     world/gen/chunk/NoiseChunkGenerator.cpp
     world/gen/chunk/DebugChunkGenerator.cpp
+    world/gen/chunk/FlatChunkGenerator.cpp
 
-    # World - Dimension
+    # World - Generation - Settings
     world/dimension/DimensionType.cpp
     world/dimension/Dimension.cpp
     world/dimension/DimensionManager.cpp
@@ -943,6 +944,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Settings
     world/gen/settings/DimensionSettings.cpp
+    world/gen/settings/FlatLevelGeneratorSettings.cpp
 
     # World - Generation - Carvers
     world/gen/carver/WorldCarver.cpp

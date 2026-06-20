@@ -29,6 +29,7 @@
 #include "../../border/WorldBorder.hpp"
 #include "../../dimension/DimensionType.hpp"
 #include "../settings/DimensionSettings.hpp"
+#include "NoiseColumn.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
@@ -111,7 +112,8 @@ public:
 
     /**
      * @brief 应用雕刻器（洞穴、峡谷等）
-     * MC 1.21.11: 不再有单独的液体雕刻阶段，含水层系统决定填充内容
+     *
+     * 不再有单独的液体雕刻阶段，含水层系统决定填充内容
      * @param region 世界生成区域
      * @param chunk 区块生成器
      */
@@ -166,12 +168,43 @@ public:
      */
     [[nodiscard]] i32 getSpawnHeight(i32 x, i32 z) const { return getHeight(x, z, HeightmapType::WorldSurfaceWG); }
 
+    /**
+     * @brief 获取指定位置的基础列方块状态
+     *
+     * 返回从 minY 到 minY + genDepth - 1 的完整垂直列方块状态。
+     * 结构生成使用此方法判断放置高度。
+     *
+     * @param x 方块 X 坐标
+     * @param z 方块 Z 坐标
+     * @return 噪声列（包含完整垂直方块状态），nullptr 位置表示空气
+     */
+    [[nodiscard]] virtual NoiseColumn getBaseColumn(i32 x, i32 z) const
+    {
+        return NoiseColumn(getMinY(), getGenDepth());
+    }
+
     // === 基本信息 ===
 
     [[nodiscard]] virtual u64 seed() const = 0;
     [[nodiscard]] virtual const DimensionSettings& settings() const = 0;
     [[nodiscard]] virtual i32 seaLevel() const = 0;
-    [[nodiscard]] virtual i32 getGroundHeight() const { return 64; }
+    [[nodiscard]] virtual i32 getGroundHeight() const { return world::SEA_LEVEL + 1; }
+
+    /**
+     * @brief 获取生成深度
+     *
+     * 返回噪声生成器的总高度（maxY - minY）。
+     * 主世界: 384, 下界: 128, 末地: 128。
+     */
+    [[nodiscard]] virtual i32 getGenDepth() const { return world::CHUNK_HEIGHT; }
+
+    /**
+     * @brief 获取最低 Y 坐标
+     *
+     * 返回噪声生成器的最低建筑高度。
+     * 主世界: -64, 下界: 0, 末地: 0。
+     */
+    [[nodiscard]] virtual i32 getMinY() const { return world::MIN_BUILD_HEIGHT; }
 
     /**
      * @brief 检查是否为调试世界生成器
@@ -183,10 +216,36 @@ public:
      */
     [[nodiscard]] virtual bool isDebugGenerator() const { return false; }
 
+    // === 结构查找与生物生成 ===
+
+    /**
+     * @brief 查找最近的地图结构
+     *
+     * 用于 /locate 命令查找最近的指定结构。
+     * 默认实现返回空（未实现）。
+     *
+     * @param structureId 要查找的结构 ID
+     * @param centerX 搜索中心 X
+     * @param centerZ 搜索中心 Z
+     * @param radius 搜索半径（区块）
+     * @param skipExisting 搜索时是否跳过已发现的
+     * @return 找到的结构位置，或 nullopt
+     */
+    [[nodiscard]] virtual std::optional<BlockPos> findNearestMapStructure(
+        u32 structureId, i32 centerX, i32 centerZ, i32 radius, bool skipExisting) const
+    {
+        (void)structureId;
+        (void)centerX;
+        (void)centerZ;
+        (void)radius;
+        (void)skipExisting;
+        return std::nullopt;
+    }
+
     // === 生物群系源 ===
 
     /**
-     * @brief 获取生物群系源（MC 1.18+）
+     * @brief 获取生物群系源
      * @return 生物群系源指针
      */
     [[nodiscard]] virtual world::biome::IBiomeSource* getBiomeSource() { return nullptr; }
@@ -247,10 +306,7 @@ public:
     [[nodiscard]] const IChunk* getChunkAt(i32 relX, i32 relZ) const;
 
     /**
-     * @brief 获取指定世界坐标的区块（MC 1.21.11 对齐）
-     *
-     * MC 中 WorldGenRegion.getChunk() 返回 ChunkAccess（对应 IChunk）。
-     * 这是特性放置和雕刻器使用的主要区块访问方法。
+     * @brief 获取指定世界坐标的区块
      *
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
@@ -502,6 +558,64 @@ public:
     void setDayTime(i64 dayTime) { m_dayTime = dayTime; }
 
     /**
+     * @brief 设置是否困难模式
+     */
+    void setHardcore(bool hardcore) { m_hardcore = hardcore; }
+
+    /**
+     * @brief 设置难度
+     */
+    void setDifficulty(Difficulty difficulty) { m_difficulty = difficulty; }
+
+    // === 写入范围检查 ===
+
+    /**
+     * @brief 检查坐标是否在当前生成步骤的可写范围内
+     *
+     * 检查指定坐标是否在当前生成步骤允许写入的区块半径内。
+     * 如果坐标超出可写范围，返回 false。
+     * 用于防止生成器在未授权的区块中写入方块。
+     *
+     * @param x 方块 X 坐标
+     * @param y 方块 Y 坐标
+     * @param z 方块 Z 坐标
+     * @return true 如果坐标在可写范围内
+     */
+    [[nodiscard]] bool ensureCanWrite(i32 x, i32 y, i32 z) const
+    {
+        (void)y; // Y 不受区块写入半径限制
+        const i32 blockChunkX = world::toChunkCoord(x);
+        const i32 blockChunkZ = world::toChunkCoord(z);
+        const i32 writeRadius = blockStateWriteRadius();
+        if (writeRadius < 0) {
+            return false; // 当前步骤不允许写入
+        }
+        const i32 mainChunkX = m_mainX;
+        const i32 mainChunkZ = m_mainZ;
+        return std::abs(blockChunkX - mainChunkX) <= writeRadius && std::abs(blockChunkZ - mainChunkZ) <= writeRadius;
+    }
+
+    // === 调试追踪 ===
+
+    /**
+     * @brief 设置当前正在生成的结构/特性名称
+     *
+     * 用于崩溃报告上下文追踪，在 placeFeatures 中每个 feature/structure 放置前后调用。
+     * 生成完成后调用 clearCurrentlyGenerating() 清除。
+     */
+    void setCurrentlyGenerating(std::string_view name) { m_currentlyGenerating = name; }
+
+    /**
+     * @brief 清除当前正在生成的结构/特性名称
+     */
+    void clearCurrentlyGenerating() { m_currentlyGenerating.clear(); }
+
+    /**
+     * @brief 获取当前正在生成的结构/特性名称
+     */
+    [[nodiscard]] const std::string& currentlyGenerating() const { return m_currentlyGenerating; }
+
+    /**
      * @brief 获取当前生成步骤
      *
      * 返回构造时传入的 ChunkStep。如果使用无步骤构造函数，返回 nullptr。
@@ -540,13 +654,10 @@ private:
     math::Random m_random;
     world::border::WorldBorder m_worldBorder;
 
-    // 将世界坐标转换为区块索引
-    [[nodiscard]] i32 _worldToChunkIndex(i32 x, i32 z) const;
+    // 调试追踪
+    std::string m_currentlyGenerating; ///< 当前正在生成的结构/特性名称（崩溃报告上下文）
 
     [[nodiscard]] i32 _centerIndex() const;
-
-    // 将世界坐标转换为本地坐标
-    static void _worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ);
 };
 
 // ============================================================================

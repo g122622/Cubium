@@ -467,6 +467,32 @@ void NoiseChunk::selectCellXYZ(i32 cellX, i32 cellY, i32 cellZ)
     m_fillingCell = false;
 }
 
+void NoiseChunk::selectCellYZ(i32 cellY, i32 cellZ)
+{
+    m_selectedCellY = cellY;
+    m_selectedCellZ = cellZ;
+
+    // MC 1.21: 更新 cellStartBlockY/Z（不更新 X，因为 advanceCellX 已经设置了）
+    m_cellStartBlockY = (m_firstCellY + cellY) * m_cellConfig.cellHeight;
+    m_cellStartBlockZ = (m_firstCellZ + cellZ) * m_cellConfig.cellWidth;
+
+    // 为所有插值器加载 8 个角点值
+    for (auto& interp : m_interpolators) {
+        interp->selectCellYZ(cellY, cellZ);
+    }
+
+    // MC 1.21 selectCellYZ: 预填充 CellCache（设置 fillingCell 标志）
+    m_fillingCell = true;
+    ++m_arrayInterpolationCounter;
+
+    for (auto& cache : m_cellCaches) {
+        cache->fillCell(*this);
+    }
+
+    ++m_arrayInterpolationCounter;
+    m_fillingCell = false;
+}
+
 void NoiseChunk::updateForY(i32 blockY, f64 delta)
 {
     // MC 1.21: inCellY = blockY - cellStartBlockY

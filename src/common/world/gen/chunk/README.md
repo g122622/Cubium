@@ -12,6 +12,9 @@ chunk/
 ├── NoiseChunkGenerator.cpp     # 噪声地形生成实现
 ├── DebugChunkGenerator.hpp     # 调试模式生成器（展示所有方块状态）
 ├── DebugChunkGenerator.cpp     # 调试世界生成实现
+├── FlatChunkGenerator.hpp      # 平坦世界生成器
+├── FlatChunkGenerator.cpp      # 平坦世界生成实现
+├── NoiseColumn.hpp             # 噪声列类型（getBaseColumn 返回值）
 └── README.md                   # 本文档
 ```
 
@@ -22,19 +25,21 @@ IChunkGenerator (接口)
        ↑
 BaseChunkGenerator (基类，提供默认生物群系填充、结构生成空实现、生物生成)
        ↑
-   ┌───┴───────────────────┐
-NoiseChunkGenerator    DebugChunkGenerator
-   │                       │
-   └───────────────────────┘
-               │
-        WorldGenRegion (生成区域视图)
+   ┌───┴───────────────────┬──────────────────────┐
+NoiseChunkGenerator    DebugChunkGenerator    FlatChunkGenerator
+   │                       │                       │
+   └───────────────────────┴───────────────────────┘
+                       │
+                WorldGenRegion (生成区域视图)
 ```
 
-- **IChunkGenerator**：定义区块生成流水线接口（结构起点→结构引用→生物群系→噪声→地表→雕刻→特性→生物）
+- **IChunkGenerator**：定义区块生成流水线接口（结构起点→结构引用→生物群系→噪声→地表→雕刻→特性→生物），新增 `getBaseColumn`、`getGenDepth`、`getMinY`、`findNearestMapStructure` 虚方法
 - **BaseChunkGenerator**：提供默认实现，子类只需重写核心方法
 - **NoiseChunkGenerator**：统一的地形生成器，通过不同的 NoiseRouter 配置支持所有维度
-- **DebugChunkGenerator**：调试模式生成器，在 Y=60 层放置屏障基座，Y=70 层展示所有方块状态网格
-- **WorldGenRegion**：提供有限的世界视图，按当前 `ChunkStep` 的累积依赖构建动态方阵区域，并用 `directDependencies()` 校验区块访问阶段
+- **DebugChunkGenerator**：调试模式生成器，在 Y=60 层放置屏障基座，Y=70 层展示所有方块状态网格，使用 FixedBiomeSource(Plains)
+- **FlatChunkGenerator**：平坦世界生成器，逐层填充方块，使用 FlatLevelGeneratorSettings 配置
+- **WorldGenRegion**：提供有限的世界视图，按当前 `ChunkStep` 的累积依赖构建动态方阵区域，并用 `directDependencies()` 校验区块访问阶段。新增 `ensureCanWrite`、`setCurrentlyGenerating`/`clearCurrentlyGenerating` 方法
+- **NoiseColumn**：MC 1.21 NoiseColumn 类型，表示一条垂直列的方块状态，用于 `getBaseColumn()` 返回值
 
 ### 维度配置
 
@@ -43,30 +48,62 @@ NoiseChunkGenerator    DebugChunkGenerator
 | 主世界 | `NoiseRouterData::overworld(seed)` | `MultiNoiseBiomeSource::createOverworld()` | BlendedNoise(0.25, 0.125, 80, 160, 8) |
 | 下界 | `NoiseRouterData::nether(seed)` | `MultiNoiseBiomeSource::createNether()` | BlendedNoise(0.25, 0.375, 80, 60, 8) |
 | 末地 | `NoiseRouterData::end(seed)` | `EndBiomeSource(seed)` | BlendedNoise(0.25, 0.25, 80, 160, 4) |
+| 平坦 | N/A | `FixedBiomeSource(Plains)` | N/A |
 
 ## 关键算法对齐要点
 
-### 1. applyCarvers 生物群系采样 Y 坐标
+### 1. applyCarvers 生物群系采样
 
 ```cpp
-// MC 1.21.11: 在 Y=0（quart 0）处采样生物群系，而非 Y=64
-BiomeId biome = chunk.getBiomeAtBlock(8, 0, 8);
+// MC 1.21.11: 直接查询噪声生物群系源，不经过 Voronoi 缩放
+BiomeId biome = m_biomeSource->getNoiseBiome(originBlockX >> 2, 0, originBlockZ >> 2);
 ```
 
 ### 2. spawnInitialMobs 生物群系采样 Y 坐标
 
 ```cpp
-// MC 1.21.11: 在最大建造高度处采样，而非 Y=64
-BiomeId biome = chunk.getBiomeAtBlock(8, region.getMaxBuildHeight(), 8);
+// MC 1.21.11: 在最大建造高度 - 1 处采样
+const i32 sampleY = region.getMaxBuildHeight() - 1;
 ```
 
-### 3. DebugChunkGenerator ChunkStatus 设置
+### 3. generateStructureStarts 种子算法
 
-`generateNoise()` 和 `buildSurface()` 必须在方法末尾设置对应的 ChunkStatus（`NOISE` 和 `SURFACE`），否则会破坏生成管线状态机。
+```cpp
+// MC 1.21.11: 使用 setLargeFeatureSeed 而非 setLargeFeatureWithSalt
+math::JavaLegacyRandom rng;
+rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
+```
 
-### 4. Beardifier 结构地形适配
+### 4. getHeight 列采样
 
-当前 `_buildBeardifier` 仅处理当前区块自身的 structureStarts。MC 原版通过 `StructureManager.startsForStructure()` 遍历所有引用区块的 StructureStart，包括跨区块结构的贡献。此功能待 StructureManager 完善后实现。
+```cpp
+// MC 1.21: iterateNoiseColumn 使用 selectCellYZ 而非 selectCellXYZ
+// 因为 advanceCellX(0) 已经设置了 X 方向的 slice 数据
+noiseChunk->selectCellYZ(cellY, 0);
+```
+
+### 5. Cell 大小从 NoiseSettings 读取
+
+```cpp
+// MC 1.21: cellWidth = sizeHorizontal * 4, cellHeight = sizeVertical * 4
+m_cellWidth = m_settings.noise.sizeHorizontal * 4;
+m_cellHeight = m_settings.noise.sizeVertical * 4;
+```
+
+### 6. WorldGenRegion 初始化
+
+```cpp
+// MC 1.21.11: WorldGenRegion 必须从世界获取种子、tick、时间、难度
+context.region->setSeed(m_world->seed());
+context.region->setCurrentTick(m_world->currentTick());
+context.region->setDayTime(m_world->dayTime());
+context.region->setHardcore(m_world->isHardcore());
+context.region->setDifficulty(m_world->difficulty());
+```
+
+### 7. Beardifier 结构地形适配
+
+当前 `_buildBeardifier` 通过跨区块结构引用收集 Beardifier 数据，与 MC 1.21.11 对齐。
 
 ## 上下游依赖关系
 
@@ -86,6 +123,7 @@ BiomeId biome = chunk.getBiomeAtBlock(8, region.getMaxBuildHeight(), 8);
 | `gen/surface/SurfaceRules` | MC 1.21 地表规则系统 |
 | `gen/spawn/WorldGenSpawner` | 初始生物生成 |
 | `gen/settings/DimensionSettings` | 维度配置 |
+| `gen/settings/FlatLevelGeneratorSettings` | 平坦世界层配置 |
 
 ### 下游依赖（依赖本模块）
 
@@ -120,9 +158,8 @@ WorldGenRegion 的区块索引布局：
 
 种子计算必须与 MC 一致：
 ```cpp
-math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL +
-                 static_cast<u64>(chunkZ) * 132897987541ULL +
-                 m_seed);
+math::JavaLegacyRandom rng;
+rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 ```
 
 ### 5. WorldGenRegion 窗口越界
@@ -144,3 +181,7 @@ math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL +
 ### 9. buildSurface 的 noiseChunk 空检查
 
 当 `NoiseChunk` 指针为空时（例如使用了不正确的 ChunkStatus 顺序），`buildSurface` 会输出 `spdlog::warn` 日志并安全跳过，而非静默崩溃。
+
+### 10. FlatChunkGenerator 的层展开
+
+`FlatLevelGeneratorSettings::updateLayers()` 会将层信息展开为每个 Y 级别一个 BlockState 的列表。不阻挡运动的方块（如水）会被替换为 nullptr，由特性系统在 TOP_LAYER_MODIFICATION 阶段放置。

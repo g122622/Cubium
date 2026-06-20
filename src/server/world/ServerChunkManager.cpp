@@ -853,6 +853,17 @@ ServerChunkManager::NeighborRegionContext ServerChunkManager::_doCreateWorldGenR
         context.region = std::make_unique<WorldGenRegion>(
             centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors), dimId);
     }
+
+    // MC 1.21.11: WorldGenRegion 需要从世界获取种子、时间、难度等信息
+    // 这些字段在生成过程中被 WorldGenSpawner、Carver 等使用
+    if (m_world != nullptr) {
+        context.region->setSeed(m_world->seed());
+        context.region->setCurrentTick(m_world->currentTick());
+        context.region->setDayTime(m_world->dayTime());
+        context.region->setHardcore(m_world->isHardcore());
+        context.region->setDifficulty(m_world->difficulty());
+    }
+
     return context;
 }
 

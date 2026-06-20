@@ -410,29 +410,9 @@ i32 WorldGenRegion::getTopBlockY(i32 x, i32 z, HeightmapType type) const
     return chunk->getTopBlockY(type, localX, localZ);
 }
 
-i32 WorldGenRegion::_worldToChunkIndex(i32 x, i32 z) const
-{
-    const ChunkCoord chunkX = world::toChunkCoord(x);
-    const ChunkCoord chunkZ = world::toChunkCoord(z);
-    const i32 relX = chunkX - m_mainX;
-    const i32 relZ = chunkZ - m_mainZ;
-
-    if (relX < -m_chunkRadius || relX > m_chunkRadius || relZ < -m_chunkRadius || relZ > m_chunkRadius) {
-        return -1;
-    }
-
-    return (relZ + m_chunkRadius) * m_chunkDiameter + (relX + m_chunkRadius);
-}
-
 i32 WorldGenRegion::_centerIndex() const
 {
     return m_chunkRadius * m_chunkDiameter + m_chunkRadius;
-}
-
-void WorldGenRegion::_worldToLocal(i32 worldX, i32 worldZ, i32& localX, i32& localZ)
-{
-    localX = world::toLocalCoord(worldX);
-    localZ = world::toLocalCoord(worldZ);
 }
 
 // ============================================================================
@@ -626,8 +606,10 @@ i32 BaseChunkGenerator::spawnInitialMobs(
         return 0;
     }
 
-    // MC 1.21.11: 在区块最大建筑高度处采样生物群系（非硬编码 Y=64）
-    const BiomeId biomeId = chunk.getBiomeAtBlock(8, region.getMaxBuildHeight(), 8);
+    // MC 1.21.11: 在区块最大建筑高度处采样生物群系
+    // MC 使用 WorldGenRegion.getMaxY() = getMaxBuildHeight() - 1
+    const i32 sampleY = region.getMaxBuildHeight() - 1;
+    const BiomeId biomeId = chunk.getBiomeAtBlock(8, sampleY, 8);
     const Biome& biome = BiomeRegistry::instance().get(biomeId);
 
     // MC 1.21.11: WorldgenRandom.setDecorationSeed(worldSeed, blockX, blockZ)

@@ -824,6 +824,10 @@ add_executable(mc_tests
     # NbtJsonUtils NBT-JSON转换工具测试
     util/NbtJsonUtilsTest.cpp
     # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    common/world/gen/DebugChunkGeneratorTest.cpp
+    # 区块生成器MC对齐测试
+    common/world/gen/chunk/ChunkGeneratorAlignmentTest.cpp
+    # WorldGenRegion测试
+    common/world/gen/chunk/WorldGenRegionTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯
     client/world/color/BiomeColorsTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娣峰悎娴嬭瘯

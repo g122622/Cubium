@@ -109,17 +109,25 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
     // 创建 RandomState，统一持有 NoiseRouter、SurfaceSystem、随机工厂等
     m_randomState = world::gen::RandomState::create(m_settings, static_cast<u64>(m_seed));
 
-    // 设置 cell 大小参数（根据维度类型）
+    // MC 1.21: 从 NoiseSettings 读取 cell 大小，而非硬编码
+    // cellWidth = sizeHorizontal * 4, cellHeight = sizeVertical * 4
+    // 主世界: sizeHorizontal=1, sizeVertical=2 → cellWidth=4, cellHeight=8
+    // 末地:   sizeHorizontal=2, sizeVertical=1 → cellWidth=8, cellHeight=4
+    m_cellWidth = m_settings.noise.sizeHorizontal * 4;
+    m_cellHeight = m_settings.noise.sizeVertical * 4;
+
+    // MC 1.21: 缓存全局流体选择器（在 getHeight 和 _generateNoiseWithDensityFunction 中复用）
     switch (m_settings.dimensionKind) {
-        case DimensionKind::End:
         case DimensionKind::Nether:
-            m_cellWidth = 8;
-            m_cellHeight = 4;
+            m_globalFluidPicker = world::gen::aquifer::createNetherFluidPicker();
+            break;
+        case DimensionKind::End:
+            m_globalFluidPicker = world::gen::aquifer::createEndFluidPicker();
             break;
         case DimensionKind::Overworld:
         default:
-            m_cellWidth = 4;
-            m_cellHeight = 8;
+            m_globalFluidPicker =
+                world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
             break;
     }
 }
@@ -149,15 +157,36 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         const auto& structureSet = *structureSetPtr;
         const auto& placement = structureSet.placement();
 
+        // MC 1.21.11: 检查是否已有同 StructureSet 中的有效 StructureStart
+        // 参考: ChunkGenerator.createStructures()
+        //   for (StructureSet.StructureSelectionEntry entry : list) {
+        //       StructureStart start = structureManager.getStartForStructure(sectionpos, entry.structure().value(),
+        //       chunk); if (start != null && start.isValid()) return;
+        //   }
+        bool hasExistingStart = false;
+        for (const auto& entry : structureSet.entries()) {
+            auto* existingStart = chunk.getStructureStart(entry.structureId);
+            if (existingStart && existingStart->isValid()) {
+                hasExistingStart = true;
+                break;
+            }
+        }
+        if (hasExistingStart) continue;
+
         // 三步检查：1. 是否为候选区块
         if (!placement.isStructureChunk(static_cast<i64>(m_seed), chunkX, chunkZ)) {
             continue;
         }
 
         // 按权重选择结构
-        // MC: WorldgenRandom(LegacyRandomSource(341873128712L * chunkX + 132897987541L * chunkZ + seed + 0))
-        math::Random rng;
-        rng.setLargeFeatureWithSalt(static_cast<i64>(m_seed), chunkX, chunkZ, 0);
+        // MC 1.21.11: 使用 setLargeFeatureSeed 而非 setLargeFeatureWithSalt
+        // 参考: ChunkGenerator.createStructures()
+        //   WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
+        //   worldgenrandom.setLargeFeatureSeed(levelSeed, chunkX, chunkZ);
+        math::JavaLegacyRandom legacyRng;
+        legacyRng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
+        // selectEntry/generate 需要 math::Random&，从 JavaLegacyRandom 的种子状态创建
+        math::Random rng(legacyRng.nextLong());
         const auto* entry = structureSet.selectEntry(rng);
         if (!entry) continue;
 
@@ -364,14 +393,15 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
     // MC 1.21: 扩展 CarvingContext 包含 NoiseChunk 和 RandomState
     CarvingContext context(m_settings.noise.minY, m_settings.noise.height, aquifer, noiseChunkPtr, m_randomState.get());
 
-    // MC 1.21.11: 使用 withDifferentSource() 创建直接从噪声源查询的 BiomeManager
+    // MC 1.21.11: applyCarvers 中的生物群系查询使用噪声源直接查询（不带 Voronoi 缩放）
     // 参考: NoiseBasedChunkGenerator.applyCarvers()
-    //   BiomeManager biomemanager = p_224227_.withDifferentSource(
-    //       (x, y, z) -> this.biomeSource.getNoiseBiome(x, y, z, p_224226_.sampler()));
-    // withDifferentSource 保留 Voronoi 缩放（biomeZoomSeed），但将底层查询源
-    // 替换为直接从 NoiseRouter 查询，而非从区块缓存的生物群系数据查询。
-    // 这确保雕刻器看到的生物群系边界与玩家实际看到的 Voronoi 缩放边界一致。
-    const auto carvingBiomeManager = m_biomeManager->withDifferentSource(*m_biomeSource);
+    //   chunkaccess.carverBiome(
+    //       () -> this.getBiomeGenerationSettings(
+    //           this.biomeSource.getNoiseBiome(
+    //               QuartPos.fromBlock(chunkpos1.getMinBlockX()), 0,
+    //               QuartPos.fromBlock(chunkpos1.getMinBlockZ()), p_224226_.sampler())));
+    // MC 直接调用 biomeSource.getNoiseBiome()（quart 坐标，Y=0），
+    // 不使用 BiomeManager 的 Voronoi 缩放。
 
     // MC 1.21.11: 按生物群系选择雕刻器
     // 遍历 [-8, +8] 范围内的起始区块坐标
@@ -387,13 +417,11 @@ void NoiseChunkGenerator::applyCarvers(WorldGenRegion& /*region*/, ChunkPrimer& 
             const ChunkCoord originChunkX = targetChunkX + dx;
             const ChunkCoord originChunkZ = targetChunkZ + dz;
 
-            // 采样起始区块中心位置的生物群系（使用 Voronoi 缩放）
-            // MC 1.21.11: biomeManager.getBiome() 先进行 Voronoi 缩放选择最近角点，
-            // 再查询 noiseBiomeSource.getNoiseBiome()，确保雕刻器看到的生物群系边界
-            // 与实际游戏中的 Voronoi 缩放边界一致
+            // MC 1.21.11: 直接查询噪声生物群系源（不带 Voronoi 缩放）
+            // Y=0 处采样，quart 坐标 = block >> 2
             const i32 originBlockX = (originChunkX << 4) + 8;
             const i32 originBlockZ = (originChunkZ << 4) + 8;
-            const BiomeId biomeId = carvingBiomeManager.getBiome(originBlockX, 0, originBlockZ);
+            const BiomeId biomeId = m_biomeSource->getNoiseBiome(originBlockX >> 2, 0, originBlockZ >> 2);
             const Biome& biome = m_biomeSource->getBiomeDefinition(biomeId);
             const BiomeGenerationSettings& biomeSettings = biome.generationSettings();
 
@@ -687,7 +715,10 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     };
 
     for (i32 cellY = cellCountY - 1; cellY >= 0; --cellY) {
-        noiseChunk->selectCellXYZ(0, cellY, 0);
+        // MC 1.21: iterateNoiseColumn 使用 selectCellYZ 而非 selectCellXYZ
+        // 因为 advanceCellX(0) 已经设置了 X 方向的 slice 数据，
+        // 只需选择 YZ 方向的 cell 即可
+        noiseChunk->selectCellYZ(cellY, 0);
 
         for (i32 inCellY = cellHeight - 1; inCellY >= 0; --inCellY) {
             const i32 blockY = (math::floorDiv(minY, cellHeight) + cellY) * cellHeight + inCellY;
@@ -715,6 +746,79 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     noiseChunk->stopInterpolation();
 
     return minY;
+}
+
+NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
+{
+    if (!m_randomState) {
+        return NoiseColumn(m_settings.noise.minY, m_settings.noise.height);
+    }
+
+    // MC 1.21: NoiseBasedChunkGenerator.getBaseColumn()
+    // 使用 iterateNoiseColumn 的列模式，填充完整垂直列的方块状态
+    const NoiseSettings& noise = m_settings.noise;
+    const i32 minY = noise.minY;
+    const i32 cellHeight = m_cellHeight;
+    const i32 cellWidth = m_cellWidth;
+    const i32 cellCountY = math::floorDiv(noise.height, cellHeight);
+
+    // 对齐坐标到 cell 网格
+    const i32 cellX = math::floorDiv(x, cellWidth);
+    const i32 cellZ = math::floorDiv(z, cellWidth);
+    const i32 alignedX = cellX * cellWidth;
+    const i32 alignedZ = cellZ * cellWidth;
+    const f64 deltaX = static_cast<f64>(x - alignedX) / static_cast<f64>(cellWidth);
+    const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
+
+    // 创建单列 NoiseChunk（使用 BeardifierMarker 零贡献，与 getHeight 一致）
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
+        cellWidth,
+        cellHeight,
+        cellCountY,
+        alignedX,
+        minY,
+        alignedZ,
+        std::make_unique<world::gen::density::BeardifierMarker>());
+
+    // 设置 DisabledAquiferFiller（与 getHeight 一致）
+    {
+        std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
+        fillers.push_back(
+            std::make_unique<world::gen::density::DisabledAquiferFiller>(m_settings.defaultFluid, m_settings.seaLevel));
+        noiseChunk->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
+    }
+
+    noiseChunk->initializeForFirstCellX();
+    noiseChunk->advanceCellX(0);
+
+    // MC 1.21: allocate BlockState[] array for the full column
+    NoiseColumn column(minY, noise.height);
+
+    for (i32 cellY = cellCountY - 1; cellY >= 0; --cellY) {
+        noiseChunk->selectCellYZ(cellY, 0);
+
+        for (i32 inCellY = cellHeight - 1; inCellY >= 0; --inCellY) {
+            const i32 blockY = (math::floorDiv(minY, cellHeight) + cellY) * cellHeight + inCellY;
+            const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellHeight);
+            noiseChunk->updateForY(blockY, yLerp);
+            noiseChunk->updateForX(x, deltaX);
+
+            noiseChunk->updateForZ(z, deltaZ);
+            const f64 density = noiseChunk->finalDensity().compute(x, blockY, z);
+
+            const BlockState* blockState = noiseChunk->getInterpolatedState(density);
+            if (blockState == nullptr && density > 0.0) {
+                blockState = m_settings.defaultBlock;
+            }
+
+            // MC 1.21: ablockstate[l2 * cellHeight + i3] = blockstate1
+            const i32 idx = cellY * cellHeight + inCellY;
+            column.setBlock(minY + idx, blockState);
+        }
+    }
+
+    noiseChunk->stopInterpolation();
+    return column;
 }
 
 i32 NoiseChunkGenerator::spawnInitialMobs(
@@ -758,6 +862,11 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     MC_TRACE_EVENT("world.chunk_gen", "GenerateNoise_DF", "x", chunk.x(), "z", chunk.z());
 
     if (!m_randomState) {
+        spdlog::warn("[NoiseChunkGenerator] generateNoise: RandomState is null for chunk ({}, {}). "
+                     "Noise generation skipped.",
+            chunk.x(),
+            chunk.z());
+        chunk.setChunkStatus(ChunkStatuses::NOISE);
         return;
     }
 
@@ -788,21 +897,8 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
             auto positionalRandom = std::make_unique<math::PositionalRandomFactory>(
                 m_randomState->aquiferRandom().seedLo(), m_randomState->aquiferRandom().seedHi());
 
-            // 根据维度选择 FluidPicker
-            world::gen::aquifer::FluidPicker fluidPicker;
-            switch (m_settings.dimensionKind) {
-                case DimensionKind::Nether:
-                    fluidPicker = world::gen::aquifer::createNetherFluidPicker();
-                    break;
-                case DimensionKind::End:
-                    fluidPicker = world::gen::aquifer::createEndFluidPicker();
-                    break;
-                case DimensionKind::Overworld:
-                default:
-                    fluidPicker =
-                        world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
-                    break;
-            }
+            // MC 1.21: 使用缓存的全局流体选择器
+            auto fluidPickerCopy = m_globalFluidPicker;
 
             if (m_settings.noise.aquifersEnabled) {
                 auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(*nc,
@@ -812,7 +908,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                     *positionalRandom,
                     m_settings.noise.minY,
                     m_settings.noise.height,
-                    std::move(fluidPicker));
+                    std::move(fluidPickerCopy));
 
                 // MC 1.21: 构建 BlockStateFiller 链
                 // AquiferFiller: 传入密度值，aquifer 确定流体/空气
@@ -832,7 +928,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
 
                 nc->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
             } else {
-                nc->setAquifer(world::gen::aquifer::Aquifer::createDisabled(std::move(fluidPicker)));
+                nc->setAquifer(world::gen::aquifer::Aquifer::createDisabled(m_globalFluidPicker));
 
                 // 禁用含水层时: density > 0 → nullptr(density > 0 → defaultBlock outside), density <= 0 → check fluid
                 std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;

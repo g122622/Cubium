@@ -94,15 +94,14 @@ public:
     [[nodiscard]] BiomeId getNoiseBiome(i32 noiseX, i32 noiseY, i32 noiseZ) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z, HeightmapType type) const override;
     [[nodiscard]] i32 getGroundHeight() const override { return m_settings.seaLevel + 1; }
+    [[nodiscard]] NoiseColumn getBaseColumn(i32 x, i32 z) const override;
+    [[nodiscard]] i32 getGenDepth() const override { return m_settings.noise.height; }
+    [[nodiscard]] i32 getMinY() const override { return m_settings.noise.minY; }
 
     // === 生物群系源 ===
 
     [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
     [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
-
-    // === 噪声参数 ===
-
-    [[nodiscard]] const NoiseSettings& noiseSettings() const { return m_settings.noise; }
 
     // === 结构地形平滑 ===
 
@@ -125,6 +124,9 @@ private:
     /// 懒初始化：首次调用 placeFeatures 时构建
     std::vector<FeatureSorter::StepFeatureData> m_featuresPerStep;
     std::once_flag m_featuresPerStepFlag;
+
+    // === MC 1.21 全局流体选择器（缓存，避免每次创建）===
+    world::gen::aquifer::FluidPicker m_globalFluidPicker;
 
     // === 核心生成方法 ===
 
