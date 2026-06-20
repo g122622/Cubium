@@ -137,7 +137,7 @@ ActionResultType TNTBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Pass;
     }
 
-    // 尝试点燃TNT
+    // 对应 MC Java 的 TntBlock.useItemOn()
     if (ignite(world, pos, state)) {
         // 点燃成功：ignite() 已经移除TNT方块并生成实体
 
@@ -152,9 +152,10 @@ ActionResultType TNTBlock::onBlockActivated(const BlockState& state,
             }
         }
     } else if (!world.isClientSide() && !world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
-        // tntExplodes 游戏规则为 false，显示 action bar 消息
+        // tntExplodes 游戏规则为 false，不消耗物品，显示 action bar 消息
+        // 对应 MC Java: return InteractionResult.PASS（不消耗物品，将交互传递给下一个处理器）
         player.sendStatusMessage("block.minecraft.tnt.disabled", true);
-        return ActionResultType::Fail;
+        return ActionResultType::Pass;
     }
 
     return ActionResultType::Success;
