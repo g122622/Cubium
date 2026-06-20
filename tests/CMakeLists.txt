@@ -810,6 +810,7 @@ add_executable(mc_tests
     lighting/BlockLightRegressionTest.cpp
     lighting/BaseLightEngineQueueTest.cpp
     lighting/SkyLightRegressionTest.cpp
+    lighting/WorldLightManagerTest.cpp
     # 鐜鍏夐伄钄芥祴璇?    client/renderer/AmbientOcclusionCalculatorTest.cpp
     client/renderer/trident/blockentity/ChestModelTest.cpp
     client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
