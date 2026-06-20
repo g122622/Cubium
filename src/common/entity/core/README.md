@@ -1,407 +1,419 @@
-# Entity Core Module
+#Entity Core Module
 
 实体系统的核心框架，包含所有实体的基类和基础设施。
 
-## 目录结构树
+##目录结构树
 
-```
-src/common/entity/core/
-├── Entity.hpp/cpp                  # 所有实体的基类（位置、运动、碰撞、火焰、队伍联盟判断等）
-├── LivingEntity.hpp/cpp            # 有生命值的生物实体基类（生命值、吸收值、装备、药水效果）
-├── MobEntity.hpp/cpp               # 有AI的生物实体基类（AI系统、目标选择）
-├── CreatureEntity.hpp/cpp          # 陆地生物基类（寻路、生成条件判断）
-├── FlyingEntity.hpp/cpp            # 飞行生物基类
-├── AgeableEntity.hpp/cpp           # 成长系统基类（幼体→成体）
-├── EntityType.hpp/cpp              # 实体类型定义
-├── EntityRegistry.hpp              # 实体注册表（工厂模式创建实体）
-├── EntityTypeIdNumber.hpp/cpp      # 实体类型ID常量（网络同步用）
-├── EntityDataManager.hpp           # 实体数据同步管理（客户端-服务端数据同步）
-├── EntityPose.hpp                  # 实体姿态枚举（站立、潜行、游泳、睡眠等）
-├── EntitySize.hpp                  # 实体尺寸定义（宽度、高度、眼睛高度）
-├── EntityClassification.hpp/cpp    # 实体分类（怪物、动物、环境等）
-├── EntitySpawnPlacementRegistry.hpp/cpp  # 生成位置规则、SpawnReason枚举
-├── EntityUtils.hpp                 # 模板型实体工具函数（搜索、距离）
-├── DataParameter.hpp               # 数据参数定义（网络同步用）
-├── MoverType.hpp                   # 移动类型枚举（自移、活塞、玩家、弹射物等）
-├── BoostHelper.hpp                 # 可骑乘实体的鞍和加速管理（猪、炽足兽等）
-├── VanillaEntities.hpp             # 原版实体类型注册声明
+``` src / common / entity / core /
+├── Entity.hpp / cpp #所有实体的基类（位置、运动、碰撞、火焰、队伍联盟判断等）
+├── LivingEntity.hpp / cpp #有生命值的生物实体基类（生命值、吸收值、装备、药水效果）
+├── MobEntity.hpp / cpp #有AI的生物实体基类（AI系统、目标选择）
+├── CreatureEntity.hpp / cpp #陆地生物基类（寻路、生成条件判断）
+├── FlyingEntity.hpp / cpp #飞行生物基类
+├── AgeableEntity.hpp / cpp #成长系统基类（幼体→成体）
+├── EntityType.hpp / cpp #实体类型定义
+├── EntityRegistry.hpp #实体注册表（工厂模式创建实体）
+├── EntityTypeIdNumber.hpp / cpp #实体类型ID常量（网络同步用）
+├── EntityDataManager.hpp #实体数据同步管理（客户端 -
+    服务端数据同步）
+├── EntityPose.hpp #实体姿态枚举（站立、潜行、游泳、睡眠等）
+├── EntitySize.hpp #实体尺寸定义（宽度、高度、眼睛高度）
+├── EntityClassification.hpp / cpp #实体分类（怪物、动物、环境等）
+├── EntitySpawnPlacementRegistry.hpp /
+        cpp #生成位置规则、SpawnReason枚举
+├── EntityUtils.hpp #模板型实体工具函数（搜索、距离）
+├── DataParameter.hpp #数据参数定义（网络同步用）
+├── MoverType.hpp #移动类型枚举（自移、活塞、玩家、弹射物等）
+├── BoostHelper.hpp #可骑乘实体的鞍和加速管理（猪、炽足兽等）
+├── VanillaEntities.hpp #原版实体类型注册声明
 └── README.md
 ```
 
-## 内部模块关系
+        ##内部模块关系
 
-```
-继承层次：
-Entity（基类：位置、运动、碰撞、火焰、流体检测）
+``` 继承层次： Entity（基类：位置、运动、碰撞、火焰、流体检测）
 ├── LivingEntity（生命值、装备、药水效果、击退、空气供应、setLastHurtBy虚方法）
 │   ├── MobEntity（AI系统、目标选择、控制器、日光检测）
 │   │   ├── CreatureEntity（陆地移动、寻路、生成条件判断）
 │   │   │   ├── AgeableEntity（成长系统）
-│   │   │   │   └── AnimalEntity（繁殖系统，在../passive/）
-│   │   │   └── MonsterEntity（敌对行为，在../monster/）
+│   │   │   │   └── AnimalEntity（繁殖系统，在../
+        passive /）
+│   │   │   └── MonsterEntity（敌对行为，在../ monster /）
 │   │   └── FlyingEntity（飞行移动）
-│   └── Player（玩家特有功能，在../../player/）
+│   └── Player（玩家特有功能，在../../ player /）
 └── ItemEntity（掉落物，在../）
 
-辅助类依赖关系：
-- Entity → EntityDataManager → DataParameter（数据同步）
-- Entity → EntitySize → AxisAlignedBB（碰撞箱）
-- EntityRegistry → EntityType → EntityTypeIdNumber（类型注册）
-- BoostHelper → EntityDataManager（鞍和加速状态同步）
-- EntitySpawnPlacementRegistry → SpawnReason（生成规则判断）
-  - EntitySpawnPlacementRegistry → ISpawnWorldReader（世界状态查询接口）
-  - EntitySpawnPlacementRegistry → BiomeTags（生物群系标签查询，如地表史莱姆生成）
-  - EntitySpawnPlacementRegistry → InternalLightUtils（月相、光照计算）
-  - EntitySpawnPlacementRegistry → SlimeChunkChecker（史莱姆区块判断）
+        辅助类依赖关系： -
+    Entity → EntityDataManager → DataParameter（数据同步） - Entity → EntitySize → AxisAlignedBB（碰撞箱） -
+    EntityRegistry → EntityType → EntityTypeIdNumber（类型注册） - BoostHelper → EntityDataManager（鞍和加速状态同步） -
+    EntitySpawnPlacementRegistry → SpawnReason（生成规则判断） -
+    EntitySpawnPlacementRegistry → ISpawnWorldReader（世界状态查询接口） -
+    EntitySpawnPlacementRegistry → BiomeTags（生物群系标签查询，如地表史莱姆生成） -
+    EntitySpawnPlacementRegistry → InternalLightUtils（月相、光照计算） -
+    EntitySpawnPlacementRegistry → SlimeChunkChecker（史莱姆区块判断）
 ```
 
-## 上下游外部依赖关系
+    ##上下游外部依赖关系
 
-**上游依赖（本目录依赖的外部模块）**：
-- `core/Types.hpp` - 基础类型定义（EntityId、Vector3等）
-- `entity/attribute/` - 属性系统（generic.max_health等）
-- `entity/damage/` - 伤害系统（DamageSource、DamageSources）
-- `world/IWorld.hpp` - 世界级声音和位置查询入口
-- `world/block/Block.hpp` - 方块交互回调
-- `physics/PhysicsEngine.hpp` - 物理引擎（移动、碰撞）
-- `util/math/random/Random.hpp` - 随机数生成器
-- `util/nbt/` - NBT序列化
-- `scoreboard/Team.hpp` - 队伍系统
+        **上游依赖（本目录依赖的外部模块） **： - `core / Types.hpp` -
+    基础类型定义（EntityId、Vector3等） - `entity / attribute /` -
+    属性系统（generic.max_health等） - `entity / damage /` -
+    伤害系统（DamageSource、DamageSources） - `world / IWorld.hpp` -
+    世界级声音和位置查询入口 - `world / block / Block.hpp` - 方块交互回调 - `physics / PhysicsEngine.hpp` -
+    物理引擎（移动、碰撞） - `util / math / random / Random.hpp` - 随机数生成器 - `util / nbt /` -
+    NBT序列化 - `scoreboard / Team.hpp` -
+    队伍系统
 
-**下游依赖（依赖本目录的外部模块）**：
-- `entity/passive/` - 被动生物（动物）
-- `entity/monster/` - 敌对生物
-- `entity/projectile/` - 弹射物实体
-- `entity/item/` - 物品实体
-- `entity/vehicle/` - 载具实体
-- `player/` - 玩家实体
-- `world/World.hpp` - 世界实体管理
-- `server/` - 服务端实体调度
-- `client/renderer/entity/` - 客户端实体渲染
+        **下游依赖（依赖本目录的外部模块） **： - `entity / passive /` -
+    被动生物（动物） - `entity / monster /` - 敌对生物 - `entity / projectile /` - 弹射物实体 - `entity / item /` -
+    物品实体 - `entity / vehicle /` - 载具实体 - `player /` - 玩家实体 - `world / World.hpp` -
+    世界实体管理 - `server /` - 服务端实体调度 - `client / renderer / entity /` -
+    客户端实体渲染
 
-## MobEntity 生成初始化系统
+    ##MobEntity 生成初始化系统
 
-MobEntity 提供 `finalizeSpawn()` 方法，在实体被创建并设置好位置后调用，用于根据难度和生成原因进行初始化。
+        MobEntity 提供 `finalizeSpawn()` 方法，在实体被创建并设置好位置后调用，用于根据难度和生成原因进行初始化。
 
-### finalizeSpawn 调用链
+    ## #finalizeSpawn 调用链
 
-```
-finalizeSpawn(world, difficulty, spawnReason)
+``` finalizeSpawn(world, difficulty, spawnReason)
 ├── 设置 canPickUpLoot（概率 = 0.55 * specialMultiplier）
 ├── populateDefaultEquipmentSlots(random, difficulty)
 │   └── 护甲生成概率 = 0.15 * specialMultiplier
 │       └── getEquipmentForSlot(slot, armorLevel) → 护甲物品映射
 └── populateDefaultEquipmentEnchantments(random, difficulty)
-    ├── 武器附魔概率 = 0.25 * specialMultiplier
-    └── 护甲附魔概率 = 0.5 * specialMultiplier（每个槽位独立）
+    ├── 武器附魔概率 = 0.25 *specialMultiplier
+    └── 护甲附魔概率 = 0.5 *
+            specialMultiplier（每个槽位独立）
 ```
 
-### 子类覆写示例
+            ## #子类覆写示例
 
-- **ZombieEntity**：覆写 `populateDefaultEquipmentSlots()` 添加铁剑/铁锹
-- **MonsterEntity**：调用 `finalizeSpawn()` 设置 `isDespawnPeaceful()`
+        - **ZombieEntity * *：覆写 `populateDefaultEquipmentSlots()` 添加铁剑 / 铁锹 -
+        **MonsterEntity *
+            *：调用 `finalizeSpawn()` 设置 `isDespawnPeaceful()`
 
-### finalizeSpawn 调用位置
+            ## #finalizeSpawn 调用位置
 
-所有 MobEntity 生成路径必须在 `spawnEntity()` 之前调用 `finalizeSpawn()`：
+            所有 MobEntity 生成路径必须在 `spawnEntity()` 之前调用 `finalizeSpawn()`：
 
-| 生成路径 | SpawnReason | 文件 |
-|---------|-------------|------|
-| 自然生成 | Natural | NaturalSpawner.cpp |
-| 村庄围攻 | Event | VillageSiege.cpp |
-| 刷怪蛋 | SpawnEgg | SpawnEggItem.cpp |
-| /summon 命令 | Command | SummonCommand.cpp |
-| 陷阱骷髅马 | Trigger | SkeletonHorseEntity.cpp |
-| 袭击 | Event | Raid.cpp |
-| 繁殖 | Breeding | BreedGoal.cpp |
-| 史莱姆分裂 | Reinforcement | SlimeEntity.cpp |
-| 恼鬼召唤 | MobSummons | EvokerEntity.cpp |
-| 蠹虫生成 | Event | InfestedBlock.cpp |
-| 雪傀儡/铁傀儡 | Event | MelonPumpkinBlocks.cpp |
-| 海龟孵化 | Natural | TurtleEggBlock.cpp |
-| 远古守卫者 | Structure | OceanMonumentPieces.cpp |
-| 结构模板 | Structure | Template.cpp |
-| 区块生成 | ChunkGeneration | ServerWorld.cpp, MinecraftServer.cpp |
-| 僵尸村民治愈 | Conversion | ZombieVillagerEntity.cpp |
+    | 生成路径 | SpawnReason | 文件 | | -- -- -- -- -| -- -- -- -- -- -- -| -- -- --| | 自然生成 | Natural
+    | NaturalSpawner.cpp | | 村庄围攻 | Event | VillageSiege.cpp | | 刷怪蛋 | SpawnEgg | SpawnEggItem.cpp | |
+    / summon 命令 | Command | SummonCommand.cpp | | 陷阱骷髅马 | Trigger | SkeletonHorseEntity.cpp | | 袭击 | Event
+    | Raid.cpp | | 繁殖 | Breeding | BreedGoal.cpp | | 史莱姆分裂 | Reinforcement | SlimeEntity.cpp | | 恼鬼召唤
+    | MobSummons | EvokerEntity.cpp | | 蠹虫生成 | Event | InfestedBlock.cpp | | 雪傀儡 / 铁傀儡 | Event
+    | MelonPumpkinBlocks.cpp | | 海龟孵化 | Natural | TurtleEggBlock.cpp | | 远古守卫者 | Structure
+    | OceanMonumentPieces.cpp | | 结构模板 | Structure | Template.cpp | | 区块生成 | ChunkGeneration | ServerWorld.cpp,
+          MinecraftServer.cpp | | 僵尸村民治愈 | Conversion | ZombieVillagerEntity.cpp |
 
-### getEquipmentForSlot 护甲等级映射
+    ## #getEquipmentForSlot 护甲等级映射
 
-| armorLevel | 材质 | Head | Chest | Legs | Feet |
-|-----------|------|------|-------|------|------|
-| 0 | 皮革 | LEATHER_HELMET | LEATHER_CHESTPLATE | LEATHER_LEGGINGS | LEATHER_BOOTS |
-| 1 | 铜(暂铁) | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS |
-| 2 | 金 | GOLDEN_HELMET | GOLDEN_CHESTPLATE | GOLDEN_LEGGINGS | GOLDEN_BOOTS |
-| 3 | 锁链 | CHAINMAIL_HELMET | CHAINMAIL_CHESTPLATE | CHAINMAIL_LEGGINGS | CHAINMAIL_BOOTS |
-| 4 | 铁 | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS |
-| 5 | 钻石 | DIAMOND_HELMET | DIAMOND_CHESTPLATE | DIAMOND_LEGGINGS | DIAMOND_BOOTS |
+    | armorLevel | 材质 | Head | Chest | Legs | Feet | | -- -- -- -- -- -| -- -- --| -- -- --| -- -- -- -| -- -- --|
+    -- -- --| | 0 | 皮革 | LEATHER_HELMET | LEATHER_CHESTPLATE | LEATHER_LEGGINGS | LEATHER_BOOTS | | 1 |
+    铜(暂铁) | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS | | 2 | 金 | GOLDEN_HELMET | GOLDEN_CHESTPLATE
+    | GOLDEN_LEGGINGS | GOLDEN_BOOTS | | 3 | 锁链 | CHAINMAIL_HELMET | CHAINMAIL_CHESTPLATE | CHAINMAIL_LEGGINGS
+    | CHAINMAIL_BOOTS | | 4 | 铁 | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS | | 5 | 钻石
+    | DIAMOND_HELMET | DIAMOND_CHESTPLATE | DIAMOND_LEGGINGS | DIAMOND_BOOTS |
 
-注意：armorLevel=1 对应铜材质，但铜护甲尚未实现，当前回退为铁护甲。
+    注意：armorLevel = 1 对应铜材质，但铜护甲尚未实现，当前回退为铁护甲。
 
-## CreatureEntity 寻路权重与生成条件
+                       ##CreatureEntity 寻路权重与生成条件
 
-### getPathWeight 寻路权重系统
+                       ## #getPathWeight 寻路权重系统
 
-`CreatureEntity::getPathWeight(f32 x, f32 y, f32 z)` 返回实体偏好移动到该位置的程度，正值越高越偏好，负值越避开，0为中性。对应 MC `PathfinderMob.getWalkTargetValue`，被 `RandomPositionGenerator` 用于 AI 随机位置选择。
+`CreatureEntity::getPathWeight(f32 x,
+                           f32 y,
+                           f32 z)` 返回实体偏好移动到该位置的程度，正值越高越偏好，负值越避开，0为中性。对应
+                       MC `PathfinderMob.getWalkTargetValue`，被 `RandomPositionGenerator` 用于 AI 随机位置选择。
 
-| 实体类 | 重写逻辑 | 对应 MC |
-|--------|----------|---------|
-| CreatureEntity（默认） | 返回 0.0f | `PathfinderMob` 返回 0.0F |
-| AnimalEntity | 草方块 → 10.0f，否则 brightness - 0.5f | `Animal.getWalkTargetValue` |
-| MonsterEntity | 0.5f - brightness | `Monster.getWalkTargetValue` |
-| WaterMobEntity | 水中 → 10.0f，否则 → 0.0f | MC 中未重写（返回0.0F），但水生子类重写 |
-| GuardianEntity | 水中 → 10.0f + lightCost，否则委托 MonsterEntity | `Guardian.getWalkTargetValue` |
-| StriderEntity | 岩浆中 → 10.0f，非岩浆但自身在岩浆 → -∞，否则 → 0.0f | `Strider.getWalkTargetValue` |
-| MooshroomEntity | 菌丝 → 10.0f，否则委托 AnimalEntity | `MushroomCow.getWalkTargetValue` |
-| EndermanEntity | 返回 0.0f | `EnderMan.getWalkTargetValue` |
+    | 实体类 | 重写逻辑 | 对应 MC | | -- -- -- --| -- -- -- -- --| -- -- -- -- -| | CreatureEntity（默认）
+    | 返回 0.0f | `PathfinderMob` 返回 0.0F | | AnimalEntity
+    | 草方块 → 10.0f，否则 brightness - 0.5f | `Animal.getWalkTargetValue` | | MonsterEntity | 0.5f - brightness
+    | `Monster.getWalkTargetValue` | | WaterMobEntity
+    | 水中 → 10.0f，否则 → 0.0f | MC 中未重写（返回0.0F），但水生子类重写 | | GuardianEntity
+    | 水中 → 10.0f + lightCost，否则委托 MonsterEntity | `Guardian.getWalkTargetValue` | | StriderEntity
+    | 岩浆中 → 10.0f，非岩浆但自身在岩浆 → - ∞，否则 → 0.0f | `Strider.getWalkTargetValue` | | MooshroomEntity
+    | 菌丝 → 10.0f，否则委托 AnimalEntity | `MushroomCow.getWalkTargetValue` | | EndermanEntity
+    | 返回 0.0f | `EnderMan.getWalkTargetValue` |
 
-**待实现**：TurtleEntity（水陆两栖）、HoglinEntity（诡异菌排斥/绯红菌岩偏好）、SilverfishEntity（虫蚀方块偏好）、GiantEntity（亮度不取反）。
+    **待实现 * *：TurtleEntity（水陆两栖）、HoglinEntity（诡异菌排斥 /
+            绯红菌岩偏好）、SilverfishEntity（虫蚀方块偏好）、GiantEntity（亮度不取反）。
 
-### canSpawnAt 生成条件
+            ## #canSpawnAt 生成条件
 
-`CreatureEntity::canSpawnAt(f32 x, f32 y, f32 z)` 基于 `getPathWeight >= 0.0f` 判断位置是否适合生成，对应 MC `PathfinderMob.checkSpawnRules`。
+`CreatureEntity::canSpawnAt(f32 x, f32 y, f32 z)` 基于 `getPathWeight
+        >= 0.0f` 判断位置是否适合生成，对应 MC `PathfinderMob.checkSpawnRules`。
 
-已集成到以下生成路径：
-- **NaturalSpawner::_trySpawnAt**：自然生成时，在实体创建并设置位置后、`finalizeSpawn` 之前调用 `canSpawnAt` 检查
-- **ServerWorld::spawnEntitiesFromChunkGeneration**：区块生成时，在实体创建并设置位置后、`finalizeSpawn` 之前调用 `canSpawnAt` 检查
+            已集成到以下生成路径：
+            -
+                **NaturalSpawner::_trySpawnAt *
+                    *：自然生成时，在实体创建并设置位置后、`finalizeSpawn` 之前调用 `canSpawnAt` 检查
+            -
+                **ServerWorld::spawnEntitiesFromChunkGeneration *
+                    *：区块生成时，在实体创建并设置位置后、`finalizeSpawn` 之前调用 `canSpawnAt` 检查
 
-注意：WorldGenSpawner 在区块生成阶段只记录 `SpawnedEntityData`（无实体实例），无法执行实例级检查，因此实例级检查延迟到 `ServerWorld::spawnEntitiesFromChunkGeneration` 创建实体时执行。
+            注意：WorldGenSpawner
+            在区块生成阶段只记录 `SpawnedEntityData`（无实体实例），无法执行实例级检查，因此实例级检查延迟到 `ServerWorld::
+                spawnEntitiesFromChunkGeneration` 创建实体时执行。
 
-## 容易踩的坑
+            ##容易踩的坑
 
-### 区块高度常量混淆
-- `CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`（当前值 384）
-- `MAX_BUILD_HEIGHT` 是世界最大建筑高度（当前值 320），`MIN_BUILD_HEIGHT` 是最低高度（当前值 -64）
-- 两者语义完全不同，务必根据语义选择正确常量，不要硬编码
+            ## #区块高度常量混淆
+            - `CHUNK_HEIGHT = MAX_BUILD_HEIGHT -
+    MIN_BUILD_HEIGHT`（当前值 384） - `MAX_BUILD_HEIGHT` 是世界最大建筑高度（当前值
+    320），`MIN_BUILD_HEIGHT` 是最低高度（当前值
+    - 64） -
+    两者语义完全不同，务必根据语义选择正确常量，不要硬编码
 
-### 步进高度（stepHeight）设置
-- Entity 基类默认 stepHeight = 0.0f（无步进能力）
-- LivingEntity 默认 stepHeight = 0.6f（可走台阶）
-- 铁傀儡、马、末影人、溺尸、劫掠兽、海龟等为 1.0f（可走完整方块）
-- 盔甲架为 0.0f（无法步进）
-- 骑乘时步高会动态变化（IRideable）
+    ## #步进高度（stepHeight）设置
+    - Entity 基类默认 stepHeight = 0.0f（无步进能力） - LivingEntity 默认 stepHeight = 0.6f（可走台阶） -
+                铁傀儡、马、末影人、溺尸、劫掠兽、海龟等为 1.0f（可走完整方块） - 盔甲架为 0.0f（无法步进） -
+                骑乘时步高会动态变化（IRideable）
 
-### 火焰系统注意事项
-- `setFire(seconds)` 将秒转换为 tick（×20），只在当前值较小时更新
-- `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间
-- 火焰免疫由 `EntityType::immuneToFire()` 标志决定
-- 烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
+                ## #火焰系统注意事项
+                - `setFire(seconds)` 将秒转换为 tick（×20），只在当前值较小时更新
+                - `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间
+                - 火焰免疫由 `EntityType::immuneToFire()` 标志决定 -
+                烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
 
-### 亡灵日光燃烧系统 (burnUndead)
+                ## #亡灵日光燃烧系统(burnUndead)
 
-对应 MC 原版 `Mob.burnUndead()`，统一处理亡灵生物在阳光下的燃烧逻辑。
+                    对应 MC 原版 `Mob.burnUndead()`，统一处理亡灵生物在阳光下的燃烧逻辑。
 
-#### 核心方法
+                ####核心方法
 
-- **`isInDaylight()`** — 检查实体是否暴露在日光下。条件：白天（dayTime < 12000）、亮度 > 0.4、天空可见、不在水中且不在雨中（`isWet()`）、随机检查通过
-- **`sunProtectionSlot()`** — 虚方法，返回阳光防护装备槽位。默认 `EquipmentSlot::Head`（头盔），僵尸马覆写为 `EquipmentSlot::Chest`（马铠/胸甲槽位）
-- **`burnUndead()`** — 亡灵日光燃烧主逻辑：
-  1. 如果不在日光下 → 直接返回
-  2. 如果防护槽位有可损坏物品 → 物品承受耐久损耗（`setDamage()`，绕过耐久保护附魔）
-  3. 如果防护槽位为空 → `setFire(8)` 点燃实体 8 秒
+                - **`isInDaylight()`* * — 检查实体是否暴露在日光下。条件：白天（dayTime <
+            12000）、亮度 > 0.4、天空可见、不在水中且不在雨中（`isWet()`）、随机检查通过 -
+                **`sunProtectionSlot()`** — 虚方法，返回阳光防护装备槽位。默认 `EquipmentSlot::
+                        Head`（头盔），僵尸马覆写为 `EquipmentSlot::Chest`（马铠
+                    / 胸甲槽位）
+                -
+                **`burnUndead()`** — 亡灵日光燃烧主逻辑： 1. 如果不在日光下 → 直接返回
+                 2. 如果防护槽位有可损坏物品 → 物品承受耐久损耗（`setDamage()`，绕过耐久保护附魔）
+                 3. 如果防护槽位为空 → `setFire(8)` 点燃实体 8 秒
 
-#### 调用位置
+                 ####调用位置
 
-- `MonsterEntity::handleDaylightBurning()` — 当 `m_burnsInDaylight == true` 时调用 `burnUndead()`（僵尸、骷髅等）
-- `ZombieHorseEntity::tick()` — 僵尸马在 BURN_IN_DAYLIGHT 标签中，直接调用 `burnUndead()`
-- `PhantomEntity::tick()` — 幻翼在 BURN_IN_DAYLIGHT 标签中，直接调用 `burnUndead()`
-- **注意**：骷髅马不在 BURN_IN_DAYLIGHT 标签中，不会在阳光下燃烧
+                - `MonsterEntity::handleDaylightBurning()` — 当 `m_burnsInDaylight
+        ==
+        true` 时调用 `burnUndead()`（僵尸、骷髅等） - `ZombieHorseEntity::tick()` — 僵尸马在 BURN_IN_DAYLIGHT
+            标签中，直接调用 `burnUndead()` - `PhantomEntity::tick()` — 幻翼在 BURN_IN_DAYLIGHT
+            标签中，直接调用 `burnUndead()` -
+            **注意 **：骷髅马不在 BURN_IN_DAYLIGHT 标签中，不会在阳光下燃烧
 
-#### 骷髅马与僵尸马的区别
+             ####骷髅马与僵尸马的区别
 
-| 行为 | 骷髅马 | 僵尸马 |
-|------|--------|--------|
-| BURN_IN_DAYLIGHT | ✗ | ✓ |
-| 阳光下燃烧 | ✗ | ✓ |
-| 阳光防护槽位 | N/A | Chest（马铠） |
-| canBreatheUnderwater | ✓ | ✗ |
+    | 行为 | 骷髅马 | 僵尸马 | | -- -- --| -- -- -- --| -- -- -- --| | BURN_IN_DAYLIGHT | ✗ | ✓ | | 阳光下燃烧 | ✗ | ✓ |
+    | 阳光防护槽位 | N / A | Chest（马铠） | | canBreatheUnderwater | ✓ | ✗ |
 
-#### 实现注意事项
+    ####实现注意事项
 
-- `burnUndead()` 使用 `ItemStack::setDamage()` 直接增加伤害值，**绕过耐久保护附魔**（与 MC 原版一致）
-- `isInDaylight()` 中 `isWet()` 检查确保雨中和水中的亡灵不会燃烧
-- 物品耐久耗尽后调用 `onEquippedItemBroken` 回调（广播装备破损动画 + 播放 ENTITY_ITEM_BREAK 音效）
+        - `burnUndead()` 使用 `ItemStack::setDamage()` 直接增加伤害值， **绕过耐久保护附魔 **（与 MC 原版一致）
+        - `isInDaylight()` 中 `isWet()` 检查确保雨中和水中的亡灵不会燃烧
+        - 物品耐久耗尽后调用 `onEquippedItemBroken` 回调（广播装备破损动画 +
+        播放 ENTITY_ITEM_BREAK 音效）
 
-### 装备损坏回调
+        ## #装备损坏回调
 
-当装备物品耐久度耗尽时，需要调用 `onEquippedItemBroken` 回调，对应 MC 原版 `LivingEntity.onEquippedItemBroken()`。
+        当装备物品耐久度耗尽时，需要调用 `onEquippedItemBroken` 回调，对应 MC 原版 `LivingEntity.onEquippedItemBroken()`。
 
-**调用链**：
-1. 物品损坏路径（`setDamage`/`attemptDamageItem`）检测到 `damage >= maxDamage` 后物品自动清空
-2. 调用方检测物品已损坏（`isEmpty()`），调用 `entity->onEquippedItemBroken(item, slot)`
+            **推荐使用 `LivingEntity::hurtAndBreak()` 静态方法 **： -
+        封装了 "保存物品指针 → 调用 attemptDamageItem → 检查是否损坏 → 触发回调"的完整流程 -
+        对应 MC 原版 `ItemStack.hurtAndBreak(int, LivingEntity, EquipmentSlot)` -
+        适用于绝大多数物品耐久损耗场景（工具攻击、方块破坏、武器射击等）
+        - 参数：`(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot)` -
+        返回值：`true` 表示物品损坏，`false` 否则
 
-**已集成的调用位置**：
-- `MobEntity::burnUndead()` — 亡灵日光燃烧头盔受损
-- `PlayerInventory::damageArmor()` — 护甲受伤耐久消耗
+            **辅助方法 *
+                *： - `LivingEntity::handToEquipmentSlot(Hand)` — 将 `Hand` 枚举转换为 `EquipmentSlot`
 
-**方法实现**：
-- `LivingEntity::onEquippedItemBroken()` — 广播 EntityStatus 装备破损状态码 + 播放 ENTITY_ITEM_BREAK 音效
-- `ServerPlayer::onEquippedItemBroken()` — 额外更新物品损坏统计（`minecraft.broken:{item_id}`）
+                          **调用链 **： 1. `hurtAndBreak()` 在调用 `attemptDamageItem` 之前保存物品指针（因为损坏后
+                      ItemStack 会被清空） 2. 调用 `attemptDamageItem(amount, entity)` 处理耐久保护附魔和实际伤害
+                      3. 若物品损坏，调用 `entity->onEquippedItemBroken(item, slot)`
 
-**EntityStatus 状态码**：
-- 47=MainHand, 48=OffHand, 49=Head, 50=Chest, 51=Legs, 52=Feet
+                          **特殊场景 **： - `MobEntity::
+                    burnUndead()` — 使用 `setDamage()` 直接增加伤害值（绕过耐久保护附魔），手动实现回调逻辑
+        - `PlayerInventory::damageArmor()` — 使用 `hurtAndBreak()` 统一处理
 
-**客户端处理**：
-- 收到状态码 47-52 时，播放 ENTITY_ITEM_BREAK 音效 + Breaking 粒子效果
+            **方法实现 **： - `LivingEntity::onEquippedItemBroken()` — 广播 EntityStatus 装备破损状态码
+        + 播放 ENTITY_ITEM_BREAK 音效
+        - `ServerPlayer::onEquippedItemBroken()` — 额外更新物品损坏统计（`minecraft.broken:
+{
+    item_id
+}
+`）
 
-### 空气供应与溺水
-- 空气值可从正数变成负数（用于溺水计时）
-- 当空气值降到 -20 时重置为 0 并触发溺水伤害
-- 亡灵生物 `canBreatheUnderwater()` 返回 true，不会溺水
-- WaterMobEntity 使用反逻辑：水中恢复，陆地上消耗
+        **EntityStatus 状态码 **： -
+    47 = MainHand,
+    48 = OffHand, 49 = Head, 50 = Chest, 51 = Legs,
+    52 = Feet
 
-### 队伍联盟判断
-- **`isAlliedTo(const Entity&)`** - 双向联盟检查：this 认为 other 是盟友，或 other 认为 this 是盟友
-- **`isAlliedTo(const scoreboard::Team*)`** - 队伍级联盟检查（虚方法，TameableEntity 重写以继承主人队伍）
-- **`considersEntityAsAlly(const Entity&)`** - 虚方法，自定义单向盟友判定逻辑，默认委托给 `isAlliedTo(other.getTeam())`
-- **`isOnSameTeam(const Entity&)`** - 旧版 API，仅单向检查 this 是否属于 other 的队伍，新代码应优先使用 `isAlliedTo()`
-- 使用**指针相等性**比较队伍，而非队伍名称比较
-- 两个 Team 对象即使名称相同，指针不同也不算同一队伍
-- 没有队伍的实体（`getTeam()` 返回 nullptr）不会与任何队伍匹配
+            * *客户端处理 * *： -
+        收到状态码 47 - 52 时，播放 ENTITY_ITEM_BREAK 音效 +
+        Breaking 粒子效果
 
-### 传送系统使用
-- `attemptTeleport(x, y, z)` - 安全传送，自动查找地面
-- `randomTeleport(range, playEffects, avoidFluid)` - 随机传送
-- 传送会自动重置运动向量
+        ## #空气供应与溺水 -
+        空气值可从正数变成负数（用于溺水计时） - 当空气值降到 - 20 时重置为 0 并触发溺水伤害 -
+        亡灵生物 `canBreatheUnderwater()` 返回 true，不会溺水 -
+        WaterMobEntity 使用反逻辑：水中恢复，陆地上消耗
 
-### 类型标识符获取
-- `typeId()` 返回 `EntityTypeIdNumber` 命名空间中的常量
-- `legacyType()` 返回 `LegacyEntityType` 枚举（旧版，仅用于兼容）
-- 新代码应使用 `typeId()`
+        ## #队伍联盟判断 -
+        **`isAlliedTo(const Entity&)`* *-双向联盟检查：this 认为 other 是盟友，或 other 认为 this 是盟友 -
+        **`isAlliedTo(const scoreboard::Team*)`* *-队伍级联盟检查（虚方法，TameableEntity 重写以继承主人队伍） -
+        **`considersEntityAsAlly(const Entity&)`*
+            *-虚方法，自定义单向盟友判定逻辑，默认委托给 `isAlliedTo(other.getTeam())` -
+        **`isOnSameTeam(const Entity&)`*
+            *-旧版 API，仅单向检查 this 是否属于 other 的队伍，新代码应优先使用 `isAlliedTo()` -
+        使用 * *指针相等性 * *比较队伍，而非队伍名称比较 - 两个 Team 对象即使名称相同，指针不同也不算同一队伍 -
+        没有队伍的实体（`getTeam()` 返回 nullptr）不会与任何队伍匹配
 
-### ISpawnWorldReader 接口
-- 定义在 `EntitySpawnPlacementRegistry.hpp` 中，用于生成检查的最小世界读取接口
-- 主要方法：
-  - `getBlockState(x, y, z)` - 获取方块状态
-  - `isInWorldBounds(x, y, z)` - 检查位置是否在世界范围内
-  - `getHeight(type, x, z)` - 获取高度图值
-  - `getBiome(x, y, z)` - 获取生物群系ID
-  - `seed()` - 获取世界种子（史莱姆区块判断等确定性生成条件）
-  - `difficulty()` - 获取世界难度（和平难度拒绝怪物生成）
-  - `dayTime()` - 获取游戏日时间（月相计算等基于时间的生成条件）
-  - `getMaxLocalRawBrightness(x, y, z)` - 获取最大原始亮度（光照等级生成条件）
-- 适配器实现：`NaturalSpawner::ServerWorldAdapter`（服务端）、`WorldGenRegionAdapter`（世界生成）
+        ## #传送系统使用 - `attemptTeleport(x, y, z)` -
+        安全传送，自动查找地面 - `randomTeleport(range, playEffects, avoidFluid)` - 随机传送 -
+        传送会自动重置运动向量
 
-### 数据参数注册
-- 数据参数必须在 `registerData()` 中注册
-- 参数 ID 在实体类继承链中必须唯一
-- 客户端通过 `EntityDataManager` 同步数据
+        ## #类型标识符获取 - `typeId()` 返回 `EntityTypeIdNumber` 命名空间中的常量 - `legacyType()` 返回 `LegacyEntityType` 枚举（旧版，仅用于兼容） -
+        新代码应使用 `typeId()`
 
-### 鞍与加速系统（BoostHelper）
-- `BoostHelper` 的加速状态不保存到 NBT（MC 1.16.5 行为）
-- 只有鞍状态会持久化
-- 客户端通过 `syncFromDataManager()` 同步状态
+        ## #ISpawnWorldReader 接口 -
+        定义在 `EntitySpawnPlacementRegistry.hpp` 中，用于生成检查的最小世界读取接口 -
+        主要方法： - `getBlockState(x, y, z)` - 获取方块状态 - `isInWorldBounds(x, y, z)` -
+        检查位置是否在世界范围内 - `getHeight(type, x, z)` - 获取高度图值 - `getBiome(x, y, z)` -
+        获取生物群系ID - `seed()` - 获取世界种子（史莱姆区块判断等确定性生成条件） - `difficulty()` -
+        获取世界难度（和平难度拒绝怪物生成） - `dayTime()` -
+        获取游戏日时间（月相计算等基于时间的生成条件） - `getMaxLocalRawBrightness(x, y, z)` -
+        获取最大原始亮度（光照等级生成条件） -
+        适配器实现：`NaturalSpawner::ServerWorldAdapter`（服务端）、`WorldGenRegionAdapter`（世界生成）
 
-### 玩家交互
-- `processInitialInteract()` - 处理玩家与生物的交互链，按优先级依次处理：命名牌 → 刷怪蛋 → 拴绳 → 子类交互
-  - 命名牌交互：委托 `NameTagItem::itemInteractionForEntity()`，成功后设置自定义名称并启用持久化
-  - 刷怪蛋交互：调用 `_spawnOffspringFromSpawnEgg()`，生成同类型幼体（仅 AgeableEntity 子类支持）
-    - **依赖**：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 `Items::PIG_SPAWN_EGG`），当前 Items 注册表尚未注册任何刷怪蛋物品，待 `Items::registerSpawnEggs()` 实现后可通过正常游戏流程触发
-  - 拴绳交互：基本拴绳附着逻辑已实现（`setLeashedToEntity`、`setLeashedToFence`、`clearLeash`），
-    完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、网络同步包等）待后续实现
-- `canBeLeashed()` - 判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳）
-- 拴绳数据序列化：NBT 中 `Leash` 标签已实现，支持实体 UUID（UUIDMost/UUIDLeast）和栅栏柱坐标（X/Y/Z）两种格式
-- 拴绳延迟绑定：`LeashDelayInfo` 存储从 NBT 读取的原始数据，待目标实体加载后通过 `restoreLeashFromSave()` 完成实际绑定
-- `_spawnOffspringFromSpawnEgg()` - 使用刷怪蛋生成幼体，类型匹配 + AgeableEntity 检查
-  - **测试覆盖**：核心逻辑（实体生成、物品消耗、类型匹配）的单元测试待 Items 注册 SpawnEggItem 后补充
-- `applyPlayerInteraction()` - 有位置信息的交互（盔甲架装备槽）
-- 基类默认返回 `ActionResultType::Pass`
+        ## #数据参数注册 -
+        数据参数必须在 `registerData()` 中注册 - 参数 ID 在实体类继承链中必须唯一 -
+        客户端通过 `EntityDataManager` 同步数据
 
-### 水花溅射效果
-- 速度因子 f1 决定水花强度和声音选择
-- f1 < 0.25 用普通溅水声，f1 >= 0.25 用高速溅水声
-- 观察者模式玩家不产生水花效果
+        ## #鞍与加速系统（BoostHelper） - `BoostHelper` 的加速状态不保存到 NBT（MC 1.16.5 行为） -
+        只有鞍状态会持久化 -
+        客户端通过 `syncFromDataManager()` 同步状态
 
-### 发光效果判断
-- `isGlowing()` 客户端检查数据参数标志位，服务端检查 m_glowing 字段
-- 发光效果来源：发光药水、Entity发光标志、团队发光规则
+        ## #玩家交互 - `processInitialInteract()` -
+        处理玩家与生物的交互链，按优先级依次处理：命名牌 → 刷怪蛋 → 拴绳 → 子类交互 -
+        命名牌交互：委托 `NameTagItem::itemInteractionForEntity()`，成功后设置自定义名称并启用持久化 -
+        刷怪蛋交互：调用 `_spawnOffspringFromSpawnEgg()`，生成同类型幼体（仅 AgeableEntity 子类支持） -
+        **依赖 *
+            *：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 `Items::PIG_SPAWN_EGG`），当前
+                Items 注册表尚未注册任何刷怪蛋物品，待 `Items::registerSpawnEggs()` 实现后可通过正常游戏流程触发 -
+        拴绳交互：基本拴绳附着逻辑已实现（`setLeashedToEntity`、`setLeashedToFence`、`clearLeash`）， 完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、网络同步包等）待后续实现 - `canBeLeashed()` -
+        判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳） -
+        拴绳数据序列化：NBT 中 `Leash` 标签已实现，支持实体 UUID（UUIDMost / UUIDLeast）和栅栏柱坐标（X / Y /
+            Z）两种格式 -
+        拴绳延迟绑定：`LeashDelayInfo` 存储从 NBT
+            读取的原始数据，待目标实体加载后通过 `restoreLeashFromSave()` 完成实际绑定 - `_spawnOffspringFromSpawnEgg()` -
+        使用刷怪蛋生成幼体，类型匹配 + AgeableEntity 检查 -
+        **测试覆盖 *
+            *：核心逻辑（实体生成、物品消耗、类型匹配）的单元测试待
+                Items 注册 SpawnEggItem 后补充 - `applyPlayerInteraction()` -
+        有位置信息的交互（盔甲架装备槽） -
+        基类默认返回 `ActionResultType::Pass`
 
-### 箭矢计数与脱落
-- 箭矢数量越多，脱落越快
-- 脱落计时器公式：`20 * (30 - arrowCount)` ticks
-- 箭矢计数仅用于渲染，不影响游戏逻辑
+        ## #水花溅射效果 -
+        速度因子 f1 决定水花强度和声音选择 - f1 <
+    0.25 用普通溅水声，f1 >= 0.25 用高速溅水声 -
+        观察者模式玩家不产生水花效果
 
-### 吸收值（金苹果额外生命）
-- 使用 `absorptionAmount()` 获取吸收值，`setAbsorptionAmount(f32)` 设置吸收值
-- `setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内（与 MC 原版一致）
-- `maxAbsorption` 来自 `generic.max_absorption` 属性，默认值为 0.0
-- Player 不再需要单独定义吸收值方法，统一使用 LivingEntity 基类的实现
-- 吸收值在 `actuallyHurt` 中通过 `setAbsorptionAmount` 消耗，确保限制逻辑生效
-- NBT 序列化键为 `"AbsorptionAmount"`，反序列化也使用 `setAbsorptionAmount`
+        ## #发光效果判断 - `isGlowing()` 客户端检查数据参数标志位，服务端检查 m_glowing 字段 -
+        发光效果来源：发光药水、Entity发光标志、团队发光规则
 
-### 装备掉落概率 (DropChances)
-- 对应 MC 原版的 `DropChances` 记录，存储在 `m_equipmentDropChances` 数组中
-- 索引与 `EquipmentSlot` 枚举值对应：[0]=MainHand, [1]=OffHand, [2]=Feet, [3]=Legs, [4]=Chest, [5]=Head
-- 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5%）
-- 大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`）
-- `isEquipmentDropPreserved(slot)` 检查掉落概率 > 1.0
-- `setGuaranteedDrop(slot)` 设置掉落概率为 2.0（保整掉落）
-- NBT 序列化格式：
-  - 保存时仅写入新格式（MC 1.21.4+）：`drop_chances`（compound，仅包含非默认值）
-  - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
+        ## #箭矢计数与脱落 -
+        箭矢数量越多，脱落越快 - 脱落计时器公式：`20 * (30 - arrowCount)` ticks -
+        箭矢计数仅用于渲染，不影响游戏逻辑
 
-### 死亡掉落表 (DeathLootTable)
-- `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/zombie"`）
-- `m_lootTableSeed`：确定性种子，0 表示随机
-- NBT 键：`DeathLootTable`（string，仅在有值时写入）、`DeathLootTableSeed`（long，仅非零时写入）
-- 对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段
+        ## #吸收值（金苹果额外生命） -
+        使用 `absorptionAmount()` 获取吸收值，`setAbsorptionAmount(
+            f32)` 设置吸收值 - `setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内（与
+            MC 原版一致） - `maxAbsorption` 来自 `generic.max_absorption` 属性，默认值为 0.0 -
+        Player 不再需要单独定义吸收值方法，统一使用 LivingEntity 基类的实现 -
+        吸收值在 `actuallyHurt` 中通过 `setAbsorptionAmount` 消耗，确保限制逻辑生效 -
+        NBT 序列化键为 `"AbsorptionAmount"`，反序列化也使用 `setAbsorptionAmount`
 
-### 拴绳系统 (Leash)
-- `m_isLeashed`：是否被拴绳拴住
-- `m_leashHolderUuid`：拴绳目标实体的 UUID（拴在实体上时）
-- `m_leashFencePos`：拴绳目标栅栏柱坐标（拴在栅栏上时）
-- `LeashDelayInfo`：延迟绑定信息，用于 NBT 加载后目标实体尚未就绪的情况
-- NBT 键：`Leash`（compound），包含 `UUIDMost`+`UUIDLeast`（实体）或 `X`+`Y`+`Z`（栅栏柱）
-- `setLeashedToEntity(uuid)`：拴到实体
-- `setLeashedToFence(pos)`：拴到栅栏柱
-- `clearLeash()`：解除拴绳
+        ## #装备掉落概率(DropChances) -
+        对应 MC 原版的 `DropChances` 记录，存储在 `m_equipmentDropChances` 数组中 -
+        索引与 `EquipmentSlot` 枚举值对应：[0] = MainHand,
+    [1] = OffHand, [2] = Feet, [3] = Legs, [4] = Chest,
+    [5] = Head - 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5 %） -
+    大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`） - `isEquipmentDropPreserved(slot)` 检查掉落概率 >
+    1.0 - `setGuaranteedDrop(slot)` 设置掉落概率为 2.0（保整掉落） - NBT 序列化格式：
+        - 保存时仅写入新格式（MC 1.21.4 +）：`drop_chances`（compound，仅包含非默认值）
+        - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
 
-### 摔落伤害流程
+        ## #死亡掉落表(
+            DeathLootTable) - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/"
+                                                                                                "zombi"
+                                                                                                "e"`） - `m_lootTableSeed`：确定性种子，0
+        表示随机
+        - NBT 键：`DeathLootTable`（string，仅在有值时写入）、`DeathLootTableSeed`（long，仅非零时写入） -
+        对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段
 
-实体着地时的摔落伤害由 `Block::onFallenUpon` 驱动，而非由 Entity 自行施加。流程如下：
+        ## #拴绳系统(Leash) - `m_isLeashed`：是否被拴绳拴住
+        - `m_leashHolderUuid`：拴绳目标实体的 UUID（拴在实体上时）
+        - `m_leashFencePos`：拴绳目标栅栏柱坐标（拴在栅栏上时）
+        - `LeashDelayInfo`：延迟绑定信息，用于 NBT 加载后目标实体尚未就绪的情况
+        - NBT 键：`Leash`（compound），包含 `UUIDMost`+`UUIDLeast`（实体）或 `X`+`Y`+`Z`（栅栏柱）
+        - `setLeashedToEntity(uuid)`：拴到实体 - `setLeashedToFence(pos)`：拴到栅栏柱 - `clearLeash()`：解除拴绳
 
+        ## #摔落伤害流程
+
+        实体着地时的摔落伤害由 `Block::onFallenUpon` 驱动，而非由 Entity 自行施加。流程如下：
+
+``` Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::onFallenUpon()
 ```
-Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::onFallenUpon()
-```
 
-1. `Entity::updateFallDistance()`：当实体着地且 `fallDistance > 0` 时，调用 `_handleLandingOnBlock()`
-2. `Entity::_handleLandingOnBlock()`：获取实体脚下方块，调用 `Block::onFallenUpon()`
-3. `Block::onFallenUpon()` 默认实现：调用 `entity.causeFallDamage(fallDistance, 1.0f, DamageSources::fall())` 施加普通摔落伤害
-4. 方块子类可重写 `onFallenUpon()` 自定义摔落行为：
-   - **石笋（PointedDripstoneBlock）**：调用 `causeFallDamage(dist + 2.5, 2.0, stalagmite())` 但不调用父类，替代普通摔落伤害
-   - **耕地（FarmlandBlock）**：先执行踩踏逻辑，再调用父类 `Block::onFallenUpon`，保留普通摔落伤害
-   - **海龟蛋（TurtleEggBlock）**：先执行踩破逻辑，再调用父类 `Block::onFallenUpon`，保留普通摔落伤害
-   - **蜂蜜块/史莱姆块**：通过 `onLanded()` 重置 `fallDistance = 0`，根本不会触发 `onFallenUpon`
+        1. `Entity::updateFallDistance()`：当实体着地且 `fallDistance
+    > 0` 时，调用 `_handleLandingOnBlock()` 2. `Entity::_handleLandingOnBlock()`：获取实体脚下方块，调用 `Block::
+            onFallenUpon()` 3. `Block::onFallenUpon()` 默认实现：调用 `entity.causeFallDamage(
+                fallDistance, 1.0f, DamageSources::fall())` 施加普通摔落伤害
+        4. 方块子类可重写 `onFallenUpon()` 自定义摔落行为：
+        -
+        **石笋（PointedDripstoneBlock） **：调用 `causeFallDamage(
+            dist + 2.5, 2.0, stalagmite())` 但不调用父类，替代普通摔落伤害
+        - **耕地（FarmlandBlock） **：先执行踩踏逻辑，再调用父类 `Block::onFallenUpon`，保留普通摔落伤害 -
+        **海龟蛋（TurtleEggBlock） **：先执行踩破逻辑，再调用父类 `Block::onFallenUpon`，保留普通摔落伤害 -
+        **蜂蜜块 / 史莱姆块 **：通过 `onLanded()` 重置 `fallDistance = 0`，根本不会触发 `onFallenUpon`
 
-**重要**：`Entity::updateFallDistance()` 不再直接调用 `handleFallDamage()`，摔落伤害完全由 `Block::onFallenUpon` 负责。
+        * *重要 *
+        *：`Entity::updateFallDistance()` 不再直接调用 `handleFallDamage()`，摔落伤害完全由 `Block::onFallenUpon` 负责。
 
-#### 摔落伤害传播给乘客
+         ####摔落伤害传播给乘客
 
-`Entity::causeFallDamage` 基类实现会先将摔落伤害传播给所有乘客（`propagateFallToPassengers`），然后对自身不施加伤害。`LivingEntity::causeFallDamage` 重写时先调用 `Entity::causeFallDamage`（传播给乘客），再对自身计算伤害。
+`Entity::causeFallDamage` 基类实现会先将摔落伤害传播给所有乘客（`propagateFallToPassengers`），然后对自身不施加伤害。`LivingEntity::
+             causeFallDamage` 重写时先调用 `Entity::causeFallDamage`（传播给乘客），再对自身计算伤害。
 
-```
-Entity::causeFallDamage(distance, multiplier, source)
-  → propagateFallToPassengers(distance, multiplier, source)  // 传播给所有乘客
-  // 基类不对自身施加伤害
+``` Entity::causeFallDamage(distance, multiplier, source)
+  → propagateFallToPassengers(distance, multiplier, source) // 传播给所有乘客
+                                                             // 基类不对自身施加伤害
 
-LivingEntity::causeFallDamage(distance, multiplier, source)
-  → Entity::causeFallDamage(distance, multiplier, source)    // 先传播给乘客
+         LivingEntity::causeFallDamage(distance, multiplier, source)
+  → Entity::causeFallDamage(distance, multiplier, source) // 先传播给乘客
   → 计算自身摔落伤害（缓降免疫、跳跃增强减距、摔落保护附魔减伤）
   → hurt(source, damage)
 ```
 
-参考 MC 1.21.11：`Entity.causeFallDamage` → `propagateFallToPassengers`，`LivingEntity.causeFallDamage` → `super.causeFallDamage` + 自身伤害计算。
+         参考 MC 1.21.11：`Entity.causeFallDamage` → `propagateFallToPassengers`，`LivingEntity
+             .causeFallDamage` → `super.causeFallDamage` +
+    自身伤害计算。
 
-### canAttackType 攻击类型判断
-- `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()`
-- 基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob 徒劳地试图攻击一个它们够不着的敌人
-- 子类重写以限制攻击目标类型，例如：
-  - `IronGolemEntity::canAttackType()` — 玩家创建的铁傀儡不攻击玩家，所有铁傀儡不攻击苦力怕，其余委托基类（排除恶魂）
-  - `PhantomEntity::canAttackType()` — 返回 `true`，覆盖基类排除恶魂的限制，因为幻翼本身会飞行
-  - `BreezeEntity::canAttackType()` — 白名单模式，仅允许攻击玩家和铁傀儡
-- 在 `TargetGoal::isSuitableTarget()` 中自动调用，所有目标选择器继承此过滤逻辑
-- 自定义目标选择器（如 `IronGolemNearestAttackableTargetGoal`）需手动调用 `canAttackType()`
+    ## #canAttackType 攻击类型判断
+    - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()` -
+    基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob
+    徒劳地试图攻击一个它们够不着的敌人
+    - 子类重写以限制攻击目标类型，例如：
+    - `IronGolemEntity::canAttackType()` — 玩家创建的铁傀儡不攻击玩家，所有铁傀儡不攻击苦力怕，其余委托基类（排除恶魂）
+    - `PhantomEntity::canAttackType()` — 返回 `true`，覆盖基类排除恶魂的限制，因为幻翼本身会飞行
+    - `BreezeEntity::canAttackType()` — 白名单模式，仅允许攻击玩家和铁傀儡
+    - 在 `TargetGoal::isSuitableTarget()` 中自动调用，所有目标选择器继承此过滤逻辑 -
+    自定义目标选择器（如 `IronGolemNearestAttackableTargetGoal`）需手动调用 `canAttackType()`
 
-### setLastHurtBy 虚方法
-- `LivingEntity::setLastHurtBy()` 现为 `virtual` 方法，允许子类在受到其他实体攻击时执行自定义逻辑
-- **子类覆写时必须调用基类实现** `LivingEntity::setLastHurtBy()`，否则基类的 `m_lastHurtByPlayer`、`m_lastHurtByMob`、`m_lastHurtByPlayerAtTime` 等字段不会更新，可能导致依赖这些字段的逻辑（如复仇目标选择、击退方向等）失效
-- 典型覆写示例：`VillagerEntity::setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
+    ## #setLastHurtBy 虚方法
+    - `LivingEntity::setLastHurtBy()` 现为 `virtual` 方法，允许子类在受到其他实体攻击时执行自定义逻辑 -
+    **子类覆写时必须调用基类实现 *
+        * `LivingEntity::
+            setLastHurtBy()`，否则基类的 `m_lastHurtByPlayer`、`m_lastHurtByMob`、`m_lastHurtByPlayerAtTime` 等字段不会更新，可能导致依赖这些字段的逻辑（如复仇目标选择、击退方向等）失效
+    -
+    典型覆写示例：`VillagerEntity::
+        setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言

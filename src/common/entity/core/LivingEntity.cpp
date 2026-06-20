@@ -432,6 +432,26 @@ void LivingEntity::broadcastBreakEvent(EquipmentSlot slot)
     }
 }
 
+bool LivingEntity::hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot)
+{
+    if (!stack.isDamageable() || amount <= 0) {
+        return false;
+    }
+
+    // 在物品被销毁之前保存物品引用，用于 onEquippedItemBroken 回调
+    // 因为 attemptDamageItem 会在耐久耗尽时清空 ItemStack（setItem(nullptr)）
+    const Item* brokenItem = (stack.getDamage() + amount >= stack.getMaxDamage()) ? stack.getItem() : nullptr;
+
+    bool broken = stack.attemptDamageItem(amount, entity);
+
+    // 物品损坏时触发回调：广播装备破损动画、播放音效、更新统计
+    if (broken && brokenItem != nullptr && entity != nullptr) {
+        entity->onEquippedItemBroken(*brokenItem, slot);
+    }
+
+    return broken;
+}
+
 // ============================================================================
 // 受伤无敌帧
 // ============================================================================

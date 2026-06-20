@@ -327,6 +327,32 @@ public:
     void broadcastBreakEvent(EquipmentSlot slot);
 
     /**
+     * @brief 将 Hand 转换为 EquipmentSlot
+     *
+     * @param hand 手部槽位
+     * @return 对应的装备槽位
+     */
+    [[nodiscard]] static EquipmentSlot handToEquipmentSlot(Hand hand)
+    {
+        return hand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand;
+    }
+
+    /**
+     * @brief 对物品施加耐久损耗，若物品损坏则触发 onEquippedItemBroken 回调
+     *
+     * 对应 MC 原版 ItemStack.hurtAndBreak(int, LivingEntity, EquipmentSlot)。
+     * 在调用 attemptDamageItem 之前保存物品指针（因为损坏后 ItemStack 会被清空），
+     * 若物品损坏则调用 onEquippedItemBroken 广播破损动画、播放音效、更新统计。
+     *
+     * @param stack 要损坏的物品堆引用
+     * @param amount 耐久损耗量
+     * @param entity 执行损坏的实体（用于耐久保护附魔和回调），可以为 nullptr
+     * @param slot 物品所在的装备槽位
+     * @return true 若物品损坏（耐久耗尽），false 否则
+     */
+    static bool hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot);
+
+    /**
      * @brief 获取主手物品
      */
     [[nodiscard]] const ItemStack& getMainHandItem() const { return getEquipment(EquipmentSlot::MainHand); }

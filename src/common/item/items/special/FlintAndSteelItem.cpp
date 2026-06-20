@@ -61,11 +61,9 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
             BlockState newState = blockStatePtr->with(BlockStateProperties::LIT(), true);
             world.setBlockState(blockPos, &newState, 11);
 
-            // 消耗耐久
+            // 消耗耐久，若物品损坏则触发 onEquippedItemBroken 回调
             if (player != nullptr) {
-                // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-                // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
-                context.getItemStackMut().attemptDamageItem(1, player);
+                LivingEntity::hurtAndBreak(context.getItemStackMut(), 1, player, EquipmentSlot::MainHand);
             }
             return ActionResultType::Success;
         }
@@ -83,11 +81,9 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
             const BlockState& fireState = fireBlock->getDefaultState();
             world.setBlockState(firePos, &fireState, 11);
 
-            // 消耗耐久
+            // 消耗耐久，若物品损坏则触发 onEquippedItemBroken 回调
             if (player != nullptr) {
-                // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-                // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
-                context.getItemStackMut().attemptDamageItem(1, player);
+                LivingEntity::hurtAndBreak(context.getItemStackMut(), 1, player, EquipmentSlot::MainHand);
             }
 
             return ActionResultType::Success;

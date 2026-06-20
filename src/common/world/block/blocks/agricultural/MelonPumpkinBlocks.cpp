@@ -144,10 +144,8 @@ ActionResultType PumpkinBlock::onBlockActivated(const BlockState& state,
     ItemDropHelper::spawnItemEntity(
         &world, seedStack, seedX, seedY, seedZ, vx, vy, vz, ItemEntity::DEFAULT_PICKUP_DELAY, "");
 
-    // 消耗剪刀耐久度
-    // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-    // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
-    heldItem.attemptDamageItem(1, &player);
+    // 消耗剪刀耐久度，若物品损坏则触发 onEquippedItemBroken 回调
+    LivingEntity::hurtAndBreak(heldItem, 1, &player, LivingEntity::handToEquipmentSlot(hand));
 
     return ActionResultType::Success;
 }

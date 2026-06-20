@@ -768,17 +768,9 @@ void PlayerInventory::damageArmor(DamageSource& source, f32 damage)
         // MC 1.16.5: 只有 ArmorItem 和 ElytraItem 才会损坏
         if (armor.getItem()->isArmor() && armor.isDamageable()) {
             i32 damageAmount = static_cast<i32>(damage);
-            // 在物品被 attemptDamageItem 销毁之前保存物品引用
-            const Item* brokenItem =
-                (armor.getDamage() + damageAmount >= armor.getMaxDamage()) ? armor.getItem() : nullptr;
             EquipmentSlot slot = armorEquipmentSlots[static_cast<size_t>(i - InventorySlots::ARMOR_START)];
 
-            armor.attemptDamageItem(damageAmount, m_player);
-
-            // 物品损坏后触发回调：广播装备破损动画、播放音效、更新统计
-            if (brokenItem != nullptr && armor.isEmpty()) {
-                m_player->onEquippedItemBroken(*brokenItem, slot);
-            }
+            LivingEntity::hurtAndBreak(armor, damageAmount, m_player, slot);
         }
     }
 }

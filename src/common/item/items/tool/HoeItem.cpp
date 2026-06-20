@@ -82,11 +82,9 @@ ActionResultType HoeItem::onItemUse(ItemUseContext& context)
     // 设置新方块状态
     world.setBlockState(pos, &newState, 11);
 
-    // 消耗耐久度
+    // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
     ItemStack& stack = context.getItemStackMut();
-    // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-    // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
-    stack.attemptDamageItem(1, context.getPlayer());
+    LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
 
     return ActionResultType::Success;
 }

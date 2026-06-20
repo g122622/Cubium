@@ -124,11 +124,9 @@ bool ShearsItem::onBlockDestroyed(
         return true;
     }
 
-    // 其他硬度>0的方块消耗耐久
+    // 其他硬度>0的方块消耗耐久，若物品损坏则触发 onEquippedItemBroken 回调
     if (state.hardness() > 0.0f) {
-        // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-        // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
-        stack.attemptDamageItem(1, &entity);
+        LivingEntity::hurtAndBreak(stack, 1, &entity, EquipmentSlot::MainHand);
     }
     return true;
 }
@@ -173,11 +171,9 @@ bool ShearsItem::itemInteractionForEntity(ItemStack& stack, Player& player, Livi
         }
     }
 
-    // 消耗剪刀耐久（非创造模式）
+    // 消耗剪刀耐久（非创造模式），若物品损坏则触发 onEquippedItemBroken 回调
     if (!player.isCreative()) {
-        // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-        // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
-        stack.attemptDamageItem(1, &player);
+        LivingEntity::hurtAndBreak(stack, 1, &player, LivingEntity::handToEquipmentSlot(hand));
     }
 
     return true;

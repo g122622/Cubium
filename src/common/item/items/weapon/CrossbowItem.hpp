@@ -35,6 +35,7 @@
 namespace mc {
 
 // 前向声明
+enum class EquipmentSlot : u8;
 class Player;
 class World;
 class LivingEntity;
@@ -179,9 +180,10 @@ private:
 
     /**
      * @brief 发射弹丸
+     * @param slot 弩所在的装备槽位，用于物品损坏回调
      */
     static void _fireProjectiles(
-        IWorld& world, LivingEntity& shooter, ItemStack& crossbow, f32 velocity, f32 inaccuracy);
+        IWorld& world, LivingEntity& shooter, ItemStack& crossbow, f32 velocity, f32 inaccuracy, EquipmentSlot slot);
 
     /**
      * @brief 获取已装填的弹丸列表

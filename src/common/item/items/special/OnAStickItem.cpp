@@ -43,7 +43,7 @@ OnAStickItem::OnAStickItem(const ItemProperties& properties, const std::string& 
 ItemActionResult OnAStickItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
 {
     // 获取玩家当前手持物品
-    ItemStack heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = player.getHeldItem(hand);
 
     // 检查玩家是否正在骑乘
     EntityId vehicleId = player.getVehicle();
@@ -76,14 +76,12 @@ ItemActionResult OnAStickItem::onItemRightClick(IWorld& world, Player& player, H
         return ItemActionResult::pass(heldItem);
     }
 
-    // 消耗耐久度
-    // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-    // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式
-    bool damaged = heldItem.attemptDamageItem(m_durabilityCost, &player);
-    MC_UNUSED(damaged);
+    // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
+    EquipmentSlot slot = LivingEntity::handToEquipmentSlot(hand);
+    bool broken = LivingEntity::hurtAndBreak(heldItem, m_durabilityCost, &player, slot);
 
     // 检查物品是否损坏
-    if (heldItem.isEmpty()) {
+    if (broken) {
         // 如果物品耐久度耗尽，转换为钓鱼竿
         if (Items::FISHING_ROD != nullptr) {
             ItemStack fishingRod(*Items::FISHING_ROD, 1);

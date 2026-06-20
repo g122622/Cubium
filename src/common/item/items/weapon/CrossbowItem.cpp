@@ -79,7 +79,7 @@ ItemActionResult CrossbowItem::onItemRightClick(IWorld& world, Player& player, H
         if (hasChargedProjectile(crossbowStack, Items::FIREWORK_ROCKET)) {
             velocity = FIREWORK_VELOCITY;
         }
-        _fireProjectiles(world, player, crossbowStack, velocity, 1.0f);
+        _fireProjectiles(world, player, crossbowStack, velocity, 1.0f, LivingEntity::handToEquipmentSlot(hand));
         setCharged(crossbowStack, false);
         return ItemActionResult::success(crossbowStack);
     }
@@ -272,7 +272,7 @@ bool CrossbowItem::_loadProjectiles(Player& player, ItemStack& crossbow)
 }
 
 void CrossbowItem::_fireProjectiles(
-    IWorld& world, LivingEntity& shooter, ItemStack& crossbow, f32 velocity, f32 inaccuracy)
+    IWorld& world, LivingEntity& shooter, ItemStack& crossbow, f32 velocity, f32 inaccuracy, EquipmentSlot slot)
 {
     std::vector<ItemStack> projectiles = _getChargedProjectiles(crossbow);
 
@@ -334,11 +334,8 @@ void CrossbowItem::_fireProjectiles(
 
             world.spawnEntity(std::move(firework));
 
-            // 消耗耐久度（烟花消耗3点）
-            // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-            // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式。需要将 slot 信息传播到
-            // _fireProjectiles
-            crossbow.attemptDamageItem(3, &shooter);
+            // 消耗耐久度（烟花消耗3点），若物品损坏则触发 onEquippedItemBroken 回调
+            LivingEntity::hurtAndBreak(crossbow, 3, &shooter, slot);
         } else {
             // 创建箭矢实体
             const ArrowItem* arrowItem = dynamic_cast<const ArrowItem*>(item);
@@ -372,11 +369,8 @@ void CrossbowItem::_fireProjectiles(
                 }
             }
 
-            // 消耗耐久度（箭矢消耗1点）
-            // TODO: 当物品损坏时应调用 entity.onEquippedItemBroken(*brokenItem, slot)，保存 brokenItem 指针后再调用
-            // attemptDamageItem，参考 PlayerInventory::damageArmor 中的集成模式。需要将 slot 信息传播到
-            // _fireProjectiles
-            crossbow.attemptDamageItem(1, &shooter);
+            // 消耗耐久度（箭矢消耗1点），若物品损坏则触发 onEquippedItemBroken 回调
+            LivingEntity::hurtAndBreak(crossbow, 1, &shooter, slot);
         }
     }
 

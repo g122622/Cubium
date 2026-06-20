@@ -26,6 +26,10 @@
 #include "common/item/core/Item.hpp"
 
 namespace mc {
+
+// 前向声明
+enum class EquipmentSlot : u8;
+
 namespace item::items {
 
 /**
@@ -110,8 +114,9 @@ public:
      * @brief 滑翔时消耗耐久度
      * @param stack 物品堆
      * @param entity 使用者
+     * @param slot 物品所在的装备槽位
      */
-    static void damageElytra(ItemStack& stack, LivingEntity& entity);
+    static void damageElytra(ItemStack& stack, LivingEntity& entity, EquipmentSlot slot);
 
 private:
     /// 鞘翅的最大耐久度
