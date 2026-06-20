@@ -159,6 +159,42 @@ private:
     DimensionSettings m_settings = DimensionSettings::overworld();
 };
 
+/**
+ * @brief 可配置高度和海平面的区块生成器，用于 canGenerate 测试
+ */
+class ConfigurableChunkGenerator final : public IChunkGenerator {
+public:
+    ConfigurableChunkGenerator(BiomeId biome, i32 height, i32 seaLevelVal)
+        : m_biome(biome)
+        , m_height(height)
+        , m_seaLevel(seaLevelVal)
+    {
+        m_settings.seaLevel = seaLevelVal;
+    }
+
+    [[nodiscard]] BiomeId getBiome(i32, i32, i32) const override { return m_biome; }
+    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return m_biome; }
+    [[nodiscard]] i32 getHeight(i32, i32, HeightmapType) const override { return m_height; }
+    [[nodiscard]] u64 seed() const override { return 12345; }
+    [[nodiscard]] const DimensionSettings& settings() const override { return m_settings; }
+    [[nodiscard]] i32 seaLevel() const override { return m_seaLevel; }
+
+    void generateStructureStarts(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateStructureReferences(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateBiomes(WorldGenRegion&, ChunkPrimer&) override {}
+    void generateNoise(WorldGenRegion&, ChunkPrimer&) override {}
+    void buildSurface(WorldGenRegion&, ChunkPrimer&) override {}
+    void applyCarvers(WorldGenRegion&, ChunkPrimer&) override {}
+    void placeFeatures(WorldGenRegion&, ChunkPrimer&) override {}
+    i32 spawnInitialMobs(WorldGenRegion&, ChunkPrimer&, std::vector<SpawnedEntityData>&) override { return 0; }
+
+private:
+    BiomeId m_biome;
+    i32 m_height;
+    i32 m_seaLevel;
+    DimensionSettings m_settings = DimensionSettings::overworld();
+};
+
 } // namespace
 
 // ============================================================================
@@ -185,6 +221,30 @@ TEST_F(NewStructuresTest, Igloo_NameAndSettings)
         }
     }
     EXPECT_TRUE(hasSnowyBiome);
+}
+
+TEST_F(NewStructuresTest, Igloo_CanGenerate)
+{
+    IglooStructure structure;
+    StructureTestWorld world;
+    math::Random rng(12345);
+
+    // 雪地生物群系应允许生成
+    FixedBiomeChunkGenerator snowyGen(SnowyPlains);
+    EXPECT_TRUE(structure.canGenerate(world, snowyGen, rng, 0, 0));
+
+    FixedBiomeChunkGenerator taigaGen(SnowyTaiga);
+    EXPECT_TRUE(structure.canGenerate(world, taigaGen, rng, 5, 5));
+
+    // 非雪地生物群系应拒绝生成
+    FixedBiomeChunkGenerator desertGen(Desert);
+    EXPECT_FALSE(structure.canGenerate(world, desertGen, rng, 0, 0));
+
+    FixedBiomeChunkGenerator plainsGen(Plains);
+    EXPECT_FALSE(structure.canGenerate(world, plainsGen, rng, 0, 0));
+
+    // 验证 biomeTag 返回非空
+    EXPECT_NE(structure.biomeTag(), nullptr);
 }
 
 TEST_F(NewStructuresTest, Igloo_PieceConstruction)
@@ -229,6 +289,27 @@ TEST_F(NewStructuresTest, SwampHut_NameAndSettings)
         }
     }
     EXPECT_TRUE(hasSwamp);
+}
+
+TEST_F(NewStructuresTest, SwampHut_CanGenerate)
+{
+    SwampHutStructure structure;
+    StructureTestWorld world;
+    math::Random rng(12345);
+
+    // 沼泽生物群系应允许生成
+    FixedBiomeChunkGenerator swampGen(Swamp);
+    EXPECT_TRUE(structure.canGenerate(world, swampGen, rng, 0, 0));
+
+    // 非沼泽生物群系应拒绝生成
+    FixedBiomeChunkGenerator desertGen(Desert);
+    EXPECT_FALSE(structure.canGenerate(world, desertGen, rng, 0, 0));
+
+    FixedBiomeChunkGenerator plainsGen(Plains);
+    EXPECT_FALSE(structure.canGenerate(world, plainsGen, rng, 0, 0));
+
+    // 验证 biomeTag 返回非空
+    EXPECT_NE(structure.biomeTag(), nullptr);
 }
 
 TEST_F(NewStructuresTest, SwampHut_PieceConstruction)
@@ -610,6 +691,58 @@ TEST_F(NewStructuresTest, DesertPyramid_NameAndSettings)
     for (auto biome : biomes) {
         EXPECT_TRUE(biome == Desert);
     }
+}
+
+TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_DesertBiome_Allowed)
+{
+    DesertPyramidStructure structure;
+    StructureTestWorld world;
+    math::Random rng(12345);
+
+    // 沙漠生物群系 + 高度在海平面以上 → 允许生成
+    ConfigurableChunkGenerator desertGen(Desert, 70, 63);
+    EXPECT_TRUE(structure.canGenerate(world, desertGen, rng, 0, 0));
+}
+
+TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_NonDesertBiome_Rejected)
+{
+    DesertPyramidStructure structure;
+    StructureTestWorld world;
+    math::Random rng(12345);
+
+    // 非沙漠生物群系 → 拒绝生成
+    ConfigurableChunkGenerator plainsGen(Plains, 70, 63);
+    EXPECT_FALSE(structure.canGenerate(world, plainsGen, rng, 0, 0));
+
+    ConfigurableChunkGenerator swampGen(Swamp, 70, 63);
+    EXPECT_FALSE(structure.canGenerate(world, swampGen, rng, 0, 0));
+}
+
+TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_BelowSeaLevel_Rejected)
+{
+    DesertPyramidStructure structure;
+    StructureTestWorld world;
+    math::Random rng(12345);
+
+    // 沙漠生物群系但四角高度低于海平面 → 拒绝生成
+    ConfigurableChunkGenerator lowGen(Desert, 50, 63);
+    EXPECT_FALSE(structure.canGenerate(world, lowGen, rng, 0, 0));
+
+    // 高度恰好等于海平面 → 允许生成
+    ConfigurableChunkGenerator atSeaGen(Desert, 63, 63);
+    EXPECT_TRUE(structure.canGenerate(world, atSeaGen, rng, 0, 0));
+}
+
+TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_BiomeTag)
+{
+    DesertPyramidStructure structure;
+
+    // 验证 biomeTag 返回非空且为正确的标签
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(Desert));
+    EXPECT_FALSE(tag->contains(Plains));
+    EXPECT_FALSE(tag->contains(Swamp));
 }
 
 // ============================================================================
