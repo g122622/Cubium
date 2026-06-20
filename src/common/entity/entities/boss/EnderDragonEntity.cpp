@@ -725,15 +725,10 @@ void EnderDragonEntity::_onDeathUpdate()
         const i32 xpRemaining = totalXP - xpDroppedSoFar;
         _dropExperienceAmount(xpRemaining);
 
-        // MC 原版：DragonFight.setDragonKilled() 负责以下逻辑：
-        // 1. 生成/激活出口传送门
-        // 2. 生成末地折跃门（每次击杀一个，最多20个）
-        // 3. 首次击杀时在祭坛顶部放置龙蛋
-        // 4. 设置 previouslyKilled = true
+        // 通过 EndDragonFight 统一处理龙蛋放置、折跃门生成和出口传送门
         if (worldPtr != nullptr) {
             EndDragonFight* fight = worldPtr->dragonFight();
             if (fight != nullptr) {
-                // 通过 EndDragonFight 统一处理龙蛋放置、折跃门生成和出口传送门
                 fight->setDragonKilled(*worldPtr);
             } else {
                 // 没有 EndDragonFight 时回退到仅创建出口传送门

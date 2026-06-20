@@ -40,10 +40,9 @@ class IWorld;
  * @brief 末影龙战斗管理器
  *
  * 协调末影龙击杀后的奖励分发，包括龙蛋放置、末地折跃门生成和经验掉落区分。
- * 对齐 MC Java net.minecraft.world.level.dimension.end.EndDragonFight。
  *
  * 生命周期：
- * - 由末地维度的 ServerDimension 持有
+ * - 由末地维度的 ServerWorld 持有
  * - 构造时从世界种子初始化折跃门列表
  * - 可从存档数据恢复 previouslyKilled 和 gateways 状态
  * - 龙死亡时通过 setDragonKilled() 触发奖励逻辑
@@ -52,8 +51,6 @@ class EndDragonFight {
 public:
     /**
      * @brief 战斗数据，用于存档保存/加载
-     *
-     * 对齐 MC Java EndDragonFight.Data record。
      */
     struct Data {
         bool needsStateScanning = true;           ///< 是否需要扫描旧世界状态
@@ -74,13 +71,13 @@ public:
 
     // ========== 常量 ==========
 
-    /// 折跃门总数（MC 原版 GATEWAY_COUNT = 20）
+    /// 折跃门总数
     static constexpr i32 GATEWAY_COUNT = 20;
 
-    /// 折跃门距离原点的水平距离（MC 原版 GATEWAY_DISTANCE = 96）
+    /// 折跃门距离原点的水平距离
     static constexpr i32 GATEWAY_DISTANCE = 96;
 
-    /// 折跃门的 Y 坐标（MC 原版固定为 75）
+    /// 折跃门的 Y 坐标
     static constexpr i32 GATEWAY_Y = 75;
 
     // ========== 构造/析构 ==========
@@ -108,7 +105,7 @@ public:
     /**
      * @brief 末影龙被击杀时调用
      *
-     * 执行以下逻辑（对齐 MC Java EndDragonFight.setDragonKilled）：
+     * 执行以下逻辑：
      * 1. 创建激活态出口传送门
      * 2. 生成一个末地折跃门（如果还有剩余）
      * 3. 首次击杀时在祭坛顶部放置龙蛋

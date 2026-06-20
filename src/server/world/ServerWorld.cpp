@@ -169,7 +169,15 @@ Result<void> ServerWorld::initialize()
 
     // 初始化末影龙战斗管理器（仅末地维度）
     if (m_config.dimension == DimensionManager::THE_END) {
-        m_dragonFight = std::make_unique<EndDragonFight>(m_config.seed);
+        // 尝试从存档加载末影龙战斗数据
+        std::optional<EndDragonFight::Data> dragonFightData;
+        if (m_storage && m_storage->isOpen()) {
+            auto result = m_storage->loadDragonFightData();
+            if (result.success() && result.value().has_value()) {
+                dragonFightData = EndDragonFight::Data::fromJson(*result.value());
+            }
+        }
+        m_dragonFight = std::make_unique<EndDragonFight>(m_config.seed, dragonFightData);
     }
 
     // 初始化地图数据管理器
@@ -269,6 +277,14 @@ Result<size_t> ServerWorld::saveAll()
         auto saveResult = blockEntityStorage->saveAllBlockEntities(blockEntitiesToSave, m_config.dimension);
         if (saveResult.failed()) {
             return saveResult.error();
+        }
+    }
+
+    // 保存末影龙战斗数据（仅末地维度）
+    if (m_dragonFight && m_storage && m_storage->isOpen()) {
+        auto dragonFightResult = m_storage->saveDragonFightData(m_dragonFight->saveData().toJson());
+        if (dragonFightResult.failed()) {
+            spdlog::warn("Failed to save dragon fight data: {}", dragonFightResult.error().message());
         }
     }
 

@@ -423,6 +423,7 @@ add_executable(mc_tests
     common/world/block/CompostableItemsTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/EndTeleporterTest.cpp
+    common/world/dimension/EndDragonFightTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp

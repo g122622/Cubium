@@ -83,8 +83,6 @@ EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
         _loadData(*data);
     } else {
         // 新世界：初始化折跃门列表
-        // MC 原版：ContiguousSet.create(Range.closedOpen(0, 20), DiscreteDomain.integers())
-        // 然后用世界种子随机打乱
         m_gateways.reserve(GATEWAY_COUNT);
         for (i32 i = 0; i < GATEWAY_COUNT; ++i) {
             m_gateways.push_back(i);
@@ -107,15 +105,12 @@ EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
 void EndDragonFight::setDragonKilled(IWorld& world)
 {
     // 1. 创建激活态出口传送门（讲台）
-    //    MC 原版：DragonFight.spawnExitPortal(true)
-    //    讲台中心在 (0, 0, 0)
     EndTeleporter::createExitPortal(world, BlockPos(0, 0, 0), true);
 
     // 2. 生成一个末地折跃门（如果还有剩余）
     _spawnNewGateway(world);
 
     // 3. 首次击杀时在祭坛顶部放置龙蛋
-    //    MC 原版：if (!previouslyKilled) { place dragon egg }
     if (!m_previouslyKilled) {
         _placeDragonEgg(world);
     }
@@ -170,15 +165,11 @@ void EndDragonFight::_spawnNewGateway(IWorld& world)
         return;
     }
 
-    // MC 原版：从列表尾部取出索引
+    // 从列表尾部取出索引
     const i32 gatewayIndex = m_gateways.back();
     m_gateways.pop_back();
 
     // 计算折跃门位置
-    // MC 原版：
-    //   angle = 2.0 * (-PI + (PI / GATEWAY_COUNT) * i)
-    //   x = floor(GATEWAY_DISTANCE * cos(angle))
-    //   z = floor(GATEWAY_DISTANCE * sin(angle))
     const f64 angle =
         2.0 * (-math::PI_DOUBLE + (math::PI_DOUBLE / static_cast<f64>(GATEWAY_COUNT)) * static_cast<f64>(gatewayIndex));
     const i32 x = static_cast<i32>(std::floor(static_cast<f64>(GATEWAY_DISTANCE) * std::cos(angle)));
@@ -191,14 +182,6 @@ void EndDragonFight::_spawnNewGateway(IWorld& world)
 
 void EndDragonFight::_spawnNewGatewayAt(IWorld& world, const BlockPos& pos)
 {
-    // MC 原版：
-    // 1. 播放世界事件 3000（GATEWAY_SPAWN_EFFECTS）
-    // 2. 通过注册表查找 END_GATEWAY_DELAYED 配置特征并放置
-    //
-    // 当前项目使用 EndGatewayEntity::createGatewayStructure() 直接放置折跃门结构，
-    // 这与 MC Java 的 EndGatewayFeature.place() 逻辑等效。
-    // 同时创建 EndGatewayEntity 方块实体，设置延迟搜索出口模式。
-
     // 播放折跃门生成效果
     world.playEvent(3000, pos, 0);
 
@@ -208,18 +191,6 @@ void EndDragonFight::_spawnNewGatewayAt(IWorld& world, const BlockPos& pos)
 
 void EndDragonFight::_placeDragonEgg(IWorld& world)
 {
-    // MC 原版：
-    //   world.setBlockAndUpdate(
-    //       world.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(origin)),
-    //       Blocks.DRAGON_EGG.defaultBlockState()
-    //   );
-    //
-    // EndPodiumFeature.getLocation(origin) = BlockPos.ZERO.offset(origin) = origin
-    // 默认 origin = (0, 0, 0)
-    //
-    // getHeightmapPos(MOTION_BLOCKING, origin) 返回 origin X/Z 处 MOTION_BLOCKING 高度图的最高方块上方
-    // 即讲台中心柱顶部，龙蛋应该出现在那里
-
     // 获取 X=0, Z=0 处的高度（MOTION_BLOCKING 语义）
     const i32 topY = world.getHeight(0, 0);
 

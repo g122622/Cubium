@@ -10,7 +10,7 @@
 
 ## EndDragonFight
 
-末影龙战斗管理器，对齐 MC Java `net.minecraft.world.level.dimension.end.EndDragonFight`。
+末影龙战斗管理器，协调末影龙击杀奖励。
 
 ### 职责
 
