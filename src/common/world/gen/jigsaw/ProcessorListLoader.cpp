@@ -30,6 +30,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/gen/feature/template/CappedStructureProcessor.hpp"
+#include "common/world/gen/valueprovider/IntProviderParser.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -700,10 +701,8 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProtectedBlocksPr
 std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(const nlohmann::json& processorObj)
 {
     // capped 处理器：限制内部处理器应用次数的上限
-    // JSON: { "processor_type": "minecraft:capped", "delegate": {...}, "limit": 4 }
-    // delegate 是嵌套的处理器定义，limit 是最大应用次数
-    // 对齐 MC Java 版 CappedProcessor：在 finalizeProcessing 阶段随机选取位置调用 delegate，
-    // 限制成功替换的次数不超过 limit
+    // JSON: { "processor_type": "minecraft:capped", "delegate": {...}, "limit": <IntProvider> }
+    // delegate 是嵌套的处理器定义，limit 是 IntProvider（支持固定整数或随机范围）
     if (!processorObj.contains("delegate") || !processorObj["delegate"].is_object()) {
         spdlog::warn("capped processor: missing or invalid 'delegate' field, using nop processor");
         return std::make_unique<NopStructureProcessor>();
@@ -715,36 +714,25 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(c
         return std::make_unique<NopStructureProcessor>();
     }
 
-    // 解析 limit 参数
-    // TODO: MC 原版使用 IntProvider（支持 constant/uniform/binomial 等随机范围），
-    //       当前仅支持固定整数值和 constant 类型 IntProvider，需要实现完整 IntProvider 解析
-    i32 limit = 4;
+    // 解析 limit 参数：支持裸整数和完整 IntProvider 格式
+    // MC 原版使用 IntProvider.POSITIVE_CODEC（最小值 >= 1）
+    std::unique_ptr<valueprovider::IntProvider> limitProvider;
     if (processorObj.contains("limit")) {
-        if (processorObj["limit"].is_number_integer()) {
-            limit = processorObj["limit"].get<i32>();
-            if (limit < 0) {
-                spdlog::warn("capped processor: negative limit {}, clamping to 0", limit);
-                limit = 0;
-            }
-        } else if (processorObj["limit"].is_object()) {
-            // IntProvider 格式: { "type": "minecraft:constant", "value": 4 }
-            // 或 { "type": "minecraft:uniform", "min_inclusive": 2, "max_inclusive": 6 }
-            // 当前仅支持 constant 类型
-            if (processorObj["limit"].contains("value") && processorObj["limit"]["value"].is_number_integer()) {
-                limit = processorObj["limit"]["value"].get<i32>();
-                if (limit < 0) {
-                    spdlog::warn("capped processor: negative limit {}, clamping to 0", limit);
-                    limit = 0;
-                }
-            } else {
-                spdlog::info("capped processor: unsupported IntProvider format for limit, using default value 4");
-            }
+        // POSITIVE_CODEC 要求 minValue >= 1
+        auto limitResult = valueprovider::IntProviderParser::parse(processorObj["limit"], 1);
+        if (limitResult.success()) {
+            limitProvider = limitResult.value();
         } else {
-            spdlog::info("capped processor: invalid limit type, using default value 4");
+            spdlog::warn("capped processor: failed to parse limit IntProvider: {}, using default value 4",
+                limitResult.error().message());
         }
     }
 
-    return std::make_unique<CappedStructureProcessor>(std::move(delegateProcessor), limit);
+    if (!limitProvider) {
+        limitProvider = std::make_unique<valueprovider::ConstantInt>(4);
+    }
+
+    return std::make_unique<CappedStructureProcessor>(std::move(delegateProcessor), std::move(limitProvider));
 }
 
 } // namespace jigsaw

@@ -31,14 +31,21 @@ namespace gen {
 namespace feature {
 namespace template_ {
 
-CappedStructureProcessor::CappedStructureProcessor(std::unique_ptr<StructureProcessor> delegate, i32 limit)
+CappedStructureProcessor::CappedStructureProcessor(
+    std::unique_ptr<StructureProcessor> delegate, std::unique_ptr<valueprovider::IntProvider> limitProvider)
     : m_delegate(std::move(delegate))
-    , m_limit(limit)
+    , m_limitProvider(std::move(limitProvider))
 {
-    if (m_limit < 0) {
-        m_limit = 0;
+    // limitProvider 为空时使用 ConstantInt(0)，确保安全
+    if (!m_limitProvider) {
+        m_limitProvider = std::make_unique<valueprovider::ConstantInt>(0);
     }
 }
+
+CappedStructureProcessor::CappedStructureProcessor(std::unique_ptr<StructureProcessor> delegate, i32 limit)
+    : m_delegate(std::move(delegate))
+    , m_limitProvider(std::make_unique<valueprovider::ConstantInt>(limit < 0 ? 0 : limit))
+{}
 
 std::optional<ProcessedBlockInfo> CappedStructureProcessor::process(const BlockPos& /*seedPos*/,
     const BlockPos& /*pos*/,
@@ -48,7 +55,6 @@ std::optional<ProcessedBlockInfo> CappedStructureProcessor::process(const BlockP
 {
     // CappedProcessor 在逐方块 process 阶段不做任何修改，直接透传。
     // 实际的限制替换逻辑在 finalizeProcessing 中执行。
-    // 这与 MC Java 版 CappedProcessor.processBlock() 使用基类默认实现一致。
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
@@ -57,8 +63,8 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
     const std::vector<BlockInfo>& originalBlocks,
     std::vector<ProcessedBlockInfo> processedBlocks)
 {
-    // 快速退出：delegate 为空、limit 为 0 或列表为空
-    if (!m_delegate || m_limit <= 0 || processedBlocks.empty()) {
+    // 快速退出：delegate 为空、limitProvider 最大值为 0 或列表为空
+    if (!m_delegate || m_limitProvider->getMaxValue() == 0 || processedBlocks.empty()) {
         return processedBlocks;
     }
 
@@ -71,9 +77,8 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
     u64 seed = math::getPositionRandom(seedPos.x, 0, seedPos.z);
     math::Random rng(seed);
 
-    // 采样实际限制次数
-    // TODO: MC 原版支持 IntProvider 随机范围（如 uniform 分布），当前仅支持固定整数值
-    i32 effectiveLimit = std::min(m_limit, static_cast<i32>(processedBlocks.size()));
+    // 采样 IntProvider 得到实际限制次数
+    i32 effectiveLimit = std::min(m_limitProvider->sample(rng), static_cast<i32>(processedBlocks.size()));
     if (effectiveLimit < 1) {
         return processedBlocks;
     }
@@ -149,10 +154,9 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
 
 std::unique_ptr<StructureProcessor> CappedStructureProcessor::clone() const
 {
-    if (m_delegate) {
-        return std::make_unique<CappedStructureProcessor>(m_delegate->clone(), m_limit);
-    }
-    return std::make_unique<CappedStructureProcessor>(nullptr, m_limit);
+    auto clonedDelegate = m_delegate ? m_delegate->clone() : nullptr;
+    auto clonedLimit = m_limitProvider ? m_limitProvider->clone() : nullptr;
+    return std::make_unique<CappedStructureProcessor>(std::move(clonedDelegate), std::move(clonedLimit));
 }
 
 } // namespace template_

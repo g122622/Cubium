@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHATSOEVER, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -24,6 +24,7 @@
 #pragma once
 
 #include "Template.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 #include <algorithm>
 #include <numeric>
 
@@ -43,11 +44,9 @@ namespace template_ {
  *   delegate.process()，并严格限制成功替换的次数不超过 limit
  *
  * JSON 格式：
- *   { "processor_type": "minecraft:capped", "delegate": {...}, "limit": 4 }
+ *   { "processor_type": "minecraft:capped", "delegate": {...}, "limit": <IntProvider> }
  *
- * 其中 delegate 是嵌套的处理器定义，limit 是最大应用次数。
- * TODO: MC 原版支持 IntProvider 随机范围作为 limit（如 uniform 分布），
- *       当前实现仅支持固定整数值，未来需要实现 IntProvider 支持。
+ * 其中 delegate 是嵌套的处理器定义，limit 是 IntProvider（支持固定整数或随机范围）。
  *
  * 典型用例：远古遗迹（Ocean Ruins）、古迹废墟（Trail Ruins）等结构中，
  * 限制某种替换规则（如苔藓化、箱子替换等）最多只生效 N 次，
@@ -58,6 +57,14 @@ public:
     /**
      * @brief 构造 CappedStructureProcessor
      * @param delegate 被包装的委托处理器，实际执行方块替换逻辑
+     * @param limitProvider IntProvider，在 finalizeProcessing 阶段采样确定最大成功应用次数
+     */
+    CappedStructureProcessor(
+        std::unique_ptr<StructureProcessor> delegate, std::unique_ptr<valueprovider::IntProvider> limitProvider);
+
+    /**
+     * @brief 便利构造函数：使用固定整数作为限制次数
+     * @param delegate 被包装的委托处理器
      * @param limit 最大成功应用次数（>= 0，0 表示不替换任何方块）
      */
     CappedStructureProcessor(std::unique_ptr<StructureProcessor> delegate, i32 limit);
@@ -78,10 +85,12 @@ public:
      * @brief 后处理阶段：随机选取方块位置，限制委托处理器的成功替换次数
      *
      * 算法流程：
-     * 1. 使用确定性随机源（基于结构放置位置的哈希）打乱方块索引顺序
-     * 2. 对每个随机选取的索引，调用 delegate.process() 尝试替换
-     * 3. 只有当 delegate 返回的结果与当前处理后方块不同时，才计为一次成功替换
-     * 4. 成功替换次数达到 limit 后停止
+     * 1. 检查 limitProvider 的最大值是否为 0，如果是则跳过处理
+     * 2. 使用确定性随机源（基于结构放置位置的哈希）采样 limitProvider 得到实际限制次数
+     * 3. 打乱方块索引顺序
+     * 4. 对每个随机选取的索引，调用 delegate.process() 尝试替换
+     * 5. 只有当 delegate 返回的结果与当前处理后方块不同时，才计为一次成功替换
+     * 6. 成功替换次数达到实际限制后停止
      */
     [[nodiscard]] std::vector<ProcessedBlockInfo> finalizeProcessing(const BlockPos& seedPos,
         const PlacementSettings& settings,
@@ -91,11 +100,11 @@ public:
     [[nodiscard]] std::unique_ptr<StructureProcessor> clone() const override;
 
     [[nodiscard]] const StructureProcessor* getDelegate() const { return m_delegate.get(); }
-    [[nodiscard]] i32 getLimit() const { return m_limit; }
+    [[nodiscard]] const valueprovider::IntProvider* getLimitProvider() const { return m_limitProvider.get(); }
 
 private:
     std::unique_ptr<StructureProcessor> m_delegate;
-    i32 m_limit;
+    std::unique_ptr<valueprovider::IntProvider> m_limitProvider;
 };
 
 } // namespace template_

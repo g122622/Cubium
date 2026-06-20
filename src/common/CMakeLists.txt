@@ -1136,6 +1136,9 @@ add_library(mc_common STATIC
     world/gen/placement/Placements.cpp
     world/gen/placement/PlacementRegistry.cpp
 
+    # World - Generation - Value Provider
+    world/gen/valueprovider/IntProviderParser.cpp
+
     # World - Generation - Spawn
     world/gen/spawn/WorldGenSpawner.cpp
 
