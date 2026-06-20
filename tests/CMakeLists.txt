@@ -692,6 +692,7 @@ add_executable(mc_tests
     common/world/gen/structure/test_shipwreck_structure.cpp
     common/world/gen/structure/test_new_structures.cpp
     common/world/gen/structure/test_structure_type_mapping.cpp
+    common/world/gen/structure/StructureCheckTest.cpp
     common/world/gen/structure/StructurePieceChestDispenserTest.cpp
     common/world/gen/structure/StrongholdPiecesTest.cpp
     common/world/gen/structure/TemplatedStructuresTest.cpp

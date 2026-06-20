@@ -162,10 +162,7 @@ public:
     /**
      * @brief 清理所有结构检查缓存
      *
-     * 清空 StructureCheck 的两层缓存：
-     * 1. m_loadedChunks：已加载区块的结构引用计数
-     * 2. m_featureChecks：生物群系检查结果
-     *
+     * 清空 StructureCheck 的精确缓存（m_loadedChunks）。
      * 在世界卸载或维度重新加载时调用。
      */
     void clearCache();
