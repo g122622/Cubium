@@ -891,6 +891,18 @@ add_executable(mc_tests
     common/world/gen/chunk/ChunkGeneratorAlignmentTest.cpp
     # WorldGenRegion测试
     common/world/gen/chunk/WorldGenRegionTest.cpp
+    # WorldGenRegion详细单元测试
+    common/world/gen/chunk/WorldGenRegionDetailedTest.cpp
+    # NoiseColumn单元测试
+    common/world/gen/chunk/NoiseColumnTest.cpp
+    # FlatChunkGenerator详细单元测试
+    common/world/gen/chunk/FlatChunkGeneratorDetailedTest.cpp
+    # ChunkGenerator接口与BaseChunkGenerator单元测试
+    common/world/gen/chunk/ChunkGeneratorInterfaceTest.cpp
+    # NoiseChunkGenerator单元测试
+    common/world/gen/chunk/NoiseChunkGeneratorTest.cpp
+    # 地形常识测试
+    common/world/gen/chunk/TerrainCommonSenseTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯
     client/world/color/BiomeColorsTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娣峰悎娴嬭瘯
