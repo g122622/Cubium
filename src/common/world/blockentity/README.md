@@ -180,6 +180,10 @@ BlockEntityDeserializer ──反序列化──→ BlockEntity（通过 Registr
 
 不燃烧时进度应该回退 2，而非清零。
 
+### 9. 活塞完成后必须调用 updateFromNeighbourShapes
+
+`PistonBlockEntity::clearPistonBlockEntity()` 在放置最终方块状态之前调用 `Block::updateFromNeighbourShapes()` 更新被移动方块的形状。这是因为方块（如栅栏、楼梯、红石线等）的形状取决于邻居，活塞移动后方块到达新位置需要重新计算连接状态。如果跳过此步骤，被活塞推动的栅栏不会与邻居栅栏连接，楼梯不会正确调整形状等。
+
 ### 9. 漏斗传输冷却
 
 传输冷却必须在成功传输后设置，否则会连续传输。漏斗链优化时目标漏斗的冷却时间减少 1 tick（7 tick 而非 8 tick）。
