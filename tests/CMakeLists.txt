@@ -688,6 +688,7 @@ add_executable(mc_tests
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/feature/template/BlockAgeProcessorTest.cpp
+    common/world/gen/feature/template/test_capped_processor.cpp
     common/world/gen/structure/test_ocean_ruin_structure.cpp
     common/world/gen/structure/test_shipwreck_structure.cpp
     common/world/gen/structure/test_new_structures.cpp

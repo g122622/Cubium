@@ -716,8 +716,9 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(c
     }
 
     // 解析 limit 参数
-    // MC Java 版使用 IntProvider（支持随机范围），当前实现仅支持固定整数值
-    i32 limit = 4; // MC 原版默认值
+    // TODO: MC 原版使用 IntProvider（支持 constant/uniform/binomial 等随机范围），
+    //       当前仅支持固定整数值和 constant 类型 IntProvider，需要实现完整 IntProvider 解析
+    i32 limit = 4;
     if (processorObj.contains("limit")) {
         if (processorObj["limit"].is_number_integer()) {
             limit = processorObj["limit"].get<i32>();

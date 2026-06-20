@@ -68,20 +68,17 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
     }
 
     // 使用确定性随机源：基于种子位置创建随机数生成器
-    // MC Java 版使用 RandomSource.create(level.getSeed()).forkPositional().at(pos)，
-    // 当前项目使用位置哈希作为种子，确保相同位置总是产生相同结果
     u64 seed = math::getPositionRandom(seedPos.x, 0, seedPos.z);
     math::Random rng(seed);
 
-    // 采样实际限制次数（当前实现为固定值，MC 原版支持 IntProvider 随机范围）
-    // 对齐 MC: int i = Math.min(this.limit.sample(randomsource), processedBlocks.size());
+    // 采样实际限制次数
+    // TODO: MC 原版支持 IntProvider 随机范围（如 uniform 分布），当前仅支持固定整数值
     i32 effectiveLimit = std::min(m_limit, static_cast<i32>(processedBlocks.size()));
     if (effectiveLimit < 1) {
         return processedBlocks;
     }
 
     // 生成打乱的索引序列
-    // 对齐 MC Java 版: IntArrayList intarraylist = Util.toShuffledList(IntStream.range(0, size), randomsource);
     std::vector<i32> indices(processedBlocks.size());
     std::iota(indices.begin(), indices.end(), 0);
     // Fisher-Yates 洗牌算法，使用确定性随机源
@@ -91,7 +88,6 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
     }
 
     // 遍历打乱后的索引，调用 delegate.process() 尝试替换
-    // 对齐 MC Java 版 CappedProcessor.finalizeProcessing() 的核心逻辑
     i32 successCount = 0;
     for (i32 idx : indices) {
         if (successCount >= effectiveLimit) {
@@ -111,7 +107,7 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
         auto result = m_delegate->process(seedPos, currentProcessed.pos, rawInfo, currentInfo, settings);
 
         // 检查委托处理器是否实际改变了方块
-        // 对齐 MC: 只有当 delegate 返回非 null 且结果与当前处理后方块不等时，才计为成功替换
+        // 只有当 delegate 返回的结果与当前处理后方块不等时，才计为成功替换
         if (result.has_value()) {
             bool changed = false;
             if (result->blockStateId != currentProcessed.blockStateId) {
@@ -123,9 +119,19 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
             } else if (!result->nbt && currentProcessed.nbt) {
                 changed = true;
             } else if (result->nbt && currentProcessed.nbt) {
-                // 简化比较：如果两者都有 NBT，假设内容可能不同
-                // MC Java 版使用 StructureBlockInfo.equals()，比较 pos、state 和 nbt
-                changed = true;
+                // 两者都有 NBT，比较 NBT 内容是否不同
+                // 当前项目中 CompoundTag 没有深度比较方法，先比较键集合
+                // TODO: 当 CompoundTag 提供 operator== 或 equals 方法后，替换为深度比较
+                if (result->nbt->value.size() != currentProcessed.nbt->value.size()) {
+                    changed = true;
+                } else {
+                    for (const auto& [key, val] : result->nbt->value) {
+                        if (currentProcessed.nbt->value.find(key) == currentProcessed.nbt->value.end()) {
+                            changed = true;
+                            break;
+                        }
+                    }
+                }
             }
 
             if (changed) {
