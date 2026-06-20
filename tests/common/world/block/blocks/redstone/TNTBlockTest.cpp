@@ -47,6 +47,7 @@
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -61,6 +62,7 @@
 #include "common/world/block/Material.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
+#include "common/world/explosion/Explosion.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gameevent/GameEvent.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
@@ -129,6 +131,32 @@ public:
 
     [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
     [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
+        auto it = m_entityLookup.find(id);
+        return it != m_entityLookup.end() ? it->second : nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
+        auto it = m_entityLookup.find(id);
+        return it != m_entityLookup.end() ? it->second : nullptr;
+    }
+
+    void registerEntity(Entity* entity)
+    {
+        if (entity != nullptr) {
+            m_entityLookup[entity->id()] = entity;
+        }
+    }
+
+    void unregisterEntity(Entity* entity)
+    {
+        if (entity != nullptr) {
+            m_entityLookup.erase(entity->id());
+        }
+    }
 
     EntityId spawnEntity(std::unique_ptr<Entity> entity) override
     {
@@ -243,6 +271,7 @@ public:
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    std::unordered_map<EntityId, Entity*> m_entityLookup;
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
     world::gamerule::GameRules m_gameRules;
@@ -1168,6 +1197,379 @@ TEST_F(TNTBlockTest, Prime_WithIgniter_EmitsGameEventWithSourceEntity)
     // 游戏事件应该记录玩家作为源实体
     EXPECT_EQ(m_world.gameEventCount(), 1);
     EXPECT_EQ(m_world.lastGameEventSourceEntity(), player.get());
+}
+
+// ============================================================================
+// awardUsedStat 测试 — 打火石/火焰弹点燃时更新物品使用统计
+// ============================================================================
+
+TEST_F(TNTBlockTest, OnBlockActivated_FlintAndSteel_AwardUsedStat)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    if (Items::FLINT_AND_STEEL != nullptr) {
+        ItemStack flintAndSteel(Items::FLINT_AND_STEEL, 1);
+        player->getHeldItem(Hand::MainHand) = flintAndSteel;
+
+        BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+
+        // Player 基类 awardUsedStat 默认空实现，不会崩溃即为通过
+        // 验证 TNT 被成功点燃（说明 awardUsedStat 调用不会阻断执行流程）
+        EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    }
+}
+
+TEST_F(TNTBlockTest, OnBlockActivated_FireCharge_AwardUsedStat)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    if (Items::FIRE_CHARGE != nullptr) {
+        ItemStack fireCharge(Items::FIRE_CHARGE, 1);
+        player->getHeldItem(Hand::MainHand) = fireCharge;
+
+        BlockRaycastResult hit = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+        tntBlock->onBlockActivated(tntBlock->defaultState(), m_world, tntPos, *player, Hand::MainHand, hit);
+
+        // Player 基类 awardUsedStat 默认空实现，不会崩溃即为通过
+        // 验证 TNT 被成功点燃
+        EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    }
+}
+
+// ============================================================================
+// mayInteract 测试 — 投掷物交互权限
+// ============================================================================
+
+TEST_F(TNTBlockTest, OnProjectileHit_MayInteractFalse_DoesNotPrime)
+{
+    // 验证：当 mayInteract 返回 false 时，燃烧投掷物不点燃 TNT
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    // 创建一个燃烧的 Player（冒险模式），mayInteract 返回 false
+    auto player = std::make_unique<Player>(EntityId(200), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Adventure);
+    player->setFire(100); // 设置着火
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    // 冒险模式下 Player::mayInteract 返回 false
+    // 直接使用 Player 作为 projectile 参数（Entity& 类型）
+    tntBlock->onProjectileHit(m_world, tntBlock->defaultState(), hitResult, *player);
+
+    // 冒险模式下 mayInteract 返回 false，不应点燃 TNT
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+TEST_F(TNTBlockTest, OnProjectileHit_SpectatorMayInteractFalse_DoesNotPrime)
+{
+    // 验证：旁观者模式下 mayInteract 返回 false
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(200), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Spectator);
+    player->setFire(100);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    tntBlock->onProjectileHit(m_world, tntBlock->defaultState(), hitResult, *player);
+
+    EXPECT_EQ(m_world.spawnedTNTCount(), 0);
+}
+
+TEST_F(TNTBlockTest, OnProjectileHit_SurvivalMayInteractTrue_Primes)
+{
+    // 验证：生存模式下 mayInteract 返回 true，燃烧投掷物点燃 TNT
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(200), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Survival);
+    player->setFire(100);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    tntBlock->onProjectileHit(m_world, tntBlock->defaultState(), hitResult, *player);
+
+    // 生存模式下 mayInteract 返回 true，应该点燃 TNT
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+}
+
+TEST_F(TNTBlockTest, OnProjectileHit_CreativeMayInteractTrue_Primes)
+{
+    // 验证：创造模式下 mayInteract 返回 true
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(200), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Creative);
+    player->setFire(100);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(10.5f, 64.5f, 20.5f), tntPos, Direction::Up, 0.0f);
+
+    tntBlock->onProjectileHit(m_world, tntBlock->defaultState(), hitResult, *player);
+
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+}
+
+// ============================================================================
+// Entity::mayInteract 默认实现测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, EntityMayInteract_DefaultReturnsTrue)
+{
+    // 验证：Entity 基类的 mayInteract 默认返回 true
+    Entity entity(EntityId(300));
+    BlockPos pos(10, 64, 20);
+    EXPECT_TRUE(entity.mayInteract(m_world, pos));
+}
+
+// ============================================================================
+// Player::mayInteract 测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, PlayerMayInteract_Survival_ReturnsTrue)
+{
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Survival);
+    BlockPos pos(10, 64, 20);
+    EXPECT_TRUE(player->mayInteract(m_world, pos));
+}
+
+TEST_F(TNTBlockTest, PlayerMayInteract_Creative_ReturnsTrue)
+{
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Creative);
+    BlockPos pos(10, 64, 20);
+    EXPECT_TRUE(player->mayInteract(m_world, pos));
+}
+
+TEST_F(TNTBlockTest, PlayerMayInteract_Adventure_ReturnsFalse)
+{
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Adventure);
+    BlockPos pos(10, 64, 20);
+    EXPECT_FALSE(player->mayInteract(m_world, pos));
+}
+
+TEST_F(TNTBlockTest, PlayerMayInteract_Spectator_ReturnsFalse)
+{
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Spectator);
+    BlockPos pos(10, 64, 20);
+    EXPECT_FALSE(player->mayInteract(m_world, pos));
+}
+
+// ============================================================================
+// onBlockExploded 带 Explosion 参数测试 — 连锁爆炸间接源实体
+// ============================================================================
+
+TEST_F(TNTBlockTest, OnBlockExploded_WithExplosion_SetsIndirectSourceAsOwner)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    // 创建一个玩家作为爆炸的间接源
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    // 创建爆炸对象，以玩家作为源实体
+    world::explosion::Explosion explosion(
+        m_world, Vector3(10.5f, 64.0f, 20.5f), 4.0f, world::explosion::ExplosionMode::Break, false, player.get());
+
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState(), &explosion);
+
+    // 连锁 TNT 应该以玩家作为 owner（因为玩家是 LivingEntity，getIndirectSourceEntity 返回它）
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    EXPECT_EQ(m_world.lastTNTOwner(), player.get());
+}
+
+TEST_F(TNTBlockTest, OnBlockExploded_WithNullExplosion_NoOwner)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    // nullptr 表示没有爆炸信息（向后兼容）
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState(), nullptr);
+
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    // 没有 owner
+    EXPECT_EQ(m_world.lastTNTOwner(), nullptr);
+}
+
+TEST_F(TNTBlockTest, OnBlockExploded_WithExplosion_NoSource_NoOwner)
+{
+    BlockProperties props(Material::TNT);
+    auto tntBlock = std::make_unique<TNTBlock>(props);
+
+    BlockPos tntPos(10, 64, 20);
+    m_world.setBlockAt(tntPos, &tntBlock->defaultState());
+    m_world.setClientSide(false);
+
+    // 创建无源爆炸
+    world::explosion::Explosion explosion(
+        m_world, Vector3(10.5f, 64.0f, 20.5f), 4.0f, world::explosion::ExplosionMode::Break, false, nullptr);
+
+    tntBlock->onBlockExploded(m_world, tntPos, tntBlock->defaultState(), &explosion);
+
+    EXPECT_EQ(m_world.spawnedTNTCount(), 1);
+    // 无源爆炸的 getIndirectSourceEntity 返回 nullptr
+    EXPECT_EQ(m_world.lastTNTOwner(), nullptr);
+}
+
+// ============================================================================
+// ProjectileEntity::mayInteract 测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, ProjectileMayInteract_NullShooter_Allowed)
+{
+    // 无主投掷物允许交互
+    entity::ArrowEntity projectile(EntityId(400));
+    projectile.setWorld(&m_world);
+    BlockPos pos(10, 64, 20);
+
+    EXPECT_TRUE(projectile.mayInteract(m_world, pos));
+}
+
+TEST_F(TNTBlockTest, ProjectileMayInteract_SurvivalPlayerShooter_Allowed)
+{
+    // 发射者是生存模式玩家，mayInteract 返回 true
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Survival);
+    m_world.registerEntity(player.get());
+
+    entity::ArrowEntity projectile(EntityId(401));
+    projectile.setWorld(&m_world);
+    projectile.setShooter(player.get());
+
+    BlockPos pos(10, 64, 20);
+    EXPECT_TRUE(projectile.mayInteract(m_world, pos));
+}
+
+TEST_F(TNTBlockTest, ProjectileMayInteract_AdventurePlayerShooter_Denied)
+{
+    // 发射者是冒险模式玩家，mayInteract 返回 false
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Adventure);
+    m_world.registerEntity(player.get());
+
+    entity::ArrowEntity projectile(EntityId(402));
+    projectile.setWorld(&m_world);
+    projectile.setShooter(player.get());
+
+    BlockPos pos(10, 64, 20);
+    EXPECT_FALSE(projectile.mayInteract(m_world, pos));
+}
+
+TEST_F(TNTBlockTest, ProjectileMayInteract_MobGriefingTrue_Allowed)
+{
+    // 非玩家发射者 + MOB_GRIEFING=true 允许交互
+    // 默认 MOB_GRIEFING 为 true
+    Entity mob(EntityId(300));
+    mob.setWorld(&m_world);
+    m_world.registerEntity(&mob);
+
+    entity::ArrowEntity projectile(EntityId(403));
+    projectile.setWorld(&m_world);
+    projectile.setShooter(&mob);
+
+    BlockPos pos(10, 64, 20);
+    EXPECT_TRUE(projectile.mayInteract(m_world, pos));
+}
+
+TEST_F(TNTBlockTest, ProjectileMayInteract_MobGriefingFalse_Denied)
+{
+    // 非玩家发射者 + MOB_GRIEFING=false 禁止交互
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false, nullptr);
+
+    Entity mob(EntityId(301));
+    mob.setWorld(&m_world);
+    m_world.registerEntity(&mob);
+
+    entity::ArrowEntity projectile(EntityId(404));
+    projectile.setWorld(&m_world);
+    projectile.setShooter(&mob);
+
+    BlockPos pos(10, 64, 20);
+    EXPECT_FALSE(projectile.mayInteract(m_world, pos));
+}
+
+// ============================================================================
+// Explosion::getIndirectSourceEntity 测试
+// ============================================================================
+
+TEST_F(TNTBlockTest, ExplosionGetIndirectSourceEntity_NullSource)
+{
+    world::explosion::Explosion explosion(
+        m_world, Vector3(0, 0, 0), 4.0f, world::explosion::ExplosionMode::Break, false, nullptr);
+    EXPECT_EQ(explosion.getIndirectSourceEntity(), nullptr);
+}
+
+TEST_F(TNTBlockTest, ExplosionGetIndirectSourceEntity_PlayerSource)
+{
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    world::explosion::Explosion explosion(
+        m_world, Vector3(0, 0, 0), 4.0f, world::explosion::ExplosionMode::Break, false, player.get());
+
+    // 玩家是 LivingEntity，getIndirectSourceEntity 应该返回它
+    LivingEntity* indirect = explosion.getIndirectSourceEntity();
+    EXPECT_EQ(indirect, player.get());
 }
 
 } // namespace test
