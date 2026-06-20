@@ -51,6 +51,15 @@ std::optional<ProcessedBlockInfo> StructureProcessor::process(const BlockPos& /*
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
+std::vector<ProcessedBlockInfo> StructureProcessor::finalizeProcessing(const BlockPos& /*seedPos*/,
+    const PlacementSettings& /*settings*/,
+    const std::vector<BlockInfo>& /*originalBlocks*/,
+    std::vector<ProcessedBlockInfo> processedBlocks)
+{
+    // 默认实现：直接返回处理后的方块列表，不做任何修改
+    return processedBlocks;
+}
+
 // ============================================================================
 // StructureProcessorList
 // ============================================================================

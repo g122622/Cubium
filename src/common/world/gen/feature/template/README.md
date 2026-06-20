@@ -16,6 +16,8 @@ template/
 ├── RuleTest.cpp                      # 规则测试实现
 ├── CopperBulbDegradationProcessor.hpp # 铜灯降级处理器（试炼密室用）
 ├── CopperBulbDegradationProcessor.cpp # 铜灯降级处理器实现
+├── CappedStructureProcessor.hpp  # 限制次数处理器（Capped Processor，包装器模式）
+├── CappedStructureProcessor.cpp  # 限制次数处理器实现
 ├── BlockAgeProcessor.hpp             # [未编译] 方块老化处理器独立声明（实现在 Template.cpp）
 ├── BlockAgeProcessor.cpp             # [未编译] 方块老化处理器独立实现（实现在 Template.cpp）
 ├── BlackstoneReplacementProcessor.hpp # [未编译] 黑石替换处理器
@@ -64,7 +66,8 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
                                       ├── LavaSubmergingProcessor
                                       ├── BlockAgeProcessor ──依赖──> BlockTags（STAIRS/SLABS/WALLS）
                                       ├── BlackstoneReplacementProcessor
-                                      └── CopperBulbDegradationProcessor
+                                      ├── CopperBulbDegradationProcessor
+                                      └── CappedStructureProcessor ──包装──> StructureProcessor（delegate）
 ```
 
 **关键依赖链**：

@@ -29,6 +29,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/gen/feature/template/CappedStructureProcessor.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -47,6 +48,7 @@ using feature::template_::BlockAgeProcessor;
 using feature::template_::BlockIgnoreStructureProcessor;
 using feature::template_::BlockMatchRuleTest;
 using feature::template_::BlockStateMatchRuleTest;
+using feature::template_::CappedStructureProcessor;
 using feature::template_::GravityStructureProcessor;
 using feature::template_::IntegrityProcessor;
 using feature::template_::JigsawReplacementStructureProcessor;
@@ -700,20 +702,48 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseCappedProcessor(c
     // capped 处理器：限制内部处理器应用次数的上限
     // JSON: { "processor_type": "minecraft:capped", "delegate": {...}, "limit": 4 }
     // delegate 是嵌套的处理器定义，limit 是最大应用次数
-    // TODO: 实现 CappedStructureProcessor 以支持次数限制
-    // 当前使用 delegate 处理器但不限制次数，作为近似实现
-    if (processorObj.contains("delegate") && processorObj["delegate"].is_object()) {
-        auto delegateProcessor = _parseProcessor(processorObj["delegate"]);
-        if (delegateProcessor) {
-            // 返回 delegate 处理器（不限制次数）
-            // 完整实现需要 CappedStructureProcessor 包装器
-            spdlog::info("capped processor: limit not enforced, using delegate processor directly");
-            return delegateProcessor;
+    // 对齐 MC Java 版 CappedProcessor：在 finalizeProcessing 阶段随机选取位置调用 delegate，
+    // 限制成功替换的次数不超过 limit
+    if (!processorObj.contains("delegate") || !processorObj["delegate"].is_object()) {
+        spdlog::warn("capped processor: missing or invalid 'delegate' field, using nop processor");
+        return std::make_unique<NopStructureProcessor>();
+    }
+
+    auto delegateProcessor = _parseProcessor(processorObj["delegate"]);
+    if (!delegateProcessor) {
+        spdlog::warn("capped processor: failed to parse delegate processor, using nop processor");
+        return std::make_unique<NopStructureProcessor>();
+    }
+
+    // 解析 limit 参数
+    // MC Java 版使用 IntProvider（支持随机范围），当前实现仅支持固定整数值
+    i32 limit = 4; // MC 原版默认值
+    if (processorObj.contains("limit")) {
+        if (processorObj["limit"].is_number_integer()) {
+            limit = processorObj["limit"].get<i32>();
+            if (limit < 0) {
+                spdlog::warn("capped processor: negative limit {}, clamping to 0", limit);
+                limit = 0;
+            }
+        } else if (processorObj["limit"].is_object()) {
+            // IntProvider 格式: { "type": "minecraft:constant", "value": 4 }
+            // 或 { "type": "minecraft:uniform", "min_inclusive": 2, "max_inclusive": 6 }
+            // 当前仅支持 constant 类型
+            if (processorObj["limit"].contains("value") && processorObj["limit"]["value"].is_number_integer()) {
+                limit = processorObj["limit"]["value"].get<i32>();
+                if (limit < 0) {
+                    spdlog::warn("capped processor: negative limit {}, clamping to 0", limit);
+                    limit = 0;
+                }
+            } else {
+                spdlog::info("capped processor: unsupported IntProvider format for limit, using default value 4");
+            }
+        } else {
+            spdlog::info("capped processor: invalid limit type, using default value 4");
         }
     }
 
-    spdlog::info("capped processor: no valid delegate, using nop processor");
-    return std::make_unique<NopStructureProcessor>();
+    return std::make_unique<CappedStructureProcessor>(std::move(delegateProcessor), limit);
 }
 
 } // namespace jigsaw

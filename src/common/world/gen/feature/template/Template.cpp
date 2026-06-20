@@ -187,6 +187,15 @@ std::optional<ProcessedBlockInfo> StructureProcessor::process(const BlockPos& /*
     return ProcessedBlockInfo::fromBlockInfo(blockInfo);
 }
 
+std::vector<ProcessedBlockInfo> StructureProcessor::finalizeProcessing(const BlockPos& /*seedPos*/,
+    const PlacementSettings& /*settings*/,
+    const std::vector<BlockInfo>& /*originalBlocks*/,
+    std::vector<ProcessedBlockInfo> processedBlocks)
+{
+    // 默认实现：直接返回处理后的方块列表，不做任何修改
+    return processedBlocks;
+}
+
 // ============================================================================
 // TemplateEntityInfo
 // ============================================================================
@@ -499,7 +508,9 @@ bool Template::place(
     const auto* bounds = settings.getBoundingBox();
 
     // 首先处理方块信息（应用处理器链）
+    std::vector<BlockInfo> originalBlocks;
     std::vector<ProcessedBlockInfo> processedBlocks;
+    originalBlocks.reserve(blocks.size());
     processedBlocks.reserve(blocks.size());
 
     for (const auto& block : blocks) {
@@ -517,6 +528,12 @@ bool Template::place(
             blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
         }
 
+        // 保存原始方块信息（用于 finalizeProcessing）
+        BlockInfo rawInfo(block.pos, block.blockStateId);
+        if (block.nbt) {
+            rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+        }
+
         // 应用处理器链
         ProcessedBlockInfo processedBlock;
         processedBlock.pos = worldPos;
@@ -531,12 +548,6 @@ bool Template::place(
             bool shouldKeep = true;
             for (const auto& processor : *processors) {
                 if (processor) {
-                    // 创建原始方块信息（未变换的）
-                    BlockInfo rawInfo(block.pos, block.blockStateId);
-                    if (block.nbt) {
-                        rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
-                    }
-
                     auto result = processor->process(pos, worldPos, rawInfo, blockInfo, settings);
                     if (!result) {
                         shouldKeep = false;
@@ -557,7 +568,22 @@ bool Template::place(
             }
         }
 
+        originalBlocks.push_back(std::move(rawInfo));
         processedBlocks.push_back(std::move(processedBlock));
+    }
+
+    // 后处理阶段：对所有处理器调用 finalizeProcessing
+    if (settings.getProcessors()) {
+        for (const auto& processor : *settings.getProcessors()) {
+            if (processor) {
+                processedBlocks =
+                    processor->finalizeProcessing(pos, settings, originalBlocks, std::move(processedBlocks));
+            }
+        }
+        // 确保原始列表和处理后列表大小一致（finalizeProcessing 可能移除方块）
+        if (processedBlocks.size() < originalBlocks.size()) {
+            originalBlocks.resize(processedBlocks.size());
+        }
     }
 
     // 方块排序逻辑：按 Y, X, Z 坐标排序，并分为三类
@@ -682,7 +708,9 @@ bool Template::placeInWorld(
     const auto* bounds = settings.getBoundingBox();
 
     // 处理方块信息
+    std::vector<BlockInfo> originalBlocks;
     std::vector<ProcessedBlockInfo> processedBlocks;
+    originalBlocks.reserve(blocks.size());
     processedBlocks.reserve(blocks.size());
 
     for (const auto& block : blocks) {
@@ -693,6 +721,12 @@ bool Template::placeInWorld(
         BlockInfo blockInfo(worldPos, block.blockStateId);
         if (block.nbt) {
             blockInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
+        }
+
+        // 保存原始方块信息（用于 finalizeProcessing）
+        BlockInfo rawInfo(block.pos, block.blockStateId);
+        if (block.nbt) {
+            rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
         }
 
         ProcessedBlockInfo processedBlock;
@@ -708,11 +742,6 @@ bool Template::placeInWorld(
             bool shouldKeep = true;
             for (const auto& processor : *processors) {
                 if (processor) {
-                    BlockInfo rawInfo(block.pos, block.blockStateId);
-                    if (block.nbt) {
-                        rawInfo.nbt = std::make_unique<nbt::CompoundTag>(*block.nbt);
-                    }
-
                     auto result = processor->process(pos, worldPos, rawInfo, blockInfo, settings);
                     if (!result) {
                         shouldKeep = false;
@@ -732,7 +761,22 @@ bool Template::placeInWorld(
             }
         }
 
+        originalBlocks.push_back(std::move(rawInfo));
         processedBlocks.push_back(std::move(processedBlock));
+    }
+
+    // 后处理阶段：对所有处理器调用 finalizeProcessing
+    if (settings.getProcessors()) {
+        for (const auto& processor : *settings.getProcessors()) {
+            if (processor) {
+                processedBlocks =
+                    processor->finalizeProcessing(pos, settings, originalBlocks, std::move(processedBlocks));
+            }
+        }
+        // 确保原始列表和处理后列表大小一致（finalizeProcessing 可能移除方块）
+        if (processedBlocks.size() < originalBlocks.size()) {
+            originalBlocks.resize(processedBlocks.size());
+        }
     }
 
     // 记录需要处理液体的位置
