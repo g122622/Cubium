@@ -283,7 +283,11 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IReso
         // 常见的粒子纹理名称
         static const std::vector<std::string> particleTextures = {// 环境类
             "bubble",
-            "bubble_pop",
+            "bubble_pop_0",
+            "bubble_pop_1",
+            "bubble_pop_2",
+            "bubble_pop_3",
+            "bubble_pop_4",
             "underwater",
             // 火焰和烟雾
             "flame",

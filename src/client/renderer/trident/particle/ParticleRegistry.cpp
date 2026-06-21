@@ -163,7 +163,7 @@ void ParticleRegistry::_registerBuiltinTypes()
     registerSimpleType(ParticleTypeId::BubblePop,
         "minecraft:bubble_pop",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE);
     registerSimpleType(ParticleTypeId::BubbleColumnUp,
         "minecraft:bubble_column_up",
         ParticleFactory{},

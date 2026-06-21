@@ -30,6 +30,7 @@ particle/
     │
     ├── ambient/                  # 环境粒子
     │   ├── BubbleParticle.hpp/cpp     # 水下气泡
+    │   ├── BubblePopParticle.hpp/cpp  # 气泡破裂（BubbleParticle 离开水面时生成）
     │   ├── UnderwaterParticle.hpp/cpp # 水下悬浮
     │   ├── CloudParticle.hpp/cpp      # 云朵粒子
     │   └── SporeBlossomParticle.hpp/cpp # 孢子花粒子

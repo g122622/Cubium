@@ -90,12 +90,18 @@ void BubbleParticle::tick(mc::client::ClientWorld* world)
             const mc::fluid::FluidState* fluidState = state->getFluidState();
             if (fluidState == nullptr || fluidState->isEmpty() ||
                 !fluidState->getFluid().isIn(mc::fluid::FluidTags::WATER())) {
-                // TODO: 在 ParticleManager 支持粒子生成时实现 BubblePop 粒子生成
+                // 气泡离开水面时，生成 BubblePop 粒子
+                if (m_emitCallback) {
+                    m_emitCallback(ParticleTypeId::BubblePop, m_position, glm::vec3(0.0f, 0.0f, 0.0f));
+                }
                 setExpired();
                 return;
             }
         } else {
-            // 不在方块中（空气），气泡破裂
+            // 不在方块中（空气），气泡破裂，生成 BubblePop 粒子
+            if (m_emitCallback) {
+                m_emitCallback(ParticleTypeId::BubblePop, m_position, glm::vec3(0.0f, 0.0f, 0.0f));
+            }
             setExpired();
             return;
         }

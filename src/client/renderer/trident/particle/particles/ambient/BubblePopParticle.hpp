@@ -34,20 +34,36 @@ class ClientWorld;
 namespace mc::client::renderer::trident::particle::particles {
 
 /**
- * @brief 气泡粒子
+ * @brief 气泡破裂粒子
  *
- * 在水中生成，向上升起，到达水面后消失。
+ * 当气泡粒子（BubbleParticle）离开水面时生成，模拟气泡破裂的效果。
+ * 对应 Minecraft 原版的 BubblePopParticle。
  *
  * 特性：
- * - 浮力 0.005/tick
- * - 到达水面后消失并生成 BubblePop 粒子
- * - 摩擦系数 0.85
- * - 生命周期约 8-40 tick
+ * - 生命周期 4 tick（极短）
+ * - 微弱重力 0.008
+ * - 有碰撞检测
+ * - 5 帧动画纹理（bubble_pop_0 ~ bubble_pop_4）
+ * - 渲染类型：OPAQUE
+ * - 白色不透明
+ *
+ * 与 BubbleParticle 的关系：
+ * - BubbleParticle 在 tick 中检测到离开水面时，通过 emitCallback
+ *   生成 BubblePop 粒子，然后自身过期。
  */
-class BubbleParticle : public Particle {
+class BubblePopParticle : public Particle {
 public:
-    BubbleParticle(const glm::vec3& pos, const glm::vec3& velocity);
+    /**
+     * @brief 构造气泡破裂粒子
+     *
+     * @param pos 初始位置
+     * @param velocity 初始速度（直接使用，不做额外随机偏移）
+     */
+    BubblePopParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
+    /**
+     * @brief 工厂方法
+     */
     static std::unique_ptr<Particle> create(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
@@ -55,13 +71,26 @@ public:
 
     [[nodiscard]] ParticleRenderType getRenderType() const override
     {
-        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+        return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
     }
 
-    [[nodiscard]] ResourceLocation getTextureLocation() const override
-    {
-        return ResourceLocation("minecraft:particle/bubble");
-    }
+    /**
+     * @brief 根据粒子年龄返回对应的动画帧纹理
+     *
+     * BubblePop 使用5帧动画纹理（bubble_pop_0 ~ bubble_pop_4），
+     * 根据生命周期进度选择当前帧。
+     */
+    [[nodiscard]] ResourceLocation getTextureLocation() const override;
+
+private:
+    /// 动画帧数
+    static constexpr i32 FRAME_COUNT = 5;
+
+    /// 生命周期（ticks）
+    static constexpr f64 DEFAULT_LIFETIME = 4.0;
+
+    /// 重力加速度
+    static constexpr f64 BUBBLE_POP_GRAVITY = 0.008;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

@@ -28,6 +28,7 @@
 #include "particles/RainParticle.hpp"
 #include "particles/SnowParticle.hpp"
 #include "particles/ambient/BubbleParticle.hpp"
+#include "particles/ambient/BubblePopParticle.hpp"
 #include "particles/ambient/CloudParticle.hpp"
 #include "particles/ambient/SporeBlossomParticle.hpp"
 #include "particles/ambient/UnderwaterParticle.hpp"
@@ -76,6 +77,14 @@ void registerBuiltinParticleFactories()
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         8.0f,
         false,
+        false);
+
+    registry.registerType(ParticleTypeId::BubblePop,
+        "minecraft:bubble_pop",
+        BubblePopParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        4.0f,
+        true,
         false);
 
     registry.registerType(ParticleTypeId::Underwater,

@@ -63,6 +63,7 @@ add_executable(minecraft-client
     renderer/trident/particle/particles/weather/FishingParticle.cpp
     # 粒子实现 - 环境
     renderer/trident/particle/particles/ambient/BubbleParticle.cpp
+    renderer/trident/particle/particles/ambient/BubblePopParticle.cpp
     renderer/trident/particle/particles/ambient/UnderwaterParticle.cpp
     renderer/trident/particle/particles/ambient/CloudParticle.cpp
     renderer/trident/particle/particles/ambient/SporeBlossomParticle.cpp
