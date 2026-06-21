@@ -92,6 +92,7 @@ add_executable(mc_tests
     common/item/ItemCraftedByTest.cpp
     common/item/BlockItemNbtTest.cpp
     common/item/GameMasterBlockItemTest.cpp
+    common/item/core/AdventureModePredicateTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
     common/item/enchantment/AttemptDamageItemTest.cpp
@@ -1348,6 +1349,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/core/Item.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemStack.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/core/AdventureModePredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/Items.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItemRegistry.cpp
@@ -2087,6 +2089,7 @@ target_sources(mc_village_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/core/Item.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemStack.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/core/ItemRegistry.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/core/AdventureModePredicate.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/Items.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/block/BlockItemRegistry.cpp

@@ -46,6 +46,13 @@ class IWorld;
  * - 空谓词列表表示"无限制"（不匹配任何方块）
  * - 任一条目匹配即视为通过（OR 逻辑）
  * - 标签引用通过 BlockTags 系统解析
+ *
+ * TODO: 当前实现仅支持字符串列表匹配（方块ID和#标签引用），不支持
+ * MC Java 原版 BlockPredicate 的方块状态属性匹配（如 "minecraft:oak_log[axis=y]"）
+ * 和方块实体NBT匹配（如 "minecraft:chest{Items:[...]}"）。这些高级匹配功能
+ * 需要在 StatePropertiesPredicate 和 NbtPredicate 实现后添加。
+ * 参考: net/minecraft/world/item/AdventureModePredicate.java
+ *       net/minecraft/advancements/criterion/BlockPredicate.java
  */
 class AdventureModePredicate {
 public:
