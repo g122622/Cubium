@@ -110,6 +110,11 @@ void MiningManager::abortMining(PlayerId playerId)
 
     auto it = m_miningStates.find(playerId);
     if (it != m_miningStates.end()) {
+        // 对应 MC 原版: ServerPlayerGameMode.stopDestroyBlock() 中发送 stage=-1 的
+        // destroyBlockProgress，通知其他玩家移除破坏动画。
+        if (it->second.active && it->second.lastStage != 255) {
+            _broadcastBreakAnim(playerId, it->second.position, -1);
+        }
         m_miningStates.erase(it);
     }
 }
@@ -118,9 +123,15 @@ void MiningManager::handleBlockInteraction(
     PlayerId playerId, const BlockPos& pos, network::BlockInteractionAction action)
 {
     switch (action) {
-        case network::BlockInteractionAction::StartDestroyBlock:
-            startMining(playerId, pos, static_cast<EntityId>(playerId));
+        case network::BlockInteractionAction::StartDestroyBlock: {
+            // 通过解析器获取正确的 EntityId（PlayerId != EntityId）
+            EntityId entityId = 0;
+            if (m_entityIdResolver) {
+                entityId = m_entityIdResolver(playerId);
+            }
+            startMining(playerId, pos, entityId);
             break;
+        }
 
         case network::BlockInteractionAction::AbortDestroyBlock:
             abortMining(playerId);
@@ -248,6 +259,11 @@ bool MiningManager::tryCompleteMining(PlayerId playerId, const BlockPos& pos)
 void MiningManager::setOnBreakAnimBroadcast(std::function<void(PlayerId, i32, i32, i32, i8)> callback)
 {
     m_onBreakAnimBroadcast = std::move(callback);
+}
+
+void MiningManager::setEntityIdResolver(std::function<EntityId(PlayerId)> resolver)
+{
+    m_entityIdResolver = std::move(resolver);
 }
 
 void MiningManager::setOnMiningComplete(std::function<void(PlayerId, const BlockPos&)> callback)

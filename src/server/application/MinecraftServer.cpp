@@ -701,6 +701,29 @@ void MinecraftServer::initializeInteractionManagers()
         (void)result;
     });
 
+    // 设置 EntityId 解析器：将 PlayerId 转换为正确的 EntityId
+    // MiningManager 内部只有 PlayerId，但广播破坏动画需要 EntityId 作为 breakerId
+    m_miningManager->setEntityIdResolver(
+        [this](PlayerId playerId) -> EntityId { return playerEntityManager().getPlayerEntityId(playerId); });
+
+    // 设置破坏动画广播回调：将挖掘进度通过 ServerWorld::destroyBlockProgress 广播给其他玩家
+    // 对应 MC Java: ServerPlayerGameMode 中调用 level.destroyBlockProgress(entityId, pos, stage)
+    m_miningManager->setOnBreakAnimBroadcast([this](PlayerId playerId, i32 x, i32 y, i32 z, i8 stage) {
+        EntityId entityId = playerEntityManager().getPlayerEntityId(playerId);
+        if (entityId == INVALID_ENTITY_ID) {
+            return;
+        }
+        // 获取玩家所在维度的世界，向该维度广播破坏动画
+        // 对应 MC Java: serverplayer.level() == this 维度检查
+        ServerDimension* dim = dimensionManager().getPlayerDimensionWorld(playerId);
+        if (dim != nullptr) {
+            auto* world = dim->world();
+            if (world != nullptr) {
+                world->destroyBlockProgress(entityId, BlockPos(x, y, z), static_cast<i32>(stage));
+            }
+        }
+    });
+
     // 设置服务器接口到 BlockInteractionManager（用于告示牌命令执行等）
     m_blockInteractionManager->setServer(this);
 
@@ -2503,9 +2526,9 @@ void MinecraftServer::broadcastBlockBreakProgressInRange(
 {
     // 对应 MC Java: ServerLevel.destroyBlockProgress()
     // 发送 BlockBreakAnimPacket 给范围内的玩家
-    // TODO: MC Java 排除破坏者自身（serverplayer.getId() != p_8612_），
-    //       当前实现暂不排除，因为 ServerPlayerData 中没有 entityId 映射
-    (void)breakerId;
+    // MC Java 原版行为：排除破坏者自身（serverplayer.getId() != breakerId），
+    // 只向同维度、32格范围内的其他玩家发送 ClientboundBlockDestructionPacket。
+    // 破坏者自身的动画由客户端本地直接驱动，不需要服务端发包。
 
     network::BlockBreakAnimPacket packet;
     packet.setBreakerEntityId(breakerId);
@@ -2520,10 +2543,18 @@ void MinecraftServer::broadcastBlockBreakProgressInRange(
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockBreakAnim, result.value());
 
+    // 将 breakerId (EntityId) 转换为 PlayerId，用于排除破坏者自身
+    PlayerId breakerPlayerId = playerEntityManager().getPlayerIdByEntityId(breakerId);
+
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
-    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+    m_playerManager->forEachPlayer([this, breakerPlayerId, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
         if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        // 排除破坏者自身：MC Java 原版中 serverplayer.getId() != breakerId
+        if (breakerPlayerId != 0 && player.playerId == breakerPlayerId) {
             return;
         }
 

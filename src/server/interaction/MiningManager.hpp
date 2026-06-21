@@ -144,6 +144,16 @@ public:
     void setOnBreakAnimBroadcast(std::function<void(PlayerId, i32, i32, i32, i8)> callback);
 
     /**
+     * @brief 设置 EntityId 解析器
+     *
+     * MiningManager 内部只有 PlayerId，但广播破坏动画需要 EntityId 作为 breakerId。
+     * 通过此解析器将 PlayerId 转换为 EntityId。
+     *
+     * @param resolver 解析函数 (playerId) -> entityId，未找到返回 INVALID_ENTITY_ID
+     */
+    void setEntityIdResolver(std::function<EntityId(PlayerId)> resolver);
+
+    /**
      * @brief 设置挖掘完成回调
      * @param callback 回调函数 (playerId, pos)
      */
@@ -229,6 +239,7 @@ private:
 
     std::function<void(PlayerId, i32, i32, i32, i8)> m_onBreakAnimBroadcast;
     std::function<void(PlayerId, const BlockPos&)> m_onMiningComplete;
+    std::function<EntityId(PlayerId)> m_entityIdResolver; ///< PlayerId -> EntityId 解析器
 };
 
 } // namespace mc::server::interaction
