@@ -305,6 +305,8 @@ add_executable(mc_tests
     common/entity/combat/MobEntityEquipmentTest.cpp
     # MobEntity 交互测试（processInitialInteract、canBeLeashed、_spawnOffspringFromSpawnEgg）
     common/entity/core/MobEntityInteractTest.cpp
+    # Entity 持久化随机数生成器测试（getRandom() 返回引用、独立 RNG、状态连续性、const 可调用性）
+    common/entity/core/EntityRandomTest.cpp
     # MobEntity 序列化测试（掉落概率、死亡掉落表、拴绳数据 NBT 序列化）
     entity/MobEntitySerializationTest.cpp
     # 战斗追踪器测试

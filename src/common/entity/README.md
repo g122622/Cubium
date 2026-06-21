@@ -336,6 +336,10 @@ if (entity->typeId() == entity::EntityTypeIdNumber::PIG) {
 
 `Player::tick()` 中添加了世界边界伤害检测逻辑，只有非观察者模式、非无敌状态的玩家受到边界伤害。`IWorld::worldBorder()` 提供边界访问接口，`damageBuffer` 默认值 5.0，玩家在边界外 5 格内不受伤。
 
+### 24. Entity::getRandom() 持久化随机数生成器
+
+`Entity::getRandom()` 返回 `math::Random&`（持久化引用），不再按值返回临时对象。旧 `MobEntity::getRandom()` 已移除。所有实体共享 `Entity` 基类的实现。使用引用赋值 `math::Random& rng = entity->getRandom()` 而非值赋值。详见 `core/README.md` 中的"实体随机数生成器"条目。
+
 ### 24. MonsterEntity 光照等级检查 (isValidLightLevel)
 
 `MonsterEntity::isValidLightLevel()` 实现了 MC 1.16.5 的两阶段光照检查：

@@ -36,7 +36,7 @@ src/common/
 │       └── Suggestions.hpp
 │
 ├── entity/                   # 实体系统
-│   ├── Entity.hpp            # 实体基类
+│   ├── Entity.hpp            # 实体基类（含持久化随机数生成器 getRandom()）
 │   ├── EntityType.hpp        # 实体类型注册
 │   ├── EntityClassification.hpp # 实体分类
 │   ├── EntityDataManager.hpp # 实体数据管理
