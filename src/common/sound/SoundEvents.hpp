@@ -501,6 +501,14 @@ extern const ResourceLocation BLOCK_SCAFFOLDING_HIT;
 extern const ResourceLocation BLOCK_SCAFFOLDING_PLACE;
 extern const ResourceLocation BLOCK_SCAFFOLDING_STEP;
 
+/// 书架（Shelf，1.21.4+ 木质变体）
+extern const ResourceLocation BLOCK_SHELF_ACTIVATE;
+extern const ResourceLocation BLOCK_SHELF_DEACTIVATE;
+extern const ResourceLocation BLOCK_SHELF_PLACE_ITEM;
+extern const ResourceLocation BLOCK_SHELF_TAKE_ITEM;
+extern const ResourceLocation BLOCK_SHELF_SINGLE_SWAP;
+extern const ResourceLocation BLOCK_SHELF_MULTI_SWAP;
+
 /// 灯笼
 extern const ResourceLocation BLOCK_LANTERN_BREAK;
 extern const ResourceLocation BLOCK_LANTERN_FALL;

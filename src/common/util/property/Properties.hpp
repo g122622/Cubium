@@ -1454,6 +1454,95 @@ public:
         Right = 3        ///< 右端
     };
 
+    // ========================================================================
+    // SideChainPart 辅助方法
+    // 参考: net.minecraft.world.level.block.state.properties.SideChainPart (MC 1.21.11)
+    // ========================================================================
+
+    /**
+     * @brief 判断侧链部分是否处于连接状态
+     */
+    [[nodiscard]] static bool isConnected(SideChainPart part) { return part != SideChainPart::Unconnected; }
+
+    /**
+     * @brief 判断侧链部分是否朝指定方向连接
+     * CENTER 可以向任何方向连接；其他值只能向对应方向连接
+     */
+    [[nodiscard]] static bool isConnectionTowards(SideChainPart part, SideChainPart direction)
+    {
+        return part == SideChainPart::Center || part == direction;
+    }
+
+    /**
+     * @brief 判断侧链部分是否为链的端点
+     * 只有 CENTER 不是链的端点
+     */
+    [[nodiscard]] static bool isChainEnd(SideChainPart part) { return part != SideChainPart::Center; }
+
+    /**
+     * @brief 当右侧连接时的侧链状态变化
+     */
+    [[nodiscard]] static SideChainPart whenConnectedToTheRight(SideChainPart part)
+    {
+        switch (part) {
+            case SideChainPart::Unconnected:
+            case SideChainPart::Left:
+                return SideChainPart::Left;
+            case SideChainPart::Right:
+            case SideChainPart::Center:
+                return SideChainPart::Center;
+        }
+        return SideChainPart::Unconnected;
+    }
+
+    /**
+     * @brief 当左侧连接时的侧链状态变化
+     */
+    [[nodiscard]] static SideChainPart whenConnectedToTheLeft(SideChainPart part)
+    {
+        switch (part) {
+            case SideChainPart::Unconnected:
+            case SideChainPart::Right:
+                return SideChainPart::Right;
+            case SideChainPart::Center:
+            case SideChainPart::Left:
+                return SideChainPart::Center;
+        }
+        return SideChainPart::Unconnected;
+    }
+
+    /**
+     * @brief 当右侧断开连接时的侧链状态变化
+     */
+    [[nodiscard]] static SideChainPart whenDisconnectedFromTheRight(SideChainPart part)
+    {
+        switch (part) {
+            case SideChainPart::Unconnected:
+            case SideChainPart::Left:
+                return SideChainPart::Unconnected;
+            case SideChainPart::Right:
+            case SideChainPart::Center:
+                return SideChainPart::Right;
+        }
+        return SideChainPart::Unconnected;
+    }
+
+    /**
+     * @brief 当左侧断开连接时的侧链状态变化
+     */
+    [[nodiscard]] static SideChainPart whenDisconnectedFromTheLeft(SideChainPart part)
+    {
+        switch (part) {
+            case SideChainPart::Unconnected:
+            case SideChainPart::Right:
+                return SideChainPart::Unconnected;
+            case SideChainPart::Center:
+            case SideChainPart::Left:
+                return SideChainPart::Left;
+        }
+        return SideChainPart::Unconnected;
+    }
+
     /**
      * @brief 书架侧链连接属性
      */

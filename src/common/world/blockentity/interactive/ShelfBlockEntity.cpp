@@ -24,6 +24,7 @@
 #include "world/blockentity/interactive/ShelfBlockEntity.hpp"
 
 #include "item/core/ItemStack.hpp"
+#include "world/IWorld.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -36,6 +37,23 @@ ShelfBlockEntity::ShelfBlockEntity(const BlockPos& pos)
 {}
 
 ShelfBlockEntity::~ShelfBlockEntity() noexcept = default;
+
+ItemStack ShelfBlockEntity::swapItemNoUpdate(i32 slot, const ItemStack& newItem)
+{
+    ItemStack oldItem = m_inventory.removeItemNoUpdate(slot);
+    m_inventory.setItem(slot, newItem);
+    return oldItem;
+}
+
+void ShelfBlockEntity::markChanged()
+{
+    ContainerBlockEntity::setChanged();
+    // 通知客户端方块实体数据已更新
+    // notifyBlockUpdate 即使方块状态未改变也会触发客户端同步
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        m_world->notifyBlockUpdate(m_pos);
+    }
+}
 
 i32 ShelfBlockEntity::getAnalogOutputSignal() const
 {

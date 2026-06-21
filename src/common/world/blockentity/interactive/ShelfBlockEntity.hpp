@@ -76,6 +76,26 @@ public:
     // ========== 书架特有接口 ==========
 
     /**
+     * @brief 无更新通知地交换槽位物品
+     *
+     * 将指定槽位的物品取出，并将新物品放入该槽位。
+     * 不会触发 setChanged() 通知，由调用方负责后续更新。
+     *
+     * @param slot 槽位索引 (0-2)
+     * @param newItem 要放入槽位的新物品
+     * @return 原来槽位中的物品
+     */
+    [[nodiscard]] ItemStack swapItemNoUpdate(i32 slot, const ItemStack& newItem);
+
+    /**
+     * @brief 通知方块实体已更改
+     *
+     * 向客户端同步方块实体数据。
+     * 参考: net.minecraft.block.entity.ShelfBlockEntity.setChanged()
+     */
+    void markChanged();
+
+    /**
      * @brief 计算红石比较器模拟信号
      *
      * 使用3位二进制编码，每个槽位是否占用对应1位：
