@@ -32,6 +32,7 @@
 #include "entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
 #include "entity/ai/goal/goals/interact/BreakDoorGoal.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "entity/ai/pathfinding/PathNavigator.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/combat/DifficultyHelper.hpp"
 #include "entity/core/EntityRegistry.hpp"
@@ -244,6 +245,13 @@ VindicatorEntity::VindicatorEntity(EntityId id)
 void VindicatorEntity::registerGoals()
 {
     AbstractIllagerEntity::registerGoals();
+
+    // 对应 MC Java 版 Vindicator.registerGoals / finalizeSpawn：
+    // 卫道士需要开启导航器的开门能力，以便破门目标能够激活
+    auto* nav = navigator();
+    if (nav) {
+        nav->setCanOpenDoors(true);
+    }
 
     // 优先级 0: 游泳
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));

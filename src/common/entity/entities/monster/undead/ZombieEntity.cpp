@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "common/entity/ai/goal/goals/interact/BreakDoorGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
@@ -117,6 +118,13 @@ void ZombieEntity::setBreakDoorsAbility(bool canBreak)
     }
 
     m_canBreakDoors = canBreak;
+
+    // 对应 MC Java 版 Zombie.setCanBreakDoors：
+    // 破门能力与导航器开门能力绑定
+    auto* nav = navigator();
+    if (nav) {
+        nav->setCanOpenDoors(canBreak);
+    }
 
     // 动态添加/移除破门目标
     if (canBreak && m_breakDoorGoal == nullptr) {

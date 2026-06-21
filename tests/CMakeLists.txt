@@ -549,6 +549,8 @@ add_executable(mc_tests
     common/entity/ai/brain/sensor/SensorsTest.cpp
     # RandomPositionGenerator 随机位置生成器测试
     common/entity/ai/util/RandomPositionGeneratorTest.cpp
+    # BreakDoorGoal 破门目标测试
+    common/entity/ai/goal/goals/interact/BreakDoorGoalTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/PathWeightOverrideTest.cpp
