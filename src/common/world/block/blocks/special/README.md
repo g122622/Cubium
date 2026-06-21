@@ -70,7 +70,7 @@ Block (基类)
 ### 海绵吸水
 
 1. **吸水限制**：最大搜索深度 6 格，最多吸收 65 个水方块，超过立即停止
-2. **海洋植物掉落未实现**：当前实现直接移除方块，不生成掉落物（需要 `Block::spawnDrops` 支持）
+2. **海洋植物掉落**：海绵吸收海带、海带茎、海草、高海草时，会先调用 `Block::dropResources()` 生成掉落物再移除方块。海泡菜不会被海绵吸收（MC 原版行为：只检查 KELP/KELP_PLANT/SEAGRASS/TALL_SEAGRASS 四种方块）
 3. **触发时机**：`onBlockAdded()` 和 `neighborChanged()` 都会尝试吸水
 
 ### 粘液块与蜂蜜块粘连

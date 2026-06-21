@@ -25,12 +25,16 @@
 #include "../../entity/core/Entity.hpp"
 #include "../../entity/damage/DamageSource.hpp"
 #include "../../entity/entities/player/Player.hpp"
+#include "../../entity/utils/ItemDropHelper.hpp"
 #include "../../item/context/BlockItemUseContext.hpp"
 #include "../../item/context/ItemUseContext.hpp"
 #include "../../item/core/ItemStack.hpp"
 #include "../../item/loot/LootTable.hpp"
 #include "../../item/loot/LootTableManager.hpp"
 #include "../../item/loot/conditions/LootConditions.hpp"
+#include "../../item/loot/context/LootContextBuilder.hpp"
+#include "../../item/loot/context/LootParameterSets.hpp"
+#include "../../item/loot/context/LootParams.hpp"
 #include "../../sound/SoundCategory.hpp"
 #include "../../util/Direction.hpp"
 #include "../../util/math/Vector3.hpp"
@@ -559,8 +563,8 @@ BlockState Block::updateFromNeighbourShapes(const BlockState& state, IWorld& wor
         if (neighborState == nullptr) {
             continue;
         }
-        currentState = const_cast<Block&>(currentState.getBlock()).updatePostPlacement(
-            currentState, direction, *neighborState, world, pos, neighborPos);
+        currentState = const_cast<Block&>(currentState.getBlock())
+                           .updatePostPlacement(currentState, direction, *neighborState, world, pos, neighborPos);
     }
     return currentState;
 }
@@ -903,6 +907,60 @@ i32 Block::getFireSpreadSpeed(
     // 优先从 FireInfoRegistry 查询方块蔓延速度
     // 子类可通过重写此方法提供自定义值（会隐藏此默认实现）
     return blocks::FireInfoRegistry::instance().getEncouragement(m_blockId);
+}
+
+// ============================================================================
+// 掉落物品生成
+// ============================================================================
+
+void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 仅在服务端生成掉落物品（lootTableManager 为空表示客户端）
+    auto* lootTableManager = world.lootTableManager();
+    if (lootTableManager == nullptr) {
+        return;
+    }
+
+    const Block& block = state.getBlock();
+
+    // 获取方块的掉落表
+    const loot::LootTable* lootTable = block.getLootTable(*lootTableManager);
+    if (lootTable == nullptr) {
+        return;
+    }
+
+    // 构建掉落上下文（无玩家、无工具，与 MC 原版 Block.dropResources 行为一致）
+    math::Random random(world.seed() ^ static_cast<u64>(pos.x ^ pos.z));
+
+    auto contextBuilder = loot::LootContextBuilder(world).withRandom(random);
+
+    // 设置方块状态和位置参数
+    contextBuilder.withParameter(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(&state));
+    contextBuilder.withParameter(loot::LootParams::BLOCK_POS, const_cast<BlockPos*>(&pos));
+
+    // 设置掉落表解析器和条件解析器
+    contextBuilder.withLootTableResolver(
+        [lootTableManager](const std::string& id) -> const loot::LootTable* { return lootTableManager->getTable(id); });
+    contextBuilder.withPredicateResolver([lootTableManager](const std::string& id) -> const loot::LootCondition* {
+        return lootTableManager->getPredicate(id);
+    });
+
+    auto context = contextBuilder.build(loot::LootParameterSets::block());
+    if (context == nullptr) {
+        return;
+    }
+
+    // 生成掉落物品
+    auto drops = lootTable->generate(*context);
+    if (drops.empty()) {
+        return;
+    }
+
+    // 在世界中生成掉落物实体
+    ItemDropHelper::spawnItemEntities(&world, pos, drops, world.getRandom());
+
+    // 调用 spawnAfterBreak 触发额外效果（如刷怪笼生成怪物）
+    block.spawnAfterBreak(world, pos, state, nullptr, false);
 }
 
 } // namespace mc

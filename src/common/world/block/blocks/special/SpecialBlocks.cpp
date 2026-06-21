@@ -788,20 +788,23 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
                     queue.push({neighborPos, depth + 1});
                 }
             }
-            // 情况3：海洋植物/海草
-            else {
-                const Material& material = blockState->getMaterial();
-                if (material == Material::OCEAN_PLANT || material == Material::SEA_GRASS) {
-                    // TODO: 海洋植物掉落物品尚未实现
-                    // 需要 Block::spawnDrops() 方法支持，当前直接移除方块
-                    // 详见 README.md "海绵吸水机制 - 已知限制" 章节
-                    const BlockState& airState = VanillaBlocks::AIR->defaultState();
-                    world.setBlockState(neighborPos, &airState, 3);
-                    ++absorbedCount;
-                    if (depth < MAX_ABSORB_DEPTH && visited.find(neighborPos) == visited.end()) {
-                        visited.insert(neighborPos);
-                        queue.push({neighborPos, depth + 1});
-                    }
+            // 情况3：海洋植物（海带、海带茎、海草、高海草）
+            // 参考 MC Java SpongeBlock.removeWaterBreadthFirstSearch:
+            // MC 明确检查 KELP、KELP_PLANT、SEAGRASS、TALL_SEAGRASS 四种方块，
+            // 而非按 Material 判断，以避免误匹配海泡菜等其他 OCEAN_PLANT 方块。
+            // 海泡菜不会被海绵吸收，因为 MC 的检查列表中不包含它。
+            else if (blockState->is(VanillaBlocks::KELP) || blockState->is(VanillaBlocks::KELP_PLANT) ||
+                blockState->is(VanillaBlocks::SEAGRASS) || blockState->is(VanillaBlocks::TALL_SEAGRASS)) {
+                // 在移除方块之前生成掉落物品
+                // MC 原版调用 Block.dropResources(state, level, pos, blockEntity) 生成掉落
+                Block::dropResources(world, neighborPos, *blockState);
+
+                const BlockState& airState = VanillaBlocks::AIR->defaultState();
+                world.setBlockState(neighborPos, &airState, 3);
+                ++absorbedCount;
+                if (depth < MAX_ABSORB_DEPTH && visited.find(neighborPos) == visited.end()) {
+                    visited.insert(neighborPos);
+                    queue.push({neighborPos, depth + 1});
                 }
             }
 

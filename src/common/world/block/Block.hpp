@@ -1116,6 +1116,21 @@ public:
     }
 
     /**
+     * @brief 在世界中生成方块的掉落物品
+     *
+     * 当方块被非玩家方式破坏（如海绵吸水、爆炸等）时，调用此方法生成掉落物品。
+     * 使用方块的掉落表生成物品，不携带工具和玩家上下文（因此无时运/精准采集加成）。
+     * 仅在服务端（lootTableManager 非空时）生效。
+     *
+     * 参考: net.minecraft.block.Block.dropResources(BlockState, LevelAccessor, BlockPos, BlockEntity)
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 被破坏的方块状态
+     */
+    static void dropResources(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
      * @brief 方块被爆炸破坏时的处理
      *
      * 当方块被爆炸破坏时调用。默认实现为空。
