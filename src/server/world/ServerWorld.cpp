@@ -1288,7 +1288,6 @@ bool ServerWorld::isWithinWorldBounds(i32, i32 y, i32) const
 bool ServerWorld::isBlockInLine(
     const Vector3d& from, const Vector3d& to, std::function<bool(const BlockState&)> predicate) const
 {
-    // 参考 MC BlockGetter.isBlockInLine(ClipBlockStateContext)
     // 使用 DDA 算法沿 from -> to 逐格遍历，检查每个方块是否匹配谓词。
     // 与 raycastBlocks 不同，此方法不做碰撞箱精确检测，仅检查方块状态的谓词。
 

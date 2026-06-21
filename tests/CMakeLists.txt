@@ -794,6 +794,8 @@ add_executable(mc_tests
     server/world/ServerWorldCommandExecuteTest.cpp
     # ServerWorld tickPrecipitation 测试
     server/world/TickPrecipitationTest.cpp
+    # isBlockInLine 方块射线遍历测试
+    server/world/IsBlockInLineTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）

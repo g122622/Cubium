@@ -6,7 +6,7 @@
 
 ```
 src/server/world/
-├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/末影龙战斗管理）
+├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/末影龙战斗管理/isBlockInLine射线遍历）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调）
 ├── ChunkGenerateTask.hpp/cpp        # 区块生成任务（提交到 ServerWorkerPool）
 ├── drop/

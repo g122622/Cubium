@@ -592,7 +592,6 @@ public:
     /**
      * @brief 沿直线遍历方块，检查是否有匹配谓词的方块
      *
-     * 参考 MC 的 BlockGetter.isBlockInLine(ClipBlockStateContext)。
      * 使用 DDA 算法从 from 到 to 逐格遍历，对每个经过的方块调用谓词检查。
      * 如果谓词返回 true，则返回 true（找到匹配方块）。
      * 如果遍历完成未找到匹配方块，返回 false。
