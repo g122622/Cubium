@@ -82,7 +82,8 @@ public:
     /**
      * @brief 检查是否应该开始执行
      *
-     * 当条件满足且不在冷却中时返回 true。
+     * 当条件满足时返回 true。MC原版UseItemGoal没有冷却机制，
+     * 由条件函数本身（如隐身效果是否存在）防止重复触发。
      */
     [[nodiscard]] bool shouldExecute() override;
 
@@ -107,13 +108,6 @@ public:
      */
     void resetTask() override;
 
-    /**
-     * @brief 每tick更新
-     *
-     * 递减冷却计时器。
-     */
-    void tick() override;
-
     [[nodiscard]] std::string getTypeName() const override { return "UseItemGoal"; }
 
 private:
@@ -121,9 +115,6 @@ private:
     ItemStack m_itemStack;
     ResourceLocation m_soundEvent;
     UseCondition m_condition;
-    i32 m_cooldown = 0; // 冷却时间（ticks）
-
-    static constexpr i32 COOLDOWN_TICKS = 60; // 冷却时间（ticks）
 };
 
 /**

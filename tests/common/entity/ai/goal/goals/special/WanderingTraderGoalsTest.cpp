@@ -409,33 +409,28 @@ TEST_F(UseItemGoalTest, ShouldNotExecuteWithFalseCondition)
     EXPECT_FALSE(goal->shouldExecute());
 }
 
-TEST_F(UseItemGoalTest, ShouldNotExecuteDuringCooldown)
+TEST_F(UseItemGoalTest, ConditionPreventsReExecution)
 {
+    // MC原版UseItemGoal没有冷却机制，由条件函数本身防止重复触发。
+    // 例如：流浪商人夜间喝隐身药水后，隐身效果存在时条件不满足，
+    // 因此shouldExecute()自然返回false，无需额外冷却。
     using namespace entity::ai::goal::wandering_trader;
     ItemStack stack(Items::POTION, 1);
     ResourceLocation sound("entity.wandering_trader.drink");
 
-    auto condition = [](MobEntity*) -> bool { return true; };
+    bool conditionResult = true;
+    auto condition = [&conditionResult](MobEntity*) -> bool { return conditionResult; };
     auto goal = std::make_unique<UseItemGoal>(m_trader.get(), stack, sound, condition);
 
-    // 首次执行应该成功
+    // 条件为真时可以执行
     EXPECT_TRUE(goal->shouldExecute());
 
-    // 执行一次
-    goal->startExecuting();
-
-    // 模拟resetTask后的冷却
-    goal->resetTask();
-
-    // 冷却期间不应该执行
+    // 条件为假时不能执行（模拟隐身效果已存在的情况）
+    conditionResult = false;
     EXPECT_FALSE(goal->shouldExecute());
 
-    // 递减冷却计时器
-    for (int i = 0; i < 60; ++i) {
-        goal->tick();
-    }
-
-    // 冷却结束后应该可以再次执行
+    // 条件恢复为真后可以再次执行
+    conditionResult = true;
     EXPECT_TRUE(goal->shouldExecute());
 }
 

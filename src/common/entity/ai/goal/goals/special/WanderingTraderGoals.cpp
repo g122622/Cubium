@@ -70,12 +70,7 @@ bool UseItemGoal::shouldExecute()
         return false;
     }
 
-    // 冷却中不执行
-    if (m_cooldown > 0) {
-        return false;
-    }
-
-    // 检查使用条件
+    // 检查使用条件（MC原版UseItemGoal没有冷却机制，由条件函数防止重复触发）
     return m_condition(m_mob);
 }
 
@@ -102,17 +97,6 @@ void UseItemGoal::resetTask()
 
     // 播放完成音效
     m_mob->playSound(m_soundEvent, 1.0f, m_mob->getRandom().nextFloat() * 0.2f + 0.9f);
-
-    // 设置冷却
-    m_cooldown = COOLDOWN_TICKS;
-}
-
-void UseItemGoal::tick()
-{
-    // 递减冷却计时器
-    if (m_cooldown > 0) {
-        m_cooldown--;
-    }
 }
 
 // ============================================================================
