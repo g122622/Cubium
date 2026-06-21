@@ -25,10 +25,11 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/ice/IceBlock.hpp"
 #include "world/border/WorldBorder.hpp"
 #include "world/fluid/FluidRegistry.hpp"
@@ -43,6 +44,10 @@ using namespace mc;
 using namespace mc::blocks;
 
 namespace {
+
+// ============================================================================
+// 测试用世界桩
+// ============================================================================
 
 class IceTestWorld final : public test::BaseTestWorld {
 public:
@@ -84,6 +89,12 @@ public:
         return true;
     }
 
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        (void)flags;
+        return setBlockState(x, y, z, state);
+    }
+
     [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
     [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
 
@@ -93,8 +104,16 @@ public:
 
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] bool isUltraWarm() const override { return m_isUltraWarm; }
+    [[nodiscard]] DimensionId dimension() const override { return m_dimension; }
+    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
+    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
 
     void setUltraWarm(bool value) { m_isUltraWarm = value; }
+    void setDimension(DimensionId dim) { m_dimension = dim; }
+    void setDayTime(i64 time) { m_dayTime = time; }
+    void setRaining(bool value) { m_isRaining = value; }
+    void setThundering(bool value) { m_isThundering = value; }
 
     void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
 
@@ -140,6 +159,10 @@ private:
     std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
     u64 m_currentTick = 0; // 当前游戏刻
     bool m_isUltraWarm = false;
+    DimensionId m_dimension = DimensionManager::OVERWORLD;
+    i64 m_dayTime = 6000; // 默认正午（6000 ticks），天空减暗 = 0
+    bool m_isRaining = false;
+    bool m_isThundering = false;
 };
 
 class SequenceRandom final : public math::IRandom {
@@ -212,19 +235,22 @@ protected:
     }
 };
 
-TEST_F(IceBlockTest, RandomTickTurnsIceIntoWaterInNormalDimension)
+// ============================================================================
+// IceBlock 融化测试
+// ============================================================================
+
+TEST_F(IceBlockTest, RandomTurnsIceIntoWaterInNormalDimension)
 {
     IceTestWorld world;
-    IceBlock ice(BlockProperties(Material::ICE).hardness(0.5f));
     SequenceRandom random({0});
     const BlockPos pos(4, 64, 4);
-    BlockState state = ice.defaultState();
+    const BlockState& state = VanillaBlocks::ICE->defaultState();
 
     world.setBlockAt(pos, &state);
-    world.setSkyLightAt(pos, 15);
     world.setBlockLightAt(pos, 15);
 
-    ice.randomTick(world, pos, state, random);
+    BlockState mutableState = state;
+    VanillaBlocks::ICE->randomTick(world, pos, mutableState, random);
 
     const BlockState* finalState = world.getBlockState(pos);
     ASSERT_NE(finalState, nullptr);
@@ -234,50 +260,132 @@ TEST_F(IceBlockTest, RandomTickTurnsIceIntoWaterInNormalDimension)
 TEST_F(IceBlockTest, RandomTickTurnsIceIntoAirInUltraWarmDimension)
 {
     IceTestWorld world;
-    IceBlock ice(BlockProperties(Material::ICE).hardness(0.5f));
     SequenceRandom random({0});
     const BlockPos pos(6, 64, 6);
-    BlockState state = ice.defaultState();
+    const BlockState& state = VanillaBlocks::ICE->defaultState();
 
     world.setUltraWarm(true);
     world.setBlockAt(pos, &state);
-    world.setSkyLightAt(pos, 15);
     world.setBlockLightAt(pos, 15);
 
-    ice.randomTick(world, pos, state, random);
+    BlockState mutableState = state;
+    VanillaBlocks::ICE->randomTick(world, pos, mutableState, random);
 
     EXPECT_EQ(world.getBlockState(pos), nullptr);
 }
 
-// FrostedIceBlock 融化测试：
-// FrostedIceBlock::randomTick() 调用 tick()
-// tick() 检查融化条件，如果满足则调用 slightlyMelt() 增加 AGE 或融化
-// 每次调用 randomTick 都会处理一次 tick 逻辑
-// 霜冰需要 AGE 从 0 增加到 3（4 次），然后才会融化成水
-TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoWaterInNormalDimension)
+// MC 原版: IceBlock.randomTick 仅检查方块光照，不考虑天空光照
+// 条件: blockLight > 11 - opacity（冰的 opacity=2，即 blockLight > 9）
+TEST_F(IceBlockTest, RandomTick_MeltsWithBlockLightAbove9)
 {
+    // 冰的不透明度为2，融化条件 blockLight > 11 - 2 = 9
+    // blockLight = 10 > 9，应该融化
     IceTestWorld world;
-    world.ensureTickManager(); // 确保 TickManager 已初始化
+    SequenceRandom random({0});
+    const BlockPos pos(1, 64, 1);
+    const BlockState& state = VanillaBlocks::ICE->defaultState();
 
-    // 使用已注册的 FROSTED_ICE 方块，确保状态正确初始化
-    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr) << "FROSTED_ICE should be registered";
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 10); // > 9，满足融化条件
+    world.setSkyLightAt(pos, 0);    // 天空光照不影响
+
+    BlockState mutableState = state;
+    VanillaBlocks::ICE->randomTick(world, pos, mutableState, random);
+
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Ice should have melted into water";
+    EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
+}
+
+TEST_F(IceBlockTest, RandomTick_DoesNotMeltWithBlockLightAt9)
+{
+    // blockLight = 9 == 11 - 2，不满足 > 条件（严格大于）
+    IceTestWorld world;
+    SequenceRandom random({0});
+    const BlockPos pos(2, 64, 2);
+    const BlockState& state = VanillaBlocks::ICE->defaultState();
+
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 9); // == 11 - 2，不满足 >
+    world.setSkyLightAt(pos, 0);
+
+    BlockState mutableState = state;
+    VanillaBlocks::ICE->randomTick(world, pos, mutableState, random);
+
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Ice should not melt at block light = 9";
+    EXPECT_TRUE(finalState->is(VanillaBlocks::ICE)) << "Ice should remain at block light = 9";
+}
+
+TEST_F(IceBlockTest, RandomTick_DoesNotMeltWithOnlySkyLight)
+{
+    // MC 原版: IceBlock.randomTick 仅使用方块光照 (LightLayer.BLOCK)
+    // 天空光照不影响冰融化
+    IceTestWorld world;
+    SequenceRandom random({0});
+    const BlockPos pos(3, 64, 3);
+    const BlockState& state = VanillaBlocks::ICE->defaultState();
+
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 0); // 方块光照 = 0
+    world.setSkyLightAt(pos, 15);  // 天空光照不影响
+
+    BlockState mutableState = state;
+    VanillaBlocks::ICE->randomTick(world, pos, mutableState, random);
+
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Ice should not melt with only sky light";
+    EXPECT_TRUE(finalState->is(VanillaBlocks::ICE)) << "Ice should not melt with only sky light";
+}
+
+TEST_F(IceBlockTest, RandomTick_MeltsImmediatelyNoProbability)
+{
+    // MC 原版: IceBlock.randomTick 不使用随机概率，条件满足时立即融化
+    // 旧实现有 1/40 的概率门，这是不正确的
+    IceTestWorld world;
+    // 即使 random 返回 0 也不应影响融化（无概率门）
+    SequenceRandom random({999}); // 任意值都不应阻止融化
+    const BlockPos pos(5, 64, 5);
+    const BlockState& state = VanillaBlocks::ICE->defaultState();
+
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 15);
+
+    BlockState mutableState = state;
+    VanillaBlocks::ICE->randomTick(world, pos, mutableState, random);
+
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Ice should melt immediately regardless of random";
+    EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
+}
+
+// ============================================================================
+// FrostedIceBlock 测试
+// ============================================================================
+
+TEST_F(IceBlockTest, FrostedIceTick_MeltsWithHighLightInOverworld)
+{
+    // FrostedIceBlock.tick() 在主世界使用 getMaxLocalRawBrightness
+    // 正午(dayTime=6000), 晴天: skyDarkening=0, skyLight=15 → maxLocalRawBrightness=15
+    // 条件: lightLevel > 11 - AGE(0) - opacity(2) = 9, 15 > 9 满足
+    IceTestWorld world;
+    world.ensureTickManager();
+    world.setDayTime(6000); // 正午，天空减暗 = 0
+
+    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr);
     const BlockState& state = VanillaBlocks::FROSTED_ICE->defaultState();
     const BlockPos pos(8, 64, 8);
 
     world.setBlockAt(pos, &state);
-    world.setSkyLightAt(pos, 15);
     world.setBlockLightAt(pos, 15);
+    world.setSkyLightAt(pos, 15);
 
     // 霜冰需要 4 次 tick 才能融化（age 0->1->2->3->melt）
-    // 使用足够高的光照确保融化
-    // 每次调用 randomTick 会处理一个 tick
-    // 注意：tick() 内部会调度下一次 tick，但我们直接调用 randomTick 即可
     for (int i = 0; i < 4; ++i) {
         const BlockState* currentState = world.getBlockState(pos);
-        if (currentState == nullptr) break; // 已经融化
+        if (currentState == nullptr) break;
         BlockState mutableState = *currentState;
-        // 使用世界的随机数生成器（固定种子，确定性测试）
-        VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
+        VanillaBlocks::FROSTED_ICE->tick(world, pos, mutableState, world.getRandom());
     }
 
     const BlockState* finalState = world.getBlockState(pos);
@@ -285,31 +393,130 @@ TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoWaterInNormalDimension)
     EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
 }
 
-TEST_F(IceBlockTest, RandomTickTurnsFrostedIceIntoAirInUltraWarmDimension)
+TEST_F(IceBlockTest, FrostedIceTick_UsesOnlyBlockLightInEndDimension)
 {
+    // FrostedIceBlock.tick() 在末地维度仅使用方块光照
+    // 设置末地维度，blockLight=0, skyLight=15 → 不应融化
     IceTestWorld world;
-    world.ensureTickManager(); // 确保 TickManager 已初始化
-    world.setUltraWarm(true);
+    world.ensureTickManager();
+    world.setDimension(DimensionManager::THE_END);
+    world.setDayTime(6000);
 
-    // 使用已注册的 FROSTED_ICE 方块
-    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr) << "FROSTED_ICE should be registered";
+    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr);
+    const BlockState& state = VanillaBlocks::FROSTED_ICE->defaultState();
+    const BlockPos pos(9, 64, 9);
+
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 0); // 方块光照 = 0
+    world.setSkyLightAt(pos, 15);  // 末地仅检查方块光照，天空光照不应影响
+
+    // 触发 tick，应该不融化
+    BlockState mutableState = state;
+    VanillaBlocks::FROSTED_ICE->tick(world, pos, mutableState, world.getRandom());
+
+    const BlockState* currentState = world.getBlockState(pos);
+    ASSERT_NE(currentState, nullptr) << "Frosted ice should not melt with only sky light in The End";
+    EXPECT_TRUE(currentState->is(VanillaBlocks::FROSTED_ICE))
+        << "Frosted ice should not melt with only sky light in The End";
+}
+
+TEST_F(IceBlockTest, FrostedIceTick_MeltsInEndWithHighBlockLight)
+{
+    // FrostedIceBlock.tick() 在末地维度，blockLight=15 应导致融化
+    IceTestWorld world;
+    world.ensureTickManager();
+    world.setDimension(DimensionManager::THE_END);
+    world.setDayTime(6000);
+
+    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr);
     const BlockState& state = VanillaBlocks::FROSTED_ICE->defaultState();
     const BlockPos pos(10, 64, 10);
 
     world.setBlockAt(pos, &state);
-    world.setSkyLightAt(pos, 15);
     world.setBlockLightAt(pos, 15);
+    world.setSkyLightAt(pos, 0);
 
-    // 霜冰需要 4 次 tick 才能融化（age 0->1->2->3->melt）
+    // 霜冰需要 4 次 tick 才能融化
     for (int i = 0; i < 4; ++i) {
         const BlockState* currentState = world.getBlockState(pos);
-        if (currentState == nullptr) break; // 已经融化
+        if (currentState == nullptr) break;
         BlockState mutableState = *currentState;
-        VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
+        VanillaBlocks::FROSTED_ICE->tick(world, pos, mutableState, world.getRandom());
     }
 
-    // 在超热维度（下界），霜冰融化后变成空气而非水
-    EXPECT_EQ(world.getBlockState(pos), nullptr) << "Frosted ice should have melted into air in ultra-warm dimension";
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Frosted ice should have melted with high block light in The End";
+    EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
+}
+
+TEST_F(IceBlockTest, FrostedIceRandomTick_InheritsIceBlockBehavior)
+{
+    // MC 原版: FrostedIceBlock 继承自 IceBlock，不重写 randomTick
+    // randomTick 使用 IceBlock 的逻辑：仅检查方块光照 > 11 - opacity
+    IceTestWorld world;
+    world.ensureTickManager();
+
+    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr);
+    const BlockState& state = VanillaBlocks::FROSTED_ICE->defaultState();
+    const BlockPos pos(11, 64, 11);
+
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 15);
+    world.setSkyLightAt(pos, 0);
+
+    // randomTick 应该像 IceBlock 一样立即融化
+    BlockState mutableState = state;
+    VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
+
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Frosted ice should have melted via randomTick with high block light";
+    EXPECT_EQ(finalState->stateId(), VanillaBlocks::WATER->defaultState().stateId());
+}
+
+TEST_F(IceBlockTest, FrostedIceRandomTick_DoesNotMeltWithOnlySkyLight)
+{
+    // randomTick 仅检查方块光照，天空光照不影响
+    IceTestWorld world;
+    world.ensureTickManager();
+
+    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr);
+    const BlockState& state = VanillaBlocks::FROSTED_ICE->defaultState();
+    const BlockPos pos(12, 64, 12);
+
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 0);
+    world.setSkyLightAt(pos, 15);
+
+    BlockState mutableState = state;
+    VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
+
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Frosted ice should not melt with only sky light via randomTick";
+    EXPECT_TRUE(finalState->is(VanillaBlocks::FROSTED_ICE))
+        << "Frosted ice should not melt with only sky light via randomTick";
+}
+
+TEST_F(IceBlockTest, FrostedIceRandomTick_DoesNotMeltWithLowBlockLight)
+{
+    // FrostedIce 的 opacity=2, randomTick 条件: blockLight > 11 - 2 = 9
+    // blockLight = 9 不满足 > 9
+    IceTestWorld world;
+    world.ensureTickManager();
+
+    ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr);
+    const BlockState& state = VanillaBlocks::FROSTED_ICE->defaultState();
+    const BlockPos pos(13, 64, 13);
+
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 9); // == 11 - opacity, 不满足 >
+    world.setSkyLightAt(pos, 0);
+
+    BlockState mutableState = state;
+    VanillaBlocks::FROSTED_ICE->randomTick(world, pos, mutableState, world.getRandom());
+
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Frosted ice should not melt at block light = 9";
+    EXPECT_TRUE(finalState->is(VanillaBlocks::FROSTED_ICE)) << "Frosted ice should not melt at block light = 9";
 }
 
 } // namespace
