@@ -30,8 +30,14 @@
  * 2. Beardifier affectedBox 早期退出
  * 3. Beardifier 空 Beardifier 返回 0
  * 4. CarvingContext 扩展字段访问器
+ * 5. CarvingContext::topMaterial() 生物群系地表方块查询
  */
 
+#include "common/world/biome/Biome.hpp"
+#include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeRegistry.hpp"
+#include "common/world/biome/BiomeSource.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/carver/CarvingContext.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
 #include <gtest/gtest.h>
@@ -266,4 +272,111 @@ TEST(CarvingContextTest, WorldGenContextInherited)
     CarvingContext ctx(-64, 384, nullptr);
     EXPECT_EQ(ctx.getMinGenY(), -64);
     EXPECT_EQ(ctx.getGenDepth(), 384);
+}
+
+// ============================================================================
+// CarvingContext::topMaterial() 测试
+// ============================================================================
+
+namespace {
+/**
+ * @brief 测试用固定生物群系源，始终返回指定生物群系
+ */
+class FixedBiomeSource final : public world::biome::IBiomeSource {
+public:
+    explicit FixedBiomeSource(BiomeId biomeId)
+        : IBiomeSource(0)
+        , m_biomeId(biomeId)
+    {
+    }
+
+    [[nodiscard]] BiomeId getNoiseBiome(i32, i32, i32) const override { return m_biomeId; }
+
+    [[nodiscard]] const std::vector<BiomeId>& possibleBiomes() const override { return m_biomes; }
+
+private:
+    BiomeId m_biomeId;
+    std::vector<BiomeId> m_biomes;
+};
+
+/**
+ * @brief topMaterial 测试夹具，确保 BiomeRegistry 已初始化
+ */
+class TopMaterialTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() { BiomeRegistry::instance().initialize(); }
+};
+} // namespace
+
+TEST_F(TopMaterialTest, Plains_ReturnsGrassBlock)
+{
+    // 平原生物群系的地表方块应为草方块
+    FixedBiomeSource plainsSource(world::biome::Biomes::Plains);
+    CarvingContext ctx(-64, 384, nullptr);
+
+    const BlockState* top = ctx.topMaterial(plainsSource, 100, 64, 200, false);
+    ASSERT_NE(top, nullptr);
+    EXPECT_TRUE(top->is(VanillaBlocks::GRASS_BLOCK)) << "Plains topMaterial should be GRASS_BLOCK";
+}
+
+TEST_F(TopMaterialTest, Desert_ReturnsSand)
+{
+    // 沙漠生物群系的地表方块应为沙子
+    FixedBiomeSource desertSource(world::biome::Biomes::Desert);
+    CarvingContext ctx(-64, 384, nullptr);
+
+    const BlockState* top = ctx.topMaterial(desertSource, 100, 64, 200, false);
+    ASSERT_NE(top, nullptr);
+    EXPECT_TRUE(top->is(VanillaBlocks::SAND)) << "Desert topMaterial should be SAND";
+}
+
+TEST_F(TopMaterialTest, MushroomFields_ReturnsMycelium)
+{
+    // 蘑菇岛生物群系的地表方块应为菌丝
+    FixedBiomeSource mushroomSource(world::biome::Biomes::MushroomFields);
+    CarvingContext ctx(-64, 384, nullptr);
+
+    const BlockState* top = ctx.topMaterial(mushroomSource, 100, 64, 200, false);
+    ASSERT_NE(top, nullptr);
+    EXPECT_TRUE(top->is(VanillaBlocks::MYCELIUM)) << "MushroomFields topMaterial should be MYCELIUM";
+}
+
+TEST_F(TopMaterialTest, WithFluid_ReturnsUnderWaterBlock)
+{
+    // 含流体时应返回水下地表方块（平原水下为砾石）
+    FixedBiomeSource plainsSource(world::biome::Biomes::Plains);
+    CarvingContext ctx(-64, 384, nullptr);
+
+    const BlockState* topNoFluid = ctx.topMaterial(plainsSource, 100, 64, 200, false);
+    const BlockState* topWithFluid = ctx.topMaterial(plainsSource, 100, 64, 200, true);
+
+    ASSERT_NE(topNoFluid, nullptr);
+    ASSERT_NE(topWithFluid, nullptr);
+
+    // 无流体时应返回草方块，有流体时应返回水下地表方块（砾石）
+    EXPECT_TRUE(topNoFluid->is(VanillaBlocks::GRASS_BLOCK));
+    EXPECT_TRUE(topWithFluid->is(VanillaBlocks::GRAVEL))
+        << "Plains topMaterial with fluid should be GRAVEL (underWaterBlock)";
+}
+
+TEST_F(TopMaterialTest, PositionDependent)
+{
+    // 不同位置的生物群系可能不同，topMaterial 应返回对应的地表方块
+    // 此测试使用固定生物群系源验证坐标转换正确
+    FixedBiomeSource plainsSource(world::biome::Biomes::Plains);
+    CarvingContext ctx(-64, 384, nullptr);
+
+    // 测试多个坐标（quart 转换: worldX>>2, worldY>>2, worldZ>>2）
+    const BlockState* top1 = ctx.topMaterial(plainsSource, 0, 0, 0, false);
+    const BlockState* top2 = ctx.topMaterial(plainsSource, 100, -30, 200, false);
+    const BlockState* top3 = ctx.topMaterial(plainsSource, -50, 100, -75, false);
+
+    ASSERT_NE(top1, nullptr);
+    ASSERT_NE(top2, nullptr);
+    ASSERT_NE(top3, nullptr);
+
+    // 固定生物群系源始终返回 Plains，所以结果应相同
+    EXPECT_TRUE(top1->is(VanillaBlocks::GRASS_BLOCK));
+    EXPECT_TRUE(top2->is(VanillaBlocks::GRASS_BLOCK));
+    EXPECT_TRUE(top3->is(VanillaBlocks::GRASS_BLOCK));
 }

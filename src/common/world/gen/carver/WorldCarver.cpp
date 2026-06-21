@@ -84,7 +84,7 @@ const BlockState* WorldCarver<Config>::getCarveState(
 template <typename Config>
 bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
     CarvingContext& context,
-    const world::biome::IBiomeSource& /*biomeSource*/,
+    const world::biome::IBiomeSource& biomeSource,
     ChunkCoord targetChunkX,
     ChunkCoord targetChunkZ,
     f32 centerX,
@@ -183,19 +183,22 @@ bool WorldCarver<Config>::carveEllipsoid(ChunkPrimer& chunk,
 
                 // MC 1.21.11: 草地/菌丝表面替换
                 // 当被雕刻的方块是草方块/菌丝时，检查下方方块是否为泥土，
-                // 如果是则用 topMaterial() 替换（目前简化为草地对应的表面方块）
-                // 注意：MC 使用 CarvingContext.topMaterial() 进行 biome-aware 替换，
-                // 当前实现先用 DIRT 替换草/菌丝，然后检查下方方块
+                // 如果是则用 topMaterial() 替换为生物群系对应的地表方块。
+                // MC 原版使用 CarvingContext.topMaterial() 评估 SurfaceRules，
+                // 当前实现通过 Biome::surfaceBlock()/underWaterBlock() 实现等效逻辑。
                 if (handlesSurfaceReplacement() && hasGrassOrMycelium && y > minGenY) {
-                    // 检查下方方块
                     if (y - 1 >= minGenY) {
                         const BlockState* belowState = chunk.getBlockState(lx, y - 1, lz);
                         if (belowState && belowState->is(VanillaBlocks::DIRT)) {
-                            // TODO: 应使用 CarvingContext.topMaterial() 进行 biome-aware 替换
-                            // 目前先用 GRASS_BLOCK 替换（大多数生物群系的地表方块）
-                            const BlockState* topBlock = VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK);
+                            const bool hasFluid = carveState->isLiquid();
+                            const BlockState* topBlock =
+                                context.topMaterial(biomeSource, worldX, y - 1, worldZ, hasFluid);
                             if (topBlock) {
                                 chunk.setBlockState(lx, y - 1, lz, topBlock);
+                                // 含水地表方块需要调度流体更新
+                                if (topBlock->isLiquid()) {
+                                    chunk.markPosForPostprocessing(lx, y - 1, lz);
+                                }
                             }
                         }
                     }

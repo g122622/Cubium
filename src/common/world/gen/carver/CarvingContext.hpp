@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including without limitation the the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -30,6 +30,9 @@ namespace mc {
 
 // 前向声明
 class BlockState;
+namespace world::biome {
+class IBiomeSource;
+}
 namespace world::gen::aquifer {
 class Aquifer;
 }
@@ -55,7 +58,6 @@ class RandomState;
  * - Aquifer ✅
  * - NoiseChunk ✅ (新增)
  * - RandomState ✅ (新增)
- * - SurfaceRules.RuleSource — 暂不添加（topMaterial 已标记 @Deprecated）
  */
 class CarvingContext : public world::gen::valueprovider::WorldGenerationContext {
 public:
@@ -104,6 +106,26 @@ public:
      * 用于雕刻器访问密度函数或表面规则。
      */
     [[nodiscard]] const world::gen::RandomState* randomState() const { return m_randomState; }
+
+    /**
+     * @brief 获取指定位置的生物群系地表方块（MC 1.21 CarvingContext.topMaterial）
+     *
+     * 当雕刻器移除草地/菌丝方块后，需要将下方泥土替换为对应生物群系的地表方块。
+     * 此方法根据位置查询生物群系，返回该生物群系的地表方块。
+     *
+     * MC 原版通过 SurfaceRules 系统评估地表方块，但因 topMaterial 已标记 @Deprecated，
+     * 且 SurfaceRules 的单点评估需要完整 SurfaceRuleContext 构建开销较大，
+     * 当前使用 Biome::surfaceBlock() 作为等效替代，其值由 BiomeFactory 为每个生物群系配置。
+     *
+     * @param biomeSource 生物群系源，用于查询指定位置的生物群系
+     * @param worldX 世界 X 坐标（方块级别）
+     * @param worldY 世界 Y 坐标（方块级别）
+     * @param worldZ 世界 Z 坐标（方块级别）
+     * @param hasFluid 雕刻后该位置是否含流体（影响地表方块选择）
+     * @return 地表方块状态，如果无法确定则返回 nullptr
+     */
+    [[nodiscard]] const BlockState* topMaterial(
+        const world::biome::IBiomeSource& biomeSource, i32 worldX, i32 worldY, i32 worldZ, bool hasFluid) const;
 
 private:
     world::gen::aquifer::Aquifer* m_aquifer;

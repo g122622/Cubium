@@ -966,6 +966,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Carvers
     world/gen/carver/WorldCarver.cpp
+    world/gen/carver/CarvingContext.cpp
     world/gen/carver/CarvingMask.cpp
     world/gen/carver/CaveCarver.cpp
     world/gen/carver/CanyonCarver.cpp

@@ -16,7 +16,8 @@ carver/
 ├── NetherWorldCarver.cpp       # 下界雕刻器实现
 ├── CarverConfiguration.hpp     # 配置结构体 + 工厂函数
 ├── CarverConfiguration.cpp     # 配置工厂实现
-├── CarvingContext.hpp           # 雕刻上下文（含水层引用）
+├── CarvingContext.hpp           # 雕刻上下文（含水层引用、topMaterial）
+├── CarvingContext.cpp           # 雕刻上下文实现（topMaterial 生物群系地表查询）
 ├── CarvingMask.hpp             # 雕刻掩码声明
 ├── CarvingMask.cpp             # 雕刻掩码实现
 └── Carvers.hpp                 # 便捷包含头文件
@@ -105,6 +106,12 @@ math::Random rng(static_cast<u64>(chunkX) * 341873128712ULL +
 
 ### 8. CarvingContext 与含水层系统
 通过 `CarvingContext` 访问含水层（Aquifer），决定雕刻后填充空气、水还是熔岩。含水层返回 nullptr 表示不雕刻该位置。`NetherWorldCarver` 不使用含水层系统。
+
+### 9. CarvingContext.topMaterial() 生物群系地表查询
+`CarvingContext::topMaterial()` 根据指定位置查询生物群系的地表方块，用于雕刻后表面替换：
+- 当草地/菌丝被雕刻后，下方泥土替换为生物群系对应的地表方块（沙漠→沙子、恶地→红砂岩等）
+- `hasFluid=true` 时优先返回 `biome.underWaterBlock()`（水下地表方块）
+- 当前通过 `Biome::surfaceBlock()/underWaterBlock()` 实现，与 MC 原版 SurfaceRules 评估等效
 
 ### 9. CarveSkipChecker 回调机制
 椭球跳过逻辑通过 `CarveSkipChecker` 回调实现，而非虚方法。洞穴使用基于 `floorLevel` 的 dy 检查，峡谷使用高度相关的宽度因子。回调参数使用 `CarverEllipsePos` 结构体封装。
