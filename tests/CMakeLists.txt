@@ -766,6 +766,8 @@ add_executable(mc_tests
     common/world/block/blocks/redstone/PistonBlockTest.cpp
     common/world/block/blocks/redstone/PistonHeadBlockTest.cpp
     common/world/block/blocks/redstone/TripWireTest.cpp
+    # 海绵方块和 Block::dropResources 测试
+    common/world/block/blocks/special/SpongeBlockTest.cpp
     # 红石方块形状测试
     common/world/block/blocks/redstone/RedstoneWireBlockTest.cpp
     common/world/block/blocks/redstone/TripWireBlockTest.cpp
