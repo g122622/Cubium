@@ -42,7 +42,7 @@ src/server/interaction/
 ```
 
 - **BlockInteractionManager**：处理方块放置、破坏、使用，依赖 InventoryManager 获取手持物品
-- **MiningManager**：追踪挖掘进度，挖掘完成后触发 BlockInteractionManager 的破坏逻辑
+- **MiningManager**：追踪挖掘进度，挖掘完成后触发 BlockInteractionManager 的破坏逻辑；通过 `setOnBreakAnimBroadcast` 回调广播破坏动画（由 MinecraftServer 注入），通过 `setEntityIdResolver` 回调获取正确的 EntityId（PlayerId ≠ EntityId）
 - **ContainerManager**：管理容器菜单，独立于其他管理器
 - **InventoryManager**：物品栏状态管理，被 BlockInteractionManager 依赖
 - **SignCommandHelper**：服务端告示牌命令执行，被 BlockInteractionManager 调用
@@ -75,6 +75,12 @@ src/server/interaction/
 ### 1. 挖掘进度同步
 
 挖掘进度只在服务端计算，需确保 `broadcastBreakAnim` 回调正确发送给所有可见玩家。动画阶段 (0-9) 变化时才广播，避免过度发送。
+
+**回调接入**：`setOnBreakAnimBroadcast` 必须在 `MinecraftServer::initializeInteractionManagers()` 中设置，通过 `ServerWorld::destroyBlockProgress()` → `MinecraftServer::broadcastBlockBreakProgressInRange()` 将破坏动画广播给同维度范围内其他玩家（破坏者自身排除）。
+
+**EntityId 解析**：`setEntityIdResolver` 必须在 `setOnBreakAnimBroadcast` 之前设置，将 PlayerId 转换为正确的 EntityId。PlayerId 和 EntityId 是完全不同的标识符，不能直接 static_cast，必须通过 `ServerPlayerEntityManager::getPlayerEntityId()` 转换。
+
+**中止挖掘**：`abortMining()` 在挖掘已开始（lastStage != 255）时会发送 stage=-1 的移除动画广播，对应 MC Java `ServerPlayerGameMode.stopDestroyBlock()` 中的行为。
 
 ### 2. 物品消耗时序
 

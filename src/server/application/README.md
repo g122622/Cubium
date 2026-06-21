@@ -98,3 +98,10 @@ IntegratedServer 运行在独立线程，访问 `clientInventory()` 需要使用
 
 ### 7. 声音/状态广播链路
 实体声音通过 `Entity::playSound()` → `ServerWorld::playSound()` → `MinecraftServer::broadcastSound()` 路径广播。实体状态通过 `IWorld::broadcastEntityStatus()` 接口广播。
+
+### 8. 方块破坏动画广播链路
+方块破坏动画通过以下链路广播：
+- **服务端挖掘**：`MiningManager.tick()` → `setOnBreakAnimBroadcast` 回调 → `ServerWorld::destroyBlockProgress()` → `MinecraftServer::broadcastBlockBreakProgressInRange()` → `BlockBreakAnimPacket` 广播
+- **实体破门**：`BreakDoorGoal` 直接调用 `IWorld::destroyBlockProgress()` → 同上链路
+- **排除破坏者**：`broadcastBlockBreakProgressInRange()` 通过 `playerEntityManager().getPlayerIdByEntityId()` 将 breakerId 转为 PlayerId，在遍历玩家时跳过破坏者自身。对应 MC Java `ServerLevel.destroyBlockProgress()` 中 `serverplayer.getId() != breakerId` 的过滤逻辑。
+- **PlayerId↔EntityId 映射**：`ServerPlayerEntityManager` 维护双向映射，`getPlayerEntityId(PlayerId)` 和 `getPlayerIdByEntityId(EntityId)` 用于两个方向的转换。
