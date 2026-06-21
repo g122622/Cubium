@@ -30,6 +30,7 @@
 #include "entity/ai/goal/goals/RandomWalkingGoal.hpp"
 #include "entity/ai/goal/goals/SwimGoal.hpp"
 #include "entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "entity/ai/goal/goals/interact/BreakDoorGoal.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/attribute/Attributes.hpp"
 #include "entity/combat/DifficultyHelper.hpp"
@@ -247,8 +248,9 @@ void VindicatorEntity::registerGoals()
     // 优先级 0: 游泳
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
-    // 优先级 1: 破门（仅袭击模式，简化处理）
-    // m_goalSelector.addGoal(1, std::make_unique<BreakDoorGoal>(this, 6, ...));
+    // 优先级 1: 破门（所有难度，因为卫道士在袭击中破门）
+    m_goalSelector.addGoal(
+        1, new entity::ai::goal::BreakDoorGoal(this, entity::ai::goal::defaultDoorBreakDifficultyPredicate()));
 
     // 优先级 2: 开门（袭击模式专用，简化处理）
     // m_goalSelector.addGoal(2, std::make_unique<RaidOpenDoorGoal>(this));

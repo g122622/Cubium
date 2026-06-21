@@ -177,9 +177,19 @@ public:
     void setCanOpenDoors(bool canOpenDoors) noexcept { m_canOpenDoors = canOpenDoors; }
 
     /**
+     * @brief 获取是否可以开门
+     */
+    [[nodiscard]] bool canOpenDoors() const noexcept { return m_canOpenDoors; }
+
+    /**
      * @brief 设置是否可以通过门
      */
     void setCanEnterDoors(bool canEnterDoors) noexcept { m_canEnterDoors = canEnterDoors; }
+
+    /**
+     * @brief 获取是否可以通过门
+     */
+    [[nodiscard]] bool canEnterDoors() const noexcept { return m_canEnterDoors; }
 
     /**
      * @brief 设置寻路时是否避开阳光

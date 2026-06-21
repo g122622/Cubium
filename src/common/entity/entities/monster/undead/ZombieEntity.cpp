@@ -27,7 +27,8 @@
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
-#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/interact/BreakDoorGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
@@ -118,14 +119,14 @@ void ZombieEntity::setBreakDoorsAbility(bool canBreak)
     m_canBreakDoors = canBreak;
 
     // 动态添加/移除破门目标
-    // TODO: 需要 BreakDoorGoal 实现
-    // if (canBreak && m_breakDoorGoal == nullptr) {
-    //     m_breakDoorGoal = new BreakDoorGoal(this);
-    //     m_goalSelector.addGoal(1, m_breakDoorGoal);
-    // } else if (!canBreak && m_breakDoorGoal != nullptr) {
-    //     m_goalSelector.removeGoal(m_breakDoorGoal);
-    //     m_breakDoorGoal = nullptr;
-    // }
+    if (canBreak && m_breakDoorGoal == nullptr) {
+        m_breakDoorGoal =
+            new entity::ai::goal::BreakDoorGoal(this, entity::ai::goal::defaultDoorBreakDifficultyPredicate());
+        m_goalSelector.addGoal(1, m_breakDoorGoal);
+    } else if (!canBreak && m_breakDoorGoal != nullptr) {
+        m_goalSelector.removeGoal(m_breakDoorGoal);
+        m_breakDoorGoal = nullptr;
+    }
 }
 
 void ZombieEntity::startDrowning(i32 conversionTime)
@@ -240,9 +241,7 @@ void ZombieEntity::registerGoals()
     // 骷髅才会使用 FleeSunGoal 和 RestrictSunGoal 来躲避阳光
 
     // 优先级 7: 避水随机行走
-    // TODO: 需要 WaterAvoidingRandomWalkingGoal 实现
-    // m_goalSelector.addGoal(7, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
-    m_goalSelector.addGoal(7, new entity::ai::goal::RandomWalkingGoal(this, 1.0));
+    m_goalSelector.addGoal(7, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 1.0));
 
     // 优先级 8: 看向玩家
     m_goalSelector.addGoal(
@@ -430,6 +429,11 @@ void ZombieEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     if (m_inWaterTime > 0) {
         tag.put(nbt_keys::IN_WATER_TIME, m_inWaterTime);
     }
+
+    // CanBreakDoors (byte/bool) - 是否可以破门
+    if (m_canBreakDoors) {
+        tag.put(nbt_keys::CAN_BREAK_DOORS, static_cast<i8>(1));
+    }
 }
 
 Result<void> ZombieEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -453,6 +457,11 @@ Result<void> ZombieEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
     // InWaterTime (i32) - 在水中的时间
     if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::IN_WATER_TIME)) {
         m_inWaterTime = *val;
+    }
+
+    // CanBreakDoors (byte/bool) - 是否可以破门
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::CAN_BREAK_DOORS)) {
+        setBreakDoorsAbility(*val);
     }
 
     return Result<void>::ok();

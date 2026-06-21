@@ -32,7 +32,11 @@
 namespace mc {
 
 // 前向声明
+namespace entity::ai::goal {
 class BreakDoorGoal;
+}
+
+using entity::ai::goal::BreakDoorGoal;
 
 /**
  * @brief 僵尸实体
