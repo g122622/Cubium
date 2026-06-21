@@ -31,6 +31,20 @@
 namespace mc {
 
 /**
+ * @brief 填充层条目
+ *
+ * 描述平坦世界中需要由特性系统放置的非运动阻挡层。
+ * 在 FlatLevelGeneratorSettings::updateLayers() 中，非运动阻挡方块
+ * （如水、空气等不阻挡运动的方块）被替换为 nullptr，由 placeFeatures()
+ * 在 TOP_LAYER_MODIFICATION 阶段补充放置。这样设计是为了让湖泊等特性
+ * 有机会先在那些位置生成，避免冲突。
+ */
+struct FillLayerEntry {
+    i32 height;                   ///< 层高度（相对于世界最小高度的 Y 偏移量）
+    const BlockState* blockState; ///< 要放置的方块状态
+};
+
+/**
  * @brief 平坦世界生成设置
  *
  * 定义平坦世界的层配置、生物群系和特性标志。
@@ -74,6 +88,15 @@ public:
      * 必须在设置完 layersInfo 后调用 updateLayers() 来生成此列表。
      */
     [[nodiscard]] const std::vector<const BlockState*>& layers() const { return m_layers; }
+
+    /**
+     * @brief 获取需要由特性系统填充的层条目
+     *
+     * 在 updateLayers() 中，非运动阻挡方块被替换为 nullptr，
+     * 同时将原始方块状态和高度记录到填充层列表中。
+     * 这些层将在 placeFeatures() 的 TOP_LAYER_MODIFICATION 阶段补充放置。
+     */
+    [[nodiscard]] const std::vector<FillLayerEntry>& fillLayerEntries() const { return m_fillLayerEntries; }
 
     // === 生物群系 ===
 
@@ -123,11 +146,12 @@ public:
 private:
     std::vector<FlatLayerInfo> m_layersInfo; ///< 层定义（方块 + 高度）
     std::vector<const BlockState*>
-        m_layers;                       ///< 展开后的层列表（每个 Y 级别一个 BlockState，nullptr 表示由特性系统放置）
-    BiomeId m_biomeId = Biomes::Plains; ///< 生物群系
-    bool m_decoration = false;          ///< 是否添加装饰特性
-    bool m_addLakes = false;            ///< 是否添加湖泊
-    bool m_voidGen = true;              ///< 是否为虚空世界（初始为 true，updateLayers 时更新）
+        m_layers; ///< 展开后的层列表（每个 Y 级别一个 BlockState，nullptr 表示由特性系统放置）
+    std::vector<FillLayerEntry> m_fillLayerEntries; ///< 非运动阻挡层的填充信息（高度 + 方块状态）
+    BiomeId m_biomeId = Biomes::Plains;             ///< 生物群系
+    bool m_decoration = false;                      ///< 是否添加装饰特性
+    bool m_addLakes = false;                        ///< 是否添加湖泊
+    bool m_voidGen = true;                          ///< 是否为虚空世界（初始为 true，updateLayers 时更新）
 };
 
 } // namespace mc

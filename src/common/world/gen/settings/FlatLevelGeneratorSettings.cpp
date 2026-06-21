@@ -29,6 +29,7 @@ namespace mc {
 void FlatLevelGeneratorSettings::updateLayers()
 {
     m_layers.clear();
+    m_fillLayerEntries.clear();
 
     // 预计算总高度以避免重复分配
     i32 totalHeight = 0;
@@ -37,6 +38,7 @@ void FlatLevelGeneratorSettings::updateLayers()
     }
     m_layers.reserve(static_cast<size_t>(totalHeight));
 
+    i32 currentY = 0;
     for (const auto& layerInfo : m_layersInfo) {
         const BlockState* state = layerInfo.blockState();
         const i32 height = layerInfo.height();
@@ -46,11 +48,13 @@ void FlatLevelGeneratorSettings::updateLayers()
             // 判断标准: isSolid() || isLiquid() → motion-blocking → 保留
             // 否则（非固体、非液体的非空气方块如草径）→ 设为 null
             if (state != nullptr && !state->isAir() && !state->owner().isSolid(*state) && !state->isLiquid()) {
-                // 非运动阻挡方块：由特性系统放置
+                // 非运动阻挡方块：由特性系统放置，记录填充层信息
                 m_layers.push_back(nullptr);
+                m_fillLayerEntries.push_back({currentY, state});
             } else {
                 m_layers.push_back(state);
             }
+            ++currentY;
         }
     }
 

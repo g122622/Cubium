@@ -182,6 +182,11 @@ rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 
 当 `NoiseChunk` 指针为空时（例如使用了不正确的 ChunkStatus 顺序），`buildSurface` 会输出 `spdlog::warn` 日志并安全跳过，而非静默崩溃。
 
-### 10. FlatChunkGenerator 的层展开
+### 10. FlatChunkGenerator 特性放置
 
-`FlatLevelGeneratorSettings::updateLayers()` 会将层信息展开为每个 Y 级别一个 BlockState 的列表。不阻挡运动的方块（如水）会被替换为 nullptr，由特性系统在 TOP_LAYER_MODIFICATION 阶段放置。
+`FlatChunkGenerator::placeFeatures()` 根据 `FlatLevelGeneratorSettings` 的 `hasDecoration()` 和 `hasLakes()` 标志控制特性放置：
+- `hasDecoration=true`：放置生物群系的所有装饰特性（矿石、树木等），排除 UndergroundStructures 和 SurfaceStructures 阶段
+- `hasLakes=true`：额外放置水湖和熔岩湖特性（Lakes 阶段）
+- 两者均为 false（默认）：不放置任何特性，仅填充层
+
+非运动阻挡层（如水层）在 `updateLayers()` 中被标记为 nullptr，`placeFeatures()` 末尾的 `_placeFillLayers()` 在 TOP_LAYER_MODIFICATION 阶段将空气方块替换为原始方块状态，确保与湖泊等特性不冲突。

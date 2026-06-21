@@ -8,8 +8,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice shall be included in all copies or substantial portions
+ * of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -26,6 +26,9 @@
 #include "../settings/FlatLevelGeneratorSettings.hpp"
 #include "IChunkGenerator.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
+#include "common/world/gen/feature/FeatureSorter.hpp"
+#include <memory>
+#include <mutex>
 
 namespace mc {
 
@@ -38,6 +41,7 @@ namespace mc {
  * - 使用 FlatLevelGeneratorSettings 定义层配置
  * - generateNoise: 逐层填充方块（基岩、泥土、草方块等）
  * - buildSurface/applyCarvers/spawnInitialMobs: 空操作
+ * - placeFeatures: 根据 decoration/addLakes 标志放置特性和填充层
  * - 所有位置返回固定生物群系
  *
  * MC 默认配置：
@@ -75,7 +79,7 @@ public:
 
     [[nodiscard]] i32 getGenDepth() const override { return world::CHUNK_HEIGHT; }
     [[nodiscard]] i32 getMinY() const override { return 0; }
-    [[nodiscard]] i32 seaLevel() const override { return -63; }
+    i32 seaLevel() const override { return -63; }
 
     /**
      * @brief 获取指定位置的基础列方块状态
@@ -85,8 +89,21 @@ public:
     [[nodiscard]] NoiseColumn getBaseColumn(i32 x, i32 z) const override;
 
 private:
+    /**
+     * @brief 在 TOP_LAYER_MODIFICATION 阶段填充非运动阻挡层
+     *
+     * 对 FlatLevelGeneratorSettings 中标记为 nullptr 的层位置（如水层），
+     * 在湖泊等特性放置之后，将空气方块替换为原始方块状态。
+     */
+    void _placeFillLayers(WorldGenRegion& region, const BlockPos& chunkOrigin);
+
     FlatLevelGeneratorSettings m_flatSettings;
     std::unique_ptr<world::biome::IBiomeSource> m_biomeSource;
+
+    // === 特性拓扑排序（MC 1.21 FeatureSorter）===
+    /// 懒初始化：首次调用 placeFeatures 时构建
+    std::vector<FeatureSorter::StepFeatureData> m_featuresPerStep;
+    std::once_flag m_featuresPerStepFlag;
 };
 
 } // namespace mc
