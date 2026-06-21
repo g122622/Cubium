@@ -129,9 +129,14 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
             m_globalFluidPicker = world::gen::aquifer::createNetherFluidPicker();
             break;
         case DimensionKind::End:
+        case DimensionKind::FloatingIslands:
             m_globalFluidPicker = world::gen::aquifer::createEndFluidPicker();
             break;
         case DimensionKind::Overworld:
+        case DimensionKind::LargeBiomes:
+        case DimensionKind::Amplified:
+        case DimensionKind::Caves:
+        case DimensionKind::Flat:
         default:
             m_globalFluidPicker =
                 world::gen::aquifer::createOverworldFluidPicker(m_settings.seaLevel, m_settings.defaultFluid);
@@ -956,9 +961,9 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
                 std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
                 fillers.push_back(std::make_unique<world::gen::density::AquiferFiller>(*aquiferPtr));
 
-                // MC 1.21: 仅主世界添加 OreVeinifier（铜/铁矿脉生成）
-                // 下界和末地不生成矿脉
-                if (m_settings.dimensionKind == DimensionKind::Overworld) {
+                // MC 1.21: 仅启用矿脉的维度添加 OreVeinifier
+                // oreVeinsEnabled 控制是否生成矿脉（主世界=true，下界/末地=false）
+                if (m_settings.oreVeinsEnabled) {
                     auto& router = nc->router();
                     fillers.push_back(std::make_unique<world::gen::density::OreVeinifier>(
                         router.veinToggle(), router.veinRidged(), router.veinGap(), *positionalRandom));

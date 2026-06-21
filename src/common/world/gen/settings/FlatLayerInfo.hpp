@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/world/block/BlockState.hpp"
+#include <algorithm>
 #include <vector>
 
 namespace mc {
@@ -66,11 +67,14 @@ public:
     void setBlockState(const BlockState* state) { m_blockState = state; }
 
     /**
-     * @brief 限制层高度不超过最大值
+     * @brief 限制层高度不超过最大值，返回限制后的新 FlatLayerInfo
      * @param maxHeight 最大高度
-     * @return 实际使用的高度（可能小于 m_height）
+     * @return 如果当前高度超过 maxHeight，返回高度被限制为 maxHeight 的新对象；否则返回当前对象的副本
      */
-    [[nodiscard]] i32 heightLimited(i32 maxHeight) const { return std::min(m_height, maxHeight); }
+    [[nodiscard]] FlatLayerInfo heightLimited(i32 maxHeight) const
+    {
+        return m_height > maxHeight ? FlatLayerInfo(maxHeight, m_blockState) : *this;
+    }
 
 private:
     i32 m_height = 0;                         ///< 层高度

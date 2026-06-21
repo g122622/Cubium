@@ -29,7 +29,6 @@ namespace mc {
 void FlatLevelGeneratorSettings::updateLayers()
 {
     m_layers.clear();
-    m_voidGen = true;
 
     // 预计算总高度以避免重复分配
     i32 totalHeight = 0;
@@ -51,12 +50,13 @@ void FlatLevelGeneratorSettings::updateLayers()
                 m_layers.push_back(nullptr);
             } else {
                 m_layers.push_back(state);
-                if (state != nullptr && !state->isAir()) {
-                    m_voidGen = false;
-                }
             }
         }
     }
+
+    // voidGen 判断：仅当所有展开后的方块都是空气时才为 void
+    m_voidGen =
+        std::all_of(m_layers.begin(), m_layers.end(), [](const BlockState* s) { return s == nullptr || s->isAir(); });
 }
 
 FlatLevelGeneratorSettings FlatLevelGeneratorSettings::createDefault()

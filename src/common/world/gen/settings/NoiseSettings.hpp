@@ -27,6 +27,7 @@
 #include "SlideSettings.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include <stdexcept>
 
 namespace mc {
 
@@ -63,8 +64,8 @@ struct NoiseSettings {
     bool simplexSurfaceNoise = true;    ///< 使用 Simplex 地表噪声
     bool randomDensityOffset = true;    ///< 随机密度偏移
     bool isAmplified = false;           ///< 放大化地形
-    bool aquifersEnabled = true;        ///< 是否启用含水层（MC 1.18+ 水下洞穴和地下水）
-    bool useLegacyRandomSource = false; ///< MC 1.21.11: 下界/末地使用旧版随机源
+    bool aquifersEnabled = true;        ///< 是否启用含水层
+    bool useLegacyRandomSource = false; ///< 下界/末地使用旧版随机源
 
     // === 噪声尺寸计算 ===
     [[nodiscard]] i32 noiseSizeX() const { return world::CHUNK_WIDTH / (sizeHorizontal * 4); }
@@ -76,6 +77,44 @@ struct NoiseSettings {
     [[nodiscard]] i32 verticalNoiseGranularity() const { return sizeVertical * 4; }
 
     [[nodiscard]] i32 horizontalNoiseGranularity() const { return sizeHorizontal * 4; }
+
+    // === 别名方法（对齐 MC 命名） ===
+
+    /** 等价于 verticalNoiseGranularity() */
+    [[nodiscard]] i32 getCellHeight() const { return verticalNoiseGranularity(); }
+
+    /** 等价于 horizontalNoiseGranularity() */
+    [[nodiscard]] i32 getCellWidth() const { return horizontalNoiseGranularity(); }
+
+    // === 工厂方法（带验证） ===
+
+    /**
+     * @brief 创建经过验证的 NoiseSettings
+     *
+     * 验证规则：
+     * - height 必须是 16 的倍数
+     * - minY 必须是 16 的倍数
+     * - sizeHorizontal 和 sizeVertical 必须在 [1, 4] 范围内
+     * - minY + height 不能超过 MAX_Y + 1
+     *
+     * @throws std::invalid_argument 如果参数不合法
+     */
+    static NoiseSettings create(i32 minY, i32 height, i32 sizeHorizontal, i32 sizeVertical)
+    {
+        guardY(minY, height);
+        if (sizeHorizontal < 1 || sizeHorizontal > 4) {
+            throw std::invalid_argument("NoiseSettings: sizeHorizontal must be in [1, 4]");
+        }
+        if (sizeVertical < 1 || sizeVertical > 4) {
+            throw std::invalid_argument("NoiseSettings: sizeVertical must be in [1, 4]");
+        }
+        NoiseSettings s;
+        s.minY = minY;
+        s.height = height;
+        s.sizeHorizontal = sizeHorizontal;
+        s.sizeVertical = sizeVertical;
+        return s;
+    }
 
     // === 预设 ===
 
@@ -126,7 +165,7 @@ struct NoiseSettings {
         settings.simplexSurfaceNoise = false;
         settings.randomDensityOffset = false;
         settings.aquifersEnabled = false;
-        settings.useLegacyRandomSource = true; // MC 1.21.11: 下界使用旧版随机源
+        settings.useLegacyRandomSource = true;
         return settings;
     }
 
@@ -145,8 +184,57 @@ struct NoiseSettings {
         settings.simplexSurfaceNoise = false;
         settings.randomDensityOffset = false;
         settings.aquifersEnabled = false;
-        settings.useLegacyRandomSource = true; // MC 1.21.11: 末地使用旧版随机源
+        settings.useLegacyRandomSource = true;
         return settings;
+    }
+
+    /**
+     * @brief 洞穴预设设置
+     */
+    static NoiseSettings caves()
+    {
+        NoiseSettings settings;
+        settings.minY = -64;
+        settings.height = 192;
+        settings.sizeHorizontal = 1;
+        settings.sizeVertical = 2;
+        settings.aquifersEnabled = false;
+        settings.useLegacyRandomSource = true;
+        return settings;
+    }
+
+    /**
+     * @brief 浮岛预设设置
+     */
+    static NoiseSettings floatingIslands()
+    {
+        NoiseSettings settings;
+        settings.minY = 0;
+        settings.height = 256;
+        settings.sizeHorizontal = 2;
+        settings.sizeVertical = 1;
+        settings.aquifersEnabled = false;
+        settings.useLegacyRandomSource = true;
+        return settings;
+    }
+
+private:
+    /**
+     * @brief 验证 minY 和 height 的合法性
+     * @throws std::invalid_argument 如果参数不合法
+     */
+    static void guardY(i32 minY, i32 height)
+    {
+        constexpr i32 MAX_Y = 2032; // DimensionType.MAX_Y + 1 - 1 + 2032
+        if (minY + height > MAX_Y + 1) {
+            throw std::invalid_argument("NoiseSettings: minY + height must not exceed " + std::to_string(MAX_Y + 1));
+        }
+        if (height % 16 != 0) {
+            throw std::invalid_argument("NoiseSettings: height must be a multiple of 16");
+        }
+        if (minY % 16 != 0) {
+            throw std::invalid_argument("NoiseSettings: minY must be a multiple of 16");
+        }
     }
 };
 

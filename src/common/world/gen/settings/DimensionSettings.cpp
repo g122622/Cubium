@@ -41,15 +41,40 @@ DimensionSettings DimensionSettings::overworld() noexcept
     return settings;
 }
 
+DimensionSettings DimensionSettings::largeBiomesPreset() noexcept
+{
+    DimensionSettings settings;
+    settings.noise = NoiseSettings::overworld();
+    settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::STONE);
+    settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::WATER);
+    settings.seaLevel = world::SEA_LEVEL;
+    settings.dimensionKind = DimensionKind::LargeBiomes;
+    settings.largeBiomes = true;
+    settings.oreVeinsEnabled = true;
+    settings.disableMobGeneration = false;
+    return settings;
+}
+
+DimensionSettings DimensionSettings::amplified() noexcept
+{
+    DimensionSettings settings;
+    settings.noise = NoiseSettings::amplified();
+    settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::STONE);
+    settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::WATER);
+    settings.seaLevel = world::SEA_LEVEL;
+    settings.dimensionKind = DimensionKind::Amplified;
+    settings.oreVeinsEnabled = true;
+    settings.disableMobGeneration = false;
+    return settings;
+}
+
 DimensionSettings DimensionSettings::nether() noexcept
 {
     DimensionSettings settings;
     settings.noise = NoiseSettings::nether();
     settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::NETHERRACK);
     settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::LAVA);
-    settings.seaLevel = 32; // MC 1.21.11: nether seaLevel = 32
-    settings.bedrockRoof = 127;
-    settings.bedrockFloor = 0;
+    settings.seaLevel = 32;
     settings.dimensionKind = DimensionKind::Nether;
     settings.oreVeinsEnabled = false;
     settings.disableMobGeneration = false;
@@ -66,6 +91,32 @@ DimensionSettings DimensionSettings::end() noexcept
     settings.dimensionKind = DimensionKind::End;
     settings.oreVeinsEnabled = false;
     settings.disableMobGeneration = true;
+    return settings;
+}
+
+DimensionSettings DimensionSettings::caves() noexcept
+{
+    DimensionSettings settings;
+    settings.noise = NoiseSettings::caves();
+    settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::STONE);
+    settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::WATER);
+    settings.seaLevel = 32;
+    settings.dimensionKind = DimensionKind::Caves;
+    settings.oreVeinsEnabled = false;
+    settings.disableMobGeneration = false;
+    return settings;
+}
+
+DimensionSettings DimensionSettings::floatingIslands() noexcept
+{
+    DimensionSettings settings;
+    settings.noise = NoiseSettings::floatingIslands();
+    settings.defaultBlock = VanillaBlocks::getState(VanillaBlocks::STONE);
+    settings.defaultFluid = VanillaBlocks::getState(VanillaBlocks::WATER);
+    settings.seaLevel = -64;
+    settings.dimensionKind = DimensionKind::FloatingIslands;
+    settings.oreVeinsEnabled = false;
+    settings.disableMobGeneration = false;
     return settings;
 }
 

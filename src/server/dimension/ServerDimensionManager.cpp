@@ -383,22 +383,25 @@ std::unique_ptr<ServerDimension> ServerDimensionManager::_createServerDimension(
                 break;
             }
 
-            auto settings = DimensionSettings::overworld();
-            bool isLargeBiomes = false;
+            DimensionSettings settings;
             switch (m_overworldType) {
                 case WorldType::Flat:
                     settings = DimensionSettings::flat();
                     break;
                 case WorldType::LargeBiomes:
-                    isLargeBiomes = true;
+                    settings = DimensionSettings::largeBiomesPreset();
                     break;
                 case WorldType::Amplified:
-                    settings.noise = NoiseSettings::amplified();
+                    settings = DimensionSettings::amplified();
                     break;
                 case WorldType::Default:
                 case WorldType::Debug:
+                default:
+                    settings = DimensionSettings::overworld();
                     break;
             }
+
+            const bool isLargeBiomes = (m_overworldType == WorldType::LargeBiomes);
 
             auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, isLargeBiomes);
             generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));

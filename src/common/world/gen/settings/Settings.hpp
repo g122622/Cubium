@@ -32,8 +32,12 @@
 /// - NoiseSettings：噪声设置
 /// - ScalingSettings：缩放设置
 /// - SlideSettings：滑动设置
+/// - FlatLayerInfo：平坦层信息
+/// - FlatLevelGeneratorSettings：平坦世界生成设置
 
 #include "DimensionSettings.hpp"
+#include "FlatLayerInfo.hpp"
+#include "FlatLevelGeneratorSettings.hpp"
 #include "NoiseSettings.hpp"
 #include "ScalingSettings.hpp"
 #include "SlideSettings.hpp"

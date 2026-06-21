@@ -41,12 +41,17 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
     // 创建 NoiseRouter（根据维度类型选择预设）
     switch (settings.dimensionKind) {
         case DimensionKind::End:
+        case DimensionKind::FloatingIslands:
             state->m_router = std::make_unique<density::NoiseRouter>(density::NoiseRouterData::end(worldSeed));
             break;
         case DimensionKind::Nether:
             state->m_router = std::make_unique<density::NoiseRouter>(density::NoiseRouterData::nether(worldSeed));
             break;
         case DimensionKind::Overworld:
+        case DimensionKind::LargeBiomes:
+        case DimensionKind::Amplified:
+        case DimensionKind::Caves:
+        case DimensionKind::Flat:
         default:
             state->m_router = std::make_unique<density::NoiseRouter>(
                 density::NoiseRouterData::overworld(worldSeed, settings.largeBiomes));
@@ -66,12 +71,17 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
     std::unique_ptr<surface::SurfaceRule> surfaceRule;
     switch (settings.dimensionKind) {
         case DimensionKind::End:
+        case DimensionKind::FloatingIslands:
             surfaceRule = surface::SurfaceRules::end();
             break;
         case DimensionKind::Nether:
             surfaceRule = surface::SurfaceRules::nether();
             break;
         case DimensionKind::Overworld:
+        case DimensionKind::LargeBiomes:
+        case DimensionKind::Amplified:
+        case DimensionKind::Caves:
+        case DimensionKind::Flat:
         default:
             surfaceRule = surface::SurfaceRules::overworld();
             break;
@@ -116,10 +126,15 @@ density::NoiseRouter RandomState::createRouterCopy() const
     // 每个 NoiseChunk 需要自己的路由器副本，因为 mapAll() 会修改密度函数树
     switch (m_settings.dimensionKind) {
         case DimensionKind::End:
+        case DimensionKind::FloatingIslands:
             return density::NoiseRouterData::end(m_worldSeed);
         case DimensionKind::Nether:
             return density::NoiseRouterData::nether(m_worldSeed);
         case DimensionKind::Overworld:
+        case DimensionKind::LargeBiomes:
+        case DimensionKind::Amplified:
+        case DimensionKind::Caves:
+        case DimensionKind::Flat:
         default:
             return density::NoiseRouterData::overworld(m_worldSeed, m_settings.largeBiomes);
     }

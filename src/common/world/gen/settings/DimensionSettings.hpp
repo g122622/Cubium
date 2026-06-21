@@ -36,14 +36,18 @@ namespace mc {
 /**
  * @brief 维度类型标识
  *
- * 明确标识维度类型，不依赖 seaLevel/bedrockFloor 反推。
+ * 明确标识维度类型，用于选择正确的 NoiseRouter 和 SurfaceRules。
  * 用于选择正确的 NoiseRouter 和 SurfaceRules。
  */
 enum class DimensionKind : u8 {
-    Overworld, ///< 主世界
-    Nether,    ///< 下界
-    End,       ///< 末地
-    Flat       ///< 超平坦
+    Overworld,       ///< 主世界
+    LargeBiomes,     ///< 主世界（大型生物群系）
+    Amplified,       ///< 主世界（放大化）
+    Nether,          ///< 下界
+    End,             ///< 末地
+    Caves,           ///< 洞穴预设
+    FloatingIslands, ///< 浮岛预设
+    Flat             ///< 超平坦
 };
 
 /**
@@ -57,8 +61,6 @@ struct DimensionSettings {
     const BlockState* defaultBlock = nullptr; ///< 默认方块（石头等）
     const BlockState* defaultFluid = nullptr; ///< 默认流体（水/熔岩）
     i32 seaLevel = world::SEA_LEVEL;
-    i32 bedrockRoof = -10;                                  ///< 基岩顶部（下界用）
-    i32 bedrockFloor = 0;                                   ///< 基岩底部
     DimensionKind dimensionKind = DimensionKind::Overworld; ///< 维度类型标识
     bool largeBiomes = false;                               ///< 是否使用大型生物群系预设
     bool oreVeinsEnabled = true;                            ///< 是否启用矿脉生成（主世界=true，下界/末地=false）
@@ -72,6 +74,16 @@ struct DimensionSettings {
     static DimensionSettings overworld() noexcept;
 
     /**
+     * @brief 大型生物群系设置
+     */
+    static DimensionSettings largeBiomesPreset() noexcept;
+
+    /**
+     * @brief 放大化设置
+     */
+    static DimensionSettings amplified() noexcept;
+
+    /**
      * @brief 下界设置
      */
     static DimensionSettings nether() noexcept;
@@ -82,7 +94,17 @@ struct DimensionSettings {
     static DimensionSettings end() noexcept;
 
     /**
-     * @brief 平坦世界设置
+     * @brief 洞穴预设设置
+     */
+    static DimensionSettings caves() noexcept;
+
+    /**
+     * @brief 浮岛预设设置
+     */
+    static DimensionSettings floatingIslands() noexcept;
+
+    /**
+     * @brief 平坦世界设置（占位用，FlatChunkGenerator 不使用噪声生成）
      */
     static DimensionSettings flat() noexcept;
 };
