@@ -23,7 +23,7 @@ special/
 ├── FoxGoals.hpp/cpp               # 狐狸目标（跟踪猎物、扑击、睡眠、吃浆果）
 ├── PandaGoals.hpp/cpp             # 熊猫目标（打滚）
 ├── SilverfishGoals.hpp/cpp        # 蠹虫目标（藏入石头、召唤同伴）
-├── WanderingTraderGoals.hpp/cpp   # 流浪商人目标（交易、喝药水隐身）
+├── WanderingTraderGoals.hpp/cpp   # 流浪商人目标（UseItemGoal、LookAtCustomerGoal、TradeWithPlayerGoal、MoveToWanderTargetGoal）
 ├── GhastGoals.hpp/cpp             # 恶魂目标（随机飞行、火球攻击）
 ├── TurtleGoals.hpp/cpp            # 海龟目标（下蛋、前往水域）
 ├── ShulkerGoals.hpp/cpp           # 潜影贝目标（攻击、防御）
@@ -88,10 +88,10 @@ Goal (基类)
 ├── PandaRollGoal ────────────────── 熊猫打滚
 ├── SilverfishHideInStoneGoal ────── 蠹虫藏入石头
 ├── SilverfishSummonOthersGoal ───── 蠹虫召唤同伴
-├── UseItemGoal ──────────────────── 使用物品（流浪商人喝药水）
-├── LookAtCustomerGoal ───────────── 看向顾客
-├── TradeWithPlayerGoal ──────────── 与玩家交易
-└── MoveToWanderTargetGoal ───────── 向游荡目标移动
+├── UseItemGoal ──────────────────── 通用物品使用目标（通过条件函数控制，如流浪商人夜间喝隐身药水、白天喝牛奶）
+├── LookAtCustomerGoal ───────────── 看向顾客（使用 LookController）
+├── TradeWithPlayerGoal ──────────── 与玩家交易（占用 Jump+Move 标志，交易时停止导航）
+└── MoveToWanderTargetGoal ───────── 向游荡目标移动（分段接近策略：远距离先移动10格中间航点）
 ```
 
 ## 上下游外部依赖关系

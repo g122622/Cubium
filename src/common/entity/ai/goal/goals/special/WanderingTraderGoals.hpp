@@ -215,6 +215,8 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "MoveToWanderTargetGoal"; }
 
+    static constexpr f64 INTERMEDIATE_DISTANCE = 10.0; // 远距离时分段接近的中间航点距离
+
 private:
     /**
      * @brief 检查是否在目标距离范围外
@@ -229,8 +231,6 @@ private:
     f64 m_stopDistance;
     f64 m_speed;
     BlockPos m_wanderTarget;
-
-    static constexpr f64 INTERMEDIATE_DISTANCE = 10.0; // 远距离时分段接近的中间航点距离
 };
 
 } // namespace wandering_trader

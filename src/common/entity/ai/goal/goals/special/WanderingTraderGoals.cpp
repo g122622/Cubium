@@ -166,9 +166,8 @@ bool LookAtCustomerGoal::shouldContinueExecuting()
 
 void LookAtCustomerGoal::startExecuting()
 {
-    // 设置随机看向时间
-    math::Random rng;
-    m_lookTime = rng.nextInt(LOOK_MIN_TIME, LOOK_MAX_TIME);
+    // 使用实体的随机数生成器，确保每次调用产生不同的随机值
+    m_lookTime = m_mob->getRandom().nextInt(LOOK_MIN_TIME, LOOK_MAX_TIME);
 }
 
 void LookAtCustomerGoal::resetTask()
