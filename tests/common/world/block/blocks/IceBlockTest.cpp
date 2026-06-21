@@ -395,11 +395,12 @@ TEST_F(IceBlockTest, FrostedIceTick_MeltsWithHighLightInOverworld)
 
 TEST_F(IceBlockTest, FrostedIceTick_UsesOnlyBlockLightInEndDimension)
 {
-    // FrostedIceBlock.tick() 在末地维度仅使用方块光照
-    // 设置末地维度，blockLight=0, skyLight=15 → 不应融化
+    // FrostedIceBlock.tick() 在无天空光照的维度仅使用方块光照
+    // MC 原版使用 dimension() == Level.END 判断，等效于 !hasSkyLight()
+    // 设置末地维度（无天空光照），blockLight=0, skyLight=15 → 不应融化
     IceTestWorld world;
     world.ensureTickManager();
-    world.setDimension(DimensionManager::THE_END);
+    world.setDimension(DimensionManager::THE_END); // hasSkyLight() = false
     world.setDayTime(6000);
 
     ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr);
@@ -422,10 +423,10 @@ TEST_F(IceBlockTest, FrostedIceTick_UsesOnlyBlockLightInEndDimension)
 
 TEST_F(IceBlockTest, FrostedIceTick_MeltsInEndWithHighBlockLight)
 {
-    // FrostedIceBlock.tick() 在末地维度，blockLight=15 应导致融化
+    // FrostedIceBlock.tick() 在无天空光照的维度，blockLight=15 应导致融化
     IceTestWorld world;
     world.ensureTickManager();
-    world.setDimension(DimensionManager::THE_END);
+    world.setDimension(DimensionManager::THE_END); // hasSkyLight() = false
     world.setDayTime(6000);
 
     ASSERT_NE(VanillaBlocks::FROSTED_ICE, nullptr);

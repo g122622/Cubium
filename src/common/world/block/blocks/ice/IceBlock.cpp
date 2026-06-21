@@ -28,7 +28,6 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -226,12 +225,15 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
     i32 age = getAge(state);
 
     // 光照检查
+    // MC 原版: dimension() == Level.END 时仅用方块光，否则用 getMaxLocalRawBrightness
+    // 等价判断: 无天空光照的维度仅用方块光
+    // 参考: net.minecraft.world.level.block.FrostedIceBlock.tick
     i32 lightLevel;
-    if (world.dimension() == DimensionManager::THE_END) {
-        // 末地维度: 仅使用方块光照
+    if (!world.hasSkyLight()) {
+        // 无天空光照的维度(末地): 仅使用方块光照
         lightLevel = static_cast<i32>(world.getBlockLight(pos));
     } else {
-        // 其他维度: 使用 getMaxLocalRawBrightness (含天气衰减的天空光照)
+        // 有天空光照的维度(主世界): 使用 getMaxLocalRawBrightness (含天气衰减的天空光照)
         lightLevel = world.getMaxLocalRawBrightness(pos);
     }
 
