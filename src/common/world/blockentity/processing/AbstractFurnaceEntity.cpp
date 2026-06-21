@@ -285,6 +285,22 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     if (isBlockItem(item, VanillaBlocks::CHISELED_BOOKSHELF)) {
         return 300;
     }
+    // 木质书架（SHELF）— 燃烧时间 = 基础木质(300) × 1.5 = 450
+    if (isBlockInList(item,
+            {VanillaBlocks::OAK_SHELF,
+                VanillaBlocks::SPRUCE_SHELF,
+                VanillaBlocks::BIRCH_SHELF,
+                VanillaBlocks::JUNGLE_SHELF,
+                VanillaBlocks::ACACIA_SHELF,
+                VanillaBlocks::DARK_OAK_SHELF,
+                VanillaBlocks::MANGROVE_SHELF,
+                VanillaBlocks::CHERRY_SHELF,
+                VanillaBlocks::PALE_OAK_SHELF,
+                VanillaBlocks::BAMBOO_SHELF,
+                VanillaBlocks::CRIMSON_SHELF,
+                VanillaBlocks::WARPED_SHELF})) {
+        return 450;
+    }
     // 音符盒
     if (isBlockItem(item, VanillaBlocks::NOTE_BLOCK)) {
         return 300;

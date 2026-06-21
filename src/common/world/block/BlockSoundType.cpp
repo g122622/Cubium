@@ -1176,6 +1176,15 @@ const BlockSoundType EYEBLOSSOM(ResourceLocation("minecraft:block.eyeblossom.bre
     1.0f,
     1.0f);
 
+// 书架（1.21.4+ 新增的各种木质书架）
+const BlockSoundType SHELF(ResourceLocation("minecraft:block.shelf.break"),
+    ResourceLocation("minecraft:block.shelf.step"),
+    ResourceLocation("minecraft:block.shelf.place"),
+    ResourceLocation("minecraft:block.shelf.hit"),
+    ResourceLocation("minecraft:block.shelf.fall"),
+    1.0f,
+    1.0f);
+
 void initialize()
 {
     // 静态初始化已在全局对象构造时完成

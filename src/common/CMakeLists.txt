@@ -616,6 +616,7 @@ add_library(mc_common STATIC
     world/block/registry/TrialBlocks.cpp
     world/block/registry/PaleGardenBlocks.cpp
     world/block/registry/GardenBlocks.cpp
+    world/block/registry/ShelfBlocks.cpp
     world/block/IWaterLoggable.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
@@ -628,6 +629,7 @@ add_library(mc_common STATIC
     world/block/blocks/CauldronBlock.cpp
     world/block/blocks/EnchantingTableBlock.cpp
     world/block/blocks/BookshelfBlock.cpp
+    world/block/blocks/ShelfBlock.cpp
     world/block/blocks/AbstractFurnaceBlock.cpp
     world/block/blocks/FurnaceBlock.cpp
     world/block/blocks/BlastFurnaceBlock.cpp
@@ -870,6 +872,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/BannerPattern.cpp
     world/blockentity/interactive/JukeboxEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp
+    world/blockentity/interactive/ShelfBlockEntity.cpp
     world/blockentity/storage/ChestEntity.cpp
     world/blockentity/storage/TrappedChestEntity.cpp
     world/blockentity/storage/DoubleSidedInventory.cpp

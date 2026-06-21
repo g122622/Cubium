@@ -40,6 +40,7 @@
 #include "world/block/registry/PaleGardenBlocks.hpp"
 #include "world/block/registry/RedstoneBlocks.hpp"
 #include "world/block/registry/SculkBlocks.hpp"
+#include "world/block/registry/ShelfBlocks.hpp"
 #include "world/block/registry/SignBannerBlocks.hpp"
 #include "world/block/registry/TrailsBlocks.hpp"
 #include "world/block/registry/TrialBlocks.hpp"
@@ -74,8 +75,9 @@ class VanillaBlocks : public block_registry::AgriculturalBlocks,
                       public block_registry::NetherBlocks,
                       public block_registry::PaleGardenBlocks,
                       public block_registry::RedstoneBlocks,
-                      public block_registry::SignBannerBlocks,
                       public block_registry::SculkBlocks,
+                      public block_registry::ShelfBlocks,
+                      public block_registry::SignBannerBlocks,
                       public block_registry::TrailsBlocks,
                       public block_registry::TrialBlocks,
                       public block_registry::TuffBlocks,

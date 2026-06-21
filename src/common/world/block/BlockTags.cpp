@@ -271,6 +271,15 @@ BlockTag& BlockTags::FENCE_GATES()
     return *tag;
 }
 
+BlockTag& BlockTags::WOODEN_SHELVES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_shelves"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::BAMBOO_PLANTABLE_ON()
 {
     static BlockTag* tag = nullptr;
@@ -1036,6 +1045,22 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "crimson_fence_gate"),
         ResourceLocation("minecraft", "warped_fence_gate")});
     tags[fenceGates->getId()] = std::move(fenceGates);
+
+    // 创建 WOODEN_SHELVES 标签
+    auto woodenShelves = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_shelves"));
+    woodenShelves->addAll({ResourceLocation("minecraft", "oak_shelf"),
+        ResourceLocation("minecraft", "spruce_shelf"),
+        ResourceLocation("minecraft", "birch_shelf"),
+        ResourceLocation("minecraft", "jungle_shelf"),
+        ResourceLocation("minecraft", "acacia_shelf"),
+        ResourceLocation("minecraft", "dark_oak_shelf"),
+        ResourceLocation("minecraft", "mangrove_shelf"),
+        ResourceLocation("minecraft", "cherry_shelf"),
+        ResourceLocation("minecraft", "pale_oak_shelf"),
+        ResourceLocation("minecraft", "bamboo_shelf"),
+        ResourceLocation("minecraft", "crimson_shelf"),
+        ResourceLocation("minecraft", "warped_shelf")});
+    tags[woodenShelves->getId()] = std::move(woodenShelves);
 
     // 创建 BAMBOO_PLANTABLE_ON 标签
     auto bambooPlantableOn = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bamboo_plantable_on"));

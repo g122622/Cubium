@@ -188,6 +188,13 @@ public:
     /// 栅栏门标签
     static BlockTag& FENCE_GATES();
 
+    /// 木质书架标签（所有12种木质/下界木质书架变体）
+    /// 运行时消费场景：
+    /// 1. ShelfBlock 侧链连接判定 — 判断相邻书架是否可连接
+    /// 2. 可被斧头快速挖掘（mineable_with_axe 标签的组成项）
+    /// 3. 作为熔炉燃料（燃烧时间 = 基础木质 × 1.5）
+    static BlockTag& WOODEN_SHELVES();
+
     /// 竹子可种植标签（草、泥土、沙子、沙砾、竹林土）
     static BlockTag& BAMBOO_PLANTABLE_ON();
 

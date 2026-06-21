@@ -1442,6 +1442,28 @@ public:
         return *prop;
     }
 
+    /**
+     * @brief 书架侧链连接部分枚举
+     *
+     * MC 1.21.4+: net.minecraft.world.level.block.state.properties.SideChainPart
+     */
+    enum class SideChainPart : u8 {
+        Unconnected = 0, ///< 未连接
+        Left = 1,        ///< 左端
+        Center = 2,      ///< 中间
+        Right = 3        ///< 右端
+    };
+
+    /**
+     * @brief 书架侧链连接属性
+     */
+    static const EnumProperty<SideChainPart>& SIDE_CHAIN_PART()
+    {
+        static auto prop = EnumProperty<SideChainPart>::create("side_chain_part",
+            {SideChainPart::Unconnected, SideChainPart::Left, SideChainPart::Center, SideChainPart::Right});
+        return *prop;
+    }
+
     // ========================================================================
     // 1.17-1.21 新增布尔属性
     // ========================================================================
@@ -1802,4 +1824,10 @@ template <>
 struct mc::EnumProperty<mc::BlockStateProperties::CreakingHeartState>::Traits {
     static std::string toString(const mc::BlockStateProperties::CreakingHeartState& value);
     static std::optional<mc::BlockStateProperties::CreakingHeartState> fromName(std::string_view name);
+};
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::SideChainPart>::Traits {
+    static std::string toString(const mc::BlockStateProperties::SideChainPart& value);
+    static std::optional<mc::BlockStateProperties::SideChainPart> fromName(std::string_view name);
 };

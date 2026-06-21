@@ -88,6 +88,7 @@ enum class BlockEntityType : u16 {
     Conduit,         ///< 潮涌核心
     Lectern,         ///< 讲台
     Jukebox,         ///< 唱片机
+    Shelf,           ///< 书架（Shelf，1.21.4+ 木质变体）
 
     // 试炼密室
     TrialSpawner, ///< 试炼刷怪笼

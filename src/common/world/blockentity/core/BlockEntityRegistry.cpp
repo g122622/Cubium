@@ -32,6 +32,7 @@
 #include "world/blockentity/interactive/JukeboxEntity.hpp"
 #include "world/blockentity/interactive/LecternEntity.hpp"
 #include "world/blockentity/interactive/PistonBlockEntity.hpp"
+#include "world/blockentity/interactive/ShelfBlockEntity.hpp"
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "world/blockentity/processing/BeaconEntity.hpp"
 #include "world/blockentity/processing/BlastFurnaceEntity.hpp"
@@ -157,6 +158,9 @@ void BlockEntityRegistry::registerBuiltinTypes()
 
     // 注册唱片机方块实体
     registerType(BlockEntityType::Jukebox, [](const BlockPos& pos) { return std::make_unique<JukeboxEntity>(pos); });
+
+    // 注册书架方块实体
+    registerType(BlockEntityType::Shelf, [](const BlockPos& pos) { return std::make_unique<ShelfBlockEntity>(pos); });
 
     // 注册旗帜方块实体
     registerType(BlockEntityType::Banner, [](const BlockPos& pos) { return std::make_unique<BannerEntity>(pos); });

@@ -894,4 +894,39 @@ EnumProperty<BlockStateProperties::CreakingHeartState>::Traits::fromName(std::st
     return std::nullopt;
 }
 
+// ============================================================================
+// SideChainPart Traits 实现 (1.21.4+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::SideChainPart>::Traits::toString(
+    const BlockStateProperties::SideChainPart& value)
+{
+    switch (value) {
+        case BlockStateProperties::SideChainPart::Unconnected:
+            return "unconnected";
+        case BlockStateProperties::SideChainPart::Left:
+            return "left";
+        case BlockStateProperties::SideChainPart::Center:
+            return "center";
+        case BlockStateProperties::SideChainPart::Right:
+            return "right";
+    }
+    return "unconnected";
+}
+
+std::optional<BlockStateProperties::SideChainPart> EnumProperty<BlockStateProperties::SideChainPart>::Traits::fromName(
+    std::string_view name)
+{
+    if (name == "unconnected") {
+        return BlockStateProperties::SideChainPart::Unconnected;
+    } else if (name == "left") {
+        return BlockStateProperties::SideChainPart::Left;
+    } else if (name == "center") {
+        return BlockStateProperties::SideChainPart::Center;
+    } else if (name == "right") {
+        return BlockStateProperties::SideChainPart::Right;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc

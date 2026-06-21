@@ -434,12 +434,21 @@ void FireInfoRegistry::initializeVanillaFireInfos()
     registerFireInfo(GardenBlocks::FIREFLY_BUSH->blockId(), IGNITE_INSTANT, BURN_INSTANT);
 
     // ========================================================================
-    // TODO: MC 1.21.4+ 新增的木质书架（SHELF）方块：
-    // - OAK_SHELF, SPRUCE_SHELF, BIRCH_SHELF, JUNGLE_SHELF, ACACIA_SHELF,
-    //   DARK_OAK_SHELF, MANGROVE_SHELF, CHERRY_SHELF, PALE_OAK_SHELF, BAMBOO_SHELF
-    //   (ignite=30, burn=20, 即 IGNITE_EASY, BURN_MEDIUM)
-    //   当前项目中尚无 SHELF 方块指针，待注册后补充。
+    // 木质书架（SHELF）— ignite=30, burn=20
+    // 与普通书架（BOOKSHELF）相同，属于"容易点燃、中等燃烧"级别。
+    // 注意：CRIMSON_SHELF 和 WARPED_SHELF 为下界木质，不可燃，不在此注册。
+    // 参考: MC原版 FireBlock.bootStrap()
     // ========================================================================
+    registerFireInfo(block_registry::ShelfBlocks::OAK_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::SPRUCE_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::BIRCH_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::JUNGLE_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::ACACIA_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::DARK_OAK_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::MANGROVE_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::CHERRY_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::PALE_OAK_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
+    registerFireInfo(block_registry::ShelfBlocks::BAMBOO_SHELF->blockId(), IGNITE_EASY, BURN_MEDIUM);
 }
 
 } // namespace blocks

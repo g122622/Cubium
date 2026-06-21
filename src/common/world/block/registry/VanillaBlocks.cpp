@@ -134,6 +134,10 @@ void VanillaBlocks::initialize()
         MC_TRACE_EVENT("client.initialization", "registerGardenBlocks");
         block_registry::registerGardenBlocks();
     }
+    {
+        MC_TRACE_EVENT("client.initialization", "registerShelfBlocks");
+        block_registry::registerShelfBlocks();
+    }
 
     // 初始化方块标签（必须在所有方块注册后）
     {
