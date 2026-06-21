@@ -572,6 +572,11 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::JUNGLE_STAIRS, "jungle_stairs");
     registerSimpleBlock(VanillaBlocks::ACACIA_STAIRS, "acacia_stairs");
     registerSimpleBlock(VanillaBlocks::DARK_OAK_STAIRS, "dark_oak_stairs");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_STAIRS, "mangrove_stairs");
+    registerSimpleBlock(VanillaBlocks::CHERRY_STAIRS, "cherry_stairs");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_STAIRS, "pale_oak_stairs");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_STAIRS, "bamboo_stairs");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_MOSAIC_STAIRS, "bamboo_mosaic_stairs");
     registerSimpleBlock(VanillaBlocks::STONE_STAIRS, "stone_stairs");
     registerSimpleBlock(VanillaBlocks::COBBLESTONE_STAIRS, "cobblestone_stairs");
     registerSimpleBlock(VanillaBlocks::SANDSTONE_STAIRS, "sandstone_stairs");
@@ -589,6 +594,11 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::JUNGLE_SLAB, "jungle_slab");
     registerSimpleBlock(VanillaBlocks::ACACIA_SLAB, "acacia_slab");
     registerSimpleBlock(VanillaBlocks::DARK_OAK_SLAB, "dark_oak_slab");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_SLAB, "mangrove_slab");
+    registerSimpleBlock(VanillaBlocks::CHERRY_SLAB, "cherry_slab");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_SLAB, "pale_oak_slab");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_SLAB, "bamboo_slab");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_MOSAIC_SLAB, "bamboo_mosaic_slab");
     registerSimpleBlock(VanillaBlocks::STONE_SLAB, "stone_slab");
     registerSimpleBlock(VanillaBlocks::COBBLESTONE_SLAB, "cobblestone_slab");
     registerSimpleBlock(VanillaBlocks::SANDSTONE_SLAB, "sandstone_slab");
@@ -611,19 +621,45 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::JUNGLE_FENCE, "jungle_fence");
     registerSimpleBlock(VanillaBlocks::ACACIA_FENCE, "acacia_fence");
     registerSimpleBlock(VanillaBlocks::DARK_OAK_FENCE, "dark_oak_fence");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_FENCE, "mangrove_fence");
+    registerSimpleBlock(VanillaBlocks::CHERRY_FENCE, "cherry_fence");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_FENCE, "pale_oak_fence");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_FENCE, "bamboo_fence");
     registerSimpleBlock(VanillaBlocks::OAK_FENCE_GATE, "oak_fence_gate");
     registerSimpleBlock(VanillaBlocks::SPRUCE_FENCE_GATE, "spruce_fence_gate");
     registerSimpleBlock(VanillaBlocks::BIRCH_FENCE_GATE, "birch_fence_gate");
     registerSimpleBlock(VanillaBlocks::JUNGLE_FENCE_GATE, "jungle_fence_gate");
     registerSimpleBlock(VanillaBlocks::ACACIA_FENCE_GATE, "acacia_fence_gate");
     registerSimpleBlock(VanillaBlocks::DARK_OAK_FENCE_GATE, "dark_oak_fence_gate");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_FENCE_GATE, "mangrove_fence_gate");
+    registerSimpleBlock(VanillaBlocks::CHERRY_FENCE_GATE, "cherry_fence_gate");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_FENCE_GATE, "pale_oak_fence_gate");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_FENCE_GATE, "bamboo_fence_gate");
     registerSimpleBlock(VanillaBlocks::CRIMSON_FENCE_GATE, "crimson_fence_gate");
     registerSimpleBlock(VanillaBlocks::WARPED_FENCE_GATE, "warped_fence_gate");
 
     // 门和活板门
     registerSimpleBlock(VanillaBlocks::OAK_DOOR, "oak_door");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_DOOR, "spruce_door");
+    registerSimpleBlock(VanillaBlocks::BIRCH_DOOR, "birch_door");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_DOOR, "jungle_door");
+    registerSimpleBlock(VanillaBlocks::ACACIA_DOOR, "acacia_door");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_DOOR, "dark_oak_door");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_DOOR, "mangrove_door");
+    registerSimpleBlock(VanillaBlocks::CHERRY_DOOR, "cherry_door");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_DOOR, "pale_oak_door");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_DOOR, "bamboo_door");
     registerSimpleBlock(VanillaBlocks::IRON_DOOR, "iron_door");
     registerSimpleBlock(VanillaBlocks::OAK_TRAPDOOR, "oak_trapdoor");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_TRAPDOOR, "spruce_trapdoor");
+    registerSimpleBlock(VanillaBlocks::BIRCH_TRAPDOOR, "birch_trapdoor");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_TRAPDOOR, "jungle_trapdoor");
+    registerSimpleBlock(VanillaBlocks::ACACIA_TRAPDOOR, "acacia_trapdoor");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_TRAPDOOR, "dark_oak_trapdoor");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_TRAPDOOR, "mangrove_trapdoor");
+    registerSimpleBlock(VanillaBlocks::CHERRY_TRAPDOOR, "cherry_trapdoor");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_TRAPDOOR, "pale_oak_trapdoor");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_TRAPDOOR, "bamboo_trapdoor");
     registerSimpleBlock(VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor");
 
     // 红石方块
@@ -650,8 +686,23 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::DARK_OAK_BUTTON, "dark_oak_button");
     registerSimpleBlock(VanillaBlocks::CRIMSON_BUTTON, "crimson_button");
     registerSimpleBlock(VanillaBlocks::WARPED_BUTTON, "warped_button");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_BUTTON, "mangrove_button");
+    registerSimpleBlock(VanillaBlocks::CHERRY_BUTTON, "cherry_button");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_BUTTON, "bamboo_button");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_BUTTON, "pale_oak_button");
     registerSimpleBlock(VanillaBlocks::STONE_PRESSURE_PLATE, "stone_pressure_plate");
     registerSimpleBlock(VanillaBlocks::OAK_PRESSURE_PLATE, "oak_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_PRESSURE_PLATE, "spruce_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::BIRCH_PRESSURE_PLATE, "birch_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_PRESSURE_PLATE, "jungle_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::ACACIA_PRESSURE_PLATE, "acacia_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_PRESSURE_PLATE, "dark_oak_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_PRESSURE_PLATE, "crimson_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::WARPED_PRESSURE_PLATE, "warped_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_PRESSURE_PLATE, "mangrove_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::CHERRY_PRESSURE_PLATE, "cherry_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_PRESSURE_PLATE, "bamboo_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_PRESSURE_PLATE, "pale_oak_pressure_plate");
     registerSimpleBlock(VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE, "light_weighted_pressure_plate");
     registerSimpleBlock(VanillaBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE, "heavy_weighted_pressure_plate");
     registerSimpleBlock(VanillaBlocks::DAYLIGHT_DETECTOR, "daylight_detector");
@@ -754,6 +805,86 @@ void BlockItemRegistry::initializeVanillaBlockItems()
         registerWallBanner(VanillaBlocks::GREEN_WALL_BANNER, VanillaBlocks::GREEN_BANNER);
         registerWallBanner(VanillaBlocks::RED_WALL_BANNER, VanillaBlocks::RED_BANNER);
         registerWallBanner(VanillaBlocks::BLACK_WALL_BANNER, VanillaBlocks::BLACK_BANNER);
+    }
+
+    // 告示牌 - 站立告示牌由 Items.cpp 的 WallOrFloorItem 注册，
+    // 这里需要为站立和墙壁变体建立映射
+    {
+        auto registerWallSign = [this](Block* standingBlock, Block* wallBlock) {
+            if (standingBlock == nullptr || wallBlock == nullptr) {
+                return;
+            }
+            // 站立告示牌由 Items.cpp 通过 WallOrFloorItem 注册，从 ItemRegistry 获取已注册的物品
+            const ResourceLocation& blockLoc = standingBlock->blockLocation();
+            ResourceLocation itemLoc(blockLoc.namespace_(), blockLoc.path());
+            Item* existingItem = ItemRegistry::instance().getItem(itemLoc);
+            if (existingItem == nullptr) {
+                return;
+            }
+            auto* signItem = dynamic_cast<BlockItem*>(existingItem);
+            if (signItem == nullptr) {
+                return;
+            }
+            // 站立告示牌的映射
+            m_blockToItem[standingBlock->blockId()] = signItem;
+            m_itemToBlock[signItem->itemId()] = standingBlock;
+            m_itemIdToBlockItem[signItem->itemId()] = signItem;
+            // 墙壁告示牌映射到相同的物品
+            m_blockToItem[wallBlock->blockId()] = signItem;
+        };
+
+        // 12种木材类型的告示牌
+        registerWallSign(VanillaBlocks::OAK_SIGN, VanillaBlocks::OAK_WALL_SIGN);
+        registerWallSign(VanillaBlocks::SPRUCE_SIGN, VanillaBlocks::SPRUCE_WALL_SIGN);
+        registerWallSign(VanillaBlocks::BIRCH_SIGN, VanillaBlocks::BIRCH_WALL_SIGN);
+        registerWallSign(VanillaBlocks::JUNGLE_SIGN, VanillaBlocks::JUNGLE_WALL_SIGN);
+        registerWallSign(VanillaBlocks::ACACIA_SIGN, VanillaBlocks::ACACIA_WALL_SIGN);
+        registerWallSign(VanillaBlocks::DARK_OAK_SIGN, VanillaBlocks::DARK_OAK_WALL_SIGN);
+        registerWallSign(VanillaBlocks::CRIMSON_SIGN, VanillaBlocks::CRIMSON_WALL_SIGN);
+        registerWallSign(VanillaBlocks::WARPED_SIGN, VanillaBlocks::WARPED_WALL_SIGN);
+        registerWallSign(VanillaBlocks::MANGROVE_SIGN, VanillaBlocks::MANGROVE_WALL_SIGN);
+        registerWallSign(VanillaBlocks::CHERRY_SIGN, VanillaBlocks::CHERRY_WALL_SIGN);
+        registerWallSign(VanillaBlocks::BAMBOO_SIGN, VanillaBlocks::BAMBOO_WALL_SIGN);
+        registerWallSign(VanillaBlocks::PALE_OAK_SIGN, VanillaBlocks::PALE_OAK_WALL_SIGN);
+    }
+
+    // 悬挂告示牌 - 同样使用 WallOrFloorItem 注册
+    {
+        auto registerWallHangingSign = [this](Block* hangingBlock, Block* wallHangingBlock) {
+            if (hangingBlock == nullptr || wallHangingBlock == nullptr) {
+                return;
+            }
+            const ResourceLocation& blockLoc = hangingBlock->blockLocation();
+            ResourceLocation itemLoc(blockLoc.namespace_(), blockLoc.path());
+            Item* existingItem = ItemRegistry::instance().getItem(itemLoc);
+            if (existingItem == nullptr) {
+                return;
+            }
+            auto* hangingSignItem = dynamic_cast<BlockItem*>(existingItem);
+            if (hangingSignItem == nullptr) {
+                return;
+            }
+            // 悬挂告示牌的映射
+            m_blockToItem[hangingBlock->blockId()] = hangingSignItem;
+            m_itemToBlock[hangingSignItem->itemId()] = hangingBlock;
+            m_itemIdToBlockItem[hangingSignItem->itemId()] = hangingSignItem;
+            // 墙壁悬挂告示牌映射到相同的物品
+            m_blockToItem[wallHangingBlock->blockId()] = hangingSignItem;
+        };
+
+        // 12种木材类型的悬挂告示牌
+        registerWallHangingSign(VanillaBlocks::OAK_HANGING_SIGN, VanillaBlocks::OAK_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::SPRUCE_HANGING_SIGN, VanillaBlocks::SPRUCE_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::BIRCH_HANGING_SIGN, VanillaBlocks::BIRCH_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::JUNGLE_HANGING_SIGN, VanillaBlocks::JUNGLE_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::ACACIA_HANGING_SIGN, VanillaBlocks::ACACIA_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::DARK_OAK_HANGING_SIGN, VanillaBlocks::DARK_OAK_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::CRIMSON_HANGING_SIGN, VanillaBlocks::CRIMSON_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::WARPED_HANGING_SIGN, VanillaBlocks::WARPED_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::MANGROVE_HANGING_SIGN, VanillaBlocks::MANGROVE_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::CHERRY_HANGING_SIGN, VanillaBlocks::CHERRY_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::BAMBOO_HANGING_SIGN, VanillaBlocks::BAMBOO_WALL_HANGING_SIGN);
+        registerWallHangingSign(VanillaBlocks::PALE_OAK_HANGING_SIGN, VanillaBlocks::PALE_OAK_WALL_HANGING_SIGN);
     }
 
     // 游戏管理员方块 - 需要创造模式 + OP等级>=2 才能放置和破坏

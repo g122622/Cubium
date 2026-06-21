@@ -480,7 +480,7 @@ public:
     static Item* LEAD;       // 拴绳
 
     // ========================================================================
-    // 告示牌物品（8种木材类型）
+    // 告示牌物品（12种木材类型）
     // ========================================================================
     static Item* OAK_SIGN;      // 橡木告示牌
     static Item* SPRUCE_SIGN;   // 云杉木告示牌
@@ -490,6 +490,26 @@ public:
     static Item* DARK_OAK_SIGN; // 深色橡木告示牌
     static Item* CRIMSON_SIGN;  // 绯红告示牌
     static Item* WARPED_SIGN;   // 诡异告示牌
+    static Item* MANGROVE_SIGN; // 红树木告示牌
+    static Item* CHERRY_SIGN;   // 樱花木告示牌
+    static Item* BAMBOO_SIGN;   // 竹木告示牌
+    static Item* PALE_OAK_SIGN; // 苍白橡木告示牌
+
+    // ========================================================================
+    // 悬挂告示牌物品（12种木材类型）
+    // ========================================================================
+    static Item* OAK_HANGING_SIGN;      // 橡木悬挂告示牌
+    static Item* SPRUCE_HANGING_SIGN;   // 云杉木悬挂告示牌
+    static Item* BIRCH_HANGING_SIGN;    // 白桦木悬挂告示牌
+    static Item* JUNGLE_HANGING_SIGN;   // 丛林木悬挂告示牌
+    static Item* ACACIA_HANGING_SIGN;   // 金合欢木悬挂告示牌
+    static Item* DARK_OAK_HANGING_SIGN; // 深色橡木悬挂告示牌
+    static Item* CRIMSON_HANGING_SIGN;  // 绯红悬挂告示牌
+    static Item* WARPED_HANGING_SIGN;   // 诡异悬挂告示牌
+    static Item* MANGROVE_HANGING_SIGN; // 红树木悬挂告示牌
+    static Item* CHERRY_HANGING_SIGN;   // 樱花木悬挂告示牌
+    static Item* BAMBOO_HANGING_SIGN;   // 竹木悬挂告示牌
+    static Item* PALE_OAK_HANGING_SIGN; // 苍白橡木悬挂告示牌
 
     // ========================================================================
     // 旗帜物品 (16色)
@@ -859,29 +879,38 @@ public:
     // 红石方块
     // ========================================================================
     // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
-    static Item* REDSTONE_TORCH;       // 红石火把
-    static Item* REDSTONE_LAMP;        // 红石灯
-    static Item* REDSTONE_REPEATER;    // 红石中继器
-    static Item* REDSTONE_COMPARATOR;  // 红石比较器
-    static Item* OBSERVER;             // 观察者
-    static Item* LEVER;                // 拉杆
-    static Item* STONE_BUTTON;         // 石头按钮
-    static Item* OAK_BUTTON;           // 橡木按钮
-    static Item* SPRUCE_BUTTON;        // 云杉木按钮
-    static Item* BIRCH_BUTTON;         // 白桦木按钮
-    static Item* JUNGLE_BUTTON;        // 丛林木按钮
-    static Item* ACACIA_BUTTON;        // 金合欢木按钮
-    static Item* DARK_OAK_BUTTON;      // 深色橡木按钮
-    static Item* CRIMSON_BUTTON;       // 绯红木按钮
-    static Item* WARPED_BUTTON;        // 诡异木按钮
-    static Item* STONE_PRESSURE_PLATE; // 石头压力板
-    static Item* OAK_PRESSURE_PLATE;   // 橡木压力板
-    // TODO 以后补充这些物品
-    // static Item* SPRUCE_PRESSURE_PLATE;         // 云杉木压力板
-    // static Item* BIRCH_PRESSURE_PLATE;          // 白桦木压力板
-    // static Item* JUNGLE_PRESSURE_PLATE;         // 丛林木压力板
-    // static Item* ACACIA_PRESSURE_PLATE;         // 金合欢木压力板
-    // static Item* DARK_OAK_PRESSURE_PLATE;       // 深色橡木压力板
+    static Item* REDSTONE_TORCH;                // 红石火把
+    static Item* REDSTONE_LAMP;                 // 红石灯
+    static Item* REDSTONE_REPEATER;             // 红石中继器
+    static Item* REDSTONE_COMPARATOR;           // 红石比较器
+    static Item* OBSERVER;                      // 观察者
+    static Item* LEVER;                         // 拉杆
+    static Item* STONE_BUTTON;                  // 石头按钮
+    static Item* OAK_BUTTON;                    // 橡木按钮
+    static Item* SPRUCE_BUTTON;                 // 云杉木按钮
+    static Item* BIRCH_BUTTON;                  // 白桦木按钮
+    static Item* JUNGLE_BUTTON;                 // 丛林木按钮
+    static Item* ACACIA_BUTTON;                 // 金合欢木按钮
+    static Item* DARK_OAK_BUTTON;               // 深色橡木按钮
+    static Item* CRIMSON_BUTTON;                // 绯红木按钮
+    static Item* WARPED_BUTTON;                 // 诡异木按钮
+    static Item* MANGROVE_BUTTON;               // 红树木按钮
+    static Item* CHERRY_BUTTON;                 // 樱花木按钮
+    static Item* BAMBOO_BUTTON;                 // 竹木按钮
+    static Item* PALE_OAK_BUTTON;               // 苍白橡木按钮
+    static Item* STONE_PRESSURE_PLATE;          // 石头压力板
+    static Item* OAK_PRESSURE_PLATE;            // 橡木压力板
+    static Item* SPRUCE_PRESSURE_PLATE;         // 云杉木压力板
+    static Item* BIRCH_PRESSURE_PLATE;          // 白桦木压力板
+    static Item* JUNGLE_PRESSURE_PLATE;         // 丛林木压力板
+    static Item* ACACIA_PRESSURE_PLATE;         // 金合欢木压力板
+    static Item* DARK_OAK_PRESSURE_PLATE;       // 深色橡木压力板
+    static Item* CRIMSON_PRESSURE_PLATE;        // 绯红木压力板
+    static Item* WARPED_PRESSURE_PLATE;         // 诡异木压力板
+    static Item* MANGROVE_PRESSURE_PLATE;       // 红树木压力板
+    static Item* CHERRY_PRESSURE_PLATE;         // 樱花木压力板
+    static Item* BAMBOO_PRESSURE_PLATE;         // 竹木压力板
+    static Item* PALE_OAK_PRESSURE_PLATE;       // 苍白橡木压力板
     static Item* LIGHT_WEIGHTED_PRESSURE_PLATE; // 轻质测重压力板
     static Item* HEAVY_WEIGHTED_PRESSURE_PLATE; // 重质测重压力板
     static Item* DAYLIGHT_DETECTOR;             // 阳光探测器
@@ -906,12 +935,48 @@ public:
     // ========================================================================
     // 门、栅栏、活板门
     // ========================================================================
-    static Item* OAK_DOOR;       // 橡木门
-    static Item* IRON_DOOR;      // 铁门
-    static Item* OAK_FENCE;      // 橡木栅栏
-    static Item* OAK_FENCE_GATE; // 橡木栅栏门
-    static Item* OAK_TRAPDOOR;   // 橡木活板门
-    static Item* IRON_TRAPDOOR;  // 铁活板门
+    static Item* OAK_DOOR;            // 橡木门
+    static Item* SPRUCE_DOOR;         // 云杉木门
+    static Item* BIRCH_DOOR;          // 白桦木门
+    static Item* JUNGLE_DOOR;         // 丛林木门
+    static Item* ACACIA_DOOR;         // 金合欢木门
+    static Item* DARK_OAK_DOOR;       // 深色橡木门
+    static Item* MANGROVE_DOOR;       // 红树木门
+    static Item* CHERRY_DOOR;         // 樱花木门
+    static Item* PALE_OAK_DOOR;       // 苍白橡木门
+    static Item* BAMBOO_DOOR;         // 竹木门
+    static Item* IRON_DOOR;           // 铁门
+    static Item* OAK_FENCE;           // 橡木栅栏
+    static Item* SPRUCE_FENCE;        // 云杉木栅栏
+    static Item* BIRCH_FENCE;         // 白桦木栅栏
+    static Item* JUNGLE_FENCE;        // 丛林木栅栏
+    static Item* ACACIA_FENCE;        // 金合欢木栅栏
+    static Item* DARK_OAK_FENCE;      // 深色橡木栅栏
+    static Item* MANGROVE_FENCE;      // 红树木栅栏
+    static Item* CHERRY_FENCE;        // 樱花木栅栏
+    static Item* PALE_OAK_FENCE;      // 苍白橡木栅栏
+    static Item* BAMBOO_FENCE;        // 竹木栅栏
+    static Item* OAK_FENCE_GATE;      // 橡木栅栏门
+    static Item* SPRUCE_FENCE_GATE;   // 云杉木栅栏门
+    static Item* BIRCH_FENCE_GATE;    // 白桦木栅栏门
+    static Item* JUNGLE_FENCE_GATE;   // 丛林木栅栏门
+    static Item* ACACIA_FENCE_GATE;   // 金合欢木栅栏门
+    static Item* DARK_OAK_FENCE_GATE; // 深色橡木栅栏门
+    static Item* MANGROVE_FENCE_GATE; // 红树木栅栏门
+    static Item* CHERRY_FENCE_GATE;   // 樱花木栅栏门
+    static Item* PALE_OAK_FENCE_GATE; // 苍白橡木栅栏门
+    static Item* BAMBOO_FENCE_GATE;   // 竹木栅栏门
+    static Item* OAK_TRAPDOOR;        // 橡木活板门
+    static Item* SPRUCE_TRAPDOOR;     // 云杉木活板门
+    static Item* BIRCH_TRAPDOOR;      // 白桦木活板门
+    static Item* JUNGLE_TRAPDOOR;     // 丛林木活板门
+    static Item* ACACIA_TRAPDOOR;     // 金合欢木活板门
+    static Item* DARK_OAK_TRAPDOOR;   // 深色橡木活板门
+    static Item* MANGROVE_TRAPDOOR;   // 红树木活板门
+    static Item* CHERRY_TRAPDOOR;     // 樱花木活板门
+    static Item* PALE_OAK_TRAPDOOR;   // 苍白橡木活板门
+    static Item* BAMBOO_TRAPDOOR;     // 竹木活板门
+    static Item* IRON_TRAPDOOR;       // 铁活板门
 
     // ========================================================================
     // 楼梯、台阶、墙

@@ -136,86 +136,74 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     }
 
     // ========== 木头类 (300 tick = 15 秒) ==========
-    // 原木 - 所有主世界木材类型 + 红树 + 樱花 + 苍白橡木
+    // 所有主世界木材类型的原木、木板、木头、去皮原木、去皮木头
+    // 红树、樱花、苍白橡木、竹木额外包含原木和木头的变种
     // 注意：绯红茎和诡异茎属于 NON_FLAMMABLE_WOOD，不可燃
-    // TODO: MANGROVE_LOG、CHERRY_LOG、PALE_OAK_LOG 尚未在 Items 中注册，
-    // 注册后需改用 isBlockInList 统一判断所有原木类型
-    if (isItemInList(item,
-            {Items::OAK_LOG,
-                Items::SPRUCE_LOG,
-                Items::BIRCH_LOG,
-                Items::JUNGLE_LOG,
-                Items::ACACIA_LOG,
-                Items::DARK_OAK_LOG})) {
+    // 原木
+    if (isBlockInList(item,
+            {VanillaBlocks::OAK_LOG,
+                VanillaBlocks::SPRUCE_LOG,
+                VanillaBlocks::BIRCH_LOG,
+                VanillaBlocks::JUNGLE_LOG,
+                VanillaBlocks::ACACIA_LOG,
+                VanillaBlocks::DARK_OAK_LOG,
+                VanillaBlocks::MANGROVE_LOG,
+                VanillaBlocks::CHERRY_LOG,
+                VanillaBlocks::PALE_OAK_LOG})) {
         return 300;
     }
-    // 木板 - 所有主世界木材类型 + 红树 + 樱花 + 竹木 + 苍白橡木
-    // TODO: MANGROVE_PLANKS、CHERRY_PLANKS、PALE_OAK_PLANKS、BAMBOO_PLANKS 尚未在 Items 中注册，
-    // 注册后需改用 isItemInList 统一判断所有木板类型
-    if (isItemInList(item,
-            {Items::OAK_PLANKS,
-                Items::SPRUCE_PLANKS,
-                Items::BIRCH_PLANKS,
-                Items::JUNGLE_PLANKS,
-                Items::ACACIA_PLANKS,
-                Items::DARK_OAK_PLANKS})) {
+    // 木板
+    if (isBlockInList(item,
+            {VanillaBlocks::OAK_PLANKS,
+                VanillaBlocks::SPRUCE_PLANKS,
+                VanillaBlocks::BIRCH_PLANKS,
+                VanillaBlocks::JUNGLE_PLANKS,
+                VanillaBlocks::ACACIA_PLANKS,
+                VanillaBlocks::DARK_OAK_PLANKS,
+                VanillaBlocks::MANGROVE_PLANKS,
+                VanillaBlocks::CHERRY_PLANKS,
+                VanillaBlocks::PALE_OAK_PLANKS,
+                VanillaBlocks::BAMBOO_PLANKS,
+                VanillaBlocks::BAMBOO_MOSAIC})) {
         return 300;
     }
-    // 木头（六面树皮）- 所有主世界木材类型 + 红树 + 樱花 + 苍白橡木
+    // 木头（六面树皮）
     if (isBlockInList(item,
             {VanillaBlocks::OAK_WOOD,
                 VanillaBlocks::SPRUCE_WOOD,
                 VanillaBlocks::BIRCH_WOOD,
                 VanillaBlocks::JUNGLE_WOOD,
                 VanillaBlocks::ACACIA_WOOD,
-                VanillaBlocks::DARK_OAK_WOOD})) {
+                VanillaBlocks::DARK_OAK_WOOD,
+                VanillaBlocks::MANGROVE_WOOD,
+                VanillaBlocks::CHERRY_WOOD,
+                VanillaBlocks::PALE_OAK_WOOD})) {
         return 300;
     }
-    // 去皮原木 - 所有主世界木材类型 + 红树 + 樱花 + 苍白橡木
+    // 去皮原木
     if (isBlockInList(item,
             {VanillaBlocks::STRIPPED_OAK_LOG,
                 VanillaBlocks::STRIPPED_SPRUCE_LOG,
                 VanillaBlocks::STRIPPED_BIRCH_LOG,
                 VanillaBlocks::STRIPPED_JUNGLE_LOG,
                 VanillaBlocks::STRIPPED_ACACIA_LOG,
-                VanillaBlocks::STRIPPED_DARK_OAK_LOG})) {
+                VanillaBlocks::STRIPPED_DARK_OAK_LOG,
+                VanillaBlocks::STRIPPED_MANGROVE_LOG,
+                VanillaBlocks::STRIPPED_CHERRY_LOG,
+                VanillaBlocks::STRIPPED_PALE_OAK_LOG})) {
         return 300;
     }
-    // 去皮木头（六面树皮）- 所有主世界木材类型 + 红树 + 樱花 + 苍白橡木
+    // 去皮木头（六面树皮）
     if (isBlockInList(item,
             {VanillaBlocks::STRIPPED_OAK_WOOD,
                 VanillaBlocks::STRIPPED_SPRUCE_WOOD,
                 VanillaBlocks::STRIPPED_BIRCH_WOOD,
                 VanillaBlocks::STRIPPED_JUNGLE_WOOD,
                 VanillaBlocks::STRIPPED_ACACIA_WOOD,
-                VanillaBlocks::STRIPPED_DARK_OAK_WOOD})) {
-        return 300;
-    }
-    // 红树木原木和木头
-    if (isBlockInList(item,
-            {VanillaBlocks::MANGROVE_LOG,
-                VanillaBlocks::MANGROVE_WOOD,
-                VanillaBlocks::STRIPPED_MANGROVE_LOG,
+                VanillaBlocks::STRIPPED_DARK_OAK_WOOD,
                 VanillaBlocks::STRIPPED_MANGROVE_WOOD,
-                VanillaBlocks::MANGROVE_PLANKS})) {
-        return 300;
-    }
-    // 樱花木原木和木头
-    if (isBlockInList(item,
-            {VanillaBlocks::CHERRY_LOG,
-                VanillaBlocks::CHERRY_WOOD,
-                VanillaBlocks::STRIPPED_CHERRY_LOG,
                 VanillaBlocks::STRIPPED_CHERRY_WOOD,
-                VanillaBlocks::CHERRY_PLANKS})) {
-        return 300;
-    }
-    // 苍白橡木原木和木头
-    if (isBlockInList(item,
-            {VanillaBlocks::PALE_OAK_LOG,
-                VanillaBlocks::PALE_OAK_WOOD,
-                VanillaBlocks::STRIPPED_PALE_OAK_LOG,
-                VanillaBlocks::STRIPPED_PALE_OAK_WOOD,
-                VanillaBlocks::PALE_OAK_PLANKS})) {
+                VanillaBlocks::STRIPPED_PALE_OAK_WOOD})) {
         return 300;
     }
     // 竹木方块和去皮竹木方块
@@ -229,8 +217,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
     // ========== 木质建筑方块 (300 tick = 15 秒) ==========
     // 木质楼梯 - 所有可燃木材类型（绯红/诡异楼梯属于 NON_FLAMMABLE_WOOD，不可燃）
-    // TODO: MANGROVE/CHERRY/PALE_OAK/BAMBOO 楼梯的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_STAIRS,
                 VanillaBlocks::SPRUCE_STAIRS,
@@ -246,8 +232,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 300;
     }
     // 栅栏 - 所有可燃木材类型
-    // TODO: MANGROVE/CHERRY/PALE_OAK/BAMBOO 栅栏的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_FENCE,
                 VanillaBlocks::SPRUCE_FENCE,
@@ -262,8 +246,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 300;
     }
     // 栅栏门 - 所有可燃木材类型（绯红/诡异栅栏门属于 NON_FLAMMABLE_WOOD，不可燃）
-    // TODO: MANGROVE/CHERRY/PALE_OAK/BAMBOO 栅栏门的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_FENCE_GATE,
                 VanillaBlocks::SPRUCE_FENCE_GATE,
@@ -314,8 +296,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 300;
     }
     // 木质活板门 - 所有可燃木材类型（绯红/诡异活板门属于 NON_FLAMMABLE_WOOD，不可燃）
-    // TODO: MANGROVE/CHERRY/PALE_OAK/BAMBOO 活板门的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_TRAPDOOR,
                 VanillaBlocks::SPRUCE_TRAPDOOR,
@@ -330,8 +310,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 300;
     }
     // 木质压力板 - 所有可燃木材类型
-    // TODO: MANGROVE/CHERRY/PALE_OAK/BAMBOO 压力板的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_PRESSURE_PLATE,
                 VanillaBlocks::SPRUCE_PRESSURE_PLATE,
@@ -352,8 +330,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
     // ========== 木质台阶 (150 tick = 7.5 秒) ==========
     // 所有可燃木材类型的台阶（绯红/诡异台阶属于 NON_FLAMMABLE_WOOD，不可燃）
-    // TODO: MANGROVE/CHERRY/PALE_OAK/BAMBOO 台阶的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_SLAB,
                 VanillaBlocks::SPRUCE_SLAB,
@@ -372,8 +348,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     // ========== 木质门 (200 tick = 10 秒) ==========
     // MC Java: 木质门燃烧时间 200 tick（比其他木质建筑方块的 300 tick 短）
     // 绯红/诡异门属于 NON_FLAMMABLE_WOOD，不可燃
-    // TODO: MANGROVE/CHERRY/PALE_OAK/BAMBOO 门的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_DOOR,
                 VanillaBlocks::SPRUCE_DOOR,
@@ -417,8 +391,6 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
         return 100;
     }
     // 木质按钮（可燃木材，绯红/诡异按钮属于 NON_FLAMMABLE_WOOD，不可燃）
-    // TODO: MANGROVE/CHERRY/PALE_OAK/BAMBOO 按钮的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_BUTTON,
                 VanillaBlocks::SPRUCE_BUTTON,
@@ -564,18 +536,23 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
     // ========== 告示牌 (200 tick = 10 秒) ==========
     // 所有可燃木材类型的告示牌（绯红/诡异告示牌属于 NON_FLAMMABLE_WOOD，不可燃）
-    // TODO: MANGROVE_SIGN、CHERRY_SIGN、PALE_OAK_SIGN、BAMBOO_SIGN 尚未在 Items 中注册，
-    // 注册后需补充到以下判断中
-    if (item == Items::OAK_SIGN || item == Items::SPRUCE_SIGN || item == Items::BIRCH_SIGN ||
-        item == Items::JUNGLE_SIGN || item == Items::ACACIA_SIGN || item == Items::DARK_OAK_SIGN) {
+    if (isItemInList(item,
+            {Items::OAK_SIGN,
+                Items::SPRUCE_SIGN,
+                Items::BIRCH_SIGN,
+                Items::JUNGLE_SIGN,
+                Items::ACACIA_SIGN,
+                Items::DARK_OAK_SIGN,
+                Items::MANGROVE_SIGN,
+                Items::CHERRY_SIGN,
+                Items::BAMBOO_SIGN,
+                Items::PALE_OAK_SIGN})) {
         return 200;
     }
 
     // ========== 悬挂告示牌 (800 tick = 40 秒) ==========
     // MC Java: 悬挂告示牌燃烧时间是普通告示牌的 4 倍
     // 绯红/诡异悬挂告示牌属于 NON_FLAMMABLE_WOOD，不可燃
-    // TODO: 悬挂告示牌的方块物品尚未在 BlockItemRegistry 中注册，
-    // 注册后以下燃料判断将自动生效
     if (isBlockInList(item,
             {VanillaBlocks::OAK_HANGING_SIGN,
                 VanillaBlocks::SPRUCE_HANGING_SIGN,
@@ -593,7 +570,7 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
     // ========== 木船 (1200 tick = 60 秒) ==========
     // MC Java: 所有类型的船和带箱子的船燃烧时间均为 1200 tick
     // TODO: MANGROVE_BOAT、CHERRY_BOAT、PALE_OAK_BOAT、BAMBOO_RAFT 以及
-    // 所有带箱子的船（CHEST_BOAT）尚未在 Items 中注册，注册后需补充
+    // 所有带箱子的船（CHEST_BOAT）尚未注册（需扩展 BoatEntity::Type 枚举），注册后需补充
     if (item == Items::OAK_BOAT || item == Items::SPRUCE_BOAT || item == Items::BIRCH_BOAT ||
         item == Items::JUNGLE_BOAT || item == Items::ACACIA_BOAT || item == Items::DARK_OAK_BOAT) {
         return 1200;

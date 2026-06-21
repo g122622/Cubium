@@ -477,7 +477,7 @@ Item* Items::ITEM_FRAME = nullptr;
 Item* Items::LEAD = nullptr;
 
 // ============================================================================
-// 告示牌物品（8种木材类型）
+// 告示牌物品（12种木材类型）
 // ============================================================================
 Item* Items::OAK_SIGN = nullptr;
 Item* Items::SPRUCE_SIGN = nullptr;
@@ -487,6 +487,26 @@ Item* Items::ACACIA_SIGN = nullptr;
 Item* Items::DARK_OAK_SIGN = nullptr;
 Item* Items::CRIMSON_SIGN = nullptr;
 Item* Items::WARPED_SIGN = nullptr;
+Item* Items::MANGROVE_SIGN = nullptr;
+Item* Items::CHERRY_SIGN = nullptr;
+Item* Items::BAMBOO_SIGN = nullptr;
+Item* Items::PALE_OAK_SIGN = nullptr;
+
+// ============================================================================
+// 悬挂告示牌物品（12种木材类型）
+// ============================================================================
+Item* Items::OAK_HANGING_SIGN = nullptr;
+Item* Items::SPRUCE_HANGING_SIGN = nullptr;
+Item* Items::BIRCH_HANGING_SIGN = nullptr;
+Item* Items::JUNGLE_HANGING_SIGN = nullptr;
+Item* Items::ACACIA_HANGING_SIGN = nullptr;
+Item* Items::DARK_OAK_HANGING_SIGN = nullptr;
+Item* Items::CRIMSON_HANGING_SIGN = nullptr;
+Item* Items::WARPED_HANGING_SIGN = nullptr;
+Item* Items::MANGROVE_HANGING_SIGN = nullptr;
+Item* Items::CHERRY_HANGING_SIGN = nullptr;
+Item* Items::BAMBOO_HANGING_SIGN = nullptr;
+Item* Items::PALE_OAK_HANGING_SIGN = nullptr;
 
 // 基础建筑方块
 Item* Items::DIRT = nullptr;
@@ -805,8 +825,23 @@ Item* Items::ACACIA_BUTTON = nullptr;
 Item* Items::DARK_OAK_BUTTON = nullptr;
 Item* Items::CRIMSON_BUTTON = nullptr;
 Item* Items::WARPED_BUTTON = nullptr;
+Item* Items::MANGROVE_BUTTON = nullptr;
+Item* Items::CHERRY_BUTTON = nullptr;
+Item* Items::BAMBOO_BUTTON = nullptr;
+Item* Items::PALE_OAK_BUTTON = nullptr;
 Item* Items::STONE_PRESSURE_PLATE = nullptr;
 Item* Items::OAK_PRESSURE_PLATE = nullptr;
+Item* Items::SPRUCE_PRESSURE_PLATE = nullptr;
+Item* Items::BIRCH_PRESSURE_PLATE = nullptr;
+Item* Items::JUNGLE_PRESSURE_PLATE = nullptr;
+Item* Items::ACACIA_PRESSURE_PLATE = nullptr;
+Item* Items::DARK_OAK_PRESSURE_PLATE = nullptr;
+Item* Items::CRIMSON_PRESSURE_PLATE = nullptr;
+Item* Items::WARPED_PRESSURE_PLATE = nullptr;
+Item* Items::MANGROVE_PRESSURE_PLATE = nullptr;
+Item* Items::CHERRY_PRESSURE_PLATE = nullptr;
+Item* Items::BAMBOO_PRESSURE_PLATE = nullptr;
+Item* Items::PALE_OAK_PRESSURE_PLATE = nullptr;
 Item* Items::LIGHT_WEIGHTED_PRESSURE_PLATE = nullptr;
 Item* Items::HEAVY_WEIGHTED_PRESSURE_PLATE = nullptr;
 Item* Items::DAYLIGHT_DETECTOR = nullptr;
@@ -828,10 +863,46 @@ Item* Items::ACTIVATOR_RAIL = nullptr;
 
 // 门、栅栏、活板门
 Item* Items::OAK_DOOR = nullptr;
+Item* Items::SPRUCE_DOOR = nullptr;
+Item* Items::BIRCH_DOOR = nullptr;
+Item* Items::JUNGLE_DOOR = nullptr;
+Item* Items::ACACIA_DOOR = nullptr;
+Item* Items::DARK_OAK_DOOR = nullptr;
+Item* Items::MANGROVE_DOOR = nullptr;
+Item* Items::CHERRY_DOOR = nullptr;
+Item* Items::PALE_OAK_DOOR = nullptr;
+Item* Items::BAMBOO_DOOR = nullptr;
 Item* Items::IRON_DOOR = nullptr;
 Item* Items::OAK_FENCE = nullptr;
+Item* Items::SPRUCE_FENCE = nullptr;
+Item* Items::BIRCH_FENCE = nullptr;
+Item* Items::JUNGLE_FENCE = nullptr;
+Item* Items::ACACIA_FENCE = nullptr;
+Item* Items::DARK_OAK_FENCE = nullptr;
+Item* Items::MANGROVE_FENCE = nullptr;
+Item* Items::CHERRY_FENCE = nullptr;
+Item* Items::PALE_OAK_FENCE = nullptr;
+Item* Items::BAMBOO_FENCE = nullptr;
 Item* Items::OAK_FENCE_GATE = nullptr;
+Item* Items::SPRUCE_FENCE_GATE = nullptr;
+Item* Items::BIRCH_FENCE_GATE = nullptr;
+Item* Items::JUNGLE_FENCE_GATE = nullptr;
+Item* Items::ACACIA_FENCE_GATE = nullptr;
+Item* Items::DARK_OAK_FENCE_GATE = nullptr;
+Item* Items::MANGROVE_FENCE_GATE = nullptr;
+Item* Items::CHERRY_FENCE_GATE = nullptr;
+Item* Items::PALE_OAK_FENCE_GATE = nullptr;
+Item* Items::BAMBOO_FENCE_GATE = nullptr;
 Item* Items::OAK_TRAPDOOR = nullptr;
+Item* Items::SPRUCE_TRAPDOOR = nullptr;
+Item* Items::BIRCH_TRAPDOOR = nullptr;
+Item* Items::JUNGLE_TRAPDOOR = nullptr;
+Item* Items::ACACIA_TRAPDOOR = nullptr;
+Item* Items::DARK_OAK_TRAPDOOR = nullptr;
+Item* Items::MANGROVE_TRAPDOOR = nullptr;
+Item* Items::CHERRY_TRAPDOOR = nullptr;
+Item* Items::PALE_OAK_TRAPDOOR = nullptr;
+Item* Items::BAMBOO_TRAPDOOR = nullptr;
 Item* Items::IRON_TRAPDOOR = nullptr;
 
 // 楼梯、台阶、墙
@@ -2293,6 +2364,106 @@ void Items::_registerSigns()
         *VanillaBlocks::WARPED_SIGN,
         *VanillaBlocks::WARPED_WALL_SIGN,
         ItemProperties().maxStackSize(16));
+
+    // 红树木告示牌
+    MANGROVE_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:mangrove_sign"),
+        *VanillaBlocks::MANGROVE_SIGN,
+        *VanillaBlocks::MANGROVE_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 樱花木告示牌
+    CHERRY_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:cherry_sign"),
+        *VanillaBlocks::CHERRY_SIGN,
+        *VanillaBlocks::CHERRY_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 竹木告示牌
+    BAMBOO_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:bamboo_sign"),
+        *VanillaBlocks::BAMBOO_SIGN,
+        *VanillaBlocks::BAMBOO_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 苍白橡木告示牌
+    PALE_OAK_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:pale_oak_sign"),
+        *VanillaBlocks::PALE_OAK_SIGN,
+        *VanillaBlocks::PALE_OAK_WALL_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // ========================================================================
+    // 悬挂告示牌物品 - 使用 WallOrFloorItem（与普通告示牌相同的放置逻辑）
+    // ========================================================================
+
+    // 橡木悬挂告示牌
+    OAK_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:oak_hanging_sign"),
+        *VanillaBlocks::OAK_HANGING_SIGN,
+        *VanillaBlocks::OAK_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 云杉木悬挂告示牌
+    SPRUCE_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:spruce_hanging_sign"),
+        *VanillaBlocks::SPRUCE_HANGING_SIGN,
+        *VanillaBlocks::SPRUCE_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 白桦木悬挂告示牌
+    BIRCH_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:birch_hanging_sign"),
+        *VanillaBlocks::BIRCH_HANGING_SIGN,
+        *VanillaBlocks::BIRCH_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 丛林木悬挂告示牌
+    JUNGLE_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:jungle_hanging_sign"),
+        *VanillaBlocks::JUNGLE_HANGING_SIGN,
+        *VanillaBlocks::JUNGLE_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 金合欢木悬挂告示牌
+    ACACIA_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:acacia_hanging_sign"),
+        *VanillaBlocks::ACACIA_HANGING_SIGN,
+        *VanillaBlocks::ACACIA_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 深色橡木悬挂告示牌
+    DARK_OAK_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:dark_oak_hanging_sign"),
+        *VanillaBlocks::DARK_OAK_HANGING_SIGN,
+        *VanillaBlocks::DARK_OAK_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 绯红悬挂告示牌
+    CRIMSON_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:crimson_hanging_sign"),
+        *VanillaBlocks::CRIMSON_HANGING_SIGN,
+        *VanillaBlocks::CRIMSON_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 诡异悬挂告示牌
+    WARPED_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:warped_hanging_sign"),
+        *VanillaBlocks::WARPED_HANGING_SIGN,
+        *VanillaBlocks::WARPED_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 红树木悬挂告示牌
+    MANGROVE_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:mangrove_hanging_sign"),
+        *VanillaBlocks::MANGROVE_HANGING_SIGN,
+        *VanillaBlocks::MANGROVE_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 樱花木悬挂告示牌
+    CHERRY_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:cherry_hanging_sign"),
+        *VanillaBlocks::CHERRY_HANGING_SIGN,
+        *VanillaBlocks::CHERRY_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 竹木悬挂告示牌
+    BAMBOO_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:bamboo_hanging_sign"),
+        *VanillaBlocks::BAMBOO_HANGING_SIGN,
+        *VanillaBlocks::BAMBOO_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
+
+    // 苍白橡木悬挂告示牌
+    PALE_OAK_HANGING_SIGN = &registry.registerItem<WallOrFloorItem>(ResourceLocation("minecraft:pale_oak_hanging_sign"),
+        *VanillaBlocks::PALE_OAK_HANGING_SIGN,
+        *VanillaBlocks::PALE_OAK_WALL_HANGING_SIGN,
+        ItemProperties().maxStackSize(16));
 }
 
 void Items::_registerBanners()
@@ -3103,10 +3274,40 @@ void Items::_registerRedstone()
         registry, VanillaBlocks::CRIMSON_BUTTON, "crimson_button", ItemProperties().maxStackSize(64));
     WARPED_BUTTON = &registerBlockBackedItem(
         registry, VanillaBlocks::WARPED_BUTTON, "warped_button", ItemProperties().maxStackSize(64));
+    MANGROVE_BUTTON = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_BUTTON, "mangrove_button", ItemProperties().maxStackSize(64));
+    CHERRY_BUTTON = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_BUTTON, "cherry_button", ItemProperties().maxStackSize(64));
+    BAMBOO_BUTTON = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_BUTTON, "bamboo_button", ItemProperties().maxStackSize(64));
+    PALE_OAK_BUTTON = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_BUTTON, "pale_oak_button", ItemProperties().maxStackSize(64));
     STONE_PRESSURE_PLATE = &registerBlockBackedItem(
         registry, VanillaBlocks::STONE_PRESSURE_PLATE, "stone_pressure_plate", ItemProperties().maxStackSize(64));
     OAK_PRESSURE_PLATE = &registerBlockBackedItem(
         registry, VanillaBlocks::OAK_PRESSURE_PLATE, "oak_pressure_plate", ItemProperties().maxStackSize(64));
+    SPRUCE_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_PRESSURE_PLATE, "spruce_pressure_plate", ItemProperties().maxStackSize(64));
+    BIRCH_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::BIRCH_PRESSURE_PLATE, "birch_pressure_plate", ItemProperties().maxStackSize(64));
+    JUNGLE_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_PRESSURE_PLATE, "jungle_pressure_plate", ItemProperties().maxStackSize(64));
+    ACACIA_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_PRESSURE_PLATE, "acacia_pressure_plate", ItemProperties().maxStackSize(64));
+    DARK_OAK_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_PRESSURE_PLATE, "dark_oak_pressure_plate", ItemProperties().maxStackSize(64));
+    CRIMSON_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_PRESSURE_PLATE, "crimson_pressure_plate", ItemProperties().maxStackSize(64));
+    WARPED_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_PRESSURE_PLATE, "warped_pressure_plate", ItemProperties().maxStackSize(64));
+    MANGROVE_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_PRESSURE_PLATE, "mangrove_pressure_plate", ItemProperties().maxStackSize(64));
+    CHERRY_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_PRESSURE_PLATE, "cherry_pressure_plate", ItemProperties().maxStackSize(64));
+    BAMBOO_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_PRESSURE_PLATE, "bamboo_pressure_plate", ItemProperties().maxStackSize(64));
+    PALE_OAK_PRESSURE_PLATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_PRESSURE_PLATE, "pale_oak_pressure_plate", ItemProperties().maxStackSize(64));
     LIGHT_WEIGHTED_PRESSURE_PLATE = &registerBlockBackedItem(registry,
         VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE,
         "light_weighted_pressure_plate",
@@ -3199,17 +3400,95 @@ void Items::_registerDoorsFencesStairs()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 门、栅栏、活板门
+    // 门
     OAK_DOOR =
         &registerBlockBackedItem(registry, VanillaBlocks::OAK_DOOR, "oak_door", ItemProperties().maxStackSize(64));
+    SPRUCE_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_DOOR, "spruce_door", ItemProperties().maxStackSize(64));
+    BIRCH_DOOR =
+        &registerBlockBackedItem(registry, VanillaBlocks::BIRCH_DOOR, "birch_door", ItemProperties().maxStackSize(64));
+    JUNGLE_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_DOOR, "jungle_door", ItemProperties().maxStackSize(64));
+    ACACIA_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_DOOR, "acacia_door", ItemProperties().maxStackSize(64));
+    DARK_OAK_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_DOOR, "dark_oak_door", ItemProperties().maxStackSize(64));
+    MANGROVE_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_DOOR, "mangrove_door", ItemProperties().maxStackSize(64));
+    CHERRY_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_DOOR, "cherry_door", ItemProperties().maxStackSize(64));
+    PALE_OAK_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_DOOR, "pale_oak_door", ItemProperties().maxStackSize(64));
+    BAMBOO_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_DOOR, "bamboo_door", ItemProperties().maxStackSize(64));
     IRON_DOOR =
         &registerBlockBackedItem(registry, VanillaBlocks::IRON_DOOR, "iron_door", ItemProperties().maxStackSize(64));
+
+    // 栅栏
     OAK_FENCE =
         &registerBlockBackedItem(registry, VanillaBlocks::OAK_FENCE, "oak_fence", ItemProperties().maxStackSize(64));
+    SPRUCE_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_FENCE, "spruce_fence", ItemProperties().maxStackSize(64));
+    BIRCH_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::BIRCH_FENCE, "birch_fence", ItemProperties().maxStackSize(64));
+    JUNGLE_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_FENCE, "jungle_fence", ItemProperties().maxStackSize(64));
+    ACACIA_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_FENCE, "acacia_fence", ItemProperties().maxStackSize(64));
+    DARK_OAK_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_FENCE, "dark_oak_fence", ItemProperties().maxStackSize(64));
+    MANGROVE_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_FENCE, "mangrove_fence", ItemProperties().maxStackSize(64));
+    CHERRY_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_FENCE, "cherry_fence", ItemProperties().maxStackSize(64));
+    PALE_OAK_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_FENCE, "pale_oak_fence", ItemProperties().maxStackSize(64));
+    BAMBOO_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_FENCE, "bamboo_fence", ItemProperties().maxStackSize(64));
+
+    // 栅栏门
     OAK_FENCE_GATE = &registerBlockBackedItem(
         registry, VanillaBlocks::OAK_FENCE_GATE, "oak_fence_gate", ItemProperties().maxStackSize(64));
+    SPRUCE_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_FENCE_GATE, "spruce_fence_gate", ItemProperties().maxStackSize(64));
+    BIRCH_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::BIRCH_FENCE_GATE, "birch_fence_gate", ItemProperties().maxStackSize(64));
+    JUNGLE_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_FENCE_GATE, "jungle_fence_gate", ItemProperties().maxStackSize(64));
+    ACACIA_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_FENCE_GATE, "acacia_fence_gate", ItemProperties().maxStackSize(64));
+    DARK_OAK_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_FENCE_GATE, "dark_oak_fence_gate", ItemProperties().maxStackSize(64));
+    MANGROVE_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_FENCE_GATE, "mangrove_fence_gate", ItemProperties().maxStackSize(64));
+    CHERRY_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_FENCE_GATE, "cherry_fence_gate", ItemProperties().maxStackSize(64));
+    PALE_OAK_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_FENCE_GATE, "pale_oak_fence_gate", ItemProperties().maxStackSize(64));
+    BAMBOO_FENCE_GATE = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_FENCE_GATE, "bamboo_fence_gate", ItemProperties().maxStackSize(64));
+
+    // 活板门
     OAK_TRAPDOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::OAK_TRAPDOOR, "oak_trapdoor", ItemProperties().maxStackSize(64));
+    SPRUCE_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_TRAPDOOR, "spruce_trapdoor", ItemProperties().maxStackSize(64));
+    BIRCH_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::BIRCH_TRAPDOOR, "birch_trapdoor", ItemProperties().maxStackSize(64));
+    JUNGLE_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_TRAPDOOR, "jungle_trapdoor", ItemProperties().maxStackSize(64));
+    ACACIA_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_TRAPDOOR, "acacia_trapdoor", ItemProperties().maxStackSize(64));
+    DARK_OAK_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_TRAPDOOR, "dark_oak_trapdoor", ItemProperties().maxStackSize(64));
+    MANGROVE_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_TRAPDOOR, "mangrove_trapdoor", ItemProperties().maxStackSize(64));
+    CHERRY_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_TRAPDOOR, "cherry_trapdoor", ItemProperties().maxStackSize(64));
+    PALE_OAK_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_TRAPDOOR, "pale_oak_trapdoor", ItemProperties().maxStackSize(64));
+    BAMBOO_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_TRAPDOOR, "bamboo_trapdoor", ItemProperties().maxStackSize(64));
     IRON_TRAPDOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor", ItemProperties().maxStackSize(64));
 
