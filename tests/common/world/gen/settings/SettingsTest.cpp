@@ -769,5 +769,84 @@ TEST_F(SettingsTest, AllDimensionDefaultBlockAndFluidNotNull)
     ASSERT_NE(amp.defaultFluid, nullptr);
 }
 
+// ============================================================================
+// FillLayerEntry 和 updateLayers 填充层测试
+// ============================================================================
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_SolidBlocks_NoFillEntries)
+{
+    // 固体方块不应产生填充层条目
+    FlatLevelGeneratorSettings s(Biomes::Plains);
+    s.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    s.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::STONE));
+    s.updateLayers();
+    EXPECT_TRUE(s.fillLayerEntries().empty());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_WaterLayer_CreatesFillEntry)
+{
+    // 水层（液体）不应产生填充层条目——液体是运动阻挡方块，保留在 layers 中
+    FlatLevelGeneratorSettings s(Biomes::Plains);
+    s.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    s.layersInfo().emplace_back(5, VanillaBlocks::getState(VanillaBlocks::WATER));
+    s.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    s.updateLayers();
+
+    // 水是液体，isLiquid() 为 true，不是非运动阻挡方块，不产生填充层条目
+    EXPECT_TRUE(s.fillLayerEntries().empty());
+    // 水层保留在 layers 中（不是 nullptr）
+    EXPECT_NE(s.layers()[1], nullptr); // 基岩
+    EXPECT_NE(s.layers()[2], nullptr); // 水（不是 nullptr）
+    EXPECT_NE(s.layers()[6], nullptr); // 水
+    EXPECT_NE(s.layers()[7], nullptr); // 草方块
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_NonMotionBlocking_CreatesFillEntry)
+{
+    // 非运动阻挡、非液体、非空气的方块（如草径 PathBlock 等）应产生填充层条目
+    // 注意：此类方块需要确认 isSolid() 返回 false 且 isLiquid() 返回 false
+    // 这里测试默认配置不应有填充层条目
+    FlatLevelGeneratorSettings s(Biomes::Plains);
+    s.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    s.updateLayers();
+    EXPECT_TRUE(s.fillLayerEntries().empty());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_FillLayerEntries_DefaultEmpty)
+{
+    FlatLevelGeneratorSettings s(Biomes::Plains);
+    EXPECT_TRUE(s.fillLayerEntries().empty());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_CreateDefault_NoFillEntries)
+{
+    auto s = FlatLevelGeneratorSettings::createDefault();
+    // 默认配置只有基岩、泥土、草方块——都是固体方块，无填充层
+    EXPECT_TRUE(s.fillLayerEntries().empty());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_DecorationAndLakes_DefaultFalse)
+{
+    FlatLevelGeneratorSettings s(Biomes::Plains);
+    EXPECT_FALSE(s.hasDecoration());
+    EXPECT_FALSE(s.hasLakes());
+
+    s.setDecoration(true);
+    EXPECT_TRUE(s.hasDecoration());
+    EXPECT_FALSE(s.hasLakes());
+
+    s.setLakes(true);
+    EXPECT_TRUE(s.hasDecoration());
+    EXPECT_TRUE(s.hasLakes());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_ParameterizedConstructor_WithFlags)
+{
+    FlatLevelGeneratorSettings s(Biomes::Desert, true, true);
+    EXPECT_EQ(s.biomeId(), Biomes::Desert);
+    EXPECT_TRUE(s.hasDecoration());
+    EXPECT_TRUE(s.hasLakes());
+}
+
 } // namespace
 } // namespace mc

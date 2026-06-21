@@ -31,6 +31,7 @@
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/DecorationStage.hpp"
+#include "common/world/gen/feature/FeatureIds.hpp"
 #include "common/world/gen/feature/FeatureSorter.hpp"
 #include "perfetto/TraceEvents.hpp"
 
@@ -191,17 +192,22 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
             }
         }
 
-        // addLakes 为 true 时，额外放置平坦世界专用的湖泊特征
-        // 参考 MC 1.21.11: FlatLevelGeneratorSettings 中 addLakes 标志
-        // MC 原版放置 LAKE_LAVA_UNDERGROUND 和 LAKE_LAVA_SURFACE
+        // addLakes 为 true 时，放置平坦世界专用的熔岩湖特征
+        // 参考 MC 1.21.11: FlatLevelGeneratorSettings.createLakesList()
+        // MC 原版只放置 LAKE_LAVA_UNDERGROUND 和 LAKE_LAVA_SURFACE，不放置水湖
+        // 水湖由生物群系自身的 Lakes 阶段特性提供（decoration=true 时才生效）
         if (hasLakes) {
-            // 湖泊特征已在 FeatureRegistry 的 Lakes 阶段注册
-            // 此处直接获取并放置
             const auto& lakeFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::Lakes);
             for (i32 i = 0; i < static_cast<i32>(lakeFeatures.size()); ++i) {
-                if (lakeFeatures[static_cast<size_t>(i)] != nullptr) {
+                ConfiguredFeatureBase* feature = lakeFeatures[static_cast<size_t>(i)];
+                if (feature == nullptr) {
+                    continue;
+                }
+                // 仅放置熔岩湖（跳过水湖，水湖由生物群系特性提供）
+                // 参考 MC: createLakesList 只包含 LAKE_LAVA_UNDERGROUND 和 LAKE_LAVA_SURFACE
+                if (feature->featureId() == LakeFeatureIds::LavaLake) {
                     worldgenRandom.setFeatureSeed(decorSeed, i, static_cast<i32>(DecorationStage::Lakes));
-                    lakeFeatures[static_cast<size_t>(i)]->place(region, chunk, *this, worldgenRandom, chunkOrigin);
+                    feature->place(region, chunk, *this, worldgenRandom, chunkOrigin);
                 }
             }
         }
