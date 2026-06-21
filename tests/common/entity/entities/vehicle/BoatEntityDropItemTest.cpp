@@ -5,10 +5,6 @@
  * 测试覆盖：
  * 1. BoatEntity::getBoatItem() - 根据船类型返回对应物品
  * 2. BoatEntity::dropItem() - 正确掉落船物品
- *
- * MC 1.16.5 参考：
- * - BoatEntity.getItemBoat() 行 202-218
- * - BoatEntity.attackEntityFrom() 行 149-170
  */
 
 #include "entity/entities/vehicle/BoatEntity.hpp"
@@ -155,6 +151,10 @@ TEST_F(BoatEntityGetBoatItemTest, AllTypes_HaveCorrespondingItems)
         {BoatEntity::Type::JUNGLE, Items::JUNGLE_BOAT, "JUNGLE"},
         {BoatEntity::Type::ACACIA, Items::ACACIA_BOAT, "ACACIA"},
         {BoatEntity::Type::DARK_OAK, Items::DARK_OAK_BOAT, "DARK_OAK"},
+        {BoatEntity::Type::MANGROVE, Items::MANGROVE_BOAT, "MANGROVE"},
+        {BoatEntity::Type::CHERRY, Items::CHERRY_BOAT, "CHERRY"},
+        {BoatEntity::Type::PALE_OAK, Items::PALE_OAK_BOAT, "PALE_OAK"},
+        {BoatEntity::Type::BAMBOO, Items::BAMBOO_RAFT, "BAMBOO"},
     };
 
     for (const auto& tc : testCases) {
@@ -208,7 +208,7 @@ TEST_F(BoatEntityTypeTest, GetSetBoatType_WorksCorrectly)
  *
  * MC 1.16.5: OAK=0, SPRUCE=1, BIRCH=2, JUNGLE=3, ACACIA=4, DARK_OAK=5
  */
-TEST_F(BoatEntityTypeTest, EnumValues_MatchMC1165)
+TEST_F(BoatEntityTypeTest, EnumValues_MatchMC)
 {
     EXPECT_EQ(static_cast<u8>(BoatEntity::Type::OAK), 0);
     EXPECT_EQ(static_cast<u8>(BoatEntity::Type::SPRUCE), 1);
@@ -216,6 +216,10 @@ TEST_F(BoatEntityTypeTest, EnumValues_MatchMC1165)
     EXPECT_EQ(static_cast<u8>(BoatEntity::Type::JUNGLE), 3);
     EXPECT_EQ(static_cast<u8>(BoatEntity::Type::ACACIA), 4);
     EXPECT_EQ(static_cast<u8>(BoatEntity::Type::DARK_OAK), 5);
+    EXPECT_EQ(static_cast<u8>(BoatEntity::Type::MANGROVE), 6);
+    EXPECT_EQ(static_cast<u8>(BoatEntity::Type::CHERRY), 7);
+    EXPECT_EQ(static_cast<u8>(BoatEntity::Type::PALE_OAK), 8);
+    EXPECT_EQ(static_cast<u8>(BoatEntity::Type::BAMBOO), 9);
 }
 
 // ============================================================================
@@ -266,6 +270,10 @@ TEST_F(BoatEntityTypeTest, AllBoatItems_AreRegistered)
     EXPECT_NE(Items::JUNGLE_BOAT, nullptr) << "Items::JUNGLE_BOAT should be registered";
     EXPECT_NE(Items::ACACIA_BOAT, nullptr) << "Items::ACACIA_BOAT should be registered";
     EXPECT_NE(Items::DARK_OAK_BOAT, nullptr) << "Items::DARK_OAK_BOAT should be registered";
+    EXPECT_NE(Items::MANGROVE_BOAT, nullptr) << "Items::MANGROVE_BOAT should be registered";
+    EXPECT_NE(Items::CHERRY_BOAT, nullptr) << "Items::CHERRY_BOAT should be registered";
+    EXPECT_NE(Items::PALE_OAK_BOAT, nullptr) << "Items::PALE_OAK_BOAT should be registered";
+    EXPECT_NE(Items::BAMBOO_RAFT, nullptr) << "Items::BAMBOO_RAFT should be registered";
 }
 
 /**
@@ -282,9 +290,13 @@ TEST_F(BoatEntityTypeTest, AllBoatItems_AreUnique)
         Items::JUNGLE_BOAT,
         Items::ACACIA_BOAT,
         Items::DARK_OAK_BOAT,
+        Items::MANGROVE_BOAT,
+        Items::CHERRY_BOAT,
+        Items::PALE_OAK_BOAT,
+        Items::BAMBOO_RAFT,
     };
 
-    EXPECT_EQ(boatItems.size(), 6u) << "All 6 boat items should be unique pointers";
+    EXPECT_EQ(boatItems.size(), 10u) << "All 10 boat items should be unique pointers";
 }
 
 // ============================================================================
@@ -383,6 +395,10 @@ TEST_F(BoatEntityTypeTest, BoatType_ItemMapping_Complete)
         {BoatEntity::Type::JUNGLE, Items::JUNGLE_BOAT, "JUNGLE", "item.minecraft:jungle_boat"},
         {BoatEntity::Type::ACACIA, Items::ACACIA_BOAT, "ACACIA", "item.minecraft:acacia_boat"},
         {BoatEntity::Type::DARK_OAK, Items::DARK_OAK_BOAT, "DARK_OAK", "item.minecraft:dark_oak_boat"},
+        {BoatEntity::Type::MANGROVE, Items::MANGROVE_BOAT, "MANGROVE", "item.minecraft:mangrove_boat"},
+        {BoatEntity::Type::CHERRY, Items::CHERRY_BOAT, "CHERRY", "item.minecraft:cherry_boat"},
+        {BoatEntity::Type::PALE_OAK, Items::PALE_OAK_BOAT, "PALE_OAK", "item.minecraft:pale_oak_boat"},
+        {BoatEntity::Type::BAMBOO, Items::BAMBOO_RAFT, "BAMBOO", "item.minecraft:bamboo_raft"},
     };
 
     for (const auto& tc : testCases) {

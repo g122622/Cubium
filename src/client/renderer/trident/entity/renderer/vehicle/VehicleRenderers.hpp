@@ -45,7 +45,18 @@ namespace mc::client::renderer::entity::renderer::vehicle {
 /**
  * @brief 船类型枚举
  */
-enum class BoatType : u8 { Oak = 0, Spruce = 1, Birch = 2, Jungle = 3, Acacia = 4, DarkOak = 5 };
+enum class BoatType : u8 {
+    Oak = 0,
+    Spruce = 1,
+    Birch = 2,
+    Jungle = 3,
+    Acacia = 4,
+    DarkOak = 5,
+    Mangrove = 6,
+    Cherry = 7,
+    PaleOak = 8,
+    Bamboo = 9
+};
 
 /**
  * @brief 船模型

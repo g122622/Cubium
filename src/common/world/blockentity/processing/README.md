@@ -120,8 +120,7 @@
 
             ####未完成项
 
-        - 船类物品（MANGROVE_BOAT、CHERRY_BOAT、PALE_OAK_BOAT、BAMBOO_RAFT 及所有带箱子的船）尚未在 Items
-        中注册，需扩展 `BoatEntity::Type` 枚举后补充
+        - 所有带箱子的船（CHEST_BOAT）尚未实现，待 ChestBoatEntity 实现后需补充燃料条目
 
         ## #7. 熔炉类型对比
 

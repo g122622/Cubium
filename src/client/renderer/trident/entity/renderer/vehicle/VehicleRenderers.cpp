@@ -164,7 +164,11 @@ ResourceLocation BoatRenderer::getTexture() const
         ResourceLocation("minecraft", "textures/entity/boat/birch.png"),
         ResourceLocation("minecraft", "textures/entity/boat/jungle.png"),
         ResourceLocation("minecraft", "textures/entity/boat/acacia.png"),
-        ResourceLocation("minecraft", "textures/entity/boat/dark_oak.png")};
+        ResourceLocation("minecraft", "textures/entity/boat/dark_oak.png"),
+        ResourceLocation("minecraft", "textures/entity/boat/mangrove.png"),
+        ResourceLocation("minecraft", "textures/entity/boat/cherry.png"),
+        ResourceLocation("minecraft", "textures/entity/boat/pale_oak.png"),
+        ResourceLocation("minecraft", "textures/entity/boat/bamboo.png")};
     return textures[static_cast<size_t>(m_type)];
 }
 

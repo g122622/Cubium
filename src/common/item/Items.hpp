@@ -463,7 +463,7 @@ public:
     static Item* COMMAND_BLOCK_MINECART; // 命令方块矿车
 
     // ========================================================================
-    // 船（6种木材类型）
+    // 船（10种木材类型）
     // ========================================================================
     static Item* OAK_BOAT;      // 橡木船
     static Item* SPRUCE_BOAT;   // 云杉木船
@@ -471,6 +471,10 @@ public:
     static Item* JUNGLE_BOAT;   // 丛林木船
     static Item* ACACIA_BOAT;   // 金合欢木船
     static Item* DARK_OAK_BOAT; // 深色橡木船
+    static Item* MANGROVE_BOAT; // 红树木船
+    static Item* CHERRY_BOAT;   // 樱花木船
+    static Item* PALE_OAK_BOAT; // 苍白橡木船
+    static Item* BAMBOO_RAFT;   // 竹筏
 
     // ========================================================================
     // 悬挂实体物品

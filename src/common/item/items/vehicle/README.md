@@ -18,7 +18,7 @@ vehicle/
 │  MinecartItem  │──── 依赖 ────→ AbstractMinecartEntity (6种矿车类型)
 └────────────────┘
 ┌────────────────┐
-│   BoatItem     │──── 依赖 ────→ BoatEntity (6种木材类型)
+│   BoatItem     │──── 依赖 ────→ BoatEntity (10种木材类型)
 └────────────────┘
         │
         └──── 两者均依赖 ────→ Item 基类、ItemUseContext、IWorld

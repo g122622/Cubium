@@ -460,7 +460,7 @@ Item* Items::HOPPER_MINECART = nullptr;
 Item* Items::COMMAND_BLOCK_MINECART = nullptr;
 
 // ============================================================================
-// 船（6种木材类型）
+// 船（10种木材类型）
 // ============================================================================
 Item* Items::OAK_BOAT = nullptr;
 Item* Items::SPRUCE_BOAT = nullptr;
@@ -468,6 +468,10 @@ Item* Items::BIRCH_BOAT = nullptr;
 Item* Items::JUNGLE_BOAT = nullptr;
 Item* Items::ACACIA_BOAT = nullptr;
 Item* Items::DARK_OAK_BOAT = nullptr;
+Item* Items::MANGROVE_BOAT = nullptr;
+Item* Items::CHERRY_BOAT = nullptr;
+Item* Items::PALE_OAK_BOAT = nullptr;
+Item* Items::BAMBOO_RAFT = nullptr;
 
 // ============================================================================
 // 悬挂实体物品
@@ -2293,6 +2297,24 @@ void Items::_registerBoats()
     DARK_OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:dark_oak_boat"),
         entity::BoatEntity::Type::DARK_OAK,
         ItemProperties().maxStackSize(1));
+
+    // 红树木船
+    MANGROVE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:mangrove_boat"),
+        entity::BoatEntity::Type::MANGROVE,
+        ItemProperties().maxStackSize(1));
+
+    // 樱花木船
+    CHERRY_BOAT = &registry.registerItem<item::BoatItem>(
+        ResourceLocation("minecraft:cherry_boat"), entity::BoatEntity::Type::CHERRY, ItemProperties().maxStackSize(1));
+
+    // 苍白橡木船
+    PALE_OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:pale_oak_boat"),
+        entity::BoatEntity::Type::PALE_OAK,
+        ItemProperties().maxStackSize(1));
+
+    // 竹筏
+    BAMBOO_RAFT = &registry.registerItem<item::BoatItem>(
+        ResourceLocation("minecraft:bamboo_raft"), entity::BoatEntity::Type::BAMBOO, ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerHangingItems()

@@ -6,8 +6,6 @@
  * 1. BoatItem 构造函数和类型获取
  * 2. 物品注册验证
  * 3. 燃烧时间验证
- *
- * MC 1.16.5 参考: net.minecraft.item.BoatItem
  */
 
 #include <gtest/gtest.h>
@@ -52,7 +50,11 @@ TEST_F(BoatItemTest, ConstructorAndGetBoatType)
         {BoatEntity::Type::BIRCH, "BIRCH"},
         {BoatEntity::Type::JUNGLE, "JUNGLE"},
         {BoatEntity::Type::ACACIA, "ACACIA"},
-        {BoatEntity::Type::DARK_OAK, "DARK_OAK"}};
+        {BoatEntity::Type::DARK_OAK, "DARK_OAK"},
+        {BoatEntity::Type::MANGROVE, "MANGROVE"},
+        {BoatEntity::Type::CHERRY, "CHERRY"},
+        {BoatEntity::Type::PALE_OAK, "PALE_OAK"},
+        {BoatEntity::Type::BAMBOO, "BAMBOO"}};
 
     for (const auto& tc : testCases) {
         BoatItem boatItem(tc.type, ItemProperties().maxStackSize(1));
@@ -88,6 +90,10 @@ TEST_F(BoatItemTest, AllBoatItemsRegistered)
     EXPECT_NE(Items::JUNGLE_BOAT, nullptr) << "JUNGLE_BOAT should be registered";
     EXPECT_NE(Items::ACACIA_BOAT, nullptr) << "ACACIA_BOAT should be registered";
     EXPECT_NE(Items::DARK_OAK_BOAT, nullptr) << "DARK_OAK_BOAT should be registered";
+    EXPECT_NE(Items::MANGROVE_BOAT, nullptr) << "MANGROVE_BOAT should be registered";
+    EXPECT_NE(Items::CHERRY_BOAT, nullptr) << "CHERRY_BOAT should be registered";
+    EXPECT_NE(Items::PALE_OAK_BOAT, nullptr) << "PALE_OAK_BOAT should be registered";
+    EXPECT_NE(Items::BAMBOO_RAFT, nullptr) << "BAMBOO_RAFT should be registered";
 }
 
 /**
@@ -107,7 +113,11 @@ TEST_F(BoatItemTest, BoatItemResourceLocations)
         {Items::BIRCH_BOAT, "minecraft:birch_boat"},
         {Items::JUNGLE_BOAT, "minecraft:jungle_boat"},
         {Items::ACACIA_BOAT, "minecraft:acacia_boat"},
-        {Items::DARK_OAK_BOAT, "minecraft:dark_oak_boat"}};
+        {Items::DARK_OAK_BOAT, "minecraft:dark_oak_boat"},
+        {Items::MANGROVE_BOAT, "minecraft:mangrove_boat"},
+        {Items::CHERRY_BOAT, "minecraft:cherry_boat"},
+        {Items::PALE_OAK_BOAT, "minecraft:pale_oak_boat"},
+        {Items::BAMBOO_RAFT, "minecraft:bamboo_raft"}};
 
     for (const auto& tc : testCases) {
         ASSERT_NE(tc.item, nullptr) << "Item should not be null for " << tc.expectedId;
@@ -147,6 +157,22 @@ TEST_F(BoatItemTest, BoatItemTypesCorrect)
     auto* darkOakBoat = dynamic_cast<BoatItem*>(Items::DARK_OAK_BOAT);
     ASSERT_NE(darkOakBoat, nullptr) << "DARK_OAK_BOAT should be a BoatItem";
     EXPECT_EQ(darkOakBoat->getBoatType(), BoatEntity::Type::DARK_OAK);
+
+    auto* mangroveBoat = dynamic_cast<BoatItem*>(Items::MANGROVE_BOAT);
+    ASSERT_NE(mangroveBoat, nullptr) << "MANGROVE_BOAT should be a BoatItem";
+    EXPECT_EQ(mangroveBoat->getBoatType(), BoatEntity::Type::MANGROVE);
+
+    auto* cherryBoat = dynamic_cast<BoatItem*>(Items::CHERRY_BOAT);
+    ASSERT_NE(cherryBoat, nullptr) << "CHERRY_BOAT should be a BoatItem";
+    EXPECT_EQ(cherryBoat->getBoatType(), BoatEntity::Type::CHERRY);
+
+    auto* paleOakBoat = dynamic_cast<BoatItem*>(Items::PALE_OAK_BOAT);
+    ASSERT_NE(paleOakBoat, nullptr) << "PALE_OAK_BOAT should be a BoatItem";
+    EXPECT_EQ(paleOakBoat->getBoatType(), BoatEntity::Type::PALE_OAK);
+
+    auto* bambooRaft = dynamic_cast<BoatItem*>(Items::BAMBOO_RAFT);
+    ASSERT_NE(bambooRaft, nullptr) << "BAMBOO_RAFT should be a BoatItem";
+    EXPECT_EQ(bambooRaft->getBoatType(), BoatEntity::Type::BAMBOO);
 }
 
 // ============================================================================
@@ -171,6 +197,10 @@ TEST_F(BoatItemTest, BoatBurnTime)
     EXPECT_NE(Items::JUNGLE_BOAT, nullptr);
     EXPECT_NE(Items::ACACIA_BOAT, nullptr);
     EXPECT_NE(Items::DARK_OAK_BOAT, nullptr);
+    EXPECT_NE(Items::MANGROVE_BOAT, nullptr);
+    EXPECT_NE(Items::CHERRY_BOAT, nullptr);
+    EXPECT_NE(Items::PALE_OAK_BOAT, nullptr);
+    EXPECT_NE(Items::BAMBOO_RAFT, nullptr);
 
     // 预期的燃烧时间
     EXPECT_EQ(EXPECTED_BURN_TIME, 1200) << "Expected burn time should be 1200 ticks";
@@ -192,9 +222,13 @@ TEST_F(BoatItemTest, BoatItemsHaveValidIds)
         Items::BIRCH_BOAT,
         Items::JUNGLE_BOAT,
         Items::ACACIA_BOAT,
-        Items::DARK_OAK_BOAT};
+        Items::DARK_OAK_BOAT,
+        Items::MANGROVE_BOAT,
+        Items::CHERRY_BOAT,
+        Items::PALE_OAK_BOAT,
+        Items::BAMBOO_RAFT};
 
-    for (size_t i = 0; i < 6; ++i) {
+    for (size_t i = 0; i < 10; ++i) {
         ASSERT_NE(boats[i], nullptr) << "Boat item at index " << i << " should not be null";
         EXPECT_NE(boats[i]->itemId(), ItemId(0)) << "Boat item should have non-zero ID";
     }
@@ -212,11 +246,15 @@ TEST_F(BoatItemTest, BoatItemsAreDistinct)
         Items::BIRCH_BOAT,
         Items::JUNGLE_BOAT,
         Items::ACACIA_BOAT,
-        Items::DARK_OAK_BOAT};
+        Items::DARK_OAK_BOAT,
+        Items::MANGROVE_BOAT,
+        Items::CHERRY_BOAT,
+        Items::PALE_OAK_BOAT,
+        Items::BAMBOO_RAFT};
 
     // 验证每对船物品都不同
-    for (size_t i = 0; i < 6; ++i) {
-        for (size_t j = i + 1; j < 6; ++j) {
+    for (size_t i = 0; i < 10; ++i) {
+        for (size_t j = i + 1; j < 10; ++j) {
             EXPECT_NE(boats[i], boats[j]) << "Boat items at index " << i << " and " << j << " should be different";
             EXPECT_NE(boats[i]->itemId(), boats[j]->itemId())
                 << "Boat items at index " << i << " and " << j << " should have different IDs";
@@ -241,4 +279,8 @@ TEST_F(BoatItemTest, BoatEntityTypeValues)
     EXPECT_EQ(static_cast<int>(BoatEntity::Type::JUNGLE), 3);
     EXPECT_EQ(static_cast<int>(BoatEntity::Type::ACACIA), 4);
     EXPECT_EQ(static_cast<int>(BoatEntity::Type::DARK_OAK), 5);
+    EXPECT_EQ(static_cast<int>(BoatEntity::Type::MANGROVE), 6);
+    EXPECT_EQ(static_cast<int>(BoatEntity::Type::CHERRY), 7);
+    EXPECT_EQ(static_cast<int>(BoatEntity::Type::PALE_OAK), 8);
+    EXPECT_EQ(static_cast<int>(BoatEntity::Type::BAMBOO), 9);
 }

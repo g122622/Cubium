@@ -672,6 +672,14 @@ const Item* BoatEntity::getBoatItem() const
             return Items::ACACIA_BOAT;
         case Type::DARK_OAK:
             return Items::DARK_OAK_BOAT;
+        case Type::MANGROVE:
+            return Items::MANGROVE_BOAT;
+        case Type::CHERRY:
+            return Items::CHERRY_BOAT;
+        case Type::PALE_OAK:
+            return Items::PALE_OAK_BOAT;
+        case Type::BAMBOO:
+            return Items::BAMBOO_RAFT;
         default:
             return Items::OAK_BOAT;
     }

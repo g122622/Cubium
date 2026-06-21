@@ -335,6 +335,16 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
     // 深色橡木船
     registerBehavior(
         "minecraft:dark_oak_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::DARK_OAK));
+    // 红树木船
+    registerBehavior(
+        "minecraft:mangrove_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::MANGROVE));
+    // 樱花木船
+    registerBehavior("minecraft:cherry_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::CHERRY));
+    // 苍白橡木船
+    registerBehavior(
+        "minecraft:pale_oak_boat", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::PALE_OAK));
+    // 竹筏
+    registerBehavior("minecraft:bamboo_raft", std::make_unique<BoatDispenseBehavior>(entity::BoatEntity::Type::BAMBOO));
 
     // ========================================================================
     // 水桶/岩浆桶发射行为

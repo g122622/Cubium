@@ -569,12 +569,20 @@ constexpr i32 FIRE_CRACKLE_CHANCE = 20;
 
     // ========== 木船 (1200 tick = 60 秒) ==========
     // MC Java: 所有类型的船和带箱子的船燃烧时间均为 1200 tick
-    // TODO: MANGROVE_BOAT、CHERRY_BOAT、PALE_OAK_BOAT、BAMBOO_RAFT 以及
-    // 所有带箱子的船（CHEST_BOAT）尚未注册（需扩展 BoatEntity::Type 枚举），注册后需补充
-    if (item == Items::OAK_BOAT || item == Items::SPRUCE_BOAT || item == Items::BIRCH_BOAT ||
-        item == Items::JUNGLE_BOAT || item == Items::ACACIA_BOAT || item == Items::DARK_OAK_BOAT) {
+    if (isItemInList(item,
+            {Items::OAK_BOAT,
+                Items::SPRUCE_BOAT,
+                Items::BIRCH_BOAT,
+                Items::JUNGLE_BOAT,
+                Items::ACACIA_BOAT,
+                Items::DARK_OAK_BOAT,
+                Items::MANGROVE_BOAT,
+                Items::CHERRY_BOAT,
+                Items::PALE_OAK_BOAT,
+                Items::BAMBOO_RAFT})) {
         return 1200;
     }
+    // TODO: 所有带箱子的船（CHEST_BOAT）尚未实现，待 ChestBoatEntity 实现后需补充燃料条目
 
     // ========== 旗帜 (300 tick = 15 秒) ==========
     if (isItemInList(item,

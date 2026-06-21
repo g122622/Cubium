@@ -325,6 +325,18 @@ void initializeRendererRegistration()
     f.registerRenderer("minecraft:dark_oak_boat", []() -> std::unique_ptr<core::EntityRenderer> {
         return std::make_unique<vehicle::BoatRenderer>(vehicle::BoatType::DarkOak);
     });
+    f.registerRenderer("minecraft:mangrove_boat", []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<vehicle::BoatRenderer>(vehicle::BoatType::Mangrove);
+    });
+    f.registerRenderer("minecraft:cherry_boat", []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<vehicle::BoatRenderer>(vehicle::BoatType::Cherry);
+    });
+    f.registerRenderer("minecraft:pale_oak_boat", []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<vehicle::BoatRenderer>(vehicle::BoatType::PaleOak);
+    });
+    f.registerRenderer("minecraft:bamboo_raft", []() -> std::unique_ptr<core::EntityRenderer> {
+        return std::make_unique<vehicle::BoatRenderer>(vehicle::BoatType::Bamboo);
+    });
     f.registerRenderer(ET::MINECART,
         []() -> std::unique_ptr<core::EntityRenderer> { return std::make_unique<vehicle::MinecartRenderer>(); });
     f.registerRenderer(ET::CHEST_MINECART,
