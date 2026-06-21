@@ -156,9 +156,13 @@ void ShelfBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockSta
 {
     if (state.get(BlockStateProperties::POWERED())) {
         // 充能时：尝试连接邻居书架
-        // previousState 不可用时，传入默认构造的 BlockState（不会被 isConnectable 误判）
-        const BlockState* prevState = world.getBlockState(pos);
-        updateSelfAndNeighborsOnPoweringUp(world, pos, state, prevState != nullptr ? *prevState : state);
+        // 注意：onBlockAdded 无法获取之前的方块状态（previousState），
+        // 因此使用当前 SIDE_CHAIN_PART 状态作为递归保护：
+        // 如果已经处于连接状态，说明是由邻居的侧链更新触发的，跳过。
+        auto currentPart = state.get(BlockStateProperties::SIDE_CHAIN_PART());
+        if (!BlockStateProperties::isConnected(currentPart)) {
+            updateSelfAndNeighborsOnPoweringUp(world, pos, state);
+        }
     } else {
         // 未充能时：断开邻居的侧链连接
         updateNeighborsAfterPoweringDown(world, pos, state);
@@ -443,15 +447,15 @@ std::vector<BlockPos> ShelfBlock::getAllBlocksConnectedTo(IWorld& world, const B
     return result;
 }
 
-void ShelfBlock::updateSelfAndNeighborsOnPoweringUp(
-    IWorld& world, const BlockPos& pos, const BlockState& currentState, const BlockState& previousState)
+void ShelfBlock::updateSelfAndNeighborsOnPoweringUp(IWorld& world, const BlockPos& pos, const BlockState& currentState)
 {
     if (!isConnectable(currentState)) {
         return;
     }
 
-    // 递归保护：如果当前或之前的状态已经是连接状态，跳过
-    if (isBeingUpdatedByNeighbor(currentState, previousState)) {
+    // 递归保护：如果当前状态已经是连接状态，说明是邻居更新触发的，跳过
+    auto currentPart = currentState.get(BlockStateProperties::SIDE_CHAIN_PART());
+    if (BlockStateProperties::isConnected(currentPart)) {
         return;
     }
 
@@ -537,19 +541,6 @@ void ShelfBlock::setSideChainPart(IWorld& world, const BlockPos& pos, BlockState
         BlockState newState = statePtr->with(BlockStateProperties::SIDE_CHAIN_PART(), part);
         world.setBlockState(pos, &newState, 3);
     }
-}
-
-bool ShelfBlock::isBeingUpdatedByNeighbor(const BlockState& currentState, const BlockState& previousState)
-{
-    auto currentPart = currentState.get(BlockStateProperties::SIDE_CHAIN_PART());
-    bool currentlyConnected = BlockStateProperties::isConnected(currentPart);
-    bool previousConnected = false;
-    if (previousState.hasProperty(BlockStateProperties::SIDE_CHAIN_PART()) &&
-        previousState.hasProperty(BlockStateProperties::POWERED())) {
-        auto previousPart = previousState.get(BlockStateProperties::SIDE_CHAIN_PART());
-        previousConnected = isConnectable(previousState) && BlockStateProperties::isConnected(previousPart);
-    }
-    return currentlyConnected || previousConnected;
 }
 
 bool ShelfBlock::canConnect(i32 neighborChainSize, i32 currentChainSize)

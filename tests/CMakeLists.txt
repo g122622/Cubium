@@ -351,6 +351,8 @@ add_executable(mc_tests
     common/world/blockentity/VaultBlockEntityTest.cpp
     # TrialSpawnerBlockEntity 试炼刷怪笼方块实体测试（状态机、怪物生成、奖励弹出、不祥变体）
     common/world/blockentity/TrialSpawnerBlockEntityTest.cpp
+    # ShelfBlockEntity 书架方块实体测试（比较器信号、物品交换、序列化、克隆）
+    common/world/blockentity/ShelfBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
@@ -366,6 +368,8 @@ add_executable(mc_tests
     common/world/storage/JavaChunkReaderTest.cpp
     common/world/block/blocks/EnchantingTableBlockTest.cpp
     common/world/block/blocks/ChestBlockTest.cpp
+    # ShelfBlock 书架方块测试（侧链连接、红石充能、比较器信号、旋转镜像）
+    common/world/block/blocks/ShelfBlockTest.cpp
     common/world/block/blocks/decorative/PaneBlockTest.cpp
     common/world/block/blocks/decorative/DecorativeBlockTest.cpp
     common/world/block/blocks/decorative/StainedGlassBlockTest.cpp

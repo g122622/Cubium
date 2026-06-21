@@ -281,8 +281,7 @@ private:
      *
      * 检查左右邻居是否可连接，根据侧链长度限制（最多3个）决定连接方式。
      */
-    void updateSelfAndNeighborsOnPoweringUp(
-        IWorld& world, const BlockPos& pos, const BlockState& currentState, const BlockState& previousState);
+    void updateSelfAndNeighborsOnPoweringUp(IWorld& world, const BlockPos& pos, const BlockState& currentState);
 
     /**
      * @brief 当书架断电时，通知邻居断开侧链连接
@@ -295,11 +294,6 @@ private:
      * 仅当新值与当前值不同时才更新方块状态。
      */
     static void setSideChainPart(IWorld& world, const BlockPos& pos, BlockStateProperties::SideChainPart part);
-
-    /**
-     * @brief 检查是否正在被邻居更新（递归保护）
-     */
-    [[nodiscard]] static bool isBeingUpdatedByNeighbor(const BlockState& currentState, const BlockState& previousState);
 
     /**
      * @brief 判断两个侧链是否可以连接

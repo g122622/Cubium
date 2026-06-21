@@ -60,6 +60,7 @@ blockentity/
 │   ├── BannerPattern.hpp/cpp          # 旗帜图案类型定义
 │   ├── JukeboxEntity.hpp/cpp          # 唱片机（唱片播放、1槽位）
 │   ├── LecternEntity.hpp/cpp          # 讲台（书本展示、翻页、红石信号）
+│   ├── ShelfBlockEntity.hpp/cpp       # 书架（3槽位物品存储、比较器3位二进制信号、侧链连接）
 │   ├── EndGatewayEntity.hpp/cpp       # 末地折跃门（传送逻辑、两套冷却时间）
 │   └── README.md
 └── trial/                          # 试炼相关方块实体
