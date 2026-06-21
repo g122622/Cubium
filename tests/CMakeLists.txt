@@ -219,6 +219,8 @@ add_executable(mc_tests
     common/entity/core/StepHeightTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
     common/entity/core/EntityIsInRainTest.cpp
+    # 方块碰撞检测测试（doBlockCollisions 在 LivingEntity::aiStep 中的调用）
+    common/entity/core/BlockCollisionTest.cpp
     common/entity/EntitySerializationTest.cpp
     # Entity::isOnSameTeam() 队伍系统测试
     entity/EntityTeamTest.cpp

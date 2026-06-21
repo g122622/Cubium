@@ -398,6 +398,64 @@
              .causeFallDamage` → `super.causeFallDamage` +
     自身伤害计算。
 
+    ## #方块碰撞检测系统
+
+    实体与方块的碰撞检测由两个互补方法组成，对应 MC 原版中 Entity.tick() 和
+    LivingEntity.aiStep() 的不同碰撞阶段。
+
+    ### doBlockCollisions() — 遍历碰撞箱内所有方块
+
+    遍历实体碰撞箱覆盖的所有方块，对每个非空气方块调用：
+    1. `Block::onEntityCollision()` — 方块对实体的碰撞回调（仙人掌伤害、蜘蛛网减速等）
+    2. `Entity::onInsideBlock()` — 实体"在方块内部"的回调（传送门检测等）
+    3. 自定义方块组件 `onEntity` 事件派发
+
+    对应 MC 原版 `Entity.checkInsideBlocks()`，由 `LivingEntity.aiStep()` 中的
+    `applyEffectsFromBlocks()` 调用。
+
+    **调用位置**：
+    - `LivingEntity::aiStep()` — 在 `travel()` 之后调用，所有 LivingEntity 子类自动继承
+    - `Entity::moveWithCollision()` noClip 路径 — 即使 noClip=true 也要触发碰撞
+    - `BoatEntity::tick()` — 手动调用（BoatEntity.canTriggerWalking()=false）
+    - `ThrowableEntity::tick()` — 投射物需要在 tick 中手动调用
+
+    **典型方块碰撞效果**：
+    | 方块 | 回调 | 效果 |
+    |------|------|------|
+    | CactusBlock | onEntityCollision | 对 LivingEntity 造成 1.0 伤害 |
+    | WebBlock | onEntityCollision | 水平速度 ×0.25，垂直速度 ×0.05 |
+    | SweetBerryBushBlock | onEntityCollision | 伤害+减速（非潜行时） |
+    | BubbleColumnBlock | onEntityCollision | 上推/下拉 Y 速度，重置摔落距离 |
+    | NetherPortalBlock | onEntityCollision | 设置传送门状态 |
+    | FireBlock | onEntityCollision | 点燃实体 |
+    | HoneyBlock | onEntityCollision | 水平速度 ×0.4，下滑减速 |
+
+    ### doBlockCollisionsAfterMove() — 移动后触发的方块回调
+
+    在 `Entity::moveWithCollision()` 正常路径（非 noClip）移动完成后调用，处理与
+    移动方向和着地状态相关的方块回调：
+    1. `Block::onLanded()` — 着陆回调（粘液块弹跳、蜂蜜块取消摔落等）
+    2. `Block::onEntityWalk()` — 行走回调（农田踩踏、海龟蛋踩踏、红石粉更新等）
+    3. `Block::onStepOn` / `Block::onStepOff` — 自定义方块组件步进事件
+    4. `Entity::onInsideBlock()` — 遍历碰撞箱内所有方块的"内部"回调
+
+    **重要区别**：`doBlockCollisionsAfterMove()` 不调用 `onEntityCollision()`，
+    因此不会触发仙人掌伤害、蜘蛛网减速等效果。这些效果仅由 `doBlockCollisions()` 触发。
+
+    ### 两个方法的调用时序
+
+    ```
+    LivingEntity::tick()
+      → LivingEntity::aiStep()
+        → travel()                    // 物理移动
+        → doBlockCollisions()         // onEntityCollision + onInsideBlock（每tick）
+      → Entity::moveWithCollision()   // 碰撞检测移动
+        → doBlockCollisionsAfterMove() // onLanded + onEntityWalk + onStepOn/Off + onInsideBlock
+    ```
+
+    - `doBlockCollisions()` 在每 tick 的 `aiStep()` 中调用，保证持续碰撞效果
+    - `doBlockCollisionsAfterMove()` 仅在物理移动发生时调用，处理着陆和行走事件
+
     ## #canAttackType 攻击类型判断
     - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()` -
     基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob
