@@ -62,7 +62,7 @@ bool RandomPositionGenerator::findRandomTargetBlockAwayFrom(
         awayDirection = awayDirection * (1.0f / length);
     } else {
         // 如果距离太近，使用随机方向
-        Random rng = creature->getRandom();
+        Random& rng = creature->getRandom();
         awayDirection = Vector3(rng.nextFloat() * 2.0f - 1.0f, 0.0f, rng.nextFloat() * 2.0f - 1.0f).normalized();
     }
 
@@ -111,7 +111,7 @@ bool RandomPositionGenerator::findRandomTargetTowardsScaled(
     // 计算目标方向的角度（弧度）
     f64 targetAngle = std::atan2(toTarget.x, toTarget.z);
 
-    Random rng = creature->getRandom();
+    Random& rng = creature->getRandom();
 
     // 尝试多次生成有效位置
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
@@ -162,7 +162,7 @@ bool RandomPositionGenerator::getLandPos(CreatureEntity* creature, i32 xzRange, 
     IWorld* world = creature->world();
     if (!world) return false;
 
-    Random rng = creature->getRandom();
+    Random& rng = creature->getRandom();
 
     // 尝试多次找到陆地位置
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
@@ -194,7 +194,7 @@ bool RandomPositionGenerator::findRandomTargetAvoidWater(
     IWorld* world = creature->world();
     if (!world) return false;
 
-    Random rng = creature->getRandom();
+    Random& rng = creature->getRandom();
 
     // 尝试多次找到避开水域的位置
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
@@ -227,7 +227,7 @@ bool RandomPositionGenerator::findRandomTargetBlock(
     IWorld* world = creature->world();
     if (!world) return false;
 
-    Random rng = creature->getRandom();
+    Random& rng = creature->getRandom();
 
     // MC 1.16.5: RandomPositionGenerator.findRandomTargetBlock
     // 飞行实体使用此方法选择随机的方块位置
@@ -297,7 +297,7 @@ bool RandomPositionGenerator::findRandomTargetBlockTowards(
 
     toTarget = toTarget * (1.0 / distanceToTarget); // 归一化
 
-    Random rng = creature->getRandom();
+    Random& rng = creature->getRandom();
 
     // 尝试多次生成有效位置
     for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
@@ -431,7 +431,7 @@ Vector3 RandomPositionGenerator::generateRandomOffset(
 {
     if (!creature) return Vector3::zero();
 
-    Random rng = creature->getRandom();
+    Random& rng = creature->getRandom();
 
     // 生成基础随机偏移
     f32 dx = (rng.nextFloat() * 2.0f - 1.0f) * static_cast<f32>(xzRange);
@@ -489,7 +489,7 @@ bool RandomPositionGenerator::findBestPosition(
 {
     if (!creature) return false;
 
-    Random rng = creature->getRandom();
+    Random& rng = creature->getRandom();
 
     // MC 1.16.5: 尝试生成多个候选位置，选择评分最高的
     Vector3 bestPos;

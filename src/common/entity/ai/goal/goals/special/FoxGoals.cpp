@@ -643,7 +643,7 @@ FoxSitAndLookGoal::FoxSitAndLookGoal(FoxEntity* fox)
 
 bool FoxSitAndLookGoal::canFoxStart()
 {
-    math::Random rng = m_fox->getRandom();
+    math::Random& rng = m_fox->getRandom();
     if (rng.nextFloat() >= TRIGGER_CHANCE) {
         return false;
     }
@@ -677,7 +677,7 @@ void FoxSitAndLookGoal::startExecuting()
 {
     _chooseRandomLookDirection();
 
-    math::Random rng = m_fox->getRandom();
+    math::Random& rng = m_fox->getRandom();
     m_lookCount = LOOK_COUNT_MIN + rng.nextInt(LOOK_COUNT_MAX - LOOK_COUNT_MIN + 1);
 
     m_fox->setSitting(true);
@@ -710,7 +710,7 @@ void FoxSitAndLookGoal::tick()
 
 void FoxSitAndLookGoal::_chooseRandomLookDirection()
 {
-    math::Random rng = m_fox->getRandom();
+    math::Random& rng = m_fox->getRandom();
 
     f64 angle = static_cast<f64>(math::TWO_PI) * rng.nextDouble();
     m_lookX = std::cos(angle);

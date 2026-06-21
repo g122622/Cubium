@@ -118,7 +118,7 @@ void AbstractFishEntity::updateFlopping()
         m_flopTimer = 0;
 
         // 计算随机跳跃速度
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         f32 dx = (rng.nextFloat() * 2.0f - 1.0f) * 0.05f;
         f32 dy = 0.4f;
         f32 dz = (rng.nextFloat() * 2.0f - 1.0f) * 0.05f;

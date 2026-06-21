@@ -66,7 +66,7 @@ bool PandaRollGoal::shouldExecute()
     }
 
     // 条件3：检查前方是否有悬崖或概率触发
-    math::Random rng = m_panda->getRandom();
+    math::Random& rng = m_panda->getRandom();
     if (_isCliffInFront()) {
         // 如果前方是悬崖，100% 触发
         return true;

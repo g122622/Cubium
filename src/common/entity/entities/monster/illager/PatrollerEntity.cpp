@@ -52,7 +52,7 @@ void PatrollerEntity::setLeader(bool isLeader)
 
 void PatrollerEntity::resetPatrolTarget()
 {
-    auto random = getRandom();
+    auto& random = getRandom();
     const BlockPos currentPos(position());
     setPatrolTarget(currentPos + BlockPos(-500 + random.nextInt(1000), 0, -500 + random.nextInt(1000)));
 }

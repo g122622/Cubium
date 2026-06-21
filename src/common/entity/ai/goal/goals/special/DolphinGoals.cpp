@@ -63,7 +63,7 @@ DolphinJumpGoal::DolphinJumpGoal(DolphinEntity* dolphin, i32 chance)
 bool DolphinJumpGoal::shouldExecute()
 {
     // 随机概率检查
-    math::Random rng = m_dolphin->getRandom();
+    math::Random& rng = m_dolphin->getRandom();
     if (rng.nextInt(m_chance) != 0) {
         return false;
     }
@@ -268,7 +268,7 @@ void SwimToTreasureGoal::startExecuting()
     m_dolphin->clearNavigationPath();
 
     // 随机选择沉船或海底废墟进行搜索
-    math::Random rng = m_dolphin->getRandom();
+    math::Random& rng = m_dolphin->getRandom();
     bool tryShipwreckFirst = rng.nextFloat() < 0.5f;
 
     // TODO: 结构定位系统完善后启用真实搜索
@@ -368,7 +368,7 @@ void SwimToTreasureGoal::tick()
     }
 
     // 随机播放粒子效果
-    math::Random rng = m_dolphin->getRandom();
+    math::Random& rng = m_dolphin->getRandom();
     if (rng.nextInt(80) == 0) {
         world->broadcastEntityStatus(
             m_dolphin->id(), static_cast<u8>(mc::network::EntityStatusPacket::Status::Dolphin));
@@ -473,7 +473,7 @@ void SwimWithPlayerGoal::tick()
     // 定期刷新海豚的恩惠效果
     IWorld* world = m_dolphin->world();
     if (world != nullptr && m_targetPlayer->isSwimming()) {
-        math::Random rng = m_dolphin->getRandom();
+        math::Random& rng = m_dolphin->getRandom();
         if (rng.nextInt(EFFECT_INTERVAL) == 0) {
             m_targetPlayer->addEffect(entity::effect::EffectInstance(
                 entity::effect::EffectType::DolphinsGrace, EFFECT_DURATION, 0, false, true, true));
@@ -592,7 +592,7 @@ void PlayWithItemsGoal::resetTask()
         m_dolphin->setMainHandItem(ItemStack());
         _throwItem(mainHandItem);
         // 设置随机冷却 (0-99 ticks)
-        math::Random rng = m_dolphin->getRandom();
+        math::Random& rng = m_dolphin->getRandom();
         m_cooldown = static_cast<i32>(m_dolphin->ticksExisted()) + rng.nextInt(100);
     }
 }
@@ -610,7 +610,7 @@ void PlayWithItemsGoal::tick()
 
     if (!mainHandItem.isEmpty()) {
         // 持有物品时，随机决定是否扔出
-        math::Random rng = m_dolphin->getRandom();
+        math::Random& rng = m_dolphin->getRandom();
         if (rng.nextInt(40) == 0) {
             // 扔出物品
             ItemStack copy = mainHandItem;
@@ -657,7 +657,7 @@ void PlayWithItemsGoal::_throwItem(ItemStack& stack)
     f64 y = m_dolphin->y() + m_dolphin->eyeHeight() - 0.3;
 
     // 计算扔出速度
-    math::Random rng = m_dolphin->getRandom();
+    math::Random& rng = m_dolphin->getRandom();
     f32 angle = rng.nextFloat() * math::TWO_PI;
     f32 inaccuracy = 0.02f * rng.nextFloat();
 

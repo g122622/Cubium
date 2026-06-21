@@ -142,7 +142,7 @@ std::unique_ptr<Entity> CatEntity::create(IWorld* /*world*/)
 
 void CatEntity::setRandomCatType()
 {
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     m_catType = static_cast<CatType>(rng.nextInt(0, 10));
 }
 

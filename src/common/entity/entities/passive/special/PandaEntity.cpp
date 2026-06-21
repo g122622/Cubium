@@ -63,7 +63,7 @@ std::unique_ptr<Entity> PandaEntity::create(IWorld* /*world*/)
 
 void PandaEntity::randomizePersonality()
 {
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
 
     // 熊猫性格概率分布
     // 普通: 32%, 懒惰: 32%, 忧愁: 16%, 顽皮: 16%, 好斗: 1.6%, 虚弱: 0.08%, 棕色: 2.4%
@@ -384,7 +384,7 @@ void PandaEntity::_onSneezeComplete()
     if (!m_world->isClientSide()) {
         const auto& gameRules = m_world->getGameRules();
         if (gameRules.getBoolean(world::gamerule::GameRuleKeys::DO_MOB_LOOT)) {
-            math::Random rng = getRandom();
+            math::Random& rng = getRandom();
             if (rng.nextInt(700) == 0) {
                 // 使用 ItemDropHelper 在熊猫位置掉落粘液球
                 ItemStack slimeBall(*Items::SLIME_BALL, 1);

@@ -219,10 +219,7 @@ public:
      */
     void setIdleTime(i32 time) { m_idleTime = time; }
 
-    /**
-     * @brief 获取随机数生成器（基于实体ID和tick）
-     */
-    [[nodiscard]] math::Random getRandom() const;
+    // getRandom() 继承自 Entity 基类，返回持久化随机数生成器的引用
 
     /**
      * @brief 检查是否被骑乘

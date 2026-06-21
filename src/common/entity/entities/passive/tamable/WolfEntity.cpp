@@ -234,7 +234,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
 void WolfEntity::_tryToTame(Player& player)
 {
     // 1/3 概率驯服成功
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     if (rng.nextInt(3) == 0) {
         // 驯服成功
         setTamed(true);
@@ -415,7 +415,7 @@ void WolfEntity::tick()
 
 std::optional<ResourceLocation> WolfEntity::getAmbientSound() const
 {
-    math::Random random = getRandom();
+    math::Random& random = getRandom();
 
     if (isAngry()) {
         return makeSoundEventId("growl");
@@ -467,7 +467,7 @@ void WolfEntity::playShakingSound()
         return;
     }
 
-    math::Random random = getRandom();
+    math::Random& random = getRandom();
     playSound(*soundEvent, getSoundVolume(), (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
 }
 
@@ -520,7 +520,7 @@ void WolfEntity::registerGoals()
                 if (!llama) return false;
                 // 羊驼强度 >= 随机值(0-4) 时，狼会躲避
                 // 强度1: 20%概率吓跑，强度4: 80%概率吓跑
-                math::Random rng = getRandom();
+                math::Random& rng = getRandom();
                 return llama->getStrength() >= rng.nextInt(5);
             }));
 

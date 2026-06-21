@@ -61,7 +61,7 @@ void SwimGoal::tick()
     if (!m_mob) return;
 
     // 以 80% 概率跳跃
-    math::Random rng = m_mob->getRandom();
+    math::Random& rng = m_mob->getRandom();
     if (rng.nextFloat() < 0.8f) {
         if (auto* jumpCtrl = m_mob->jumpController()) {
             jumpCtrl->setJumping();

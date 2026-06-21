@@ -188,7 +188,7 @@ void MeleeAttackGoal::tick()
         m_targetZ = m_attackTarget->z();
 
         // 随机重算间隔 (4-10)
-        math::Random rng = m_creature->getRandom();
+        math::Random& rng = m_creature->getRandom();
         m_pathRecalculateTimer = PATH_RECALCULATE_BASE + rng.nextInt(PATH_RECALCULATE_RANDOM);
 
         // 添加路径失败惩罚

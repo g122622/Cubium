@@ -302,7 +302,7 @@ bool EndermanEntity::hurt(DamageSource& source, f32 amount)
 
             if (!isLivingSource) {
                 // 使用 getRandom() 获取随机数生成器
-                math::Random rng = getRandom();
+                math::Random& rng = getRandom();
                 // nextInt(10) != 0 意味着 90% 概率（10次中有9次）
                 if (rng.nextInt(10) != 0) {
                     teleport();

@@ -115,9 +115,8 @@ void VillagerEntity::tick()
         i64 gameTime = m_world->currentTick();
         i32 dayTime = static_cast<i32>(m_world->dayTimeOfDay());
 
-        // Brain tick使用 IWorld 和 Random
-        math::Random random(ticksExisted());
-        m_brain->tick(m_world, this, gameTime, dayTime, random);
+        // Brain tick使用实体的持久化随机数生成器
+        m_brain->tick(m_world, this, gameTime, dayTime, getRandom());
     }
 
     // 更新声音冷却

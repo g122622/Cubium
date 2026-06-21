@@ -173,7 +173,7 @@ bool IronGolemEntity::attackEntityAsMob(LivingEntity& target)
     // 注意：(int)f 是截断取整而非向上取整，但对于整数 ATTACK_DAMAGE=7.0 无差异
     f32 damage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, ATTACK_DAMAGE));
 
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     if (static_cast<i32>(damage) > 0) {
         damage = damage / 2.0f + static_cast<f32>(rng.nextInt(static_cast<i32>(damage)));
     }

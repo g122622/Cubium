@@ -131,7 +131,7 @@ client::renderer::trident::particle::ParticleTypeId SlimeEntity::getSquishPartic
 i32 SlimeEntity::getJumpDelay() const
 {
     // 返回 10-29 tick（0.5-1.45秒）
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     return rng.nextInt(10, 29);
 }
 

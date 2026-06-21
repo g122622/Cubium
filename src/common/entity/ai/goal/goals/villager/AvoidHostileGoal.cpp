@@ -165,7 +165,7 @@ void AvoidHostileGoal::_fleeFromHostile()
     f32 dist = std::sqrt(dx * dx + dz * dz);
     if (dist < 0.001f) {
         // 距离太近，随机选择方向
-        math::Random rng = m_villager->getRandom();
+        math::Random& rng = m_villager->getRandom();
         f32 angle = rng.nextFloat() * math::TWO_PI;
         dx = std::cos(angle);
         dz = std::sin(angle);

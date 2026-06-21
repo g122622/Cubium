@@ -37,7 +37,7 @@ DrownedEntity::DrownedEntity(EntityId id)
     registerAttributes();
 
     // 随机决定是否手持三叉戟
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     m_hasTrident = rng.nextInt(1, 100) <= 15; // 15% 概率
 }
 

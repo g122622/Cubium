@@ -69,7 +69,7 @@ void SquidMoveRandomGoal::tick()
     } else {
         // 检查是否需要生成新的移动向量
         // 条件：1/50概率 或 不在水中 或 没有移动向量
-        math::Random rng = m_squid->getRandom();
+        math::Random& rng = m_squid->getRandom();
         bool needNewVector =
             (rng.nextInt(RANDOM_CHANCE) == 0) || (!m_squid->isInWater()) || (!m_squid->hasMovementVector());
 

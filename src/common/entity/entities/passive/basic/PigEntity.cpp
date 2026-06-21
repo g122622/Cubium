@@ -123,7 +123,7 @@ f32 PigEntity::getSteeringSpeed() const
 bool PigEntity::boost()
 {
     // 使用 BoostHelper 进行加速
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     return m_boostHelper.boost(rng);
 }
 
@@ -258,7 +258,7 @@ void PigEntity::die(DamageSource& cause)
     if (hasSaddle() && m_world != nullptr && !m_world->isClientSide()) {
         // 使用 ItemDropHelper 在实体位置生成鞍物品
         ItemStack saddle(Items::SADDLE, 1);
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         ItemDropHelper::spawnItemAtEntity(this, saddle, 0.0f, rng);
     }
 }

@@ -92,7 +92,7 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
         inaccuracy);
 
     // 播放射箭音效
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 0.8f);
     playSound(SoundEvents::ENTITY_SKELETON_SHOOT, 1.0f, pitch);
 

@@ -161,7 +161,7 @@ void IronGolemAttackGoal::tick()
         m_targetZ = m_attackTarget->z();
 
         // 随机重算间隔 (4-10)
-        math::Random rng = m_golem->getRandom();
+        math::Random& rng = m_golem->getRandom();
         m_pathRecalculateTimer = PATH_RECALC_BASE_MIN + rng.nextInt(PATH_RECALC_BASE_MAX - PATH_RECALC_BASE_MIN);
 
         // 根据距离调整重算间隔
@@ -250,7 +250,7 @@ bool ShowVillagerFlowerGoal::shouldExecute()
     }
 
     // 概率检查 1/8000
-    math::Random rng = m_ironGolem->getRandom();
+    math::Random& rng = m_ironGolem->getRandom();
     if (rng.nextInt(CHANCE) != 0) {
         return false;
     }
@@ -372,7 +372,7 @@ bool IronGolemNearestAttackableTargetGoal::shouldExecute()
 {
     // 概率检查
     if (m_chance > 0) {
-        math::Random rng = m_golem->getRandom();
+        math::Random& rng = m_golem->getRandom();
         if (rng.nextInt(m_chance) != 0) {
             return false;
         }

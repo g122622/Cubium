@@ -151,7 +151,7 @@ bool RandomSwimmingGoal::getRandomSwimPosition(Vector3& outPos)
     IWorld* world = m_creature->world();
 
     // 在实体周围 10 格范围内随机搜索
-    math::Random rng = m_creature->getRandom();
+    math::Random& rng = m_creature->getRandom();
 
     f64 currentX = m_creature->x();
     f64 currentY = m_creature->y();

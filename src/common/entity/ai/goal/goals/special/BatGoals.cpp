@@ -104,7 +104,7 @@ void BatRandomFlyGoal::tick()
         return;
     }
 
-    math::Random rng = m_bat->getRandom();
+    math::Random& rng = m_bat->getRandom();
     IWorld* world = m_bat->world();
 
     // 检查是否需要选择新目标
@@ -178,7 +178,7 @@ void BatRandomFlyGoal::_selectNewTarget()
         return;
     }
 
-    math::Random rng = m_bat->getRandom();
+    math::Random& rng = m_bat->getRandom();
     math::Vector3 currentPos = m_bat->position();
 
     // 目标点范围：
@@ -264,7 +264,7 @@ bool BatRestGoal::shouldExecute()
     }
 
     // 1/100 概率尝试休息
-    math::Random rng = m_bat->getRandom();
+    math::Random& rng = m_bat->getRandom();
     if (rng.nextInt(1, 100) != 1) {
         return false;
     }
@@ -332,7 +332,7 @@ void BatRestGoal::tick()
     }
 
     // 休息时偶尔转头
-    math::Random rng = m_bat->getRandom();
+    math::Random& rng = m_bat->getRandom();
     if (rng.nextInt(200) == 0) {
         // 随机选择新的转头角度
         m_targetYaw = static_cast<f32>(rng.nextInt(360));

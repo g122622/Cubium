@@ -56,7 +56,7 @@ bool LookAtEntitiesGoal::shouldExecute()
     if (!m_villager) return false;
 
     // 概率检查
-    math::Random rng = m_villager->getRandom();
+    math::Random& rng = m_villager->getRandom();
     if (rng.nextFloat() >= LOOK_CHANCE) return false;
 
     // 随机选择目标类型
@@ -84,7 +84,7 @@ bool LookAtEntitiesGoal::shouldExecute()
     if (target) {
         m_lookTargetId = target->id();
         // 设置看向时间
-        math::Random rng2 = m_villager->getRandom();
+        math::Random& rng2 = m_villager->getRandom();
         m_lookTime = LOOK_MIN_TIME + rng2.nextInt(LOOK_MAX_TIME - LOOK_MIN_TIME);
         return true;
     }
@@ -155,7 +155,7 @@ void LookAtEntitiesGoal::tick()
 void LookAtEntitiesGoal::_selectTargetType()
 {
     // 猫: 8, 村民: 2, 玩家: 2, 生物: 1
-    math::Random rng = m_villager->getRandom();
+    math::Random& rng = m_villager->getRandom();
     i32 rand = rng.nextInt(13); // 8 + 2 + 2 + 1 = 13
 
     if (rand < 8) {

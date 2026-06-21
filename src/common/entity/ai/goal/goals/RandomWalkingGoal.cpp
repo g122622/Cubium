@@ -63,7 +63,7 @@ bool RandomWalkingGoal::shouldExecute()
         if (m_checkIdleTime && m_creature->idleTime() >= 100) return false;
 
         // 检查执行概率
-        math::Random rng = m_creature->getRandom();
+        math::Random& rng = m_creature->getRandom();
         if (rng.nextInt(m_executionChance) != 0) return false;
     }
 

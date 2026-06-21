@@ -51,7 +51,7 @@ bool FlyGoal::shouldExecute()
     }
 
     // 概率检查
-    math::Random rng = m_creature->getRandom();
+    math::Random& rng = m_creature->getRandom();
     if (rng.nextInt(EXECUTION_CHANCE) != 0) {
         return false;
     }

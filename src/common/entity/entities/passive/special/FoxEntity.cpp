@@ -246,7 +246,7 @@ void FoxEntity::dropHeldItem()
     }
 
     // 使用 ItemDropHelper 在实体位置生成物品实体
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     ItemDropHelper::spawnItemAtEntity(this, *m_heldItem, 0.0f, rng, 10);
 
     // 清空物品引用
@@ -302,7 +302,7 @@ std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
 
     // 遗传皮肤类型：50% 概率从任一父母继承皮肤类型
     FoxEntity* partnerFox = dynamic_cast<FoxEntity*>(&partner);
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     if (rng.nextBoolean()) {
         baby->setFoxType(m_foxType);
     } else if (partnerFox != nullptr) {

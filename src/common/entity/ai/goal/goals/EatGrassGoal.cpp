@@ -51,7 +51,7 @@ bool EatGrassGoal::shouldExecute()
     }
 
     // 概率检查：幼年动物 1/50，成年动物 1/1000
-    math::Random rng = m_mob->getRandom();
+    math::Random& rng = m_mob->getRandom();
     const i32 chance = m_isChild && m_isChild() ? CHILD_CHANCE : ADULT_CHANCE;
     if (rng.nextInt(chance) != 0) {
         return false;

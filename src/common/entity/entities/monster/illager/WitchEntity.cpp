@@ -105,7 +105,7 @@ bool WitchEntity::_needsSwiftness() const
 
 std::optional<entity::effect::EffectType> WitchEntity::_decidePotionToDrink()
 {
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
 
     // 按优先级检查药水需求
     // 条件1：水肺药水 - 15%概率，眼睛在水中且无水肺效果
@@ -140,7 +140,7 @@ void WitchEntity::_startDrinkingPotion(entity::effect::EffectType effectType)
 
     // 播放喝药水音效
     if (!isSilent()) {
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         f32 pitch = 0.8f + rng.nextFloat() * 0.4f;
         playSound(SoundEvents::ENTITY_WITCH_DRINK, 1.0f, pitch);
     }
@@ -283,7 +283,7 @@ void WitchEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charg
 
 entity::effect::EffectType WitchEntity::_selectAttackPotionType(LivingEntity* target) const
 {
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
 
     // 检查目标是否是掠夺者同伴
     // 如果是，则使用治疗/再生药水
@@ -335,7 +335,7 @@ void WitchEntity::_throwPotionAt(LivingEntity* target, entity::effect::EffectTyp
         return;
     }
 
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
 
     // 计算投掷方向（考虑目标运动）
     Vector3 targetMotion = target->velocity();

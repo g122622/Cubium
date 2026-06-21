@@ -97,7 +97,7 @@ RabbitEntity::RabbitType RabbitEntity::getDefaultRabbitTypeForBiome() const
 
     // 参考 MC 1.21.11 Rabbit.getRandomRabbitVariant：
     // 使用一次随机调用来决定类型，与 MC 的随机种子消费方式一致
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     i32 i = rng.nextInt(100);
 
     // 雪地群系：生成白色/白色斑点兔子
@@ -156,7 +156,7 @@ std::unique_ptr<AnimalEntity> RabbitEntity::spawnBaby(AnimalEntity& partner)
 
     // 类型继承逻辑：5% 概率根据群系随机生成类型，95% 从父母继承
     // 参考 MC 1.21.11 Rabbit.getBreedOffspring
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     RabbitType babyType;
 
     if (rng.nextInt(20) == 0) {
@@ -199,7 +199,7 @@ void RabbitEntity::setJumping(bool jumping)
         return;
     }
 
-    math::Random random = getRandom();
+    math::Random& random = getRandom();
     playSound(*soundEvent, getSoundVolume(), ((random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f) * 0.8f);
 }
 
@@ -219,7 +219,7 @@ void RabbitEntity::playAttackSound(LivingEntity& /*target*/)
         return;
     }
 
-    math::Random random = getRandom();
+    math::Random& random = getRandom();
     playSound(*soundEvent, 1.0f, (random.nextFloat() - random.nextFloat()) * 0.2f + 1.0f);
 }
 

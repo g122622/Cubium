@@ -80,14 +80,13 @@ Entity::Entity(EntityId id, IWorld* world)
     , m_position(0.0f, 0.0f, 0.0f)
     , m_prevPosition(0.0f, 0.0f, 0.0f)
     , m_velocity(0.0f, 0.0f, 0.0f)
+    , m_random(
+          static_cast<u64>(id) ^ static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()))
     , m_world(world)
 {
-    // 生成随机UUID
-    u64 seed = static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-    math::Random rng(seed);
-
+    // 生成随机UUID（使用实体的持久化随机数生成器）
     std::stringstream ss;
-    ss << std::hex << rng.nextU64() << rng.nextU64();
+    ss << std::hex << m_random.nextU64() << m_random.nextU64();
     m_uuid = ss.str();
 
     // 注册数据参数

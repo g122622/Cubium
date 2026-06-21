@@ -63,7 +63,7 @@ bool LookAtGoal::shouldExecute()
     if (!m_mob) return false;
 
     // 检查概率
-    math::Random rng = m_mob->getRandom();
+    math::Random& rng = m_mob->getRandom();
     if (rng.nextFloat() >= m_chance) {
         return false;
     }
@@ -103,7 +103,7 @@ void LookAtGoal::startExecuting()
     if (!m_mob) return;
 
     // 设置看向时间 (40 + random.nextInt(40))
-    math::Random rng = m_mob->getRandom();
+    math::Random& rng = m_mob->getRandom();
     m_lookTime = LOOK_AT_MIN_TIME + rng.nextInt(LOOK_AT_MAX_TIME - LOOK_AT_MIN_TIME);
 }
 
@@ -163,7 +163,7 @@ bool LookRandomlyGoal::shouldExecute()
     if (!m_mob) return false;
 
     // 默认概率执行 (2%)
-    math::Random rng = m_mob->getRandom();
+    math::Random& rng = m_mob->getRandom();
     return rng.nextFloat() < RANDOM_LOOK_CHANCE;
 }
 
@@ -178,7 +178,7 @@ void LookRandomlyGoal::startExecuting()
     if (!m_mob) return;
 
     // 选择随机方向
-    math::Random rng = m_mob->getRandom();
+    math::Random& rng = m_mob->getRandom();
     f64 angle = math::TWO_PI * rng.nextDouble();
 
     m_lookX = std::cos(angle);

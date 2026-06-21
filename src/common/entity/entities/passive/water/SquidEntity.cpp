@@ -94,7 +94,7 @@ void SquidEntity::tick()
 
         // 随机改变方向
         if (m_changeDirectionTimer >= 100) {
-            math::Random rng = getRandom();
+            math::Random& rng = getRandom();
             m_targetSwimAngle = rng.nextFloat(0.0f, 360.0f);
             m_changeDirectionTimer = 0;
         }

@@ -149,7 +149,7 @@ f32 StriderEntity::getSteeringSpeed() const
 
 bool StriderEntity::boost()
 {
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     return m_boostHelper.boost(rng);
 }
 
@@ -451,7 +451,7 @@ void StriderEntity::die(DamageSource& cause)
     if (hasSaddle() && m_world != nullptr && !m_world->isClientSide()) {
         // 使用 ItemDropHelper 在实体位置生成鞍物品
         ItemStack saddle(Items::SADDLE, 1);
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         ItemDropHelper::spawnItemAtEntity(this, saddle, 0.0f, rng);
     }
 }

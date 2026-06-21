@@ -211,7 +211,7 @@ bool PatrolGoal::_moveRandomly()
     IWorld* world = m_patroller->world();
     if (!world) return false;
 
-    Random rng = m_patroller->getRandom();
+    Random& rng = m_patroller->getRandom();
 
     // 在当前位置 ±8 格范围内随机选择位置
     Vector3 currentPos = m_patroller->position();

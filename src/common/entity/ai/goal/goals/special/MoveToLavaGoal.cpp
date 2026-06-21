@@ -102,7 +102,7 @@ void MoveToBlockGoal::startExecuting()
     m_timeoutCounter = 0;
 
     // 随机最大停留时间
-    math::Random rng = m_creature->getRandom();
+    math::Random& rng = m_creature->getRandom();
     m_maxStayTicks = rng.nextInt(rng.nextInt(MAX_STAY_RANGE) + MAX_STAY_BASE) + MAX_STAY_BASE;
 }
 
@@ -166,7 +166,7 @@ i32 MoveToBlockGoal::getRunDelay()
         return RUN_DELAY_BASE;
     }
     // 200 + random(200) = 200-400 tick
-    math::Random rng = m_creature->getRandom();
+    math::Random& rng = m_creature->getRandom();
     return RUN_DELAY_BASE + rng.nextInt(RUN_DELAY_RANGE);
 }
 

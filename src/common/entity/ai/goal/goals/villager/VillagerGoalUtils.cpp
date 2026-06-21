@@ -116,7 +116,7 @@ bool throwHalfStackToTarget(VillagerEntity* villager,
             }
 
             // 添加随机偏移（与 MC 的 spread(0.3, 0.3, 0.3) 对应）
-            math::Random rng = villager->getRandom();
+            math::Random& rng = villager->getRandom();
             vx += (rng.nextFloat() - 0.5f) * 0.3f;
             vy += (rng.nextFloat() - 0.5f) * 0.3f;
             vz += (rng.nextFloat() - 0.5f) * 0.3f;

@@ -70,7 +70,7 @@ bool CongregateGoal::shouldExecute()
     if (distSq > 16.0f * 16.0f) return false; // 超过16格
 
     // 小概率触发（1%）
-    math::Random rng = m_villager->getRandom();
+    math::Random& rng = m_villager->getRandom();
     if (rng.nextInt(100) != 0) return false;
 
     // 查找附近的其他村民

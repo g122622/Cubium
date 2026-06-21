@@ -207,7 +207,7 @@ void FarmerWorkGoal::_tryCompost()
             ItemStack remaining = inventory.addItem(boneMealStack);
             if (!remaining.isEmpty()) {
                 // 装不下就丢在地上
-                math::Random rng = m_villager->getRandom();
+                math::Random& rng = m_villager->getRandom();
                 ItemDropHelper::spawnItemEntity(world,
                     remaining,
                     m_villager->x(),
@@ -318,7 +318,7 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
     u32 seedItemId = cropBlock->getSeedItem();
 
     // 计算种子掉落数量：成熟时种子掉落 1+0~2
-    math::Random rng = m_villager->getRandom();
+    math::Random& rng = m_villager->getRandom();
     i32 seedCount = 1 + rng.nextInt(3); // 1~3 颗种子
 
     // 将作物产品放入村民背包
@@ -470,7 +470,7 @@ std::optional<BlockPos> FarmerWorkGoal::_pickValidFarmland() const
     i32 count = 0;
     std::optional<BlockPos> result;
 
-    math::Random rng = m_villager->getRandom();
+    math::Random& rng = m_villager->getRandom();
 
     for (i32 dx = -FARMER_SEARCH_RANGE; dx <= FARMER_SEARCH_RANGE; ++dx) {
         for (i32 dy = -FARMER_SEARCH_RANGE; dy <= FARMER_SEARCH_RANGE; ++dy) {

@@ -213,7 +213,7 @@ bool ZombieEntity::attackEntityAsMob(LivingEntity& target)
             // 燃烧概率 = regionalDifficulty * 0.3
             // 区域难度 Easy=0.75, Normal=1.0, Hard=1.0
             // 所以概率大约是 22.5%, 30%, 30%
-            math::Random rng = getRandom();
+            math::Random& rng = getRandom();
             if (rng.nextFloat() < regionalDifficulty * 0.3f) {
                 // 燃烧时间 = 2 * regionalDifficulty（秒）
                 // 区域难度 0.75 -> 1.5秒 = 30 ticks
@@ -488,7 +488,7 @@ void ZombieEntity::finalizeSpawn(
     f32 specialMultiplier = difficulty.getSpecialMultiplier();
 
     // 设置破门能力：概率 = specialMultiplier * 0.1
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     if (rng.nextFloat() < specialMultiplier * 0.1f) {
         setBreakDoorsAbility(true);
     }

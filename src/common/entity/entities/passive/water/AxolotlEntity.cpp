@@ -66,7 +66,7 @@ std::unique_ptr<Entity> AxolotlEntity::create(IWorld* /*world*/)
 
 void AxolotlEntity::randomizeVariant()
 {
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     // 从四种普通变体中随机选择
     i32 variantIndex = rng.nextInt(0, 3);
     m_variant = static_cast<AxolotlVariant>(variantIndex);
@@ -218,7 +218,7 @@ bool AxolotlEntity::hurt(DamageSource& source, f32 amount)
         // 条件：在水中 + 攻击者存在 + 33%概率 + 伤害不超过当前生命值
         f32 healthAmount = health();
         if (healthAmount > 0.0f && amount < healthAmount) {
-            math::Random rng = getRandom();
+            math::Random& rng = getRandom();
             if (rng.nextInt(3) == 0) {
                 // 检查攻击者是否存在
                 const Entity* attacker = source.getEntity();

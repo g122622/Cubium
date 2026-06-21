@@ -84,7 +84,7 @@ void GhastRandomFlyGoal::startExecuting()
     }
 
     // 在当前位置周围选择随机目标点
-    math::Random rng = m_ghast->getRandom();
+    math::Random& rng = m_ghast->getRandom();
 
     // 目标范围: 当前位置 ±16格
     f64 targetX = m_ghast->x() + (rng.nextFloat() * 2.0 - 1.0) * WANDER_RANGE;

@@ -62,7 +62,7 @@ bool WaterAvoidingRandomWalkingGoal::shouldExecute()
 
     // 检查执行概率
     if (m_chance > 0.0f) {
-        math::Random rng = m_creature->getRandom();
+        math::Random& rng = m_creature->getRandom();
         if (rng.nextFloat() >= m_chance) return false;
     }
 
@@ -124,7 +124,7 @@ bool WaterAvoidingRandomWalkingGoal::getRandomPosition()
 {
     if (!m_creature) return false;
 
-    math::Random rng = m_creature->getRandom();
+    math::Random& rng = m_creature->getRandom();
 
     // 尝试多次找到合适的位置
     for (i32 attempt = 0; attempt < 10; ++attempt) {

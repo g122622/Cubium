@@ -137,7 +137,7 @@ std::unique_ptr<AnimalEntity> SheepEntity::spawnBaby(AnimalEntity& partner)
     SheepEntity* partnerSheep = dynamic_cast<SheepEntity*>(&partner);
     if (partnerSheep != nullptr) {
         // 使用颜色混合逻辑
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         DyeColor mixedColor = getDyeColorMixFromParents(getFleeceColor(), partnerSheep->getFleeceColor(), rng);
         baby->setFleeceColor(mixedColor);
     } else {

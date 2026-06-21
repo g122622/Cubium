@@ -167,7 +167,7 @@ bool NearestAttackableTargetGoal<T>::shouldExecute()
 
     // 概率检查
     if (m_chance > 0) {
-        math::Random rng = m_mob->getRandom();
+        math::Random& rng = m_mob->getRandom();
         if (rng.nextInt(m_chance) != 0) {
             return false;
         }

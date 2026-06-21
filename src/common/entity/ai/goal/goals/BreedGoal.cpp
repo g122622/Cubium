@@ -146,7 +146,7 @@ void BreedGoal::spawnBaby()
         IWorld* world = m_animal->world();
         if (world) {
             // 设置幼体位置（在父母之间随机偏移）
-            mc::math::Random rng = m_animal->getRandom();
+            mc::math::Random& rng = m_animal->getRandom();
             f32 babyX = static_cast<f32>(m_animal->x() + (rng.nextDouble() - 0.5) * 2.0);
             f32 babyY = static_cast<f32>(m_animal->y());
             f32 babyZ = static_cast<f32>(m_animal->z() + (rng.nextDouble() - 0.5) * 2.0);

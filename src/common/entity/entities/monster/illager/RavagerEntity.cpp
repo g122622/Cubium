@@ -157,7 +157,7 @@ void RavagerEntity::constructKnockBackVector(LivingEntity* target)
         return;
     }
 
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
 
     // 50% 概率眩晕或发射目标
     if (rng.nextDouble() < STUN_CHANCE) {
@@ -236,7 +236,7 @@ void RavagerEntity::_spawnStunParticles()
 {
     // 眩晕时生成粒子效果
     // 1/6 概率生成粒子
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     if (rng.nextInt(6) != 0) return;
 
     IWorld* worldPtr = world();

@@ -103,7 +103,7 @@ void AbstractSkeletonEntity::attackEntityWithRangedAttack(LivingEntity* target, 
         inaccuracy);
 
     // 播放射箭音效
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     f32 pitch = 1.0f / (rng.nextFloat() * 0.4f + 0.8f);
     playSound(SoundEvents::ENTITY_SKELETON_SHOOT, 1.0f, pitch);
 
@@ -218,7 +218,7 @@ void AbstractSkeletonEntity::finalizeSpawn(
 {
     MonsterEntity::finalizeSpawn(world, difficulty, spawnReason);
 
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
 
     // 重新评估战斗目标（远程/近战）
     setCombatTask();

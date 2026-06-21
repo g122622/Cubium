@@ -185,7 +185,7 @@ ActionResultType OcelotEntity::interactMob(Player& player, Hand hand)
         // 服务端处理
         if (m_world && !m_world->isClientSide()) {
             // 1/3 概率建立信任
-            math::Random rng = getRandom();
+            math::Random& rng = getRandom();
             if (rng.nextInt(3) == 0) {
                 // 建立信任
                 setPlayerTrust(player.playerId(), true);

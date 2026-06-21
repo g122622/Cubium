@@ -130,12 +130,6 @@ const entity::ai::EntitySenses* MobEntity::senses() const
     return m_senses.get();
 }
 
-math::Random MobEntity::getRandom() const
-{
-    // 基于实体ID和tick生成随机数种子
-    return math::Random(static_cast<u64>(m_id) | (static_cast<u64>(m_ticksExisted) << 32));
-}
-
 bool MobEntity::isBeingRidden() const
 {
     return hasPassengers();
@@ -183,7 +177,7 @@ void MobEntity::tick()
 
     // 环境声音检查
     if (isAlive()) {
-        math::Random random = getRandom();
+        math::Random& random = getRandom();
         if (random.nextInt(1000) < m_livingSoundTime++) {
             m_livingSoundTime = -getTalkInterval();
             playAmbientSound();
@@ -256,7 +250,7 @@ void MobEntity::dropExperience()
 {
     // 如果有经验值，生成经验球
     if (m_experienceValue > 0 && m_world) {
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         entity::ExperienceDropHandler::spawnHostileMobExperience(m_world, x(), y(), z(), m_experienceValue, &rng);
     }
 }
@@ -287,7 +281,7 @@ bool MobEntity::isInDaylight() const
     }
 
     // 随机检查，亮度越高越容易触发
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     f32 randomCheck = rng.nextFloat() * 30.0f;
     f32 brightnessThreshold = (brightness - 0.4f) * 2.0f;
     if (randomCheck >= brightnessThreshold) {
@@ -333,7 +327,7 @@ void MobEntity::burnUndead()
         // 防护槽位有物品：如果物品可损坏，则物品承受耐久损耗
         // 注意：此处直接增加伤害值，绕过耐久保护附魔，与 MC 原版行为一致
         if (protectionItem.isDamageable()) {
-            math::Random rng = getRandom();
+            math::Random& rng = getRandom();
             i32 addedDamage = rng.nextInt(2); // 0 或 1
             if (addedDamage > 0) {
                 i32 newDamage = protectionItem.getDamage() + addedDamage;
@@ -916,7 +910,7 @@ void MobEntity::finalizeSpawn(
 
     // 根据区域难度设置拾取物品能力
     f32 specialMultiplier = difficulty.getSpecialMultiplier();
-    math::Random rng = getRandom();
+    math::Random& rng = getRandom();
     if (rng.nextFloat() < 0.55f * specialMultiplier) {
         setCanPickUpLoot(true);
     }

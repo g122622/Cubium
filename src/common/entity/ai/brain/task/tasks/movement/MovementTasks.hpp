@@ -259,7 +259,7 @@ private:
                 dx /= dist;
                 dz /= dist;
                 // 在目标方向附近随机偏移尝试
-                math::Random rng(static_cast<u64>(owner->id()));
+                math::Random& rng = owner->getRandom();
                 for (i32 attempt = 0; attempt < 10; ++attempt) {
                     f64 offsetX = (rng.nextDouble() - 0.5) * 10.0;
                     f64 offsetZ = (rng.nextDouble() - 0.5) * 10.0;
@@ -319,10 +319,7 @@ protected:
 
         // WALK_TARGET 缺失时才能触发（已通过 requiredMemoryState 保证）
         // 随机概率触发
-        // TODO: 当前每tick创建新的Random对象，种子基于entity id ^ currentTick，
-        // 可能导致相同id的实体在同一tick产生相同的随机序列。后续应使用实体自带的随机数生成器。
-        math::Random rng(static_cast<u64>(owner->id() ^ world->currentTick()));
-        return rng.nextInt(goal::constants::DEFAULT_WALK_CHANCE) == 0;
+        return owner->getRandom().nextInt(goal::constants::DEFAULT_WALK_CHANCE) == 0;
     }
 
     void startExecuting(IWorld* world, E* owner, i64 gameTime) override
@@ -382,8 +379,7 @@ protected:
         }
 
         // 随机概率触发
-        math::Random rng(static_cast<u64>(owner->id() ^ world->currentTick()));
-        if (rng.nextFloat() >= m_probability) {
+        if (owner->getRandom().nextFloat() >= m_probability) {
             return false;
         }
 
@@ -410,8 +406,7 @@ protected:
                 }
             }
             if (!candidates.empty()) {
-                math::Random rng2(static_cast<u64>(owner->id() ^ world->currentTick() ^ 0x5A5A));
-                m_lookTarget = candidates[rng2.nextInt(static_cast<i32>(candidates.size()))];
+                m_lookTarget = candidates[owner->getRandom().nextInt(static_cast<i32>(candidates.size()))];
                 return true;
             }
         }
@@ -429,8 +424,7 @@ protected:
                     }
                 }
                 if (!livingEntities.empty()) {
-                    math::Random rng3(static_cast<u64>(owner->id() ^ world->currentTick() ^ 0xBEEF));
-                    m_lookTarget = livingEntities[rng3.nextInt(static_cast<i32>(livingEntities.size()))];
+                    m_lookTarget = livingEntities[owner->getRandom().nextInt(static_cast<i32>(livingEntities.size()))];
                     return true;
                 }
             }
@@ -779,8 +773,7 @@ private:
             dz /= dist;
         } else {
             // 随机方向
-            math::Random rng(static_cast<u64>(owner->id() ^ world->currentTick()));
-            f64 angle = rng.nextDouble() * 2.0 * math::PI;
+            f64 angle = owner->getRandom().nextDouble() * 2.0 * math::PI;
             dx = std::cos(angle);
             dz = std::sin(angle);
         }

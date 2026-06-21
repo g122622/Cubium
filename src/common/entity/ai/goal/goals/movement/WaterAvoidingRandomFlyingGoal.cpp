@@ -56,7 +56,7 @@ bool WaterAvoidingRandomFlyingGoal::shouldExecute()
 
     // 检查执行概率
     if (m_chance > 0.0f) {
-        math::Random rng = m_creature->getRandom();
+        math::Random& rng = m_creature->getRandom();
         if (rng.nextFloat() >= m_chance) {
             return false;
         }

@@ -282,7 +282,7 @@ void WitherEntity::launchWitherSkullToEntity(i32 head, LivingEntity* target)
     // 主头有 0.1% 概率发射蓝色凋灵之首，充能状态下主头总是发射蓝色
     bool isBlue = false;
     if (head == 0) {
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         if (isCharged() || rng.nextFloat() < 0.001f) {
             isBlue = true;
         }
@@ -382,7 +382,7 @@ void WitherEntity::die(DamageSource& source)
     // 掉落 1 个下界之星，永不消失
     if (Items::NETHER_STAR != nullptr) {
         ItemStack netherStar(Items::NETHER_STAR, 1);
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         ItemEntity* itemEntity = ItemDropHelper::spawnItemAtEntity(this,
             netherStar,
             0.5f, // offsetY
@@ -474,7 +474,7 @@ void WitherEntity::_updateHeadTargets()
         }
 
         // 设置下次更新时间：10-20 tick后
-        math::Random rng = getRandom();
+        math::Random& rng = getRandom();
         m_nextHeadUpdate[i - 1] = static_cast<i32>(ticksExisted()) + 10 + rng.nextInt(10);
 
         // 获取当前追踪目标

@@ -210,7 +210,7 @@ void DolphinEntity::tick()
 
         // 随机跳跃
         if (m_swimTimer >= SWIM_JUMP_INTERVAL && canJumpOutOfWater()) {
-            math::Random rng = getRandom();
+            math::Random& rng = getRandom();
             if (rng.nextInt(1, JUMP_CHANCE_DENOMINATOR) == 1) {
                 m_jumping = true;
                 m_swimTimer = 0;

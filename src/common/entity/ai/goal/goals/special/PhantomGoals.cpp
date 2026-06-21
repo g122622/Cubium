@@ -201,7 +201,7 @@ void PhantomOrbitPointGoal::startExecuting()
         return;
     }
 
-    math::Random rng = m_phantom->getRandom();
+    math::Random& rng = m_phantom->getRandom();
 
     // 初始化环绕参数
     m_orbitRadius = 5.0f + rng.nextFloat() * 10.0f;       // 5.0 + [0, 10.0)
@@ -217,7 +217,7 @@ void PhantomOrbitPointGoal::tick()
         return;
     }
 
-    math::Random rng = m_phantom->getRandom();
+    math::Random& rng = m_phantom->getRandom();
 
     // 350tick 概率改变高度
     if (rng.nextInt(350) == 0) {
@@ -346,7 +346,7 @@ void PhantomPickAttackGoal::resetTask()
     // 更新环绕位置到目标上方
     LivingEntity* target = m_phantom->attackTarget();
     if (target != nullptr) {
-        math::Random rng = m_phantom->getRandom();
+        math::Random& rng = m_phantom->getRandom();
         math::Vector3 targetPos = target->position();
 
         // 获取最高方块位置 + 10~30格
@@ -376,7 +376,7 @@ void PhantomPickAttackGoal::tick()
             _setOrbitPositionAboveTarget();
 
             // 俯冲持续时间：8-12秒 (160-240 tick)
-            math::Random rng = m_phantom->getRandom();
+            math::Random& rng = m_phantom->getRandom();
             m_tickDelay = (8 + rng.nextInt(4)) * 20;
 
             // 播放俯冲音效
@@ -396,7 +396,7 @@ void PhantomPickAttackGoal::_setOrbitPositionAboveTarget()
         return;
     }
 
-    math::Random rng = m_phantom->getRandom();
+    math::Random& rng = m_phantom->getRandom();
     math::Vector3 targetPos = target->position();
 
     // 目标上方 20-40 格

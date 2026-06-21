@@ -30,6 +30,7 @@
 #include "../../sound/SoundCategory.hpp"
 #include "../../util/AxisAlignedBB.hpp"
 #include "../../util/math/Vector3.hpp"
+#include "../../util/math/random/Random.hpp"
 #include "../../util/nbt/Nbt.hpp"
 #include "../../util/text/ITextComponent.hpp"
 #include "../../world/block/BlockPos.hpp"
@@ -907,6 +908,19 @@ public:
     // ========== 存活时间 ==========
 
     [[nodiscard]] u32 ticksExisted() const { return m_ticksExisted; }
+
+    // ========== 随机数 ==========
+
+    /**
+     * @brief 获取实体的随机数生成器
+     *
+     * 每个实体拥有独立的持久化随机数生成器，在构造时以唯一种子初始化。
+     * 多次调用返回同一对象的引用，保证随机序列的连续性。
+     *
+     * @return 实体随机数生成器的引用
+     */
+    [[nodiscard]] math::Random& getRandom() { return m_random; }
+    [[nodiscard]] math::Random& getRandom() const { return m_random; }
 
     // ========== 存活状态 ==========
 
@@ -1914,6 +1928,8 @@ protected:
     Vector3 m_position;     // 当前位置
     Vector3 m_prevPosition; // 上一帧位置
     Vector3 m_velocity;     // 速度
+
+    mutable math::Random m_random; ///< 实体随机数生成器，构造时初始化
 
     f32 m_yaw = 0.0f;   // 偏航角 (Y轴旋转)
     f32 m_pitch = 0.0f; // 俯仰角 (X轴旋转)
