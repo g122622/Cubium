@@ -1117,6 +1117,473 @@ TEST_F(FurnaceBurnTimeTest, WarpedStem_NotBurnable)
 
 // ========== 非燃料物品测试 ==========
 
+// ========== 新增木材告示牌燃烧时间测试 (200 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::MANGROVE_SIGN, nullptr) << "MANGROVE_SIGN should be registered";
+    ItemStack sign(Items::MANGROVE_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "红树木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, CherrySign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::CHERRY_SIGN, nullptr) << "CHERRY_SIGN should be registered";
+    ItemStack sign(Items::CHERRY_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "樱花木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::BAMBOO_SIGN, nullptr) << "BAMBOO_SIGN should be registered";
+    ItemStack sign(Items::BAMBOO_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "竹木告示牌燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::PALE_OAK_SIGN, nullptr) << "PALE_OAK_SIGN should be registered";
+    ItemStack sign(Items::PALE_OAK_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 200) << "苍白橡木告示牌燃烧时间应为 200 tick";
+}
+
+// ========== 悬挂告示牌燃烧时间测试 (800 tick) ==========
+// 参考: MC Java ItemTags.HANGING_SIGNS 燃烧时间 800 tick
+
+TEST_F(FurnaceBurnTimeTest, OakHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::OAK_HANGING_SIGN, nullptr) << "OAK_HANGING_SIGN should be registered";
+    ItemStack sign(Items::OAK_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "橡木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, SpruceHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::SPRUCE_HANGING_SIGN, nullptr) << "SPRUCE_HANGING_SIGN should be registered";
+    ItemStack sign(Items::SPRUCE_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "云杉木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, BirchHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::BIRCH_HANGING_SIGN, nullptr) << "BIRCH_HANGING_SIGN should be registered";
+    ItemStack sign(Items::BIRCH_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "白桦木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, JungleHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::JUNGLE_HANGING_SIGN, nullptr) << "JUNGLE_HANGING_SIGN should be registered";
+    ItemStack sign(Items::JUNGLE_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "丛林木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, AcaciaHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::ACACIA_HANGING_SIGN, nullptr) << "ACACIA_HANGING_SIGN should be registered";
+    ItemStack sign(Items::ACACIA_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "金合欢木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, DarkOakHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::DARK_OAK_HANGING_SIGN, nullptr) << "DARK_OAK_HANGING_SIGN should be registered";
+    ItemStack sign(Items::DARK_OAK_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "深色橡木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, MangroveHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::MANGROVE_HANGING_SIGN, nullptr) << "MANGROVE_HANGING_SIGN should be registered";
+    ItemStack sign(Items::MANGROVE_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "红树木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, CherryHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::CHERRY_HANGING_SIGN, nullptr) << "CHERRY_HANGING_SIGN should be registered";
+    ItemStack sign(Items::CHERRY_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "樱花木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::BAMBOO_HANGING_SIGN, nullptr) << "BAMBOO_HANGING_SIGN should be registered";
+    ItemStack sign(Items::BAMBOO_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "竹木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakHangingSign_HasCorrectBurnTime)
+{
+    ASSERT_NE(Items::PALE_OAK_HANGING_SIGN, nullptr) << "PALE_OAK_HANGING_SIGN should be registered";
+    ItemStack sign(Items::PALE_OAK_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 800) << "苍白橡木悬挂告示牌燃烧时间应为 800 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, CrimsonHangingSign_NotBurnable)
+{
+    ASSERT_NE(Items::CRIMSON_HANGING_SIGN, nullptr) << "CRIMSON_HANGING_SIGN should be registered";
+    ItemStack sign(Items::CRIMSON_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 0) << "绯红悬挂告示牌属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, WarpedHangingSign_NotBurnable)
+{
+    ASSERT_NE(Items::WARPED_HANGING_SIGN, nullptr) << "WARPED_HANGING_SIGN should be registered";
+    ItemStack sign(Items::WARPED_HANGING_SIGN, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(sign), 0) << "诡异悬挂告示牌属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+// ========== 新增木材楼梯燃烧时间测试 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_STAIRS);
+    ASSERT_NE(item, nullptr) << "MANGROVE_STAIRS should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, CherryStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHERRY_STAIRS);
+    ASSERT_NE(item, nullptr) << "CHERRY_STAIRS should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PALE_OAK_STAIRS);
+    ASSERT_NE(item, nullptr) << "PALE_OAK_STAIRS should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_STAIRS);
+    ASSERT_NE(item, nullptr) << "BAMBOO_STAIRS should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooMosaicStairs_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_MOSAIC_STAIRS);
+    ASSERT_NE(item, nullptr) << "BAMBOO_MOSAIC_STAIRS should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增木材台阶燃烧时间测试 (150 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveSlab_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_SLAB);
+    ASSERT_NE(item, nullptr) << "MANGROVE_SLAB should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 150);
+}
+
+TEST_F(FurnaceBurnTimeTest, CherrySlab_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHERRY_SLAB);
+    ASSERT_NE(item, nullptr) << "CHERRY_SLAB should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 150);
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakSlab_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PALE_OAK_SLAB);
+    ASSERT_NE(item, nullptr) << "PALE_OAK_SLAB should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 150);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooSlab_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_SLAB);
+    ASSERT_NE(item, nullptr) << "BAMBOO_SLAB should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 150);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooMosaicSlab_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_MOSAIC_SLAB);
+    ASSERT_NE(item, nullptr) << "BAMBOO_MOSAIC_SLAB should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 150);
+}
+
+// ========== 新增木材栅栏燃烧时间测试 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveFence_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_FENCE);
+    ASSERT_NE(item, nullptr) << "MANGROVE_FENCE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, CherryFence_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHERRY_FENCE);
+    ASSERT_NE(item, nullptr) << "CHERRY_FENCE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakFence_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PALE_OAK_FENCE);
+    ASSERT_NE(item, nullptr) << "PALE_OAK_FENCE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooFence_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_FENCE);
+    ASSERT_NE(item, nullptr) << "BAMBOO_FENCE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增木材栅栏门燃烧时间测试 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveFenceGate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_FENCE_GATE);
+    ASSERT_NE(item, nullptr) << "MANGROVE_FENCE_GATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, CherryFenceGate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHERRY_FENCE_GATE);
+    ASSERT_NE(item, nullptr) << "CHERRY_FENCE_GATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakFenceGate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PALE_OAK_FENCE_GATE);
+    ASSERT_NE(item, nullptr) << "PALE_OAK_FENCE_GATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooFenceGate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_FENCE_GATE);
+    ASSERT_NE(item, nullptr) << "BAMBOO_FENCE_GATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增木材门燃烧时间测试 (200 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveDoor_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_DOOR);
+    ASSERT_NE(item, nullptr) << "MANGROVE_DOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 200) << "木质门燃烧时间应为 200 tick";
+}
+
+TEST_F(FurnaceBurnTimeTest, CherryDoor_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHERRY_DOOR);
+    ASSERT_NE(item, nullptr) << "CHERRY_DOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 200);
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakDoor_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PALE_OAK_DOOR);
+    ASSERT_NE(item, nullptr) << "PALE_OAK_DOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 200);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooDoor_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_DOOR);
+    ASSERT_NE(item, nullptr) << "BAMBOO_DOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 200);
+}
+
+// ========== 新增木材活板门燃烧时间测试 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveTrapdoor_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_TRAPDOOR);
+    ASSERT_NE(item, nullptr) << "MANGROVE_TRAPDOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, CherryTrapdoor_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHERRY_TRAPDOOR);
+    ASSERT_NE(item, nullptr) << "CHERRY_TRAPDOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakTrapdoor_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PALE_OAK_TRAPDOOR);
+    ASSERT_NE(item, nullptr) << "PALE_OAK_TRAPDOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooTrapdoor_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_TRAPDOOR);
+    ASSERT_NE(item, nullptr) << "BAMBOO_TRAPDOOR should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增木材压力板燃烧时间测试 (300 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangrovePressurePlate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_PRESSURE_PLATE);
+    ASSERT_NE(item, nullptr) << "MANGROVE_PRESSURE_PLATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, CherryPressurePlate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHERRY_PRESSURE_PLATE);
+    ASSERT_NE(item, nullptr) << "CHERRY_PRESSURE_PLATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooPressurePlate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_PRESSURE_PLATE);
+    ASSERT_NE(item, nullptr) << "BAMBOO_PRESSURE_PLATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakPressurePlate_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PALE_OAK_PRESSURE_PLATE);
+    ASSERT_NE(item, nullptr) << "PALE_OAK_PRESSURE_PLATE should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 300);
+}
+
+// ========== 新增木材按钮燃烧时间测试 (100 tick) ==========
+
+TEST_F(FurnaceBurnTimeTest, MangroveButton_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::MANGROVE_BUTTON);
+    ASSERT_NE(item, nullptr) << "MANGROVE_BUTTON should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, CherryButton_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CHERRY_BUTTON);
+    ASSERT_NE(item, nullptr) << "CHERRY_BUTTON should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, BambooButton_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::BAMBOO_BUTTON);
+    ASSERT_NE(item, nullptr) << "BAMBOO_BUTTON should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+TEST_F(FurnaceBurnTimeTest, PaleOakButton_HasCorrectBurnTime)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::PALE_OAK_BUTTON);
+    ASSERT_NE(item, nullptr) << "PALE_OAK_BUTTON should have a BlockItem";
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 100);
+}
+
+// ========== 绯红/诡异木质不可燃扩展测试 ==========
+
+TEST_F(FurnaceBurnTimeTest, CrimsonDoor_NotBurnable)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CRIMSON_DOOR);
+    if (item == nullptr) {
+        GTEST_SKIP() << "CRIMSON_DOOR BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "绯红门属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, WarpedDoor_NotBurnable)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::WARPED_DOOR);
+    if (item == nullptr) {
+        GTEST_SKIP() << "WARPED_DOOR BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "诡异门属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, CrimsonTrapdoor_NotBurnable)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CRIMSON_TRAPDOOR);
+    if (item == nullptr) {
+        GTEST_SKIP() << "CRIMSON_TRAPDOOR BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "绯红活板门属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, WarpedTrapdoor_NotBurnable)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::WARPED_TRAPDOOR);
+    if (item == nullptr) {
+        GTEST_SKIP() << "WARPED_TRAPDOOR BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "诡异活板门属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, CrimsonPressurePlate_NotBurnable)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::CRIMSON_PRESSURE_PLATE);
+    if (item == nullptr) {
+        GTEST_SKIP() << "CRIMSON_PRESSURE_PLATE BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "绯红压力板属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
+TEST_F(FurnaceBurnTimeTest, WarpedPressurePlate_NotBurnable)
+{
+    const BlockItem* item = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::WARPED_PRESSURE_PLATE);
+    if (item == nullptr) {
+        GTEST_SKIP() << "WARPED_PRESSURE_PLATE BlockItem not registered yet";
+    }
+    ItemStack stack(static_cast<const Item*>(item), 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(stack), 0) << "诡异压力板属于 NON_FLAMMABLE_WOOD，不可燃";
+}
+
 TEST_F(FurnaceBurnTimeTest, IronIngot_IsNotFuel)
 {
     ASSERT_NE(Items::IRON_INGOT, nullptr);
