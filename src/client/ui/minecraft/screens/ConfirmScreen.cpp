@@ -67,15 +67,6 @@ void ConfirmScreen::_registerCallbacks()
     });
 }
 
-void ConfirmScreen::_updateBindingValues()
-{
-    expose("confirm.title", &m_title);
-    expose("confirm.message", &m_message);
-    expose("confirm.yesText", &m_confirmText);
-    expose("confirm.noText", &m_cancelText);
-    refresh();
-}
-
 bool ConfirmScreen::onKey(i32 key, i32 scanCode, i32 action, i32 mods)
 {
     (void)scanCode;

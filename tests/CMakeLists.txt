@@ -973,6 +973,7 @@ add_executable(mc_tests
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
     common/world/storage/SingleLevelStorageManagerTest.cpp
+    common/world/storage/GlobalStorageManagerTest.cpp
     common/world/storage/SaveFormatDetectorTest.cpp
     common/world/storage/RegionFileTest.cpp
     common/world/storage/JavaChunkReaderTest.cpp

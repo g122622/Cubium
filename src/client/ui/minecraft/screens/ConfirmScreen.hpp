@@ -63,7 +63,6 @@ public:
 
 private:
     void _registerCallbacks();
-    void _updateBindingValues();
 
     std::string m_title;
     std::string m_message;
