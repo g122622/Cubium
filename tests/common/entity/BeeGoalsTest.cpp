@@ -1665,3 +1665,324 @@ TEST_F(BeePollinationIntegrationTest, BeetrootGrowth_SmallerAgeRange)
         EXPECT_EQ(cropBlock->isMaxAge(state), expectedAge == 3);
     }
 }
+
+// ============================================================================
+// _growCrop 直接测试 — 通过测试子类暴露私有方法
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief BeeFindPollinationTargetGoal 的测试子类
+ *
+ * 通过受保护继承暴露私有方法 _growCrop 和 _isPollinationTarget，
+ * 以便直接测试作物生长逻辑的完整闭环。
+ */
+class TestablePollinationGoal : public BeeFindPollinationTargetGoal {
+public:
+    explicit TestablePollinationGoal(BeeEntity* bee)
+        : BeeFindPollinationTargetGoal(bee)
+    {}
+
+    /// 暴露 _isPollinationTarget 用于测试
+    [[nodiscard]] bool testIsPollinationTarget(const BlockPos& pos) const { return _isPollinationTarget(pos); }
+
+    /// 暴露 _growCrop 用于测试
+    [[nodiscard]] bool testGrowCrop(const BlockPos& pos) { return _growCrop(pos); }
+};
+
+} // anonymous namespace
+
+/**
+ * @brief _growCrop 集成测试夹具
+ *
+ * 验证作物生长逻辑的完整闭环：
+ * - setBlockState 被调用并传入正确的 age+1 状态
+ * - playEvent 被调用并传入 BONEMEAL_PARTICLES(2005) 和 data=15
+ * - 最大年龄时不生长
+ * - 非作物方块不生长
+ */
+class BeeGrowCropTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+
+    void SetUp() override
+    {
+        bee = std::make_unique<BeeEntity>(EntityId(1));
+        bee->setWorld(&world);
+        // 设置蜜蜂在有花粉、非愤怒状态
+        bee->setHasNectar(true);
+        bee->setAngry(false);
+        bee->setAngerTime(0);
+
+        goal = std::make_unique<TestablePollinationGoal>(bee.get());
+    }
+
+    void TearDown() override
+    {
+        goal.reset();
+        bee.reset();
+    }
+
+    BeeGoalTestWorld world;
+    std::unique_ptr<BeeEntity> bee;
+    std::unique_ptr<TestablePollinationGoal> goal;
+};
+
+// ==================== _isPollinationTarget 直接测试 ====================
+
+TEST_F(BeeGrowCropTest, IsPollinationTarget_WheatBlock)
+{
+    // 在蜜蜂脚下放置小麦（y=63）
+    world.setBlock(BlockPos(0, 63, 0), &VanillaBlocks::WHEAT->defaultState());
+
+    // _isPollinationTarget 应返回 true
+    EXPECT_TRUE(goal->testIsPollinationTarget(BlockPos(0, 63, 0)));
+}
+
+TEST_F(BeeGrowCropTest, IsPollinationTarget_StoneBlockReturnsFalse)
+{
+    // 石头不是可授粉作物
+    world.setBlock(BlockPos(0, 63, 0), &VanillaBlocks::STONE->defaultState());
+
+    EXPECT_FALSE(goal->testIsPollinationTarget(BlockPos(0, 63, 0)));
+}
+
+TEST_F(BeeGrowCropTest, IsPollinationTarget_SweetBerryBushBlock)
+{
+    world.setBlock(BlockPos(0, 63, 0), &VanillaBlocks::SWEET_BERRY_BUSH->defaultState());
+    EXPECT_TRUE(goal->testIsPollinationTarget(BlockPos(0, 63, 0)));
+}
+
+TEST_F(BeeGrowCropTest, IsPollinationTarget_MelonStemBlock)
+{
+    world.setBlock(BlockPos(0, 63, 0), &VanillaBlocks::MELON_STEM->defaultState());
+    EXPECT_TRUE(goal->testIsPollinationTarget(BlockPos(0, 63, 0)));
+}
+
+TEST_F(BeeGrowCropTest, IsPollinationTarget_EmptyPositionReturnsFalse)
+{
+    // 空位置（空气方块）不是可授粉作物
+    EXPECT_FALSE(goal->testIsPollinationTarget(BlockPos(100, 100, 100)));
+}
+
+// ==================== _growCrop 直接测试 — 验证 setBlockState 调用 ====================
+
+TEST_F(BeeGrowCropTest, GrowCrop_WheatAge0ToAge1)
+{
+    // 放置 age=0 的小麦
+    const BlockState* wheatAge0 = &VanillaBlocks::WHEAT->defaultState();
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&wheatAge0->owner());
+    ASSERT_NE(cropBlock, nullptr);
+    ASSERT_EQ(cropBlock->getAge(*wheatAge0), 0);
+
+    world.setBlock(BlockPos(0, 63, 0), wheatAge0);
+    world.resetTracking();
+
+    // 执行 _growCrop
+    bool result = goal->testGrowCrop(BlockPos(0, 63, 0));
+
+    // 验证生长成功
+    EXPECT_TRUE(result);
+
+    // 验证 setBlockState 被调用，且新状态的 age=1
+    EXPECT_EQ(world.setBlockCount(), 1);
+    ASSERT_NE(world.lastSetBlockState(), nullptr);
+
+    const BlockState* newState = world.lastSetBlockState();
+    EXPECT_EQ(cropBlock->getAge(*newState), 1);
+
+    // 验证 playEvent 被调用
+    EXPECT_EQ(world.playEventCount(), 1);
+    EXPECT_EQ(world.lastEventId(), WorldEvents::BONEMEAL_PARTICLES);
+    EXPECT_EQ(world.lastEventData(), 15);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_WheatAtMaxAgeReturnsFalse)
+{
+    // 放置 age=7 的小麦（最大年龄）
+    const BlockState* wheatAge0 = &VanillaBlocks::WHEAT->defaultState();
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&wheatAge0->owner());
+    ASSERT_NE(cropBlock, nullptr);
+    const BlockState* wheatAge7 = &cropBlock->withAge(7);
+    ASSERT_TRUE(cropBlock->isMaxAge(*wheatAge7));
+
+    world.setBlock(BlockPos(0, 63, 0), wheatAge7);
+    world.resetTracking();
+
+    // 执行 _growCrop — 最大年龄不应生长
+    bool result = goal->testGrowCrop(BlockPos(0, 63, 0));
+
+    // 验证生长失败
+    EXPECT_FALSE(result);
+    // 不应该调用 setBlockState 或 playEvent
+    EXPECT_EQ(world.setBlockCount(), 0);
+    EXPECT_EQ(world.playEventCount(), 0);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_StemBlockAge0ToAge1)
+{
+    // 放置 age=0 的西瓜茎
+    const BlockState* melonStemAge0 = &VanillaBlocks::MELON_STEM->defaultState();
+    i32 age = melonStemAge0->get(BlockStateProperties::AGE_0_7());
+    ASSERT_EQ(age, 0);
+
+    world.setBlock(BlockPos(0, 63, 0), melonStemAge0);
+    world.resetTracking();
+
+    // 执行 _growCrop
+    bool result = goal->testGrowCrop(BlockPos(0, 63, 0));
+
+    // 验证生长成功
+    EXPECT_TRUE(result);
+    EXPECT_EQ(world.setBlockCount(), 1);
+
+    // 验证新状态的 age=1
+    const BlockState* newState = world.lastSetBlockState();
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(newState->get(BlockStateProperties::AGE_0_7()), 1);
+
+    // 验证 playEvent 被调用
+    EXPECT_EQ(world.playEventCount(), 1);
+    EXPECT_EQ(world.lastEventId(), WorldEvents::BONEMEAL_PARTICLES);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_StemBlockAtMaxAgeReturnsFalse)
+{
+    // 放置 age=7 的西瓜茎（最大年龄）
+    const BlockState* melonStemAge0 = &VanillaBlocks::MELON_STEM->defaultState();
+    const BlockState* melonStemAge7 = &melonStemAge0->with(BlockStateProperties::AGE_0_7(), 7);
+    ASSERT_EQ(melonStemAge7->get(BlockStateProperties::AGE_0_7()), 7);
+
+    world.setBlock(BlockPos(0, 63, 0), melonStemAge7);
+    world.resetTracking();
+
+    // 执行 _growCrop — 最大年龄不应生长
+    bool result = goal->testGrowCrop(BlockPos(0, 63, 0));
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(world.setBlockCount(), 0);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_SweetBerryBushAge0ToAge1)
+{
+    // 放置 age=0 的甜浆果丛
+    const BlockState* berryAge0 = &VanillaBlocks::SWEET_BERRY_BUSH->defaultState();
+    auto* berryBlock = dynamic_cast<const blocks::SweetBerryBushBlock*>(&berryAge0->owner());
+    ASSERT_NE(berryBlock, nullptr);
+    ASSERT_EQ(berryBlock->getAge(*berryAge0), 0);
+
+    world.setBlock(BlockPos(0, 63, 0), berryAge0);
+    world.resetTracking();
+
+    // 执行 _growCrop
+    bool result = goal->testGrowCrop(BlockPos(0, 63, 0));
+
+    // 验证生长成功
+    EXPECT_TRUE(result);
+    EXPECT_EQ(world.setBlockCount(), 1);
+
+    // 验证新状态的 age=1
+    const BlockState* newState = world.lastSetBlockState();
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(newState->get(BlockStateProperties::AGE_0_3()), 1);
+
+    // 验证 playEvent 被调用
+    EXPECT_EQ(world.playEventCount(), 1);
+    EXPECT_EQ(world.lastEventId(), WorldEvents::BONEMEAL_PARTICLES);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_SweetBerryBushAtMaxAgeReturnsFalse)
+{
+    // 放置 age=3 的甜浆果丛（最大年龄）
+    const BlockState* berryAge0 = &VanillaBlocks::SWEET_BERRY_BUSH->defaultState();
+    auto* berryBlock = dynamic_cast<const blocks::SweetBerryBushBlock*>(&berryAge0->owner());
+    ASSERT_NE(berryBlock, nullptr);
+    const BlockState* berryAge3 = &berryAge0->with(BlockStateProperties::AGE_0_3(), 3);
+    ASSERT_TRUE(berryBlock->isMaxAge(*berryAge3));
+
+    world.setBlock(BlockPos(0, 63, 0), berryAge3);
+    world.resetTracking();
+
+    // 执行 _growCrop — 最大年龄不应生长
+    bool result = goal->testGrowCrop(BlockPos(0, 63, 0));
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(world.setBlockCount(), 0);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_NonGrowableBlockReturnsFalse)
+{
+    // 石头不是可授粉作物
+    world.setBlock(BlockPos(0, 63, 0), &VanillaBlocks::STONE->defaultState());
+    world.resetTracking();
+
+    bool result = goal->testGrowCrop(BlockPos(0, 63, 0));
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(world.setBlockCount(), 0);
+    EXPECT_EQ(world.playEventCount(), 0);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_PlaysBonemealParticlesOnSuccess)
+{
+    // 放置胡萝卜（age=0），验证 playEvent 参数
+    const BlockState* carrotAge0 = &VanillaBlocks::CARROTS->defaultState();
+    world.setBlock(BlockPos(5, 64, 5), carrotAge0);
+    world.resetTracking();
+
+    bool result = goal->testGrowCrop(BlockPos(5, 64, 5));
+
+    EXPECT_TRUE(result);
+    // 验证 playEvent 的位置正确
+    EXPECT_EQ(world.lastEventPos(), BlockPos(5, 64, 5));
+    // 验证粒子效果参数：事件 2005 (BONEMEAL_PARTICLES)，data 15
+    EXPECT_EQ(world.lastEventId(), WorldEvents::BONEMEAL_PARTICLES);
+    EXPECT_EQ(world.lastEventData(), 15);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_MultipleSuccessiveGrowth)
+{
+    // 连续生长小麦 3 次：age 0 -> 1 -> 2 -> 3
+    const BlockState* wheatAge0 = &VanillaBlocks::WHEAT->defaultState();
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&wheatAge0->owner());
+    ASSERT_NE(cropBlock, nullptr);
+
+    // 初始 age=0
+    world.setBlock(BlockPos(0, 63, 0), wheatAge0);
+
+    // 第一次生长：age 0 -> 1
+    world.resetTracking();
+    EXPECT_TRUE(goal->testGrowCrop(BlockPos(0, 63, 0)));
+    ASSERT_NE(world.lastSetBlockState(), nullptr);
+    EXPECT_EQ(cropBlock->getAge(*world.lastSetBlockState()), 1);
+
+    // 更新世界状态为 age=1
+    world.setBlock(BlockPos(0, 63, 0), world.lastSetBlockState());
+
+    // 第二次生长：age 1 -> 2
+    world.resetTracking();
+    EXPECT_TRUE(goal->testGrowCrop(BlockPos(0, 63, 0)));
+    ASSERT_NE(world.lastSetBlockState(), nullptr);
+    EXPECT_EQ(cropBlock->getAge(*world.lastSetBlockState()), 2);
+
+    // 更新世界状态为 age=2
+    world.setBlock(BlockPos(0, 63, 0), world.lastSetBlockState());
+
+    // 第三次生长：age 2 -> 3
+    world.resetTracking();
+    EXPECT_TRUE(goal->testGrowCrop(BlockPos(0, 63, 0)));
+    ASSERT_NE(world.lastSetBlockState(), nullptr);
+    EXPECT_EQ(cropBlock->getAge(*world.lastSetBlockState()), 3);
+}
+
+TEST_F(BeeGrowCropTest, GrowCrop_EmptyPositionReturnsFalse)
+{
+    // 空位置没有方块，应返回 false
+    world.resetTracking();
+
+    bool result = goal->testGrowCrop(BlockPos(999, 999, 999));
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(world.setBlockCount(), 0);
+}

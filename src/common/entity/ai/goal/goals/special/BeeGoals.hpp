@@ -287,13 +287,14 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "BeeFindPollinationTargetGoal"; }
 
-private:
+protected:
     /// 检查位置是否是可授粉作物
     [[nodiscard]] bool _isPollinationTarget(const BlockPos& pos) const;
 
     /// 促进作物生长（返回是否成功生长）
     [[nodiscard]] bool _growCrop(const BlockPos& pos);
 
+private:
     static constexpr i32 MAX_CROPS_GROWN = 10; ///< 每次授粉最多促进的作物数
 };
 

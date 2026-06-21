@@ -812,7 +812,9 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
         }
     }
 
-    // 3. SweetBerryBushBlock：如果 age < 3，age + 1
+    // 3. SweetBerryBushBlock：如果 age < maxAge，age + 1
+    // 注意：SweetBerryBushBlock 虽然实现了 IGrowable，但 MC 原版 BeeGrowCropGoal
+    // 对其直接 age+1 而非调用 performBonemeal/grow，此处与原版行为保持一致
     if (newState == nullptr) {
         auto* sweetBerryBlock = dynamic_cast<const blocks::SweetBerryBushBlock*>(&block);
         if (sweetBerryBlock != nullptr) {
@@ -839,7 +841,7 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
                     // 状态未变化，说明生长未成功
                     return false;
                 }
-                // 播放生长粒子效果（同上使用 BONEMEAL_PARTICLES 替代 PLANT_GROWTH_PARTICLES）
+                // TODO: 待客户端实现 PLANT_GROWTH_PARTICLES(2011) 后切换
                 world->playEvent(world::WorldEvents::BONEMEAL_PARTICLES, pos, 15);
                 return true;
             }
@@ -849,9 +851,8 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
     // 如果成功生长（newState 有效），更新方块状态并播放粒子
     if (newState != nullptr) {
         world->setBlockState(pos, newState, 2);
-        // 播放生长粒子效果（对应 MC 原版 levelEvent(2011, blockpos, 15)）
-        // 当前使用 BONEMEAL_PARTICLES(2005) 作为等效替代，
-        // 待客户端实现 PLANT_GROWTH_PARTICLES(2011) 后切换
+        // TODO: 待客户端实现 PLANT_GROWTH_PARTICLES(2011) 后，将 BONEMEAL_PARTICLES(2005) 替换为
+        // PLANT_GROWTH_PARTICLES(2011)
         world->playEvent(world::WorldEvents::BONEMEAL_PARTICLES, pos, 15);
         return true;
     }
