@@ -11,18 +11,26 @@ NoiseRouter 持有 15 个密度函数引用，其中 6 个用于 Climate.Sampler
 
 ```
 density/
-├── DensityFunction.hpp    — 密度函数核心接口
-├── DensityFunctions.hpp   — 所有密度函数实现类 + 工厂函数
-├── DensityFunctions.cpp   — 实现
-├── BlendedNoise.hpp       — MC 1.18+ 混合噪声密度函数（旧式三层 Perlin）
-├── BlendedNoise.cpp       — 实现
-├── NoiseRouter.hpp        — 噪声路由器（持有 15 个密度函数）
-├── NoiseRouter.cpp        — 实现
-├── NoiseRouterData.hpp    — 预定义噪声配置（主世界/下界/末地）
-├── NoiseRouterData.cpp    — 实现
-├── NoiseChunk.hpp         — 区块噪声采样单元（三线性插值 + 缓存管理）
-├── NoiseChunk.cpp         — 实现
-└── README.md              — 本文件
+├── DensityFunction.hpp         — 密度函数核心接口
+├── DensityFunctions.hpp        — 所有密度函数实现类 + 工厂函数
+├── DensityFunctions.cpp        — 实现
+├── BlendedNoise.hpp            — MC 1.18+ 混合噪声密度函数（旧式三层 Perlin）
+├── BlendedNoise.cpp            — 实现
+├── Beardifier.hpp              — 结构物地形修饰器（Beard/Bury 贡献计算）
+├── Beardifier.cpp              — 实现
+├── CaveDensityFunctions.hpp    — 洞穴密度函数构建器（spaghetti/noodle/pillar/entrance/underground）
+├── CaveDensityFunctions.cpp    — 实现
+├── TerrainProvider.hpp         — 主世界地形样条数据（offset/factor/jaggedness）
+├── TerrainProvider.cpp         — 实现
+├── OreVeinifier.hpp            — 矿脉生成器（铜/铁矿脉）
+├── OreVeinifier.cpp            — 实现
+├── NoiseRouter.hpp             — 噪声路由器（持有 15 个密度函数）
+├── NoiseRouter.cpp             — 实现
+├── NoiseRouterData.hpp         — 预定义噪声配置（主世界/下界/末地）
+├── NoiseRouterData.cpp         — 实现
+├── NoiseChunk.hpp              — 区块噪声采样单元（三线性插值 + 缓存管理）
+├── NoiseChunk.cpp              — 实现
+└── README.md                   — 本文件
 ```
 
 ## 内部模块关系
@@ -98,19 +106,51 @@ Java 的 `EndIslandDensityFunction.getHeightValue()` 使用 `float` 算术：
 
 ### 4. DensityFunctions::Invert 边界
 
-`Invert`（1/x）的边界值在输入范围跨越零点时应使用 `±infinity`，而非 `±1e6`。
+`Invert`（1/x）的边界值在输入范围跨越零点时应使用 `±infinity`，而非 `±1e6`。当输入为 0 时返回 `+infinity`（IEEE 754）。
 
-### 5. BlendAlpha / BlendOffset / BeardifierMarker
+### 5. Mapped 边界计算（Abs, Square, Cube）
+
+- `Abs`: `minValue = max(0.0, input.minValue)`（MC 对齐修复：不是 `max(0, min(|min|, |max|))`）
+- `Square`: `minValue = max(0.0, input.minValue)`, `maxValue = max(min², max²)`
+- `Cube`: `minValue = min³`, `maxValue = max³`（立方在跨零时 minValue < 0）
+
+### 6. MappedNoise 边界计算
+
+MC 1.21 使用 `midpoint ± |halfAmplitude| * noise.maxValue()` 公式：
+- `midpoint = (fromValue + toValue) / 2`
+- `halfAmplitude = (toValue - fromValue) / 2`
+- 不论 fromValue 与 toValue 的大小关系，结果始终关于 midpoint 对称
+
+### 7. WeirdScaledSampler 边界计算
+
+- `minValue = 0.0`（因为 compute 使用了 abs）
+- `maxValue = maxRarity * noise.maxValue()`，其中 Type1 的 `maxRarity = 2.0`，Type2 的 `maxRarity = 3.0`
+
+### 8. CaveDensityFunctions 噪声参数
+
+MC 1.21.11 关键修正：
+- `SPAGHETTI_2D_MODULATOR`: firstOctave=-11（非 -2）, amplitudes={1.0}（非 {2.0, 1.0}）
+- `SPAGHETTI_2D`: firstOctave=-7（非 -2）, amplitudes={1.0}（非 {2.0, 1.0}）
+- `SPAGHETTI_ROUGHNESS`: firstOctave=-5, amplitudes={1.0}（非 {1.0, 1.0, 1.0, 1.0}）
+
+### 9. NoiseRouterData 缓存包装
+
+MC 1.21 中各密度的缓存层不同：
+- `temperature`/`vegetation`: 不缓存（直接 shiftedNoise2d）
+- `continents`/`erosion`/`ridges`: flatCache（非 cache2D）
+- `endIslands`: 种子参数始终为 0（非世界种子）
+
+### 10. BlendAlpha / BlendOffset / BeardifierMarker
 
 - `BlendAlpha`：始终返回 1.0（minValue=1.0, maxValue=1.0）
 - `BlendOffset`：始终返回 0.0（minValue=0.0, maxValue=0.0）
 - `BeardifierMarker`：Marker 类型，在 NoiseChunk::apply() 中替换为实际 Beardifier（当前暂返回 0.0）
 
-### 6. preliminarySurfaceLevel
+### 11. preliminarySurfaceLevel
 
 当前使用 `constant(0.0)` 占位。MC 原版使用 `findTopSurface` 密度函数向下搜索密度 > 0 的位置，影响含水层水位和结构放置。
 
-### 7. BlendDensity
+### 12. BlendDensity
 
 当前为恒等函数（直接返回输入）。MC 原版通过 Blender.blendDensity() 实现旧区块混合，与 BlendAlpha/BlendOffset 一起用于区块边界平滑过渡。
 

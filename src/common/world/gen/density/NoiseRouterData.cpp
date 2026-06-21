@@ -72,8 +72,8 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     // shiftedNoise2d(shiftX, shiftZ, xzScale=0.25, seed, firstOctave, amplitudes)
     // 这确保相邻区块的气候参数平滑过渡
 
-    climate.temperature = factory::cache2DMarker(factory::shiftedNoise2d(
-        std::move(shiftX), std::move(shiftZ), 0.25, seed ^ 0x11111111ULL, tempOctave, tempAmps));
+    climate.temperature =
+        factory::shiftedNoise2d(std::move(shiftX), std::move(shiftZ), 0.25, seed ^ 0x11111111ULL, tempOctave, tempAmps);
 
     // 需要重新创建 shift 噪声实例用于后续参数
     // MC 中每个 shiftedNoise2d 有自己的 shift 噪声副本，所以需要新建
@@ -88,15 +88,15 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     auto shiftZ2 = factory::flatCacheMarker(
         factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.vegetation = factory::cache2DMarker(factory::shiftedNoise2d(
-        std::move(shiftX2), std::move(shiftZ2), 0.25, seed ^ 0x22222222ULL, vegOctave, vegAmps));
+    climate.vegetation =
+        factory::shiftedNoise2d(std::move(shiftX2), std::move(shiftZ2), 0.25, seed ^ 0x22222222ULL, vegOctave, vegAmps);
 
     auto shiftX3 = factory::flatCacheMarker(
         factory::cache2DMarker(factory::shiftA(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
     auto shiftZ3 = factory::flatCacheMarker(
         factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.continents = factory::cache2DMarker(factory::shiftedNoise2d(
+    climate.continents = factory::flatCacheMarker(factory::shiftedNoise2d(
         std::move(shiftX3), std::move(shiftZ3), 0.25, seed ^ 0x33333333ULL, contOctave, contAmps));
 
     auto shiftX4 = factory::flatCacheMarker(
@@ -104,7 +104,7 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     auto shiftZ4 = factory::flatCacheMarker(
         factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.erosion = factory::cache2DMarker(factory::shiftedNoise2d(
+    climate.erosion = factory::flatCacheMarker(factory::shiftedNoise2d(
         std::move(shiftX4), std::move(shiftZ4), 0.25, seed ^ 0x44444444ULL, eroOctave, eroAmps));
 
     // depth 使用 YClampedGradient（Y 轴线性映射）
@@ -120,7 +120,7 @@ NoiseRouterData::ClimateFunctions NoiseRouterData::createOverworldClimate(u64 se
     auto shiftZ5 = factory::flatCacheMarker(
         factory::cache2DMarker(factory::shiftB(shiftSeed, SHIFT_FIRST_OCTAVE, toVector(SHIFT_AMPLITUDES))));
 
-    climate.ridges = factory::cache2DMarker(factory::shiftedNoise2d(std::move(shiftX5),
+    climate.ridges = factory::flatCacheMarker(factory::shiftedNoise2d(std::move(shiftX5),
         std::move(shiftZ5),
         0.25,
         seed ^ 0x55555555ULL,
@@ -609,10 +609,10 @@ NoiseRouter NoiseRouterData::nether(u64 seed)
 NoiseRouter NoiseRouterData::end(u64 seed)
 {
     // MC 1.21: end finalDensity = postProcess(slideEndLike(add(endIslands(0L), blendedNoise_end)))
-    // 注意: finalDensity 中的 endIslands 不需要 cache2d 包装
+    // 注意: endIslands 使用固定种子 0，不受世界种子影响
     // erosion 槽位使用 cache2d(endIslands(0L))，用于 EndBiomeSource 选择生物群系
-    auto endIslandsForErosion = factory::cache2DMarker(factory::endIslands(seed));
-    auto endIslandsForDensity = factory::endIslands(seed);
+    auto endIslandsForErosion = factory::cache2DMarker(factory::endIslands(0));
+    auto endIslandsForDensity = factory::endIslands(0);
 
     auto base3dNoise = factory::blendedNoise(seed, 0.25, 0.25, 80.0, 160.0, 4.0);
     auto slopedCheese = factory::add(std::move(endIslandsForDensity), std::move(base3dNoise));

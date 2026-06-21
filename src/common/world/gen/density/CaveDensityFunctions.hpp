@@ -86,13 +86,13 @@ public:
 
     // ========== 噪声参数常量 ==========
 
-    /// SPAGHETTI_2D_MODULATOR: firstOctave=-2, amplitudes={2.0, 1.0}
-    static constexpr i32 SPAGHETTI_2D_MODULATOR_OCTAVE = -2;
-    static inline const f64 SPAGHETTI_2D_MODULATOR_AMPS[] = {2.0, 1.0};
+    /// SPAGHETTI_2D_MODULATOR: firstOctave=-11, amplitudes={1.0}
+    static constexpr i32 SPAGHETTI_2D_MODULATOR_OCTAVE = -11;
+    static inline const f64 SPAGHETTI_2D_MODULATOR_AMPS[] = {1.0};
 
-    /// SPAGHETTI_2D: firstOctave=-2, amplitudes={2.0, 1.0} (for WeirdScaledSampler TYPE2)
-    static constexpr i32 SPAGHETTI_2D_OCTAVE = -2;
-    static inline const f64 SPAGHETTI_2D_AMPS[] = {2.0, 1.0};
+    /// SPAGHETTI_2D: firstOctave=-7, amplitudes={1.0} (for WeirdScaledSampler TYPE2)
+    static constexpr i32 SPAGHETTI_2D_OCTAVE = -7;
+    static inline const f64 SPAGHETTI_2D_AMPS[] = {1.0};
 
     /// SPAGHETTI_2D_ELEVATION: firstOctave=-8, amplitudes={1.0}
     static constexpr i32 SPAGHETTI_2D_ELEVATION_OCTAVE = -8;
@@ -102,9 +102,9 @@ public:
     static constexpr i32 SPAGHETTI_2D_THICKNESS_OCTAVE = -11;
     static inline const f64 SPAGHETTI_2D_THICKNESS_AMPS[] = {1.0};
 
-    /// SPAGHETTI_ROUGHNESS: firstOctave=-5, amplitudes={1.0, 1.0, 1.0, 1.0}
+    /// SPAGHETTI_ROUGHNESS: firstOctave=-5, amplitudes={1.0}
     static constexpr i32 SPAGHETTI_ROUGHNESS_OCTAVE = -5;
-    static inline const f64 SPAGHETTI_ROUGHNESS_AMPS[] = {1.0, 1.0, 1.0, 1.0};
+    static inline const f64 SPAGHETTI_ROUGHNESS_AMPS[] = {1.0};
 
     /// SPAGHETTI_ROUGHNESS_MODULATOR: firstOctave=-8, amplitudes={1.0}
     static constexpr i32 SPAGHETTI_ROUGHNESS_MODULATOR_OCTAVE = -8;

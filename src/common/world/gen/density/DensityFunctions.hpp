@@ -284,7 +284,7 @@ private:
                 return clamped / 2.0 - clamped * clamped * clamped / 24.0;
             }
             case MappedType::Invert:
-                return value == 0.0 ? 0.0 : 1.0 / value;
+                return 1.0 / value;
         }
         return 0.0;
     }
@@ -296,14 +296,14 @@ private:
 
         switch (m_type) {
             case MappedType::Abs:
-                m_minValue = std::max(0.0, std::min(std::abs(inMin), std::abs(inMax)));
+                // MC 1.21: minValue = max(0, input.minValue), maxValue = max(transform(min), transform(max))
+                m_minValue = std::max(0.0, inMin);
                 m_maxValue = std::max(std::abs(inMin), std::abs(inMax));
                 break;
             case MappedType::Square: {
-                const f64 minSq = inMin * inMin;
-                const f64 maxSq = inMax * inMax;
-                m_minValue = inMin < 0.0 && inMax > 0.0 ? 0.0 : std::min(minSq, maxSq);
-                m_maxValue = std::max(minSq, maxSq);
+                // MC 1.21: minValue = max(0, input.minValue), maxValue = max(transform(min), transform(max))
+                m_minValue = std::max(0.0, inMin);
+                m_maxValue = std::max(inMin * inMin, inMax * inMax);
                 break;
             }
             case MappedType::Cube:
@@ -326,25 +326,19 @@ private:
                     std::swap(m_minValue, m_maxValue);
                 }
                 break;
-            case MappedType::Invert: {
-                // 1/x 的范围取决于输入范围是否跨零
-                // MC 1.21: Mapped(INVERT, input, transform(inMax), transform(inMin))
-                // 即 minValue = 1/inMax, maxValue = 1/inMin（两个值交换）
-                // 当输入范围跨越零点时使用 Double.NEGATIVE_INFINITY / Double.POSITIVE_INFINITY
+            case MappedType::Invert:
+                // MC 1.21: 1/x — 当输入为 0 时返回 +infinity（IEEE 754）
                 if (inMin > 0.0) {
                     m_minValue = 1.0 / inMax;
                     m_maxValue = 1.0 / inMin;
                 } else if (inMax < 0.0) {
-                    // 两个负数：1/inMax 更负（更小），1/inMin 更接近0（更大）
                     m_minValue = 1.0 / inMax;
                     m_maxValue = 1.0 / inMin;
                 } else {
-                    // 跨越零点，范围无界
                     m_minValue = -std::numeric_limits<f64>::infinity();
                     m_maxValue = std::numeric_limits<f64>::infinity();
                 }
                 break;
-            }
         }
     }
 };
@@ -543,10 +537,16 @@ public:
         , m_fromValue(fromValue)
         , m_toValue(toValue)
     {
+        // MC 1.21: bounds = add(constant(midpoint), mul(constant(halfAmplitude), noise))
+        // midpoint = (fromValue + toValue) / 2, halfAmplitude = (toValue - fromValue) / 2
+        // minValue = midpoint - |halfAmplitude| * noise.maxValue()
+        // maxValue = midpoint + |halfAmplitude| * noise.maxValue()
         const f64 maxNoise = m_noise->maxValue();
-        const f64 scale = toValue - fromValue;
-        m_minValue = fromValue - maxNoise * std::abs(scale);
-        m_maxValue = fromValue + maxNoise * std::abs(scale);
+        const f64 midpoint = (fromValue + toValue) * 0.5;
+        const f64 halfAmplitude = (toValue - fromValue) * 0.5;
+        const f64 absHalfAmplitude = std::abs(halfAmplitude);
+        m_minValue = midpoint - absHalfAmplitude * maxNoise;
+        m_maxValue = midpoint + absHalfAmplitude * maxNoise;
     }
 
     [[nodiscard]] f64 compute(i32 blockX, i32 blockY, i32 blockZ) const override
@@ -1165,10 +1165,14 @@ private:
 
     void computeBounds()
     {
-        // 保守估计
+        // MC 1.21: compute 使用 abs()，结果非负
+        // minValue = 0.0
+        // maxValue = maxRarity * noise.maxValue()
+        // Type1 maxRarity = 2.0, Type2 maxRarity = 3.0
         const f64 maxNoiseVal = m_noise->maxValue();
-        m_minValue = -maxNoiseVal * 3.0;
-        m_maxValue = maxNoiseVal * 3.0;
+        const f64 maxRarity = (m_type == WeirdScaledSamplerType::Type1) ? 2.0 : 3.0;
+        m_minValue = 0.0;
+        m_maxValue = maxRarity * maxNoiseVal;
     }
 };
 
