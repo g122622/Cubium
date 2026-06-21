@@ -590,6 +590,30 @@ public:
     }
 
     /**
+     * @brief 获取位置的最大局部原始亮度
+     *
+     * 等效于 MC 的 World.getMaxLocalRawBrightness(pos)。
+     * 在有天空光照的维度（主世界）中，考虑天气衰减后的天空光照；
+     * 在无天空光照的维度（末地）中，仅使用方块光照。
+     *
+     * 用于霜冰等方块判断是否融化。
+     *
+     * @param pos 方块位置
+     * @return 最大局部原始亮度 (0-15)
+     */
+    [[nodiscard]] virtual i32 getMaxLocalRawBrightness(const BlockPos& pos) const
+    {
+        u8 blockLight = getBlockLight(pos);
+        if (!hasSkyLight()) {
+            // 末地等无天空光照的维度：仅使用方块光照
+            return static_cast<i32>(blockLight);
+        }
+        u8 skyLight = getSkyLight(pos);
+        i32 skyDarkening = getSkyDarkening();
+        return InternalLightUtils::calculateRawBrightness(blockLight, skyLight, skyDarkening);
+    }
+
+    /**
      * @brief 获取位置的亮度因子
      *
      * 根据位置的光照等级计算亮度因子（0.0-1.0）。

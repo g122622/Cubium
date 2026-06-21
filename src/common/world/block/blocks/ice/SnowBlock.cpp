@@ -67,16 +67,15 @@ SnowBlock::SnowBlock(BlockProperties properties)
 
 void SnowBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    (void)random; // 雪融化不需要随机数
+    MC_UNUSED(random);
 
-    // 如果方块光照 > 11，融化
+    // MC 原版: SnowLayerBlock.randomTick 仅检查方块光照 (LightLayer.BLOCK)
+    // 条件: getBrightness(LightLayer.BLOCK, pos) > 11
+    // 即方块光照 > 11 时融化，不考虑天空光照
+    // 参考: net.minecraft.world.level.block.SnowLayerBlock.randomTick
     u8 blockLight = world.getBlockLight(pos);
-    u8 skyLight = world.getSkyLight(pos);
 
-    // 计算综合光照（不考虑天气衰减的简化版本）
-    i32 lightLevel = static_cast<i32>(std::max(blockLight, skyLight));
-
-    if (lightLevel > MELT_LIGHT_LEVEL) {
+    if (blockLight > MELT_LIGHT_LEVEL) {
         // 融化：掉落雪球并移除方块
         // 雪层掉落雪球数量等于层数
         i32 layers = state.get(LAYERS());

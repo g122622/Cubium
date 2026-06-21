@@ -17,7 +17,10 @@ ice/
 
 - `IceBlock` 和 `FrostedIceBlock` 在高光照下会把自己替换成水或空气
 - `PackedIceBlock` 与 `BlueIceBlock` 仅保留基础方块行为，不融化
-- `SnowBlock` 在光照 > 11 时融化，掉落对应层数的雪球物品
+- `SnowBlock` 在方块光照 > 11 时融化（仅检查方块光照，不考虑天空光照），掉落对应层数的雪球物品
+- `IceBlock` 在方块光照 > (11 - 不透明度) 时融化（不透明度为2，即 blockLight > 9），无随机概率，立即融化
+- `FrostedIceBlock.tick()` 使用 `getMaxLocalRawBrightness` 计算光照（主世界考虑天气衰减），末地维度仅使用方块光照
+- `FrostedIceBlock.randomTick()` 继承 IceBlock 的逻辑，仅检查方块光照 > (11 - 不透明度)
 - `SnowBlock` 实现放置存活判断（`isValidPosition`），检查下方方块是否支撑雪层
 - `SnowBlock` 实现邻居更新处理（`updatePostPlacement`），当下方支撑丢失时自动变为空气
 
@@ -42,6 +45,7 @@ ice/
 - `IWorld.hpp`、`IRandom.hpp` - 世界接口和随机数接口
 - `TickManager.hpp`、`TickPriority.hpp` - Tick 调度系统（霜冰使用）
 - `Properties.hpp` - `LAYERS_1_8` 属性定义
+- `DimensionManager.hpp` - 维度ID常量（霜冰区分末地光照）
 
 **被依赖：**
 - `VanillaBlocks.hpp` - 注册所有原版方块时引用
@@ -55,5 +59,7 @@ ice/
 - **同一坐标的替换必须先完成区块写入，再进入旧方块回调**：像冰块这种会再次写回自身的逻辑会触发递归。代码中通过 `s_skipIceReplacementCallback` 和 `IceReplacementGuard` 来避免递归
 - **挖掘冰时的逻辑和融化时的逻辑不同**：前者要看下方支撑，后者只看维度与光照
 - **雪层融化时掉落的雪球数量等于层数（1-8个）**
+- **雪层和冰的融化仅检查方块光照，不检查天空光照**：MC原版 `SnowLayerBlock.randomTick` 和 `IceBlock.randomTick` 仅使用 `getBrightness(LightLayer.BLOCK, pos)`，不使用天空光照。这是设计意图——雪和冰不会因阳光直接融化，阳光通过生物群系温度系统间接影响雪的生成和融化
+- **霜冰的 tick 和 randomTick 使用不同的光照计算**：`tick()` 使用 `getMaxLocalRawBrightness`（主世界考虑天气衰减的天空光照），`randomTick()` 仅检查方块光照（与 IceBlock 一致）
 - **`isValidPosition` 使用 `IBlockReader` 接口，而 `_canSurvive` 和 `canSurviveAt` 使用 `IWorld` 接口**：两个版本逻辑一致但接口不同，修改时需同步更新
 - **`isFaceFull` 不需要 `IWorld` 和 `BlockPos` 参数**：只检查碰撞形状的几何属性，不依赖世界状态

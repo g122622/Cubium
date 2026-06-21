@@ -28,6 +28,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/base/TickPriority.hpp"
@@ -42,11 +43,8 @@ namespace blocks {
 
 namespace {
 
-/// 冰融化的最小光照等级
+/// 冰融化的最小光照等级阈值
 constexpr i32 MELT_LIGHT_LEVEL = 11;
-
-/// 冰融化的随机概率（基于randomTickSpeed）
-constexpr i32 MELT_PROBABILITY_DIVISOR = 40; // 约2.5%概率
 
 thread_local bool s_skipIceReplacementCallback = false;
 
@@ -128,20 +126,18 @@ void IceBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockSta
 
 void IceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    MC_UNUSED(state);
+    MC_UNUSED(random);
 
-    // 检查周围光照等级
-    // 获取方块光照和天空光照的最大值
+    // MC 原版: IceBlock.randomTick 检查方块光照减去自身不透明度
+    // 条件: getBrightness(LightLayer.BLOCK, pos) > 11 - getLightBlock()
+    // 冰的不透明度为 2，因此条件为 blockLight > 11 - 2 = 9
+    // 即方块光照 > 9 时冰融化
+    // 参考: net.minecraft.world.level.block.IceBlock.randomTick
     u8 blockLight = world.getBlockLight(pos);
-    u8 skyLight = world.getSkyLight(pos);
-    i32 lightLevel = static_cast<i32>(std::max(blockLight, skyLight));
+    i32 opacity = state.getOpacity();
 
-    // 光照等级 >= 11 时，冰可能融化
-    if (lightLevel >= MELT_LIGHT_LEVEL) {
-        // 随机融化
-        if (random.nextInt(MELT_PROBABILITY_DIVISOR) == 0) {
-            meltIce(world, pos);
-        }
+    if (blockLight > MELT_LIGHT_LEVEL - opacity) {
+        meltIce(world, pos);
     }
 }
 
@@ -191,9 +187,10 @@ FrostedIceBlock::FrostedIceBlock(BlockProperties properties)
 
 void FrostedIceBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 放置时调度 tick
+    // MC 原版: scheduleTick(this, Mth.nextInt(random, 60, 120))
+    // 初始 tick 延迟为 60-120 ticks
     world.tickManager().scheduleBlockTick(
-        pos, *this, math::Random(world.seed() ^ pos.toId()).nextInt(20, 40), world::tick::TickPriority::Normal);
+        pos, *this, math::Random(world.seed() ^ pos.toId()).nextInt(60, 120), world::tick::TickPriority::Normal);
 }
 
 void FrostedIceBlock::neighborChanged(
@@ -202,12 +199,16 @@ void FrostedIceBlock::neighborChanged(
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
 
-    // 如果邻居是霜冰且应该融化，则融化
-    const BlockState* state = world.getBlockState(pos);
-    if (state && state->is(this)) {
-        IBlockReader& blockReader = static_cast<IBlockReader&>(world);
-        if (_shouldMelt(blockReader, pos, 2)) {
-            meltIce(world, pos);
+    // MC 原版: neighborChanged 中检查触发变化的邻居是否为霜冰，
+    // 如果是，检查自身霜冰邻居是否少于2个，若不足则融化
+    // 参考: net.minecraft.world.level.block.FrostedIceBlock.neighborChanged
+    if (neighborBlock.defaultState().is(this)) {
+        const BlockState* state = world.getBlockState(pos);
+        if (state && state->is(this)) {
+            IBlockReader& blockReader = static_cast<IBlockReader&>(world);
+            if (_shouldMelt(blockReader, pos, 2)) {
+                meltIce(world, pos);
+            }
         }
     }
 
@@ -216,15 +217,24 @@ void FrostedIceBlock::neighborChanged(
 
 void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // 检查是否应该融化
+    // MC 原版: FrostedIceBlock.tick
+    // 条件1: random.nextInt(3) == 0 || fewerNeighboursThan(4)
+    // 条件2: 光照 > 11 - AGE - opacity
+    // 光源: 末地维度仅用方块光, 其他维度用 getMaxLocalRawBrightness
+    // 参考: net.minecraft.world.level.block.FrostedIceBlock.tick
     IBlockReader& blockReader = static_cast<IBlockReader&>(world);
     i32 age = getAge(state);
 
-    // 光照检查：光照 > MELT_LIGHT_LEVEL - age - opacity
-    u8 blockLight = world.getBlockLight(pos);
-    u8 skyLight = world.getSkyLight(pos);
-    i32 lightLevel = static_cast<i32>(std::max(blockLight, skyLight));
-    // 霜冰的不透明度通常是 2-3
+    // 光照检查
+    i32 lightLevel;
+    if (world.dimension() == DimensionManager::THE_END) {
+        // 末地维度: 仅使用方块光照
+        lightLevel = static_cast<i32>(world.getBlockLight(pos));
+    } else {
+        // 其他维度: 使用 getMaxLocalRawBrightness (含天气衰减的天空光照)
+        lightLevel = world.getMaxLocalRawBrightness(pos);
+    }
+
     i32 opacity = state.getOpacity();
 
     bool shouldMeltNow =
@@ -232,13 +242,18 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
 
     if (shouldMeltNow && _slightlyMelt(world, pos, state)) {
         // 完全融化，通知相邻霜冰检查
+        // MC 原版: 对每个霜冰邻居调用 slightlyMelt，只调度未完全融化的邻居
         for (Direction dir : Directions::all()) {
             BlockPos neighborPos = pos.offset(dir);
             const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState && neighborState->is(this)) {
-                // 调度相邻霜冰的 tick
-                world.tickManager().scheduleBlockTick(
-                    neighborPos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
+                // 对邻居调用 slightlyMelt
+                BlockState neighborStateMutable = *neighborState;
+                if (!_slightlyMelt(world, neighborPos, neighborStateMutable)) {
+                    // 邻居未完全融化，调度其 tick
+                    world.tickManager().scheduleBlockTick(
+                        neighborPos, *this, random.nextInt(20, 40), world::tick::TickPriority::Normal);
+                }
             }
         }
     } else {
@@ -249,8 +264,15 @@ void FrostedIceBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state
 
 void FrostedIceBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
-    // randomTick 也调用 tick
-    tick(world, pos, state, random);
+    // MC 原版: FrostedIceBlock 继承自 IceBlock，不重写 randomTick
+    // 因此 randomTick 使用 IceBlock 的逻辑：仅检查方块光照 > 11 - opacity
+    // 参考: net.minecraft.world.level.block.IceBlock.randomTick
+    u8 blockLight = world.getBlockLight(pos);
+    i32 opacity = state.getOpacity();
+
+    if (blockLight > MELT_LIGHT_LEVEL - opacity) {
+        meltIce(world, pos);
+    }
 }
 
 bool FrostedIceBlock::_shouldMelt(IBlockReader& world, const BlockPos& pos, i32 neighborsRequired) const

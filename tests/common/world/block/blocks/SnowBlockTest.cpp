@@ -283,52 +283,11 @@ TEST_F(SnowBlockTest, SetLayers_ValidValue)
 // randomTick 融化测试
 // ============================================================================
 
-TEST_F(SnowBlockTest, RandomTick_MeltsWhenLightAbove11)
+TEST_F(SnowBlockTest, RandomTick_MeltsWhenBlockLightAbove11)
 {
-    // 光照 > 11 时，雪层应融化并变为空气
-    SnowTestWorld world;
-    SequenceRandom random({0});
-    const BlockPos pos(4, 64, 4);
-    BlockState state = VanillaBlocks::SNOW->defaultState();
-
-    world.setBlockAt(pos, &state);
-    world.setSkyLightAt(pos, 15);
-    world.setBlockLightAt(pos, 0);
-
-    VanillaBlocks::SNOW->randomTick(world, pos, state, random);
-
-    // 雪层应被替换为空气
-    const BlockState* finalState = world.getBlockState(pos);
-    EXPECT_EQ(finalState, nullptr) << "Snow should have melted and been replaced by air";
-}
-
-TEST_F(SnowBlockTest, RandomTick_DoesNotMeltWhenLightAtOrBelow11)
-{
-    // 光照 <= 11 时，雪层不应融化
-    SnowTestWorld world;
-    SequenceRandom random({0});
-    const BlockPos pos(4, 64, 4);
-    BlockState state = VanillaBlocks::SNOW->defaultState();
-
-    // 下方需要支撑方块，否则雪层因为 isValidPosition 失败而被移除
-    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
-    world.setBlockAt(pos.down(), stoneState);
-
-    world.setBlockAt(pos, &state);
-    world.setSkyLightAt(pos, 11);
-    world.setBlockLightAt(pos, 0);
-
-    VanillaBlocks::SNOW->randomTick(world, pos, state, random);
-
-    // 雪层不应融化（光照恰好 == 11 时不融化，需要 > 11）
-    const BlockState* finalState = world.getBlockState(pos);
-    ASSERT_NE(finalState, nullptr) << "Snow should still exist at light level 11";
-    EXPECT_TRUE(finalState->is(VanillaBlocks::SNOW)) << "Snow should not melt at light level 11";
-}
-
-TEST_F(SnowBlockTest, RandomTick_MeltsWithBlockLightAbove11)
-{
-    // 方块光照 > 11 时也应融化
+    // MC 原版: SnowLayerBlock.randomTick 仅检查方块光照 (LightLayer.BLOCK)
+    // 条件: blockLight > 11，即方块光照 >= 12 时雪融化
+    // 方块光照 > 11 时，雪层应融化并变为空气
     SnowTestWorld world;
     SequenceRandom random({0});
     const BlockPos pos(4, 64, 4);
@@ -343,6 +302,54 @@ TEST_F(SnowBlockTest, RandomTick_MeltsWithBlockLightAbove11)
     // 雪层应被替换为空气
     const BlockState* finalState = world.getBlockState(pos);
     EXPECT_EQ(finalState, nullptr) << "Snow should melt with block light > 11";
+}
+
+TEST_F(SnowBlockTest, RandomTick_DoesNotMeltWhenBlockLightAtOrBelow11)
+{
+    // 方块光照 <= 11 时，雪层不应融化（即使天空光照很高）
+    SnowTestWorld world;
+    SequenceRandom random({0});
+    const BlockPos pos(4, 64, 4);
+    BlockState state = VanillaBlocks::SNOW->defaultState();
+
+    // 下方需要支撑方块，否则雪层因为 isValidPosition 失败而被移除
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+    world.setBlockAt(pos.down(), stoneState);
+
+    world.setBlockAt(pos, &state);
+    world.setBlockLightAt(pos, 11);
+    world.setSkyLightAt(pos, 15); // 高天空光照不应导致雪融化
+
+    VanillaBlocks::SNOW->randomTick(world, pos, state, random);
+
+    // 雪层不应融化（方块光照恰好 == 11 不融化，需要 > 11；天空光照不影响）
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Snow should still exist at block light level 11";
+    EXPECT_TRUE(finalState->is(VanillaBlocks::SNOW)) << "Snow should not melt at block light level 11";
+}
+
+TEST_F(SnowBlockTest, RandomTick_DoesNotMeltWithOnlySkyLight)
+{
+    // MC 原版: SnowLayerBlock.randomTick 只检查方块光照，不检查天空光照
+    // 即使天空光照 = 15，方块光照 = 0 时雪也不应融化
+    SnowTestWorld world;
+    SequenceRandom random({0});
+    const BlockPos pos(4, 64, 4);
+    BlockState state = VanillaBlocks::SNOW->defaultState();
+
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+    world.setBlockAt(pos.down(), stoneState);
+
+    world.setBlockAt(pos, &state);
+    world.setSkyLightAt(pos, 15);
+    world.setBlockLightAt(pos, 0);
+
+    VanillaBlocks::SNOW->randomTick(world, pos, state, random);
+
+    // 雪层不应仅因天空光照而融化
+    const BlockState* finalState = world.getBlockState(pos);
+    ASSERT_NE(finalState, nullptr) << "Snow should still exist with only sky light";
+    EXPECT_TRUE(finalState->is(VanillaBlocks::SNOW)) << "Snow should not melt with only sky light";
 }
 
 TEST_F(SnowBlockTest, RandomTick_DoesNotMeltWhenLightIsZero)
