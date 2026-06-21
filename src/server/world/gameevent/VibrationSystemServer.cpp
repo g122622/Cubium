@@ -35,6 +35,7 @@
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/AvoidVibrationTrigger.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
@@ -49,6 +50,55 @@ namespace mc::gameevent {
 // ============================================================================
 // 辅助函数
 // ============================================================================
+
+/**
+ * @brief 检查振动信号是否被遮挡（被羊毛方块完全包围）
+ *
+ * 参考 MC VibrationSystem.Ticker.isOccluded()。
+ * 算法：对振动源方块中心的 6 个方向各偏移微小距离后，
+ * 向监听器方块中心发射射线。如果所有 6 个方向的射线都命中了
+ * OCCLUDES_VIBRATION_SIGNALS 标签的方块，则振动被遮挡。
+ *
+ * @param world 世界
+ * @param sourcePos 振动源位置（世界坐标）
+ * @param listenerPos 监听器位置（世界坐标）
+ * @return 如果振动被遮挡返回 true
+ */
+[[nodiscard]] static bool isOccluded(server::ServerWorld& world, const Vector3d& sourcePos, const Vector3d& listenerPos)
+{
+    // 将源位置和监听器位置对齐到方块中心
+    const Vector3d sourceCenter(
+        std::floor(sourcePos.x) + 0.5, std::floor(sourcePos.y) + 0.5, std::floor(sourcePos.z) + 0.5);
+    const Vector3d listenerCenter(
+        std::floor(listenerPos.x) + 0.5, std::floor(listenerPos.y) + 0.5, std::floor(listenerPos.z) + 0.5);
+
+    // 缓存标签引用，避免每个方向重复查询
+    auto& occludesTag = BlockTags::OCCLUDES_VIBRATION_SIGNALS();
+
+    // 检查所有 6 个方向
+    // 参考 MC: Direction.values() 的顺序: DOWN, UP, NORTH, SOUTH, WEST, EAST
+    for (Direction dir : Directions::all()) {
+        // 从源方块中心沿当前方向偏移微小距离（1e-5），避免射线起点正好在方块边界上
+        const f64 offsetX = static_cast<f64>(Directions::xOffset(dir)) * 1.0e-5;
+        const f64 offsetY = static_cast<f64>(Directions::yOffset(dir)) * 1.0e-5;
+        const f64 offsetZ = static_cast<f64>(Directions::zOffset(dir)) * 1.0e-5;
+
+        Vector3d rayStart(sourceCenter.x + offsetX, sourceCenter.y + offsetY, sourceCenter.z + offsetZ);
+
+        // 使用 isBlockInLine 检查从偏移起点到监听器中心的射线上是否有遮挡方块
+        bool hitOccludingBlock = world.isBlockInLine(
+            rayStart, listenerCenter, [&occludesTag](const BlockState& state) { return occludesTag.contains(state); });
+
+        // 如果某个方向的射线没有命中遮挡方块，说明振动信号可以从这个方向逸出，
+        // 因此振动未被完全遮挡
+        if (!hitOccludingBlock) {
+            return false;
+        }
+    }
+
+    // 所有 6 个方向的射线都命中了遮挡方块，振动被完全遮挡
+    return true;
+}
 
 /**
  * @brief 检查监听器位置周围 3x3 区块范围是否全部处于 BlockTicking 级别
@@ -192,6 +242,14 @@ bool VibrationSystem::Listener::handleGameEvent(
     BlockPos sourceBlockPos(
         static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
     if (!user.canReceiveVibration(world, sourceBlockPos, event, context)) {
+        return false;
+    }
+
+    // 检查振动信号是否被遮挡方块（如羊毛）阻挡
+    // 参考 MC VibrationSystem.Ticker.isOccluded()
+    // 如果振动源被 OCCLUDES_VIBRATION_SIGNALS 方块从所有6个方向完全包围，
+    // 则振动信号无法传播到监听器
+    if (isOccluded(world, pos, listenerPos.value())) {
         return false;
     }
 

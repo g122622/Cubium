@@ -174,10 +174,11 @@ public:
 
     /// 羊毛地毯标签（所有颜色的地毯方块）
     /// 参考: net.minecraft.tags.BlockTags.WOOL_CARPETS
-    /// 用于 DAMPENS_VIBRATIONS 标签（地毯方块阻尼振动）和 LlamaEntity 装饰槽位判断
-    /// TODO: 当前仅有测试引用此标签，尚未在运行时游戏逻辑中被消费。
-    ///       需在 LlamaEntity 装饰槽位判断等逻辑中引用此标签，
-    ///       以确保 WOOL_CARPETS 标签不是孤岛代码。
+    /// 运行时消费场景：
+    /// 1. DAMPENS_VIBRATIONS 标签的组成项（地毯方块阻尼振动）— 已在 VibrationSystemServer 中消费
+    /// 2. COMBINATION_STEP_SOUND_BLOCKS 标签的组成项（组合脚步声）— 待实现
+    /// 3. 羊驼装备判定（MC 1.21+ 使用 Equippable 数据组件，非标签判断）— 已在 LlamaEntity::isValidArmorForSlot 中使用
+    /// ItemTags::CARPETS
     static BlockTag& WOOL_CARPETS();
 
     /// 木质栅栏标签（所有木质栅栏，不含下界砖栅栏）

@@ -293,6 +293,8 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override;
+    [[nodiscard]] bool isBlockInLine(
+        const Vector3d& from, const Vector3d& to, std::function<bool(const BlockState&)> predicate) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override;
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override;
