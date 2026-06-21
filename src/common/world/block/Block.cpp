@@ -930,9 +930,8 @@ void Block::dropResources(IWorld& world, const BlockPos& pos, const BlockState& 
     }
 
     // 构建掉落上下文（无玩家、无工具，与 MC 原版 Block.dropResources 行为一致）
-    math::Random random(world.seed() ^ static_cast<u64>(pos.x ^ pos.z));
-
-    auto contextBuilder = loot::LootContextBuilder(world).withRandom(random);
+    // MC 使用 ServerLevel.random（世界共享随机），不创建新 Random 对象
+    auto contextBuilder = loot::LootContextBuilder(world);
 
     // 设置方块状态和位置参数
     contextBuilder.withParameter(loot::LootParams::BLOCK_STATE, const_cast<BlockState*>(&state));

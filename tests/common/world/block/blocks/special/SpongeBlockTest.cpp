@@ -34,7 +34,11 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/loot/LootPool.hpp"
+#include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/entries/ItemLootEntry.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
@@ -503,6 +507,219 @@ TEST_F(SpongeBlockDropTest, SpongeBecomesWetAfterAbsorbingWater)
     const BlockState* spongeState = world.getBlockState(spongePos.x, spongePos.y, spongePos.z);
     ASSERT_NE(spongeState, nullptr);
     EXPECT_TRUE(spongeState->is(VanillaBlocks::WET_SPONGE));
+}
+
+// ============================================================================
+// 服务端 Block::dropResources 测试
+// ============================================================================
+
+/**
+ * @brief 测试用 Mock 掉落表管理器
+ *
+ * 注册一个简单的掉落表，用于测试 Block::dropResources 的服务端正常路径。
+ */
+class MockLootTableManager : public loot::LootTableManager {
+public:
+    MockLootTableManager()
+        : LootTableManager()
+    {
+        // 创建一个简单的测试掉落表：掉落 1 个苹果
+        auto table = std::make_unique<loot::LootTable>();
+        auto pool = std::make_unique<loot::LootPool>(loot::RandomValueRange(1.0f), loot::RandomValueRange(0.0f));
+        auto entry = std::make_unique<loot::ItemLootEntry>("minecraft:apple", loot::RandomValueRange(1.0f, 1.0f), 1, 1);
+        pool->addEntry(std::move(entry));
+        table->addPool(std::move(pool));
+        m_testTable = table.get();
+        LootTableManager::registerTable("minecraft:blocks/stone", std::move(table));
+    }
+
+    [[nodiscard]] const loot::LootTable* getTestTable() const { return m_testTable; }
+
+private:
+    loot::LootTable* m_testTable = nullptr;
+};
+
+/**
+ * @brief 服务端测试世界（带掉落表管理器）
+ *
+ * 继承自 IBlockReader，提供完整的 IWorld 实现和 MockLootTableManager，
+ * 用于测试 Block::dropResources 在有掉落表管理器时的正常路径。
+ */
+class ServerDropTestWorld final : public IBlockReader {
+public:
+    ServerDropTestWorld()
+    {
+        VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
+        Items::initialize();
+        m_airState = &VanillaBlocks::AIR->defaultState();
+        // 创建并设置掉落表管理器
+        m_mockLootTableManager = std::make_unique<MockLootTableManager>();
+    }
+
+    // ========== 方块访问 ==========
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const i64 key = packPos(x, y, z);
+        const auto it = m_blocks.find(key);
+        if (it != m_blocks.end()) {
+            return it->second.get();
+        }
+        return m_airState;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const i64 key = packPos(x, y, z);
+        if (state == nullptr || state == m_airState) {
+            m_blocks.erase(key);
+        } else {
+            m_blocks[key] = std::make_unique<BlockState>(*state);
+        }
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    // ========== 实体生成 ==========
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedEntityCount++;
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size());
+    }
+
+    // ========== LootTableManager ==========
+
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override
+    {
+        return m_mockLootTableManager.get();
+    }
+
+    // ========== IBlockReader 必需的剩余方法 ==========
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return fluid::Fluid::getFluidState(0);
+    }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
+    }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(
+        const AxisAlignedBB&, const Entity* = nullptr) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] DimensionId dimension() const override { return 0; }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Easy; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("ServerDropTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("ServerDropTestWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+
+    // ========== 测试辅助 ==========
+
+    [[nodiscard]] i32 spawnedEntityCount() const noexcept { return m_spawnedEntityCount; }
+
+private:
+    [[nodiscard]] static i64 packPos(i32 x, i32 y, i32 z)
+    {
+        return (static_cast<i64>(x) << 42) ^ (static_cast<i64>(y) << 21) ^ static_cast<i64>(z & 0x1FFFFF);
+    }
+
+    std::unordered_map<i64, std::unique_ptr<BlockState>> m_blocks;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    const BlockState* m_airState;
+    std::unique_ptr<MockLootTableManager> m_mockLootTableManager;
+    world::border::WorldBorder m_worldBorder;
+    mutable math::Random m_random{12345};
+    i32 m_spawnedEntityCount = 0;
+};
+
+/**
+ * @brief Block::dropResources 在服务端有掉落表时应生成掉落物实体
+ *
+ * 模拟服务端场景：IWorld::lootTableManager() 返回有效的 LootTableManager，
+ * 且方块有对应的掉落表，dropResources 应生成掉落物实体。
+ */
+TEST_F(SpongeBlockDropTest, DropResourcesGeneratesEntitiesWhenLootTableExists)
+{
+    ServerDropTestWorld world;
+    ASSERT_NE(world.lootTableManager(), nullptr);
+
+    // 石头方块有掉落表 "minecraft:blocks/stone"
+    BlockPos pos(0, 64, 0);
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    EXPECT_FALSE(stoneState.getBlock().getLootTableId().empty());
+
+    // 调用 dropResources
+    Block::dropResources(world, pos, stoneState);
+
+    // 应该生成掉落物实体
+    EXPECT_GT(world.spawnedEntityCount(), 0);
+}
+
+/**
+ * @brief Block::dropResources 对没有对应掉落表条目的方块不应崩溃
+ *
+ * 方块有 lootTableId 但在 LootTableManager 中找不到对应的表时，
+ * getTable 返回 nullptr，dropResources 应安全返回。
+ * 同时验证基岩（无掉落表）在有 LootTableManager 时也不生成实体。
+ */
+TEST_F(SpongeBlockDropTest, DropResourcesReturnsSafelyWhenTableNotFound)
+{
+    ServerDropTestWorld world;
+    ASSERT_NE(world.lootTableManager(), nullptr);
+
+    // 使用基岩（无掉落表）来测试
+    const BlockState& bedrockState = VanillaBlocks::BEDROCK->defaultState();
+    EXPECT_TRUE(bedrockState.getBlock().getLootTableId().empty());
+
+    BlockPos pos(0, 64, 0);
+    // 即使有 LootTableManager，无掉落表的方块也不应生成实体
+    Block::dropResources(world, pos, bedrockState);
+    EXPECT_EQ(world.spawnedEntityCount(), 0);
 }
 
 } // namespace test
