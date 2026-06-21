@@ -19,7 +19,7 @@ special/
 ├── IronGolemGoals.hpp/cpp         # 铁傀儡目标（展示花朵给村民）
 ├── EvokerGoals.hpp/cpp            # 唤魔者目标（尖牙攻击、召唤恼鬼、Wololo法术）
 ├── VexGoals.hpp/cpp               # 恼鬼目标（冲锋攻击、随机飞行、复制主人目标）
-├── BeeGoals.hpp/cpp               # 蜜蜂目标（授粉、返回蜂巢、蛰刺攻击）
+├── BeeGoals.hpp/cpp               # 蜜蜂目标（授粉、返回蜂巢、蛰刺攻击、作物生长促进）
 ├── FoxGoals.hpp/cpp               # 狐狸目标（跟踪猎物、扑击、睡眠、吃浆果）
 ├── PandaGoals.hpp/cpp             # 熊猫目标（打滚）
 ├── SilverfishGoals.hpp/cpp        # 蠹虫目标（藏入石头、召唤同伴）
@@ -73,7 +73,7 @@ Goal (基类)
 │   ├── BeeUpdateHiveGoal ────────── 蜜蜂更新蜂巢位置
 │   ├── BeeFindHiveGoal ──────────── 蜜蜂寻找蜂巢
 │   ├── BeeFindFlowerGoal ────────── 蜜蜂寻找花朵
-│   └── BeeFindPollinationTargetGoal 蜜蜂寻找授粉目标
+│   └── BeeFindPollinationTargetGoal 蜜蜂寻找授粉目标（促进作物生长）
 ├── BeeStingGoal : MeleeAttackGoal ─ 蜜蜂蛰刺攻击（攻击后死亡）
 ├── BeeWanderGoal ────────────────── 蜜蜂随机飞行
 ├── BeeAngerGoal : HurtByTargetGoal─ 蜜蜂愤怒（召唤同伴）
@@ -100,7 +100,7 @@ Goal (基类)
 - `src/common/entity/ai/goal/` - Goal 基类、GoalSelector、MeleeAttackGoal、TargetGoal、RandomWalkingGoal 等
 - `src/common/entity/` - 各实体类型（CreeperEntity、BlazeEntity、GuardianEntity 等）
 - `src/common/world/` - IWorld、BlockState、FluidState
-- `src/common/block/` - Block、FluidTags
+- `src/common/world/block/` - Block、BlockTags、IGrowable、CropBlock、StemBlock、SweetBerryBushBlock
 - `src/common/util/` - Random、AxisAlignedBB、Direction
 - `src/common/core/` - Constants（游戏常量）
 
@@ -248,3 +248,21 @@ return m_slime->onGround() || m_slime->isInWater() || m_slime->isInLava() ||
 **问题**：烈焰人发射火球时缺少音效事件通知。
 
 **解决**：`BlazeFireballAttackGoal::_performFireballAttack()` 中在 `spawnEntity` 前添加 `world->playEvent(WorldEvents::BLAZE_SHOOT_SOUND, ...)` 播放音效事件 (ID 1018)。
+
+### 15. 蜜蜂授粉目标的作物生长逻辑
+
+**问题**：蜜蜂促进作物生长时需区分不同作物类型的生长方式，逻辑容易出错。
+
+**解决**：`BeeFindPollinationTargetGoal::_growCrop()` 按以下优先级处理：
+1. **CropBlock**（小麦、胡萝卜、马铃薯、甜菜根）：检查 `isMaxAge()`，未成熟则 `age + 1`
+2. **StemBlock**（西瓜茎、南瓜茎）：检查 `AGE_0_7 < 7`，未成熟则 `age + 1`
+3. **SweetBerryBushBlock**：检查 `isMaxAge()`，未成熟则 `age + 1`
+4. **IGrowable**（CaveVines/CaveVinesPlant）：调用 `canGrow()` + `grow()` 接口
+
+注意事项：
+- 蜜蜂授粉只增加1个生长阶段（不同于骨粉的2-5个阶段）
+- 作物计数器 `MAX_CROPS_GROWN = 10`：每次采粉后最多促进10棵作物
+- `canBeeStart()` 和 `canBeeContinue()` 均检查作物计数器上限
+- `BeeEnterHiveGoal::startExecuting()` 调用 `resetCropCounter()` 重置计数器
+- 生长粒子使用 `WorldEvents::BONEMEAL_PARTICLES(2005)`，待客户端实现 `PLANT_GROWTH_PARTICLES(2011)` 后切换
+- `BEE_GROWABLES` 标签包含：wheat, carrots, potatoes, beetroots, melon_stem, pumpkin_stem, sweet_berry_bush, cave_vines, cave_vines_plant
