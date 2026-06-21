@@ -803,13 +803,33 @@ TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_WaterLayer_CreatesF
 
 TEST_F(SettingsTest, FlatLevelGeneratorSettings_UpdateLayers_NonMotionBlocking_CreatesFillEntry)
 {
-    // 非运动阻挡、非液体、非空气的方块（如草径 PathBlock 等）应产生填充层条目
-    // 注意：此类方块需要确认 isSolid() 返回 false 且 isLiquid() 返回 false
-    // 这里测试默认配置不应有填充层条目
+    // 非运动阻挡（isSolid=false）、非液体、非空气的方块（如火把）应产生填充层条目
+    // 参考 MC 1.21.11: FlatLevelGeneratorSettings.adjustGenerationSettings()
+    // 使用 MOTION_BLOCKING 高度图判断：!blocksMotion() && fluidState.isEmpty()
+    const BlockState* torchState = VanillaBlocks::getState(VanillaBlocks::TORCH);
+    ASSERT_NE(torchState, nullptr) << "TORCH should be registered";
+
+    // 确认火把是非固体、非液体、非空气
+    EXPECT_FALSE(torchState->owner().isSolid(*torchState)) << "Torch should not be solid";
+    EXPECT_FALSE(torchState->isLiquid()) << "Torch should not be liquid";
+    EXPECT_FALSE(torchState->isAir()) << "Torch should not be air";
+
     FlatLevelGeneratorSettings s(Biomes::Plains);
     s.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    s.layersInfo().emplace_back(1, torchState); // 非运动阻挡方块
+    s.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
     s.updateLayers();
-    EXPECT_TRUE(s.fillLayerEntries().empty());
+
+    // 非运动阻挡方块应产生填充层条目
+    ASSERT_EQ(s.fillLayerEntries().size(), 1u);
+    EXPECT_EQ(s.fillLayerEntries()[0].height, 1); // Y=1
+    EXPECT_EQ(s.fillLayerEntries()[0].blockState, torchState);
+
+    // 展开列表中 Y=1 应为 nullptr
+    ASSERT_EQ(s.layers().size(), 3u);
+    EXPECT_NE(s.layers()[0], nullptr); // 基岩
+    EXPECT_EQ(s.layers()[1], nullptr); // 火把 → nullptr
+    EXPECT_NE(s.layers()[2], nullptr); // 草方块
 }
 
 TEST_F(SettingsTest, FlatLevelGeneratorSettings_FillLayerEntries_DefaultEmpty)

@@ -144,18 +144,20 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
 
             // 根据 decoration 和 addLakes 标志过滤阶段
             if (!hasDecoration) {
-                // decoration 为 false 时，只允许 Lakes 阶段（如果 addLakes 为 true）
-                if (!hasLakes || stage != DecorationStage::Lakes) {
-                    continue;
-                }
+                // decoration 为 false 时，不放置任何生物群系特性
+                // 参考 MC 1.21.11: FlatLevelGeneratorSettings.adjustGenerationSettings()
+                // 当 decoration=false 时，flag=false，整个生物群系特性复制循环被跳过
+                // 熔岩湖由循环后的 addLakes 专用逻辑放置，不经过此循环
+                continue;
             } else {
                 // decoration 为 true 时，排除 UndergroundStructures 和 SurfaceStructures 阶段
                 // 参考 MC 1.21.11: FlatLevelGeneratorSettings.adjustGenerationSettings()
                 if (stage == DecorationStage::UndergroundStructures || stage == DecorationStage::SurfaceStructures) {
                     continue;
                 }
-                // 如果已经单独处理了 Lakes（addLakes=true），跳过生物群系原生的 Lakes 特征
-                // 避免湖泊重复放置
+                // 如果 addLakes=true，跳过生物群系原生的 Lakes 阶段特性
+                // 避免与循环后的 addLakes 专用熔岩湖放置重复
+                // 参考 MC: !this.addLakes || i != GenerationStep.Decoration.LAKES.ordinal()
                 if (hasLakes && stage == DecorationStage::Lakes) {
                     continue;
                 }

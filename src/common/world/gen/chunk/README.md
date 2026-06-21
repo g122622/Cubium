@@ -185,8 +185,14 @@ rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 ### 10. FlatChunkGenerator 特性放置
 
 `FlatChunkGenerator::placeFeatures()` 根据 `FlatLevelGeneratorSettings` 的 `hasDecoration()` 和 `hasLakes()` 标志控制特性放置：
-- `hasDecoration=true`：放置生物群系的所有装饰特性（矿石、树木等），排除 UndergroundStructures 和 SurfaceStructures 阶段
-- `hasLakes=true`：额外放置水湖和熔岩湖特性（Lakes 阶段）
-- 两者均为 false（默认）：不放置任何特性，仅填充层
 
-非运动阻挡层（如水层）在 `updateLayers()` 中被标记为 nullptr，`placeFeatures()` 末尾的 `_placeFillLayers()` 在 TOP_LAYER_MODIFICATION 阶段将空气方块替换为原始方块状态，确保与湖泊等特性不冲突。
+| hasDecoration | hasLakes | 行为 |
+|:---:|:---:|:---|
+| false | false | 不放置任何特性，仅填充层 |
+| false | true | 仅放置平坦世界专用熔岩湖（LAKE_LAVA_UNDERGROUND + LAKE_LAVA_SURFACE），不放置任何生物群系原生特性 |
+| true | false | 放置生物群系装饰特性（排除 UndergroundStructures、SurfaceStructures、Lakes 阶段） |
+| true | true | 放置生物群系装饰特性（排除 UndergroundStructures、SurfaceStructures 阶段）+ 专用熔岩湖（跳过生物群系原生 Lakes 阶段以避免重复） |
+
+参考 MC 1.21.11: `FlatLevelGeneratorSettings.adjustGenerationSettings()` — `decoration=false` 时完全跳过生物群系特性复制循环，`addLakes` 的熔岩湖由 `createLakesList()` 单独提供（仅含两个熔岩湖特性，不含水湖）。
+
+非运动阻挡层（如水层）在 `updateLayers()` 中被标记为 nullptr，`placeFeatures()` 末尾的 `_placeFillLayers()` 在特性放置后将空气方块替换为原始方块状态，确保与湖泊等特性不冲突。

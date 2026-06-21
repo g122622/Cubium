@@ -32,15 +32,24 @@
 // 5. getBiome/getNoiseBiome 固定生物群系
 // 6. seaLevel/getMinY/getGenDepth 维度常量
 // 7. 空操作阶段验证
-// 8. 与 MC 1.21.11 FlatLevelSource 的行为对齐
+// 8. placeFeatures 和 _placeFillLayers 逻辑
+//    8.1 默认设置（无装饰、无湖泊）
+//    8.2 _placeFillLayers 填充层逻辑
+//    8.3 decoration 和 addLakes 标志验证
+//    8.4 generateNoise 跳过 nullptr 层
+// 9. IChunkGenerator 接口验证
+// 10. 与 MC 1.21.11 FlatLevelSource 的行为对齐
 // ============================================================================
 
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/gen/chunk/FlatChunkGenerator.hpp"
+#include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/settings/FlatLevelGeneratorSettings.hpp"
+#include <mutex>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -328,7 +337,379 @@ TEST_F(FlatChunkGeneratorDetailedTest, CustomSingleLayer)
 }
 
 // ============================================================================
-// 8. IChunkGenerator 接口验证
+// 8. placeFeatures 和 _placeFillLayers 测试
+// ============================================================================
+
+// 辅助函数：创建 3x3 区块区域的 WorldGenRegion
+namespace PlaceFeaturesTestHelper {
+
+std::unique_ptr<WorldGenRegion> createRegion(
+    ChunkCoord mainX, ChunkCoord mainZ, i32 radius, std::vector<std::unique_ptr<ChunkPrimer>>& outChunks)
+{
+    const i32 size = 2 * radius + 1;
+    std::vector<IChunk*> chunkPtrs;
+    outChunks.clear();
+    outChunks.reserve(static_cast<size_t>(size * size));
+
+    for (i32 dz = -radius; dz <= radius; ++dz) {
+        for (i32 dx = -radius; dx <= radius; ++dx) {
+            auto chunk = std::make_unique<ChunkPrimer>(mainX + dx, mainZ + dz);
+            chunkPtrs.push_back(chunk.get());
+            outChunks.push_back(std::move(chunk));
+        }
+    }
+
+    return std::make_unique<WorldGenRegion>(mainX, mainZ, radius, std::move(chunkPtrs));
+}
+
+} // namespace PlaceFeaturesTestHelper
+
+// ============================================================================
+// 8.1 默认设置（无装饰、无湖泊）
+// ============================================================================
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_DefaultSettings_SetsChunkStatus)
+{
+    // 默认设置：decoration=false, addLakes=false
+    // placeFeatures 应仅设置区块状态为 FEATURES
+    FlatChunkGenerator gen(0LL, FlatLevelGeneratorSettings::createDefault());
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4]; // 3x3 网格的中心
+
+    // 先运行 generateNoise 来填充层
+    gen.generateNoise(*region, centerChunk);
+
+    // 然后运行 placeFeatures
+    gen.placeFeatures(*region, centerChunk);
+
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::FEATURES);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_DefaultSettings_NoFillLayers)
+{
+    // 默认配置只有固体方块（基岩、泥土、草方块），不应有填充层条目
+    auto settings = FlatLevelGeneratorSettings::createDefault();
+    EXPECT_TRUE(settings.fillLayerEntries().empty());
+
+    // generateNoise 后所有层都被填充，placeFeatures 后不变
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateNoise(*region, centerChunk);
+    gen.placeFeatures(*region, centerChunk);
+
+    // 验证层仍为固体方块
+    const BlockState* bedrock = VanillaBlocks::getState(VanillaBlocks::BEDROCK);
+    const BlockState* dirt = VanillaBlocks::getState(VanillaBlocks::DIRT);
+    const BlockState* grass = VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK);
+
+    // Y=0: 基岩, Y=1-2: 泥土, Y=3: 草方块（minY=0）
+    EXPECT_EQ(centerChunk.getBlockState(0, 0, 0), bedrock);
+    EXPECT_EQ(centerChunk.getBlockState(0, 1, 0), dirt);
+    EXPECT_EQ(centerChunk.getBlockState(0, 2, 0), dirt);
+    EXPECT_EQ(centerChunk.getBlockState(0, 3, 0), grass);
+}
+
+// ============================================================================
+// 8.2 _placeFillLayers 填充层逻辑
+// ============================================================================
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_FillLayers_WaterLayerPreservedInNoise)
+{
+    // 水层（液体）在 updateLayers 中不会被设为 nullptr，因为 isLiquid() 为 true
+    // 因此 generateNoise 会直接放置水方块，不需要 _placeFillLayers 填充
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(5, VanillaBlocks::getState(VanillaBlocks::WATER));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    // 水是液体，不是非运动阻挡方块，所以不应产生填充层条目
+    EXPECT_TRUE(settings.fillLayerEntries().empty());
+
+    // 水层在展开列表中不是 nullptr
+    // layers[0] = 基岩, layers[1-5] = 水, layers[6] = 草方块
+    const auto& layers = settings.layers();
+    EXPECT_NE(layers[0], nullptr); // 基岩
+    EXPECT_NE(layers[1], nullptr); // 水
+    EXPECT_NE(layers[5], nullptr); // 水
+    EXPECT_NE(layers[6], nullptr); // 草方块
+
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateNoise(*region, centerChunk);
+    gen.placeFeatures(*region, centerChunk);
+
+    // 水层应直接由 generateNoise 放置，不需要 _placeFillLayers
+    const BlockState* water = &VanillaBlocks::WATER->defaultState();
+    EXPECT_EQ(centerChunk.getBlockState(0, 1, 0), water);
+    EXPECT_EQ(centerChunk.getBlockState(0, 5, 0), water);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_FillLayers_NonMotionBlockingBlockFilledByPlaceFeatures)
+{
+    // 创建包含非固体非液体方块的层配置
+    // 非固体、非液体、非空气的方块（如火把 TORCH）会被 updateLayers 设为 nullptr
+    // generateNoise 跳过 nullptr 层（留下空气），_placeFillLayers 在 placeFeatures 末尾补充放置
+
+    // 使用 TORCH 作为非固体方块（Material::DECORATION, notSolid）
+    const BlockState* torchState = VanillaBlocks::getState(VanillaBlocks::TORCH);
+    ASSERT_NE(torchState, nullptr) << "TORCH should be registered";
+
+    // 验证火把确实是非固体、非液体方块
+    bool isTorchSolid = torchState->owner().isSolid(*torchState);
+    bool isTorchLiquid = torchState->isLiquid();
+    bool isTorchAir = torchState->isAir();
+    EXPECT_FALSE(isTorchSolid) << "Torch should not be solid";
+    EXPECT_FALSE(isTorchLiquid) << "Torch should not be liquid";
+    EXPECT_FALSE(isTorchAir) << "Torch should not be air";
+
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, torchState); // 非固体层
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    // 非固体非液体非空气方块应产生填充层条目
+    ASSERT_EQ(settings.fillLayerEntries().size(), 2u) << "Should have 2 fill layer entries (2 torch layers)";
+    EXPECT_EQ(settings.fillLayerEntries()[0].height, 1);
+    EXPECT_EQ(settings.fillLayerEntries()[0].blockState, torchState);
+    EXPECT_EQ(settings.fillLayerEntries()[1].height, 2);
+    EXPECT_EQ(settings.fillLayerEntries()[1].blockState, torchState);
+
+    // 展开列表中对应位置应为 nullptr
+    EXPECT_EQ(settings.layers()[1], nullptr); // Y=1 火把 → nullptr
+    EXPECT_EQ(settings.layers()[2], nullptr); // Y=2 火把 → nullptr
+
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    // generateNoise 跳过 nullptr 层，留下空气
+    gen.generateNoise(*region, centerChunk);
+
+    // Y=1 和 Y=2 应为空气（nullptr 层被跳过）
+    const BlockState* state1 = centerChunk.getBlockState(0, 1, 0);
+    EXPECT_TRUE(state1 == nullptr || state1->isAir()) << "Y=1 should be air after generateNoise";
+
+    const BlockState* state2 = centerChunk.getBlockState(0, 2, 0);
+    EXPECT_TRUE(state2 == nullptr || state2->isAir()) << "Y=2 should be air after generateNoise";
+
+    // placeFeatures 在末尾调用 _placeFillLayers 补充放置非运动阻挡方块
+    gen.placeFeatures(*region, centerChunk);
+
+    // Y=1 和 Y=2 现在应该是火把方块
+    EXPECT_EQ(centerChunk.getBlockState(0, 1, 0), torchState) << "Y=1 should be torch after _placeFillLayers";
+    EXPECT_EQ(centerChunk.getBlockState(0, 2, 0), torchState) << "Y=2 should be torch after _placeFillLayers";
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_FillLayers_PreservesExistingBlocks)
+{
+    // _placeFillLayers 仅替换空气方块，不替换已有方块
+    // 这确保了与湖泊等特性的兼容性——如果湖泊已经放置了方块，填充层不会覆盖
+
+    const BlockState* torchState = VanillaBlocks::getState(VanillaBlocks::TORCH);
+    if (torchState == nullptr || torchState->owner().isSolid(*torchState)) {
+        GTEST_SKIP() << "TORCH not available or is solid, skipping fill layer preservation test";
+    }
+
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(1, torchState); // Y=1: 非固体层
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateNoise(*region, centerChunk);
+
+    // 在 _placeFillLayers 之前，手动在填充层位置放置一个非空气方块
+    // 模拟湖泊等特性已经在此位置放置了方块
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+    region->setBlockState(0, 1, 0, stoneState);
+
+    gen.placeFeatures(*region, centerChunk);
+
+    // Y=1 应保留为石头（_placeFillLayers 不覆盖非空气方块）
+    EXPECT_EQ(centerChunk.getBlockState(0, 1, 0), stoneState)
+        << "Y=1 should remain STONE (not overwritten by _placeFillLayers)";
+}
+
+// ============================================================================
+// 8.3 decoration 和 addLakes 标志逻辑验证
+// ============================================================================
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_NoDecorationNoLakes_NoFeaturePlacement)
+{
+    // decoration=false, addLakes=false：不放置任何特性
+    // 这是默认配置，仅设置区块状态和填充层
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    EXPECT_FALSE(settings.hasDecoration());
+    EXPECT_FALSE(settings.hasLakes());
+
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateNoise(*region, centerChunk);
+    gen.placeFeatures(*region, centerChunk);
+
+    // 区块状态应为 FEATURES
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::FEATURES);
+
+    // 层应保持不变（无特性放置）
+    const BlockState* grass = VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK);
+    EXPECT_EQ(centerChunk.getBlockState(0, 3, 0), grass);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_DecorationTrue_SetsChunkStatus)
+{
+    // decoration=true: 启用生物群系装饰特性
+    // 此测试仅验证不崩溃和区块状态正确，不验证具体特性放置（依赖 FeatureRegistry 初始化）
+    FlatLevelGeneratorSettings settings(Biomes::Plains, true, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    EXPECT_TRUE(settings.hasDecoration());
+    EXPECT_FALSE(settings.hasLakes());
+
+    // 需要初始化 FeatureRegistry 以支持特性放置
+    static std::once_flag s_featureInit;
+    std::call_once(s_featureInit, []() { FeatureRegistry::instance().initialize(); });
+
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateNoise(*region, centerChunk);
+    gen.placeFeatures(*region, centerChunk);
+
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::FEATURES);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_LakesTrue_SetsChunkStatus)
+{
+    // addLakes=true: 仅放置熔岩湖特性
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, true);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    EXPECT_FALSE(settings.hasDecoration());
+    EXPECT_TRUE(settings.hasLakes());
+
+    // 需要初始化 FeatureRegistry
+    static std::once_flag s_featureInit;
+    std::call_once(s_featureInit, []() { FeatureRegistry::instance().initialize(); });
+
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateNoise(*region, centerChunk);
+    gen.placeFeatures(*region, centerChunk);
+
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::FEATURES);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, PlaceFeatures_DecorationAndLakes_SetsChunkStatus)
+{
+    // decoration=true, addLakes=true: 放置装饰特性 + 熔岩湖
+    FlatLevelGeneratorSettings settings(Biomes::Plains, true, true);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    EXPECT_TRUE(settings.hasDecoration());
+    EXPECT_TRUE(settings.hasLakes());
+
+    // 需要初始化 FeatureRegistry
+    static std::once_flag s_featureInit;
+    std::call_once(s_featureInit, []() { FeatureRegistry::instance().initialize(); });
+
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateNoise(*region, centerChunk);
+    gen.placeFeatures(*region, centerChunk);
+
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::FEATURES);
+}
+
+// ============================================================================
+// 8.4 generateNoise 跳过 nullptr 层
+// ============================================================================
+
+TEST_F(FlatChunkGeneratorDetailedTest, GenerateNoise_SkipsNullLayersLeavingAir)
+{
+    // 当 updateLayers 将某些层设为 nullptr 时，generateNoise 应跳过这些层
+    // 在那些位置留下空气方块
+    const BlockState* torchState = VanillaBlocks::getState(VanillaBlocks::TORCH);
+    if (torchState == nullptr || torchState->owner().isSolid(*torchState)) {
+        GTEST_SKIP() << "TORCH not available or is solid, skipping null layer test";
+    }
+
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK)); // Y=0
+    settings.layersInfo().emplace_back(1, torchState);                                      // Y=1 → nullptr in layers
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK)); // Y=2
+    settings.updateLayers();
+
+    // 验证 layers[1] 为 nullptr（非固体层）
+    EXPECT_EQ(settings.layers()[1], nullptr);
+
+    FlatChunkGenerator gen(0LL, settings);
+
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateNoise(*region, centerChunk);
+
+    // Y=0: 基岩（固体，直接放置）
+    EXPECT_EQ(centerChunk.getBlockState(0, 0, 0), VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    // Y=1: 空气（nullptr 层被跳过）
+    const BlockState* state1 = centerChunk.getBlockState(0, 1, 0);
+    EXPECT_TRUE(state1 == nullptr || state1->isAir());
+    // Y=2: 草方块（固体，直接放置）
+    EXPECT_EQ(centerChunk.getBlockState(0, 2, 0), VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+}
+
+// ============================================================================
+// 9. IChunkGenerator 接口验证
 // ============================================================================
 
 TEST_F(FlatChunkGeneratorDetailedTest, InterfaceCast)
