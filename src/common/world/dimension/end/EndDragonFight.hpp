@@ -46,6 +46,7 @@ class IWorld;
  * - 构造时从世界种子初始化折跃门列表
  * - 可从存档数据恢复 previouslyKilled 和 gateways 状态
  * - 龙死亡时通过 setDragonKilled() 触发奖励逻辑
+ * - 每个游戏 tick 通过 tick() 更新状态（含旧存档状态扫描）
  */
 class EndDragonFight {
 public:
@@ -53,8 +54,6 @@ public:
      * @brief 战斗数据，用于存档保存/加载
      */
     struct Data {
-        // TODO: needsStateScanning 用于旧存档首次加载时检测龙是否曾被击杀，
-        // 需要扫描出口传送门是否存在来判断 previouslyKilled 状态。当前未实现扫描逻辑。
         bool needsStateScanning = true;           ///< 是否需要扫描旧世界状态
         bool dragonKilled = false;                ///< 龙当前是否已死
         bool previouslyKilled = false;            ///< 是否曾经击杀过龙
@@ -82,6 +81,9 @@ public:
     /// 折跃门的 Y 坐标
     static constexpr i32 GATEWAY_Y = 75;
 
+    /// 竞技场区块扫描半径（原点周围 -8 到 +8 区块）
+    static constexpr i32 ARENA_CHUNK_RADIUS = 8;
+
     // ========== 构造/析构 ==========
 
     /**
@@ -103,6 +105,16 @@ public:
     EndDragonFight& operator=(EndDragonFight&&) noexcept = default;
 
     // ========== 核心逻辑 ==========
+
+    /**
+     * @brief 每游戏 tick 调用
+     *
+     * 处理旧存档状态扫描：当 needsStateScanning 为 true 且竞技场区块已加载时，
+     * 扫描出口传送门是否存在以推断 previouslyKilled 状态。
+     *
+     * @param world 末地世界引用
+     */
+    void tick(IWorld& world);
 
     /**
      * @brief 末影龙被击杀时调用
@@ -158,6 +170,42 @@ private:
     void _loadData(const Data& data);
 
     /**
+     * @brief 扫描旧存档状态
+     *
+     * 检查出口传送门是否存在来推断 previouslyKilled：
+     * - 如果存在活跃的出口传送门（END_PORTAL 方块），则 previouslyKilled = true
+     * - 如果不存在活跃出口传送门，则 previouslyKilled = false，
+     *   并检查是否存在讲台结构；如果不存在则创建非激活讲台
+     *
+     * 同时检查末影龙实体是否仍存活，并据此更新 dragonKilled 状态。
+     *
+     * @param world 末地世界引用
+     */
+    void _scanState(IWorld& world);
+
+    /**
+     * @brief 检查是否存在活跃的出口传送门
+     *
+     * 扫描原点周围区块，查找 END_PORTAL 方块。
+     * 活跃出口传送门表明龙曾被击杀过。
+     *
+     * @param world 末地世界引用
+     * @return true 如果找到活跃出口传送门
+     */
+    [[nodiscard]] static bool _hasActiveExitPortal(IWorld& world);
+
+    /**
+     * @brief 检查竞技场区块是否已全部加载
+     *
+     * 检查原点周围 ARENA_CHUNK_RADIUS 范围内的区块是否已加载，
+     * 只有区块加载后才能进行状态扫描。
+     *
+     * @param world 末地世界引用
+     * @return true 如果竞技场区块已加载
+     */
+    [[nodiscard]] static bool _isArenaLoaded(IWorld& world);
+
+    /**
      * @brief 生成一个新的末地折跃门
      *
      * 从 gateways 列表中取出一个索引，按极坐标公式计算位置，
@@ -186,11 +234,9 @@ private:
 
     // ========== 成员变量 ==========
 
-    u64 m_worldSeed;                 ///< 世界种子
-    bool m_previouslyKilled = false; ///< 是否曾经击杀过龙
-    bool m_dragonKilled = false;     ///< 龙当前是否已死
-    // TODO: needsStateScanning 需要实现旧存档状态扫描逻辑，
-    // 首次加载旧世界时应检查出口传送门是否存在以推断 previouslyKilled。
+    u64 m_worldSeed;                  ///< 世界种子
+    bool m_previouslyKilled = false;  ///< 是否曾经击杀过龙
+    bool m_dragonKilled = false;      ///< 龙当前是否已死
     bool m_needsStateScanning = true; ///< 是否需要扫描旧世界状态
     std::vector<i32> m_gateways;      ///< 剩余折跃门索引列表（随机打乱）
 

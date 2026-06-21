@@ -3,9 +3,9 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the the
- * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
- * sell copies of the Software, and to permit persons to whom the Software is
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -25,12 +25,16 @@
 
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
 
 #include <algorithm>
+
+#include <spdlog/spdlog.h>
 
 namespace mc {
 
@@ -92,9 +96,8 @@ EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
         math::Random rng(worldSeed);
         rng.shuffle(m_gateways);
 
-        // TODO: 新世界首次创建时应设置 needsStateScanning = false，
-        // 因为新世界不存在旧状态需要扫描。当前 needsStateScanning 逻辑尚未实现。
-        m_needsStateScanning = true;
+        // 新世界首次创建，不需要扫描旧世界状态
+        m_needsStateScanning = false;
         m_dragonKilled = false;
         m_previouslyKilled = false;
     }
@@ -103,6 +106,17 @@ EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
 // ============================================================================
 // 核心逻辑
 // ============================================================================
+
+void EndDragonFight::tick(IWorld& world)
+{
+    // 状态扫描：首次加载旧存档时检查出口传送门
+    if (m_needsStateScanning) {
+        if (_isArenaLoaded(world)) {
+            _scanState(world);
+            m_needsStateScanning = false;
+        }
+    }
+}
 
 void EndDragonFight::setDragonKilled(IWorld& world)
 {
@@ -159,6 +173,89 @@ void EndDragonFight::_loadData(const Data& data)
         math::Random rng(m_worldSeed);
         rng.shuffle(m_gateways);
     }
+}
+
+void EndDragonFight::_scanState(IWorld& world)
+{
+    spdlog::info("EndDragonFight: Scanning for legacy world dragon fight state...");
+
+    const bool hasActivePortal = _hasActiveExitPortal(world);
+
+    if (hasActivePortal) {
+        spdlog::info("EndDragonFight: Found active exit portal - dragon has been killed before.");
+        m_previouslyKilled = true;
+    } else {
+        spdlog::info("EndDragonFight: No active exit portal found - dragon has not been killed yet.");
+        m_previouslyKilled = false;
+
+        // 检查是否存在讲台结构，如果不存在则创建非激活讲台
+        // 讲台位于原点 (0, 0, 0)，通过 getHeight 获取表面高度后检查基岩
+        const i32 surfaceY = world.getHeight(0, 0);
+        const BlockState* surfaceBlock = world.getBlockState(0, surfaceY - 1, 0);
+        bool hasPodium = (surfaceBlock != nullptr && surfaceBlock->is(VanillaBlocks::BEDROCK));
+
+        if (!hasPodium) {
+            // 未找到讲台结构，创建非激活讲台（不含传送门方块）
+            spdlog::info("EndDragonFight: No exit portal structure found, creating inactive portal.");
+            EndTeleporter::createExitPortal(world, BlockPos(0, 0, 0), false);
+        }
+    }
+
+    // 检查世界中是否存在末影龙实体
+    // TODO: 当前实体系统尚不支持按类型查询实体，暂时无法检测末影龙是否存活。
+    // 当实体系统完善后，应在此处检查末影龙实体是否存在来更新 dragonKilled 状态。
+    // MC Java 逻辑：
+    //   - 如果没有末影龙实体：dragonKilled = true
+    //   - 如果有末影龙实体：dragonUUID = enderdragon.getUUID(); dragonKilled = false;
+    //     - 若同时无活跃传送门，则丢弃该龙（enderdragon.discard()），因为无传送门的龙是无效状态
+    //   - 最终安全检查：如果 !previouslyKilled && dragonKilled，则 dragonKilled = false
+}
+
+bool EndDragonFight::_hasActiveExitPortal(IWorld& world)
+{
+    // 扫描原点周围区块，查找 END_PORTAL 方块
+    // 活跃出口传送门包含 END_PORTAL 方块，只有龙被击杀后才会存在
+    const BlockState* endPortalState = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
+    if (endPortalState == nullptr) {
+        return false;
+    }
+
+    for (ChunkCoord cx = -ARENA_CHUNK_RADIUS; cx <= ARENA_CHUNK_RADIUS; ++cx) {
+        for (ChunkCoord cz = -ARENA_CHUNK_RADIUS; cz <= ARENA_CHUNK_RADIUS; ++cz) {
+            const ChunkData* chunk = world.getChunk(cx, cz);
+            if (chunk == nullptr) {
+                continue;
+            }
+
+            // 出口传送门位于原点附近，Y 坐标通常在 0~75 之间
+            // 仅扫描可能存在传送门的高度范围以提升性能
+            for (i32 y = world::MIN_BUILD_HEIGHT; y < world::MAX_BUILD_HEIGHT; ++y) {
+                for (i32 z = 0; z < world::CHUNK_WIDTH; ++z) {
+                    for (i32 x = 0; x < world::CHUNK_WIDTH; ++x) {
+                        const BlockState* state = chunk->getBlockState(x, y, z);
+                        if (state == endPortalState) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+bool EndDragonFight::_isArenaLoaded(IWorld& world)
+{
+    // 检查原点周围的区块是否已加载
+    for (ChunkCoord cx = -ARENA_CHUNK_RADIUS; cx <= ARENA_CHUNK_RADIUS; ++cx) {
+        for (ChunkCoord cz = -ARENA_CHUNK_RADIUS; cz <= ARENA_CHUNK_RADIUS; ++cz) {
+            if (!world.hasChunk(cx, cz)) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void EndDragonFight::_spawnNewGateway(IWorld& world)

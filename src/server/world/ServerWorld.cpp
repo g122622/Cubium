@@ -1009,6 +1009,12 @@ void ServerWorld::tick()
         m_mapDataManager->tick(*this);
     }
 
+    // 更新末影龙战斗状态（仅末地维度）
+    if (m_dragonFight) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::DragonFightTick");
+        m_dragonFight->tick(*this);
+    }
+
     // EntityManager 由 MinecraftServer 驱动
     // EntityTracker 和 ItemPickupManager 由 MinecraftServer::tickEntities() 驱动
     m_entityManager.forEachEntity([this](Entity* entity) {
