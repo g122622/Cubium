@@ -425,4 +425,34 @@ void PathNavigator::setAvoidSunPathing(bool avoidSun)
     }
 }
 
+void PathNavigator::setCanOpenDoors(bool canOpenDoors)
+{
+    m_canOpenDoors = canOpenDoors;
+
+    if (m_pathFinder) {
+        auto* nodeProcessor = m_pathFinder->getNodeProcessor();
+        if (nodeProcessor != nullptr) {
+            auto* walkNodeProcessor = dynamic_cast<WalkNodeProcessor*>(nodeProcessor);
+            if (walkNodeProcessor != nullptr) {
+                walkNodeProcessor->setCanOpenDoors(canOpenDoors);
+            }
+        }
+    }
+}
+
+void PathNavigator::setCanEnterDoors(bool canEnterDoors)
+{
+    m_canEnterDoors = canEnterDoors;
+
+    if (m_pathFinder) {
+        auto* nodeProcessor = m_pathFinder->getNodeProcessor();
+        if (nodeProcessor != nullptr) {
+            auto* walkNodeProcessor = dynamic_cast<WalkNodeProcessor*>(nodeProcessor);
+            if (walkNodeProcessor != nullptr) {
+                walkNodeProcessor->setCanEnterDoors(canEnterDoors);
+            }
+        }
+    }
+}
+
 } // namespace mc::entity::ai::pathfinding

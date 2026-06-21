@@ -174,11 +174,10 @@ public:
     /**
      * @brief 设置是否可以开门
      *
-     * 注意：当前仅用于 DoorInteractGoal 的目标激活判断，
-     * 尚未传播到 WalkNodeProcessor 影响寻路路径生成。
-     * TODO: 将 canOpenDoors 传播到 WalkNodeProcessor，使寻路系统能生成穿过门的路径
+     * 当设置为 true 时，寻路系统会识别关闭的木门为 WalkableDoor 类型，
+     * 允许实体生成穿过门的路径。此设置会传播到关联的 WalkNodeProcessor。
      */
-    void setCanOpenDoors(bool canOpenDoors) noexcept { m_canOpenDoors = canOpenDoors; }
+    void setCanOpenDoors(bool canOpenDoors);
 
     /**
      * @brief 获取是否可以开门
@@ -188,10 +187,12 @@ public:
     /**
      * @brief 设置是否可以通过门
      *
-     * 注意：当前仅作为标志存储，尚未传播到 WalkNodeProcessor 影响寻路。
-     * TODO: 将 canEnterDoors 传播到 WalkNodeProcessor，使寻路系统能生成穿过门的路径
+     * 当设置为 true 时，打开的门被视为可通行（DoorOpen），关闭的栅栏门也可通行（FenceGate）。
+     * 当设置为 false 时，打开的门被视为阻塞，栅栏门也不可通行。
+     * 此设置会传播到关联的 WalkNodeProcessor。
+     * 默认值为 true，与 MC Java 的 NodeEvaluator.canPassDoors 默认值一致。
      */
-    void setCanEnterDoors(bool canEnterDoors) noexcept { m_canEnterDoors = canEnterDoors; }
+    void setCanEnterDoors(bool canEnterDoors);
 
     /**
      * @brief 获取是否可以通过门
@@ -268,7 +269,7 @@ protected:
 
     bool m_canSwim = false;
     bool m_canOpenDoors = false;
-    bool m_canEnterDoors = false;
+    bool m_canEnterDoors = true;
     bool m_avoidSun = false;
 
     // ========== 内部方法 ==========

@@ -359,3 +359,87 @@ TEST(PathNodeTypeCostTest, AllDangerTypesPenalized)
     EXPECT_GT(getPathCostPenalty(PathNodeType::DangerOther), 0.0f);
     EXPECT_GT(getPathCostPenalty(PathNodeType::DangerBerry), 0.0f);
 }
+
+// ============================================================================
+// 门类型寻路测试
+// ============================================================================
+
+TEST(DoorPathNodeTypeTest, DoorOpenIsWalkable)
+{
+    // 打开的门可行走
+    EXPECT_TRUE(isWalkable(PathNodeType::DoorOpen));
+    // 打开的门代价为0
+    EXPECT_FLOAT_EQ(getPathCostPenalty(PathNodeType::DoorOpen), 0.0f);
+}
+
+TEST(DoorPathNodeTypeTest, DoorWoodClosedIsNotWalkable)
+{
+    // 关闭的木门不可行走
+    EXPECT_FALSE(isWalkable(PathNodeType::DoorWoodClosed));
+    // 关闭的木门代价为-1
+    EXPECT_FLOAT_EQ(getPathCostPenalty(PathNodeType::DoorWoodClosed), -1.0f);
+}
+
+TEST(DoorPathNodeTypeTest, DoorIronClosedIsNotWalkable)
+{
+    // 关闭的铁门不可行走
+    EXPECT_FALSE(isWalkable(PathNodeType::DoorIronClosed));
+    // 关闭的铁门代价为-1
+    EXPECT_FLOAT_EQ(getPathCostPenalty(PathNodeType::DoorIronClosed), -1.0f);
+}
+
+TEST(DoorPathNodeTypeTest, WalkableDoorIsWalkable)
+{
+    // 可行走的门（关闭木门+能开门+能穿门 => WalkableDoor）可行走
+    EXPECT_TRUE(isWalkable(PathNodeType::WalkableDoor));
+    // 可行走的门代价为0
+    EXPECT_FLOAT_EQ(getPathCostPenalty(PathNodeType::WalkableDoor), 0.0f);
+}
+
+TEST(DoorPathNodeTypeTest, FenceGateIsWalkable)
+{
+    // 栅栏门可行走
+    EXPECT_TRUE(isWalkable(PathNodeType::FenceGate));
+    // 栅栏门代价为0
+    EXPECT_FLOAT_EQ(getPathCostPenalty(PathNodeType::FenceGate), 0.0f);
+}
+
+TEST(DoorPathNodeTypeTest, FenceIsNotWalkable)
+{
+    // 栅栏不可行走
+    EXPECT_FALSE(isWalkable(PathNodeType::Fence));
+    // 栅栏代价为-1
+    EXPECT_FLOAT_EQ(getPathCostPenalty(PathNodeType::Fence), -1.0f);
+}
+
+// ============================================================================
+// WalkNodeProcessor 门属性默认值测试
+// ============================================================================
+
+TEST_F(WalkNodeProcessorNodeTypeTest, CanOpenDoorsDefaultsToFalse)
+{
+    // canOpenDoors 默认为 false
+    EXPECT_FALSE(m_processor->canOpenDoors());
+}
+
+TEST_F(WalkNodeProcessorNodeTypeTest, CanEnterDoorsDefaultsToTrue)
+{
+    // canEnterDoors 默认为 true（对齐 MC 的 canPassDoors=true）
+    EXPECT_TRUE(m_processor->canEnterDoors());
+}
+
+TEST_F(WalkNodeProcessorNodeTypeTest, SetCanOpenDoors)
+{
+    m_processor->setCanOpenDoors(true);
+    EXPECT_TRUE(m_processor->canOpenDoors());
+    m_processor->setCanOpenDoors(false);
+    EXPECT_FALSE(m_processor->canOpenDoors());
+}
+
+TEST_F(WalkNodeProcessorNodeTypeTest, SetCanEnterDoors)
+{
+    m_processor->setCanEnterDoors(false);
+    EXPECT_FALSE(m_processor->canEnterDoors());
+    m_processor->setCanEnterDoors(true);
+    EXPECT_TRUE(m_processor->canEnterDoors());
+}

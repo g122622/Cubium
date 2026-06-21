@@ -26,6 +26,8 @@
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockTags.hpp"
+#include "../../../world/block/blocks/DoorBlock.hpp"
+#include "../../../world/block/blocks/FenceGateBlock.hpp"
 #include "../../../world/block/blocks/decorative/CampfireBlock.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -85,6 +87,29 @@ PathNodeType WalkNodeProcessor::getNodeType(i32 x, i32 y, i32 z)
                 return PathNodeType::DamageFire;
             }
         }
+
+        // 门方块检测 — 对应 MC WalkNodeEvaluator.getPathTypeFromState()
+        auto* doorBlock = dynamic_cast<const blocks::DoorBlock*>(&block);
+        if (doorBlock != nullptr) {
+            if (blocks::DoorBlock::isOpen(*state)) {
+                return PathNodeType::DoorOpen;
+            }
+            // MC 用 doorblock.type().canOpenByHand() 区分木门和铁门
+            // 本项目用 isIronDoor() 判断：铁门无法手动开关，木门可以
+            return doorBlock->isIronDoor() ? PathNodeType::DoorIronClosed : PathNodeType::DoorWoodClosed;
+        }
+
+        // 栅栏门检测 — 对应 MC WalkNodeEvaluator.getPathTypeFromState() 中的 FenceGateBlock 分支
+        // MC 原版中关闭的栅栏门返回 FENCE，打开的栅栏门走 isPathfindable 检查
+        // 本项目使用独立的 FenceGate 类型：打开的栅栏门可通行(cost=0)，关闭的栅栏门不可通行(cost=-1)
+        auto* fenceGateBlock = dynamic_cast<const blocks::FenceGateBlock*>(&block);
+        if (fenceGateBlock != nullptr) {
+            if (blocks::FenceGateBlock::isOpen(*state)) {
+                return PathNodeType::FenceGate; // 打开的栅栏门，可通行
+            }
+            // 关闭的栅栏门，返回 Fence 表示不可通行
+            return PathNodeType::Fence;
+        }
     }
 
     // 检查是否可行走
@@ -117,6 +142,17 @@ PathNodeType WalkNodeProcessor::getNodeTypeWithEntity(i32 x, i32 y, i32 z)
     if (type == PathNodeType::Blocked) {
         return PathNodeType::Blocked;
     }
+
+    // 门类型转换逻辑 — 对应 MC WalkNodeEvaluator.getPathTypeWithinMobBB()
+    // 关闭的木门 + 能开门 + 能穿门 => 可行走的门（WalkableDoor）
+    if (type == PathNodeType::DoorWoodClosed && m_canOpenDoors && m_canEnterDoors) {
+        type = PathNodeType::WalkableDoor;
+    }
+    // 打开的门 + 不能穿门 => 阻塞
+    if (type == PathNodeType::DoorOpen && !m_canEnterDoors) {
+        return PathNodeType::Blocked;
+    }
+    // 关闭的铁门始终不可通过（铁门无法手动打开，costMalus=-1.0 已阻止通行）
 
     // 检查相邻危险方块
     // 当当前位置是可行走的或开放的时，检查周围是否有危险方块
@@ -262,13 +298,20 @@ std::vector<PathPoint*> WalkNodeProcessor::getNeighbors(PathPoint* current)
         // 检查水平移动
         PathNodeType type = getNodeType(nx, y, nz);
 
-        if (type == PathNodeType::Walkable || type == PathNodeType::Water || type == PathNodeType::Climbable) {
+        if (type == PathNodeType::Walkable || type == PathNodeType::Water || type == PathNodeType::Climbable ||
+            type == PathNodeType::WalkableDoor || type == PathNodeType::DoorOpen || type == PathNodeType::FenceGate) {
             // 检查对角线移动时是否被阻挡
             if (isDiagonal) {
                 PathNodeType type1 = getNodeType(x + dx[i], y, z);
                 PathNodeType type2 = getNodeType(x, y, z + dz[i]);
 
                 if (type1 == PathNodeType::Blocked || type2 == PathNodeType::Blocked) {
+                    continue;
+                }
+
+                // 不能对角线穿过门节点 — 对应 MC WalkNodeEvaluator.isDiagonalValid()
+                if (type == PathNodeType::WalkableDoor || type1 == PathNodeType::WalkableDoor ||
+                    type2 == PathNodeType::WalkableDoor) {
                     continue;
                 }
             }

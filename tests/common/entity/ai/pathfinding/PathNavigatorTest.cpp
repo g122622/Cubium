@@ -549,4 +549,66 @@ TEST(PathNavigatorBasicTest, SetAvoidSunPathingWithNullPathFinder)
     EXPECT_NO_THROW(navigator.setAvoidSunPathing(false));
 }
 
+/**
+ * @brief 测试 PathNavigator::setCanOpenDoors 在空 PathFinder 下不崩溃
+ *
+ * 验证 setCanOpenDoors 在没有 PathFinder 时也能正常调用。
+ */
+TEST(PathNavigatorBasicTest, SetCanOpenDoorsWithNullPathFinder)
+{
+    PathNavigator navigator(nullptr);
+
+    EXPECT_NO_THROW(navigator.setCanOpenDoors(true));
+    EXPECT_NO_THROW(navigator.setCanOpenDoors(false));
+}
+
+/**
+ * @brief 测试 PathNavigator::setCanEnterDoors 在空 PathFinder 下不崩溃
+ *
+ * 验证 setCanEnterDoors 在没有 PathFinder 时也能正常调用。
+ */
+TEST(PathNavigatorBasicTest, SetCanEnterDoorsWithNullPathFinder)
+{
+    PathNavigator navigator(nullptr);
+
+    EXPECT_NO_THROW(navigator.setCanEnterDoors(true));
+    EXPECT_NO_THROW(navigator.setCanEnterDoors(false));
+}
+
+/**
+ * @brief 测试 PathNavigator 门属性默认值
+ *
+ * 验证 canOpenDoors 默认为 false，canEnterDoors 默认为 true（对齐 MC 的 canPassDoors）。
+ */
+TEST(PathNavigatorBasicTest, DoorPropertyDefaults)
+{
+    PathNavigator navigator(nullptr);
+
+    // canOpenDoors 默认为 false（MC 中默认不能开门）
+    EXPECT_FALSE(navigator.canOpenDoors());
+
+    // canEnterDoors 默认为 true（MC 中 canPassDoors 默认为 true）
+    EXPECT_TRUE(navigator.canEnterDoors());
+}
+
+/**
+ * @brief 测试 PathNavigator 门属性 getter/setter
+ */
+TEST(PathNavigatorBasicTest, DoorPropertyGettersSetters)
+{
+    PathNavigator navigator(nullptr);
+
+    // 测试 canOpenDoors
+    navigator.setCanOpenDoors(true);
+    EXPECT_TRUE(navigator.canOpenDoors());
+    navigator.setCanOpenDoors(false);
+    EXPECT_FALSE(navigator.canOpenDoors());
+
+    // 测试 canEnterDoors
+    navigator.setCanEnterDoors(false);
+    EXPECT_FALSE(navigator.canEnterDoors());
+    navigator.setCanEnterDoors(true);
+    EXPECT_TRUE(navigator.canEnterDoors());
+}
+
 } // anonymous namespace
