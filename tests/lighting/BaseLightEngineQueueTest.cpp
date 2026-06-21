@@ -245,7 +245,7 @@ TEST(BaseLightEngineQueueTest, BlocksChangedInChunkWritesEmptinessMap)
     chunk.setBlockEmptinessMap(nullptr);
     provider.setChunk(&chunk);
 
-    mc::BlockStarLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine;
     const std::vector<mc::BlockPos> positions;
     const std::vector<bool> changedSections(mc::world::CHUNK_SECTIONS, true);
 

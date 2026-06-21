@@ -26,7 +26,6 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
-#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -73,7 +72,7 @@ VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
 // 构造函数
 // ============================================================================
 
-BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
+BlockStarLightEngine::BlockStarLightEngine()
     : StarLightEngine(false)
 { // false = 不是天空光照
 
@@ -92,8 +91,6 @@ BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
     // 初始化队列（区块段体积 = 16 * 16 * 16）
     m_increaseQueue.resize(world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT);
     m_decreaseQueue.resize(world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT);
-
-    (void)provider; // 暂时未使用
 }
 
 // ============================================================================
@@ -231,8 +228,6 @@ i32 BlockStarLightEngine::calculateLightValue(
     StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 expected)
 {
     const BlockState* centerState = getBlockState(worldX, worldY, worldZ);
-    IWorld* world = lightAccess->getWorld();
-    (void)world; // 暂时未使用，保留以备将来扩展
 
     i32 level = 0;
     if (centerState != nullptr) {
@@ -337,7 +332,6 @@ void BlockStarLightEngine::propagateBlockChanges(
 
 std::vector<BlockPos> BlockStarLightEngine::_getSources(StarLightLightingProvider* lightAccess, const IChunk* chunk)
 {
-    (void)lightAccess; // 暂时未使用，保留参数以保持接口一致性
     std::vector<BlockPos> sources;
 
     i32 offX = chunk->x() << world::SECTION_SHIFT;
@@ -380,7 +374,6 @@ std::vector<BlockPos> BlockStarLightEngine::_getSources(StarLightLightingProvide
 i32 BlockStarLightEngine::_getLightEmission(
     StarLightLightingProvider* lightAccess, const BlockState* state, i32 x, i32 y, i32 z) const
 {
-    (void)lightAccess; // 暂时未使用，保留参数以保持接口一致性
     if (state == nullptr) {
         return 0;
     }
@@ -399,9 +392,6 @@ i32 BlockStarLightEngine::_getLightEmission(
 
 void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks)
 {
-    IWorld* world = lightAccess->getWorld();
-    (void)world; // 暂时未使用，保留以备将来扩展
-
     std::vector<BlockPos> positions = _getSources(lightAccess, chunk);
     i32 encodeOffset = m_coordinateOffset;
     i32 emittedMask = m_emittedLightMask;

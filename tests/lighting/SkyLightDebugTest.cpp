@@ -108,7 +108,7 @@ TEST(SkyLightDebugTest, FloatingStoneSections)
 
     auto* nibbles = chunk.getSkyNibbles();
 
-    mc::SkyStarLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine;
     engine.light(&provider, &chunk, false);
 
     std::cout << "\nAfter light():" << std::endl;

@@ -34,7 +34,6 @@
 namespace mc {
 
 // 前向声明
-class IWorld;
 class CollisionShape;
 namespace world::chunk {
 class ChunkSection;
@@ -56,8 +55,12 @@ class SkyStarLightEngine : public StarLightEngine {
 public:
     /**
      * @brief 构造函数
+     *
+     * 天空光照引擎不需要在构造时持有 provider 引用，所有光照操作
+     * 通过方法参数接收 StarLightLightingProvider* lightAccess。
+     * 这遵循"调用时传递"的设计模式，避免引擎持有过期的 provider 引用。
      */
-    explicit SkyStarLightEngine(StarLightLightingProvider* provider);
+    SkyStarLightEngine();
 
     // ========================================================================
     // 公共接口
@@ -215,10 +218,14 @@ protected:
 
     /**
      * @brief 尝试传播天空光照
+     *
+     * 从 startY 向下传播天空光，遇到不透明方块停止。
+     * 天空光传播所需的所有方块数据通过基类缓存系统获取，
+     * 不需要直接访问 IWorld。
+     *
      * @return 无法传播的最高 Y 坐标
      */
-    i32 tryPropagateSkylight(
-        IWorld* world, i32 worldX, i32 startY, i32 worldZ, bool extrudeInitialised, bool delayLightSet);
+    i32 tryPropagateSkylight(i32 worldX, i32 startY, i32 worldZ, bool extrudeInitialised, bool delayLightSet);
 
     /**
      * @brief 处理延迟的增亮设置

@@ -34,7 +34,6 @@
 namespace mc {
 
 // 前向声明
-class IWorld;
 class CollisionShape;
 namespace world::chunk {
 class ChunkSection;
@@ -55,8 +54,12 @@ class BlockStarLightEngine : public StarLightEngine {
 public:
     /**
      * @brief 构造函数
+     *
+     * 方块光照引擎不需要在构造时持有 provider 引用，所有光照操作
+     * 通过方法参数接收 StarLightLightingProvider* lightAccess。
+     * 这遵循"调用时传递"的设计模式，避免引擎持有过期的 provider 引用。
      */
-    explicit BlockStarLightEngine(StarLightLightingProvider* provider);
+    BlockStarLightEngine();
 
     // ========================================================================
     // 公共接口

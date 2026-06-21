@@ -27,7 +27,6 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
-#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -74,7 +73,7 @@ VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
 // 构造函数
 // ============================================================================
 
-SkyStarLightEngine::SkyStarLightEngine(StarLightLightingProvider* provider)
+SkyStarLightEngine::SkyStarLightEngine()
     : StarLightEngine(true)
 { // true = 天空光照
 
@@ -100,9 +99,6 @@ SkyStarLightEngine::SkyStarLightEngine(StarLightLightingProvider* provider)
 
     // 初始化高度图
     m_heightMapBlockChange.fill(INT_MIN);
-
-    // TODO: provider 参数暂时未使用，未来可能用于获取世界信息
-    MC_UNUSED(provider);
 }
 
 // ============================================================================
@@ -322,9 +318,8 @@ i32 SkyStarLightEngine::getLightLevelExtruded(i32 worldX, i32 worldY, i32 worldZ
 // ============================================================================
 
 i32 SkyStarLightEngine::tryPropagateSkylight(
-    IWorld* world, i32 worldX, i32 startY, i32 worldZ, bool extrudeInitialised, bool delayLightSet)
+    i32 worldX, i32 startY, i32 worldZ, bool extrudeInitialised, bool delayLightSet)
 {
-    MC_UNUSED(world);
     i32 encodeOffset = m_coordinateOffset;
     i64 propagateDirection =
         static_cast<i64>(getEverythingButDirection(LightAxisDirection::POSITIVE_Y)); // just don't check upwards
@@ -561,8 +556,6 @@ i32 SkyStarLightEngine::calculateLightValue(
 void SkyStarLightEngine::propagateBlockChanges(
     StarLightLightingProvider* lightAccess, const IChunk* chunk, const std::vector<BlockPos>& positions)
 {
-    IWorld* world = lightAccess->getWorld();
-
     rewriteNibbleCacheForSkylight(chunk);
     std::fill(m_nullPropagationCheckCache.begin(), m_nullPropagationCheckCache.end(), false);
 
@@ -594,7 +587,7 @@ void SkyStarLightEngine::propagateBlockChanges(
         i32 columnZ = (index >> world::CHUNK_SHIFT) | (chunkZ << world::CHUNK_SHIFT);
 
         // 尝试从上方 Y 传播天空光
-        i32 maxPropagationY = tryPropagateSkylight(world, columnX, maxY, columnZ, true, true);
+        i32 maxPropagationY = tryPropagateSkylight(columnX, maxY, columnZ, true, true);
 
         // 移除下方所有 15 级源
         i32 encodeOffset = m_coordinateOffset;
@@ -651,8 +644,6 @@ void SkyStarLightEngine::propagateBlockChanges(
 
 void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks)
 {
-    IWorld* world = lightAccess->getWorld();
-
     rewriteNibbleCacheForSkylight(chunk);
     std::fill(m_nullPropagationCheckCache.begin(), m_nullPropagationCheckCache.end(), false);
 
@@ -733,7 +724,7 @@ void SkyStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, cons
 
         for (i32 currZ = minZ; currZ <= maxZ; ++currZ) {
             for (i32 currX = minX; currX <= maxX; ++currX) {
-                tryPropagateSkylight(world, currX, startY + 1, currZ, false, false);
+                tryPropagateSkylight(currX, startY + 1, currZ, false, false);
             }
         }
     }

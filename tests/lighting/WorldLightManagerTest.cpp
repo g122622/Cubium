@@ -73,7 +73,7 @@ public:
 TEST(BlockLightEngineColumnTest, SetColumnEnabledAddsAndRemoves)
 {
     TestLightingProvider provider;
-    mc::BlockStarLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine;
 
     mc::i64 columnPos = (static_cast<mc::i64>(1) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(2) & 0x3FFFFFLL) << 20;
 
@@ -92,7 +92,7 @@ TEST(BlockLightEngineColumnTest, SetColumnEnabledAddsAndRemoves)
 TEST(BlockLightEngineColumnTest, SetColumnEnabledMultipleColumns)
 {
     TestLightingProvider provider;
-    mc::BlockStarLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine;
 
     mc::i64 colA = (static_cast<mc::i64>(0) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(0) & 0x3FFFFFLL) << 20;
     mc::i64 colB = (static_cast<mc::i64>(3) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(5) & 0x3FFFFFLL) << 20;
@@ -116,7 +116,7 @@ TEST(BlockLightEngineColumnTest, SetColumnEnabledMultipleColumns)
 TEST(BlockLightEngineColumnTest, SetColumnEnabledIdempotent)
 {
     TestLightingProvider provider;
-    mc::BlockStarLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine;
 
     mc::i64 columnPos = (static_cast<mc::i64>(10) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(20) & 0x3FFFFFLL) << 20;
 
@@ -139,7 +139,7 @@ TEST(BlockLightEngineColumnTest, SetColumnEnabledIdempotent)
 TEST(BlockLightEngineRetainTest, RetainDataAddsAndRemoves)
 {
     TestLightingProvider provider;
-    mc::BlockStarLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine;
 
     mc::i64 columnPos = (static_cast<mc::i64>(1) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(2) & 0x3FFFFFLL) << 20;
 
@@ -158,7 +158,7 @@ TEST(BlockLightEngineRetainTest, RetainDataAddsAndRemoves)
 TEST(BlockLightEngineRetainTest, RetainDataMultipleColumns)
 {
     TestLightingProvider provider;
-    mc::BlockStarLightEngine engine(&provider);
+    mc::BlockStarLightEngine engine;
 
     mc::i64 colA = (static_cast<mc::i64>(0) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(0) & 0x3FFFFFLL) << 20;
     mc::i64 colB = (static_cast<mc::i64>(5) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(10) & 0x3FFFFFLL) << 20;
@@ -181,7 +181,7 @@ TEST(BlockLightEngineRetainTest, RetainDataMultipleColumns)
 TEST(SkyLightEngineColumnTest, SetColumnEnabledAddsAndRemoves)
 {
     TestLightingProvider provider;
-    mc::SkyStarLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine;
 
     mc::i64 columnPos = (static_cast<mc::i64>(1) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(2) & 0x3FFFFFLL) << 20;
 
@@ -197,7 +197,7 @@ TEST(SkyLightEngineColumnTest, SetColumnEnabledAddsAndRemoves)
 TEST(SkyLightEngineColumnTest, RetainDataAddsAndRemoves)
 {
     TestLightingProvider provider;
-    mc::SkyStarLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine;
 
     mc::i64 columnPos = (static_cast<mc::i64>(3) & 0x3FFFFFLL) << 42 | (static_cast<mc::i64>(4) & 0x3FFFFFLL) << 20;
 

@@ -38,11 +38,11 @@ WorldLightManager::WorldLightManager(StarLightLightingProvider* provider, bool h
 {
 
     if (hasBlockLight) {
-        m_blockLight = std::make_unique<BlockStarLightEngine>(provider);
+        m_blockLight = std::make_unique<BlockStarLightEngine>();
     }
 
     if (hasSkyLight) {
-        m_skyLight = std::make_unique<SkyStarLightEngine>(provider);
+        m_skyLight = std::make_unique<SkyStarLightEngine>();
     }
 }
 
