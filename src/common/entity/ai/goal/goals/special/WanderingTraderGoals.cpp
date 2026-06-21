@@ -192,10 +192,12 @@ bool TradeWithPlayerGoal::shouldExecute()
         return false;
     }
 
-    // 不在水中、不在空中、不在被击退状态时才可交易
+    // 不在水中、不在空中时才可交易
     if (m_mob->isInWater() || !m_mob->onGround()) {
         return false;
     }
+
+    // TODO: 添加被击退状态检查（当hurtMarked或等效机制实现后），参考 MC原版 TradeWithPlayerGoal.canUse()
 
     auto* villager = dynamic_cast<AbstractVillagerEntity*>(m_mob);
     if (villager == nullptr) {
