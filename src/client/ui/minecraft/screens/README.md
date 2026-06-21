@@ -10,9 +10,10 @@ src/client/ui/minecraft/screens/
 ├── TemplateScreen.hpp/cpp     # 模板驱动屏幕基类
 ├── ScreenManager.hpp/cpp      # 业务屏幕栈管理
 ├── MainMenuScreen.hpp/cpp     # 主菜单
-├── WorldSelectionScreen.hpp/cpp # 存档选择
+├── WorldSelectionScreen.hpp/cpp # 存档选择（含删除世界功能）
 ├── CreateWorldScreen.hpp/cpp  # 创建世界
 ├── PauseScreen.hpp/cpp        # 暂停菜单
+├── ConfirmScreen.hpp/cpp      # 通用确认对话框
 ├── LoadingScreen.hpp/cpp      # 加载界面
 ├── InventoryScreen.hpp/cpp    # 物品栏界面
 ├── ContainerScreen.hpp/cpp    # 容器界面

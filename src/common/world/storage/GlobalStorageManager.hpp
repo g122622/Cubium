@@ -85,6 +85,17 @@ public:
         const std::string& levelId, const SingleLevelStorageConfig& config);
 
     /**
+     * @brief 删除指定世界
+     *
+     * 删除前会检查世界是否被锁定（运行中的世界不能删除）。
+     * 递归删除整个世界目录。
+     *
+     * @param levelId 世界目录名
+     * @return 成功返回空，失败返回错误
+     */
+    [[nodiscard]] Result<void> deleteWorld(const std::string& levelId);
+
+    /**
      * @brief 获取 saves 根目录
      * @return saves 目录路径
      */

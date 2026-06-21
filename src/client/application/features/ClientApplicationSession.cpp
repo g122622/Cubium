@@ -597,6 +597,9 @@ void ClientApplication::showWorldSelection()
     // 创建存档选择屏幕
     auto worldSelectionScreen = std::make_unique<ui::minecraft::WorldSelectionScreen>();
 
+    // 设置屏幕栈引用（用于弹出确认对话框）
+    worldSelectionScreen->setScreenStack(screenStack);
+
     // 设置回调
     worldSelectionScreen->setOnSelectWorld([this](const world::storage::WorldListEntry& entry) {
         spdlog::info("[Session] Selected world: {}", entry.displayName);

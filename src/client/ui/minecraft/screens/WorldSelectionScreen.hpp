@@ -6,18 +6,13 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * furnished to do so, subject to the following further conditions:
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * LIABILITY, WHETHER IN THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -32,6 +27,11 @@
 #include <vector>
 
 namespace mc::client::ui::minecraft {
+
+// 前向声明
+namespace widgets {
+class ScreenStackWidget;
+}
 
 /**
  * @brief 世界选择界面
@@ -51,6 +51,8 @@ public:
     void setOnCreateWorld(Callback callback) { m_onCreateWorld = std::move(callback); }
     /** 设置返回按钮的回调 */
     void setOnBack(Callback callback) { m_onBack = std::move(callback); }
+    /** 设置屏幕栈Widget，用于弹出确认对话框 */
+    void setScreenStack(widgets::ScreenStackWidget* stack) { m_screenStack = stack; }
 
     void onOpen() override;
     /** 刷新世界列表，从磁盘重新读取 */
@@ -70,6 +72,11 @@ private:
     /** 将世界名称列表推送到模板集合绑定 */
     void _publishWorldCollection();
 
+    /** 请求删除当前选中的世界（弹出确认对话框） */
+    void _requestDeleteWorld();
+    /** 执行删除世界的操作 */
+    void _doDeleteWorld(const std::string& levelId);
+
     world::storage::GlobalStorageManager m_globalStorage;
     std::vector<world::storage::WorldListEntry> m_worlds;
     std::vector<std::string> m_worldNames;
@@ -79,6 +86,7 @@ private:
     bool m_hasSelection = false;
 
     kagero::widget::ListWidget* m_worldListWidget = nullptr;
+    widgets::ScreenStackWidget* m_screenStack = nullptr;
 
     WorldSelectCallback m_onSelectWorld;
     Callback m_onCreateWorld;

@@ -70,6 +70,11 @@ Result<std::unique_ptr<SingleLevelStorageManager>> GlobalStorageManager::openLev
     return storage;
 }
 
+Result<void> GlobalStorageManager::deleteWorld(const std::string& levelId)
+{
+    return m_worldListService.deleteWorld(levelId);
+}
+
 const std::filesystem::path& GlobalStorageManager::savesDirectory() const noexcept
 {
     return m_paths.savesDir();
