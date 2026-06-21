@@ -45,6 +45,7 @@ add_executable(mc_tests
     common/world/biome/BiomeExtendedTest.cpp
     common/world/biome/BiomeFactoryClimateTest.cpp
     common/world/biome/ClimateTest.cpp
+    common/world/biome/RTreeTest.cpp
     common/world/biome/OverworldBiomeBuilderTest.cpp
     common/test_biome_freeze.cpp
     common/world/biome/BiomeGetPrecipitationAtTest.cpp
