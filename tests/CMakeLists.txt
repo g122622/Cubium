@@ -568,6 +568,7 @@ add_executable(mc_tests
     server/BlockDropHandlerTest.cpp
     server/BlockInteractionManagerTest.cpp
     server/interaction/SignCommandHelperTest.cpp
+    server/interaction/MiningManagerCallbackTest.cpp
     server/MiningManagerTest.cpp
     server/menu/CraftingMenuTest.cpp
     server/BlockUpdateSyncManagerTest.cpp
