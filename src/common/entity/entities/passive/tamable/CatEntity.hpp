@@ -23,10 +23,11 @@
 
 #pragma once
 
-#include "core/Types.hpp"
-#include "entity/ai/goal/goals/AvoidEntityGoal.hpp"
-#include "entity/ai/goal/goals/TemptGoal.hpp"
-#include "entity/entities/passive/tamable/TameableEntity.hpp"
+#include "TameableEntity.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
+#include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/util/color/DyeColor.hpp"
 
 #include <memory>
 
@@ -122,15 +123,18 @@ public:
      */
     void setRandomCatType();
 
-    // ========== 驯服系统 ==========
+    // ========== 交互 ==========
 
-    // TODO: Cat 尚未实现 interactMob() 交互驯服逻辑。
-    // 参考鹦鹉 ParrotEntity::interactMob() 的实现模式：
-    // 1. 检查 isTameItem()（生鳕鱼/生鲑鱼）
-    // 2. 有 1/3 概率驯服成功
-    // 3. 成功时调用 setTamed(true) + setOwnerId(player.playerId())
-    // 4. 调用 m_world->onTameAnimal(player.playerId(), this) 触发 TameAnimalTrigger 进度检测
-    // 5. 广播 TamingSucceeded/TamingFailed 实体状态
+    /**
+     * @brief 玩家与猫交互
+     *
+     * 交互逻辑（按优先级）：
+     * 1. 未驯服 + 猫食（生鳕鱼/生鲑鱼）→ 尝试驯服（1/3概率）
+     * 2. 已驯服 + 主人 + 染料 → 改变项圈颜色
+     * 3. 已驯服 + 主人 + 猫食 + 未满血 → 喂食治疗
+     * 4. 已驯服 + 主人 + 父类未处理 → 切换坐下/站起
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
     /**
      * @brief 检查物品是否可用于驯服
@@ -152,6 +156,20 @@ public:
      * @return 如果是生鱼返回true
      */
     [[nodiscard]] bool isFoodItem(const ItemStack& itemStack) const;
+
+    // ========== 项圈颜色 ==========
+
+    /**
+     * @brief 获取项圈颜色
+     * @return 染料颜色
+     */
+    [[nodiscard]] DyeColor getCollarColor() const { return m_collarColor; }
+
+    /**
+     * @brief 设置项圈颜色
+     * @param color 染料颜色
+     */
+    void setCollarColor(DyeColor color) { m_collarColor = color; }
 
     // ========== 繁殖 ==========
 
@@ -228,6 +246,11 @@ protected:
     // ========== 驯服回调 ==========
     void onTamed(bool tamed) override;
 
+    // ========== NBT 序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 private:
     // ========== 内部 AI Goal 类 ==========
 
@@ -269,8 +292,27 @@ private:
      */
     void _setupTamedAI();
 
+    /**
+     * @brief 尝试驯服猫
+     * @param player 尝试驯服的玩家
+     *
+     * 1/3 概率驯服成功，成功时设置驯服状态和主人，
+     * 广播 TamingSucceeded/TamingFailed 粒子效果。
+     */
+    void _tryToTame(Player& player);
+
+    /**
+     * @brief 获取染料物品对应的颜色
+     * @param item 物品指针
+     * @return 对应的 DyeColor，如果不是染料返回 std::nullopt
+     */
+    [[nodiscard]] static std::optional<DyeColor> _getDyeColorFromItem(const Item* item);
+
     // 皮肤类型
     CatType m_catType = CatType::Tabby;
+
+    // 项圈颜色（默认红色，与 MC 原版一致）
+    DyeColor m_collarColor = DyeColor::Red;
 
     // 攀爬状态
     bool m_treeClimbing = false;
@@ -293,6 +335,9 @@ private:
     static constexpr f64 AVOID_FAR_SPEED = 0.8;   // 远距离逃避速度
     static constexpr f64 AVOID_NEAR_SPEED = 1.33; // 近距离逃避速度
     static constexpr f32 AVOID_DISTANCE = 16.0f;  // 逃避检测距离
+
+    // 猫的食物治疗量（生鳕鱼/生鲑鱼的饥饿值为 2，治疗量 = 饥饿值）
+    static constexpr f32 FOOD_HEAL_AMOUNT = 2.0f;
 };
 
 } // namespace mc

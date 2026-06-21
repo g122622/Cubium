@@ -391,7 +391,7 @@ TEST(BiomeTheVoid, BasicProperties)
     const Biome& voidBiome = BiomeRegistry::instance().get(Biomes::TheVoid);
     EXPECT_EQ(voidBiome.id(), Biomes::TheVoid);
     EXPECT_EQ(voidBiome.name(), "the_void");
-    EXPECT_EQ(voidBiome.climate().precipitation, BiomeClimate::Precipitation::None);
+    EXPECT_FALSE(voidBiome.hasPrecipitation());
     EXPECT_FLOAT_EQ(voidBiome.climate().temperature, 0.5f);
     EXPECT_FLOAT_EQ(voidBiome.climate().downfall, 0.5f);
 }
@@ -400,7 +400,7 @@ TEST(BiomeTheVoid, NoPrecipitation)
 {
     BiomeRegistry::instance().initialize();
     const Biome& voidBiome = BiomeRegistry::instance().get(Biomes::TheVoid);
-    EXPECT_EQ(voidBiome.climate().precipitation, BiomeClimate::Precipitation::None);
+    EXPECT_FALSE(voidBiome.hasPrecipitation());
 
     // 虚空不应该有雪生成
     constexpr i32 seaLevel = 63;

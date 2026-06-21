@@ -58,6 +58,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
+#include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/Explosion.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -166,6 +167,19 @@ Result<void> ServerWorld::initialize()
     m_villageManager = std::make_unique<world::village::VillageManager>(*this);
     m_raidManager = std::make_unique<world::village::raid::RaidManager>(*this, *m_villageManager);
 
+    // 初始化末影龙战斗管理器（仅末地维度）
+    if (m_config.dimension == DimensionManager::THE_END) {
+        // 尝试从存档加载末影龙战斗数据
+        std::optional<EndDragonFight::Data> dragonFightData;
+        if (m_storage && m_storage->isOpen()) {
+            auto result = m_storage->loadDragonFightData();
+            if (result.success() && result.value().has_value()) {
+                dragonFightData = EndDragonFight::Data::fromJson(*result.value());
+            }
+        }
+        m_dragonFight = std::make_unique<EndDragonFight>(m_config.seed, dragonFightData);
+    }
+
     // 初始化地图数据管理器
     m_mapDataManager = std::make_unique<world::map::MapDataManager>();
 
@@ -263,6 +277,14 @@ Result<size_t> ServerWorld::saveAll()
         auto saveResult = blockEntityStorage->saveAllBlockEntities(blockEntitiesToSave, m_config.dimension);
         if (saveResult.failed()) {
             return saveResult.error();
+        }
+    }
+
+    // 保存末影龙战斗数据（仅末地维度）
+    if (m_dragonFight && m_storage && m_storage->isOpen()) {
+        auto dragonFightResult = m_storage->saveDragonFightData(m_dragonFight->saveData().toJson());
+        if (dragonFightResult.failed()) {
+            spdlog::warn("Failed to save dragon fight data: {}", dragonFightResult.error().message());
         }
     }
 
@@ -1185,7 +1207,7 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
             if (isRaining) {
                 auto precipitation =
                     biome.getPrecipitationAt(surfacePos.x, surfacePos.y, surfacePos.z, world::SEA_LEVEL);
-                if (precipitation != world::biome::BiomeClimate::Precipitation::None) {
+                if (precipitation != BiomeClimate::Precipitation::None) {
                     const BlockState* surfaceState = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
                     if (surfaceState != nullptr) {
                         Block& block = const_cast<Block&>(surfaceState->getBlock());
@@ -1261,6 +1283,104 @@ const fluid::FluidState* ServerWorld::getFluidState(i32 x, i32 y, i32 z) const
 bool ServerWorld::isWithinWorldBounds(i32, i32 y, i32) const
 {
     return y >= getMinBuildHeight() && y < getMaxBuildHeight();
+}
+
+bool ServerWorld::isBlockInLine(
+    const Vector3d& from, const Vector3d& to, std::function<bool(const BlockState&)> predicate) const
+{
+    // 使用 DDA 算法沿 from -> to 逐格遍历，检查每个方块是否匹配谓词。
+    // 与 raycastBlocks 不同，此方法不做碰撞箱精确检测，仅检查方块状态的谓词。
+
+    if (!predicate) {
+        return false;
+    }
+
+    // 计算起点和终点的方块坐标
+    i32 currentX = static_cast<i32>(std::floor(from.x));
+    i32 currentY = static_cast<i32>(std::floor(from.y));
+    i32 currentZ = static_cast<i32>(std::floor(from.z));
+
+    const i32 endX = static_cast<i32>(std::floor(to.x));
+    const i32 endY = static_cast<i32>(std::floor(to.y));
+    const i32 endZ = static_cast<i32>(std::floor(to.z));
+
+    // 起点等于终点：仅检查一个方块
+    if (currentX == endX && currentY == endY && currentZ == endZ) {
+        if (isWithinWorldBounds(currentX, currentY, currentZ)) {
+            const BlockState* state = getBlockState(currentX, currentY, currentZ);
+            if (state != nullptr && predicate(*state)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // DDA 步进方向
+    const i32 stepX = (to.x > from.x) ? 1 : (to.x < from.x) ? -1 : 0;
+    const i32 stepY = (to.y > from.y) ? 1 : (to.y < from.y) ? -1 : 0;
+    const i32 stepZ = (to.z > from.z) ? 1 : (to.z < from.z) ? -1 : 0;
+
+    // 计算到下一个边界的 t 值
+    const f64 dx = to.x - from.x;
+    const f64 dy = to.y - from.y;
+    const f64 dz = to.z - from.z;
+
+    const f64 tDeltaX = (dx != 0.0) ? std::abs(1.0 / dx) : 1e30;
+    const f64 tDeltaY = (dy != 0.0) ? std::abs(1.0 / dy) : 1e30;
+    const f64 tDeltaZ = (dz != 0.0) ? std::abs(1.0 / dz) : 1e30;
+
+    f64 tMaxX = (stepX > 0) ? ((static_cast<f64>(currentX + 1) - from.x) / dx)
+        : (stepX < 0)       ? ((static_cast<f64>(currentX) - from.x) / dx)
+                            : 1e30;
+    f64 tMaxY = (stepY > 0) ? ((static_cast<f64>(currentY + 1) - from.y) / dy)
+        : (stepY < 0)       ? ((static_cast<f64>(currentY) - from.y) / dy)
+                            : 1e30;
+    f64 tMaxZ = (stepZ > 0) ? ((static_cast<f64>(currentZ + 1) - from.z) / dz)
+        : (stepZ < 0)       ? ((static_cast<f64>(currentZ) - from.z) / dz)
+                            : 1e30;
+
+    // 最大遍历步数，避免无限循环
+    constexpr i32 MAX_STEPS = 1024;
+
+    for (i32 step = 0; step < MAX_STEPS; ++step) {
+        // 检查当前方块
+        if (isWithinWorldBounds(currentX, currentY, currentZ)) {
+            const BlockState* state = getBlockState(currentX, currentY, currentZ);
+            if (state != nullptr && predicate(*state)) {
+                return true;
+            }
+        }
+
+        // 到达终点方块后停止
+        if (currentX == endX && currentY == endY && currentZ == endZ) {
+            break;
+        }
+
+        // DDA 步进：选择 t 值最小的轴
+        if (tMaxX < tMaxY) {
+            if (tMaxX < tMaxZ) {
+                if (tMaxX > 1.0) break;
+                currentX += stepX;
+                tMaxX += tDeltaX;
+            } else {
+                if (tMaxZ > 1.0) break;
+                currentZ += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        } else {
+            if (tMaxY < tMaxZ) {
+                if (tMaxY > 1.0) break;
+                currentY += stepY;
+                tMaxY += tDeltaY;
+            } else {
+                if (tMaxZ > 1.0) break;
+                currentZ += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        }
+    }
+
+    return false;
 }
 
 i32 ServerWorld::getHeight(i32 x, i32 z) const

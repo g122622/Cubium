@@ -23,6 +23,7 @@
 
 #include "RailBlock.hpp"
 #include "RailState.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 
 namespace mc {
@@ -31,17 +32,23 @@ namespace blocks {
 RailBlock::RailBlock(const BlockProperties& properties)
     : AbstractRailBlock(properties, false) // isStraight = false: 普通铁轨支持弯轨
 {
-    // 创建状态容器
-    auto container = StateContainer<Block, BlockState>::Builder(*this).add(SHAPE()).create(
-        [this](const Block& block,
-            std::vector<size_t> values,
-            const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
-            const std::vector<BlockState*>* allStates,
-            u32 id) { return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id); });
+    // 创建状态容器（含 SHAPE 和 WATERLOGGED 属性）
+    auto container =
+        StateContainer<Block, BlockState>::Builder(*this)
+            .add(SHAPE())
+            .add(BlockStateProperties::WATERLOGGED())
+            .create([this](const Block& block,
+                        std::vector<size_t> values,
+                        const std::vector<StateHolder<Block, BlockState>::PropertyLayout>* propertyLayouts,
+                        const std::vector<BlockState*>* allStates,
+                        u32 id) {
+                return std::make_unique<BlockState>(block, std::move(values), propertyLayouts, allStates, id);
+            });
     createBlockState(std::move(container));
 
     // 设置默认状态
-    setDefaultState(defaultState().with(SHAPE(), RailShape::NorthSouth));
+    setDefaultState(
+        defaultState().with(SHAPE(), RailShape::NorthSouth).with(BlockStateProperties::WATERLOGGED(), false));
 }
 
 void RailBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
@@ -52,7 +59,6 @@ void RailBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 
 void RailBlock::updateState(IWorld& world, const BlockPos& pos, const BlockState& state, Block& neighborBlock)
 {
-    // 参考 MC Java: RailBlock.updateState
     // 普通铁轨的特殊行为：当邻居信号源变化且铁轨有三连接时，重新计算方向
     // 这是红石道岔（T型道岔）切换的核心逻辑
     if (neighborBlock.canProvidePower(neighborBlock.defaultState())) {

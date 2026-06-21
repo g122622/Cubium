@@ -4,40 +4,33 @@
 
 ```
 src/common/world/gen/surface/
-├── Surface.hpp              # 聚合头文件，包含 SurfaceRules
-├── SurfaceRules.hpp         # MC 1.21 SurfaceRules 条件/规则系统
-├── SurfaceRules.cpp         # SurfaceRules 实现
-└── README.md                # 本文档
+├── CaveSurface.hpp              # 地表/洞穴方向枚举（Floor, Ceiling）
+├── VerticalAnchor.hpp/cpp       # Y 坐标锚点（Absolute, AboveBottom, BelowTop）
+├── SurfaceCondition.hpp/cpp     # SurfaceRules 条件基类及所有条件实现
+├── SurfaceRule.hpp/cpp          # SurfaceRules 规则基类及所有规则实现
+├── SurfaceRuleContext.hpp/cpp   # SurfaceRules 上下文（维护当前位置状态）
+├── SurfaceSystem.hpp/cpp        # SurfaceRules 执行器（遍历区块应用规则）
+├── SurfaceRulesFactory.hpp/cpp  # 条件/规则工厂函数 + 维度规则树（overworld/nether/end）
+├── SurfaceRules.hpp             # 聚合头文件（包含以上所有头文件）
+├── Surface.hpp                  # 外部聚合头文件（包含 SurfaceRules.hpp）
+└── README.md                    # 本文档
 ```
-
-## 模块整体职责
-
-地表构建系统负责在区块生成过程中，根据生物群系类型和噪声值，将默认方块（石头）替换为适合该生物群系的地表方块（草方块、沙子、雪等）和次地表方块（泥土、砂岩等）。
-
-本项目使用 MC 1.21 的 SurfaceRules 规则树系统，通过条件+规则组合实现灵活的地表生成。
 
 ## 内部模块关系
 
 ```
-Surface[Surface.hpp<br/>聚合头文件]
-    └── SurfaceRules[SurfaceRules.hpp<br/>规则系统]
-         ├── SurfaceCondition（条件）
-         │   ├── StoneDepthCondition
-         │   ├── YCondition
-         │   ├── WaterCondition
-         │   ├── BiomeCondition
-         │   ├── NoiseThresholdCondition
-         │   ├── VerticalGradientCondition
-         │   ├── SteepCondition
-         │   ├── TemperatureCondition
-         │   └── HoleCondition
-         ├── SurfaceRule（规则）
-         │   ├── IfTrueRule
-         │   ├── SequenceRule
-         │   ├── BlockRule
-         │   └── BandlandsRule
-         ├── SurfaceRuleContext（上下文）
-         └── SurfaceSystem（规则执行器）
+SurfaceRules.hpp（聚合头文件）
+    ├── CaveSurface.hpp
+    ├── VerticalAnchor.hpp
+    ├── SurfaceCondition.hpp → SurfaceRuleContext.hpp（前向声明）
+    ├── SurfaceRule.hpp → SurfaceCondition.hpp, SurfaceRuleContext.hpp
+    ├── SurfaceRuleContext.hpp → VerticalAnchor.hpp, Biomes.hpp, BlockState.hpp
+    ├── SurfaceSystem.hpp → SurfaceRule.hpp, PositionalRandomFactory.hpp
+    └── SurfaceRulesFactory.hpp → SurfaceCondition.hpp, SurfaceRule.hpp
+
+依赖方向：
+    SurfaceRulesFactory → SurfaceCondition, SurfaceRule → SurfaceRuleContext → VerticalAnchor, CaveSurface
+    SurfaceSystem → SurfaceRule, SurfaceRuleContext
 
 外部依赖:
     ChunkPrimer ← SurfaceSystem 读取/写入方块
@@ -65,24 +58,10 @@ Surface[Surface.hpp<br/>聚合头文件]
 | 模块 | 用途 |
 |------|------|
 | `NoiseChunkGenerator` | 区块生成器在 SURFACE 阶段调用地表构建 |
-
-## 核心类型
-
-### SurfaceRules（MC 1.21 规则树系统）
-
-基于规则树的声明式地表生成系统：
-
-- **条件（SurfaceCondition）**：`StoneDepthCondition`, `YCondition`, `WaterCondition`, `BiomeCondition`, `NoiseThresholdCondition`, `VerticalGradientCondition`, `SteepCondition`, `TemperatureCondition`, `HoleCondition`
-- **规则（SurfaceRule）**：`IfTrueRule`, `SequenceRule`, `BlockRule`, `BandlandsRule`
-- **上下文（SurfaceRuleContext）**：维护当前位置的状态（stoneDepth、waterHeight、biome等）
-- **SurfaceSystem**：规则执行器，遍历区块每个方块应用规则
-
-工厂命名空间 `SurfaceRules` 提供便捷创建方法：`onFloor()`, `underFloor()`, `isBiome()`, `ifTrue()`, `sequence()`, `overworld()`, `nether()`, `end()`
-
-每个维度有独立的 SurfaceRules 配置：
-- **主世界**：`SurfaceRules::overworld(seed)` — 包含草地、沙子、雪、石山、恶地等规则
-- **下界**：`SurfaceRules::nether(seed)` — 包含基岩底/顶、5种下界生物群系
-- **末地**：`SurfaceRules::end()` — 全末地石
+| `HeightProvider` | 使用 VerticalAnchor 解析 Y 坐标 |
+| `CarverConfiguration` | 使用 VerticalAnchor 作为 lavaLevel |
+| `StructureDefinitionLoader` | 使用 VerticalAnchor 解析高度提供者 |
+| `RandomState` | 持有 SurfaceSystem 实例 |
 
 ## 容易踩的坑
 

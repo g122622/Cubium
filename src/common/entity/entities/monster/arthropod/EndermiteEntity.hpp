@@ -117,9 +117,13 @@ public:
 
     // ========== 寻路权重 ==========
 
-    // TODO: 重写 getPathWeight — 蠹虫需要检查脚下方块是否为虫蚀方块：
-    // 脚下是虫蚀方块返回 10.0f，否则委托 MonsterEntity::getPathWeight
-    // 对应 MC Silverfish.getWalkTargetValue
+    /**
+     * @brief 获取路径权重
+     *
+     * 蠹虫偏好可被虫蚀的宿主方块：脚下是宿主方块返回 10.0f，否则委托 MonsterEntity::getPathWeight。
+     * 对应 MC Silverfish.getWalkTargetValue / InfestedBlock.isCompatibleHostBlock。
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
 
     /**
      * @brief 通知召唤同伴目标

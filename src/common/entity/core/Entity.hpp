@@ -1202,6 +1202,24 @@ public:
     [[nodiscard]] virtual bool isImmuneToExplosions() const { return false; }
 
     /**
+     * @brief 检查实体是否可以在指定位置与方块交互
+     *
+     * 用于冒险模式下的交互权限判断。默认实现返回 true（允许交互）。
+     * Player 类重写此方法，在冒险/旁观模式下检查物品的 CanPlaceOn/CanDestroy 标签。
+     * ProjectileEntity 重写此方法，委托给发射者的 mayInteract 或检查 MOB_GRIEFING 游戏规则。
+     *
+     * @param world 世界引用
+     * @param pos 目标方块位置
+     * @return 如果允许交互返回 true
+     */
+    [[nodiscard]] virtual bool mayInteract(IWorld& world, const BlockPos& pos) const
+    {
+        (void)world;
+        (void)pos;
+        return true;
+    }
+
+    /**
      * @brief 受伤入口方法
      *
      * 处理实体受伤的通用逻辑。基类实现检查无敌状态。

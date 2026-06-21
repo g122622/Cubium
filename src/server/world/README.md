@@ -6,7 +6,7 @@
 
 ```
 src/server/world/
-├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick管理）
+├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/末影龙战斗管理/isBlockInLine射线遍历）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调）
 ├── ChunkGenerateTask.hpp/cpp        # 区块生成任务（提交到 ServerWorkerPool）
 ├── drop/
@@ -178,3 +178,25 @@ level.dat (SpawnAngle 字段)
 
 ### notifyBlockUpdate 与 setBlockState 的区别
 方块实体内部数据变化后需要通知客户端时，应使用 `notifyBlockUpdate(pos)` 而非 `setBlockState(pos, state, 3)`。`setBlockState` 在 `oldState == newState` 时直接返回 false，不会触发 `m_onBlockChanged` 回调，客户端收不到更新。`notifyBlockUpdate` 即使方块状态未改变也会触发回调，对应 MC Java 的 `Level.sendBlockUpdated()`。
+
+### 末影龙战斗管理
+`ServerWorld` 在末地维度（`DimensionManager::THE_END`）下持有 `EndDragonFight` 实例（`m_dragonFight`），通过 `IWorld::dragonFight()` 虚方法暴露给实体层。其他维度默认返回 `nullptr`。
+
+**生命周期**：
+- **创建**：`ServerWorld::initialize()` 中，当维度为末地时，从 `SingleLevelStorageManager::loadDragonFightData()` 加载已有数据或创建新实例
+- **保存**：`ServerWorld::saveAll()` 中，调用 `SingleLevelStorageManager::saveDragonFightData()` 持久化战斗状态到 `data/end_dragon_fight.json`
+- **使用**：`EnderDragonEntity::_onDeathUpdate()` 通过 `world.dragonFight()` 查询击杀状态并分发奖励
+
+**数据流**：
+```
+data/end_dragon_fight.json
+    → SingleLevelStorageManager::loadDragonFightData()
+    → EndDragonFight::Data::fromJson()
+    → EndDragonFight(worldSeed, data)
+    → EnderDragonEntity._onDeathUpdate()
+        → dragonFight->hasPreviouslyKilled()  // 经验区分
+        → dragonFight->setDragonKilled()       // 龙蛋/折跃门/出口传送门
+    → EndDragonFight::saveData().toJson()
+    → SingleLevelStorageManager::saveDragonFightData()
+    → data/end_dragon_fight.json
+```

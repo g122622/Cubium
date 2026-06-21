@@ -127,13 +127,18 @@ public:
      *
      * 当其他爆炸摧毁 TNT 方块时调用。如果 tntExplodes 游戏规则为 true，
      * 生成一个随机短引信的点燃 TNT 实体（连锁爆炸）。
+     * 通过 explosion 参数获取间接源实体，作为连锁 TNT 的 owner。
      * 对应 MC Java 的 TntBlock.wasExploded()。
      *
      * @param world 世界引用
      * @param pos 方块位置
      * @param state 方块状态
+     * @param explosion 引发此方块破坏的爆炸，可能为 nullptr
      */
-    void onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const override;
+    void onBlockExploded(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        const world::explosion::Explosion* explosion) const override;
 
     // ========== TNT特有方法 ==========
 
@@ -145,9 +150,14 @@ public:
     [[nodiscard]] static bool isUnstable(const BlockState& state);
 
     /**
-     * @brief 点燃TNT
+     * @brief 点燃TNT（prime + 移除方块）
      *
+     * 调用 prime() 生成点燃的TNT实体并播放音效，成功后移除TNT方块。
      * 如果 tntExplodes 游戏规则为 false，则不会点燃。
+     *
+     * 对应 MC Java 中先调用 prime() 再调用 setBlock(AIR) 的组合模式。
+     * 适用于 onBlockAdded、neighborChanged、onBlockActivated、onProjectileHit 等场景。
+     * 不适用于 playerWillDestroy（方块移除由破坏流程处理）。
      *
      * @param world 世界引用
      * @param pos TNT位置
@@ -157,9 +167,9 @@ public:
     [[nodiscard]] bool ignite(IWorld& world, const BlockPos& pos, const BlockState& state);
 
     /**
-     * @brief 点燃TNT（带点燃者信息）
+     * @brief 点燃TNT（prime + 移除方块，带点燃者）
      *
-     * 如果 tntExplodes 游戏规则为 false，则不会点燃。
+     * 与 ignite(world, pos, state) 相同，但传递点燃者信息。
      * 点燃者信息会传递给生成的TNT实体，用于伤害归属判定。
      *
      * @param world 世界引用
@@ -169,6 +179,23 @@ public:
      * @return true 如果成功点燃（生成点燃的TNT实体），false 如果游戏规则禁止
      */
     [[nodiscard]] bool ignite(IWorld& world, const BlockPos& pos, const BlockState& state, LivingEntity* igniter);
+
+    /**
+     * @brief 点燃TNT（仅生成实体和音效，不移除方块）
+     *
+     * 生成点燃的TNT实体、播放音效、发出 PRIME_FUSE 游戏事件，
+     * 但不移除TNT方块。调用方需自行负责移除方块。
+     *
+     * 对应 MC Java 的 TntBlock.prime() 静态方法。
+     * 适用于 playerWillDestroy（方块移除由破坏流程处理）等
+     * 不需要本方法移除方块的场景。
+     *
+     * @param world 世界引用
+     * @param pos TNT位置
+     * @param igniter 点燃者（可能为nullptr）
+     * @return true 如果成功点燃（生成点燃的TNT实体），false 如果游戏规则禁止或客户端
+     */
+    [[nodiscard]] static bool prime(IWorld& world, const BlockPos& pos, LivingEntity* igniter);
 
     /**
      * @brief 爆炸TNT

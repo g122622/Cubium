@@ -27,6 +27,8 @@
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/interfaces/IAngerable.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/nbt/Nbt.hpp"
+
 #include <optional>
 
 namespace mc {
@@ -197,6 +199,11 @@ public:
     // ========== 生命周期 ==========
 
     void tick() override;
+
+    // ========== NBT 序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
 protected:
     /**

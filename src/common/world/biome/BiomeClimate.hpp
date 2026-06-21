@@ -63,19 +63,21 @@ inline constexpr f32 FREEZE_TEMPERATURE_THRESHOLD = 0.15f;
  *
  * 包含生物群系的所有气候参数：温度、降水、湿度、大陆度和侵蚀度。
  *
- * TODO: [MC对齐] Precipitation 枚举应重构为 bool hasPrecipitation，与 MC 1.21.11 对齐。
- * MC 的 Biome.ClimateSettings 使用 boolean hasPrecipitation，降水类型（雨/雪）由
- * Biome.getPrecipitationAt(BlockPos, seaLevel) 根据 getHeightAdjustedTemperature() 动态决定：
+ * MC 1.21.11: Biome.ClimateSettings 使用 boolean hasPrecipitation，
+ * 降水类型（雨/雪）由 Biome.getPrecipitationAt(BlockPos, seaLevel) 根据
+ * getHeightAdjustedTemperature() 动态决定：
  * - hasPrecipitation == false → 无降水（沙漠、恶地、热带草原、下界、末地等）
  * - hasPrecipitation == true 且 heightAdjustedTemperature < 0.15 → 雪
  * - hasPrecipitation == true 且 heightAdjustedTemperature >= 0.15 → 雨
- * 当前 enum 方式将静态属性（是否有降水）与动态判定（雨还是雪）混为一谈，
- * 导致生物群系注册时需要硬编码 Precipitation::Snow，而非由高度温度动态计算。
- * 应重构为：将 Precipitation::None 改为 hasPrecipitation=false，
- *            将 Precipitation::Rain/Snow 统一改为 hasPrecipitation=true，
- *            然后通过 Biome::getPrecipitationAt(x, y, z, seaLevel) 动态返回降水类型。
  */
 struct BiomeClimate {
+    /**
+     * @brief 降水类型枚举
+     *
+     * 用于 Biome::getPrecipitationAt() 的返回类型，表示指定位置的降水类型。
+     * 注意：这不是生物群系的静态属性，而是根据温度动态计算的结果。
+     * 生物群系本身仅存储 hasPrecipitation 布尔值。
+     */
     enum class Precipitation { None, Rain, Snow };
 
     /**
@@ -86,7 +88,9 @@ struct BiomeClimate {
      */
     enum class TemperatureModifier { None, Frozen };
 
-    Precipitation precipitation = Precipitation::Rain;
+    /// 是否有降水。MC 1.21.11: Biome.ClimateSettings.hasPrecipitation
+    /// 默认为 true（MC BiomeBuilder 的默认值也是 true）
+    bool hasPrecipitation = true;
     f32 temperature = 0.5f;
     TemperatureModifier temperatureModifier = TemperatureModifier::None;
     f32 downfall = 0.5f;
@@ -95,8 +99,8 @@ struct BiomeClimate {
     f32 erosion = 0.0f;
 
     BiomeClimate() = default;
-    BiomeClimate(Precipitation precip, f32 temp, TemperatureModifier modifier, f32 down, f32 hum, f32 cont, f32 ero)
-        : precipitation(precip)
+    BiomeClimate(bool hasPrecip, f32 temp, TemperatureModifier modifier, f32 down, f32 hum, f32 cont, f32 ero)
+        : hasPrecipitation(hasPrecip)
         , temperature(temp)
         , temperatureModifier(modifier)
         , downfall(down)
@@ -106,8 +110,8 @@ struct BiomeClimate {
     {}
 
     /** 便捷构造函数，TemperatureModifier 默认为 None */
-    BiomeClimate(Precipitation precip, f32 temp, f32 down, f32 hum, f32 cont, f32 ero)
-        : precipitation(precip)
+    BiomeClimate(bool hasPrecip, f32 temp, f32 down, f32 hum, f32 cont, f32 ero)
+        : hasPrecipitation(hasPrecip)
         , temperature(temp)
         , temperatureModifier(TemperatureModifier::None)
         , downfall(down)
@@ -117,8 +121,8 @@ struct BiomeClimate {
     {}
 
     /** 旧版便捷构造函数（不含湿度、大陆度、侵蚀度），用于向后兼容 */
-    BiomeClimate(Precipitation precip, f32 temp, TemperatureModifier modifier, f32 down)
-        : precipitation(precip)
+    BiomeClimate(bool hasPrecip, f32 temp, TemperatureModifier modifier, f32 down)
+        : hasPrecipitation(hasPrecip)
         , temperature(temp)
         , temperatureModifier(modifier)
         , downfall(down)
@@ -128,8 +132,8 @@ struct BiomeClimate {
     {}
 
     /** 旧版便捷构造函数（不含湿度、大陆度、侵蚀度、TemperatureModifier），用于向后兼容 */
-    BiomeClimate(Precipitation precip, f32 temp, f32 down)
-        : precipitation(precip)
+    BiomeClimate(bool hasPrecip, f32 temp, f32 down)
+        : hasPrecipitation(hasPrecip)
         , temperature(temp)
         , temperatureModifier(TemperatureModifier::None)
         , downfall(down)

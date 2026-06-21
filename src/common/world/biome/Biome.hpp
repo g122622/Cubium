@@ -204,13 +204,21 @@ public:
     }
 
     /**
+     * @brief 判断该生物群系是否有降水
+     *
+     * MC 1.21.11: Biome.hasPrecipitation()
+     * 返回 ClimateSettings 中的 hasPrecipitation 布尔值。
+     */
+    [[nodiscard]] bool hasPrecipitation() const { return m_climate.hasPrecipitation; }
+
+    /**
      * @brief 获取指定位置的降水类型
      *
      * 根据生物群系的降水设置和高度调整后的温度确定降水类型。
-     * 如果生物群系本身没有降水（Precipitation::None），返回 None。
+     * 如果生物群系没有降水（hasPrecipitation == false），返回 None。
      * 如果高度调整后的温度 < 0.15，返回 Snow；否则返回 Rain。
      *
-     * 参考: net.minecraft.world.level.biome.Biome#getPrecipitationAt
+     * MC 1.21.11: Biome.getPrecipitationAt(BlockPos, int seaLevel)
      *
      * @param x 方块 X 坐标
      * @param y 方块 Y 坐标
@@ -220,7 +228,7 @@ public:
      */
     [[nodiscard]] BiomeClimate::Precipitation getPrecipitationAt(i32 x, i32 y, i32 z, i32 seaLevel) const
     {
-        if (m_climate.precipitation == BiomeClimate::Precipitation::None) {
+        if (!m_climate.hasPrecipitation) {
             return BiomeClimate::Precipitation::None;
         }
         return coldEnoughToSnow(x, y, z, seaLevel) ? BiomeClimate::Precipitation::Snow
@@ -289,7 +297,7 @@ public:
     void setContinentalness(f32 value) { m_climate.continentalness = value; }
     void setErosion(f32 value) { m_climate.erosion = value; }
     void setDownfall(f32 value) { m_climate.downfall = value; }
-    void setPrecipitation(BiomeClimate::Precipitation value) { m_climate.precipitation = value; }
+    void setHasPrecipitation(bool value) { m_climate.hasPrecipitation = value; }
     void setTemperatureModifier(BiomeClimate::TemperatureModifier value) { m_climate.temperatureModifier = value; }
     void setSurfaceBlock(const BlockState* block) { m_surfaceBlock = block; }
     void setSubSurfaceBlock(const BlockState* block) { m_subSurfaceBlock = block; }

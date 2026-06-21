@@ -29,6 +29,7 @@
 #include "world/storage/backend/JavaAnvilBackend.hpp"
 #include "world/storage/db/SectionCodec.hpp"
 #include "world/storage/save/AutoSave.hpp"
+#include <fstream>
 #include <stdexcept>
 #include <spdlog/spdlog.h>
 
@@ -612,6 +613,70 @@ Result<void> SingleLevelStorageManager::saveScheduledEvents(const nbt::tags::com
     }
 
     return LevelDatCodec::updateScheduledEvents(m_worldPath, events);
+}
+
+Result<std::optional<nlohmann::json>> SingleLevelStorageManager::loadDragonFightData()
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    // 外来格式：返回空
+    if (m_backend) {
+        return std::nullopt;
+    }
+
+    const auto filePath = m_worldPath / "data" / "end_dragon_fight.json";
+    if (!std::filesystem::exists(filePath)) {
+        return std::nullopt;
+    }
+
+    try {
+        std::ifstream file(filePath, std::ios::in);
+        if (!file.is_open()) {
+            return std::nullopt;
+        }
+        nlohmann::json data = nlohmann::json::parse(file);
+        return data;
+    }
+    catch (const std::exception& e) {
+        spdlog::warn("Failed to load end_dragon_fight.json: {}", e.what());
+        return std::nullopt;
+    }
+}
+
+Result<void> SingleLevelStorageManager::saveDragonFightData(const nlohmann::json& data)
+{
+    if (!isOpen()) {
+        return Error(ErrorCode::InvalidState, "Storage not open");
+    }
+
+    if (m_config.readonly) {
+        return Result<void>::ok();
+    }
+
+    // 外来格式：只读，不保存
+    if (m_backend) {
+        return Result<void>::ok();
+    }
+
+    try {
+        const auto dataDir = m_worldPath / "data";
+        if (!std::filesystem::exists(dataDir)) {
+            std::filesystem::create_directories(dataDir);
+        }
+
+        const auto filePath = dataDir / "end_dragon_fight.json";
+        std::ofstream file(filePath, std::ios::out | std::ios::trunc);
+        if (!file.is_open()) {
+            return Error(ErrorCode::FileOpenFailed, "Failed to open end_dragon_fight.json for writing");
+        }
+        file << data.dump(2);
+        return Result<void>::ok();
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::FileWriteFailed, fmt::format("Failed to save end_dragon_fight.json: {}", e.what()));
+    }
 }
 
 SectionManager& SingleLevelStorageManager::_sectionManager(DimensionId dimension)

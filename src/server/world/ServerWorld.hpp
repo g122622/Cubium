@@ -33,6 +33,7 @@
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/DimensionType.hpp"
+#include "common/world/dimension/end/EndDragonFight.hpp"
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -292,6 +293,8 @@ public:
 
     [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] bool isWithinWorldBounds(i32 x, i32 y, i32 z) const override;
+    [[nodiscard]] bool isBlockInLine(
+        const Vector3d& from, const Vector3d& to, std::function<bool(const BlockState&)> predicate) const override;
     [[nodiscard]] i32 getHeight(i32 x, i32 z) const override;
     [[nodiscard]] u8 getBlockLight(i32 x, i32 y, i32 z) const override;
     [[nodiscard]] u8 getSkyLight(i32 x, i32 y, i32 z) const override;
@@ -820,6 +823,19 @@ public:
         return m_raidManager.get();
     }
 
+    // ========== 末影龙战斗管理 ==========
+
+    /**
+     * @brief 获取末影龙战斗管理器
+     *
+     * 只有末地维度的ServerWorld会返回有效的指针，其他维度返回nullptr。
+     * 用于末影龙死亡后放置龙蛋、生成折跃门等战斗奖励逻辑。
+     *
+     * @return EndDragonFight指针，如果非末地维度返回nullptr
+     */
+    [[nodiscard]] EndDragonFight* dragonFight() noexcept override { return m_dragonFight.get(); }
+    [[nodiscard]] const EndDragonFight* dragonFight() const noexcept override { return m_dragonFight.get(); }
+
     // ========== 地图数据管理 ==========
 
     [[nodiscard]] world::map::MapDataManager* mapDataManager() noexcept override { return m_mapDataManager.get(); }
@@ -1110,6 +1126,9 @@ private:
     // 村庄和袭击系统
     std::unique_ptr<::mc::world::village::VillageManager> m_villageManager;
     std::unique_ptr<::mc::world::village::raid::RaidManager> m_raidManager;
+
+    // 末影龙战斗管理器（仅末地维度创建）
+    std::unique_ptr<EndDragonFight> m_dragonFight;
 
     // 村庄围攻系统
     server::spawn::VillageSiege m_villageSiege;

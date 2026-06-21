@@ -40,10 +40,16 @@ namespace mc {
 // 前向声明
 class IWorld;
 class Entity;
+class LivingEntity;
 class Player;
 class BlockState;
 class AxisAlignedBB;
 class ItemStack;
+
+namespace entity {
+class TNTEntity;
+class ProjectileEntity;
+} // namespace entity
 
 namespace loot {
 class LootTableManager;
@@ -139,6 +145,22 @@ public:
      * @brief 获取爆炸源实体
      */
     [[nodiscard]] Entity* source() const noexcept { return m_source; }
+
+    /**
+     * @brief 获取爆炸的间接源实体
+     *
+     * 追溯爆炸链中的间接源实体：
+     * - 如果直接源是 LivingEntity，返回它本身
+     * - 如果直接源是 ProjectileEntity，返回其发射者（如果是 LivingEntity）
+     * - 如果直接源是 TNTEntity，返回其点燃者（如果是 LivingEntity）
+     * - 其他情况返回 nullptr
+     *
+     * 对应 MC Java 的 Explosion.getIndirectSourceEntity()。
+     * 用于连锁爆炸场景中正确归属伤害来源。
+     *
+     * @return 间接源实体，如果无法确定返回 nullptr
+     */
+    [[nodiscard]] LivingEntity* getIndirectSourceEntity() const;
 
 private:
     // ========== 第一阶段：计算 ==========

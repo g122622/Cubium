@@ -63,6 +63,93 @@ InternalLightUtils (独立工具模块，无依赖其他 lighting 模块)
 
 ---
 
+## 区块列状态管理
+
+### 概述
+
+光照引擎通过区块列（column）粒度的状态标记来控制光照数据的生命周期，对应 MC Java 的
+`columnsWithSources` 和 `columnsToRetainQueuedDataFor` 集合。两个状态互相独立：
+
+| 状态 | 集合 | 作用 | 对应 MC Java |
+|------|------|------|-------------|
+| 列启用 | `m_enabledColumns` | 控制该区块列是否有活跃光源 | `LayerLightSectionStorage.columnsWithSources` |
+| 数据保留 | `m_columnsToRetainDataFor` | 在区块卸载时保留光照数据而非清除 | `LayerLightSectionStorage.columnsToRetainQueuedDataFor` |
+
+### 区块列位置编码
+
+区块列位置使用 64 位整数编码，格式与 MC Java `SectionPos.asLong()` 的列部分一致：
+
+- 位 [63:42] — chunkX（22 位，符号扩展后与 `& 0x3FFFFF` 掩码）
+- 位 [41:20] — chunkZ（22 位，符号扩展后与 `& 0x3FFFFF` 掩码）
+- 位 [19:0]  — 保留（用于段 Y 坐标，列级操作中为 0）
+
+编码公式：
+
+```cpp
+i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42
+              | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
+```
+
+**一致性要求**：`enableLightSources(ChunkPos)` 中的 `pos.x/pos.z` 必须与
+`_getLightEmission` 中的 `x >> CHUNK_SHIFT / z >> CHUNK_SHIFT` 产生相同的区块坐标，
+否则列启用检查会因坐标不匹配而失效。
+
+### 列启用（Column Enabled）
+
+控制点：
+
+1. **方块光发射门控** — `BlockStarLightEngine::_getLightEmission()` 在返回发射等级前检查
+   `isColumnEnabled()`，未启用的列中发光方块的发射等级被抑制为 0（对应 MC Java
+   `BlockLightEngine.getEmission()` 中的 `lightOnInSection` 检查）。
+
+2. **天空光初始化门控** — `SkyStarLightEngine::initNibble()` 在初始化高空段时，
+   仅对已启用列执行 `setFull()`（填充亮度 15），未启用列只执行 `setNonNull()`（对应
+   MC Java `SkyLightSectionStorage.createDataLayer()` 中的 `lightOnInSection` 检查）。
+
+3. **不影响的路径** — `canUseChunk()` **不**检查列启用状态，与 MC Java 保持一致。
+   列启用仅影响光源发射和初始化行为，不影响区块可用性判断。
+
+### 数据保留（Data Retention）
+
+控制点：
+
+- `setNibbleNull()` — 当区块段被卸载时调用。若该列标记了数据保留（`isDataRetained()`），
+  则执行 `setHidden()` 而非 `setNull()`，将 nibble 数组置于 Hidden 状态而非完全清除。
+  Hidden 状态保留数据但停止光照传播，当区块重新加载时可以快速恢复（对应 MC Java
+  `LayerLightSectionStorage.markNewInconsistencies()` 中的保留路径）。
+
+### 调试信息
+
+`WorldLightManager::getDebugInfo()` 报告以下信息：
+
+- 段状态：`0` = 有完整数据（LIGHT_AND_DATA），`1` = 仅光照（LIGHT_ONLY），`2` = 空（EMPTY）
+- `[dirty]` — nibble 数据已修改未同步
+- `[q:N]` — 引擎队列中有 N 个待处理更新
+- `[col:on]` — 区块列已启用
+- `[retained]` — 区块列数据已保留
+
+### API 一览
+
+#### WorldLightManager
+
+| 方法 | 说明 |
+|------|------|
+| `enableLightSources(ChunkPos, bool)` | 启用/禁用区块列光源，委托至双引擎 |
+| `retainData(ChunkPos, bool)` | 保留/释放区块列光照数据，委托至双引擎 |
+| `getDebugInfo(LightType, SectionPos)` | 获取段级调试信息 |
+
+#### BlockStarLightEngine / SkyStarLightEngine
+
+| 方法 | 说明 |
+|------|------|
+| `setColumnEnabled(i64, bool)` | 设置列启用状态 |
+| `isColumnEnabled(i64)` | 查询列启用状态 |
+| `retainData(i64, bool)` | 设置数据保留标记 |
+| `isDataRetained(i64)` | 查询数据保留标记 |
+| `getData(SectionPos) const` | 获取段 nibble 数据（只读） |
+
+---
+
 ## 容易踩的坑
 
 ### 1. 天空光内部级别反转

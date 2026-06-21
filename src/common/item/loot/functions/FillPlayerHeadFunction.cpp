@@ -24,8 +24,10 @@
 #include "FillPlayerHeadFunction.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/loot/context/LootContext.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 
 namespace mc {
@@ -42,10 +44,13 @@ ItemStack FillPlayerHeadFunction::apply(ItemStack stack, LootContext& context) c
     }
 
     // 检查物品是否是玩家头颅
-    // TODO: 当 PLAYER_HEAD 物品在 Items.hpp 中定义后，添加物品类型检查
-    // if (stack.getItem() != Items::PLAYER_HEAD) {
-    //     return stack;
-    // }
+    // 使用 ResourceLocation 运行时查找玩家头颅物品。当 player_head 物品尚未注册时，
+    // sPlayerHead 为 nullptr，跳过类型检查（兼容当前未注册状态）。
+    // TODO: 当 Items::PLAYER_HEAD 定义后，应改为 stack.getItem() != Items::PLAYER_HEAD
+    static const Item* sPlayerHead = Item::getItem(ResourceLocation("minecraft:player_head"));
+    if (sPlayerHead != nullptr && stack.getItem() != sPlayerHead) {
+        return stack;
+    }
 
     // 根据 Source 获取玩家档案
     const skin::GameProfile* profile = nullptr;

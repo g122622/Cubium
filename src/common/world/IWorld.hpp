@@ -37,6 +37,7 @@
 #include "gameevent/GameEvent.hpp"
 #include "lighting/InternalLightUtils.hpp"
 #include "tick/base/TickPriority.hpp"
+#include <functional>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -61,6 +62,7 @@ class ItemStack;
 class INamedContainerProvider;
 enum class Direction : u8;
 enum class ContainerType : u8;
+class EndDragonFight;
 
 namespace world::tick {
 class TickManager;
@@ -583,6 +585,31 @@ public:
         // 默认实现：使用 getLightSubtracted(pos, 0) 计算亮度
         u8 light = getLightSubtracted(pos, 0);
         return static_cast<f32>(light) / 15.0f;
+    }
+
+    // ========== 方块射线遍历 ==========
+
+    /**
+     * @brief 沿直线遍历方块，检查是否有匹配谓词的方块
+     *
+     * 使用 DDA 算法从 from 到 to 逐格遍历，对每个经过的方块调用谓词检查。
+     * 如果谓词返回 true，则返回 true（找到匹配方块）。
+     * 如果遍历完成未找到匹配方块，返回 false。
+     *
+     * 注意：起点所在的方块也会被检查。
+     *
+     * @param from 起点（世界坐标）
+     * @param to 终点（世界坐标）
+     * @param predicate 方块状态谓词，返回 true 表示匹配目标方块
+     * @return 如果沿路径找到匹配谓词的方块返回 true，否则返回 false
+     */
+    [[nodiscard]] virtual bool isBlockInLine(
+        const Vector3d& from, const Vector3d& to, std::function<bool(const BlockState&)> predicate) const
+    {
+        (void)from;
+        (void)to;
+        (void)predicate;
+        return false;
     }
 
     // ========== 碰撞检测 ==========
@@ -1111,6 +1138,19 @@ public:
      */
     [[nodiscard]] virtual world::village::raid::RaidManager* raidManager() { return nullptr; }
     [[nodiscard]] virtual const world::village::raid::RaidManager* raidManager() const { return nullptr; }
+
+    // ========== 末影龙战斗管理 ==========
+
+    /**
+     * @brief 获取末影龙战斗管理器
+     *
+     * 只有末地维度的ServerWorld会返回有效的指针，其他实现返回nullptr。
+     * 用于末影龙死亡后放置龙蛋、生成折跃门等战斗奖励逻辑。
+     *
+     * @return EndDragonFight指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] virtual class EndDragonFight* dragonFight() { return nullptr; }
+    [[nodiscard]] virtual const class EndDragonFight* dragonFight() const { return nullptr; }
 
     // ========== 战利品表管理 ==========
 

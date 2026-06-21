@@ -44,7 +44,7 @@ MC 使用 `biome.getTemperature(pos) >= 0.15f` 判断雨/雪。温度基于位�
 
 ### 生物群系降水类型
 
-即使温度足够，某些生物群系（沙漠、下界）也不降水，需检查 `biome->climate().precipitation`。
+即使温度足够，某些生物群系（沙漠、下界）也不降水，需检查 `biome->hasPrecipitation()`。
 
 ### 随机偏移数组
 

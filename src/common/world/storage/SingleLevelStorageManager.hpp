@@ -42,6 +42,8 @@
 #include <optional>
 #include <unordered_map>
 
+#include <nlohmann/json.hpp>
+
 namespace mc::scoreboard {
 class ScoreboardDataManager;
 }
@@ -230,6 +232,26 @@ public:
      * @return 成功或错误
      */
     Result<void> saveScheduledEvents(const nbt::tags::compound_list_tag& events);
+
+    /**
+     * @brief 读取末影龙战斗数据
+     *
+     * 从存档目录的 data/end_dragon_fight.json 文件读取末影龙战斗状态。
+     * 如果文件不存在，返回 nullopt（新世界首次创建）。
+     *
+     * @return 成功返回 JSON 数据，失败返回错误
+     */
+    [[nodiscard]] Result<std::optional<nlohmann::json>> loadDragonFightData();
+
+    /**
+     * @brief 保存末影龙战斗数据
+     *
+     * 将末影龙战斗状态写入存档目录的 data/end_dragon_fight.json 文件。
+     *
+     * @param data 末影龙战斗数据的 JSON 对象
+     * @return 成功返回空，失败返回错误
+     */
+    Result<void> saveDragonFightData(const nlohmann::json& data);
 
     /**
      * @brief 注入存储 IO 线程池

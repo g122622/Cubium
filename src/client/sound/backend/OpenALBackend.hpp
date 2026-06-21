@@ -24,10 +24,13 @@
 #pragma once
 
 #include "client/sound/backend/IAudioBackend.hpp"
+#include "common/sound/SoundTypes.hpp"
 
 #include <AL/al.h>
 #include <AL/alc.h>
 
+#include <atomic>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -45,12 +48,20 @@ namespace mc::client::sound {
 class OpenALSource : public IAudioSource {
 public:
     /**
+     * @brief 源销毁回调类型
+     *
+     * 当源被销毁时调用，用于通知后端释放源计数。
+     */
+    using OnDestroyCallback = std::function<void()>;
+
+    /**
      * @brief 构造 OpenAL 音频源
      *
      * @param id 音频源 ID
      * @param source OpenAL source 句柄
+     * @param onDestroy 源销毁时的回调（可选）
      */
-    OpenALSource(AudioSourceId id, ALuint source);
+    OpenALSource(AudioSourceId id, ALuint source, OnDestroyCallback onDestroy = nullptr);
     ~OpenALSource() override;
 
     // 禁止拷贝
@@ -162,6 +173,7 @@ private:
     AudioSourceId m_id;
     ALuint m_source;
     std::shared_ptr<IAudioBuffer> m_buffer;
+    OnDestroyCallback m_onDestroy;
 };
 
 /**
@@ -302,7 +314,8 @@ public:
 
     [[nodiscard]] Result<std::unique_ptr<IAudioSource>> createSource() override;
     [[nodiscard]] u32 getAvailableSources() const noexcept override;
-    [[nodiscard]] u32 getMaxSources() const noexcept override { return MAX_SOURCES; }
+    [[nodiscard]] u32 getMaxSources() const noexcept override { return m_maxSources; }
+    [[nodiscard]] u32 getActiveSourceCount() const noexcept override;
 
     // ========================================================================
     // 更新
@@ -326,8 +339,11 @@ private:
      */
     [[nodiscard]] std::string _checkALError(const char* operation) const;
 
-    /// 最大音频源数量
-    static constexpr u32 MAX_SOURCES = 256;
+    /// 最大音频源数量（从设备属性查询，回退到默认值）
+    u32 m_maxSources = ::mc::sound::MAX_CONCURRENT_SOUNDS;
+
+    /// 当前活跃的音频源数量
+    std::atomic<u32> m_activeSourceCount{0};
 
     /// 初始化状态
     bool m_initialized = false;

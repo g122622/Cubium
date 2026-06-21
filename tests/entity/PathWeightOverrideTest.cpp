@@ -29,6 +29,8 @@
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
+#include "common/entity/entities/monster/basic/GiantEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
@@ -38,6 +40,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/mob/InfestedBlock.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -456,6 +459,146 @@ TEST_F(EndermanPathWeightTest, CanSpawnAnywhere)
     EndermanEntity enderman(EntityId(50));
     enderman.setWorld(&world);
     EXPECT_TRUE(enderman.canSpawnAt(0.0f, 64.0f, 0.0f));
+}
+
+// ============================================================================
+// GiantEntity::getPathWeight 测试
+// ============================================================================
+
+class GiantPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(GiantPathWeightTest, PrefersBrightLight)
+{
+    // MC Giant.getWalkTargetValue: 返回 brightness - 0.5f（不取反）
+    // 巨人是唯一偏好明亮区域的 Monster 子类
+    world.setBrightness(1.0f);
+    GiantEntity giant(EntityId(60));
+    giant.setWorld(&world);
+
+    // 亮度 1.0 → 1.0 - 0.5 = 0.5（正值，偏好）
+    f32 weight = giant.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.5f);
+}
+
+TEST_F(GiantPathWeightTest, AvoidsDarkness)
+{
+    // 亮度 0.0 → 0.0 - 0.5 = -0.5（负值，避免）
+    world.setBrightness(0.0f);
+    GiantEntity giant(EntityId(60));
+    giant.setWorld(&world);
+
+    f32 weight = giant.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, -0.5f);
+}
+
+TEST_F(GiantPathWeightTest, NeutralAtHalfBrightness)
+{
+    // 亮度 0.5 → 0.5 - 0.5 = 0.0（中性）
+    world.setBrightness(0.5f);
+    GiantEntity giant(EntityId(60));
+    giant.setWorld(&world);
+
+    f32 weight = giant.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
+
+TEST_F(GiantPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    // 没有世界时返回 0.0f
+    GiantEntity giant(EntityId(60));
+    EXPECT_FLOAT_EQ(giant.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(GiantPathWeightTest, OppositeOfNormalMonster)
+{
+    // 巨人的光照权重与普通怪物相反
+    // 普通怪物：0.5 - brightness（偏好黑暗）
+    // 巨人：brightness - 0.5（偏好明亮）
+    world.setBrightness(1.0f);
+    GiantEntity giant(EntityId(60));
+    giant.setWorld(&world);
+    TestMonsterEntity monster;
+    monster.setWorld(&world);
+
+    f32 giantWeight = giant.getPathWeight(0.0f, 64.0f, 0.0f);
+    f32 monsterWeight = monster.getPathWeight(0.0f, 64.0f, 0.0f);
+
+    // 在明亮环境中，巨人权重为正，怪物权重为负
+    EXPECT_GT(giantWeight, 0.0f);
+    EXPECT_LT(monsterWeight, 0.0f);
+}
+
+// ============================================================================
+// SilverfishEntity::getPathWeight 测试
+// ============================================================================
+
+class SilverfishPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(SilverfishPathWeightTest, PrefersInfestedBlocks)
+{
+    // MC Silverfish.getWalkTargetValue: 脚下是可被虫蚀的方块（宿主方块）返回 10.0f
+    // canContainSilverfish 检查的是宿主方块（如普通石头），而非虫蚀方块本身
+    const BlockState* hostState = &VanillaBlocks::STONE->defaultState();
+    world.setBlockStateAt(0, 63, 0, hostState);
+
+    SilverfishEntity silverfish(EntityId(70));
+    silverfish.setWorld(&world);
+
+    // getPathWeight 检查脚下方块（y-1 = 63），可被虫蚀的宿主方块返回 10.0f
+    f32 weight = silverfish.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+}
+
+TEST_F(SilverfishPathWeightTest, FallsBackToMonsterWeightOnNonInfested)
+{
+    // 非虫蚀方块：委托给 MonsterEntity 的默认实现
+    // MonsterEntity 返回 0.5 - brightness
+    world.setBrightness(0.0f); // 黑暗中，MonsterEntity 返回 0.5
+    SilverfishEntity silverfish(EntityId(70));
+    silverfish.setWorld(&world);
+
+    f32 weight = silverfish.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.5f); // MonsterEntity: 0.5 - 0.0 = 0.5
+}
+
+TEST_F(SilverfishPathWeightTest, FallsBackToMonsterWeightInBrightLight)
+{
+    // 明亮环境且非虫蚀方块：MonsterEntity 返回负值
+    world.setBrightness(1.0f);
+    SilverfishEntity silverfish(EntityId(70));
+    silverfish.setWorld(&world);
+
+    f32 weight = silverfish.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, -0.5f); // MonsterEntity: 0.5 - 1.0 = -0.5
+}
+
+TEST_F(SilverfishPathWeightTest, InfestedBlockOverridesDarknessPenalty)
+{
+    // 即使在黑暗中，可被虫蚀的宿主方块位置也返回 10.0f
+    world.setBrightness(0.0f);
+    const BlockState* hostState = &VanillaBlocks::STONE->defaultState();
+    world.setBlockStateAt(0, 63, 0, hostState);
+
+    SilverfishEntity silverfish(EntityId(70));
+    silverfish.setWorld(&world);
+
+    f32 weight = silverfish.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+}
+
+TEST_F(SilverfishPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    // 没有世界时返回 0.0f
+    SilverfishEntity silverfish(EntityId(70));
+    EXPECT_FLOAT_EQ(silverfish.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
 }
 
 } // namespace

@@ -45,6 +45,7 @@ add_executable(mc_tests
     common/world/biome/BiomeExtendedTest.cpp
     common/world/biome/BiomeFactoryClimateTest.cpp
     common/world/biome/ClimateTest.cpp
+    common/world/biome/RTreeTest.cpp
     common/world/biome/OverworldBiomeBuilderTest.cpp
     common/test_biome_freeze.cpp
     common/world/biome/BiomeGetPrecipitationAtTest.cpp
@@ -399,9 +400,11 @@ add_executable(mc_tests
     common/world/block/blocks/CaveVinesBlockTest.cpp
     common/world/block/blocks/SeagrassBlockTest.cpp
     common/world/block/blocks/DoubleBlockTest.cpp
+    common/world/block/UpdateFromNeighbourShapesTest.cpp
     common/world/block/blocks/PlantTypeTest.cpp
     common/world/block/blocks/MushroomBlockTest.cpp
     common/world/block/blocks/cave/GlowLichenBlockTest.cpp
+    common/world/block/blocks/cave/BigDripleafBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp
     common/world/block/blocks/cave/PointedDripstoneBlockTest.cpp
     common/world/block/blocks/pale_garden/PaleHangingMossBlockTest.cpp
@@ -421,6 +424,7 @@ add_executable(mc_tests
     common/world/block/CompostableItemsTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/EndTeleporterTest.cpp
+    common/world/dimension/EndDragonFightTest.cpp
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp
@@ -714,6 +718,7 @@ add_executable(mc_tests
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/feature/template/BlockAgeProcessorTest.cpp
     common/world/gen/feature/template/test_capped_processor.cpp
+    common/world/gen/valueprovider/test_int_provider_parser.cpp
     common/world/gen/structure/test_ocean_ruin_structure.cpp
     common/world/gen/structure/test_shipwreck_structure.cpp
     common/world/gen/structure/test_new_structures.cpp
@@ -756,6 +761,7 @@ add_executable(mc_tests
     common/world/block/blocks/redstone/AbstractPressurePlateBlockTest.cpp
     common/world/block/blocks/redstone/DetectorRailBlockTest.cpp
     common/world/block/blocks/redstone/RailStateTest.cpp
+    common/world/block/blocks/redstone/RailBlockWaterlogTest.cpp
     # Explosion system tests
     common/world/explosion/test_explosion.cpp
     common/world/explosion/ExplosionIntegrationTest.cpp
@@ -788,6 +794,8 @@ add_executable(mc_tests
     server/world/ServerWorldCommandExecuteTest.cpp
     # ServerWorld tickPrecipitation 测试
     server/world/TickPrecipitationTest.cpp
+    # isBlockInLine 方块射线遍历测试
+    server/world/IsBlockInLineTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）
@@ -806,6 +814,7 @@ add_executable(mc_tests
     lighting/BlockLightRegressionTest.cpp
     lighting/BaseLightEngineQueueTest.cpp
     lighting/SkyLightRegressionTest.cpp
+    lighting/WorldLightManagerTest.cpp
     # 鐜鍏夐伄钄芥祴璇?    client/renderer/AmbientOcclusionCalculatorTest.cpp
     client/renderer/trident/blockentity/ChestModelTest.cpp
     client/renderer/trident/blockentity/BeaconBeamModelTest.cpp
@@ -929,6 +938,8 @@ add_executable(mc_tests
     client/sound/SoundRegistryTest.cpp
     client/sound/TickableSoundTest.cpp
     client/sound/MovingTickableSoundTest.cpp
+    # OpenALBackend 音频后端源计数追踪与功能测试
+    client/sound/OpenALBackendTest.cpp
     # 聊天历史与消息类型测试
     client/chat/ChatHistoryTest.cpp
     # 皮肤系统测试

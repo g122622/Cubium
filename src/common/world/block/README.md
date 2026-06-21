@@ -6,12 +6,12 @@
 
 ```
 block/
-├── Block.hpp/cpp                   # 方块基类，定义核心属性和行为
+├── Block.hpp/cpp                   # 方块基类，定义核心属性和行为（含 updateFromNeighbourShapes 静态方法和 UPDATE_SHAPE_ORDER 常量）
 ├── BlockState.hpp/cpp              # 方块状态类，不可变状态对象
 ├── BlockPos.hpp                    # 方块位置坐标类
 ├── BlockRegistry.hpp/cpp           # 方块注册表（单例）
 ├── BlockSoundType.hpp/cpp          # 方块声音类型定义
-├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、STAIRS、SLABS、WALLS 等）
+├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS 等）
 ├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
 ├── GameMasterBlock.hpp             # 游戏管理员方块标记接口（命令方块、结构方块等）
 ├── HarvestTool.hpp                 # 挖掘工具类型定义
@@ -303,7 +303,7 @@ u32 stateId = state.stateId();       // 状态ID
 
 ### 13. 天气降水判定
 
-`WeatherUtils::canRainAt()` / `canSnowAt()` 需要结合生物群系的 `BiomeClimate::Precipitation::None` 以及温度阈值一起判断。沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式标记为 `None`。
+`WeatherUtils::canRainAt()` / `canSnowAt()` 需要结合生物群系的 `hasPrecipitation()` 布尔值以及温度阈值一起判断。沙漠、蘑菇岛、恶地等无降水生物群系必须在注册数据里显式设置 `hasPrecipitation` 为 `false`（通过 `setHasPrecipitation(false)`）。
 
 ### 14. PaneBlock 连接形状
 
@@ -503,3 +503,19 @@ Entity::move() → updateFallDistance() → _handleLandingOnBlock() → Block::o
 **创造模式掉落物抑制**：`BlockInteractionManager` 在 `playerWillDestroy` 之后检查 `player.isCreative()`，创造模式下跳过 `_generateBlockDrops`，与 MC Java 行为一致
 
 **注意**：新增方块如需在破坏时区分创造/生存模式行为，应重写 `playerWillDestroy` 而非在 `onBlockRemoved` 中判断
+
+### 30. Block::updateFromNeighbourShapes 邻居形状更新
+
+`Block::updateFromNeighbourShapes(state, world, pos)` 是静态方法，按照 `UPDATE_SHAPE_ORDER`（WEST→EAST→NORTH→SOUTH→DOWN→UP 轴对顺序）遍历6个方向，对每个方向调用 `updatePostPlacement` 累积更新方块状态。对应 MC Java 的 `Block.updateFromNeighbourShapes()`。
+
+**调用场景**：
+- `ServerChunkManager::_postProcessChunk`：区块后处理生成，非液体方块形状更新（flags=276）
+- `PistonBlockEntity::clearPistonBlockEntity`：活塞完成移动后更新被移动方块形状
+- `EndermanPlaceBlockGoal::tick`：末影人放置方块后更新形状
+- `Template::placeInWorld`：结构模板放置后批量更新所有方块形状（flags=276）
+
+**flags=276 含义**：`SKIP_BLOCK_ENTITY_SIDEEFFECTS | KNOWN_SHAPE | INVISIBLE`（256|16|4），区块后处理和结构放置不需要通知邻居和客户端。
+
+**方向迭代顺序**：轴对排列（WEST→EAST, NORTH→SOUTH, DOWN→UP），同轴方向连续处理确保方块形状在轴向上一致收敛。这个顺序与 `ServerWorld::setBlockState` 中的邻居通知顺序不同，后者使用 `NEIGHBOR_DELTAS`（WEST→EAST→DOWN→UP→NORTH→SOUTH）。
+
+**注意**：`getBlockState` 返回 `nullptr` 时（区块未加载）安全跳过该方向；`updatePostPlacement` 是非 const 虚方法，内部使用 `const_cast` 调用。

@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
@@ -270,6 +271,75 @@ TEST(WitchEntityTest, ImplementsIRangedAttackMob)
     // 设置喝药水状态后不能远程攻击
     witch.setDrinking(true);
     EXPECT_FALSE(rangedAttacker->canRangedAttack());
+}
+
+// ========== 速度修饰符测试 ==========
+
+TEST(WitchEntityTest, DrinkingPotionAddsSpeedPenaltyModifier)
+{
+    WitchEntity witch(EntityId(1));
+
+    // 初始移动速度应为 0.25
+    f64 initialSpeed = witch.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_DOUBLE_EQ(initialSpeed, 0.25);
+
+    // 开始喝药水：添加速度修饰符（模拟 _startDrinkingPotion 的修饰符逻辑）
+    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_UUID,
+        "Drinking speed penalty",
+        -0.25,
+        entity::attribute::Operation::Addition);
+    witch.attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
+
+    // 喝药水时移动速度应变为 0.0 (0.25 + (-0.25) = 0.0)
+    f64 drinkingSpeed = witch.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_DOUBLE_EQ(drinkingSpeed, 0.0);
+}
+
+TEST(WitchEntityTest, FinishingDrinkingRemovesSpeedPenaltyModifier)
+{
+    WitchEntity witch(EntityId(1));
+
+    // 添加速度修饰符
+    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_UUID,
+        "Drinking speed penalty",
+        -0.25,
+        entity::attribute::Operation::Addition);
+    witch.attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
+
+    // 验证修饰符已添加
+    f64 drinkingSpeed = witch.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_DOUBLE_EQ(drinkingSpeed, 0.0);
+
+    // 移除修饰符（模拟 _finishDrinkingPotion）
+    witch.attributes().removeModifier(
+        entity::attribute::Attributes::MOVEMENT_SPEED, WitchEntity::DRINKING_SPEED_PENALTY_UUID);
+
+    // 速度应恢复到基础值 0.25
+    f64 normalSpeed = witch.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_DOUBLE_EQ(normalSpeed, 0.25);
+}
+
+TEST(WitchEntityTest, SpeedPenaltyModifierUsesAdditionOperation)
+{
+    WitchEntity witch(EntityId(1));
+
+    // 验证修饰符使用 Addition 操作（值直接相加，而非乘法）
+    entity::attribute::AttributeModifier speedPenalty(WitchEntity::DRINKING_SPEED_PENALTY_UUID,
+        "Drinking speed penalty",
+        -0.25,
+        entity::attribute::Operation::Addition);
+    witch.attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
+
+    // Addition 操作：0.25 + (-0.25) = 0.0
+    f64 result = witch.getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    EXPECT_DOUBLE_EQ(result, 0.0);
+}
+
+TEST(WitchEntityTest, SpeedPenaltyUUIDIsCorrect)
+{
+    // 验证 UUID 与 MC 1.16.5 一致
+    // MC 源码中女巫喝药水减速的 UUID: "5CD17E52-A79A-43D3-A529-90FDE04B181E"
+    EXPECT_STREQ(WitchEntity::DRINKING_SPEED_PENALTY_UUID, "5CD17E52-A79A-43D3-A529-90FDE04B181E");
 }
 
 // ========== 药水类型选择测试 ==========

@@ -230,6 +230,13 @@ public:
     [[nodiscard]] const server::stats::StatisticsManager& getStats() const { return m_statistics; }
 
     /**
+     * @brief 增加物品使用统计（重写 Player 基类）
+     * @param itemId 物品资源位置
+     * @param count 使用次数
+     */
+    void awardUsedStat(const ResourceLocation& itemId, i32 count) override;
+
+    /**
      * @brief 增加物品合成统计（重写 Player 基类）
      * @param itemId 物品资源位置
      * @param count 合成数量

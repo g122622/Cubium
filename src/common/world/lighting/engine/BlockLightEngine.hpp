@@ -29,11 +29,11 @@
 #include "common/world/lighting/storage/EmptinessMap.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include <unordered_map>
+#include <unordered_set>
 
 namespace mc {
 
 // 前向声明
-class IWorld;
 class CollisionShape;
 namespace world::chunk {
 class ChunkSection;
@@ -54,8 +54,12 @@ class BlockStarLightEngine : public StarLightEngine {
 public:
     /**
      * @brief 构造函数
+     *
+     * 方块光照引擎不需要在构造时持有 provider 引用，所有光照操作
+     * 通过方法参数接收 StarLightLightingProvider* lightAccess。
+     * 这遵循"调用时传递"的设计模式，避免引擎持有过期的 provider 引用。
      */
-    explicit BlockStarLightEngine(StarLightLightingProvider* provider);
+    BlockStarLightEngine();
 
     // ========================================================================
     // 公共接口
@@ -169,6 +173,43 @@ public:
     [[nodiscard]] SWMRNibbleArray* getData(const SectionPos& pos) override;
 
     /**
+     * @brief 获取光照数据（只读）
+     */
+    [[nodiscard]] const SWMRNibbleArray* getData(const SectionPos& pos) const override;
+
+    /**
+     * @brief 设置区块列启用状态
+     *
+     * 与天空光照引擎类似，方块光照引擎也需要追踪哪些区块列的光源已启用。
+     * 这影响光照引擎的活动区域判定。
+     *
+     * @param columnPos 编码后的区块列位置
+     * @param enabled 是否启用
+     */
+    void setColumnEnabled(i64 columnPos, bool enabled);
+
+    /**
+     * @brief 保留/释放区块列的光照数据
+     *
+     * 当区块从存档加载时，调用 retainData(pos, true) 来保护光照数据
+     * 不被过早清除。光照完成后调用 retainData(pos, false) 释放保护。
+     *
+     * @param columnPos 编码后的区块列位置
+     * @param retain true 表示保留数据，false 表示允许清除
+     */
+    void retainData(i64 columnPos, bool retain);
+
+    /**
+     * @brief 检查区块列是否已启用
+     */
+    [[nodiscard]] bool isColumnEnabled(i64 columnPos) const;
+
+    /**
+     * @brief 检查区块列的光照数据是否被保留
+     */
+    [[nodiscard]] bool isDataRetained(i64 columnPos) const;
+
+    /**
      * @brief 更新区块的空映射
      *
      * 根据区块中每个区块段是否为空来更新空映射。
@@ -201,6 +242,12 @@ private:
 
     // 空映射缓存（每个区块）
     std::vector<bool> m_emptinessMapCache;
+
+    // 启用的区块列（用于控制光照更新范围）
+    std::unordered_set<i64> m_enabledColumns;
+
+    // 保留数据的区块列（防止光照数据在区块卸载时被清除）
+    std::unordered_set<i64> m_columnsToRetainDataFor;
 };
 
 } // namespace mc

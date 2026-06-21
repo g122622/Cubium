@@ -27,8 +27,10 @@
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -81,6 +83,45 @@ Explosion::Explosion(IWorld& world,
     , m_lootTableManager(lootTableManager)
     , m_random(static_cast<u64>(std::abs(position.x * 3129871.0 + position.y * 116129781.0 + position.z * 172917.0)))
 {}
+
+LivingEntity* Explosion::getIndirectSourceEntity() const
+{
+    if (m_source == nullptr) {
+        return nullptr;
+    }
+
+    // 如果直接源是 LivingEntity，直接返回
+    auto* living = dynamic_cast<LivingEntity*>(m_source);
+    if (living != nullptr) {
+        return living;
+    }
+
+    // 如果直接源是 TNT 实体，返回其点燃者
+    auto* tnt = dynamic_cast<entity::TNTEntity*>(m_source);
+    if (tnt != nullptr) {
+        Entity* owner = tnt->getOwner();
+        if (owner != nullptr) {
+            auto* ownerLiving = dynamic_cast<LivingEntity*>(owner);
+            if (ownerLiving != nullptr) {
+                return ownerLiving;
+            }
+        }
+    }
+
+    // 如果直接源是投掷物，返回其发射者（如果是 LivingEntity）
+    auto* projectile = dynamic_cast<entity::ProjectileEntity*>(m_source);
+    if (projectile != nullptr) {
+        Entity* shooter = projectile->getShooter();
+        if (shooter != nullptr) {
+            auto* shooterLiving = dynamic_cast<LivingEntity*>(shooter);
+            if (shooterLiving != nullptr) {
+                return shooterLiving;
+            }
+        }
+    }
+
+    return nullptr;
+}
 
 // ============================================================================
 // 核心方法
@@ -344,7 +385,7 @@ void Explosion::_destroyBlocks()
         const Block& block = state->getBlock();
 
         // 调用方块的爆炸回调
-        block.onBlockExploded(m_world, pos, *state);
+        block.onBlockExploded(m_world, pos, *state, this);
 
         // 检查方块是否可以被爆炸掉落
         bool canDrop = block.canDropFromExplosion(*state);

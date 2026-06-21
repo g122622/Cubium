@@ -239,9 +239,11 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
     }
 
     if (m_pistonState != nullptr) {
-        world.setBlockState(m_pos, m_pistonState, 67);
+        // 先根据邻居状态更新被移动方块的形状（如栅栏连接、楼梯朝向等）
+        BlockState updatedState = Block::updateFromNeighbourShapes(*m_pistonState, world, m_pos);
+        world.setBlockState(m_pos, &updatedState, 67);
 
-        Block& block = const_cast<Block&>(m_pistonState->getBlock());
+        Block& block = const_cast<Block&>(updatedState.getBlock());
         for (Direction dir : Directions::all()) {
             const BlockPos neighborPos = m_pos.offset(dir);
             const BlockState* neighborState = world.getBlockState(neighborPos);

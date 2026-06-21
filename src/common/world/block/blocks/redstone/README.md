@@ -1,112 +1,85 @@
-# 红石方块 (Redstone Blocks)
+#红石方块(Redstone Blocks)
 
 红石方块模块提供所有红石相关方块的实现。
 
-## 目录结构
+##目录结构
 
-```
-redstone/
-├── RedstoneBlock.hpp/cpp              # 红石块（恒定15强度信号源）
-├── RedstoneTorchBlock.hpp/cpp         # 红石火把（信号反转器）
-├── RedstoneWallTorchBlock.hpp/cpp     # 墙上红石火把
-├── RedstoneWireBlock.hpp/cpp          # 红石线（信号传输，每格衰减1）
-├── RedstoneDiodeBlock.hpp/cpp         # 红石二极管基类（单向传输）
-├── RedstoneRepeaterBlock.hpp/cpp      # 红石中继器（增强+延迟+锁定）
-├── RedstoneComparatorBlock.hpp/cpp    # 红石比较器（比较/减法模式，支持容器和物品展示框检测）
-├── ObserverBlock.hpp/cpp              # 侦测器（方块变化检测，2tick脉冲）
-├── AbstractButtonBlock.hpp/cpp        # 按钮基类（瞬时信号源）
-├── StoneButtonBlock.hpp/cpp           # 石头按钮（10tick脉冲）
-├── WoodButtonBlock.hpp/cpp            # 木按钮（15tick脉冲）
-├── LeverBlock.hpp/cpp                 # 拉杆（持久信号源）
-├── AbstractPressurePlateBlock.hpp/cpp # 压力板基类（实体检测信号源）
-├── StonePressurePlateBlock.hpp/cpp    # 石头压力板（仅生物触发）
-├── WoodPressurePlateBlock.hpp/cpp     # 木压力板（所有实体触发）
-├── WeightedPressurePlateBlock.hpp/cpp # 测重压力板（实体数量→信号强度）
-├── DaylightDetectorBlock.hpp/cpp      # 日光探测器（天空亮度→信号）
-├── PistonBlock.hpp/cpp                # 活塞（推动/拉回方块）
-├── PistonStructureHelper.hpp/cpp      # 活塞推动结构计算器
-├── PistonHeadBlock.hpp/cpp            # 活塞头（存活检查、基座关联、级联销毁）
-├── MovingPistonBlock.hpp/cpp          # 移动中的活塞（动画代理）
-├── DispenserBlock.hpp/cpp             # 发射器（含方块实体支持，红石触发发射物品）
-├── DropperBlock.hpp/cpp               # 投掷器（继承发射器，简化投掷行为，含方块实体支持）
-├── TripWireBlock.hpp/cpp              # 绊线（实体穿越检测，潜行不触发）
-├── TripWireHookBlock.hpp/cpp          # 绊线钩
-├── NoteBlock.hpp/cpp                  # 音符盒（16种乐器，25个音高）
-├── TNTBlock.hpp/cpp                   # TNT（红石/火焰触发爆炸，受 tntExplodes 游戏规则控制）
-├── TargetBlock.hpp/cpp                # 标靶（箭矢命中→信号）
-├── RedstoneLampBlock.hpp/cpp          # 红石灯（信号控制发光）
-├── AbstractRailBlock.hpp/cpp          # 铁轨基类
-├── RailState.hpp/cpp                 # 铁轨连接状态计算器（形状计算、三连接道岔）
-├── RailBlock.hpp/cpp                  # 普通铁轨
-├── PoweredRailBlock.hpp/cpp           # 动力铁轨
-├── DetectorRailBlock.hpp/cpp          # 探测铁轨
-└── ActivatorRailBlock.hpp/cpp         # 激活铁轨
-```
-
-## 内部模块关系
-
-```mermaid
-flowchart TB
-    subgraph Core["红石核心"]
-        RS[RedstoneSystem]
-        RP[RedstonePower]
-        RC[RedstoneContext]
-    end
-
-    subgraph Blocks["红石方块"]
-        Signal["信号源方块"]
-        Process["信号处理方块"]
-        Output["输出方块"]
-    end
-
-    subgraph World["世界系统"]
-        IWorld[IWorld]
-        Tick[TickSystem]
-        BE[BlockEntity]
-    end
-
-    Signal -->|"提供信号"| RS
-    Process -->|"处理信号"| RS
-    RS -->|"更新状态"| Output
-    RS -->|"调度tick"| Tick
-    RS -->|"查询"| RP
-    RS -->|"递归保护"| RC
-    Blocks -->|"方块状态"| IWorld
-    Output -->|"创建"| BE
+``` redstone /
+├── RedstoneBlock.hpp / cpp #红石块（恒定15强度信号源）
+├── RedstoneTorchBlock.hpp / cpp #红石火把（信号反转器）
+├── RedstoneWallTorchBlock.hpp / cpp #墙上红石火把
+├── RedstoneWireBlock.hpp / cpp #红石线（信号传输，每格衰减1）
+├── RedstoneDiodeBlock.hpp / cpp #红石二极管基类（单向传输）
+├── RedstoneRepeaterBlock.hpp / cpp #红石中继器（增强 + 延迟 +
+            锁定）
+├── RedstoneComparatorBlock.hpp / cpp #红石比较器（比较 / 减法模式，支持容器和物品展示框检测）
+├── ObserverBlock.hpp / cpp #侦测器（方块变化检测，2tick脉冲）
+├── AbstractButtonBlock.hpp / cpp #按钮基类（瞬时信号源）
+├── StoneButtonBlock.hpp / cpp #石头按钮（10tick脉冲）
+├── WoodButtonBlock.hpp / cpp #木按钮（15tick脉冲）
+├── LeverBlock.hpp / cpp #拉杆（持久信号源）
+├── AbstractPressurePlateBlock.hpp / cpp #压力板基类（实体检测信号源）
+├── StonePressurePlateBlock.hpp / cpp #石头压力板（仅生物触发）
+├── WoodPressurePlateBlock.hpp / cpp #木压力板（所有实体触发）
+├── WeightedPressurePlateBlock.hpp / cpp #测重压力板（实体数量→信号强度）
+├── DaylightDetectorBlock.hpp / cpp #日光探测器（天空亮度→信号）
+├── PistonBlock.hpp / cpp #活塞（推动 / 拉回方块）
+├── PistonStructureHelper.hpp / cpp #活塞推动结构计算器
+├── PistonHeadBlock.hpp / cpp #活塞头（存活检查、基座关联、级联销毁）
+├── MovingPistonBlock.hpp / cpp #移动中的活塞（动画代理）
+├── DispenserBlock.hpp / cpp #发射器（含方块实体支持，红石触发发射物品）
+├── DropperBlock.hpp / cpp #投掷器（继承发射器，简化投掷行为，含方块实体支持）
+├── TripWireBlock.hpp / cpp #绊线（实体穿越检测，潜行不触发）
+├── TripWireHookBlock.hpp / cpp #绊线钩
+├── NoteBlock.hpp / cpp #音符盒（16种乐器，25个音高）
+├── TNTBlock.hpp / cpp #TNT（红石 / 火焰触发爆炸，受 tntExplodes 游戏规则控制）
+├── TargetBlock.hpp / cpp #标靶（箭矢命中→信号）
+├── RedstoneLampBlock.hpp / cpp #红石灯（信号控制发光）
+├── AbstractRailBlock.hpp / cpp #铁轨基类
+├── RailState.hpp / cpp #铁轨连接状态计算器（形状计算、三连接道岔）
+├── RailBlock.hpp / cpp #普通铁轨
+├── PoweredRailBlock.hpp / cpp #动力铁轨
+├── DetectorRailBlock.hpp / cpp #探测铁轨
+└── ActivatorRailBlock.hpp /
+                cpp #激活铁轨
 ```
 
-## 上下游外部依赖关系
+                ##内部模块关系
 
-### 上游依赖（本目录依赖的模块）
+```mermaid flowchart TB subgraph Core["红石核心"] RS[RedstoneSystem] RP[RedstonePower] RC[RedstoneContext] end
 
-| 模块 | 用途 |
-|------|------|
-| `world/redstone/RedstoneSystem` | 红石系统核心，信号传播管理 |
-| `world/redstone/RedstonePower` | 红石信号查询工具 |
-| `world/redstone/RedstoneContext` | 递归保护上下文 |
-| `world/tick/TickPriority` | tick 优先级 |
-| `world/blockentity/BlockEntity` | 方块实体基类 |
-| `world/blockentity/redstone/PistonBlockEntity` | 活塞方块实体 |
-| `world/IWorld` | 世界接口 |
-| `item/BlockItemUseContext` | 放置上下文 |
-| `util/property/Properties` | 方块属性 |
+                    subgraph Blocks["红石方块"] Signal["信号源方块"] Process["信号处理方块"] Output["输出方块"] end
 
-### 下游依赖（依赖本目录的模块）
+                        subgraph World["世界系统"] IWorld[IWorld] Tick[TickSystem] BE[BlockEntity] end
 
-| 模块 | 用途 |
-|------|------|
-| `world/World` | 红石方块的世界交互 |
-| `block/BlockRegistry` | 方块注册 |
-| `blockentity/` | 方块实体创建 |
+                            Signal-- >
+    | "提供信号" | RS Process-- > | "处理信号" | RS RS-- > | "更新状态" | Output RS-- > | "调度tick" | Tick RS-- > |
+    "查询" | RP RS-- > | "递归保护" | RC Blocks-- > | "方块状态" | IWorld Output-- > | "创建" |
+    BE
+```
 
-## 容易踩的坑
+    ##上下游外部依赖关系
 
-### 1. 红石火把无限递归
+    ## #上游依赖（本目录依赖的模块）
 
-红石火把更新可能触发反馈循环，必须使用 `RedstoneContext` 或 `RedstoneSystem` 跟踪更新位置：
+    | 模块 | 用途 | | -- -- --| -- -- --| | `world / redstone / RedstoneSystem` | 红石系统核心，信号传播管理 |
+    | `world / redstone / RedstonePower` | 红石信号查询工具 | | `world / redstone / RedstoneContext` | 递归保护上下文 |
+    | `world / tick / TickPriority` | tick 优先级 | | `world / blockentity / BlockEntity` | 方块实体基类 |
+    | `world / blockentity / redstone / PistonBlockEntity` | 活塞方块实体 | | `world / IWorld` | 世界接口 |
+    | `item / BlockItemUseContext` | 放置上下文 | | `util / property / Properties` | 方块属性 |
 
-```cpp
-auto& redstone = RedstoneSystem::instance();
+    ## #下游依赖（依赖本目录的模块）
+
+    | 模块 | 用途 | | -- -- --| -- -- --| | `world / World` | 红石方块的世界交互 | | `block / BlockRegistry` |
+    方块注册 | | `blockentity /` | 方块实体创建 |
+
+    ##容易踩的坑
+
+    ## #1. 红石火把无限递归
+
+        红石火把更新可能触发反馈循环，必须使用 `RedstoneContext` 或 `RedstoneSystem` 跟踪更新位置：
+
+```cpp auto& redstone = RedstoneSystem::instance();
 if (!redstone.isUpdating(pos)) {
     redstone.beginUpdate(pos);
     redstone.updateNeighbors(world, pos, block);
@@ -114,137 +87,197 @@ if (!redstone.isUpdating(pos)) {
 }
 ```
 
-### 2. 中继器更新顺序
+    ## #2. 中继器更新顺序
 
-中继器面向另一个中继器时，更新顺序影响结果，必须使用正确的 `TickPriority`：
-- 面向另一个中继器：`TickPriority::ExtremelyHigh`
-- 当前已充能：`TickPriority::VeryHigh`
-- 其他情况：`TickPriority::High`
+        中继器面向另一个中继器时，更新顺序影响结果，必须使用正确的 `TickPriority`： -
+    面向另一个中继器：`TickPriority::ExtremelyHigh` - 当前已充能：`TickPriority::VeryHigh` -
+    其他情况：`TickPriority::High`
 
-### 3. 红石线连接状态
+    ## #3. 红石线连接状态
 
-忘记更新红石线的连接状态会导致信号传输错误，必须在 `updatePostPlacement` 中重新计算连接。
+        忘记更新红石线的连接状态会导致信号传输错误，必须在 `updatePostPlacement` 中重新计算连接。
 
-### 4. 强弱信号混淆
+    ## #4. 强弱信号混淆
 
-- **强信号**：直接从方块输出（`getStrongPower`），只向输出方向
-- **弱信号**：通过方块传导（`getWeakPower`），向所有方向
+    - **强信号**：直接从方块输出（`getStrongPower`），只向输出方向 -
+    **弱信号**：通过方块传导（`getWeakPower`），向所有方向
 
-### 5. 按钮和拉杆支撑检测
+        ## #5. 按钮和拉杆支撑检测
 
-按钮/拉杆在支撑方块被移除后不会自动掉落，必须在 `neighborChanged` 中检测支撑方块是否还存在。
+            按钮 /
+        拉杆在支撑方块被移除后不会自动掉落，必须在 `neighborChanged` 中检测支撑方块是否还存在。
 
-### 6. 侦测器脉冲时长
+        ## #6. 侦测器脉冲时长
 
-侦测器脉冲持续 **2 tick**，使用 `PULSE_DURATION` 常量。
+        侦测器脉冲持续* *
+        2 tick**，使用 `PULSE_DURATION` 常量。
 
-### 7. 墙上红石火把方向
+        ## #7. 墙上红石火把方向
 
-`HORIZONTAL_FACING` 指向火把朝向的方向，输出信号时需要**排除该方向**（不向附着面输出）。
+`HORIZONTAL_FACING` 指向火把朝向的方向，输出信号时需要** 排除该方向**（不向附着面输出）。
 
-### 8. 活塞推动链检测
+        ## #8. 活塞推动链检测
 
-活塞推动时必须限制最大推动距离为 **12 格**，超过则推动失败。
+        活塞推动时必须限制最大推动距离为* *
+        12 格**，超过则推动失败。
 
-### 9. 活塞收回时的方块实体
+        ## #9. 活塞收回时的方块实体
 
-活塞收回时方块实体可能丢失，必须使用 `MovingPistonBlock` 作为动画代理。
+            活塞收回时方块实体可能丢失，必须使用 `MovingPistonBlock` 作为动画代理。
 
-### 9b. 活塞破坏方块时的 spawnAfterBreak
+        ## #9b. 活塞破坏方块时的 spawnAfterBreak
 
-活塞推出时如果前方的方块无法被推动（如实体方块在推动路径末端），该方块会被破坏。破坏后调用 `spawnAfterBreak(world, pos, *destroyState, nullptr, false)`，使得虫蚀方块等特殊方块能正确触发生成逻辑（如蠹虫）。调用顺序：先 `setBlockState(nullptr)` 移除方块，再调用 `spawnAfterBreak`，与 MC Java 行为一致。
+            活塞推出时如果前方的方块无法被推动（如实体方块在推动路径末端），该方块会被破坏。破坏后调用 `spawnAfterBreak(
+                world,
+                pos,
+                *destroyState,
+                nullptr,
+                false)`，使得虫蚀方块等特殊方块能正确触发生成逻辑（如蠹虫）。调用顺序：先 `setBlockState(nullptr)` 移除方块，再调用 `spawnAfterBreak`，与
+        MC Java 行为一致。
 
-### 10. 信号源强/弱信号区分
+        ## #10. 信号源强
+        /
+        弱信号区分
 
-按钮、拉杆等信号源必须正确区分：
-- 强信号只向输出方向输出
-- 弱信号向所有方向输出
+        按钮、拉杆等信号源必须正确区分：
+    - 强信号只向输出方向输出 -
+    弱信号向所有方向输出
 
-### 11. 绊线潜行玩家
+    ## #11. 绊线潜行玩家
 
-**潜行的玩家不会触发绊线**，使用 `entity->isSneaking()` 检测。
+        ** 潜行的玩家不会触发绊线**，使用 `entity
+            ->isSneaking()` 检测。
 
-### 12. 压力板实体过滤
+    ## #12. 压力板实体过滤
 
-压力板检测实体时需要调用 `entity->doesEntityNotTriggerPressurePlate()`：
-- 玩家、生物：返回 `false`（会触发）
-- 物品实体、箭矢等：返回 `true`（不触发）
+    压力板检测实体时需要调用 `entity->doesEntityNotTriggerPressurePlate()`： -
+    玩家、生物：返回 `false`（会触发） -
+    物品实体、箭矢等：返回 `true`（不触发）
 
-### 13. 比较器物品展示框检测
+    ## #13. 比较器物品展示框检测
 
-比较器检测物品展示框时：
-- 物品展示框朝向必须与比较器朝向相同
-- 信号强度 = rotation + 1（范围 1-8）
-- 只有唯一一个物品展示框时才返回信号
+    比较器检测物品展示框时：
+    - 物品展示框朝向必须与比较器朝向相同 - 信号强度 = rotation + 1（范围 1 - 8） -
+    只有唯一一个物品展示框时才返回信号
 
-### 14. 红石线形状缓存
+    ## #14. 红石线形状缓存
 
-红石线形状根据连接状态动态计算，使用 `std::unordered_map<u32, const CollisionShape*>` 缓存组合形状。
+    红石线形状根据连接状态动态计算，使用 `std::unordered_map<u32, const CollisionShape*>` 缓存组合形状。
 
-### 15. 压力板形状变化
+    ## #15. 压力板形状变化
 
-压力板有两种形状：
-- 未按下 (power=0)：高度 1 像素
-- 按下 (power>0)：高度 0.5 像素
+    压力板有两种形状：
+    - 未按下(power = 0)：高度 1 像素 -
+    按下(power > 0)：高度 0.5 像素
 
-### 16. 绊线形状变化
+    ## #16. 绊线形状变化
 
-绊线根据 ATTACHED 属性有不同形状：
-- 绷紧 (ATTACHED=true)：悬浮在空中
-- 松弛 (ATTACHED=false)：下垂
+    绊线根据 ATTACHED 属性有不同形状：
+    - 绷紧(ATTACHED = true)：悬浮在空中 -
+    松弛(ATTACHED = false)：下垂
 
-### 17. 音符盒乐器映射
+    ## #17. 音符盒乐器映射
 
-音符盒根据下方方块材质决定乐器类型，必须使用 `NoteBlockInstrument.byState` 进行映射。
+    音符盒根据下方方块材质决定乐器类型，必须使用 `NoteBlockInstrument.byState` 进行映射。
 
-### 18. TNT 方块与 tntExplodes 游戏规则
+    ## #18. TNT 方块与 tntExplodes 游戏规则
 
-TNT 方块的关键方法均受 `tntExplodes` 游戏规则控制：
+    TNT 方块的关键方法均受 `tntExplodes` 游戏规则控制：
 
-- **`ignite()`**：当 `tntExplodes=false` 时返回 `false`，不生成 TNT 实体、不播放音效、不移除方块。返回值为 `[[nodiscard]] bool`，调用方需根据返回值决定后续行为（如打火石发射器需要 `_setSuccess(false)`）。带 `LivingEntity*` 参数的重载版本会将点燃者信息传递给 TNT 实体，用于伤害归属判定。
-- **`explode()`**：当 `tntExplodes=false` 时仅移除方块（不创建爆炸效果），与 MC Java 行为一致。
-- **`onBlockExploded()`**：当 `tntExplodes=false` 时不生成连锁 TNT 实体（对应 MC Java 的 `wasExploded()`）。
-- **`onBlockActivated()`**：玩家使用打火石/火焰弹右键点燃 TNT。打火石消耗耐久度，火焰弹消耗一个物品（创造模式不消耗）。`tntExplodes=false` 时显示 action bar 消息 "block.minecraft.tnt.disabled"。
-- **`onProjectileHit()`**：燃烧投掷物命中 TNT 时点燃。从 ProjectileEntity 获取发射者作为点燃者。
-- **`playerWillDestroy()`**：玩家破坏不稳定 TNT（UNSTABLE=true）时自动点燃，创造模式例外。
-- **`canDropFromExplosion()`**：返回 `false`，TNT 被爆炸摧毁时不掉落物品（对应 MC Java 的 `dropFromExplosion` 返回 `false`）。
+    - **`prime()`*
+        *（静态方法）：对应 MC Java 的 `TntBlock.prime()`，仅生成点燃的 TNT
+         实体、播放音效、发出 `PRIME_FUSE` 游戏事件，** 不移除方块**。调用方需自行负责移除方块。当 `tntExplodes =
+                                                          false` 时返回 `false`。 -
+    **`ignite()`* *：调用 `prime()` 成功后移除 TNT 方块（`setBlockState(pos, nullptr, 11)`）。是 `prime() +
+    移除方块` 的便捷组合。返回值为 `[[nodiscard]] bool`，调用方需根据返回值决定后续行为。带 `LivingEntity
+        *` 参数的重载版本会将点燃者信息传递给 TNT 实体。
+    - **`explode()`**：当 `tntExplodes = false` 时仅移除方块（不创建爆炸效果），与 MC Java 行为一致。 -
+    **`onBlockExploded()`**：当 `tntExplodes = false` 时不生成连锁 TNT 实体（对应 MC Java 的 `wasExploded()`）。 -
+    **`onBlockActivated()`* *：玩家使用打火石 /
+        火焰弹右键点燃
+        TNT。先调用 `prime()`，成功后移除方块并消耗物品。打火石消耗耐久度，火焰弹消耗一个物品（创造模式不消耗）。`tntExplodes =
+                                                   false` 时显示 action bar 消息 "block.minecraft.tnt.disabled"。 -
+    **`onProjectileHit()`*
+        *：燃烧投掷物命中 TNT 时点燃。从 ProjectileEntity 获取发射者作为点燃者。先调用 `prime()`，成功后移除方块。
+    - **`playerWillDestroy()`**：玩家破坏不稳定 TNT（UNSTABLE = true）时自动点燃，创造模式例外。 *
+        *只调用 `prime()`，不移除方块 * *（方块移除由破坏流程处理，避免双重移除）。
+    -
+    **`canDropFromExplosion()`*
+        *：返回 `false`，TNT 被爆炸摧毁时不掉落物品（对应 MC Java 的 `dropFromExplosion` 返回 `false`）。
 
-此外：
-- `_hasFlammableNeighbor()` 检测相邻火焰/熔岩，通过 `onBlockAdded()` 和 `neighborChanged()` 间接调用。
-- `onBlockExploded()` 在 `Explosion::_destroyBlocks()` 中被调用，当其他爆炸摧毁 TNT 方块时生成短引信 TNT 实体（引信公式：`nextInt(fuse/4) + fuse/8`，即 [10, 29] ticks）。
-- `ignite()` 内部会发出 `PRIME_FUSE` 游戏事件（用于幽匿感测体检测）。
+        * *`prime()` 与 `ignite()` 的区别 * *（对应 MC Java 设计）：
+    - `prime()`：仅生成实体 + 音效
+    + 事件， * *调用方自行处理方块移除 * *。适用于 `playerWillDestroy`（破坏流程移除方块）。 - `ignite()`：`prime()` +
+    移除方块。适用于 `onBlockAdded`、`neighborChanged`、`onBlockActivated`、`onProjectileHit` 等场景。
 
-### 19. TNT 火焰检测
+    此外：
+    - `_hasFlammableNeighbor()` 检测相邻火焰 / 熔岩，通过 `onBlockAdded()` 和 `neighborChanged()` 间接调用。
+    - `onBlockExploded()` 在 `Explosion::_destroyBlocks()` 中被调用，当其他爆炸摧毁 TNT 方块时生成短引信 TNT
+    实体（引信公式：`nextInt(fuse / 4) +
+    fuse /
+        8`，即[10, 29] ticks）。连锁 TNT 的 owner 通过 `explosion->getIndirectSourceEntity()` 追溯爆炸源链。
 
-TNT 需要检测相邻位置的火焰（包括灵魂火）和熔岩，不仅检测红石信号。
+        ## #19. TNT 火焰检测
 
-### 20. 活塞头存活检查与级联销毁
+        TNT 需要检测相邻位置的火焰（包括灵魂火）和熔岩，不仅检测红石信号。
 
-活塞头（PistonHeadBlock）不是独立方块，必须依赖已伸出的活塞基座才能存活：
+        ## #20. 活塞头存活检查与级联销毁
 
-- **存活条件**（`isValidPosition`）：反方向有匹配的已伸出活塞基座（类型+EXTENDED+FACING 三重匹配），或反方向是方向匹配的 MOVING_PISTON
-- **自动消失**（`updatePostPlacement`）：当活塞基座消失或收回时，活塞头收到更新后返回空气状态
-- **级联销毁**（`onBlockRemoved`）：活塞头被移除时，检查反方向是否有匹配的已伸出活塞基座，如有则销毁基座并生成掉落物
-- **创造模式级联销毁**（`playerWillDestroy`）：玩家在创造模式破坏活塞头时，同时销毁匹配的活塞基座但不产生掉落物
-- **通知转发**（`neighborChanged`）：活塞头存活时将邻居变化通知转发到活塞基座方向，确保红石信号能传导到活塞
-- **推动反应**：活塞头的 `getPushReaction` 返回 `Block`，不能被活塞推动
-- **类型匹配**：Normal 活塞头对应 PISTON，Sticky 活塞头对应 STICKY_PISTON，类型不匹配则无法存活
+        活塞头（PistonHeadBlock）不是独立方块，必须依赖已伸出的活塞基座才能存活：
 
-### 21. 铁轨连接系统（RailState）
+    - **存活条件 * *（`isValidPosition`）：反方向有匹配的已伸出活塞基座（类型 + EXTENDED
+    + FACING 三重匹配），或反方向是方向匹配的 MOVING_PISTON -
+    **自动消失 * *（`updatePostPlacement`）：当活塞基座消失或收回时，活塞头收到更新后返回空气状态 -
+    **级联销毁 * *（`onBlockRemoved`）：活塞头被移除时，检查反方向是否有匹配的已伸出活塞基座，如有则销毁基座并生成掉落物
+    - **创造模式级联销毁 * *（`playerWillDestroy`）：玩家在创造模式破坏活塞头时，同时销毁匹配的活塞基座但不产生掉落物 -
+    **通知转发 * *（`neighborChanged`）：活塞头存活时将邻居变化通知转发到活塞基座方向，确保红石信号能传导到活塞 -
+    **推动反应 * *：活塞头的 `getPushReaction` 返回 `Block`，不能被活塞推动 -
+    **类型匹配 *
+        *：Normal 活塞头对应 PISTON，Sticky 活塞头对应 STICKY_PISTON，类型不匹配则无法存活
 
-铁轨的连接形状计算由 `RailState` 类负责，完整复刻了 MC Java 的 `RailState` 逻辑：
+        ## #21. 铁轨连接系统（RailState）
 
-- **三层级Y轴搜索**：`hasNeighborRail` 和 `getRail` 检查同层、上方(+1)、下方(-1)三个Y层级，确保斜坡铁轨能正确发现和连接不同Y高度的相邻铁轨
-- **双向连接验证**：`removeSoftConnections` 验证对方铁轨是否仍然连接回来，`canConnectTo` 限制每条铁轨最多2个连接
-- **三连接道岔切换**：普通铁轨在三连接时根据红石信号选择弯轨方向（T型道岔的核心逻辑）
-  - 有红石信号：优先级 SE → SW → NE → NW（最后匹配胜出）
-  - 无红石信号：优先级 NW → NE → SW → SE（反方向）
-  - 通过 `RailBlock::updateState` 在邻居信号源变化且铁轨有三连接时触发重算
-- **四连接处理**：保持当前形状，红石信号决定弯轨方向
-- **直线铁轨**：动力铁轨、探测铁轨、激活铁轨（`isStraight=true`）不支持弯轨，三/四连接时保持当前直轨形状
-- **连接传播**：`place()` 中 `updateBlock=true` 模式下会通知相邻铁轨更新连接
-- **updateBlock 参数**：
-  - `true`：放置铁轨时（`onBlockAdded`）使用，直接设置方块状态并传播连接
-  - `false`：`updatePostPlacement` 时使用，仅返回计算后的状态，由调用方设置
-- **放置流程**：`getStateForPlacement` 只返回基于玩家朝向的初始形状（南北/东西），真正的连接计算在 `onBlockAdded` 中通过 `updateDir` 触发
-- **RailState 内部状态**：`m_state` 存储构造时传入的方块状态，用于 `withRailShape` 计算新状态，避免从世界中读取可能为空的方块状态
+        铁轨的连接形状计算由 `RailState` 类负责，完整复刻了 MC Java 的 `RailState` 逻辑：
+
+    - **三层级Y轴搜索 *
+        *：`hasNeighborRail` 和 `getRail` 检查同层、上方(+1)、下方(
+            -1) 三个Y层级，确保斜坡铁轨能正确发现和连接不同Y高度的相邻铁轨
+    - ** 双向连接验证**：`removeSoftConnections` 验证对方铁轨是否仍然连接回来，`canConnectTo` 限制每条铁轨最多2个连接
+    - ** 三连接道岔切换**：普通铁轨在三连接时根据红石信号选择弯轨方向（T型道岔的核心逻辑）
+    - 有红石信号：优先级 SE → SW → NE → NW（最后匹配胜出） - 无红石信号：优先级 NW → NE → SW → SE（反方向）
+    - 通过 `RailBlock::updateState` 在邻居信号源变化且铁轨有三连接时触发重算
+    - ** 四连接处理**：保持当前形状，红石信号决定弯轨方向
+    - ** 直线铁轨**：动力铁轨、探测铁轨、激活铁轨（`isStraight = true`）不支持弯轨，三 / 四连接时保持当前直轨形状 -
+    **连接传播 * *：`place()` 中 `updateBlock = true` 模式下会通知相邻铁轨更新连接 -
+    **updateBlock 参数 * *： - `true`：放置铁轨时（`onBlockAdded`）使用，直接设置方块状态并传播连接
+    - `false`：`updatePostPlacement` 时使用，仅返回计算后的状态，由调用方设置 -
+    **放置流程 * *：`getStateForPlacement` 只返回基于玩家朝向的初始形状（南北
+        / 东西），真正的连接计算在 `onBlockAdded` 中通过 `updateDir` 触发
+    -
+    **RailState 内部状态**：`m_state` 存储构造时传入的方块状态，用于 `withRailShape` 计算新状态，避免从世界中读取可能为空的方块状态
+
+## #22. 铁轨含水功能（IWaterLoggable）
+
+所有铁轨方块（RailBlock、PoweredRailBlock、DetectorRailBlock、ActivatorRailBlock）均通过 `AbstractRailBlock` 继承 `IWaterLoggable` 接口，支持在水下放置。这与 MC Java 的 `BaseRailBlock implements SimpleWaterloggedBlock` 行为一致。
+
+### 方块状态属性
+
+| 方块 | 状态属性 | WATERLOGGED 默认值 |
+|------|---------|-------------------|
+| RailBlock | SHAPE (10值) + WATERLOGGED | false |
+| PoweredRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
+| DetectorRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
+| ActivatorRailBlock | SHAPE (6值) + POWERED + WATERLOGGED | false |
+
+### 含水功能实现
+
+- **getStateForPlacement**：检测放置位置是否有水源，如果有则设置 `WATERLOGGED=true`
+- **updatePostPlacement**：当 `WATERLOGGED=true` 时调用 `waterloggable::scheduleWaterTick()` 调度流体 tick
+- **getFluidState**：含水时返回水的 FluidState，否则返回默认空流体
+- **isWaterlogged**：读取 `WATERLOGGED` 属性值
+- **canContainFluid / receiveFluid / pickupFluid**：继承自 `IWaterLoggable` 默认实现
+
+### 客户端/服务端区分
+
+- **updateDir**：客户端（`isClientSide() == true`）直接返回原状态，不执行 RailState 计算
+- **neighborChanged**：客户端跳过邻居更新处理，避免铁轨形状在客户端与服务端不同步

@@ -108,6 +108,16 @@ public:
      */
     void resetAttackCooldown() { m_attackCooldown = ATTACK_COOLDOWN; }
 
+    // ========== 常量 ==========
+
+    /**
+     * @brief 喝药水时移动速度减益的 UUID
+     *
+     * MC 1.16.5: 女巫喝药水时移动速度减少 0.25（Addition 操作）
+     * UUID: "5CD17E52-A79A-43D3-A529-90FDE04B181E"
+     */
+    static constexpr const char* DRINKING_SPEED_PENALTY_UUID = "5CD17E52-A79A-43D3-A529-90FDE04B181E";
+
     // ========== 阳光燃烧 ==========
 
     /**
@@ -306,9 +316,6 @@ private:
 
     // 攻击药水选择概率
     static constexpr f32 WEAKNESS_CHANCE = 0.25f; // 虚弱药水概率 25%
-
-    // 移动速度减益 UUID
-    static constexpr const char* DRINKING_SPEED_PENALTY_UUID = "5CD17E52-A79A-43D3-A529-90FDE04B181E";
 };
 
 } // namespace mc

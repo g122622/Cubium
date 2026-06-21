@@ -20,6 +20,9 @@ dimension/
 │   ├── Teleporter.hpp           # 传送器基类和子类
 │   ├── Teleporter.cpp           # 传送器实现
 │   └── README.md                # 传送系统文档
+├── end/                         # 末地维度战斗系统
+│   ├── EndDragonFight.hpp/cpp   # 末影龙战斗管理器（击杀奖励、折跃门、龙蛋）
+│   └── README.md                # 末地战斗系统文档
 └── README.md                    # 本文档
 ```
 

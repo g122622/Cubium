@@ -941,6 +941,7 @@ add_library(mc_common STATIC
     world/dimension/DimensionType.cpp
     world/dimension/Dimension.cpp
     world/dimension/DimensionManager.cpp
+    world/dimension/end/EndDragonFight.cpp
     world/dimension/teleport/PortalSize.cpp
     world/dimension/teleport/Teleporter.cpp
 
@@ -989,7 +990,12 @@ add_library(mc_common STATIC
     world/biome/source/EndBiomeSource.cpp
 
     # World - Generation - Surface
-    world/gen/surface/SurfaceRules.cpp
+    world/gen/surface/VerticalAnchor.cpp
+    world/gen/surface/SurfaceCondition.cpp
+    world/gen/surface/SurfaceRule.cpp
+    world/gen/surface/SurfaceRuleContext.cpp
+    world/gen/surface/SurfaceSystem.cpp
+    world/gen/surface/SurfaceRulesFactory.cpp
 
     # World - Generation - Aquifer
     world/gen/aquifer/Aquifer.cpp
@@ -1129,6 +1135,9 @@ add_library(mc_common STATIC
     world/gen/placement/PlacementUtils.cpp
     world/gen/placement/Placements.cpp
     world/gen/placement/PlacementRegistry.cpp
+
+    # World - Generation - Value Provider
+    world/gen/valueprovider/IntProviderParser.cpp
 
     # World - Generation - Spawn
     world/gen/spawn/WorldGenSpawner.cpp

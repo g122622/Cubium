@@ -54,8 +54,7 @@ Biome createNetherWastes()
     biome.setHumidity(0.0f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 3344392 (暗红色)
     biome.setEffects(BiomeEffects::Builder().fogColor(3344392).waterColor(4159204).waterFogColor(329011).build());
@@ -95,8 +94,7 @@ Biome createSoulSandValley()
     biome.setHumidity(0.0f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::SOUL_SAND));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::SOUL_SOIL));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 1787717 (蓝灰色)
     biome.setEffects(BiomeEffects::Builder().fogColor(1787717).waterColor(4159204).waterFogColor(329011).build());
@@ -136,8 +134,7 @@ Biome createCrimsonForest()
     biome.setHumidity(0.0f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::CRIMSON_NYLIUM));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 3343107 (暗红色)
     biome.setEffects(BiomeEffects::Builder().fogColor(3343107).waterColor(4159204).waterFogColor(329011).build());
@@ -177,8 +174,7 @@ Biome createWarpedForest()
     biome.setHumidity(0.0f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::WARPED_NYLIUM));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::NETHERRACK));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 1705242 (青色)
     biome.setEffects(BiomeEffects::Builder().fogColor(1705242).waterColor(4159204).waterFogColor(329011).build());
@@ -220,8 +216,7 @@ Biome createBasaltDeltas()
     biome.setHumidity(0.0f);
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::BASALT));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::BASALT));
-    biome.setClimate(BiomeClimate(
-        BiomeClimate::Precipitation::None, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
+    biome.setClimate(BiomeClimate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f, 0.0f, 0.0f, 0.0f));
 
     // 视觉效果：雾颜色 6840176 (深灰蓝)
     biome.setEffects(BiomeEffects::Builder().fogColor(6840176).waterColor(4341314).waterFogColor(4341314).build());

@@ -6,7 +6,7 @@
 
 ```
 world/
-├── IWorld.hpp/cpp              # 世界访问接口
+├── IWorld.hpp/cpp              # 世界访问接口（含 isBlockInLine 方块射线遍历）
 ├── IWorldWriter.hpp            # 世界写入接口（生成用）
 ├── WorldConstants.hpp          # 世界常量（高度限制、区块尺寸等）和坐标转换工具
 ├── WorldConfig.hpp             # 世界配置

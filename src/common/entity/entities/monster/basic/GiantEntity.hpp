@@ -89,9 +89,15 @@ public:
 
     // ========== 寻路权重 ==========
 
-    // TODO: 重写 getPathWeight — 巨人返回亮度相关值（不取反）：
-    // 返回 brightness - 0.5f，与 AnimalEntity 类似但不检查草方块
-    // 对应 MC Giant.getWalkTargetValue（唯一不取反的 Monster 子类）
+    /**
+     * @brief 获取路径权重
+     *
+     * 巨人是唯一不取反光照权重的 Monster 子类，
+     * 返回 brightness - 0.5f（偏好明亮区域），
+     * 与 AnimalEntity 类似但不检查草方块。
+     * 对应 MC Giant.getWalkTargetValue。
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
 
     // ========== 生命周期 ==========
 

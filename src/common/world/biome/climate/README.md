@@ -10,8 +10,9 @@
 
 ```
 climate/
-├── Climate.hpp    — 参数类型、采样器、参数列表定义
-└── Climate.cpp    — 采样器实现
+├── Climate.hpp    — 参数类型、采样器、参数列表定义（含 RTree 索引）
+├── Climate.cpp    — 采样器实现
+└── RTree.hpp      — RTree 空间索引（7 维参数空间加速最近邻搜索）
 ```
 
 ## 内部模块关系
@@ -23,7 +24,11 @@ Sampler ──持有──→ DensityFunction（6个引用）
                     │
 ParameterList<BiomeId> ──findValue()──→ BiomeId
   │                                     ↑
-  └──持有──→ ParameterPoint ──fitness()──┘
+  ├─持有──→ RTree<BiomeId> ──search()──┘
+  │           │
+  │           └─分支限界最近邻搜索（带缓存）
+  │
+  └─持有──→ ParameterPoint ──fitness()──┘  （暴力搜索备用）
 ```
 
 ## 外部依赖关系
@@ -47,5 +52,6 @@ ParameterList<BiomeId> ──findValue()──→ BiomeId
 2. **量化精度**：所有气候参数比较都基于量化后的整数值（×10000），
    不要直接比较浮点值
 3. **offset 字段**：ParameterPoint 的 offset 用于微调优先级，TargetPoint 中 offset 固定为 0
-4. **ParameterList 线性搜索**：当前实现使用线性搜索，原版使用 RTree 加速，
-   后续可根据性能需求替换
+4. **ParameterList 使用 RTree 加速搜索**：构造 ParameterList 时自动构建 RTree 索引，
+   `add()` 方法会自动重建索引；`findValue()` 使用 RTree 分支限界搜索，
+   `findValueBruteForce()` 使用线性搜索（用于测试验证）

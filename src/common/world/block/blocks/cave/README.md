@@ -67,6 +67,8 @@ Block
 | `entity/utils/ItemDropHelper` | 物品掉落工具 |
 | `item/Items` | 物品注册表（GLOW_BERRIES等） |
 | `sound/SoundEvents` | 音效事件 |
+| `world/redstone/RedstonePower` | 红石信号检测（BigDripleafBlock） |
+| `world/gameevent/GameEvents` | 游戏振动事件（BigDripleafBlock） |
 
 ### 下游依赖（谁依赖本模块）
 
@@ -125,6 +127,8 @@ Block
 ### #8. BigDripleafBlock/BigDripleafStemBlock 支撑检查
 
 `BigDripleafBlock::isValidPosition()` 检查下方是否为大滴叶、大滴叶茎或 `BIG_DRIPLEAF_PLACEABLE` 标签方块。`BigDripleafStemBlock::isValidPosition()` 检查下方是否为茎/标签方块**且**上方是否为茎/大滴叶。`BigDripleafBlock` 在下方支撑失效时直接返回空气；`BigDripleafStemBlock` 在上方或下方支撑失效时通过 `scheduleBlockTick(pos, this, 1)` 延迟1tick后再检查，若仍无法存活则在 `tick()` 中销毁方块并掉落物品——延迟机制可避免邻居更新期间的级联问题。`BigDripleafBlock` 还会在上方也是大滴叶时将自身转换为大滴叶茎。
+
+BigDripleafBlock 完整实现了红石信号交互：`neighborChanged` 和 `tick` 中检测 `RedstonePower::isPowered()`，红石信号激活时立即重置倾斜状态为 NONE；`onEntityCollision` 在红石信号激活时不允许实体触发倾斜；`onProjectileHit` 直接设为 FULL 倾斜（不受红石影响）。倾斜状态变化时播放音效（`BLOCK_BIG_DRIPLEAF_TILT_DOWN` / `BLOCK_BIG_DRIPLEAF_TILT_UP`），FULL 倾斜触发 `GameEvents::BLOCK_CHANGE` 振动事件。
 
 ### #9. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
 

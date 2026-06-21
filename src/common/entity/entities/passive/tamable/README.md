@@ -9,7 +9,7 @@ tamable/
 ├── TameableEntity.hpp/cpp    # 可驯服实体基类（IAngerable 接口、getTeam重写、wantsToAttack虚方法）
 ├── ShoulderRidingEntity.hpp  # 肩膀乘坐实体基类（鹦鹉专用）
 ├── WolfEntity.hpp/cpp        # 狼（骨头驯服、攻击保护、wantsToAttack过滤）
-├── CatEntity.hpp/cpp         # 猫（生鱼驯服、11种皮肤）
+├── CatEntity.hpp/cpp         # 猫（生鱼驯服、11种皮肤、项圈染色、interactMob交互）
 ├── OcelotEntity.hpp/cpp      # 豹猫（信任机制、丛林生物）
 └── ParrotEntity.hpp/cpp      # 鹦鹉（种子驯服、可站肩膀、不可繁殖）
 ```
@@ -81,3 +81,17 @@ AnimalEntity
 - **`wantsToAttack(target, owner)` 虚方法**：TameableEntity 提供此虚方法供子类重写攻击过滤逻辑，默认返回 true（允许攻击所有目标）
 - **WolfEntity 重写 `wantsToAttack()`**：实现 MC 精确的攻击过滤规则——永远不攻击苦力怕/恶魂/盔甲架，不攻击已驯服的同类（除非主人不同），不攻击已驯服的驯服动物和马
 - **OwnerHurtByTargetGoal / OwnerHurtTargetGoal 均调用 `wantsToAttack()`**，因此狼的攻击限制自动生效
+
+### 猫的交互系统（interactMob）
+- **交互优先级**（已驯服 + 主人）：①项圈染色（染料 + 颜色不同）→ ②喂食治疗（猫食 + 生命未满）→ ③父类处理（繁殖/成长）→ ④切换坐下/站起
+- **交互优先级**（未驯服）：猫食（生鳕鱼/生鲑鱼）→ 尝试驯服（1/3概率）
+- **非主人无法交互**：已驯服的猫只有主人可以交互，非主人交互直接传递给父类
+- **驯服成功广播**：`broadcastEntityStatus(TamingSucceeded/TamingFailed)` 发送心形/烟雾粒子
+- **项圈染色**：默认红色，支持 17 种染料物品映射（16 种标准染料 + 骨粉=白色 + 墨囊=黑色等）
+- **食物治疗量**：生鳕鱼/生鲑鱼治疗 2.0 生命值
+
+### TameableEntity NBT 序列化
+- **Sitting** (byte/bool) - 是否坐下
+- **OwnerUUID** (string) - 主人 UUID
+- **AngerTime** (i32) - 愤怒剩余时间
+- **CatEntity 额外字段**：CatType (i32) 猫皮肤类型、CollarColor (i32) 项圈颜色（默认红色时省略）

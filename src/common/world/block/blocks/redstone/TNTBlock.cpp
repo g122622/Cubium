@@ -14,7 +14,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABILITY FOR ANY ACTION OF CONTRACT, TORT OR
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *
@@ -22,7 +22,6 @@
 
 #include "TNTBlock.hpp"
 
-#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
@@ -76,11 +75,14 @@ bool TNTBlock::isUnstable(const BlockState& state)
 void TNTBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     // TNT 放置后检查是否有红石信号或火焰，如果有则自动点燃
+    // 对应 MC Java 的 TntBlock.onPlace()：先 prime()，成功后移除方块
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
     bool hasFire = _hasFlammableNeighbor(world, pos);
 
     if (hasPower || hasFire) {
-        static_cast<void>(ignite(world, pos, state));
+        if (prime(world, pos, nullptr)) {
+            world.setBlockState(pos, nullptr, 11);
+        }
     }
 }
 
@@ -100,14 +102,19 @@ void TNTBlock::neighborChanged(
     bool hasPower = world::redstone::RedstonePower::isPowered(world, pos);
 
     if (hasPower) {
-        static_cast<void>(ignite(world, pos, *state));
+        // 对应 MC Java 的 TntBlock.neighborChanged()：先 prime()，成功后移除方块
+        if (prime(world, pos, nullptr)) {
+            world.setBlockState(pos, nullptr, 11);
+        }
         return;
     }
 
     // 检查是否有火焰或熔岩
     bool hasFire = _hasFlammableNeighbor(world, pos);
     if (hasFire) {
-        static_cast<void>(ignite(world, pos, *state));
+        if (prime(world, pos, nullptr)) {
+            world.setBlockState(pos, nullptr, 11);
+        }
     }
 }
 
@@ -138,8 +145,10 @@ ActionResultType TNTBlock::onBlockActivated(const BlockState& state,
     }
 
     // 对应 MC Java 的 TntBlock.useItemOn()
-    if (ignite(world, pos, state)) {
-        // 点燃成功：ignite() 已经移除TNT方块并生成实体
+    // 先 prime()，成功后移除方块并消耗物品
+    if (prime(world, pos, &player)) {
+        // 移除TNT方块
+        world.setBlockState(pos, nullptr, 11);
 
         // 消耗物品
         if (isFlintAndSteel) {
@@ -151,6 +160,9 @@ ActionResultType TNTBlock::onBlockActivated(const BlockState& state,
                 heldItem.shrink(1);
             }
         }
+
+        // 对应 MC Java 的 player.awardStat(Stats.ITEM_USED.get(item))
+        player.awardUsedStat(item->itemLocation(), 1);
     } else if (!world.isClientSide() && !world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
         // tntExplodes 游戏规则为 false，不消耗物品，显示 action bar 消息
         // 对应 MC Java: return InteractionResult.PASS（不消耗物品，将交互传递给下一个处理器）
@@ -165,19 +177,26 @@ void TNTBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const Block
 {
     // 对应 MC Java 的 TntBlock.playerWillDestroy()
     // 当玩家破坏不稳定的TNT（UNSTABLE=true）且不在创造模式下时，自动点燃TNT
+    // 注意：此处只调用 prime()，不移除方块——方块移除由破坏流程处理
     if (!world.isClientSide() && !player.isCreative() && isUnstable(state)) {
-        static_cast<void>(ignite(world, pos, state));
+        static_cast<void>(prime(world, pos, nullptr));
     }
 }
 
 void TNTBlock::onProjectileHit(
     IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile)
 {
-    MC_UNUSED(hitResult);
+    MC_UNUSED(state);
 
     // 对应 MC Java 的 TntBlock.onProjectileHit()
     // 当燃烧的投掷物命中TNT时，点燃TNT
     if (!world.isClientSide() && projectile.isOnFire()) {
+        // 对应 MC Java 的 projectile.mayInteract(serverlevel, blockpos)
+        // 检查投掷物是否可以在该位置交互（冒险模式权限判断）
+        if (!projectile.mayInteract(world, hitResult.blockPos())) {
+            return;
+        }
+
         // 获取投掷物的发射者作为点燃者
         LivingEntity* igniter = nullptr;
         // 尝试从 ProjectileEntity 获取发射者
@@ -187,8 +206,10 @@ void TNTBlock::onProjectileHit(
             igniter = dynamic_cast<LivingEntity*>(shooter);
         }
 
-        // ignite() 会移除TNT方块并生成实体
-        static_cast<void>(ignite(world, hitResult.blockPos(), state, igniter));
+        // prime() 成功后移除TNT方块
+        if (prime(world, hitResult.blockPos(), igniter)) {
+            world.setBlockState(hitResult.blockPos(), nullptr, 11);
+        }
     }
 }
 
@@ -201,6 +222,16 @@ bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
 {
     MC_UNUSED(state);
 
+    // 先尝试 prime（生成实体+音效），成功后移除方块
+    if (prime(world, pos, igniter)) {
+        world.setBlockState(pos, nullptr, 11);
+        return true;
+    }
+    return false;
+}
+
+bool TNTBlock::prime(IWorld& world, const BlockPos& pos, LivingEntity* igniter)
+{
     // 仅服务端执行
     if (world.isClientSide()) {
         return false;
@@ -210,9 +241,6 @@ bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
     if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
         return false;
     }
-
-    // 移除TNT方块
-    world.setBlockState(pos, nullptr, 11);
 
     // 生成点燃的TNT实体
     auto& registry = entity::EntityRegistry::instance();
@@ -262,9 +290,8 @@ bool TNTBlock::ignite(IWorld& world, const BlockPos& pos, const BlockState& stat
         1.0f);
 
     // 发出 PRIME_FUSE 游戏事件
-    world.gameEvent(gameevent::GameEvents::PRIME_FUSE,
-        pos,
-        gameevent::GameEvent::Context::of(static_cast<const Entity*>(igniter), &state));
+    world.gameEvent(
+        gameevent::GameEvents::PRIME_FUSE, pos, gameevent::GameEvent::Context::of(static_cast<const Entity*>(igniter)));
 
     return true;
 }
@@ -291,12 +318,14 @@ void TNTBlock::explode(IWorld& world, const BlockPos& pos, f32 power)
     );
 }
 
-void TNTBlock::onBlockExploded(IWorld& world, const BlockPos& pos, const BlockState& state) const
+void TNTBlock::onBlockExploded(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const world::explosion::Explosion* explosion) const
 {
     MC_UNUSED(state);
 
     // 当 TNT 方块被其他爆炸摧毁时，如果 tntExplodes 游戏规则为 true，
     // 生成一个随机短引信的点燃 TNT 实体（连锁爆炸）
+    // 对应 MC Java 的 TntBlock.wasExploded()
     if (!world.isClientSide() && world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
         auto& registry = entity::EntityRegistry::instance();
         const entity::EntityType* tntType = registry.getType(entity::EntityTypes::TNT);
@@ -319,6 +348,15 @@ void TNTBlock::onBlockExploded(IWorld& world, const BlockPos& pos, const BlockSt
                     constexpr i32 DEFAULT_FUSE = 80;
                     i32 shortFuse = rng.nextInt(DEFAULT_FUSE / 4) + DEFAULT_FUSE / 8;
                     tnt->ignite(shortFuse);
+
+                    // 对应 MC Java 的 explosion.getIndirectSourceEntity()
+                    // 获取爆炸的间接源实体，作为连锁 TNT 的 owner
+                    if (explosion != nullptr) {
+                        LivingEntity* indirectSource = explosion->getIndirectSourceEntity();
+                        if (indirectSource != nullptr) {
+                            tnt->setOwner(indirectSource);
+                        }
+                    }
                 }
 
                 world.spawnEntity(std::move(tntEntity));

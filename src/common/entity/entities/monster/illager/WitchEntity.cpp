@@ -24,6 +24,7 @@
 #include "WitchEntity.hpp"
 
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
@@ -144,7 +145,12 @@ void WitchEntity::_startDrinkingPotion(entity::effect::EffectType effectType)
         playSound(SoundEvents::ENTITY_WITCH_DRINK, 1.0f, pitch);
     }
 
-    // TODO: 应用移动速度减益 (-0.25)，需要属性修饰符系统支持
+    // 应用移动速度减益 (-0.25 Addition 操作)
+    // MC 1.21: 女巫喝药水时移动速度减少 0.25，使用 ADD_VALUE (Addition) 操作
+    // 女巫基础移动速度为 0.25，减去 0.25 后变为 0，即喝药水时完全停止移动
+    entity::attribute::AttributeModifier speedPenalty(
+        DRINKING_SPEED_PENALTY_UUID, "Drinking speed penalty", -0.25, entity::attribute::Operation::Addition);
+    m_attributes.addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedPenalty);
 }
 
 void WitchEntity::_finishDrinkingPotion()
@@ -156,7 +162,8 @@ void WitchEntity::_finishDrinkingPotion()
     // 应用喝药水的效果
     _applyDrankPotionEffect(m_currentPotionType);
 
-    // TODO: 移除移动速度减益，需要属性修饰符系统支持
+    // 移除移动速度减益
+    m_attributes.removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, DRINKING_SPEED_PENALTY_UUID);
 }
 
 void WitchEntity::_applyDrankPotionEffect(entity::effect::EffectType effectType)

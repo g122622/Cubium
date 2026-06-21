@@ -26,7 +26,6 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
-#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -73,7 +72,7 @@ VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
 // 构造函数
 // ============================================================================
 
-BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
+BlockStarLightEngine::BlockStarLightEngine()
     : StarLightEngine(false)
 { // false = 不是天空光照
 
@@ -92,8 +91,6 @@ BlockStarLightEngine::BlockStarLightEngine(StarLightLightingProvider* provider)
     // 初始化队列（区块段体积 = 16 * 16 * 16）
     m_increaseQueue.resize(world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT);
     m_decreaseQueue.resize(world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT * world::CHUNK_SECTION_HEIGHT);
-
-    (void)provider; // 暂时未使用
 }
 
 // ============================================================================
@@ -170,8 +167,14 @@ void BlockStarLightEngine::setNibbleNull(i32 chunkX, i32 chunkY, i32 chunkZ)
 {
     SWMRNibbleArray* nibble = getNibbleFromCache(chunkX, chunkY, chunkZ);
     if (nibble != nullptr) {
-        // 方块光照去初始化时设为 Hidden 状态，保持外观但停止传播
-        nibble->setHidden();
+        i64 columnPos = (static_cast<i64>(chunkX) & 0x3FFFFFLL) << 42 | (static_cast<i64>(chunkZ) & 0x3FFFFFLL) << 20;
+        if (isDataRetained(columnPos)) {
+            // 数据被保留时使用 Hidden 状态，保持数据但停止传播
+            nibble->setHidden();
+        } else {
+            // 非保留区块列，完全清除数据
+            nibble->setNull();
+        }
     }
 }
 
@@ -225,8 +228,6 @@ i32 BlockStarLightEngine::calculateLightValue(
     StarLightLightingProvider* lightAccess, i32 worldX, i32 worldY, i32 worldZ, i32 expected)
 {
     const BlockState* centerState = getBlockState(worldX, worldY, worldZ);
-    IWorld* world = lightAccess->getWorld();
-    (void)world; // 暂时未使用，保留以备将来扩展
 
     i32 level = 0;
     if (centerState != nullptr) {
@@ -331,7 +332,6 @@ void BlockStarLightEngine::propagateBlockChanges(
 
 std::vector<BlockPos> BlockStarLightEngine::_getSources(StarLightLightingProvider* lightAccess, const IChunk* chunk)
 {
-    (void)lightAccess; // 暂时未使用，保留参数以保持接口一致性
     std::vector<BlockPos> sources;
 
     i32 offX = chunk->x() << world::SECTION_SHIFT;
@@ -374,11 +374,13 @@ std::vector<BlockPos> BlockStarLightEngine::_getSources(StarLightLightingProvide
 i32 BlockStarLightEngine::_getLightEmission(
     StarLightLightingProvider* lightAccess, const BlockState* state, i32 x, i32 y, i32 z) const
 {
-    (void)lightAccess; // 暂时未使用，保留参数以保持接口一致性
-    (void)x;           // 暂时未使用
-    (void)y;           // 暂时未使用
-    (void)z;           // 暂时未使用
     if (state == nullptr) {
+        return 0;
+    }
+    // 如果区块列未启用，方块不产生光照
+    i64 columnPos = (static_cast<i64>(x >> world::CHUNK_SHIFT) & 0x3FFFFFLL) << 42 |
+        (static_cast<i64>(z >> world::CHUNK_SHIFT) & 0x3FFFFFLL) << 20;
+    if (!isColumnEnabled(columnPos)) {
         return 0;
     }
     return state->getBlock().getLightLevel(*state) & m_emittedLightMask;
@@ -390,9 +392,6 @@ i32 BlockStarLightEngine::_getLightEmission(
 
 void BlockStarLightEngine::lightChunk(StarLightLightingProvider* lightAccess, const IChunk* chunk, bool needsEdgeChecks)
 {
-    IWorld* world = lightAccess->getWorld();
-    (void)world; // 暂时未使用，保留以备将来扩展
-
     std::vector<BlockPos> positions = _getSources(lightAccess, chunk);
     i32 encodeOffset = m_coordinateOffset;
     i32 emittedMask = m_emittedLightMask;
@@ -544,6 +543,39 @@ SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos)
     return nibbles[index];
 }
 
+const SWMRNibbleArray* BlockStarLightEngine::getData(const SectionPos& pos) const
+{
+    i32 chunkY = pos.y;
+    if (chunkY < m_minLightSection || chunkY > m_maxLightSection) {
+        return nullptr;
+    }
+
+    // 首先尝试从缓存获取
+    const SWMRNibbleArray* cached = getNibbleFromCache(pos.x, chunkY, pos.z);
+    if (cached != nullptr) {
+        return cached;
+    }
+
+    // 如果缓存中没有，尝试从区块获取
+    const IChunk* chunk = getChunkInCache(pos.x, pos.z);
+    if (chunk == nullptr) {
+        return nullptr;
+    }
+
+    SWMRNibbleArray* const* nibbles = getNibblesOnChunk(chunk);
+    if (nibbles == nullptr) {
+        return nullptr;
+    }
+
+    i32 index = chunkY - m_minLightSection;
+    i32 totalSections = m_maxLightSection - m_minLightSection + 1;
+    if (index < 0 || index >= totalSections) {
+        return nullptr;
+    }
+
+    return nibbles[index];
+}
+
 void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk)
 {
     MC_TRACE_EVENT("server.lighting", "BlockStarLightEngine::updateEmptinessMap");
@@ -565,6 +597,38 @@ void BlockStarLightEngine::updateEmptinessMap(i32 chunkX, i32 chunkZ, const Chun
         bool isEmpty = (section == nullptr || section->isEmpty());
         updateSectionStatus(SectionPos(chunkX, sectionY, chunkZ), isEmpty);
     }
+}
+
+// ============================================================================
+// 区块列管理
+// ============================================================================
+
+void BlockStarLightEngine::setColumnEnabled(i64 columnPos, bool enabled)
+{
+    if (enabled) {
+        m_enabledColumns.insert(columnPos);
+    } else {
+        m_enabledColumns.erase(columnPos);
+    }
+}
+
+void BlockStarLightEngine::retainData(i64 columnPos, bool retain)
+{
+    if (retain) {
+        m_columnsToRetainDataFor.insert(columnPos);
+    } else {
+        m_columnsToRetainDataFor.erase(columnPos);
+    }
+}
+
+bool BlockStarLightEngine::isColumnEnabled(i64 columnPos) const
+{
+    return m_enabledColumns.contains(columnPos);
+}
+
+bool BlockStarLightEngine::isDataRetained(i64 columnPos) const
+{
+    return m_columnsToRetainDataFor.contains(columnPos);
 }
 
 } // namespace mc

@@ -525,7 +525,7 @@ void WeatherRenderer::_generateWeatherGeometry(mc::client::ClientWorld* world)
                 const mc::Biome* biome = world->getBiomeAtBlock(x, camY, z);
                 if (biome) {
                     // 检查生物群系是否允许降水
-                    if (biome->climate().precipitation == mc::BiomeClimate::Precipitation::None) {
+                    if (!biome->hasPrecipitation()) {
                         continue; // 该生物群系不降水（如沙漠）
                     }
                 }

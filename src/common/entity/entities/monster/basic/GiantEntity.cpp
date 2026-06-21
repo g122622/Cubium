@@ -24,6 +24,8 @@
 #include "GiantEntity.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "common/world/IWorld.hpp"
+#include <cmath>
 #include <memory>
 
 namespace mc {
@@ -62,6 +64,19 @@ void GiantEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.5f);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 50.0f);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0f);
+}
+
+f32 GiantEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    // MC Giant.getWalkTargetValue: 返回 brightness - 0.5f（不取反）
+    // 巨人是唯一偏好明亮区域的 Monster 子类
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+    f32 brightness = worldPtr->getBrightness(
+        BlockPos(static_cast<i32>(std::floor(x)), static_cast<i32>(std::floor(y)), static_cast<i32>(std::floor(z))));
+    return brightness - 0.5f;
 }
 
 } // namespace mc

@@ -53,9 +53,9 @@ protected:
 
 TEST_F(BiomeGetPrecipitationAtTest, DesertBiome_ReturnsNone)
 {
-    // 沙漠生物群系：降水类型为 None
+    // 沙漠生物群系：没有降水
     const Biome& biome = BiomeRegistry::instance().get(Biomes::Desert);
-    EXPECT_EQ(biome.climate().precipitation, BiomeClimate::Precipitation::None);
+    EXPECT_FALSE(biome.hasPrecipitation());
     EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::None);
 }
 
@@ -65,9 +65,9 @@ TEST_F(BiomeGetPrecipitationAtTest, DesertBiome_ReturnsNone)
 
 TEST_F(BiomeGetPrecipitationAtTest, PlainsBiome_AtSeaLevel_ReturnsRain)
 {
-    // 平原生物群系：降水类型为 Rain，温度 > 0.15
+    // 平原生物群系：有降水，温度 > 0.15
     const Biome& biome = BiomeRegistry::instance().get(Biomes::Plains);
-    EXPECT_EQ(biome.climate().precipitation, BiomeClimate::Precipitation::Rain);
+    EXPECT_TRUE(biome.hasPrecipitation());
     EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::Rain);
 }
 
@@ -97,8 +97,7 @@ TEST_F(BiomeGetPrecipitationAtTest, MildBiome_AtHighAltitude_ReturnsSnow)
 {
     // 构造一个温度略高于阈值的生物群系，测试高海拔降温使其变为降雪
     Biome biome(Biomes::Plains, "test_mild");
-    BiomeClimate climate(
-        BiomeClimate::Precipitation::Rain, 0.2f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
+    BiomeClimate climate(true, 0.2f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
     biome.setClimate(climate);
 
     // 海平面处：温度 >= 0.15，应返回 Rain
@@ -110,10 +109,9 @@ TEST_F(BiomeGetPrecipitationAtTest, MildBiome_AtHighAltitude_ReturnsSnow)
 
 TEST_F(BiomeGetPrecipitationAtTest, NoneBiome_AtHighAltitude_StillReturnsNone)
 {
-    // 降水类型为 None 的生物群系，无论高度如何，都返回 None
+    // 没有降水的生物群系，无论高度如何，都返回 None
     Biome biome(Biomes::Desert, "test_none");
-    BiomeClimate climate(
-        BiomeClimate::Precipitation::None, 0.2f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
+    BiomeClimate climate(false, 0.2f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
     biome.setClimate(climate);
 
     EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::None);
@@ -128,8 +126,7 @@ TEST_F(BiomeGetPrecipitationAtTest, TemperatureAtExactThreshold_ReturnsRain)
 {
     // 温度恰好为 0.15 时，>= 0.15 应返回 Rain
     Biome biome(Biomes::Plains, "test_threshold");
-    BiomeClimate climate(
-        BiomeClimate::Precipitation::Rain, 0.15f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
+    BiomeClimate climate(true, 0.15f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
     biome.setClimate(climate);
 
     EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::Rain);
@@ -139,8 +136,7 @@ TEST_F(BiomeGetPrecipitationAtTest, TemperatureJustBelowThreshold_ReturnsSnow)
 {
     // 温度略低于 0.15 时，应返回 Snow
     Biome biome(Biomes::Plains, "test_below_threshold");
-    BiomeClimate climate(
-        BiomeClimate::Precipitation::Rain, 0.14f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
+    BiomeClimate climate(true, 0.14f, BiomeClimate::TemperatureModifier::None, 0.5f, 0.5f, 0.0f, 0.0f);
     biome.setClimate(climate);
 
     EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::Snow);
@@ -160,9 +156,78 @@ TEST_F(BiomeGetPrecipitationAtTest, ConsistentWithColdEnoughToSnow)
         EXPECT_EQ(coldBiome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::Snow);
     }
 
-    // 如果 warmEnoughToRain 返回 true 且降水类型不是 None，getPrecipitationAt 应返回 Rain
-    if (warmBiome.warmEnoughToRain(0, 64, 0, SEA_LEVEL) &&
-        warmBiome.climate().precipitation != BiomeClimate::Precipitation::None) {
+    // 如果 warmEnoughToRain 返回 true 且生物群系有降水，getPrecipitationAt 应返回 Rain
+    if (warmBiome.warmEnoughToRain(0, 64, 0, SEA_LEVEL) && warmBiome.hasPrecipitation()) {
         EXPECT_EQ(warmBiome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::Rain);
     }
+}
+
+// ============================================================================
+// hasPrecipitation / setHasPrecipitation 测试
+// ============================================================================
+
+TEST_F(BiomeGetPrecipitationAtTest, HasPrecipitation_DefaultTrue)
+{
+    // 默认构造的 BiomeClimate 的 hasPrecipitation 为 true（与 MC 对齐）
+    BiomeClimate climate;
+    EXPECT_TRUE(climate.hasPrecipitation);
+}
+
+TEST_F(BiomeGetPrecipitationAtTest, HasPrecipitation_SetFalse)
+{
+    // 设置 hasPrecipitation 为 false 后，getPrecipitationAt 始终返回 None
+    Biome biome(Biomes::Plains, "test_no_precip");
+    BiomeClimate climate(false, 0.8f, BiomeClimate::TemperatureModifier::None, 0.4f);
+    biome.setClimate(climate);
+    EXPECT_FALSE(biome.hasPrecipitation());
+    EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::None);
+    // 即使温度很低也不降雪
+    EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::None);
+}
+
+TEST_F(BiomeGetPrecipitationAtTest, SetHasPrecipitation_True)
+{
+    // 使用 setHasPrecipitation 设置为 true
+    Biome biome(Biomes::Desert, "test_set_precip");
+    BiomeClimate climate(false, 2.0f, BiomeClimate::TemperatureModifier::None, 0.0f);
+    biome.setClimate(climate);
+    EXPECT_FALSE(biome.hasPrecipitation());
+
+    biome.setHasPrecipitation(true);
+    EXPECT_TRUE(biome.hasPrecipitation());
+}
+
+TEST_F(BiomeGetPrecipitationAtTest, SetHasPrecipitation_False)
+{
+    // 使用 setHasPrecipitation 设置为 false
+    const Biome& biome = BiomeRegistry::instance().get(Biomes::Plains);
+    EXPECT_TRUE(biome.hasPrecipitation());
+
+    // 创建新的 biome 并设置 hasPrecipitation 为 false
+    Biome noPrecipBiome(Biomes::Plains, "test_no_precip_copy");
+    BiomeClimate climate(true, 0.8f, BiomeClimate::TemperatureModifier::None, 0.4f);
+    noPrecipBiome.setClimate(climate);
+    noPrecipBiome.setHasPrecipitation(false);
+    EXPECT_FALSE(noPrecipBiome.hasPrecipitation());
+    EXPECT_EQ(noPrecipBiome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::None);
+}
+
+TEST_F(BiomeGetPrecipitationAtTest, ColdBiome_WithPrecipitation_ReturnsSnow)
+{
+    // 有降水但温度低的生物群系应返回 Snow（动态计算）
+    Biome biome(Biomes::Plains, "test_cold");
+    BiomeClimate climate(true, -0.5f, BiomeClimate::TemperatureModifier::None, 0.4f);
+    biome.setClimate(climate);
+    EXPECT_TRUE(biome.hasPrecipitation());
+    EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::Snow);
+}
+
+TEST_F(BiomeGetPrecipitationAtTest, WarmBiome_WithPrecipitation_ReturnsRain)
+{
+    // 有降水且温度高的生物群系应返回 Rain（动态计算）
+    Biome biome(Biomes::Desert, "test_warm_with_precip");
+    BiomeClimate climate(true, 0.8f, BiomeClimate::TemperatureModifier::None, 0.4f);
+    biome.setClimate(climate);
+    EXPECT_TRUE(biome.hasPrecipitation());
+    EXPECT_EQ(biome.getPrecipitationAt(0, 64, 0, SEA_LEVEL), BiomeClimate::Precipitation::Rain);
 }

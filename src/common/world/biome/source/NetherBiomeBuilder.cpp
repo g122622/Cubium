@@ -31,29 +31,28 @@ using namespace climate;
 
 ParameterList<BiomeId> NetherBiomeBuilder::buildParameterList()
 {
-    ParameterList<BiomeId> list;
-    const Parameter fullRange = Parameter::fullRange();
+    std::vector<ParameterList<BiomeId>::Entry> entries;
 
     // 下界使用简化的气候参数映射
     // 仅 temperature 和 humidity 有效，其他参数为全范围
     // offset 用于微调优先级
 
     // 下界荒地
-    list.add(pointParameters(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::NetherWastes);
+    entries.emplace_back(pointParameters(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::NetherWastes);
 
     // 灵魂沙峡谷
-    list.add(pointParameters(0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::SoulSandValley);
+    entries.emplace_back(pointParameters(0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::SoulSandValley);
 
     // 绯红森林
-    list.add(pointParameters(0.4f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::CrimsonForest);
+    entries.emplace_back(pointParameters(0.4f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f), Biomes::CrimsonForest);
 
     // 诡异森林
-    list.add(pointParameters(0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.375f), Biomes::WarpedForest);
+    entries.emplace_back(pointParameters(0.0f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.375f), Biomes::WarpedForest);
 
     // 玄武岩三角洲
-    list.add(pointParameters(-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.175f), Biomes::BasaltDeltas);
+    entries.emplace_back(pointParameters(-0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.175f), Biomes::BasaltDeltas);
 
-    return list;
+    return ParameterList<BiomeId>(std::move(entries));
 }
 
 } // namespace source

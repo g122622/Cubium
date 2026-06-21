@@ -90,4 +90,4 @@ state.rainStrength = calculateNewStrength();
 
 ### 8. 降水类型判断需要额外过滤
 
-`getPrecipitationType(temperature)` 仅根据温度判断雨/雪。无降水生物群系需由调用者结合 `BiomeClimate::Precipitation::None` 额外过滤，或直接使用 `canRainAt()`/`canSnowAt()` 方法。
+`getPrecipitationType(temperature)` 仅根据温度判断雨/雪。无降水生物群系需由调用者结合 `hasPrecipitation() == false`（即 `BiomeClimate::hasPrecipitation` 为 false）额外过滤，或直接使用 `canRainAt()`/`canSnowAt()` 方法。

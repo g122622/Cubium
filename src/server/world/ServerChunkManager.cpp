@@ -26,6 +26,7 @@
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -986,13 +987,12 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
             }
 
             // 非液体方块 → updateFromNeighbourShapes
-            // TODO 当 Block.updateFromNeighbourShapes 实现后启用此分支
-            // if (!blockState->getBlock().isLiquidBlock()) {
-            //     BlockState updated = Block::updateFromNeighbourShapes(...);
-            //     if (updated != *blockState) {
-            //         m_world->setBlock(pos, updated, 276);
-            //     }
-            // }
+            if (!blockState->isLiquid()) {
+                BlockState updated = Block::updateFromNeighbourShapes(*blockState, *m_world, pos);
+                if (updated != *blockState) {
+                    m_world->setBlockState(pos, &updated, 276);
+                }
+            }
         }
 
         chunk.clearPostProcessingForSection(sectionIdx);

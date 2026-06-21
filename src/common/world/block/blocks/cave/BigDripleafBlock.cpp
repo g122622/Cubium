@@ -14,20 +14,28 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE ON AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
  */
 
 #include "BigDripleafBlock.hpp"
+
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/redstone/RedstonePower.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 namespace mc {
@@ -40,7 +48,7 @@ static constexpr i32 TILT_DELAY_FULL = 100;    // PARTIAL→FULL后等待100tick
 
 BigDripleafBlock::BigDripleafBlock(const BlockProperties& properties)
     : Block(properties)
-    , m_fullShape(CollisionShape::fromPixelBox(0, 0, 0, 16, 16, 16))
+    , m_fullShape(CollisionShape::fullBlock())
 {
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
@@ -82,11 +90,6 @@ BlockState BigDripleafBlock::getStateForPlacement(BlockItemUseContext& context)
 bool BigDripleafBlock::isValidPosition(const BlockState& state, IBlockReader& world, const BlockPos& pos) const
 {
     MC_UNUSED(state);
-    // 大滴叶可以放置在以下方块上方：
-    // 1. 另一个大滴叶（BigDripleafBlock）
-    // 2. 大滴叶茎（BigDripleafStemBlock）
-    // 3. BIG_DRIPLEAF_PLACEABLE 标签中的方块
-    // 参考: net.minecraft.block.BigDripleafBlock.canSurvive
     BlockPos belowPos(pos.x, pos.y - 1, pos.z);
     const BlockState* belowState = world.getBlockState(belowPos);
     if (belowState == nullptr) {
@@ -150,21 +153,23 @@ void BigDripleafBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
 {
     MC_UNUSED(random);
 
+    // 红石信号激活时立即重置倾斜状态
+    if (world::redstone::RedstonePower::isPowered(world, pos)) {
+        _resetTilt(world, pos, state);
+        return;
+    }
+
     BlockStateProperties::Tilt tilt = state.get(BlockStateProperties::TILT());
 
     switch (tilt) {
         case BlockStateProperties::Tilt::Unstable:
             // UNSTABLE → PARTIAL
-            state = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Partial);
-            world.setBlockState(pos, &state, 3);
-            _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Partial);
+            _setTiltAndScheduleTick(world, pos, state, BlockStateProperties::Tilt::Partial, true);
             break;
 
         case BlockStateProperties::Tilt::Partial:
             // PARTIAL → FULL
-            state = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Full);
-            world.setBlockState(pos, &state, 3);
-            _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Full);
+            _setTiltAndScheduleTick(world, pos, state, BlockStateProperties::Tilt::Full, true);
             break;
 
         case BlockStateProperties::Tilt::Full:
@@ -192,19 +197,25 @@ void BigDripleafBlock::neighborChanged(
     MC_UNUSED(neighborBlock);
     MC_UNUSED(neighborPos);
     MC_UNUSED(isMoving);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
 
-    // TODO: 红石信号检测 - 需要红石系统支持
-    // MC逻辑：当接收到红石信号时，立即重置倾斜状态为NONE
-    // if (world.hasNeighborSignal(pos)) {
-    //     BlockStateProperties::Tilt tilt = world.getBlockState(pos)->get(BlockStateProperties::TILT());
-    //     if (tilt != BlockStateProperties::Tilt::None) {
-    //         BlockState newState =
-    //             world.getBlockState(pos)->with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None);
-    //         world.setBlockState(pos, &newState, 3);
-    //     }
-    // }
+    // 当接收到红石信号时，立即重置倾斜状态为NONE
+    if (world::redstone::RedstonePower::isPowered(world, pos)) {
+        BlockState currentState = *world.getBlockState(pos);
+        _resetTilt(world, pos, currentState);
+    }
+}
+
+void BigDripleafBlock::onProjectileHit(
+    IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile)
+{
+    MC_UNUSED(hitResult);
+    MC_UNUSED(projectile);
+
+    // 投掷物击中时直接设为FULL倾斜
+    // 注意：投掷物击中不受红石信号影响，即使有红石信号也会设为FULL
+    // 但下一次tick会因为红石信号而立即重置为NONE
+    BlockState mutableState = state;
+    _setTiltAndScheduleTick(world, hitResult.blockPos(), mutableState, BlockStateProperties::Tilt::Full, true);
 }
 
 const BlockState& BigDripleafBlock::rotate(const BlockState& state, Rotation rotation) const
@@ -225,16 +236,19 @@ const BlockState& BigDripleafBlock::mirror(const BlockState& state, Mirror mirro
 void BigDripleafBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    MC_UNUSED(entity);
-
     // 只有NONE状态的叶片才触发倾斜
-    if (state.get(BlockStateProperties::TILT()) == BlockStateProperties::Tilt::None) {
-        // 设置为UNSTABLE并调度tick
-        BlockState newState = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::Unstable);
-        world.setBlockState(pos, &newState, 3);
+    // 实体必须站在地面上且位于方块上方0.6875以上
+    // 红石信号激活时不允许实体触发倾斜
+    if (state.get(BlockStateProperties::TILT()) == BlockStateProperties::Tilt::None && _canEntityTilt(pos, entity) &&
+        !world::redstone::RedstonePower::isPowered(world, pos)) {
+        // 设置为UNSTABLE并调度tick（无音效，与MC原版一致）
+        BlockState mutableState = state;
+        _setTilt(world, pos, mutableState, BlockStateProperties::Tilt::Unstable);
         _scheduleTiltTick(world, pos, BlockStateProperties::Tilt::Unstable);
     }
 }
+
+// ========== 私有方法 ==========
 
 i32 BigDripleafBlock::_getTiltDelay(BlockStateProperties::Tilt tilt)
 {
@@ -254,15 +268,53 @@ void BigDripleafBlock::_scheduleTiltTick(IWorld& world, const BlockPos& pos, Blo
 {
     i32 delay = _getTiltDelay(tilt);
     if (delay > 0) {
-        // const方法中需要移除const以匹配scheduleBlockTick的非常量Block&参数
         world.tickManager().scheduleBlockTick(pos, const_cast<BigDripleafBlock&>(*this), delay);
+    }
+}
+
+void BigDripleafBlock::_setTiltAndScheduleTick(
+    IWorld& world, const BlockPos& pos, BlockState& state, BlockStateProperties::Tilt tilt, bool playSound)
+{
+    _setTilt(world, pos, state, tilt);
+
+    if (playSound) {
+        f32 pitch = 0.8f + world.getRandom().nextFloat() * 0.4f;
+        world.playSound(
+            SoundEvents::BLOCK_BIG_DRIPLEAF_TILT_DOWN, sound::SoundCategory::Blocks, pos.center(), 1.0f, pitch);
+    }
+
+    _scheduleTiltTick(world, pos, tilt);
+}
+
+void BigDripleafBlock::_setTilt(IWorld& world, const BlockPos& pos, BlockState& state, BlockStateProperties::Tilt tilt)
+{
+    BlockStateProperties::Tilt oldTilt = state.get(BlockStateProperties::TILT());
+    BlockState newState = state.with(BlockStateProperties::TILT(), tilt);
+    world.setBlockState(pos, &newState, 2);
+    state = newState;
+
+    // FULL倾斜会触发振动事件（通知幽匿感测体）
+    if (tilt == BlockStateProperties::Tilt::Full && tilt != oldTilt) {
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
     }
 }
 
 void BigDripleafBlock::_resetTilt(IWorld& world, const BlockPos& pos, BlockState& state)
 {
-    BlockState newState = state.with(BlockStateProperties::TILT(), BlockStateProperties::Tilt::None);
-    world.setBlockState(pos, &newState, 3);
+    BlockStateProperties::Tilt oldTilt = state.get(BlockStateProperties::TILT());
+    _setTilt(world, pos, state, BlockStateProperties::Tilt::None);
+
+    // 如果之前不是NONE状态，播放重置音效
+    if (oldTilt != BlockStateProperties::Tilt::None) {
+        f32 pitch = 0.8f + world.getRandom().nextFloat() * 0.4f;
+        world.playSound(
+            SoundEvents::BLOCK_BIG_DRIPLEAF_TILT_UP, sound::SoundCategory::Blocks, pos.center(), 1.0f, pitch);
+    }
+}
+
+bool BigDripleafBlock::_canEntityTilt(const BlockPos& pos, const Entity& entity)
+{
+    return entity.onGround() && entity.position().y > static_cast<f32>(pos.y) + ENTITY_DETECTION_MIN_Y;
 }
 
 } // namespace blocks

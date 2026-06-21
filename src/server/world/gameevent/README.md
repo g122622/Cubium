@@ -18,6 +18,21 @@
 | `DynamicGameEventListener.cpp` | `DynamicGameEventListener` 实现（需访问服务端区块管理器） |
 | `VibrationSystemServer.cpp` | `VibrationSystem::Ticker/Listener/User` 服务端实现（需访问服务端世界、玩家状态、方块标签、区块加载级别、粒子系统、进度触发器） |
 
+## 振动遮挡检测
+
+振动系统包含遮挡检测逻辑，用于判断振动信号是否被遮挡方块（如羊毛）阻挡。算法如下：
+
+1. 将振动源位置和监听器位置对齐到方块中心（`floor + 0.5`）
+2. 从源方块中心沿 6 个方向各偏移 1e-5（避免射线起点在方块边界上）
+3. 对每个偏移起点，使用 `isBlockInLine()` 向监听器方块中心发射射线
+4. 如果所有 6 个方向的射线都命中了 `OCCLUDES_VIBRATION_SIGNALS` 标签方块，则振动被遮挡
+
+`isBlockInLine()` 是 `IWorld` 接口的虚方法，使用 DDA 算法沿两点之间的直线逐格遍历方块，对每个经过的方块调用谓词检查。`ServerWorld` 提供了具体实现。
+
+**标签区别**：
+- `OCCLUDES_VIBRATION_SIGNALS`：仅包含羊毛方块，用于遮挡检测（路径阻挡）
+- `DAMPENS_VIBRATIONS`：包含羊毛 + 羊毛地毯，用于源点阻尼检测（源头吸收）
+
 ## VibrationSystem 服务端实现详情
 
 `VibrationSystemServer.cpp` 实现了以下关键方法：
@@ -29,7 +44,7 @@
      - 当 `canTriggerAvoidVibration()` 返回 true 且源实体为玩家时，触发 `AvoidVibrationTrigger` 进度（对应 MC 原版 `CriteriaTriggers.AVOID_VIBRATION.trigger()`）
   4. `dampensVibrations()` 实体拒绝（如监守者、羊毛物品实体）
   5. `BlockTags::DAMPENS_VIBRATIONS` 方块拒绝（羊毛方块、羊毛地毯）
-- **`Listener::handleGameEvent()`** — 游戏事件处理入口，验证振动有效性并调度
+- **`Listener::handleGameEvent()`** — 游戏事件处理入口，验证振动有效性并调度。包含振动遮挡检测：如果振动源被 `OCCLUDES_VIBRATION_SIGNALS` 标签方块（羊毛）从所有 6 个方向完全包围，则振动信号被遮挡，无法传播到监听器
 - **`Listener::forceScheduleVibration()`** — 强制调度振动（不验证有效性）
 - **`Listener::scheduleVibration()`** — 振动调度，将候选振动添加到选择器
 - **`Ticker::tick()`** — 每 tick 驱动振动传播：

@@ -325,8 +325,9 @@ void EndermanPlaceBlockGoal::tick()
         return;
     }
 
-    // 放置方块
-    world->setBlockState(pos, placeState, 3);
+    // 放置方块，先根据邻居状态更新方块形状
+    BlockState updatedState = Block::updateFromNeighbourShapes(*placeState, *world, pos);
+    world->setBlockState(pos, &updatedState, 3);
 
     // 清除拿着的方块
     m_enderman->setHeldBlockState(nullptr);

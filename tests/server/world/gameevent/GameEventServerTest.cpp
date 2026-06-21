@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
 #include "common/world/gameevent/DynamicGameEventListener.hpp"
@@ -946,4 +947,148 @@ TEST_F(GameEventServerTest, VibrationTicker_AdjacentChunksCheck_ChunkNotInMemory
     EXPECT_EQ(user.receivedVibrationCount(), 0u);
     // 振动未被清除（等待重试）
     EXPECT_NE(data.currentVibration(), nullptr);
+}
+
+// ============================================================================
+// 振动遮挡检测测试（isOccluded 集成测试）
+// ============================================================================
+
+TEST_F(GameEventServerTest, VibrationOcclusion_WoolBlocksAllSides_VibrationBlocked)
+{
+    // 振动源被羊毛方块从所有6个方向包围时，振动信号被遮挡，handleGameEvent 返回 false。
+    createWorld();
+
+    // 确保区块已加载
+    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    // 在 Y=300 高度（远离地形）创建羊毛包围结构
+    // 振动源在 (5, 300, 5)，监听器在 (10, 300, 10)
+    // 包围振动源6个方向：上下左右前后
+    const i32 sx = 5, sy = 300, sz = 5;
+    const BlockState* woolState = &VanillaBlocks::WHITE_WOOL->defaultState();
+    world().setBlockState(sx - 1, sy, sz, woolState); // 西
+    world().setBlockState(sx + 1, sy, sz, woolState); // 东
+    world().setBlockState(sx, sy - 1, sz, woolState); // 下
+    world().setBlockState(sx, sy + 1, sz, woolState); // 上
+    world().setBlockState(sx, sy, sz - 1, woolState); // 北
+    world().setBlockState(sx, sy, sz + 1, woolState); // 南
+
+    TestVibrationSystem system(BlockPos(5, 305, 5), 16);
+    auto& data = system.data();
+    auto& listener = system.getVibrationListener();
+    auto& user = system.user();
+
+    // BlockTags 需要初始化
+    BlockTags::initialize();
+
+    GameEvent stepEvent("step");
+    GameEvent::Context context(nullptr, nullptr); // 无源实体，无受影响方块
+
+    // 振动源被完全包围，handleGameEvent 应返回 false
+    Vector3d sourcePos(5.5, 300.5, 5.5);
+    bool result = listener.handleGameEvent(world(), stepEvent, context, sourcePos);
+    EXPECT_FALSE(result);
+
+    // 确认没有候选振动被添加
+    auto candidate = data.selectionStrategy().chosenCandidate(world().currentTick());
+    EXPECT_FALSE(candidate.has_value());
+}
+
+TEST_F(GameEventServerTest, VibrationOcclusion_WoolBlocksPartial_VibrationNotBlocked)
+{
+    // 振动源仅部分方向被羊毛方块包围时，振动信号可从未遮挡方向逸出，handleGameEvent 返回 true。
+    // 监听器放在源正上方，这样向上的射线不会经过侧面羊毛方块。
+    createWorld();
+
+    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    const i32 sx = 5, sy = 300, sz = 5;
+    const BlockState* woolState = &VanillaBlocks::WHITE_WOOL->defaultState();
+    // 只包围4个水平方向，上方和下方敞开
+    world().setBlockState(sx - 1, sy, sz, woolState); // 西
+    world().setBlockState(sx + 1, sy, sz, woolState); // 东
+    world().setBlockState(sx, sy, sz - 1, woolState); // 北
+    world().setBlockState(sx, sy, sz + 1, woolState); // 南
+    // 上方和下方不包围，振动可逸出
+
+    // 监听器放在源正上方（同 X/Z 坐标），这样向上的射线直线上行不经过水平方向的羊毛
+    TestVibrationSystem system(BlockPos(5, 305, 5), 16);
+    auto& data = system.data();
+    auto& listener = system.getVibrationListener();
+    auto& user = system.user();
+
+    BlockTags::initialize();
+
+    GameEvent stepEvent("step");
+    GameEvent::Context context(nullptr, nullptr);
+
+    // 上方未被遮挡，振动可逸出
+    Vector3d sourcePos(5.5, 300.5, 5.5);
+    bool result = listener.handleGameEvent(world(), stepEvent, context, sourcePos);
+    EXPECT_TRUE(result);
+
+    // 候选振动应被添加
+    auto candidate = data.selectionStrategy().chosenCandidate(world().currentTick());
+    // chosenCandidate 需要 tickAdded < currentTick，由于我们刚添加（tickAdded == currentTick），
+    // 所以可能还没就绪，但 handleGameEvent 返回 true 已说明振动未被遮挡
+}
+
+TEST_F(GameEventServerTest, VibrationOcclusion_StoneBlocksAllSides_VibrationNotBlocked)
+{
+    // 石头不在 OCCLUDES_VIBRATION_SIGNALS 标签中，即使完全包围也不会遮挡振动。
+    createWorld();
+
+    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    const i32 sx = 5, sy = 300, sz = 5;
+    const BlockState* stoneState = &VanillaBlocks::STONE->defaultState();
+    // 石头完全包围振动源
+    world().setBlockState(sx - 1, sy, sz, stoneState);
+    world().setBlockState(sx + 1, sy, sz, stoneState);
+    world().setBlockState(sx, sy - 1, sz, stoneState);
+    world().setBlockState(sx, sy + 1, sz, stoneState);
+    world().setBlockState(sx, sy, sz - 1, stoneState);
+    world().setBlockState(sx, sy, sz + 1, stoneState);
+
+    // 监听器在源正上方
+    TestVibrationSystem system(BlockPos(5, 305, 5), 16);
+    auto& listener = system.getVibrationListener();
+    auto& user = system.user();
+
+    BlockTags::initialize();
+
+    GameEvent stepEvent("step");
+    GameEvent::Context context(nullptr, nullptr);
+
+    // 石头不遮挡振动信号
+    Vector3d sourcePos(5.5, 300.5, 5.5);
+    bool result = listener.handleGameEvent(world(), stepEvent, context, sourcePos);
+    EXPECT_TRUE(result);
+}
+
+TEST_F(GameEventServerTest, VibrationOcclusion_NoBlocks_VibrationNotBlocked)
+{
+    // 无遮挡方块时振动正常传播。
+    createWorld();
+
+    auto* chunk = world().chunkManager()->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    // Y=300 高度无任何方块（空气），振动不应被遮挡
+    // 监听器在源正上方
+    TestVibrationSystem system(BlockPos(5, 305, 5), 16);
+    auto& listener = system.getVibrationListener();
+    auto& user = system.user();
+
+    BlockTags::initialize();
+
+    GameEvent stepEvent("step");
+    GameEvent::Context context(nullptr, nullptr);
+
+    Vector3d sourcePos(5.5, 300.5, 5.5);
+    bool result = listener.handleGameEvent(world(), stepEvent, context, sourcePos);
+    EXPECT_TRUE(result);
 }

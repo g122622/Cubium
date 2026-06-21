@@ -27,6 +27,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/IWaterLoggable.hpp"
 #include "common/world/block/Material.hpp"
 #include <memory>
 
@@ -37,7 +38,6 @@ namespace blocks {
  * @brief 铁轨形状枚举
  *
  * 定义铁轨的连接形状。
- * 参考: net.minecraft.state.properties.RailShape
  */
 enum class RailShape : u8 {
     NorthSouth = 0,     // 南北直轨
@@ -72,10 +72,9 @@ enum class RailShape : u8 {
  * - 通过 RailState 计算连接形状
  * - 普通铁轨支持三连接道岔（红石切换弯轨方向）
  * - 无碰撞箱（可以穿过）
- *
- * 参考: net.minecraft.block.BaseRailBlock
+ * - 实现 IWaterLoggable 接口，支持含水放置
  */
-class AbstractRailBlock : public Block {
+class AbstractRailBlock : public Block, public IWaterLoggable {
 public:
     /**
      * @brief 构造函数
@@ -107,7 +106,6 @@ public:
     /**
      * @brief 方块放置后的处理
      *
-     * 参考 MC Java: BaseRailBlock.onPlace
      * 铁轨放置后立即重新计算连接形状。
      * getStateForPlacement 只根据玩家朝向返回初始形状，
      * 真正的邻居连接计算在此处触发。
@@ -118,7 +116,6 @@ public:
      * @brief 邻居变化通知
      *
      * 检查铁轨是否仍有支撑，并在邻居变化时重新计算铁轨形状。
-     * 参考: net.minecraft.block.BaseRailBlock.neighborChanged
      */
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
@@ -175,7 +172,6 @@ public:
      * @brief 是否为直线铁轨（不支持弯轨）
      *
      * 普通铁轨返回false（支持弯轨），动力铁轨/探测铁轨/激活铁轨返回true。
-     * 参考: net.minecraft.block.BaseRailBlock.isStraight
      */
     [[nodiscard]] bool isStraight() const noexcept { return m_isStraight; }
 
@@ -226,7 +222,6 @@ public:
      * @brief 检查铁轨是否应该被移除（斜坡支撑检测）
      *
      * 斜坡铁轨需要在其上升方向上方有支撑方块。
-     * 参考: net.minecraft.block.BaseRailBlock.shouldBeRemoved
      *
      * @param state 铁轨状态
      * @param world 世界
@@ -234,6 +229,31 @@ public:
      * @return 如果铁轨缺少支撑应被移除则返回true
      */
     [[nodiscard]] static bool shouldBeRemoved(const BlockState& state, IBlockReader& world, const BlockPos& pos);
+
+    // ========== IWaterLoggable 接口实现 ==========
+
+    /**
+     * @brief 检查方块是否含水
+     *
+     * 读取 WATERLOGGED 属性值。
+     *
+     * @param state 方块状态
+     * @return 是否含水
+     */
+    [[nodiscard]] bool isWaterlogged(const BlockState& state) const override
+    {
+        return state.hasProperty(BlockStateProperties::WATERLOGGED()) && state.get(BlockStateProperties::WATERLOGGED());
+    }
+
+    /**
+     * @brief 获取流体状态
+     *
+     * 如果方块含水，返回水的流体状态；否则返回默认（空）流体状态。
+     *
+     * @param state 方块状态
+     * @return 流体状态指针
+     */
+    [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
 
 protected:
     /// 是否为直线铁轨（不支持弯轨）

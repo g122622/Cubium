@@ -113,7 +113,7 @@ TEST(SkyLightRegressionTest, FloatingStoneUndersideHasNonZeroSkyLight)
     chunk.setStatus(mc::ChunkLoadStatus::Generated); // 设置区块状态，使光照引擎可以使用它
     provider.setChunk(&chunk);
 
-    mc::SkyStarLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine;
 
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
     chunk.setBlockState(8, 70, 8, stoneState);
@@ -153,7 +153,7 @@ TEST(SkyLightRegressionTest, LightRebuildsSkyEmptinessMapWhenMissing)
     chunk.setSkyEmptinessMap(nullptr);
     provider.setChunk(&chunk);
 
-    mc::SkyStarLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine;
 
     const mc::SectionPos sectionPos(0, 4, 0);
     engine.updateSectionStatus(sectionPos, false);
@@ -183,7 +183,7 @@ TEST(SkyLightRegressionTest, SealedRoofDropsCaveSkyLightBelow15)
     chunk.setStatus(mc::ChunkLoadStatus::Generated); // 设置区块状态
     provider.setChunk(&chunk);
 
-    mc::SkyStarLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine;
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
 
     // 在 section=4 顶层铺满石头，封闭下方空间。
@@ -223,7 +223,7 @@ TEST(SkyLightRegressionTest, OpeningRoofRestoresCaveSkyLight)
     chunk.setStatus(mc::ChunkLoadStatus::Generated); // 设置区块状态
     provider.setChunk(&chunk);
 
-    mc::SkyStarLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine;
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
     const mc::BlockState* airState = &mc::VanillaBlocks::AIR->defaultState();
 
@@ -268,7 +268,7 @@ TEST(SkyLightRegressionTest, CheckBlockMatchesCheckBlock)
     chunk.setStatus(mc::ChunkLoadStatus::Generated); // 设置区块状态
     provider.setChunk(&chunk);
 
-    mc::SkyStarLightEngine engine(&provider);
+    mc::SkyStarLightEngine engine;
     const mc::BlockState* stoneState = &mc::VanillaBlocks::STONE->defaultState();
     chunk.setBlockState(8, 70, 8, stoneState);
 

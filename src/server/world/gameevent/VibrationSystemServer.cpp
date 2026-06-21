@@ -35,6 +35,7 @@
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/AvoidVibrationTrigger.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/util/Direction.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
@@ -45,24 +46,71 @@
 #include "server/world/ServerWorld.hpp"
 
 namespace mc::gameevent {
+namespace {
 
 // ============================================================================
 // 辅助函数
 // ============================================================================
 
 /**
+ * @brief 检查振动信号是否被遮挡（被遮挡方块完全包围）
+ *
+ * 对振动源方块中心的 6 个方向各偏移微小距离后，
+ * 向监听器方块中心发射射线。如果所有 6 个方向的射线都命中了
+ * OCCLUDES_VIBRATION_SIGNALS 标签的方块，则振动被遮挡。
+ *
+ * @param world 世界
+ * @param sourcePos 振动源位置（世界坐标）
+ * @param listenerPos 监听器位置（世界坐标）
+ * @return 如果振动被遮挡返回 true
+ */
+[[nodiscard]] bool _isOccluded(server::ServerWorld& world, const Vector3d& sourcePos, const Vector3d& listenerPos)
+{
+    // 将源位置和监听器位置对齐到方块中心
+    const Vector3d sourceCenter(
+        std::floor(sourcePos.x) + 0.5, std::floor(sourcePos.y) + 0.5, std::floor(sourcePos.z) + 0.5);
+    const Vector3d listenerCenter(
+        std::floor(listenerPos.x) + 0.5, std::floor(listenerPos.y) + 0.5, std::floor(listenerPos.z) + 0.5);
+
+    // 缓存标签引用，避免每个方向重复查询
+    auto& occludesTag = BlockTags::OCCLUDES_VIBRATION_SIGNALS();
+
+    // 检查所有 6 个方向
+    for (Direction dir : Directions::all()) {
+        // 从源方块中心沿当前方向偏移微小距离（1e-5），避免射线起点正好在方块边界上
+        const f64 offsetX = static_cast<f64>(Directions::xOffset(dir)) * 1.0e-5;
+        const f64 offsetY = static_cast<f64>(Directions::yOffset(dir)) * 1.0e-5;
+        const f64 offsetZ = static_cast<f64>(Directions::zOffset(dir)) * 1.0e-5;
+
+        Vector3d rayStart(sourceCenter.x + offsetX, sourceCenter.y + offsetY, sourceCenter.z + offsetZ);
+
+        // 使用 isBlockInLine 检查从偏移起点到监听器中心的射线上是否有遮挡方块
+        bool hitOccludingBlock = world.isBlockInLine(
+            rayStart, listenerCenter, [&occludesTag](const BlockState& state) { return occludesTag.contains(state); });
+
+        // 如果某个方向的射线没有命中遮挡方块，说明振动信号可以从这个方向逸出，
+        // 因此振动未被完全遮挡
+        if (!hitOccludingBlock) {
+            return false;
+        }
+    }
+
+    // 所有 6 个方向的射线都命中了遮挡方块，振动被完全遮挡
+    return true;
+}
+
+/**
  * @brief 检查监听器位置周围 3x3 区块范围是否全部处于 BlockTicking 级别
  *
- * MC 原版 VibrationSystem.Ticker.areAdjacentChunksTicking 检查监听器所在区块
- * 及其 8 个相邻区块是否全部满足两个条件：
- * 1. 区块加载级别 <= BlockTicking（shouldTickBlocksAt）
- * 2. 区块已在内存中（getChunkNow != null）
+ * 检查监听器所在区块及其 8 个相邻区块是否全部满足两个条件：
+ * 1. 区块加载级别 <= BlockTicking
+ * 2. 区块已在内存中
  *
  * @param world 服务端世界
  * @param pos 监听器位置（方块坐标）
  * @return 如果 3x3 区块全部处于 BlockTicking 级别且已加载返回 true
  */
-[[nodiscard]] static bool areAdjacentChunksTicking(server::ServerWorld& world, const BlockPos& pos)
+[[nodiscard]] bool _areAdjacentChunksTicking(server::ServerWorld& world, const BlockPos& pos)
 {
     auto* chunkManager = world.chunkManager();
     if (chunkManager == nullptr) {
@@ -95,6 +143,8 @@ namespace mc::gameevent {
 
     return true;
 }
+
+} // namespace
 
 // ============================================================================
 // VibrationSystem::User - 依赖服务端的方法
@@ -154,7 +204,6 @@ bool VibrationSystem::User::isValidVibration(const GameEvent& event, const GameE
     }
 
     // 受影响方块阻尼振动（如羊毛方块/地毯）
-    // 参考: net.minecraft.tags.BlockTags.DAMPENS_VIBRATIONS
     if (context.affectedState() != nullptr && BlockTags::DAMPENS_VIBRATIONS().contains(*context.affectedState())) {
         return false;
     }
@@ -192,6 +241,13 @@ bool VibrationSystem::Listener::handleGameEvent(
     BlockPos sourceBlockPos(
         static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
     if (!user.canReceiveVibration(world, sourceBlockPos, event, context)) {
+        return false;
+    }
+
+    // 检查振动信号是否被遮挡方块阻挡
+    // 如果振动源被 OCCLUDES_VIBRATION_SIGNALS 方块从所有6个方向完全包围，
+    // 则振动信号无法传播到监听器
+    if (_isOccluded(world, pos, listenerPos.value())) {
         return false;
     }
 
@@ -313,7 +369,7 @@ bool VibrationSystem::Ticker::receiveVibration(
 
     if (user.requiresAdjacentChunksToBeTicking()) {
         auto* chunkManager = world.chunkManager();
-        if (chunkManager != nullptr && !areAdjacentChunksTicking(world, listenerBlockPos)) {
+        if (chunkManager != nullptr && !_areAdjacentChunksTicking(world, listenerBlockPos)) {
             // 监听器周围 3x3 区块未全部处于 BlockTicking 级别，暂不接收振动（下次 tick 重试）
             return false;
         }

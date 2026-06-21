@@ -27,9 +27,11 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/CappedStructureProcessor.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
+#include "common/world/gen/valueprovider/IntProvider.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::feature::template_;
+using namespace mc::world::gen::valueprovider;
 
 // ============================================================================
 // 测试夹具
@@ -98,28 +100,78 @@ public:
 };
 
 // ============================================================================
+// 辅助函数：构造测试用的方块列表
+// ============================================================================
+
+static std::vector<BlockInfo> makeOriginalBlocks(i32 count)
+{
+    std::vector<BlockInfo> blocks;
+    blocks.reserve(count);
+    for (i32 i = 0; i < count; ++i) {
+        blocks.emplace_back(BlockPos(i, 0, 0), 1);
+    }
+    return blocks;
+}
+
+static std::vector<ProcessedBlockInfo> makeProcessedBlocks(i32 count)
+{
+    std::vector<ProcessedBlockInfo> blocks;
+    blocks.reserve(count);
+    for (i32 i = 0; i < count; ++i) {
+        blocks.emplace_back(BlockPos(i, 0, 0), 1);
+    }
+    return blocks;
+}
+
+// ============================================================================
 // 构造函数测试
 // ============================================================================
 
-TEST_F(CappedProcessorTest, Constructor_SetsLimit)
+TEST_F(CappedProcessorTest, Constructor_IntProvider_SetsLimitProvider)
+{
+    auto delegate = std::make_unique<NopStructureProcessor>();
+    auto limitProvider = std::make_unique<UniformInt>(2, 6);
+    CappedStructureProcessor processor(std::move(delegate), std::move(limitProvider));
+    ASSERT_NE(processor.getLimitProvider(), nullptr);
+    EXPECT_EQ(processor.getLimitProvider()->getMinValue(), 2);
+    EXPECT_EQ(processor.getLimitProvider()->getMaxValue(), 6);
+}
+
+TEST_F(CappedProcessorTest, Constructor_FixedInt_SetsConstantProvider)
 {
     auto delegate = std::make_unique<NopStructureProcessor>();
     CappedStructureProcessor processor(std::move(delegate), 5);
-    EXPECT_EQ(processor.getLimit(), 5);
+    ASSERT_NE(processor.getLimitProvider(), nullptr);
+    // i32 构造函数应创建 ConstantInt(5)
+    EXPECT_EQ(processor.getLimitProvider()->getMinValue(), 5);
+    EXPECT_EQ(processor.getLimitProvider()->getMaxValue(), 5);
 }
 
 TEST_F(CappedProcessorTest, Constructor_NegativeLimitClampedToZero)
 {
     auto delegate = std::make_unique<NopStructureProcessor>();
     CappedStructureProcessor processor(std::move(delegate), -3);
-    EXPECT_EQ(processor.getLimit(), 0);
+    ASSERT_NE(processor.getLimitProvider(), nullptr);
+    EXPECT_EQ(processor.getLimitProvider()->getMinValue(), 0);
+    EXPECT_EQ(processor.getLimitProvider()->getMaxValue(), 0);
 }
 
 TEST_F(CappedProcessorTest, Constructor_ZeroLimit)
 {
     auto delegate = std::make_unique<NopStructureProcessor>();
     CappedStructureProcessor processor(std::move(delegate), 0);
-    EXPECT_EQ(processor.getLimit(), 0);
+    ASSERT_NE(processor.getLimitProvider(), nullptr);
+    EXPECT_EQ(processor.getLimitProvider()->getMinValue(), 0);
+    EXPECT_EQ(processor.getLimitProvider()->getMaxValue(), 0);
+}
+
+TEST_F(CappedProcessorTest, Constructor_NullLimitProvider_DefaultsToZero)
+{
+    auto delegate = std::make_unique<NopStructureProcessor>();
+    CappedStructureProcessor processor(std::move(delegate), std::unique_ptr<IntProvider>(nullptr));
+    ASSERT_NE(processor.getLimitProvider(), nullptr);
+    EXPECT_EQ(processor.getLimitProvider()->getMinValue(), 0);
+    EXPECT_EQ(processor.getLimitProvider()->getMaxValue(), 0);
 }
 
 // ============================================================================
@@ -134,7 +186,9 @@ TEST_F(CappedProcessorTest, Clone_ProducesEqualCopy)
     auto cloned = original.clone();
     auto* clonedCapped = dynamic_cast<CappedStructureProcessor*>(cloned.get());
     ASSERT_NE(clonedCapped, nullptr);
-    EXPECT_EQ(clonedCapped->getLimit(), 7);
+    ASSERT_NE(clonedCapped->getLimitProvider(), nullptr);
+    EXPECT_EQ(clonedCapped->getLimitProvider()->getMinValue(), 7);
+    EXPECT_EQ(clonedCapped->getLimitProvider()->getMaxValue(), 7);
     EXPECT_NE(clonedCapped->getDelegate(), nullptr);
 }
 
@@ -144,8 +198,23 @@ TEST_F(CappedProcessorTest, Clone_NullDelegate)
     auto cloned = original.clone();
     auto* clonedCapped = dynamic_cast<CappedStructureProcessor*>(cloned.get());
     ASSERT_NE(clonedCapped, nullptr);
-    EXPECT_EQ(clonedCapped->getLimit(), 3);
+    ASSERT_NE(clonedCapped->getLimitProvider(), nullptr);
+    EXPECT_EQ(clonedCapped->getLimitProvider()->getMinValue(), 3);
     EXPECT_EQ(clonedCapped->getDelegate(), nullptr);
+}
+
+TEST_F(CappedProcessorTest, Clone_WithUniformIntProvider)
+{
+    auto delegate = std::make_unique<ReplaceAllProcessor>(42);
+    auto limitProvider = std::make_unique<UniformInt>(2, 8);
+    CappedStructureProcessor original(std::move(delegate), std::move(limitProvider));
+
+    auto cloned = original.clone();
+    auto* clonedCapped = dynamic_cast<CappedStructureProcessor*>(cloned.get());
+    ASSERT_NE(clonedCapped, nullptr);
+    ASSERT_NE(clonedCapped->getLimitProvider(), nullptr);
+    EXPECT_EQ(clonedCapped->getLimitProvider()->getMinValue(), 2);
+    EXPECT_EQ(clonedCapped->getLimitProvider()->getMaxValue(), 8);
 }
 
 // ============================================================================
@@ -179,19 +248,14 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_LimitZero_NoReplacements)
     CappedStructureProcessor processor(std::move(delegate), 0);
 
     PlacementSettings settings;
-    std::vector<BlockInfo> originalBlocks;
-    std::vector<ProcessedBlockInfo> processedBlocks;
-
-    for (int i = 0; i < 10; ++i) {
-        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-        processedBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto originalBlocks = makeOriginalBlocks(10);
+    auto processedBlocks = makeProcessedBlocks(10);
 
     auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
 
     ASSERT_EQ(result.size(), 10u);
     for (const auto& block : result) {
-        // limit=0，不应替换任何方块
+        // limit=0（ConstantInt(0) 的 maxValue=0），不应替换任何方块
         EXPECT_EQ(block.blockStateId, 1u);
     }
 }
@@ -217,13 +281,8 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_LimitReplacesOnlyUpToLimit)
     CappedStructureProcessor processor(std::move(delegate), 3);
 
     PlacementSettings settings;
-    std::vector<BlockInfo> originalBlocks;
-    std::vector<ProcessedBlockInfo> processedBlocks;
-
-    for (int i = 0; i < 10; ++i) {
-        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-        processedBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto originalBlocks = makeOriginalBlocks(10);
+    auto processedBlocks = makeProcessedBlocks(10);
 
     auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
 
@@ -248,13 +307,8 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_LimitExceedsBlockCount)
     CappedStructureProcessor processor(std::move(delegate), 100);
 
     PlacementSettings settings;
-    std::vector<BlockInfo> originalBlocks;
-    std::vector<ProcessedBlockInfo> processedBlocks;
-
-    for (int i = 0; i < 5; ++i) {
-        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-        processedBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto originalBlocks = makeOriginalBlocks(5);
+    auto processedBlocks = makeProcessedBlocks(5);
 
     auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
 
@@ -273,13 +327,8 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_PassthroughDelegate_NoChanges)
     CappedStructureProcessor processor(std::move(delegate), 5);
 
     PlacementSettings settings;
-    std::vector<BlockInfo> originalBlocks;
-    std::vector<ProcessedBlockInfo> processedBlocks;
-
-    for (int i = 0; i < 10; ++i) {
-        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-        processedBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto originalBlocks = makeOriginalBlocks(10);
+    auto processedBlocks = makeProcessedBlocks(10);
 
     auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
 
@@ -299,27 +348,17 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_DeterministicRandom)
     };
 
     PlacementSettings settings;
-    std::vector<BlockInfo> originalBlocks;
-    for (int i = 0; i < 20; ++i) {
-        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto originalBlocks = makeOriginalBlocks(20);
 
-    // 运行两次，使用相同的 seedPos
-    auto makeProcessedBlocks = [&originalBlocks]() -> std::vector<ProcessedBlockInfo> {
-        std::vector<ProcessedBlockInfo> blocks;
-        for (int i = 0; i < 20; ++i) {
-            blocks.emplace_back(BlockPos(i, 0, 0), 1);
-        }
-        return blocks;
-    };
+    auto makeBlocks = []() -> std::vector<ProcessedBlockInfo> { return makeProcessedBlocks(20); };
 
     auto processor1 = createProcessor();
     auto result1 =
-        processor1->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeProcessedBlocks());
+        processor1->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeBlocks());
 
     auto processor2 = createProcessor();
     auto result2 =
-        processor2->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeProcessedBlocks());
+        processor2->finalizeProcessing(BlockPos(100, 0, 200), settings, originalBlocks, makeBlocks());
 
     ASSERT_EQ(result1.size(), result2.size());
     for (size_t i = 0; i < result1.size(); ++i) {
@@ -336,28 +375,18 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_DifferentSeedsProduceDifferentRes
     };
 
     PlacementSettings settings;
-    std::vector<BlockInfo> originalBlocks;
-    for (int i = 0; i < 50; ++i) {
-        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto originalBlocks = makeOriginalBlocks(50);
 
-    auto makeProcessedBlocks = [&originalBlocks]() -> std::vector<ProcessedBlockInfo> {
-        std::vector<ProcessedBlockInfo> blocks;
-        for (int i = 0; i < 50; ++i) {
-            blocks.emplace_back(BlockPos(i, 0, 0), 1);
-        }
-        return blocks;
-    };
+    auto makeBlocks = []() -> std::vector<ProcessedBlockInfo> { return makeProcessedBlocks(50); };
 
     auto processor1 = createProcessor();
-    auto result1 = processor1->finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, makeProcessedBlocks());
+    auto result1 = processor1->finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, makeBlocks());
 
     auto processor2 = createProcessor();
     auto result2 =
-        processor2->finalizeProcessing(BlockPos(999, 0, 999), settings, originalBlocks, makeProcessedBlocks());
+        processor2->finalizeProcessing(BlockPos(999, 0, 999), settings, originalBlocks, makeBlocks());
 
     // 统计两个结果中替换的位置是否不同
-    // （由于随机性，大多数情况下不同的种子会产生不同的替换位置）
     int samePositionCount = 0;
     for (size_t i = 0; i < result1.size(); ++i) {
         if (result1[i].blockStateId == 99u && result2[i].blockStateId == 99u) {
@@ -366,9 +395,6 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_DifferentSeedsProduceDifferentRes
     }
 
     // 两个不同种子产生完全相同替换位置的概率极低
-    // 如果都替换5个方块，完全重合的概率约为 C(50,5)/C(50,5)*C(5,5)/C(50,5) ≈ 极小
-    // 因此至少有一些位置的替换应该不同
-    // 注意：这不是严格的数学测试，但足以验证随机性在工作
     EXPECT_LT(samePositionCount, 5);
 }
 
@@ -379,16 +405,9 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_SizeMismatch_ReturnsUnmodified)
     CappedStructureProcessor processor(std::move(delegate), 5);
 
     PlacementSettings settings;
-    std::vector<BlockInfo> originalBlocks;
-    std::vector<ProcessedBlockInfo> processedBlocks;
-
-    for (int i = 0; i < 10; ++i) {
-        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto originalBlocks = makeOriginalBlocks(10);
     // 只有 5 个处理后方块（大小不匹配）
-    for (int i = 0; i < 5; ++i) {
-        processedBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto processedBlocks = makeProcessedBlocks(5);
 
     auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
 
@@ -405,13 +424,8 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_NullDelegate_NoCrash)
     CappedStructureProcessor processor(nullptr, 5);
 
     PlacementSettings settings;
-    std::vector<BlockInfo> originalBlocks;
-    std::vector<ProcessedBlockInfo> processedBlocks;
-
-    for (int i = 0; i < 10; ++i) {
-        originalBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-        processedBlocks.emplace_back(BlockPos(i, 0, 0), 1);
-    }
+    auto originalBlocks = makeOriginalBlocks(10);
+    auto processedBlocks = makeProcessedBlocks(10);
 
     auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
 
@@ -419,4 +433,78 @@ TEST_F(CappedProcessorTest, FinalizeProcessing_NullDelegate_NoCrash)
     for (const auto& block : result) {
         EXPECT_EQ(block.blockStateId, 1u);
     }
+}
+
+// ============================================================================
+// IntProvider 限制测试
+// ============================================================================
+
+TEST_F(CappedProcessorTest, FinalizeProcessing_UniformIntProvider_SamplesLimit)
+{
+    // 使用 UniformInt(3, 3) 等价于 ConstantInt(3)，替换次数应为 3
+    auto delegate = std::make_unique<ReplaceAllProcessor>(99);
+    auto limitProvider = std::make_unique<UniformInt>(3, 3);
+    CappedStructureProcessor processor(std::move(delegate), std::move(limitProvider));
+
+    PlacementSettings settings;
+    auto originalBlocks = makeOriginalBlocks(10);
+    auto processedBlocks = makeProcessedBlocks(10);
+
+    auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
+
+    ASSERT_EQ(result.size(), 10u);
+
+    i32 replacedCount = 0;
+    for (const auto& block : result) {
+        if (block.blockStateId == 99u) {
+            ++replacedCount;
+        }
+    }
+
+    // UniformInt(3, 3) 始终采样为 3
+    EXPECT_EQ(replacedCount, 3);
+}
+
+TEST_F(CappedProcessorTest, FinalizeProcessing_ProviderMaxValueZero_NoReplacements)
+{
+    // IntProvider 最大值为 0 时，不应替换任何方块
+    auto delegate = std::make_unique<ReplaceAllProcessor>(99);
+    auto limitProvider = std::make_unique<ConstantInt>(0);
+    CappedStructureProcessor processor(std::move(delegate), std::move(limitProvider));
+
+    PlacementSettings settings;
+    auto originalBlocks = makeOriginalBlocks(10);
+    auto processedBlocks = makeProcessedBlocks(10);
+
+    auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
+
+    ASSERT_EQ(result.size(), 10u);
+    for (const auto& block : result) {
+        EXPECT_EQ(block.blockStateId, 1u);
+    }
+}
+
+TEST_F(CappedProcessorTest, FinalizeProcessing_BiasedToBottomIntProvider)
+{
+    // 使用 BiasedToBottomInt(5, 5) 等价于 ConstantInt(5)
+    auto delegate = std::make_unique<ReplaceAllProcessor>(99);
+    auto limitProvider = std::make_unique<BiasedToBottomInt>(5, 5);
+    CappedStructureProcessor processor(std::move(delegate), std::move(limitProvider));
+
+    PlacementSettings settings;
+    auto originalBlocks = makeOriginalBlocks(10);
+    auto processedBlocks = makeProcessedBlocks(10);
+
+    auto result = processor.finalizeProcessing(BlockPos(0, 0, 0), settings, originalBlocks, std::move(processedBlocks));
+
+    ASSERT_EQ(result.size(), 10u);
+
+    i32 replacedCount = 0;
+    for (const auto& block : result) {
+        if (block.blockStateId == 99u) {
+            ++replacedCount;
+        }
+    }
+
+    EXPECT_EQ(replacedCount, 5);
 }
