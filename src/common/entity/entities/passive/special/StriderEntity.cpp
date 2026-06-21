@@ -219,9 +219,6 @@ void StriderEntity::tick()
     // 处理熔岩行走物理
     _updateLavaWalking();
 
-    // TODO: 执行方块碰撞
-    // doBlockCollisions();
-
     // 更新加速计时
     m_boostHelper.tick();
 

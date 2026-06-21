@@ -24,10 +24,10 @@
 #include "ThrowableEntity.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace entity {
@@ -96,8 +96,10 @@ void ThrowableEntity::tick()
         }
     }
 
-    // 执行方块碰撞
-    // doBlockCollisions();
+    // 执行方块碰撞检测
+    // 对应 MC 原版 ThrowableProjectile.tick() 中的 applyEffectsFromBlocks() 调用
+    // 用于处理蜘蛛网减速、气泡柱推拉等投射物与方块的碰撞效果
+    doBlockCollisions();
 
     // 应用物理
     Vector3 velocity = m_velocity;

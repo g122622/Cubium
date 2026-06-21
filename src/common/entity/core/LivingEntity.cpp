@@ -835,6 +835,12 @@ void LivingEntity::aiStep()
     // 注意：aiStep() 中不对输入值应用阻力
     // 阻力是在 travel() 中应用到速度上的
     travel(m_moveStrafing, 0.0f, m_moveForward);
+
+    // 执行方块碰撞检测
+    // 对应 MC 原版 LivingEntity.aiStep() 中的 applyEffectsFromBlocks() 调用
+    // 遍历实体碰撞箱覆盖的所有方块，触发 onEntityCollision 和 onInsideBlock 回调
+    // 用于处理蜘蛛网减速、仙人掌伤害、甜浆果丛伤害、气泡柱推拉、传送门激活等效果
+    doBlockCollisions();
 }
 
 void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
