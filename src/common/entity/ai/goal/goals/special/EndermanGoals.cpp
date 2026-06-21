@@ -26,12 +26,15 @@
 #include "../../../../../util/AxisAlignedBB.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../util/math/ray/Raycast.hpp"
 #include "../../../../../world/IWorld.hpp"
 #include "../../../../../world/block/Block.hpp"
 #include "../../../../../world/block/BlockPos.hpp"
 #include "../../../../../world/block/BlockRegistry.hpp"
 #include "../../../../../world/block/BlockState.hpp"
 #include "../../../../../world/block/BlockTags.hpp"
+#include "../../../../../world/gameevent/GameEvent.hpp"
+#include "../../../../../world/gameevent/GameEvents.hpp"
 #include "../../../../../world/gamerule/GameRules.hpp"
 #include "../../../../core/Entity.hpp"
 #include "../../../../core/EntityTypeIdNumber.hpp"
@@ -316,18 +319,21 @@ void EndermanPlaceBlockGoal::tick()
         return;
     }
 
-    // 获取有效放置状态（处理方向性方块等）
-    // TODO: 完整实现 Block::isValidPosition 检查
-    const BlockState* placeState = heldState;
+    // 根据邻居状态更新方块形状（处理方向性方块等）
+    BlockState updatedState = Block::updateFromNeighbourShapes(*heldState, *world, pos);
 
     // 检查是否可以放置
-    if (!canPlaceBlock(world, pos, placeState, currentState, belowState, belowPos)) {
+    if (!canPlaceBlock(world, pos, &updatedState, currentState, belowState, belowPos)) {
         return;
     }
 
-    // 放置方块，先根据邻居状态更新方块形状
-    BlockState updatedState = Block::updateFromNeighbourShapes(*placeState, *world, pos);
+    // 放置方块
     world->setBlockState(pos, &updatedState, 3);
+
+    // 发出方块放置游戏事件
+    world->gameEvent(gameevent::GameEvents::BLOCK_PLACE,
+        pos,
+        gameevent::GameEvent::Context::of(static_cast<const Entity*>(m_enderman), &updatedState));
 
     // 清除拿着的方块
     m_enderman->setHeldBlockState(nullptr);
@@ -356,13 +362,16 @@ bool EndermanPlaceBlockGoal::canPlaceBlock(IWorld* world,
         return false;
     }
 
-    // 4. 下方方块必须有实体碰撞形状（固体）
-    if (!belowState->isSolid()) {
+    // 4. 下方方块的碰撞形状必须在顶面方向完全覆盖（等价于 MC Java 的 isCollisionShapeFullBlock）
+    if (!Block::hasEnoughSolidSide(*world, belowPos, Direction::Up)) {
         return false;
     }
 
-    // 5. 方块状态必须有效（isValidPosition）
-    // TODO: 完整实现 Block::isValidPosition 检查
+    // 5. 方块必须能在目标位置存活（isValidPosition / canSurvive）
+    auto& blockReader = static_cast<IBlockReader&>(*world);
+    if (!state->owner().isValidPosition(*state, blockReader, pos)) {
+        return false;
+    }
 
     // 6. 放置位置不能有实体碰撞
     AxisAlignedBB box(static_cast<f32>(pos.x),
@@ -438,9 +447,23 @@ void EndermanTakeBlockGoal::tick()
         return;
     }
 
-    // 射线检测：从末影人眼睛到目标方块
-    // TODO: 完整实现射线检测，确保可以到达目标方块
-    // 目前假设没有阻挡，直接拾取
+    // 射线检测：从末影人脚部所在方块的中心到目标方块中心，确保视线无阻挡
+    // 参考 MC Java EnderMan.EndermanTakeBlockGoal.tick() 中的 level.clip() 调用
+    Vector3f startPos(static_cast<f32>(math::floorTo<i32>(m_enderman->x())) + 0.5f,
+        static_cast<f32>(y) + 0.5f,
+        static_cast<f32>(math::floorTo<i32>(m_enderman->z())) + 0.5f);
+    Vector3f targetPos(static_cast<f32>(x) + 0.5f, static_cast<f32>(y) + 0.5f, static_cast<f32>(z) + 0.5f);
+    Vector3f direction = (targetPos - startPos).normalized();
+    f32 distance = static_cast<f32>((targetPos - startPos).length());
+
+    Ray ray(startPos, direction);
+    RaycastContext context(ray, distance);
+    BlockRaycastResult result = raycastBlocks(context, *world);
+
+    // 只有当射线命中目标方块时才允许拾取（确保视线无阻挡）
+    if (!result.isHit() || result.blockPos() != pos) {
+        return;
+    }
 
     // 移除方块（设置空气）
     const BlockState* airState = BlockRegistry::instance().airState();
@@ -448,6 +471,11 @@ void EndermanTakeBlockGoal::tick()
         return;
     }
     world->setBlockState(pos, airState, 3);
+
+    // 发出方块破坏游戏事件
+    world->gameEvent(gameevent::GameEvents::BLOCK_DESTROY,
+        pos,
+        gameevent::GameEvent::Context::of(static_cast<const Entity*>(m_enderman), state));
 
     // 设置拿着的方块（使用默认状态）
     m_enderman->setHeldBlockState(&targetBlock.defaultState());
