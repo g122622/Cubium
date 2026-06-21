@@ -225,6 +225,13 @@ constexpr i32 MOB_SPAWNER_PARTICLES = 2004;
 /// data 为粒子数量（0则生成15个）
 constexpr i32 BONEMEAL_PARTICLES = 2005;
 
+/// 植物生长粒子效果（蜜蜂授粉促进作物生长）
+/// data 为粒子数量（通常为15）
+/// 与 BONEMEAL_PARTICLES(2005) 的区别：2005 同时播放骨粉使用音效，
+/// 2011 仅播放生长粒子，无骨粉音效。当前客户端仅处理2005，
+/// 暂时使用 BONEMEAL_PARTICLES 替代，待客户端实现2011后切换。
+constexpr i32 PLANT_GROWTH_PARTICLES = 2011;
+
 /// 末影龙火球命中效果
 constexpr i32 DRAGON_FIREBALL_HIT = 2006;
 

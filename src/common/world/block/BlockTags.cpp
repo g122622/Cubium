@@ -1173,7 +1173,10 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "melon_stem"),
         ResourceLocation("minecraft", "pumpkin_stem"),
         // 甜浆果丛
-        ResourceLocation("minecraft", "sweet_berry_bush")});
+        ResourceLocation("minecraft", "sweet_berry_bush"),
+        // 洞穴藤蔓（发光浆果）— MC 原版 bee_growables 包含 cave_vines 和 cave_vines_plant
+        ResourceLocation("minecraft", "cave_vines"),
+        ResourceLocation("minecraft", "cave_vines_plant")});
     tags[beeGrowables->getId()] = std::move(beeGrowables);
 
     // 创建 ENDERMAN_HOLDABLE 标签（末影人可拾取方块）

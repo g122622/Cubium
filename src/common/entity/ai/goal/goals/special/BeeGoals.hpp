@@ -291,8 +291,8 @@ private:
     /// 检查位置是否是可授粉作物
     [[nodiscard]] bool _isPollinationTarget(const BlockPos& pos) const;
 
-    /// 促进作物生长
-    void _growCrop(const BlockPos& pos);
+    /// 促进作物生长（返回是否成功生长）
+    [[nodiscard]] bool _growCrop(const BlockPos& pos);
 
     static constexpr i32 MAX_CROPS_GROWN = 10; ///< 每次授粉最多促进的作物数
 };

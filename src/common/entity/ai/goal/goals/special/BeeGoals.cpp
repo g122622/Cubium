@@ -28,8 +28,14 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/blocks/agricultural/CropBlock.hpp"
+#include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -153,6 +159,10 @@ void BeeEnterHiveGoal::startExecuting()
     // TODO: 实际进入蜂巢逻辑
     // 需要与 BeehiveBlockEntity 交互
     // beehivetileentity.tryEnterHive(this, hasNectar);
+
+    // 蜜蜂将花粉交付蜂巢后重置作物计数器
+    // 对应 MC 原版 Bee.dropOffNectar(): resetNumCropsGrownSincePollination()
+    m_bee->resetCropCounter();
 
     // 暂时简化处理：重置状态
     m_bee->setHasNectar(false);
@@ -690,10 +700,14 @@ bool BeeFindPollinationTargetGoal::canBeeStart()
         return false;
     }
 
-    // TODO: 检查作物数限制
-    // if (m_bee->getCropsGrownSincePollination() >= MAX_CROPS_GROWN) return false;
+    // 检查作物数限制：每次采粉后最多促进 MAX_CROPS_GROWN 棵作物生长
+    // 对应 MC 原版 BeeGrowCropGoal.canUse(): getCropsGrownSincePollination() >= 10
+    if (m_bee->getCropsGrownSincePollination() >= MAX_CROPS_GROWN) {
+        return false;
+    }
 
     // 检查是否有有效蜂巢
+    // TODO: 实现 isHiveValid() 检查 — 当前简化为检查 hasHive()
     // if (!m_bee->isHiveValid()) return false;
 
     // 30% 概率
@@ -717,12 +731,13 @@ void BeeFindPollinationTargetGoal::tick()
         return;
     }
 
-    // 30 tick 检查一次
+    // 30 tick 检查一次（对应 MC 原版 adjustedTickDelay(30)）
     if (world->getRandom().nextInt(30) != 0) {
         return;
     }
 
-    // 检查脚下作物
+    // 检查脚下作物（蜜蜂下方1格和2格）
+    // 对应 MC 原版 BeeGrowCropGoal.tick(): blockPosition().below(i) for i in 1..2
     math::Vector3 beePos = m_bee->position();
     BlockPos beeBlockPos(static_cast<i32>(beePos.x), static_cast<i32>(beePos.y), static_cast<i32>(beePos.z));
 
@@ -730,13 +745,14 @@ void BeeFindPollinationTargetGoal::tick()
         BlockPos checkPos(beeBlockPos.x, beeBlockPos.y - dy, beeBlockPos.z);
 
         if (_isPollinationTarget(checkPos)) {
-            _growCrop(checkPos);
-            // m_bee->addCropCounter();
+            if (_growCrop(checkPos)) {
+                m_bee->addCropCounter();
 
-            // 检查是否达到上限
-            // if (m_bee->getCropsGrownSincePollination() >= MAX_CROPS_GROWN) {
-            //     break;
-            // }
+                // 检查是否达到上限
+                if (m_bee->getCropsGrownSincePollination() >= MAX_CROPS_GROWN) {
+                    break;
+                }
+            }
         }
     }
 }
@@ -757,26 +773,90 @@ bool BeeFindPollinationTargetGoal::_isPollinationTarget(const BlockPos& pos) con
     return BlockTags::BEE_GROWABLES().contains(*state);
 }
 
-void BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
+bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
 {
     IWorld* world = m_bee->world();
     if (world == nullptr) {
-        return;
+        return false;
     }
 
     const BlockState* state = world->getBlockState(pos);
     if (state == nullptr) {
-        return;
+        return false;
     }
 
-    // TODO: 实现作物生长逻辑
-    // 需要根据作物类型增加生长阶段
-    // 1. 农作物（小麦、胡萝卜、马铃薯、甜菜根）：增加 age 属性
-    // 2. 瓜果茎（西瓜茎、南瓜茎）：增加 age 属性
-    // 3. 甜浆果丛：增加 age 属性
+    const Block& block = state->owner();
+    const BlockState* newState = nullptr;
 
-    // 播放生长粒子效果
-    // world->playEvent(2005, pos, 0);
+    // 对应 MC 原版 BeeGrowCropGoal.tick() 中的作物生长逻辑
+    // 蜜蜂授粉只增加1个生长阶段（而非骨粉的2-5个阶段）
+
+    // 1. CropBlock（小麦、胡萝卜、马铃薯、甜菜根等农作物）：
+    //    如果未到最大年龄，age + 1
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(&block);
+    if (cropBlock != nullptr) {
+        if (!cropBlock->isMaxAge(*state)) {
+            i32 newAge = cropBlock->getAge(*state) + 1;
+            newState = &cropBlock->withAge(newAge);
+        }
+    }
+
+    // 2. StemBlock（西瓜茎、南瓜茎）：如果 age < 7，age + 1
+    if (newState == nullptr) {
+        auto* stemBlock = dynamic_cast<const blocks::StemBlock*>(&block);
+        if (stemBlock != nullptr) {
+            i32 age = state->get(BlockStateProperties::AGE_0_7());
+            if (age < 7) {
+                newState = &state->with(BlockStateProperties::AGE_0_7(), age + 1);
+            }
+        }
+    }
+
+    // 3. SweetBerryBushBlock：如果 age < 3，age + 1
+    if (newState == nullptr) {
+        auto* sweetBerryBlock = dynamic_cast<const blocks::SweetBerryBushBlock*>(&block);
+        if (sweetBerryBlock != nullptr) {
+            i32 age = state->get(BlockStateProperties::AGE_0_3());
+            if (age < sweetBerryBlock->getMaxAge()) {
+                newState = &state->with(BlockStateProperties::AGE_0_3(), age + 1);
+            }
+        }
+    }
+
+    // 4. CaveVines / CaveVinesPlant（洞穴藤蔓）：
+    //    使用 IGrowable 接口，调用 canGrow + grow
+    //    对应 MC 原版：如果是 BonemealableBlock（cave_vines/cave_vines_plant），
+    //    先检查 isValidBonemealTarget，再调用 performBonemeal
+    if (newState == nullptr) {
+        auto* growable = const_cast<IGrowable*>(dynamic_cast<const IGrowable*>(&block));
+        if (growable != nullptr) {
+            if (growable->canGrow(static_cast<IBlockReader&>(*world), pos, *state, world->isClientSide())) {
+                growable->grow(*world, world->getRandom(), pos, *state);
+                // 对于洞穴藤蔓，grow() 会直接更新方块状态，
+                // 需要读取更新后的状态判断是否成功
+                const BlockState* updatedState = world->getBlockState(pos);
+                if (updatedState == nullptr || updatedState == state) {
+                    // 状态未变化，说明生长未成功
+                    return false;
+                }
+                // 播放生长粒子效果（同上使用 BONEMEAL_PARTICLES 替代 PLANT_GROWTH_PARTICLES）
+                world->playEvent(world::WorldEvents::BONEMEAL_PARTICLES, pos, 15);
+                return true;
+            }
+        }
+    }
+
+    // 如果成功生长（newState 有效），更新方块状态并播放粒子
+    if (newState != nullptr) {
+        world->setBlockState(pos, newState, 2);
+        // 播放生长粒子效果（对应 MC 原版 levelEvent(2011, blockpos, 15)）
+        // 当前使用 BONEMEAL_PARTICLES(2005) 作为等效替代，
+        // 待客户端实现 PLANT_GROWTH_PARTICLES(2011) 后切换
+        world->playEvent(world::WorldEvents::BONEMEAL_PARTICLES, pos, 15);
+        return true;
+    }
+
+    return false;
 }
 
 // ============================================================================
