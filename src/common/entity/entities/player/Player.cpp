@@ -173,12 +173,27 @@ bool Player::mayInteract(IWorld& world, const BlockPos& pos) const
     }
 
     // 冒险模式：检查手持物品的 CanPlaceOn 标签
-    // 对应 MC Java 的 Player.mayInteract(ServerLevel, BlockPos)
+    // 参考 MC Java 的 Player.mayUseItemAt(BlockPos, Direction, ItemStack)：
+    // 冒险模式下，玩家可以使用主手或副手中带有 CanPlaceOn 标签的物品与方块交互。
+    // 任一只手的物品有匹配的 CanPlaceOn 标签即允许交互。
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr || state->isAir()) {
+        return false;
+    }
+
+    // 检查主手
     const ItemStack& mainHand = getHeldItem(Hand::MainHand);
     if (!mainHand.isEmpty() && mainHand.hasCanPlaceOn()) {
-        const BlockState* state = world.getBlockState(pos);
-        if (state != nullptr && !state->isAir()) {
-            return mainHand.canPlaceOnBlockInAdventureMode(world, *state);
+        if (mainHand.canPlaceOnBlockInAdventureMode(world, *state)) {
+            return true;
+        }
+    }
+
+    // 检查副手
+    const ItemStack& offHand = getHeldItem(Hand::OffHand);
+    if (!offHand.isEmpty() && offHand.hasCanPlaceOn()) {
+        if (offHand.canPlaceOnBlockInAdventureMode(world, *state)) {
+            return true;
         }
     }
 

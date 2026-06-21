@@ -125,3 +125,12 @@ MC 1.16.5 的水下挖掘惩罚检测玩家**眼睛位置**是否在水中，不
 **关键**：`spawnAfterBreak` 必须在 `_setBlockToAir` **之后**调用，因为 MC Java 中 `BlockBehaviour.spawnAfterBreak` 在方块已被移除后执行。对于 InfestedBlock，这意味着蠹虫在方块变为空气后才生成。
 
 `handleBlockInteraction` 的 StopDestroyBlock 路径和 `handleBlockBreak` 路径都遵循此顺序。
+
+### 12. 冒险模式 CanPlaceOn/CanDestroy 检查
+
+`BlockInteractionManager` 在冒险模式下增加了方块交互权限检查：
+
+- **放置检查**（`handleBlockPlacement`）：冒险模式下，检查手持物品的 CanPlaceOn 标签。只有持有带 CanPlaceOn 标签且目标方块匹配的物品时才允许放置。无 CanPlaceOn 标签的物品在冒险模式下不能放置方块。
+- **破坏检查**（`_canBreakBlock`）：冒险模式下，检查手持物品的 CanDestroy 标签。只有持有带 CanDestroy 标签且目标方块匹配的物品时才允许破坏。无 CanDestroy 标签的物品在冒险模式下不能破坏方块。
+- **mayInteract 检查**：`Player::mayInteract()` 在冒险模式下会检查主手和副手物品的 CanPlaceOn 标签，用于投掷物等间接交互场景。
+- **注意**：CanDestroy 检查仅检查主手物品（与 MC Java `Player.blockActionRestricted()` 行为一致），而 CanPlaceOn 检查取决于调用方式——`handleBlockPlacement` 接收 `heldItem` 参数（由上层根据交互手传入），`Player::mayInteract()` 则检查双手。

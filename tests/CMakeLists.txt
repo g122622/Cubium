@@ -93,6 +93,7 @@ add_executable(mc_tests
     common/item/BlockItemNbtTest.cpp
     common/item/GameMasterBlockItemTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
+    common/item/core/AdventureModeIntegrationTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
     common/item/enchantment/AttemptDamageItemTest.cpp

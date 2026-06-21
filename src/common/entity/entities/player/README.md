@@ -67,3 +67,4 @@ src/common/entity/entities/player/
 - **攻击冷却判定**：横扫攻击需要玩家"几乎静止"（`distanceWalkedModified - prevDistanceWalkedModified < aiMoveSpeed()`），否则不会触发横扫效果。
 - **权限等级与游戏模式分离**：`m_permissionLevel`（0-4）独立于游戏模式存储，`setGameMode()` 会重置 `m_abilities` 但不会重置 `m_permissionLevel`。`canUseGameMasterBlocks()` 要求同时满足 `creativeMode` 和 `permissionLevel >= 2`。
 - **权限等级网络同步**：服务端 `/op`/`/deop` 后会通过 `EntityStatusPacket`（status byte = 24 + level）通知客户端权限等级变更，客户端收到后在 `ClientApplicationNetwork` 的 `onEntityStatus` 回调中更新本地玩家的 `m_permissionLevel`。
+- **冒险模式mayInteract检查双手**：`Player::mayInteract()` 在冒险模式下会同时检查主手和副手物品的 CanPlaceOn 标签，任一只手的物品匹配即允许交互。参考 MC Java 的 `Player.mayUseItemAt()`，该方法是逐手检查而非合并检查——服务端在处理交互包时，会根据包中指定的 InteractionHand 来决定检查哪只手的物品。

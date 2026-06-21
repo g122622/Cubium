@@ -213,12 +213,12 @@ public:
     /**
      * @brief 检查玩家是否可以在指定位置与方块交互
      *
-     * 重写 Entity::mayInteract。对应 MC Java 的 Player.mayInteract(ServerLevel, BlockPos)。
+     * 重写 Entity::mayInteract。参考 MC Java 的 Player.mayUseItemAt() 冒险模式逻辑。
      *
      * 行为：
      * - 旁观模式：禁止交互
-     * - 冒险模式：检查手持物品的 CanPlaceOn 标签，如果物品可以在目标
-     *   方块上放置则允许交互
+     * - 冒险模式：检查主手和副手物品的 CanPlaceOn 标签，
+     *   如果任一只手的物品可以在目标方块上放置则允许交互
      * - 生存/创造模式：允许交互
      *
      * @param world 世界引用
