@@ -1205,7 +1205,8 @@ public:
      * @brief 检查实体是否可以在指定位置与方块交互
      *
      * 用于冒险模式下的交互权限判断。默认实现返回 true（允许交互）。
-     * Player 类重写此方法，在冒险/旁观模式下检查物品的 CanPlaceOn/CanDestroy 标签。
+     * Player 类重写此方法，在旁观模式下禁止交互，在冒险模式下检查
+     * 手持物品的 CanPlaceOn NBT 标签来判断是否允许放置。
      * ProjectileEntity 重写此方法，委托给发射者的 mayInteract 或检查 MOB_GRIEFING 游戏规则。
      *
      * @param world 世界引用

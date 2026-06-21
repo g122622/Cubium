@@ -285,6 +285,20 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         return Error(ErrorCode::PermissionDenied, "Cannot place blocks in spectator mode");
     }
 
+    // 冒险模式：检查手持物品的 CanPlaceOn 标签
+    if (playerData->gameMode == GameMode::Adventure) {
+        if (!heldItem.isEmpty() && heldItem.hasCanPlaceOn()) {
+            const BlockState* targetState = world->getBlockState(pos);
+            if (targetState == nullptr || !heldItem.canPlaceOnBlockInAdventureMode(*targetState)) {
+                return Error(
+                    ErrorCode::PermissionDenied, "Cannot place block in adventure mode: CanPlaceOn restriction");
+            }
+        } else {
+            // 冒险模式下没有 CanPlaceOn 标签的物品不能放置方块
+            return Error(ErrorCode::PermissionDenied, "Cannot place blocks in adventure mode without CanPlaceOn tag");
+        }
+    }
+
     // 获取物品对应的方块物品
     const Item* item = heldItem.getItem();
     if (!item) {
@@ -631,6 +645,20 @@ bool BlockInteractionManager::_canBreakBlock(
     if (block.isGameMaster()) {
         Player* player = _getPlayerEntity(playerId, world);
         if (player == nullptr || !player->canUseGameMasterBlocks()) {
+            return false;
+        }
+    }
+
+    // 冒险模式：检查手持物品的 CanDestroy 标签
+    auto* playerData = _validatePlayer(playerId);
+    if (playerData && playerData->gameMode == GameMode::Adventure) {
+        ItemStack heldItem = _getHeldTool(playerId);
+        if (!heldItem.isEmpty() && heldItem.hasCanDestroy()) {
+            if (!heldItem.canBreakBlockInAdventureMode(*state)) {
+                return false;
+            }
+        } else {
+            // 冒险模式下没有 CanDestroy 标签的物品不能破坏方块
             return false;
         }
     }

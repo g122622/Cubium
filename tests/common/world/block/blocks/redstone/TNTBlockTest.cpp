@@ -1388,6 +1388,7 @@ TEST_F(TNTBlockTest, PlayerMayInteract_Creative_ReturnsTrue)
 
 TEST_F(TNTBlockTest, PlayerMayInteract_Adventure_ReturnsFalse)
 {
+    // 冒险模式下没有 CanPlaceOn 标签的物品不能与方块交互
     auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
     player->setWorld(&m_world);
     player->setGameMode(GameMode::Adventure);

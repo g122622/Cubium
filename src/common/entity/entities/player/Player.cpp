@@ -37,6 +37,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockSoundType.hpp"
+#include "../../../world/block/BlockState.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
@@ -157,6 +158,32 @@ void Player::setGameMode(GameMode mode)
     // 同步移动速度到属性系统
     // PlayerAbilities 是配置层，属性系统是计算层
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, static_cast<f64>(m_abilities.walkSpeed));
+}
+
+bool Player::mayInteract(IWorld& world, const BlockPos& pos) const
+{
+    // 旁观模式：完全禁止交互
+    if (isSpectator()) {
+        return false;
+    }
+
+    // 非冒险模式：允许交互
+    if (!isAdventure()) {
+        return true;
+    }
+
+    // 冒险模式：检查手持物品的 CanPlaceOn 标签
+    // 对应 MC Java 的 Player.mayInteract(ServerLevel, BlockPos)
+    const ItemStack& mainHand = getHeldItem(Hand::MainHand);
+    if (!mainHand.isEmpty() && mainHand.hasCanPlaceOn()) {
+        const BlockState* state = world.getBlockState(pos);
+        if (state != nullptr && !state->isAir()) {
+            return mainHand.canPlaceOnBlockInAdventureMode(world, *state);
+        }
+    }
+
+    // 冒险模式下没有 CanPlaceOn 标签的物品不能与方块交互
+    return false;
 }
 
 // ============================================================================

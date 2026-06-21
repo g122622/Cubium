@@ -25,6 +25,7 @@
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
+#include "common/item/core/AdventureModePredicate.hpp"
 #include "common/item/enchantment/EnchantmentContainer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -523,6 +524,92 @@ public:
      */
     void clearLore() { m_lore.clear(); }
 
+    // ========== 冒险模式谓词（CanPlaceOn / CanDestroy） ==========
+
+    /**
+     * @brief 是否有 CanPlaceOn 谓词
+     *
+     * 冒险模式下，玩家只能将此物品放置在 CanPlaceOn 列表中的方块上。
+     *
+     * @return 如果有 CanPlaceOn 标签返回 true
+     */
+    [[nodiscard]] bool hasCanPlaceOn() const { return !m_canPlaceOn.isEmpty(); }
+
+    /**
+     * @brief 获取 CanPlaceOn 谓词
+     * @return CanPlaceOn 谓词的常量引用
+     */
+    [[nodiscard]] const AdventureModePredicate& getCanPlaceOn() const { return m_canPlaceOn; }
+
+    /**
+     * @brief 设置 CanPlaceOn 谓词
+     * @param predicate 冒险模式谓词
+     */
+    void setCanPlaceOn(AdventureModePredicate predicate) { m_canPlaceOn = std::move(predicate); }
+
+    /**
+     * @brief 检查此物品是否可以在冒险模式下放置在指定方块上
+     *
+     * 对应 MC Java 的 ItemStack.canPlaceOnBlockInAdventureMode()。
+     * 如果物品没有 CanPlaceOn 标签，返回 false。
+     * 如果有 CanPlaceOn 标签，检查目标方块是否匹配任一谓词。
+     *
+     * @param state 目标方块状态
+     * @return 如果允许放置返回 true
+     */
+    [[nodiscard]] bool canPlaceOnBlockInAdventureMode(const BlockState& state) const;
+
+    /**
+     * @brief 检查此物品是否可以在冒险模式下放置在指定方块上（带世界参数）
+     *
+     * @param world 世界引用
+     * @param state 目标方块状态
+     * @return 如果允许放置返回 true
+     */
+    [[nodiscard]] bool canPlaceOnBlockInAdventureMode(IWorld& world, const BlockState& state) const;
+
+    /**
+     * @brief 是否有 CanDestroy 谓词
+     *
+     * 冒险模式下，玩家只能用此物品破坏 CanDestroy 列表中的方块。
+     *
+     * @return 如果有 CanDestroy 标签返回 true
+     */
+    [[nodiscard]] bool hasCanDestroy() const { return !m_canDestroy.isEmpty(); }
+
+    /**
+     * @brief 获取 CanDestroy 谓词
+     * @return CanDestroy 谓词的常量引用
+     */
+    [[nodiscard]] const AdventureModePredicate& getCanDestroy() const { return m_canDestroy; }
+
+    /**
+     * @brief 设置 CanDestroy 谓词
+     * @param predicate 冒险模式谓词
+     */
+    void setCanDestroy(AdventureModePredicate predicate) { m_canDestroy = std::move(predicate); }
+
+    /**
+     * @brief 检查此物品是否可以在冒险模式下破坏指定方块
+     *
+     * 对应 MC Java 的 ItemStack.canBreakBlockInAdventureMode()。
+     * 如果物品没有 CanDestroy 标签，返回 false。
+     * 如果有 CanDestroy 标签，检查目标方块是否匹配任一谓词。
+     *
+     * @param state 目标方块状态
+     * @return 如果允许破坏返回 true
+     */
+    [[nodiscard]] bool canBreakBlockInAdventureMode(const BlockState& state) const;
+
+    /**
+     * @brief 检查此物品是否可以在冒险模式下破坏指定方块（带世界参数）
+     *
+     * @param world 世界引用
+     * @param state 目标方块状态
+     * @return 如果允许破坏返回 true
+     */
+    [[nodiscard]] bool canBreakBlockInAdventureMode(IWorld& world, const BlockState& state) const;
+
     // ========== 堆叠兼容性检查 ==========
 
     /**
@@ -605,6 +692,8 @@ public:
      *     - Lore: 描述
      *   - RepairCost (int): 修复成本
      *   - Potion (string): 药水ID
+     *   - CanPlaceOn (list<string>): 冒险模式可放置方块列表
+     *   - CanDestroy (list<string>): 冒险模式可破坏方块列表
      */
     void toNbt(nbt::tags::compound_tag& tag) const;
 
@@ -637,6 +726,8 @@ private:
     item::enchant::EnchantmentContainer m_enchantments;        // 附魔容器
     std::string m_potionId;                                    // 药水ID（用于药水物品）
     nlohmann::json m_customData;                               // 自定义数据（用于display等扩展标签）
+    AdventureModePredicate m_canPlaceOn;                       // 冒险模式可放置方块谓词
+    AdventureModePredicate m_canDestroy;                       // 冒险模式可破坏方块谓词
 
     // 允许 PotionUtils 访问私有成员
     friend class potion::PotionUtils;

@@ -213,24 +213,19 @@ public:
     /**
      * @brief 检查玩家是否可以在指定位置与方块交互
      *
-     * 重写 Entity::mayInteract。在冒险/旁观模式下禁止交互，
-     * 其他模式允许交互。
+     * 重写 Entity::mayInteract。对应 MC Java 的 Player.mayInteract(ServerLevel, BlockPos)。
      *
-     * 对应 MC Java 的 Player.mayInteract(ServerLevel, BlockPos)。
-     * 目前未实现冒险模式下物品的 CanPlaceOn/CanDestroy NBT 标签检查。
+     * 行为：
+     * - 旁观模式：禁止交互
+     * - 冒险模式：检查手持物品的 CanPlaceOn 标签，如果物品可以在目标
+     *   方块上放置则允许交互
+     * - 生存/创造模式：允许交互
      *
      * @param world 世界引用
      * @param pos 目标方块位置
      * @return 如果允许交互返回 true
      */
-    [[nodiscard]] bool mayInteract(IWorld& world, const BlockPos& pos) const override
-    {
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        // 旁观者和冒险模式下不允许与非自身方块交互
-        // TODO: 冒险模式下应检查物品的 CanPlaceOn/CanDestroy NBT 标签
-        return !isSpectator() && !isAdventure();
-    }
+    [[nodiscard]] bool mayInteract(IWorld& world, const BlockPos& pos) const override;
 
     // ========== 权限等级 ==========
 

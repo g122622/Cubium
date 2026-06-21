@@ -404,6 +404,7 @@ add_library(mc_common STATIC
     entity/inventory/container/MerchantResultSlot.cpp
 
     # Item System - Core
+    item/core/AdventureModePredicate.cpp
     item/core/Item.cpp
     item/core/ItemStack.cpp
     item/core/ItemRegistry.cpp

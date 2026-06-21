@@ -52,6 +52,8 @@ constexpr const char* NAME = "Name";
 constexpr const char* LORE = "Lore";
 constexpr const char* REPAIR_COST = "RepairCost";
 constexpr const char* POTION = "Potion";
+constexpr const char* CAN_PLACE_ON = "CanPlaceOn";
+constexpr const char* CAN_DESTROY = "CanDestroy";
 } // namespace nbt_keys
 } // namespace
 
@@ -95,6 +97,8 @@ ItemStack::ItemStack(const ItemStack& other)
     , m_enchantments(other.m_enchantments)
     , m_potionId(other.m_potionId)
     , m_customData(other.m_customData)
+    , m_canPlaceOn(other.m_canPlaceOn)
+    , m_canDestroy(other.m_canDestroy)
 {
     // 深拷贝 Lore
     for (const auto& line : other.m_lore) {
@@ -112,6 +116,8 @@ ItemStack& ItemStack::operator=(const ItemStack& other)
         m_potionId = other.m_potionId;
         m_customData = other.m_customData;
         m_enchantments = other.m_enchantments;
+        m_canPlaceOn = other.m_canPlaceOn;
+        m_canDestroy = other.m_canDestroy;
 
         // 深拷贝 Lore
         m_lore.clear();
@@ -445,6 +451,42 @@ bool ItemStack::canHarvestBlock(const BlockState& state) const
         return false;
     }
     return m_item->canHarvestBlock(state);
+}
+
+// ============================================================================
+// 冒险模式谓词
+// ============================================================================
+
+bool ItemStack::canPlaceOnBlockInAdventureMode(const BlockState& state) const
+{
+    if (isEmpty() || !hasCanPlaceOn()) {
+        return false;
+    }
+    return m_canPlaceOn.test(state);
+}
+
+bool ItemStack::canPlaceOnBlockInAdventureMode(IWorld& world, const BlockState& state) const
+{
+    if (isEmpty() || !hasCanPlaceOn()) {
+        return false;
+    }
+    return m_canPlaceOn.test(world, state);
+}
+
+bool ItemStack::canBreakBlockInAdventureMode(const BlockState& state) const
+{
+    if (isEmpty() || !hasCanDestroy()) {
+        return false;
+    }
+    return m_canDestroy.test(state);
+}
+
+bool ItemStack::canBreakBlockInAdventureMode(IWorld& world, const BlockState& state) const
+{
+    if (isEmpty() || !hasCanDestroy()) {
+        return false;
+    }
+    return m_canDestroy.test(world, state);
 }
 
 void ItemStack::inventoryTick(IWorld& world, Entity& entity, i32 itemSlot, bool isSelected)
@@ -794,7 +836,7 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
 
     // 检查是否需要 tag
     bool needTag = m_damage > 0 || hasEnchantments() || m_customName || !m_lore.empty() || m_repairCost > 0 ||
-        !m_potionId.empty() || hasTag();
+        !m_potionId.empty() || hasTag() || hasCanPlaceOn() || hasCanDestroy();
 
     if (!needTag) {
         return;
@@ -843,6 +885,24 @@ void ItemStack::toNbt(nbt::tags::compound_tag& tag) const
     // 药水ID
     if (!m_potionId.empty()) {
         tagCompound->put(nbt_keys::POTION, m_potionId);
+    }
+
+    // CanPlaceOn（冒险模式可放置方块列表）
+    if (hasCanPlaceOn()) {
+        auto canPlaceOnList = std::make_unique<nbt::tags::string_list_tag>();
+        for (const auto& predicate : m_canPlaceOn.getPredicates()) {
+            canPlaceOnList->value.push_back(predicate);
+        }
+        tagCompound->value.emplace(nbt_keys::CAN_PLACE_ON, std::move(canPlaceOnList));
+    }
+
+    // CanDestroy（冒险模式可破坏方块列表）
+    if (hasCanDestroy()) {
+        auto canDestroyList = std::make_unique<nbt::tags::string_list_tag>();
+        for (const auto& predicate : m_canDestroy.getPredicates()) {
+            canDestroyList->value.push_back(predicate);
+        }
+        tagCompound->value.emplace(nbt_keys::CAN_DESTROY, std::move(canDestroyList));
     }
 
     // 自定义数据
@@ -951,6 +1011,36 @@ Result<ItemStack> ItemStack::fromNbt(const nbt::tags::compound_tag& tag)
         stack.m_potionId = dynamic_cast<const nbt::tags::string_tag&>(*it->second).value;
     }
 
+    // CanPlaceOn（冒险模式可放置方块列表）
+    it = tagCompound.value.find(nbt_keys::CAN_PLACE_ON);
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
+        auto& listTag = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
+        if (listTag.element_id() == nbt::TagId::String) {
+            auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(listTag);
+            std::vector<std::string> predicates;
+            predicates.reserve(stringList.value.size());
+            for (const auto& blockId : stringList.value) {
+                predicates.push_back(blockId);
+            }
+            stack.m_canPlaceOn = AdventureModePredicate(std::move(predicates));
+        }
+    }
+
+    // CanDestroy（冒险模式可破坏方块列表）
+    it = tagCompound.value.find(nbt_keys::CAN_DESTROY);
+    if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::List) {
+        auto& listTag = dynamic_cast<const nbt::tags::list_tag&>(*it->second);
+        if (listTag.element_id() == nbt::TagId::String) {
+            auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(listTag);
+            std::vector<std::string> predicates;
+            predicates.reserve(stringList.value.size());
+            for (const auto& blockId : stringList.value) {
+                predicates.push_back(blockId);
+            }
+            stack.m_canDestroy = AdventureModePredicate(std::move(predicates));
+        }
+    }
+
     // 自定义数据
     it = tagCompound.value.find("custom_data");
     if (it != tagCompound.value.end() && it->second->id() == nbt::TagId::String) {
@@ -1003,7 +1093,8 @@ bool ItemStack::operator==(const ItemStack& other) const
 
     return m_item == other.m_item && m_count == other.m_count && m_damage == other.m_damage && customNameEqual &&
         loreEqual && m_potionId == other.m_potionId && m_customData == other.m_customData &&
-        m_enchantments.getAll() == other.m_enchantments.getAll();
+        m_enchantments.getAll() == other.m_enchantments.getAll() && m_canPlaceOn == other.m_canPlaceOn &&
+        m_canDestroy == other.m_canDestroy;
 }
 
 // ============================================================================
