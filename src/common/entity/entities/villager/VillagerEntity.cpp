@@ -53,6 +53,8 @@
 #include "common/entity/experience/ExperienceDropHandler.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/potion/PotionUtils.hpp"
+#include "common/item/potion/Potions.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -1006,6 +1008,27 @@ void WanderingTraderEntity::registerGoals()
     // ========== 优先级 0: 基础生存 ==========
     // SwimGoal - 游泳
     m_goalSelector.addGoal(0, std::make_unique<SwimGoal>(this));
+
+    // UseItemGoal - 夜间喝隐身药水
+    m_goalSelector.addGoal(0,
+        std::make_unique<UseItemGoal>(this,
+            potion::PotionUtils::createPotionItem(potion::Potions::INVISIBILITY),
+            SoundEvents::ENTITY_WANDERING_TRADER_DISAPPEARED,
+            [this](MobEntity* mob) -> bool {
+                auto* world = mob->world();
+                return world != nullptr && !world->isBrightOutside() &&
+                    !mob->hasEffect(effect::EffectType::Invisibility);
+            }));
+
+    // UseItemGoal - 白天喝牛奶恢复可见
+    m_goalSelector.addGoal(0,
+        std::make_unique<UseItemGoal>(this,
+            ItemStack(*Items::MILK_BUCKET),
+            SoundEvents::ENTITY_WANDERING_TRADER_REAPPEARED,
+            [this](MobEntity* mob) -> bool {
+                auto* world = mob->world();
+                return world != nullptr && world->isBrightOutside() && mob->hasEffect(effect::EffectType::Invisibility);
+            }));
 
     // ========== 优先级 1: 交易相关 ==========
     // TradeWithPlayerGoal - 与玩家交易

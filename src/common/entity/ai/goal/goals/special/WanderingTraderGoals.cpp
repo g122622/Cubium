@@ -24,10 +24,16 @@
 #include "WanderingTraderGoals.hpp"
 #include "../../../../../item/Items.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
+#include "../../../../../item/potion/PotionUtils.hpp"
+#include "../../../../../item/potion/Potions.hpp"
+#include "../../../../../sound/SoundEvents.hpp"
 #include "../../../../../util/assert/AssertMacros.hpp"
 #include "../../../../../util/math/MathConstants.hpp"
 #include "../../../../../util/math/Vector3.hpp"
 #include "../../../../../util/math/random/Random.hpp"
+#include "../../../../../world/IWorld.hpp"
+#include "../../../../ai/controller/LookController.hpp"
+#include "../../../../ai/pathfinding/PathNavigator.hpp"
 #include "../../../../core/Entity.hpp"
 #include "../../../../core/LivingEntity.hpp"
 #include "../../../../core/MobEntity.hpp"
@@ -44,7 +50,7 @@ namespace goal {
 namespace wandering_trader {
 
 // ============================================================================
-// UseItemGoal - TODO: 待后续完善药水系统
+// UseItemGoal
 // ============================================================================
 
 UseItemGoal::UseItemGoal(
@@ -60,7 +66,6 @@ UseItemGoal::UseItemGoal(
 
 bool UseItemGoal::shouldExecute()
 {
-    // 简化实现：检查条件
     if (m_mob == nullptr) {
         return false;
     }
@@ -74,63 +79,40 @@ bool UseItemGoal::shouldExecute()
     return m_condition(m_mob);
 }
 
+bool UseItemGoal::shouldContinueExecuting()
+{
+    // 当实体仍在使用物品时继续
+    return m_mob != nullptr && m_mob->isUsingItem();
+}
+
 void UseItemGoal::startExecuting()
 {
-    m_isUsing = true;
-    m_useDuration = 0;
+    // 将物品放入主手并开始使用
+    m_mob->setMainHandItem(m_itemStack);
+    m_mob->setActiveHand(Hand::MainHand);
 }
 
 void UseItemGoal::resetTask()
 {
-    m_isUsing = false;
-    m_useDuration = 0;
+    // 清空主手物品
+    m_mob->setMainHandItem(ItemStack{});
+
+    // 停止使用物品
+    m_mob->stopActiveHand();
+
+    // 播放完成音效
+    m_mob->playSound(m_soundEvent, 1.0f, m_mob->getRandom().nextFloat() * 0.2f + 0.9f);
+
+    // 设置冷却
     m_cooldown = COOLDOWN_TICKS;
 }
 
 void UseItemGoal::tick()
 {
-    if (!m_isUsing) {
-        return;
+    // 递减冷却计时器
+    if (m_cooldown > 0) {
+        m_cooldown--;
     }
-
-    m_useDuration++;
-
-    // 物品使用完成
-    if (m_useDuration >= ITEM_USE_DURATION) {
-        _applyItemEffect();
-        resetTask();
-    }
-}
-
-void UseItemGoal::_applyItemEffect()
-{
-    // 根据物品类型决定效果：
-    // - 牛奶桶：清除所有效果
-    // - 药水：添加对应效果
-
-    if (m_mob == nullptr) {
-        return;
-    }
-
-    // 检查物品类型
-    const Item* item = m_itemStack.getItem();
-    if (item == nullptr) {
-        return;
-    }
-
-    // 牛奶桶 - 清除所有效果
-    if (item == Items::MILK_BUCKET) {
-        m_mob->removeAllEffects();
-        return;
-    }
-
-    // 药水 - 添加隐身效果（流浪商人夜间使用）
-    // TODO: 完整实现应该从药水物品中读取效果
-    effect::EffectInstance invisibilityEffect(effect::EffectType::Invisibility,
-        1200, // 持续时间：60秒 = 1200 ticks
-        0     // 等级
-    );
-    m_mob->addEffect(invisibilityEffect);
 }
 
 // ============================================================================
@@ -172,6 +154,12 @@ bool LookAtCustomerGoal::shouldContinueExecuting()
         return false;
     }
 
+    // 检查距离是否在范围内
+    f32 distSq = m_mob->distanceSqTo(*m_customer);
+    if (distSq > LOOK_DISTANCE * LOOK_DISTANCE) {
+        return false;
+    }
+
     // 检查是否超时
     return m_lookTime > 0;
 }
@@ -195,15 +183,10 @@ void LookAtCustomerGoal::tick()
         return;
     }
 
-    // TODO: 使用 LookController 当其接口完善后
-    f64 dx = m_customer->x() - m_mob->x();
-    f64 dz = m_customer->z() - m_mob->z();
-    f64 distance = std::sqrt(dx * dx + dz * dz);
-
-    if (distance > 0.001) {
-        // 计算yaw角度
-        f64 yaw = std::atan2(-dx, dz) * 180.0 / mc::math::PI_DOUBLE;
-        m_mob->setRotation(static_cast<f32>(yaw), m_mob->pitch());
+    // 使用 LookController 控制看向顾客
+    if (m_mob->lookController() != nullptr) {
+        m_mob->lookController()->setLookPositionWithEntity(
+            *m_customer, m_mob->getHorizontalFaceSpeed(), m_mob->getVerticalFaceSpeed());
     }
 
     m_lookTime--;
@@ -214,7 +197,7 @@ void LookAtCustomerGoal::tick()
 // ============================================================================
 
 TradeWithPlayerGoal::TradeWithPlayerGoal(MobEntity* mob)
-    : Goal(EnumSet<GoalFlag>{GoalFlag::Look, GoalFlag::Move})
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Jump, GoalFlag::Move})
     , m_mob(mob)
 {
     MC_ASSERT(m_mob != nullptr);
@@ -222,7 +205,12 @@ TradeWithPlayerGoal::TradeWithPlayerGoal(MobEntity* mob)
 
 bool TradeWithPlayerGoal::shouldExecute()
 {
-    if (m_mob == nullptr) {
+    if (m_mob == nullptr || !m_mob->isAlive()) {
+        return false;
+    }
+
+    // 不在水中、不在空中、不在被击退状态时才可交易
+    if (m_mob->isInWater() || !m_mob->onGround()) {
         return false;
     }
 
@@ -234,8 +222,12 @@ bool TradeWithPlayerGoal::shouldExecute()
     // 检查是否有交易中的玩家
     Player* customer = villager->getTradingPlayer();
     if (customer != nullptr && customer->isAlive()) {
-        m_customer = customer;
-        return true;
+        // 检查距离是否在交易范围内（4格以内）
+        f32 distSq = m_mob->distanceSqTo(*customer);
+        if (distSq <= static_cast<f32>(TRADE_DISTANCE_SQ)) {
+            m_customer = customer;
+            return true;
+        }
     }
 
     return false;
@@ -258,19 +250,9 @@ bool TradeWithPlayerGoal::shouldContinueExecuting()
 
 void TradeWithPlayerGoal::startExecuting()
 {
-    // 停止移动
-    // TODO: 使用 PathNavigator 当其接口完善后
-
-    // 看向顾客
-    if (m_customer != nullptr) {
-        f64 dx = m_customer->x() - m_mob->x();
-        f64 dz = m_customer->z() - m_mob->z();
-        f64 distance = std::sqrt(dx * dx + dz * dz);
-
-        if (distance > 0.001) {
-            f64 yaw = std::atan2(-dx, dz) * 180.0 / mc::math::PI_DOUBLE;
-            m_mob->setRotation(static_cast<f32>(yaw), m_mob->pitch());
-        }
+    // 停止导航，使商人在交易时原地不动
+    if (m_mob->navigator() != nullptr) {
+        m_mob->navigator()->stop();
     }
 }
 
@@ -279,31 +261,14 @@ void TradeWithPlayerGoal::resetTask()
     m_customer = nullptr;
 }
 
-void TradeWithPlayerGoal::tick()
-{
-    if (m_customer == nullptr) {
-        return;
-    }
-
-    // 保持面向顾客
-    f64 dx = m_customer->x() - m_mob->x();
-    f64 dz = m_customer->z() - m_mob->z();
-    f64 distance = std::sqrt(dx * dx + dz * dz);
-
-    if (distance > 0.001) {
-        f64 yaw = std::atan2(-dx, dz) * 180.0 / mc::math::PI_DOUBLE;
-        m_mob->setRotation(static_cast<f32>(yaw), m_mob->pitch());
-    }
-}
-
 // ============================================================================
 // MoveToWanderTargetGoal
 // ============================================================================
 
-MoveToWanderTargetGoal::MoveToWanderTargetGoal(MobEntity* trader, f64 maxDistance, f64 speed)
+MoveToWanderTargetGoal::MoveToWanderTargetGoal(MobEntity* trader, f64 stopDistance, f64 speed)
     : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
     , m_mob(trader)
-    , m_maxDistance(maxDistance)
+    , m_stopDistance(stopDistance)
     , m_speed(speed)
 {
     MC_ASSERT(m_mob != nullptr);
@@ -326,8 +291,8 @@ bool MoveToWanderTargetGoal::shouldExecute()
         return false;
     }
 
-    // 检查是否超出最大距离
-    return _isOutsideDistance(target, m_maxDistance);
+    // 检查是否超出停止距离
+    return _isOutsideDistance(target, m_stopDistance);
 }
 
 bool MoveToWanderTargetGoal::shouldContinueExecuting()
@@ -346,8 +311,8 @@ bool MoveToWanderTargetGoal::shouldContinueExecuting()
         return false;
     }
 
-    // 检查是否接近目标
-    return _isOutsideDistance(target, 1.0);
+    // 仍在目标距离外时继续
+    return _isOutsideDistance(target, m_stopDistance);
 }
 
 void MoveToWanderTargetGoal::startExecuting()
@@ -358,22 +323,23 @@ void MoveToWanderTargetGoal::startExecuting()
     }
 
     m_wanderTarget = trader->wanderTarget();
-
-    // TODO: 使用 PathNavigator 当其接口完善后
 }
 
 void MoveToWanderTargetGoal::resetTask()
 {
-    // 清除游荡目标
+    // 清除游荡目标并停止导航
     auto* trader = dynamic_cast<WanderingTraderEntity*>(m_mob);
     if (trader != nullptr) {
         trader->setWanderTarget(BlockPos(0, 0, 0));
+    }
+
+    if (m_mob->navigator() != nullptr) {
+        m_mob->navigator()->stop();
     }
 }
 
 void MoveToWanderTargetGoal::tick()
 {
-    // 导航在 startExecuting 中已设置
     if (m_mob == nullptr) {
         return;
     }
@@ -384,9 +350,44 @@ void MoveToWanderTargetGoal::tick()
     }
 
     BlockPos target = trader->wanderTarget();
-    if (!_isOutsideDistance(target, 1.0)) {
-        // 已接近目标，完成任务
-        trader->setWanderTarget(BlockPos(0, 0, 0));
+    if (target.x == 0 && target.y == 0 && target.z == 0) {
+        return;
+    }
+
+    // 导航器为空时无法移动
+    if (m_mob->navigator() == nullptr) {
+        return;
+    }
+
+    // 只在导航完成后才发起新的导航请求
+    if (!m_mob->navigator()->isDone()) {
+        return;
+    }
+
+    // 远距离分段接近策略：距离超过中间航点距离时，先向目标方向移动中间航点距离
+    if (_isOutsideDistance(target, INTERMEDIATE_DISTANCE)) {
+        // 计算从当前位置到目标的方向向量，然后沿该方向前进中间航点距离
+        Vector3 direction(static_cast<f32>(target.x - m_mob->x()),
+            static_cast<f32>(target.y - m_mob->y()),
+            static_cast<f32>(target.z - m_mob->z()));
+
+        // 归一化
+        f32 length = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+        if (length > 0.001f) {
+            direction.x /= length;
+            direction.y /= length;
+            direction.z /= length;
+        }
+
+        // 计算中间航点
+        f64 waypointX = m_mob->x() + static_cast<f64>(direction.x) * INTERMEDIATE_DISTANCE;
+        f64 waypointY = m_mob->y() + static_cast<f64>(direction.y) * INTERMEDIATE_DISTANCE;
+        f64 waypointZ = m_mob->z() + static_cast<f64>(direction.z) * INTERMEDIATE_DISTANCE;
+        (void)m_mob->navigator()->moveTo(waypointX, waypointY, waypointZ, m_speed);
+    } else {
+        // 近距离直接导航到最终目标
+        (void)m_mob->navigator()->moveTo(
+            static_cast<f64>(target.x), static_cast<f64>(target.y), static_cast<f64>(target.z), m_speed);
     }
 }
 
@@ -402,34 +403,6 @@ bool MoveToWanderTargetGoal::_isOutsideDistance(const BlockPos& pos, f64 distanc
     f64 distSq = dx * dx + dy * dy + dz * dz;
 
     return distSq > distance * distance;
-}
-
-Vector3 MoveToWanderTargetGoal::_calculateMoveTarget(const BlockPos& target) const
-{
-    if (m_mob == nullptr) {
-        return Vector3(static_cast<f32>(target.x), static_cast<f32>(target.y), static_cast<f32>(target.z));
-    }
-
-    // 计算从当前位置到目标的方向向量，然后扩展10格
-    Vector3 direction(static_cast<f32>(target.x - m_mob->x()),
-        static_cast<f32>(target.y - m_mob->y()),
-        static_cast<f32>(target.z - m_mob->z()));
-
-    // 归一化
-    f32 length = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
-    if (length > 0.001f) {
-        direction.x /= length;
-        direction.y /= length;
-        direction.z /= length;
-    }
-
-    // 扩展10格
-    constexpr f32 EXTEND_DISTANCE = 10.0f;
-    Vector3 moveTarget(m_mob->x() + direction.x * EXTEND_DISTANCE,
-        m_mob->y() + direction.y * EXTEND_DISTANCE,
-        m_mob->z() + direction.z * EXTEND_DISTANCE);
-
-    return moveTarget;
 }
 
 } // namespace wandering_trader
