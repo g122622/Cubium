@@ -11,7 +11,7 @@ block/
 ├── BlockPos.hpp                    # 方块位置坐标类
 ├── BlockRegistry.hpp/cpp           # 方块注册表（单例）
 ├── BlockSoundType.hpp/cpp          # 方块声音类型定义
-├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、STAIRS、SLABS、WALLS 等）
+├── BlockTags.hpp/cpp               # 方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS 等）
 ├── FireInfoRegistry.hpp/cpp        # 火焰信息注册表（燃烧/蔓延属性）
 ├── GameMasterBlock.hpp             # 游戏管理员方块标记接口（命令方块、结构方块等）
 ├── HarvestTool.hpp                 # 挖掘工具类型定义

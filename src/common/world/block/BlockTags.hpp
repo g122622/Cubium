@@ -175,7 +175,7 @@ public:
     /// 羊毛地毯标签（所有颜色的地毯方块）
     /// 运行时消费场景：
     /// 1. DAMPENS_VIBRATIONS 标签的组成项（地毯方块阻尼振动）— 已在 VibrationSystemServer 中消费
-    /// 2. COMBINATION_STEP_SOUND_BLOCKS 标签的组成项（组合脚步声）— 待实现
+    /// 2. COMBINATION_STEP_SOUND_BLOCKS 标签的组成项（组合脚步声）— TODO: 待实现
     /// 3. 羊驼装备判定（MC 1.21+ 使用 Equippable 数据组件，非标签判断）— 已在 LlamaEntity::isValidArmorForSlot 中使用
     static BlockTag& WOOL_CARPETS();
 
