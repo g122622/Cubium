@@ -134,8 +134,9 @@ void BreakDoorGoal::resetTask()
     DoorInteractGoal::resetTask();
 
     // 移除客户端的方块破坏动画
+    // 对应 MC Java: this.mob.level().destroyBlockProgress(this.mob.getId(), this.doorPos, -1)
     if (m_mob && m_mob->world() && m_hasDoor) {
-        m_mob->world()->playEvent(-1, m_doorPos, -1);
+        m_mob->world()->destroyBlockProgress(m_mob->id(), m_doorPos, -1);
     }
 
     m_breakTime = 0;
@@ -170,8 +171,9 @@ void BreakDoorGoal::tick()
     // 阶段变化时同步到客户端
     if (progress != m_lastBreakProgress) {
         m_lastBreakProgress = progress;
-        // 发送方块破坏进度
-        m_mob->world()->playEvent(progress, m_doorPos, m_mob->id());
+        // 发送方块破坏进度动画
+        // 对应 MC Java: this.mob.level().destroyBlockProgress(this.mob.getId(), this.doorPos, i)
+        m_mob->world()->destroyBlockProgress(m_mob->id(), m_doorPos, progress);
     }
 
     // 破门完成

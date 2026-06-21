@@ -336,6 +336,13 @@ void ServerWorld::playEvent(i32 eventId, const BlockPos& pos, i32 data)
     }
 }
 
+void ServerWorld::destroyBlockProgress(EntityId breakerId, const BlockPos& pos, i32 progress)
+{
+    if (m_onDestroyBlockProgress) {
+        m_onDestroyBlockProgress(breakerId, pos.x, pos.y, pos.z, progress);
+    }
+}
+
 void ServerWorld::gameEvent(
     const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context)
 {

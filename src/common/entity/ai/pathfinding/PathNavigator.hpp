@@ -173,6 +173,10 @@ public:
 
     /**
      * @brief 设置是否可以开门
+     *
+     * 注意：当前仅用于 DoorInteractGoal 的目标激活判断，
+     * 尚未传播到 WalkNodeProcessor 影响寻路路径生成。
+     * TODO: 将 canOpenDoors 传播到 WalkNodeProcessor，使寻路系统能生成穿过门的路径
      */
     void setCanOpenDoors(bool canOpenDoors) noexcept { m_canOpenDoors = canOpenDoors; }
 
@@ -183,6 +187,9 @@ public:
 
     /**
      * @brief 设置是否可以通过门
+     *
+     * 注意：当前仅作为标志存储，尚未传播到 WalkNodeProcessor 影响寻路。
+     * TODO: 将 canEnterDoors 传播到 WalkNodeProcessor，使寻路系统能生成穿过门的路径
      */
     void setCanEnterDoors(bool canEnterDoors) noexcept { m_canEnterDoors = canEnterDoors; }
 

@@ -49,6 +49,7 @@
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -457,6 +458,9 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
     });
     world.setOnBroadcastWorldEvent(
         [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
+    world.setOnDestroyBlockProgress([this](EntityId breakerId, i32 x, i32 y, i32 z, i32 progress) {
+        broadcastBlockBreakProgressInRange(breakerId, x, y, z, progress);
+    });
     world.setOnBroadcastExplosion([this](const Vector3& position,
                                       f32 strength,
                                       const std::vector<BlockPos>& affectedBlocks,
@@ -2479,6 +2483,42 @@ void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 
     }
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::WorldEvent, result.value());
+
+    f32 rangeSq = range * range;
+    Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastBlockBreakProgressInRange(
+    EntityId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range)
+{
+    // 对应 MC Java: ServerLevel.destroyBlockProgress()
+    // 发送 BlockBreakAnimPacket 给范围内的玩家
+    // TODO: MC Java 排除破坏者自身（serverplayer.getId() != p_8612_），
+    //       当前实现暂不排除，因为 ServerPlayerData 中没有 entityId 映射
+    (void)breakerId;
+
+    network::BlockBreakAnimPacket packet;
+    packet.setBreakerEntityId(breakerId);
+    packet.setPosition(BlockPos(x, y, z));
+    packet.setStage(static_cast<i8>(progress));
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize BlockBreakAnimPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockBreakAnim, result.value());
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));

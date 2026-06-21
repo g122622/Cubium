@@ -20,9 +20,11 @@ interact/
 │  检测路径上的木门，追踪实体是否穿过门                            │
 │  提供 _isDoorOpen() 和 _setDoorOpen() 接口给子类              │
 │                         │                                    │
-│                    BreakDoorGoal                             │
-│  破坏木门：难度检查、mobGriefing 检查、                        │
-│  破坏动画、音效、最终移除门方块                                 │
+│              ┌──────────┴──────────┐                        │
+│         BreakDoorGoal          OpenDoorGoal (TODO)          │
+│  破坏木门：难度检查、         打开/关门（卫道士袭击时使用）      │
+│  破坏动画、音效、                                        │
+│  最终移除门方块                                         │
 │  依赖：DoorBlock::isWooden(), WorldEvents, GameRules         │
 └─────────────────────────────────────────────────────────────┘
 

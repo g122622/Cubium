@@ -374,6 +374,24 @@ public:
         (void)data;
     }
 
+    /**
+     * @brief 设置方块破坏进度动画
+     *
+     * 向客户端广播方块破坏进度动画。
+     * 对应 MC Java 中的 Level.destroyBlockProgress(breakerId, pos, progress)。
+     * 发送 ClientboundBlockDestructionPacket / BlockBreakAnimPacket。
+     *
+     * @param breakerId 破坏者实体ID
+     * @param pos 方块位置
+     * @param progress 破坏进度 (0-9 表示阶段，-1 表示移除动画)
+     */
+    virtual void destroyBlockProgress(EntityId breakerId, const BlockPos& pos, i32 progress)
+    {
+        (void)breakerId;
+        (void)pos;
+        (void)progress;
+    }
+
     // ========== 游戏事件 ==========
 
     /**

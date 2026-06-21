@@ -774,6 +774,21 @@ protected:
     void broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 z, i32 data, f32 range = 64.0f);
 
     /**
+     * @brief 广播方块破坏进度动画给指定范围内的玩家
+     *
+     * 对应 MC Java 中的 ServerLevel.destroyBlockProgress()。
+     * 发送 BlockBreakAnimPacket 给 32 格范围内的玩家（排除破坏者自身）。
+     *
+     * @param breakerId 破坏者实体ID
+     * @param x 方块X坐标
+     * @param y 方块Y坐标
+     * @param z 方块Z坐标
+     * @param progress 破坏进度 (0-9 表示阶段，-1 表示移除动画)
+     * @param range 广播范围（格），默认 32 格（MC Java 使用 1024 = 32^2）
+     */
+    void broadcastBlockBreakProgressInRange(EntityId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range = 32.0f);
+
+    /**
      * @brief 发送粒子给指定玩家
      *
      * @param playerId 玩家ID

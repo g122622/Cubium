@@ -390,6 +390,8 @@ public:
 
     void playEvent(i32 eventId, const BlockPos& pos, i32 data) override;
 
+    void destroyBlockProgress(EntityId breakerId, const BlockPos& pos, i32 progress) override;
+
     // ========== 游戏事件 ==========
 
     void gameEvent(
@@ -486,6 +488,20 @@ public:
     using WorldEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
 
     void setOnBroadcastWorldEvent(WorldEventCallback callback) { m_onBroadcastWorldEvent = std::move(callback); }
+
+    /**
+     * @brief 方块破坏进度回调类型
+     *
+     * 当服务端需要广播方块破坏进度动画给玩家时调用。
+     * 对应 MC Java 中的 ServerLevel.destroyBlockProgress()。
+     * 参数：破坏者实体ID、位置、进度（0-9 阶段，-1 移除）
+     */
+    using BlockBreakProgressCallback = std::function<void(EntityId breakerId, i32 x, i32 y, i32 z, i32 progress)>;
+
+    void setOnDestroyBlockProgress(BlockBreakProgressCallback callback)
+    {
+        m_onDestroyBlockProgress = std::move(callback);
+    }
 
     // ========== 爆炸广播回调 ==========
 
@@ -1140,6 +1156,7 @@ private:
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
     WorldEventCallback m_onBroadcastWorldEvent;
+    BlockBreakProgressCallback m_onDestroyBlockProgress;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
     RaidEventCallback m_onRaidEvent;           ///< 袭击事件回调
     CommandExecuteCallback m_onExecuteCommand; ///< 命令执行回调
