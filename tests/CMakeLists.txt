@@ -724,6 +724,7 @@ add_executable(mc_tests
     common/world/gen/BeardifierCarvingContextTest.cpp
     # DensityFunctions (Invert, Mul 边界值) 和 CaveDensityFunctions 噪声参数测试
     common/world/gen/density/DensityFunctionsTest.cpp
+    common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp

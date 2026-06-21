@@ -31,9 +31,12 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
     const std::function<const std::vector<u32>&(BiomeId, DecorationStage)>& getFeatures,
     const FeatureRegistry& registry)
 {
-    // Step 1: 为每个 (biome, stage) 中的特征分配全局索引，并记录所属 step
+    // Step 1: 为每个特征分配全局索引，并记录所属 step
     // 对应 Java: object2intmap.computeIfAbsent(placedfeature, p -> mutableint.getAndIncrement())
-    std::unordered_map<u32, i32> featureIdToGlobalIndex;
+    // 注意：Java 原版使用 PlacedFeature 对象引用作为 key，而非 stage-local 的 fid。
+    // 使用 ConfiguredFeatureBase* 作为 key 确保跨 stage 的相同 fid 不会冲突
+    // （例如 Lakes::WaterLake=0, UndergroundOres::CoalOre=0, TopLayerModification::FreezeTopLayer=0）
+    std::unordered_map<ConfiguredFeatureBase*, i32> featureToGlobalIndex;
     i32 nextGlobalIndex = 0;
 
     // 收集每个生物群系的特征序列并建立依赖图
@@ -61,13 +64,15 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
                     continue;
                 }
 
-                // 分配全局索引（如果尚未分配）
-                auto it = featureIdToGlobalIndex.find(fid);
-                if (it == featureIdToGlobalIndex.end()) {
-                    it = featureIdToGlobalIndex.emplace(fid, nextGlobalIndex++).first;
+                ConfiguredFeatureBase* feature = allFeatures[fid];
+
+                // 分配全局索引（如果尚未分配）——以特征对象指针为 key，与 Java 原版一致
+                auto it = featureToGlobalIndex.find(feature);
+                if (it == featureToGlobalIndex.end()) {
+                    it = featureToGlobalIndex.emplace(feature, nextGlobalIndex++).first;
                 }
 
-                biomeFeatures.push_back({it->second, stepIndex, fid, allFeatures[fid]});
+                biomeFeatures.push_back({it->second, stepIndex, fid, feature});
             }
         }
 
@@ -107,12 +112,18 @@ std::vector<FeatureSorter::StepFeatureData> FeatureSorter::buildFeaturesPerStep(
     std::unordered_set<i32> inProgress;
     std::vector<i32> topoOrder;
 
+    bool hasCycle = false;
+
     for (const auto& [nodeIdx, _] : adjByIndex) {
         if (visited.find(nodeIdx) == visited.end()) {
             if (depthFirstSearch(adjByIndex, visited, inProgress, topoOrder, nodeIdx)) {
-                spdlog::warn("[FeatureSorter] Feature order cycle detected, sorting may be incomplete");
+                hasCycle = true;
             }
         }
+    }
+
+    if (hasCycle) {
+        spdlog::warn("[FeatureSorter] Feature order cycle detected, sorting may be incomplete");
     }
 
     // 反转得到拓扑排序（DFS 后序的逆序）
@@ -151,17 +162,18 @@ bool FeatureSorter::depthFirstSearch(const std::unordered_map<i32, std::vector<i
         return false;
     }
     if (inProgress.count(node)) {
-        // 检测到环
+        // 检测到环：跳过此节点，继续处理其他分支（与 Java 原版一致）
         return true;
     }
 
     inProgress.insert(node);
 
+    bool hasCycle = false;
     auto it = adj.find(node);
     if (it != adj.end()) {
         for (i32 neighbor : it->second) {
             if (depthFirstSearch(adj, visited, inProgress, result, neighbor)) {
-                return true;
+                hasCycle = true;
             }
         }
     }
@@ -169,7 +181,7 @@ bool FeatureSorter::depthFirstSearch(const std::unordered_map<i32, std::vector<i
     inProgress.erase(node);
     visited.insert(node);
     result.push_back(node);
-    return false;
+    return hasCycle;
 }
 
 } // namespace mc
