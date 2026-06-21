@@ -1,4 +1,4 @@
-# Pathfinding 寻路系统
+#Pathfinding 寻路系统
 
 寻路系统实现了 A* 算法，为游戏中的实体提供智能路径规划能力。该系统参考 Minecraft 1.16.5 的寻路架构设计。
 
@@ -98,9 +98,29 @@ FlaggedPathPoint（多目标寻路辅助类，独立使用）
 
 PathPoint 的 `m_distanceToNext` 字段存储的是 `启发式值 * 1.5`（MC 1.16.5 的 distanceToNext），不是到下一个点的实际距离。这是 A* 算法的优化，避免重复计算。
 
-### 9. CHAIN 和 WATER 相关节点类型未实现
+### 9. 门和栅栏门的路径类型识别
 
-`PathNodeType` 中部分类型（如 `WalkableDoor`, `Trapdoor`, `FenceGate`）已定义但 WalkNodeProcessor 可能未完全处理，使用前需确认具体实现。
+`WalkNodeProcessor` 已实现 DoorBlock 和 FenceGateBlock 的路径类型识别，对应 MC Java 的 `WalkNodeEvaluator.getPathTypeFromState()` 和 `getPathTypeWithinMobBB()`：
+
+| 方块 | PathNodeType | 代价 | 可行走 |
+|------|-------------|------|--------|
+| 打开的门 | `DoorOpen` | 0.0 | ✓ |
+| 关闭的木门 | `DoorWoodClosed` | -1.0 | ✗ |
+| 关闭的铁门 | `DoorIronClosed` | -1.0 | ✗ |
+| 关闭木门 + canOpenDoors + canEnterDoors | `WalkableDoor` | 0.0 | ✓ |
+| 打开的门 + !canEnterDoors | `Blocked` | -1.0 | ✗ |
+| 打开的栅栏门 | `FenceGate` | 0.0 | ✓ |
+| 关闭的栅栏门 | `Fence` | -1.0 | ✗ |
+
+**传播机制**：`PathNavigator::setCanOpenDoors()` 和 `PathNavigator::setCanEnterDoors()` 会将设置传播到关联的 `WalkNodeProcessor`（参照 `setAvoidSunPathing` 模式，通过 `dynamic_cast<WalkNodeProcessor*>` 实现）。
+
+**默认值**：`m_canOpenDoors` 默认为 `false`，`m_canEnterDoors` 默认为 `true`（对齐 MC 的 `canPassDoors = true`）。
+
+**对角线移动**：禁止对角线穿过 `WalkableDoor` 节点，对应 MC 的 `isDiagonalValid()` 逻辑。
+
+**使用方**：`ZombieEntity` 通过 `nav->setCanOpenDoors(canBreak)` 设置僵尸开门能力，`VindicatorEntity`（卫道士）通过 `nav->setCanOpenDoors(true)` 设置破门能力，`DoorInteractGoal` 通过 `navigator->canOpenDoors()` 检查实体是否具备开门能力。
+
+`PathNodeType` 中其余类型（如 `Trapdoor`, `Leaves`, `Rail`, `StickyHoney`, `Cocoa`, `Climbable`）的方块到类型映射尚未在 `getNodeType()` 中实现，使用前需确认具体实现。
 
 ### 10. Region 接口需要完整实现
 

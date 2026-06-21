@@ -443,3 +443,152 @@ TEST_F(WalkNodeProcessorNodeTypeTest, SetCanEnterDoors)
     m_processor->setCanEnterDoors(true);
     EXPECT_TRUE(m_processor->canEnterDoors());
 }
+
+// ============================================================================
+// 门类型转换测试 — 使用可重写 getNodeType 的测试子类
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 可重写 getNodeType 的测试用 WalkNodeProcessor
+ *
+ * 用于测试 getNodeTypeWithEntity 中的门类型转换逻辑，
+ * 无需依赖真实的 BlockState/DoorBlock 对象。
+ */
+class TestableWalkNodeProcessor : public WalkNodeProcessor {
+public:
+    /// 预设的节点类型映射：key = makeHash(x,y,z)，value = PathNodeType
+    std::unordered_map<u64, PathNodeType> m_presetTypes;
+
+    /// 设置指定位置的预设节点类型
+    void setPresetNodeType(i32 x, i32 y, i32 z, PathNodeType type)
+    {
+        u64 key = (static_cast<u64>(static_cast<u32>(x)) << 32) |
+            (static_cast<u64>(static_cast<u16>(y & 0xFFFF)) << 16) |
+            (static_cast<u64>(static_cast<u32>(z)) & 0xFFFFULL);
+        m_presetTypes[key] = type;
+    }
+
+    /// 重写 getNodeType，返回预设类型或调用基类实现
+    [[nodiscard]] PathNodeType getNodeType(i32 x, i32 y, i32 z) override
+    {
+        u64 key = (static_cast<u64>(static_cast<u32>(x)) << 32) |
+            (static_cast<u64>(static_cast<u16>(y & 0xFFFF)) << 16) |
+            (static_cast<u64>(static_cast<u32>(z)) & 0xFFFFULL);
+        auto it = m_presetTypes.find(key);
+        if (it != m_presetTypes.end()) {
+            return it->second;
+        }
+        return WalkNodeProcessor::getNodeType(x, y, z);
+    }
+};
+
+} // namespace
+
+// ============================================================================
+// 门类型转换逻辑测试
+// ============================================================================
+
+class DoorTypeConversionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        m_processor = std::make_unique<TestableWalkNodeProcessor>();
+        m_processor->setRegion(&m_region);
+        // 默认设置：canOpenDoors=false, canEnterDoors=true（对齐 MC 默认值）
+        m_processor->setCanOpenDoors(false);
+        m_processor->setCanEnterDoors(true);
+    }
+
+    MockRegion m_region;
+    std::unique_ptr<TestableWalkNodeProcessor> m_processor;
+};
+
+TEST_F(DoorTypeConversionTest, DoorWoodClosedCannotOpenBecomesBlocked)
+{
+    // 关闭的木门 + 不能开门 + 能穿门 → 保持 DoorWoodClosed（costMalus=-1.0，不可通行）
+    m_processor->setPresetNodeType(0, 64, 0, PathNodeType::DoorWoodClosed);
+    m_processor->setCanOpenDoors(false);
+    m_processor->setCanEnterDoors(true);
+
+    PathNodeType result = m_processor->getNodeTypeWithEntity(0, 64, 0);
+    // DoorWoodClosed 的 costMalus 是 -1.0，不可行走，但不会变成 Blocked
+    // 在当前实现中，DoorWoodClosed 不会被转换（只有 canOpenDoors && canEnterDoors 才转换为 WalkableDoor）
+    EXPECT_EQ(result, PathNodeType::DoorWoodClosed);
+}
+
+TEST_F(DoorTypeConversionTest, DoorWoodClosedCanOpenAndPassBecomesWalkableDoor)
+{
+    // 关闭的木门 + 能开门 + 能穿门 → WalkableDoor（可通行）
+    m_processor->setPresetNodeType(0, 64, 0, PathNodeType::DoorWoodClosed);
+    m_processor->setCanOpenDoors(true);
+    m_processor->setCanEnterDoors(true);
+
+    PathNodeType result = m_processor->getNodeTypeWithEntity(0, 64, 0);
+    EXPECT_EQ(result, PathNodeType::WalkableDoor);
+}
+
+TEST_F(DoorTypeConversionTest, DoorWoodClosedCanOpenButCannotPassStaysClosed)
+{
+    // 关闭的木门 + 能开门 + 不能穿门 → 保持 DoorWoodClosed
+    // MC 原版: canOpenDoors && canPassDoors 才能转换为 WALKABLE_DOOR
+    m_processor->setPresetNodeType(0, 64, 0, PathNodeType::DoorWoodClosed);
+    m_processor->setCanOpenDoors(true);
+    m_processor->setCanEnterDoors(false);
+
+    PathNodeType result = m_processor->getNodeTypeWithEntity(0, 64, 0);
+    EXPECT_EQ(result, PathNodeType::DoorWoodClosed);
+}
+
+TEST_F(DoorTypeConversionTest, DoorOpenCanPassStaysDoorOpen)
+{
+    // 打开的门 + 能穿门 → 保持 DoorOpen（可通行）
+    m_processor->setPresetNodeType(0, 64, 0, PathNodeType::DoorOpen);
+    m_processor->setCanOpenDoors(false);
+    m_processor->setCanEnterDoors(true);
+
+    PathNodeType result = m_processor->getNodeTypeWithEntity(0, 64, 0);
+    EXPECT_EQ(result, PathNodeType::DoorOpen);
+}
+
+TEST_F(DoorTypeConversionTest, DoorOpenCannotPassBecomesBlocked)
+{
+    // 打开的门 + 不能穿门 → Blocked
+    // MC 原版: DOOR_OPEN && !canPassDoors → BLOCKED
+    m_processor->setPresetNodeType(0, 64, 0, PathNodeType::DoorOpen);
+    m_processor->setCanOpenDoors(false);
+    m_processor->setCanEnterDoors(false);
+
+    PathNodeType result = m_processor->getNodeTypeWithEntity(0, 64, 0);
+    EXPECT_EQ(result, PathNodeType::Blocked);
+}
+
+TEST_F(DoorTypeConversionTest, DoorIronClosedRemainsUnchanged)
+{
+    // 关闭的铁门始终不可通行，不会因为 canOpenDoors 而转换
+    // 铁门无法手动打开
+    m_processor->setPresetNodeType(0, 64, 0, PathNodeType::DoorIronClosed);
+    m_processor->setCanOpenDoors(true);
+    m_processor->setCanEnterDoors(true);
+
+    PathNodeType result = m_processor->getNodeTypeWithEntity(0, 64, 0);
+    // DoorIronClosed 不满足 DoorWoodClosed 条件，保持不变
+    EXPECT_EQ(result, PathNodeType::DoorIronClosed);
+}
+
+TEST_F(DoorTypeConversionTest, WalkableDoorIsWalkableAndZeroCost)
+{
+    // WalkableDoor 可行走，代价为0
+    EXPECT_TRUE(isWalkable(PathNodeType::WalkableDoor));
+    EXPECT_FLOAT_EQ(getPathCostPenalty(PathNodeType::WalkableDoor), 0.0f);
+}
+
+TEST_F(DoorTypeConversionTest, BlockedTypeStaysBlocked)
+{
+    // Blocked 类型始终返回 Blocked，不做门类型转换
+    m_processor->setPresetNodeType(0, 64, 0, PathNodeType::Blocked);
+
+    PathNodeType result = m_processor->getNodeTypeWithEntity(0, 64, 0);
+    EXPECT_EQ(result, PathNodeType::Blocked);
+}
