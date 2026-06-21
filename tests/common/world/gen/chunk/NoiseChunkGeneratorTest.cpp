@@ -448,10 +448,11 @@ TEST_F(NoiseChunkGeneratorTest, Overworld_HeightConsistency)
 // ============================================================================
 
 // TODO: 此测试当前失败，暴露了 getBaseColumn 的密度函数计算 bug：
-// Y=0 处密度值计算为 <= 0，导致 DisabledAquiferFiller 返回水而非石头。
-// 这说明 NoiseRouter 的密度插值在单列模式下可能存在坐标或缓存错误。
-// 修复密度函数后此测试应通过（移除 DISABLED_ 前缀即可启用）。
-TEST_F(NoiseChunkGeneratorTest, DISABLED_GetBaseColumn_Overworld_StoneDominatesUnderground)
+// getBaseColumn 单列模式下 density 在大部分地下位置返回 0 而非正值。
+// 根因：NoiseInterpolator 在 fillingCell 模式下的三线性插值返回 0。
+// 完整区块生成管线（generateNoise）是正确的，但单列查询的插值路径有问题。
+// 修复后此测试应通过（移除 DISABLED_ 前缀即可启用）。
+TEST_F(NoiseChunkGeneratorTest, GetBaseColumn_Overworld_StoneDominatesUnderground)
 {
     // 主世界地下以石头/深板岩为主
     auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(42ULL, false);
@@ -490,10 +491,11 @@ TEST_F(NoiseChunkGeneratorTest, DISABLED_GetBaseColumn_Overworld_StoneDominatesU
 
 TEST_F(NoiseChunkGeneratorTest, GetBaseColumn_Overworld_DebugBlockTypes)
 {
-    // 记录 getBaseColumn 当前的实际行为，帮助诊断密度函数 bug。
-    // 已知 bug：getBaseColumn 在地下深处（如 Y=0）返回了水(blockId=8)而非石头，
-    // 原因是 NoiseRouter 密度插值在单列模式下可能返回了错误的密度值。
-    // 此测试验证当前行为并记录问题，待密度函数修复后应更新。
+    // 验证 getBaseColumn 在地下深处返回石头/深板岩而非水/空气。
+    // 修复前：NoiseInterpolator 在 fillSlice 阶段 m_value 未就绪时返回 0，
+    // 导致 CellCache 未填充时递归到插值器返回错误密度值。
+    // 修复后：NoiseInterpolator::compute() 在 m_value 未就绪时委托给 m_filler->compute()，
+    // 绕过插值器缓存直接计算原始密度值（对应 MC Java 的 fillArray 机制）。
     auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(42ULL, false);
     NoiseChunkGenerator gen(42ULL, DimensionSettings::overworld(), std::move(biomeSource));
 
@@ -516,16 +518,11 @@ TEST_F(NoiseChunkGeneratorTest, GetBaseColumn_Overworld_DebugBlockTypes)
     EXPECT_TRUE(settings.defaultBlock->is(VanillaBlocks::STONE))
         << "DimensionSettings::overworld().defaultBlock should be stone";
 
-    // 检查 Y=0 处的方块：当前实现返回水，这是已知 bug
+    // 检查 Y=0 处的方块：地下深处应为石头或深板岩
     const BlockState* blockAt0 = column.getBlock(0);
     if (blockAt0 != nullptr) {
         bool isStoneOrDeepslate = blockAt0->is(VanillaBlocks::STONE) || blockAt0->is(VanillaBlocks::DEEPSLATE);
-        // TODO: 修复密度函数后，地下应返回石头或深板岩，将下面改为 EXPECT_TRUE
-        // 当前 getBaseColumn 在 Y=0 返回水(blockId=8)是已知 bug
-        if (!isStoneOrDeepslate) {
-            // 记录但不失败：地下 Y=0 当前返回 blockId 而非石头
-            // 这是 NoiseRouter 密度插值在单列模式下的 bug
-        }
+        EXPECT_TRUE(isStoneOrDeepslate) << "Y=0 should be stone or deepslate";
     }
 }
 

@@ -702,7 +702,8 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
     const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
 
     // 创建单列 NoiseChunk（cellCountXZ=1）
-    // MC 1.21: 高度查询使用 BeardifierMarker（零贡献），结构地形不影响高度计算
+    // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1，与区块生成的 cellCountXZ=4 不同
+    // cellCountXZ=1 使得 NoiseInterpolator 只分配 2 个 Z 切片而非 5 个
     auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
         cellWidth,
         cellHeight,
@@ -710,7 +711,8 @@ i32 NoiseChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
         alignedX,
         minY,
         alignedZ,
-        std::make_unique<world::gen::density::BeardifierMarker>());
+        std::make_unique<world::gen::density::BeardifierMarker>(),
+        1); // cellCountXZ = 1 for single-column query
 
     // 设置 DisabledAquiferFiller（高度查询不需要实际含水层计算，
     // 但需要正确判断海平面以下的流体方块）
@@ -805,6 +807,7 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
     const f64 deltaZ = static_cast<f64>(z - alignedZ) / static_cast<f64>(cellWidth);
 
     // 创建单列 NoiseChunk（使用 BeardifierMarker 零贡献，与 getHeight 一致）
+    // MC 1.21: iterateNoiseColumn 传入 cellCountXZ=1
     auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(m_randomState->createRouterCopy(),
         cellWidth,
         cellHeight,
@@ -812,7 +815,8 @@ NoiseColumn NoiseChunkGenerator::getBaseColumn(i32 x, i32 z) const
         alignedX,
         minY,
         alignedZ,
-        std::make_unique<world::gen::density::BeardifierMarker>());
+        std::make_unique<world::gen::density::BeardifierMarker>(),
+        1); // cellCountXZ = 1 for single-column query
 
     // 设置 DisabledAquiferFiller（与 getHeight 一致）
     {

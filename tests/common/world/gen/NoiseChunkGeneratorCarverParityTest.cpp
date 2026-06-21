@@ -228,20 +228,20 @@ TEST_F(NoiseChunkGeneratorCarverParityTest, GaussianLUTInitialization)
 }
 
 /**
- * @brief NoiseChunkGenerator 结构密度偏移计算测试
+ * @brief Beardifier::computeBeardContribution 高斯核测试
  *
- * 验证 Beardifier::computeBeardContribution 产生正确的高斯衰减值。
+ * computeBeardContribution 是纯高斯核函数（exp(-distSq/16)），始终返回正值 [0,1]。
+ * 它用于预计算 BEARD_KERNEL 查找表。
  *
- * 参考 MC NoiseChunkGenerator.func_222554_b:
- * 该函数产生负密度值来平滑结构边界地形。
- * 中心点有最大的负偏移（向下凹陷），边缘趋于零。
+ * 注意：产生负密度偏移的是 getBeardContribution，它在核值基础上乘以 beard 因子。
  */
 TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues)
 {
-    // 中心点应该有最大的负偏移（用于向下平滑地形）
+    // 中心点 (0,0,0)：Y+0.5 → distSq = 0.25 → exp(-0.25/16) ≈ 0.9845
     f64 centerOffset = world::gen::density::Beardifier::computeBeardContribution(0, 0, 0);
-    EXPECT_LT(centerOffset, 0.0) << "Center should have negative density offset for terrain smoothing";
-    EXPECT_NEAR(centerOffset, -0.696, 0.01) << "Center offset should match MC value";
+    EXPECT_GT(centerOffset, 0.0) << "Gaussian kernel should be positive at center";
+    EXPECT_LT(centerOffset, 1.0) << "Gaussian kernel at (0,0,0) with Y+0.5 should be < 1.0";
+    EXPECT_NEAR(centerOffset, 0.9845, 0.01) << "Center offset should match MC Gaussian value";
 
     // 远距离点应该趋近于零
     f64 farOffset = world::gen::density::Beardifier::computeBeardContribution(50, 50, 50);
@@ -253,20 +253,21 @@ TEST(NoiseChunkGeneratorDensityTest, StructureDensityOffsetValues)
     f64 offset3 = world::gen::density::Beardifier::computeBeardContribution(5, 3, -7);
     f64 offset4 = world::gen::density::Beardifier::computeBeardContribution(-5, 3, -7);
 
-    // X 和 Z 的对称性
+    // X 和 Z 的对称性（高斯核是距离的函数，X/Z对称）
     EXPECT_NEAR(offset1, offset2, 0.0001) << "X-axis symmetry should hold";
     EXPECT_NEAR(offset1, offset3, 0.0001) << "Z-axis symmetry should hold";
     EXPECT_NEAR(offset1, offset4, 0.0001) << "XZ diagonal symmetry should hold";
 
-    // Y 轴行为验证：Y 偏移为负时（结构下方），偏移应为正
-    // 这用于在结构下方抬升地形
+    // Y 轴偏移影响距离（Y+0.5），但高斯核始终为正
+    // computeBeardContribution 对 Y 也有对称性（因为 Y+0.5 后取平方）
     f64 belowOffset = world::gen::density::Beardifier::computeBeardContribution(0, -5, 0);
-    EXPECT_GT(belowOffset, 0.0) << "Below structure should have positive offset (terrain raised)";
-
-    // Y 偏移为正时（结构上方），偏移应为负
-    // 这用于在结构上方降低地形
     f64 aboveOffset = world::gen::density::Beardifier::computeBeardContribution(0, 5, 0);
-    EXPECT_LT(aboveOffset, 0.0) << "Above structure should have negative offset (terrain lowered)";
+    EXPECT_GT(belowOffset, 0.0) << "Gaussian kernel is always positive";
+    EXPECT_GT(aboveOffset, 0.0) << "Gaussian kernel is always positive";
+    // Y=-5 和 Y=5 的偏移应相等（(|-5|+0.5)^2 = (5+0.5)^2 不对称，但 Y 方向无额外对称性）
+    // 实际上 computeBeardContribution(0,-5,0) 使用 adjustedY=-4.5, distSq=20.25
+    //         computeBeardContribution(0, 5,0) 使用 adjustedY= 5.5, distSq=30.25
+    EXPECT_GT(belowOffset, aboveOffset) << "Closer Y should have larger Gaussian value (|-5|+0.5 < 5+0.5)";
 }
 
 /**

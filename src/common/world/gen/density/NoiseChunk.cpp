@@ -86,7 +86,7 @@ NoiseInterpolator::NoiseInterpolator(std::unique_ptr<DensityFunction> filler, i3
     }
 }
 
-f64 NoiseInterpolator::compute(i32, i32, i32) const
+f64 NoiseInterpolator::compute(i32 blockX, i32 blockY, i32 blockZ) const
 {
     // MC 1.21 NoiseInterpolator.compute():
     // 1. 如果不在 NoiseChunk 上下文中 → 委托给 filler
@@ -111,7 +111,19 @@ f64 NoiseInterpolator::compute(i32, i32, i32) const
             m_noise011,
             m_noise111);
     }
-    return m_value;
+
+    // MC 1.21: 在插值循环中且 m_value 已有效 → 返回 m_value
+    // 当 m_value 未就绪时（fillSlice 阶段，selectCellYZ 还没被调用），
+    // 委托给 m_filler->compute() 直接计算原始函数值，
+    // 避免 CellCache 未填充时递归到 NoiseInterpolator 返回未初始化的 m_value=0
+    if (m_valueReady) {
+        return m_value;
+    }
+
+    // m_value 未就绪：委托给原始函数直接计算
+    // 这对应 MC Java 的 fillArray 机制：fillSlice 中 NoiseInterpolator.fillArray()
+    // 调用 wrapped().fillArray()，递归计算叶节点值，绕过插值器缓存
+    return m_filler->compute(blockX, blockY, blockZ);
 }
 
 void NoiseInterpolator::fillSlice(NoiseChunk& noiseChunk, bool isSlice0, i32 cellX)
@@ -170,6 +182,9 @@ void NoiseInterpolator::selectCellYZ(i32 cellY, i32 cellZ)
     m_noise110 = m_slice1[static_cast<size_t>(cellZ)][static_cast<size_t>(cellY + 1)];
     m_noise101 = m_slice1[static_cast<size_t>(cellZ + 1)][static_cast<size_t>(cellY)];
     m_noise111 = m_slice1[static_cast<size_t>(cellZ + 1)][static_cast<size_t>(cellY + 1)];
+
+    // MC 1.21: selectCellYZ 加载了新的角点值，m_value 需要通过 updateForY/X/Z 重新计算
+    m_valueReady = false;
 }
 
 void NoiseInterpolator::updateForY(f64 delta)
@@ -189,6 +204,7 @@ void NoiseInterpolator::updateForX(f64 delta)
 f64 NoiseInterpolator::updateForZ(f64 delta)
 {
     m_value = math::lerp(m_valueZ0, m_valueZ1, delta);
+    m_valueReady = true;
     return m_value;
 }
 
@@ -242,6 +258,12 @@ void CellCache::fillCell(NoiseChunk& noiseChunk)
     //     对每个位置: values[arrayIndex++] = filler.compute(noiseChunk)
     // 递增 arrayInterpolationCounter
     // noiseChunk.fillingCell = false
+    //
+    // MC Java 的 fillAllDirectly 不递增 interpolationCounter，但 CacheOnce 通过
+    // fillArray + arrayInterpolationCounter 的数组级缓存来避免重复计算。
+    // C++ 缺少 fillArray 机制，因此必须在每个位置递增 interpolationCounter，
+    // 使 CacheOnce 的位置级缓存在每个位置正确失效，否则同一 cell 内
+    // 所有位置会返回第一个位置的缓存值（CacheOnce 缓存污染）。
 
     i32 idx = 0;
     for (i32 y = m_cellHeight - 1; y >= 0; --y) {
@@ -251,6 +273,7 @@ void CellCache::fillCell(NoiseChunk& noiseChunk)
             for (i32 z = 0; z < m_cellWidth; ++z) {
                 noiseChunk.m_inCellZ = z;
                 noiseChunk.m_arrayIndex = idx;
+                ++noiseChunk.m_interpolationCounter;
                 m_values[static_cast<size_t>(idx)] =
                     m_filler->compute(noiseChunk.blockX(), noiseChunk.blockY(), noiseChunk.blockZ());
                 ++idx;
@@ -317,7 +340,8 @@ NoiseChunk::NoiseChunk(NoiseRouter router,
     i32 startBlockX,
     i32 startBlockY,
     i32 startBlockZ,
-    std::unique_ptr<DensityFunction> beardifier)
+    std::unique_ptr<DensityFunction> beardifier,
+    i32 cellCountXZ)
     : m_cellConfig{cellWidth, cellHeight, 0, cellCountY}
     , m_startBlockX(startBlockX)
     , m_startBlockZ(startBlockZ)
@@ -327,7 +351,9 @@ NoiseChunk::NoiseChunk(NoiseRouter router,
     , m_beardifier(std::move(beardifier))
     , m_router(std::move(router))
 {
-    m_cellConfig.cellCountXZ = world::CHUNK_WIDTH / cellWidth;
+    // MC 1.21: 区块生成时 cellCountXZ = CHUNK_WIDTH / cellWidth (通常=4)，
+    // 单列查询时 cellCountXZ = 1 (iterateNoiseColumn 传入 1)
+    m_cellConfig.cellCountXZ = (cellCountXZ >= 0) ? cellCountXZ : (world::CHUNK_WIDTH / cellWidth);
 
     // MC 1.21: 在 finalDensity 上叠加 BeardifierMarker，包装在 CacheAllInCell 中
     // 对应 Java: DensityFunctions.cacheAllInCell(

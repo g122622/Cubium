@@ -254,6 +254,11 @@ private:
     /// 最终插值结果
     f64 m_value = 0.0;
 
+    /// MC 1.21: m_value 是否已通过 updateForZ 设置有效值
+    /// 在 fillSlice 期间，selectCellYZ 还没被调用，m_value 无效，
+    /// compute() 应委托给 m_filler->compute() 而非返回 m_value
+    bool m_valueReady = false;
+
     i32 m_cellCountZ;
     i32 m_cellCountY;
 };
@@ -414,6 +419,8 @@ public:
      * @param startBlockY 区块起始 Y 方块坐标（= noiseSettings.minY）
      * @param startBlockZ 区块起始 Z 方块坐标
      * @param beardifier Beardifier 密度函数（结构地形贡献），传入 nullptr 使用零贡献
+     * @param cellCountXZ X/Z 方向 cell 数量（默认 CHUNK_WIDTH/cellWidth=4 用于区块生成，
+     *                    传入 1 用于单列查询 getBaseColumn/getHeight）
      *
      * MC 1.21: 构造时将 Beardifier 叠加到 finalDensity 上，
      * 包装在 CacheAllInCell 中，mapAll 时将 BeardifierMarker 替换为实际 Beardifier。
@@ -426,7 +433,8 @@ public:
         i32 startBlockX,
         i32 startBlockY,
         i32 startBlockZ,
-        std::unique_ptr<DensityFunction> beardifier = nullptr);
+        std::unique_ptr<DensityFunction> beardifier = nullptr,
+        i32 cellCountXZ = -1);
 
     ~NoiseChunk() override;
     NoiseChunk(const NoiseChunk&) = delete;
