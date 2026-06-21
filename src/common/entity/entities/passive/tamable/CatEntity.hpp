@@ -246,6 +246,11 @@ protected:
     // ========== 驯服回调 ==========
     void onTamed(bool tamed) override;
 
+    // ========== NBT 序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 private:
     // ========== 内部 AI Goal 类 ==========
 

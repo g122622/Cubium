@@ -134,6 +134,17 @@ constexpr const char* IN_LOVE = "InLove";
 
 constexpr const char* LOVE_CAUSE = "LoveCause";
 
+// ========== TameableEntity 键 ==========
+
+constexpr const char* SITTING = "Sitting";
+constexpr const char* OWNER_UUID = "OwnerUUID";
+constexpr const char* ANGER_TIME = "AngerTime";
+
+// ========== CatEntity 键 ==========
+
+constexpr const char* CAT_TYPE = "CatType";
+constexpr const char* COLLAR_COLOR = "CollarColor";
+
 // ========== ZombieEntity 键 ==========
 
 constexpr const char* IS_BABY = "IsBaby";

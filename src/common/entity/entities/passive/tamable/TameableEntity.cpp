@@ -28,6 +28,8 @@
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -201,6 +203,66 @@ bool TameableEntity::wantsToAttack(const LivingEntity& target, const LivingEntit
     // 默认实现：允许攻击所有目标
     // 子类可重写此方法来限制攻击目标，例如狼不会攻击苦力怕和恶魂
     return true;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void TameableEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    AnimalEntity::addAdditionalSaveData(tag);
+
+    // Sitting (byte/bool) - 是否坐下
+    tag.put(nbt_keys::SITTING, static_cast<i8>(m_sitting ? 1 : 0));
+
+    // OwnerUUID (string) - 主人 UUID
+    if (m_ownerId.has_value()) {
+        tag.put(nbt_keys::OWNER_UUID, std::to_string(m_ownerId.value()));
+    }
+
+    // AngerTime (i32) - 愤怒剩余时间
+    if (m_angerTime > 0) {
+        tag.put(nbt_keys::ANGER_TIME, m_angerTime);
+    }
+}
+
+Result<void> TameableEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    MC_TRY(AnimalEntity::readAdditionalSaveData(tag));
+
+    // Sitting (byte/bool)
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::SITTING)) {
+        m_sitting = *val;
+    }
+
+    // OwnerUUID (string) - 解析为主人 ID
+    if (auto val = nbt_helper::tryGetString(tag, nbt_keys::OWNER_UUID)) {
+        try {
+            m_ownerId = std::stoull(*val);
+        }
+        catch (...) {
+            m_ownerId = std::nullopt;
+        }
+    }
+
+    // AngerTime (i32)
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::ANGER_TIME)) {
+        m_angerTime = *val;
+    }
+
+    // 从存档恢复驯服状态：如果有主人则自动设为已驯服
+    if (m_ownerId.has_value()) {
+        setTamed(true);
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

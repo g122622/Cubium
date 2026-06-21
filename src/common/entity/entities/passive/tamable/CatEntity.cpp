@@ -38,6 +38,8 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -293,7 +295,7 @@ std::optional<ResourceLocation> CatEntity::getDeathSound() const
 
 void CatEntity::playEatSound()
 {
-    playSound(SoundEvents::ENTITY_CAT_EAT, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+    playSound(SoundEvents::ENTITY_CAT_EAT, 1.0f, 1.0f);
 }
 
 // ============================================================================
@@ -379,8 +381,7 @@ ActionResultType CatEntity::interactMob(Player& player, Hand hand)
 void CatEntity::_tryToTame(Player& player)
 {
     // 1/3 概率驯服成功
-    math::Random rng = getRandom();
-    if (rng.nextInt(3) == 0) {
+    if (getRandom().nextInt(3) == 0) {
         // 驯服成功
         setTamed(true);
         setOwnerId(player.playerId());
@@ -433,6 +434,52 @@ std::optional<DyeColor> CatEntity::_getDyeColorFromItem(const Item* item)
         return it->second;
     }
     return std::nullopt;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void CatEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现（序列化驯服状态、坐下状态、主人、愤怒等）
+    TameableEntity::addAdditionalSaveData(tag);
+
+    // CatType (i32) - 猫皮肤类型
+    tag.put(nbt_keys::CAT_TYPE, static_cast<i32>(m_catType));
+
+    // CollarColor (i32) - 项圈颜色（仅在非默认颜色时写入）
+    if (m_collarColor != DyeColor::Red) {
+        tag.put(nbt_keys::COLLAR_COLOR, static_cast<i32>(m_collarColor));
+    }
+}
+
+Result<void> CatEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现（反序列化驯服状态、坐下状态、主人、愤怒等）
+    MC_TRY(TameableEntity::readAdditionalSaveData(tag));
+
+    // CatType (i32) - 猫皮肤类型
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::CAT_TYPE)) {
+        i32 typeValue = *val;
+        if (typeValue >= 0 && typeValue <= 10) {
+            m_catType = static_cast<CatType>(typeValue);
+        }
+    }
+
+    // CollarColor (i32) - 项圈颜色
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::COLLAR_COLOR)) {
+        i32 colorValue = *val;
+        if (colorValue >= 0 && colorValue < static_cast<i32>(DyeColor::Count)) {
+            m_collarColor = static_cast<DyeColor>(colorValue);
+        }
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc
