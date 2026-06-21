@@ -18,7 +18,7 @@ passive/
 │   ├── TameableEntity.hpp/cpp    # 可驯服基类（IAngerable 接口）
 │   ├── ShoulderRidingEntity.hpp  # 肩膀乘坐基类
 │   ├── WolfEntity.hpp/cpp    # 狼
-│   ├── CatEntity.hpp/cpp     # 猫（11种皮肤）
+│   ├── CatEntity.hpp/cpp     # 猫（11种皮肤、项圈染色、生鱼驯服）
 │   ├── OcelotEntity.hpp/cpp  # 豹猫（信任机制，非驯服）
 │   └── ParrotEntity.hpp/cpp  # 鹦鹉（可站肩膀，不可繁殖）
 ├── special/                  # 特殊动物（狐狸、熊猫、北极熊、海龟、蜜蜂、炽足兽）
