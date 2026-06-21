@@ -25,6 +25,7 @@ registry/
 ├── PaleGardenBlocks.hpp/.cpp    # 苍白花园系列
 ├── RedstoneBlocks.hpp/.cpp      # 红石方块、铁轨方块
 ├── SculkBlocks.hpp/.cpp         # 幽匿系列
+├── ShelfBlocks.hpp/.cpp         # 书架方块系列（1.21.4+ 12种木质变体，3槽位物品存储，侧链连接）
 ├── SignBannerBlocks.hpp/.cpp    # 告示牌、旗帜
 ├── TrailsBlocks.hpp/.cpp        # 足迹方块
 ├── TrialBlocks.hpp/.cpp         # 试炼密室方块

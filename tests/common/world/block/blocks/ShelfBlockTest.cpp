@@ -211,3 +211,13 @@ TEST_F(ShelfBlockTest, CreateBlockEntity_DifferentPositions)
     EXPECT_EQ(entity1->getPos(), BlockPos(0, 0, 0));
     EXPECT_EQ(entity2->getPos(), BlockPos(100, -50, 200));
 }
+
+// ========== 集成测试待补充 ==========
+// TODO 以下测试需要方块注册系统完整后在世界环境中测试：
+// - 侧链连接逻辑（SIDE_CHAIN_PART）: 充能时邻居连接/断电时断开
+// - 红石充能（POWERED）状态更新: neighborChanged 检测红石信号变化
+// - onBlockActivated 物品交互: 未充能时单物品交换，充能时热栏交换
+// - onBlockRemoved 掉落物品: 确保书架内物品正确掉落
+// - 旋转/镜像: ShelfBlock::rotate 和 ShelfBlock::mirror 的方块状态变化
+// - 含水（WATERLOGGED）: isWaterlogged/getFluidState
+// - 碰撞箱: getShape 返回基于朝向的非完整方块碰撞箱
