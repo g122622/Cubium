@@ -12,22 +12,30 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PURPOSE AND NONINFRINGEMENT. IN NO
+ * EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+ * OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
 #include "TrialBlocks.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/inventory/IInventory.hpp"
+#include "common/item/crafting/RecipeManager.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/property/Properties.hpp"
 #include "item/context/BlockItemUseContext.hpp"
-#include "util/property/Properties.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/block/BlockState.hpp"
+#include "world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
 #include "world/blockentity/trial/VaultBlockEntity.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
+#include "world/tick/base/TickPriority.hpp"
 #include "world/tick/manager/TickManager.hpp"
+#include <chrono>
 
 namespace mc {
 namespace blocks {
@@ -168,6 +176,11 @@ CrafterBlock::CrafterBlock(const BlockProperties& properties)
             .with(BlockStateProperties::CRAFTING(), false));
 }
 
+std::unique_ptr<BlockEntity> CrafterBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<CrafterBlockEntity>(pos);
+}
+
 void CrafterBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 {
     MC_UNUSED(container);
@@ -197,16 +210,119 @@ void CrafterBlock::neighborChanged(
     bool wasTriggered = state->get(BlockStateProperties::TRIGGERED());
 
     if (isPowered && !wasTriggered) {
-        // 红石信号上升沿：开始合成
-        BlockState newState =
-            state->with(BlockStateProperties::TRIGGERED(), true).with(BlockStateProperties::CRAFTING(), true);
-        world.setBlockState(pos, &newState, 3);
-        // TODO: 安排合成tick（6 tick后完成）
+        // 红石信号上升沿：调度4 tick延时后执行合成
+        world.tickManager().scheduleBlockTick(pos, *this, CRAFTING_TICK_DELAY, world::tick::TickPriority::High);
+        BlockState newState = state->with(BlockStateProperties::TRIGGERED(), true);
+        world.setBlockState(pos, &newState, 2);
+
+        // 同步方块实体的触发状态
+        BlockEntity* be = world.getBlockEntity(pos);
+        if (auto* crafter = dynamic_cast<CrafterBlockEntity*>(be)) {
+            crafter->setTriggered(true);
+        }
     } else if (!isPowered && wasTriggered) {
-        // 红石信号下降沿：重置触发状态
-        BlockState newState = state->with(BlockStateProperties::TRIGGERED(), false);
-        world.setBlockState(pos, &newState, 3);
+        // 红石信号下降沿：重置触发状态和合成状态
+        BlockState newState =
+            state->with(BlockStateProperties::TRIGGERED(), false).with(BlockStateProperties::CRAFTING(), false);
+        world.setBlockState(pos, &newState, 2);
+
+        // 同步方块实体的触发状态
+        BlockEntity* be = world.getBlockEntity(pos);
+        if (auto* crafter = dynamic_cast<CrafterBlockEntity*>(be)) {
+            crafter->setTriggered(false);
+            crafter->setCraftingTicksRemaining(0);
+        }
     }
+}
+
+void CrafterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+    _dispenseFrom(world, pos, state);
+}
+
+void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    BlockEntity* be = world.getBlockEntity(pos);
+    auto* crafter = dynamic_cast<CrafterBlockEntity*>(be);
+    if (crafter == nullptr) {
+        return;
+    }
+
+    // 构建合成输入并查找匹配配方
+    CraftingInventory craftingInput = crafter->asCraftInput();
+    const crafting::CraftingRecipe* recipe = crafting::RecipeManager::instance().findMatchingRecipe(craftingInput);
+
+    if (recipe == nullptr) {
+        // 没有匹配配方，播放失败音效
+        // TODO: 播放合成失败音效 (level event 1050)
+        return;
+    }
+
+    ItemStack result = recipe->assemble(craftingInput);
+    if (result.isEmpty()) {
+        // 配方结果为空，播放失败音效
+        // TODO: 播放合成失败音效 (level event 1050)
+        return;
+    }
+
+    // 合成成功：设置合成动画倒计时和 CRAFTING 状态
+    crafter->setCraftingTicksRemaining(CrafterBlockEntity::MAX_CRAFTING_TICKS);
+    BlockState craftingState = state.with(BlockStateProperties::CRAFTING(), true);
+    world.setBlockState(pos, &craftingState, 2);
+
+    // 射出合成结果
+    Direction facing = state.get(HorizontalBlock::FACING());
+    _spawnItemEntity(world, pos, facing, result);
+
+    // 射出剩余物品（如空桶等容器物品）
+    std::vector<ItemStack> remainingItems = recipe->getRemainingItems(craftingInput);
+    for (ItemStack& remaining : remainingItems) {
+        if (!remaining.isEmpty()) {
+            _spawnItemEntity(world, pos, facing, remaining);
+        }
+    }
+
+    // 消耗原料：每个非空槽位减少1个物品
+    IInventory* inventory = crafter->getInventory();
+    for (i32 slot = 0; slot < CrafterBlockEntity::CONTAINER_SIZE; ++slot) {
+        ItemStack stack = inventory->getItem(slot);
+        if (!stack.isEmpty()) {
+            stack.shrink(1);
+            inventory->setItem(slot, stack.isEmpty() ? ItemStack() : stack);
+        }
+    }
+
+    crafter->setChanged();
+}
+
+void CrafterBlock::_spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& stack)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    // 在方块面朝方向偏移0.7格处生成物品实体
+    constexpr f32 DISPENSE_SPEED = 0.2f;
+    constexpr f32 INACCURACY = 0.0074999998f;
+
+    const f32 x = static_cast<f32>(pos.x) + 0.5f + static_cast<f32>(Directions::xOffset(facing)) * 0.7f;
+    const f32 y = static_cast<f32>(pos.y) + 0.5f + static_cast<f32>(Directions::yOffset(facing)) * 0.7f;
+    const f32 z = static_cast<f32>(pos.z) + 0.5f + static_cast<f32>(Directions::zOffset(facing)) * 0.7f;
+
+    f32 vx = static_cast<f32>(Directions::xOffset(facing)) * DISPENSE_SPEED;
+    f32 vy = static_cast<f32>(Directions::yOffset(facing)) * DISPENSE_SPEED + 0.1f;
+    f32 vz = static_cast<f32>(Directions::zOffset(facing)) * DISPENSE_SPEED;
+
+    // 添加随机散射
+    thread_local math::Random rng(static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()));
+    vx += rng.nextGaussian(0.0f, INACCURACY);
+    vy += rng.nextGaussian(0.0f, INACCURACY);
+    vz += rng.nextGaussian(0.0f, INACCURACY);
+
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(0), stack, x, y, z, vx, vy, vz);
+    itemEntity->setPickupDelay(10);
+    world.spawnEntity(std::move(itemEntity));
 }
 
 BlockState CrafterBlock::updatePostPlacement(const BlockState& state,
@@ -231,9 +347,21 @@ i32 CrafterBlock::getWeakPower(
     MC_UNUSED(pos);
     MC_UNUSED(side);
 
-    // 合成完成时输出信号
+    // 合成时输出满信号
     if (state.get(BlockStateProperties::CRAFTING())) {
         return 15;
+    }
+    return 0;
+}
+
+i32 CrafterBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+
+    // 比较器信号强度 = 非空槽位数 + 禁用槽位数
+    BlockEntity* be = world.getBlockEntity(pos);
+    if (auto* crafter = dynamic_cast<CrafterBlockEntity*>(be)) {
+        return crafter->getRedstoneSignal();
     }
     return 0;
 }

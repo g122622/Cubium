@@ -100,20 +100,30 @@ protected:
  * @brief 自动合成器方块
  *
  * 可通过红石触发的自动合成方块。
+ * 红石信号上升沿触发4 tick延时后执行合成，合成成功后CRAFTING属性置true，
+ * CrafterBlockEntity 维护6 tick倒计时动画。
  * 状态属性：FACING, TRIGGERED, CRAFTING
  *
  * 参考: net.minecraft.block.CrafterBlock
  */
 class CrafterBlock : public HorizontalBlock {
 public:
+    static constexpr i32 CRAFTING_TICK_DELAY = 4; ///< 红石触发到执行的延时（tick）
+
     explicit CrafterBlock(const BlockProperties& properties);
 
     ~CrafterBlock() override = default;
+
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
+
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
         Direction facing,
@@ -127,8 +137,35 @@ public:
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
 
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+
+private:
+    /**
+     * @brief 执行合成并射出结果
+     *
+     * 查找匹配配方，消耗原料，射出合成结果和剩余物品。
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 方块状态
+     */
+    void _dispenseFrom(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 从合成器射出物品
+     *
+     * 将物品弹出到世界中（面朝方向偏移0.7格处）。
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param facing 射出方向
+     * @param stack 物品
+     */
+    static void _spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& stack);
 };
 
 } // namespace blocks

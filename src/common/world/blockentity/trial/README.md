@@ -1,6 +1,6 @@
 # 试炼类方块实体 (Trial Block Entities)
 
-试炼密室相关的方块实体实现，包括试炼刷怪笼和宝库。
+试炼密室相关的方块实体实现，包括试炼刷怪笼、宝库和自动合成器。
 
 ## 目录结构
 
@@ -8,6 +8,7 @@
 trial/
 ├── TrialSpawnerBlockEntity.hpp/cpp  # 试炼刷怪笼（状态机、怪物生成、奖励弹出）
 ├── VaultBlockEntity.hpp/cpp          # 宝库（钥匙解锁、战利品弹出、玩家追踪）
+├── CrafterBlockEntity.hpp/cpp        # 自动合成器（9格合成网格、槽位锁定、合成动画）
 └── README.md
 ```
 
@@ -16,9 +17,9 @@ trial/
 ```
 BlockEntity (父模块基类)
        ↑
-       ├─────────────────────┐
-       │                     │
-TrialSpawnerBlockEntity  VaultBlockEntity
+       ├─────────────────────┐──────────────────┐
+       │                     │                  │
+TrialSpawnerBlockEntity  VaultBlockEntity  CrafterBlockEntity
 ```
 
 两个类相互独立，没有继承关系。
@@ -183,6 +184,50 @@ INACTIVE → WAITING_FOR_PLAYERS → ACTIVE → WAITING_FOR_REWARD_EJECTION
 | current_mobs_count | i32 | 当前存活怪物数 |
 | total_mobs_to_spawn | i32 | 需要生成的总怪物数 |
 | max_simultaneous_mobs | i32 | 最大同时怪物数 |
+
+## CrafterBlockEntity 自动合成器
+
+### 核心逻辑
+
+1. **红石触发**：CrafterBlock 的 `neighborChanged` 检测红石信号上升沿，调度4 tick延时后调用 `tick()` -> `_dispenseFrom()`。
+
+2. **合成执行**（`_dispenseFrom`）：
+   - 从9格物品构建 CraftingInput（禁用槽位视为空）
+   - 通过 RecipeManager::findMatchingRecipe 查找匹配配方
+   - 合成成功：设置 CRAFTING=true + craftingTicksRemaining=6，射出结果和剩余物品，消耗原料
+   - 合成失败：播放失败音效
+
+3. **合成动画**（`tick`）：
+   - 每tick递减 craftingTicksRemaining
+   - 倒计时到0时将 CRAFTING 状态重置为 false
+
+4. **物品射出**（`_spawnItemEntity`）：
+   - 在方块面朝方向偏移0.7格处生成物品实体
+   - 使用高斯散射模拟MC原版发射效果
+
+5. **槽位锁定**：每个槽位可独立启用/禁用，禁用槽位在合成时视为空。
+
+### 时序
+
+```
+Tick 0: 红石信号上升沿 → TRIGGERED=true, 调度4 tick延时
+Tick 4: tick() → _dispenseFrom() → 查配方、射出物品、消耗原料、CRAFTING=true、craftingTicksRemaining=6
+Tick 5~9: tick() → craftingTicksRemaining 递减
+Tick 10: tick() → craftingTicksRemaining=0 → CRAFTING=false
+```
+
+### 红石信号下降沿
+
+红石信号消失时，TRIGGERED 和 CRAFTING 同时重置为 false，craftingTicksRemaining 清零。
+
+### 持久化字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| Items | array | 9格物品 |
+| disabled_slots | int[] | 禁用槽位索引列表 |
+| triggered | int | 红石触发状态 (0/1) |
+| crafting_ticks_remaining | int | 合成动画剩余tick |
 
 ## 上下游外部依赖关系
 

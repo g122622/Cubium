@@ -93,6 +93,7 @@ enum class BlockEntityType : u16 {
     // 试炼密室
     TrialSpawner, ///< 试炼刷怪笼
     Vault,        ///< 宝库
+    Crafter,      ///< 自动合成器
 
     Count ///< 类型数量
 };

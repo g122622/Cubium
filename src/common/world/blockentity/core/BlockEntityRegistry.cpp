@@ -50,6 +50,7 @@
 #include "world/blockentity/storage/ShulkerBoxEntity.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/blockentity/transport/HopperEntity.hpp"
+#include "world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
 #include "world/blockentity/trial/VaultBlockEntity.hpp"
 
@@ -169,6 +170,8 @@ void BlockEntityRegistry::registerBuiltinTypes()
     registerType(BlockEntityType::TrialSpawner,
         [](const BlockPos& pos) { return std::make_unique<TrialSpawnerBlockEntity>(pos); });
     registerType(BlockEntityType::Vault, [](const BlockPos& pos) { return std::make_unique<VaultBlockEntity>(pos); });
+    registerType(
+        BlockEntityType::Crafter, [](const BlockPos& pos) { return std::make_unique<CrafterBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const
