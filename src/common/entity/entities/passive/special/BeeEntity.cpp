@@ -454,18 +454,13 @@ bool BeeEntity::wantsToEnterHive() const
     // 检查是否满足进入蜂巢的条件：
     // 1. 有花粉 → 回巢存放
     // 2. 寻找花蜜超过 3600 tick（3分钟）→ 疲惫回巢
-    // 3. 雨天或雷暴 → 天气恶劣回巢（对应 MC 环境属性 BEES_STAY_IN_HIVE 在 RAIN/THUNDER 预设下为 true）
-    // 4. 夜间 → 天黑回巢（对应 MC 环境属性 BEES_STAY_IN_HIVE 的日夜时间线，
-    //    在 tick 12542（黄昏）设为 true，tick 23460（清晨）设为 false）
-    // 注意：MC 原版通过 EnvironmentAttributes.BEES_STAY_IN_HIVE 统一管理条件 3 和 4，
-    // 该属性在雨天/雷暴/夜间为 true，其他时间为 false。当前项目未实现环境属性系统，
-    // 因此直接使用 isRaining()/isThundering()/isDaytime() 等效替代。
+    // 3. 雨天或雷暴 → 天气恶劣回巢
+    // 4. 夜间 → 天黑回巢
     bool shouldEnter = hasNectar();
     if (!shouldEnter) {
         shouldEnter = isTiredOfLookingForNectar();
     }
     if (!shouldEnter) {
-        // 对应 MC: level().environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, position())
         const IWorld* worldPtr = world();
         if (worldPtr != nullptr) {
             shouldEnter = worldPtr->isRaining() || worldPtr->isThundering() || !worldPtr->isDaytime();

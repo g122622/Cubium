@@ -163,8 +163,7 @@ public:
      *       && (hasNectar || isTiredOfLookingForNectar || isRainingOrNight)
      *       && !isHiveNearFire()
      *
-     * 其中 isRainingOrNight 对应 MC 环境属性 BEES_STAY_IN_HIVE，
-     * 在雨天/雷暴/夜间为 true。
+     * 其中 isRainingOrNight 在雨天/雷暴/夜间为 true。
      */
     [[nodiscard]] bool wantsToEnterHive() const;
 
@@ -390,7 +389,6 @@ public:
     /**
      * @brief 蜜蜂是否厌倦寻找花蜜
      *
-     * 对应 MC 原版 Bee.isTiredOfLookingForNectar()：
      * 离巢后超过 3600 tick（3分钟）仍未获得花蜜时返回 true。
      */
     [[nodiscard]] bool isTiredOfLookingForNectar() const { return m_ticksWithoutNectarSinceExitingHive > 3600; }

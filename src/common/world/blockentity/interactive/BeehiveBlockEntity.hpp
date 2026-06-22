@@ -229,13 +229,17 @@ private:
      * @param state 当前方块状态
      * @param occupantIndex 蜜蜂在列表中的索引
      * @param releaseStatus 释放状态
+     * @return 是否成功释放（天气/夜间阻止或出口被阻挡时返回false）
      *
      * 根据释放状态处理不同行为：
      * - HoneyDelivered: 交付花蜜，增加蜂蜜等级
      * - BeeReleased: 普通释放
-     * - Emergency: 紧急释放，蜜蜂可能被激怒
+     * - Emergency: 紧急释放，忽略天气/出口阻挡
+     *
+     * 天气/夜间检查：非紧急释放时，雨天/雷暴/夜间蜜蜂留在巢内，
+     * 返回 false 表示未释放，蜜蜂保留在列表中待下次重试。
      */
-    void _releaseOccupant(IWorld& world, const BlockState& state, i32 occupantIndex, BeeReleaseStatus releaseStatus);
+    bool _releaseOccupant(IWorld& world, const BlockState& state, i32 occupantIndex, BeeReleaseStatus releaseStatus);
 
     /**
      * @brief 更新所有蜜蜂的停留时间

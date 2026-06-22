@@ -617,7 +617,6 @@ bool BeeFindFlowerGoal::canBeeStart()
         return false;
     }
 
-    // 对应 MC BeeGoToKnownFlowerGoal.wantsToGoToKnownFlower():
     // 蜜蜂离巢后无花粉超过 600 tick（30秒）时，才想飞往已知花朵位置
     if (m_bee->getTicksWithoutNectar() <= TICKS_WITHOUT_NECTAR_THRESHOLD) {
         return false;
@@ -712,7 +711,6 @@ bool BeeFindPollinationTargetGoal::canBeeStart()
     }
 
     // 检查作物数限制：每次采粉后最多促进 MAX_CROPS_GROWN 棵作物生长
-    // 对应 MC 原版 BeeGrowCropGoal.canUse(): getCropsGrownSincePollination() >= 10
     if (m_bee->getCropsGrownSincePollination() >= MAX_CROPS_GROWN) {
         return false;
     }
@@ -743,13 +741,12 @@ void BeeFindPollinationTargetGoal::tick()
         return;
     }
 
-    // 30 tick 检查一次（对应 MC 原版 adjustedTickDelay(30)）
+    // 30 tick 检查一次
     if (world->getRandom().nextInt(30) != 0) {
         return;
     }
 
     // 检查脚下作物（蜜蜂下方1格和2格）
-    // 对应 MC 原版 BeeGrowCropGoal.tick(): blockPosition().below(i) for i in 1..2
     math::Vector3 beePos = m_bee->position();
     BlockPos beeBlockPos(static_cast<i32>(beePos.x), static_cast<i32>(beePos.y), static_cast<i32>(beePos.z));
 
@@ -800,7 +797,6 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
     const Block& block = state->owner();
     const BlockState* newState = nullptr;
 
-    // 对应 MC 原版 BeeGrowCropGoal.tick() 中的作物生长逻辑
     // 蜜蜂授粉只增加1个生长阶段（而非骨粉的2-5个阶段）
 
     // 1. CropBlock（小麦、胡萝卜、马铃薯、甜菜根等农作物）：
@@ -839,8 +835,6 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
 
     // 4. CaveVines / CaveVinesPlant（洞穴藤蔓）：
     //    使用 IGrowable 接口，调用 canGrow + grow
-    //    对应 MC 原版：如果是 BonemealableBlock（cave_vines/cave_vines_plant），
-    //    先检查 isValidBonemealTarget，再调用 performBonemeal
     if (newState == nullptr) {
         auto* growable = const_cast<IGrowable*>(dynamic_cast<const IGrowable*>(&block));
         if (growable != nullptr) {

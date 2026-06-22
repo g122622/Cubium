@@ -151,8 +151,15 @@ void BeehiveBlockEntity::emptyAllLivingFromHive(
     IWorld& world, Player* player, const BlockState& state, BeeReleaseStatus releaseStatus)
 {
     // 从后向前遍历，避免迭代器失效
-    while (!m_bees.empty()) {
-        _releaseOccupant(world, state, 0, releaseStatus);
+    i32 i = static_cast<i32>(m_bees.size()) - 1;
+    while (i >= 0) {
+        if (_releaseOccupant(world, state, i, releaseStatus)) {
+            // 释放成功，索引后移（因为删除了元素，后面的元素前移）
+        } else {
+            // 释放失败（天气/夜间阻止或出口被阻挡），跳过该蜜蜂
+            // 非紧急模式下，如果所有蜜蜂都无法释放，提前退出避免无限循环
+            --i;
+        }
     }
 
     // 如果玩家在 4 格内且蜂巢未被营火安抚，激怒蜜蜂
@@ -202,25 +209,19 @@ bool BeehiveBlockEntity::hiveContainsBees(IWorld& world, const BlockPos& pos)
 // 私有方法
 // ============================================================================
 
-void BeehiveBlockEntity::_releaseOccupant(
+bool BeehiveBlockEntity::_releaseOccupant(
     IWorld& world, const BlockState& state, i32 occupantIndex, BeeReleaseStatus releaseStatus)
 {
     if (occupantIndex < 0 || occupantIndex >= static_cast<i32>(m_bees.size())) {
-        return;
+        return false;
     }
 
     BeeOccupant occupant = m_bees[occupantIndex];
 
-    // 对应 MC 原版 BeehiveBlockEntity.releaseOccupant() 中的
-    // environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, pos) 检查：
-    // 雨天/雷暴/夜间蜜蜂不应离巢，除非是紧急释放（如蜂巢着火）。
-    // MC 通过 BEES_STAY_IN_HIVE 环境属性统一管理，该属性在 RAIN/THUNDER 天气预设下为 true，
-    // 在日夜时间线中 tick 12542（黄昏）设为 true，tick 23460（清晨）设为 false。
-    // 当前项目未实现环境属性系统，因此直接使用 isRaining()/isThundering()/isDaytime() 等效替代。
+    // 天气/夜间检查：非紧急释放时，雨天/雷暴/夜间蜜蜂留在巢内
     if (releaseStatus != BeeReleaseStatus::Emergency) {
         if (world.isRaining() || world.isThundering() || !world.isDaytime()) {
-            // 天气恶劣或夜间，蜜蜂留在巢内，不放出
-            return;
+            return false;
         }
     }
 
@@ -233,26 +234,25 @@ void BeehiveBlockEntity::_releaseOccupant(
         if (releaseStatus != BeeReleaseStatus::Emergency) {
             // 放回蜜蜂数据
             m_bees.insert(m_bees.begin() + occupantIndex, occupant);
-            return;
+            return false;
         }
         // 紧急释放时，直接使用蜂巢上方位置
         releasePos = m_pos.up();
     }
 
-    // TODO: MC原版保存蜜蜂完整NBT数据（自定义名称、生命值、效果等），
-    // 释放时恢复原始实体而非创建新实体。当前实现创建全新蜜蜂实体，
-    // 丢失了原始蜜蜂的自定义数据。待实体序列化/反序列化系统完善后应保存
-    // 完整NBT并在释放时恢复。
     // 创建蜜蜂实体
     auto beeEntity = BeeEntity::create(&world);
     if (!beeEntity) {
-        return;
+        // 创建失败，放回蜜蜂数据
+        m_bees.insert(m_bees.begin() + occupantIndex, occupant);
+        return false;
     }
 
     auto* bee = dynamic_cast<BeeEntity*>(beeEntity.get());
     if (!bee) {
-        // 创建的实体类型不是 BeeEntity，不应发生
-        return;
+        // 创建的实体类型不是 BeeEntity，不应发生，放回蜜蜂数据
+        m_bees.insert(m_bees.begin() + occupantIndex, occupant);
+        return false;
     }
 
     // 设置蜜蜂位置
@@ -303,6 +303,7 @@ void BeehiveBlockEntity::_releaseOccupant(
         1.0f);
 
     setChanged();
+    return true;
 }
 
 void BeehiveBlockEntity::_tickOccupants(IWorld& world)
@@ -317,6 +318,8 @@ void BeehiveBlockEntity::_tickOccupants(IWorld& world)
     }
 
     // 从后向前遍历，避免迭代器失效
+    // 当 _releaseOccupant 返回 true 时，蜜蜂已从列表中移除，索引 i 自然指向下一个待检查的蜜蜂
+    // 当 _releaseOccupant 返回 false 时（天气/夜间阻止），蜜蜂保留在列表中，索引 i 需要递减
     i32 i = static_cast<i32>(m_bees.size()) - 1;
     while (i >= 0) {
         if (m_bees[i].tick()) {
@@ -324,10 +327,19 @@ void BeehiveBlockEntity::_tickOccupants(IWorld& world)
                 m_bees[i].hasNectar ? BeeReleaseStatus::HoneyDelivered : BeeReleaseStatus::BeeReleased;
             const BlockState* state = world.getBlockState(m_pos);
             if (state) {
-                _releaseOccupant(world, *state, i, status);
+                if (_releaseOccupant(world, *state, i, status)) {
+                    // 释放成功，蜜蜂已从列表中移除，不需要递减 i
+                    // 因为删除了当前索引的元素，i 现在指向下一个未检查的蜜蜂
+                } else {
+                    // 释放失败（天气/夜间阻止或出口被阻挡），蜜蜂保留，等待下次重试
+                    --i;
+                }
+            } else {
+                --i;
             }
+        } else {
+            --i;
         }
-        --i;
     }
 
     // 随机播放工作音效（0.5% 概率）
