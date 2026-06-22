@@ -212,6 +212,16 @@ public:
      */
     [[nodiscard]] static bool hiveContainsBees(IWorld& world, const BlockPos& pos);
 
+    /**
+     * @brief 激怒附近的蜜蜂
+     * @param world 世界引用
+     * @param pos 蜂巢位置
+     * @param player 触发的玩家
+     *
+     * 在 8x6x8 范围内搜索蜜蜂实体，使其攻击玩家。
+     */
+    static void angerNearbyBees(IWorld& world, const BlockPos& pos, Player& player);
+
 private:
     /**
      * @brief 释放单只蜜蜂
@@ -246,16 +256,6 @@ private:
      */
     [[nodiscard]] static std::optional<BlockPos> _getReleasePosition(
         IWorld& world, const BlockPos& pos, const BlockState& state);
-
-    /**
-     * @brief 激怒附近的蜜蜂
-     * @param world 世界引用
-     * @param pos 蜂巢位置
-     * @param player 触发的玩家
-     *
-     * 在 8x6x8 范围内搜索蜜蜂实体，使其攻击玩家。
-     */
-    static void _angerNearbyBees(IWorld& world, const BlockPos& pos, Player& player);
 
     /// 存储的蜜蜂列表
     std::vector<BeeOccupant> m_bees;

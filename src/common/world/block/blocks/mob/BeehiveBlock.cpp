@@ -21,7 +21,6 @@
 
 #include "BeehiveBlock.hpp"
 
-#include "common/entity/entities/passive/special/BeeEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
@@ -258,17 +257,7 @@ void BeehiveBlock::dropHoneycomb(IWorld& world, const BlockPos& pos)
 
 void BeehiveBlock::angerNearbyBees(IWorld& world, const BlockPos& pos, Player& player)
 {
-    // 在 8x6x8 范围内搜索蜜蜂实体
-    Vector3 center(static_cast<f32>(pos.x + 0.5), static_cast<f32>(pos.y + 0.5), static_cast<f32>(pos.z + 0.5));
-
-    auto entities = world.getEntitiesInRange(center, 8.0f, &player);
-    for (auto* entity : entities) {
-        auto* bee = dynamic_cast<BeeEntity*>(entity);
-        if (bee && !bee->hasStung()) {
-            bee->setAngry(true);
-            bee->setAttackTarget(&player);
-        }
-    }
+    blockentity::BeehiveBlockEntity::angerNearbyBees(world, pos, player);
 }
 
 // ============================================================================

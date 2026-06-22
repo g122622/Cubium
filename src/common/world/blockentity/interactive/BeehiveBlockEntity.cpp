@@ -157,7 +157,7 @@ void BeehiveBlockEntity::emptyAllLivingFromHive(
 
     // 如果玩家在 4 格内且蜂巢未被营火安抚，激怒蜜蜂
     if (player && !isSedated(world, m_pos)) {
-        _angerNearbyBees(world, m_pos, *player);
+        angerNearbyBees(world, m_pos, *player);
     }
 }
 
@@ -347,7 +347,7 @@ std::optional<BlockPos> BeehiveBlockEntity::_getReleasePosition(
     return std::nullopt;
 }
 
-void BeehiveBlockEntity::_angerNearbyBees(IWorld& world, const BlockPos& pos, Player& player)
+void BeehiveBlockEntity::angerNearbyBees(IWorld& world, const BlockPos& pos, Player& player)
 {
     // 在 8x6x8 范围内搜索蜜蜂实体，使其攻击玩家
     Vector3 center(static_cast<f32>(pos.x + 0.5), static_cast<f32>(pos.y + 0.5), static_cast<f32>(pos.z + 0.5));

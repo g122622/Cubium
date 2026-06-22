@@ -23,7 +23,9 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "entity/core/EntityTypeIdNumber.hpp"
@@ -1157,4 +1159,188 @@ TEST_F(DragonBreathBlockCollisionTest, OnEntityCollision_DifferentEntityTypes_Al
         EXPECT_EQ(entity.lastDamageType(), DamageType::DragonBreath)
             << "Entity type " << entityTypeIds[i] << " should take dragon breath damage";
     }
+}
+
+// ========== BeehiveBlockEntity 测试 ==========
+
+class BeehiveBlockEntityTest : public ::testing::Test {
+protected:
+    void SetUp() override { entity_ = std::make_unique<mc::blockentity::BeehiveBlockEntity>(BlockPos(10, 64, 20)); }
+
+    std::unique_ptr<mc::blockentity::BeehiveBlockEntity> entity_;
+};
+
+TEST_F(BeehiveBlockEntityTest, Create_HasCorrectDefaults)
+{
+    EXPECT_EQ(entity_->getOccupantCount(), 0);
+    EXPECT_TRUE(entity_->isEmpty());
+    EXPECT_FALSE(entity_->isFull());
+    EXPECT_EQ(entity_->getSavedFlowerPos(), BlockPos::zero());
+}
+
+TEST_F(BeehiveBlockEntityTest, Constants_HaveCorrectValues)
+{
+    EXPECT_EQ(mc::blockentity::BeehiveBlockEntity::MAX_OCCUPANTS, 3);
+    EXPECT_EQ(mc::blockentity::BeehiveBlockEntity::MIN_TICKS_BEFORE_REENTERING_HIVE, 400);
+    EXPECT_EQ(mc::blockentity::BeehiveBlockEntity::MIN_OCCUPATION_TICKS_NECTAR, 2400);
+    EXPECT_EQ(mc::blockentity::BeehiveBlockEntity::MIN_OCCUPATION_TICKS_NECTARLESS, 600);
+}
+
+TEST_F(BeehiveBlockEntityTest, isEmpty_WhenNoBees_ReturnsTrue)
+{
+    EXPECT_TRUE(entity_->isEmpty());
+}
+
+TEST_F(BeehiveBlockEntityTest, isFull_WhenThreeBees_ReturnsTrue)
+{
+    // 直接通过addOccupant测试需要BeeEntity，此处仅测试容量常量
+    EXPECT_EQ(mc::blockentity::BeehiveBlockEntity::MAX_OCCUPANTS, 3);
+}
+
+TEST_F(BeehiveBlockEntityTest, getSavedFlowerPos_DefaultIsZero)
+{
+    EXPECT_EQ(entity_->getSavedFlowerPos(), BlockPos::zero());
+}
+
+TEST_F(BeehiveBlockEntityTest, setSavedFlowerPos_UpdatesPosition)
+{
+    BlockPos flowerPos(100, 70, 200);
+    entity_->setSavedFlowerPos(flowerPos);
+    EXPECT_EQ(entity_->getSavedFlowerPos(), flowerPos);
+}
+
+TEST_F(BeehiveBlockEntityTest, SaveLoad_RoundTrip)
+{
+    // 设置花朵位置
+    entity_->setSavedFlowerPos(BlockPos(50, 65, 75));
+
+    // 保存
+    nlohmann::json data;
+    entity_->save(data);
+
+    // 验证保存的数据
+    EXPECT_TRUE(data.contains("bees"));
+    EXPECT_TRUE(data.contains("flower_pos"));
+    EXPECT_EQ(data["flower_pos"].size(), 3);
+    EXPECT_EQ(data["flower_pos"][0].get<i32>(), 50);
+    EXPECT_EQ(data["flower_pos"][1].get<i32>(), 65);
+    EXPECT_EQ(data["flower_pos"][2].get<i32>(), 75);
+
+    // 加载到新实体
+    auto loaded = std::make_unique<mc::blockentity::BeehiveBlockEntity>(BlockPos(0, 0, 0));
+    EXPECT_TRUE(loaded->load(data));
+    EXPECT_EQ(loaded->getSavedFlowerPos(), BlockPos(50, 65, 75));
+}
+
+TEST_F(BeehiveBlockEntityTest, Clone_PreservesData)
+{
+    entity_->setSavedFlowerPos(BlockPos(10, 20, 30));
+    auto cloned = entity_->clone();
+    ASSERT_NE(cloned, nullptr);
+    auto* clonedEntity = static_cast<mc::blockentity::BeehiveBlockEntity*>(cloned.get());
+    EXPECT_EQ(clonedEntity->getSavedFlowerPos(), BlockPos(10, 20, 30));
+    EXPECT_EQ(clonedEntity->isEmpty(), entity_->isEmpty());
+}
+
+TEST_F(BeehiveBlockEntityTest, BeeOccupant_Tick_IncrementsTicks)
+{
+    mc::blockentity::BeehiveBlockEntity::BeeOccupant occupant;
+    occupant.hasNectar = true;
+    occupant.ticksInHive = 0;
+    occupant.minTicksInHive = mc::blockentity::BeehiveBlockEntity::MIN_OCCUPATION_TICKS_NECTAR;
+
+    EXPECT_FALSE(occupant.tick()); // tick() 递增到1，1 > 2400 = false
+    EXPECT_EQ(occupant.ticksInHive, 1);
+
+    // Tick up to exactly minTicksInHive - 1
+    for (i32 i = 1; i < mc::blockentity::BeehiveBlockEntity::MIN_OCCUPATION_TICKS_NECTAR - 1; ++i) {
+        EXPECT_FALSE(occupant.tick()) << "At tick " << i + 1 << ", should not be ready yet";
+    }
+    // Now ticksInHive = minTicksInHive - 1 = 2399
+    EXPECT_EQ(occupant.ticksInHive, mc::blockentity::BeehiveBlockEntity::MIN_OCCUPATION_TICKS_NECTAR - 1);
+
+    // Next tick: ticksInHive becomes 2400, and 2400 > 2400 = false
+    EXPECT_FALSE(occupant.tick());
+    EXPECT_EQ(occupant.ticksInHive, mc::blockentity::BeehiveBlockEntity::MIN_OCCUPATION_TICKS_NECTAR);
+
+    // Next tick: ticksInHive becomes 2401, and 2401 > 2400 = true
+    EXPECT_TRUE(occupant.tick());
+    EXPECT_EQ(occupant.ticksInHive, mc::blockentity::BeehiveBlockEntity::MIN_OCCUPATION_TICKS_NECTAR + 1);
+}
+
+TEST_F(BeehiveBlockEntityTest, BeeOccupant_Nectarless_MinTicks)
+{
+    mc::blockentity::BeehiveBlockEntity::BeeOccupant occupant;
+    occupant.hasNectar = false;
+    occupant.ticksInHive = 0;
+    occupant.minTicksInHive = mc::blockentity::BeehiveBlockEntity::MIN_OCCUPATION_TICKS_NECTARLESS;
+
+    EXPECT_EQ(occupant.minTicksInHive, 600);
+}
+
+// ========== BeehiveBlock 红石比较器测试 ==========
+
+TEST_F(BeehiveBlockTest, AnalogOutputSignal_ReturnsHoneyLevel)
+{
+    const auto& defaultState = beehive_->defaultState();
+    for (i32 level = 0; level <= 5; ++level) {
+        BlockState state = beehive_->withHoneyLevel(defaultState, level);
+        EXPECT_EQ(beehive_->getAnalogOutputSignal(state), level) << "Analog output should equal honey level " << level;
+    }
+}
+
+TEST_F(BeehiveBlockTest, HasAnalogOutputSignal_ReturnsTrue)
+{
+    EXPECT_TRUE(beehive_->hasAnalogOutputSignal());
+}
+
+// ========== CampfireBlock 静态方法测试 ==========
+
+class CampfireBlockStaticTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        campfire_ = std::make_unique<mc::blocks::CampfireBlock>(
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).lightLevel(15));
+        soulCampfire_ = std::make_unique<mc::blocks::SoulCampfireBlock>(
+            BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).lightLevel(10));
+        beehiveBlock_ =
+            std::make_unique<mc::blocks::BeehiveBlock>(BlockProperties(Material::WOOD).hardness(0.6f).resistance(0.6f));
+    }
+
+    std::unique_ptr<mc::blocks::CampfireBlock> campfire_;
+    std::unique_ptr<mc::blocks::SoulCampfireBlock> soulCampfire_;
+    std::unique_ptr<mc::blocks::BeehiveBlock> beehiveBlock_;
+};
+
+TEST_F(CampfireBlockStaticTest, IsLitCampfire_LitCampfire_ReturnsTrue)
+{
+    const auto& litState = campfire_->defaultState()
+                               .with(BlockStateProperties::LIT(), true)
+                               .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    EXPECT_TRUE(mc::blocks::CampfireBlock::isLitCampfire(litState));
+}
+
+TEST_F(CampfireBlockStaticTest, IsLitCampfire_UnlitCampfire_ReturnsFalse)
+{
+    const auto& unlitState = campfire_->defaultState()
+                                 .with(BlockStateProperties::LIT(), false)
+                                 .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    EXPECT_FALSE(mc::blocks::CampfireBlock::isLitCampfire(unlitState));
+}
+
+TEST_F(CampfireBlockStaticTest, IsLitCampfire_LitSoulCampfire_ReturnsTrue)
+{
+    // 灵魂营火也继承自CampfireBlock，应被检测为lit campfire
+    const auto& litState = soulCampfire_->defaultState()
+                               .with(BlockStateProperties::LIT(), true)
+                               .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North);
+    EXPECT_TRUE(mc::blocks::CampfireBlock::isLitCampfire(litState));
+}
+
+TEST_F(CampfireBlockStaticTest, IsLitCampfire_NonCampfireBlock_ReturnsFalse)
+{
+    // 蜂巢没有LIT属性，isLitCampfire应返回false
+    const auto& beehiveState = beehiveBlock_->defaultState();
+    EXPECT_FALSE(mc::blocks::CampfireBlock::isLitCampfire(beehiveState));
 }

@@ -330,7 +330,9 @@ bool CampfireBlock::isSmokeyPos(IWorld& world, const BlockPos& pos)
         if (state && isLitCampfire(*state)) {
             return true;
         }
-        // 检查是否有实心方块阻挡烟雾传播
+        // TODO: MC原版使用SHAPE_VIRTUAL_POST(4x16x4中心柱)与方块碰撞形状的交集检测，
+        // 而非简单的isSolid()。isSolid()对台阶等部分方块会产生与原版不同的结果。
+        // 当碰撞形状系统完善后应替换为形状交集检测。
         if (state && state->isSolid()) {
             // 检查该方块下方是否有点燃的营火
             BlockPos belowPos(pos.x, pos.y - i - 1, pos.z);
@@ -347,6 +349,9 @@ bool CampfireBlock::isSmokeyPos(IWorld& world, const BlockPos& pos)
 
 bool CampfireBlock::isLitCampfire(const BlockState& state)
 {
+    // TODO: MC原版使用BlockTags.CAMPFIRES标签检测，当前项目尚未定义该标签。
+    // 由于SoulCampfireBlock继承自CampfireBlock，dynamic_cast可同时匹配两种营火，
+    // 功能上等价。待BlockTags::CAMPFIRES添加后应替换为标签检测。
     return state.hasProperty(BlockStateProperties::LIT()) &&
         dynamic_cast<const CampfireBlock*>(&state.getBlock()) != nullptr && state.get(BlockStateProperties::LIT());
 }
