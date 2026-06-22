@@ -253,15 +253,17 @@ void BeeEntity::tick()
     // 更新愤怒计时器
     updateAnger();
 
-    // 递减蜂巢相关冷却计时器（对应MC原版 Bee.aiStep()）
-    if (m_stayOutOfHiveCountdown > 0) {
-        --m_stayOutOfHiveCountdown;
-    }
-    if (m_remainingCooldownBeforeLocatingNewHive > 0) {
-        --m_remainingCooldownBeforeLocatingNewHive;
-    }
-    if (m_remainingCooldownBeforeLocatingNewFlower > 0) {
-        --m_remainingCooldownBeforeLocatingNewFlower;
+    // 递减蜂巢相关冷却计时器（对应MC原版 Bee.aiStep()，仅服务端执行）
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        if (m_stayOutOfHiveCountdown > 0) {
+            --m_stayOutOfHiveCountdown;
+        }
+        if (m_remainingCooldownBeforeLocatingNewHive > 0) {
+            --m_remainingCooldownBeforeLocatingNewHive;
+        }
+        if (m_remainingCooldownBeforeLocatingNewFlower > 0) {
+            --m_remainingCooldownBeforeLocatingNewFlower;
+        }
     }
 
     // 离巢后无花粉计时递增

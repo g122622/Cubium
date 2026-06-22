@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
@@ -160,6 +161,30 @@ TEST_F(BlockTagsTest, SoulFireBaseBlocksContainsSoulSand)
 TEST_F(BlockTagsTest, SoulFireBaseBlocksContainsSoulSoil)
 {
     EXPECT_TRUE(BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(*VanillaBlocks::SOUL_SOIL));
+}
+
+// ============================================================================
+// CAMPFIRES Tests
+// ============================================================================
+
+TEST_F(BlockTagsTest, CampfiresContainsCampfire)
+{
+    EXPECT_TRUE(BlockTags::CAMPFIRES().contains(*block_registry::NetherBlocks::CAMPFIRE));
+}
+
+TEST_F(BlockTagsTest, CampfiresContainsSoulCampfire)
+{
+    EXPECT_TRUE(BlockTags::CAMPFIRES().contains(*block_registry::NetherBlocks::SOUL_CAMPFIRE));
+}
+
+TEST_F(BlockTagsTest, CampfiresDoesNotContainTorch)
+{
+    EXPECT_FALSE(BlockTags::CAMPFIRES().contains(*VanillaBlocks::TORCH));
+}
+
+TEST_F(BlockTagsTest, CampfiresIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::CAMPFIRES().getId(), ResourceLocation("minecraft", "campfires"));
 }
 
 TEST_F(BlockTagsTest, LeavesContainsOakLeaves)

@@ -32,8 +32,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/mob/TurtleEggBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -736,6 +736,59 @@ TEST_F(TurtleTravelTest, WaterSpeed_ChildFarFromHome_Minimum)
 
     // 0.25 / 2 / 3 = 0.0416...，但最低 0.06
     EXPECT_FLOAT_EQ(turtle.aiMoveSpeed(), 0.06f);
+}
+
+// ============================================================================
+// BABY_ON_LAND_SELECTOR 逻辑测试
+// 验证海龟攻击目标过滤：只攻击 isChild() && !isInWater() 的海龟
+// ============================================================================
+
+TEST_F(TurtleEntityTest, BabyOnLandSelector_BabyOnLandMatchesFilter)
+{
+    // 幼年海龟在陆地上 -> isChild()=true, isInWater()=false -> 匹配
+    TurtleEntity parent1(EntityId(1));
+    TurtleEntity parent2(EntityId(2));
+    parent1.setPosition(100.0f, 64.0f, -200.0f);
+
+    auto baby = parent1.spawnBaby(parent2);
+    ASSERT_NE(baby, nullptr);
+
+    auto* babyTurtle = dynamic_cast<TurtleEntity*>(baby.get());
+    ASSERT_NE(babyTurtle, nullptr);
+
+    // 幼体不在水中 -> 符合 BABY_ON_LAND_SELECTOR
+    EXPECT_TRUE(babyTurtle->isChild());
+    EXPECT_FALSE(babyTurtle->isInWater());
+}
+
+TEST_F(TurtleEntityTest, BabyOnLandSelector_AdultDoesNotMatchFilter)
+{
+    // 成年海龟 -> isChild()=false -> 不匹配
+    TurtleEntity adult(EntityId(1));
+    adult.setPosition(100.0f, 64.0f, -200.0f);
+
+    EXPECT_FALSE(adult.isChild());
+}
+
+TEST_F(TurtleEntityTest, BabyOnLandSelector_BabyInWaterDoesNotMatchFilter)
+{
+    // 幼年海龟在水中 -> isChild()=true, isInWater()=true -> 不匹配
+    TurtleEntity parent1(EntityId(1));
+    TurtleEntity parent2(EntityId(2));
+    parent1.setPosition(100.0f, 64.0f, -200.0f);
+
+    auto baby = parent1.spawnBaby(parent2);
+    ASSERT_NE(baby, nullptr);
+
+    auto* babyTurtle = dynamic_cast<TurtleEntity*>(baby.get());
+    ASSERT_NE(babyTurtle, nullptr);
+
+    // 设置在水中
+    babyTurtle->setInWater(true);
+
+    // 在水中不符合 BABY_ON_LAND_SELECTOR
+    EXPECT_TRUE(babyTurtle->isChild());
+    EXPECT_TRUE(babyTurtle->isInWater());
 }
 
 } // namespace
