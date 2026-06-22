@@ -498,23 +498,6 @@ void ModelRenderer::render(f64 scale)
     }
 }
 
-void ModelRenderer::renderNoRotate(f64 scale)
-{
-    if (!m_visible) {
-        return;
-    }
-
-    // TODO: 此废弃方法仅保留为遗留接口兼容，待所有调用方迁移到 generateMesh() 后移除
-    (void)scale;
-
-    // 渲染子部件
-    for (auto& child : m_children) {
-        if (child) {
-            child->renderNoRotate(scale);
-        }
-    }
-}
-
 void ModelRenderer::interpolateRotation(const Vector3f& target, f64 speed)
 {
     m_rotateAngleX += (target.x - m_rotateAngleX) * speed;

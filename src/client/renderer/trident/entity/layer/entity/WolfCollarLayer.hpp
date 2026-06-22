@@ -63,18 +63,6 @@ public:
         pipeline::EntityPipeline& pipeline) override;
 
     /**
-     * @brief 渲染项圈层（CPU路径 - 已废弃）
-     */
-    void render(::mc::WolfEntity& entity,
-        f32 limbSwing,
-        f32 limbSwingAmount,
-        f32 partialTicks,
-        f32 ageInTicks,
-        f32 netHeadYaw,
-        f32 headPitch,
-        f32 scale) override;
-
-    /**
      * @brief 检查是否应该渲染项圈
      */
     [[nodiscard]] bool shouldRender(const ::mc::WolfEntity& entity) const override;

@@ -53,28 +53,6 @@ void HeadLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
 }
 
 template <typename TEntity, typename TModel>
-void HeadLayer<TEntity, TModel>::render(TEntity& entity,
-    f32 limbSwing,
-    f32 limbSwingAmount,
-    f32 partialTicks,
-    f32 ageInTicks,
-    f32 netHeadYaw,
-    f32 headPitch,
-    f32 scale)
-{
-    // CPU 路径已废弃
-    // TODO: 确认CPU渲染路径完全移除后删除此方法
-    (void)entity;
-    (void)limbSwing;
-    (void)limbSwingAmount;
-    (void)partialTicks;
-    (void)ageInTicks;
-    (void)netHeadYaw;
-    (void)headPitch;
-    (void)scale;
-}
-
-template <typename TEntity, typename TModel>
 bool HeadLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
 {
     const ItemStack* headItem = getHeadItem(entity);
@@ -153,14 +131,6 @@ void HeadLayer<TEntity, TModel>::renderHeadItemPipeline(TEntity& entity,
 
     pipeline.drawMesh(
         cmd, it->second, headTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
-}
-
-template <typename TEntity, typename TModel>
-void HeadLayer<TEntity, TModel>::renderHeadItem(
-    TEntity& entity, const ItemStack& itemStack, f32 headYaw, f32 headPitch, f32 scale)
-{
-    // CPU 路径已废弃
-    // TODO: 确认CPU渲染路径完全移除后删除此方法
 }
 
 template <typename TEntity, typename TModel>

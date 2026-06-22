@@ -13,8 +13,8 @@ core/
 ## 内部模块关系
 
 `LayerRenderer` 是一个模板基类，定义了层渲染器的接口：
-- 提供 `render()` 方法（CPU路径，已废弃，默认空实现）
-- 提供 `renderPipeline()` 方法（GPU管线路径，主要渲染方法）
+- 提供 `renderPipeline()` 方法（GPU管线路径，主要渲染方法，子类必须实现）
+- 提供 `render()` 方法（CPU路径，已废弃，基类保留空实现以兼容旧代码路径）
 - 提供 `shouldRender()` 方法（条件渲染检查，默认返回 true）
 
 ## 上下游外部依赖关系
@@ -34,9 +34,9 @@ core/
 
 ## 容易踩的坑
 
-1. **CPU 路径已废弃**：`render()` 方法保留用于向后兼容，新代码应实现 `renderPipeline()` 方法使用 GPU 管线路径。
+1. **CPU 路径已移除**：所有子类的 `render()` override 已移除，所有渲染逻辑均在 `renderPipeline()` GPU 管线路径中实现。基类 `render()` 保留空实现以兼容 `LivingRenderer::render()` 旧路径。
 
-2. **默认实现陷阱**：`render()` 和 `renderPipeline()` 都有默认空实现。如果子类只实现了 `render()` 但外部调用 `renderPipeline()`，会通过默认实现转发到 `render()`。但最佳实践是直接实现 `renderPipeline()`。
+2. **renderPipeline() 必须实现**：子类必须直接实现 `renderPipeline()` 方法，基类的默认实现为空（不再回退到 `render()`）。
 
 3. **shouldRender 条件检查**：层渲染器应该重写 `shouldRender()` 来检查是否满足渲染条件（如装备槽位是否有物品、是否开启了特定选项等），避免不必要的渲染调用。
 

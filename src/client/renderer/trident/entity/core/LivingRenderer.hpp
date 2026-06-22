@@ -211,26 +211,6 @@ protected:
     void setModelAngles(TEntity& entity, f64 partialTicks);
 
     /**
-     * @brief 渲染所有层渲染器
-     * @param entity 生物实体
-     * @param limbSwing 步态动画周期
-     * @param limbSwingAmount 步态动画强度
-     * @param partialTicks 部分tick
-     * @param ageInTicks 年龄tick
-     * @param netHeadYaw 头部偏航角
-     * @param headPitch 头部俯仰角
-     * @param scale 缩放因子
-     */
-    void renderLayers(TEntity& entity,
-        f32 limbSwing,
-        f32 limbSwingAmount,
-        f32 partialTicks,
-        f32 ageInTicks,
-        f32 netHeadYaw,
-        f32 headPitch,
-        f32 scale);
-
-    /**
      * @brief 计算步态动画周期
      * @param entity 生物实体
      * @param partialTicks 部分tick
@@ -286,46 +266,12 @@ void LivingRenderer<TEntity, TModel>::render(Entity& entity, f64 partialTicks)
     // 获取缩放因子
     f64 scale = getScale(living) * (1.0 / 16.0);
 
-    // 计算动画参数
-    f64 limbSwing = getLimbSwing(living, partialTicks);
-    f64 limbSwingAmount = getLimbSwingAmount(living, partialTicks);
-    f64 ageInTicks = getAgeInTicks(living) + partialTicks;
-    f64 headYaw = getHeadYaw(living, partialTicks);
-    f64 headPitch = getHeadPitch(living, partialTicks);
-
-    // 渲染模型
+    // 渲染模型（CPU 路径 - 仅渲染模型本身，层的渲染已迁移到 GPU 管线路径）
     m_model.render(scale);
-
-    // 渲染所有层
-    renderLayers(living,
-        static_cast<f32>(limbSwing),
-        static_cast<f32>(limbSwingAmount),
-        static_cast<f32>(partialTicks),
-        static_cast<f32>(ageInTicks),
-        static_cast<f32>(headYaw),
-        static_cast<f32>(headPitch),
-        static_cast<f32>(scale));
 
     // 渲染阴影
     if (m_shadowSize > 0.0) {
         renderShadow(entity, partialTicks);
-    }
-}
-
-template <typename TEntity, typename TModel>
-void LivingRenderer<TEntity, TModel>::renderLayers(TEntity& entity,
-    f32 limbSwing,
-    f32 limbSwingAmount,
-    f32 partialTicks,
-    f32 ageInTicks,
-    f32 netHeadYaw,
-    f32 headPitch,
-    f32 scale)
-{
-    for (auto& layer : m_layers) {
-        if (layer && layer->shouldRender(entity)) {
-            layer->render(entity, limbSwing, limbSwingAmount, partialTicks, ageInTicks, netHeadYaw, headPitch, scale);
-        }
     }
 }
 

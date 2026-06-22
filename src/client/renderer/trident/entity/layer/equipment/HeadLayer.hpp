@@ -79,19 +79,6 @@ public:
         pipeline::EntityPipeline& pipeline) override;
 
     /**
-     * @brief 渲染头部物品层（CPU路径 - 已废弃）
-     * TODO: 确认CPU渲染路径完全移除后删除此方法
-     */
-    void render(TEntity& entity,
-        f32 limbSwing,
-        f32 limbSwingAmount,
-        f32 partialTicks,
-        f32 ageInTicks,
-        f32 netHeadYaw,
-        f32 headPitch,
-        f32 scale) override;
-
-    /**
      * @brief 检查是否应该渲染头部物品层
      */
     [[nodiscard]] bool shouldRender(const TEntity& entity) const override;
@@ -104,12 +91,6 @@ protected:
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline);
-
-    /**
-     * @brief 渲染头部物品（CPU路径 - 已废弃）
-     * TODO: 确认CPU渲染路径完全移除后删除此方法
-     */
-    virtual void renderHeadItem(TEntity& entity, const ItemStack& itemStack, f32 headYaw, f32 headPitch, f32 scale);
 
     /**
      * @brief 获取头部装备物品

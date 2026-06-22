@@ -81,18 +81,6 @@ public:
         pipeline::EntityPipeline& pipeline) override;
 
     /**
-     * @brief 渲染手持物品层（CPU路径 - 已废弃）
-     */
-    void render(TEntity& entity,
-        f32 limbSwing,
-        f32 limbSwingAmount,
-        f32 partialTicks,
-        f32 ageInTicks,
-        f32 netHeadYaw,
-        f32 headPitch,
-        f32 scale) override;
-
-    /**
      * @brief 检查是否应该渲染手持物品层
      */
     [[nodiscard]] bool shouldRender(const TEntity& entity) const override;
@@ -113,17 +101,6 @@ protected:
         VkCommandBuffer cmd,
         const mc::client::renderer::entity::core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline);
-
-    /**
-     * @brief 渲染特定手的物品（CPU路径 - 已废弃）
-     */
-    virtual void renderHandItem(TEntity& entity,
-        mc::Hand hand,
-        mc::HandSide handSide,
-        f32 limbSwing,
-        f32 limbSwingAmount,
-        f32 partialTicks,
-        f32 scale);
 
     /**
      * @brief 获取手持物品

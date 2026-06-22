@@ -304,16 +304,6 @@ public:
      */
     void render(f64 scale = 1.0 / 16.0);
 
-    /**
-     * @brief 渲染时不进行旋转（已废弃）
-     *
-     * 此方法为遗留的 CPU 立即模式渲染接口，项目已改用 GPU 管线路径。
-     *
-     * @param scale 缩放因子
-     * @deprecated 使用 generateMesh() 代替
-     */
-    void renderNoRotate(f64 scale = 1.0 / 16.0);
-
     // ========== 动画 ==========
 
     /**

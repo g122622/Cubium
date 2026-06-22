@@ -50,9 +50,10 @@ public:
     virtual ~LayerRenderer() = default;
 
     /**
-     * @brief 渲染层（CPU路径 - 已废弃）
+     * @brief 渲染层（CPU路径 - 已废弃，保留为空实现以兼容旧代码路径）
      *
-     * 此方法保留用于向后兼容，新代码应使用 renderPipeline()
+     * 所有 Layer 子类已迁移到 renderPipeline() GPU 管线路径。
+     * 此方法保留空实现，仅用于 LivingRenderer::render() 旧路径的兼容。
      *
      * @param entity 实体
      * @param limbSwing 步态动画周期
@@ -72,7 +73,6 @@ public:
         f32 headPitch,
         f32 scale)
     {
-        // 默认空实现，子类可选择实现此方法或 renderPipeline()
         (void)entity;
         (void)limbSwing;
         (void)limbSwingAmount;
@@ -98,18 +98,12 @@ public:
         const mc::client::renderer::entity::core::AnimationContext& context,
         pipeline::EntityPipeline& pipeline)
     {
-        // 默认实现：调用旧的 render 方法（如果子类实现了）
-        // 子类应该重写此方法以使用 GPU 渲染
+        // GPU 管线路径的默认空实现
+        // 子类必须重写此方法以实现 GPU 渲染逻辑
+        (void)entity;
         (void)cmd;
+        (void)context;
         (void)pipeline;
-        render(entity,
-            static_cast<f32>(context.limbSwing),
-            static_cast<f32>(context.limbSwingAmount),
-            static_cast<f32>(context.partialTicks),
-            static_cast<f32>(context.ageInTicks),
-            static_cast<f32>(context.netHeadYaw),
-            static_cast<f32>(context.headPitch),
-            static_cast<f32>(context.scale));
     }
 
     /**

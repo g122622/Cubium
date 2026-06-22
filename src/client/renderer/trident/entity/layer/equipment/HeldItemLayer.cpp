@@ -68,29 +68,6 @@ void HeldItemLayer<TEntity, TModel>::renderPipeline(TEntity& entity,
 }
 
 template <typename TEntity, typename TModel>
-void HeldItemLayer<TEntity, TModel>::render(TEntity& entity,
-    f32 limbSwing,
-    f32 limbSwingAmount,
-    f32 partialTicks,
-    f32 ageInTicks,
-    f32 netHeadYaw,
-    f32 headPitch,
-    f32 scale)
-{
-    // CPU 路径 - 已废弃，仅调用 GPU 路径的空实现
-    // TODO: 删除此废弃的 CPU 渲染路径及其声明
-    (void)entity;
-    (void)limbSwing;
-    (void)limbSwingAmount;
-    (void)partialTicks;
-    (void)ageInTicks;
-    (void)netHeadYaw;
-    (void)headPitch;
-    (void)scale;
-    // 注意：CPU 路径不再实现，需要通过 GPU 管线渲染
-}
-
-template <typename TEntity, typename TModel>
 bool HeldItemLayer<TEntity, TModel>::shouldRender(const TEntity& entity) const
 {
     // 检查是否有手持物品
@@ -168,29 +145,6 @@ void HeldItemLayer<TEntity, TModel>::renderHandItemPipeline(TEntity& entity,
 
     pipeline.drawMesh(
         cmd, it->second, itemTransform, entityPos, 1.0, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
-}
-
-template <typename TEntity, typename TModel>
-void HeldItemLayer<TEntity, TModel>::renderHandItem(TEntity& entity,
-    mc::Hand hand,
-    mc::HandSide handSide,
-    f32 limbSwing,
-    f32 limbSwingAmount,
-    f32 partialTicks,
-    f32 scale)
-{
-    // TODO: 删除此废弃的 CPU 渲染路径及其声明
-    const ItemStack* item = getHeldItem(entity, hand);
-    if (!item || item->isEmpty()) {
-        return;
-    }
-
-    // 仅作为占位符
-    (void)handSide;
-    (void)limbSwing;
-    (void)limbSwingAmount;
-    (void)partialTicks;
-    (void)scale;
 }
 
 template <typename TEntity, typename TModel>

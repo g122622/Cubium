@@ -49,9 +49,10 @@ HeadLayer                      VillagerLayer
 ```
 
 所有层渲染器均继承自 `core::LayerRenderer<TEntity>` 基类：
-- `renderPipeline()` - GPU 管线路径渲染（主要方法）
-- `render()` - CPU 路径渲染（已废弃，保留向后兼容）
+- `renderPipeline()` - GPU 管线路径渲染（主要方法，所有子类必须实现）
 - `shouldRender()` - 条件渲染检查
+
+注意：旧的 CPU 路径 `render()` 方法已从所有子类中移除，基类保留空实现以兼容旧代码路径。
 
 ## 上下游外部依赖关系
 
@@ -82,7 +83,7 @@ HeadLayer                      VillagerLayer
 
 ## 容易踩的坑
 
-1. **CPU 路径已废弃**：所有层渲染器的 `render()` 方法已废弃，新代码应实现 `renderPipeline()` 方法使用 GPU 管线路径。
+1. **CPU 路径已移除**：所有层渲染器的 `render()` 方法已从子类中移除，所有渲染逻辑均在 `renderPipeline()` GPU 管线路径中实现。基类 `LayerRenderer::render()` 保留空实现以兼容 `LivingRenderer::render()` 旧路径。
 
 2. **模板类显式实例化**：`ElytraLayer`、`SaddleLayer`、`SheepWoolLayer`、`ArrowLayer`、`HeldBlockLayer`、`EnergyGlintLayer`、`EyesLayer` 均为模板类，需在 cpp 末尾显式实例化。
 

@@ -72,18 +72,6 @@ public:
         pipeline::EntityPipeline& pipeline) override;
 
     /**
-     * @brief 渲染附魔光效层（CPU路径 - 已废弃）
-     */
-    void render(TEntity& entity,
-        f32 limbSwing,
-        f32 limbSwingAmount,
-        f32 partialTicks,
-        f32 ageInTicks,
-        f32 netHeadYaw,
-        f32 headPitch,
-        f32 scale) override;
-
-    /**
      * @brief 检查是否应该渲染附魔光效
      */
     [[nodiscard]] bool shouldRender(const TEntity& entity) const override;
@@ -163,27 +151,6 @@ void EnergyGlintLayer<TEntity>::renderPipeline(TEntity& entity,
 
     // 恢复 Alpha 混合模式
     pipeline.bind(cmd, pipeline::BlendMode::Alpha);
-}
-
-template <typename TEntity>
-void EnergyGlintLayer<TEntity>::render(TEntity& entity,
-    f32 limbSwing,
-    f32 limbSwingAmount,
-    f32 partialTicks,
-    f32 ageInTicks,
-    f32 netHeadYaw,
-    f32 headPitch,
-    f32 scale)
-{
-    // CPU 路径已废弃
-    (void)entity;
-    (void)limbSwing;
-    (void)limbSwingAmount;
-    (void)partialTicks;
-    (void)ageInTicks;
-    (void)netHeadYaw;
-    (void)headPitch;
-    (void)scale;
 }
 
 template <typename TEntity>
