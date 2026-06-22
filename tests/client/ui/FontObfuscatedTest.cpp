@@ -406,6 +406,79 @@ TEST_F(FontRendererObfuscatedTest, ObfuscatedProducesDifferentGlyphsEachFrame)
     }
 }
 
+TEST_F(FontRendererObfuscatedTest, ShadowAndMainTextUseSameObfuscatedGlyphs)
+{
+    // 回归测试：混淆文字的阴影和主文字应使用相同的随机替换字符
+    // 即阴影通道的UV坐标与主文字通道的UV坐标应该一一对应相同
+    TextStyle style;
+    style.obfuscated = true;
+    style.shadow = true;
+    style.color = Colors::WHITE;
+
+    renderer.beginBatch();
+    f32 width = renderer.addText("ABCD", 0.0f, 0.0f, style);
+    renderer.endBatch();
+
+    EXPECT_GT(width, 0.0f);
+
+    const auto& vertices = renderer.vertices();
+    ASSERT_GE(vertices.size(), 8u) << "Should have at least some vertices";
+
+    // addText 先画完整个阴影pass，然后画完整个主文字pass
+    // 顶点布局：[char0_shadow(4), char1_shadow(4), ..., char0_main(4), char1_main(4), ...]
+    // 每个非空格字符4顶点，所以总顶点数应为 2 * N * 4（阴影 + 主文字）
+    size_t totalVertices = vertices.size();
+    ASSERT_EQ(totalVertices % 8, 0u) << "Total vertices should be multiple of 8 (4 shadow + 4 main per char)";
+    size_t charCount = totalVertices / 8;
+
+    // 验证阴影和主文字的UV坐标匹配（相同的混淆字形）
+    // 阴影顶点: [0..charCount*4), 主文字顶点: [charCount*4..charCount*4*2)
+    for (size_t i = 0; i < charCount; ++i) {
+        size_t shadowBase = i * 4;
+        size_t mainBase = charCount * 4 + i * 4;
+
+        // 比较每个顶点的UV坐标
+        for (size_t j = 0; j < 4; ++j) {
+            EXPECT_FLOAT_EQ(
+                static_cast<float>(vertices[shadowBase + j].u), static_cast<float>(vertices[mainBase + j].u))
+                << "Shadow and main text UV.u mismatch for char " << i << " vertex " << j;
+            EXPECT_FLOAT_EQ(
+                static_cast<float>(vertices[shadowBase + j].v), static_cast<float>(vertices[mainBase + j].v))
+                << "Shadow and main text UV.v mismatch for char " << i << " vertex " << j;
+        }
+    }
+}
+
+TEST_F(FontRendererObfuscatedTest, ObfuscatedWithNewline)
+{
+    // 混淆文本中包含换行符应正常处理（换行符不产生顶点，只影响Y位置）
+    // 此测试主要验证不会崩溃
+    TextStyle style;
+    style.obfuscated = true;
+    style.color = Colors::WHITE;
+
+    renderer.beginBatch();
+    renderer.addText("A\nB", 0.0f, 0.0f, style);
+    renderer.endBatch();
+
+    // 不崩溃即通过
+}
+
+TEST_F(FontRendererObfuscatedTest, ObfuscatedPureSpaceText)
+{
+    // 纯空格文本不应有混淆替换，也不应崩溃
+    TextStyle style;
+    style.obfuscated = true;
+    style.color = Colors::WHITE;
+
+    renderer.beginBatch();
+    f32 width = renderer.addText("   ", 0.0f, 0.0f, style);
+    renderer.endBatch();
+
+    // 空格有advance但不产生顶点
+    EXPECT_GT(width, 0.0f);
+}
+
 // ============================================================================
 // TextParser §k 格式码解析测试
 // ============================================================================

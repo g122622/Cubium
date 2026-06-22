@@ -582,60 +582,19 @@ private:
         std::string result;
         result.reserve(text.size());
 
-        size_t pos = 0;
-        while (pos < text.size()) {
-            size_t startPos = pos;
-            u32 codepoint = 0;
-            u8 byte = static_cast<u8>(text[pos]);
-
-            // UTF-8解码
-            if ((byte & 0x80) == 0) {
-                codepoint = byte;
-                pos += 1;
-            } else if ((byte & 0xE0) == 0xC0) {
-                if (pos + 1 >= text.size()) {
-                    result.push_back(text[pos]);
-                    pos += 1;
-                    continue;
-                }
-                codepoint = ((byte & 0x1F) << 6) | (static_cast<u8>(text[pos + 1]) & 0x3F);
-                pos += 2;
-            } else if ((byte & 0xF0) == 0xE0) {
-                if (pos + 2 >= text.size()) {
-                    result.push_back(text[pos]);
-                    pos += 1;
-                    continue;
-                }
-                codepoint = ((byte & 0x0F) << 12) | ((static_cast<u8>(text[pos + 1]) & 0x3F) << 6) |
-                    (static_cast<u8>(text[pos + 2]) & 0x3F);
-                pos += 3;
-            } else if ((byte & 0xF8) == 0xF0) {
-                if (pos + 3 >= text.size()) {
-                    result.push_back(text[pos]);
-                    pos += 1;
-                    continue;
-                }
-                codepoint = ((byte & 0x07) << 18) | ((static_cast<u8>(text[pos + 1]) & 0x3F) << 12) |
-                    ((static_cast<u8>(text[pos + 2]) & 0x3F) << 6) | (static_cast<u8>(text[pos + 3]) & 0x3F);
-                pos += 4;
-            } else {
-                result.push_back(text[pos]);
-                pos += 1;
-                continue;
-            }
-
+        util::text::utf8ForEachCodepoint(text, [&](u32 codepoint, size_t byteOffset, size_t byteLength) {
             // 空格不替换
             if (codepoint == ' ') {
-                result.append(text, startPos, pos - startPos);
-                continue;
+                result.append(text, byteOffset, byteLength);
+                return;
             }
 
             // 获取原始字符的前进宽度
             const Glyph* originalGlyph = m_font->getGlyph(codepoint);
             if (originalGlyph == nullptr) {
                 // 未知字符保留原样
-                result.append(text, startPos, pos - startPos);
-                continue;
+                result.append(text, byteOffset, byteLength);
+                return;
             }
 
             // 从字体中查找等宽随机字符
@@ -643,28 +602,13 @@ private:
             const Glyph* randomGlyph = m_font->getRandomGlyph(m_obfuscatedRandom, width);
             if (randomGlyph == nullptr) {
                 // 没有匹配宽度的字符，保留原样
-                result.append(text, startPos, pos - startPos);
-                continue;
+                result.append(text, byteOffset, byteLength);
+                return;
             }
 
             // 将随机码点编码为UTF-8
-            u32 cp = randomGlyph->codepoint;
-            if (cp < 0x80) {
-                result.push_back(static_cast<char>(cp));
-            } else if (cp < 0x800) {
-                result.push_back(static_cast<char>(0xC0 | (cp >> 6)));
-                result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
-            } else if (cp < 0x10000) {
-                result.push_back(static_cast<char>(0xE0 | (cp >> 12)));
-                result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
-                result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
-            } else {
-                result.push_back(static_cast<char>(0xF0 | (cp >> 18)));
-                result.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
-                result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
-                result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
-            }
-        }
+            util::text::utf8Append(result, randomGlyph->codepoint);
+        });
 
         return result;
     }

@@ -396,3 +396,80 @@ TEST_F(RichTextWidgetTest, InactiveWidget)
     bool clicked = widget->onClick(10, 10, 0, 0);
     EXPECT_FALSE(clicked);
 }
+
+// ==================== 混淆文字（§k）测试 ====================
+
+TEST_F(RichTextWidgetTest, ObfuscatedTextDoesNotCrash)
+{
+    // 设置混淆文本不应崩溃
+    widget->setText("§kSecret");
+    EXPECT_NE(widget->getText(), nullptr);
+    EXPECT_EQ(widget->getUnformattedText(), "Secret");
+}
+
+TEST_F(RichTextWidgetTest, ObfuscatedWithColorAndReset)
+{
+    // §k + 颜色 + §r 组合
+    widget->setText("§c§kRedObfuscated§rNormal");
+    EXPECT_NE(widget->getText(), nullptr);
+    // 未格式化文本应包含完整内容
+    EXPECT_EQ(widget->getUnformattedText(), "RedObfuscatedNormal");
+}
+
+TEST_F(RichTextWidgetTest, ObfuscatedEmptyText)
+{
+    // 空混淆文本不应崩溃
+    widget->setText("§k");
+    EXPECT_NE(widget->getText(), nullptr);
+}
+
+TEST_F(RichTextWidgetTest, ObfuscatedPureSpaceText)
+{
+    // 纯空格混淆文本不应崩溃（空格不替换）
+    widget->setText("§k   ");
+    EXPECT_NE(widget->getText(), nullptr);
+    EXPECT_EQ(widget->getUnformattedText(), "   ");
+}
+
+TEST_F(RichTextWidgetTest, ObfuscatedMixedText)
+{
+    // 混淆文本与普通文本混合
+    widget->setText("Normal §kObfuscated§r Normal");
+    EXPECT_NE(widget->getText(), nullptr);
+}
+
+TEST_F(RichTextWidgetTest, ObfuscatedTickDoesNotCrash)
+{
+    // tick() 应正常处理混淆动画计时器
+    widget->setText("§kTest");
+    widget->init();
+
+    // 模拟多帧tick
+    for (int i = 0; i < 100; ++i) {
+        widget->tick(0.016f); // ~60fps
+    }
+
+    EXPECT_NE(widget->getText(), nullptr);
+}
+
+TEST_F(RichTextWidgetTest, ObfuscatedUnicodeText)
+{
+    // UTF-8多字节字符的混淆文本不应崩溃
+    widget->setText("§k你好");
+    EXPECT_NE(widget->getText(), nullptr);
+    EXPECT_EQ(widget->getUnformattedText(), "你好");
+}
+
+TEST_F(RichTextWidgetTest, ObfuscatedWithBold)
+{
+    // 混淆 + 粗体组合
+    widget->setText("§l§kBoldObfuscated");
+    EXPECT_NE(widget->getText(), nullptr);
+}
+
+TEST_F(RichTextWidgetTest, ObfuscatedMultiLine)
+{
+    // 混淆文本换行不应崩溃
+    widget->setText("§kLine1\nLine2");
+    EXPECT_NE(widget->getText(), nullptr);
+}
