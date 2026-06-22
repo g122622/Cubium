@@ -31,6 +31,7 @@
 #include "../../../../stats/Stats.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../block/BlockTags.hpp"
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/processing/CampfireBlockEntity.hpp"
 #include "../../WaterLoggableHelpers.hpp"
@@ -349,11 +350,8 @@ bool CampfireBlock::isSmokeyPos(IWorld& world, const BlockPos& pos)
 
 bool CampfireBlock::isLitCampfire(const BlockState& state)
 {
-    // TODO: MC原版使用BlockTags.CAMPFIRES标签检测，当前项目尚未定义该标签。
-    // 由于SoulCampfireBlock继承自CampfireBlock，dynamic_cast可同时匹配两种营火，
-    // 功能上等价。待BlockTags::CAMPFIRES添加后应替换为标签检测。
-    return state.hasProperty(BlockStateProperties::LIT()) &&
-        dynamic_cast<const CampfireBlock*>(&state.getBlock()) != nullptr && state.get(BlockStateProperties::LIT());
+    return BlockTags::CAMPFIRES().contains(state) && state.hasProperty(BlockStateProperties::LIT()) &&
+        state.get(BlockStateProperties::LIT());
 }
 
 // ========== SoulCampfireBlock 实现 ==========

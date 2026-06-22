@@ -226,6 +226,15 @@ BlockTag& BlockTags::SOUL_FIRE_BASE_BLOCKS()
     return *tag;
 }
 
+BlockTag& BlockTags::CAMPFIRES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "campfires"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WOOL()
 {
     static BlockTag* tag = nullptr;
@@ -973,6 +982,11 @@ void BlockTags::initialize()
     soulFireBaseBlocks->addAll(
         {ResourceLocation("minecraft", "soul_sand"), ResourceLocation("minecraft", "soul_soil")});
     tags[soulFireBaseBlocks->getId()] = std::move(soulFireBaseBlocks);
+
+    // 创建 CAMPFIRES 标签（营火、灵魂营火）
+    auto campfires = std::make_unique<BlockTag>(ResourceLocation("minecraft", "campfires"));
+    campfires->addAll({ResourceLocation("minecraft", "campfire"), ResourceLocation("minecraft", "soul_campfire")});
+    tags[campfires->getId()] = std::move(campfires);
 
     // 创建 WOOL 标签
     auto wool = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wool"));

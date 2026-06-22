@@ -169,6 +169,12 @@ public:
     /// 在这些方块上可以点燃灵魂火
     static BlockTag& SOUL_FIRE_BASE_BLOCKS();
 
+    /// 营火标签（营火、灵魂营火）
+    /// 运行时消费场景：
+    /// 1. CampfireBlock::isLitCampfire() — 判断是否为点燃的营火方块
+    /// 2. CampfireBlock::isSmokeyPos() — 判断蜂巢下方是否有营火（烟雾信号）
+    static BlockTag& CAMPFIRES();
+
     /// 羊毛标签
     static BlockTag& WOOL();
 
