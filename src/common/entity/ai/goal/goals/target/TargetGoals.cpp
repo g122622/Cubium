@@ -291,6 +291,20 @@ void HurtByTargetGoal::startExecuting()
     TargetGoal::startExecuting();
 
     // 警醒盟友
+    // TODO(alertOthers_scope): 当前实现使用 typeId() 精确匹配同类型实体，
+    // 这与 MC Java 的 getEntitiesOfClass(this.mob.getClass(), ...) 行为一致（精确类匹配）。
+    // 但 MC Java 的 toIgnoreAlert 使用 == 精确类匹配，而当前 C++ 实现通过谓词自由匹配。
+    // 对于 ZombifiedPiglin 的 setAlertOthers 排除场景：由于 typeId 过滤只返回同类型实体，
+    // ZombifiedPiglin 本身不会被 typeId 过滤选中（它不是 Zombie），
+    // 因此 setAlertOthers(ZombifiedPiglin) 在当前实现中对 Zombie 无实际效果。
+    // MC Java 中同样如此——ZombifiedPiglin 不会被 getEntitiesOfClass(Zombie.class) 返回，
+    // 所以 toIgnoreAlert 中的 ZombifiedPiglin.class 在 Zombie 的 alertOthers 中也不会被触发。
+    // 但在 ZombifiedPiglin 自身的 alertOthers 中，该排除是有意义的：
+    // 当一只 ZombifiedPiglin 被攻击时，getEntitiesOfClass(ZombifiedPiglin.class) 会返回其他
+    // ZombifiedPiglin，而 toIgnoreAlert 可以排除特定类型。
+    // 当前实现的限制是：typeId 只能匹配单一类型，而 MC Java 的 getClass() 在子类场景下
+    // 有细微差异（例如 Drowned 是 Zombie 的子类，getEntitiesOfClass(Zombie.class) 不返回 Drowned）。
+    // 如果未来需要更精确的类匹配（如区分子类），可引入 getClassId() 方法替代 typeId 比较。
     if (m_alertAllies && m_mob && m_target) {
         IWorld* world = m_mob->world();
         if (!world) return;

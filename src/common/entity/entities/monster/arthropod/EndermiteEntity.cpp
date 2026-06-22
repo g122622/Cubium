@@ -95,7 +95,12 @@ void EndermiteEntity::registerGoals()
     goalSelector().addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
     // 目标选择
-    targetSelector().addGoal(1, new entity::ai::goal::HurtByTargetGoal(this, false));
+    // MC 原版: targetSelector.addGoal(1, HurtByTargetGoal(this).setAlertOthers())
+    // 末影螨被攻击后会警醒附近的同类末影螨
+    {
+        auto hurtByTarget = std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true);
+        m_targetSelector.addGoal(1, std::move(hurtByTarget));
+    }
     targetSelector().addGoal(2,
         new entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>(
             this, true, 0, [](const LivingEntity* entity) -> bool {

@@ -563,6 +563,10 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/interact/OpenDoorGoalTest.cpp
     # HurtByTargetGoal 被攻击反击目标测试
     common/entity/ai/goal/goals/target/HurtByTargetGoalTest.cpp
+    # DrownedEntity registerGoals 目标替换测试
+    common/entity/ai/goal/goals/target/DrownedRegisterGoalsTest.cpp
+    # GoalSelector 目标选择器测试（removeGoalsOfType 等）
+    common/entity/ai/goal/GoalSelectorTest.cpp
     entity/AiGoalRegressionTest.cpp
     entity/PathWeightTest.cpp
     entity/PathWeightOverrideTest.cpp

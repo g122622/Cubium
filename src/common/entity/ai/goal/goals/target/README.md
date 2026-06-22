@@ -284,7 +284,17 @@ void DrownedEntity::registerGoals()
 }
 ```
 
-### 7. ResetAngerGoal 模板约束
+### 7. alertOthers 同类型过滤机制
+
+**重要**: `startExecuting()` 中的 alertOthers 逻辑使用 `ally->typeId() == m_mob->typeId()` 进行同类型过滤，这与 MC Java 的 `getEntitiesOfClass(this.mob.getClass(), ...)` 行为一致——只警醒与被攻击实体**完全相同类型**的实体。
+
+**影响**:
+- `setAlertOthers(ZombifiedPiglin 排除谓词)` 在 ZombieEntity 上：由于 typeId 过滤只返回同为 Zombie 的实体，ZombifiedPiglin 本身不会被选中，因此排除谓词在此场景下不会被触发。这在 MC Java 中也是同样的行为。
+- 但在 ZombifiedPiglinEntity 自身的 alertOthers 中，排除谓词是有意义的：当一只僵尸猪灵被攻击时，`getEntitiesOfClass(ZombifiedPiglin.class)` 会返回其他僵尸猪灵，排除谓词可以用于跳过特定类型的盟友。
+
+**未来改进**: typeId 只能匹配单一类型，而 MC Java 的 getClass() 在子类场景下有细微差异（例如 Drowned 是 Zombie 的子类，`getEntitiesOfClass(Zombie.class)` 不返回 Drowned）。如需更精确的类匹配，可引入 `getClassId()` 方法替代 typeId 比较。
+
+### 8. ResetAngerGoal 模板约束
 
 **问题**: 使用非 `IAngerable` 类型实例化 `ResetAngerGoal<T>` 导致编译错误。
 

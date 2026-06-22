@@ -149,6 +149,41 @@ PhantomEntity (幻翼) 继承自 FlyingEntity（非直接继承 MonsterEntity）
 8. **优先级数字越小越优先**：0 是最高优先级，不能搞反
 9. **DrownedEntity 替换父类 HurtByTargetGoal**：DrownedEntity::registerGoals() 先调用父类再通过 `removeGoalsOfType<HurtByTargetGoal>()` 移除父类注册的版本，然后添加溺尸专用的版本（排除同类溺尸 + 不警醒僵尸猪灵）
 
+#### HurtByTargetGoal 注册情况审计
+
+| 实体 | alertAllies | ignoreDamage | setAlertOthers | 与MC Java一致性 |
+|------|------------|--------------|----------------|----------------|
+| ZombieEntity | true | - | ZombifiedPiglin | ✅ |
+| DrownedEntity | true | Drowned | ZombifiedPiglin | ✅ (替换父类) |
+| HuskEntity | 继承Zombie | 继承Zombie | 继承Zombie | ✅ |
+| ZombieVillagerEntity | 继承Zombie | 继承Zombie | 继承Zombie | ✅ |
+| AbstractSkeletonEntity | false | - | - | ✅ |
+| SpiderEntity | false | - | - | ✅ |
+| CaveSpiderEntity | 继承Spider | 继承Spider | 继承Spider | ✅ |
+| EndermiteEntity | true | - | - | ✅ (MC: .setAlertOthers()) |
+| SilverfishEntity | true | - | - | ✅ |
+| CreeperEntity | false | - | - | ✅ |
+| EndermanEntity | false | - | - | ✅ |
+| ShulkerEntity | true | Shulker | - | ✅ |
+| BlazeEntity | true | - | - | ✅ |
+| ZombifiedPiglinEntity | true | - | - | ✅ |
+| AbstractPiglinEntity | false | - | - | ⚠️ MC用Brain，Goal为近似 |
+| PiglinBruteEntity | true (额外) | - | - | ⚠️ MC用Brain，Goal为近似 |
+| HoglinEntity | false (成年) | - | - | ⚠️ MC用Brain，Goal为近似 |
+| ZoglinEntity | false (成年) | - | - | ⚠️ MC用Brain，Goal为近似 |
+| BreezeEntity | false | - | - | ⚠️ MC用Brain，Goal为近似 |
+| Illager系 (6种) | 各不同 | Raider | 各不同 | ✅ |
+| WitchEntity | false | Raider | - | ✅ |
+| SlimeEntity | 无 | - | - | ✅ (MC不注册) |
+| MagmaCubeEntity | 继承Slime | - | - | ✅ (MC不注册) |
+| GiantEntity | 无 | - | - | ✅ (MC不注册) |
+| PhantomEntity | 无 | - | - | ✅ (MC用Brain) |
+| GhastEntity | 无 | - | - | ✅ (MC不注册) |
+| GuardianEntity | 无 | - | - | ✅ (MC不注册) |
+| ElderGuardianEntity | 继承Guardian | - | - | ✅ (MC不注册) |
+| EnderDragonEntity | 无 | - | - | ✅ (MC不注册) |
+| IronGolemEntity | false | - | - | ✅ (非MonsterEntity) |
+
 ### 光照与生成
 
 10. **光照等级 vs 亮度值**：`getLightSubtracted()` 返回 0-15 光照等级，`getBrightness()` 返回 0.0-1.0 亮度值。怪物生成条件是光照等级 < 7（约 0.47 亮度）
