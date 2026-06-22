@@ -244,10 +244,17 @@ void OcelotEntity::registerGoals()
     // 目标选择器：攻击小鸡和小海龟
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<ChickenEntity>>(this, false, 0));
-    // 注意：攻击海龟时，完整实现应该只攻击干燥的小海龟
-    // 当前简化实现：攻击所有海龟
-    m_targetSelector.addGoal(
-        1, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this, false, 10));
+    // 优先级 1: 攻击幼年海龟（陆地上不在水中的幼体，10 tick 间隔检查）
+    m_targetSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this,
+            false, // checkSight
+            10,    // reciprocalChance
+            [](const LivingEntity* entity) -> bool {
+                // BABY_ON_LAND_SELECTOR: 只攻击陆地上不在水中的幼年海龟
+                const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
+                if (!turtle) return false;
+                return turtle->isChild() && !turtle->isInWater();
+            }));
 }
 
 void OcelotEntity::registerAttributes()

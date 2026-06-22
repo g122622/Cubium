@@ -40,6 +40,7 @@
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/item/Items.hpp"
@@ -208,8 +209,17 @@ void AbstractSkeletonEntity::registerGoals()
     m_targetSelector.addGoal(
         3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 
-    // 优先级 3: 攻击幼年海龟
-    // TODO: 需要添加 TurtleEntity 的目标过滤（只攻击幼年海龟）
+    // 优先级 3: 攻击幼年海龟（陆地上不在水中的幼体，10 tick 间隔检查）
+    m_targetSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this,
+            true, // checkSight
+            10,   // reciprocalChance — 每 10 tick 检查一次
+            [](const LivingEntity* entity) -> bool {
+                // BABY_ON_LAND_SELECTOR: 只攻击陆地上不在水中的幼年海龟
+                const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
+                if (!turtle) return false;
+                return turtle->isChild() && !turtle->isInWater();
+            }));
 }
 
 void AbstractSkeletonEntity::registerAttributes()
