@@ -26,6 +26,7 @@
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/EndGatewayEntity.hpp"
@@ -282,7 +283,7 @@ void EndDragonFight::_spawnNewGateway(IWorld& world)
 void EndDragonFight::_spawnNewGatewayAt(IWorld& world, const BlockPos& pos)
 {
     // 播放折跃门生成效果
-    world.playEvent(3000, pos, 0);
+    world.playEvent(world::WorldEvents::GATEWAY_SPAWN_EFFECTS, pos, 0);
 
     // 直接放置折跃门结构（3x5x3 基岩十字框架 + END_GATEWAY 方块）
     blockentity::EndGatewayEntity::createGatewayStructure(world, pos);

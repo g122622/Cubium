@@ -1835,8 +1835,26 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             }
             break;
 
+        case WorldEvents::CRAFTER_CRAFT_SOUND:
+            // 合成器合成成功音效
+            // 参考 MC: LevelEventHandler.levelEvent() case 1049
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_CRAFTER_CRAFT, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
+        case WorldEvents::CRAFTER_FAIL_SOUND:
+            // 合成器合成失败音效
+            // 参考 MC: LevelEventHandler.levelEvent() case 1050
+            if (m_audioService) {
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_CRAFTER_FAIL, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+            }
+            break;
+
             // ========================================================================
-            // 特殊效果事件 (1500-1504)
+            // 特殊效果事件 (1500-1505)
             // ========================================================================
 
         case WorldEvents::COMPOSTER_FILLED_UP: {

@@ -306,6 +306,10 @@ extern const ResourceLocation BLOCK_COMPOSTER_EMPTY;
 extern const ResourceLocation BLOCK_COMPOSTER_FILL;
 extern const ResourceLocation BLOCK_COMPOSTER_FILL_SUCCESS;
 extern const ResourceLocation BLOCK_COMPOSTER_READY;
+
+/// 合成器
+extern const ResourceLocation BLOCK_CRAFTER_CRAFT;
+extern const ResourceLocation BLOCK_CRAFTER_FAIL;
 extern const ResourceLocation BLOCK_FURNACE_FIRE_CRACKLE;
 extern const ResourceLocation BLOCK_LEVER_CLICK;
 extern const ResourceLocation BLOCK_PUMPKIN_CARVE;

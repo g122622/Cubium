@@ -30,6 +30,7 @@
 #include "common/util/property/Properties.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/math/random/Random.hpp"
+#include "world/WorldEvents.hpp"
 #include "world/block/BlockState.hpp"
 #include "world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
@@ -311,14 +312,16 @@ void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const Block
 
     if (recipe == nullptr) {
         // 没有匹配配方，播放失败音效
-        // TODO: 播放合成失败音效 (level event 1050)
+        // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(SOUND_CRAFTER_FAIL, pos, 0)
+        world.playEvent(world::WorldEvents::CRAFTER_FAIL_SOUND, pos, 0);
         return;
     }
 
     ItemStack result = recipe->assemble(craftingInput);
     if (result.isEmpty()) {
         // 配方结果为空，播放失败音效
-        // TODO: 播放合成失败音效 (level event 1050)
+        // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(SOUND_CRAFTER_FAIL, pos, 0)
+        world.playEvent(world::WorldEvents::CRAFTER_FAIL_SOUND, pos, 0);
         return;
     }
 
@@ -327,8 +330,16 @@ void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const Block
     BlockState craftingState = state.with(BlockStateProperties::CRAFTING(), true);
     world.setBlockState(pos, &craftingState, 2);
 
-    // 射出合成结果
+    // 播放合成成功音效
+    // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(SOUND_CRAFTER_CRAFT, pos, 0)
+    world.playEvent(world::WorldEvents::CRAFTER_CRAFT_SOUND, pos, 0);
+
+    // 射出合成结果时产生方向性白烟粒子
+    // 参考 MC: CrafterBlock._dispenseFrom() levelEvent(PARTICLES_SHOOT_WHITE_SMOKE, pos, direction.get3DDataValue())
     Direction facing = state.get(HorizontalBlock::FACING());
+    world.playEvent(world::WorldEvents::SHOOT_WHITE_SMOKE, pos, static_cast<i32>(facing));
+
+    // 射出合成结果
     _spawnItemEntity(world, pos, facing, result);
 
     // 射出剩余物品（如空桶等容器物品）

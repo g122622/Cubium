@@ -286,6 +286,11 @@ const ResourceLocation BLOCK_COMPOSTER_EMPTY("minecraft:block.composter.empty");
 const ResourceLocation BLOCK_COMPOSTER_FILL("minecraft:block.composter.fill");
 const ResourceLocation BLOCK_COMPOSTER_FILL_SUCCESS("minecraft:block.composter.fill_success");
 const ResourceLocation BLOCK_COMPOSTER_READY("minecraft:block.composter.ready");
+
+/// 合成器
+const ResourceLocation BLOCK_CRAFTER_CRAFT("minecraft:block.crafter.craft");
+const ResourceLocation BLOCK_CRAFTER_FAIL("minecraft:block.crafter.fail");
+
 const ResourceLocation BLOCK_FURNACE_FIRE_CRACKLE("minecraft:block.furnace.fire_crackle");
 const ResourceLocation BLOCK_LEVER_CLICK("minecraft:block.lever.click");
 const ResourceLocation BLOCK_PUMPKIN_CARVE("minecraft:block.pumpkin.carve");

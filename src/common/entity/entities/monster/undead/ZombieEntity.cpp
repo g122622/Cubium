@@ -46,6 +46,7 @@
 #include "common/util/SpecialDates.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 
@@ -367,9 +368,8 @@ void ZombieEntity::convertToDrowned()
     }
 
     // 11. 播放转化音效
-    // 事件 1040 是僵尸转化为溺尸的视觉/音效事件
     playSound(SoundEvents::ENTITY_ZOMBIE_CONVERTED_TO_DROWNED, 1.0f, 1.0f);
-    worldPtr->playEvent(1040,
+    worldPtr->playEvent(world::WorldEvents::ZOMBIE_CONVERT_TO_DROWNED_SOUND,
         BlockPos(static_cast<i32>(m_position.x), static_cast<i32>(m_position.y), static_cast<i32>(m_position.z)),
         0);
 
