@@ -24,7 +24,6 @@
 #include "MonsterEntity.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
-#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -115,12 +114,12 @@ void MonsterEntity::registerGoals()
     // 优先级 0: 游泳（最高优先级）
     m_goalSelector.addGoal(0, new entity::ai::goal::SwimGoal(this));
 
-    // 目标选择器
-    // 优先级 1: 被攻击后反击
-    m_targetSelector.addGoal(1, new entity::ai::goal::HurtByTargetGoal(this, false));
-
-    // 注意: 具体的攻击目标选择需要子类添加
-    // 例如僵尸会添加 NearestAttackableTargetGoal<Player>
+    // 注意: MC 原版 Monster 不注册 HurtByTargetGoal，由各子类按需自行注册。
+    // 这是因为不同怪物有不同的被攻击反击行为：
+    // - 大多数怪物使用 HurtByTargetGoal(this) 或 HurtByTargetGoal(this).setAlertOthers()
+    // - 灾厄村民使用 HurtByTargetGoal(this, Raider.class) 排除同类
+    // - 守卫者、恶魂、史莱姆等不反击被攻击
+    // 如果在基类注册，会导致子类添加自己的 HurtByTargetGoal 时产生重复。
 }
 
 void MonsterEntity::handleDaylightBurning()

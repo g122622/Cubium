@@ -236,7 +236,7 @@ void CreeperEntity::registerGoals()
     //
     // 目标选择器：
     // 1: NearestAttackableTargetGoal<PlayerEntity> - 攻击玩家
-    // 2: HurtByTargetGoal (父类已注册)
+    // 2: HurtByTargetGoal - 被攻击后反击
 
     // 优先级 2: 膨胀爆炸
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::CreeperSwellGoal>(this));
@@ -271,8 +271,9 @@ void CreeperEntity::registerGoals()
     // 优先级 6: 随机看向
     m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::LookRandomlyGoal>(this));
 
-    // 目标选择器：攻击最近的玩家
-    // 使用 LivingEntity 类型，通过谓词筛选玩家
+    // 目标选择器
+    // 优先级 1: 攻击最近的玩家
+    // MC 原版: targetSelector.addGoal(1, NearestAttackableTargetGoal<Player>)
     m_targetSelector.addGoal(1,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
             true, // checkSight - 需要视线
@@ -282,6 +283,10 @@ void CreeperEntity::registerGoals()
                 if (!entity) return false;
                 return entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
             }));
+
+    // 优先级 2: 被攻击后反击
+    // MC 原版: targetSelector.addGoal(2, HurtByTargetGoal(this))
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
 }
 
 void CreeperEntity::registerAttributes()

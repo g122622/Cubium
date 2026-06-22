@@ -364,7 +364,9 @@ void EndermanEntity::registerGoals()
     // 优先级 1: 查找正在注视末影人的玩家
     m_targetSelector.addGoal(1, new entity::ai::goal::EndermanFindPlayerGoal(this));
 
-    // 优先级 2: HurtByTargetGoal 已在父类 MonsterEntity::registerGoals() 中注册
+    // 优先级 2: 被攻击后反击
+    // MC 原版: targetSelector.addGoal(2, HurtByTargetGoal(this))
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
 
     // 优先级 3: 攻击末影螨
     // 只攻击玩家生成的末影螨（通过末影珍珠传送生成）

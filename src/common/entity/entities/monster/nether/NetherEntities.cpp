@@ -283,13 +283,11 @@ AbstractPiglinEntity::AbstractPiglinEntity(EntityId id)
 
 void AbstractPiglinEntity::registerGoals()
 {
+    // 调用父类方法（MonsterEntity 不再注册 HurtByTargetGoal 和 SwimGoal 以外的目标）
+    // 注意: MonsterEntity::registerGoals() 已注册 SwimGoal，无需重复添加
     MonsterEntity::registerGoals();
 
     // 所有猪灵类实体的共同目标
-
-    // 优先级 0: 游泳
-    m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
-
     // 优先级 1: 被攻击后反击
     m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false));
 }

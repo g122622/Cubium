@@ -197,7 +197,9 @@ void AbstractSkeletonEntity::registerGoals()
 
     // ========== 目标选择器 (targetSelector) ==========
 
-    // 优先级 1: 被攻击后反击（已在 MonsterEntity::registerGoals() 中注册）
+    // 优先级 1: 被攻击后反击
+    // MC 原版: targetSelector.addGoal(1, HurtByTargetGoal(this))
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this));
 
     // 优先级 2: 攻击玩家
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));

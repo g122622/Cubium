@@ -268,6 +268,17 @@ void ZombieEntity::registerGoals()
     m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
     // 目标选择器（攻击目标）
+    // 优先级 1: 被攻击后反击，呼叫同类（但不警醒僵尸猪灵）
+    // MC 原版: targetSelector.addGoal(1, HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class))
+    {
+        auto hurtByTarget = std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true);
+        hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
+            // MC 原版使用精确类匹配（== ZombifiedPiglin.class），不警醒僵尸猪灵
+            return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+        });
+        m_targetSelector.addGoal(1, std::move(hurtByTarget));
+    }
+
     // 优先级 2: 攻击玩家
     m_targetSelector.addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
 
