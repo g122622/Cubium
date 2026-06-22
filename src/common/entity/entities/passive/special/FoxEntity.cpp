@@ -474,6 +474,12 @@ void FoxEntity::registerGoals()
     // 目标选择器
     // TODO: 实现复仇目标 - 当信任玩家被攻击时触发
     // m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::FoxRevengeGoal>(this));
+
+    // TODO: 待相关目标类实现后，添加狐狸的猎物攻击目标：
+    //   优先级 1: 攻击小鸡和兔子（NearestAttackableTargetGoal<AnimalEntity>，过滤 ChickenEntity/RabbitEntity）
+    //   优先级 1: 攻击幼年海龟（NearestAttackableTargetGoal<TurtleEntity>，BABY_ON_LAND_SELECTOR）
+    //   优先级 1: 攻击鱼群（NearestAttackableTargetGoal<AbstractFishEntity>，过滤 AbstractGroupFishEntity）
+    // 对齐 MC 原版 FoxEntity.registerGoals() 中的 attackAnimals/attackTurtles/attackFish
 }
 
 // ========== 属性注册 ==========

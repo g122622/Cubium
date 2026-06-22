@@ -62,6 +62,7 @@ AnimalEntity
 ### OcelotEntity 信任机制
 - **不继承标准驯服系统**：豹猫用 `isTrusting()`/`setTrusting()` 而非 `isTamed()`/`setTamed()`
 - **驯服概率不同**：豹猫信任建立是 1/3 概率，鹦鹉是 1/10，狼和猫是 1/3
+- **猎物攻击目标**：豹猫目标选择器注册了小鸡攻击目标（NearestAttackableTargetGoal<ChickenEntity>，优先级1）和幼年海龟攻击目标（NearestAttackableTargetGoal<TurtleEntity>，优先级1，BABY_ON_LAND_SELECTOR 过滤：仅攻击 `isChild() && !isInWater()` 的海龟）
 
 ### ParrotEntity 特殊性
 - **不能繁殖**：`isBreedingItem()` 始终返回 false，`spawnBaby()` 返回 nullptr
@@ -89,6 +90,7 @@ AnimalEntity
 - **驯服成功广播**：`broadcastEntityStatus(TamingSucceeded/TamingFailed)` 发送心形/烟雾粒子
 - **项圈染色**：默认红色，支持 17 种染料物品映射（16 种标准染料 + 骨粉=白色 + 墨囊=黑色等）
 - **食物治疗量**：生鳕鱼/生鲑鱼治疗 2.0 生命值
+- **待实现目标**：猫的目标选择器缺少兔子攻击目标和幼年海龟攻击目标（待 NonTameRandomTargetGoal 实现后添加，见 CatEntity::registerGoals 中的 TODO 注释，对齐 MC 原版 Cat.registerGoals()）
 
 ### TameableEntity NBT 序列化
 - **Sitting** (byte/bool) - 是否坐下

@@ -61,11 +61,14 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 1. **水下溺水**：蜜蜂无法在水下呼吸，需要追踪 `m_underWaterTimer`，超过 20 tick 后每 tick 造成溺水伤害。
 2. **螫刺后死亡**：螫刺后蜜蜂会在 0-1200 tick 内随机死亡，概率随时间增加。
 3. **愤怒系统**：实现 IAngerable 接口，愤怒时召唤周围蜜蜂群攻。
+4. **服务端冷却递减**：`tick()` 中的三个冷却计时器（`m_stayOutOfHiveCountdown`、`m_remainingCooldownBeforeLocatingNewHive`、`m_remainingCooldownBeforeLocatingNewFlower`）仅在服务端递减（`!m_world->isClientSide()` 守卫），客户端保持不变。
+5. **授粉状态管理**：`BeePollinateGoal::startExecuting()` 调用 `setPollinating(true)`，`resetTask()` 调用 `setPollinating(false)` 并设置花朵冷却 200 tick。
 
 ### FoxEntity 狐狸
 1. **信任机制非 TameableEntity**：狐狸使用独立的信任系统（最多信任 2 个玩家），不继承 TameableEntity。
 2. **叼物品**：狐狸可以叼起物品，需要正确处理 `m_heldItem` 的同步和掉落。
 3. **睡眠状态**：白天睡觉、晚上活动，状态切换需要考虑被打断的情况。
+4. **待实现猎物目标**：目标选择器缺少攻击小鸡/兔子目标、幼年海龟攻击目标（BABY_ON_LAND_SELECTOR 过滤）、鱼群攻击目标（待相关目标类实现后添加，见 FoxEntity::registerGoals 中的 TODO 注释，对齐 MC 原版 FoxEntity.registerGoals() 的 attackAnimals/attackTurtles/attackFish）。
 
 ### PandaEntity 熊猫
 1. **基因表达规则**：好斗基因是显性的，懒惰+好斗组合也会表达为好斗。繁殖时子代基因需要从父母各随机继承一个，每个基因有 1/32 变异概率。

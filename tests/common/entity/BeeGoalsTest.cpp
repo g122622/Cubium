@@ -2006,3 +2006,172 @@ TEST_F(BeeGrowCropTest, GrowCrop_EmptyPositionReturnsFalse)
     EXPECT_FALSE(result);
     EXPECT_EQ(world.setBlockCount(), 0);
 }
+
+// ============================================================================
+// BeePollinateGoal 状态管理测试
+// 验证 startExecuting() 调用 setPollinating(true)，
+// resetTask() 调用 setPollinating(false) 并设置花朵冷却
+// ============================================================================
+
+TEST_F(BeePollinateGoalTest, StartExecuting_SetsPollinatingTrue)
+{
+    // 初始状态：未授粉
+    EXPECT_FALSE(bee->isPollinating());
+
+    // 调用 startExecuting() 应设置 isPollinating = true
+    goal->startExecuting();
+    EXPECT_TRUE(bee->isPollinating());
+}
+
+TEST_F(BeePollinateGoalTest, ResetTask_SetsPollinatingFalseAndFlowerCooldown)
+{
+    // 先启动授粉目标
+    goal->startExecuting();
+    EXPECT_TRUE(bee->isPollinating());
+
+    // 调用 resetTask() 应重置授粉状态并设置花朵冷却
+    goal->resetTask();
+    EXPECT_FALSE(bee->isPollinating());
+    // 花朵冷却应设置为 200 tick（对应MC原版 Bee.PollinateGoal.stop() 中的 cooldown = 200）
+    EXPECT_EQ(bee->getFlowerCooldown(), 200);
+}
+
+TEST_F(BeePollinateGoalTest, ResetTask_WithoutCompletedPollination_DoesNotSetNectar)
+{
+    // 初始无花粉
+    EXPECT_FALSE(bee->hasNectar());
+
+    // 启动授粉但未完成（m_pollinationTicks = 0，未超过 400）
+    goal->startExecuting();
+
+    // 重置 — 未完成授粉，不应获得花粉
+    goal->resetTask();
+    EXPECT_FALSE(bee->hasNectar());
+}
+
+// ============================================================================
+// BeeEntity 服务端冷却递减测试
+// 验证 tick() 中的冷却计时器仅在服务端递减，客户端保持不变
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 可切换 isClientSide 的测试世界
+ *
+ * 用于验证 BeeEntity::tick() 中冷却递减仅服务端执行的行为。
+ */
+class ClientSideTestWorld final : public test::BaseTestWorld {
+public:
+    explicit ClientSideTestWorld(bool clientSide)
+        : m_clientSide(clientSide)
+    {}
+
+    [[nodiscard]] bool isClientSide() const override { return m_clientSide; }
+
+    void setClientSide(bool clientSide) { m_clientSide = clientSide; }
+
+private:
+    bool m_clientSide;
+};
+
+} // anonymous namespace
+
+class BeeEntityCooldownTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        serverBee = std::make_unique<BeeEntity>(EntityId(1));
+        clientBee = std::make_unique<BeeEntity>(EntityId(2));
+        serverWorld = std::make_unique<ClientSideTestWorld>(false);
+        clientWorld = std::make_unique<ClientSideTestWorld>(true);
+
+        serverBee->setWorld(serverWorld.get());
+        clientBee->setWorld(clientWorld.get());
+    }
+
+    void TearDown() override
+    {
+        serverBee.reset();
+        clientBee.reset();
+        serverWorld.reset();
+        clientWorld.reset();
+    }
+
+    std::unique_ptr<BeeEntity> serverBee;
+    std::unique_ptr<BeeEntity> clientBee;
+    std::unique_ptr<ClientSideTestWorld> serverWorld;
+    std::unique_ptr<ClientSideTestWorld> clientWorld;
+};
+
+TEST_F(BeeEntityCooldownTest, StayOutOfHiveCountdown_DecrementsOnServer)
+{
+    // 服务端：冷却应递减
+    serverBee->setStayOutOfHiveCountdown(5);
+    serverBee->tick();
+    EXPECT_EQ(serverBee->getStayOutOfHiveCountdown(), 4);
+}
+
+TEST_F(BeeEntityCooldownTest, StayOutOfHiveCountdown_DoesNotDecrementOnClient)
+{
+    // 客户端：冷却不应递减
+    clientBee->setStayOutOfHiveCountdown(5);
+    clientBee->tick();
+    EXPECT_EQ(clientBee->getStayOutOfHiveCountdown(), 5);
+}
+
+TEST_F(BeeEntityCooldownTest, HiveLocateCooldown_DecrementsOnServer)
+{
+    // 服务端：冷却应递减
+    serverBee->setHiveLocateCooldown(10);
+    serverBee->tick();
+    EXPECT_EQ(serverBee->getHiveLocateCooldown(), 9);
+}
+
+TEST_F(BeeEntityCooldownTest, HiveLocateCooldown_DoesNotDecrementOnClient)
+{
+    // 客户端：冷却不应递减
+    clientBee->setHiveLocateCooldown(10);
+    clientBee->tick();
+    EXPECT_EQ(clientBee->getHiveLocateCooldown(), 10);
+}
+
+TEST_F(BeeEntityCooldownTest, FlowerCooldown_DecrementsOnServer)
+{
+    // 服务端：花朵冷却应递减
+    serverBee->setFlowerCooldown(200);
+    serverBee->tick();
+    EXPECT_EQ(serverBee->getFlowerCooldown(), 199);
+}
+
+TEST_F(BeeEntityCooldownTest, FlowerCooldown_DoesNotDecrementOnClient)
+{
+    // 客户端：花朵冷却不应递减
+    clientBee->setFlowerCooldown(200);
+    clientBee->tick();
+    EXPECT_EQ(clientBee->getFlowerCooldown(), 200);
+}
+
+TEST_F(BeeEntityCooldownTest, Cooldowns_DoNotDecrementBelowZero)
+{
+    // 服务端：冷却为 0 时不应变为负数
+    serverBee->setStayOutOfHiveCountdown(0);
+    serverBee->setHiveLocateCooldown(0);
+    serverBee->setFlowerCooldown(0);
+    serverBee->tick();
+    EXPECT_EQ(serverBee->getStayOutOfHiveCountdown(), 0);
+    EXPECT_EQ(serverBee->getHiveLocateCooldown(), 0);
+    EXPECT_EQ(serverBee->getFlowerCooldown(), 0);
+}
+
+TEST_F(BeeEntityCooldownTest, MultipleCooldowns_DecrementTogetherOnServer)
+{
+    // 服务端：所有冷却同时递减
+    serverBee->setStayOutOfHiveCountdown(3);
+    serverBee->setHiveLocateCooldown(7);
+    serverBee->setFlowerCooldown(15);
+    serverBee->tick();
+    EXPECT_EQ(serverBee->getStayOutOfHiveCountdown(), 2);
+    EXPECT_EQ(serverBee->getHiveLocateCooldown(), 6);
+    EXPECT_EQ(serverBee->getFlowerCooldown(), 14);
+}

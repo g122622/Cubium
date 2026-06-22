@@ -266,3 +266,12 @@ return m_slime->onGround() || m_slime->isInWater() || m_slime->isInLava() ||
 - `BeeEnterHiveGoal::startExecuting()` 调用 `resetCropCounter()` 重置计数器
 - 生长粒子使用 `WorldEvents::BONEMEAL_PARTICLES(2005)`，待客户端实现 `PLANT_GROWTH_PARTICLES(2011)` 后切换
 - `BEE_GROWABLES` 标签包含：wheat, carrots, potatoes, beetroots, melon_stem, pumpkin_stem, sweet_berry_bush, cave_vines, cave_vines_plant
+
+### 16. 蜜蜂授粉状态管理与服务端冷却
+
+**问题**：BeePollinateGoal 的授粉状态（setPollinating）和服务端冷却递减逻辑容易遗漏或放错位置。
+
+**解决**：
+- `BeePollinateGoal::startExecuting()` 必须调用 `m_bee->setPollinating(true)`，`resetTask()` 必须调用 `m_bee->setPollinating(false)` 并设置花朵冷却 200 tick（`m_bee->setFlowerCooldown(200)`）
+- `BeeEntity::tick()` 中的三个冷却计时器（`m_stayOutOfHiveCountdown`、`m_remainingCooldownBeforeLocatingNewHive`、`m_remainingCooldownBeforeLocatingNewFlower`）必须在服务端守卫 `!m_world->isClientSide()` 内递减，客户端不递减
+- `BeePollinateGoal::canBeeStart()` 在花朵冷却 > 0 时返回 false，阻止蜜蜂在刚完成授粉后立即重新授粉

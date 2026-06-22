@@ -25,7 +25,11 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/entities/passive/basic/ChickenEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -789,6 +793,57 @@ TEST_F(TurtleEntityTest, BabyOnLandSelector_BabyInWaterDoesNotMatchFilter)
     // 在水中不符合 BABY_ON_LAND_SELECTOR
     EXPECT_TRUE(babyTurtle->isChild());
     EXPECT_TRUE(babyTurtle->isInWater());
+}
+
+// ============================================================================
+// 目标选择器集成测试
+// 验证 OcelotEntity 的目标选择器中正确注册了海龟攻击目标和小鸡攻击目标
+// （NearestAttackableTargetGoal<TurtleEntity> 使用 BABY_ON_LAND_SELECTOR 过滤谓词）
+// 注意：AbstractSkeletonEntity 同样注册了海龟攻击目标（优先级3），但 SkeletonEntity
+// 构造函数需要完整实体注册系统，无法在单元测试中直接实例化
+// ============================================================================
+
+class TurtleTargetSelectorTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+};
+
+TEST_F(TurtleTargetSelectorTest, Ocelot_HasTurtleTargetGoal)
+{
+    // 创建豹猫实体，验证其目标选择器中注册了 TurtleEntity 攻击目标
+    OcelotEntity ocelot(EntityId(2));
+
+    bool foundTurtleGoal = false;
+    for (const auto& prioritizedGoal : ocelot.targetSelector().getAllGoals()) {
+        const auto* goal = prioritizedGoal.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>*>(goal) != nullptr) {
+            foundTurtleGoal = true;
+            // MC 原版：targetSelector.addGoal(1, ...)
+            EXPECT_EQ(prioritizedGoal.getPriority(), 1);
+            break;
+        }
+    }
+    EXPECT_TRUE(foundTurtleGoal) << "OcelotEntity should have a NearestAttackableTargetGoal<TurtleEntity> registered";
+}
+
+TEST_F(TurtleTargetSelectorTest, Ocelot_HasChickenTargetGoal)
+{
+    // 验证豹猫同时注册了小鸡攻击目标
+    OcelotEntity ocelot(EntityId(3));
+
+    bool foundChickenGoal = false;
+    for (const auto& prioritizedGoal : ocelot.targetSelector().getAllGoals()) {
+        const auto* goal = prioritizedGoal.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NearestAttackableTargetGoal<ChickenEntity>*>(goal) != nullptr) {
+            foundChickenGoal = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(foundChickenGoal) << "OcelotEntity should have a NearestAttackableTargetGoal<ChickenEntity> registered";
 }
 
 } // namespace

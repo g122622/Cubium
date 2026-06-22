@@ -41,7 +41,7 @@ Entity
 
 ## 内部模块关系
 
-- **AbstractSkeletonEntity**：骷髅系基类，实现 `IRangedAttackMob` 接口，采用 `setCombatTask()` 模式动态选择远程/近战目标
+- **AbstractSkeletonEntity**：骷髅系基类，实现 `IRangedAttackMob` 接口，采用 `setCombatTask()` 模式动态选择远程/近战目标。目标选择器注册了铁傀儡攻击目标和幼年海龟攻击目标（BABY_ON_LAND_SELECTOR 过滤：仅攻击 `isChild() && !isInWater()` 的海龟）
 - **ZombieEntity**：僵尸系基类，实现溺水转化、增援召唤、破门能力、婴儿状态、生成初始化
 - **ZombieVillagerEntity**：继承 ZombieEntity，实现治愈系统（铁栏杆/床加速、力量效果加速）
 
