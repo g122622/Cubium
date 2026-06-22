@@ -451,3 +451,160 @@ TEST_F(BlockTagsTest, WallsTagContainsResourceLocation)
     EXPECT_TRUE(BlockTags::WALLS().contains(ResourceLocation("minecraft", "mossy_stone_brick_wall")));
     EXPECT_FALSE(BlockTags::WALLS().contains(ResourceLocation("minecraft", "stone_bricks")));
 }
+
+// ============================================================================
+// COMBINATION_STEP_SOUND_BLOCKS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().getId(),
+        ResourceLocation("minecraft", "combination_step_sound_blocks"));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksContainsWoolCarpets)
+{
+    // 羊毛地毯（16色）属于 COMBINATION_STEP_SOUND_BLOCKS
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "white_carpet")));
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "red_carpet")));
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "black_carpet")));
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "blue_carpet")));
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "green_carpet")));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksContainsMossCarpet)
+{
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "moss_carpet")));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksContainsPaleMossCarpet)
+{
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "pale_moss_carpet")));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksContainsSnow)
+{
+    // 雪层（不是雪块 snow_block）属于 COMBINATION_STEP_SOUND_BLOCKS
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "snow")));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksContainsNetherVegetation)
+{
+    // 下界苗、诡异菌索、绯红菌索
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "nether_sprouts")));
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "warped_roots")));
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "crimson_roots")));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksContainsResinClump)
+{
+    EXPECT_TRUE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "resin_clump")));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksDoesNotContainSnowBlock)
+{
+    // 雪块不属于 COMBINATION_STEP_SOUND_BLOCKS
+    EXPECT_FALSE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "snow_block")));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksDoesNotContainWool)
+{
+    // 羊毛方块不属于 COMBINATION_STEP_SOUND_BLOCKS（只有地毯属于）
+    EXPECT_FALSE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "white_wool")));
+}
+
+TEST_F(BlockTagsTest, CombinationStepSoundBlocksDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+// ============================================================================
+// INSIDE_STEP_SOUND_BLOCKS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::INSIDE_STEP_SOUND_BLOCKS().getId(), ResourceLocation("minecraft", "inside_step_sound_blocks"));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksContainsPowderSnow)
+{
+    EXPECT_TRUE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "powder_snow")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksContainsSculkVein)
+{
+    EXPECT_TRUE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "sculk_vein")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksContainsGlowLichen)
+{
+    EXPECT_TRUE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "glow_lichen")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksContainsLilyPad)
+{
+    EXPECT_TRUE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "lily_pad")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksContainsSmallAmethystBud)
+{
+    EXPECT_TRUE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "small_amethyst_bud")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksContainsPinkPetals)
+{
+    EXPECT_TRUE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "pink_petals")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksContainsWildflowers)
+{
+    EXPECT_TRUE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "wildflowers")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksContainsLeafLitter)
+{
+    EXPECT_TRUE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "leaf_litter")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksDoesNotContainSnow)
+{
+    // 雪层属于 COMBINATION_STEP_SOUND_BLOCKS，不属于 INSIDE_STEP_SOUND_BLOCKS
+    EXPECT_FALSE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "snow")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksDoesNotContainWhiteCarpet)
+{
+    // 地毯属于 COMBINATION_STEP_SOUND_BLOCKS，不属于 INSIDE_STEP_SOUND_BLOCKS
+    EXPECT_FALSE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "white_carpet")));
+}
+
+TEST_F(BlockTagsTest, InsideStepSoundBlocksDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+// ============================================================================
+// CRYSTAL_SOUND_BLOCKS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, CrystalSoundBlocksIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::CRYSTAL_SOUND_BLOCKS().getId(), ResourceLocation("minecraft", "crystal_sound_blocks"));
+}
+
+TEST_F(BlockTagsTest, CrystalSoundBlocksContainsAmethystBlock)
+{
+    EXPECT_TRUE(BlockTags::CRYSTAL_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "amethyst_block")));
+}
+
+TEST_F(BlockTagsTest, CrystalSoundBlocksContainsBuddingAmethyst)
+{
+    EXPECT_TRUE(BlockTags::CRYSTAL_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "budding_amethyst")));
+}
+
+TEST_F(BlockTagsTest, CrystalSoundBlocksDoesNotContainSmallAmethystBud)
+{
+    // 小型紫水晶芽属于 INSIDE_STEP_SOUND_BLOCKS，不属于 CRYSTAL_SOUND_BLOCKS
+    EXPECT_FALSE(BlockTags::CRYSTAL_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "small_amethyst_bud")));
+}

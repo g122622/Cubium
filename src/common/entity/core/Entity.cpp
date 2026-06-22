@@ -400,7 +400,39 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
         return;
     }
 
-    // 播放步声
+    // 获取主脚步声方块位置（可能因 INSIDE/COMBINATION 标签而上移）
+    BlockPos primaryPos = getPrimaryStepSoundBlockPos(pos);
+
+    if (primaryPos != pos) {
+        // 上方方块属于 INSIDE_STEP_SOUND_BLOCKS 或 COMBINATION_STEP_SOUND_BLOCKS
+        const BlockState* primaryState = m_world->getBlockState(primaryPos);
+        if (primaryState != nullptr) {
+            // 随机音调偏移（供步声和紫水晶铃声共用）
+            u32 seed = static_cast<u32>(m_id) ^ static_cast<u32>(m_ticksExisted);
+            f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f;
+
+            if (BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(*primaryState)) {
+                // 组合步声：上方正常步声 + 下方沉闷步声
+                playCombinationStepSounds(*primaryState, *blockState);
+            } else {
+                // 内部步声：只播放上方方块的步声
+                const BlockSoundType& soundType = primaryState->getSoundType();
+                f32 volume = soundType.getVolume() * 0.15f;
+                f32 pitch = soundType.getPitch() * (0.8f + randomValue * 0.4f);
+                playSound(soundType.getStepSound(), volume, pitch);
+            }
+            // 紫水晶共振铃声（检查上方方块）
+            if (shouldPlayAmethystStepSound(*primaryState)) {
+                const BlockSoundType& chimeSoundType = primaryState->getSoundType();
+                playSound(ResourceLocation("minecraft", "block.amethyst_block.chime"),
+                    chimeSoundType.getVolume() * 0.075f,
+                    chimeSoundType.getPitch() * (0.8f + randomValue * 0.4f));
+            }
+            return;
+        }
+    }
+
+    // 普通步声：播放脚下方块的步声
     const BlockSoundType& soundType = blockState->getSoundType();
     u32 seed = static_cast<u32>(m_id) ^ static_cast<u32>(m_ticksExisted);
     f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f;
