@@ -245,6 +245,8 @@ void BeePollinateGoal::startExecuting()
     m_totalTicks = 0;
     m_lastSoundTick = 0;
     m_running = true;
+    // TODO: 应调用 m_bee->setPollinating(true) 设置授粉状态，
+    // wantsToEnterHive() 中依赖 m_pollinating 标志判断是否跳过进巢。
     // m_bee->resetTicksWithoutNectar();
 }
 
@@ -256,6 +258,8 @@ void BeePollinateGoal::resetTask()
     }
 
     m_running = false;
+    // TODO: 应调用 m_bee->setPollinating(false) 清除授粉状态，
+    // 与 startExecuting() 中设置 true 配对。
 
     // 清除路径
     if (auto* nav = m_bee->navigator()) {
@@ -263,7 +267,9 @@ void BeePollinateGoal::resetTask()
     }
 
     // 设置冷却
-    // m_bee->setFlowerCooldown(200); // 10秒
+    // TODO: 实现 setFlowerCooldown/getFlowerCooldown 访问器方法，
+    // 对应 m_remainingCooldownBeforeLocatingNewFlower，此处应设置为200tick
+    // m_bee->setFlowerCooldown(200);
 }
 
 void BeePollinateGoal::tick()
@@ -437,7 +443,6 @@ std::vector<BlockPos> BeeUpdateHiveGoal::_findNearbyFreeHives() const
 
                 const BlockState* state = world->getBlockState(checkPos);
                 if (state != nullptr && BlockTags::BEEHIVES().contains(*state)) {
-                    // TODO: 检查蜂巢是否有空间
                     if (_doesHiveHaveSpace(checkPos)) {
                         hives.push_back(checkPos);
                     }

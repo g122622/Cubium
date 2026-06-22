@@ -225,6 +225,10 @@ void BeehiveBlockEntity::_releaseOccupant(
         releasePos = m_pos.up();
     }
 
+    // TODO: MC原版保存蜜蜂完整NBT数据（自定义名称、生命值、效果等），
+    // 释放时恢复原始实体而非创建新实体。当前实现创建全新蜜蜂实体，
+    // 丢失了原始蜜蜂的自定义数据。待实体序列化/反序列化系统完善后应保存
+    // 完整NBT并在释放时恢复。
     // 创建蜜蜂实体
     auto beeEntity = BeeEntity::create(&world);
     if (!beeEntity) {
@@ -232,6 +236,10 @@ void BeehiveBlockEntity::_releaseOccupant(
     }
 
     auto* bee = dynamic_cast<BeeEntity*>(beeEntity.get());
+    if (!bee) {
+        // 创建的实体类型不是 BeeEntity，不应发生
+        return;
+    }
 
     // 设置蜜蜂位置
     bee->setPosition(Vector3(
