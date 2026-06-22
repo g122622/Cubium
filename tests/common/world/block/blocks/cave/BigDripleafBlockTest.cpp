@@ -68,14 +68,14 @@ public:
         createBlockState(std::move(container));
     }
 
-    [[nodiscard]] bool canProvidePower(const BlockState&) const override { return true; }
+    [[nodiscard]] bool canProvidePower(const BlockState&) const noexcept override { return true; }
 
-    [[nodiscard]] i32 getStrongPower(const BlockState&, IWorld&, const BlockPos&, Direction) const override
+    [[nodiscard]] i32 getStrongPower(const BlockState&, IWorld&, const BlockPos&, Direction) const noexcept override
     {
         return 15;
     }
 
-    [[nodiscard]] i32 getWeakPower(const BlockState&, IWorld&, const BlockPos&, Direction) const override { return 15; }
+    [[nodiscard]] i32 getWeakPower(const BlockState&, IWorld&, const BlockPos&, Direction) const noexcept override { return 15; }
 };
 
 // ============================================================================

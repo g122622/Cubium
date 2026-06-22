@@ -43,7 +43,7 @@
 #include <algorithm>
 #include <cmath>
 
-#pragma pop_macro("BYTE_SIZE")
+#undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
 namespace mc {
 
@@ -602,3 +602,5 @@ void EndTeleporter::placeEndPortalFrame(IWorld& world, const BlockPos& center)
 }
 
 } // namespace mc
+
+#pragma pop_macro("BYTE_SIZE")

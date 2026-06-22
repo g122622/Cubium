@@ -64,14 +64,14 @@ public:
         createBlockState(std::move(container));
     }
 
-    [[nodiscard]] bool canProvidePower(const BlockState& state) const override
+    [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override
     {
         MC_UNUSED(state);
         return true;
     }
 
     [[nodiscard]] i32 getStrongPower(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const override
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override
     {
         MC_UNUSED(state);
         MC_UNUSED(world);

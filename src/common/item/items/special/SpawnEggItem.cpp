@@ -15,7 +15,7 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY,WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -50,7 +50,7 @@ SpawnEggItem::SpawnEggItem(
 ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context)
 {
     IWorld& world = context.getWorld();
-    BlockPos pos = context.placementPos();
+    BlockPos pos = context.getBlockPos();
     Direction face = context.getFace();
 
     // 检查是否在客户端
@@ -68,10 +68,11 @@ ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context)
     }
 
     // 生成实体
-    if (spawnEntity(world, spawnPos, entity::SpawnReason::SpawnEgg)) {
+    if (spawnEntity(world, spawnPos, world::spawn::SpawnReason::SpawnEgg)) {
         // 消耗物品 (非创造模式)
-        if (!context.getPlayer().isCreative()) {
-            context.getItemStack().shrink(1);
+        Player* player = context.getPlayer();
+        if (player && !player->isCreative()) {
+            context.getItemStackMut().shrink(1);
         }
         return ActionResultType::Success;
     }
@@ -86,10 +87,10 @@ ItemActionResult SpawnEggItem::onItemRightClick(IWorld& world, Player& player, H
         return ItemActionResult::success(player.getHeldItem(hand));
     }
 
-    BlockPos spawnPos(
-        static_cast<i32>(player.getX()), static_cast<i32>(player.getY()), static_cast<i32>(player.getZ()));
+    Vector3 pos = player.position();
+    BlockPos spawnPos(static_cast<i32>(pos.x), static_cast<i32>(pos.y), static_cast<i32>(pos.z));
 
-    if (spawnEntity(world, spawnPos, entity::SpawnReason::SpawnEgg)) {
+    if (spawnEntity(world, spawnPos, world::spawn::SpawnReason::SpawnEgg)) {
         if (!player.isCreative()) {
             player.getHeldItem(hand).shrink(1);
         }
@@ -99,7 +100,7 @@ ItemActionResult SpawnEggItem::onItemRightClick(IWorld& world, Player& player, H
     return ItemActionResult::pass(player.getHeldItem(hand));
 }
 
-bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, entity::SpawnReason spawnReason) const
+bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, world::spawn::SpawnReason spawnReason) const
 {
     // 通过实体注册表创建实体
     auto entity = m_entityType.create(&world);

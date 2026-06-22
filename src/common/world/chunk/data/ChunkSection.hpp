@@ -23,12 +23,14 @@
 
 #pragma once
 
-// 在macOS系统头文件中，BYTE_SIZE被定义为宏，会与NibbleArray的静态常数冲突
-// 使用pragma push_macro/pop_macro来暂时屏蔽系统宏
+// macOS系统头文件<mach/arm/vm_param.h>定义了BYTE_SIZE宏(=8)，
+// 与NibbleArray::BYTE_SIZE静态常量冲突，在此push/undef屏蔽。
+// 不在include后pop_macro，确保后续代码不受影响。
+#ifdef __APPLE__
 #pragma push_macro("BYTE_SIZE")
 #undef BYTE_SIZE
+#endif
 #include "common/util/NibbleArray.hpp"
-#pragma pop_macro("BYTE_SIZE")
 
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"

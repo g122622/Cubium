@@ -108,6 +108,18 @@
       }
     },
     {
+      "name": "macos-relwithdebinfo",
+      "displayName": "macOS RelWithDebInfo",
+      "inherits": "macos-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "MC_BUILD_CLIENT": "ON",
+        "MC_BUILD_SERVER": "ON",
+        "MC_BUILD_TESTS": "ON",
+        "MC_ENABLE_SANITIZERS": "OFF"
+      }
+    },
+    {
       "name": "server-only",
       "displayName": "Server Only",
       "inherits": "windows-clang-base",
@@ -154,16 +166,22 @@
       "jobs": 16
     },
     {
+      "name": "macos-relwithdebinfo",
+      "configurePreset": "macos-relwithdebinfo",
+      "configuration": "RelWithDebInfo",
+      "jobs": 10
+    },
+    {
       "name": "macos-debug",
       "configurePreset": "macos-debug",
       "configuration": "Debug",
-      "jobs": 6
+      "jobs": 10
     },
     {
       "name": "macos-release",
       "configurePreset": "macos-release",
       "configuration": "Release",
-      "jobs": 6
+      "jobs": 10
     }
   ],
   "testPresets": [

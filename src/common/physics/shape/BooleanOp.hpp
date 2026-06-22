@@ -23,6 +23,14 @@
 
 #pragma once
 
+// macOS系统头文件<mach/boolean.h>定义了TRUE/FALSE宏，与BooleanOp方法名冲突
+#ifdef __APPLE__
+#pragma push_macro("TRUE")
+#pragma push_macro("FALSE")
+#undef TRUE
+#undef FALSE
+#endif
+
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 #include <functional>
@@ -210,3 +218,8 @@ inline BooleanOp True()
 } // namespace BooleanOps
 
 } // namespace mc
+
+#ifdef __APPLE__
+#pragma pop_macro("FALSE")
+#pragma pop_macro("TRUE")
+#endif

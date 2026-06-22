@@ -34,7 +34,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 
-#pragma pop_macro("BYTE_SIZE")
+#undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
+
 
 using namespace mc;
 using namespace mc::client;
@@ -121,3 +122,4 @@ TEST_F(ClientWorldLightUpdateTest, LightUpdateBurstDoesNotResubmitPendingChunkMe
 
     world.shutdownMeshSystem();
 }
+#pragma pop_macro("BYTE_SIZE")

@@ -511,7 +511,7 @@ u64 PlatformInfo::getProcessPeakMemoryMBMacOS()
     mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
 
     if (task_info(mach_task_self(), TASK_VM_INFO, reinterpret_cast<task_info_t>(&vmInfo), &count) == KERN_SUCCESS) {
-        return vmInfo.resident_size_max / (1024 * 1024);
+        return vmInfo.resident_size_peak / (1024 * 1024);
     }
     return 0;
 }

@@ -47,7 +47,7 @@
 #include <glm/vec2.hpp>
 #include <spdlog/spdlog.h>
 
-#pragma pop_macro("BYTE_SIZE")
+#undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
 namespace mc::client {
 
@@ -952,3 +952,5 @@ void ClientWorld::_doAnimateTick(i32 centerX, i32 centerY, i32 centerZ, i32 rang
 }
 
 } // namespace mc::client
+
+#pragma pop_macro("BYTE_SIZE")

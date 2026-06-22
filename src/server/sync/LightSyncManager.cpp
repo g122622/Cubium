@@ -37,7 +37,7 @@
 #include "server/world/ServerChunkManager.hpp"
 #include <spdlog/spdlog.h>
 
-#pragma pop_macro("BYTE_SIZE")
+#undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
 namespace mc::server::sync {
 
@@ -182,3 +182,5 @@ void LightSyncManager::syncLightDataToChunk(LightType type, const SectionPos& po
 }
 
 } // namespace mc::server::sync
+
+#pragma pop_macro("BYTE_SIZE")

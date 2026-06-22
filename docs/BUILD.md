@@ -112,6 +112,42 @@ cmake --build --preset windows-clang-relwithdebinfo
 
 增加新的着色器之后要在 `shaders/CMakeLists.txt` 中新增文件
 
+## macOS 构建
+
+项目支持在 macOS (Apple Silicon) 上构建。使用 `macos-relwithdebinfo` preset：
+
+```bash
+# 安装依赖
+brew install cmake ninja pkg-config glslang molten-vk
+
+# 克隆并配置 vcpkg
+git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
+~/vcpkg/bootstrap-vcpkg.sh
+
+# 配置环境变量
+export VCPKG_ROOT=~/vcpkg
+
+# 配置
+cmake --preset macos-relwithdebinfo
+
+# 构建（-j10 使用10核心并行）
+cmake --build --preset macos-relwithdebinfo -- -j10
+```
+
+### macOS 已知问题及解决方案
+
+| 问题 | 原因 | 解决方案 |
+|------|------|----------|
+| `-mavx2` 编译错误 | AVX2 是 x86 专用指令集，arm64 不支持 | CMakeLists.txt 已添加 `CMAKE_SYSTEM_PROCESSOR` 判断，仅在 x86_64 下启用 `-mavx2` |
+| `BYTE_SIZE` 宏冲突 | macOS `<mach/arm/vm_param.h>` 定义 `#define BYTE_SIZE 8`，与 `NibbleArray::BYTE_SIZE` 冲突 | 在受影响的文件中使用 `#pragma push_macro`/`#undef` 屏蔽系统宏，并在所有 include 之后再次 `#undef` |
+| `TRUE`/`FALSE` 宏冲突 | macOS `<mach/boolean.h>` 定义 `#define TRUE 1` / `#define FALSE 0`，与 `BooleanOp::TRUE()`/`FALSE()` 冲突 | 在 `BooleanOp.hpp` 中使用 `#pragma push_macro`/`#undef`/`#pragma pop_macro` 屏蔽 |
+| `resident_size_max` 不存在 | macOS `task_vm_info` 结构体中字段名为 `resident_size_peak` | 使用 `resident_size_peak` 替代 `resident_size_max` |
+| `noexcept` override 不匹配 | Apple Clang 21 严格要求 override 函数的异常规范与基类一致 | 在 override 方法声明中添加 `noexcept` |
+| `-fuse-ld=lld` 不可用 | macOS 没有 lld 链接器 | CMakeLists.txt 已添加平台判断，仅在 Windows/Linux 下使用 lld |
+| `-Wl,-gc-sections` 不支持 | macOS 的 ld64 不支持 GNU 风格链接器选项 | CMakeLists.txt 已添加平台判断，仅在 Windows/Linux 下使用 |
+
+> **注意**：macOS 构建需要着色器编译器。安装 `glslang`（提供 `glslangValidator`）或 Vulkan SDK（提供 `glslc`）。
+
 ## 着色器编译
 
 项目使用 Vulkan SPIR-V 着色器。CMake 构建会自动编译着色器，无需手动操作。

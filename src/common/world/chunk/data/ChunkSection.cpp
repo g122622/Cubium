@@ -34,7 +34,7 @@
 #include <cstring>
 #include <sstream>
 
-#pragma pop_macro("BYTE_SIZE")
+#undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
 namespace mc::world::chunk {
 
@@ -292,3 +292,5 @@ void ChunkSection::fill(u32 stateId)
 }
 
 } // namespace mc::world::chunk
+
+#pragma pop_macro("BYTE_SIZE")

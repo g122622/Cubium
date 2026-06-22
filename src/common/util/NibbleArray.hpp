@@ -23,6 +23,14 @@
 
 #pragma once
 
+// macOS系统头文件<mach/arm/vm_param.h>定义了BYTE_SIZE宏(=8)，
+// 与NibbleArray::BYTE_SIZE静态常量冲突，在此push/undef屏蔽。
+// 不在文件末尾pop_macro，确保include此头文件的代码不受影响。
+#ifdef __APPLE__
+#pragma push_macro("BYTE_SIZE")
+#undef BYTE_SIZE
+#endif
+
 #include "../core/Types.hpp"
 #include <cstdint>
 #include <stdexcept>

@@ -81,7 +81,7 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
-#pragma pop_macro("BYTE_SIZE")
+#undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
 namespace mc::server {
 
@@ -2497,3 +2497,5 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
 }
 
 } // namespace mc::server
+
+#pragma pop_macro("BYTE_SIZE")

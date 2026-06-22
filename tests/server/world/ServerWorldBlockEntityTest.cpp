@@ -38,7 +38,7 @@ public:
     {}
 
     void tick(IWorld& world) override { MC_UNUSED(world); }
-    [[nodiscard]] bool needsTick() const override { return false; }
+    [[nodiscard]] bool needsTick() const noexcept override { return false; }
     bool load(const nlohmann::json& data) override
     {
         MC_UNUSED(data);

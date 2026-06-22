@@ -178,7 +178,7 @@ public:
         return ref.test(context);
     }
 
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override
     {
         return std::make_unique<SelfReferencingCondition>(m_selfId);
     }
@@ -215,7 +215,7 @@ public:
         return ref.test(context);
     }
 
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override
     {
         return std::make_unique<MutualRefConditionA>();
     }
@@ -236,7 +236,7 @@ public:
         return ref.test(context);
     }
 
-    [[nodiscard]] std::unique_ptr<LootCondition> clone() const override
+    [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override
     {
         return std::make_unique<MutualRefConditionB>();
     }

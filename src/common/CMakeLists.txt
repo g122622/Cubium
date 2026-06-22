@@ -503,6 +503,7 @@ add_library(mc_common STATIC
     item/items/special/SaddleItem.cpp
     item/items/special/OnAStickItem.cpp
     item/items/special/StickItems.cpp
+    item/items/special/SpawnEggItem.cpp
 
     # Item - Trial Items
     item/items/trial/MaceItem.cpp

@@ -21,6 +21,11 @@
  *
  */
 
+// macOS系统头文件中，BYTE_SIZE被定义为宏，会与NibbleArray的静态常数冲突
+// 使用pragma push_macro/pop_macro来暂时屏蔽系统宏
+#pragma push_macro("BYTE_SIZE")
+#undef BYTE_SIZE
+
 #include "common/util/NibbleArray.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/lighting/InternalLightUtils.hpp"
@@ -28,7 +33,10 @@
 #include "common/world/lighting/engine/BaseLightEngine.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
 #include <climits>
+
 #include <gtest/gtest.h>
+
+#undef BYTE_SIZE // Re-undef after includes which may re-define BYTE_SIZE
 
 // ============================================================================
 // NibbleArray 测试
@@ -516,3 +524,5 @@ TEST_F(DirectionLightTest, Offsets)
     EXPECT_EQ(mc::Directions::yOffset(mc::Direction::East), 0);
     EXPECT_EQ(mc::Directions::zOffset(mc::Direction::East), 0);
 }
+
+#pragma pop_macro("BYTE_SIZE")
