@@ -2000,6 +2000,11 @@ Difficulty ServerWorld::difficulty() const
     return Difficulty::Normal;
 }
 
+bool ServerWorld::isPvpAllowed() const
+{
+    return m_gameRules.getBoolean(world::gamerule::GameRuleKeys::PVP);
+}
+
 i32 ServerWorld::getMinBuildHeight() const noexcept
 {
     return getDimensionType().minHeight();

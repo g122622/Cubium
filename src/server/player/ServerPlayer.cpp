@@ -759,4 +759,31 @@ const scoreboard::Scoreboard* ServerPlayer::getScoreboard() const
     return &m_server->scoreboard();
 }
 
+bool ServerPlayer::canHarmPlayer(const Player& target) const
+{
+    // 检查 PvP 游戏规则
+    if (m_world != nullptr && !m_world->isPvpAllowed()) {
+        return false;
+    }
+    // 委托给基类检查队伍友伤规则
+    return Player::canHarmPlayer(target);
+}
+
+bool ServerPlayer::hurt(DamageSource& source, f32 amount)
+{
+    // PvP 保护检查：如果伤害来源是玩家，检查 canHarmPlayer
+    Entity* sourceEntity = source.getEntity();
+    if (sourceEntity != nullptr) {
+        Player* attackingPlayer = dynamic_cast<Player*>(sourceEntity);
+        if (attackingPlayer != nullptr && attackingPlayer != this) {
+            if (!canHarmPlayer(*attackingPlayer)) {
+                return false;
+            }
+        }
+    }
+
+    // 委托给基类处理（创造模式无敌检查等）
+    return Player::hurt(source, amount);
+}
+
 } // namespace mc

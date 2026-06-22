@@ -953,6 +953,15 @@ public:
      */
     [[nodiscard]] virtual Difficulty difficulty() const = 0;
 
+    /**
+     * @brief 是否允许玩家对玩家造成伤害（PvP）
+     *
+     * 读取 PVP 游戏规则判断是否允许 PvP。客户端世界默认返回 true。
+     *
+     * @return 如果允许 PvP 返回 true
+     */
+    [[nodiscard]] virtual bool isPvpAllowed() const { return true; }
+
     // ========== 天气 ==========
 
     /**

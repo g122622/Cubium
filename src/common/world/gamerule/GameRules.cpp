@@ -82,6 +82,7 @@ struct RuleRegistry {
         registerBoolean("fallDamage", GameRuleCategory::Player, true);
         registerBoolean("fireDamage", GameRuleCategory::Player, true);
         registerBoolean("doLimitedCrafting", GameRuleCategory::Player, false);
+        registerBoolean("pvp", GameRuleCategory::Player, true);
 
         // 生物相关
         registerBoolean("mobGriefing", GameRuleCategory::Mobs, true);
@@ -175,6 +176,7 @@ const BooleanGameRuleKey DROWNING_DAMAGE("drowningDamage", GameRuleCategory::Pla
 const BooleanGameRuleKey FALL_DAMAGE("fallDamage", GameRuleCategory::Player);
 const BooleanGameRuleKey FIRE_DAMAGE("fireDamage", GameRuleCategory::Player);
 const BooleanGameRuleKey DO_LIMITED_CRAFTING("doLimitedCrafting", GameRuleCategory::Player);
+const BooleanGameRuleKey PVP("pvp", GameRuleCategory::Player);
 
 // 生物相关
 const BooleanGameRuleKey MOB_GRIEFING("mobGriefing", GameRuleCategory::Mobs);

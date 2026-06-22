@@ -349,8 +349,12 @@ bool WolfEntity::wantsToAttack(const LivingEntity& target, const LivingEntity* o
         return false; // 没有主人，不攻击已驯服的狼
     }
 
-    // TODO: 玩家PvP保护检查（需要实现 Player::canHarmPlayer）
-    // 如果目标和主人都是玩家，需要检查 PvP 规则
+    // 玩家PvP保护：如果目标和主人都是玩家，检查 PvP 规则和队伍友伤
+    const Player* targetPlayer = dynamic_cast<const Player*>(&target);
+    const Player* ownerPlayer = dynamic_cast<const Player*>(owner);
+    if (targetPlayer != nullptr && ownerPlayer != nullptr && !ownerPlayer->canHarmPlayer(*targetPlayer)) {
+        return false;
+    }
 
     // 已驯服的马：不攻击
     const AbstractHorseEntity* horse = dynamic_cast<const AbstractHorseEntity*>(&target);

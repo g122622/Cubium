@@ -194,6 +194,29 @@ public:
     [[nodiscard]] scoreboard::Team* getTeam() override;
     [[nodiscard]] const scoreboard::Team* getTeam() const override;
 
+    // ========== PvP 系统 ==========
+
+    /**
+     * @brief 判断本玩家是否可以对目标玩家造成伤害（重写 Player 基类）
+     *
+     * 在基类队伍友伤检查之上，额外检查 PvP 游戏规则：
+     * - 如果 PvP 被禁用（pvp 游戏规则为 false），返回 false
+     * - 否则委托给基类检查队伍友伤规则
+     *
+     * @param target 目标玩家
+     * @return 如果可以造成伤害返回 true
+     */
+    [[nodiscard]] bool canHarmPlayer(const Player& target) const override;
+
+    /**
+     * @brief 服务端受伤处理（重写 Player 基类）
+     *
+     * 在基类创造模式无敌检查之上，额外检查 PvP 保护：
+     * - 如果伤害来源是玩家且 canHarmPlayer 返回 false，拒绝伤害
+     * - 如果伤害来源是弹射物且其发射者是玩家且 canHarmPlayer 返回 false，拒绝伤害
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
     // ========== 类型转换 ==========
 
     /**

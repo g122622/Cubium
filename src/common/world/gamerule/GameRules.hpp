@@ -103,6 +103,9 @@ extern const BooleanGameRuleKey FIRE_DAMAGE;
 /// 是否限制合成
 extern const BooleanGameRuleKey DO_LIMITED_CRAFTING;
 
+/// 是否允许玩家对玩家造成伤害
+extern const BooleanGameRuleKey PVP;
+
 // ============================================================================
 // 生物相关 (Mobs)
 // ============================================================================

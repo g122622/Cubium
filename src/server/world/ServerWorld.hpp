@@ -326,6 +326,11 @@ public:
     [[nodiscard]] Difficulty difficulty() const override;
     [[nodiscard]] bool isClientSide() const noexcept override { return false; }
 
+    /**
+     * @brief 是否允许 PvP（读取 PVP 游戏规则）
+     */
+    [[nodiscard]] bool isPvpAllowed() const override;
+
     // ========== 随机数生成器 ==========
 
     [[nodiscard]] math::Random& getRandom() noexcept override { return m_random; }

@@ -915,6 +915,21 @@ public:
     bool hurt(DamageSource& source, f32 amount) override;
 
     /**
+     * @brief 判断本玩家是否可以对目标玩家造成伤害
+     *
+     * 基础实现检查队伍友伤规则：
+     * - 如果攻击者没有队伍，可以伤害
+     * - 如果两个队伍不是盟友关系，可以伤害
+     * - 如果两个队伍是盟友关系，取决于队伍是否允许友伤
+     *
+     * ServerPlayer 会重写此方法，额外检查 PvP 游戏规则。
+     *
+     * @param target 目标玩家
+     * @return 如果可以造成伤害返回 true
+     */
+    [[nodiscard]] virtual bool canHarmPlayer(const Player& target) const;
+
+    /**
      * @brief 死亡处理
      *
      * 覆盖 LivingEntity::die()，添加玩家特有死亡逻辑（掉落经验等）。

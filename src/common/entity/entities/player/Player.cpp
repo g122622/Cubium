@@ -55,6 +55,7 @@
 #include "GameModeUtils.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/scoreboard/core/Team.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -1462,6 +1463,27 @@ bool Player::hurt(DamageSource& source, f32 amount)
     }
     // 调用父类方法处理伤害
     return LivingEntity::hurt(source, amount);
+}
+
+bool Player::canHarmPlayer(const Player& target) const
+{
+    // 获取攻击者（本玩家）的队伍
+    auto* myTeam = getTeam();
+    // 获取目标玩家的队伍
+    auto* targetTeam = target.getTeam();
+
+    // 攻击者没有队伍，可以伤害
+    if (myTeam == nullptr) {
+        return true;
+    }
+
+    // 两个队伍不是盟友关系，可以伤害
+    if (!isAlliedTo(targetTeam)) {
+        return true;
+    }
+
+    // 同队或盟友关系：取决于队伍是否允许友伤
+    return myTeam->getAllowFriendlyFire();
 }
 
 void Player::die(DamageSource& cause)
