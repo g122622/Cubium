@@ -155,9 +155,9 @@ TEST_F(TNTMinecartDropTest, NullptrSource_HandledSafely)
  */
 TEST_F(TNTMinecartDropTest, SpeedThreshold_AffectsDrop)
 {
-    // 速度阈值 = 0.01 (sqrt(0.01) = 0.1)
-    f64 lowSpeed = 0.009; // 低速度
-    f64 highSpeed = 0.02; // 高速度
+    // 速度阈值 = 0.01 (speedSq 阈值)
+    f64 lowSpeed = 0.05; // 低速度，speedSq = 0.0025 < 0.01
+    f64 highSpeed = 0.2; // 高速度，speedSq = 0.04 > 0.01
 
     f64 lowSpeedSq = lowSpeed * lowSpeed;
     f64 highSpeedSq = highSpeed * highSpeed;

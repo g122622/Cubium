@@ -661,8 +661,11 @@ private:
      * @brief 爆炸
      * @param speedFactor 速度因子，影响爆炸威力
      * @param damageSource 自定义伤害来源，用于记录爆炸归因（可能为 nullptr）
+     *
+     * 内部调用 IWorld::createExplosionWithSource()，后者会自行 clone damageSource，
+     * 因此调用者只需传入原始指针，无需 clone。
      */
-    void _explode(f32 speedFactor, std::unique_ptr<DamageSource> damageSource = nullptr);
+    void _explode(f32 speedFactor, const DamageSource* damageSource = nullptr);
 
     /**
      * @brief 检查火焰接触并点燃

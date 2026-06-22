@@ -1289,7 +1289,7 @@ void TNTMinecartEntity::tick()
         if (m_fuse == 0) {
             // 引信归零时爆炸，传递引爆来源作为伤害归因
             f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
-            _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource ? m_ignitionSource->clone() : nullptr);
+            _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource.get());
         }
     }
 
@@ -1300,7 +1300,7 @@ void TNTMinecartEntity::tick()
     if (m_collidedHorizontally) {
         f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
         if (speedSq >= 0.01) {
-            _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource ? m_ignitionSource->clone() : nullptr);
+            _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource.get());
         }
     }
 }
@@ -1369,7 +1369,7 @@ bool TNTMinecartEntity::hurt(DamageSource& source, f32 amount)
             Entity* shooter = source.getEntity();
             auto explosionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, shooter, this);
             explosionSource->setExplosion();
-            _explode(static_cast<f32>(std::sqrt(speedSq)), std::move(explosionSource));
+            _explode(static_cast<f32>(std::sqrt(speedSq)), explosionSource.get());
             return true;
         }
 
@@ -1380,7 +1380,7 @@ bool TNTMinecartEntity::hurt(DamageSource& source, f32 amount)
             Entity* shooter = source.getEntity();
             auto explosionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, shooter, this);
             explosionSource->setExplosion();
-            _explode(static_cast<f32>(std::sqrt(speedSq)), std::move(explosionSource));
+            _explode(static_cast<f32>(std::sqrt(speedSq)), explosionSource.get());
             return true;
         }
     }
@@ -1477,7 +1477,7 @@ bool TNTMinecartEntity::_damageSourceIgnitesTnt(const DamageSource& source)
     return source.isFire() || source.isExplosion();
 }
 
-void TNTMinecartEntity::_explode(f32 speedFactor, std::unique_ptr<DamageSource> damageSource)
+void TNTMinecartEntity::_explode(f32 speedFactor, const DamageSource* damageSource)
 {
     IWorld* worldPtr = Entity::world();
     if (!worldPtr || worldPtr->isClientSide()) {
@@ -1507,12 +1507,13 @@ void TNTMinecartEntity::_explode(f32 speedFactor, std::unique_ptr<DamageSource> 
     // 创建爆炸（TNT矿车爆炸时不破坏铁轨）
     // canExplosionDestroyBlock: 如果已点燃且目标方块是铁轨，返回 false
     // 使用 createExplosionWithSource 确保爆炸包广播给客户端，并传递自定义伤害来源
+    // createExplosionWithSource 内部会 clone damageSource，此处无需 clone
     worldPtr->createExplosionWithSource(Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
         radius,
         world::explosion::ExplosionMode::Break,
-        false,               // 不产生火焰
-        this,                // TNT矿车自身作为爆炸源
-        damageSource.get()); // 自定义伤害来源（可能为nullptr，使用默认爆炸伤害）
+        false,         // 不产生火焰
+        this,          // TNT矿车自身作为爆炸源
+        damageSource); // 自定义伤害来源（可能为nullptr，使用默认爆炸伤害）
 
     remove();
 }
