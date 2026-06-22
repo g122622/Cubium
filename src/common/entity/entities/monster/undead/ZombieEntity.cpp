@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
 #include "common/entity/ai/goal/goals/interact/BreakDoorGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
@@ -37,7 +38,12 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
@@ -254,9 +260,8 @@ void ZombieEntity::registerGoals()
 
     // 优先级 8: 看向玩家
     m_goalSelector.addGoal(
-        8, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* /*entity*/) -> bool {
-            // TODO: 需要 Player 类型完整定义来检查是否是玩家
-            return true;
+        8, new entity::ai::goal::LookAtGoal(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
+            return entity != nullptr && entity->typeId() == entity::EntityTypeIdNumber::PLAYER;
         }));
 
     // 优先级 8: 随机看向
@@ -264,18 +269,27 @@ void ZombieEntity::registerGoals()
 
     // 目标选择器（攻击目标）
     // 优先级 2: 攻击玩家
-    // TODO: 需要 Player 类型完整定义
-    // m_targetSelector.addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
+    m_targetSelector.addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
 
-    // 优先级 3: 攻击村民
-    // TODO: 需要 VillagerEntity 实现
-    // m_targetSelector.addGoal(3, new NearestAttackableTargetGoal<AbstractVillagerEntity>(this, true));
+    // 优先级 3: 攻击村民（不需要视线检查）
+    m_targetSelector.addGoal(3,
+        new entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>(this,
+            false)); // checkSight=false — 僵尸可以穿过墙壁感知村民
 
     // 优先级 3: 攻击铁傀儡
-    // TODO: 需要 IronGolemEntity 实现
+    m_targetSelector.addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>(this, true));
 
-    // 优先级 5: 攻击海龟
-    // TODO: 需要 TurtleEntity 实现
+    // 优先级 5: 攻击幼年海龟（仅陆地上的幼体，10 tick 间隔检查）
+    m_targetSelector.addGoal(5,
+        new entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>(this,
+            true, // checkSight
+            10,   // reciprocalChance — 每 10 tick 检查一次
+            [](const LivingEntity* entity) -> bool {
+                // BABY_ON_LAND_SELECTOR: 只攻击陆地上不在水中的幼年海龟
+                const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
+                if (!turtle) return false;
+                return turtle->isChild() && !turtle->isInWater();
+            }));
 }
 
 void ZombieEntity::registerAttributes()
