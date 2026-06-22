@@ -199,6 +199,16 @@ public:
      */
     [[nodiscard]] i32 getHiveLocateCooldown() const { return m_remainingCooldownBeforeLocatingNewHive; }
 
+    /**
+     * @brief 设置寻找新花朵冷却
+     */
+    void setFlowerCooldown(i32 cooldown) { m_remainingCooldownBeforeLocatingNewFlower = cooldown; }
+
+    /**
+     * @brief 获取寻找新花朵冷却
+     */
+    [[nodiscard]] i32 getFlowerCooldown() const { return m_remainingCooldownBeforeLocatingNewFlower; }
+
     // ========== 飞行系统 (IFlyingAnimal接口) ==========
 
     /**

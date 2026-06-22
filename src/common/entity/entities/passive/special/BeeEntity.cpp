@@ -260,10 +260,11 @@ void BeeEntity::tick()
     if (m_remainingCooldownBeforeLocatingNewHive > 0) {
         --m_remainingCooldownBeforeLocatingNewHive;
     }
+    if (m_remainingCooldownBeforeLocatingNewFlower > 0) {
+        --m_remainingCooldownBeforeLocatingNewFlower;
+    }
 
     // 离巢后无花粉计时递增
-    // TODO: 对应MC原版 Bee.remainingCooldownBeforeLocatingNewFlower 也需要递减
-    // TODO: 对应MC原版 Bee.aiStep() 中 isClientSide() 检查，冷却递减应仅服务端执行
     if (!hasNectar() && m_hasHive) {
         ++m_ticksWithoutNectarSinceExitingHive;
     }

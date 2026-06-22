@@ -185,9 +185,10 @@ BeePollinateGoal::BeePollinateGoal(BeeEntity* bee)
 
 bool BeePollinateGoal::canBeeStart()
 {
-    // 检查冷却
-    // TODO: 实现 remainingCooldownBeforeLocatingNewFlower
-    // if (m_bee->getFlowerCooldown() > 0) return false;
+    // 检查花朵冷却
+    if (m_bee->getFlowerCooldown() > 0) {
+        return false;
+    }
 
     // 已有花粉时不授粉
     if (m_bee->hasNectar()) {
@@ -245,9 +246,7 @@ void BeePollinateGoal::startExecuting()
     m_totalTicks = 0;
     m_lastSoundTick = 0;
     m_running = true;
-    // TODO: 应调用 m_bee->setPollinating(true) 设置授粉状态，
-    // wantsToEnterHive() 中依赖 m_pollinating 标志判断是否跳过进巢。
-    // m_bee->resetTicksWithoutNectar();
+    m_bee->setPollinating(true);
 }
 
 void BeePollinateGoal::resetTask()
@@ -258,18 +257,15 @@ void BeePollinateGoal::resetTask()
     }
 
     m_running = false;
-    // TODO: 应调用 m_bee->setPollinating(false) 清除授粉状态，
-    // 与 startExecuting() 中设置 true 配对。
+    m_bee->setPollinating(false);
 
     // 清除路径
     if (auto* nav = m_bee->navigator()) {
         nav->clearPath();
     }
 
-    // 设置冷却
-    // TODO: 实现 setFlowerCooldown/getFlowerCooldown 访问器方法，
-    // 对应 m_remainingCooldownBeforeLocatingNewFlower，此处应设置为200tick
-    // m_bee->setFlowerCooldown(200);
+    // 设置花朵冷却（200 tick）
+    m_bee->setFlowerCooldown(200);
 }
 
 void BeePollinateGoal::tick()
