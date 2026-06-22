@@ -941,6 +941,8 @@ add_executable(mc_tests
     common/world/gen/chunk/NoiseChunkGeneratorTest.cpp
     # 地形常识测试
     common/world/gen/chunk/TerrainCommonSenseTest.cpp
+    # 表面规则一致性测试
+    common/world/gen/chunk/SurfaceRuleParityTest.cpp
     # 生成设置单元测试（NoiseSettings, DimensionSettings, FlatLayerInfo, FlatLevelGeneratorSettings等）
     common/world/gen/settings/SettingsTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯

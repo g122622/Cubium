@@ -208,30 +208,23 @@ std::unique_ptr<SurfaceRule> overworld()
         VanillaBlocks::WHITE_TERRACOTTA ? &VanillaBlocks::WHITE_TERRACOTTA->defaultState() : nullptr;
 
     // ========== 构建主规则树 ==========
-    // MC 1.21 SurfaceRuleData.overworld() — 完整规则树
+    // MC 1.21 SurfaceRuleData.overworldLike() — 完整规则树
     // 所有噪声条件使用 Noises:: 注册名称，通过 RandomState 查找
     //
-    // MC 原版结构：基岩和深板岩规则在 abovePreliminarySurface() 外面，
-    // 其余表面规则在 abovePreliminarySurface() 里面。
+    // MC 原版顶层序列结构：
+    //   1. bedrock_floor（基岩底部）
+    //   2. abovePreliminarySurface() 包裹的表面规则
+    //   3. deepslate（深板岩，在 abovePreliminarySurface 之后）
     std::vector<std::unique_ptr<SurfaceRule>> rules;
 
     // 1. 基岩层底部 (Y 0-4 渐变) — 在 abovePreliminarySurface 外面
-    // MC 1.21: verticalGradient("minecraft:bedrock_floor", aboveBottom(0), aboveBottom(5))
     if (bedrock) {
         rules.push_back(ifTrue(
             verticalGradient("minecraft:bedrock_floor", VerticalAnchor::aboveBottom(0), VerticalAnchor::aboveBottom(5)),
             blockState(bedrock)));
     }
 
-    // 2. 深板岩层 (Y 0-8 渐变过渡) — 在 abovePreliminarySurface 外面
-    // MC 1.21: verticalGradient("minecraft:deepslate", absolute(0), absolute(8))
-    if (deepslate) {
-        rules.push_back(
-            ifTrue(verticalGradient("minecraft:deepslate", VerticalAnchor::absolute(0), VerticalAnchor::absolute(8)),
-                blockState(deepslate)));
-    }
-
-    // 3-17. 表面规则 — 在 abovePreliminarySurface() 里面
+    // 2. 表面规则 — 在 abovePreliminarySurface() 里面
     std::vector<std::unique_ptr<SurfaceRule>> surfaceRules;
     if (coarseDirt && grass && dirt) {
         surfaceRules.push_back(ifTrue(isBiome({Biomes::WoodedBadlands}),
@@ -294,18 +287,19 @@ std::unique_ptr<SurfaceRule> overworld()
                         ifTrue(waterStartCheck(-6, -1), blockState(whiteTerracotta)),
                         // 兜底: 砾石/石头
                         sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel)))),
-                // UNDER_FLOOR: Y <= 63-surfaceDepth
-                ifTrue(underFloor(),
-                    ifTrue(yStartCheck(VerticalAnchor::absolute(63), -1),
-                        sequence(
-                            // Y >= 63 且不在 badlands 范围: 橙色陶土
-                            ifTrue(yBlockCheck(VerticalAnchor::absolute(63), 0),
-                                ifTrue(notCondition(yStartCheck(VerticalAnchor::absolute(74), 1)),
-                                    blockState(orangeTerracotta))),
-                            // bandlands
-                            bandlands()))),
-                // VERY_DEEP_UNDER_FLOOR: waterStartCheck → 白色陶土
-                ifTrue(veryDeepUnderFloor(), ifTrue(waterStartCheck(-6, -1), blockState(whiteTerracotta))))));
+                // yStartCheck(63, -1): 仅 Y 条件检查，无 underFloor 包裹
+                // MC 源码中此处不是 underFloor 条件，而是纯 Y 坐标条件
+                ifTrue(yStartCheck(VerticalAnchor::absolute(63), -1),
+                    sequence(
+                        // Y >= 63 且不在 terracotta 带范围: 橙色陶土
+                        ifTrue(yBlockCheck(VerticalAnchor::absolute(63), 0),
+                            ifTrue(notCondition(yStartCheck(VerticalAnchor::absolute(74), 1)),
+                                blockState(orangeTerracotta))),
+                        // bandlands
+                        bandlands())),
+                // UNDER_FLOOR + waterStartCheck → 白色陶土
+                // MC 源码使用 underFloor()（secondaryDepthRange=0），非 veryDeepUnderFloor()
+                ifTrue(underFloor(), ifTrue(waterStartCheck(-6, -1), blockState(whiteTerracotta))))));
     }
 
     // 7. 冰冻海洋 hole 处理（水面上方放置空气/冰/水）
@@ -445,9 +439,9 @@ std::unique_ptr<SurfaceRule> overworld()
             topRules.push_back(ifTrue(isBiome({Biomes::MangroveSwamp}), blockState(mud)));
         }
 
-        // 蘑菇岛: MYCELIUM
+        // 蘑菇岛: MYCELIUM（已在 onFloor 父级内，无需额外 onFloor 检查）
         if (mycelium) {
-            topRules.push_back(ifTrue(isBiome({Biomes::MushroomFields}), ifTrue(onFloor(), blockState(mycelium))));
+            topRules.push_back(ifTrue(isBiome({Biomes::MushroomFields}), blockState(mycelium)));
         }
 
         // 默认: grass(water)/dirt
@@ -547,14 +541,13 @@ std::unique_ptr<SurfaceRule> overworld()
                 ifTrue(noiseCondition(noise::Noises::SURFACE, 1.75 / 8.25, 1e30), blockState(stone))));
         }
 
-        // 风蚀砾石丘陵: noise分层 → gravel/stone/dirt/gravel
-        if (gravel && stone && dirt && grass) {
+        // 风蚀砾石丘陵: noise分层 → gravel/stone/dirt/gravel（underFloor 用 DIRT，无草方块分裂）
+        if (gravel && stone && dirt) {
             matRules.push_back(ifTrue(isBiome({Biomes::WindsweptGravellyHills}),
                 sequence(ifTrue(noiseCondition(noise::Noises::SURFACE, 2.0 / 8.25, 1e30),
                              sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel))),
                     ifTrue(noiseCondition(noise::Noises::SURFACE, 1.0 / 8.25, 1e30), blockState(stone)),
-                    ifTrue(noiseCondition(noise::Noises::SURFACE, -1.0 / 8.25, 1e30),
-                        sequence(ifTrue(waterBlockCheck(0, 0), blockState(grass)), blockState(dirt))),
+                    ifTrue(noiseCondition(noise::Noises::SURFACE, -1.0 / 8.25, 1e30), blockState(dirt)),
                     sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel)))));
         }
 
@@ -586,9 +579,11 @@ std::unique_ptr<SurfaceRule> overworld()
             ifTrue(waterStartCheck(-6, -1), ifTrue(veryDeepUnderFloor(), blockState(sandstone)))));
     }
 
-    // 12. ON_FLOOR: 尖峭山峰 → STONE（冰冻峰由规则15的详细packed_ice/ice/snow_block规则处理）
+    // 12. ON_FLOOR: 冰冻峰/尖峭山峰 → STONE（最终 onFloor 规则区块）
+    // MC 源码: ifTrue(ON_FLOOR, sequence(ifTrue(isBiome(FROZEN_PEAKS, JAGGED_PEAKS), STONE), ...))
     if (stone) {
-        surfaceRules.push_back(ifTrue(isBiome({Biomes::JaggedPeaks}), ifTrue(onFloor(), blockState(stone))));
+        surfaceRules.push_back(
+            ifTrue(isBiome({Biomes::FrozenPeaks, Biomes::JaggedPeaks}), ifTrue(onFloor(), blockState(stone))));
     }
 
     // 13. ON_FLOOR: 温暖海洋/温水海洋 → sand/sandstone
@@ -597,30 +592,24 @@ std::unique_ptr<SurfaceRule> overworld()
             ifTrue(onFloor(), sequence(ifTrue(onCeiling(), blockState(sandstone)), blockState(sand)))));
     }
 
-    // 16. UNDER_FLOOR: grass(water)/dirt
-    if (grass && dirt) {
-        surfaceRules.push_back(ifTrue(underFloor(), ifTrue(waterBlockCheck(0, 0), blockState(grass))));
-        surfaceRules.push_back(ifTrue(underFloor(), blockState(dirt)));
-    }
-
-    // 17. UNDER_FLOOR: 大型针叶林 coarseDirt/podzol
-    if (podzol && coarseDirt) {
-        surfaceRules.push_back(ifTrue(isBiome({Biomes::OldGrowthPineTaiga, Biomes::OldGrowthSpruceTaiga}),
-            ifTrue(underFloor(),
-                sequence(ifTrue(noiseCondition(noise::Noises::SURFACE, 1.75 / 8.25, 1e30), blockState(coarseDirt)),
-                    ifTrue(noiseCondition(noise::Noises::SURFACE, -0.95 / 8.25, 1e30), blockState(podzol))))));
-    }
-
-    // 18. ON_FLOOR: 默认 → gravel/stone（MC 原版最后一条 onFloor 规则）
-    // 此规则必须在所有其他 onFloor 规则之后，作为水下地面的兜底规则。
-    // 在 MC 原版中此规则位于 above_preliminary_surface 序列的最后。
+    // 14. ON_FLOOR: 默认 → gravel/stone（MC 原版最后一条规则）
     if (gravel && stone) {
         surfaceRules.push_back(ifTrue(onFloor(), sequence(ifTrue(onCeiling(), blockState(stone)), blockState(gravel))));
     }
 
-    // MC 1.21.11: 基岩和深板岩在 abovePreliminarySurface() 外面，
-    // 其余表面规则在 abovePreliminarySurface() 里面
+    // MC 源码：abovePreliminarySurface 在 deepslate 之前，sequence 短路求值
+    // 使得表面规则优先于 deepslate 应用
     rules.push_back(ifTrue(abovePreliminarySurface(), sequence(std::move(surfaceRules))));
+
+    // 3. 深板岩层 (Y 0-8 渐变过渡) — 在 abovePreliminarySurface 之后
+    // MC 源码中 deepslate 位于 abovePreliminarySurface 之后，
+    // sequence 短路求值使得表面规则对 abovePreliminarySurface 的位置优先生效
+    if (deepslate) {
+        rules.push_back(
+            ifTrue(verticalGradient("minecraft:deepslate", VerticalAnchor::absolute(0), VerticalAnchor::absolute(8)),
+                blockState(deepslate)));
+    }
+
     return sequence(std::move(rules));
 }
 
