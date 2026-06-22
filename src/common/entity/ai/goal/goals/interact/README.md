@@ -8,6 +8,8 @@
 interact/
 ├── DoorInteractGoal.hpp/cpp    # 门交互目标基类（检测门位置、追踪穿过状态）
 ├── BreakDoorGoal.hpp/cpp       # 破门目标（僵尸、卫道士破坏木门）
+├── OpenDoorGoal.hpp/cpp        # 开门目标（打开/关门，可配置是否关门）
+├── RaiderOpenDoorGoal.hpp/cpp  # 袭击者开门目标（袭击期间开门不关门）
 ├── TameableGoals.hpp/cpp       # 可驯服动物目标（FollowOwnerGoal, SitGoal, BegGoal）
 └── LandOnOwnersShoulderGoal.hpp/cpp  # 肩膀乘坐目标（鹦鹉落到主人肩膀）
 ```
@@ -20,12 +22,12 @@ interact/
 │  检测路径上的木门，追踪实体是否穿过门                            │
 │  提供 _isDoorOpen() 和 _setDoorOpen() 接口给子类              │
 │                         │                                    │
-│              ┌──────────┴──────────┐                        │
-│         BreakDoorGoal          OpenDoorGoal (TODO)          │
-│  破坏木门：难度检查、         打开/关门（卫道士袭击时使用）      │
-│  破坏动画、音效、                                        │
-│  最终移除门方块                                         │
-│  依赖：DoorBlock::isWooden(), WorldEvents, GameRules         │
+│              ┌──────────┴──────────┐                ┌─────────────────────┐       │
+│         BreakDoorGoal          OpenDoorGoal         RaiderOpenDoorGoal          │
+│  破坏木门：难度检查、         打开/关门             袭击期间开门不关门            │
+│  破坏动画、音效、            （可配置是否关门）       仅袭击活跃时触发             │
+│  最终移除门方块                                                                  │
+│  依赖：DoorBlock::isWooden(), WorldEvents, GameRules                              │
 └─────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────┐
@@ -57,7 +59,8 @@ interact/
 |------|------|
 | `entity/ai/goal/Goal.hpp` | Goal 基类 |
 | `entity/ai/goal/GoalFlag.hpp` | 互斥标志枚举 |
-| `entity/core/MobEntity` | 生物实体基类（破门目标） |
+| `entity/core/MobEntity` | 生物实体基类（破门/开门目标） |
+| `entity/entities/monster/illager/AbstractRaiderEntity` | 袭击者实体基类（RaiderOpenDoorGoal） |
 | `entity/entities/passive/tamable/TameableEntity` | 可驯服实体基类 |
 | `entity/entities/passive/tamable/ShoulderRidingEntity` | 肩膀乘坐实体基类 |
 | `entity/entities/player/Player` | 玩家实体 |
@@ -71,7 +74,7 @@ interact/
 | 模块 | 使用的目标 |
 |------|------------|
 | `ZombieEntity` | BreakDoorGoal（破门能力，概率 = specialMultiplier × 0.1） |
-| `VindicatorEntity` | BreakDoorGoal（袭击时破门） |
+| `VindicatorEntity` | BreakDoorGoal（袭击时破门）+ RaiderOpenDoorGoal（袭击期间开门不关门） |
 | `WolfEntity` | FollowOwnerGoal, SitGoal, BegGoal |
 | `CatEntity` | FollowOwnerGoal, SitGoal, BegGoal |
 | `ParrotEntity` | FollowOwnerGoal, SitGoal, BegGoal, LandOnOwnersShoulderGoal |
@@ -92,15 +95,35 @@ DoorInteractGoal::shouldExecute() 会检查 `navigator->canOpenDoors()`。如果
 
 DoorInteractGoal 使用方向向量点积来检测实体是否穿过门。当生物从门的一侧走到另一侧时，方向向量的点积从正变负，判定为穿过。这个机制对开门和破门都适用。
 
-### 4. FollowOwnerGoal 传送距离检查
+### 4. OpenDoorGoal 的 closeDoor 参数
+
+OpenDoorGoal 构造函数的 `closeDoor` 参数控制实体是否在穿过门后关门：
+- `closeDoor = true`：开门后等待 20 tick，如果实体穿过了门则关门（用于和平生物如村民）
+- `closeDoor = false`：开门后不关门（用于袭击者等不需要关门的场景）
+
+当 `closeDoor = false` 时，`shouldContinueExecuting()` 始终返回 false，目标在 `startExecuting()` 之后的第一个 tick 就会结束并调用 `resetTask()`（关门）。这是因为不关门模式下，只需要瞬间开门即可，不需要持续执行。
+
+### 5. RaiderOpenDoorGoal 仅在袭击时激活
+
+RaiderOpenDoorGoal 在 `shouldExecute()` 中额外检查实体是否正在参与活跃的袭击（`getCurrentRaid() != nullptr && raid->status() == RaidStatus::Ongoing`）。如果袭击尚未开始或已结束，开门目标不会激活。它通过 `dynamic_cast<AbstractRaiderEntity*>` 检查实体类型，因此只能用于 AbstractRaiderEntity 及其子类。
+
+### 6. BreakDoorGoal 与 RaiderOpenDoorGoal 共存
+
+在卫道士的 AI 中，两个门交互目标以不同优先级共存：
+- BreakDoorGoal（优先级 1）：破门，需要 mobGriefing 规则和 Normal/Hard 难度
+- RaiderOpenDoorGoal（优先级 2）：开门，仅袭击期间，无需额外条件
+
+当门已打开或难度不允许破门时，BreakDoorGoal 的 `shouldExecute()` 返回 false（因为 `!_isDoorOpen()` 检查），此时如果袭击正在活跃，RaiderOpenDoorGoal 作为后备方案让袭击者通过门。两个目标共享 `GoalFlag::Move` 标志，因此不会同时执行。
+
+### 7. FollowOwnerGoal 传送距离检查
 
 传送功能使用 `distanceTo()` 返回的距离与 `m_teleportDistance` 比较，注意 `distanceTo()` 返回的是 **欧几里得距离**（带 sqrt），不是距离平方。如果性能敏感，应改用距离平方比较。
 
-### 5. SitGoal 互斥标志
+### 8. SitGoal 互斥标志
 
 `SitGoal` 使用 `GoalFlag::Target` 而非 `GoalFlag::Move`。这是因为坐下状态需要阻止实体选择攻击目标，而非仅仅阻止移动。如果错误使用 `Move` 标志，可能导致坐下时仍然攻击附近敌人。
 
-### 6. BegGoal 驯服/繁殖物品区分
+### 9. BegGoal 驯服/繁殖物品区分
 
 `BegGoal` 的 `_isPlayerHoldingFood()` 检查逻辑：
 - **已驯服动物**：对驯服物品（如骨头）**和**繁殖物品都乞求
@@ -108,15 +131,15 @@ DoorInteractGoal 使用方向向量点积来检测实体是否穿过门。当生
 
 这可能与直觉相悖（未驯服动物不对驯服物品乞求），需特别注意。
 
-### 7. LandOnOwnersShoulderGoal 抢占条件
+### 10. LandOnOwnersShoulderGoal 抢占条件
 
 `isPreemptible()` 在 `m_isSittingOnShoulder == true` 时返回 `false`。这意味着一旦鹦鹉成功坐到肩膀上，其他 AI 目标无法打断它。但如果只是飞向主人过程中（`m_isSittingOnShoulder == false`），是可以被其他目标打断的。
 
-### 8. BegGoal 距离检查使用平方距离
+### 11. BegGoal 距离检查使用平方距离
 
 `BegGoal::shouldExecute()` 中使用 `distanceSqTo()` 而非 `distanceTo()` 来比较距离，这是正确的性能优化方式。但 `shouldContinueExecuting()` 中使用 `distanceTo()` 来比较 `m_maxDistance`，存在不一致。建议统一使用平方距离比较。
 
-### 9. 与 TemptGoal 的区别
+### 12. 与 TemptGoal 的区别
 
 | 特性 | BegGoal | TemptGoal |
 |------|---------|-----------|
