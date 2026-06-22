@@ -22,8 +22,15 @@
  */
 
 #include "DrownedEntity.hpp"
-#include "../../../../util/math/random/Random.hpp"
 #include "../../../attribute/Attributes.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 
@@ -57,6 +64,39 @@ bool DrownedEntity::shouldBurnInDaylight() const
 {
     // 在水中不燃烧
     return !isInWater();
+}
+
+void DrownedEntity::registerGoals()
+{
+    // 调用父类方法（ZombieEntity::registerGoals 注册了基础僵尸 AI）
+    ZombieEntity::registerGoals();
+
+    // 溺尸需要替换父类注册的 HurtByTargetGoal
+    // MC 原版: Drowned 使用 HurtByTargetGoal(this, Drowned.class).setAlertOthers(ZombifiedPiglin.class)
+    // 即不反击同类溺尸，且不警醒僵尸猪灵
+    // 父类 ZombieEntity 注册了不带 Drowned 排除的 HurtByTargetGoal，需要先移除再添加
+    m_targetSelector.removeGoalsOfType<entity::ai::goal::HurtByTargetGoal>();
+
+    // 添加溺尸专用的 HurtByTargetGoal：排除同类溺尸，不警醒僵尸猪灵
+    {
+        auto hurtByTarget =
+            std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+                // MC 原版: Drowned.class — 不反击同类溺尸
+                return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::DROWNED;
+            });
+        hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
+            // MC 原版: ZombifiedPiglin.class — 不警醒僵尸猪灵
+            return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+        });
+        m_targetSelector.addGoal(1, std::move(hurtByTarget));
+    }
+
+    // TODO: 实现溺尸特有的行为目标（DrownedGoToWaterGoal、DrownedTridentAttackGoal、
+    // DrownedAttackGoal、DrownedGoToBeachGoal、DrownedSwimUpGoal）
+    // 这些目标需要先实现对应的 AI 目标类
+
+    // 溺尸还需要攻击美西螈（Axolotl）— 需要实现 AxolotlEntity 后添加
+    // MC 原版: targetSelector.addGoal(3, NearestAttackableTargetGoal(Axolotl.class, true))
 }
 
 void DrownedEntity::tick()

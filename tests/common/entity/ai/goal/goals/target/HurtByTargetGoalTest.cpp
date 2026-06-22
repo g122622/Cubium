@@ -24,15 +24,18 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "entity/core/EntityTypeIdNumber.hpp"
+#include "entity/core/VanillaEntities.hpp"
 #include "entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "entity/entities/passive/basic/PigEntity.hpp"
 
 namespace mc {
 namespace test {
 
-// ==================== HurtByTargetGoal 排除谓词测试 ====================
+// ==================== HurtByTargetGoal 构造与谓词测试 ====================
 
 class HurtByTargetGoalTest : public ::testing::Test {
 protected:
@@ -43,25 +46,20 @@ protected:
     std::unique_ptr<PigEntity> pig;
 };
 
-// ==================== 构造函数测试 ====================
-
 TEST_F(HurtByTargetGoalTest, DefaultConstructor_AlertAlliesFalse)
 {
-    // 默认构造：不警醒盟友
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
     EXPECT_NE(goal, nullptr);
 }
 
 TEST_F(HurtByTargetGoalTest, Constructor_AlertAlliesTrue)
 {
-    // 带警醒盟友
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true);
     EXPECT_NE(goal, nullptr);
 }
 
 TEST_F(HurtByTargetGoalTest, Constructor_WithIgnoreDamagePredicate)
 {
-    // 带攻击者排除谓词
     auto goal =
         std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true, [](const LivingEntity* attacker) -> bool {
             return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::GUARDIAN;
@@ -69,35 +67,26 @@ TEST_F(HurtByTargetGoalTest, Constructor_WithIgnoreDamagePredicate)
     EXPECT_NE(goal, nullptr);
 }
 
-// ==================== setAlertOthers 链式调用测试 ====================
-
 TEST_F(HurtByTargetGoalTest, SetAlertOthers_ReturnsReference)
 {
-    // setAlertOthers 返回引用，支持链式调用
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
     auto& ref = goal->setAlertOthers([](const LivingEntity* ally) -> bool {
         return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
     });
-    // 返回的引用指向同一个对象
     EXPECT_EQ(&ref, goal.get());
 }
 
 TEST_F(HurtByTargetGoalTest, SetAlertOthers_EnablesAlertAllies)
 {
-    // 即使初始 alertAllies=false，调用 setAlertOthers 后应启用警醒
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
     goal->setAlertOthers([](const LivingEntity* ally) -> bool {
         return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
     });
-    // 如果链式调用成功且没有崩溃，说明 setAlertOthers 正常工作
     SUCCEED();
 }
 
-// ==================== 排除谓词语义测试 ====================
-
 TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithLambda)
 {
-    // 海豚式排除：排除守卫者
     auto dolphinPredicate = [](const LivingEntity* attacker) -> bool {
         if (!attacker) return false;
         auto type = attacker->typeId();
@@ -109,7 +98,6 @@ TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithLambda)
 
 TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithRaiderCheck)
 {
-    // 灾厄村民式排除：排除所有灾厄村民
     auto raiderPredicate = [](const LivingEntity* attacker) -> bool {
         return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
     };
@@ -119,7 +107,6 @@ TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithRaiderCheck)
 
 TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithTypeIdCheck)
 {
-    // 潜影贝式排除：排除同类
     auto sameTypePredicate = [](const LivingEntity* attacker) -> bool {
         return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::SHULKER;
     };
@@ -127,12 +114,8 @@ TEST_F(HurtByTargetGoalTest, IgnoreDamagePredicate_CompilesWithTypeIdCheck)
     EXPECT_NE(goal, nullptr);
 }
 
-// ==================== 组合用法测试 ====================
-
 TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndAlertOthers)
 {
-    // MC 原版僵尸用法：HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class)
-    // 即反击所有攻击者，但警醒盟友时不警醒僵尸猪灵
     auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true);
     goal->setAlertOthers([](const LivingEntity* ally) -> bool {
         return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
@@ -142,8 +125,6 @@ TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndAlertOthers)
 
 TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndIgnoreAlert)
 {
-    // MC 原版溺尸用法：HurtByTargetGoal(this, Drowned.class).setAlertOthers(ZombifiedPiglin.class)
-    // 即不反击同类溺尸，且警醒盟友时不警醒僵尸猪灵
     auto drownedPredicate = [](const LivingEntity* attacker) -> bool {
         return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::DROWNED;
     };
@@ -152,6 +133,285 @@ TEST_F(HurtByTargetGoalTest, Combined_IgnoreDamageAndIgnoreAlert)
         return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
     });
     EXPECT_NE(goal, nullptr);
+}
+
+// ==================== HurtByTargetGoal 行为测试 ====================
+
+/**
+ * @brief 支持实体查询的测试用世界
+ *
+ * 用于测试 HurtByTargetGoal::startExecuting() 中的盟友警醒逻辑。
+ */
+class HurtByTargetTestWorld : public test::BaseTestWorld {
+public:
+    void setEntities(std::vector<Entity*> entities) { m_entities = std::move(entities); }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return m_entities;
+    }
+
+private:
+    std::vector<Entity*> m_entities;
+};
+
+/**
+ * @brief 可公开 tick() 的测试用猪实体
+ *
+ * PigEntity::tick() 是 protected，测试中需要推进 ticksExisted
+ * 以便 setLastHurtBy 产生非零时间戳，HurtByTargetGoal 才能正常触发。
+ */
+class TestPigEntity : public PigEntity {
+public:
+    explicit TestPigEntity(EntityId id)
+        : PigEntity(id)
+    {}
+
+    using PigEntity::tick;
+};
+
+class HurtByTargetBehaviorTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 初始化方块和实体注册表，确保 EntityTypeIdNumber 有正确的 typeId
+        VanillaBlocks::initialize();
+        entity::VanillaEntities::registerAll();
+
+        world = std::make_unique<HurtByTargetTestWorld>();
+
+        // 创建被攻击者（猪）
+        pig = std::make_unique<TestPigEntity>(EntityId(1));
+        pig->setWorld(world.get());
+        pig->setPosition(0.0f, 64.0f, 0.0f);
+
+        // 创建攻击者（另一只猪）
+        attacker = std::make_unique<TestPigEntity>(EntityId(2));
+        attacker->setWorld(world.get());
+        attacker->setPosition(5.0f, 64.0f, 0.0f);
+
+        // 推进 tick 使 ticksExisted > 0
+        // setLastHurtBy 将 lastHurtByTimestamp 设为 ticksExisted()
+        // HurtByTargetGoal::shouldExecute() 在 timestamp != m_timestamp 时才返回 true
+        // 初始 m_timestamp = 0，如果 ticksExisted() 也为 0，则无法触发
+        for (int i = 0; i < 10; ++i) {
+            pig->tick();
+        }
+    }
+
+    void TearDown() override
+    {
+        pig.reset();
+        attacker.reset();
+        world.reset();
+    }
+
+    std::unique_ptr<HurtByTargetTestWorld> world;
+    std::unique_ptr<TestPigEntity> pig;
+    std::unique_ptr<TestPigEntity> attacker;
+};
+
+TEST_F(HurtByTargetBehaviorTest, ShouldExecute_NoAttacker_ReturnsFalse)
+{
+    // 没有攻击者时，shouldExecute 应返回 false
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(HurtByTargetBehaviorTest, ShouldExecute_WithAttacker_ReturnsTrue)
+{
+    // 设置攻击者
+    pig->setLastHurtBy(attacker.get());
+
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    EXPECT_TRUE(goal->shouldExecute());
+}
+
+TEST_F(HurtByTargetBehaviorTest, ShouldExecute_IgnoreDamagePredicate_ExcludesAttacker)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    // 使用排除谓词排除所有 PigEntity 类型的攻击者
+    auto pigTypeId = pig->typeId();
+    auto ignorePig = [pigTypeId](const LivingEntity* entity) -> bool {
+        return entity != nullptr && entity->typeId() == pigTypeId;
+    };
+
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false, ignorePig);
+
+    // 攻击者是同类（PigEntity），被排除谓词过滤，shouldExecute 应返回 false
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(HurtByTargetBehaviorTest, ShouldExecute_IgnoreDamagePredicate_AllowsOtherTypes)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    // 使用排除谓词只排除守卫者类型（攻击者是猪，不在排除范围内）
+    auto ignoreGuardian = [](const LivingEntity* entity) -> bool {
+        if (!entity) return false;
+        auto type = entity->typeId();
+        return type == entity::EntityTypeIdNumber::GUARDIAN || type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+    };
+
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false, ignoreGuardian);
+
+    // 攻击者是猪，不是守卫者，不在排除范围内，shouldExecute 应返回 true
+    EXPECT_TRUE(goal->shouldExecute());
+}
+
+TEST_F(HurtByTargetBehaviorTest, ShouldExecute_DoesNotRepeatForSameAttack)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+
+    // 第一次调用 shouldExecute 应返回 true
+    EXPECT_TRUE(goal->shouldExecute());
+
+    // 第二次调用（同一时间戳）应返回 false
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(HurtByTargetBehaviorTest, ShouldExecute_NewAttackAfterReset_AllowsReExecute)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+
+    // 第一次攻击
+    EXPECT_TRUE(goal->shouldExecute());
+    goal->resetTask();
+
+    // resetTask 将 m_timestamp 重置为 0，但 lastHurtByTimestamp 未变
+    // 再次 shouldExecute 会发现 timestamp != 0，所以仍然返回 true
+    EXPECT_TRUE(goal->shouldExecute());
+}
+
+TEST_F(HurtByTargetBehaviorTest, ShouldExecute_NullMob_ReturnsFalse)
+{
+    // 没有 mob 的 goal 不应崩溃
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(nullptr, false);
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(HurtByTargetBehaviorTest, ShouldExecute_SelfAttack_ExcludedByIsSuitableTarget)
+{
+    // 实体攻击自己（不应反击自身，isSuitableTarget 检查 target != mob）
+    pig->setLastHurtBy(pig.get());
+
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    // isSuitableTarget 检查 target != m_mob，自身攻击应被排除
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(HurtByTargetBehaviorTest, StartExecuting_SetsAttackTarget)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+
+    // shouldExecute 设置内部目标
+    ASSERT_TRUE(goal->shouldExecute());
+
+    // startExecuting 应将攻击者设为 mob 的攻击目标
+    goal->startExecuting();
+    EXPECT_EQ(pig->attackTarget(), attacker.get());
+}
+
+TEST_F(HurtByTargetBehaviorTest, ResetTask_ClearsAttackTarget)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get());
+    ASSERT_TRUE(goal->shouldExecute());
+    goal->startExecuting();
+    EXPECT_EQ(pig->attackTarget(), attacker.get());
+
+    // resetTask 应清除攻击目标
+    goal->resetTask();
+    EXPECT_EQ(pig->attackTarget(), nullptr);
+}
+
+TEST_F(HurtByTargetBehaviorTest, StartExecuting_AlertAllies_NearbySameTypeGetTarget)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    // 创建一个附近的同类实体（盟友）
+    auto ally = std::make_unique<TestPigEntity>(EntityId(3));
+    ally->setWorld(world.get());
+    ally->setPosition(2.0f, 64.0f, 0.0f);
+
+    // 将盟友放入世界的实体列表
+    world->setEntities({ally.get()});
+
+    // 创建带 alertAllies=true 的 goal
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true);
+    ASSERT_TRUE(goal->shouldExecute());
+
+    // 执行 startExecuting — 同类盟友应被警醒，攻击目标设为攻击者
+    goal->startExecuting();
+
+    // 盟友应被设置为攻击攻击者
+    EXPECT_EQ(ally->attackTarget(), attacker.get());
+
+    // 主实体也应被设置
+    EXPECT_EQ(pig->attackTarget(), attacker.get());
+}
+
+TEST_F(HurtByTargetBehaviorTest, StartExecuting_AlertAllies_IgnoreAlertPredicate_SkipsAlly)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    // 创建一个附近的同类实体（盟友）
+    auto ally = std::make_unique<TestPigEntity>(EntityId(3));
+    ally->setWorld(world.get());
+    ally->setPosition(2.0f, 64.0f, 0.0f);
+
+    // 将盟友放入世界的实体列表
+    world->setEntities({ally.get()});
+
+    // 创建带 setAlertOthers 排除谓词的 goal
+    // 排除谓词返回 true 表示不警醒该盟友
+    // 这里排除所有与猪同类（typeId 相同）的盟友
+    auto pigTypeId = pig->typeId();
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), true);
+    goal->setAlertOthers([pigTypeId](const LivingEntity* allyEntity) -> bool {
+        return allyEntity != nullptr && allyEntity->typeId() == pigTypeId;
+    });
+
+    ASSERT_TRUE(goal->shouldExecute());
+    goal->startExecuting();
+
+    // 盟友不应被警醒（被排除谓词过滤）
+    EXPECT_EQ(ally->attackTarget(), nullptr);
+
+    // 主实体仍应被设置攻击目标
+    EXPECT_EQ(pig->attackTarget(), attacker.get());
+}
+
+TEST_F(HurtByTargetBehaviorTest, StartExecuting_NoAlertAllies_NearbySameTypeNotTargeted)
+{
+    pig->setLastHurtBy(attacker.get());
+
+    // 创建一个附近的同类实体（盟友）
+    auto ally = std::make_unique<TestPigEntity>(EntityId(3));
+    ally->setWorld(world.get());
+    ally->setPosition(2.0f, 64.0f, 0.0f);
+
+    // 将盟友放入世界的实体列表
+    world->setEntities({ally.get()});
+
+    // 创建不带 alertAllies 的 goal（默认 false）
+    auto goal = std::make_unique<entity::ai::goal::HurtByTargetGoal>(pig.get(), false);
+    ASSERT_TRUE(goal->shouldExecute());
+    goal->startExecuting();
+
+    // 盟友不应被警醒
+    EXPECT_EQ(ally->attackTarget(), nullptr);
+
+    // 主实体应被设置攻击目标
+    EXPECT_EQ(pig->attackTarget(), attacker.get());
 }
 
 } // namespace test

@@ -258,7 +258,33 @@ template class NearestAttackableTargetGoal<SomeEntity>;
 
 **注意**: 不要在子类中重置 `m_timestamp`。
 
-### 6. ResetAngerGoal 模板约束
+### 6. 子类替换父类 HurtByTargetGoal
+
+**场景**: DrownedEntity 继承 ZombieEntity 的 `registerGoals()`，但需要不同的 `HurtByTargetGoal` 配置（MC 原版 Drowned 使用 `HurtByTargetGoal(this, Drowned.class).setAlertOthers(ZombifiedPiglin.class)`，而 Zombie 使用 `HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class)`）。
+
+**解决**: 先调用父类 `registerGoals()`，再通过 `GoalSelector::removeGoalsOfType<HurtByTargetGoal>()` 移除父类注册的版本，然后添加子类专用版本：
+
+```cpp
+void DrownedEntity::registerGoals()
+{
+    ZombieEntity::registerGoals();  // 先注册父类所有目标
+
+    // 移除父类的 HurtByTargetGoal
+    m_targetSelector.removeGoalsOfType<entity::ai::goal::HurtByTargetGoal>();
+
+    // 添加溺尸专用的 HurtByTargetGoal（排除同类溺尸，不警醒僵尸猪灵）
+    auto hurtByTarget = std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true,
+        [](const LivingEntity* attacker) -> bool {
+            return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::DROWNED;
+        });
+    hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
+        return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+    });
+    m_targetSelector.addGoal(1, std::move(hurtByTarget));
+}
+```
+
+### 7. ResetAngerGoal 模板约束
 
 **问题**: 使用非 `IAngerable` 类型实例化 `ResetAngerGoal<T>` 导致编译错误。
 

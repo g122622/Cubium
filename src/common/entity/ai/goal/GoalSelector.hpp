@@ -123,6 +123,28 @@ public:
     }
 
     /**
+     * @brief 移除指定类型的所有AI目标
+     *
+     * 遍历所有目标，使用 dynamic_cast 检查类型匹配。
+     * 先停止所有匹配的运行中目标，再移除。
+     *
+     * @tparam GoalType 要移除的目标类型
+     */
+    template <typename GoalType>
+    void removeGoalsOfType()
+    {
+        // 先停止所有匹配的运行中目标
+        for (auto& pg : m_goals) {
+            if (dynamic_cast<GoalType*>(pg.getGoal()) != nullptr && pg.isRunning()) {
+                pg.resetTask();
+            }
+        }
+        // 移除所有匹配目标
+        m_goals.remove_if(
+            [](const PrioritizedGoal& pg) { return dynamic_cast<const GoalType*>(pg.getGoal()) != nullptr; });
+    }
+
+    /**
      * @brief 刻更新
      *
      * 执行流程：

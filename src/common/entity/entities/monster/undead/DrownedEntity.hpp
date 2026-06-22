@@ -100,6 +100,7 @@ public:
     void tick() override;
 
 protected:
+    void registerGoals() override;
     void registerAttributes() override;
 
 private:

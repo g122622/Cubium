@@ -144,28 +144,30 @@ PhantomEntity (幻翼) 继承自 FlyingEntity（非直接继承 MonsterEntity）
 ### AI 目标注册
 
 5. **registerGoals() 调用链**：子类必须调用直接父类的 `registerGoals()`，不能跳级调用 `MonsterEntity::registerGoals()`
-6. **战斗目标动态切换**：AbstractSkeletonEntity 使用 `setCombatTask()` 根据装备动态选择远程/近战目标，不是在 `registerGoals()` 中静态注册
-7. **优先级数字越小越优先**：0 是最高优先级，不能搞反
+6. **MonsterEntity 不注册 HurtByTargetGoal**：MC 原版 Monster 类不注册此目标，由各子类按需自行注册。不同怪物有不同的被攻击反击行为（如僵尸不警醒僵尸猪灵、灾厄村民不反击同类、溺尸不反击同类溺尸等）
+7. **战斗目标动态切换**：AbstractSkeletonEntity 使用 `setCombatTask()` 根据装备动态选择远程/近战目标，不是在 `registerGoals()` 中静态注册
+8. **优先级数字越小越优先**：0 是最高优先级，不能搞反
+9. **DrownedEntity 替换父类 HurtByTargetGoal**：DrownedEntity::registerGoals() 先调用父类再通过 `removeGoalsOfType<HurtByTargetGoal>()` 移除父类注册的版本，然后添加溺尸专用的版本（排除同类溺尸 + 不警醒僵尸猪灵）
 
 ### 光照与生成
 
-8. **光照等级 vs 亮度值**：`getLightSubtracted()` 返回 0-15 光照等级，`getBrightness()` 返回 0.0-1.0 亮度值。怪物生成条件是光照等级 < 7（约 0.47 亮度）
-9. **canMonsterSpawnInLight vs canMonsterSpawn**：前者检查光照，后者不检查（用于刷怪笼）
-10. **阳光燃烧检查**：`shouldBurnInDaylight()` 默认返回 `true`，蜘蛛等非亡灵类怪物需要重写返回 `false`
+10. **光照等级 vs 亮度值**：`getLightSubtracted()` 返回 0-15 光照等级，`getBrightness()` 返回 0.0-1.0 亮度值。怪物生成条件是光照等级 < 7（约 0.47 亮度）
+11. **canMonsterSpawnInLight vs canMonsterSpawn**：前者检查光照，后者不检查（用于刷怪笼）
+12. **阳光燃烧检查**：`shouldBurnInDaylight()` 默认返回 `true`，蜘蛛等非亡灵类怪物需要重写返回 `false`
 
 ### 特殊行为
 
-11. **末影人投射物伤害瞬移**：末影人对投射物伤害尝试瞬移躲避（最多 64 次），成功则不受伤。需要在 `hurt()` 中处理
-12. **潜影贝护甲计算**：闭合时额外 +20 护甲，伤害计算时需考虑此状态
-13. **史莱姆分裂时机**：分裂必须在 `remove()` 中执行，而不是 `die()` 中
-14. **僵尸溺水转化**：`convertToDrowned()` 需要保留位置、生命值比例、装备、婴儿状态、自定义名称、持久化状态
-15. **女巫药水逻辑**：`tick()` 中自动检测是否需要喝药水，喝药水期间 `canRangedAttack()` 返回 false
-16. **恼鬼穿墙实现**：`tick()` 中先 `setNoClip(true)`，调用父类 tick，再 `setNoClip(false)`
+13. **末影人投射物伤害瞬移**：末影人对投射物伤害尝试瞬移躲避（最多 64 次），成功则不受伤。需要在 `hurt()` 中处理
+14. **潜影贝护甲计算**：闭合时额外 +20 护甲，伤害计算时需考虑此状态
+15. **史莱姆分裂时机**：分裂必须在 `remove()` 中执行，而不是 `die()` 中
+16. **僵尸溺水转化**：`convertToDrowned()` 需要保留位置、生命值比例、装备、婴儿状态、自定义名称、持久化状态
+17. **女巫药水逻辑**：`tick()` 中自动检测是否需要喝药水，喝药水期间 `canRangedAttack()` 返回 false
+18. **恼鬼穿墙实现**：`tick()` 中先 `setNoClip(true)`，调用父类 tick，再 `setNoClip(false)`
 
 ### 袭击系统
 
-17. **Raid 指针管理**：`AbstractRaiderEntity` 持有 `Raid*` 指针，参与袭击时设置，离开时清空，需注意悬空指针
-18. **死亡通知顺序**：`die()` 中必须先通知 Raid 再调用父类 die()，顺序很重要
+19. **Raid 指针管理**：`AbstractRaiderEntity` 持有 `Raid*` 指针，参与袭击时设置，离开时清空，需注意悬空指针
+20. **死亡通知顺序**：`die()` 中必须先通知 Raid 再调用父类 die()，顺序很重要
 
 ### 目录与子目录 README
 
