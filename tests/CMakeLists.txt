@@ -98,6 +98,7 @@ add_executable(mc_tests
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
     common/item/enchantment/AttemptDamageItemTest.cpp
+    common/item/enchantment/MaceEnchantmentTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     common/entity/inventory/IRecipeHolderTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
@@ -894,6 +895,7 @@ add_executable(mc_tests
     client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
     common/item/enchantment/EnchantmentTest.cpp
+    common/item/enchantment/MaceEnchantmentTest.cpp
     # 鑷姩璺宠穬娴嬭瘯
     common/entity/movement/AutoJumpTest.cpp
     common/entity/player/SleepManagerTest.cpp

@@ -40,7 +40,7 @@ namespace enchant {
  * - 每级增加 2.5 点伤害对水生生物
  * - 最大 V 级
  *
- * MC 1.21 中穿刺属于 DAMAGE_EXCLUSIVE 组，与锋利、亡灵杀手、节肢杀手、致密、破甲互斥。
+ * 穿刺属于 DAMAGE_EXCLUSIVE 组，与锋利、亡灵杀手、节肢杀手、致密、破甲互斥。
  */
 class ImpalingEnchantment : public Enchantment {
 public:
@@ -69,7 +69,7 @@ public:
     /**
      * @brief 穿刺与伤害类附魔（锋利、亡灵杀手、节肢杀手）和重锤附魔（致密、破甲）互斥
      *
-     * MC 1.21 中穿刺属于 DAMAGE_EXCLUSIVE 组。
+     * 穿刺属于 DAMAGE_EXCLUSIVE 组。
      */
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override
     {
@@ -78,7 +78,7 @@ public:
         if (dynamic_cast<const DamageEnchantment*>(&other) != nullptr) {
             return false;
         }
-        // 与致密、破甲互斥（MC 1.21 DAMAGE_EXCLUSIVE 组）
+        // 与致密、破甲互斥（DAMAGE_EXCLUSIVE 组）
         if (other.id() == "minecraft:density" || other.id() == "minecraft:breach") {
             return false;
         }

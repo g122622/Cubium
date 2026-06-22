@@ -42,7 +42,7 @@ MaceItem::MaceItem(const ItemProperties& properties)
 
 bool MaceItem::canSmashAttack(const LivingEntity& entity)
 {
-    // MC 规则：下落距离 > 1.5 且不在鞘翅滑翔状态
+    // 下落距离 > 1.5 且不在鞘翅滑翔状态时触发砸地攻击
     return entity.fallDistance() > SMASH_ATTACK_FALL_THRESHOLD && !entity.isElytraFlying();
 }
 
@@ -51,7 +51,7 @@ f32 MaceItem::calculateSmashAttackDamage(f32 fallDistance)
     if (fallDistance <= 0.0f) {
         return 0.0f;
     }
-    // 分段函数对齐 MC 1.21.11 MaceItem.getAttackDamageBonus()
+    // 分段伤害函数
     if (fallDistance <= 3.0f) {
         return 4.0f * fallDistance;
     }
@@ -130,9 +130,7 @@ void MaceItem::postHitEntity(ItemStack& stack, LivingEntity& target, LivingEntit
 
 void MaceItem::applySmashAttackKnockback(IWorld& world, Entity& attacker, Entity& target)
 {
-    // 广播砸地攻击粒子事件（事件ID 2013，附加数据 750）
-    // MC 使用 levelEvent(2013, target.getOnPos(), 750) 广播粒子
-    // 项目中使用 world.broadcastLevelEvent() 或类似机制
+    // TODO: 广播砸地攻击粒子事件（事件ID 2013，附加数据 750），需要 world.broadcastLevelEvent() 实现
 
     // 查找目标周围3.5格内的所有生物实体
     auto targetPos = target.position();

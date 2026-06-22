@@ -2165,9 +2165,8 @@ void Player::attack(Entity& target)
                 if (isMaceSmashAttack && !mainHand.isEmpty()) {
                     i32 windBurstLevel = item::enchant::EnchantmentHelper::getWindBurstLevel(mainHand);
                     if (windBurstLevel > 0) {
-                        // 风爆将攻击者弹起，允许连续砸地连击
-                        // 对应 MC 的 ExplodeEffect，产生 TRIGGER 类型爆炸
-                        // 简化实现：直接给攻击者施加向上的速度
+                        // TODO: 应使用爆炸系统（ExplodeEffect/TRIGGER类型爆炸）实现风爆效果，
+                        // 包括对周围实体的击退、粒子效果等。当前简化实现仅施加向上速度。
                         f32 burstPower =
                             item::enchant::WindBurstEnchantment::getExplosionKnockbackMultiplier(windBurstLevel);
                         addVelocity(0.0f, burstPower * 0.5f, 0.0f);

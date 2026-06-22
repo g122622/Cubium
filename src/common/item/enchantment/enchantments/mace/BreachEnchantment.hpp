@@ -31,7 +31,7 @@ namespace enchant {
 /**
  * @brief 破甲附魔（重锤专属）
  *
- * MC 1.21 新增的重锤专属附魔，降低目标护甲的减伤效果。
+ * 重锤专属附魔，降低目标护甲的减伤效果。
  *
  * 效果：
  * - 每级降低 15% 护甲有效率
@@ -80,7 +80,7 @@ public:
     /**
      * @brief 破甲与伤害类附魔（锋利、亡灵杀手、节肢杀手）和致密互斥
      *
-     * MC 1.21 中致密和破甲属于 DAMAGE_EXCLUSIVE 组。
+     * 致密和破甲属于 DAMAGE_EXCLUSIVE 组。
      */
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override;
 

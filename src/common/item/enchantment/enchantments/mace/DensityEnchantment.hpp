@@ -31,7 +31,7 @@ namespace enchant {
 /**
  * @brief 致密附魔（重锤专属）
  *
- * MC 1.21 新增的重锤专属附魔，增加下落攻击每格伤害。
+ * 重锤专属附魔，增加下落攻击每格伤害。
  *
  * 效果：
  * - 每级增加 0.5 点每格下落伤害
@@ -80,7 +80,7 @@ public:
     /**
      * @brief 致密与伤害类附魔（锋利、亡灵杀手、节肢杀手）和破甲互斥
      *
-     * MC 1.21 中致密和破甲属于 DAMAGE_EXCLUSIVE 组。
+     * 致密和破甲属于 DAMAGE_EXCLUSIVE 组。
      */
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override;
 

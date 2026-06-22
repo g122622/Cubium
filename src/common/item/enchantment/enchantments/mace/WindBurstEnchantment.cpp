@@ -9,7 +9,7 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies of substantial portions of the Software.
+ * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,6 +21,8 @@
  */
 
 #include "WindBurstEnchantment.hpp"
+#include "BreachEnchantment.hpp"
+#include "DensityEnchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -28,13 +30,18 @@ namespace enchant {
 
 bool WindBurstEnchantment::isCompatibleWith(const Enchantment& other) const
 {
-    // 风爆不与伤害附魔互斥（MC 中风爆不属于 DAMAGE_EXCLUSIVE 组）
-    // 但风爆仍然与自身互斥（同种附魔不可叠加）
+    // 风爆不与伤害附魔互斥（风爆不属于 DAMAGE_EXCLUSIVE 组）
+    // 但风爆与致密和破甲可以共存
+    if (dynamic_cast<const DensityEnchantment*>(&other) != nullptr) {
+        return true;
+    }
+    if (dynamic_cast<const BreachEnchantment*>(&other) != nullptr) {
+        return true;
+    }
+    // 同种附魔不可叠加
     if (this == &other) {
         return false;
     }
-    // 类型兼容性检查：风爆是武器附魔，与其他武器附魔类型兼容
-    // 但按照 MC 规则，风爆可以与致密或破甲共存
     return isTypeCompatibleWith(other);
 }
 

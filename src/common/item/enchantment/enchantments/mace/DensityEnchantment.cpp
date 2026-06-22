@@ -24,6 +24,7 @@
 #include "../trident/ImpalingEnchantment.hpp"
 #include "../weapon/DamageEnchantment.hpp"
 #include "BreachEnchantment.hpp"
+#include "WindBurstEnchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -39,9 +40,13 @@ bool DensityEnchantment::isCompatibleWith(const Enchantment& other) const
     if (dynamic_cast<const BreachEnchantment*>(&other) != nullptr) {
         return false;
     }
-    // 致密与穿刺互斥（MC 1.21 DAMAGE_EXCLUSIVE 组）
+    // 致密与穿刺互斥（DAMAGE_EXCLUSIVE 组）
     if (dynamic_cast<const ImpalingEnchantment*>(&other) != nullptr) {
         return false;
+    }
+    // 致密与风爆兼容（风爆不属于 DAMAGE_EXCLUSIVE 组）
+    if (dynamic_cast<const WindBurstEnchantment*>(&other) != nullptr) {
+        return true;
     }
     return Enchantment::isCompatibleWith(other);
 }

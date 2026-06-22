@@ -24,6 +24,7 @@
 #include "DamageEnchantment.hpp"
 #include "../mace/BreachEnchantment.hpp"
 #include "../mace/DensityEnchantment.hpp"
+#include "../mace/WindBurstEnchantment.hpp"
 #include "../trident/ImpalingEnchantment.hpp"
 
 namespace mc {
@@ -95,9 +96,13 @@ bool DamageEnchantment::isCompatibleWith(const Enchantment& other) const
     if (dynamic_cast<const BreachEnchantment*>(&other) != nullptr) {
         return false;
     }
-    // 伤害类附魔与穿刺互斥（MC 1.21 DAMAGE_EXCLUSIVE 组）
+    // 伤害类附魔与穿刺互斥（DAMAGE_EXCLUSIVE 组）
     if (dynamic_cast<const ImpalingEnchantment*>(&other) != nullptr) {
         return false;
+    }
+    // 伤害类附魔与风爆兼容（风爆不属于 DAMAGE_EXCLUSIVE 组）
+    if (dynamic_cast<const WindBurstEnchantment*>(&other) != nullptr) {
+        return true;
     }
     return Enchantment::isCompatibleWith(other);
 }

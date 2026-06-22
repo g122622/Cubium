@@ -50,6 +50,10 @@ enchantments/
 │   ├── ImpalingEnchantment.hpp     # 穿刺附魔
 │   ├── LoyaltyEnchantment.hpp      # 忠诚附魔
 │   └── RiptideEnchantment.hpp      # 激流附魔
+├── mace/                          # 重锤附魔（3种）
+│   ├── BreachEnchantment.hpp/cpp  # 破甲附魔
+│   ├── DensityEnchantment.hpp/cpp # 致密附魔
+│   └── WindBurstEnchantment.hpp/cpp # 风爆附魔
 └── weapon/                        # 武器类附魔（7种）
     ├── BaneOfArthropodsEnchantment.hpp/cpp # 节肢杀手
     ├── DamageEnchantment.hpp/cpp   # 伤害附魔基类
