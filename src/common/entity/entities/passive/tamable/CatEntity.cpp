@@ -226,6 +226,11 @@ void CatEntity::registerGoals()
 
     // 优先级 13: 随机看向
     m_goalSelector.addGoal(13, new entity::ai::goal::LookRandomlyGoal(this));
+
+    // TODO: 待 NonTameRandomTargetGoal 实现后，添加猫的目标选择器：
+    //   优先级 1: 攻击兔子（未驯服时，NonTameRandomTargetGoal<RabbitEntity>(this, false, null)）
+    //   优先级 1: 攻击幼年海龟（未驯服时，NonTameRandomTargetGoal<TurtleEntity>(this, false, BABY_ON_LAND_SELECTOR)）
+    // 对齐 MC 原版 Cat.registerGoals() 中的 targetSelector 注册
 }
 
 void CatEntity::_setupTamedAI()
