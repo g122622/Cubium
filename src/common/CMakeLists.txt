@@ -387,6 +387,7 @@ add_library(mc_common STATIC
     entity/ai/pathfinding/RavagerNodeProcessor.cpp
     entity/ai/pathfinding/PathFinder.cpp
     entity/ai/pathfinding/PathNavigator.cpp
+    entity/ai/util/PiglinAi.cpp
     entity/ai/util/RandomPositionGenerator.cpp
     entity/inventory/IInventory.cpp
     entity/inventory/Slot.cpp

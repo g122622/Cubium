@@ -848,6 +848,15 @@ BlockTag& BlockTags::WALLS()
     return *tag;
 }
 
+BlockTag& BlockTags::GUARDED_BY_PIGLINS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "guarded_by_piglins"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -2440,6 +2449,27 @@ void BlockTags::initialize()
         // 树脂砖墙
         ResourceLocation("minecraft", "resin_brick_wall")});
     tags[walls->getId()] = std::move(walls);
+
+    // 创建 GUARDED_BY_PIGLINS 标签（猪灵守护的方块，破坏时激怒附近猪灵）
+    auto guardedByPiglins = std::make_unique<BlockTag>(ResourceLocation("minecraft", "guarded_by_piglins"));
+    guardedByPiglins->addAll({// 箱子
+        ResourceLocation("minecraft", "chest"),
+        ResourceLocation("minecraft", "trapped_chest"),
+        // 末影箱
+        ResourceLocation("minecraft", "ender_chest"),
+        // 木桶
+        ResourceLocation("minecraft", "barrel"),
+        // 金块相关
+        ResourceLocation("minecraft", "gold_block"),
+        ResourceLocation("minecraft", "raw_gold_block"),
+        // 金矿石
+        ResourceLocation("minecraft", "gold_ore"),
+        ResourceLocation("minecraft", "deepslate_gold_ore"),
+        // 下界金矿石
+        ResourceLocation("minecraft", "nether_gold_ore"),
+        // 猪灵所需方块
+        ResourceLocation("minecraft", "gilded_blackstone")});
+    tags[guardedByPiglins->getId()] = std::move(guardedByPiglins);
 
     s_initialized = true;
 }

@@ -23,6 +23,7 @@
 
 #include "BarrelBlock.hpp"
 
+#include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -138,7 +139,8 @@ ActionResultType BarrelBlock::onBlockActivated(const BlockState& state,
         if (world.openContainer(ContainerType::Generic9x3, pos, player)) {
             barrel->openContainer(&player);
             player.awardCustomStat(ResourceLocation(stats::OPEN_BARREL), 1);
-            // TODO: 当猪灵AI实现后，添加 PiglinAi::angerNearbyPiglins(world, player, true)
+            // 打开木桶时激怒附近能看到玩家的猪灵
+            entity::PiglinAi::angerNearbyPiglins(world, player, true);
             return ActionResultType::Consume;
         }
     }

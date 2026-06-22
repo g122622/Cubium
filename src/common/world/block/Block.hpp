@@ -1041,7 +1041,8 @@ public:
      * 与 onBlockRemoved 的区别：此方法接收玩家信息，可区分创造/生存模式。
      * onBlockRemoved 在方块状态变更后调用，不包含玩家上下文。
      *
-     * 默认实现为空。需要特殊行为的方块应重写此方法。
+     * 默认实现检查 GUARDED_BY_PIGLINS 标签，如果方块属于此标签则激怒附近猪灵。
+     * 需要额外行为的方块应重写此方法（记得调用基类实现以保留猪灵愤怒行为）。
      *
      * @param world 世界引用
      * @param pos 方块位置
@@ -1050,13 +1051,7 @@ public:
      *
      * 参考: net.minecraft.block.Block#playerWillDestroy
      */
-    virtual void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
-    {
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(state);
-        MC_UNUSED(player);
-    }
+    virtual void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player);
 
     /**
      * @brief 方块被破坏后的额外生成处理

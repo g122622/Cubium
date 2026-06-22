@@ -23,6 +23,7 @@
 
 #include "ChestBlock.hpp"
 
+#include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -226,6 +227,9 @@ ActionResultType ChestBlock::onBlockActivated(const BlockState& state,
         } else {
             player.awardCustomStat(ResourceLocation(stats::OPEN_CHEST), 1);
         }
+
+        // 打开箱子时激怒附近能看到玩家的猪灵
+        entity::PiglinAi::angerNearbyPiglins(world, player, true);
 
         // 双箱时，同步增加另一半的打开计数
         // 参考 MC Java: CompoundContainer.startOpen() 会转发到两个半箱

@@ -430,6 +430,9 @@ public:
     /// 参考: net.minecraft.tags.BlockTags.WALLS
     static BlockTag& WALLS();
 
+    /// 猪灵守护的方块标签（破坏时激怒附近猪灵）
+    static BlockTag& GUARDED_BY_PIGLINS();
+
     /**
      * @brief 初始化所有内置标签
      *

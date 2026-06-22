@@ -454,6 +454,86 @@ void PiglinEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 16.0);
 }
 
+// ========== PiglinEntity IAngerable 接口实现 ==========
+
+void PiglinEntity::setAttackTarget(LivingEntity* target)
+{
+    // 同步设置MobEntity的攻击目标（用于目标选择器）和IAngerable的攻击目标
+    MobEntity::setAttackTarget(target);
+    m_attackTarget = target;
+}
+
+LivingEntity* PiglinEntity::getAttackTarget() const
+{
+    return m_attackTarget;
+}
+
+void PiglinEntity::setRevengeTarget(LivingEntity* target)
+{
+    m_revengeTarget = target;
+    m_revengeTimer = 100; // 5秒复仇计时
+}
+
+LivingEntity* PiglinEntity::getRevengeTarget() const
+{
+    return m_revengeTarget;
+}
+
+i32 PiglinEntity::getRevengeTimer() const
+{
+    return m_revengeTimer;
+}
+
+bool PiglinEntity::isAngry() const
+{
+    return m_angry || m_angerTime > 0;
+}
+
+void PiglinEntity::setAngry(bool angry)
+{
+    if (angry) {
+        m_angerTime = 600; // 30秒愤怒持续时间
+    } else {
+        m_angerTime = 0;
+        m_attackTarget = nullptr;
+        MobEntity::setAttackTarget(nullptr);
+    }
+    m_angry = angry;
+}
+
+i32 PiglinEntity::getAngerTime() const
+{
+    return m_angerTime;
+}
+
+void PiglinEntity::setAngerTime(i32 time)
+{
+    m_angerTime = time;
+}
+
+void PiglinEntity::tick()
+{
+    AbstractPiglinEntity::tick();
+
+    // 更新愤怒计时器
+    if (m_angerTime > 0) {
+        m_angerTime--;
+        if (m_angerTime <= 0) {
+            m_angry = false;
+            m_attackTarget = nullptr;
+            MobEntity::setAttackTarget(nullptr);
+        }
+    }
+
+    // 更新复仇计时器
+    if (m_revengeTimer > 0) {
+        m_revengeTimer--;
+        if (m_revengeTimer <= 0) {
+            m_revengeTarget = nullptr;
+        }
+    }
+}
+
 // PiglinBruteEntity
 std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* world)
 {

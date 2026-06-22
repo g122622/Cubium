@@ -6,6 +6,8 @@
 
 ```
 util/
+├── PiglinAi.hpp             # 猪灵AI工具类（愤怒传播、金盔甲检测等）
+├── PiglinAi.cpp             # 猪灵AI工具类实现
 ├── RandomPositionGenerator.hpp  # 随机位置生成器（为AI目标生成智能随机位置）
 ├── RandomPositionGenerator.cpp  # 随机位置生成器实现
 └── README.md                    # 本文档
@@ -13,7 +15,7 @@ util/
 
 ## 内部模块关系
 
-本目录只有一个工具类 `RandomPositionGenerator`，无内部模块依赖。
+- `PiglinAi` 独立于 `RandomPositionGenerator`，两者无依赖关系。
 
 ## 上下游外部依赖关系
 
@@ -21,22 +23,21 @@ util/
 
 | 模块 | 依赖内容 |
 |------|----------|
-| `entity/core` | `CreatureEntity` - 生物实体，提供位置、世界引用、随机数、getPathWeight() |
-| `world` | `IWorld` - 世界查询接口（方块状态、流体、亮度等）、`WorldConstants` - 高度限制常量 |
-| `util/math` | `Random` - 随机数生成、`Vector3` - 位置计算、`MathUtils` - 数学工具 |
+| `entity/core` | `EntityUtils` - 实体查询、`Entity` - canSee方法 |
+| `entity/entities/monster/nether` | `PiglinEntity` - 猪灵实体类型 |
+| `entity/interfaces` | `IAngerable` - 愤怒接口 |
+| `world` | `IWorld` - 世界查询接口、`GameRules` - UNIVERSAL_ANGER规则 |
+| `entity/entities/player` | `Player` - 玩家实体 |
 
 ### 下游依赖（依赖本模块的外部模块）
 
 | 模块 | 使用方式 |
 |------|----------|
-| `ai/goal/goals/RandomWalkingGoal` | 随机漫步 - `findRandomTarget()` |
-| `ai/goal/goals/PanicGoal` | 恐慌逃跑 - `findRandomTargetBlockAwayFrom()` |
-| `ai/goal/goals/AvoidEntityGoal` | 避开实体 - `findRandomTargetBlockAwayFrom()` |
-| `ai/goal/goals/movement/WaterAvoidingRandomFlyingGoal` | 避水飞行 - `findRandomTargetAvoidWater()` |
-| `ai/goal/goals/special/DolphinGoals` | 海豚寻宝 - `findRandomTargetTowardsScaled()`、`findRandomTargetBlockTowards()` |
-| `ai/goal/goals/special/BeeGoals` | 蜜蜂导航 |
-| `ai/goal/goals/special/TurtleGoals` | 海龟行为 |
-| `ai/goal/goals/special/SpecialGoals` | 通用特殊目标 - `getLandPos()` |
+| `world/block/Block.cpp` | `PiglinAi::angerNearbyPiglins()` - 破坏GUARDED_BY_PIGLINS方块时激怒猪灵 |
+| `world/block/blocks/functional/BarrelBlock.cpp` | `PiglinAi::angerNearbyPiglins()` - 打开木桶时激怒猪灵 |
+| `world/block/blocks/ChestBlock.cpp` | `PiglinAi::angerNearbyPiglins()` - 打开箱子时激怒猪灵 |
+| `world/block/blocks/nether/EnderChestBlock.cpp` | `PiglinAi::angerNearbyPiglins()` - 打开末影箱时激怒猪灵 |
+| `world/block/blocks/ShulkerBoxBlock.cpp` | `PiglinAi::angerNearbyPiglins()` - 打开潜影盒时激怒猪灵 |
 
 ## 容易踩的坑
 

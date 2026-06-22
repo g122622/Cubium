@@ -26,11 +26,11 @@
 #include "common/core/Types.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/entity/interfaces/IAngerable.hpp"
 #include "common/entity/interfaces/ICrossbowUser.hpp"
 #include "common/entity/interfaces/IFlinging.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <memory>
-
 #include <optional>
 
 namespace mc {
@@ -215,7 +215,7 @@ private:
  *
  * 下界的敌对/中立生物，可交易。
  */
-class PiglinEntity : public AbstractPiglinEntity, public entity::ICrossbowUser {
+class PiglinEntity : public AbstractPiglinEntity, public entity::ICrossbowUser, public entity::IAngerable {
 public:
     /**
      * @brief 工厂方法
@@ -252,6 +252,22 @@ public:
     void shootCrossbow(::mc::LivingEntity* target, ::mc::ItemStack& crossbow, f32 charge) override;
     [[nodiscard]] i32 getCrossbowChargeTime() const override { return 25; }
 
+    // ========== IAngerable 接口 ==========
+
+    void setAttackTarget(LivingEntity* target) override;
+    [[nodiscard]] LivingEntity* getAttackTarget() const override;
+    void setRevengeTarget(LivingEntity* target) override;
+    [[nodiscard]] LivingEntity* getRevengeTarget() const override;
+    [[nodiscard]] i32 getRevengeTimer() const override;
+    [[nodiscard]] bool isAngry() const override;
+    void setAngry(bool angry) override;
+    [[nodiscard]] i32 getAngerTime() const override;
+    void setAngerTime(i32 time) override;
+
+    // ========== tick ==========
+
+    void tick() override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
@@ -259,6 +275,13 @@ protected:
 private:
     bool m_isBaby = false;
     bool m_isChargingCrossbow = false;
+
+    // IAngerable 成员
+    LivingEntity* m_attackTarget = nullptr;
+    LivingEntity* m_revengeTarget = nullptr;
+    i32 m_revengeTimer = 0;
+    bool m_angry = false;
+    i32 m_angerTime = 0;
 };
 
 /**

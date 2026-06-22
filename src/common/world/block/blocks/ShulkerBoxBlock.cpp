@@ -22,6 +22,7 @@
  */
 
 #include "common/world/block/blocks/ShulkerBoxBlock.hpp"
+#include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -130,6 +131,8 @@ ActionResultType ShulkerBoxBlock::onBlockActivated(const BlockState& state,
     if (world.openContainer(ContainerType::ShulkerBox, pos, player)) {
         shulkerBox->openContainer(&player);
         player.awardCustomStat(ResourceLocation(stats::OPEN_SHULKER_BOX), 1);
+        // 打开潜影盒时激怒附近能看到玩家的猪灵
+        entity::PiglinAi::angerNearbyPiglins(world, player, true);
         return ActionResultType::Consume;
     }
 

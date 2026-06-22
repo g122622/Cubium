@@ -52,6 +52,7 @@
 #include "FireInfoRegistry.hpp"
 #include "Material.hpp"
 #include "PlantType.hpp"
+#include "common/entity/ai/util/PiglinAi.hpp"
 #include "registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
@@ -449,6 +450,18 @@ void Block::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState&
     (void)world;
     (void)pos;
     (void)state;
+}
+
+void Block::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+{
+    MC_UNUSED(pos);
+
+    // 检查方块是否属于 GUARDED_BY_PIGLINS 标签
+    // 破坏这些方块会激怒附近的猪灵（不需要视线检查）
+    // 参考 MC 1.21.11 Block.playerWillDestroy()
+    if (BlockTags::GUARDED_BY_PIGLINS().contains(state)) {
+        entity::PiglinAi::angerNearbyPiglins(world, player, false);
+    }
 }
 
 void Block::spawnAfterBreak(

@@ -20,6 +20,7 @@
  */
 
 #include "common/world/block/blocks/nether/EnderChestBlock.hpp"
+#include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -143,7 +144,8 @@ ActionResultType EnderChestBlock::onBlockActivated(const BlockState& state,
         // 奖励统计
         player.awardCustomStat(ResourceLocation(stats::OPEN_ENDERCHEST), 1);
 
-        // TODO: 当猪灵AI实现后，添加 PiglinAi::angerNearbyPiglins(world, player, true)
+        // 打开末影箱时激怒附近能看到玩家的猪灵
+        entity::PiglinAi::angerNearbyPiglins(world, player, true);
 
         return ActionResultType::Consume;
     }
