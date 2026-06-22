@@ -607,6 +607,8 @@ add_executable(mc_tests
     server/core/PacketHandlerTest.cpp
     # ServerPlayer 消息发送测试
     server/player/ServerPlayerMessageTest.cpp
+    # ServerPlayer PvP 保护机制测试
+    server/player/ServerPlayerPvpTest.cpp
     # 维度管理器测试
     server/dimension/ServerDimensionManagerTest.cpp
     server/weather/WeatherManagerTest.cpp

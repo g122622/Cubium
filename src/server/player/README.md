@@ -105,4 +105,16 @@ if (player->canReceiveMessages()) {
 
 ### 9. PvP 保护调用链
 
-`ServerPlayer::hurt()` → 检查伤害来源是否为玩家 → `canHarmPlayer()` → 先检查 `IWorld::isPvpAllowed()`（读取 PVP 游戏规则）→ 再委托 `Player::canHarmPlayer()` 检查队伍友伤。驯服动物（如狼）通过 `TameableEntity::wantsToAttack()` 也调用 `canHarmPlayer()` 判断主人是否可攻击目标玩家。
+`ServerPlayer::hurt()` → 检查伤害来源是否为玩家 → `attackingPlayer->canHarmPlayer(*this)` → 先检查 `IWorld::isPvpAllowed()`（读取 PVP 游戏规则）→ 再委托 `Player::canHarmPlayer()` 检查队伍友伤。驯服动物（如狼）通过 `TameableEntity::wantsToAttack()` 也调用 `canHarmPlayer()` 判断主人是否可攻击目标玩家。
+
+**注意**：`canHarmPlayer(target)` 的调用约定是 this=攻击者, param=目标。在 `hurt()` 中的调用是 `attackingPlayer->canHarmPlayer(*this)`，即攻击者检查自己能否伤害被攻击者。
+
+### 10. 单元测试
+
+PvP 保护机制的单元测试位于：
+
+| 测试文件 | 覆盖范围 |
+|---------|---------|
+| `tests/entity/PlayerCanHarmPlayerTest.cpp` | `Player::canHarmPlayer()` 队友友伤检查（10 个测试） |
+| `tests/common/world/gamerule/PvpGameRuleTest.cpp` | PVP 游戏规则默认值、设置、重置、序列化（17 个测试） |
+| `tests/server/player/ServerPlayerPvpTest.cpp` | `ServerPlayer::canHarmPlayer()` PvP 规则 + 队友友伤组合检查（14 个测试）、`ServerPlayer::hurt()` PvP 拦截检查（12 个测试） |

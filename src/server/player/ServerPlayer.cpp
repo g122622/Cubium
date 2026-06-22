@@ -771,12 +771,12 @@ bool ServerPlayer::canHarmPlayer(const Player& target) const
 
 bool ServerPlayer::hurt(DamageSource& source, f32 amount)
 {
-    // PvP 保护检查：如果伤害来源是玩家，检查 canHarmPlayer
+    // PvP 保护检查：如果伤害来源是玩家，检查攻击者能否伤害本玩家
     Entity* sourceEntity = source.getEntity();
     if (sourceEntity != nullptr) {
         Player* attackingPlayer = dynamic_cast<Player*>(sourceEntity);
         if (attackingPlayer != nullptr && attackingPlayer != this) {
-            if (!canHarmPlayer(*attackingPlayer)) {
+            if (!attackingPlayer->canHarmPlayer(*this)) {
                 return false;
             }
         }
