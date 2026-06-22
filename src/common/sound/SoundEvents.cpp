@@ -393,6 +393,9 @@ const ResourceLocation BLOCK_BEEHIVE_WORK("minecraft:block.beehive.work");
 const ResourceLocation BLOCK_BELL_USE("minecraft:block.bell.use");
 const ResourceLocation BLOCK_BELL_RESONATE("minecraft:block.bell.resonate");
 
+const ResourceLocation BLOCK_AMETHYST_BLOCK_CHIME("minecraft:block.amethyst_block.chime");
+const ResourceLocation BLOCK_AMETHYST_BLOCK_RESONATE("minecraft:block.amethyst_block.resonate");
+
 const ResourceLocation BLOCK_GRINDSTONE_USE("minecraft:block.grindstone.use");
 
 const ResourceLocation BLOCK_BLASTFURNACE_FIRE_CRACKLE("minecraft:block.blastfurnace.fire_crackle");

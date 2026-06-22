@@ -1912,12 +1912,24 @@ public:
     /**
      * @brief 检查是否应播放紫水晶步声音效
      *
-     * 当脚下方块属于 CRYSTAL_SOUND_BLOCKS 时应播放紫水晶共振音效。
+     * 当脚下方块属于 CRYSTAL_SOUND_BLOCKS 且距离上次播放已过 20 tick 冷却时，
+     * 应播放紫水晶共振音效。
      *
      * @param blockState 方块状态
      * @return 如果应播放紫水晶音效返回 true
      */
     [[nodiscard]] bool shouldPlayAmethystStepSound(const BlockState& blockState) const;
+
+    /**
+     * @brief 播放紫水晶共振铃声
+     *
+     * 使用惰性衰减模型更新紫水晶声音强度：
+     * 1. 用 0.997^elapsed_ticks 补偿自上次播放以来的衰减
+     * 2. 累加 0.07 并钳制到 [0, 1]
+     * 3. 以强度计算音量和音调，播放 block.amethyst_block.chime
+     * 4. 记录当前 tick 为 lastCrystalSoundPlayTick
+     */
+    void playAmethystStepSound();
 
     /**
      * @brief 检查实体是否无视碰撞
@@ -2061,6 +2073,10 @@ protected:
     // 运动速度乘数（用于甜浆果丛等减速效果）
     Vector3 m_motionMultiplier = Vector3(1.0f, 1.0f, 1.0f);
     bool m_hasMotionMultiplier = false;
+
+    // 紫水晶步声共振
+    f32 m_crystalSoundIntensity = 0.0f; ///< 紫水晶共振铃声音量强度 [0, 1]
+    i32 m_lastCrystalSoundPlayTick = 0; ///< 上次播放紫水晶铃声的游戏刻
 
     // 乘客/骑乘系统
     std::vector<EntityId> m_passengers;     // 乘客列表

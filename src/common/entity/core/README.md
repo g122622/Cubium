@@ -479,7 +479,7 @@
     | 播放上方正常步声 + 下方沉闷步声 |
     | `INSIDE_STEP_SOUND_BLOCKS` | 细雪、幽匿脉络、发光地衣、睡莲、小型紫水晶芽、粉红色花瓣、野花、落叶层
     | 只播放上方方块的步声（替代脚下方块的步声） | | `CRYSTAL_SOUND_BLOCKS` | 紫水晶块、紫水晶母岩
-    | 播放紫水晶共振铃声（`block.amethyst_block.chime`） |
+    | 播放紫水晶共振铃声（`block.amethyst_block.chime`），带强度累积和 20 tick 冷却 |
 
     ## #Entity::playStepSound 逻辑流程
 
@@ -492,16 +492,23 @@
         → 否则 INSIDE_STEP_SOUND_BLOCKS
           → 播放上方方块正常步声
         → 如果 shouldPlayAmethystStepSound(blockState) // 始终检查脚下方块
-          → 播放紫水晶铃声
+          → playAmethystStepSound() // 强度累积 + 20 tick 冷却
         → return
       → 否则（普通方块）
         → 播放脚下方块正常步声
         → 如果 shouldPlayAmethystStepSound(blockState)
-          → 播放紫水晶铃声
+          → playAmethystStepSound() // 强度累积 + 20 tick 冷却
     ```
 
         * *重要 *
         *：紫水晶铃声始终检查脚下方块（`blockState`），而非上方方块（`primaryState`），与 MC 原版一致。
+
+    - **紫水晶铃声强度累积机制**
+        - 字段：`m_crystalSoundIntensity`（f32，0~1）和 `m_lastCrystalSoundPlayTick`（i32）
+        - 惰性衰减模型：强度不在每 tick 更新，仅在 `playAmethystStepSound()` 被调用时一次性补偿衰减
+        - 流程：elapsedTicks → intensity *= 0.997^elapsedTicks → intensity = min(1.0, intensity + 0.07) → pitch = 0.5 + intensity * random * 1.2 → volume = 0.1 + intensity * 1.2 → playSound → lastCrystalSoundPlayTick = ticksExisted
+        - 冷却：`shouldPlayAmethystStepSound()` 要求距上次播放 ≥ 20 tick
+        - 这两个字段不参与 NBT 序列化，实体重载后从零开始
 
         ## #Player::playStepSound 重写
 
@@ -512,9 +519,11 @@
 
         ## #容易踩的坑
 
-    - **紫水晶铃声检查对象 *
-        *：`shouldPlayAmethystStepSound` 必须检查脚下方块（`blockState`），不是上方方块（`primaryState`）。站在紫水晶块上铺有地毯时，地毯是
+    - **紫水晶铃声检查对象**
+        ：`shouldPlayAmethystStepSound` 必须检查脚下方块（`blockState`），不是上方方块（`primaryState`）。站在紫水晶块上铺有地毯时，地毯是
         COMBINATION，紫水晶是脚下方块，铃声应触发。
+    - **紫水晶铃声强度不持久化**
+        ：`m_crystalSoundIntensity` 和 `m_lastCrystalSoundPlayTick` 不参与 NBT 序列化，这是 MC 原版行为。实体重载后强度从零开始重新累积。
     -
     **Player 不需要重复 INSIDE / COMBINATION 判断 *
         *：Player 的 `playStepSound` 非水中情况直接调用 `Entity::playStepSound`，避免重复判断导致双重步声。

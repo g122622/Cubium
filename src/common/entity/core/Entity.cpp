@@ -421,12 +421,9 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
                 f32 pitch = soundType.getPitch() * (0.8f + randomValue * 0.4f);
                 playSound(soundType.getStepSound(), volume, pitch);
             }
-            // 紫水晶共振铃声（始终检查脚下方块，与MC原版一致）
+            // 紫水晶共振铃声（始终检查脚下方块）
             if (shouldPlayAmethystStepSound(*blockState)) {
-                const BlockSoundType& chimeSoundType = blockState->getSoundType();
-                playSound(ResourceLocation("minecraft", "block.amethyst_block.chime"),
-                    chimeSoundType.getVolume() * 0.075f,
-                    chimeSoundType.getPitch() * (0.8f + randomValue * 0.4f));
+                playAmethystStepSound();
             }
             return;
         }
@@ -442,12 +439,8 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
     playSound(soundType.getStepSound(), volume, pitch);
 
     // 紫水晶共振铃声
-    // TODO: 完整实现需要 m_crystalSoundIntensity 强度累积字段和 m_lastCrystalSoundPlayTick 冷却时间字段，
-    // 以及 playAmethystStepSound() 方法实现强度衰减（0.997^ticks）和累积（+0.07）逻辑，
-    // 音效事件为 block.amethyst_block.chime，音量 = 0.1 + intensity * 1.2，音调 = 0.5 + intensity * random * 1.2
     if (shouldPlayAmethystStepSound(*blockState)) {
-        // 简化实现：直接播放紫水晶步声，无强度累积
-        playSound(ResourceLocation("minecraft", "block.amethyst_block.chime"), volume * 0.5f, pitch);
+        playAmethystStepSound();
     }
 }
 
@@ -496,7 +489,25 @@ void Entity::playMuffledStepSound(const BlockState& blockState)
 
 bool Entity::shouldPlayAmethystStepSound(const BlockState& blockState) const
 {
-    return BlockTags::CRYSTAL_SOUND_BLOCKS().contains(blockState);
+    return BlockTags::CRYSTAL_SOUND_BLOCKS().contains(blockState) &&
+        static_cast<i32>(m_ticksExisted) >= m_lastCrystalSoundPlayTick + 20;
+}
+
+void Entity::playAmethystStepSound()
+{
+    // 惰性衰减：用 0.997^(elapsed_ticks) 补偿自上次播放以来的强度衰减
+    i32 elapsedTicks = static_cast<i32>(m_ticksExisted) - m_lastCrystalSoundPlayTick;
+    m_crystalSoundIntensity = m_crystalSoundIntensity * std::pow(0.997f, static_cast<f32>(elapsedTicks));
+
+    // 累加并钳制到 [0, 1]
+    m_crystalSoundIntensity = std::min(1.0f, m_crystalSoundIntensity + 0.07f);
+
+    // 计算音调和音量
+    f32 pitch = 0.5f + m_crystalSoundIntensity * m_random.nextFloat() * 1.2f;
+    f32 volume = 0.1f + m_crystalSoundIntensity * 1.2f;
+
+    playSound(SoundEvents::BLOCK_AMETHYST_BLOCK_CHIME, volume, pitch);
+    m_lastCrystalSoundPlayTick = static_cast<i32>(m_ticksExisted);
 }
 
 void Entity::setPosition(f32 x, f32 y, f32 z)

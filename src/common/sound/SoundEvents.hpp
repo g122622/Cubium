@@ -431,6 +431,10 @@ extern const ResourceLocation BLOCK_BEEHIVE_WORK;
 extern const ResourceLocation BLOCK_BELL_USE;
 extern const ResourceLocation BLOCK_BELL_RESONATE;
 
+/// 紫水晶
+extern const ResourceLocation BLOCK_AMETHYST_BLOCK_CHIME;
+extern const ResourceLocation BLOCK_AMETHYST_BLOCK_RESONATE;
+
 /// 研磨台
 extern const ResourceLocation BLOCK_GRINDSTONE_USE;
 
