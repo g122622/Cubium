@@ -432,6 +432,7 @@ add_executable(mc_tests
     common/world/block/blocks/CropBlocksTest.cpp
     common/world/block/blocks/StemBlocksTest.cpp
     common/world/block/blocks/StemGrowthLogicTest.cpp
+    common/world/block/blocks/TryGrowFruitTest.cpp
     common/world/block/blocks/GolemBlockTest.cpp
     common/world/block/blocks/PumpkinCarveTest.cpp
     common/world/block/blocks/RespawnAnchorBlockTest.cpp
