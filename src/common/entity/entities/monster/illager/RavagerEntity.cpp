@@ -335,20 +335,25 @@ void RavagerEntity::registerGoals()
 
     // 目标选择器
     // 优先级 2: 被攻击后反击，呼叫同伴
-    goalSelector().addGoal(2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    // MC 原版: HurtByTargetGoal(this, Raider.class).setAlertOthers()
+    // 劫掠兽不会反击其他灾厄村民
+    targetSelector().addGoal(
+        2, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+            return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
+        }));
 
     // 优先级 3: 攻击玩家
-    goalSelector().addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+    targetSelector().addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
     // 优先级 4: 攻击村民
     // TODO: VillagerEntity 需要实现后添加
-    // goalSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<VillagerEntity>>(this,
+    // targetSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<VillagerEntity>>(this,
     // true));
 
     // 优先级 4: 攻击铁傀儡
     // TODO: IronGolemEntity 需要实现后添加
-    // goalSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this,
-    // true));
+    // targetSelector().addGoal(4,
+    // std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 }
 
 void RavagerEntity::registerAttributes()

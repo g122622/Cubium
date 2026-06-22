@@ -66,11 +66,26 @@ target/
 |------|------|
 | `mob` | 拥有此目标的生物 |
 | `alertAllies` | 是否警醒附近同类实体 |
+| `ignoreDamagePredicate` | 攻击者排除谓词（可选），返回 true 表示不对该攻击者反击（对应 MC toIgnoreDamage） |
+
+**链式方法**:
+| 方法 | 说明 |
+|------|------|
+| `setAlertOthers(ignoreAlertPredicate)` | 设置警醒盟友时的排除谓词，返回 `*this` 支持链式调用。调用此方法会自动启用 `alertAllies`（对应 MC setAlertOthers） |
 
 **行为细节**:
+- `shouldExecute()` 中检查 `ignoreDamagePredicate`：若攻击者匹配排除谓词，不进行反击
 - `startExecuting()` 警醒盟友时，跳过与攻击者同盟的实体（通过 `isAlliedTo()` 检查），避免友军误伤
+- `startExecuting()` 警醒盟友时，检查 `ignoreAlertPredicate`：若盟友匹配排除谓词，不警醒该盟友
 
-**参考**: `net.minecraft.entity.ai.goal.HurtByTargetGoal`
+**MC 原版映射**:
+| MC Java | C++ |
+|---------|-----|
+| `HurtByTargetGoal(this, Guardian.class)` | `HurtByTargetGoal(this, true, [](auto* a) { return isGuardian(a); })` |
+| `.setAlertOthers()` | `.setAlertOthers({})` 或构造时 `alertAllies=true` |
+| `.setAlertOthers(ZombifiedPiglin.class)` | `.setAlertOthers([](auto* a) { return isZombifiedPiglin(a); })` |
+
+**参考**: `net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal`
 
 ---
 

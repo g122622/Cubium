@@ -198,7 +198,12 @@ void PillagerEntity::registerGoals()
 
     // 目标选择器
     // 优先级 1: 被攻击后反击并呼叫支援
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    // MC 原版: HurtByTargetGoal(this, Raider.class).setAlertOthers()
+    // 掠夺者不会反击其他灾厄村民
+    m_targetSelector.addGoal(
+        1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+            return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
+        }));
 
     // 优先级 2: 攻击玩家
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
@@ -284,7 +289,12 @@ void VindicatorEntity::registerGoals()
 
     // 目标选择器
     // 优先级 1: 被攻击后反击并呼叫支援
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    // MC 原版: HurtByTargetGoal(this, Raider.class).setAlertOthers()
+    // 卫道士不会反击其他灾厄村民
+    m_targetSelector.addGoal(
+        1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+            return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
+        }));
 
     // 优先级 2: 攻击玩家
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));

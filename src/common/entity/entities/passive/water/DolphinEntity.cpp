@@ -266,9 +266,14 @@ void DolphinEntity::registerGoals()
 
     // 目标选择器
     // 优先级 1: 被攻击后反击，并呼叫同类
-    // TODO: MC 原版 HurtByTargetGoal 排除 Guardian.class（海豚不会反击守卫者），
-    // 当前 HurtByTargetGoal 不支持排除特定实体类型，待扩展后添加排除逻辑
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    // MC 原版: HurtByTargetGoal(this, Guardian.class).setAlertOthers()
+    // 海豚不会反击守卫者和远古守卫者，但会警醒同类
+    m_targetSelector.addGoal(
+        1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+            if (!attacker) return false;
+            auto type = attacker->typeId();
+            return type == entity::EntityTypeIdNumber::GUARDIAN || type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+        }));
 }
 
 void DolphinEntity::registerAttributes()

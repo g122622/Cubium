@@ -239,6 +239,12 @@ HurtByTargetGoal::HurtByTargetGoal(MobEntity* mob, bool alertAllies)
     , m_alertAllies(alertAllies)
 {}
 
+HurtByTargetGoal::HurtByTargetGoal(MobEntity* mob, bool alertAllies, TargetPredicate ignoreDamagePredicate)
+    : TargetGoal(mob, true)
+    , m_alertAllies(alertAllies)
+    , m_ignoreDamagePredicate(std::move(ignoreDamagePredicate))
+{}
+
 bool HurtByTargetGoal::shouldExecute()
 {
     if (!m_mob) return false;
@@ -255,6 +261,14 @@ bool HurtByTargetGoal::shouldExecute()
         return false;
     }
 
+    // 检查攻击者是否应被排除（对应 MC toIgnoreDamage 检查）
+    // MC Java: for (Class<?> oclass : this.toIgnoreDamage) {
+    //     if (oclass.isAssignableFrom(livingentity.getClass())) return false;
+    // }
+    if (m_ignoreDamagePredicate && m_ignoreDamagePredicate(attacker)) {
+        return false;
+    }
+
     // 检查是否适合作为目标
     if (!isSuitableTarget(attacker)) {
         return false;
@@ -263,6 +277,13 @@ bool HurtByTargetGoal::shouldExecute()
     m_target = attacker;
     m_timestamp = timestamp;
     return true;
+}
+
+HurtByTargetGoal& HurtByTargetGoal::setAlertOthers(TargetPredicate ignoreAlertPredicate)
+{
+    m_alertAllies = true;
+    m_ignoreAlertPredicate = std::move(ignoreAlertPredicate);
+    return *this;
 }
 
 void HurtByTargetGoal::startExecuting()
@@ -287,13 +308,24 @@ void HurtByTargetGoal::startExecuting()
             // 不能警醒目标本身
             if (ally == m_target) continue;
 
-            // 不警醒与攻击者盟友的实体
+            // 不警醒与攻击者同盟的实体
             if (ally->isAlliedTo(*m_target)) continue;
 
             // 检查是否是同类型（使用 typeId 比较）
-            if (ally->typeId() == m_mob->typeId()) {
-                ally->setAttackTarget(m_target);
+            if (ally->typeId() != m_mob->typeId()) {
+                continue;
             }
+
+            // 检查盟友是否应被排除（对应 MC toIgnoreAlert 检查）
+            // MC Java: for (Class<?> oclass : this.toIgnoreAlert) {
+            //     if (mob.getClass() == oclass) { flag = true; break; }
+            // }
+            // 注意：MC 使用精确类匹配（==），而非 isAssignableFrom
+            if (m_ignoreAlertPredicate && m_ignoreAlertPredicate(ally)) {
+                continue;
+            }
+
+            ally->setAttackTarget(m_target);
         }
     }
 }

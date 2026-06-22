@@ -128,6 +128,11 @@ private:
  * @brief 被攻击后反击目标
  *
  * 当实体被攻击时，记住攻击者并反击。
+ * 参考 MC Java: net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal
+ *
+ * 支持两种排除机制：
+ * - m_ignoreDamagePredicate: 攻击者匹配此谓词时，不进行反击（对应 MC 的 toIgnoreDamage）
+ * - m_ignoreAlertPredicate: 警醒盟友时，匹配此谓词的盟友不会被警醒（对应 MC 的 toIgnoreAlert）
  */
 class HurtByTargetGoal : public TargetGoal {
 public:
@@ -138,15 +143,53 @@ public:
      */
     HurtByTargetGoal(MobEntity* mob, bool alertAllies = false);
 
+    /**
+     * @brief 构造函数（带攻击者排除谓词）
+     * @param mob 拥有此目标的生物
+     * @param alertAllies 是否警醒盟友
+     * @param ignoreDamagePredicate 攻击者排除谓词，返回 true 表示不对该攻击者反击
+     *
+     * 用法示例：海豚不对守卫者反击
+     * @code
+     * HurtByTargetGoal(this, true, [](const LivingEntity* attacker) {
+     *     auto type = attacker->typeId();
+     *     return type == EntityTypeIdNumber::GUARDIAN ||
+     *            type == EntityTypeIdNumber::ELDER_GUARDIAN;
+     * })
+     * @endcode
+     */
+    HurtByTargetGoal(MobEntity* mob, bool alertAllies, TargetPredicate ignoreDamagePredicate);
+
     ~HurtByTargetGoal() override = default;
 
     [[nodiscard]] bool shouldExecute() override;
     void startExecuting() override;
     void resetTask() override;
 
+    /**
+     * @brief 设置警醒盟友时排除特定类型的盟友
+     * @param ignoreAlertPredicate 盟友排除谓词，返回 true 表示不警醒该盟友
+     * @return *this 以支持链式调用
+     *
+     * 对应 MC Java 的 setAlertOthers(Class<?>... toIgnoreAlert)。
+     * 注意：MC Java 中 toIgnoreAlert 使用 == (精确类匹配)，而非 isAssignableFrom。
+     * 在 C++ 中通过谓词实现相同语义，调用方需自行决定精确匹配还是基类匹配。
+     *
+     * 用法示例：僵尸不警醒僵尸猪灵
+     * @code
+     * HurtByTargetGoal(this, true)
+     *     .setAlertOthers([](const LivingEntity* ally) {
+     *         return ally->typeId() == EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+     *     })
+     * @endcode
+     */
+    HurtByTargetGoal& setAlertOthers(TargetPredicate ignoreAlertPredicate);
+
 private:
     bool m_alertAllies;
     i32 m_timestamp = 0;
+    TargetPredicate m_ignoreDamagePredicate; ///< 攻击者排除谓词（对应 MC toIgnoreDamage）
+    TargetPredicate m_ignoreAlertPredicate;  ///< 盟友排除谓词（对应 MC toIgnoreAlert）
 };
 
 /**

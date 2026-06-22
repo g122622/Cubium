@@ -2021,6 +2021,29 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
+        case WorldEvents::SMASH_ATTACK: {
+            // 重锤砸地攻击粒子效果（对应 MC LevelEvent.PARTICLES_SMASH_ATTACK = 2013）
+            // data 值（750）用于粒子扩散半径的参数
+            // TODO: 当实现专用 SmashAttack 粒子后替换下面的临时实现
+            // 当前使用爆炸粒子 + 烟雾粒子近似砸地冲击波效果
+            {
+                f32 px = static_cast<f32>(x) + 0.5f;
+                f32 py = static_cast<f32>(y) + 1.0f;
+                f32 pz = static_cast<f32>(z) + 0.5f;
+                // 中心爆炸粒子
+                m_world.addParticle(ParticleTypeId::HugeExplosion, Vector3(px, py, pz), Vector3(0.0f, 0.0f, 0.0f));
+                // 周围烟雾粒子
+                for (i32 i = 0; i < 8; ++i) {
+                    f32 angle = random.nextFloat() * 6.2831855f;
+                    f32 dist = random.nextFloat() * 2.0f;
+                    f32 spx = px + std::cos(angle) * dist;
+                    f32 spz = pz + std::sin(angle) * dist;
+                    m_world.addParticle(ParticleTypeId::Poof, Vector3(spx, py, spz), Vector3(0.0f, 0.1f, 0.0f));
+                }
+            }
+            break;
+        }
+
         default:
             // 未知事件ID，忽略
             break;

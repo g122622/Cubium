@@ -154,7 +154,12 @@ void IllusionerEntity::registerGoals()
 
     // 目标选择器 (targetSelector)
     // 优先级 1: 被攻击后反击并呼叫支援
-    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    // MC 原版: HurtByTargetGoal(this, Raider.class).setAlertOthers()
+    // 幻术师不会反击其他灾厄村民
+    m_targetSelector.addGoal(
+        1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+            return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
+        }));
 
     // 优先级 2: 攻击玩家（300 ticks 未见记忆）
     m_targetSelector.addGoal(

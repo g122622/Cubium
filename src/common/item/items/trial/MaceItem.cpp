@@ -32,6 +32,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 
 namespace mc {
 namespace item {
@@ -121,7 +122,8 @@ void MaceItem::postHitEntity(ItemStack& stack, LivingEntity& target, LivingEntit
 
 void MaceItem::applySmashAttackKnockback(IWorld& world, Entity& attacker, Entity& target)
 {
-    // TODO: 广播砸地攻击粒子事件（事件ID 2013，附加数据 750），需要 world.broadcastLevelEvent() 实现
+    // 广播砸地攻击粒子事件（对应 MC levelEvent(2013, target.getOnPos(), 750)）
+    world.playEvent(world::WorldEvents::SMASH_ATTACK, target.onPos(), 750);
 
     // 查找目标周围3.5格内的所有生物实体
     auto targetPos = target.position();

@@ -32,6 +32,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/monster/illager/AbstractRaiderEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include <memory>
 
@@ -102,7 +103,13 @@ void VexEntity::registerGoals()
         }));
 
     // ========== 目标选择器 ==========
-    // 优先级 1: 被攻击后反击（已在 MonsterEntity::registerGoals() 中注册）
+    // 优先级 1: 被攻击后反击 — 替换父类的默认 HurtByTargetGoal
+    // MC 原版: HurtByTargetGoal(this, Raider.class).setAlertOthers()
+    // 恼鬼不会反击灾厄村民，但会警醒同类
+    m_targetSelector.addGoal(
+        1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+            return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
+        }));
 
     // 优先级 2: 复制主人目标
     // 当主人（唤魔者）攻击某个目标时，恼鬼也会攻击该目标

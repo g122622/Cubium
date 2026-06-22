@@ -24,6 +24,7 @@
 #include "WitchEntity.hpp"
 
 #include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -238,6 +239,13 @@ void WitchEntity::registerGoals()
 {
     // 调用父类方法
     AbstractRaiderEntity::registerGoals();
+
+    // MC 原版: HurtByTargetGoal(this, Raider.class) — 女巫不会反击其他灾厄村民
+    // 父类 MonsterEntity 注册了 HurtByTargetGoal(this, false)，需要替换为带排斥的版本
+    m_targetSelector.addGoal(
+        1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, false, [](const LivingEntity* attacker) -> bool {
+            return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
+        }));
 
     // 女巫 AI 目标
     // priority 1: 游泳目标（已在父类注册）

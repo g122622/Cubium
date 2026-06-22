@@ -221,6 +221,21 @@ public:
     [[nodiscard]] f32 y() const { return m_position.y; }
     [[nodiscard]] f32 z() const { return m_position.z; }
 
+    /**
+     * @brief 获取实体所站立的方块位置（对应 MC Entity.getOnPos()）
+     *
+     * 返回实体脚下方块的位置，即 Y 坐标向下取整后再减1。
+     * 用于方块交互、音效/粒子播放位置等场景。
+     *
+     * @return 实体脚下方块的 BlockPos
+     */
+    [[nodiscard]] BlockPos onPos() const
+    {
+        return BlockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)) - 1,
+            static_cast<i32>(std::floor(m_position.z)));
+    }
+
     // 前一帧位置（用于插值）
     [[nodiscard]] Vector3 prevPosition() const { return m_prevPosition; }
     [[nodiscard]] f32 prevX() const { return m_prevPosition.x; }

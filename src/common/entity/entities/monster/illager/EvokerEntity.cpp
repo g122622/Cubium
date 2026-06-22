@@ -261,8 +261,12 @@ void EvokerEntity::registerGoals()
         return e != nullptr && dynamic_cast<const MobEntity*>(e) != nullptr;
     }));
 
-    // 目标选择器：HurtByTargetGoal 会呼唤其他灾厄村民
-    targetSelector().addGoal(1, new entity::ai::goal::HurtByTargetGoal(this));
+    // 目标选择器：HurtByTargetGoal - 唤魔者不会反击其他灾厄村民
+    // MC 原版: HurtByTargetGoal(this, Raider.class) — 不调用 setAlertOthers
+    targetSelector().addGoal(
+        1, new entity::ai::goal::HurtByTargetGoal(this, false, [](const LivingEntity* attacker) -> bool {
+            return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
+        }));
     targetSelector().addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
     targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<entity::VillagerEntity>(this, false));
     targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>(this, false));

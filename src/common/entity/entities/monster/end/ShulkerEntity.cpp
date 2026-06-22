@@ -339,7 +339,14 @@ void ShulkerEntity::registerGoals()
     // 8: LookRandomlyGoal（随机看向）
 
     // 目标选择器
-    targetSelector().addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
+    // MC 原版: HurtByTargetGoal(this, this.getClass()).setAlertOthers()
+    // 潜影贝不会反击其他潜影贝，但会警醒同类
+    targetSelector().addGoal(
+        1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+            // MC 原版使用 this.getClass()，即 Shulker.class
+            // 潜影贝不会反击同类
+            return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::SHULKER;
+        }));
     targetSelector().addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
     // TODO: DefenseAttackGoal - 攻击攻击了潜影贝的敌对生物
 
