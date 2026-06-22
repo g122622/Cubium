@@ -37,6 +37,7 @@
 #include "common/entity/ai/pathfinding/Path.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -253,13 +254,21 @@ void DolphinEntity::registerGoals()
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::PlayWithItemsGoal>(this));
     m_goalSelector.addGoal(8, std::make_unique<entity::ai::goal::FollowBoatGoal>(this));
 
-    // 优先级 9: 避开守卫者
-    // m_goalSelector.addGoal(9, std::make_unique<entity::ai::goal::AvoidEntityGoal>(this,
-    // GuardianEntity::class, 8.0f, 1.0, 1.0));
+    // 优先级 9: 避开守卫者和远古守卫者（8格检测距离，1.0速度）
+    m_goalSelector.addGoal(9,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(
+            this, 8.0f, 1.0, 1.0, [](const LivingEntity* entity) -> bool {
+                if (!entity) return false;
+                auto type = entity->typeId();
+                return type == entity::EntityTypeIdNumber::GUARDIAN ||
+                    type == entity::EntityTypeIdNumber::ELDER_GUARDIAN;
+            }));
 
     // 目标选择器
     // 优先级 1: 被攻击后反击，并呼叫同类
-    // m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this).setCallsForHelp());
+    // TODO: MC 原版 HurtByTargetGoal 排除 Guardian.class（海豚不会反击守卫者），
+    // 当前 HurtByTargetGoal 不支持排除特定实体类型，待扩展后添加排除逻辑
+    m_targetSelector.addGoal(1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true));
 }
 
 void DolphinEntity::registerAttributes()
