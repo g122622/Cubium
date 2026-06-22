@@ -46,20 +46,7 @@ bool MaceItem::canSmashAttack(const LivingEntity& entity)
     return entity.fallDistance() > SMASH_ATTACK_FALL_THRESHOLD && !entity.isElytraFlying();
 }
 
-f32 MaceItem::calculateSmashAttackDamage(f32 fallDistance)
-{
-    if (fallDistance <= 0.0f) {
-        return 0.0f;
-    }
-    // 分段伤害函数
-    if (fallDistance <= 3.0f) {
-        return 4.0f * fallDistance;
-    }
-    if (fallDistance <= 8.0f) {
-        return 12.0f + 2.0f * (fallDistance - 3.0f);
-    }
-    return 22.0f + (fallDistance - 8.0f);
-}
+// calculateSmashAttackDamage 已内联到 MaceMath.hpp，MaceItem 通过 inline 转发调用
 
 f32 MaceItem::getSmashAttackDamageBonus(const LivingEntity& attacker, f32 fallDistance, const ItemStack& weapon)
 {

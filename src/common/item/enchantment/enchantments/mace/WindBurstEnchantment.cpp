@@ -21,6 +21,8 @@
  */
 
 #include "WindBurstEnchantment.hpp"
+#include "../trident/ImpalingEnchantment.hpp"
+#include "../weapon/DamageEnchantment.hpp"
 #include "BreachEnchantment.hpp"
 #include "DensityEnchantment.hpp"
 
@@ -30,12 +32,17 @@ namespace enchant {
 
 bool WindBurstEnchantment::isCompatibleWith(const Enchantment& other) const
 {
-    // 风爆不与伤害附魔互斥（风爆不属于 DAMAGE_EXCLUSIVE 组）
-    // 但风爆与致密和破甲可以共存
+    // 风爆不与任何伤害组附魔互斥，可以与致密、破甲、锋利、亡灵杀手、节肢杀手、穿刺共存
     if (dynamic_cast<const DensityEnchantment*>(&other) != nullptr) {
         return true;
     }
     if (dynamic_cast<const BreachEnchantment*>(&other) != nullptr) {
+        return true;
+    }
+    if (dynamic_cast<const DamageEnchantment*>(&other) != nullptr) {
+        return true;
+    }
+    if (dynamic_cast<const ImpalingEnchantment*>(&other) != nullptr) {
         return true;
     }
     // 同种附魔不可叠加

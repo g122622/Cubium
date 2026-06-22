@@ -24,6 +24,7 @@
 #pragma once
 
 #include "../../core/Item.hpp"
+#include "MaceMath.hpp"
 
 namespace mc {
 namespace item {
@@ -40,10 +41,7 @@ namespace item {
  *
  * 特殊机制：
  * - 下落攻击(Smash Attack)：当下落距离 > 1.5 格且不在滑翔时触发
- * - 下落攻击伤害加成：分段函数
- *   - 0~3格：每格+4伤害
- *   - 3~8格：12 + 每格+2伤害
- *   - 8格以上：22 + 每格+1伤害
+ * - 下落攻击伤害加成：分段函数（见 MaceMath::calculateSmashAttackDamage）
  * - 下落攻击时产生击退效果，对周围3.5格内实体施加击退
  * - 重击(下落距离>5格)时击退力翻倍
  * - 下落攻击后重置攻击者的下落距离
@@ -54,26 +52,26 @@ namespace item {
  */
 class MaceItem final : public Item {
 public:
-    /// 基础攻击伤害
-    static constexpr f32 DEFAULT_ATTACK_DAMAGE = 5.0f;
+    /// 基础攻击伤害（委托给 MaceMath）
+    static constexpr f32 DEFAULT_ATTACK_DAMAGE = MaceMath::DEFAULT_ATTACK_DAMAGE;
 
-    /// 攻击速度修正
-    static constexpr f32 DEFAULT_ATTACK_SPEED = -3.4f;
+    /// 攻击速度修正（委托给 MaceMath）
+    static constexpr f32 DEFAULT_ATTACK_SPEED = MaceMath::DEFAULT_ATTACK_SPEED;
 
-    /// 最大耐久度
-    static constexpr i32 MAX_DURABILITY = 250;
+    /// 最大耐久度（委托给 MaceMath）
+    static constexpr i32 MAX_DURABILITY = MaceMath::MAX_DURABILITY;
 
-    /// 触发砸地攻击的最低下落距离
-    static constexpr f32 SMASH_ATTACK_FALL_THRESHOLD = 1.5f;
+    /// 触发砸地攻击的最低下落距离（委托给 MaceMath）
+    static constexpr f32 SMASH_ATTACK_FALL_THRESHOLD = MaceMath::SMASH_ATTACK_FALL_THRESHOLD;
 
-    /// 重砸判定阈值（超过此下落距离为重击，击退力翻倍）
-    static constexpr f32 SMASH_ATTACK_HEAVY_THRESHOLD = 5.0f;
+    /// 重砸判定阈值（委托给 MaceMath）
+    static constexpr f32 SMASH_ATTACK_HEAVY_THRESHOLD = MaceMath::SMASH_ATTACK_HEAVY_THRESHOLD;
 
-    /// 击退范围（格）
-    static constexpr f32 SMASH_ATTACK_KNOCKBACK_RADIUS = 3.5f;
+    /// 击退范围（格）（委托给 MaceMath）
+    static constexpr f32 SMASH_ATTACK_KNOCKBACK_RADIUS = MaceMath::SMASH_ATTACK_KNOCKBACK_RADIUS;
 
-    /// 击退基础力度
-    static constexpr f32 SMASH_ATTACK_KNOCKBACK_POWER = 0.7f;
+    /// 击退基础力度（委托给 MaceMath）
+    static constexpr f32 SMASH_ATTACK_KNOCKBACK_POWER = MaceMath::SMASH_ATTACK_KNOCKBACK_POWER;
 
     /**
      * @brief 构造重锤
@@ -94,15 +92,15 @@ public:
     /**
      * @brief 计算下落攻击的基础伤害加成（不含魔咒）
      *
-     * 分段函数：
-     * - fallDistance <= 3: 4.0 * fallDistance
-     * - fallDistance <= 8: 12.0 + 2.0 * (fallDistance - 3.0)
-     * - fallDistance > 8:  22.0 + 1.0 * (fallDistance - 8.0)
+     * 委托给 MaceMath::calculateSmashAttackDamage()。
      *
      * @param fallDistance 下落距离
      * @return 基础伤害加成
      */
-    [[nodiscard]] static f32 calculateSmashAttackDamage(f32 fallDistance);
+    [[nodiscard]] static f32 calculateSmashAttackDamage(f32 fallDistance)
+    {
+        return MaceMath::calculateSmashAttackDamage(fallDistance);
+    }
 
     /**
      * @brief 攻击命中时回调
