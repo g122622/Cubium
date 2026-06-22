@@ -253,6 +253,21 @@ void BeeEntity::tick()
     // 更新愤怒计时器
     updateAnger();
 
+    // 递减蜂巢相关冷却计时器（对应MC原版 Bee.aiStep()）
+    if (m_stayOutOfHiveCountdown > 0) {
+        --m_stayOutOfHiveCountdown;
+    }
+    if (m_remainingCooldownBeforeLocatingNewHive > 0) {
+        --m_remainingCooldownBeforeLocatingNewHive;
+    }
+
+    // 离巢后无花粉计时递增
+    // TODO: 对应MC原版 Bee.remainingCooldownBeforeLocatingNewFlower 也需要递减
+    // TODO: 对应MC原版 Bee.aiStep() 中 isClientSide() 检查，冷却递减应仅服务端执行
+    if (!hasNectar() && m_hasHive) {
+        ++m_ticksWithoutNectarSinceExitingHive;
+    }
+
     // 螫刺后逐渐死亡
     // 越久越容易死亡，最长存活 1200 tick = 60 秒
     if (m_hasStung) {
@@ -434,6 +449,8 @@ bool BeeEntity::wantsToEnterHive() const
     }
 
     // 检查是否满足进入蜂巢的条件：有花粉、或寻找花蜜累了、或夜间/下雨
+    // TODO: MC原版还检查 isRaining() 和 !isDay()（环境属性 BEES_STAY_IN_HIVE），
+    // 雨天和夜间蜜蜂也会想回巢。待天气系统和日夜循环实现后补充。
     bool shouldEnter = hasNectar();
     if (!shouldEnter) {
         // 寻找花蜜超过一定时间后也返回蜂巢
