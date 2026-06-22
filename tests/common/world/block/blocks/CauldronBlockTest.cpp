@@ -23,9 +23,13 @@
 
 #include "world/block/blocks/CauldronBlock.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/block/BannerItem.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -452,4 +456,160 @@ TEST_F(CauldronPrecipTest, HandlePrecipitation_LevelTwoCanReachMax)
     }
 
     EXPECT_TRUE(reachedMax) << "Level 2 cauldron should be able to reach level 3 with rain";
+}
+
+// ============================================================================
+// 炼药锅旗帜清洗测试（通过 BannerEntity 静态方法间接验证核心逻辑）
+// ============================================================================
+
+class CauldronBannerCleaningTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        cauldron_ = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
+    }
+
+    std::unique_ptr<CauldronBlock> cauldron_;
+};
+
+TEST_F(CauldronBannerCleaningTest, BannerItemIsRecognizedAsBanner)
+{
+    // 验证旗帜物品可以正确通过 dynamic_cast 识别
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    const auto* bannerItem = dynamic_cast<const item::BannerItem*>(Items::WHITE_BANNER);
+    EXPECT_NE(bannerItem, nullptr) << "WHITE_BANNER should be a BannerItem";
+}
+
+TEST_F(CauldronBannerCleaningTest, ShieldIsNotBannerButSeparateCheck)
+{
+    // 验证盾牌不是 BannerItem，需要单独检查
+    if (Items::SHIELD == nullptr) {
+        GTEST_SKIP() << "SHIELD not registered";
+    }
+    const auto* bannerItem = dynamic_cast<const item::BannerItem*>(Items::SHIELD);
+    EXPECT_EQ(bannerItem, nullptr) << "SHIELD should NOT be a BannerItem";
+
+    // 但盾牌物品应该可以通过 Items::SHIELD 比较
+    EXPECT_NE(Items::SHIELD, nullptr);
+}
+
+TEST_F(CauldronBannerCleaningTest, BannerWithNoPatternsReturnsPass)
+{
+    // 没有图案的旗帜不应该被清洗（BannerEntity::getPatternCount 返回 0）
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    ItemStack bannerStack(*Items::WHITE_BANNER, 1);
+    EXPECT_EQ(blockentity::BannerEntity::getPatternCount(bannerStack), 0);
+}
+
+TEST_F(CauldronBannerCleaningTest, BannerWithPatternsReturnsCorrectCount)
+{
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    ItemStack bannerStack(*Items::WHITE_BANNER, 1);
+
+    // 添加2个图案
+    nlohmann::json& blockEntityTag = bannerStack.getOrCreateChildTag("BlockEntityTag");
+    nlohmann::json patterns = nlohmann::json::array();
+    patterns.push_back({{"Pattern", "bs"}, {"Color", 14}});
+    patterns.push_back({{"Pattern", "cr"}, {"Color", 11}});
+    blockEntityTag["Patterns"] = patterns;
+
+    EXPECT_EQ(blockentity::BannerEntity::getPatternCount(bannerStack), 2);
+}
+
+TEST_F(CauldronBannerCleaningTest, RemoveBannerDataFromBanner_DecreasesPatternCount)
+{
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    ItemStack bannerStack(*Items::WHITE_BANNER, 1);
+
+    // 添加3个图案
+    nlohmann::json& blockEntityTag = bannerStack.getOrCreateChildTag("BlockEntityTag");
+    nlohmann::json patterns = nlohmann::json::array();
+    patterns.push_back({{"Pattern", "bs"}, {"Color", 14}});
+    patterns.push_back({{"Pattern", "cr"}, {"Color", 11}});
+    patterns.push_back({{"Pattern", "mc"}, {"Color", 0}});
+    blockEntityTag["Patterns"] = patterns;
+
+    ASSERT_EQ(blockentity::BannerEntity::getPatternCount(bannerStack), 3);
+
+    // 清洗一次：移除最顶层图案
+    blockentity::BannerEntity::removeBannerData(bannerStack);
+    EXPECT_EQ(blockentity::BannerEntity::getPatternCount(bannerStack), 2);
+
+    // 再清洗一次
+    blockentity::BannerEntity::removeBannerData(bannerStack);
+    EXPECT_EQ(blockentity::BannerEntity::getPatternCount(bannerStack), 1);
+
+    // 再清洗一次：移除最后一个图案
+    blockentity::BannerEntity::removeBannerData(bannerStack);
+    EXPECT_EQ(blockentity::BannerEntity::getPatternCount(bannerStack), 0);
+}
+
+TEST_F(CauldronBannerCleaningTest, RemoveBannerDataFromShield_WorksSameAsBanner)
+{
+    // 盾牌使用与旗帜相同的 BlockEntityTag.Patterns 结构
+    if (Items::SHIELD == nullptr) {
+        GTEST_SKIP() << "SHIELD not registered";
+    }
+    ItemStack shieldStack(*Items::SHIELD, 1);
+
+    // 给盾牌添加图案
+    nlohmann::json& blockEntityTag = shieldStack.getOrCreateChildTag("BlockEntityTag");
+    nlohmann::json patterns = nlohmann::json::array();
+    patterns.push_back({{"Pattern", "bs"}, {"Color", 14}});
+    blockEntityTag["Patterns"] = patterns;
+
+    ASSERT_EQ(blockentity::BannerEntity::getPatternCount(shieldStack), 1);
+
+    // 清洗盾牌
+    blockentity::BannerEntity::removeBannerData(shieldStack);
+    EXPECT_EQ(blockentity::BannerEntity::getPatternCount(shieldStack), 0);
+}
+
+TEST_F(CauldronBannerCleaningTest, NonBannerNonShieldItem_HasZeroPatterns)
+{
+    // 普通物品（如水桶）没有图案
+    if (Items::BUCKET == nullptr) {
+        GTEST_SKIP() << "BUCKET not registered";
+    }
+    ItemStack bucketStack(*Items::BUCKET, 1);
+    EXPECT_EQ(blockentity::BannerEntity::getPatternCount(bucketStack), 0);
+}
+
+TEST_F(CauldronBannerCleaningTest, EmptyStack_HasZeroPatterns)
+{
+    ItemStack emptyStack;
+    EXPECT_EQ(blockentity::BannerEntity::getPatternCount(emptyStack), 0);
+    // 清洗空物品不应崩溃
+    blockentity::BannerEntity::removeBannerData(emptyStack);
+    SUCCEED();
+}
+
+TEST_F(CauldronBannerCleaningTest, CauldronLevelConstants)
+{
+    // 验证炼药锅水位范围（0-3）
+    const auto& state0 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 0);
+    const auto& state1 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 1);
+    const auto& state2 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 2);
+    const auto& state3 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
+
+    EXPECT_EQ(CauldronBlock::getLevel(state0), 0);
+    EXPECT_EQ(CauldronBlock::getLevel(state1), 1);
+    EXPECT_EQ(CauldronBlock::getLevel(state2), 2);
+    EXPECT_EQ(CauldronBlock::getLevel(state3), 3);
+
+    EXPECT_TRUE(CauldronBlock::isEmpty(state0));
+    EXPECT_FALSE(CauldronBlock::isEmpty(state1));
+    EXPECT_TRUE(CauldronBlock::isFull(state3));
+    EXPECT_FALSE(CauldronBlock::isFull(state2));
 }

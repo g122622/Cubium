@@ -54,7 +54,7 @@
     ├── HopperBlock.hpp / cpp #漏斗方块
     ├── DoorBlock.hpp / cpp #门方块
     ├── FenceGateBlock.hpp / cpp #栅栏门方块
-    ├── CauldronBlock.hpp / cpp #炼药锅方块
+    ├── CauldronBlock.hpp / cpp #炼药锅方块（水位0-3，支持水桶/玻璃瓶/皮革盔甲清洗/旗帜清洗/盾牌清洗交互）
     ├── EnchantingTableBlock.hpp / cpp #附魔台方块
     ├── SignBlock.hpp / cpp #告示牌方块
     ├── HangingSignBlock.hpp / cpp #悬挂告示牌

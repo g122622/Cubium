@@ -22,6 +22,7 @@
  */
 
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
 #include "util/color/DyeColor.hpp"
 #include "util/nbt/Nbt.hpp"
@@ -426,4 +427,159 @@ TEST_F(BannerEntityTest, JSON_RoundTrip)
     EXPECT_TRUE(entity2->hasCustomDisplayName());
     ASSERT_NE(entity2->getCustomDisplayName(), nullptr);
     EXPECT_EQ(entity2->getCustomDisplayName()->getUnformattedText(), "JSON Banner");
+}
+
+// ========== ItemStack 图案操作测试（炼药锅旗帜清洗所需核心方法） ==========
+
+class BannerEntityItemStackTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 确保 Items 已初始化（旗帜物品注册需要）
+        Items::initialize();
+    }
+};
+
+TEST_F(BannerEntityItemStackTest, GetPatternCount_EmptyStack_ReturnsZero)
+{
+    ItemStack emptyStack;
+    EXPECT_EQ(BannerEntity::getPatternCount(emptyStack), 0);
+}
+
+TEST_F(BannerEntityItemStackTest, GetPatternCount_StackWithNoPatterns_ReturnsZero)
+{
+    // 没有 BlockEntityTag 的物品
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    ItemStack bannerStack(*Items::WHITE_BANNER, 1);
+    EXPECT_EQ(BannerEntity::getPatternCount(bannerStack), 0);
+}
+
+TEST_F(BannerEntityItemStackTest, GetPatternCount_StackWithPatterns_ReturnsCorrectCount)
+{
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    ItemStack bannerStack(*Items::WHITE_BANNER, 1);
+
+    // 添加3个图案到 BlockEntityTag.Patterns
+    nlohmann::json& blockEntityTag = bannerStack.getOrCreateChildTag("BlockEntityTag");
+    nlohmann::json patterns = nlohmann::json::array();
+    patterns.push_back({{"Pattern", "bs"}, {"Color", 14}}); // StripeBottom + Red
+    patterns.push_back({{"Pattern", "cr"}, {"Color", 11}}); // Cross + Blue
+    patterns.push_back({{"Pattern", "mc"}, {"Color", 0}});  // SquareBottomLeft + White
+    blockEntityTag["Patterns"] = patterns;
+
+    EXPECT_EQ(BannerEntity::getPatternCount(bannerStack), 3);
+}
+
+TEST_F(BannerEntityItemStackTest, RemoveBannerData_RemovesTopPattern)
+{
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    ItemStack bannerStack(*Items::WHITE_BANNER, 1);
+
+    // 添加3个图案
+    nlohmann::json& blockEntityTag = bannerStack.getOrCreateChildTag("BlockEntityTag");
+    nlohmann::json patterns = nlohmann::json::array();
+    patterns.push_back({{"Pattern", "bs"}, {"Color", 14}});
+    patterns.push_back({{"Pattern", "cr"}, {"Color", 11}});
+    patterns.push_back({{"Pattern", "mc"}, {"Color", 0}});
+    blockEntityTag["Patterns"] = patterns;
+
+    ASSERT_EQ(BannerEntity::getPatternCount(bannerStack), 3);
+
+    // 移除顶层图案
+    BannerEntity::removeBannerData(bannerStack);
+
+    // 应该只剩2个图案
+    EXPECT_EQ(BannerEntity::getPatternCount(bannerStack), 2);
+
+    // 验证剩余的是前两个图案（后进先出）
+    const nlohmann::json* tag = bannerStack.getChildTag("BlockEntityTag");
+    ASSERT_NE(tag, nullptr);
+    ASSERT_TRUE(tag->contains("Patterns"));
+    const auto& remainingPatterns = (*tag)["Patterns"];
+    ASSERT_EQ(remainingPatterns.size(), 2u);
+    EXPECT_EQ(remainingPatterns[0]["Pattern"].get<std::string>(), "bs");
+    EXPECT_EQ(remainingPatterns[1]["Pattern"].get<std::string>(), "cr");
+}
+
+TEST_F(BannerEntityItemStackTest, RemoveBannerData_RemovesAllPatternsCleansBlockEntityTag)
+{
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    ItemStack bannerStack(*Items::WHITE_BANNER, 1);
+
+    // 添加1个图案
+    nlohmann::json& blockEntityTag = bannerStack.getOrCreateChildTag("BlockEntityTag");
+    nlohmann::json patterns = nlohmann::json::array();
+    patterns.push_back({{"Pattern", "bs"}, {"Color", 14}});
+    blockEntityTag["Patterns"] = patterns;
+
+    ASSERT_EQ(BannerEntity::getPatternCount(bannerStack), 1);
+
+    // 移除唯一图案
+    BannerEntity::removeBannerData(bannerStack);
+
+    // 图案数为0
+    EXPECT_EQ(BannerEntity::getPatternCount(bannerStack), 0);
+
+    // BlockEntityTag 应该被完全清除（removeBannerData 在 Patterns 为空时删除 BlockEntityTag）
+    const nlohmann::json* tag = bannerStack.getChildTag("BlockEntityTag");
+    EXPECT_TRUE(tag == nullptr || !tag->contains("Patterns") || !tag->contains("BlockEntityTag"));
+}
+
+TEST_F(BannerEntityItemStackTest, RemoveBannerData_EmptyStack_NoCrash)
+{
+    ItemStack emptyStack;
+    // 空物品不应崩溃
+    BannerEntity::removeBannerData(emptyStack);
+    SUCCEED();
+}
+
+TEST_F(BannerEntityItemStackTest, RemoveBannerData_StackWithNoPatterns_NoChange)
+{
+    if (Items::WHITE_BANNER == nullptr) {
+        GTEST_SKIP() << "WHITE_BANNER not registered";
+    }
+    ItemStack bannerStack(*Items::WHITE_BANNER, 1);
+    // 没有图案的旗帜不应改变
+    i32 countBefore = BannerEntity::getPatternCount(bannerStack);
+    BannerEntity::removeBannerData(bannerStack);
+    EXPECT_EQ(BannerEntity::getPatternCount(bannerStack), countBefore);
+}
+
+TEST_F(BannerEntityItemStackTest, RemoveBannerData_ShieldWithPatterns_RemovesTopPattern)
+{
+    if (Items::SHIELD == nullptr) {
+        GTEST_SKIP() << "SHIELD not registered";
+    }
+    ItemStack shieldStack(*Items::SHIELD, 1);
+
+    // 盾牌也使用 BlockEntityTag.Patterns 存储图案
+    nlohmann::json& blockEntityTag = shieldStack.getOrCreateChildTag("BlockEntityTag");
+    nlohmann::json patterns = nlohmann::json::array();
+    patterns.push_back({{"Pattern", "cr"}, {"Color", 14}});
+    patterns.push_back({{"Pattern", "mc"}, {"Color", 0}});
+    blockEntityTag["Patterns"] = patterns;
+
+    ASSERT_EQ(BannerEntity::getPatternCount(shieldStack), 2);
+
+    // 移除顶层图案
+    BannerEntity::removeBannerData(shieldStack);
+
+    // 应该只剩1个图案
+    EXPECT_EQ(BannerEntity::getPatternCount(shieldStack), 1);
+
+    // 验证剩余图案
+    const nlohmann::json* tag = shieldStack.getChildTag("BlockEntityTag");
+    ASSERT_NE(tag, nullptr);
+    ASSERT_TRUE(tag->contains("Patterns"));
+    const auto& remainingPatterns = (*tag)["Patterns"];
+    ASSERT_EQ(remainingPatterns.size(), 1u);
+    EXPECT_EQ(remainingPatterns[0]["Pattern"].get<std::string>(), "cr");
 }

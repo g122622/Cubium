@@ -482,6 +482,10 @@ ActionResultType CauldronBlock::_handleBannerCleaning(
     // 检查是否为旗帜或盾牌，且物品上有图案层
     // 参考 MC 1.21.11 CauldronInteraction.WATER 中的 bannerInteraction
     const bool isBanner = dynamic_cast<const item::BannerItem*>(item) != nullptr;
+    // TODO(shield_cauldron): MC 原版 CauldronInteraction.WATER 中仅注册了16种旗帜物品的清洗交互，
+    // 盾牌未注册。但盾牌使用与旗帜相同的 BlockEntityTag.Patterns NBT 结构
+    // （参见 ShieldDecorationRecipe），且项目已有 BannerEntity::removeBannerData() 方法
+    // 可统一处理。此处扩展支持盾牌清洗以保持功能完整性，如需严格对齐原版可移除此分支。
     const bool isShield = (item == Items::SHIELD);
 
     if (!isBanner && !isShield) {
