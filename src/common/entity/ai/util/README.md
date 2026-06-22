@@ -37,7 +37,6 @@ util/
 | `world/block/blocks/functional/BarrelBlock.cpp` | `PiglinAi::angerNearbyPiglins()` - 打开木桶时激怒猪灵 |
 | `world/block/blocks/ChestBlock.cpp` | `PiglinAi::angerNearbyPiglins()` - 打开箱子时激怒猪灵 |
 | `world/block/blocks/nether/EnderChestBlock.cpp` | `PiglinAi::angerNearbyPiglins()` - 打开末影箱时激怒猪灵 |
-| `world/block/blocks/ShulkerBoxBlock.cpp` | `PiglinAi::angerNearbyPiglins()` - 打开潜影盒时激怒猪灵 |
 
 ## 容易踩的坑
 

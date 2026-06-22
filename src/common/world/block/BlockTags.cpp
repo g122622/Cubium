@@ -2454,7 +2454,6 @@ void BlockTags::initialize()
     auto guardedByPiglins = std::make_unique<BlockTag>(ResourceLocation("minecraft", "guarded_by_piglins"));
     guardedByPiglins->addAll({// 箱子
         ResourceLocation("minecraft", "chest"),
-        ResourceLocation("minecraft", "trapped_chest"),
         // 末影箱
         ResourceLocation("minecraft", "ender_chest"),
         // 木桶
