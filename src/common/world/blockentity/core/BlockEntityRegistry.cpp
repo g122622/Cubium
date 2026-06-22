@@ -25,6 +25,7 @@
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/CraftingTableEntity.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
+#include "world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/interactive/DropperBlockEntity.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
@@ -165,6 +166,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
 
     // 注册旗帜方块实体
     registerType(BlockEntityType::Banner, [](const BlockPos& pos) { return std::make_unique<BannerEntity>(pos); });
+
+    // 注册蜂巢方块实体
+    registerType(BlockEntityType::Beehive,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::BeehiveBlockEntity>(pos); });
 
     // 注册试炼密室方块实体
     registerType(BlockEntityType::TrialSpawner,

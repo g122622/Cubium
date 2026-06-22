@@ -210,6 +210,24 @@ public:
      */
     static void extinguish(IWorld& world, const BlockPos& pos, BlockState& state);
 
+    /**
+     * @brief 检查指定位置下方是否有点燃的营火（烟熏效果）
+     * @param world 世界引用
+     * @param pos 待检测位置
+     * @return 下方5格内是否有点燃的营火
+     *
+     * 从指定位置向下检查1-5格，如果发现点燃的营火则返回true。
+     * 用于蜂巢判断蜜蜂是否被营火烟熏安抚。
+     */
+    [[nodiscard]] static bool isSmokeyPos(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 检查方块状态是否为点燃的营火
+     * @param state 方块状态
+     * @return 是否为点燃的营火
+     */
+    [[nodiscard]] static bool isLitCampfire(const BlockState& state);
+
     // ========== IWaterLoggable 接口实现 ==========
 
     /**

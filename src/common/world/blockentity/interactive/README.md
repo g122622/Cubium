@@ -7,6 +7,7 @@
 ``` interactive /
 ├── BannerEntity.hpp / cpp #旗帜方块实体（图案存储、最多6层）
 ├── BannerPattern.hpp / cpp #旗帜图案类型定义
+├── BeehiveBlockEntity.hpp / cpp #蜂巢方块实体（蜜蜂存储、蜂蜜等级管理）
 ├── DispenserBlockEntity.hpp / cpp #发射器方块实体基类（9格存储、战利品表填充）
 ├── DropperBlockEntity.hpp / cpp #投掷器方块实体（继承DispenserBlockEntity）
 ├── EnchantingTableEntity.hpp / cpp #附魔台方块实体（附魔力量计算、书本动画）

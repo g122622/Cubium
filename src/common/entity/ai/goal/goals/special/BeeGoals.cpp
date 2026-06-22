@@ -36,6 +36,8 @@
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -110,11 +112,11 @@ bool BeeEnterHiveGoal::canBeeStart()
         return false;
     }
 
-    // 检查是否能进入蜂巢
-    // TODO: 实现完整的 canEnterHive 检查
-    // 条件：stayOutOfHiveCountdown <= 0 && !pollinateGoal.isRunning() && !hasStung() && getAttackTarget() == null
-    //      && (failedPollinatingTooLong() || world.isRaining() || world.isNightTime() || hasNectar())
-    // 简化实现：检查距离和基本条件
+    // 检查蜜蜂是否想进入蜂巢
+    if (!m_bee->wantsToEnterHive()) {
+        return false;
+    }
+
     IWorld* world = m_bee->world();
     if (world == nullptr) {
         return false;
@@ -131,19 +133,19 @@ bool BeeEnterHiveGoal::canBeeStart()
         return false;
     }
 
-    // 检查蜂巢是否有效
-    const BlockState* state = world->getBlockState(hivePos);
-    if (state == nullptr) {
+    // 检查蜂巢是否有效且未满
+    auto* beehive = m_bee->getBeehiveBlockEntity();
+    if (beehive == nullptr) {
+        // 蜂巢方块实体不存在或距离过远，忘记这个蜂巢
+        m_bee->dropHive();
         return false;
     }
 
-    // 检查是否是蜂巢方块
-    if (!BlockTags::BEEHIVES().contains(*state)) {
+    if (beehive->isFull()) {
+        // 蜂巢已满，忘记这个蜂巢
+        m_bee->dropHive();
         return false;
     }
-
-    // TODO: 检查蜂巢是否有空间
-    // 需要访问 BeehiveBlockEntity 来检查蜜蜂数量
 
     return true;
 }
@@ -156,15 +158,16 @@ bool BeeEnterHiveGoal::canBeeContinue()
 
 void BeeEnterHiveGoal::startExecuting()
 {
-    // TODO: 实际进入蜂巢逻辑
-    // 需要与 BeehiveBlockEntity 交互
-    // beehivetileentity.tryEnterHive(this, hasNectar);
+    // 蜜蜂进入蜂巢
+    auto* beehive = m_bee->getBeehiveBlockEntity();
+    if (beehive != nullptr) {
+        beehive->addOccupant(*m_bee);
+        // addOccupant 会调用 bee.discard()，蜜蜂实体被移除
+        return;
+    }
 
-    // 蜜蜂将花粉交付蜂巢后重置作物计数器
-    // 对应 MC 原版 Bee.dropOffNectar(): resetNumCropsGrownSincePollination()
+    // 蜂巢方块实体不存在，重置状态
     m_bee->resetCropCounter();
-
-    // 暂时简化处理：重置状态
     m_bee->setHasNectar(false);
     m_bee->setReturningToHive(false);
 }
@@ -385,11 +388,12 @@ BeeUpdateHiveGoal::BeeUpdateHiveGoal(BeeEntity* bee)
 
 bool BeeUpdateHiveGoal::canBeeStart()
 {
-    // TODO: 检查冷却
-    // if (m_bee->getHiveCooldown() > 0) return false;
+    // 检查冷却
+    if (m_bee->getHiveLocateCooldown() > 0) {
+        return false;
+    }
 
     // 没有蜂巢位置时执行
-    // TODO: 实现 canEnterHive 检查
     return !m_bee->hasHive();
 }
 
@@ -409,8 +413,8 @@ void BeeUpdateHiveGoal::startExecuting()
         m_bee->setHivePos(hives[0]);
     }
 
-    // 设置冷却
-    // m_bee->setHiveCooldown(200); // 10秒
+    // 设置冷却（10秒 = 200 tick）
+    m_bee->setHiveLocateCooldown(200);
 }
 
 std::vector<BlockPos> BeeUpdateHiveGoal::_findNearbyFreeHives() const
@@ -454,11 +458,20 @@ std::vector<BlockPos> BeeUpdateHiveGoal::_findNearbyFreeHives() const
     return hives;
 }
 
-bool BeeUpdateHiveGoal::_doesHiveHaveSpace(const BlockPos& /*pos*/) const
+bool BeeUpdateHiveGoal::_doesHiveHaveSpace(const BlockPos& pos) const
 {
-    // TODO: 检查 BeehiveBlockEntity 是否有空间
-    // 目前简化返回 true
-    return true;
+    IWorld* world = m_bee->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    auto* blockEntity = world->getBlockEntity(pos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::Beehive) {
+        return false;
+    }
+
+    auto* beehive = static_cast<blockentity::BeehiveBlockEntity*>(blockEntity);
+    return !beehive->isFull();
 }
 
 // ============================================================================
@@ -478,8 +491,10 @@ bool BeeFindHiveGoal::canBeeStart()
         return false;
     }
 
-    // TODO: 实现 canEnterHive 检查
-    // if (!m_bee->canEnterHive()) return false;
+    // 检查蜜蜂是否想进入蜂巢
+    if (!m_bee->wantsToEnterHive()) {
+        return false;
+    }
 
     // 检查是否已经在蜂巢附近
     if (_isCloseEnough(m_bee->getHivePos())) {
@@ -487,13 +502,8 @@ bool BeeFindHiveGoal::canBeeStart()
     }
 
     // 检查蜂巢是否有效
-    IWorld* world = m_bee->world();
-    if (world == nullptr) {
-        return false;
-    }
-
-    const BlockState* state = world->getBlockState(m_bee->getHivePos());
-    if (state == nullptr || !BlockTags::BEEHIVES().contains(*state)) {
+    if (!m_bee->isHiveValid()) {
+        m_bee->dropHive();
         return false;
     }
 
@@ -514,9 +524,7 @@ void BeeFindHiveGoal::startExecuting()
 
 void BeeFindHiveGoal::resetTask()
 {
-    m_bee->setHivePos(BlockPos::zero());
-    m_bee->setHasHive(false);
-    // m_bee->setHiveCooldown(200);
+    m_bee->dropHive();
 }
 
 void BeeFindHiveGoal::tick()
@@ -707,8 +715,9 @@ bool BeeFindPollinationTargetGoal::canBeeStart()
     }
 
     // 检查是否有有效蜂巢
-    // TODO: 实现 isHiveValid() 检查 — 当前简化为检查 hasHive()
-    // if (!m_bee->isHiveValid()) return false;
+    if (!m_bee->isHiveValid()) {
+        return false;
+    }
 
     // 30% 概率
     IWorld* world = m_bee->world();

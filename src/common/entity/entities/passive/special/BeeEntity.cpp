@@ -39,6 +39,9 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -368,6 +371,100 @@ void BeeEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 2.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 48.0);
+}
+
+// ============================================================================
+// 蜂巢验证与交互
+// ============================================================================
+
+bool BeeEntity::isHiveValid() const
+{
+    return getBeehiveBlockEntity() != nullptr;
+}
+
+blockentity::BeehiveBlockEntity* BeeEntity::getBeehiveBlockEntity() const
+{
+    if (!m_hasHive) {
+        return nullptr;
+    }
+
+    auto* worldPtr = const_cast<IWorld*>(world());
+    if (!worldPtr) {
+        return nullptr;
+    }
+
+    // 检查距离是否过远（超过48格）
+    Vector3 beePos = position();
+    f32 dx = static_cast<f32>(m_hivePos.x) + 0.5f - beePos.x;
+    f32 dy = static_cast<f32>(m_hivePos.y) + 0.5f - beePos.y;
+    f32 dz = static_cast<f32>(m_hivePos.z) + 0.5f - beePos.z;
+    f32 distSq = dx * dx + dy * dy + dz * dz;
+    if (distSq > 48.0f * 48.0f) {
+        return nullptr;
+    }
+
+    // 检查该位置的方块是否仍是蜂巢
+    const BlockState* state = worldPtr->getBlockState(m_hivePos);
+    if (!state || !BlockTags::BEEHIVES().contains(*state)) {
+        return nullptr;
+    }
+
+    // 检查方块实体是否存在
+    auto* blockEntity = worldPtr->getBlockEntity(m_hivePos);
+    if (!blockEntity || blockEntity->getType() != BlockEntityType::Beehive) {
+        return nullptr;
+    }
+
+    return static_cast<blockentity::BeehiveBlockEntity*>(blockEntity);
+}
+
+bool BeeEntity::wantsToEnterHive() const
+{
+    if (m_stayOutOfHiveCountdown > 0) {
+        return false;
+    }
+    if (m_pollinating) {
+        return false;
+    }
+    if (hasStung()) {
+        return false;
+    }
+    if (m_attackTarget != nullptr) {
+        return false;
+    }
+
+    // 检查是否满足进入蜂巢的条件：有花粉、或寻找花蜜累了、或夜间/下雨
+    bool shouldEnter = hasNectar();
+    if (!shouldEnter) {
+        // 寻找花蜜超过一定时间后也返回蜂巢
+        shouldEnter = m_ticksWithoutNectarSinceExitingHive > 2400;
+    }
+
+    if (!shouldEnter) {
+        return false;
+    }
+
+    // 检查蜂巢附近是否有火
+    return !isHiveNearFire();
+}
+
+bool BeeEntity::isHiveNearFire() const
+{
+    if (!m_hasHive) {
+        return false;
+    }
+    auto* worldPtr = const_cast<IWorld*>(world());
+    if (!worldPtr) {
+        return false;
+    }
+    return blockentity::BeehiveBlockEntity::isFireNearby(*worldPtr, m_hivePos);
+}
+
+void BeeEntity::dropHive()
+{
+    m_hivePos = BlockPos::zero();
+    m_hasHive = false;
+    m_stayOutOfHiveCountdown = 200; // 10秒冷却
 }
 
 } // namespace mc

@@ -17,7 +17,7 @@ mob/
 
 ```
 Block (基类)
-    ├── BeehiveBlock      → 需要 BeehiveBlockEntity（待实现蜜蜂存储）
+    ├── BeehiveBlock      → 需要 BeehiveBlockEntity（蜜蜂存储、蜂蜜等级管理）
     ├── TurtleEggBlock    → 状态属性: EGGS_1_4, HATCH_0_2
     ├── InfestedBlock     → 静态映射表管理虫蚀方块关系
     ├── SpawnerBlock      → 需要 SpawnerBlockEntity（待实现生物生成）

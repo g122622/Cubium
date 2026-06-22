@@ -25,6 +25,7 @@
 
 #include "../../../../physics/collision/CollisionShape.hpp"
 #include "../../../../util/property/Properties.hpp"
+#include "../../../blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "../../Block.hpp"
 #include "../../BlockTags.hpp"
 #include "../../Material.hpp"
@@ -55,8 +56,15 @@ public:
     // ========== 状态属性 ==========
 
     [[nodiscard]] i32 getHoneyLevel(const BlockState& state) const;
-    [[nodiscard]] BlockState withHoneyLevel(i32 level) const;
-    [[nodiscard]] i32 getMaxHoneyLevel() const { return 5; } // HONEY_LEVEL_0_5 的最大值
+
+    /**
+     * @brief 在指定状态基础上设置蜂蜜等级
+     * @param state 基础状态（保留FACING等其他属性）
+     * @param level 目标蜂蜜等级 (0-5)
+     */
+    [[nodiscard]] BlockState withHoneyLevel(const BlockState& state, i32 level) const;
+
+    [[nodiscard]] i32 getMaxHoneyLevel() const { return 5; }
 
     // ========== 放置逻辑 ==========
 
@@ -80,6 +88,67 @@ public:
     // ========== 方块实体 ==========
 
     [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    /**
+     * @brief 创建蜂巢方块实体
+     */
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+    // ========== 蜂巢逻辑 ==========
+
+    /**
+     * @brief 重置蜂蜜等级为0
+     * @param world 世界引用
+     * @param state 当前方块状态
+     * @param pos 方块位置
+     */
+    void resetHoneyLevel(IWorld& world, const BlockState& state, const BlockPos& pos);
+
+    /**
+     * @brief 释放蜜蜂并重置蜂蜜等级
+     * @param world 世界引用
+     * @param state 当前方块状态
+     * @param pos 方块位置
+     * @param player 触发释放的玩家（可能为nullptr）
+     * @param releaseStatus 释放状态
+     */
+    void releaseBeesAndResetHoneyLevel(IWorld& world,
+        const BlockState& state,
+        const BlockPos& pos,
+        Player* player,
+        blockentity::BeeReleaseStatus releaseStatus);
+
+    /**
+     * @brief 掉落蜜脾物品
+     * @param world 世界引用
+     * @param pos 方块位置
+     *
+     * 在方块位置掉落3个蜜脾。
+     */
+    static void dropHoneycomb(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 激怒附近的蜜蜂
+     * @param world 世界引用
+     * @param pos 蜂巢位置
+     * @param player 触发的玩家
+     */
+    static void angerNearbyBees(IWorld& world, const BlockPos& pos, Player& player);
+
+    // ========== 红石 ==========
+
+    /**
+     * @brief 是否有比较器输出
+     * @return true，蜂巢支持红石比较器
+     */
+    [[nodiscard]] bool hasAnalogOutputSignal() const noexcept { return true; }
+
+    /**
+     * @brief 获取比较器信号强度
+     * @param state 方块状态
+     * @return 蜂蜜等级 (0-5)
+     */
+    [[nodiscard]] i32 getAnalogOutputSignal(const BlockState& state) const;
 };
 
 } // namespace blocks

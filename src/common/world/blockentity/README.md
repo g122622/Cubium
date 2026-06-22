@@ -58,6 +58,7 @@ blockentity/
 │   ├── SignEntity.hpp/cpp             # 告示牌（富文本存储、点击事件）
 │   ├── BannerEntity.hpp/cpp           # 旗帜（图案存储、最多6层）
 │   ├── BannerPattern.hpp/cpp          # 旗帜图案类型定义
+│   ├── BeehiveBlockEntity.hpp/cpp     # 蜂巢（蜜蜂存储、蜂蜜等级管理）
 │   ├── JukeboxEntity.hpp/cpp          # 唱片机（唱片播放、1槽位）
 │   ├── LecternEntity.hpp/cpp          # 讲台（书本展示、翻页、红石信号）
 │   ├── ShelfBlockEntity.hpp/cpp       # 书架（3槽位物品存储、比较器3位二进制信号、侧链连接）
@@ -108,6 +109,7 @@ BlockEntity (基类)
 ├── ConduitEntity (潮涌核心)
 ├── SignEntity (告示牌)
 ├── BannerEntity (旗帜)
+├── BeehiveBlockEntity (蜂巢)
 ├── LecternEntity (讲台)
 ├── EndGatewayEntity (末地折跃门)
 ├── EnderChestEntity (末影箱)

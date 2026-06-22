@@ -34,6 +34,7 @@
 #include "../../../blockentity/BlockEntity.hpp"
 #include "../../../blockentity/processing/CampfireBlockEntity.hpp"
 #include "../../WaterLoggableHelpers.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <memory>
 
@@ -319,6 +320,35 @@ const fluid::FluidState* CampfireBlock::getFluidState(const BlockState& state) c
 {
     const fluid::FluidState* waterState = waterloggable::getWaterFluidState(state);
     return waterState != nullptr ? waterState : Block::getFluidState(state);
+}
+
+bool CampfireBlock::isSmokeyPos(IWorld& world, const BlockPos& pos)
+{
+    for (i32 i = 1; i <= 5; ++i) {
+        BlockPos checkPos(pos.x, pos.y - i, pos.z);
+        const BlockState* state = world.getBlockState(checkPos);
+        if (state && isLitCampfire(*state)) {
+            return true;
+        }
+        // 检查是否有实心方块阻挡烟雾传播
+        if (state && state->isSolid()) {
+            // 检查该方块下方是否有点燃的营火
+            BlockPos belowPos(pos.x, pos.y - i - 1, pos.z);
+            const BlockState* belowState = world.getBlockState(belowPos);
+            if (belowState && isLitCampfire(*belowState)) {
+                return true;
+            }
+            // 实心方块阻挡，停止搜索
+            break;
+        }
+    }
+    return false;
+}
+
+bool CampfireBlock::isLitCampfire(const BlockState& state)
+{
+    return state.hasProperty(BlockStateProperties::LIT()) &&
+        dynamic_cast<const CampfireBlock*>(&state.getBlock()) != nullptr && state.get(BlockStateProperties::LIT());
 }
 
 // ========== SoulCampfireBlock 实现 ==========

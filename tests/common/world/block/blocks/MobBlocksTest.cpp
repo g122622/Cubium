@@ -97,20 +97,22 @@ TEST_F(BeehiveBlockTest, GetHoneyLevel_ReturnsZeroByDefault)
 
 TEST_F(BeehiveBlockTest, WithHoneyLevel_ReturnsCorrectState)
 {
+    const auto& defaultState = beehive_->defaultState();
     // 测试各个等级
     for (i32 level = 0; level <= 5; ++level) {
-        BlockState state = beehive_->withHoneyLevel(level);
+        BlockState state = beehive_->withHoneyLevel(defaultState, level);
         EXPECT_EQ(beehive_->getHoneyLevel(state), level) << "Honey level should be " << level;
     }
 }
 
 TEST_F(BeehiveBlockTest, WithHoneyLevel_ClampsToValidRange)
 {
+    const auto& defaultState = beehive_->defaultState();
     // 测试超出范围的值
-    BlockState stateNegative = beehive_->withHoneyLevel(-1);
+    BlockState stateNegative = beehive_->withHoneyLevel(defaultState, -1);
     EXPECT_EQ(beehive_->getHoneyLevel(stateNegative), 0) << "Negative level should be clamped to 0";
 
-    BlockState stateOverflow = beehive_->withHoneyLevel(10);
+    BlockState stateOverflow = beehive_->withHoneyLevel(defaultState, 10);
     EXPECT_EQ(beehive_->getHoneyLevel(stateOverflow), 5) << "Overflow level should be clamped to 5";
 }
 
@@ -121,7 +123,7 @@ TEST_F(BeehiveBlockTest, WithHoneyLevel_PreservesOtherProperties)
     Direction defaultFacing = defaultState.get(BlockStateProperties::HORIZONTAL_FACING());
 
     // 设置蜂蜜等级后朝向应该保持不变
-    BlockState state = beehive_->withHoneyLevel(3);
+    BlockState state = beehive_->withHoneyLevel(defaultState, 3);
     Direction facingAfter = state.get(BlockStateProperties::HORIZONTAL_FACING());
 
     EXPECT_EQ(facingAfter, defaultFacing) << "Honey level change should not affect facing";
@@ -157,7 +159,8 @@ TEST_F(BeehiveBlockTest, Rotate_UpdatesFacingCorrectly)
 TEST_F(BeehiveBlockTest, Rotate_PreservesHoneyLevel)
 {
     // 创建蜂蜜等级为 3 的状态
-    BlockState state = beehive_->withHoneyLevel(3);
+    const auto& defaultState = beehive_->defaultState();
+    BlockState state = beehive_->withHoneyLevel(defaultState, 3);
     i32 honeyLevelBefore = beehive_->getHoneyLevel(state);
 
     // 旋转

@@ -36,6 +36,10 @@ namespace mc {
 // Forward declarations
 class LivingEntity;
 
+namespace blockentity {
+class BeehiveBlockEntity;
+}
+
 namespace entity::ai::goal {
 class BeePollinateGoal;
 class BeeFindHiveGoal;
@@ -137,6 +141,63 @@ public:
      * @brief 设置返回蜂巢状态
      */
     void setReturningToHive(bool returning) { m_returningToHive = returning; }
+
+    /**
+     * @brief 检查蜂巢是否有效
+     * @return 蜂巢位置非空、距离在48格内、且存在蜂巢方块实体
+     *
+     * 参考 MC: Bee.isHiveValid()
+     */
+    [[nodiscard]] bool isHiveValid() const;
+
+    /**
+     * @brief 获取蜂巢方块实体
+     * @return 蜂巢方块实体指针，如果无效返回nullptr
+     *
+     * 参考 MC: Bee.getBeehiveBlockEntity()
+     */
+    [[nodiscard]] blockentity::BeehiveBlockEntity* getBeehiveBlockEntity() const;
+
+    /**
+     * @brief 蜜蜂是否想要进入蜂巢
+     * @return 满足进入蜂巢的所有条件时返回true
+     *
+     * 条件：stayOutOfHiveCountdown <= 0 && !isPollinating && !hasStung
+     *       && getAttackTarget() == nullptr && (hasNectar || isTiredOfLookingForNectar) && !isHiveNearFire()
+     */
+    [[nodiscard]] bool wantsToEnterHive() const;
+
+    /**
+     * @brief 检查蜂巢附近是否有火
+     * @return 蜂巢3x3x3范围内是否有火
+     */
+    [[nodiscard]] bool isHiveNearFire() const;
+
+    /**
+     * @brief 忘记蜂巢位置
+     * 清空蜂巢位置并设置200 tick冷却
+     */
+    void dropHive();
+
+    /**
+     * @brief 设置不进入蜂巢的倒计时
+     */
+    void setStayOutOfHiveCountdown(i32 countdown) { m_stayOutOfHiveCountdown = countdown; }
+
+    /**
+     * @brief 获取不进入蜂巢的倒计时
+     */
+    [[nodiscard]] i32 getStayOutOfHiveCountdown() const { return m_stayOutOfHiveCountdown; }
+
+    /**
+     * @brief 设置寻找新蜂巢冷却
+     */
+    void setHiveLocateCooldown(i32 cooldown) { m_remainingCooldownBeforeLocatingNewHive = cooldown; }
+
+    /**
+     * @brief 获取寻找新蜂巢冷却
+     */
+    [[nodiscard]] i32 getHiveLocateCooldown() const { return m_remainingCooldownBeforeLocatingNewHive; }
 
     // ========== 飞行系统 (IFlyingAnimal接口) ==========
 
