@@ -210,6 +210,20 @@ void BeehiveBlockEntity::_releaseOccupant(
     }
 
     BeeOccupant occupant = m_bees[occupantIndex];
+
+    // 对应 MC 原版 BeehiveBlockEntity.releaseOccupant() 中的
+    // environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, pos) 检查：
+    // 雨天/雷暴/夜间蜜蜂不应离巢，除非是紧急释放（如蜂巢着火）。
+    // MC 通过 BEES_STAY_IN_HIVE 环境属性统一管理，该属性在 RAIN/THUNDER 天气预设下为 true，
+    // 在日夜时间线中 tick 12542（黄昏）设为 true，tick 23460（清晨）设为 false。
+    // 当前项目未实现环境属性系统，因此直接使用 isRaining()/isThundering()/isDaytime() 等效替代。
+    if (releaseStatus != BeeReleaseStatus::Emergency) {
+        if (world.isRaining() || world.isThundering() || !world.isDaytime()) {
+            // 天气恶劣或夜间，蜜蜂留在巢内，不放出
+            return;
+        }
+    }
+
     m_bees.erase(m_bees.begin() + occupantIndex);
 
     // 计算释放位置

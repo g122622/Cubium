@@ -617,9 +617,11 @@ bool BeeFindFlowerGoal::canBeeStart()
         return false;
     }
 
-    // TODO: 实现 shouldMoveToFlower 检查
-    // return m_bee->getTicksWithoutNectarSinceExitingHive() > 2400;
-    // 简化：总是执行
+    // 对应 MC BeeGoToKnownFlowerGoal.wantsToGoToKnownFlower():
+    // 蜜蜂离巢后无花粉超过 600 tick（30秒）时，才想飞往已知花朵位置
+    if (m_bee->getTicksWithoutNectar() <= TICKS_WITHOUT_NECTAR_THRESHOLD) {
+        return false;
+    }
 
     // 检查花朵是否有效
     IWorld* world = m_bee->world();

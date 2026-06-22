@@ -266,8 +266,9 @@ public:
 private:
     i32 m_ticks = 0; ///< 计时器
 
-    static constexpr i32 MAX_NAVIGATION_TIME = 600;             ///< 最大导航时间
-    static constexpr i32 TICKS_WITHOUT_NECTAR_THRESHOLD = 2400; ///< 2分钟无花粉阈值
+    static constexpr i32 MAX_NAVIGATION_TIME = 600; ///< 最大导航时间
+    static constexpr i32 TICKS_WITHOUT_NECTAR_THRESHOLD =
+        600; ///< 30秒无花粉阈值（对应 MC BeeGoToKnownFlowerGoal.wantsToGoToKnownFlower: ticksWithoutNectar > 600）
 };
 
 /**
