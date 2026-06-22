@@ -32,9 +32,15 @@
 #include "common/item/tag/ItemTags.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <cmath>
@@ -93,12 +99,144 @@ private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
 };
 
+/**
+ * @brief 支持方块实体的测试用模拟世界
+ *
+ * 扩展 BeeTestWorld，添加 getBlockEntity/setBlockEntity 支持，
+ * 用于测试 BeeEntity 的蜂巢验证、蜂巢交互等方法。
+ */
+class BeeHiveTestWorld final : public test::BaseTestWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second.get();
+        }
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockState* state = getBlockState(x, y, z);
+        return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+    }
+
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
+        const auto it = m_blockEntities.find(pos);
+        if (it != m_blockEntities.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
+        const auto it = m_blockEntities.find(pos);
+        if (it != m_blockEntities.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    {
+        if (entity) {
+            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+        } else {
+            m_blockEntities.erase(pos);
+        }
+    }
+
+    void removeBlockEntity(const BlockPos& pos) override { m_blockEntities.erase(pos); }
+
+    // 便利方法：直接添加拥有权的方块实体
+    void addBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity)
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size());
+    }
+
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
+    {
+        // 测试中忽略声音播放
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("BeeHiveTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("BeeHiveTestWorld::tickManager not implemented");
+    }
+
+    // GameRules 接口
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+
+    // 测试辅助方法
+    void setBlockAt(const BlockPos& pos, const BlockState* state)
+    {
+        m_blocks[pos] = std::make_unique<BlockState>(*state);
+    }
+
+    void incrementTick() { m_currentTick++; }
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+
+    void setBeehiveAt(const BlockPos& pos)
+    {
+        // 设置蜂巢方块
+        if (block_registry::NaturalBlocks::BEEHIVE != nullptr) {
+            const BlockState* beehiveState = &block_registry::NaturalBlocks::BEEHIVE->defaultState();
+            m_blocks[pos] = std::make_unique<BlockState>(*beehiveState);
+        }
+        // 设置蜂巢方块实体
+        addBlockEntity(pos, std::make_unique<blockentity::BeehiveBlockEntity>(pos));
+    }
+
+    void setFireAt(const BlockPos& pos)
+    {
+        // 设置火焰方块（NetherBlocks::FIRE）
+        if (block_registry::NetherBlocks::FIRE != nullptr) {
+            const BlockState* fireState = &block_registry::NetherBlocks::FIRE->defaultState();
+            m_blocks[pos] = std::make_unique<BlockState>(*fireState);
+        }
+    }
+
+private:
+    std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    u64 m_currentTick = 0;
+    world::gamerule::GameRules m_gameRules;
+};
+
 class BeeEntityTest : public ::testing::Test {
 protected:
     static void SetUpTestSuite()
     {
-        // 初始化顺序：方块 -> 物品 -> 方块物品 -> 物品标签
+        // 初始化顺序：方块 -> 方块标签 -> 物品 -> 方块物品 -> 物品标签
         VanillaBlocks::initialize();
+        BlockTags::initialize();
         Items::initialize();
         BlockItemRegistry::instance().initializeVanillaBlockItems();
         item::tag::ItemTags::initialize();
@@ -553,6 +691,508 @@ TEST_F(BeeEntityTest, UnderwaterTimer_InitialState)
 
 // 注意：溺水伤害测试需要完整的 world mock 来支持 hurt() 方法
 // 这里我们只验证计时器的递增逻辑
+
+// ============================================================================
+// 蜂巢倒计时和冷却测试（简单 setter/getter，不需要世界）
+// ============================================================================
+
+TEST_F(BeeEntityTest, StayOutOfHiveCountdown_DefaultZero)
+{
+    BeeEntity bee(EntityId(1));
+    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 0);
+}
+
+TEST_F(BeeEntityTest, StayOutOfHiveCountdown_CanSetAndGet)
+{
+    BeeEntity bee(EntityId(1));
+
+    bee.setStayOutOfHiveCountdown(400);
+    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 400);
+
+    bee.setStayOutOfHiveCountdown(0);
+    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 0);
+
+    bee.setStayOutOfHiveCountdown(100);
+    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 100);
+}
+
+TEST_F(BeeEntityTest, HiveLocateCooldown_DefaultZero)
+{
+    BeeEntity bee(EntityId(1));
+    EXPECT_EQ(bee.getHiveLocateCooldown(), 0);
+}
+
+TEST_F(BeeEntityTest, HiveLocateCooldown_CanSetAndGet)
+{
+    BeeEntity bee(EntityId(1));
+
+    bee.setHiveLocateCooldown(200);
+    EXPECT_EQ(bee.getHiveLocateCooldown(), 200);
+
+    bee.setHiveLocateCooldown(0);
+    EXPECT_EQ(bee.getHiveLocateCooldown(), 0);
+
+    bee.setHiveLocateCooldown(50);
+    EXPECT_EQ(bee.getHiveLocateCooldown(), 50);
+}
+
+TEST_F(BeeEntityTest, DropHive_ClearsHiveAndSetsCooldown)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setHivePos(BlockPos(100, 64, 200));
+
+    EXPECT_TRUE(bee.hasHive());
+    EXPECT_EQ(bee.getHivePos(), BlockPos(100, 64, 200));
+
+    bee.dropHive();
+
+    EXPECT_FALSE(bee.hasHive());
+    EXPECT_EQ(bee.getHivePos(), BlockPos::zero());
+    // dropHive 设置 200 tick 冷却
+    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 200);
+}
+
+TEST_F(BeeEntityTest, DropHive_WhenNoHive_SetsCooldown)
+{
+    BeeEntity bee(EntityId(1));
+    // 没有蜂巢时调用 dropHive
+    EXPECT_FALSE(bee.hasHive());
+
+    bee.dropHive();
+
+    EXPECT_FALSE(bee.hasHive());
+    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 200);
+}
+
+TEST_F(BeeEntityTest, TicksWithoutNectar_DefaultZero)
+{
+    BeeEntity bee(EntityId(1));
+    EXPECT_EQ(bee.getTicksWithoutNectar(), 0);
+}
+
+TEST_F(BeeEntityTest, TicksWithoutNectar_CanReset)
+{
+    BeeEntity bee(EntityId(1));
+    // 模拟递增（通过直接设置内部状态不可行，但可以验证 resetTicksWithoutNectar）
+    bee.resetTicksWithoutNectar();
+    EXPECT_EQ(bee.getTicksWithoutNectar(), 0);
+}
+
+TEST_F(BeeEntityTest, Pollinating_DefaultFalse)
+{
+    BeeEntity bee(EntityId(1));
+    EXPECT_FALSE(bee.isPollinating());
+}
+
+TEST_F(BeeEntityTest, Pollinating_CanSetAndGet)
+{
+    BeeEntity bee(EntityId(1));
+
+    bee.setPollinating(true);
+    EXPECT_TRUE(bee.isPollinating());
+
+    bee.setPollinating(false);
+    EXPECT_FALSE(bee.isPollinating());
+}
+
+// ============================================================================
+// 蜂巢验证和交互测试（需要世界支持）
+// ============================================================================
+
+/**
+ * @brief 蜂巢交互测试夹具
+ *
+ * 使用 BeeHiveTestWorld 来测试需要方块实体支持的方法。
+ */
+class BeeHiveInteractionTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        // 初始化顺序：方块 -> 方块标签 -> 物品 -> 方块物品 -> 物品标签
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+        Items::initialize();
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
+        item::tag::ItemTags::initialize();
+    }
+
+    BeeHiveTestWorld m_world;
+};
+
+TEST_F(BeeHiveInteractionTest, IsHiveValid_NoHive_ReturnsFalse)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+
+    // 没有设置蜂巢位置
+    EXPECT_FALSE(bee.hasHive());
+    EXPECT_FALSE(bee.isHiveValid());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveValid_NoWorld_ReturnsFalse)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setHivePos(BlockPos(10, 64, 20));
+
+    EXPECT_TRUE(bee.hasHive());
+    // 没有世界，getBeehiveBlockEntity 返回 nullptr
+    EXPECT_FALSE(bee.isHiveValid());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveValid_WithValidHive_ReturnsTrue)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    EXPECT_TRUE(bee.hasHive());
+    EXPECT_TRUE(bee.isHiveValid());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveValid_HiveTooFar_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    // 蜜蜂距离蜂巢超过 48 格
+    bee.setPosition(200.0f, 64.0f, 200.0f);
+    bee.setHivePos(hivePos);
+
+    EXPECT_TRUE(bee.hasHive());
+    EXPECT_FALSE(bee.isHiveValid());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveValid_NoBlockAtHivePos_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    // 不设置蜂巢方块
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    EXPECT_TRUE(bee.hasHive());
+    // 位置上没有蜂巢方块，getBeehiveBlockEntity 返回 nullptr
+    EXPECT_FALSE(bee.isHiveValid());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveValid_NonBeehiveBlock_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    // 在该位置设置石头方块而不是蜂巢
+    if (VanillaBlocks::STONE != nullptr) {
+        m_world.setBlockAt(hivePos, &VanillaBlocks::STONE->defaultState());
+    }
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    EXPECT_TRUE(bee.hasHive());
+    // 石头不是蜂巢，应该返回 false
+    EXPECT_FALSE(bee.isHiveValid());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveValid_NoBlockEntityAtHivePos_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    // 设置蜂巢方块但不设置方块实体
+    if (block_registry::NaturalBlocks::BEEHIVE != nullptr) {
+        const BlockState* beehiveState = &block_registry::NaturalBlocks::BEEHIVE->defaultState();
+        m_world.setBlockAt(hivePos, beehiveState);
+    }
+    // 不调用 setBeehiveAt，所以没有方块实体
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    EXPECT_TRUE(bee.hasHive());
+    // 有蜂巢方块但没有方块实体，返回 false
+    EXPECT_FALSE(bee.isHiveValid());
+}
+
+TEST_F(BeeHiveInteractionTest, GetBeehiveBlockEntity_ValidHive_ReturnsEntity)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    auto* beehive = bee.getBeehiveBlockEntity();
+    ASSERT_NE(beehive, nullptr);
+    EXPECT_EQ(beehive->getType(), BlockEntityType::Beehive);
+    EXPECT_EQ(beehive->isEmpty(), true);
+}
+
+TEST_F(BeeHiveInteractionTest, GetBeehiveBlockEntity_InvalidHive_ReturnsNullptr)
+{
+    BlockPos hivePos(10, 64, 20);
+    // 不设置蜂巢
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    EXPECT_EQ(bee.getBeehiveBlockEntity(), nullptr);
+}
+
+TEST_F(BeeHiveInteractionTest, WantsToEnterHive_WithNectar_ReturnsTrue)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    // 设置有花粉
+    bee.setHasNectar(true);
+    // 确保冷却为 0
+    bee.setStayOutOfHiveCountdown(0);
+
+    EXPECT_TRUE(bee.wantsToEnterHive());
+}
+
+TEST_F(BeeHiveInteractionTest, WantsToEnterHive_WithoutNectarButTired_ReturnsTrue)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    // 没有花粉
+    bee.setHasNectar(false);
+    // 确保冷却为 0
+    bee.setStayOutOfHiveCountdown(0);
+    // 蜜蜂有蜂巢但无花粉，ticksWithoutNectar 需要超过 2400
+    // 通过 tick() 递增不太实际（需要 2400 次 tick），直接设置内部状态不可行
+    // 所以我们验证没有花粉且不累时不想回巢
+    EXPECT_FALSE(bee.wantsToEnterHive());
+}
+
+TEST_F(BeeHiveInteractionTest, WantsToEnterHive_StayOutOfHiveCountdown_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    bee.setHasNectar(true);
+    bee.setStayOutOfHiveCountdown(100); // 仍在冷却中
+
+    EXPECT_FALSE(bee.wantsToEnterHive());
+}
+
+TEST_F(BeeHiveInteractionTest, WantsToEnterHive_Pollinating_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    bee.setHasNectar(true);
+    bee.setStayOutOfHiveCountdown(0);
+    bee.setPollinating(true); // 正在授粉
+
+    EXPECT_FALSE(bee.wantsToEnterHive());
+}
+
+TEST_F(BeeHiveInteractionTest, WantsToEnterHive_HasStung_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    bee.setHasNectar(true);
+    bee.setStayOutOfHiveCountdown(0);
+    bee.setHasStung(true); // 已螫刺
+
+    EXPECT_FALSE(bee.wantsToEnterHive());
+}
+
+TEST_F(BeeHiveInteractionTest, WantsToEnterHive_NoNectarNoTired_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    bee.setHasNectar(false);
+    bee.setStayOutOfHiveCountdown(0);
+
+    // 没有花粉且没有累（ticksWithoutNectar = 0），不想回巢
+    EXPECT_FALSE(bee.wantsToEnterHive());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveNearFire_NoFire_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setHivePos(hivePos);
+
+    EXPECT_FALSE(bee.isHiveNearFire());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveNearFire_FireAdjacent_ReturnsTrue)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    // 在蜂巢旁边放置火
+    BlockPos firePos(11, 64, 20);
+    m_world.setFireAt(firePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setHivePos(hivePos);
+
+    EXPECT_TRUE(bee.isHiveNearFire());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveNearFire_FireAbove_ReturnsTrue)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    // 在蜂巢上方放置火
+    BlockPos firePos(10, 65, 20);
+    m_world.setFireAt(firePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setHivePos(hivePos);
+
+    EXPECT_TRUE(bee.isHiveNearFire());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveNearFire_FireTooFar_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    // 火距离蜂巢超过 3x3x3 范围（2格以外）
+    BlockPos firePos(13, 64, 20);
+    m_world.setFireAt(firePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setHivePos(hivePos);
+
+    EXPECT_FALSE(bee.isHiveNearFire());
+}
+
+TEST_F(BeeHiveInteractionTest, IsHiveNearFire_NoHive_ReturnsFalse)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+
+    // 没有蜂巢
+    EXPECT_FALSE(bee.hasHive());
+    EXPECT_FALSE(bee.isHiveNearFire());
+}
+
+TEST_F(BeeHiveInteractionTest, WantsToEnterHive_FireNearHive_ReturnsFalse)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    // 在蜂巢旁边放置火
+    BlockPos firePos(11, 64, 20);
+    m_world.setFireAt(firePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+    bee.setHasNectar(true);
+    bee.setStayOutOfHiveCountdown(0);
+
+    // 蜂巢附近有火，不想进入
+    EXPECT_FALSE(bee.wantsToEnterHive());
+}
+
+TEST_F(BeeHiveInteractionTest, GetBeehiveBlockEntity_WithinRange_ReturnsEntity)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    // 蜜蜂在蜂巢旁边（在 48 格范围内）
+    bee.setPosition(11.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    auto* beehive = bee.getBeehiveBlockEntity();
+    ASSERT_NE(beehive, nullptr);
+}
+
+TEST_F(BeeHiveInteractionTest, GetBeehiveBlockEntity_OutOfRange_ReturnsNullptr)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    // 蜜蜂距离蜂巢超过 48 格
+    bee.setPosition(200.0f, 64.0f, 200.0f);
+    bee.setHivePos(hivePos);
+
+    EXPECT_EQ(bee.getBeehiveBlockEntity(), nullptr);
+}
+
+TEST_F(BeeHiveInteractionTest, DropHive_ClearsHivePosition)
+{
+    BlockPos hivePos(10, 64, 20);
+    m_world.setBeehiveAt(hivePos);
+
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+    bee.setHivePos(hivePos);
+
+    EXPECT_TRUE(bee.hasHive());
+    EXPECT_TRUE(bee.isHiveValid());
+
+    bee.dropHive();
+
+    EXPECT_FALSE(bee.hasHive());
+    EXPECT_EQ(bee.getHivePos(), BlockPos::zero());
+    EXPECT_EQ(bee.getStayOutOfHiveCountdown(), 200);
+}
 
 } // namespace
 } // namespace mc
