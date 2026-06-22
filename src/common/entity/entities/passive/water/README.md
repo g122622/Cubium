@@ -8,7 +8,7 @@
 water/
 ├── WaterMobEntity.hpp/cpp  # 水生生物基类（反逻辑溺水系统）
 ├── DolphinEntity.hpp/cpp   # 海豚（宝藏寻找、海豚恩惠、跳跃）
-├── AxolotlEntity.hpp/cpp   # 美西螈（装死、支援效果、桶装）
+├── AxolotlEntity.hpp/cpp   # 美西螈（装死、支援效果[再生I+移除挖掘疲劳]、桶装）
 ├── SquidEntity.hpp/cpp     # 鱿鱼（喷墨、移动向量游泳）
 └── README.md               # 本文档
 ```
@@ -81,6 +81,7 @@ SquidEntity 不使用标准的导航系统，而是通过 `setMovementVector()` 
 ### 4. 美西螈的特殊行为
 
 - **装死**：水中受击 33% 概率触发，持续 200 tick，期间获得再生 I 效果
+- **支援效果**：当美西螈攻击的目标被玩家击杀且玩家在 20 格范围内时，给予玩家再生 I（基础 100 tick + 现有剩余，上限 2400 tick）并移除挖掘疲劳。使用 `EffectInstance::endsWithin()` 判断是否刷新现有效果
 - **狩猎冷却**：击杀目标后 2 分钟（2400 tick）不攻击鱼类和鱿鱼，但仍攻击溺尸和守卫者
 - **桶装持久化**：来自桶的美西螈 `preventDespawn()` 返回 true，不会消失
 - **繁殖食物**：热带鱼桶，不继承 AnimalEntity 的繁殖系统

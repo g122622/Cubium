@@ -51,7 +51,7 @@ passive/
 │   ├── WaterMobEntity.hpp/cpp # 水生生物基类（反逻辑溺水：陆地消耗空气）
 │   ├── SquidEntity.hpp/cpp   # 鱿鱼（喷墨）
 │   ├── DolphinEntity.hpp/cpp # 海豚（宝藏寻找、海豚恩惠）
-│   └── AxolotlEntity.hpp/cpp # 美西螈（装死、支援效果）
+│   └── AxolotlEntity.hpp/cpp # 美西螈（装死、支援效果[再生I+移除挖掘疲劳]）
 ├── ambient/                  # 环境生物
 │   ├── AmbientEntity.hpp/cpp # 环境生物基类
 │   └── BatEntity.hpp/cpp     # 蝙蝠（昼夜检测、倒挂休息）

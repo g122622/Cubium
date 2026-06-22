@@ -44,7 +44,7 @@ src/common/entity/
 │   │   ├── special/                # 特殊动物（FoxEntity, PandaEntity, BeeEntity 等）
 │   │   ├── horse/                  # 马类（AbstractHorseEntity, HorseEntity 等）
 │   │   ├── fish/                   # 鱼类（AbstractFishEntity, CodEntity 等）
-│   │   ├── water/                  # 水生生物（WaterMobEntity, SquidEntity, DolphinEntity）
+│   │   ├── water/                  # 水生生物（WaterMobEntity, SquidEntity, DolphinEntity, AxolotlEntity）
 │   │   ├── ambient/                # 环境生物（AmbientEntity, BatEntity）
 │   │   └── golem/                  # 傀儡（GolemEntity, IronGolemEntity, SnowGolemEntity）
 │   │

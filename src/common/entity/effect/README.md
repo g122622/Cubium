@@ -5,7 +5,7 @@
 ```
 effect/
 ├── EffectType.hpp/cpp           # 效果类型枚举和工具函数（ID转换、资源位置映射）
-├── EffectInstance.hpp/cpp       # 效果实例（持续时间、等级、tick逻辑）
+├── EffectInstance.hpp/cpp       # 效果实例（持续时间、等级、tick逻辑、到期查询）
 ├── EffectManager.hpp/cpp        # 效果管理器（实体身上的效果集合）
 ├── EffectAttributeModifiers.hpp/cpp # 效果属性修改器定义（UUID、修改量计算）
 └── README.md                    # 本文档
@@ -42,7 +42,7 @@ EffectType ←── EffectInstance ←── EffectManager
 - `EffectCommand`、`EffectResolver` - 命令系统
 - `MobEffectsPredicate` - 进度系统（效果条件判定）
 - `PlayerSaveData`、`ServerPlayerData` - 玩家数据存储
-- `WitchEntity`、`PufferfishEntity`、`DolphinGoals` 等实体 AI
+- `WitchEntity`、`PufferfishEntity`、`DolphinGoals`、`AxolotlEntity` 等实体 AI
 
 ## 容易踩的坑
 
@@ -102,3 +102,10 @@ MC 1.21 新增了 TrialOmen、WindCharged、RaidOmen 三个试炼密室效果，
 - 中毒：每 `25/(level+1)` tick 造成 1 HP 伤害
 - 凋零：每 `40/(level+1)` tick 造成 1 HP 伤害
 - 饥饿：每 tick 增加 `exhaustion += 0.005 * (level+1)`
+
+### 9. endsWithin() 的语义陷阱
+`EffectInstance::endsWithin(maxDuration)` 在以下情况返回 **false**：
+- 永久效果（`duration < 0`）：即使 maxDuration 很大也返回 false，永久效果不应被"刷新"
+- 已过期效果（`duration == 0`）：返回 true（0 <= maxDuration），但通常此时效果已被移除
+
+典型用途：美西螈的 `applySupportingEffects()` 使用 `endsWithin(2399)` 判断玩家现有的再生效果是否需要刷新——如果现有再生效果剩余时间超过 2399 tick（即已达上限 2400），则不刷新。

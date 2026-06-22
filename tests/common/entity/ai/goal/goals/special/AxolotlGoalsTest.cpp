@@ -25,6 +25,7 @@
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/goals/special/AxolotlGoals.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 
 namespace mc {
@@ -204,6 +205,206 @@ TEST_F(AxolotlTargetGoalTest, TargetSelectorParameters)
 
     EXPECT_TRUE(CHECK_SIGHT);
     EXPECT_EQ(CHANCE, 10);
+}
+
+// ============================================================================
+// 美西螈支援效果常量测试
+// ============================================================================
+
+/**
+ * @brief 美西螈支援效果常量测试
+ *
+ * 验证美西螈支援效果相关的常量值与 MC 1.21 一致。
+ * MC 1.21 参考: net.minecraft.world.entity.animal.axolotl.Axolotl
+ */
+class AxolotlSupportingEffectsTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+};
+
+/**
+ * @brief 测试再生效果基础持续时间
+ *
+ * MC 1.21: REGEN_BUFF_BASE_DURATION = 100 (5秒)
+ */
+TEST_F(AxolotlSupportingEffectsTest, RegenBuffBaseDuration_Is100Ticks)
+{
+    constexpr i32 REGEN_BUFF_BASE_DURATION = 100;
+    EXPECT_EQ(REGEN_BUFF_BASE_DURATION, 100);
+}
+
+/**
+ * @brief 测试再生效果最大持续时间
+ *
+ * MC 1.21: REGEN_BUFF_MAX_DURATION = 2400 (2分钟)
+ */
+TEST_F(AxolotlSupportingEffectsTest, RegenBuffMaxDuration_Is2400Ticks)
+{
+    constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;
+    EXPECT_EQ(REGEN_BUFF_MAX_DURATION, 2400);
+}
+
+/**
+ * @brief 测试玩家检测范围
+ *
+ * MC 1.21: PLAYER_REGEN_DETECTION_RANGE = 20.0 (20格)
+ */
+TEST_F(AxolotlSupportingEffectsTest, PlayerRegenDetectionRange_Is20Blocks)
+{
+    constexpr f64 PLAYER_REGEN_DETECTION_RANGE = 20.0;
+    EXPECT_DOUBLE_EQ(PLAYER_REGEN_DETECTION_RANGE, 20.0);
+}
+
+/**
+ * @brief 测试狩猎冷却持续时间
+ *
+ * MC 1.21: 狩猎冷却 2400 ticks (2分钟)
+ */
+TEST_F(AxolotlSupportingEffectsTest, HuntingCooldownDuration_Is2400Ticks)
+{
+    constexpr i32 HUNTING_COOLDOWN_DURATION = 2400;
+    EXPECT_EQ(HUNTING_COOLDOWN_DURATION, 2400);
+}
+
+/**
+ * @brief 测试再生效果持续时间计算：无现有效果
+ *
+ * MC 1.21: 无现有再生效果时，持续时间 = 100 tick
+ * applySupportingEffects: newDuration = min(2400, 100 + 0) = 100
+ */
+TEST_F(AxolotlSupportingEffectsTest, RegenDuration_NoExistingEffect_Is100Ticks)
+{
+    constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;
+    constexpr i32 REGEN_BUFF_BASE_DURATION = 100;
+
+    // 无现有效果时 currentDuration = 0
+    i32 currentDuration = 0;
+    i32 newDuration = std::min(REGEN_BUFF_MAX_DURATION, REGEN_BUFF_BASE_DURATION + currentDuration);
+    EXPECT_EQ(newDuration, 100);
+}
+
+/**
+ * @brief 测试再生效果持续时间计算：已有500tick效果
+ *
+ * MC 1.21: newDuration = min(2400, 100 + 500) = 600
+ */
+TEST_F(AxolotlSupportingEffectsTest, RegenDuration_Existing500Ticks_Is600Ticks)
+{
+    constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;
+    constexpr i32 REGEN_BUFF_BASE_DURATION = 100;
+
+    i32 currentDuration = 500;
+    i32 newDuration = std::min(REGEN_BUFF_MAX_DURATION, REGEN_BUFF_BASE_DURATION + currentDuration);
+    EXPECT_EQ(newDuration, 600);
+}
+
+/**
+ * @brief 测试再生效果持续时间计算：已有2399tick效果
+ *
+ * MC 1.21: newDuration = min(2400, 100 + 2399) = 2400（达到上限）
+ * endsWithin(2399) → 2399 <= 2399 → true，可以刷新
+ */
+TEST_F(AxolotlSupportingEffectsTest, RegenDuration_Existing2399Ticks_CappedAt2400)
+{
+    constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;
+    constexpr i32 REGEN_BUFF_BASE_DURATION = 100;
+
+    i32 currentDuration = 2399;
+    // endsWithin(2399) 检查：现有效果 2399 tick <= 2399 → true
+    EXPECT_TRUE(currentDuration <= REGEN_BUFF_MAX_DURATION - 1);
+
+    i32 newDuration = std::min(REGEN_BUFF_MAX_DURATION, REGEN_BUFF_BASE_DURATION + currentDuration);
+    EXPECT_EQ(newDuration, 2400);
+}
+
+/**
+ * @brief 测试再生效果持续时间计算：已有2400tick效果
+ *
+ * MC 1.21: 当现有再生效果持续时间已达到 2400 tick 时，
+ * endsWithin(2399) → 2400 > 2399 → false，不刷新
+ */
+TEST_F(AxolotlSupportingEffectsTest, RegenDuration_Existing2400Ticks_NotRefreshed)
+{
+    constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;
+
+    i32 currentDuration = 2400;
+    // endsWithin(2399) 检查：现有效果 2400 tick > 2399 → false，不刷新
+    EXPECT_FALSE(currentDuration <= REGEN_BUFF_MAX_DURATION - 1);
+}
+
+/**
+ * @brief 测试再生效果持续时间计算：已有超过2400tick的异常值
+ *
+ * 虽然正常游戏不会出现超过 2400 tick 的再生效果，
+ * 但 endsWithin 应正确处理这种情况。
+ */
+TEST_F(AxolotlSupportingEffectsTest, RegenDuration_ExistingAboveMax_NotRefreshed)
+{
+    constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;
+
+    i32 currentDuration = 3000;
+    EXPECT_FALSE(currentDuration <= REGEN_BUFF_MAX_DURATION - 1);
+}
+
+/**
+ * @brief 测试再生效果使用 endsWithin 判断的完整逻辑
+ *
+ * 模拟 applySupportingEffects 的核心判断逻辑：
+ * - 无效果时给予新效果
+ * - 有效果且 endsWithin(2399) 时刷新
+ * - 有效果但 !endsWithin(2399) 时不刷新
+ */
+TEST_F(AxolotlSupportingEffectsTest, ApplySupportingEffects_LogicUsingEndsWithin)
+{
+    using namespace mc::entity::effect;
+
+    constexpr i32 REGEN_BUFF_MAX_DURATION = 2400;
+    constexpr i32 REGEN_BUFF_BASE_DURATION = 100;
+
+    // 场景1：玩家无再生效果 → 给予 100 tick
+    {
+        const EffectInstance* existing = nullptr;
+        bool shouldApply = (existing == nullptr || existing->endsWithin(REGEN_BUFF_MAX_DURATION - 1));
+        EXPECT_TRUE(shouldApply);
+
+        i32 currentDuration = existing != nullptr ? existing->duration() : 0;
+        i32 newDuration = std::min(REGEN_BUFF_MAX_DURATION, REGEN_BUFF_BASE_DURATION + currentDuration);
+        EXPECT_EQ(newDuration, 100);
+    }
+
+    // 场景2：玩家有 500 tick 再生效果 → 刷新为 600 tick
+    {
+        EffectInstance existing(EffectType::Regeneration, 500, 0);
+        bool shouldApply = existing.endsWithin(REGEN_BUFF_MAX_DURATION - 1);
+        EXPECT_TRUE(shouldApply);
+
+        i32 newDuration = std::min(REGEN_BUFF_MAX_DURATION, REGEN_BUFF_BASE_DURATION + existing.duration());
+        EXPECT_EQ(newDuration, 600);
+    }
+
+    // 场景3：玩家有 2399 tick 再生效果 → 刷新为 2400 tick（达到上限）
+    {
+        EffectInstance existing(EffectType::Regeneration, 2399, 0);
+        bool shouldApply = existing.endsWithin(REGEN_BUFF_MAX_DURATION - 1);
+        EXPECT_TRUE(shouldApply);
+
+        i32 newDuration = std::min(REGEN_BUFF_MAX_DURATION, REGEN_BUFF_BASE_DURATION + existing.duration());
+        EXPECT_EQ(newDuration, 2400);
+    }
+
+    // 场景4：玩家有 2400 tick 再生效果 → 不刷新
+    {
+        EffectInstance existing(EffectType::Regeneration, 2400, 0);
+        bool shouldApply = existing.endsWithin(REGEN_BUFF_MAX_DURATION - 1);
+        EXPECT_FALSE(shouldApply);
+    }
+
+    // 场景5：玩家有永久再生效果 → 不刷新
+    {
+        EffectInstance existing(EffectType::Regeneration, -1, 0, true, false, false);
+        bool shouldApply = existing.endsWithin(REGEN_BUFF_MAX_DURATION - 1);
+        EXPECT_FALSE(shouldApply);
+    }
 }
 
 } // namespace

@@ -705,6 +705,8 @@ add_executable(mc_tests
     common/entity/effect/EffectAttributeModifiersTest.cpp
     # EffectManager 效果合并行为测试
     common/entity/effect/EffectManagerMergeTest.cpp
+    # EffectInstance endsWithin 到期查询测试
+    common/entity/effect/EffectInstanceEndsWithinTest.cpp
     # 饱和效果测试
     common/entity/effect/SaturationEffectTest.cpp
     common/world/gen/WorldGenSpawnerTest.cpp
