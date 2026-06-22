@@ -99,3 +99,5 @@
                 getSmashAttackDamageBonus()` 计算下落攻击伤害加成（含致密魔咒）、使用 `DamageSources::
                     maceSmash()` 伤害类型、调用 `MaceItem::
                         hitEntity()` 处理砸地效果（停止下落、音效、击退）、调用 `postHitEntity()` 重置下落距离、检测风爆魔咒施加弹起速度。
+    -
+    **PvP 保护机制**：`Player::canHarmPlayer()` 控制玩家间伤害判定。基类实现检查队伍友伤规则（攻击者无队伍→可伤害；同队→取决于 `getAllowFriendlyFire()`；不同队→可伤害）。`ServerPlayer` 重写此方法，先检查 PVP 游戏规则（`IWorld::isPvpAllowed()`），PvP 禁用时直接返回 false。`ServerPlayer::hurt()` 在伤害来源为玩家时调用 `canHarmPlayer()` 拦截非法 PvP 伤害。驯服动物（如狼）的 `wantsToAttack()` 也调用 `canHarmPlayer()` 判断主人是否可以攻击目标玩家。

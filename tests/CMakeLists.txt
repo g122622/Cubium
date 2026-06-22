@@ -230,6 +230,8 @@ add_executable(mc_tests
     entity/EntityTeamTest.cpp
     # Entity::isAlliedTo() 盟友系统测试
     entity/AlliedAndTargetTest.cpp
+    # Player::canHarmPlayer() PvP 保护测试
+    entity/PlayerCanHarmPlayerTest.cpp
     # Player::attack() 横扫攻击过滤、荆棘附魔反伤、武器损耗测试
     entity/PlayerAttackTest.cpp
     # IRideable 速度设置逻辑测试
@@ -320,6 +322,8 @@ add_executable(mc_tests
     common/entity/combat/SweepAttackConditionTest.cpp
     # GameRules 游戏规则测试
     common/world/gamerule/GameRulesTest.cpp
+    # PVP 游戏规则测试
+    common/world/gamerule/PvpGameRuleTest.cpp
     # GameEvent 游戏事件测试
     common/world/gameevent/GameEventTest.cpp
     common/world/gameevent/GameEventSystemTest.cpp

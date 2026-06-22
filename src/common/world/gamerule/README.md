@@ -55,6 +55,9 @@ GameRules.hpp (容器类)
   - `entity/entities/misc/MiscEntities` - TNTEntity 爆炸检查 tntExplodes；实体掉落检查 doEntityDrops
   - `entity/entities/passive/special/PandaEntity` - 熊猫掉落检查 doMobLoot
   - `entity/entities/player/Player` - 玩家自然回血检查 naturalRegeneration
+  - `entity/entities/player/Player` - PvP 保护检查 pvp（canHarmPlayer）
+  - `server/player/ServerPlayer` - 服务端玩家受伤检查 pvp
+  - `entity/entities/passive/tamable/WolfEntity` - 驯服狼 PvP 保护检查 pvp（wantsToAttack）
   - `entity/entities/vehicle/MinecartEntity` - TNT 矿车引爆和爆炸检查 tntExplodes
   - `entity/inventory/IRecipeHolder` - 限制合成检查 doLimitedCrafting
 - **方块行为** - `block/blocks/mob/TurtleEggBlock` 检查 mobGriefing

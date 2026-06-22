@@ -80,7 +80,7 @@ AnimalEntity
 ### 队伍继承与攻击过滤
 - **`getTeam()` 重写**：TameableEntity 重写了 `getTeam()`，已驯服动物继承主人的队伍，未驯服时回退到 AnimalEntity 默认逻辑
 - **`wantsToAttack(target, owner)` 虚方法**：TameableEntity 提供此虚方法供子类重写攻击过滤逻辑，默认返回 true（允许攻击所有目标）
-- **WolfEntity 重写 `wantsToAttack()`**：实现 MC 精确的攻击过滤规则——永远不攻击苦力怕/恶魂/盔甲架，不攻击已驯服的同类（除非主人不同），不攻击已驯服的驯服动物和马
+- **WolfEntity 重写 `wantsToAttack()`**：实现 MC 精确的攻击过滤规则——永远不攻击苦力怕/恶魂/盔甲架，不攻击已驯服的同类（除非主人不同），PvP保护检查（当目标和主人都是玩家时调用 `canHarmPlayer()`），不攻击已驯服的驯服动物和马
 - **OwnerHurtByTargetGoal / OwnerHurtTargetGoal 均调用 `wantsToAttack()`**，因此狼的攻击限制自动生效
 
 ### 猫的交互系统（interactMob）

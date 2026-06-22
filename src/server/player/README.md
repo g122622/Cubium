@@ -20,6 +20,7 @@ ServerPlayer 继承自 `Player` 基类，是服务端玩家实体的核心实现
 - **统计系统**：合成统计追踪、配方解锁触发器
 - **成就系统**：PlayerAdvancements 管理、配方书
 - **队伍系统**：通过记分板获取队伍信息
+- **PvP 保护**：通过 `canHarmPlayer()` 和 `hurt()` 重写实现 PvP 规则和队伍友伤检查
 
 ## 上下游外部依赖关系
 
@@ -101,3 +102,7 @@ if (player->canReceiveMessages()) {
 ### 8. CHUNK_HEIGHT vs MAX_BUILD_HEIGHT
 
 根据 PROJECT_CONVENTIONS.md，这两个常量目前值相同但语义不同。未来 MIN_BUILD_HEIGHT 可能从 0 改为 -64，届时 CHUNK_HEIGHT 将不等于 MAX_BUILD_HEIGHT。
+
+### 9. PvP 保护调用链
+
+`ServerPlayer::hurt()` → 检查伤害来源是否为玩家 → `canHarmPlayer()` → 先检查 `IWorld::isPvpAllowed()`（读取 PVP 游戏规则）→ 再委托 `Player::canHarmPlayer()` 检查队伍友伤。驯服动物（如狼）通过 `TameableEntity::wantsToAttack()` 也调用 `canHarmPlayer()` 判断主人是否可攻击目标玩家。
