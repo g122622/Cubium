@@ -40,6 +40,7 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockSoundType.hpp"
 #include "../../../world/block/BlockState.hpp"
+#include "../../../world/block/BlockTags.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
@@ -1823,7 +1824,6 @@ void Player::_updateCameraYaw()
 
 void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockState*/)
 {
-    // 由客户端在 updateMoveDistance() 检测到 m_shouldPlayStepSound 后调用
     if (m_world == nullptr) {
         return;
     }
@@ -1834,8 +1834,31 @@ void Player::playStepSound(const BlockPos& /*pos*/, const BlockState* /*blockSta
         return;
     }
 
-    // 调用 Entity 基类方法播放脚步声
-    Entity::playStepSound(m_stepSoundPos, blockState);
+    if (isInWater()) {
+        // 水中：播放游泳音效 + 沉闷步声
+        playSwimSound(1.0f);
+        playMuffledStepSound(*blockState);
+    } else {
+        // 获取主脚步声方块位置（可能因 INSIDE/COMBINATION 标签而上移）
+        BlockPos primaryPos = getPrimaryStepSoundBlockPos(m_stepSoundPos);
+
+        if (primaryPos != m_stepSoundPos) {
+            // 上方方块属于 INSIDE_STEP_SOUND_BLOCKS 或 COMBINATION_STEP_SOUND_BLOCKS
+            const BlockState* primaryState = m_world->getBlockState(primaryPos);
+            if (primaryState != nullptr) {
+                if (BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(*primaryState)) {
+                    // 组合步声：上方正常步声 + 下方沉闷步声
+                    playCombinationStepSounds(*primaryState, *blockState);
+                } else {
+                    // 内部步声：只播放上方方块的步声
+                    Entity::playStepSound(primaryPos, primaryState);
+                }
+            }
+        } else {
+            // 普通步声
+            Entity::playStepSound(m_stepSoundPos, blockState);
+        }
+    }
 }
 
 void Player::playSwimSound(f32 volume)

@@ -1854,12 +1854,55 @@ public:
      *
      * 当实体在方块上行走时调用。子类可重写以自定义脚步声。
      *
-     * 默认实现使用脚下方块的声音类型播放脚步声。
+     * 默认实现使用脚下方块的声音类型播放脚步声，并检查紫水晶共振音效。
      *
      * @param pos 方块位置
      * @param blockState 方块状态
      */
     virtual void playStepSound(const BlockPos& pos, const BlockState* blockState);
+
+    /**
+     * @brief 获取主脚步声方块位置
+     *
+     * 检查脚上方块是否属于 INSIDE_STEP_SOUND_BLOCKS 或 COMBINATION_STEP_SOUND_BLOCKS，
+     * 如果是则返回上方方块位置（脚步声应以上方方块为准），
+     * 否则返回脚下方块位置。
+     *
+     * @param pos 脚下方块位置
+     * @return 应播放脚步声的方块位置
+     */
+    [[nodiscard]] BlockPos getPrimaryStepSoundBlockPos(const BlockPos& pos) const;
+
+    /**
+     * @brief 播放组合脚步声
+     *
+     * 同时播放上方方块的正常步声和下方方块的沉闷步声。
+     * 用于踩在 COMBINATION_STEP_SOUND_BLOCKS 方块上时（如地毯、雪层等）。
+     *
+     * @param aboveState 上方方块状态（组合步声方块）
+     * @param belowState 下方方块状态
+     */
+    void playCombinationStepSounds(const BlockState& aboveState, const BlockState& belowState);
+
+    /**
+     * @brief 播放沉闷脚步声
+     *
+     * 以极低音量播放步声，用于组合脚步声中下方方块的音效。
+     * 音量 = soundType.volume * 0.05，音调 = soundType.pitch * 0.8
+     *
+     * @param blockState 方块状态
+     */
+    void playMuffledStepSound(const BlockState& blockState);
+
+    /**
+     * @brief 检查是否应播放紫水晶步声音效
+     *
+     * 当脚下方块属于 CRYSTAL_SOUND_BLOCKS 时应播放紫水晶共振音效。
+     *
+     * @param blockState 方块状态
+     * @return 如果应播放紫水晶音效返回 true
+     */
+    [[nodiscard]] bool shouldPlayAmethystStepSound(const BlockState& blockState) const;
 
     /**
      * @brief 检查实体是否无视碰撞

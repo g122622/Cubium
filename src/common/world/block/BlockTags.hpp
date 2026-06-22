@@ -175,7 +175,7 @@ public:
     /// 羊毛地毯标签（所有颜色的地毯方块）
     /// 运行时消费场景：
     /// 1. DAMPENS_VIBRATIONS 标签的组成项（地毯方块阻尼振动）— 已在 VibrationSystemServer 中消费
-    /// 2. COMBINATION_STEP_SOUND_BLOCKS 标签的组成项（组合脚步声）— TODO: 待实现
+    /// 2. COMBINATION_STEP_SOUND_BLOCKS 标签的组成项（组合脚步声）— 已在 Entity/Player 步声逻辑中消费
     /// 3. 羊驼装备判定（MC 1.21+ 使用 Equippable 数据组件，非标签判断）— 已在 LlamaEntity::isValidArmorForSlot 中使用
     static BlockTag& WOOL_CARPETS();
 
@@ -272,6 +272,14 @@ public:
 
     /// 水晶声音方块标签（紫水晶块、紫水晶母岩）
     static BlockTag& CRYSTAL_SOUND_BLOCKS();
+
+    /// 组合脚步声方块标签（羊毛地毯、苔藓地毯、苍白苔藓地毯、雪层、下界苗、诡异菌索、绯红菌索、树脂团）
+    /// 当实体站在这些方块上时，脚步声会同时播放上方方块的正常步声和下方方块的沉闷步声
+    static BlockTag& COMBINATION_STEP_SOUND_BLOCKS();
+
+    /// 内部脚步声方块标签（细雪、幽匿脉络、发光地衣、睡莲、小型紫水晶芽、粉红色花瓣、野花、落叶层）
+    /// 当实体站在这些方块上时，脚步声只播放上方方块自身的步声（替代脚下方块的步声）
+    static BlockTag& INSIDE_STEP_SOUND_BLOCKS();
 
     /// 洞穴藤蔓标签
     static BlockTag& CAVE_VINES();

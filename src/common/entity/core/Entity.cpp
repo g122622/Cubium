@@ -35,6 +35,7 @@
 #include "../../world/block/Block.hpp"
 #include "../../world/block/BlockPos.hpp"
 #include "../../world/block/BlockSoundType.hpp"
+#include "../../world/block/BlockTags.hpp"
 #include "../../world/fluid/Fluid.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
@@ -395,43 +396,75 @@ void Entity::doWaterSplashEffect()
 
 void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
 {
-    // 默认实现使用脚下方块的声音类型播放脚步声
-    // 子类可以重写以自定义声音（如蜜蜂不播放脚步声）
-
     if (blockState == nullptr || m_world == nullptr) {
         return;
     }
 
-    // 检查上方是否有雪层
-    // 如果上方是雪层，则使用雪的声音类型
-    const BlockState* soundState = blockState;
+    // 播放步声
+    const BlockSoundType& soundType = blockState->getSoundType();
+    u32 seed = static_cast<u32>(m_id) ^ static_cast<u32>(m_ticksExisted);
+    f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f;
+    f32 volume = soundType.getVolume() * 0.15f;
+    f32 pitch = soundType.getPitch() * (0.8f + randomValue * 0.4f);
 
-    // 检查上方方块是否为雪层
+    playSound(soundType.getStepSound(), volume, pitch);
+
+    // 紫水晶共振铃声
+    // TODO: 完整实现需要 m_crystalSoundIntensity 强度累积字段和 m_lastCrystalSoundPlayTick 冷却时间字段，
+    // 以及 playAmethystStepSound() 方法实现强度衰减（0.997^ticks）和累积（+0.07）逻辑，
+    // 音效事件为 block.amethyst_block.chime，音量 = 0.1 + intensity * 1.2，音调 = 0.5 + intensity * random * 1.2
+    if (shouldPlayAmethystStepSound(*blockState)) {
+        // 简化实现：直接播放紫水晶步声，无强度累积
+        playSound(ResourceLocation("minecraft", "block.amethyst_block.chime"), volume * 0.5f, pitch);
+    }
+}
+
+BlockPos Entity::getPrimaryStepSoundBlockPos(const BlockPos& pos) const
+{
+    if (m_world == nullptr) {
+        return pos;
+    }
+
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = m_world->getBlockState(abovePos);
+
     if (aboveState != nullptr && !aboveState->isAir()) {
-        // 检查上方方块是否为雪层（通过材质或其他属性判断）
-        // 如果上方是雪层且高度足够，使用雪的声音
-        const ResourceLocation& blockLoc = aboveState->getBlock().blockLocation();
-        const std::string& blockPath = blockLoc.path();
-        if (blockPath.find("snow") != std::string::npos && blockPath != "snow_block") {
-            // 雪层 - 使用雪的声音类型
-            soundState = aboveState;
+        if (BlockTags::INSIDE_STEP_SOUND_BLOCKS().contains(*aboveState) ||
+            BlockTags::COMBINATION_STEP_SOUND_BLOCKS().contains(*aboveState)) {
+            return abovePos;
         }
     }
 
-    // 获取方块的声音类型
-    const BlockSoundType& soundType = soundState->getSoundType();
+    return pos;
+}
 
-    // 播放脚步声
-    // 音量 = soundType.volume * 0.15, 音调 = soundType.pitch * random(0.8, 1.2)
-    // 使用实体ID和tick计数器生成伪随机数
+void Entity::playCombinationStepSounds(const BlockState& aboveState, const BlockState& belowState)
+{
+    // 播放上方方块的正常步声
+    const BlockSoundType& aboveSoundType = aboveState.getSoundType();
     u32 seed = static_cast<u32>(m_id) ^ static_cast<u32>(m_ticksExisted);
-    f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f; // 0.0-1.0
-    f32 volume = soundType.getVolume() * 0.15f;
-    f32 pitch = soundType.getPitch() * (0.8f + randomValue * 0.4f); // 0.8-1.2 范围
+    f32 randomValue = static_cast<f32>((seed * 1103515245 + 12345) % 32768) / 32768.0f;
+    f32 volume = aboveSoundType.getVolume() * 0.15f;
+    f32 pitch = aboveSoundType.getPitch() * (0.8f + randomValue * 0.4f);
+
+    playSound(aboveSoundType.getStepSound(), volume, pitch);
+
+    // 播放下方方块的沉闷步声
+    playMuffledStepSound(belowState);
+}
+
+void Entity::playMuffledStepSound(const BlockState& blockState)
+{
+    const BlockSoundType& soundType = blockState.getSoundType();
+    f32 volume = soundType.getVolume() * 0.05f;
+    f32 pitch = soundType.getPitch() * 0.8f;
 
     playSound(soundType.getStepSound(), volume, pitch);
+}
+
+bool Entity::shouldPlayAmethystStepSound(const BlockState& blockState) const
+{
+    return BlockTags::CRYSTAL_SOUND_BLOCKS().contains(blockState);
 }
 
 void Entity::setPosition(f32 x, f32 y, f32 z)

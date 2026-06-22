@@ -450,6 +450,24 @@ BlockTag& BlockTags::CRYSTAL_SOUND_BLOCKS()
     return *tag;
 }
 
+BlockTag& BlockTags::COMBINATION_STEP_SOUND_BLOCKS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "combination_step_sound_blocks"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::INSIDE_STEP_SOUND_BLOCKS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "inside_step_sound_blocks"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::CAVE_VINES()
 {
     static BlockTag* tag = nullptr;
@@ -1412,6 +1430,66 @@ void BlockTags::initialize()
     crystalSoundBlocks->addAll(
         {ResourceLocation("minecraft", "amethyst_block"), ResourceLocation("minecraft", "budding_amethyst")});
     tags[crystalSoundBlocks->getId()] = std::move(crystalSoundBlocks);
+
+    // 组合脚步声方块（踩在上面时同时播放自身步声和下方方块沉闷步声）
+    // 参考: net.minecraft.data.tags.VanillaBlockTagsProvider - COMBINATION_STEP_SOUND_BLOCKS
+    // 包含: #minecraft:wool_carpets + moss_carpet + pale_moss_carpet + snow + nether_sprouts + warped_roots +
+    // crimson_roots + resin_clump
+    auto combinationStepSoundBlocks =
+        std::make_unique<BlockTag>(ResourceLocation("minecraft", "combination_step_sound_blocks"));
+    combinationStepSoundBlocks->addAll({// 羊毛地毯（16色）
+        ResourceLocation("minecraft", "white_carpet"),
+        ResourceLocation("minecraft", "orange_carpet"),
+        ResourceLocation("minecraft", "magenta_carpet"),
+        ResourceLocation("minecraft", "light_blue_carpet"),
+        ResourceLocation("minecraft", "yellow_carpet"),
+        ResourceLocation("minecraft", "lime_carpet"),
+        ResourceLocation("minecraft", "pink_carpet"),
+        ResourceLocation("minecraft", "gray_carpet"),
+        ResourceLocation("minecraft", "light_gray_carpet"),
+        ResourceLocation("minecraft", "cyan_carpet"),
+        ResourceLocation("minecraft", "purple_carpet"),
+        ResourceLocation("minecraft", "blue_carpet"),
+        ResourceLocation("minecraft", "brown_carpet"),
+        ResourceLocation("minecraft", "green_carpet"),
+        ResourceLocation("minecraft", "red_carpet"),
+        ResourceLocation("minecraft", "black_carpet"),
+        // 苔藓地毯
+        ResourceLocation("minecraft", "moss_carpet"),
+        // 苍白苔藓地毯
+        ResourceLocation("minecraft", "pale_moss_carpet"),
+        // 雪层（注意：不是雪块 snow_block）
+        ResourceLocation("minecraft", "snow"),
+        // 下界苗
+        ResourceLocation("minecraft", "nether_sprouts"),
+        // 诡异菌索
+        ResourceLocation("minecraft", "warped_roots"),
+        // 绯红菌索
+        ResourceLocation("minecraft", "crimson_roots"),
+        // 树脂团
+        ResourceLocation("minecraft", "resin_clump")});
+    tags[combinationStepSoundBlocks->getId()] = std::move(combinationStepSoundBlocks);
+
+    // 内部脚步声方块（踩在上面时只播放自身步声，替代脚下方块的步声）
+    // 参考: net.minecraft.data.tags.VanillaBlockTagsProvider - INSIDE_STEP_SOUND_BLOCKS
+    auto insideStepSoundBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "inside_step_sound_blocks"));
+    insideStepSoundBlocks->addAll({// 细雪
+        ResourceLocation("minecraft", "powder_snow"),
+        // 幽匿脉络
+        ResourceLocation("minecraft", "sculk_vein"),
+        // 发光地衣
+        ResourceLocation("minecraft", "glow_lichen"),
+        // 睡莲
+        ResourceLocation("minecraft", "lily_pad"),
+        // 小型紫水晶芽
+        ResourceLocation("minecraft", "small_amethyst_bud"),
+        // 粉红色花瓣
+        ResourceLocation("minecraft", "pink_petals"),
+        // 野花
+        ResourceLocation("minecraft", "wildflowers"),
+        // 落叶层
+        ResourceLocation("minecraft", "leaf_litter")});
+    tags[insideStepSoundBlocks->getId()] = std::move(insideStepSoundBlocks);
 
     // 洞穴藤蔓
     auto caveVines = std::make_unique<BlockTag>(ResourceLocation("minecraft", "cave_vines"));
