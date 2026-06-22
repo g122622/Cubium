@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/resource/ResourceLocation.hpp"
+#include <mutex>
 #include <unordered_map>
 
 namespace mc::world::gen::structure {
@@ -138,6 +139,12 @@ private:
     /// 已加载区块的结构引用计数缓存（精确数据）
     /// key: 区块坐标打包的 64 位 ID（高32位=X，低32位=Z），value: 该区块中所有结构的引用计数
     std::unordered_map<u64, ChunkStructureEntries> m_loadedChunks;
+
+    /// 互斥锁：保护 m_loadedChunks 的并发访问
+    /// 对齐 MC 1.21.11 中通过 server.execute() 将 onStructureLoad 调度到主线程的线程安全机制。
+    /// MC 使用线程约束（main thread confinement）保证线程安全，
+    /// 而我们使用互斥锁，因为 chunk generation 在多线程的 ServerWorkerPool 中执行。
+    mutable std::mutex m_mutex;
 };
 
 } // namespace mc::world::gen::structure

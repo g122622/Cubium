@@ -27,6 +27,7 @@ namespace mc::world::gen::structure {
 
 StructureCheckResult StructureCheck::checkStart(u64 chunkPosId, const ResourceLocation& structureId) const
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     // 查询已加载区块的精确结构引用计数
     auto loadedIt = m_loadedChunks.find(chunkPosId);
     if (loadedIt != m_loadedChunks.end()) {
@@ -40,14 +41,15 @@ StructureCheckResult StructureCheck::checkStart(u64 chunkPosId, const ResourceLo
 void StructureCheck::onStructureLoad(
     u64 chunkPosId, const std::unordered_map<ResourceLocation, i32>& structureRefCounts)
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     // 将精确的结构引用计数数据写入 m_loadedChunks
-    // 对齐 MC 1.21.11 StructureCheck.onStructureLoad()：
     // 区块结构数据加载完成后，遍历所有有效 StructureStart，将其引用计数缓存起来
     m_loadedChunks[chunkPosId] = ChunkStructureEntries{structureRefCounts};
 }
 
 void StructureCheck::incrementReference(u64 chunkPosId, const ResourceLocation& structureId)
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_loadedChunks.find(chunkPosId);
     if (it != m_loadedChunks.end()) {
         auto& entries = it->second;
@@ -69,11 +71,13 @@ void StructureCheck::incrementReference(u64 chunkPosId, const ResourceLocation& 
 
 void StructureCheck::clearCache()
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     m_loadedChunks.clear();
 }
 
 size_t StructureCheck::loadedChunkCount() const
 {
+    std::lock_guard<std::mutex> lock(m_mutex);
     return m_loadedChunks.size();
 }
 
