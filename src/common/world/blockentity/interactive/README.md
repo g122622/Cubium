@@ -161,3 +161,7 @@
 
             JukeboxEntity::getComparatorSignal() 通过 `dynamic_cast<MusicDiscItem*>` 获取信号强度。如果唱片不是
             MusicDiscItem 类型（如旧版直接用 Item 基类注册的），信号强度为 0。
+
+    ## #13. BeehiveBlockEntity 天气/夜间释放阻止
+
+`_releaseOccupant()` 在非紧急释放时检查天气和时间条件：雨天 (`isRaining()`)、雷暴 (`isThundering()`) 或夜间 (`!isDaytime()`) 不会放出蜜蜂。这对应 MC 原版 `EnvironmentAttributes.BEES_STAY_IN_HIVE` 在 `_releaseOccupant()` 中的检查。紧急释放（火灾等 `BeeReleaseStatus::Emergency`）不受此限制，蜜蜂会被强制放出。

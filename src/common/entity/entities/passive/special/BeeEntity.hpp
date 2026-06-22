@@ -145,16 +145,12 @@ public:
     /**
      * @brief 检查蜂巢是否有效
      * @return 蜂巢位置非空、距离在48格内、且存在蜂巢方块实体
-     *
-     * 参考 MC: Bee.isHiveValid()
      */
     [[nodiscard]] bool isHiveValid() const;
 
     /**
      * @brief 获取蜂巢方块实体
      * @return 蜂巢方块实体指针，如果无效返回nullptr
-     *
-     * 参考 MC: Bee.getBeehiveBlockEntity()
      */
     [[nodiscard]] blockentity::BeehiveBlockEntity* getBeehiveBlockEntity() const;
 

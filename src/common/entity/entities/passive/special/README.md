@@ -63,6 +63,10 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 3. **愤怒系统**：实现 IAngerable 接口，愤怒时召唤周围蜜蜂群攻。
 4. **服务端冷却递减**：`tick()` 中的三个冷却计时器（`m_stayOutOfHiveCountdown`、`m_remainingCooldownBeforeLocatingNewHive`、`m_remainingCooldownBeforeLocatingNewFlower`）仅在服务端递减（`!m_world->isClientSide()` 守卫），客户端保持不变。
 5. **授粉状态管理**：`BeePollinateGoal::startExecuting()` 调用 `setPollinating(true)`，`resetTask()` 调用 `setPollinating(false)` 并设置花朵冷却 200 tick。
+6. **天气/夜间回巢逻辑（BEES_STAY_IN_HIVE 等效）**：MC 原版通过 `EnvironmentAttributes.BEES_STAY_IN_HIVE` 统一管理蜜蜂在雨天/雷暴/夜间回巢的行为，当前项目使用 `isRaining()`/`isThundering()`/`!isDaytime()` 等效替代。该逻辑体现在两处：
+   - `BeeEntity::wantsToEnterHive()`：雨天/雷暴/夜间蜜蜂想回巢
+   - `BeehiveBlockEntity::_releaseOccupant()`：雨天/雷暴/夜间不放出蜜蜂（紧急释放除外）
+7. **寻找花蜜阈值**：`isTiredOfLookingForNectar()` 使用 3600 tick 阈值（MC 原版值），`BeeFindFlowerGoal` 使用 600 tick 阈值触发寻找已知花朵（MC 原版 `wantsToGoToKnownFlower` 逻辑）。
 
 ### FoxEntity 狐狸
 1. **信任机制非 TameableEntity**：狐狸使用独立的信任系统（最多信任 2 个玩家），不继承 TameableEntity。
