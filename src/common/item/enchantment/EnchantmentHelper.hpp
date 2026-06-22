@@ -220,6 +220,32 @@ public:
      */
     [[nodiscard]] static bool hasFrostWalker(const ItemStack& stack);
 
+    // ========== 重锤附魔便捷方法 ==========
+
+    /**
+     * @brief 获取致密附魔等级
+     *
+     * @param stack 物品堆
+     * @return 致密等级（0-5）
+     */
+    [[nodiscard]] static i32 getDensityLevel(const ItemStack& stack);
+
+    /**
+     * @brief 获取破甲附魔等级
+     *
+     * @param stack 物品堆
+     * @return 破甲等级（0-4）
+     */
+    [[nodiscard]] static i32 getBreachLevel(const ItemStack& stack);
+
+    /**
+     * @brief 获取风爆附魔等级
+     *
+     * @param stack 物品堆
+     * @return 风爆等级（0-3）
+     */
+    [[nodiscard]] static i32 getWindBurstLevel(const ItemStack& stack);
+
     /**
      * @brief 检查是否有灵魂疾行
      *

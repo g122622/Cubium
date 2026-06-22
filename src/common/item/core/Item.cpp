@@ -363,6 +363,15 @@ bool Item::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attac
     return false;
 }
 
+void Item::postHitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker)
+{
+    // 默认实现：无效果
+    // 重锤(MaceItem)重写此方法以重置下落距离
+    (void)stack;
+    (void)target;
+    (void)attacker;
+}
+
 bool Item::onBlockDestroyed(
     ItemStack& stack, IWorld& world, const BlockState& state, const BlockPos& pos, LivingEntity& breaker)
 {

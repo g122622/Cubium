@@ -23,6 +23,7 @@
 
 #include "AttackContext.hpp"
 #include "../../item/enchantment/EnchantmentHelper.hpp"
+#include "../../item/enchantment/enchantments/mace/BreachEnchantment.hpp"
 #include "../attribute/Attributes.hpp"
 #include "../core/LivingEntity.hpp"
 #include "../damage/DamageSource.hpp"
@@ -80,10 +81,23 @@ f32 AttackContext::calculateFinalDamage() const
         // 护甲公式:
         // protectionFactor = 2 + toughness / 4
         // effectiveArmor = clamp(armor - damage / protectionFactor, armor * 0.2, 20)
-        // final = damage * (1 - effectiveArmor / 25)
+        // armorRatio = effectiveArmor / 25
+        // final = damage * (1 - armorRatio)
         const f32 protectionFactor = 2.0f + armorToughness / 4.0f;
-        const f32 effectiveArmor = std::clamp(armor - damage / protectionFactor, armor * 0.2f, 20.0f);
-        damage *= (1.0f - effectiveArmor / 25.0f);
+        f32 effectiveArmor = std::clamp(armor - damage / protectionFactor, armor * 0.2f, 20.0f);
+        f32 armorRatio = effectiveArmor / 25.0f;
+
+        // 破甲附魔(Breach)：修改护甲有效率
+        // 每级 -0.15，降低护甲减伤效果
+        if (m_weapon != nullptr && !m_weapon->isEmpty()) {
+            i32 breachLevel = item::enchant::EnchantmentHelper::getBreachLevel(*m_weapon);
+            if (breachLevel > 0) {
+                f32 breachModifier = item::enchant::BreachEnchantment::getArmorEffectivenessModifier(breachLevel);
+                armorRatio = std::clamp(armorRatio + breachModifier, 0.0f, 1.0f);
+            }
+        }
+
+        damage *= (1.0f - armorRatio);
 
         // 抗性药水减伤（每级 -20%，最高 80%）
         const i32 resistanceLevel = m_target->getEffectLevel(entity::effect::EffectType::Resistance);

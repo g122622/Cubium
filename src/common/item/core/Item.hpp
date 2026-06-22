@@ -643,6 +643,19 @@ public:
     virtual bool hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker);
 
     /**
+     * @brief 攻击伤害结算后调用
+     *
+     * 在 hitEntity 之后、伤害应用完毕后调用。
+     * 用于重锤(MaceItem)重置攻击者下落距离等效果。
+     * 对应 MC 1.21 的 Item.postHurtEnemy。
+     *
+     * @param stack 物品堆
+     * @param target 被攻击的实体
+     * @param attacker 攻击者
+     */
+    virtual void postHitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& attacker);
+
+    /**
      * @brief 破坏方块时调用
      *
      * 当持有此物品的玩家破坏方块时调用。

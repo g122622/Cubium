@@ -87,6 +87,11 @@
 #include "special/SoulSpeedEnchantment.hpp"
 #include "special/VanishingCurseEnchantment.hpp"
 
+// 重锤附魔
+#include "mace/BreachEnchantment.hpp"
+#include "mace/DensityEnchantment.hpp"
+#include "mace/WindBurstEnchantment.hpp"
+
 namespace mc {
 namespace item {
 namespace enchant {
@@ -158,6 +163,11 @@ public:
     static VanishingCurseEnchantment VANISHING_CURSE;
     static BindingCurseEnchantment BINDING_CURSE;
     static SoulSpeedEnchantment SOUL_SPEED;
+
+    // ========== 重锤附魔 ==========
+    static DensityEnchantment DENSITY;
+    static BreachEnchantment BREACH;
+    static WindBurstEnchantment WIND_BURST;
 };
 
 } // namespace enchant

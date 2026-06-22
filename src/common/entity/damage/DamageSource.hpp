@@ -94,6 +94,9 @@ enum class DamageType : u8 {
 
     // 风爆伤害
     WindBurst, // 风弹风爆
+
+    // 重锤砸地攻击伤害
+    MaceSmash, // 重锤下落攻击
 };
 
 /**
@@ -364,6 +367,8 @@ public:
                 return "death.attack.fallingStalactite";
             case DamageType::WindBurst:
                 return "death.attack.windBurst";
+            case DamageType::MaceSmash:
+                return "death.attack.mace_smash";
             default:
                 return "death.attack.generic";
         }
@@ -933,6 +938,19 @@ inline IndirectEntityDamageSource indirectMagic(Entity* source, Entity* caster)
 inline IndirectEntityDamageSource windBurst(Entity* windCharge, Entity* shooter, bool isPlayer = false)
 {
     return IndirectEntityDamageSource(DamageType::WindBurst, shooter, windCharge, isPlayer).setBypassesArmor();
+}
+
+/**
+ * @brief 创建重锤砸地攻击伤害
+ *
+ * 当重锤下落攻击（Smash Attack）触发时使用此伤害类型。
+ * 对应 MC 的 DamageTypes.MACE_SMASH，exhaustion 系数为 0.1。
+ *
+ * @param attacker 攻击者（玩家）
+ */
+inline EntityDamageSource maceSmash(Entity* attacker)
+{
+    return EntityDamageSource(DamageType::MaceSmash, attacker);
 }
 
 } // namespace DamageSources

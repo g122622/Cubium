@@ -578,6 +578,19 @@ extern const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST;
 extern const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST;
 
 // ============================================================================
+// 重锤声音
+// ============================================================================
+
+/// 重锤砸地攻击（轻）
+extern const ResourceLocation ITEM_MACE_SMASH_GROUND;
+
+/// 重锤砸地攻击（重，下落距离>5格）
+extern const ResourceLocation ITEM_MACE_SMASH_GROUND_HEAVY;
+
+/// 重锤空中砸击
+extern const ResourceLocation ITEM_MACE_SMASH_AIR;
+
+// ============================================================================
 // 玩家声音
 // ============================================================================
 

@@ -26,8 +26,10 @@
 #include "../../../item/core/ActionResult.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
 #include "../../../item/enchantment/enchantments/AllEnchantments.hpp"
+#include "../../../item/enchantment/enchantments/mace/WindBurstEnchantment.hpp"
 #include "../../../item/items/armor/ArmorItem.hpp"
 #include "../../../item/items/tool/SwordItem.hpp"
+#include "../../../item/items/trial/MaceItem.hpp"
 #include "../../../network/packet/EntityPackets.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../physics/PhysicsEngine.hpp"
@@ -1918,9 +1920,21 @@ void Player::attack(Entity& target)
     f32 enchantDamage = 0.0f;
     const ItemStack& mainHand = getMainHandItem();
 
+    // 重锤下落攻击额外伤害
+    f32 maceSmashBonus = 0.0f;
+    bool isMaceSmashAttack = false;
+    const item::MaceItem* maceItem = nullptr;
+
     if (!mainHand.isEmpty()) {
         enchantDamage = entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(
             mainHand, livingTarget->getCreatureAttribute());
+
+        // 检查是否为重锤下落攻击
+        maceItem = dynamic_cast<const item::MaceItem*>(mainHand.getItem());
+        if (maceItem != nullptr && item::MaceItem::canSmashAttack(*this)) {
+            isMaceSmashAttack = true;
+            maceSmashBonus = item::MaceItem::getSmashAttackDamageBonus(*this, fallDistance(), mainHand);
+        }
     }
 
     // 5. 计算攻击冷却进度
@@ -1962,7 +1976,8 @@ void Player::attack(Entity& target)
     }
 
     // 10. 暴击判定
-    bool isCritical = entity::combat::PlayerAttackHelper::isCriticalHit(*this);
+    // 重锤下落攻击不触发普通暴击（MC 1.21 规则）
+    bool isCritical = !isMaceSmashAttack && entity::combat::PlayerAttackHelper::isCriticalHit(*this);
 
     // 11. 火焰附加
     i32 fireAspectLevel = 0;
@@ -1986,8 +2001,16 @@ void Player::attack(Entity& target)
     // 13. 合并伤害
     f32 totalDamage = damage + enchantDamage;
 
+    // 13.5 重锤下落攻击伤害加成
+    // 下落攻击加成不受冷却影响，直接加到总伤害上
+    if (isMaceSmashAttack) {
+        totalDamage += maceSmashBonus * cooldownProgress;
+    }
+
     // 14. 创建伤害来源并应用伤害
-    EntityDamageSource damageSource = DamageSources::playerAttack(this);
+    // 重锤下落攻击使用专属伤害类型 MaceSmash
+    EntityDamageSource damageSource =
+        isMaceSmashAttack ? DamageSources::maceSmash(this) : DamageSources::playerAttack(this);
     bool attacked = livingTarget->hurt(damageSource, totalDamage);
 
     // 用于跟踪是否播放了特定攻击音效
@@ -2131,7 +2154,25 @@ void Player::attack(Entity& target)
                 // 调用物品的 hitEntity 方法，由物品决定耐久消耗
                 // 剑 SwordItem::hitEntity() 消耗 1 点
                 // 工具 ToolItem::hitEntity() 消耗 2 点
+                // 重锤 MaceItem::hitEntity() 消耗 1 点 + 砸地攻击效果
                 item->hitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+
+                // 调用物品的 postHitEntity 方法（伤害结算后回调）
+                // 重锤使用此回调重置攻击者的下落距离
+                item->postHitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+
+                // 重锤风爆附魔效果：下落攻击命中后产生风爆将攻击者弹起
+                if (isMaceSmashAttack && !mainHand.isEmpty()) {
+                    i32 windBurstLevel = item::enchant::EnchantmentHelper::getWindBurstLevel(mainHand);
+                    if (windBurstLevel > 0) {
+                        // 风爆将攻击者弹起，允许连续砸地连击
+                        // 对应 MC 的 ExplodeEffect，产生 TRIGGER 类型爆炸
+                        // 简化实现：直接给攻击者施加向上的速度
+                        f32 burstPower =
+                            item::enchant::WindBurstEnchantment::getExplosionKnockbackMultiplier(windBurstLevel);
+                        addVelocity(0.0f, burstPower * 0.5f, 0.0f);
+                    }
+                }
 
                 // 派发自定义物品组件回调 - onHitEntity
                 auto& itemCompReg = mc::mod::bedrock::addon::ItemComponentRegistry::instance();

@@ -192,6 +192,21 @@ bool EnchantmentHelper::hasVanishingCurse(const ItemStack& stack)
     return hasEnchantment(stack, "minecraft:vanishing_curse");
 }
 
+i32 EnchantmentHelper::getDensityLevel(const ItemStack& stack)
+{
+    return getEnchantmentLevel(stack, "minecraft:density");
+}
+
+i32 EnchantmentHelper::getBreachLevel(const ItemStack& stack)
+{
+    return getEnchantmentLevel(stack, "minecraft:breach");
+}
+
+i32 EnchantmentHelper::getWindBurstLevel(const ItemStack& stack)
+{
+    return getEnchantmentLevel(stack, "minecraft:wind_burst");
+}
+
 i32 EnchantmentHelper::getLoyaltyLevel(const ItemStack& stack)
 {
     return getEnchantmentLevel(stack, "minecraft:loyalty");

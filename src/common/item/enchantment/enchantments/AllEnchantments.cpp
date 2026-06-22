@@ -82,6 +82,11 @@ VanishingCurseEnchantment AllEnchantments::VANISHING_CURSE;
 BindingCurseEnchantment AllEnchantments::BINDING_CURSE;
 SoulSpeedEnchantment AllEnchantments::SOUL_SPEED;
 
+// ========== 重锤附魔静态实例 ==========
+DensityEnchantment AllEnchantments::DENSITY;
+BreachEnchantment AllEnchantments::BREACH;
+WindBurstEnchantment AllEnchantments::WIND_BURST;
+
 void AllEnchantments::registerAll()
 {
     // 保护类
@@ -137,6 +142,11 @@ void AllEnchantments::registerAll()
     EnchantmentRegistry::registerEnchantment(std::make_unique<VanishingCurseEnchantment>());
     EnchantmentRegistry::registerEnchantment(std::make_unique<BindingCurseEnchantment>());
     EnchantmentRegistry::registerEnchantment(std::make_unique<SoulSpeedEnchantment>());
+
+    // 重锤
+    EnchantmentRegistry::registerEnchantment(std::make_unique<DensityEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<BreachEnchantment>());
+    EnchantmentRegistry::registerEnchantment(std::make_unique<WindBurstEnchantment>());
 }
 
 } // namespace enchant

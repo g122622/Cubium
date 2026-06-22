@@ -22,6 +22,9 @@
  */
 
 #include "DamageEnchantment.hpp"
+#include "../mace/BreachEnchantment.hpp"
+#include "../mace/DensityEnchantment.hpp"
+#include "../trident/ImpalingEnchantment.hpp"
 
 namespace mc {
 namespace item {
@@ -82,6 +85,18 @@ bool DamageEnchantment::isCompatibleWith(const Enchantment& other) const
 {
     // 伤害类附魔之间互斥
     if (dynamic_cast<const DamageEnchantment*>(&other) != nullptr) {
+        return false;
+    }
+    // 伤害类附魔与重锤致密互斥
+    if (dynamic_cast<const DensityEnchantment*>(&other) != nullptr) {
+        return false;
+    }
+    // 伤害类附魔与重锤破甲互斥
+    if (dynamic_cast<const BreachEnchantment*>(&other) != nullptr) {
+        return false;
+    }
+    // 伤害类附魔与穿刺互斥（MC 1.21 DAMAGE_EXCLUSIVE 组）
+    if (dynamic_cast<const ImpalingEnchantment*>(&other) != nullptr) {
         return false;
     }
     return Enchantment::isCompatibleWith(other);

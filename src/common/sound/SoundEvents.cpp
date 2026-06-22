@@ -499,6 +499,14 @@ const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST("minecraft:entity.wind_char
 const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST("minecraft:entity.breeze.wind_charge_burst");
 
 // ============================================================================
+// 重锤声音
+// ============================================================================
+
+const ResourceLocation ITEM_MACE_SMASH_GROUND("minecraft:item.mace.smash_ground");
+const ResourceLocation ITEM_MACE_SMASH_GROUND_HEAVY("minecraft:item.mace.smash_ground_heavy");
+const ResourceLocation ITEM_MACE_SMASH_AIR("minecraft:item.mace.smash_air");
+
+// ============================================================================
 // 玩家声音
 // ============================================================================
 
