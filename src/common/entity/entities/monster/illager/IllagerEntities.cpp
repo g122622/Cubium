@@ -258,11 +258,12 @@ void VindicatorEntity::registerGoals()
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
     // 优先级 1: 破门（所有难度，因为卫道士在袭击中破门）
-    m_goalSelector.addGoal(
-        1, new entity::ai::goal::BreakDoorGoal(this, entity::ai::goal::defaultDoorBreakDifficultyPredicate()));
+    m_goalSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::BreakDoorGoal>(
+            this, entity::ai::goal::defaultDoorBreakDifficultyPredicate()));
 
     // 优先级 2: 袭击期间开门（不关门，不需要 mobGriefing 规则和难度检查）
-    m_goalSelector.addGoal(2, new entity::ai::goal::RaiderOpenDoorGoal(this));
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::RaiderOpenDoorGoal>(this));
 
     // 优先级 3: 寻找目标（袭击模式专用，简化处理）
     // m_goalSelector.addGoal(3, std::make_unique<FindTargetGoal>(this, 10.0f));
