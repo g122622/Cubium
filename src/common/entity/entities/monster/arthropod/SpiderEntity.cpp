@@ -33,6 +33,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/LivingEntity.hpp"
 #include "../../../core/MobEntity.hpp"
+#include "../../../entities/passive/golem/IronGolemEntity.hpp"
 #include "../../../entities/player/Player.hpp"
 #include <cmath>
 
@@ -187,8 +188,7 @@ void SpiderEntity::registerGoals()
     m_targetSelector.addGoal(2, new SpiderTargetGoal<Player>(this));
 
     // 优先级 3: 攻击铁傀儡（蜘蛛专用，带光照检测）
-    // 注：IronGolemEntity 类型需要实现后启用
-    // m_targetSelector.addGoal(3, new SpiderTargetGoal<IronGolemEntity>(this));
+    m_targetSelector.addGoal(3, new SpiderTargetGoal<IronGolemEntity>(this));
 }
 
 void SpiderEntity::registerAttributes()
