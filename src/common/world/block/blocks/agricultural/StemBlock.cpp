@@ -216,46 +216,58 @@ bool StemBlock::tryGrowFruit(const BlockState& state, IWorld& world, const Block
 {
     MC_UNUSED(state);
 
-    // 随机选择一个水平方向
+    // 随机打乱四个水平方向，依次尝试每个方向直到成功
+    // 参考 MC Java StemBlock.randomTick: Direction.Plane.HORIZONTAL.shuffle(random)
     Direction directions[] = {Direction::North, Direction::South, Direction::East, Direction::West};
-    Direction dir = directions[random.nextInt(4)];
 
-    BlockPos fruitPos(pos.x + Directions::xOffset(dir), pos.y, pos.z + Directions::zOffset(dir));
-
-    // 检查果实位置是否为空气
-    const BlockState* fruitState = world.getBlockState(fruitPos);
-    if (fruitState == nullptr || !fruitState->isAir()) {
-        return false;
+    // Fisher-Yates 洗牌
+    for (int i = 3; i > 0; --i) {
+        int j = random.nextInt(i + 1);
+        Direction temp = directions[i];
+        directions[i] = directions[j];
+        directions[j] = temp;
     }
 
-    // 检查果实下方是否为耕地或 DIRT 标签方块
-    BlockPos belowFruitPos(fruitPos.x, fruitPos.y - 1, fruitPos.z);
-    const BlockState* belowFruitState = world.getBlockState(belowFruitPos);
+    for (int i = 0; i < 4; ++i) {
+        Direction dir = directions[i];
+        BlockPos fruitPos(pos.x + Directions::xOffset(dir), pos.y, pos.z + Directions::zOffset(dir));
 
-    if (belowFruitState == nullptr) {
-        return false;
-    }
-
-    const bool canSupportFruit = (VanillaBlocks::FARMLAND != nullptr && belowFruitState->is(VanillaBlocks::FARMLAND)) ||
-        BlockTags::DIRT().contains(*belowFruitState);
-    if (!canSupportFruit) {
-        return false;
-    }
-
-    // 放置果实
-    if (m_crop != nullptr) {
-        const BlockState& cropDefaultState = m_crop->defaultState();
-        world.setBlockState(fruitPos, &cropDefaultState, 3);
-
-        // 将茎变为连接茎，朝向果实方向
-        const Block* attachedStem = m_crop->getAttachedStem();
-        if (attachedStem != nullptr) {
-            const BlockState& stemState =
-                attachedStem->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), dir);
-            world.setBlockState(pos, &stemState, 3);
+        // 检查果实位置是否为空气
+        const BlockState* fruitState = world.getBlockState(fruitPos);
+        if (fruitState == nullptr || !fruitState->isAir()) {
+            continue;
         }
 
-        return true;
+        // 检查果实下方是否为耕地或 DIRT 标签方块
+        BlockPos belowFruitPos(fruitPos.x, fruitPos.y - 1, fruitPos.z);
+        const BlockState* belowFruitState = world.getBlockState(belowFruitPos);
+
+        if (belowFruitState == nullptr) {
+            continue;
+        }
+
+        const bool canSupportFruit =
+            (VanillaBlocks::FARMLAND != nullptr && belowFruitState->is(VanillaBlocks::FARMLAND)) ||
+            BlockTags::DIRT().contains(*belowFruitState);
+        if (!canSupportFruit) {
+            continue;
+        }
+
+        // 放置果实
+        if (m_crop != nullptr) {
+            const BlockState& cropDefaultState = m_crop->defaultState();
+            world.setBlockState(fruitPos, &cropDefaultState, 3);
+
+            // 将茎变为连接茎，朝向果实方向
+            const Block* attachedStem = m_crop->getAttachedStem();
+            if (attachedStem != nullptr) {
+                const BlockState& stemState =
+                    attachedStem->defaultState().with(BlockStateProperties::HORIZONTAL_FACING(), dir);
+                world.setBlockState(pos, &stemState, 3);
+            }
+
+            return true;
+        }
     }
 
     return false;

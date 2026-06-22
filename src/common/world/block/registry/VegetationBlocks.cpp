@@ -241,16 +241,18 @@ void registerVegetationBlocks()
         ResourceLocation("minecraft:carved_pumpkin"), BlockProperties(Material::EARTH).hardness(1.0f));
 
     // 南瓜 - 可用剪刀雕刻成雕刻南瓜
+    // 注意：stem 和 attachedStem 由于循环依赖，构造时传入 nullptr，在下方茎方块注册后通过 setStem/setAttachedStem 回填
     VegetationBlocks::PUMPKIN = &registry.registerBlock<blocks::PumpkinBlock>(ResourceLocation("minecraft:pumpkin"),
-        nullptr,                          // stem - 暂时为 nullptr，稍后更新
-        nullptr,                          // attachedStem - 暂时为 nullptr，稍后更新
+        nullptr,                          // stem - 下方 PUMPKIN_STEM 注册后回填
+        nullptr,                          // attachedStem - 下方 ATTACHED_PUMPKIN_STEM 注册后回填
         VegetationBlocks::CARVED_PUMPKIN, // carvedPumpkin - 已注册的雕刻南瓜
         BlockProperties(Material::EARTH).hardness(1.0f));
 
     // 西瓜方块
+    // 注意：stem 和 attachedStem 由于循环依赖，构造时传入 nullptr，在下方茎方块注册后通过 setStem/setAttachedStem 回填
     VegetationBlocks::MELON = &registry.registerBlock<blocks::MelonBlock>(ResourceLocation("minecraft:melon"),
-        nullptr, // stem - 暂时为 nullptr，稍后更新
-        nullptr, // attachedStem - 暂时为 nullptr，稍后更新
+        nullptr, // stem - 下方 MELON_STEM 注册后回填
+        nullptr, // attachedStem - 下方 ATTACHED_MELON_STEM 注册后回填
         BlockProperties(Material::EARTH).hardness(1.0f));
 
     // 注册茎方块（可以引用已注册的果实方块）

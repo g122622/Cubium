@@ -155,7 +155,6 @@ public:
      * @brief Create a copy NBT function
      * @param source Data source
      * @return Created loot function
-     * @note TODO: NBT path operation list parsing not yet implemented
      */
     [[nodiscard]] static std::unique_ptr<LootFunction> copyNbt(CopyNbtFunction::Source source);
 
