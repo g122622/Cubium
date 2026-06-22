@@ -408,6 +408,11 @@ void CrafterBlock::_spawnItemEntity(IWorld& world, const BlockPos& pos, Directio
                         }
                     }
                 }
+
+                // ISidedInventory物品全部注入成功，直接返回
+                if (stack.isEmpty()) {
+                    return;
+                }
             } else {
                 // 普通容器：首先尝试堆叠到现有槽位
                 for (i32 i = 0; i < targetInventory->getContainerSize(); ++i) {

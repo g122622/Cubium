@@ -66,6 +66,7 @@ blockentity/
 └── trial/                          # 试炼相关方块实体
     ├── TrialSpawnerBlockEntity.hpp/cpp # 试炼刷怪笼
     ├── VaultBlockEntity.hpp/cpp       # 宝库
+    ├── CrafterBlockEntity.hpp/cpp     # 自动合成器（9格存储、槽位锁定、6tick合成动画）
     └── README.md
 ```
 
@@ -95,7 +96,8 @@ BlockEntity (基类)
 │   ├── CraftingTableEntity (工作台)
 │   ├── BrewingStandEntity (酿造台，多重继承 ISidedInventory)
 │   ├── CampfireBlockEntity (营火)
-│   └── JukeboxEntity (唱片机)
+│   ├── JukeboxEntity (唱片机)
+│   └── CrafterBlockEntity (自动合成器，9格+槽位锁定)
 │
 ├── EnchantingTableEntity (附魔台)
 ├── PistonBlockEntity (活塞)
@@ -110,7 +112,8 @@ BlockEntity (基类)
 ├── EndGatewayEntity (末地折跃门)
 ├── EnderChestEntity (末影箱)
 ├── TrialSpawnerBlockEntity (试炼刷怪笼)
-└── VaultBlockEntity (宝库)
+├── VaultBlockEntity (宝库)
+└── CrafterBlockEntity (自动合成器)
 
 BlockEntityRegistry ──创建──→ BlockEntity（及其子类）
 BlockEntityDeserializer ──反序列化──→ BlockEntity（通过 Registry 创建）

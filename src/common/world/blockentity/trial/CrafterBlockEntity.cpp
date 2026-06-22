@@ -116,6 +116,7 @@ void CrafterBlockEntity::tick(IWorld& world)
     // 合成动画倒计时
     if (m_craftingTicksRemaining > 0) {
         --m_craftingTicksRemaining;
+        setChanged();
         if (m_craftingTicksRemaining == 0) {
             // 动画结束，将 CRAFTING 状态重置为 false
             const BlockState* state = world.getBlockState(m_pos);

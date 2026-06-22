@@ -143,7 +143,7 @@
     ├── sculk / #幽匿方块
     ├── special / #特殊方块（详见 special / README.md）
     │   └── SpecialBlocks.hpp / cpp #海绵、屏障、命令方块等
-    ├── trial / #试炼密室方块
+    ├── trial / #试炼密室方块（TrialSpawnerBlock、VaultBlock、CrafterBlock）
     └── vegetation / #植被方块（详见 vegetation / README.md）
         ├── BambooBlock.hpp / cpp #竹子
         ├── CactusBlock.hpp / cpp #仙人掌
