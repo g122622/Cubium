@@ -31,7 +31,7 @@ namespace mc {
 
 CrafterBlockEntity::CrafterBlockEntity(const BlockPos& pos)
     : ContainerBlockEntity(BlockEntityType::Crafter, pos)
-    , m_inventory(CONTAINER_SIZE)
+    , m_inventory(CONTAINER_SIZE, [this]() { _onInventoryChanged(); })
 {
     m_slotStates.fill(SLOT_ENABLED);
 }
@@ -203,6 +203,18 @@ i32 CrafterBlockEntity::getRedstoneSignal() const
 bool CrafterBlockEntity::slotCanBeDisabled(i32 slot) const
 {
     return slot >= 0 && slot < CONTAINER_SIZE && m_inventory.getItem(slot).isEmpty();
+}
+
+void CrafterBlockEntity::_onInventoryChanged()
+{
+    // 当物品被放入禁用槽位时，自动重新启用该槽位
+    // 对应MC原版CrafterBlockEntity.setItem()中的行为：
+    // if (this.isSlotDisabled(p_307195_)) { this.setSlotState(p_307195_, true); }
+    for (i32 i = 0; i < CONTAINER_SIZE; ++i) {
+        if (m_slotStates[i] == SLOT_DISABLED && !m_inventory.getItem(i).isEmpty()) {
+            m_slotStates[i] = SLOT_ENABLED;
+        }
+    }
 }
 
 } // namespace mc

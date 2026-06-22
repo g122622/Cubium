@@ -148,6 +148,14 @@ private:
      */
     [[nodiscard]] bool slotCanBeDisabled(i32 slot) const;
 
+    /**
+     * @brief 背包变更回调
+     *
+     * 当背包内容变化时自动重新启用被放入物品的禁用槽位，
+     * 与MC原版CrafterBlockEntity.setItem()行为一致。
+     */
+    void _onInventoryChanged();
+
     blockentity::SimpleInventory m_inventory;          ///< 9格物品存储
     std::array<i32, CONTAINER_SIZE> m_slotStates = {}; ///< 槽位状态 (0=启用, 1=禁用)
     i32 m_craftingTicksRemaining = 0;                  ///< 合成动画剩余tick

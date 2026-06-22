@@ -952,3 +952,89 @@ TEST_F(CrafterBlockEntityTest, SaveLoad_MaxCraftingTicks)
     EXPECT_EQ(loaded->getCraftingTicksRemaining(), CrafterBlockEntity::MAX_CRAFTING_TICKS);
     EXPECT_TRUE(loaded->needsTick());
 }
+
+// ============================================================================
+// setItem 自动重新启用禁用槽位测试（对应MC原版CrafterBlockEntity.setItem行为）
+// ============================================================================
+
+TEST_F(CrafterBlockEntityTest, SetItem_AutoReEnablesDisabledSlot)
+{
+    // 先禁用槽位0
+    crafter_->setSlotState(0, false);
+    ASSERT_TRUE(crafter_->isSlotDisabled(0));
+
+    // 直接通过inventory的setItem放入物品时，应自动重新启用该槽位
+    auto* inventory = crafter_->getInventory();
+    inventory->setItem(0, ItemStack(*m_testItem, 5));
+
+    // 槽位0应被自动重新启用
+    EXPECT_FALSE(crafter_->isSlotDisabled(0));
+    // 物品应存在
+    EXPECT_EQ(inventory->getItem(0).getCount(), 5);
+}
+
+TEST_F(CrafterBlockEntityTest, SetItem_AutoReEnableDoesNotAffectOtherSlots)
+{
+    // 禁用槽位0和2
+    crafter_->setSlotState(0, false);
+    crafter_->setSlotState(2, false);
+
+    // 向槽位0放入物品
+    auto* inventory = crafter_->getInventory();
+    inventory->setItem(0, ItemStack(*m_testItem, 3));
+
+    // 槽位0应被重新启用，槽位2应保持禁用
+    EXPECT_FALSE(crafter_->isSlotDisabled(0));
+    EXPECT_TRUE(crafter_->isSlotDisabled(2));
+}
+
+TEST_F(CrafterBlockEntityTest, SetItem_EmptyStackDoesNotReEnableDisabledSlot)
+{
+    // 禁用槽位0
+    crafter_->setSlotState(0, false);
+    ASSERT_TRUE(crafter_->isSlotDisabled(0));
+
+    // 设置为空ItemStack不应重新启用
+    auto* inventory = crafter_->getInventory();
+    inventory->setItem(0, ItemStack());
+
+    // 槽位0应保持禁用（空物品不会触发重新启用）
+    EXPECT_TRUE(crafter_->isSlotDisabled(0));
+}
+
+TEST_F(CrafterBlockEntityTest, SetItem_MultipleSlotsAutoReEnable)
+{
+    // 禁用多个槽位
+    crafter_->setSlotState(0, false);
+    crafter_->setSlotState(3, false);
+    crafter_->setSlotState(6, false);
+
+    auto* inventory = crafter_->getInventory();
+    Item* iron = ensureTestItem("iron_ingot");
+
+    // 向所有禁用槽位放入物品
+    inventory->setItem(0, ItemStack(*m_testItem, 1));
+    inventory->setItem(3, ItemStack(*iron, 2));
+    inventory->setItem(6, ItemStack(*m_testItem, 3));
+
+    // 所有放入物品的槽位应被自动重新启用
+    EXPECT_FALSE(crafter_->isSlotDisabled(0));
+    EXPECT_FALSE(crafter_->isSlotDisabled(3));
+    EXPECT_FALSE(crafter_->isSlotDisabled(6));
+}
+
+TEST_F(CrafterBlockEntityTest, SetItem_RedstoneSignalUpdatedAfterAutoReEnable)
+{
+    // 禁用3个空槽位，红石信号应为3
+    crafter_->setSlotState(0, false);
+    crafter_->setSlotState(4, false);
+    crafter_->setSlotState(8, false);
+    EXPECT_EQ(crafter_->getRedstoneSignal(), 3);
+
+    // 向一个禁用槽位放入物品，该槽位自动重新启用
+    // 重新启用后，该槽位从"禁用=1"变为"有物品=1"，信号不变
+    auto* inventory = crafter_->getInventory();
+    inventory->setItem(0, ItemStack(*m_testItem, 1));
+    EXPECT_FALSE(crafter_->isSlotDisabled(0));
+    EXPECT_EQ(crafter_->getRedstoneSignal(), 3); // 2 disabled + 1 with item = 3
+}

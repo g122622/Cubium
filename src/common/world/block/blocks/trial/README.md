@@ -50,7 +50,18 @@ Tick 10: craftingTicksRemaining=0 → CRAFTING=false
 ### 物品射出逻辑
 
 1. 优先尝试注入面前容器（箱子/漏斗等）：先尝试堆叠，再尝试空槽位
-2. 容器无法接收时，弹出到世界（面朝方向0.7格偏移 + 高斯散射）
+2. ISidedInventory容器：通过getSlotsForFace/canInsertItem方向性槽位访问插入物品
+3. 容器无法接收时，弹出到世界（面朝方向0.7格偏移 + 高斯散射）
+
+### 方块破坏行为
+
+- `onBlockRemoved`：方块被移除时，遍历9格物品栏，将所有物品通过ItemDropHelper掉落到世界，并通知比较器更新
+- `onBlockActivated`：玩家右键交互的入口（当前返回Pass，GUI待实现，TODO: ContainerType::Crafter）
+
+### setItem自动重新启用
+
+CrafterBlockEntity通过SimpleInventory的onChanged回调实现：当物品被放入禁用槽位时，
+自动将该槽位重新启用（对应MC原版CrafterBlockEntity.setItem()中isSlotDisabled检查）。
 
 ## 上下游外部依赖关系
 
