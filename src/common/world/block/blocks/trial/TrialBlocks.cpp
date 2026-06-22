@@ -296,13 +296,49 @@ void CrafterBlock::_dispenseFrom(IWorld& world, const BlockPos& pos, const Block
     crafter->setChanged();
 }
 
-void CrafterBlock::_spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& stack)
+void CrafterBlock::_spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, ItemStack stack)
 {
     if (stack.isEmpty()) {
         return;
     }
 
-    // 在方块面朝方向偏移0.7格处生成物品实体
+    // 尝试将物品注入面前容器
+    BlockPos targetPos = pos.offset(facing);
+    BlockEntity* targetEntity = world.getBlockEntity(targetPos);
+    if (targetEntity != nullptr) {
+        IInventory* targetInventory = dynamic_cast<IInventory*>(targetEntity);
+        if (targetInventory != nullptr) {
+            // 首先尝试堆叠到现有槽位
+            for (i32 i = 0; i < targetInventory->getContainerSize(); ++i) {
+                ItemStack existingStack = targetInventory->getItem(i);
+                if (!existingStack.isEmpty() && existingStack.isSameItem(stack)) {
+                    i32 space = existingStack.getMaxStackSize() - existingStack.getCount();
+                    if (space > 0) {
+                        i32 toAdd = std::min(space, stack.getCount());
+                        existingStack.grow(toAdd);
+                        targetInventory->setItem(i, existingStack);
+                        stack.shrink(toAdd);
+                        if (stack.isEmpty()) {
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // 如果还有剩余，尝试放入空槽位
+            if (!stack.isEmpty()) {
+                i32 emptySlot = targetInventory->getFirstEmptySlot();
+                if (emptySlot >= 0) {
+                    targetInventory->setItem(emptySlot, stack);
+                    return;
+                }
+            }
+
+            // 容器无法完全接收，物品仍留在stack中，继续弹出到世界
+        }
+    }
+
+    // 弹出到世界中：在方块面朝方向偏移0.7格处生成物品实体
     constexpr f32 DISPENSE_SPEED = 0.2f;
     constexpr f32 INACCURACY = 0.0074999998f;
 

@@ -358,6 +358,8 @@ add_executable(mc_tests
     common/world/blockentity/VaultBlockEntityTest.cpp
     # TrialSpawnerBlockEntity 试炼刷怪笼方块实体测试（状态机、怪物生成、奖励弹出、不祥变体）
     common/world/blockentity/TrialSpawnerBlockEntityTest.cpp
+    # CrafterBlockEntity 自动合成器方块实体测试（槽位锁定、合成输入、红石信号、序列化、tick动画）
+    common/world/blockentity/CrafterBlockEntityTest.cpp
     # ShelfBlockEntity 书架方块实体测试（比较器信号、物品交换、序列化、克隆）
     common/world/blockentity/ShelfBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
@@ -1423,6 +1425,7 @@ target_sources(mc_tests
         # 试炼类方块实体
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/VaultBlockEntity.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/TrialSpawnerBlockEntity.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/blockentity/trial/CrafterBlockEntity.cpp
         # 鐗╁搧瀹炰綋鍜屾帀钀借〃
         ${CMAKE_SOURCE_DIR}/src/common/entity/entities/item/ItemEntity.cpp
         # 鎺夎惤绯荤粺

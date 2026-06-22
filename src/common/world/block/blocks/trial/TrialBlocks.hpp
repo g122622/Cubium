@@ -165,7 +165,7 @@ private:
      * @param facing 射出方向
      * @param stack 物品
      */
-    static void _spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& stack);
+    static void _spawnItemEntity(IWorld& world, const BlockPos& pos, Direction facing, ItemStack stack);
 };
 
 } // namespace blocks
