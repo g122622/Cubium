@@ -660,8 +660,9 @@ private:
     /**
      * @brief 爆炸
      * @param speedFactor 速度因子，影响爆炸威力
+     * @param damageSource 自定义伤害来源，用于记录爆炸归因（可能为 nullptr）
      */
-    void _explode(f32 speedFactor = 1.0f);
+    void _explode(f32 speedFactor, std::unique_ptr<DamageSource> damageSource = nullptr);
 
     /**
      * @brief 检查火焰接触并点燃
@@ -670,10 +671,28 @@ private:
 
     /**
      * @brief 点燃TNT（播放声音等）
+     * @param source 点燃来源的伤害信息（可能为 nullptr，如激活铁轨点燃）
      */
-    void _ignite();
+    void _ignite(const DamageSource* source = nullptr);
+
+    /**
+     * @brief 判断伤害源是否能够点燃TNT矿车
+     *
+     * 以下类型的伤害源可以点燃TNT：
+     * - 直接实体是着火的投射物
+     * - 伤害类型为火焰（IS_FIRE）
+     * - 伤害类型为爆炸（IS_EXPLOSION）
+     *
+     * @param source 伤害来源
+     * @return 是否能点燃TNT
+     */
+    [[nodiscard]] static bool _damageSourceIgnitesTnt(const DamageSource& source);
 
     i32 m_fuse = -1; ///< -1 表示未点燃
+
+    /// 引爆来源（首次点燃时设置，之后不再覆盖）
+    /// 对应 MC Java 的 ignitionSource 字段，用于爆炸伤害归因
+    std::unique_ptr<DamageSource> m_ignitionSource;
 };
 
 /**

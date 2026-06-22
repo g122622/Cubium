@@ -27,6 +27,7 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
@@ -1287,9 +1288,9 @@ void TNTMinecartEntity::tick()
         }
 
         if (m_fuse == 0) {
-            // 引信归零时爆炸
+            // 引信归零时爆炸，传递引爆来源作为伤害归因
             f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
-            _explode(static_cast<f32>(std::sqrt(speedSq)));
+            _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource ? m_ignitionSource->clone() : nullptr);
         }
     }
 
@@ -1300,12 +1301,12 @@ void TNTMinecartEntity::tick()
     if (m_collidedHorizontally) {
         f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
         if (speedSq >= 0.01) {
-            _explode(static_cast<f32>(std::sqrt(speedSq)));
+            _explode(static_cast<f32>(std::sqrt(speedSq)), m_ignitionSource ? m_ignitionSource->clone() : nullptr);
         }
     }
 }
 
-void TNTMinecartEntity::_ignite()
+void TNTMinecartEntity::_ignite(const DamageSource* source)
 {
     // 对应 MC Java 的 MinecartTNT.primeFuse() 中的 GameRules.TNT_EXPLODES 检查
     // 如果 tntExplodes 游戏规则为 false，则不点燃
@@ -1316,8 +1317,15 @@ void TNTMinecartEntity::_ignite()
         }
     }
 
-    // TODO: MC 原版 primeFuse(DamageSource) 接受 DamageSource 参数用于记录 ignitionSource（爆炸来源），
-    //       当前 _ignite() 不接受 DamageSource，需要在 dropItem() 等调用处传入并存储
+    // 对应 MC Java 的 primeFuse(DamageSource) 中的 ignitionSource 设置逻辑
+    // 首次点燃时记录引爆来源，后续不再覆盖
+    if (source != nullptr && m_ignitionSource == nullptr) {
+        // 将原始伤害源转换为爆炸伤害源：
+        // directEntity = this（TNT矿车自身），causeEntity = 原始伤害的造成者
+        Entity* causeEntity = source->getEntity();
+        m_ignitionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, causeEntity, this);
+        static_cast<IndirectEntityDamageSource*>(m_ignitionSource.get())->setExplosion();
+    }
 
     m_fuse = DEFAULT_FUSE; // 80 ticks = 4 seconds
 
@@ -1337,8 +1345,9 @@ void TNTMinecartEntity::onActivatorRailPass(i32 x, i32 y, i32 z, bool powered)
     MC_UNUSED(y);
     MC_UNUSED(z);
 
+    // 激活铁轨充能时点燃TNT，无伤害来源（对应 MC Java 中 primeFuse(null)）
     if (powered && m_fuse < 0) {
-        _ignite();
+        _ignite(nullptr);
     }
 }
 
@@ -1351,20 +1360,39 @@ bool TNTMinecartEntity::hurt(DamageSource& source, f32 amount)
         AbstractArrowEntity* arrow = dynamic_cast<AbstractArrowEntity*>(directSource);
         if (arrow != nullptr && arrow->isOnFire()) {
             // 检测燃烧箭矢引爆 TNT 矿车，使用箭矢的速度计算爆炸威力
+            // 对应 MC Java 中 hurtServer() 的燃烧箭矢处理：
+            // 直接爆炸（不经过点燃流程），将箭矢射手作为间接爆炸源
             Vector3 arrowVelocity = arrow->velocity();
             f64 speedSq = static_cast<f64>(arrowVelocity.x) * arrowVelocity.x +
                 static_cast<f64>(arrowVelocity.y) * arrowVelocity.y +
                 static_cast<f64>(arrowVelocity.z) * arrowVelocity.z;
-            _explode(static_cast<f32>(std::sqrt(speedSq)));
+
+            Entity* shooter = source.getEntity();
+            auto explosionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, shooter, this);
+            explosionSource->setExplosion();
+            _explode(static_cast<f32>(std::sqrt(speedSq)), std::move(explosionSource));
             return true;
         }
 
         // 兼容：检查其他带火焰的投射物（如火球）
         if (source.isProjectile() && source.isFire()) {
             f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
-            _explode(static_cast<f32>(std::sqrt(speedSq)));
+            // 火焰投射物直接爆炸，将投射物的射击者作为间接爆炸源
+            Entity* shooter = source.getEntity();
+            auto explosionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, shooter, this);
+            explosionSource->setExplosion();
+            _explode(static_cast<f32>(std::sqrt(speedSq)), std::move(explosionSource));
             return true;
         }
+    }
+
+    // 对应 MC Java 中 VehicleEntity.hurtServer() 的 shouldSourceDestroy 检查
+    // TNT矿车重写了 shouldSourceDestroy：当伤害源能点燃TNT时，即使伤害未超过阈值也触发 destroy()
+    // 这确保了火焰/爆炸伤害能立即点燃TNT矿车，而不需要累积足够伤害
+    if (_damageSourceIgnitesTnt(source)) {
+        removePassengers();
+        dropItem(&source);
+        return true;
     }
 
     return AbstractMinecartEntity::hurt(source, amount);
@@ -1378,43 +1406,46 @@ bool TNTMinecartEntity::onProjectileHit(DamageSource& source, f32 amount)
 
 void TNTMinecartEntity::dropItem(DamageSource* source)
 {
-    // 火焰或爆炸伤害时点燃而非爆炸掉落
+    // 对应 MC Java 的 MinecartTNT.destroy() 方法
     f64 speedSq = velocityX() * velocityX() + velocityZ() * velocityZ();
 
-    // 判断伤害类型
-    bool isFire = (source != nullptr && source->isFire());
-    bool isExplosion = (source != nullptr && source->isExplosion());
+    // 判断伤害类型是否能点燃TNT
+    bool ignitesTnt = (source != nullptr && _damageSourceIgnitesTnt(*source));
 
-    // 如果不是火焰伤害、不是爆炸伤害、且速度足够低，则正常掉落
-    if (!isFire && !isExplosion && speedSq < 0.01) {
+    // 如果不能点燃且速度足够低，则正常掉落
+    if (!ignitesTnt && speedSq < 0.01) {
         // 先掉落矿车物品（父类内部会检查 doEntityDrops）
         AbstractMinecartEntity::dropItem(source);
 
         // 如果不是爆炸伤害且游戏规则允许实体掉落，则额外掉落 TNT 方块
-        IWorld* worldPtr = world();
-        if (!isExplosion && worldPtr && !worldPtr->isClientSide()) {
-            if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
-                // 通过 BlockItemRegistry 获取 TNT 方块物品
-                const BlockItem* tntBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::TNT);
-                if (tntBlockItem != nullptr) {
-                    ItemStack stack(*tntBlockItem, 1);
-                    math::Random& rng = worldPtr->getRandom();
-                    ItemDropHelper::spawnItemEntity(
-                        worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+        bool isExplosion = (source != nullptr && source->isExplosion());
+        if (!isExplosion) {
+            IWorld* worldPtr = world();
+            if (worldPtr && !worldPtr->isClientSide()) {
+                if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+                    // 通过 BlockItemRegistry 获取 TNT 方块物品
+                    const BlockItem* tntBlockItem = BlockItemRegistry::instance().getBlockItem(*VanillaBlocks::TNT);
+                    if (tntBlockItem != nullptr) {
+                        ItemStack stack(*tntBlockItem, 1);
+                        math::Random& rng = worldPtr->getRandom();
+                        ItemDropHelper::spawnItemEntity(
+                            worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+                    }
                 }
             }
         }
     } else {
-        // 火焰或爆炸伤害时点燃 TNT 矿车
+        // 火焰/爆炸伤害或高速碰撞时点燃 TNT 矿车
+        // 对应 MC Java 中 destroy() 里的 primeFuse(damageSource)
         if (m_fuse < 0) {
-            _ignite();
-            // 随机点燃时间 0-40 ticks
+            _ignite(source);
+            // 随机点燃时间 0-38 ticks（对应 MC Java 的 random.nextInt(20) + random.nextInt(20)）
             IWorld* worldPtr = world();
             if (worldPtr) {
                 math::Random& rng = worldPtr->getRandom();
                 m_fuse = rng.nextInt(20) + rng.nextInt(20);
             } else {
-                m_fuse = 20; // 默认点燃时间
+                m_fuse = 20;
             }
         }
     }
@@ -1422,15 +1453,32 @@ void TNTMinecartEntity::dropItem(DamageSource* source)
 
 void TNTMinecartEntity::_checkFireIgnition()
 {
-    // 在火焰或岩浆中自动点燃
+    // 在火焰或岩浆中自动点燃（无伤害来源，对应 MC Java 中红石/火焰直接点燃）
     if (m_fuse < 0) {
         if (isOnFire() || isInLava()) {
-            _ignite();
+            _ignite(nullptr);
         }
     }
 }
 
-void TNTMinecartEntity::_explode(f32 speedFactor)
+bool TNTMinecartEntity::_damageSourceIgnitesTnt(const DamageSource& source)
+{
+    // 对应 MC Java 的 MinecartTNT.damageSourceIgnitesTnt()
+    // 判断逻辑：
+    // 1. 如果直接实体是投射物且着火 → 能点燃
+    // 2. 否则，如果伤害类型是火焰（IS_FIRE）→ 能点燃
+    // 3. 否则，如果伤害类型是爆炸（IS_EXPLOSION）→ 能点燃
+    Entity* directEntity = source.directSource();
+    if (directEntity != nullptr) {
+        auto* projectile = dynamic_cast<ProjectileEntity*>(directEntity);
+        if (projectile != nullptr && projectile->isOnFire()) {
+            return true;
+        }
+    }
+    return source.isFire() || source.isExplosion();
+}
+
+void TNTMinecartEntity::_explode(f32 speedFactor, std::unique_ptr<DamageSource> damageSource)
 {
     IWorld* worldPtr = Entity::world();
     if (!worldPtr || worldPtr->isClientSide()) {
@@ -1459,12 +1507,16 @@ void TNTMinecartEntity::_explode(f32 speedFactor)
 
     // 创建爆炸（TNT矿车爆炸时不破坏铁轨）
     // canExplosionDestroyBlock: 如果已点燃且目标方块是铁轨，返回 false
-    worldPtr->createExplosion(Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
+    auto explosion = std::make_unique<world::explosion::Explosion>(*worldPtr,
+        Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
         radius,
         world::explosion::ExplosionMode::Break,
-        false, // 不产生火焰
-        this);
+        false,                   // 不产生火焰
+        this,                    // TNT矿车自身作为爆炸源
+        std::move(damageSource), // 自定义伤害来源（可能为nullptr，使用默认爆炸伤害）
+        nullptr);                // 掉落表管理器
 
+    explosion->explode();
     remove();
 }
 
