@@ -23,6 +23,8 @@
 #include "TrialBlocks.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/inventory/IInventory.hpp"
+#include "common/entity/inventory/ISidedInventory.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
@@ -235,6 +237,60 @@ void CrafterBlock::neighborChanged(
     }
 }
 
+void CrafterBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    MC_UNUSED(state);
+
+    // 方块移除时掉落合成器内的物品
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::Crafter) {
+        auto* crafter = static_cast<CrafterBlockEntity*>(entity);
+        IInventory* inventory = crafter->getInventory();
+
+        // 掉落所有物品
+        math::Random rng;
+        for (i32 i = 0; i < inventory->getContainerSize(); ++i) {
+            ItemStack stack = inventory->removeItemNoUpdate(i);
+            if (!stack.isEmpty()) {
+                ItemDropHelper::spawnItemEntity(&world, stack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+            }
+        }
+
+        // 通知比较器更新
+        world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
+    }
+
+    Block::onBlockRemoved(world, pos, state);
+}
+
+ActionResultType CrafterBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hand);
+    MC_UNUSED(hit);
+
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    // TODO: 实现自动合成器GUI（ContainerType::Crafter尚未添加）
+    // 当GUI系统实现后，应打开合成器界面：
+    //   BlockEntity* entity = world.getBlockEntity(pos);
+    //   if (entity != nullptr && entity->getType() == BlockEntityType::Crafter) {
+    //       auto* crafter = static_cast<CrafterBlockEntity*>(entity);
+    //       if (world.openContainer(ContainerType::Crafter, pos, player)) {
+    //           return ActionResultType::Consume;
+    //       }
+    //   }
+
+    return ActionResultType::Pass;
+}
+
 void CrafterBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
 {
     MC_UNUSED(random);
@@ -308,29 +364,75 @@ void CrafterBlock::_spawnItemEntity(IWorld& world, const BlockPos& pos, Directio
     if (targetEntity != nullptr) {
         IInventory* targetInventory = dynamic_cast<IInventory*>(targetEntity);
         if (targetInventory != nullptr) {
-            // 首先尝试堆叠到现有槽位
-            for (i32 i = 0; i < targetInventory->getContainerSize(); ++i) {
-                ItemStack existingStack = targetInventory->getItem(i);
-                if (!existingStack.isEmpty() && existingStack.isSameItem(stack)) {
-                    i32 space = existingStack.getMaxStackSize() - existingStack.getCount();
-                    if (space > 0) {
-                        i32 toAdd = std::min(space, stack.getCount());
-                        existingStack.grow(toAdd);
-                        targetInventory->setItem(i, existingStack);
-                        stack.shrink(toAdd);
-                        if (stack.isEmpty()) {
-                            return;
+            // 获取插入方向（从容器的视角看，是从facing的反方向插入）
+            Direction insertDirection = Directions::opposite(facing);
+
+            // 检查目标是否为侧面受限容器（ISidedInventory）
+            auto* sidedInventory = dynamic_cast<ISidedInventory*>(targetInventory);
+
+            if (sidedInventory != nullptr) {
+                // 侧面受限容器：只通过允许的槽位插入
+                std::vector<i32> slots = sidedInventory->getSlotsForFace(insertDirection);
+                for (i32 slot : slots) {
+                    if (stack.isEmpty()) {
+                        break;
+                    }
+                    if (!sidedInventory->canInsertItem(slot, stack, insertDirection)) {
+                        continue;
+                    }
+                    // 首先尝试堆叠到现有物品
+                    ItemStack existingStack = sidedInventory->getItem(slot);
+                    if (!existingStack.isEmpty() && existingStack.isSameItem(stack)) {
+                        i32 space = existingStack.getMaxStackSize() - existingStack.getCount();
+                        if (space > 0) {
+                            i32 toAdd = std::min(space, stack.getCount());
+                            existingStack.grow(toAdd);
+                            sidedInventory->setItem(slot, existingStack);
+                            stack.shrink(toAdd);
                         }
                     }
                 }
-            }
 
-            // 如果还有剩余，尝试放入空槽位
-            if (!stack.isEmpty()) {
-                i32 emptySlot = targetInventory->getFirstEmptySlot();
-                if (emptySlot >= 0) {
-                    targetInventory->setItem(emptySlot, stack);
-                    return;
+                // 如果还有剩余，尝试放入空槽位
+                if (!stack.isEmpty()) {
+                    for (i32 slot : slots) {
+                        if (stack.isEmpty()) {
+                            break;
+                        }
+                        if (!sidedInventory->canInsertItem(slot, stack, insertDirection)) {
+                            continue;
+                        }
+                        if (sidedInventory->getItem(slot).isEmpty()) {
+                            sidedInventory->setItem(slot, stack);
+                            stack = ItemStack();
+                        }
+                    }
+                }
+            } else {
+                // 普通容器：首先尝试堆叠到现有槽位
+                for (i32 i = 0; i < targetInventory->getContainerSize(); ++i) {
+                    ItemStack existingStack = targetInventory->getItem(i);
+                    if (!existingStack.isEmpty() && existingStack.isSameItem(stack)) {
+                        i32 space = existingStack.getMaxStackSize() - existingStack.getCount();
+                        if (space > 0) {
+                            i32 toAdd = std::min(space, stack.getCount());
+                            existingStack.grow(toAdd);
+                            targetInventory->setItem(i, existingStack);
+                            stack.shrink(toAdd);
+                            if (stack.isEmpty()) {
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                // 如果还有剩余，尝试放入空槽位
+                if (!stack.isEmpty()) {
+                    i32 emptySlot = targetInventory->getFirstEmptySlot();
+                    if (emptySlot >= 0) {
+                        targetInventory->setItem(emptySlot, stack);
+                        return;
+                    }
                 }
             }
 

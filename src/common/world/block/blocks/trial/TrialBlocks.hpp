@@ -123,6 +123,8 @@ public:
     void neighborChanged(
         IWorld& world, const BlockPos& pos, Block& neighborBlock, const BlockPos& neighborPos, bool isMoving) override;
 
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
     [[nodiscard]] BlockState updatePostPlacement(const BlockState& state,
@@ -133,6 +135,13 @@ public:
         const BlockPos& facingPos) override;
 
     [[nodiscard]] bool canProvidePower(const BlockState& state) const noexcept override { return true; }
+
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
 
     [[nodiscard]] i32 getWeakPower(
         const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
