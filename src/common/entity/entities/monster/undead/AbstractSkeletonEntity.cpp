@@ -25,6 +25,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/FleeSunGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
@@ -36,6 +37,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -173,9 +175,13 @@ void AbstractSkeletonEntity::registerGoals()
     // 优先级 3: 躲避阳光
     m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::FleeSunGoal>(this, 1.0));
 
-    // 优先级 3: 躲避狼
-    // TODO: AvoidEntityGoal<WolfEntity> 需要实现模板版本
-    // m_goalSelector.addGoal(3, std::make_unique<entity::ai::goal::AvoidEntityGoal<WolfEntity>>(this, 6.0f, 1.0, 1.2));
+    // 优先级 3: 躲避狼（6格检测距离，1.0远距离速度，1.2近距离速度）
+    m_goalSelector.addGoal(3,
+        std::make_unique<entity::ai::goal::AvoidEntityGoal>(
+            this, 6.0f, 1.0, 1.2, [](const LivingEntity* entity) -> bool {
+                if (!entity) return false;
+                return entity->typeId() == entity::EntityTypeIdNumber::WOLF;
+            }));
 
     // 优先级 4: 战斗目标（通过 setCombatTask() 动态添加）
     // 参考 setCombatTask()
