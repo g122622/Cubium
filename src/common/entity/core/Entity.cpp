@@ -421,9 +421,9 @@ void Entity::playStepSound(const BlockPos& pos, const BlockState* blockState)
                 f32 pitch = soundType.getPitch() * (0.8f + randomValue * 0.4f);
                 playSound(soundType.getStepSound(), volume, pitch);
             }
-            // 紫水晶共振铃声（检查上方方块）
-            if (shouldPlayAmethystStepSound(*primaryState)) {
-                const BlockSoundType& chimeSoundType = primaryState->getSoundType();
+            // 紫水晶共振铃声（始终检查脚下方块，与MC原版一致）
+            if (shouldPlayAmethystStepSound(*blockState)) {
+                const BlockSoundType& chimeSoundType = blockState->getSoundType();
                 playSound(ResourceLocation("minecraft", "block.amethyst_block.chime"),
                     chimeSoundType.getVolume() * 0.075f,
                     chimeSoundType.getPitch() * (0.8f + randomValue * 0.4f));

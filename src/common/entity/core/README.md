@@ -137,38 +137,39 @@
     | 返回 0.0f | `EnderMan.getWalkTargetValue` |
 
     **待实现 * *：TurtleEntity（水陆两栖）、HoglinEntity（诡异菌排斥 /
-            绯红菌岩偏好）、SilverfishEntity（虫蚀方块偏好）、GiantEntity（亮度不取反）。
+                绯红菌岩偏好）、SilverfishEntity（虫蚀方块偏好）、GiantEntity（亮度不取反）。
 
-            ## #canSpawnAt 生成条件
+                ## #canSpawnAt 生成条件
 
 `CreatureEntity::canSpawnAt(f32 x, f32 y, f32 z)` 基于 `getPathWeight
-        >= 0.0f` 判断位置是否适合生成，对应 MC `PathfinderMob.checkSpawnRules`。
+            >= 0.0f` 判断位置是否适合生成，对应 MC `PathfinderMob.checkSpawnRules`。
 
-            已集成到以下生成路径：
-            -
+                已集成到以下生成路径：
+                -
                 **NaturalSpawner::_trySpawnAt *
                     *：自然生成时，在实体创建并设置位置后、`finalizeSpawn` 之前调用 `canSpawnAt` 检查
-            -
+                -
                 **ServerWorld::spawnEntitiesFromChunkGeneration *
                     *：区块生成时，在实体创建并设置位置后、`finalizeSpawn` 之前调用 `canSpawnAt` 检查
 
-            注意：WorldGenSpawner
-            在区块生成阶段只记录 `SpawnedEntityData`（无实体实例），无法执行实例级检查，因此实例级检查延迟到 `ServerWorld::
-                spawnEntitiesFromChunkGeneration` 创建实体时执行。
+                    注意：WorldGenSpawner
+                    在区块生成阶段只记录 `SpawnedEntityData`（无实体实例），无法执行实例级检查，因此实例级检查延迟到 `ServerWorld::
+                        spawnEntitiesFromChunkGeneration` 创建实体时执行。
 
-            ##容易踩的坑
+                    ##容易踩的坑
 
-            ## #实体随机数生成器（getRandom）
-            - `Entity::getRandom()` 返回 `math::Random&`（持久化引用），每个实体拥有独立的 `m_random` 成员
+                    ## #实体随机数生成器（getRandom）
+                - `Entity::getRandom()` 返回 `math::Random
+        &`（持久化引用），每个实体拥有独立的 `m_random` 成员
             - 旧 `MobEntity::getRandom()` 按值返回临时对象（每次调用重新构造 RNG），已移除
-            - 获取随机数时应使用引用赋值 `math::Random& rng = entity->getRandom()`，而非值赋值 `math::Random rng = entity->getRandom()`
-            - 值赋值会拷贝 RNG 状态，导致原 RNG 不推进，且同一 tick 内多次值赋值得到相同序列
-            - `getRandom()` 在 `const` 方法中也可调用（`mutable` 成员），这是有意为之——随机数生成是逻辑操作而非状态查询
-            - Brain 系统的 `Task::start()` 接收的 `random` 参数仅用于计算任务持续时间，AI 逻辑中的随机数应使用 `owner->getRandom()`
+            - 获取随机数时应使用引用赋值 `math::Random &rng = entity->getRandom()`，而非值赋值 `math::Random rng =
+                           entity->getRandom()` -
+    值赋值会拷贝 RNG 状态，导致原 RNG 不推进，且同一 tick 内多次值赋值得到相同序列
+    - `getRandom()` 在 `const` 方法中也可调用（`mutable` 成员），这是有意为之——随机数生成是逻辑操作而非状态查询 -
+    Brain 系统的 `Task::start()` 接收的 `random` 参数仅用于计算任务持续时间，AI 逻辑中的随机数应使用 `owner->getRandom()`
 
-            ## #区块高度常量混淆
-            - `CHUNK_HEIGHT = MAX_BUILD_HEIGHT -
-    MIN_BUILD_HEIGHT`（当前值 384） - `MAX_BUILD_HEIGHT` 是世界最大建筑高度（当前值
+    ## #区块高度常量混淆
+    - `CHUNK_HEIGHT = MAX_BUILD_HEIGHT - MIN_BUILD_HEIGHT`（当前值 384） - `MAX_BUILD_HEIGHT` 是世界最大建筑高度（当前值
     320），`MIN_BUILD_HEIGHT` 是最低高度（当前值
     - 64） -
     两者语义完全不同，务必根据语义选择正确常量，不要硬编码
@@ -406,63 +407,119 @@
              .causeFallDamage` → `super.causeFallDamage` +
     自身伤害计算。
 
-    ## #方块碰撞检测系统
+        ## #方块碰撞检测系统
 
-    实体与方块的碰撞检测由两个互补方法组成，对应 MC 原版中 Entity.tick() 和
-    LivingEntity.aiStep() 的不同碰撞阶段。
+        实体与方块的碰撞检测由两个互补方法组成，对应 MC 原版中 Entity.tick() 和 LivingEntity
+            .aiStep() 的不同碰撞阶段。
 
-    ### doBlockCollisions() — 遍历碰撞箱内所有方块
+        ## #doBlockCollisions() — 遍历碰撞箱内所有方块
 
-    遍历实体碰撞箱覆盖的所有方块，对每个非空气方块调用：
-    1. `Block::onEntityCollision()` — 方块对实体的碰撞回调（仙人掌伤害、蜘蛛网减速等）
-    2. `Entity::onInsideBlock()` — 实体"在方块内部"的回调（传送门检测等）
-    3. 自定义方块组件 `onEntity` 事件派发
+        遍历实体碰撞箱覆盖的所有方块，对每个非空气方块调用：
+        1. `Block::onEntityCollision()` — 方块对实体的碰撞回调（仙人掌伤害、蜘蛛网减速等）
+        2. `Entity::onInsideBlock()` — 实体 "在方块内部"的回调（传送门检测等） 3. 自定义方块组件 `onEntity` 事件派发
 
-    对应 MC 原版 `Entity.checkInsideBlocks()`，由 `LivingEntity.aiStep()` 中的
+        对应 MC 原版 `Entity.checkInsideBlocks()`，由 `LivingEntity.aiStep()` 中的
     `applyEffectsFromBlocks()` 调用。
 
-    **调用位置**：
-    - `LivingEntity::aiStep()` — 在 `travel()` 之后调用，所有 LivingEntity 子类自动继承
-    - `Entity::moveWithCollision()` noClip 路径 — 即使 noClip=true 也要触发碰撞
-    - `BoatEntity::tick()` — 手动调用（BoatEntity.canTriggerWalking()=false）
-    - `ThrowableEntity::tick()` — 投射物需要在 tick 中手动调用
+        * *调用位置 * *： - `LivingEntity::aiStep()` — 在 `travel()` 之后调用，所有 LivingEntity 子类自动继承
+    - `Entity::moveWithCollision()` noClip 路径 — 即使 noClip = true 也要触发碰撞
+    - `BoatEntity::tick()` — 手动调用（BoatEntity
+          .canTriggerWalking() = false） - `ThrowableEntity::tick()` — 投射物需要在 tick 中手动调用
 
-    **典型方块碰撞效果**：
-    | 方块 | 回调 | 效果 |
-    |------|------|------|
-    | CactusBlock | onEntityCollision | 对 LivingEntity 造成 1.0 伤害 |
-    | WebBlock | onEntityCollision | 水平速度 ×0.25，垂直速度 ×0.05 |
-    | SweetBerryBushBlock | onEntityCollision | 伤害+减速（非潜行时） |
-    | BubbleColumnBlock | onEntityCollision | 上推/下拉 Y 速度，重置摔落距离 |
-    | NetherPortalBlock | onEntityCollision | 设置传送门状态 |
-    | FireBlock | onEntityCollision | 点燃实体 |
-    | HoneyBlock | onEntityCollision | 水平速度 ×0.4，下滑减速 |
+            * *典型方块碰撞效果 * *： |
+    方块 | 回调 | 效果 | | -- -- --| -- -- --| -- -- --| | CactusBlock | onEntityCollision
+    | 对 LivingEntity 造成 1.0 伤害 | | WebBlock | onEntityCollision | 水平速度 ×0.25，垂直速度 ×0.05 |
+    | SweetBerryBushBlock | onEntityCollision | 伤害 + 减速（非潜行时） | | BubbleColumnBlock | onEntityCollision
+    | 上推 / 下拉 Y 速度，重置摔落距离 | | NetherPortalBlock | onEntityCollision | 设置传送门状态 | | FireBlock
+    | onEntityCollision | 点燃实体 | | HoneyBlock | onEntityCollision | 水平速度 ×0.4，下滑减速 |
 
-    ### doBlockCollisionsAfterMove() — 移动后触发的方块回调
+    ## #doBlockCollisionsAfterMove() — 移动后触发的方块回调
 
-    在 `Entity::moveWithCollision()` 正常路径（非 noClip）移动完成后调用，处理与
-    移动方向和着地状态相关的方块回调：
-    1. `Block::onLanded()` — 着陆回调（粘液块弹跳、蜂蜜块取消摔落等）
-    2. `Block::onEntityWalk()` — 行走回调（农田踩踏、海龟蛋踩踏、红石粉更新等）
-    3. `Block::onStepOn` / `Block::onStepOff` — 自定义方块组件步进事件
-    4. `Entity::onInsideBlock()` — 遍历碰撞箱内所有方块的"内部"回调
+            在 `Entity::moveWithCollision()` 正常路径（非 noClip）移动完成后调用，处理与
+            移动方向和着地状态相关的方块回调： 1. `Block::onLanded()` — 着陆回调（粘液块弹跳、蜂蜜块取消摔落等）
+            2. `Block::onEntityWalk()` — 行走回调（农田踩踏、海龟蛋踩踏、红石粉更新等）
+            3. `Block::onStepOn` / `Block::onStepOff` — 自定义方块组件步进事件
+            4. `Entity::onInsideBlock()` — 遍历碰撞箱内所有方块的 "内部"回调
 
-    **重要区别**：`doBlockCollisionsAfterMove()` 不调用 `onEntityCollision()`，
-    因此不会触发仙人掌伤害、蜘蛛网减速等效果。这些效果仅由 `doBlockCollisions()` 触发。
+            * *重要区别 *
+            *：`doBlockCollisionsAfterMove()` 不调用 `onEntityCollision()`， 因此不会触发仙人掌伤害、蜘蛛网减速等效果。这些效果仅由 `doBlockCollisions()` 触发。
 
-    ### 两个方法的调用时序
+            ## #两个方法的调用时序
 
-    ```
-    LivingEntity::tick()
+    ``` LivingEntity::tick()
       → LivingEntity::aiStep()
-        → travel()                    // 物理移动
-        → doBlockCollisions()         // onEntityCollision + onInsideBlock（每tick）
-      → Entity::moveWithCollision()   // 碰撞检测移动
+        → travel() // 物理移动
+        → doBlockCollisions() // onEntityCollision + onInsideBlock（每tick）
+      → Entity::moveWithCollision() // 碰撞检测移动
         → doBlockCollisionsAfterMove() // onLanded + onEntityWalk + onStepOn/Off + onInsideBlock
     ```
 
-    - `doBlockCollisions()` 在每 tick 的 `aiStep()` 中调用，保证持续碰撞效果
-    - `doBlockCollisionsAfterMove()` 仅在物理移动发生时调用，处理着陆和行走事件
+        - `doBlockCollisions()` 在每 tick 的 `aiStep()` 中调用，保证持续碰撞效果
+        - `doBlockCollisionsAfterMove()` 仅在物理移动发生时调用，处理着陆和行走事件
+
+            ## #步声系统（Step Sound）
+
+            对应 MC 原版 `Entity.walkingStepSound()` / `Entity.playStepSound()` / `Player.playStepSound()` 逻辑。
+
+                                                                                  ## #核心方法
+
+        - **`playStepSound(pos, blockState)`* * — 播放脚步声的入口（虚方法，Player 重写） -
+        **`getPrimaryStepSoundBlockPos(pos)`*
+            * — 检查 pos
+            上方方块是否属于 `INSIDE_STEP_SOUND_BLOCKS` 或 `COMBINATION_STEP_SOUND_BLOCKS`，如果是则返回上方位置
+        - **`playCombinationStepSounds(aboveState, belowState)`* * — 播放组合步声：上方方块正常步声（0.15x 音量）
+        + 下方方块沉闷步声 - **`playMuffledStepSound(blockState)`* * — 播放沉闷步声（0.05x 音量，0.8x 音调） -
+        **`shouldPlayAmethystStepSound(blockState)`*
+            * — 检查方块是否属于 `CRYSTAL_SOUND_BLOCKS`
+
+            ## #步声类型与标签
+
+    | 标签 | 方块示例 | 步声行为 | | -- -- --| -- -- -- -- --| -- -- -- -- --|
+    | `COMBINATION_STEP_SOUND_BLOCKS` | 羊毛地毯、苔藓地毯、苍白苔藓地毯、雪层、下界苗、诡异菌索、绯红菌索、树脂团
+    | 播放上方正常步声 + 下方沉闷步声 |
+    | `INSIDE_STEP_SOUND_BLOCKS` | 细雪、幽匿脉络、发光地衣、睡莲、小型紫水晶芽、粉红色花瓣、野花、落叶层
+    | 只播放上方方块的步声（替代脚下方块的步声） | | `CRYSTAL_SOUND_BLOCKS` | 紫水晶块、紫水晶母岩
+    | 播放紫水晶共振铃声（`block.amethyst_block.chime`） |
+
+    ## #Entity::playStepSound 逻辑流程
+
+    ``` playStepSound(pos, blockState)
+      → getPrimaryStepSoundBlockPos(pos)
+      → 如果 primaryPos != pos（上方方块是 COMBINATION 或 INSIDE）
+        → primaryState = world.getBlockState(primaryPos)
+        → 如果 COMBINATION_STEP_SOUND_BLOCKS
+          → playCombinationStepSounds(primaryState, blockState) // 上方正常 + 下方沉闷
+        → 否则 INSIDE_STEP_SOUND_BLOCKS
+          → 播放上方方块正常步声
+        → 如果 shouldPlayAmethystStepSound(blockState) // 始终检查脚下方块
+          → 播放紫水晶铃声
+        → return
+      → 否则（普通方块）
+        → 播放脚下方块正常步声
+        → 如果 shouldPlayAmethystStepSound(blockState)
+          → 播放紫水晶铃声
+    ```
+
+        * *重要 *
+        *：紫水晶铃声始终检查脚下方块（`blockState`），而非上方方块（`primaryState`），与 MC 原版一致。
+
+        ## #Player::playStepSound 重写
+
+        Player 重写 `playStepSound` 以处理水中步声：
+    - 在水中：播放游泳声 + 沉闷步声 -
+    非水中：委托给 `Entity::playStepSound`（已包含 COMBINATION / INSIDE /
+        紫水晶逻辑）
+
+        ## #容易踩的坑
+
+    - **紫水晶铃声检查对象 *
+        *：`shouldPlayAmethystStepSound` 必须检查脚下方块（`blockState`），不是上方方块（`primaryState`）。站在紫水晶块上铺有地毯时，地毯是
+        COMBINATION，紫水晶是脚下方块，铃声应触发。
+    -
+    **Player 不需要重复 INSIDE / COMBINATION 判断 *
+        *：Player 的 `playStepSound` 非水中情况直接调用 `Entity::playStepSound`，避免重复判断导致双重步声。
+    - **组合步声音量 * *：上方正常步声 0.15x 音量，下方沉闷步声 0.05x 音量 +
+    0.8x 音调。
 
     ## #canAttackType 攻击类型判断
     - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()` -

@@ -223,6 +223,8 @@ add_executable(mc_tests
     common/entity/core/EntityIsInRainTest.cpp
     # 方块碰撞检测测试（doBlockCollisions 在 LivingEntity::aiStep 中的调用）
     common/entity/core/BlockCollisionTest.cpp
+    # 步声系统测试（Entity::playStepSound 组合步声、内部步声、紫水晶共振）
+    common/entity/core/StepSoundTest.cpp
     common/entity/EntitySerializationTest.cpp
     # Entity::isOnSameTeam() 队伍系统测试
     entity/EntityTeamTest.cpp
