@@ -34,9 +34,12 @@
 #include "common/entity/ai/goal/goals/special/AxolotlGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectInstance.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -131,11 +134,17 @@ void AxolotlEntity::playAttackSound(LivingEntity& /*target*/)
 void AxolotlEntity::applySupportingEffects(Player& player)
 {
     // 给予再生I效果，持续时间 = 基础100tick + 现有剩余（上限2400tick）
-    // TODO: 当药水效果系统实现后，添加 Regeneration I 效果
-    // i32 currentDuration = player.getEffectDuration(MobEffects::REGENERATION);
-    // i32 newDuration = std::min(REGEN_BUFF_MAX_DURATION, REGEN_BUFF_BASE_DURATION + currentDuration);
-    // player.addEffect(MobEffectInstance(MobEffects::REGENERATION, newDuration, 0));
-    MC_UNUSED(player);
+    // 如果玩家当前没有再生效果，或剩余时间不超过2399tick，则刷新效果
+    const auto* existing = player.getEffect(entity::effect::EffectType::Regeneration);
+    if (existing == nullptr || existing->endsWithin(REGEN_BUFF_MAX_DURATION - 1)) {
+        i32 currentDuration = existing != nullptr ? existing->duration() : 0;
+        i32 newDuration = std::min(REGEN_BUFF_MAX_DURATION, REGEN_BUFF_BASE_DURATION + currentDuration);
+        player.addEffect(entity::effect::EffectInstance(
+            entity::effect::EffectType::Regeneration, newDuration, 0, false, true, true));
+    }
+
+    // 移除挖掘疲劳效果
+    player.removeEffect(entity::effect::EffectType::MiningFatigue);
 }
 
 void AxolotlEntity::tick()
@@ -147,6 +156,9 @@ void AxolotlEntity::tick()
 
     // 更新狩猎冷却
     _updateHuntingCooldown();
+
+    // 检查攻击目标是否刚死亡，触发支援效果
+    _checkSupportingEffects();
 }
 
 void AxolotlEntity::registerGoals()
@@ -247,6 +259,44 @@ void AxolotlEntity::_updateHuntingCooldown()
     if (m_huntingCooldown > 0) {
         m_huntingCooldown--;
     }
+}
+
+void AxolotlEntity::_checkSupportingEffects()
+{
+    LivingEntity* target = attackTarget();
+
+    if (target != nullptr && m_wasTargetAlive && !target->isAlive()) {
+        // 攻击目标刚死亡 - 检查最后一击是否由玩家造成
+        DamageSource* lastDamage = target->lastDamageSource();
+        if (lastDamage != nullptr) {
+            Entity* attacker = lastDamage->getEntity();
+            if (attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::PLAYER) {
+                auto* player = static_cast<Player*>(attacker);
+                // 检查该玩家是否在美西螈附近20格范围内
+                auto* world = this->world();
+                if (world != nullptr) {
+                    std::vector<Entity*> nearbyEntities =
+                        world->getEntitiesInRange(position(), static_cast<f32>(PLAYER_REGEN_DETECTION_RANGE));
+                    bool playerNearby = false;
+                    for (Entity* entity : nearbyEntities) {
+                        if (entity == player) {
+                            playerNearby = true;
+                            break;
+                        }
+                    }
+                    if (playerNearby) {
+                        applySupportingEffects(*player);
+                    }
+                }
+            }
+        }
+
+        // 进入狩猎冷却（2分钟）
+        m_huntingCooldown = HUNTING_COOLDOWN_DURATION;
+    }
+
+    // 更新上一tick目标存活状态
+    m_wasTargetAlive = (target != nullptr && target->isAlive());
 }
 
 } // namespace mc

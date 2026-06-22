@@ -108,6 +108,19 @@ public:
     [[nodiscard]] bool isPermanent() const noexcept { return m_duration < 0; }
 
     /**
+     * @brief 检查效果是否将在指定tick数内结束
+     * @param maxDuration 最大剩余tick数
+     * @return 如果效果的剩余持续时间 <= maxDuration 则返回 true
+     *
+     * 永久效果（duration < 0）始终返回 false。
+     * 用于判断是否需要刷新效果（如美西螈的再生效果上限检查）。
+     */
+    [[nodiscard]] bool endsWithin(i32 maxDuration) const noexcept
+    {
+        return m_duration >= 0 && m_duration <= maxDuration;
+    }
+
+    /**
      * @brief 检查属性修改器是否已应用
      */
     [[nodiscard]] bool isApplied() const noexcept { return m_applied; }

@@ -305,6 +305,17 @@ private:
      * @brief 更新狩猎冷却
      */
     void _updateHuntingCooldown();
+
+    /**
+     * @brief 检查是否需要给予附近玩家支援效果
+     *
+     * 当美西螈的攻击目标死亡时，检查最后一击是否由玩家造成，
+     * 如果该玩家在20格范围内，则给予再生I效果并移除挖掘疲劳。
+     */
+    void _checkSupportingEffects();
+
+    // 上一tick攻击目标是否存活（用于检测目标死亡时刻）
+    bool m_wasTargetAlive = false;
 };
 
 } // namespace mc
