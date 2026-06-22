@@ -6,13 +6,13 @@
 
 ```
 ui/
-├── Font.hpp                          # 字体类定义
-├── Font.cpp                          # 字体实现
-├── FontRenderer.hpp                  # 文本渲染器
+├── Font.hpp                          # 字体类定义（含 getRandomGlyph 混淆文字支持）
+├── Font.cpp                          # 字体实现（含 buildWidthIndex 宽度索引）
+├── FontRenderer.hpp                  # 文本渲染器（含混淆 §k 渲染支持）
 ├── FontRenderer.cpp                  # 文本渲染实现
 ├── FontTextureAtlas.hpp              # 字形纹理图集（二叉树打包算法）
 ├── FontTextureAtlas.cpp              # 纹理图集实现
-├── Glyph.hpp                         # 字形数据结构
+├── Glyph.hpp                         # 字形数据结构、TextStyle（含 obfuscated 字段）、颜色常量
 ├── DefaultAsciiFont.hpp              # 默认ASCII位图字体（调试用）
 ├── DefaultAsciiFont.cpp              # 默认字体实现
 ├── GuiScale.hpp/cpp                  # GUI缩放计算
@@ -73,7 +73,7 @@ ui/
 │       ├── SlotWidget.hpp            # 物品槽组件
 │       ├── TextFieldWidget.hpp       # 文本输入框
 │       ├── TextWidget.hpp            # 文本组件
-│       ├── RichTextWidget.hpp        # 富文本组件
+│       ├── RichTextWidget.hpp        # 富文本组件（含混淆 §k 动画支持）
 │       └── Viewport3DWidget.hpp      # 3D视口组件
 ├── minecraft/                        # Minecraft特定UI
 │   ├── MinecraftUIContext.hpp/cpp    # Minecraft UI上下文（状态/事件绑定）
@@ -279,3 +279,13 @@ Kagero框架的详细文档不在本文件中，请参考 `kagero/docs/` 目录�
 ### 10. screen目录是旧版兼容
 
 `ui/screen/` 目录是旧版屏幕系统，正在逐步迁移到 `minecraft/screens/`，新代码应使用后者。
+
+### 11. 混淆文字（§k）宽度索引
+
+**问题**：`Font::getRandomGlyph()` 返回 nullptr。
+
+**原因**：`buildWidthIndex()` 尚未被调用（首次调用 `getRandomGlyph` 时会自动触发），或字体提供者为空。
+
+**解决方案**：`getRandomGlyph` 会懒加载宽度索引，无需手动调用 `buildWidthIndex()`。若添加了新的字形提供者（`addProvider`），宽度索引会自动失效并在下次访问时重建。
+
+**注意**：混淆文字的宽度匹配使用 `ceil(advance)` 作为整数键，空格不参与混淆替换，宽度 ≤ 0 或 > 32 的字形会被过滤。

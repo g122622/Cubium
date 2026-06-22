@@ -165,7 +165,6 @@ public:
                 i32 textY = static_cast<i32>(line.y);
 
                 // 混淆文字：替换为随机等宽字符
-                // 对应 MC Java 的 Font.getGlyph() 中 obfuscated 逻辑
                 std::string displayText;
                 if (run.style.isObfuscated()) {
                     displayText = _obfuscateText(run.text);
@@ -570,7 +569,7 @@ private:
     /**
      * @brief 将文本中的非空格字符替换为等宽随机字符（混淆效果 §k）
      *
-     * 对应 MC Java 的 Font.getGlyph() 中 obfuscated 逻辑：
+     * 核心逻辑：
      * 1. 获取原始字符的前进宽度
      * 2. 从字体中找到相同宽度的随机字符替换
      * 3. 空格不被替换
@@ -629,7 +628,7 @@ private:
                 continue;
             }
 
-            // 空格不替换（对应 MC Java: if (p_435358_ != 32)）
+            // 空格不替换
             if (codepoint == ' ') {
                 result.append(text, startPos, pos - startPos);
                 continue;

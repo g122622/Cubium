@@ -267,7 +267,7 @@ private:
      * value = 具有该宽度的所有码点列表
      *
      * 用于混淆文字（§k）渲染时选择等宽随机替换字符。
-     * 对应 MC Java 的 FontSet.glyphsByWidth。
+     * 用于混淆文字（§k）渲染时选择等宽随机替换字符。
      */
     std::unordered_map<i32, std::vector<u32>> m_glyphsByWidth;
     bool m_widthIndexBuilt = false; // 宽度索引是否已构建

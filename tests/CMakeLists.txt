@@ -889,6 +889,7 @@ add_executable(mc_tests
     client/ui/kagero/widget/ListWidgetTest.cpp
     client/ui/kagero/widget/Viewport3DWidgetTest.cpp
     client/ui/kagero/widget/SlotWidgetTest.cpp
+    client/ui/FontObfuscatedTest.cpp
     client/ui/minecraft/targetinfo/TargetInfoFormatterTest.cpp
     ${CMAKE_SOURCE_DIR}/src/client/ui/GuiScale.cpp
     ${CMAKE_SOURCE_DIR}/src/client/ui/minecraft/targetinfo/TargetInfo.cpp

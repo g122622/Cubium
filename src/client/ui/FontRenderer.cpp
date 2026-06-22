@@ -140,7 +140,6 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
         }
 
         // 混淆文字：用随机等宽字符替换（空格不替换）
-        // 对应 MC Java 的 Font.getGlyph() 中的 obfuscated 逻辑：
         // if (style.isObfuscated() && codepoint != 32) { glyph = randomGlyph(width); }
         const Glyph* glyph = nullptr;
         if (style.obfuscated && codepoint != ' ') {

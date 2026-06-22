@@ -242,11 +242,9 @@ void Font::buildWidthIndex()
             }
 
             // 计算非粗体前进宽度的向上取整
-            // 对应 MC Java 的 Mth.ceil(bakedglyph.info().getAdvance(false))
             i32 width = static_cast<i32>(std::ceil(glyph->advance));
 
-            // 过滤异常宽度的字形（对应 MC Java 的 hasFishyAdvance 过滤）
-            // 排除宽度 ≤ 0 或 > 32 的字形
+            // 过滤异常宽度的字形（advance ≤ 0 或 > 32）
             if (width <= 0 || width > 32) {
                 continue;
             }
