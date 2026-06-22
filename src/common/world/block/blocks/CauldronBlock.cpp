@@ -28,6 +28,8 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/items/block/BannerItem.hpp"
+#include "common/item/items/weapon/ShieldItem.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -36,6 +38,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 
 namespace mc {
@@ -454,6 +457,12 @@ ActionResultType CauldronBlock::_handleLeatherArmorCleaning(
 
                 // 降低水位
                 setLevel(world, pos, state, currentLevel - 1);
+
+                // 触发 BLOCK_CHANGE 游戏事件（通知附近的幽匿感测体）
+                const BlockState* newState = world.getBlockState(pos);
+                if (newState != nullptr) {
+                    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, newState);
+                }
             }
             return ActionResultType::Success;
         }
@@ -465,17 +474,50 @@ ActionResultType CauldronBlock::_handleLeatherArmorCleaning(
 ActionResultType CauldronBlock::_handleBannerCleaning(
     IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
 {
+    const Item* item = heldItem.getItem();
+    if (item == nullptr) {
+        return ActionResultType::Pass;
+    }
 
-    MC_UNUSED(player);
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(state);
-    MC_UNUSED(heldItem);
+    // 检查是否为旗帜或盾牌，且物品上有图案层
+    // 参考 MC 1.21.11 CauldronInteraction.WATER 中的 bannerInteraction
+    const bool isBanner = dynamic_cast<const item::BannerItem*>(item) != nullptr;
+    const bool isShield = (item == Items::SHIELD);
 
-    // TODO: 旗帜系统尚未实现，需要实现旗帜清洗功能
-    // 检查物品是否为 BannerItem 并有图案层，如果有则移除最顶层图案并降低水位
+    if (!isBanner && !isShield) {
+        return ActionResultType::Pass;
+    }
 
-    return ActionResultType::Pass;
+    // 检查物品是否有图案层（BlockEntityTag.Patterns 非空）
+    i32 patternCount = blockentity::BannerEntity::getPatternCount(heldItem);
+    if (patternCount <= 0) {
+        // 没有图案的旗帜/盾牌，不执行清洗
+        return ActionResultType::Pass;
+    }
+
+    i32 currentLevel = getLevel(state);
+    if (currentLevel <= 0) {
+        // 炼药锅为空，无法清洗
+        return ActionResultType::Pass;
+    }
+
+    // 服务端执行清洗逻辑
+    if (!world.isClientSide()) {
+        // 移除最顶层图案（MC 原版使用 BannerPatternLayers.removeLast()）
+        // 如果图案全部移除，BlockEntityTag 也会被自动清除
+        blockentity::BannerEntity::removeBannerData(heldItem);
+
+        // 降低炼药锅水位
+        setLevel(world, pos, state, currentLevel - 1);
+
+        // 触发 BLOCK_CHANGE 游戏事件（通知附近的幽匿感测体）
+        const BlockState* newState = world.getBlockState(pos);
+        if (newState != nullptr) {
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, newState);
+        }
+    }
+
+    return ActionResultType::Success;
 }
 
 void CauldronBlock::_playFillSound(IWorld& world, const BlockPos& pos)
