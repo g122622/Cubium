@@ -150,15 +150,15 @@ bool BeehiveBlockEntity::addOccupant(BeeEntity& bee)
 void BeehiveBlockEntity::emptyAllLivingFromHive(
     IWorld& world, Player* player, const BlockState& state, BeeReleaseStatus releaseStatus)
 {
-    // 从后向前遍历，避免迭代器失效
-    i32 i = static_cast<i32>(m_bees.size()) - 1;
-    while (i >= 0) {
+    // 前向遍历：释放成功时元素被移除、后续元素前移，i 不递增以处理前移的元素；
+    // 释放失败时（天气/夜间阻止），++i 跳过该蜜蜂
+    i32 i = 0;
+    while (i < static_cast<i32>(m_bees.size())) {
         if (_releaseOccupant(world, state, i, releaseStatus)) {
-            // 释放成功，索引后移（因为删除了元素，后面的元素前移）
+            // 释放成功，元素已从列表中移除，后续元素前移到索引 i，不需要递增
         } else {
             // 释放失败（天气/夜间阻止或出口被阻挡），跳过该蜜蜂
-            // 非紧急模式下，如果所有蜜蜂都无法释放，提前退出避免无限循环
-            --i;
+            ++i;
         }
     }
 
@@ -317,9 +317,7 @@ void BeehiveBlockEntity::_tickOccupants(IWorld& world)
         return;
     }
 
-    // 从后向前遍历，避免迭代器失效
-    // 当 _releaseOccupant 返回 true 时，蜜蜂已从列表中移除，索引 i 自然指向下一个待检查的蜜蜂
-    // 当 _releaseOccupant 返回 false 时（天气/夜间阻止），蜜蜂保留在列表中，索引 i 需要递减
+    // 从后向前遍历：删除当前索引的元素时，前面的元素不受影响，--i 自然指向下一个待检查的蜜蜂
     i32 i = static_cast<i32>(m_bees.size()) - 1;
     while (i >= 0) {
         if (m_bees[i].tick()) {
@@ -327,19 +325,10 @@ void BeehiveBlockEntity::_tickOccupants(IWorld& world)
                 m_bees[i].hasNectar ? BeeReleaseStatus::HoneyDelivered : BeeReleaseStatus::BeeReleased;
             const BlockState* state = world.getBlockState(m_pos);
             if (state) {
-                if (_releaseOccupant(world, *state, i, status)) {
-                    // 释放成功，蜜蜂已从列表中移除，不需要递减 i
-                    // 因为删除了当前索引的元素，i 现在指向下一个未检查的蜜蜂
-                } else {
-                    // 释放失败（天气/夜间阻止或出口被阻挡），蜜蜂保留，等待下次重试
-                    --i;
-                }
-            } else {
-                --i;
+                _releaseOccupant(world, *state, i, status);
             }
-        } else {
-            --i;
         }
+        --i;
     }
 
     // 随机播放工作音效（0.5% 概率）
