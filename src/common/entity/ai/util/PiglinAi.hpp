@@ -62,6 +62,9 @@ public:
      * 穿戴金盔甲的玩家不会成为猪灵的攻击目标。
      * 参考 MC 1.21.11 PiglinAi.isWearingGold()
      *
+     * TODO: 待猪灵AI目标系统实现后集成到NearestAttackableTargetGoal的谓词中，
+     * 目前仅作为公共API提供，尚无调用者。
+     *
      * @param player 要检查的玩家
      * @return 如果玩家穿戴了金盔甲中的任意一件则返回true
      */
