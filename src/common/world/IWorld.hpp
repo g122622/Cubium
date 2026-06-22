@@ -47,6 +47,7 @@ namespace mc {
 
 // 前向声明
 class Entity;
+class DamageSource;
 class BlockState;
 namespace world::chunk {
 class ChunkData;
@@ -1142,6 +1143,32 @@ public:
         (void)mode;
         (void)causesFire;
         (void)source;
+    }
+
+    /**
+     * @brief 创建带自定义伤害来源的爆炸
+     *
+     * 与 createExplosion 相同，但允许指定自定义 DamageSource，
+     * 用于爆炸伤害归因（如 TNT 矿车将引爆者归因为间接爆炸来源）。
+     *
+     * @param position 爆炸中心位置
+     * @param radius 爆炸半径
+     * @param mode 爆炸模式
+     * @param causesFire 是否生成火焰
+     * @param source 爆炸源实体（可选）
+     * @param damageSource 自定义伤害来源（可选，为 nullptr 时使用默认爆炸伤害）。
+     *                     调用者保留所有权，实现会在内部 clone 一份。
+     */
+    virtual void createExplosionWithSource(const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode,
+        bool causesFire,
+        Entity* source,
+        const DamageSource* damageSource)
+    {
+        // 默认实现：忽略 damageSource，退回到无自定义伤害来源版本
+        (void)damageSource;
+        createExplosion(position, radius, mode, causesFire, source);
     }
 
     // ========== 类型转换 ==========

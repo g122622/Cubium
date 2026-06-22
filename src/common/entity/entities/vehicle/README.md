@@ -84,13 +84,18 @@ Entity (基类)
 - 燃烧箭矢 → 根据箭矢速度计算爆炸威力
 - `_ignite()` 和 `_explode()` 均受 `tntExplodes` 游戏规则控制：当 `tntExplodes=false` 时，`_ignite()` 不点燃（直接返回），`_explode()` 不创建爆炸（若已点燃则丢弃实体）
 
-参考 MC 1.16.5：`TNTMinecartEntity.attackEntityFrom()` 和 `killMinecart()`
+参考 MC 1.21.11：`MinecartTNT.primeFuse()`、`MinecartTNT.explode()`、`MinecartTNT.damageSourceIgnitesTnt()`
 
-### 3.5 TNT矿车引燃同步
+### 3.5 TNT矿车引燃同步与归因
 
-**问题**：TNT矿车引燃时的音效和客户端同步需要三端协同。
+**问题**：TNT矿车引燃时需要记录引爆来源，爆炸伤害需正确归因到引爆者。
 
 **要点**：
+- **引燃来源**：`_ignite(const DamageSource* source)` 接受可选的 DamageSource 参数，首次点燃时记录到 `m_ignitionSource`，后续不覆盖
+- **归因转换**：`m_ignitionSource` 为 `IndirectEntityDamageSource(Explosion, causeEntity, this)`，其中 `causeEntity` 是原始伤害的造成者，`this` 是 TNT 矿车自身
+- **爆炸传递**：`_explode()` 将 `m_ignitionSource` 传递给 `createExplosionWithSource()`，使爆炸伤害正确归因
+- **伤害判断**：`_damageSourceIgnitesTnt()` 判断伤害源是否能点燃TNT（着火投射物 / IS_FIRE / IS_EXPLOSION）
+- **shouldSourceDestroy**：`hurt()` 中当 `_damageSourceIgnitesTnt()` 返回 true 时，即使伤害未超过阈值也触发 `dropItem()`
 - **服务端**：`_ignite()` 设置 `m_fuse = 80`，调用 `broadcastEntityStatus(EatBlock)` 通知客户端，调用 `playSound(ENTITY_TNT_PRIMED)` 播放音效
 - **网络**：`EntityStatusPacket` 使用 status code 10 (`EatBlock`)，此状态码被羊吃草和TNT矿车引燃共用
 - **客户端**：`onEntityStatus` 回调根据 `typeId() == TNT_MINECART` 区分处理：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`

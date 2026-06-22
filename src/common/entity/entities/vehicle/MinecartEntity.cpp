@@ -44,7 +44,6 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include "common/world/blockentity/transport/HopperEntity.hpp"
-#include "common/world/explosion/Explosion.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/redstone/RedstoneHelper.hpp"
@@ -1507,16 +1506,14 @@ void TNTMinecartEntity::_explode(f32 speedFactor, std::unique_ptr<DamageSource> 
 
     // 创建爆炸（TNT矿车爆炸时不破坏铁轨）
     // canExplosionDestroyBlock: 如果已点燃且目标方块是铁轨，返回 false
-    auto explosion = std::make_unique<world::explosion::Explosion>(*worldPtr,
-        Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
+    // 使用 createExplosionWithSource 确保爆炸包广播给客户端，并传递自定义伤害来源
+    worldPtr->createExplosionWithSource(Vector3(static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z())),
         radius,
         world::explosion::ExplosionMode::Break,
-        false,                   // 不产生火焰
-        this,                    // TNT矿车自身作为爆炸源
-        std::move(damageSource), // 自定义伤害来源（可能为nullptr，使用默认爆炸伤害）
-        nullptr);                // 掉落表管理器
+        false,               // 不产生火焰
+        this,                // TNT矿车自身作为爆炸源
+        damageSource.get()); // 自定义伤害来源（可能为nullptr，使用默认爆炸伤害）
 
-    explosion->explode();
     remove();
 }
 

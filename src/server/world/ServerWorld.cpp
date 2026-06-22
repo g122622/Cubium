@@ -2155,6 +2155,36 @@ void ServerWorld::createExplosion(
     }
 }
 
+void ServerWorld::createExplosionWithSource(const Vector3& position,
+    f32 radius,
+    world::explosion::ExplosionMode mode,
+    bool causesFire,
+    Entity* source,
+    const DamageSource* damageSource)
+{
+    // 将 const DamageSource* 转换为 std::unique_ptr<DamageSource>（通过 clone）
+    std::unique_ptr<DamageSource> damageSourcePtr = (damageSource != nullptr) ? damageSource->clone() : nullptr;
+
+    // 创建爆炸对象（使用自定义伤害来源）
+    auto explosion = std::make_unique<world::explosion::Explosion>(*this,
+        position,
+        radius,
+        mode,
+        causesFire,
+        source,
+        std::move(damageSourcePtr), // 传递自定义伤害来源
+        m_lootTableManager          // 传递掉落表管理器用于生成方块掉落
+    );
+
+    // 执行爆炸
+    explosion->explode();
+
+    // 广播爆炸包给客户端（发送给爆炸点 64 格范围内的玩家）
+    if (m_onBroadcastExplosion) {
+        m_onBroadcastExplosion(position, radius, explosion->affectedBlocks(), explosion->playerKnockback());
+    }
+}
+
 // ============================================================================
 // 命令执行
 // ============================================================================

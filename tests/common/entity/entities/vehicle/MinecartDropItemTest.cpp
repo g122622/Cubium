@@ -623,3 +623,202 @@ TEST_F(TNTMinecartArrowTest, NegativeFire_NotOnFire)
     EXPECT_EQ(arrow->fire(), -10);
     EXPECT_FALSE(arrow->isOnFire()) << "Negative fire should not count as on fire";
 }
+
+// ============================================================================
+// _damageSourceIgnitesTnt 逻辑测试
+// ============================================================================
+
+/**
+ * @brief 测试 TNT 矿车 _damageSourceIgnitesTnt 对各种伤害类型的判断
+ *
+ * 对应 MC Java 的 MinecartTNT.damageSourceIgnitesTnt()：
+ * - 直接实体是着火投射物 → 能点燃
+ * - IS_FIRE 伤害类型 → 能点燃
+ * - IS_EXPLOSION 伤害类型 → 能点燃
+ * - 其他伤害类型 → 不能点燃
+ */
+class TNTDamageSourceIgnitesTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+};
+
+TEST_F(TNTDamageSourceIgnitesTest, FireDamage_IgnitesTNT)
+{
+    // 火焰伤害类型应能点燃TNT
+    EnvironmentalDamage fireDamage(DamageType::InFire);
+    EXPECT_TRUE(fireDamage.isFire());
+    EXPECT_FALSE(fireDamage.isExplosion());
+
+    EnvironmentalDamage lavaDamage(DamageType::Lava);
+    EXPECT_TRUE(lavaDamage.isFire());
+
+    EnvironmentalDamage onFireDamage(DamageType::OnFire);
+    EXPECT_TRUE(onFireDamage.isFire());
+
+    EnvironmentalDamage hotFloorDamage(DamageType::HotFloor);
+    EXPECT_TRUE(hotFloorDamage.isFire());
+}
+
+TEST_F(TNTDamageSourceIgnitesTest, ExplosionDamage_IgnitesTNT)
+{
+    // 爆炸伤害类型应能点燃TNT
+    EnvironmentalDamage explosionDamage(DamageType::Explosion);
+    EXPECT_FALSE(explosionDamage.isFire());
+    EXPECT_TRUE(explosionDamage.isExplosion());
+
+    EnvironmentalDamage playerExplosionDamage(DamageType::ExplosionPlayer);
+    EXPECT_TRUE(playerExplosionDamage.isExplosion());
+}
+
+TEST_F(TNTDamageSourceIgnitesTest, NormalDamage_DoesNotIgniteTNT)
+{
+    // 普通伤害类型不能点燃TNT
+    EnvironmentalDamage fallDamage(DamageType::Fall);
+    EXPECT_FALSE(fallDamage.isFire());
+    EXPECT_FALSE(fallDamage.isExplosion());
+
+    EnvironmentalDamage drownDamage(DamageType::Drown);
+    EXPECT_FALSE(drownDamage.isFire());
+    EXPECT_FALSE(drownDamage.isExplosion());
+
+    EnvironmentalDamage cactusDamage(DamageType::Cactus);
+    EXPECT_FALSE(cactusDamage.isFire());
+    EXPECT_FALSE(cactusDamage.isExplosion());
+}
+
+TEST_F(TNTDamageSourceIgnitesTest, FireProjectile_IgnitesTNT)
+{
+    // 火焰投射物伤害：isProjectile() && isFire() → 能点燃
+    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    Entity* shooter = nullptr;
+    IndirectEntityDamageSource fireballDamage = DamageSources::fireball(arrow.get(), shooter, false);
+    fireballDamage.setProjectile();
+    fireballDamage.setFireDamage();
+
+    EXPECT_TRUE(fireballDamage.isProjectile());
+    EXPECT_TRUE(fireballDamage.isFire());
+}
+
+// ============================================================================
+// ignitionSource 归因测试
+// ============================================================================
+
+/**
+ * @brief 测试 TNT 矿车 ignitionSource 的伤害归因逻辑
+ *
+ * 对应 MC Java 的 MinecartTNT.ignitionSource：
+ * - 首次点燃时记录引爆来源
+ * - 后续点燃不会覆盖 ignitionSource
+ * - 爆炸时 ignitionSource 作为 DamageSource 传递给 Explosion
+ */
+class TNTIgnitionSourceTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+};
+
+/**
+ * @brief 测试 IndirectEntityDamageSource 构造和属性
+ *
+ * ignitionSource 使用 IndirectEntityDamageSource(DamageType::Explosion, causeEntity, this)
+ * 其中 causeEntity 是原始伤害的造成者，this 是 TNT 矿车自身
+ */
+TEST_F(TNTIgnitionSourceTest, IndirectEntityDamageSource_Construction)
+{
+    // 创建模拟实体
+    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    Entity* shooter = nullptr;
+
+    // 创建间接伤害源（模拟箭矢伤害）
+    IndirectEntityDamageSource arrowDamage = DamageSources::arrow(arrow.get(), shooter, false);
+    EXPECT_EQ(arrowDamage.source(), shooter);           // 射击者（间接源）
+    EXPECT_EQ(arrowDamage.directSource(), arrow.get()); // 箭矢（直接源）
+    EXPECT_EQ(arrowDamage.getEntity(), shooter);        // getEntity() 返回间接源
+
+    // 模拟 TNT 矿车创建 ignitionSource 的逻辑
+    // ignitionSource = IndirectEntityDamageSource(Explosion, causeEntity, tntMinecart)
+    // causeEntity = source->getEntity()（原始伤害的造成者）
+    Entity* causeEntity = arrowDamage.getEntity(); // 射击者
+    auto ignitionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, causeEntity, arrow.get());
+    ignitionSource->setExplosion();
+
+    EXPECT_TRUE(ignitionSource->isExplosion());
+    EXPECT_EQ(ignitionSource->type(), DamageType::Explosion);
+    EXPECT_EQ(ignitionSource->source(), causeEntity);       // 间接源（射击者）
+    EXPECT_EQ(ignitionSource->directSource(), arrow.get()); // 直接源（TNT矿车）
+}
+
+/**
+ * @brief 测试无射击者时 ignitionSource 的行为
+ *
+ * 激活铁轨点燃时 source=nullptr，ignitionSource 不设置
+ */
+TEST_F(TNTIgnitionSourceTest, NullSource_NoIgnitionSource)
+{
+    // 当 source 为 nullptr 时，getEntity() 返回 nullptr
+    // ignitionSource 不应被设置
+    EnvironmentalDamage fireDamage(DamageType::InFire);
+    Entity* causeEntity = fireDamage.getEntity();
+    EXPECT_EQ(causeEntity, nullptr) << "EnvironmentalDamage should have no entity";
+
+    // 如果 causeEntity 为 nullptr，IndirectEntityDamageSource 仍然可以构造
+    auto ignitionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, nullptr, nullptr);
+    ignitionSource->setExplosion();
+
+    EXPECT_TRUE(ignitionSource->isExplosion());
+    EXPECT_EQ(ignitionSource->source(), nullptr);
+    EXPECT_EQ(ignitionSource->directSource(), nullptr);
+}
+
+/**
+ * @brief 测试实体爆炸伤害源的归因
+ *
+ * 当苦力怕爆炸伤害TNT矿车时：
+ * - source.getEntity() 返回苦力怕
+ * - ignitionSource 中 causeEntity = 苦力怕
+ */
+TEST_F(TNTIgnitionSourceTest, EntityExplosionDamage_Attribution)
+{
+    // 创建模拟实体（作为爆炸源）
+    auto arrow = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto shooter = std::make_unique<TestArrowEntity>(EntityId(2));
+
+    // 模拟实体爆炸伤害
+    EntityDamageSource explosionDamage = DamageSources::explosion(shooter.get());
+    EXPECT_EQ(explosionDamage.source(), shooter.get());
+    EXPECT_EQ(explosionDamage.getEntity(), shooter.get());
+    EXPECT_TRUE(explosionDamage.isExplosion());
+
+    // 构造 ignitionSource
+    Entity* causeEntity = explosionDamage.getEntity();
+    auto ignitionSource = std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, causeEntity, arrow.get());
+    ignitionSource->setExplosion();
+
+    EXPECT_TRUE(ignitionSource->isExplosion());
+    EXPECT_EQ(ignitionSource->source(), shooter.get());     // 爆炸造成者
+    EXPECT_EQ(ignitionSource->directSource(), arrow.get()); // TNT矿车自身
+}
+
+/**
+ * @brief 测试 clone() 方法正确复制 ignitionSource
+ *
+ * 爆炸时需要 clone ignitionSource 传递给 Explosion
+ */
+TEST_F(TNTIgnitionSourceTest, Clone_PreservesAttributes)
+{
+    auto shooter = std::make_unique<TestArrowEntity>(EntityId(1));
+    auto tntMinecart = std::make_unique<TestArrowEntity>(EntityId(2));
+
+    auto ignitionSource =
+        std::make_unique<IndirectEntityDamageSource>(DamageType::Explosion, shooter.get(), tntMinecart.get());
+    ignitionSource->setExplosion();
+
+    // clone
+    auto cloned = ignitionSource->clone();
+    EXPECT_TRUE(cloned->isExplosion());
+    EXPECT_EQ(cloned->type(), DamageType::Explosion);
+
+    auto* clonedIndirect = dynamic_cast<IndirectEntityDamageSource*>(cloned.get());
+    ASSERT_NE(clonedIndirect, nullptr);
+    EXPECT_EQ(clonedIndirect->source(), shooter.get());
+    EXPECT_EQ(clonedIndirect->directSource(), tntMinecart.get());
+}

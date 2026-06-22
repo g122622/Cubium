@@ -574,6 +574,13 @@ public:
         bool causesFire = false,
         Entity* source = nullptr) override;
 
+    void createExplosionWithSource(const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode,
+        bool causesFire,
+        Entity* source,
+        const DamageSource* damageSource) override;
+
     // ========== 命令执行 (IWorld override) ==========
 
     /**
