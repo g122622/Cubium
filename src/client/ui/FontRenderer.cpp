@@ -85,11 +85,35 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
     f32 startX = x;
     f32 shadowOffset = Glyph::getShadowOffset() * m_scale;
 
+    // 如果文本包含混淆字符，先预选随机字形，确保阴影和主文字使用相同的替换字符
+    // key = 字符在文本中的字节偏移，value = 随机替换字形指针
+    std::vector<std::pair<size_t, const Glyph*>> obfuscatedGlyphs;
+
+    if (style.obfuscated) {
+        size_t pos = 0;
+        while (pos < text.size()) {
+            size_t byteOffset = pos;
+            u32 codepoint = _decodeCodepoint(text, pos);
+
+            if (codepoint == '\n' || codepoint == ' ') {
+                continue;
+            }
+
+            const Glyph* originalGlyph = m_font->getGlyph(codepoint);
+            if (originalGlyph != nullptr) {
+                i32 width = static_cast<i32>(std::ceil(originalGlyph->advance));
+                const Glyph* randomGlyph = m_font->getRandomGlyph(m_random, width);
+                obfuscatedGlyphs.emplace_back(byteOffset, randomGlyph != nullptr ? randomGlyph : originalGlyph);
+            }
+        }
+    }
+
     // 如果需要阴影，先绘制阴影
     if (style.shadow) {
         f32 shadowX = x + shadowOffset;
         f32 shadowY = y + shadowOffset;
 
+        size_t obfuscatedIdx = 0;
         size_t pos = 0;
         while (pos < text.size()) {
             u32 codepoint = _decodeCodepoint(text, pos);
@@ -100,17 +124,15 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
                 continue;
             }
 
-            // 混淆文字：用随机等宽字符替换（空格不替换）
             const Glyph* glyph = nullptr;
             if (style.obfuscated && codepoint != ' ') {
-                // 先获取原始字形以确定宽度
-                const Glyph* originalGlyph = m_font->getGlyph(codepoint);
-                if (originalGlyph != nullptr) {
-                    i32 width = static_cast<i32>(std::ceil(originalGlyph->advance));
-                    glyph = m_font->getRandomGlyph(m_random, width);
-                    if (glyph == nullptr) {
-                        glyph = originalGlyph; // 回退到原始字形
-                    }
+                // 使用预选的随机字形
+                while (obfuscatedIdx < obfuscatedGlyphs.size() && obfuscatedGlyphs[obfuscatedIdx].first < pos) {
+                    obfuscatedIdx++;
+                }
+                if (obfuscatedIdx < obfuscatedGlyphs.size() && obfuscatedGlyphs[obfuscatedIdx].first == pos) {
+                    glyph = obfuscatedGlyphs[obfuscatedIdx].second;
+                    obfuscatedIdx++;
                 }
             } else {
                 glyph = m_font->getGlyph(codepoint);
@@ -129,6 +151,7 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
     }
 
     // 绘制主文本
+    size_t obfuscatedIdx = 0;
     size_t pos = 0;
     while (pos < text.size()) {
         u32 codepoint = _decodeCodepoint(text, pos);
@@ -139,18 +162,15 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
             continue;
         }
 
-        // 混淆文字：用随机等宽字符替换（空格不替换）
-        // if (style.isObfuscated() && codepoint != 32) { glyph = randomGlyph(width); }
         const Glyph* glyph = nullptr;
         if (style.obfuscated && codepoint != ' ') {
-            // 先获取原始字形以确定宽度
-            const Glyph* originalGlyph = m_font->getGlyph(codepoint);
-            if (originalGlyph != nullptr) {
-                i32 width = static_cast<i32>(std::ceil(originalGlyph->advance));
-                glyph = m_font->getRandomGlyph(m_random, width);
-                if (glyph == nullptr) {
-                    glyph = originalGlyph; // 回退到原始字形
-                }
+            // 使用与阴影通道相同的预选随机字形
+            while (obfuscatedIdx < obfuscatedGlyphs.size() && obfuscatedGlyphs[obfuscatedIdx].first < pos) {
+                obfuscatedIdx++;
+            }
+            if (obfuscatedIdx < obfuscatedGlyphs.size() && obfuscatedGlyphs[obfuscatedIdx].first == pos) {
+                glyph = obfuscatedGlyphs[obfuscatedIdx].second;
+                obfuscatedIdx++;
             }
         } else {
             glyph = m_font->getGlyph(codepoint);
@@ -167,7 +187,6 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
 
             // 添加装饰效果
             if (style.strikethrough || style.underline) {
-                // 对于混淆字符，装饰线宽度使用原始字符的advance
                 f32 decorWidth = glyph->advance * m_scale;
                 _addDecoration(x, y, decorWidth, style.color, style.strikethrough, style.underline);
             }

@@ -124,8 +124,7 @@ public:
         // 这里使用定时刷新以避免不必要的重绘开销
         constexpr f32 OBFUSCATED_REFRESH_INTERVAL = 0.05f;
         if (m_obfuscatedTimer >= OBFUSCATED_REFRESH_INTERVAL) {
-            m_obfuscatedTimer = 0.0f;
-            m_obfuscatedDirty = true;
+            m_obfuscatedTimer -= OBFUSCATED_REFRESH_INTERVAL;
         }
     }
 
@@ -219,9 +218,6 @@ public:
                 x += run.advanceWidth;
             }
         }
-
-        // 重置混淆刷新标记
-        m_obfuscatedDirty = false;
     }
 
     // ==================== 事件处理 ====================
@@ -757,7 +753,6 @@ private:
     // 混淆效果动画状态
     mutable math::Random m_obfuscatedRandom; // 混淆字符随机数生成器
     f32 m_obfuscatedTimer = 0.0f;            // 混淆刷新计时器
-    bool m_obfuscatedDirty = false;          // 混淆字符是否需要刷新
 };
 
 } // namespace mc::client::ui::kagero::widget

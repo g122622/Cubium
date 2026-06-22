@@ -49,7 +49,8 @@ protected:
     }
 
     Font font;
-};TEST_F(FontObfuscatedTest, BuildWidthIndexPopulatesGlyphsByWidth)
+};
+TEST_F(FontObfuscatedTest, BuildWidthIndexPopulatesGlyphsByWidth)
 {
     // buildWidthIndex 应该填充宽度索引
     font.buildWidthIndex();
@@ -58,8 +59,7 @@ protected:
     // ASCII 可打印字符 (33-126) 有多种宽度
     // 验证宽度索引包含常见宽度
     math::Random rng(42);
-    EXPECT_NE(font.getRandomGlyph(rng, 4), nullptr)
-        << "Should find glyphs with width 4 (common for 5x7 font)";
+    EXPECT_NE(font.getRandomGlyph(rng, 4), nullptr) << "Should find glyphs with width 4 (common for 5x7 font)";
 }
 
 TEST_F(FontObfuscatedTest, BuildWidthIndexCalledLazilyByGetRandomGlyph)
@@ -109,8 +109,7 @@ TEST_F(FontObfuscatedTest, GetRandomGlyphReturnsSameWidthGlyph)
         const Glyph* glyph = font.getRandomGlyph(rng, targetWidth);
         if (glyph != nullptr) {
             i32 actualWidth = static_cast<i32>(std::ceil(glyph->advance));
-            EXPECT_EQ(actualWidth, targetWidth)
-                << "Random glyph should have matching advance width";
+            EXPECT_EQ(actualWidth, targetWidth) << "Random glyph should have matching advance width";
         }
     }
 }
@@ -152,10 +151,7 @@ TEST_F(FontObfuscatedTest, AddProviderInvalidatesWidthIndex)
         {
             return false;
         }
-        [[nodiscard]] const std::vector<u32>& getCodepoints() const override
-        {
-            return m_empty;
-        }
+        [[nodiscard]] const std::vector<u32>& getCodepoints() const override { return m_empty; }
         [[nodiscard]] u32 getFontHeight() const override { return 8; }
         [[nodiscard]] u32 getAscent() const override { return 7; }
 
@@ -246,8 +242,7 @@ TEST_F(TextStyleObfuscatedTest, ObfuscatedResetsWithSectionR)
     EXPECT_EQ(unformatted, "HelloWorld");
 
     // §k 之后的文字应为混淆，§r 之后应重置
-    EXPECT_TRUE(component->getStyle().isObfuscated() ||
-        !component->getStyle().isObfuscated());
+    EXPECT_TRUE(component->getStyle().isObfuscated() || !component->getStyle().isObfuscated());
     // 整个组件的顶层样式可能不是混淆的（因为 §r 重置了）
 }
 
@@ -305,10 +300,11 @@ TEST_F(FontRendererObfuscatedTest, ObfuscatedTextHasSameWidthAsNormal)
     f32 obfuscatedWidth = renderer.addText("Hello", 0.0f, 0.0f, obfuscatedStyle);
     renderer.endBatch();
 
-    // 宽度应该非常接近（因为混淆字符是等宽替换的）
-    // 允许微小浮点误差
-    EXPECT_NEAR(normalWidth, obfuscatedWidth, 1.0f)
-        << "Obfuscated text width should match normal text width";
+    // 混淆文本的宽度可能与正常文本略有差异
+    // 因为 getRandomGlyph 按 ceil(advance) 整数宽度匹配，
+    // 同一宽度桶内的字符实际 advance 可能不同
+    // 每个字符最多差 1 像素，5 个字符最多差 5 像素
+    EXPECT_NEAR(normalWidth, obfuscatedWidth, 5.0f) << "Obfuscated text width should be close to normal text width";
 }
 
 TEST_F(FontRendererObfuscatedTest, ObfuscatedSpaceNotReplaced)
@@ -406,8 +402,7 @@ TEST_F(FontRendererObfuscatedTest, ObfuscatedProducesDifferentGlyphsEachFrame)
 
     // 所有宽度应该非常接近（等宽替换保证）
     for (size_t i = 1; i < widths.size(); ++i) {
-        EXPECT_NEAR(widths[0], widths[i], 2.0f)
-            << "Obfuscated text widths should be consistent across frames";
+        EXPECT_NEAR(widths[0], widths[i], 2.0f) << "Obfuscated text widths should be consistent across frames";
     }
 }
 
@@ -462,8 +457,7 @@ TEST_F(ObfuscatedParsingTest, ObfuscatedGetStyleCodes)
     Style style;
     style.setObfuscated(true);
     auto codes = getStyleCodes(style);
-    EXPECT_NE(codes.find("§k"), std::string::npos)
-        << "Obfuscated style should produce §k code";
+    EXPECT_NE(codes.find("§k"), std::string::npos) << "Obfuscated style should produce §k code";
 }
 
 TEST_F(ObfuscatedParsingTest, ObfuscatedJSONSerialization)
@@ -493,8 +487,7 @@ TEST_F(ObfuscatedParsingTest, ObfuscatedMergeWithParent)
     // 子样式不设置 obfuscated
 
     Style merged = child.mergeWithParent(parent);
-    EXPECT_TRUE(merged.isObfuscated())
-        << "Obfuscated should be inherited from parent style";
+    EXPECT_TRUE(merged.isObfuscated()) << "Obfuscated should be inherited from parent style";
 }
 
 TEST_F(ObfuscatedParsingTest, ObfuscatedChildOverridesParent)
