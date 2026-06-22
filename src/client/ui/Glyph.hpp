@@ -183,6 +183,7 @@ struct TextStyle {
     bool italic = false;        // 斜体
     bool strikethrough = false; // 删除线
     bool underline = false;     // 下划线
+    bool obfuscated = false;    // 混淆（§k，随机替换字符）
 
     TextStyle() = default;
     explicit TextStyle(u32 col, bool sh = true)

@@ -29,6 +29,7 @@
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/paint/Geometry.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/text/ITextComponent.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
@@ -36,6 +37,7 @@
 #include "common/util/text/TextStyle.hpp"
 #include "common/util/text/Utf8.hpp"
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <string>
@@ -113,7 +115,18 @@ public:
     void tick(f32 dt) override
     {
         Widget::tick(dt);
-        // TODO: 实现混淆效果动画
+
+        // 混淆效果动画：累积经过时间，用于驱动混淆字符刷新
+        m_obfuscatedTimer += dt;
+
+        // 混淆字符每隔一段时间刷新（约每 0.05 秒刷新一次，约 20 FPS 视觉效果）
+        // MC Java 的混淆动画频率与帧率一致，因为每次 drawInBatch 都重新生成随机字符
+        // 这里使用定时刷新以避免不必要的重绘开销
+        constexpr f32 OBFUSCATED_REFRESH_INTERVAL = 0.05f;
+        if (m_obfuscatedTimer >= OBFUSCATED_REFRESH_INTERVAL) {
+            m_obfuscatedTimer = 0.0f;
+            m_obfuscatedDirty = true;
+        }
     }
 
     // ==================== 绘制 ====================
@@ -151,6 +164,14 @@ public:
                 i32 textX = static_cast<i32>(x);
                 i32 textY = static_cast<i32>(line.y);
 
+                // 混淆文字：替换为随机等宽字符
+                // 对应 MC Java 的 Font.getGlyph() 中 obfuscated 逻辑
+                std::string displayText;
+                if (run.style.isObfuscated()) {
+                    displayText = _obfuscateText(run.text);
+                }
+                const std::string& textToDraw = run.style.isObfuscated() ? displayText : run.text;
+
                 // 斜体：通过倾斜变换绘制
                 if (run.style.isItalic()) {
                     // 保存当前状态
@@ -163,19 +184,19 @@ public:
 
                 // 绘制阴影
                 if (m_shadow) {
-                    ctx.drawText(run.text, textX + 1, textY + 1, m_shadowColor);
+                    ctx.drawText(textToDraw, textX + 1, textY + 1, m_shadowColor);
                     // 粗体阴影需要额外偏移绘制
                     if (run.style.isBold()) {
-                        ctx.drawText(run.text, textX + 2, textY + 1, m_shadowColor);
+                        ctx.drawText(textToDraw, textX + 2, textY + 1, m_shadowColor);
                     }
                 }
 
                 // 绘制主文本
-                ctx.drawText(run.text, textX, textY, color);
+                ctx.drawText(textToDraw, textX, textY, color);
 
                 // 粗体：额外绘制一次偏移文本
                 if (run.style.isBold()) {
-                    ctx.drawText(run.text, textX + 1, textY, color);
+                    ctx.drawText(textToDraw, textX + 1, textY, color);
                 }
 
                 // 删除线：在文本中间绘制水平线
@@ -199,6 +220,9 @@ public:
                 x += run.advanceWidth;
             }
         }
+
+        // 重置混淆刷新标记
+        m_obfuscatedDirty = false;
     }
 
     // ==================== 事件处理 ====================
@@ -544,6 +568,113 @@ private:
     }
 
     /**
+     * @brief 将文本中的非空格字符替换为等宽随机字符（混淆效果 §k）
+     *
+     * 对应 MC Java 的 Font.getGlyph() 中 obfuscated 逻辑：
+     * 1. 获取原始字符的前进宽度
+     * 2. 从字体中找到相同宽度的随机字符替换
+     * 3. 空格不被替换
+     *
+     * @param text 原始文本
+     * @return 混淆后的文本（UTF-8编码）
+     */
+    [[nodiscard]] std::string _obfuscateText(const std::string& text) const
+    {
+        if (!m_font) {
+            return text;
+        }
+
+        std::string result;
+        result.reserve(text.size());
+
+        size_t pos = 0;
+        while (pos < text.size()) {
+            size_t startPos = pos;
+            u32 codepoint = 0;
+            u8 byte = static_cast<u8>(text[pos]);
+
+            // UTF-8解码
+            if ((byte & 0x80) == 0) {
+                codepoint = byte;
+                pos += 1;
+            } else if ((byte & 0xE0) == 0xC0) {
+                if (pos + 1 >= text.size()) {
+                    result.push_back(text[pos]);
+                    pos += 1;
+                    continue;
+                }
+                codepoint = ((byte & 0x1F) << 6) | (static_cast<u8>(text[pos + 1]) & 0x3F);
+                pos += 2;
+            } else if ((byte & 0xF0) == 0xE0) {
+                if (pos + 2 >= text.size()) {
+                    result.push_back(text[pos]);
+                    pos += 1;
+                    continue;
+                }
+                codepoint = ((byte & 0x0F) << 12) | ((static_cast<u8>(text[pos + 1]) & 0x3F) << 6) |
+                    (static_cast<u8>(text[pos + 2]) & 0x3F);
+                pos += 3;
+            } else if ((byte & 0xF8) == 0xF0) {
+                if (pos + 3 >= text.size()) {
+                    result.push_back(text[pos]);
+                    pos += 1;
+                    continue;
+                }
+                codepoint = ((byte & 0x07) << 18) | ((static_cast<u8>(text[pos + 1]) & 0x3F) << 12) |
+                    ((static_cast<u8>(text[pos + 2]) & 0x3F) << 6) | (static_cast<u8>(text[pos + 3]) & 0x3F);
+                pos += 4;
+            } else {
+                result.push_back(text[pos]);
+                pos += 1;
+                continue;
+            }
+
+            // 空格不替换（对应 MC Java: if (p_435358_ != 32)）
+            if (codepoint == ' ') {
+                result.append(text, startPos, pos - startPos);
+                continue;
+            }
+
+            // 获取原始字符的前进宽度
+            const Glyph* originalGlyph = m_font->getGlyph(codepoint);
+            if (originalGlyph == nullptr) {
+                // 未知字符保留原样
+                result.append(text, startPos, pos - startPos);
+                continue;
+            }
+
+            // 从字体中查找等宽随机字符
+            i32 width = static_cast<i32>(std::ceil(originalGlyph->advance));
+            const Glyph* randomGlyph = m_font->getRandomGlyph(m_obfuscatedRandom, width);
+            if (randomGlyph == nullptr) {
+                // 没有匹配宽度的字符，保留原样
+                result.append(text, startPos, pos - startPos);
+                continue;
+            }
+
+            // 将随机码点编码为UTF-8
+            u32 cp = randomGlyph->codepoint;
+            if (cp < 0x80) {
+                result.push_back(static_cast<char>(cp));
+            } else if (cp < 0x800) {
+                result.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+                result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+            } else if (cp < 0x10000) {
+                result.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+                result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+                result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+            } else {
+                result.push_back(static_cast<char>(0xF0 | (cp >> 18)));
+                result.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+                result.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+                result.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * @brief 查找指定位置的文本运行
      */
     [[nodiscard]] const TextRun* _findRunAt(i32 x, i32 y) const
@@ -623,6 +754,11 @@ private:
     // 回调
     ClickCallback m_onClick;
     HoverCallback m_onHover;
+
+    // 混淆效果动画状态
+    mutable math::Random m_obfuscatedRandom; // 混淆字符随机数生成器
+    f32 m_obfuscatedTimer = 0.0f;            // 混淆刷新计时器
+    bool m_obfuscatedDirty = false;          // 混淆字符是否需要刷新
 };
 
 } // namespace mc::client::ui::kagero::widget

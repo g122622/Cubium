@@ -23,7 +23,9 @@
 
 #include "Font.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 
 // STB image for loading PNG textures (已在TextureAtlasBuilder.cpp中定义)
@@ -46,6 +48,8 @@ Font::Font(Font&& other) noexcept
     : m_atlas(std::move(other.m_atlas))
     , m_providers(std::move(other.m_providers))
     , m_fontHeight(other.m_fontHeight)
+    , m_glyphsByWidth(std::move(other.m_glyphsByWidth))
+    , m_widthIndexBuilt(other.m_widthIndexBuilt)
 {}
 
 Font& Font::operator=(Font&& other) noexcept
@@ -55,6 +59,8 @@ Font& Font::operator=(Font&& other) noexcept
         m_atlas = std::move(other.m_atlas);
         m_providers = std::move(other.m_providers);
         m_fontHeight = other.m_fontHeight;
+        m_glyphsByWidth = std::move(other.m_glyphsByWidth);
+        m_widthIndexBuilt = other.m_widthIndexBuilt;
     }
     return *this;
 }
@@ -69,6 +75,8 @@ void Font::destroy()
     m_providers.clear();
     m_atlas.destroy();
     m_fontHeight = 9;
+    m_glyphsByWidth.clear();
+    m_widthIndexBuilt = false;
 }
 
 void Font::addProvider(std::unique_ptr<IGlyphProvider> provider)
@@ -79,6 +87,10 @@ void Font::addProvider(std::unique_ptr<IGlyphProvider> provider)
         m_fontHeight = providerHeight;
     }
     m_providers.push_back(std::move(provider));
+
+    // 新增字形提供者后，宽度索引需要重新构建
+    m_widthIndexBuilt = false;
+    m_glyphsByWidth.clear();
 }
 
 const Glyph* Font::getGlyph(u32 codepoint)
@@ -179,6 +191,71 @@ f32 Font::getStringWidthUTF8(const std::string& text)
 u32 Font::getFontHeight() const
 {
     return m_fontHeight;
+}
+
+const Glyph* Font::getRandomGlyph(math::Random& random, i32 advanceWidth)
+{
+    // 确保宽度索引已构建
+    if (!m_widthIndexBuilt) {
+        buildWidthIndex();
+    }
+
+    auto it = m_glyphsByWidth.find(advanceWidth);
+    if (it == m_glyphsByWidth.end() || it->second.empty()) {
+        // 没有匹配宽度的字形，尝试邻近宽度
+        // 查找 ±1 宽度范围内的字形
+        for (i32 delta = 1; delta <= 2; ++delta) {
+            auto itPlus = m_glyphsByWidth.find(advanceWidth + delta);
+            if (itPlus != m_glyphsByWidth.end() && !itPlus->second.empty()) {
+                i32 idx = random.nextInt(static_cast<i32>(itPlus->second.size()));
+                return getGlyph(itPlus->second[static_cast<size_t>(idx)]);
+            }
+            auto itMinus = m_glyphsByWidth.find(advanceWidth - delta);
+            if (itMinus != m_glyphsByWidth.end() && !itMinus->second.empty()) {
+                i32 idx = random.nextInt(static_cast<i32>(itMinus->second.size()));
+                return getGlyph(itMinus->second[static_cast<size_t>(idx)]);
+            }
+        }
+        return nullptr;
+    }
+
+    // 从匹配宽度的码点列表中随机选择
+    i32 idx = random.nextInt(static_cast<i32>(it->second.size()));
+    return getGlyph(it->second[static_cast<size_t>(idx)]);
+}
+
+void Font::buildWidthIndex()
+{
+    m_glyphsByWidth.clear();
+
+    for (const auto& provider : m_providers) {
+        for (u32 codepoint : provider->getCodepoints()) {
+            // 跳过空格
+            if (codepoint == ' ') {
+                continue;
+            }
+
+            // 获取字形以计算前进宽度
+            const Glyph* glyph = getGlyph(codepoint);
+            if (glyph == nullptr) {
+                continue;
+            }
+
+            // 计算非粗体前进宽度的向上取整
+            // 对应 MC Java 的 Mth.ceil(bakedglyph.info().getAdvance(false))
+            i32 width = static_cast<i32>(std::ceil(glyph->advance));
+
+            // 过滤异常宽度的字形（对应 MC Java 的 hasFishyAdvance 过滤）
+            // 排除宽度 ≤ 0 或 > 32 的字形
+            if (width <= 0 || width > 32) {
+                continue;
+            }
+
+            m_glyphsByWidth[width].push_back(codepoint);
+        }
+    }
+
+    m_widthIndexBuilt = true;
 }
 
 // ============================================================================

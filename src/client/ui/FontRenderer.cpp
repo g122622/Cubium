@@ -25,6 +25,7 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace mc::client {
 
@@ -99,7 +100,22 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
                 continue;
             }
 
-            const Glyph* glyph = m_font->getGlyph(codepoint);
+            // 混淆文字：用随机等宽字符替换（空格不替换）
+            const Glyph* glyph = nullptr;
+            if (style.obfuscated && codepoint != ' ') {
+                // 先获取原始字形以确定宽度
+                const Glyph* originalGlyph = m_font->getGlyph(codepoint);
+                if (originalGlyph != nullptr) {
+                    i32 width = static_cast<i32>(std::ceil(originalGlyph->advance));
+                    glyph = m_font->getRandomGlyph(m_random, width);
+                    if (glyph == nullptr) {
+                        glyph = originalGlyph; // 回退到原始字形
+                    }
+                }
+            } else {
+                glyph = m_font->getGlyph(codepoint);
+            }
+
             if (glyph != nullptr) {
                 _addGlyphVertices(*glyph, shadowX, shadowY, SHADOW_COLOR, false);
                 shadowX += glyph->advance * m_scale;
@@ -123,7 +139,24 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
             continue;
         }
 
-        const Glyph* glyph = m_font->getGlyph(codepoint);
+        // 混淆文字：用随机等宽字符替换（空格不替换）
+        // 对应 MC Java 的 Font.getGlyph() 中的 obfuscated 逻辑：
+        // if (style.isObfuscated() && codepoint != 32) { glyph = randomGlyph(width); }
+        const Glyph* glyph = nullptr;
+        if (style.obfuscated && codepoint != ' ') {
+            // 先获取原始字形以确定宽度
+            const Glyph* originalGlyph = m_font->getGlyph(codepoint);
+            if (originalGlyph != nullptr) {
+                i32 width = static_cast<i32>(std::ceil(originalGlyph->advance));
+                glyph = m_font->getRandomGlyph(m_random, width);
+                if (glyph == nullptr) {
+                    glyph = originalGlyph; // 回退到原始字形
+                }
+            }
+        } else {
+            glyph = m_font->getGlyph(codepoint);
+        }
+
         if (glyph != nullptr) {
             _addGlyphVertices(*glyph, x, y, style.color, style.italic);
 
@@ -135,7 +168,9 @@ f32 FontRenderer::addText(const std::string& text, f32 x, f32 y, const TextStyle
 
             // 添加装饰效果
             if (style.strikethrough || style.underline) {
-                _addDecoration(x, y, glyph->advance * m_scale, style.color, style.strikethrough, style.underline);
+                // 对于混淆字符，装饰线宽度使用原始字符的advance
+                f32 decorWidth = glyph->advance * m_scale;
+                _addDecoration(x, y, decorWidth, style.color, style.strikethrough, style.underline);
             }
 
             x += glyph->advance * m_scale;
@@ -211,8 +246,9 @@ TextStyle FontRenderer::_mergeStyles(const text::Style& style, const TextStyle& 
     if (style.isStrikethrough()) {
         result.strikethrough = true;
     }
-
-    // TODO: 混淆效果暂不支持（需要动画）
+    if (style.isObfuscated()) {
+        result.obfuscated = true;
+    }
 
     return result;
 }

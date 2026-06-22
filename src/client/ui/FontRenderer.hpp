@@ -26,6 +26,7 @@
 #include "Font.hpp"
 #include "Glyph.hpp"
 #include "common/core/Result.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
 #include <string>
 #include <vector>
@@ -40,6 +41,7 @@ namespace mc::client {
  * - 粗体
  * - 斜体
  * - 颜色
+ * - 混淆（§k，随机替换等宽字符）
  * - UTF-8文本
  * - ITextComponent富文本
  */
@@ -199,6 +201,7 @@ private:
     f32 m_currentY = 0.0f;             // 当前Y位置
     f32 m_scale = 1.0f;                // 缩放因子
     bool m_inBatch = false;            // 是否在批次中
+    math::Random m_random;             // 混淆文字使用的随机数生成器
 };
 
 } // namespace mc::client

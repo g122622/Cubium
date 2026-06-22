@@ -28,6 +28,7 @@
 #include "common/core/Result.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -195,6 +196,28 @@ public:
     [[nodiscard]] const Glyph* getGlyph(u32 codepoint);
 
     /**
+     * @brief 获取随机等宽字形（用于混淆文字 §k）
+     *
+     * 从与指定前进宽度相同的字形集合中随机选择一个字形。
+     * 如果找不到匹配宽度的字形，返回 nullptr。
+     * 与 MC Java 的 FontSet.getRandomGlyph() 对应。
+     *
+     * @param random 随机数生成器
+     * @param advanceWidth 目标前进宽度（非粗体，取 ceil）
+     * @return 随机字形指针，如果没有匹配宽度的字形则返回 nullptr
+     */
+    [[nodiscard]] const Glyph* getRandomGlyph(math::Random& random, i32 advanceWidth);
+
+    /**
+     * @brief 构建宽度索引（按前进宽度索引字形码点）
+     *
+     * 遍历所有字形提供者，为每个码点计算其前进宽度并分类存储。
+     * 用于混淆文字（§k）的随机等宽字形选择。
+     * 必须在所有 addProvider() 调用之后调用。
+     */
+    void buildWidthIndex();
+
+    /**
      * @brief 获取字符串宽度
      * @param text 文本
      * @return 宽度（像素）
@@ -236,6 +259,18 @@ private:
     std::vector<std::unique_ptr<IGlyphProvider>> m_providers; // 字形提供者列表
     u32 m_fontHeight = 9;                                     // 默认字体高度
     EmptyGlyph m_emptyGlyph;                                  // 空字形缓存
+
+    /**
+     * @brief 按前进宽度索引的字形码点集合
+     *
+     * key = ceil(advance)（非粗体前进宽度的向上取整）
+     * value = 具有该宽度的所有码点列表
+     *
+     * 用于混淆文字（§k）渲染时选择等宽随机替换字符。
+     * 对应 MC Java 的 FontSet.glyphsByWidth。
+     */
+    std::unordered_map<i32, std::vector<u32>> m_glyphsByWidth;
+    bool m_widthIndexBuilt = false; // 宽度索引是否已构建
 };
 
 } // namespace mc::client
