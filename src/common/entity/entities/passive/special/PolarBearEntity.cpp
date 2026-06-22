@@ -143,7 +143,7 @@ void PolarBearEntity::setWarning(bool warning)
 
 void PolarBearEntity::setRevengeTarget(LivingEntity* target)
 {
-    m_attackTarget = target;
+    setAttackTarget(target);
     if (target != nullptr) {
         math::Random& rng = getRandom();
         m_angerTime = rng.nextInt(ANGER_TIME_MIN, ANGER_TIME_MAX);
@@ -180,7 +180,7 @@ void PolarBearEntity::setAngry(bool angry)
         m_angerTime = rng.nextInt(ANGER_TIME_MIN, ANGER_TIME_MAX);
     } else {
         m_angerTime = 0;
-        m_attackTarget = nullptr;
+        setAttackTarget(nullptr);
         m_revengeTargetId = std::nullopt;
         m_revengeTimer = 0;
     }
@@ -191,7 +191,7 @@ void PolarBearEntity::updateAnger()
     if (m_angerTime > 0) {
         --m_angerTime;
         if (m_angerTime <= 0) {
-            m_attackTarget = nullptr;
+            setAttackTarget(nullptr);
             m_revengeTargetId = std::nullopt;
         }
     }

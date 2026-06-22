@@ -156,13 +156,17 @@ public:
     /**
      * @brief 获取攻击目标
      */
-    [[nodiscard]] LivingEntity* attackTarget() { return m_attackTarget; }
-    [[nodiscard]] const LivingEntity* attackTarget() const { return m_attackTarget; }
+    [[nodiscard]] virtual LivingEntity* attackTarget() { return m_attackTarget; }
+    [[nodiscard]] virtual const LivingEntity* attackTarget() const { return m_attackTarget; }
 
     /**
      * @brief 设置攻击目标
+     *
+     * 虚函数，允许IAngerable实体（如猪灵、铁傀儡、末影人等）
+     * 在设置攻击目标时同步更新愤怒状态。
+     * 通过MobEntity*指针调用时也能正确派发到子类的override。
      */
-    void setAttackTarget(LivingEntity* target) { m_attackTarget = target; }
+    virtual void setAttackTarget(LivingEntity* target) { m_attackTarget = target; }
 
     /**
      * @brief 检查是否处于激怒状态

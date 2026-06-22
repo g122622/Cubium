@@ -104,12 +104,15 @@ public:
     /**
      * @brief 设置攻击目标 (IAngerable接口实现)
      */
-    void setAttackTarget(LivingEntity* target) override { m_attackTarget = target; }
+    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
 
     /**
      * @brief 获取攻击目标 (IAngerable接口实现)
      */
-    [[nodiscard]] LivingEntity* getAttackTarget() const override { return m_attackTarget; }
+    [[nodiscard]] LivingEntity* getAttackTarget() const override
+    {
+        return const_cast<EndermanEntity*>(this)->MobEntity::attackTarget();
+    }
 
     /**
      * @brief 设置复仇目标 (IAngerable接口实现)
@@ -289,8 +292,7 @@ protected:
     void registerAttributes() override;
 
 private:
-    // IAngerable接口
-    LivingEntity* m_attackTarget = nullptr;
+    // IAngerable接口（m_attackTarget 使用 MobEntity::m_attackTarget，不重复声明）
     std::optional<u64> m_revengeTargetId;
     i32 m_revengeTimer = 0;
 

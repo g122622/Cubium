@@ -549,3 +549,9 @@
     -
     典型覆写示例：`VillagerEntity::
         setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
+
+## #setAttackTarget 虚方法
+- `MobEntity::setAttackTarget()` 和 `MobEntity::attackTarget()` 现为 `virtual` 方法，允许IAngerable实体在设置攻击目标时同步更新愤怒状态
+- **IAngerable实体统一使用MobEntity::m_attackTarget**：所有实现IAngerable接口的实体（PiglinEntity、GolemEntity、EndermanEntity、BeeEntity、PolarBearEntity、TameableEntity）不再声明独立的`m_attackTarget`成员，而是复用`MobEntity::m_attackTarget`
+- 通过`MobEntity*`指针调用`setAttackTarget()`时，虚函数派发会正确到达子类的override，确保愤怒状态与攻击目标始终同步
+- 子类override `setAttackTarget` 时应调用 `MobEntity::setAttackTarget(target)` 设置基类的 `m_attackTarget`

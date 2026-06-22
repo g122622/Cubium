@@ -156,12 +156,15 @@ public:
     /**
      * @brief 设置攻击目标 (IAngerable)
      */
-    void setAttackTarget(LivingEntity* target) override { m_attackTarget = target; }
+    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
 
     /**
      * @brief 获取攻击目标 (IAngerable)
      */
-    [[nodiscard]] LivingEntity* getAttackTarget() const override { return m_attackTarget; }
+    [[nodiscard]] LivingEntity* getAttackTarget() const override
+    {
+        return const_cast<PolarBearEntity*>(this)->MobEntity::attackTarget();
+    }
 
     /**
      * @brief 设置复仇目标 (IAngerable)
@@ -267,8 +270,7 @@ private:
     mutable f32 m_clientSideStandAnimation0 = 0.0f;
     mutable f32 m_clientSideStandAnimation = 0.0f;
 
-    // ========== 愤怒系统 ==========
-    LivingEntity* m_attackTarget = nullptr;
+    // ========== 愤怒系统（m_attackTarget 使用 MobEntity::m_attackTarget，不重复声明） ==========
     std::optional<u64> m_revengeTargetId;
     i32 m_revengeTimer = 0;
     i32 m_angerTime = 0;

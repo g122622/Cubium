@@ -331,12 +331,12 @@ public:
     /**
      * @brief 获取攻击目标
      */
-    [[nodiscard]] LivingEntity* getAttackTarget() const { return m_attackTarget; }
+    [[nodiscard]] LivingEntity* getAttackTarget() const { return const_cast<EnderDragonEntity*>(this)->attackTarget(); }
 
     /**
      * @brief 设置攻击目标
      */
-    void setAttackTarget(LivingEntity* target) { m_attackTarget = target; }
+    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
 
     /**
      * @brief 龙部件受到伤害
@@ -431,8 +431,7 @@ private:
     EnderDragonPartEntity* m_dragonPartRightWing = nullptr;
     EnderDragonPartEntity* m_dragonPartLeftWing = nullptr;
 
-    // 攻击目标
-    LivingEntity* m_attackTarget = nullptr;
+    // 攻击目标（使用 MobEntity::m_attackTarget，不重复声明）
 
     // 末影水晶
     entity::EnderCrystalEntity* m_closestEnderCrystal = nullptr;

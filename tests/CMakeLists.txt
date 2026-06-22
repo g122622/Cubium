@@ -562,6 +562,8 @@ add_executable(mc_tests
     common/entity/ai/brain/sensor/SensorsTest.cpp
     # RandomPositionGenerator 随机位置生成器测试
     common/entity/ai/util/RandomPositionGeneratorTest.cpp
+    # PiglinAi 猪灵AI工具类测试
+    common/entity/ai/util/PiglinAiTest.cpp
     # BreakDoorGoal 破门目标测试
     common/entity/ai/goal/goals/interact/BreakDoorGoalTest.cpp
     # OpenDoorGoal 开门目标测试

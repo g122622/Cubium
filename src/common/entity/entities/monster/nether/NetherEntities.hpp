@@ -276,8 +276,7 @@ private:
     bool m_isBaby = false;
     bool m_isChargingCrossbow = false;
 
-    // IAngerable 成员
-    LivingEntity* m_attackTarget = nullptr;
+    // IAngerable 成员（m_attackTarget 使用 MobEntity::m_attackTarget，不重复声明）
     LivingEntity* m_revengeTarget = nullptr;
     i32 m_revengeTimer = 0;
     bool m_angry = false;

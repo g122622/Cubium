@@ -63,7 +63,7 @@ void TameableEntity::setSitting(bool sitting)
 
 void TameableEntity::setAttackTarget(LivingEntity* target)
 {
-    m_attackTarget = target;
+    MobEntity::setAttackTarget(target);
     if (target != nullptr) {
         setAngerTime(MAX_ANGER_TIME);
     }
@@ -104,7 +104,7 @@ void TameableEntity::setAngry(bool angry)
         setAngerTime(MAX_ANGER_TIME);
     } else {
         setAngerTime(0);
-        m_attackTarget = nullptr;
+        setAttackTarget(nullptr);
         m_revengeTargetId = std::nullopt;
     }
 }
@@ -121,7 +121,7 @@ void TameableEntity::updateAnger()
         --m_angerTime;
         if (m_angerTime <= 0) {
             // 愤怒时间结束，清除攻击目标
-            m_attackTarget = nullptr;
+            setAttackTarget(nullptr);
             m_revengeTargetId = std::nullopt;
         }
     }

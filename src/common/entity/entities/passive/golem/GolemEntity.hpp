@@ -61,8 +61,11 @@ public:
 
     // ========== IAngerable 接口实现 ==========
 
-    void setAttackTarget(LivingEntity* target) override { m_attackTarget = target; }
-    [[nodiscard]] LivingEntity* getAttackTarget() const override { return m_attackTarget; }
+    void setAttackTarget(LivingEntity* target) override { MobEntity::setAttackTarget(target); }
+    [[nodiscard]] LivingEntity* getAttackTarget() const override
+    {
+        return const_cast<GolemEntity*>(this)->MobEntity::attackTarget();
+    }
     void setRevengeTarget(LivingEntity* target) override;
     [[nodiscard]] LivingEntity* getRevengeTarget() const override;
     [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
@@ -85,8 +88,7 @@ protected:
     void updateAnger() override;
 
 private:
-    // 愤怒系统
-    LivingEntity* m_attackTarget = nullptr;
+    // 愤怒系统（m_attackTarget 使用 MobEntity::m_attackTarget，不重复声明）
     i32 m_angerTime = 0;
     i32 m_revengeTimer = 0;
     std::optional<u64> m_revengeTargetId;

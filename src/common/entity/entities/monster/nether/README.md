@@ -23,7 +23,7 @@ MonsterEntity (基类，来自 ../MonsterEntity.hpp)
     ├── MagmaCubeEntity ─────────────── SlimeEntity (来自 ../basic/SlimeEntity.hpp)
     │
     ├── AbstractPiglinEntity ────────── 猪灵基类，提供火焰免疫、主世界转化机制
-    │   ├── PiglinEntity ────────────── ICrossbowUser (弩使用者接口)
+    │   ├── PiglinEntity ────────────── ICrossbowUser (弩使用者接口) + IAngerable (愤怒接口)
     │   └── PiglinBruteEntity
     │
     ├── ZombifiedPiglinEntity ───────── 愤怒机制（激怒附近同类）
@@ -41,6 +41,7 @@ MonsterEntity (基类，来自 ../MonsterEntity.hpp)
 - `../basic/SlimeEntity.hpp` - 史莱姆基类（岩浆怪继承）
 - `../../interfaces/IRangedAttackMob.hpp` - 远程攻击接口（烈焰人）
 - `../../interfaces/ICrossbowUser.hpp` - 弩使用者接口（猪灵）
+- `../../interfaces/IAngerable.hpp` - 愤怒接口（猪灵实现IAngerable，管理愤怒计时器和攻击目标）
 - `../../interfaces/IFlinging.hpp` - 击退攻击接口（疣猪兽、僵尸疣兽）
 - `../../ai/goal/goals/special/BlazeFireballAttackGoal.hpp` - 烈焰人火球攻击目标
 - `../../ai/goal/goals/special/GhastGoals.hpp` - 恶魂AI目标
@@ -84,3 +85,13 @@ void MagmaCubeEntity::registerGoals() {
 ### 5. 僵尸猪灵愤怒机制
 
 僵尸猪灵被攻击后会激怒附近所有僵尸猪灵，需要在`HurtByTargetGoal`中设置`setCallsForHelp(true)`。
+
+### 6. PiglinEntity 的 IAngerable 与 MobEntity::setAttackTarget 双状态一致性
+
+PiglinEntity 同时继承 `IAngerable`（含虚函数 `setAttackTarget`）和 `MobEntity`（含 `setAttackTarget`）。
+为避免双状态不一致，`MobEntity::setAttackTarget` 已改为虚函数，PiglinEntity 的 override 统一使用
+`MobEntity::m_attackTarget`，不再声明独立的 `m_attackTarget` 成员。所有 IAngerable 实体
+（GolemEntity、EndermanEntity、BeeEntity、PolarBearEntity、TameableEntity）也遵循同一模式。
+
+**注意**：通过 `MobEntity*` 指针调用 `setAttackTarget` 时，虚函数派发会正确到达子类的 override，
+确保愤怒状态与攻击目标始终同步。

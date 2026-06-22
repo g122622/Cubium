@@ -36,7 +36,7 @@ GolemEntity::GolemEntity(EntityId id)
 
 void GolemEntity::setRevengeTarget(LivingEntity* target)
 {
-    m_attackTarget = target;
+    setAttackTarget(target);
     if (target) {
         m_angerTime = MAX_ANGER_TIME;
         m_revengeTimer = MAX_ANGER_TIME;
@@ -69,7 +69,7 @@ void GolemEntity::setAngry(bool angry)
         m_angerTime = MAX_ANGER_TIME;
     } else {
         m_angerTime = 0;
-        m_attackTarget = nullptr;
+        setAttackTarget(nullptr);
     }
 }
 
@@ -95,7 +95,7 @@ void GolemEntity::updateAnger()
     if (m_angerTime > 0) {
         m_angerTime--;
         if (m_angerTime <= 0) {
-            m_attackTarget = nullptr;
+            setAttackTarget(nullptr);
         }
     }
 }

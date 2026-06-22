@@ -187,7 +187,10 @@ public:
     // ========== IAngerable 接口实现 ==========
 
     void setAttackTarget(LivingEntity* target) override;
-    [[nodiscard]] LivingEntity* getAttackTarget() const override { return m_attackTarget; }
+    [[nodiscard]] LivingEntity* getAttackTarget() const override
+    {
+        return const_cast<TameableEntity*>(this)->MobEntity::attackTarget();
+    }
     void setRevengeTarget(LivingEntity* target) override;
     [[nodiscard]] LivingEntity* getRevengeTarget() const override;
     [[nodiscard]] i32 getRevengeTimer() const override { return m_revengeTimer; }
@@ -248,8 +251,7 @@ private:
     bool m_sitting = false;
     std::optional<u64> m_ownerId;
 
-    // 愤怒系统
-    LivingEntity* m_attackTarget = nullptr;
+    // 愤怒系统（m_attackTarget 使用 MobEntity::m_attackTarget，不重复声明）
     i32 m_angerTime = 0;
     i32 m_revengeTimer = 0;
     std::optional<u64> m_revengeTargetId;

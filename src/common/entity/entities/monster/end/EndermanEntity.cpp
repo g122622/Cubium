@@ -90,7 +90,7 @@ std::optional<ResourceLocation> EndermanEntity::getTeleportSound() const
 
 void EndermanEntity::setRevengeTarget(LivingEntity* target)
 {
-    m_attackTarget = target;
+    setAttackTarget(target);
     if (target != nullptr) {
         setAngry(true);
         m_angerTime = ANGER_DURATION;
@@ -124,7 +124,7 @@ void EndermanEntity::setAngry(bool angry)
     m_angry = angry;
     if (!angry) {
         m_angerTime = 0;
-        m_attackTarget = nullptr;
+        setAttackTarget(nullptr);
         m_screaming = false;
     }
 }
@@ -159,12 +159,12 @@ bool EndermanEntity::teleport()
 
 bool EndermanEntity::teleportToTarget()
 {
-    if (m_attackTarget == nullptr || m_teleportCooldown > 0) {
+    if (attackTarget() == nullptr || m_teleportCooldown > 0) {
         return false;
     }
 
     // 计算远离目标的方向向量
-    Vector3 direction(m_position.x - m_attackTarget->position().x, 0.0, m_position.z - m_attackTarget->position().z);
+    Vector3 direction(m_position.x - attackTarget()->position().x, 0.0, m_position.z - attackTarget()->position().z);
 
     // 归一化方向向量
     f32 length = direction.length();

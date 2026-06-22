@@ -458,14 +458,14 @@ void PiglinEntity::registerAttributes()
 
 void PiglinEntity::setAttackTarget(LivingEntity* target)
 {
-    // 同步设置MobEntity的攻击目标（用于目标选择器）和IAngerable的攻击目标
+    // MobEntity::setAttackTarget 现在是虚函数，此override同时满足
+    // MobEntity和IAngerable的setAttackTarget，统一使用MobEntity::m_attackTarget
     MobEntity::setAttackTarget(target);
-    m_attackTarget = target;
 }
 
 LivingEntity* PiglinEntity::getAttackTarget() const
 {
-    return m_attackTarget;
+    return const_cast<PiglinEntity*>(this)->MobEntity::attackTarget();
 }
 
 void PiglinEntity::setRevengeTarget(LivingEntity* target)
@@ -495,8 +495,7 @@ void PiglinEntity::setAngry(bool angry)
         m_angerTime = 600; // 30秒愤怒持续时间
     } else {
         m_angerTime = 0;
-        m_attackTarget = nullptr;
-        MobEntity::setAttackTarget(nullptr);
+        setAttackTarget(nullptr);
     }
     m_angry = angry;
 }
@@ -520,8 +519,7 @@ void PiglinEntity::tick()
         m_angerTime--;
         if (m_angerTime <= 0) {
             m_angry = false;
-            m_attackTarget = nullptr;
-            MobEntity::setAttackTarget(nullptr);
+            setAttackTarget(nullptr);
         }
     }
 

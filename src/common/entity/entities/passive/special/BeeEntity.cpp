@@ -156,7 +156,7 @@ void BeeEntity::setAngry(bool angry)
 
 void BeeEntity::setRevengeTarget(LivingEntity* target)
 {
-    m_attackTarget = target;
+    setAttackTarget(target);
     if (target != nullptr) {
         setAngry(true);
         m_revengeTargetId = target->id();
@@ -191,7 +191,7 @@ void BeeEntity::updateAnger()
         setAngerTime(angerTime - 1);
         if (getAngerTime() == 0) {
             // 愤怒结束，清除攻击目标
-            m_attackTarget = nullptr;
+            setAttackTarget(nullptr);
             m_attacking = false;
             m_targetPlayerId = 0;
             m_revengeTargetId = std::nullopt;
@@ -447,7 +447,7 @@ bool BeeEntity::wantsToEnterHive() const
     if (hasStung()) {
         return false;
     }
-    if (m_attackTarget != nullptr) {
+    if (attackTarget() != nullptr) {
         return false;
     }
 
