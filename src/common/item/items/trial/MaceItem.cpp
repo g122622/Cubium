@@ -125,6 +125,10 @@ void MaceItem::postHitEntity(ItemStack& stack, LivingEntity& target, LivingEntit
     if (canSmashAttack(attacker)) {
         // 重置攻击者的下落距离
         attacker.setFallDistance(0.0f);
+        // TODO: 实现坠落伤害免疫机制（setIgnoreFallDamageFromCurrentImpulse）
+        // 原版中下落攻击后，玩家不仅重置 fallDistance，还会临时免疫当前冲量造成的坠落伤害，
+        // 防止在 Y 速度被设为 0.01 后若再次下落时仍受到坠落伤害。
+        // 需要在 LivingEntity 中添加类似 setIgnoreFallDamageFromCurrentImpulse() 的方法。
     }
 }
 

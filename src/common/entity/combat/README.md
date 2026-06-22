@@ -142,3 +142,20 @@ f32 reduced = CombatRules::getDamageAfterAbsorb(damage, armor, toughness);
 ### 8. 冷却阈值判断
 
 只有冷却进度 >= 0.9 才算"完全充能"，使用 `PlayerAttackHelper::isCooldownReady(cooldownProgress)` 判断。
+
+### 9. 破甲(Breach)附魔修改护甲有效率
+
+破甲不是独立的伤害加成，而是在 `AttackContext::calculateFinalDamage()` 中修改护甲有效率：
+```cpp
+// 破甲修正：每级 -0.15 护甲有效率
+i32 breachLevel = EnchantmentHelper::getBreachLevel(*m_weapon);
+if (breachLevel > 0) {
+    f32 breachModifier = BreachEnchantment::getArmorEffectivenessModifier(breachLevel);
+    armorRatio = std::clamp(armorRatio + breachModifier, 0.0f, 1.0f);
+}
+```
+计算顺序：先计算原始护甲减伤比，再应用破甲修正，结果 clamp 到 [0, 1]。
+
+### 10. 重锤下落攻击使用专属伤害类型
+
+重锤下落攻击使用 `DamageSources::maceSmash()` 而非 `DamageSources::playerAttack()`，不触发普通暴击。下落攻击伤害加成由 `MaceItem::getSmashAttackDamageBonus()` 计算（含致密魔咒），在 `Player::attack()` 中加到总伤害上。
