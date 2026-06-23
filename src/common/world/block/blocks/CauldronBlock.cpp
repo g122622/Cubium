@@ -306,12 +306,6 @@ ActionResultType CauldronBlock::_handleBucketInteraction(
                 1.0f,
                 1.0f);
 
-            // 触发 FLUID_PLACE 游戏事件
-            const BlockState* newState = world.getBlockState(pos);
-            if (newState != nullptr) {
-                world.gameEvent(gameevent::GameEvents::FLUID_PLACE, pos, newState);
-            }
-
             // 非创造模式：替换为空桶
             if (!player.abilities().creativeMode) {
                 heldItem.shrink(1);

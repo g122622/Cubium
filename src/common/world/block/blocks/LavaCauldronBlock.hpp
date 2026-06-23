@@ -174,8 +174,9 @@ private:
     /// 炼药锅外部形状（与普通炼药锅共享）
     CollisionShape m_outerShape;
 
-    /// 岩浆内容碰撞形状（满填充高度 15/16）
-    CollisionShape m_lavaShape;
+    // TODO: 当实现 getEntityInsideCollisionShape 后，添加岩浆内容碰撞形状（满填充高度 15/16）
+    // MC 原版 LavaCauldronBlock 使用 FILLED_SHAPE = Shapes.or(SHAPE, SHAPE_INSIDE)
+    // 其中 SHAPE_INSIDE = Block.column(12, 4, 15)，表示内部岩浆碰撞区域
 };
 
 } // namespace blocks

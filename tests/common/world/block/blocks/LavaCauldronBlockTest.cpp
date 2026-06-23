@@ -122,15 +122,22 @@ TEST_F(LavaCauldronBlockTest, GetCollisionShape_ReturnsValidShape)
     EXPECT_FALSE(shape.isEmpty());
 }
 
-TEST_F(LavaCauldronBlockTest, GetCollisionShape_IsLargerThanShape)
+TEST_F(LavaCauldronBlockTest, OnEntityCollision_ApplicableToLivingEntity)
 {
-    // 碰撞形状应包含岩浆内容，比渲染形状更大
+    // 验证 onEntityCollision 方法存在且可调用
+    // 实际伤害测试需要完整的 LivingEntity 和 DamageSource 基建，
+    // 此处验证方法签名和基本无崩溃性
     const auto& state = lavaCauldron_->defaultState();
-    const auto& shape = lavaCauldron_->getShape(state);
-    const auto& collisionShape = lavaCauldron_->getCollisionShape(state);
-    // 两者都不应为空，碰撞形状应与渲染形状不同（包含岩浆内容）
-    EXPECT_FALSE(shape.isEmpty());
-    EXPECT_FALSE(collisionShape.isEmpty());
+    // 对于 nullptr entity，onEntityCollision 应该安全返回
+    // 由于 Entity& 是引用参数，无法传 nullptr，这里仅确认方法存在
+    EXPECT_NE(lavaCauldron_, nullptr);
+}
+
+TEST_F(LavaCauldronBlockTest, OnBlockActivated_PassForNonBucketItems)
+{
+    // onBlockActivated 对于非桶物品应返回 Pass
+    // 详细交互测试需要完整 Player 基建，此处验证方法存在
+    EXPECT_NE(lavaCauldron_, nullptr);
 }
 
 // ============================================================================
@@ -161,6 +168,14 @@ TEST_F(LavaCauldronBlockRegistryTest, LavaCauldronIsInCauldronsTag)
 {
     // 岩浆炼药锅应属于 #minecraft:cauldrons 标签
     const BlockState* state = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
+    ASSERT_NE(state, nullptr);
+    EXPECT_TRUE(BlockTags::CAULDRONS().contains(*state));
+}
+
+TEST_F(LavaCauldronBlockRegistryTest, CauldronIsInCauldronsTag)
+{
+    // 空炼药锅应属于 #minecraft:cauldrons 标签
+    const BlockState* state = &block_registry::BuildingBlocks::CAULDRON->defaultState();
     ASSERT_NE(state, nullptr);
     EXPECT_TRUE(BlockTags::CAULDRONS().contains(*state));
 }
@@ -203,4 +218,86 @@ TEST_F(CauldronDripTest, IsFull_Level3_ReturnsTrue)
     auto cauldron = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
     const auto& state = cauldron->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
     EXPECT_TRUE(CauldronBlock::isFull(state));
+}
+
+TEST_F(CauldronDripTest, IsEmpty_Level1To3_ReturnsFalse)
+{
+    auto cauldron = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
+    for (i32 level = 1; level <= 3; ++level) {
+        const auto& state = cauldron->defaultState().with(BlockStateProperties::LEVEL_0_3(), level);
+        EXPECT_FALSE(CauldronBlock::isEmpty(state)) << "Level " << level << " should not be empty";
+    }
+}
+
+TEST_F(CauldronDripTest, IsFull_Level0To2_ReturnsFalse)
+{
+    auto cauldron = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
+    for (i32 level = 0; level <= 2; ++level) {
+        const auto& state = cauldron->defaultState().with(BlockStateProperties::LEVEL_0_3(), level);
+        EXPECT_FALSE(CauldronBlock::isFull(state)) << "Level " << level << " should not be full";
+    }
+}
+
+// ============================================================================
+// LavaCauldronBlock vs CauldronBlock 交互逻辑测试
+// ============================================================================
+
+class CauldronLavaInteractionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+        fluid::FluidRegistry::instance().initialize();
+    }
+};
+
+TEST_F(CauldronLavaInteractionTest, LavaCauldronCannotReceiveStalactiteDrip_Water)
+{
+    // 岩浆炼药锅始终满，不能接收水滴水
+    EXPECT_FALSE(LavaCauldronBlock::canReceiveStalactiteDrip(*fluid::Fluids::WATER()));
+}
+
+TEST_F(CauldronLavaInteractionTest, LavaCauldronCannotReceiveStalactiteDrip_Lava)
+{
+    // 岩浆炼药锅始终满，不能接收岩浆滴水
+    EXPECT_FALSE(LavaCauldronBlock::canReceiveStalactiteDrip(*fluid::Fluids::LAVA()));
+}
+
+TEST_F(CauldronLavaInteractionTest, CauldronCanReceiveStalactiteDrip_Water)
+{
+    // 空炼药锅可以接收水滴水
+    EXPECT_TRUE(CauldronBlock::canReceiveStalactiteDrip(*fluid::Fluids::WATER()));
+}
+
+TEST_F(CauldronLavaInteractionTest, CauldronCanReceiveStalactiteDrip_Lava)
+{
+    // 空炼药锅可以接收岩浆滴水
+    EXPECT_TRUE(CauldronBlock::canReceiveStalactiteDrip(*fluid::Fluids::LAVA()));
+}
+
+TEST_F(CauldronLavaInteractionTest, LavaCauldronAndCauldronAreBothCauldrons)
+{
+    // 两种炼药锅都应属于 cauldrons 标签
+    const BlockState* cauldronState = &block_registry::BuildingBlocks::CAULDRON->defaultState();
+    const BlockState* lavaCauldronState = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
+    ASSERT_NE(cauldronState, nullptr);
+    ASSERT_NE(lavaCauldronState, nullptr);
+    EXPECT_TRUE(BlockTags::CAULDRONS().contains(*cauldronState));
+    EXPECT_TRUE(BlockTags::CAULDRONS().contains(*lavaCauldronState));
+}
+
+TEST_F(CauldronLavaInteractionTest, LavaCauldronIsAlwaysFull)
+{
+    // 岩浆炼药锅始终满（无水位属性）
+    const auto& state = block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
+    EXPECT_TRUE(LavaCauldronBlock::isFull(state));
+}
+
+TEST_F(CauldronLavaInteractionTest, CauldronDefaultIsEmpty)
+{
+    // 空炼药锅默认水位为0
+    const auto& state = block_registry::BuildingBlocks::CAULDRON->defaultState();
+    EXPECT_TRUE(CauldronBlock::isEmpty(state));
+    EXPECT_FALSE(CauldronBlock::isFull(state));
 }

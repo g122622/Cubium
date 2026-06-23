@@ -67,16 +67,9 @@ LavaCauldronBlock::LavaCauldronBlock(const BlockProperties& properties)
     m_outerShape = CollisionShape::combine(m_outerShape, westWall, CollisionShape::CombineOp::OR);
     m_outerShape = CollisionShape::combine(m_outerShape, eastWall, CollisionShape::CombineOp::OR);
 
-    // 岩浆内容碰撞形状（满填充高度 15/16，对应 MC LavaCauldronBlock.getContentHeight = 0.9375）
-    // 内部范围 X: 2/16 ~ 14/16, Y: 3/16 ~ 15/16, Z: 2/16 ~ 14/16
-    f32 innerMinY = 3.0f / 16.0f;
-    f32 innerMaxX1 = 2.0f / 16.0f;
-    f32 innerMaxX2 = 14.0f / 16.0f;
-    f32 innerMaxZ1 = 2.0f / 16.0f;
-    f32 innerMaxZ2 = 14.0f / 16.0f;
-    f32 lavaHeight = 15.0f / 16.0f; // 0.9375 = 15/16
-
-    m_lavaShape = VoxelShapes::cube(innerMaxX1, innerMinY, innerMaxZ1, innerMaxX2, lavaHeight, innerMaxZ2);
+    // TODO: 当实现 getEntityInsideCollisionShape 后，添加岩浆内容碰撞形状
+    // MC 原版 LavaCauldronBlock 使用 FILLED_SHAPE = Shapes.or(SHAPE, SHAPE_INSIDE)
+    // 其中 SHAPE_INSIDE = Block.column(12, 4, 15)，内部岩浆碰撞区域
 }
 
 // ========== 交互 ==========
@@ -148,8 +141,8 @@ const CollisionShape& LavaCauldronBlock::getShape(const BlockState& state) const
 const CollisionShape& LavaCauldronBlock::getCollisionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // MC 原版 LavaCauldronBlock 返回 FILLED_SHAPE（外部形状 + 岩浆内容），
-    // 使实体可以站在岩浆表面而不会沉入（这与普通水炼药锅不同）
+    // 与普通炼药锅相同，碰撞形状仅为外部结构
+    // TODO: 当实现 getEntityInsideCollisionShape 后，岩浆内容区域应通过该方法返回
     return m_outerShape;
 }
 

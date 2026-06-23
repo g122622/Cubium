@@ -2633,11 +2633,9 @@ void BlockTags::initialize()
     // 创建 CAULDRONS 标签（所有炼药锅变体）
     // 参考: net.minecraft.data.tags.VanillaBlockTagsProvider - CAULDRONS
     // 参考: datapacks/Vanilla/data/minecraft/tags/block/cauldrons.json
+    // 注意: water_cauldron 和 powder_snow_cauldron 尚未实现，待实现后加入此标签
     auto cauldrons = std::make_unique<BlockTag>(ResourceLocation("minecraft", "cauldrons"));
-    cauldrons->addAll({ResourceLocation("minecraft", "cauldron"),
-        ResourceLocation("minecraft", "water_cauldron"),
-        ResourceLocation("minecraft", "lava_cauldron"),
-        ResourceLocation("minecraft", "powder_snow_cauldron")});
+    cauldrons->addAll({ResourceLocation("minecraft", "cauldron"), ResourceLocation("minecraft", "lava_cauldron")});
     tags[cauldrons->getId()] = std::move(cauldrons);
 
     s_initialized = true;
