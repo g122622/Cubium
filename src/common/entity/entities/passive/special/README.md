@@ -89,6 +89,12 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 2. **寒冷状态**：离开熔岩会进入寒冷状态，速度大幅降低，需要追踪 `m_coldTimer`。
 3. **鞍系统**：实现 IEquipable 接口，但只存储布尔值 `m_saddled`，不存储实际 ItemStack。死亡时需要检查并掉落鞍。
 4. **骑乘偏移**：`getMountedYOffset()` 返回值包含步态动画波动，用于模拟行走起伏。
+5. **玩家交互**（`interactMob()`）：完整实现了 MC 原版 Strider.mobInteract 的交互优先级链：
+   - 非食物 + 已装备鞍 + 无乘客 + 玩家未蹲下 → 玩家骑乘（返回 Success）
+   - 手持食物（诡异菌）→ 喂食逻辑：成年可繁殖 → 进入爱心模式 + 播放吃食音效；幼年 → 加速成长 + 播放吃食音效；成年已爱心 → 服务端返回 Pass / 客户端返回 Consume
+   - 手持鞍 → 返回 Pass，委托给 SaddleItem::itemInteractionForEntity() 处理
+   - 其他 → 返回 Pass
+   - 创造模式下喂食不消耗物品，静默实体不播放音效
 
 ### TurtleEntity 海龟
 1. **出生地继承**：幼龟孵化后需要继承父母的出生地位置，否则无法返回产卵。

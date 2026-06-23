@@ -24,11 +24,22 @@
 #include <cmath>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/passive/special/StriderEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
+
+#include <memory>
+#include <unordered_map>
 
 using namespace mc;
 using namespace mc::math;
@@ -579,6 +590,523 @@ TEST_F(StriderEntityEquipableTest, CannotEquipToInvalidSlot)
     // 无效槽位
     EXPECT_FALSE(strider->canEquip(saddle, 1));
     EXPECT_FALSE(strider->canEquip(saddle, -1));
+}
+
+// ============================================================================
+// StriderEntity interactMob 交互测试
+// ============================================================================
+
+/**
+ * @brief StriderEntity interactMob 测试用世界
+ *
+ * 提供最小化测试环境，支持追踪 playSound 调用
+ */
+class StriderInteractTestWorld final : public test::BaseTestWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second.get();
+        }
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockState* state = getBlockState(x, y, z);
+        return state != nullptr ? state->getFluidState() : fluid::Fluid::getFluidState(0);
+    }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size());
+    }
+
+    // TickManager interface (stubbed for tests)
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("StriderInteractTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("StriderInteractTestWorld::tickManager not implemented");
+    }
+
+    // 追踪 playSound 调用
+    void playSound(const ResourceLocation& soundId,
+        sound::SoundCategory category,
+        const mc::Vector3& pos,
+        f32 volume,
+        f32 pitch) override
+    {
+        m_lastSoundId = soundId;
+        m_soundPlayCount++;
+        m_lastPitch = pitch;
+        (void)category;
+        (void)pos;
+        (void)volume;
+    }
+
+    [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
+    [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
+    [[nodiscard]] f32 getLastPitch() const { return m_lastPitch; }
+    void resetSoundTracking()
+    {
+        m_lastSoundId = ResourceLocation();
+        m_soundPlayCount = 0;
+        m_lastPitch = 0.0f;
+    }
+
+    // 追踪 broadcastEntityStatus 调用（用于追踪爱心粒子等）
+    void broadcastEntityStatus(EntityId entityId, u8 status) override
+    {
+        m_lastBroadcastEntityId = entityId;
+        m_lastBroadcastStatus = status;
+        m_broadcastCount++;
+    }
+
+    [[nodiscard]] EntityId getLastBroadcastEntityId() const { return m_lastBroadcastEntityId; }
+    [[nodiscard]] u8 getLastBroadcastStatus() const { return m_lastBroadcastStatus; }
+    [[nodiscard]] i32 getBroadcastCount() const { return m_broadcastCount; }
+    void resetBroadcastTracking()
+    {
+        m_lastBroadcastEntityId = EntityId(0);
+        m_lastBroadcastStatus = 0;
+        m_broadcastCount = 0;
+    }
+
+private:
+    std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+
+    // 声音追踪
+    ResourceLocation m_lastSoundId;
+    i32 m_soundPlayCount = 0;
+    f32 m_lastPitch = 0.0f;
+
+    // 广播追踪
+    EntityId m_lastBroadcastEntityId{0};
+    u8 m_lastBroadcastStatus = 0;
+    i32 m_broadcastCount = 0;
+};
+
+class StriderInteractTestFixture : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+
+    StriderInteractTestWorld m_world;
+};
+
+/**
+ * @brief 喂食成年可繁殖炽足兽 → 进入爱心模式，消耗物品，播放吃食音效
+ */
+TEST_F(StriderInteractTestFixture, FeedAdultBreedableStrider_SetsInLoveAndPlaysEatSound)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+
+    // 成年炽足兽，未处于爱心模式
+    ASSERT_FALSE(strider.isChild());
+    ASSERT_TRUE(strider.canBreed());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 3));
+    player.inventory().setSelectedSlot(0);
+
+    m_world.resetSoundTracking();
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 成功喂食
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 物品数量减少
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 2);
+
+    // 处于爱心模式
+    EXPECT_TRUE(strider.isInLove());
+
+    // 播放了吃食音效
+    EXPECT_EQ(m_world.getSoundPlayCount(), 1);
+    EXPECT_EQ(m_world.getLastSoundId(), SoundEvents::ENTITY_STRIDER_EAT);
+
+    // 音调在 [0.8, 1.2] 范围内
+    EXPECT_GE(m_world.getLastPitch(), 0.8f);
+    EXPECT_LE(m_world.getLastPitch(), 1.2f);
+}
+
+/**
+ * @brief 创造模式下喂食 → 不消耗物品，但仍然进入爱心模式
+ */
+TEST_F(StriderInteractTestFixture, FeedAdultBreedableStrider_CreativeMode_NoItemConsume)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.setGameMode(GameMode::Creative);
+    player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 1));
+    player.inventory().setSelectedSlot(0);
+
+    m_world.resetSoundTracking();
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 创造模式不消耗物品
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 1);
+
+    // 仍然进入爱心模式
+    EXPECT_TRUE(strider.isInLove());
+
+    // 仍然播放吃食音效
+    EXPECT_EQ(m_world.getSoundPlayCount(), 1);
+}
+
+/**
+ * @brief 喂食幼年炽足兽 → 加速成长，消耗物品，播放吃食音效
+ */
+TEST_F(StriderInteractTestFixture, FeedChildStrider_AcceleratesGrowth)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    strider.setChild(true);
+
+    ASSERT_TRUE(strider.isChild());
+    i32 initialAge = strider.getGrowingAge();
+    ASSERT_LT(initialAge, 0);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 2));
+    player.inventory().setSelectedSlot(0);
+
+    m_world.resetSoundTracking();
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 成功喂食
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 物品数量减少
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 1);
+
+    // 年龄增长了（加速成长）
+    EXPECT_GT(strider.getGrowingAge(), initialAge);
+
+    // 播放了吃食音效
+    EXPECT_EQ(m_world.getSoundPlayCount(), 1);
+    EXPECT_EQ(m_world.getLastSoundId(), SoundEvents::ENTITY_STRIDER_EAT);
+}
+
+/**
+ * @brief 喂食已处于爱心模式的成年炽足兽 → 服务端返回 Pass
+ */
+TEST_F(StriderInteractTestFixture, FeedAdultAlreadyInLove_ReturnsPassOnServer)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+
+    // 先设置为爱心模式
+    strider.setInLove(PlayerId(1));
+    ASSERT_TRUE(strider.isInLove());
+    ASSERT_FALSE(strider.canBreed());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 3));
+    player.inventory().setSelectedSlot(0);
+
+    m_world.resetSoundTracking();
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 服务端：不消耗物品，不播放音效
+    EXPECT_EQ(result, ActionResultType::Pass);
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 3);
+    EXPECT_EQ(m_world.getSoundPlayCount(), 0);
+}
+
+/**
+ * @brief 手持非食物物品 + 已装备鞍 + 无乘客 + 未蹲下 → 玩家骑乘
+ */
+TEST_F(StriderInteractTestFixture, RideSaddledStrider_EmptyHand_ReturnsSuccess)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    strider.setSaddle(true);
+
+    ASSERT_TRUE(strider.hasSaddle());
+    ASSERT_TRUE(strider.getPassengers().empty());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    // 手持钻石（非食物、非鞍）
+    player.inventory().setItem(0, ItemStack(Items::DIAMOND, 1));
+    player.inventory().setSelectedSlot(0);
+    player.setSneaking(false);
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 返回 Success（骑乘）
+    EXPECT_EQ(result, ActionResultType::Success);
+}
+
+/**
+ * @brief 手持食物时不触发骑乘（即使已装备鞍），而是喂食
+ */
+TEST_F(StriderInteractTestFixture, RideSaddledStrider_HoldingFood_FeedNotRide)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    strider.setSaddle(true);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    // 手持诡异菌（食物）
+    player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 1));
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 食物优先：喂食成功（不是骑乘）
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 应该进入爱心模式
+    EXPECT_TRUE(strider.isInLove());
+}
+
+/**
+ * @brief 未装备鞍时不触发骑乘
+ */
+TEST_F(StriderInteractTestFixture, RideUnsaddledStrider_ReturnsPass)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    // 未装备鞍
+    ASSERT_FALSE(strider.hasSaddle());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::DIAMOND, 1));
+    player.inventory().setSelectedSlot(0);
+    player.setSneaking(false);
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 未装备鞍不触发骑乘
+    EXPECT_EQ(result, ActionResultType::Pass);
+}
+
+/**
+ * @brief 玩家蹲下时不触发骑乘
+ */
+TEST_F(StriderInteractTestFixture, RideSaddledStrider_PlayerSneaking_NoRide)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    strider.setSaddle(true);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::DIAMOND, 1));
+    player.inventory().setSelectedSlot(0);
+    player.setSneaking(true); // 蹲下
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 蹲下不触发骑乘
+    EXPECT_EQ(result, ActionResultType::Pass);
+}
+
+/**
+ * @brief 手持鞍 → 返回 Pass，委托给 SaddleItem::itemInteractionForEntity
+ */
+TEST_F(StriderInteractTestFixture, HoldSaddle_ReturnsPass_DelegatesToSaddleItem)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    // 未装备鞍
+    ASSERT_FALSE(strider.hasSaddle());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::SADDLE, 1));
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 返回 Pass，让 Player::interactOn 处理鞍装备
+    EXPECT_EQ(result, ActionResultType::Pass);
+}
+
+/**
+ * @brief 已装备鞍 + 手持鞍 + 未蹲下 → 触发骑乘（鞍不是食物，满足骑乘条件）
+ */
+TEST_F(StriderInteractTestFixture, HoldSaddleOnAlreadySaddledStrider_TriggerRide)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    strider.setSaddle(true);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::SADDLE, 1));
+    player.inventory().setSelectedSlot(0);
+    player.setSneaking(false);
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 已装备鞍 + 非食物 + 无乘客 + 未蹲下 → 骑乘（而非 Pass）
+    // 鞍不是繁殖食物，因此满足骑乘条件 !isFood && hasSaddle() && ...
+    EXPECT_EQ(result, ActionResultType::Success);
+}
+
+/**
+ * @brief 手持非食物、非鞍物品 + 未装备鞍 → 返回 Pass
+ */
+TEST_F(StriderInteractTestFixture, HoldNonFoodNonSaddleUnsaddled_ReturnsPass)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    ASSERT_FALSE(strider.hasSaddle());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::DIAMOND, 1));
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Pass);
+}
+
+/**
+ * @brief 空手 + 已装备鞍 + 未蹲下 → 触发骑乘
+ */
+TEST_F(StriderInteractTestFixture, RideSaddledStrider_EmptyHandNoItem)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    strider.setSaddle(true);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    // 空手（主手没有物品）
+    player.setSneaking(false);
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 空手 + 已装备鞍 → 骑乘
+    EXPECT_EQ(result, ActionResultType::Success);
+}
+
+/**
+ * @brief 静默炽足兽喂食时不播放音效
+ */
+TEST_F(StriderInteractTestFixture, FeedSilentStrider_NoSoundPlayed)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+    strider.setSilent(true); // 设置为静默
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS, 1));
+    player.inventory().setSelectedSlot(0);
+
+    m_world.resetSoundTracking();
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(strider.isInLove());
+
+    // 静默模式不播放音效
+    EXPECT_EQ(m_world.getSoundPlayCount(), 0);
+}
+
+/**
+ * @brief 诡异菌钓竿不是食物，不应触发喂食
+ */
+TEST_F(StriderInteractTestFixture, WarpedFungusOnAStick_NotFoodForBreeding)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    player.inventory().setItem(0, ItemStack(Items::WARPED_FUNGUS_ON_A_STICK, 1));
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = strider.interactMob(player, Hand::MainHand);
+
+    // 诡异菌钓竿不是繁殖食物
+    // 未装备鞍 → Pass（canEquip 返回 false 因为不是鞍）
+    EXPECT_EQ(result, ActionResultType::Pass);
+    EXPECT_FALSE(strider.isInLove());
+}
+
+/**
+ * @brief 副手持食物喂食
+ */
+TEST_F(StriderInteractTestFixture, FeedWithOffHand)
+{
+    StriderEntity strider(EntityId(1));
+    strider.setWorld(&m_world);
+    strider.setTypeId("minecraft:strider");
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setPlayerId(PlayerId(42));
+    // 副手持食物
+    player.inventory().setItem(40, ItemStack(Items::WARPED_FUNGUS, 2));
+
+    m_world.resetSoundTracking();
+    ActionResultType result = strider.interactMob(player, Hand::OffHand);
+
+    // 副手喂食成功
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(strider.isInLove());
+    EXPECT_EQ(player.inventory().getItem(40).getCount(), 1);
+    EXPECT_EQ(m_world.getSoundPlayCount(), 1);
 }
 
 } // namespace
