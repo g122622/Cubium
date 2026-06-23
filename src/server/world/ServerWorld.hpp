@@ -308,6 +308,7 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
         const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
     [[nodiscard]] std::vector<Entity*> getPlayers() const override;
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const override;
 
     // ========== 最近玩家查询 ==========
 

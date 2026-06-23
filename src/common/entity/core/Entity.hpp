@@ -722,8 +722,19 @@ public:
      *
      * 标记实体为已移除状态。子类可以重写此方法在移除前执行额外逻辑
      * （例如史莱姆分裂）。
+     * 对应 MC Java 的 Entity.remove(RemovalReason.KILLED)。
      */
     virtual void remove() { m_removed = true; }
+
+    /**
+     * @brief 静默丢弃实体
+     *
+     * 与 remove() 不同，discard() 不触发任何掉落物、经验或其他死亡相关逻辑，
+     * 仅将实体标记为已移除。适用于实体需要立即消失但不应产生副作用的场景，
+     * 例如末影龙战斗状态扫描中发现无传送门的孤龙时将其丢弃。
+     * 对应 MC Java 的 Entity.discard()。
+     */
+    virtual void discard() { m_removed = true; }
 
     /**
      * @brief 由 /kill 命令调用

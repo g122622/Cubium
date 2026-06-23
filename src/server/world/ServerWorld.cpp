@@ -1592,6 +1592,11 @@ std::vector<Entity*> ServerWorld::getPlayers() const
     return m_entityManager.getPlayers();
 }
 
+std::vector<Entity*> ServerWorld::getEntitiesByType(entity::EntityTypeId typeId) const
+{
+    return m_entityManager.getEntitiesByType(typeId);
+}
+
 // ============================================================================
 // 最近玩家查询
 // ============================================================================

@@ -28,6 +28,7 @@
 #include "block/BlockPos.hpp"
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -781,6 +782,21 @@ public:
      * @return 玩家实体列表
      */
     [[nodiscard]] virtual std::vector<Entity*> getPlayers() const { return {}; }
+
+    /**
+     * @brief 获取指定类型的所有实体
+     *
+     * 返回世界中所有匹配指定实体类型ID的存活实体。
+     * ServerWorld 通过 EntityManager 实现此方法。
+     *
+     * @param typeId 实体类型ID（来自 EntityTypeIdNumber）
+     * @return 匹配类型的实体列表
+     */
+    [[nodiscard]] virtual std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const
+    {
+        (void)typeId;
+        return {};
+    }
 
     // ========== 最近玩家查询 ==========
 
