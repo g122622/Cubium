@@ -37,8 +37,11 @@
  * 特别覆盖：
  * - _isPollinationTarget: BEE_GROWABLES 标签验证
  * - _growCrop: CropBlock / StemBlock / SweetBerryBushBlock / IGrowable 生长逻辑
+ * - _isFlower: 向日葵半块检测、高花朵/小花朵标签验证
+ * - _isValidLocation: BeeWanderGoal 飞行位置有效性检测
  * - 作物计数器: addCropCounter / resetCropCounter / MAX_CROPS_GROWN 上限
  * - canBeeStart 中的作物数限制检查
+ * - BeeAttackPlayerGoal: 愤怒但无攻击目标时的 shouldExecute 检查
  */
 
 #include "common/entity/ai/goal/goals/special/BeeGoals.hpp"
@@ -50,8 +53,10 @@
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/VegetationBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include <memory>
 #include <unordered_map>
@@ -2174,4 +2179,276 @@ TEST_F(BeeEntityCooldownTest, MultipleCooldowns_DecrementTogetherOnServer)
     EXPECT_EQ(serverBee->getStayOutOfHiveCountdown(), 2);
     EXPECT_EQ(serverBee->getHiveLocateCooldown(), 6);
     EXPECT_EQ(serverBee->getFlowerCooldown(), 14);
+}
+
+// ============================================================================
+// BeePollinateGoal::_isFlower 测试 — 向日葵半块检测
+// 验证 _isFlower 对向日葵上下半部分和其他高花的检测逻辑
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief BeePollinateGoal 的测试子类
+ *
+ * 通过受保护继承暴露私有方法 _isFlower，
+ * 以便直接测试向日葵半块检测逻辑。
+ */
+class TestablePollinateGoal : public BeePollinateGoal {
+public:
+    explicit TestablePollinateGoal(BeeEntity* bee)
+        : BeePollinateGoal(bee)
+    {}
+
+    /// 暴露 _isFlower 用于测试
+    [[nodiscard]] bool testIsFlower(const BlockPos& pos) const { return _isFlower(pos); }
+};
+
+} // anonymous namespace
+
+/**
+ * @brief _isFlower 测试夹具
+ *
+ * 验证 BeePollinateGoal::_isFlower 的花朵检测逻辑：
+ * - 小花朵（SMALL_FLOWERS）返回 true
+ * - 向日葵上半部分返回 true，下半部分返回 false
+ * - 其他高花朵（丁香等）无论上下半部分都返回 true
+ * - 非花朵方块返回 false
+ * - 空气返回 false
+ */
+class BeeIsFlowerTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+
+    void SetUp() override
+    {
+        bee = std::make_unique<BeeEntity>(EntityId(1));
+        bee->setWorld(&world);
+        goal = std::make_unique<TestablePollinateGoal>(bee.get());
+    }
+
+    void TearDown() override
+    {
+        goal.reset();
+        bee.reset();
+    }
+
+    BeeGoalTestWorld world;
+    std::unique_ptr<BeeEntity> bee;
+    std::unique_ptr<TestablePollinateGoal> goal;
+};
+
+// ==================== 小花朵检测 ====================
+
+TEST_F(BeeIsFlowerTest, SmallFlower_DandelionReturnsTrue)
+{
+    // 蒲公英是 SMALL_FLOWERS 标签成员
+    world.setBlock(BlockPos(0, 64, 0), &VanillaBlocks::DANDELION->defaultState());
+    EXPECT_TRUE(goal->testIsFlower(BlockPos(0, 64, 0)));
+}
+
+TEST_F(BeeIsFlowerTest, SmallFlower_PoppyReturnsTrue)
+{
+    // 虞美人是 SMALL_FLOWERS 标签成员
+    world.setBlock(BlockPos(0, 64, 0), &VanillaBlocks::POPPY->defaultState());
+    EXPECT_TRUE(goal->testIsFlower(BlockPos(0, 64, 0)));
+}
+
+// ==================== 向日葵半块检测 ====================
+
+TEST_F(BeeIsFlowerTest, Sunflower_UpperHalfReturnsTrue)
+{
+    // 向日葵上半部分是花朵，应返回 true
+    const BlockState* sunflowerLower = &VanillaBlocks::SUNFLOWER->defaultState();
+    const BlockState* sunflowerUpper = &sunflowerLower->with(
+        BlockStateProperties::DOUBLE_BLOCK_HALF(), blocks::DoublePlantBlock::DoubleBlockHalf::Upper);
+
+    world.setBlock(BlockPos(0, 65, 0), sunflowerUpper);
+    EXPECT_TRUE(goal->testIsFlower(BlockPos(0, 65, 0)));
+}
+
+TEST_F(BeeIsFlowerTest, Sunflower_LowerHalfReturnsFalse)
+{
+    // 向日葵下半部分不是花朵，应返回 false
+    const BlockState* sunflowerLower = &VanillaBlocks::SUNFLOWER->defaultState();
+    // 默认状态是 Lower
+    ASSERT_EQ(sunflowerLower->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
+        blocks::DoublePlantBlock::DoubleBlockHalf::Lower);
+
+    world.setBlock(BlockPos(0, 64, 0), sunflowerLower);
+    EXPECT_FALSE(goal->testIsFlower(BlockPos(0, 64, 0)));
+}
+
+TEST_F(BeeIsFlowerTest, Sunflower_DefaultStateIsLowerHalf)
+{
+    // 验证向日葵默认状态是下半部分
+    const BlockState* sunflowerDefault = &VanillaBlocks::SUNFLOWER->defaultState();
+    EXPECT_EQ(sunflowerDefault->get(BlockStateProperties::DOUBLE_BLOCK_HALF()),
+        blocks::DoublePlantBlock::DoubleBlockHalf::Lower);
+
+    // 默认状态（下半）不应是花朵
+    world.setBlock(BlockPos(0, 64, 0), sunflowerDefault);
+    EXPECT_FALSE(goal->testIsFlower(BlockPos(0, 64, 0)));
+}
+
+// ==================== 其他高花朵检测 ====================
+
+TEST_F(BeeIsFlowerTest, Lilac_LowerHalfReturnsTrue)
+{
+    // 丁香下半部分仍然是花朵（非向日葵的高花不受半块限制）
+    const BlockState* lilacLower = &VanillaBlocks::LILAC->defaultState();
+    ASSERT_EQ(
+        lilacLower->get(BlockStateProperties::DOUBLE_BLOCK_HALF()), blocks::DoublePlantBlock::DoubleBlockHalf::Lower);
+
+    world.setBlock(BlockPos(0, 64, 0), lilacLower);
+    EXPECT_TRUE(goal->testIsFlower(BlockPos(0, 64, 0)));
+}
+
+TEST_F(BeeIsFlowerTest, Lilac_UpperHalfReturnsTrue)
+{
+    // 丁香上半部分也是花朵
+    const BlockState* lilacLower = &VanillaBlocks::LILAC->defaultState();
+    const BlockState* lilacUpper =
+        &lilacLower->with(BlockStateProperties::DOUBLE_BLOCK_HALF(), blocks::DoublePlantBlock::DoubleBlockHalf::Upper);
+
+    world.setBlock(BlockPos(0, 65, 0), lilacUpper);
+    EXPECT_TRUE(goal->testIsFlower(BlockPos(0, 65, 0)));
+}
+
+// ==================== 非花朵方块检测 ====================
+
+TEST_F(BeeIsFlowerTest, NonFlower_StoneReturnsFalse)
+{
+    // 石头不是花朵
+    world.setBlock(BlockPos(0, 64, 0), &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(goal->testIsFlower(BlockPos(0, 64, 0)));
+}
+
+TEST_F(BeeIsFlowerTest, NonFlower_AirReturnsFalse)
+{
+    // 空气不是花朵
+    EXPECT_FALSE(goal->testIsFlower(BlockPos(999, 999, 999)));
+}
+
+TEST_F(BeeIsFlowerTest, NonFlower_WheatReturnsFalse)
+{
+    // 小麦是 BEE_GROWABLES 但不是花朵
+    world.setBlock(BlockPos(0, 64, 0), &VanillaBlocks::WHEAT->defaultState());
+    EXPECT_FALSE(goal->testIsFlower(BlockPos(0, 64, 0)));
+}
+
+// ============================================================================
+// BeeAttackPlayerGoal 测试 — 愤怒但无攻击目标
+// ============================================================================
+
+TEST_F(BeeAttackPlayerGoalTest, ShouldExecute_ReturnsFalseWhenAngryButNoTarget)
+{
+    // 蜜蜂愤怒且未蛰刺，但没有攻击目标（无玩家附近）
+    bee->setAngry(true);
+    bee->setHasStung(false);
+    // getAttackTarget() 返回 nullptr（没有设置攻击目标）
+    // shouldExecute 内部会搜索附近玩家，但测试世界中没有玩家实体
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+// ============================================================================
+// BeeWanderGoal::_isValidLocation 测试
+// 验证蜜蜂飞行目标位置的有效性检测逻辑
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief BeeWanderGoal 的测试子类
+ *
+ * 通过受保护继承暴露私有方法 _isValidLocation，
+ * 以便直接测试飞行目标位置检测逻辑。
+ */
+class TestableWanderGoal : public BeeWanderGoal {
+public:
+    explicit TestableWanderGoal(BeeEntity* bee)
+        : BeeWanderGoal(bee)
+    {}
+
+    /// 暴露 _isValidLocation 用于测试
+    [[nodiscard]] bool testIsValidLocation(const math::Vector3f& pos) const { return _isValidLocation(pos); }
+};
+
+} // anonymous namespace
+
+/**
+ * @brief _isValidLocation 测试夹具
+ *
+ * 验证 BeeWanderGoal::_isValidLocation 的位置有效性逻辑：
+ * - 实心方块位置返回 false
+ * - 空气位置返回 true
+ * - 世界为 null 时返回 false
+ */
+class BeeWanderIsValidLocationTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+
+    void SetUp() override
+    {
+        bee = std::make_unique<BeeEntity>(EntityId(1));
+        bee->setWorld(&world);
+        bee->setPosition(0.5, 64.0, 0.5);
+        goal = std::make_unique<TestableWanderGoal>(bee.get());
+    }
+
+    void TearDown() override
+    {
+        goal.reset();
+        bee.reset();
+    }
+
+    BeeGoalTestWorld world;
+    std::unique_ptr<BeeEntity> bee;
+    std::unique_ptr<TestableWanderGoal> goal;
+};
+
+TEST_F(BeeWanderIsValidLocationTest, AirLocationReturnsTrue)
+{
+    // 空气位置有效（蜜蜂可以飞到那里）
+    EXPECT_TRUE(goal->testIsValidLocation(math::Vector3f(10.0f, 70.0f, 10.0f)));
+}
+
+TEST_F(BeeWanderIsValidLocationTest, SolidBlockLocationReturnsFalse)
+{
+    // 在实心方块位置设置石头
+    world.setBlock(BlockPos(10, 70, 10), &VanillaBlocks::STONE->defaultState());
+
+    // 实心方块位置无效（蜜蜂不能飞进方块内部）
+    EXPECT_FALSE(goal->testIsValidLocation(math::Vector3f(10.5f, 70.5f, 10.5f)));
+}
+
+TEST_F(BeeWanderIsValidLocationTest, NonSolidBlockLocationReturnsTrue)
+{
+    // 在位置设置非实心方块（如小麦）
+    world.setBlock(BlockPos(10, 70, 10), &VanillaBlocks::WHEAT->defaultState());
+
+    // 非实心方块位置有效（蜜蜂可以穿过）
+    EXPECT_TRUE(goal->testIsValidLocation(math::Vector3f(10.5f, 70.5f, 10.5f)));
+}
+
+TEST_F(BeeWanderIsValidLocationTest, NullWorldReturnsFalse)
+{
+    // 没有世界时返回 false
+    auto beeNoWorld = std::make_unique<BeeEntity>(EntityId(2));
+    TestableWanderGoal goalNoWorld(beeNoWorld.get());
+
+    EXPECT_FALSE(goalNoWorld.testIsValidLocation(math::Vector3f(10.0f, 70.0f, 10.0f)));
+}
+
+TEST_F(BeeWanderIsValidLocationTest, MultipleSolidBlocksDetection)
+{
+    // 测试多个实心方块位置
+    world.setBlock(BlockPos(5, 60, 5), &VanillaBlocks::STONE->defaultState());
+    world.setBlock(BlockPos(15, 80, 15), &VanillaBlocks::DIRT->defaultState());
+
+    EXPECT_FALSE(goal->testIsValidLocation(math::Vector3f(5.5f, 60.5f, 5.5f)));
+    EXPECT_FALSE(goal->testIsValidLocation(math::Vector3f(15.5f, 80.5f, 15.5f)));
+
+    // 空气位置仍然有效
+    EXPECT_TRUE(goal->testIsValidLocation(math::Vector3f(100.0f, 70.0f, 100.0f)));
 }

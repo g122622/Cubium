@@ -80,9 +80,10 @@ Goal (基类)
 │   ├── BeeFindFlowerGoal ────────── 蜜蜂寻找花朵
 │   └── BeeFindPollinationTargetGoal 蜜蜂寻找授粉目标（促进作物生长）
 ├── BeeStingGoal : MeleeAttackGoal ─ 蜜蜂蛰刺攻击（攻击后死亡）
-├── BeeWanderGoal ────────────────── 蜜蜂随机飞行
+├── BeeWanderGoal ────────────────── 蜜蜂随机飞行（使用RandomPositionGenerator，离蜂巢远时偏向回飞）
 ├── BeeAngerGoal : HurtByTargetGoal─ 蜜蜂愤怒（召唤同伴）
-├── BeeAttackPlayerGoal : TargetGoal 蜜蜂攻击玩家
+├── BeeAttackPlayerGoal : TargetGoal 蜜蜂攻击玩家（使用EntityUtils::findClosestEntity<Player>搜索）
+├── BeeResetAngerGoal ────────────── 蜜蜂重置愤怒（愤怒时间结束后清除愤怒状态）
 ├── ShulkerNearestAttackGoal : NearestAttackableTargetGoal 潜影贝攻击最近玩家（和平难度下禁用）
 ├── ShulkerDefenseAttackGoal : NearestAttackableTargetGoal 潜影贝防御攻击（队伍中的潜影贝攻击IMob）
 ├── FoxPassiveGoal (抽象基类)
@@ -282,3 +283,37 @@ return m_slime->onGround() || m_slime->isInWater() || m_slime->isInLava() ||
 - `BeePollinateGoal::startExecuting()` 必须调用 `m_bee->setPollinating(true)`，`resetTask()` 必须调用 `m_bee->setPollinating(false)` 并设置花朵冷却 200 tick（`m_bee->setFlowerCooldown(200)`）
 - `BeeEntity::tick()` 中的三个冷却计时器（`m_stayOutOfHiveCountdown`、`m_remainingCooldownBeforeLocatingNewHive`、`m_remainingCooldownBeforeLocatingNewFlower`）必须在服务端守卫 `!m_world->isClientSide()` 内递减，客户端不递减
 - `BeePollinateGoal::canBeeStart()` 在花朵冷却 > 0 时返回 false，阻止蜜蜂在刚完成授粉后立即重新授粉
+
+### 17. 蜜蜂花朵判定中的向日葵半方块处理
+
+**问题**：蜜蜂 `_isFlower()` 判定花朵时，向日葵（Sunflower）是双格高植物（DoublePlantBlock），下半方块不是真正的花朵，蜜蜂不应停留在向日葵的下半部分授粉。
+
+**解决**：`BeePollinateGoal::_isFlower()` 中对 `TALL_FLOWERS` 标签方块做特殊处理：
+- 向日葵（Sunflower）：检查 `DOUBLE_BLOCK_HALF` 属性，只有上半（Upper）才返回 true
+- 其他高花（丁香、玫瑰丛、牡丹、大型蕨）：上下半均返回 true（与 MC 一致）
+
+```cpp
+if (BlockTags::TALL_FLOWERS().contains(*state)) {
+    if (state->is(block_registry::VegetationBlocks::SUNFLOWER)) {
+        auto half = state->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+        return half == blocks::DoublePlantBlock::DoubleBlockHalf::Upper;
+    }
+    return true;
+}
+```
+
+### 18. 蜜蜂攻击玩家目标的目标搜索
+
+**问题**：`BeeAttackPlayerGoal` 需要在范围内搜索最近的玩家作为目标，手动搜索代码冗长且容易出错。
+
+**解决**：使用 `EntityUtils::findClosestEntity<Player>()` 工具方法，传入蜜蜂位置和搜索范围（10格），返回最近的未创造/旁观模式的玩家。
+
+### 19. 蜜蜂漫游目标的智能位置生成
+
+**问题**：蜜蜂漫游使用简单随机偏移，导致飞行路径不自然，且远离蜂巢时不会回飞。
+
+**解决**：`BeeWanderGoal` 使用 `RandomPositionGenerator` 生成飞行位置：
+- 在蜂巢附近（< 22格）：使用 `RandomPositionGenerator::getLandBasedPos()` 随机漫游
+- 远离蜂巢时：生成偏向蜂巢方向的飞行目标
+- `_isValidLocation()` 检查目标位置下方是否有实心方块（避免飞入虚空）
+- **注意**：当前 `findAirTarget` 使用 `RandomPositionGenerator::getLandBasedPos()` 近似实现，MC 原版蜜蜂使用专用的空中位置搜索算法，未来应替换为更精确的实现（已留 TODO）

@@ -965,7 +965,9 @@ math::Vector3f BeeWanderGoal::_getRandomLocation()
 
     // 蜜蜂是飞行实体，使用 findRandomTargetBlock（不要求可行走，适合飞行目标）
     // 参考 MC 的 Bee.WanderGoal.getRandomLocation()
-    // MC 1.16.5 使用 RandomPositionGenerator.findAirTarget，当前使用 findRandomTargetBlock 作为近似
+    // TODO: MC 1.16.5 使用 RandomPositionGenerator.findAirTarget，MC 1.21.11 使用 HoverRandomPos.getPos，
+    // 两者都确保目标位置在固体方块上方且有足够的空气空间。当前使用 findRandomTargetBlock 作为近似，
+    // 待实现 findAirTarget / HoverRandomPos 后替换，以实现更精确的空中悬停目标选择。
     {
         math::Vector3f targetPos;
         bool found = false;
