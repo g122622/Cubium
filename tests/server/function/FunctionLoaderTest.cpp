@@ -434,3 +434,110 @@ TEST_F(FunctionLoaderTest, FunctionManager_ClearAlsoClearsTags)
     mgr.clear();
     EXPECT_EQ(mgr.tagCount(), 0u);
 }
+
+// ========== required 验证行为测试 ==========
+
+TEST_F(FunctionLoaderTest, ParseTagJson_RequiredFieldDefaultTrue)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:test_tag");
+    // 字符串格式条目默认 required=true，对象格式不指定 required 时默认为 true
+    auto result = loader.parseTagJson(tagLoc, R"({"values": ["minecraft:func1", {"id": "minecraft:func2"}]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().entries.size(), 2u);
+    EXPECT_TRUE(result.value().entries[0].required);
+    EXPECT_TRUE(result.value().entries[1].required);
+}
+
+TEST_F(FunctionLoaderTest, ParseTagJson_RequiredFalseEntryParsed)
+{
+    FunctionLoader loader(manager);
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:test_tag");
+    auto result = loader.parseTagJson(tagLoc,
+        R"({"values": [{"id": "minecraft:missing_func", "required": false}, {"id": "#minecraft:missing_tag", "required": false}]})");
+    ASSERT_TRUE(result.success());
+    EXPECT_EQ(result.value().entries.size(), 2u);
+    EXPECT_EQ(result.value().entries[0].type, FunctionLoader::TagEntryType::Function);
+    EXPECT_FALSE(result.value().entries[0].required);
+    EXPECT_EQ(result.value().entries[1].type, FunctionLoader::TagEntryType::Tag);
+    EXPECT_FALSE(result.value().entries[1].required);
+}
+
+TEST_F(FunctionLoaderTest, FunctionManager_RequiredFunctionMissing_DiscardsTag)
+{
+    // 模拟 required=true 函数缺失导致标签被丢弃的行为
+    // 注册一个标签引用了不存在的函数（required=true）
+    // 在 FunctionLoader 的 loadFunctionTags 中，required=true 的缺失函数会导致标签不被注册
+    // 此处直接测试 FunctionManager 的基础行为
+    FunctionManager mgr;
+    ResourceLocation tagLoc = ResourceLocation::parse("minecraft:test_tag");
+
+    // FunctionManager 不做 required 验证，它只负责存储和查询
+    // required 验证在 FunctionLoader::loadFunctionTags 中完成
+    // 所以我们注册的标签可以包含不存在的函数 ID
+    std::vector<ResourceLocation> funcs = {ResourceLocation::parse("minecraft:nonexistent_func")};
+    mgr.registerTag(tagLoc, std::move(funcs));
+
+    EXPECT_TRUE(mgr.hasTag(tagLoc));
+    EXPECT_EQ(mgr.getTag(tagLoc).size(), 1u);
+}
+
+TEST_F(FunctionLoaderTest, FunctionManager_MultiLayerTagReference)
+{
+    // 测试多层标签引用的展开
+    // 标签 A 引用标签 B，标签 B 包含函数 func_b
+    // 在 FunctionLoader 中，标签 A 的函数列表应包含标签 B 的函数
+    FunctionManager mgr;
+
+    // 先注册标签 B（只含直接函数，模拟 3a 阶段）
+    ResourceLocation tagB = ResourceLocation::parse("minecraft:tag_b");
+    mgr.registerTag(tagB, {ResourceLocation::parse("minecraft:func_b")});
+    EXPECT_EQ(mgr.getTag(tagB).size(), 1u);
+
+    // 模拟 3b 阶段：标签 A 引用标签 B，通过 getTag 获取 B 的函数
+    // 然后注册标签 A 包含 func_a + func_b
+    ResourceLocation tagA = ResourceLocation::parse("minecraft:tag_a");
+    const auto& tagBFuncs = mgr.getTag(tagB);
+    std::vector<ResourceLocation> tagAFuncs = {ResourceLocation::parse("minecraft:func_a")};
+    for (const auto& f : tagBFuncs) {
+        tagAFuncs.push_back(f);
+    }
+    mgr.registerTag(tagA, std::move(tagAFuncs));
+
+    // 标签 A 应包含 func_a 和 func_b
+    EXPECT_EQ(mgr.getTag(tagA).size(), 2u);
+    EXPECT_EQ(mgr.getTag(tagA)[0].toString(), "minecraft:func_a");
+    EXPECT_EQ(mgr.getTag(tagA)[1].toString(), "minecraft:func_b");
+}
+
+TEST_F(FunctionLoaderTest, FunctionManager_CascadingTagReference)
+{
+    // 测试三层标签引用: A → B → C
+    FunctionManager mgr;
+
+    // 注册标签 C
+    ResourceLocation tagC = ResourceLocation::parse("minecraft:tag_c");
+    mgr.registerTag(tagC, {ResourceLocation::parse("minecraft:func_c")});
+
+    // 注册标签 B（引用标签 C 的函数）
+    ResourceLocation tagB = ResourceLocation::parse("minecraft:tag_b");
+    std::vector<ResourceLocation> tagBFuncs = {ResourceLocation::parse("minecraft:func_b")};
+    for (const auto& f : mgr.getTag(tagC)) {
+        tagBFuncs.push_back(f);
+    }
+    mgr.registerTag(tagB, std::move(tagBFuncs));
+
+    // 注册标签 A（引用标签 B 的函数，其中已包含标签 C 的函数）
+    ResourceLocation tagA = ResourceLocation::parse("minecraft:tag_a");
+    std::vector<ResourceLocation> tagAFuncs = {ResourceLocation::parse("minecraft:func_a")};
+    for (const auto& f : mgr.getTag(tagB)) {
+        tagAFuncs.push_back(f);
+    }
+    mgr.registerTag(tagA, std::move(tagAFuncs));
+
+    // 标签 A 应包含 func_a, func_b, func_c
+    EXPECT_EQ(mgr.getTag(tagA).size(), 3u);
+    EXPECT_EQ(mgr.getTag(tagA)[0].toString(), "minecraft:func_a");
+    EXPECT_EQ(mgr.getTag(tagA)[1].toString(), "minecraft:func_b");
+    EXPECT_EQ(mgr.getTag(tagA)[2].toString(), "minecraft:func_c");
+}

@@ -316,64 +316,101 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
         }
     }
 
-    // 第三步：仅从有效（未被丢弃的）标签解析引用，构建最终的函数 ID 列表并注册
+    // 第三步：仅从有效（未被丢弃的）标签构建并注册
     // 这与 MC Java 的 TagLoader.build() 一致：只有成功构建的标签才会出现在 lookup map 中，
     // 被丢弃的标签不会参与引用解析，其函数不会传播到引用它的其他标签。
+    //
+    // 多层标签引用的展开策略：
+    // MC Java 使用 DependencySorter 按拓扑顺序构建标签，确保被引用标签在引用它的标签之前构建，
+    // 因此被引用标签的函数列表已包含其自身引用的展开结果。
+    // 当前实现采用两阶段注册：先注册只含直接函数的标签，再迭代展开标签引用直到稳定，
+    // 这等效于 MC Java 的拓扑排序构建。
+
+    // 3a: 先注册所有有效标签的直接函数（不含标签引用展开）
     Size registeredTagCount = 0;
     for (auto& [tagLoc, merged] : mergedTags) {
         if (discardedTags.count(tagLoc) > 0) {
             continue;
         }
 
-        // 构建最终的函数 ID 列表
-        std::vector<ResourceLocation> finalFunctionIds;
-
-        // 添加直接声明的函数条目
+        // 构建只含直接函数的列表
+        std::vector<ResourceLocation> directOnlyIds;
         for (const auto& funcId : merged.directFunctionIds) {
             // 过滤掉 required=false 且不存在的函数（required=true 的缺失函数已在第二步导致标签丢弃）
             auto reqIt = requiredMaps[tagLoc].functionRequired.find(funcId);
             if (reqIt != requiredMaps[tagLoc].functionRequired.end() && !reqIt->second) {
-                // required=false 的函数：检查是否存在，不存在则跳过
                 if (!m_manager.hasFunction(funcId)) {
                     continue;
                 }
             }
-            finalFunctionIds.push_back(funcId);
+            directOnlyIds.push_back(funcId);
         }
 
-        // 解析标签引用，仅从有效标签展开函数
-        std::unordered_set<ResourceLocation> visitedTags;
-        visitedTags.insert(tagLoc); // 防止自引用
+        m_manager.registerTag(tagLoc, std::move(directOnlyIds));
+        ++registeredTagCount;
+    }
 
-        for (const auto& refTagLoc : merged.tagReferences) {
-            // 防止循环引用
-            if (visitedTags.count(refTagLoc) > 0) {
-                // 循环引用：required=true 已在第二步处理（导致标签丢弃），
-                // required=false 的循环引用静默跳过
+    // 3b: 迭代展开标签引用并更新已注册的标签
+    // 由于标签可能多层引用（A → B → C），需要迭代展开直到所有标签引用都被解析。
+    // 每轮迭代中，从头构建每个标签的函数列表（直接函数 + 标签引用展开），
+    // 通过 FunctionManager.getTag() 获取被引用标签的函数列表（可能已包含前一轮展开的结果），
+    // 直到没有任何标签的函数列表发生变化（达到不动点）。
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (auto& [tagLoc, merged] : mergedTags) {
+            if (discardedTags.count(tagLoc) > 0) {
                 continue;
             }
-            visitedTags.insert(refTagLoc);
 
-            // 查找引用的标签（仅从有效标签中查找）
-            auto refIt = mergedTags.find(refTagLoc);
-            if (refIt != mergedTags.end() && discardedTags.count(refTagLoc) == 0) {
-                // 引用的标签有效：添加其直接函数
-                // 注意：这里只添加直接函数，不递归展开被引用标签的标签引用。
-                // 在 MC Java 中，TagLoader.build() 在解析标签引用时，被引用标签的函数列表
-                // 已经包含了其自身引用的展开结果（由 DependencySorter 保证拓扑顺序）。
-                // 当前实现为单层解析，如果需要支持多层标签引用的完整展开，
-                // 可以在所有标签注册后通过 FunctionManager.getTag() 递归获取。
-                for (const auto& funcId : refIt->second.directFunctionIds) {
-                    finalFunctionIds.push_back(funcId);
-                }
+            // 如果此标签没有标签引用，无需展开
+            if (merged.tagReferences.empty()) {
+                continue;
             }
-            // 引用的标签不存在或已被丢弃：
-            // required=true 的情况已在第二步处理（导致标签丢弃），
-            // required=false 的情况静默跳过
-        }
 
-        m_manager.registerTag(tagLoc, std::move(finalFunctionIds));
-        ++registeredTagCount;
+            // 从头构建函数列表：直接函数 + 标签引用展开
+            std::vector<ResourceLocation> expandedIds;
+
+            // 添加直接声明的函数条目
+            for (const auto& funcId : merged.directFunctionIds) {
+                auto reqIt = requiredMaps[tagLoc].functionRequired.find(funcId);
+                if (reqIt != requiredMaps[tagLoc].functionRequired.end() && !reqIt->second) {
+                    if (!m_manager.hasFunction(funcId)) {
+                        continue;
+                    }
+                }
+                expandedIds.push_back(funcId);
+            }
+
+            // 展开标签引用
+            std::unordered_set<ResourceLocation> visitedTags;
+            visitedTags.insert(tagLoc); // 防止自引用
+
+            for (const auto& refTagLoc : merged.tagReferences) {
+                if (visitedTags.count(refTagLoc) > 0) {
+                    // 循环引用：required=true 已在第二步处理，required=false 静默跳过
+                    continue;
+                }
+                visitedTags.insert(refTagLoc);
+
+                // 从 FunctionManager 获取被引用标签的函数列表（可能已包含前一轮展开的结果）
+                const auto& refFuncIds = m_manager.getTag(refTagLoc);
+                if (!refFuncIds.empty()) {
+                    for (const auto& funcId : refFuncIds) {
+                        expandedIds.push_back(funcId);
+                    }
+                }
+                // 空列表表示标签不存在或已被丢弃：required=true 已在第二步处理，
+                // required=false 静默跳过
+            }
+
+            // 与当前注册的函数列表比较，仅在发生变化时更新
+            const auto& currentIds = m_manager.getTag(tagLoc);
+            if (expandedIds.size() != currentIds.size()) {
+                m_manager.registerTag(tagLoc, std::move(expandedIds));
+                changed = true;
+            }
+        }
     }
 
     if (!discardedTags.empty()) {
