@@ -30,10 +30,12 @@
 namespace mc::client::ui::minecraft {
 
 /**
- * @brief 生命值条控件
+ * @brief 生命值条控件（简单矩形后备版本）
  *
- * 显示玩家生命值的 HUD 控件。当前使用简单的矩形填充实现，
- * 未来需替换为与 MC 一致的心形图标渲染。
+ * 显示玩家生命值的简化 HUD 控件，使用矩形填充表示生命值。
+ * 完整的心形图标渲染（含吸收、中毒、凋零变体等）已实现于
+ * HudWidget::_renderHealth()，由 HudWidget 直接绘制。
+ * 本控件仅作为独立调试用途保留。
  */
 class HealthBarWidget : public kagero::widget::Widget {
 public:

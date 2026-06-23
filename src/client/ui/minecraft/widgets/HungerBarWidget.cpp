@@ -39,7 +39,8 @@ i32 HungerBarWidget::hunger() const
     return m_hunger;
 }
 
-// TODO: 当前使用简单的矩形填充表示饥饿值，需替换为与 MC 一致的鸡腿图标渲染
+// 简化矩形后备渲染。完整的鸡腿图标渲染（含饥饿效果变体和饱和度抖动动画）
+// 已实现于 HudWidget::_renderHunger()，由 HudWidget 直接绘制。
 void HungerBarWidget::paint(kagero::widget::PaintContext& ctx)
 {
     // 背景条（暗褐色）

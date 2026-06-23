@@ -25,7 +25,9 @@
 #include "client/renderer/trident/gui/GuiRenderer.hpp"
 #include "client/renderer/trident/gui/GuiSpriteAtlas.hpp"
 #include "client/renderer/trident/item/ItemRenderer.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/food/FoodStats.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -44,18 +46,18 @@ constexpr f32 SLOT_SIZE = 18.0f;
 constexpr f32 SLOT_SPACING = 20.0f;
 constexpr f32 HOTBAR_OFFSET_Y = 3.0f;
 
-// 心形图标尺寸
+// 心形图标尺寸（对齐 MC Java：图标 9x9px，间距 8px）
 constexpr f32 HEART_SIZE = 9.0f;
-constexpr f32 HEART_SPACING = 10.0f;
+constexpr f32 HEART_SPACING = 8.0f;
 constexpr f32 HEALTH_OFFSET_Y = 12.0f;
 
-// 饥饿图标尺寸
+// 饥饿图标尺寸（对齐 MC Java：图标 9x9px，间距 8px）
 constexpr f32 HUNGER_SIZE = 9.0f;
-constexpr f32 HUNGER_SPACING = 10.0f;
+constexpr f32 HUNGER_SPACING = 8.0f;
 
-// 盔甲图标尺寸
+// 盔甲图标尺寸（对齐 MC Java：图标 9x9px，间距 8px）
 constexpr f32 ARMOR_SIZE = 9.0f;
-constexpr f32 ARMOR_SPACING = 10.0f;
+constexpr f32 ARMOR_SPACING = 8.0f;
 
 // 经验条尺寸
 constexpr f32 XP_BAR_WIDTH = 182.0f;
@@ -221,20 +223,39 @@ void HudWidget::_renderHunger(kagero::widget::PaintContext& ctx)
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
 
-    // 饥饿值位置（快捷栏右上方）
+    // 饥饿值位置（快捷栏右上方，与 MC Java 对齐）
+    // MC Java: x = guiWidth / 2 + 91，从右到左绘制，间距 8px
     f32 hungerX = (screenWidth + HOTBAR_WIDTH) / 2.0f - HUNGER_SPACING * 10;
     f32 hungerY = screenHeight - HOTBAR_HEIGHT - HEALTH_OFFSET_Y - HUNGER_SIZE;
 
-    // 获取饥饿值
-    i32 food = m_player->foodStats().foodLevel();
+    // 获取饥饿数据
+    const auto& foodStats = m_player->foodStats();
+    i32 food = foodStats.foodLevel();
+    f32 saturation = foodStats.saturationLevel();
+    bool hasHungerEffect = m_player->hasEffect(entity::effect::EffectType::Hunger);
 
-    // 绘制饥饿图标（从右到左）
+    // 饥饿条抖动动画（对齐 MC Java Gui.renderFood）
+    // 当饱和度 <= 0 时，饥饿图标会上下抖动
+    // 抖动频率与饥饿值成反比：饥饿值越低抖动越快
+    // MC Java: random.setSeed(tickCount * 312871)，每帧重新设种子确保帧内一致性
+    const u32 tickCount = m_player->ticksExisted();
+    m_random.setSeed(static_cast<u64>(tickCount) * 312871ULL);
+
+    // 绘制饥饿图标（从右到左，对齐 MC Java 的渲染顺序）
     for (i32 i = 0; i < 10; ++i) {
-        f32 hungerIconX = hungerX + (9 - i) * HUNGER_SPACING;
+        f32 iconX = hungerX + (9 - i) * HUNGER_SPACING;
+        f32 iconY = hungerY;
+
+        // 抖动偏移：饱和度 <= 0 且满足 tick 条件时随机偏移 ±1px
+        // MC Java: tickCount % (foodLevel * 3 + 1) == 0 时触发
+        if (saturation <= 0.0f && food > 0 && tickCount % (static_cast<u32>(food) * 3 + 1) == 0) {
+            iconY += static_cast<f32>(m_random.nextInt(3) - 1);
+        }
+
         i32 foodPoints = food - i * 2;
         bool full = foodPoints >= 2;
         bool half = foodPoints == 1;
-        _drawHunger(ctx, hungerIconX, hungerY, full, half);
+        _drawHunger(ctx, iconX, iconY, full, half, hasHungerEffect);
     }
 }
 
@@ -319,17 +340,29 @@ void HudWidget::_drawHeart(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool
     }
 }
 
-void HudWidget::_drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half)
+void HudWidget::_drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool hasHungerEffect)
 {
     // 尝试使用纹理绘制（使用 iconsAtlas）
     if (m_iconsAtlas != nullptr) {
         std::string spriteId;
-        if (full) {
-            spriteId = "hunger_full";
-        } else if (half) {
-            spriteId = "hunger_half";
+        if (hasHungerEffect) {
+            // 饥饿效果（绿色变体图标）
+            if (full) {
+                spriteId = "hunger_saturated_full";
+            } else if (half) {
+                spriteId = "hunger_saturated_half";
+            } else {
+                spriteId = "hunger_saturated_empty";
+            }
         } else {
-            spriteId = "hunger_empty";
+            // 正常图标
+            if (full) {
+                spriteId = "hunger_full";
+            } else if (half) {
+                spriteId = "hunger_half";
+            } else {
+                spriteId = "hunger_empty";
+            }
         }
 
         if (m_iconsAtlas->hasSprite(spriteId)) {
@@ -343,6 +376,10 @@ void HudWidget::_drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, boo
 
     // 后备：纯色绘制
     u32 color = (full || half) ? HudColors::HUNGER_FULL : HudColors::HUNGER_EMPTY;
+    if (hasHungerEffect && (full || half)) {
+        // 饥饿效果时使用绿色变体（对应 MC 原版的绿色调）
+        color = HudColors::HUNGER_EFFECT;
+    }
     ctx.drawFilledRect(
         kagero::Rect{
             static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(HUNGER_SIZE), static_cast<i32>(HUNGER_SIZE)},

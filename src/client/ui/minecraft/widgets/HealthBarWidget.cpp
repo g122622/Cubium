@@ -40,7 +40,8 @@ i32 HealthBarWidget::health() const
     return m_health;
 }
 
-// TODO: 当前使用简单的矩形填充表示生命值，需替换为与 MC 一致的心形图标渲染
+// 简化矩形后备渲染。完整的心形图标渲染（含吸收、中毒、凋零变体等）
+// 已实现于 HudWidget::_renderHealth()，由 HudWidget 直接绘制。
 void HealthBarWidget::paint(kagero::widget::PaintContext& ctx)
 {
     // 背景条（暗红色）
