@@ -36,28 +36,12 @@
 
 namespace mc::client::renderer::trident::gui {
 
-// ============================================================================
-// 颜色常量（程序生成默认纹理用）
-// ============================================================================
-
-namespace GuiColors {
-// 容器背景颜色
-constexpr u32 CONTAINER_BG = 0xFFC6C6C6;     // 浅灰背景
-constexpr u32 CONTAINER_BORDER = 0xFF555555; // 深灰边框
-
-// 槽位颜色
-constexpr u32 SLOT_BG = 0xFF8B8B8B;     // 槽位背景
-constexpr u32 SLOT_BORDER = 0xFF373737; // 槽位边框
-
-// 默认颜色
-constexpr u32 DEFAULT_BG = 0xFF404040; // 默认背景
-
-// 熔炉默认颜色
-constexpr u32 FURNACE_FIRE_BG = 0xFF8B8B8B;    // 火焰占位颜色
-constexpr u32 FURNACE_FIRE_FILL = 0xFFFFAA00;  // 火焰填充颜色（橙色）
-constexpr u32 FURNACE_ARROW_BG = 0xFF8B8B8B;   // 箭头占位颜色
-constexpr u32 FURNACE_ARROW_FILL = 0xFFC6C6C6; // 箭头填充颜色（浅灰）
-} // namespace GuiColors
+// 颜色常量已移至 GuiTextureManager.hpp（GuiColors 命名空间）
+// 仅保留 cpp 内部使用的默认纹理颜色常量
+namespace {
+constexpr u32 FURNACE_FIRE_BG = 0xFF8B8B8B;  // 火焰占位颜色（默认纹理用）
+constexpr u32 FURNACE_ARROW_BG = 0xFF8B8B8B; // 箭头占位颜色（默认纹理用）
+} // namespace
 
 // ============================================================================
 // 构造函数 / 析构函数

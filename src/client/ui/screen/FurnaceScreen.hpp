@@ -59,6 +59,11 @@ public:
      */
     [[nodiscard]] std::string getTitle() const override { return "Furnace"; }
 
+    /// GUI宽度常量（与MC Java标准容器尺寸一致）
+    static constexpr i32 GUI_WIDTH = 176;
+    /// GUI高度常量（与MC Java标准容器尺寸一致）
+    static constexpr i32 GUI_HEIGHT = 166;
+
     // 允许移动
     FurnaceScreen(FurnaceScreen&&) noexcept = default;
     FurnaceScreen& operator=(FurnaceScreen&&) noexcept = default;
@@ -89,8 +94,6 @@ private:
      */
     [[nodiscard]] f32 getBurnProgress() const;
 
-    static constexpr i32 GUI_WIDTH = 176;
-    static constexpr i32 GUI_HEIGHT = 166;
     static constexpr i32 TITLE_X = 8;
     static constexpr i32 TITLE_Y = 6;
 };

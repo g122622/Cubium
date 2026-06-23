@@ -104,6 +104,7 @@ add_executable(mc_tests
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp
+    client/ui/screen/FurnaceScreenTextureTest.cpp
     common/entity/inventory/container/EnchantmentContainerTest.cpp
     common/entity/inventory/container/BrewingStandContainerTest.cpp
     common/entity/inventory/container/AnvilContainerTest.cpp

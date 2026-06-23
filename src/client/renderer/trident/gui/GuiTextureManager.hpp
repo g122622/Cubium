@@ -42,6 +42,21 @@ class GuiRenderer;
 class GuiTextureAtlas;
 
 /**
+ * @brief GUI容器颜色常量
+ *
+ * 用于程序化默认纹理生成和纯色后备绘制。
+ */
+namespace GuiColors {
+constexpr u32 CONTAINER_BG = 0xFFC6C6C6;       // 浅灰背景
+constexpr u32 CONTAINER_BORDER = 0xFF555555;   // 深灰边框
+constexpr u32 SLOT_BG = 0xFF8B8B8B;            // 槽位背景
+constexpr u32 SLOT_BORDER = 0xFF373737;        // 槽位边框
+constexpr u32 DEFAULT_BG = 0xFF404040;         // 默认背景
+constexpr u32 FURNACE_FIRE_FILL = 0xFFFFAA00;  // 火焰填充颜色（橙色）
+constexpr u32 FURNACE_ARROW_FILL = 0xFFC6C6C6; // 箭头填充颜色（浅灰）
+} // namespace GuiColors
+
+/**
  * @brief GUI容器纹理UV坐标常量
  *
  * 基于 256x256 纹理的UV坐标。所有MC容器纹理（inventory.png、
