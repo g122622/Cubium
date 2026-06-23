@@ -294,8 +294,8 @@
         适配器实现：`NaturalSpawner::ServerWorldAdapter`（服务端）、`WorldGenRegionAdapter`（世界生成）
 
         ## #数据参数注册 -
-        数据参数必须在 `registerData()` 中注册 - 参数 ID 在实体类继承链中必须唯一 -
-        客户端通过 `EntityDataManager` 同步数据
+        数据参数必须在 `registerData()` 中注册。所有数据参数必须通过 `EntityDataManager::createKey<T>()` 自动分配唯一
+            ID，禁止硬编码 ID 值。客户端通过 `EntityDataManager` 同步数据。
 
         ## #鞍与加速系统（BoostHelper） - `BoostHelper` 的加速状态不保存到 NBT（MC 1.16.5 行为） -
         只有鞍状态会持久化 -
@@ -500,29 +500,28 @@
           → playAmethystStepSound() // 强度累积 + 20 tick 冷却
     ```
 
-        * *重要 *
-        *：紫水晶铃声始终检查脚下方块（`blockState`），而非上方方块（`primaryState`），与 MC 原版一致。
+        * *重要 * *：紫水晶铃声始终检查脚下方块（`blockState`），而非上方方块（`primaryState`），与 MC 原版一致。
 
-    - **紫水晶铃声强度累积机制**
-        - 字段：`m_crystalSoundIntensity`（f32，0~1）和 `m_lastCrystalSoundPlayTick`（i32）
-        - 惰性衰减模型：强度不在每 tick 更新，仅在 `playAmethystStepSound()` 被调用时一次性补偿衰减
-        - 流程：elapsedTicks → intensity *= 0.997^elapsedTicks → intensity = min(1.0, intensity + 0.07) → pitch = 0.5 + intensity * random * 1.2 → volume = 0.1 + intensity * 1.2 → playSound → lastCrystalSoundPlayTick = ticksExisted
-        - 冷却：`shouldPlayAmethystStepSound()` 要求距上次播放 ≥ 20 tick
-        - 这两个字段不参与 NBT 序列化，实体重载后从零开始
+    - **紫水晶铃声强度累积机制 * *-字段：`m_crystalSoundIntensity`（f32，0 ~1）和 `m_lastCrystalSoundPlayTick`（i32）
+    - 惰性衰减模型：强度不在每 tick 更新，仅在 `playAmethystStepSound()` 被调用时一次性补偿衰减
+    - 流程：elapsedTicks → intensity
+    *= 0.997 ^ elapsedTicks → intensity = min(1.0, intensity + 0.07) → pitch = 0.5 +
+    intensity *random * 1.2 → volume = 0.1 + intensity * 1.2 → playSound → lastCrystalSoundPlayTick = ticksExisted -
+    冷却：`shouldPlayAmethystStepSound()` 要求距上次播放 ≥ 20 tick -
+    这两个字段不参与 NBT 序列化，实体重载后从零开始
 
-        ## #Player::playStepSound 重写
+    ## #Player::playStepSound 重写
 
-        Player 重写 `playStepSound` 以处理水中步声：
+    Player 重写 `playStepSound` 以处理水中步声：
     - 在水中：播放游泳声 + 沉闷步声 -
     非水中：委托给 `Entity::playStepSound`（已包含 COMBINATION / INSIDE /
         紫水晶逻辑）
 
         ## #容易踩的坑
 
-    - **紫水晶铃声检查对象**
-        ：`shouldPlayAmethystStepSound` 必须检查脚下方块（`blockState`），不是上方方块（`primaryState`）。站在紫水晶块上铺有地毯时，地毯是
-        COMBINATION，紫水晶是脚下方块，铃声应触发。
-    - **紫水晶铃声强度不持久化**
+    - **紫水晶铃声检查对象 * *
+        ：`shouldPlayAmethystStepSound` 必须检查脚下方块（`blockState`），不是上方方块（`primaryState`）。站在紫水晶块上铺有地毯时，地毯是 COMBINATION，紫水晶是脚下方块，铃声应触发。
+    - **紫水晶铃声强度不持久化 * *
         ：`m_crystalSoundIntensity` 和 `m_lastCrystalSoundPlayTick` 不参与 NBT 序列化，这是 MC 原版行为。实体重载后强度从零开始重新累积。
     -
     **Player 不需要重复 INSIDE / COMBINATION 判断 *
@@ -550,8 +549,12 @@
     典型覆写示例：`VillagerEntity::
         setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
 
-## #setAttackTarget 虚方法
-- `MobEntity::setAttackTarget()` 和 `MobEntity::attackTarget()` 现为 `virtual` 方法，允许IAngerable实体在设置攻击目标时同步更新愤怒状态
-- **IAngerable实体统一使用MobEntity::m_attackTarget**：所有实现IAngerable接口的实体（PiglinEntity、GolemEntity、EndermanEntity、BeeEntity、PolarBearEntity、TameableEntity）不再声明独立的`m_attackTarget`成员，而是复用`MobEntity::m_attackTarget`
-- 通过`MobEntity*`指针调用`setAttackTarget()`时，虚函数派发会正确到达子类的override，确保愤怒状态与攻击目标始终同步
-- 子类override `setAttackTarget` 时应调用 `MobEntity::setAttackTarget(target)` 设置基类的 `m_attackTarget`
+    ## #setAttackTarget 虚方法
+    - `MobEntity::setAttackTarget()` 和 `MobEntity::
+        attackTarget()` 现为 `virtual` 方法，允许IAngerable实体在设置攻击目标时同步更新愤怒状态
+    -
+    **IAngerable实体统一使用MobEntity::m_attackTarget *
+        *：所有实现IAngerable接口的实体（PiglinEntity、GolemEntity、EndermanEntity、BeeEntity、PolarBearEntity、TameableEntity）不再声明独立的`m_attackTarget`成员，而是复用`MobEntity::
+            m_attackTarget` -
+    通过`MobEntity *`指针调用`setAttackTarget()`时，虚函数派发会正确到达子类的override，确保愤怒状态与攻击目标始终同步
+    - 子类override `setAttackTarget` 时应调用 `MobEntity::setAttackTarget(target)` 设置基类的 `m_attackTarget`

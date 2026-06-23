@@ -1209,6 +1209,12 @@ protected:
     // 箭矢计数
     i32 m_arrowCount = 0;    // 插在身上的箭矢数量
     i32 m_arrowHitTimer = 0; // 箭矢脱落计时器
+
+    // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
+    static entity::DataParameter<i8> DATA_LIVING_FLAGS_PARAM;
+    static entity::DataParameter<f32> DATA_HEALTH_PARAM;
+    static entity::DataParameter<i32> DATA_POTION_EFFECTS_PARAM;
+    static entity::DataParameter<i32> DATA_ARROW_COUNT_PARAM;
 };
 
 } // namespace mc

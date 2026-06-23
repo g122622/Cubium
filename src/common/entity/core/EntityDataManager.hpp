@@ -312,10 +312,9 @@ private:
     std::unordered_map<u16, DataEntry> m_entries;
 
     // 静态 ID 生成器
-    // 注意：Entity 基类使用硬编码 ID (0-6)，所以子类应该从较高的 ID 开始
-    // 使用 createKey() 会自动从 s_nextId 开始分配
-    // TODO: 考虑让 Entity 基类也使用 createKey() 以避免 ID 冲突风险
-    static inline u16 s_nextId = 100; // 从 100 开始，预留 0-99 给基类硬编码 ID
+    // 所有实体的数据参数均通过 createKey() 自动分配唯一 ID，
+    // 无需手动指定 ID 值，避免跨类 ID 冲突。
+    static inline u16 s_nextId = 0;
     static inline std::mutex s_mutex;
 };
 

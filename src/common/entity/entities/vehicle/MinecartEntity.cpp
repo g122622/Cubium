@@ -23,6 +23,7 @@
 
 #include "MinecartEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -66,14 +67,20 @@ constexpr f64 UNPOWERED_RAIL_STOP_THRESHOLD = 0.03; // 未充能铁轨停止阈�
 constexpr f64 PLAYER_PUSH_THRESHOLD = 0.01;         // 玩家推动阈值
 constexpr f64 PLAYER_PUSH_FACTOR = 0.1;             // 玩家推动系数
 
-// 数据参数
-entity::DataParameter<i32> ROLLING_AMPLITUDE_PARAM{0};
-entity::DataParameter<i32> ROLLING_DIRECTION_PARAM{1};
-entity::DataParameter<f32> DAMAGE_PARAM{2};
-entity::DataParameter<i32> DISPLAY_TILE_PARAM{3};
-entity::DataParameter<i32> DISPLAY_TILE_OFFSET_PARAM{4};
-entity::DataParameter<bool> SHOW_BLOCK_PARAM{5};
 } // namespace
+
+// ========== 静态数据参数定义 ==========
+entity::DataParameter<i32> AbstractMinecartEntity::DATA_ROLLING_AMPLITUDE_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> AbstractMinecartEntity::DATA_ROLLING_DIRECTION_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<f32> AbstractMinecartEntity::DATA_DAMAGE_PARAM = entity::EntityDataManager::createKey<f32>();
+entity::DataParameter<i32> AbstractMinecartEntity::DATA_DISPLAY_TILE_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> AbstractMinecartEntity::DATA_DISPLAY_TILE_OFFSET_PARAM =
+    entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<bool> AbstractMinecartEntity::DATA_SHOW_BLOCK_PARAM =
+    entity::EntityDataManager::createKey<bool>();
 
 // ============================================================================
 // AbstractMinecartEntity
@@ -98,12 +105,12 @@ void AbstractMinecartEntity::registerData()
 {
     Entity::registerData();
 
-    m_dataManager.registerParam(ROLLING_AMPLITUDE_PARAM, 0);
-    m_dataManager.registerParam(ROLLING_DIRECTION_PARAM, 1);
-    m_dataManager.registerParam(DAMAGE_PARAM, 0.0f);
-    m_dataManager.registerParam(DISPLAY_TILE_PARAM, 0); // 空气方块状态ID
-    m_dataManager.registerParam(DISPLAY_TILE_OFFSET_PARAM, 6);
-    m_dataManager.registerParam(SHOW_BLOCK_PARAM, false);
+    m_dataManager.registerParam(DATA_ROLLING_AMPLITUDE_PARAM, 0);
+    m_dataManager.registerParam(DATA_ROLLING_DIRECTION_PARAM, 1);
+    m_dataManager.registerParam(DATA_DAMAGE_PARAM, 0.0f);
+    m_dataManager.registerParam(DATA_DISPLAY_TILE_PARAM, 0); // 空气方块状态ID
+    m_dataManager.registerParam(DATA_DISPLAY_TILE_OFFSET_PARAM, 6);
+    m_dataManager.registerParam(DATA_SHOW_BLOCK_PARAM, false);
 }
 
 void AbstractMinecartEntity::tick()

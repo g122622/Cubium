@@ -46,6 +46,12 @@ namespace mc {
 using namespace entity::serialization;
 
 // ============================================================================
+// 静态数据参数
+// ============================================================================
+
+entity::DataParameter<i32> ItemEntity::DATA_ITEM_COUNT_PARAM = entity::EntityDataManager::createKey<i32>();
+
+// ============================================================================
 // 静态工厂方法
 // ============================================================================
 
@@ -66,7 +72,7 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z)
     : Entity(id)
     , m_itemStack(stack)
 {
-    m_dataManager.registerParam(entity::DataParameter<i32>(ITEM_COUNT_PARAM_ID), stack.getCount());
+    m_dataManager.registerParam(DATA_ITEM_COUNT_PARAM, stack.getCount());
     setPosition(x, y, z);
     setRotation(0.0f, 0.0f);
 
@@ -82,7 +88,7 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z,
     : Entity(id)
     , m_itemStack(stack)
 {
-    m_dataManager.registerParam(entity::DataParameter<i32>(ITEM_COUNT_PARAM_ID), stack.getCount());
+    m_dataManager.registerParam(DATA_ITEM_COUNT_PARAM, stack.getCount());
     setPosition(x, y, z);
     setRotation(0.0f, 0.0f);
     setVelocity(vx, vy, vz);
@@ -95,7 +101,7 @@ ItemEntity::ItemEntity(EntityId id, const ItemStack& stack, f32 x, f32 y, f32 z,
 void ItemEntity::setItemStack(const ItemStack& stack)
 {
     m_itemStack = stack;
-    m_dataManager.set(entity::DataParameter<i32>(ITEM_COUNT_PARAM_ID), stack.getCount());
+    m_dataManager.set(DATA_ITEM_COUNT_PARAM, stack.getCount());
 }
 
 // ============================================================================
@@ -594,7 +600,7 @@ Result<void> ItemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& t
         if (stackResult.success()) {
             m_itemStack = stackResult.value();
             // 同步数量到数据管理器
-            m_dataManager.set(entity::DataParameter<i32>(ITEM_COUNT_PARAM_ID), m_itemStack.getCount());
+            m_dataManager.set(DATA_ITEM_COUNT_PARAM, m_itemStack.getCount());
         }
     }
 

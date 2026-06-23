@@ -2038,6 +2038,15 @@ protected:
     // 数据管理器
     entity::EntityDataManager m_dataManager;
 
+    // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
+    static entity::DataParameter<i8> DATA_FLAGS_PARAM;
+    static entity::DataParameter<i32> DATA_AIR_PARAM;
+    static entity::DataParameter<std::string> DATA_CUSTOM_NAME_PARAM;
+    static entity::DataParameter<bool> DATA_CUSTOM_NAME_VISIBLE_PARAM;
+    static entity::DataParameter<bool> DATA_SILENT_PARAM;
+    static entity::DataParameter<bool> DATA_NO_GRAVITY_PARAM;
+    static entity::DataParameter<i8> DATA_POSE_PARAM;
+
     // 环境状态
     bool m_inWater = false;
     bool m_inLava = false;

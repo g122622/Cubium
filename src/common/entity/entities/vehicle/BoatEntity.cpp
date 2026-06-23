@@ -65,15 +65,18 @@ constexpr f32 MAX_PASSENGER_ROTATION = 105.0f; // 乘客相对船的最大旋转
 // 浮力计算常量
 constexpr f32 BUOYANCY_VELOCITY_MULT = 0.75f; // 浮力速度乘数
 constexpr f32 WATER_CHECK_OFFSET = 0.001f;    // 水面检测偏移
-
-// 船实体数据参数
-DataParameter<i32> TIME_SINCE_HIT_PARAM{0};
-DataParameter<i32> FORWARD_DIRECTION_PARAM{1};
-DataParameter<f32> DAMAGE_TAKEN_PARAM{2};
-DataParameter<i32> BOAT_TYPE_PARAM{3};
-DataParameter<bool> LEFT_PADDLE_PARAM{4};
-DataParameter<bool> RIGHT_PADDLE_PARAM{5};
 } // namespace
+
+// ============================================================================
+// 静态数据参数定义（通过 createKey 自动分配唯一 ID，避免跨类 ID 冲突）
+// ============================================================================
+
+DataParameter<i32> BoatEntity::DATA_TIME_SINCE_HIT_PARAM = EntityDataManager::createKey<i32>();
+DataParameter<i32> BoatEntity::DATA_FORWARD_DIRECTION_PARAM = EntityDataManager::createKey<i32>();
+DataParameter<f32> BoatEntity::DATA_DAMAGE_TAKEN_PARAM = EntityDataManager::createKey<f32>();
+DataParameter<i32> BoatEntity::DATA_BOAT_TYPE_PARAM = EntityDataManager::createKey<i32>();
+DataParameter<bool> BoatEntity::DATA_LEFT_PADDLE_PARAM = EntityDataManager::createKey<bool>();
+DataParameter<bool> BoatEntity::DATA_RIGHT_PADDLE_PARAM = EntityDataManager::createKey<bool>();
 
 std::unique_ptr<Entity> BoatEntity::create(IWorld* /*world*/)
 {
@@ -92,12 +95,12 @@ void BoatEntity::registerData()
 {
     Entity::registerData();
 
-    m_dataManager.registerParam(TIME_SINCE_HIT_PARAM, 0);
-    m_dataManager.registerParam(FORWARD_DIRECTION_PARAM, 1);
-    m_dataManager.registerParam(DAMAGE_TAKEN_PARAM, 0.0f);
-    m_dataManager.registerParam(BOAT_TYPE_PARAM, static_cast<i32>(m_type));
-    m_dataManager.registerParam(LEFT_PADDLE_PARAM, false);
-    m_dataManager.registerParam(RIGHT_PADDLE_PARAM, false);
+    m_dataManager.registerParam(DATA_TIME_SINCE_HIT_PARAM, 0);
+    m_dataManager.registerParam(DATA_FORWARD_DIRECTION_PARAM, 1);
+    m_dataManager.registerParam(DATA_DAMAGE_TAKEN_PARAM, 0.0f);
+    m_dataManager.registerParam(DATA_BOAT_TYPE_PARAM, static_cast<i32>(m_type));
+    m_dataManager.registerParam(DATA_LEFT_PADDLE_PARAM, false);
+    m_dataManager.registerParam(DATA_RIGHT_PADDLE_PARAM, false);
 }
 
 void BoatEntity::tick()

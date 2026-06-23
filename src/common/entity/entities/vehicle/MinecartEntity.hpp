@@ -28,6 +28,7 @@
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
 #include "../../../world/blockentity/transport/IHopper.hpp"
 #include "../../core/Entity.hpp"
+#include "../../core/EntityDataManager.hpp"
 #include "../../damage/DamageSource.hpp"
 #include <array>
 #include <memory>
@@ -359,6 +360,14 @@ protected:
     [[nodiscard]] bool _isNormalBlockAt(const BlockPos& pos) const;
 
 private:
+    // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
+    static entity::DataParameter<i32> DATA_ROLLING_AMPLITUDE_PARAM;
+    static entity::DataParameter<i32> DATA_ROLLING_DIRECTION_PARAM;
+    static entity::DataParameter<f32> DATA_DAMAGE_PARAM;
+    static entity::DataParameter<i32> DATA_DISPLAY_TILE_PARAM;
+    static entity::DataParameter<i32> DATA_DISPLAY_TILE_OFFSET_PARAM;
+    static entity::DataParameter<bool> DATA_SHOW_BLOCK_PARAM;
+
     // 矿车类型
     Type m_type;
 

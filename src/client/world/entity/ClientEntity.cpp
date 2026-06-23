@@ -227,8 +227,8 @@ void ClientEntity::syncMetadataFromDataManager()
 {
     // 物品实体特殊处理
     if (m_typeId == entity::EntityTypes::ITEM || m_typeId == "minecraft:item") {
-        if (m_dataManager.hasParam(ItemEntity::ITEM_COUNT_PARAM_ID)) {
-            if (const auto* value = m_dataManager.getRaw(ItemEntity::ITEM_COUNT_PARAM_ID); value != nullptr) {
+        if (m_dataManager.hasParam(ItemEntity::DATA_ITEM_COUNT_PARAM.id())) {
+            if (const auto* value = m_dataManager.getRaw(ItemEntity::DATA_ITEM_COUNT_PARAM.id()); value != nullptr) {
                 const i32 count = value->get<i32>();
                 if (m_itemStack != nullptr && m_itemStack->getCount() != count) {
                     ItemStack updated = *m_itemStack;
@@ -482,7 +482,7 @@ void ClientEntity::_syncItemEntityMetadataFromRawBytes()
 
         const u8 typeId = m_metadata[offset++];
 
-        if (index == ItemEntity::ITEM_COUNT_PARAM_ID && typeId == METADATA_TYPE_VAR_INT) {
+        if (index == ItemEntity::DATA_ITEM_COUNT_PARAM.id() && typeId == METADATA_TYPE_VAR_INT) {
             const i32 count = readVarIntRaw(m_metadata.data(), m_metadata.size(), offset);
             if (offset <= m_metadata.size() && m_itemStack != nullptr && m_itemStack->getCount() != count) {
                 ItemStack updated = *m_itemStack;

@@ -385,6 +385,14 @@ private:
     // 常量
     static constexpr f32 MAX_SPEED = 0.4f;
     static constexpr i32 MAX_PASSENGERS = 2;
+
+    // 静态数据参数（通过 EntityDataManager::createKey 自动分配唯一 ID）
+    static entity::DataParameter<i32> DATA_TIME_SINCE_HIT_PARAM;
+    static entity::DataParameter<i32> DATA_FORWARD_DIRECTION_PARAM;
+    static entity::DataParameter<f32> DATA_DAMAGE_TAKEN_PARAM;
+    static entity::DataParameter<i32> DATA_BOAT_TYPE_PARAM;
+    static entity::DataParameter<bool> DATA_LEFT_PADDLE_PARAM;
+    static entity::DataParameter<bool> DATA_RIGHT_PADDLE_PARAM;
 };
 
 } // namespace entity

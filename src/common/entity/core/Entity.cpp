@@ -58,19 +58,16 @@
 namespace mc {
 
 // ============================================================================
-// 静态数据参数定义
+// 静态数据参数定义（通过 createKey 自动分配唯一 ID，避免跨类 ID 冲突）
 // ============================================================================
 
-namespace {
-// 数据参数 ID 生成器
-entity::DataParameter<i8> FLAGS_PARAM{0};
-entity::DataParameter<i32> AIR_PARAM{1};
-entity::DataParameter<std::string> CUSTOM_NAME_PARAM{2};
-entity::DataParameter<bool> CUSTOM_NAME_VISIBLE_PARAM{3};
-entity::DataParameter<bool> SILENT_PARAM{4};
-entity::DataParameter<bool> NO_GRAVITY_PARAM{5};
-entity::DataParameter<i8> POSE_PARAM{6};
-} // namespace
+entity::DataParameter<i8> Entity::DATA_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<i32> Entity::DATA_AIR_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<std::string> Entity::DATA_CUSTOM_NAME_PARAM = entity::EntityDataManager::createKey<std::string>();
+entity::DataParameter<bool> Entity::DATA_CUSTOM_NAME_VISIBLE_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<bool> Entity::DATA_SILENT_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<bool> Entity::DATA_NO_GRAVITY_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<i8> Entity::DATA_POSE_PARAM = entity::EntityDataManager::createKey<i8>();
 
 // ============================================================================
 // Entity 实现
@@ -97,13 +94,13 @@ Entity::Entity(EntityId id, IWorld* world)
 void Entity::registerData()
 {
     // 注册基础数据参数
-    m_dataManager.registerParam(FLAGS_PARAM, static_cast<i8>(0));
-    m_dataManager.registerParam(AIR_PARAM, maxAir());
-    m_dataManager.registerParam(CUSTOM_NAME_PARAM, std::string{});
-    m_dataManager.registerParam(CUSTOM_NAME_VISIBLE_PARAM, false);
-    m_dataManager.registerParam(SILENT_PARAM, false);
-    m_dataManager.registerParam(NO_GRAVITY_PARAM, false);
-    m_dataManager.registerParam(POSE_PARAM, static_cast<i8>(EntityPose::Standing));
+    m_dataManager.registerParam(DATA_FLAGS_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_AIR_PARAM, maxAir());
+    m_dataManager.registerParam(DATA_CUSTOM_NAME_PARAM, std::string{});
+    m_dataManager.registerParam(DATA_CUSTOM_NAME_VISIBLE_PARAM, false);
+    m_dataManager.registerParam(DATA_SILENT_PARAM, false);
+    m_dataManager.registerParam(DATA_NO_GRAVITY_PARAM, false);
+    m_dataManager.registerParam(DATA_POSE_PARAM, static_cast<i8>(EntityPose::Standing));
 }
 
 entity::EntitySize Entity::getDimensions(EntityPose pose) const
@@ -136,26 +133,26 @@ void Entity::setPose(EntityPose pose)
     }
 
     m_pose = pose;
-    m_dataManager.set(POSE_PARAM, static_cast<i8>(pose));
+    m_dataManager.set(DATA_POSE_PARAM, static_cast<i8>(pose));
     refreshDimensions();
 }
 
 void Entity::setFlags(EntityFlags flags)
 {
     m_flags = flags;
-    m_dataManager.set(FLAGS_PARAM, static_cast<i8>(static_cast<u8>(flags)));
+    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(flags)));
 }
 
 void Entity::addFlag(EntityFlags flag)
 {
     m_flags = m_flags | flag;
-    m_dataManager.set(FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
+    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
 }
 
 void Entity::removeFlag(EntityFlags flag)
 {
     m_flags = static_cast<EntityFlags>(static_cast<u8>(m_flags) & ~static_cast<u8>(flag));
-    m_dataManager.set(FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
+    m_dataManager.set(DATA_FLAGS_PARAM, static_cast<i8>(static_cast<u8>(m_flags)));
 }
 
 bool Entity::isGlowing() const
@@ -184,17 +181,17 @@ void Entity::setGlowing(bool glowing)
 void Entity::setAir(i32 air)
 {
     m_air = air;
-    m_dataManager.set(AIR_PARAM, m_air);
+    m_dataManager.set(DATA_AIR_PARAM, m_air);
 }
 
 void Entity::setCustomName(const std::string& name)
 {
     if (name.empty()) {
         m_customName = nullptr;
-        m_dataManager.set(CUSTOM_NAME_PARAM, std::string(""));
+        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, std::string(""));
     } else {
         m_customName = std::make_unique<text::StringTextComponent>(name);
-        m_dataManager.set(CUSTOM_NAME_PARAM, name);
+        m_dataManager.set(DATA_CUSTOM_NAME_PARAM, name);
     }
 }
 
@@ -202,7 +199,7 @@ void Entity::setCustomNameComponent(std::unique_ptr<text::ITextComponent> name)
 {
     m_customName = std::move(name);
     // 数据管理器仍然存储纯文本用于网络同步
-    m_dataManager.set(CUSTOM_NAME_PARAM, m_customName ? m_customName->getUnformattedText() : std::string(""));
+    m_dataManager.set(DATA_CUSTOM_NAME_PARAM, m_customName ? m_customName->getUnformattedText() : std::string(""));
 }
 
 std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
@@ -217,19 +214,19 @@ std::unique_ptr<text::ITextComponent> Entity::getDisplayName() const
 void Entity::setCustomNameVisible(bool visible)
 {
     m_customNameVisible = visible;
-    m_dataManager.set(CUSTOM_NAME_VISIBLE_PARAM, m_customNameVisible);
+    m_dataManager.set(DATA_CUSTOM_NAME_VISIBLE_PARAM, m_customNameVisible);
 }
 
 void Entity::setSilent(bool silent)
 {
     m_silent = silent;
-    m_dataManager.set(SILENT_PARAM, m_silent);
+    m_dataManager.set(DATA_SILENT_PARAM, m_silent);
 }
 
 void Entity::setNoGravity(bool noGravity)
 {
     m_noGravity = noGravity;
-    m_dataManager.set(NO_GRAVITY_PARAM, m_noGravity);
+    m_dataManager.set(DATA_NO_GRAVITY_PARAM, m_noGravity);
 }
 
 // ============================================================================
@@ -888,21 +885,21 @@ f32 Entity::getBrightness() const
 
 void Entity::syncMetadataFromDataManager()
 {
-    m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(FLAGS_PARAM)));
-    m_air = m_dataManager.get<i32>(AIR_PARAM);
+    m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(DATA_FLAGS_PARAM)));
+    m_air = m_dataManager.get<i32>(DATA_AIR_PARAM);
     // 从数据管理器同步名称（纯文本）
     {
-        const std::string& nameText = m_dataManager.get<std::string>(CUSTOM_NAME_PARAM);
+        const std::string& nameText = m_dataManager.get<std::string>(DATA_CUSTOM_NAME_PARAM);
         if (nameText.empty()) {
             m_customName = nullptr;
         } else {
             m_customName = std::make_unique<text::StringTextComponent>(nameText);
         }
     }
-    m_customNameVisible = m_dataManager.get<bool>(CUSTOM_NAME_VISIBLE_PARAM);
-    m_silent = m_dataManager.get<bool>(SILENT_PARAM);
-    m_noGravity = m_dataManager.get<bool>(NO_GRAVITY_PARAM);
-    m_pose = static_cast<EntityPose>(m_dataManager.get<i8>(POSE_PARAM));
+    m_customNameVisible = m_dataManager.get<bool>(DATA_CUSTOM_NAME_VISIBLE_PARAM);
+    m_silent = m_dataManager.get<bool>(DATA_SILENT_PARAM);
+    m_noGravity = m_dataManager.get<bool>(DATA_NO_GRAVITY_PARAM);
+    m_pose = static_cast<EntityPose>(m_dataManager.get<i8>(DATA_POSE_PARAM));
     refreshDimensions();
 }
 

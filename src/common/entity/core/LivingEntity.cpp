@@ -53,12 +53,6 @@ namespace mc {
 // ============================================================================
 
 namespace {
-// 数据参数
-entity::DataParameter<i8> LIVING_FLAGS_PARAM{10};
-entity::DataParameter<f32> HEALTH_PARAM{11};
-entity::DataParameter<i32> POTION_EFFECTS_PARAM{12};
-entity::DataParameter<i32> ARROW_COUNT_PARAM{13};
-
 // 使用统一物理常量，避免重复定义
 // 参考 physics::PhysicsConstants.hpp
 using physics::DRAG_AIR;
@@ -66,6 +60,15 @@ using physics::DRAG_GROUND;
 using physics::GRAVITY;
 using physics::MOTION_THRESHOLD;
 } // namespace
+
+// ============================================================================
+// 静态数据参数定义（通过 createKey 自动分配唯一 ID，避免跨类 ID 冲突）
+// ============================================================================
+
+entity::DataParameter<i8> LivingEntity::DATA_LIVING_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<f32> LivingEntity::DATA_HEALTH_PARAM = entity::EntityDataManager::createKey<f32>();
+entity::DataParameter<i32> LivingEntity::DATA_POTION_EFFECTS_PARAM = entity::EntityDataManager::createKey<i32>();
+entity::DataParameter<i32> LivingEntity::DATA_ARROW_COUNT_PARAM = entity::EntityDataManager::createKey<i32>();
 
 // ============================================================================
 // 构造函数
@@ -92,10 +95,10 @@ void LivingEntity::registerData()
     Entity::registerData();
 
     // 注册生物数据参数
-    m_dataManager.registerParam(LIVING_FLAGS_PARAM, static_cast<i8>(0));
-    m_dataManager.registerParam(HEALTH_PARAM, m_health);
-    m_dataManager.registerParam(POTION_EFFECTS_PARAM, static_cast<i32>(0));
-    m_dataManager.registerParam(ARROW_COUNT_PARAM, static_cast<i32>(0));
+    m_dataManager.registerParam(DATA_LIVING_FLAGS_PARAM, static_cast<i8>(0));
+    m_dataManager.registerParam(DATA_HEALTH_PARAM, m_health);
+    m_dataManager.registerParam(DATA_POTION_EFFECTS_PARAM, static_cast<i32>(0));
+    m_dataManager.registerParam(DATA_ARROW_COUNT_PARAM, static_cast<i32>(0));
 }
 
 // ============================================================================
@@ -111,7 +114,7 @@ void LivingEntity::setHealth(f32 health)
 {
     f32 max = maxHealth();
     m_health = std::max(0.0f, std::min(health, max));
-    m_dataManager.set(HEALTH_PARAM, m_health);
+    m_dataManager.set(DATA_HEALTH_PARAM, m_health);
 }
 
 void LivingEntity::setAbsorptionAmount(f32 amount)
@@ -577,9 +580,9 @@ void LivingEntity::tick()
 void LivingEntity::syncMetadataFromDataManager()
 {
     Entity::syncMetadataFromDataManager();
-    m_health = m_dataManager.get<f32>(HEALTH_PARAM);
+    m_health = m_dataManager.get<f32>(DATA_HEALTH_PARAM);
     m_lastHealth = m_health;
-    m_arrowCount = m_dataManager.get<i32>(ARROW_COUNT_PARAM);
+    m_arrowCount = m_dataManager.get<i32>(DATA_ARROW_COUNT_PARAM);
 }
 
 void LivingEntity::updateAnimation()
@@ -1056,7 +1059,7 @@ i32 LivingEntity::getEffectLevel(entity::effect::EffectType type) const
 void LivingEntity::setArrowCountInEntity(i32 count)
 {
     m_arrowCount = std::max(0, count);
-    m_dataManager.set(ARROW_COUNT_PARAM, m_arrowCount);
+    m_dataManager.set(DATA_ARROW_COUNT_PARAM, m_arrowCount);
 }
 
 void LivingEntity::tickArrows()
@@ -1334,7 +1337,7 @@ bool LivingEntity::isSpinAttacking() const
     // - 位 0 (0x01): 是否正在使用物品 (isHandActive)
     // - 位 1 (0x02): 使用的手（0=主手，1=副手）
     // - 位 2 (0x04): 是否正在旋转攻击（三叉戟激流）
-    i8 flags = m_dataManager.get<i8>(LIVING_FLAGS_PARAM);
+    i8 flags = m_dataManager.get<i8>(DATA_LIVING_FLAGS_PARAM);
     return (flags & 0x04) != 0;
 }
 
@@ -1346,9 +1349,9 @@ void LivingEntity::startSpinAttack(i32 duration)
     // 设置 LIVING_FLAGS 的第2位（0x04）
     // 只在服务端设置，客户端通过数据参数同步
     if (m_world == nullptr || !m_world->isClientSide()) {
-        i8 flags = m_dataManager.get<i8>(LIVING_FLAGS_PARAM);
+        i8 flags = m_dataManager.get<i8>(DATA_LIVING_FLAGS_PARAM);
         flags |= 0x04;
-        m_dataManager.set(LIVING_FLAGS_PARAM, flags);
+        m_dataManager.set(DATA_LIVING_FLAGS_PARAM, flags);
     }
 }
 
@@ -1360,9 +1363,9 @@ void LivingEntity::stopSpinAttack()
     // 清除 LIVING_FLAGS 的第2位（0x04）
     // 只在服务端设置，客户端通过数据参数同步
     if (m_world == nullptr || !m_world->isClientSide()) {
-        i8 flags = m_dataManager.get<i8>(LIVING_FLAGS_PARAM);
+        i8 flags = m_dataManager.get<i8>(DATA_LIVING_FLAGS_PARAM);
         flags &= ~0x04;
-        m_dataManager.set(LIVING_FLAGS_PARAM, flags);
+        m_dataManager.set(DATA_LIVING_FLAGS_PARAM, flags);
     }
 }
 

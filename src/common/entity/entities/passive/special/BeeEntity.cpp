@@ -32,6 +32,7 @@
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/BeeGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/item/core/Item.hpp"
@@ -50,8 +51,8 @@ namespace mc {
 // 静态数据参数定义
 // ============================================================================
 
-entity::DataParameter<i8> BeeEntity::DATA_FLAGS_PARAM{0};
-entity::DataParameter<i32> BeeEntity::ANGER_TIME_PARAM{1};
+entity::DataParameter<i8> BeeEntity::DATA_FLAGS_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<i32> BeeEntity::ANGER_TIME_PARAM = entity::EntityDataManager::createKey<i32>();
 
 // ============================================================================
 // 构造与生命周期

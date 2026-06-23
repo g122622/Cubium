@@ -35,6 +35,7 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectType.hpp"
@@ -54,8 +55,8 @@
 namespace mc {
 
 // MC 1.16.5 数据参数定义 - 必须在命名空间级别定义静态成员
-entity::DataParameter<i8> AbstractHorseEntity::STATUS_PARAM{0};
-entity::DataParameter<i64> AbstractHorseEntity::OWNER_UUID_PARAM{1};
+entity::DataParameter<i8> AbstractHorseEntity::STATUS_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<i64> AbstractHorseEntity::OWNER_UUID_PARAM = entity::EntityDataManager::createKey<i64>();
 
 AbstractHorseEntity::AbstractHorseEntity(EntityId id)
     : AnimalEntity(id)

@@ -25,6 +25,7 @@
 
 #include <memory>
 
+#include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <random>
@@ -49,7 +50,7 @@ class World;
  */
 class ItemEntity : public Entity {
 public:
-    static constexpr u16 ITEM_COUNT_PARAM_ID = 100;
+    static entity::DataParameter<i32> DATA_ITEM_COUNT_PARAM;
 
     // ========== 常量 ==========
 
