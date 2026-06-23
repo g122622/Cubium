@@ -926,3 +926,41 @@ TEST(Entity, OnPortalTriggered)
     EXPECT_EQ(entity.portalTime(), 0);
     EXPECT_EQ(entity.portalCooldown(), 300); // 触发冷却
 }
+
+TEST(Entity, RemoveMarksEntityAsRemoved)
+{
+    Entity entity(EntityId(1));
+    EXPECT_FALSE(entity.isRemoved());
+
+    entity.remove();
+    EXPECT_TRUE(entity.isRemoved());
+}
+
+TEST(Entity, DiscardMarksEntityAsRemoved)
+{
+    // discard() 与 remove() 一样将实体标记为已移除，
+    // 但不触发掉落物、经验等死亡相关逻辑。
+    // 对应 MC Java 的 Entity.discard()。
+    Entity entity(EntityId(1));
+    EXPECT_FALSE(entity.isRemoved());
+    EXPECT_TRUE(entity.isAlive());
+
+    entity.discard();
+    EXPECT_TRUE(entity.isRemoved());
+    EXPECT_FALSE(entity.isAlive());
+}
+
+TEST(Entity, RemoveAndDiscardBothMarkRemoved)
+{
+    // remove() 和 discard() 都应将 isRemoved() 设为 true、isAlive() 设为 false
+    Entity entity1(EntityId(1));
+    Entity entity2(EntityId(2));
+
+    entity1.remove();
+    entity2.discard();
+
+    EXPECT_TRUE(entity1.isRemoved());
+    EXPECT_TRUE(entity2.isRemoved());
+    EXPECT_FALSE(entity1.isAlive());
+    EXPECT_FALSE(entity2.isAlive());
+}
