@@ -945,6 +945,8 @@ add_executable(mc_tests
     common/world/gen/chunk/WorldGenRegionTest.cpp
     # WorldGenRegion详细单元测试
     common/world/gen/chunk/WorldGenRegionDetailedTest.cpp
+    # WorldGenRegion区块访问窗口验证测试
+    common/world/gen/chunk/WorldGenRegionAccessTest.cpp
     # NoiseColumn单元测试
     common/world/gen/chunk/NoiseColumnTest.cpp
     # FlatChunkGenerator详细单元测试
