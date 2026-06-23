@@ -922,6 +922,8 @@ add_executable(mc_tests
     client/ui/screen/ContainerScreenInteractionTest.cpp
     # ScreenStackWidget 屏幕栈回调与事件通知测试
     client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
+    # HUD 饥饿条渲染逻辑测试（图标状态映射、饥饿效果变体、饱和度抖动动画）
+    client/ui/minecraft/widgets/HudHungerRenderingTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp

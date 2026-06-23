@@ -46,16 +46,16 @@ constexpr f32 SLOT_SIZE = 18.0f;
 constexpr f32 SLOT_SPACING = 20.0f;
 constexpr f32 HOTBAR_OFFSET_Y = 3.0f;
 
-// 心形图标尺寸（对齐 MC Java：图标 9x9px，间距 8px）
+// 心形图标尺寸（图标 9x9px，间距 8px）
 constexpr f32 HEART_SIZE = 9.0f;
 constexpr f32 HEART_SPACING = 8.0f;
 constexpr f32 HEALTH_OFFSET_Y = 12.0f;
 
-// 饥饿图标尺寸（对齐 MC Java：图标 9x9px，间距 8px）
+// 饥饿图标尺寸（图标 9x9px，间距 8px）
 constexpr f32 HUNGER_SIZE = 9.0f;
 constexpr f32 HUNGER_SPACING = 8.0f;
 
-// 盔甲图标尺寸（对齐 MC Java：图标 9x9px，间距 8px）
+// 盔甲图标尺寸（图标 9x9px，间距 8px）
 constexpr f32 ARMOR_SIZE = 9.0f;
 constexpr f32 ARMOR_SPACING = 8.0f;
 
@@ -223,8 +223,7 @@ void HudWidget::_renderHunger(kagero::widget::PaintContext& ctx)
     const f32 screenWidth = static_cast<f32>(width());
     const f32 screenHeight = static_cast<f32>(height());
 
-    // 饥饿值位置（快捷栏右上方，与 MC Java 对齐）
-    // MC Java: x = guiWidth / 2 + 91，从右到左绘制，间距 8px
+    // 饥饿值位置（快捷栏右上方，从右到左绘制，间距 8px）
     f32 hungerX = (screenWidth + HOTBAR_WIDTH) / 2.0f - HUNGER_SPACING * 10;
     f32 hungerY = screenHeight - HOTBAR_HEIGHT - HEALTH_OFFSET_Y - HUNGER_SIZE;
 
@@ -234,20 +233,19 @@ void HudWidget::_renderHunger(kagero::widget::PaintContext& ctx)
     f32 saturation = foodStats.saturationLevel();
     bool hasHungerEffect = m_player->hasEffect(entity::effect::EffectType::Hunger);
 
-    // 饥饿条抖动动画（对齐 MC Java Gui.renderFood）
+    // 饥饿条抖动动画
     // 当饱和度 <= 0 时，饥饿图标会上下抖动
     // 抖动频率与饥饿值成反比：饥饿值越低抖动越快
-    // MC Java: random.setSeed(tickCount * 312871)，每帧重新设种子确保帧内一致性
+    // 使用确定性随机种子确保帧内一致性
     const u32 tickCount = m_player->ticksExisted();
     m_random.setSeed(static_cast<u64>(tickCount) * 312871ULL);
 
-    // 绘制饥饿图标（从右到左，对齐 MC Java 的渲染顺序）
+    // 绘制饥饿图标（从右到左）
     for (i32 i = 0; i < 10; ++i) {
         f32 iconX = hungerX + (9 - i) * HUNGER_SPACING;
         f32 iconY = hungerY;
 
         // 抖动偏移：饱和度 <= 0 且满足 tick 条件时随机偏移 ±1px
-        // MC Java: tickCount % (foodLevel * 3 + 1) == 0 时触发
         if (saturation <= 0.0f && food > 0 && tickCount % (static_cast<u32>(food) * 3 + 1) == 0) {
             iconY += static_cast<f32>(m_random.nextInt(3) - 1);
         }
