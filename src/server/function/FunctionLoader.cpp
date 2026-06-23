@@ -407,13 +407,8 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
             }
 
             // 与当前注册的函数列表比较，仅在发生变化时更新
-            // 注意：这里仅比较 size，若内容变化但 size 不变会漏更新。
-            // 这种边界情况在实际数据包中极不可能发生（不同函数ID恰好增减数量相同），
-            // 完整的内容比较需要逐元素对比，性能开销较大。
-            // TODO: 若未来出现因内容变化但 size 不变导致标签引用展开不完整的问题，
-            //       应改用逐元素比较或计算哈希来检测变化。
             const auto& currentIds = m_manager.getTag(tagLoc);
-            if (expandedIds.size() != currentIds.size()) {
+            if (expandedIds != currentIds) {
                 m_manager.registerTag(tagLoc, std::move(expandedIds));
                 changed = true;
             }
