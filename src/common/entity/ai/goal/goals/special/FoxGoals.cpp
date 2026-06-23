@@ -48,6 +48,7 @@
 #include "common/world/block/blocks/cave/CaveVinesPlantBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -717,8 +718,10 @@ void FoxEatBerriesGoal::_eatBerry()
         return;
     }
 
-    // 检查游戏规则是否允许生物破坏
-    // TODO: 当 GameRules 系统实现后，检查 MOB_GRIEFING 规则
+    // 当 mobGriefing 为 false 时，狐狸不会采摘浆果方块
+    if (!world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        return;
+    }
 
     const BlockState* state = world->getBlockState(m_targetPos);
     if (state == nullptr) {

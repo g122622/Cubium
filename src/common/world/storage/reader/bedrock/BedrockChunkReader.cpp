@@ -22,6 +22,7 @@
  */
 
 #include "BedrockChunkReader.hpp"
+#include "BedrockConstants.hpp"
 #include "PaletteUtil.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -115,13 +116,14 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
         i32 bitsPerEntry = paletteHeader >> 1;
         bool isRuntimeEncoding = (paletteHeader & 0x1) != 0;
 
-        // 127 = 空调色板
-        if (bitsPerEntry == 127) {
+        // 空调色板
+        if (bitsPerEntry == palette::EMPTY_PALETTE_BITS) {
             continue;
         }
 
         // 计算 word 数量（基岩版使用 32 位 word）
-        auto indicesResult = palette::readPackedIndices(data, pos, bitsPerEntry, 4096, 32);
+        auto indicesResult =
+            palette::readPackedIndices(data, pos, bitsPerEntry, BLOCKS_PER_SUB_CHUNK, BEDROCK_PALETTE_WORD_BITS);
         if (indicesResult.failed()) {
             return indicesResult.error();
         }
@@ -166,7 +168,7 @@ Result<void> BedrockChunkReader::readSubChunk(const std::vector<u8>& data, i8 su
         }
 
         if (paletteSize == 1 && indices.empty()) {
-            std::vector<u32> singleIndices(4096, 0);
+            std::vector<u32> singleIndices(BLOCKS_PER_SUB_CHUNK, 0);
             _applyBlockPalette(*section, singleIndices, paletteIds, storageIdx != 0);
             continue;
         }
@@ -197,7 +199,7 @@ i32 BedrockChunkReader::_resolveSectionIndex(
 Result<void> BedrockChunkReader::readData2D(const std::vector<u8>& data, ChunkData& chunk)
 {
     // Data2D 格式：前 256 字节是高度图（16x16，每字节高度），后 256 字节是生物群系（16x16，每字节 ID）
-    if (data.size() < 512) {
+    if (data.size() < static_cast<size_t>(BEDROCK_DATA2D_MIN_SIZE)) {
         return Error(ErrorCode::ChunkCorrupted, "Data2D data too short");
     }
 
@@ -210,7 +212,7 @@ Result<void> BedrockChunkReader::readData2D(const std::vector<u8>& data, ChunkDa
             i32 srcZ = bz * 4 + 2;
             i32 srcX = bx * 4 + 2;
             i32 srcIdx = srcZ * 16 + srcX;
-            u8 biomeByte = data[256 + srcIdx];
+            u8 biomeByte = data[BEDROCK_DATA2D_HEIGHTMAP_SIZE + srcIdx];
             BiomeId biomeId = m_biomeMapper.mapBiome(static_cast<i32>(biomeByte));
             // 所有 section 和 Y 层使用相同的生物群系
             for (i32 sectionIndex = 0; sectionIndex < BiomeContainer::SECTION_COUNT; ++sectionIndex) {
@@ -239,7 +241,7 @@ Result<void> BedrockChunkReader::readBiomeState(const std::vector<u8>& data, Chu
     for (i32 sectionY = minSectionY; sectionY <= maxSectionY && pos < data.size(); ++sectionY) {
         u8 paletteHeader = data[pos];
         i32 bitsPerEntry = paletteHeader >> 1;
-        if (bitsPerEntry == 127) {
+        if (bitsPerEntry == palette::EMPTY_PALETTE_BITS) {
             ++pos;
             continue;
         }
