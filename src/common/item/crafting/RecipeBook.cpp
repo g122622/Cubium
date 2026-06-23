@@ -22,6 +22,7 @@
  */
 
 #include "RecipeBook.hpp"
+#include "RecipeManager.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/nbt/Nbt.hpp"
 #include <spdlog/spdlog.h>
@@ -152,6 +153,23 @@ bool RecipeBook::isUnlocked(const ResourceLocation& recipeId) const noexcept
     return m_recipes.contains(recipeId);
 }
 
+bool RecipeBook::isBookRecipe(const ResourceLocation& recipeId) const noexcept
+{
+    // 未解锁的配方不在配方书中
+    if (!m_recipes.contains(recipeId)) {
+        return false;
+    }
+
+    // 动态配方不在配方书中显示
+    // 参考 MC 1.21.1: ServerRecipeBook.addRecipes() 中的 !recipe.isSpecial() 过滤逻辑
+    // 动态配方（染色、修复、书本复制等）虽然可以合成，但不列入配方书
+    if (ServerRecipeBook::isDynamicRecipe(recipeId)) {
+        return false;
+    }
+
+    return true;
+}
+
 bool RecipeBook::isNew(const ResourceLocation& recipeId) const noexcept
 {
     return m_newRecipes.contains(recipeId);
@@ -181,6 +199,12 @@ void RecipeBook::clear() noexcept
 }
 
 // ========== ServerRecipeBook ==========
+
+bool ServerRecipeBook::isDynamicRecipe(const ResourceLocation& recipeId)
+{
+    const CraftingRecipe* recipe = RecipeManager::instance().getRecipe(recipeId);
+    return recipe != nullptr && recipe->isDynamic();
+}
 
 nbt::tags::compound_tag ServerRecipeBook::write() const
 {
@@ -256,6 +280,7 @@ void ServerRecipeBook::read(const nbt::tags::compound_tag& tag)
         RecipeBookCategory::Smoker, tryGetBool("isSmokerGuiOpen"), tryGetBool("isSmokerFilteringCraftable"));
 
     // 读取已解锁配方列表
+    // 参考 MC 1.21.1: ServerRecipeBook.loadUntrusted() 在加载时过滤掉不存在的配方
     m_recipes.clear();
     auto recipesIt = tag.value.find("recipes");
     if (recipesIt != tag.value.end()) {
@@ -263,7 +288,10 @@ void ServerRecipeBook::read(const nbt::tags::compound_tag& tag)
         if (recipesList) {
             for (const auto& recipeStr : recipesList->value) {
                 ResourceLocation recipeId(recipeStr);
-                m_recipes.insert(std::move(recipeId));
+                // 过滤掉动态配方：旧存档可能包含动态配方ID，加载时应排除
+                if (!isDynamicRecipe(recipeId)) {
+                    m_recipes.insert(std::move(recipeId));
+                }
             }
         }
     }
@@ -276,7 +304,10 @@ void ServerRecipeBook::read(const nbt::tags::compound_tag& tag)
         if (newRecipesList) {
             for (const auto& recipeStr : newRecipesList->value) {
                 ResourceLocation recipeId(recipeStr);
-                m_newRecipes.insert(std::move(recipeId));
+                // 同样过滤掉动态配方
+                if (!isDynamicRecipe(recipeId)) {
+                    m_newRecipes.insert(std::move(recipeId));
+                }
             }
         }
     }
