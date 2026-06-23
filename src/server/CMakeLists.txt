@@ -32,6 +32,7 @@ add_executable(minecraft-server
     world/GenerationChunkCache.cpp
     world/ServerChunkManager.cpp
     world/SingleChunkLifecycleManager.cpp
+    world/ChunkSnapshot.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp

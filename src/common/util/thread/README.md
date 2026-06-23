@@ -22,6 +22,25 @@ ServerWorkerPool
                 └── ChunkGenerateTask、StorageTask 等（具体实现）
 ```
 
+## 区域互斥（对齐 Moonrise 区域锁执行器）
+
+`ServerWorkerPool` 提供两套 `submit` 重载：
+
+- **无坐标 `submit`**：任务可完全并行，不参与区域互斥。用于 EMPTY~INITIALIZE_LIGHT 等 parallelCapable 状态。
+- **带坐标 `submit(task, callback, centerX, centerZ, writeRadius, ...)`**：任务携带矩形写入区域
+  `[centerX±writeRadius, centerZ±writeRadius]`，调度器保证同一时刻不存在两个写入区域**重叠**的区域互斥任务同时执行。
+  用于 FEATURES/LIGHT/SPAWN/FULL 等会写方块的状态。`writeRadius` 来源为 `ChunkStep::blockStateWriteRadius()`（FEATURES=1，LIGHT=2，其他≤0）。
+
+区域互斥机制：
+- 任务开始执行前检查 `m_runningRegions`（正在执行的区域互斥任务占据的区块键集合）。
+- 若新任务写入区域的任一区块键已在 `m_runningRegions` 中 → 冲突，任务放回队列，等待 `m_areaReleasedCondition`（带 1ms 超时防丢失通知）。
+- 无冲突 → 标记区域所有区块键为正在执行 → 执行 → 完成后清除标记并 `notify_all`。
+- 无坐标任务不进入 `m_runningRegions`，不受区域互斥约束，可与任何区域任务并行。
+
+`canExecuteNow(centerX, centerZ, writeRadius)`：查询某写入区域是否可立即执行（无冲突），用于调度器在提交前预检查。
+
+区块键打包：`packChunkKey(x, z)` = `(u32)x << 32 | (u32)z`，不依赖 chunk 模块，保持 `common/util` 层级独立。
+
 ## 上下游外部依赖关系
 
 ### 上游依赖

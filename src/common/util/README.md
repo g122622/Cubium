@@ -16,6 +16,8 @@ util/
 │   ├── Long2IntLRUCache.hpp/cpp   # 链表+哈希表实现
 │   ├── OpenAddressingLRUCache.hpp/cpp  # 开放寻址实现（推荐）
 │   └── README.md                  # 详细文档
+├── concurrent/                    # 并发原语（详见 README.md）
+│   └── ReentrantAreaLock.hpp/cpp  # 按区块坐标分区的可重入区域锁（对齐 Moonrise）
 ├── color/                         # 颜色工具
 │   └── DyeColor.hpp               # 染料颜色枚举（MC 1.16.5 16色）
 ├── core/                          # 核心工具

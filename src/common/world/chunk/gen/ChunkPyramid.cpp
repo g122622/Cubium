@@ -296,6 +296,12 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
                 -1);
         }
 
+        // 构建 byRadius[] 查找表：每个步骤预计算 getRequiredStatusAtRadius 用的状态表。
+        // 对齐 Moonrise ChunkStepMixin.init。必须在所有步骤构建完成后进行（依赖 parent 链）。
+        for (ChunkStep& step : steps) {
+            step.buildRequiredStatusByRadius(ChunkStatuses::EMPTY);
+        }
+
         return ChunkPyramid(std::move(steps));
     }();
 
@@ -462,6 +468,12 @@ const ChunkPyramid& ChunkPyramid::loadingPyramid()
                 ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
                 ChunkDependencies(std::move(accumulated)),
                 -1);
+        }
+
+        // 构建 byRadius[] 查找表：每个步骤预计算 getRequiredStatusAtRadius 用的状态表。
+        // 对齐 Moonrise ChunkStepMixin.init。必须在所有步骤构建完成后进行（依赖 parent 链）。
+        for (ChunkStep& step : steps) {
+            step.buildRequiredStatusByRadius(ChunkStatuses::EMPTY);
         }
 
         return ChunkPyramid(std::move(steps));

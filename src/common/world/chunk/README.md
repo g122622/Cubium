@@ -80,7 +80,7 @@ flowchart LR
 区块生成阶段与依赖：
 - **ChunkStatus** — 12 阶段生成链（EMPTY → FULL）
 - **ChunkDependencies** — 按半径索引的依赖关系
-- **ChunkStep** — 目标状态 + 直接依赖 + 累积依赖 + 可写半径
+- **ChunkStep** — 目标状态 + 直接依赖 + 累积依赖 + 可写半径 + byRadius[] 查找表（`getRequiredStatusAtRadius`/`neighbourReadRadius`，对齐 Moonrise ChunkStepMixin）
 - **ChunkPyramid** — 生成金字塔（含 `radiusAroundFullChunk()`、`maxLevel()`、`generationStatus()` 等方法）
 
 ### load/ — 加载票据系统
@@ -143,3 +143,6 @@ flowchart LR
 6. **ChunkStatus 比较** — 使用 `isAtLeast()` 和 `isBefore()`，不要直接比较 ordinal
 7. **高度图内部存储** — `Heightmap` 内部存储 `y + 1`，不是实际方块 Y
 8. **WorldGenRegion 阶段校验** — 生成期区块访问按当前 `ChunkStep::directDependencies()` 校验距离对应的允许状态；调用点需要传递实际请求的 `ChunkStatus`
+9. **ChunkStatus 根状态自引用 parent** — `ChunkStatus` 构造函数将 `nullptr` parent 转为 `this`，因此 `EMPTY.parent() == &EMPTY`（非 nullptr）。遍历 parent 链时必须用 `*status != EMPTY` 而非 `status != nullptr` 作为终止条件（见 `ChunkStep::buildRequiredStatusByRadius`）
+10. **getRadiusOf 返回最后覆盖半径** — `ChunkDependencies::getRadiusOf(status)` 返回覆盖该 status ordinal 的**最大**半径 j（前向循环覆盖），不是最小半径。例如 FULL 的累积依赖中 `getRadiusOf(STRUCTURE_STARTS) = 11`（外圈），而非 4（首次出现）。`byRadius[]` 构建依赖此语义：高状态先填小半径，低状态填剩余空隙，最终 `byRadius[r] == accumulatedDependencies.get(r)`
+11. **byRadius[] 查找表** — `ChunkStep::getRequiredStatusAtRadius(radius)` 返回生成 `targetStatus` 时距离中心 `radius` 的邻居必须达到的状态。`byRadius[0] = accumulatedDependencies.get(0)`（中心区块前一步状态），表在 `ChunkPyramid` 构建时由 `buildRequiredStatusByRadius` 填充。与 Moonrise `ChunkStepMixin.moonrise$getRequiredStatusAtRadius` 对齐

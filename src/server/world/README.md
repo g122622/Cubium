@@ -8,6 +8,9 @@
 src/server/world/
 ├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/末影龙战斗管理/isBlockInLine射线遍历）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调）
+├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（请求聚合/状态推进/等待者管理）
+├── StaticChunkCache2D.hpp           # 预分配二维区块缓存模板（构造时一次性填充，无空洞，越界断言）
+├── ChunkSnapshot.hpp/cpp            # 不可变区块状态快照（从 ChunkPrimer 深拷贝，对齐 Moonrise chunkCompletions[]）
 ├── ChunkGenerateTask.hpp/cpp        # 区块生成任务（提交到 ServerWorkerPool）
 ├── drop/
 │   ├── BlockDropHandler.hpp/cpp     # 方块掉落处理器（LootTable系统）
@@ -124,6 +127,16 @@ level.dat (SpawnAngle 字段)
 
 ### 区块异步生成竞态条件
 多个线程同时请求同一区块可能导致重复生成。`ServerChunkManager` 使用 `SingleChunkLifecycleManager` 管理状态，通过 `m_syncGenerationMutex` 保护同步生成。**应优先使用异步 API**，避免在主线程频繁使用 `getChunkSync()`。
+
+### Moonrise 对齐区块生成架构（重构中）
+为消除跑图时的 "missing chunk in access window" / "chunk status below request" 错误，区块生成系统正在对齐 Moonrise mod 架构。核心组件（分阶段引入）：
+
+- **`ChunkSnapshot`**（`ChunkSnapshot.hpp/cpp`）：不可变区块状态快照，从 `ChunkPrimer` 深拷贝方块状态/高度图/生物群系。对齐 Moonrise `GenerationChunkHolder.getChunkIfPresentUnchecked` 返回的不可变 `ChunkAccess`。`WorldGenRegion` 通过快照访问邻居，保证生成执行期间邻居数据不变。
+- **`StaticChunkCache2D<T>`**（`StaticChunkCache2D.hpp`）：预分配二维缓存模板，构造时一次性填充 `(2*radius+1)²` 个条目，**不允许 nullptr**（loader 必须返回有效值）。替代旧的 `GenerationChunkCache`（增量填充、允许空洞），从根本上消除窗口内 nullptr。
+- **`ReentrantAreaLock`**（`common/util/concurrent/`）：按区块坐标的可重入区域锁，`lock(x,z,radius)` 覆盖 `[x±radius, z±radius]`，保证 schedule/checkNeighbour/onChunkGenComplete 全流程原子。
+- **`ChunkStep::getRequiredStatusAtRadius(radius)`**（`common/world/chunk/gen/ChunkStep.hpp`）：byRadius[] 查找表，对齐 Moonrise `ChunkStepMixin`。`schedule` 遍历 `[center±radius]` 范围邻居，按 Chebyshev 距离查询每个邻居所需状态。
+
+详见 `docs/BUG-WorldGenRegion-Access-Window.md`（问题根因）和 `C:\Users\Administrator\.claude\plans\sorted-juggling-hopper.md`（完整重构计划）。
 
 ### 实体追踪器内存泄漏
 实体移除后未从追踪器取消追踪会导致泄漏。`ServerWorld::removeEntity()` 会自动处理追踪器状态更新。如果直接调用 `entityManager().removeEntity()`，需要手动调用 `entityTracker().untrackEntity()`。

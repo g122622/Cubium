@@ -594,6 +594,8 @@ add_executable(mc_tests
     server/BlockUpdateSyncManagerTest.cpp
     server/test_chunk_worker_pool.cpp
     server/test_generation_chunk_cache.cpp
+    # ChunkSnapshot 不可变快照测试（对齐 Moonrise chunkCompletions[]）
+    server/world/ChunkSnapshotTest.cpp
     server/test_server_chunk_manager.cpp
     server/core/TimeManagerTest.cpp
     server/core/PlayerManagerTest.cpp
@@ -837,6 +839,8 @@ add_executable(mc_tests
     server/world/TickPrecipitationTest.cpp
     # isBlockInLine 方块射线遍历测试
     server/world/IsBlockInLineTest.cpp
+    # StaticChunkCache2D 预分配二维区块缓存测试
+    server/world/StaticChunkCache2DTest.cpp
     # 璧勬簮鍖呭吋瀹瑰眰娴嬭瘯
     # 鍐呯疆妯″瀷鐫€鑹查厤缃祴璇?    common/resource/VanillaResourcesTintModelTest.cpp
     # ResourcePackList 自包含测试（不依赖外部资源路径）
@@ -924,6 +928,10 @@ add_executable(mc_tests
     # Assert搴撴祴璇?    common/util/assert/AssertTest.cpp
     # ServerWorkerPool 测试
     common/util/thread/ServerWorkerPoolTest.cpp
+    # ServerWorkerPool 区域互斥测试（对齐 Moonrise 区域锁执行器）
+    common/util/thread/ServerWorkerPoolAreaMutexTest.cpp
+    # ReentrantAreaLock 区域锁测试
+    common/util/concurrent/ReentrantAreaLockTest.cpp
     # SHA-256 加密工具测试
     common/util/crypto/Sha256Test.cpp
     # SHA-1 加密工具测试
@@ -947,6 +955,8 @@ add_executable(mc_tests
     common/world/gen/chunk/WorldGenRegionDetailedTest.cpp
     # WorldGenRegion区块访问窗口验证测试
     common/world/gen/chunk/WorldGenRegionAccessTest.cpp
+    # ChunkStep byRadius[] 查找表单元测试（对齐 Moonrise ChunkStepMixin）
+    common/world/chunk/gen/ChunkStepByRadiusTest.cpp
     # NoiseColumn单元测试
     common/world/gen/chunk/NoiseColumnTest.cpp
     # FlatChunkGenerator详细单元测试
@@ -1060,8 +1070,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkSnapshot.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -1939,8 +1951,10 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkSnapshot.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp

@@ -149,6 +149,69 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
     return taskId;
 }
 
+u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
+    TaskCallback callback,
+    ChunkCoord centerX,
+    ChunkCoord centerZ,
+    i32 writeRadius,
+    TaskPriority priority,
+    std::shared_ptr<std::atomic<bool>> cancelToken)
+{
+    if (!task) {
+        if (callback) {
+            callback(false, nullptr);
+        }
+        return 0;
+    }
+
+    if (!m_running.load(std::memory_order_acquire)) {
+        if (callback) {
+            callback(false, nullptr);
+        }
+        return 0;
+    }
+
+    const u64 taskId = m_nextTaskId.fetch_add(1, std::memory_order_relaxed);
+    const u64 timestamp = static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count());
+
+    auto internalTask = std::make_unique<InternalTask>();
+    internalTask->id = taskId;
+    internalTask->priority = priority;
+    internalTask->timestamp = timestamp;
+    internalTask->task = std::move(task);
+    internalTask->callback = std::move(callback);
+    internalTask->cancelToken = std::move(cancelToken);
+    internalTask->hasArea = true;
+    internalTask->areaCenterX = centerX;
+    internalTask->areaCenterZ = centerZ;
+    internalTask->areaWriteRadius = writeRadius < 0 ? 0 : writeRadius;
+
+    {
+        std::lock_guard<std::mutex> lock(m_queueMutex);
+        m_taskQueue.push(std::move(internalTask));
+    }
+
+    m_condition.notify_one();
+    return taskId;
+}
+
+bool ServerWorkerPool::canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, i32 writeRadius) const
+{
+    if (writeRadius < 0) {
+        writeRadius = 0;
+    }
+    std::lock_guard<std::mutex> lock(m_runningRegionsMutex);
+    const i32 r = writeRadius;
+    for (i32 dx = -r; dx <= r; ++dx) {
+        for (i32 dz = -r; dz <= r; ++dz) {
+            if (m_runningRegions.count(packChunkKey(centerX + dx, centerZ + dz)) > 0) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 // ============================================================================
 // 任务管理
 // ============================================================================
@@ -267,7 +330,57 @@ void ServerWorkerPool::workerThread(i32 workerId)
 
         // 执行任务
         if (taskCopy) {
-            executeTask(std::move(taskCopy));
+            // 区域互斥任务：执行前检查写入区域是否与正在执行的区域任务冲突。
+            // 冲突时把任务放回队列，等待某个区域任务释放后重试。
+            if (taskCopy->hasArea) {
+                bool conflict = false;
+                {
+                    std::lock_guard<std::mutex> areaLock(m_runningRegionsMutex);
+                    conflict = hasAreaConflictLocked(*taskCopy);
+                    if (!conflict) {
+                        // 无冲突：立即标记区域为正在执行
+                        markAreaRunningLocked(*taskCopy);
+                    }
+                }
+
+                if (conflict) {
+                    // 放回队列，等待区域释放通知或短暂超时后重试
+                    {
+                        std::lock_guard<std::mutex> lock(m_queueMutex);
+                        m_taskQueue.push(taskCopy); // 保留 shared_ptr，不 move
+                    }
+                    // 通知一个工作线程重试（可能是自己，也可能是其他线程）
+                    m_condition.notify_one();
+                    // 等待区域释放（带 1ms 超时避免永久阻塞：防止通知丢失导致活锁）
+                    {
+                        std::unique_lock<std::mutex> areaLock(m_runningRegionsMutex);
+                        m_areaReleasedCondition.wait_for(areaLock, std::chrono::milliseconds(1));
+                    }
+                    continue;
+                }
+
+                // 无冲突且已标记区域：执行任务
+                // 保存区域信息（executeTask 会 move taskCopy，之后无法访问）
+                const ChunkCoord areaX = taskCopy->areaCenterX;
+                const ChunkCoord areaZ = taskCopy->areaCenterZ;
+                const i32 areaR = taskCopy->areaWriteRadius;
+
+                executeTask(std::move(taskCopy));
+
+                // 执行完成：清除区域标记并通知等待冲突的工作线程
+                {
+                    std::lock_guard<std::mutex> areaLock(m_runningRegionsMutex);
+                    InternalTask tmp;
+                    tmp.areaCenterX = areaX;
+                    tmp.areaCenterZ = areaZ;
+                    tmp.areaWriteRadius = areaR;
+                    unmarkAreaRunningLocked(tmp);
+                }
+                m_areaReleasedCondition.notify_all();
+            } else {
+                // 无区域互斥任务：直接执行
+                executeTask(std::move(taskCopy));
+            }
         }
 
         // 检查是否所有任务都完成了
@@ -352,6 +465,65 @@ bool ServerWorkerPool::isTaskCancelled(const InternalTask& task)
         return false;
     }
     return task.cancelToken->load(std::memory_order_acquire);
+}
+
+// ============================================================================
+// 区域互斥（对齐 Moonrise 区域锁执行器）
+// ============================================================================
+
+u64 ServerWorkerPool::packChunkKey(ChunkCoord x, ChunkCoord z) noexcept
+{
+    // 高 32 位 X，低 32 位 Z（都转为 u32 以保留位模式）
+    return (static_cast<u64>(static_cast<u32>(x)) << 32) | static_cast<u64>(static_cast<u32>(z));
+}
+
+bool ServerWorkerPool::hasAreaConflictLocked(const InternalTask& task) const
+{
+    // 调用者必须持有 m_runningRegionsMutex
+    const i32 r = task.areaWriteRadius;
+    for (i32 dx = -r; dx <= r; ++dx) {
+        for (i32 dz = -r; dz <= r; ++dz) {
+            if (m_runningRegions.count(packChunkKey(task.areaCenterX + dx, task.areaCenterZ + dz)) > 0) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void ServerWorkerPool::markAreaRunningLocked(const InternalTask& task)
+{
+    // 调用者必须持有 m_runningRegionsMutex
+    const i32 r = task.areaWriteRadius;
+    for (i32 dx = -r; dx <= r; ++dx) {
+        for (i32 dz = -r; dz <= r; ++dz) {
+            m_runningRegions.insert(packChunkKey(task.areaCenterX + dx, task.areaCenterZ + dz));
+        }
+    }
+}
+
+void ServerWorkerPool::unmarkAreaRunningLocked(const InternalTask& task)
+{
+    // 调用者必须持有 m_runningRegionsMutex
+    const i32 r = task.areaWriteRadius;
+    for (i32 dx = -r; dx <= r; ++dx) {
+        for (i32 dz = -r; dz <= r; ++dz) {
+            m_runningRegions.erase(packChunkKey(task.areaCenterX + dx, task.areaCenterZ + dz));
+        }
+    }
+}
+
+std::vector<u64> ServerWorkerPool::computeAreaKeys(const InternalTask& task)
+{
+    const i32 r = task.areaWriteRadius;
+    std::vector<u64> keys;
+    keys.reserve(static_cast<size_t>((2 * r + 1) * (2 * r + 1)));
+    for (i32 dx = -r; dx <= r; ++dx) {
+        for (i32 dz = -r; dz <= r; ++dz) {
+            keys.push_back(packChunkKey(task.areaCenterX + dx, task.areaCenterZ + dz));
+        }
+    }
+    return keys;
 }
 
 } // namespace mc::util

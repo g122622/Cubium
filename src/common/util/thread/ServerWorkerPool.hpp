@@ -33,6 +33,7 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 namespace mc::util {
@@ -125,6 +126,48 @@ public:
         TaskPriority priority = TaskPriority::Normal,
         std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
 
+    /**
+     * @brief 提交带区域互斥的任务（对齐 Moonrise 区域锁执行器）
+     *
+     * 任务携带一个矩形写入区域 `[centerX-writeRadius, centerX+writeRadius] ×
+     * [centerZ-writeRadius, centerZ+writeRadius]`。调度器保证：同一时刻不存在
+     * 两个写入区域**重叠**的区域互斥任务同时执行。区域不重叠的任务可并行执行。
+     *
+     * 用途：FEATURES/LIGHT/SPAWN/FULL 等会写方块的状态通过此重载提交，
+     * 避免并发生成时同一区块被两个任务同时写入。writeRadius 来源为
+     * `ChunkStep::blockStateWriteRadius()`（FEATURES=1，LIGHT=2，其他≤0）。
+     *
+     * writeRadius ≤ 0 的任务视作仅写中心区块（writeRadius=0），区域为单个区块。
+     * 无区域互斥需求的任务应使用无坐标的 submit 重载（可完全并行）。
+     *
+     * @param task 任务对象
+     * @param callback 完成回调（可为空）
+     * @param centerX 写入区域中心 X 坐标（区块坐标）
+     * @param centerZ 写入区域中心 Z 坐标（区块坐标）
+     * @param writeRadius 写入半径（切比雪夫距离），≥0
+     * @param priority 优先级
+     * @param cancelToken 取消令牌（可为空）
+     * @return 任务ID
+     */
+    u64 submit(std::unique_ptr<ITask> task,
+        TaskCallback callback,
+        ChunkCoord centerX,
+        ChunkCoord centerZ,
+        i32 writeRadius,
+        TaskPriority priority = TaskPriority::Normal,
+        std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
+
+    /**
+     * @brief 查询某写入区域是否可立即执行（无冲突）
+     *
+     * 检查 `[centerX±writeRadius, centerZ±writeRadius]` 是否与任何正在执行的
+     * 区域互斥任务重叠。无重叠返回 true。
+     *
+     * 注意：返回值仅反映调用瞬间的状态，调用者仍需通过带坐标的 submit 提交，
+     * 调度器会在执行前再次检查（TOCTOU 由内部锁保护）。
+     */
+    [[nodiscard]] bool canExecuteNow(ChunkCoord centerX, ChunkCoord centerZ, i32 writeRadius) const;
+
     // ============================================================================
     // 任务管理
     // ============================================================================
@@ -184,6 +227,12 @@ private:
         std::shared_ptr<ITask> task;
         TaskCallback callback;
         std::shared_ptr<std::atomic<bool>> cancelToken;
+
+        // 区域互斥信息（hasArea=false 时表示无区域互斥，可完全并行）
+        bool hasArea = false;
+        ChunkCoord areaCenterX = 0;
+        ChunkCoord areaCenterZ = 0;
+        i32 areaWriteRadius = 0;
     };
 
     /**
@@ -222,6 +271,49 @@ private:
     [[nodiscard]] static bool isTaskCancelled(const InternalTask& task);
 
     // ============================================================================
+    // 区域互斥（对齐 Moonrise 区域锁执行器）
+    // ============================================================================
+
+    /**
+     * @brief 将区块坐标打包为 64 位键（内部使用，不依赖 chunk 模块）
+     *
+     * 高 32 位为 X（转 u32），低 32 位为 Z（转 u32）。
+     */
+    [[nodiscard]] static u64 packChunkKey(ChunkCoord x, ChunkCoord z) noexcept;
+
+    /**
+     * @brief 检查任务的写入区域是否与正在执行的区域互斥任务冲突
+     *
+     * 调用者必须持有 m_runningRegionsMutex。
+     *
+     * @param task 待检查的任务（必须有区域信息）
+     * @return true 表示冲突（不能执行），false 表示无冲突（可以执行）
+     */
+    [[nodiscard]] bool hasAreaConflictLocked(const InternalTask& task) const;
+
+    /**
+     * @brief 标记任务的写入区域为正在执行（加入 m_runningRegions）
+     *
+     * 调用者必须持有 m_runningRegionsMutex。
+     */
+    void markAreaRunningLocked(const InternalTask& task);
+
+    /**
+     * @brief 清除任务的写入区域标记（从 m_runningRegions 移除）
+     *
+     * 调用者必须持有 m_runningRegionsMutex。
+     */
+    void unmarkAreaRunningLocked(const InternalTask& task);
+
+    /**
+     * @brief 计算任务写入区域覆盖的所有区块键
+     *
+     * @param task 有区域信息的任务
+     * @return 区块键集合（(2*writeRadius+1)² 个）
+     */
+    [[nodiscard]] static std::vector<u64> computeAreaKeys(const InternalTask& task);
+
+    // ============================================================================
     // 成员变量
     // ============================================================================
 
@@ -249,6 +341,23 @@ private:
     // 等待完成的条件变量
     std::mutex m_completionMutex;
     std::condition_variable m_completionCondition;
+
+    // ============================================================================
+    // 区域互斥状态（对齐 Moonrise 区域锁执行器）
+    // ============================================================================
+
+    // 正在执行的区域互斥任务所占据的区块键集合。
+    // 任务开始执行时把其写入区域（(2*writeRadius+1)² 个区块键）全部加入，
+    // 执行完成时移除。无区域互斥的任务（hasArea=false）不参与此集合。
+    //
+    // 冲突判定：新任务的任一区块键已在集合中 → 冲突，必须等待。
+    // 这保证两个写入区域重叠的任务不会同时执行（方块写入互斥），
+    // 而区域不重叠的任务可完全并行。
+    std::unordered_set<u64> m_runningRegions;
+    mutable std::mutex m_runningRegionsMutex;
+
+    // 区域任务释放时通知等待冲突的工作线程重试
+    std::condition_variable m_areaReleasedCondition;
 };
 
 } // namespace mc::util
