@@ -957,6 +957,10 @@ add_executable(mc_tests
     common/world/gen/chunk/TerrainCommonSenseTest.cpp
     # 表面规则一致性测试
     common/world/gen/chunk/SurfaceRuleParityTest.cpp
+    # 区块内X轴高度不对称性测试
+    common/world/gen/chunk/ChunkXAxisHeightTest.cpp
+    # 密度函数直接采样测试 — 隔离 NoiseChunk 插值层问题
+    common/world/gen/chunk/DensityDirectTest.cpp
     # 生成设置单元测试（NoiseSettings, DimensionSettings, FlatLayerInfo, FlatLevelGeneratorSettings等）
     common/world/gen/settings/SettingsTest.cpp
     # 鐢熺墿缇ょ郴棰滆壊娴嬭瘯

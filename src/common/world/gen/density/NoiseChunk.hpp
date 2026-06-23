@@ -228,6 +228,13 @@ public:
      */
     void swapSlices();
 
+    /**
+     * @brief 重置 m_valueReady 标志
+     * 在 fillSlice 之前调用，确保 fillSlice 期间 NoiseInterpolator::compute()
+     * 委托给原始函数计算角点值，而非返回上一个 cell 的过期 m_value。
+     */
+    void resetValueReady() { m_valueReady = false; }
+
 private:
     std::unique_ptr<DensityFunction> m_filler;
 
@@ -296,6 +303,14 @@ public:
      * 在 NoiseChunk::apply() 注册 CellCache 时调用。
      */
     void bindNoiseChunk(class NoiseChunk* noiseChunk) { m_noiseChunk = noiseChunk; }
+
+    /**
+     * @brief 重置缓存状态
+     * MC 1.21: 在 fillSlice 之前调用，防止 fillSlice 期间 CellCache
+     * 查表返回上一个 cell 的过期缓存值。
+     * MC Java 通过 fillArray 机制绕过缓存，C++ 简化为重置标志。
+     */
+    void invalidate() { m_filled = false; }
 
     /**
      * @brief 预填充当前 cell 的所有值

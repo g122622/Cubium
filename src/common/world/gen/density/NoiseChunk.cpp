@@ -446,17 +446,46 @@ void NoiseChunk::initializeForFirstCellX()
     m_interpolating = true;
     m_interpolationCounter = 0;
 
+    // MC 1.21: 在 fillSlice 之前，重置所有插值器的 m_valueReady 标志。
+    // fillSlice 期间 NoiseInterpolator::compute() 应委托给原始函数计算角点值，
+    // 而非返回上一个 cell 的过期 m_value 缓存。
+    // MC Java 通过 fillArray 机制直接遍历计算，不存在此问题；
+    // C++ 实现中 fillSlice 调用 m_filler->compute()，若 m_valueReady 仍为 true，
+    // NoiseInterpolator 会返回过期 m_value 而非重新计算，导致角点值错误。
+    for (auto& interp : m_interpolators) {
+        interp->resetValueReady();
+    }
+
+    // MC 1.21: 在 fillSlice 之前，重置所有 CellCache 的缓存状态。
+    // MC Java 通过 fillArray 机制在 fillSlice 期间绕过 CellCache 缓存，
+    // C++ 简化为在 fillSlice 之前将 m_filled 重置为 false，
+    // 使 CellCache::compute() 委托给原始函数而不是查表返回上一个 cell 的过期缓存值。
+    for (auto& cache : m_cellCaches) {
+        cache->invalidate();
+    }
+
     // MC 1.21: fillSlice 设置 cellStartBlockX/Z 和 inCellX/Z，并递增 arrayInterpolationCounter
     for (auto& interp : m_interpolators) {
         interp->fillSlice(*this, true, m_firstCellX);
     }
-    // MC 1.21: fillSlice 将 cellStartBlockX 设置为 firstCellX 的值，
-    // 这正是第一个 cell 的值，无需修正
-    // （advanceCellX 会在 fillSlice 后修正，但 initializeForFirstCellX 不需要）
 }
 
 void NoiseChunk::advanceCellX(i32 cellX)
 {
+    // MC 1.21: 在 fillSlice 之前，重置所有插值器的 m_valueReady 标志。
+    // 上一个 cellX 的迭代中 updateForZ 已将 m_valueReady 设为 true，
+    // 若不重置，fillSlice 期间 NoiseInterpolator::compute() 会返回过期的 m_value
+    // 而非委托给原始函数重新计算，导致切片角点值错误。
+    for (auto& interp : m_interpolators) {
+        interp->resetValueReady();
+    }
+
+    // MC 1.21: 在 fillSlice 之前，重置所有 CellCache 的缓存状态。
+    // 此时 CellCache 包含上一个 cell 的缓存值，fillSlice 期间不应使用这些过期值。
+    for (auto& cache : m_cellCaches) {
+        cache->invalidate();
+    }
+
     for (auto& interp : m_interpolators) {
         interp->fillSlice(*this, false, m_firstCellX + cellX + 1);
     }
