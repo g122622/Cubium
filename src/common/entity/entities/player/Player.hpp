@@ -946,9 +946,105 @@ public:
     /**
      * @brief 使用自定义伤害来源处理摔落伤害
      *
-     * Player 不需要特殊处理，直接委托给 LivingEntity::causeFallDamage()。
+     * 覆盖 LivingEntity::causeFallDamage()，实现冲量坠落伤害减免逻辑。
+     * 当玩家处于冲量免疫状态（如重锤砸地攻击或风弹爆炸后），
+     * 仅计算冲量冲击点以下部分的坠落伤害，冲量冲击点以上的部分不计伤害。
      */
     void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
+
+    // ========== 冲量坠落伤害免疫 ==========
+
+    /**
+     * @brief 设置是否忽略当前冲量造成的坠落伤害
+     *
+     * 当设置为 true 时，同时启动 40 tick 的宽限期计时器。
+     * 当设置为 false 时，立即清除宽限期计时器。
+     *
+     * 由重锤砸地攻击和风弹爆炸触发。
+     *
+     * @param ignore 是否忽略坠落伤害
+     */
+    void setIgnoreFallDamageFromCurrentImpulse(bool ignore);
+
+    /**
+     * @brief 检查是否忽略当前冲量造成的坠落伤害
+     * @return 如果忽略则返回 true
+     */
+    [[nodiscard]] bool isIgnoringFallDamageFromCurrentImpulse() const { return m_ignoreFallDamageFromCurrentImpulse; }
+
+    /**
+     * @brief 应用冲量后宽限期
+     *
+     * 设置宽限期计时器为当前值和新值中的较大者，不会缩短已有的宽限期。
+     * 风爆附魔使用 10 tick 宽限期。
+     *
+     * @param graceTime 宽限期 tick 数
+     */
+    void applyPostImpulseGraceTime(i32 graceTime);
+
+    /**
+     * @brief 检查是否处于冲量后宽限期
+     * @return 如果宽限期计时器 > 0 则返回 true
+     */
+    [[nodiscard]] bool isInPostImpulseGraceTime() const { return m_currentImpulseContextResetGraceTime > 0; }
+
+    /**
+     * @brief 尝试重置冲量上下文
+     *
+     * 仅当宽限期计时器为 0 时才重置。宽限期期间此方法为空操作。
+     */
+    void tryResetCurrentImpulseContext();
+
+    /**
+     * @brief 完全重置冲量上下文
+     *
+     * 清除所有冲量状态：宽限期计时器、爆炸原因、冲击位置、忽略坠落伤害标志。
+     */
+    void resetCurrentImpulseContext();
+
+    /**
+     * @brief 获取当前冲量冲击位置
+     * @return 冲击位置，如果没有活跃冲量则返回空
+     */
+    [[nodiscard]] const std::optional<Vector3>& currentImpulseImpactPos() const { return m_currentImpulseImpactPos; }
+
+    /**
+     * @brief 设置当前冲量冲击位置
+     * @param pos 冲击位置
+     */
+    void setCurrentImpulseImpactPos(const Vector3& pos) { m_currentImpulseImpactPos = pos; }
+
+    /**
+     * @brief 获取当前爆炸原因实体ID
+     * @return 实体ID，0 表示无
+     */
+    [[nodiscard]] EntityId currentExplosionCause() const { return m_currentExplosionCause; }
+
+    /**
+     * @brief 设置当前爆炸原因实体ID
+     * @param entityId 实体ID
+     */
+    void setCurrentExplosionCause(EntityId entityId) { m_currentExplosionCause = entityId; }
+
+    /**
+     * @brief 计算重锤砸地攻击的冲击位置
+     *
+     * 如果玩家已有活跃冲量且其冲击位置不高于当前位置，保留原有冲击位置
+     * （防止连续砸地攻击时"双重获利"）。否则使用玩家当前位置。
+     *
+     * @return 冲击位置
+     */
+    [[nodiscard]] Vector3 calculateMaceImpactPosition() const;
+
+    /**
+     * @brief 被爆炸击中时调用
+     *
+     * 设置冲量冲击位置和爆炸原因，如果爆炸由风弹引起则启用坠落伤害免疫。
+     * 子类可重写此方法以添加额外逻辑（如服务端进度触发）。
+     *
+     * @param cause 引起爆炸的实体，可能为 nullptr
+     */
+    virtual void onExplosionHit(Entity* cause);
 
 protected:
     /**
@@ -1587,6 +1683,14 @@ private:
 
     // 钓鱼系统
     EntityId m_fishingBobber = 0; // 当前投掷的钓鱼浮标实体ID，0表示未投掷
+
+    // 冲量坠落伤害免疫上下文
+    // 当玩家执行重锤砸地攻击或被风弹爆炸击中时，这些字段记录冲量上下文，
+    // 用于减免从冲量冲击位置以下的坠落伤害。
+    std::optional<Vector3> m_currentImpulseImpactPos;  ///< 冲量冲击位置（砸地/爆炸位置）
+    EntityId m_currentExplosionCause = 0;              ///< 引起冲量的实体ID（用于进度触发）
+    bool m_ignoreFallDamageFromCurrentImpulse = false; ///< 是否忽略当前冲量的坠落伤害
+    i32 m_currentImpulseContextResetGraceTime = 0;     ///< 冲量上下文重置宽限期（tick）
 };
 
 } // namespace mc

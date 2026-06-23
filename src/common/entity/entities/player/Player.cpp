@@ -158,6 +158,11 @@ void Player::setGameMode(GameMode mode)
     // 使用 GameModeUtils 更新能力
     m_abilities = entity::GameModeUtils::getAbilitiesForGameMode(mode);
 
+    // 切换到创造模式时重置冲量上下文（对应 MC ServerPlayerGameMode 切换游戏模式时的重置）
+    if (isCreative()) {
+        resetCurrentImpulseContext();
+    }
+
     // 同步移动速度到属性系统
     // PlayerAbilities 是配置层，属性系统是计算层
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, static_cast<f64>(m_abilities.walkSpeed));
@@ -512,6 +517,18 @@ void Player::tick()
     // 更新 XP 冷却
     if (m_xpCooldown > 0) {
         m_xpCooldown--;
+    }
+
+    // 更新冲量上下文宽限期计时器
+    if (m_currentImpulseContextResetGraceTime > 0) {
+        m_currentImpulseContextResetGraceTime--;
+    }
+
+    // 当玩家着地、进入水中或正在攀爬时，尝试重置冲量上下文
+    // 对应 MC ServerGamePacketListenerImpl 中处理玩家移动数据包时的 tryResetCurrentImpulseContext 调用
+    // 注意：宽限期期间不会重置（tryResetCurrentImpulseContext 会检查 graceTime == 0）
+    if (m_onGround || isInWater() || isOnLadder()) {
+        tryResetCurrentImpulseContext();
     }
 
     // 更新攻击冷却
@@ -1507,7 +1524,100 @@ void Player::handleFallDamage(f32 distance, f32 damageMultiplier)
 
 void Player::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
-    LivingEntity::causeFallDamage(distance, damageMultiplier, source);
+    // 创造模式飞行玩家免疫坠落伤害
+    if (m_abilities.canFly) {
+        return;
+    }
+
+    // 冲量坠落伤害减免逻辑
+    // 当玩家处于冲量免疫状态（重锤砸地攻击或风弹爆炸后），
+    // 仅计算冲量冲击点以下部分的坠落伤害
+    bool hasImpulseContext = m_currentImpulseImpactPos.has_value() && m_ignoreFallDamageFromCurrentImpulse;
+
+    if (hasImpulseContext) {
+        // 计算从冲击位置到当前位置的坠落距离
+        // 如果玩家位置在冲击位置上方或相同高度，则坠落距离为 0
+        f64 impulseY = static_cast<f64>(m_currentImpulseImpactPos->y);
+        f64 playerY = static_cast<f64>(position().y);
+        f32 impulseFallDistance = static_cast<f32>(std::min(static_cast<f64>(distance), impulseY - playerY));
+
+        if (impulseFallDistance <= 0.0f) {
+            // 玩家在冲击位置上方或相同高度，不受到冲量坠落伤害，立即重置上下文
+            resetCurrentImpulseContext();
+        } else {
+            // 冲量减免了部分坠落伤害，尝试重置上下文（尊重宽限期）
+            tryResetCurrentImpulseContext();
+        }
+
+        if (impulseFallDistance > 0.0f) {
+            // 用减免后的坠落距离计算伤害
+            LivingEntity::causeFallDamage(impulseFallDistance, damageMultiplier, source);
+            // 受到伤害后重置冲量上下文
+            resetCurrentImpulseContext();
+        } else {
+            // 无有效坠落距离，传播原始坠落距离给乘客
+            propagateFallToPassengers(distance, damageMultiplier, source);
+        }
+    } else {
+        // 没有冲量上下文，正常计算坠落伤害
+        LivingEntity::causeFallDamage(distance, damageMultiplier, source);
+    }
+}
+
+// ============================================================================
+// 冲量坠落伤害免疫
+// ============================================================================
+
+void Player::setIgnoreFallDamageFromCurrentImpulse(bool ignore)
+{
+    m_ignoreFallDamageFromCurrentImpulse = ignore;
+    if (ignore) {
+        applyPostImpulseGraceTime(40);
+    } else {
+        m_currentImpulseContextResetGraceTime = 0;
+    }
+}
+
+void Player::applyPostImpulseGraceTime(i32 graceTime)
+{
+    m_currentImpulseContextResetGraceTime = std::max(m_currentImpulseContextResetGraceTime, graceTime);
+}
+
+void Player::tryResetCurrentImpulseContext()
+{
+    if (m_currentImpulseContextResetGraceTime == 0) {
+        resetCurrentImpulseContext();
+    }
+}
+
+void Player::resetCurrentImpulseContext()
+{
+    m_currentImpulseContextResetGraceTime = 0;
+    m_currentExplosionCause = 0;
+    m_currentImpulseImpactPos = std::nullopt;
+    m_ignoreFallDamageFromCurrentImpulse = false;
+}
+
+Vector3 Player::calculateMaceImpactPosition() const
+{
+    // 如果玩家已有活跃冲量且冲击位置不高于当前位置，保留原有冲击位置
+    // 防止连续砸地攻击时"双重获利"
+    if (m_ignoreFallDamageFromCurrentImpulse && m_currentImpulseImpactPos.has_value() &&
+        m_currentImpulseImpactPos->y <= position().y) {
+        return *m_currentImpulseImpactPos;
+    }
+    return position();
+}
+
+void Player::onExplosionHit(Entity* cause)
+{
+    m_currentImpulseImpactPos = position();
+    m_currentExplosionCause = cause != nullptr ? cause->id() : 0;
+
+    // 只有风弹引起的爆炸才启用坠落伤害免疫
+    // TODO: 当风弹实体类型实现后，应检查 cause->type() == EntityType::WIND_CHARGE
+    // 当前简化实现：暂时对所有爆炸都不启用坠落伤害免疫
+    setIgnoreFallDamageFromCurrentImpulse(false);
 }
 
 // ============================================================================
@@ -2197,6 +2307,9 @@ void Player::attack(Entity& target)
                         f32 burstPower =
                             item::enchant::WindBurstEnchantment::getExplosionKnockbackMultiplier(windBurstLevel);
                         addVelocity(0.0f, burstPower * 0.5f, 0.0f);
+
+                        // 风爆附魔扩展冲量宽限期（对应 MC ApplyEntityImpulse 效果）
+                        applyPostImpulseGraceTime(10);
                     }
                 }
 
