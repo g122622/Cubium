@@ -810,7 +810,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createSmallEndIslands()
     // 小型末地岛屿：末地岛特征
     BiomeGenerationSettings settings;
 
-    // TODO: 添加末地岛特征（EndIslandFeature 尚未实现）
+    // 末地小岛在 RawGeneration 阶段生成
+    settings.addFeature(DecorationStage::RawGeneration, EndIslandFeatureIds::EndIsland);
 
     return settings;
 }
@@ -834,7 +835,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createEndHighlands()
     // 注意：末地城通过 BiomeTags::HAS_STRUCTURE_END_CITY 标签系统独立管理，
     // 不通过 BiomeGenerationSettings 添加。
 
-    // TODO: 添加紫颂树特征（ChorusPlantFeature 尚未实现）
+    // 紫颂树在 VegetalDecoration 阶段生成
+    settings.addFeature(DecorationStage::VegetalDecoration, ChorusPlantFeatureIds::ChorusPlant);
 
     return settings;
 }

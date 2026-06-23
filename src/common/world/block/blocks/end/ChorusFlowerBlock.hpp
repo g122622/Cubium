@@ -24,14 +24,17 @@
 #pragma once
 
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include <array>
+#include <optional>
 
 namespace mc {
 
 class IWorld;
 class IBlockReader;
+class WorldGenRegion;
 class BlockItemUseContext;
 
 namespace blocks {
@@ -79,8 +82,57 @@ public:
         return false;
     }
 
+    // ========== 世界生成 ==========
+
+    /**
+     * @brief 在指定位置生成一棵完整的紫颂树
+     *
+     * 对应 MC 原版 ChorusFlowerBlock.generatePlant()。
+     * 在指定位置放置紫颂植物茎干，然后递归生长紫颂树。
+     *
+     * @param world 世界区域（用于方块查询和设置）
+     * @param pos 起始位置（紫颂植物茎干底部）
+     * @param random 随机数生成器
+     * @param maxHorizontalDistance 最大水平扩展距离（原版为8）
+     */
+    static void generatePlant(
+        WorldGenRegion& world, const BlockPos& pos, math::Random& random, i32 maxHorizontalDistance);
+
 private:
     std::array<CollisionShape, 6> m_shapesByAge;
+
+    /**
+     * @brief 递归生长紫颂树
+     *
+     * 对应 MC 原版 ChorusFlowerBlock.growTreeRecursive()。
+     * 从指定位置向上生长茎干，然后在水平方向分枝。
+     *
+     * @param world 世界区域
+     * @param pos 当前递归起点位置
+     * @param random 随机数生成器
+     * @param origin 紫颂树原点位置（用于限制水平扩展范围）
+     * @param maxHorizontalDistance 最大水平扩展距离
+     * @param depth 当前递归深度（0-4）
+     */
+    static void growTreeRecursive(WorldGenRegion& world,
+        const BlockPos& pos,
+        math::Random& random,
+        const BlockPos& origin,
+        i32 maxHorizontalDistance,
+        i32 depth);
+
+    /**
+     * @brief 检查指定位置的所有邻居（除了排除方向）是否都为空气
+     *
+     * 对应 MC 原版 ChorusFlowerBlock.allNeighborsEmpty()。
+     *
+     * @param world 世界区域
+     * @param pos 要检查的位置
+     * @param excludeDir 排除的方向（传空表示不排除）
+     * @return true 如果所有未排除的水平邻居都为空气
+     */
+    static bool allNeighborsEmpty(
+        WorldGenRegion& world, const BlockPos& pos, const std::optional<Direction>& excludeDir);
 };
 
 } // namespace blocks

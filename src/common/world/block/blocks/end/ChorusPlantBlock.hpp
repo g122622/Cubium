@@ -31,8 +31,11 @@
 namespace mc {
 
 class IWorld;
-class IBlockReader;
 class BlockItemUseContext;
+
+namespace world::gen {
+class WorldGenRegion;
+}
 
 namespace blocks {
 
@@ -84,6 +87,20 @@ public:
      * @return 形状索引 (0-63)
      */
     [[nodiscard]] static size_t getShapeIndex(const BlockState& state);
+
+    /**
+     * @brief 根据周围方块自动计算连接状态并返回对应的方块状态
+     *
+     * 用于世界生成（ChorusPlantFeature）和紫颂树生长（ChorusFlowerBlock），
+     * 在放置紫颂植物方块时自动检测周围可以连接的方块。
+     *
+     * @param world 世界引用（用于方块查询）
+     * @param pos 当前方块位置
+     * @param defaultState 紫颂植物的默认方块状态
+     * @return 带有正确连接属性的方块状态
+     */
+    [[nodiscard]] static BlockState getStateWithConnections(
+        IWorld& world, const BlockPos& pos, const BlockState& defaultState);
 
     /**
      * @brief 检查是否连接到指定方向

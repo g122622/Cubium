@@ -11,11 +11,11 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
@@ -30,6 +30,8 @@ void EndFeatureRegistry::initialize()
     EndSpikeFeatures::initialize();
     EndGatewayFeatures::initialize();
     IceSpikeFeatures::initialize();
+    ChorusPlantFeatures::initialize();
+    EndIslandFeatures::initialize();
 }
 
 std::vector<std::unique_ptr<ConfiguredFeatureBase>> EndFeatureRegistry::getAllSurfaceFeaturesAndClear()
@@ -55,6 +57,23 @@ std::vector<std::unique_ptr<ConfiguredFeatureBase>> EndFeatureRegistry::getAllVe
 
     auto iceSpikeFeatures = IceSpikeFeatures::getAllFeaturesAndClear();
     for (auto& f : iceSpikeFeatures) {
+        features.push_back(std::move(f));
+    }
+
+    auto chorusPlantFeatures = ChorusPlantFeatures::getAllFeaturesAndClear();
+    for (auto& f : chorusPlantFeatures) {
+        features.push_back(std::move(f));
+    }
+
+    return features;
+}
+
+std::vector<std::unique_ptr<ConfiguredFeatureBase>> EndFeatureRegistry::getAllRawGenerationFeaturesAndClear()
+{
+    std::vector<std::unique_ptr<ConfiguredFeatureBase>> features;
+
+    auto endIslandFeatures = EndIslandFeatures::getAllFeaturesAndClear();
+    for (auto& f : endIslandFeatures) {
         features.push_back(std::move(f));
     }
 

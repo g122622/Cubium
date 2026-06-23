@@ -30,7 +30,9 @@
 #include "common/world/gen/feature/LakeFeature.hpp"
 #include "common/world/gen/feature/SnowAndFreezeFeature.hpp"
 #include "common/world/gen/feature/cave/LushCavesFeatures.hpp"
+#include "common/world/gen/feature/end/ChorusPlantFeature.hpp"
 #include "common/world/gen/feature/end/EndGatewayFeature.hpp"
+#include "common/world/gen/feature/end/EndIslandFeature.hpp"
 #include "common/world/gen/feature/end/EndSpikeFeature.hpp"
 #include "common/world/gen/feature/nether/NetherFeatures.hpp"
 #include "common/world/gen/feature/ocean/BlueIceFeature.hpp"
@@ -163,6 +165,15 @@ void FeatureRegistry::initialize()
         }
     }
 
+    // 注册末地小岛特征（RAW_GENERATION 阶段）
+    EndIslandFeatures::initialize();
+    auto endIslandFeatures = EndIslandFeatures::getAllFeaturesAndClear();
+    for (auto& feature : endIslandFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::RawGeneration);
+        }
+    }
+
     // 注册海洋特征（VEGETAL_DECORATION 阶段）
     // 海带
     KelpFeatures::initialize();
@@ -239,6 +250,15 @@ void FeatureRegistry::initialize()
     LushCavesFeatures::initialize();
     auto lushCaveFeatures = LushCavesFeatures::getAllFeaturesAndClear();
     for (auto& feature : lushCaveFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
+    // 注册紫颂树特征（VegetalDecoration 阶段）
+    ChorusPlantFeatures::initialize();
+    auto chorusPlantFeatures = ChorusPlantFeatures::getAllFeaturesAndClear();
+    for (auto& feature : chorusPlantFeatures) {
         if (feature) {
             registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
         }

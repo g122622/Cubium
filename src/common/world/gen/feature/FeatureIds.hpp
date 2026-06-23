@@ -170,6 +170,16 @@ constexpr u32 Count = 3;                   // 末地地表结构特征总数
 } // namespace EndSurfaceFeatureIds
 
 // ============================================================================
+// RawGeneration 阶段特征ID
+// ============================================================================
+
+namespace EndIslandFeatureIds {
+// 末地小岛特征 (RawGeneration阶段)
+constexpr u32 EndIsland = 0; // 末地小岛
+constexpr u32 Count = 1;     // 末地小岛特征总数
+} // namespace EndIslandFeatureIds
+
+// ============================================================================
 // UndergroundDecoration 阶段特征ID（下界特征）
 // ============================================================================
 
@@ -324,6 +334,17 @@ constexpr u32 RootedAzaleaTree = 17 + Offset;           // 杜鹃树根系统
 
 constexpr u32 Count = 18; // 繁茂洞穴特征总数
 } // namespace LushCaveFeatureIds
+
+// ============================================================================
+// 末地植被特征ID (VegetalDecoration阶段)
+// ============================================================================
+
+namespace ChorusPlantFeatureIds {
+// 紫颂树特征（紧接繁茂洞穴之后）
+constexpr u32 Offset = LushCaveFeatureIds::Offset + LushCaveFeatureIds::Count;
+constexpr u32 ChorusPlant = 0 + Offset; // 紫颂树
+constexpr u32 Count = 1;                // 紫颂树特征总数
+} // namespace ChorusPlantFeatureIds
 
 // ============================================================================
 // 海洋特征总数

@@ -11,20 +11,23 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
 
 #include "ChorusFlowerBlock.hpp"
+#include "ChorusPlantBlock.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 namespace mc {
 namespace blocks {
@@ -143,6 +146,127 @@ const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const
 {
     i32 age = getAge(state);
     return m_shapesByAge[std::min(age, 5)];
+}
+
+// ========== 世界生成 ==========
+
+void ChorusFlowerBlock::generatePlant(
+    WorldGenRegion& world, const BlockPos& pos, math::Random& random, i32 maxHorizontalDistance)
+{
+    // 对应 MC 原版 ChorusFlowerBlock.generatePlant()
+    // 在起始位置放置一个带连接的紫颂植物茎干，然后递归生长
+    const BlockState* chorusPlantState = &VanillaBlocks::CHORUS_PLANT->defaultState();
+    if (chorusPlantState == nullptr) {
+        return;
+    }
+
+    BlockState connectedState = ChorusPlantBlock::getStateWithConnections(world, pos, *chorusPlantState);
+    world.setBlockState(pos, &connectedState, 2);
+
+    growTreeRecursive(world, pos, random, pos, maxHorizontalDistance, 0);
+}
+
+void ChorusFlowerBlock::growTreeRecursive(WorldGenRegion& world,
+    const BlockPos& pos,
+    math::Random& random,
+    const BlockPos& origin,
+    i32 maxHorizontalDistance,
+    i32 depth)
+{
+    // 对应 MC 原版 ChorusFlowerBlock.growTreeRecursive()
+    const BlockState* chorusPlantState = &VanillaBlocks::CHORUS_PLANT->defaultState();
+    const BlockState* chorusFlowerState = &VanillaBlocks::CHORUS_FLOWER->defaultState();
+    if (chorusPlantState == nullptr || chorusFlowerState == nullptr) {
+        return;
+    }
+
+    // 确定向上生长的茎干高度
+    i32 stemHeight = random.nextInt(4) + 1;
+    if (depth == 0) {
+        stemHeight++; // 根部茎干多一格
+    }
+
+    // 向上放置茎干
+    for (i32 j = 0; j < stemHeight; ++j) {
+        BlockPos abovePos(pos.x, pos.y + j + 1, pos.z);
+        if (!allNeighborsEmpty(world, abovePos, std::nullopt)) {
+            return;
+        }
+        BlockState aboveState = ChorusPlantBlock::getStateWithConnections(world, abovePos, *chorusPlantState);
+        world.setBlockState(abovePos, &aboveState, 2);
+        BlockPos belowPos(pos.x, pos.y + j, pos.z);
+        BlockState belowState = ChorusPlantBlock::getStateWithConnections(world, belowPos, *chorusPlantState);
+        world.setBlockState(belowPos, &belowState, 2);
+    }
+
+    // 尝试水平分枝
+    bool branched = false;
+    if (depth < 4) {
+        i32 branchCount = random.nextInt(4);
+        if (depth == 0) {
+            branchCount++; // 根部多一个分枝机会
+        }
+
+        for (i32 k = 0; k < branchCount; ++k) {
+            Direction direction = Directions::horizontal()[random.nextInt(0, 4)];
+            BlockPos branchPos(
+                pos.x + Directions::xOffset(direction), pos.y + stemHeight, pos.z + Directions::zOffset(direction));
+
+            // 检查是否在最大水平距离范围内
+            if (std::abs(branchPos.x - origin.x) >= maxHorizontalDistance ||
+                std::abs(branchPos.z - origin.z) >= maxHorizontalDistance) {
+                continue;
+            }
+
+            // 检查分枝位置和其下方是否都为空气
+            const BlockState* branchState = world.getBlockState(branchPos);
+            const BlockState* belowBranchState = world.getBlockState(branchPos.x, branchPos.y - 1, branchPos.z);
+            if ((branchState == nullptr || branchState->isAir()) &&
+                (belowBranchState == nullptr || belowBranchState->isAir()) &&
+                allNeighborsEmpty(world, branchPos, Directions::opposite(direction))) {
+                branched = true;
+                BlockState branchBlockState =
+                    ChorusPlantBlock::getStateWithConnections(world, branchPos, *chorusPlantState);
+                world.setBlockState(branchPos, &branchBlockState, 2);
+                Direction oppositeDir = Directions::opposite(direction);
+                BlockPos oppositePos(branchPos.x + Directions::xOffset(oppositeDir),
+                    branchPos.y,
+                    branchPos.z + Directions::zOffset(oppositeDir));
+                BlockState oppositeBlockState =
+                    ChorusPlantBlock::getStateWithConnections(world, oppositePos, *chorusPlantState);
+                world.setBlockState(oppositePos, &oppositeBlockState, 2);
+                growTreeRecursive(world, branchPos, random, origin, maxHorizontalDistance, depth + 1);
+            }
+        }
+    }
+
+    // 如果没有分枝，在顶部放置死亡的花（age=5）
+    if (!branched) {
+        BlockPos topPos(pos.x, pos.y + stemHeight, pos.z);
+        const ChorusFlowerBlock& flowerBlock = static_cast<const ChorusFlowerBlock&>(chorusFlowerState->getBlock());
+        BlockState deadFlowerState = flowerBlock.withAge(5);
+        world.setBlockState(topPos, &deadFlowerState, 2);
+    }
+}
+
+bool ChorusFlowerBlock::allNeighborsEmpty(
+    WorldGenRegion& world, const BlockPos& pos, const std::optional<Direction>& excludeDir)
+{
+    // 对应 MC 原版 ChorusFlowerBlock.allNeighborsEmpty()
+    // 检查四个水平方向的邻居是否为空气（排除指定方向）
+    static const Direction horizontalDirs[] = {Direction::North, Direction::South, Direction::East, Direction::West};
+
+    for (Direction dir : horizontalDirs) {
+        if (excludeDir.has_value() && dir == excludeDir.value()) {
+            continue;
+        }
+        BlockPos adjPos = pos.offset(dir);
+        const BlockState* adjState = world.getBlockState(adjPos);
+        if (adjState != nullptr && !adjState->isAir()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace blocks

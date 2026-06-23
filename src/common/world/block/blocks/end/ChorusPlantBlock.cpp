@@ -208,5 +208,25 @@ bool ChorusPlantBlock::_canConnect(IBlockReader& world, const BlockPos& pos, Dir
     return false;
 }
 
+BlockState ChorusPlantBlock::getStateWithConnections(IWorld& world, const BlockPos& pos, const BlockState& defaultState)
+{
+    const ChorusPlantBlock& block = static_cast<const ChorusPlantBlock&>(defaultState.getBlock());
+    IBlockReader& blockReader = static_cast<IBlockReader&>(world);
+
+    bool north = block._canConnect(blockReader, pos, Direction::North);
+    bool south = block._canConnect(blockReader, pos, Direction::South);
+    bool east = block._canConnect(blockReader, pos, Direction::East);
+    bool west = block._canConnect(blockReader, pos, Direction::West);
+    bool up = block._canConnect(blockReader, pos, Direction::Up);
+    bool down = block._canConnect(blockReader, pos, Direction::Down);
+
+    return defaultState.with(BlockStateProperties::NORTH(), north)
+        .with(BlockStateProperties::SOUTH(), south)
+        .with(BlockStateProperties::EAST(), east)
+        .with(BlockStateProperties::WEST(), west)
+        .with(BlockStateProperties::UP(), up)
+        .with(BlockStateProperties::DOWN(), down);
+}
+
 } // namespace blocks
 } // namespace mc

@@ -31,12 +31,16 @@
  * - 黑曜石柱 (EndSpikeFeature)
  * - 末地折跃门 (EndGatewayFeature)
  * - 冰刺 (IceSpikeFeature)
+ * - 紫颂树 (ChorusPlantFeature)
+ * - 末地小岛 (EndIslandFeature)
  */
 
 #include <memory>
 #include <vector>
 
+#include "ChorusPlantFeature.hpp"
 #include "EndGatewayFeature.hpp"
+#include "EndIslandFeature.hpp"
 #include "EndSpikeFeature.hpp"
 #include "IceSpikeFeature.hpp"
 
@@ -56,6 +60,9 @@ struct EndFeatureRegistry {
 
     /// 获取所有末地特征（VegetalDecoration阶段）
     [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredFeatureBase>> getAllVegetationFeaturesAndClear();
+
+    /// 获取所有末地特征（RawGeneration阶段）
+    [[nodiscard]] static std::vector<std::unique_ptr<ConfiguredFeatureBase>> getAllRawGenerationFeaturesAndClear();
 };
 
 } // namespace mc

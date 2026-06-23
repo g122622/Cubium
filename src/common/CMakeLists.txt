@@ -1061,6 +1061,8 @@ add_library(mc_common STATIC
     world/gen/feature/end/EndSpikeFeature.cpp
     world/gen/feature/end/EndGatewayFeature.cpp
     world/gen/feature/end/IceSpikeFeature.cpp
+    world/gen/feature/end/ChorusPlantFeature.cpp
+    world/gen/feature/end/EndIslandFeature.cpp
     world/gen/feature/end/EndFeatures.cpp
 
     # World - Generation - Feature - Nether
