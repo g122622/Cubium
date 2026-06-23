@@ -251,14 +251,14 @@ bool WallBlock::_shouldRaisePost(const BlockState& state,
         return true;
     }
 
-    // 对称的Tall墙（直线Tall）不升起墙柱，除非上方有覆盖
-    bool oppositeTallNorthSouth = northHeight == BlockStateProperties::WallHeight::Tall &&
-        southHeight == BlockStateProperties::WallHeight::Tall && eastNone && westNone;
-    bool oppositeTallEastWest = eastHeight == BlockStateProperties::WallHeight::Tall &&
-        westHeight == BlockStateProperties::WallHeight::Tall && northNone && southNone;
+    // 对称直线墙（任意高度）不升起墙柱，除非上方有覆盖
+    // 参考: net.minecraft.block.WallBlock#shouldRaisePost 中的 straightNorthSouth/straightEastWest
+    // 注意：这里检查的是任意非None高度的直线墙，不仅限于Tall高度
+    bool straightNorthSouth = !northNone && !southNone && eastNone && westNone;
+    bool straightEastWest = !eastNone && !westNone && northNone && southNone;
 
-    if (oppositeTallNorthSouth || oppositeTallEastWest) {
-        // 直线Tall墙，不升起墙柱——除非上方有WALL_POST_OVERRIDE方块
+    if (straightNorthSouth || straightEastWest) {
+        // 直线墙，不升起墙柱——除非上方有WALL_POST_OVERRIDE方块
         if (aboveState && BlockTags::WALL_POST_OVERRIDE().contains(*aboveState)) {
             return true;
         }

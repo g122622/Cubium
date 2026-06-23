@@ -490,3 +490,122 @@ TEST_F(WallBlockTest, CanConnectRedstone)
     EXPECT_TRUE(wall.canConnectRedstone(state, Direction::South));
     EXPECT_TRUE(wall.canConnectRedstone(state, Direction::West));
 }
+
+// ============================================================================
+// WallBlock _shouldRaisePost Tests
+// 参考: net.minecraft.block.WallBlock#shouldRaisePost
+// ============================================================================
+
+TEST_F(WallBlockTest, ShouldRaisePost_NoConnections)
+{
+    // 无连接时应该升起墙柱
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    world.setBlockState(pos, &wall.defaultState());
+
+    const BlockState state =
+        wall.defaultState()
+            .with(BlockStateProperties::UP(), true)
+            .with(BlockStateProperties::WALL_HEIGHT_NORTH(), BlockStateProperties::WallHeight::None)
+            .with(BlockStateProperties::WALL_HEIGHT_EAST(), BlockStateProperties::WallHeight::None)
+            .with(BlockStateProperties::WALL_HEIGHT_SOUTH(), BlockStateProperties::WallHeight::None)
+            .with(BlockStateProperties::WALL_HEIGHT_WEST(), BlockStateProperties::WallHeight::None)
+            .with(BlockStateProperties::WATERLOGGED(), false);
+
+    BlockState result =
+        wall.updatePostPlacement(state, Direction::North, VanillaBlocks::AIR->defaultState(), world, pos, pos.north());
+    EXPECT_TRUE(result.get(BlockStateProperties::UP()));
+}
+
+TEST_F(WallBlockTest, ShouldRaisePost_SymmetricTallStraightWall)
+{
+    // 对称直线Tall墙（南北都有Tall连接，东西无连接）不应升起墙柱
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    world.setBlockState(pos.north(), &solid.defaultState());
+    world.setBlockState(pos.south(), &solid.defaultState());
+
+    // _calculateState 会根据邻居计算高度，固体方块产生 Tall 连接
+    BlockState state = wall.defaultState()
+                           .with(BlockStateProperties::UP(), false)
+                           .with(BlockStateProperties::WALL_HEIGHT_NORTH(), BlockStateProperties::WallHeight::Tall)
+                           .with(BlockStateProperties::WALL_HEIGHT_EAST(), BlockStateProperties::WallHeight::None)
+                           .with(BlockStateProperties::WALL_HEIGHT_SOUTH(), BlockStateProperties::WallHeight::Tall)
+                           .with(BlockStateProperties::WALL_HEIGHT_WEST(), BlockStateProperties::WallHeight::None)
+                           .with(BlockStateProperties::WATERLOGGED(), false);
+
+    BlockState result =
+        wall.updatePostPlacement(state, Direction::North, solid.defaultState(), world, pos, pos.north());
+    EXPECT_FALSE(result.get(BlockStateProperties::UP()));
+}
+
+TEST_F(WallBlockTest, ShouldRaisePost_SymmetricLowStraightWall)
+{
+    // 对称直线Low墙（南北都有Low连接，东西无连接）不应升起墙柱
+    // 这是关键测试：旧实现仅检查Tall高度的直线墙，导致Low直线墙错误地升起墙柱
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    // 设置铁栏杆在南北方向（铁栏杆与墙连接返回 Low 高度）
+    if (VanillaBlocks::IRON_BARS) {
+        world.setBlockState(pos.north(), &VanillaBlocks::IRON_BARS->defaultState());
+        world.setBlockState(pos.south(), &VanillaBlocks::IRON_BARS->defaultState());
+
+        BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+        BlockState placedState = wall.getStateForPlacement(context);
+
+        // 南北都连接铁栏杆 → Low 直线墙 → UP 应为 false
+        EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::Low);
+        EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::Low);
+        EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::None);
+        EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::None);
+        EXPECT_FALSE(placedState.get(BlockStateProperties::UP()));
+    }
+}
+
+TEST_F(WallBlockTest, ShouldRaisePost_AsymmetricConnections)
+{
+    // 不对称连接（如只有北面连接，南面无连接）应升起墙柱
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    world.setBlockState(pos.north(), &solid.defaultState());
+
+    BlockState state = wall.defaultState()
+                           .with(BlockStateProperties::UP(), true)
+                           .with(BlockStateProperties::WALL_HEIGHT_NORTH(), BlockStateProperties::WallHeight::Tall)
+                           .with(BlockStateProperties::WALL_HEIGHT_EAST(), BlockStateProperties::WallHeight::None)
+                           .with(BlockStateProperties::WALL_HEIGHT_SOUTH(), BlockStateProperties::WallHeight::None)
+                           .with(BlockStateProperties::WALL_HEIGHT_WEST(), BlockStateProperties::WallHeight::None)
+                           .with(BlockStateProperties::WATERLOGGED(), false);
+
+    BlockState result =
+        wall.updatePostPlacement(state, Direction::North, solid.defaultState(), world, pos, pos.north());
+    EXPECT_TRUE(result.get(BlockStateProperties::UP()));
+}
+
+TEST_F(WallBlockTest, ShouldRaisePost_CornerConnections)
+{
+    // 角落连接（北面和东面都有连接）应升起墙柱
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    world.setBlockState(pos.north(), &solid.defaultState());
+    world.setBlockState(pos.east(), &solid.defaultState());
+
+    BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+    BlockState placedState = wall.getStateForPlacement(context);
+
+    // 北和东有连接，南和西无连接 → 不对称 → UP=true
+    EXPECT_TRUE(placedState.get(BlockStateProperties::UP()));
+}
