@@ -1347,6 +1347,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/VillagerParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripWaterParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripstoneDripParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/SplashParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/FishingParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp

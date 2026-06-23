@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IWaterLoggable.hpp"
@@ -29,9 +30,11 @@
 #include <unordered_map>
 
 namespace mc {
+
 namespace fluid {
 class Fluid;
 } // namespace fluid
+
 namespace blocks {
 
 /**
@@ -163,6 +166,55 @@ public:
     /// 流体传输逻辑
     static void maybeTransferFluid(const BlockState& state, IWorld& world, const BlockPos& pos, f32 chance);
 
+    /**
+     * @brief 钟乳石滴水的流体类型
+     *
+     * 用于客户端根据流体类型选择正确的滴水粒子。
+     */
+    enum class DripFluidType {
+        Empty, ///< 无流体（使用默认滴水粒子）
+        Water, ///< 水
+        Lava   ///< 熔岩
+    };
+
+    /**
+     * @brief 钟乳石上方的流体信息
+     *
+     * 对齐 MC Java 版 PointedDripstoneBlock.FluidInfo 记录
+     */
+    struct FluidInfo {
+        BlockPos fluidPos;           ///< 流体所在位置
+        DripFluidType dripFluidType; ///< 滴水流体类型
+    };
+
+    /**
+     * @brief 获取钟乳石上方的流体信息
+     *
+     * 沿钟乳石向上寻找根方块，然后获取根方块上方的流体。
+     * 如果上方是泥巴（Mud），则视为水源。
+     *
+     * 对齐 MC Java 版 PointedDripstoneBlock.getFluidAboveStalactite
+     *
+     * @param world 世界引用
+     * @param pos 钟乳石尖端位置
+     * @param state 钟乳石尖端方块状态
+     * @return 流体信息，如果不是钟乳石或没有找到流体则返回空
+     */
+    [[nodiscard]] static std::optional<FluidInfo> getFluidAboveStalactite(
+        IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 获取钟乳石滴水粒子位置
+     *
+     * 计算 MC Java 版 spawnDripParticle 中的粒子位置偏移：
+     * Y = blockPos.y + STALACTITE_DRIP_START_PIXEL - 0.0625 = blockPos.y + 0.25
+     * X/Z = blockPos.x/z + 0.5（中心对齐）
+     *
+     * @param pos 钟乳石尖端方块位置
+     * @return 粒子生成位置（世界坐标）
+     */
+    [[nodiscard]] static Vector3 getDripParticlePosition(const BlockPos& pos);
+
 private:
     /// 碰撞形状，按厚度和方向索引
     std::unordered_map<BlockStateProperties::DripstoneThickness, CollisionShape> m_shapes;
@@ -175,6 +227,8 @@ private:
     static constexpr i32 MAX_SEARCH_LENGTH_WHEN_CHECKING_DRIP_TYPE = 11;
     /// 钟乳石掉落延迟(tick)
     static constexpr i32 DELAY_BEFORE_FALLING = 2;
+    /// 钟乳石尖端滴水起始 Y 偏移（像素），对应 MC Java SHAPE_TIP_DOWN.min(Y) = 5.0
+    static constexpr f64 STALACTITE_DRIP_START_PIXEL = 5.0 / 16.0;
     /// 水传输概率
     static constexpr f32 WATER_TRANSFER_PROBABILITY_PER_RANDOM_TICK = 0.17578125F;
     /// 岩浆传输概率

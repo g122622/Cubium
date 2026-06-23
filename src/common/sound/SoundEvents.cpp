@@ -275,6 +275,17 @@ const ResourceLocation BLOCK_LILY_PAD_PLACE("minecraft:block.lily_pad.place");
 const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_DOWN("minecraft:block.big_dripleaf.tilt_down");
 const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_UP("minecraft:block.big_dripleaf.tilt_up");
 
+/// 滴水石音效
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_HIT("minecraft:block.pointed_dripstone.hit");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_FALL("minecraft:block.pointed_dripstone.fall");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_LAND("minecraft:block.pointed_dripstone.land");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_WATER("minecraft:block.pointed_dripstone.drip_water");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_LAVA("minecraft:block.pointed_dripstone.drip_lava");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_WATER_INTO_CAULDRON(
+    "minecraft:block.pointed_dripstone.drip_water_into_cauldron");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON(
+    "minecraft:block.pointed_dripstone.drip_lava_into_cauldron");
+
 const ResourceLocation BLOCK_WATER_AMBIENT("minecraft:block.water.ambient");
 
 const ResourceLocation BLOCK_BARREL_CLOSE("minecraft:block.barrel.close");

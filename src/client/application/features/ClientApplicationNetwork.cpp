@@ -58,6 +58,10 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
+#include "common/world/block/registry/CaveBlocks.hpp"
+#include "common/world/block/registry/MudBlocks.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -1990,9 +1994,101 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         }
 
         case WorldEvents::DRIPSTONE_DRIP: {
-            // 滴石滴水效果
-            // TODO: 实现滴石滴水的完整粒子效果，当前仅生成水滴粒子
-            m_world.addParticle(ParticleTypeId::DrippingWater, Vector3(px, py, pz), Vector3(0.0f, 0.0f, 0.0f));
+            // 滴石滴水粒子效果
+            // 对齐 MC Java: PointedDripstoneBlock.spawnDripParticle
+            // 事件由服务端在 maybeTransferFluid 中触发（钟乳石成功向炼药锅传输流体时）
+            // 客户端需要根据钟乳石上方的流体类型选择正确的粒子类型
+            {
+                // 获取钟乳石尖端位置的方块状态
+                const BlockState* dripstoneState = m_world.getBlockState(x, y, z);
+                if (dripstoneState != nullptr) {
+                    // 计算正确的粒子位置
+                    // Y = blockPos.y + STALACTITE_DRIP_START_PIXEL - 0.0625 = blockPos.y + 0.25
+                    // X/Z = blockPos.x/z + 0.5（居中）
+                    f32 particleX = static_cast<f32>(x) + 0.5f;
+                    f32 particleY = static_cast<f32>(y) + 0.25f;
+                    f32 particleZ = static_cast<f32>(z) + 0.5f;
+                    Vector3 particlePos(particleX, particleY, particleZ);
+
+                    // 检测流体类型：沿钟乳石向上搜索非滴石方块，然后检查其流体状态
+                    ParticleTypeId dripType = ParticleTypeId::DrippingDripstoneWater; // 默认水滴
+
+                    if (blocks::PointedDripstoneBlock::isStalactite(*dripstoneState)) {
+                        i32 searchX = x, searchY = y + 1, searchZ = z;
+                        const BlockState* aboveState = nullptr;
+                        for (i32 i = 0; i < 11; ++i) {
+                            aboveState = m_world.getBlockState(searchX, searchY, searchZ);
+                            if (aboveState == nullptr
+                                || !aboveState->is(block_registry::CaveBlocks::POINTED_DRIPSTONE)) {
+                                break;
+                            }
+                            searchY++;
+                        }
+                        // aboveState 现在是根方块上方的方块
+                        if (aboveState != nullptr) {
+                            // 检查是否是泥巴（Mud），泥巴视为水源
+                            if (aboveState->is(block_registry::MudBlocks::MUD)) {
+                                dripType = ParticleTypeId::DrippingDripstoneWater;
+                            } else {
+                                // 检查流体状态
+                                const fluid::FluidState* fluidState = aboveState->getFluidState();
+                                if (fluidState != nullptr && !fluidState->isEmpty()) {
+                                    const fluid::Fluid& fluid = fluidState->getFluid();
+                                    if (fluid.isIn(fluid::FluidTags::LAVA())) {
+                                        dripType = ParticleTypeId::DrippingDripstoneLava;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    m_world.addParticle(dripType, particlePos, Vector3(0.0f, 0.0f, 0.0f));
+                }
+            }
+            break;
+        }
+
+        case WorldEvents::POINTED_DRIPSTONE_LAND_SOUND: {
+            // 滴石尖锥落地音效
+            // 对齐 MC Java: LevelEvent.SOUND_POINTED_DRIPSTONE_LAND (1045)
+            if (m_audioService) {
+                f32 pitch = random.nextFloat() * 0.1f + 0.9f;
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_POINTED_DRIPSTONE_LAND, SoundCategory::Blocks, px, py, pz, 2.0f, pitch)));
+            }
+            break;
+        }
+
+        case WorldEvents::DRIP_LAVA_INTO_CAULDRON_SOUND: {
+            // 熔岩滴入炼药锅音效
+            // 对齐 MC Java: LevelEvent.SOUND_DRIP_LAVA_INTO_CAULDRON (1046)
+            if (m_audioService) {
+                f32 pitch = random.nextFloat() * 0.1f + 0.9f;
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(SoundEvents::BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON,
+                        SoundCategory::Blocks,
+                        px,
+                        py,
+                        pz,
+                        2.0f,
+                        pitch)));
+            }
+            break;
+        }
+
+        case WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND: {
+            // 水滴入炼药锅音效
+            // 对齐 MC Java: LevelEvent.SOUND_DRIP_WATER_INTO_CAULDRON (1047)
+            if (m_audioService) {
+                f32 pitch = random.nextFloat() * 0.1f + 0.9f;
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(SoundEvents::BLOCK_POINTED_DRIPSTONE_DRIP_WATER_INTO_CAULDRON,
+                        SoundCategory::Blocks,
+                        px,
+                        py,
+                        pz,
+                        2.0f,
+                        pitch)));
+            }
             break;
         }
 

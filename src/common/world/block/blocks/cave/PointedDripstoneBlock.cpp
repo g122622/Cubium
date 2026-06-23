@@ -39,6 +39,7 @@
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
+#include "common/world/block/registry/MudBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -892,6 +893,68 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
         mutablePos.move(Direction::Down);
         currentState = world.getBlockState(mutablePos.toImmutable());
     }
+}
+
+// ============================================================================
+// getFluidAboveStalactite
+// ============================================================================
+
+std::optional<PointedDripstoneBlock::FluidInfo> PointedDripstoneBlock::getFluidAboveStalactite(
+    IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 对齐 MC Java: PointedDripstoneBlock.getFluidAboveStalactite
+    if (!isStalactite(state)) {
+        return std::nullopt;
+    }
+
+    auto rootBlockPos = findRootBlock(world, pos, state, MAX_SEARCH_LENGTH_WHEN_CHECKING_DRIP_TYPE);
+    if (!rootBlockPos.has_value()) {
+        return std::nullopt;
+    }
+
+    BlockPos abovePos(rootBlockPos->x, rootBlockPos->y + 1, rootBlockPos->z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    if (aboveState == nullptr) {
+        return FluidInfo{abovePos, DripFluidType::Empty};
+    }
+
+    // 检查上方方块是否是泥巴（Mud），泥巴视为水源
+    // 对齐 MC Java: if (blockstate.is(Blocks.MUD)) fluid = Fluids.WATER;
+    if (aboveState->is(block_registry::MudBlocks::MUD)) {
+        return FluidInfo{abovePos, DripFluidType::Water};
+    }
+
+    // 检查上方方块的流体状态
+    const fluid::FluidState* fluidState = aboveState->getFluidState();
+    if (fluidState != nullptr && !fluidState->isEmpty()) {
+        const fluid::Fluid& fluid = fluidState->getFluid();
+        if (fluid.isIn(fluid::FluidTags::LAVA())) {
+            return FluidInfo{abovePos, DripFluidType::Lava};
+        }
+        if (fluid.isIn(fluid::FluidTags::WATER())) {
+            return FluidInfo{abovePos, DripFluidType::Water};
+        }
+    }
+
+    return FluidInfo{abovePos, DripFluidType::Empty};
+}
+
+// ============================================================================
+// getDripParticlePosition
+// ============================================================================
+
+Vector3 PointedDripstoneBlock::getDripParticlePosition(const BlockPos& pos)
+{
+    // 对齐 MC Java: PointedDripstoneBlock.spawnDripParticle
+    // Y = blockPos.y + STALACTITE_DRIP_START_PIXEL - 0.0625
+    //   = blockPos.y + 5/16 - 1/16 = blockPos.y + 0.25
+    // X = blockPos.x + 0.5（居中，暂不处理方块偏移 offset）
+    // Z = blockPos.z + 0.5
+    f64 particleX = static_cast<f64>(pos.x) + 0.5;
+    f64 particleY = static_cast<f64>(pos.y) + STALACTITE_DRIP_START_PIXEL - 0.0625;
+    f64 particleZ = static_cast<f64>(pos.z) + 0.5;
+
+    return Vector3(static_cast<f32>(particleX), static_cast<f32>(particleY), static_cast<f32>(particleZ));
 }
 
 } // namespace blocks

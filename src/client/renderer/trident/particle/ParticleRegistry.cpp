@@ -312,6 +312,27 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 
+    // 滴水石专用粒子
+    registerSimpleType(ParticleTypeId::DrippingDripstoneWater,
+        "minecraft:dripping_dripstone_water",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    registerSimpleType(ParticleTypeId::FallingDripstoneWater,
+        "minecraft:falling_dripstone_water",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    registerSimpleType(ParticleTypeId::DrippingDripstoneLava,
+        "minecraft:dripping_dripstone_lava",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+
+    registerSimpleType(ParticleTypeId::FallingDripstoneLava,
+        "minecraft:falling_dripstone_lava",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+
     // 天气类粒子
     registerSimpleType(
         ParticleTypeId::Rain, "minecraft:rain", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);

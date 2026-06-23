@@ -295,6 +295,15 @@ extern const ResourceLocation BLOCK_LILY_PAD_PLACE;
 extern const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_DOWN;
 extern const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_UP;
 
+/// 滴水石音效
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_HIT;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_FALL;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_LAND;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_WATER;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_LAVA;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_WATER_INTO_CAULDRON;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON;
+
 extern const ResourceLocation BLOCK_WATER_AMBIENT;
 
 extern const ResourceLocation BLOCK_BARREL_CLOSE;
