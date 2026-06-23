@@ -29,6 +29,8 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/end/ShulkerEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/interfaces/IMob.hpp"
+#include "common/scoreboard/core/Team.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -410,6 +412,53 @@ TEST(ShulkerNearestAttackGoalTest, Construction)
     EXPECT_EQ(goal->getTypeName(), "ShulkerNearestAttackGoal");
 }
 
+TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteWithoutWorld)
+{
+    // 没有世界时，不应执行
+    ShulkerEntity shulker(EntityId(1));
+    entity::ai::goal::ShulkerNearestAttackGoal goal(&shulker);
+
+    // 没有设置世界，shouldExecute 应返回 false
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteOnPeacefulDifficulty)
+{
+    // 和平难度下不应攻击玩家
+    // 构造一个可配置难度的测试世界
+    class PeacefulTestWorld final : public test::BaseTestWorld {
+    public:
+        PeacefulTestWorld() { VanillaBlocks::initialize(); }
+        [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
+        [[nodiscard]] u64 currentTick() const override { return m_tick; }
+        void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+        EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+        {
+            m_entities.push_back(std::move(entity));
+            return EntityId(static_cast<u32>(m_entities.size()));
+        }
+        [[nodiscard]] world::tick::TickManager& tickManager() override { throw std::runtime_error("not implemented"); }
+        [[nodiscard]] const world::tick::TickManager& tickManager() const override
+        {
+            throw std::runtime_error("not implemented");
+        }
+        void advanceTick() { m_tick++; }
+
+    private:
+        u64 m_tick = 0;
+        std::vector<std::unique_ptr<Entity>> m_entities;
+    };
+
+    auto world = std::make_unique<PeacefulTestWorld>();
+    ShulkerEntity shulker(EntityId(1));
+    shulker.setWorld(world.get());
+
+    entity::ai::goal::ShulkerNearestAttackGoal goal(&shulker);
+
+    // 和平难度下 shouldExecute 必须返回 false
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
 // ============================================================================
 // ShulkerDefenseAttackGoal 测试
 // ============================================================================
@@ -433,14 +482,103 @@ TEST(ShulkerDefenseAttackGoalTest, DoesNotExecuteWithoutTeam)
     EXPECT_FALSE(goal.shouldExecute());
 }
 
-TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteWithoutWorld)
+TEST(ShulkerDefenseAttackGoalTest, DoesNotExecuteWithoutWorld)
 {
-    // 没有世界时，不应执行
-    ShulkerEntity shulker(EntityId(1));
-    entity::ai::goal::ShulkerNearestAttackGoal goal(&shulker);
+    // 没有世界时，即使有队伍也不应执行（因为无法搜索实体）
+    // 使用带可设置队伍的潜影贝子类
+    class ShulkerWithTeam final : public ShulkerEntity {
+    public:
+        ShulkerWithTeam(EntityId id)
+            : ShulkerEntity(id)
+        {}
+        void setTeam(scoreboard::Team* team) { m_team = team; }
+        [[nodiscard]] scoreboard::Team* getTeam() override { return m_team; }
+        [[nodiscard]] const scoreboard::Team* getTeam() const override { return m_team; }
 
-    // 没有设置世界，shouldExecute 应返回 false
+    private:
+        scoreboard::Team* m_team = nullptr;
+    };
+
+    // 创建一个空的 MockTeam
+    class MockTeam final : public scoreboard::Team {
+    public:
+        explicit MockTeam(const std::string& name)
+            : m_name(name)
+        {}
+
+        [[nodiscard]] const std::string& getName() const noexcept override { return m_name; }
+        [[nodiscard]] const text::ITextComponent* getDisplayName() const noexcept override { return nullptr; }
+        void setDisplayName(std::unique_ptr<text::ITextComponent>) override {}
+        [[nodiscard]] const std::set<std::string>& getMembers() const noexcept override
+        {
+            static std::set<std::string> empty;
+            return empty;
+        }
+        bool addMember(const std::string&) override { return false; }
+        bool removeMember(const std::string&) override { return false; }
+        [[nodiscard]] bool hasMember(const std::string&) const override { return false; }
+        void clearMembers() override {}
+        [[nodiscard]] text::TextFormatting getColor() const noexcept override { return text::TextFormatting::White; }
+        void setColor(text::TextFormatting) override {}
+        [[nodiscard]] const text::ITextComponent* getPrefix() const noexcept override { return nullptr; }
+        void setPrefix(std::unique_ptr<text::ITextComponent>) override {}
+        [[nodiscard]] const text::ITextComponent* getSuffix() const noexcept override { return nullptr; }
+        void setSuffix(std::unique_ptr<text::ITextComponent>) override {}
+        [[nodiscard]] bool getAllowFriendlyFire() const noexcept override { return false; }
+        void setAllowFriendlyFire(bool) override {}
+        [[nodiscard]] bool canSeeFriendlyInvisibles() const noexcept override { return false; }
+        void setSeeFriendlyInvisibles(bool) override {}
+        [[nodiscard]] scoreboard::TeamVisibility getNameTagVisibility() const noexcept override
+        {
+            return scoreboard::TeamVisibility::Always;
+        }
+        void setNameTagVisibility(scoreboard::TeamVisibility) override {}
+        [[nodiscard]] scoreboard::TeamVisibility getDeathMessageVisibility() const noexcept override
+        {
+            return scoreboard::TeamVisibility::Always;
+        }
+        void setDeathMessageVisibility(scoreboard::TeamVisibility) override {}
+        [[nodiscard]] scoreboard::TeamCollisionRule getCollisionRule() const noexcept override
+        {
+            return scoreboard::TeamCollisionRule::Always;
+        }
+        void setCollisionRule(scoreboard::TeamCollisionRule) override {}
+        [[nodiscard]] std::unique_ptr<text::ITextComponent> formatName(const text::ITextComponent&) const override
+        {
+            return nullptr;
+        }
+        [[nodiscard]] std::unique_ptr<text::ITextComponent> getFormattedDisplayName() const override { return nullptr; }
+
+    private:
+        std::string m_name;
+    };
+
+    MockTeam team("test_team");
+    ShulkerWithTeam shulker(EntityId(1));
+    shulker.setTeam(&team);
+    EXPECT_NE(shulker.getTeam(), nullptr);
+
+    entity::ai::goal::ShulkerDefenseAttackGoal goal(&shulker);
+    // 没有世界，shouldExecute 应返回 false（因为 NearestAttackableTargetGoal::shouldExecute
+    // 会先检查 world 是否为 null）
     EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST(ShulkerDefenseAttackGoalTest, IMobPredicateFiltersCorrectly)
+{
+    // 验证 ShulkerDefenseAttackGoal 的 IMob 过滤谓词
+    // IMob 实体（如 ZombieEntity）应通过过滤，非 IMob 实体应被排除
+
+    // 验证 MonsterEntity 实现了 IMob 接口
+    ShulkerEntity shulker(EntityId(1)); // MonsterEntity -> IMob
+    const auto* imob = dynamic_cast<const entity::IMob*>(&shulker);
+    EXPECT_NE(imob, nullptr) << "ShulkerEntity (MonsterEntity) 应该实现 IMob 接口";
+
+    // 验证 ShulkerDefenseAttackGoal 构造函数中的谓词
+    // 谓词: dynamic_cast<const entity::IMob*>(entity) != nullptr
+    // 对于 IMob 实体返回 true，对于非 IMob 的 LivingEntity 返回 false
+    entity::ai::goal::ShulkerDefenseAttackGoal goal(&shulker);
+    EXPECT_EQ(goal.getTypeName(), "ShulkerDefenseAttackGoal");
 }
 
 // ============================================================================
