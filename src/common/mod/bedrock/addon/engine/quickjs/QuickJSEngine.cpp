@@ -120,7 +120,12 @@ std::unique_ptr<IScriptContext> QuickJSEngine::createContext(const ModuleDescrip
 
     spdlog::info("[BedrockAddon] Creating script context for module: {}", descriptor.name);
 
-    ContextConfig config;
+    ContextConfig config{
+        Capabilities{},                  // 无特殊能力
+        std::nullopt,                    // 无特殊权限
+        DEFAULT_CONTEXT_MEMORY_BYTES,    // 64MB 内存限制
+        DEFAULT_CONTEXT_STACK_SIZE_BYTES // 4MB 栈限制
+    };
     auto context = m_runtime->createContext(config);
     if (!context) {
         spdlog::error("[BedrockAddon] Failed to create QuickJS context");

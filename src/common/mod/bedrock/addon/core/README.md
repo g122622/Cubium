@@ -59,7 +59,7 @@ IScriptContext（插件隔离单元）
 
 1. **nativeHandle() 仅限引擎层使用**：`IScriptContext::nativeHandle()` 返回 QuickJS 的 `JSContext*`，仅允许 `engine/` 目录下的实现代码使用。`modules/` 和 `binding/` 层必须通过 `bindingContext()` 获取引擎无关的 `IScriptBindingContext` 接口。
 
-2. **ContextConfig 默认值问题**：`ContextConfig` 结构体的 `maxMemoryBytes` 和 `maxStackSizeBytes` 设置了默认值（64MB/4MB），这违反了项目规范（函数参数和配置结构体不应使用默认值），但因修改影响面大暂时保留。
+2. **ContextConfig 必须显式赋值**：`ContextConfig` 结构体的所有字段均无默认值，调用方必须显式传入 `maxMemoryBytes` 和 `maxStackSizeBytes`。可使用 `DEFAULT_CONTEXT_MEMORY_BYTES` 和 `DEFAULT_CONTEXT_STACK_SIZE_BYTES` 常量获取典型值。
 
 3. **上下文生命周期**：`IScriptContext` 由 `IScriptRuntime` 创建，必须通过 `IScriptRuntime::destroyContext()` 销毁，不能直接 delete。
 

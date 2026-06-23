@@ -40,15 +40,20 @@ class IScriptContext;
 /**
  * @brief 上下文配置
  *
- * TODO: 结构体成员的默认值违反项目规范，应移除默认值并在所有调用方显式传入。
- *       由于修改会影响多个调用方，暂时保留默认值。
+ * 创建脚本上下文时传入的配置参数。
+ * 所有字段必须由调用方显式赋值，不使用默认值。
  */
 struct ContextConfig {
     Capabilities capabilities;
     std::optional<Privilege> privilege;
-    u32 maxMemoryBytes = 64 * 1024 * 1024;   // 默认64MB内存限制
-    u32 maxStackSizeBytes = 4 * 1024 * 1024; // 默认4MB栈限制
+    u32 maxMemoryBytes;    ///< 内存限制（字节），典型值 64MB
+    u32 maxStackSizeBytes; ///< 栈大小限制（字节），典型值 4MB
 };
+
+/// 上下文内存限制默认值：64MB
+inline constexpr u32 DEFAULT_CONTEXT_MEMORY_BYTES = 64 * 1024 * 1024;
+/// 上下文栈大小默认值：4MB
+inline constexpr u32 DEFAULT_CONTEXT_STACK_SIZE_BYTES = 4 * 1024 * 1024;
 
 /**
  * @brief 运行时统计信息
