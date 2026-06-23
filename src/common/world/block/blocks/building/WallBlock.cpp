@@ -26,6 +26,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/FenceGateHelpers.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 
@@ -267,18 +268,17 @@ BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, 
 
 BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& state, Direction neighborSide) const
 {
-    // 连接逻辑:
-    // 1. 墙总是连接到其他墙 (返回 Tall)
-    // 2. 栅栏门平行时连接 (返回 Low)
-    // 3. 玻璃板总是连接 (返回 Low)
-    // 4. 固体方块连接 (根据碰撞形状决定 Tall 或 Low)
+    // 参考: net.minecraft.block.WallBlock#connectsTo
+    // 墙连接逻辑:
+    // 1. 其他墙 -> 总是连接
+    // 2. 栅栏门平行时 -> 连接
+    // 3. 铁栏杆 -> 连接
+    // 4. 固体方块（非连接例外）-> 连接
 
-    // 检查是否为墙
     if (isWall(state)) {
         return BlockStateProperties::WallHeight::Tall;
     }
 
-    // 检查是否为栅栏门
     if (fencehelpers::isFenceGate(state)) {
         if (fencehelpers::isFenceGateParallel(state, neighborSide)) {
             return BlockStateProperties::WallHeight::Low;
@@ -286,21 +286,14 @@ BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& sta
         return BlockStateProperties::WallHeight::None;
     }
 
-    // 检查是否为玻璃板类方块 (PaneBlock)
-    // 简化实现：检查是否有NORTH/EAST/SOUTH/WEST布尔属性但没有WALL_HEIGHT属性
-    if (state.hasProperty(BlockStateProperties::NORTH()) &&
-        !state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH())) {
+    // 铁栏杆连接到墙时返回 Low
+    if (BlockTags::BARS().contains(state)) {
         return BlockStateProperties::WallHeight::Low;
     }
 
-    // 检查是否有不透明碰撞形状（固体方块）
-    if (state.hasOpaqueCollisionShape()) {
+    // 固体方块连接（排除连接例外方块）
+    if (!Block::isExceptionForConnection(state) && state.isSolid()) {
         return BlockStateProperties::WallHeight::Tall;
-    }
-
-    // 检查是否为普通固体方块
-    if (state.isSolid()) {
-        return BlockStateProperties::WallHeight::Low;
     }
 
     return BlockStateProperties::WallHeight::None;
@@ -308,7 +301,7 @@ BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& sta
 
 bool WallBlock::isWall(const BlockState& state)
 {
-    return state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH());
+    return BlockTags::WALLS().contains(state);
 }
 
 size_t WallBlock::_getShapeIndex(bool up,

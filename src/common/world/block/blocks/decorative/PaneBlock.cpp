@@ -26,6 +26,7 @@
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../BlockTags.hpp"
 #include "../../WaterLoggableHelpers.hpp"
 #include "../building/WallBlock.hpp"
 
@@ -202,18 +203,23 @@ bool PaneBlock::connectsTo(const BlockState& state, Direction facing) noexcept
 bool PaneBlock::shouldConnectTo(
     IWorld& world, const BlockPos& pos, const BlockState& neighborState, Direction direction) const
 {
+    // 参考: net.minecraft.block.IronBarsBlock#attachsTo
     const Block& neighborBlock = neighborState.getBlock();
     const Direction oppositeDirection = Directions::opposite(direction);
 
+    // 同类方块互相连接
     if (&neighborBlock == this) {
         return true;
     }
 
+    // 墙总是连接
     if (WallBlock::isWall(neighborState)) {
         return true;
     }
 
-    return neighborBlock.isSolidSide(neighborState, world, pos, oppositeDirection);
+    // 固体方块连接（排除连接例外方块）
+    bool isSolidSide = neighborBlock.isSolidSide(neighborState, world, pos, oppositeDirection);
+    return !Block::isExceptionForConnection(neighborState) && isSolidSide;
 }
 
 size_t PaneBlock::getShapeIndex(bool north, bool east, bool south, bool west) noexcept

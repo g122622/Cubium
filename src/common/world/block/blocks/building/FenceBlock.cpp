@@ -26,6 +26,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/FenceGateHelpers.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -259,27 +260,27 @@ const BlockState& FenceBlock::mirror(const BlockState& state, Mirror mirror) con
 
 bool FenceBlock::_canConnect(const BlockState& state, bool isNeighborSolid, Direction direction) const
 {
-    // 检查是否为栅栏门且平行
+    // 参考: net.minecraft.block.FenceBlock#connectsTo
+    // 栅栏门平行时可以连接
     if (fencehelpers::isFenceGate(state)) {
         if (fencehelpers::isFenceGateParallel(state, direction)) {
             return true;
         }
     }
 
-    // 检查是否为同类栅栏
-    // 简化实现：检查是否有相同的NORTH属性（表示是栅栏类方块）
-    if (state.hasProperty(BlockStateProperties::NORTH())) {
-        // 如果是栅栏或墙，可以连接
-        // 对于墙，需要额外检查
-        if (state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH())) {
-            // 墙总是连接
+    // 同类栅栏连接：木质栅栏连接木质栅栏，下界砖栅栏连接下界砖栅栏
+    // 参考: net.minecraft.block.FenceBlock#isSameFence
+    bool isFence = BlockTags::FENCES().contains(state);
+    if (isFence) {
+        bool thisIsWooden = BlockTags::WOODEN_FENCES().contains(this->defaultState());
+        bool neighborIsWooden = BlockTags::WOODEN_FENCES().contains(state);
+        if (thisIsWooden == neighborIsWooden) {
             return true;
         }
-        return true;
     }
 
-    // 连接到固体方块
-    if (isNeighborSolid) {
+    // 固体方块连接（排除连接例外方块）
+    if (!Block::isExceptionForConnection(state) && isNeighborSolid) {
         return true;
     }
 

@@ -1904,6 +1904,19 @@ public:
     [[nodiscard]] static bool isFaceFull(const CollisionShape& shape, Direction direction);
 
     /**
+     * @brief 判断方块是否为连接例外方块
+     *
+     * 某些方块虽然是固体的，但栅栏、墙、玻璃板等不应与它们建立连接。
+     * 这些方块包括：树叶、屏障、雕刻南瓜、南瓜灯、西瓜、南瓜、潜影盒。
+     *
+     * 参考: net.minecraft.block.Block#isExceptionForConnection
+     *
+     * @param state 方块状态
+     * @return 如果是连接例外方块返回 true
+     */
+    [[nodiscard]] static bool isExceptionForConnection(const BlockState& state);
+
+    /**
      * @brief 当方块碰撞形状增大时，将嵌入方块内的实体向上推出
      *
      * 计算 oldState 和 newState 之间的碰撞形状差异（新增部分），
