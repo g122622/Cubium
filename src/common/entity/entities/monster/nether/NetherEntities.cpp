@@ -852,4 +852,16 @@ void ZoglinEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
+bool ZoglinEntity::canAttackType(entity::EntityTypeId typeId) const
+{
+    // MC 原版 Zoglin.isTargetable 排除 Zoglin 和 Creeper
+    if (typeId == entity::EntityTypeIdNumber::ZOGLIN) {
+        return false;
+    }
+    if (typeId == entity::EntityTypeIdNumber::CREEPER) {
+        return false;
+    }
+    return MonsterEntity::canAttackType(typeId);
+}
+
 } // namespace mc

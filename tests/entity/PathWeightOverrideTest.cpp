@@ -32,6 +32,7 @@
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/entity/entities/monster/basic/GiantEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
@@ -42,6 +43,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/mob/InfestedBlock.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
@@ -599,6 +601,72 @@ TEST_F(SilverfishPathWeightTest, ReturnsZeroWhenNoWorld)
     // 没有世界时返回 0.0f
     SilverfishEntity silverfish(EntityId(70));
     EXPECT_FLOAT_EQ(silverfish.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+// ============================================================================
+// HoglinEntity::getPathWeight 测试
+// ============================================================================
+
+class HoglinPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(HoglinPathWeightTest, PrefersCrimsonNylium)
+{
+    // MC Hoglin.getWalkTargetValue: 站在绯红菌岩上返回 10.0f
+    world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::CRIMSON_NYLIUM->defaultState());
+
+    HoglinEntity hoglin(EntityId(80));
+    hoglin.setWorld(&world);
+    f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+}
+
+TEST_F(HoglinPathWeightTest, ReturnsZeroOnNonCrimsonNylium)
+{
+    // 非绯红菌岩方块返回 0.0f
+    HoglinEntity hoglin(EntityId(80));
+    hoglin.setWorld(&world);
+    f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
+
+TEST_F(HoglinPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    // 没有世界时返回 0.0f
+    HoglinEntity hoglin(EntityId(80));
+    EXPECT_FLOAT_EQ(hoglin.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(HoglinPathWeightTest, WarpedNyliumNotPreferred)
+{
+    // 诡异菌岩不是疣猪兽偏好方块，应返回 0.0f
+    world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::WARPED_NYLIUM->defaultState());
+
+    HoglinEntity hoglin(EntityId(80));
+    hoglin.setWorld(&world);
+    f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
+
+TEST_F(HoglinPathWeightTest, CrimsonNyliumOverridesDarknessPreference)
+{
+    // 绯红菌岩权重 (10.0f) 应远高于普通怪物的黑暗偏好
+    world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::CRIMSON_NYLIUM->defaultState());
+
+    HoglinEntity hoglin(EntityId(80));
+    hoglin.setWorld(&world);
+    f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+
+    // 没有绯红菌岩的位置权重应为 0.0f
+    f32 nonNyliumWeight = hoglin.getPathWeight(10.0f, 64.0f, 10.0f);
+    EXPECT_FLOAT_EQ(nonNyliumWeight, 0.0f);
+
+    // 绯红菌岩权重应高于非绯红菌岩权重
+    EXPECT_GT(weight, nonNyliumWeight);
 }
 
 } // namespace

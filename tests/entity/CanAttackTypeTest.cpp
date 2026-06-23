@@ -216,3 +216,48 @@ TEST_F(CanAttackTypeTest, IronGolem_CanAttackOtherTypes)
     EXPECT_TRUE(golem->canAttackType(EntityTypeIdNumber::SKELETON)) << "IronGolem should be able to attack SKELETON";
     EXPECT_TRUE(golem->canAttackType(EntityTypeIdNumber::SPIDER)) << "IronGolem should be able to attack SPIDER";
 }
+
+// ============================================================================
+// ZoglinEntity canAttackType 测试
+// ============================================================================
+// 对应 MC 原版 Zoglin.isTargetable 的类型过滤逻辑。
+// 僵尸疣兽不攻击同类（ZOGLIN）和苦力怕（CREEPER）。
+
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
+
+TEST_F(CanAttackTypeTest, Zoglin_NeverAttacksCreeper)
+{
+    // MC 原版 Zoglin.isTargetable 排除 Creeper
+    auto zoglin = std::make_unique<ZoglinEntity>(EntityId(1));
+    EXPECT_FALSE(zoglin->canAttackType(EntityTypeIdNumber::CREEPER))
+        << "ZoglinEntity should NOT be able to attack CREEPER";
+}
+
+TEST_F(CanAttackTypeTest, Zoglin_NeverAttacksZoglin)
+{
+    // MC 原版 Zoglin.isTargetable 排除同类 Zoglin
+    auto zoglin = std::make_unique<ZoglinEntity>(EntityId(1));
+    EXPECT_FALSE(zoglin->canAttackType(EntityTypeIdNumber::ZOGLIN))
+        << "ZoglinEntity should NOT be able to attack ZOGLIN";
+}
+
+TEST_F(CanAttackTypeTest, Zoglin_CanAttackOtherTypes)
+{
+    // 僵尸疣兽可以攻击除同类和苦力怕以外的所有类型
+    auto zoglin = std::make_unique<ZoglinEntity>(EntityId(1));
+    EXPECT_TRUE(zoglin->canAttackType(EntityTypeIdNumber::PLAYER)) << "ZoglinEntity should be able to attack PLAYER";
+    EXPECT_TRUE(zoglin->canAttackType(EntityTypeIdNumber::ZOMBIE)) << "ZoglinEntity should be able to attack ZOMBIE";
+    EXPECT_TRUE(zoglin->canAttackType(EntityTypeIdNumber::SKELETON))
+        << "ZoglinEntity should be able to attack SKELETON";
+    EXPECT_TRUE(zoglin->canAttackType(EntityTypeIdNumber::PIG)) << "ZoglinEntity should be able to attack PIG";
+    EXPECT_TRUE(zoglin->canAttackType(EntityTypeIdNumber::IRON_GOLEM))
+        << "ZoglinEntity should be able to attack IRON_GOLEM";
+}
+
+TEST_F(CanAttackTypeTest, Zoglin_ExcludesGhastViaBaseClass)
+{
+    // ZoglinEntity 继承 MonsterEntity -> MobEntity 基类排除恶魂的逻辑
+    auto zoglin = std::make_unique<ZoglinEntity>(EntityId(1));
+    EXPECT_FALSE(zoglin->canAttackType(EntityTypeIdNumber::GHAST))
+        << "ZoglinEntity should NOT attack GHAST (inherited from MobEntity base class)";
+}

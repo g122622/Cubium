@@ -421,6 +421,16 @@ public:
     }
     [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
 
+    /**
+     * @brief 判断僵尸疣兽是否可以攻击指定类型的实体
+     *
+     * 对应 MC 原版 Zoglin.isTargetable 的类型过滤部分。
+     * 僵尸疣兽不攻击同类（ZOGLIN）和苦力怕（CREEPER）。
+     * 此方法由 TargetGoal::isSuitableTarget() 自动调用，
+     * 同时 registerGoals() 中的 TargetPredicate 也会进行同样的过滤。
+     */
+    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
+
     void tick() override;
     bool attackLivingTarget(LivingEntity& target);
 

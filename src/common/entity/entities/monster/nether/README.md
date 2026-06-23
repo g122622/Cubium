@@ -95,3 +95,29 @@ PiglinEntity 同时继承 `IAngerable`（含虚函数 `setAttackTarget`）和 `M
 
 **注意**：通过 `MobEntity*` 指针调用 `setAttackTarget` 时，虚函数派发会正确到达子类的 override，
 确保愤怒状态与攻击目标始终同步。
+
+### 7. isChild() 虚函数重写
+
+HoglinEntity、ZoglinEntity 和 PiglinEntity 均拥有 `isBaby()` 方法来管理幼年状态，
+但必须同时重写 `Entity::isChild()` 虚函数并委托给 `isBaby()`。
+否则通过 `Entity*` 基类指针多态调用 `isChild()` 时将始终返回 `false`，
+导致依赖 `isChild()` 的游戏逻辑（如幼年实体不激怒玩家、幼年碰撞箱缩放等）行为异常。
+
+### 8. HoglinEntity 寻路权重
+
+HoglinEntity 重写了 `getPathWeight(f32 x, f32 y, f32 z)` 方法：
+- 站在绯红菌岩（Crimson Nylium）上时返回 `10.0f`，偏好在该方块上生成和移动；
+- 其他方块返回 `0.0f`。
+目前缺少 HoglinSpecificSensor + Brain 系统来检测驱避物（如诡异菌）的接近，
+该部分以 TODO 形式留待后续实现。
+
+### 9. ZoglinEntity canAttackType 类型过滤
+
+ZoglinEntity 重写了 `MobEntity::canAttackType()`，对应 MC 原版 `Zoglin.isTargetable` 的类型过滤部分：
+- 排除同类 `ZOGLIN`（僵尸疣兽不互相攻击）；
+- 排除 `CREEPER`（苦力怕，与铁傀儡行为一致）；
+- 其他类型委托给 `MonsterEntity::canAttackType()`（默认排除 `GHAST`）。
+
+`registerGoals()` 中的 `TargetPredicate` 同样排除了 `ZOGLIN` 和 `CREEPER`，
+与 `canAttackType()` 形成双重保障，确保目标选择器不会选中这两种实体。
+测试位于 `tests/entity/CanAttackTypeTest.cpp`。
