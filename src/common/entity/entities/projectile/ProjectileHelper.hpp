@@ -28,6 +28,11 @@
 #include <functional>
 
 namespace mc {
+
+// 前向声明
+class LivingEntity;
+class Item;
+
 namespace entity {
 
 /**
@@ -87,4 +92,17 @@ public:
 };
 
 } // namespace entity
+
+/**
+ * @brief 获取实体持有指定武器物品的手
+ *
+ * 先检查主手是否持有指定物品，如果是则返回主手，否则返回副手。
+ * 对应 MC 原版 ProjectileUtil.getWeaponHoldingHand()。
+ *
+ * @param entity 实体
+ * @param item 要查找的物品
+ * @return 持有该物品的手（主手或副手）
+ */
+Hand getWeaponHoldingHand(const LivingEntity& entity, const Item* item);
+
 } // namespace mc

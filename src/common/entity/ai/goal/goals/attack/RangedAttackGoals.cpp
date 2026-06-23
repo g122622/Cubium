@@ -31,6 +31,7 @@
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/entity/interfaces/ICrossbowUser.hpp"
 #include "common/entity/interfaces/IRangedAttackMob.hpp"
 #include "common/item/Items.hpp"
@@ -303,12 +304,8 @@ void RangedBowAttackGoal::tick()
         }
     } else if (--m_attackTime <= 0 && m_seenTime >= -60) {
         // 开始蓄力
-        // ProjectileHelper.getHandWith(entity, Items.BOW)
-        // 找到持有弓的手
-        const ItemStack& mainHand = m_mob->getMainHandItem();
-        const Item* item = mainHand.getItem();
-        Hand bowHand =
-            (item != nullptr && item->getUseAction(mainHand) == UseAction::Bow) ? Hand::MainHand : Hand::OffHand;
+        // 使用 getWeaponHoldingHand 找到持有弓的手
+        Hand bowHand = getWeaponHoldingHand(*m_mob, Items::BOW);
         m_mob->setActiveHand(bowHand);
     }
 }

@@ -25,6 +25,7 @@
 
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include <memory>
 
 // Forward declarations
@@ -34,6 +35,9 @@ class MeleeAttackGoal;
 } // namespace mc::entity::ai::goal
 
 namespace mc {
+
+// Forward declarations
+class Item;
 
 /**
  * @brief 骷髅系怪物公共中间层
@@ -95,16 +99,34 @@ public:
     // ========== 战斗目标管理 ==========
 
     /**
-     * @brief 设置战斗目标
+     * @brief 重新评估战斗目标
      *
      * 根据装备动态选择战斗目标：
      * - 如果持有弓，使用 RangedBowAttackGoal
      * - 否则使用 MeleeAttackGoal
      *
      * 此方法会先移除所有战斗目标，再根据装备添加正确的目标。
-     * 子类可以通过装备不同武器来影响战斗目标选择。
+     * 在以下时机被调用：
+     * - 构造函数末尾
+     * - finalizeSpawn() 中
+     * - 装备变更时（setEquipment 触发）
+     * - NBT 加载后（addAdditionalSaveData / readAdditionalSaveData）
      */
     virtual void setCombatTask();
+
+    /**
+     * @brief 检查实体是否可以使用非近战武器
+     *
+     * 当实体手持指定物品时，返回 true 表示该物品被视为远程武器。
+     * 默认实现检查物品是否为弓。
+     * 凋灵骷髅重写此方法返回 false，因为它不使用远程攻击。
+     *
+     * 对应 MC 原版 AbstractSkeleton.canUseNonMeleeWeapon()。
+     *
+     * @param stack 要检查的物品堆
+     * @return 如果该物品是远程武器则返回 true
+     */
+    [[nodiscard]] virtual bool canUseNonMeleeWeapon(const ItemStack& stack) const;
 
     // ========== 生命周期 ==========
 
@@ -132,6 +154,14 @@ protected:
 
     void registerGoals() override;
     void registerAttributes() override;
+
+    /**
+     * @brief 装备变更回调
+     *
+     * 当装备槽位发生变化时，重新评估战斗目标（远程/近战切换）。
+     * 对应 MC 原版 AbstractSkeleton.onEquipItem() 中的 reassessWeaponGoal() 调用。
+     */
+    void setEquipment(EquipmentSlot slot, const ItemStack& stack) override;
 
     // ========== 弓箭状态 ==========
 

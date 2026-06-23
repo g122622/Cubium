@@ -78,7 +78,7 @@ Entity (core/Entity.hpp)
 - **ThrowableEntity**：可投掷物品基类，增加传送门检测逻辑
 - **DamagingProjectileEntity**：带加速度的投掷物基类，火球类使用加速度而非速度驱动
 - **AbstractArrowEntity**：箭矢基类，提供暴击、穿透附魔、拾取状态、插入方块状态
-- **ProjectileHelper**：投掷物辅助工具，提供朝向更新、移动搜索盒、最近实体命中检测
+- **ProjectileHelper**：投掷物辅助工具，提供朝向更新、移动搜索盒、最近实体命中检测、获取武器持有手
 
 ## 上下游外部依赖关系
 

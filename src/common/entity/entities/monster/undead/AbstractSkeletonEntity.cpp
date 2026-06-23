@@ -43,8 +43,11 @@
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/SpecialDates.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -133,6 +136,8 @@ void AbstractSkeletonEntity::tick()
 
 void AbstractSkeletonEntity::setCombatTask()
 {
+    // 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal()
+
     // 先移除所有战斗目标，再根据装备添加正确的目标
 
     // 移除现有的战斗目标
@@ -143,21 +148,49 @@ void AbstractSkeletonEntity::setCombatTask()
         m_goalSelector.removeGoal(m_meleeAttackGoal.get());
     }
 
-    // 检查是否持有弓
-    // 当前简化实现：默认使用远程攻击
-    // 子类可以重写此方法来选择不同的战斗目标
-    //
-    // TODO: 当物品系统完善后，应该检查装备：
-    // ItemStack itemstack = getHeldItem(ProjectileHelper.getHandWith(this, Items.BOW));
-    // if (itemstack.getItem() == Items.BOW) {
-    //     m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_rangedAttackGoal.get());
-    // } else {
-    //     m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_meleeAttackGoal.get());
-    // }
+    // 检查主手/副手是否持有弓
+    // 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal()
+    // 安全检查：构造阶段或客户端不执行装备检查逻辑
+    bool shouldUseRanged = true; // 默认使用远程攻击（普通骷髅和流浪者默认持弓）
+    if (world() != nullptr && !world()->isClientSide()) {
+        Hand weaponHand = getWeaponHoldingHand(*this, Items::BOW);
+        const ItemStack& weaponStack = getEquipment(LivingEntity::handToEquipmentSlot(weaponHand));
+        const Item* weaponItem = weaponStack.getItem();
+        shouldUseRanged = (weaponItem != nullptr && canUseNonMeleeWeapon(weaponStack));
+    }
 
-    // 默认使用远程攻击（普通骷髅和流浪者）
-    if (m_rangedAttackGoal) {
-        m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_rangedAttackGoal.get());
+    if (shouldUseRanged) {
+        // 持弓 -> 注册远程攻击目标
+        if (m_rangedAttackGoal) {
+            m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_rangedAttackGoal.get());
+        }
+    } else {
+        // 不持弓 -> 注册近战攻击目标
+        if (m_meleeAttackGoal) {
+            m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_meleeAttackGoal.get());
+        }
+    }
+}
+
+bool AbstractSkeletonEntity::canUseNonMeleeWeapon(const ItemStack& stack) const
+{
+    // 默认实现：检查物品的 UseAction 是否为 Bow
+    // 对应 MC 原版 AbstractSkeleton.canUseNonMeleeWeapon()
+    const Item* item = stack.getItem();
+    return item != nullptr && item->getUseAction(stack) == UseAction::Bow;
+}
+
+void AbstractSkeletonEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
+{
+    // 先调用基类实现设置装备
+    MonsterEntity::setEquipment(slot, stack);
+
+    // 装备变更时重新评估战斗目标
+    // 对应 MC 原版 AbstractSkeleton.onEquipItem() 中的 reassessWeaponGoal() 调用
+    // 仅在主手/副手装备变更时触发，且仅在服务端执行
+    if ((slot == EquipmentSlot::MainHand || slot == EquipmentSlot::OffHand) && world() != nullptr &&
+        !world()->isClientSide()) {
+        setCombatTask();
     }
 }
 
