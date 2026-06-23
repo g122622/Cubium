@@ -644,6 +644,16 @@ TEST_F(BlockTagsTest, BarsTagContainsIronBars)
     EXPECT_TRUE(BlockTags::BARS().contains(ResourceLocation("minecraft", "iron_bars")));
 }
 
+TEST_F(BlockTagsTest, BarsTagContainsCopperBarsVariants)
+{
+    // 铜栏杆变体
+    EXPECT_TRUE(BlockTags::BARS().contains(ResourceLocation("minecraft", "copper_bars")));
+    EXPECT_TRUE(BlockTags::BARS().contains(ResourceLocation("minecraft", "waxed_copper_bars")));
+    EXPECT_TRUE(BlockTags::BARS().contains(ResourceLocation("minecraft", "exposed_copper_bars")));
+    EXPECT_TRUE(BlockTags::BARS().contains(ResourceLocation("minecraft", "weathered_copper_bars")));
+    EXPECT_TRUE(BlockTags::BARS().contains(ResourceLocation("minecraft", "oxidized_copper_bars")));
+}
+
 TEST_F(BlockTagsTest, BarsTagIdIsCorrect)
 {
     EXPECT_EQ(BlockTags::BARS().getId(), ResourceLocation("minecraft", "bars"));
@@ -742,6 +752,17 @@ TEST_F(BlockTagsTest, WallPostOverrideTagContainsPressurePlates)
         BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "heavy_weighted_pressure_plate")));
     EXPECT_TRUE(
         BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "light_weighted_pressure_plate")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagContainsCactusFlower)
+{
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "cactus_flower")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagContainsCopperTorch)
+{
+    // 铜火把（MC 1.21.2+新增，暂未实现方块但标签已包含）
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "copper_torch")));
 }
 
 TEST_F(BlockTagsTest, WallPostOverrideTagIdIsCorrect)

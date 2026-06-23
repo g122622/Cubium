@@ -2497,9 +2497,18 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "gilded_blackstone")});
     tags[guardedByPiglins->getId()] = std::move(guardedByPiglins);
 
-    // 创建 BARS 标签（铁栏杆等，用于墙壁和玻璃板连接判断）
+    // 创建 BARS 标签（铁栏杆、铜栏杆等，用于墙壁和玻璃板连接判断）
+    // 参考: datapacks/Vanilla/data/minecraft/tags/block/bars.json
     auto bars = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bars"));
-    bars->addAll({ResourceLocation("minecraft", "iron_bars")});
+    bars->addAll({ResourceLocation("minecraft", "iron_bars"),
+        ResourceLocation("minecraft", "copper_bars"),
+        ResourceLocation("minecraft", "waxed_copper_bars"),
+        ResourceLocation("minecraft", "exposed_copper_bars"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_bars"),
+        ResourceLocation("minecraft", "weathered_copper_bars"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_bars"),
+        ResourceLocation("minecraft", "oxidized_copper_bars"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_bars")});
     tags[bars->getId()] = std::move(bars);
 
     // 创建 SHULKER_BOXES 标签（所有潜影盒变体，用于连接例外判断）
@@ -2525,10 +2534,13 @@ void BlockTags::initialize()
 
     // 创建 WALL_POST_OVERRIDE 标签（放置在墙上时强制显示墙柱的方块）
     // 参考: net.minecraft.data.tags.VanillaBlockTagsProvider - WALL_POST_OVERRIDE
+    // 参考: datapacks/Vanilla/data/minecraft/tags/block/wall_post_override.json
+    // 注意: JSON中使用标签引用(#minecraft:signs等)，此处展开为具体方块ID
     auto wallPostOverride = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wall_post_override"));
     wallPostOverride->addAll({ResourceLocation("minecraft", "torch"),
         ResourceLocation("minecraft", "soul_torch"),
         ResourceLocation("minecraft", "redstone_torch"),
+        ResourceLocation("minecraft", "copper_torch"),
         ResourceLocation("minecraft", "tripwire"),
         // 告示牌（所有变体）
         ResourceLocation("minecraft", "oak_sign"),
@@ -2604,7 +2616,9 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "stone_pressure_plate"),
         ResourceLocation("minecraft", "polished_blackstone_pressure_plate"),
         ResourceLocation("minecraft", "heavy_weighted_pressure_plate"),
-        ResourceLocation("minecraft", "light_weighted_pressure_plate")});
+        ResourceLocation("minecraft", "light_weighted_pressure_plate"),
+        // 仙人掌花
+        ResourceLocation("minecraft", "cactus_flower")});
     tags[wallPostOverride->getId()] = std::move(wallPostOverride);
 
     s_initialized = true;
