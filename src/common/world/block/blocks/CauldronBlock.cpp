@@ -355,8 +355,10 @@ ActionResultType CauldronBlock::_handleBucketInteraction(
                     }
                 }
             }
+            return ActionResultType::Success;
         }
-        return ActionResultType::Success;
+        // 非空炼药锅不能用岩浆桶交互，返回 Pass 让其他交互继续处理
+        return ActionResultType::Pass;
     }
 
     // 空桶：从满的炼药锅取水
