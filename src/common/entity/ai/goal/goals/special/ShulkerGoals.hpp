@@ -25,6 +25,7 @@
 
 #include "../../Goal.hpp"
 #include "../../GoalFlag.hpp"
+#include "../target/TargetGoals.hpp"
 
 namespace mc {
 
@@ -116,6 +117,48 @@ private:
     static constexpr i32 MIN_PEEK_TIME = 20;   // 最小张望时间 (1秒)
     static constexpr i32 MAX_PEEK_TIME = 60;   // 最大张望时间 (3秒)
     static constexpr f32 PEEK_CHANCE = 0.025f; // 每tick触发概率
+};
+
+/**
+ * @brief 潜影贝最近攻击目标选择
+ *
+ * 选择最近的玩家作为攻击目标。
+ * 和平难度下不执行此目标。
+ */
+class ShulkerNearestAttackGoal : public NearestAttackableTargetGoal<Player> {
+public:
+    /**
+     * @brief 构造函数
+     * @param shulker 潜影贝实体
+     */
+    explicit ShulkerNearestAttackGoal(ShulkerEntity* shulker);
+
+    ~ShulkerNearestAttackGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "ShulkerNearestAttackGoal"; }
+};
+
+/**
+ * @brief 潜影贝防御攻击目标选择
+ *
+ * 当潜影贝处于队伍中时，攻击附近的敌对生物（IMob）。
+ * 这是团队防御行为：被命令分配到队伍的潜影贝会主动攻击附近的怪物。
+ */
+class ShulkerDefenseAttackGoal : public NearestAttackableTargetGoal<LivingEntity> {
+public:
+    /**
+     * @brief 构造函数
+     * @param shulker 潜影贝实体
+     */
+    explicit ShulkerDefenseAttackGoal(ShulkerEntity* shulker);
+
+    ~ShulkerDefenseAttackGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "ShulkerDefenseAttackGoal"; }
 };
 
 } // namespace entity::ai::goal

@@ -26,7 +26,7 @@ special/
 ├── WanderingTraderGoals.hpp/cpp   # 流浪商人目标（UseItemGoal、LookAtCustomerGoal、TradeWithPlayerGoal、MoveToWanderTargetGoal）
 ├── GhastGoals.hpp/cpp             # 恶魂目标（随机飞行、火球攻击）
 ├── TurtleGoals.hpp/cpp            # 海龟目标（下蛋、前往水域）
-├── ShulkerGoals.hpp/cpp           # 潜影贝目标（攻击、防御）
+├── ShulkerGoals.hpp/cpp           # 潜影贝目标（攻击、张望、最近攻击目标选择、防御攻击目标选择）
 ├── IllusionerGoals.hpp/cpp        # 幻术师目标（分身、失明法术）
 ├── AxolotlGoals.hpp/cpp           # 美西螈目标（攻击鱼、装死）
 ├ PatrolGoals.hpp/cpp              # 巡逻目标（掠夺者巡逻队）
@@ -78,6 +78,8 @@ Goal (基类)
 ├── BeeWanderGoal ────────────────── 蜜蜂随机飞行
 ├── BeeAngerGoal : HurtByTargetGoal─ 蜜蜂愤怒（召唤同伴）
 ├── BeeAttackPlayerGoal : TargetGoal 蜜蜂攻击玩家
+├── ShulkerNearestAttackGoal : NearestAttackableTargetGoal 潜影贝攻击最近玩家（和平难度下禁用）
+├── ShulkerDefenseAttackGoal : NearestAttackableTargetGoal 潜影贝防御攻击（队伍中的潜影贝攻击IMob）
 ├── FoxPassiveGoal (抽象基类)
 │   ├── FoxFindShelterGoal ───────── 狐狸寻找庇护所
 │   ├── FoxSleepGoal ─────────────── 狐狸睡眠

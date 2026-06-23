@@ -24,7 +24,10 @@
 #include "ShulkerGoals.hpp"
 
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/monster/end/ShulkerEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/IMob.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
@@ -184,6 +187,48 @@ void ShulkerPeekGoal::tick()
         f32 yaw = rng.nextFloat() * 360.0f - 180.0f;
         m_shulker->setRotation(yaw, m_shulker->pitch());
     }
+}
+
+// ============================================================================
+// ShulkerNearestAttackGoal 实现
+// ============================================================================
+
+ShulkerNearestAttackGoal::ShulkerNearestAttackGoal(ShulkerEntity* shulker)
+    : NearestAttackableTargetGoal<Player>(shulker, true)
+{}
+
+bool ShulkerNearestAttackGoal::shouldExecute()
+{
+    // 和平难度下不攻击玩家
+    IWorld* world = m_mob->world();
+    if (world != nullptr && world->difficulty() == Difficulty::Peaceful) {
+        return false;
+    }
+    return NearestAttackableTargetGoal<Player>::shouldExecute();
+}
+
+// ============================================================================
+// ShulkerDefenseAttackGoal 实现
+// ============================================================================
+
+ShulkerDefenseAttackGoal::ShulkerDefenseAttackGoal(ShulkerEntity* shulker)
+    : NearestAttackableTargetGoal<LivingEntity>(shulker,
+          true, // checkSight
+          10,   // chance: 每10tick检查一次
+          [](const LivingEntity* entity) -> bool {
+              // 只攻击敌对生物（IMob接口）
+              return dynamic_cast<const entity::IMob*>(entity) != nullptr;
+          })
+{}
+
+bool ShulkerDefenseAttackGoal::shouldExecute()
+{
+    // 只有当潜影贝处于队伍中时才执行防御攻击
+    // 未分配队伍的潜影贝不会主动攻击其他怪物
+    if (m_mob->getTeam() == nullptr) {
+        return false;
+    }
+    return NearestAttackableTargetGoal<LivingEntity>::shouldExecute();
 }
 
 } // namespace entity::ai::goal

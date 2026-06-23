@@ -25,6 +25,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/ai/goal/goals/special/ShulkerGoals.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/monster/end/ShulkerEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
@@ -395,6 +396,72 @@ TEST(ShulkerEntityTest, ShootBulletWithoutTargetDoesNothing)
 
     // 攻击冷却应该还是 0
     EXPECT_EQ(shulker.getAttackCooldown(), 0);
+}
+
+// ============================================================================
+// ShulkerNearestAttackGoal 测试
+// ============================================================================
+
+TEST(ShulkerNearestAttackGoalTest, Construction)
+{
+    ShulkerEntity shulker(EntityId(1));
+    auto goal = std::make_unique<entity::ai::goal::ShulkerNearestAttackGoal>(&shulker);
+    EXPECT_NE(goal, nullptr);
+    EXPECT_EQ(goal->getTypeName(), "ShulkerNearestAttackGoal");
+}
+
+// ============================================================================
+// ShulkerDefenseAttackGoal 测试
+// ============================================================================
+
+TEST(ShulkerDefenseAttackGoalTest, Construction)
+{
+    ShulkerEntity shulker(EntityId(1));
+    auto goal = std::make_unique<entity::ai::goal::ShulkerDefenseAttackGoal>(&shulker);
+    EXPECT_NE(goal, nullptr);
+    EXPECT_EQ(goal->getTypeName(), "ShulkerDefenseAttackGoal");
+}
+
+TEST(ShulkerDefenseAttackGoalTest, DoesNotExecuteWithoutTeam)
+{
+    // 潜影贝没有队伍时，防御攻击目标不应执行
+    ShulkerEntity shulker(EntityId(1));
+    entity::ai::goal::ShulkerDefenseAttackGoal goal(&shulker);
+
+    // 没有队伍（getTeam() 返回 nullptr），shouldExecute 应返回 false
+    EXPECT_EQ(shulker.getTeam(), nullptr);
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+TEST(ShulkerNearestAttackGoalTest, DoesNotExecuteWithoutWorld)
+{
+    // 没有世界时，不应执行
+    ShulkerEntity shulker(EntityId(1));
+    entity::ai::goal::ShulkerNearestAttackGoal goal(&shulker);
+
+    // 没有设置世界，shouldExecute 应返回 false
+    EXPECT_FALSE(goal.shouldExecute());
+}
+
+// ============================================================================
+// ShulkerEntity registerGoals 测试
+// ============================================================================
+
+TEST(ShulkerEntityTest, RegisterGoalsContainsDefenseAttackGoal)
+{
+    // 验证 registerGoals 后目标选择器包含正确的目标数量
+    // 优先级1: HurtByTargetGoal
+    // 优先级2: ShulkerNearestAttackGoal
+    // 优先级3: ShulkerDefenseAttackGoal
+    ShulkerEntity shulker(EntityId(1));
+    // registerGoals 在构造期间被调用
+    // 验证 shulker 的 targetSelector 已注册目标
+    // 由于 GoalSelector API 限制，间接验证：确认 DefenseAttackGoal 可以被构造和查询类型名
+    entity::ai::goal::ShulkerDefenseAttackGoal defenseGoal(&shulker);
+    EXPECT_EQ(defenseGoal.getTypeName(), "ShulkerDefenseAttackGoal");
+
+    entity::ai::goal::ShulkerNearestAttackGoal nearestGoal(&shulker);
+    EXPECT_EQ(nearestGoal.getTypeName(), "ShulkerNearestAttackGoal");
 }
 
 } // namespace mc

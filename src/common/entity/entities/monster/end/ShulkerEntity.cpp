@@ -347,8 +347,10 @@ void ShulkerEntity::registerGoals()
             // 潜影贝不会反击同类
             return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::SHULKER;
         }));
-    targetSelector().addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
-    // TODO: DefenseAttackGoal - 攻击攻击了潜影贝的敌对生物
+    // 优先级2: 攻击最近的玩家（和平难度下不执行）
+    targetSelector().addGoal(2, std::make_unique<entity::ai::goal::ShulkerNearestAttackGoal>(this));
+    // 优先级3: 防御攻击——当潜影贝处于队伍中时，攻击附近的敌对生物（IMob）
+    targetSelector().addGoal(3, std::make_unique<entity::ai::goal::ShulkerDefenseAttackGoal>(this));
 
     // 行为目标
     // LookAtGoal: 看向玩家，距离8格，概率0.02
