@@ -690,11 +690,18 @@ void CauldronBlock::receiveStalactiteDrip(
     IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid)
 {
     if (fluid.isIn(fluid::FluidTags::WATER())) {
-        // 水滴：空炼药锅 → 设置水位为3（满）
-        BlockState newState = state.with(BlockStateProperties::LEVEL_0_3(), 3);
-        world.setBlockState(pos, &newState, 3);
-        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
-        world.playEvent(world::WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND, pos, 0);
+        // 水滴：每次增加1级水位
+        // TODO: 当实现 WaterCauldronBlock (LayeredCauldronBlock) 后，
+        // 空炼药锅接收水滴应替换为水位1的 WaterCauldronBlock，
+        // 而非在当前 CauldronBlock 上递增水位
+        i32 currentLevel = getLevel(state);
+        i32 newLevel = currentLevel + 1;
+        if (newLevel <= 3) {
+            BlockState newState = state.with(BlockStateProperties::LEVEL_0_3(), newLevel);
+            world.setBlockState(pos, &newState, 3);
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
+            world.playEvent(world::WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND, pos, 0);
+        }
     } else if (fluid.isIn(fluid::FluidTags::LAVA())) {
         // 岩浆滴：空炼药锅 → 替换为岩浆炼药锅
         const BlockState* lavaCauldronState = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();

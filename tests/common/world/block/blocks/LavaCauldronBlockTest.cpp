@@ -239,6 +239,153 @@ TEST_F(CauldronDripTest, IsFull_Level0To2_ReturnsFalse)
 }
 
 // ============================================================================
+// CauldronBlock::receiveStalactiteDrip 集成测试
+// ============================================================================
+
+class CauldronDripTestWorld : public test::BaseTestWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_blocks.find(pos);
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const BlockPos pos(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            m_blocks.erase(pos);
+            m_ownedStates.erase(pos);
+        } else {
+            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
+            m_blocks[pos] = &it->second;
+        }
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+
+    [[nodiscard]] i32 getCauldronLevel(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return -1;
+        }
+        return CauldronBlock::getLevel(*it->second);
+    }
+
+    [[nodiscard]] bool isLavaCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::LAVA_CAULDRON);
+    }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, BlockState> m_ownedStates;
+};
+
+class CauldronReceiveDripTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
+
+        cauldron_ = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
+    }
+
+    std::unique_ptr<CauldronBlock> cauldron_;
+    CauldronDripTestWorld world_;
+};
+
+TEST_F(CauldronReceiveDripTest, WaterDrip_IncrementsLevelBy1)
+{
+    // 水滴水：每次增加1级水位
+    const BlockPos pos(0, 64, 0);
+    const auto& state0 = cauldron_->defaultState(); // 水位0
+    world_.setBlockAt(pos, &state0);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 0);
+
+    // 第一次水滴：0 → 1
+    CauldronBlock::receiveStalactiteDrip(
+        world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::WATER());
+    EXPECT_EQ(world_.getCauldronLevel(pos), 1);
+
+    // 第二次水滴：1 → 2
+    const auto* state1 = world_.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state1, nullptr);
+    CauldronBlock::receiveStalactiteDrip(world_, pos, *state1, *fluid::Fluids::WATER());
+    EXPECT_EQ(world_.getCauldronLevel(pos), 2);
+
+    // 第三次水滴：2 → 3
+    const auto* state2 = world_.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state2, nullptr);
+    CauldronBlock::receiveStalactiteDrip(world_, pos, *state2, *fluid::Fluids::WATER());
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3);
+}
+
+TEST_F(CauldronReceiveDripTest, WaterDrip_DoesNotExceedMaxLevel)
+{
+    // 满炼药锅不应再增加水位
+    const BlockPos pos(0, 64, 0);
+    const auto& state3 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
+    world_.setBlockAt(pos, &state3);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    // 已满，不应增加
+    CauldronBlock::receiveStalactiteDrip(
+        world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::WATER());
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3);
+}
+
+TEST_F(CauldronReceiveDripTest, LavaDrip_ReplacesWithLavaCauldron)
+{
+    // 岩浆滴水：空炼药锅 → 岩浆炼药锅
+    const BlockPos pos(0, 64, 0);
+    const auto& state0 = cauldron_->defaultState();
+    world_.setBlockAt(pos, &state0);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 0);
+
+    CauldronBlock::receiveStalactiteDrip(
+        world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::LAVA());
+
+    // 应该替换为岩浆炼药锅
+    EXPECT_TRUE(world_.isLavaCauldron(pos));
+}
+
+TEST_F(CauldronReceiveDripTest, LavaDrip_OnNonEmptyCauldron_ReplacesWithLavaCauldron)
+{
+    // 岩浆滴水：即使有水的炼药锅，也会替换为岩浆炼药锅
+    // 注意：MC原版中非空炼药锅不会接收到岩浆滴水（findFillableCauldronBelow 过滤），
+    // 但 receiveStalactiteDrip 本身不做此检查
+    const BlockPos pos(0, 64, 0);
+    const auto& state1 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 1);
+    world_.setBlockAt(pos, &state1);
+
+    CauldronBlock::receiveStalactiteDrip(
+        world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::LAVA());
+
+    // 应该替换为岩浆炼药锅
+    EXPECT_TRUE(world_.isLavaCauldron(pos));
+}
+
+// ============================================================================
 // LavaCauldronBlock vs CauldronBlock 交互逻辑测试
 // ============================================================================
 

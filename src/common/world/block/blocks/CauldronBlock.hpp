@@ -50,6 +50,11 @@ namespace blocks {
  *
  * 炼药锅是一个可以储存水的方块，没有方块实体，使用方块状态表示水位。
  *
+ * TODO: 当前 CauldronBlock 同时承担空炼药锅和水炼药锅的职责。
+ * MC 原版中，水炼药锅由 WaterCauldronBlock (LayeredCauldronBlock) 单独实现，
+ * 空炼药锅不持有水位。当 WaterCauldronBlock/PowderSnowCauldronBlock 实现后，
+ * 应将水位相关逻辑（handlePrecipitation、玻璃瓶/空桶取水等）迁移到对应子类。
+ *
  * 状态属性：
  * - LEVEL: 水位 (0-3，0=空，3=满)
  *
@@ -211,6 +216,10 @@ public:
      *
      * 由 PointedDripstoneBlock::maybeTransferFluid() 调度，用于接收滴石滴水填充。
      * 在 tick 中重新验证滴石尖端是否存在，并调用 receiveStalactiteDrip 填充炼药锅。
+     *
+     * TODO: tick() 中向上搜索钟乳石尖端的逻辑与 PointedDripstoneBlock 中的搜索逻辑
+     * 存在重复。应考虑将滴石尖端查找和流体类型判断提取为共享工具方法，
+     * 避免 CauldronBlock 和 PointedDripstoneBlock 各自维护一份搜索实现。
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
@@ -227,9 +236,13 @@ public:
     /**
      * @brief 接收滴石滴水填充
      *
-     * 根据流体类型将空炼药锅替换为对应类型：
-     * - 水滴 → 替换为水位3的水炼药锅（当前实现中水位直接设为3，因为空炼药锅接收水后直接变为满）
+     * 根据流体类型处理炼药锅填充：
+     * - 水滴 → 每次增加1级水位
      * - 岩浆滴 → 替换为岩浆炼药锅
+     *
+     * TODO: 当实现 WaterCauldronBlock (LayeredCauldronBlock) 后，
+     * 水滴填充应将空炼药锅替换为水位1的 WaterCauldronBlock，
+     * 而非在当前 CauldronBlock 上递增水位。岩浆滴替换为 LavaCauldronBlock 保持不变。
      *
      * @param world 世界
      * @param pos 方块位置
