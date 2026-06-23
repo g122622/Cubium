@@ -303,6 +303,11 @@ void CatEntity::playEatSound()
     playSound(SoundEvents::ENTITY_CAT_EAT, 1.0f, 1.0f);
 }
 
+void CatEntity::hiss()
+{
+    playSound(SoundEvents::ENTITY_CAT_HISS, 1.0f, 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f);
+}
+
 // ============================================================================
 // interactMob 实现
 // ============================================================================

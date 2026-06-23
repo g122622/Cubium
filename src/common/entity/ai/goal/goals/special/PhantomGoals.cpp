@@ -29,8 +29,10 @@
 #include "PhantomGoals.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/monster/basic/PhantomEntity.hpp"
+#include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -419,7 +421,8 @@ void PhantomPickAttackGoal::_setOrbitPositionAboveTarget()
 
 PhantomSweepAttackGoal::PhantomSweepAttackGoal(PhantomEntity* phantom)
     : PhantomMoveGoal(phantom)
-    , m_catCheckTimer(0)
+    , m_catCheckTimer(20) // 初始化为20，确保首次调用 _checkForCats() 时立即检测
+    , m_isScaredOfCat(false)
 {}
 
 bool PhantomSweepAttackGoal::shouldExecute()
@@ -454,7 +457,7 @@ bool PhantomSweepAttackGoal::shouldContinueExecuting()
         return false;
     }
 
-    // 每20tick检测猫
+    // 检测猫：如果附近有猫，幻翼停止俯冲攻击
     return _checkForCats();
 }
 
@@ -511,21 +514,34 @@ void PhantomSweepAttackGoal::tick()
 bool PhantomSweepAttackGoal::_checkForCats()
 {
     if (m_phantom == nullptr || m_phantom->world() == nullptr) {
-        return true; // 无猫时继续
+        return true; // 无世界时继续攻击
     }
 
     // 每20tick检测一次猫
     ++m_catCheckTimer;
     if (m_catCheckTimer < 20) {
-        return true;
+        return !m_isScaredOfCat; // 非检测tick，保持上次的害怕状态
     }
     m_catCheckTimer = 0;
 
-    // 搜索16格内的猫
-    // 如果发现猫，猫会发出嘶嘶声，幻翼停止攻击
-    // TODO: 当 CatEntity 实现后，搜索猫实体并调用其 hiss() 方法
-    // 目前简化：假设没有猫
-    return true;
+    // 对齐 MC 原版：搜索幻翼碰撞箱各方向扩展16格范围内的Cat实体
+    // 使用 getBoundingBox().inflate(16.0) 搜索
+    AxisAlignedBB searchBox = m_phantom->boundingBox().grow(16.0);
+    IWorld* world = m_phantom->world();
+    auto entities = world->getEntitiesInAABB(searchBox, m_phantom);
+
+    bool foundCat = false;
+    for (Entity* entity : entities) {
+        // 检查是否为猫实体（使用 typeId 快速匹配）
+        if (entity->typeId() == entity::EntityTypeIdNumber::CAT && entity->isAlive()) {
+            CatEntity* cat = static_cast<CatEntity*>(entity);
+            cat->hiss();
+            foundCat = true;
+        }
+    }
+
+    m_isScaredOfCat = foundCat;
+    return !m_isScaredOfCat; // 有猫时返回false（停止攻击），无猫时返回true（继续攻击）
 }
 
 } // namespace mc::entity::ai::goal
