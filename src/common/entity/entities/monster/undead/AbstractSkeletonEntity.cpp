@@ -58,14 +58,9 @@ namespace mc {
 AbstractSkeletonEntity::AbstractSkeletonEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // 在构造函数中创建战斗目标（但不添加到选择器）
-    // setCombatTask() 会在 onInitialSpawn() 或需要时被调用
-    m_rangedAttackGoal = std::make_unique<entity::ai::goal::RangedBowAttackGoal>(
-        this, RANGED_ATTACK_SPEED, ATTACK_INTERVAL_MIN, ATTACK_INTERVAL_MAX);
-
-    // 近战目标是一个匿名子类，在 startExecuting/resetTask 中设置 aggro 状态
-    // 当前简化实现，使用标准 MeleeAttackGoal
-    m_meleeAttackGoal = std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, MELEE_ATTACK_SPEED, false);
+    // 战斗目标不再在构造函数中创建，而是在 setCombatTask() 中按需创建。
+    // setCombatTask() 会在 registerGoals() 之后（构造函数末尾）或
+    // finalizeSpawn() / setEquipment() 时被调用。
 }
 
 AbstractSkeletonEntity::~AbstractSkeletonEntity() = default;
@@ -138,15 +133,11 @@ void AbstractSkeletonEntity::setCombatTask()
 {
     // 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal()
 
-    // 先移除所有战斗目标，再根据装备添加正确的目标
-
-    // 移除现有的战斗目标
-    if (m_rangedAttackGoal) {
-        m_goalSelector.removeGoal(m_rangedAttackGoal.get());
-    }
-    if (m_meleeAttackGoal) {
-        m_goalSelector.removeGoal(m_meleeAttackGoal.get());
-    }
+    // 先移除所有现有的战斗目标，再根据装备添加正确的目标。
+    // 使用 removeGoalsOfType 按类型移除，避免 unique_ptr 与 GoalSelector 之间的所有权冲突：
+    // GoalSelector 拥有 Goal 的所有权，removeGoalsOfType 会正确销毁旧目标并释放内存。
+    m_goalSelector.removeGoalsOfType<entity::ai::goal::RangedBowAttackGoal>();
+    m_goalSelector.removeGoalsOfType<entity::ai::goal::MeleeAttackGoal>();
 
     // 检查主手/副手是否持有弓
     // 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal()
@@ -160,15 +151,14 @@ void AbstractSkeletonEntity::setCombatTask()
     }
 
     if (shouldUseRanged) {
-        // 持弓 -> 注册远程攻击目标
-        if (m_rangedAttackGoal) {
-            m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_rangedAttackGoal.get());
-        }
+        // 持弓 -> 注册远程攻击目标（创建新实例并转移所有权给 GoalSelector）
+        m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY,
+            std::make_unique<entity::ai::goal::RangedBowAttackGoal>(
+                this, RANGED_ATTACK_SPEED, ATTACK_INTERVAL_MIN, ATTACK_INTERVAL_MAX));
     } else {
-        // 不持弓 -> 注册近战攻击目标
-        if (m_meleeAttackGoal) {
-            m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_meleeAttackGoal.get());
-        }
+        // 不持弓 -> 注册近战攻击目标（创建新实例并转移所有权给 GoalSelector）
+        m_goalSelector.addGoal(
+            COMBAT_GOAL_PRIORITY, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, MELEE_ATTACK_SPEED, false));
     }
 }
 

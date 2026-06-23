@@ -84,10 +84,8 @@ protected:
 // ============================================================================
 // getWeaponHoldingHand 测试
 //
-// 注意：由于 SkeletonEntity 构造函数中的 setCombatTask() 存在已知问题
-// （GoalSelector 取得了 unique_ptr 管理的 Goal 原始指针的所有权），
-// 暂时无法在测试中安全构造 SkeletonEntity 实例。
-// 我们通过创建一个简单的 LivingEntity 子类来测试 getWeaponHoldingHand。
+// 使用 TestLivingEntity 子类来测试装备相关功能，
+// 避免构造完整 SkeletonEntity 实例带来的 AI 系统初始化开销。
 // ============================================================================
 
 // 简单的 LivingEntity 子类，仅用于测试装备相关功能
@@ -190,8 +188,7 @@ TEST_F(SkeletonCombatTaskTest, CanUseNonMeleeWeapon_EmptyStackItemIsNull)
 // ============================================================================
 // setCombatTask 逻辑验证（间接测试）
 //
-// 由于构造 SkeletonEntity 实例会导致 GoalSelector 所有权冲突，
-// 我们通过验证 setCombatTask 的决策逻辑来间接测试。
+// 使用间接方式验证 setCombatTask 的决策逻辑。
 // ============================================================================
 
 TEST_F(SkeletonCombatTaskTest, SetCombatTask_DefaultRangedWhenNoWorld)

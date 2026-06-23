@@ -26,13 +26,6 @@
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
-#include <memory>
-
-// Forward declarations
-namespace mc::entity::ai::goal {
-class RangedBowAttackGoal;
-class MeleeAttackGoal;
-} // namespace mc::entity::ai::goal
 
 namespace mc {
 
@@ -170,13 +163,9 @@ protected:
     i32 m_attackCooldown = 0;
 
     // ========== 战斗目标 ==========
-    /// 注意：这些目标指针在 GoalSelector 中被复制，所以需要通过原始指针操作
-
-    /// 远程攻击目标
-    std::unique_ptr<entity::ai::goal::RangedBowAttackGoal> m_rangedAttackGoal;
-
-    /// 近战攻击目标
-    std::unique_ptr<entity::ai::goal::MeleeAttackGoal> m_meleeAttackGoal;
+    // 注意：战斗目标的唯一所有权归 GoalSelector 所有，不再使用 unique_ptr 成员存储。
+    // setCombatTask() 每次调用时创建新的 Goal 对象并转移所有权给 GoalSelector，
+    // 通过 removeGoalsOfType() 移除旧目标。这避免了 unique_ptr 和 GoalSelector 之间的所有权冲突。
 };
 
 } // namespace mc

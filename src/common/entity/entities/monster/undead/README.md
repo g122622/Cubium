@@ -82,9 +82,10 @@ Entity
 1. **setCombatTask() 调用时机**：`registerGoals()` 只注册非战斗目标，`setCombatTask()` 在构造函数末尾、`finalizeSpawn()`、装备变更（`setEquipment`）时调用，根据装备动态添加战斗目标
 2. **战斗目标优先级**：战斗目标使用优先级 4（`COMBAT_GOAL_PRIORITY`），确保非战斗目标（游泳、看向等）优先执行
 3. **装备检查逻辑**：`setCombatTask()` 通过 `getWeaponHoldingHand()` 检查主手/副手是否持有弓，持弓注册 `RangedBowAttackGoal`，不持弓注册 `MeleeAttackGoal`
-4. **canUseNonMeleeWeapon()**：判断物品是否为远程武器，默认检查 `UseAction::Bow`，凋灵骷髅重写返回 false
-5. **WitherSkeletonEntity 特殊处理**：凋灵骷髅重写 `setCombatTask()` 强制使用近战，`canUseNonMeleeWeapon()` 返回 false
-6. **远程箭矢伤害**：骷髅类使用 `arrow->setBaseDamageFromMob(charge)` 设置箭矢伤害，公式为 `power * 2.0 + triangle(difficulty * 0.11, 0.57425)`，与 AbstractArrowEntity 基类保持一致。不调用 `applyBowEnchantments()`，因为生物射出的箭矢不应有弓类附魔效果。
+4. **战斗目标所有权**：每次 `setCombatTask()` 调用时创建新的 Goal 对象并通过 `make_unique` 转移所有权给 `GoalSelector`，使用 `removeGoalsOfType<>()` 移除旧目标。不要使用 `unique_ptr` 成员 + `addGoal(priority, ptr.get())` 的模式，因为这会导致双重所有权（GoalSelector 和 unique_ptr 同时拥有同一个 Goal 对象）
+5. **canUseNonMeleeWeapon()**：判断物品是否为远程武器，默认检查 `UseAction::Bow`，凋灵骷髅重写返回 false
+6. **WitherSkeletonEntity 特殊处理**：凋灵骷髅重写 `setCombatTask()` 强制使用近战，`canUseNonMeleeWeapon()` 返回 false
+7. **远程箭矢伤害**：骷髅类使用 `arrow->setBaseDamageFromMob(charge)` 设置箭矢伤害，公式为 `power * 2.0 + triangle(difficulty * 0.11, 0.57425)`，与 AbstractArrowEntity 基类保持一致。不调用 `applyBowEnchantments()`，因为生物射出的箭矢不应有弓类附魔效果。
 
 ### 僵尸类溺水转化
 

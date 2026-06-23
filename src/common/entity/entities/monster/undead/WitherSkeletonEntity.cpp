@@ -76,17 +76,13 @@ void WitherSkeletonEntity::setCombatTask()
     // 重写父类方法，凋灵骷髅始终使用近战攻击（装备石剑）
 
     // 移除现有的战斗目标
-    if (m_rangedAttackGoal) {
-        m_goalSelector.removeGoal(m_rangedAttackGoal.get());
-    }
-    if (m_meleeAttackGoal) {
-        m_goalSelector.removeGoal(m_meleeAttackGoal.get());
-    }
+    // 使用 removeGoalsOfType 按类型移除，避免 unique_ptr 与 GoalSelector 之间的所有权冲突
+    m_goalSelector.removeGoalsOfType<entity::ai::goal::RangedBowAttackGoal>();
+    m_goalSelector.removeGoalsOfType<entity::ai::goal::MeleeAttackGoal>();
 
-    // 凋灵骷髅始终使用近战攻击
-    if (m_meleeAttackGoal) {
-        m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_meleeAttackGoal.get());
-    }
+    // 凋灵骷髅始终使用近战攻击（创建新实例并转移所有权给 GoalSelector）
+    m_goalSelector.addGoal(
+        COMBAT_GOAL_PRIORITY, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, MELEE_ATTACK_SPEED, false));
 }
 
 bool WitherSkeletonEntity::attackEntityAsMob(LivingEntity& target)
