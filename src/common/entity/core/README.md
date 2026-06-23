@@ -108,23 +108,23 @@
 
     ## #getEquipmentForSlot 护甲等级映射
 
-    | armorLevel | 材质 | Head | Chest | Legs | Feet | | -- -- -- -- -- -| -- -- --| -- -- --| -- -- -- -| -- -- --|
-    -- -- --| | 0 | 皮革 | LEATHER_HELMET | LEATHER_CHESTPLATE | LEATHER_LEGGINGS | LEATHER_BOOTS | | 1 |
-    铜(暂铁) | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS | | 2 | 金 | GOLDEN_HELMET | GOLDEN_CHESTPLATE
-    | GOLDEN_LEGGINGS | GOLDEN_BOOTS | | 3 | 锁链 | CHAINMAIL_HELMET | CHAINMAIL_CHESTPLATE | CHAINMAIL_LEGGINGS
-    | CHAINMAIL_BOOTS | | 4 | 铁 | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS | | 5 | 钻石
-    | DIAMOND_HELMET | DIAMOND_CHESTPLATE | DIAMOND_LEGGINGS | DIAMOND_BOOTS |
+    | armorLevel | 材质 | Head | Chest | Legs | Feet | | -- -| -- -| -- -| -- -| -- -| -- -| | 0 | 皮革 | LEATHER_HELMET
+    | LEATHER_CHESTPLATE | LEATHER_LEGGINGS | LEATHER_BOOTS | | 1 | 铜 | COPPER_HELMET | COPPER_CHESTPLATE
+    | COPPER_LEGGINGS | COPPER_BOOTS | | 2 | 金 | GOLDEN_HELMET | GOLDEN_CHESTPLATE | GOLDEN_LEGGINGS | GOLDEN_BOOTS | |
+    3 | 锁链 | CHAINMAIL_HELMET | CHAINMAIL_CHESTPLATE | CHAINMAIL_LEGGINGS | CHAINMAIL_BOOTS | | 4 | 铁 | IRON_HELMET
+    | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS | | 5 | 钻石 | DIAMOND_HELMET | DIAMOND_CHESTPLATE | DIAMOND_LEGGINGS
+    | DIAMOND_BOOTS |
 
-    注意：armorLevel = 1 对应铜材质，但铜护甲尚未实现，当前回退为铁护甲。
+    对应 MC 1.21.11 原版 `Mob.getEquipmentForSlot()`，armorLevel = 1 为铜护甲。
 
-                       ##CreatureEntity 寻路权重与生成条件
+                                                                   ##CreatureEntity 寻路权重与生成条件
 
-                       ## #getPathWeight 寻路权重系统
+                                                                   ## #getPathWeight 寻路权重系统
 
-`CreatureEntity::getPathWeight(f32 x,
-                           f32 y,
-                           f32 z)` 返回实体偏好移动到该位置的程度，正值越高越偏好，负值越避开，0为中性。对应
-                       MC `PathfinderMob.getWalkTargetValue`，被 `RandomPositionGenerator` 用于 AI 随机位置选择。
+`CreatureEntity::getPathWeight(f32 x, f32 y, f32 z)` 返回实体偏好移动到该位置的程度，正值越高越偏好，负值越避开，0为中性。对应
+                                                                   MC `PathfinderMob
+                                                                       .getWalkTargetValue`，被 `RandomPositionGenerator` 用于
+                                                                   AI 随机位置选择。
 
     | 实体类 | 重写逻辑 | 对应 MC | | -- -- -- --| -- -- -- -- --| -- -- -- -- -| | CreatureEntity（默认）
     | 返回 0.0f | `PathfinderMob` 返回 0.0F | | AnimalEntity
@@ -163,7 +163,7 @@
         &`（持久化引用），每个实体拥有独立的 `m_random` 成员
             - 旧 `MobEntity::getRandom()` 按值返回临时对象（每次调用重新构造 RNG），已移除
             - 获取随机数时应使用引用赋值 `math::Random &rng = entity->getRandom()`，而非值赋值 `math::Random rng =
-                           entity->getRandom()` -
+                                                                       entity->getRandom()` -
     值赋值会拷贝 RNG 状态，导致原 RNG 不推进，且同一 tick 内多次值赋值得到相同序列
     - `getRandom()` 在 `const` 方法中也可调用（`mutable` 成员），这是有意为之——随机数生成是逻辑操作而非状态查询 -
     Brain 系统的 `Task::start()` 接收的 `random` 参数仅用于计算任务持续时间，AI 逻辑中的随机数应使用 `owner->getRandom()`

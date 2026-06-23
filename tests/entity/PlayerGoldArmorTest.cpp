@@ -29,6 +29,7 @@
 #include "common/item/armor/ArmorMaterial.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/armor/ArmorItem.hpp"
+#include "common/resource/ResourceLocation.hpp"
 
 using namespace mc;
 using namespace mc::item::armor;
@@ -76,6 +77,7 @@ TEST_F(PlayerGoldArmorTest, GoldMaterialIdentification)
 {
     // 验证各种护甲材质的名称
     EXPECT_EQ(ArmorMaterials::LEATHER.getName(), "leather");
+    EXPECT_EQ(ArmorMaterials::COPPER.getName(), "copper");
     EXPECT_EQ(ArmorMaterials::CHAIN.getName(), "chain");
     EXPECT_EQ(ArmorMaterials::IRON.getName(), "iron");
     EXPECT_EQ(ArmorMaterials::GOLD.getName(), "gold");
@@ -113,10 +115,12 @@ TEST_F(PlayerGoldArmorTest, GoldArmorProperties)
 TEST_F(PlayerGoldArmorTest, EnchantabilityComparison)
 {
     // 附魔能力排序（从高到低）
-    // 金(25) > 皮革/下界合金(15) > 钻石(10) > 铁/海龟(9) > 锁链(12)
+    // 金(25) > 皮革/下界合金(15) > 钻石(10) > 铁/海龟(9) > 锁链(12) > 铜(8)
     EXPECT_GT(ArmorMaterials::GOLD.getEnchantability(), ArmorMaterials::DIAMOND.getEnchantability());
     EXPECT_GT(ArmorMaterials::GOLD.getEnchantability(), ArmorMaterials::IRON.getEnchantability());
     EXPECT_GT(ArmorMaterials::GOLD.getEnchantability(), ArmorMaterials::LEATHER.getEnchantability());
+    EXPECT_GT(ArmorMaterials::LEATHER.getEnchantability(), ArmorMaterials::COPPER.getEnchantability());
+    EXPECT_GT(ArmorMaterials::COPPER.getEnchantability(), 0); // 铜的附魔能力为8
 }
 
 /**
@@ -159,4 +163,58 @@ TEST_F(PlayerGoldArmorTest, MaterialNameConsistency)
     EXPECT_TRUE(goldName == "gold");
     EXPECT_FALSE(goldName == "iron");
     EXPECT_FALSE(goldName == "diamond");
+    EXPECT_FALSE(goldName == "copper");
+}
+
+/**
+ * @brief 测试铜护甲材质属性（MC 1.21.11 新增）
+ *
+ * 验证铜护甲的各项属性符合 MC 1.21.11 原版数据：
+ * - 基础耐久度乘数 11
+ * - 防御值：头盔=2, 胸甲=4, 护腿=3, 靴子=1
+ * - 附魔能力 8
+ * - 韧性 0.0
+ * - 击退抗性 0.0
+ */
+TEST_F(PlayerGoldArmorTest, CopperArmorMaterialProperties)
+{
+    // 材质名称
+    EXPECT_EQ(ArmorMaterials::COPPER.getName(), "copper");
+
+    // 附魔能力
+    EXPECT_EQ(ArmorMaterials::COPPER.getEnchantability(), 8);
+
+    // 防御值（MC 1.21.11 原版数据）
+    EXPECT_EQ(ArmorMaterials::COPPER.getDefense(ArmorSlotEnum::Head), 2);
+    EXPECT_EQ(ArmorMaterials::COPPER.getDefense(ArmorSlotEnum::Chest), 4);
+    EXPECT_EQ(ArmorMaterials::COPPER.getDefense(ArmorSlotEnum::Legs), 3);
+    EXPECT_EQ(ArmorMaterials::COPPER.getDefense(ArmorSlotEnum::Feet), 1);
+
+    // 耐久度（基础乘数 11: 头盔=121, 胸甲=176, 护腿=165, 靴子=143）
+    EXPECT_EQ(ArmorMaterials::COPPER.getDurability(ArmorSlotEnum::Head), 121);
+    EXPECT_EQ(ArmorMaterials::COPPER.getDurability(ArmorSlotEnum::Chest), 176);
+    EXPECT_EQ(ArmorMaterials::COPPER.getDurability(ArmorSlotEnum::Legs), 165);
+    EXPECT_EQ(ArmorMaterials::COPPER.getDurability(ArmorSlotEnum::Feet), 143);
+
+    // 韧性和击退抗性
+    EXPECT_FLOAT_EQ(ArmorMaterials::COPPER.getToughness(), 0.0f);
+    EXPECT_FLOAT_EQ(ArmorMaterials::COPPER.getKnockbackResistance(), 0.0f);
+
+    // 装备音效
+    EXPECT_EQ(ArmorMaterials::COPPER.getEquipSound().getId(), ResourceLocation("minecraft:item.armor.equip_copper"));
+
+    // 修复材料
+    EXPECT_TRUE(ArmorMaterials::COPPER.getRepairMaterial().test(*Items::COPPER_INGOT));
+
+    // 铜护甲防御值介于皮革和锁链之间
+    EXPECT_GT(ArmorMaterials::COPPER.getDefense(ArmorSlotEnum::Chest),
+        ArmorMaterials::LEATHER.getDefense(ArmorSlotEnum::Chest));
+    EXPECT_LT(ArmorMaterials::COPPER.getDefense(ArmorSlotEnum::Chest),
+        ArmorMaterials::CHAIN.getDefense(ArmorSlotEnum::Chest));
+
+    // 铜护甲耐久度介于皮革(5)和锁链(15)之间
+    EXPECT_GT(ArmorMaterials::COPPER.getDurability(ArmorSlotEnum::Head),
+        ArmorMaterials::LEATHER.getDurability(ArmorSlotEnum::Head));
+    EXPECT_LT(ArmorMaterials::COPPER.getDurability(ArmorSlotEnum::Head),
+        ArmorMaterials::CHAIN.getDurability(ArmorSlotEnum::Head));
 }
