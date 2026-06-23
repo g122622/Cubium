@@ -55,13 +55,16 @@ namespace client::renderer::entity::util {
  * 2. 对范围内的每个方块位置：
  *    a. 获取下方方块状态
  *    b. 检查渲染类型、光照等级、碰撞形状
- *    c. 计算阴影透明度（基础透明度 × 高度衰减 × 亮度）
+ *    c. 计算阴影透明度（基础透明度 × 相机距离衰减 × 高度衰减 × 亮度）
  *    d. 绘制阴影四边形（根据方块形状裁剪）
  * 3. 透明度受以下因素影响：
- *    - 到相机的距离（>256格时消失）
+ *    - 到相机的距离衰减（距离 > 16 格时消失，参考 MC EntityRenderer.extractShadow()）
  *    - 实体到地面的高度
  *    - 幼年实体减半
  *    - 方块位置亮度
+ *
+ * 相机位置由 EntityRendererManager::setCameraInfo() 每帧设置，
+ * 通过 setCameraPosition() 存储在 s_cameraPosition 中。
  */
 class ShadowRenderer {
 public:
@@ -82,6 +85,17 @@ public:
      * @brief 检查阴影是否已初始化
      */
     [[nodiscard]] static bool isInitialized();
+
+    /**
+     * @brief 设置相机位置（每帧调用）
+     *
+     * 参考 MC EntityRenderDispatcher.distanceToSqr()：
+     * 阴影透明度需要根据实体到相机的距离进行衰减。
+     * 由 EntityRendererManager::setCameraInfo() 每帧调用。
+     *
+     * @param position 相机世界坐标
+     */
+    static void setCameraPosition(const Vector3d& position);
 
     /**
      * @brief 渲染实体阴影（GPU管线路径 - ClientEntity 版本）
@@ -223,6 +237,7 @@ private:
     static std::vector<f32> s_shadowVertices;
     static std::vector<u32> s_shadowIndices;
     static pipeline::EntityMesh* s_shadowMesh;
+    static Vector3d s_cameraPosition;
 };
 
 } // namespace client::renderer::entity::util
