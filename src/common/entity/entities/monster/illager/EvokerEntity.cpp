@@ -43,9 +43,11 @@
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include <cmath>
 
 namespace mc {
@@ -143,31 +145,33 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
         return;
     }
 
-    // 从上往下找到合适的生成位置
+    // 从上往下搜索合适的生成位置
     BlockPos blockPos(
         static_cast<i32>(std::floor(posX)), static_cast<i32>(std::floor(maxY)), static_cast<i32>(std::floor(posZ)));
 
     bool foundSolidGround = false;
-    f32 groundY = 0.0f;
+    f32 shapeMaxY = 0.0f; // 碰撞箱的上表面高度（方块局部坐标，0~1）
 
-    // 向下搜索直到找到固体方块或到达 minY
     while (blockPos.y >= static_cast<i32>(std::floor(minY)) - 1) {
         BlockPos belowPos(blockPos.x, blockPos.y - 1, blockPos.z);
         const BlockState* belowState = m_world->getBlockState(belowPos);
 
-        if (belowState != nullptr && belowState->isSolid()) {
-            // 找到固体地面
+        // 检查下方方块是否有向上的实心面（等价于 MC 的 isFaceSturdy(level, pos, Direction.UP)）
+        if (belowState != nullptr && belowState->isSolidSide(*m_world, belowPos, Direction::Up)) {
             foundSolidGround = true;
 
-            // 检查当前位置是否有碰撞箱（如草、花等）
+            // 检查当前位置是否有非空方块（如台阶、地毯等），获取其碰撞箱的最大Y值
             const BlockState* currentState = m_world->getBlockState(blockPos);
             if (currentState != nullptr && !currentState->isAir()) {
-                // TODO: 获取碰撞箱的上表面高度，当前假设完整方块的碰撞箱高度为1.0
-                // 完整实现需要 VoxelShape
-                groundY = static_cast<f32>(blockPos.y);
-            } else {
-                groundY = static_cast<f32>(blockPos.y);
+                const CollisionShape& collisionShape = currentState->getCollisionShape();
+                if (!collisionShape.isEmpty()) {
+                    // 遍历碰撞箱的所有AABB，取最大Y值
+                    for (const auto& box : collisionShape.boxes()) {
+                        shapeMaxY = std::max(shapeMaxY, box.maxY);
+                    }
+                }
             }
+
             break;
         }
 
@@ -175,6 +179,9 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
     }
 
     if (foundSolidGround) {
+        // 尖牙的Y坐标 = 方块Y坐标 + 碰撞箱上表面高度
+        f32 groundY = static_cast<f32>(blockPos.y) + shapeMaxY;
+
         // 创建唤魔者尖牙实体
         auto fangs = std::make_unique<entity::EvokerFangsEntity>(EntityId(0));
         fangs->setPosition(posX, groundY, posZ);
@@ -184,6 +191,12 @@ void EvokerEntity::_spawnFangs(f32 posX, f32 posZ, f32 minY, f32 maxY, f32 angle
 
         // 将实体添加到世界
         m_world->spawnEntity(std::move(fangs));
+
+        // 触发实体放置游戏事件（通知幽匿感测体等振动监听器）
+        BlockPos fangBlockPos(static_cast<i32>(std::floor(posX)),
+            static_cast<i32>(std::floor(groundY)),
+            static_cast<i32>(std::floor(posZ)));
+        m_world->gameEvent(gameevent::GameEvents::ENTITY_PLACE, fangBlockPos, gameevent::GameEvent::Context::of(this));
     }
 }
 
