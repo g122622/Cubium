@@ -54,8 +54,6 @@ namespace blocks {
  * - 不可接收滴石滴水
  * - 空桶可以提取岩浆，将方块替换为空炼药锅
  * - 不响应降水
- *
- * 参考: net.minecraft.world.level.block.LavaCauldronBlock
  */
 class LavaCauldronBlock : public Block {
 public:
@@ -105,7 +103,6 @@ public:
      * @brief 实体进入方块时受到岩浆伤害
      *
      * 对 LivingEntity 造成岩浆伤害并点燃实体。
-     * 参考: net.minecraft.world.level.block.LavaCauldronBlock.entityInside
      */
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 

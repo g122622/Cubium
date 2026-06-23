@@ -102,8 +102,6 @@ public:
      * - 雨天：5% 概率增加水位（如果未满）
      * - 雪天：10% 概率增加水位（如果未满）
      *
-     * 参考: net.minecraft.block.CauldronBlock#handlePrecipitation
-     *
      * @param world 世界
      * @param pos 方块位置
      * @param precipitation 降水类型（Rain / Snow）

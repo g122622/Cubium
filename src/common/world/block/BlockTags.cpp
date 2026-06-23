@@ -884,6 +884,15 @@ BlockTag& BlockTags::WALL_POST_OVERRIDE()
     return *tag;
 }
 
+BlockTag& BlockTags::CAULDRONS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "cauldrons"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -2620,6 +2629,16 @@ void BlockTags::initialize()
         // 仙人掌花
         ResourceLocation("minecraft", "cactus_flower")});
     tags[wallPostOverride->getId()] = std::move(wallPostOverride);
+
+    // 创建 CAULDRONS 标签（所有炼药锅变体）
+    // 参考: net.minecraft.data.tags.VanillaBlockTagsProvider - CAULDRONS
+    // 参考: datapacks/Vanilla/data/minecraft/tags/block/cauldrons.json
+    auto cauldrons = std::make_unique<BlockTag>(ResourceLocation("minecraft", "cauldrons"));
+    cauldrons->addAll({ResourceLocation("minecraft", "cauldron"),
+        ResourceLocation("minecraft", "water_cauldron"),
+        ResourceLocation("minecraft", "lava_cauldron"),
+        ResourceLocation("minecraft", "powder_snow_cauldron")});
+    tags[cauldrons->getId()] = std::move(cauldrons);
 
     s_initialized = true;
 }

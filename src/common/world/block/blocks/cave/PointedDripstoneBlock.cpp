@@ -558,22 +558,20 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
         }
 
         // 检查是否为可接收滴水的炼药锅
-        // 水可以滴入未满的水炼药锅（CauldronBlock）
+        // 空 CauldronBlock（水位0）可以接收水和岩浆的滴石滴水
+        // LavaCauldronBlock 始终满，不可接收滴水（由 LavaCauldronBlock::canReceiveStalactiteDrip 返回 false 保障）
         if (state->is(block_registry::BuildingBlocks::CAULDRON)) {
-            // 水可以滴入未满的炼药锅
-            if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
-                return mutablePos.toImmutable();
+            if (CauldronBlock::canReceiveStalactiteDrip(fluid)) {
+                // 水可以滴入未满的炼药锅；岩浆可以滴入空的炼药锅
+                if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
+                    return mutablePos.toImmutable();
+                }
+                if (fluid.isIn(fluid::FluidTags::LAVA()) && CauldronBlock::isEmpty(*state)) {
+                    return mutablePos.toImmutable();
+                }
             }
         }
-        // 空炼药锅可以接收任何流体（水和岩浆）的滴石滴水
-        // 注意：CauldronBlock::canReceiveStalactiteDrip 始终返回 true，
-        // 且空炼药锅的 isFull 检查在上方已处理水位 0 的情况。
-        // 此处额外检查空炼药锅（水位0）是否可以接收岩浆滴水
-        if (state->is(block_registry::BuildingBlocks::CAULDRON)) {
-            if (fluid.isIn(fluid::FluidTags::LAVA()) && CauldronBlock::isEmpty(*state)) {
-                return mutablePos.toImmutable();
-            }
-        }
+        // 岩浆炼药锅始终满，不可接收任何滴水，跳过
 
         // 检查是否可以穿过
         if (!canDripThrough(world, mutablePos.toImmutable(), state)) {

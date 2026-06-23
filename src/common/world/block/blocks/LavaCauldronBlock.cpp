@@ -168,7 +168,6 @@ void LavaCauldronBlock::onEntityCollision(
     }
 
     // 对进入岩浆炼药锅的实体造成岩浆伤害
-    // 参考: net.minecraft.world.level.block.LavaCauldronBlock.entityInside
     auto damageSource = DamageSources::lava();
     livingEntity->hurt(damageSource, 4.0f);
 

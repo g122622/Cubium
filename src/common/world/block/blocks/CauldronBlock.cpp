@@ -167,8 +167,6 @@ void CauldronBlock::handlePrecipitation(
     world.setBlockState(pos, &newState, 3);
 
     // 触发 BLOCK_CHANGE 游戏事件，通知附近的幽匿感测体
-    // 参考: net.minecraft.block.CauldronBlock#handlePrecipitation 中调用
-    //       world.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state, newState))
     world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
 }
 
@@ -335,7 +333,6 @@ ActionResultType CauldronBlock::_handleBucketInteraction(
     }
 
     // 岩浆桶：装岩浆到空炼药锅
-    // 参考: net.minecraft.world.level.block.CauldronBlock + CauldronInteraction.EMPTY
     if (item == Items::LAVA_BUCKET) {
         if (currentLevel == 0 && !world.isClientSide()) {
             // 岩浆桶倒入空炼药锅：空炼药锅 → 岩浆炼药锅
@@ -596,7 +593,6 @@ void CauldronBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     MC_UNUSED(random);
 
     // 当滴石调度了炼药锅的 tick 时，重新验证上方是否存在可滴水的钟乳石尖端
-    // 参考: net.minecraft.world.level.block.AbstractCauldronBlock.tick()
     // 向上搜索钟乳石尖端（最多 11 格）
     BlockPosMutable mutablePos(pos.x, pos.y, pos.z);
 
@@ -641,7 +637,6 @@ void CauldronBlock::_receiveDripFromStalactiteTip(
     IWorld& world, const BlockPos& pos, const BlockState& state, const BlockPos& tipPos)
 {
     // 沿钟乳石尖端向上搜索根方块
-    // 参考: net.minecraft.world.level.block.PointedDripstoneBlock.getFluidAboveStalactite()
     BlockPosMutable rootPos(tipPos.x, tipPos.y, tipPos.z);
     const BlockState* rootState = nullptr;
 
