@@ -228,6 +228,7 @@ public:
     // ========== 交易相关 ==========
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
+    [[nodiscard]] bool isChild() const override { return m_isBaby; }
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {
@@ -360,6 +361,7 @@ public:
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
+    [[nodiscard]] bool isChild() const override { return m_isBaby; }
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {
@@ -378,9 +380,7 @@ public:
 
     // ========== 寻路权重 ==========
 
-    // TODO: 重写 getPathWeight — 疣猪兽需要检查诡异菌距离和绯红菌岩方块：
-    // 靠近诡异菌返回 -1.0f，站在绯红菌岩上返回 10.0f，否则返回 0.0f
-    // 对应 MC Hoglin.getWalkTargetValue
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
 
 protected:
     void registerGoals() override;
@@ -409,6 +409,7 @@ public:
     ~ZoglinEntity() override = default;
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
+    [[nodiscard]] bool isChild() const override { return m_isBaby; }
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {

@@ -566,18 +566,6 @@ i32 AnvilContainer::_getNewRepairCost(i32 oldRepairCost)
     return oldRepairCost * 2 + 1;
 }
 
-bool AnvilContainer::_areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const
-{
-    auto* enchantment1 = item::enchant::EnchantmentRegistry::get(ench1);
-    auto* enchantment2 = item::enchant::EnchantmentRegistry::get(ench2);
-
-    if (enchantment1 == nullptr || enchantment2 == nullptr) {
-        return true; // 未知附魔，默认兼容
-    }
-
-    return enchantment1->isCompatibleWith(*enchantment2);
-}
-
 bool AnvilContainer::isPlayerCreative() const
 {
     // 创造模式玩家在铁砧中有特殊权限

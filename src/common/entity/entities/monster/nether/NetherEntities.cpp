@@ -51,6 +51,8 @@
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include <cmath>
 
 namespace mc {
@@ -731,6 +733,33 @@ void HoglinEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 6.0);
 }
 
+// ========== 寻路权重 ==========
+
+f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    // 对应 MC Hoglin.getWalkTargetValue:
+    //   if (HoglinAi.isPosNearNearestRepellent(this, pos)) return -1.0F;
+    //   return level.getBlockState(pos.below()).is(Blocks.CRIMSON_NYLIUM) ? 10.0F : 0.0F;
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+
+    // TODO: 排斥物近距离检查（诡异菌、诡异菌岩、下界传送门）需要 HoglinSpecificSensor
+    // 通过 Brain 系统的 NEAREST_REPELLENT 记忆模块实现，待 Brain 系统集成后补充。
+    // MC 原版使用 HoglinAi.isPosNearNearestRepellent 检查位置是否在8格内有排斥物，
+    // 有则返回 -1.0f。
+
+    // 偏好绯红菌岩：站在绯红菌岩上返回 10.0f，否则返回 0.0f
+    BlockPos posBelow(static_cast<i32>(x), static_cast<i32>(y) - 1, static_cast<i32>(z));
+    const BlockState* groundBlock = worldPtr->getBlockState(posBelow);
+    if (groundBlock != nullptr && groundBlock->is(block_registry::NetherBlocks::CRIMSON_NYLIUM)) {
+        return 10.0f;
+    }
+
+    return 0.0f;
+}
+
 // ZoglinEntity
 std::unique_ptr<Entity> ZoglinEntity::create(IWorld* world)
 {
@@ -790,7 +819,9 @@ void ZoglinEntity::registerGoals()
         m_targetSelector.addGoal(
             2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
-        // 优先级 3: 攻击其他生物（排除僵尸疣兽和幼年生物）
+        // 优先级 3: 攻击其他生物（排除僵尸疣兽和苦力怕）
+        // MC 原版 Zoglin.isTargetable 排除 Zoglin 和 Creeper，
+        // 创造/旁观模式玩家由 TargetGoal::isSuitableTarget 自动排除
         m_targetSelector.addGoal(3,
             std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
                 this, true, 10, entity::ai::goal::TargetPredicate([](const LivingEntity* entity) {
@@ -798,7 +829,8 @@ void ZoglinEntity::registerGoals()
                     auto type = entity->typeId();
                     // 排除僵尸疣兽自己
                     if (type == entity::EntityTypeIdNumber::ZOGLIN) return false;
-                    // TODO: 排除幼年生物和创造/旁观模式玩家
+                    // 排除苦力怕（MC 原版 Zoglin 不攻击 Creeper）
+                    if (type == entity::EntityTypeIdNumber::CREEPER) return false;
                     return true;
                 })));
     }
