@@ -754,6 +754,7 @@ add_executable(mc_tests
     common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
+    common/world/gen/feature/end/EndFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/feature/template/BlockAgeProcessorTest.cpp
     common/world/gen/feature/template/test_capped_processor.cpp

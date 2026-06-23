@@ -23,13 +23,13 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "util/Direction.hpp"
 #include "util/math/random/Random.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/end/ChorusFlowerBlock.hpp"
 #include "world/block/blocks/end/ChorusPlantBlock.hpp"
 #include "world/border/WorldBorder.hpp"
@@ -848,4 +848,129 @@ TEST_F(ChorusPlantBlockTest, ChorusFlower_IsValidPosition_EndStoneNotHorizontalS
     // 下方是空气，水平方向的末地石不是有效支撑
     EXPECT_FALSE(static_cast<const ChorusFlowerBlock*>(VanillaBlocks::CHORUS_FLOWER)
             ->isValidPosition(flowerState, world, BlockPos(0, 64, 0)));
+}
+
+// ============================================================================
+// ChorusPlantBlock::getStateWithConnections 测试
+// 测试静态方法 getStateWithConnections 的连接检测逻辑
+// ============================================================================
+
+TEST_F(ChorusPlantBlockTest, GetStateWithConnections_NoNeighbors_NoConnections)
+{
+    // 空世界 - 没有任何邻居，不应有任何连接
+    ChorusPlantTestWorld world;
+    const BlockState& defaultState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    BlockState result = ChorusPlantBlock::getStateWithConnections(world, BlockPos(0, 64, 0), defaultState);
+
+    EXPECT_FALSE(result.get(BlockStateProperties::NORTH()));
+    EXPECT_FALSE(result.get(BlockStateProperties::SOUTH()));
+    EXPECT_FALSE(result.get(BlockStateProperties::EAST()));
+    EXPECT_FALSE(result.get(BlockStateProperties::WEST()));
+    EXPECT_FALSE(result.get(BlockStateProperties::UP()));
+    EXPECT_FALSE(result.get(BlockStateProperties::DOWN()));
+}
+
+TEST_F(ChorusPlantBlockTest, GetStateWithConnections_ChorusPlantNeighbors)
+{
+    // 四个方向都有紫颂植物 + 上方有紫颂花 + 下方有末地石
+    ChorusPlantTestWorld world;
+    const BlockState& plantState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+    const BlockState& endStoneState = VanillaBlocks::END_STONE->defaultState();
+
+    world.setBlockAt(BlockPos(0, 64, -1), &plantState);   // 北
+    world.setBlockAt(BlockPos(0, 64, 1), &plantState);    // 南
+    world.setBlockAt(BlockPos(1, 64, 0), &plantState);    // 东
+    world.setBlockAt(BlockPos(-1, 64, 0), &plantState);   // 西
+    world.setBlockAt(BlockPos(0, 65, 0), &flowerState);   // 上（紫颂花也算连接）
+    world.setBlockAt(BlockPos(0, 63, 0), &endStoneState); // 下（末地石只在下方算连接）
+
+    const BlockState& defaultState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    BlockState result = ChorusPlantBlock::getStateWithConnections(world, BlockPos(0, 64, 0), defaultState);
+
+    EXPECT_TRUE(result.get(BlockStateProperties::NORTH()));
+    EXPECT_TRUE(result.get(BlockStateProperties::SOUTH()));
+    EXPECT_TRUE(result.get(BlockStateProperties::EAST()));
+    EXPECT_TRUE(result.get(BlockStateProperties::WEST()));
+    EXPECT_TRUE(result.get(BlockStateProperties::UP()));
+    EXPECT_TRUE(result.get(BlockStateProperties::DOWN()));
+}
+
+TEST_F(ChorusPlantBlockTest, GetStateWithConnections_EndStoneOnlyConnectsDownward)
+{
+    // 末地石只在下方算连接，侧面不算
+    ChorusPlantTestWorld world;
+    const BlockState& endStoneState = VanillaBlocks::END_STONE->defaultState();
+
+    // 侧面有末地石
+    world.setBlockAt(BlockPos(0, 64, -1), &endStoneState); // 北方末地石
+
+    const BlockState& defaultState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    BlockState result = ChorusPlantBlock::getStateWithConnections(world, BlockPos(0, 64, 0), defaultState);
+
+    // 北方不应连接末地石
+    EXPECT_FALSE(result.get(BlockStateProperties::NORTH()));
+}
+
+TEST_F(ChorusPlantBlockTest, GetStateWithConnections_EndStoneBelowConnectsDownward)
+{
+    // 下方有末地石应该连接
+    ChorusPlantTestWorld world;
+    const BlockState& endStoneState = VanillaBlocks::END_STONE->defaultState();
+
+    world.setBlockAt(BlockPos(0, 63, 0), &endStoneState);
+
+    const BlockState& defaultState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    BlockState result = ChorusPlantBlock::getStateWithConnections(world, BlockPos(0, 64, 0), defaultState);
+
+    EXPECT_TRUE(result.get(BlockStateProperties::DOWN()));
+}
+
+TEST_F(ChorusPlantBlockTest, GetStateWithConnections_ChorusFlowerConnectsInAllDirections)
+{
+    // 紫颂花在任何方向都算连接
+    ChorusPlantTestWorld world;
+    const BlockState& flowerState = VanillaBlocks::CHORUS_FLOWER->defaultState();
+
+    world.setBlockAt(BlockPos(0, 65, 0), &flowerState); // 上方紫颂花
+
+    const BlockState& defaultState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    BlockState result = ChorusPlantBlock::getStateWithConnections(world, BlockPos(0, 64, 0), defaultState);
+
+    EXPECT_TRUE(result.get(BlockStateProperties::UP()));
+}
+
+TEST_F(ChorusPlantBlockTest, GetStateWithConnections_SingleDirection)
+{
+    // 只有一个方向有邻居
+    ChorusPlantTestWorld world;
+    const BlockState& plantState = VanillaBlocks::CHORUS_PLANT->defaultState();
+
+    world.setBlockAt(BlockPos(0, 64, -1), &plantState); // 北方
+
+    const BlockState& defaultState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    BlockState result = ChorusPlantBlock::getStateWithConnections(world, BlockPos(0, 64, 0), defaultState);
+
+    EXPECT_TRUE(result.get(BlockStateProperties::NORTH()));
+    EXPECT_FALSE(result.get(BlockStateProperties::SOUTH()));
+    EXPECT_FALSE(result.get(BlockStateProperties::EAST()));
+    EXPECT_FALSE(result.get(BlockStateProperties::WEST()));
+    EXPECT_FALSE(result.get(BlockStateProperties::UP()));
+    EXPECT_FALSE(result.get(BlockStateProperties::DOWN()));
+}
+
+TEST_F(ChorusPlantBlockTest, GetStateWithConnections_RegularBlocksNoConnection)
+{
+    // 普通方块（如石头）不应产生任何连接
+    ChorusPlantTestWorld world;
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    world.setBlockAt(BlockPos(0, 64, -1), &stoneState); // 北方石头
+    world.setBlockAt(BlockPos(0, 63, 0), &stoneState);  // 下方石头
+
+    const BlockState& defaultState = VanillaBlocks::CHORUS_PLANT->defaultState();
+    BlockState result = ChorusPlantBlock::getStateWithConnections(world, BlockPos(0, 64, 0), defaultState);
+
+    EXPECT_FALSE(result.get(BlockStateProperties::NORTH()));
+    EXPECT_FALSE(result.get(BlockStateProperties::DOWN()));
 }

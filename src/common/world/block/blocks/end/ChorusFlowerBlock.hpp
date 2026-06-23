@@ -87,7 +87,6 @@ public:
     /**
      * @brief 在指定位置生成一棵完整的紫颂树
      *
-     * 对应 MC 原版 ChorusFlowerBlock.generatePlant()。
      * 在指定位置放置紫颂植物茎干，然后递归生长紫颂树。
      *
      * @param world 世界区域（用于方块查询和设置）
@@ -104,7 +103,6 @@ private:
     /**
      * @brief 递归生长紫颂树
      *
-     * 对应 MC 原版 ChorusFlowerBlock.growTreeRecursive()。
      * 从指定位置向上生长茎干，然后在水平方向分枝。
      *
      * @param world 世界区域
@@ -124,8 +122,7 @@ private:
     /**
      * @brief 检查指定位置的所有邻居（除了排除方向）是否都为空气
      *
-     * 对应 MC 原版 ChorusFlowerBlock.allNeighborsEmpty()。
-     *
+     * 检查指定位置的四个水平方向邻居（排除指定方向）是否都为空气。
      * @param world 世界区域
      * @param pos 要检查的位置
      * @param excludeDir 排除的方向（传空表示不排除）

@@ -153,7 +153,6 @@ const CollisionShape& ChorusFlowerBlock::getShape(const BlockState& state) const
 void ChorusFlowerBlock::generatePlant(
     WorldGenRegion& world, const BlockPos& pos, math::Random& random, i32 maxHorizontalDistance)
 {
-    // 对应 MC 原版 ChorusFlowerBlock.generatePlant()
     // 在起始位置放置一个带连接的紫颂植物茎干，然后递归生长
     const BlockState* chorusPlantState = &VanillaBlocks::CHORUS_PLANT->defaultState();
     if (chorusPlantState == nullptr) {
@@ -173,7 +172,7 @@ void ChorusFlowerBlock::growTreeRecursive(WorldGenRegion& world,
     i32 maxHorizontalDistance,
     i32 depth)
 {
-    // 对应 MC 原版 ChorusFlowerBlock.growTreeRecursive()
+    // 确定向上生长的茎干高度
     const BlockState* chorusPlantState = &VanillaBlocks::CHORUS_PLANT->defaultState();
     const BlockState* chorusFlowerState = &VanillaBlocks::CHORUS_FLOWER->defaultState();
     if (chorusPlantState == nullptr || chorusFlowerState == nullptr) {
@@ -252,7 +251,6 @@ void ChorusFlowerBlock::growTreeRecursive(WorldGenRegion& world,
 bool ChorusFlowerBlock::allNeighborsEmpty(
     WorldGenRegion& world, const BlockPos& pos, const std::optional<Direction>& excludeDir)
 {
-    // 对应 MC 原版 ChorusFlowerBlock.allNeighborsEmpty()
     // 检查四个水平方向的邻居是否为空气（排除指定方向）
     static const Direction horizontalDirs[] = {Direction::North, Direction::South, Direction::East, Direction::West};
 
