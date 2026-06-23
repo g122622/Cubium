@@ -24,6 +24,9 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "core/Constants.hpp"
 #include "entity/core/Entity.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -33,7 +36,6 @@
 #include "world/IWorld.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
 #include "world/block/blocks/decorative/PaneBlock.hpp"
 #include "world/border/WorldBorder.hpp"
@@ -162,7 +164,11 @@ public:
 
 class PaneBlockTestFixture : public ::testing::Test {
 protected:
-    void SetUp() override { VanillaBlocks::initialize(); }
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+    }
 };
 
 TEST_F(PaneBlockTestFixture, Placement_ConnectsToSolidPaneAndWallAndWaterlogs)
@@ -228,4 +234,47 @@ TEST_F(PaneBlockTestFixture, UpdatePostPlacement_RecomputesFaceAndSchedulesWater
         pane.updatePostPlacement(state, Direction::North, solid.defaultState(), world, pos, pos.north());
 
     EXPECT_TRUE(updated.get(BlockStateProperties::NORTH()));
+}
+
+// ============================================================================
+// PaneBlock isExceptionForConnection Tests
+// 参考: PaneBlock::shouldConnectTo 使用 Block::isExceptionForConnection 排除连接例外方块
+// ============================================================================
+
+TEST_F(PaneBlockTestFixture, PaneDoesNotConnectToLeaves)
+{
+    // 树叶是连接例外，玻璃板不应连接到树叶
+    if (!VanillaBlocks::OAK_LEAVES) {
+        GTEST_SKIP() << "OAK_LEAVES not registered";
+    }
+
+    PaneBlock pane(BlockProperties(Material::GLASS).noCollision().notSolid());
+    PaneTestWorld world;
+    const BlockPos pos(15, 64, 8);
+
+    world.setBlockState(pos.north(), &VanillaBlocks::OAK_LEAVES->defaultState());
+
+    BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+    const BlockState state = pane.getStateForPlacement(context);
+
+    EXPECT_FALSE(state.get(BlockStateProperties::NORTH()));
+}
+
+TEST_F(PaneBlockTestFixture, PaneConnectsToWall)
+{
+    // 玻璃板应连接到墙方块
+    if (!VanillaBlocks::COBBLESTONE_WALL) {
+        GTEST_SKIP() << "COBBLESTONE_WALL not registered";
+    }
+
+    PaneBlock pane(BlockProperties(Material::GLASS).noCollision().notSolid());
+    PaneTestWorld world;
+    const BlockPos pos(16, 64, 8);
+
+    world.setBlockState(pos.east(), &VanillaBlocks::COBBLESTONE_WALL->defaultState());
+
+    BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+    const BlockState state = pane.getStateForPlacement(context);
+
+    EXPECT_TRUE(state.get(BlockStateProperties::EAST()));
 }

@@ -179,23 +179,31 @@ protected:
 TEST_F(FenceBlockTest, Placement_ConnectsToSameFenceType)
 {
     // 参考: net.minecraft.block.FenceBlock#connectsTo - 同类栅栏连接
-    FenceBlock oakFence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
+    // 木质栅栏连接木质栅栏（使用VanillaBlocks确保标签注册正确）
+    if (!VanillaBlocks::OAK_FENCE || !VanillaBlocks::SPRUCE_FENCE) {
+        GTEST_SKIP() << "OAK_FENCE or SPRUCE_FENCE not registered";
+    }
+
     FenceWallTestWorld world;
     const BlockPos pos(8, 64, 8);
 
-    // 相同类型的栅栏应该互相连接
-    world.setBlockState(pos.north(), &oakFence.defaultState());
+    // 橡木栅栏旁边放云杉木栅栏——两者都是木质栅栏，应该连接
+    world.setBlockState(pos.north(), &VanillaBlocks::SPRUCE_FENCE->defaultState());
 
     BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
-    const BlockState state = oakFence.getStateForPlacement(context);
+    const BlockState state = VanillaBlocks::OAK_FENCE->getStateForPlacement(context);
 
+    // 木质栅栏之间互相连接
     EXPECT_TRUE(state.get(BlockStateProperties::NORTH()));
 }
 
-TEST_F(FenceBlockTest, Placement_ConnectsToSolidBlock)
+TEST_F(FenceBlockTest, VanillaFenceConnectsToSolidBlock)
 {
-    // 参考: net.minecraft.block.FenceBlock#connectsTo - 固体方块连接
-    FenceBlock fence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
+    // 固体方块连接
+    if (!VanillaBlocks::OAK_FENCE) {
+        GTEST_SKIP() << "OAK_FENCE not registered";
+    }
+
     TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
     FenceWallTestWorld world;
     const BlockPos pos(8, 64, 8);
@@ -203,9 +211,52 @@ TEST_F(FenceBlockTest, Placement_ConnectsToSolidBlock)
     world.setBlockState(pos.east(), &solid.defaultState());
 
     BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
-    const BlockState state = fence.getStateForPlacement(context);
+    const BlockState state = VanillaBlocks::OAK_FENCE->getStateForPlacement(context);
 
     EXPECT_TRUE(state.get(BlockStateProperties::EAST()));
+}
+
+TEST_F(FenceBlockTest, VanillaFenceDoesNotConnectToLeaves)
+{
+    // 参考: Block::isExceptionForConnection - 树叶是连接例外
+    if (!VanillaBlocks::OAK_FENCE || !VanillaBlocks::OAK_LEAVES) {
+        GTEST_SKIP() << "OAK_FENCE or OAK_LEAVES not registered";
+    }
+
+    FenceWallTestWorld world;
+    const BlockPos pos(8, 64, 8);
+
+    world.setBlockState(pos.south(), &VanillaBlocks::OAK_LEAVES->defaultState());
+
+    BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+    const BlockState state = VanillaBlocks::OAK_FENCE->getStateForPlacement(context);
+
+    EXPECT_FALSE(state.get(BlockStateProperties::SOUTH()));
+}
+
+TEST_F(FenceBlockTest, WoodenFenceTagValidation)
+{
+    // 验证 FENCES 和 WOODEN_FENCES 标签的分化逻辑
+    // 木质栅栏应同时属于 FENCES 和 WOODEN_FENCES
+    if (!VanillaBlocks::OAK_FENCE) {
+        GTEST_SKIP() << "OAK_FENCE not registered";
+    }
+
+    EXPECT_TRUE(BlockTags::FENCES().contains(*VanillaBlocks::OAK_FENCE));
+    EXPECT_TRUE(BlockTags::WOODEN_FENCES().contains(*VanillaBlocks::OAK_FENCE));
+
+    if (VanillaBlocks::SPRUCE_FENCE) {
+        EXPECT_TRUE(BlockTags::FENCES().contains(*VanillaBlocks::SPRUCE_FENCE));
+        EXPECT_TRUE(BlockTags::WOODEN_FENCES().contains(*VanillaBlocks::SPRUCE_FENCE));
+    }
+}
+
+TEST_F(FenceBlockTest, FenceTagDoesNotContainSolidBlock)
+{
+    // 固体方块不属于 FENCES 标签
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    EXPECT_FALSE(BlockTags::FENCES().contains(solid.defaultState()));
+    EXPECT_FALSE(BlockTags::WOODEN_FENCES().contains(solid.defaultState()));
 }
 
 TEST_F(FenceBlockTest, Placement_DoesNotConnectToAir)
@@ -222,24 +273,6 @@ TEST_F(FenceBlockTest, Placement_DoesNotConnectToAir)
     EXPECT_FALSE(state.get(BlockStateProperties::EAST()));
     EXPECT_FALSE(state.get(BlockStateProperties::SOUTH()));
     EXPECT_FALSE(state.get(BlockStateProperties::WEST()));
-}
-
-TEST_F(FenceBlockTest, Placement_DoesNotConnectToLeaves)
-{
-    // 参考: Block::isExceptionForConnection - 树叶是连接例外
-    FenceBlock fence(BlockProperties(Material::WOOD).hardness(2.0f).resistance(3.0f));
-    FenceWallTestWorld world;
-    const BlockPos pos(8, 64, 8);
-
-    // 树叶方块应该在 LEAVES 标签中
-    if (VanillaBlocks::OAK_LEAVES) {
-        world.setBlockState(pos.south(), &VanillaBlocks::OAK_LEAVES->defaultState());
-
-        BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
-        const BlockState state = fence.getStateForPlacement(context);
-
-        EXPECT_FALSE(state.get(BlockStateProperties::SOUTH()));
-    }
 }
 
 TEST_F(FenceBlockTest, UpdatePostPlacement_UpdatesConnectionOnNeighborChange)
