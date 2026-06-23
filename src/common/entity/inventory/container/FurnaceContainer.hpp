@@ -106,6 +106,14 @@ public:
     [[nodiscard]] IInventory* getFurnaceInventory() const { return m_furnaceInventory; }
 
     /**
+     * @brief 获取熔炉方块实体
+     *
+     * 返回关联的熔炉方块实体指针，用于读取燃烧/熔炼进度数据。
+     * 在客户端侧可能为nullptr（当容器未关联到实际方块实体时）。
+     */
+    [[nodiscard]] AbstractFurnaceEntity* getFurnaceEntity() const { return m_furnaceEntity; }
+
+    /**
      * @brief 设置玩家引用（用于经验发放）
      * @param player 玩家指针
      */

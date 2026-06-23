@@ -267,10 +267,22 @@ Result<void> ClientApplication::initializeRenderer()
                     spdlog::warn("Failed to load inventory texture: {}", loadResult.error().toString());
                 }
 
+                // 加载工作台纹理
+                auto craftingLoadResult = m_guiTextureManager->loadCraftingTableTexture();
+                if (craftingLoadResult.failed()) {
+                    spdlog::warn("Failed to load crafting table texture: {}", craftingLoadResult.error().toString());
+                }
+
+                // 加载熔炉纹理
+                auto furnaceLoadResult = m_guiTextureManager->loadFurnaceTexture();
+                if (furnaceLoadResult.failed()) {
+                    spdlog::warn("Failed to load furnace texture: {}", furnaceLoadResult.error().toString());
+                }
+
                 // 注册到 GuiRenderer
                 auto registerResult = m_guiTextureManager->registerToRenderer(m_renderer->guiRenderer());
                 if (registerResult.success()) {
-                    spdlog::info("GUI texture manager initialized with atlas slot {}", registerResult.value());
+                    spdlog::info("GUI texture manager initialized with {} atlas slots", registerResult.value());
                 } else {
                     spdlog::warn("Failed to register GUI texture manager: {}", registerResult.error().toString());
                 }
