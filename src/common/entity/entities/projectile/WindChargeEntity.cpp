@@ -284,6 +284,10 @@ void WindChargeEntity::applyWindBurst()
             // TODO: 当爆炸同步系统完善后，需要向客户端发送爆炸击退数据包
             // 对应 MC: player.connection.send(new ClientboundExplodePacket(...))
         }
+
+        // ========== 7. 通知实体被爆炸击中 ==========
+        // 风弹爆炸触发冲量坠落伤害免疫（对应 MC ServerPlayer.onExplosionHit 中对 WindCharge 的检查）
+        entity->onExplosionHit(getShooter());
     }
 
     // ========== 7. 播放风爆音效 ==========

@@ -101,3 +101,44 @@
                         hitEntity()` 处理砸地效果（停止下落、音效、击退）、调用 `postHitEntity()` 重置下落距离、检测风爆魔咒施加弹起速度。
     -
     **PvP 保护机制**：`Player::canHarmPlayer()` 控制玩家间伤害判定。基类实现检查队伍友伤规则（攻击者无队伍→可伤害；同队→取决于 `getAllowFriendlyFire()`；不同队→可伤害）。`ServerPlayer` 重写此方法，先检查 PVP 游戏规则（`IWorld::isPvpAllowed()`），PvP 禁用时直接返回 false。`ServerPlayer::hurt()` 在伤害来源为玩家时调用 `canHarmPlayer()` 拦截非法 PvP 伤害。驯服动物（如狼）的 `wantsToAttack()` 也调用 `canHarmPlayer()` 判断主人是否可以攻击目标玩家。
+
+---
+
+## 冲量坠落伤害免疫系统
+
+Player 实现了 MC Java `Player` 中的 impulse context 系统，用于重锤砸地攻击和风弹爆炸后的坠落伤害减免。
+
+### 核心字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `m_currentImpulseImpactPos` | `std::optional<Vector3>` | 冲量冲击位置（砸地/爆炸位置） |
+| `m_ignoreFallDamageFromCurrentImpulse` | `bool` | 是否忽略当前冲量的坠落伤害 |
+| `m_currentImpulseContextResetGraceTime` | `i32` | 冲量上下文重置宽限期（tick） |
+| `m_currentExplosionCause` | `EntityId` | 引起冲量的实体ID（用于进度触发） |
+
+### 关键方法
+
+- `setIgnoreFallDamageFromCurrentImpulse(bool)` — 设置免疫标志并启动/清除 40 tick 宽限期
+- `isIgnoringFallDamageFromCurrentImpulse()` — 检查是否忽略冲量坠落伤害
+- `applyPostImpulseGraceTime(i32)` — 扩展宽限期（取最大值，不缩短已有宽限期），风爆附魔用 10 tick
+- `tryResetCurrentImpulseContext()` — 仅当宽限期为 0 时重置（着地/水中/攀爬时调用）
+- `resetCurrentImpulseContext()` — 完全重置所有冲量状态
+- `calculateMaceImpactPosition()` — 计算重锤冲击位置（防止连续砸地双重获利）
+- `onExplosionHit(Entity*)` — 被爆炸击中时设置冲量上下文（仅风弹启用免疫）
+
+### 坠落伤害减免逻辑
+
+`Player::causeFallDamage()` 重写实现冲量减免：当 `m_ignoreFallDamageFromCurrentImpulse && m_currentImpulseImpactPos` 为 true 时，坠落距离被限制为 `min(实际坠落距离, 冲击位置Y - 玩家Y)`。玩家在冲击位置上方时不受伤。
+
+### 冲量上下文生命周期
+
+1. **设置**：重锤砸地攻击调用 `setIgnoreFallDamageFromCurrentImpulse(true)` + 设置冲击位置；风弹爆炸调用 `onExplosionHit()`
+2. **宽限期**：40 tick 计时器逐 tick 递减，期间 `tryResetCurrentImpulseContext()` 不重置
+3. **减免**：`causeFallDamage()` 中根据冲击位置计算减免后的坠落距离
+4. **重置触发**：实际受到伤害、切换创造模式、着地/水中/攀爬（宽限期结束后）、卡在方块中（宽限期结束后）
+
+### 注意事项
+
+- 冲量上下文字段尚未添加 NBT 序列化支持，待 Player 实现 `addAdditionalSaveData`/`readAdditionalSaveData` 后需补充
+- 对应 MC Java `Player` 的 `setIgnoreFallDamageFromCurrentImpulse`、`currentImpulseImpactPos`、`currentImpulseContextResetGraceTime` 系列方法

@@ -67,3 +67,5 @@ Item (基类)
 6. **DAMAGE_EXCLUSIVE 互斥组**：锋利/亡灵杀手/节肢杀手/穿刺/致密/破甲六者互斥，但风爆与任何伤害魔咒都不互斥。互斥检查需要在双方的 `isCompatibleWith()` 中都添加。
 
 7. **破甲修改的是护甲有效率而非独立减伤**：破甲在 `AttackContext::calculateFinalDamage()` 中修改护甲有效率（每级 -0.15），不是独立的伤害加成，计算时需 clamp 到 [0, 1]。
+
+8. **重锤冲量坠落伤害免疫**：`MaceItem::hitEntity()` 在砸地攻击时调用 `Player::setIgnoreFallDamageFromCurrentImpulse(true)` 和 `Player::calculateMaceImpactPosition()` 设置冲量上下文，`Player::causeFallDamage()` 根据冲量冲击位置减免坠落伤害。`MaceItem::postHitEntity()` 仅重置 `fallDistance`，冲量免疫机制由 Player 类的 impulse context 系统处理。连续砸地攻击时，`calculateMaceImpactPosition()` 保留原有冲击位置（如果它低于当前位置）以防止"双重获利"。风爆附魔通过 `Player::applyPostImpulseGraceTime(10)` 扩展冲量宽限期。

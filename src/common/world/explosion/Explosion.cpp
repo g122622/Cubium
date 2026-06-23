@@ -349,6 +349,9 @@ void Explosion::_calculateAffectedEntities()
                 }
                 m_playerKnockback[player->id()] = Vector3(dx * impact, dy * impact, dz * impact);
             }
+
+            // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
+            entity->onExplosionHit(m_source);
         }
     }
 }

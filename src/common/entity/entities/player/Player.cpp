@@ -43,6 +43,7 @@
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
+#include "../../core/EntityTypeIdNumber.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/item/ItemEntity.hpp"
@@ -1615,9 +1616,9 @@ void Player::onExplosionHit(Entity* cause)
     m_currentExplosionCause = cause != nullptr ? cause->id() : 0;
 
     // 只有风弹引起的爆炸才启用坠落伤害免疫
-    // TODO: 当风弹实体类型实现后，应检查 cause->type() == EntityType::WIND_CHARGE
-    // 当前简化实现：暂时对所有爆炸都不启用坠落伤害免疫
-    setIgnoreFallDamageFromCurrentImpulse(false);
+    // 对应 MC ServerPlayer.onExplosionHit 中对 WindCharge 实体类型的检查
+    bool isWindCharge = cause != nullptr && cause->typeId() == entity::EntityTypeIdNumber::WIND_CHARGE;
+    setIgnoreFallDamageFromCurrentImpulse(isWindCharge);
 }
 
 // ============================================================================

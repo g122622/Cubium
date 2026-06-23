@@ -1515,6 +1515,19 @@ public:
      */
     virtual void onStruckByLightning() {}
 
+    /**
+     * @brief 被爆炸击中时调用
+     *
+     * 在爆炸对实体施加击退和伤害之后调用，允许实体对爆炸做出额外响应。
+     * 默认实现为空操作。
+     *
+     * Player 重写此方法以设置冲量上下文（impulse context），
+     * 当爆炸由风弹引起时启用坠落伤害免疫。
+     *
+     * @param cause 引起爆炸的实体，可能为 nullptr（如床爆炸等无来源爆炸）
+     */
+    virtual void onExplosionHit(Entity* cause) { (void)cause; }
+
     // ========== 乘客/骑乘系统 ==========
 
     /**
