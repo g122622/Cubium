@@ -1626,5 +1626,76 @@ TEST_F(CatEntityTestFixture, DeathSound)
     EXPECT_EQ(sound.value(), SoundEvents::ENTITY_CAT_DEATH);
 }
 
+// ============================================================================
+// hiss() 嘶嘶声测试
+// ============================================================================
+
+TEST_F(CatEntityTestFixture, Hiss_PlaysHissSound)
+{
+    // MC 原版：Cat.hiss() 播放 ENTITY_CAT_HISS 音效
+    // 当幻翼检测到附近的猫时，会调用此方法
+    CatTestWorld world;
+    CatEntity cat(EntityId(1));
+    cat.setWorld(&world);
+    cat.setTypeId("minecraft:cat");
+
+    world.resetSoundTracking();
+
+    cat.hiss();
+
+    // 应该播放 ENTITY_CAT_HISS 音效
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_CAT_HISS);
+}
+
+TEST_F(CatEntityTestFixture, Hiss_SilentCat_DoesNotPlaySound)
+{
+    // 静音的猫不应该播放嘶嘶声
+    // playSound 内部会检查 isSilent()，如果为 true 则不播放
+    CatTestWorld world;
+    CatEntity cat(EntityId(1));
+    cat.setWorld(&world);
+    cat.setTypeId("minecraft:cat");
+    cat.setSilent(true);
+
+    world.resetSoundTracking();
+
+    cat.hiss();
+
+    // 静音状态下不应该播放声音
+    EXPECT_EQ(world.getSoundPlayCount(), 0);
+}
+
+TEST_F(CatEntityTestFixture, Hiss_PitchVariation)
+{
+    // MC 原版：hiss() 的音调带有随机变化 [0.8, 1.2]
+    // 多次调用 hiss() 应该都能正常执行（不崩溃）
+    CatTestWorld world;
+    CatEntity cat(EntityId(1));
+    cat.setWorld(&world);
+    cat.setTypeId("minecraft:cat");
+
+    world.resetSoundTracking();
+
+    // 多次调用确保不崩溃
+    for (int i = 0; i < 10; ++i) {
+        cat.hiss();
+    }
+
+    // 每次调用都应该播放声音
+    EXPECT_EQ(world.getSoundPlayCount(), 10);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_CAT_HISS);
+}
+
+TEST_F(CatEntityTestFixture, Hiss_WithoutWorld_DoesNotCrash)
+{
+    // 没有世界时 hiss() 不应崩溃
+    // playSound 内部会检查 m_world == nullptr，如果为 null 则返回
+    CatEntity cat(EntityId(0));
+    // cat 没有 world
+
+    EXPECT_NO_THROW({ cat.hiss(); });
+}
+
 } // namespace
 } // namespace mc
