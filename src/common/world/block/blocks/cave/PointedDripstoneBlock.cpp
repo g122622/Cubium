@@ -38,6 +38,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
+#include "common/world/block/blocks/LavaCauldronBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -557,14 +558,21 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
         }
 
         // 检查是否为可接收滴水的炼药锅
-        // 当前仅支持水炼药锅（CauldronBlock），岩浆炼药锅尚未实现
+        // 水可以滴入未满的水炼药锅（CauldronBlock）
         if (state->is(block_registry::BuildingBlocks::CAULDRON)) {
             // 水可以滴入未满的炼药锅
             if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
                 return mutablePos.toImmutable();
             }
-            // TODO: 岩浆可以滴入岩浆炼药锅（当 LavaCauldronBlock 实现后，需在此处检查 LAVA_CAULDRON
-            // 方块并增加岩浆液面）
+        }
+        // 空炼药锅可以接收任何流体（水和岩浆）的滴石滴水
+        // 注意：CauldronBlock::canReceiveStalactiteDrip 始终返回 true，
+        // 且空炼药锅的 isFull 检查在上方已处理水位 0 的情况。
+        // 此处额外检查空炼药锅（水位0）是否可以接收岩浆滴水
+        if (state->is(block_registry::BuildingBlocks::CAULDRON)) {
+            if (fluid.isIn(fluid::FluidTags::LAVA()) && CauldronBlock::isEmpty(*state)) {
+                return mutablePos.toImmutable();
+            }
         }
 
         // 检查是否可以穿过

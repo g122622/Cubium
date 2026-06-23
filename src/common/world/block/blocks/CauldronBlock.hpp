@@ -33,6 +33,10 @@
 
 namespace mc {
 
+namespace fluid {
+class Fluid;
+} // namespace fluid
+
 class World;
 class BlockItemUseContext;
 class Player;
@@ -202,7 +206,55 @@ public:
      */
     [[nodiscard]] static bool isFull(const BlockState& state);
 
+    // ========== 滴石填充 ==========
+
+    /**
+     * @brief 方块 tick 处理
+     *
+     * 由 PointedDripstoneBlock::maybeTransferFluid() 调度，用于接收滴石滴水填充。
+     * 在 tick 中重新验证滴石尖端是否存在，并调用 receiveStalactiteDrip 填充炼药锅。
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
+     * @brief 判断是否可以接收滴石滴水
+     *
+     * 空炼药锅可以接收任何流体（水和岩浆）的滴石滴水。
+     *
+     * @param fluid 流体类型
+     * @return 始终返回 true
+     */
+    [[nodiscard]] static bool canReceiveStalactiteDrip(const fluid::Fluid& fluid);
+
+    /**
+     * @brief 接收滴石滴水填充
+     *
+     * 根据流体类型将空炼药锅替换为对应类型：
+     * - 水滴 → 替换为水位3的水炼药锅（当前实现中水位直接设为3，因为空炼药锅接收水后直接变为满）
+     * - 岩浆滴 → 替换为岩浆炼药锅
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param fluid 流体类型
+     */
+    static void receiveStalactiteDrip(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid);
+
 private:
+    /**
+     * @brief 从钟乳石尖端接收滴水（tick 内部调用）
+     *
+     * 在 tick() 中找到上方尖端后调用，沿钟乳石向上查找根方块和流体源，
+     * 确定流体类型后调用 receiveStalactiteDrip 填充炼药锅。
+     *
+     * @param world 世界
+     * @param pos 炼药锅位置
+     * @param state 当前方块状态
+     * @param tipPos 钟乳石尖端位置
+     */
+    static void _receiveDripFromStalactiteTip(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const BlockPos& tipPos);
     /**
      * @brief 处理水桶交互
      * @param world 世界

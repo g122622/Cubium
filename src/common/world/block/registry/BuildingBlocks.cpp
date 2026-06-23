@@ -29,6 +29,7 @@
 #include "world/block/blocks/ChestBlock.hpp"
 #include "world/block/blocks/EnchantingTableBlock.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
+#include "world/block/blocks/LavaCauldronBlock.hpp"
 #include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/ShulkerBoxBlock.hpp"
@@ -75,6 +76,7 @@ Block* BuildingBlocks::WET_SPONGE = nullptr;
 // 功能方块
 Block* BuildingBlocks::CRAFTING_TABLE = nullptr;
 Block* BuildingBlocks::CAULDRON = nullptr;
+Block* BuildingBlocks::LAVA_CAULDRON = nullptr;
 Block* BuildingBlocks::ENCHANTING_TABLE = nullptr;
 Block* BuildingBlocks::CHEST = nullptr;
 Block* BuildingBlocks::TRAPPED_CHEST = nullptr;
@@ -180,6 +182,12 @@ void registerBuildingBlocks()
     // 炼药锅
     BuildingBlocks::CAULDRON = &registry.registerBlock<blocks::CauldronBlock>(ResourceLocation("minecraft:cauldron"),
         BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid());
+
+    // 岩浆炼药锅 - 始终满的炼药锅，发光等级15，实体进入受岩浆伤害
+    // 参考: net.minecraft.world.level.block.LavaCauldronBlock
+    BuildingBlocks::LAVA_CAULDRON =
+        &registry.registerBlock<blocks::LavaCauldronBlock>(ResourceLocation("minecraft:lava_cauldron"),
+            BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().lightLevel(15));
 
     // 附魔台
     BuildingBlocks::ENCHANTING_TABLE =
