@@ -185,6 +185,8 @@ add_executable(mc_tests
     common/entity/entities/monster/undead/ZombieEntityTest.cpp
     # SkeletonEntity 骷髅射箭测试
     common/entity/entities/monster/undead/SkeletonEntityTest.cpp
+    # SkeletonEntity 骷髅战斗目标切换测试（getWeaponHoldingHand, canUseNonMeleeWeapon, setCombatTask, setEquipment）
+    common/entity/entities/monster/undead/SkeletonCombatTaskTest.cpp
     # VexEntity 穿墙能力和生命周期测试
     common/entity/entities/monster/illager/VexEntityTest.cpp
     # EvokerEntity 尖牙攻击和召唤恼鬼测试
