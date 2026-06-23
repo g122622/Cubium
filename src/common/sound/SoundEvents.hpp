@@ -581,6 +581,24 @@ extern const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST;
 /// 旋风人风弹风爆声
 extern const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST;
 
+/// 旋风人吸气（射击前蓄力）
+extern const ResourceLocation ENTITY_BREEZE_INHALE;
+
+/// 旋风人发射风弹
+extern const ResourceLocation ENTITY_BREEZE_SHOOT;
+
+/// 旋风人蓄力（长跳前吸气）
+extern const ResourceLocation ENTITY_BREEZE_CHARGE;
+
+/// 旋风人跳跃
+extern const ResourceLocation ENTITY_BREEZE_JUMP;
+
+/// 旋风人着陆
+extern const ResourceLocation ENTITY_BREEZE_LAND;
+
+/// 旋风人滑行
+extern const ResourceLocation ENTITY_BREEZE_SLIDE;
+
 // ============================================================================
 // 重锤声音
 // ============================================================================

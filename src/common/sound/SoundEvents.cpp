@@ -500,6 +500,12 @@ const ResourceLocation ENTITY_GENERIC_EXPLODE("minecraft:entity.generic.explode"
 const ResourceLocation ENTITY_WIND_CHARGE_THROW("minecraft:entity.wind_charge.throw");
 const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST("minecraft:entity.wind_charge.wind_burst");
 const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST("minecraft:entity.breeze.wind_charge_burst");
+const ResourceLocation ENTITY_BREEZE_INHALE("minecraft:entity.breeze.inhale");
+const ResourceLocation ENTITY_BREEZE_SHOOT("minecraft:entity.breeze.shoot");
+const ResourceLocation ENTITY_BREEZE_CHARGE("minecraft:entity.breeze.charge");
+const ResourceLocation ENTITY_BREEZE_JUMP("minecraft:entity.breeze.jump");
+const ResourceLocation ENTITY_BREEZE_LAND("minecraft:entity.breeze.land");
+const ResourceLocation ENTITY_BREEZE_SLIDE("minecraft:entity.breeze.slide");
 
 // ============================================================================
 // 重锤声音

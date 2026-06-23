@@ -39,4 +39,9 @@ MonsterEntity (敌对生物基类)
 
 2. **风弹不被偏转**：`shouldDeflectProjectile()` 对 `WindChargeEntity` 返回 `false`，其他投射物返回 `true`。这确保旋风人不会偏转自己发射的风弹。
 
-3. **AI 行为目标尚未完整**：`registerGoals()` 中 BreezeShootGoal、BreezeLongJumpGoal、BreezeSlideGoal、BreezeShootWhenStuckGoal 均标记为 TODO，当前使用基础 AI 目标替代。`shootWindCharge()` 方法已实现但需要 AI 目标系统调用来触发。
+3. **AI 行为目标**：`registerGoals()` 中已实现旋风人特有的四个 AI 目标：
+   - `BreezeShootGoal`（优先级2）：向目标投掷风弹，充能15 ticks后发射，恢复4 ticks，冷却10 ticks
+   - `BreezeLongJumpGoal`（优先级3）：长跳移动，吸气10 ticks后跳跃，着陆后设置射击许可
+   - `BreezeShootWhenStuckGoal`（优先级4）：卡住时（水中/骑乘/飘浮）紧急射击
+   - `BreezeSlideGoal`（优先级5）：地面滑行移动，内圈逃跑或中圈/目标身后移动，结束后设置射击许可
+   - `shootWindCharge()` 方法由 BreezeShootGoal 调用触发

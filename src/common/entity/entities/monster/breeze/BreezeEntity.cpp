@@ -26,6 +26,7 @@
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/BreezeGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
@@ -60,6 +61,21 @@ void BreezeEntity::tick()
         --m_shootCooldown;
     }
 
+    // 更新长跳冷却
+    if (m_jumpCooldown > 0) {
+        --m_jumpCooldown;
+    }
+
+    // 更新射击许可计时器
+    if (m_shootPermitTicks > 0) {
+        --m_shootPermitTicks;
+    }
+
+    // 着陆时清除长跳状态
+    if (m_isLongJumping && onGround()) {
+        m_isLongJumping = false;
+    }
+
     // TODO(trial_chambers): 实现旋风人动画状态机
     // 空闲 → 滑行 → 长跳蓄力 → 长跳中 → 射击
 }
@@ -68,15 +84,15 @@ void BreezeEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // 行为目标
+    // 行为目标（参考 MC Java BreezeAi.FIGHT 行为优先级）
     m_goalSelector.addGoal(1, new entity::ai::goal::SwimGoal(this));
-    // TODO(trial_chambers): 实现BreezeShootGoal - 向目标投掷风弹
-    // TODO(trial_chambers): 实现BreezeLongJumpGoal - 长跳移动
-    // TODO(trial_chambers): 实现BreezeSlideGoal - 地面滑行移动
-    // TODO(trial_chambers): 实现BreezeShootWhenStuckGoal - 卡住时紧急射击
-    m_goalSelector.addGoal(5, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.35));
-    m_goalSelector.addGoal(6, new entity::ai::goal::LookAtGoal(this, 8.0F, 0.02F));
-    m_goalSelector.addGoal(7, new entity::ai::goal::LookRandomlyGoal(this));
+    m_goalSelector.addGoal(2, new entity::ai::goal::BreezeShootGoal(this));          // 射击风弹
+    m_goalSelector.addGoal(3, new entity::ai::goal::BreezeLongJumpGoal(this));       // 长跳移动
+    m_goalSelector.addGoal(4, new entity::ai::goal::BreezeShootWhenStuckGoal(this)); // 卡住时紧急射击
+    m_goalSelector.addGoal(5, new entity::ai::goal::BreezeSlideGoal(this));          // 滑行移动
+    m_goalSelector.addGoal(6, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.35));
+    m_goalSelector.addGoal(7, new entity::ai::goal::LookAtGoal(this, 8.0F, 0.02F));
+    m_goalSelector.addGoal(8, new entity::ai::goal::LookRandomlyGoal(this));
 
     // 目标选择
     m_targetSelector.addGoal(1, new entity::ai::goal::HurtByTargetGoal(this, false));

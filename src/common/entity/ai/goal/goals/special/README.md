@@ -9,6 +9,7 @@ special/
 ├── SpecialGoals.hpp/cpp           # 通用特殊目标（苦力怕膨胀、马驯服奔跑等）
 ├── GuardianAttackGoal.hpp/cpp     # 守卫者激光攻击目标
 ├── BlazeFireballAttackGoal.hpp/cpp # 烈焰人火球攻击目标
+├── BreezeGoals.hpp/cpp            # 旋风人目标（风弹射击、长跳、滑行、卡住射击）
 ├── EndermanGoals.hpp/cpp          # 末影人目标（注视玩家、查找玩家）
 ├── MoveToLavaGoal.hpp/cpp         # 炽足兽寻找熔岩目标
 ├── SquidGoals.hpp/cpp             # 鱿鱼目标（随机游泳、逃跑）
@@ -43,6 +44,10 @@ Goal (基类)
 ├── TriggerSkeletonTrapGoal ──────── 骷髅马陷阱触发
 ├── GuardianAttackGoal ───────────── 守卫者激光攻击（充能→发射→冷却）
 ├── BlazeFireballAttackGoal ──────── 烈焰人连发火球（充能→连发→冷却）
+├── BreezeShootGoal ─────────────── 旋风人风弹射击（充能→发射→恢复→冷却）
+├── BreezeLongJumpGoal ──────────── 旋风人长跳（吸气→跳跃→着陆）
+├── BreezeSlideGoal ─────────────── 旋风人滑行（逃离内圈或移动到中圈/目标身后）
+├── BreezeShootWhenStuckGoal ────── 旋风人卡住时紧急射击（一次性目标，设置射击许可）
 ├── MoveToBlockGoal (抽象基类)
 │   └── MoveToLavaGoal ───────────── 炽足兽寻找熔岩
 ├── EndermanStareGoal ────────────── 末影人注视玩家
