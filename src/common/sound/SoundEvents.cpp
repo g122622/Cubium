@@ -1271,6 +1271,7 @@ const ResourceLocation ENTITY_ITEM_PICKUP("minecraft:entity.item.pickup");
 
 // 盔甲装备
 const ResourceLocation ITEM_ARMOR_EQUIP_CHAIN("minecraft:item.armor.equip_chain");
+const ResourceLocation ITEM_ARMOR_EQUIP_COPPER("minecraft:item.armor.equip_copper");
 const ResourceLocation ITEM_ARMOR_EQUIP_DIAMOND("minecraft:item.armor.equip_diamond");
 const ResourceLocation ITEM_ARMOR_EQUIP_ELYTRA("minecraft:item.armor.equip_elytra");
 const ResourceLocation ITEM_ARMOR_EQUIP_GENERIC("minecraft:item.armor.equip_generic");

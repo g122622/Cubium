@@ -58,7 +58,7 @@ enum class ArmorSlot : u8 {
  * 定义盔甲材质的属性，如耐久度、防御值、附魔能力等。
  * 参考: net.minecraft.item.IArmorMaterial
  *
- * 原版材质：LEATHER, CHAIN, IRON, GOLD, DIAMOND, TURTLE, NETHERITE
+ * 原版材质：LEATHER, COPPER, CHAIN, IRON, GOLD, DIAMOND, TURTLE, NETHERITE
  */
 class ArmorMaterial {
 public:
@@ -190,6 +190,25 @@ public:
 };
 
 /**
+ * @brief 铜材质
+ *
+ * MC 1.21.11 新增铜护甲材质。
+ * - 耐久度介于皮革和锁链之间
+ * - 防御值：头盔=2, 胸甲=4, 护腿=3, 靴子=1
+ * - 附魔能力 8
+ * - 无特殊属性（韧性=0, 击退抗性=0）
+ */
+class CopperArmorMaterial : public ArmorMaterial {
+public:
+    [[nodiscard]] std::string getName() const override { return "copper"; }
+    [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
+    [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
+    [[nodiscard]] i32 getEnchantability() const override { return 8; }
+    [[nodiscard]] sound::SoundEvent getEquipSound() const override;
+    [[nodiscard]] crafting::Ingredient getRepairMaterial() const override;
+};
+
+/**
  * @brief 铁材质
  *
  * - 平衡的属性
@@ -283,6 +302,7 @@ public:
 
 namespace ArmorMaterials {
 extern const LeatherArmorMaterial LEATHER;
+extern const CopperArmorMaterial COPPER;
 extern const ChainArmorMaterial CHAIN;
 extern const IronArmorMaterial IRON;
 extern const GoldArmorMaterial GOLD;

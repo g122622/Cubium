@@ -227,6 +227,12 @@ Item* Items::LEATHER_CHESTPLATE = nullptr;
 Item* Items::LEATHER_LEGGINGS = nullptr;
 Item* Items::LEATHER_BOOTS = nullptr;
 
+// 铜护甲
+Item* Items::COPPER_HELMET = nullptr;
+Item* Items::COPPER_CHESTPLATE = nullptr;
+Item* Items::COPPER_LEGGINGS = nullptr;
+Item* Items::COPPER_BOOTS = nullptr;
+
 // 锁链护甲
 Item* Items::CHAINMAIL_HELMET = nullptr;
 Item* Items::CHAINMAIL_CHESTPLATE = nullptr;
@@ -244,6 +250,7 @@ Item* Items::ELYTRA = nullptr;
 
 // 马铠
 Item* Items::LEATHER_HORSE_ARMOR = nullptr;
+Item* Items::COPPER_HORSE_ARMOR = nullptr;
 Item* Items::IRON_HORSE_ARMOR = nullptr;
 Item* Items::GOLDEN_HORSE_ARMOR = nullptr;
 Item* Items::DIAMOND_HORSE_ARMOR = nullptr;
@@ -1491,6 +1498,31 @@ void Items::_registerArmor()
         ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Feet)));
 
     // ========================================================================
+    // 铜护甲（MC 1.21.11 新增）
+    // 铜护甲耐久介于皮革和锁链之间，防御值：头盔=2, 胸甲=4, 护腿=3, 靴子=1
+    // 附魔能力 8，韧性 0，击退抗性 0
+    // ========================================================================
+    COPPER_HELMET = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:copper_helmet"),
+        ArmorMaterials::COPPER,
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::COPPER.getDurability(item::armor::ArmorSlot::Head)));
+
+    COPPER_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:copper_chestplate"),
+        ArmorMaterials::COPPER,
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::COPPER.getDurability(item::armor::ArmorSlot::Chest)));
+
+    COPPER_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:copper_leggings"),
+        ArmorMaterials::COPPER,
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::COPPER.getDurability(item::armor::ArmorSlot::Legs)));
+
+    COPPER_BOOTS = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:copper_boots"),
+        ArmorMaterials::COPPER,
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::COPPER.getDurability(item::armor::ArmorSlot::Feet)));
+
+    // ========================================================================
     // 锁链护甲
     // ========================================================================
     CHAINMAIL_HELMET = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:chainmail_helmet"),
@@ -1563,6 +1595,13 @@ void Items::_registerArmor()
             ItemProperties().maxStackSize(1),
             3,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_leather.png"));
+
+    // 铜马铠 - +5 护甲（MC 1.21.11 新增）
+    COPPER_HORSE_ARMOR =
+        &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:copper_horse_armor"),
+            ItemProperties().maxStackSize(1),
+            5,
+            ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_copper.png"));
 
     // 铁马铠 - +5 护甲
     IRON_HORSE_ARMOR =

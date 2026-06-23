@@ -183,6 +183,14 @@ public:
     static Item* LEATHER_BOOTS;
 
     // ========================================================================
+    // 护甲 - 铜（MC 1.21.11 新增）
+    // ========================================================================
+    static Item* COPPER_HELMET;
+    static Item* COPPER_CHESTPLATE;
+    static Item* COPPER_LEGGINGS;
+    static Item* COPPER_BOOTS;
+
+    // ========================================================================
     // 护甲 - 锁链
     // ========================================================================
     static Item* CHAINMAIL_HELMET;
@@ -208,6 +216,7 @@ public:
     // 马铠 - 用于装备马提供护甲
     // ========================================================================
     static Item* LEATHER_HORSE_ARMOR; // 皮革马铠 - +3 护甲
+    static Item* COPPER_HORSE_ARMOR;  // 铜马铠 - +5 护甲（MC 1.21.11 新增）
     static Item* IRON_HORSE_ARMOR;    // 铁马铠 - +5 护甲
     static Item* GOLDEN_HORSE_ARMOR;  // 金马铠 - +7 护甲
     static Item* DIAMOND_HORSE_ARMOR; // 钻石马铠 - +11 护甲

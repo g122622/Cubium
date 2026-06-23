@@ -987,9 +987,7 @@ void MobEntity::populateDefaultEquipmentEnchantments(
 const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
 {
     // 对应 Minecraft 原版 Mob.getEquipmentForSlot()
-    // armorLevel: 0=皮革, 1=铁(原版1.21.11中为铜), 2=金, 3=锁链, 4=铁, 5=钻石
-    // 注意：原版 MC 1.21.11 中 level 1 是铜护甲，但当前项目尚未实现铜护甲，
-    // 因此 level 1 使用铁护甲作为替代
+    // armorLevel: 0=皮革, 1=铜, 2=金, 3=锁链, 4=铁, 5=钻石
 
     switch (slot) {
         case EquipmentSlot::Head:
@@ -997,7 +995,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
                 case 0:
                     return Items::LEATHER_HELMET;
                 case 1:
-                    return Items::IRON_HELMET; // TODO: 替换为 COPPER_HELMET 当铜护甲实现后
+                    return Items::COPPER_HELMET;
                 case 2:
                     return Items::GOLDEN_HELMET;
                 case 3:
@@ -1014,7 +1012,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
                 case 0:
                     return Items::LEATHER_CHESTPLATE;
                 case 1:
-                    return Items::IRON_CHESTPLATE; // TODO: 替换为 COPPER_CHESTPLATE
+                    return Items::COPPER_CHESTPLATE;
                 case 2:
                     return Items::GOLDEN_CHESTPLATE;
                 case 3:
@@ -1031,7 +1029,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
                 case 0:
                     return Items::LEATHER_LEGGINGS;
                 case 1:
-                    return Items::IRON_LEGGINGS; // TODO: 替换为 COPPER_LEGGINGS
+                    return Items::COPPER_LEGGINGS;
                 case 2:
                     return Items::GOLDEN_LEGGINGS;
                 case 3:
@@ -1048,7 +1046,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
                 case 0:
                     return Items::LEATHER_BOOTS;
                 case 1:
-                    return Items::IRON_BOOTS; // TODO: 替换为 COPPER_BOOTS
+                    return Items::COPPER_BOOTS;
                 case 2:
                     return Items::GOLDEN_BOOTS;
                 case 3:

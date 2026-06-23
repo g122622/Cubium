@@ -1395,6 +1395,7 @@ extern const ResourceLocation ENTITY_ITEM_PICKUP;
 
 /// 盔甲装备
 extern const ResourceLocation ITEM_ARMOR_EQUIP_CHAIN;
+extern const ResourceLocation ITEM_ARMOR_EQUIP_COPPER;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_DIAMOND;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_ELYTRA;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_GENERIC;
