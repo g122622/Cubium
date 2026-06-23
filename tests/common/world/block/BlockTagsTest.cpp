@@ -25,6 +25,7 @@
 
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 
@@ -632,4 +633,225 @@ TEST_F(BlockTagsTest, CrystalSoundBlocksDoesNotContainSmallAmethystBud)
 {
     // 小型紫水晶芽属于 INSIDE_STEP_SOUND_BLOCKS，不属于 CRYSTAL_SOUND_BLOCKS
     EXPECT_FALSE(BlockTags::CRYSTAL_SOUND_BLOCKS().contains(ResourceLocation("minecraft", "small_amethyst_bud")));
+}
+
+// ============================================================================
+// BARS 标签测试（铁栏杆等，用于墙和玻璃板连接判断）
+// ============================================================================
+
+TEST_F(BlockTagsTest, BarsTagContainsIronBars)
+{
+    EXPECT_TRUE(BlockTags::BARS().contains(ResourceLocation("minecraft", "iron_bars")));
+}
+
+TEST_F(BlockTagsTest, BarsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::BARS().getId(), ResourceLocation("minecraft", "bars"));
+}
+
+TEST_F(BlockTagsTest, BarsTagDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::BARS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, BarsTagDoesNotContainGlassPane)
+{
+    // 玻璃板不属于 BARS 标签
+    EXPECT_FALSE(BlockTags::BARS().contains(ResourceLocation("minecraft", "glass_pane")));
+}
+
+// ============================================================================
+// SHULKER_BOXES 标签测试（用于连接例外判断）
+// ============================================================================
+
+TEST_F(BlockTagsTest, ShulkerBoxesTagContainsShulkerBox)
+{
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "shulker_box")));
+}
+
+TEST_F(BlockTagsTest, ShulkerBoxesTagContainsColoredVariants)
+{
+    // 16色潜影盒都应在标签中
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "white_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "orange_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "magenta_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "light_blue_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "yellow_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "lime_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "pink_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "gray_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "light_gray_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "cyan_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "purple_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "blue_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "brown_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "green_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "red_shulker_box")));
+    EXPECT_TRUE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "black_shulker_box")));
+}
+
+TEST_F(BlockTagsTest, ShulkerBoxesTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::SHULKER_BOXES().getId(), ResourceLocation("minecraft", "shulker_boxes"));
+}
+
+TEST_F(BlockTagsTest, ShulkerBoxesTagDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::SHULKER_BOXES().contains(ResourceLocation("minecraft", "stone")));
+}
+
+// ============================================================================
+// WALL_POST_OVERRIDE 标签测试（放置在墙上时强制显示墙柱的方块）
+// ============================================================================
+
+TEST_F(BlockTagsTest, WallPostOverrideTagContainsTorch)
+{
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "torch")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagContainsSoulTorch)
+{
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "soul_torch")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagContainsRedstoneTorch)
+{
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "redstone_torch")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagContainsSigns)
+{
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "oak_sign")));
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "oak_wall_sign")));
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "spruce_sign")));
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "birch_sign")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagContainsBanners)
+{
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "white_banner")));
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "white_wall_banner")));
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "black_banner")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagContainsPressurePlates)
+{
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "stone_pressure_plate")));
+    EXPECT_TRUE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "oak_pressure_plate")));
+    EXPECT_TRUE(
+        BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "heavy_weighted_pressure_plate")));
+    EXPECT_TRUE(
+        BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "light_weighted_pressure_plate")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::WALL_POST_OVERRIDE().getId(), ResourceLocation("minecraft", "wall_post_override"));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, WallPostOverrideTagDoesNotContainWall)
+{
+    // 墙本身不属于 WALL_POST_OVERRIDE
+    EXPECT_FALSE(BlockTags::WALL_POST_OVERRIDE().contains(ResourceLocation("minecraft", "cobblestone_wall")));
+}
+
+// ============================================================================
+// Block::isExceptionForConnection 测试
+// 参考: net.minecraft.block.Block#isExceptionForConnection
+// 某些固体方块不应与栅栏、墙、玻璃板建立连接
+// ============================================================================
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_Leaves)
+{
+    // 树叶是连接例外
+    if (!VanillaBlocks::OAK_LEAVES) {
+        GTEST_SKIP() << "OAK_LEAVES block not registered";
+    }
+    EXPECT_TRUE(Block::isExceptionForConnection(VanillaBlocks::OAK_LEAVES->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_Barrier)
+{
+    // 屏障方块是连接例外
+    const Block* barrier = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "barrier"));
+    if (!barrier) {
+        GTEST_SKIP() << "barrier block not registered";
+    }
+    EXPECT_TRUE(Block::isExceptionForConnection(barrier->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_ShulkerBox)
+{
+    // 潜影盒是连接例外（通过 SHULKER_BOXES 标签）
+    const Block* shulkerBox = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "shulker_box"));
+    if (!shulkerBox) {
+        GTEST_SKIP() << "shulker_box block not registered";
+    }
+    EXPECT_TRUE(Block::isExceptionForConnection(shulkerBox->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_Pumpkin)
+{
+    // 南瓜是连接例外
+    const Block* pumpkin = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "pumpkin"));
+    if (!pumpkin) {
+        GTEST_SKIP() << "pumpkin block not registered";
+    }
+    EXPECT_TRUE(Block::isExceptionForConnection(pumpkin->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_CarvedPumpkin)
+{
+    // 雕刻南瓜是连接例外
+    const Block* carvedPumpkin = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "carved_pumpkin"));
+    if (!carvedPumpkin) {
+        GTEST_SKIP() << "carved_pumpkin block not registered";
+    }
+    EXPECT_TRUE(Block::isExceptionForConnection(carvedPumpkin->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_JackOLantern)
+{
+    // 南瓜灯是连接例外
+    const Block* jackOLantern = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "jack_o_lantern"));
+    if (!jackOLantern) {
+        GTEST_SKIP() << "jack_o_lantern block not registered";
+    }
+    EXPECT_TRUE(Block::isExceptionForConnection(jackOLantern->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_Melon)
+{
+    // 西瓜是连接例外
+    const Block* melon = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "melon"));
+    if (!melon) {
+        GTEST_SKIP() << "melon block not registered";
+    }
+    EXPECT_TRUE(Block::isExceptionForConnection(melon->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_StoneIsNot)
+{
+    // 石头不是连接例外
+    EXPECT_FALSE(Block::isExceptionForConnection(VanillaBlocks::STONE->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_DirtIsNot)
+{
+    // 泥土不是连接例外
+    EXPECT_FALSE(Block::isExceptionForConnection(VanillaBlocks::DIRT->defaultState()));
+}
+
+TEST_F(BlockTagsTest, IsExceptionForConnection_CobblestoneIsNot)
+{
+    // 圆石不是连接例外
+    if (!VanillaBlocks::COBBLESTONE) {
+        GTEST_SKIP() << "COBBLESTONE block not registered";
+    }
+    EXPECT_FALSE(Block::isExceptionForConnection(VanillaBlocks::COBBLESTONE->defaultState()));
 }

@@ -793,6 +793,8 @@ add_executable(mc_tests
     common/world/block/test_redstone_blocks.cpp
     common/world/block/InfestedBlockTest.cpp
     common/world/block/blocks/building/StairsBlockTest.cpp
+    common/world/block/blocks/building/FenceBlockTest.cpp
+    common/world/block/blocks/building/WallBlockTest.cpp
     common/world/block/blocks/redstone/NoteBlockTest.cpp
     common/world/block/blocks/redstone/TNTBlockTest.cpp
     common/world/block/blocks/redstone/PistonBlockTest.cpp

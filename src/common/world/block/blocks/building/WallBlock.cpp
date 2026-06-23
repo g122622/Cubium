@@ -218,6 +218,60 @@ const BlockState& WallBlock::mirror(const BlockState& state, Mirror mirror) cons
     return state;
 }
 
+bool WallBlock::_shouldRaisePost(const BlockState& state,
+    BlockStateProperties::WallHeight northHeight,
+    BlockStateProperties::WallHeight eastHeight,
+    BlockStateProperties::WallHeight southHeight,
+    BlockStateProperties::WallHeight westHeight,
+    const IWorld& world,
+    const BlockPos& pos) const
+{
+    // 参考: net.minecraft.block.WallBlock#shouldRaisePost
+    // 检查上方方块
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+
+    // 如果上方是墙且UP=true，强制升起墙柱
+    if (aboveState && isWall(*aboveState) && aboveState->get(BlockStateProperties::UP())) {
+        return true;
+    }
+
+    bool northNone = northHeight == BlockStateProperties::WallHeight::None;
+    bool southNone = southHeight == BlockStateProperties::WallHeight::None;
+    bool eastNone = eastHeight == BlockStateProperties::WallHeight::None;
+    bool westNone = westHeight == BlockStateProperties::WallHeight::None;
+
+    // 无连接时升起墙柱
+    if (northNone && southNone && eastNone && westNone) {
+        return true;
+    }
+
+    // 南北或东西不对称时升起墙柱
+    if (northNone != southNone || eastNone != westNone) {
+        return true;
+    }
+
+    // 对称的Tall墙（直线Tall）不升起墙柱，除非上方有覆盖
+    bool oppositeTallNorthSouth = northHeight == BlockStateProperties::WallHeight::Tall &&
+        southHeight == BlockStateProperties::WallHeight::Tall && eastNone && westNone;
+    bool oppositeTallEastWest = eastHeight == BlockStateProperties::WallHeight::Tall &&
+        westHeight == BlockStateProperties::WallHeight::Tall && northNone && southNone;
+
+    if (oppositeTallNorthSouth || oppositeTallEastWest) {
+        // 直线Tall墙，不升起墙柱——除非上方有WALL_POST_OVERRIDE方块
+        if (aboveState && BlockTags::WALL_POST_OVERRIDE().contains(*aboveState)) {
+            return true;
+        }
+        // TODO: MC原版还检查上方方块的碰撞形状下方面是否覆盖墙柱测试形状(TEST_SHAPE_POST)，
+        // 即 isCovered(aboveState.getCollisionShape(world, abovePos).getFaceShape(Direction::DOWN), TEST_SHAPE_POST)。
+        // 当前项目的CollisionShape::coversFullBlock()可部分替代，但精确实现需要VoxelShape布尔运算支持。
+        // 暂时不实现此碰撞形状覆盖检查，大多数情况下WALL_POST_OVERRIDE标签已覆盖主要场景。
+        return false;
+    }
+
+    return true;
+}
+
 BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     BlockPos northPos(pos.x, pos.y, pos.z - 1);
@@ -239,25 +293,7 @@ BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, 
     BlockStateProperties::WallHeight westHeight =
         westState ? _getWallHeight(*westState, Direction::West) : BlockStateProperties::WallHeight::None;
 
-    bool hasConnections = northHeight != BlockStateProperties::WallHeight::None ||
-        southHeight != BlockStateProperties::WallHeight::None || eastHeight != BlockStateProperties::WallHeight::None ||
-        westHeight != BlockStateProperties::WallHeight::None;
-    bool straightNorthSouth = northHeight != BlockStateProperties::WallHeight::None &&
-        southHeight != BlockStateProperties::WallHeight::None && eastHeight == BlockStateProperties::WallHeight::None &&
-        westHeight == BlockStateProperties::WallHeight::None;
-    bool straightEastWest = eastHeight != BlockStateProperties::WallHeight::None &&
-        westHeight != BlockStateProperties::WallHeight::None && northHeight == BlockStateProperties::WallHeight::None &&
-        southHeight == BlockStateProperties::WallHeight::None;
-
-    bool oppositeTallNorthSouth = northHeight == BlockStateProperties::WallHeight::Tall &&
-        southHeight == BlockStateProperties::WallHeight::Tall && eastHeight == BlockStateProperties::WallHeight::None &&
-        westHeight == BlockStateProperties::WallHeight::None;
-    bool oppositeTallEastWest = eastHeight == BlockStateProperties::WallHeight::Tall &&
-        westHeight == BlockStateProperties::WallHeight::Tall && northHeight == BlockStateProperties::WallHeight::None &&
-        southHeight == BlockStateProperties::WallHeight::None;
-
-    bool hasUp = !hasConnections ||
-        (!oppositeTallNorthSouth && !oppositeTallEastWest && !straightNorthSouth && !straightEastWest);
+    bool hasUp = _shouldRaisePost(state, northHeight, eastHeight, southHeight, westHeight, world, pos);
 
     return state.with(BlockStateProperties::UP(), hasUp)
         .with(BlockStateProperties::WALL_HEIGHT_NORTH(), northHeight)
