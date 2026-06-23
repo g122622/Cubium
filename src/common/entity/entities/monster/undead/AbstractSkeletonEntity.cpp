@@ -152,6 +152,12 @@ void AbstractSkeletonEntity::setCombatTask()
 
     if (shouldUseRanged) {
         // 持弓 -> 注册远程攻击目标（创建新实例并转移所有权给 GoalSelector）
+        // TODO: MC 原版 AbstractSkeleton.reassessWeaponGoal() 在此处根据难度调整攻击间隔：
+        //   - 困难难度: setMinAttackInterval(getHardAttackInterval()) = 20 ticks
+        //   - 其他难度: setMinAttackInterval(getAttackInterval()) = 40 ticks
+        //   流浪者使用更长的间隔: INCREASED_HARD_ATTACK_INTERVAL=50, INCREASED_NORMAL_ATTACK_INTERVAL=70
+        //   需要在 RangedBowAttackGoal 中添加 setMinAttackInterval() 方法，
+        //   并在 StrayEntity 中重写 getHardAttackInterval()/getAttackInterval() 提供不同间隔值。
         m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY,
             std::make_unique<entity::ai::goal::RangedBowAttackGoal>(
                 this, RANGED_ATTACK_SPEED, ATTACK_INTERVAL_MIN, ATTACK_INTERVAL_MAX));

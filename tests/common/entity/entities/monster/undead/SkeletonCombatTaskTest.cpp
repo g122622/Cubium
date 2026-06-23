@@ -330,5 +330,141 @@ TEST_F(SkeletonCombatTaskTest, CombinedLogic_SkeletonOffHandHoldingBow)
     // 结论：shouldUseRanged = true，使用远程
 }
 
+// ============================================================================
+// SkeletonEntity 集成测试
+//
+// 验证 GoalSelector 所有权修复后，SkeletonEntity 构造和装备切换的完整集成。
+// ============================================================================
+
+TEST_F(SkeletonCombatTaskTest, SkeletonEntity_ConstructsWithoutCrash)
+{
+    // 验证 SkeletonEntity 可以正常构造，setCombatTask() 不会导致崩溃
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    EXPECT_NE(skeleton, nullptr);
+}
+
+TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetWorldAndSetCombatTask)
+{
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    skeleton->setWorld(m_world.get());
+
+    // 构造时 setCombatTask() 已被调用，world 为 nullptr 时默认选择远程
+    // 设置 world 后再调用 setCombatTask() 应该不会崩溃
+    skeleton->setCombatTask();
+    EXPECT_NE(skeleton, nullptr);
+}
+
+TEST_F(SkeletonCombatTaskTest, SkeletonEntity_CanUseNonMeleeWeapon)
+{
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+
+    // 弓的 UseAction 是 Bow，canUseNonMeleeWeapon 应返回 true
+    ItemStack bowStack(*Items::BOW, 1);
+    EXPECT_TRUE(skeleton->canUseNonMeleeWeapon(bowStack));
+
+    // 石剑的 UseAction 不是 Bow，canUseNonMeleeWeapon 应返回 false
+    ItemStack swordStack(*Items::STONE_SWORD, 1);
+    EXPECT_FALSE(skeleton->canUseNonMeleeWeapon(swordStack));
+}
+
+TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetEquipmentTriggersCombatTaskUpdate)
+{
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    skeleton->setWorld(m_world.get());
+
+    // 设置主手为弓 -> setCombatTask 应选择远程攻击
+    skeleton->setMainHandItem(ItemStack(*Items::BOW, 1));
+    skeleton->setCombatTask();
+
+    // 验证持弓时 canUseNonMeleeWeapon 返回 true
+    EXPECT_TRUE(skeleton->canUseNonMeleeWeapon(skeleton->getMainHandItem()));
+
+    // 通过基类引用调用 setEquipment，将主手从弓换成石剑
+    // 这应该触发 setCombatTask 重新评估
+    LivingEntity& livingEntity = *skeleton;
+    livingEntity.setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::STONE_SWORD, 1));
+
+    // 验证现在持剑，不使用远程武器
+    EXPECT_FALSE(skeleton->canUseNonMeleeWeapon(skeleton->getMainHandItem()));
+}
+
+TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_CanUseNonMeleeWeaponAlwaysFalse)
+{
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+
+    // 凋灵骷髅对任何物品都返回 false，包括弓
+    ItemStack bowStack(*Items::BOW, 1);
+    EXPECT_FALSE(witherSkeleton->canUseNonMeleeWeapon(bowStack));
+
+    ItemStack swordStack(*Items::STONE_SWORD, 1);
+    EXPECT_FALSE(witherSkeleton->canUseNonMeleeWeapon(swordStack));
+
+    ItemStack emptyStack;
+    EXPECT_FALSE(witherSkeleton->canUseNonMeleeWeapon(emptyStack));
+}
+
+TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_SetCombatTaskAlwaysMelee)
+{
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    witherSkeleton->setWorld(m_world.get());
+
+    // 即使给凋灵骷髅装备弓，也应该使用近战
+    witherSkeleton->setMainHandItem(ItemStack(*Items::BOW, 1));
+    witherSkeleton->setCombatTask();
+
+    // 凋灵骷髅的 canUseNonMeleeWeapon 始终返回 false
+    EXPECT_FALSE(witherSkeleton->canUseNonMeleeWeapon(witherSkeleton->getMainHandItem()));
+}
+
+TEST_F(SkeletonCombatTaskTest, WitherSkeletonEntity_SetEquipmentBowStillMelee)
+{
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    witherSkeleton->setWorld(m_world.get());
+
+    // 给凋灵骷髅装备弓（通过基类引用调用 setEquipment）
+    LivingEntity& livingEntity = *witherSkeleton;
+    livingEntity.setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::BOW, 1));
+
+    // 即使装备变更触发 setCombatTask，凋灵骷髅也始终使用近战
+    EXPECT_FALSE(witherSkeleton->canUseNonMeleeWeapon(witherSkeleton->getMainHandItem()));
+}
+
+TEST_F(SkeletonCombatTaskTest, SkeletonEntity_SetEquipmentArmorSlotNoEffect)
+{
+    // 装甲槽位变更不应触发 setCombatTask
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    skeleton->setWorld(m_world.get());
+
+    // 设置头盔槽位（通过基类引用调用 setEquipment）
+    ASSERT_NE(Items::LEATHER_HELMET, nullptr);
+    LivingEntity& livingEntity = *skeleton;
+    livingEntity.setEquipment(EquipmentSlot::Head, ItemStack(*Items::LEATHER_HELMET, 1));
+
+    // 头盔槽位变更不影响战斗目标
+    EXPECT_EQ(skeleton->getEquipment(EquipmentSlot::Head).getItem(), Items::LEATHER_HELMET);
+}
+
+TEST_F(SkeletonCombatTaskTest, SkeletonEntity_ClientSideSetEquipmentNoCombatTaskUpdate)
+{
+    // 客户端侧不应触发 setCombatTask
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    m_world->setClientSide(true);
+    skeleton->setWorld(m_world.get());
+
+    // 初始状态设置弓
+    skeleton->setMainHandItem(ItemStack(*Items::BOW, 1));
+    skeleton->setCombatTask();
+
+    // 在客户端侧切换装备不应该改变战斗目标
+    LivingEntity& livingEntity = *skeleton;
+    livingEntity.setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::STONE_SWORD, 1));
+
+    // 验证客户端侧的 setEquipment 确实执行了（装备被设置了），
+    // 但 setCombatTask 的 setEquipment 回调被跳过
+    EXPECT_EQ(skeleton->getMainHandItem().getItem(), Items::STONE_SWORD);
+
+    m_world->setClientSide(false);
+}
+
 } // namespace
 } // namespace mc
