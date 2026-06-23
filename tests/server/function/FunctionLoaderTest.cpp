@@ -23,6 +23,7 @@
 
 #include "server/function/FunctionLoader.hpp"
 #include "server/function/FunctionManager.hpp"
+#include <fstream>
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -540,4 +541,346 @@ TEST_F(FunctionLoaderTest, FunctionManager_CascadingTagReference)
     EXPECT_EQ(mgr.getTag(tagA)[0].toString(), "minecraft:func_a");
     EXPECT_EQ(mgr.getTag(tagA)[1].toString(), "minecraft:func_b");
     EXPECT_EQ(mgr.getTag(tagA)[2].toString(), "minecraft:func_c");
+}
+
+// ========== loadFunctionTags 集成测试（通过临时数据包目录） ==========
+
+namespace {
+
+std::filesystem::path makeUniqueTempDir()
+{
+    const auto base = std::filesystem::temp_directory_path();
+    const auto now = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    const auto dir = base / ("mc_func_loader_test_" + std::to_string(static_cast<long long>(now)));
+    std::filesystem::create_directories(dir);
+    return dir;
+}
+
+void writeTextFile(const std::filesystem::path& path, const std::string& text)
+{
+    std::filesystem::create_directories(path.parent_path());
+    std::ofstream file(path, std::ios::binary);
+    file << text;
+}
+
+void cleanupTempDir(const std::filesystem::path& dir)
+{
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+}
+
+} // anonymous namespace
+
+class FunctionLoaderIntegrationTest : public ::testing::Test {
+protected:
+    void TearDown() override
+    {
+        if (!m_tempDir.empty()) {
+            cleanupTempDir(m_tempDir);
+        }
+    }
+
+    /// 创建一个基本的数据包目录，包含 pack.mcmeta
+    std::filesystem::path createBaseDataPack()
+    {
+        m_tempDir = makeUniqueTempDir();
+        auto packDir = m_tempDir / "test_pack";
+        std::filesystem::create_directories(packDir / "data" / "minecraft" / "functions");
+        std::filesystem::create_directories(packDir / "data" / "minecraft" / "tags" / "functions");
+        writeTextFile(packDir / "pack.mcmeta", R"({"pack":{"pack_format":41,"description":"test"}})");
+        return packDir;
+    }
+
+    /// 向数据包添加一个函数文件
+    void addFunction(const std::filesystem::path& packDir,
+        const std::string& namespace_,
+        const std::string& functionPath,
+        const std::string& content)
+    {
+        auto funcDir = packDir / "data" / namespace_ / "functions";
+        // 确保目录存在
+        auto fullPath = funcDir / (functionPath + ".mcfunction");
+        std::filesystem::create_directories(fullPath.parent_path());
+        writeTextFile(fullPath, content);
+    }
+
+    /// 向数据包添加一个函数标签文件
+    void addTag(const std::filesystem::path& packDir,
+        const std::string& namespace_,
+        const std::string& tagPath,
+        const std::string& jsonContent)
+    {
+        auto tagDir = packDir / "data" / namespace_ / "tags" / "functions";
+        auto fullPath = tagDir / (tagPath + ".json");
+        std::filesystem::create_directories(fullPath.parent_path());
+        writeTextFile(fullPath, jsonContent);
+    }
+
+    std::filesystem::path m_tempDir;
+};
+
+TEST_F(FunctionLoaderIntegrationTest, RequiredTrue_MissingFunction_DiscardsTag)
+{
+    // 测试：required=true 的函数缺失时，整个标签被丢弃
+    auto packDir = createBaseDataPack();
+
+    // 添加一个存在的函数
+    addFunction(packDir, "minecraft", "existing_func", "say hello");
+
+    // 添加标签，引用一个不存在的函数（required=true，默认）
+    addTag(packDir, "minecraft", "test_tag", R"({"values": ["minecraft:existing_func", "minecraft:missing_func"]})");
+
+    // 加载
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.scanDirectory(m_tempDir);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 函数应该加载成功
+    EXPECT_EQ(result.value().successCount, 1u);
+
+    // 标签应被丢弃（因为 minecraft:missing_func 不存在且 required=true）
+    EXPECT_EQ(result.value().tagCount, 0u);
+
+    // FunctionManager 中不应有该标签
+    EXPECT_FALSE(mgr.hasTag(ResourceLocation::parse("minecraft:test_tag")));
+}
+
+TEST_F(FunctionLoaderIntegrationTest, RequiredFalse_MissingFunction_TagKept)
+{
+    // 测试：required=false 的函数缺失时，标签保留（缺失函数被跳过）
+    auto packDir = createBaseDataPack();
+
+    // 添加一个存在的函数
+    addFunction(packDir, "minecraft", "existing_func", "say hello");
+
+    // 添加标签，引用缺失的函数但标记 required=false
+    addTag(packDir,
+        "minecraft",
+        "test_tag",
+        R"({"values": ["minecraft:existing_func", {"id": "minecraft:missing_func", "required": false}]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.scanDirectory(m_tempDir);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 标签应保留
+    EXPECT_EQ(result.value().tagCount, 1u);
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:test_tag")));
+
+    // 标签应只包含存在的函数
+    const auto& funcs = mgr.getTag(ResourceLocation::parse("minecraft:test_tag"));
+    EXPECT_EQ(funcs.size(), 1u);
+    EXPECT_EQ(funcs[0].toString(), "minecraft:existing_func");
+}
+
+TEST_F(FunctionLoaderIntegrationTest, RequiredTrue_MissingTagRef_DiscardsTag)
+{
+    // 测试：required=true 的标签引用缺失时，整个标签被丢弃
+    auto packDir = createBaseDataPack();
+
+    addFunction(packDir, "minecraft", "func_a", "say hello");
+
+    // 标签引用一个不存在的标签（required=true，默认）
+    addTag(packDir, "minecraft", "test_tag", R"({"values": ["minecraft:func_a", "#minecraft:nonexistent_tag"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.scanDirectory(m_tempDir);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 标签应被丢弃（因为引用的 nonexistent_tag 不存在且 required=true）
+    EXPECT_EQ(result.value().tagCount, 0u);
+    EXPECT_FALSE(mgr.hasTag(ResourceLocation::parse("minecraft:test_tag")));
+}
+
+TEST_F(FunctionLoaderIntegrationTest, RequiredFalse_MissingTagRef_TagKept)
+{
+    // 测试：required=false 的标签引用缺失时，标签保留
+    auto packDir = createBaseDataPack();
+
+    addFunction(packDir, "minecraft", "func_a", "say hello");
+
+    // 标签引用一个不存在的标签但标记 required=false
+    addTag(packDir,
+        "minecraft",
+        "test_tag",
+        R"({"values": ["minecraft:func_a", {"id": "#minecraft:nonexistent_tag", "required": false}]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.scanDirectory(m_tempDir);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 标签应保留
+    EXPECT_EQ(result.value().tagCount, 1u);
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:test_tag")));
+
+    // 标签应只包含直接函数
+    const auto& funcs = mgr.getTag(ResourceLocation::parse("minecraft:test_tag"));
+    EXPECT_EQ(funcs.size(), 1u);
+    EXPECT_EQ(funcs[0].toString(), "minecraft:func_a");
+}
+
+TEST_F(FunctionLoaderIntegrationTest, CascadingDiscard)
+{
+    // 测试：级联丢弃 — 标签 A required=true 引用标签 B，标签 B 因缺失函数被丢弃，
+    // 导致标签 A 也被丢弃
+    auto packDir = createBaseDataPack();
+
+    // 只添加 func_a，不添加 func_b
+    addFunction(packDir, "minecraft", "func_a", "say hello");
+
+    // 标签 B 引用不存在的 func_b（required=true），因此标签 B 会被丢弃
+    addTag(packDir, "minecraft", "tag_b", R"({"values": ["minecraft:missing_func_b"]})");
+
+    // 标签 A required=true 引用标签 B，标签 B 被丢弃后标签 A 也应被丢弃
+    addTag(packDir, "minecraft", "tag_a", R"({"values": ["minecraft:func_a", "#minecraft:tag_b"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.scanDirectory(m_tempDir);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 两个标签都应被丢弃
+    EXPECT_EQ(result.value().tagCount, 0u);
+    EXPECT_FALSE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_a")));
+    EXPECT_FALSE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_b")));
+}
+
+TEST_F(FunctionLoaderIntegrationTest, CascadingDiscard_RequiredFalseRef_Kept)
+{
+    // 测试：级联丢弃不发生在 required=false 的标签引用上
+    auto packDir = createBaseDataPack();
+
+    addFunction(packDir, "minecraft", "func_a", "say hello");
+
+    // 标签 B 引用不存在的函数，会被丢弃
+    addTag(packDir, "minecraft", "tag_b", R"({"values": ["minecraft:missing_func_b"]})");
+
+    // 标签 A required=false 引用标签 B，标签 B 被丢弃但标签 A 应保留
+    addTag(packDir,
+        "minecraft",
+        "tag_a",
+        R"({"values": ["minecraft:func_a", {"id": "#minecraft:tag_b", "required": false}]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.scanDirectory(m_tempDir);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 标签 A 应保留，标签 B 应被丢弃
+    EXPECT_EQ(result.value().tagCount, 1u);
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_a")));
+    EXPECT_FALSE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_b")));
+
+    // 标签 A 应只包含 func_a（tag_b 的函数不传播）
+    const auto& funcs = mgr.getTag(ResourceLocation::parse("minecraft:tag_a"));
+    EXPECT_EQ(funcs.size(), 1u);
+    EXPECT_EQ(funcs[0].toString(), "minecraft:func_a");
+}
+
+TEST_F(FunctionLoaderIntegrationTest, TagReferenceExpansion)
+{
+    // 测试：标签引用正确展开 — 标签 A 引用标签 B，标签 B 的函数应出现在标签 A 中
+    auto packDir = createBaseDataPack();
+
+    addFunction(packDir, "minecraft", "func_a", "say hello");
+    addFunction(packDir, "minecraft", "func_b", "say world");
+
+    // 标签 B 包含 func_b
+    addTag(packDir, "minecraft", "tag_b", R"({"values": ["minecraft:func_b"]})");
+
+    // 标签 A 包含 func_a 并引用标签 B
+    addTag(packDir, "minecraft", "tag_a", R"({"values": ["minecraft:func_a", "#minecraft:tag_b"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.scanDirectory(m_tempDir);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 两个标签都应注册成功
+    EXPECT_EQ(result.value().tagCount, 2u);
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_a")));
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_b")));
+
+    // 标签 B 应只包含 func_b
+    const auto& tagBFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tag_b"));
+    EXPECT_EQ(tagBFuncs.size(), 1u);
+    EXPECT_EQ(tagBFuncs[0].toString(), "minecraft:func_b");
+
+    // 标签 A 应包含 func_a 和 func_b（从 tag_b 展开）
+    const auto& tagAFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tag_a"));
+    EXPECT_EQ(tagAFuncs.size(), 2u);
+    EXPECT_EQ(tagAFuncs[0].toString(), "minecraft:func_a");
+    EXPECT_EQ(tagAFuncs[1].toString(), "minecraft:func_b");
+}
+
+TEST_F(FunctionLoaderIntegrationTest, MultiLayerTagReferenceExpansion)
+{
+    // 测试：多层标签引用展开 — A → B → C
+    auto packDir = createBaseDataPack();
+
+    addFunction(packDir, "minecraft", "func_a", "say hello");
+    addFunction(packDir, "minecraft", "func_b", "say world");
+    addFunction(packDir, "minecraft", "func_c", "say test");
+
+    // 标签 C 包含 func_c
+    addTag(packDir, "minecraft", "tag_c", R"({"values": ["minecraft:func_c"]})");
+
+    // 标签 B 包含 func_b 并引用标签 C
+    addTag(packDir, "minecraft", "tag_b", R"({"values": ["minecraft:func_b", "#minecraft:tag_c"]})");
+
+    // 标签 A 包含 func_a 并引用标签 B
+    addTag(packDir, "minecraft", "tag_a", R"({"values": ["minecraft:func_a", "#minecraft:tag_b"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.scanDirectory(m_tempDir);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    EXPECT_EQ(result.value().tagCount, 3u);
+
+    // 标签 C: [func_c]
+    const auto& tagCFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tag_c"));
+    EXPECT_EQ(tagCFuncs.size(), 1u);
+    EXPECT_EQ(tagCFuncs[0].toString(), "minecraft:func_c");
+
+    // 标签 B: [func_b, func_c]（展开标签 C 的函数）
+    const auto& tagBFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tag_b"));
+    EXPECT_EQ(tagBFuncs.size(), 2u);
+    EXPECT_EQ(tagBFuncs[0].toString(), "minecraft:func_b");
+    EXPECT_EQ(tagBFuncs[1].toString(), "minecraft:func_c");
+
+    // 标签 A: [func_a, func_b, func_c]（展开标签 B，其中已包含标签 C 的函数）
+    const auto& tagAFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tag_a"));
+    EXPECT_EQ(tagAFuncs.size(), 3u);
+    EXPECT_EQ(tagAFuncs[0].toString(), "minecraft:func_a");
+    EXPECT_EQ(tagAFuncs[1].toString(), "minecraft:func_b");
+    EXPECT_EQ(tagAFuncs[2].toString(), "minecraft:func_c");
 }

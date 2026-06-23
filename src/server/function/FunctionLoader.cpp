@@ -217,23 +217,25 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
     std::unordered_map<ResourceLocation, RequiredMaps> requiredMaps;
 
     // 第一步：将条目分类收集（直接函数引用 + 标签引用）
+    // 注意：必须先使用 entry.id 进行 map 操作，再移动 entry.id，避免使用 moved-from 对象
     for (auto& [tagLoc, tagData] : parsedTags) {
         auto& merged = mergedTags[tagLoc];
         auto& reqMaps = requiredMaps[tagLoc];
         for (auto& entry : tagData.entries) {
             if (entry.type == TagEntryType::Function) {
-                merged.directFunctionIds.push_back(std::move(entry.id));
-                // 同一函数ID可能被多次引用，保留 required=true 的标记
+                // 先更新 required 映射（在移动 entry.id 之前）
                 auto it = reqMaps.functionRequired.find(entry.id);
                 if (it == reqMaps.functionRequired.end() || entry.required) {
                     reqMaps.functionRequired[entry.id] = entry.required;
                 }
+                merged.directFunctionIds.push_back(std::move(entry.id));
             } else {
-                merged.tagReferences.push_back(std::move(entry.id));
+                // 先更新 required 映射（在移动 entry.id 之前）
                 auto it = reqMaps.tagRequired.find(entry.id);
                 if (it == reqMaps.tagRequired.end() || entry.required) {
                     reqMaps.tagRequired[entry.id] = entry.required;
                 }
+                merged.tagReferences.push_back(std::move(entry.id));
             }
         }
     }
@@ -405,6 +407,11 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
             }
 
             // 与当前注册的函数列表比较，仅在发生变化时更新
+            // 注意：这里仅比较 size，若内容变化但 size 不变会漏更新。
+            // 这种边界情况在实际数据包中极不可能发生（不同函数ID恰好增减数量相同），
+            // 完整的内容比较需要逐元素对比，性能开销较大。
+            // TODO: 若未来出现因内容变化但 size 不变导致标签引用展开不完整的问题，
+            //       应改用逐元素比较或计算哈希来检测变化。
             const auto& currentIds = m_manager.getTag(tagLoc);
             if (expandedIds.size() != currentIds.size()) {
                 m_manager.registerTag(tagLoc, std::move(expandedIds));
