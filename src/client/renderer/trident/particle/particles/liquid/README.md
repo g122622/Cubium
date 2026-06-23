@@ -31,7 +31,7 @@ DripParticle (基类)
 
 `DripstoneWaterDripParticle` 和 `DripstoneLavaDripParticle` 是滴水石（钟乳石）专用的滴落粒子，
 与普通水滴/熔岩滴粒子的区别在于：落地时会播放 `block.pointed_dripstone.drip_water` 或
-`block.pointed_dripstone.drip_lava` 音效，对齐 MC Java 版的 `DripstoneFallAndLandParticle`。
+`block.pointed_dripstone.drip_lava` 音效。
 
 粒子生命周期链：
 - **水滴石**: DRIPSTONE_WATER(悬挂) → FALLING_DRIPSTONE_WATER(下落) → SPLASH(落地) + 音效
@@ -61,4 +61,4 @@ DripParticle (基类)
 
 4. **状态机重力值变化**：Hanging 状态重力 0.02，Falling 状态根据类型不同（水 0.06，蜂蜜 0.01）
 
-5. **滴水石粒子颜色**：水滴石粒子颜色 (0.2, 0.3, 1.0) 与普通水滴 (0.7, 0.7, 1.0) 不同，对齐 MC Java 版 DripParticle.DripstoneWaterHangProvider
+5. **滴水石粒子颜色**：水滴石粒子颜色 (0.2, 0.3, 1.0) 与普通水滴 (0.7, 0.7, 1.0) 不同

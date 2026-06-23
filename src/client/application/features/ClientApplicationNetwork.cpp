@@ -1841,7 +1841,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::CRAFTER_CRAFT_SOUND:
             // 合成器合成成功音效
-            // 参考 MC: LevelEventHandler.levelEvent() case 1049
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_CRAFTER_CRAFT, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
@@ -1850,7 +1849,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::CRAFTER_FAIL_SOUND:
             // 合成器合成失败音效
-            // 参考 MC: LevelEventHandler.levelEvent() case 1050
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_CRAFTER_FAIL, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
@@ -1995,22 +1993,19 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::DRIPSTONE_DRIP: {
             // 滴石滴水粒子效果
-            // 对齐 MC Java: PointedDripstoneBlock.spawnDripParticle
             // 事件由服务端在 maybeTransferFluid 中触发（钟乳石成功向炼药锅传输流体时）
             // 客户端需要根据钟乳石上方的流体类型选择正确的粒子类型
             {
                 // 获取钟乳石尖端位置的方块状态
                 const BlockState* dripstoneState = m_world.getBlockState(x, y, z);
                 if (dripstoneState != nullptr) {
-                    // 计算正确的粒子位置
-                    // Y = blockPos.y + STALACTITE_DRIP_START_PIXEL - 0.0625 = blockPos.y + 0.25
-                    // X/Z = blockPos.x/z + 0.5（居中）
-                    f32 particleX = static_cast<f32>(x) + 0.5f;
-                    f32 particleY = static_cast<f32>(y) + 0.25f;
-                    f32 particleZ = static_cast<f32>(z) + 0.5f;
-                    Vector3 particlePos(particleX, particleY, particleZ);
+                    // 使用 PointedDripstoneBlock 静态方法计算粒子位置和检测流体类型
+                    BlockPos tipPos(x, y, z);
+                    Vector3 particlePos = blocks::PointedDripstoneBlock::getDripParticlePosition(tipPos);
 
                     // 检测流体类型：沿钟乳石向上搜索非滴石方块，然后检查其流体状态
+                    // 由于 ClientWorld 不继承 IWorld，无法直接调用 getFluidAboveStalactite，
+                    // 因此在此处内联流体检测逻辑
                     ParticleTypeId dripType = ParticleTypeId::DrippingDripstoneWater; // 默认水滴
 
                     if (blocks::PointedDripstoneBlock::isStalactite(*dripstoneState)) {
@@ -2018,8 +2013,8 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                         const BlockState* aboveState = nullptr;
                         for (i32 i = 0; i < 11; ++i) {
                             aboveState = m_world.getBlockState(searchX, searchY, searchZ);
-                            if (aboveState == nullptr
-                                || !aboveState->is(block_registry::CaveBlocks::POINTED_DRIPSTONE)) {
+                            if (aboveState == nullptr ||
+                                !aboveState->is(block_registry::CaveBlocks::POINTED_DRIPSTONE)) {
                                 break;
                             }
                             searchY++;
@@ -2049,7 +2044,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::POINTED_DRIPSTONE_LAND_SOUND: {
             // 滴石尖锥落地音效
-            // 对齐 MC Java: LevelEvent.SOUND_POINTED_DRIPSTONE_LAND (1045)
             if (m_audioService) {
                 f32 pitch = random.nextFloat() * 0.1f + 0.9f;
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
@@ -2060,7 +2054,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::DRIP_LAVA_INTO_CAULDRON_SOUND: {
             // 熔岩滴入炼药锅音效
-            // 对齐 MC Java: LevelEvent.SOUND_DRIP_LAVA_INTO_CAULDRON (1046)
             if (m_audioService) {
                 f32 pitch = random.nextFloat() * 0.1f + 0.9f;
                 m_audioService->play(std::make_unique<sound::SoundInstance>(
@@ -2077,7 +2070,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND: {
             // 水滴入炼药锅音效
-            // 对齐 MC Java: LevelEvent.SOUND_DRIP_WATER_INTO_CAULDRON (1047)
             if (m_audioService) {
                 f32 pitch = random.nextFloat() * 0.1f + 0.9f;
                 m_audioService->play(std::make_unique<sound::SoundInstance>(

@@ -113,7 +113,9 @@ Block
 - **泥巴变粘土**：当泥巴在滴水石块上方时，钟乳石可将水滴穿泥巴变为粘土，触发 `GameEvents::BLOCK_CHANGE` 和 `WorldEvents::DRIPSTONE_DRIP`
 - **碰撞箱**：Tip朝上/朝下有不同形状，其他厚度均为全高柱状
 
-关键静态方法：`canGrow`、`findTip`、`findRootBlock`、`canDrip`、`canTipGrow`、`calculateDripstoneThickness`、`maybeTransferFluid`
+关键静态方法：`canGrow`、`findTip`、`findRootBlock`、`canDrip`、`canTipGrow`、`calculateDripstoneThickness`、`maybeTransferFluid`、`getDripParticlePosition`
+
+**`getDripParticlePosition`**：计算钟乳石滴水粒子的生成位置。客户端在处理 `WorldEvents::DRIPSTONE_DRIP` 事件时调用此方法获取粒子坐标，Y偏移为 `STALACTITE_DRIP_START_PIXEL - 0.0625 = 0.25`。
 
 **摔落伤害架构**：`Block::onFallenUpon` 默认实现调用 `entity.causeFallDamage()` 施加普通摔落伤害。`PointedDripstoneBlock::onFallenUpon` 重写：石笋尖端调用 `causeFallDamage` 并传入 `DamageSources::stalagmite()` 但不调用父类（替代普通摔落伤害）；非尖端调用父类 `Block::onFallenUpon`（保留普通摔落伤害）。
 

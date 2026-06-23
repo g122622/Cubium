@@ -39,8 +39,6 @@ namespace mc::client::renderer::trident::particle::particles {
  * 钟乳石滴水的专用粒子类型。与普通水滴粒子（DripWaterParticle）的区别：
  * - 落地时播放滴水石滴水音效（block.pointed_dripstone.drip_water）
  * - 落地后生成 Splash 粒子
- *
- * 对齐 MC Java 版 net.minecraft.client.particle.DripParticle.DripstoneFallAndLandParticle
  */
 class DripstoneWaterDripParticle : public DripParticle {
 public:
@@ -56,12 +54,6 @@ public:
      * @brief 工厂方法：创建滴水石下落水滴粒子
      */
     static std::unique_ptr<Particle> createFalling(
-        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
-
-    /**
-     * @brief 工厂方法：创建滴水石落地水滴粒子
-     */
-    static std::unique_ptr<Particle> createLanding(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     [[nodiscard]] ParticleRenderType getRenderType() const override
@@ -92,8 +84,6 @@ protected:
  * 钟乳石滴熔岩的专用粒子类型。与普通熔岩滴粒子的区别：
  * - 落地时播放滴水石滴熔岩音效（block.pointed_dripstone.drip_lava）
  * - 落地后生成 LandingLava 粒子
- *
- * 对齐 MC Java 版 net.minecraft.client.particle.DripParticle.DripstoneFallAndLandParticle
  */
 class DripstoneLavaDripParticle : public DripParticle {
 public:
@@ -109,12 +99,6 @@ public:
      * @brief 工厂方法：创建滴水石下落熔岩滴粒子
      */
     static std::unique_ptr<Particle> createFalling(
-        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
-
-    /**
-     * @brief 工厂方法：创建滴水石落地熔岩滴粒子
-     */
-    static std::unique_ptr<Particle> createLanding(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     [[nodiscard]] ParticleRenderType getRenderType() const override { return ParticleRenderType::PARTICLE_SHEET_LIT; }

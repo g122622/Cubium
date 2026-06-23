@@ -4,7 +4,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -36,9 +36,8 @@ namespace mc::client::renderer::trident::particle::particles {
 DripstoneWaterDripParticle::DripstoneWaterDripParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : DripParticle(pos, velocity, DripType::Water)
 {
-    // 与 DripWaterParticle 一致的参数，对齐 MC Java 版 DripstoneWaterHangProvider
     setSize(0.01f + m_random.nextFloat() * 0.01f);
-    // MC Java 版 dripstone water 水滴颜色: (0.2F, 0.3F, 1.0F)
+    // 滴水石水滴颜色: (0.2F, 0.3F, 1.0F)
     setColor(glm::vec4(0.2f, 0.3f, 1.0f, 0.8f));
     setMaxAge(40.0f);
 }
@@ -61,17 +60,6 @@ std::unique_ptr<Particle> DripstoneWaterDripParticle::createFalling(
     return particle;
 }
 
-std::unique_ptr<Particle> DripstoneWaterDripParticle::createLanding(
-    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
-{
-    MC_UNUSED(world);
-    auto particle = std::make_unique<DripstoneWaterDripParticle>(pos, velocity);
-    particle->m_dripState = DripState::Landed;
-    particle->setMaxAge(16.0f);
-    particle->setSize(0.04f);
-    return particle;
-}
-
 u32 DripstoneWaterDripParticle::getLightColor(mc::client::ClientWorld* world) const
 {
     return Particle::getLightColor(world);
@@ -83,7 +71,6 @@ void DripstoneWaterDripParticle::onLand(mc::client::ClientWorld* world)
     DripParticle::onLand(world);
 
     // 滴水石水滴落地时播放滴水音效
-    // 对齐 MC Java: SoundEvents.POINTED_DRIPSTONE_DRIP_WATER
     // 音量: Mth.randomBetween(random, 0.3F, 1.0F)，音调: 1.0F
     if (world != nullptr) {
         f32 volume = 0.3f + m_random.nextFloat() * 0.7f;
@@ -102,9 +89,8 @@ void DripstoneWaterDripParticle::onLand(mc::client::ClientWorld* world)
 DripstoneLavaDripParticle::DripstoneLavaDripParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : DripParticle(pos, velocity, DripType::Lava)
 {
-    // 与 DripParticle(Lava) 一致的参数，对齐 MC Java 版 DripstoneLavaHangProvider
     setSize(0.01f + m_random.nextFloat() * 0.01f);
-    // MC Java 版 dripstone lava 滴颜色继承自 Lava: (1.0F, 0.3F, 0.0F, 1.0F)
+    // 滴水石熔岩滴颜色: (1.0F, 0.3F, 0.0F, 1.0F)
     setColor(glm::vec4(1.0f, 0.3f, 0.0f, 1.0f));
     setMaxAge(40.0f);
 }
@@ -127,17 +113,6 @@ std::unique_ptr<Particle> DripstoneLavaDripParticle::createFalling(
     return particle;
 }
 
-std::unique_ptr<Particle> DripstoneLavaDripParticle::createLanding(
-    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
-{
-    MC_UNUSED(world);
-    auto particle = std::make_unique<DripstoneLavaDripParticle>(pos, velocity);
-    particle->m_dripState = DripState::Landed;
-    particle->setMaxAge(16.0f);
-    particle->setSize(0.04f);
-    return particle;
-}
-
 u32 DripstoneLavaDripParticle::getLightColor(mc::client::ClientWorld* world) const
 {
     // 熔岩滴发光：基础光照 + 随生命周期的变化
@@ -153,7 +128,6 @@ void DripstoneLavaDripParticle::onLand(mc::client::ClientWorld* world)
     DripParticle::onLand(world);
 
     // 滴水石熔岩滴落地时播放滴熔岩音效
-    // 对齐 MC Java: SoundEvents.POINTED_DRIPSTONE_DRIP_LAVA
     // 音量: Mth.randomBetween(random, 0.3F, 1.0F)，音调: 1.0F
     if (world != nullptr) {
         f32 volume = 0.3f + m_random.nextFloat() * 0.7f;
