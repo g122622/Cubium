@@ -24,6 +24,12 @@
 #include <memory>
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
 #include "entity/ai/goal/goals/special/FoxGoals.hpp"
 #include "entity/damage/DamageSource.hpp"
@@ -699,6 +705,200 @@ TEST_F(FoxGoalsTest, FoxSitAndLookGoal_Constants)
     // TRIGGER_CHANCE = 0.02f
     auto goal = std::make_unique<entity::ai::goal::FoxSitAndLookGoal>(fox.get());
     EXPECT_NE(goal, nullptr);
+}
+
+// ============================================================================
+// FoxEatBerriesGoal mobGriefing 测试
+// ============================================================================
+
+/**
+ * @brief 支持方块状态和 GameRules 的测试世界，用于 FoxEatBerriesGoal 测试
+ */
+class FoxBerryTestWorld : public test::BaseTestWorld {
+public:
+    FoxBerryTestWorld()
+        : m_dayTime(6000)
+        , m_currentTick(1000)
+    {}
+
+    void setDayTime(i64 time) { m_dayTime = time; }
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+
+    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state)
+    {
+        BlockPos key(x, y, z);
+        if (state) {
+            auto it = m_blockStates.find(key);
+            if (it != m_blockStates.end()) {
+                it->second = *state;
+            } else {
+                m_blockStates.emplace(key, *state);
+            }
+        } else {
+            m_blockStates.erase(key);
+        }
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        auto it = m_blockStates.find(BlockPos(x, y, z));
+        if (it != m_blockStates.end()) {
+            return &it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        setBlockStateAt(x, y, z, state);
+        return true;
+    }
+
+private:
+    i64 m_dayTime;
+    u64 m_currentTick;
+    std::unordered_map<BlockPos, BlockState> m_blockStates;
+};
+
+class FoxEatBerriesMobGriefingTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        m_world = std::make_unique<FoxBerryTestWorld>();
+        m_fox = std::make_unique<FoxEntity>(EntityId(1));
+        m_fox->setWorld(m_world.get());
+        m_fox->setPosition(0.0, 64.0, 0.0);
+    }
+
+    void TearDown() override
+    {
+        m_fox.reset();
+        m_world.reset();
+    }
+
+    /**
+     * @brief 在狐狸附近设置一个成熟甜浆果丛
+     */
+    void setupSweetBerryBush()
+    {
+        const Block* sweetBerryBlock = VanillaBlocks::SWEET_BERRY_BUSH;
+        ASSERT_TRUE(sweetBerryBlock != nullptr) << "SweetBerryBushBlock must be registered";
+
+        auto* bushBlock = dynamic_cast<const blocks::SweetBerryBushBlock*>(sweetBerryBlock);
+        ASSERT_TRUE(bushBlock != nullptr);
+
+        // AGE=3 表示成熟可采摘（需要先获取 defaultState 再设置 AGE）
+        const BlockState& defaultState = sweetBerryBlock->defaultState();
+        const BlockState& matureState = bushBlock->withAge(defaultState, 3);
+        m_world->setBlockStateAt(1, 64, 0, &matureState);
+    }
+
+    std::unique_ptr<FoxBerryTestWorld> m_world;
+    std::unique_ptr<FoxEntity> m_fox;
+};
+
+TEST_F(FoxEatBerriesMobGriefingTest, MobGriefingTrue_AllowsBerryPicking)
+{
+    // 默认 mobGriefing = true，狐狸可以采摘浆果
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, true);
+    EXPECT_TRUE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    setupSweetBerryBush();
+
+    auto goal = std::make_unique<entity::ai::goal::FoxEatBerriesGoal>(m_fox.get(), 1.2, 12, 2);
+
+    // shouldExecute 应该能找到浆果丛
+    EXPECT_TRUE(goal->shouldExecute());
+}
+
+TEST_F(FoxEatBerriesMobGriefingTest, MobGriefingFalse_ShouldExecuteStillFindsTarget)
+{
+    // mobGriefing = false 时，shouldExecute 仍然能找到浆果丛
+    // 因为 shouldExecute 不检查 mobGriefing，_eatBerry 才检查
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+
+    setupSweetBerryBush();
+
+    auto goal = std::make_unique<entity::ai::goal::FoxEatBerriesGoal>(m_fox.get(), 1.2, 12, 2);
+
+    // shouldExecute 应该能找到浆果丛（不检查 mobGriefing）
+    EXPECT_TRUE(goal->shouldExecute());
+}
+
+TEST_F(FoxEatBerriesMobGriefingTest, MobGriefingFalse_BerryBushUnmodified)
+{
+    // mobGriefing = false 时，_eatBerry 应该提前返回，不修改浆果丛
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+
+    setupSweetBerryBush();
+
+    // 记录浆果丛初始状态
+    const BlockState* initialState = m_world->getBlockState(1, 64, 0);
+    ASSERT_TRUE(initialState != nullptr);
+
+    auto goal = std::make_unique<entity::ai::goal::FoxEatBerriesGoal>(m_fox.get(), 1.2, 12, 2);
+    goal->startExecuting();
+
+    // tick 多次（即使狐狸无法真正导航到目标，也不会崩溃）
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+
+    // 浆果丛应该保持不变（mobGriefing=false 时 _eatBerry 不修改方块）
+    const BlockState* stateAfter = m_world->getBlockState(1, 64, 0);
+    ASSERT_TRUE(stateAfter != nullptr);
+
+    // 验证 AGE 属性不变
+    const auto* bushBlock = dynamic_cast<const blocks::SweetBerryBushBlock*>(VanillaBlocks::SWEET_BERRY_BUSH);
+    ASSERT_TRUE(bushBlock != nullptr);
+    EXPECT_EQ(bushBlock->getAge(*stateAfter), bushBlock->getAge(*initialState))
+        << "Berry bush AGE should not change when mobGriefing=false";
+}
+
+TEST_F(FoxEatBerriesMobGriefingTest, TickDoesNotCrashWithMobGriefingFalse)
+{
+    // mobGriefing = false 时 tick 不崩溃
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+
+    setupSweetBerryBush();
+
+    auto goal = std::make_unique<entity::ai::goal::FoxEatBerriesGoal>(m_fox.get(), 1.2, 12, 2);
+
+    if (goal->shouldExecute()) {
+        goal->startExecuting();
+        for (int i = 0; i < 200; ++i) {
+            EXPECT_NO_THROW(goal->tick());
+        }
+    }
+}
+
+TEST_F(FoxEatBerriesMobGriefingTest, TickDoesNotCrashWithMobGriefingTrue)
+{
+    // mobGriefing = true 时 tick 不崩溃
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, true);
+
+    setupSweetBerryBush();
+
+    auto goal = std::make_unique<entity::ai::goal::FoxEatBerriesGoal>(m_fox.get(), 1.2, 12, 2);
+
+    if (goal->shouldExecute()) {
+        goal->startExecuting();
+        for (int i = 0; i < 200; ++i) {
+            EXPECT_NO_THROW(goal->tick());
+        }
+    }
+}
+
+TEST_F(FoxEatBerriesMobGriefingTest, MobGriefingDefault_IsTrue)
+{
+    // 验证 GameRules 默认值 mobGriefing = true
+    EXPECT_TRUE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
 }
 
 } // namespace test

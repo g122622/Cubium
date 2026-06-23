@@ -29,6 +29,7 @@
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -116,10 +117,14 @@ public:
     [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
     [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
 
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
 protected:
     BaseTestWorld() = default;
 
     world::border::WorldBorder m_worldBorder;
+    world::gamerule::GameRules m_gameRules;
     mutable math::Random m_random{12345};
 };
 
