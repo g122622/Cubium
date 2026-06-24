@@ -33,10 +33,13 @@
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/interact/TameableGoals.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/passive/basic/RabbitEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -227,10 +230,24 @@ void CatEntity::registerGoals()
     // 优先级 13: 随机看向
     m_goalSelector.addGoal(13, new entity::ai::goal::LookRandomlyGoal(this));
 
-    // TODO: 待 NonTameRandomTargetGoal 实现后，添加猫的目标选择器：
-    //   优先级 1: 攻击兔子（未驯服时，NonTameRandomTargetGoal<RabbitEntity>(this, false, null)）
-    //   优先级 1: 攻击幼年海龟（未驯服时，NonTameRandomTargetGoal<TurtleEntity>(this, false, BABY_ON_LAND_SELECTOR)）
-    // 对齐 MC 原版 Cat.registerGoals() 中的 targetSelector 注册
+    // ===== 目标选择器 (targetSelector) =====
+
+    // 优先级 1: 攻击兔子（未驯服时）
+    // 对齐 MC 原版 Cat.registerGoals() 中的 NonTameRandomTargetGoal<RabbitEntity>
+    m_targetSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::NonTamedTargetGoal<RabbitEntity>>(this,
+            false)); // checkSight = false，不需要视线检查
+
+    // 优先级 1: 攻击幼年海龟（未驯服时，仅攻击陆地上不在水中的幼体）
+    // 对齐 MC 原版 Cat.registerGoals() 中的 NonTameRandomTargetGoal<TurtleEntity>(BABY_ON_LAND_SELECTOR)
+    m_targetSelector.addGoal(1,
+        std::make_unique<entity::ai::goal::NonTamedTargetGoal<TurtleEntity>>(this,
+            false, // checkSight = false
+            [](const LivingEntity* entity) -> bool {
+                const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
+                if (!turtle) return false;
+                return turtle->isChild() && !turtle->isInWater();
+            }));
 }
 
 void CatEntity::_setupTamedAI()

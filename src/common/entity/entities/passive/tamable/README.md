@@ -90,7 +90,9 @@ AnimalEntity
 - **驯服成功广播**：`broadcastEntityStatus(TamingSucceeded/TamingFailed)` 发送心形/烟雾粒子
 - **项圈染色**：默认红色，支持 17 种染料物品映射（16 种标准染料 + 骨粉=白色 + 墨囊=黑色等）
 - **食物治疗量**：生鳕鱼/生鲑鱼治疗 2.0 生命值
-- **待实现目标**：猫的目标选择器缺少兔子攻击目标和幼年海龟攻击目标（待 NonTameRandomTargetGoal 实现后添加，见 CatEntity::registerGoals 中的 TODO 注释，对齐 MC 原版 Cat.registerGoals()）
+- **目标选择器**：猫的目标选择器已注册以下目标：
+  - 优先级 1: `NonTamedTargetGoal<RabbitEntity>` — 攻击兔子（未驯服时）
+  - 优先级 1: `NonTamedTargetGoal<TurtleEntity>` — 攻击幼年海龟（未驯服时，仅陆地上的幼体）
 
 ### TameableEntity NBT 序列化
 - **Sitting** (byte/bool) - 是否坐下

@@ -35,6 +35,7 @@
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/TridentEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -206,9 +207,10 @@ void DrownedEntity::registerGoals()
     // 优先级 2: 攻击玩家（带 okTarget 过滤）
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
-    // TODO: 待 AxolotlEntity 实现后添加攻击美西螈的目标：
-    // m_targetSelector.addGoal(3,
-    //     std::make_unique<NearestAttackableTargetGoal<AxolotlEntity>>(this, true));
+    // 优先级 3: 攻击美西螈
+    // 对齐 MC 原版 Drowned.registerGoals() 中的目标选择器
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<AxolotlEntity>>(this, true));
 }
 
 void DrownedEntity::registerAttributes()

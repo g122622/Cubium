@@ -40,12 +40,14 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/special/FoxGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/EntityTypeIdNumber.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../../entities/item/ItemEntity.hpp"
+#include "../../../entities/passive/special/TurtleEntity.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
 
@@ -620,14 +622,50 @@ void FoxEntity::registerGoals()
     m_goalSelector.addGoal(13, std::make_unique<entity::ai::goal::FoxSitAndLookGoal>(this));
 
     // 目标选择器
-    // TODO: 实现复仇目标 - 当信任玩家被攻击时触发
-    // m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::FoxRevengeGoal>(this));
 
-    // TODO: 待相关目标类实现后，添加狐狸的猎物攻击目标：
-    //   优先级 1: 攻击小鸡和兔子（NearestAttackableTargetGoal<AnimalEntity>，过滤 ChickenEntity/RabbitEntity）
-    //   优先级 1: 攻击幼年海龟（NearestAttackableTargetGoal<TurtleEntity>，BABY_ON_LAND_SELECTOR）
-    //   优先级 1: 攻击鱼群（NearestAttackableTargetGoal<AbstractFishEntity>，过滤 AbstractGroupFishEntity）
-    // 对齐 MC 原版 FoxEntity.registerGoals() 中的 attackAnimals/attackTurtles/attackFish
+    // 优先级 3: 保卫信任玩家 - 当信任玩家被攻击时反击
+    // 对齐 MC 原版 Fox.registerGoals() 中的 DefendTrustedTargetGoal
+    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::FoxRevengeGoal>(this));
+
+    // 优先级 4: 攻击小鸡和兔子
+    // 对齐 MC 原版 Fox.registerGoals() 中的 landTargetGoal
+    // MC 原版使用 NearestAttackableTargetGoal<AnimalEntity> 并过滤 Chicken/Rabbit
+    m_targetSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            false, // checkSight = false
+            10,    // chance = 10（随机检查间隔）
+            [](const LivingEntity* entity) -> bool {
+                if (!entity || !entity->isAlive()) return false;
+                auto type = entity->typeId();
+                return type == entity::EntityTypeIdNumber::CHICKEN || type == entity::EntityTypeIdNumber::RABBIT;
+            }));
+
+    // 优先级 4: 攻击幼年海龟（陆地上不在水中的幼体）
+    // 对齐 MC 原版 Fox.registerGoals() 中的 turtleEggTargetGoal
+    m_targetSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this,
+            false, // checkSight = false
+            10,    // chance = 10
+            [](const LivingEntity* entity) -> bool {
+                const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
+                if (!turtle) return false;
+                return turtle->isChild() && !turtle->isInWater();
+            }));
+
+    // 优先级 6: 攻击鱼群（仅群居鱼类：鳕鱼、鲑鱼、热带鱼，不包括河豚）
+    // 对齐 MC 原版 Fox.registerGoals() 中的 fishTargetGoal
+    // MC 原版使用 NearestAttackableTargetGoal<AbstractFishEntity> 并过滤 AbstractSchoolingFish
+    m_targetSelector.addGoal(6,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            false, // checkSight = false
+            20,    // chance = 20（比陆地猎物更低的检查频率）
+            [](const LivingEntity* entity) -> bool {
+                if (!entity || !entity->isAlive()) return false;
+                auto type = entity->typeId();
+                // 仅攻击群居鱼类：鳕鱼、鲑鱼、热带鱼（不包括河豚）
+                return type == entity::EntityTypeIdNumber::COD || type == entity::EntityTypeIdNumber::SALMON ||
+                    type == entity::EntityTypeIdNumber::TROPICAL_FISH;
+            }));
 }
 
 // ========== 属性注册 ==========

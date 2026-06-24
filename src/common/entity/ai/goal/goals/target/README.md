@@ -53,7 +53,7 @@ target/
 | `predicate` | 自定义目标筛选函数（可选） |
 
 **已显式实例化的类型**:
-`LivingEntity`, `MobEntity`, `Player`, `ChickenEntity`, `TurtleEntity`, `FoxEntity`, `IronGolemEntity`, `AbstractPiglinEntity`, `VillagerEntity`, `AbstractVillagerEntity`, `EndermiteEntity`
+`LivingEntity`, `MobEntity`, `Player`, `ChickenEntity`, `RabbitEntity`, `TurtleEntity`, `FoxEntity`, `IronGolemEntity`, `AbstractPiglinEntity`, `VillagerEntity`, `AbstractVillagerEntity`, `EndermiteEntity`, `AxolotlEntity`
 
 ---
 
@@ -133,7 +133,7 @@ target/
 - 实体必须是 `TameableEntity`
 - 实体必须**未驯服**
 
-**已显式实例化的类型**: `LivingEntity`, `MobEntity`, `TurtleEntity`
+**已显式实例化的类型**: `LivingEntity`, `MobEntity`, `TurtleEntity`, `RabbitEntity`
 
 **参考**: `net.minecraft.entity.ai.goal.NonTamedTargetGoal`
 

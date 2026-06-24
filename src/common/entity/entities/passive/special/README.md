@@ -72,7 +72,11 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 1. **信任机制非 TameableEntity**：狐狸使用独立的信任系统（最多信任 2 个玩家），不继承 TameableEntity。
 2. **叼物品**：狐狸可以叼起物品，需要正确处理 `m_heldItem` 的同步和掉落。
 3. **睡眠状态**：白天睡觉、晚上活动，状态切换需要考虑被打断的情况。
-4. **待实现猎物目标**：目标选择器缺少攻击小鸡/兔子目标、幼年海龟攻击目标（BABY_ON_LAND_SELECTOR 过滤）、鱼群攻击目标（待相关目标类实现后添加，见 FoxEntity::registerGoals 中的 TODO 注释，对齐 MC 原版 FoxEntity.registerGoals() 的 attackAnimals/attackTurtles/attackFish）。
+4. **猎物目标选择器**：狐狸的目标选择器已注册以下猎物攻击目标：
+   - 优先级 3: `FoxRevengeGoal` — 保卫信任玩家，当信任玩家被攻击时反击
+   - 优先级 4: `NearestAttackableTargetGoal<LivingEntity>` — 攻击小鸡和兔子（通过谓词过滤）
+   - 优先级 4: `NearestAttackableTargetGoal<TurtleEntity>` — 攻击幼年海龟（仅陆地上的幼体）
+   - 优先级 6: `NearestAttackableTargetGoal<LivingEntity>` — 攻击群居鱼类（鳕鱼、鲑鱼、热带鱼）
 
 ### PandaEntity 熊猫
 1. **基因表达规则**：好斗基因是显性的，懒惰+好斗组合也会表达为好斗。繁殖时子代基因需要从父母各随机继承一个，每个基因有 1/32 变异概率。

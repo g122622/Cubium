@@ -1089,7 +1089,59 @@ FoxRevengeGoal::FoxRevengeGoal(FoxEntity* fox)
 
 bool FoxRevengeGoal::shouldExecute()
 {
-    // TODO: 完整实现需要检查信任玩家是否被攻击
+    if (!m_foxEntity) return false;
+
+    // 遍历信任玩家，检查是否有信任玩家被攻击
+    IWorld* world = m_foxEntity->world();
+    if (!world) return false;
+
+    const auto& trustedPlayers = m_foxEntity->getTrustedPlayers();
+    for (u64 trustedPlayerId : trustedPlayers) {
+        // 通过 ID 查找信任的玩家实体
+        // 参考 MC 原版 DefendTrustedTargetGoal
+        Player* trustedPlayer = nullptr;
+        auto entities = world->getEntitiesInAABB(m_foxEntity->boundingBox().expand(64.0, 64.0, 64.0), nullptr);
+        for (Entity* entity : entities) {
+            Player* player = dynamic_cast<Player*>(entity);
+            if (player && player->playerId() == trustedPlayerId && player->isAlive()) {
+                trustedPlayer = player;
+                break;
+            }
+        }
+
+        if (trustedPlayer == nullptr) continue;
+
+        // 获取攻击信任玩家的实体
+        LivingEntity* attacker = trustedPlayer->getLastHurtBy();
+        if (attacker == nullptr || !attacker->isAlive()) continue;
+
+        // 检查攻击者是否就是狐狸自身
+        if (attacker == m_foxEntity) continue;
+
+        // 检查攻击者是否是信任玩家自己（避免误判）
+        if (attacker == trustedPlayer) continue;
+
+        // 检查时间戳是否变化（避免重复触发）
+        i32 hurtTimestamp = trustedPlayer->lastHurtByTimestamp();
+        if (hurtTimestamp == m_revengeTimestamp) continue;
+
+        // 检查攻击者是否适合作为目标
+        if (!isSuitableTarget(attacker)) continue;
+
+        // 检查攻击者不是信任的玩家
+        // 参考 MC 原版 TRUSTED_TARGET_SELECTOR 和 fox.trusts() 检查
+        const Player* attackerPlayer = dynamic_cast<const Player*>(attacker);
+        if (attackerPlayer != nullptr && m_foxEntity->trusts(attackerPlayer->playerId())) {
+            continue;
+        }
+
+        // 记录攻击者和信任实体
+        m_attackerOfTrusted = attacker;
+        m_trustedEntity = trustedPlayer;
+        m_target = attacker;
+        return true;
+    }
+
     return false;
 }
 
