@@ -183,7 +183,11 @@ TEST_F(BlazeHoverBehaviorTest, FallDamping_TerminalVelocityEstimate)
 
 TEST_F(BlazeHoverBehaviorTest, WaterDamageAmount_IsCorrect)
 {
-    // MC 1.21.11: 烈焰人在水中或雨中每 tick 受 1.0 伤害
+    // MC 1.21.11 LivingEntity.baseTick():
+    //   if (isSensitiveToWater() && isInWaterOrRain())
+    //       hurtServer(damageSources().drown(), 1.0F);
+    // 烈焰人重写 isSensitiveToWater() 返回 true，
+    // 水敏感伤害源为 drown（非 onFire），每 tick 1.0 伤害
     EXPECT_FLOAT_EQ(BlazeEntity::WATER_DAMAGE_AMOUNT, 1.0f);
 }
 
