@@ -318,6 +318,8 @@ add_executable(mc_tests
     common/entity/core/EntityRandomTest.cpp
     # MobEntity 序列化测试（掉落概率、死亡掉落表、拴绳数据 NBT 序列化）
     entity/MobEntitySerializationTest.cpp
+    # Entity::getLootTableId() 及其子类覆写测试
+    common/entity/core/GetLootTableIdTest.cpp
     # 战斗追踪器测试
     common/entity/combat/CombatTrackerTest.cpp
     # CombatRules EPF 测试

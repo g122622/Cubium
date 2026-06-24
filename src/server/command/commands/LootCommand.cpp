@@ -56,6 +56,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -246,7 +247,9 @@ std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* tar
 
     // 设置攻击者（命令执行者）
     // 对齐 MC Java: entity = commandsourcestack.getEntity()
-    // 当前 ServerCommandSource 只支持玩家执行者，所以 source.player() 即为命令执行者实体
+    // TODO: kill源当前仅支持玩家执行者作为KILLER_ENTITY，因为ServerCommandSource缺少entity()方法。
+    //       当ServerCommandSource添加entity()方法后，应改为使用source.entity()以支持非玩家命令执行者
+    //       （如命令方块、函数等）作为击杀者实体。
     Entity* sourceEntity = static_cast<Entity*>(source.player());
     if (sourceEntity != nullptr) {
         builder.withNullableParameter(loot::LootParams::DIRECT_KILLER, sourceEntity);
@@ -1161,39 +1164,39 @@ i32 LootCommand::fishReplaceBlock(CommandContext<ServerCommandSource>& context)
 // /loot kill <target> - 目标分发
 // ============================================================================
 
+namespace {
+
+/**
+ * @brief 从kill目标实体选择器生成战利品
+ *
+ * 使用 EntityResolver 解析任意实体（包括非玩家实体如僵尸、动物等），
+ * 对齐 MC Java 的 /loot kill 命令行为。
+ *
+ * @param source 命令源
+ * @param selector 实体选择器
+ * @return 生成的所有战利品物品列表
+ */
+std::vector<ItemStack> collectKillLoot(ServerCommandSource& source, const EntitySelector& selector)
+{
+    std::vector<ItemStack> allItems;
+    auto entities = support::EntityResolver::resolve(source, selector);
+    for (Entity* entity : entities) {
+        auto items = generateFromKill(source, entity);
+        for (auto& item : items) {
+            allItems.push_back(std::move(item));
+        }
+    }
+    return allItems;
+}
+
+} // anonymous namespace
+
 i32 LootCommand::killGive(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto selector = context.getArgument<EntitySelector>("kill_target");
 
-    // 解析目标实体
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        source.sendError("No entity matched");
-        return 0;
-    }
-
-    auto* world = source.world();
-    if (world == nullptr) {
-        return 0;
-    }
-
-    // 为每个匹配实体生成战利品
-    std::vector<ItemStack> allItems;
-    for (PlayerId playerId : playerIds) {
-        auto* playerWorld = source.server()->getPlayerWorld(playerId);
-        auto* player =
-            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
-        if (player == nullptr) {
-            continue;
-        }
-
-        auto items = generateFromKill(source, static_cast<Entity*>(player));
-        for (auto& item : items) {
-            allItems.push_back(std::move(item));
-        }
-    }
-
+    auto allItems = collectKillLoot(source, selector);
     if (allItems.empty()) {
         source.sendMessage("No loot generated from kill target");
         return 0;
@@ -1216,32 +1219,7 @@ i32 LootCommand::killSpawn(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto selector = context.getArgument<EntitySelector>("kill_target");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        source.sendError("No entity matched");
-        return 0;
-    }
-
-    auto* world = source.world();
-    if (world == nullptr) {
-        return 0;
-    }
-
-    std::vector<ItemStack> allItems;
-    for (PlayerId playerId : playerIds) {
-        auto* playerWorld = source.server()->getPlayerWorld(playerId);
-        auto* player =
-            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
-        if (player == nullptr) {
-            continue;
-        }
-
-        auto items = generateFromKill(source, static_cast<Entity*>(player));
-        for (auto& item : items) {
-            allItems.push_back(std::move(item));
-        }
-    }
-
+    auto allItems = collectKillLoot(source, selector);
     if (allItems.empty()) {
         return 0;
     }
@@ -1258,38 +1236,18 @@ i32 LootCommand::killInsert(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto selector = context.getArgument<EntitySelector>("kill_target");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        source.sendError("No entity matched");
-        return 0;
-    }
-
-    auto* world = source.world();
-    if (world == nullptr) {
-        return 0;
-    }
-
-    std::vector<ItemStack> allItems;
-    for (PlayerId playerId : playerIds) {
-        auto* playerWorld = source.server()->getPlayerWorld(playerId);
-        auto* player =
-            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
-        if (player == nullptr) {
-            continue;
-        }
-
-        auto items = generateFromKill(source, static_cast<Entity*>(player));
-        for (auto& item : items) {
-            allItems.push_back(std::move(item));
-        }
-    }
-
+    auto allItems = collectKillLoot(source, selector);
     if (allItems.empty()) {
         return 0;
     }
 
     auto pos = context.getArgument<Vector3i>("insert_pos");
     BlockPos blockPos(pos.x, pos.y, pos.z);
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        return 0;
+    }
 
     BlockEntity* blockEntity = world->getBlockEntity(blockPos);
     auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
@@ -1316,32 +1274,7 @@ i32 LootCommand::killReplaceEntity(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto selector = context.getArgument<EntitySelector>("kill_target");
 
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        source.sendError("No entity matched");
-        return 0;
-    }
-
-    auto* world = source.world();
-    if (world == nullptr) {
-        return 0;
-    }
-
-    std::vector<ItemStack> allItems;
-    for (PlayerId playerId : playerIds) {
-        auto* playerWorld = source.server()->getPlayerWorld(playerId);
-        auto* player =
-            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
-        if (player == nullptr) {
-            continue;
-        }
-
-        auto items = generateFromKill(source, static_cast<Entity*>(player));
-        for (auto& item : items) {
-            allItems.push_back(std::move(item));
-        }
-    }
-
+    auto allItems = collectKillLoot(source, selector);
     if (allItems.empty()) {
         return 0;
     }

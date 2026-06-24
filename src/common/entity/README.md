@@ -7,9 +7,9 @@
 ```
 src/common/entity/
 ├── core/                           # 核心实体框架
-│   ├── Entity.hpp/cpp              # 实体基类
+│   ├── Entity.hpp/cpp              # 实体基类（含 getLootTableId() 虚方法）
 │   ├── LivingEntity.hpp/cpp        # 生物实体基类
-│   ├── MobEntity.hpp/cpp           # AI生物基类
+│   ├── MobEntity.hpp/cpp           # AI生物基类（覆写 getLootTableId() 支持自定义 DeathLootTable）
 │   ├── CreatureEntity.hpp/cpp      # 陆地生物基类
 │   ├── AgeableEntity.hpp/cpp       # 可成长实体基类
 │   ├── FlyingEntity.hpp/cpp        # 飞行生物基类

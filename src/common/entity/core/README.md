@@ -283,6 +283,28 @@
         ## #类型标识符获取 - `typeId()` 返回 `EntityTypeIdNumber` 命名空间中的常量 - `legacyType()` 返回 `LegacyEntityType` 枚举（旧版，仅用于兼容） -
         新代码应使用 `typeId()`
 
+        ## #战利品表ID获取（getLootTableId）
+
+        `Entity::getLootTableId()` 是虚方法，返回实体对应的战利品表资源路径（如 `"minecraft:entities/pig"`）。
+
+        **方法层次**：
+        - **`Entity::getLootTableId()`**（基类）：从 `m_typeId` 推导默认路径，格式为 `<namespace>:entities/<path>`（如 `"minecraft:pig"` → `"minecraft:entities/pig"`）。`m_typeId` 为空时返回空字符串。
+        - **`MobEntity::getLootTableId()`**（覆写）：优先返回 NBT 自定义掉落表 `m_deathLootTable`（对应 MC Java 的 `DeathLootTable` NBT 标签），为空或 nullopt 时回退到基类实现。对齐 MC Java 的 `Mob.getLootTable()`：`this.lootTable.isPresent() ? this.lootTable : super.getLootTable()`。
+        - **无战利品表实体覆写**：以下实体覆写返回空字符串，对齐 MC Java 的 `EntityType.Builder.noLootTable()`：
+          - `ProjectileEntity`（覆盖所有弹射物子类：箭矢、三叉戟、火球等）
+          - `ItemEntity`（掉落物）
+          - `ExperienceOrbEntity`（经验球）
+          - `BoatEntity`（船）
+          - `AbstractMinecartEntity`（覆盖所有矿车变体）
+          - `HangingEntity`（覆盖画、物品框、拴绳结）
+          - `AreaEffectCloudEntity`、`EnderCrystalEntity`、`LightningBoltEntity`（效果实体）
+          - `FallingBlockEntity`、`TNTEntity`（杂项实体）
+          - `FishingBobberEntity`、`EvokerFangsEntity`、`EyeOfEnderEntity`、`FireworkRocketEntity`（其他弹射物）
+
+        **使用场景**：
+        - `/loot kill` 命令：从目标实体获取战利品表ID，生成击杀掉落物
+        - 实体死亡掉落逻辑：`MobEntity` 死亡时使用 `getLootTableId()` 查询战利品表
+
         ## #ISpawnWorldReader 接口 -
         定义在 `EntitySpawnPlacementRegistry.hpp` 中，用于生成检查的最小世界读取接口 -
         主要方法： - `getBlockState(x, y, z)` - 获取方块状态 - `isInWorldBounds(x, y, z)` -
@@ -351,13 +373,12 @@
         - 保存时仅写入新格式（MC 1.21.4 +）：`drop_chances`（compound，仅包含非默认值）
         - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
 
-        ## #死亡掉落表(
-            DeathLootTable) - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/"
-                                                                                                "zombi"
-                                                                                                "e"`） - `m_lootTableSeed`：确定性种子，0
-        表示随机
-        - NBT 键：`DeathLootTable`（string，仅在有值时写入）、`DeathLootTableSeed`（long，仅非零时写入） -
-        对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段
+        ## #死亡掉落表(DeathLootTable)
+        - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/zombie"`）
+        - `m_lootTableSeed`：确定性种子，0 表示随机
+        - NBT 键：`DeathLootTable`（string，仅在有值时写入）、`DeathLootTableSeed`（long，仅非零时写入）
+        - 对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段
+        - 通过 `MobEntity::getLootTableId()` 虚方法统一访问：优先返回 `m_deathLootTable`，为空时回退到 `Entity::getLootTableId()`（从 typeId 推导默认路径）
 
         ## #拴绳系统(Leash) - `m_isLeashed`：是否被拴绳拴住
         - `m_leashHolderUuid`：拴绳目标实体的 UUID（拴在实体上时）
