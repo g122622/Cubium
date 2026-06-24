@@ -1927,6 +1927,7 @@ add_executable(mc_command_tests
     server/command/EntityDataAccessorEffectTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/EntityResolverTest.cpp
+    server/command/ServerCommandSourceTest.cpp
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp

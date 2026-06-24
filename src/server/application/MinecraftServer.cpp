@@ -1793,7 +1793,6 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
         if (auto* playerWorld = getPlayerWorld(playerId)) {
             commandDimension = playerWorld->dimension();
         }
-        // 对齐 MC Java: 玩家执行命令时，CommandSourceStack.entity = 该玩家实体。
         // 从玩家管理器查找 Player 实体作为命令执行实体。
         mc::Entity* commandEntity = nullptr;
         if (auto* cmdDim = dimensionManager().getDimension(commandDimension)) {

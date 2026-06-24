@@ -103,13 +103,13 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 /**
  * @brief 获取命令源实体手持物品
  *
- * 对齐 MC Java LootCommand.getSourceHandItem()：使用 source.getEntity() 获取实体，
+ * 使用 source.getEntity() 获取实体，
  * 如果实体是 LivingEntity 则从装备槽获取手持物品，非 LivingEntity 实体报错。
  * 回退到 source.getPlayer() 支持仅通过 PlayerId 标识的玩家。
  */
 ItemStack getHeldItem(ServerCommandSource& source, const std::string& hand)
 {
-    // 优先从 entity 获取（支持非玩家实体），对齐 MC Java 的 entity 检查逻辑
+    // 优先从 entity 获取（支持非玩家实体）
     Entity* entity = source.entity();
     if (entity != nullptr) {
         auto* livingEntity = dynamic_cast<LivingEntity*>(entity);
@@ -121,7 +121,7 @@ ItemStack getHeldItem(ServerCommandSource& source, const std::string& hand)
             }
             return ItemStack::EMPTY;
         }
-        // 非 LivingEntity 实体没有手持物品，对齐 MC Java: 抛出 ERROR_NO_HELD_ITEMS
+        // 非 LivingEntity 实体没有手持物品，抛出 ERROR_NO_HELD_ITEMS
         source.sendError("commands.loot.noHeldItem");
         return ItemStack::EMPTY;
     }
@@ -182,7 +182,7 @@ loot::LootContextBuilder createBaseContextBuilder(ServerCommandSource& source)
                            return manager.getPredicate(id);
                        });
 
-    // 设置命令源实体（对齐 MC Java: THIS_ENTITY 使用 source.getEntity()）
+    // 设置命令源实体（THIS_ENTITY 使用 source.getEntity()）
     if (source.entity() != nullptr) {
         builder.withNullableParameter(loot::LootParams::THIS_ENTITY, source.entity());
     }
@@ -227,7 +227,6 @@ std::vector<ItemStack> generateFromFish(
  *
  * 使用目标实体的战利品表和 ENTITY 参数集，
  * 用魔法伤害作为伤害源，命令执行者作为击杀者。
- * 对齐 MC Java 的 LootCommand.dropKillLoot() 逻辑。
  */
 std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* target)
 {
@@ -254,21 +253,19 @@ std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* tar
     }
 
     // 构建 ENTITY 参数集的 LootContext
-    // 对齐 MC Java: 使用魔法伤害源，命令执行者作为攻击者
+    // 使用魔法伤害源，命令执行者作为攻击者
     auto builder = createBaseContextBuilder(source);
 
     // 设置 THIS_ENTITY（被杀实体）为必需参数
     builder.withParameter(loot::LootParams::THIS_ENTITY, target);
 
     // 设置 DAMAGE_SOURCE（魔法伤害，无实体来源）
-    // 对齐 MC Java: p_137907_.damageSources().magic()
     // DamageSource 是抽象类，不能使用 withOwnedValue，
     // 使用 withParameter 传入指针，确保 magicSource 生命周期覆盖 generate 调用
     auto magicSource = DamageSources::magic();
     builder.withParameter(loot::LootParams::DAMAGE_SOURCE, static_cast<DamageSource*>(&magicSource));
 
     // 设置攻击者（命令执行者）
-    // 对齐 MC Java: entity = commandsourcestack.getEntity()
     // 使用 source.entity() 支持非玩家命令执行者（如通过 /execute as @e 指定的实体）
     Entity* sourceEntity = source.entity();
     if (sourceEntity != nullptr) {
@@ -277,7 +274,6 @@ std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* tar
     }
 
     // 设置 LAST_DAMAGE_PLAYER（如果命令执行者是玩家）
-    // 对齐 MC Java: if (entity instanceof Player player) {
     // lootparams$builder.withParameter(LootContextParams.LAST_DAMAGE_PLAYER, player) }
     Player* sourcePlayer = source.player();
     if (sourcePlayer != nullptr) {
@@ -1189,8 +1185,7 @@ namespace {
 /**
  * @brief 从kill目标实体选择器生成战利品
  *
- * 使用 EntityResolver 解析任意实体（包括非玩家实体如僵尸、动物等），
- * 对齐 MC Java 的 /loot kill 命令行为。
+ * 使用 EntityResolver 解析任意实体（包括非玩家实体如僵尸、动物等）。
  *
  * @param source 命令源
  * @param selector 实体选择器

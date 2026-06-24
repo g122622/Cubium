@@ -62,8 +62,8 @@ i32 KillCommand::_killSelf(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    // 对齐 MC Java: /kill 无参数时杀死命令源的执行实体。
-    // MC Java 的 CommandSourceStack.getEntity() 支持任何实体（不限于玩家），
+    // /kill 无参数时杀死命令源的执行实体。
+    // CommandSourceStack.getEntity() 支持任何实体（不限于玩家），
     // 如通过 /execute as @e[type=zombie] run kill 可杀死该僵尸。
     Entity* entity = source.entity();
     if (entity == nullptr) {

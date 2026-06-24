@@ -156,7 +156,6 @@ ServerCommandSource ServerCommandSource::withEntity(Entity& entity) const
     source.m_entity = &entity;
 
     // 如果实体是 ServerPlayer，同时更新 m_player 和 m_playerId
-    // 对齐 MC Java CommandSourceStack.withEntity() 的行为
     auto* serverPlayer = dynamic_cast<ServerPlayer*>(&entity);
     if (serverPlayer != nullptr) {
         source.m_player = serverPlayer;
@@ -164,7 +163,7 @@ ServerCommandSource ServerCommandSource::withEntity(Entity& entity) const
     }
     // else: m_player 和 m_playerId 保持不变，允许非玩家实体作为执行者
 
-    // 更新显示名称为实体名称（对齐 MC Java withEntity 更新 textName/displayName）
+    // 更新显示名称为实体名称
     if (serverPlayer != nullptr) {
         source.m_name = serverPlayer->username();
     } else if (entity.hasCustomName()) {

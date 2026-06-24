@@ -656,7 +656,6 @@ std::vector<Entity*> EntityResolver::resolve(const ServerCommandSource& source, 
     switch (selector.type()) {
         case EntitySelectorType::Self: {
             // @s: 返回命令源自身的实体
-            // 对齐 MC Java: EntitySelector.checkSourcePermission() 使用 source.getEntity()
             // 支持非玩家实体执行者（如 /execute as @e[type=zombie] run kill @s）
             Entity* entity = source.entity();
             if (entity == nullptr) {

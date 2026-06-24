@@ -120,7 +120,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // ========== as <entity> run <command> ==========
     // /execute as <entity> run <command> - 以指定实体身份执行命令
-    // 对齐 MC Java: 使用 entities() 支持所有实体类型（@e/@p/@a/@r/@s）
+    // 使用 entities() 支持所有实体类型（@e/@p/@a/@r/@s）
     auto asNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("as");
     auto asEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "entity", EntityArgumentType::entities());
@@ -135,7 +135,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // ========== at <entity> run <command> ==========
     // /execute at <entity> run <command> - 在指定实体位置执行命令
-    // 对齐 MC Java: 使用 entities() 支持所有实体类型
+    // 使用 entities() 支持所有实体类型
     auto atNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("at");
     auto atEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
         "entity", EntityArgumentType::entities());
@@ -219,7 +219,7 @@ i32 ExecuteCommand::_executeAs(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("entity");
     std::string command = context.getArgument<std::string>("command");
 
-    // 对齐 MC Java: execute as <entity> 使用 EntityArgument.entities() 支持所有实体类型
+    // execute as <entity> 使用 EntityArgument.entities() 支持所有实体类型
     // 使用 EntityResolver 解析实体选择器（支持 @e/@p/@a/@r/@s）
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
@@ -233,7 +233,7 @@ i32 ExecuteCommand::_executeAs(CommandContext<ServerCommandSource>& context)
         if (entity == nullptr) continue;
 
         // 创建修改后的命令源（以该实体身份执行）
-        // 对齐 MC Java: CommandSourceStack.withEntity(entity) 只替换实体和名称，
+        // withEntity(entity) 只替换实体和名称，
         // 保留位置、旋转、维度不变
         ServerCommandSource modifiedSource = source.withEntity(*entity);
 
@@ -250,7 +250,7 @@ i32 ExecuteCommand::_executeAt(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("entity");
     std::string command = context.getArgument<std::string>("command");
 
-    // 对齐 MC Java: execute at <entity> 使用 EntityArgument.entities() 支持所有实体类型
+    // execute at <entity> 使用 EntityArgument.entities() 支持所有实体类型
     auto entities = support::EntityResolver::resolve(source, selector);
     if (entities.empty()) {
         source.sendError("commands.execute.failed.noEntity");
@@ -258,13 +258,13 @@ i32 ExecuteCommand::_executeAt(CommandContext<ServerCommandSource>& context)
     }
 
     // 在每个目标实体位置执行
-    // 对齐 MC Java: at 子命令修改位置+旋转+维度，但不改变执行者实体
+    // at 子命令修改位置+旋转+维度，但不改变执行者实体
     i32 totalResult = 0;
     for (Entity* entity : entities) {
         if (entity == nullptr) continue;
 
         // 修改位置、旋转和维度到目标实体
-        // 对齐 MC Java: at 子命令同时设置位置和旋转
+        // at 子命令同时设置位置和旋转
         ServerCommandSource modifiedSource = source.withPosition(Vector3d(static_cast<f64>(entity->position().x),
             static_cast<f64>(entity->position().y),
             static_cast<f64>(entity->position().z)));
