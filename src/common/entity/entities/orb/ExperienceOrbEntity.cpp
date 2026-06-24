@@ -96,14 +96,6 @@ void ExperienceOrbEntity::tick()
     }
 }
 
-void ExperienceOrbEntity::baseTick()
-{
-    Entity::baseTick();
-
-    // MC Java 中 ExperienceOrb 不重写火焰处理逻辑，
-    // 火焰衰减完全由 Entity::baseTick() 处理。
-}
-
 // ============================================================================
 // 经验相关
 // ============================================================================
