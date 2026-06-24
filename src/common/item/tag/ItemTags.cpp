@@ -242,6 +242,10 @@ void ItemTags::initialize()
     // 下界合金块
     fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_block")));
 
+    // TODO: 当 netherite_horse_armor 物品注册后，需要将以下物品加入此标签：
+    //   fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_horse_armor")));
+    // 参考: MC Java 中 netherite_horse_armor 通过 Item.Properties.fireResistant() 自动归入此标签
+
     allTags[fireResistant->getId()] = std::move(fireResistant);
 
     s_initialized = true;
