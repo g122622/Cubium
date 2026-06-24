@@ -1509,6 +1509,9 @@ void Player::die(DamageSource& cause)
     // 调用父类方法处理死亡
     LivingEntity::die(cause);
 
+    // MC Java: Player.die() 中清除火焰状态
+    clearFire();
+
     // 玩家特有：掉落经验
     dropExperience();
 }

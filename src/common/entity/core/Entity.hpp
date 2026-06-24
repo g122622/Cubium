@@ -1262,6 +1262,7 @@ public:
      *
      * 当实体被点燃时调用，清除冰冻效果。
      * 子类（如 LivingEntity）可重写以实现完整的冰冻清除逻辑。
+     * TODO: 当冰冻系统（powder snow 等）实现后，LivingEntity 需要重写此方法清除冰冻状态。
      */
     virtual void clearFreeze() {}
 

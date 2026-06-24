@@ -28,6 +28,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -119,6 +120,21 @@ public:
     [[nodiscard]] f32 width() const override { return 0.6f; }
     [[nodiscard]] f32 height() const override { return 1.8f; }
     [[nodiscard]] f32 eyeHeight() const override { return 1.62f; }
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+};
+
+class TestPlayer : public Player {
+public:
+    explicit TestPlayer(IWorld* world)
+        : Player(EntityId(1), "TestPlayer")
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+        if (world != nullptr) {
+            setWorld(world);
+        }
+    }
+
     [[nodiscard]] std::string getLootTableId() const override { return {}; }
 };
 
@@ -515,4 +531,209 @@ TEST_F(EntityLavaFireTest, LavaHurt_IgnoresFireImmuneEntities)
     // 无敌实体不受伤害
     EXPECT_FLOAT_EQ(entity.health(), healthBefore);
     EXPECT_EQ(m_world.soundPlayCount(), 0);
+}
+
+// ============================================================================
+// 火焰免疫期（fireImmuneTicks）机制测试
+// ============================================================================
+
+TEST_F(EntityLavaFireTest, GetFireImmuneTicks_BaseEntityReturnsZero)
+{
+    // 基类 Entity 返回 0（无免疫期）
+    TestLivingEntity entity(EntityId(1), &m_world);
+    EXPECT_EQ(entity.getFireImmuneTicks(), 0);
+}
+
+TEST_F(EntityLavaFireTest, GetRemainingFireTicks_PositiveWhenBurning)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.igniteForSeconds(5.0f);
+    EXPECT_GT(entity.getRemainingFireTicks(), 0);
+    EXPECT_EQ(entity.getRemainingFireTicks(), 100); // 5秒 = 100 ticks
+}
+
+TEST_F(EntityLavaFireTest, GetRemainingFireTicks_NegativeWhenImmune)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.forceFireTicks(-10);
+    EXPECT_LT(entity.getRemainingFireTicks(), 0);
+    EXPECT_EQ(entity.getRemainingFireTicks(), -10);
+}
+
+TEST_F(EntityLavaFireTest, IgniteForSeconds_SetsCorrectTicks)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.igniteForSeconds(8.0f);
+    EXPECT_EQ(entity.getRemainingFireTicks(), 160); // 8秒 = 160 ticks
+}
+
+TEST_F(EntityLavaFireTest, IgniteForSeconds_DoesNotReduceExistingHigherFireTime)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.igniteForSeconds(15.0f); // 300 ticks
+    entity.igniteForSeconds(5.0f);  // 100 ticks < 300，不更新
+    EXPECT_EQ(entity.getRemainingFireTicks(), 300);
+}
+
+TEST_F(EntityLavaFireTest, IgniteForSeconds_OverwritesImmunityCooldown)
+{
+    // 免疫期（负值）时，igniteForSeconds 应覆盖免疫期
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.forceFireTicks(-20); // 免疫期
+    EXPECT_LT(entity.getRemainingFireTicks(), 0);
+
+    entity.igniteForSeconds(8.0f); // 160 ticks > -20，覆盖
+    EXPECT_EQ(entity.getRemainingFireTicks(), 160);
+    EXPECT_TRUE(entity.isOnFire());
+}
+
+TEST_F(EntityLavaFireTest, IgniteForTicks_SetsCorrectTicks)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.igniteForTicks(50);
+    EXPECT_EQ(entity.getRemainingFireTicks(), 50);
+}
+
+TEST_F(EntityLavaFireTest, SetRemainingFireTicks_DirectlySetsValue)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.setRemainingFireTicks(-15);
+    EXPECT_EQ(entity.getRemainingFireTicks(), -15);
+
+    entity.setRemainingFireTicks(200);
+    EXPECT_EQ(entity.getRemainingFireTicks(), 200);
+}
+
+TEST_F(EntityLavaFireTest, IsOnFire_FalseWhenImmuneCooldown)
+{
+    // 负值免疫期时，isOnFire() 应返回 false
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.forceFireTicks(-10);
+    EXPECT_FALSE(entity.isOnFire());
+}
+
+TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguish)
+{
+    // 在水中灭火时，如果 getFireImmuneTicks() > 0 则设置免疫期
+    // TestLivingEntity 的 getFireImmuneTicks() 返回 0，所以不会设置免疫期
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.igniteForSeconds(5.0f);
+    EXPECT_TRUE(entity.isOnFire());
+
+    entity.setInWater(true);
+    entity.baseTick();
+
+    // 基类 getFireImmuneTicks() 返回 0，所以 m_fire 应为 0 而非负值
+    EXPECT_EQ(entity.getRemainingFireTicks(), 0);
+    EXPECT_FALSE(entity.isOnFire());
+}
+
+TEST_F(EntityLavaFireTest, FireImmunityCooldown_SetByWaterExtinguishWithPlayer)
+{
+    // Player 的 getFireImmuneTicks() 返回 20，水中灭火应设置免疫期 -20
+    TestPlayer player(&m_world);
+    player.igniteForSeconds(5.0f);
+    EXPECT_TRUE(player.isOnFire());
+
+    player.setInWater(true);
+    player.baseTick();
+
+    // Player 应获得 20 tick 免疫期
+    EXPECT_EQ(player.getRemainingFireTicks(), -20);
+    EXPECT_FALSE(player.isOnFire());
+}
+
+TEST_F(EntityLavaFireTest, FireImmunityCooldown_PlayerCreativeModeFireLimit)
+{
+    // 创造模式下 forceFireTicks 限制为 max 1 tick
+    TestPlayer player(&m_world);
+    player.abilities().invulnerable = true;
+
+    player.forceFireTicks(300);
+    EXPECT_EQ(player.getRemainingFireTicks(), 1); // 创造模式限制
+
+    player.abilities().invulnerable = false;
+    player.forceFireTicks(300);
+    EXPECT_EQ(player.getRemainingFireTicks(), 300); // 非创造模式无限制
+}
+
+TEST_F(EntityLavaFireTest, FireImmunityCooldown_PlayerImmuneTicksIs20)
+{
+    TestPlayer player(&m_world);
+    EXPECT_EQ(player.getFireImmuneTicks(), 20);
+}
+
+TEST_F(EntityLavaFireTest, ExtinguishFire_PlaysSoundWhenBurning)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.igniteForSeconds(5.0f);
+    EXPECT_TRUE(entity.isOnFire());
+
+    entity.extinguishFire();
+    EXPECT_FALSE(entity.isOnFire());
+    EXPECT_EQ(m_world.soundPlayCount(), 1);
+    EXPECT_EQ(m_world.lastSoundId(), SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE);
+}
+
+TEST_F(EntityLavaFireTest, ExtinguishFire_NoSoundWhenNotBurning)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    EXPECT_FALSE(entity.isOnFire());
+
+    entity.extinguishFire();
+    EXPECT_EQ(m_world.soundPlayCount(), 0);
+}
+
+TEST_F(EntityLavaFireTest, PlayExtinguishSound_PlaysCorrectSound)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.playExtinguishSound();
+    EXPECT_EQ(m_world.soundPlayCount(), 1);
+    EXPECT_EQ(m_world.lastSoundId(), SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE);
+    EXPECT_FLOAT_EQ(m_world.lastSoundVolume(), 0.7f);
+}
+
+TEST_F(EntityLavaFireTest, ClearFire_NegativeValuePreserved)
+{
+    // clearFire 保留负值免疫期
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.forceFireTicks(-15);
+    entity.clearFire();
+    EXPECT_EQ(entity.getRemainingFireTicks(), -15); // 负值不变
+}
+
+TEST_F(EntityLavaFireTest, ClearFire_PositiveValueZeroed)
+{
+    TestLivingEntity entity(EntityId(1), &m_world);
+    entity.igniteForSeconds(5.0f);
+    EXPECT_GT(entity.getRemainingFireTicks(), 0);
+    entity.clearFire();
+    EXPECT_EQ(entity.getRemainingFireTicks(), 0);
+}
+
+TEST_F(EntityLavaFireTest, DoBlockCollisions_SetsImmunityWhenNoFire)
+{
+    // 当实体不燃烧且方块碰撞未点燃时，应设置免疫期
+    // 使用 Player 测试，因为基类 getFireImmuneTicks() 返回 0
+    TestPlayer player(&m_world);
+    EXPECT_FALSE(player.isOnFire());
+    EXPECT_EQ(player.getRemainingFireTicks(), 0);
+
+    player.doBlockCollisions();
+
+    // 不在火方块中，不燃烧，应设置免疫期
+    EXPECT_EQ(player.getRemainingFireTicks(), -20); // Player 免疫期 = 20
+}
+
+TEST_F(EntityLavaFireTest, DoBlockCollisions_NoImmunityWhenFireIncreased)
+{
+    // 当方块碰撞增加了火焰时间，不应设置免疫期
+    TestPlayer player(&m_world);
+    player.igniteForSeconds(5.0f); // 先点燃
+    EXPECT_TRUE(player.isOnFire());
+
+    player.doBlockCollisions();
+
+    // 已在燃烧，不应设置免疫期
+    EXPECT_GT(player.getRemainingFireTicks(), 0);
 }
