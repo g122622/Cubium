@@ -1884,6 +1884,11 @@ void Entity::lavaHurt()
 
 void Entity::clearFire()
 {
+    // MC Java: setRemainingFireTicks(Math.min(0, getRemainingFireTicks()))
+    // 保留负值（火焰免疫期倒计时），仅将正值清零
+    // TODO: MC Java 中负值的 m_fire 表示火焰免疫期倒计时，在此期间实体不会被再次点燃。
+    //       当前实现仅保留负值但未在 lavaIgnite/setFire 中检查免疫期（应判断 m_fire < 0 时不点燃），
+    //       需要完善 setFire/lavaIgnite 的免疫期逻辑以完整复刻 MC Java 行为。
     if (m_fire > 0) {
         m_fire = 0;
     }

@@ -308,6 +308,8 @@ add_executable(mc_tests
     common/entity/ArrowEntityFixTest.cpp
     # ItemEntity 伤害处理测试（hurt、isImmuneToFire、canBeHurtBy、FIRE_RESISTANT标签）
     common/entity/ItemEntityTest.cpp
+    # Entity 岩浆伤害/火焰处理测试（lavaIgnite、lavaHurt、shouldPlayLavaHurtSound、clearFire、baseTick火焰逻辑）
+    common/entity/core/EntityLavaFireTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
     # DifficultyInstance 区域难度测试
