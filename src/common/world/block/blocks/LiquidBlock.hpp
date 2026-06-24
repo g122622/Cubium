@@ -151,6 +151,19 @@ public:
      */
     [[nodiscard]] fluid::FlowingFluid& getFluid() const { return m_fluid; }
 
+    /**
+     * @brief 实体与液体方块碰撞时调用
+     *
+     * 当实体进入岩浆流体方块时，点燃实体并造成岩浆伤害。
+     * 对于水流体方块，无特殊碰撞效果。
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param entity 碰撞的实体
+     */
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
     // ========== 方块与流体等级转换 ==========
 
     /**

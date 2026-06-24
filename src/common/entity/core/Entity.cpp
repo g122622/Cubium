@@ -646,11 +646,26 @@ void Entity::baseTick()
 
     // 处理着火
     if (m_fire > 0) {
-        if (isInWater() || isInLava()) {
-            m_fire = 0;
+        if (isImmuneToFire()) {
+            // 免疫火焰的实体立即清除火焰
+            clearFire();
+        } else if (isInWater()) {
+            // 在水中时立即熄灭火焰
+            clearFire();
         } else {
+            // 燃烧伤害：每 20 tick（1 秒）造成 1 点 onFire 伤害
+            // 注意：在岩浆中时不造成燃烧伤害，因为岩浆伤害由 lavaHurt() 单独处理
+            if (m_fire % 20 == 0 && !isInLava()) {
+                auto onFireSource = DamageSources::onFire();
+                hurt(onFireSource, 1.0f);
+            }
             m_fire--;
         }
+    }
+
+    // 在岩浆中减少坠落距离
+    if (isInLava()) {
+        m_fallDistance *= 0.5f;
     }
 
     // 处理空气值（简化版本）
@@ -1841,6 +1856,37 @@ bool Entity::isImmuneToFire() const
         return type->immuneToFire();
     }
     return false;
+}
+
+void Entity::lavaIgnite()
+{
+    if (!isImmuneToFire()) {
+        setFire(300); // 15 秒 = 300 ticks
+    }
+}
+
+void Entity::lavaHurt()
+{
+    if (isImmuneToFire()) {
+        return;
+    }
+
+    // 仅在服务端处理伤害和音效
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        auto damageSource = DamageSources::lava();
+        if (hurt(damageSource, 4.0f)) {
+            if (shouldPlayLavaHurtSound() && !isSilent()) {
+                playSound(SoundEvents::ENTITY_GENERIC_BURN, 0.4f, 2.0f + getRandom().nextFloat() * 0.4f);
+            }
+        }
+    }
+}
+
+void Entity::clearFire()
+{
+    if (m_fire > 0) {
+        m_fire = 0;
+    }
 }
 
 std::string Entity::toString() const

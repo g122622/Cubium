@@ -304,13 +304,9 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
         entity.setFire(160);
     }
 
-    // 4. 造成火焰伤害
-    // 只有 LivingEntity 才能受到伤害
-    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
-    if (livingEntity != nullptr) {
-        auto damageSource = DamageSources::inFire();
-        livingEntity->hurt(damageSource, static_cast<f32>(m_fireDamage));
-    }
+    // 4. 造成火焰伤害（对可受伤的实体）
+    auto damageSource = DamageSources::inFire();
+    entity.hurt(damageSource, static_cast<f32>(m_fireDamage));
 }
 
 const CollisionShape& FireBlock::getShape(const BlockState& state) const

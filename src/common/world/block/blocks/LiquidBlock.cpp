@@ -23,6 +23,7 @@
 
 #include "common/world/block/blocks/LiquidBlock.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/FluidProperties.hpp"
@@ -334,6 +335,28 @@ void LiquidBlock::_buildFluidStateCache()
                 m_fluid.getFlowing().defaultState().with(levelProp, fluidLevel).with(fallingProp, falling));
         }
     }
+}
+
+void LiquidBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // 检查流体是否为岩浆
+    const fluid::FluidState* fluidState = getFluidState(state);
+    if (fluidState == nullptr || fluidState->isEmpty()) {
+        return;
+    }
+
+    if (!fluidState->getFluid().isIn(fluid::FluidTags::LAVA())) {
+        return;
+    }
+
+    // 岩浆流体碰撞：先点燃实体，再造成岩浆伤害
+    // 参考 MC Java: LavaFluid.entityInside() -> LAVA_IGNITE + lavaHurt
+    entity.lavaIgnite();
+    entity.lavaHurt();
 }
 
 } // namespace block

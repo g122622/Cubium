@@ -1215,6 +1215,41 @@ public:
      */
     [[nodiscard]] virtual bool isImmuneToFire() const;
 
+    /**
+     * @brief 岩浆点燃实体
+     *
+     * 将实体点燃 15 秒（300 ticks）。如果实体免疫火焰则不点燃。
+     * 在岩浆方块碰撞时调用。
+     */
+    void lavaIgnite();
+
+    /**
+     * @brief 对实体造成岩浆伤害并播放灼烧音效
+     *
+     * 对非火焰免疫的实体造成 4.0 点岩浆伤害。
+     * 如果伤害成功且 shouldPlayLavaHurtSound() 返回 true 且实体未静音，
+     * 播放 GENERIC_BURN 音效。
+     */
+    void lavaHurt();
+
+    /**
+     * @brief 判断是否应播放岩浆受伤音效
+     *
+     * 基类实现始终返回 true。子类可重写以限制音效播放频率。
+     * 例如 ItemEntity 重写此方法，仅在生命值归零或每 10 tick 播放一次音效，
+     * 避免物品在岩浆中每 tick 都播放音效造成噪音。
+     *
+     * @return 如果应播放岩浆受伤音效返回 true
+     */
+    [[nodiscard]] virtual bool shouldPlayLavaHurtSound() const { return true; }
+
+    /**
+     * @brief 清除火焰（将火焰计时器设为不超过 0）
+     *
+     * 如果当前火焰计时器为正数，设为 0；如果已为负数（火焰免疫期），保持不变。
+     */
+    void clearFire();
+
     // ========== 空气管理 ==========
 
     /**

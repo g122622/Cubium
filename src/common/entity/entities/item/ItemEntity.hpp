@@ -153,11 +153,16 @@ public:
      */
     [[nodiscard]] bool dampensVibrations() const override;
 
-    // TODO: 实现 shouldPlayLavaHurtSound() 重写
-    // MC Java 中 ItemEntity 重写了 Entity.shouldPlayLavaHurtSound()：
-    //   return this.health <= 0 ? true : this.tickCount % 10 == 0;
-    // 即物品在岩浆中受伤时，仅在生命值归零时或每10 tick播放一次受伤音效，
-    // 而非每tick都播放。当前 Entity 基类尚缺少此虚方法，待添加后需在此重写。
+    /**
+     * @brief 判断是否应播放岩浆受伤音效
+     *
+     * 物品实体在岩浆中每 tick 都会受到伤害，如果每 tick 都播放音效会造成噪音。
+     * 因此重写此方法，仅在物品被销毁时（生命值归零）或每 10 tick 播放一次音效。
+     */
+    [[nodiscard]] bool shouldPlayLavaHurtSound() const override
+    {
+        return m_health <= 0 || static_cast<i32>(ticksExisted()) % 10 == 0;
+    }
 
     // ========== 物品相关 ==========
 

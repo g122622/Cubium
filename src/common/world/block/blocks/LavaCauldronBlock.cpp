@@ -22,8 +22,7 @@
 
 #include "LavaCauldronBlock.hpp"
 
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
@@ -155,17 +154,10 @@ void LavaCauldronBlock::onEntityCollision(
     MC_UNUSED(world);
     MC_UNUSED(pos);
 
-    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
-    if (livingEntity == nullptr) {
-        return;
-    }
-
-    // 对进入岩浆炼药锅的实体造成岩浆伤害
-    auto damageSource = DamageSources::lava();
-    livingEntity->hurt(damageSource, 4.0f);
-
-    // 点燃实体（15秒燃烧时间）
-    livingEntity->setFire(15 * 20); // 15秒 × 20 tick/秒
+    // 对进入岩浆炼药锅的实体造成点燃和岩浆伤害
+    // 参考 MC Java: LavaCauldronBlock.entityInside() -> LAVA_IGNITE + lavaHurt
+    entity.lavaIgnite();
+    entity.lavaHurt();
 }
 
 // ========== 红石 ==========

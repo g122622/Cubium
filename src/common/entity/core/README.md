@@ -180,10 +180,14 @@
                 骑乘时步高会动态变化（IRideable）
 
                 ## #火焰系统注意事项
-                - `setFire(seconds)` 将秒转换为 tick（×20），只在当前值较小时更新
+                - `setFire(ticks)` 只在当前值较小时更新（不会缩短已有燃烧时间）
                 - `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间
-                - 火焰免疫由 `EntityType::immuneToFire()` 标志决定 -
-                烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
+                - `clearFire()` 将火焰计时器清零（仅当 m_fire > 0 时生效）
+                - `lavaIgnite()` 岩浆点燃：免疫火焰则跳过，否则 setFire(300)（15 秒）
+                - `lavaHurt()` 岩浆伤害：免疫火焰则跳过，否则造成 4.0 点岩浆伤害 + 播放 GENERIC_BURN 音效
+                - `shouldPlayLavaHurtSound()` 虚方法，控制岩浆音效播放频率。基类返回 true，ItemEntity 重写为每 10 tick 或生命值归零时返回 true
+                - 火焰免疫由 `EntityType::immuneToFire()` 标志决定，子类可重写（如 ItemEntity 检查物品是否防火）
+                - 烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
 
                 ## #亡灵日光燃烧系统(burnUndead)
 

@@ -189,10 +189,11 @@ void ItemEntity::tick()
 {
     MC_TRACE_EVENT("game.entity", "ItemEntity::tick", "entityId", id(), "age", m_age, "count", getCount());
 
-    // 更新前保存位置
-    m_prevPosition = m_position;
-    m_prevYaw = m_yaw;
-    m_prevPitch = m_pitch;
+    // 递增存活时间（Entity::tick 会在 baseTick 前递增，ItemEntity 直接调用 baseTick 需手动递增）
+    m_ticksExisted++;
+
+    // 基础 tick：更新前一帧位置、处理火焰计时器、环境状态等
+    Entity::baseTick();
 
     // 增加年龄
     m_age++;
@@ -213,9 +214,6 @@ void ItemEntity::tick()
 
     // 更新合并检测
     _updateMerge();
-
-    // 更新存活时间
-    m_ticksExisted++;
 }
 
 // ============================================================================
@@ -516,7 +514,7 @@ void ItemEntity::_applyWaterPhysics()
 
 void ItemEntity::_applyLavaPhysics()
 {
-    // 岩浆中物理：浮力 + 阻力 + 着火
+    // 岩浆中物理：浮力 + 阻力
     // 浮力：向上推 0.0005
     m_velocity.y += 0.0005f;
     // 岩浆阻力：0.95
@@ -524,8 +522,12 @@ void ItemEntity::_applyLavaPhysics()
     m_velocity.y *= 0.95f;
     m_velocity.z *= 0.95f;
 
-    // 设置着火：物品在岩浆中会被点燃，设置为着火 15 秒 = 300 ticks
-    setFire(300);
+    // 岩浆点燃和伤害
+    // 参考 MC Java: LavaFluid.entityInside() -> lavaIgnite() + lavaHurt()
+    // ItemEntity 不经过 Entity::tick() -> doBlockCollisions() 路径，
+    // 因此需要在此处手动调用岩浆点燃和伤害
+    lavaIgnite();
+    lavaHurt();
 }
 
 // ============================================================================
