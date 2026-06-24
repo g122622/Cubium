@@ -115,15 +115,13 @@ void ItemEntity::setItemStack(const ItemStack& stack)
 
 bool ItemEntity::dampensVibrations() const
 {
-    // 羊毛物品掉落时阻尼振动，与 MC 原版行为一致
-    // 参考: net.minecraft.world.entity.item.ItemEntity.dampensVibrations()
+    // 羊毛物品掉落时阻尼振动
     const auto* item = m_itemStack.getItem();
     return item != nullptr && item->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS());
 }
 
 bool ItemEntity::isImmuneToFire() const
 {
-    // 参考: net.minecraft.world.entity.item.ItemEntity.fireImmune()
     // 防火物品（如下界合金物品、下界星）免疫火焰，否则回退到实体类型的默认行为
     if (!m_itemStack.isEmpty() && !m_itemStack.canBeHurtBy(DamageSources::inFire())) {
         return true;
@@ -133,7 +131,6 @@ bool ItemEntity::isImmuneToFire() const
 
 bool ItemEntity::hurt(DamageSource& source, f32 amount)
 {
-    // 参考: net.minecraft.world.entity.item.ItemEntity.hurtServer()
     MC_TRACE_EVENT("game.entity", "ItemEntity::hurt", "entityId", id(), "amount", amount);
 
     // 1. 检查无敌状态
@@ -643,7 +640,7 @@ void ItemEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     m_itemStack.toNbt(itemTag);
     tag.value.emplace(nbt_keys::ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
 
-    // Health (i16) - 生命值（MC Java 使用 short，默认 5）
+    // Health (i16) - 生命值（默认 5）
     tag.put(nbt_keys::HEALTH, static_cast<i16>(m_health));
 
     // Age (i32) - 实体年龄
@@ -679,7 +676,7 @@ Result<void> ItemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& t
         }
     }
 
-    // Health (i16) - 生命值（MC Java 默认 5）
+    // Health (i16) - 生命值（默认 5）
     if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::HEALTH)) {
         m_health = static_cast<i32>(*val);
     }

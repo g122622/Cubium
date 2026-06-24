@@ -148,7 +148,7 @@ entities/
 │   └── ExperienceOrbEntity.hpp/cpp # 经验球实体
 │
 ├── item/                       # 物品相关实体
-│   └── ItemEntity.hpp/cpp          # 掉落物品
+│   └── ItemEntity.hpp/cpp          # 掉落物品（含伤害处理、防火物品检测、NBT生命值序列化）
 │
 └── player/                     # 玩家实体
     ├── Player.hpp/cpp              # 玩家实体

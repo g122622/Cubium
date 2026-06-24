@@ -306,6 +306,8 @@ add_executable(mc_tests
     common/entity/ArrowEntityTest.cpp
     # ArrowEntity 修复验证测试（拾取状态、伤害公式、isPlayer判断）
     common/entity/ArrowEntityFixTest.cpp
+    # ItemEntity 伤害处理测试（hurt、isImmuneToFire、canBeHurtBy、FIRE_RESISTANT标签）
+    common/entity/ItemEntityTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
     # DifficultyInstance 区域难度测试

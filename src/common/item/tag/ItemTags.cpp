@@ -172,7 +172,6 @@ void ItemTags::initialize()
 
     // 创建 DAMPENS_VIBRATIONS 标签
     // 包含所有羊毛物品和地毯物品
-    // 参考: net.minecraft.data.tags.BlockItemTagsProvider - DAMPENS_VIBRATIONS 包含 wool 和 wool_carpets
     auto dampensVibrations = std::make_unique<ItemTag>(ResourceLocation("minecraft", "dampens_vibrations"));
 
     // 16 色羊毛物品
@@ -215,7 +214,6 @@ void ItemTags::initialize()
 
     // 创建 FIRE_RESISTANT 标签
     // 包含所有防火物品：下界合金锭、下界合金碎片、远古残骸、下界星等
-    // 参考: net.minecraft.data.tags.ItemTags.FIRE_RESISTANT
     // 在 MC Java 中，此标签通过 Item.Properties.fireResistant() 自动添加，
     // 但我们这里显式列出所有防火物品
     auto fireResistant = std::make_unique<ItemTag>(ResourceLocation("minecraft", "fire_resistant"));

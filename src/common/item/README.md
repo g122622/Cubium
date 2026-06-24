@@ -354,3 +354,11 @@ item/
 ```
 
 已实现：`BucketItem`（对牛挤奶）、`ShearsItem`（剪羊毛/雪傀儡/哞菇）、`NameTagItem`（对实体命名）。
+
+### 15. 物品伤害源判断 canBeHurtBy
+
+`ItemStack::canBeHurtBy(const DamageSource&)` 方法判断物品堆是否能被指定伤害源伤害。防火物品（`FIRE_RESISTANT` 标签，如下界合金物品、下界星）不会被火焰和岩浆伤害源摧毁。
+
+调用链：`ItemEntity::hurt()` → `ItemStack::canBeHurtBy(source)` → `Item::isIn(ItemTags::FIRE_RESISTANT()) && source.isFire()`
+
+与此相关的还有 `ItemEntity::isImmuneToFire()` 重写，它检查物品是否防火来决定物品实体的火焰免疫性。

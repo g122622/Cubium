@@ -189,10 +189,7 @@ bool ItemStack::isDamageable() const
 
 bool ItemStack::canBeHurtBy(const DamageSource& source) const
 {
-    // 参考: net.minecraft.world.item.ItemStack.canBeHurtBy(DamageSource)
     // 防火物品不会被火焰伤害源摧毁
-    // MC Java 使用 DAMAGE_RESISTANT 数据组件 + DamageTypeTags.IS_FIRE 标签
-    // 我们简化实现：使用 FIRE_RESISTANT 物品标签检查
     if (isEmpty()) {
         return false;
     }

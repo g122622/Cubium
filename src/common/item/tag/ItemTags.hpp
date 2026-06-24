@@ -37,7 +37,6 @@ namespace item::tag {
  * @brief 物品标签注册表
  *
  * 负责集中管理 ItemTag 的创建、查询和遍历。
- * 参考: net.minecraft.tags.ItemTags
  */
 class ItemTags {
 public:
@@ -63,7 +62,6 @@ public:
      *
      * 包含所有羊毛物品和地毯物品。
      * 掉落的羊毛物品不会触发振动信号。
-     * 参考: net.minecraft.tags.ItemTags.DAMPENS_VIBRATIONS
      */
     static ItemTag& DAMPENS_VIBRATIONS();
 
@@ -72,7 +70,6 @@ public:
      *
      * 包含所有防火物品（下界合金锭、下界合金碎片、远古残骸、下界星等）。
      * 掉落的防火物品实体免疫火焰和岩浆伤害。
-     * 参考: net.minecraft.tags.ItemTags.FIRE_RESISTANT
      */
     static ItemTag& FIRE_RESISTANT();
 
