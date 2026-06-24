@@ -95,8 +95,10 @@ VexEntity (恼鬼) 独立继承自 MonsterEntity - 穿墙飞行
 
 9. **自定义寻路**：RavagerEntity 使用 `RavagerNodeProcessor`，将树叶视为开放区域，可穿过树叶
 10. **攻击状态机**：攻击 -> 眩晕(50%概率) -> 咆哮，三个状态通过 tick 计时器管理
-11. **咆哮伤害**：咆哮对非掠夺者类实体造成伤害，掠夺者类免疫但会被击退
+11. **眩晕粒子**：`_spawnStunParticles()` 在眩晕期间以 1/6 概率生成 `EntityEffect` 粒子，颜色通过 velocity 向量传递（灰色 R=0.498, G=0.514, B=0.573，对应 STUNNED_COLOR=8356754）
+12. **咆哮伤害**：咆哮对非掠夺者类实体造成伤害，掠夺者类免疫但会被击退
 12. **树叶破坏与 spawnAfterBreak**：劫掠兽冲撞破坏树叶后调用 `spawnAfterBreak(nullptr, false)`，确保虫蚀方块等特殊方块能正确触发生成逻辑。受 `mobGriefing` 游戏规则控制。
+13. **EntityEffect 粒子颜色传递**：`EntityEffectParticle::create()` 从 velocity 向量提取 RGB 颜色（velocity.x=R, velocity.y=G, velocity.z=B），零向量回退到默认紫色
 
 ### 女巫药水逻辑
 

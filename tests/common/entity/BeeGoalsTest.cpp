@@ -1819,7 +1819,7 @@ TEST_F(BeeGrowCropTest, GrowCrop_WheatAge0ToAge1)
 
     // 验证 playEvent 被调用
     EXPECT_EQ(world.playEventCount(), 1);
-    EXPECT_EQ(world.lastEventId(), WorldEvents::BONEMEAL_PARTICLES);
+    EXPECT_EQ(world.lastEventId(), WorldEvents::PLANT_GROWTH_PARTICLES);
     EXPECT_EQ(world.lastEventData(), 15);
 }
 
@@ -1869,7 +1869,7 @@ TEST_F(BeeGrowCropTest, GrowCrop_StemBlockAge0ToAge1)
 
     // 验证 playEvent 被调用
     EXPECT_EQ(world.playEventCount(), 1);
-    EXPECT_EQ(world.lastEventId(), WorldEvents::BONEMEAL_PARTICLES);
+    EXPECT_EQ(world.lastEventId(), WorldEvents::PLANT_GROWTH_PARTICLES);
 }
 
 TEST_F(BeeGrowCropTest, GrowCrop_StemBlockAtMaxAgeReturnsFalse)
@@ -1914,7 +1914,7 @@ TEST_F(BeeGrowCropTest, GrowCrop_SweetBerryBushAge0ToAge1)
 
     // 验证 playEvent 被调用
     EXPECT_EQ(world.playEventCount(), 1);
-    EXPECT_EQ(world.lastEventId(), WorldEvents::BONEMEAL_PARTICLES);
+    EXPECT_EQ(world.lastEventId(), WorldEvents::PLANT_GROWTH_PARTICLES);
 }
 
 TEST_F(BeeGrowCropTest, GrowCrop_SweetBerryBushAtMaxAgeReturnsFalse)
@@ -1949,7 +1949,7 @@ TEST_F(BeeGrowCropTest, GrowCrop_NonGrowableBlockReturnsFalse)
     EXPECT_EQ(world.playEventCount(), 0);
 }
 
-TEST_F(BeeGrowCropTest, GrowCrop_PlaysBonemealParticlesOnSuccess)
+TEST_F(BeeGrowCropTest, GrowCrop_PlaysPlantGrowthParticlesOnSuccess)
 {
     // 放置胡萝卜（age=0），验证 playEvent 参数
     const BlockState* carrotAge0 = &VanillaBlocks::CARROTS->defaultState();
@@ -1961,8 +1961,9 @@ TEST_F(BeeGrowCropTest, GrowCrop_PlaysBonemealParticlesOnSuccess)
     EXPECT_TRUE(result);
     // 验证 playEvent 的位置正确
     EXPECT_EQ(world.lastEventPos(), BlockPos(5, 64, 5));
-    // 验证粒子效果参数：事件 2005 (BONEMEAL_PARTICLES)，data 15
-    EXPECT_EQ(world.lastEventId(), WorldEvents::BONEMEAL_PARTICLES);
+    // 蜜蜂授粉使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)
+    // 区别是不播放骨粉使用音效
+    EXPECT_EQ(world.lastEventId(), WorldEvents::PLANT_GROWTH_PARTICLES);
     EXPECT_EQ(world.lastEventData(), 15);
 }
 

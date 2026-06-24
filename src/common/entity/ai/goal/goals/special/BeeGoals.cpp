@@ -863,7 +863,6 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
                 }
                 // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
                 // 区别是不播放骨粉使用音效
-                // 参考: net.minecraft.world.entity.animal.bee.Bee.BeeGrowCropGoal.tick()
                 world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);
                 return true;
             }
@@ -875,7 +874,6 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
         world->setBlockState(pos, newState, 2);
         // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
         // 区别是不播放骨粉使用音效
-        // 参考: net.minecraft.world.entity.animal.bee.Bee.BeeGrowCropGoal.tick()
         world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);
         return true;
     }

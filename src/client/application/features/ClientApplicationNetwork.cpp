@@ -2045,10 +2045,13 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         case WorldEvents::PLANT_GROWTH_EFFECT: {
             // 植物生长粒子与音效事件 (MC 1.21 主事件，由骨粉使用触发)
             // data 为粒子数量，0 则生成 15 个
-            // 参考: net.minecraft.client.renderer.LevelEventHandler case 1505
             // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 BonemealableBlock 类型
-            // 决定粒子分布方式，但简化实现使用与 2005 相同的粒子效果。
-            // 同时播放骨粉使用音效。
+            // 决定粒子分布方式，同时播放骨粉使用音效
+            // TODO: 当前简化实现使用与 BONEMEAL_PARTICLES 相同的粒子分布（方块内随机偏移），
+            // 未区分 NEIGHBOR_SPREADER 和 GROWER 两种 BonemealableBlock 类型的不同分布模式。
+            // NEIGHBOR_SPREADER（草方块等）应使用 spawnParticles 水平扩散 3 倍粒子数，
+            // GROWER（作物等）应使用 spawnParticleInBlock 自动计算方块形状高度。
+            // 待 BonemealableBlock::getType() 和 getParticlePos() 接口完善后实现精确分布。
             {
                 i32 count = (data == 0) ? 15 : data;
                 m_world.addParticle(ParticleTypeId::HappyVillager,
@@ -2159,7 +2162,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         case WorldEvents::SHOOT_WHITE_SMOKE: {
             // 白烟粒子效果（方向性），与 DISPENSER_SMOKE(2000) 类似但为白色烟雾
             // data 为烟雾方向（Direction.getIndex()）
-            // 参考: net.minecraft.client.renderer.LevelEventHandler case 2010
             // TODO: 项目中尚未定义 WHITE_SMOKE 粒子类型，当前使用 CampfireSignal 作为临时替代
             {
                 for (int i = 0; i < 10; ++i) {
@@ -2179,8 +2181,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             // 植物生长粒子效果（蜜蜂授粉促进作物生长时触发）
             // data 为粒子数量（通常为 15），0 则生成 15 个
             // 与 BONEMEAL_PARTICLES(2005) 的区别：不播放骨粉使用音效
-            // 参考: net.minecraft.client.renderer.LevelEventHandler case 2011
-            //       ParticleUtils.spawnParticleInBlock() - 在方块内生成 HappyVillager 粒子
             {
                 i32 count = (data == 0) ? 15 : data;
                 m_world.addParticle(ParticleTypeId::HappyVillager,
@@ -2194,7 +2194,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::TURTLE_EGG_PLACEMENT: {
             // 海龟蛋放置粒子效果
-            // 参考: net.minecraft.client.renderer.LevelEventHandler case 2012
             // 与 PLANT_GROWTH_PARTICLES(2011) 逻辑相同，均为 HappyVillager 粒子
             {
                 i32 count = (data == 0) ? 15 : data;

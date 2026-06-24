@@ -236,7 +236,7 @@ void RavagerEntity::_launchEntity(Entity* entity)
 void RavagerEntity::_spawnStunParticles()
 {
     // 眩晕时生成粒子效果
-    // 对齐 MC 原版 Ravager.stunEffect(): 1/6 概率生成 ENTITY_EFFECT 粒子
+    // 1/6 概率生成 ENTITY_EFFECT 粒子
     // 颜色常量 STUNNED_COLOR = 8356754 即 RGB(127, 131, 146) -> R=0.498, G=0.514, B=0.573
     math::Random& rng = getRandom();
     if (rng.nextInt(6) != 0) return;
