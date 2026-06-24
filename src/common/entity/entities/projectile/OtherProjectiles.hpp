@@ -438,7 +438,10 @@ private:
      */
     void _damageEntities();
 
-    LivingEntity* m_owner = nullptr;        ///< 所有者（唤魔者）
+    LivingEntity* m_owner = nullptr; ///< 所有者（唤魔者）
+    // TODO: EvokerFangsEntity 需要添加 m_ownerUuid 字段以追踪拥有者 UUID，
+    // 参考 AreaEffectCloudEntity 的 owner UUID 追踪模式（双重追踪：缓存指针 + UUID）。
+    // 当前仅使用裸指针，owner 实体死亡/卸载后可能悬空，且无法持久化到 NBT。
     i32 m_warmupDelay = 0;                  ///< 预热延迟（ticks）
     bool m_sentAttackEvent = false;         ///< 是否已发送攻击事件
     i32 m_lifeTicks = 22;                   ///< 生命时长（ticks），默认22

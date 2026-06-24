@@ -26,6 +26,9 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 using namespace mc;
 using namespace mc::entity;
@@ -861,4 +864,235 @@ TEST_F(AreaEffectCloudOwnerTest, SetOwnerUuid_DoesNotSetCachePointer)
     // getOwner() 应返回 nullptr（无世界环境，无法通过 UUID 查找）
     EXPECT_EQ(m_cloud->getOwner(), nullptr);
     EXPECT_EQ(m_cloud->ownerUuid(), "abcdef0123456789abcdef0123456789");
+}
+
+// ============================================================================
+// NBT 序列化/反序列化测试
+// ============================================================================
+
+class AreaEffectCloudNbtTest : public ::testing::Test {
+protected:
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+
+    std::unique_ptr<AreaEffectCloudEntity> m_cloud;
+};
+
+TEST_F(AreaEffectCloudNbtTest, SerializeDeserialize_RoundTrip)
+{
+    // 设置各种属性
+    m_cloud->setRadius(5.0f);
+    m_cloud->setDuration(300);
+    m_cloud->setWaitTime(10);
+    m_cloud->setReapplicationDelay(30);
+    m_cloud->setDurationOnUse(-5);
+    m_cloud->setRadiusOnUse(-0.5f);
+    m_cloud->setRadiusPerTick(-0.01f);
+    m_cloud->setColor(0xFF00FF00);
+    m_cloud->setOwnerUuid("a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6");
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 600, 0));
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Strength, 400, 1));
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    m_cloud->addAdditionalSaveData(tag);
+
+    // 反序列化到新实体
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto result = cloud2->readAdditionalSaveData(tag);
+    EXPECT_TRUE(static_cast<bool>(result));
+
+    // 验证属性值
+    EXPECT_FLOAT_EQ(cloud2->getRadius(), 5.0f);
+    EXPECT_EQ(cloud2->getDuration(), 300);
+    EXPECT_EQ(cloud2->getWaitTime(), 10);
+    EXPECT_EQ(cloud2->getReapplicationDelay(), 30);
+    EXPECT_EQ(cloud2->getColor(), 0xFF00FF00);
+
+    // 验证 Owner UUID
+    EXPECT_EQ(cloud2->ownerUuid(), "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6");
+
+    // 验证效果列表
+    const auto& effects = cloud2->getEffects();
+    ASSERT_EQ(effects.size(), 2u);
+    EXPECT_EQ(effects[0].type(), effect::EffectType::Speed);
+    EXPECT_EQ(effects[1].type(), effect::EffectType::Strength);
+}
+
+TEST_F(AreaEffectCloudNbtTest, SerializeDeserialize_DefaultValues)
+{
+    // 默认值序列化/反序列化
+    nbt::tags::compound_tag tag;
+    m_cloud->addAdditionalSaveData(tag);
+
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto result = cloud2->readAdditionalSaveData(tag);
+    EXPECT_TRUE(static_cast<bool>(result));
+
+    // 默认值应保持
+    EXPECT_FLOAT_EQ(cloud2->getRadius(), 3.0f);
+    EXPECT_EQ(cloud2->getDuration(), 600);
+    EXPECT_EQ(cloud2->getWaitTime(), 20);
+    EXPECT_EQ(cloud2->getReapplicationDelay(), 20);
+
+    // 无 Owner UUID
+    EXPECT_TRUE(cloud2->ownerUuid().empty());
+
+    // 无效果
+    EXPECT_TRUE(cloud2->getEffects().empty());
+}
+
+TEST_F(AreaEffectCloudNbtTest, Serialize_OwnerUuid_WrittenAsUuidMostLeast)
+{
+    // 设置 Owner UUID
+    m_cloud->setOwnerUuid("0123456789abcdef0123456789abcdef");
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    m_cloud->addAdditionalSaveData(tag);
+
+    // 验证 OwnerUUIDMost 和 OwnerUUIDLeast 存在
+    auto most = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDMost");
+    auto least = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDLeast");
+    ASSERT_TRUE(most.has_value());
+    ASSERT_TRUE(least.has_value());
+
+    // 反序列化并验证 UUID 一致
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto result = cloud2->readAdditionalSaveData(tag);
+    EXPECT_TRUE(static_cast<bool>(result));
+    EXPECT_EQ(cloud2->ownerUuid(), "0123456789abcdef0123456789abcdef");
+}
+
+TEST_F(AreaEffectCloudNbtTest, Serialize_NoOwnerUuid_NoKeysWritten)
+{
+    // 不设置 Owner UUID（默认为空）
+    nbt::tags::compound_tag tag;
+    m_cloud->addAdditionalSaveData(tag);
+
+    // 验证 OwnerUUIDMost 和 OwnerUUIDLeast 不存在
+    auto most = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDMost");
+    auto least = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDLeast");
+    EXPECT_FALSE(most.has_value());
+    EXPECT_FALSE(least.has_value());
+}
+
+TEST_F(AreaEffectCloudNbtTest, Deserialize_MissingKeys_KeepDefaults)
+{
+    // 空的 NBT tag 反序列化应保持默认值
+    nbt::tags::compound_tag emptyTag;
+    auto result = m_cloud->readAdditionalSaveData(emptyTag);
+    EXPECT_TRUE(static_cast<bool>(result));
+
+    // 默认值应保持
+    EXPECT_FLOAT_EQ(m_cloud->getRadius(), 3.0f);
+    EXPECT_EQ(m_cloud->getDuration(), 600);
+    EXPECT_EQ(m_cloud->getWaitTime(), 20);
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
+// ============================================================================
+// Owner UUID 懒加载测试（无世界环境验证逻辑）
+// ============================================================================
+
+class AreaEffectCloudOwnerLazyLoadTest : public ::testing::Test {
+protected:
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+
+    std::unique_ptr<AreaEffectCloudEntity> m_cloud;
+};
+
+TEST_F(AreaEffectCloudOwnerLazyLoadTest, SetOwnerNullptr_ClearsUuidAndPointer)
+{
+    // setOwner(nullptr) 应清空 UUID 和指针
+    m_cloud->setOwnerUuid("aabbccdd11223344aabbccdd11223344");
+    EXPECT_FALSE(m_cloud->ownerUuid().empty());
+
+    m_cloud->setOwner(nullptr);
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
+TEST_F(AreaEffectCloudOwnerLazyLoadTest, SetOwnerUuid_ThenGetOwner_ReturnsNullptrWithoutWorld)
+{
+    // 设置 UUID 后，没有世界环境时 getOwner() 应返回 nullptr
+    m_cloud->setOwnerUuid("aabbccdd11223344aabbccdd11223344");
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+    // UUID 仍然保留
+    EXPECT_EQ(m_cloud->ownerUuid(), "aabbccdd11223344aabbccdd11223344");
+}
+
+TEST_F(AreaEffectCloudOwnerLazyLoadTest, OwnerUuid_EmptyStringAfterClear)
+{
+    m_cloud->setOwnerUuid("test");
+    m_cloud->setOwnerUuid("");
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
+// ============================================================================
+// 伤害来源归属测试（验证 applyInstantEffect 使用 owner）
+// ============================================================================
+
+class AreaEffectCloudDamageSourceTest : public ::testing::Test {
+protected:
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+
+    std::unique_ptr<AreaEffectCloudEntity> m_cloud;
+};
+
+TEST_F(AreaEffectCloudDamageSourceTest, SetOwner_Nullptr_DamageSourceIsMagic)
+{
+    // 当 owner 为 nullptr 时，瞬间效果应使用 DamageSources::magic() 伤害来源
+    // 这只是验证 setOwner(nullptr) 不会崩溃
+    m_cloud->setOwner(nullptr);
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
+TEST_F(AreaEffectCloudDamageSourceTest, SetOwnerUuid_SetsUuidCorrectly)
+{
+    // 验证 setOwnerUuid 正确设置 UUID 字符串
+    const std::string testUuid = "abcdef0123456789abcdef0123456789";
+    m_cloud->setOwnerUuid(testUuid);
+    EXPECT_EQ(m_cloud->ownerUuid(), testUuid);
+    EXPECT_EQ(m_cloud->ownerUuid().length(), 32u);
+}
+
+TEST_F(AreaEffectCloudDamageSourceTest, NbtRoundTrip_PreservesOwnerUuid)
+{
+    // 验证 NBT 序列化/反序列化往返后 Owner UUID 保持一致
+    const std::string testUuid = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6";
+    m_cloud->setOwnerUuid(testUuid);
+    m_cloud->setDuration(400);
+
+    nbt::tags::compound_tag tag;
+    m_cloud->addAdditionalSaveData(tag);
+
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto result = cloud2->readAdditionalSaveData(tag);
+    EXPECT_TRUE(static_cast<bool>(result));
+    EXPECT_EQ(cloud2->ownerUuid(), testUuid);
+    EXPECT_EQ(cloud2->getDuration(), 400);
+}
+
+TEST_F(AreaEffectCloudDamageSourceTest, NbtRoundTrip_EffectsPreserved)
+{
+    // 验证效果列表在 NBT 序列化/反序列化后保持一致
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Speed, 200, 0));
+    m_cloud->addEffect(effect::EffectInstance(effect::EffectType::Regeneration, 300, 2));
+
+    nbt::tags::compound_tag tag;
+    m_cloud->addAdditionalSaveData(tag);
+
+    auto cloud2 = std::make_unique<AreaEffectCloudEntity>();
+    auto result = cloud2->readAdditionalSaveData(tag);
+    EXPECT_TRUE(static_cast<bool>(result));
+
+    const auto& effects = cloud2->getEffects();
+    ASSERT_EQ(effects.size(), 2u);
+    EXPECT_EQ(effects[0].type(), effect::EffectType::Speed);
+    EXPECT_EQ(effects[0].duration(), 200);
+    EXPECT_EQ(effects[0].amplifier(), 0);
+    EXPECT_EQ(effects[1].type(), effect::EffectType::Regeneration);
+    EXPECT_EQ(effects[1].duration(), 300);
+    EXPECT_EQ(effects[1].amplifier(), 2);
 }

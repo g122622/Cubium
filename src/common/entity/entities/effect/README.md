@@ -71,6 +71,17 @@ EffectEntities.hpp/cpp
 - 瞬间效果（瞬间治疗、瞬间伤害、饱和）使用 `applyInstantEffect()` 并乘以 0.5
 - 持续效果直接使用 `living->addEffect()`
 - 需要检查 `canBeHitWithPotion()`，盔甲架返回 false
+- 瞬间效果的伤害来源使用 `DamageSources::indirectMagic(this, owner)`，使伤害归属于 owner
+- 当 owner 为 nullptr 时回退到 `DamageSources::magic()`
+
+### 3.1 区域效果云 Owner UUID 追踪
+
+- `setOwner(LivingEntity*)` 同时记录 `m_owner`（缓存指针）和 `m_ownerUuid`（UUID 字符串）
+- `getOwner()` 非const版本实现懒加载：缓存指针有效时直接返回，失效则通过 UUID 在世界中重新查找
+- `setOwnerUuid(const std::string&)` 仅设置 UUID，用于 NBT 反序列化，指针在首次 `getOwner()` 时懒加载
+- `ownerUuid()` 返回 UUID 字符串引用
+- NBT 序列化键名：`OwnerUUIDMost` / `OwnerUUIDLeast`（i64 格式，与 Entity 基类的 UUID 格式一致）
+- 参考 MC 原版 `EntityReference<LivingEntity>` 的双重追踪模式（缓存指针 + UUID）
 
 ### 4. 盔甲架标记模式
 
