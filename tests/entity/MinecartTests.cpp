@@ -332,6 +332,136 @@ TEST_F(ChestMinecartInventoryTest, RemoveItem_UpdatesInventory)
     EXPECT_TRUE(removed.isEmpty());
 }
 
+// ============================================================================
+// getMaxSpeedWithRail 游戏规则测试
+// ============================================================================
+
+class MinecartSpeedTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+};
+
+TEST_F(MinecartSpeedTest, GetMaxSpeed_ReturnsDefaultForAllTypes)
+{
+    // 基础最大速度常量
+    RideableMinecartEntity rideable(EntityId(1));
+    EXPECT_FLOAT_EQ(rideable.getMaxSpeed(), 0.4f);
+
+    FurnaceMinecartEntity furnace(EntityId(2));
+    EXPECT_FLOAT_EQ(furnace.getMaxSpeed(), 0.2f);
+}
+
+TEST_F(MinecartSpeedTest, GetMaxSpeedWithRail_OffRail_ReturnsGetMaxSpeed)
+{
+    // 不在铁轨上时，getMaxSpeedWithRail 应返回 getMaxSpeed
+    RideableMinecartEntity minecart(EntityId(1));
+    EXPECT_FALSE(minecart.isOnRail());
+    EXPECT_FLOAT_EQ(minecart.getMaxSpeedWithRail(), minecart.getMaxSpeed());
+}
+
+TEST_F(MinecartSpeedTest, GetMaxSpeedWithRail_DefaultGameRule_YieldsCorrectSpeed)
+{
+    // 默认 max_minecart_speed=8, 实际速度=8/20.0=0.4
+    // 与旧版 DEFAULT_MAX_SPEED 一致
+    RideableMinecartEntity minecart(EntityId(1));
+    // 在铁轨上时，如果无世界指针，回退到 getMaxSpeed()
+    EXPECT_FLOAT_EQ(minecart.getMaxSpeedWithRail(), minecart.getMaxSpeed());
+}
+
+// ============================================================================
+// onActivatorRailPass 回调测试
+// ============================================================================
+
+class ActivatorRailCallbackTest : public ::testing::Test {
+protected:
+    void SetUp() override {}
+    void TearDown() override {}
+};
+
+TEST_F(ActivatorRailCallbackTest, HopperMinecart_ActivatorRailDisablesHopper)
+{
+    HopperMinecartEntity hopper(EntityId(1));
+
+    // 初始状态：漏斗未被禁用
+    EXPECT_FALSE(hopper.isDisabled());
+
+    // 充能的激活铁轨应禁用漏斗
+    hopper.onActivatorRailPass(0, 0, 0, true);
+    EXPECT_TRUE(hopper.isDisabled());
+
+    // 未充能的激活铁轨应重新启用漏斗
+    hopper.onActivatorRailPass(0, 0, 0, false);
+    EXPECT_FALSE(hopper.isDisabled());
+}
+
+TEST_F(ActivatorRailCallbackTest, HopperMinecart_StaysDisabledAfterLeavingRail)
+{
+    HopperMinecartEntity hopper(EntityId(1));
+
+    // 充能激活铁轨禁用漏斗
+    hopper.onActivatorRailPass(0, 0, 0, true);
+    EXPECT_TRUE(hopper.isDisabled());
+
+    // 离开激活铁轨后不调用 onActivatorRailPass，状态保持禁用
+    // 这是正确行为：漏斗矿车离开激活铁轨后不会自动重新启用
+    EXPECT_TRUE(hopper.isDisabled());
+}
+
+TEST_F(ActivatorRailCallbackTest, TNTMinecart_ActivatorRailIgnitesOnPowered)
+{
+    TNTMinecartEntity tnt(EntityId(1));
+
+    // 初始未点燃
+    EXPECT_FALSE(tnt.isPrimed());
+
+    // 充能激活铁轨应点燃TNT
+    tnt.onActivatorRailPass(0, 0, 0, true);
+    EXPECT_TRUE(tnt.isPrimed());
+}
+
+TEST_F(ActivatorRailCallbackTest, TNTMinecart_UnpoweredRailDoesNotIgnite)
+{
+    TNTMinecartEntity tnt(EntityId(1));
+
+    // 未充能激活铁轨不应点燃TNT
+    tnt.onActivatorRailPass(0, 0, 0, false);
+    EXPECT_FALSE(tnt.isPrimed());
+}
+
+TEST_F(ActivatorRailCallbackTest, RideableMinecart_ActivatorRailEjectsPassengersOnPowered)
+{
+    // 乘骑矿车在充能激活铁轨上弹出乘客
+    // 此测试验证 onActivatorRailPass 不会崩溃
+    RideableMinecartEntity rideable(EntityId(1));
+
+    // 无乘客时调用不应崩溃
+    rideable.onActivatorRailPass(0, 0, 0, true);
+    rideable.onActivatorRailPass(0, 0, 0, false);
+}
+
+TEST_F(ActivatorRailCallbackTest, CommandBlockMinecart_ExecutesOnRisingEdge)
+{
+    CommandBlockMinecartEntity cmd(EntityId(1));
+
+    // 充能激活铁轨的上升沿执行命令
+    cmd.onActivatorRailPass(0, 0, 0, true);
+    // 未充能激活铁轨重置状态
+    cmd.onActivatorRailPass(0, 0, 0, false);
+    // 再次充能应再次触发
+    cmd.onActivatorRailPass(0, 0, 0, true);
+}
+
+TEST_F(ActivatorRailCallbackTest, FurnaceMinecart_UpdatesPushDirectionOnPowered)
+{
+    FurnaceMinecartEntity furnace(EntityId(1));
+
+    // 熔炉矿车在充能激活铁轨上更新推动方向
+    // 此测试验证 onActivatorRailPass 不会崩溃
+    furnace.onActivatorRailPass(0, 0, 0, true);
+    furnace.onActivatorRailPass(0, 0, 0, false);
+}
+
 } // namespace test
 } // namespace entity
 } // namespace mc

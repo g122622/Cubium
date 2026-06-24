@@ -58,7 +58,7 @@ GameRules.hpp (容器类)
   - `entity/entities/player/Player` - PvP 保护检查 pvp（canHarmPlayer）
   - `server/player/ServerPlayer` - 服务端玩家受伤检查 pvp
   - `entity/entities/passive/tamable/WolfEntity` - 驯服狼 PvP 保护检查 pvp（wantsToAttack）
-  - `entity/entities/vehicle/MinecartEntity` - TNT 矿车引爆和爆炸检查 tntExplodes
+  - `entity/entities/vehicle/MinecartEntity` - TNT 矿车引爆和爆炸检查 tntExplodes；铁轨最大速度读取 max_minecart_speed
   - `entity/inventory/IRecipeHolder` - 限制合成检查 doLimitedCrafting
 - **方块行为** - `block/blocks/mob/TurtleEggBlock` 检查 mobGriefing
 - **TNT 行为** - 以下检查 tntExplodes：

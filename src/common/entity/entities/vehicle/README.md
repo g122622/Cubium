@@ -66,11 +66,10 @@ Entity (基类)
 
 ### 2. 矿车速度限制
 
-**问题**：不同类型矿车有不同的最大速度，容易混淆。
-
 **要点**：
-- 普通矿车：0.4 (DEFAULT_MAX_SPEED)
-- 熔炉矿车：0.2（`getMaxSpeed()` 返回 0.2）
+- 铁轨最大速度由 `max_minecart_speed` 游戏规则控制（默认值 8，范围 [1, 1000]）
+- 实际速度 = 规则值 / 20.0，水中减半。默认 8 / 20.0 = 0.4 方块/刻
+- 熔炉矿车：`getMaxSpeed()` 返回 0.2（覆盖铁轨最大速度限制，但实际仍受 `max_minecart_speed` 影响）
 - 空中横向速度：0.4 (DEFAULT_MAX_SPEED_AIR_LATERAL)
 
 ### 3. TNT矿车伤害处理
@@ -114,9 +113,10 @@ Entity (基类)
 
 ### 5. 漏斗矿车红石禁用
 
-**问题**：漏斗矿车在充能的激活铁轨或探测铁轨上应暂停工作。
-
-**解决方案**：`onActivatorRailPass()` 中调用 `setDisabled(true)` 禁用漏斗功能。
+**要点**：
+- 漏斗矿车在充能的激活铁轨上暂停工作，`onActivatorRailPass(powered=true)` 设置 `m_disabled=true`
+- 离开激活铁轨后保持当前状态不变，必须经过未充能的激活铁轨才重新启用
+- 激活铁轨回调由基类 `_moveAlongTrack()` 统一调用，无需子类手动轮询铁轨状态
 
 ### 6. 矿车斜坡高度调整
 

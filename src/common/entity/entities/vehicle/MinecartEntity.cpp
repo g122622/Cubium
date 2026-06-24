@@ -402,9 +402,8 @@ void AbstractMinecartEntity::_moveAlongTrack(const BlockPos& pos)
             static_cast<f32>(d26 * static_cast<f64>(i - pos.z)));
     }
 
-    // 激活铁轨回调：对齐 MC Java AbstractMinecart.moveAlongTrack() 中的激活铁轨检测
-    // MC Java 中矿车实体自行检测铁轨类型并调用 activateMinecart()，
-    // 而不是通过方块回调。当矿车位于激活铁轨上时，根据充能状态触发 onActivatorRailPass。
+    // 激活铁轨回调：矿车实体自行检测铁轨类型并调用 onActivatorRailPass，
+    // 而不是通过方块回调。当矿车位于激活铁轨上时，根据充能状态触发回调。
     if (shouldDoRailFunctions() && abstractRailBlock != nullptr && railState->is(VanillaBlocks::ACTIVATOR_RAIL)) {
         bool powered = ActivatorRailBlock::isPowered(*railState);
         onActivatorRailPass(pos.x, pos.y, pos.z, powered);
@@ -844,9 +843,9 @@ f32 AbstractMinecartEntity::getMaxSpeedWithRail() const
         return getMaxSpeed();
     }
 
-    // 对齐 MC Java 1.21+ NewMinecartBehavior.getMaxSpeed():
-    //   max_minecart_speed 游戏规则值（默认 8） * (在水中 ? 0.5 : 1.0) / 20.0
-    // 默认值 8 / 20.0 = 0.4 方块/刻，与旧版硬编码一致
+    // 使用 max_minecart_speed 游戏规则计算铁轨最大速度：
+    //   速度 = 规则值（默认 8） * (在水中 ? 0.5 : 1.0) / 20.0
+    // 默认值 8 / 20.0 = 0.4 方块/刻
     const IWorld* worldPtr = world();
     if (!worldPtr) {
         return getMaxSpeed();
@@ -1563,8 +1562,8 @@ void HopperMinecartEntity::tick()
     // 漏斗矿车的启用/禁用状态由 onActivatorRailPass 回调控制：
     // - 充能的激活铁轨 → m_disabled = true（禁用吸取和传输）
     // - 未充能的激活铁轨 → m_disabled = false（启用）
-    // - 不在激活铁轨上时，保持当前状态不变（对齐 MC Java 行为）
-    // 注意：MC Java 中，漏斗矿车离开激活铁轨后不会自动重新启用，
+    // - 不在激活铁轨上时，保持当前状态不变
+    // 注意：漏斗矿车离开激活铁轨后不会自动重新启用，
     // 必须经过一个未充能的激活铁轨才会重新启用。
 
     // 如果被禁用，跳过吸取和传输
