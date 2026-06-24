@@ -203,6 +203,18 @@ public:
      */
     [[nodiscard]] entity::EntityTypeId typeId() const;
 
+    /**
+     * @brief 获取实体的默认战利品表ID
+     *
+     * 默认实现从实体类型ID推导战利品表路径：
+     * minecraft:pig -> minecraft:entities/pig
+     * 子类可覆写此方法返回空字符串表示无战利品表（如投射物、区域效果云等），
+     * 或返回自定义战利品表路径。
+     *
+     * @return 战利品表ID字符串，无战利品表时返回空字符串
+     */
+    [[nodiscard]] virtual std::string getLootTableId() const;
+
     // ========== 世界访问 ==========
 
     [[nodiscard]] IWorld* world() { return m_world; }

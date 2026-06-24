@@ -63,6 +63,9 @@ public:
     [[nodiscard]] bool isPushable() const { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     /**
      * @brief 检查是否显示基岩
      */
@@ -124,6 +127,9 @@ public:
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     /**
      * @brief 设置是否只有效果（不造成伤害、不点燃方块）
@@ -208,6 +214,9 @@ public:
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     // ========== 半径 ==========
 

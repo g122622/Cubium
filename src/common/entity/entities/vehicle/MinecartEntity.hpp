@@ -133,6 +133,9 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.0f; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     // ========== 矿车类型 ==========
 
     /**

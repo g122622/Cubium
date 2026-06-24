@@ -102,6 +102,9 @@ public:
     [[nodiscard]] f32 width() const override { return 0.25f; }
     [[nodiscard]] f32 height() const override { return 0.25f; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     void tick() override;
 
     // ========== 钓鱼浮标方法 ==========
@@ -392,6 +395,9 @@ public:
     [[nodiscard]] f32 width() const override { return 0.5f; }
     [[nodiscard]] f32 height() const override { return 0.8f; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     void tick() override;
 
     // ========== 尖牙方法 ==========
@@ -461,6 +467,9 @@ public:
     [[nodiscard]] f32 width() const override { return 0.25f; }
     [[nodiscard]] f32 height() const override { return 0.25f; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     void tick() override;
 
     // ========== 末影之眼方法 ==========
@@ -521,6 +530,9 @@ public:
 
     [[nodiscard]] f32 width() const override { return 0.25f; }
     [[nodiscard]] f32 height() const override { return 0.25f; }
+
+    // 无战利品表，覆写基类方法返回空字符串（ProjectileEntity基类已覆写，此处显式标记）
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     void tick() override;
 

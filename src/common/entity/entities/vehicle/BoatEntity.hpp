@@ -122,6 +122,9 @@ public:
     [[nodiscard]] f32 height() const override { return 0.5625f; }
     [[nodiscard]] f32 eyeHeight() const override { return height(); }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     /**
      * @brief 乘客乘坐高度偏移
      */

@@ -639,6 +639,16 @@ bool MobEntity::isEquipmentDropPreserved(EquipmentSlot slot) const
     return getEquipmentDropChance(slot) > 1.0f;
 }
 
+std::string MobEntity::getLootTableId() const
+{
+    // NBT 覆盖优先：如果实体从存档加载了自定义掉落表，使用它
+    if (m_deathLootTable.has_value() && !m_deathLootTable->empty()) {
+        return *m_deathLootTable;
+    }
+    // 回退到实体类型的默认掉落表路径
+    return Entity::getLootTableId();
+}
+
 // ============================================================================
 // 拴绳系统
 // ============================================================================

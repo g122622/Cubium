@@ -280,6 +280,29 @@ entity::EntityTypeId Entity::typeId() const
     return 0; // 未知类型返回 0
 }
 
+std::string Entity::getLootTableId() const
+{
+    // 从实体类型ID推导默认战利品表路径
+    // minecraft:pig -> minecraft:entities/pig
+    // minecraft:zombie -> minecraft:entities/zombie
+    const std::string& typeId = m_typeId;
+    if (typeId.empty()) {
+        return {};
+    }
+
+    // 查找命名空间和路径的分隔符
+    auto colonPos = typeId.find(':');
+    if (colonPos == std::string::npos) {
+        // 没有命名空间前缀，使用默认 minecraft 命名空间
+        return "minecraft:entities/" + typeId;
+    }
+
+    // 在路径部分前插入 "entities/"
+    std::string ns = typeId.substr(0, colonPos);
+    std::string path = typeId.substr(colonPos + 1);
+    return ns + ":entities/" + path;
+}
+
 std::optional<ResourceLocation> Entity::makeSoundEventId(std::string_view suffix) const
 {
     const std::string typeId = getTypeId();

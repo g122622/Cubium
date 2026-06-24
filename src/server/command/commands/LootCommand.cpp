@@ -29,6 +29,9 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -201,6 +204,7 @@ std::vector<ItemStack> generateFromFish(
  *
  * 使用目标实体的战利品表和 ENTITY 参数集，
  * 用魔法伤害作为伤害源，命令执行者作为击杀者。
+ * 对齐 MC Java 的 LootCommand.dropKillLoot() 逻辑。
  */
 std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* target)
 {
@@ -214,12 +218,51 @@ std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* tar
     }
 
     // 获取目标实体的战利品表ID
-    // LivingEntity 子类可能有 getLootTableId()，但 Entity 基类不一定有
-    // 简化处理：直接告知用户 kill 源需要实体有战利品表
-    // 注意：当前项目中 Entity/LivingEntity 可能尚未实现 getLootTableId()
-    // 使用简化版本：发送提示消息并返回空列表
-    source.sendError("Entity kill loot source is not yet fully supported (requires entity loot table integration)");
-    return {};
+    std::string lootTableId = target->getLootTableId();
+    if (lootTableId.empty()) {
+        source.sendError("Entity " + target->getTypeId() + " has no loot table");
+        return {};
+    }
+
+    // 查找战利品表
+    auto* table = resolveLootTable(source, lootTableId);
+    if (table == nullptr) {
+        return {};
+    }
+
+    // 构建 ENTITY 参数集的 LootContext
+    // 对齐 MC Java: 使用魔法伤害源，命令执行者作为攻击者
+    auto builder = createBaseContextBuilder(source);
+
+    // 设置 THIS_ENTITY（被杀实体）为必需参数
+    builder.withParameter(loot::LootParams::THIS_ENTITY, target);
+
+    // 设置 DAMAGE_SOURCE（魔法伤害，无实体来源）
+    // 对齐 MC Java: p_137907_.damageSources().magic()
+    // DamageSource 是抽象类，不能使用 withOwnedValue，
+    // 使用 withParameter 传入指针，确保 magicSource 生命周期覆盖 generate 调用
+    auto magicSource = DamageSources::magic();
+    builder.withParameter(loot::LootParams::DAMAGE_SOURCE, static_cast<DamageSource*>(&magicSource));
+
+    // 设置攻击者（命令执行者）
+    // 对齐 MC Java: entity = commandsourcestack.getEntity()
+    // 当前 ServerCommandSource 只支持玩家执行者，所以 source.player() 即为命令执行者实体
+    Entity* sourceEntity = static_cast<Entity*>(source.player());
+    if (sourceEntity != nullptr) {
+        builder.withNullableParameter(loot::LootParams::DIRECT_KILLER, sourceEntity);
+        builder.withNullableParameter(loot::LootParams::KILLER_ENTITY, sourceEntity);
+    }
+
+    // 设置 LAST_DAMAGE_PLAYER（如果命令执行者是玩家）
+    // 对齐 MC Java: if (entity instanceof Player player) {
+    // lootparams$builder.withParameter(LootContextParams.LAST_DAMAGE_PLAYER, player) }
+    Player* sourcePlayer = source.player();
+    if (sourcePlayer != nullptr) {
+        builder.withParameter(loot::LootParams::KILLER_PLAYER, sourcePlayer);
+    }
+
+    auto context = builder.build(loot::LootParameterSets::entity());
+    return table->generate(*context);
 }
 
 /**
@@ -1123,21 +1166,19 @@ i32 LootCommand::killGive(CommandContext<ServerCommandSource>& context)
     auto& source = context.getSource();
     auto selector = context.getArgument<EntitySelector>("kill_target");
 
-    // 简化实现：当前项目中实体战利品表系统尚未完全集成
-    // 先使用 playerIds 解析作为占位
+    // 解析目标实体
     auto playerIds = support::resolvePlayerIds(source, selector);
     if (playerIds.empty()) {
         source.sendError("No entity matched");
         return 0;
     }
 
-    // TODO: 需要实体战利品表集成后实现完整的 kill 源
     auto* world = source.world();
     if (world == nullptr) {
         return 0;
     }
 
-    // 尝试获取第一个匹配玩家的战利品表
+    // 为每个匹配实体生成战利品
     std::vector<ItemStack> allItems;
     for (PlayerId playerId : playerIds) {
         auto* playerWorld = source.server()->getPlayerWorld(playerId);
@@ -1173,23 +1214,169 @@ i32 LootCommand::killGive(CommandContext<ServerCommandSource>& context)
 i32 LootCommand::killSpawn(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    // 简化实现
-    source.sendError("Kill source with spawn target is not yet fully supported");
-    return 0;
+    auto selector = context.getArgument<EntitySelector>("kill_target");
+
+    auto playerIds = support::resolvePlayerIds(source, selector);
+    if (playerIds.empty()) {
+        source.sendError("No entity matched");
+        return 0;
+    }
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        return 0;
+    }
+
+    std::vector<ItemStack> allItems;
+    for (PlayerId playerId : playerIds) {
+        auto* playerWorld = source.server()->getPlayerWorld(playerId);
+        auto* player =
+            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
+        if (player == nullptr) {
+            continue;
+        }
+
+        auto items = generateFromKill(source, static_cast<Entity*>(player));
+        for (auto& item : items) {
+            allItems.push_back(std::move(item));
+        }
+    }
+
+    if (allItems.empty()) {
+        return 0;
+    }
+
+    auto pos = context.getArgument<Vector3d>("target_pos");
+    i32 result = spawnItemsAtPosition(source, pos, allItems);
+
+    sendSuccessMessage(source, allItems, "kill");
+    return result;
 }
 
 i32 LootCommand::killInsert(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    source.sendError("Kill source with insert target is not yet fully supported");
-    return 0;
+    auto selector = context.getArgument<EntitySelector>("kill_target");
+
+    auto playerIds = support::resolvePlayerIds(source, selector);
+    if (playerIds.empty()) {
+        source.sendError("No entity matched");
+        return 0;
+    }
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        return 0;
+    }
+
+    std::vector<ItemStack> allItems;
+    for (PlayerId playerId : playerIds) {
+        auto* playerWorld = source.server()->getPlayerWorld(playerId);
+        auto* player =
+            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
+        if (player == nullptr) {
+            continue;
+        }
+
+        auto items = generateFromKill(source, static_cast<Entity*>(player));
+        for (auto& item : items) {
+            allItems.push_back(std::move(item));
+        }
+    }
+
+    if (allItems.empty()) {
+        return 0;
+    }
+
+    auto pos = context.getArgument<Vector3i>("insert_pos");
+    BlockPos blockPos(pos.x, pos.y, pos.z);
+
+    BlockEntity* blockEntity = world->getBlockEntity(blockPos);
+    auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
+    IInventory* inventory = container ? container->getInventory() : nullptr;
+    if (inventory == nullptr) {
+        source.sendError("No container at that position");
+        return 0;
+    }
+
+    i32 inserted = 0;
+    for (auto& item : allItems) {
+        if (!item.isEmpty() && insertItemsIntoContainer(*inventory, item.copy())) {
+            inventory->setChanged();
+            inserted++;
+        }
+    }
+
+    sendSuccessMessage(source, allItems, "kill");
+    return inserted;
 }
 
 i32 LootCommand::killReplaceEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    source.sendError("Kill source with replace target is not yet fully supported");
-    return 0;
+    auto selector = context.getArgument<EntitySelector>("kill_target");
+
+    auto playerIds = support::resolvePlayerIds(source, selector);
+    if (playerIds.empty()) {
+        source.sendError("No entity matched");
+        return 0;
+    }
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        return 0;
+    }
+
+    std::vector<ItemStack> allItems;
+    for (PlayerId playerId : playerIds) {
+        auto* playerWorld = source.server()->getPlayerWorld(playerId);
+        auto* player =
+            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
+        if (player == nullptr) {
+            continue;
+        }
+
+        auto items = generateFromKill(source, static_cast<Entity*>(player));
+        for (auto& item : items) {
+            allItems.push_back(std::move(item));
+        }
+    }
+
+    if (allItems.empty()) {
+        return 0;
+    }
+
+    // kill replace 使用实体选择器获取目标玩家并替换其物品栏槽位
+    auto replaceSelector = context.getArgument<EntitySelector>("players");
+    auto replacePlayerIds = support::resolvePlayerIds(source, replaceSelector);
+    if (replacePlayerIds.empty()) {
+        source.sendError("No players matched");
+        return 0;
+    }
+
+    i32 slot = context.getArgument<i32>("slot");
+    i32 count = 0;
+
+    for (PlayerId replacePlayerId : replacePlayerIds) {
+        auto* replacePlayerWorld = source.server()->getPlayerWorld(replacePlayerId);
+        auto* replacePlayer = replacePlayerWorld
+            ? source.server()->playerEntityManager().getPlayerEntity(replacePlayerId, *replacePlayerWorld)
+            : nullptr;
+        if (replacePlayer == nullptr) {
+            continue;
+        }
+
+        PlayerInventory& inventory = replacePlayer->inventory();
+        if (slot >= 0 && slot < inventory.getContainerSize()) {
+            ItemStack replacement = allItems.empty() ? ItemStack::EMPTY : allItems[0].copy();
+            inventory.setItem(slot, replacement);
+            inventory.setChanged();
+            count++;
+        }
+    }
+
+    sendSuccessMessage(source, allItems, "kill");
+    return count;
 }
 
 // ============================================================================

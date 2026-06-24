@@ -513,7 +513,19 @@ public:
     // ========== 掉落表 (DeathLootTable) ==========
 
     /**
-     * @brief 获取死亡掉落表 ID
+     * @brief 获取实体的战利品表ID
+     *
+     * 优先使用 NBT 中设置的自定义掉落表（m_deathLootTable），
+     * 如果没有自定义掉落表则回退到实体类型的默认掉落表路径。
+     * 对齐 MC Java 中 Mob.getLootTable() 的逻辑：
+     * this.lootTable.isPresent() ? this.lootTable : super.getLootTable()
+     *
+     * @return 战利品表ID字符串，无战利品表时返回空字符串
+     */
+    [[nodiscard]] std::string getLootTableId() const override;
+
+    /**
+     * @brief 获取死亡掉落表 ID（NBT 覆盖值）
      *
      * 如果实体有自定义掉落表（从 NBT 加载），返回自定义掉落表；
      * 否则返回空，表示使用实体类型的默认掉落表。
