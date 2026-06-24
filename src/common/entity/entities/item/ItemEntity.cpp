@@ -24,6 +24,8 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 
 #include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
@@ -34,7 +36,10 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/entity/EntityManager.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -114,6 +119,73 @@ bool ItemEntity::dampensVibrations() const
     // 参考: net.minecraft.world.entity.item.ItemEntity.dampensVibrations()
     const auto* item = m_itemStack.getItem();
     return item != nullptr && item->isIn(item::tag::ItemTags::DAMPENS_VIBRATIONS());
+}
+
+bool ItemEntity::isImmuneToFire() const
+{
+    // 参考: net.minecraft.world.entity.item.ItemEntity.fireImmune()
+    // 防火物品（如下界合金物品、下界星）免疫火焰，否则回退到实体类型的默认行为
+    if (!m_itemStack.isEmpty() && !m_itemStack.canBeHurtBy(DamageSources::inFire())) {
+        return true;
+    }
+    return Entity::isImmuneToFire();
+}
+
+bool ItemEntity::hurt(DamageSource& source, f32 amount)
+{
+    // 参考: net.minecraft.world.entity.item.ItemEntity.hurtServer()
+    MC_TRACE_EVENT("game.entity", "ItemEntity::hurt", "entityId", id(), "amount", amount);
+
+    // 1. 检查无敌状态
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+
+    // 2. 检查 mobGriefing 游戏规则：如果伤害来源是 Mob 且 mobGriefing 关闭，则不受伤害
+    if (m_world != nullptr) {
+        Entity* sourceEntity = source.getEntity();
+        if (sourceEntity != nullptr && dynamic_cast<MobEntity*>(sourceEntity) != nullptr) {
+            if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+                return false;
+            }
+        }
+    }
+
+    // 3. 检查物品是否能被此伤害源伤害（防火物品免疫火焰伤害）
+    if (!m_itemStack.canBeHurtBy(source)) {
+        return false;
+    }
+
+    // 4. 标记受伤（触发速度同步到客户端）
+    markHurt();
+
+    // 5. 减少生命值
+    m_health = static_cast<i32>(m_health - amount);
+
+    // 6. 发送 ENTITY_DAMAGE 游戏事件（用于幽匿感测体检测）
+    if (m_world != nullptr) {
+        BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)),
+            static_cast<i32>(std::floor(m_position.z)));
+        m_world->gameEvent(
+            gameevent::GameEvents::ENTITY_DAMAGE, blockPos, gameevent::GameEvent::Context::of(source.getEntity()));
+    }
+
+    // 7. 如果生命值降至 0 或以下，销毁物品
+    if (m_health <= 0) {
+        // 调用物品的 onDestroyed 回调（子类可重写以执行特殊逻辑，如播放破坏音效）
+        // 注意：getItem() 返回 const Item*，但 onDestroyed 是非 const 方法
+        // 这里使用 const_cast 是安全的，因为 Item 对象在注册表中以非 const 方式持有
+        if (m_world != nullptr) {
+            auto* item = const_cast<Item*>(m_itemStack.getItem());
+            if (item != nullptr) {
+                item->onDestroyed(m_itemStack, *m_world, *this);
+            }
+        }
+        discard();
+    }
+
+    return true;
 }
 
 void ItemEntity::tick()
@@ -571,6 +643,9 @@ void ItemEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     m_itemStack.toNbt(itemTag);
     tag.value.emplace(nbt_keys::ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
 
+    // Health (i16) - 生命值（MC Java 使用 short，默认 5）
+    tag.put(nbt_keys::HEALTH, static_cast<i16>(m_health));
+
     // Age (i32) - 实体年龄
     tag.put(nbt_keys::AGE, m_age);
 
@@ -602,6 +677,11 @@ Result<void> ItemEntity::readAdditionalSaveData(const nbt::tags::compound_tag& t
             // 同步数量到数据管理器
             m_dataManager.set(DATA_ITEM_COUNT_PARAM, m_itemStack.getCount());
         }
+    }
+
+    // Health (i16) - 生命值（MC Java 默认 5）
+    if (auto val = nbt_helper::tryGetShort(tag, nbt_keys::HEALTH)) {
+        m_health = static_cast<i32>(*val);
     }
 
     // Age (i32) - 实体年龄

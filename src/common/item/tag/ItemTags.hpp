@@ -68,6 +68,15 @@ public:
     static ItemTag& DAMPENS_VIBRATIONS();
 
     /**
+     * @brief 防火物品标签
+     *
+     * 包含所有防火物品（下界合金锭、下界合金碎片、远古残骸、下界星等）。
+     * 掉落的防火物品实体免疫火焰和岩浆伤害。
+     * 参考: net.minecraft.tags.ItemTags.FIRE_RESISTANT
+     */
+    static ItemTag& FIRE_RESISTANT();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

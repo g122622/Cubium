@@ -26,8 +26,10 @@
 #include "ItemRegistry.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/StringTextComponent.hpp"
@@ -183,6 +185,21 @@ bool ItemStack::isDamageable() const
         return false;
     }
     return m_item->isDamageable();
+}
+
+bool ItemStack::canBeHurtBy(const DamageSource& source) const
+{
+    // 参考: net.minecraft.world.item.ItemStack.canBeHurtBy(DamageSource)
+    // 防火物品不会被火焰伤害源摧毁
+    // MC Java 使用 DAMAGE_RESISTANT 数据组件 + DamageTypeTags.IS_FIRE 标签
+    // 我们简化实现：使用 FIRE_RESISTANT 物品标签检查
+    if (isEmpty()) {
+        return false;
+    }
+    if (m_item->isIn(item::tag::ItemTags::FIRE_RESISTANT()) && source.isFire()) {
+        return false;
+    }
+    return true;
 }
 
 bool ItemStack::isDamaged() const

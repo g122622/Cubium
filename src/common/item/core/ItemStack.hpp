@@ -45,6 +45,7 @@ class LivingEntity;
 class Entity;
 class IWorld;
 class Player;
+class DamageSource;
 
 namespace potion {
 class PotionUtils;
@@ -285,6 +286,17 @@ public:
      * @brief 是否可损坏
      */
     [[nodiscard]] bool isDamageable() const;
+
+    /**
+     * @brief 检查此物品堆是否可以被指定伤害源伤害
+     *
+     * 防火物品（如下界合金物品、下界星）不会被火焰和岩浆伤害源摧毁。
+     * 参考: net.minecraft.world.item.ItemStack.canBeHurtBy(DamageSource)
+     *
+     * @param source 伤害源
+     * @return 如果物品可以被此伤害源伤害返回 true，否则返回 false
+     */
+    [[nodiscard]] bool canBeHurtBy(const DamageSource& source) const;
 
     /**
      * @brief 是否已损坏

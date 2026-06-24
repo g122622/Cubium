@@ -27,6 +27,7 @@
 
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <random>
 
@@ -62,6 +63,9 @@ public:
 
     /// 无限存活时间（用于创造模式等）
     static constexpr i32 INFINITE_LIFETIME = -1;
+
+    /// 默认生命值（MC Java: private int health = 5）
+    static constexpr i32 DEFAULT_HEALTH = 5;
 
     /// 物品漂浮速度
     static constexpr f32 BUOYANCY = 0.1f;
@@ -124,10 +128,25 @@ public:
 
     void tick() override;
 
-    // TODO: ItemEntity 需要重写 hurt() 方法以处理伤害和标记 hurtMarked。
-    // MC Java 中 ItemEntity.hurt() 在受伤时调用 markHurt() 并设置 m_forwardDirection 反转，
-    // 当前基类 Entity::hurt() 返回 false 不处理伤害，导致物品实体的 hurtMarked 不会被设置，
-    // 速度同步缺失。完整实现需要 ItemEntity::hurt() 重写。
+    /**
+     * @brief 处理物品实体受到伤害
+     *
+     * 物品实体有 5 点生命值，受到伤害时减少生命值。
+     * 当生命值降至 0 或以下时，物品被销毁（调用 discard()）。
+     * 防火物品（如下界合金物品、下界星）免疫火焰和岩浆伤害。
+     * 当 mobGriefing 游戏规则关闭时，生物造成的伤害不会影响物品实体。
+     * 参考: net.minecraft.world.entity.item.ItemEntity.hurtServer()
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 检查物品实体是否免疫火焰
+     *
+     * 如果物品本身是防火的（如下界合金物品、下界星），则物品实体也免疫火焰。
+     * 否则回退到实体类型的默认行为。
+     * 参考: net.minecraft.world.entity.item.ItemEntity.fireImmune()
+     */
+    [[nodiscard]] bool isImmuneToFire() const override;
 
     /**
      * @brief 检查物品实体是否阻尼振动
@@ -274,6 +293,7 @@ private:
     i32 m_age = 0;                            // 存活时间（ticks）
     i32 m_lifetime = DEFAULT_LIFETIME;        // 最大存活时间
     i32 m_pickupDelay = DEFAULT_PICKUP_DELAY; // 拾取延迟
+    i32 m_health = DEFAULT_HEALTH;            // 生命值（MC Java: private int health = 5）
     bool m_unpickable = false;                // 是否不可拾取
 
     std::string m_ownerUuid;   // 所有者UUID（防止自己立即拾取）
