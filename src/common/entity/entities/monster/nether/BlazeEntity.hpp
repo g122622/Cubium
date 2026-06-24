@@ -3,8 +3,8 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * in the Software without restriction, including without limitation the the rights
+ * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -42,11 +42,16 @@ class DamageSource;
  * 生活在下界的火焰怪物。
  *
  * 特性：
- * - 飞行：可以飞行并悬浮
+ * - 悬浮飞行：通过缓降和有条件的上升推力实现伪悬浮
  * - 火球：发射小火球
  * - 火焰免疫：免疫火焰伤害
- * - 弱水：接触水会受伤
+ * - 弱水：接触水或雨每tick受伤
  * - 燃烧：攻击时全身冒火
+ *
+ * 悬浮机制（对齐 MC 1.21.11 Blaze）：
+ * - aiStep 中缓降：不在地面且下落时 velocityY *= 0.6
+ * - customServerAiStep 中上升推力：目标在上方时施加 (0.3 - velocityY) * 0.3 的Y轴加速
+ * - allowedHeightOffset 每100 tick 重新随机，控制悬浮目标高度
  */
 class BlazeEntity : public MonsterEntity, public entity::IRangedAttackMob {
 public:
@@ -96,12 +101,12 @@ public:
     // ========== 火球攻击 ==========
 
     /**
-     * @brief 是否正在发射火球（全身冒火）
+     * @brief 是否正在充能（全身冒火）
      */
     [[nodiscard]] bool isCharged() const { return m_charging; }
 
     /**
-     * @brief 设置发射状态
+     * @brief 设置充能状态
      */
     void setCharging(bool charging) { m_charging = charging; }
 
@@ -118,11 +123,13 @@ public:
     // ========== 悬浮高度 ==========
 
     /**
-     * @brief 获取高度偏移
+     * @brief 获取允许的高度偏移
+     *
+     * 控制烈焰人悬浮的目标高度。当攻击目标的眼高超过
+     * 烈焰人眼高 + allowedHeightOffset 时，烈焰人会上升。
+     * 每 100 tick 通过三角分布重新随机化。
      */
-    [[nodiscard]] f32 heightOffset() const { return m_heightOffset; }
-
-    // TODO: m_heightOffset 和 heightOffset() 目前未被使用，需要在实现烈焰人悬浮行为时启用
+    [[nodiscard]] f32 allowedHeightOffset() const { return m_allowedHeightOffset; }
 
     // ========== 水敏感性 ==========
 
@@ -141,7 +148,7 @@ public:
     // ========== 亮度 ==========
 
     /**
-     * @brief 获取亮度
+     * @brief 获取亮度（充能时全身冒火，亮度为1）
      */
     [[nodiscard]] f32 getBrightness() const { return 1.0f; }
 
@@ -182,6 +189,9 @@ protected:
 
     /**
      * @brief 更新AI任务
+     *
+     * 实现烈焰人特有的悬浮上升推力和高度偏移随机化，
+     * 对齐 MC 1.21.11 Blaze.customServerAiStep()。
      */
     void updateAITasks() override;
 
@@ -192,16 +202,23 @@ private:
     i32 m_attackStep = 0; // 攻击阶段（由 BlazeFireballAttackGoal 管理）
     i32 m_attackTime = 0; // 攻击计时器（由 BlazeFireballAttackGoal 管理）
 
-    // 悬浮高度（TODO: 悬浮行为尚未实现）
-    f32 m_heightOffset = 0.5f;
-    i32 m_heightOffsetUpdateTime = 0;
+    // 悬浮高度偏移（对齐 MC Blaze.allowedHeightOffset / nextHeightOffsetChangeTick）
+    f32 m_allowedHeightOffset = 0.5f;
+    i32 m_nextHeightOffsetChangeTick = 0;
 
     // 常量
     static constexpr f32 FIREBALL_DAMAGE = 5.0f;
-    static constexpr i32 ATTACK_CHARGE_TIME = 60; // 充能时间（ticks）
-    static constexpr i32 ATTACK_COOLDOWN = 100;   // 攻击冷却（ticks）
-    static constexpr i32 FIREBALL_INTERVAL = 6;   // 火球间隔（ticks）
-    static constexpr i32 MAX_FIREBALLS = 3;       // 最多连发火球数
+    static constexpr i32 ATTACK_CHARGE_TIME = 60;             // 充能时间（ticks）
+    static constexpr i32 ATTACK_COOLDOWN = 100;               // 攻击冷却（ticks）
+    static constexpr i32 FIREBALL_INTERVAL = 6;               // 火球间隔（ticks）
+    static constexpr i32 MAX_FIREBALLS = 3;                   // 最多连发火球数
+    static constexpr f32 HEIGHT_OFFSET_MODE = 0.5f;           // 高度偏移三角分布的众数
+    static constexpr f32 HEIGHT_OFFSET_DEVIATION = 6.891f;    // 高度偏移三角分布的偏差
+    static constexpr i32 HEIGHT_OFFSET_CHANGE_INTERVAL = 100; // 高度偏移重新随机化的间隔（ticks）
+    static constexpr f32 ASCEND_TARGET_SPEED = 0.3f;          // 上升时收敛的目标Y轴速度
+    static constexpr f32 ASCEND_ACCELERATION = 0.3f;          // 上升推力系数
+    static constexpr f32 FALL_DAMPING = 0.6f;                 // 下落缓降系数
+    static constexpr f32 WATER_DAMAGE_AMOUNT = 1.0f;          // 水伤害量
 };
 
 } // namespace mc

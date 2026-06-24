@@ -6,7 +6,7 @@
 
 ```
 src/common/entity/entities/monster/nether/
-├── BlazeEntity.hpp/cpp      # 烈焰人实体（火球攻击、飞行）
+├── BlazeEntity.hpp/cpp      # 烈焰人实体（火球攻击、悬浮飞行、水伤害）
 ├── NetherEntities.hpp/cpp   # 其他下界怪物：恶魂、岩浆怪、猪灵、猪灵蛮兵、僵尸猪灵、疣猪兽、僵尸疣兽
 └── README.md
 ```
