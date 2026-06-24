@@ -40,6 +40,7 @@
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/block/blocks/LavaCauldronBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
+#include "common/world/block/registry/MudBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -558,10 +559,14 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
         }
 
         // 检查是否为可接收滴水的炼药锅
-        // 空 CauldronBlock（水位0）可以接收水和岩浆的滴石滴水
-        // LavaCauldronBlock 始终满，不可接收滴水（由 LavaCauldronBlock::canReceiveStalactiteDrip 返回 false 保障）
-        if (state->is(block_registry::BuildingBlocks::CAULDRON)) {
-            if (CauldronBlock::canReceiveStalactiteDrip(fluid)) {
+        // 参考 MC 原版：使用 instanceof AbstractCauldronBlock && canReceiveStalactiteDrip(fluid)
+        const Block& block = state->getBlock();
+        bool isCauldron = (&block == block_registry::BuildingBlocks::CAULDRON);
+        bool isLavaCauldron = (&block == block_registry::BuildingBlocks::LAVA_CAULDRON);
+
+        if (isCauldron || isLavaCauldron) {
+            // 检查该炼药锅是否可以接收指定流体的滴水
+            if (isCauldron && CauldronBlock::canReceiveStalactiteDrip(fluid)) {
                 // 水可以滴入未满的炼药锅；岩浆可以滴入空的炼药锅
                 if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
                     return mutablePos.toImmutable();
@@ -570,8 +575,9 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
                     return mutablePos.toImmutable();
                 }
             }
+            // LavaCauldronBlock::canReceiveStalactiteDrip 始终返回 false，不可接收任何滴水
+            // 不匹配的炼药锅不返回，继续检查 canDripThrough
         }
-        // 岩浆炼药锅始终满，不可接收任何滴水，跳过
 
         // 检查是否可以穿过
         if (!canDripThrough(world, mutablePos.toImmutable(), state)) {
@@ -580,6 +586,81 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
     }
 
     return std::nullopt;
+}
+
+std::optional<BlockPos> PointedDripstoneBlock::findStalactiteTipAboveCauldron(IWorld& world, const BlockPos& pos)
+{
+    // 从炼药锅位置向上搜索可滴水的钟乳石尖端
+    // 使用与 findFillableCauldronBelow 相同的 canDripThrough 检查来穿透方块
+    BlockPosMutable mutablePos(pos.x, pos.y, pos.z);
+
+    for (i32 i = 0; i < MAX_SEARCH_LENGTH_BETWEEN_TIP_AND_CAULDRON; i++) {
+        mutablePos.move(Direction::Up);
+        if (!world.isWithinWorldBounds(mutablePos.toImmutable())) {
+            break;
+        }
+        const BlockState* state = world.getBlockState(mutablePos.toImmutable());
+
+        if (state == nullptr) {
+            break;
+        }
+
+        // 找到可滴水的钟乳石尖端（朝下的 TIP，不含水）
+        // 注意：canDrip 只接受 TIP 厚度，不接受 TIP_MERGE
+        if (canDrip(*state)) {
+            return mutablePos.toImmutable();
+        }
+
+        // 不可穿透的方块停止搜索
+        if (!canDripThrough(world, mutablePos.toImmutable(), state)) {
+            break;
+        }
+    }
+
+    return std::nullopt;
+}
+
+const fluid::Fluid* PointedDripstoneBlock::getCauldronFillFluidType(IWorld& world, const BlockPos& tipPos)
+{
+    // 从钟乳石尖端向上查找根方块，然后检查根方块上方的流体
+    const BlockState* tipState = world.getBlockState(tipPos);
+    if (tipState == nullptr || !isStalactite(*tipState)) {
+        return fluid::Fluids::EMPTY();
+    }
+
+    std::optional<BlockPos> rootPosOpt =
+        findRootBlock(world, tipPos, *tipState, MAX_SEARCH_LENGTH_WHEN_CHECKING_DRIP_TYPE);
+    if (!rootPosOpt.has_value()) {
+        return fluid::Fluids::EMPTY();
+    }
+
+    // 根方块上方一格是流体位置
+    BlockPos fluidPos = rootPosOpt.value().up();
+    if (!world.isWithinWorldBounds(fluidPos)) {
+        return fluid::Fluids::EMPTY();
+    }
+
+    const BlockState* blockAboveRoot = world.getBlockState(fluidPos);
+    if (blockAboveRoot == nullptr) {
+        return fluid::Fluids::EMPTY();
+    }
+
+    // 特殊情况：泥巴上方产生水（在下界水蒸发，泥巴不产生水滴）
+    if (blockAboveRoot->is(block_registry::MudBlocks::MUD) && !world.isUltraWarm()) {
+        return fluid::Fluids::WATER();
+    }
+
+    // 检查流体状态
+    const fluid::FluidState* fluidState = world.getFluidState(fluidPos);
+    if (fluidState != nullptr && !fluidState->isEmpty()) {
+        const fluid::Fluid& fluid = fluidState->getFluid();
+        // 只接受水和岩浆
+        if (fluid.isIn(fluid::FluidTags::WATER()) || fluid.isIn(fluid::FluidTags::LAVA())) {
+            return &fluid;
+        }
+    }
+
+    return fluid::Fluids::EMPTY();
 }
 
 bool PointedDripstoneBlock::canDripThrough(IWorld& world, const BlockPos& pos, const BlockState* state)
@@ -787,14 +868,25 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
     }
 
     // 确定流体类型
-    const fluid::FluidState* fluidState = world.getFluidState(fluidPos);
-    if (fluidState == nullptr || fluidState->isEmpty()) {
+    // 特殊情况：泥巴上方产生水（在下界水蒸发，泥巴不产生水滴）
+    bool isMudWithWater = fluidBlockState->is(VanillaBlocks::MUD) && !world.isUltraWarm();
+    const fluid::Fluid* fluid = nullptr;
+
+    if (isMudWithWater) {
+        fluid = fluid::Fluids::WATER();
+    } else {
+        const fluid::FluidState* fluidState = world.getFluidState(fluidPos);
+        if (fluidState != nullptr && !fluidState->isEmpty()) {
+            fluid = &fluidState->getFluid();
+        }
+    }
+
+    if (fluid == nullptr) {
         return;
     }
 
-    const fluid::Fluid& fluid = fluidState->getFluid();
-    bool isWater = fluid.isIn(fluid::FluidTags::WATER());
-    bool isLava = fluid.isIn(fluid::FluidTags::LAVA());
+    bool isWater = fluid->isIn(fluid::FluidTags::WATER());
+    bool isLava = fluid->isIn(fluid::FluidTags::LAVA());
 
     if (!isWater && !isLava) {
         return;
@@ -815,7 +907,7 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
 
     // 泥巴变粘土逻辑
     // 如果根方块上方是泥巴且流体为水，将泥巴替换为粘土
-    if (fluidBlockState != nullptr && fluidBlockState->is(VanillaBlocks::MUD) && isWater) {
+    if (isMudWithWater) {
         const BlockState* clayState = &VanillaBlocks::CLAY->defaultState();
         world.setBlockState(fluidPos, clayState, 3);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, fluidPos, clayState);
@@ -824,7 +916,7 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
     }
 
     // 寻找下方可接收流体的炼药锅
-    std::optional<BlockPos> cauldronPosOpt = findFillableCauldronBelow(world, tipPos, fluid);
+    std::optional<BlockPos> cauldronPosOpt = findFillableCauldronBelow(world, tipPos, *fluid);
     if (cauldronPosOpt.has_value()) {
         BlockPos cauldronPos = cauldronPosOpt.value();
         world.playEvent(world::WorldEvents::DRIPSTONE_DRIP, tipPos, 0);

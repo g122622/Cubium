@@ -215,11 +215,9 @@ public:
      * @brief 方块 tick 处理
      *
      * 由 PointedDripstoneBlock::maybeTransferFluid() 调度，用于接收滴石滴水填充。
-     * 在 tick 中重新验证滴石尖端是否存在，并调用 receiveStalactiteDrip 填充炼药锅。
-     *
-     * TODO: tick() 中向上搜索钟乳石尖端的逻辑与 PointedDripstoneBlock 中的搜索逻辑
-     * 存在重复。应考虑将滴石尖端查找和流体类型判断提取为共享工具方法，
-     * 避免 CauldronBlock 和 PointedDripstoneBlock 各自维护一份搜索实现。
+     * 在 tick 中调用 PointedDripstoneBlock::findStalactiteTipAboveCauldron 和
+     * PointedDripstoneBlock::getCauldronFillFluidType 重新验证滴石尖端和流体类型，
+     * 然后调用 receiveStalactiteDrip 填充炼药锅。
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
@@ -253,19 +251,6 @@ public:
         IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid);
 
 private:
-    /**
-     * @brief 从钟乳石尖端接收滴水（tick 内部调用）
-     *
-     * 在 tick() 中找到上方尖端后调用，沿钟乳石向上查找根方块和流体源，
-     * 确定流体类型后调用 receiveStalactiteDrip 填充炼药锅。
-     *
-     * @param world 世界
-     * @param pos 炼药锅位置
-     * @param state 当前方块状态
-     * @param tipPos 钟乳石尖端位置
-     */
-    static void _receiveDripFromStalactiteTip(
-        IWorld& world, const BlockPos& pos, const BlockState& state, const BlockPos& tipPos);
     /**
      * @brief 处理水桶交互
      * @param world 世界

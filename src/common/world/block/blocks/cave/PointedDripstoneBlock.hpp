@@ -139,6 +139,12 @@ public:
     [[nodiscard]] static std::optional<BlockPos> findFillableCauldronBelow(
         IWorld& world, const BlockPos& tipPos, const fluid::Fluid& fluid);
 
+    /// 从炼药锅向上搜索可滴水的钟乳石尖端
+    [[nodiscard]] static std::optional<BlockPos> findStalactiteTipAboveCauldron(IWorld& world, const BlockPos& pos);
+
+    /// 获取钟乳石可填充炼药锅的流体类型
+    [[nodiscard]] static const fluid::Fluid* getCauldronFillFluidType(IWorld& world, const BlockPos& tipPos);
+
     /// 判断方块是否可被滴水穿透
     [[nodiscard]] static bool canDripThrough(IWorld& world, const BlockPos& pos, const BlockState* state);
 

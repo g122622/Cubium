@@ -35,13 +35,10 @@
 #include "common/item/potion/Potions.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/assert/AssertAll.hpp"
-#include "common/util/math/random/IRandom.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
-#include "common/world/block/registry/CaveBlocks.hpp"
-#include "common/world/block/registry/MudBlocks.hpp"
+#include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -589,94 +586,15 @@ void CauldronBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, 
     MC_UNUSED(random);
 
     // 当滴石调度了炼药锅的 tick 时，重新验证上方是否存在可滴水的钟乳石尖端
-    // 向上搜索钟乳石尖端（最多 11 格）
-    BlockPosMutable mutablePos(pos.x, pos.y, pos.z);
-
-    for (i32 i = 0; i < 11; ++i) {
-        mutablePos.move(Direction::Up);
-        if (!world.isWithinWorldBounds(mutablePos.toImmutable())) {
-            break;
-        }
-        const BlockState* aboveState = world.getBlockState(mutablePos.toImmutable());
-        if (aboveState == nullptr) {
-            break;
-        }
-
-        // 检查是否为可滴水的钟乳石尖端（朝下的 TIP，不含水）
-        const Block& aboveBlock = aboveState->getBlock();
-        if (&aboveBlock == block_registry::CaveBlocks::POINTED_DRIPSTONE &&
-            aboveState->hasProperty(BlockStateProperties::DRIPSTONE_THICKNESS()) &&
-            aboveState->hasProperty(BlockStateProperties::VERTICAL_DIRECTION()) &&
-            aboveState->hasProperty(BlockStateProperties::WATERLOGGED())) {
-            auto thickness = aboveState->get(BlockStateProperties::DRIPSTONE_THICKNESS());
-            auto direction = aboveState->get(BlockStateProperties::VERTICAL_DIRECTION());
-            bool waterlogged = aboveState->get(BlockStateProperties::WATERLOGGED());
-
-            if ((thickness == BlockStateProperties::DripstoneThickness::Tip ||
-                    thickness == BlockStateProperties::DripstoneThickness::TipMerge) &&
-                direction == Direction::Down && !waterlogged) {
-                // 找到了可滴水的尖端，确定流体类型
-                _receiveDripFromStalactiteTip(world, pos, state, mutablePos.toImmutable());
-                return;
-            }
-        }
-
-        // 非滴石方块，停止搜索
-        // 实心方块阻挡搜索，空气/非实心方块可以穿过
-        if (!aboveState->isAir() && aboveState->isOpaque()) {
-            break;
-        }
-    }
-}
-
-void CauldronBlock::_receiveDripFromStalactiteTip(
-    IWorld& world, const BlockPos& pos, const BlockState& state, const BlockPos& tipPos)
-{
-    // 沿钟乳石尖端向上搜索根方块
-    BlockPosMutable rootPos(tipPos.x, tipPos.y, tipPos.z);
-    const BlockState* rootState = nullptr;
-
-    for (i32 i = 0; i < 11; ++i) {
-        rootPos.move(Direction::Up);
-        if (!world.isWithinWorldBounds(rootPos.toImmutable())) {
-            break;
-        }
-        const BlockState* aboveState = world.getBlockState(rootPos.toImmutable());
-        if (aboveState == nullptr) {
-            break;
-        }
-        // 如果不是朝下的滴石，说明到达了根方块上方
-        if (!aboveState->hasProperty(BlockStateProperties::VERTICAL_DIRECTION()) ||
-            aboveState->get(BlockStateProperties::VERTICAL_DIRECTION()) != Direction::Down) {
-            // rootPos 现在是根方块上方一格
-            break;
-        }
-        rootState = aboveState;
-    }
-
-    if (rootState == nullptr) {
-        return;
-    }
-
-    // 检查根方块上方的流体
-    BlockPos fluidPos(rootPos.x, rootPos.y, rootPos.z);
-    const BlockState* blockAboveRoot = world.getBlockState(fluidPos);
-
-    // 特殊情况：泥巴上方产生水（当维度中水不蒸发时）
-    if (blockAboveRoot != nullptr && blockAboveRoot->is(block_registry::MudBlocks::MUD)) {
-        if (canReceiveStalactiteDrip(*fluid::Fluids::WATER())) {
-            receiveStalactiteDrip(world, pos, state, *fluid::Fluids::WATER());
-            return;
-        }
-    }
-
-    // 检查流体状态
-    const fluid::FluidState* fluidState = world.getFluidState(fluidPos);
-    if (fluidState != nullptr && !fluidState->isEmpty()) {
-        const fluid::Fluid& fluid = fluidState->getFluid();
-        if ((fluid.isIn(fluid::FluidTags::WATER()) || fluid.isIn(fluid::FluidTags::LAVA())) &&
-            canReceiveStalactiteDrip(fluid)) {
-            receiveStalactiteDrip(world, pos, state, fluid);
+    // 参考 MC 原版 AbstractCauldronBlock.tick()：
+    // 1. 向上搜索可滴水的钟乳石尖端
+    // 2. 从尖端确定流体类型
+    // 3. 如果炼药锅可以接收该流体，则执行滴水填充
+    std::optional<BlockPos> tipPos = PointedDripstoneBlock::findStalactiteTipAboveCauldron(world, pos);
+    if (tipPos.has_value()) {
+        const fluid::Fluid* fluid = PointedDripstoneBlock::getCauldronFillFluidType(world, tipPos.value());
+        if (fluid != nullptr && fluid != fluid::Fluids::EMPTY() && canReceiveStalactiteDrip(*fluid)) {
+            receiveStalactiteDrip(world, pos, state, *fluid);
         }
     }
 }
