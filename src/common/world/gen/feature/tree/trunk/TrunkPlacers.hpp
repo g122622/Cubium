@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "BendingTrunkPlacer.hpp"
 #include "CherryTrunkPlacer.hpp"
 #include "TrunkPlacer.hpp"
 #include <memory>

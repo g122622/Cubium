@@ -501,12 +501,12 @@ protected:
     static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 };
 
-TEST_F(TreeFeaturesRegistrationTest, InitializeCreates15Features)
+TEST_F(TreeFeaturesRegistrationTest, InitializeCreatesExpectedFeatureCount)
 {
     TreeFeatures::initialize();
     const auto& features = TreeFeatures::getAllFeatures();
     EXPECT_EQ(features.size(), TreeFeatureIds::Count);
-    EXPECT_EQ(features.size(), 15u);
+    EXPECT_EQ(features.size(), 17u);
 }
 
 TEST_F(TreeFeaturesRegistrationTest, FeatureNamesMatchRegistrationOrder)
@@ -765,27 +765,29 @@ TEST_F(NetherOreFeatureTest, NetherOreIdsAreConsecutiveAfterOverworld)
 
 TEST(FeatureIdsCascadeTest, TreeCountUpdateCascadesToAllOffsets)
 {
-    // After adding 6 new trees, TreeFeatureIds::Count is 15
-    EXPECT_EQ(TreeFeatureIds::Count, 15u);
+    // TreeFeatureIds::Count includes oak, birch, spruce, jungle, acacia, dark_oak,
+    // sparse_oak, giant_spruce, giant_jungle, fancy_oak, pine, jungle_bush, swamp,
+    // mega_pine, tall_birch, cherry, cherry_bee = 17
+    EXPECT_EQ(TreeFeatureIds::Count, 17u);
 
     // FlowerFeatureIds::Offset should equal TreeFeatureIds::Count
-    EXPECT_EQ(FlowerFeatureIds::Offset, 15u);
+    EXPECT_EQ(FlowerFeatureIds::Offset, 17u);
 
     // GrassFeatureIds::Offset should equal Tree + Flower counts
-    EXPECT_EQ(GrassFeatureIds::Offset, 15u + 5u);
+    EXPECT_EQ(GrassFeatureIds::Offset, 17u + 6u);
 
     // MushroomFeatureIds::Offset should equal Tree + Flower + Grass counts
-    EXPECT_EQ(MushroomFeatureIds::Offset, 15u + 5u + 7u);
+    EXPECT_EQ(MushroomFeatureIds::Offset, 17u + 6u + 7u);
 
     // CactusFeatureIds::Offset
-    EXPECT_EQ(CactusFeatureIds::Offset, 15u + 5u + 7u + 2u);
+    EXPECT_EQ(CactusFeatureIds::Offset, 17u + 6u + 7u + 2u);
 
     // SugarCaneFeatureIds::Offset
-    EXPECT_EQ(SugarCaneFeatureIds::Offset, 15u + 5u + 7u + 2u + 2u);
+    EXPECT_EQ(SugarCaneFeatureIds::Offset, 17u + 6u + 7u + 2u + 2u);
 
     // Total
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 15u + 5u + 7u + 2u + 2u + 2u);
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 33u);
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 17u + 6u + 7u + 2u + 2u + 2u + 2u);
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 38u);
 }
 
 // ============================================================================
