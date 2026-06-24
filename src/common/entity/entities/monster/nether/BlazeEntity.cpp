@@ -75,13 +75,13 @@ std::optional<ResourceLocation> BlazeEntity::getDeathSound() const
 
 void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
 {
-    // 此方法由 RangedAttackGoal 调用，但烈焰人使用专用的 BlazeFireballAttackGoal
-    // 所以这个方法在当前实现中不会被调用，保留以实现 IRangedAttackMob 接口
+    // IRangedAttackMob 接口的必要实现。烈焰人使用专用的 BlazeFireballAttackGoal
+    // 而非通用的 RangedAttackGoal，因此此方法不会被外部调用。
+    // 当前的备用逻辑用于防御性编程，确保万一被调用时状态一致性不受破坏。
     if (!target || !target->isAlive()) {
         return;
     }
 
-    // 如果需要，可以在此实现备用发射逻辑
     m_fireballCount--;
     if (m_fireballCount <= 0) {
         m_charging = false;

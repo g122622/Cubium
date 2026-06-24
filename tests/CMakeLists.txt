@@ -473,6 +473,7 @@ add_executable(mc_tests
     entity/CreeperSwellGoalTest.cpp
     entity/AreaEffectCloudEntityTest.cpp
     entity/BlazeFireballAttackGoalTest.cpp
+    entity/BlazeHoverBehaviorTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp
     # DamagingProjectileEntity 粒子效果测试（水下气泡、拖尾粒子）
