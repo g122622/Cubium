@@ -170,6 +170,34 @@ void ZombieEntity::setBaby(bool baby)
     }
 }
 
+void ZombieEntity::trySummonReinforcements()
+{
+    // 公共入口：尝试召唤增援僵尸
+    // 需要世界引用和攻击目标才能触发增援
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    // 获取攻击目标：优先当前攻击目标，无目标则无法召唤
+    LivingEntity* target = attackTarget();
+    if (target == nullptr) {
+        return;
+    }
+
+    // 必须在困难模式下且有增援概率
+    if (!entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty())) {
+        return;
+    }
+
+    f64 spawnChance = m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
+    if (getRandom().nextDouble() >= spawnChance) {
+        return;
+    }
+
+    _trySpawnReinforcement(*worldPtr, *target);
+}
+
 bool ZombieEntity::canSummonReinforcements() const
 {
     return m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS) > 0.0;

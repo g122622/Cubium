@@ -405,3 +405,30 @@ signal = floor(fillRatio * 14) + (hasItems ? 1 : 0)
 **集成路径**：
 - `DetectorRailBlock::getComparatorInputOverride()` 通过 `RedstoneHelper::getEntitySignal()` 查询矿车实体信号
 - `RedstoneComparatorBlock` 对物品框直接调用 `ItemFrameEntity::getComparatorOutput()`
+
+### 30. 僵尸增援系统
+
+`ZombieEntity` 实现了 MC 1.21.11 的僵尸增援（Reinforcement）机制，当僵尸在困难模式下受到伤害时有概率召唤新的增援僵尸：
+
+**触发条件**（`ZombieEntity::hurt()`）：
+- 难度必须为 Hard（由 `DifficultyHelper::canZombieReinforce()` 判断）
+- 随机数 < `zombie.spawn_reinforcements` 属性值
+- 存在攻击目标（`attackTarget()` 或 `source.getEntity()`）
+
+**生成逻辑**（`ZombieEntity::_trySpawnReinforcement()`）：
+1. 检查 `doMobSpawning` 游戏规则
+2. 查找同类型实体（`EntityType` 注册表查找）
+3. 50 次尝试内随机选择生成位置（各轴偏移 [7, 40] 方块）
+4. 位置验证：世界边界、地面支撑、无固体方块、无流体、附近无存活玩家（7格）、无实体碰撞
+5. 生成同类型僵尸并调用 `finalizeSpawn()`
+6. 设置攻击目标，通过 `spawnEntity()` 加入世界
+7. 召唤者获得 `reinforcement_caller_charge` 修饰符（-0.05 Addition）
+8. 被召唤者获得 `reinforcement_callee_charge` 修饰符（-0.05 Addition）
+
+**公共入口**（`ZombieEntity::trySummonReinforcements()`）：
+- 完整的公共接口，内部进行 null 检查、难度检查、概率检查后委托给 `_trySpawnReinforcement()`
+- 适用于外部调用（如命令触发增援）
+
+**关键属性**：
+- `zombie.spawn_reinforcements`：增援概率，基础值 0.0，`finalizeSpawn()` 中根据区域难度随机设置（0.0~0.1）
+- 修饰符累加：每次增援后 caller/callee 各 -0.05，逐渐降低后续增援概率

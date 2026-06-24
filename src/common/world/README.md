@@ -6,7 +6,7 @@
 
 ```
 world/
-├── IWorld.hpp/cpp              # 世界访问接口（含 isBlockInLine 方块射线遍历）
+├── IWorld.hpp/cpp              # 世界访问接口（含 isBlockInLine 方块射线遍历、containsAnyLiquid 碰撞箱流体检测）
 ├── IWorldWriter.hpp            # 世界写入接口（生成用）
 ├── WorldConstants.hpp          # 世界常量（高度限制、区块尺寸等）和坐标转换工具
 ├── WorldConfig.hpp             # 世界配置
@@ -311,6 +311,10 @@ world/
 - `ServerWorld` 覆写实现，返回实际的 `m_raidManager`
 - 客户端世界（`ClientWorld`）返回 `nullptr`，不触发袭击相关逻辑
 - 典型使用场景：`VillagerEntity::tick()` 通过 `world->raidManager()` 检查当前区域是否有活跃袭击，若有则广播恐慌粒子
+
+### 13a. IWorld::containsAnyLiquid() 碰撞箱流体检测
+
+`IWorld::containsAnyLiquid(const AxisAlignedBB& box)` 遍历碰撞箱覆盖的所有方块位置，检查是否存在流体。用于实体生成位置验证（如僵尸增援需确保生成位置无液体），以及实体物理检测等场景。与逐坐标的 `isWaterAt()`/`isLavaAt()` 不同，此方法接受碰撞箱参数，一次性检测整个体积。
 
 ### 14. IWorld 进度触发回调
 

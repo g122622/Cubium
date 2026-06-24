@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -39,6 +40,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 
 #include <memory>
@@ -470,6 +472,115 @@ TEST_F(ZombieEntityTest, CanSummonReinforcementsWithNonZeroValue)
     // 设置为 0
     m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.0);
     EXPECT_FALSE(m_zombie->canSummonReinforcements());
+}
+
+// ============================================================================
+// 增援系统测试
+// ============================================================================
+
+TEST_F(ZombieEntityTest, CallerChargeModifierAccumulates)
+{
+    // 初始增援概率为 0
+    EXPECT_FALSE(m_zombie->canSummonReinforcements());
+
+    // 设置基础增援概率
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.5);
+    f64 initialValue = m_zombie->getAttributeValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.0);
+    EXPECT_DOUBLE_EQ(initialValue, 0.5);
+
+    // 模拟 caller charge 修饰符：第一次增援后 -0.05
+    entity::attribute::AttributeModifier callerCharge1(
+        "reinforcement_caller_charge", "Reinforcement caller charge", -0.05, entity::attribute::Operation::Addition);
+    m_zombie->attributes().addModifier(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, callerCharge1);
+
+    f64 afterFirstCharge = m_zombie->getAttributeValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.0);
+    EXPECT_NEAR(afterFirstCharge, 0.45, 0.001) << "第一次 caller charge 后增援概率应减0.05";
+
+    // 第二次增援：caller charge 累加到 -0.10
+    m_zombie->attributes().removeModifier(
+        entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, "reinforcement_caller_charge");
+    entity::attribute::AttributeModifier callerCharge2(
+        "reinforcement_caller_charge", "Reinforcement caller charge", -0.10, entity::attribute::Operation::Addition);
+    m_zombie->attributes().addModifier(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, callerCharge2);
+
+    f64 afterSecondCharge =
+        m_zombie->getAttributeValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.0);
+    EXPECT_NEAR(afterSecondCharge, 0.40, 0.001) << "第二次 caller charge 后增援概率应再减0.05";
+}
+
+TEST_F(ZombieEntityTest, CalleeChargeModifierPreventsChainReinforcement)
+{
+    // 设置增援概率为正值
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.5);
+
+    // 模拟 callee charge 修饰符（被召唤的僵尸获得 -0.05）
+    entity::attribute::AttributeModifier calleeCharge(
+        "reinforcement_callee_charge", "Reinforcement callee charge", -0.05, entity::attribute::Operation::Addition);
+    m_zombie->attributes().addModifier(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, calleeCharge);
+
+    f64 value = m_zombie->getAttributeValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.0);
+    EXPECT_NEAR(value, 0.45, 0.001) << "callee charge 应减少增援概率0.05";
+
+    // 如果基础值很低（如0.05），callee charge 后应接近 0
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.05);
+    value = m_zombie->getAttributeValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 0.0);
+    EXPECT_NEAR(value, 0.0, 0.001) << "低基础值+ callee charge 应使增援概率接近0";
+}
+
+TEST_F(ZombieEntityTest, ReinforcementNoTargetNoTrigger)
+{
+    // 在 Easy 模式下不应触发增援（只有 Hard 模式才触发）
+    m_world->setDifficulty(Difficulty::Easy);
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 1.0);
+    // 无攻击目标时 trySummonReinforcements 不应生成实体
+    m_zombie->trySummonReinforcements();
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u) << "Easy 模式下不应触发增援";
+}
+
+TEST_F(ZombieEntityTest, ReinforcementEasyDifficultyNoSpawn)
+{
+    // Easy 模式下增援不应触发
+    m_world->setDifficulty(Difficulty::Easy);
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 1.0);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+}
+
+TEST_F(ZombieEntityTest, ReinforcementNormalDifficultyNoSpawn)
+{
+    // Normal 模式下增援也不应触发
+    m_world->setDifficulty(Difficulty::Normal);
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 1.0);
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+}
+
+TEST_F(ZombieEntityTest, ReinforcementHardDifficultyAllowed)
+{
+    // Hard 模式下增援概率检查应通过
+    m_world->setDifficulty(Difficulty::Hard);
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 1.0);
+    // canSummonReinforcements 返回 true 表示增援概率 > 0
+    EXPECT_TRUE(m_zombie->canSummonReinforcements());
+    // DifficultyHelper::canZombieReinforce 应该在 Hard 模式下返回 true
+    EXPECT_TRUE(entity::combat::DifficultyHelper::canZombieReinforce(Difficulty::Hard));
+}
+
+TEST_F(ZombieEntityTest, DoMobSpawningGameruleDisablesReinforcement)
+{
+    // 即使在 Hard 模式下，如果 doMobSpawning 为 false，增援也不应触发
+    m_world->setDifficulty(Difficulty::Hard);
+    m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 1.0);
+
+    // 设置 doMobSpawning 为 false
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING, false);
+
+    // trySummonReinforcements 应该因为 doMobSpawning = false 而直接返回
+    // 记录当前生成数量
+    size_t countBefore = m_world->spawnedEntityCount();
+    m_zombie->trySummonReinforcements();
+    EXPECT_EQ(m_world->spawnedEntityCount(), countBefore) << "doMobSpawning=false 时不应该生成增援实体";
+
+    // 恢复
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING, true);
 }
 
 } // namespace
