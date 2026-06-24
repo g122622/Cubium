@@ -563,6 +563,8 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/special/AxolotlGoalsTest.cpp
     # DolphinGoals 海豚 AI 目标测试
     common/entity/ai/goal/goals/special/DolphinGoalsTest.cpp
+    # DrownedGoals 溺尸 AI 目标测试
+    common/entity/ai/goal/goals/special/DrownedGoalsTest.cpp
     # WanderingTraderGoals 流浪商人 AI 目标测试
     common/entity/ai/goal/goals/special/WanderingTraderGoalsTest.cpp
     # Sensors 传感器测试（VillagerHostilesSensor、AvoidEntitySensor）

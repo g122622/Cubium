@@ -23,6 +23,7 @@
 
 #include "DrownedEntity.hpp"
 
+#include "common/entity/ai/controller/DrownedMoveControl.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
@@ -48,6 +49,9 @@ DrownedEntity::DrownedEntity(EntityId id)
 {
     // 溺尸可以走上1格高的方块
     setStepHeight(1.0f);
+
+    // 使用溺尸专用的两栖移动控制器（水中游泳 + 陆地行走）
+    m_moveController = std::make_unique<entity::ai::controller::DrownedMoveControl>(this);
 
     // 注册属性
     registerAttributes();
@@ -152,9 +156,9 @@ void DrownedEntity::tick()
 {
     ZombieEntity::tick();
 
-    // 溺尸在水中时的特殊移动控制由 DrownedMoveController 处理
+    // 溺尸在水中时的特殊移动控制由 DrownedMoveControl 处理
     // DrownedSwimUpGoal 和 DrownedGoToBeachGoal 管理 searchingForLand 状态
-    // DrownedMoveController 读取 wantsToSwim() 来决定水中移动方式
+    // DrownedMoveControl 读取 wantsToSwim() 来决定水中移动方式
 }
 
 void DrownedEntity::registerGoals()

@@ -11,6 +11,7 @@ controller/
 ├── JumpController.hpp/cpp          # 跳跃控制器，管理跳跃状态
 ├── VexMovementController.hpp/cpp   # 恼鬼飞行控制器，穿墙飞行
 ├── GhastMovementController.hpp/cpp # 恶魂飞行控制器，带碰撞检测飞行
+├── DrownedMoveControl.hpp/cpp      # 溺尸两栖控制器，水中游泳+陆地行走
 └── README.md
 ```
 
@@ -33,6 +34,7 @@ controller/
 继承关系：
 - VexMovementController ──继承──> MovementController
 - GhastMovementController ──继承──> MovementController
+- DrownedMoveControl ──继承──> MovementController
 ```
 
 **控制器调用顺序**（在 MobEntity::tick() 中）：
@@ -58,6 +60,7 @@ controller/
   - `SwimGoal` → JumpController
   - `VexEntity` → VexMovementController
   - `GhastEntity` → GhastMovementController
+  - `DrownedEntity` → DrownedMoveControl
 - `PathNavigator` - 通过 MovementController 执行路径移动
 
 ## 容易踩的坑
@@ -129,3 +132,10 @@ if (auto* ctrl = m_mob->lookController()) {
 ### 9. LookController 的 shouldResetPitch()
 
 默认实现返回 true，俯仰角会在某些情况下重置。子类可重写此方法改变行为。
+
+### 10. DrownedMoveControl 两栖移动
+
+溺尸使用 `DrownedMoveControl` 实现水中/陆地双模式移动：
+- **水中模式**（`wantsToSwim() && isInWater()`）：直接修改 velocity 实现三维游泳移动，Y 方向使用 0.1 缩放因子（比水平方向 0.005 大 20 倍），提供足够垂直推力；旋转速度限制 90°/tick；身体朝向与头部一致
+- **陆地模式**（不在水中或不想游泳）：添加微小重力（-0.008），委托基类 `MovementController::tick()` 处理地面行走
+- `searchingForLand` 标志由 `DrownedSwimUpGoal` 设置、`DrownedGoToBeachGoal` 清除，控制是否施加额外向上推力
