@@ -570,6 +570,15 @@
     典型覆写示例：`VillagerEntity::
         setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
 
+    ## #hurtMarked 受伤标记机制
+    - `m_hurtMarked`（bool）— 瞬态标记，实体受到伤害或击退时设为 true
+    - `markHurt()` — 设置标记为 true
+    - `isHurtMarked()` — 查询标记状态
+    - `clearHurtMarked()` — 清除标记（由 EntityTracker 速度同步后调用）
+    - 用途：服务端 EntityTracker 在 tick 中检测 `isHurtMarked()`，为 true 时向所有追踪玩家发送 EntityVelocityPacket，然后清除标记；AI 目标检测（如 TradeWithPlayerGoal 检查 `isHurtMarked()` 判断是否中断交易）
+    - 字段位于 Entity 类 protected 区域，紧随 `m_invulnerable` 之后
+    - 该标记不参与 NBT 序列化，实体重载后从 false 开始
+
     ## #setAttackTarget 虚方法
     - `MobEntity::setAttackTarget()` 和 `MobEntity::
         attackTarget()` 现为 `virtual` 方法，允许IAngerable实体在设置攻击目标时同步更新愤怒状态

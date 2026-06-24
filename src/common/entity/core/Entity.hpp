@@ -2133,6 +2133,9 @@ protected:
 
     // 受伤标记（服务端：设为 true 表示需要同步速度到客户端）
     // 对应 MC Java 的 Entity.hurtMarked 字段
+    // TODO: ItemEntity、ExperienceOrbEntity、FallingBlockEntity、HangingEntity、ProjectileEntity
+    // 等非生物实体需要重写 hurt() 方法并调用 markHurt()，与 MC Java 对齐。
+    // 当前这些实体使用基类 Entity::hurt()（返回 false），不会设置 hurtMarked。
     bool m_hurtMarked = false;
 
     // 自定义名称

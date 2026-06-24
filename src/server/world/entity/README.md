@@ -16,7 +16,7 @@ src/server/world/entity/
 
 ## 内部模块关系
 
-- **EntityTracker** 管理实体的客户端可见性，基于距离和视距计算追踪范围，发送实体生成/销毁/更新包
+- **EntityTracker** 管理实体的客户端可见性，基于距离和视距计算追踪范围，发送实体生成/销毁/更新包；tick 中检测 `isHurtMarked()` 并在受伤时发送速度同步包
 - **ItemPickupManager** 处理玩家拾取掉落物逻辑，包括拾取检测、物品合并（空间哈希优化）、背包更新
 - **EntityChunkTracker** 跟踪实体当前所属区块，为区块卸载保存和跨区块移动修正提供稳定映射
 
@@ -28,6 +28,7 @@ src/server/world/entity/
 - `common/entity/core/Entity`, `LivingEntity`, `MobEntity`, `ItemEntity`, `Player` - 实体类型
 - `common/world/entity/EntityManager` - 实体管理器
 - `common/network/packet/EntityPackets`, `InventoryPackets` - 网络包
+- `common/entity/core/Entity`（hurtMarked 标记） - 实体受伤标记驱动速度同步
 
 **依赖方（下游）**：
 - `MinecraftServer` - 在 tick 中调用 `EntityTracker::tick()` 和 `ItemPickupManager::tick()`
@@ -57,3 +58,9 @@ Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包
 ### 7. EntityChunkTracker 与 EntityTracker 的区别
 - `EntityTracker`：网络同步追踪，管理客户端可见性
 - `EntityChunkTracker`：区块归属追踪，用于区块卸载时保存实体
+
+### 8. hurtMarked 速度同步机制
+- EntityTracker::tick() 遍历追踪实体时检查 `entity->isHurtMarked()`
+- 当 hurtMarked 为 true 时，调用 `_sendVelocityPacket()` 向所有追踪玩家发送 EntityVelocityPacket，然后调用 `clearHurtMarked()` 清除标记
+- 该机制确保实体受伤/击退后客户端速度立即同步，避免客户端预测与服务器不一致
+- `_sendVelocityPacket()` 是新增的私有方法，封装速度包的构建和广播逻辑

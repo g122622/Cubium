@@ -327,6 +327,9 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
             // 速度同步：当实体的 hurtMarked 为 true 时，发送速度同步包
             // 对应 MC Java 的 ServerEntity.sendDirtyEntityData() 中对 hurtMarked 的处理
             if (entity->isHurtMarked()) {
+                // TODO: MC Java 的 Player.causeExtraKnockback() 中对 ServerPlayer 目标会立即发送
+                // EntityVelocityPacket 并重置 hurtMarked，避免疾跑击退导致速度重复应用。
+                // 当前实现对所有实体统一发送，未来需要区分 ServerPlayer 特殊处理。
                 for (PlayerId playerId : tracked.trackingPlayers) {
                     _sendVelocityPacket(server, playerId, entity);
                 }

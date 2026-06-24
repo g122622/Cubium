@@ -124,6 +124,11 @@ public:
 
     void tick() override;
 
+    // TODO: ItemEntity 需要重写 hurt() 方法以处理伤害和标记 hurtMarked。
+    // MC Java 中 ItemEntity.hurt() 在受伤时调用 markHurt() 并设置 m_forwardDirection 反转，
+    // 当前基类 Entity::hurt() 返回 false 不处理伤害，导致物品实体的 hurtMarked 不会被设置，
+    // 速度同步缺失。完整实现需要 ItemEntity::hurt() 重写。
+
     /**
      * @brief 检查物品实体是否阻尼振动
      *

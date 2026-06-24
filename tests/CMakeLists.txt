@@ -467,6 +467,7 @@ add_executable(mc_tests
     # Player LUCK 属性测试
     entity/PlayerLuckAttributeTest.cpp
     entity/LivingEntityTests.cpp
+    entity/HurtMarkedTest.cpp
     entity/AnimalSoundTests.cpp
     entity/GoalTests.cpp
     entity/EatGrassGoalTest.cpp
