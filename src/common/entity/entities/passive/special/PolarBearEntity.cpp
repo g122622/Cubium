@@ -250,7 +250,7 @@ void PolarBearEntity::tick()
     if (world() != nullptr && world()->isClientSide()) {
         // 检查动画值是否变化（需要重新计算碰撞箱）
         if (m_clientSideStandAnimation != m_clientSideStandAnimation0) {
-            // TODO: 当实现 EntitySize 动态计算时添加 recalculateSize
+            refreshDimensions();
         }
 
         // 保存上一帧动画值
@@ -258,11 +258,11 @@ void PolarBearEntity::tick()
 
         // 根据站立状态更新动画
         if (isStanding()) {
-            // 站立时动画增加（最大 6.0）
-            m_clientSideStandAnimation = math::clamp(m_clientSideStandAnimation + 1.0f, 0.0f, 6.0f);
+            // 站立时动画增加（最大 STAND_ANIMATION_TICKS）
+            m_clientSideStandAnimation = math::clamp(m_clientSideStandAnimation + 1.0f, 0.0f, STAND_ANIMATION_TICKS);
         } else {
             // 非站立时动画减少（最小 0.0）
-            m_clientSideStandAnimation = math::clamp(m_clientSideStandAnimation - 1.0f, 0.0f, 6.0f);
+            m_clientSideStandAnimation = math::clamp(m_clientSideStandAnimation - 1.0f, 0.0f, STAND_ANIMATION_TICKS);
         }
     }
 
@@ -286,7 +286,22 @@ void PolarBearEntity::tick()
 f32 PolarBearEntity::getStandingAnimationScale(f32 partialTick) const
 {
     // 注意：MC 的 lerp 签名是 lerp(t, a, b)，我们的签名是 lerp(a, b, t)
-    return math::lerp(m_clientSideStandAnimation0, m_clientSideStandAnimation, partialTick) / 6.0f;
+    return math::lerp(m_clientSideStandAnimation0, m_clientSideStandAnimation, partialTick) / STAND_ANIMATION_TICKS;
+}
+
+entity::EntitySize PolarBearEntity::getDimensions(EntityPose pose) const
+{
+    // 获取基础尺寸（含幼崽缩放）
+    entity::EntitySize baseSize = AnimalEntity::getDimensions(pose);
+
+    // 站立动画期间，高度随动画进度逐渐增大
+    if (m_clientSideStandAnimation > 0.0f) {
+        f32 standProgress = m_clientSideStandAnimation / STAND_ANIMATION_TICKS;
+        f32 heightScale = 1.0f + standProgress;
+        return baseSize.scale(1.0f, heightScale);
+    }
+
+    return baseSize;
 }
 
 void PolarBearEntity::registerData()

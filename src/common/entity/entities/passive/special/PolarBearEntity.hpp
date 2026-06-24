@@ -25,6 +25,7 @@
 
 #include "../../../../core/Types.hpp"
 #include "../../../core/DataParameter.hpp"
+#include "../../../core/EntitySize.hpp"
 #include "../../../interfaces/IAngerable.hpp"
 #include "entity/entities/passive/basic/AnimalEntity.hpp"
 #include <memory>
@@ -147,9 +148,33 @@ public:
     // ========== 属性 ==========
 
     /**
-     * @brief 获取眼睛高度
+     * @brief 获取基础宽度
+     * 北极熊的基础宽度为 1.4 格
      */
-    [[nodiscard]] f32 eyeHeight() const override { return isChild() ? 0.7f : 1.4f; }
+    [[nodiscard]] f32 getBaseWidth() const override { return POLAR_BEAR_WIDTH; }
+
+    /**
+     * @brief 获取基础高度
+     * 北极熊的基础高度为 1.4 格（四足站立）
+     */
+    [[nodiscard]] f32 getBaseHeight() const override { return POLAR_BEAR_HEIGHT; }
+
+    /**
+     * @brief 根据姿态和站立动画状态获取碰撞箱尺寸
+     *
+     * 站立动画期间，北极熊的高度会随动画进度逐渐增大。
+     * 完全站立时高度为基础高度的 2 倍（1.4 * 2.0 = 2.8）。
+     */
+    [[nodiscard]] entity::EntitySize getDimensions(EntityPose pose) const override;
+
+    /**
+     * @brief 获取眼睛高度
+     * 成年北极熊眼高为 1.19（1.4 * 0.85），幼熊为 0.595（0.7 * 0.85）
+     */
+    [[nodiscard]] f32 eyeHeight() const override
+    {
+        return isChild() ? POLAR_BEAR_HEIGHT * AgeableEntity::BABY_SCALE * 0.85f : POLAR_BEAR_HEIGHT * 0.85f;
+    }
 
     // ========== IAngerable 接口实现 ==========
 
@@ -276,12 +301,15 @@ private:
     i32 m_angerTime = 0;
 
     // ========== 常量 ==========
-    static constexpr i32 STAND_DURATION_MIN = 100;    // 最小站立时间 (ticks)
-    static constexpr i32 STAND_DURATION_MAX = 400;    // 最大站立时间 (ticks)
-    static constexpr i32 WARNING_SOUND_COOLDOWN = 40; // 警告声音冷却 (ticks)
-    static constexpr i32 MAX_ANGER_TIME = 600;        // 最大愤怒时间 (30秒)
-    static constexpr i32 ANGER_TIME_MIN = 20;         // 最小愤怒时间 (ticks)
-    static constexpr i32 ANGER_TIME_MAX = 39;         // 最大愤怒时间 (ticks)
+    static constexpr f32 POLAR_BEAR_WIDTH = 1.4f;      // 基础宽度
+    static constexpr f32 POLAR_BEAR_HEIGHT = 1.4f;     // 基础高度（四足站立）
+    static constexpr f32 STAND_ANIMATION_TICKS = 6.0f; // 站立动画过渡帧数
+    static constexpr i32 STAND_DURATION_MIN = 100;     // 最小站立时间 (ticks)
+    static constexpr i32 STAND_DURATION_MAX = 400;     // 最大站立时间 (ticks)
+    static constexpr i32 WARNING_SOUND_COOLDOWN = 40;  // 警告声音冷却 (ticks)
+    static constexpr i32 MAX_ANGER_TIME = 600;         // 最大愤怒时间 (30秒)
+    static constexpr i32 ANGER_TIME_MIN = 20;          // 最小愤怒时间 (ticks)
+    static constexpr i32 ANGER_TIME_MAX = 39;          // 最大愤怒时间 (ticks)
 
     // 友元类声明（AI目标类需要访问私有成员）
     friend class PolarBearMeleeAttackGoal;

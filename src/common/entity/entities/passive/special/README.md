@@ -84,9 +84,11 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 3. **打滚物理**：打滚持续 32 ticks，第 7、15、23 tick 执行小跳。
 
 ### PolarBearEntity 北极熊
-1. **站立动画同步**：使用 `DATA_STANDING_PARAM` 同步站立状态，客户端需要插值计算 `clientSideStandAnimation` 实现平滑过渡。
-2. **保护幼崽**：成年熊会攻击靠近幼熊的玩家，需要正确设置攻击目标。
-3. **不可繁殖**：北极熊 `isBreedingItem()` 返回 false，`spawnBaby()` 返回 nullptr。
+1. **站立动画同步**：使用 `DATA_STANDING_PARAM` 同步站立状态，客户端需要插值计算 `m_clientSideStandAnimation` 实现平滑过渡。
+2. **动态碰撞箱**：`getDimensions()` 被重写，站立动画期间高度随动画进度逐渐增大（`baseHeight * (1.0 + animationProgress / 6.0)`），完全站立时高度翻倍（1.4→2.8）。客户端 `tick()` 中动画值变化时调用 `refreshDimensions()` 更新碰撞箱。
+3. **基础尺寸**：`getBaseWidth()` 返回 1.4，`getBaseHeight()` 返回 1.4，眼高为 `1.4 * 0.85 = 1.19`（幼熊按 `BABY_SCALE` 缩放）。
+4. **保护幼崽**：成年熊会攻击靠近幼熊的玩家，需要正确设置攻击目标。
+5. **不可繁殖**：北极熊 `isBreedingItem()` 返回 false，`spawnBaby()` 返回 nullptr。
 
 ### StriderEntity 炽足兽
 1. **熔岩行走**：需要正确设置 `onGround = true` 当在熔岩表面时，否则会沉入熔岩。

@@ -25,6 +25,8 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/entity/core/EntityPose.hpp"
+#include "common/entity/core/EntitySize.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -118,9 +120,9 @@ TEST_F(PolarBearEntityTest, EyeHeight_AdultVsChild)
     // 设置成年和幼体状态
     childBear.setGrowingAge(-24000); // 负数表示幼体
 
-    // 成年熊眼睛高度 1.4，幼熊 0.7
-    EXPECT_FLOAT_EQ(adultBear.eyeHeight(), 1.4f);
-    EXPECT_FLOAT_EQ(childBear.eyeHeight(), 0.7f);
+    // 成年熊眼睛高度 1.19（1.4 * 0.85），幼熊 0.595（0.7 * 0.85）
+    EXPECT_FLOAT_EQ(adultBear.eyeHeight(), 1.4f * 0.85f);
+    EXPECT_FLOAT_EQ(childBear.eyeHeight(), 1.4f * 0.5f * 0.85f);
 }
 
 TEST_F(PolarBearEntityTest, BreedingItem_AlwaysReturnsFalse)
@@ -301,6 +303,55 @@ TEST_F(PolarBearEntityTest, Constants_AngerTimeRange)
     i32 angerTime = bear.getAngerTime();
     EXPECT_GE(angerTime, 20);
     EXPECT_LE(angerTime, 39);
+}
+
+// ========== 尺寸测试 ==========
+
+TEST_F(PolarBearEntityTest, Dimensions_BaseSize_Adult)
+{
+    PolarBearEntity bear(EntityId(1));
+
+    // 成年北极熊基础尺寸：宽 1.4，高 1.4
+    EXPECT_FLOAT_EQ(bear.getBaseWidth(), 1.4f);
+    EXPECT_FLOAT_EQ(bear.getBaseHeight(), 1.4f);
+}
+
+TEST_F(PolarBearEntityTest, Dimensions_BaseSize_Child)
+{
+    PolarBearEntity bear(EntityId(1));
+    bear.setGrowingAge(-24000); // 幼熊
+
+    // 幼熊基础尺寸的 width/height 由 AgeableEntity 缩放
+    // getBaseWidth/getBaseHeight 仍为 1.4，但 getDimensions 会缩放
+    auto dims = bear.getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims.width(), 0.7f);  // 1.4 * 0.5
+    EXPECT_FLOAT_EQ(dims.height(), 0.7f); // 1.4 * 0.5
+}
+
+TEST_F(PolarBearEntityTest, Dimensions_GetDimensions_AdultNotStanding)
+{
+    PolarBearEntity bear(EntityId(1));
+
+    // 未站立时，m_clientSideStandAnimation 为 0
+    auto dims = bear.getDimensions(EntityPose::Standing);
+
+    // 基础尺寸：宽 1.4，高 1.4，眼高 1.19
+    EXPECT_FLOAT_EQ(dims.width(), 1.4f);
+    EXPECT_FLOAT_EQ(dims.height(), 1.4f);
+    EXPECT_FLOAT_EQ(dims.eyeHeight(), 1.4f * 0.85f);
+}
+
+TEST_F(PolarBearEntityTest, Dimensions_GetDimensions_ChildNotStanding)
+{
+    PolarBearEntity bear(EntityId(1));
+    bear.setGrowingAge(-24000); // 幼熊
+
+    auto dims = bear.getDimensions(EntityPose::Standing);
+
+    // 幼熊基础尺寸：宽 0.7，高 0.7
+    EXPECT_FLOAT_EQ(dims.width(), 0.7f);
+    EXPECT_FLOAT_EQ(dims.height(), 0.7f);
+    EXPECT_FLOAT_EQ(dims.eyeHeight(), 0.7f * 0.85f);
 }
 
 // ========== 属性测试 ==========
