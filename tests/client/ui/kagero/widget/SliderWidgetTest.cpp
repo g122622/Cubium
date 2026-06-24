@@ -29,10 +29,12 @@
 #include "client/ui/kagero/widget/SliderWidget.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "client/ui/kagero/paint/PaintContext.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
 using namespace mc::client::ui::kagero::widget;
+using namespace mc::client::Colors;
 using namespace mc;
 
 // ==================== SliderWidget测试 ====================
@@ -368,4 +370,170 @@ TEST(SliderWidgetTest, KeyLeftRight)
     f64 afterRight = slider.value();
     slider.onKey(263, 0, 1, 0); // GLFW_KEY_LEFT
     EXPECT_LT(slider.value(), afterRight);
+}
+
+// ==================== Paint 渲染测试 ====================
+
+namespace {
+
+/**
+ * @brief 记录绘制调用的测试画布
+ *
+ * 只覆盖 SliderWidget paint 测试需要的调用，其余接口保持空实现。
+ */
+class SliderTestCanvas final : public paint::ICanvas {
+public:
+    void reset()
+    {
+        filledRectCount = 0;
+        borderCount = 0;
+        textCalled = false;
+        lastText.clear();
+        lastTextColor = 0;
+        lastTextX = 0.0f;
+        lastTextY = 0.0f;
+    }
+
+    void drawRect(const Rect& rect, const paint::IPaint& paint) override
+    {
+        ++filledRectCount;
+        lastFilledRect = rect;
+        lastFilledColor = paint.color().toARGB();
+    }
+
+    void drawRRect(const paint::RRect&, const paint::IPaint&) override {}
+    void drawCircle(f32, f32, f32, const paint::IPaint&) override {}
+    void drawOval(const Rect&, const paint::IPaint&) override {}
+    void drawPath(const paint::IPath&, const paint::IPaint&) override {}
+    void drawLine(f32, f32, f32, f32, const paint::IPaint&) override {}
+    void drawGradientRect(const Rect&, u32, u32, bool) override {}
+    void drawImage(const paint::IImage&, f32, f32) override {}
+    void drawImageRect(const paint::IImage&, const Rect&, const Rect&) override {}
+    void drawImageNine(const paint::IImage&, const Rect&, const Rect&, const paint::IPaint*) override {}
+
+    void drawText(const std::string& text, f32 x, f32 y, const paint::IPaint& paint) override
+    {
+        textCalled = true;
+        lastText = text;
+        lastTextX = x;
+        lastTextY = y;
+        lastTextColor = paint.color().toARGB();
+    }
+
+    void drawTextBlob(const paint::ITextBlob&, f32, f32, const paint::IPaint&) override {}
+    void clipRect(const Rect&) override {}
+    void clipRRect(const paint::RRect&) override {}
+    void clipPath(const paint::IPath&) override {}
+    void clipOutRect(const Rect&) override {}
+    [[nodiscard]] bool clipIsEmpty() const override { return false; }
+    [[nodiscard]] Rect getClipBounds() const override { return Rect{}; }
+    void translate(f32, f32) override {}
+    void scale(f32, f32) override {}
+    void rotate(f32) override {}
+    void concat(const paint::Matrix&) override {}
+    void setMatrix(const paint::Matrix&) override {}
+    [[nodiscard]] paint::Matrix getTotalMatrix() const override { return paint::Matrix::identity(); }
+    i32 save() override { return 0; }
+    void restore() override {}
+    void restoreToCount(i32) override {}
+    i32 saveLayer(const Rect*, const paint::IPaint*) override { return 0; }
+    i32 saveLayerAlpha(const Rect*, u8) override { return 0; }
+    [[nodiscard]] i32 width() const override { return 800; }
+    [[nodiscard]] i32 height() const override { return 600; }
+    [[nodiscard]] f32 getTextWidth(const std::string& text) const override
+    {
+        return static_cast<f32>(text.size()) * 6.0f;
+    }
+    [[nodiscard]] u32 getFontHeight() const override { return 12; }
+
+    int filledRectCount = 0;
+    int borderCount = 0;
+    bool textCalled = false;
+    std::string lastText;
+    f32 lastTextX = 0.0f;
+    f32 lastTextY = 0.0f;
+    u32 lastTextColor = 0;
+    Rect lastFilledRect{};
+    u32 lastFilledColor = 0;
+};
+
+} // namespace
+
+TEST(SliderWidgetTest, Paint_ShowValueTrue_DrawsText)
+{
+    SliderTestCanvas canvas;
+    PaintContext ctx(canvas);
+
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setVisible(true);
+    ASSERT_TRUE(slider.showValue()); // 默认 m_showValue = true
+
+    slider.paint(ctx);
+
+    // 验证 drawText 被调用，文本为 displayText() 的结果
+    EXPECT_TRUE(canvas.textCalled);
+    EXPECT_EQ(slider.displayText(), canvas.lastText);
+    // 文本颜色应为 WHITE
+    EXPECT_EQ(mc::client::Colors::WHITE, canvas.lastTextColor);
+}
+
+TEST(SliderWidgetTest, Paint_ShowValueFalse_NoTextDrawn)
+{
+    SliderTestCanvas canvas;
+    PaintContext ctx(canvas);
+
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setVisible(true);
+    slider.setShowValue(false);
+
+    slider.paint(ctx);
+
+    // m_showValue = false 时不应绘制文本
+    EXPECT_FALSE(canvas.textCalled);
+}
+
+TEST(SliderWidgetTest, Paint_DrawsTrackAndKnob)
+{
+    SliderTestCanvas canvas;
+    PaintContext ctx(canvas);
+
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setVisible(true);
+
+    slider.paint(ctx);
+
+    // paint() 应至少绘制轨道背景和手柄（两次 drawRect 调用）
+    // 以及值文本（一次 drawText）
+    EXPECT_GE(canvas.filledRectCount, 2);
+    EXPECT_TRUE(canvas.textCalled);
+}
+
+TEST(SliderWidgetTest, Paint_FormatCallbackText)
+{
+    SliderTestCanvas canvas;
+    PaintContext ctx(canvas);
+
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setVisible(true);
+    slider.setFormatCallback([](f64 value) -> std::string { return std::to_string(static_cast<i32>(value)) + "%"; });
+
+    slider.paint(ctx);
+
+    EXPECT_TRUE(canvas.textCalled);
+    EXPECT_EQ("50%", canvas.lastText);
+}
+
+TEST(SliderWidgetTest, Paint_InvisibleWidget_NoDrawing)
+{
+    SliderTestCanvas canvas;
+    PaintContext ctx(canvas);
+
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+    slider.setVisible(false);
+
+    slider.paint(ctx);
+
+    // 不可见时不应绘制任何内容
+    EXPECT_FALSE(canvas.textCalled);
+    EXPECT_EQ(0, canvas.filledRectCount);
 }

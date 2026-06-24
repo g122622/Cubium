@@ -155,13 +155,17 @@ public:
 
     bool onMouseMove(i32 mouseX, i32 mouseY) override
     {
-        if (!isActive() || !isVisible()) return false;
+        // 调用父类方法以保持鼠标状态更新（当前 ScrollableWidget 未覆写，
+        // 但保留调用以确保未来扩展时不遗漏）
+        bool handled = ScrollableWidget::onMouseMove(mouseX, mouseY);
+
+        if (!isActive() || !isVisible()) return handled;
 
         i32 newIndex = getIndexAt(mouseX, mouseY);
         if (newIndex != m_hoveredIndex) {
             m_hoveredIndex = newIndex;
         }
-        return newIndex >= 0;
+        return newIndex >= 0 || handled;
     }
 
     void paint(PaintContext& ctx) override
@@ -518,6 +522,13 @@ public:
      * @brief 获取双击时间阈值
      */
     [[nodiscard]] i32 doubleClickTime() const { return m_doubleClickTime; }
+
+    /**
+     * @brief 获取当前悬停项索引
+     *
+     * 返回鼠标当前悬停的列表项索引，无悬停时返回 -1。
+     */
+    [[nodiscard]] i32 hoveredIndex() const { return m_hoveredIndex; }
 
     // ==================== 数据绑定 ====================
 
