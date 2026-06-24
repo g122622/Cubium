@@ -73,21 +73,11 @@ std::optional<ResourceLocation> BlazeEntity::getDeathSound() const
     return SoundEvents::ENTITY_BLAZE_DEATH;
 }
 
-void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
+void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* /*target*/, f32 /*charge*/)
 {
-    // IRangedAttackMob 接口的必要实现。烈焰人使用专用的 BlazeFireballAttackGoal
+    // IRangedAttackMob 纯虚接口的空实现。
+    // 烈焰人使用专用的 BlazeFireballAttackGoal 管理火球攻击，
     // 而非通用的 RangedAttackGoal，因此此方法不会被外部调用。
-    // 当前的备用逻辑用于防御性编程，确保万一被调用时状态一致性不受破坏。
-    if (!target || !target->isAlive()) {
-        return;
-    }
-
-    m_fireballCount--;
-    if (m_fireballCount <= 0) {
-        m_charging = false;
-        m_attackStep = 0;
-        m_attackTime = ATTACK_COOLDOWN;
-    }
 }
 
 void BlazeEntity::tick()
@@ -129,11 +119,6 @@ void BlazeEntity::tick()
             f32 pz = static_cast<f32>(z()) + (random.nextFloat() - 0.5f) * width();
             world()->addParticle(ParticleTypeId::LargeSmoke, Vector3(px, py, pz), Vector3(0.0, 0.0, 0.0));
         }
-    }
-
-    // 更新攻击冷却
-    if (m_attackTime > 0) {
-        m_attackTime--;
     }
 
     MonsterEntity::tick();

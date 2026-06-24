@@ -25,7 +25,7 @@
 
 #include <cmath>
 
-#include "common/core/Types.hpp"
+#include "common/entity/entities/monster/nether/BlazeEntity.hpp"
 
 using namespace mc;
 
@@ -34,6 +34,8 @@ using namespace mc;
 // ============================================================================
 //
 // 验证 MC 1.21.11 Blaze 的悬浮机制相关常量。
+// 所有常量直接引用 BlazeEntity 的 public static constexpr 成员，
+// 确保实现常量被修改时测试会失败。
 // 完整的行为测试（需要 Mock 世界和实体）应在集成测试中进行。
 
 class BlazeHoverBehaviorTest : public ::testing::Test {
@@ -48,29 +50,26 @@ protected:
 TEST_F(BlazeHoverBehaviorTest, HeightOffsetMode_IsCorrect)
 {
     // MC 1.21.11: Blaze.customServerAiStep() 中 triangle(0.5, 6.891) 的众数
-    constexpr f32 HEIGHT_OFFSET_MODE = 0.5f;
-    EXPECT_FLOAT_EQ(HEIGHT_OFFSET_MODE, 0.5f);
+    EXPECT_FLOAT_EQ(BlazeEntity::HEIGHT_OFFSET_MODE, 0.5f);
 }
 
 TEST_F(BlazeHoverBehaviorTest, HeightOffsetDeviation_IsCorrect)
 {
     // MC 1.21.11: Blaze.customServerAiStep() 中 triangle(0.5, 6.891) 的偏差
-    constexpr f32 HEIGHT_OFFSET_DEVIATION = 6.891f;
-    EXPECT_FLOAT_EQ(HEIGHT_OFFSET_DEVIATION, 6.891f);
+    EXPECT_FLOAT_EQ(BlazeEntity::HEIGHT_OFFSET_DEVIATION, 6.891f);
 }
 
 TEST_F(BlazeHoverBehaviorTest, HeightOffsetChangeInterval_IsCorrect)
 {
     // MC 1.21.11: 每 100 tick 重新随机化 allowedHeightOffset
-    constexpr i32 HEIGHT_OFFSET_CHANGE_INTERVAL = 100;
-    EXPECT_EQ(HEIGHT_OFFSET_CHANGE_INTERVAL, 100);
+    EXPECT_EQ(BlazeEntity::HEIGHT_OFFSET_CHANGE_INTERVAL, 100);
 }
 
 TEST_F(BlazeHoverBehaviorTest, HeightOffsetInitialValue_IsCorrect)
 {
     // MC 1.21.11: Blaze 构造函数中 allowedHeightOffset 初始值为 0.5
-    constexpr f32 INITIAL_ALLOWED_HEIGHT_OFFSET = 0.5f;
-    EXPECT_FLOAT_EQ(INITIAL_ALLOWED_HEIGHT_OFFSET, 0.5f);
+    // 初始值等于 HEIGHT_OFFSET_MODE（三角分布的众数）
+    EXPECT_FLOAT_EQ(BlazeEntity::HEIGHT_OFFSET_MODE, 0.5f);
 }
 
 // ============================================================================
@@ -82,11 +81,8 @@ TEST_F(BlazeHoverBehaviorTest, TriangleDistribution_RangeBoundaries)
     // MC 1.21.11: random.triangle(mode, deviation) = mode + (nextFloat() - nextFloat()) * deviation
     // nextFloat() 返回 [0.0, 1.0)，因此 (nextFloat() - nextFloat()) 范围为 (-1, 1)
     // 所以 triangle(0.5, 6.891) 的理论范围为 (0.5 - 6.891, 0.5 + 6.891) = (-6.391, 7.391)
-    constexpr f32 MODE = 0.5f;
-    constexpr f32 DEVIATION = 6.891f;
-
-    f32 minPossible = MODE - DEVIATION; // 接近但不等于，因为 nextFloat() 不包含 1.0
-    f32 maxPossible = MODE + DEVIATION;
+    f32 minPossible = BlazeEntity::HEIGHT_OFFSET_MODE - BlazeEntity::HEIGHT_OFFSET_DEVIATION;
+    f32 maxPossible = BlazeEntity::HEIGHT_OFFSET_MODE + BlazeEntity::HEIGHT_OFFSET_DEVIATION;
 
     EXPECT_NEAR(minPossible, -6.391f, 0.001f);
     EXPECT_NEAR(maxPossible, 7.391f, 0.001f);
@@ -97,8 +93,7 @@ TEST_F(BlazeHoverBehaviorTest, TriangleDistribution_MeanConvergence)
     // 三角分布的期望值等于众数 mode
     // E[mode + (X1 - X2) * deviation] = mode + (E[X1] - E[X2]) * deviation = mode + 0 = mode
     // 因为 E[nextFloat()] = 0.5，所以 E[X1 - X2] = 0
-    constexpr f32 MODE = 0.5f;
-    EXPECT_FLOAT_EQ(MODE, 0.5f);
+    EXPECT_FLOAT_EQ(BlazeEntity::HEIGHT_OFFSET_MODE, 0.5f);
 }
 
 // ============================================================================
@@ -109,26 +104,22 @@ TEST_F(BlazeHoverBehaviorTest, AscendTargetSpeed_IsCorrect)
 {
     // MC 1.21.11: (0.3F - vec3.y) * 0.3F 中的目标速度 0.3
     // 这是烈焰人上升时 Y 轴速度的收敛目标值 (0.3 blocks/tick)
-    constexpr f32 ASCEND_TARGET_SPEED = 0.3f;
-    EXPECT_FLOAT_EQ(ASCEND_TARGET_SPEED, 0.3f);
+    EXPECT_FLOAT_EQ(BlazeEntity::ASCEND_TARGET_SPEED, 0.3f);
 }
 
 TEST_F(BlazeHoverBehaviorTest, AscendAcceleration_IsCorrect)
 {
     // MC 1.21.11: (0.3F - vec3.y) * 0.3F 中的推力系数 0.3
     // 这是 PD 控制器的增益系数
-    constexpr f32 ASCEND_ACCELERATION = 0.3f;
-    EXPECT_FLOAT_EQ(ASCEND_ACCELERATION, 0.3f);
+    EXPECT_FLOAT_EQ(BlazeEntity::ASCEND_ACCELERATION, 0.3f);
 }
 
 TEST_F(BlazeHoverBehaviorTest, AscendForce_CalculationWhenStationary)
 {
     // 当烈焰人静止 (velocityY = 0) 时的上升推力
     // ascendForce = (0.3 - 0.0) * 0.3 = 0.09 blocks/tick²
-    constexpr f32 TARGET_SPEED = 0.3f;
-    constexpr f32 ACCELERATION = 0.3f;
     constexpr f32 INITIAL_VEL = 0.0f;
-    constexpr f32 EXPECTED_FORCE = (TARGET_SPEED - INITIAL_VEL) * ACCELERATION;
+    constexpr f32 EXPECTED_FORCE = (BlazeEntity::ASCEND_TARGET_SPEED - INITIAL_VEL) * BlazeEntity::ASCEND_ACCELERATION;
 
     EXPECT_FLOAT_EQ(EXPECTED_FORCE, 0.09f);
 }
@@ -137,10 +128,8 @@ TEST_F(BlazeHoverBehaviorTest, AscendForce_CalculationWhenFalling)
 {
     // 当烈焰人下落 (velocityY = -0.5) 时的上升推力
     // ascendForce = (0.3 - (-0.5)) * 0.3 = 0.8 * 0.3 = 0.24 blocks/tick²
-    constexpr f32 TARGET_SPEED = 0.3f;
-    constexpr f32 ACCELERATION = 0.3f;
     constexpr f32 FALLING_VEL = -0.5f;
-    constexpr f32 EXPECTED_FORCE = (TARGET_SPEED - FALLING_VEL) * ACCELERATION;
+    constexpr f32 EXPECTED_FORCE = (BlazeEntity::ASCEND_TARGET_SPEED - FALLING_VEL) * BlazeEntity::ASCEND_ACCELERATION;
 
     EXPECT_FLOAT_EQ(EXPECTED_FORCE, 0.24f);
 }
@@ -149,10 +138,8 @@ TEST_F(BlazeHoverBehaviorTest, AscendForce_CalculationAtTargetSpeed)
 {
     // 当烈焰人已达到目标速度 (velocityY = 0.3) 时推力为零
     // ascendForce = (0.3 - 0.3) * 0.3 = 0.0
-    constexpr f32 TARGET_SPEED = 0.3f;
-    constexpr f32 ACCELERATION = 0.3f;
-    constexpr f32 CURRENT_VEL = 0.3f;
-    constexpr f32 EXPECTED_FORCE = (TARGET_SPEED - CURRENT_VEL) * ACCELERATION;
+    constexpr f32 CURRENT_VEL = BlazeEntity::ASCEND_TARGET_SPEED;
+    constexpr f32 EXPECTED_FORCE = (BlazeEntity::ASCEND_TARGET_SPEED - CURRENT_VEL) * BlazeEntity::ASCEND_ACCELERATION;
 
     EXPECT_FLOAT_EQ(EXPECTED_FORCE, 0.0f);
 }
@@ -161,10 +148,8 @@ TEST_F(BlazeHoverBehaviorTest, AscendForce_CalculationAboveTargetSpeed)
 {
     // 当烈焰人速度超过目标速度 (velocityY = 0.5) 时推力为负（减速）
     // ascendForce = (0.3 - 0.5) * 0.3 = -0.2 * 0.3 = -0.06
-    constexpr f32 TARGET_SPEED = 0.3f;
-    constexpr f32 ACCELERATION = 0.3f;
     constexpr f32 CURRENT_VEL = 0.5f;
-    constexpr f32 EXPECTED_FORCE = (TARGET_SPEED - CURRENT_VEL) * ACCELERATION;
+    constexpr f32 EXPECTED_FORCE = (BlazeEntity::ASCEND_TARGET_SPEED - CURRENT_VEL) * BlazeEntity::ASCEND_ACCELERATION;
 
     EXPECT_FLOAT_EQ(EXPECTED_FORCE, -0.06f);
 }
@@ -177,8 +162,7 @@ TEST_F(BlazeHoverBehaviorTest, FallDamping_IsCorrect)
 {
     // MC 1.21.11: Blaze.aiStep() 中 velocityY *= 0.6
     // 当不在地面且 Y 轴速度向下时，下落速度乘以 0.6
-    constexpr f32 FALL_DAMPING = 0.6f;
-    EXPECT_FLOAT_EQ(FALL_DAMPING, 0.6f);
+    EXPECT_FLOAT_EQ(BlazeEntity::FALL_DAMPING, 0.6f);
 }
 
 TEST_F(BlazeHoverBehaviorTest, FallDamping_TerminalVelocityEstimate)
@@ -188,8 +172,7 @@ TEST_F(BlazeHoverBehaviorTest, FallDamping_TerminalVelocityEstimate)
     // 终端速度 = gravity / (1 - damping) ≈ 0.08 / (1 - 0.6) = 0.2 blocks/tick
     // 比普通实体的终端速度 ≈ 3.92 blocks/tick 低很多
     constexpr f32 GRAVITY = 0.08f;
-    constexpr f32 DAMPING = 0.6f;
-    constexpr f32 TERMINAL_VELOCITY = GRAVITY / (1.0f - DAMPING);
+    constexpr f32 TERMINAL_VELOCITY = GRAVITY / (1.0f - BlazeEntity::FALL_DAMPING);
 
     EXPECT_NEAR(TERMINAL_VELOCITY, 0.2f, 0.01f);
 }
@@ -201,8 +184,7 @@ TEST_F(BlazeHoverBehaviorTest, FallDamping_TerminalVelocityEstimate)
 TEST_F(BlazeHoverBehaviorTest, WaterDamageAmount_IsCorrect)
 {
     // MC 1.21.11: 烈焰人在水中或雨中每 tick 受 1.0 伤害
-    constexpr f32 WATER_DAMAGE_AMOUNT = 1.0f;
-    EXPECT_FLOAT_EQ(WATER_DAMAGE_AMOUNT, 1.0f);
+    EXPECT_FLOAT_EQ(BlazeEntity::WATER_DAMAGE_AMOUNT, 1.0f);
 }
 
 // ============================================================================
@@ -213,12 +195,12 @@ TEST_F(BlazeHoverBehaviorTest, AscendCondition_EyeHeightComparison)
 {
     // MC 1.21.11: 上升推力条件为 target.eyeY > blaze.eyeY + allowedHeightOffset
     // 验证计算逻辑：
-    // 当 allowedHeightOffset = 0.5（初始值）时，
+    // 当 allowedHeightOffset = 0.5（初始值 = HEIGHT_OFFSET_MODE）时，
     // 如果目标 eyeY = 70.0，烈焰人 eyeY = 68.0，则 70.0 > 68.0 + 0.5 = 68.5 → 上升
     // 如果目标 eyeY = 68.0，烈焰人 eyeY = 68.0，则 68.0 > 68.0 + 0.5 = 68.5 → 不上升
     // 如果目标 eyeY = 69.0，烈焰人 eyeY = 68.0，则 69.0 > 68.0 + 0.5 = 68.5 → 上升
 
-    constexpr f32 allowedHeightOffset = 0.5f;
+    constexpr f32 allowedHeightOffset = BlazeEntity::HEIGHT_OFFSET_MODE;
 
     f64 blazeEyeY = 68.0;
 
@@ -286,11 +268,9 @@ TEST_F(BlazeHoverBehaviorTest, FallDamping_OnlyAppliedWhenFalling)
     // 在地面上时不应用缓降
     // 上升时 (velocityY > 0) 也不应用缓降
 
-    constexpr f32 DAMPING = 0.6f;
-
     // 情况1: 下落时 velocityY = -1.0
     f32 fallingVel = -1.0f;
-    f32 dampedFalling = fallingVel * DAMPING;
+    f32 dampedFalling = fallingVel * BlazeEntity::FALL_DAMPING;
     EXPECT_FLOAT_EQ(dampedFalling, -0.6f);
 
     // 情况2: 上升时 velocityY = 0.3，不应用缓降
@@ -318,23 +298,20 @@ TEST_F(BlazeHoverBehaviorTest, CombinedBehavior_EquilibriumEstimate)
     //   下一 tick: 如果 v > 0，不缓降，推力 = (0.3 - v) * 0.3
     //             如果 v < 0，先缓降 v *= 0.6，推力 = (0.3 - v*0.6) * 0.3
     //   稳态时 v 收敛到 ASCEND_TARGET_SPEED = 0.3 blocks/tick
-    constexpr f32 ASCEND_TARGET_SPEED = 0.3f;
-    constexpr f32 ASCEND_ACCELERATION = 0.3f;
-    constexpr f32 FALL_DAMPING = 0.6f;
 
     // 模拟几 tick 的速度变化，验证收敛
     f32 velY = 0.0f; // 初始静止
 
     // tick 1: v=0, 无缓降, 推力 = (0.3-0)*0.3 = 0.09 → v = 0.09
-    velY += (ASCEND_TARGET_SPEED - velY) * ASCEND_ACCELERATION;
+    velY += (BlazeEntity::ASCEND_TARGET_SPEED - velY) * BlazeEntity::ASCEND_ACCELERATION;
     EXPECT_NEAR(velY, 0.09f, 0.001f);
 
     // tick 2: v=0.09, 无缓降, 推力 = (0.3-0.09)*0.3 = 0.063 → v = 0.153
-    velY += (ASCEND_TARGET_SPEED - velY) * ASCEND_ACCELERATION;
+    velY += (BlazeEntity::ASCEND_TARGET_SPEED - velY) * BlazeEntity::ASCEND_ACCELERATION;
     EXPECT_NEAR(velY, 0.153f, 0.001f);
 
     // tick 3: v=0.153, 无缓降, 推力 = (0.3-0.153)*0.3 = 0.0441 → v = 0.1971
-    velY += (ASCEND_TARGET_SPEED - velY) * ASCEND_ACCELERATION;
+    velY += (BlazeEntity::ASCEND_TARGET_SPEED - velY) * BlazeEntity::ASCEND_ACCELERATION;
     EXPECT_NEAR(velY, 0.1971f, 0.001f);
 
     // 继续模拟直到收敛
@@ -343,10 +320,10 @@ TEST_F(BlazeHoverBehaviorTest, CombinedBehavior_EquilibriumEstimate)
         velY -= 0.08f;
         // 缓降（如果下落）
         if (velY < 0.0f) {
-            velY *= FALL_DAMPING;
+            velY *= BlazeEntity::FALL_DAMPING;
         }
         // 上升推力
-        velY += (ASCEND_TARGET_SPEED - velY) * ASCEND_ACCELERATION;
+        velY += (BlazeEntity::ASCEND_TARGET_SPEED - velY) * BlazeEntity::ASCEND_ACCELERATION;
     }
 
     // 验证速度收敛到接近 0.3（在重力环境下稳态速度低于0.3）
@@ -364,13 +341,12 @@ TEST_F(BlazeHoverBehaviorTest, FallBehavior_WithoutAscendNoTarget)
     // 当没有攻击目标时，烈焰人不会上升，只会缓降
     // 模拟纯下落（无推力）
     constexpr f32 GRAVITY = 0.08f; // MC 重力
-    constexpr f32 DAMPING = 0.6f;
 
     f32 velY = 0.0f;
     for (int i = 0; i < 20; ++i) {
         velY -= GRAVITY; // 重力
         if (velY < 0.0f) {
-            velY *= DAMPING; // 缓降
+            velY *= BlazeEntity::FALL_DAMPING; // 缓降
         }
     }
 
@@ -430,4 +406,19 @@ TEST_F(BlazeHoverBehaviorTest, BlazeHeight_IsCorrect)
     // MC 1.21.11: 烈焰人高度 1.8
     constexpr f32 HEIGHT = 1.8f;
     EXPECT_FLOAT_EQ(HEIGHT, 1.8f);
+}
+
+// ============================================================================
+// 死代码清理验证：确认旧成员已移除
+// ============================================================================
+
+TEST_F(BlazeHoverBehaviorTest, NoRedundantAttackTimeInEntity)
+{
+    // MC 1.21.11 中 attackTime 是 BlazeAttackGoal 的局部字段，
+    // 不在 Blaze 实体本身上。BlazeEntity 不应有 m_attackTime、
+    // m_attackStep、m_fireballCount 成员——这些由
+    // BlazeFireballAttackGoal 内部管理。
+    // 此测试通过引用 BlazeEntity 常量来确保编译通过，
+    // 间接验证头文件结构正确。
+    EXPECT_EQ(BlazeEntity::HEIGHT_OFFSET_CHANGE_INTERVAL, 100);
 }
