@@ -139,10 +139,10 @@ void SmallFireballEntity::onEntityHit(const RayTraceResult& result)
     // 只有目标不免疫火焰时才造成伤害和点燃
     if (!result.hitEntity->isImmuneToFire()) {
         // 保存当前燃烧时间
-        i32 fireTicks = result.hitEntity->getFireTimer();
+        i32 fireTicks = result.hitEntity->getRemainingFireTicks();
 
         // 点燃目标 5 秒
-        result.hitEntity->setFire(5);
+        result.hitEntity->igniteForSeconds(5.0f);
 
         // 对 LivingEntity 造成 5.0 点伤害
         LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);

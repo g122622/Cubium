@@ -2128,7 +2128,7 @@ void Player::attack(Entity& target)
     bool wasBurning = false;
     if (fireAspectLevel > 0 && !livingTarget->isOnFire()) {
         wasBurning = true;
-        livingTarget->setFire(20); // 1 秒 = 20 ticks
+        livingTarget->igniteForTicks(20); // 1 秒 = 20 ticks
     }
 
     // 12. 应用暴击倍率
@@ -2235,7 +2235,7 @@ void Player::attack(Entity& target)
         // 17. 应用火焰附加
         if (fireAspectLevel > 0) {
             // 火焰附加持续时间 = level * 4 秒
-            livingTarget->setFire(fireAspectLevel * 4 * 20); // 20 ticks per second
+            livingTarget->igniteForSeconds(static_cast<f32>(fireAspectLevel) * 4.0f);
         }
 
         // 18. 设置最后攻击目标
@@ -2363,7 +2363,7 @@ void Player::attack(Entity& target)
         playSound(SoundEvents::ENTITY_PLAYER_ATTACK_NODAMAGE, 1.0f, 1.0f);
 
         if (wasBurning) {
-            livingTarget->setFire(0); // 移除之前点燃的火焰
+            livingTarget->clearFire(); // 移除之前点燃的火焰
         }
     }
 }

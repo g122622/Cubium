@@ -347,7 +347,7 @@ void MobEntity::burnUndead()
         // 如果物品不可损坏（如附魔绑定/无限耐久），实体也不会燃烧
     } else {
         // 防护槽位为空：实体被点燃 8 秒
-        setFire(8);
+        igniteForSeconds(8.0f);
     }
 }
 
@@ -397,9 +397,8 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
     EntityDamageSource damageSource = DamageSources::mobAttack(this);
 
     // 如果有火焰附加，在攻击前点燃目标 1 秒（用于燃烧传递）
-    // setFire 接收 ticks，1 秒 = 20 ticks
     if (fireAspectLevel > 0) {
-        target.setFire(20); // 1 秒 = 20 ticks
+        target.igniteForTicks(20); // 1 秒 = 20 ticks
     }
 
     bool attacked = target.hurt(damageSource, attackDamage);
@@ -447,7 +446,7 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
         // 7. 应用火焰附加（攻击后应用完整燃烧时间）
         if (fireAspectLevel > 0) {
             // 火焰附加持续时间 = level * 4 秒
-            target.setFire(fireAspectLevel * 4 * 20); // 20 ticks per second
+            target.igniteForSeconds(static_cast<f32>(fireAspectLevel) * 4.0f);
         }
 
         // 8. 设置最后攻击者

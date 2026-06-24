@@ -180,14 +180,25 @@
                 骑乘时步高会动态变化（IRideable）
 
                 ## #火焰系统注意事项
-                - `setFire(ticks)` 只在当前值较小时更新（不会缩短已有燃烧时间）
-                - `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间
-                - `clearFire()` 将火焰计时器清零（仅当 m_fire > 0 时生效）
-                - `lavaIgnite()` 岩浆点燃：免疫火焰则跳过，否则 setFire(300)（15 秒）
+                - `m_fire` 正值表示燃烧剩余 tick，负值表示火焰免疫期倒计时
+                - `igniteForSeconds(seconds)` 点燃实体指定秒数（推荐使用），内部转换为 tick
+                - `igniteForTicks(ticks)` 点燃实体指定 tick 数，仅在新值大于当前值时更新，同时清除冰冻状态
+                - `setFire(ticks)` 已弃用，请使用 igniteForTicks() 或 igniteForSeconds()
+                - `setRemainingFireTicks(ticks)` 直接设置火焰计时器值（含负值免疫期）
+                - `getRemainingFireTicks()` 获取剩余火焰 tick（含负值免疫期）
+                - `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间（Player 重写以限制创造模式）
+                - `clearFire()` 将正值火焰计时器清零，保留负值免疫期
+                - `extinguishFire()` 如果正在燃烧则播放灭火音效并调用 clearFire()
+                - `setFireImmunityCooldown()` 设置火焰免疫期（Player 为 20 tick / 1 秒，普通实体为 0）
+                - `getFireImmuneTicks()` 虚方法，返回火焰免疫期时长。基类返回 0，Player 返回 20
+                - `lavaIgnite()` 岩浆点燃：免疫火焰则跳过，否则 igniteForSeconds(15)（15 秒）
                 - `lavaHurt()` 岩浆伤害：免疫火焰则跳过，否则造成 4.0 点岩浆伤害 + 播放 GENERIC_BURN 音效
-                - `shouldPlayLavaHurtSound()` 虚方法，控制岩浆音效播放频率。基类返回 true，ItemEntity 重写为每 10 tick 或生命值归零时返回 true
+                - `isOnFire()` 火焰免疫的实体永远不会被认为着火（m_fire > 0 && !isImmuneToFire()）
                 - 火焰免疫由 `EntityType::immuneToFire()` 标志决定，子类可重写（如 ItemEntity 检查物品是否防火）
                 - 烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
+                - 火焰免疫期机制：实体离开火焰/岩浆后获得短暂免疫期（m_fire 设为负值），防止立即被重新点燃
+                - doBlockCollisions() 末尾自动检测并设置免疫期（方块碰撞未点燃且当前不燃烧时触发）
+                - 雨中灭火会播放音效并设置免疫期
 
                 ## #亡灵日光燃烧系统(burnUndead)
 
@@ -203,7 +214,7 @@
                 -
                 **`burnUndead()`** — 亡灵日光燃烧主逻辑： 1. 如果不在日光下 → 直接返回
                  2. 如果防护槽位有可损坏物品 → 物品承受耐久损耗（`setDamage()`，绕过耐久保护附魔）
-                 3. 如果防护槽位为空 → `setFire(8)` 点燃实体 8 秒
+                 3. 如果防护槽位为空 → `igniteForSeconds(8)` 点燃实体 8 秒
 
                  ####调用位置
 

@@ -404,8 +404,8 @@ bool ZombieEntity::attackEntityAsMob(LivingEntity& target)
                 // 燃烧时间 = 2 * regionalDifficulty（秒）
                 // 区域难度 0.75 -> 1.5秒 = 30 ticks
                 // 区域难度 1.0 -> 2秒 = 40 ticks
-                i32 fireDuration = static_cast<i32>(2.0f * regionalDifficulty * 20.0f); // 转换为 ticks
-                target.setFire(fireDuration);
+                f32 fireSeconds = 2.0f * regionalDifficulty;
+                target.igniteForSeconds(fireSeconds);
             }
         }
     }

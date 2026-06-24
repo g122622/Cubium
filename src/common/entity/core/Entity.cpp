@@ -645,13 +645,16 @@ void Entity::baseTick()
     }
 
     // 处理着火
+    // MC Java: Entity.baseTick() 火焰处理逻辑
+    // 正值 m_fire = 燃烧剩余 tick，负值 = 火焰免疫期倒计时
     if (m_fire > 0) {
         if (isImmuneToFire()) {
             // 免疫火焰的实体立即清除火焰
             clearFire();
         } else if (isInWater()) {
-            // 在水中时立即熄灭火焰
+            // 在水中时熄灭火焰，设置火焰免疫期
             clearFire();
+            setFireImmunityCooldown();
         } else {
             // 燃烧伤害：每 20 tick（1 秒）造成 1 点 onFire 伤害
             // 注意：在岩浆中时不造成燃烧伤害，因为岩浆伤害由 lavaHurt() 单独处理
@@ -661,6 +664,13 @@ void Entity::baseTick()
             }
             m_fire--;
         }
+    }
+
+    // 在雨中熄灭火焰
+    if (isInRain() && isOnFire()) {
+        playExtinguishSound();
+        clearFire();
+        setFireImmunityCooldown();
     }
 
     // 在岩浆中减少坠落距离
@@ -1200,6 +1210,10 @@ void Entity::doBlockCollisions()
         return;
     }
 
+    // MC Java: applyEffectsFromBlocks() - 记录方块碰撞前的火焰计时器
+    // 用于判断方块碰撞是否点燃了实体，如果未被点燃且不处于燃烧状态，则设置火焰免疫期
+    i32 fireTicksBeforeCollision = m_fire;
+
     // 获取碰撞箱范围，稍微收缩避免边界精度问题
     AxisAlignedBB box = m_boundingBox.shrink(0.001);
     BlockPos minPos(static_cast<i32>(std::floor(box.minX)),
@@ -1240,6 +1254,14 @@ void Entity::doBlockCollisions()
                 }
             }
         }
+    }
+
+    // MC Java: applyEffectsFromBlocks() - 方块碰撞后检查火焰免疫期
+    // 如果实体不在燃烧，且方块碰撞没有增加火焰计时器，则设置火焰免疫期
+    // 这防止实体刚离开火方块时被立即重新点燃
+    bool fireTicksIncreased = m_fire > fireTicksBeforeCollision;
+    if (m_world != nullptr && !m_world->isClientSide() && !isOnFire() && !fireTicksIncreased) {
+        setFireImmunityCooldown();
     }
 }
 
@@ -1861,7 +1883,7 @@ bool Entity::isImmuneToFire() const
 void Entity::lavaIgnite()
 {
     if (!isImmuneToFire()) {
-        setFire(300); // 15 秒 = 300 ticks
+        igniteForSeconds(15.0f); // 15 秒 = 300 ticks
     }
 }
 
@@ -1886,11 +1908,36 @@ void Entity::clearFire()
 {
     // MC Java: setRemainingFireTicks(Math.min(0, getRemainingFireTicks()))
     // 保留负值（火焰免疫期倒计时），仅将正值清零
-    // TODO: MC Java 中负值的 m_fire 表示火焰免疫期倒计时，在此期间实体不会被再次点燃。
-    //       当前实现仅保留负值但未在 lavaIgnite/setFire 中检查免疫期（应判断 m_fire < 0 时不点燃），
-    //       需要完善 setFire/lavaIgnite 的免疫期逻辑以完整复刻 MC Java 行为。
     if (m_fire > 0) {
         m_fire = 0;
+    }
+}
+
+void Entity::extinguishFire()
+{
+    // MC Java: extinguishFire()
+    // 如果实体正在燃烧，先播放灭火音效，然后清除火焰
+    if (isOnFire()) {
+        playExtinguishSound();
+    }
+    clearFire();
+}
+
+void Entity::playExtinguishSound()
+{
+    playSound(SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE,
+        0.7f,
+        1.6f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.4f);
+}
+
+void Entity::setFireImmunityCooldown()
+{
+    // MC Java: applyEffectsFromBlocks() 中，当实体火焰被方块碰撞系统熄灭时，
+    // 设置火焰免疫期倒计时为 -getFireImmuneTicks()。
+    // 基类 getFireImmuneTicks() 返回 0（无免疫期），Player 重写返回 20（1 秒）。
+    i32 immuneTicks = getFireImmuneTicks();
+    if (immuneTicks > 0) {
+        m_fire = -immuneTicks;
     }
 }
 

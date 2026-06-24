@@ -41,6 +41,7 @@
 #include "PlayerModelPart.hpp"
 #include "spdlog/spdlog.h"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <optional>
@@ -294,6 +295,32 @@ public:
      * @return 10 tick
      */
     [[nodiscard]] i32 getPortalCooldown() const override { return 10; }
+
+    // ========== 火焰系统 ==========
+
+    /**
+     * @brief 获取玩家火焰免疫期时长
+     *
+     * MC Java 中 Player 重写此方法返回 20（1 秒免疫期），
+     * 普通实体返回 0（无免疫期）。这使得玩家在火焰熄灭后有 1 秒
+     * 的时间不会被立即重新点燃。
+     *
+     * @return 20 tick
+     */
+    [[nodiscard]] i32 getFireImmuneTicks() const override { return 20; }
+
+    /**
+     * @brief 强制设置火焰计时器（创造模式限制）
+     *
+     * MC Java 中 Player 重写此方法，当创造模式（无敌状态）时
+     * 将火焰计时器限制为最多 1 tick，防止创造模式玩家燃烧。
+     *
+     * @param ticks 火焰计时器值
+     */
+    void forceFireTicks(i32 ticks) override
+    {
+        Entity::forceFireTicks(m_abilities.invulnerable ? std::min(ticks, 1) : ticks);
+    }
 
     /**
      * @brief 设置位置并重置步距采样

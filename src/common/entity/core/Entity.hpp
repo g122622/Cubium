@@ -1165,26 +1165,77 @@ public:
 
     /**
      * @brief 检查实体是否着火
+     *
+     * 火焰免疫的实体永远不会被认为着火。
      */
-    [[nodiscard]] bool isOnFire() const { return m_fire > 0; }
+    [[nodiscard]] bool isOnFire() const { return !isImmuneToFire() && m_fire > 0; }
+
+    /**
+     * @brief 获取剩余着火时间（tick）
+     *
+     * 正值表示燃烧剩余时间，负值表示火焰免疫期倒计时。
+     * 对应 MC Java 的 getRemainingFireTicks()。
+     */
+    [[nodiscard]] i32 getRemainingFireTicks() const { return m_fire; }
+
+    /**
+     * @brief 设置剩余着火时间
+     *
+     * 直接设置火焰计时器值，不做任何检查。
+     * 正值表示燃烧剩余时间，负值表示火焰免疫期倒计时。
+     * 对应 MC Java 的 setRemainingFireTicks(int)。
+     *
+     * @param ticks 火焰计时器值
+     */
+    void setRemainingFireTicks(i32 ticks) { m_fire = ticks; }
 
     /**
      * @brief 获取着火时间（tick）
+     * @deprecated 使用 getRemainingFireTicks() 替代
      */
     [[nodiscard]] i32 fire() const { return m_fire; }
 
     /**
      * @brief 获取火焰计时器
-     *
-     * 与 fire() 功能相同。
+     * @deprecated 使用 getRemainingFireTicks() 替代
      */
     [[nodiscard]] i32 getFireTimer() const { return m_fire; }
 
     /**
+     * @brief 点燃实体指定秒数
+     *
+     * 将秒数转换为 tick 数（1 秒 = 20 tick），然后调用 igniteForTicks()。
+     * 仅在新燃烧时间大于当前剩余时间时才会更新，不会覆盖免疫期。
+     * 同时清除冰冻状态（对应 MC Java 的 clearFreeze）。
+     *
+     * @param seconds 燃烧时间（秒）
+     */
+    void igniteForSeconds(f32 seconds) { igniteForTicks(static_cast<i32>(seconds * 20.0f)); }
+
+    /**
+     * @brief 点燃实体指定 tick 数
+     *
+     * 仅在新燃烧时间大于当前剩余时间时才会更新。
+     * 如果当前处于火焰免疫期（m_fire < 0），只有新值大于当前负值时才会覆盖。
+     * 同时清除冰冻状态（对应 MC Java 的 clearFreeze）。
+     *
+     * @param ticks 燃烧时间（tick）
+     */
+    void igniteForTicks(i32 ticks)
+    {
+        if (m_fire < ticks) {
+            m_fire = ticks;
+        }
+        clearFreeze();
+    }
+
+    /**
      * @brief 设置着火时间
      *
-     * 只增加燃烧时间，不会减少。
-     * 如果当前燃烧时间已经大于等于传入值，则不改变。
+     * @deprecated 使用 igniteForTicks() 或 igniteForSeconds() 替代
+     *
+     * 仅在新燃烧时间大于当前剩余时间时才会更新。
+     * 如果当前处于火焰免疫期（m_fire < 0），只有新值大于当前负值时才会覆盖。
      *
      * @param ticks 燃烧时间（tick）
      */
@@ -1199,11 +1250,30 @@ public:
      * @brief 强制设置火焰计时器
      *
      * 直接设置火焰计时器值，不检查当前值。
-     * 用于增加/减少火焰时间，包括设置为负值（表示短暂火焰免疫期）。
+     * 用于增加/减少火焰时间，包括设置为负值（表示火焰免疫期）。
+     * Player 重写此方法以限制创造模式下的燃烧时间。
      *
      * @param ticks 火焰计时器值
      */
-    void forceFireTicks(i32 ticks) { m_fire = ticks; }
+    virtual void forceFireTicks(i32 ticks) { m_fire = ticks; }
+
+    /**
+     * @brief 清除冰冻状态
+     *
+     * 当实体被点燃时调用，清除冰冻效果。
+     * 子类（如 LivingEntity）可重写以实现完整的冰冻清除逻辑。
+     */
+    virtual void clearFreeze() {}
+
+    /**
+     * @brief 获取火焰免疫期时长（tick）
+     *
+     * 返回实体在火焰熄灭后获得的短暂免疫期（负值火焰计时器的绝对值）。
+     * 基类返回 0（无免疫期），Player 重写返回 20（1 秒免疫期）。
+     *
+     * @return 免疫期 tick 数
+     */
+    [[nodiscard]] virtual i32 getFireImmuneTicks() const { return 0; }
 
     /**
      * @brief 检查是否免疫火焰
@@ -1246,9 +1316,36 @@ public:
     /**
      * @brief 清除火焰（将火焰计时器设为不超过 0）
      *
+     * 对应 MC Java 的 clearFire()。
      * 如果当前火焰计时器为正数，设为 0；如果已为负数（火焰免疫期），保持不变。
      */
     void clearFire();
+
+    /**
+     * @brief 熄灭火焰并播放灭火音效
+     *
+     * 对应 MC Java 的 extinguishFire()。
+     * 如果实体正在燃烧，先播放灭火音效，然后调用 clearFire()。
+     */
+    void extinguishFire();
+
+    /**
+     * @brief 播放实体灭火音效
+     *
+     * 在实体火焰被水或雨熄灭时播放 GENERIC_EXTINGUISH_FIRE 音效。
+     * 仅在服务端调用，音效会广播给附近玩家。
+     */
+    void playExtinguishSound();
+
+    /**
+     * @brief 设置火焰免疫期倒计时
+     *
+     * 当实体的火焰被熄灭时（例如离开火方块、进入水中、被雨淋），
+     * 调用此方法设置一个短暂的免疫期，防止实体立即被重新点燃。
+     * 免疫期长度由 getFireImmuneTicks() 决定。
+     * 基类 Entity 返回 0（不设置免疫期），Player 返回 20 tick（1 秒）。
+     */
+    void setFireImmunityCooldown();
 
     // ========== 空气管理 ==========
 
@@ -2155,7 +2252,7 @@ protected:
     f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位，已废弃）
     f32 m_waterHeight = 0.0f;   // 水浸入高度（0.0-1.0）
     f32 m_lavaHeight = 0.0f;    // 岩浆浸入高度（0.0-1.0）
-    i32 m_fire = 0;             // 着火时间（tick）
+    i32 m_fire = 0;             // 剩余着火时间（tick），正值=燃烧，负值=火焰免疫期倒计时
 
     // 攀爬追踪（用于摔落死亡消息）
     std::optional<BlockPos> m_lastClimbPos; // 最后攀爬位置

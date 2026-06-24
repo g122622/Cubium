@@ -100,10 +100,8 @@ void ExperienceOrbEntity::baseTick()
 {
     Entity::baseTick();
 
-    // 减少着火时间
-    if (isOnFire()) {
-        setFire(fire() - 1);
-    }
+    // MC Java 中 ExperienceOrb 不重写火焰处理逻辑，
+    // 火焰衰减完全由 Entity::baseTick() 处理。
 }
 
 // ============================================================================
