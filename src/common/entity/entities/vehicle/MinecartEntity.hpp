@@ -148,7 +148,11 @@ public:
     [[nodiscard]] virtual f32 getMaxSpeed() const { return DEFAULT_MAX_SPEED; }
 
     /**
-     * @brief 获取铁轨上的最大速度（考虑铁轨速度限制）
+     * @brief 获取铁轨上的最大速度
+     *
+     * 对齐 MC Java NewMinecartBehavior.getMaxSpeed():
+     * 速度 = max_minecart_speed 游戏规则值 / 20.0，水中减半。
+     * 默认 max_minecart_speed = 8，即 0.4 方块/刻（与旧版硬编码一致）。
      */
     [[nodiscard]] virtual f32 getMaxSpeedWithRail() const;
 
