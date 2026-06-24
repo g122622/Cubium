@@ -170,28 +170,32 @@ void ZombieEntity::setBaby(bool baby)
     }
 }
 
-void ZombieEntity::trySummonReinforcements()
+void ZombieEntity::trySummonReinforcements(LivingEntity* explicitTarget)
 {
-    // 公共入口：尝试召唤增援僵尸
-    // 需要世界引用和攻击目标才能触发增援
+    // 增援召唤的唯一入口
+    // 检查前置条件：世界引用、难度、概率
     IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
         return;
     }
 
-    // 获取攻击目标：优先当前攻击目标，无目标则无法召唤
-    LivingEntity* target = attackTarget();
-    if (target == nullptr) {
-        return;
-    }
-
-    // 必须在困难模式下且有增援概率
+    // 必须在困难模式下
     if (!entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty())) {
         return;
     }
 
+    // 增援概率检查
     f64 spawnChance = m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
     if (getRandom().nextDouble() >= spawnChance) {
+        return;
+    }
+
+    // 确定攻击目标：优先使用显式目标，其次使用当前攻击目标
+    LivingEntity* target = explicitTarget;
+    if (target == nullptr) {
+        target = attackTarget();
+    }
+    if (target == nullptr) {
         return;
     }
 
@@ -354,24 +358,13 @@ bool ZombieEntity::hurt(DamageSource& source, f32 amount)
 
     // 增援召唤逻辑
     // 对应 MC 1.21.11 Zombie.hurtServer() 中的增援逻辑
-    IWorld* worldPtr = world();
-    if (worldPtr && entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty())) {
-        f64 spawnChance = m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
-        if (getRandom().nextDouble() < spawnChance) {
-            // 获取攻击目标：优先使用当前攻击目标，其次使用伤害来源实体
-            LivingEntity* target = attackTarget();
-            if (target == nullptr) {
-                Entity* sourceEntity = source.getEntity();
-                if (sourceEntity != nullptr) {
-                    target = dynamic_cast<LivingEntity*>(sourceEntity);
-                }
-            }
-
-            if (target != nullptr) {
-                _trySpawnReinforcement(*worldPtr, *target);
-            }
-        }
+    // hurt() 中的特殊处理：优先使用伤害来源实体作为增援的攻击目标
+    LivingEntity* explicitTarget = nullptr;
+    Entity* sourceEntity = source.getEntity();
+    if (sourceEntity != nullptr) {
+        explicitTarget = dynamic_cast<LivingEntity*>(sourceEntity);
     }
+    trySummonReinforcements(explicitTarget);
 
     return true;
 }

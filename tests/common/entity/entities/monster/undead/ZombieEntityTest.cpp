@@ -527,22 +527,25 @@ TEST_F(ZombieEntityTest, CalleeChargeModifierPreventsChainReinforcement)
     EXPECT_NEAR(value, 0.0, 0.001) << "低基础值+ callee charge 应使增援概率接近0";
 }
 
-TEST_F(ZombieEntityTest, ReinforcementNoTargetNoTrigger)
+TEST_F(ZombieEntityTest, ReinforcementEasyDifficultyNoSpawn)
 {
-    // 在 Easy 模式下不应触发增援（只有 Hard 模式才触发）
+    // Easy 模式下 trySummonReinforcements 不应触发增援
+    // 即使增援概率设为 100%，Easy 模式下 DifficultyHelper::canZombieReinforce 返回 false
     m_world->setDifficulty(Difficulty::Easy);
     m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 1.0);
-    // 无攻击目标时 trySummonReinforcements 不应生成实体
     m_zombie->trySummonReinforcements();
     EXPECT_EQ(m_world->spawnedEntityCount(), 0u) << "Easy 模式下不应触发增援";
 }
 
-TEST_F(ZombieEntityTest, ReinforcementEasyDifficultyNoSpawn)
+TEST_F(ZombieEntityTest, ReinforcementNoTargetNoTrigger)
 {
-    // Easy 模式下增援不应触发
-    m_world->setDifficulty(Difficulty::Easy);
+    // Hard 模式 + 100% 增援概率，但无攻击目标
+    // trySummonReinforcements 在无法获取攻击目标时应直接返回
+    m_world->setDifficulty(Difficulty::Hard);
     m_zombie->setAttributeBaseValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, 1.0);
-    EXPECT_EQ(m_world->spawnedEntityCount(), 0u);
+    // 僵尸没有攻击目标（attackTarget() 返回 nullptr）
+    m_zombie->trySummonReinforcements();
+    EXPECT_EQ(m_world->spawnedEntityCount(), 0u) << "无攻击目标时不应触发增援";
 }
 
 TEST_F(ZombieEntityTest, ReinforcementNormalDifficultyNoSpawn)

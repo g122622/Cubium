@@ -170,9 +170,16 @@ public:
     [[nodiscard]] bool canSummonReinforcements() const;
 
     /**
-     * @brief 尝试召唤增援（由 hurt() 内部调用）
+     * @brief 尝试召唤增援
+     *
+     * 检查难度、概率等前置条件后，尝试在附近生成增援僵尸。
+     * 此方法是增援逻辑的唯一入口，hurt() 内部调用此方法。
+     *
+     * @param explicitTarget 可选的显式攻击目标。如果为 nullptr，
+     *                       则使用当前攻击目标（attackTarget()）。
+     *                       hurt() 中会传入伤害来源实体作为备选目标。
      */
-    void trySummonReinforcements();
+    void trySummonReinforcements(LivingEntity* explicitTarget = nullptr);
 
     // ========== 属性 ==========
 
