@@ -53,6 +53,8 @@ Widgets 模块负责把游戏状态转换成玩家可见的 UI 表达。它既�
 
 `HealthBarWidget` 和 `HungerBarWidget` 为简化矩形后备版本，仅用于独立调试；完整的图标渲染由 `HudWidget` 直接完成。
 
+`HudWidget` 的所有 HUD 元素均支持纹理/纯色双重渲染：优先使用 `GuiSpriteAtlas` 纹理绘制（如 `iconsAtlas` 的心形、饥饿图标），纹理不可用时自动回退到纯色矩形绘制（如快捷栏背景使用 `HudColors::HOTBAR_BACKGROUND`/`HOTBAR_BORDER`）。
+
 ## 上下游外部依赖关系
 
 **上游依赖（本模块依赖）：**

@@ -290,6 +290,64 @@ TEST(SliderWidgetTest, ScrollChangesValue)
     EXPECT_GT(slider.value(), afterScrollDown);
 }
 
+// ==================== 值显示测试 ====================
+
+TEST(SliderWidgetTest, ShowValue_DefaultTrue)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+
+    // 默认 m_showValue 为 true
+    EXPECT_TRUE(slider.showValue());
+}
+
+TEST(SliderWidgetTest, ShowValue_SetFalse)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+
+    slider.setShowValue(false);
+    EXPECT_FALSE(slider.showValue());
+}
+
+TEST(SliderWidgetTest, ShowValue_SetTrue)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+
+    slider.setShowValue(false);
+    EXPECT_FALSE(slider.showValue());
+
+    slider.setShowValue(true);
+    EXPECT_TRUE(slider.showValue());
+}
+
+TEST(SliderWidgetTest, DisplayText_WithFormatCallback)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+
+    slider.setFormatCallback([](f64 value) -> std::string { return std::to_string(static_cast<i32>(value)) + "%"; });
+
+    EXPECT_EQ("50%", slider.displayText());
+
+    slider.setValue(75.0);
+    EXPECT_EQ("75%", slider.displayText());
+}
+
+TEST(SliderWidgetTest, DisplayText_WithCustomText)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 50.0);
+
+    slider.setDisplayText("Custom Label");
+    EXPECT_EQ("Custom Label", slider.displayText());
+}
+
+TEST(SliderWidgetTest, DisplayText_DefaultFormatValue)
+{
+    SliderWidget slider("test", 0, 0, 100, 20, 0.0, 100.0, 42.0);
+
+    // 无 formatCallback 且无 displayText 时，使用默认 formatValue
+    std::string text = slider.displayText();
+    EXPECT_FALSE(text.empty());
+}
+
 // ==================== 键盘测试 ====================
 
 TEST(SliderWidgetTest, KeyLeftRight)

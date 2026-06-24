@@ -537,3 +537,84 @@ TEST(TextListItemTest, PaintItem_DrawsTextAndSelectedBackground)
     EXPECT_EQ(20, canvas.lastFilledRect.height);
     EXPECT_EQ(item.textColor(), canvas.lastTextColor);
 }
+
+// ==================== 悬停检测测试 ====================
+
+TEST(ListWidgetTest, OnMouseMove_UpdatesHoveredIndex)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setActive(true);
+    list.setVisible(true);
+    list.setItemHeight(30);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+    list.addItem(std::make_unique<TestListItem>("Item 1"));
+    list.addItem(std::make_unique<TestListItem>("Item 2"));
+
+    // 鼠标移动到第一项区域
+    bool handled = list.onMouseMove(10, 5);
+    EXPECT_TRUE(handled);
+    // hoveredIndex 更新为 0（padding.top=0 时 y=5 在第一项 0~30 范围内）
+}
+
+TEST(ListWidgetTest, OnMouseMove_OutOfBounds_ReturnsFalse)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setActive(true);
+    list.setVisible(true);
+    list.setItemHeight(30);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+
+    // 鼠标在列表范围外
+    bool handled = list.onMouseMove(-10, 10);
+    EXPECT_FALSE(handled);
+
+    handled = list.onMouseMove(10, -10);
+    EXPECT_FALSE(handled);
+}
+
+TEST(ListWidgetTest, OnMouseMove_InactiveWidget_ReturnsFalse)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setActive(false);
+    list.setVisible(true);
+    list.setItemHeight(30);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+
+    bool handled = list.onMouseMove(10, 10);
+    EXPECT_FALSE(handled);
+}
+
+TEST(ListWidgetTest, OnMouseMove_InvisibleWidget_ReturnsFalse)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setActive(true);
+    list.setVisible(false);
+    list.setItemHeight(30);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+
+    bool handled = list.onMouseMove(10, 10);
+    EXPECT_FALSE(handled);
+}
+
+TEST(ListWidgetTest, OnMouseMove_ScrollOffsetAffectsIndex)
+{
+    ListWidget list("list", 0, 0, 200, 60);
+    list.setActive(true);
+    list.setVisible(true);
+    list.setItemHeight(20);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+    list.addItem(std::make_unique<TestListItem>("Item 1"));
+    list.addItem(std::make_unique<TestListItem>("Item 2"));
+    list.addItem(std::make_unique<TestListItem>("Item 3"));
+
+    // 不滚动时，y=5 对应第 0 项
+    list.onMouseMove(10, 5);
+    // 滚动 20px 后，y=5 对应第 1 项（逻辑 y = 5 + 20 = 25，在第 1 项 20~40 范围内）
+    list.scrollBy(20);
+    list.onMouseMove(10, 5);
+}
