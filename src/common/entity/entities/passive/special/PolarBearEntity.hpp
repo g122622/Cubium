@@ -145,6 +145,16 @@ public:
      */
     [[nodiscard]] static u16 getStandingParamId() { return DATA_STANDING_PARAM.id(); }
 
+    /**
+     * @brief 设置客户端站立动画值
+     *
+     * 用于测试和调试，直接设置动画进度值。
+     * 正常情况下由 tick() 在客户端自动更新。
+     *
+     * @param animation 动画进度值 [0.0, STAND_ANIMATION_TICKS]
+     */
+    void setClientSideStandAnimation(f32 animation) { m_clientSideStandAnimation = animation; }
+
     // ========== 属性 ==========
 
     /**

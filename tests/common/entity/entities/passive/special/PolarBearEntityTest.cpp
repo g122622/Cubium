@@ -354,6 +354,57 @@ TEST_F(PolarBearEntityTest, Dimensions_GetDimensions_ChildNotStanding)
     EXPECT_FLOAT_EQ(dims.eyeHeight(), 0.7f * 0.85f);
 }
 
+TEST_F(PolarBearEntityTest, Dimensions_StandingAnimation_ScalesHeight)
+{
+    PolarBearEntity bear(EntityId(1));
+
+    // 站立动画为 0（四足站立），高度为基础高度 1.4
+    bear.setClientSideStandAnimation(0.0f);
+    auto dims0 = bear.getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims0.width(), 1.4f);
+    EXPECT_FLOAT_EQ(dims0.height(), 1.4f);
+    EXPECT_FLOAT_EQ(dims0.eyeHeight(), 1.4f * 0.85f);
+
+    // 站立动画为 3.0（半程站立），高度缩放因子 1.0 + 3.0/6.0 = 1.5
+    bear.setClientSideStandAnimation(3.0f);
+    auto dims3 = bear.getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims3.width(), 1.4f);                    // 宽度不变
+    EXPECT_FLOAT_EQ(dims3.height(), 1.4f * 1.5f);            // 1.4 * 1.5 = 2.1
+    EXPECT_FLOAT_EQ(dims3.eyeHeight(), 1.4f * 0.85f * 1.5f); // 眼高同步缩放
+
+    // 站立动画为 6.0（完全站立），高度缩放因子 1.0 + 6.0/6.0 = 2.0
+    bear.setClientSideStandAnimation(6.0f);
+    auto dims6 = bear.getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims6.width(), 1.4f);                    // 宽度不变
+    EXPECT_FLOAT_EQ(dims6.height(), 1.4f * 2.0f);            // 1.4 * 2.0 = 2.8
+    EXPECT_FLOAT_EQ(dims6.eyeHeight(), 1.4f * 0.85f * 2.0f); // 眼高同步缩放
+
+    // 非整数动画值，缩放因子 1.0 + 1.0/6.0 ≈ 1.1667
+    bear.setClientSideStandAnimation(1.0f);
+    auto dims1 = bear.getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims1.width(), 1.4f);
+    EXPECT_FLOAT_EQ(dims1.height(), 1.4f * (1.0f + 1.0f / 6.0f));
+}
+
+TEST_F(PolarBearEntityTest, Dimensions_StandingAnimation_ChildScalesHeight)
+{
+    PolarBearEntity bear(EntityId(1));
+    bear.setGrowingAge(-24000); // 幼熊
+
+    // 幼熊四足站立，高度 0.7
+    bear.setClientSideStandAnimation(0.0f);
+    auto dims0 = bear.getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims0.width(), 0.7f);
+    EXPECT_FLOAT_EQ(dims0.height(), 0.7f);
+
+    // 幼熊完全站立，高度缩放 2.0 倍：0.7 * 2.0 = 1.4
+    bear.setClientSideStandAnimation(6.0f);
+    auto dims6 = bear.getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(dims6.width(), 0.7f);  // 宽度不变
+    EXPECT_FLOAT_EQ(dims6.height(), 1.4f); // 0.7 * 2.0
+    EXPECT_FLOAT_EQ(dims6.eyeHeight(), 0.7f * 0.85f * 2.0f);
+}
+
 // ========== 属性测试 ==========
 
 TEST_F(PolarBearEntityTest, Attributes_VerifyValues)
