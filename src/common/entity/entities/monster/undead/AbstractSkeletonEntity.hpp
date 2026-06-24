@@ -71,6 +71,17 @@ public:
     static constexpr i32 ATTACK_INTERVAL_MAX = 40;  // 最大攻击间隔（ticks）
     static constexpr f32 ATTACK_RADIUS = 15.0f;     // 远程攻击半径
 
+    /// 困难难度下的最小攻击间隔（ticks），对应 MC 原版 HARD_ATTACK_INTERVAL
+    static constexpr i32 HARD_ATTACK_INTERVAL = 20;
+    /// 非困难难度下的最小攻击间隔（ticks），对应 MC 原版 NORMAL_ATTACK_INTERVAL
+    static constexpr i32 NORMAL_ATTACK_INTERVAL = 40;
+    /// 增大型困难难度最小攻击间隔（ticks），用于射击更慢的骷髅变种
+    /// 对应 MC 原版 INCREASED_HARD_ATTACK_INTERVAL
+    static constexpr i32 INCREASED_HARD_ATTACK_INTERVAL = 50;
+    /// 增大型非困难难度最小攻击间隔（ticks），用于射击更慢的骷髅变种
+    /// 对应 MC 原版 INCREASED_NORMAL_ATTACK_INTERVAL
+    static constexpr i32 INCREASED_NORMAL_ATTACK_INTERVAL = 70;
+
     /// 战斗目标优先级
     static constexpr i32 COMBAT_GOAL_PRIORITY = 4;
 
@@ -120,6 +131,31 @@ public:
      * @return 如果该物品是远程武器则返回 true
      */
     [[nodiscard]] virtual bool canUseNonMeleeWeapon(const ItemStack& stack) const;
+
+    /**
+     * @brief 获取困难难度下的最小攻击间隔
+     *
+     * 子类可重写此方法以提供不同的攻击间隔（如沼骸骷髅射击更慢）。
+     * 默认实现返回 HARD_ATTACK_INTERVAL (20 ticks)。
+     *
+     * 对应 MC 原版 AbstractSkeleton.getHardAttackInterval()。
+     *
+     * @return 困难难度下的最小攻击间隔（ticks）
+     */
+    [[nodiscard]] virtual i32 getHardAttackInterval() const { return HARD_ATTACK_INTERVAL; }
+
+    /**
+     * @brief 获取非困难难度下的最小攻击间隔
+     *
+     * 子类可重写此方法以提供不同的攻击间隔（如沼骸骷髅射击更慢）。
+     * 默认实现返回 NORMAL_ATTACK_INTERVAL (40 ticks)。
+     *
+     * 对应 MC 原版 AbstractSkeleton.getAttackInterval()。
+     * 同时重写 IRangedAttackMob::getAttackInterval()（默认返回 20 ticks）。
+     *
+     * @return 非困难难度下的最小攻击间隔（ticks）
+     */
+    [[nodiscard]] i32 getAttackInterval() const override { return NORMAL_ATTACK_INTERVAL; }
 
     // ========== 生命周期 ==========
 

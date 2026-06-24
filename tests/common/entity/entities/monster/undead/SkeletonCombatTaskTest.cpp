@@ -28,6 +28,7 @@
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/monster/undead/AbstractSkeletonEntity.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
+#include "common/entity/entities/monster/undead/StrayEntity.hpp"
 #include "common/entity/entities/monster/undead/WitherSkeletonEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/item/Items.hpp"
@@ -464,6 +465,102 @@ TEST_F(SkeletonCombatTaskTest, SkeletonEntity_ClientSideSetEquipmentNoCombatTask
     EXPECT_EQ(skeleton->getMainHandItem().getItem(), Items::STONE_SWORD);
 
     m_world->setClientSide(false);
+}
+
+// ============================================================================
+// 难度相关攻击间隔测试
+//
+// 验证 setCombatTask() 根据游戏难度调整最小攻击间隔的行为。
+// 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal()：
+//   - 困难难度: setMinAttackInterval(getHardAttackInterval())
+//   - 其他难度: setMinAttackInterval(getAttackInterval())
+// ============================================================================
+
+TEST_F(SkeletonCombatTaskTest, DifficultyBasedAttackInterval_HardDifficulty)
+{
+    // 困难难度下，骷髅的最小攻击间隔应为 getHardAttackInterval() = 20 ticks
+    m_world->setDifficulty(Difficulty::Hard);
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    skeleton->setWorld(m_world.get());
+
+    // 验证 getHardAttackInterval 和 getAttackInterval 返回值
+    EXPECT_EQ(skeleton->getHardAttackInterval(), 20);
+    EXPECT_EQ(skeleton->getAttackInterval(), 40);
+
+    // 在困难难度下 setCombatTask 不应崩溃
+    skeleton->setCombatTask();
+}
+
+TEST_F(SkeletonCombatTaskTest, DifficultyBasedAttackInterval_NormalDifficulty)
+{
+    // 普通难度下，骷髅的最小攻击间隔应为 getAttackInterval() = 40 ticks
+    m_world->setDifficulty(Difficulty::Normal);
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    skeleton->setWorld(m_world.get());
+
+    // 在普通难度下 setCombatTask 不应崩溃
+    skeleton->setCombatTask();
+}
+
+TEST_F(SkeletonCombatTaskTest, DifficultyBasedAttackInterval_EasyDifficulty)
+{
+    // 简单难度下，骷髅的最小攻击间隔应为 getAttackInterval() = 40 ticks
+    m_world->setDifficulty(Difficulty::Easy);
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    skeleton->setWorld(m_world.get());
+
+    skeleton->setCombatTask();
+}
+
+TEST_F(SkeletonCombatTaskTest, DifficultyBasedAttackInterval_PeacefulDifficulty)
+{
+    // 和平难度下，骷髅的最小攻击间隔应为 getAttackInterval() = 40 ticks
+    // （和平难度下怪物不会生成，但如果存在则仍使用非困难间隔）
+    m_world->setDifficulty(Difficulty::Peaceful);
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    skeleton->setWorld(m_world.get());
+
+    skeleton->setCombatTask();
+}
+
+TEST_F(SkeletonCombatTaskTest, StrayEntity_DefaultAttackIntervalsMatchSkeleton)
+{
+    // MC 1.21.11 中 Stray 不覆盖 getHardAttackInterval/getAttackInterval，
+    // 使用与 Skeleton 相同的基类默认值 (20/40)
+    auto stray = std::make_unique<StrayEntity>(EntityId(1));
+    EXPECT_EQ(stray->getHardAttackInterval(), 20);
+    EXPECT_EQ(stray->getAttackInterval(), 40);
+}
+
+TEST_F(SkeletonCombatTaskTest, WitherSkeleton_AttackIntervalsNotUsedForMelee)
+{
+    // 凋灵骷髅始终使用近战，攻击间隔方法不影响其战斗行为
+    // 但方法仍返回基类值，以便未来可能的扩展
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(1));
+    EXPECT_EQ(witherSkeleton->getHardAttackInterval(), 20);
+    EXPECT_EQ(witherSkeleton->getAttackInterval(), 40);
+}
+
+TEST_F(SkeletonCombatTaskTest, EquipmentChangeReassessesIntervalOnHard)
+{
+    // 在困难难度下，装备变更后重新评估战斗目标时
+    // 应使用困难难度的攻击间隔
+    m_world->setDifficulty(Difficulty::Hard);
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    skeleton->setWorld(m_world.get());
+
+    // 设置主手为弓 -> 远程攻击，困难难度间隔
+    skeleton->setMainHandItem(ItemStack(*Items::BOW, 1));
+    skeleton->setCombatTask();
+
+    // 切换为石剑 -> 近战
+    LivingEntity& livingEntity = *skeleton;
+    livingEntity.setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::STONE_SWORD, 1));
+    EXPECT_FALSE(skeleton->canUseNonMeleeWeapon(skeleton->getMainHandItem()));
+
+    // 再切换回弓 -> 远程攻击，仍使用困难难度间隔
+    livingEntity.setEquipment(EquipmentSlot::MainHand, ItemStack(*Items::BOW, 1));
+    EXPECT_TRUE(skeleton->canUseNonMeleeWeapon(skeleton->getMainHandItem()));
 }
 
 } // namespace

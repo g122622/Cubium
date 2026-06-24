@@ -86,6 +86,11 @@ Entity
 5. **canUseNonMeleeWeapon()**：判断物品是否为远程武器，默认检查 `UseAction::Bow`，凋灵骷髅重写返回 false
 6. **WitherSkeletonEntity 特殊处理**：凋灵骷髅重写 `setCombatTask()` 强制使用近战，`canUseNonMeleeWeapon()` 返回 false
 7. **远程箭矢伤害**：骷髅类使用 `arrow->setBaseDamageFromMob(charge)` 设置箭矢伤害，公式为 `power * 2.0 + triangle(difficulty * 0.11, 0.57425)`，与 AbstractArrowEntity 基类保持一致。不调用 `applyBowEnchantments()`，因为生物射出的箭矢不应有弓类附魔效果。
+8. **难度相关攻击间隔**：`setCombatTask()` 根据游戏难度调整 `RangedBowAttackGoal` 的最小攻击间隔：
+   - 困难难度：使用 `getHardAttackInterval()`（普通骷髅/流浪者 = 20 ticks，沼骸骷髅 = 50 ticks）
+   - 其他难度：使用 `getAttackInterval()`（普通骷髅/流浪者 = 40 ticks，沼骸骷髅 = 70 ticks）
+   - 子类可重写 `getHardAttackInterval()` / `getAttackInterval()` 提供不同间隔值
+   - 对应 MC 原版 `AbstractSkeleton.reassessWeaponGoal()` 中的 `bowGoal.setMinAttackInterval()` 逻辑
 
 ### 僵尸类溺水转化
 
