@@ -208,7 +208,8 @@ std::unique_ptr<DensityFunction> NoiseRouterData::slideEndLike(
 std::unique_ptr<DensityFunction> NoiseRouterData::postProcess(std::unique_ptr<DensityFunction> input)
 {
     // MC 1.21: postProcess(x) = squeeze(interpolated(blendDensity(x)) * 0.64)
-    // blendDensity 暂时为恒等函数（旧区块混合未实现）
+    // blendDensity 在 Blender 系统未实现时为恒等函数
+    // TODO: 实现 BlendDensity 密度函数类和 Blender 系统后，替换为完整的 blendDensity
     auto blended = std::move(input); // blendDensity = identity for now
     auto interpolated = factory::interpolated(std::move(blended));
     auto scaled = factory::mul(factory::constant(0.64), std::move(interpolated));
@@ -320,8 +321,9 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
 
     auto offsetSpline = TerrainProvider::overworldOffset(continentsShared, erosionShared, ridgesPVShared);
     auto offsetWithGlobal = factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET), std::move(offsetSpline));
-    // blendOffset 暂时为 constant(0.0)
-    auto offset = TerrainProvider::splineWithBlending(std::move(offsetWithGlobal), factory::constant(0.0));
+    // MC 1.21: offset = splineWithBlending(add(GLOBAL_OFFSET, overworldOffset), blendOffset)
+    // blendOffset 在无旧区块混合时返回 0.0，有旧区块时返回实际偏移值
+    auto offset = TerrainProvider::splineWithBlending(std::move(offsetWithGlobal), factory::blendOffset());
 
     // MC 1.21: NoiseRouter 的 depth 字段 = offsetToDepth = yClampedGradient + offset
     // 为 climateForRouter.depth 创建独立的 offset 副本（使用 climateForRouter 的 continents/erosion）
@@ -332,10 +334,12 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
     auto offsetForDepth = TerrainProvider::splineWithBlending(
         factory::add(factory::constant(TerrainProvider::GLOBAL_OFFSET),
             TerrainProvider::overworldOffset(continentsForDepthShared, erosionForDepthShared, ridgesPVShared)),
-        factory::constant(0.0));
+        factory::blendOffset());
     climateForRouter.depth = factory::add(std::move(climateForRouter.depth), std::move(offsetForDepth));
 
     // --- factor: splineWithBlending(spline(overworldFactor), BLENDING_FACTOR=10.0) ---
+    // MC 1.21: BLENDING_FACTOR = constant(10.0)，当旧区块混合时，factor 向 10.0 过渡
+    // MC 1.21: splineWithBlending 内部使用 lerp(blendAlpha, blendTarget, splineFunc)
     // overworldFactor 需要 weirdness，即 ridges（原始值，非 peaksAndValleys）
     // 需要重新创建 ridges 用于 factor/jaggedness
     // 注意: climate.ridges 已被 move，需要创建新的 ridges 密度函数
@@ -574,10 +578,10 @@ NoiseRouter NoiseRouterData::overworld(u64 seed, bool largeBiomes)
         1.0);
 
     // ========== 预备表面高度 ==========
-    // MC 1.21: 完整实现使用 offset 样条的 flatCache(cache2d(lerp(blendAlpha, 0, offset)))
-    // 以及 findTopSurface 函数来计算 preliminarySurfaceLevel
-    // TODO: Java 使用 findTopSurface 计算实际表面高度，当前简化为 constant(0.0)
-    //       需要实现 findTopSurface 后替换为正确的密度函数
+    // MC 1.21: preliminarySurfaceLevel 使用 findTopSurface 密度函数计算实际表面高度
+    // 完整实现需要 FindTopSurface 密度函数（从 upperBound 向下搜索 density > 0 的 Y 坐标）
+    // 以及 remap、offsetToDepth 等辅助函数
+    // TODO: 实现 FindTopSurface 密度函数后替换 constant(0.0)
     auto preliminarySurfaceLevel = factory::constant(0.0);
 
     return NoiseRouter(std::move(barrierNoise),          // barrierNoise

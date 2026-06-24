@@ -106,7 +106,8 @@ public:
      * @brief splineWithBlending(splineFunc, blendTarget) — 带混合的样条
      *
      * MC 1.21: flatCache(cache2d(lerp(blendAlpha, blendTarget, splineFunc)))
-     * 当前 blendAlpha = 1.0（无混合），简化为 flatCache(cache2d(splineFunc))
+     * 当 BlendAlpha 返回 1.0（无旧区块混合）时，结果等于 splineFunc；
+     * 当 Blender 系统实现后，BlendAlpha 在区块边界处从 1.0 过渡到 0.0，实现平滑混合
      */
     [[nodiscard]] static std::unique_ptr<DensityFunction> splineWithBlending(
         std::unique_ptr<DensityFunction> splineFunc, std::unique_ptr<DensityFunction> blendTarget);
