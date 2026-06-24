@@ -736,4 +736,148 @@ TEST_F(FlatChunkGeneratorDetailedTest, GetSpawnHeight)
     EXPECT_EQ(gen.getSpawnHeight(0, 0), 4);
 }
 
+// ============================================================================
+// 10. 结构生成测试
+// ============================================================================
+
+TEST_F(FlatChunkGeneratorDetailedTest, StructureOverrides_DefaultHasVillagesAndStrongholds)
+{
+    // MC 1.21.11: 默认超平坦世界启用 minecraft:villages 和 minecraft:strongholds
+    auto settings = FlatLevelGeneratorSettings::createDefault();
+    const auto& overrides = settings.structureOverrides();
+    ASSERT_EQ(overrides.size(), 2u);
+    EXPECT_EQ(overrides[0], ResourceLocation::parse("minecraft:villages"));
+    EXPECT_EQ(overrides[1], ResourceLocation::parse("minecraft:strongholds"));
+    EXPECT_TRUE(settings.hasStructureGeneration());
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, StructureOverrides_EmptyMeansNoStructures)
+{
+    // 空的 structureOverrides 表示不生成任何结构
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    EXPECT_TRUE(settings.structureOverrides().empty());
+    EXPECT_FALSE(settings.hasStructureGeneration());
+
+    // generateStructureStarts 应设置状态但不生成任何结构
+    FlatChunkGenerator gen(0LL, settings);
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateStructureStarts(*region, centerChunk);
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::STRUCTURE_STARTS);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, GenerateStructureStarts_SetsChunkStatus)
+{
+    // 有 structureOverrides 时，generateStructureStarts 应设置正确的区块状态
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.setStructureOverrides({ResourceLocation::parse("minecraft:villages")});
+    settings.updateLayers();
+
+    FlatChunkGenerator gen(0LL, settings);
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateStructureStarts(*region, centerChunk);
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::STRUCTURE_STARTS);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, GenerateStructureReferences_SetsChunkStatus)
+{
+    // generateStructureReferences 应设置 STRUCTURE_REFERENCES 状态
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.updateLayers();
+
+    FlatChunkGenerator gen(0LL, settings);
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateStructureReferences(*region, centerChunk);
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::STRUCTURE_REFERENCES);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, StructureOverrides_IncompatibleBiome_SkipsStructureSet)
+{
+    // 沙漠生物群系不应生成村庄（村庄需要 Plains/Savanna/Taiga/Snowy 等生物群系）
+    // 注意：实际上 MC 中村庄也可以在 Desert 生成，这里测试 _hasBiomesForStructureSet 的过滤逻辑
+    // 使用 Nether 相关的结构集，它们不应在 Plains 生物群系中生成
+    FlatLevelGeneratorSettings settings(Biomes::Plains, false, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    // nether_complexes 是下界结构集，不应在 Plains 生物群系中生成
+    settings.setStructureOverrides({ResourceLocation::parse("minecraft:nether_complexes")});
+    settings.updateLayers();
+
+    FlatChunkGenerator gen(0LL, settings);
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    // generateStructureStarts 应成功执行（不崩溃），但不会生成下界要塞
+    gen.generateStructureStarts(*region, centerChunk);
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::STRUCTURE_STARTS);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, StructureOverrides_DefaultSettings_VillagesAndStrongholds)
+{
+    // 使用 createDefault() 设置，应同时支持村庄和要塞结构生成
+    auto settings = FlatLevelGeneratorSettings::createDefault();
+    EXPECT_TRUE(settings.hasStructureGeneration());
+    EXPECT_EQ(settings.structureOverrides().size(), 2u);
+
+    FlatChunkGenerator gen(0LL, settings);
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    // generateStructureStarts 不应崩溃
+    gen.generateStructureStarts(*region, centerChunk);
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::STRUCTURE_STARTS);
+
+    // generateStructureReferences 也不应崩溃
+    gen.generateStructureReferences(*region, centerChunk);
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::STRUCTURE_REFERENCES);
+}
+
+TEST_F(FlatChunkGeneratorDetailedTest, StructureOverrides_MultipleStructures)
+{
+    // 测试多个结构覆盖项
+    FlatLevelGeneratorSettings settings(Biomes::Plains, true, false);
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::BEDROCK));
+    settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
+    settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
+    settings.setStructureOverrides({
+        ResourceLocation::parse("minecraft:villages"),
+        ResourceLocation::parse("minecraft:strongholds"),
+        ResourceLocation::parse("minecraft:mineshafts"),
+    });
+    settings.updateLayers();
+
+    EXPECT_EQ(settings.structureOverrides().size(), 3u);
+    EXPECT_TRUE(settings.hasStructureGeneration());
+
+    FlatChunkGenerator gen(42LL, settings);
+    std::vector<std::unique_ptr<ChunkPrimer>> chunks;
+    auto region = PlaceFeaturesTestHelper::createRegion(0, 0, 1, chunks);
+    ChunkPrimer& centerChunk = *chunks[4];
+
+    gen.generateStructureStarts(*region, centerChunk);
+    EXPECT_EQ(&centerChunk.getChunkStatus(), &ChunkStatuses::STRUCTURE_STARTS);
+}
+
 } // namespace

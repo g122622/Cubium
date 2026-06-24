@@ -184,7 +184,7 @@ rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 
 ### 10. FlatChunkGenerator 特性放置
 
-`FlatChunkGenerator::placeFeatures()` 根据 `FlatLevelGeneratorSettings` 的 `hasDecoration()` 和 `hasLakes()` 标志控制特性放置：
+`FlatChunkGenerator::placeFeatures()` 根据 `FlatLevelGeneratorSettings` 的 `hasDecoration()` 和 `hasLakes()` 标志控制特性放置，同时按装饰阶段交错放置结构方块：
 
 | hasDecoration | hasLakes | 行为 |
 |:---:|:---:|:---|
@@ -196,3 +196,42 @@ rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 参考 MC 1.21.11: `FlatLevelGeneratorSettings.adjustGenerationSettings()` — `decoration=false` 时完全跳过生物群系特性复制循环，`addLakes` 的熔岩湖由 `createLakesList()` 单独提供（仅含两个熔岩湖特性，不含水湖）。
 
 非运动阻挡层（如水层）在 `updateLayers()` 中被标记为 nullptr，`placeFeatures()` 末尾的 `_placeFillLayers()` 在特性放置后将空气方块替换为原始方块状态，确保与湖泊等特性不冲突。
+
+### 11. FlatChunkGenerator 结构生成
+
+`FlatChunkGenerator` 实现了完整的结构生成管线，对齐 MC 1.21.11 `FlatLevelSource.createState()` 的行为：
+
+#### structureOverrides 配置
+
+`FlatLevelGeneratorSettings` 新增 `structureOverrides` 字段（`std::vector<ResourceLocation>`），指定平坦世界中允许生成的结构集（白名单）：
+
+| 配置 | 行为 |
+|:---:|:---|
+| 空列表 | 不生成任何结构 |
+| 非空列表 | 仅生成指定的结构集（受生物群系兼容性过滤） |
+
+MC 1.21.11 原版中 `structureOverrides` 为 `Optional<HolderSet<StructureSet>>`，`Optional.empty` 表示使用所有结构集，`Optional.present` 表示仅使用指定集合。项目简化为空列表=不生成结构，以与 `hasDecoration`/`hasLakes` 保持一致。
+
+MC 默认超平坦世界启用 `minecraft:villages` 和 `minecraft:strongholds`。
+
+#### generateStructureStarts 流程
+
+1. 检查 `structureOverrides` 是否为空，空则跳过结构生成
+2. 构建 `structureOverrides` 的快速查找集合
+3. 遍历 `StructureSetRegistry` 中所有注册的结构集
+4. 过滤：仅处理覆盖列表中的结构集（`overrideSet.find(structureSet.id())`）
+5. 过滤：`_hasBiomesForStructureSet()` 检查结构集是否与平坦世界生物群系兼容
+6. 检查是否已有同集合的有效 StructureStart
+7. `placement.isStructureChunk()` 判断候选区块
+8. `structureSet.selectEntry()` 按权重选择结构
+9. `m_structureManager->shouldGenerateStructureStart()` 二次检查
+10. `structure->generate()` 创建 StructureStart
+11. 通知 StructureCheck 缓存
+
+#### generateStructureReferences 流程
+
+与 `NoiseChunkGenerator` 完全一致：扫描 17x17 区块范围，收集相交结构引用，递增引用计数。
+
+#### placeFeatures 中的结构放置
+
+在 FEATURES 阶段，按装饰阶段分组放置结构方块（`structuresByStage`），与生物群系特征交错执行，对齐 MC `ChunkGenerator.applyBiomeDecoration()` 的行为。

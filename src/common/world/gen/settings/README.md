@@ -96,3 +96,14 @@ NoiseSettings noise = NoiseSettings::nether();
 ### 7. FillLayerEntry 与 updateLayers() 的配合
 
 `FlatLevelGeneratorSettings::updateLayers()` 会将非运动阻挡方块（如水）在展开层列表中替换为 `nullptr`，同时记录到 `fillLayerEntries()` 列表中。`FlatChunkGenerator::placeFeatures()` 在特性放置完成后，通过 `_placeFillLayers()` 将这些位置的空气方块替换为原始方块状态。如果只修改 `layers()` 而不调用 `updateLayers()`，`fillLayerEntries` 将不会更新。
+
+### 8. structureOverrides 结构生成覆盖
+
+`FlatLevelGeneratorSettings` 新增 `structureOverrides` 字段（`std::vector<ResourceLocation>`），用于控制平坦世界中允许生成的结构集：
+
+- **空列表**：不生成任何结构
+- **非空列表**：仅生成指定的结构集（白名单），受 `_hasBiomesForStructureSet()` 生物群系兼容性过滤
+
+MC 1.21.11 原版中 `structureOverrides` 为 `Optional<HolderSet<StructureSet>>`，`Optional.empty` 表示使用所有结构集，`Optional.present` 表示仅使用指定集合。项目简化为空列表=不生成结构，以与 `hasDecoration`/`hasLakes` 的行为保持一致。
+
+`createDefault()` 默认配置启用 `minecraft:villages` 和 `minecraft:strongholds`，对齐 MC 原版超平坦世界预设。
