@@ -159,6 +159,21 @@ constexpr const char* FUSE = "Fuse";
 constexpr const char* IGNITED = "ignited";
 constexpr const char* POWERED = "powered";
 
+// ========== AreaEffectCloudEntity 键 ==========
+
+constexpr const char* CLOUD_AGE = "Age";
+constexpr const char* CLOUD_DURATION = "Duration";
+constexpr const char* CLOUD_WAIT_TIME = "WaitTime";
+constexpr const char* CLOUD_REAPPLICATION_DELAY = "ReapplicationDelay";
+constexpr const char* CLOUD_DURATION_ON_USE = "DurationOnUse";
+constexpr const char* CLOUD_RADIUS_ON_USE = "RadiusOnUse";
+constexpr const char* CLOUD_RADIUS_PER_TICK = "RadiusPerTick";
+constexpr const char* CLOUD_RADIUS = "Radius";
+constexpr const char* CLOUD_OWNER = "Owner";
+constexpr const char* CLOUD_PARTICLE = "ParticleType";
+constexpr const char* CLOUD_COLOR = "Color";
+constexpr const char* CLOUD_EFFECTS = "CustomPotionEffects";
+
 // ========== SkeletonEntity 键 ==========
 
 constexpr const char* STRAY_CONVERSION_TIME = "StrayConversionTime";

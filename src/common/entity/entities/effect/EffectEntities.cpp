@@ -25,11 +25,13 @@
 #include "../../../core/Types.hpp"
 #include "../../../item/items/special/FlintAndSteelItem.hpp"
 #include "../../../sound/SoundEvents.hpp"
+#include "../../../util/UuidUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/explosion/ExplosionMode.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "../../serialization/EntityNbtKeys.hpp"
 #include "../boss/EnderDragonEntity.hpp"
 #include "../player/Player.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
@@ -46,13 +48,17 @@ namespace {
  * @brief 应用瞬间效果到目标实体
  *
  * 用于药水云、喷溅药水等场景中瞬间效果的应用。
+ * 参考 MC 原版 AreaEffectCloud.serverTick() 中 applyInstantenousEffect 的调用方式。
  *
  * @param type 效果类型（必须是瞬间效果）
+ * @param source 效果来源实体（AreaEffectCloud 自身）
+ * @param caster 效果施放者（拥有者，如投掷药水的玩家）
  * @param target 目标生物
  * @param amplifier 效果等级（0 = I, 1 = II）
  * @param multiplier 效果乘数（通常为 0.5 或 1.0）
  */
-void applyInstantEffect(effect::EffectType type, LivingEntity& target, i32 amplifier, f32 multiplier)
+void applyInstantEffect(
+    effect::EffectType type, Entity& source, LivingEntity* caster, LivingEntity& target, i32 amplifier, f32 multiplier)
 {
     // 基础值 4.0，每级增加 2.0
     f32 amount = (4.0f + static_cast<f32>(amplifier) * 2.0f) * multiplier;
@@ -61,8 +67,15 @@ void applyInstantEffect(effect::EffectType type, LivingEntity& target, i32 ampli
         case effect::EffectType::InstantHealth:
             // 瞬间治疗：亡灵生物受到伤害，普通生物治疗
             if (target.getCreatureAttribute() == CreatureAttribute::Undead) {
-                auto source = DamageSources::magic();
-                target.hurt(source, amount);
+                // MC 原版: 使用 indirectMagic(source, caster) 作为伤害来源
+                // 伤害归属于 caster（如果存在），使击杀归因正确
+                if (caster != nullptr) {
+                    auto dmgSource = DamageSources::indirectMagic(&source, caster);
+                    target.hurt(dmgSource, amount);
+                } else {
+                    auto dmgSource = DamageSources::magic();
+                    target.hurt(dmgSource, amount);
+                }
             } else {
                 target.heal(amount);
             }
@@ -73,15 +86,20 @@ void applyInstantEffect(effect::EffectType type, LivingEntity& target, i32 ampli
             if (target.getCreatureAttribute() == CreatureAttribute::Undead) {
                 target.heal(amount);
             } else {
-                auto source = DamageSources::magic();
-                target.hurt(source, amount);
+                // MC 原版: 使用 indirectMagic(source, caster) 作为伤害来源
+                if (caster != nullptr) {
+                    auto dmgSource = DamageSources::indirectMagic(&source, caster);
+                    target.hurt(dmgSource, amount);
+                } else {
+                    auto dmgSource = DamageSources::magic();
+                    target.hurt(dmgSource, amount);
+                }
             }
             break;
 
         case effect::EffectType::Saturation:
             // 饱和效果：恢复饥饿值和饱和度（仅对玩家有效）
             // MC 原版: player.getFoodData().eat(amplifier + 1, 1.0F)
-            // foodLevel += (amplifier + 1), saturationLevel += (amplifier + 1) * 1.0 * 2.0
             if (auto* player = dynamic_cast<Player*>(&target)) {
                 i32 nutrition = amplifier + 1;
                 player->foodStats().addStats(nutrition, 1.0f);
@@ -493,7 +511,55 @@ void AreaEffectCloudEntity::addEffect(const effect::EffectInstance& effect)
 void AreaEffectCloudEntity::setOwner(LivingEntity* owner)
 {
     m_owner = owner;
-    // 同时记录 ownerUniqueId（待实现）
+    if (owner != nullptr) {
+        m_ownerUuid = owner->uuid();
+    } else {
+        m_ownerUuid.clear();
+    }
+}
+
+LivingEntity* AreaEffectCloudEntity::getOwner()
+{
+    // 如果缓存指针有效且实体未被移除，直接返回
+    if (m_owner != nullptr && m_owner->isAlive()) {
+        return m_owner;
+    }
+
+    // 缓存失效，尝试通过 UUID 在世界中重新查找
+    if (!m_ownerUuid.empty() && m_world != nullptr) {
+        // 获取效果云范围内所有实体，查找 UUID 匹配的 LivingEntity
+        // 使用较大的搜索范围，因为 owner 可能已离开效果云范围
+        constexpr f32 SEARCH_RANGE = 64.0f;
+        std::vector<Entity*> entities = m_world->getEntitiesInRange(m_position, SEARCH_RANGE, this);
+        for (Entity* entity : entities) {
+            if (entity != nullptr && entity->isAlive() && entity->uuid() == m_ownerUuid) {
+                LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+                if (living != nullptr) {
+                    m_owner = living;
+                    return m_owner;
+                }
+            }
+        }
+        // 尝试在玩家列表中查找（玩家可能在范围外）
+        std::vector<Entity*> players = m_world->getPlayers();
+        for (Entity* playerEntity : players) {
+            if (playerEntity != nullptr && playerEntity->isAlive() && playerEntity->uuid() == m_ownerUuid) {
+                m_owner = static_cast<LivingEntity*>(playerEntity);
+                return m_owner;
+            }
+        }
+    }
+
+    // UUID 查找也失败，清空缓存指针
+    m_owner = nullptr;
+    return nullptr;
+}
+
+void AreaEffectCloudEntity::setOwnerUuid(const std::string& uuid)
+{
+    m_ownerUuid = uuid;
+    // 不设置 m_owner 指针，等到 getOwner() 被调用时再通过 UUID 懒加载查找
+    m_owner = nullptr;
 }
 
 void AreaEffectCloudEntity::tick()
@@ -573,6 +639,10 @@ void AreaEffectCloudEntity::_applyEffects()
 
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(box, this);
 
+    // 获取 owner（用于构建正确的伤害来源）
+    // MC 原版: AreaEffectCloud.serverTick() 中调用 getOwner() 获取施放者
+    LivingEntity* owner = getOwner();
+
     for (Entity* entity : entities) {
         if (entity == nullptr || !entity->isAlive()) {
             continue;
@@ -608,7 +678,8 @@ void AreaEffectCloudEntity::_applyEffects()
                 if (effect::isInstantEffect(effect.type())) {
                     // 瞬间效果（如瞬间治疗、瞬间伤害、饱和）
                     // 乘数 0.5 表示药水云中的效果强度为原效果的一半
-                    applyInstantEffect(effect.type(), *living, effect.amplifier(), 0.5f);
+                    // MC 原版: 传入 source(自身) 和 caster(owner) 以构建正确的间接魔法伤害来源
+                    applyInstantEffect(effect.type(), *this, owner, *living, effect.amplifier(), 0.5f);
                 } else {
                     // 持续效果
                     living->addEffect(effect);
@@ -690,6 +761,149 @@ u32 AreaEffectCloudEntity::_calculateEffectsColor(const std::vector<effect::Effe
     // 返回 ARGB 格式
     return (0xFF << 24) | (static_cast<u32>(r * 255.0f) << 16) | (static_cast<u32>(g * 255.0f) << 8) |
         static_cast<u32>(b * 255.0f);
+}
+
+void AreaEffectCloudEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 调用基类序列化
+    Entity::addAdditionalSaveData(tag);
+
+    using namespace serialization::nbt_keys;
+
+    // 生命周期
+    tag.put(CLOUD_AGE, m_ticksLived);
+    tag.put(CLOUD_DURATION, m_duration);
+    tag.put(CLOUD_WAIT_TIME, m_waitTime);
+    tag.put(CLOUD_REAPPLICATION_DELAY, m_reapplicationDelay);
+    tag.put(CLOUD_DURATION_ON_USE, m_durationOnUse);
+
+    // 半径
+    tag.put(CLOUD_RADIUS_ON_USE, m_radiusOnUse);
+    tag.put(CLOUD_RADIUS_PER_TICK, m_radiusPerTick);
+    tag.put(CLOUD_RADIUS, m_radius);
+
+    // 拥有者 UUID
+    // MC 原版: EntityReference.store(owner, output, "Owner")，以 int[4] 或 UUIDMost/UUIDLeast 格式存储
+    // 本项目采用 UUIDMost/UUIDLeast 格式，键名前缀为 "Owner"
+    // 参考 ItemEntity 的 Owner/Thrower 字段和 TameableEntity 的 OwnerUUID 字段
+    if (!m_ownerUuid.empty()) {
+        auto uuidBytes = util::uuidFromString(m_ownerUuid);
+        if (uuidBytes.size() == 16) {
+            i64 most = (static_cast<i64>(uuidBytes[0]) << 56) | (static_cast<i64>(uuidBytes[1]) << 48) |
+                (static_cast<i64>(uuidBytes[2]) << 40) | (static_cast<i64>(uuidBytes[3]) << 32) |
+                (static_cast<i64>(uuidBytes[4]) << 24) | (static_cast<i64>(uuidBytes[5]) << 16) |
+                (static_cast<i64>(uuidBytes[6]) << 8) | static_cast<i64>(uuidBytes[7]);
+            i64 least = (static_cast<i64>(uuidBytes[8]) << 56) | (static_cast<i64>(uuidBytes[9]) << 48) |
+                (static_cast<i64>(uuidBytes[10]) << 40) | (static_cast<i64>(uuidBytes[11]) << 32) |
+                (static_cast<i64>(uuidBytes[12]) << 24) | (static_cast<i64>(uuidBytes[13]) << 16) |
+                (static_cast<i64>(uuidBytes[14]) << 8) | static_cast<i64>(uuidBytes[15]);
+            tag.put("OwnerUUIDMost", most);
+            tag.put("OwnerUUIDLeast", least);
+        }
+    }
+
+    // 粒子类型
+    tag.put(CLOUD_PARTICLE, static_cast<i32>(m_particleType));
+
+    // 颜色
+    tag.put(CLOUD_COLOR, static_cast<i32>(m_color));
+
+    // 效果列表
+    if (!m_effects.empty()) {
+        auto effectsList = std::make_unique<nbt::tags::compound_list_tag>();
+        for (const auto& effect : m_effects) {
+            nbt::tags::compound_tag effectTag;
+            effect.toNbt(effectTag);
+            effectsList->value.push_back(std::move(effectTag));
+        }
+        tag.value.emplace(CLOUD_EFFECTS, std::move(effectsList));
+    }
+}
+
+Result<void> AreaEffectCloudEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 调用基类反序列化
+    MC_TRY(Entity::readAdditionalSaveData(tag));
+
+    using namespace serialization::nbt_keys;
+
+    // 生命周期
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, CLOUD_AGE)) {
+        m_ticksLived = *val;
+    }
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, CLOUD_DURATION)) {
+        m_duration = *val;
+    }
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, CLOUD_WAIT_TIME)) {
+        m_waitTime = *val;
+    }
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, CLOUD_REAPPLICATION_DELAY)) {
+        m_reapplicationDelay = *val;
+    }
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, CLOUD_DURATION_ON_USE)) {
+        m_durationOnUse = *val;
+    }
+
+    // 半径
+    if (auto val = serialization::nbt_helper::tryGetFloat(tag, CLOUD_RADIUS_ON_USE)) {
+        m_radiusOnUse = *val;
+    }
+    if (auto val = serialization::nbt_helper::tryGetFloat(tag, CLOUD_RADIUS_PER_TICK)) {
+        m_radiusPerTick = *val;
+    }
+    if (auto val = serialization::nbt_helper::tryGetFloat(tag, CLOUD_RADIUS)) {
+        m_radius = *val;
+        m_initialRadius = m_radius;
+    }
+
+    // 拥有者 UUID
+    // 读取 OwnerUUIDMost/OwnerUUIDLeast，转换为 UUID 字符串
+    auto mostVal = serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDMost");
+    auto leastVal = serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDLeast");
+    if (mostVal.has_value() && leastVal.has_value()) {
+        i64 m = mostVal.value();
+        i64 l = leastVal.value();
+        std::array<u8, 16> uuidBytes{};
+        for (i32 i = 7; i >= 0; --i) {
+            uuidBytes[i] = static_cast<u8>(m & 0xFF);
+            m >>= 8;
+        }
+        for (i32 i = 15; i >= 8; --i) {
+            uuidBytes[i] = static_cast<u8>(l & 0xFF);
+            l >>= 8;
+        }
+        m_ownerUuid = util::uuidToString(uuidBytes);
+        m_owner = nullptr; // 等 getOwner() 被调用时再通过 UUID 懒加载查找
+    } else {
+        m_ownerUuid.clear();
+        m_owner = nullptr;
+    }
+
+    // 粒子类型
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, CLOUD_PARTICLE)) {
+        m_particleType = static_cast<u32>(*val);
+    }
+
+    // 颜色
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, CLOUD_COLOR)) {
+        m_color = static_cast<u32>(*val);
+        m_colorSet = (m_color != 0); // 如果从 NBT 读取了颜色，则标记为已设置
+    }
+
+    // 效果列表
+    auto effectsIt = tag.value.find(CLOUD_EFFECTS);
+    if (effectsIt != tag.value.end() && effectsIt->second->id() == nbt::TagId::List) {
+        const auto& effectsList = dynamic_cast<const nbt::tags::compound_list_tag&>(*effectsIt->second);
+        m_effects.clear();
+        for (const auto& effectTag : effectsList.value) {
+            m_effects.push_back(effect::EffectInstance::fromNbt(effectTag));
+        }
+    }
+
+    // 刷新碰撞箱
+    refreshDimensions();
+
+    return Result<void>::ok();
 }
 
 // 注意: ExperienceOrbEntity 已移动到独立的 orb/ 目录

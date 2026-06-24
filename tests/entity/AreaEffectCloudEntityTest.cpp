@@ -461,6 +461,14 @@ TEST_F(LingeringPotionCloudScenarioTest, SetOwner_CanBeSet)
     EXPECT_EQ(m_cloud->getOwner(), nullptr);
 }
 
+TEST_F(LingeringPotionCloudScenarioTest, SetOwner_Nullptr_ClearsUuid)
+{
+    // 设置 nullptr 时，UUID 应该被清空
+    m_cloud->setOwner(nullptr);
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
 // ============================================================================
 // 效果持续时间除以 4 的逻辑测试
 // ============================================================================
@@ -786,4 +794,71 @@ TEST_F(AreaEffectCloudColorTest, NoEffects_ColorIsZero)
 {
     // 无效果时，颜色应该为 0
     EXPECT_EQ(m_cloud->getColor(), 0);
+}
+
+// ============================================================================
+// Owner UUID 测试
+// ============================================================================
+
+class AreaEffectCloudOwnerTest : public ::testing::Test {
+protected:
+    void SetUp() override { m_cloud = std::make_unique<AreaEffectCloudEntity>(); }
+
+    std::unique_ptr<AreaEffectCloudEntity> m_cloud;
+};
+
+TEST_F(AreaEffectCloudOwnerTest, DefaultOwner_IsNullptr)
+{
+    // 默认无 owner
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
+TEST_F(AreaEffectCloudOwnerTest, SetOwner_Nullptr_ClearsOwnerAndUuid)
+{
+    // 先设置一个 owner 再清空
+    m_cloud->setOwner(nullptr);
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
+TEST_F(AreaEffectCloudOwnerTest, SetOwnerUuid_SetsUuidOnly)
+{
+    // 仅设置 UUID，不设置指针
+    m_cloud->setOwnerUuid("abcdef0123456789abcdef0123456789");
+    EXPECT_EQ(m_cloud->ownerUuid(), "abcdef0123456789abcdef0123456789");
+    // 指针应为 nullptr（等 getOwner() 在有世界环境时才通过 UUID 查找）
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+}
+
+TEST_F(AreaEffectCloudOwnerTest, SetOwnerUuid_EmptyString_ClearsUuid)
+{
+    // 先设置 UUID 再清空
+    m_cloud->setOwnerUuid("abcdef0123456789abcdef0123456789");
+    EXPECT_FALSE(m_cloud->ownerUuid().empty());
+
+    m_cloud->setOwnerUuid("");
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
+TEST_F(AreaEffectCloudOwnerTest, OwnerUuid_AfterSetOwnerWithNullptr_IsEmpty)
+{
+    // setOwner(nullptr) 应该同时清空 UUID
+    m_cloud->setOwner(nullptr);
+    EXPECT_TRUE(m_cloud->ownerUuid().empty());
+}
+
+TEST_F(AreaEffectCloudOwnerTest, GetOwner_ConstVersion_ReturnsCachePointer)
+{
+    // const 版本的 getOwner 直接返回缓存指针
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+}
+
+TEST_F(AreaEffectCloudOwnerTest, SetOwnerUuid_DoesNotSetCachePointer)
+{
+    // setOwnerUuid 只设置 UUID，不清除缓存指针（设计上指针在下次 getOwner 时重新查找）
+    m_cloud->setOwnerUuid("abcdef0123456789abcdef0123456789");
+    // getOwner() 应返回 nullptr（无世界环境，无法通过 UUID 查找）
+    EXPECT_EQ(m_cloud->getOwner(), nullptr);
+    EXPECT_EQ(m_cloud->ownerUuid(), "abcdef0123456789abcdef0123456789");
 }
