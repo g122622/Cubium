@@ -323,6 +323,15 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                 tracked.lastPitch = currentPitch;
                 tracked.needsFullUpdate = false;
             }
+
+            // 速度同步：当实体的 hurtMarked 为 true 时，发送速度同步包
+            // 对应 MC Java 的 ServerEntity.sendDirtyEntityData() 中对 hurtMarked 的处理
+            if (entity->isHurtMarked()) {
+                for (PlayerId playerId : tracked.trackingPlayers) {
+                    _sendVelocityPacket(server, playerId, entity);
+                }
+                entity->clearHurtMarked();
+            }
         }
 
         for (EntityId entityId : entitiesToErase) {
@@ -538,6 +547,36 @@ void EntityTracker::_sendMovePacket(IServer& server, PlayerId playerId, Entity* 
         network::PacketSerializer fullPacket;
         fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
         fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityTeleport));
+        fullPacket.writeU16(0);
+        fullPacket.writeU16(0);
+        fullPacket.writeU16(0);
+        fullPacket.writeBytes(result.value());
+
+        player->send(fullPacket.data(), fullPacket.size());
+    }
+}
+
+void EntityTracker::_sendVelocityPacket(IServer& server, PlayerId playerId, Entity* entity)
+{
+    if (!entity) return;
+
+    ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+    if (!player || !player->hasConnection()) return;
+
+    // 发送实体速度同步包
+    // 速度单位：1/8000 block/tick（与 SpawnMobPacket/SpawnEntityPacket 一致）
+    network::EntityVelocityPacket packet;
+    packet.setEntityId(static_cast<u32>(entity->id()));
+    const auto velocity = entity->velocity();
+    packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
+
+    auto result = packet.serialize();
+    if (result.success()) {
+        network::PacketSerializer fullPacket;
+        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
+        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityVelocity));
         fullPacket.writeU16(0);
         fullPacket.writeU16(0);
         fullPacket.writeU16(0);

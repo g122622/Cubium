@@ -197,7 +197,11 @@ bool TradeWithPlayerGoal::shouldExecute()
         return false;
     }
 
-    // TODO: 添加被击退状态检查（当hurtMarked或等效机制实现后），参考 MC原版 TradeWithPlayerGoal.canUse()
+    // 被击退时不可交易（对应 MC Java TradeWithPlayerGoal.canUse() 中的 hurtMarked 检查）
+    // hurtMarked 在实体受伤或被施加击退时设为 true，在 EntityTracker 同步速度后重置为 false
+    if (m_mob->isHurtMarked()) {
+        return false;
+    }
 
     auto* villager = dynamic_cast<AbstractVillagerEntity*>(m_mob);
     if (villager == nullptr) {

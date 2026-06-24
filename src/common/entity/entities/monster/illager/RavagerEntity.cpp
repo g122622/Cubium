@@ -171,6 +171,7 @@ void RavagerEntity::constructKnockBackVector(LivingEntity* target)
             // 应用碰撞效果
             target->addVelocity(
                 static_cast<f32>(x() - target->x()) * 0.1f, 0.0f, static_cast<f32>(z() - target->z()) * 0.1f);
+            target->markHurt();
         }
     } else {
         // 发射目标
@@ -231,6 +232,9 @@ void RavagerEntity::_launchEntity(Entity* entity)
     f64 vz = dz * invDist * LAUNCH_POWER;
 
     entity->addVelocity(static_cast<f32>(vx), LAUNCH_Y_POWER, static_cast<f32>(vz));
+    // 标记受伤（发射改变了实体速度，需要同步到客户端）
+    // 对应 MC Java 中 Ravager.roar() 和 constructKnockBackVector() 里 hurtMarked = true
+    entity->markHurt();
 }
 
 void RavagerEntity::_spawnStunParticles()

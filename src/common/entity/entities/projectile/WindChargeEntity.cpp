@@ -268,6 +268,9 @@ void WindChargeEntity::applyWindBurst()
         // 风弹自身不受推力（addVelocity 已被重写为空方法）
         // 对应 MC: entity.push(vec32) 即 deltaMovement += vec32
         entity->addVelocity(dx * finalImpact, dy * finalImpact, dz * finalImpact);
+        // 标记受伤（风弹推力改变了实体速度，需要同步到客户端）
+        // 对应 MC Java ApplyEntityImpulse 中 hurtMarked = true
+        entity->markHurt();
 
         // ========== 6. 玩家特殊处理 ==========
         Player* player = dynamic_cast<Player*>(entity);

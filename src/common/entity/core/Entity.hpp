@@ -1232,6 +1232,35 @@ public:
      */
     [[nodiscard]] virtual i32 maxAir() const { return 300; }
 
+    // ========== 受伤标记 ==========
+
+    /**
+     * @brief 标记实体已受伤（需要同步速度到客户端）
+     *
+     * 在实体受到带冲击力的伤害或被施加击退时调用，设置 m_hurtMarked = true。
+     * 服务端在同步实体速度后将其重置为 false。
+     * 对应 MC Java 的 Entity.hurtMarked 字段。
+     * 在 MC Java 中，此标记用于两个目的：
+     * 1. 在 ServerEntity.sendDirtyEntityData() 中触发速度同步包（ClientboundSetEntityMotionPacket）
+     * 2. 在 AI 目标中检测实体是否处于刚被击退的状态（如 TradeWithPlayerGoal）
+     */
+    void markHurt() { m_hurtMarked = true; }
+
+    /**
+     * @brief 检查实体是否被标记为已受伤
+     *
+     * @return 如果实体需要速度同步返回 true
+     */
+    [[nodiscard]] bool isHurtMarked() const { return m_hurtMarked; }
+
+    /**
+     * @brief 清除受伤标记
+     *
+     * 在服务端发送速度同步包后调用，将 m_hurtMarked 重置为 false。
+     * 对应 MC Java 的 ServerEntity.sendDirtyEntityData() 中 hurtMarked = false。
+     */
+    void clearHurtMarked() { m_hurtMarked = false; }
+
     // ========== 无敌 ==========
 
     /**
@@ -2101,6 +2130,10 @@ protected:
 
     // 无敌
     bool m_invulnerable = false;
+
+    // 受伤标记（服务端：设为 true 表示需要同步速度到客户端）
+    // 对应 MC Java 的 Entity.hurtMarked 字段
+    bool m_hurtMarked = false;
 
     // 自定义名称
     std::unique_ptr<text::ITextComponent> m_customName; ///< 自定义名称

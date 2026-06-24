@@ -156,7 +156,11 @@ bool LivingEntity::hurt(DamageSource& source, f32 amount)
         actuallyHurt(source, amount);
     }
 
-    // 3. 战斗追踪器记录（需要在 actuallyHurt 中完成，因为那时才知道实际伤害）
+    // 3. 标记受伤（用于速度同步到客户端和AI目标检测）
+    // 对应 MC Java LivingEntity.hurtServer() 中的 markHurt() 调用
+    // 当实体受到伤害时设置此标记，服务端在 EntityTracker::tick() 中检测到此标记后
+    // 会发送 EntityVelocityPacket 同步速度到客户端，并将标记重置为 false
+    markHurt();
 
     return true;
 }
@@ -1162,6 +1166,9 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
 
     // 设置为空中状态
     m_onGround = false;
+
+    // 标记受伤（击退改变了速度，需要同步到客户端）
+    markHurt();
 }
 
 void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength)

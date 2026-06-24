@@ -616,6 +616,9 @@ bool BoatEntity::hurt(DamageSource& source, f32 amount)
     // 设置受击时间
     m_timeSinceHit = 10;
 
+    // 标记受伤（需要同步速度到客户端，对应 MC Java Boat.hurt() 中的 markHurt()）
+    markHurt();
+
     // 累积伤害
     m_damageTaken += amount * 10.0f;
 

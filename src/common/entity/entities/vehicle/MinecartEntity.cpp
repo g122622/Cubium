@@ -973,8 +973,8 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
     // 5. 设置摇晃时间
     m_rollingAmplitude = 10;
 
-    // 6. 标记速度已改变（用于同步）
-    // TODO: 当网络同步实现后设置
+    // 6. 标记速度已改变（用于同步到客户端）
+    markHurt();
 
     // 7. 累积伤害
     m_damage += static_cast<i32>(amount * 10.0f);
