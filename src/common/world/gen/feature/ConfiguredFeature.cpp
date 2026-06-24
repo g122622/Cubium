@@ -140,6 +140,14 @@ void FeatureRegistry::initialize()
         }
     }
 
+    // 注册竹子特征
+    auto bambooFeatures = VegetationFeatureManager::getBambooFeaturesAndClear();
+    for (auto& feature : bambooFeatures) {
+        if (feature) {
+            registerFeature(std::move(feature), DecorationStage::VegetalDecoration);
+        }
+    }
+
     // 注册冰刺特征
     auto iceSpikeFeatures = VegetationFeatureManager::getIceSpikeFeaturesAndClear();
     for (auto& feature : iceSpikeFeatures) {

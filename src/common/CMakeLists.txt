@@ -1045,6 +1045,7 @@ add_library(mc_common STATIC
     world/gen/feature/vegetation/BigMushroomFeature.cpp
     world/gen/feature/vegetation/CactusFeature.cpp
     world/gen/feature/vegetation/SugarCaneFeature.cpp
+    world/gen/feature/vegetation/BambooFeature.cpp
 
     # World - Generation - Feature - Cave
     world/gen/feature/cave/CaveFeatures.cpp

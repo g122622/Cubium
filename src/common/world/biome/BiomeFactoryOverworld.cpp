@@ -838,7 +838,6 @@ Biome createJungleEdge()
 
 Biome createBambooJungle()
 {
-    // TODO: 暂不生成竹子，使用丛林生成设置
     Biome biome(Biomes::BambooJungle, "bamboo_jungle");
     biome.setDepth(0.1f);
     biome.setScale(0.2f);
@@ -847,7 +846,7 @@ Biome createBambooJungle()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
+    biome.setGenerationSettings(BiomeGenerationSettings::createBambooJungle());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
     return biome;
 }
@@ -862,7 +861,7 @@ Biome createBambooJungleHills()
     biome.setSurfaceBlock(getBlockState(VanillaBlocks::GRASS_BLOCK));
     biome.setSubSurfaceBlock(getBlockState(VanillaBlocks::DIRT));
     biome.setUnderWaterBlock(getBlockState(VanillaBlocks::GRAVEL));
-    biome.setGenerationSettings(BiomeGenerationSettings::createJungle());
+    biome.setGenerationSettings(BiomeGenerationSettings::createBambooJungleHills());
     biome.setSpawnInfo(world::spawn::MobSpawnInfo::createJungle());
     return biome;
 }

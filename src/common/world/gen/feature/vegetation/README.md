@@ -4,6 +4,7 @@
 
 ```
 vegetation/
+├── BambooFeature.hpp/cpp          # 竹子特征（竹子丛林/普通丛林）
 ├── BigMushroomFeature.hpp/cpp     # 巨型蘑菇特征（棕色/红色）
 ├── CactusFeature.hpp/cpp          # 仙人掌特征（沙漠/恶地）
 ├── FlowerFeature.hpp/cpp          # 花卉特征（蒲公英、虞美人、郁金香等）
@@ -47,6 +48,10 @@ graph TB
         SugarCaneFeature --> ConfiguredFeature
         SugarCaneFeature --> VanillaBlocks
 
+        BambooFeature --> Feature
+        BambooFeature --> ConfiguredFeature
+        BambooFeature --> VanillaBlocks
+
         IceSpikeFeature --> Feature
         IceSpikeFeature --> ConfiguredFeature
         IceSpikeFeature --> VanillaBlocks
@@ -56,6 +61,7 @@ graph TB
         VegetationFeatures --> BigMushroomFeature
         VegetationFeatures --> CactusFeature
         VegetationFeatures --> SugarCaneFeature
+        VegetationFeatures --> BambooFeature
         VegetationFeatures --> IceSpikeFeature
     end
 
@@ -114,6 +120,7 @@ graph LR
 | 巨型蘑菇 | VegetalDecoration | 沼泽、蘑菇岛 |
 | 仙人掌 | VegetalDecoration | 沙漠、恶地 |
 | 甘蔗 | VegetalDecoration | 河流、沼泽等水源附近 |
+| 竹子 | VegetalDecoration | 竹子丛林（密集+灰化土）、普通丛林（稀疏） |
 | 冰刺 | SurfaceStructures | 冰刺平原 |
 
 ## 容易踩的坑

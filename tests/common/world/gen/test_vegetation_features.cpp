@@ -32,6 +32,7 @@
 #include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
 #include "../src/common/world/gen/feature/FeatureIds.hpp"
+#include "../src/common/world/gen/feature/vegetation/BambooFeature.hpp"
 #include "../src/common/world/gen/feature/vegetation/FlowerFeature.hpp"
 #include "../src/common/world/gen/feature/vegetation/GrassFeature.hpp"
 #include "../src/common/world/gen/feature/vegetation/VegetationFeatures.hpp"
@@ -195,10 +196,10 @@ TEST_F(VegetationFeatureTest, TotalVegetalFeatureCount)
 {
     // 验证VegetalDecoration阶段特征总数正确
     const u32 expectedTotal = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count +
-        MushroomFeatureIds::Count + CactusFeatureIds::Count + SugarCaneFeatureIds::Count;
+        MushroomFeatureIds::Count + CactusFeatureIds::Count + SugarCaneFeatureIds::Count + BambooFeatureIds::Count;
 
     EXPECT_EQ(VegetationIds::TotalVegetalFeatures, expectedTotal);
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 33u); // 15+5+7+2+2+2
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 35u); // 15+5+7+2+2+2+2
 }
 
 TEST_F(VegetationFeatureTest, OceanFeatureIdsAreOffsetAfterLandVegetation)
@@ -938,18 +939,68 @@ TEST_F(VegetationFeatureTest, JungleBiomeSettings)
 {
     auto settings = BiomeGenerationSettings::createJungle();
 
-    // 丛林应该有丛林树和丛林草丛
+    // 丛林应该有丛林树、丛林草丛和稀疏竹子
     const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
     bool hasJungleTree = false;
     bool hasJungleGrass = false;
+    bool hasLightBamboo = false;
 
     for (u32 id : vegetal) {
         if (id == TreeFeatureIds::JungleTree) hasJungleTree = true;
         if (id == GrassFeatureIds::JungleGrass) hasJungleGrass = true;
+        if (id == BambooFeatureIds::LightBamboo) hasLightBamboo = true;
     }
 
     EXPECT_TRUE(hasJungleTree);
     EXPECT_TRUE(hasJungleGrass);
+    EXPECT_TRUE(hasLightBamboo);
+}
+
+TEST_F(VegetationFeatureTest, BambooJungleBiomeSettings)
+{
+    auto settings = BiomeGenerationSettings::createBambooJungle();
+
+    // 竹子丛林应该有密集竹子、丛林树和丛林草丛
+    const auto& vegetal = settings.getFeatures(DecorationStage::VegetalDecoration);
+    bool hasBambooJungle = false;
+    bool hasJungleTree = false;
+    bool hasJungleGrass = false;
+
+    for (u32 id : vegetal) {
+        if (id == BambooFeatureIds::BambooJungle) hasBambooJungle = true;
+        if (id == TreeFeatureIds::JungleTree) hasJungleTree = true;
+        if (id == GrassFeatureIds::JungleGrass) hasJungleGrass = true;
+    }
+
+    EXPECT_TRUE(hasBambooJungle);
+    EXPECT_TRUE(hasJungleTree);
+    EXPECT_TRUE(hasJungleGrass);
+}
+
+TEST_F(VegetationFeatureTest, BambooFeatureIdsHaveCorrectOffset)
+{
+    // 验证竹子特征ID偏移量正确
+    const u32 expectedOffset = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count +
+        MushroomFeatureIds::Count + CactusFeatureIds::Count + SugarCaneFeatureIds::Count;
+    EXPECT_EQ(BambooFeatureIds::Offset, expectedOffset);
+    EXPECT_EQ(BambooFeatureIds::BambooJungle, expectedOffset);
+    EXPECT_EQ(BambooFeatureIds::LightBamboo, expectedOffset + 1);
+    EXPECT_EQ(BambooFeatureIds::Count, 2u);
+}
+
+TEST_F(VegetationFeatureTest, BambooFeatureConfig)
+{
+    // 验证竹子丛林配置
+    auto bambooJungle = BambooFeatures::createBambooJungle();
+    ASSERT_NE(bambooJungle, nullptr);
+    EXPECT_FLOAT_EQ(bambooJungle->getConfig().podzolProbability, 0.2f);
+    EXPECT_NE(bambooJungle->getConfig().bambooState, nullptr);
+
+    // 验证稀疏竹子配置
+    auto lightBamboo = BambooFeatures::createLightBamboo();
+    ASSERT_NE(lightBamboo, nullptr);
+    EXPECT_FLOAT_EQ(lightBamboo->getConfig().podzolProbability, 0.0f);
+    EXPECT_NE(lightBamboo->getConfig().bambooState, nullptr);
 }
 
 TEST_F(VegetationFeatureTest, SavannaBiomeSettings)

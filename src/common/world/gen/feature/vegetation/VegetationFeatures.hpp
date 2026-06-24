@@ -33,10 +33,12 @@
  * - BigMushroomFeature: 巨型蘑菇生成
  * - CactusFeature: 仙人掌生成
  * - SugarCaneFeature: 甘蔗生成
+ * - BambooFeature: 竹子生成
  * - IceSpikeFeature: 冰刺生成
  */
 
 #include "../end/IceSpikeFeature.hpp"
+#include "BambooFeature.hpp"
 #include "BigMushroomFeature.hpp"
 #include "CactusFeature.hpp"
 #include "FlowerFeature.hpp"
@@ -67,6 +69,7 @@ struct VegetationFeatureManager {
         BigMushroomFeatures::initialize();
         CactusFeatures::initialize();
         SugarCaneFeatures::initialize();
+        BambooFeatures::initialize();
         IceSpikeFeatures::initialize();
     }
 
@@ -108,6 +111,14 @@ struct VegetationFeatureManager {
     static std::vector<std::unique_ptr<ConfiguredSugarCaneFeature>> getSugarCaneFeaturesAndClear()
     {
         return SugarCaneFeatures::getAllFeaturesAndClear();
+    }
+
+    /**
+     * @brief 获取所有竹子特征并清空静态存储
+     */
+    static std::vector<std::unique_ptr<ConfiguredBambooFeature>> getBambooFeaturesAndClear()
+    {
+        return BambooFeatures::getAllFeaturesAndClear();
     }
 
     /**
