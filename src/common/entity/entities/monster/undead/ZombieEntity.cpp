@@ -36,7 +36,6 @@
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
-#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -55,6 +54,7 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 namespace mc {
 
@@ -175,10 +175,147 @@ bool ZombieEntity::canSummonReinforcements() const
     return m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS) > 0.0;
 }
 
-void ZombieEntity::trySummonReinforcements()
+void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
 {
-    // 召唤增援逻辑在 hurt() 中处理
-    // 此方法为占位符
+    // 检查 doMobSpawning 游戏规则
+    if (!world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING)) {
+        return;
+    }
+
+    // 获取当前实体类型（用于创建同类型的增援僵尸）
+    const std::string entityTypeId = getTypeId();
+    auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* entityType = registry.getType(entityTypeId);
+    if (entityType == nullptr || !entityType->canSummon()) {
+        return;
+    }
+
+    math::Random& rng = getRandom();
+
+    // 最多尝试 50 次寻找有效生成位置
+    for (i32 attempt = 0; attempt < REINFORCEMENT_ATTEMPTS; ++attempt) {
+        // 各轴独立随机偏移：距离 [7, 40]，正负随机
+        i32 offsetX = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * (rng.nextBoolean() ? 1 : -1);
+        i32 offsetY = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * (rng.nextBoolean() ? 1 : -1);
+        i32 offsetZ = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * (rng.nextBoolean() ? 1 : -1);
+
+        i32 spawnX = static_cast<i32>(m_position.x) + offsetX;
+        i32 spawnY = static_cast<i32>(m_position.y) + offsetY;
+        i32 spawnZ = static_cast<i32>(m_position.z) + offsetZ;
+
+        BlockPos spawnPos(spawnX, spawnY, spawnZ);
+
+        // 检查生成位置是否在世界范围内
+        if (!world.isWithinWorldBounds(spawnPos)) {
+            continue;
+        }
+
+        // 检查地面生成条件：脚下需要固体方块支撑
+        const BlockState* belowState = world.getBlockState(spawnX, spawnY - 1, spawnZ);
+        if (belowState == nullptr || !belowState->isSolid()) {
+            continue;
+        }
+
+        // 检查生成位置和上方一格是否有足够空间（非固体、非流体）
+        const BlockState* spawnState = world.getBlockState(spawnX, spawnY, spawnZ);
+        if (spawnState == nullptr || spawnState->isSolid()) {
+            continue;
+        }
+        if (world.hasFluid(spawnX, spawnY, spawnZ)) {
+            continue;
+        }
+        const BlockState* aboveState = world.getBlockState(spawnX, spawnY + 1, spawnZ);
+        if (aboveState == nullptr || aboveState->isSolid()) {
+            continue;
+        }
+        if (world.hasFluid(spawnX, spawnY + 1, spawnZ)) {
+            continue;
+        }
+
+        // 检查附近7格内无存活玩家
+        Player* nearbyPlayer = world.getClosestPlayer(
+            Vector3(static_cast<f64>(spawnX) + 0.5, static_cast<f64>(spawnY), static_cast<f64>(spawnZ) + 0.5), 7.0f);
+        if (nearbyPlayer != nullptr && nearbyPlayer->isAlive()) {
+            continue;
+        }
+
+        // 创建增援僵尸实体
+        std::unique_ptr<Entity> newEntity = entityType->create(&world);
+        if (newEntity == nullptr) {
+            continue;
+        }
+
+        auto* reinforcement = dynamic_cast<ZombieEntity*>(newEntity.get());
+        if (reinforcement == nullptr) {
+            continue;
+        }
+
+        // 设置位置
+        reinforcement->setPosition(
+            Vector3(static_cast<f64>(spawnX) + 0.5, static_cast<f64>(spawnY), static_cast<f64>(spawnZ) + 0.5));
+
+        // 检查实体碰撞和无方块碰撞
+        AxisAlignedBB reinBox = reinforcement->boundingBox();
+        if (world.hasEntityCollision(reinBox, this)) {
+            continue;
+        }
+        if (world.hasBlockCollision(reinBox)) {
+            continue;
+        }
+
+        // 检查不在液体中（溺尸可以在水中生成）
+        if (!reinforcement->shouldDrown() && world.containsAnyLiquid(reinBox)) {
+            continue;
+        }
+
+        // 初始化生成属性
+        entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+        reinforcement->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Reinforcement);
+
+        // 设置攻击目标
+        reinforcement->setAttackTarget(&target);
+
+        // 生成到世界
+        EntityId spawnedId = world.spawnEntity(std::move(newEntity));
+        if (spawnedId == 0) {
+            continue;
+        }
+
+        // 召唤成功：给召唤者施加 caller charge 修饰符
+        // MC 原版：如果已有修饰符则累加，否则新建
+        f64 callerChargeValue = REINFORCEMENT_CALLEE_CHARGE; // -0.05
+        if (m_attributes.hasModifier(
+                entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, REINFORCEMENT_CALLER_CHARGE_ID)) {
+            f64 existingValue = m_attributes.getModifierValue(
+                entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, REINFORCEMENT_CALLER_CHARGE_ID, 0.0);
+            callerChargeValue = existingValue + REINFORCEMENT_CALLEE_CHARGE;
+            m_attributes.removeModifier(
+                entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, REINFORCEMENT_CALLER_CHARGE_ID);
+        }
+        entity::attribute::AttributeModifier callerModifier(REINFORCEMENT_CALLER_CHARGE_ID,
+            "Reinforcement caller charge",
+            callerChargeValue,
+            entity::attribute::Operation::Addition);
+        m_attributes.addModifier(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, callerModifier);
+
+        // 给被召唤的增援僵尸施加 callee charge 修饰符（防止连锁增援）
+        // 注意：此时 newEntity 已被 spawnEntity 移走，需要通过 ID 查找
+        Entity* spawnedEntity = world.getEntity(spawnedId);
+        if (spawnedEntity != nullptr) {
+            auto* spawnedZombie = dynamic_cast<ZombieEntity*>(spawnedEntity);
+            if (spawnedZombie != nullptr) {
+                entity::attribute::AttributeModifier calleeModifier(ZOMBIE_REINFORCEMENT_CALLEE_CHARGE_ID,
+                    "Reinforcement callee charge",
+                    REINFORCEMENT_CALLEE_CHARGE,
+                    entity::attribute::Operation::Addition);
+                spawnedZombie->attributes().addModifier(
+                    entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS, calleeModifier);
+            }
+        }
+
+        // 生成成功，退出循环
+        return;
+    }
 }
 
 bool ZombieEntity::hurt(DamageSource& source, f32 amount)
@@ -188,12 +325,23 @@ bool ZombieEntity::hurt(DamageSource& source, f32 amount)
     }
 
     // 增援召唤逻辑
-    // 只在困难模式下有概率召唤增援
+    // 对应 MC 1.21.11 Zombie.hurtServer() 中的增援逻辑
     IWorld* worldPtr = world();
     if (worldPtr && entity::combat::DifficultyHelper::canZombieReinforce(worldPtr->difficulty())) {
         f64 spawnChance = m_attributes.getValue(entity::attribute::Attributes::ZOMBIE_SPAWN_REINFORCEMENTS);
         if (getRandom().nextDouble() < spawnChance) {
-            // TODO: 在附近生成增援僵尸实体（需要实体生成系统完善后实现）
+            // 获取攻击目标：优先使用当前攻击目标，其次使用伤害来源实体
+            LivingEntity* target = attackTarget();
+            if (target == nullptr) {
+                Entity* sourceEntity = source.getEntity();
+                if (sourceEntity != nullptr) {
+                    target = dynamic_cast<LivingEntity*>(sourceEntity);
+                }
+            }
+
+            if (target != nullptr) {
+                _trySpawnReinforcement(*worldPtr, *target);
+            }
         }
     }
 

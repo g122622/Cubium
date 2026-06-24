@@ -320,6 +320,17 @@ public:
      */
     [[nodiscard]] virtual bool isLavaAt(const BlockPos& pos) const { return isLavaAt(pos.x, pos.y, pos.z); }
 
+    /**
+     * @brief 检查碰撞箱范围内是否包含任何流体
+     *
+     * 遍历碰撞箱覆盖的所有方块位置，检查是否存在流体方块。
+     * 用于判断实体生成位置是否在液体中（如僵尸增援生成时排除水中位置）。
+     *
+     * @param box 碰撞箱
+     * @return 是否包含流体
+     */
+    [[nodiscard]] bool containsAnyLiquid(const AxisAlignedBB& box) const;
+
     // ========== 区块访问 ==========
 
     /**

@@ -170,7 +170,7 @@ public:
     [[nodiscard]] bool canSummonReinforcements() const;
 
     /**
-     * @brief 尝试召唤增援
+     * @brief 尝试召唤增援（由 hurt() 内部调用）
      */
     void trySummonReinforcements();
 
@@ -277,6 +277,12 @@ private:
     static constexpr i32 IN_WATER_TIME_THRESHOLD = 600; // 水下30秒开始转化
     static constexpr f32 BABY_SPEED_BOOST = 0.5f;       // 婴儿速度加成 50%
 
+    // 增援系统常量
+    static constexpr i32 REINFORCEMENT_ATTEMPTS = 50;         // 增援尝试次数上限
+    static constexpr i32 REINFORCEMENT_RANGE_MIN = 7;         // 增援最小距离
+    static constexpr i32 REINFORCEMENT_RANGE_MAX = 40;        // 增援最大距离
+    static constexpr f64 REINFORCEMENT_CALLEE_CHARGE = -0.05; // 被召唤增援僵尸的增援概率衰减
+
     /**
      * @brief 更新溺水转化
      */
@@ -295,6 +301,22 @@ private:
      * @param specialMultiplier 区域难度特殊乘数
      */
     void _handleAttributes(math::Random& rng, f32 specialMultiplier);
+
+    /**
+     * @brief 尝试在附近生成增援僵尸
+     *
+     * 对应 MC 1.21.11 Zombie.hurtServer() 中的增援生成逻辑：
+     * 1. 在 50 次尝试内随机选择有效生成位置
+     * 2. 位置范围：距离 [7, 40] 方块，各轴独立随机正负
+     * 3. 验证：生成位置检测、附近无存活玩家、无实体碰撞、无液体
+     * 4. 生成同类型僵尸，设置攻击目标，调用 finalizeSpawn
+     * 5. 召唤者获得 reinforcement_caller_charge 修饰符 (-0.05)
+     * 6. 被召唤者获得 reinforcement_callee_charge 修饰符 (-0.05)
+     *
+     * @param world 世界引用
+     * @param target 增援僵尸的攻击目标
+     */
+    void _trySpawnReinforcement(IWorld& world, LivingEntity& target);
 };
 
 } // namespace mc
