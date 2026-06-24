@@ -48,8 +48,8 @@ bool BambooFeature::place(
         return false;
     }
 
-    // 随机高度 5-16 格
-    const i32 height = random.nextInt(12) + 5;
+    // 随机高度 5-16 格，但不能超出建筑高度上限
+    const i32 maxHeight = std::min(random.nextInt(12) + 5, world::MAX_BUILD_HEIGHT - pos.y);
 
     // 以一定概率在竹子基部周围放置灰化土圆盘
     if (random.nextFloat() < config.podzolProbability) {
@@ -70,8 +70,9 @@ bool BambooFeature::place(
         }
     }
 
-    // 放置竹子主干
-    for (i32 y = 0; y < height; ++y) {
+    // 放置竹子主干，记录实际放置的高度
+    i32 actualHeight = 0;
+    for (i32 y = 0; y < maxHeight; ++y) {
         BlockPos bambooPos(pos.x, pos.y + y, pos.z);
         const BlockState* state = world.getBlockState(bambooPos);
         if (state && !state->isAir()) {
@@ -79,23 +80,29 @@ bool BambooFeature::place(
             break;
         }
         world.setBlockState(bambooPos, config.bambooState);
+        ++actualHeight;
+    }
+
+    // 至少放置1格才算成功
+    if (actualHeight <= 0) {
+        return false;
     }
 
     // 顶部装饰：如果竹子至少3格高，装饰顶部3格的叶子状态
     // 顶部格：LEAVES=Large, STAGE=1（停止生长）
     // 顶部下方第1格：LEAVES=Large, STAGE=0
     // 顶部下方第2格：LEAVES=Small, STAGE=0
-    if (height >= 3 && config.topFinalState && config.topLargeState && config.topSmallState) {
+    if (actualHeight >= 3 && config.topFinalState && config.topLargeState && config.topSmallState) {
         // 顶部方块（停止生长，大叶子）
-        BlockPos topPos(pos.x, pos.y + height - 1, pos.z);
+        BlockPos topPos(pos.x, pos.y + actualHeight - 1, pos.z);
         world.setBlockState(topPos, config.topFinalState);
 
         // 顶部下方第1格（大叶子）
-        BlockPos belowTop1(pos.x, pos.y + height - 2, pos.z);
+        BlockPos belowTop1(pos.x, pos.y + actualHeight - 2, pos.z);
         world.setBlockState(belowTop1, config.topLargeState);
 
         // 顶部下方第2格（小叶子）
-        BlockPos belowTop2(pos.x, pos.y + height - 3, pos.z);
+        BlockPos belowTop2(pos.x, pos.y + actualHeight - 3, pos.z);
         world.setBlockState(belowTop2, config.topSmallState);
     }
 
