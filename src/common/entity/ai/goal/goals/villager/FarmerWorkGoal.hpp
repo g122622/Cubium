@@ -83,9 +83,10 @@ private:
     /**
      * @brief 根据种子物品获取对应的作物方块
      *
-     * 通过 BlockRegistry 按 ResourceLocation 查找作物方块。
-     * TODO: 当作物方块注册到 BlockItemRegistry 后，应改用
-     * BlockItemRegistry::instance().getBlock(itemId) 进行查找
+     * 通过 VanillaBlocks 静态引用直接映射种子物品到作物方块。
+     * 作物方块不在 BlockItemRegistry 中注册（作物不能由物品直接放置，
+     * 只能通过种子种植），因此使用 VanillaBlocks 直接引用而非
+     * BlockItemRegistry::instance().getBlock(itemId)。
      *
      * @param seedItem 种子物品
      * @return 对应的作物方块指针，未找到返回 nullptr

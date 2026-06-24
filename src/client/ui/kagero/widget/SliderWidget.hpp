@@ -108,7 +108,16 @@ public:
         const Rect knob{knobX, y() + 2, knobSize, std::max(4, height() - 4)};
         ctx.drawFilledRect(knob, Colors::fromARGB(255, 200, 200, 200));
 
-        // TODO: 根据 m_showValue 绘制显示文本（displayText()）
+        // 根据 m_showValue 绘制显示文本
+        if (m_showValue) {
+            std::string text = displayText();
+            if (!text.empty()) {
+                f32 textWidth = ctx.getTextWidth(text);
+                i32 textX = x() + (width() - static_cast<i32>(textWidth)) / 2;
+                i32 textY = y() + (height() - static_cast<i32>(ctx.getFontHeight())) / 2;
+                ctx.drawText(text, textX, textY, Colors::WHITE);
+            }
+        }
     }
 
     // ==================== 事件处理 ====================

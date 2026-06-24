@@ -151,12 +151,17 @@ public:
         updateContentHeight();
     }
 
-    void tick(f32 dt) override
-    {
-        ScrollableWidget::tick(dt);
+    void tick(f32 dt) override { ScrollableWidget::tick(dt); }
 
-        // TODO: 启用悬停项更新（当前悬停检测尚未完成）
-        // m_hoveredIndex = getIndexAt(m_lastMouseX, m_lastMouseY);
+    bool onMouseMove(i32 mouseX, i32 mouseY) override
+    {
+        if (!isActive() || !isVisible()) return false;
+
+        i32 newIndex = getIndexAt(mouseX, mouseY);
+        if (newIndex != m_hoveredIndex) {
+            m_hoveredIndex = newIndex;
+        }
+        return newIndex >= 0;
     }
 
     void paint(PaintContext& ctx) override

@@ -478,17 +478,6 @@ protected:
         ctx.drawFilledRect(thumb, Colors::fromARGB(200, 120, 120, 120));
     }
 
-    // TODO: 此方法未被调用且与基类 WidgetContainerMixin::handleDragInChildren 行为不同，
-    //       基类使用 isHovered 过滤而此处使用 getWidgetAt，需确认是否应统一或移除
-    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
-    {
-        Widget* widget = getWidgetAt(mouseX, mouseY);
-        if (widget != nullptr) {
-            return widget->onDrag(mouseX, mouseY, deltaX, deltaY, button);
-        }
-        return false;
-    }
-
     // 内容尺寸
     i32 m_contentWidth = 0;  ///< 内容宽度
     i32 m_contentHeight = 0; ///< 内容高度
@@ -498,15 +487,14 @@ protected:
     i32 m_scrollY = 0; ///< 垂直滚动位置
 
     // 滚动条
-    bool m_showScrollbar = true; ///< 是否显示滚动条
-    bool m_showHorizontalScrollbar =
-        true;                 ///< 是否显示水平滚动条 // TODO: 水平滚动条功能尚未实现，待补充水平滚动渲染和交互逻辑
-    i32 m_scrollbarWidth = 6; ///< 滚动条宽度
-    f64 m_scrollSpeed = 20.0; ///< 滚动速度
+    bool m_showScrollbar = true;           ///< 是否显示滚动条
+    bool m_showHorizontalScrollbar = true; ///< 是否显示水平滚动条（水平滚动功能尚未实现）
+    i32 m_scrollbarWidth = 6;              ///< 滚动条宽度
+    f64 m_scrollSpeed = 20.0;              ///< 滚动速度
 
     // 状态
     bool m_draggingScrollbar = false; ///< 是否正在拖动滚动条
-    i32 m_lastMouseX = 0;             ///< 上次鼠标X位置 // TODO: 未使用，水平滚动拖动功能待实现
+    i32 m_lastMouseX = 0;             ///< 上次鼠标X位置（水平滚动拖动功能待实现）
     i32 m_lastMouseY = 0;             ///< 上次鼠标Y位置
 
     // 回调

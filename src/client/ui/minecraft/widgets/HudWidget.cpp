@@ -122,13 +122,18 @@ void HudWidget::_renderHotbar(kagero::widget::PaintContext& ctx, renderer::tride
             ctx.drawImage(image, static_cast<i32>(hotbarX), static_cast<i32>(hotbarY));
         }
     } else {
-        // TODO: 实现快捷栏背景的纯色后备绘制（当纹理不可用时）
-        // ctx.drawFilledRect(kagero::Rect{static_cast<i32>(hotbarX), static_cast<i32>(hotbarY),
-        //                                  static_cast<i32>(HOTBAR_WIDTH), static_cast<i32>(HOTBAR_HEIGHT)},
-        //                    HudColors::HOTBAR_BACKGROUND);
-        // ctx.drawBorder(kagero::Rect{static_cast<i32>(hotbarX), static_cast<i32>(hotbarY),
-        //                              static_cast<i32>(HOTBAR_WIDTH), static_cast<i32>(HOTBAR_HEIGHT)},
-        //                1.0f, HudColors::HOTBAR_BORDER);
+        // 纯色后备绘制（当纹理不可用时）
+        ctx.drawFilledRect(kagero::Rect{static_cast<i32>(hotbarX),
+                               static_cast<i32>(hotbarY),
+                               static_cast<i32>(HOTBAR_WIDTH),
+                               static_cast<i32>(HOTBAR_HEIGHT)},
+            HudColors::HOTBAR_BACKGROUND);
+        ctx.drawBorder(kagero::Rect{static_cast<i32>(hotbarX),
+                           static_cast<i32>(hotbarY),
+                           static_cast<i32>(HOTBAR_WIDTH),
+                           static_cast<i32>(HOTBAR_HEIGHT)},
+            1.0f,
+            HudColors::HOTBAR_BORDER);
     }
 
     // 绘制槽位
