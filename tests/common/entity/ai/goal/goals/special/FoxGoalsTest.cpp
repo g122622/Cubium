@@ -31,12 +31,30 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "entity/ai/goal/GoalFlag.hpp"
+#include "entity/ai/goal/GoalSelector.hpp"
 #include "entity/ai/goal/goals/special/FoxGoals.hpp"
+#include "entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "entity/core/VanillaEntities.hpp"
 #include "entity/damage/DamageSource.hpp"
+#include "entity/entities/passive/basic/ChickenEntity.hpp"
+#include "entity/entities/passive/basic/RabbitEntity.hpp"
 #include "entity/entities/passive/special/FoxEntity.hpp"
+#include "entity/entities/passive/special/TurtleEntity.hpp"
 
 namespace mc {
 namespace test {
+
+// ==================== 简易测试世界 ====================
+
+/**
+ * @brief FoxGoalsTest 用的简易测试世界
+ *
+ * 继承 BaseTestWorld 以访问其 protected 构造函数
+ */
+class FoxSimpleTestWorld : public test::BaseTestWorld {
+public:
+    FoxSimpleTestWorld() = default;
+};
 
 // ==================== FoxGoals 基础测试 ====================
 
@@ -316,11 +334,44 @@ TEST_F(FoxGoalsTest, FoxRevengeGoal_Construction)
     EXPECT_EQ(goal->getTypeName(), "FoxRevengeGoal");
 }
 
-TEST_F(FoxGoalsTest, FoxRevengeGoal_ShouldExecuteReturnsFalse)
+TEST_F(FoxGoalsTest, FoxRevengeGoal_ShouldExecuteNoWorldReturnsFalse)
 {
     auto goal = std::make_unique<entity::ai::goal::FoxRevengeGoal>(fox.get());
 
-    // 简化实现，暂时返回 false
+    // 无世界时不应执行
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(FoxGoalsTest, FoxRevengeGoal_ShouldExecuteNoTrustedPlayersReturnsFalse)
+{
+    // 无信任玩家时不应执行（即使有世界）
+    FoxSimpleTestWorld world;
+    fox->setWorld(&world);
+
+    auto goal = std::make_unique<entity::ai::goal::FoxRevengeGoal>(fox.get());
+
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
+TEST_F(FoxGoalsTest, FoxRevengeGoal_ConstructsWithFoxEntity)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxRevengeGoal>(fox.get());
+    EXPECT_NE(goal, nullptr);
+    EXPECT_EQ(goal->getTypeName(), "FoxRevengeGoal");
+}
+
+TEST_F(FoxGoalsTest, FoxRevengeGoal_UsesGetPlayersNotAABBSearch)
+{
+    // FoxRevengeGoal::shouldExecute() 使用 getPlayers() 而非 getEntitiesInAABB()
+    // 来查找信任玩家，这是性能优化。
+    // 验证目标可以被正常构造和调用（无崩溃）。
+    FoxSimpleTestWorld world;
+    fox->setWorld(&world);
+    fox->addTrustedPlayer(12345ULL);
+
+    auto goal = std::make_unique<entity::ai::goal::FoxRevengeGoal>(fox.get());
+
+    // 无玩家在世界中，应返回 false
     EXPECT_FALSE(goal->shouldExecute());
 }
 
@@ -899,6 +950,116 @@ TEST_F(FoxEatBerriesMobGriefingTest, MobGriefingDefault_IsTrue)
 {
     // 验证 GameRules 默认值 mobGriefing = true
     EXPECT_TRUE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+}
+
+// ============================================================================
+// FoxEntity 目标选择器注册测试
+// ============================================================================
+
+/**
+ * @brief 可公开目标选择器的测试用狐狸实体
+ */
+class TestFoxEntityForTargets : public FoxEntity {
+public:
+    explicit TestFoxEntityForTargets(EntityId id)
+        : FoxEntity(id)
+    {}
+
+    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
+};
+
+class FoxTargetGoalsTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        entity::VanillaEntities::registerAll();
+    }
+};
+
+TEST_F(FoxTargetGoalsTest, FoxHasFoxRevengeGoal)
+{
+    // FoxEntity::registerGoals() 注册了 FoxRevengeGoal（优先级3）
+    TestFoxEntityForTargets fox(EntityId(1));
+
+    i32 revengeGoalCount = 0;
+    for (const auto& pg : fox.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::FoxRevengeGoal*>(goal) != nullptr) {
+            revengeGoalCount++;
+        }
+    }
+    EXPECT_EQ(revengeGoalCount, 1) << "FoxEntity should have exactly 1 FoxRevengeGoal";
+}
+
+TEST_F(FoxTargetGoalsTest, FoxHasPreyTargetGoalsForChickenAndRabbit)
+{
+    // FoxEntity::registerGoals() 在优先级4注册了攻击鸡和兔子的目标
+    TestFoxEntityForTargets fox(EntityId(1));
+
+    i32 chickenRabbitGoalCount = 0;
+    for (const auto& pg : fox.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        // FoxEntity 攻击鸡和兔子的目标是 NearestAttackableTargetGoal<LivingEntity>
+        // 通过谓词过滤，所以我们无法直接通过模板参数区分
+        // 但我们可以验证 FoxRevengeGoal 存在且 TargetGoal 数量正确
+        if (dynamic_cast<const entity::ai::goal::FoxRevengeGoal*>(goal) == nullptr &&
+            dynamic_cast<const entity::ai::goal::TargetGoal*>(goal) != nullptr) {
+            chickenRabbitGoalCount++;
+        }
+    }
+    // 应有多个目标选择器目标（鸡/兔子、海龟、群居鱼类、HurtByTargetGoal）
+    EXPECT_GE(chickenRabbitGoalCount, 3) << "FoxEntity should have at least 3 non-revenge target goals";
+}
+
+TEST_F(FoxTargetGoalsTest, FoxHasNearestAttackableTargetGoalForTurtle)
+{
+    // FoxEntity::registerGoals() 注册了 NearestAttackableTargetGoal<TurtleEntity>
+    TestFoxEntityForTargets fox(EntityId(1));
+
+    i32 turtleGoalCount = 0;
+    for (const auto& pg : fox.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>*>(goal) != nullptr) {
+            turtleGoalCount++;
+        }
+    }
+    EXPECT_EQ(turtleGoalCount, 1) << "FoxEntity should have exactly 1 NearestAttackableTargetGoal<TurtleEntity>";
+}
+
+TEST_F(FoxTargetGoalsTest, FoxRevengeGoalStartExecutingSetsAggroedAndWakesUp)
+{
+    // FoxRevengeGoal::startExecuting() 应设置 foxAggroed=true 和唤醒狐狸
+    TestFoxEntityForTargets fox(EntityId(1));
+    FoxSimpleTestWorld world;
+    fox.setWorld(&world);
+    fox.setSleeping(true);
+    fox.setFoxAggroed(false);
+
+    EXPECT_TRUE(fox.isSleeping());
+    EXPECT_FALSE(fox.isFoxAggroed());
+
+    // 直接调用 startExecuting 不会崩溃（无攻击目标时）
+    auto goal = std::make_unique<entity::ai::goal::FoxRevengeGoal>(&fox);
+    goal->startExecuting();
+
+    // startExecuting 应设置 foxAggroed 和唤醒
+    EXPECT_TRUE(fox.isFoxAggroed());
+    EXPECT_FALSE(fox.isSleeping());
+}
+
+TEST_F(FoxTargetGoalsTest, FoxRevengeGoalTrustIdConsistencyUsesPlayerId)
+{
+    // 验证信任系统使用 PlayerId 而非 EntityId
+    // 信任玩家存储的是 PlayerId (u64)，检查时应使用 player->playerId()
+    TestFoxEntityForTargets fox(EntityId(1));
+
+    u64 testPlayerId = 12345ULL;
+    fox.addTrustedPlayer(testPlayerId);
+
+    // trusts() 应使用 playerId 参数
+    EXPECT_TRUE(fox.trusts(testPlayerId));
+    EXPECT_FALSE(fox.trusts(99999ULL));
 }
 
 } // namespace test

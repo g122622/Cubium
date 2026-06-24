@@ -550,7 +550,7 @@ void FoxEntity::registerGoals()
                 // 不躲避旁观者或创造模式玩家
                 if (player->isSpectator() || player->isCreative()) return false;
                 // 不躲避信任的玩家
-                if (trusts(player->id())) return false;
+                if (trusts(player->playerId())) return false;
                 // 不躲避当狐狸处于攻击状态时
                 return !isFoxAggroed();
             }));
@@ -624,12 +624,9 @@ void FoxEntity::registerGoals()
     // 目标选择器
 
     // 优先级 3: 保卫信任玩家 - 当信任玩家被攻击时反击
-    // 对齐 MC 原版 Fox.registerGoals() 中的 DefendTrustedTargetGoal
     m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::FoxRevengeGoal>(this));
 
     // 优先级 4: 攻击小鸡和兔子
-    // 对齐 MC 原版 Fox.registerGoals() 中的 landTargetGoal
-    // MC 原版使用 NearestAttackableTargetGoal<AnimalEntity> 并过滤 Chicken/Rabbit
     m_targetSelector.addGoal(4,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
             false, // checkSight = false
@@ -641,7 +638,6 @@ void FoxEntity::registerGoals()
             }));
 
     // 优先级 4: 攻击幼年海龟（陆地上不在水中的幼体）
-    // 对齐 MC 原版 Fox.registerGoals() 中的 turtleEggTargetGoal
     m_targetSelector.addGoal(4,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this,
             false, // checkSight = false
@@ -653,8 +649,6 @@ void FoxEntity::registerGoals()
             }));
 
     // 优先级 6: 攻击鱼群（仅群居鱼类：鳕鱼、鲑鱼、热带鱼，不包括河豚）
-    // 对齐 MC 原版 Fox.registerGoals() 中的 fishTargetGoal
-    // MC 原版使用 NearestAttackableTargetGoal<AbstractFishEntity> 并过滤 AbstractSchoolingFish
     m_targetSelector.addGoal(6,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
             false, // checkSight = false

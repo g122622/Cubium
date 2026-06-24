@@ -26,7 +26,12 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/basic/RabbitEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
@@ -1695,6 +1700,96 @@ TEST_F(CatEntityTestFixture, Hiss_WithoutWorld_DoesNotCrash)
     // cat 没有 world
 
     EXPECT_NO_THROW({ cat.hiss(); });
+}
+
+// ============================================================================
+// CatEntity 目标选择器注册测试
+// ============================================================================
+
+/**
+ * @brief 可公开目标选择器的测试用猫实体
+ */
+class TestCatEntity : public CatEntity {
+public:
+    explicit TestCatEntity(EntityId id)
+        : CatEntity(id)
+    {}
+
+    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
+};
+
+class CatTargetGoalsTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        entity::VanillaEntities::registerAll();
+    }
+};
+
+TEST_F(CatTargetGoalsTest, CatHasNonTamedTargetGoalForRabbit)
+{
+    // CatEntity::registerGoals() 注册了 NonTamedTargetGoal<RabbitEntity>
+    TestCatEntity cat(EntityId(1));
+
+    i32 nonTamedRabbitGoalCount = 0;
+    for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NonTamedTargetGoal<RabbitEntity>*>(goal) != nullptr) {
+            nonTamedRabbitGoalCount++;
+        }
+    }
+    EXPECT_EQ(nonTamedRabbitGoalCount, 1) << "CatEntity should have exactly 1 NonTamedTargetGoal<RabbitEntity>";
+}
+
+TEST_F(CatTargetGoalsTest, CatHasNonTamedTargetGoalForTurtle)
+{
+    // CatEntity::registerGoals() 注册了 NonTamedTargetGoal<TurtleEntity>（仅攻击陆地上的幼年海龟）
+    TestCatEntity cat(EntityId(1));
+
+    i32 nonTamedTurtleGoalCount = 0;
+    for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NonTamedTargetGoal<TurtleEntity>*>(goal) != nullptr) {
+            nonTamedTurtleGoalCount++;
+        }
+    }
+    EXPECT_EQ(nonTamedTurtleGoalCount, 1) << "CatEntity should have exactly 1 NonTamedTargetGoal<TurtleEntity>";
+}
+
+TEST_F(CatTargetGoalsTest, CatTargetGoalsOnlyActiveWhenUntamed)
+{
+    // NonTamedTargetGoal 只在未驯服时激活
+    // 验证驯服后的猫实体中 NonTamedTargetGoal 目标仍然注册（但不执行）
+    TestCatEntity cat(EntityId(1));
+    cat.setTamed(true);
+
+    bool hasNonTamedGoal = false;
+    for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NonTamedTargetGoal<RabbitEntity>*>(goal) != nullptr) {
+            hasNonTamedGoal = true;
+        }
+    }
+    // 目标仍然注册，但驯服后 shouldExecute 返回 false
+    EXPECT_TRUE(hasNonTamedGoal) << "CatEntity should have NonTamedTargetGoal<RabbitEntity> registered even when tamed";
+}
+
+TEST_F(CatTargetGoalsTest, CatTargetGoalsCount)
+{
+    // CatEntity 应有 2 个 NonTamedTargetGoal（兔子 + 海龟）+ 1 个 HurtByTargetGoal
+    TestCatEntity cat(EntityId(1));
+
+    i32 targetGoalCount = 0;
+    for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::TargetGoal*>(goal) != nullptr) {
+            targetGoalCount++;
+        }
+    }
+    // 优先级1: NonTamedTargetGoal<RabbitEntity>
+    // 优先级1: NonTamedTargetGoal<TurtleEntity>
+    EXPECT_GE(targetGoalCount, 2) << "CatEntity should have at least 2 target goals";
 }
 
 } // namespace

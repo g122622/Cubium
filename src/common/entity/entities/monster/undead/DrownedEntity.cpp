@@ -208,7 +208,6 @@ void DrownedEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
     // 优先级 3: 攻击美西螈
-    // 对齐 MC 原版 Drowned.registerGoals() 中的目标选择器
     m_targetSelector.addGoal(
         3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<AxolotlEntity>>(this, true));
 }

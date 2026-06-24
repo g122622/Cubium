@@ -233,13 +233,11 @@ void CatEntity::registerGoals()
     // ===== 目标选择器 (targetSelector) =====
 
     // 优先级 1: 攻击兔子（未驯服时）
-    // 对齐 MC 原版 Cat.registerGoals() 中的 NonTameRandomTargetGoal<RabbitEntity>
     m_targetSelector.addGoal(1,
         std::make_unique<entity::ai::goal::NonTamedTargetGoal<RabbitEntity>>(this,
             false)); // checkSight = false，不需要视线检查
 
     // 优先级 1: 攻击幼年海龟（未驯服时，仅攻击陆地上不在水中的幼体）
-    // 对齐 MC 原版 Cat.registerGoals() 中的 NonTameRandomTargetGoal<TurtleEntity>(BABY_ON_LAND_SELECTOR)
     m_targetSelector.addGoal(1,
         std::make_unique<entity::ai::goal::NonTamedTargetGoal<TurtleEntity>>(this,
             false, // checkSight = false
