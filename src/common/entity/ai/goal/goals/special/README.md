@@ -30,6 +30,7 @@ special/
 ├── ShulkerGoals.hpp/cpp           # 潜影贝目标（攻击、张望、最近攻击目标选择、防御攻击目标选择）
 ├── IllusionerGoals.hpp/cpp        # 幻术师目标（分身、失明法术）
 ├── AxolotlGoals.hpp/cpp           # 美西螈目标（攻击鱼、装死）
+├── DrownedGoals.hpp/cpp          # 溺尸目标（前往水源、三叉戟攻击、近战攻击、前往海滩、向上游泳）
 ├ PatrolGoals.hpp/cpp              # 巡逻目标（掠夺者巡逻队）
 ├── RavagerGoals.hpp/cpp           # 劫掠兽目标
 └── README.md                      # 本文档
@@ -49,7 +50,12 @@ Goal (基类)
 ├── BreezeSlideGoal ─────────────── 旋风人滑行（逃离内圈或移动到中圈/目标身后）
 ├── BreezeShootWhenStuckGoal ────── 旋风人卡住时紧急射击（一次性目标，设置射击许可）
 ├── MoveToBlockGoal (抽象基类)
-│   └── MoveToLavaGoal ───────────── 炽足兽寻找熔岩
+│   ├── MoveToLavaGoal ───────────── 炽足兽寻找熔岩
+│   └── DrownedGoToBeachGoal ─────── 溺尸前往海滩
+├── DrownedGoToWaterGoal ─────────── 溺尸前往水源（白天陆地上寻找水）
+├── DrownedTridentAttackGoal : RangedAttackGoal ─ 溺尸三叉戟远程攻击
+├── DrownedAttackGoal : MeleeAttackGoal ─ 溺尸近战攻击（带 okTarget 过滤）
+├── DrownedSwimUpGoal ────────────── 溺尸向上游泳（夜间深水向海面游泳）
 ├── EndermanStareGoal ────────────── 末影人注视玩家
 ├── EndermanFindPlayerGoal ───────── 末影人查找注视自己的玩家
 ├── PuffGoal ─────────────────────── 河豚膨胀

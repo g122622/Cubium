@@ -17,7 +17,7 @@ undead/
 ├── WitherSkeletonEntity.hpp/cpp    # 凋灵骷髅（石剑近战、凋零效果）
 ├── ZombieEntity.hpp/cpp            # 僵尸基类（溺水转化、召唤援军）
 ├── HuskEntity.hpp/cpp              # 尸壳（沙漠变种、脱水攻击）
-├── DrownedEntity.hpp/cpp           # 溺尸（水中生成、三叉戟）
+├── DrownedEntity.hpp/cpp           # 溺尸（水中生成、三叉戟远程攻击、日间避阳、夜间登陆）
 └── ZombieVillagerEntity.hpp/cpp    # 僵尸村民（治愈系统）
 ```
 

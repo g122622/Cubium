@@ -360,6 +360,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/RavagerGoals.cpp
     entity/ai/goal/goals/special/GhastGoals.cpp
     entity/ai/goal/goals/special/SilverfishGoals.cpp
+    entity/ai/goal/goals/special/DrownedGoals.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/AvoidHostileGoal.cpp
