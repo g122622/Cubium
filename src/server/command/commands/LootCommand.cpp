@@ -102,9 +102,31 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 
 /**
  * @brief 获取命令源实体手持物品
+ *
+ * 对齐 MC Java LootCommand.getSourceHandItem()：使用 source.getEntity() 获取实体，
+ * 如果实体是 LivingEntity 则从装备槽获取手持物品，非 LivingEntity 实体报错。
+ * 回退到 source.getPlayer() 支持仅通过 PlayerId 标识的玩家。
  */
 ItemStack getHeldItem(ServerCommandSource& source, const std::string& hand)
 {
+    // 优先从 entity 获取（支持非玩家实体），对齐 MC Java 的 entity 检查逻辑
+    Entity* entity = source.entity();
+    if (entity != nullptr) {
+        auto* livingEntity = dynamic_cast<LivingEntity*>(entity);
+        if (livingEntity != nullptr) {
+            if (hand == "mainhand" || hand == "weapon") {
+                return livingEntity->getMainHandItem();
+            } else if (hand == "offhand") {
+                return livingEntity->getOffHandItem();
+            }
+            return ItemStack::EMPTY;
+        }
+        // 非 LivingEntity 实体没有手持物品，对齐 MC Java: 抛出 ERROR_NO_HELD_ITEMS
+        source.sendError("commands.loot.noHeldItem");
+        return ItemStack::EMPTY;
+    }
+
+    // 回退到玩家物品栏（当 entity 为空但 player 非空时，如早期命令源构造场景）
     auto* player = source.player();
     if (player == nullptr) {
         return ItemStack::EMPTY;
@@ -160,9 +182,9 @@ loot::LootContextBuilder createBaseContextBuilder(ServerCommandSource& source)
                            return manager.getPredicate(id);
                        });
 
-    // 设置命令源实体
-    if (source.player() != nullptr) {
-        builder.withNullableParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(source.player()));
+    // 设置命令源实体（对齐 MC Java: THIS_ENTITY 使用 source.getEntity()）
+    if (source.entity() != nullptr) {
+        builder.withNullableParameter(loot::LootParams::THIS_ENTITY, source.entity());
     }
 
     return builder;
@@ -247,10 +269,8 @@ std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* tar
 
     // 设置攻击者（命令执行者）
     // 对齐 MC Java: entity = commandsourcestack.getEntity()
-    // TODO: kill源当前仅支持玩家执行者作为KILLER_ENTITY，因为ServerCommandSource缺少entity()方法。
-    //       当ServerCommandSource添加entity()方法后，应改为使用source.entity()以支持非玩家命令执行者
-    //       （如命令方块、函数等）作为击杀者实体。
-    Entity* sourceEntity = static_cast<Entity*>(source.player());
+    // 使用 source.entity() 支持非玩家命令执行者（如通过 /execute as @e 指定的实体）
+    Entity* sourceEntity = source.entity();
     if (sourceEntity != nullptr) {
         builder.withNullableParameter(loot::LootParams::DIRECT_KILLER, sourceEntity);
         builder.withNullableParameter(loot::LootParams::KILLER_ENTITY, sourceEntity);

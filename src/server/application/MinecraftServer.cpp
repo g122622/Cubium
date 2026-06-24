@@ -1793,6 +1793,15 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
         if (auto* playerWorld = getPlayerWorld(playerId)) {
             commandDimension = playerWorld->dimension();
         }
+        // 对齐 MC Java: 玩家执行命令时，CommandSourceStack.entity = 该玩家实体。
+        // 从玩家管理器查找 Player 实体作为命令执行实体。
+        mc::Entity* commandEntity = nullptr;
+        if (auto* cmdDim = dimensionManager().getDimension(commandDimension)) {
+            if (auto* cmdWorld = cmdDim->world()) {
+                commandEntity = playerEntityManager().getPlayerEntity(playerId, *cmdWorld);
+            }
+        }
+
         mc::command::ServerCommandSource source(this,
             nullptr,
             commandDimension,
@@ -1800,7 +1809,8 @@ void MinecraftServer::handleChatMessagePacket(PlayerId playerId, const u8* data,
             Vector2f(player->yaw, player->pitch),
             static_cast<i32>(m_opListManager->getLevel(player->uuid)),
             playerId,
-            player->username);
+            player->username,
+            commandEntity);
         auto cmdResult = m_commandRegistry->execute(message, source);
         if (cmdResult.failed()) {
             spdlog::warn("Command '{}' failed for {}: {}", message, player->username, cmdResult.error().toString());

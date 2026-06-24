@@ -26,18 +26,15 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/support/CommandMetadata.hpp"
-#include "server/command/support/PlayerResolver.hpp"
-#include "server/core/PlayerManager.hpp"
-#include "server/core/ServerPlayerData.hpp"
-#include "server/player/ServerPlayer.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/world/ServerWorld.hpp"
-#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <sstream>
 
@@ -72,29 +69,6 @@ Block* parseBlockId(const std::string& input)
 
     ResourceLocation location(namespace_, path);
     return registry.getBlock(location);
-}
-
-/**
- * @brief 获取玩家实体
- * @param source 命令源
- * @param playerId 玩家ID
- * @return 玩家实体指针，如果不存在返回 nullptr
- */
-ServerPlayer* getPlayerEntity(ServerCommandSource& source, PlayerId playerId)
-{
-    auto* server = source.server();
-    if (server == nullptr) {
-        return nullptr;
-    }
-
-    auto* world = source.world();
-    if (world == nullptr) {
-        return nullptr;
-    }
-
-    // 通过 ServerPlayerEntityManager 获取玩家实体
-    Player* player = server->playerEntityManager().getPlayerEntity(playerId, *world);
-    return static_cast<ServerPlayer*>(player);
 }
 
 } // namespace
@@ -146,9 +120,10 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // ========== as <entity> run <command> ==========
     // /execute as <entity> run <command> - 以指定实体身份执行命令
+    // 对齐 MC Java: 使用 entities() 支持所有实体类型（@e/@p/@a/@r/@s）
     auto asNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("as");
     auto asEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "entity", EntityArgumentType::player());
+        "entity", EntityArgumentType::entities());
     auto asRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto asCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
@@ -160,9 +135,10 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
 
     // ========== at <entity> run <command> ==========
     // /execute at <entity> run <command> - 在指定实体位置执行命令
+    // 对齐 MC Java: 使用 entities() 支持所有实体类型
     auto atNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("at");
     auto atEntityArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, EntitySelector>>(
-        "entity", EntityArgumentType::player());
+        "entity", EntityArgumentType::entities());
     auto atRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto atCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
@@ -243,25 +219,23 @@ i32 ExecuteCommand::_executeAs(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("entity");
     std::string command = context.getArgument<std::string>("command");
 
-    // 解析目标玩家
-    std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    // 对齐 MC Java: execute as <entity> 使用 EntityArgument.entities() 支持所有实体类型
+    // 使用 EntityResolver 解析实体选择器（支持 @e/@p/@a/@r/@s）
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
         source.sendError("commands.execute.failed.noEntity");
         return 0;
     }
 
-    // 以每个目标玩家身份执行
+    // 以每个目标实体身份执行
     i32 totalResult = 0;
+    for (Entity* entity : entities) {
+        if (entity == nullptr) continue;
 
-    for (PlayerId playerId : playerIds) {
-        // 获取玩家实体
-        ServerPlayer* player = getPlayerEntity(source, playerId);
-        if (player == nullptr) {
-            continue;
-        }
-
-        // 创建修改后的命令源（以该玩家身份执行）
-        ServerCommandSource modifiedSource = source.withPlayer(player);
+        // 创建修改后的命令源（以该实体身份执行）
+        // 对齐 MC Java: CommandSourceStack.withEntity(entity) 只替换实体和名称，
+        // 保留位置、旋转、维度不变
+        ServerCommandSource modifiedSource = source.withEntity(*entity);
 
         // 执行嵌套命令
         totalResult += _executeNestedCommand(modifiedSource, command);
@@ -276,33 +250,31 @@ i32 ExecuteCommand::_executeAt(CommandContext<ServerCommandSource>& context)
     EntitySelector selector = context.getArgument<EntitySelector>("entity");
     std::string command = context.getArgument<std::string>("command");
 
-    // 解析目标玩家
-    std::vector<PlayerId> playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
+    // 对齐 MC Java: execute at <entity> 使用 EntityArgument.entities() 支持所有实体类型
+    auto entities = support::EntityResolver::resolve(source, selector);
+    if (entities.empty()) {
         source.sendError("commands.execute.failed.noEntity");
         return 0;
     }
 
-    // 在每个目标玩家位置执行
+    // 在每个目标实体位置执行
+    // 对齐 MC Java: at 子命令修改位置+旋转+维度，但不改变执行者实体
     i32 totalResult = 0;
-    auto* server = source.server();
-    if (server == nullptr) {
-        source.sendError("commands.execute.failed.noServer");
-        return 0;
-    }
+    for (Entity* entity : entities) {
+        if (entity == nullptr) continue;
 
-    for (PlayerId playerId : playerIds) {
-        // 获取玩家数据
-        auto* playerData = server->playerManager().getPlayer(playerId);
-        if (playerData == nullptr) {
-            continue;
-        }
+        // 修改位置、旋转和维度到目标实体
+        // 对齐 MC Java: at 子命令同时设置位置和旋转
+        ServerCommandSource modifiedSource = source.withPosition(Vector3d(static_cast<f64>(entity->position().x),
+            static_cast<f64>(entity->position().y),
+            static_cast<f64>(entity->position().z)));
+        modifiedSource = modifiedSource.withRotation(Vector2f(entity->yaw(), entity->pitch()));
 
-        // 创建修改位置和维度的命令源
-        ServerCommandSource modifiedSource = source.withPosition(Vector3d(playerData->x, playerData->y, playerData->z));
-        if (auto* playerWorld = server->getPlayerWorld(playerId)) {
-            modifiedSource = modifiedSource.withDimension(playerWorld->dimension());
-        }
+        // 如果实体在不同的维度，也需要切换维度
+        // TODO: Entity 当前未持有维度ID，暂时使用源维度。待 Entity 添加维度信息后补全。
+        // if (entity->dimensionId() != source.dimensionId()) {
+        //     modifiedSource = modifiedSource.withDimension(entity->dimensionId());
+        // }
 
         // 执行嵌套命令
         totalResult += _executeNestedCommand(modifiedSource, command);

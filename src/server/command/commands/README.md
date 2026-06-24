@@ -64,7 +64,7 @@
 - **别名命令使用重定向共享命令树**：`/tp` 和 `/teleport`、`/experience` 和 `/xp` 这类别名应使用重定向
 - **目标选择器解析依赖 support 辅助函数**：不要在每个命令里重复实现
 - **EntityResolver vs PlayerResolver 选择**：需要 @e 选择器支持的命令（如 KillCommand、TagCommand、DataCommand）应使用 EntityResolver，仅处理玩家的命令可使用 PlayerResolver
-- **LootCommand kill 源**：`/loot kill <target>` 使用 `EntityResolver::resolve()` 解析任意实体（包括非玩家实体如僵尸、动物等），对齐 MC Java 行为。`generateFromKill()` 通过 `target->getLootTableId()` 获取战利品表ID，使用 `LootParameterSets::entity()` 参数集构建上下文，以魔法伤害（`DamageSources::magic()`）作为伤害源、命令执行者作为击杀者（KILLER_ENTITY/DIRECT_KILLER/KILLER_PLAYER）。当前限制：`ServerCommandSource` 缺少 `entity()` 方法，非玩家命令执行者（如命令方块）无法作为 KILLER_ENTITY，已标注 TODO
+- **LootCommand kill 源**：`/loot kill <target>` 使用 `EntityResolver::resolve()` 解析任意实体（包括非玩家实体如僵尸、动物等），对齐 MC Java 行为。`generateFromKill()` 通过 `target->getLootTableId()` 获取战利品表ID，使用 `LootParameterSets::entity()` 参数集构建上下文，以魔法伤害（`DamageSources::magic()`）作为伤害源、命令执行者实体（`source.entity()`）作为击杀者（KILLER_ENTITY/DIRECT_KILLER）。如果执行者是玩家则额外设置 KILLER_PLAYER 参数。非玩家实体执行者（如通过 `/execute as @e` 指定）也已支持。
 - **只读世界存储的保存命令处理**：当共享存储是外来只读世界时，`save-all` / `save-on` / `save-off` 必须显式提示"不会写入"，不能继续伪装成普通可写世界
 - **天气命令统一通过 ServerCommandSource::world() 获取世界**：使用天气管理器进行操作
 - **`/setblock destroy` 和 `/fill destroy`/`/fill hollow` 调用 spawnAfterBreak**：这些命令在替换方块时，先保存旧方块状态，设置新方块后调用 `spawnAfterBreak(nullptr, false)`，使得虫蚀方块等特殊方块能正确触发生成逻辑。`/clone move` 不调用 spawnAfterBreak（MC Java 行为：仅清空源区域）。

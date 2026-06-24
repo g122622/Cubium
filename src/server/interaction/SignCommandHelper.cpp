@@ -110,6 +110,7 @@ bool SignCommandHelper::_executeCommand(const std::string& command, mc::ServerPl
     }
 
     // 创建命令源（使用玩家自身的权限等级，位置为告示牌位置）
+    // 对齐 MC Java: 告示牌执行命令时，CommandSourceStack.entity = 编辑告示牌的玩家
     i32 signPermissionLevel = std::min(player.permissionLevel(), 2);
     command::ServerCommandSource source(player.getServer(),
         &player,
@@ -119,7 +120,8 @@ bool SignCommandHelper::_executeCommand(const std::string& command, mc::ServerPl
         Vector2f(0.0f, 0.0f),
         signPermissionLevel,
         player.playerId(),
-        player.username());
+        player.username(),
+        static_cast<Entity*>(&player));
 
     // 执行命令
     auto result = player.getServer()->commandRegistry().execute(cmd, source);

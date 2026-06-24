@@ -140,7 +140,10 @@ src/server/command/
 │  │  IServer*   │  │ServerPlayer*│  │   permissionLevel   │  │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │ServerWorld* │  │  position   │  │     rotation        │  │
+│  │  Entity*    │  │ServerWorld* │  │   permissionLevel   │  │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
+│  │  position   │  │  rotation   │  │     playerId        │  │
 │  └─────────────┘  └─────────────┘  └─────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -155,7 +158,10 @@ src/server/command/
 **核心组件职责：**
 
 - `CommandRegistry` - 管理全局命令分发器单例，注册所有默认命令，提供命令执行和建议入口
-- `ServerCommandSource` - 命令执行上下文，封装服务器、玩家、世界、位置、权限等信息，支持派生创建
+- `ServerCommandSource` - 命令执行上下文，封装服务器、玩家、实体、世界、位置、权限等信息，支持派生创建。
+  - 对齐 MC Java `CommandSourceStack`，包含 `entity()` 和 `withEntity()` 方法支持非玩家实体执行者。
+  - `player()` 返回 `ServerPlayer*`（可为 nullptr），`entity()` 返回 `Entity*`（可为 nullptr）。
+  - 玩家执行命令时 `entity()` 与 `player()` 一致；`/execute as @e` 后 `entity()` 可为非玩家实体。
 - `support/` - 解析器工具，PlayerResolver 处理玩家选择器（@a/@p/@r），EntityResolver 处理实体选择器（@e/@s），EffectResolver 处理效果参数
 - `commands/` - 各具体命令实现，每个命令类提供 `registerTo()` 方法注册到分发器
 

@@ -23,6 +23,7 @@
 
 #include "ServerCommandSource.hpp"
 #include "common/command/exceptions/CommandExceptions.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "server/application/IServer.hpp"
 #include "server/core/ConnectionManager.hpp"
@@ -42,9 +43,11 @@ ServerCommandSource::ServerCommandSource(server::IServer* server,
     const Vector2f& rotation,
     i32 permissionLevel,
     PlayerId playerId,
-    std::string playerName)
+    std::string playerName,
+    Entity* entity)
     : m_server(server)
     , m_player(player)
+    , m_entity(entity ? entity : static_cast<Entity*>(player))
     , m_playerId(player ? player->playerId() : playerId)
     , m_dimensionId(dimensionId)
     , m_position(position)
@@ -52,7 +55,7 @@ ServerCommandSource::ServerCommandSource(server::IServer* server,
     , m_permissionLevel(permissionLevel)
     , m_feedbackDisabled(false)
 {
-    // 设置显示名称
+    // 设置显示名称（优先级：player 名称 > playerName 参数 > entity 名称 > "Console"）
     if (player) {
         m_name = player->username();
     } else if (!playerName.empty()) {
@@ -127,14 +130,49 @@ ServerPlayer& ServerCommandSource::assertPlayer() const
     return *m_player;
 }
 
+Entity& ServerCommandSource::entityOrException() const
+{
+    if (m_entity == nullptr) {
+        throw CommandException(CommandErrorType::PermissionDenied, "commands.requires.entity");
+    }
+    return *m_entity;
+}
+
 ServerCommandSource ServerCommandSource::withPlayer(ServerPlayer* player) const
 {
     ServerCommandSource source(*this);
     source.m_player = player;
+    source.m_entity = static_cast<Entity*>(player);
     if (player) {
         source.m_playerId = player->playerId();
         source.m_name = player->username();
     }
+    return source;
+}
+
+ServerCommandSource ServerCommandSource::withEntity(Entity& entity) const
+{
+    ServerCommandSource source(*this);
+    source.m_entity = &entity;
+
+    // 如果实体是 ServerPlayer，同时更新 m_player 和 m_playerId
+    // 对齐 MC Java CommandSourceStack.withEntity() 的行为
+    auto* serverPlayer = dynamic_cast<ServerPlayer*>(&entity);
+    if (serverPlayer != nullptr) {
+        source.m_player = serverPlayer;
+        source.m_playerId = serverPlayer->playerId();
+    }
+    // else: m_player 和 m_playerId 保持不变，允许非玩家实体作为执行者
+
+    // 更新显示名称为实体名称（对齐 MC Java withEntity 更新 textName/displayName）
+    if (serverPlayer != nullptr) {
+        source.m_name = serverPlayer->username();
+    } else if (entity.hasCustomName()) {
+        source.m_name = entity.customNameText();
+    } else {
+        source.m_name = entity.getTypeId();
+    }
+
     return source;
 }
 

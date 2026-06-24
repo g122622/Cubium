@@ -36,6 +36,7 @@ namespace mc {
 
 // 前向声明
 class ServerPlayer;
+class Entity;
 namespace server {
 class ServerWorld;
 class IServer;
@@ -57,10 +58,17 @@ public:
      * @brief 构造服务端命令源
      * @param server 服务器实例
      * @param player 玩家实例（可选，控制台时为空）
-     * @param world 世界实例（可选）
+     * @param dimensionId 维度ID
      * @param position 执行位置
      * @param rotation 朝向
      * @param permissionLevel 权限等级 (0-4)
+     * @param playerId 玩家逻辑ID（仅当 player 为空时使用）
+     * @param playerName 玩家名称（仅当 player 为空时使用）
+     * @param entity 执行实体（可选，控制台/命令方块时为空）
+     *
+     * 对齐 MC Java CommandSourceStack：entity 字段代表命令的执行实体，
+     * 可以是任何 Entity（玩家、僵尸、矿车等），也可以为 nullptr（控制台/命令方块/RCON）。
+     * 当 player 非空时，entity 应与 player 一致（或由调用者显式设置为 player）。
      */
     ServerCommandSource(server::IServer* server,
         ServerPlayer* player = nullptr,
@@ -69,7 +77,8 @@ public:
         const Vector2f& rotation = Vector2f(0, 0),
         i32 permissionLevel = 0,
         PlayerId playerId = 0,
-        std::string playerName = "");
+        std::string playerName = "",
+        Entity* entity = nullptr);
 
     // ========== ICommandSource 接口实现 ==========
 
@@ -99,6 +108,23 @@ public:
      * @return 玩家指针，如果不是玩家则返回 nullptr
      */
     [[nodiscard]] ServerPlayer* player() const noexcept { return m_player; }
+
+    /**
+     * @brief 获取执行实体
+     * @return 执行实体指针，对齐 MC Java CommandSourceStack.getEntity()。
+     *         当命令由玩家执行时返回该玩家实体；由控制台/命令方块执行时返回 nullptr；
+     *         通过 /execute as @e 切换后可返回非玩家实体。
+     */
+    [[nodiscard]] Entity* entity() const noexcept { return m_entity; }
+
+    /**
+     * @brief 获取执行实体，如果为空则抛出异常
+     * @return 执行实体引用
+     * @throws CommandException 如果没有关联实体（如控制台执行命令）
+     *
+     * 对齐 MC Java CommandSourceStack.getEntityOrException()。
+     */
+    [[nodiscard]] Entity& entityOrException() const;
 
     /**
      * @brief 获取逻辑玩家ID
@@ -155,8 +181,21 @@ public:
 
     /**
      * @brief 创建以指定玩家为源的新命令源
+     *
+     * 同时更新 entity 为该玩家（与 MC Java withEntity 行为一致）。
      */
     [[nodiscard]] ServerCommandSource withPlayer(ServerPlayer* player) const;
+
+    /**
+     * @brief 创建以指定实体为源的新命令源
+     *
+     * 对齐 MC Java CommandSourceStack.withEntity()：替换执行实体和显示名称，
+     * 但保留位置、旋转、维度等其他字段不变。
+     * 如果传入的实体是 ServerPlayer，则同时更新 m_player 和 m_playerId。
+     *
+     * @param entity 新的执行实体（必须非空）
+     */
+    [[nodiscard]] ServerCommandSource withEntity(Entity& entity) const;
 
     /**
      * @brief 创建指定位置的新命令源
@@ -207,7 +246,9 @@ public:
 
 private:
     server::IServer* m_server;
-    ServerPlayer* m_player;
+    ServerPlayer* m_player; ///< 关联的玩家指针（控制台时为 nullptr）
+    Entity* m_entity;       ///< 执行实体（对齐 MC Java CommandSourceStack.entity）。玩家执行时与 m_player 一致，
+                            ///< 控制台/命令方块时为 nullptr，/execute as @e 后可为非玩家实体。
     PlayerId m_playerId;
     DimensionId m_dimensionId;
     Vector3d m_position;

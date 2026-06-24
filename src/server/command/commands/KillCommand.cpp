@@ -62,24 +62,34 @@ i32 KillCommand::_killSelf(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
 
-    // 检查命令源是否是实体（玩家）
-    if (!source.isPlayer()) {
-        source.sendError("commands.kill.failed.notEntity");
-        return 0;
-    }
-
-    ServerPlayer* player = source.player();
-    if (player == nullptr) {
+    // 对齐 MC Java: /kill 无参数时杀死命令源的执行实体。
+    // MC Java 的 CommandSourceStack.getEntity() 支持任何实体（不限于玩家），
+    // 如通过 /execute as @e[type=zombie] run kill 可杀死该僵尸。
+    Entity* entity = source.entity();
+    if (entity == nullptr) {
+        // 控制台或命令方块执行 /kill 无参数时无关联实体
         source.sendError("commands.kill.failed.notEntity");
         return 0;
     }
 
     // 调用击杀命令处理
-    player->onKillCommand();
+    entity->onKillCommand();
 
-    std::ostringstream ss;
-    ss << "Killed " << player->username();
-    source.sendMessage(ss.str());
+    // 发送反馈消息
+    auto* player = dynamic_cast<Player*>(entity);
+    if (player != nullptr) {
+        std::ostringstream ss;
+        ss << "Killed " << player->username();
+        source.sendMessage(ss.str());
+    } else if (entity->hasCustomName()) {
+        std::ostringstream ss;
+        ss << "Killed " << entity->customNameText();
+        source.sendMessage(ss.str());
+    } else {
+        std::ostringstream ss;
+        ss << "Killed " << entity->getTypeId();
+        source.sendMessage(ss.str());
+    }
 
     return 1;
 }
