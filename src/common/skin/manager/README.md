@@ -60,10 +60,6 @@ MC 1.21.1 有 18 种默认皮肤，通过 UUID 哈希选择：
 
 ## 容易踩的坑
 
-### 元数据持久化时间戳可移植性
-
-SkinCache 的 `_saveMetadata`/`_loadMetadata` 使用 `file_time_type` 到 `chrono::seconds` 的转换。`file_time_type` 的 epoch 在不同平台上不同（Windows: 1601-01-01, Unix: 1970-01-01）。当前实现直接转换 `time_since_epoch`，跨平台迁移缓存目录时时间戳可能偏差。如需严格跨平台兼容，应改用 `last_write_time - clock::now()` 的相对差值。
-
 ### 缓存键哈希
 
 缓存键使用 SHA-1 哈希（通过 FileSkinLoader/HttpSkinLoader 的 `_calculateHash` 生成），而非 Mojang 服务器使用的 SHA-256。目录结构为两级：`skins/<hash前2字符>/<完整hash>`。
