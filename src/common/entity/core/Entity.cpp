@@ -652,8 +652,9 @@ void Entity::baseTick()
             // 免疫火焰的实体立即清除火焰
             clearFire();
         } else if (isInWater()) {
-            // 在水中时熄灭火焰，设置火焰免疫期
-            clearFire();
+            // MC Java: 水中熄灭火焰由 applyEffectsFromBlocks() 中方块碰撞触发
+            // 此处简化处理：水中直接熄灭，播放音效并设置免疫期
+            extinguishFire();
             setFireImmunityCooldown();
         } else {
             // 燃烧伤害：每 20 tick（1 秒）造成 1 点 onFire 伤害
@@ -666,10 +667,10 @@ void Entity::baseTick()
         }
     }
 
-    // 在雨中熄灭火焰
+    // MC Java: applyEffectsFromBlocks() 中雨中灭火 + 灭火音效
+    // 在雨中熄灭火焰时，播放音效并设置免疫期
     if (isInRain() && isOnFire()) {
-        playExtinguishSound();
-        clearFire();
+        extinguishFire();
         setFireImmunityCooldown();
     }
 

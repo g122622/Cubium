@@ -72,6 +72,17 @@ public:
 
     [[nodiscard]] bool isClientSide() const override { return false; }
 
+    // 天气接口（用于雨中灭火测试）
+    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
+    void setRaining(bool raining) { m_isRaining = raining; }
+
+    [[nodiscard]] bool canRainAt(const BlockPos& pos) const override
+    {
+        MC_UNUSED(pos);
+        return m_canRainAt;
+    }
+    void setCanRainAt(bool can) { m_canRainAt = can; }
+
     void clearState()
     {
         m_soundPlayCount = 0;
@@ -97,6 +108,8 @@ private:
     i32 m_gameEventCount = 0;
     std::string m_lastGameEventId;
     BlockPos m_lastGameEventPos{0, 0, 0};
+    bool m_isRaining = false;
+    bool m_canRainAt = false;
 };
 
 // ============================================================================
@@ -736,4 +749,68 @@ TEST_F(EntityLavaFireTest, DoBlockCollisions_NoImmunityWhenFireIncreased)
 
     // 已在燃烧，不应设置免疫期
     EXPECT_GT(player.getRemainingFireTicks(), 0);
+}
+
+// ============================================================================
+// 灭火音效测试（水中/雨中灭火应播放音效）
+// ============================================================================
+
+TEST_F(EntityLavaFireTest, WaterExtinguish_PlaysSound)
+{
+    // MC Java: 水中灭火应播放 GENERIC_EXTINGUISH_FIRE 音效
+    // 现在水中灭火使用 extinguishFire()，包含音效
+    TestPlayer player(&m_world);
+    player.igniteForSeconds(5.0f);
+    EXPECT_TRUE(player.isOnFire());
+
+    player.setInWater(true);
+    player.baseTick();
+
+    EXPECT_FALSE(player.isOnFire());
+    EXPECT_EQ(m_world.soundPlayCount(), 1);
+    EXPECT_EQ(m_world.lastSoundId(), SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE);
+}
+
+TEST_F(EntityLavaFireTest, WaterExtinguish_NoSoundWhenNotBurning)
+{
+    // 不在燃烧时进入水中，不应播放灭火音效
+    TestLivingEntity entity(EntityId(1), &m_world);
+    EXPECT_FALSE(entity.isOnFire());
+
+    entity.setInWater(true);
+    entity.baseTick();
+
+    EXPECT_EQ(m_world.soundPlayCount(), 0);
+}
+
+TEST_F(EntityLavaFireTest, RainExtinguish_PlaysSound)
+{
+    // MC Java: 雨中灭火应播放 GENERIC_EXTINGUISH_FIRE 音效
+    // 使用不可被 20 整除的火焰时间，避免同一 tick 触发 onFire 伤害音效干扰
+    TestPlayer player(&m_world);
+    player.igniteForSeconds(5.0f);
+    // 设置火焰为非 20 整数值，避免 baseTick 中 onFire 伤害播放受伤音效
+    player.forceFireTicks(99);
+    EXPECT_TRUE(player.isOnFire());
+
+    m_world.setRaining(true);
+    m_world.setCanRainAt(true);
+    player.baseTick();
+
+    EXPECT_FALSE(player.isOnFire());
+    EXPECT_EQ(m_world.soundPlayCount(), 1);
+    EXPECT_EQ(m_world.lastSoundId(), SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE);
+}
+
+TEST_F(EntityLavaFireTest, RainExtinguish_NoSoundWhenNotBurning)
+{
+    // 不在燃烧时在雨中，不应播放灭火音效
+    TestLivingEntity entity(EntityId(1), &m_world);
+    EXPECT_FALSE(entity.isOnFire());
+
+    m_world.setRaining(true);
+    m_world.setCanRainAt(true);
+    entity.baseTick();
+
+    EXPECT_EQ(m_world.soundPlayCount(), 0);
 }
