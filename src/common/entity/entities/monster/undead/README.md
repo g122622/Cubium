@@ -97,7 +97,7 @@ Entity
 
 15. **增援入口**：`trySummonReinforcements(LivingEntity* explicitTarget = nullptr)` 是增援逻辑的唯一公共入口。`hurt()` 通过此方法触发增援，传入伤害来源实体作为显式目标。不带参数调用时使用当前攻击目标（`attackTarget()`）
 16. **增援前置条件**：困难模式（`DifficultyHelper::canZombieReinforce()`）、增援概率属性（`zombie.spawn_reinforcements`）、`doMobSpawning` 游戏规则
-17. **增援生成逻辑**（`_trySpawnReinforcement()`）：50 次随机位置尝试（[7,40] 偏移）、世界边界检查、地面支撑检查、无固体/流体检查、附近无玩家检查（7格）、实体碰撞检查、AABB 液体检查（`IWorld::containsAnyLiquid()`）
+17. **增援生成逻辑**（`_trySpawnReinforcement()`）：50 次随机位置尝试，偏移公式 = `nextInt(7,40) * nextInt(-1,1)`（MC 1.21.11 原版，偏移可为 0），世界边界检查、附近无玩家检查（7格）、实体碰撞检查、AABB 液体检查（`IWorld::containsAnyLiquid()`）。注意：当前包含额外的地面支撑和固体方块检查，待 SpawnPlacements 系统完善后对齐
 18. **属性修饰符**：每次增援成功后，召唤者获得 `reinforcement_caller_charge`（-0.05 Addition，累加），被召唤者获得 `reinforcement_callee_charge`（-0.05 Addition），防止连锁增援
 
 ### 僵尸村民治愈系统

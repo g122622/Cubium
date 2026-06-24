@@ -284,9 +284,9 @@ private:
     static constexpr i32 IN_WATER_TIME_THRESHOLD = 600; // 水下30秒开始转化
     static constexpr f32 BABY_SPEED_BOOST = 0.5f;       // 婴儿速度加成 50%
 
-    // 增援系统常量
+    // 增援系统常量（对应 MC 1.21.11 Zombie.REINFORCEMENT_ATTEMPTS/RANGE_MAX/RANGE_MIN）
     static constexpr i32 REINFORCEMENT_ATTEMPTS = 50;         // 增援尝试次数上限
-    static constexpr i32 REINFORCEMENT_RANGE_MIN = 7;         // 增援最小距离
+    static constexpr i32 REINFORCEMENT_RANGE_MIN = 7;         // 增援最小距离（偏移量 = nextInt(7,40) * nextInt(-1,1)）
     static constexpr i32 REINFORCEMENT_RANGE_MAX = 40;        // 增援最大距离
     static constexpr f64 REINFORCEMENT_CALLEE_CHARGE = -0.05; // 被召唤增援僵尸的增援概率衰减
 

@@ -224,16 +224,23 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
 
     math::Random& rng = getRandom();
 
+    // 僵尸位置（取整）
+    i32 baseX = math::floorTo<i32>(m_position.x);
+    i32 baseY = math::floorTo<i32>(m_position.y);
+    i32 baseZ = math::floorTo<i32>(m_position.z);
+
     // 最多尝试 50 次寻找有效生成位置
     for (i32 attempt = 0; attempt < REINFORCEMENT_ATTEMPTS; ++attempt) {
-        // 各轴独立随机偏移：距离 [7, 40]，正负随机
-        i32 offsetX = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * (rng.nextBoolean() ? 1 : -1);
-        i32 offsetY = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * (rng.nextBoolean() ? 1 : -1);
-        i32 offsetZ = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * (rng.nextBoolean() ? 1 : -1);
+        // MC 1.21.11 Zombie.hurtServer() 增援位置计算：
+        // 各轴偏移 = nextInt(7, 40) * nextInt(-1, 1)
+        // nextInt(-1, 1) 产生 {-1, 0, 1}，所以偏移可以为 0（同轴位置）
+        i32 offsetX = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * rng.nextInt(-1, 1);
+        i32 offsetY = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * rng.nextInt(-1, 1);
+        i32 offsetZ = rng.nextInt(REINFORCEMENT_RANGE_MIN, REINFORCEMENT_RANGE_MAX) * rng.nextInt(-1, 1);
 
-        i32 spawnX = static_cast<i32>(m_position.x) + offsetX;
-        i32 spawnY = static_cast<i32>(m_position.y) + offsetY;
-        i32 spawnZ = static_cast<i32>(m_position.z) + offsetZ;
+        i32 spawnX = baseX + offsetX;
+        i32 spawnY = baseY + offsetY;
+        i32 spawnZ = baseZ + offsetZ;
 
         BlockPos spawnPos(spawnX, spawnY, spawnZ);
 
@@ -242,13 +249,16 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
             continue;
         }
 
-        // 检查地面生成条件：脚下需要固体方块支撑
+        // TODO: MC 原版使用 SpawnPlacements.isSpawnPositionOk() 和 SpawnPlacements.checkSpawnRules()
+        // 检查生成位置有效性，此处使用简化检查：
+        // - 检查脚下需要固体方块支撑（不在 MC 原版中，但当前项目 SpawnPlacements 未完善）
+        // - 检查生成位置和上方是否有足够空间（不在 MC 原版中，MC 仅检查 isUnobstructed + noCollision）
+        // 待 SpawnPlacements 系统完善后应对齐 MC 原版逻辑
         const BlockState* belowState = world.getBlockState(spawnX, spawnY - 1, spawnZ);
         if (belowState == nullptr || !belowState->isSolid()) {
             continue;
         }
 
-        // 检查生成位置和上方一格是否有足够空间（非固体、非流体）
         const BlockState* spawnState = world.getBlockState(spawnX, spawnY, spawnZ);
         if (spawnState == nullptr || spawnState->isSolid()) {
             continue;
