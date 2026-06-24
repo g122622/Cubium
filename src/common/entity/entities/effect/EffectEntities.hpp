@@ -311,7 +311,7 @@ public:
      * @brief 设置拥有者（造成效果的实体）
      *
      * 同时记录拥有者的 UUID，以便在拥有者实体失效后通过 UUID 重新查找。
-     * 参考 MC 原版 AreaEffectCloud 使用 EntityReference<LivingEntity> 存储拥有者。
+     * 采用双重追踪模式：缓存指针 + UUID 字符串。
      *
      * @param owner 拥有者实体（可以为 nullptr）
      */

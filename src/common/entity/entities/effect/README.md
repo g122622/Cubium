@@ -74,14 +74,12 @@ EffectEntities.hpp/cpp
 - 瞬间效果的伤害来源使用 `DamageSources::indirectMagic(this, owner)`，使伤害归属于 owner
 - 当 owner 为 nullptr 时回退到 `DamageSources::magic()`
 
-### 3.1 区域效果云 Owner UUID 追踪
+### 3.1 区域效果云 Owner 追踪
 
-- `setOwner(LivingEntity*)` 同时记录 `m_owner`（缓存指针）和 `m_ownerUuid`（UUID 字符串）
-- `getOwner()` 非const版本实现懒加载：缓存指针有效时直接返回，失效则通过 UUID 在世界中重新查找
-- `setOwnerUuid(const std::string&)` 仅设置 UUID，用于 NBT 反序列化，指针在首次 `getOwner()` 时懒加载
-- `ownerUuid()` 返回 UUID 字符串引用
-- NBT 序列化键名：`OwnerUUIDMost` / `OwnerUUIDLeast`（i64 格式，与 Entity 基类的 UUID 格式一致）
-- 参考 MC 原版 `EntityReference<LivingEntity>` 的双重追踪模式（缓存指针 + UUID）
+- 采用双重追踪模式（缓存指针 + UUID），owner 实体失效后通过 UUID 重新查找
+- `getOwner()` 非const版本会执行懒加载查找，const版本直接返回缓存指针
+- owner 为 nullptr 时，瞬间伤害使用 `DamageSources::magic()`；owner 非空时使用 `DamageSources::indirectMagic(this, owner)`
+- NBT 键名：`OwnerUUIDMost` / `OwnerUUIDLeast`（i64 格式）
 
 ### 4. 盔甲架标记模式
 

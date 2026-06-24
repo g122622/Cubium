@@ -48,7 +48,7 @@ namespace {
  * @brief 应用瞬间效果到目标实体
  *
  * 用于药水云、喷溅药水等场景中瞬间效果的应用。
- * 参考 MC 原版 AreaEffectCloud.serverTick() 中 applyInstantenousEffect 的调用方式。
+ * 瞬间效果（治疗、伤害、饱和）使用 affectEntity 模式而非 addEffect。
  *
  * @param type 效果类型（必须是瞬间效果）
  * @param source 效果来源实体（AreaEffectCloud 自身）
@@ -67,7 +67,6 @@ void applyInstantEffect(
         case effect::EffectType::InstantHealth:
             // 瞬间治疗：亡灵生物受到伤害，普通生物治疗
             if (target.getCreatureAttribute() == CreatureAttribute::Undead) {
-                // MC 原版: 使用 indirectMagic(source, caster) 作为伤害来源
                 // 伤害归属于 caster（如果存在），使击杀归因正确
                 if (caster != nullptr) {
                     auto dmgSource = DamageSources::indirectMagic(&source, caster);
@@ -86,7 +85,6 @@ void applyInstantEffect(
             if (target.getCreatureAttribute() == CreatureAttribute::Undead) {
                 target.heal(amount);
             } else {
-                // MC 原版: 使用 indirectMagic(source, caster) 作为伤害来源
                 if (caster != nullptr) {
                     auto dmgSource = DamageSources::indirectMagic(&source, caster);
                     target.hurt(dmgSource, amount);
@@ -99,7 +97,6 @@ void applyInstantEffect(
 
         case effect::EffectType::Saturation:
             // 饱和效果：恢复饥饿值和饱和度（仅对玩家有效）
-            // MC 原版: player.getFoodData().eat(amplifier + 1, 1.0F)
             if (auto* player = dynamic_cast<Player*>(&target)) {
                 i32 nutrition = amplifier + 1;
                 player->foodStats().addStats(nutrition, 1.0f);
@@ -640,7 +637,6 @@ void AreaEffectCloudEntity::_applyEffects()
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(box, this);
 
     // 获取 owner（用于构建正确的伤害来源）
-    // MC 原版: AreaEffectCloud.serverTick() 中调用 getOwner() 获取施放者
     LivingEntity* owner = getOwner();
 
     for (Entity* entity : entities) {
@@ -678,7 +674,6 @@ void AreaEffectCloudEntity::_applyEffects()
                 if (effect::isInstantEffect(effect.type())) {
                     // 瞬间效果（如瞬间治疗、瞬间伤害、饱和）
                     // 乘数 0.5 表示药水云中的效果强度为原效果的一半
-                    // MC 原版: 传入 source(自身) 和 caster(owner) 以构建正确的间接魔法伤害来源
                     applyInstantEffect(effect.type(), *this, owner, *living, effect.amplifier(), 0.5f);
                 } else {
                     // 持续效果
@@ -783,9 +778,7 @@ void AreaEffectCloudEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) 
     tag.put(CLOUD_RADIUS, m_radius);
 
     // 拥有者 UUID
-    // MC 原版: EntityReference.store(owner, output, "Owner")，以 int[4] 或 UUIDMost/UUIDLeast 格式存储
-    // 本项目采用 UUIDMost/UUIDLeast 格式，键名前缀为 "Owner"
-    // 参考 ItemEntity 的 Owner/Thrower 字段和 TameableEntity 的 OwnerUUID 字段
+    // 采用 UUIDMost/UUIDLeast 格式存储，与 Entity 基类的 UUID 格式一致
     if (!m_ownerUuid.empty()) {
         auto uuidBytes = util::uuidFromString(m_ownerUuid);
         if (uuidBytes.size() == 16) {

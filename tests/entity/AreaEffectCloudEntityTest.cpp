@@ -54,7 +54,7 @@ protected:
 
 TEST_F(AreaEffectCloudEntityTest, DefaultValues_AreCorrect)
 {
-    // MC 1.16.5 默认值
+    // 默认值
     EXPECT_FLOAT_EQ(m_cloud->getRadius(), 3.0f);
     EXPECT_EQ(m_cloud->getDuration(), 600);
     EXPECT_EQ(m_cloud->getWaitTime(), 20);
@@ -173,7 +173,7 @@ TEST_F(AreaEffectCloudEntityTest, Width_IsRadiusTimesTwo)
 
 TEST_F(AreaEffectCloudEntityTest, Height_IsFixed)
 {
-    // MC 1.16.5: 药水云高度固定为 0.5
+    // 药水云高度固定为 0.5
     EXPECT_FLOAT_EQ(m_cloud->height(), 0.5f);
 
     m_cloud->setRadius(10.0f);
@@ -200,7 +200,7 @@ TEST_F(AreaEffectCloudEntityTest, Create_ReturnsValidEntity)
 
 TEST_F(AreaEffectCloudEntityTest, CreeperLingeringCloudParameters_AreCorrect)
 {
-    // MC 1.16.5 CreeperEntity.spawnLingeringCloud() 参数
+    // 苦力怕爆炸后的药水云参数
     // 初始半径: 2.5F
     // radiusOnUse: -0.5F
     // waitTime: 10 ticks
@@ -363,7 +363,7 @@ TEST_F(CreeperLingeringCloudScenarioTest, InitialState_IsCorrect)
 
 TEST_F(CreeperLingeringCloudScenarioTest, NoCollision_IsEnabled)
 {
-    // MC 1.16.5: AreaEffectCloudEntity 无碰撞
+    // AreaEffectCloudEntity 无碰撞
     EXPECT_FALSE(m_cloud->canBeCollidedWith());
     // isPushable 是基类的虚函数，AreaEffectCloudEntity 重写返回 false
 }
@@ -377,7 +377,7 @@ TEST_F(CreeperLingeringCloudScenarioTest, WidthHeight_AreCorrect)
 }
 
 // ============================================================================
-// 滞留药水场景测试（MC 1.16.5 PotionEntity.makeAreaOfEffectCloud）
+// 滞留药水场景测试
 // ============================================================================
 
 class LingeringPotionCloudScenarioTest : public ::testing::Test {
@@ -386,7 +386,7 @@ protected:
     {
         m_cloud = std::make_unique<AreaEffectCloudEntity>();
 
-        // MC 1.16.5 滞留药水创建的效果云参数
+        // 滞留药水创建的效果云参数
         // 参考: PotionEntity.makeAreaOfEffectCloud()
         m_cloud->setRadius(3.0f);
         m_cloud->setRadiusOnUse(-0.5f);
@@ -405,7 +405,7 @@ protected:
 
 TEST_F(LingeringPotionCloudScenarioTest, InitialParameters_AreCorrect)
 {
-    // MC 1.16.5 标准滞留药水参数
+    // 标准滞留药水参数
     EXPECT_FLOAT_EQ(m_cloud->getRadius(), 3.0f);
     EXPECT_EQ(m_cloud->getWaitTime(), 10);
     EXPECT_EQ(m_cloud->getDuration(), 600); // 默认 30 秒 = 600 ticks
@@ -480,7 +480,7 @@ class LingeringPotionDurationTest : public ::testing::Test {};
 
 TEST_F(LingeringPotionDurationTest, DurationDividedByFour)
 {
-    // MC 1.16.5: 效果在区域效果云中持续时间为原持续时间的 1/4
+    // 效果在区域效果云中持续时间为原持续时间的 1/4
     // 例如：8:00 的药水（9600 tick）在效果云中为 2400 tick
 
     // 模拟 8 分钟速度药水
@@ -574,7 +574,7 @@ class InstantEffectTest : public ::testing::Test {};
 
 TEST_F(InstantEffectTest, IsInstantEffect_IdentifiesCorrectTypes)
 {
-    // MC 1.16.5: 瞬间效果包括瞬间治疗、瞬间伤害、饱和
+    // 瞬间效果包括瞬间治疗、瞬间伤害、饱和
     EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::InstantHealth));
     EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::InstantDamage));
     EXPECT_TRUE(effect::isInstantEffect(effect::EffectType::Saturation));
@@ -641,14 +641,14 @@ TEST_F(CanBeHitWithPotionTest, DurationEffects_AreNotInstant)
 }
 
 // ============================================================================
-// 效果乘数测试（MC 1.16.5 药水云效果强度）
+// 效果乘数测试
 // ============================================================================
 
 class EffectMultiplierTest : public ::testing::Test {};
 
 TEST_F(EffectMultiplierTest, AreaEffectCloudMultiplier_IsHalf)
 {
-    // MC 1.16.5: 药水云中瞬间效果的强度乘数为 0.5
+    // 药水云中瞬间效果的强度乘数为 0.5
     // 瞬间治疗基础值 4.0，乘数 0.5 后为 2.0
     // 公式：(4.0 + amplifier * 2.0) * 0.5
 
@@ -672,7 +672,7 @@ TEST_F(EffectMultiplierTest, AreaEffectCloudMultiplier_IsHalf)
 
 TEST_F(EffectMultiplierTest, SplashPotionMultiplier_IsFull)
 {
-    // MC 1.16.5: 喷溅药水的瞬间效果强度乘数为 1.0
+    // 喷溅药水的瞬间效果强度乘数为 1.0
     // 瞬间治疗基础值 4.0，乘数 1.0 后为 4.0
     f32 baseAmount = 4.0f;
     f32 perLevel = 2.0f;
@@ -700,31 +700,31 @@ protected:
 
 TEST_F(AreaEffectCloudLifecycleTest, DefaultDuration_Is600Ticks)
 {
-    // MC 1.16.5: 默认持续时间 600 tick = 30 秒
+    // 默认持续时间 600 tick = 30 秒
     EXPECT_EQ(m_cloud->getDuration(), 600);
 }
 
 TEST_F(AreaEffectCloudLifecycleTest, DefaultWaitTime_Is20Ticks)
 {
-    // MC 1.16.5: 默认等待时间 20 tick = 1 秒
+    // 默认等待时间 20 tick = 1 秒
     EXPECT_EQ(m_cloud->getWaitTime(), 20);
 }
 
 TEST_F(AreaEffectCloudLifecycleTest, DefaultReapplicationDelay_Is20Ticks)
 {
-    // MC 1.16.5: 默认重应用延迟 20 tick = 1 秒
+    // 默认重应用延迟 20 tick = 1 秒
     EXPECT_EQ(m_cloud->getReapplicationDelay(), 20);
 }
 
 TEST_F(AreaEffectCloudLifecycleTest, DefaultRadius_Is3_0)
 {
-    // MC 1.16.5: 默认半径 3.0
+    // 默认半径 3.0
     EXPECT_FLOAT_EQ(m_cloud->getRadius(), 3.0f);
 }
 
 TEST_F(AreaEffectCloudLifecycleTest, DurationOnUse_DefaultIsZero)
 {
-    // MC 1.16.5: 默认 durationOnUse 为 0
+    // 默认 durationOnUse 为 0
     // 注：durationOnUse 是私有成员，无法直接访问
     // 这里验证 setDurationOnUse 可被调用
     EXPECT_NO_THROW(m_cloud->setDurationOnUse(-10));
@@ -732,7 +732,7 @@ TEST_F(AreaEffectCloudLifecycleTest, DurationOnUse_DefaultIsZero)
 
 TEST_F(AreaEffectCloudLifecycleTest, RadiusOnUse_DefaultIsZero)
 {
-    // MC 1.16.5: 默认 radiusOnUse 为 0
+    // 默认 radiusOnUse 为 0
     // 注：radiusOnUse 是私有成员，无法直接访问
     // 这里验证 setRadiusOnUse 可被调用
     EXPECT_NO_THROW(m_cloud->setRadiusOnUse(-0.5f));
