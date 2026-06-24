@@ -36,7 +36,9 @@ ItemTag::ItemTag(ResourceLocation id)
 
 void ItemTag::add(const Item* item)
 {
-    MC_ASSERT_RELEASE(item != nullptr);
+    if (item == nullptr) {
+        return;
+    }
     m_items.insert(item);
 }
 

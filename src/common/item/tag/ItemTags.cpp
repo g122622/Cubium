@@ -236,9 +236,6 @@ void ItemTags::initialize()
     fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_leggings")));
     fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_boots")));
 
-    // 下界合金马铠
-    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_horse_armor")));
-
     // 下界星
     fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_star")));
 
