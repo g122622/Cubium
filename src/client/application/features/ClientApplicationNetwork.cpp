@@ -2042,6 +2042,30 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
+        case WorldEvents::PLANT_GROWTH_EFFECT: {
+            // 植物生长粒子与音效事件 (MC 1.21 主事件，由骨粉使用触发)
+            // data 为粒子数量，0 则生成 15 个
+            // 参考: net.minecraft.client.renderer.LevelEventHandler case 1505
+            // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 BonemealableBlock 类型
+            // 决定粒子分布方式，但简化实现使用与 2005 相同的粒子效果。
+            // 同时播放骨粉使用音效。
+            {
+                i32 count = (data == 0) ? 15 : data;
+                m_world.addParticle(ParticleTypeId::HappyVillager,
+                    Vector3(px, py, pz),
+                    Vector3(0.0f, 0.0f, 0.0f),
+                    Vector3(0.5f, 1.0f, 0.5f),
+                    static_cast<u32>(count));
+
+                // 播放骨粉使用音效
+                if (m_audioService) {
+                    m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                        SoundEvents::ITEM_BONE_MEAL_USE, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+                }
+            }
+            break;
+        }
+
         case WorldEvents::POINTED_DRIPSTONE_LAND_SOUND: {
             // 滴石尖锥落地音效
             if (m_audioService) {
@@ -2128,6 +2152,57 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                     f32 spz = pz + std::sin(angle) * dist;
                     m_world.addParticle(ParticleTypeId::Poof, Vector3(spx, py, spz), Vector3(0.0f, 0.1f, 0.0f));
                 }
+            }
+            break;
+        }
+
+        case WorldEvents::SHOOT_WHITE_SMOKE: {
+            // 白烟粒子效果（方向性），与 DISPENSER_SMOKE(2000) 类似但为白色烟雾
+            // data 为烟雾方向（Direction.getIndex()）
+            // 参考: net.minecraft.client.renderer.LevelEventHandler case 2010
+            // TODO: 项目中尚未定义 WHITE_SMOKE 粒子类型，当前使用 CampfireSignal 作为临时替代
+            {
+                for (int i = 0; i < 10; ++i) {
+                    f32 spx = static_cast<f32>(x) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
+                    f32 spy = static_cast<f32>(y) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
+                    f32 spz = static_cast<f32>(z) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
+                    f32 svx = static_cast<f32>(random.nextGaussian()) * 0.02f;
+                    f32 svy = static_cast<f32>(random.nextGaussian()) * 0.02f + 0.05f;
+                    f32 svz = static_cast<f32>(random.nextGaussian()) * 0.02f;
+                    m_world.addParticle(ParticleTypeId::CampfireSignal, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
+                }
+            }
+            break;
+        }
+
+        case WorldEvents::PLANT_GROWTH_PARTICLES: {
+            // 植物生长粒子效果（蜜蜂授粉促进作物生长时触发）
+            // data 为粒子数量（通常为 15），0 则生成 15 个
+            // 与 BONEMEAL_PARTICLES(2005) 的区别：不播放骨粉使用音效
+            // 参考: net.minecraft.client.renderer.LevelEventHandler case 2011
+            //       ParticleUtils.spawnParticleInBlock() - 在方块内生成 HappyVillager 粒子
+            {
+                i32 count = (data == 0) ? 15 : data;
+                m_world.addParticle(ParticleTypeId::HappyVillager,
+                    Vector3(px, py, pz),
+                    Vector3(0.0f, 0.0f, 0.0f),
+                    Vector3(0.5f, 1.0f, 0.5f),
+                    static_cast<u32>(count));
+            }
+            break;
+        }
+
+        case WorldEvents::TURTLE_EGG_PLACEMENT: {
+            // 海龟蛋放置粒子效果
+            // 参考: net.minecraft.client.renderer.LevelEventHandler case 2012
+            // 与 PLANT_GROWTH_PARTICLES(2011) 逻辑相同，均为 HappyVillager 粒子
+            {
+                i32 count = (data == 0) ? 15 : data;
+                m_world.addParticle(ParticleTypeId::HappyVillager,
+                    Vector3(px, py, pz),
+                    Vector3(0.0f, 0.0f, 0.0f),
+                    Vector3(0.5f, 1.0f, 0.5f),
+                    static_cast<u32>(count));
             }
             break;
         }

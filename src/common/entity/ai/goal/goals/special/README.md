@@ -278,7 +278,7 @@ return m_slime->onGround() || m_slime->isInWater() || m_slime->isInLava() ||
 - 作物计数器 `MAX_CROPS_GROWN = 10`：每次采粉后最多促进10棵作物
 - `canBeeStart()` 和 `canBeeContinue()` 均检查作物计数器上限
 - `BeeEnterHiveGoal::startExecuting()` 调用 `resetCropCounter()` 重置计数器
-- 生长粒子使用 `WorldEvents::BONEMEAL_PARTICLES(2005)`，待客户端实现 `PLANT_GROWTH_PARTICLES(2011)` 后切换
+- 生长粒子使用 `WorldEvents::PLANT_GROWTH_PARTICLES(2011)`，与骨粉使用的 `BONEMEAL_PARTICLES(2005)` 的区别是不播放骨粉使用音效
 - `BEE_GROWABLES` 标签包含：wheat, carrots, potatoes, beetroots, melon_stem, pumpkin_stem, sweet_berry_bush, cave_vines, cave_vines_plant
 
 ### 16. 蜜蜂授粉状态管理与服务端冷却

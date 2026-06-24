@@ -861,8 +861,10 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
                     // 状态未变化，说明生长未成功
                     return false;
                 }
-                // TODO: 待客户端实现 PLANT_GROWTH_PARTICLES(2011) 后切换
-                world->playEvent(world::WorldEvents::BONEMEAL_PARTICLES, pos, 15);
+                // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
+                // 区别是不播放骨粉使用音效
+                // 参考: net.minecraft.world.entity.animal.bee.Bee.BeeGrowCropGoal.tick()
+                world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);
                 return true;
             }
         }
@@ -871,9 +873,10 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
     // 如果成功生长（newState 有效），更新方块状态并播放粒子
     if (newState != nullptr) {
         world->setBlockState(pos, newState, 2);
-        // TODO: 待客户端实现 PLANT_GROWTH_PARTICLES(2011) 后，将 BONEMEAL_PARTICLES(2005) 替换为
-        // PLANT_GROWTH_PARTICLES(2011)
-        world->playEvent(world::WorldEvents::BONEMEAL_PARTICLES, pos, 15);
+        // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
+        // 区别是不播放骨粉使用音效
+        // 参考: net.minecraft.world.entity.animal.bee.Bee.BeeGrowCropGoal.tick()
+        world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);
         return true;
     }
 

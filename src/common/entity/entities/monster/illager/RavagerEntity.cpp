@@ -22,6 +22,7 @@
  */
 
 #include "RavagerEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
@@ -235,14 +236,15 @@ void RavagerEntity::_launchEntity(Entity* entity)
 void RavagerEntity::_spawnStunParticles()
 {
     // 眩晕时生成粒子效果
-    // 1/6 概率生成粒子
+    // 对齐 MC 原版 Ravager.stunEffect(): 1/6 概率生成 ENTITY_EFFECT 粒子
+    // 颜色常量 STUNNED_COLOR = 8356754 即 RGB(127, 131, 146) -> R=0.498, G=0.514, B=0.573
     math::Random& rng = getRandom();
     if (rng.nextInt(6) != 0) return;
 
     IWorld* worldPtr = world();
     if (!worldPtr) return;
 
-    // 计算粒子位置
+    // 计算粒子位置（在实体身体上方偏移）
     f32 renderYawOffsetRad = math::toRadians(renderYawOffset());
     f64 offsetX =
         -static_cast<f64>(width()) * std::sin(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
@@ -252,13 +254,10 @@ void RavagerEntity::_spawnStunParticles()
     f64 offsetZ =
         static_cast<f64>(width()) * std::cos(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
 
-    // 颜色参数: (0.498, 0.514, 0.573) - 灰色效果粒子
-    // 注：粒子效果需要客户端实现，这里暂时跳过
-    // worldPtr->addParticle(ParticleTypes::ENTITY_EFFECT, x() + offsetX, offsetY, z() + offsetZ,
-    //                       0.498, 0.514, 0.573);
-    (void)offsetX;
-    (void)offsetY;
-    (void)offsetZ;
+    // 生成灰色效果粒子，颜色通过 velocity 向量传递 (R, G, B)
+    worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+        Vector3(x() + offsetX, offsetY, z() + offsetZ),
+        Vector3(0.498f, 0.514f, 0.573f));
 }
 
 void RavagerEntity::_breakLeavesOnCollision()

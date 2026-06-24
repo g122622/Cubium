@@ -333,11 +333,12 @@ void WitherEntity::tick()
 void WitherEntity::_spawnParticles()
 {
     IWorld* worldPtr = world();
-    if (worldPtr == nullptr || worldPtr->isClientSide()) {
+    if (worldPtr == nullptr) {
         return;
     }
 
     // 充能状态下生成额外的烟雾粒子
+    // 对齐 MC 原版 WitherBoss: 3 个头都始终生成烟雾粒子（每 tick），充能时 1/4 概率额外 EntityEffect
     if (isCharged()) {
         // 每 2 tick 在每个头附近生成烟雾粒子
         if (ticksExisted() % 2 == 0) {
@@ -351,19 +352,29 @@ void WitherEntity::_spawnParticles()
                         headY + (getRandom().nextDouble() - 0.5) * 0.3,
                         headZ + (getRandom().nextDouble() - 0.5) * 0.3),
                     Vector3(0.0, 0.0, 0.0));
+
+                // 充能时 1/4 概率额外 EntityEffect 粒子（黄绿色 0.7, 0.7, 0.5）
+                // 参考: MC 原版 WitherBoss.aiStep() 中的充能粒子逻辑
+                if (worldPtr->getRandom().nextInt(4) == 0) {
+                    worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+                        Vector3(headX + (getRandom().nextDouble() - 0.5) * 0.6,
+                            headY + (getRandom().nextDouble() - 0.5) * 0.6,
+                            headZ + (getRandom().nextDouble() - 0.5) * 0.6),
+                        Vector3(0.7f, 0.7f, 0.5f));
+                }
             }
         }
     }
 
     // 无敌阶段生成紫色粒子（表示充能状态）
+    // 颜色: (0.7, 0.7, 0.9) - 参考 MC 原版 WitherBoss 的 getInvulnerableTicks 粒子
     if (getInvulTime() > 0 && getInvulTime() % 8 == 0) {
-        // 在身体周围生成紫色粒子
         for (i32 i = 0; i < 3; ++i) {
             worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
                 Vector3(x() + (getRandom().nextDouble() - 0.5) * width() * 2.0,
                     y() + getRandom().nextDouble() * height(),
                     z() + (getRandom().nextDouble() - 0.5) * width() * 2.0),
-                Vector3(0.0, 0.0, 0.0));
+                Vector3(0.7f, 0.7f, 0.9f));
         }
     }
 }

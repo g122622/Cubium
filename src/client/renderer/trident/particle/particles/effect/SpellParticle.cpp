@@ -52,8 +52,19 @@ std::unique_ptr<Particle> SpellParticle::create(
     const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
-    // 默认紫色的药水粒子
-    return std::make_unique<SpellParticle>(pos, velocity, glm::vec4(0.5f, 0.0f, 1.0f, 1.0f));
+    // 从 velocity 中提取 RGB 颜色信息
+    // velocity.x = R, velocity.y = G, velocity.z = B，范围为 [0,1]
+    // 若 velocity 为零向量（未指定颜色），回退到默认紫色
+    f32 r = static_cast<f32>(velocity.x);
+    f32 g = static_cast<f32>(velocity.y);
+    f32 b = static_cast<f32>(velocity.z);
+    if (r == 0.0f && g == 0.0f && b == 0.0f) {
+        // 默认紫色（药水效果粒子）
+        r = 0.5f;
+        g = 0.0f;
+        b = 1.0f;
+    }
+    return std::make_unique<SpellParticle>(pos, velocity, glm::vec4(r, g, b, 1.0f));
 }
 
 void SpellParticle::tick(mc::client::ClientWorld* world)
@@ -106,7 +117,19 @@ std::unique_ptr<Particle> InstantSpellParticle::create(
     const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
-    return std::make_unique<InstantSpellParticle>(pos, velocity, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    // 从 velocity 中提取 RGB 颜色信息
+    // velocity.x = R, velocity.y = G, velocity.z = B，范围为 [0,1]
+    // 若 velocity 为零向量（未指定颜色），回退到默认白色
+    f32 r = static_cast<f32>(velocity.x);
+    f32 g = static_cast<f32>(velocity.y);
+    f32 b = static_cast<f32>(velocity.z);
+    if (r == 0.0f && g == 0.0f && b == 0.0f) {
+        // 默认白色（即时药水效果粒子）
+        r = 1.0f;
+        g = 1.0f;
+        b = 1.0f;
+    }
+    return std::make_unique<InstantSpellParticle>(pos, velocity, glm::vec4(r, g, b, 1.0f));
 }
 
 void InstantSpellParticle::tick(mc::client::ClientWorld* world)
@@ -150,7 +173,20 @@ std::unique_ptr<Particle> EntityEffectParticle::create(
     const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
-    return std::make_unique<EntityEffectParticle>(pos, velocity, glm::vec4(0.5f, 0.0f, 0.5f, 0.5f));
+    // 从 velocity 中提取 RGB 颜色信息（与 SpellcastingIllagerEntity 等实体
+    // 通过 addParticle(ParticleTypeId::EntityEffect, pos, colorVector) 传递颜色的方式一致）
+    // velocity.x = R, velocity.y = G, velocity.z = B，范围为 [0,1]
+    // 若 velocity 为零向量（未指定颜色），回退到默认紫色
+    f32 r = static_cast<f32>(velocity.x);
+    f32 g = static_cast<f32>(velocity.y);
+    f32 b = static_cast<f32>(velocity.z);
+    if (r == 0.0f && g == 0.0f && b == 0.0f) {
+        // 默认紫色（药水效果粒子）
+        r = 0.5f;
+        g = 0.0f;
+        b = 0.5f;
+    }
+    return std::make_unique<EntityEffectParticle>(pos, velocity, glm::vec4(r, g, b, 0.5f));
 }
 
 void EntityEffectParticle::tick(mc::client::ClientWorld* world)
