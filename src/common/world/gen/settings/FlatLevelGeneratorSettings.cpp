@@ -72,6 +72,13 @@ FlatLevelGeneratorSettings FlatLevelGeneratorSettings::createDefault()
     settings.layersInfo().emplace_back(2, VanillaBlocks::getState(VanillaBlocks::DIRT));
     settings.layersInfo().emplace_back(1, VanillaBlocks::getState(VanillaBlocks::GRASS_BLOCK));
 
+    // MC 1.21.11: 默认超平坦世界启用村庄和要塞结构集
+    // 参考: FlatLevelGeneratorPresets.getClassicFlat() -> structureOverrides = [VILLAGES, STRONGHOLDS]
+    settings.m_structureOverrides = {
+        ResourceLocation::parse("minecraft:villages"),
+        ResourceLocation::parse("minecraft:strongholds"),
+    };
+
     settings.updateLayers();
     return settings;
 }
