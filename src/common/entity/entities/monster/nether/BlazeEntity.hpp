@@ -132,6 +132,10 @@ public:
 
     /**
      * @brief 烈焰人对水敏感
+     *
+     * 对齐 MC 1.21.11 Blaze.isSensitiveToWater() 返回 true。
+     * tick() 中水伤害条件为 isWaterSensitive() && isWet()，
+     * 对齐 MC 原版 LivingEntity.baseTick() 的逻辑模式。
      */
     [[nodiscard]] bool isWaterSensitive() const { return true; }
 

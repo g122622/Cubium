@@ -93,10 +93,10 @@ void BlazeEntity::tick()
     // 对齐 MC 1.21.11 LivingEntity.baseTick():
     // if (isSensitiveToWater() && isInWaterOrRain())
     //     hurtServer(damageSources().drown(), 1.0F);
-    // 烈焰人重写 isSensitiveToWater() 返回 true，
+    // 烈焰人 isSensitiveToWater() 返回 true，
     // 在水中或雨中每 tick 受 1 点 drown 伤害
     // 注：伤害源为 drown（非 onFire），影响死亡消息和火焰保护附魔交互
-    if (isWet()) {
+    if (isWaterSensitive() && isWet()) {
         auto damageSource = DamageSources::drown();
         hurt(damageSource, WATER_DAMAGE_AMOUNT);
     }

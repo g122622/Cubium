@@ -186,9 +186,18 @@ TEST_F(BlazeHoverBehaviorTest, WaterDamageAmount_IsCorrect)
     // MC 1.21.11 LivingEntity.baseTick():
     //   if (isSensitiveToWater() && isInWaterOrRain())
     //       hurtServer(damageSources().drown(), 1.0F);
-    // 烈焰人重写 isSensitiveToWater() 返回 true，
+    // 烈焰人 isSensitiveToWater() 返回 true，
     // 水敏感伤害源为 drown（非 onFire），每 tick 1.0 伤害
     EXPECT_FLOAT_EQ(BlazeEntity::WATER_DAMAGE_AMOUNT, 1.0f);
+}
+
+TEST_F(BlazeHoverBehaviorTest, IsWaterSensitive_ReturnsTrue)
+{
+    // MC 1.21.11: Blaze.isSensitiveToWater() 返回 true
+    // tick() 中水伤害条件为 isWaterSensitive() && isWet()，
+    // 对齐 MC 原版 LivingEntity.baseTick() 的逻辑
+    BlazeEntity blaze(EntityId(0));
+    EXPECT_TRUE(blaze.isWaterSensitive());
 }
 
 // ============================================================================
