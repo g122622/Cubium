@@ -101,6 +101,8 @@
                         hitEntity()` 处理砸地效果（停止下落、音效、击退）、调用 `postHitEntity()` 重置下落距离、检测风爆魔咒施加弹起速度。
     -
     **PvP 保护机制**：`Player::canHarmPlayer()` 控制玩家间伤害判定。基类实现检查队伍友伤规则（攻击者无队伍→可伤害；同队→取决于 `getAllowFriendlyFire()`；不同队→可伤害）。`ServerPlayer` 重写此方法，先检查 PVP 游戏规则（`IWorld::isPvpAllowed()`），PvP 禁用时直接返回 false。`ServerPlayer::hurt()` 在伤害来源为玩家时调用 `canHarmPlayer()` 拦截非法 PvP 伤害。驯服动物（如狼）的 `wantsToAttack()` 也调用 `canHarmPlayer()` 判断主人是否可以攻击目标玩家。
+-
+    **疾跑击退与 causeExtraKnockback**：`Player::causeExtraKnockback()` 重写 LivingEntity 基类版本，在基类击退逻辑基础上增加 `setSprinting(false)`。当目标是 ServerPlayer 且 `hurtMarked` 为 true 时，立即通过 `sendVelocityPacket()` 发送速度包、清除 hurtMarked、恢复 preHurtVelocity，避免 EntityTracker::tick() 重复发送速度包导致客户端击退速度被重复应用。`sendVelocityPacket()` 是 Player 基类的虚方法（返回 false），ServerPlayer 重写版本实际发送网络包并返回 true。
 
 ---
 

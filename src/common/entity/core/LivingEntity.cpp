@@ -1186,7 +1186,6 @@ void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength)
 
 void LivingEntity::causeExtraKnockback(Entity& target, f32 strength, const Vector3& /*preHurtVelocity*/)
 {
-    // 对应 MC Java 的 LivingEntity.causeExtraKnockback()
     // 基类版本：如果击退强度 > 0 且目标是 LivingEntity，则对目标施加击退
     // 同时减缓攻击者的水平速度
     // 注意：setSprinting(false) 仅在 Player 子类中调用

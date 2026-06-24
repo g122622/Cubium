@@ -330,6 +330,8 @@ add_executable(mc_tests
     common/entity/combat/CombatRulesEPFTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
+    # 疾跑击退速度修正测试
+    common/entity/combat/CauseExtraKnockbackTest.cpp
     # GameRules 游戏规则测试
     common/world/gamerule/GameRulesTest.cpp
     # PVP 游戏规则测试

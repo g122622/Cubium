@@ -567,8 +567,6 @@ public:
      * 基类版本仅对 LivingEntity 目标调用 knockback() 并减缓攻击者水平速度。
      * Player 子类重写此方法以处理 ServerPlayer 目标的速度重复应用问题。
      *
-     * 对应 MC Java 的 LivingEntity.causeExtraKnockback() / Player.causeExtraKnockback()。
-     *
      * @param target 击退目标实体
      * @param strength 额外击退强度（包含冲刺加成和附魔击退）
      * @param preHurtVelocity 目标在 hurt() 调用之前的速度（用于 ServerPlayer 速度修正）

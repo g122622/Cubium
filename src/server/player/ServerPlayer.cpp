@@ -163,10 +163,10 @@ void ServerPlayer::syncExperience()
     }
 }
 
-void ServerPlayer::sendVelocityPacket()
+bool ServerPlayer::sendVelocityPacket()
 {
     if (!hasConnection()) {
-        return;
+        return false;
     }
 
     // 构建速度同步包，发送此实体的当前速度到玩家客户端
@@ -182,7 +182,7 @@ void ServerPlayer::sendVelocityPacket()
     auto payloadResult = packet.serialize();
     if (payloadResult.failed()) {
         spdlog::warn("ServerPlayer: failed to serialize velocity packet (player={})", username());
-        return;
+        return false;
     }
 
     const auto fullPacket =
@@ -190,7 +190,10 @@ void ServerPlayer::sendVelocityPacket()
 
     if (!_sendFullPacket(fullPacket)) {
         spdlog::warn("ServerPlayer: velocity packet not sent (player={}, no connection)", username());
+        return false;
     }
+
+    return true;
 }
 
 void ServerPlayer::addExperience(i32 amount)

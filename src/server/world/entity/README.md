@@ -64,3 +64,9 @@ Entity 内部以 `std::string` 存储 UUID（32字符十六进制），网络包
 - 当 hurtMarked 为 true 时，调用 `_sendVelocityPacket()` 向所有追踪玩家发送 EntityVelocityPacket，然后调用 `clearHurtMarked()` 清除标记
 - 该机制确保实体受伤/击退后客户端速度立即同步，避免客户端预测与服务器不一致
 - `_sendVelocityPacket()` 是新增的私有方法，封装速度包的构建和广播逻辑
+
+### 9. "AndSelf" 速度同步与 causeExtraKnockback 修复
+- MC Java 的 `sendToTrackingPlayersAndSelf` 中，当实体本身是 Player 时也需要向其自身发送速度包
+- EntityTracker::tick() 在 hurtMarked 为 true 时，除了向追踪玩家发送速度包，还会通过 `Player::sendVelocityPacket()` 虚方法向自身发送
+- ServerPlayer 不会出现在自己的追踪列表中，因此需要单独发送
+- `Player::causeExtraKnockback()` 在疾跑击退时，会先为 ServerPlayer 目标立即发送速度包并清除 hurtMarked，此分支不会执行，从而避免速度重复应用

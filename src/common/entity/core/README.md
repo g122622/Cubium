@@ -583,6 +583,27 @@
     - 字段位于 Entity 类 protected 区域，紧随 `m_invulnerable` 之后
     - 该标记不参与 NBT 序列化，实体重载后从 false 开始
 
+    ## #causeExtraKnockback 额外击退机制
+
+    对应 MC Java 的 `LivingEntity.causeExtraKnockback()` / `Player.causeExtraKnockback()`，用于疾跑/附魔击退的速度修正。
+
+    ### 基类 LivingEntity::causeExtraKnockback(target, strength, preHurtVelocity)
+
+    - 当 `strength > 0` 时：基于攻击者朝向（yaw）对目标施加击退，攻击者水平速度 ×0.6 减速
+    - 注意：基类**不**调用 `setSprinting(false)`，那是 Player 子类的行为
+    - `preHurtVelocity` 参数在基类中未使用（仅 Player 子类需要）
+
+    ### Player 子类重写
+
+    - 在基类击退逻辑基础上增加 `setSprinting(false)`（疾跑停止）
+    - ServerPlayer 目标速度重复应用修复：当 `target.isHurtMarked() && targetPlayer->sendVelocityPacket()` 返回 true 时，立即清除 hurtMarked 并恢复 preHurtVelocity，避免 EntityTracker::tick() 重复发送速度包
+
+    ### sendVelocityPacket() 虚方法
+
+    - Player 基类返回 `false`（空操作）
+    - ServerPlayer 重写版本实际发送 EntityVelocityPacket 并返回 `true`
+    - 此设计避免 common 层对 server 层的依赖，通过虚方法桥接
+
     ## #setAttackTarget 虚方法
     - `MobEntity::setAttackTarget()` 和 `MobEntity::
         attackTarget()` 现为 `virtual` 方法，允许IAngerable实体在设置攻击目标时同步更新愤怒状态

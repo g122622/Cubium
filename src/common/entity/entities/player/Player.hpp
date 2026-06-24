@@ -531,11 +531,13 @@ public:
      * @brief 向玩家客户端发送速度同步包
      *
      * 将实体当前的速度通过网络包发送给此玩家的客户端。
-     * 基类版本为空操作，ServerPlayer 重写以实际发送网络包。
+     * 基类版本返回 false（未发送），ServerPlayer 重写以实际发送网络包并返回 true。
      * 用于 causeExtraKnockback() 中对 ServerPlayer 目标立即发送速度包，
      * 避免 EntityTracker::tick() 重复发送导致速度重复应用。
+     *
+     * @return true 如果成功发送了速度包，false 如果未发送（非 ServerPlayer）
      */
-    virtual void sendVelocityPacket() {}
+    [[nodiscard]] virtual bool sendVelocityPacket() { return false; }
 
     /**
      * @brief 获取玩家所在的记分板
@@ -1509,8 +1511,6 @@ public:
      * 重写 LivingEntity::causeExtraKnockback()，添加 ServerPlayer 目标的特殊处理：
      * 当目标是 ServerPlayer 且 hurtMarked 为 true 时，立即发送 EntityVelocityPacket
      * 并重置 hurtMarked，然后恢复 preHurtVelocity，避免疾跑击退导致速度重复应用。
-     *
-     * 对应 MC Java 的 Player.causeExtraKnockback()。
      *
      * @param target 击退目标实体
      * @param strength 额外击退强度（包含冲刺加成和附魔击退）
