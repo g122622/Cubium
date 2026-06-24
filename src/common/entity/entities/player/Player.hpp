@@ -528,6 +528,16 @@ public:
     [[nodiscard]] virtual const ServerPlayer* asServerPlayer() const { return nullptr; }
 
     /**
+     * @brief 向玩家客户端发送速度同步包
+     *
+     * 将实体当前的速度通过网络包发送给此玩家的客户端。
+     * 基类版本为空操作，ServerPlayer 重写以实际发送网络包。
+     * 用于 causeExtraKnockback() 中对 ServerPlayer 目标立即发送速度包，
+     * 避免 EntityTracker::tick() 重复发送导致速度重复应用。
+     */
+    virtual void sendVelocityPacket() {}
+
+    /**
      * @brief 获取玩家所在的记分板
      *
      * 只有 ServerPlayer 会返回有效的指针，客户端实现返回 nullptr。
@@ -1492,6 +1502,21 @@ public:
      * @param target 目标实体
      */
     void attack(Entity& target);
+
+    /**
+     * @brief 应用额外击退（冲刺击退/攻击击退）
+     *
+     * 重写 LivingEntity::causeExtraKnockback()，添加 ServerPlayer 目标的特殊处理：
+     * 当目标是 ServerPlayer 且 hurtMarked 为 true 时，立即发送 EntityVelocityPacket
+     * 并重置 hurtMarked，然后恢复 preHurtVelocity，避免疾跑击退导致速度重复应用。
+     *
+     * 对应 MC Java 的 Player.causeExtraKnockback()。
+     *
+     * @param target 击退目标实体
+     * @param strength 额外击退强度（包含冲刺加成和附魔击退）
+     * @param preHurtVelocity 目标在 hurt() 调用之前的速度（用于 ServerPlayer 速度修正）
+     */
+    void causeExtraKnockback(Entity& target, f32 strength, const Vector3& preHurtVelocity) override;
 
     /**
      * @brief 与实体交互

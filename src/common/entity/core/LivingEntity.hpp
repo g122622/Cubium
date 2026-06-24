@@ -560,6 +560,21 @@ public:
      */
     void applyKnockbackFrom(LivingEntity* attacker, f32 strength);
 
+    /**
+     * @brief 应用额外击退（冲刺击退/攻击击退）
+     *
+     * 在 hurt() 之后调用，应用来自攻击者的额外击退力。
+     * 基类版本仅对 LivingEntity 目标调用 knockback() 并减缓攻击者水平速度。
+     * Player 子类重写此方法以处理 ServerPlayer 目标的速度重复应用问题。
+     *
+     * 对应 MC Java 的 LivingEntity.causeExtraKnockback() / Player.causeExtraKnockback()。
+     *
+     * @param target 击退目标实体
+     * @param strength 额外击退强度（包含冲刺加成和附魔击退）
+     * @param preHurtVelocity 目标在 hurt() 调用之前的速度（用于 ServerPlayer 速度修正）
+     */
+    virtual void causeExtraKnockback(Entity& target, f32 strength, const Vector3& preHurtVelocity);
+
     // ========== 渲染属性（用于客户端插值）==========
 
     /**

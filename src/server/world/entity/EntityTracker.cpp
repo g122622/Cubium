@@ -28,6 +28,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -326,13 +327,23 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
 
             // 速度同步：当实体的 hurtMarked 为 true 时，发送速度同步包
             // 对应 MC Java 的 ServerEntity.sendDirtyEntityData() 中对 hurtMarked 的处理
+            // 注意：当 Player::causeExtraKnockback() 为 ServerPlayer 目标发送速度包后，
+            // 会立即清除 hurtMarked，此分支不会执行，从而避免速度重复应用。
             if (entity->isHurtMarked()) {
-                // TODO: MC Java 的 Player.causeExtraKnockback() 中对 ServerPlayer 目标会立即发送
-                // EntityVelocityPacket 并重置 hurtMarked，避免疾跑击退导致速度重复应用。
-                // 当前实现对所有实体统一发送，未来需要区分 ServerPlayer 特殊处理。
+                // 向所有追踪此实体的玩家发送速度同步包
                 for (PlayerId playerId : tracked.trackingPlayers) {
                     _sendVelocityPacket(server, playerId, entity);
                 }
+
+                // 如果实体本身是 Player，也需要向其自身发送速度同步包
+                // 对应 MC Java 的 sendToTrackingPlayersAndSelf 中的 "AndSelf" 部分
+                // ServerPlayer 不会追踪自身，因此需要单独发送
+                // 通过 Player::sendVelocityPacket() 虚方法，ServerPlayer 会实际发送网络包，
+                // 而 Player 基类版本为空操作
+                if (auto* playerEntity = dynamic_cast<Player*>(entity)) {
+                    playerEntity->sendVelocityPacket();
+                }
+
                 entity->clearHurtMarked();
             }
         }

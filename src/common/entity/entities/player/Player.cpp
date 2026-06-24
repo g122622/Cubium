@@ -2149,23 +2149,24 @@ void Player::attack(Entity& target)
     // 重锤下落攻击使用专属伤害类型 MaceSmash
     EntityDamageSource damageSource =
         isMaceSmashAttack ? DamageSources::maceSmash(this) : DamageSources::playerAttack(this);
+
+    // 保存目标 hurt() 前的速度，用于 causeExtraKnockback 的 ServerPlayer 速度修正
+    // 对应 MC Java Player.attack() 中: Vec3 vec3 = target.getDeltaMovement()
+    Vector3 preHurtVelocity = target.velocity();
+
     bool attacked = livingTarget->hurt(damageSource, totalDamage);
 
     // 用于跟踪是否播放了特定攻击音效
     bool playedAttackSound = false;
 
     if (attacked) {
-        // 15. 应用击退
-        if (knockbackLevel > 0) {
-            entity::combat::PlayerAttackHelper::applyKnockback(*livingTarget, *this, static_cast<f32>(knockbackLevel));
-
-            // 疾跑击退后停止疾跑并减少水平速度
-            if (isSprintKnockback) {
-                Vector3 vel = velocity();
-                setVelocity(vel.x * 0.6f, vel.y, vel.z * 0.6f);
-                setSprinting(false);
-            }
-        }
+        // 15. 应用额外击退（包含附魔击退和冲刺击退）
+        // 对应 MC Java Player.attack() 中: this.causeExtraKnockback(target, getKnockback + sprintBonus, vec3)
+        // causeExtraKnockback 会：
+        // - 对目标施加击退（方向基于攻击者朝向）
+        // - 如果是冲刺击退，减缓攻击者水平速度并停止冲刺
+        // - 对 ServerPlayer 目标立即发送速度包并清除 hurtMarked，防止速度重复应用
+        causeExtraKnockback(target, static_cast<f32>(knockbackLevel), preHurtVelocity);
 
         // 16. 横扫攻击（仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
         // 用于检测玩家是否几乎静止（站立不动才能触发横扫攻击）
@@ -2366,6 +2367,53 @@ void Player::attack(Entity& target)
         if (wasBurning) {
             livingTarget->setFire(0); // 移除之前点燃的火焰
         }
+    }
+}
+
+void Player::causeExtraKnockback(Entity& target, f32 strength, const Vector3& preHurtVelocity)
+{
+    // 对应 MC Java 的 Player.causeExtraKnockback()
+    // 与 LivingEntity 基类版本相比，添加了冲刺停止逻辑
+
+    if (strength > 0.0f) {
+        if (auto* livingTarget = dynamic_cast<LivingEntity*>(&target)) {
+            // 击退方向基于攻击者的朝向
+            f32 yawRad = math::toRadians(yaw());
+            f64 sinYaw = static_cast<f64>(std::sin(yawRad));
+            f64 cosYaw = static_cast<f64>(-std::cos(yawRad));
+            livingTarget->applyKnockback(strength, sinYaw, cosYaw);
+        } else {
+            // 非生物实体使用 push
+            f32 yawRad = math::toRadians(yaw());
+            target.addVelocity(-std::sin(yawRad) * strength, 0.1f, std::cos(yawRad) * strength);
+        }
+
+        // 减缓攻击者的水平速度
+        Vector3 vel = velocity();
+        setVelocity(vel.x * 0.6f, vel.y, vel.z * 0.6f);
+        setSprinting(false);
+    }
+
+    // ServerPlayer 目标的速度重复应用修复
+    // 对应 MC Java: if (target instanceof ServerPlayer && target.hurtMarked)
+    // 当疾跑玩家攻击 ServerPlayer 时，hurt() 设置的 hurtMarked 会在 EntityTracker::tick() 中
+    // 再次发送 EntityVelocityPacket，导致客户端重复应用击退速度。
+    // 修复方法：立即发送速度包给 ServerPlayer，清除 hurtMarked，恢复 hurt 之前的速度。
+    // 注意：此逻辑通过虚方法 sendVelocityPacket() 实现，ServerPlayer 重写该方法以实际发送网络包，
+    // Player 基类版本为空操作。这样 common 层代码无需依赖 server 层。
+    Player* targetPlayer = dynamic_cast<Player*>(&target);
+    if (targetPlayer != nullptr && target.isHurtMarked()) {
+        // 立即发送当前速度包给被击退的目标玩家
+        // 此时目标的速度已包含 hurt() 击退和 causeExtraKnockback() 额外击退
+        targetPlayer->sendVelocityPacket();
+
+        // 清除 hurtMarked，避免 EntityTracker::tick() 再次发送速度包
+        target.clearHurtMarked();
+
+        // 恢复到 hurt() 之前的速度
+        // 服务端的物理引擎会在下一 tick 重新计算正确速度
+        // 这样 EntityTracker::tick() 就不会发送重复的速度同步
+        target.setVelocity(preHurtVelocity);
     }
 }
 

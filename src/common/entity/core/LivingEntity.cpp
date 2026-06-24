@@ -1184,6 +1184,33 @@ void LivingEntity::applyKnockbackFrom(LivingEntity* attacker, f32 strength)
     applyKnockback(strength, ratioX, ratioZ);
 }
 
+void LivingEntity::causeExtraKnockback(Entity& target, f32 strength, const Vector3& /*preHurtVelocity*/)
+{
+    // 对应 MC Java 的 LivingEntity.causeExtraKnockback()
+    // 基类版本：如果击退强度 > 0 且目标是 LivingEntity，则对目标施加击退
+    // 同时减缓攻击者的水平速度
+    // 注意：setSprinting(false) 仅在 Player 子类中调用
+    if (strength > 0.0f) {
+        if (auto* livingTarget = dynamic_cast<LivingEntity*>(&target)) {
+            // 击退方向基于攻击者的朝向
+            f32 yawRad = math::toRadians(yaw());
+            f64 sinYaw = static_cast<f64>(std::sin(yawRad));
+            f64 cosYaw = static_cast<f64>(-std::cos(yawRad));
+            livingTarget->applyKnockback(strength, sinYaw, cosYaw);
+        } else {
+            // 非生物实体使用 push
+            f32 yawRad = math::toRadians(yaw());
+            target.addVelocity(-std::sin(yawRad) * strength, 0.1f, std::cos(yawRad) * strength);
+        }
+
+        // 减缓攻击者的水平速度
+        Vector3 vel = velocity();
+        setVelocity(vel.x * 0.6f, vel.y, vel.z * 0.6f);
+    }
+
+    // 注意：Player 子类重写此方法，添加 setSprinting(false) 和 ServerPlayer 速度修正
+}
+
 // ============================================================================
 // 物品使用
 // ============================================================================

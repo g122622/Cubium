@@ -32,6 +32,7 @@
 #include "common/entity/player/SpawnPointValidator.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
@@ -56,6 +57,7 @@
 #include "server/event/events/ServerEvents.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <algorithm>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -158,6 +160,36 @@ void ServerPlayer::syncExperience()
 
     if (!_sendFullPacket(fullPacket)) {
         spdlog::warn("ServerPlayer: experience sync skipped (player={}, no connection)", username());
+    }
+}
+
+void ServerPlayer::sendVelocityPacket()
+{
+    if (!hasConnection()) {
+        return;
+    }
+
+    // 构建速度同步包，发送此实体的当前速度到玩家客户端
+    // 对应 MC Java 的 ServerPlayer.connection.send(new ClientboundSetEntityMotionPacket(entity))
+    // 速度单位转换：m/tick -> 1/8000 block/tick
+    network::EntityVelocityPacket packet;
+    packet.setEntityId(static_cast<u32>(id()));
+    const auto vel = velocity();
+    packet.setVelocity(static_cast<i16>(std::clamp(vel.x * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(vel.y * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(vel.z * 8000.0f, -32768.0f, 32767.0f)));
+
+    auto payloadResult = packet.serialize();
+    if (payloadResult.failed()) {
+        spdlog::warn("ServerPlayer: failed to serialize velocity packet (player={})", username());
+        return;
+    }
+
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::EntityVelocity, payloadResult.value());
+
+    if (!_sendFullPacket(fullPacket)) {
+        spdlog::warn("ServerPlayer: velocity packet not sent (player={}, no connection)", username());
     }
 }
 
