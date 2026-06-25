@@ -29,8 +29,9 @@ namespace mc::world::biome {
 // BiomeTag 实现
 // ============================================================================
 
-BiomeTag::BiomeTag(ResourceLocation id) noexcept
+BiomeTag::BiomeTag(ResourceLocation id, bool replace) noexcept
     : m_id(std::move(id))
+    , m_replace(replace)
 {}
 
 void BiomeTag::add(BiomeId biomeId)
@@ -48,6 +49,11 @@ void BiomeTag::addAll(const std::vector<BiomeId>& biomeIds)
 bool BiomeTag::contains(BiomeId biomeId) const noexcept
 {
     return m_biomeIds.contains(biomeId);
+}
+
+void BiomeTag::clear() noexcept
+{
+    m_biomeIds.clear();
 }
 
 } // namespace mc::world::biome

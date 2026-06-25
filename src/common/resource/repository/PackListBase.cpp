@@ -503,6 +503,58 @@ Result<std::vector<std::string>> PackListBase::getResourceNamespaces(PackType ty
     return result;
 }
 
+Result<std::vector<PackListBase::ResourceVersion>> PackListBase::readAllResourceVersions(
+    PackType type, std::string_view resourcePath) const
+{
+    std::vector<ResourceVersion> versions;
+    const auto packs = getEnabledPackInfos();
+
+    for (const auto& info : packs) {
+        if (!info.pack || !info.pack->hasResource(type, resourcePath)) {
+            continue;
+        }
+
+        auto result = info.pack->readTextResource(type, resourcePath);
+        if (result.success()) {
+            versions.push_back({info.pack->name(), std::move(result.value())});
+        }
+    }
+
+    if (versions.empty()) {
+        return Error(
+            ErrorCode::ResourceNotFound, "Resource not found in any enabled pack: " + std::string(resourcePath));
+    }
+
+    return versions;
+}
+
+Result<std::map<std::string, std::vector<PackListBase::ResourceVersion>>> PackListBase::listResourceStacks(
+    PackType type, std::string_view directory, std::string_view extension) const
+{
+    std::map<std::string, std::vector<ResourceVersion>> resourceStacks;
+    const auto packs = getEnabledPackInfos();
+
+    for (const auto& info : packs) {
+        if (!info.pack) {
+            continue;
+        }
+
+        auto listResult = info.pack->listResources(type, directory, extension);
+        if (!listResult.success()) {
+            continue;
+        }
+
+        for (const auto& path : listResult.value()) {
+            auto textResult = info.pack->readTextResource(type, path);
+            if (textResult.success()) {
+                resourceStacks[path].push_back({info.pack->name(), std::move(textResult.value())});
+            }
+        }
+    }
+
+    return resourceStacks;
+}
+
 void PackListBase::onChange(std::function<void()> callback)
 {
     std::unique_lock lock(m_mutex);

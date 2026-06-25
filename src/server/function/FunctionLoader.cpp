@@ -124,15 +124,11 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
         return 0;
     }
 
-    // TODO: 多数据包标签合并 — 当前 DataPackRepository 的 listResources 返回去重后的路径列表，
-    // readTextResource 只返回最高优先级数据包的内容，因此无法获取低优先级数据包中同一标签文件。
-    // MC Java 按数据包优先级从高到低遍历同名标签文件，默认追加，replace=true 时清空已有条目后追加。
-    // 完整实现需要在 DataPackRepository 层面提供 readAllResourceVersions() 类似方法，
-    // 读取所有数据包中同一资源路径的内容列表（按优先级排序），此逻辑与 BiomeTagLoader 面临同样的限制。
-
-    // 由于同一 tagId 在当前实现中只会有一个数据包的内容，
-    // 下方的 replace/merge 分支实际不会触发（parsedTags 中同一 key 只会有一条记录）。
-    // 保留此逻辑是为了在 DataPackRepository 支持多版本读取后可直接生效。
+    // 多数据包标签合并：使用 listResourceStacks 获取同一资源路径在所有数据包中的内容。
+    // MC Java 的标签加载语义：按数据包优先级从高到低遍历同名标签文件，
+    // 默认追加，replace=true 时清空已有条目后追加。
+    // listResourceStacks 返回的每个路径对应的 ResourceVersion 向量按数据包优先级从高到低排序，
+    // 与 MC Java 的遍历顺序一致。
 
     // 用于存储已解析的标签数据
     // key: 标签 ResourceLocation, value: (replace标志, 条目列表)
@@ -143,54 +139,48 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
     std::unordered_map<ResourceLocation, TagParseData> parsedTags;
 
     for (const auto& namespace_ : namespacesResult.value()) {
-        // 列出 <namespace>/tags/functions/ 目录下的所有 JSON 文件
+        // 列出 <namespace>/tags/functions/ 目录下所有数据包中的 JSON 文件及其内容栈
         std::string directory = namespace_ + "/tags/functions";
-        auto listResult = dataPacks.listResources(directory, ".json");
+        auto stacksResult = dataPacks.listResourceStacks(directory, ".json");
 
-        if (!listResult.success()) {
+        if (!stacksResult.success()) {
             continue;
         }
 
-        for (const auto& resourcePath : listResult.value()) {
+        for (auto& [resourcePath, versions] : stacksResult.value()) {
             // 从路径提取标签名称
-            // 路径格式: namespace/tags/functions/xxx.json 或 namespace/tags/functions/sub/xxx.json
             std::string tagIdStr = pathToTagId(resourcePath);
             ResourceLocation tagLoc = ResourceLocation::parse(tagIdStr);
 
-            // 读取 JSON 内容
-            auto readResult = dataPacks.readTextResource(resourcePath);
-            if (!readResult.success()) {
-                spdlog::warn("FunctionLoader: 无法读取标签文件: {}", resourcePath);
-                ++result.failedCount;
-                result.errors.push_back(resourcePath + ": " + readResult.error().toString());
-                continue;
-            }
+            // 遍历同一资源路径在所有数据包中的版本（按优先级从高到低）
+            // MC Java 的 TagLoader.load() 语义：先处理高优先级数据包，后处理低优先级数据包，
+            // replace=true 时清空已有条目后追加，默认追加。
+            for (auto& version : versions) {
+                // 解析 JSON
+                auto parseResult = parseTagJson(tagLoc, version.content);
+                if (!parseResult.success()) {
+                    spdlog::warn("FunctionLoader: 无法解析标签 {} (来自数据包 {}): {}",
+                        tagIdStr,
+                        version.packName,
+                        parseResult.error().message());
+                    ++result.failedCount;
+                    result.errors.push_back(tagIdStr + " [" + version.packName + "]: " + parseResult.error().message());
+                    continue;
+                }
 
-            // 解析 JSON
-            auto parseResult = parseTagJson(tagLoc, readResult.value());
-            if (!parseResult.success()) {
-                spdlog::warn("FunctionLoader: 无法解析标签 {}: {}", tagIdStr, parseResult.error().message());
-                ++result.failedCount;
-                result.errors.push_back(tagIdStr + ": " + parseResult.error().message());
-                continue;
-            }
+                auto& tagData = parseResult.value();
 
-            auto& tagData = parseResult.value();
-
-            // 存储解析结果
-            // TODO: 当 DataPackRepository 支持读取所有数据包中同一资源后，
-            // 此处需要处理同一 tagId 的多条记录合并（replace=true 清空已有条目后追加，默认追加）。
-            // 当前由于 readTextResource 只返回最高优先级数据包的内容，
-            // 同一 tagId 只会有一条记录，因此 replace 分支实际不会触发替换效果。
-            auto& existing = parsedTags[tagLoc];
-            if (tagData.replace) {
-                // replace=true：清空已有条目，使用当前数据包的内容
-                existing.replace = true;
-                existing.entries = std::move(tagData.entries);
-            } else {
-                // 默认追加模式
-                for (auto& entry : tagData.entries) {
-                    existing.entries.push_back(std::move(entry));
+                // 合并到 parsedTags：replace=true 清空已有条目后追加，默认追加
+                auto& existing = parsedTags[tagLoc];
+                if (tagData.replace) {
+                    // replace=true：清空已有条目，使用当前数据包的内容
+                    existing.replace = true;
+                    existing.entries = std::move(tagData.entries);
+                } else {
+                    // 默认追加模式
+                    for (auto& entry : tagData.entries) {
+                        existing.entries.push_back(std::move(entry));
+                    }
                 }
             }
         }

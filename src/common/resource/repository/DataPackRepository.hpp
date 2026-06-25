@@ -49,6 +49,8 @@ public:
     using PackListBase::getResourceNamespaces;
     using PackListBase::hasResource;
     using PackListBase::listResources;
+    using PackListBase::listResourceStacks;
+    using PackListBase::readAllResourceVersions;
     using PackListBase::readResource;
     using PackListBase::readTextResource;
 
@@ -76,6 +78,17 @@ public:
     [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces() const
     {
         return PackListBase::getResourceNamespaces(PackType::ServerData);
+    }
+
+    [[nodiscard]] Result<std::vector<ResourceVersion>> readAllResourceVersions(std::string_view resourcePath) const
+    {
+        return PackListBase::readAllResourceVersions(PackType::ServerData, resourcePath);
+    }
+
+    [[nodiscard]] Result<std::map<std::string, std::vector<ResourceVersion>>> listResourceStacks(
+        std::string_view directory, std::string_view extension) const
+    {
+        return PackListBase::listResourceStacks(PackType::ServerData, directory, extension);
     }
 };
 
