@@ -1005,6 +1005,7 @@ add_executable(mc_tests
     # 绮掑瓙绯荤粺娴嬭瘯
     client/renderer/particle/ParticleTest.cpp
     client/renderer/particle/ParticleRegistryTest.cpp
+    client/renderer/particle/WhiteSmokeParticleTest.cpp
     client/renderer/particle/ParticleManagerTest.cpp
     client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
     # 粒子缩放测试

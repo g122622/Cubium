@@ -30,21 +30,18 @@ WhiteSmokeParticle::WhiteSmokeParticle(const glm::vec3& pos, const glm::vec3& ve
     : Particle(pos, velocity)
     , m_initialSize(DEFAULT_SIZE)
 {
-    // 参考 MC Java BaseAshSmokeParticle: friction=0.96, gravity=-0.1, speedUpWhenYMotionIsBlocked=true
-    // 速度乘数: 0.1 (x/y/z 方向)，然后叠加传入速度
+    // 摩擦力 0.96，重力 -0.1（向上漂移），启用碰撞检测
     setGravity(DEFAULT_GRAVITY);
     setSize(DEFAULT_SIZE * (0.8f + m_random.nextFloat() * 0.4f));
     m_initialSize = size();
 
-    // 白灰色调 (MC Java WhiteSmokeParticle: rCol=0.7294118, gCol=0.69411767, bCol=0.7607843)
-    // 对应 RGB(186, 177, 194) = 0xBA B1 C2
+    // 白灰色调: RGB(186, 177, 194)
     setColor(glm::vec4(0.7294118f, 0.69411767f, 0.7607843f, 1.0f));
 
-    setFriction(0.96f);
+    setFriction(0.96);
     setHasPhysics(true);
 
-    // 生命周期: MC Java 为 8 / (random * 0.8 + 0.2) * scale (scale=1.0)
-    // 简化为约 8-40 帧
+    // 生命周期随机化: 约 8-40 帧
     setMaxAge(DEFAULT_LIFETIME / (0.2f + m_random.nextFloat() * 0.8f));
     if (m_maxAge < 1.0f) {
         m_maxAge = 1.0f;
@@ -73,14 +70,14 @@ void WhiteSmokeParticle::tick(mc::client::ClientWorld* world)
     // 应用重力 (负值=向上漂移)
     m_velocity.y -= static_cast<f32>(m_gravity);
 
-    // 随机水平漂移 (MC Java 中通过 friction 和 speedUpWhenYMotionIsBlocked 实现)
+    // 随机水平漂移
     m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.005f;
     m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.005f;
 
     m_position += m_velocity;
     m_velocity *= m_friction;
 
-    // 随年龄变大 (MC Java: quadSize = initialQuadSize * clamp((age + partialTick) / lifetime * 32, 0, 1))
+    // 随年龄变大
     f64 lifeRatio = m_age / m_maxAge;
     f64 scale = 1.0f + lifeRatio * 2.0f;
     setSize(m_initialSize * scale);

@@ -113,7 +113,7 @@ enum class ParticleTypeId : u16 {
     LargeSmoke = 22,
 
     /// 白色烟雾粒子（合成器发射、干涸恶魂方块等）
-    WhiteSmoke = 23,
+    WhiteSmoke = 56,
 
     /// 熔岩飞溅粒子
     Lava = 23,

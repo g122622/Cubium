@@ -40,9 +40,8 @@ namespace mc::client::renderer::trident::particle::particles {
  * - 合成器发射物品时的方向性白烟 (WorldEvents::SHOOT_WHITE_SMOKE)
  * - 干涸恶魂方块的环境粒子
  *
- * 参考: net.minecraft.client.particle.WhiteSmokeParticle
- * 继承关系: WhiteSmokeParticle 与 SmokeParticle 均继承自 BaseAshSmokeParticle (MC Java)
- * 区别: WhiteSmokeParticle 在构造函数中覆盖了颜色为白灰色 (R=0.729, G=0.694, B=0.761)
+ * 继承自 Particle 基类，物理参数：friction=0.96, gravity=-0.1, hasPhysics=true
+ * 颜色为白灰色 (R=0.729, G=0.694, B=0.761)，与普通灰色烟雾区分
  */
 class WhiteSmokeParticle : public Particle {
 public:
@@ -66,12 +65,12 @@ public:
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    /// 重力参数，与 MC Java BaseAshSmokeParticle 一致 (-0.1)
-    static constexpr f64 DEFAULT_GRAVITY = -0.1f;
+    /// 重力参数 (-0.1，负值使粒子向上漂移)
+    static constexpr f64 DEFAULT_GRAVITY = -0.1;
     /// 基础尺寸
-    static constexpr f64 DEFAULT_SIZE = 0.1f;
-    /// 默认生命周期帧数 (MC Java: 8 / (random * 0.8 + 0.2) * scale, scale=1.0)
-    static constexpr f64 DEFAULT_LIFETIME = 8.0f;
+    static constexpr f64 DEFAULT_SIZE = 0.1;
+    /// 默认生命周期帧数
+    static constexpr f64 DEFAULT_LIFETIME = 8.0;
 
     f64 m_initialSize;
 };
