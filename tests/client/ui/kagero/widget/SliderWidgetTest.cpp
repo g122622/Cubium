@@ -30,6 +30,7 @@
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/input/KeyBinding.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
@@ -363,12 +364,12 @@ TEST(SliderWidgetTest, KeyLeftRight)
     f64 initialValue = slider.value();
 
     // 右键增加值
-    slider.onKey(262, 0, 1, 0); // GLFW_KEY_RIGHT
+    slider.onKey(mc::Keys::Right, 0, 1, 0);
     EXPECT_GT(slider.value(), initialValue);
 
     // 左键减少值
     f64 afterRight = slider.value();
-    slider.onKey(263, 0, 1, 0); // GLFW_KEY_LEFT
+    slider.onKey(mc::Keys::Left, 0, 1, 0);
     EXPECT_LT(slider.value(), afterRight);
 }
 

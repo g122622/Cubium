@@ -26,6 +26,7 @@
 #include "../paint/PaintContext.hpp"
 #include "IWidgetContainer.hpp"
 #include "Widget.hpp"
+#include "common/input/KeyBinding.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -188,22 +189,21 @@ public:
         if (!isActive() || !isVisible() || !isFocused()) return false;
 
         // 处理上下键滚动
-        if (action == 1 || action == 2) {
+        if (action == static_cast<i32>(KeyAction::Press) || action == static_cast<i32>(KeyAction::Repeat)) {
             switch (key) {
-                // TODO: 使用 GLFW 常量替代硬编码键码，需要引入 GLFW 依赖或定义平台无关的键码常量
-                case 264: // Down
+                case Keys::Down:
                     scrollBy(20);
                     return true;
 
-                case 265: // Up
+                case Keys::Up:
                     scrollBy(-20);
                     return true;
 
-                case 266: // Page Down
+                case Keys::PageDown:
                     scrollBy(m_bounds.height - m_padding.vertical());
                     return true;
 
-                case 267: // Page Up
+                case Keys::PageUp:
                     scrollBy(-(m_bounds.height - m_padding.vertical()));
                     return true;
 

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "Widget.hpp"
+#include "common/input/KeyBinding.hpp"
 #include "common/util/text/Utf8.hpp"
 #include <algorithm>
 #include <cmath>
@@ -169,45 +170,39 @@ public:
         (void)scanCode;
         if (!canWrite()) return false;
         // 只处理按下和重复事件
-        if (action != 1 && action != 2) return false;
+        if (action != static_cast<i32>(KeyAction::Press) && action != static_cast<i32>(KeyAction::Repeat)) return false;
 
         const bool previousShiftHeld = m_shiftHeld;
-        m_shiftHeld = (mods & 0x0001) != 0;
+        m_shiftHeld = hasMod(static_cast<KeyMods>(mods), KeyMods::Shift);
 
         const auto restoreShift = [&]() { m_shiftHeld = previousShiftHeld; };
 
         switch (key) {
-            // GLFW_KEY_BACKSPACE
-            case 259:
+            case Keys::Backspace:
                 if (m_active) {
                     deleteFromCursor(-1);
                 }
                 restoreShift();
                 return true;
-            // GLFW_KEY_DELETE
-            case 261:
+            case Keys::Delete:
                 if (m_active) {
                     deleteFromCursor(1);
                 }
                 restoreShift();
                 return true;
-            // GLFW_KEY_RIGHT
-            case 262:
+            case Keys::Right:
                 moveCursorBy(1);
                 restoreShift();
                 return true;
-            // GLFW_KEY_LEFT
-            case 263:
+            case Keys::Left:
                 moveCursorBy(-1);
                 restoreShift();
                 return true;
-            // GLFW_KEY_HOME
-            case 268:
+            case Keys::Home:
                 setCursorPosition(0);
                 restoreShift();
                 return true;
-            // GLFW_KEY_END
-            case 269:
+            case Keys::End:
                 setCursorPositionEnd();
                 restoreShift();
                 return true;

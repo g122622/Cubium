@@ -34,6 +34,7 @@
 // 各种 ClickType。屏幕层的交互映射（_actionToClickType, _getQuickCraftType）
 // 是纯函数，在此测试其映射正确性。
 
+#include "../src/client/ui/kagero/Types.hpp"
 #include "../src/common/entity/entities/player/Player.hpp"
 #include "../src/common/entity/inventory/AbstractContainerMenu.hpp"
 #include "../src/common/entity/inventory/ContainerTypes.hpp"
@@ -50,10 +51,10 @@
 // GLFW 修饰键常量（与 GLFW 定义一致，避免测试依赖 GLFW）
 // 这些值在 AbstractContainerScreen 中用于检测 Shift/Ctrl 等修饰键
 namespace TestGlfwConstants {
-constexpr int GLFW_MOD_SHIFT = 0x0001;
-constexpr int GLFW_MOD_CONTROL = 0x0002;
-constexpr int GLFW_MOD_ALT = 0x0004;
-constexpr int GLFW_MOD_SUPER = 0x0008;
+constexpr int GLFW_MOD_SHIFT = static_cast<int>(mc::client::ui::kagero::KeyMods::Shift);
+constexpr int GLFW_MOD_CONTROL = static_cast<int>(mc::client::ui::kagero::KeyMods::Control);
+constexpr int GLFW_MOD_ALT = static_cast<int>(mc::client::ui::kagero::KeyMods::Alt);
+constexpr int GLFW_MOD_SUPER = static_cast<int>(mc::client::ui::kagero::KeyMods::Super);
 } // namespace TestGlfwConstants
 
 using namespace mc;
