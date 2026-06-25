@@ -106,7 +106,7 @@ FunctionManager.execute(id, source)
 ## 与 MC Java 的差异
 
 1. **无宏函数支持**：MC Java 的 `$variable` 宏语法需要 NBT CompoundTag 参数，当前命令系统不支持。
-2. **多数据包标签合并**：已实现。使用 `DataPackRepository::listResourceStacks()` 获取同一标签在所有数据包中的内容，按数据包优先级从高到低遍历，默认追加条目，`replace=true` 时清空已有条目后追加，与 MC Java 的 `TagLoader.load()` 行为一致。
+2. **多数据包标签合并**：已实现。使用 `DataPackRepository::listResourceStacks()` 获取同一标签在所有数据包中的内容，逆序遍历（从低优先级到高优先级）以匹配 MC Java 的 `TagLoader.load()` 行为，默认追加条目，`replace=true` 时清空已有条目后追加。
 3. **调度事件持久化**：TimerQueue 的调度事件在服务器关闭时保存到 level.dat 的 `ScheduledEvents` 字段，在服务器启动时从 level.dat 加载恢复（与 MC Java 行为一致）。
 4. **ExecutionContext 简化**：MC Java 有复杂的 ExecutionContext / Frame / CallFunction 系统，当前实现直接逐行执行命令，没有递归深度限制和帧控制。
 5. **required=true 验证**：当 `required=true` 的条目（函数或标签引用）缺失时，整个标签会被丢弃（不注册）并记录错误日志，与 MC Java 的 `TagLoader.build()` 行为一致。`required=false` 的缺失条目则静默跳过。

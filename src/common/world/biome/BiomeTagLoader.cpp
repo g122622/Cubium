@@ -146,9 +146,10 @@ Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPa
     }
 
     // 多数据包标签合并：使用 listResourceStacks 获取同一资源路径在所有数据包中的内容。
-    // MC Java 的标签加载语义：按数据包优先级从高到低遍历同名标签文件，
+    // MC Java 的标签加载语义：按数据包优先级从低到高遍历同名标签文件，
     // 默认追加，replace=true 时清空已有条目后追加。
-    // listResourceStacks 返回的每个路径对应的 ResourceVersion 向量按数据包优先级从高到低排序。
+    // listResourceStacks 返回的每个路径对应的 ResourceVersion 向量按数据包优先级从高到低排序，
+    // 因此需要逆序遍历以匹配 MC Java 的从低到高遍历顺序。
 
     // 用于存储已解析的标签数据
     // key: 标签 ResourceLocation, value: (replace标志, biomeId列表)
@@ -178,8 +179,13 @@ Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPa
 
             ResourceLocation location(tagName);
 
-            // 遍历同一资源路径在所有数据包中的版本（按优先级从高到低）
-            for (auto& version : versions) {
+            // 遍历同一资源路径在所有数据包中的版本（按优先级从低到高）
+            // listResourceStacks 返回的版本按优先级从高到低排序，
+            // 但 MC Java 的 TagLoader.load() 语义是先处理低优先级数据包，后处理高优先级数据包，
+            // replace=true 时清空已有条目后追加，默认追加。
+            // 因此需要逆序遍历，以匹配 MC Java 的行为。
+            for (auto it = versions.rbegin(); it != versions.rend(); ++it) {
+                auto& version = *it;
                 // 解析 JSON
                 auto parseResult = loadFromJson(version.content, location);
                 if (!parseResult.success()) {

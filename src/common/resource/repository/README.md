@@ -38,7 +38,7 @@ PackListBase (基类)
 
 `listResourceStacks()` 返回 `map<string, vector<ResourceVersion>>`，其中 `ResourceVersion` 包含 `packName` 和 `content`。每个路径对应的内容栈按数据包优先级从高到低排序，与 MC Java 的 `listMatchingResourceStacks()` 行为一致。
 
-标签加载器（如 `FunctionLoader::loadFunctionTags()`、`BiomeTagLoader::loadFromDataPackRepository()`）使用 `listResourceStacks()` 实现多数据包标签合并：遍历同一标签的所有数据包版本，默认追加条目，`replace=true` 时清空已有条目后追加。
+标签加载器（如 `FunctionLoader::loadFunctionTags()`、`BiomeTagLoader::loadFromDataPackRepository()`）使用 `listResourceStacks()` 实现多数据包标签合并：逆序遍历同一标签的所有数据包版本（从低优先级到高优先级），默认追加条目，`replace=true` 时清空已有条目后追加。此遍历顺序与 MC Java 的 `TagLoader.load()` 一致。
 
 ## PackInfo 结构
 

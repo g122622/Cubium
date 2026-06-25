@@ -884,3 +884,340 @@ TEST_F(FunctionLoaderIntegrationTest, MultiLayerTagReferenceExpansion)
     EXPECT_EQ(tagAFuncs[1].toString(), "minecraft:func_b");
     EXPECT_EQ(tagAFuncs[2].toString(), "minecraft:func_c");
 }
+
+// ========== 多数据包标签合并集成测试 ==========
+
+/// 创建包含两个数据包的临时目录，用于多数据包标签合并测试
+/// 低优先级包（priority=0）：定义 tick 标签和一些函数
+/// 高优先级包（priority=1）：定义同名 tick 标签和额外函数
+class FunctionLoaderMultiPackTest : public ::testing::Test {
+protected:
+    void TearDown() override
+    {
+        if (!m_tempDir.empty()) {
+            cleanupTempDir(m_tempDir);
+        }
+    }
+
+    /// 创建两个数据包的临时目录
+    void createMultiPackDir()
+    {
+        m_tempDir = makeUniqueTempDir();
+
+        // 低优先级数据包
+        m_lowPackDir = m_tempDir / "low_pack";
+        std::filesystem::create_directories(m_lowPackDir / "data" / "minecraft" / "functions");
+        std::filesystem::create_directories(m_lowPackDir / "data" / "minecraft" / "tags" / "functions");
+        writeTextFile(m_lowPackDir / "pack.mcmeta", R"({"pack":{"pack_format":41,"description":"low pack"}})");
+
+        // 高优先级数据包
+        m_highPackDir = m_tempDir / "high_pack";
+        std::filesystem::create_directories(m_highPackDir / "data" / "minecraft" / "functions");
+        std::filesystem::create_directories(m_highPackDir / "data" / "minecraft" / "tags" / "functions");
+        writeTextFile(m_highPackDir / "pack.mcmeta", R"({"pack":{"pack_format":41,"description":"high pack"}})");
+    }
+
+    /// 添加数据包到 DataPackRepository，使用显式优先级确保确定性排序
+    /// high_pack: priority=1 (高优先级)
+    /// low_pack: priority=0 (低优先级)
+    void addPacksWithExplicitPriority(mc::resource::DataPackRepository& dataPacks)
+    {
+        dataPacks.addPack(m_lowPackDir, true, 0);  // 低优先级
+        dataPacks.addPack(m_highPackDir, true, 1); // 高优先级
+    }
+
+    /// 向数据包添加一个函数文件
+    void addFunction(const std::filesystem::path& packDir,
+        const std::string& namespace_,
+        const std::string& functionPath,
+        const std::string& content)
+    {
+        auto funcDir = packDir / "data" / namespace_ / "functions";
+        auto fullPath = funcDir / (functionPath + ".mcfunction");
+        std::filesystem::create_directories(fullPath.parent_path());
+        writeTextFile(fullPath, content);
+    }
+
+    /// 向数据包添加一个函数标签文件
+    void addTag(const std::filesystem::path& packDir,
+        const std::string& namespace_,
+        const std::string& tagPath,
+        const std::string& jsonContent)
+    {
+        auto tagDir = packDir / "data" / namespace_ / "tags" / "functions";
+        auto fullPath = tagDir / (tagPath + ".json");
+        std::filesystem::create_directories(fullPath.parent_path());
+        writeTextFile(fullPath, jsonContent);
+    }
+
+    std::filesystem::path m_tempDir;
+    std::filesystem::path m_lowPackDir;
+    std::filesystem::path m_highPackDir;
+};
+
+TEST_F(FunctionLoaderMultiPackTest, AppendMerge_TwoPacksSameTag)
+{
+    // 测试：两个数据包定义同名标签，replace=false（默认），条目应合并
+    // MC Java 行为：低优先级包的条目先处理，高优先级包的条目后追加
+    createMultiPackDir();
+
+    // 低优先级包：tick 标签包含 func_a 和 func_b
+    addFunction(m_lowPackDir, "minecraft", "func_a", "say a");
+    addFunction(m_lowPackDir, "minecraft", "func_b", "say b");
+    addTag(m_lowPackDir, "minecraft", "tick", R"({"values": ["minecraft:func_a", "minecraft:func_b"]})");
+
+    // 高优先级包：tick 标签包含 func_c
+    addFunction(m_highPackDir, "minecraft", "func_c", "say c");
+    addTag(m_highPackDir, "minecraft", "tick", R"({"values": ["minecraft:func_c"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    addPacksWithExplicitPriority(dataPacks);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 标签应该成功注册
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tick")));
+
+    // 合并后的标签应包含低优先级和高优先级包的所有函数
+    // MC Java 行为：先处理低优先级(func_a, func_b)，再追加高优先级(func_c)
+    const auto& tickFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tick"));
+    EXPECT_EQ(tickFuncs.size(), 3u);
+
+    // 验证所有函数都在标签中（顺序：低优先级条目先，高优先级条目后）
+    EXPECT_EQ(tickFuncs[0].toString(), "minecraft:func_a");
+    EXPECT_EQ(tickFuncs[1].toString(), "minecraft:func_b");
+    EXPECT_EQ(tickFuncs[2].toString(), "minecraft:func_c");
+}
+
+TEST_F(FunctionLoaderMultiPackTest, ReplaceTrue_HighPriorityClearsLowPriority)
+{
+    // 测试：高优先级数据包的标签设置 replace=true，应清空低优先级包的条目后追加自己的
+    // MC Java 行为：低优先级条目先处理并累积，高优先级 replace=true 时清空已有条目后追加
+    createMultiPackDir();
+
+    // 低优先级包：tick 标签包含 func_a 和 func_b
+    addFunction(m_lowPackDir, "minecraft", "func_a", "say a");
+    addFunction(m_lowPackDir, "minecraft", "func_b", "say b");
+    addTag(m_lowPackDir, "minecraft", "tick", R"({"values": ["minecraft:func_a", "minecraft:func_b"]})");
+
+    // 高优先级包：tick 标签设置 replace=true，只包含 func_c
+    addFunction(m_highPackDir, "minecraft", "func_c", "say c");
+    addTag(m_highPackDir, "minecraft", "tick", R"({"replace": true, "values": ["minecraft:func_c"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    addPacksWithExplicitPriority(dataPacks);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // 标签应该成功注册
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tick")));
+
+    // replace=true 应清空低优先级包的条目，只保留高优先级包的条目
+    const auto& tickFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tick"));
+    EXPECT_EQ(tickFuncs.size(), 1u);
+    EXPECT_EQ(tickFuncs[0].toString(), "minecraft:func_c");
+}
+
+TEST_F(FunctionLoaderMultiPackTest, ReplaceTrue_LowPriorityDoesNotAffectHighPriority)
+{
+    // 测试：低优先级数据包的标签设置 replace=true，不应影响高优先级包的追加条目
+    // MC Java 行为：低优先级 replace=true 清空当前列表（此时可能为空或已有更早的低优先级条目），
+    // 然后高优先级包的条目继续追加
+    createMultiPackDir();
+
+    // 低优先级包：tick 标签设置 replace=true，包含 func_a
+    addFunction(m_lowPackDir, "minecraft", "func_a", "say a");
+    addTag(m_lowPackDir, "minecraft", "tick", R"({"replace": true, "values": ["minecraft:func_a"]})");
+
+    // 高优先级包：tick 标签 replace=false（默认），包含 func_b
+    addFunction(m_highPackDir, "minecraft", "func_b", "say b");
+    addTag(m_highPackDir, "minecraft", "tick", R"({"values": ["minecraft:func_b"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    addPacksWithExplicitPriority(dataPacks);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tick")));
+
+    // 低优先级 replace=true 清空了（空列表），然后追加 func_a，
+    // 高优先级 replace=false 追加 func_b
+    // 最终: [func_a, func_b]
+    const auto& tickFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tick"));
+    EXPECT_EQ(tickFuncs.size(), 2u);
+    EXPECT_EQ(tickFuncs[0].toString(), "minecraft:func_a");
+    EXPECT_EQ(tickFuncs[1].toString(), "minecraft:func_b");
+}
+
+TEST_F(FunctionLoaderMultiPackTest, DifferentTagsFromDifferentPacks)
+{
+    // 测试：不同数据包定义不同的标签，应各自独立注册
+    createMultiPackDir();
+
+    // 低优先级包：定义 load 标签
+    addFunction(m_lowPackDir, "minecraft", "init_func", "say init");
+    addTag(m_lowPackDir, "minecraft", "load", R"({"values": ["minecraft:init_func"]})");
+
+    // 高优先级包：定义 tick 标签（不同于低优先级包的标签）
+    addFunction(m_highPackDir, "minecraft", "tick_func", "say tick");
+    addTag(m_highPackDir, "minecraft", "tick", R"({"values": ["minecraft:tick_func"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    addPacksWithExplicitPriority(dataPacks);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    EXPECT_EQ(result.value().tagCount, 2u);
+
+    // load 标签
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:load")));
+    const auto& loadFuncs = mgr.getTag(ResourceLocation::parse("minecraft:load"));
+    EXPECT_EQ(loadFuncs.size(), 1u);
+    EXPECT_EQ(loadFuncs[0].toString(), "minecraft:init_func");
+
+    // tick 标签
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tick")));
+    const auto& tickFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tick"));
+    EXPECT_EQ(tickFuncs.size(), 1u);
+    EXPECT_EQ(tickFuncs[0].toString(), "minecraft:tick_func");
+}
+
+TEST_F(FunctionLoaderMultiPackTest, ReplaceTrue_ThreePacks)
+{
+    // 测试：三个数据包，中间优先级设置 replace=true
+    // 预期行为：低优先级条目先累积，中间优先级 replace=true 清空后追加，
+    // 高优先级 replace=false 追加到中间优先级的条目后
+    m_tempDir = makeUniqueTempDir();
+
+    // 低优先级包 (priority=0)
+    auto lowPackDir = m_tempDir / "low_pack";
+    std::filesystem::create_directories(lowPackDir / "data" / "minecraft" / "functions");
+    std::filesystem::create_directories(lowPackDir / "data" / "minecraft" / "tags" / "functions");
+    writeTextFile(lowPackDir / "pack.mcmeta", R"({"pack":{"pack_format":41,"description":"low pack"}})");
+    addFunction(lowPackDir, "minecraft", "func_a", "say a");
+    addFunction(lowPackDir, "minecraft", "func_b", "say b");
+    addTag(lowPackDir, "minecraft", "tick", R"({"values": ["minecraft:func_a", "minecraft:func_b"]})");
+
+    // 中间优先级包 (priority=1) - replace=true
+    auto midPackDir = m_tempDir / "mid_pack";
+    std::filesystem::create_directories(midPackDir / "data" / "minecraft" / "functions");
+    std::filesystem::create_directories(midPackDir / "data" / "minecraft" / "tags" / "functions");
+    writeTextFile(midPackDir / "pack.mcmeta", R"({"pack":{"pack_format":41,"description":"mid pack"}})");
+    addFunction(midPackDir, "minecraft", "func_c", "say c");
+    addTag(midPackDir, "minecraft", "tick", R"({"replace": true, "values": ["minecraft:func_c"]})");
+
+    // 高优先级包 (priority=2)
+    auto highPackDir = m_tempDir / "high_pack";
+    std::filesystem::create_directories(highPackDir / "data" / "minecraft" / "functions");
+    std::filesystem::create_directories(highPackDir / "data" / "minecraft" / "tags" / "functions");
+    writeTextFile(highPackDir / "pack.mcmeta", R"({"pack":{"pack_format":41,"description":"high pack"}})");
+    addFunction(highPackDir, "minecraft", "func_d", "say d");
+    addTag(highPackDir, "minecraft", "tick", R"({"values": ["minecraft:func_d"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    dataPacks.addPack(lowPackDir, true, 0);  // 低优先级
+    dataPacks.addPack(midPackDir, true, 1);  // 中间优先级
+    dataPacks.addPack(highPackDir, true, 2); // 高优先级
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tick")));
+
+    // 低优先级条目 [func_a, func_b] 先累积，
+    // 中间优先级 replace=true 清空后追加 [func_c]，
+    // 高优先级 replace=false 追加 [func_d]，
+    // 最终: [func_c, func_d]
+    const auto& tickFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tick"));
+    EXPECT_EQ(tickFuncs.size(), 2u);
+    EXPECT_EQ(tickFuncs[0].toString(), "minecraft:func_c");
+    EXPECT_EQ(tickFuncs[1].toString(), "minecraft:func_d");
+}
+
+TEST_F(FunctionLoaderMultiPackTest, AppendMerge_TagReferencesAcrossPacks)
+{
+    // 测试：不同数据包定义不同标签，高优先级包引用低优先级包的标签
+    createMultiPackDir();
+
+    // 低优先级包：定义 tag_b 包含 func_b
+    addFunction(m_lowPackDir, "minecraft", "func_b", "say b");
+    addTag(m_lowPackDir, "minecraft", "tag_b", R"({"values": ["minecraft:func_b"]})");
+
+    // 高优先级包：定义 tag_a 引用 tag_b
+    addFunction(m_highPackDir, "minecraft", "func_a", "say a");
+    addTag(m_highPackDir, "minecraft", "tag_a", R"({"values": ["minecraft:func_a", "#minecraft:tag_b"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    addPacksWithExplicitPriority(dataPacks);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    EXPECT_EQ(result.value().tagCount, 2u);
+
+    // tag_b: [func_b]
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_b")));
+    const auto& tagBFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tag_b"));
+    EXPECT_EQ(tagBFuncs.size(), 1u);
+    EXPECT_EQ(tagBFuncs[0].toString(), "minecraft:func_b");
+
+    // tag_a: [func_a, func_b]（展开 #minecraft:tag_b 引用）
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_a")));
+    const auto& tagAFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tag_a"));
+    EXPECT_EQ(tagAFuncs.size(), 2u);
+    EXPECT_EQ(tagAFuncs[0].toString(), "minecraft:func_a");
+    EXPECT_EQ(tagAFuncs[1].toString(), "minecraft:func_b");
+}
+
+TEST_F(FunctionLoaderMultiPackTest, ReplaceTrue_WithSameTagReference)
+{
+    // 测试：高优先级包 replace=true 的标签引用低优先级包的标签
+    createMultiPackDir();
+
+    // 低优先级包：定义 tag_b 和 tick 标签
+    addFunction(m_lowPackDir, "minecraft", "func_b", "say b");
+    addFunction(m_lowPackDir, "minecraft", "tick_func_low", "say tick_low");
+    addTag(m_lowPackDir, "minecraft", "tag_b", R"({"values": ["minecraft:func_b"]})");
+    addTag(m_lowPackDir, "minecraft", "tick", R"({"values": ["minecraft:tick_func_low", "#minecraft:tag_b"]})");
+
+    // 高优先级包：tick 标签 replace=true，只包含 tick_func_high
+    addFunction(m_highPackDir, "minecraft", "tick_func_high", "say tick_high");
+    addTag(m_highPackDir, "minecraft", "tick", R"({"replace": true, "values": ["minecraft:tick_func_high"]})");
+
+    FunctionManager mgr;
+    FunctionLoader loader(mgr);
+    mc::resource::DataPackRepository dataPacks;
+    addPacksWithExplicitPriority(dataPacks);
+
+    auto result = loader.loadFromDataPackRepository(dataPacks);
+    ASSERT_TRUE(result.success());
+
+    // tick 标签：低优先级的 [tick_func_low, tag_b引用] 被 replace=true 清空，
+    // 只保留高优先级的 [tick_func_high]
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tick")));
+    const auto& tickFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tick"));
+    EXPECT_EQ(tickFuncs.size(), 1u);
+    EXPECT_EQ(tickFuncs[0].toString(), "minecraft:tick_func_high");
+
+    // tag_b 不受影响
+    EXPECT_TRUE(mgr.hasTag(ResourceLocation::parse("minecraft:tag_b")));
+    const auto& tagBFuncs = mgr.getTag(ResourceLocation::parse("minecraft:tag_b"));
+    EXPECT_EQ(tagBFuncs.size(), 1u);
+    EXPECT_EQ(tagBFuncs[0].toString(), "minecraft:func_b");
+}
