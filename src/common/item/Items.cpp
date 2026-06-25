@@ -482,6 +482,20 @@ Item* Items::PALE_OAK_BOAT = nullptr;
 Item* Items::BAMBOO_RAFT = nullptr;
 
 // ============================================================================
+// 带箱子的船（10种木材类型）
+// ============================================================================
+Item* Items::OAK_CHEST_BOAT = nullptr;
+Item* Items::SPRUCE_CHEST_BOAT = nullptr;
+Item* Items::BIRCH_CHEST_BOAT = nullptr;
+Item* Items::JUNGLE_CHEST_BOAT = nullptr;
+Item* Items::ACACIA_CHEST_BOAT = nullptr;
+Item* Items::DARK_OAK_CHEST_BOAT = nullptr;
+Item* Items::MANGROVE_CHEST_BOAT = nullptr;
+Item* Items::CHERRY_CHEST_BOAT = nullptr;
+Item* Items::PALE_OAK_CHEST_BOAT = nullptr;
+Item* Items::BAMBOO_CHEST_RAFT = nullptr;
+
+// ============================================================================
 // 悬挂实体物品
 // ============================================================================
 Item* Items::PAINTING = nullptr;
@@ -1116,6 +1130,7 @@ void Items::initialize()
     _registerSponges();      // 海绵物品
     _registerMinecarts();    // 矿车物品
     _registerBoats();        // 船物品
+    _registerChestBoats();   // 带箱子的船物品
     _registerHangingItems(); // 悬挂实体物品
     _registerSigns();        // 告示牌物品
     _registerBanners();      // 旗帜和图案物品
@@ -2317,51 +2332,135 @@ void Items::_registerBoats()
     auto& registry = ItemRegistry::instance();
 
     // ========================================================================
-    // 船物品
+    // 船物品（普通船，hasChest = false）
     // ========================================================================
 
     // 橡木船
     OAK_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:oak_boat"), entity::BoatEntity::Type::OAK, ItemProperties().maxStackSize(1));
+        ResourceLocation("minecraft:oak_boat"), entity::BoatEntity::Type::OAK, false, ItemProperties().maxStackSize(1));
 
     // 云杉木船
-    SPRUCE_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:spruce_boat"), entity::BoatEntity::Type::SPRUCE, ItemProperties().maxStackSize(1));
+    SPRUCE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:spruce_boat"),
+        entity::BoatEntity::Type::SPRUCE,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 白桦木船
-    BIRCH_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:birch_boat"), entity::BoatEntity::Type::BIRCH, ItemProperties().maxStackSize(1));
+    BIRCH_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:birch_boat"),
+        entity::BoatEntity::Type::BIRCH,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 丛林木船
-    JUNGLE_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:jungle_boat"), entity::BoatEntity::Type::JUNGLE, ItemProperties().maxStackSize(1));
+    JUNGLE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:jungle_boat"),
+        entity::BoatEntity::Type::JUNGLE,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 金合欢木船
-    ACACIA_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:acacia_boat"), entity::BoatEntity::Type::ACACIA, ItemProperties().maxStackSize(1));
+    ACACIA_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:acacia_boat"),
+        entity::BoatEntity::Type::ACACIA,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 深色橡木船
     DARK_OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:dark_oak_boat"),
         entity::BoatEntity::Type::DARK_OAK,
+        false,
         ItemProperties().maxStackSize(1));
 
     // 红树木船
     MANGROVE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:mangrove_boat"),
         entity::BoatEntity::Type::MANGROVE,
+        false,
         ItemProperties().maxStackSize(1));
 
     // 樱花木船
-    CHERRY_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:cherry_boat"), entity::BoatEntity::Type::CHERRY, ItemProperties().maxStackSize(1));
+    CHERRY_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:cherry_boat"),
+        entity::BoatEntity::Type::CHERRY,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 苍白橡木船
     PALE_OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:pale_oak_boat"),
         entity::BoatEntity::Type::PALE_OAK,
+        false,
         ItemProperties().maxStackSize(1));
 
     // 竹筏
-    BAMBOO_RAFT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:bamboo_raft"), entity::BoatEntity::Type::BAMBOO, ItemProperties().maxStackSize(1));
+    BAMBOO_RAFT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:bamboo_raft"),
+        entity::BoatEntity::Type::BAMBOO,
+        false,
+        ItemProperties().maxStackSize(1));
+}
+
+void Items::_registerChestBoats()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // ========================================================================
+    // 带箱子的船物品（hasChest = true）
+    // ========================================================================
+
+    // 橡木箱子船
+    OAK_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:oak_chest_boat"),
+        entity::BoatEntity::Type::OAK,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 云杉木箱子船
+    SPRUCE_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:spruce_chest_boat"),
+        entity::BoatEntity::Type::SPRUCE,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 白桦木箱子船
+    BIRCH_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:birch_chest_boat"),
+        entity::BoatEntity::Type::BIRCH,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 丛林木箱子船
+    JUNGLE_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:jungle_chest_boat"),
+        entity::BoatEntity::Type::JUNGLE,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 金合欢木箱子船
+    ACACIA_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:acacia_chest_boat"),
+        entity::BoatEntity::Type::ACACIA,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 深色橡木箱子船
+    DARK_OAK_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:dark_oak_chest_boat"),
+        entity::BoatEntity::Type::DARK_OAK,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 红树木箱子船
+    MANGROVE_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:mangrove_chest_boat"),
+        entity::BoatEntity::Type::MANGROVE,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 樱花木箱子船
+    CHERRY_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:cherry_chest_boat"),
+        entity::BoatEntity::Type::CHERRY,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 苍白橡木箱子船
+    PALE_OAK_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:pale_oak_chest_boat"),
+        entity::BoatEntity::Type::PALE_OAK,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 箱子竹筏
+    BAMBOO_CHEST_RAFT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:bamboo_chest_raft"),
+        entity::BoatEntity::Type::BAMBOO,
+        true,
+        ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerHangingItems()

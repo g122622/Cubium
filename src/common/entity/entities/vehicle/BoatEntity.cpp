@@ -664,7 +664,35 @@ void BoatEntity::updateFallState(f64 y, bool onGround)
 
 const Item* BoatEntity::getBoatItem() const
 {
-    // 根据船类型返回对应的船物品
+    // 根据船类型和是否带箱子返回对应的船物品
+    if (m_hasChest) {
+        switch (m_type) {
+            case Type::OAK:
+                return Items::OAK_CHEST_BOAT;
+            case Type::SPRUCE:
+                return Items::SPRUCE_CHEST_BOAT;
+            case Type::BIRCH:
+                return Items::BIRCH_CHEST_BOAT;
+            case Type::JUNGLE:
+                return Items::JUNGLE_CHEST_BOAT;
+            case Type::ACACIA:
+                return Items::ACACIA_CHEST_BOAT;
+            case Type::DARK_OAK:
+                return Items::DARK_OAK_CHEST_BOAT;
+            case Type::MANGROVE:
+                return Items::MANGROVE_CHEST_BOAT;
+            case Type::CHERRY:
+                return Items::CHERRY_CHEST_BOAT;
+            case Type::PALE_OAK:
+                return Items::PALE_OAK_CHEST_BOAT;
+            case Type::BAMBOO:
+                return Items::BAMBOO_CHEST_RAFT;
+            default:
+                return Items::OAK_CHEST_BOAT;
+        }
+    }
+
+    // 普通船
     switch (m_type) {
         case Type::OAK:
             return Items::OAK_BOAT;
@@ -721,6 +749,8 @@ void BoatEntity::dropItem()
     // 使用 ItemDropHelper 在船的位置生成物品实体
     math::Random& rng = worldPtr->getRandom();
     ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+
+    // TODO: 当实现 ChestBoatEntity 容器物品栏后，带箱子的船被摧毁时应掉落容器内的物品
 }
 
 void BoatEntity::dropItemWithDamage()

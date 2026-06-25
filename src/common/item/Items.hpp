@@ -487,6 +487,20 @@ public:
     static Item* BAMBOO_RAFT;   // 竹筏
 
     // ========================================================================
+    // 带箱子的船（10种木材类型）
+    // ========================================================================
+    static Item* OAK_CHEST_BOAT;      // 橡木箱子船
+    static Item* SPRUCE_CHEST_BOAT;   // 云杉木箱子船
+    static Item* BIRCH_CHEST_BOAT;    // 白桦木箱子船
+    static Item* JUNGLE_CHEST_BOAT;   // 丛林木箱子船
+    static Item* ACACIA_CHEST_BOAT;   // 金合欢木箱子船
+    static Item* DARK_OAK_CHEST_BOAT; // 深色橡木箱子船
+    static Item* MANGROVE_CHEST_BOAT; // 红树木箱子船
+    static Item* CHERRY_CHEST_BOAT;   // 樱花木箱子船
+    static Item* PALE_OAK_CHEST_BOAT; // 苍白橡木箱子船
+    static Item* BAMBOO_CHEST_RAFT;   // 箱子竹筏
+
+    // ========================================================================
     // 悬挂实体物品
     // ========================================================================
     static Item* PAINTING;   // 画作
@@ -1167,6 +1181,7 @@ private:
     static void _registerSponges();
     static void _registerMinecarts();
     static void _registerBoats();
+    static void _registerChestBoats();
     static void _registerHangingItems();
     static void _registerSigns();
     static void _registerBanners();

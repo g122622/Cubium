@@ -1,11 +1,12 @@
 /**
  * @file BoatItemTest.cpp
- * @brief BoatItem 船物品测试
+ * @brief BoatItem 船物品测试（含带箱子的船）
  *
  * 测试覆盖：
  * 1. BoatItem 构造函数和类型获取
  * 2. 物品注册验证
  * 3. 燃烧时间验证
+ * 4. 带箱子的船物品注册、资源位置、类型和燃烧时间
  */
 
 #include <gtest/gtest.h>
@@ -14,10 +15,12 @@
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/items/vehicle/BoatItem.hpp"
+#include "world/blockentity/processing/AbstractFurnaceEntity.hpp"
 
 using namespace mc;
 using namespace mc::item;
 using namespace mc::entity;
+using namespace mc::blockentity;
 
 // ============================================================================
 // BoatItem 基础测试
@@ -57,7 +60,7 @@ TEST_F(BoatItemTest, ConstructorAndGetBoatType)
         {BoatEntity::Type::BAMBOO, "BAMBOO"}};
 
     for (const auto& tc : testCases) {
-        BoatItem boatItem(tc.type, ItemProperties().maxStackSize(1));
+        BoatItem boatItem(tc.type, false, ItemProperties().maxStackSize(1));
         EXPECT_EQ(boatItem.getBoatType(), tc.type) << "BoatItem should have correct type for " << tc.name;
     }
 }
@@ -69,7 +72,7 @@ TEST_F(BoatItemTest, ConstructorAndGetBoatType)
  */
 TEST_F(BoatItemTest, MaxStackSizeIsOne)
 {
-    BoatItem boatItem(BoatEntity::Type::OAK, ItemProperties().maxStackSize(1));
+    BoatItem boatItem(BoatEntity::Type::OAK, false, ItemProperties().maxStackSize(1));
     EXPECT_EQ(boatItem.maxStackSize(), 1) << "BoatItem should have max stack size of 1";
 }
 
@@ -259,6 +262,166 @@ TEST_F(BoatItemTest, BoatItemsAreDistinct)
             EXPECT_NE(boats[i]->itemId(), boats[j]->itemId())
                 << "Boat items at index " << i << " and " << j << " should have different IDs";
         }
+    }
+}
+
+/**
+ * @brief 测试所有带箱子的船物品已正确注册
+ *
+ * 验证 Items 中的静态指针不为空
+ */
+TEST_F(BoatItemTest, AllChestBoatItemsRegistered)
+{
+    EXPECT_NE(Items::OAK_CHEST_BOAT, nullptr) << "OAK_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::SPRUCE_CHEST_BOAT, nullptr) << "SPRUCE_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::BIRCH_CHEST_BOAT, nullptr) << "BIRCH_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::JUNGLE_CHEST_BOAT, nullptr) << "JUNGLE_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::ACACIA_CHEST_BOAT, nullptr) << "ACACIA_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::DARK_OAK_CHEST_BOAT, nullptr) << "DARK_OAK_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::MANGROVE_CHEST_BOAT, nullptr) << "MANGROVE_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::CHERRY_CHEST_BOAT, nullptr) << "CHERRY_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::PALE_OAK_CHEST_BOAT, nullptr) << "PALE_OAK_CHEST_BOAT should be registered";
+    EXPECT_NE(Items::BAMBOO_CHEST_RAFT, nullptr) << "BAMBOO_CHEST_RAFT should be registered";
+}
+
+/**
+ * @brief 测试带箱子的船物品的资源位置 ID
+ */
+TEST_F(BoatItemTest, ChestBoatItemResourceLocations)
+{
+    struct TestCase {
+        Item* item;
+        std::string expectedId;
+    };
+
+    std::vector<TestCase> testCases = {{Items::OAK_CHEST_BOAT, "minecraft:oak_chest_boat"},
+        {Items::SPRUCE_CHEST_BOAT, "minecraft:spruce_chest_boat"},
+        {Items::BIRCH_CHEST_BOAT, "minecraft:birch_chest_boat"},
+        {Items::JUNGLE_CHEST_BOAT, "minecraft:jungle_chest_boat"},
+        {Items::ACACIA_CHEST_BOAT, "minecraft:acacia_chest_boat"},
+        {Items::DARK_OAK_CHEST_BOAT, "minecraft:dark_oak_chest_boat"},
+        {Items::MANGROVE_CHEST_BOAT, "minecraft:mangrove_chest_boat"},
+        {Items::CHERRY_CHEST_BOAT, "minecraft:cherry_chest_boat"},
+        {Items::PALE_OAK_CHEST_BOAT, "minecraft:pale_oak_chest_boat"},
+        {Items::BAMBOO_CHEST_RAFT, "minecraft:bamboo_chest_raft"}};
+
+    for (const auto& tc : testCases) {
+        ASSERT_NE(tc.item, nullptr) << "Item should not be null for " << tc.expectedId;
+        EXPECT_EQ(tc.item->itemLocation().toString(), tc.expectedId)
+            << "Chest boat item should have correct resource location";
+    }
+}
+
+/**
+ * @brief 测试带箱子的船物品类型和 hasChest 标志
+ */
+TEST_F(BoatItemTest, ChestBoatItemTypesAndHasChest)
+{
+    // 验证 Chest Boat 物品的 hasChest 为 true
+    auto* oakChestBoat = dynamic_cast<BoatItem*>(Items::OAK_CHEST_BOAT);
+    ASSERT_NE(oakChestBoat, nullptr) << "OAK_CHEST_BOAT should be a BoatItem";
+    EXPECT_EQ(oakChestBoat->getBoatType(), BoatEntity::Type::OAK);
+    EXPECT_TRUE(oakChestBoat->hasChest()) << "OAK_CHEST_BOAT should have hasChest = true";
+
+    auto* spruceChestBoat = dynamic_cast<BoatItem*>(Items::SPRUCE_CHEST_BOAT);
+    ASSERT_NE(spruceChestBoat, nullptr) << "SPRUCE_CHEST_BOAT should be a BoatItem";
+    EXPECT_EQ(spruceChestBoat->getBoatType(), BoatEntity::Type::SPRUCE);
+    EXPECT_TRUE(spruceChestBoat->hasChest()) << "SPRUCE_CHEST_BOAT should have hasChest = true";
+
+    auto* bambooChestRaft = dynamic_cast<BoatItem*>(Items::BAMBOO_CHEST_RAFT);
+    ASSERT_NE(bambooChestRaft, nullptr) << "BAMBOO_CHEST_RAFT should be a BoatItem";
+    EXPECT_EQ(bambooChestRaft->getBoatType(), BoatEntity::Type::BAMBOO);
+    EXPECT_TRUE(bambooChestRaft->hasChest()) << "BAMBOO_CHEST_RAFT should have hasChest = true";
+
+    // 验证普通船的 hasChest 为 false
+    auto* oakBoat = dynamic_cast<BoatItem*>(Items::OAK_BOAT);
+    ASSERT_NE(oakBoat, nullptr) << "OAK_BOAT should be a BoatItem";
+    EXPECT_FALSE(oakBoat->hasChest()) << "OAK_BOAT should have hasChest = false";
+}
+
+/**
+ * @brief 测试带箱子的船物品的熔炉燃烧时间
+ *
+ * MC Java: 所有带箱子的船燃烧时间均为 1200 tick (60 秒)，与普通船相同
+ */
+TEST_F(BoatItemTest, ChestBoatBurnTime)
+{
+    constexpr i32 EXPECTED_BURN_TIME = 1200; // 60 秒
+
+    // 验证所有带箱子的船物品都存在
+    EXPECT_NE(Items::OAK_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::SPRUCE_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::BIRCH_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::JUNGLE_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::ACACIA_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::DARK_OAK_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::MANGROVE_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::CHERRY_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::PALE_OAK_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::BAMBOO_CHEST_RAFT, nullptr);
+
+    // 验证带箱子的船燃烧时间与普通船相同
+    ItemStack oakChestBoatStack(Items::OAK_CHEST_BOAT, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(oakChestBoatStack), EXPECTED_BURN_TIME);
+
+    ItemStack bambooChestRaftStack(Items::BAMBOO_CHEST_RAFT, 1);
+    EXPECT_EQ(AbstractFurnaceEntity::getBurnTime(bambooChestRaftStack), EXPECTED_BURN_TIME);
+
+    EXPECT_EQ(EXPECTED_BURN_TIME, 1200) << "Expected burn time should be 1200 ticks";
+}
+
+/**
+ * @brief 测试带箱子的船物品互不相同
+ *
+ * 验证每种带箱子的船物品都是独立的物品
+ */
+TEST_F(BoatItemTest, ChestBoatItemsAreDistinct)
+{
+    Item* chestBoats[] = {Items::OAK_CHEST_BOAT,
+        Items::SPRUCE_CHEST_BOAT,
+        Items::BIRCH_CHEST_BOAT,
+        Items::JUNGLE_CHEST_BOAT,
+        Items::ACACIA_CHEST_BOAT,
+        Items::DARK_OAK_CHEST_BOAT,
+        Items::MANGROVE_CHEST_BOAT,
+        Items::CHERRY_CHEST_BOAT,
+        Items::PALE_OAK_CHEST_BOAT,
+        Items::BAMBOO_CHEST_RAFT};
+
+    // 验证每对带箱子的船物品都不同
+    for (size_t i = 0; i < 10; ++i) {
+        for (size_t j = i + 1; j < 10; ++j) {
+            EXPECT_NE(chestBoats[i], chestBoats[j])
+                << "Chest boat items at index " << i << " and " << j << " should be different";
+            EXPECT_NE(chestBoats[i]->itemId(), chestBoats[j]->itemId())
+                << "Chest boat items at index " << i << " and " << j << " should have different IDs";
+        }
+    }
+
+    // 验证带箱子的船与普通船不是同一个物品
+    EXPECT_NE(Items::OAK_BOAT, Items::OAK_CHEST_BOAT) << "OAK_BOAT and OAK_CHEST_BOAT should be different items";
+    EXPECT_NE(Items::BAMBOO_RAFT, Items::BAMBOO_CHEST_RAFT) << "BAMBOO_RAFT and BAMBOO_CHEST_RAFT should be different items";
+}
+
+/**
+ * @brief 测试带箱子的船物品 ID 有效
+ */
+TEST_F(BoatItemTest, ChestBoatItemsHaveValidIds)
+{
+    Item* chestBoats[] = {Items::OAK_CHEST_BOAT,
+        Items::SPRUCE_CHEST_BOAT,
+        Items::BIRCH_CHEST_BOAT,
+        Items::JUNGLE_CHEST_BOAT,
+        Items::ACACIA_CHEST_BOAT,
+        Items::DARK_OAK_CHEST_BOAT,
+        Items::MANGROVE_CHEST_BOAT,
+        Items::CHERRY_CHEST_BOAT,
+        Items::PALE_OAK_CHEST_BOAT,
+        Items::BAMBOO_CHEST_RAFT};
+
+    for (size_t i = 0; i < 10; ++i) {
+        ASSERT_NE(chestBoats[i], nullptr) << "Chest boat item at index " << i << " should not be null";
+        EXPECT_NE(chestBoats[i]->itemId(), ItemId(0)) << "Chest boat item should have non-zero ID";
     }
 }
 
