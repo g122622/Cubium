@@ -166,7 +166,6 @@ void PlayerEnderChestInventory::startOpen(Player& player)
     if (m_activeChest != nullptr) {
         m_activeChest->openContainer(&player);
     }
-    IInventory::openInventory(player);
 }
 
 void PlayerEnderChestInventory::stopOpen(Player& player)
@@ -175,7 +174,6 @@ void PlayerEnderChestInventory::stopOpen(Player& player)
         m_activeChest->closeContainer(&player);
     }
     m_activeChest = nullptr;
-    IInventory::closeInventory(player);
 }
 
 // ============================================================================

@@ -344,16 +344,10 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                                     connected->closeContainer(nullptr);
                                 }
                             }
-                        } else if (blockEntity->getType() == BlockEntityType::EnderChest) {
-                            // 末影箱关闭：通过 PlayerEnderChestInventory 关闭开盖动画和音效
-                            auto* serverWorld = world->asServerWorld();
-                            if (serverWorld != nullptr) {
-                                auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *serverWorld);
-                                if (playerEntity != nullptr) {
-                                    playerEntity->enderChestInventory().stopOpen(*playerEntity);
-                                }
-                            }
                         }
+                        // 末影箱的关闭由 ChestContainer::removed() →
+                        // PlayerEnderChestInventory::closeInventory() → stopOpen() 处理，
+                        // 无需在此重复调用
                     }
                 }
             }

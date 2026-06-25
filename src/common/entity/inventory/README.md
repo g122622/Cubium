@@ -1,4 +1,4 @@
-# Inventory 模块
+#Inventory 模块
 
 本模块实现了 Minecraft 的物品存储和容器交互系统。
 
@@ -128,3 +128,14 @@ inventory/
 - **SelectedItemSlot**：当前选中的快捷栏槽位
 
 `fromNbt()` 同时支持旧格式兼容读取：当 `equipment` 标签不存在时，从 Inventory 列表中读取护甲（Slot 100-103）和副手（Slot -106）。
+
+### 末影箱物品栏变更通知
+
+`PlayerEnderChestInventory` 使用 `setOnChanged(std::function<void()>)` 回调机制（与 `SimpleInventory` 一致）。物品变更时 `setChanged()` 会触发回调。`ServerPlayer::setupInventoryCallback()` 中注册了回调，通过 `PlayerDataManager::markDirty()` 标记玩家数据为脏以触发自动保存。
+
+### 末影箱容器打开/关闭流程
+
+1. `EnderChestBlock::onBlockActivated()` → `setActiveChest()` → `openContainer()` → `startOpen()`（开盖动画和音效）
+2. 容器菜单创建：`ContainerManager` 菜单工厂检测 `BlockEntityType::EnderChest`，创建 `ChestContainer` 以 `PlayerEnderChestInventory` 为背板
+3. 容器关闭：`ChestContainer::removed()` → `closeInventory()` → `stopOpen()`（关盖动画、音效、清除 `activeChest` 引用）
+4. **不要在 `StandaloneServer` 的容器关闭回调中再次调用 `stopOpen()`**，否则会导致 `EnderChestEntity::closeContainer()` 被调用两次，打开计数错误

@@ -46,6 +46,8 @@
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/IServer.hpp"
@@ -87,6 +89,15 @@ void ServerPlayer::setupInventoryCallback()
             oldItem.isEmpty() ? nullptr : &oldItem,
             newItem.isEmpty() ? nullptr : &newItem};
         server::event::ServerEventBus::instance().publish(event);
+    });
+
+    // 设置末影箱物品栏变更回调，标记玩家数据为脏以触发自动保存
+    enderChestInventory().setOnChanged([this]() {
+        if (auto* storage = getServer()->sharedStorage()) {
+            if (auto* pdm = storage->playerDataManager()) {
+                pdm->markDirty(uuid());
+            }
+        }
     });
 }
 
