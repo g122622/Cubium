@@ -141,6 +141,10 @@ constexpr const char* SITTING = "Sitting";
 constexpr const char* OWNER_UUID = "OwnerUUID";
 constexpr const char* ANGER_TIME = "AngerTime";
 
+// ========== OcelotEntity 键 ==========
+
+constexpr const char* TRUSTING = "Trusting";
+
 // ========== CatEntity 键 ==========
 
 constexpr const char* CAT_TYPE = "CatType";

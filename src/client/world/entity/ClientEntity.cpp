@@ -27,6 +27,7 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
+#include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -259,6 +260,16 @@ void ClientEntity::syncMetadataFromDataManager()
                 value != nullptr) {
                 const i32 puffState = value->get<i32>();
                 setPuffState(puffState);
+            }
+        }
+    }
+
+    // 豹猫信任状态同步
+    if (m_typeId == "minecraft:ocelot" || m_typeId == "ocelot") {
+        if (m_dataManager.hasParam(::mc::OcelotEntity::getTrustingParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::OcelotEntity::getTrustingParamId()); value != nullptr) {
+                const bool trusting = value->get<bool>();
+                setTrusting(trusting);
             }
         }
     }
