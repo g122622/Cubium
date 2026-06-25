@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/entity/entities/player/Player.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "world/storage/db/ColumnFamilies.hpp"
 #include "world/storage/db/RocksDBDatabase.hpp"
@@ -779,6 +780,217 @@ TEST_F(PlayerDataManagerTest, CallbackTest)
 
     EXPECT_TRUE(callbackCalled);
     EXPECT_EQ(savedUuid, "callback-test");
+}
+
+// ============================================================================
+// applyToPlayer 测试
+// ============================================================================
+
+class ApplyToPlayerTest : public ::testing::Test {
+protected:
+    void SetUp() override { player = std::make_unique<Player>(EntityId(1), "TestPlayer"); }
+    void TearDown() override { player.reset(); }
+
+    std::unique_ptr<Player> player;
+};
+
+TEST_F(ApplyToPlayerTest, RestoresPosition)
+{
+    PlayerSaveData data;
+    data.posX = 100.5;
+    data.posY = 70.0;
+    data.posZ = -200.3;
+    data.yaw = 90.0f;
+    data.pitch = 45.0f;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    const auto& pos = player->position();
+    EXPECT_FLOAT_EQ(pos.x, 100.5f);
+    EXPECT_FLOAT_EQ(pos.y, 70.0f);
+    EXPECT_FLOAT_EQ(pos.z, -200.3f);
+    EXPECT_FLOAT_EQ(player->yaw(), 90.0f);
+    EXPECT_FLOAT_EQ(player->pitch(), 45.0f);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresGameMode)
+{
+    PlayerSaveData data;
+    data.gameMode = GameMode::Creative;
+    // 创造模式的能力需要显式设置（与 MC Java 的 PlayerSaveData 一致）
+    data.invulnerable = true;
+    data.canFly = true;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    EXPECT_EQ(player->gameMode(), GameMode::Creative);
+    EXPECT_TRUE(player->abilities().canFly);
+    EXPECT_TRUE(player->abilities().invulnerable);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresFoodStats)
+{
+    PlayerSaveData data;
+    data.foodLevel = 12;
+    data.saturationLevel = 3.5f;
+    data.exhaustionLevel = 1.2f;
+    data.foodTickTimer = 50;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    EXPECT_EQ(player->foodStats().foodLevel(), 12);
+    EXPECT_FLOAT_EQ(player->foodStats().saturationLevel(), 3.5f);
+    EXPECT_FLOAT_EQ(player->foodStats().exhaustionLevel(), 1.2f);
+    EXPECT_EQ(player->foodStats().foodTimer(), 50);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresExperience)
+{
+    PlayerSaveData data;
+    data.experienceLevel = 30;
+    data.experienceProgress = 0.75f;
+    data.totalExperience = 1200;
+    data.xpSeed = 42;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    EXPECT_EQ(player->experienceManager().getLevel(), 30);
+    EXPECT_FLOAT_EQ(player->experienceManager().getProgress(), 0.75f);
+    EXPECT_EQ(player->experienceManager().getTotalExperience(), 1200);
+    EXPECT_EQ(player->experienceManager().getXpSeed(), 42);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresAbilities)
+{
+    PlayerSaveData data;
+    data.invulnerable = true;
+    data.canFly = true;
+    data.flying = true;
+    data.flySpeed = 0.1f;
+    data.walkSpeed = 0.2f;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    EXPECT_TRUE(player->abilities().invulnerable);
+    EXPECT_TRUE(player->abilities().canFly);
+    EXPECT_TRUE(player->abilities().flying);
+    EXPECT_FLOAT_EQ(player->abilities().flySpeed, 0.1f);
+    EXPECT_FLOAT_EQ(player->abilities().walkSpeed, 0.2f);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresImpulseContext)
+{
+    PlayerSaveData data;
+    data.currentImpulseImpactPos = Vector3(100.0f, 64.0f, 200.0f);
+    data.ignoreFallDamageFromCurrentImpulse = true;
+    data.currentImpulseContextResetGraceTime = 40;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    auto impactPos = player->currentImpulseImpactPos();
+    ASSERT_TRUE(impactPos.has_value());
+    EXPECT_FLOAT_EQ(impactPos->x, 100.0f);
+    EXPECT_FLOAT_EQ(impactPos->y, 64.0f);
+    EXPECT_FLOAT_EQ(impactPos->z, 200.0f);
+    EXPECT_TRUE(player->isIgnoringFallDamageFromCurrentImpulse());
+    EXPECT_EQ(player->currentImpulseContextResetGraceTime(), 40);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresSpawnPoint)
+{
+    PlayerSaveData data;
+    data.spawnPoint = GlobalPos(DimensionId(-1), BlockPos(50, 30, 100));
+    data.spawnForced = true;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    auto spawnPoint = player->getSpawnPoint();
+    ASSERT_TRUE(spawnPoint.has_value());
+    EXPECT_EQ(spawnPoint->getDimensionId(), DimensionId(-1));
+    EXPECT_EQ(spawnPoint->getPos().x, 50);
+    EXPECT_EQ(spawnPoint->getPos().y, 30);
+    EXPECT_EQ(spawnPoint->getPos().z, 100);
+    EXPECT_TRUE(player->isSpawnForced());
+}
+
+TEST_F(ApplyToPlayerTest, RestoresEnteredNetherPosition)
+{
+    PlayerSaveData data;
+    data.enteredNetherPosition = Vector3d(200.0, 50.0, 300.0);
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    auto netherPos = player->getEnteredNetherPosition();
+    ASSERT_TRUE(netherPos.has_value());
+    EXPECT_DOUBLE_EQ(netherPos->x, 200.0);
+    EXPECT_DOUBLE_EQ(netherPos->y, 50.0);
+    EXPECT_DOUBLE_EQ(netherPos->z, 300.0);
+}
+
+TEST_F(ApplyToPlayerTest, DefaultDataDoesNotCrash)
+{
+    // 默认 PlayerSaveData 应该安全地应用到 Player 而不崩溃
+    PlayerSaveData data;
+    data.uuid = "default-test";
+
+    EXPECT_NO_THROW(PlayerDataManager::applyToPlayer(*player, data));
+
+    // 默认位置
+    EXPECT_FLOAT_EQ(player->position().x, 0.0f);
+    // 默认游戏模式应该是 Survival
+    EXPECT_EQ(player->gameMode(), GameMode::Survival);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresFullPlayerState)
+{
+    PlayerSaveData data;
+    data.posX = 500.0;
+    data.posY = 80.0;
+    data.posZ = -300.0;
+    data.yaw = 180.0f;
+    data.pitch = -30.0f;
+    data.gameMode = GameMode::Spectator;
+    data.health = 10.0f;
+    data.foodLevel = 8;
+    data.saturationLevel = 1.0f;
+    data.exhaustionLevel = 2.5f;
+    data.foodTickTimer = 75;
+    data.experienceLevel = 50;
+    data.experienceProgress = 0.9f;
+    data.totalExperience = 5000;
+    data.xpSeed = 999;
+    data.invulnerable = true;
+    data.canFly = true;
+    data.flying = false;
+    data.flySpeed = 0.07f;
+    data.walkSpeed = 0.15f;
+    data.currentImpulseImpactPos = Vector3(10.0f, 20.0f, 30.0f);
+    data.ignoreFallDamageFromCurrentImpulse = true;
+    data.currentImpulseContextResetGraceTime = 50; // 大于默认的 40 tick
+    data.spawnPoint = GlobalPos(DimensionId(0), BlockPos(100, 64, 200));
+    data.spawnForced = false;
+    data.enteredNetherPosition = Vector3d(150.0, 40.0, 250.0);
+    data.onGround = true;
+    data.sprinting = true;
+    data.sneaking = false;
+    data.airSupply = 150;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    // 验证关键字段
+    EXPECT_FLOAT_EQ(player->position().x, 500.0f);
+    EXPECT_EQ(player->gameMode(), GameMode::Spectator);
+    EXPECT_FLOAT_EQ(player->health(), 10.0f);
+    EXPECT_EQ(player->foodStats().foodLevel(), 8);
+    EXPECT_EQ(player->experienceManager().getLevel(), 50);
+    EXPECT_TRUE(player->abilities().invulnerable);
+    EXPECT_TRUE(player->isIgnoringFallDamageFromCurrentImpulse());
+    auto impactPos = player->currentImpulseImpactPos();
+    ASSERT_TRUE(impactPos.has_value());
+    EXPECT_FLOAT_EQ(impactPos->x, 10.0f);
+    EXPECT_EQ(player->currentImpulseContextResetGraceTime(), 50);
+    EXPECT_TRUE(player->isSprinting());
+    EXPECT_EQ(player->air(), 150);
 }
 
 } // namespace

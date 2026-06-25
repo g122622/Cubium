@@ -48,6 +48,7 @@
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/ServerCommandSource.hpp"
 #include "server/core/TimeManager.hpp"
@@ -494,6 +495,20 @@ void IntegratedServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
         if (world != nullptr) {
             if (Player* player = playerEntityManager().getPlayerEntity(m_clientPlayerId, *world)) {
                 player->setPermissionLevel(playerPermissionLevel);
+
+                // 从存档加载玩家数据并恢复到实体
+                auto* storage = sharedStorage();
+                if (storage) {
+                    auto loadResult = storage->loadPlayer(playerData->uuid);
+                    if (loadResult.success() && loadResult.value().has_value()) {
+                        const auto& saveData = loadResult.value().value();
+                        world::storage::PlayerDataManager::applyToPlayer(*player, saveData);
+                        spdlog::info("Player '{}' loaded saved data (level {}, gameMode {})",
+                            playerData->username,
+                            saveData.experienceLevel,
+                            static_cast<i32>(saveData.gameMode));
+                    }
+                }
             }
         }
     }

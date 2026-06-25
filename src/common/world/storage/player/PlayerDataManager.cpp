@@ -424,15 +424,18 @@ void PlayerDataManager::applyToPlayer(Player& player, const PlayerSaveData& data
     }
 
     // ========== 冲量上下文 ==========
+    // 先重置冲量上下文，再逐字段恢复，避免 setIgnoreFallDamageFromCurrentImpulse 的副作用
+    // （该方法会设置 40 tick 宽限期，覆盖保存数据中的实际值）
+    player.resetCurrentImpulseContext();
     if (data.currentImpulseImpactPos.has_value()) {
         player.setCurrentImpulseImpactPos(data.currentImpulseImpactPos.value());
     }
     if (data.ignoreFallDamageFromCurrentImpulse) {
         player.setIgnoreFallDamageFromCurrentImpulse(true);
     }
-    // 应用冲量上下文宽限期：如果保存数据中有宽限期，需要恢复
-    // setIgnoreFallDamageFromCurrentImpulse(true) 会设置 40 tick 宽限期，
-    // 但保存数据中可能保存了不同的宽限期值，需要用 applyPostImpulseGraceTime 来确保正确
+    // 恢复冲量上下文宽限期：setIgnoreFallDamageFromCurrentImpulse(true) 会设置 40 tick，
+    // 但保存数据中可能有不同的值，需要用 applyPostImpulseGraceTime 调整。
+    // applyPostImpulseGraceTime 取最大值，所以如果保存值 > 40 则扩展，否则保持 40。
     if (data.currentImpulseContextResetGraceTime > 0) {
         player.applyPostImpulseGraceTime(data.currentImpulseContextResetGraceTime);
     }

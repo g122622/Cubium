@@ -48,6 +48,7 @@
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
+#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/KeepAliveManager.hpp"
 #include "server/core/PacketHandler.hpp"
@@ -799,6 +800,24 @@ void StandaloneServer::handleLoginRequestPacket(u32 sessionId, const u8* data, s
     // 从 OP 列表设置玩家权限等级
     i32 playerPermissionLevel = static_cast<i32>(m_opListManager->getLevel(playerData->uuid));
     playerEntity->setPermissionLevel(playerPermissionLevel);
+
+    // 从存档加载玩家数据并恢复到实体
+    auto* storage = sharedStorage();
+    if (storage) {
+        auto loadResult = storage->loadPlayer(uuidStr);
+        if (loadResult.success() && loadResult.value().has_value()) {
+            // 已有存档：用保存的数据恢复玩家状态
+            const auto& saveData = loadResult.value().value();
+            world::storage::PlayerDataManager::applyToPlayer(*playerEntity, saveData);
+            spdlog::info("Player '{}' loaded saved data (level {}, gameMode {})",
+                username,
+                saveData.experienceLevel,
+                static_cast<i32>(saveData.gameMode));
+        } else {
+            // 新玩家：使用默认初始状态（setupInitialPlayerState 已设置）
+            spdlog::info("Player '{}' is new, using default state", username);
+        }
+    }
 
     // 初始化玩家物品栏
     inventoryManager().initializeInventory(playerId);

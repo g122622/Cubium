@@ -2779,9 +2779,15 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
     }
     if (auto val = nbt_helper::tryGetBool(tag, IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION)) {
         m_ignoreFallDamageFromCurrentImpulse = *val;
+    } else {
+        // MC Java: getBooleanOr(key, false) — 缺失时重置为 false
+        m_ignoreFallDamageFromCurrentImpulse = false;
     }
     if (auto val = nbt_helper::tryGetInt(tag, CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME)) {
         m_currentImpulseContextResetGraceTime = *val;
+    } else {
+        // MC Java: getIntOr(key, 0) — 缺失时重置为 0
+        m_currentImpulseContextResetGraceTime = 0;
     }
     // 注意：currentExplosionCause 不从 NBT 读取（运行时瞬时状态，MC Java 同样不持久化）
 

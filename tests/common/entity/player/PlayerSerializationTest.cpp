@@ -253,23 +253,25 @@ TEST(PlayerSerializationTest, ImpulseContext_ExtendedGraceTime_RoundTrip)
     EXPECT_EQ(loaded->currentImpulseContextResetGraceTime(), 40);
 }
 
-TEST(PlayerSerializationTest, ImpulseContext_EmptyNbt_ImpactPositionCleared)
+TEST(PlayerSerializationTest, ImpulseContext_EmptyNbt_ClearsImpulseState)
 {
     Player player(EntityId(1), "TestPlayer");
     player.setCurrentImpulseImpactPos(Vector3(50.0f, 70.0f, 80.0f));
     player.setIgnoreFallDamageFromCurrentImpulse(true);
 
-    // 读取空 NBT：冲量冲击位置应该被清除（因为有 else 分支明确重置为 nullopt）
-    // 但 ignoreFallDamageFromCurrentImpulse 和 graceTime 在缺失时保持不变
-    // （MC Java 行为：缺失的 NBT 键不改变已有值）
+    // 读取空 NBT：MC Java 语义中缺失的键会重置为默认值
+    // current_explosion_impact_pos → null（else 分支）
+    // ignore_fall_damage_from_current_explosion → false（getBooleanOr 默认值）
+    // current_impulse_context_reset_grace_time → 0（getIntOr 默认值）
     nbt::tags::compound_tag emptyTag;
     auto result = player.readAdditionalSaveData(emptyTag);
     EXPECT_TRUE(result.success());
 
-    // 冲量冲击位置应该被清除（readAdditionalSaveData 中 else 分支处理）
+    // 冲量冲击位置应该被清除
     EXPECT_FALSE(player.currentImpulseImpactPos().has_value());
-    // ignoreFallDamageFromCurrentImpulse 和 graceTime 在缺失的 NBT 键时保持原值
-    // 这是正确的行为：MC Java 也不会因为缺少键就重置这些运行时标志
+    // MC Java 语义：缺失的 NBT 键重置为默认值
+    EXPECT_FALSE(player.isIgnoringFallDamageFromCurrentImpulse());
+    EXPECT_EQ(player.currentImpulseContextResetGraceTime(), 0);
 }
 
 // ========== 重生点序列化测试 ==========
