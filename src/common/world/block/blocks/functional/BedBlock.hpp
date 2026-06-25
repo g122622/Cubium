@@ -27,6 +27,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/Material.hpp"
@@ -112,6 +113,47 @@ public:
     [[nodiscard]] static bool isBed(IWorld& world, const BlockPos& pos);
 
     /**
+     * @brief 获取床的朝向
+     *
+     * 读取床方块的 HORIZONTAL_FACING 属性。如果指定位置不是床方块，
+     * 返回 Direction::None。
+     *
+     * @param world 世界引用
+     * @param pos 床头位置
+     * @return 床的朝向，如果不是床则返回 Direction::None
+     */
+    [[nodiscard]] static Direction getBedOrientation(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 获取床的连接方向
+     *
+     * 根据床的部分（头部/脚部）和朝向，返回指向另一部分的方向。
+     * 头部指向脚部，脚部指向头部。
+     *
+     * @param state 床方块状态
+     * @return 连接方向
+     */
+    [[nodiscard]] static Direction getConnectedDirection(const BlockState& state);
+
+    /**
+     * @brief 计算从床上起身的安全位置
+     *
+     * 按照优先级在床周围搜索安全的站立位置：
+     * 1. 根据 bedFacing 和 entityYaw 计算 10 个周围候选位置
+     * 2. 床上方 2 个候选位置
+     * 3. 如果是双层床，搜索下层位置
+     * 4. 找不到安全位置时返回床头正上方
+     *
+     * @param world 世界引用
+     * @param bedPos 床头位置
+     * @param bedFacing 床的朝向
+     * @param entityYaw 实体的偏航角（度）
+     * @return 安全的站立位置，如果找不到则返回床头正上方
+     */
+    [[nodiscard]] static Vector3 findStandUpPosition(
+        const IWorld& world, const BlockPos& bedPos, Direction bedFacing, f32 entityYaw);
+
+    /**
      * @brief 右键交互 - 睡眠或爆炸
      *
      * 在主世界可以睡眠设置重生点，在下界和末地会爆炸。
@@ -129,6 +171,17 @@ protected:
 
     /// 各朝向的形状缓存
     std::array<CollisionShape, 6> m_shapesByFacing;
+
+    /**
+     * @brief 检查指定位置是否有足够站立空间（用于起床位置搜索）
+     *
+     * 检查 pos 和 pos.up() 是否都是非固体方块。
+     *
+     * @param world 世界引用
+     * @param pos 待检查位置
+     * @return true 如果有足够空间
+     */
+    [[nodiscard]] static bool _hasStandingSpaceForStandUp(const IWorld& world, const BlockPos& pos);
 };
 
 } // namespace blocks

@@ -43,6 +43,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
@@ -60,6 +61,7 @@
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
 #include <algorithm>
+#include <cmath>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -431,17 +433,34 @@ void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag)
     // 发送唤醒包给客户端
     _sendWakeUpPacket();
 
-    // 同步玩家位置
+    // 清除床的占用状态，并计算起床位置
     if (bedPos.has_value() && m_world != nullptr) {
-        // 计算起床位置
         const BlockState* bedState = m_world->getBlockState(bedPos.value());
+
+        // 清除床的占用状态
+        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED())) {
+            BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
+            m_world->setBlockState(bedPos.value(), &newBedState, 3);
+        }
+
+        // 使用 BedBlock::findStandUpPosition 计算起床位置
         if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
             Direction bedFacing = bedState->get(BlockStateProperties::HORIZONTAL_FACING());
-            std::optional<Vector3> wakePos =
-                entity::SleepManager::findWakeUpPosition(*m_world, bedPos.value(), bedFacing);
-            if (wakePos.has_value()) {
-                setPosition(wakePos.value());
+            Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*m_world, bedPos.value(), bedFacing, yaw());
+
+            // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
+            Vector3d bedCenter(bedPos.value().x + 0.5, bedPos.value().y, bedPos.value().z + 0.5);
+            Vector3d dirToBed = bedCenter - Vector3d(wakePos.x, wakePos.y, wakePos.z);
+            f32 dirLen = std::sqrt(dirToBed.x * dirToBed.x + dirToBed.z * dirToBed.z);
+            if (dirLen > 0.001) {
+                dirToBed.x /= dirLen;
+                dirToBed.z /= dirLen;
+                f32 yawDeg = static_cast<f32>(math::toDegrees(std::atan2(dirToBed.z, dirToBed.x))) - 90.0f;
+                yawDeg = math::wrapDegrees(yawDeg);
+                setRotation(yawDeg, 0.0f);
             }
+
+            setPosition(wakePos.x, wakePos.y, wakePos.z);
         }
     }
 

@@ -25,6 +25,7 @@
 
 #include "../core/Types.hpp"
 #include <array>
+#include <cmath>
 #include <string>
 #include <unordered_map>
 
@@ -438,6 +439,29 @@ inline Direction fromDelta(i32 dx, i32 dy, i32 dz)
     if (dx < 0 && dy == 0 && dz == 0) return Direction::West;
     if (dx > 0 && dy == 0 && dz == 0) return Direction::East;
     return Direction::None;
+}
+
+/**
+ * @brief 判断实体的偏航角是否大致朝向该方向
+ *
+ * 将偏航角转换为视线方向向量，与该方向的法向量做点积。
+ * 点积 > 0 表示实体的视线方向与该方向同侧。
+ *
+ * @param dir 水平方向（仅对水平方向有效）
+ * @param yaw 实体的偏航角（度），MC 约定：0=南，90=西，180=北，-90=东
+ * @return true 如果实体大致朝向该方向
+ */
+inline bool isFacingAngle(Direction dir, f32 yaw)
+{
+    if (!isHorizontal(dir)) {
+        return false;
+    }
+    // 将偏航角转换为弧度，计算视线方向向量
+    f32 rad = yaw * static_cast<f32>(3.14159265358979323846) / 180.0f;
+    f32 sinYaw = -std::sin(rad);
+    f32 cosYaw = std::cos(rad);
+    // 方向的法向量与视线方向向量的点积
+    return static_cast<f32>(xOffset(dir)) * sinYaw + static_cast<f32>(zOffset(dir)) * cosYaw > 0.0f;
 }
 
 /**

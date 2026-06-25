@@ -57,8 +57,14 @@
 #include "common/item/potion/Potions.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -67,6 +73,7 @@
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "common/world/village/trade/WanderingTraderTrades.hpp"
+#include <cmath>
 #include <memory>
 
 namespace mc {
@@ -715,6 +722,30 @@ void VillagerEntity::startSleeping(BlockPos pos)
         stopRiding();
     }
 
+    // 设置床为占用状态
+    if (m_world) {
+        const BlockState* bedState = m_world->getBlockState(pos);
+        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::BED_PART())) {
+            // 设置床头为占用
+            if (bedState->hasProperty(BlockStateProperties::OCCUPIED())) {
+                BlockState occupiedState = bedState->with(BlockStateProperties::OCCUPIED(), true);
+                m_world->setBlockState(pos, &occupiedState, 3);
+            }
+            // 如果当前是脚部，也设置头部为占用
+            if (bedState->hasProperty(BlockStateProperties::BED_PART()) &&
+                bedState->get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Foot &&
+                bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
+                Direction facing = bedState->get(BlockStateProperties::HORIZONTAL_FACING());
+                BlockPos headPos = pos.offset(facing);
+                const BlockState* headState = m_world->getBlockState(headPos);
+                if (headState != nullptr && headState->hasProperty(BlockStateProperties::OCCUPIED())) {
+                    BlockState occupiedHeadState = headState->with(BlockStateProperties::OCCUPIED(), true);
+                    m_world->setBlockState(headPos, &occupiedHeadState, 3);
+                }
+            }
+        }
+    }
+
     // 设置睡眠姿态
     setPose(EntityPose::Sleeping);
 
@@ -740,17 +771,40 @@ void VillagerEntity::stopSleeping()
         return;
     }
 
-    // 如果有睡眠位置，计算唤醒位置
+    // 如果有睡眠位置，根据床的朝向计算唤醒位置
     if (m_sleepingPos.has_value() && m_world) {
         BlockPos bedPos = m_sleepingPos.value();
+        const BlockState* bedState = m_world->getBlockState(bedPos);
 
-        // 计算唤醒位置（床旁边）
-        // 简化实现：在床的朝向方向找一个空位
-        // 这里暂时使用床上方位置
-        Vector3d wakeUpPos(bedPos.x + 0.5, bedPos.y + 1.0, bedPos.z + 0.5);
+        // 清除床的占用状态
+        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED())) {
+            BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
+            m_world->setBlockState(bedPos, &newBedState, 3);
+        }
 
-        // 设置位置
-        setPosition(wakeUpPos.x, wakeUpPos.y, wakeUpPos.z);
+        // 使用床的朝向计算起床位置
+        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
+            Direction bedFacing = bedState->get(BlockStateProperties::HORIZONTAL_FACING());
+            Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*m_world, bedPos, bedFacing, yaw());
+
+            // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
+            Vector3d bedCenter(bedPos.x + 0.5, bedPos.y, bedPos.z + 0.5);
+            Vector3d dirToBed = bedCenter - Vector3d(wakePos.x, wakePos.y, wakePos.z);
+            f32 dirLen = std::sqrt(dirToBed.x * dirToBed.x + dirToBed.z * dirToBed.z);
+            if (dirLen > 0.001) {
+                dirToBed.x /= dirLen;
+                dirToBed.z /= dirLen;
+                f32 yawDeg = static_cast<f32>(math::toDegrees(std::atan2(dirToBed.z, dirToBed.x))) - 90.0f;
+                yawDeg = math::wrapDegrees(yawDeg);
+                setRotation(yawDeg, 0.0f);
+            }
+
+            setPosition(wakePos.x, wakePos.y, wakePos.z);
+        } else {
+            // 回退：床头正上方
+            BlockPos aboveBed = bedPos.up();
+            setPosition(aboveBed.x + 0.5, aboveBed.y + 0.1, aboveBed.z + 0.5);
+        }
     }
 
     // 恢复站立姿态
