@@ -94,7 +94,8 @@ boss/
 凋灵使用 `FlyingMovementController(this, 10, false)` 控制飞行行为，与恶魂和恼鬼的飞行控制器不同：
 - 俯仰角旋转速率 10 度/tick，偏航角 90 度/tick
 - `hoversInPlace=false`：空闲时恢复重力，凋灵会缓慢下落
-- `_updateFlightBehavior()` 在 `tick()` 中执行额外飞行逻辑：Y轴60%阻尼、目标追踪推力、自动面向运动方向
+- `_updateFlightBehavior()` 在 `aiStep()` 中执行（重写了 `LivingEntity::aiStep()`），在 `LivingEntity::aiStep()` 之前调用，匹配 MC Java 的 `WitherBoss.aiStep()` 调用顺序。这样 `FlyingMovementController.tick()` 的旋转限制能正确覆盖 `_updateFlightBehavior()` 的直接 rotation 设置
+- Y轴阻尼、目标追踪推力、自动面向运动方向的逻辑在 `_updateFlightBehavior()` 中实现
 - `WitherRandomFlyGoal` 在无敌阶段外以 0.001 概率随机选择飞行目标（避水避岩浆），因 WitherEntity 继承自 MobEntity 而非 CreatureEntity，不能复用 `WaterAvoidingRandomFlyingGoal`
 - 凋灵注册了 FLYING_SPEED 属性（0.6），供 FlyingMovementController 飞行时使用
 

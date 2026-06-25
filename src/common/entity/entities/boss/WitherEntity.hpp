@@ -139,6 +139,14 @@ public:
     // ========== LivingEntity 接口重写 ==========
 
     /**
+     * @brief AI步进，在LivingEntity::tick()中调用
+     *
+     * 重写以在控制器更新之前执行飞行追踪行为，
+     * 使 FlyingMovementController 的旋转限制能正确生效。
+     */
+    void aiStep() override;
+
+    /**
      * @brief 获取环境音效
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;

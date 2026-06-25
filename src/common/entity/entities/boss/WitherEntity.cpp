@@ -332,11 +332,22 @@ void WitherEntity::tick()
     // 更新AI任务
     _updateAITasks();
 
-    // 更新飞行追踪行为
-    _updateFlightBehavior();
-
     // 生成粒子效果
     _spawnParticles();
+}
+
+void WitherEntity::aiStep()
+{
+    // 更新飞行追踪行为（在控制器更新之前执行，匹配MC Java调用顺序）
+    // MC Java: WitherBoss.aiStep() 在 super.aiStep() 之前做飞行计算
+    // 这样 FlyingMovementController.tick() 的旋转限制能正确覆盖
+    _updateFlightBehavior();
+
+    // 调用父类aiStep（LivingEntity::aiStep() 处理物理移动等）
+    // 注意：MobEntity::tick() 中的控制器更新在 LivingEntity::tick() 之后执行
+    // 所以调用链是：aiStep() -> LivingEntity::aiStep() -> 物理移动
+    // 然后 MobEntity::tick() 继续 -> m_moveController->tick() -> m_lookController->tick()
+    LivingEntity::aiStep();
 }
 
 void WitherEntity::_spawnParticles()
@@ -963,6 +974,7 @@ void WitherEntity::registerAttributes()
     MobEntity::registerAttributes();
 
     // 凋灵属性
+    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 300.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
@@ -1011,59 +1023,54 @@ void WitherEntity::launchWitherSkullToPosition(i32 head, f64 targetX, f64 target
 
 void WitherEntity::_updateFlightBehavior()
 {
-    // 仅在服务端执行
-    IWorld* worldPtr = world();
-    if (!worldPtr || worldPtr->isClientSide()) {
-        return;
-    }
-
-    // Y轴阻尼：保留60%的Y轴速度
+    // Y轴阻尼：保留60%的Y轴速度（两端均执行）
     Vector3 velocity = this->velocity();
     velocity.y *= 0.6;
-    setVelocity(velocity);
 
-    // 当主头有目标时，执行追踪飞行逻辑
-    i32 targetId = getWatchedTargetId(0);
-    if (targetId > 0) {
-        Entity* targetEntity = worldPtr->getEntity(static_cast<EntityId>(targetId));
-        if (targetEntity != nullptr) {
-            velocity = this->velocity();
-            f64 dY = velocity.y;
+    // 当主头有目标时，执行追踪飞行逻辑（仅服务端）
+    IWorld* worldPtr = world();
+    if (worldPtr && !worldPtr->isClientSide()) {
+        i32 targetId = getWatchedTargetId(0);
+        if (targetId > 0) {
+            Entity* targetEntity = worldPtr->getEntity(static_cast<EntityId>(targetId));
+            if (targetEntity != nullptr) {
+                f64 dY = velocity.y;
 
-            // Y轴追踪逻辑：
-            // 非充能时：凋灵低于目标Y+5.0时上升
-            // 充能时：凋灵低于目标Y时即上升
-            if (y() < targetEntity->y() || (!isCharged() && y() < targetEntity->y() + 5.0)) {
-                // 确保Y速度不为负
-                dY = std::max(0.0, dY);
-                // 附加推力：0.3 - 当前Y速度 * 0.6
-                // 这形成渐进上升，收敛于约0.5/tick的上升速度
-                dY += 0.3 - dY * 0.6;
+                // Y轴追踪逻辑：
+                // 非充能时：凋灵低于目标Y+5.0时上升
+                // 充能时：凋灵低于目标Y时即上升
+                if (y() < targetEntity->y() || (!isCharged() && y() < targetEntity->y() + 5.0)) {
+                    // 确保Y速度不为负
+                    dY = std::max(0.0, dY);
+                    // 附加推力：0.3 - 当前Y速度 * 0.6
+                    // 这形成渐进上升，收敛于约0.5/tick的上升速度
+                    dY += 0.3 - dY * 0.6;
+                }
+
+                velocity.y = dY;
+
+                // 水平追踪逻辑：
+                // 只有水平距离大于3格时才追踪
+                Vector3 horizontalDir(
+                    static_cast<f32>(targetEntity->x() - x()), 0.0f, static_cast<f32>(targetEntity->z() - z()));
+                f64 horizontalDistSq = static_cast<f64>(horizontalDir.x) * horizontalDir.x +
+                    static_cast<f64>(horizontalDir.z) * horizontalDir.z;
+                if (horizontalDistSq > 9.0) {
+                    // 归一化水平方向
+                    f64 horizontalDist = std::sqrt(horizontalDistSq);
+                    f32 normX = static_cast<f32>(horizontalDir.x / horizontalDist);
+                    f32 normZ = static_cast<f32>(horizontalDir.z / horizontalDist);
+                    // 追踪推力 = 目标方向 * 0.3 - 当前水平速度 * 0.6
+                    velocity.x += normX * 0.3f - velocity.x * 0.6f;
+                    velocity.z += normZ * 0.3f - velocity.z * 0.6f;
+                }
             }
-
-            velocity.y = dY;
-
-            // 水平追踪逻辑：
-            // 只有水平距离大于3格时才追踪
-            Vector3 horizontalDir(
-                static_cast<f32>(targetEntity->x() - x()), 0.0f, static_cast<f32>(targetEntity->z() - z()));
-            f64 horizontalDistSq = static_cast<f64>(horizontalDir.x) * horizontalDir.x +
-                static_cast<f64>(horizontalDir.z) * horizontalDir.z;
-            if (horizontalDistSq > 9.0) {
-                // 归一化水平方向
-                f64 horizontalDist = std::sqrt(horizontalDistSq);
-                f32 normX = static_cast<f32>(horizontalDir.x / horizontalDist);
-                f32 normZ = static_cast<f32>(horizontalDir.z / horizontalDist);
-                // 追踪推力 = 目标方向 * 0.3 - 当前水平速度 * 0.6
-                velocity.x += normX * 0.3f - velocity.x * 0.6f;
-                velocity.z += normZ * 0.3f - velocity.z * 0.6f;
-            }
-
-            setVelocity(velocity);
         }
     }
 
-    // 当有水平速度时，自动面向运动方向
+    setVelocity(velocity);
+
+    // 当有水平速度时，自动面向运动方向（两端均执行）
     velocity = this->velocity();
     f64 horizontalSpeedSq = static_cast<f64>(velocity.x) * velocity.x + static_cast<f64>(velocity.z) * velocity.z;
     if (horizontalSpeedSq > 0.05) {
