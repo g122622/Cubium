@@ -254,6 +254,7 @@ Item* Items::COPPER_HORSE_ARMOR = nullptr;
 Item* Items::IRON_HORSE_ARMOR = nullptr;
 Item* Items::GOLDEN_HORSE_ARMOR = nullptr;
 Item* Items::DIAMOND_HORSE_ARMOR = nullptr;
+Item* Items::NETHERITE_HORSE_ARMOR = nullptr;
 
 // 食物
 Item* Items::APPLE = nullptr;
@@ -1596,11 +1597,11 @@ void Items::_registerArmor()
             3,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_leather.png"));
 
-    // 铜马铠 - +5 护甲（MC 1.21.11 新增）
+    // 铜马铠 - +4 护甲
     COPPER_HORSE_ARMOR =
         &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:copper_horse_armor"),
             ItemProperties().maxStackSize(1),
-            5,
+            4,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_copper.png"));
 
     // 铁马铠 - +5 护甲
@@ -1623,6 +1624,13 @@ void Items::_registerArmor()
             ItemProperties().maxStackSize(1),
             11,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_diamond.png"));
+
+    // 下界合金马铠 - +19 护甲，防火（通过 FIRE_RESISTANT 标签实现）
+    NETHERITE_HORSE_ARMOR =
+        &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:netherite_horse_armor"),
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),
+            19,
+            ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_netherite.png"));
 }
 
 void Items::_registerFood()

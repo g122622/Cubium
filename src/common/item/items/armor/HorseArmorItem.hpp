@@ -33,11 +33,13 @@ namespace item::items {
  * @brief 马铠物品
  *
  * 用于装备马类实体（仅限 HorseEntity）提供护甲值。
- * 马铠有四种类型：
+ * 马铠有六种类型：
  * - 皮革马铠：+3 护甲
+ * - 铜马铠：+4 护甲
  * - 铁马铠：+5 护甲
  * - 金马铠：+7 护甲
  * - 钻石马铠：+11 护甲
+ * - 下界合金马铠：+19 护甲，防火（FIRE_RESISTANT 标签）
  *
  * 参考: net.minecraft.item.HorseArmorItem
  */
