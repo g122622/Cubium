@@ -30,7 +30,9 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace mc {
@@ -139,28 +141,153 @@ public:
 };
 
 /**
+ * @brief 物品谓词输入
+ *
+ * 用于命令中指定物品匹配条件，支持三种匹配模式：
+ * - 特定物品：minecraft:stone、stone — 精确匹配物品ID
+ * - 物品标签：#minecraft:logs — 匹配标签中的所有物品
+ * - 通配符：* — 匹配任意物品
+ *
+ * 对应 MC Java 的 ItemPredicateArgument.Result（Predicate<ItemStack>）。
+ * 与 ItemInput 不同，ItemPredicateInput 是一个谓词/匹配器，而非单一物品引用。
+ */
+class ItemPredicateInput {
+public:
+    /**
+     * @brief 匹配模式
+     */
+    enum class Mode : u8 {
+        Any,  ///< 通配符 *，匹配任意物品
+        Item, ///< 特定物品ID匹配
+        Tag,  ///< 物品标签匹配（# 前缀）
+    };
+
+    /** @brief 默认构造（Any 模式，匹配任意物品） */
+    ItemPredicateInput() noexcept
+        : m_mode(Mode::Any)
+    {}
+
+    /**
+     * @brief 构造特定物品匹配
+     * @param itemId 物品ID
+     */
+    explicit ItemPredicateInput(ItemId itemId) noexcept
+        : m_mode(Mode::Item)
+        , m_itemId(itemId)
+    {}
+
+    /**
+     * @brief 构造标签匹配
+     * @param tagId 标签资源位置
+     */
+    explicit ItemPredicateInput(ResourceLocation tagId) noexcept
+        : m_mode(Mode::Tag)
+        , m_tagId(std::move(tagId))
+    {}
+
+    /**
+     * @brief 构造指定模式的匹配
+     * @param mode 匹配模式
+     * @param itemId 物品ID（Item 模式使用）
+     * @param tagId 标签资源位置（Tag 模式使用）
+     */
+    ItemPredicateInput(Mode mode, ItemId itemId, ResourceLocation tagId) noexcept
+        : m_mode(mode)
+        , m_itemId(itemId)
+        , m_tagId(std::move(tagId))
+    {}
+
+    /** @brief 获取匹配模式 */
+    [[nodiscard]] Mode mode() const noexcept { return m_mode; }
+
+    /** @brief 是否为通配符模式 */
+    [[nodiscard]] bool isAny() const noexcept { return m_mode == Mode::Any; }
+
+    /** @brief 是否为物品ID模式 */
+    [[nodiscard]] bool isItem() const noexcept { return m_mode == Mode::Item; }
+
+    /** @brief 是否为标签模式 */
+    [[nodiscard]] bool isTag() const noexcept { return m_mode == Mode::Tag; }
+
+    /** @brief 获取物品ID（仅 Item 模式有效） */
+    [[nodiscard]] ItemId itemId() const noexcept { return m_itemId; }
+
+    /** @brief 获取标签ID（仅 Tag 模式有效） */
+    [[nodiscard]] const ResourceLocation& tagId() const noexcept { return m_tagId; }
+
+    /**
+     * @brief 获取物品指针（仅 Item 模式有效）
+     * @return 物品指针，无效模式或未注册物品返回 nullptr
+     */
+    [[nodiscard]] const Item* getItem() const
+    {
+        if (m_mode != Mode::Item) return nullptr;
+        return ItemRegistry::instance().getItem(m_itemId);
+    }
+
+    /**
+     * @brief 测试物品堆是否匹配此谓词
+     * @param stack 物品堆
+     * @return 是否匹配
+     */
+    [[nodiscard]] bool test(const ItemStack& stack) const;
+
+    /**
+     * @brief 获取格式化的显示名称
+     *
+     * 通配符返回 "*"，标签返回 "#namespace:path"，物品返回 "namespace:path"
+     */
+    [[nodiscard]] std::string displayName() const;
+
+private:
+    Mode m_mode = Mode::Any;
+    ItemId m_itemId = 0;
+    ResourceLocation m_tagId;
+};
+
+/**
  * @brief 物品谓词参数类型
  *
- * 用于检查物品是否匹配特定条件
+ * 用于命令中指定物品匹配条件，支持三种格式：
+ * - "minecraft:stone" 或 "stone" — 匹配特定物品
+ * - "#minecraft:logs" — 匹配标签中的所有物品
+ * - "*" — 匹配任意物品
+ *
+ * 对应 MC Java 的 ItemPredicateArgument。
+ * MC Java 1.21+ 还支持组件测试语法（stick[custom_data={...}]），
+ * 当前实现暂不支持，后续随数据组件系统一起添加。
  */
-class ItemPredicateArgumentType : public ArgumentType<ItemInput> {
+class ItemPredicateArgumentType : public ArgumentType<ItemPredicateInput> {
 public:
-    [[nodiscard]] ItemInput parse(StringReader& reader) override
-    {
-        // TODO: 目前与 ItemArgumentType 相同，后续需要支持通配符和物品标签
-        return ItemArgumentType().parse(reader);
-    }
+    [[nodiscard]] ItemPredicateInput parse(StringReader& reader) override;
 
     [[nodiscard]] std::string getTypeName() const noexcept override { return "item_predicate"; }
 
     [[nodiscard]] std::vector<std::string> getExamples() const noexcept override
     {
-        return {"minecraft:stone", "stone", "#minecraft:logs"};
+        return {"minecraft:stone", "stone", "#minecraft:logs", "*"};
     }
+
+    // ========== 静态工厂方法 ==========
 
     static std::shared_ptr<ItemPredicateArgumentType> itemPredicate() noexcept
     {
         return std::make_shared<ItemPredicateArgumentType>();
+    }
+
+    // ========== 静态获取方法 ==========
+
+    /**
+     * @brief 从命令上下文中获取解析后的物品谓词
+     * @tparam S 命令源类型
+     * @param context 命令上下文
+     * @param name 参数名
+     * @return 物品谓词输入
+     */
+    template <typename S>
+    static ItemPredicateInput getItemPredicate(CommandContext<S>& context, const std::string& name)
+    {
+        return context.template getArgument<ItemPredicateInput>(name);
     }
 };
 

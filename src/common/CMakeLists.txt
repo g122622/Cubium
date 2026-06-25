@@ -595,6 +595,7 @@ add_library(mc_common STATIC
     command/CommandTreeSnapshot.cpp
     command/arguments/EntityArgument.cpp
     command/arguments/FunctionArgument.cpp
+    command/arguments/ItemArgument.cpp
     command/arguments/NbtPath.cpp
     command/arguments/NbtPathArgumentType.cpp
 

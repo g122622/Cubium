@@ -1953,6 +1953,7 @@ add_executable(mc_command_tests
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
     common/command/arguments/FunctionArgumentTest.cpp
+    common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
     common/command/arguments/TimeArgumentTest.cpp

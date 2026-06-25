@@ -28,6 +28,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include <nlohmann/json.hpp>
 
@@ -52,6 +53,7 @@ protected:
         // 初始化物品和药水注册表（只执行一次）
         Items::initialize();
         potion::Potions::initialize();
+        item::tag::ItemTags::initialize();
     }
 };
 
@@ -454,4 +456,137 @@ TEST_F(ItemPredicateTest, MC1165_LongPotionVariants)
     // 普通夜视药水不匹配
     ItemStack nightVision = potion::PotionUtils::createPotionItem(potion::Potions::NIGHT_VISION);
     EXPECT_FALSE(predicate.test(nightVision));
+}
+
+// ========== 标签匹配测试 ==========
+
+TEST_F(ItemPredicateTest, TagMatch_ItemInTag)
+{
+    // 创建匹配 "minecraft:flowers" 标签的谓词
+    ResourceLocation tagId("minecraft", "flowers");
+    ItemPredicate predicate(std::nullopt, tagId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
+
+    EXPECT_FALSE(predicate.isAny());
+    EXPECT_TRUE(predicate.getTag().has_value());
+    EXPECT_EQ(predicate.getTag().value().toString(), "minecraft:flowers");
+
+    // 雏菊应该在花朵标签中
+    const Item* dandelion = Items::DANDELION;
+    if (dandelion != nullptr) {
+        ItemStack dandelionStack(dandelion, 1);
+        EXPECT_TRUE(predicate.test(dandelionStack));
+    }
+}
+
+TEST_F(ItemPredicateTest, TagMatch_ItemNotInTag)
+{
+    // 创建匹配 "minecraft:flowers" 标签的谓词
+    ResourceLocation tagId("minecraft", "flowers");
+    ItemPredicate predicate(std::nullopt, tagId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
+
+    // 钻石不在花朵标签中
+    ItemStack diamond(Items::DIAMOND, 1);
+    EXPECT_FALSE(predicate.test(diamond));
+}
+
+TEST_F(ItemPredicateTest, TagMatch_UnknownTagRejectsAll)
+{
+    // 未知标签不匹配任何物品
+    ResourceLocation unknownTag("minecraft", "nonexistent_tag_xyz");
+    ItemPredicate predicate(std::nullopt, unknownTag, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
+
+    ItemStack diamond(Items::DIAMOND, 1);
+    EXPECT_FALSE(predicate.test(diamond));
+}
+
+TEST_F(ItemPredicateTest, TagMatch_EmptyStack)
+{
+    ResourceLocation tagId("minecraft", "flowers");
+    ItemPredicate predicate(std::nullopt, tagId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
+
+    // 空物品堆不匹配标签谓词
+    ItemStack emptyStack;
+    EXPECT_FALSE(predicate.test(emptyStack));
+}
+
+TEST_F(ItemPredicateTest, TagAndItemMutuallyExclusive)
+{
+    // 同时指定 item 和 tag 时，item 优先（与 MC Java 行为一致）
+    // 当两者都存在时，按顺序检查：先 item，后 tag
+    ResourceLocation itemId("minecraft", "diamond");
+    ResourceLocation tagId("minecraft", "flowers");
+    ItemPredicate predicate(itemId, tagId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
+
+    // 钻石匹配物品ID但不在花朵标签中——但 item 检查先通过
+    // 注意：item 和 tag 检查是 AND 关系（都需要通过），因此钻石不在花朵标签中，应不匹配
+    ItemStack diamond(Items::DIAMOND, 1);
+    EXPECT_FALSE(predicate.test(diamond));
+
+    // 雏菊在花朵标签中但不是钻石物品——item 检查不通过
+    const Item* dandelion = Items::DANDELION;
+    if (dandelion != nullptr) {
+        ItemStack dandelionStack(dandelion, 1);
+        EXPECT_FALSE(predicate.test(dandelionStack));
+    }
+}
+
+// ========== 标签 JSON 解析/序列化测试 ==========
+
+TEST_F(ItemPredicateTest, FromJson_TagOnly)
+{
+    nlohmann::json json = R"({"tag": "minecraft:flowers"})"_json;
+
+    auto result = ItemPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    ItemPredicate predicate = result.value();
+    EXPECT_FALSE(predicate.isAny());
+    EXPECT_FALSE(predicate.getItem().has_value());
+    EXPECT_TRUE(predicate.getTag().has_value());
+    EXPECT_EQ(predicate.getTag().value().toString(), "minecraft:flowers");
+}
+
+TEST_F(ItemPredicateTest, FromJson_ItemAndTag)
+{
+    // 同时指定 item 和 tag（虽然不常见，但 JSON 允许）
+    nlohmann::json json = R"({"item": "minecraft:diamond", "tag": "minecraft:logs"})"_json;
+
+    auto result = ItemPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    ItemPredicate predicate = result.value();
+    EXPECT_TRUE(predicate.getItem().has_value());
+    EXPECT_TRUE(predicate.getTag().has_value());
+    EXPECT_EQ(predicate.getItem().value().toString(), "minecraft:diamond");
+    EXPECT_EQ(predicate.getTag().value().toString(), "minecraft:logs");
+}
+
+TEST_F(ItemPredicateTest, ToJson_TagOnly)
+{
+    ResourceLocation tagId("minecraft", "flowers");
+    ItemPredicate predicate(std::nullopt, tagId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
+
+    nlohmann::json json = predicate.toJson();
+    ASSERT_TRUE(json.is_object());
+    EXPECT_FALSE(json.contains("item"));
+    EXPECT_TRUE(json.contains("tag"));
+    EXPECT_EQ(json["tag"], "minecraft:flowers");
+}
+
+TEST_F(ItemPredicateTest, RoundTrip_TagSerialization)
+{
+    ResourceLocation tagId("minecraft", "logs");
+    ItemPredicate original(std::nullopt, tagId, IntBounds{}, IntBounds{}, std::nullopt, {}, {}, {});
+
+    // 序列化
+    nlohmann::json json = original.toJson();
+
+    // 反序列化
+    auto result = ItemPredicate::fromJson(json);
+    ASSERT_TRUE(result.success());
+
+    ItemPredicate restored = result.value();
+    EXPECT_TRUE(restored.getTag().has_value());
+    EXPECT_EQ(restored.getTag().value().toString(), "minecraft:logs");
+    EXPECT_FALSE(restored.getItem().has_value());
 }

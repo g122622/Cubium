@@ -78,6 +78,30 @@ public:
         NBTPredicate nbt);
 
     /**
+     * @brief 构造带标签的物品谓词
+     *
+     * 对应 MC Java 的 ItemPredicate，支持通过标签匹配物品。
+     * item 和 tag 互斥：同时指定时，item 优先（与 MC Java 行为一致）。
+     *
+     * @param item 物品ID（可选，与 tag 互斥）
+     * @param tag 物品标签ID（可选，与 item 互斥）
+     * @param count 数量范围
+     * @param durability 耐久范围
+     * @param potion 药水类型
+     * @param enchantments 附魔谓词列表
+     * @param storedEnchantments 存储附魔谓词列表（用于附魔书）
+     * @param nbt NBT谓词
+     */
+    ItemPredicate(std::optional<ResourceLocation> item,
+        std::optional<ResourceLocation> tag,
+        IntBounds count,
+        IntBounds durability,
+        std::optional<ResourceLocation> potion,
+        std::vector<EnchantmentPredicate> enchantments,
+        std::vector<EnchantmentPredicate> storedEnchantments,
+        NBTPredicate nbt);
+
+    /**
      * @brief 复制构造函数
      */
     ItemPredicate(const ItemPredicate& other) = default;
@@ -122,6 +146,7 @@ public:
     // ========== Getters ==========
 
     [[nodiscard]] const std::optional<ResourceLocation>& getItem() const noexcept { return m_item; }
+    [[nodiscard]] const std::optional<ResourceLocation>& getTag() const noexcept { return m_tag; }
     [[nodiscard]] const IntBounds& getCount() const noexcept { return m_count; }
     [[nodiscard]] const IntBounds& getDurability() const noexcept { return m_durability; }
     [[nodiscard]] const std::optional<ResourceLocation>& getPotion() const noexcept { return m_potion; }
@@ -156,6 +181,7 @@ private:
         const std::vector<EnchantmentPredicate>& predicates, const item::enchant::EnchantmentContainer& enchantments);
 
     std::optional<ResourceLocation> m_item;                 ///< 物品ID
+    std::optional<ResourceLocation> m_tag;                  ///< 物品标签ID（与 m_item 互斥）
     IntBounds m_count;                                      ///< 数量范围
     IntBounds m_durability;                                 ///< 耐久范围
     std::optional<ResourceLocation> m_potion;               ///< 药水类型
