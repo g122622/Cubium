@@ -426,6 +426,7 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         static const std::atomic<bool> neverCancel{false};
         const std::atomic<bool>& cancelSignal = task->cancelToken ? *task->cancelToken : neverCancel;
 
+        MC_TRACE_EVENT("worker_pool", "TaskExecution", "description", task->task->description());
         success = task->task->execute(cancelSignal);
     }
     catch (const std::exception& e) {
@@ -448,6 +449,7 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
     // 回调
     if (task->callback) {
         try {
+            MC_TRACE_EVENT("worker_pool", "TaskCallback", "description", task->task->description());
             task->callback(success, taskPtr);
         }
         catch (const std::exception& e) {

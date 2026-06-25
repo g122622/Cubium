@@ -592,10 +592,9 @@ add_executable(mc_tests
     server/MiningManagerTest.cpp
     server/menu/CraftingMenuTest.cpp
     server/BlockUpdateSyncManagerTest.cpp
-    server/test_chunk_worker_pool.cpp
-    server/test_generation_chunk_cache.cpp
-    # ChunkSnapshot 不可变快照测试（对齐 Moonrise chunkCompletions[]）
-    server/world/ChunkSnapshotTest.cpp
+    # test_chunk_worker_pool 已删除（ChunkGenerateTask 被 ChunkProgressionTask + ChunkTaskScheduler 取代）
+    # GenerationChunkCache 已删除（被 StaticChunkCache2D + ChunkTaskScheduler 取代）
+    # ChunkSnapshot 已删除（可变 ChunkPrimer 模型取代不可变快照）
     server/test_server_chunk_manager.cpp
     server/core/TimeManagerTest.cpp
     server/core/PlayerManagerTest.cpp
@@ -1067,13 +1066,12 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
         ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkSnapshot.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp
@@ -1948,13 +1946,12 @@ target_sources(mc_command_tests
         # 事件系统
         ${CMAKE_SOURCE_DIR}/src/server/event/ServerEventBus.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
-        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkSnapshot.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/EntityChunkTracker.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/entity/ItemPickupManager.cpp

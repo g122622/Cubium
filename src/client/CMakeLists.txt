@@ -373,8 +373,8 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/core/BannedIpList.cpp
     ${CMAKE_SOURCE_DIR}/src/server/core/OpListManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkGenerateTask.cpp
-    ${CMAKE_SOURCE_DIR}/src/server/world/GenerationChunkCache.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp

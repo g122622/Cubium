@@ -1328,6 +1328,9 @@ add_library(mc_common STATIC
     # Thread utilities
     util/thread/ServerWorkerPool.cpp
 
+    # Concurrency utilities
+    util/concurrent/ReentrantAreaLock.cpp
+
     # Assert library
     util/assert/Assert.cpp
 

@@ -270,7 +270,7 @@ public:
      * @param start 结构起点实例
      */
     void addStructureStart(
-        const ResourceLocation& structureId, std::unique_ptr<mc::world::gen::structure::StructureStart> start)
+        const ResourceLocation& structureId, std::shared_ptr<mc::world::gen::structure::StructureStart> start)
     {
         m_structureStarts[structureId] = std::move(start);
     }
@@ -300,10 +300,14 @@ public:
     }
 
     /**
-     * @brief 获取所有结构起点
+     * @brief 获取所有结构起点（shared_ptr 共享所有权）
+     *
+     * 结构起点以 shared_ptr 共享：邻居区块在 STRUCTURE_REFERENCES 等阶段通过 WorldGenRegion
+     * 读取邻居结构起点（generateStructureReferences 读取邻居 StructureStart 并 incrementRefCount）。
+     * shared_ptr 使邻居持有同一份 StructureStart，incrementRefCount 的修改反映到共享对象上。
      */
     [[nodiscard]] const std::unordered_map<ResourceLocation,
-        std::unique_ptr<mc::world::gen::structure::StructureStart>>&
+        std::shared_ptr<mc::world::gen::structure::StructureStart>>&
     structureStarts() const noexcept
     {
         return m_structureStarts;
@@ -470,10 +474,18 @@ public:
     // ============================================================================
 
     /**
-     * @brief 转换为 ChunkData
-     * @return 完成的区块数据
+     * @brief 共享底层 ChunkData（非破坏性）
+     *
+     * 对齐 Moonrise：FULL 完成后 ChunkPrimer 仍持有 ChunkData 供邻居引用（直到 holder 卸载），
+     * 同时把同一份 ChunkData 发布到内存缓存 m_chunks 供游戏逻辑访问。两者共享所有权。
+     *
+     * 先完成收尾（高度图、biomes、后处理位置、状态标记），再返回 m_data 的共享副本。
+     * 不移走 m_data，ChunkPrimer 仍可正常访问（getChunkData/getBlockState 等）。
+     * m_spawnedEntities 仍清空（实体数据已在收尾前由调用方提取）。
+     *
+     * @return 共享同一份 ChunkData 的 shared_ptr
      */
-    [[nodiscard]] std::unique_ptr<ChunkData> toChunkData();
+    [[nodiscard]] std::shared_ptr<ChunkData> toChunkData();
 
     /**
      * @brief 获取底层 ChunkData（如果存在）
@@ -505,8 +517,9 @@ private:
     ChunkCoord m_x;
     ChunkCoord m_z;
 
-    // 底层数据
-    std::unique_ptr<ChunkData> m_data;
+    // 底层数据（shared_ptr：FULL 完成后与内存缓存 m_chunks 共享同一份 ChunkData，
+    // 保证邻居引用的 primer 在 holder 卸载前始终有效，对齐 Moonrise currentChunk 生命周期）
+    std::shared_ptr<ChunkData> m_data;
 
     // 生成状态
     const ChunkStatus* m_chunkStatus = &ChunkStatuses::EMPTY;
@@ -527,7 +540,9 @@ private:
     std::vector<SpawnedEntityData> m_spawnedEntities;
 
     // 结构起点（用于结构生成）
-    std::unordered_map<ResourceLocation, std::unique_ptr<mc::world::gen::structure::StructureStart>> m_structureStarts;
+    // shared_ptr 共享所有权：邻居区块在 STRUCTURE_REFERENCES 等阶段通过 WorldGenRegion 读取邻居
+    // 结构起点并 incrementRefCount。shared_ptr 使邻居持有同一份 StructureStart，计数修改反映到共享对象。
+    std::unordered_map<ResourceLocation, std::shared_ptr<mc::world::gen::structure::StructureStart>> m_structureStarts;
 
     // 结构引用（哪些结构的边界框与此区块相交）
     std::unordered_map<ResourceLocation, std::vector<std::pair<ChunkCoord, ChunkCoord>>> m_structureReferences;

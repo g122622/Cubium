@@ -3,26 +3,22 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * copies of the Software, and to furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM OR IN CONNECTION WITH
+ * THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "SingleChunkLifecycleManager.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -46,81 +42,201 @@ SingleChunkLifecycleManager::SingleChunkLifecycleManager(ChunkCoord x, ChunkCoor
     , m_z(z)
 {}
 
-const ChunkStatus& SingleChunkLifecycleManager::status() const
+const ChunkStatus& SingleChunkLifecycleManager::getCurrentGenStatus() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return *m_completedStatus;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return *m_currentGenStatus;
 }
 
 bool SingleChunkLifecycleManager::hasCompletedStatus(const ChunkStatus& status) const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_completedStatus->isAtLeast(status);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return m_currentGenStatus->isAtLeast(status);
 }
 
-bool SingleChunkLifecycleManager::acquireStatusBump(const ChunkStatus& target)
+ChunkPrimer* SingleChunkLifecycleManager::getCurrentChunk() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    // target 的父阶段必须与当前已完成阶段匹配，才能推进
-    const ChunkStatus* parent = target.parent();
-    if (parent == nullptr || !m_completedStatus->isAtLeast(*parent)) {
-        return false;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return m_currentChunk.get();
+}
+
+void SingleChunkLifecycleManager::setCurrentChunk(std::unique_ptr<ChunkPrimer> chunk)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_currentChunk = std::move(chunk);
+}
+
+std::unique_ptr<ChunkPrimer> SingleChunkLifecycleManager::releaseCurrentChunk()
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return std::move(m_currentChunk);
+}
+
+ChunkPrimer* SingleChunkLifecycleManager::getChunkIfPresentUnchecked(const ChunkStatus& status) const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // Cubium ChunkPrimer 累积式：m_currentChunk 已含所有 ≤ currentGenStatus 的状态数据。
+    // 若 currentGenStatus >= status，返回 m_currentChunk；否则返回 nullptr。
+    if (m_currentChunk != nullptr && m_currentGenStatus->isAtLeast(status)) {
+        return m_currentChunk.get();
     }
-    // 已经达到或超过目标，无需推进
-    if (m_completedStatus->isAtLeast(target)) {
-        return false;
+    return nullptr;
+}
+
+void SingleChunkLifecycleManager::onChunkGenComplete(const ChunkStatus& completedStatus)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // Cubium ChunkPrimer 累积式：primer 是同一对象（_executeStepTask 修改同一 primer），
+    // 只需推进 m_currentGenStatus，无需重存区块（对齐 Moonrise onChunkGenComplete 的 currentGenStatus 赋值）。
+    if (completedStatus.isAfter(*m_currentGenStatus)) {
+        m_currentGenStatus = &completedStatus;
     }
-    m_completedStatus = &target;
-    return true;
 }
 
 void SingleChunkLifecycleManager::completeStatusTo(const ChunkStatus& target)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (target.isAfter(*m_completedStatus)) {
-        m_completedStatus = &target;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (target.isAfter(*m_currentGenStatus)) {
+        m_currentGenStatus = &target;
     }
 }
 
-SingleChunkLifecycleManager::SourceState SingleChunkLifecycleManager::sourceState() const
+void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_sourceState;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (status.isAfter(*m_currentGenStatus)) {
+        m_currentGenStatus = &status;
+    }
 }
 
-SingleChunkLifecycleManager::ExecutionState SingleChunkLifecycleManager::executionState() const
+bool SingleChunkLifecycleManager::acquireStatusBump(const ChunkStatus& target)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_executionState;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    const ChunkStatus* parent = target.parent();
+    if (parent == nullptr || !m_currentGenStatus->isAtLeast(*parent)) {
+        return false;
+    }
+    if (m_currentGenStatus->isAtLeast(target)) {
+        return false;
+    }
+    m_currentGenStatus = &target;
+    return true;
 }
 
-bool SingleChunkLifecycleManager::isWaitingForNeighbors() const
+// ============================================================================
+// 双向邻居依赖图
+// ============================================================================
+
+void SingleChunkLifecycleManager::addBlockingNeighbour(SingleChunkLifecycleManager* neighbour)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_executionState == ExecutionState::WaitingForNeighbors;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (neighbour != nullptr) {
+        m_blockingNeighbours.insert(neighbour);
+    }
 }
 
-bool SingleChunkLifecycleManager::hasGeneratingChunk() const
+void SingleChunkLifecycleManager::addWaitingNeighbour(
+    SingleChunkLifecycleManager* neighbour, const ChunkStatus* requiredStatus)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_generatingChunk != nullptr;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (neighbour != nullptr) {
+        m_waitingNeighbours[neighbour] = requiredStatus;
+    }
+}
+
+void SingleChunkLifecycleManager::removeBlockingNeighbour(SingleChunkLifecycleManager* neighbour)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (neighbour != nullptr) {
+        m_blockingNeighbours.erase(neighbour);
+    }
+}
+
+void SingleChunkLifecycleManager::clearBlockingNeighbours()
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_blockingNeighbours.clear();
+}
+
+std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::clearSatisfiedWaitingNeighbours(
+    const ChunkStatus& completedStatus)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    std::vector<SingleChunkLifecycleManager*> removed;
+    for (auto it = m_waitingNeighbours.begin(); it != m_waitingNeighbours.end();) {
+        const ChunkStatus* requiredStatus = it->second;
+        if (requiredStatus == nullptr || completedStatus.isAtLeast(*requiredStatus)) {
+            removed.push_back(it->first);
+            it = m_waitingNeighbours.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    return removed;
+}
+
+// ============================================================================
+// 生成任务跟踪
+// ============================================================================
+
+const ChunkStatus& SingleChunkLifecycleManager::requestedGenStatus() const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return *m_requestedGenStatus;
+}
+
+bool SingleChunkLifecycleManager::upgradeGenTarget(const ChunkStatus& newTarget)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (newTarget.ordinal() > m_requestedGenStatus->ordinal()) {
+        m_requestedGenStatus = &newTarget;
+        return true;
+    }
+    return false;
+}
+
+void SingleChunkLifecycleManager::setGenerationTask(
+    mc::server::ChunkProgressionTask* task, const ChunkStatus& scheduledStatus)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    MC_ASSERT_RELEASE(m_generationTask == nullptr);
+    m_generationTask = task;
+    m_scheduledStatus = &scheduledStatus;
+}
+
+void SingleChunkLifecycleManager::clearGenerationTask()
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    m_generationTask = nullptr;
+    m_scheduledStatus = nullptr;
+}
+
+bool SingleChunkLifecycleManager::isSafeToUnload() const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return m_neighboursUsingThisChunk == 0 && m_generationTask == nullptr && !hasFailedGeneration();
 }
 
 // ============================================================================
 // 票据与玩家追踪
 // ============================================================================
 
+SingleChunkLifecycleManager::SourceState SingleChunkLifecycleManager::sourceState() const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return m_sourceState;
+}
+
 void SingleChunkLifecycleManager::addTicket(const ChunkLoadTicket& ticket)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_tickets.push_back(ticket);
 }
 
 void SingleChunkLifecycleManager::removeTicket(const ChunkLoadTicket& ticket)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = std::find_if(m_tickets.begin(), m_tickets.end(), [&ticket](const ChunkLoadTicket& current) {
-        // 使用现有票据三元组判等，保持与旧行为一致。
         return current.typeName() == ticket.typeName() && current.chunkValue() == ticket.chunkValue() &&
             current.level() == ticket.level();
     });
@@ -132,42 +248,42 @@ void SingleChunkLifecycleManager::removeTicket(const ChunkLoadTicket& ticket)
 
 size_t SingleChunkLifecycleManager::ticketCount() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_tickets.size();
 }
 
 bool SingleChunkLifecycleManager::hasTickets() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return !m_tickets.empty();
 }
 
 void SingleChunkLifecycleManager::addTrackingPlayer(PlayerId player)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_trackingPlayers.insert(player);
 }
 
 void SingleChunkLifecycleManager::removeTrackingPlayer(PlayerId player)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     m_trackingPlayers.erase(player);
 }
 
 size_t SingleChunkLifecycleManager::trackingPlayerCount() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_trackingPlayers.size();
 }
 
 bool SingleChunkLifecycleManager::hasTrackingPlayers() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return !m_trackingPlayers.empty();
 }
 
 // ============================================================================
-// 请求状态机
+// 请求聚合
 // ============================================================================
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submitRequest(const ChunkStatus& targetStatus,
@@ -175,148 +291,87 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
     std::function<void(bool, ChunkData*)> callback,
     std::shared_ptr<std::promise<ChunkData*>> promise)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-    // 已经就绪时直接把等待者挂上，后续由调用方立即完成，不再走任何调度路径。
-    if (m_sourceState == SourceState::Ready && m_completedStatus->isAtLeast(targetStatus)) {
+    // 已经达到或超过请求状态，且来源已就绪时，直接把等待者挂上。
+    if (m_sourceState == SourceState::Ready && m_currentGenStatus->isAtLeast(targetStatus)) {
         if (callback || promise) {
             m_waiters.push_back(Waiter{std::move(callback), std::move(promise)});
         }
         return _buildDecisionLocked();
     }
 
-    // 所有请求统一收敛到 lifecycle manager 内部，避免 ServerChunkManager 再维护一份并行状态。
-    if (callback || promise) {
-        m_waiters.push_back(Waiter{std::move(callback), std::move(promise)});
-    }
-
-    // 请求目标只允许单调提升；优先级采用更高优先级（数值更小）覆盖。
-    if (targetStatus.ordinal() > m_requestedStatus->ordinal()) {
-        m_requestedStatus = &targetStatus;
+    // 收敛请求：目标单调提升，优先级取更高（数值更小）
+    if (targetStatus.ordinal() > m_requestedGenStatus->ordinal()) {
+        m_requestedGenStatus = &targetStatus;
     }
     if (m_requestPriority == std::numeric_limits<i32>::max() || isHigherPriority(priority, m_requestPriority)) {
         m_requestPriority = priority;
     }
 
-    // 第一次进入或取消后重新进入时，分配新的 generation 与取消令牌。
+    // 首次进入或取消后重新进入时，分配新的 generation 与取消令牌
     if (!m_cancelToken) {
         ++m_requestGeneration;
         m_cancelToken = std::make_shared<std::atomic<bool>>(false);
     }
 
-    // Ready 说明内存中已经有结果，但尚未通过上方快速路径命中，直接唤醒等待者即可。
+    if (callback || promise) {
+        m_waiters.push_back(Waiter{std::move(callback), std::move(promise)});
+    }
+
+    // Ready 说明内存中已有结果但上方快速路径未命中，唤醒等待者
     if (m_sourceState == SourceState::Ready) {
         return _buildDecisionLocked();
     }
 
-    // Unknown 是唯一允许触发一次"来源解析"的状态。
+    // Unknown 是唯一允许触发一次来源解析的状态
     if (m_sourceState == SourceState::Unknown) {
         m_sourceState = SourceState::ResolvingStorage;
         return _buildDecisionLocked();
     }
 
-    // 已确认存档不存在时，只剩生成链路。
-    if (m_sourceState == SourceState::StorageMissing && m_executionState == ExecutionState::Idle) {
-        m_executionState = ExecutionState::WaitingForNeighbors;
-    }
-
-    return _buildDecisionLocked();
-}
-
-SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteNeighborProgress(bool neighborsReady)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    // 邻居推进事件只允许影响"等待邻居"的执行状态，不得改写来源状态。
-    if (m_sourceState != SourceState::StorageMissing) {
+    // 已确认存档不存在 → 走生成链路（由 ChunkTaskScheduler 调度）
+    if (m_sourceState == SourceState::StorageMissing) {
         return _buildDecisionLocked();
     }
 
-    if (m_executionState != ExecutionState::WaitingForNeighbors && m_executionState != ExecutionState::Idle) {
-        return _buildDecisionLocked();
-    }
-
-    m_executionState = neighborsReady ? ExecutionState::Queued : ExecutionState::WaitingForNeighbors;
     return _buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteStorageResolved(bool foundInStorage)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     MC_ASSERT_RELEASE(m_sourceState == SourceState::ResolvingStorage);
 
     if (foundInStorage) {
         m_sourceState = SourceState::LoadedFromStorage;
-        m_executionState = ExecutionState::Idle;
     } else {
         m_sourceState = SourceState::StorageMissing;
-        m_executionState = ExecutionState::WaitingForNeighbors;
     }
 
-    return _buildDecisionLocked();
-}
-
-SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGenerationQueued(u64 generation)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (generation != m_requestGeneration) {
-        return _buildDecisionLocked();
-    }
-
-    m_submittedGeneration = generation;
-    m_executionState = ExecutionState::Queued;
-    return _buildDecisionLocked();
-}
-
-SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGenerationStarted(u64 generation)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (generation != m_requestGeneration) {
-        return _buildDecisionLocked();
-    }
-
-    // worker 真正开始执行后，状态切换到 Generating；这一步只做状态登记，不处理结果。
-    m_executionState = ExecutionState::Generating;
-    return _buildDecisionLocked();
-}
-
-SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteGenerationFinished(
-    u64 generation, CompletionState completionState)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (generation != m_requestGeneration) {
-        return _buildDecisionLocked();
-    }
-
-    if (completionState == CompletionState::Succeeded) {
-        m_sourceState = SourceState::Ready;
-        m_executionState = ExecutionState::Idle;
-        m_requestPriority = std::numeric_limits<i32>::max();
-        return _buildDecisionLocked();
-    }
-
-    // 失败或取消后，保留"来源已确认缺失"的事实，只重置执行状态，允许后续重新请求。
-    m_sourceState = SourceState::StorageMissing;
-    m_executionState = ExecutionState::Idle;
-    _clearActiveGenerationLocked();
     return _buildDecisionLocked();
 }
 
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancelActiveWork()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    _clearActiveGenerationLocked();
-    m_executionState = ExecutionState::Idle;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (m_cancelToken) {
+        m_cancelToken->store(true, std::memory_order_release);
+    }
+    ++m_requestGeneration;
+    m_cancelToken = nullptr;
+    m_generationTask = nullptr;
+    m_scheduledStatus = nullptr;
+    m_requestPriority = std::numeric_limits<i32>::max();
     return _buildDecisionLocked();
 }
 
 std::vector<SingleChunkLifecycleManager::Waiter> SingleChunkLifecycleManager::takeReadyWaiters()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     if (m_sourceState != SourceState::Ready) {
         return {};
     }
-
     std::vector<Waiter> waiters;
     waiters.swap(m_waiters);
     return waiters;
@@ -324,99 +379,29 @@ std::vector<SingleChunkLifecycleManager::Waiter> SingleChunkLifecycleManager::ta
 
 std::vector<SingleChunkLifecycleManager::Waiter> SingleChunkLifecycleManager::takeAllWaiters()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     std::vector<Waiter> waiters;
     waiters.swap(m_waiters);
     return waiters;
 }
 
 // ============================================================================
-// 区块数据状态
+// 存档恢复
 // ============================================================================
-
-ChunkPrimer* SingleChunkLifecycleManager::createGeneratingChunk()
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-
-    if (!m_generatingChunk) {
-        // 只有真正进入生成阶段时才创建 ChunkPrimer，避免"来源解析"和"等待邻居"阶段过早分配。
-        m_generatingChunk = std::make_unique<ChunkPrimer>(m_x, m_z);
-    }
-
-    m_executionState = ExecutionState::Generating;
-    return m_generatingChunk.get();
-}
-
-std::unique_ptr<ChunkData> SingleChunkLifecycleManager::completeGeneration(const ChunkStatus& completedStatus)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    MC_ASSERT_RELEASE(m_generatingChunk != nullptr);
-
-    auto chunkData = m_generatingChunk->toChunkData();
-    m_generatingChunk.reset();
-    if (completedStatus.isAfter(*m_completedStatus)) {
-        m_completedStatus = &completedStatus;
-    }
-    m_sourceState = SourceState::Ready;
-    m_executionState = ExecutionState::Idle;
-    m_requestPriority = std::numeric_limits<i32>::max();
-    return chunkData;
-}
-
-void SingleChunkLifecycleManager::markGenerationReady(const ChunkStatus& completedStatus)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_generatingChunk.reset();
-    if (completedStatus.isAfter(*m_completedStatus)) {
-        m_completedStatus = &completedStatus;
-    }
-    m_sourceState = SourceState::Ready;
-    m_executionState = ExecutionState::Idle;
-    m_requestPriority = std::numeric_limits<i32>::max();
-}
 
 void SingleChunkLifecycleManager::markLoadedFromStorageReady(const ChunkStatus& persistedStatus)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    // 存档恢复完成后，真正的 ChunkData 所有权由外层缓存持有；
-    // lifecycle manager 这里只记录"来源已解析并且区块已经就绪"。
-    if (persistedStatus.isAfter(*m_completedStatus)) {
-        m_completedStatus = &persistedStatus;
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (persistedStatus.isAfter(*m_currentGenStatus)) {
+        m_currentGenStatus = &persistedStatus;
     }
     m_sourceState = SourceState::Ready;
-    m_executionState = ExecutionState::Idle;
     m_requestPriority = std::numeric_limits<i32>::max();
-}
-
-void SingleChunkLifecycleManager::setStatus(const ChunkStatus& status)
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (status.isAfter(*m_completedStatus)) {
-        m_completedStatus = &status;
-    }
-}
-
-bool SingleChunkLifecycleManager::isGenerationCurrent(u64 generation) const
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return generation == m_requestGeneration;
-}
-
-i32 SingleChunkLifecycleManager::requestPriority() const
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_requestPriority;
-}
-
-const ChunkStatus& SingleChunkLifecycleManager::requestedStatus() const
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return *m_requestedStatus;
 }
 
 std::shared_ptr<std::atomic<bool>> SingleChunkLifecycleManager::cancelToken() const
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_cancelToken;
 }
 
@@ -427,43 +412,28 @@ std::shared_ptr<std::atomic<bool>> SingleChunkLifecycleManager::cancelToken() co
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::_buildDecisionLocked() const
 {
     EnqueueDecision decision;
-    decision.generation = m_requestGeneration;
-    decision.priority = m_requestPriority == std::numeric_limits<i32>::max() ? 0 : m_requestPriority;
-    decision.targetStatus = m_requestedStatus;
+    decision.targetStatus = m_requestedGenStatus;
     decision.cancelToken = m_cancelToken;
 
-    // Ready 且已有内存 chunk 时，只需要唤醒等待者，不应再触发任何 IO 或生成。
-    if (m_sourceState == SourceState::Ready) {
+    // Ready 且已达到请求状态：只需唤醒等待者
+    if (m_sourceState == SourceState::Ready && m_currentGenStatus->isAtLeast(*m_requestedGenStatus)) {
         decision.shouldWakeReadyWaiters = !m_waiters.empty();
         return decision;
     }
 
-    // 来源解析是一次性的；只有 Unknown -> ResolvingStorage 那一跳会产生该动作。
+    // 来源解析是一次性的：只有 Unknown -> ResolvingStorage 那一跳
     if (m_sourceState == SourceState::ResolvingStorage) {
         decision.shouldResolveStorage = true;
         return decision;
     }
 
-    // 存档缺失后，只有在邻居条件已满足且尚未进入 worker 时，才允许排队生成。
-    if (m_sourceState == SourceState::StorageMissing && m_executionState == ExecutionState::Queued &&
-        m_cancelToken != nullptr) {
-        decision.shouldQueueGeneration = true;
+    // 存档缺失后，若尚未达到请求状态且没有进行中任务，触发生成调度
+    if (m_sourceState == SourceState::StorageMissing && m_currentGenStatus->isBefore(*m_requestedGenStatus) &&
+        m_generationTask == nullptr) {
+        decision.shouldScheduleGeneration = true;
     }
 
     return decision;
-}
-
-void SingleChunkLifecycleManager::_clearActiveGenerationLocked()
-{
-    if (m_cancelToken) {
-        m_cancelToken->store(true, std::memory_order_release);
-    }
-
-    ++m_requestGeneration;
-    m_submittedGeneration = 0;
-    m_cancelToken = nullptr;
-    m_generatingChunk.reset();
-    m_requestPriority = std::numeric_limits<i32>::max();
 }
 
 } // namespace mc::world::chunk

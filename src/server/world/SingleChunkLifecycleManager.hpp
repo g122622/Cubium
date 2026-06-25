@@ -3,29 +3,24 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * copies of the Software, and to furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above copyright notice and permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING THE ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM OR IN CONNECTION WITH
+ * THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #pragma once
 
 #include "common/core/Types.hpp"
-#include "common/world/chunk/data/ChunkData.hpp"
-#include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/chunk/base/ChunkId.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadTicket.hpp"
 #include <atomic>
@@ -34,50 +29,57 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 namespace mc::world::chunk {
+class ChunkPrimer;
+class ChunkData;
+} // namespace mc::world::chunk
 
+namespace mc::server {
+class ChunkProgressionTask;
+} // namespace mc::server
+
+namespace mc::world::chunk {
+
+/**
+ * @brief 单区块生命周期管理器（对齐 Moonrise NewChunkHolder）
+ *
+ * 重构后的 SingleChunkLifecycleManager 采用 Moonrise 的可变区块 + 双向邻居依赖图模型：
+ * - `m_currentChunk`：当前可变 ChunkPrimer（累积所有已完成状态的数据，对齐 NewChunkHolder.currentChunk）
+ * - `m_currentGenStatus`：当前已达到的最高生成状态（对齐 NewChunkHolder.currentGenStatus）
+ * - `m_blockingNeighbours` / `m_waitingNeighbours`：双向邻居依赖图
+ * - `m_generationTask`：当前进行中的 ChunkProgressionTask（一次只推进一步状态）
+ *
+ * 与 Moonrise 的差异：Cubium 的 ChunkPrimer 累积式（同一对象贯穿所有状态，_executeStepTask 修改同一 primer），
+ * 而 Moonrise 每状态独立 ChunkAccess（chunkCompletions[] 数组）。因此 Cubium 只需 m_currentChunk 单一指针，
+ * 无需每状态数组。getChunkIfPresentUnchecked(status) 检查 m_currentGenStatus.isAtLeast(status) 后返回 m_currentChunk。
+ *
+ * 职责划分：
+ * - 本类：持有状态（currentChunk/依赖图/请求聚合/等待者）、存档来源解析状态、票据与玩家追踪
+ * - `ChunkTaskScheduler`：调度决策（schedule/checkNeighbour/onChunkGenComplete）、区域锁、执行器选择
+ * - `ServerChunkManager`：请求入口、存储、卸载、tick、票据驱动
+ *
+ * 生成调度（何时推进、推进一步）由 `ChunkTaskScheduler` 负责，本类只保存状态并回答
+ * "当前状态是什么"、"哪个区块可用"、"谁在等我"。生成完成后由 `ChunkTaskScheduler`
+ * 调用 `onChunkGenComplete` 推进 currentGenStatus 并通知等待者。
+ */
 class SingleChunkLifecycleManager {
 public:
     /**
      * @brief 区块来源解析状态
      *
-     * 该状态只描述"这个区块的数据最终从哪里来"，
-     * 用于把"存档恢复"与"生成调度"从架构上明确拆开。
+     * 描述"区块数据从哪里来"：存档恢复还是生成。
+     * 与生成调度解耦：SourceState 决定来源链路，生成调度由 ChunkTaskScheduler 驱动。
      */
     enum class SourceState {
         Unknown,           ///< 尚未判定该区块是否存在于存档中
         ResolvingStorage,  ///< 正在执行一次性的存档来源解析
-        StorageMissing,    ///< 已确认存档中不存在该区块，后续只能走生成链路
-        LoadedFromStorage, ///< 已从存档恢复出区块数据，但尚未发布到最终 Ready
+        StorageMissing,    ///< 已确认存档中不存在该区块，后续走生成链路
+        LoadedFromStorage, ///< 已从存档恢复出区块数据，但尚未发布到 Ready
         Ready              ///< 区块已经在内存中可用，可直接满足请求
-    };
-
-    /**
-     * @brief 区块执行状态
-     *
-     * 该状态只描述"当前请求推进到了哪一步"，
-     * 不负责表达区块来自存档还是生成。
-     */
-    enum class ExecutionState {
-        Idle,                ///< 当前没有待推进的执行动作
-        WaitingForNeighbors, ///< 已知需要走生成，但被邻居依赖阻塞
-        Queued,              ///< 邻居条件满足，等待提交或已提交给 worker
-        Generating           ///< worker 已开始执行生成逻辑
-    };
-
-    /**
-     * @brief 生成任务完成状态
-     *
-     * 用于 worker 完成回调把最终结果回灌给生命周期状态机。
-     */
-    enum class CompletionState {
-        InProgress, ///< 仅作为占位值，正常回调不应以此结束
-        Succeeded,  ///< 生成成功，区块结果可发布
-        Cancelled,  ///< 生成被取消，结果必须丢弃
-        Failed      ///< 生成失败，状态机回到可重试状态
     };
 
     /**
@@ -96,29 +98,23 @@ public:
      *
      * 生命周期管理器本身只保存状态，不直接执行 IO 或提交 worker。
      * 每次状态变化后，由 ServerChunkManager 读取该结构并执行对应副作用。
+     *
+     * 重构后生成调度委托给 ChunkTaskScheduler，EnqueueDecision 只保留来源解析与等待者完成两个动作。
      */
     struct EnqueueDecision {
         bool shouldResolveStorage = false;              ///< 是否需要执行一次存档来源解析
-        bool shouldQueueGeneration = false;             ///< 是否需要把当前请求提交给生成 worker
         bool shouldWakeReadyWaiters = false;            ///< 是否应立即完成所有等待者
-        u64 generation = 0;                             ///< 当前请求代际，用于丢弃过期 worker 结果
-        i32 priority = 0;                               ///< 当前收敛后的最高优先级
+        bool shouldScheduleGeneration = false;          ///< 是否应调用 ChunkTaskScheduler 推进生成
         const ChunkStatus* targetStatus = nullptr;      ///< 当前请求目标状态
         const ChunkStatus* completedStatus = nullptr;   ///< 本次刚完成到的阶段（可为 nullptr）
-        std::shared_ptr<std::atomic<bool>> cancelToken; ///< 当前代际对应的取消令牌
+        std::shared_ptr<std::atomic<bool>> cancelToken; ///< 当前请求对应的取消令牌
     };
 
     /**
      * @brief 创建单区块生命周期管理器
-     *
-     * @param x 区块 X 坐标
-     * @param z 区块 Z 坐标
      */
     SingleChunkLifecycleManager(ChunkCoord x, ChunkCoord z);
 
-    /**
-     * @brief 析构函数
-     */
     ~SingleChunkLifecycleManager() = default;
 
     SingleChunkLifecycleManager(const SingleChunkLifecycleManager&) = delete;
@@ -126,163 +122,250 @@ public:
     SingleChunkLifecycleManager(SingleChunkLifecycleManager&&) noexcept = delete;
     SingleChunkLifecycleManager& operator=(SingleChunkLifecycleManager&&) noexcept = delete;
 
-    /**
-     * @brief 获取区块 X 坐标
-     */
+    // === 基础坐标访问 ===
+
     [[nodiscard]] ChunkCoord x() const { return m_x; }
-
-    /**
-     * @brief 获取区块 Z 坐标
-     */
     [[nodiscard]] ChunkCoord z() const { return m_z; }
-
-    /**
-     * @brief 获取区块位置对象
-     */
     [[nodiscard]] ChunkPos pos() const { return ChunkPos(m_x, m_z); }
-
-    /**
-     * @brief 获取区块唯一 ID
-     */
     [[nodiscard]] u64 id() const { return ChunkId(m_x, m_z, 0).toId(); }
 
-    /**
-     * @brief 获取当前已完成的最高区块生成阶段
-     *
-     * 返回值表示该区块在生成流水线上的实际完成进度，
-     * 与请求目标阶段不是同一个概念。
-     * 单调递增：一旦某个阶段完成，不会被回退。
-     */
-    [[nodiscard]] const ChunkStatus& status() const;
+    // === 生成状态（对齐 NewChunkHolder currentGenStatus / currentChunk） ===
 
     /**
-     * @brief 检查当前区块是否至少完成到指定阶段
+     * @brief 获取当前已达到的最高生成状态
      *
-     * @param status 目标阶段
-     * @return 如果当前完成阶段不低于目标阶段，返回 true
+     * = 最后一次 onChunkGenComplete 推进到的状态；若无任何生成则为 EMPTY。
+     */
+    [[nodiscard]] const ChunkStatus& getCurrentGenStatus() const;
+
+    /**
+     * @brief 兼容旧接口：返回当前生成状态
+     */
+    [[nodiscard]] const ChunkStatus& status() const { return getCurrentGenStatus(); }
+
+    /**
+     * @brief 检查当前是否至少完成到指定状态
      */
     [[nodiscard]] bool hasCompletedStatus(const ChunkStatus& status) const;
 
     /**
-     * @brief 尝试推进区块生成阶段
+     * @brief 获取当前可变区块（对齐 NewChunkHolder.getCurrentChunk）
      *
-     * 原子性地将完成状态从 target 的父阶段推进到 target。
-     * 只有当当前完成状态恰好是 target 的直接前驱时才会成功。
-     * 成功后，hasCompletedStatus(target) 返回 true。
-     *
-     * @param target 目标阶段（必须严格大于当前已完成阶段）
-     * @return true 表示推进成功，false 表示当前完成状态不满足前置条件
+     * 返回 m_currentChunk（累积所有已完成状态数据的 ChunkPrimer）。
+     * currentGenStatus 为 EMPTY 前（尚未加载）返回 nullptr。
+     * 生成任务取此作为 fromChunk 传入 WorldGenRegion 中心位置。
      */
-    bool acquireStatusBump(const ChunkStatus& target);
+    [[nodiscard]] ChunkPrimer* getCurrentChunk() const;
 
     /**
-     * @brief 直接设置完成阶段到指定状态
+     * @brief 接管当前可变区块的所有权（对齐 NewChunkHolder currentChunk 赋值）
      *
-     * 用于存档恢复等可以跳过中间阶段的场景。
-     * 只允许向前推进（target 必须 >= 当前完成阶段）。
+     * EMPTY 加载/存档恢复时设置初始 ChunkPrimer。SCLM 持有 unique_ptr 所有权。
+     * 生成完成后由 onChunkGenComplete 隐式保留（同一对象）。
+     */
+    void setCurrentChunk(std::unique_ptr<ChunkPrimer> chunk);
+
+    /**
+     * @brief 释放当前可变区块的所有权（卸载时清理用）
      *
-     * @param target 要设置的目标阶段
+     * FULL 完成后不再调用（对齐 Moonrise：currentChunk 保留至 holder 卸载，供邻居引用）。
+     * toChunkData 非破坏性，primer 仍持有同一份 ChunkData（与 m_chunks 共享所有权）。
+     *
+     * @return 释放的 ChunkPrimer
+     */
+    [[nodiscard]] std::unique_ptr<ChunkPrimer> releaseCurrentChunk();
+
+    /**
+     * @brief 获取指定状态可用的区块（对齐 NewChunkHolder.getChunkIfPresentUnchecked）
+     *
+     * Cubium 的 ChunkPrimer 累积式：若 m_currentGenStatus >= status，返回 m_currentChunk（同一对象，
+     * 已含所有 ≤ currentGenStatus 的状态数据）；否则返回 nullptr。
+     *
+     * @param status 目标状态
+     * @return 可变 ChunkPrimer 指针；若未达到该状态返回 nullptr
+     */
+    [[nodiscard]] ChunkPrimer* getChunkIfPresentUnchecked(const ChunkStatus& status) const;
+
+    /**
+     * @brief 生成完成回调：推进 currentGenStatus（对齐 NewChunkHolder.onChunkGenComplete 的状态推进部分）
+     *
+     * 由 ChunkTaskScheduler.onChunkGenComplete 在持有区域锁时调用。
+     * Cubium 的 ChunkPrimer 累积式：primer 是同一对象（_executeStepTask 修改同一 primer），
+     * 故只需推进 m_currentGenStatus，无需重存区块（对齐 Moonrise onChunkGenComplete 的 currentGenStatus 赋值）。
+     *
+     * @param completedStatus 本次完成的状态
+     */
+    void onChunkGenComplete(const ChunkStatus& completedStatus);
+
+    /**
+     * @brief 直接设置完成状态到指定状态（存档恢复等跳过中间阶段的场景）
+     *
+     * 只允许向前推进。配合 markLoadedFromStorageReady 使用。
      */
     void completeStatusTo(const ChunkStatus& target);
 
     /**
-     * @brief 获取当前加载级别
+     * @brief 兼容旧测试接口：直接设置完成状态
      */
+    void setStatus(const ChunkStatus& status);
+
+    /**
+     * @brief 尝试推进生成状态（旧测试接口）
+     *
+     * 原子性地将完成状态从 target 的父阶段推进到 target。
+     */
+    bool acquireStatusBump(const ChunkStatus& target);
+
+    // === 双向邻居依赖图（对齐 NewChunkHolder neighboursBlockingGenTask / neighboursWaitingForUs） ===
+
+    /**
+     * @brief 添加一个我正在等待的邻居
+     *
+     * @param neighbour 邻居生命周期管理器
+     */
+    void addBlockingNeighbour(SingleChunkLifecycleManager* neighbour);
+
+    /**
+     * @brief 添加一个等待我的邻居
+     *
+     * @param neighbour 邻居生命周期管理器
+     * @param requiredStatus 邻居需要我达到的状态
+     */
+    void addWaitingNeighbour(SingleChunkLifecycleManager* neighbour, const ChunkStatus* requiredStatus);
+
+    /**
+     * @brief 移除一个我正在等待的邻居
+     *
+     * @param neighbour 邻居生命周期管理器
+     */
+    void removeBlockingNeighbour(SingleChunkLifecycleManager* neighbour);
+
+    /**
+     * @brief 获取等待我的邻居及所需状态（用于 onChunkGenComplete 通知）
+     */
+    [[nodiscard]] const std::unordered_map<SingleChunkLifecycleManager*, const ChunkStatus*>& waitingNeighbours() const
+    {
+        return m_waitingNeighbours;
+    }
+
+    /**
+     * @brief 移除已满足所需状态的等待邻居记录
+     *
+     * 在 onChunkGenComplete 中调用：遍历 m_waitingNeighbours，移除 completedStatus >= requiredStatus
+     * 的条目，返回被移除的邻居列表（调用方已先 removeBlockingNeighbour，这里只清理本端记录）。
+     *
+     * @param completedStatus 本次完成的状态
+     * @return 被移除（已满足）的邻居列表
+     */
+    std::vector<SingleChunkLifecycleManager*> clearSatisfiedWaitingNeighbours(const ChunkStatus& completedStatus);
+
+    /**
+     * @brief 获取我正在等待的邻居数量
+     */
+    [[nodiscard]] size_t blockingNeighbourCount() const { return m_blockingNeighbours.size(); }
+
+    /**
+     * @brief 我是否正在等待任何邻居（阻塞中）
+     */
+    [[nodiscard]] bool isWaitingForNeighbors() const { return !m_blockingNeighbours.empty(); }
+
+    /**
+     * @brief 清空我正在等待的邻居集合（onChunkGenComplete 推进后调用）
+     */
+    void clearBlockingNeighbours();
+
+    // === 生成任务跟踪（对齐 NewChunkHolder.genTask） ===
+
+    /**
+     * @brief 获取当前请求的目标生成状态
+     */
+    [[nodiscard]] const ChunkStatus& requestedGenStatus() const;
+
+    /**
+     * @brief 兼容旧接口
+     */
+    [[nodiscard]] const ChunkStatus& requestedStatus() const { return requestedGenStatus(); }
+
+    /**
+     * @brief 提升目标生成状态（若 newTarget 高于当前目标）
+     *
+     * @param newTarget 新的目标状态
+     * @return true 表示目标被提升（或保持已有目标，已有进行中任务）
+     */
+    bool upgradeGenTarget(const ChunkStatus& newTarget);
+
+    /**
+     * @brief 判断当前是否有进行中的生成任务
+     */
+    [[nodiscard]] bool hasGenerationTask() const { return m_generationTask != nullptr; }
+
+    /**
+     * @brief 设置当前生成任务（断言无进行中任务）
+     *
+     * @param task 生成任务（由 ChunkTaskScheduler 创建，所有权不转移——任务自持 holder 引用）
+     * @param scheduledStatus 本次调度的目标状态
+     */
+    void setGenerationTask(mc::server::ChunkProgressionTask* task, const ChunkStatus& scheduledStatus);
+
+    /**
+     * @brief 获取当前生成任务
+     */
+    [[nodiscard]] mc::server::ChunkProgressionTask* generationTask() const { return m_generationTask; }
+
+    /**
+     * @brief 清除当前生成任务（onChunkGenComplete 或取消时调用）
+     */
+    void clearGenerationTask();
+
+    /**
+     * @brief 获取当前已调度的状态（一次只推进一步）
+     */
+    [[nodiscard]] const ChunkStatus* scheduledStatus() const { return m_scheduledStatus; }
+
+    // === 失败标记（对齐 Moonrise：失败即不可恢复） ===
+
+    [[nodiscard]] bool hasFailedGeneration() const { return m_hasFailedGeneration; }
+    void markFailed() { m_hasFailedGeneration = true; }
+
+    // === 邻居引用计数（防卸载） ===
+
+    /**
+     * @brief 增加邻居引用计数（有邻居正在使用我的快照生成）
+     */
+    void addNeighbourUsingChunk() { ++m_neighboursUsingThisChunk; }
+
+    /**
+     * @brief 减少邻居引用计数
+     */
+    void removeNeighbourUsingChunk() { --m_neighboursUsingThisChunk; }
+
+    /**
+     * @brief 是否安全卸载（无邻居引用、无进行中任务）
+     */
+    [[nodiscard]] bool isSafeToUnload() const;
+
+    // === 票据与玩家追踪 ===
+
     [[nodiscard]] i32 level() const { return m_level.load(std::memory_order_acquire); }
-
-    /**
-     * @brief 设置当前加载级别
-     *
-     * @param level 新的加载级别
-     */
     void setLevel(i32 level) { m_level.store(level, std::memory_order_release); }
-
-    /**
-     * @brief 判断该区块当前是否应当保持加载
-     *
-     * @return 当 level <= Border (34) 时返回 true
-     */
     [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(ChunkLoadLevel::Border); }
 
-    /**
-     * @brief 获取区块来源解析状态
-     */
     [[nodiscard]] SourceState sourceState() const;
-
-    /**
-     * @brief 获取区块执行状态
-     */
-    [[nodiscard]] ExecutionState executionState() const;
-
-    /**
-     * @brief 判断区块当前是否因邻居依赖而阻塞
-     */
-    [[nodiscard]] bool isWaitingForNeighbors() const;
-
-    /**
-     * @brief 判断是否已创建生成中的 ChunkPrimer
-     */
-    [[nodiscard]] bool hasGeneratingChunk() const;
-
-    /**
-     * @brief 添加一个加载票据
-     *
-     * @param ticket 要添加的票据
-     */
     void addTicket(const ChunkLoadTicket& ticket);
-
-    /**
-     * @brief 移除一个加载票据
-     *
-     * @param ticket 要移除的票据
-     */
     void removeTicket(const ChunkLoadTicket& ticket);
-
-    /**
-     * @brief 获取当前票据数量
-     */
     [[nodiscard]] size_t ticketCount() const;
-
-    /**
-     * @brief 判断当前是否仍持有任意加载票据
-     */
     [[nodiscard]] bool hasTickets() const;
-
-    /**
-     * @brief 添加正在追踪该区块的玩家
-     *
-     * @param player 玩家 ID
-     */
     void addTrackingPlayer(PlayerId player);
-
-    /**
-     * @brief 移除正在追踪该区块的玩家
-     *
-     * @param player 玩家 ID
-     */
     void removeTrackingPlayer(PlayerId player);
-
-    /**
-     * @brief 获取追踪该区块的玩家数量
-     */
     [[nodiscard]] size_t trackingPlayerCount() const;
-
-    /**
-     * @brief 判断当前是否有玩家正在追踪该区块
-     */
     [[nodiscard]] bool hasTrackingPlayers() const;
+
+    // === 请求聚合 ===
 
     /**
      * @brief 提交或合并一个区块请求
      *
-     * 这是新的统一请求入口。所有同步/异步请求都应先进入这里，
-     * 由生命周期状态机负责合并目标阶段、优先级和等待者集合。
-     *
-     * @param targetStatus 请求目标阶段
-     * @param priority 请求优先级，数值越小优先级越高
-     * @param callback 异步回调，可为空
-     * @param promise future 对应的 promise，可为空
-     * @return 调度器下一步应执行的动作决策
+     * 合并目标状态、优先级和等待者。返回调度器下一步动作决策。
      */
     EnqueueDecision submitRequest(const ChunkStatus& targetStatus,
         i32 priority,
@@ -290,109 +373,26 @@ public:
         std::shared_ptr<std::promise<ChunkData*>> promise);
 
     /**
-     * @brief 记录一次邻居推进事件
-     *
-     * 当周围区块状态前进后，ServerChunkManager 会调用此函数，
-     * 让当前区块重新评估是否可以从 WaitingForNeighbors 进入可排队状态。
-     *
-     * @param neighborsReady 当前邻居条件是否已满足
-     * @return 调度器下一步应执行的动作决策
-     */
-    EnqueueDecision noteNeighborProgress(bool neighborsReady);
-
-    /**
      * @brief 记录一次存档来源解析结果
-     *
-     * @param foundInStorage 是否在存档中找到了区块数据
-     * @return 调度器下一步应执行的动作决策
      */
     EnqueueDecision noteStorageResolved(bool foundInStorage);
 
     /**
-     * @brief 记录当前 generation 已进入排队阶段
-     *
-     * @param generation 本次排队对应的请求代际
-     * @return 调度器下一步应执行的动作决策
-     */
-    EnqueueDecision noteGenerationQueued(u64 generation);
-
-    /**
-     * @brief 记录当前 generation 已开始执行
-     *
-     * @param generation 本次执行对应的请求代际
-     * @return 调度器下一步应执行的动作决策
-     */
-    EnqueueDecision noteGenerationStarted(u64 generation);
-
-    /**
-     * @brief 记录一次生成任务完成事件
-     *
-     * @param generation 完成事件对应的请求代际
-     * @param completionState 完成结果
-     * @return 调度器下一步应执行的动作决策
-     */
-    EnqueueDecision noteGenerationFinished(u64 generation, CompletionState completionState);
-
-    /**
      * @brief 取消当前所有活跃工作
-     *
-     * 该函数会使当前代际失效，并触发取消令牌。
-     * 取消后不会自动完成等待者，调用方需要自行决定是失败返回还是继续保留请求。
-     *
-     * @return 调度器下一步应执行的动作决策
      */
     EnqueueDecision cancelActiveWork();
 
     /**
      * @brief 取出所有"已可立即完成"的等待者
-     *
-     * 该函数用于区块已经 Ready 的场景。
-     * 调用后内部等待者列表会被清空。
-     *
-     * @return 当前挂起的所有等待者
      */
     std::vector<Waiter> takeReadyWaiters();
 
     /**
-     * @brief 取出当前所有等待者
-     *
-     * 该函数通常用于卸载、关闭或失败清理路径。
-     * 调用后内部等待者列表会被清空。
-     *
-     * @return 当前挂起的所有等待者
+     * @brief 取出当前所有等待者（卸载/关闭/失败清理）
      */
     std::vector<Waiter> takeAllWaiters();
 
-    /**
-     * @brief 获取或创建生成中的 ChunkPrimer
-     *
-     * 仅当状态机已经决定进入生成执行阶段时才应调用。
-     *
-     * @return 当前区块对应的 ChunkPrimer
-     */
-    ChunkPrimer* createGeneratingChunk();
-
-    /**
-     * @brief 完成生成并提取最终 ChunkData
-     *
-     * 该函数会把内部 ChunkPrimer 转换为 ChunkData，
-     * 同时把完成状态推进到指定阶段（通常为 FULL）。
-     *
-     * @param completedStatus 本次生成完成到的阶段
-     * @return 新生成的 ChunkData 所有权
-     */
-    std::unique_ptr<ChunkData> completeGeneration(const ChunkStatus& completedStatus = ChunkStatuses::FULL);
-
-    /**
-     * @brief 标记异步生成已成功完成到指定阶段
-     *
-     * 当生成工作在线程池内使用外部 `ChunkPrimer` 完成时，
-     * 生命周期管理器内部并不一定持有 `m_generatingChunk`。
-     * 这种情况下使用该接口只推进状态，不再尝试提取内部生成结果。
-     *
-     * @param completedStatus 本次生成完成到的阶段
-     */
-    void markGenerationReady(const ChunkStatus& completedStatus = ChunkStatuses::FULL);
+    // === 存档恢复 ===
 
     /**
      * @brief 接管从存档恢复出来的区块数据
@@ -401,80 +401,67 @@ public:
      */
     void markLoadedFromStorageReady(const ChunkStatus& persistedStatus = ChunkStatuses::FULL);
 
-    /**
-     * @brief 直接设置当前完成阶段
-     *
-     * 该函数仅用于区块已经就绪后同步修正内部状态，
-     * 不承担调度或回调语义。
-     * 只允许向前推进（status 必须 >= 当前完成阶段）。
-     *
-     * @param status 新的完成阶段
-     */
-    void setStatus(const ChunkStatus& status);
+    // === 旧生成执行接口（已删除，见 ChunkTaskScheduler） ===
+    // createGeneratingChunk / completeGeneration / markGenerationReady /
+    // noteGenerationQueued / noteGenerationStarted / noteGenerationFinished /
+    // noteNeighborProgress / hasGeneratingChunk / isGenerationCurrent /
+    // requestPriority / cancelToken 已被 NewChunkHolder 模型取代。
 
     /**
-     * @brief 判断指定 generation 是否仍是当前有效请求
+     * @brief 兼容旧测试接口：获取当前请求的取消令牌
      *
-     * @param generation 待检查的请求代际
-     * @return 若与当前 active generation 一致则返回 true
-     */
-    [[nodiscard]] bool isGenerationCurrent(u64 generation) const;
-
-    /**
-     * @brief 获取当前收敛后的请求优先级
-     */
-    [[nodiscard]] i32 requestPriority() const;
-
-    /**
-     * @brief 获取当前收敛后的请求目标状态
-     */
-    [[nodiscard]] const ChunkStatus& requestedStatus() const;
-
-    /**
-     * @brief 获取当前请求的取消令牌
-     *
-     * @return 当前 generation 对应的取消令牌；若当前没有活跃请求则返回空指针
+     * 新模型下取消令牌仍用于请求聚合与卸载清理，保留该接口。
      */
     [[nodiscard]] std::shared_ptr<std::atomic<bool>> cancelToken() const;
 
 private:
     /**
-     * @brief 根据当前内部状态构造一份调度决策
-     *
-     * 该函数只读内部状态，不产生副作用。
-     * 所有真正的 IO、worker 提交和等待者完成都由上层调度器执行。
+     * @brief 根据当前内部状态构造调度决策（只读，无副作用）
      */
     [[nodiscard]] EnqueueDecision _buildDecisionLocked() const;
-
-    /**
-     * @brief 在持锁状态下清理当前 active generation
-     *
-     * 该函数会推进 generation、触发取消令牌并丢弃生成中间态，
-     * 用于取消、失败恢复和卸载清理等路径。
-     */
-    void _clearActiveGenerationLocked();
 
     ChunkCoord m_x;
     ChunkCoord m_z;
 
-    const ChunkStatus* m_completedStatus = &ChunkStatuses::EMPTY;
-    std::atomic<i32> m_level{static_cast<i32>(ChunkLoadLevel::MaxLevel)};
+    // === 生成状态（对齐 NewChunkHolder currentChunk / currentGenStatus） ===
+    // Cubium 简化：ChunkPrimer 累积式（同一对象贯穿所有状态），只需 m_currentChunk 单一指针 + m_currentGenStatus。
+    // 无需 Moonrise 的 chunkCompletions[] 每状态数组。
+    // SCLM 持有 unique_ptr 所有权：EMPTY 加载时 setCurrentChunk 接管，FULL 完成后不释放（对齐 Moonrise：
+    // currentChunk 保留至 holder 卸载，供邻居引用；ChunkData 通过 shared_ptr 与 m_chunks 共享所有权）。
+    std::unique_ptr<ChunkPrimer> m_currentChunk;                   ///< 当前可变 ChunkPrimer（累积所有已完成状态数据）
+    const ChunkStatus* m_currentGenStatus = &ChunkStatuses::EMPTY; ///< 当前已达到的最高生成状态
 
-    SourceState m_sourceState = SourceState::Unknown;
-    ExecutionState m_executionState = ExecutionState::Idle;
-
-    const ChunkStatus* m_requestedStatus = &ChunkStatuses::EMPTY;
+    // === 请求聚合 ===
+    const ChunkStatus* m_requestedGenStatus = &ChunkStatuses::EMPTY;
     i32 m_requestPriority = std::numeric_limits<i32>::max();
     u64 m_requestGeneration = 0;
-    u64 m_submittedGeneration = 0;
     std::shared_ptr<std::atomic<bool>> m_cancelToken;
 
-    std::unique_ptr<ChunkPrimer> m_generatingChunk;
-    std::vector<Waiter> m_waiters;
+    // === 生成任务 ===
+    mc::server::ChunkProgressionTask* m_generationTask = nullptr;
+    const ChunkStatus* m_scheduledStatus = nullptr;
+    bool m_hasFailedGeneration = false;
+
+    // === 双向邻居依赖图 ===
+    std::unordered_set<SingleChunkLifecycleManager*> m_blockingNeighbours;                    // 我正在等待的邻居
+    std::unordered_map<SingleChunkLifecycleManager*, const ChunkStatus*> m_waitingNeighbours; // 等我的邻居及所需状态
+
+    // === 邻居引用计数 ===
+    i32 m_neighboursUsingThisChunk = 0;
+
+    // === 来源状态 ===
+    SourceState m_sourceState = SourceState::Unknown;
+
+    // === 票据与玩家 ===
+    std::atomic<i32> m_level{static_cast<i32>(ChunkLoadLevel::MaxLevel)};
     std::vector<ChunkLoadTicket> m_tickets;
     std::unordered_set<PlayerId> m_trackingPlayers;
 
-    mutable std::mutex m_mutex;
+    // === 等待者 ===
+    std::vector<Waiter> m_waiters;
+
+    // 递归互斥锁：支持 ChunkTaskScheduler 在持锁时重入调用 schedule/checkNeighbour
+    mutable std::recursive_mutex m_mutex;
 };
 
 } // namespace mc::world::chunk

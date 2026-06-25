@@ -28,11 +28,10 @@ add_executable(minecraft-server
     dimension/ServerDimensionManager.cpp
     # 世界模块
     world/ServerWorld.cpp
-    world/ChunkGenerateTask.cpp
-    world/GenerationChunkCache.cpp
+    world/ChunkTaskScheduler.cpp
+    world/ChunkProgressionTask.cpp
     world/ServerChunkManager.cpp
     world/SingleChunkLifecycleManager.cpp
-    world/ChunkSnapshot.cpp
     world/drop/BlockDropHandler.cpp
     world/spawn/NaturalSpawner.cpp
     world/spawn/SpawnConditions.cpp

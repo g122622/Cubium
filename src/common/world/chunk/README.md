@@ -122,8 +122,9 @@ flowchart LR
 
 **依赖方（下游）**：
 - `server/world/ServerChunkManager.hpp` — 服务端区块管理器
-- `server/world/SingleChunkLifecycleManager.hpp` — 单区块生命周期
-- `server/world/ChunkGenerateTask.hpp` — 区块生成任务
+- `server/world/SingleChunkLifecycleManager.hpp` — 单区块生命周期（NewChunkHolder 等价物）
+- `server/world/ChunkTaskScheduler.hpp` — 生成调度核心
+- `server/world/ChunkProgressionTask.hpp` — 单状态推进任务
 - `client/world/ClientWorld.hpp` — 客户端世界
 - `common/world/gen/` — 生成器
 - `common/world/lighting/` — 光照引擎

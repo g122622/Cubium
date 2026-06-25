@@ -23,8 +23,7 @@
 
 #pragma once
 
-#include "ChunkGenerateTask.hpp"
-#include "GenerationChunkCache.hpp"
+#include "ChunkTaskScheduler.hpp"
 #include "SingleChunkLifecycleManager.hpp"
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
@@ -41,6 +40,8 @@
 namespace mc::server {
 
 class ServerWorld;
+class ChunkTaskScheduler;
+class ChunkProgressionTask;
 
 namespace sync {
 class ChunkSendManager;
@@ -76,6 +77,13 @@ struct ChunkStepDependencyInfo {
  */
 class ServerChunkManager {
 public:
+    // ChunkTaskScheduler 和 ChunkProgressionTask 需要访问私有方法
+    // （_executeStepTask / _finalizeGeneratedChunkSync / _tryToLoadChunkFromStorageSync /
+    //  _storeChunkInMemorySync / _getOrCreateLifecycleManager / _findLifecycleManager /
+    //  _failWaiters / _completeReadyWaiters）以驱动区块生成
+    friend class ChunkTaskScheduler;
+    friend class ChunkProgressionTask;
+
     /**
      * @brief 区块请求完成回调
      *
@@ -154,9 +162,19 @@ public:
     /**
      * @brief 注入外部计算线程池
      *
+     * 同时创建/重建区块生成调度器 ChunkTaskScheduler，把同一 worker 池同时作为
+     * parallelGenExecutor 和 radiusAwareExecutor（区域互斥由 submit 的 writeRadius
+     * 重载保证，无需两个独立池）。
+     *
      * @param workerPool 由服务器统一持有的工作线程池
      */
-    void setWorkerPool(util::ServerWorkerPool* workerPool) { m_workerPool = workerPool; }
+    void setWorkerPool(util::ServerWorkerPool* workerPool)
+    {
+        m_workerPool = workerPool;
+        // 调度器持有 worker 池指针。同一池既用于 parallelCapable 状态（无区域互斥 submit），
+        // 也用于写方块状态（带 writeRadius 的区域互斥 submit）。
+        m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, workerPool, workerPool);
+    }
 
     /**
      * @brief 获取当前已缓存的区块
@@ -373,17 +391,6 @@ public:
     }
 
     /**
-     * @brief 获取指定位置的生成中 ChunkPrimer
-     *
-     * 用于在生成过程中访问邻居区块的中间态。
-     *
-     * @param x 区块 X 坐标
-     * @param z 区块 Z 坐标
-     * @return 生成中的 ChunkPrimer 指针；若不存在则返回 nullptr
-     */
-    [[nodiscard]] ChunkPrimer* getGeneratingPrimer(ChunkCoord x, ChunkCoord z);
-
-    /**
      * @brief 显式处理票据系统积压更新
      */
     void processTicketUpdatesSync() { m_ticketManager.processUpdates(); }
@@ -449,13 +456,6 @@ public:
     void tick();
 
     /**
-     * @brief 检查是否仍持有正在生成的 ChunkPrimer
-     *
-     * 用于卸载判断：如果仍有 Primer 在生成中，不应卸载该区块。
-     */
-    [[nodiscard]] bool hasGeneratingPrimer(ChunkCoord x, ChunkCoord z) const;
-
-    /**
      * @brief 获取当前已加载区块数量
      */
     [[nodiscard]] size_t loadedChunkCount() const;
@@ -502,6 +502,17 @@ public:
      * @brief 获取当前区块生成器（const 版本）
      */
     [[nodiscard]] const IChunkGenerator* generator() const { return m_generator.get(); }
+
+    /**
+     * @brief 获取关联的 ServerWorld（可能为 nullptr，独立模式无 world）
+     */
+    [[nodiscard]] ServerWorld* world() { return m_world; }
+    [[nodiscard]] const ServerWorld* world() const { return m_world; }
+
+    /**
+     * @brief 是否关联了 ServerWorld
+     */
+    [[nodiscard]] bool hasWorld() const { return m_world != nullptr; }
 
 private:
     /**
@@ -564,7 +575,7 @@ private:
      * @brief 推进指定区块状态机
      *
      * 根据生命周期管理器返回的动作决策，
-     * 执行存档解析、异步生成排队或等待者完成。
+     * 执行存档解析、生成调度或等待者完成。
      *
      * @param lifecycleManager 要推进的单区块状态机
      * @param decision 生命周期管理器产出的动作决策
@@ -580,13 +591,17 @@ private:
     void _resolveChunkSourceSync(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager);
 
     /**
-     * @brief 尝试排队一个异步区块生成任务
+     * @brief 在调度锁保护下推进区块生成调度
+     *
+     * 持有 schedulingLockArea(x, z, getMaxAccessRadius()) 后调用
+     * `ChunkTaskScheduler::schedule`，把区块推进到下一个状态。生成调度完全委托给
+     * `ChunkTaskScheduler`（邻居检查、任务提交、完成回调都在其中）。
      *
      * @param lifecycleManager 目标区块的生命周期管理器
-     * @param decision 当前调度决策
+     * @param targetStatus 目标生成状态
      */
-    void _enqueueChunkGenerationAsync(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager,
-        const mc::world::chunk::SingleChunkLifecycleManager::EnqueueDecision& decision);
+    void _scheduleGeneration(
+        mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
 
     /**
      * @brief 完成所有已就绪等待者
@@ -615,39 +630,6 @@ private:
         ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const;
 
     /**
-     * @brief 根据目标阶段计算需要先满足的邻居前置条件
-     *
-     * 基于 ChunkPyramid 的直接依赖模型。
-     * 对于给定的目标状态，查找其 ChunkStep 的 directDependencies，
-     * 返回所需的最大依赖半径和对应的前置状态。
-     *
-     * @param targetStatus 请求目标阶段
-     * @return 依赖信息；若无邻居依赖则 directRadius <= 0
-     */
-    [[nodiscard]] ChunkStepDependencyInfo _getDirectDependencyInfo(const ChunkStatus& targetStatus) const;
-
-    /**
-     * @brief 检查给定区块的邻居依赖是否满足
-     *
-     * 基于 ChunkStep.directDependencies：
-     * 对每个半径级别，检查对应半径内的所有邻居是否达到所需状态。
-     *
-     * @param x 区块 X 坐标
-     * @param z 区块 Z 坐标
-     * @param step 目标阶段的 ChunkStep
-     * @return 若所有依赖邻居均已满足则返回 true
-     */
-    [[nodiscard]] bool _areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStep& step) const;
-
-    /**
-     * @brief 在区块完成推进后，唤醒其影响范围内阻塞的邻居请求
-     *
-     * @param x 已推进区块的 X 坐标
-     * @param z 已推进区块的 Z 坐标
-     */
-    void _wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z);
-
-    /**
      * @brief 处理票据级别变化
      *
      * @param x 区块 X 坐标
@@ -658,104 +640,23 @@ private:
     void _onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel);
 
     /**
-     * @brief 获取某阶段生成所需的邻居区块窗口
-     *
-     * 优先从生成缓存和内存缓存获取区块，不再创建空 ChunkPrimer 作为占位。
-     *
-     * @param x 中心区块 X 坐标
-     * @param z 中心区块 Z 坐标
-     * @param radius 邻域半径
-     * @param centerChunk 中心区块视图
-     * @param neighbors 输出区块窗口
-     * @param loadedNeighbors 已加载邻居区块的共享持有容器
-     * @param missingNeighbors 保留的临时持有容器，当前不再用于创建缺失邻区
-     * @param cache 生成缓存（可选）；若提供则优先从中获取
-     */
-    void _collectNeighborChunks(ChunkCoord x,
-        ChunkCoord z,
-        i32 radius,
-        IChunk* centerChunk,
-        std::vector<IChunk*>& neighbors,
-        std::vector<std::shared_ptr<ChunkData>>& loadedNeighbors,
-        std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors,
-        GenerationChunkCache* cache);
-
-    /**
-     * @brief WorldGenRegion 构造所需的邻居窗口
-     */
-    struct NeighborRegionContext {
-        std::vector<IChunk*> neighbors;
-        std::vector<std::shared_ptr<ChunkData>> loadedNeighbors;
-        std::vector<std::unique_ptr<ChunkPrimer>> missingNeighbors;
-        std::unique_ptr<WorldGenRegion> region;
-    };
-
-    /**
-     * @brief 为指定中心区块创建 WorldGenRegion 及其持有上下文
-     *
-     * @param centerChunk 中心区块
-     * @param radius 邻域半径
-     * @param cache 生成缓存（可选）
-     * @param step 当前生成步骤（可选）；若提供则启用读写校验
-     * @return 邻居窗口上下文
-     */
-    [[nodiscard]] NeighborRegionContext _doCreateWorldGenRegion(
-        IChunk& centerChunk, i32 radius, GenerationChunkCache* cache, const ChunkStep* step = nullptr);
-
-    /**
-     * @brief 在给定 Primer 上推进到目标生成阶段
-     *
-     * 逐层调度：对每个生成阶段，先确保依赖环内区块完成前置状态，
-     * 然后执行当前阶段的生成任务。
-     *
-     * @param chunk 目标区块 Primer
-     * @param targetStatus 目标生成阶段
-     * @param cache 生成缓存
-     */
-    void _doGenerateChunkToTargetStatus(
-        ChunkPrimer& chunk, const ChunkStatus& targetStatus, GenerationChunkCache& cache);
-
-    /**
-     * @brief 推进当前步骤所需的直接邻区依赖
-     *
-     * 对 directDependencies 中的每个邻区，复用生成缓存内的中间态并递归推进到
-     * 要求状态。调用完成后，当前步骤允许访问的所有邻区都已达到对应状态。
-     *
-     * @param chunk 当前中心区块
-     * @param step 即将执行的生成步骤
-     * @param cache 本次生成任务的累计依赖缓存
-     */
-    void _prepareStepDependencies(ChunkPrimer& chunk, const ChunkStep& step, GenerationChunkCache& cache);
-
-    /**
      * @brief 对单个区块执行单个生成阶段的任务
      *
-     * @param chunk 目标区块 Primer
+     * 由 ChunkProgressionTask 在执行器线程中调用。根据 status 分派到 IChunkGenerator 的
+     * 对应方法（generateStructureStarts/generateBiomes/...）。
+     *
+     * @param chunk 目标区块 Primer（中心区块，可变）
      * @param status 当前要执行的生成阶段
-     * @param region 世界生成区域
+     * @param region 世界生成区域（邻居为可变 ChunkPrimer，由 StaticChunkCache2D 构造）
      */
     void _executeStepTask(ChunkPrimer& chunk, const ChunkStatus& status, WorldGenRegion& region);
 
     /**
-     * @brief 在 HEIGHTMAPS 完成后执行初始生物生成
+     * @brief 完成一次生成结果并写入内存缓存
      *
-     * @param chunk 目标区块 Primer
-     */
-    void _doSpawnInitialMobs(ChunkPrimer& chunk);
-
-    /**
-     * @brief 执行同步区块生成
-     *
-     * 该函数主要供同步请求路径使用，用于在当前线程直接推进到目标阶段。
-     *
-     * @param lifecycleManager 目标区块的生命周期管理器
-     * @param targetStatus 目标生成阶段
-     */
-    void _executeGenerationSync(
-        mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus);
-
-    /**
-     * @brief 完成一次异步生成结果并写入内存缓存
+     * 由 ChunkProgressionTask 在 FULL 完成时调用：primer.toChunkData（非破坏性，返回 shared_ptr 共享
+     * 同一份 ChunkData）+ _storeChunkInMemorySync（共享所有权重载）+ spawnEntitiesFromChunkGeneration
+     * + _postProcessChunk。primer 仍持有同一份 ChunkData 供邻居引用（对齐 Moonrise currentChunk 生命周期）。
      *
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
@@ -763,6 +664,22 @@ private:
      * @return 成功发布后的缓存区块指针；失败时返回 nullptr
      */
     [[nodiscard]] ChunkData* _finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer);
+
+    /**
+     * @brief 达到请求目标状态时唤醒等待者（非 FULL 路径）
+     *
+     * 由 ChunkTaskScheduler::onChunkGenComplete 在 currentGenStatus >= requestedGenStatus 时调用。
+     * FULL 已由 _finalizeGeneratedChunkSync 处理（存入 m_chunks + markLoadedFromStorageReady +
+     * _completeReadyWaiters），本方法处理非 FULL 目标：用 primer 的 ChunkData 直接完成等待者
+     * （promise/callback），不存入 m_chunks（m_chunks 仅保留 FULL 区块，保证 tryToGetChunkInMem
+     * 快速路径不返回中间状态区块）。markGenerationReady 标记 Ready，使后续相同/更低状态请求走
+     * submitRequest 快速路径。重复调用安全（Ready 后跳过）。
+     *
+     * @param holder 达到目标状态的生命周期管理器
+     * @param completedStatus 本次完成的状态
+     */
+    void _publishGeneratedChunk(
+        mc::world::chunk::SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus);
 
     /**
      * @brief 对已完成的区块执行后处理生成
@@ -783,6 +700,19 @@ private:
      * @return 缓存中的区块指针
      */
     [[nodiscard]] ChunkData* _storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data);
+
+    /**
+     * @brief 把已生成区块放入内存缓存（共享所有权重载）
+     *
+     * 由 ChunkProgressionTask 在 FULL 完成时调用：primer.toChunkData() 返回 shared_ptr（非破坏性，
+     * primer 仍持有同一份 ChunkData 供邻居引用），直接发布到内存缓存，与 primer 共享所有权。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param data 区块数据共享所有权
+     * @return 缓存中的区块指针
+     */
+    [[nodiscard]] ChunkData* _storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::shared_ptr<ChunkData> data);
 
     /**
      * @brief 保存一个脏区块的所有 section
@@ -835,15 +765,13 @@ private:
     mutable std::mutex m_chunksMutex;
 
     /**
-     * @brief 生成中的 ChunkPrimer 暂存
+     * @brief 区块生成调度核心（对齐 Moonrise ChunkTaskScheduler）
      *
-     * 存储正在生成过程中但尚未转为 ChunkData 的 ChunkPrimer。
-     * 用于邻居区块在生成过程中访问中间态数据。
+     * 持有 ReentrantAreaLock 保证 schedule/checkNeighbour/onChunkGenComplete 的原子性。
+     * nullptr 表示无 worker 池（独立/测试模式），ChunkTaskScheduler 内部在线执行任务。
      */
-    std::unordered_map<u64, ChunkPrimer*> m_generatingPrimers;
-    mutable std::mutex m_generatingPrimersMutex;
+    std::unique_ptr<ChunkTaskScheduler> m_taskScheduler;
 
-    mutable std::mutex m_syncGenerationMutex;
     mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
     util::ServerWorkerPool* m_workerPool = nullptr;

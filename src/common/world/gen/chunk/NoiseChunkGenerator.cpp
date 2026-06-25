@@ -67,6 +67,8 @@ NoiseChunkGenerator::NoiseChunkGenerator(
     : BaseChunkGenerator(seed, std::move(settings))
     , m_biomeSource(std::move(biomeSource))
 {
+    MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::constructor");
+
     // 确保生物群系注册表已初始化（默认构造路径会初始化，注入路径也需要）
     BiomeRegistry::instance().initialize();
 
@@ -211,7 +213,8 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
             // 生成结构起点
             auto start = structure->generate(*this, rng, chunkX, chunkZ);
             if (start) {
-                chunk.addStructureStart(entry->structureId, std::move(start));
+                chunk.addStructureStart(
+                    entry->structureId, std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
             }
         }
     }
@@ -262,23 +265,14 @@ void NoiseChunkGenerator::generateStructureReferences(WorldGenRegion& region, Ch
             for (auto& [structureId, srcX, srcZ] : intersecting) {
                 chunk.addStructureReference(structureId, srcX, srcZ);
 
-                // MC 1.21: 增加引用计数
-                // 获取源区块的 StructureStart 并增加引用计数
-                auto* neighborPrimer = dynamic_cast<const ChunkPrimer*>(neighbor);
-                if (neighborPrimer) {
-                    auto* start = const_cast<ChunkPrimer*>(neighborPrimer)->getStructureStart(structureId);
-                    if (start) {
-                        start->incrementRefCount();
-
-                        // 通知 StructureCheck 缓存递增引用计数
-                        // 对齐 MC 1.21.11 StructureManager.addReference() 中
-                        // 通过 structureCheck.incrementReference() 的调用
-                        if (m_structureManager) {
-                            const u64 srcChunkPosId = (static_cast<u64>(static_cast<u32>(srcX)) << 32) |
-                                static_cast<u64>(static_cast<u32>(srcZ));
-                            m_structureManager->structureCheck().incrementReference(srcChunkPosId, structureId);
-                        }
-                    }
+                // 对齐 Moonrise：STRUCTURE_REFERENCES 只写中心区块 + 集中式 StructureCheck 缓存。
+                // 不写邻居 StructureStart（Moonrise StructureCheckMixin.incrementReference 写
+                // 集中式 loadedChunksSafe，非邻居 ChunkAccess）。区域锁串行化重叠写区域，
+                // 邻居 StructureStart 在本阶段只读不写。
+                if (m_structureManager) {
+                    const u64 srcChunkPosId =
+                        (static_cast<u64>(static_cast<u32>(srcX)) << 32) | static_cast<u64>(static_cast<u32>(srcZ));
+                    m_structureManager->structureCheck().incrementReference(srcChunkPosId, structureId);
                 }
             }
         }

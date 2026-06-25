@@ -22,13 +22,16 @@
  */
 
 #include "ServerChunkManager.hpp"
+#include "ChunkTaskScheduler.hpp"
 #include "ServerWorld.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
+#include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
@@ -39,7 +42,7 @@
 
 namespace mc::server {
 
-using mc::world::chunk::ChunkDependencies;
+using mc::world::chunk::ChunkPrimer;
 using mc::world::chunk::ChunkPyramid;
 using mc::world::chunk::ChunkStatus;
 namespace ChunkStatuses = mc::world::chunk::ChunkStatuses;
@@ -66,40 +69,6 @@ void fulfillWaiters(std::vector<SingleChunkLifecycleManager::Waiter> waiters, bo
     }
 }
 
-[[nodiscard]] bool chunkHasCompletedStatus(const IChunk& chunk, const ChunkStatus& status)
-{
-    if (const auto* primer = dynamic_cast<const ChunkPrimer*>(&chunk)) {
-        return primer->hasCompletedStatus(status);
-    }
-    return dynamic_cast<const ChunkData*>(&chunk) != nullptr && ChunkStatuses::FULL.isAtLeast(status);
-}
-
-void assertRegionSatisfiesDirectDependencies(
-    const std::vector<IChunk*>& neighbors, ChunkCoord centerX, ChunkCoord centerZ, i32 radius, const ChunkStep& step)
-{
-    const i32 diameter = radius * 2 + 1;
-    MC_ASSERT_RELEASE(static_cast<i32>(neighbors.size()) == diameter * diameter);
-
-    const ChunkDependencies& deps = step.directDependencies();
-    for (i32 dz = -radius; dz <= radius; ++dz) {
-        for (i32 dx = -radius; dx <= radius; ++dx) {
-            const i32 distance = std::max(std::abs(dx), std::abs(dz));
-            const ChunkStatus* requiredStatus = deps.get(distance);
-            if (requiredStatus == nullptr) {
-                continue;
-            }
-
-            const size_t index = static_cast<size_t>((dz + radius) * diameter + (dx + radius));
-            const IChunk* chunk = neighbors[index];
-            MC_ASSERT_RELEASE_MSG(chunk != nullptr, "WorldGenRegion direct dependency chunk is missing");
-            MC_ASSERT_RELEASE(chunk->x() == centerX + dx);
-            MC_ASSERT_RELEASE(chunk->z() == centerZ + dz);
-            MC_ASSERT_RELEASE_MSG(
-                chunkHasCompletedStatus(*chunk, *requiredStatus), "WorldGenRegion direct dependency status is too low");
-        }
-    }
-}
-
 } // namespace
 
 // ============================================================================
@@ -113,6 +82,8 @@ ServerChunkManager::ServerChunkManager(ServerWorld& world, std::unique_ptr<IChun
     m_ticketManager.setLevelChangeCallback([this](ChunkCoord x, ChunkCoord z, i32 oldLevel, i32 newLevel) {
         _onTicketLevelChanged(x, z, oldLevel, newLevel);
     });
+    // 调度器延迟到 setWorkerPool 时创建（需要 worker 池）；独立模式（无 world/无 pool）由
+    // requestChunkSync 等入口按需创建。
 }
 
 ServerChunkManager::ServerChunkManager(std::unique_ptr<IChunkGenerator> generator)
@@ -141,6 +112,32 @@ Result<void> ServerChunkManager::initialize()
 
 void ServerChunkManager::shutdown()
 {
+    // 第一步：通知所有活跃生成任务取消（设置 cancel token）。正在执行的 ChunkProgressionTask
+    // 会在下一个取消检查点（execute 开头/executeStatusTask 执行后）检测到取消并返回 false，
+    // 其回调转而调用 onChunkGenFailed 完成清理。holder 仍在 m_lifecycleManagers 中（未移除），
+    // 故回调中的 findHolder 仍能找到 holder，安全完成失败路径。
+    {
+        std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
+        for (auto& [key, lifecycleManager] : m_lifecycleManagers) {
+            MC_UNUSED(key);
+            if (lifecycleManager) {
+                lifecycleManager->cancelActiveWork();
+            }
+        }
+    }
+
+    // 第二步：排空 worker 池，确保所有正在执行/排队的生成任务完成后再销毁 holder 与 chunk 数据。
+    // 这一步至关重要：ChunkProgressionTask::execute 持有 holder 原始指针（findHolder）并引用 m_manager，
+    // 若在任务执行期间销毁 holder/chunk 会导致 use-after-free。worker 池由外部持有（测试或 ServerWorld），
+    // 此处仅等待其空闲，不停止它。被取消的任务会快速返回，被取消令牌阻止的任务在回调中走失败路径。
+    // waitForCompletion 可能因 onChunkGenComplete 的自重调度短暂波动，但取消已使所有 holder 的
+    // cancelToken 失效，新调度产生的任务也会立刻检测到取消（holder 已 cancelActiveWork），
+    // 最终队列收敛为空。
+    if (m_workerPool != nullptr && m_workerPool->isRunning()) {
+        m_workerPool->waitForCompletion();
+    }
+
+    // 第三步：所有生成任务已结束，安全移除 holder。移到本地 vector 在锁外完成等待者失败通知。
     std::vector<std::unique_ptr<SingleChunkLifecycleManager>> lifecycleManagers;
     {
         std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
@@ -148,7 +145,6 @@ void ServerChunkManager::shutdown()
         for (auto& [key, lifecycleManager] : m_lifecycleManagers) {
             MC_UNUSED(key);
             if (lifecycleManager) {
-                lifecycleManager->cancelActiveWork();
                 lifecycleManagers.push_back(std::move(lifecycleManager));
             }
         }
@@ -210,25 +206,13 @@ ChunkData* ServerChunkManager::requestChunkSync(ChunkCoord x, ChunkCoord z, cons
         return chunk;
     }
 
-    std::lock_guard<std::mutex> generationLock(m_syncGenerationMutex);
-
-    if (ChunkData* chunk = tryToGetChunkInMem(x, z)) {
-        return chunk;
-    }
-
-    if (m_world && m_world->isStorageOpen()) {
-        if (auto loadedChunk = _tryToLoadChunkFromStorageSync(x, z)) {
-            SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
-            lifecycleManager.markLoadedFromStorageReady();
-            return _storeChunkInMemorySync(x, z, std::move(loadedChunk));
-        }
-    }
-
-    SingleChunkLifecycleManager& lifecycleManager = _getOrCreateLifecycleManager(x, z);
-    const i32 priority = _computeSchedulePriority(x, z, targetStatus, m_ticketManager.getChunkLevel(x, z));
-    MC_UNUSED(priority);
-    _executeGenerationSync(lifecycleManager, targetStatus);
-    return tryToGetChunkInMem(x, z);
+    // 同步请求：提交一个带 promise 的请求，阻塞等待生成完成。
+    // ChunkTaskScheduler 在 worker 池上推进生成，完成后 _completeReadyWaiters 完成 promise。
+    // 无 worker 池时 ChunkTaskScheduler 内部在线执行任务（submitTask 降级），仍会走完成回调。
+    auto promise = std::make_shared<std::promise<ChunkData*>>();
+    auto future = promise->get_future();
+    _submitChunkRequest(x, z, targetStatus, {}, promise);
+    return future.get();
 }
 
 ChunkData* ServerChunkManager::requestFullChunkSync(ChunkCoord x, ChunkCoord z)
@@ -290,8 +274,9 @@ void ServerChunkManager::_advanceChunkState(
         return;
     }
 
-    if (decision.shouldQueueGeneration) {
-        _enqueueChunkGenerationAsync(lifecycleManager, decision);
+    if (decision.shouldScheduleGeneration) {
+        // 持有调度区域锁后委托给 ChunkTaskScheduler 推进生成
+        _scheduleGeneration(lifecycleManager, *decision.targetStatus);
     }
 }
 
@@ -307,115 +292,35 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
 
     auto decision = lifecycleManager.noteStorageResolved(loadedChunk != nullptr);
     if (loadedChunk) {
-        lifecycleManager.markLoadedFromStorageReady();
-        ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(loadedChunk));
-        MC_UNUSED(stored);
-        _completeReadyWaiters(lifecycleManager);
-        _wakeBlockedNeighborsAsync(x, z);
+        // 存档命中：存入内存缓存。_storeChunkInMemorySync 内部会调用
+        // markLoadedFromStorageReady(FULL) + _completeReadyWaiters 唤醒等待者。
+        (void)_storeChunkInMemorySync(x, z, std::move(loadedChunk));
         return;
     }
 
-    // 使用 ChunkPyramid 的直接依赖模型检查邻居是否就绪
-    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
-    const ChunkStep& step = pyramid.getStepTo(lifecycleManager.requestedStatus());
-    ChunkStepDependencyInfo depInfo = _getDirectDependencyInfo(lifecycleManager.requestedStatus());
-
-    if (depInfo.hasDependencies) {
-        decision = lifecycleManager.noteNeighborProgress(_areNeighborsReady(x, z, step));
-    } else {
-        decision = lifecycleManager.noteNeighborProgress(true);
-    }
-
+    // 存档缺失：走生成链路（由 ChunkTaskScheduler 调度）
     _advanceChunkState(lifecycleManager, decision);
 }
 
-void ServerChunkManager::_enqueueChunkGenerationAsync(
-    SingleChunkLifecycleManager& lifecycleManager, const SingleChunkLifecycleManager::EnqueueDecision& decision)
+void ServerChunkManager::_scheduleGeneration(
+    SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus)
 {
-    const ChunkCoord x = lifecycleManager.x();
-    const ChunkCoord z = lifecycleManager.z();
-
-    // 同步路径直接生成，避免在没有 worker 池时把请求永久挂起。
-    if (m_workerPool == nullptr || !m_workerPool->isRunning()) {
-        std::lock_guard<std::mutex> generationLock(m_syncGenerationMutex);
-        lifecycleManager.noteGenerationStarted(decision.generation);
-        _executeGenerationSync(lifecycleManager, *decision.targetStatus);
-        auto completionDecision = lifecycleManager.noteGenerationFinished(
-            decision.generation, SingleChunkLifecycleManager::CompletionState::Succeeded);
-        MC_UNUSED(completionDecision);
-        _completeReadyWaiters(lifecycleManager);
-        _wakeBlockedNeighborsAsync(x, z);
-        return;
+    if (m_taskScheduler == nullptr) {
+        // 无调度器（独立/测试模式未调用 setWorkerPool）：创建一个共享同一 worker 池的调度器。
+        // worker 池可能为 nullptr，ChunkTaskScheduler 会在线执行任务（submitTask 降级）。
+        m_taskScheduler = std::make_unique<ChunkTaskScheduler>(*this, m_world, m_workerPool, m_workerPool);
     }
 
-    lifecycleManager.noteGenerationQueued(decision.generation);
-
-    // 计算生成缓存半径
-    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
-    const ChunkStep& targetStep = pyramid.getStepTo(*decision.targetStatus);
-    const i32 cacheRadius = targetStep.accumulatedRadius();
-
-    auto task = std::make_unique<ChunkGenerateTask>(x,
-        z,
-        *decision.targetStatus,
-        [this, cacheRadius](
-            ChunkPrimer& chunk, const ChunkStatus& targetStatus, const std::atomic<bool>& cancelSignal) {
-            // 注册到生成中 Primer 缓存
-            {
-                std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
-                m_generatingPrimers[posToKey(chunk.x(), chunk.z())] = &chunk;
-            }
-
-            // 创建生成缓存
-            GenerationChunkCache cache(chunk.x(), chunk.z(), cacheRadius);
-            cache.set(chunk.x(), chunk.z(), &chunk);
-
-            _doGenerateChunkToTargetStatus(chunk, targetStatus, cache);
-            if (!cancelSignal.load(std::memory_order_acquire)) {
-                _doSpawnInitialMobs(chunk);
-            }
-
-            // 从生成中缓存移除
-            {
-                std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
-                m_generatingPrimers.erase(posToKey(chunk.x(), chunk.z()));
-            }
-        });
-
-    m_workerPool->submit(
-        std::move(task),
-        [this, x, z, generation = decision.generation](bool success, util::ITask* task) {
-            SingleChunkLifecycleManager* lifecycleManager = _findLifecycleManager(x, z);
-            if (!lifecycleManager || !lifecycleManager->isGenerationCurrent(generation)) {
-                return;
-            }
-
-            lifecycleManager->noteGenerationStarted(generation);
-
-            ChunkData* storedChunk = nullptr;
-            auto completionState = SingleChunkLifecycleManager::CompletionState::Failed;
-
-            if (success && task) {
-                auto* generationTask = static_cast<ChunkGenerateTask*>(task);
-                auto result = generationTask->takeResult();
-                if (result) {
-                    storedChunk = _finalizeGeneratedChunkSync(x, z, *result);
-                    if (storedChunk != nullptr) {
-                        completionState = SingleChunkLifecycleManager::CompletionState::Succeeded;
-                    }
-                }
-            }
-
-            auto completionDecision = lifecycleManager->noteGenerationFinished(generation, completionState);
-            if (completionState == SingleChunkLifecycleManager::CompletionState::Succeeded) {
-                _completeReadyWaiters(*lifecycleManager);
-                _wakeBlockedNeighborsAsync(x, z);
-            } else {
-                MC_UNUSED(completionDecision);
-            }
-        },
-        static_cast<util::TaskPriority>(decision.priority),
-        decision.cancelToken);
+    const ChunkCoord x = lifecycleManager.x();
+    const ChunkCoord z = lifecycleManager.z();
+    // 持有 2 * maxAccessRadius 的锁，覆盖递归 schedule/checkNeighbour 的邻居范围。
+    // 同步执行模式（无 worker 池）下，checkNeighbour 递归 schedule 邻居时，
+    // 邻居的 schedule 断言要求 [邻居 ± maxAccessRadius] 被持有，邻居可达 maxAccessRadius 远，
+    // 故外层锁需 2 * maxAccessRadius 才能覆盖（与 onChunkGenComplete 的锁范围一致）。
+    const i32 lockRadius = 2 * ChunkTaskScheduler::getMaxAccessRadius();
+    auto lock = m_taskScheduler->schedulingLockArea().lock(x, z, lockRadius);
+    m_taskScheduler->schedule(x, z, targetStatus, lifecycleManager);
+    // lock 释放时释放区域锁
 }
 
 void ServerChunkManager::_completeReadyWaiters(SingleChunkLifecycleManager& lifecycleManager)
@@ -466,21 +371,6 @@ SingleChunkLifecycleManager* ServerChunkManager::_doFindLifecycleManager(ChunkCo
     return it != m_lifecycleManagers.end() ? it->second.get() : nullptr;
 }
 
-ChunkPrimer* ServerChunkManager::getGeneratingPrimer(ChunkCoord x, ChunkCoord z)
-{
-    const u64 key = posToKey(x, z);
-    std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
-    auto it = m_generatingPrimers.find(key);
-    return it != m_generatingPrimers.end() ? it->second : nullptr;
-}
-
-bool ServerChunkManager::hasGeneratingPrimer(ChunkCoord x, ChunkCoord z) const
-{
-    const u64 key = posToKey(x, z);
-    std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
-    return m_generatingPrimers.find(key) != m_generatingPrimers.end();
-}
-
 // ============================================================================
 // 票据与唤醒
 // ============================================================================
@@ -521,157 +411,21 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
     _failWaiters(lifecycleManager.takeAllWaiters());
 }
 
-void ServerChunkManager::_wakeBlockedNeighborsAsync(ChunkCoord x, ChunkCoord z)
-{
-    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::wakeBlockedNeighborsAsync");
-
-    // 唤醒范围使用 ChunkPyramid 的最大累积依赖半径
-    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
-    i32 maxRadius = 0;
-    for (const auto& step : pyramid.steps()) {
-        maxRadius = std::max(maxRadius, step.accumulatedRadius());
-    }
-    const i32 retryRadius = maxRadius;
-
-    std::vector<SingleChunkLifecycleManager*> neighbors;
-
-    {
-        std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
-        neighbors.reserve(static_cast<size_t>((retryRadius * 2 + 1) * (retryRadius * 2 + 1)));
-        for (i32 dz = -retryRadius; dz <= retryRadius; ++dz) {
-            for (i32 dx = -retryRadius; dx <= retryRadius; ++dx) {
-                if (dx == 0 && dz == 0) {
-                    continue;
-                }
-                auto it = m_lifecycleManagers.find(posToKey(x + dx, z + dz));
-                if (it != m_lifecycleManagers.end()) {
-                    neighbors.push_back(it->second.get());
-                }
-            }
-        }
-    }
-
-    for (SingleChunkLifecycleManager* neighbor : neighbors) {
-        if (!neighbor || !neighbor->isWaitingForNeighbors()) {
-            continue;
-        }
-
-        const ChunkStep& step = pyramid.getStepTo(neighbor->requestedStatus());
-        ChunkStepDependencyInfo depInfo = _getDirectDependencyInfo(neighbor->requestedStatus());
-        const bool neighborsReady =
-            depInfo.hasDependencies ? _areNeighborsReady(neighbor->x(), neighbor->z(), step) : true;
-        _advanceChunkState(*neighbor, neighbor->noteNeighborProgress(neighborsReady));
-    }
-}
-
 // ============================================================================
-// 同步生成与邻居依赖
+// 生成步骤分派（由 ChunkProgressionTask 调用）
 // ============================================================================
-
-void ServerChunkManager::_executeGenerationSync(
-    SingleChunkLifecycleManager& lifecycleManager, const ChunkStatus& targetStatus)
-{
-    ChunkPrimer* primer = lifecycleManager.createGeneratingChunk();
-    MC_ASSERT_RELEASE(primer != nullptr);
-
-    // 注册到生成中 Primer 缓存，供邻居区块访问
-    {
-        std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
-        m_generatingPrimers[posToKey(lifecycleManager.x(), lifecycleManager.z())] = primer;
-    }
-
-    // 创建生成缓存，半径为目标步骤的累积依赖半径
-    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
-    const ChunkStep& targetStep = pyramid.getStepTo(targetStatus);
-    const i32 cacheRadius = targetStep.accumulatedRadius();
-    GenerationChunkCache cache(lifecycleManager.x(), lifecycleManager.z(), cacheRadius);
-
-    cache.set(lifecycleManager.x(), lifecycleManager.z(), primer);
-
-    _doGenerateChunkToTargetStatus(*primer, targetStatus, cache);
-    _doSpawnInitialMobs(*primer);
-
-    // 从生成中缓存移除
-    {
-        std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
-        m_generatingPrimers.erase(posToKey(lifecycleManager.x(), lifecycleManager.z()));
-    }
-
-    auto data = lifecycleManager.completeGeneration();
-    MC_ASSERT_RELEASE(data != nullptr);
-    ChunkData* stored = _storeChunkInMemorySync(lifecycleManager.x(), lifecycleManager.z(), std::move(data));
-    MC_ASSERT_RELEASE(stored != nullptr);
-}
-
-void ServerChunkManager::_doGenerateChunkToTargetStatus(
-    ChunkPrimer& chunk, const ChunkStatus& targetStatus, GenerationChunkCache& cache)
-{
-    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
-    const auto& allStatuses = ChunkStatus::getAll();
-    for (const auto& status : allStatuses) {
-        if (status.ordinal() > targetStatus.ordinal()) {
-            break;
-        }
-        if (chunk.hasCompletedStatus(status)) {
-            continue;
-        }
-
-        const ChunkStep& step = pyramid.getStepTo(status);
-        _prepareStepDependencies(chunk, step, cache);
-
-        const i32 regionRadius = step.accumulatedRadius() > 0 ? step.accumulatedRadius() : 0;
-        auto context = _doCreateWorldGenRegion(chunk, regionRadius, &cache, &step);
-
-        _executeStepTask(chunk, status, *context.region);
-
-        // 设置 persistedStatus 和 chunkStatus
-        chunk.setPersistedStatus(status);
-        chunk.setChunkStatus(status);
-    }
-}
-
-void ServerChunkManager::_prepareStepDependencies(
-    ChunkPrimer& chunk, const ChunkStep& step, GenerationChunkCache& cache)
-{
-    const ChunkDependencies& deps = step.directDependencies();
-    for (i32 radius = 0; radius < deps.size(); ++radius) {
-        const ChunkStatus* requiredStatus = deps.get(radius);
-        if (requiredStatus == nullptr) {
-            continue;
-        }
-
-        for (i32 dz = -radius; dz <= radius; ++dz) {
-            for (i32 dx = -radius; dx <= radius; ++dx) {
-                if (dx == 0 && dz == 0) {
-                    continue;
-                }
-
-                const ChunkCoord nx = chunk.x() + dx;
-                const ChunkCoord nz = chunk.z() + dz;
-                MC_ASSERT_RELEASE(cache.contains(nx, nz));
-
-                ChunkPrimer* dependency = cache.get(nx, nz);
-                if (dependency == nullptr) {
-                    if (auto loadedChunk = tryToGetChunkSharedInMem(nx, nz)) {
-                        MC_ASSERT_RELEASE(chunkHasCompletedStatus(*loadedChunk, *requiredStatus));
-                        continue;
-                    }
-                    dependency = &cache.getOrCreateOwned(nx, nz);
-                    MC_ASSERT_RELEASE(cache.owns(nx, nz));
-                }
-
-                if (!dependency->hasCompletedStatus(*requiredStatus)) {
-                    MC_ASSERT_RELEASE_MSG(cache.owns(nx, nz), "Generation dependency is not owned by this task");
-                    _doGenerateChunkToTargetStatus(*dependency, *requiredStatus, cache);
-                }
-                MC_ASSERT_RELEASE(dependency->hasCompletedStatus(*requiredStatus));
-            }
-        }
-    }
-}
 
 void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus& status, WorldGenRegion& region)
 {
+    MC_TRACE_EVENT("server.chunk",
+        "ServerChunkManager::executeStepTask",
+        "chunkX",
+        chunk.x(),
+        "chunkZ",
+        chunk.z(),
+        "status",
+        status.name());
+
     if (status == ChunkStatuses::STRUCTURE_STARTS) {
         m_generator->generateStructureStarts(region, chunk);
     } else if (status == ChunkStatuses::STRUCTURE_REFERENCES) {
@@ -702,64 +456,6 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
     }
 }
 
-void ServerChunkManager::_doSpawnInitialMobs(ChunkPrimer& chunk)
-{
-    // SPAWN 阶段已移入 _doGenerateChunkToTargetStatus 循环中
-    // 此方法保留为兼容性入口，不再执行实际生成逻辑
-}
-
-ChunkStepDependencyInfo ServerChunkManager::_getDirectDependencyInfo(const ChunkStatus& targetStatus) const
-{
-    const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
-    const ChunkStep& step = pyramid.getStepTo(targetStatus);
-    const ChunkDependencies& deps = step.directDependencies();
-
-    ChunkStepDependencyInfo info;
-    info.maxDirectRadius = deps.getRadius();
-    info.hasDependencies = info.maxDirectRadius > 0;
-    return info;
-}
-
-bool ServerChunkManager::_areNeighborsReady(ChunkCoord x, ChunkCoord z, const ChunkStep& step) const
-{
-    const ChunkDependencies& deps = step.directDependencies();
-
-    // 对每个半径级别检查对应邻居是否达到所需状态
-    for (i32 radius = 0; radius < deps.size(); ++radius) {
-        const ChunkStatus* requiredStatus = deps.get(radius);
-        if (requiredStatus == nullptr) {
-            continue;
-        }
-
-        // 遍历此半径级别的所有邻居位置
-        for (i32 dz = -radius; dz <= radius; ++dz) {
-            for (i32 dx = -radius; dx <= radius; ++dx) {
-                if (dx == 0 && dz == 0) {
-                    continue; // 跳过中心区块自身
-                }
-
-                const SingleChunkLifecycleManager* neighbor = _findLifecycleManager(x + dx, z + dz);
-                if (!neighbor || !neighbor->hasCompletedStatus(*requiredStatus)) {
-                    // 额外检查：生成中的 Primer 可能已完成所需状态
-                    // 但 lifecycle manager 尚未更新
-                    {
-                        std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
-                        auto it = m_generatingPrimers.find(posToKey(x + dx, z + dz));
-                        if (it != m_generatingPrimers.end() && it->second != nullptr) {
-                            if (it->second->hasCompletedStatus(*requiredStatus)) {
-                                continue;
-                            }
-                        }
-                    }
-                    return false;
-                }
-            }
-        }
-    }
-
-    return true;
-}
-
 i32 ServerChunkManager::_computeSchedulePriority(
     ChunkCoord x, ChunkCoord z, const ChunkStatus& targetStatus, i32 ticketLevel) const
 {
@@ -770,109 +466,16 @@ i32 ServerChunkManager::_computeSchedulePriority(
 }
 
 // ============================================================================
-// 邻居窗口
-// ============================================================================
-
-void ServerChunkManager::_collectNeighborChunks(ChunkCoord x,
-    ChunkCoord z,
-    i32 radius,
-    IChunk* centerChunk,
-    std::vector<IChunk*>& neighbors,
-    std::vector<std::shared_ptr<ChunkData>>& loadedNeighbors,
-    std::vector<std::unique_ptr<ChunkPrimer>>& missingNeighbors,
-    GenerationChunkCache* cache)
-{
-    const i32 diameter = radius * 2 + 1;
-    MC_ASSERT_RELEASE(centerChunk != nullptr);
-    MC_ASSERT_RELEASE(static_cast<i32>(neighbors.size()) == diameter * diameter);
-    MC_ASSERT_RELEASE(static_cast<i32>(loadedNeighbors.size()) == diameter * diameter);
-    MC_ASSERT_RELEASE(static_cast<i32>(missingNeighbors.size()) == diameter * diameter);
-
-    for (i32 dz = -radius; dz <= radius; ++dz) {
-        for (i32 dx = -radius; dx <= radius; ++dx) {
-            const size_t index = static_cast<size_t>((dz + radius) * diameter + (dx + radius));
-
-            if (dx == 0 && dz == 0) {
-                neighbors[index] = centerChunk;
-                continue;
-            }
-
-            const ChunkCoord nx = x + dx;
-            const ChunkCoord nz = z + dz;
-
-            // 优先从生成缓存获取
-            if (cache != nullptr) {
-                ChunkPrimer* cachedPrimer = cache->get(nx, nz);
-                if (cachedPrimer != nullptr) {
-                    neighbors[index] = cachedPrimer;
-                    continue;
-                }
-            }
-
-            // 其次从生成中 Primer 缓存获取
-            ChunkPrimer* generatingPrimer = getGeneratingPrimer(nx, nz);
-            if (generatingPrimer != nullptr) {
-                neighbors[index] = generatingPrimer;
-                continue;
-            }
-
-            // 再从内存缓存获取
-            if (auto loadedChunk = tryToGetChunkSharedInMem(nx, nz)) {
-                loadedNeighbors[index] = std::move(loadedChunk);
-                neighbors[index] = loadedNeighbors[index].get();
-                continue;
-            }
-
-            neighbors[index] = nullptr;
-        }
-    }
-}
-
-ServerChunkManager::NeighborRegionContext ServerChunkManager::_doCreateWorldGenRegion(
-    IChunk& centerChunk, i32 radius, GenerationChunkCache* cache, const ChunkStep* step)
-{
-    const size_t chunkCount = static_cast<size_t>((radius * 2 + 1) * (radius * 2 + 1));
-
-    NeighborRegionContext context{std::vector<IChunk*>(chunkCount, nullptr),
-        std::vector<std::shared_ptr<ChunkData>>(chunkCount),
-        std::vector<std::unique_ptr<ChunkPrimer>>(chunkCount),
-        nullptr};
-    _collectNeighborChunks(centerChunk.x(),
-        centerChunk.z(),
-        radius,
-        &centerChunk,
-        context.neighbors,
-        context.loadedNeighbors,
-        context.missingNeighbors,
-        cache);
-    const DimensionId dimId = m_world != nullptr ? m_world->dimension() : 0;
-    if (step != nullptr) {
-        assertRegionSatisfiesDirectDependencies(context.neighbors, centerChunk.x(), centerChunk.z(), radius, *step);
-        context.region = std::make_unique<WorldGenRegion>(
-            centerChunk.x(), centerChunk.z(), *step, std::move(context.neighbors), dimId);
-    } else {
-        context.region = std::make_unique<WorldGenRegion>(
-            centerChunk.x(), centerChunk.z(), radius, std::move(context.neighbors), dimId);
-    }
-
-    // MC 1.21.11: WorldGenRegion 需要从世界获取种子、时间、难度等信息
-    // 这些字段在生成过程中被 WorldGenSpawner、Carver 等使用
-    if (m_world != nullptr) {
-        context.region->setSeed(m_world->seed());
-        context.region->setCurrentTick(m_world->currentTick());
-        context.region->setDayTime(m_world->dayTime());
-        context.region->setHardcore(m_world->isHardcore());
-        context.region->setDifficulty(m_world->difficulty());
-    }
-
-    return context;
-}
-
-// ============================================================================
 // 存储与发布
 // ============================================================================
 
 ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::unique_ptr<ChunkData> data)
+{
+    MC_ASSERT_RELEASE(data != nullptr);
+    return _storeChunkInMemorySync(x, z, std::shared_ptr<ChunkData>(std::move(data)));
+}
+
+ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord z, std::shared_ptr<ChunkData> data)
 {
     MC_ASSERT_RELEASE(data != nullptr);
     std::shared_ptr<ChunkData> sharedChunk(std::move(data));
@@ -891,7 +494,11 @@ ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord 
     }
 
     if (SingleChunkLifecycleManager* lifecycleManager = _findLifecycleManager(x, z)) {
-        lifecycleManager->setStatus(ChunkStatuses::FULL);
+        // 区块已发布到内存缓存：标记 sourceState=Ready + currentGenStatus=FULL，并唤醒等待者。
+        // markLoadedFromStorageReady 推进 currentGenStatus 到 FULL（若尚未）并设置 m_sourceState=Ready，
+        // 使 _buildDecisionLocked 返回 shouldWakeReadyWaiters=true。
+        lifecycleManager->markLoadedFromStorageReady(ChunkStatuses::FULL);
+        _completeReadyWaiters(*lifecycleManager);
     }
 
     if (stored && m_world) {
@@ -912,19 +519,11 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
         spawnedEntities = std::move(primer.spawnedEntities());
     }
 
-    auto data = primer.toChunkData();
+    // toChunkData 非破坏性：返回 shared_ptr 共享同一份 ChunkData，primer 仍持有 m_data。
+    // 对齐 Moonrise：FULL 完成后 currentChunk（primer）仍存活供邻居引用，直到 holder 卸载。
+    std::shared_ptr<ChunkData> data = primer.toChunkData();
     if (!data) {
         return nullptr;
-    }
-
-    if (SingleChunkLifecycleManager* lifecycleManager = _findLifecycleManager(x, z)) {
-        lifecycleManager->markGenerationReady();
-    }
-
-    // 确保从生成中缓存移除（可能在异步路径中已被清理）
-    {
-        std::lock_guard<std::mutex> lock(m_generatingPrimersMutex);
-        m_generatingPrimers.erase(posToKey(x, z));
     }
 
     ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(data));
@@ -942,6 +541,30 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
     }
 
     return stored;
+}
+
+void ServerChunkManager::_publishGeneratedChunk(SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
+{
+    // FULL 已由 _finalizeGeneratedChunkSync 处理（存入 m_chunks + markLoadedFromStorageReady +
+    // _completeReadyWaiters），此处只处理非 FULL 目标状态完成。
+    if (completedStatus == ChunkStatuses::FULL) {
+        return;
+    }
+
+    // 仅当达到请求目标状态时才唤醒等待者（onChunkGenComplete 每步都调用，但中间步骤不应唤醒）。
+    if (!holder.hasCompletedStatus(holder.requestedGenStatus())) {
+        return;
+    }
+
+    // 非 FULL 目标：不设置 sourceState=Ready（Ready 表示 FULL 完成可发布到 m_chunks，
+    // 中间状态不应阻止后续更高状态请求调度）。不存入 m_chunks（m_chunks 仅保留 FULL 区块，
+    // 保证 tryToGetChunkInMem 快速路径不返回中间状态区块）。
+    // 直接用 primer 的 ChunkData 完成等待者（promise/callback），请求者获得 primer 当前状态的 ChunkData。
+    // takeAllWaiters 取出所有等待者（无条件），fulfillWaiters 完成 promise。
+    ChunkPrimer* primer = holder.getCurrentChunk();
+    ChunkData* chunkData = (primer != nullptr) ? primer->getChunkData() : nullptr;
+
+    fulfillWaiters(holder.takeAllWaiters(), chunkData != nullptr, chunkData);
 }
 
 void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
@@ -1098,8 +721,7 @@ void ServerChunkManager::_checkChunkUnloading()
             }
 
             if (!lifecycleManager->shouldLoad() && !m_ticketManager.hasTrackingPlayers(key) &&
-                !lifecycleManager->hasGeneratingChunk() &&
-                !hasGeneratingPrimer(ChunkId::fromId(key).x, ChunkId::fromId(key).z)) {
+                lifecycleManager->isSafeToUnload()) {
                 toUnload.push_back(key);
             }
         }

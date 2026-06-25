@@ -57,8 +57,9 @@ protected:
         m_world = std::make_unique<ServerWorld>(config);
 
         // 创建区块管理器
-        auto generator = std::make_unique<NoiseChunkGenerator>(
-            config.seed, DimensionSettings::overworld(), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
+        auto generator = std::make_unique<NoiseChunkGenerator>(config.seed,
+            DimensionSettings::overworld(),
+            mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
         m_manager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
         m_manager->setWorkerPool(m_workerPool.get());
     }
@@ -146,10 +147,18 @@ TEST_F(ServerChunkManagerTest, RequestFullChunkSync_GeneratesStructureReferenceD
 
 TEST_F(ServerChunkManagerTest, RequestStructureReferencesSync_GeneratesDirectDependencies)
 {
+    // 非 FULL 目标状态：区块生成到 STRUCTURE_REFERENCES 后返回 primer 的 ChunkData（共享所有权）。
+    // 中间状态区块不发布到 m_chunks（m_chunks 仅保留 FULL 区块，保证 tryToGetChunkInMem 快速路径
+    // 不返回中间状态区块），故 hasChunkInMem 为 false。验证请求返回有效区块且 holder 存在。
     ChunkData* chunk = m_manager->requestChunkSync(0, 0, ChunkStatuses::STRUCTURE_REFERENCES);
 
     ASSERT_NE(chunk, nullptr);
-    EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
+    EXPECT_EQ(chunk->x(), 0);
+    EXPECT_EQ(chunk->z(), 0);
+    // STRUCTURE_REFERENCES 未达 FULL，区块不发布到 m_chunks
+    EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
+    // holder 存在（生成链路已创建生命周期管理器）
+    EXPECT_GE(m_manager->singleChunkLifecycleManagerCount(), 1);
 }
 
 TEST_F(ServerChunkManagerTest, GetChunkSync_ReturnsSameChunk)

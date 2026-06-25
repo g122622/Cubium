@@ -73,7 +73,7 @@ void initializeAllHeightmaps(std::unordered_map<HeightmapType, Heightmap>& heigh
 ChunkPrimer::ChunkPrimer(ChunkCoord x, ChunkCoord z)
     : m_x(x)
     , m_z(z)
-    , m_data(std::make_unique<ChunkData>(x, z))
+    , m_data(std::make_shared<ChunkData>(x, z))
     , m_chunkStatus(&ChunkStatuses::EMPTY)
     , m_status(ChunkLoadStatus::Empty)
 {
@@ -368,7 +368,7 @@ void ChunkPrimer::primeHeightmaps(HeightmapFlag types)
 // 转换方法
 // ============================================================================
 
-std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
+std::shared_ptr<ChunkData> ChunkPrimer::toChunkData()
 {
     // 确保高度图已更新
     updateAllHeightmaps();
@@ -388,7 +388,10 @@ std::unique_ptr<ChunkData> ChunkPrimer::toChunkData()
     // 清空生成的实体数据（调用者应该在调用此方法之前提取）
     m_spawnedEntities.clear();
 
-    return std::move(m_data);
+    // 非破坏性：返回 m_data 的共享副本，ChunkPrimer 仍持有同一份 ChunkData。
+    // 对齐 Moonrise：FULL 完成后 currentChunk（ChunkPrimer）仍存活供邻居引用，
+    // 直到 holder 卸载；同一份 ChunkData 发布到内存缓存供游戏逻辑访问。
+    return m_data;
 }
 
 // ============================================================================
