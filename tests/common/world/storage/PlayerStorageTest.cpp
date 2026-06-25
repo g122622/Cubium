@@ -356,6 +356,165 @@ TEST_F(PlayerSaveDataTest, SleepingState)
     EXPECT_EQ(restored.sleepingPosition->z, 100);
 }
 
+// ========== 冲量上下文序列化测试 ==========
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_DefaultValues_RoundTrip)
+{
+    // 默认状态：无冲量上下文
+    PlayerSaveData original;
+    original.uuid = "impulse-default-test";
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_FALSE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FALSE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 0);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_WithImpactPosition_RoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "impulse-pos-test";
+    original.currentImpulseImpactPos = Vector3(100.0f, 64.0f, 200.0f);
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 40;
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->x, 100.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->y, 64.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->z, 200.0f);
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 40);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_IgnoreWithoutPosition)
+{
+    // 可以只设置 ignoreFallDamage 标志而不设置冲击位置
+    PlayerSaveData original;
+    original.uuid = "impulse-ignore-only-test";
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 20;
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_FALSE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 20);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_PositionWithoutIgnore)
+{
+    // 可以有冲击位置但不需要忽略坠落伤害
+    PlayerSaveData original;
+    original.uuid = "impulse-pos-no-ignore-test";
+    original.currentImpulseImpactPos = Vector3(50.0f, 70.0f, 80.0f);
+    original.ignoreFallDamageFromCurrentImpulse = false;
+    original.currentImpulseContextResetGraceTime = 0;
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->x, 50.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->y, 70.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->z, 80.0f);
+    EXPECT_FALSE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 0);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_NegativeCoordinates_RoundTrip)
+{
+    // 测试负坐标值
+    PlayerSaveData original;
+    original.uuid = "impulse-negative-test";
+    original.currentImpulseImpactPos = Vector3(-100.5f, -64.0f, -200.3f);
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 10;
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->x, -100.5f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->y, -64.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->z, -200.3f);
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 10);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_MissingFieldsInNbt_Defaults)
+{
+    // 测试从缺少冲量上下文字段的 NBT 反序列化时使用默认值
+    nbt::tags::compound_tag tag;
+    tag.put("UUID", std::string("impulse-missing-test"));
+
+    auto result = PlayerSaveData::fromNbt(tag);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_FALSE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FALSE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 0);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_BinarySerializationRoundTrip)
+{
+    // 测试通过二进制序列化的往返一致性
+    PlayerSaveData original;
+    original.uuid = "impulse-binary-test";
+    original.username = "TestPlayer";
+    original.currentImpulseImpactPos = Vector3(123.45f, 67.89f, -234.56f);
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 35;
+
+    auto serializeResult = original.serialize();
+    ASSERT_TRUE(serializeResult.success());
+
+    auto deserializeResult = PlayerSaveData::deserialize(serializeResult.value());
+    ASSERT_TRUE(deserializeResult.success());
+
+    const PlayerSaveData& restored = deserializeResult.value();
+    ASSERT_TRUE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->x, 123.45f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->y, 67.89f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->z, -234.56f);
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 35);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_WindBurstExtendedGraceTime)
+{
+    // 测试风爆附魔扩展宽限期（10 tick）后的序列化
+    PlayerSaveData original;
+    original.uuid = "impulse-windburst-test";
+    original.currentImpulseImpactPos = Vector3(200.0f, 50.0f, 300.0f);
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 40; // setIgnoreFallDamageFromCurrentImpulse(true) 设置的 40 tick
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 40);
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+}
+
 // ============================================================================
 // PlayerDataManager 测试
 // ============================================================================
