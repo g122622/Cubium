@@ -39,9 +39,11 @@
 #include "entity/core/EntityRegistry.hpp"
 #include "entity/core/LivingEntity.hpp"
 #include "entity/core/MobEntity.hpp"
+#include "entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "entity/entities/projectile/OtherProjectiles.hpp"
+#include "entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "entity/interfaces/ICrossbowUser.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
@@ -208,21 +210,15 @@ void PillagerEntity::registerGoals()
     // 优先级 2: 攻击玩家
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
-    // 优先级 3: 攻击村民
+    // 优先级 3: 攻击村民（穿透墙壁感知）
+    // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, false)
     m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-            this, true, 10, [](const LivingEntity* entity) {
-                // TODO: 使用 VillagerEntity 类型检查
-                return entity != nullptr && entity->isAlive();
-            }));
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this, false));
 
     // 优先级 3: 攻击铁傀儡
-    m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-            this, true, 10, [](const LivingEntity* entity) {
-                // TODO: 使用 IronGolemEntity 类型检查
-                return entity != nullptr && entity->isAlive();
-            }));
+    // MC 原版: NearestAttackableTargetGoal<>(this, IronGolem.class, true)
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 }
 
 void PillagerEntity::registerAttributes()
@@ -300,14 +296,14 @@ void VindicatorEntity::registerGoals()
     m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 0));
 
     // 优先级 3: 攻击村民
-    m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-            this, true, 10, [](const LivingEntity* entity) { return entity != nullptr && entity->isAlive(); }));
+    // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, true)
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(this, true));
 
     // 优先级 3: 攻击铁傀儡
-    m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(
-            this, true, 10, [](const LivingEntity* entity) { return entity != nullptr && entity->isAlive(); }));
+    // MC 原版: NearestAttackableTargetGoal<>(this, IronGolem.class, true)
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 }
 
 void VindicatorEntity::registerAttributes()

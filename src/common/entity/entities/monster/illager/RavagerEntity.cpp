@@ -36,7 +36,9 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -348,15 +350,19 @@ void RavagerEntity::registerGoals()
     // 优先级 3: 攻击玩家
     targetSelector().addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
-    // 优先级 4: 攻击村民
-    // TODO: VillagerEntity 需要实现后添加
-    // targetSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<VillagerEntity>>(this,
-    // true));
+    // 优先级 4: 攻击村民（排除幼年村民）
+    // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, true, (p_199899_, p_376378_) ->
+    // !p_199899_.isBaby())
+    targetSelector().addGoal(4,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
+            this, true, 0, [](const LivingEntity* entity) -> bool {
+                auto* villager = dynamic_cast<const entity::AbstractVillagerEntity*>(entity);
+                return villager != nullptr && !villager->isChild();
+            }));
 
     // 优先级 4: 攻击铁傀儡
-    // TODO: IronGolemEntity 需要实现后添加
-    // targetSelector().addGoal(4,
-    // std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+    targetSelector().addGoal(
+        4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 }
 
 void RavagerEntity::registerAttributes()

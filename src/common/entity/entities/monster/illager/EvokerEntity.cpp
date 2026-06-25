@@ -41,7 +41,7 @@
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
-#include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -281,7 +281,8 @@ void EvokerEntity::registerGoals()
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
         }));
     targetSelector().addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
-    targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<entity::VillagerEntity>(this, false));
+    targetSelector().addGoal(
+        3, new entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>(this, false));
     targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>(this, false));
 }
 
