@@ -23,7 +23,7 @@
 ├── ListCommand.hpp / ListCommand.cpp #列出在线玩家
 ├── ReloadCommand.hpp / ReloadCommand.cpp #重新加载战利品表、配方、函数、谓词和进度
 ├── SayCommand.hpp / SayCommand.cpp #广播聊天消息
-├── ReplaceItemCommand.hpp / ReplaceItemCommand.cpp #替换物品栏 / 容器槽位物品（支持槽位名称解析）
+├── ReplaceItemCommand.hpp / ReplaceItemCommand.cpp #替换物品栏/容器槽位物品（支持玩家背包、装备、末影箱槽位，方块容器槽位）
 ├── ScoreboardCommand.hpp / ScoreboardCommand.cpp #记分板目标管理
 ├── SeedCommand.hpp / SeedCommand.cpp #显示当前世界种子
 ├── SetBlockCommand.hpp / SetBlockCommand.cpp #放置单个方块

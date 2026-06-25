@@ -126,7 +126,7 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 
 ### 9. ItemSlot 槽位编号重叠
 
-`ItemSlotArgument` 中 `player.cursor`(499) 与 `horse.chest`(499) 编号重叠，`player.crafting.0~3`(500-503) 与 `horse.0~3`(500-503) 编号重叠。原版中通过不同命令上下文区分，当前实现中 `player.crafting` 优先匹配，需在后续根据上下文细化。
+`ItemSlotArgument` 中 `player.cursor`(499) 与 `horse.chest`(499) 编号重叠，`player.crafting.0~3`(500-503) 与 `horse.0~3`(500-503) 编号重叠。原版中通过不同命令上下文区分：当目标为玩家时，500-503 为合成槽、499 为光标；当目标为马匹时，500-514 为马匹槽、499 为箱子。`ItemSlot` 提供了 `isHorseChestSlot()`/`isCursorSlot()`/`isHorseSlot()`/`isCraftingSlot()` 等判断方法供命令实现层按上下文选择。
 
 ### 10. EntitySelector 体积过滤（createAabb）
 
