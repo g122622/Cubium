@@ -36,8 +36,13 @@ namespace command {
  * 用法：
  * - /clear - 清空自己的背包
  * - /clear <player> - 清空指定玩家的背包
- * - /clear <player> <item> - 清空指定玩家的指定物品
- * - /clear <player> <item> <maxCount> - 清空指定玩家的指定物品，最多清除数量
+ * - /clear <player> <item> - 清空指定玩家匹配的物品
+ * - /clear <player> <item> <maxCount> - 清空指定玩家匹配的物品，最多清除数量
+ *
+ * <item> 参数支持物品谓词语法（ItemPredicateArgumentType）：
+ * - 物品ID：minecraft:stone、stone — 精确匹配指定物品
+ * - 物品标签：#minecraft:logs — 匹配标签中的所有物品
+ * - 通配符：* — 匹配任意物品
  *
  * 权限等级：2
  */

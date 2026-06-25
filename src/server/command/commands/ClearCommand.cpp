@@ -82,7 +82,8 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
         playerId, network::PacketType::PlayerInventory, payload.buffer());
 }
 
-[[nodiscard]] i32 clearInventory(PlayerInventory& inventory, const Item* item, std::optional<i32> maxCount)
+[[nodiscard]] i32 clearInventory(
+    PlayerInventory& inventory, const ItemPredicateInput& predicate, std::optional<i32> maxCount)
 {
     i32 remaining = maxCount.has_value() ? *maxCount : std::numeric_limits<i32>::max();
     i32 removedCount = 0;
@@ -94,7 +95,8 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             continue;
         }
 
-        if (item != nullptr && stack.getItem() != item) {
+        // 使用 ItemPredicateInput::test() 进行匹配，支持物品ID、标签和通配符
+        if (!predicate.test(stack)) {
             continue;
         }
 
@@ -126,7 +128,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 
 [[nodiscard]] i32 clearTargets(ServerCommandSource& source,
     const std::vector<PlayerId>& targetPlayerIds,
-    const Item* item,
+    const ItemPredicateInput& predicate,
     std::optional<i32> maxCount)
 {
     i32 removedTotal = 0;
@@ -141,7 +143,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
             continue;
         }
 
-        const i32 removedCount = clearInventory(*inventory, item, maxCount);
+        const i32 removedCount = clearInventory(*inventory, predicate, maxCount);
         if (removedCount <= 0) {
             continue;
         }
@@ -155,7 +157,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 
 void sendClearMessage(ServerCommandSource& source,
     const std::vector<PlayerId>& targetPlayerIds,
-    const Item* item,
+    const ItemPredicateInput& predicate,
     std::optional<i32> maxCount,
     i32 removedCount)
 {
@@ -165,10 +167,10 @@ void sendClearMessage(ServerCommandSource& source,
     }
 
     std::ostringstream ss;
-    if (item == nullptr) {
+    if (predicate.isAny()) {
         ss << "Cleared the inventory of ";
     } else {
-        ss << "Cleared " << item->getName();
+        ss << "Cleared " << predicate.displayName();
         if (maxCount.has_value()) {
             ss << " (max " << *maxCount << ")";
         }
@@ -196,8 +198,8 @@ void ClearCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
         "player", EntityArgumentType::players());
     playerArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayer(ctx); });
 
-    auto itemArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemInput>>("item", ItemArgumentType::item());
+    auto itemArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemPredicateInput>>(
+        "item", ItemPredicateArgumentType::itemPredicate());
     itemArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _clearPlayerItem(ctx); });
 
     auto maxCountArg =
@@ -222,8 +224,10 @@ i32 ClearCommand::_clearSelf(CommandContext<ServerCommandSource>& context)
     }
 
     const std::vector<PlayerId> targetPlayerIds{playerId};
-    const i32 removedCount = clearTargets(source, targetPlayerIds, nullptr, std::nullopt);
-    sendClearMessage(source, targetPlayerIds, nullptr, std::nullopt, removedCount);
+    // /clear 不带参数时，清除所有物品（通配符谓词）
+    const ItemPredicateInput anyPredicate;
+    const i32 removedCount = clearTargets(source, targetPlayerIds, anyPredicate, std::nullopt);
+    sendClearMessage(source, targetPlayerIds, anyPredicate, std::nullopt, removedCount);
     return removedCount;
 }
 
@@ -238,8 +242,10 @@ i32 ClearCommand::_clearPlayer(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    const i32 removedCount = clearTargets(source, targetPlayerIds, nullptr, std::nullopt);
-    sendClearMessage(source, targetPlayerIds, nullptr, std::nullopt, removedCount);
+    // /clear <player> 不带物品参数时，清除所有物品（通配符谓词）
+    const ItemPredicateInput anyPredicate;
+    const i32 removedCount = clearTargets(source, targetPlayerIds, anyPredicate, std::nullopt);
+    sendClearMessage(source, targetPlayerIds, anyPredicate, std::nullopt, removedCount);
     return removedCount;
 }
 
@@ -254,21 +260,11 @@ i32 ClearCommand::_clearPlayerItem(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    ItemInput itemInput = context.getArgument<ItemInput>("item");
+    // 使用 ItemPredicateArgumentType 支持物品ID、标签和通配符
+    ItemPredicateInput predicate = context.getArgument<ItemPredicateInput>("item");
 
-    if (!itemInput.isValid()) {
-        source.sendError("Invalid item");
-        return 0;
-    }
-
-    const Item* item = itemInput.getItem();
-    if (!item) {
-        source.sendError("Unknown item");
-        return 0;
-    }
-
-    const i32 removedCount = clearTargets(source, targetPlayerIds, item, std::nullopt);
-    sendClearMessage(source, targetPlayerIds, item, std::nullopt, removedCount);
+    const i32 removedCount = clearTargets(source, targetPlayerIds, predicate, std::nullopt);
+    sendClearMessage(source, targetPlayerIds, predicate, std::nullopt, removedCount);
     return removedCount;
 }
 
@@ -283,22 +279,12 @@ i32 ClearCommand::_clearPlayerItemCount(CommandContext<ServerCommandSource>& con
         return 0;
     }
 
-    ItemInput itemInput = context.getArgument<ItemInput>("item");
+    // 使用 ItemPredicateArgumentType 支持物品ID、标签和通配符
+    ItemPredicateInput predicate = context.getArgument<ItemPredicateInput>("item");
     i32 maxCount = context.getArgument<i32>("maxCount");
 
-    if (!itemInput.isValid()) {
-        source.sendError("Invalid item");
-        return 0;
-    }
-
-    const Item* item = itemInput.getItem();
-    if (!item) {
-        source.sendError("Unknown item");
-        return 0;
-    }
-
-    const i32 removedCount = clearTargets(source, targetPlayerIds, item, maxCount);
-    sendClearMessage(source, targetPlayerIds, item, maxCount, removedCount);
+    const i32 removedCount = clearTargets(source, targetPlayerIds, predicate, maxCount);
+    sendClearMessage(source, targetPlayerIds, predicate, maxCount, removedCount);
     return removedCount;
 }
 

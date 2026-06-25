@@ -254,8 +254,8 @@ private:
  * - "*" — 匹配任意物品
  *
  * 对应 MC Java 的 ItemPredicateArgument。
- * MC Java 1.21+ 还支持组件测试语法（stick[custom_data={...}]），
- * 当前实现暂不支持，后续随数据组件系统一起添加。
+ * TODO: 后续随数据组件系统一起添加组件测试语法支持（stick[custom_data={...}]、
+ * stick[!custom_data]、stick[~custom_data={...}]等MC Java 1.21+语法）
  */
 class ItemPredicateArgumentType : public ArgumentType<ItemPredicateInput> {
 public:
