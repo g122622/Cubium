@@ -219,6 +219,26 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 2. **实体碰撞**：通过 `rayTraceEntities` 检测与实体的碰撞
 3. **碰撞处理**：调用 `onImpact`，分发到 `onEntityHit` 或 `onBlockHit`
 
+### 14. EvokerFangsEntity Owner UUID 双重追踪
+
+EvokerFangsEntity 使用双重追踪模式（缓存指针 + UUID）追踪 owner 实体，参考 AreaEffectCloudEntity 的模式：
+
+| 方法 | 行为 |
+|------|------|
+| `setOwner(LivingEntity*)` | 同时设置缓存指针和 UUID，nullptr 时清空两者 |
+| `getOwner()` | 非const：缓存有效直接返回，失效后通过 UUID 在 64 格范围 + 玩家列表中懒加载查找 |
+| `owner() const` | 直接返回缓存指针，不触发懒加载 |
+| `ownerUuid() const` | 返回 UUID 字符串（32字符十六进制） |
+| `setOwnerUuid(const string&)` | 仅设置 UUID，清空指针（NBT 反序列化入口） |
+
+**NBT 序列化键名**：`Warmup`（i32）、`OwnerUUIDMost`（i64）、`OwnerUUIDLeast`（i64）
+
+**踩坑点**：
+- `_damageEntities()` 必须使用 `getOwner()` 而非直接访问 `m_owner`，否则 owner 死亡/卸载后指针悬空导致崩溃
+- `setOwner(nullptr)` 会同时清空 UUID 和指针，确保两者同步
+- NBT 反序列化后指针为 nullptr，需调用 `getOwner()` 触发 UUID 懒加载查找
+- 参考 MC 1.21.11 `EvokerFangs` 使用 `EntityReference<LivingEntity>` 追踪 owner
+
 ## 参考
 
 - MC 1.16.5 ProjectileEntity
