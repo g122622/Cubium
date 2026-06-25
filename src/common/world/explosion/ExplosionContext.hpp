@@ -81,7 +81,6 @@ public:
  * @brief 实体相关的爆炸上下文
  *
  * 允许实体自定义爆炸行为。
- * 例如凋灵之首可以破坏基岩以外的所有方块。
  */
 class EntityExplosionContext : public ExplosionContext {
 public:
@@ -98,6 +97,32 @@ public:
 
 private:
     const Entity* m_source;
+};
+
+/**
+ * @brief 凋灵之首爆炸上下文
+ *
+ * 蓝色凋灵之首（dangerous skull）具有特殊的爆炸抗性穿透能力：
+ * 对于不在 WITHER_IMMUNE 标签中的非空方块，将爆炸抗性限制在 min(0.8, 原始抗性)，
+ * 使得蓝色凋灵之首可以破坏黑曜石等普通爆炸无法破坏的方块。
+ * 普通凋灵之首使用基类行为，不做任何修改。
+ *
+ * 对应 MC Java 的 WitherSkull.getBlockExplosionResistance()。
+ */
+class WitherSkullExplosionContext : public EntityExplosionContext {
+public:
+    /**
+     * @brief 构造凋灵之首爆炸上下文
+     * @param source 爆炸源实体（凋灵之首的发射者，可能为空）
+     * @param isDangerous 是否为蓝色凋灵之首（dangerous skull）
+     */
+    WitherSkullExplosionContext(const Entity* source, bool isDangerous);
+
+    [[nodiscard]] std::optional<f32> getExplosionResistance(
+        const BlockState& blockState, const fluid::FluidState* fluidState) const override;
+
+private:
+    bool m_isDangerous;
 };
 
 } // namespace explosion

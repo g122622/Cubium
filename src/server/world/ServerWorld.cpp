@@ -2195,6 +2195,34 @@ void ServerWorld::createExplosionWithSource(const Vector3& position,
     }
 }
 
+void ServerWorld::createExplosionWithContext(const Vector3& position,
+    f32 radius,
+    world::explosion::ExplosionMode mode,
+    bool causesFire,
+    Entity* source,
+    std::unique_ptr<world::explosion::ExplosionContext> context)
+{
+    // 创建带自定义爆炸上下文的爆炸对象
+    auto explosion = std::make_unique<world::explosion::Explosion>(*this,
+        position,
+        radius,
+        mode,
+        causesFire,
+        source,
+        nullptr,            // 使用默认伤害来源
+        m_lootTableManager, // 传递掉落表管理器用于生成方块掉落
+        std::move(context)  // 传递自定义爆炸上下文
+    );
+
+    // 执行爆炸
+    explosion->explode();
+
+    // 广播爆炸包给客户端（发送给爆炸点 64 格范围内的玩家）
+    if (m_onBroadcastExplosion) {
+        m_onBroadcastExplosion(position, radius, explosion->affectedBlocks(), explosion->playerKnockback());
+    }
+}
+
 // ============================================================================
 // 命令执行
 // ============================================================================

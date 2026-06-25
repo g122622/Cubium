@@ -587,6 +587,13 @@ public:
         Entity* source,
         const DamageSource* damageSource) override;
 
+    void createExplosionWithContext(const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode,
+        bool causesFire,
+        Entity* source,
+        std::unique_ptr<world::explosion::ExplosionContext> context) override;
+
     // ========== 命令执行 (IWorld override) ==========
 
     /**

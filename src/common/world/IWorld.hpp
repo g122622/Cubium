@@ -34,6 +34,7 @@
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "explosion/ExplosionContext.hpp"
 #include "explosion/ExplosionMode.hpp"
 #include "gameevent/GameEvent.hpp"
 #include "lighting/InternalLightUtils.hpp"
@@ -1204,6 +1205,31 @@ public:
     {
         // 默认实现：忽略 damageSource，退回到无自定义伤害来源版本
         (void)damageSource;
+        createExplosion(position, radius, mode, causesFire, source);
+    }
+
+    /**
+     * @brief 创建带自定义爆炸上下文的爆炸
+     *
+     * 允许调用者传入自定义的 ExplosionContext，以控制爆炸对方块的行为。
+     * 例如蓝色凋灵之首使用 WitherSkullExplosionContext 来穿透高抗性方块。
+     *
+     * @param position 爆炸中心位置
+     * @param radius 爆炸半径
+     * @param mode 爆炸模式
+     * @param causesFire 是否生成火焰
+     * @param source 爆炸源实体（可选）
+     * @param context 自定义爆炸上下文（必须非空）
+     */
+    virtual void createExplosionWithContext(const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode,
+        bool causesFire,
+        Entity* source,
+        std::unique_ptr<world::explosion::ExplosionContext> context)
+    {
+        // 默认实现：忽略自定义 context，退回到普通爆炸
+        (void)context;
         createExplosion(position, radius, mode, causesFire, source);
     }
 
