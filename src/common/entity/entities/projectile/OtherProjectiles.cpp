@@ -24,6 +24,7 @@
 #include "OtherProjectiles.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
+#include "../../../util/UuidUtils.hpp"
 #include "../../../util/math/MathConstants.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
@@ -38,6 +39,8 @@
 #include "../../entities/orb/ExperienceOrbEntity.hpp"
 #include "../../entities/player/Player.hpp"
 #include "../../inventory/PlayerInventory.hpp"
+#include "../../serialization/EntityNbtKeys.hpp"
+#include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
@@ -1084,6 +1087,60 @@ std::unique_ptr<Entity> EvokerFangsEntity::create(IWorld* /*world*/)
     return std::make_unique<EvokerFangsEntity>(0);
 }
 
+void EvokerFangsEntity::setOwner(LivingEntity* owner)
+{
+    m_owner = owner;
+    if (owner != nullptr) {
+        m_ownerUuid = owner->uuid();
+    } else {
+        m_ownerUuid.clear();
+    }
+}
+
+LivingEntity* EvokerFangsEntity::getOwner()
+{
+    // 如果缓存指针有效且实体未被移除，直接返回
+    if (m_owner != nullptr && m_owner->isAlive()) {
+        return m_owner;
+    }
+
+    // 缓存失效，尝试通过 UUID 在世界中重新查找
+    if (!m_ownerUuid.empty() && m_world != nullptr) {
+        // 在 64 格范围内搜索 UUID 匹配的 LivingEntity
+        constexpr f32 SEARCH_RANGE = 64.0f;
+        std::vector<Entity*> entities = m_world->getEntitiesInRange(m_position, SEARCH_RANGE, this);
+        for (Entity* entity : entities) {
+            if (entity != nullptr && entity->isAlive() && entity->uuid() == m_ownerUuid) {
+                LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+                if (living != nullptr) {
+                    m_owner = living;
+                    return m_owner;
+                }
+            }
+        }
+
+        // 尝试在玩家列表中查找（玩家可能在范围外）
+        std::vector<Entity*> players = m_world->getPlayers();
+        for (Entity* playerEntity : players) {
+            if (playerEntity != nullptr && playerEntity->isAlive() && playerEntity->uuid() == m_ownerUuid) {
+                m_owner = static_cast<LivingEntity*>(playerEntity);
+                return m_owner;
+            }
+        }
+    }
+
+    // UUID 查找也失败，清空缓存指针
+    m_owner = nullptr;
+    return nullptr;
+}
+
+void EvokerFangsEntity::setOwnerUuid(const std::string& uuid)
+{
+    m_ownerUuid = uuid;
+    // 不设置 m_owner 指针，等到 getOwner() 被调用时再通过 UUID 懒加载查找
+    m_owner = nullptr;
+}
+
 void EvokerFangsEntity::tick()
 {
     Entity::tick();
@@ -1127,13 +1184,16 @@ void EvokerFangsEntity::_damageEntities()
         return;
     }
 
+    // 获取 owner（可能触发 UUID 懒加载查找）
+    LivingEntity* owner = getOwner();
+
     // 获取碰撞箱扩展 0.2 范围内的所有实体
     AxisAlignedBB searchBox = m_boundingBox.expand(0.2f, 0.0f, 0.2f);
     std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
 
     for (Entity* entity : entities) {
         LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
-        if (living == nullptr || living == m_owner) {
+        if (living == nullptr || living == owner) {
             continue;
         }
 
@@ -1142,14 +1202,15 @@ void EvokerFangsEntity::_damageEntities()
             continue;
         }
 
-        // 检查队伍关系：不伤害唤魔者及其盟友（双向检查）
-        if (m_owner != nullptr && m_owner->isAlliedTo(*living)) {
+        // 检查队伍关系：不伤害唤魔者及其盟友
+        // 参考 MC 1.21.11 EvokerFangs.dealDamageTo()
+        if (owner != nullptr && owner->isAlliedTo(*living)) {
             continue;
         }
 
         // 造成魔法伤害
-        if (m_owner != nullptr) {
-            auto damageSource = DamageSources::indirectMagic(this, m_owner);
+        if (owner != nullptr) {
+            auto damageSource = DamageSources::indirectMagic(this, owner);
             living->hurt(damageSource, 6.0f);
         } else {
             // 如果没有所有者，使用普通魔法伤害
@@ -1157,6 +1218,72 @@ void EvokerFangsEntity::_damageEntities()
             living->hurt(damageSource, 6.0f);
         }
     }
+}
+
+void EvokerFangsEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    Entity::addAdditionalSaveData(tag);
+
+    using namespace serialization::nbt_keys;
+
+    // 预热延迟
+    tag.put(WARMUP, m_warmupDelay);
+
+    // 所有者 UUID
+    // 参考 MC 1.21.11 EvokerFangs.addAdditionalSaveData()，NBT 键名为 "Owner"
+    // 使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式存储，与 AreaEffectCloudEntity 一致
+    if (!m_ownerUuid.empty()) {
+        auto uuidBytes = util::uuidFromString(m_ownerUuid);
+        if (uuidBytes.size() == 16) {
+            i64 most = (static_cast<i64>(uuidBytes[0]) << 56) | (static_cast<i64>(uuidBytes[1]) << 48) |
+                (static_cast<i64>(uuidBytes[2]) << 40) | (static_cast<i64>(uuidBytes[3]) << 32) |
+                (static_cast<i64>(uuidBytes[4]) << 24) | (static_cast<i64>(uuidBytes[5]) << 16) |
+                (static_cast<i64>(uuidBytes[6]) << 8) | static_cast<i64>(uuidBytes[7]);
+            i64 least = (static_cast<i64>(uuidBytes[8]) << 56) | (static_cast<i64>(uuidBytes[9]) << 48) |
+                (static_cast<i64>(uuidBytes[10]) << 40) | (static_cast<i64>(uuidBytes[11]) << 32) |
+                (static_cast<i64>(uuidBytes[12]) << 24) | (static_cast<i64>(uuidBytes[13]) << 16) |
+                (static_cast<i64>(uuidBytes[14]) << 8) | static_cast<i64>(uuidBytes[15]);
+            tag.put(FANGS_OWNER_UUID_MOST, most);
+            tag.put(FANGS_OWNER_UUID_LEAST, least);
+        }
+    }
+}
+
+Result<void> EvokerFangsEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    MC_TRY(Entity::readAdditionalSaveData(tag));
+
+    using namespace serialization::nbt_keys;
+
+    // 预热延迟
+    if (auto val = serialization::nbt_helper::tryGetInt(tag, WARMUP)) {
+        m_warmupDelay = *val;
+    }
+
+    // 所有者 UUID
+    // 读取 FANGS_OWNER_UUID_MOST/FANGS_OWNER_UUID_LEAST，转换为 UUID 字符串
+    auto mostVal = serialization::nbt_helper::tryGetLong(tag, FANGS_OWNER_UUID_MOST);
+    auto leastVal = serialization::nbt_helper::tryGetLong(tag, FANGS_OWNER_UUID_LEAST);
+    if (mostVal.has_value() && leastVal.has_value()) {
+        i64 m = mostVal.value();
+        i64 l = leastVal.value();
+        std::array<u8, 16> uuidBytes{};
+        for (i32 i = 7; i >= 0; --i) {
+            uuidBytes[i] = static_cast<u8>(m & 0xFF);
+            m >>= 8;
+        }
+        for (i32 i = 15; i >= 8; --i) {
+            uuidBytes[i] = static_cast<u8>(l & 0xFF);
+            l >>= 8;
+        }
+        m_ownerUuid = util::uuidToString(uuidBytes);
+        m_owner = nullptr; // 等 getOwner() 被调用时再通过 UUID 懒加载查找
+    } else {
+        m_ownerUuid.clear();
+        m_owner = nullptr;
+    }
+
+    return Result<void>::ok();
 }
 
 // ============================================================================

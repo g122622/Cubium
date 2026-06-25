@@ -174,6 +174,16 @@ constexpr const char* CLOUD_PARTICLE = "ParticleType";
 constexpr const char* CLOUD_COLOR = "Color";
 constexpr const char* CLOUD_EFFECTS = "CustomPotionEffects";
 
+// ========== EvokerFangsEntity 键 ==========
+// 参考 MC 1.21.11 EvokerFangs.addAdditionalSaveData()，NBT 键名为 "Warmup" 和 "Owner"
+// Owner UUID 使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式存储
+// 注意：MC 1.21.11 原版使用 int[4] 格式存储 "Owner" 键，
+// 但为与项目现有模式（AreaEffectCloudEntity）保持一致，采用 OwnerUUIDMost/OwnerUUIDLeast 格式
+
+constexpr const char* WARMUP = "Warmup";
+constexpr const char* FANGS_OWNER_UUID_MOST = "OwnerUUIDMost";
+constexpr const char* FANGS_OWNER_UUID_LEAST = "OwnerUUIDLeast";
+
 // ========== Player 键 ==========
 
 constexpr const char* PLAYER_GAME_TYPE = "playerGameType";
