@@ -70,6 +70,7 @@ add_executable(minecraft-client
     # 粒子实现 - 效果
     renderer/trident/particle/particles/effect/FlameParticle.cpp
     renderer/trident/particle/particles/effect/SmokeParticle.cpp
+    renderer/trident/particle/particles/effect/WhiteSmokeParticle.cpp
     renderer/trident/particle/particles/effect/LavaParticle.cpp
     renderer/trident/particle/particles/effect/PortalParticle.cpp
     renderer/trident/particle/particles/effect/CritParticle.cpp

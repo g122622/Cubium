@@ -46,6 +46,7 @@
 #include "particles/effect/SmokeParticle.hpp"
 #include "particles/effect/SoulParticle.hpp"
 #include "particles/effect/SpellParticle.hpp"
+#include "particles/effect/WhiteSmokeParticle.hpp"
 #include "particles/liquid/DripParticle.hpp"
 #include "particles/liquid/DripWaterParticle.hpp"
 #include "particles/liquid/DripstoneDripParticle.hpp"
@@ -157,6 +158,14 @@ void registerBuiltinParticleFactories()
     registry.registerType(ParticleTypeId::LargeSmoke,
         "minecraft:large_smoke",
         SmokeParticle::create, // LargeSmoke 使用 Smoke 粒子，但大小不同
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        8.0f,
+        false,
+        false);
+
+    registry.registerType(ParticleTypeId::WhiteSmoke,
+        "minecraft:white_smoke",
+        WhiteSmokeParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         8.0f,
         false,

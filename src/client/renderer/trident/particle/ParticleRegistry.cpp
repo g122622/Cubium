@@ -221,6 +221,10 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:large_smoke",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::WhiteSmoke,
+        "minecraft:white_smoke",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE);
     registerSimpleType(
         ParticleTypeId::Lava, "minecraft:lava", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(

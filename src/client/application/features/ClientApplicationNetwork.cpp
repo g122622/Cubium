@@ -53,6 +53,7 @@
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
@@ -1954,15 +1955,28 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::DISPENSER_SMOKE: {
             // 发射器烟雾粒子，data 为方向（Direction.getIndex()）
-            for (int i = 0; i < 10; ++i) {
-                // 简化实现：在发射器位置周围生成烟雾粒子
-                f32 spx = static_cast<f32>(x) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                f32 spy = static_cast<f32>(y) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                f32 spz = static_cast<f32>(z) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                f32 svx = static_cast<f32>(random.nextGaussian()) * 0.02f;
-                f32 svy = static_cast<f32>(random.nextGaussian()) * 0.02f + 0.05f;
-                f32 svz = static_cast<f32>(random.nextGaussian()) * 0.02f;
-                m_world.addParticle(ParticleTypeId::Smoke, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
+            // 参考 MC Java: LevelEventHandler.shootParticles(pos, data, random, ParticleTypes.SMOKE)
+            {
+                Direction dir = static_cast<Direction>(data);
+                i32 stepX = Directions::xOffset(dir);
+                i32 stepY = Directions::yOffset(dir);
+                i32 stepZ = Directions::zOffset(dir);
+                for (int i = 0; i < 10; ++i) {
+                    f32 speed = static_cast<f32>(random.nextDouble() * 0.2 + 0.01);
+                    f32 spx = static_cast<f32>(x) + static_cast<f32>(stepX) * 0.6f + 0.5f +
+                        static_cast<f32>(stepX) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepZ) * 0.5f;
+                    f32 spy = static_cast<f32>(y) + static_cast<f32>(stepY) * 0.6f + 0.5f +
+                        static_cast<f32>(stepY) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepY) * 0.5f;
+                    f32 spz = static_cast<f32>(z) + static_cast<f32>(stepZ) * 0.6f + 0.5f +
+                        static_cast<f32>(stepZ) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepX) * 0.5f;
+                    f32 svx = static_cast<f32>(stepX) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    f32 svy = static_cast<f32>(stepY) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    f32 svz = static_cast<f32>(stepZ) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    m_world.addParticle(ParticleTypeId::Smoke, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
+                }
             }
             break;
         }
@@ -2166,16 +2180,27 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         case WorldEvents::SHOOT_WHITE_SMOKE: {
             // 白烟粒子效果（方向性），与 DISPENSER_SMOKE(2000) 类似但为白色烟雾
             // data 为烟雾方向（Direction.getIndex()）
-            // TODO: 项目中尚未定义 WHITE_SMOKE 粒子类型，当前使用 CampfireSignal 作为临时替代
+            // 参考 MC Java: LevelEventHandler.shootParticles(pos, data, random, ParticleTypes.WHITE_SMOKE)
             {
+                Direction dir = static_cast<Direction>(data);
+                i32 stepX = Directions::xOffset(dir);
+                i32 stepY = Directions::yOffset(dir);
+                i32 stepZ = Directions::zOffset(dir);
                 for (int i = 0; i < 10; ++i) {
-                    f32 spx = static_cast<f32>(x) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                    f32 spy = static_cast<f32>(y) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                    f32 spz = static_cast<f32>(z) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                    f32 svx = static_cast<f32>(random.nextGaussian()) * 0.02f;
-                    f32 svy = static_cast<f32>(random.nextGaussian()) * 0.02f + 0.05f;
-                    f32 svz = static_cast<f32>(random.nextGaussian()) * 0.02f;
-                    m_world.addParticle(ParticleTypeId::CampfireSignal, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
+                    f32 speed = static_cast<f32>(random.nextDouble() * 0.2 + 0.01);
+                    f32 spx = static_cast<f32>(x) + static_cast<f32>(stepX) * 0.6f + 0.5f +
+                        static_cast<f32>(stepX) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepZ) * 0.5f;
+                    f32 spy = static_cast<f32>(y) + static_cast<f32>(stepY) * 0.6f + 0.5f +
+                        static_cast<f32>(stepY) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepY) * 0.5f;
+                    f32 spz = static_cast<f32>(z) + static_cast<f32>(stepZ) * 0.6f + 0.5f +
+                        static_cast<f32>(stepZ) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepX) * 0.5f;
+                    f32 svx = static_cast<f32>(stepX) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    f32 svy = static_cast<f32>(stepY) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    f32 svz = static_cast<f32>(stepZ) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    m_world.addParticle(ParticleTypeId::WhiteSmoke, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
                 }
             }
             break;
