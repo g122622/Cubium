@@ -29,6 +29,7 @@ IOxidizableBlock (接口)
 |------|------|
 | `getOxidationLevel()` | 获取当前氧化等级 (Unaffected/Exposed/Weathered/Oxidized) |
 | `getNextOxidationBlock()` | 获取下一氧化等级对应的方块，Oxidized 返回 nullptr |
+| `getPreviousOxidationBlock()` | 获取上一氧化等级对应的方块，Unaffected 返回 nullptr（用于斧头刮削） |
 | `getOxidationChanceModifier()` | 氧化概率修正系数，Unaffected=0.75，其余=1.0 |
 | `tryOxidize()` | 执行完整的曼哈顿距离氧化算法 |
 
@@ -54,9 +55,24 @@ IOxidizableBlock (接口)
 
 所有变体类在 `randomTick()` 中调用 `tryOxidize()` 执行氧化算法。Door 变体额外处理上半部分联动。
 
+### 反向氧化链（斧头刮削）
+
+每个可氧化铜方块（Unaffected 除外）都维护一个 `m_previousOxidationBlock` 指针，指向上一氧化等级的方块，形成反向氧化链：
+
+```
+Copper ← ExposedCopper ← WeatheredCopper ← OxidizedCopper
+```
+
+反向链在 `CopperBlocks.cpp` 注册时通过 `setPreviousOxidationBlock()` 设置，覆盖全部 11 种铜变体：
+- 铜方块、切制铜、切制铜楼梯、切制铜台阶
+- 铜门、铜活板门、铜格栅、铜灯
+- 铜锁链、凿纹铜
+
+斧头刮削交互（`AxeItem::onItemUse`）通过 `IOxidizableBlock::getPreviousOxidationBlock()` 访问反向链，将铜方块降级到上一氧化等级（如 Exposed → Unaffected），并播放 SCRAPE 粒子效果。
+
 ### 属性保留
 
-氧化替换方块时，`tryOxidize()` 使用 `StateHolder::withPropertiesOf()` 方法自动保留共有属性（如楼梯朝向、台阶类型、含水状态等），确保氧化不会丢失方块状态。
+氧化替换方块时，`tryOxidize()` 使用 `StateHolder::withPropertiesOf()` 方法自动保留共有属性（如楼梯朝向、台阶类型、含水状态等），确保氧化不会丢失方块状态。斧头刮削同样使用 `withPropertiesOf()` 保留属性。
 
 ### 涂蜡变体
 
