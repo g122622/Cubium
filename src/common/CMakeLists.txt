@@ -80,6 +80,7 @@ add_library(mc_common STATIC
     entity/core/FlyingEntity.cpp
     # Entity - Serialization
     entity/serialization/EntityDeserializer.cpp
+    entity/serialization/EquipmentSlotNames.cpp
     entity/serialization/NbtHelper.cpp
     # Entity - Effect
     entity/effect/EffectType.cpp

@@ -484,9 +484,12 @@ public:
     /**
      * @brief 将背包数据序列化到 NBT 标签
      *
-     * 写入格式（MC Java 兼容）：
-     * - "Inventory": compound_list_tag，每个非空物品包含 "Slot" (byte) + ItemStack NBT 数据
+     * 写入格式（MC 1.21.11 新格式）：
+     * - "Inventory": compound_list_tag，仅包含快捷栏和主背包 (Slot 0-35)
      * - "SelectedItemSlot": int，当前选中的快捷栏槽位
+     *
+     * 护甲和副手装备通过 LivingEntity 的 "equipment" 复合标签独立存储，
+     * 不再出现在 Inventory 列表中。
      *
      * @param tag 目标 NBT 复合标签
      */
@@ -495,8 +498,12 @@ public:
     /**
      * @brief 从 NBT 标签反序列化背包数据
      *
-     * 读取 "Inventory" 列表和 "SelectedItemSlot" 整数，
-     * 清空所有槽位后按 Slot 索引填充物品。
+     * 支持两种格式：
+     * - MC 1.21.11 新格式：Inventory 仅含 Slot 0-35，装备从 "equipment" 复合标签读取
+     * - 旧版格式：Inventory 含所有槽位 (0-40)，护甲使用 Slot 100-103，副手使用 Slot -106
+     *
+     * 读取 "Inventory" 列表、"equipment" 复合标签（如存在）和 "SelectedItemSlot" 整数，
+     * 清空所有槽位后按索引填充物品。
      *
      * @param tag 源 NBT 复合标签
      * @return 反序列化结果

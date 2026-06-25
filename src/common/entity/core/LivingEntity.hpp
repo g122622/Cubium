@@ -1014,7 +1014,7 @@ public:
      * @brief 序列化 LivingEntity 特有数据
      *
      * 写入 Health, AbsorptionAmount, HurtTime, DeathTime, HurtByTimestamp,
-     * FallFlying, ActiveEffects, Attributes, HandItems, ArmorItems 等。
+     * FallFlying, ActiveEffects, Attributes, equipment 等。
      */
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
 

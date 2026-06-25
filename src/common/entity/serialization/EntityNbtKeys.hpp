@@ -71,6 +71,7 @@ constexpr const char* ATTRIBUTES = "Attributes";
 
 constexpr const char* HAND_ITEMS = "HandItems";
 constexpr const char* ARMOR_ITEMS = "ArmorItems";
+constexpr const char* EQUIPMENT = "equipment";
 constexpr const char* HAND_DROP_CHANCES = "HandDropChances";
 constexpr const char* ARMOR_DROP_CHANCES = "ArmorDropChances";
 constexpr const char* DROP_CHANCES = "drop_chances";
