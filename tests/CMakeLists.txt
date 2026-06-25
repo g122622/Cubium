@@ -895,6 +895,8 @@ add_executable(mc_tests
     server/LightSyncTests.cpp
     # Kagero UI妯℃澘绯荤粺娴嬭瘯
     ui/kagero/template/template_test.cpp
+    # Kagero UI内置事件娴嬭瘯
+    ui/kagero/template/BuiltinEventsTest.cpp
     # Kagero UI甯冨眬绯荤粺娴嬭瘯
     client/ui/kagero/layout/MeasureSpecTest.cpp
     client/ui/kagero/layout/LayoutConstraintsTest.cpp
@@ -1628,6 +1630,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Lexer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Parser.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/binder/BindingContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/bindings/BuiltinEvents.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/compiler/TemplateCompiler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/runtime/UpdateScheduler.cpp
         # Kagero UI甯冨眬绯荤粺
