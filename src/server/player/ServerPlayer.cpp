@@ -437,15 +437,19 @@ void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag)
     if (bedPos.has_value() && m_world != nullptr) {
         const BlockState* bedState = m_world->getBlockState(bedPos.value());
 
+        // 在 setBlockState 之前提取所需属性值，避免悬挂指针
+        bool hasOccupied = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED()));
+        bool hasFacing = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING()));
+        Direction bedFacing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
+
         // 清除床的占用状态
-        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED())) {
+        if (hasOccupied) {
             BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
             m_world->setBlockState(bedPos.value(), &newBedState, 3);
         }
 
         // 使用 BedBlock::findStandUpPosition 计算起床位置
-        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
-            Direction bedFacing = bedState->get(BlockStateProperties::HORIZONTAL_FACING());
+        if (hasFacing) {
             Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*m_world, bedPos.value(), bedFacing, yaw());
 
             // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向

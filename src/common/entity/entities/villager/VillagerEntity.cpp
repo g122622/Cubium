@@ -726,16 +726,19 @@ void VillagerEntity::startSleeping(BlockPos pos)
     if (m_world) {
         const BlockState* bedState = m_world->getBlockState(pos);
         if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::BED_PART())) {
+            // 在 setBlockState 之前提取所需属性值，避免悬挂指针
+            bool hasOccupied = bedState->hasProperty(BlockStateProperties::OCCUPIED());
+            bool isFoot = bedState->get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Foot;
+            bool hasFacing = bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING());
+            Direction facing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
+
             // 设置床头为占用
-            if (bedState->hasProperty(BlockStateProperties::OCCUPIED())) {
+            if (hasOccupied) {
                 BlockState occupiedState = bedState->with(BlockStateProperties::OCCUPIED(), true);
                 m_world->setBlockState(pos, &occupiedState, 3);
             }
             // 如果当前是脚部，也设置头部为占用
-            if (bedState->hasProperty(BlockStateProperties::BED_PART()) &&
-                bedState->get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Foot &&
-                bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
-                Direction facing = bedState->get(BlockStateProperties::HORIZONTAL_FACING());
+            if (isFoot && hasFacing) {
                 BlockPos headPos = pos.offset(facing);
                 const BlockState* headState = m_world->getBlockState(headPos);
                 if (headState != nullptr && headState->hasProperty(BlockStateProperties::OCCUPIED())) {
@@ -776,15 +779,19 @@ void VillagerEntity::stopSleeping()
         BlockPos bedPos = m_sleepingPos.value();
         const BlockState* bedState = m_world->getBlockState(bedPos);
 
+        // 在 setBlockState 之前提取所需属性值，避免悬挂指针
+        bool hasOccupied = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED()));
+        bool hasFacing = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING()));
+        Direction bedFacing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
+
         // 清除床的占用状态
-        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED())) {
+        if (hasOccupied) {
             BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
             m_world->setBlockState(bedPos, &newBedState, 3);
         }
 
         // 使用床的朝向计算起床位置
-        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
-            Direction bedFacing = bedState->get(BlockStateProperties::HORIZONTAL_FACING());
+        if (hasFacing) {
             Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*m_world, bedPos, bedFacing, yaw());
 
             // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
