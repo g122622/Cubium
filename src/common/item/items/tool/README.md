@@ -10,7 +10,7 @@ src/common/item/items/tool/
 ├── TieredItem.hpp/cpp         # 层级物品基类（提供材质层级支持）
 ├── ToolItem.hpp/cpp           # 挖掘工具基类（镐、斧、锹、锄的公共逻辑）
 ├── PickaxeItem.hpp/cpp        # 镐类工具
-├── AxeItem.hpp/cpp            # 斧类工具（含去皮功能）
+├── AxeItem.hpp/cpp            # 斧类工具（含去皮、除蜡功能）
 ├── ShovelItem.hpp/cpp         # 锹类工具（含土径创建功能）
 ├── HoeItem.hpp/cpp            # 锄类工具（含耕地创建功能）
 ├── SwordItem.hpp/cpp          # 剑类武器（继承自 TieredItem，非 ToolItem）
@@ -45,6 +45,7 @@ ShearsItem (剪刀) - 独立继承自 Item
 - `src/common/item/ItemStack.hpp` - 物品堆
 - `src/common/item/tier/IItemTier.hpp` - 工具层级接口
 - `src/common/item/crafting/Ingredient.hpp` - 合成材料
+- `src/common/item/items/special/HoneycombItem.hpp` - 蜜脾物品（AxeItem 除蜡依赖 HoneycombItem::getWaxedOff 映射）
 - `src/common/world/block/Block.hpp` - 方块定义
 - `src/common/world/block/BlockState.hpp` - 方块状态
 - `src/common/world/block/Material.hpp` - 材质定义
@@ -84,3 +85,11 @@ AxeItem、ShovelItem、HoeItem 的静态映射表（去皮、土径、耕地）�
 ### 6. 有效方块集合的空指针
 
 `initializeEffectiveBlocks()` 在构造函数中调用，如果方块指针为 `nullptr`，会导致集合为空。应使用条件检查：`if (VanillaBlocks::STONE) blocks.insert(VanillaBlocks::STONE);`
+
+### 7. AxeItem 除蜡不应播放双重音效
+
+AxeItem 除蜡（wax-off）时仅调用 `world.playEvent(WorldEvents::WAX_OFF, pos, 0)` 即可，**不需要**额外调用 `playSound`。`WAX_OFF` 事件（ID 3004）本身已包含音效和粒子效果，额外调用 `playSound` 会导致双重音效。这与去皮（stripping）不同——去皮仅播放 `playSound(ITEM_AXE_STRIP)` 而不触发 levelEvent。参见 HoneycombItem::onItemUse 中 WAX_ON 的处理方式（仅调用 playEvent）。
+
+### 8. AxeItem onItemUse 处理顺序
+
+MC 原版 AxeItem::useOn 的处理顺序为：1.去皮 → 2.除蜡 → 3.去氧化。当前项目已实现去皮和除蜡，去氧化（scraping）尚未实现，需建立反向氧化链映射。

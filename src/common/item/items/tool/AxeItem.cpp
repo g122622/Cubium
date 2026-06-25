@@ -71,10 +71,10 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
     // 2. 检查是否可除蜡（涂蜡铜方块 -> 未涂蜡铜方块）
     auto waxedOffState = item::items::HoneycombItem::getWaxedOff(*state);
     if (waxedOffState.has_value()) {
-        if (context.getPlayer() != nullptr) {
-            context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
-        }
-
+        // 除蜡：播放 WAX_OFF 世界事件（包含音效+粒子），无需单独调用 playSound
+        // MC 原版 AxeItem 对除蜡同时播放 SoundEvents.AXE_WAX_OFF 和 levelEvent(3004)，
+        // 但 levelEvent(3004) 本身已包含音效和粒子效果，playSound 会导致双重音效。
+        // 参见 HoneycombItem::onItemUse 中 WAX_ON 的处理方式（仅调用 playEvent）。
         world.setBlockState(pos, &waxedOffState.value(), 11);
         world.playEvent(world::WorldEvents::WAX_OFF, pos, 0);
         ItemStack& stack = context.getItemStackMut();

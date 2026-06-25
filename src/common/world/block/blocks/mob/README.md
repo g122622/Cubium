@@ -64,5 +64,10 @@ Block (基类)
 - **无碰撞体积**：`getShape()` 和 `getCollisionShape()` 均返回空形状
 - **非不透明**：`isOpaque()` 返回 `false`，允许光照穿过
 
-### BeehiveBlock / SpawnerBlock
+### BeehiveBlock
+- **方块实体**：`hasBlockEntity()` 返回 `true`，需要配套的 BlockEntity 实现完整功能
+- **蜜脾掉落**：`dropHoneycomb()` 使用 `Items::HONEYCOMB`（而非 `Items::HONEY_BLOCK`），掉落 3 个蜜脾物品
+- **剪刀交互**：`onBlockActivated()` 中蜂蜜等级为 5 时使用剪刀可收获蜜脾，剪刀消耗 1 点耐久
+
+### SpawnerBlock
 - **方块实体**：`hasBlockEntity()` 返回 `true`，需要配套的 BlockEntity 实现完整功能
