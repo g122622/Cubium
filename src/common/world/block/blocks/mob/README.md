@@ -70,4 +70,6 @@ Block (基类)
 - **剪刀交互**：`onBlockActivated()` 中蜂蜜等级为 5 时使用剪刀可收获蜜脾，剪刀消耗 1 点耐久
 
 ### SpawnerBlock
-- **方块实体**：`hasBlockEntity()` 返回 `true`，需要配套的 BlockEntity 实现完整功能
+- **方块实体**：`hasBlockEntity()` 返回 `true`，`createBlockEntity()` 创建 `MobSpawnerBlockEntity`
+- **刷怪笼生成逻辑**：`MobSpawnerBlockEntity` 实现 `tick()` 周期性生成实体，支持加权候选列表、自定义光照规则、NBT 持久化
+- **结构集成**：要塞传送门房间通过 `setEntityId()` 配置蠹虫刷怪笼

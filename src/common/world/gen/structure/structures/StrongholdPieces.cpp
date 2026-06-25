@@ -22,6 +22,7 @@
  */
 
 #include "StrongholdPieces.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -32,6 +33,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <cmath>
@@ -1428,15 +1430,14 @@ void StrongholdPortalRoom::generate(
             m_hasSpawner = true;
             setBlockState(world, spawner, 5, 3, 6, chunkBounds);
 
-            // 设置刷怪笼实体类型为蠹虫
+            // 配置刷怪笼实体类型为蠹虫
             IWorld* iworld = dynamic_cast<IWorld*>(&world);
             if (iworld != nullptr) {
                 BlockPos spawnerPos(spawnerX, spawnerY, spawnerZ);
                 BlockEntity* blockEntity = iworld->getBlockEntity(spawnerPos);
                 if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
-                    // TODO(stronghold): MobSpawnerBlockEntity 尚未实现，待实现后取消注释以下代码
-                    // auto* mobSpawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
-                    // mobSpawner->setEntityType(EntityType::SILVERFISH, rng);
+                    auto* mobSpawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
+                    mobSpawner->setEntityId(ResourceLocation(entity::EntityTypes::SILVERFISH), rng);
                 }
             }
         }

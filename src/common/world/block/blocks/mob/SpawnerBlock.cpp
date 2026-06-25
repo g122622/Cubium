@@ -22,6 +22,7 @@
  */
 
 #include "SpawnerBlock.hpp"
+#include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -49,6 +50,11 @@ ActionResultType SpawnerBlock::onBlockActivated(const BlockState& state,
 
     // TODO: 实现创造模式下打开刷怪笼编辑界面
     return ActionResultType::Pass;
+}
+
+std::unique_ptr<BlockEntity> SpawnerBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::MobSpawnerBlockEntity>(pos);
 }
 
 } // namespace blocks

@@ -55,6 +55,8 @@ public:
 
     [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
     // ========== 渲染属性 ==========
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
