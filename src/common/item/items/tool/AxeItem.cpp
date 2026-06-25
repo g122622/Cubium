@@ -32,6 +32,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -53,7 +54,10 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Pass;
     }
 
-    // 1. 检查是否可去皮（原木 -> 去皮原木）
+    // MC Java AxeItem 交互顺序：1.去皮 → 2.去氧化(刮削) → 3.除蜡
+    // 每个步骤独立检查，只有第一个匹配的步骤被执行（fallthrough if-empty 模式）
+
+    // 1. 检查是否可去皮（原木 → 去皮原木）
     const Block* strippedBlock = getStrippedBlock(&state->owner());
     if (strippedBlock != nullptr) {
         const BlockState& newState = strippedBlock->getDefaultState().withPropertiesOf(*state);
@@ -68,26 +72,34 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Success;
     }
 
-    // 2. 检查是否可除蜡（涂蜡铜方块 -> 未涂蜡铜方块）
+    // 2. 检查是否可去氧化（刮削铜方块，如 Exposed → Unaffected）
+    const Block& block = state->getBlock();
+    const auto* oxidizable = dynamic_cast<const blocks::IOxidizableBlock*>(&block);
+    if (oxidizable != nullptr) {
+        Block* previousBlock = oxidizable->getPreviousOxidationBlock();
+        if (previousBlock != nullptr) {
+            // 使用 withPropertiesOf 保留共有属性（楼梯朝向、台阶类型、含水状态等）
+            const BlockState& newState = previousBlock->defaultState().withPropertiesOf(*state);
+
+            world.setBlockState(pos, &newState, 11);
+            // 去氧化播放 SCRAPE 粒子效果（worldEvent 3005 已包含音效和粒子）
+            world.playEvent(world::WorldEvents::SCRAPE, pos, 0);
+            ItemStack& stack = context.getItemStackMut();
+            LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            return ActionResultType::Success;
+        }
+    }
+
+    // 3. 检查是否可除蜡（涂蜡铜方块 → 未涂蜡铜方块）
     auto waxedOffState = item::items::HoneycombItem::getWaxedOff(*state);
     if (waxedOffState.has_value()) {
         // 除蜡：播放 WAX_OFF 世界事件（包含音效+粒子），无需单独调用 playSound
-        // MC 原版 AxeItem 对除蜡同时播放 SoundEvents.AXE_WAX_OFF 和 levelEvent(3004)，
-        // 但 levelEvent(3004) 本身已包含音效和粒子效果，playSound 会导致双重音效。
-        // 参见 HoneycombItem::onItemUse 中 WAX_ON 的处理方式（仅调用 playEvent）。
         world.setBlockState(pos, &waxedOffState.value(), 11);
         world.playEvent(world::WorldEvents::WAX_OFF, pos, 0);
         ItemStack& stack = context.getItemStackMut();
         LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
         return ActionResultType::Success;
     }
-
-    // TODO: 实现 MC 原版斧头去氧化功能（scraping）——将氧化铜方块降一级（如 Exposed -> Unaffected）。
-    // MC 原版 AxeItem 的处理顺序为：1.去皮 → 2.除蜡 → 3.去氧化。
-    // 当前项目仅实现了去皮和除蜡，去氧化需要建立反向氧化链映射
-    // （WeatheredCopper -> Exposed -> Unaffected 等），可通过 IOxidizableBlock 接口扩展
-    // getPreviousOxidationBlock() 方法，或在 HoneycombItem 中新增 SCRAPE_OFF 映射表。
-    // 去氧化应播放 WorldEvents::SCRAPE 粒子效果。
 
     return ActionResultType::Pass;
 }

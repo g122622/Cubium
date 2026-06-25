@@ -1311,6 +1311,8 @@ const ResourceLocation ITEM_BUCKET_FILL_LAVA("minecraft:item.bucket.fill_lava");
 
 // 工具
 const ResourceLocation ITEM_AXE_STRIP("minecraft:item.axe.strip");
+const ResourceLocation ITEM_AXE_SCRAPE("minecraft:item.axe.scrape");
+const ResourceLocation ITEM_AXE_WAX_OFF("minecraft:item.axe.wax_off");
 const ResourceLocation ITEM_HOE_TILL("minecraft:item.hoe.till");
 const ResourceLocation ITEM_SHOVEL_FLATTEN("minecraft:item.shovel.flatten");
 

@@ -280,8 +280,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxesWaxedCopperBlock)
     // 创建铁斧（无玩家，避免 playSound 需要玩家的问题）
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(
-        m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -309,8 +308,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxesWaxedExposedCopper)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(
-        m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -328,17 +326,16 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxesWaxedExposedCopper)
 
 TEST_F(WaxIntegrationTest, AxeOnItemUse_PassesOnUnwaxedCopper)
 {
-    // 在 (0, 64, 0) 放置铜块（未涂蜡，不可去皮）
+    // 在 (0, 64, 0) 放置铜块（Unaffected等级，不可去皮、不可去氧化、不可除蜡）
     m_world.setBlockState(0, 64, 0, &VanillaBlocks::COPPER_BLOCK->defaultState());
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(
-        m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
 
     ActionResultType result = axe.onItemUse(context);
 
-    // 铜块不可去皮也不是涂蜡方块，应返回 Pass
+    // Unaffected铜块不可去皮、不可去氧化（已是最低等级）、不可除蜡，应返回 Pass
     EXPECT_EQ(result, ActionResultType::Pass);
 
     // 不应触发任何事件
@@ -353,8 +350,7 @@ TEST_F(WaxIntegrationTest, AxeOnItemUse_StripsLogBeforeDeWaxing)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(
-        m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
 
     ActionResultType result = axe.onItemUse(context);
 
@@ -442,18 +438,221 @@ TEST_F(WaxIntegrationTest, DeWaxNoDoubleSound)
 
     item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
     ItemStack axeStack(&axe, 1);
-    ItemUseContext context(
-        m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
 
     ActionResultType result = axe.onItemUse(context);
     EXPECT_EQ(result, ActionResultType::Success);
 
     // 关键断言：除蜡不应播放单独音效，仅通过 playEvent(WAX_OFF) 触发音效+粒子
     EXPECT_TRUE(m_world.sounds().empty()) << "AxeItem de-waxing should not call playSound() - "
-                                              "WAX_OFF event already includes audio";
+                                             "WAX_OFF event already includes audio";
     // 应有 WAX_OFF 事件
     ASSERT_EQ(m_world.events().size(), 1u);
     EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_OFF);
+}
+
+// ============================================================================
+// AxeItem 去氧化（刮削）集成测试
+// ============================================================================
+
+TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesExposedCopper)
+{
+    // 在 (0, 64, 0) 放置斑驳铜块（Exposed等级）
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::EXPOSED_COPPER->defaultState());
+
+    item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
+    ItemStack axeStack(&axe, 1);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = axe.onItemUse(context);
+
+    // 应该成功
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 方块应降级为铜块（Unaffected等级）
+    const BlockState* newState = m_world.getBlockState(0, 64, 0);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(&newState->owner(), VanillaBlocks::COPPER_BLOCK);
+
+    // 应触发 SCRAPE 世界事件
+    ASSERT_EQ(m_world.events().size(), 1u);
+    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+    EXPECT_EQ(m_world.events()[0].pos, BlockPos(0, 64, 0));
+}
+
+TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesWeatheredCopper)
+{
+    // 在 (0, 64, 0) 放置锈蚀铜块（Weathered等级）
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::WEATHERED_COPPER->defaultState());
+
+    item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
+    ItemStack axeStack(&axe, 1);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = axe.onItemUse(context);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 方块应降级为斑驳铜块（Exposed等级）
+    const BlockState* newState = m_world.getBlockState(0, 64, 0);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(&newState->owner(), VanillaBlocks::EXPOSED_COPPER);
+
+    // 应触发 SCRAPE 事件
+    ASSERT_EQ(m_world.events().size(), 1u);
+    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+}
+
+TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesOxidizedCopper)
+{
+    // 在 (0, 64, 0) 放置氧化铜块（Oxidized等级）
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::OXIDIZED_COPPER->defaultState());
+
+    item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
+    ItemStack axeStack(&axe, 1);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = axe.onItemUse(context);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 方块应降级为锈蚀铜块（Weathered等级）
+    const BlockState* newState = m_world.getBlockState(0, 64, 0);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(&newState->owner(), VanillaBlocks::WEATHERED_COPPER);
+
+    // 应触发 SCRAPE 事件
+    ASSERT_EQ(m_world.events().size(), 1u);
+    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+}
+
+TEST_F(WaxIntegrationTest, AxeOnItemUse_CannotScrapeUnaffectedCopper)
+{
+    // 在 (0, 64, 0) 放置铜块（Unaffected等级，已是最低等级，不可去氧化）
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::COPPER_BLOCK->defaultState());
+
+    item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
+    ItemStack axeStack(&axe, 1);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = axe.onItemUse(context);
+
+    // Unaffected等级没有上一级，应返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+
+    // 不应触发任何事件
+    EXPECT_TRUE(m_world.events().empty());
+    EXPECT_TRUE(m_world.sounds().empty());
+}
+
+TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapingPriorityOverDeWaxing)
+{
+    // MC Java 交互顺序：去皮 → 去氧化（刮削）→ 除蜡
+    // 斑驳铜块（Exposed，未涂蜡）应被刮削而非除蜡
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::EXPOSED_COPPER->defaultState());
+
+    item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
+    ItemStack axeStack(&axe, 1);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = axe.onItemUse(context);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应降级为铜块（Unaffected），而非尝试除蜡
+    const BlockState* newState = m_world.getBlockState(0, 64, 0);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(&newState->owner(), VanillaBlocks::COPPER_BLOCK);
+
+    // 应触发 SCRAPE 事件（而非 WAX_OFF）
+    ASSERT_EQ(m_world.events().size(), 1u);
+    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+}
+
+TEST_F(WaxIntegrationTest, AxeOnItemUse_DeWaxBeforeScrapeOnWaxedBlock)
+{
+    // 涂蜡斑驳铜块应该先被除蜡（因为刮削检查在涂蜡方块上不匹配）
+    // 涂蜡方块不是 IOxidizableBlock，所以 getPreviousOxidationBlock 不会命中
+    // 只有除蜡检查能匹配涂蜡方块
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::WAXED_EXPOSED_COPPER->defaultState());
+
+    item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
+    ItemStack axeStack(&axe, 1);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = axe.onItemUse(context);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应变为斑驳铜块（未涂蜡），而非进一步降级
+    const BlockState* newState = m_world.getBlockState(0, 64, 0);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(&newState->owner(), VanillaBlocks::EXPOSED_COPPER);
+
+    // 应触发 WAX_OFF 事件（除蜡，非刮削）
+    ASSERT_EQ(m_world.events().size(), 1u);
+    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_OFF);
+}
+
+TEST_F(WaxIntegrationTest, AxeOnItemUse_ScrapesCutCopperStairs)
+{
+    // 测试切制铜楼梯的刮削（验证 withPropertiesOf 保留楼梯朝向等属性）
+    const BlockState& exposedStairState = VanillaBlocks::EXPOSED_CUT_COPPER_STAIRS->defaultState();
+    m_world.setBlockState(0, 64, 0, &exposedStairState);
+
+    item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
+    ItemStack axeStack(&axe, 1);
+    ItemUseContext context(m_world, nullptr, axeStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = axe.onItemUse(context);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 应降级为切制铜楼梯（Unaffected等级）
+    const BlockState* newState = m_world.getBlockState(0, 64, 0);
+    ASSERT_NE(newState, nullptr);
+    EXPECT_EQ(&newState->owner(), VanillaBlocks::CUT_COPPER_STAIRS);
+
+    // 应触发 SCRAPE 事件
+    ASSERT_EQ(m_world.events().size(), 1u);
+    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::SCRAPE);
+}
+
+TEST_F(WaxIntegrationTest, ScrapeThenScrape_MultipleScrapingSteps)
+{
+    // 测试连续刮削：氧化铜 → 锈蚀 → 斑驳 → 铜
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::OXIDIZED_COPPER->defaultState());
+
+    item::tool::AxeItem axe(item::tier::ItemTiers::IRON(), 6.0f, -3.0f, ItemProperties().maxDamage(250));
+
+    // 第一次刮削：Oxidized → Weathered
+    ItemStack axeStack1(&axe, 1);
+    ItemUseContext context1(m_world, nullptr, axeStack1, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    EXPECT_EQ(axe.onItemUse(context1), ActionResultType::Success);
+    EXPECT_EQ(&m_world.getBlockState(0, 64, 0)->owner(), VanillaBlocks::WEATHERED_COPPER);
+
+    m_world.clearEvents();
+
+    // 第二次刮削：Weathered → Exposed
+    ItemStack axeStack2(&axe, 1);
+    ItemUseContext context2(m_world, nullptr, axeStack2, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    EXPECT_EQ(axe.onItemUse(context2), ActionResultType::Success);
+    EXPECT_EQ(&m_world.getBlockState(0, 64, 0)->owner(), VanillaBlocks::EXPOSED_COPPER);
+
+    m_world.clearEvents();
+
+    // 第三次刮削：Exposed → Copper (Unaffected)
+    ItemStack axeStack3(&axe, 1);
+    ItemUseContext context3(m_world, nullptr, axeStack3, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    EXPECT_EQ(axe.onItemUse(context3), ActionResultType::Success);
+    EXPECT_EQ(&m_world.getBlockState(0, 64, 0)->owner(), VanillaBlocks::COPPER_BLOCK);
+
+    m_world.clearEvents();
+
+    // 第四次刮削：Copper (Unaffected) 无法再降级
+    ItemStack axeStack4(&axe, 1);
+    ItemUseContext context4(m_world, nullptr, axeStack4, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+    EXPECT_EQ(axe.onItemUse(context4), ActionResultType::Pass);
 }
 
 } // namespace

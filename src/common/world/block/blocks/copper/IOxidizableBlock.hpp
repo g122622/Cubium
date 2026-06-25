@@ -62,6 +62,13 @@ public:
     [[nodiscard]] virtual Block* getNextOxidationBlock() const = 0;
 
     /**
+     * @brief 获取上一氧化等级对应的方块
+     *
+     * 返回 nullptr 表示已是最低等级，无法继续去氧化（刮削）。
+     */
+    [[nodiscard]] virtual Block* getPreviousOxidationBlock() const = 0;
+
+    /**
      * @brief 获取氧化概率修正系数
      *
      * 未氧化（Unaffected）返回 0.75，其余等级返回 1.0。

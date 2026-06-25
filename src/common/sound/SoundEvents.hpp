@@ -1445,6 +1445,8 @@ extern const ResourceLocation ITEM_BUCKET_FILL_LAVA;
 
 /// 工具
 extern const ResourceLocation ITEM_AXE_STRIP;
+extern const ResourceLocation ITEM_AXE_SCRAPE;
+extern const ResourceLocation ITEM_AXE_WAX_OFF;
 extern const ResourceLocation ITEM_HOE_TILL;
 extern const ResourceLocation ITEM_SHOVEL_FLATTEN;
 
