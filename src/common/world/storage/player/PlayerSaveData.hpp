@@ -94,6 +94,9 @@ struct PlayerSaveData {
     /// 进入下界时的位置（用于进度追踪）
     std::optional<Vector3d> enteredNetherPosition;
 
+    /// 上次死亡位置（维度+方块坐标，用于追溯指南针和存档持久化）
+    std::optional<GlobalPos> lastDeathLocation;
+
     // ========== 游戏模式 ==========
 
     /// 游戏模式

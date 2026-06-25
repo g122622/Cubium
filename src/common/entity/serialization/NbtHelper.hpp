@@ -118,6 +118,24 @@ void putFloatList(nbt::tags::compound_tag& tag, const std::string& key, const st
  */
 [[nodiscard]] std::vector<f32> getFloatList(const nbt::tags::compound_tag& tag, const std::string& key);
 
+/**
+ * @brief 写入 int 列表（MC 格式：LastDeathLocation.pos 等）
+ *
+ * @param tag 目标 compound_tag
+ * @param key 键名
+ * @param values i32 值数组
+ */
+void putIntList(nbt::tags::compound_tag& tag, const std::string& key, const std::vector<i32>& values);
+
+/**
+ * @brief 读取 int 列表
+ *
+ * @param tag 源 compound_tag
+ * @param key 键名
+ * @return i32 列表，键不存在或类型不匹配返回空
+ */
+[[nodiscard]] std::vector<i32> getIntList(const nbt::tags::compound_tag& tag, const std::string& key);
+
 // ========== UUID 读写 ==========
 
 /**

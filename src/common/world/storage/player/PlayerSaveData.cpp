@@ -22,7 +22,9 @@
  */
 
 #include "PlayerSaveData.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/CompressionUtils.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
 #include <cstdlib>
 #include <sstream>
 #include <spdlog/spdlog.h>
@@ -59,6 +61,9 @@ constexpr const char* SPAWN_Z = "SpawnZ";
 constexpr const char* SPAWN_FORCED = "SpawnForced";
 constexpr const char* SPAWN_DIM = "SpawnDimension";
 constexpr const char* ENTERED_NETHER_POS = "EnteredNetherPosition";
+constexpr const char* LAST_DEATH_LOCATION = "LastDeathLocation";
+constexpr const char* LDL_DIMENSION = "dimension";
+constexpr const char* LDL_POS = "pos";
 
 // 游戏模式
 constexpr const char* PLAYER_GAME_TYPE = "playerGameType";
@@ -272,6 +277,15 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
         tag.value.emplace(nbt_keys::ENTERED_NETHER_POS, std::move(netherPos));
     }
 
+    // 最后死亡位置
+    if (lastDeathLocation.has_value()) {
+        auto deathTag = std::make_unique<nbt::tags::compound_tag>();
+        deathTag->put(nbt_keys::LDL_DIMENSION, std::string(dimensionIdToString(lastDeathLocation->getDimensionId())));
+        entity::serialization::nbt_helper::putIntList(
+            *deathTag, nbt_keys::LDL_POS, {lastDeathLocation->x(), lastDeathLocation->y(), lastDeathLocation->z()});
+        tag.value.emplace(nbt_keys::LAST_DEATH_LOCATION, std::move(deathTag));
+    }
+
     // 游戏模式
     tag.put(nbt_keys::PLAYER_GAME_TYPE, static_cast<i32>(gameMode));
     tag.put(nbt_keys::FLYING, static_cast<i8>(flying ? 1 : 0));
@@ -441,6 +455,22 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
         auto z = tryGetDouble(*netherPos, "z");
         if (x.has_value() && y.has_value() && z.has_value()) {
             data.enteredNetherPosition = Vector3d(*x, *y, *z);
+        }
+    }
+
+    // 最后死亡位置
+    if (auto* deathTag = tryGetCompound(tag, nbt_keys::LAST_DEATH_LOCATION)) {
+        auto dimStr = tryGetString(*deathTag, nbt_keys::LDL_DIMENSION);
+        auto posList = entity::serialization::nbt_helper::getIntList(*deathTag, nbt_keys::LDL_POS);
+        if (dimStr.has_value() && posList.size() >= 3) {
+            DimensionId dim = dimensionNameToId(*dimStr);
+            data.lastDeathLocation = GlobalPos(dim, BlockPos(posList[0], posList[1], posList[2]));
+        } else {
+            // 兼容整数维度格式
+            auto dimInt = tryGetInt(*deathTag, nbt_keys::LDL_DIMENSION);
+            if (dimInt.has_value() && posList.size() >= 3) {
+                data.lastDeathLocation = GlobalPos(*dimInt, BlockPos(posList[0], posList[1], posList[2]));
+            }
         }
     }
 

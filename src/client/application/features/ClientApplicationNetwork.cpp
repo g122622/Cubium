@@ -1473,7 +1473,8 @@ void ClientApplication::setupNetworkCallbacks()
                               GameMode previousGameMode,
                               bool isDebug,
                               bool isFlat,
-                              bool keepData) {
+                              bool keepData,
+                              std::optional<GlobalPos> lastDeathLocation) {
         spdlog::info("Received Respawn: dimensionType={}, dimension={}, gameMode={}, keepData={}",
             dimensionType,
             static_cast<i32>(dimension),
@@ -1529,6 +1530,9 @@ void ClientApplication::setupNetworkCallbacks()
             if (!keepData) {
                 m_player->respawn();
             }
+
+            // 12. 更新玩家的上次死亡位置（从服务端同步）
+            m_player->setLastDeathLocation(std::move(lastDeathLocation));
         }
 
         // 12. 重置预测器

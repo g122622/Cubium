@@ -27,7 +27,10 @@
 #include "entity/damage/DamageSource.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/food/FoodStats.hpp"
+#include "entity/serialization/EntityNbtKeys.hpp"
+#include "entity/serialization/NbtHelper.hpp"
 #include "network/packet/PacketSerializer.hpp"
+#include "world/GlobalPos.hpp"
 
 using namespace mc;
 
@@ -694,6 +697,114 @@ TEST(Player, SerializeDeserialize)
     EXPECT_FLOAT_EQ(restored->health(), 15.0f);
     EXPECT_EQ(restored->gameMode(), GameMode::Creative);
     EXPECT_EQ(restored->experienceLevel(), 10);
+}
+
+TEST(Player, LastDeathLocationDieSetsPosition)
+{
+    Player player(1, "TestPlayer");
+    player.setPosition(100.5f, 64.0f, -200.25f);
+    player.setDimension(0); // 主世界
+
+    // 死亡前应该没有记录
+    EXPECT_FALSE(player.getLastDeathLocation().has_value());
+
+    // 致命伤害触发死亡
+    auto genericSource = DamageSources::generic();
+    player.hurt(genericSource, 30.0f);
+    EXPECT_TRUE(player.isDead());
+
+    // 死亡后应该记录位置
+    auto deathLoc = player.getLastDeathLocation();
+    ASSERT_TRUE(deathLoc.has_value());
+    EXPECT_EQ(deathLoc->getDimensionId(), 0); // 主世界
+    // onPos() 返回脚下方块位置：floor(y) - 1
+    EXPECT_EQ(deathLoc->x(), 100);
+    EXPECT_EQ(deathLoc->z(), -201);
+}
+
+TEST(Player, LastDeathLocationSetterGetter)
+{
+    Player player(1, "TestPlayer");
+
+    // 初始状态应该没有记录
+    EXPECT_FALSE(player.getLastDeathLocation().has_value());
+
+    // 设置死亡位置
+    GlobalPos deathPos(-1, BlockPos(50, 30, -100)); // 下界
+    player.setLastDeathLocation(deathPos);
+    ASSERT_TRUE(player.getLastDeathLocation().has_value());
+    EXPECT_EQ(player.getLastDeathLocation()->getDimensionId(), -1);
+    EXPECT_EQ(player.getLastDeathLocation()->x(), 50);
+    EXPECT_EQ(player.getLastDeathLocation()->y(), 30);
+    EXPECT_EQ(player.getLastDeathLocation()->z(), -100);
+
+    // 清除死亡位置
+    player.setLastDeathLocation(std::nullopt);
+    EXPECT_FALSE(player.getLastDeathLocation().has_value());
+}
+
+TEST(Player, LastDeathLocationNbtSerialization)
+{
+    Player player(1, "TestPlayer");
+    player.setPosition(100.5f, 64.0f, -200.25f);
+    player.setDimension(1); // 末地
+
+    // 触发死亡以设置 lastDeathLocation
+    auto genericSource = DamageSources::generic();
+    player.hurt(genericSource, 30.0f);
+    EXPECT_TRUE(player.isDead());
+    ASSERT_TRUE(player.getLastDeathLocation().has_value());
+    EXPECT_EQ(player.getLastDeathLocation()->getDimensionId(), 1);
+
+    // 序列化到 NBT
+    nbt::tags::compound_tag tag;
+    player.addAdditionalSaveData(tag);
+
+    // 验证 LastDeathLocation 在 NBT 中
+    using namespace mc::entity::serialization;
+    auto* deathTag = nbt_helper::tryGetCompound(tag, nbt_keys::LAST_DEATH_LOCATION);
+    ASSERT_NE(deathTag, nullptr);
+
+    auto dimStr = nbt_helper::tryGetString(*deathTag, nbt_keys::LAST_DEATH_LOCATION_DIMENSION);
+    EXPECT_TRUE(dimStr.has_value());
+    if (dimStr.has_value()) {
+        EXPECT_EQ(*dimStr, "minecraft:the_end");
+    }
+
+    auto posList = nbt_helper::getIntList(*deathTag, nbt_keys::LAST_DEATH_LOCATION_POS);
+    ASSERT_GE(posList.size(), 3u);
+
+    // 反序列化到新玩家
+    Player restored(2, "RestoredPlayer");
+    auto result = restored.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+
+    ASSERT_TRUE(restored.getLastDeathLocation().has_value());
+    EXPECT_EQ(restored.getLastDeathLocation()->getDimensionId(), 1);
+    EXPECT_EQ(restored.getLastDeathLocation()->x(), posList[0]);
+    EXPECT_EQ(restored.getLastDeathLocation()->y(), posList[1]);
+    EXPECT_EQ(restored.getLastDeathLocation()->z(), posList[2]);
+}
+
+TEST(Player, LastDeathLocationNbtEmptyRoundTrip)
+{
+    Player player(1, "TestPlayer");
+    // 不设置死亡位置
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    player.addAdditionalSaveData(tag);
+
+    // LastDeathLocation 不应该出现在 NBT 中（因为 optional 为空）
+    using namespace mc::entity::serialization;
+    auto* deathTag = nbt_helper::tryGetCompound(tag, nbt_keys::LAST_DEATH_LOCATION);
+    EXPECT_EQ(deathTag, nullptr);
+
+    // 反序列化
+    Player restored(2, "RestoredPlayer");
+    auto result = restored.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+    EXPECT_FALSE(restored.getLastDeathLocation().has_value());
 }
 
 // ============================================================================

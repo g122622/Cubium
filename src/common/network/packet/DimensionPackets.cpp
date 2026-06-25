@@ -74,6 +74,17 @@ Result<std::vector<u8>> RespawnPacket::serialize() const
     ser.writeBool(m_isFlat);
     ser.writeBool(m_keepData);
 
+    // 上次死亡位置（可选：bool标志 + [维度ID + BlockPos]）
+    if (m_lastDeathLocation.has_value()) {
+        ser.writeBool(true);
+        ser.writeI32(m_lastDeathLocation->getDimensionId());
+        ser.writeI32(m_lastDeathLocation->x());
+        ser.writeI32(m_lastDeathLocation->y());
+        ser.writeI32(m_lastDeathLocation->z());
+    } else {
+        ser.writeBool(false);
+    }
+
     std::vector<u8> result;
     result.insert(result.end(), ser.data(), ser.data() + ser.size());
     return result;
@@ -144,14 +155,44 @@ Result<void> RespawnPacket::deserialize(const u8* data, size_t size)
     }
     m_keepData = keepResult.value();
 
+    // 上次死亡位置（可选：bool标志 + [维度ID + BlockPos]）
+    auto hasDeathLocResult = deser.readBool();
+    if (hasDeathLocResult.failed()) {
+        // 兼容旧版包：没有 lastDeathLocation 字段时视为空
+        m_lastDeathLocation = std::nullopt;
+        return {};
+    }
+    if (hasDeathLocResult.value()) {
+        auto dimIdResult = deser.readI32();
+        if (dimIdResult.failed()) {
+            return dimIdResult.error();
+        }
+        auto xResult = deser.readI32();
+        if (xResult.failed()) {
+            return xResult.error();
+        }
+        auto yResult = deser.readI32();
+        if (yResult.failed()) {
+            return yResult.error();
+        }
+        auto zResult = deser.readI32();
+        if (zResult.failed()) {
+            return zResult.error();
+        }
+        m_lastDeathLocation =
+            GlobalPos(dimIdResult.value(), BlockPos(xResult.value(), yResult.value(), zResult.value()));
+    } else {
+        m_lastDeathLocation = std::nullopt;
+    }
+
     return {};
 }
 
 size_t RespawnPacket::expectedSize() const
 {
-    // VarInt + 字符串 + u64 + 3*u8 + 3*bool
+    // VarInt + 字符串 + u64 + 3*u8 + 3*bool + 可选死亡位置(bool + [i32*4])
     // 保守估计
-    return sizeof(PacketHeader) + 5 + 32 + 8 + 3 + 3;
+    return sizeof(PacketHeader) + 5 + 32 + 8 + 3 + 3 + 1 + (m_lastDeathLocation.has_value() ? sizeof(i32) * 4 : 0);
 }
 
 // ============================================================================

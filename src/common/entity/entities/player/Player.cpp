@@ -40,6 +40,7 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockSoundType.hpp"
 #include "../../../world/block/BlockState.hpp"
+#include "../../../world/dimension/MapDimensionId.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
@@ -1516,6 +1517,9 @@ void Player::die(DamageSource& cause)
 
     // 玩家特有：掉落经验
     dropExperience();
+
+    // 记录死亡位置（维度+方块坐标），用于追溯指南针和存档持久化
+    m_lastDeathLocation = GlobalPos(m_dimension, onPos());
 }
 
 // ============================================================================
@@ -2693,7 +2697,17 @@ void Player::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     // TODO: 当 PlayerInventory 实现 toNbt/fromNbt 后，添加背包序列化（Inventory、SelectedItemSlot）
     // TODO: 当 EnderChestInventory 实现后，添加末影箱序列化（EnderItems）
     // TODO: 当 Score 系统实现后，添加分数序列化（Score）
-    // TODO: 当 LastDeathLocation 实现后，添加最后死亡位置序列化
+
+    // ========== 最后死亡位置 ==========
+    if (m_lastDeathLocation.has_value()) {
+        auto deathTag = std::make_unique<nbt::tags::compound_tag>();
+        deathTag->put(
+            LAST_DEATH_LOCATION_DIMENSION, std::string(dimensionIdToString(m_lastDeathLocation->getDimensionId())));
+        nbt_helper::putIntList(*deathTag,
+            LAST_DEATH_LOCATION_POS,
+            {m_lastDeathLocation->x(), m_lastDeathLocation->y(), m_lastDeathLocation->z()});
+        tag.value.emplace(LAST_DEATH_LOCATION, std::move(deathTag));
+    }
 }
 
 Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
@@ -2821,7 +2835,26 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
     // TODO: 当 PlayerInventory 实现 toNbt/fromNbt 后，添加背包反序列化（Inventory、SelectedItemSlot）
     // TODO: 当 EnderChestInventory 实现后，添加末影箱反序列化（EnderItems）
     // TODO: 当 Score 系统实现后，添加分数反序列化（Score）
-    // TODO: 当 LastDeathLocation 实现后，添加最后死亡位置反序列化
+
+    // ========== 最后死亡位置 ==========
+    if (auto* deathTag = nbt_helper::tryGetCompound(tag, LAST_DEATH_LOCATION)) {
+        auto dimStr = nbt_helper::tryGetString(*deathTag, LAST_DEATH_LOCATION_DIMENSION);
+        auto posList = nbt_helper::getIntList(*deathTag, LAST_DEATH_LOCATION_POS);
+        if (dimStr.has_value() && posList.size() >= 3) {
+            DimensionId dim = dimensionNameToId(*dimStr);
+            m_lastDeathLocation = GlobalPos(dim, BlockPos(posList[0], posList[1], posList[2]));
+        } else {
+            // 兼容整数维度格式
+            auto dimInt = nbt_helper::tryGetInt(*deathTag, LAST_DEATH_LOCATION_DIMENSION);
+            if (dimInt.has_value() && posList.size() >= 3) {
+                m_lastDeathLocation = GlobalPos(*dimInt, BlockPos(posList[0], posList[1], posList[2]));
+            } else {
+                m_lastDeathLocation = std::nullopt;
+            }
+        }
+    } else {
+        m_lastDeathLocation = std::nullopt;
+    }
 
     return Result<void>::ok();
 }

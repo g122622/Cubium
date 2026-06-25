@@ -792,6 +792,20 @@ public:
      */
     void clearEnteredNetherPosition() { m_enteredNetherPosition = std::nullopt; }
 
+    // ========== 死亡位置追踪 ==========
+
+    /**
+     * @brief 获取上次死亡位置
+     * @return 死亡位置（维度+方块位置），如果未记录则返回空
+     */
+    [[nodiscard]] std::optional<GlobalPos> getLastDeathLocation() const { return m_lastDeathLocation; }
+
+    /**
+     * @brief 设置上次死亡位置
+     * @param location 死亡位置（维度+方块位置），传入 nullopt 清除
+     */
+    void setLastDeathLocation(std::optional<GlobalPos> location) { m_lastDeathLocation = std::move(location); }
+
     /**
      * @brief 切换飞行状态
      *
@@ -1720,6 +1734,9 @@ private:
 
     // 进入下界时的位置（用于进度触发器 nether_travel）
     std::optional<Vector3d> m_enteredNetherPosition;
+
+    // 上次死亡位置（用于追溯指南针和存档持久化）
+    std::optional<GlobalPos> m_lastDeathLocation;
 
     // 自动跳跃系统
     entity::movement::AutoJump m_autoJump;

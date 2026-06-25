@@ -208,6 +208,8 @@ constexpr const char* IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION = "ignore_fall_d
 constexpr const char* CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME = "current_impulse_context_reset_grace_time";
 constexpr const char* ENDER_ITEMS = "EnderItems";
 constexpr const char* LAST_DEATH_LOCATION = "LastDeathLocation";
+constexpr const char* LAST_DEATH_LOCATION_DIMENSION = "dimension"; ///< LastDeathLocation 子键：维度名称
+constexpr const char* LAST_DEATH_LOCATION_POS = "pos"; ///< LastDeathLocation 子键：方块位置（int 列表 [x, y, z]）
 constexpr const char* SLEEP_TIMER = "SleepTimer";
 
 // ========== SkeletonEntity 键 ==========

@@ -172,6 +172,32 @@ std::vector<f32> getFloatList(const nbt::tags::compound_tag& tag, const std::str
     return result;
 }
 
+void putIntList(nbt::tags::compound_tag& tag, const std::string& key, const std::vector<i32>& values)
+{
+    auto list = std::make_unique<nbt::tags::int_list_tag>();
+    for (i32 v : values) {
+        list->value.push_back(v);
+    }
+    tag.value.emplace(key, std::move(list));
+}
+
+std::vector<i32> getIntList(const nbt::tags::compound_tag& tag, const std::string& key)
+{
+    std::vector<i32> result;
+    auto* list = tryGetList(tag, key);
+    if (!list) {
+        return result;
+    }
+
+    if (list->element_id() == nbt::TagId::Int) {
+        auto& intList = dynamic_cast<const nbt::tags::int_list_tag&>(*list);
+        for (i32 v : intList.value) {
+            result.push_back(v);
+        }
+    }
+    return result;
+}
+
 // ========== UUID 读写 ==========
 
 void putUuid(nbt::tags::compound_tag& tag, const std::string& uuid)

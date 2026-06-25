@@ -1870,7 +1870,8 @@ void NetworkClient::_handleRespawn(network::PacketDeserializer& deser)
             packet.previousGameMode(),
             packet.isDebug(),
             packet.isFlat(),
-            packet.keepData());
+            packet.keepData(),
+            packet.lastDeathLocation());
     }
 }
 
