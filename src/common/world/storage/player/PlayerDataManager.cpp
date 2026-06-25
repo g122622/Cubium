@@ -317,6 +317,14 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
     data.sprinting = player.isSprinting();
     data.sneaking = player.isSneaking();
 
+    // 冲量上下文
+    auto impulsePos = player.currentImpulseImpactPos();
+    if (impulsePos.has_value()) {
+        data.currentImpulseImpactPos = impulsePos.value();
+    }
+    data.ignoreFallDamageFromCurrentImpulse = player.isIgnoringFallDamageFromCurrentImpulse();
+    data.currentImpulseContextResetGraceTime = player.currentImpulseContextResetGraceTime();
+
     // 背包物品
     const auto& inventory = player.inventory();
     data.inventoryItems.clear();

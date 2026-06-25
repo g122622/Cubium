@@ -359,6 +359,17 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
     tag.put(nbt_keys::SPRINTING, static_cast<i8>(sprinting ? 1 : 0));
     tag.put(nbt_keys::SNEAKING, static_cast<i8>(sneaking ? 1 : 0));
 
+    // 冲量上下文
+    if (currentImpulseImpactPos.has_value()) {
+        auto impulsePos = std::make_unique<nbt::tags::compound_tag>();
+        impulsePos->put("x", static_cast<f64>(currentImpulseImpactPos->x));
+        impulsePos->put("y", static_cast<f64>(currentImpulseImpactPos->y));
+        impulsePos->put("z", static_cast<f64>(currentImpulseImpactPos->z));
+        tag.value.emplace("current_explosion_impact_pos", std::move(impulsePos));
+    }
+    tag.put("ignore_fall_damage_from_current_explosion", static_cast<i8>(ignoreFallDamageFromCurrentImpulse ? 1 : 0));
+    tag.put("current_impulse_context_reset_grace_time", currentImpulseContextResetGraceTime);
+
     return tag;
 }
 
@@ -544,6 +555,22 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     if (auto opt = tryGetBool(tag, nbt_keys::ON_GROUND)) data.onGround = *opt;
     if (auto opt = tryGetBool(tag, nbt_keys::SPRINTING)) data.sprinting = *opt;
     if (auto opt = tryGetBool(tag, nbt_keys::SNEAKING)) data.sneaking = *opt;
+
+    // 冲量上下文
+    if (auto* impulsePos = tryGetCompound(tag, "current_explosion_impact_pos")) {
+        auto x = tryGetDouble(*impulsePos, "x");
+        auto y = tryGetDouble(*impulsePos, "y");
+        auto z = tryGetDouble(*impulsePos, "z");
+        if (x.has_value() && y.has_value() && z.has_value()) {
+            data.currentImpulseImpactPos = Vector3(static_cast<f32>(*x), static_cast<f32>(*y), static_cast<f32>(*z));
+        }
+    }
+    if (auto opt = tryGetBool(tag, "ignore_fall_damage_from_current_explosion")) {
+        data.ignoreFallDamageFromCurrentImpulse = *opt;
+    }
+    if (auto opt = tryGetInt(tag, "current_impulse_context_reset_grace_time")) {
+        data.currentImpulseContextResetGraceTime = *opt;
+    }
 
     return data;
 }

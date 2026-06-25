@@ -52,6 +52,8 @@
 #include "../../inventory/CreativeInventory.hpp"
 #include "../../inventory/INamedContainerProvider.hpp"
 #include "../../inventory/Slot.hpp"
+#include "../../serialization/EntityNbtKeys.hpp"
+#include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "GameModeUtils.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
@@ -2613,6 +2615,209 @@ bool Player::isWearingGoldArmor() const
     }
 
     return false;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void Player::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+    using namespace mc::entity::serialization::nbt_keys;
+
+    // 先调用基类序列化
+    LivingEntity::addAdditionalSaveData(tag);
+
+    // ========== 游戏模式 ==========
+    tag.put(PLAYER_GAME_TYPE, static_cast<i32>(m_gameMode));
+
+    // ========== 食物数据 ==========
+    tag.put(FOOD_LEVEL, m_foodStats.foodLevel());
+    tag.put(FOOD_SATURATION_LEVEL, m_foodStats.saturationLevel());
+    tag.put(FOOD_EXHAUSTION_LEVEL, m_foodStats.exhaustionLevel());
+    tag.put(FOOD_TICK_TIMER, m_foodStats.foodTimer());
+
+    // ========== 经验 ==========
+    tag.put(XP_LEVEL, m_experienceManager->getLevel());
+    tag.put(XP_P, m_experienceManager->getProgress());
+    tag.put(XP_TOTAL, m_experienceManager->getTotalExperience());
+    tag.put(XP_SEED, m_experienceManager->getXpSeed());
+
+    // ========== 玩家能力 ==========
+    {
+        auto abilities = std::make_unique<nbt::tags::compound_tag>();
+        abilities->put(ABILITIES_INVULNERABLE, static_cast<i8>(m_abilities.invulnerable ? 1 : 0));
+        abilities->put(ABILITIES_FLYING, static_cast<i8>(m_abilities.flying ? 1 : 0));
+        abilities->put(ABILITIES_MAY_FLY, static_cast<i8>(m_abilities.canFly ? 1 : 0));
+        abilities->put(ABILITIES_FLY_SPEED, m_abilities.flySpeed);
+        abilities->put(ABILITIES_WALK_SPEED, m_abilities.walkSpeed);
+        tag.value.emplace(ABILITIES, std::move(abilities));
+    }
+
+    // ========== 冲量上下文 ==========
+    // MC Java 序列化：current_explosion_impact_pos（可选 Vec3）、
+    // ignore_fall_damage_from_current_explosion（bool）、
+    // current_impulse_context_reset_grace_time（i32）。
+    // 注意：currentExplosionCause 是运行时瞬时引用，不持久化（MC Java 同样不序列化此字段）。
+    if (m_currentImpulseImpactPos.has_value()) {
+        auto posTag = std::make_unique<nbt::tags::compound_tag>();
+        posTag->put("x", static_cast<f64>(m_currentImpulseImpactPos->x));
+        posTag->put("y", static_cast<f64>(m_currentImpulseImpactPos->y));
+        posTag->put("z", static_cast<f64>(m_currentImpulseImpactPos->z));
+        tag.value.emplace(CURRENT_EXPLOSION_IMPACT_POS, std::move(posTag));
+    }
+    tag.put(IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION, static_cast<i8>(m_ignoreFallDamageFromCurrentImpulse ? 1 : 0));
+    tag.put(CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME, m_currentImpulseContextResetGraceTime);
+
+    // ========== 重生点 ==========
+    if (m_spawnPoint.has_value()) {
+        tag.put(SPAWN_X, m_spawnPoint->x());
+        tag.put(SPAWN_Y, m_spawnPoint->y());
+        tag.put(SPAWN_Z, m_spawnPoint->z());
+        tag.put(SPAWN_DIM, static_cast<i32>(m_spawnPoint->getDimensionId()));
+        if (m_spawnForced) {
+            tag.put(SPAWN_FORCED, static_cast<i8>(1));
+        }
+    }
+
+    // ========== 进入下界位置 ==========
+    if (m_enteredNetherPosition.has_value()) {
+        auto netherTag = std::make_unique<nbt::tags::compound_tag>();
+        netherTag->put("x", m_enteredNetherPosition->x);
+        netherTag->put("y", m_enteredNetherPosition->y);
+        netherTag->put("z", m_enteredNetherPosition->z);
+        tag.value.emplace(ENTERED_NETHER_POSITION, std::move(netherTag));
+    }
+
+    // TODO: 当 PlayerInventory 实现 toNbt/fromNbt 后，添加背包序列化（Inventory、SelectedItemSlot）
+    // TODO: 当 EnderChestInventory 实现后，添加末影箱序列化（EnderItems）
+    // TODO: 当 Score 系统实现后，添加分数序列化（Score）
+    // TODO: 当 LastDeathLocation 实现后，添加最后死亡位置序列化
+}
+
+Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+    using namespace mc::entity::serialization::nbt_keys;
+
+    // 先调用基类反序列化
+    MC_TRY(LivingEntity::readAdditionalSaveData(tag));
+
+    // ========== 游戏模式 ==========
+    if (auto val = nbt_helper::tryGetInt(tag, PLAYER_GAME_TYPE)) {
+        m_gameMode = static_cast<GameMode>(*val);
+    }
+
+    // ========== 食物数据 ==========
+    if (auto val = nbt_helper::tryGetInt(tag, FOOD_LEVEL)) {
+        m_foodStats.setFoodLevel(*val);
+    }
+    if (auto val = nbt_helper::tryGetFloat(tag, FOOD_SATURATION_LEVEL)) {
+        m_foodStats.setSaturationLevel(*val);
+    }
+    if (auto val = nbt_helper::tryGetFloat(tag, FOOD_EXHAUSTION_LEVEL)) {
+        m_foodStats.setExhaustionLevel(*val);
+    }
+    if (auto val = nbt_helper::tryGetInt(tag, FOOD_TICK_TIMER)) {
+        m_foodStats.setFoodTimer(*val);
+    }
+
+    // ========== 经验 ==========
+    {
+        i32 xpLevel = m_experienceManager->getLevel();
+        f32 xpProgress = m_experienceManager->getProgress();
+        i32 xpTotal = m_experienceManager->getTotalExperience();
+        i32 xpSeed = m_experienceManager->getXpSeed();
+
+        if (auto val = nbt_helper::tryGetInt(tag, XP_LEVEL)) {
+            xpLevel = *val;
+        }
+        if (auto val = nbt_helper::tryGetFloat(tag, XP_P)) {
+            xpProgress = *val;
+        }
+        if (auto val = nbt_helper::tryGetInt(tag, XP_TOTAL)) {
+            xpTotal = *val;
+        }
+        if (auto val = nbt_helper::tryGetInt(tag, XP_SEED)) {
+            xpSeed = *val;
+        }
+
+        m_experienceManager->setExperience(xpLevel, xpProgress, xpTotal);
+        m_experienceManager->setXpSeed(xpSeed);
+    }
+
+    // ========== 玩家能力 ==========
+    if (auto* abilities = nbt_helper::tryGetCompound(tag, ABILITIES)) {
+        if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_INVULNERABLE)) {
+            m_abilities.invulnerable = *val;
+        }
+        if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_FLYING)) {
+            m_abilities.flying = *val;
+        }
+        if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_MAY_FLY)) {
+            m_abilities.canFly = *val;
+        }
+        if (auto val = nbt_helper::tryGetFloat(*abilities, ABILITIES_FLY_SPEED)) {
+            m_abilities.flySpeed = *val;
+        }
+        if (auto val = nbt_helper::tryGetFloat(*abilities, ABILITIES_WALK_SPEED)) {
+            m_abilities.walkSpeed = *val;
+        }
+    }
+
+    // ========== 冲量上下文 ==========
+    if (auto* posTag = nbt_helper::tryGetCompound(tag, CURRENT_EXPLOSION_IMPACT_POS)) {
+        auto x = nbt_helper::tryGetDouble(*posTag, "x");
+        auto y = nbt_helper::tryGetDouble(*posTag, "y");
+        auto z = nbt_helper::tryGetDouble(*posTag, "z");
+        if (x.has_value() && y.has_value() && z.has_value()) {
+            m_currentImpulseImpactPos = Vector3(static_cast<f32>(*x), static_cast<f32>(*y), static_cast<f32>(*z));
+        }
+    } else {
+        m_currentImpulseImpactPos = std::nullopt;
+    }
+    if (auto val = nbt_helper::tryGetBool(tag, IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION)) {
+        m_ignoreFallDamageFromCurrentImpulse = *val;
+    }
+    if (auto val = nbt_helper::tryGetInt(tag, CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME)) {
+        m_currentImpulseContextResetGraceTime = *val;
+    }
+    // 注意：currentExplosionCause 不从 NBT 读取（运行时瞬时状态，MC Java 同样不持久化）
+
+    // ========== 重生点 ==========
+    {
+        auto spawnX = nbt_helper::tryGetInt(tag, SPAWN_X);
+        auto spawnY = nbt_helper::tryGetInt(tag, SPAWN_Y);
+        auto spawnZ = nbt_helper::tryGetInt(tag, SPAWN_Z);
+        if (spawnX.has_value() && spawnY.has_value() && spawnZ.has_value()) {
+            DimensionId spawnDim = nbt_helper::tryGetInt(tag, SPAWN_DIM).value_or(0);
+            m_spawnPoint = GlobalPos(spawnDim, BlockPos(*spawnX, *spawnY, *spawnZ));
+            m_spawnForced = nbt_helper::tryGetBool(tag, SPAWN_FORCED).value_or(false);
+        } else {
+            m_spawnPoint = std::nullopt;
+            m_spawnForced = false;
+        }
+    }
+
+    // ========== 进入下界位置 ==========
+    if (auto* netherTag = nbt_helper::tryGetCompound(tag, ENTERED_NETHER_POSITION)) {
+        auto x = nbt_helper::tryGetDouble(*netherTag, "x");
+        auto y = nbt_helper::tryGetDouble(*netherTag, "y");
+        auto z = nbt_helper::tryGetDouble(*netherTag, "z");
+        if (x.has_value() && y.has_value() && z.has_value()) {
+            m_enteredNetherPosition = Vector3d(*x, *y, *z);
+        }
+    } else {
+        m_enteredNetherPosition = std::nullopt;
+    }
+
+    // TODO: 当 PlayerInventory 实现 toNbt/fromNbt 后，添加背包反序列化（Inventory、SelectedItemSlot）
+    // TODO: 当 EnderChestInventory 实现后，添加末影箱反序列化（EnderItems）
+    // TODO: 当 Score 系统实现后，添加分数反序列化（Score）
+    // TODO: 当 LastDeathLocation 实现后，添加最后死亡位置反序列化
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

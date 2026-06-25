@@ -201,6 +201,17 @@ struct PlayerSaveData {
     /// 潜行状态
     bool sneaking = false;
 
+    // ========== 冲量上下文（坠落伤害减免） ==========
+
+    /// 冲量冲击位置（砸地/爆炸位置），可选
+    std::optional<Vector3> currentImpulseImpactPos;
+
+    /// 是否忽略当前冲量的坠落伤害
+    bool ignoreFallDamageFromCurrentImpulse = false;
+
+    /// 冲量上下文重置宽限期（tick）
+    i32 currentImpulseContextResetGraceTime = 0;
+
     // ========== 构造函数 ==========
 
     PlayerSaveData() = default;

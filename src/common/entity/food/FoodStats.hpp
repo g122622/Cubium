@@ -128,6 +128,11 @@ public:
     [[nodiscard]] f32 exhaustionLevel() const { return m_exhaustionLevel; }
 
     /**
+     * @brief 设置消耗值
+     */
+    void setExhaustionLevel(f32 exhaustion) { m_exhaustionLevel = std::max(0.0f, exhaustion); }
+
+    /**
      * @brief 获取上一刻的饥饿值（用于 UI 动画）
      */
     [[nodiscard]] i32 prevFoodLevel() const { return m_prevFoodLevel; }

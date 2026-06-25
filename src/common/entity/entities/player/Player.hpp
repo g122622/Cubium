@@ -1028,6 +1028,12 @@ public:
     [[nodiscard]] bool isInPostImpulseGraceTime() const { return m_currentImpulseContextResetGraceTime > 0; }
 
     /**
+     * @brief 获取冲量上下文重置宽限期剩余 tick 数
+     * @return 剩余宽限期 tick 数，0 表示无宽限期
+     */
+    [[nodiscard]] i32 currentImpulseContextResetGraceTime() const { return m_currentImpulseContextResetGraceTime; }
+
+    /**
      * @brief 尝试重置冲量上下文
      *
      * 仅当宽限期计时器为 0 时才重置。宽限期期间此方法为空操作。
@@ -1609,6 +1615,21 @@ public:
     void serialize(network::PacketSerializer& ser) const;
     [[nodiscard]] static Result<std::unique_ptr<Player>> deserialize(network::PacketDeserializer& deser);
 
+    /**
+     * @brief 序列化玩家额外数据到 NBT
+     *
+     * 写入玩家特有字段：游戏模式、食物数据、经验、能力、背包、
+     * 冲量上下文等。调用 LivingEntity 基类实现后追加自身数据。
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 从 NBT 反序列化玩家额外数据
+     *
+     * 读取玩家特有字段，调用 LivingEntity 基类实现后读取自身数据。
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 private:
     /**
      * @brief 更新原版视野晃动强度
@@ -1739,15 +1760,10 @@ private:
     // 冲量坠落伤害免疫上下文
     // 当玩家执行重锤砸地攻击或被风弹爆炸击中时，这些字段记录冲量上下文，
     // 用于减免从冲量冲击位置以下的坠落伤害。
-    // TODO: 当 Player 实现 NBT 序列化（addAdditionalSaveData/readAdditionalSaveData）后，
-    // 需要将以下字段序列化以支持存档持久化：
-    //   - m_currentImpulseImpactPos (key: "current_explosion_impact_pos")
-    //   - m_ignoreFallDamageFromCurrentImpulse (key: "ignore_fall_damage_from_current_explosion")
-    //   - m_currentImpulseContextResetGraceTime (key: "current_impulse_context_reset_grace_time")
-    //   - m_currentExplosionCause (key: "current_explosion_cause_entity_id")
-    // 对应 MC Player.addAdditionalSaveData/readAdditionalSaveData 中的序列化逻辑。
+    // 冲量上下文字段已通过 addAdditionalSaveData/readAdditionalSaveData 和 PlayerSaveData 实现持久化。
+    // 注意：m_currentExplosionCause 不序列化到 NBT（MC Java 中为运行时瞬时引用，不持久化）。
     std::optional<Vector3> m_currentImpulseImpactPos;  ///< 冲量冲击位置（砸地/爆炸位置）
-    EntityId m_currentExplosionCause = 0;              ///< 引起冲量的实体ID（用于进度触发）
+    EntityId m_currentExplosionCause = 0;              ///< 引起冲量的实体ID（用于进度触发，运行时瞬时状态，不持久化）
     bool m_ignoreFallDamageFromCurrentImpulse = false; ///< 是否忽略当前冲量的坠落伤害
     i32 m_currentImpulseContextResetGraceTime = 0;     ///< 冲量上下文重置宽限期（tick）
 };

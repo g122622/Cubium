@@ -174,6 +174,42 @@ constexpr const char* CLOUD_PARTICLE = "ParticleType";
 constexpr const char* CLOUD_COLOR = "Color";
 constexpr const char* CLOUD_EFFECTS = "CustomPotionEffects";
 
+// ========== Player 键 ==========
+
+constexpr const char* PLAYER_GAME_TYPE = "playerGameType";
+constexpr const char* INVENTORY = "Inventory";
+constexpr const char* SELECTED_ITEM_SLOT = "SelectedItemSlot";
+constexpr const char* SCORE = "Score";
+constexpr const char* FOOD_LEVEL = "foodLevel";
+constexpr const char* FOOD_SATURATION_LEVEL = "foodSaturationLevel";
+constexpr const char* FOOD_EXHAUSTION_LEVEL = "foodExhaustionLevel";
+constexpr const char* FOOD_TICK_TIMER = "foodTickTimer";
+constexpr const char* XP_LEVEL = "XpLevel";
+constexpr const char* XP_P = "XpP";
+constexpr const char* XP_TOTAL = "XpTotal";
+constexpr const char* XP_SEED = "XpSeed";
+constexpr const char* XP_COOLDOWN = "XpCooldown";
+constexpr const char* ABILITIES = "abilities";
+constexpr const char* ABILITIES_INVULNERABLE = "invulnerable";
+constexpr const char* ABILITIES_FLYING = "flying";
+constexpr const char* ABILITIES_MAY_FLY = "mayfly";
+constexpr const char* ABILITIES_INSTABUILD = "instabuild";
+constexpr const char* ABILITIES_MAY_BUILD = "mayBuild";
+constexpr const char* ABILITIES_FLY_SPEED = "flySpeed";
+constexpr const char* ABILITIES_WALK_SPEED = "walkSpeed";
+constexpr const char* SPAWN_X = "SpawnX";
+constexpr const char* SPAWN_Y = "SpawnY";
+constexpr const char* SPAWN_Z = "SpawnZ";
+constexpr const char* SPAWN_FORCED = "SpawnForced";
+constexpr const char* SPAWN_DIM = "SpawnDimension";
+constexpr const char* ENTERED_NETHER_POSITION = "enteredNetherPosition";
+constexpr const char* CURRENT_EXPLOSION_IMPACT_POS = "current_explosion_impact_pos";
+constexpr const char* IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION = "ignore_fall_damage_from_current_explosion";
+constexpr const char* CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME = "current_impulse_context_reset_grace_time";
+constexpr const char* ENDER_ITEMS = "EnderItems";
+constexpr const char* LAST_DEATH_LOCATION = "LastDeathLocation";
+constexpr const char* SLEEP_TIMER = "SleepTimer";
+
 // ========== SkeletonEntity 键 ==========
 
 constexpr const char* STRAY_CONVERSION_TIME = "StrayConversionTime";
