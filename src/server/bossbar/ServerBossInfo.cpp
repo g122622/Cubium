@@ -31,8 +31,8 @@ namespace mc {
 namespace server {
 
 ServerBossInfo::ServerBossInfo(
-    u64 uuid, std::unique_ptr<text::ITextComponent> name, BossInfoColor color, BossInfoOverlay overlay)
-    : BossInfo(uuid, std::move(name), color, overlay)
+    Uuid uuid, std::unique_ptr<text::ITextComponent> name, BossInfoColor color, BossInfoOverlay overlay)
+    : BossInfo(std::move(uuid), std::move(name), color, overlay)
 {}
 
 void ServerBossInfo::addPlayer(::mc::ServerPlayer& player)

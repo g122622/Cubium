@@ -108,8 +108,8 @@ std::string bossInfoOverlayToName(BossInfoOverlay overlay)
     }
 }
 
-BossInfo::BossInfo(u64 uuid, std::unique_ptr<text::ITextComponent> name, BossInfoColor color, BossInfoOverlay overlay)
-    : m_uuid(uuid)
+BossInfo::BossInfo(Uuid uuid, std::unique_ptr<text::ITextComponent> name, BossInfoColor color, BossInfoOverlay overlay)
+    : m_uuid(std::move(uuid))
     , m_name(name ? std::move(name) : std::make_unique<text::StringTextComponent>(""))
     , m_color(color)
     , m_overlay(overlay)

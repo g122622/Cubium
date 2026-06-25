@@ -45,7 +45,7 @@ BossInfoPacket::BossInfoPacket(BossInfoAction action)
 // 静态工厂方法
 // ============================================================================
 
-BossInfoPacket BossInfoPacket::add(u64 uuid,
+BossInfoPacket BossInfoPacket::add(const Uuid& uuid,
     std::unique_ptr<text::ITextComponent> name,
     f32 percent,
     u8 color,
@@ -66,14 +66,14 @@ BossInfoPacket BossInfoPacket::add(u64 uuid,
     return packet;
 }
 
-BossInfoPacket BossInfoPacket::remove(u64 uuid)
+BossInfoPacket BossInfoPacket::remove(const Uuid& uuid)
 {
     BossInfoPacket packet(BossInfoAction::Remove);
     packet.m_uuid = uuid;
     return packet;
 }
 
-BossInfoPacket BossInfoPacket::updatePercent(u64 uuid, f32 percent)
+BossInfoPacket BossInfoPacket::updatePercent(const Uuid& uuid, f32 percent)
 {
     BossInfoPacket packet(BossInfoAction::UpdatePercent);
     packet.m_uuid = uuid;
@@ -81,7 +81,7 @@ BossInfoPacket BossInfoPacket::updatePercent(u64 uuid, f32 percent)
     return packet;
 }
 
-BossInfoPacket BossInfoPacket::updateName(u64 uuid, std::unique_ptr<text::ITextComponent> name)
+BossInfoPacket BossInfoPacket::updateName(const Uuid& uuid, std::unique_ptr<text::ITextComponent> name)
 {
     BossInfoPacket packet(BossInfoAction::UpdateName);
     packet.m_uuid = uuid;
@@ -89,7 +89,7 @@ BossInfoPacket BossInfoPacket::updateName(u64 uuid, std::unique_ptr<text::ITextC
     return packet;
 }
 
-BossInfoPacket BossInfoPacket::updateStyle(u64 uuid, u8 color, u8 overlay)
+BossInfoPacket BossInfoPacket::updateStyle(const Uuid& uuid, u8 color, u8 overlay)
 {
     BossInfoPacket packet(BossInfoAction::UpdateStyle);
     packet.m_uuid = uuid;
@@ -98,7 +98,7 @@ BossInfoPacket BossInfoPacket::updateStyle(u64 uuid, u8 color, u8 overlay)
     return packet;
 }
 
-BossInfoPacket BossInfoPacket::updateProperties(u64 uuid, bool darkenSky, bool playEndBossMusic, bool createFog)
+BossInfoPacket BossInfoPacket::updateProperties(const Uuid& uuid, bool darkenSky, bool playEndBossMusic, bool createFog)
 {
     BossInfoPacket packet(BossInfoAction::UpdateProperties);
     packet.m_uuid = uuid;
@@ -122,8 +122,18 @@ Result<std::vector<u8>> BossInfoPacket::serialize() const
 {
     PacketSerializer serializer;
 
-    // 所有操作都包含 UUID 和操作类型
-    serializer.writeU64(m_uuid);
+    // 所有操作都包含 UUID（128 位，MC 协议格式：MSB i64 + LSB i64）和操作类型
+    // 从 Uuid 字节数组（大端序）提取 MSB 和 LSB
+    u64 msb = 0;
+    u64 lsb = 0;
+    for (size_t i = 0; i < 8; ++i) {
+        msb = (msb << 8) | m_uuid[i];
+    }
+    for (size_t i = 0; i < 8; ++i) {
+        lsb = (lsb << 8) | m_uuid[8 + i];
+    }
+    serializer.writeI64(static_cast<i64>(msb));
+    serializer.writeI64(static_cast<i64>(lsb));
     serializer.writeU8(static_cast<u8>(m_action));
 
     switch (m_action) {
@@ -184,19 +194,32 @@ Result<std::vector<u8>> BossInfoPacket::serialize() const
 
 Result<void> BossInfoPacket::deserialize(const u8* data, size_t size)
 {
-    // 最小数据: UUID(8) + Action(1) = 9 字节
-    if (size < 9) {
+    // 最小数据: UUID(16) + Action(1) = 17 字节
+    if (size < 17) {
         return Error(ErrorCode::InvalidPacket, "BossInfoPacket: data too short");
     }
 
     PacketDeserializer deserializer(data, size);
 
-    // 读取 UUID
-    auto uuidResult = deserializer.readU64();
-    if (!uuidResult.success()) {
-        return uuidResult.error();
+    // 读取 UUID（128 位，MC 协议格式：MSB i64 + LSB i64）
+    auto msbResult = deserializer.readI64();
+    if (!msbResult.success()) {
+        return msbResult.error();
     }
-    m_uuid = uuidResult.value();
+    auto lsbResult = deserializer.readI64();
+    if (!lsbResult.success()) {
+        return lsbResult.error();
+    }
+
+    // 将 MSB 和 LSB 写入 Uuid 字节数组（大端序）
+    u64 msb = static_cast<u64>(msbResult.value());
+    u64 lsb = static_cast<u64>(lsbResult.value());
+    for (size_t i = 0; i < 8; ++i) {
+        m_uuid[i] = static_cast<u8>((msb >> (56 - i * 8)) & 0xFF);
+    }
+    for (size_t i = 0; i < 8; ++i) {
+        m_uuid[8 + i] = static_cast<u8>((lsb >> (56 - i * 8)) & 0xFF);
+    }
 
     // 读取操作类型
     auto actionResult = deserializer.readU8();
@@ -282,8 +305,8 @@ Result<void> BossInfoPacket::deserialize(const u8* data, size_t size)
 
 size_t BossInfoPacket::expectedSize() const
 {
-    // 基础: UUID(8) + Action(1) = 9 字节
-    size_t base = sizeof(PacketHeader) + 9;
+    // 基础: UUID(16) + Action(1) = 17 字节
+    size_t base = sizeof(PacketHeader) + 17;
 
     switch (m_action) {
         case BossInfoAction::Add:

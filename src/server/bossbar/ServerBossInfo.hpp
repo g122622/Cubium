@@ -67,7 +67,7 @@ public:
      * @param color 颜色
      * @param overlay 样式
      */
-    ServerBossInfo(u64 uuid, std::unique_ptr<text::ITextComponent> name, BossInfoColor color, BossInfoOverlay overlay);
+    ServerBossInfo(Uuid uuid, std::unique_ptr<text::ITextComponent> name, BossInfoColor color, BossInfoOverlay overlay);
 
     /**
      * @brief 析构函数

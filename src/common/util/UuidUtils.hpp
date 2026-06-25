@@ -25,15 +25,19 @@
  * @file UuidUtils.hpp
  * @brief UUID 工具函数
  *
- * 提供 UUID 格式转换和离线模式 UUID 生成功能。
+ * 提供 UUID 格式转换、离线模式 UUID 生成和随机 UUID v4 生成功能。
  *
  * Minecraft 1.16.5 离线模式 UUID 生成算法：
  * UUID.nameUUIDFromBytes(("OfflinePlayer:" + username).getBytes(StandardCharsets.UTF_8))
  * 这会生成一个 UUID v3（基于 MD5 哈希的命名空间 UUID）。
+ *
+ * 随机 UUID v4 生成参考 MC 1.21.11: Mth.createInsecureUUID(RandomSource)，
+ * 使用非加密安全的随机数生成器，设置版本号为 4、变体为 RFC 4122。
  */
 #pragma once
 
 #include "common/command/ICommandSource.hpp" // for Uuid and UuidHash
+#include "common/util/math/random/Random.hpp"
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -175,6 +179,48 @@ inline Uuid generateOfflineUuid(const std::string& username)
     std::string input = "OfflinePlayer:" + username;
     std::array<u8, 16> md5Hash = computeMd5Hash(input);
     return uuidFromMd5(md5Hash);
+}
+
+/**
+ * @brief 生成随机 UUID v4
+ *
+ * 参考 MC 1.21.11: Mth.createInsecureUUID(RandomSource)。
+ * 使用非加密安全的随机数生成器，设置版本号为 4、变体为 RFC 4122。
+ *
+ * UUID v4 格式：
+ * - 第 6 字节的高 4 位设置版本号为 4 (0x40)
+ * - 第 8 字节的高 2 位设置变体为 RFC 4122 (0x80)
+ *
+ * @param random 随机数生成器
+ * @return UUID v4 数组（16 字节）
+ */
+inline Uuid generateRandomUuid(math::Random& random)
+{
+    // 生成两个 64 位随机数作为 UUID 的 MSB 和 LSB
+    const u64 msb = random.nextU64();
+    const u64 lsb = random.nextU64();
+
+    Uuid uuid{};
+
+    // 将 MSB 写入前 8 字节（大端序）
+    for (size_t i = 0; i < 8; ++i) {
+        uuid[i] = static_cast<u8>((msb >> (56 - i * 8)) & 0xFF);
+    }
+
+    // 将 LSB 写入后 8 字节（大端序）
+    for (size_t i = 0; i < 8; ++i) {
+        uuid[8 + i] = static_cast<u8>((lsb >> (56 - i * 8)) & 0xFF);
+    }
+
+    // 设置版本号为 4 (random-based UUID)
+    // uuid[6] 的高 4 位设置为 0b0100 (版本 4)
+    uuid[6] = (uuid[6] & 0x0F) | 0x40;
+
+    // 设置变体为 RFC 4122
+    // uuid[8] 的高 2 位设置为 0b10
+    uuid[8] = (uuid[8] & 0x3F) | 0x80;
+
+    return uuid;
 }
 
 /**

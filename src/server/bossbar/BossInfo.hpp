@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/command/ICommandSource.hpp" // for Uuid and UuidHash
 #include "common/core/Types.hpp"
 #include "common/util/text/ITextComponentFwd.hpp"
 #include <memory>
@@ -106,7 +107,7 @@ public:
      * @param color 颜色
      * @param overlay 样式
      */
-    BossInfo(u64 uuid, std::unique_ptr<text::ITextComponent> name, BossInfoColor color, BossInfoOverlay overlay);
+    BossInfo(Uuid uuid, std::unique_ptr<text::ITextComponent> name, BossInfoColor color, BossInfoOverlay overlay);
 
     /**
      * @brief 虚析构函数
@@ -126,7 +127,7 @@ public:
     /**
      * @brief 获取唯一标识符
      */
-    [[nodiscard]] u64 uuid() const noexcept { return m_uuid; }
+    [[nodiscard]] const Uuid& uuid() const noexcept { return m_uuid; }
 
     /**
      * @brief 获取显示名称
@@ -225,7 +226,7 @@ public:
     virtual void setVisible(bool visible);
 
 protected:
-    u64 m_uuid;
+    Uuid m_uuid{};
     std::unique_ptr<text::ITextComponent> m_name;
     f32 m_percent = 1.0f;
     BossInfoColor m_color;

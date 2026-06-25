@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "../../command/ICommandSource.hpp" // for Uuid
 #include "../../core/Types.hpp"
 #include "Packet.hpp"
 #include <memory>
@@ -85,7 +86,7 @@ public:
      * @param playEndBossMusic 是否播放 Boss 音乐
      * @param createFog 是否创建迷雾
      */
-    static BossInfoPacket add(u64 uuid,
+    static BossInfoPacket add(const Uuid& uuid,
         std::unique_ptr<text::ITextComponent> name,
         f32 percent,
         u8 color,
@@ -99,7 +100,7 @@ public:
      *
      * @param uuid Boss 栏唯一标识符
      */
-    static BossInfoPacket remove(u64 uuid);
+    static BossInfoPacket remove(const Uuid& uuid);
 
     /**
      * @brief 创建更新百分比包
@@ -107,7 +108,7 @@ public:
      * @param uuid Boss 栏唯一标识符
      * @param percent 新的百分比 (0.0 ~ 1.0)
      */
-    static BossInfoPacket updatePercent(u64 uuid, f32 percent);
+    static BossInfoPacket updatePercent(const Uuid& uuid, f32 percent);
 
     /**
      * @brief 创建更新名称包
@@ -115,7 +116,7 @@ public:
      * @param uuid Boss 栏唯一标识符
      * @param name 新的显示名称
      */
-    static BossInfoPacket updateName(u64 uuid, std::unique_ptr<text::ITextComponent> name);
+    static BossInfoPacket updateName(const Uuid& uuid, std::unique_ptr<text::ITextComponent> name);
 
     /**
      * @brief 创建更新样式包
@@ -124,7 +125,7 @@ public:
      * @param color 新的颜色
      * @param overlay 新的样式
      */
-    static BossInfoPacket updateStyle(u64 uuid, u8 color, u8 overlay);
+    static BossInfoPacket updateStyle(const Uuid& uuid, u8 color, u8 overlay);
 
     /**
      * @brief 创建更新属性标志包
@@ -134,7 +135,7 @@ public:
      * @param playEndBossMusic 是否播放 Boss 音乐
      * @param createFog 是否创建迷雾
      */
-    static BossInfoPacket updateProperties(u64 uuid, bool darkenSky, bool playEndBossMusic, bool createFog);
+    static BossInfoPacket updateProperties(const Uuid& uuid, bool darkenSky, bool playEndBossMusic, bool createFog);
 
     // ========================================================================
     // 序列化
@@ -149,7 +150,7 @@ public:
     // ========================================================================
 
     [[nodiscard]] BossInfoAction action() const noexcept { return m_action; }
-    [[nodiscard]] u64 uuid() const noexcept { return m_uuid; }
+    [[nodiscard]] const Uuid& uuid() const noexcept { return m_uuid; }
     [[nodiscard]] f32 percent() const noexcept { return m_percent; }
     [[nodiscard]] u8 color() const noexcept { return m_color; }
     [[nodiscard]] u8 overlay() const noexcept { return m_overlay; }
@@ -174,8 +175,8 @@ private:
 
     BossInfoAction m_action = BossInfoAction::Add;
 
-    // 所有操作共享的字段
-    u64 m_uuid = 0;
+    // 所有操作共享的字段（128 位 UUID，与 MC 协议一致）
+    Uuid m_uuid{};
 
     // Add/UpdateName 操作使用的字段
     std::string m_nameJson;

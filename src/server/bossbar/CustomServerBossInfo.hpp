@@ -25,6 +25,7 @@
 
 #include "ServerBossInfo.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <memory>
 #include <set>
@@ -223,6 +224,9 @@ private:
 
     /// 持久化的玩家 UUID 集合（用于重连恢复）
     std::set<std::string> m_playerUuids;
+
+    /// 用于生成随机 UUID 的随机数生成器
+    static math::Random s_random;
 };
 
 } // namespace server

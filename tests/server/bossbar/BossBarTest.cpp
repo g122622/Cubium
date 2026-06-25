@@ -25,6 +25,7 @@
 
 #include "common/resource/LanguageManager.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/util/text/ComponentUtils.hpp"
@@ -120,9 +121,10 @@ TEST_F(BossBarTest, OverlayToName_AllStyles)
 TEST_F(BossBarTest, BossInfo_BasicProperties)
 {
     auto name = std::make_unique<text::StringTextComponent>("Test Boss");
-    BossInfo bossInfo(12345ULL, std::move(name), BossInfoColor::Red, BossInfoOverlay::Notched10);
+    Uuid testUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
+    BossInfo bossInfo(testUuid, std::move(name), BossInfoColor::Red, BossInfoOverlay::Notched10);
 
-    EXPECT_EQ(bossInfo.uuid(), 12345ULL);
+    EXPECT_EQ(bossInfo.uuid(), testUuid);
     EXPECT_EQ(bossInfo.name().getUnformattedText(), "Test Boss");
     EXPECT_EQ(bossInfo.color(), BossInfoColor::Red);
     EXPECT_EQ(bossInfo.overlay(), BossInfoOverlay::Notched10);
@@ -136,7 +138,8 @@ TEST_F(BossBarTest, BossInfo_BasicProperties)
 TEST_F(BossBarTest, BossInfo_SetPercent_Clamped)
 {
     auto name = std::make_unique<text::StringTextComponent>("Test");
-    BossInfo bossInfo(1ULL, std::move(name), BossInfoColor::White, BossInfoOverlay::Progress);
+    Uuid testUuid{};
+    BossInfo bossInfo(testUuid, std::move(name), BossInfoColor::White, BossInfoOverlay::Progress);
 
     // 测试正常范围
     bossInfo.setPercent(0.5f);
@@ -154,7 +157,8 @@ TEST_F(BossBarTest, BossInfo_SetPercent_Clamped)
 TEST_F(BossBarTest, BossInfo_SetName)
 {
     auto name = std::make_unique<text::StringTextComponent>("Old Name");
-    BossInfo bossInfo(1ULL, std::move(name), BossInfoColor::White, BossInfoOverlay::Progress);
+    Uuid testUuid{};
+    BossInfo bossInfo(testUuid, std::move(name), BossInfoColor::White, BossInfoOverlay::Progress);
 
     EXPECT_EQ(bossInfo.name().getUnformattedText(), "Old Name");
 
@@ -166,7 +170,8 @@ TEST_F(BossBarTest, BossInfo_SetName)
 TEST_F(BossBarTest, BossInfo_SetFlags)
 {
     auto name = std::make_unique<text::StringTextComponent>("Test");
-    BossInfo bossInfo(1ULL, std::move(name), BossInfoColor::White, BossInfoOverlay::Progress);
+    Uuid testUuid{};
+    BossInfo bossInfo(testUuid, std::move(name), BossInfoColor::White, BossInfoOverlay::Progress);
 
     bossInfo.setDarkenSky(true);
     EXPECT_TRUE(bossInfo.darkenSky());

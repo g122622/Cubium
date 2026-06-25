@@ -35,6 +35,8 @@ BossInfo (基类)
 ### 依赖的上游模块
 
 - `common/core/Types.hpp` - 基础类型（u64, f32, i32, PlayerId 等）
+- `common/command/ICommandSource.hpp` - Uuid 类型定义（std::array<u8, 16>）
+- `common/util/UuidUtils.hpp` - UUID 工具函数（generateRandomUuid 等）
 - `common/resource/ResourceLocation.hpp` - 资源位置 ID
 - `common/util/text/ITextComponent.hpp` - 文本组件
 - `common/util/text/ComponentUtils.hpp` - wrapInSquareBrackets 方括号包裹工具（formattedName 使用）
@@ -48,15 +50,11 @@ BossInfo (基类)
 
 ### UUID 生成
 
-当前实现使用资源位置 ID 的哈希值作为 UUID。对于生产环境，应考虑使用真正的 UUID 生成器：
+`CustomServerBossInfo` 使用 `util::generateRandomUuid()` 生成 128 位随机 UUID v4，与 MC Java 的 `Mth.createInsecureUUID()` 一致。UUID 在 `BossInfo` 中存储为 `Uuid`（即 `std::array<u8, 16>`），在 `BossInfoPacket` 中以两个 i64（MSB + LSB）序列化到网络。
 
-```cpp
-u64 uuid = std::hash<std::string>{}(id.toString());
-```
+### 网络包
 
-### 网络包尚未实现
-
-`sendAddPacket()`, `sendRemovePacket()`, `broadcastUpdate()` 方法当前仅标记数据为脏。需要实现 `BossInfoPacket` 后才能进行真正的网络同步。
+`BossInfoPacket` 已实现完整的序列化/反序列化，支持六种操作（Add、Remove、UpdatePercent、UpdateName、UpdateStyle、UpdateProperties）。UUID 以 128 位（两个 i64）格式在网络包中传输，与 MC Java 协议一致。
 
 ### 玩家登出处理
 

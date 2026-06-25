@@ -28,6 +28,7 @@
 
 #include "common/util/UuidUtils.hpp"
 #include "common/util/crypto/Md5.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <array>
 #include <string>
 #include <gtest/gtest.h>
@@ -224,6 +225,103 @@ TEST(UuidUtilsTest, ZeroUuid)
 
     std::string str = uuidToString(zero);
     EXPECT_EQ(str, "00000000000000000000000000000000");
+}
+
+// ========== generateRandomUuid 测试 ==========
+
+/**
+ * @brief 测试随机 UUID v4 版本号和变体位
+ */
+TEST(UuidUtilsTest, GenerateRandomUuid_VersionAndVariant)
+{
+    math::Random rng(42);
+    Uuid uuid = generateRandomUuid(rng);
+
+    // UUID v4 版本号：第 6 字节高 4 位应为 4
+    EXPECT_EQ((uuid[6] >> 4) & 0x0F, 4);
+
+    // RFC 4122 变体：第 8 字节高 2 位应为 10
+    EXPECT_EQ((uuid[8] >> 6) & 0x03, 2);
+}
+
+/**
+ * @brief 测试随机 UUID 非全零
+ */
+TEST(UuidUtilsTest, GenerateRandomUuid_NotZero)
+{
+    math::Random rng(12345);
+    Uuid uuid = generateRandomUuid(rng);
+
+    Uuid zero = {};
+    EXPECT_NE(uuid, zero);
+}
+
+/**
+ * @brief 测试随机 UUID 不同种子产生不同结果
+ */
+TEST(UuidUtilsTest, GenerateRandomUuid_DifferentSeeds)
+{
+    math::Random rng1(100);
+    math::Random rng2(200);
+
+    Uuid uuid1 = generateRandomUuid(rng1);
+    Uuid uuid2 = generateRandomUuid(rng2);
+
+    EXPECT_NE(uuid1, uuid2);
+}
+
+/**
+ * @brief 测试随机 UUID 同一种子确定性
+ */
+TEST(UuidUtilsTest, GenerateRandomUuid_Deterministic)
+{
+    math::Random rng1(999);
+    Uuid uuid1 = generateRandomUuid(rng1);
+
+    math::Random rng2(999);
+    Uuid uuid2 = generateRandomUuid(rng2);
+
+    EXPECT_EQ(uuid1, uuid2);
+}
+
+/**
+ * @brief 测试随机 UUID 格式正确
+ */
+TEST(UuidUtilsTest, GenerateRandomUuid_Format)
+{
+    math::Random rng(777);
+    Uuid uuid = generateRandomUuid(rng);
+
+    // 转换为字符串应该有正确的长度
+    std::string str = uuidToString(uuid);
+    EXPECT_EQ(str.length(), 32u);
+
+    // 带连字符的格式
+    std::string strWithDashes = uuidToStringWithDashes(uuid);
+    EXPECT_EQ(strWithDashes.length(), 36u);
+
+    // 版本号应为 4
+    EXPECT_EQ((uuid[6] >> 4) & 0x0F, 4);
+
+    // 变体应为 RFC 4122
+    EXPECT_EQ((uuid[8] >> 6) & 0x03, 2);
+}
+
+/**
+ * @brief 测试连续生成的随机 UUID 不重复
+ */
+TEST(UuidUtilsTest, GenerateRandomUuid_Unique)
+{
+    math::Random rng(555);
+    std::set<Uuid> uuids;
+
+    for (int i = 0; i < 100; ++i) {
+        Uuid uuid = generateRandomUuid(rng);
+        auto [it, inserted] = uuids.insert(uuid);
+        EXPECT_TRUE(inserted) << "Duplicate UUID generated at iteration " << i;
+    }
+
+    EXPECT_EQ(uuids.size(), 100u);
 }
 
 } // namespace mc::util::test
