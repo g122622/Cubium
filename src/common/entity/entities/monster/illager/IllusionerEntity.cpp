@@ -161,25 +161,34 @@ void IllusionerEntity::registerGoals()
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
         }));
 
-    // 优先级 2: 攻击玩家（300 ticks 未见记忆）
+    // 优先级 2: 攻击玩家（穿透墙壁追踪15秒）
     // MC 原版: NearestAttackableTargetGoal<>(this, Player.class, true).setUnseenMemoryTicks(300)
-    // TODO: 当前 chance=300 是检查频率而非未见记忆时间，当 TargetGoal 实现 setUnseenMemoryTicks()
-    // 后应改为 chance=0 + unseenMemoryTicks=300
-    m_targetSelector.addGoal(
-        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 300));
+    {
+        auto playerTarget = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true);
+        playerTarget->setUnseenMemoryTicks(300);
+        m_targetSelector.addGoal(2, std::move(playerTarget));
+    }
 
-    // 优先级 3: 攻击村民（穿透墙壁感知，300 ticks 未见记忆）
+    // 优先级 3: 攻击村民（穿透墙壁感知）
     // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, false).setUnseenMemoryTicks(300)
-    // TODO: 同上，chance=300 应改为 chance=0 + unseenMemoryTicks=300
-    m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
-            this, false, 300));
+    // 注意：checkSight=false 时 unseenMemoryTicks 不生效，但与 MC 原版保持一致
+    {
+        auto villagerTarget =
+            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
+                this, false);
+        villagerTarget->setUnseenMemoryTicks(300);
+        m_targetSelector.addGoal(3, std::move(villagerTarget));
+    }
 
-    // 优先级 3: 攻击铁傀儡（穿透墙壁感知，300 ticks 未见记忆）
+    // 优先级 3: 攻击铁傀儡（穿透墙壁感知）
     // MC 原版: NearestAttackableTargetGoal<>(this, IronGolem.class, false).setUnseenMemoryTicks(300)
-    // TODO: 同上，chance=300 应改为 chance=0 + unseenMemoryTicks=300
-    m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, false, 300));
+    // 注意：checkSight=false 时 unseenMemoryTicks 不生效，但与 MC 原版保持一致
+    {
+        auto ironGolemTarget =
+            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, false);
+        ironGolemTarget->setUnseenMemoryTicks(300);
+        m_targetSelector.addGoal(3, std::move(ironGolemTarget));
+    }
 }
 
 void IllusionerEntity::registerAttributes()

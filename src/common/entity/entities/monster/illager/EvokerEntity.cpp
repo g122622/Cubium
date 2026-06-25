@@ -280,15 +280,22 @@ void EvokerEntity::registerGoals()
         1, new entity::ai::goal::HurtByTargetGoal(this, false, [](const LivingEntity* attacker) -> bool {
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
         }));
-    // 优先级 2: 攻击玩家
+    // 优先级 2: 攻击玩家（穿透墙壁追踪15秒）
     // MC 原版: NearestAttackableTargetGoal<>(this, Player.class, true).setUnseenMemoryTicks(300)
-    // TODO: 当 TargetGoal 实现 setUnseenMemoryTicks() 后，Player 目标应设置 unseenMemoryTicks=300
-    targetSelector().addGoal(2, new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true));
+    {
+        auto* playerTarget = new entity::ai::goal::NearestAttackableTargetGoal<Player>(this, true);
+        playerTarget->setUnseenMemoryTicks(300);
+        targetSelector().addGoal(2, playerTarget);
+    }
     // 优先级 3: 攻击村民（穿透墙壁感知）
     // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, false).setUnseenMemoryTicks(300)
-    // TODO: 当 TargetGoal 实现 setUnseenMemoryTicks() 后，AbstractVillager 目标应设置 unseenMemoryTicks=300
-    targetSelector().addGoal(
-        3, new entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>(this, false));
+    // 注意：checkSight=false 时 unseenMemoryTicks 不生效，但与 MC 原版保持一致
+    {
+        auto* villagerTarget =
+            new entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>(this, false);
+        villagerTarget->setUnseenMemoryTicks(300);
+        targetSelector().addGoal(3, villagerTarget);
+    }
     // 优先级 3: 攻击铁傀儡（穿透墙壁感知）
     // MC 原版: NearestAttackableTargetGoal<>(this, IronGolem.class, false)
     targetSelector().addGoal(3, new entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>(this, false));

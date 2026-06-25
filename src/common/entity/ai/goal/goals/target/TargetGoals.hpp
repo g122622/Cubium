@@ -65,6 +65,30 @@ public:
     void startExecuting() override;
     void resetTask() override;
 
+    /**
+     * @brief 设置看不到目标后的记忆时间
+     *
+     * 控制生物在失去视线后继续追踪目标的持续时间。
+     * 仅在 checkSight 为 true 时生效。
+     *
+     * 对应 MC Java: TargetGoal.setUnseenMemoryTicks(int)
+     *
+     * @param ticks 记忆时间（游戏刻），默认60
+     * @return *this 以支持链式调用
+     *
+     * 用法示例：
+     * @code
+     * auto goal = new NearestAttackableTargetGoal<Player>(this, true);
+     * goal->setUnseenMemoryTicks(300);
+     * targetSelector().addGoal(2, goal);
+     * @endcode
+     */
+    TargetGoal& setUnseenMemoryTicks(i32 ticks)
+    {
+        m_unseenMemoryTicks = ticks;
+        return *this;
+    }
+
 protected:
     /**
      * @brief 检查目标是否适合攻击
@@ -84,8 +108,11 @@ protected:
     bool m_checkSight;
     i32 m_unseenTicks = 0;
 
-    // 看不到目标后的记忆时间
-    static constexpr i32 MAX_UNSEEN_TICKS = 60; // 3秒
+    // 看不到目标后的记忆时间（游戏刻）
+    // 默认60刻（3秒），可通过 setUnseenMemoryTicks() 调整
+    // MC Java 中此值会通过 reducedTickDelay 减半，但本项目 shouldContinueExecuting 每 tick 调用，
+    // 因此直接使用原始值作为阈值即可保证与 MC 相同的有效持续时间
+    i32 m_unseenMemoryTicks = 60;
 };
 
 /**

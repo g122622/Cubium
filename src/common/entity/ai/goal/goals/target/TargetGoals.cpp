@@ -72,7 +72,7 @@ bool TargetGoal::shouldContinueExecuting()
     if (m_checkSight) {
         if (!checkSight()) {
             m_unseenTicks++;
-            if (m_unseenTicks > MAX_UNSEEN_TICKS) {
+            if (m_unseenTicks > m_unseenMemoryTicks) {
                 return false;
             }
         } else {
@@ -293,6 +293,10 @@ HurtByTargetGoal& HurtByTargetGoal::setAlertOthers(TargetPredicate ignoreAlertPr
 void HurtByTargetGoal::startExecuting()
 {
     TargetGoal::startExecuting();
+
+    // MC Java: HurtByTargetGoal.start() 中设置 unseenMemoryTicks = 300
+    // 被攻击后的反击目标记忆时间更长（15秒），即使失去视线也会持续追踪攻击者
+    m_unseenMemoryTicks = 300;
 
     // 警醒盟友
     // TODO(alertOthers_scope): 当前实现使用 typeId() 精确匹配同类型实体，

@@ -23,9 +23,18 @@ target/
 | 方法 | 说明 |
 |------|------|
 | `shouldExecute()` | 判断是否应该执行 |
+| `shouldContinueExecuting()` | 判断是否应该继续执行（含视线记忆检查） |
 | `startExecuting()` | 开始执行，设置攻击目标 |
 | `resetTask()` | 重置任务，清除攻击目标 |
 | `isSuitableTarget()` | 检查目标是否可攻击 |
+| `setUnseenMemoryTicks(ticks)` | 设置视线记忆时间，返回 `*this` 支持链式调用 |
+
+**视线记忆机制**:
+- 当 `checkSight=true` 时，如果目标离开视线，`m_unseenTicks` 每tick递增
+- 如果 `m_unseenTicks` 超过 `m_unseenMemoryTicks`（默认60tick=3秒），目标放弃追踪
+- 目标重新进入视线时 `m_unseenTicks` 重置为0
+- 调用 `setUnseenMemoryTicks(300)` 可将记忆时间延长到15秒（唤魔者、幻术师等使用）
+- `HurtByTargetGoal` 在 `startExecuting()` 中自动将 `m_unseenMemoryTicks` 设为300
 
 **目标验证规则**:
 - 目标必须存活
@@ -331,3 +340,20 @@ void DrownedEntity::registerGoals()
 **原因**: 必须启用 `UNIVERSAL_ANGER` 游戏规则，否则目标不会执行。
 
 **解决**: 确认世界 `UNIVERSAL_ANGER` 游戏规则已启用。
+
+### 11. setUnseenMemoryTicks 仅在 checkSight=true 时生效
+
+**问题**: 设置了 `setUnseenMemoryTicks(300)` 但实体似乎没有延长追踪时间。
+
+**原因**: `m_unseenMemoryTicks` 仅在 `checkSight=true` 时生效。当 `checkSight=false` 时，`shouldContinueExecuting()` 中的视线检查分支不会执行，因此记忆时间不生效。
+
+**解决**: 确认目标选择器构造时传入了 `checkSight=true`。注意：MC 原版中唤魔者/幻术师对村民和铁傀儡的目标设置了 `setUnseenMemoryTicks(300)` 但 `checkSight=false`，此时视线记忆不生效，这是预期行为——设置它只是为了与 MC 原版代码保持一致。
+
+### 12. chance 与 unseenMemoryTicks 的区别
+
+**常见错误**: 将 `chance` 参数当作视线记忆时间使用。
+
+- `chance`（构造参数）控制目标搜索频率：`chance=300` 表示每300tick才检查一次是否有新目标
+- `unseenMemoryTicks`（`setUnseenMemoryTicks` 方法）控制失去视线后继续追踪的时间
+
+两者语义完全不同：`chance` 影响目标获取，`unseenMemoryTicks` 影响目标保持。
