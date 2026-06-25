@@ -145,6 +145,22 @@ public:
         return handleReleaseInChildren(mouseX, adjustedY, button, mods);
     }
 
+    bool onDoubleClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        if (!isActive() || !isVisible()) return false;
+
+        i32 adjustedY = mouseY + m_scrollY;
+        return handleDoubleClickInChildren(mouseX, adjustedY, button, mods);
+    }
+
+    bool onRightClick(i32 mouseX, i32 mouseY, i32 mods) override
+    {
+        if (!isActive() || !isVisible()) return false;
+
+        i32 adjustedY = mouseY + m_scrollY;
+        return handleRightClickInChildren(mouseX, adjustedY, mods);
+    }
+
     bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override
     {
         (void)button;

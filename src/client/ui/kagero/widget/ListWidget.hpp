@@ -26,7 +26,6 @@
 #include "../paint/PaintContext.hpp"
 #include "ScrollableWidget.hpp"
 #include "Widget.hpp"
-#include <chrono>
 #include <functional>
 #include <memory>
 #include <vector>
@@ -238,30 +237,33 @@ public:
     bool onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
     {
         (void)mods;
-        // 检查双击
-        i32 index = getIndexAt(mouseX, mouseY);
-        if (index >= 0 && index == m_selectedIndex) {
-            auto now = std::chrono::steady_clock::now();
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastClickTime);
-
-            if (elapsed.count() < m_doubleClickTime && m_lastClickIndex == index) {
-                // 双击
-                auto& item = m_items[index];
-                item->onDoubleClick(mouseX, mouseY - getItemY(index));
-
-                if (m_onDoubleClick) {
-                    m_onDoubleClick(index, item.get());
-                }
-
-                m_lastClickTime = {};
-                m_lastClickIndex = -1;
-            } else {
-                m_lastClickTime = now;
-                m_lastClickIndex = index;
-            }
-        }
-
+        // 释放事件委托给父类处理滚动条等
         return ScrollableWidget::onRelease(mouseX, mouseY, button, mods);
+    }
+
+    /**
+     * @brief 双击事件处理
+     *
+     * 由KageroEngine在检测到双击时调用（250ms内同一Widget、同一按钮）。
+     * ListWidget在双击时触发列表项的onDoubleClick回调和m_onDoubleClick。
+     */
+    bool onDoubleClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        (void)mods;
+        if (!isActive() || !isVisible()) return false;
+        if (button != 0) return false; // 仅左键双击
+
+        i32 index = getIndexAt(mouseX, mouseY);
+        if (index >= 0) {
+            auto& item = m_items[index];
+            item->onDoubleClick(mouseX, mouseY - getItemY(index));
+
+            if (m_onDoubleClick) {
+                m_onDoubleClick(index, item.get());
+            }
+            return true;
+        }
+        return false;
     }
 
     // ==================== 项目操作 ====================
@@ -514,16 +516,6 @@ public:
     [[nodiscard]] i32 itemHeight() const { return m_fixedItemHeight; }
 
     /**
-     * @brief 设置双击时间阈值
-     */
-    void setDoubleClickTime(i32 ms) { m_doubleClickTime = ms; }
-
-    /**
-     * @brief 获取双击时间阈值
-     */
-    [[nodiscard]] i32 doubleClickTime() const { return m_doubleClickTime; }
-
-    /**
      * @brief 获取当前悬停项索引
      *
      * 返回鼠标当前悬停的列表项索引，无悬停时返回 -1。
@@ -642,11 +634,6 @@ protected:
     i32 m_selectedIndex = -1;                              ///< 选中索引（单选模式）
     std::vector<i32> m_selectedIndices;                    ///< 选中索引列表（多选模式）
     i32 m_hoveredIndex = -1;                               ///< 悬停索引
-
-    // 双击检测
-    std::chrono::steady_clock::time_point m_lastClickTime; ///< 上次点击时间
-    i32 m_lastClickIndex = -1;                             ///< 上次点击索引
-    i32 m_doubleClickTime = 500;                           ///< 双击时间阈值（毫秒）
 
     // 回调
     OnSelectCallback m_onSelect;                        ///< 选择回调

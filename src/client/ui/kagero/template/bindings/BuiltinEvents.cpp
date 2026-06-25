@@ -101,29 +101,26 @@ void BuiltinEvents::_registerClickEvents()
     m_eventTypes[event_names::CLICK] = event::EventType::MouseClick;
 
     // doubleClick事件
-    // TODO: Widget缺少onDoubleClick方法，目前复用onClick，需要添加专门的双击处理
     m_handlers[event_names::DOUBLE_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), clickEvent->mods());
+                widget->onDoubleClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), clickEvent->mods());
             }
         }
     };
     m_eventTypes[event_names::DOUBLE_CLICK] = event::EventType::MouseClick;
 
     // rightClick事件
-    // TODO: Widget缺少onRightClick方法，目前硬编码button=1，需要添加专门的右键处理
     m_handlers[event_names::RIGHT_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), 1, clickEvent->mods());
+                widget->onRightClick(clickEvent->x(), clickEvent->y(), clickEvent->mods());
             }
         }
     };
     m_eventTypes[event_names::RIGHT_CLICK] = event::EventType::MouseClick;
 
     // mouseDown事件
-    // TODO: Widget缺少onMouseDown方法，目前复用onClick，需要添加专门的鼠标按下处理
     m_handlers[event_names::MOUSE_DOWN] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {

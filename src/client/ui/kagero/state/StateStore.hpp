@@ -24,6 +24,7 @@
 #pragma once
 
 #include "client/ui/kagero/Types.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <any>
 #include <atomic>
@@ -442,8 +443,8 @@ public:
      */
     u64 subscribe(std::function<void(const T&)> subscriber)
     {
+        MC_ASSERT_DEBUG_MSG(!m_key.empty(), "StateSelector::subscribe() called without setting a key");
         if (m_key.empty()) {
-            // TODO: 应使用断言或错误处理替代静默返回0
             return 0; // 无效订阅
         }
         return StateStore::instance().subscribe(m_key, [this, subscriber]() {

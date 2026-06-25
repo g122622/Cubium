@@ -509,6 +509,39 @@ protected:
     }
 
     /**
+     * @brief 处理子组件的双击事件
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param button 鼠标按钮
+     * @param mods 修饰键位掩码
+     * @return 如果有组件处理了事件返回true
+     */
+    bool handleDoubleClickInChildren(i32 mouseX, i32 mouseY, i32 button, i32 mods)
+    {
+        Widget* widget = getWidgetAt(mouseX, mouseY);
+        if (widget != nullptr) {
+            return widget->onDoubleClick(mouseX, mouseY, button, mods);
+        }
+        return false;
+    }
+
+    /**
+     * @brief 处理子组件的右键点击事件
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param mods 修饰键位掩码
+     * @return 如果有组件处理了事件返回true
+     */
+    bool handleRightClickInChildren(i32 mouseX, i32 mouseY, i32 mods)
+    {
+        Widget* widget = getWidgetAt(mouseX, mouseY);
+        if (widget != nullptr) {
+            return widget->onRightClick(mouseX, mouseY, mods);
+        }
+        return false;
+    }
+
+    /**
      * @brief 处理子组件的拖动事件
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标

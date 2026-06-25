@@ -180,6 +180,46 @@ public:
     }
 
     /**
+     * @brief 鼠标双击事件
+     *
+     * 当同一位置在短时间内（默认250ms）连续点击两次时触发。
+     * 参考MC Java版 MouseHandler 的双击检测机制。
+     *
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param button 鼠标按钮
+     * @param mods 修饰键位掩码
+     * @return 如果事件被处理返回true
+     */
+    virtual bool onDoubleClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)button;
+        (void)mods;
+        return false;
+    }
+
+    /**
+     * @brief 鼠标右键点击事件
+     *
+     * 专门处理右键点击（button == 1）的场景，例如物品栏操作、
+     * 配方书变体选择等。参考MC Java版 AbstractWidget 的 isValidClickButton 模式。
+     *
+     * @param mouseX 鼠标X坐标
+     * @param mouseY 鼠标Y坐标
+     * @param mods 修饰键位掩码
+     * @return 如果事件被处理返回true
+     */
+    virtual bool onRightClick(i32 mouseX, i32 mouseY, i32 mods)
+    {
+        (void)mouseX;
+        (void)mouseY;
+        (void)mods;
+        return false;
+    }
+
+    /**
      * @brief 鼠标拖动事件
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标

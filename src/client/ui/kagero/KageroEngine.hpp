@@ -29,6 +29,7 @@
 #include "paint/contracts/ICanvas.hpp"
 #include "widget/ContainerWidget.hpp"
 #include "widget/Widget.hpp"
+#include <chrono>
 #include <memory>
 #include <vector>
 
@@ -258,9 +259,16 @@ private:
 
     // 当前拖动的Widget
     widget::Widget* m_draggingWidget = nullptr;
-    // TODO: m_dragButton 当前仅设置/重置，未被用于判断逻辑，待完善拖动按钮校验
     i32 m_dragButton = 0;
     i32 m_dragMods = 0; ///< 拖拽开始时的修饰键状态
+
+    // 双击检测状态（参考MC Java版 MouseHandler 的双击检测机制）
+    static constexpr i64 DOUBLE_CLICK_THRESHOLD_MS = 250; ///< 双击时间阈值（毫秒）
+    widget::Widget* m_lastClickWidget = nullptr;          ///< 上次点击的Widget
+    i32 m_lastClickX = 0;                                 ///< 上次点击X坐标
+    i32 m_lastClickY = 0;                                 ///< 上次点击Y坐标
+    i32 m_lastClickButton = -1;                           ///< 上次点击的鼠标按钮（-1表示无）
+    i64 m_lastClickTimeMs = 0;                            ///< 上次点击时间戳（毫秒）
 };
 
 } // namespace mc::client::ui::kagero

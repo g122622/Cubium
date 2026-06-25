@@ -159,9 +159,39 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button, i32 mods)
         }
 
         if (it->widget->onClick(x, y, button, mods)) {
+            // 拖动跟踪
             m_draggingWidget = it->widget.get();
             m_dragButton = button;
             m_dragMods = mods;
+
+            // 双击检测（参考MC Java版 MouseHandler：同一Widget、同一按钮、250ms内）
+            auto now = std::chrono::steady_clock::now();
+            auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+            bool isDoubleClick = (m_lastClickWidget == it->widget.get() && m_lastClickButton == button &&
+                (nowMs - m_lastClickTimeMs) < DOUBLE_CLICK_THRESHOLD_MS);
+
+            if (isDoubleClick) {
+                // 触发双击事件
+                it->widget->onDoubleClick(x, y, button, mods);
+                // 重置双击状态，防止三击被误判为双击
+                m_lastClickWidget = nullptr;
+                m_lastClickButton = -1;
+                m_lastClickTimeMs = 0;
+            } else {
+                // 记录本次点击信息
+                m_lastClickWidget = it->widget.get();
+                m_lastClickX = x;
+                m_lastClickY = y;
+                m_lastClickButton = button;
+                m_lastClickTimeMs = nowMs;
+            }
+
+            // 右键点击分发
+            if (button == 1) {
+                it->widget->onRightClick(x, y, mods);
+            }
+
+            // modal层阻止事件向下传播
             return true;
         }
 

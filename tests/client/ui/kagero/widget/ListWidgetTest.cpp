@@ -468,14 +468,30 @@ TEST(ListWidgetTest, VariableItemHeight)
 
 // ==================== 双击检测测试 ====================
 
-TEST(ListWidgetTest, DoubleClickTime)
+TEST(ListWidgetTest, DoubleClickViaOnDoubleClick)
 {
+    // ListWidget now uses framework-level double-click detection from KageroEngine.
+    // The onDoubleClick override on ListWidget dispatches to IListItem::onDoubleClick
+    // and the m_onDoubleClick callback.
     ListWidget list("list");
+    list.setBounds(Rect(0, 0, 200, 300));
+    list.setItemHeight(20);
 
-    EXPECT_EQ(500, list.doubleClickTime());
+    int doubleClickCount = 0;
+    list.setOnDoubleClick([&](size_t index, IListItem* item) {
+        doubleClickCount++;
+        EXPECT_EQ(0u, index);
+        EXPECT_NE(item, nullptr);
+    });
 
-    list.setDoubleClickTime(300);
-    EXPECT_EQ(300, list.doubleClickTime());
+    auto item = std::make_unique<TextListItem>("Item 0");
+    list.addItem(std::move(item));
+
+    // Simulate a double-click via onDoubleClick (KageroEngine would call this
+    // when it detects a double-click within 250ms on the same widget)
+    list.onDoubleClick(10, 5, 0, 0);
+
+    EXPECT_EQ(1, doubleClickCount);
 }
 
 // ==================== TextListItem测试 ====================
