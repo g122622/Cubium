@@ -50,7 +50,6 @@ class FlyingMovementController;
 /**
  * @brief 凋灵随机飞行目标
  *
- * 对应 MC Java 的 WaterAvoidingRandomFlyingGoal。
  * 当凋灵没有其他高优先级目标时，随机选择一个飞行目标位置。
  * 由于 WitherEntity 继承自 MobEntity 而非 CreatureEntity，
  * 不能直接使用 WaterAvoidingRandomFlyingGoal（它要求 CreatureEntity*），
@@ -71,7 +70,6 @@ private:
     /**
      * @brief 生成飞行目标位置
      *
-     * 对应 MC Java 的 WaterAvoidingRandomFlyingGoal.getPosition()，
      * 在凋灵前方 PI/2 弧度锥形范围内随机选择一个避水避岩浆的空气位置。
      */
     bool _generateFlightTarget();
@@ -182,12 +180,18 @@ public:
     [[nodiscard]] bool onLivingFall(f32 distance, f32 damageMultiplier) override;
 
     /**
-     * @brief 检查是否应自然消失
+     * @brief 凋灵永不自然消失
      *
-     * 凋灵永不自然消失，除非和平难度下被移除。
-     * 对应 MC Java 的 WitherBoss.checkDespawn()。
+     * 返回 true 使 DespawnManager 跳过距离判定并重置 idleTime。
      */
-    void checkDespawn();
+    [[nodiscard]] bool preventDespawn() const override { return true; }
+
+    /**
+     * @brief 和平难度下消失
+     *
+     * 返回 true 使 DespawnManager 在和平难度下移除此实体。
+     */
+    [[nodiscard]] bool isDespawnPeaceful() const override { return true; }
 
     // ========== IRangedAttackMob 接口实现 ==========
 
@@ -309,14 +313,12 @@ private:
      * @brief 更新AI任务
      *
      * 包含无敌阶段处理、头部目标追踪、方块破坏逻辑和充能状态回血。
-     * 对应 MC Java 的 WitherBoss.customServerAiStep()。
      */
     void _updateAITasks();
 
     /**
      * @brief 更新飞行追踪行为
      *
-     * 对应 MC Java 的 WitherBoss.aiStep() 中的飞行逻辑。
      * 当主头有目标时，凋灵会主动飞向目标：
      * - Y轴速度保留60%（阻尼）
      * - 低于目标时附加上升推力

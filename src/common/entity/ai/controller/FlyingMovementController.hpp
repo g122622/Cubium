@@ -31,7 +31,7 @@ namespace entity::ai::controller {
 /**
  * @brief 通用飞行移动控制器
  *
- * 对应 MC Java 的 FlyingMoveControl。
+ * 通用飞行移动控制器。
  * 适用于飞行生物（如凋灵、鹦鹉等），允许在三维空间中飞行移动。
  *
  * 与 GhastMovementController 不同，本控制器：

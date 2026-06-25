@@ -76,7 +76,7 @@ WitherEntity::WitherEntity(EntityId id)
     // 凋灵可以飞行（不受重力影响）
     setNoGravity(true);
 
-    // 设置飞行移动控制器（对应 MC Java 的 FlyingMoveControl(this, 10, false)）
+    // 设置飞行移动控制器
     // maxTurn=10: 俯仰角每tick最大旋转10度
     // hoversInPlace=false: 空闲时恢复重力
     m_moveController = std::make_unique<ai::controller::FlyingMovementController>(this, 10, false);
@@ -332,7 +332,7 @@ void WitherEntity::tick()
     // 更新AI任务
     _updateAITasks();
 
-    // 更新飞行追踪行为（对应 MC Java 的 aiStep 中的飞行逻辑）
+    // 更新飞行追踪行为
     _updateFlightBehavior();
 
     // 生成粒子效果
@@ -465,7 +465,7 @@ void WitherEntity::_updateAITasks()
         heal(1.0f);
     }
 
-    // 侧头空闲攻击逻辑（对应 MC Java 的 customServerAiStep 中的 idleHeadUpdates 逻辑）
+    // 侧头空闲攻击逻辑
     // 仅在 NORMAL 和 HARD 难度下触发
     IWorld* worldPtr = world();
     if (worldPtr != nullptr) {
@@ -666,10 +666,9 @@ void WitherEntity::_breakNearbyBlocks()
                 }
 
                 // 检查方块是否可以被凋灵破坏
-                // MC Java 使用 WitherBoss.canDestroy(BlockState) 静态方法，
-                // 判断条件为 !isAir() && !is(WITHER_IMMUNE)，与下方逻辑一致。
+                // 判断条件为 !isAir() && !is(WITHER_IMMUNE)
                 // 注：MC 1.21.11 中已不存在 BlockState.canEntityDestroy() 方法，
-                // 原版的凋灵和末影龙方块破坏完全依赖标签系统。
+                // 凋灵和末影龙的方块破坏完全依赖标签系统。
                 const Block& block = state->getBlock();
 
                 // 检查是否在 WITHER_IMMUNE 标签中
@@ -752,8 +751,7 @@ void WitherEntity::registerGoals()
             ));
 
     // 优先级 5: 避水随机飞行
-    // 对应 MC Java 的 WaterAvoidingRandomFlyingGoal(this, 1.0)
-    // 由于 WitherEntity 继承自 MobEntity 而非 CreatureEntity（与 MC Java 不同），
+    // 由于 WitherEntity 继承自 MobEntity 而非 CreatureEntity，
     // 不能直接使用 WaterAvoidingRandomFlyingGoal（它要求 CreatureEntity*），
     // 因此使用专用 WitherRandomFlyGoal 实现类似效果。
     m_goalSelector.addGoal(5, new WitherRandomFlyGoal(this));
@@ -806,7 +804,7 @@ bool WitherRandomFlyGoal::shouldExecute()
         return false;
     }
 
-    // 执行概率 0.001（对应 MC Java 的 WaterAvoidingRandomFlyingGoal 默认概率）
+    // 执行概率 0.001
     math::Random& rng = m_wither->getRandom();
     if (rng.nextFloat() >= 0.001f) {
         return false;
@@ -864,13 +862,10 @@ void WitherRandomFlyGoal::tick()
 
 bool WitherRandomFlyGoal::_generateFlightTarget()
 {
-    // 对应 MC Java 的 WaterAvoidingRandomFlyingGoal.getPosition()
     // 生成策略：在凋灵前方 PI/2 弧度锥形范围内随机选一个空气位置，避开水和岩浆
-    //
-    // MC Java 使用 HoverRandomPos / AirAndWaterRandomPos 工具类，
-    // 这些类依赖 CreatureEntity 和复杂的 RandomPos 基础设施。
     // 由于 WitherEntity 继承自 MobEntity 而非 CreatureEntity，
-    // 此处实现简化版的飞行目标生成逻辑。
+    // 不能使用 RandomPositionGenerator（它要求 CreatureEntity*），
+    // 因此实现专用飞行目标生成逻辑。
 
     IWorld* worldPtr = m_wither->world();
     if (worldPtr == nullptr) {
@@ -890,7 +885,6 @@ bool WitherRandomFlyGoal::_generateFlightTarget()
     // 尝试最多 10 次生成有效位置
     for (i32 attempt = 0; attempt < 10; ++attempt) {
         // 在 PI/2 弧度（90度）锥形范围内随机偏移
-        // 对应 MC Java 的 RandomPos.generateRandomDirectionWithinRadians
         f32 angleOffset = (2.0f * rng.nextFloat() - 1.0f) * (math::PI / 2.0f);
         f32 baseAngle = std::atan2(lookZ, lookX);
         f32 finalAngle = baseAngle + angleOffset;
@@ -911,7 +905,7 @@ bool WitherRandomFlyGoal::_generateFlightTarget()
         i32 blockZ = math::floorTo<i32>(targetZ);
 
         // 检查世界边界
-        if (blockY < 0 || blockY >= 256) {
+        if (blockY < mc::world::MIN_BUILD_HEIGHT || blockY >= mc::world::MAX_BUILD_HEIGHT) {
             continue;
         }
 
@@ -968,7 +962,7 @@ void WitherEntity::registerAttributes()
 {
     MobEntity::registerAttributes();
 
-    // 凋灵属性（对应 MC Java 的 WitherBoss.createAttributes()）
+    // 凋灵属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 300.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
@@ -1017,14 +1011,13 @@ void WitherEntity::launchWitherSkullToPosition(i32 head, f64 targetX, f64 target
 
 void WitherEntity::_updateFlightBehavior()
 {
-    // 对应 MC Java 的 WitherBoss.aiStep() 中的飞行逻辑
     // 仅在服务端执行
     IWorld* worldPtr = world();
     if (!worldPtr || worldPtr->isClientSide()) {
         return;
     }
 
-    // Y轴阻尼：保留60%的Y轴速度（对应 MC Java 的 deltaMovement.multiply(1.0, 0.6, 1.0)）
+    // Y轴阻尼：保留60%的Y轴速度
     Vector3 velocity = this->velocity();
     velocity.y *= 0.6;
     setVelocity(velocity);
@@ -1076,20 +1069,6 @@ void WitherEntity::_updateFlightBehavior()
     if (horizontalSpeedSq > 0.05) {
         setRotation(static_cast<f32>(std::atan2(velocity.z, velocity.x) * (180.0 / math::PI) - 90.0), pitch());
     }
-}
-
-void WitherEntity::checkDespawn()
-{
-    // 对应 MC Java 的 WitherBoss.checkDespawn()
-    // 凋灵永不自然消失，除非和平难度下被移除
-    // TODO: 当 MobEntity::checkDespawn() 基础设施实现后，
-    // 此方法应重写为：和平难度下 discard()，否则重置 noActionTime = 0
-    IWorld* worldPtr = world();
-    if (worldPtr != nullptr && worldPtr->difficulty() == Difficulty::Peaceful) {
-        // 和平难度下移除凋灵
-        remove();
-    }
-    // 非和平难度下，凋灵永不消失
 }
 
 } // namespace entity

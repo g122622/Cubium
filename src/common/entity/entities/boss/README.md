@@ -7,7 +7,7 @@
 ```
 boss/
 ├── EnderDragonEntity.hpp/cpp  # 末影龙 + EnderDragonPartEntity + BossEntity基类
-├── WitherEntity.hpp/cpp       # 凋灵 + WitherDoNothingGoal
+├── WitherEntity.hpp/cpp       # 凋灵 + WitherDoNothingGoal + WitherRandomFlyGoal
 └── README.md                  # 本文档
 ```
 
@@ -45,7 +45,8 @@ boss/
 
 **依赖的模块**：
 - `entity/core/`：Entity、LivingEntity、MobEntity 基类，DataParameter 数据同步
-- `entity/ai/goal/`：Goal 系统（WitherDoNothingGoal 等）
+- `entity/ai/goal/`：Goal 系统（WitherDoNothingGoal、WitherRandomFlyGoal 等）
+- `entity/ai/controller/FlyingMovementController`：飞行移动控制器（凋灵专用 maxTurn=10）
 - `entity/interfaces/IRangedAttackMob.hpp`：远程攻击接口（凋灵）
 - `entity/damage/DamageSource.hpp`：伤害来源
 - `entity/effect/`：药水效果（凋灵免疫判断）
@@ -87,6 +88,15 @@ boss/
 - 充能时每个头 1/4 概率额外生成黄绿色 EntityEffect 粒子 (0.7, 0.7, 0.5)
 - 无敌阶段每 8 tick 生成紫色 EntityEffect 粒子 (0.7, 0.7, 0.9)
 - 注意：EntityEffect 粒子颜色通过 velocity 向量 (R, G, B) 传递
+
+### 6. 凋灵飞行移动系统
+
+凋灵使用 `FlyingMovementController(this, 10, false)` 控制飞行行为，与恶魂和恼鬼的飞行控制器不同：
+- 俯仰角旋转速率 10 度/tick，偏航角 90 度/tick
+- `hoversInPlace=false`：空闲时恢复重力，凋灵会缓慢下落
+- `_updateFlightBehavior()` 在 `tick()` 中执行额外飞行逻辑：Y轴60%阻尼、目标追踪推力、自动面向运动方向
+- `WitherRandomFlyGoal` 在无敌阶段外以 0.001 概率随机选择飞行目标（避水避岩浆），因 WitherEntity 继承自 MobEntity 而非 CreatureEntity，不能复用 `WaterAvoidingRandomFlyingGoal`
+- 凋灵注册了 FLYING_SPEED 属性（0.6），供 FlyingMovementController 飞行时使用
 
 ### 6. Boss 生命条显示范围
 

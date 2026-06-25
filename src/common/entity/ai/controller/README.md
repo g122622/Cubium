@@ -9,6 +9,7 @@ controller/
 ├── LookController.hpp/cpp          # 视线控制器，控制实体头部旋转
 ├── MovementController.hpp/cpp      # 移动控制器，控制地面移动行为
 ├── JumpController.hpp/cpp          # 跳跃控制器，管理跳跃状态
+├── FlyingMovementController.hpp/cpp # 通用飞行控制器，三维飞行移动（凋灵、鹦鹉等）
 ├── VexMovementController.hpp/cpp   # 恼鬼飞行控制器，穿墙飞行
 ├── GhastMovementController.hpp/cpp # 恶魂飞行控制器，带碰撞检测飞行
 ├── DrownedMoveControl.hpp/cpp      # 溺尸两栖控制器，水中游泳+陆地行走
@@ -32,6 +33,7 @@ controller/
 └─────────────────────────────────────────────────────────────┘
 
 继承关系：
+- FlyingMovementController ──继承──> MovementController
 - VexMovementController ──继承──> MovementController
 - GhastMovementController ──继承──> MovementController
 - DrownedMoveControl ──继承──> MovementController
@@ -60,6 +62,7 @@ controller/
   - `SwimGoal` → JumpController
   - `VexEntity` → VexMovementController
   - `GhastEntity` → GhastMovementController
+  - `WitherEntity` → FlyingMovementController(this, 10, false)
   - `DrownedEntity` → DrownedMoveControl
 - `PathNavigator` - 通过 MovementController 执行路径移动
 
@@ -112,7 +115,16 @@ if (auto* ctrl = m_mob->lookController()) {
 }
 ```
 
-### 6. VexMovementController vs GhastMovementController
+### 6. FlyingMovementController 通用飞行控制器
+
+与 VexMovementController 和 GhastMovementController 不同，FlyingMovementController 是通用飞行控制器：
+- 通过 `setMoveTo()` 接收目标坐标后，设置实体的朝向和移动输入
+- 支持俯仰角（pitch）旋转，每tick最大旋转角度可配置（`maxTurn`）
+- 空闲时可选保持无重力悬停或恢复重力（`hoversInPlace`）
+- 使用 FLYING_SPEED 属性（飞行时）或 MOVEMENT_SPEED 属性（地面时）作为速度
+- 凋灵使用 `FlyingMovementController(this, 10, false)`：俯仰角每tick最大旋转10度，空闲时恢复重力缓慢下落
+
+### 7. VexMovementController vs GhastMovementController
 
 两者都是飞行控制器，但有关键区别：
 - **VexMovementController**：可穿墙飞行，无碰撞检测

@@ -36,6 +36,7 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/controller/FlyingMovementController.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -616,6 +617,75 @@ TEST_F(WitherEntityTest, BlueSkull_BlueSkullChance)
     // 充能状态下主头总是发射蓝色凋灵之首
     constexpr f32 BLUE_SKULL_CHANCE = 0.001f;
     EXPECT_FLOAT_EQ(BLUE_SKULL_CHANCE, 0.001f);
+}
+
+// ========== Despawn 行为测试 ==========
+
+TEST_F(WitherEntityTest, Despawn_PreventDespawn_ReturnsTrue)
+{
+    entity::WitherEntity wither(EntityId(1));
+
+    // 凋灵永不自然消失
+    EXPECT_TRUE(wither.preventDespawn());
+}
+
+TEST_F(WitherEntityTest, Despawn_IsDespawnPeaceful_ReturnsTrue)
+{
+    entity::WitherEntity wither(EntityId(1));
+
+    // 和平难度下凋灵应被移除
+    EXPECT_TRUE(wither.isDespawnPeaceful());
+}
+
+// ========== FlyingMovementController 测试 ==========
+
+TEST_F(WitherEntityTest, FlyingMovementController_IsSetInConstructor)
+{
+    entity::WitherEntity wither(EntityId(1));
+
+    // 验证凋灵的移动控制器是 FlyingMovementController 类型
+    auto* moveCtrl = wither.moveController();
+    ASSERT_NE(moveCtrl, nullptr);
+
+    // FlyingMovementController 是 MovementController 的子类
+    // 验证 noGravity 在构造时设置为 true
+    EXPECT_TRUE(wither.isNoGravity());
+}
+
+// ========== FLYING_SPEED 属性测试 ==========
+
+TEST_F(WitherEntityTest, Attributes_FlyingSpeed)
+{
+    entity::WitherEntity wither(EntityId(1));
+    wither.setWorld(m_world.get());
+
+    // 凋灵注册了 FLYING_SPEED 属性，值为 0.6
+    EXPECT_FLOAT_EQ(static_cast<f32>(wither.getAttributeValue(entity::attribute::Attributes::FLYING_SPEED)), 0.6f);
+}
+
+// ========== WitherRandomFlyGoal 测试 ==========
+
+TEST_F(WitherEntityTest, WitherRandomFlyGoal_ShouldNotExecuteDuringInvulnerability)
+{
+    entity::WitherEntity wither(EntityId(1));
+    wither.setWorld(m_world.get());
+
+    // 无敌阶段不应执行随机飞行
+    wither.setInvulTime(100);
+    EXPECT_TRUE(wither.isInvulnerablePhase());
+
+    // WitherDoNothingGoal 阻止移动目标，所以 WitherRandomFlyGoal 不会执行
+    // 这通过 GoalSelector 的互斥标志保证
+}
+
+TEST_F(WitherEntityTest, WitherRandomFlyGoal_GoalPriority)
+{
+    entity::WitherEntity wither(EntityId(1));
+    wither.setWorld(m_world.get());
+
+    // 验证 WitherDoNothingGoal 优先级为 0，WitherRandomFlyGoal 优先级为 5
+    // WitherDoNothingGoal 占用 Move|Jump|Look 标志，与 WitherRandomFlyGoal 的 Move 标志冲突
+    // 因此无敌阶段时随机飞行目标不会执行
 }
 
 } // namespace

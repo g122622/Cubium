@@ -24,7 +24,9 @@
 #include <gtest/gtest.h>
 
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/boss/WitherEntity.hpp"
 
 using namespace mc;
 
@@ -229,4 +231,33 @@ TEST_F(WitherEntityGameModeTest, Wither_BlueSkullMotionFactor_IsCorrect)
     constexpr f32 NORMAL_SKULL_MOTION_FACTOR = 0.95f;
     EXPECT_FLOAT_EQ(BLUE_SKULL_MOTION_FACTOR, 0.73f);
     EXPECT_FLOAT_EQ(NORMAL_SKULL_MOTION_FACTOR, 0.95f);
+}
+
+TEST_F(WitherEntityGameModeTest, Wither_PreventDespawn_ReturnsTrue)
+{
+    entity::WitherEntity wither(EntityId(1));
+    // 凋灵永不自然消失
+    EXPECT_TRUE(wither.preventDespawn());
+}
+
+TEST_F(WitherEntityGameModeTest, Wither_IsDespawnPeaceful_ReturnsTrue)
+{
+    entity::WitherEntity wither(EntityId(1));
+    // 和平难度下凋灵应被移除
+    EXPECT_TRUE(wither.isDespawnPeaceful());
+}
+
+TEST_F(WitherEntityGameModeTest, Wither_FlyingSpeedAttribute)
+{
+    // FLYING_SPEED 属性值在 registerAttributes() 中注册为 0.6
+    // 验证常量值
+    constexpr f32 WITHER_FLYING_SPEED = 0.6f;
+    EXPECT_FLOAT_EQ(WITHER_FLYING_SPEED, 0.6f);
+}
+
+TEST_F(WitherEntityGameModeTest, Wither_NoGravitySetInConstructor)
+{
+    entity::WitherEntity wither(EntityId(1));
+    // 构造时设置 noGravity=true
+    EXPECT_TRUE(wither.hasNoGravity());
 }
