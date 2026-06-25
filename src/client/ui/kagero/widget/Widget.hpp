@@ -185,6 +185,10 @@ public:
      * 当同一位置在短时间内（默认250ms）连续点击两次时触发。
      * 参考MC Java版 MouseHandler 的双击检测机制。
      *
+     * 默认实现会调用通过 setOnDoubleClickCallback 设置的回调函数。
+     * 子类可以重写此方法实现自定义双击行为，但应注意调用
+     * Widget::onDoubleClick 以确保回调机制正常工作。
+     *
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      * @param button 鼠标按钮
@@ -197,6 +201,10 @@ public:
         (void)mouseY;
         (void)button;
         (void)mods;
+        if (m_onDoubleClickCallback) {
+            m_onDoubleClickCallback(*this);
+            return true;
+        }
         return false;
     }
 
@@ -205,6 +213,10 @@ public:
      *
      * 专门处理右键点击（button == 1）的场景，例如物品栏操作、
      * 配方书变体选择等。参考MC Java版 AbstractWidget 的 isValidClickButton 模式。
+     *
+     * 默认实现会调用通过 setOnRightClickCallback 设置的回调函数。
+     * 子类可以重写此方法实现自定义右键行为，但应注意调用
+     * Widget::onRightClick 以确保回调机制正常工作。
      *
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
@@ -216,8 +228,38 @@ public:
         (void)mouseX;
         (void)mouseY;
         (void)mods;
+        if (m_onRightClickCallback) {
+            m_onRightClickCallback(*this);
+            return true;
+        }
         return false;
     }
+
+    /**
+     * @brief 双击回调类型
+     *
+     * 参数为被双击的Widget引用。
+     */
+    using DoubleClickCallback = std::function<void(Widget&)>;
+
+    /**
+     * @brief 设置双击回调
+     * @param callback 回调函数
+     */
+    void setOnDoubleClickCallback(DoubleClickCallback callback) { m_onDoubleClickCallback = std::move(callback); }
+
+    /**
+     * @brief 右键点击回调类型
+     *
+     * 参数为被右键点击的Widget引用。
+     */
+    using RightClickCallback = std::function<void(Widget&)>;
+
+    /**
+     * @brief 设置右键点击回调
+     * @param callback 回调函数
+     */
+    void setOnRightClickCallback(RightClickCallback callback) { m_onRightClickCallback = std::move(callback); }
 
     /**
      * @brief 鼠标拖动事件
@@ -702,6 +744,8 @@ protected:
     i32 m_cornerRadius = 0;                                  ///< 圆角半径
     IWidgetContainer* m_parent = nullptr;                    ///< 父容器
     std::unordered_map<std::string, std::string> m_userData; ///< 自定义数据存储
+    DoubleClickCallback m_onDoubleClickCallback;             ///< 双击回调
+    RightClickCallback m_onRightClickCallback;               ///< 右键点击回调
 
     // 静态成员：UI音效回调（inline 允许在头文件中定义）
     inline static UiSoundCallback s_uiSoundCallback;

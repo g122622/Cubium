@@ -259,6 +259,7 @@ private:
 
     // 当前拖动的Widget
     widget::Widget* m_draggingWidget = nullptr;
+    // TODO: m_dragButton 当前仅设置/重置，未被用于判断逻辑，待完善拖动按钮校验
     i32 m_dragButton = 0;
     i32 m_dragMods = 0; ///< 拖拽开始时的修饰键状态
 

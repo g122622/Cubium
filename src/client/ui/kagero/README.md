@@ -7,7 +7,7 @@
 ```
 kagero/
 ├── Types.hpp                    # 基础类型定义（Rect, Margin, Padding, Anchor等）
-├── KageroEngine.hpp/cpp         # UI引擎核心类，统一管理所有UI组件
+├── KageroEngine.hpp/cpp         # UI引擎核心类，统一管理所有UI组件（含双击检测、右键分发）
 ├── README.md                    # 本文档
 │
 ├── event/                       # 事件系统
@@ -24,7 +24,7 @@ kagero/
 │   └── StateObserver.hpp        # 观察者辅助类
 │
 ├── widget/                      # Widget组件
-│   ├── Widget.hpp               # Widget基类，所有UI组件的基类
+│   ├── Widget.hpp               # Widget基类，所有UI组件的基类（含onDoubleClick/onRightClick虚方法）
 │   ├── IWidgetContainer.hpp     # 容器接口，CRTP模板
 │   ├── ContainerWidget.hpp/cpp  # 通用容器组件
 │   ├── ButtonWidget.hpp         # 按钮组件（ButtonWidget, ImageButtonWidget）
@@ -33,7 +33,7 @@ kagero/
 │   ├── TextFieldWidget.hpp      # 文本输入框组件
 │   ├── CheckboxWidget.hpp       # 复选框组件
 │   ├── SliderWidget.hpp         # 滑动条组件
-│   ├── ListWidget.hpp           # 列表组件
+│   ├── ListWidget.hpp           # 列表组件（支持框架级双击回调）
 │   ├── ScrollableWidget.hpp     # 可滚动容器组件
 │   ├── SlotWidget.hpp           # 物品槽组件（用于背包等）
 │   ├── Viewport3DWidget.hpp     # 3D视口组件（用于物品预览等）
@@ -128,6 +128,60 @@ kagero/
 - **State** - 响应式状态管理，支持数据绑定和自动更新
 - **Template** - 声明式UI定义，XML模板编译和实例化
 - **Paint** - 平台无关的绘制抽象接口，封装ICanvas/IPaint/IPath
+
+## 双击与右键事件系统
+
+Kagero引擎在框架层面统一实现了双击检测和右键事件分发，参考MC Java版 `MouseHandler` 的双击检测机制。
+
+### 事件分发流程
+
+```
+GLFW鼠标回调 → InputManager → ClientApplication → KageroEngine::handleClick()
+                                                         │
+                                                         ├─ onClick() → Widget::onClick()
+                                                         ├─ 双击检测（250ms内同Widget同按钮）
+                                                         │   └─ onDoubleClick() → Widget::onDoubleClick()
+                                                         └─ 右键分发（button == 1）
+                                                             └─ onRightClick() → Widget::onRightClick()
+```
+
+### KageroEngine 双击检测
+
+- **阈值**：250ms（`DOUBLE_CLICK_THRESHOLD_MS`）
+- **条件**：同一Widget、同一鼠标按钮、250ms内的第二次点击
+- **状态**：`m_lastClickWidget`、`m_lastClickButton`、`m_lastClickTimeMs`
+- **重置**：双击触发后状态立即重置，三击不会触发第二次双击
+
+### Widget 虚方法
+
+| 方法 | 说明 | 默认行为 |
+|------|------|----------|
+| `onDoubleClick(x, y, button, mods)` | 双击事件 | 调用 `m_onDoubleClickCallback`，无回调返回false |
+| `onRightClick(x, y, mods)` | 右键事件 | 调用 `m_onRightClickCallback`，无回调返回false |
+
+### Widget 回调设置
+
+```cpp
+widget.setOnDoubleClickCallback([](Widget& w) { /* 双击处理 */ });
+widget.setOnRightClickCallback([](Widget& w) { /* 右键处理 */ });
+```
+
+### 容器分发
+
+ContainerWidget 和 ScrollableWidget 均覆写了 `onDoubleClick`/`onRightClick`，自动将事件分发到子Widget：
+- ContainerWidget：遍历子Widget找到命中目标
+- ScrollableWidget：调整滚动偏移后分发到子Widget
+
+### ListWidget 双击
+
+ListWidget 的 `onDoubleClick` 覆写会将双击事件分发到列表项（`IListItem::onDoubleClick`），并触发 `m_onDoubleClick` 回调（签名：`void(size_t index, IListItem*)`），然后调用基类 `Widget::onDoubleClick` 以触发模板回调。
+
+### 模板绑定
+
+模板系统中可通过 `bind:doubleClick` 和 `bind:rightClick` 绑定事件：
+- `doubleClick` → `BuiltinEvents` 调用 `widget->onDoubleClick()`
+- `rightClick` → `BuiltinEvents` 调用 `widget->onRightClick()`
+- `TemplateInstance` 通过 `setOnDoubleClickCallback`/`setOnRightClickCallback` 桥接模板回调
 
 ## 上下游外部依赖关系
 

@@ -931,6 +931,7 @@ add_executable(mc_tests
     client/ui/kagero/widget/ListWidgetTest.cpp
     client/ui/kagero/widget/Viewport3DWidgetTest.cpp
     client/ui/kagero/widget/SlotWidgetTest.cpp
+    client/ui/kagero/KageroEngineTest.cpp
     client/ui/FontObfuscatedTest.cpp
     client/ui/minecraft/targetinfo/TargetInfoFormatterTest.cpp
     ${CMAKE_SOURCE_DIR}/src/client/ui/GuiScale.cpp
@@ -1648,6 +1649,7 @@ target_sources(mc_tests
         # Kagero UI Widget缁勪欢
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ListWidget.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/KageroEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp
         # ScreenStackWidget 及 Screen 依赖

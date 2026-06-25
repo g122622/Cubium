@@ -454,9 +454,10 @@ void TemplateInstance::registerDefaultEventBinders()
                                         const std::string& callbackName,
                                         binder::BindingContext& ctx) {
         (void)eventName;
-        // 存储双击回调名称到Widget的userData，由KageroEngine的双击检测触发
         if (widget && !callbackName.empty()) {
-            widget->setUserData("onDoubleClickCallback", callbackName);
+            widget->setOnDoubleClickCallback([&ctx, callbackName, widget](widget::Widget& w) {
+                ctx.invokeCallback(callbackName, &w, event::MouseClickEvent(0, 0, 0, 2));
+            });
         }
     };
 
@@ -466,9 +467,10 @@ void TemplateInstance::registerDefaultEventBinders()
                                        const std::string& callbackName,
                                        binder::BindingContext& ctx) {
         (void)eventName;
-        // 存储右键回调名称到Widget的userData，由KageroEngine的右键分发触发
         if (widget && !callbackName.empty()) {
-            widget->setUserData("onRightClickCallback", callbackName);
+            widget->setOnRightClickCallback([&ctx, callbackName, widget](widget::Widget& w) {
+                ctx.invokeCallback(callbackName, &w, event::MouseClickEvent(0, 0, 1, 1));
+            });
         }
     };
 

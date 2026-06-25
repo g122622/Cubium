@@ -261,6 +261,9 @@ public:
             if (m_onDoubleClick) {
                 m_onDoubleClick(index, item.get());
             }
+
+            // 调用基类实现以触发模板回调
+            Widget::onDoubleClick(mouseX, mouseY, button, mods);
             return true;
         }
         return false;
