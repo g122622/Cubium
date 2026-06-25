@@ -263,7 +263,7 @@ private:
     i32 m_dragButton = 0;
     i32 m_dragMods = 0; ///< 拖拽开始时的修饰键状态
 
-    // 双击检测状态（参考MC Java版 MouseHandler 的双击检测机制）
+    // 双击检测状态（与Java版MouseHandler的双击检测机制一致）
     static constexpr i64 DOUBLE_CLICK_THRESHOLD_MS = 250; ///< 双击时间阈值（毫秒）
     widget::Widget* m_lastClickWidget = nullptr;          ///< 上次点击的Widget
     i32 m_lastClickX = 0;                                 ///< 上次点击X坐标

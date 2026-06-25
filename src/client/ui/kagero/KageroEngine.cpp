@@ -164,7 +164,7 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button, i32 mods)
             m_dragButton = button;
             m_dragMods = mods;
 
-            // 双击检测（参考MC Java版 MouseHandler：同一Widget、同一按钮、250ms内）
+            // 双击检测（与Java版MouseHandler一致：同一Widget、同一按钮、250ms内）
             auto now = std::chrono::steady_clock::now();
             auto nowMs = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
             bool isDoubleClick = (m_lastClickWidget == it->widget.get() && m_lastClickButton == button &&
@@ -187,6 +187,8 @@ bool KageroEngine::handleClick(i32 x, i32 y, i32 button, i32 mods)
             }
 
             // 右键点击分发
+            // 注意：右键点击时 onClick 和 onRightClick 都会触发，这是有意为之的设计。
+            // 组件应在 onClick 中检查 button 参数来区分左右键，或仅处理左键点击。
             if (button == 1) {
                 it->widget->onRightClick(x, y, mods);
             }

@@ -189,6 +189,77 @@ TEST_F(KageroEngineDoubleClickTest, DifferentButtonsNoDoubleClick)
     EXPECT_EQ(0, widgetPtr->doubleClickCount);
 }
 
+TEST_F(KageroEngineDoubleClickTest, TimeoutDoesNotTriggerDoubleClick)
+{
+    auto widget = std::make_unique<MockClickWidget>("test");
+    auto* widgetPtr = widget.get();
+    engine.addLayer(std::move(widget), 0);
+
+    // 第一次点击
+    engine.handleClick(50, 50, 0, 0);
+    EXPECT_EQ(1, widgetPtr->clickCount);
+
+    // 等待超过250ms阈值
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+    // 第二次点击（超过阈值，不触发双击）
+    engine.handleClick(50, 50, 0, 0);
+    EXPECT_EQ(2, widgetPtr->clickCount);
+    EXPECT_EQ(0, widgetPtr->doubleClickCount);
+}
+
+TEST_F(KageroEngineDoubleClickTest, DifferentWidgetDoubleClickDispatchesToCorrectChild)
+{
+    // 使用ContainerWidget包含两个不同位置的子Widget
+    // 双击检测发生在引擎层级别，同一层内的双击会触发onDoubleClick，
+    // ContainerWidget将onDoubleClick分发到点击位置对应的子Widget
+    auto container = std::make_unique<widget::ContainerWidget>("container");
+    container->setBounds(Rect(0, 0, 200, 100));
+
+    auto widget1 = std::make_unique<MockClickWidget>("w1");
+    auto* ptr1 = widget1.get();
+    widget1->setBounds(Rect(0, 0, 100, 100));
+
+    auto widget2 = std::make_unique<MockClickWidget>("w2");
+    auto* ptr2 = widget2.get();
+    widget2->setBounds(Rect(100, 0, 100, 100));
+
+    container->addChild(std::move(widget1));
+    container->addChild(std::move(widget2));
+    engine.addLayer(std::move(container), 0);
+
+    // 第一次点击w1区域
+    engine.handleClick(25, 25, 0, 0);
+    EXPECT_EQ(1, ptr1->clickCount);
+    EXPECT_EQ(0, ptr2->clickCount);
+
+    // 立即第二次点击w2区域（同一层、250ms内，引擎检测到双击）
+    // ContainerWidget的onDoubleClick会将双击分发到w2（因为第二次点击在w2区域）
+    engine.handleClick(125, 25, 0, 0);
+    EXPECT_EQ(1, ptr2->clickCount);
+    EXPECT_EQ(1, ptr2->doubleClickCount); // w2收到双击（引擎层级别检测）
+    EXPECT_EQ(0, ptr1->doubleClickCount); // w1未收到双击
+}
+
+TEST_F(KageroEngineDoubleClickTest, RightClickDoubleClickTriggersBoth)
+{
+    auto widget = std::make_unique<MockClickWidget>("test");
+    auto* widgetPtr = widget.get();
+    engine.addLayer(std::move(widget), 0);
+
+    // 右键第一次点击：触发onClick + onRightClick
+    engine.handleClick(50, 50, 1, 0);
+    EXPECT_EQ(1, widgetPtr->clickCount);
+    EXPECT_EQ(1, widgetPtr->rightClickCount);
+
+    // 右键第二次点击：触发onClick + onDoubleClick + onRightClick
+    engine.handleClick(50, 50, 1, 0);
+    EXPECT_EQ(2, widgetPtr->clickCount);
+    EXPECT_EQ(1, widgetPtr->doubleClickCount);
+    EXPECT_EQ(1, widgetPtr->lastDoubleClickButton); // 双击按钮为右键(button=1)
+    EXPECT_EQ(2, widgetPtr->rightClickCount);       // 两次右键都触发onRightClick
+}
+
 // ==================== KageroEngine 右键分发测试 ====================
 
 TEST_F(KageroEngineDoubleClickTest, RightClickButton1TriggersOnRightClick)

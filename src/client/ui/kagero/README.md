@@ -152,6 +152,15 @@ GLFW鼠标回调 → InputManager → ClientApplication → KageroEngine::handle
 - **状态**：`m_lastClickWidget`、`m_lastClickButton`、`m_lastClickTimeMs`
 - **重置**：双击触发后状态立即重置，三击不会触发第二次双击
 
+### 右键点击行为
+
+右键点击（button == 1）时，`onClick` 和 `onRightClick` **都会触发**，这是有意为之的设计：
+- `onClick(x, y, 1, mods)` — 通用点击事件（button=1表示右键）
+- `onRightClick(x, y, mods)` — 专用右键事件
+
+组件应在 `onClick` 中检查 `button` 参数来区分左右键，或仅处理左键点击（button == 0）。
+右键双击同样遵循双击检测机制：250ms内同一Widget同一右键连续点击会触发 `onDoubleClick(x, y, 1, mods)`。
+
 ### Widget 虚方法
 
 | 方法 | 说明 | 默认行为 |

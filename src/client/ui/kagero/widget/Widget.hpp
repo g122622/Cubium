@@ -183,7 +183,7 @@ public:
      * @brief 鼠标双击事件
      *
      * 当同一位置在短时间内（默认250ms）连续点击两次时触发。
-     * 参考MC Java版 MouseHandler 的双击检测机制。
+     * 双击检测机制与Java版MouseHandler一致。
      *
      * 默认实现会调用通过 setOnDoubleClickCallback 设置的回调函数。
      * 子类可以重写此方法实现自定义双击行为，但应注意调用
@@ -212,7 +212,7 @@ public:
      * @brief 鼠标右键点击事件
      *
      * 专门处理右键点击（button == 1）的场景，例如物品栏操作、
-     * 配方书变体选择等。参考MC Java版 AbstractWidget 的 isValidClickButton 模式。
+     * 配方书变体选择等。与Java版AbstractWidget的isValidClickButton模式一致。
      *
      * 默认实现会调用通过 setOnRightClickCallback 设置的回调函数。
      * 子类可以重写此方法实现自定义右键行为，但应注意调用
