@@ -142,7 +142,7 @@ level.dat (SpawnAngle 字段)
 - **`StaticChunkCache2D<T>`**（`StaticChunkCache2D.hpp`）：预分配二维缓存模板，构造时一次性填充 `(2*radius+1)²` 个条目，**不允许 nullptr**（loader 必须返回有效值）。替代旧的 `GenerationChunkCache`（增量填充、允许空洞），从根本上消除窗口内 nullptr。
 - **`ReentrantAreaLock`**（`common/util/concurrent/`）：按区块坐标的可重入区域锁，`lock(x,z,radius)` 覆盖 `[x±radius, z±radius]`，同线程重入仅限完全覆盖的子区域。`schedule` 持 `maxAccessRadius` 锁，`onChunkGenComplete` 持 `2*maxAccessRadius` 锁（覆盖邻居的邻居）。
 - **`ChunkStep::getRequiredStatusAtRadius(radius)`**（`common/world/chunk/gen/ChunkStep.hpp`）：byRadius[] 查找表，对齐 Moonrise `ChunkStepMixin`。`schedule` 遍历 `[center±neighbourReadRadius]` 范围邻居，按 Chebyshev 距离查询每个邻居所需状态。
-- **`ServerWorkerPool` 区域互斥**（`common/util/thread/`）：`submit(task, callback, centerX, centerZ, writeRadius, priority, cancelToken)` 重载，保证同一时刻不存在两个 `writeRadius` 区域重叠的任务同时执行。`writeRadius ≤ 0` 的状态（EMPTY~INITIALIZE_LIGHT）走并行池；`writeRadius > 0`（FEATURES=1, LIGHT=2）走区域互斥池。
+- **`ServerWorkerPool` 区域互斥**（`common/util/thread/`）：`submit(task, callback, centerX, centerZ, writeRadius, priority, abortSignal)` 重载，保证同一时刻不存在两个 `writeRadius` 区域重叠的任务同时执行。`writeRadius ≤ 0` 的状态（EMPTY~INITIALIZE_LIGHT）走并行池；`writeRadius > 0`（FEATURES=1, LIGHT=2）走区域互斥池。
 
 **并发模型**：邻居在任务执行期间可变（ChunkPrimer 累积式），但调度保证无并发写冲突——`checkNeighbour` 确保任务开始前所有邻居达所需状态，`ServerWorkerPool` 区域互斥串行化重叠写区域（等价 Moonrise `AreaDependentQueue`）。这使 FEATURES/LIGHT 跨区块写邻居成为设计预期，而非 bug。
 

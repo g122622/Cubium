@@ -29,6 +29,8 @@
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/perfetto/TraceEvents.hpp"
+
 #include <spdlog/spdlog.h>
 
 namespace mc::server {
@@ -63,18 +65,18 @@ ChunkProgressionTask::ChunkProgressionTask(ChunkTaskScheduler& scheduler,
 // ITask 接口
 // ============================================================================
 
-bool ChunkProgressionTask::execute(const std::atomic<bool>& cancelSignal)
+bool ChunkProgressionTask::execute(const std::atomic<bool>& abortSignal)
 {
-    if (cancelSignal.load(std::memory_order_acquire)) {
+    if (abortSignal.load(std::memory_order_acquire)) {
         return false;
     }
 
     // EMPTY 走存档加载/新建空 Primer 路径，不调用 IChunkGenerator
     if (*m_toStatus == ChunkStatuses::EMPTY) {
-        return executeEmptyLoad(cancelSignal);
+        return executeEmptyLoad(abortSignal);
     }
 
-    return executeStatusStep(cancelSignal);
+    return executeStatusStep(abortSignal);
 }
 
 void ChunkProgressionTask::onCancel()
@@ -96,9 +98,9 @@ std::string ChunkProgressionTask::description() const
 // executeEmptyLoad：EMPTY 状态（从存档加载或新建空 Primer）
 // ============================================================================
 
-bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& cancelSignal)
+bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal)
 {
-    if (cancelSignal.load(std::memory_order_acquire)) {
+    if (abortSignal.load(std::memory_order_acquire)) {
         return false;
     }
 
@@ -146,9 +148,14 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& cancelSigna
 // executeStatusStep：普通状态推进
 // ============================================================================
 
-bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& cancelSignal)
+bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSignal)
 {
-    if (cancelSignal.load(std::memory_order_acquire)) {
+    MC_TRACE_EVENT("server.chunk", "ChunkProgressionTask::executeStatusStep", "x", m_x, "z", m_z, "targetStatus", m_toStatus->name(),
+    [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); }
+    );
+
+    if (abortSignal.load(std::memory_order_acquire)) {
         return false;
     }
 
@@ -172,10 +179,13 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& cancelSign
 
     std::vector<IChunk*> chunks;
     chunks.reserve(static_cast<size_t>(diameter) * static_cast<size_t>(diameter));
-    for (i32 dz = -radius; dz <= radius; ++dz) {
-        for (i32 dx = -radius; dx <= radius; ++dx) {
-            ChunkPrimer* neighbourPrimer = m_neighbours.get(m_x + dx, m_z + dz);
-            chunks.push_back(neighbourPrimer);
+    {
+        MC_TRACE_EVENT("server.chunk", "ChunkProgressionTask::executeStatusStep::buildWorldGenRegion");
+        for (i32 dz = -radius; dz <= radius; ++dz) {
+            for (i32 dx = -radius; dx <= radius; ++dx) {
+                ChunkPrimer* neighbourPrimer = m_neighbours.get(m_x + dx, m_z + dz);
+                chunks.push_back(neighbourPrimer);
+            }
         }
     }
 
@@ -195,7 +205,7 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& cancelSign
     // 执行生成步骤（调用 IChunkGenerator 的对应方法）
     m_manager._executeStepTask(*primer, *m_toStatus, region);
 
-    if (cancelSignal.load(std::memory_order_acquire)) {
+    if (abortSignal.load(std::memory_order_acquire)) {
         return false;
     }
 

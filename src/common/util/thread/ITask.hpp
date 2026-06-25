@@ -70,9 +70,9 @@ enum class TaskType : u8 {
  * @code
  * class MyTask : public ITask {
  * public:
- *     bool execute(const std::atomic<bool>& cancelSignal) override {
+ *     bool execute(const std::atomic<bool>& abortSignal) override {
  *         // 检查取消信号
- *         if (cancelSignal.load()) {
+ *         if (abortSignal.load()) {
  *             return false;
  *         }
  *         // 执行任务...
@@ -91,10 +91,10 @@ public:
     /**
      * @brief 执行任务
      *
-     * @param cancelSignal 取消信号，执行器应定期检查
+     * @param abortSignal 取消信号，执行器应定期检查
      * @return true 表示成功，false 表示失败或取消
      */
-    virtual bool execute(const std::atomic<bool>& cancelSignal) = 0;
+    virtual bool execute(const std::atomic<bool>& abortSignal) = 0;
 
     /**
      * @brief 任务被取消时的回调

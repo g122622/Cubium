@@ -23,6 +23,7 @@
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <array>
 
@@ -126,6 +127,8 @@ void addRequirement(std::vector<const ChunkStatus*>& deps, const ChunkStatus* st
 
 const ChunkPyramid& ChunkPyramid::generationPyramid()
 {
+    MC_TRACE_EVENT("server.chunk", "ChunkPyramid::generationPyramid");
+
     static const ChunkPyramid pyramid = []() {
         std::vector<ChunkStep> steps;
         steps.reserve(12);

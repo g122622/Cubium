@@ -45,9 +45,9 @@ public:
         , m_executed(false)
     {}
 
-    bool execute(const std::atomic<bool>& cancelSignal) override
+    bool execute(const std::atomic<bool>& abortSignal) override
     {
-        if (cancelSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order_acquire)) {
             return false;
         }
         m_executed = true;
@@ -76,9 +76,9 @@ public:
         , m_mutex(mutex)
     {}
 
-    bool execute(const std::atomic<bool>& cancelSignal) override
+    bool execute(const std::atomic<bool>& abortSignal) override
     {
-        if (cancelSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order_acquire)) {
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -101,9 +101,9 @@ private:
  */
 class ThrowingTask : public ITask {
 public:
-    bool execute(const std::atomic<bool>& cancelSignal) override
+    bool execute(const std::atomic<bool>& abortSignal) override
     {
-        (void)cancelSignal;
+        (void)abortSignal;
         throw std::runtime_error("Test exception");
     }
 
@@ -354,12 +354,12 @@ TEST_F(ServerWorkerPoolTest, CriticalPriorityHighest)
 // 取消测试
 // ============================================================================
 
-TEST_F(ServerWorkerPoolTest, CancelTokenSkipsExecution)
+TEST_F(ServerWorkerPoolTest, AbortSignalSkipsExecution)
 {
     ServerWorkerPool pool(1, "TestWorker");
     pool.start();
 
-    auto cancelToken = std::make_shared<std::atomic<bool>>(true);
+    auto abortSignal = std::make_shared<std::atomic<bool>>(true);
     std::atomic<bool> completed{false};
     std::atomic<bool> success{true};
 
@@ -371,7 +371,7 @@ TEST_F(ServerWorkerPoolTest, CancelTokenSkipsExecution)
             success = s;
         },
         TaskPriority::Normal,
-        cancelToken);
+        abortSignal);
 
     for (int i = 0; i < 100 && !completed; ++i) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -396,8 +396,8 @@ TEST_F(ServerWorkerPoolTest, PruneCancelledTasks)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    auto cancelToken = std::make_shared<std::atomic<bool>>(true);
-    pool.submit(std::make_unique<SimpleTestTask>(1), nullptr, TaskPriority::Low, cancelToken);
+    auto abortSignal = std::make_shared<std::atomic<bool>>(true);
+    pool.submit(std::make_unique<SimpleTestTask>(1), nullptr, TaskPriority::Low, abortSignal);
 
     // 裁剪已取消的任务
     pool.pruneCancelledTasks();

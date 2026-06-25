@@ -71,7 +71,7 @@ public:
      */
     static std::unique_ptr<StorageTask> createFlushTask(DimensionId dimension, size_t count, Executor executor);
 
-    bool execute(const std::atomic<bool>& cancelSignal) override;
+    bool execute(const std::atomic<bool>& abortSignal) override;
     void onCancel() override;
     util::TaskType type() const override;
     std::string description() const override;

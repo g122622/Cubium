@@ -33,18 +33,18 @@ ReentrantAreaLock::ReentrantAreaLock(i32 coordinateShift)
     MC_ASSERT_RELEASE(coordinateShift >= 0);
 }
 
-u64 ReentrantAreaLock::packKey(i32 sectionX, i32 sectionZ)
+u64 ReentrantAreaLock::_packKey(i32 sectionX, i32 sectionZ)
 {
     // 高 32 位为 Z，低 32 位为 X，对齐 Moonrise IntPairUtil.key
     return (static_cast<u64>(static_cast<u32>(sectionZ)) << 32) | static_cast<u64>(static_cast<u32>(sectionX));
 }
 
-u64 ReentrantAreaLock::sectionKey(ChunkCoord x, ChunkCoord z) const
+u64 ReentrantAreaLock::_sectionKey(ChunkCoord x, ChunkCoord z) const
 {
     // 算术右移保证负坐标向负无穷方向取整（与 Java 的 >> 一致）
     const i32 sectionX = x >> m_coordinateShift;
     const i32 sectionZ = z >> m_coordinateShift;
-    return packKey(sectionX, sectionZ);
+    return _packKey(sectionX, sectionZ);
 }
 
 // ============================================================================
@@ -79,7 +79,7 @@ std::unique_ptr<ReentrantAreaLock::Node> ReentrantAreaLock::lock(
     sectionKeys.reserve(static_cast<size_t>(toSectionX - fromSectionX + 1) * (toSectionZ - fromSectionZ + 1));
     for (i32 sz = fromSectionZ; sz <= toSectionZ; ++sz) {
         for (i32 sx = fromSectionX; sx <= toSectionX; ++sx) {
-            sectionKeys.push_back(packKey(sx, sz));
+            sectionKeys.push_back(_packKey(sx, sz));
         }
     }
 
@@ -193,7 +193,7 @@ std::unique_ptr<ReentrantAreaLock::Node> ReentrantAreaLock::tryLock(
     sectionKeys.reserve(static_cast<size_t>(toSectionX - fromSectionX + 1) * (toSectionZ - fromSectionZ + 1));
     for (i32 sz = fromSectionZ; sz <= toSectionZ; ++sz) {
         for (i32 sx = fromSectionX; sx <= toSectionX; ++sx) {
-            sectionKeys.push_back(packKey(sx, sz));
+            sectionKeys.push_back(_packKey(sx, sz));
         }
     }
 
@@ -233,7 +233,7 @@ std::unique_ptr<ReentrantAreaLock::Node> ReentrantAreaLock::tryLock(
 bool ReentrantAreaLock::isHeldByCurrentThread(ChunkCoord x, ChunkCoord z) const
 {
     const std::thread::id currThread = std::this_thread::get_id();
-    const u64 key = sectionKey(x, z);
+    const u64 key = _sectionKey(x, z);
 
     std::lock_guard<std::mutex> guard(m_mutex);
     auto it = m_nodes.find(key);
@@ -260,7 +260,7 @@ bool ReentrantAreaLock::isHeldByCurrentThread(ChunkCoord fromX, ChunkCoord fromZ
     std::lock_guard<std::mutex> guard(m_mutex);
     for (i32 sz = fromSectionZ; sz <= toSectionZ; ++sz) {
         for (i32 sx = fromSectionX; sx <= toSectionX; ++sx) {
-            const u64 key = packKey(sx, sz);
+            const u64 key = _packKey(sx, sz);
             auto it = m_nodes.find(key);
             if (it == m_nodes.end() || it->second->m_thread != currThread) {
                 return false;
@@ -272,6 +272,8 @@ bool ReentrantAreaLock::isHeldByCurrentThread(ChunkCoord fromX, ChunkCoord fromZ
 
 void ReentrantAreaLock::unlock(Node& node)
 {
+    MC_TRACE_EVENT("server.chunk", "ReentrantAreaLock::unlock");
+
     const u64 areaAffectedLen = node.m_areaAffectedLen;
     if (areaAffectedLen == 0) {
         // 未占有任何 section（纯重入场景），无需清理
@@ -280,6 +282,7 @@ void ReentrantAreaLock::unlock(Node& node)
 
     std::vector<u64> keysToNotify;
     {
+        MC_TRACE_EVENT("server.chunk", "ReentrantAreaLock::unlock:erase");
         std::lock_guard<std::mutex> guard(m_mutex);
         for (u64 i = 0; i < areaAffectedLen; ++i) {
             const u64 key = node.m_areaAffected[i];
@@ -291,11 +294,14 @@ void ReentrantAreaLock::unlock(Node& node)
     }
 
     // 唤醒所有等待这些 section 的线程（锁外通知，减少临界区）
-    for (u64 key : keysToNotify) {
-        std::lock_guard<std::mutex> guard(m_mutex);
-        auto it = m_waiters.find(key);
-        if (it != m_waiters.end() && it->second) {
-            it->second->cv.notify_all();
+    {
+        MC_TRACE_EVENT("server.chunk", "ReentrantAreaLock::unlock:notify");
+        for (u64 key : keysToNotify) {
+            std::lock_guard<std::mutex> guard(m_mutex);
+            auto it = m_waiters.find(key);
+            if (it != m_waiters.end() && it->second) {
+                it->second->cv.notify_all();
+            }
         }
     }
 }

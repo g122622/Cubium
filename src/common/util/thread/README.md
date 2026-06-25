@@ -76,16 +76,16 @@ pool.submit(task, callback);
 
 ### 2. 取消信号检查缺失
 
-任务执行器必须定期检查 `cancelSignal`，否则无法响应取消：
+任务执行器必须定期检查 `abortSignal`，否则无法响应取消：
 
 ```cpp
-bool execute(const std::atomic<bool>& cancelSignal) override {
+bool execute(const std::atomic<bool>& abortSignal) override {
     // ❌ 错误：长时间阻塞不检查取消
     doHeavyWork();
 
     // ✅ 正确：定期检查
     for (auto& item : items) {
-        if (cancelSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order_acquire)) {
             return false;  // 被取消
         }
         process(item);

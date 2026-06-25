@@ -101,7 +101,7 @@ private:
         ChunkId chunkId;
         u64 taskId = 0;
         MeshBuildRequest request;
-        std::shared_ptr<std::atomic<bool>> cancelSignal;
+        std::shared_ptr<std::atomic<bool>> abortSignal;
         TaskState state = TaskState::Pending;
         f32 distanceChunks = 0.0f;
         f32 forwardDot = 0.0f;

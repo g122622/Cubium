@@ -29,6 +29,7 @@
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
 
@@ -199,7 +200,7 @@ ChunkProgressionTask* ChunkTaskScheduler::scheduleStatusStep(
     }
 
     // 选择执行器并提交（worker 池为空时在线执行）
-    submitTask(std::move(task), toStatus, x, z, writeRadius, holder.cancelToken());
+    submitTask(std::move(task), toStatus, x, z, writeRadius, holder.abortSignal());
 
     return taskPtr;
 }
@@ -213,7 +214,7 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
     ChunkCoord x,
     ChunkCoord z,
     i32 writeRadius,
-    std::shared_ptr<std::atomic<bool>> cancelToken)
+    std::shared_ptr<std::atomic<bool>> abortSignal)
 {
     util::ServerWorkerPool* pool = selectExecutor(status);
     const ChunkCoord centerX = x;
@@ -252,7 +253,7 @@ void ChunkTaskScheduler::submitTask(std::unique_ptr<ChunkProgressionTask> task,
         centerZ,
         writeRadius,
         util::TaskPriority::Normal,
-        std::move(cancelToken));
+        std::move(abortSignal));
 }
 
 // ============================================================================
@@ -296,6 +297,9 @@ bool ChunkTaskScheduler::checkNeighbour(
 
 void ChunkTaskScheduler::onChunkGenComplete(SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
 {
+    MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::onChunkGenComplete", "x", holder.x(), "z", holder.z(),
+        "completedStatus", completedStatus.name());
+
     // 持有 2 * maxAccessRadius 的锁，覆盖邻居的邻居
     const i32 lockRadius = 2 * getMaxAccessRadius();
     auto lock = m_schedulingLockArea.lock(holder.x(), holder.z(), lockRadius);
@@ -316,6 +320,7 @@ void ChunkTaskScheduler::onChunkGenComplete(SingleChunkLifecycleManager& holder,
     // 若仍有邻居未就绪，schedule 会注册依赖并返回 nullptr（等待邻居 onChunkGenComplete 重新调度）。
     // 通过 rescheduleChunk 走延迟队列（同步模式下），避免在 scheduleStatusStep 邻居扫描期间重入。
     if (!holder.hasFailedGeneration() && !holder.hasGenerationTask()) {
+        MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::onChunkGenComplete_rescheduleIfNeeded");
         const ChunkStatus& target = holder.requestedGenStatus();
         if (holder.getCurrentGenStatus().isBefore(target)) {
             rescheduleChunk(holder.x(), holder.z(), target);
@@ -351,6 +356,8 @@ void ChunkTaskScheduler::onChunkGenFailed(SingleChunkLifecycleManager& holder)
 void ChunkTaskScheduler::notifyWaitingNeighbours(
     SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
 {
+    MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::notifyWaitingNeighbours");
+
     // 取出等待者快照（持锁下操作，避免迭代时修改）
     const auto waiting = holder.waitingNeighbours();
     if (waiting.empty()) {
@@ -385,6 +392,8 @@ void ChunkTaskScheduler::notifyWaitingNeighbours(
 void ChunkTaskScheduler::releaseNeighbourRefCounts(
     SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
 {
+    MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::releaseNeighbourRefCounts");
+
     // 遍历该步的邻居读取半径范围，对每个使用的邻居释放引用计数
     // 与 scheduleStatusStep 中的 addNeighbourUsingChunk 一一对应
     const ChunkPyramid& pyramid = ChunkPyramid::generationPyramid();
@@ -476,7 +485,7 @@ ChunkProgressionTask* ChunkTaskScheduler::scheduleEmptyLoad(
     holder.setGenerationTask(taskPtr, ChunkStatuses::EMPTY);
 
     // 选择执行器并提交（worker 池为空时在线执行）
-    submitTask(std::move(task), ChunkStatuses::EMPTY, x, z, emptyStep.blockStateWriteRadius(), holder.cancelToken());
+    submitTask(std::move(task), ChunkStatuses::EMPTY, x, z, emptyStep.blockStateWriteRadius(), holder.abortSignal());
 
     return taskPtr;
 }

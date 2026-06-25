@@ -92,8 +92,8 @@ std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSect
     auto promise = std::make_shared<std::promise<Result<std::shared_ptr<const SectionData>>>>();
     auto future = promise->get_future();
 
-    auto executor = [this, key, promise](const std::atomic<bool>& cancelSignal) {
-        if (cancelSignal.load(std::memory_order_acquire)) {
+    auto executor = [this, key, promise](const std::atomic<bool>& abortSignal) {
+        if (abortSignal.load(std::memory_order_acquire)) {
             promise->set_value(Error(ErrorCode::InvalidState, "Load section task cancelled"));
             return false;
         }
@@ -219,8 +219,8 @@ std::future<Result<void>> SectionManager::saveSectionAsync(
     auto promise = std::make_shared<std::promise<Result<void>>>();
     auto future = promise->get_future();
 
-    auto executor = [this, key, data, promise](const std::atomic<bool>& cancelSignal) {
-        if (cancelSignal.load(std::memory_order_acquire)) {
+    auto executor = [this, key, data, promise](const std::atomic<bool>& abortSignal) {
+        if (abortSignal.load(std::memory_order_acquire)) {
             promise->set_value(Error(ErrorCode::InvalidState, "Save section task cancelled"));
             return false;
         }

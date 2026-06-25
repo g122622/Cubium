@@ -104,7 +104,7 @@ u64 MeshBuildScheduler::submit(MeshBuildRequest request)
     task.chunkId = chunkId;
     task.taskId = taskId;
     task.request = std::move(request);
-    task.cancelSignal = std::make_shared<std::atomic<bool>>(false);
+    task.abortSignal = std::make_shared<std::atomic<bool>>(false);
     task.state = TaskState::Pending;
     task.submitOrder = submitOrder;
 
@@ -424,7 +424,7 @@ void MeshBuildScheduler::_dispatchPendingTasks()
         workerTask.taskId = task.taskId;
         workerTask.chunkData = task.request.chunkData;
         workerTask.neighbors = task.request.neighbors;
-        workerTask.cancelSignal = task.cancelSignal;
+        workerTask.abortSignal = task.abortSignal;
 
         task.state = TaskState::Dispatched;
         ++m_dispatchedTaskCount;
@@ -490,8 +490,8 @@ void MeshBuildScheduler::_removeTaskImmediately(u64 taskId)
 
 void MeshBuildScheduler::_requestCancellation(ScheduledTask& task)
 {
-    if (task.cancelSignal) {
-        task.cancelSignal->store(true, std::memory_order_release);
+    if (task.abortSignal) {
+        task.abortSignal->store(true, std::memory_order_release);
     }
 
     if (!task.cancellationRequested) {

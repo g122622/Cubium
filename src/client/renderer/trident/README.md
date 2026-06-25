@@ -180,7 +180,7 @@ TridentEngine（主引擎）
 
 **问题**：多线程访问共享资源导致竞争。
 
-**解决**：使用互斥锁保护共享数据，ChunkMesher 支持协作取消信号（generateMesh/generateSplitMesh/generateSectionMesh 均接收 `cancelSignal`）。
+**解决**：使用互斥锁保护共享数据，ChunkMesher 支持协作取消信号（generateMesh/generateSplitMesh/generateSectionMesh 均接收 `abortSignal`）。
 
 ### 云高度与维度渲染
 

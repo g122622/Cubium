@@ -85,9 +85,9 @@ public:
         , m_entered(entered)
     {}
 
-    bool execute(const std::atomic<bool>& cancelSignal) override
+    bool execute(const std::atomic<bool>& abortSignal) override
     {
-        if (cancelSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order_acquire)) {
             return false;
         }
         m_tracker.enter();
@@ -134,9 +134,9 @@ public:
         , m_duration(duration)
     {}
 
-    bool execute(const std::atomic<bool>& cancelSignal) override
+    bool execute(const std::atomic<bool>& abortSignal) override
     {
-        if (cancelSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order_acquire)) {
             return false;
         }
         m_tracker.enter();
@@ -479,9 +479,9 @@ TEST(ServerWorkerPoolAreaMutexTest, MultipleTasksSameAreaAllComplete)
             : m_counter(counter)
         {}
 
-        bool execute(const std::atomic<bool>& cancelSignal) override
+        bool execute(const std::atomic<bool>& abortSignal) override
         {
-            if (cancelSignal.load(std::memory_order_acquire)) {
+            if (abortSignal.load(std::memory_order_acquire)) {
                 return false;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));

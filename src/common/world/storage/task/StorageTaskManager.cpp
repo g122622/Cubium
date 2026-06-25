@@ -37,7 +37,7 @@ void StorageTaskManager::setWorkerPool(util::ServerWorkerPool* workerPool) noexc
 u64 StorageTaskManager::submit(std::unique_ptr<StorageTask> task,
     util::TaskPriority priority,
     util::TaskCallback callback,
-    std::shared_ptr<std::atomic<bool>> cancelToken)
+    std::shared_ptr<std::atomic<bool>> abortSignal)
 {
     // 空指针检查：作为公共接口，需要验证外部输入
     if (!m_workerPool || !task) {
@@ -47,7 +47,7 @@ u64 StorageTaskManager::submit(std::unique_ptr<StorageTask> task,
         return 0;
     }
 
-    return m_workerPool->submit(std::move(task), std::move(callback), priority, std::move(cancelToken));
+    return m_workerPool->submit(std::move(task), std::move(callback), priority, std::move(abortSignal));
 }
 
 bool StorageTaskManager::cancel(u64 taskId)

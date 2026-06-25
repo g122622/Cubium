@@ -118,13 +118,13 @@ public:
      * @param task 任务对象
      * @param callback 完成回调（可为空）
      * @param priority 优先级
-     * @param cancelToken 取消令牌（可为空）
+     * @param abortSignal 取消令牌（可为空）
      * @return 任务ID
      */
     u64 submit(std::unique_ptr<ITask> task,
         TaskCallback callback,
         TaskPriority priority = TaskPriority::Normal,
-        std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
+        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
 
     /**
      * @brief 提交带区域互斥的任务（对齐 Moonrise 区域锁执行器）
@@ -146,7 +146,7 @@ public:
      * @param centerZ 写入区域中心 Z 坐标（区块坐标）
      * @param writeRadius 写入半径（切比雪夫距离），≥0
      * @param priority 优先级
-     * @param cancelToken 取消令牌（可为空）
+     * @param abortSignal 取消令牌（可为空）
      * @return 任务ID
      */
     u64 submit(std::unique_ptr<ITask> task,
@@ -155,7 +155,7 @@ public:
         ChunkCoord centerZ,
         i32 writeRadius,
         TaskPriority priority = TaskPriority::Normal,
-        std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
+        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
 
     /**
      * @brief 查询某写入区域是否可立即执行（无冲突）
@@ -226,7 +226,7 @@ private:
         u64 timestamp;
         std::shared_ptr<ITask> task;
         TaskCallback callback;
-        std::shared_ptr<std::atomic<bool>> cancelToken;
+        std::shared_ptr<std::atomic<bool>> abortSignal;
 
         // 区域互斥信息（hasArea=false 时表示无区域互斥，可完全并行）
         bool hasArea = false;

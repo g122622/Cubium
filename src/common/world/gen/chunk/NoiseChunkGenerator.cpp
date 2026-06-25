@@ -330,6 +330,8 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
     // 获取 BiomeSource 的参数列表用于生物群系查找
     auto* multiNoiseSource = dynamic_cast<world::biome::source::MultiNoiseBiomeSource*>(m_biomeSource.get());
     if (multiNoiseSource != nullptr) {
+        MC_TRACE_EVENT("world.chunk_gen", "GenerateBiomes_MultiNoiseBiomeSource", "x", chunk.x(), "z", chunk.z());
+
         const auto& parameters = multiNoiseSource->parameters();
         constexpr i32 HORIZ_SIZE = 4;
         constexpr i32 VERT_SIZE = 4;
@@ -352,6 +354,7 @@ void NoiseChunkGenerator::generateBiomes(WorldGenRegion& region, ChunkPrimer& ch
         }
     } else {
         // 非 MultiNoiseBiomeSource（如 EndBiomeSource），使用传统路径
+        MC_TRACE_EVENT("world.chunk_gen", "GenerateBiomes_TraditionalBiomeSource", "x", chunk.x(), "z", chunk.z());
         m_biomeSource->fillBiomeContainer(biomes, chunkX, chunkZ);
     }
 

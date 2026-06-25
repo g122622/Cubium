@@ -310,9 +310,9 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
     }
 
     // 首次进入或取消后重新进入时，分配新的 generation 与取消令牌
-    if (!m_cancelToken) {
+    if (!m_abortSignal) {
         ++m_requestGeneration;
-        m_cancelToken = std::make_shared<std::atomic<bool>>(false);
+        m_abortSignal = std::make_shared<std::atomic<bool>>(false);
     }
 
     if (callback || promise) {
@@ -355,11 +355,11 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteSt
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancelActiveWork()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    if (m_cancelToken) {
-        m_cancelToken->store(true, std::memory_order_release);
+    if (m_abortSignal) {
+        m_abortSignal->store(true, std::memory_order_release);
     }
     ++m_requestGeneration;
-    m_cancelToken = nullptr;
+    m_abortSignal = nullptr;
     m_generationTask = nullptr;
     m_scheduledStatus = nullptr;
     m_requestPriority = std::numeric_limits<i32>::max();
@@ -399,10 +399,10 @@ void SingleChunkLifecycleManager::markLoadedFromStorageReady(const ChunkStatus& 
     m_requestPriority = std::numeric_limits<i32>::max();
 }
 
-std::shared_ptr<std::atomic<bool>> SingleChunkLifecycleManager::cancelToken() const
+std::shared_ptr<std::atomic<bool>> SingleChunkLifecycleManager::abortSignal() const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    return m_cancelToken;
+    return m_abortSignal;
 }
 
 // ============================================================================
@@ -413,7 +413,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::_build
 {
     EnqueueDecision decision;
     decision.targetStatus = m_requestedGenStatus;
-    decision.cancelToken = m_cancelToken;
+    decision.abortSignal = m_abortSignal;
 
     // Ready 且已达到请求状态：只需唤醒等待者
     if (m_sourceState == SourceState::Ready && m_currentGenStatus->isAtLeast(*m_requestedGenStatus)) {

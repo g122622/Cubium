@@ -85,10 +85,10 @@ StorageTask& StorageTask::operator=(StorageTask&& other) noexcept
     return *this;
 }
 
-bool StorageTask::execute(const std::atomic<bool>& cancelSignal)
+bool StorageTask::execute(const std::atomic<bool>& abortSignal)
 {
     MC_TRACE_EVENT("storage.task", "StorageTask::execute", "description", m_description);
-    return m_executor ? m_executor(cancelSignal) : false;
+    return m_executor ? m_executor(abortSignal) : false;
 }
 
 void StorageTask::onCancel() {}

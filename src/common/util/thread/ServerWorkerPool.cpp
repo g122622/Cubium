@@ -113,7 +113,7 @@ void ServerWorkerPool::shutdown()
 u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
     TaskCallback callback,
     TaskPriority priority,
-    std::shared_ptr<std::atomic<bool>> cancelToken)
+    std::shared_ptr<std::atomic<bool>> abortSignal)
 {
     if (!task) {
         if (callback) {
@@ -138,7 +138,7 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
     internalTask->timestamp = timestamp;
     internalTask->task = std::move(task);
     internalTask->callback = std::move(callback);
-    internalTask->cancelToken = std::move(cancelToken);
+    internalTask->abortSignal = std::move(abortSignal);
 
     {
         std::lock_guard<std::mutex> lock(m_queueMutex);
@@ -155,7 +155,7 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
     ChunkCoord centerZ,
     i32 writeRadius,
     TaskPriority priority,
-    std::shared_ptr<std::atomic<bool>> cancelToken)
+    std::shared_ptr<std::atomic<bool>> abortSignal)
 {
     if (!task) {
         if (callback) {
@@ -180,7 +180,7 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
     internalTask->timestamp = timestamp;
     internalTask->task = std::move(task);
     internalTask->callback = std::move(callback);
-    internalTask->cancelToken = std::move(cancelToken);
+    internalTask->abortSignal = std::move(abortSignal);
     internalTask->hasArea = true;
     internalTask->areaCenterX = centerX;
     internalTask->areaCenterZ = centerZ;
@@ -230,8 +230,8 @@ bool ServerWorkerPool::cancel(u64 taskId)
 
         if (task && task->id == taskId) {
             // 找到任务，设置取消标志
-            if (task->cancelToken) {
-                task->cancelToken->store(true, std::memory_order_release);
+            if (task->abortSignal) {
+                task->abortSignal->store(true, std::memory_order_release);
             }
             if (task->callback) {
                 task->callback(false, task->task.get());
@@ -423,11 +423,11 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
     bool success = false;
 
     try {
-        static const std::atomic<bool> neverCancel{false};
-        const std::atomic<bool>& cancelSignal = task->cancelToken ? *task->cancelToken : neverCancel;
+        static const std::atomic<bool> neverAbort{false};
+        const std::atomic<bool>& abortSignal = task->abortSignal ? *task->abortSignal : neverAbort;
 
         MC_TRACE_EVENT("worker_pool", "TaskExecution", "description", task->task->description());
-        success = task->task->execute(cancelSignal);
+        success = task->task->execute(abortSignal);
     }
     catch (const std::exception& e) {
         spdlog::error("[ServerWorkerPool] Task {} threw exception: {}", task->task->description(), e.what());
@@ -463,10 +463,10 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
 
 bool ServerWorkerPool::isTaskCancelled(const InternalTask& task)
 {
-    if (!task.cancelToken) {
+    if (!task.abortSignal) {
         return false;
     }
-    return task.cancelToken->load(std::memory_order_acquire);
+    return task.abortSignal->load(std::memory_order_acquire);
 }
 
 // ============================================================================

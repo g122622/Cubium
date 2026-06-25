@@ -55,13 +55,13 @@ public:
      * @param task 存储任务
      * @param priority 任务优先级
      * @param callback 完成回调
-     * @param cancelToken 取消令牌
+     * @param abortSignal 取消令牌
      * @return 任务 ID，若提交失败返回 0
      */
     u64 submit(std::unique_ptr<StorageTask> task,
         util::TaskPriority priority,
         util::TaskCallback callback = nullptr,
-        std::shared_ptr<std::atomic<bool>> cancelToken = nullptr);
+        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
 
     /**
      * @brief 取消任务

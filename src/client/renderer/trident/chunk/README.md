@@ -21,7 +21,7 @@ flowchart TD
     C --> D[ChunkRenderer]
     D --> E[Vulkan draw calls]
 
-    F[MeshWorkerPool cancelSignal] --> B
+    F[MeshWorkerPool abortSignal] --> B
     G[AmbientOcclusionCalculator] --> B
 
     style A fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#111

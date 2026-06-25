@@ -49,7 +49,7 @@ struct MeshWorkerTask {
     u64 taskId = 0;
     std::shared_ptr<const ChunkData> chunkData;
     std::array<std::shared_ptr<const ChunkData>, 6> neighbors;
-    std::shared_ptr<std::atomic<bool>> cancelSignal;
+    std::shared_ptr<std::atomic<bool>> abortSignal;
 };
 
 /**
@@ -70,7 +70,7 @@ struct MeshWorkerResult {
  * 该类是纯执行器：
  * - 只按提交顺序消费任务
  * - 不感知视锥、不感知优先级
- * - 通过 cancelSignal 配合 ChunkMesher 实现协作取消
+ * - 通过 abortSignal 配合 ChunkMesher 实现协作取消
  */
 class MeshWorkerPool {
 public:

@@ -95,12 +95,12 @@ public:
      * @param outMesh 输出网格
      * @param neighbors 周围6个区块 (用于边界面的剔除)
      *                  顺序: -X, +X, -Z, +Z, -Y, +Y (可以是nullptr)
-     * @param cancelSignal 协作取消信号（可为空）
+     * @param abortSignal 协作取消信号（可为空）
      */
     static void generateMesh(const ChunkData& chunk,
         MeshData& outMesh,
         const ChunkData* neighbors[6],
-        const std::atomic<bool>* cancelSignal);
+        const std::atomic<bool>* abortSignal);
 
     /**
      * @brief 生成分层区块网格（实心层 + 半透明层）
@@ -111,13 +111,13 @@ public:
      * @param outSolidMesh 输出实心网格
      * @param outTransparentMesh 输出半透明网格
      * @param neighbors 周围6个区块 (用于边界面的剔除)
-     * @param cancelSignal 协作取消信号（可为空）
+     * @param abortSignal 协作取消信号（可为空）
      */
     static void generateSplitMesh(const ChunkData& chunk,
         MeshData& outSolidMesh,
         MeshData& outTransparentMesh,
         const ChunkData* neighbors[6],
-        const std::atomic<bool>* cancelSignal);
+        const std::atomic<bool>* abortSignal);
 
     /**
      * @brief 生成单个区块段的网格
@@ -129,13 +129,13 @@ public:
      * @param sectionIndex 区段索引 (0-15)
      * @param outMesh 输出网格
      * @param neighborChunks 周围区块
-     * @param cancelSignal 协作取消信号（可为空）
+     * @param abortSignal 协作取消信号（可为空）
      */
     static void generateSectionMesh(const ChunkData& chunk,
         i32 sectionIndex,
         MeshData& outMesh,
         const ChunkData* neighborChunks[6],
-        const std::atomic<bool>* cancelSignal);
+        const std::atomic<bool>* abortSignal);
 
     // ========================================================================
     // 配置
@@ -373,14 +373,14 @@ private:
         i32 sectionIndex,
         MeshData& outMesh,
         const ChunkData* neighborChunks[6],
-        const std::atomic<bool>* cancelSignal);
+        const std::atomic<bool>* abortSignal);
 
     // 简单网格生成 (逐面生成)
     static void _simpleMeshSection(const ChunkData& chunk,
         i32 sectionIndex,
         MeshData& outMesh,
         const ChunkData* neighborChunks[6],
-        const std::atomic<bool>* cancelSignal);
+        const std::atomic<bool>* abortSignal);
 
     static BlockModelCache* s_modelCache;
     static bool s_useGreedyMeshing;

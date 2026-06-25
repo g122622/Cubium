@@ -171,7 +171,7 @@ size_t MeshWorkerPool::completedTaskCount() const
 
 bool MeshWorkerPool::_isCancelled(const MeshWorkerTask& task)
 {
-    return task.cancelSignal && task.cancelSignal->load(std::memory_order_acquire);
+    return task.abortSignal && task.abortSignal->load(std::memory_order_acquire);
 }
 
 void MeshWorkerPool::_workerLoop(i32 workerId)
@@ -235,7 +235,7 @@ void MeshWorkerPool::_executeTask(const MeshWorkerTask& task)
 
         MC_TRACE_CHUNK_MESH_EVENT("GenerateSolidMesh");
         ChunkMesher::generateSplitMesh(
-            *task.chunkData, result.solidMesh, result.transparentMesh, neighborPtrs, task.cancelSignal.get());
+            *task.chunkData, result.solidMesh, result.transparentMesh, neighborPtrs, task.abortSignal.get());
 
         if (_isCancelled(task)) {
             result.cancelled = true;

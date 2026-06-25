@@ -36,8 +36,8 @@ TEST(StorageTaskTest, CreateAndExecuteLoadTask)
     SectionKey key(1, 2, 3, 0);
     std::atomic<bool> executed{false};
 
-    auto task = StorageTask::createLoadTask(key, [&executed](const std::atomic<bool>& cancelSignal) {
-        executed.store(!cancelSignal.load(std::memory_order_acquire), std::memory_order_release);
+    auto task = StorageTask::createLoadTask(key, [&executed](const std::atomic<bool>& abortSignal) {
+        executed.store(!abortSignal.load(std::memory_order_acquire), std::memory_order_release);
         return true;
     });
 
@@ -46,8 +46,8 @@ TEST(StorageTaskTest, CreateAndExecuteLoadTask)
     EXPECT_FALSE(task->description().empty());
     EXPECT_STREQ(task->traceCategory(), "storage.task.load");
 
-    std::atomic<bool> cancelSignal{false};
-    EXPECT_TRUE(task->execute(cancelSignal));
+    std::atomic<bool> abortSignal{false};
+    EXPECT_TRUE(task->execute(abortSignal));
     EXPECT_TRUE(executed.load(std::memory_order_acquire));
 }
 
@@ -56,8 +56,8 @@ TEST(StorageTaskTest, CreateAndExecuteSaveTask)
     SectionKey key(-4, 5, 6, 1);
     std::atomic<bool> executed{false};
 
-    auto task = StorageTask::createSaveTask(key, true, [&executed](const std::atomic<bool>& cancelSignal) {
-        executed.store(!cancelSignal.load(std::memory_order_acquire), std::memory_order_release);
+    auto task = StorageTask::createSaveTask(key, true, [&executed](const std::atomic<bool>& abortSignal) {
+        executed.store(!abortSignal.load(std::memory_order_acquire), std::memory_order_release);
         return true;
     });
 
@@ -65,8 +65,8 @@ TEST(StorageTaskTest, CreateAndExecuteSaveTask)
     EXPECT_EQ(task->type(), util::TaskType::ChunkSave);
     EXPECT_STREQ(task->traceCategory(), "storage.task.save");
 
-    std::atomic<bool> cancelSignal{false};
-    EXPECT_TRUE(task->execute(cancelSignal));
+    std::atomic<bool> abortSignal{false};
+    EXPECT_TRUE(task->execute(abortSignal));
     EXPECT_TRUE(executed.load(std::memory_order_acquire));
 }
 
@@ -79,8 +79,8 @@ TEST(StorageTaskTest, TaskManagerSubmitsToPool)
     std::atomic<bool> completed{false};
     std::atomic<bool> success{false};
 
-    auto task = StorageTask::createFlushTask(0, 1, [&completed](const std::atomic<bool>& cancelSignal) {
-        completed.store(!cancelSignal.load(std::memory_order_acquire), std::memory_order_release);
+    auto task = StorageTask::createFlushTask(0, 1, [&completed](const std::atomic<bool>& abortSignal) {
+        completed.store(!abortSignal.load(std::memory_order_acquire), std::memory_order_release);
         return true;
     });
 

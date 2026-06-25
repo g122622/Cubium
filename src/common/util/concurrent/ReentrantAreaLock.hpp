@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 
 #include <condition_variable>
 #include <cstdint>
@@ -205,12 +206,12 @@ private:
      *
      * 对齐 Moonrise `IntPairUtil.key`：高 32 位为 Z，低 32 位为 X。
      */
-    [[nodiscard]] static u64 packKey(i32 sectionX, i32 sectionZ);
+    [[nodiscard]] static u64 _packKey(i32 sectionX, i32 sectionZ);
 
     /**
      * @brief 计算区块坐标对应的 section 键
      */
-    [[nodiscard]] u64 sectionKey(ChunkCoord x, ChunkCoord z) const;
+    [[nodiscard]] u64 _sectionKey(ChunkCoord x, ChunkCoord z) const;
 
     i32 m_coordinateShift;
 

@@ -107,7 +107,7 @@ public:
         bool shouldScheduleGeneration = false;          ///< 是否应调用 ChunkTaskScheduler 推进生成
         const ChunkStatus* targetStatus = nullptr;      ///< 当前请求目标状态
         const ChunkStatus* completedStatus = nullptr;   ///< 本次刚完成到的阶段（可为 nullptr）
-        std::shared_ptr<std::atomic<bool>> cancelToken; ///< 当前请求对应的取消令牌
+        std::shared_ptr<std::atomic<bool>> abortSignal; ///< 当前请求对应的取消令牌
     };
 
     /**
@@ -405,14 +405,14 @@ public:
     // createGeneratingChunk / completeGeneration / markGenerationReady /
     // noteGenerationQueued / noteGenerationStarted / noteGenerationFinished /
     // noteNeighborProgress / hasGeneratingChunk / isGenerationCurrent /
-    // requestPriority / cancelToken 已被 NewChunkHolder 模型取代。
+    // requestPriority / abortSignal 已被 NewChunkHolder 模型取代。
 
     /**
      * @brief 兼容旧测试接口：获取当前请求的取消令牌
      *
      * 新模型下取消令牌仍用于请求聚合与卸载清理，保留该接口。
      */
-    [[nodiscard]] std::shared_ptr<std::atomic<bool>> cancelToken() const;
+    [[nodiscard]] std::shared_ptr<std::atomic<bool>> abortSignal() const;
 
 private:
     /**
@@ -435,7 +435,7 @@ private:
     const ChunkStatus* m_requestedGenStatus = &ChunkStatuses::EMPTY;
     i32 m_requestPriority = std::numeric_limits<i32>::max();
     u64 m_requestGeneration = 0;
-    std::shared_ptr<std::atomic<bool>> m_cancelToken;
+    std::shared_ptr<std::atomic<bool>> m_abortSignal;
 
     // === 生成任务 ===
     mc::server::ChunkProgressionTask* m_generationTask = nullptr;

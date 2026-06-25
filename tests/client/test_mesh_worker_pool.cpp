@@ -65,7 +65,7 @@ MeshWorkerTask makeTask(ChunkCoord x, ChunkCoord z)
     task.taskId = static_cast<u64>((x + 2048) * 4096 + (z + 2048));
     task.chunkData = createTestChunkData(x, z);
     task.neighbors = {};
-    task.cancelSignal = std::make_shared<std::atomic<bool>>(false);
+    task.abortSignal = std::make_shared<std::atomic<bool>>(false);
     return task;
 }
 
@@ -148,7 +148,7 @@ TEST_F(MeshWorkerPoolTest, PreCancelledTaskReturnsCancelledResult)
     pool.start();
 
     MeshWorkerTask task = makeTask(2, 3);
-    task.cancelSignal->store(true, std::memory_order_release);
+    task.abortSignal->store(true, std::memory_order_release);
 
     pool.submit(std::move(task));
     waitUntilCompletedAtLeast(pool, 1);

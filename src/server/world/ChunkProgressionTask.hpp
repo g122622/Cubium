@@ -80,7 +80,7 @@ public:
     ~ChunkProgressionTask() override = default;
 
     // ITask 接口
-    bool execute(const std::atomic<bool>& cancelSignal) override;
+    bool execute(const std::atomic<bool>& abortSignal) override;
     void onCancel() override;
     util::TaskType type() const override { return util::TaskType::ChunkGenerate; }
     std::string description() const override;
@@ -97,14 +97,14 @@ private:
      *
      * EMPTY 推进不调用 IChunkGenerator，只解析存档来源。完成后调用 onChunkGenComplete(EMPTY)。
      */
-    bool executeEmptyLoad(const std::atomic<bool>& cancelSignal);
+    bool executeEmptyLoad(const std::atomic<bool>& abortSignal);
 
     /**
      * @brief 执行普通状态推进任务
      *
      * 调用 IChunkGenerator 的对应阶段方法，推进 primer 状态。
      */
-    bool executeStatusStep(const std::atomic<bool>& cancelSignal);
+    bool executeStatusStep(const std::atomic<bool>& abortSignal);
 
     ChunkTaskScheduler& m_scheduler;
     ServerChunkManager& m_manager;

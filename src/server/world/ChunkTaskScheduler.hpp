@@ -169,14 +169,14 @@ private:
      * @param x 区块 X
      * @param z 区块 Z
      * @param writeRadius 区域互斥写入半径
-     * @param cancelToken 取消令牌
+     * @param abortSignal 取消令牌
      */
     void submitTask(std::unique_ptr<ChunkProgressionTask> task,
         const mc::world::chunk::ChunkStatus& status,
         ChunkCoord x,
         ChunkCoord z,
         i32 writeRadius,
-        std::shared_ptr<std::atomic<bool>> cancelToken);
+        std::shared_ptr<std::atomic<bool>> abortSignal);
 
     /**
      * @brief 推进单步状态（schedule 的核心实现）

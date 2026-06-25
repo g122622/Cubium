@@ -131,7 +131,7 @@ void ServerChunkManager::shutdown()
     // 若在任务执行期间销毁 holder/chunk 会导致 use-after-free。worker 池由外部持有（测试或 ServerWorld），
     // 此处仅等待其空闲，不停止它。被取消的任务会快速返回，被取消令牌阻止的任务在回调中走失败路径。
     // waitForCompletion 可能因 onChunkGenComplete 的自重调度短暂波动，但取消已使所有 holder 的
-    // cancelToken 失效，新调度产生的任务也会立刻检测到取消（holder 已 cancelActiveWork），
+    // abortSignal 失效，新调度产生的任务也会立刻检测到取消（holder 已 cancelActiveWork），
     // 最终队列收敛为空。
     if (m_workerPool != nullptr && m_workerPool->isRunning()) {
         m_workerPool->waitForCompletion();
@@ -514,6 +514,8 @@ ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord 
 
 ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCoord z, ChunkPrimer& primer)
 {
+    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::finalizeGeneratedChunkSync", "x", x, "z", z);
+
     std::vector<SpawnedEntityData> spawnedEntities;
     if (primer.spawnedEntityCount() > 0) {
         spawnedEntities = std::move(primer.spawnedEntities());
@@ -545,6 +547,8 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
 
 void ServerChunkManager::_publishGeneratedChunk(SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
 {
+    MC_TRACE_EVENT("server.chunk", "ServerChunkManager::publishGeneratedChunk");
+
     // FULL 已由 _finalizeGeneratedChunkSync 处理（存入 m_chunks + markLoadedFromStorageReady +
     // _completeReadyWaiters），此处只处理非 FULL 目标状态完成。
     if (completedStatus == ChunkStatuses::FULL) {
