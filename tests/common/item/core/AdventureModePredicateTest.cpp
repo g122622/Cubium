@@ -324,3 +324,377 @@ TEST_F(AdventureModePredicateTest, TestWithWorldContextDelegatesToTestWithoutWor
     // 注意：不测试 test(IWorld&, BlockState&) 因为需要完整的 IWorld mock，
     // 当前实现直接委托给 test(BlockState&)，逻辑已通过上面的测试覆盖
 }
+
+// ============================================================================
+// 方块状态属性匹配测试
+// ============================================================================
+
+TEST_F(AdventureModePredicateTest, BlockWithPropertyMatch_SingleProperty)
+{
+    // "minecraft:oak_log[axis=y]" 匹配 axis=y 的橡木原木
+    AdventureModePredicate predicate({"minecraft:oak_log[axis=y]"});
+
+    // 获取 oak_log 的不同状态
+    const Block& oakLog = *VanillaBlocks::OAK_LOG;
+    const auto& container = oakLog.stateContainer();
+
+    // 找到 axis 属性
+    const IProperty* axisProp = container.getProperty("axis");
+    ASSERT_NE(axisProp, nullptr);
+
+    // 查找 axis=y 的状态
+    const BlockState* yAxisState = nullptr;
+    const BlockState* xAxisState = nullptr;
+    for (const auto& state : container.validStates()) {
+        auto valIdx = state->getValueIndex(*axisProp);
+        if (valIdx.has_value()) {
+            auto parsedY = axisProp->parseValue("y");
+            auto parsedX = axisProp->parseValue("x");
+            if (parsedY.has_value() && *valIdx == *parsedY) {
+                yAxisState = state.get();
+            }
+            if (parsedX.has_value() && *valIdx == *parsedX) {
+                xAxisState = state.get();
+            }
+        }
+    }
+
+    ASSERT_NE(yAxisState, nullptr) << "oak_log 应该有 axis=y 状态";
+    ASSERT_NE(xAxisState, nullptr) << "oak_log 应该有 axis=x 状态";
+
+    // axis=y 应该匹配
+    EXPECT_TRUE(predicate.test(*yAxisState));
+    // axis=x 不应该匹配
+    EXPECT_FALSE(predicate.test(*xAxisState));
+}
+
+TEST_F(AdventureModePredicateTest, BlockWithPropertyMatch_WrongProperty)
+{
+    // "minecraft:oak_log[axis=y]" 不匹配 axis=x 的状态
+    AdventureModePredicate predicate({"minecraft:oak_log[axis=y]"});
+
+    const Block& oakLog = *VanillaBlocks::OAK_LOG;
+    const auto& container = oakLog.stateContainer();
+    const IProperty* axisProp = container.getProperty("axis");
+    ASSERT_NE(axisProp, nullptr);
+
+    // 找到 axis=x 的状态
+    const BlockState* xAxisState = nullptr;
+    for (const auto& state : container.validStates()) {
+        auto valIdx = state->getValueIndex(*axisProp);
+        if (valIdx.has_value()) {
+            auto parsedX = axisProp->parseValue("x");
+            if (parsedX.has_value() && *valIdx == *parsedX) {
+                xAxisState = state.get();
+            }
+        }
+    }
+
+    ASSERT_NE(xAxisState, nullptr);
+    EXPECT_FALSE(predicate.test(*xAxisState));
+}
+
+TEST_F(AdventureModePredicateTest, BlockWithPropertyMatch_WrongBlock)
+{
+    // "minecraft:oak_log[axis=y]" 不匹配 dirt（即使 dirt 没有 axis 属性）
+    AdventureModePredicate predicate({"minecraft:oak_log[axis=y]"});
+    const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
+
+    // dirt 不是 oak_log，所以不匹配
+    EXPECT_FALSE(predicate.test(dirtState));
+}
+
+TEST_F(AdventureModePredicateTest, BlockWithPropertyMatch_NonexistentProperty)
+{
+    // "minecraft:stone[axis=y]" 不匹配 stone（stone 没有 axis 属性）
+    AdventureModePredicate predicate({"minecraft:stone[axis=y]"});
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    // stone 没有 axis 属性，属性匹配失败
+    EXPECT_FALSE(predicate.test(stoneState));
+}
+
+TEST_F(AdventureModePredicateTest, BlockWithPropertyMatch_MultipleProperties)
+{
+    // 多属性匹配: "minecraft:oak_stairs[half=top,facing=east]"
+    // 注意：这个测试依赖于 oak_stairs 方块是否存在且有这些属性
+    const Block* oakStairs = VanillaBlocks::OAK_STAIRS;
+    if (!oakStairs) {
+        GTEST_SKIP() << "OAK_STAIRS block not registered";
+    }
+
+    AdventureModePredicate predicate({"minecraft:oak_stairs[half=top,facing=east]"});
+
+    const auto& container = oakStairs->stateContainer();
+    const IProperty* halfProp = container.getProperty("half");
+    const IProperty* facingProp = container.getProperty("facing");
+
+    if (!halfProp || !facingProp) {
+        GTEST_SKIP() << "oak_stairs 缺少 half 或 facing 属性";
+    }
+
+    // 查找匹配 half=top, facing=east 的状态
+    const BlockState* matchedState = nullptr;
+    const BlockState* nonMatchedState = nullptr;
+    for (const auto& state : container.validStates()) {
+        auto halfIdx = state->getValueIndex(*halfProp);
+        auto facingIdx = state->getValueIndex(*facingProp);
+        if (halfIdx.has_value() && facingIdx.has_value()) {
+            auto parsedHalfTop = halfProp->parseValue("top");
+            auto parsedFacingEast = facingProp->parseValue("east");
+            auto parsedHalfBottom = halfProp->parseValue("bottom");
+            auto parsedFacingNorth = facingProp->parseValue("north");
+
+            if (parsedHalfTop.has_value() && parsedFacingEast.has_value() && *halfIdx == *parsedHalfTop &&
+                *facingIdx == *parsedFacingEast) {
+                matchedState = state.get();
+            }
+            if (parsedHalfBottom.has_value() && parsedFacingNorth.has_value() && *halfIdx == *parsedHalfBottom &&
+                *facingIdx == *parsedFacingNorth) {
+                nonMatchedState = state.get();
+            }
+        }
+    }
+
+    if (matchedState) {
+        EXPECT_TRUE(predicate.test(*matchedState));
+    }
+    if (nonMatchedState) {
+        EXPECT_FALSE(predicate.test(*nonMatchedState));
+    }
+}
+
+TEST_F(AdventureModePredicateTest, TagWithPropertyMatch)
+{
+    // "#minecraft:logs[axis=y]" 匹配 axis=y 的原木
+    AdventureModePredicate predicate({"#minecraft:logs[axis=y]"});
+
+    const Block& oakLog = *VanillaBlocks::OAK_LOG;
+    const auto& container = oakLog.stateContainer();
+    const IProperty* axisProp = container.getProperty("axis");
+    ASSERT_NE(axisProp, nullptr);
+
+    // 找到 axis=y 和 axis=x 的状态
+    const BlockState* yAxisState = nullptr;
+    const BlockState* xAxisState = nullptr;
+    for (const auto& state : container.validStates()) {
+        auto valIdx = state->getValueIndex(*axisProp);
+        if (valIdx.has_value()) {
+            auto parsedY = axisProp->parseValue("y");
+            auto parsedX = axisProp->parseValue("x");
+            if (parsedY.has_value() && *valIdx == *parsedY) {
+                yAxisState = state.get();
+            }
+            if (parsedX.has_value() && *valIdx == *parsedX) {
+                xAxisState = state.get();
+            }
+        }
+    }
+
+    ASSERT_NE(yAxisState, nullptr);
+    ASSERT_NE(xAxisState, nullptr);
+
+    // oak_log 在 logs 标签中，axis=y 应该匹配
+    EXPECT_TRUE(predicate.test(*yAxisState));
+    // oak_log 在 logs 标签中，但 axis=x 不匹配
+    EXPECT_FALSE(predicate.test(*xAxisState));
+}
+
+TEST_F(AdventureModePredicateTest, TagWithPropertyMatch_TagNotMatching)
+{
+    // "#minecraft:logs[axis=y]" 不匹配 stone（stone 不在 logs 标签中）
+    AdventureModePredicate predicate({"#minecraft:logs[axis=y]"});
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    EXPECT_FALSE(predicate.test(stoneState));
+}
+
+TEST_F(AdventureModePredicateTest, MixedExactIdAndPropertyAndTag)
+{
+    // 混合匹配：精确ID、带属性的ID、标签
+    AdventureModePredicate predicate({"minecraft:stone", "minecraft:oak_log[axis=y]", "#minecraft:dirt"});
+
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
+
+    // stone 通过精确ID匹配
+    EXPECT_TRUE(predicate.test(stoneState));
+    // dirt 通过标签匹配
+    EXPECT_TRUE(predicate.test(dirtState));
+
+    // oak_log[axis=y] 通过属性匹配
+    const Block& oakLog = *VanillaBlocks::OAK_LOG;
+    const auto& container = oakLog.stateContainer();
+    const IProperty* axisProp = container.getProperty("axis");
+    if (axisProp) {
+        for (const auto& state : container.validStates()) {
+            auto valIdx = state->getValueIndex(*axisProp);
+            if (valIdx.has_value()) {
+                auto parsedY = axisProp->parseValue("y");
+                auto parsedX = axisProp->parseValue("x");
+                if (parsedY.has_value() && *valIdx == *parsedY) {
+                    EXPECT_TRUE(predicate.test(*state)); // axis=y 匹配
+                }
+                if (parsedX.has_value() && *valIdx == *parsedX) {
+                    EXPECT_FALSE(predicate.test(*state)); // axis=x 不匹配
+                }
+            }
+        }
+    }
+}
+
+TEST_F(AdventureModePredicateTest, PropertyMatch_EmptyBrackets)
+{
+    // "minecraft:oak_log[]" 空属性列表等同于无属性匹配
+    AdventureModePredicate predicate({"minecraft:oak_log[]"});
+    const BlockState& oakLogDefault = VanillaBlocks::OAK_LOG->defaultState();
+
+    // 空属性列表应该匹配 oak_log 的任何状态（只检查方块ID）
+    EXPECT_TRUE(predicate.test(oakLogDefault));
+}
+
+TEST_F(AdventureModePredicateTest, PropertyMatch_InvalidPropertyFormat)
+{
+    // 无效属性格式：没有等号
+    AdventureModePredicate predicate({"minecraft:oak_log[axis]"});
+    const BlockState& oakLogDefault = VanillaBlocks::OAK_LOG->defaultState();
+
+    // 解析失败，不匹配
+    EXPECT_FALSE(predicate.test(oakLogDefault));
+}
+
+TEST_F(AdventureModePredicateTest, PropertyMatch_UnclosedBracket)
+{
+    // 没有闭合方括号
+    AdventureModePredicate predicate({"minecraft:oak_log[axis=y"});
+    const BlockState& oakLogDefault = VanillaBlocks::OAK_LOG->defaultState();
+
+    // 解析失败，不匹配
+    EXPECT_FALSE(predicate.test(oakLogDefault));
+}
+
+TEST_F(AdventureModePredicateTest, PropertyMatch_InvalidPropertyValue)
+{
+    // 有效的属性名但无效的属性值
+    AdventureModePredicate predicate({"minecraft:oak_log[axis=invalid_value]"});
+    const BlockState& oakLogDefault = VanillaBlocks::OAK_LOG->defaultState();
+
+    // 属性值 "invalid_value" 无法解析，不匹配
+    EXPECT_FALSE(predicate.test(oakLogDefault));
+}
+
+TEST_F(AdventureModePredicateTest, PropertyMatch_PreserveOriginalStringInGetPredicates)
+{
+    // getPredicates() 应该返回原始字符串，包含方括号
+    AdventureModePredicate predicate({"minecraft:oak_log[axis=y]", "#minecraft:logs", "minecraft:stone"});
+    const auto& preds = predicate.getPredicates();
+
+    EXPECT_EQ(preds.size(), 3u);
+    EXPECT_EQ(preds[0], "minecraft:oak_log[axis=y]");
+    EXPECT_EQ(preds[1], "#minecraft:logs");
+    EXPECT_EQ(preds[2], "minecraft:stone");
+}
+
+TEST_F(AdventureModePredicateTest, PropertyMatch_EqualityWithPropertyStrings)
+{
+    // 带属性的谓词字符串也参与相等比较
+    AdventureModePredicate predicate1({"minecraft:oak_log[axis=y]", "minecraft:stone"});
+    AdventureModePredicate predicate2({"minecraft:oak_log[axis=y]", "minecraft:stone"});
+    AdventureModePredicate predicate3({"minecraft:oak_log[axis=x]", "minecraft:stone"});
+
+    EXPECT_TRUE(predicate1 == predicate2);
+    EXPECT_FALSE(predicate1 == predicate3);
+}
+
+TEST_F(AdventureModePredicateTest, PropertyMatch_NBTBracketSyntax_IgnoredForNow)
+{
+    // "minecraft:chest{Items:[...]}" —— NBT 匹配暂不支持
+    // 当前行为：花括号被当作方块ID的一部分，不会匹配任何方块
+    AdventureModePredicate predicate({"minecraft:chest{Items:[...]}"});
+    const BlockState& chestState =
+        VanillaBlocks::CHEST ? VanillaBlocks::CHEST->defaultState() : VanillaBlocks::STONE->defaultState();
+
+    // 当前不支持 NBT 匹配，花括号部分会被当作方块ID的一部分
+    // 因此不会匹配（ResourceLocation("minecraft:chest{Items:[...]}") 不等于 "minecraft:chest"）
+    EXPECT_FALSE(predicate.test(chestState));
+}
+
+TEST_F(AdventureModePredicateTest, BlockWithBooleanProperty)
+{
+    // 测试布尔属性匹配: "minecraft:redstone_lamp[lit=true]"
+    const Block* redstoneLamp = VanillaBlocks::REDSTONE_LAMP;
+    if (!redstoneLamp) {
+        GTEST_SKIP() << "REDSTONE_LAMP block not registered";
+    }
+
+    AdventureModePredicate predicate({"minecraft:redstone_lamp[lit=true]"});
+
+    const auto& container = redstoneLamp->stateContainer();
+    const IProperty* litProp = container.getProperty("lit");
+    if (!litProp) {
+        GTEST_SKIP() << "redstone_lamp 缺少 lit 属性";
+    }
+
+    const BlockState* litState = nullptr;
+    const BlockState* unlitState = nullptr;
+    for (const auto& state : container.validStates()) {
+        auto valIdx = state->getValueIndex(*litProp);
+        if (valIdx.has_value()) {
+            auto parsedTrue = litProp->parseValue("true");
+            auto parsedFalse = litProp->parseValue("false");
+            if (parsedTrue.has_value() && *valIdx == *parsedTrue) {
+                litState = state.get();
+            }
+            if (parsedFalse.has_value() && *valIdx == *parsedFalse) {
+                unlitState = state.get();
+            }
+        }
+    }
+
+    if (litState) {
+        EXPECT_TRUE(predicate.test(*litState));
+    }
+    if (unlitState) {
+        EXPECT_FALSE(predicate.test(*unlitState));
+    }
+}
+
+TEST_F(AdventureModePredicateTest, BlockWithIntegerProperty)
+{
+    // 测试整数属性匹配: "minecraft:farmland[moisture=7]"
+    const Block* farmland = VanillaBlocks::FARMLAND;
+    if (!farmland) {
+        GTEST_SKIP() << "FARMLAND block not registered";
+    }
+
+    AdventureModePredicate predicate({"minecraft:farmland[moisture=7]"});
+
+    const auto& container = farmland->stateContainer();
+    const IProperty* moistureProp = container.getProperty("moisture");
+    if (!moistureProp) {
+        GTEST_SKIP() << "farmland 缺少 moisture 属性";
+    }
+
+    const BlockState* moisture7State = nullptr;
+    const BlockState* moisture0State = nullptr;
+    for (const auto& state : container.validStates()) {
+        auto valIdx = state->getValueIndex(*moistureProp);
+        if (valIdx.has_value()) {
+            auto parsed7 = moistureProp->parseValue("7");
+            auto parsed0 = moistureProp->parseValue("0");
+            if (parsed7.has_value() && *valIdx == *parsed7) {
+                moisture7State = state.get();
+            }
+            if (parsed0.has_value() && *valIdx == *parsed0) {
+                moisture0State = state.get();
+            }
+        }
+    }
+
+    if (moisture7State) {
+        EXPECT_TRUE(predicate.test(*moisture7State));
+    }
+    if (moisture0State) {
+        EXPECT_FALSE(predicate.test(*moisture0State));
+    }
+}
