@@ -411,6 +411,7 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
     common/world/block/blocks/decorative/TorchBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
+    common/world/block/blocks/functional/BedBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
     common/world/block/blocks/functional/ComposterBlockTest.cpp
     common/world/block/blocks/functional/AnvilBlockTest.cpp

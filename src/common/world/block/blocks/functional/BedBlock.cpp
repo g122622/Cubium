@@ -35,6 +35,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/explosion/ExplosionMode.hpp"
+#include <array>
 #include <unordered_map>
 
 namespace mc {
@@ -204,46 +205,41 @@ Vector3 BedBlock::findStandUpPosition(const IWorld& world, const BlockPos& bedPo
         bunkBed = true;
     }
 
-    // 生成候选位置偏移量
-    // 周围 10 个候选位置
+    // 预计算方向偏移
+    const i32 sdx = Directions::xOffset(sideDir);
+    const i32 sdz = Directions::zOffset(sideDir);
+    const i32 fdx = Directions::xOffset(bedFacing);
+    const i32 fdz = Directions::zOffset(bedFacing);
+
+    // 候选位置偏移量（栈上数组，避免堆分配）
     struct Offset {
         i32 dx;
         i32 dz;
     };
 
-    auto surroundOffsets = [&]() -> std::vector<Offset> {
-        i32 sdx = Directions::xOffset(sideDir);
-        i32 sdz = Directions::zOffset(sideDir);
-        i32 fdx = Directions::xOffset(bedFacing);
-        i32 fdz = Directions::zOffset(bedFacing);
-        return {
-            {sdx, sdz},
-            {sdx - fdx, sdz - fdz},
-            {sdx - fdx * 2, sdz - fdz * 2},
-            {-fdx * 2, -fdz * 2},
-            {-sdx - fdx * 2, -sdz - fdz * 2},
-            {-sdx - fdx, -sdz - fdz},
-            {-sdx, -sdz},
-            {-sdx + fdx, -sdz + fdz},
-            {fdx, fdz},
-            {sdx + fdx, sdz + fdz},
-        };
-    };
+    // 周围 10 个候选位置偏移量
+    const std::array<Offset, 10> surroundOffsets = {{
+        {sdx, sdz},
+        {sdx - fdx, sdz - fdz},
+        {sdx - fdx * 2, sdz - fdz * 2},
+        {-fdx * 2, -fdz * 2},
+        {-sdx - fdx * 2, -sdz - fdz * 2},
+        {-sdx - fdx, -sdz - fdz},
+        {-sdx, -sdz},
+        {-sdx + fdx, -sdz + fdz},
+        {fdx, fdz},
+        {sdx + fdx, sdz + fdz},
+    }};
 
-    // 床上方 2 个候选位置
-    auto aboveOffsets = [&]() -> std::vector<Offset> {
-        i32 fdx = Directions::xOffset(bedFacing);
-        i32 fdz = Directions::zOffset(bedFacing);
-        return {
-            Offset{0, 0},
-            Offset{-fdx, -fdz},
-        };
-    };
+    // 床上方 2 个候选位置偏移量
+    const std::array<Offset, 2> aboveOffsets = {{
+        {0, 0},
+        {-fdx, -fdz},
+    }};
 
     // 在指定偏移列表中寻找安全位置
-    auto findAtOffsets = [&](const std::vector<Offset>& offsets,
-                             const BlockPos& basePos,
-                             bool avoidDangerous) -> std::optional<Vector3> {
+    auto findAtOffsets =
+        [&](const auto& offsets, const BlockPos& basePos, bool avoidDangerous) -> std::optional<Vector3> {
         for (const auto& off : offsets) {
             BlockPos checkPos(basePos.x + off.dx, basePos.y, basePos.z + off.dz);
             if (avoidDangerous) {
@@ -263,44 +259,41 @@ Vector3 BedBlock::findStandUpPosition(const IWorld& world, const BlockPos& bedPo
         return std::nullopt;
     };
 
-    auto surrounds = surroundOffsets();
-    auto aboves = aboveOffsets();
-
     if (bunkBed) {
         // 双层床：先尝试床层周围（安全），再下层周围（安全），再床上方（安全），
         // 然后回退到不安全检查
-        auto result = findAtOffsets(surrounds, bedPos, true);
+        auto result = findAtOffsets(surroundOffsets, bedPos, true);
         if (result.has_value()) return result.value();
 
         BlockPos lowerPos = bedPos.down();
-        result = findAtOffsets(surrounds, lowerPos, true);
+        result = findAtOffsets(surroundOffsets, lowerPos, true);
         if (result.has_value()) return result.value();
 
-        result = findAtOffsets(aboves, bedPos, true);
+        result = findAtOffsets(aboveOffsets, bedPos, true);
         if (result.has_value()) return result.value();
 
         // 回退：允许不安全位置
-        result = findAtOffsets(surrounds, bedPos, false);
+        result = findAtOffsets(surroundOffsets, bedPos, false);
         if (result.has_value()) return result.value();
 
-        result = findAtOffsets(surrounds, lowerPos, false);
+        result = findAtOffsets(surroundOffsets, lowerPos, false);
         if (result.has_value()) return result.value();
 
-        result = findAtOffsets(aboves, bedPos, false);
+        result = findAtOffsets(aboveOffsets, bedPos, false);
         if (result.has_value()) return result.value();
     } else {
         // 普通床：先尝试周围位置（安全），再回退到不安全检查
-        auto result = findAtOffsets(surrounds, bedPos, true);
+        auto result = findAtOffsets(surroundOffsets, bedPos, true);
         if (result.has_value()) return result.value();
 
-        result = findAtOffsets(aboves, bedPos, true);
+        result = findAtOffsets(aboveOffsets, bedPos, true);
         if (result.has_value()) return result.value();
 
         // 回退：允许不安全位置
-        result = findAtOffsets(surrounds, bedPos, false);
+        result = findAtOffsets(surroundOffsets, bedPos, false);
         if (result.has_value()) return result.value();
 
-        result = findAtOffsets(aboves, bedPos, false);
+        result = findAtOffsets(aboveOffsets, bedPos, false);
         if (result.has_value()) return result.value();
     }
 
