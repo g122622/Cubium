@@ -37,11 +37,12 @@ namespace item::items {
  * @brief 蜜脾物品
  *
  * 蜜脾可从蜂巢（满蜂蜜等级时使用剪刀）获取，主要用途：
- * 1. 右键铜方块：给铜方块涂蜡，阻止氧化
- * 2. 右键告示牌：给告示牌上蜡，防止文字被修改
+ * 1. 右键铜方块：给铜方块涂蜡，阻止氧化（已实现）
+ * 2. 右键告示牌：给告示牌上蜡，防止文字被修改（TODO：待 SignBlockEntity
+ *    isWaxed 属性和 SignApplicator 接口实现后集成）
  *
  * 涂蜡映射表 WAXABLES 将未涂蜡的铜方块映射到对应的涂蜡变种。
- * 反向映射 WAX_OFF_BY_BLOCK 供 AxeItem 除蜡使用。
+ * 反向映射 WAX_OFF_MAP 供 AxeItem 除蜡使用。
  *
  * 参考: net.minecraft.world.item.HoneycombItem
  */

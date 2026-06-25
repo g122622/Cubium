@@ -82,6 +82,7 @@ item/
 │   ├── special/                  # 特殊物品
 │   │   ├── BoneMealItem.hpp/cpp  # 骨粉
 │   │   ├── FlintAndSteelItem.hpp/cpp  # 打火石
+│   │   ├── HoneycombItem.hpp/cpp  # 蜜脾（涂蜡铜方块、除蜡映射）
 │   │   ├── FishingRodItem.hpp/cpp  # 钓鱼竿
 │   │   ├── EnchantedBookItem.hpp/cpp  # 附魔书
 │   │   ├── NameTagItem.hpp/cpp   # 命名牌

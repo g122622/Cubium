@@ -49,6 +49,10 @@ ActionResultType HoneycombItem::onItemUse(ItemUseContext& context)
     // 检查方块是否可涂蜡
     auto waxedState = getWaxed(*state);
     if (!waxedState.has_value()) {
+        // TODO: 实现告示牌涂蜡交互（SignApplicator 接口）。
+        // MC 原版 HoneycombItem 实现了 SignApplicator 接口，
+        // 右键告示牌时调用 SignBlockEntity::setWaxed(true) 并播放 WAX_ON 效果。
+        // 待 SignBlockEntity 的 isWaxed 属性和 SignApplicator 接口实现后集成。
         return ActionResultType::Pass;
     }
 
