@@ -23,6 +23,7 @@
 
 #include "RocksDBDatabase.hpp"
 #include "../../../perfetto/TraceEvents.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include <algorithm>
 #include <rocksdb/db.h>
 #include <rocksdb/iterator.h>
@@ -89,12 +90,8 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
     std::filesystem::path currentFile = path / "CURRENT";
     bool dbExists = std::filesystem::exists(currentFile);
 
-    std::vector<rocksdb::ColumnFamilyDescriptor> cfDescriptors;
-
     if (!dbExists) {
         MC_TRACE_EVENT("storage.db", "RocksDBDatabase::open::new", "event", "Creating new database");
-
-        // 数据库不存在，创建所有列族
         spdlog::info("Creating new database at {}", path.string());
 
         // 确保目录存在
@@ -108,45 +105,13 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
                     ErrorCode::FileOpenFailed, fmt::format("Failed to create database directory: {}", ec.message()));
             }
         }
-
-        rocksdb::ColumnFamilyOptions cfOptions = db->_createCFOptions();
-
-        // 添加所有定义的列族
-        for (const auto& cfName : cf::ALL_COLUMN_FAMILIES) {
-            cfDescriptors.emplace_back(cfName, cfOptions);
-        }
     } else {
         MC_TRACE_EVENT("storage.db", "RocksDBDatabase::open::existing", "event", "Opening existing database");
-
-        // 数据库已存在，打开所有列族
         spdlog::info("Opening existing database at {}", path.string());
-
-        // 获取已有列族列表
-        std::vector<std::string> existingCFNames;
-        rocksdb::Status status = rocksdb::DB::ListColumnFamilies(dbOptions, path.string(), &existingCFNames);
-
-        if (!status.ok()) {
-            return Error(
-                ErrorCode::FileOpenFailed, fmt::format("Failed to list column families: {}", status.ToString()));
-        }
-
-        spdlog::info("Found {} existing column families", existingCFNames.size());
-
-        rocksdb::ColumnFamilyOptions cfOptions = db->_createCFOptions();
-
-        // 打开已有列族
-        for (const auto& cfName : existingCFNames) {
-            cfDescriptors.emplace_back(cfName, cfOptions);
-        }
-
-        // 检查是否需要添加新列族
-        for (const auto& cfName : cf::ALL_COLUMN_FAMILIES) {
-            if (std::find(existingCFNames.begin(), existingCFNames.end(), cfName) == existingCFNames.end()) {
-                spdlog::info("Adding new column family: {}", cfName);
-                cfDescriptors.emplace_back(cfName, cfOptions);
-            }
-        }
     }
+
+    // 构建列族描述符
+    std::vector<rocksdb::ColumnFamilyDescriptor> cfDescriptors = db->_buildColumnFamilyDescriptors(dbExists);
 
     // 打开数据库
     std::vector<rocksdb::ColumnFamilyHandle*> cfHandles;
@@ -159,9 +124,18 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::open(
         }
     }
 
-    // 存储列族句柄
-    for (size_t i = 0; i < cfDescriptors.size(); ++i) {
-        db->m_cfHandles[cfDescriptors[i].name] = cfHandles[i];
+    // 初始化列族句柄映射
+    auto initResult = db->_initializeColumnFamilies(cfDescriptors, cfHandles);
+    if (!initResult.success()) {
+        // 初始化失败时销毁列族句柄并关闭数据库
+        for (auto* handle : cfHandles) {
+            if (handle != nullptr && db->m_db != nullptr) {
+                db->m_db->DestroyColumnFamilyHandle(handle);
+            }
+        }
+        delete db->m_db;
+        db->m_db = nullptr;
+        return initResult.error();
     }
 
     spdlog::info("Database opened successfully with {} column families", db->m_cfHandles.size());
@@ -178,13 +152,15 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::openReadOnly(const std
 
     rocksdb::DBOptions dbOptions = config.createDBOptions();
 
-    // 获取已有列族列表
+    // 只读模式只能打开已有列族，不能创建新列族
     std::vector<std::string> existingCFNames;
     rocksdb::Status status = rocksdb::DB::ListColumnFamilies(dbOptions, path.string(), &existingCFNames);
 
     if (!status.ok()) {
         return Error(ErrorCode::FileNotFound, fmt::format("Database not found: {}", status.ToString()));
     }
+
+    spdlog::info("Opening existing database read-only with {} column families", existingCFNames.size());
 
     rocksdb::ColumnFamilyOptions cfOptions = db->_createCFOptions();
     std::vector<rocksdb::ColumnFamilyDescriptor> cfDescriptors;
@@ -202,8 +178,17 @@ Result<std::unique_ptr<RocksDBDatabase>> RocksDBDatabase::openReadOnly(const std
             ErrorCode::FileOpenFailed, fmt::format("Failed to open database read-only: {}", status.ToString()));
     }
 
-    for (size_t i = 0; i < cfDescriptors.size(); ++i) {
-        db->m_cfHandles[cfDescriptors[i].name] = cfHandles[i];
+    // 初始化列族句柄映射
+    auto initResult = db->_initializeColumnFamilies(cfDescriptors, cfHandles);
+    if (!initResult.success()) {
+        for (auto* handle : cfHandles) {
+            if (handle != nullptr && db->m_db != nullptr) {
+                db->m_db->DestroyColumnFamilyHandle(handle);
+            }
+        }
+        delete db->m_db;
+        db->m_db = nullptr;
+        return initResult.error();
     }
 
     spdlog::info("Database opened read-only with {} column families", db->m_cfHandles.size());
@@ -657,11 +642,12 @@ void RocksDBDatabase::close()
     // 刷新所有数据
     flush("", false);
 
+    // 销毁所有列族句柄（必须在 delete m_db 之前调用）
+    _destroyColumnFamilyHandles();
+
     // 关闭数据库
     delete m_db;
     m_db = nullptr;
-
-    m_cfHandles.clear();
 }
 
 std::string RocksDBDatabase::getStatistics() const
@@ -725,6 +711,75 @@ std::vector<std::string> RocksDBDatabase::listColumnFamilies() const
 // ============================================================================
 // 私有方法
 // ============================================================================
+
+std::vector<rocksdb::ColumnFamilyDescriptor> RocksDBDatabase::_buildColumnFamilyDescriptors(bool dbExists)
+{
+    rocksdb::ColumnFamilyOptions cfOptions = _createCFOptions();
+    std::vector<rocksdb::ColumnFamilyDescriptor> cfDescriptors;
+
+    if (!dbExists) {
+        // 新数据库：创建所有定义的列族
+        for (const auto& cfName : cf::ALL_COLUMN_FAMILIES) {
+            cfDescriptors.emplace_back(cfName, cfOptions);
+        }
+    } else {
+        // 已有数据库：打开已有列族，补充缺失的列族
+        std::vector<std::string> existingCFNames;
+        rocksdb::DBOptions dbOptions = m_config.createDBOptions();
+        rocksdb::Status status = rocksdb::DB::ListColumnFamilies(dbOptions, m_path.string(), &existingCFNames);
+
+        if (!status.ok()) {
+            spdlog::warn("Failed to list column families, falling back to default: {}", status.ToString());
+            existingCFNames = {cf::META};
+        }
+
+        spdlog::info("Found {} existing column families", existingCFNames.size());
+
+        // 打开已有列族
+        for (const auto& cfName : existingCFNames) {
+            cfDescriptors.emplace_back(cfName, cfOptions);
+        }
+
+        // 补充缺失的列族
+        for (const auto& cfName : cf::ALL_COLUMN_FAMILIES) {
+            if (std::find(existingCFNames.begin(), existingCFNames.end(), cfName) == existingCFNames.end()) {
+                spdlog::info("Adding new column family: {}", cfName);
+                cfDescriptors.emplace_back(cfName, cfOptions);
+            }
+        }
+    }
+
+    return cfDescriptors;
+}
+
+Result<void> RocksDBDatabase::_initializeColumnFamilies(
+    const std::vector<rocksdb::ColumnFamilyDescriptor>& cfDescriptors,
+    const std::vector<rocksdb::ColumnFamilyHandle*>& cfHandles)
+{
+    MC_ASSERT_RELEASE(cfDescriptors.size() == cfHandles.size());
+
+    for (size_t i = 0; i < cfDescriptors.size(); ++i) {
+        if (cfHandles[i] == nullptr) {
+            spdlog::warn("Column family handle is null for: {}", cfDescriptors[i].name);
+            continue;
+        }
+        m_cfHandles[cfDescriptors[i].name] = cfHandles[i];
+    }
+
+    return {};
+}
+
+void RocksDBDatabase::_destroyColumnFamilyHandles()
+{
+    if (m_db != nullptr) {
+        for (auto& [name, handle] : m_cfHandles) {
+            if (handle != nullptr) {
+                m_db->DestroyColumnFamilyHandle(handle);
+            }
+        }
+    }
+    m_cfHandles.clear();
+}
 
 rocksdb::ColumnFamilyOptions RocksDBDatabase::_createCFOptions() const
 {

@@ -395,6 +395,7 @@ add_executable(mc_tests
     common/world/block/DispenseItemBehaviorTest.cpp
     common/world/storage/StorageTaskTest.cpp
     common/world/storage/PlayerStorageTest.cpp
+    common/world/storage/RocksDBDatabaseTest.cpp
     server/world/ServerWorldPersistenceTest.cpp
     common/world/storage/WorldNameSanitizerTest.cpp
     common/world/storage/JavaChunkReaderTest.cpp

@@ -339,9 +339,36 @@ private:
 
     /**
      * @brief 初始化列族
+     *
+     * 在打开数据库后，将 RocksDB 返回的列族句柄与期望的列族名称对应存储。
+     * 对于新建数据库，所有定义在 cf::ALL_COLUMN_FAMILIES 中的列族都会被创建。
+     * 对于已有数据库，缺失的列族会被自动补充。
+     *
+     * @param cfDescriptors 传给 DB::Open 的列族描述符列表
+     * @param cfHandles DB::Open 返回的列族句柄列表（与 cfDescriptors 一一对应）
+     * @return 成功返回空，失败返回错误
      */
-    // TODO: 实现此方法，用于在打开数据库后初始化列族
-    Result<void> _initializeColumnFamilies();
+    Result<void> _initializeColumnFamilies(const std::vector<rocksdb::ColumnFamilyDescriptor>& cfDescriptors,
+        const std::vector<rocksdb::ColumnFamilyHandle*>& cfHandles);
+
+    /**
+     * @brief 构建列族描述符列表
+     *
+     * 根据数据库是否已存在（新数据库 vs 已有数据库），构建合适的列族描述符。
+     * 新数据库创建所有定义的列族；已有数据库打开已有列族并补充缺失的列族。
+     *
+     * @param dbExists 数据库是否已存在
+     * @return 列族描述符列表
+     */
+    [[nodiscard]] std::vector<rocksdb::ColumnFamilyDescriptor> _buildColumnFamilyDescriptors(bool dbExists);
+
+    /**
+     * @brief 销毁所有列族句柄
+     *
+     * 在关闭数据库前调用，逐个销毁列族句柄以释放 RocksDB 资源。
+     * 必须在 delete m_db 之前调用。
+     */
+    void _destroyColumnFamilyHandles();
 
     /**
      * @brief 创建默认列族选项
