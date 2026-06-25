@@ -82,6 +82,13 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Success;
     }
 
+    // TODO: 实现 MC 原版斧头去氧化功能（scraping）——将氧化铜方块降一级（如 Exposed -> Unaffected）。
+    // MC 原版 AxeItem 的处理顺序为：1.去皮 → 2.除蜡 → 3.去氧化。
+    // 当前项目仅实现了去皮和除蜡，去氧化需要建立反向氧化链映射
+    // （WeatheredCopper -> Exposed -> Unaffected 等），可通过 IOxidizableBlock 接口扩展
+    // getPreviousOxidationBlock() 方法，或在 HoneycombItem 中新增 SCRAPE_OFF 映射表。
+    // 去氧化应播放 WorldEvents::SCRAPE 粒子效果。
+
     return ActionResultType::Pass;
 }
 

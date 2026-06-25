@@ -84,6 +84,7 @@ add_executable(mc_tests
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp
+    common/item/special/HoneycombItemTest.cpp
     common/item/special/OnAStickItemTest.cpp
     # MusicDiscItem 音乐唱片测试（比较器信号、isMusicDisc、声音事件ID）
     common/item/special/MusicDiscItemTest.cpp
