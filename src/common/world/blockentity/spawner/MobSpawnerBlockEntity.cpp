@@ -423,6 +423,14 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         return false;
     }
 
+    // TODO: 检查 CustomSpawnRules 光照条件。MC Java 的 BaseSpawner 在生成实体前会检查
+    // CustomSpawnRules 的 blockLightMin/Max 和 skyLightMin/Max（调用 isValidPosition），
+    // 当 blockLight 或 skyLight 不在范围内时跳过该生成位置。IWorld 已提供
+    // getBlockLight(BlockPos) 和 getSkyLight(BlockPos) 接口，需要在每个生成位置
+    // 检查光照是否满足 m_customSpawnRules 的条件范围，不满足时 continue 跳过。
+    // 当 m_customSpawnRules 不存在时，MC Java 会调用 SpawnPlacements.checkSpawnRules()
+    // 检查默认生成规则，该检查也尚未实现。
+
     bool spawnedAny = false;
     math::Random rng(world.seed() ^ world.getGameTime());
 
@@ -459,6 +467,10 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         }
 
         // 尝试添加到世界
+        // TODO: 实体生成的集成测试待完善。当前单元测试中 MockWorld 未注册 EntityType，
+        // 因此 entityType->create(&world)、mobEntity->finalizeSpawn() 和
+        // world.spawnEntity() 的完整调用链未在测试中实际验证。待 EntityType 注册
+        // 机制可在测试环境中使用后，补充实体生成的端到端测试。
         EntityId id = world.spawnEntity(std::move(entity));
         if (id != EntityId(0)) {
             spawnedAny = true;
