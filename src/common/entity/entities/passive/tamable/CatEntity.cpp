@@ -251,17 +251,18 @@ void CatEntity::registerGoals()
 void CatEntity::_setupTamedAI()
 {
     // 动态添加/移除 AvoidPlayerGoal
-
-    if (m_avoidPlayerGoal == nullptr) {
-        // 创建避开玩家目标
-        m_avoidPlayerGoal = new CatAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
-    }
+    // 注意：removeGoal 会销毁目标对象（GoalSelector 拥有所有权），
+    // 因此必须在移除后清空 m_avoidPlayerGoal 指针，避免悬空指针。
 
     // 先移除已有的 AvoidPlayerGoal
-    m_goalSelector.removeGoal(m_avoidPlayerGoal);
+    if (m_avoidPlayerGoal != nullptr) {
+        m_goalSelector.removeGoal(m_avoidPlayerGoal);
+        m_avoidPlayerGoal = nullptr; // removeGoal 销毁对象后置空指针
+    }
 
-    // 如果未驯服，添加避开玩家目标
+    // 如果未驯服，创建并添加避开玩家目标
     if (!isTamed()) {
+        m_avoidPlayerGoal = new CatAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
         m_goalSelector.addGoal(4, m_avoidPlayerGoal);
     }
 }

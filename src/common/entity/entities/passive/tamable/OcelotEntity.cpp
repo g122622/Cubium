@@ -309,18 +309,19 @@ Result<void> OcelotEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
 void OcelotEntity::_setupTrustingAI()
 {
     // 动态添加/移除 AvoidPlayerGoal
-
-    if (m_avoidPlayerGoal == nullptr) {
-        // 创建躲避玩家目标
-        m_avoidPlayerGoal =
-            new entity::ai::goal::OcelotAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
-    }
+    // 注意：removeGoal 会销毁目标对象（GoalSelector 拥有所有权），
+    // 因此必须在移除后清空 m_avoidPlayerGoal 指针，避免悬空指针。
 
     // 先移除已有的 AvoidPlayerGoal
-    m_goalSelector.removeGoal(m_avoidPlayerGoal);
+    if (m_avoidPlayerGoal != nullptr) {
+        m_goalSelector.removeGoal(m_avoidPlayerGoal);
+        m_avoidPlayerGoal = nullptr; // removeGoal 销毁对象后置空指针
+    }
 
-    // 如果未信任，添加躲避玩家目标
+    // 如果未信任，创建并添加躲避玩家目标
     if (!isTrusting()) {
+        m_avoidPlayerGoal =
+            new entity::ai::goal::OcelotAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
         m_goalSelector.addGoal(4, m_avoidPlayerGoal);
     }
 }
