@@ -395,6 +395,7 @@ add_library(mc_common STATIC
     entity/inventory/IInventory.cpp
     entity/inventory/Slot.cpp
     entity/inventory/PlayerInventory.cpp
+    entity/inventory/PlayerEnderChestInventory.cpp
     entity/inventory/CreativeInventory.cpp
     entity/inventory/CraftingInventory.cpp
     entity/inventory/AbstractContainerMenu.cpp

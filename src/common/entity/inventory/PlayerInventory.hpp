@@ -37,6 +37,10 @@ class Item;
 class BlockState;
 class DamageSource;
 
+namespace nbt::tags {
+struct compound_tag;
+} // namespace nbt::tags
+
 /**
  * @brief 玩家背包
  *
@@ -476,6 +480,28 @@ public:
      * @brief 从反序列化器创建背包
      */
     [[nodiscard]] static Result<PlayerInventory> deserialize(network::PacketDeserializer& deser);
+
+    /**
+     * @brief 将背包数据序列化到 NBT 标签
+     *
+     * 写入格式（MC Java 兼容）：
+     * - "Inventory": compound_list_tag，每个非空物品包含 "Slot" (byte) + ItemStack NBT 数据
+     * - "SelectedItemSlot": int，当前选中的快捷栏槽位
+     *
+     * @param tag 目标 NBT 复合标签
+     */
+    void toNbt(nbt::tags::compound_tag& tag) const;
+
+    /**
+     * @brief 从 NBT 标签反序列化背包数据
+     *
+     * 读取 "Inventory" 列表和 "SelectedItemSlot" 整数，
+     * 清空所有槽位后按 Slot 索引填充物品。
+     *
+     * @param tag 源 NBT 复合标签
+     * @return 反序列化结果
+     */
+    [[nodiscard]] static Result<PlayerInventory> fromNbt(const nbt::tags::compound_tag& tag);
 
 private:
     /**

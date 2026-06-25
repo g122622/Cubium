@@ -23,8 +23,11 @@
 
 #include "PlayerInventory.hpp"
 #include "../../item/core/Item.hpp"
+#include "../../util/nbt/Nbt.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
+#include "../serialization/EntityNbtKeys.hpp"
+#include "../serialization/NbtHelper.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -797,6 +800,74 @@ f32 PlayerInventory::getDestroySpeed(const BlockState& blockState) const
     }
 
     return selected.getDestroySpeed(blockState);
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void PlayerInventory::toNbt(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization::nbt_keys;
+
+    // 写入背包物品列表（MC Java 格式：compound_list_tag，每个物品含 Slot byte + ItemStack NBT）
+    auto inventoryList = std::make_unique<nbt::tags::compound_list_tag>();
+    for (i32 i = 0; i < TOTAL_SIZE; ++i) {
+        const ItemStack& stack = m_items[static_cast<size_t>(i)];
+        if (stack.isEmpty()) {
+            continue;
+        }
+        nbt::tags::compound_tag itemTag;
+        itemTag.put("Slot", static_cast<i8>(i));
+        stack.toNbt(itemTag);
+        inventoryList->value.push_back(std::move(itemTag));
+    }
+    tag.value.emplace(INVENTORY, std::move(inventoryList));
+
+    // 写入当前选中的快捷栏槽位
+    tag.put(SELECTED_ITEM_SLOT, m_selectedSlot);
+}
+
+Result<PlayerInventory> PlayerInventory::fromNbt(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization::nbt_helper;
+    using namespace mc::entity::serialization::nbt_keys;
+
+    PlayerInventory inventory(nullptr);
+
+    // 读取背包物品列表
+    if (const auto* invList = tryGetList(tag, INVENTORY)) {
+        if (invList->element_id() == nbt::TagId::Compound) {
+            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);
+            for (const auto& itemTag : compoundList.value) {
+                // 读取槽位索引
+                i8 slotIndex = 0;
+                if (auto slotOpt = tryGetByte(itemTag, "Slot")) {
+                    slotIndex = *slotOpt;
+                } else {
+                    continue;
+                }
+
+                // 验证槽位范围
+                if (slotIndex < 0 || slotIndex >= TOTAL_SIZE) {
+                    continue;
+                }
+
+                // 反序列化物品
+                auto stackResult = ItemStack::fromNbt(itemTag);
+                if (stackResult.success() && !stackResult.value().isEmpty()) {
+                    inventory.m_items[static_cast<size_t>(slotIndex)] = std::move(stackResult.value());
+                }
+            }
+        }
+    }
+
+    // 读取当前选中的快捷栏槽位
+    if (auto slotOpt = tryGetInt(tag, SELECTED_ITEM_SLOT)) {
+        inventory.m_selectedSlot = std::clamp(*slotOpt, 0, HOTBAR_SIZE - 1);
+    }
+
+    return Result<PlayerInventory>(std::move(inventory));
 }
 
 } // namespace mc

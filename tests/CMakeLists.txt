@@ -1448,9 +1448,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ShovelItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/HoeItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/SwordItem.cpp
-        # 鑳屽寘绯荤粺
+        # 背包系统
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/Slot.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerInventory.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerEnderChestInventory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/CraftingInventory.cpp
         # 鍚堟垚绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/Ingredient.cpp

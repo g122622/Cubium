@@ -32,6 +32,7 @@
 #include "../../effect/EffectInstance.hpp"
 #include "../../experience/ExperienceManager.hpp"
 #include "../../food/FoodStats.hpp"
+#include "../../inventory/PlayerEnderChestInventory.hpp"
 #include "../../inventory/PlayerInventory.hpp"
 #include "../../movement/AutoJump.hpp"
 #include "../../player/CooldownTracker.hpp"
@@ -1279,6 +1280,30 @@ public:
     PlayerInventory& inventory() { return m_inventory; }
 
     /**
+     * @brief 获取末影箱物品栏
+     */
+    [[nodiscard]] const PlayerEnderChestInventory& enderChestInventory() const { return m_enderChestInventory; }
+    PlayerEnderChestInventory& enderChestInventory() { return m_enderChestInventory; }
+
+    /**
+     * @brief 获取玩家分数
+     *
+     * 分数是一个简单的整数计数器，在玩家死亡时增加。
+     * 与计分板系统（Scoreboard）独立，MC Java 中通过实体数据同步。
+     */
+    [[nodiscard]] i32 getScore() const { return m_score; }
+
+    /**
+     * @brief 设置玩家分数
+     */
+    void setScore(i32 score) { m_score = score; }
+
+    /**
+     * @brief 增加玩家分数
+     */
+    void increaseScore(i32 amount) { m_score += amount; }
+
+    /**
      * @brief 获取当前打开的容器菜单
      * @return 当前打开的菜单指针，如果没有打开容器则返回 nullptr
      */
@@ -1701,8 +1726,11 @@ private:
 
     FoodStats m_foodStats;
     PlayerAbilities m_abilities;
-    PlayerInventory m_inventory{this}; // 玩家背包
+    PlayerInventory m_inventory{this};               // 玩家背包
+    PlayerEnderChestInventory m_enderChestInventory; // 末影箱物品栏
     AbstractContainerMenu* m_openContainerMenu = nullptr;
+
+    i32 m_score = 0; // 玩家分数（死亡计分，与计分板系统独立）
 
     // 经验管理器（唯一数据源）
     std::unique_ptr<entity::experience::ExperienceManager> m_experienceManager;

@@ -2694,9 +2694,14 @@ void Player::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
         tag.value.emplace(ENTERED_NETHER_POSITION, std::move(netherTag));
     }
 
-    // TODO: 当 PlayerInventory 实现 toNbt/fromNbt 后，添加背包序列化（Inventory、SelectedItemSlot）
-    // TODO: 当 EnderChestInventory 实现后，添加末影箱序列化（EnderItems）
-    // TODO: 当 Score 系统实现后，添加分数序列化（Score）
+    // ========== 背包和选中槽位 ==========
+    m_inventory.toNbt(tag);
+
+    // ========== 末影箱物品栏 ==========
+    m_enderChestInventory.toNbt(tag);
+
+    // ========== 分数 ==========
+    tag.put(SCORE, m_score);
 
     // ========== 最后死亡位置 ==========
     if (m_lastDeathLocation.has_value()) {
@@ -2832,9 +2837,21 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
         m_enteredNetherPosition = std::nullopt;
     }
 
-    // TODO: 当 PlayerInventory 实现 toNbt/fromNbt 后，添加背包反序列化（Inventory、SelectedItemSlot）
-    // TODO: 当 EnderChestInventory 实现后，添加末影箱反序列化（EnderItems）
-    // TODO: 当 Score 系统实现后，添加分数反序列化（Score）
+    // ========== 背包和选中槽位 ==========
+    {
+        auto inventoryResult = PlayerInventory::fromNbt(tag);
+        if (inventoryResult.success()) {
+            m_inventory.copyInventory(inventoryResult.value());
+        }
+    }
+
+    // ========== 末影箱物品栏 ==========
+    m_enderChestInventory.fromNbt(tag);
+
+    // ========== 分数 ==========
+    if (auto scoreOpt = nbt_helper::tryGetInt(tag, SCORE)) {
+        m_score = *scoreOpt;
+    }
 
     // ========== 最后死亡位置 ==========
     if (auto* deathTag = nbt_helper::tryGetCompound(tag, LAST_DEATH_LOCATION)) {

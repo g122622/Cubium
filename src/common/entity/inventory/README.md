@@ -19,6 +19,8 @@ inventory/
 ├── Slot.cpp
 ├── PlayerInventory.hpp            # 玩家背包（41 槽位：快捷栏、主背包、护甲、副手）
 ├── PlayerInventory.cpp
+├── PlayerEnderChestInventory.hpp  # 末影箱物品栏（27 槽位，数据存储在玩家 NBT 中）
+├── PlayerEnderChestInventory.cpp
 ├── CraftingInventory.hpp          # 合成网格背包和合成结果背包
 ├── CraftingInventory.cpp
 ├── CreativeInventory.hpp          # 创造模式物品库辅助
@@ -42,16 +44,16 @@ inventory/
                   IInventory (接口)
                        ▲
                        │
-      ┌────────────────┼────────────────┐
-      │                │                │
- PlayerInventory  CraftingInventory  CraftResultInventory
-      │                │                │ (实现 IRecipeHolder)
-      │                │                │
-      └────────┬───────┘                │
-               │                        │
-         CreativeInventory              │
-               │                        │
-             Slot ──────────────────────┘ (引用 IInventory)
+      ┌────────────────┼────────────────────────┐
+      │                │                        │
+ PlayerInventory  CraftingInventory  PlayerEnderChestInventory
+      │                │                        │ (27格末影箱物品栏)
+      │                │                (实现 IRecipeHolder)  │
+      └────────┬───────┘                        │
+               │                                │
+         CreativeInventory                      │
+               │                                │
+             Slot ──────────────────────────────┘ (引用 IInventory)
                │
                │
       AbstractContainerMenu
@@ -74,7 +76,7 @@ inventory/
 
 ### 被依赖
 
-- `entity/player/` - 玩家实体持有 PlayerInventory
+- `entity/player/` - 玩家实体持有 PlayerInventory 和 PlayerEnderChestInventory
 - `world/level/block/entity/` - 方块实体（箱子、熔炉等）实现 IInventory
 - `client/gui/` - GUI 系统使用 AbstractContainerMenu
 - `server/` - 服务端处理容器交互和数据包
