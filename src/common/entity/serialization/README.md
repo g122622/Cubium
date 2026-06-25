@@ -8,6 +8,7 @@
 src/common/entity/serialization/
 ├── EntityDeserializer.hpp/cpp   # 实体反序列化器
 ├── EntityNbtKeys.hpp            # NBT 键名常量
+├── EquipmentSlotNames.hpp/cpp   # EquipmentSlot 枚举名与 NBT 键名映射（MC 1.21.11 equipment 格式）
 ├── NbtHelper.hpp/cpp            # NBT 辅助工具函数
 └── README.md
 ```
@@ -22,16 +23,16 @@ src/common/entity/serialization/
      ┌─────┴─────┐
      │           │
      ▼           ▼
-┌─────────┐  ┌────────────┐
-│  Nbt    │  │EntityNbtKeys│
-│ Helper  │  │  (常量)     │
-└────┬────┘  └────────────┘
-     │
-     ▼
-┌─────────────────┐
-│ nbt::tags 命名空间│
-│ (compound_tag等) │
-└─────────────────┘
+┌─────────┐  ┌──────────────────┐
+│  Nbt    │  │  EntityNbtKeys   │
+│ Helper  │  │  (常量)          │
+└────┬────┘  └──────────────────┘
+     │                │
+     ▼                ▼
+┌─────────────────┐  ┌──────────────────────┐
+│ nbt::tags 命名空间│  │ EquipmentSlotNames   │
+│ (compound_tag等) │  │ (EquipmentSlot↔键名) │
+└─────────────────┘  └──────────────────────┘
 ```
 
 **依赖关系**：
@@ -39,6 +40,8 @@ src/common/entity/serialization/
 - `EntityDeserializer` 依赖 `Entity::readFromNBT()` 和 `Entity::writeToNBT()`
 - `EntityDeserializer` 依赖 `NbtHelper` 读取 NBT 数据
 - `EntityDeserializer` 依赖 `EntityNbtKeys` 获取键名常量
+- `EquipmentSlotNames` 依赖 `LivingEntity.hpp` 获取 `EquipmentSlot` 枚举定义
+- `EquipmentSlotNames` 被 `LivingEntity` 的 `addAdditionalSaveData`/`readAdditionalSaveData` 使用
 
 ## 外部依赖关系
 
@@ -170,8 +173,48 @@ tag.put("uuid", "...");          // 应该是 "UUID"
 // 3. 处理键名差异（基岩版使用不同的键名）
 ```
 
+## EquipmentSlotNames
+
+`EquipmentSlotNames` 提供 `EquipmentSlot` 枚举与 NBT 键名之间的双向映射，用于 MC 1.21.11 新格式的装备序列化。
+
+### 映射关系
+
+| EquipmentSlot | NBT 键名 |
+|---|---|
+| `MainHand` | `"mainhand"` |
+| `OffHand` | `"offhand"` |
+| `Feet` | `"feet"` |
+| `Legs` | `"legs"` |
+| `Chest` | `"chest"` |
+| `Head` | `"head"` |
+
+### 使用场景
+
+MC 1.21.11 中，`LivingEntity` 的装备数据以 `equipment` 复合标签存储，键名为 `EquipmentSlot` 的枚举名称：
+
+```nbt
+equipment: {
+    head: { id: "minecraft:diamond_helmet", count: 1, ... },
+    chest: { id: "minecraft:diamond_chestplate", count: 1, ... },
+    offhand: { id: "minecraft:shield", count: 1, ... }
+    // 空槽位省略
+}
+```
+
+`EquipmentSlotNames::toName()` 和 `EquipmentSlotNames::fromName()` 用于此格式中 `EquipmentSlot` 与字符串键名的互转。
+
+### 设计说明
+
+- 头文件 `EquipmentSlotNames.hpp` 仅前向声明 `EquipmentSlot`，避免循环包含
+- 实现文件 `EquipmentSlotNames.cpp` 包含 `LivingEntity.hpp` 获取完整枚举定义
+- `fromName()` 对未知键名返回 `std::nullopt`，便于静默跳过无效数据
+
 ## 参考
 
+- MC 1.21.11 `net.minecraft.world.entity.LivingEntity.addAdditionalSaveData()`
+- MC 1.21.11 `net.minecraft.world.entity.LivingEntity.readAdditionalSaveData()`
+- MC 1.21.11 `net.minecraft.world.entity.EquipmentSlot`
+- MC 1.21.11 `net.minecraft.world.entity.player.Inventory.save()`
 - MC 1.16.5 `net.minecraft.entity.EntityType.loadEntityAndExecute()`
 - MC 1.16.5 `net.minecraft.entity.Entity.writeWithoutTypeId()`
 - MC 1.16.5 `net.minecraft.entity.Entity.read(CompoundNBT)`

@@ -59,6 +59,7 @@ add_executable(mc_tests
     common/test_item.cpp
     common/test_block_item.cpp
     common/test_inventory.cpp
+    common/test_equipment_serialization.cpp
     common/test_item_entity.cpp
     common/test_container.cpp
     common/item/crafting/IngredientTest.cpp

@@ -118,3 +118,13 @@ inventory/
 ### 护甲槽位限制和绑定诅咒
 
 `ArmorSlot` 通过 `mayPlace()` 检查护甲类型匹配，`mayPickup()` 检查绑定诅咒——绑定诅咒的护甲在非创造模式下无法取下。
+
+### NBT 序列化格式（MC 1.21.11）
+
+`PlayerInventory::toNbt()` 和 `PlayerInventory::fromNbt()` 遵循 MC 1.21.11 新格式：
+
+- **Inventory 列表**：仅包含快捷栏（Slot 0-8）和主背包（Slot 9-35），不再包含护甲和副手
+- **equipment 复合标签**：由 `LivingEntity::addAdditionalSaveData()` 写入，使用 `EquipmentSlot` 枚举名作为键（`"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, `"mainhand"`），空槽位省略
+- **SelectedItemSlot**：当前选中的快捷栏槽位
+
+`fromNbt()` 同时支持旧格式兼容读取：当 `equipment` 标签不存在时，从 Inventory 列表中读取护甲（Slot 100-103）和副手（Slot -106）。
