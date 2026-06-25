@@ -165,6 +165,16 @@ public:
 
     [[nodiscard]] bool stillValid(const Player& player) const override;
 
+    // ========== 容器关闭 ==========
+
+    /**
+     * @brief 容器关闭时调用
+     *
+     * 通知背包容器玩家已关闭，用于关闭动画、音效和打开计数递减。
+     * 参考 MC Java: ChestMenu.removed() 调用 container.stopOpen(player)
+     */
+    void removed(Player& player) override;
+
     // ========== 快速移动 ==========
 
 protected:

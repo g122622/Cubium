@@ -115,8 +115,9 @@ void PlayerEnderChestInventory::clear()
 
 void PlayerEnderChestInventory::setChanged()
 {
-    // TODO: 实现末影箱变更通知机制，当物品变更时通知监听者（如容器菜单广播），
-    // 当前仅由 PlayerDataManager 在保存时处理，运行时变更不会触发即时同步
+    if (m_onChanged) {
+        m_onChanged();
+    }
 }
 
 bool PlayerEnderChestInventory::isUsableByPlayer(const Player& player) const
@@ -138,6 +139,20 @@ void PlayerEnderChestInventory::serialize(network::PacketSerializer& ser) const
 }
 
 // ============================================================================
+// IInventory 打开/关闭重写
+// ============================================================================
+
+void PlayerEnderChestInventory::openInventory(Player& player)
+{
+    startOpen(player);
+}
+
+void PlayerEnderChestInventory::closeInventory(Player& player)
+{
+    stopOpen(player);
+}
+
+// ============================================================================
 // 末影箱特有功能
 // ============================================================================
 
@@ -151,6 +166,7 @@ void PlayerEnderChestInventory::startOpen(Player& player)
     if (m_activeChest != nullptr) {
         m_activeChest->openContainer(&player);
     }
+    IInventory::openInventory(player);
 }
 
 void PlayerEnderChestInventory::stopOpen(Player& player)
@@ -159,6 +175,7 @@ void PlayerEnderChestInventory::stopOpen(Player& player)
         m_activeChest->closeContainer(&player);
     }
     m_activeChest = nullptr;
+    IInventory::closeInventory(player);
 }
 
 // ============================================================================

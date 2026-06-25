@@ -84,6 +84,24 @@ public:
     [[nodiscard]] bool isUsableByPlayer(const Player& player) const override;
     void serialize(network::PacketSerializer& ser) const override;
 
+    // ========== IInventory 打开/关闭重写 ==========
+
+    /**
+     * @brief 玩家打开容器时调用
+     *
+     * 委托到 startOpen()，处理开盖动画和音效。
+     * 当 ChestContainer 打开时通过 IInventory::openInventory 调用。
+     */
+    void openInventory(Player& player) override;
+
+    /**
+     * @brief 玩家关闭容器时调用
+     *
+     * 委托到 stopOpen()，处理关盖动画、音效和清理活跃箱子引用。
+     * 当 ChestContainer 关闭时通过 IInventory::closeInventory 调用。
+     */
+    void closeInventory(Player& player) override;
+
     // ========== 末影箱特有功能 ==========
 
     /**
@@ -116,6 +134,18 @@ public:
      */
     void stopOpen(Player& player);
 
+    // ========== 变更通知 ==========
+
+    /**
+     * @brief 设置变更回调
+     *
+     * 当末影箱物品发生变更时调用此回调。用于通知监听者（如容器菜单广播、玩家数据标记脏等）。
+     * 参考 MC Java: SimpleContainer.addListener() / setChanged() 通知机制。
+     *
+     * @param callback 变更回调函数
+     */
+    void setOnChanged(std::function<void()> callback) { m_onChanged = std::move(callback); }
+
     // ========== 序列化 ==========
 
     /**
@@ -138,6 +168,7 @@ public:
 private:
     std::array<ItemStack, ENDER_CHEST_SIZE> m_items;
     blockentity::EnderChestEntity* m_activeChest = nullptr;
+    std::function<void()> m_onChanged; ///< 变更回调，物品变更时通知监听者
 };
 
 } // namespace mc

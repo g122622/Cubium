@@ -27,6 +27,7 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/container/CartographyContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
@@ -43,6 +44,7 @@
 #include "common/world/blockentity/interactive/EnchantingTableEntity.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/blockentity/storage/EnderChestEntity.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -200,89 +202,108 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             "Failed to initialize shared world storage: " + storageInitResult.error().message());
     }
 
-    containerManager().setMenuFactory(
-        [this](ContainerId containerId, mc::ContainerType type, const BlockPos& pos, PlayerInventory* playerInventory) {
-            ContainerMenuCreateResult result;
+    containerManager().setMenuFactory([this](ContainerId containerId,
+                                          mc::ContainerType type,
+                                          const BlockPos& pos,
+                                          PlayerInventory* playerInventory,
+                                          PlayerId playerId) {
+        ContainerMenuCreateResult result;
 
-            if (playerInventory == nullptr) {
+        if (playerInventory == nullptr) {
+            return result;
+        }
+
+        auto* overworld = m_dimensionManager->getOverworld();
+        if (overworld == nullptr || overworld->world() == nullptr) {
+            return result;
+        }
+        auto* world = overworld->world();
+
+        switch (type) {
+            case mc::ContainerType::Crafting: {
+                auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory, nullptr);
+                menu->updateResult();
+                result.menu = std::move(menu);
                 return result;
             }
-
-            auto* overworld = m_dimensionManager->getOverworld();
-            if (overworld == nullptr || overworld->world() == nullptr) {
-                return result;
-            }
-            auto* world = overworld->world();
-
-            switch (type) {
-                case mc::ContainerType::Crafting: {
-                    auto menu = std::make_unique<mc::CraftingMenu>(containerId, playerInventory, nullptr);
-                    menu->updateResult();
-                    result.menu = std::move(menu);
+            case mc::ContainerType::Generic9x3:
+            case mc::ContainerType::Generic9x6:
+            case mc::ContainerType::ShulkerBox: {
+                BlockEntity* blockEntity = world->getBlockEntity(pos);
+                if (blockEntity == nullptr) {
                     return result;
                 }
-                case mc::ContainerType::Generic9x3:
-                case mc::ContainerType::Generic9x6:
-                case mc::ContainerType::ShulkerBox: {
-                    BlockEntity* blockEntity = world->getBlockEntity(pos);
-                    if (blockEntity == nullptr) {
+
+                // 末影箱：物品栏存储在玩家身上，而非方块实体中
+                if (blockEntity->getType() == BlockEntityType::EnderChest) {
+                    auto* serverWorld = world->asServerWorld();
+                    if (serverWorld == nullptr) {
                         return result;
                     }
-
-                    if (blockEntity->getType() != BlockEntityType::Chest &&
-                        blockEntity->getType() != BlockEntityType::TrappedChest) {
+                    auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *serverWorld);
+                    if (playerEntity == nullptr) {
                         return result;
                     }
-
-                    auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
-                    if (chest->isDoubleChest(*world)) {
-                        auto doubleInventory = chest->getDoubleInventory(*world);
-                        if (!doubleInventory) {
-                            return result;
-                        }
-
-                        result.inventoryOwner = std::shared_ptr<IInventory>(std::move(doubleInventory));
-                        result.menu = blockentity::ChestContainer::createDouble(
-                            containerId, playerInventory, result.inventoryOwner.get());
-                        return result;
-                    }
-
+                    auto& enderChestInv = playerEntity->enderChestInventory();
                     result.menu =
-                        blockentity::ChestContainer::createSingle(containerId, playerInventory, chest->getInventory());
+                        blockentity::ChestContainer::createSingle(containerId, playerInventory, &enderChestInv);
                     return result;
                 }
-                case mc::ContainerType::Furnace:
-                case mc::ContainerType::BlastFurnace:
-                case mc::ContainerType::Smoker: {
-                    BlockEntity* blockEntity = world->getBlockEntity(pos);
-                    if (blockEntity == nullptr) {
+
+                if (blockEntity->getType() != BlockEntityType::Chest &&
+                    blockEntity->getType() != BlockEntityType::TrappedChest) {
+                    return result;
+                }
+
+                auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+                if (chest->isDoubleChest(*world)) {
+                    auto doubleInventory = chest->getDoubleInventory(*world);
+                    if (!doubleInventory) {
                         return result;
                     }
 
-                    if (blockEntity->getType() != BlockEntityType::Furnace &&
-                        blockEntity->getType() != BlockEntityType::BlastFurnace &&
-                        blockEntity->getType() != BlockEntityType::Smoker) {
-                        return result;
-                    }
+                    result.inventoryOwner = std::shared_ptr<IInventory>(std::move(doubleInventory));
+                    result.menu = blockentity::ChestContainer::createDouble(
+                        containerId, playerInventory, result.inventoryOwner.get());
+                    return result;
+                }
 
-                    auto* furnace = static_cast<blockentity::AbstractFurnaceEntity*>(blockEntity);
-                    result.menu = std::make_unique<blockentity::FurnaceContainer>(
-                        containerId, playerInventory, furnace->getInventory(), furnace);
-                    return result;
-                }
-                case mc::ContainerType::Enchantment: {
-                    result.menu = std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, world);
-                    return result;
-                }
-                case mc::ContainerType::Cartography: {
-                    result.menu = std::make_unique<mc::CartographyContainer>(containerId, playerInventory, pos, world);
-                    return result;
-                }
-                case mc::ContainerType::Player:
-                default:
-                    return result;
+                result.menu =
+                    blockentity::ChestContainer::createSingle(containerId, playerInventory, chest->getInventory());
+                return result;
             }
-        });
+            case mc::ContainerType::Furnace:
+            case mc::ContainerType::BlastFurnace:
+            case mc::ContainerType::Smoker: {
+                BlockEntity* blockEntity = world->getBlockEntity(pos);
+                if (blockEntity == nullptr) {
+                    return result;
+                }
+
+                if (blockEntity->getType() != BlockEntityType::Furnace &&
+                    blockEntity->getType() != BlockEntityType::BlastFurnace &&
+                    blockEntity->getType() != BlockEntityType::Smoker) {
+                    return result;
+                }
+
+                auto* furnace = static_cast<blockentity::AbstractFurnaceEntity*>(blockEntity);
+                result.menu = std::make_unique<blockentity::FurnaceContainer>(
+                    containerId, playerInventory, furnace->getInventory(), furnace);
+                return result;
+            }
+            case mc::ContainerType::Enchantment: {
+                result.menu = std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, world);
+                return result;
+            }
+            case mc::ContainerType::Cartography: {
+                result.menu = std::make_unique<mc::CartographyContainer>(containerId, playerInventory, pos, world);
+                return result;
+            }
+            case mc::ContainerType::Player:
+            default:
+                return result;
+        }
+    });
 
     // 容器网络回调：将 ContainerManager 事件转发为客户端协议包。
     containerManager().setOnContainerOpen([this](PlayerId playerId,
@@ -310,17 +331,27 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
                 auto* world = playerDim ? playerDim->world() : nullptr;
                 if (world) {
                     BlockEntity* blockEntity = world->getBlockEntity(pos);
-                    if (blockEntity != nullptr &&
-                        (blockEntity->getType() == BlockEntityType::Chest ||
-                            blockEntity->getType() == BlockEntityType::TrappedChest)) {
-                        auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
-                        chest->closeContainer(nullptr);
+                    if (blockEntity != nullptr) {
+                        if (blockEntity->getType() == BlockEntityType::Chest ||
+                            blockEntity->getType() == BlockEntityType::TrappedChest) {
+                            auto* chest = static_cast<blockentity::ChestEntity*>(blockEntity);
+                            chest->closeContainer(nullptr);
 
-                        // 双箱时，同步减少另一半的打开计数
-                        if (chest->isDoubleChest(*world)) {
-                            blockentity::ChestEntity* connected = chest->getConnectedChest(*world);
-                            if (connected != nullptr) {
-                                connected->closeContainer(nullptr);
+                            // 双箱时，同步减少另一半的打开计数
+                            if (chest->isDoubleChest(*world)) {
+                                blockentity::ChestEntity* connected = chest->getConnectedChest(*world);
+                                if (connected != nullptr) {
+                                    connected->closeContainer(nullptr);
+                                }
+                            }
+                        } else if (blockEntity->getType() == BlockEntityType::EnderChest) {
+                            // 末影箱关闭：通过 PlayerEnderChestInventory 关闭开盖动画和音效
+                            auto* serverWorld = world->asServerWorld();
+                            if (serverWorld != nullptr) {
+                                auto* playerEntity = playerEntityManager().getPlayerEntity(playerId, *serverWorld);
+                                if (playerEntity != nullptr) {
+                                    playerEntity->enderChestInventory().stopOpen(*playerEntity);
+                                }
                             }
                         }
                     }

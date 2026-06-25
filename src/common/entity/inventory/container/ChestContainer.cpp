@@ -146,6 +146,14 @@ std::unique_ptr<ChestContainer> ChestContainer::createDouble(ContainerId id,
     return std::make_unique<ChestContainer>(id, playerInventory, chestInventory, chestEntityA, chestEntityB);
 }
 
+// ========== 容器关闭 ==========
+
+void ChestContainer::removed(Player& player)
+{
+    AbstractContainerMenu::removed(player);
+    m_chestInventory->closeInventory(player);
+}
+
 // ========== 快速移动 ==========
 
 ItemStack ChestContainer::quickMoveStack(i32 slotIndex, Player& player)

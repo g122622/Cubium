@@ -23,6 +23,7 @@
 #include "common/entity/ai/util/PiglinAi.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/ContainerTypes.hpp"
+#include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/stats/Stats.hpp"
 #include "common/util/Direction.hpp"
@@ -135,19 +136,26 @@ ActionResultType EnderChestBlock::onBlockActivated(const BlockState& state,
     if (entity != nullptr && entity->getType() == BlockEntityType::EnderChest) {
         auto* enderChest = static_cast<blockentity::EnderChestEntity*>(entity);
 
-        // 打开末影箱容器
-        // TODO: 当 PlayerEnderChestInventory 实现后，应使用玩家的末影箱物品栏打开 Generic9x3 容器，
-        //       而非直接调用 openContainer。当前暂使用 EnderChestEntity 的 openContainer 触发开盖动画和音效，
-        //       容器打开部分待 PlayerEnderChestInventory 集成后完善。
-        enderChest->openContainer(&player);
+        // 关联末影箱方块实体到玩家的末影箱物品栏，用于开盖动画和距离检查
+        player.enderChestInventory().setActiveChest(enderChest);
 
-        // 奖励统计
-        player.awardCustomStat(ResourceLocation(stats::OPEN_ENDERCHEST), 1);
+        // 打开末影箱容器菜单（Generic9x3，27格）
+        // 参考 MC Java: EnderChestBlock.useWithoutItem() — 使用玩家的末影箱物品栏创建 ChestMenu
+        if (world.openContainer(ContainerType::Generic9x3, pos, player)) {
+            // 打开盖子动画和音效（通过 PlayerEnderChestInventory.startOpen 委托到 EnderChestEntity）
+            player.enderChestInventory().startOpen(player);
 
-        // 打开末影箱时激怒附近能看到玩家的猪灵
-        entity::PiglinAi::angerNearbyPiglins(world, player, true);
+            // 奖励统计
+            player.awardCustomStat(ResourceLocation(stats::OPEN_ENDERCHEST), 1);
 
-        return ActionResultType::Consume;
+            // 打开末影箱时激怒附近能看到玩家的猪灵
+            entity::PiglinAi::angerNearbyPiglins(world, player, true);
+
+            return ActionResultType::Consume;
+        }
+
+        // 容器打开失败，清除关联
+        player.enderChestInventory().setActiveChest(nullptr);
     }
 
     return ActionResultType::Pass;

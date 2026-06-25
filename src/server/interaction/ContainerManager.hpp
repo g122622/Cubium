@@ -85,9 +85,8 @@ public:
     /**
      * @brief 设置菜单工厂
      */
-    void setMenuFactory(
-        std::function<ContainerMenuCreateResult(mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*)>
-            factory);
+    void setMenuFactory(std::function<ContainerMenuCreateResult(
+            mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*, PlayerId)> factory);
 
     /**
      * @brief 打开容器
@@ -170,7 +169,8 @@ private:
     std::unordered_map<PlayerId, OpenContainer> m_openContainers;
     std::unordered_map<PlayerId, mc::ContainerId> m_nextContainerIds;
 
-    std::function<ContainerMenuCreateResult(mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*)>
+    std::function<ContainerMenuCreateResult(
+        mc::ContainerId, mc::ContainerType, const BlockPos&, PlayerInventory*, PlayerId)>
         m_menuFactory;
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const std::string&, i32)> m_onContainerOpen;
     std::function<void(PlayerId, mc::ContainerId, mc::ContainerType, const BlockPos&)> m_onContainerClose;
