@@ -100,8 +100,11 @@ protected:
     /**
      * @brief 检查视线
      * @return 如果能看到目标返回true
+     *
+     * 声明为虚函数以允许子类自定义视线检查逻辑（如测试中模拟不可见场景）。
+     * MC Java 中所有方法默认为虚函数，此处与 MC 设计保持一致。
      */
-    [[nodiscard]] bool checkSight() const;
+    [[nodiscard]] virtual bool checkSight() const;
 
     MobEntity* m_mob;
     LivingEntity* m_target = nullptr;
