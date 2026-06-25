@@ -26,9 +26,11 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/HoneycombItem.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -44,7 +46,6 @@ AxeItem::AxeItem(const tier::IItemTier& tier, f32 attackDamage, f32 attackSpeed,
 
 ActionResultType AxeItem::onItemUse(ItemUseContext& context)
 {
-    // 斧头去皮逻辑
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
     const BlockState* state = world.getBlockState(pos);
@@ -52,28 +53,36 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Pass;
     }
 
-    // 检查是否可去皮
+    // 1. 检查是否可去皮（原木 -> 去皮原木）
     const Block* strippedBlock = getStrippedBlock(&state->owner());
-    if (strippedBlock == nullptr) {
-        return ActionResultType::Pass;
+    if (strippedBlock != nullptr) {
+        const BlockState& newState = strippedBlock->getDefaultState().withPropertiesOf(*state);
+
+        if (context.getPlayer() != nullptr) {
+            context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
+        }
+
+        world.setBlockState(pos, &newState, 11);
+        ItemStack& stack = context.getItemStackMut();
+        LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+        return ActionResultType::Success;
     }
 
-    // 获取新方块状态
-    const BlockState& newState = strippedBlock->getDefaultState();
+    // 2. 检查是否可除蜡（涂蜡铜方块 -> 未涂蜡铜方块）
+    auto waxedOffState = item::items::HoneycombItem::getWaxedOff(*state);
+    if (waxedOffState.has_value()) {
+        if (context.getPlayer() != nullptr) {
+            context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
+        }
 
-    // 播放去皮音效
-    if (context.getPlayer() != nullptr) {
-        context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
+        world.setBlockState(pos, &waxedOffState.value(), 11);
+        world.playEvent(world::WorldEvents::WAX_OFF, pos, 0);
+        ItemStack& stack = context.getItemStackMut();
+        LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+        return ActionResultType::Success;
     }
 
-    // 设置新方块状态（flags: 11 = 同步到客户端+更新邻居）
-    world.setBlockState(pos, &newState, 11);
-
-    // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
-    ItemStack& stack = context.getItemStackMut();
-    LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
-
-    return ActionResultType::Success;
+    return ActionResultType::Pass;
 }
 
 const Block* AxeItem::getStrippedBlock(const Block* original)

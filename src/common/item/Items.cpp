@@ -47,6 +47,7 @@
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
+#include "common/item/items/special/HoneycombItem.hpp"
 #include "common/item/items/special/MilkBucketItem.hpp"
 #include "common/item/items/special/MusicDiscItem.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
@@ -310,6 +311,7 @@ Item* Items::BOWL = nullptr;
 Item* Items::FLINT = nullptr;
 Item* Items::FLINT_AND_STEEL = nullptr;
 Item* Items::SHEARS = nullptr;
+Item* Items::HONEYCOMB = nullptr;
 Item* Items::NAME_TAG = nullptr;
 Item* Items::SADDLE = nullptr;
 Item* Items::STRING = nullptr;
@@ -1849,6 +1851,10 @@ void Items::_registerMisc()
     // 剪刀 - 耐久度 238
     SHEARS = &registry.registerItem<item::tool::ShearsItem>(
         ResourceLocation("minecraft:shears"), ItemProperties().maxDamage(238));
+
+    // 蜜脾 - 右键铜方块涂蜡，阻止氧化
+    HONEYCOMB = &registry.registerItem<item::items::HoneycombItem>(
+        ResourceLocation("minecraft:honeycomb"), ItemProperties().maxStackSize(64));
 
     // 命名牌 - 给生物命名，使其持久化
     NAME_TAG = &registry.registerItem<item::items::NameTagItem>(

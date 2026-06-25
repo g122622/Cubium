@@ -250,8 +250,7 @@ void BeehiveBlock::releaseBeesAndResetHoneyLevel(IWorld& world,
 void BeehiveBlock::dropHoneycomb(IWorld& world, const BlockPos& pos)
 {
     // 掉落3个蜜脾物品
-    // TODO: 当 HoneycombItem 实现后，使用蜜脾物品而非蜂蜜块
-    ItemStack honeycombStack(Items::HONEY_BLOCK, 3);
+    ItemStack honeycombStack(Items::HONEYCOMB, 3);
     ItemDropHelper::spawnItemEntities(&world, pos, {honeycombStack}, world.getRandom());
 }
 
