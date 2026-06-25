@@ -139,11 +139,11 @@ kagero/
 - `common/core/Types.hpp` - 基础类型定义（i32, u32, String等）
 - `common/core/Result.hpp` - 错误处理
 - `common/util/text/Utf8.hpp` - UTF-8 编码/解码/迭代工具（所有文本Widget依赖此模块处理多字节字符）
+- `common/input/KeyBinding.hpp` - 平台无关键码常量（Keys命名空间），Widget组件通过此模块替代硬编码GLFW键码
 - `client/ui/Font.hpp` - 字体渲染和字形查找
 - `client/ui/Glyph.hpp` - 字形渲染
 - `client/renderer/api/` - 渲染抽象接口（ICanvas实现）
-- GLFW - 窗口/输入事件
-- spdlog - 日志
+- GLFW - 窗口/输入事件（仅KageroEngine层接收GLFW回调，Widget层不直接依赖GLFW键码）
 
 ## 容易踩的坑
 
@@ -229,3 +229,7 @@ TextFieldWidget 内部所有位置/索引操作基于 **码点**（而非字节�
 - `measureTextWidth`、`_measurePrefixWidth`、`positionFromTextOffset` 均按码点迭代
 - 光标闪烁使用 `m_cursorBlinkTimer`（秒）+ `m_cursorVisible` 布尔值，周期 500ms
 - 选区高亮使用 `m_selectionColor`（默认半透明蓝色 `0x8000AAFF`），在 `paint()` 中通过 `drawFilledRect` 绘制
+
+### 12. Widget 键码使用 Keys 常量
+
+Widget组件（TextFieldWidget、SliderWidget、ScrollableWidget等）的 `onKey()` 方法中的键码必须使用 `mc::Keys` 命名空间常量（定义在 `common/input/KeyBinding.hpp`），而非硬编码数值或GLFW宏。键动作判断使用 `KeyAction::Press/Repeat/Release`（定义在 `Types.hpp`），修饰键判断使用 `hasMod(static_cast<KeyMods>(mods), KeyMods::Shift)` 而非位掩码 `mods & 0x0001`。模板系统的 `parseKeyCode()` 和 `parseKeyMods()` 同样使用这些常量和枚举。
