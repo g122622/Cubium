@@ -168,6 +168,9 @@ public:
 private:
     std::array<ItemStack, ENDER_CHEST_SIZE> m_items;
     blockentity::EnderChestEntity* m_activeChest = nullptr;
+    // TODO: 当网络同步系统就绪后，需将 m_onChanged 扩展为监听者列表（std::vector<std::function<void()>>）
+    // 或采用 IContainerListener 模式，以支持多个监听者（如容器菜单广播、客户端同步等）。
+    // 当前单一回调仅用于 ServerPlayer 中标记玩家数据为脏以触发自动保存。
     std::function<void()> m_onChanged; ///< 变更回调，物品变更时通知监听者
 };
 

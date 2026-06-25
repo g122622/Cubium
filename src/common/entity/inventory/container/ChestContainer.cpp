@@ -151,6 +151,9 @@ std::unique_ptr<ChestContainer> ChestContainer::createDouble(ContainerId id,
 void ChestContainer::removed(Player& player)
 {
     AbstractContainerMenu::removed(player);
+    // 对末影箱物品栏：closeInventory → stopOpen，处理关盖动画、音效和清理 activeChest 引用
+    // 对普通箱子：closeInventory 是 IInventory 基类的空操作（no-op），普通箱子的关闭逻辑
+    //   （如 ChestEntity 的 openCount 递减和音效）由 StandaloneServer 的容器关闭回调处理
     m_chestInventory->closeInventory(player);
 }
 
