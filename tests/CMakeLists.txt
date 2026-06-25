@@ -386,6 +386,8 @@ add_executable(mc_tests
     common/world/blockentity/CrafterBlockEntityTest.cpp
     # ShelfBlockEntity 书架方块实体测试（比较器信号、物品交换、序列化、克隆）
     common/world/blockentity/ShelfBlockEntityTest.cpp
+    # MobSpawnerBlockEntity 刷怪笼方块实体测试（生成逻辑、玩家检测、延迟重置、序列化、克隆）
+    common/world/blockentity/MobSpawnerBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp

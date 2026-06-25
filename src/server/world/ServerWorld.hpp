@@ -244,6 +244,15 @@ public:
 
 private:
     /**
+     * @brief 执行方块实体tick
+     *
+     * 遍历所有已加载区块中的方块实体，对 needsTick() 返回 true
+     * 且未被移除的方块实体调用其 tick() 方法。
+     * 对应 MC Java 的 Level.tickBlockEntities()。
+     */
+    void tickBlockEntities();
+
+    /**
      * @brief 执行环境随机刻
      *
      * 对每个已加载区块，随机选择位置执行方块和流体的随机刻。

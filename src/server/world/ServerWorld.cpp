@@ -950,6 +950,12 @@ void ServerWorld::tick()
         m_tickManager->tick(currentTick);
     }
 
+    // 方块实体tick - 熔炉、漏斗、刷怪笼等需要每tick更新的方块实体
+    if (!isDebugWorld()) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::BlockEntityTick");
+        tickBlockEntities();
+    }
+
     // 调试世界不执行随机刻
     if (!isDebugWorld()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::EnvironmentTick");
@@ -1032,6 +1038,31 @@ void ServerWorld::tick()
 
         const auto [oldCx, oldCz] = *trackedChunk;
         m_entityChunkTracker.onEntityMoved(entity->id(), oldCx, oldCz, currentCx, currentCz);
+        return true;
+    });
+}
+
+// ============================================================================
+// 方块实体tick
+// ============================================================================
+
+void ServerWorld::tickBlockEntities()
+{
+    if (!m_chunkManager) {
+        return;
+    }
+
+    MC_TRACE_EVENT("server.tick", "ServerWorld::tickBlockEntities");
+
+    // 遍历所有已加载区块，对需要tick的方块实体调用tick()
+    // 快照方块实体列表以避免迭代期间修改导致的问题
+    m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
+        auto blockEntities = chunk.getAllBlockEntities();
+        for (auto* blockEntity : blockEntities) {
+            if (blockEntity != nullptr && !blockEntity->isRemoved() && blockEntity->needsTick()) {
+                blockEntity->tick(*this);
+            }
+        }
         return true;
     });
 }
