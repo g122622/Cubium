@@ -101,6 +101,7 @@ add_executable(mc_tests
     common/item/enchantment/AttemptDamageItemTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
+    common/entity/inventory/PlayerInventoryNbtTest.cpp
     common/entity/inventory/IRecipeHolderTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp

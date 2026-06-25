@@ -115,7 +115,8 @@ void PlayerEnderChestInventory::clear()
 
 void PlayerEnderChestInventory::setChanged()
 {
-    // 末影箱的变更通知由 PlayerDataManager 在保存时处理
+    // TODO: 实现末影箱变更通知机制，当物品变更时通知监听者（如容器菜单广播），
+    // 当前仅由 PlayerDataManager 在保存时处理，运行时变更不会触发即时同步
 }
 
 bool PlayerEnderChestInventory::isUsableByPlayer(const Player& player) const

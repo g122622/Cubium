@@ -22,6 +22,7 @@
  */
 
 #include "PlayerSaveData.hpp"
+#include "common/entity/inventory/Slot.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/CompressionUtils.hpp"
 #include "common/world/dimension/MapDimensionId.hpp"
@@ -316,7 +317,7 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
         tag.value.emplace(nbt_keys::ABILITIES, std::move(abilities));
     }
 
-    // 背包
+    // 背包（使用 MC Java NBT 槽位编号：护甲 100-103，副手 -106）
     {
         auto inventoryList = std::make_unique<nbt::tags::compound_list_tag>();
         for (size_t i = 0; i < inventoryItems.size(); ++i) {
@@ -326,7 +327,7 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
             }
 
             nbt::tags::compound_tag itemTag;
-            itemTag.put("Slot", static_cast<i8>(static_cast<i32>(i)));
+            itemTag.put("Slot", static_cast<i8>(InventorySlots::toNbtSlot(static_cast<i32>(i))));
             itemOpt->toNbt(itemTag);
             inventoryList->value.push_back(std::move(itemTag));
         }
@@ -513,7 +514,7 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
         if (auto opt = tryGetFloat(*abilities, nbt_keys::WALK_SPEED)) data.walkSpeed = *opt;
     }
 
-    // 背包
+    // 背包（支持旧版 MC Java NBT 槽位编号：护甲 100-103，副手 -106）
     if (auto* invList = tryGetList(tag, nbt_keys::INVENTORY)) {
         if (invList->element_id() == nbt::TagId::Compound) {
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);
@@ -521,22 +522,24 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
             data.inventoryItems.resize(41);
 
             for (const auto& itemTag : compoundList.value) {
-                // 获取槽位索引
-                i8 slotIndex = 0;
+                // 获取 NBT 槽位值
+                i8 nbtSlot = 0;
                 if (auto slotOpt = tryGetByte(itemTag, "Slot")) {
-                    slotIndex = *slotOpt;
+                    nbtSlot = *slotOpt;
                 } else {
                     continue;
                 }
 
-                if (slotIndex < 0 || slotIndex >= 41) {
-                    continue;
+                // 将 NBT 槽位值转换为内部索引
+                i32 internalSlot = InventorySlots::fromNbtSlot(static_cast<i32>(nbtSlot));
+                if (internalSlot < 0 || internalSlot >= 41) {
+                    continue; // 无效槽位，跳过
                 }
 
                 // 从NBT恢复ItemStack
                 auto stackResult = ItemStack::fromNbt(itemTag);
                 if (stackResult.success() && !stackResult.value().isEmpty()) {
-                    data.inventoryItems[slotIndex] = std::move(stackResult.value());
+                    data.inventoryItems[static_cast<size_t>(internalSlot)] = std::move(stackResult.value());
                 }
             }
         }
