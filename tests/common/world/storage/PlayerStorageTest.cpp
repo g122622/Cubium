@@ -516,6 +516,116 @@ TEST_F(PlayerSaveDataTest, ImpulseContext_WindBurstExtendedGraceTime)
     EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
 }
 
+// ========== LastDeathLocation 序列化测试 ==========
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationOverworldRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-overworld-test";
+    original.lastDeathLocation = GlobalPos(0, BlockPos(100, 64, -200));
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->getDimensionId(), 0);
+    EXPECT_EQ(restored.lastDeathLocation->x(), 100);
+    EXPECT_EQ(restored.lastDeathLocation->y(), 64);
+    EXPECT_EQ(restored.lastDeathLocation->z(), -200);
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationNetherRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-nether-test";
+    original.lastDeathLocation = GlobalPos(-1, BlockPos(50, 30, -100));
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->getDimensionId(), -1);
+    EXPECT_EQ(restored.lastDeathLocation->x(), 50);
+    EXPECT_EQ(restored.lastDeathLocation->y(), 30);
+    EXPECT_EQ(restored.lastDeathLocation->z(), -100);
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationEndRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-end-test";
+    original.lastDeathLocation = GlobalPos(1, BlockPos(-300, 80, 150));
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->getDimensionId(), 1);
+    EXPECT_EQ(restored.lastDeathLocation->x(), -300);
+    EXPECT_EQ(restored.lastDeathLocation->y(), 80);
+    EXPECT_EQ(restored.lastDeathLocation->z(), 150);
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationEmpty)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-empty-test";
+    // lastDeathLocation 默认为 std::nullopt
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+
+    // 验证反序列化时 lastDeathLocation 为空
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_FALSE(restored.lastDeathLocation.has_value());
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationBinarySerializationRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-binary-test";
+    original.username = "DeathTestPlayer";
+    original.lastDeathLocation = GlobalPos(-1, BlockPos(200, 50, 300));
+
+    auto serializeResult = original.serialize();
+    ASSERT_TRUE(serializeResult.success());
+
+    auto deserializeResult = PlayerSaveData::deserialize(serializeResult.value());
+    ASSERT_TRUE(deserializeResult.success());
+
+    const PlayerSaveData& restored = deserializeResult.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->getDimensionId(), -1);
+    EXPECT_EQ(restored.lastDeathLocation->x(), 200);
+    EXPECT_EQ(restored.lastDeathLocation->y(), 50);
+    EXPECT_EQ(restored.lastDeathLocation->z(), 300);
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationNegativeCoordinatesRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-negative-coords-test";
+    original.lastDeathLocation = GlobalPos(0, BlockPos(-1000000, -64, -2000000));
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->x(), -1000000);
+    EXPECT_EQ(restored.lastDeathLocation->y(), -64);
+    EXPECT_EQ(restored.lastDeathLocation->z(), -2000000);
+}
+
 // ============================================================================
 // PlayerDataManager 测试
 // ============================================================================
@@ -925,6 +1035,37 @@ TEST_F(ApplyToPlayerTest, RestoresEnteredNetherPosition)
     EXPECT_DOUBLE_EQ(netherPos->x, 200.0);
     EXPECT_DOUBLE_EQ(netherPos->y, 50.0);
     EXPECT_DOUBLE_EQ(netherPos->z, 300.0);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresLastDeathLocation)
+{
+    PlayerSaveData data;
+    data.lastDeathLocation = GlobalPos(DimensionId(-1), BlockPos(50, 30, -100));
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    auto deathLoc = player->getLastDeathLocation();
+    ASSERT_TRUE(deathLoc.has_value());
+    EXPECT_EQ(deathLoc->getDimensionId(), DimensionId(-1));
+    EXPECT_EQ(deathLoc->x(), 50);
+    EXPECT_EQ(deathLoc->y(), 30);
+    EXPECT_EQ(deathLoc->z(), -100);
+}
+
+TEST_F(ApplyToPlayerTest, ClearsLastDeathLocation)
+{
+    // 先设置死亡位置
+    player->setLastDeathLocation(GlobalPos(DimensionId(0), BlockPos(100, 64, 200)));
+    ASSERT_TRUE(player->getLastDeathLocation().has_value());
+
+    // 使用空的 PlayerSaveData 恢复（没有 lastDeathLocation）
+    PlayerSaveData data;
+    data.uuid = "clear-death-loc-test";
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    // 应该清除死亡位置
+    EXPECT_FALSE(player->getLastDeathLocation().has_value());
 }
 
 TEST_F(ApplyToPlayerTest, DefaultDataDoesNotCrash)

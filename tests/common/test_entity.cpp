@@ -807,6 +807,71 @@ TEST(Player, LastDeathLocationNbtEmptyRoundTrip)
     EXPECT_FALSE(restored.getLastDeathLocation().has_value());
 }
 
+TEST(Player, LastDeathLocationSecondDeathOverwrites)
+{
+    Player player(1, "TestPlayer");
+    player.setPosition(100.0f, 64.0f, -200.0f);
+    player.setDimension(0); // 主世界
+
+    // 第一次死亡
+    auto genericSource = DamageSources::generic();
+    player.hurt(genericSource, 30.0f);
+    EXPECT_TRUE(player.isDead());
+    auto firstDeath = player.getLastDeathLocation();
+    ASSERT_TRUE(firstDeath.has_value());
+    EXPECT_EQ(firstDeath->getDimensionId(), 0);
+
+    // 复活
+    player.setHealth(20.0f);
+    player.setHurtResistantTime(0); // 清除无敌帧，允许再次受伤
+    EXPECT_FALSE(player.isDead());
+
+    // 移动到下界位置
+    player.setPosition(50.0f, 30.0f, -100.0f);
+    player.setDimension(-1); // 下界
+
+    // 第二次死亡
+    player.hurt(genericSource, 30.0f);
+    EXPECT_TRUE(player.isDead());
+    auto secondDeath = player.getLastDeathLocation();
+    ASSERT_TRUE(secondDeath.has_value());
+    // 第二次死亡位置应该覆盖第一次
+    EXPECT_EQ(secondDeath->getDimensionId(), -1); // 下界
+    EXPECT_EQ(secondDeath->x(), 50);
+    EXPECT_EQ(secondDeath->y(), 29); // floor(30) - 1
+    EXPECT_EQ(secondDeath->z(), -100);
+}
+
+TEST(Player, LastDeathLocationNetherDimension)
+{
+    Player player(1, "TestPlayer");
+    player.setPosition(200.0f, 50.0f, 300.0f);
+    player.setDimension(-1); // 下界
+
+    // 在下界死亡
+    auto genericSource = DamageSources::generic();
+    player.hurt(genericSource, 30.0f);
+    EXPECT_TRUE(player.isDead());
+
+    auto deathLoc = player.getLastDeathLocation();
+    ASSERT_TRUE(deathLoc.has_value());
+    EXPECT_EQ(deathLoc->getDimensionId(), -1);
+    EXPECT_EQ(deathLoc->x(), 200);
+    EXPECT_EQ(deathLoc->y(), 49); // floor(50) - 1
+    EXPECT_EQ(deathLoc->z(), 300);
+
+    // 序列化并验证 NBT 中的维度字符串
+    nbt::tags::compound_tag tag;
+    player.addAdditionalSaveData(tag);
+
+    using namespace mc::entity::serialization;
+    auto* deathTag = nbt_helper::tryGetCompound(tag, nbt_keys::LAST_DEATH_LOCATION);
+    ASSERT_NE(deathTag, nullptr);
+    auto dimStr = nbt_helper::tryGetString(*deathTag, nbt_keys::LAST_DEATH_LOCATION_DIMENSION);
+    ASSERT_TRUE(dimStr.has_value());
+    EXPECT_EQ(dimStr.value(), "minecraft:the_nether");
+}
+
 // ============================================================================
 // Portal Timing Tests
 // ============================================================================

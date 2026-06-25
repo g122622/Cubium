@@ -161,3 +161,40 @@
         - `m_currentExplosionCause` 不持久化（MC Java 同样不序列化此字段，因为它是运行时瞬时实体引用） -
         对应 MC
         Java `Player` 的 `setIgnoreFallDamageFromCurrentImpulse`、`currentImpulseImpactPos`、`currentImpulseContextResetGraceTime` 系列方法
+
+---
+
+## 最后死亡位置（LastDeathLocation）
+
+Player 实现了 MC Java `Player` 中的最后死亡位置记录系统，用于恢复指南针（Recovery Compass）指向。
+
+### 核心字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `m_lastDeathLocation` | `std::optional<GlobalPos>` | 最后死亡位置（维度ID + 方块坐标），未死亡时为空 |
+
+### 关键方法
+
+- `getLastDeathLocation()` — 获取最后死亡位置
+- `setLastDeathLocation(std::optional<GlobalPos>)` — 设置/清除最后死亡位置
+
+### 死亡记录逻辑
+
+`Player::die()` 在玩家死亡时自动记录 `m_lastDeathLocation = GlobalPos(m_dimension, onPos())`，包含当前维度和脚下方块位置。
+
+### 持久化
+
+最后死亡位置通过两条路径持久化：
+1. **Entity NBT 路径**: `Player::addAdditionalSaveData()`/`readAdditionalSaveData()` — NBT 格式为 `{LastDeathLocation: {dimension: "minecraft:overworld", pos: [x, y, z]}}`，与 MC Java 兼容
+2. **PlayerSaveData 路径**: `PlayerSaveData::toNbt()`/`fromNbt()` + `PlayerDataManager::fromPlayer()`/`applyToPlayer()` — 独立的玩家存储系统
+
+### 网络同步
+
+维度切换时，`RespawnPacket` 携带 `lastDeathLocation` 字段同步到客户端，客户端在 `ClientApplicationNetwork::onRespawn` 回调中更新本地玩家状态。
+
+### 注意事项
+
+- 反序列化同时支持字符串维度名（`"minecraft:overworld"`）和整数维度ID（向后兼容）
+- 项目不重新创建 Player 实体（与 MC Java 的 `restoreFrom` 不同），因此无需 `restoreFrom` 逻辑
+- 同维度重生的 RespawnPacket 发送属于尚未实现的死亡重生基础设施，超出 LastDeathLocation TODO 范围

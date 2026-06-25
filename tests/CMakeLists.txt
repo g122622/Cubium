@@ -713,6 +713,7 @@ add_executable(mc_tests
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
+    network/DimensionPacketsTest.cpp
     network/LocalServerConnectionTest.cpp
     network/TitlePacketTest.cpp
     network/BossInfoPacketTest.cpp

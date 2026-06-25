@@ -82,7 +82,7 @@ player/
 
 5. **缓存与脏标记**: `savePlayer()` 只标记脏数据，`savePlayerImmediate()` 才同步写入；`saveAllDirty()` 批量保存脏数据，`saveAll()` 保存所有缓存
 
-6. **applyToPlayer()**: `PlayerDataManager::applyToPlayer(Player&, const PlayerSaveData&)` 将保存数据恢复到 Player 实体，在玩家登录时由 `StandaloneServer`/`IntegratedServer` 调用。恢复的字段包括：位置/旋转、维度、游戏模式、生命值、饥饿值、经验、玩家能力、重生点、下界入口位置、睡眠状态、空气供应、疾跑/潜行状态、冲量上下文、背包物品、鼠标持有物品、药水效果
+6. **applyToPlayer()**: `PlayerDataManager::applyToPlayer(Player&, const PlayerSaveData&)` 将保存数据恢复到 Player 实体，在玩家登录时由 `StandaloneServer`/`IntegratedServer` 调用。恢复的字段包括：位置/旋转、维度、游戏模式、生命值、饥饿值、经验、玩家能力、重生点、下界入口位置、最后死亡位置、睡眠状态、空气供应、疾跑/潜行状态、冲量上下文、背包物品、鼠标持有物品、药水效果
 
 7. **两条序列化路径**:
    - **Entity NBT 路径**: `Player::addAdditionalSaveData()` / `Player::readAdditionalSaveData()` — 实体序列化链，由 `EntityDeserializer` 在加载非玩家实体时使用

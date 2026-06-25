@@ -302,6 +302,12 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
         data.enteredNetherPosition = netherPos.value();
     }
 
+    // 最后死亡位置
+    auto deathLoc = player.getLastDeathLocation();
+    if (deathLoc.has_value()) {
+        data.lastDeathLocation = deathLoc.value();
+    }
+
     // 睡眠状态
     data.sleeping = player.isSleeping();
     data.sleepTimer = player.getSleepTimer();
@@ -400,6 +406,13 @@ void PlayerDataManager::applyToPlayer(Player& player, const PlayerSaveData& data
     // ========== 进入下界位置 ==========
     if (data.enteredNetherPosition.has_value()) {
         player.setEnteredNetherPosition(data.enteredNetherPosition.value());
+    }
+
+    // ========== 最后死亡位置 ==========
+    if (data.lastDeathLocation.has_value()) {
+        player.setLastDeathLocation(data.lastDeathLocation.value());
+    } else {
+        player.setLastDeathLocation(std::nullopt);
     }
 
     // ========== 睡眠状态 ==========
