@@ -24,16 +24,19 @@
 #include "ExecuteCommand.hpp"
 
 #include "common/command/CommandContext.hpp"
+#include "common/command/arguments/DimensionArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/CommandRegistry.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include "server/command/support/EntityResolver.hpp"
+#include "server/dimension/ServerDimensionManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
 #include <sstream>
@@ -107,7 +110,7 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     auto executeNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("execute");
     executeNode->setRequirement([](const ServerCommandSource& source) { return source.hasPermission(2); });
     support::applyMetadata(executeNode,
-        support::makeMetadata("Executes a command.", "/execute as|at|positioned|run|if|unless ...", 2, {}, false));
+        support::makeMetadata("Executes a command.", "/execute as|at|in|positioned|run|if|unless ...", 2, {}, false));
 
     // ========== run <command> ==========
     // /execute run <command> - 直接执行命令
@@ -160,6 +163,21 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     posArg->addChild(posRunNode);
     positionedNode->addChild(posArg);
     executeNode->addChild(positionedNode);
+
+    // ========== in <dimension> run <command> ==========
+    // /execute in <dimension> run <command> - 在指定维度执行命令
+    auto inNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("in");
+    auto inDimArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, DimensionId>>(
+        "dimension", DimensionArgumentType::dimension());
+    inDimArg->setCustomSuggestions(std::make_shared<DimensionSuggestionProvider<ServerCommandSource>>());
+    auto inRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
+    auto inCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
+        "command", StringArgumentType::greedyString());
+    inCommandArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _executeIn(ctx); });
+    inRunNode->addChild(inCommandArg);
+    inDimArg->addChild(inRunNode);
+    inNode->addChild(inDimArg);
+    executeNode->addChild(inNode);
 
     // ========== if block <pos> <block> run <command> ==========
     // /execute if block <pos> <block> run <command> - 如果指定位置是指定方块则执行
@@ -269,12 +287,7 @@ i32 ExecuteCommand::_executeAt(CommandContext<ServerCommandSource>& context)
             static_cast<f64>(entity->position().y),
             static_cast<f64>(entity->position().z)));
         modifiedSource = modifiedSource.withRotation(Vector2f(entity->yaw(), entity->pitch()));
-
-        // 如果实体在不同的维度，也需要切换维度
-        // TODO: Entity 当前未持有维度ID，暂时使用源维度。待 Entity 添加维度信息后补全。
-        // if (entity->dimensionId() != source.dimensionId()) {
-        //     modifiedSource = modifiedSource.withDimension(entity->dimensionId());
-        // }
+        modifiedSource = modifiedSource.withDimension(entity->dimension());
 
         // 执行嵌套命令
         totalResult += _executeNestedCommand(modifiedSource, command);
@@ -291,6 +304,44 @@ i32 ExecuteCommand::_executePositioned(CommandContext<ServerCommandSource>& cont
 
     // 创建修改位置的命令源
     ServerCommandSource modifiedSource = source.withPosition(position);
+
+    return _executeNestedCommand(modifiedSource, command);
+}
+
+i32 ExecuteCommand::_executeIn(CommandContext<ServerCommandSource>& context)
+{
+    auto& source = context.getSource();
+    DimensionId targetDimId = context.getArgument<DimensionId>("dimension");
+    std::string command = context.getArgument<std::string>("command");
+
+    // 验证目标维度是否存在
+    auto* server = source.server();
+    if (server == nullptr) {
+        source.sendError("commands.execute.failed.noServer");
+        return 0;
+    }
+
+    if (!server->dimensionManager().hasDimension(targetDimId)) {
+        source.sendError("commands.execute.in.invalidDimension");
+        return 0;
+    }
+
+    // 切换维度到目标维度
+    ServerCommandSource modifiedSource = source.withDimension(targetDimId);
+
+    // 如果维度发生变化，需要对坐标进行缩放
+    // MC Java 的 withLevel 会同时进行坐标缩放（如下界 x/z ÷ 8），
+    // 本项目的 withDimension 仅切换维度 ID，坐标缩放需要手动处理
+    DimensionId sourceDimId = source.dimensionId();
+    if (sourceDimId != targetDimId) {
+        DimensionType sourceDimType = DimensionType::fromId(sourceDimId);
+        DimensionType targetDimType = DimensionType::fromId(targetDimId);
+
+        if (sourceDimType.coordinateScale() != targetDimType.coordinateScale()) {
+            Vector3d scaledPos = DimensionType::transformPosition(source.position(), sourceDimType, targetDimType);
+            modifiedSource = modifiedSource.withPosition(scaledPos);
+        }
+    }
 
     return _executeNestedCommand(modifiedSource, command);
 }

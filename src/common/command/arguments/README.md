@@ -8,6 +8,7 @@
 src/common/command/arguments/
 ├── ArgumentType.hpp            # 参数类型基类 + 基础参数类型（字符串、整数、浮点、布尔、枚举）
 ├── BlockStateArgument.hpp      # 方块状态参数类型（支持属性解析）
+├── DimensionArgument.hpp       # 维度参数类型（支持命名空间/简短/数字格式，含自动补全）
 ├── EntityArgument.hpp/.cpp     # 实体选择器参数类型（@p, @a, @e, @r, @s）
 ├── FunctionArgument.hpp/.cpp   # 函数参数类型（支持 # 标签前缀和函数名解析）
 ├── GameModeArgument.hpp        # 游戏模式、资源位置、坐标参数类型（含 Vec2ArgumentType、Vec3ArgumentType、RotationArgumentType 等）
@@ -22,6 +23,7 @@ src/common/command/arguments/
 
 ```
 ArgumentType.hpp (基类模板)
+    ├── DimensionArgument.hpp   → 继承 ArgumentType<DimensionId>（维度名称→DimensionId，支持命名空间/简短/数字格式）
     ├── EntityArgument.hpp      → 继承 ArgumentType<EntitySelector>
     ├── FunctionArgument.hpp    → 继承 ArgumentType<FunctionArgumentResult>（# 标签前缀 + 函数名解析）
     ├── GameModeArgument.hpp    → 继承 ArgumentType<T> (GameMode/ResourceLocation/Vector3i/Vector3d/Vector2d/Vector2f)

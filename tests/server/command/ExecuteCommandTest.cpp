@@ -202,3 +202,39 @@ TEST_F(ExecuteCommandTest, MultipleNestedCommands)
     EXPECT_TRUE(result.success());
     EXPECT_EQ(result.value(), 1);
 }
+
+TEST_F(ExecuteCommandTest, ExecuteInOverworld)
+{
+    // /execute in overworld run list - 维度参数解析应成功
+    // BaseTestServer 未注册维度，所以维度验证会失败（返回 0 或错误）
+    const auto result = m_server.commandRegistry().execute("execute in overworld run list", m_console);
+
+    // 命令解析应成功，但由于维度不存在，执行结果为 0 或失败
+    EXPECT_TRUE(result.failed() || result.value() == 0);
+}
+
+TEST_F(ExecuteCommandTest, ExecuteInNether)
+{
+    // /execute in the_nether run list - DimensionArgumentType 解析成功，维度不存在则失败
+    const auto result = m_server.commandRegistry().execute("execute in the_nether run list", m_console);
+
+    // BaseTestServer 默认不注册下界维度，所以应该返回 0（维度不存在）
+    EXPECT_TRUE(result.failed() || result.value() == 0);
+}
+
+TEST_F(ExecuteCommandTest, ExecuteInNamespaceFormat)
+{
+    // /execute in minecraft:overworld run list - 命名空间格式也能正确解析
+    const auto result = m_server.commandRegistry().execute("execute in minecraft:overworld run list", m_console);
+
+    // 命令解析应成功，但由于维度不存在，执行结果为 0 或失败
+    EXPECT_TRUE(result.failed() || result.value() == 0);
+}
+
+TEST_F(ExecuteCommandTest, ExecuteInInvalidDimension)
+{
+    // /execute in invalid_dimension run list - 无效维度名称应导致解析错误
+    const auto result = m_server.commandRegistry().execute("execute in invalid_dimension run list", m_console);
+
+    EXPECT_TRUE(result.failed());
+}

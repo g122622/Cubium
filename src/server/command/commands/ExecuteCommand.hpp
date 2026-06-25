@@ -36,11 +36,11 @@ namespace command {
  * 用法：
  * - /execute as <entity> run <command> - 以指定实体身份执行命令
  * - /execute at <entity> run <command> - 在指定实体位置执行命令
+ * - /execute in <dimension> run <command> - 在指定维度执行命令
  * - /execute positioned <pos> run <command> - 在指定位置执行命令
  * - /execute run <command> - 直接执行命令
  * - /execute if block <pos> <block> run <command> - 如果指定位置是指定方块则执行
  * - /execute unless block <pos> <block> run <command> - 如果指定位置不是指定方块则执行
- * - /execute in <dimension> run <command> - 在指定维度执行命令（待实现）
  * - /execute align <axes> run <command> - 对齐坐标后执行命令（待实现）
  * - /execute facing <pos/entity> run <command> - 朝向指定方向执行命令（待实现）
  * - /execute rotated <rot/as> run <command> - 旋转后执行命令（待实现）
@@ -67,6 +67,7 @@ private:
 
     static i32 _executeAs(CommandContext<ServerCommandSource>& context);
     static i32 _executeAt(CommandContext<ServerCommandSource>& context);
+    static i32 _executeIn(CommandContext<ServerCommandSource>& context);
     static i32 _executePositioned(CommandContext<ServerCommandSource>& context);
     static i32 _executeRun(CommandContext<ServerCommandSource>& context);
     static i32 _executeIfBlock(CommandContext<ServerCommandSource>& context);
