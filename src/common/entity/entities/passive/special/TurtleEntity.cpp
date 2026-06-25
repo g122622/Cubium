@@ -34,8 +34,9 @@
 #include "../../../../world/IWorld.hpp"
 #include "../../../../world/block/BlockPos.hpp"
 #include "../../../../world/block/BlockTags.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "../../../../world/block/blocks/mob/TurtleEggBlock.hpp"
+#include "../../../../world/fluid/Fluid.hpp"
+#include "../../../../world/fluid/FluidTags.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
 #include "../../../ai/goal/goals/SwimGoal.hpp"
@@ -43,9 +44,17 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../core/LivingEntity.hpp"
+#include "../../../serialization/EntityNbtKeys.hpp"
+#include "../../../serialization/NbtHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc {
+
+// ========== DataParameter 静态定义 ==========
+
+entity::DataParameter<bool> TurtleEntity::DATA_HAS_EGG_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<bool> TurtleEntity::DATA_LAYING_EGG_PARAM = entity::EntityDataManager::createKey<bool>();
 
 TurtleEntity::TurtleEntity(EntityId id)
     : AnimalEntity(id)
@@ -76,6 +85,26 @@ bool TurtleEntity::isInWater() const
     return Entity::isInWater();
 }
 
+bool TurtleEntity::isLayingEgg() const
+{
+    return m_dataManager.get(DATA_LAYING_EGG_PARAM);
+}
+
+void TurtleEntity::setLayingEgg(bool laying)
+{
+    m_dataManager.set(DATA_LAYING_EGG_PARAM, laying);
+}
+
+bool TurtleEntity::hasEgg() const
+{
+    return m_dataManager.get(DATA_HAS_EGG_PARAM);
+}
+
+void TurtleEntity::setHasEgg(bool hasEgg)
+{
+    m_dataManager.set(DATA_HAS_EGG_PARAM, hasEgg);
+}
+
 bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 海龟仅接受海草作为繁殖物品
@@ -87,7 +116,7 @@ bool TurtleEntity::isBreedingItem(const ItemStack& itemStack) const
 bool TurtleEntity::canBreed() const
 {
     // 海龟只有在没有蛋的情况下才能繁殖
-    return AnimalEntity::canBreed() && !m_hasEgg;
+    return AnimalEntity::canBreed() && !hasEgg();
 }
 
 std::unique_ptr<AnimalEntity> TurtleEntity::spawnBaby(AnimalEntity& /*partner*/)
@@ -114,12 +143,12 @@ void TurtleEntity::tick()
     AnimalEntity::tick();
 
     // 更新产卵计时器
-    if (m_layingEgg && m_layEggTimer > 0) {
+    if (isLayingEgg() && m_layEggTimer > 0) {
         m_layEggTimer--;
         if (m_layEggTimer <= 0) {
             // 产卵完成
-            m_layingEgg = false;
-            m_hasEgg = false;
+            setLayingEgg(false);
+            setHasEgg(false);
 
             // 在脚下生成海龟蛋方块
             _layEgg();
@@ -228,6 +257,85 @@ void TurtleEntity::registerAttributes()
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.25);
     // 海龟在陆地上移动较慢，通过 travel() 方法实现
     // 陆地速度 = max(AIMoveSpeed / 2.0, 0.06F)，约为水中速度的 24%
+}
+
+void TurtleEntity::registerData()
+{
+    AnimalEntity::registerData();
+
+    m_dataManager.registerParam(DATA_HAS_EGG_PARAM, false);
+    m_dataManager.registerParam(DATA_LAYING_EGG_PARAM, false);
+}
+
+void TurtleEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+    AnimalEntity::addAdditionalSaveData(tag);
+
+    // 出生位置
+    if (m_hasHomePos) {
+        tag.put(nbt_keys::HOME_X, m_homePos.x);
+        tag.put(nbt_keys::HOME_Y, m_homePos.y);
+        tag.put(nbt_keys::HOME_Z, m_homePos.z);
+    }
+
+    // 是否有蛋
+    tag.put(nbt_keys::HAS_EGG, static_cast<i8>(hasEgg() ? 1 : 0));
+}
+
+Result<void> TurtleEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+    MC_TRY(AnimalEntity::readAdditionalSaveData(tag));
+
+    // 出生位置
+    auto homeX = nbt_helper::tryGetInt(tag, nbt_keys::HOME_X);
+    auto homeY = nbt_helper::tryGetInt(tag, nbt_keys::HOME_Y);
+    auto homeZ = nbt_helper::tryGetInt(tag, nbt_keys::HOME_Z);
+    if (homeX.has_value() && homeY.has_value() && homeZ.has_value()) {
+        setHomePos(BlockPos(*homeX, *homeY, *homeZ));
+    }
+
+    // 是否有蛋
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::HAS_EGG)) {
+        setHasEgg(*val);
+    }
+
+    return Result<void>::ok();
+}
+
+f32 TurtleEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+
+    BlockPos pos(static_cast<i32>(x), static_cast<i32>(y), static_cast<i32>(z));
+
+    // 非回家状态 + 水中：返回 10.0f（偏好水域）
+    if (!m_goingHome) {
+        const fluid::FluidState* fluid = worldPtr->getFluidState(pos);
+        if (fluid != nullptr && !fluid->isEmpty() && fluid->getFluid().isIn(fluid::FluidTags::WATER())) {
+            return 10.0f;
+        }
+    }
+
+    // 沙滩上（脚下是沙子）：返回 10.0f（偏好沙滩产卵）
+    if (_isOnSand(*worldPtr, pos)) {
+        return 10.0f;
+    }
+
+    // 其他位置：基于亮度
+    f32 brightness = worldPtr->getBrightness(pos);
+    return brightness - 0.5f;
+}
+
+bool TurtleEntity::_isOnSand(const IWorld& world, const BlockPos& pos)
+{
+    BlockPos belowPos = pos.down();
+    const BlockState* belowState = world.getBlockState(belowPos);
+    return belowState != nullptr && BlockTags::SAND().contains(*belowState);
 }
 
 void TurtleEntity::travel(const Vector3& travelVec)

@@ -25,6 +25,8 @@
 
 #include "../../../../core/Types.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../core/DataParameter.hpp"
+#include "../../../core/EntityDataManager.hpp"
 #include "../basic/AnimalEntity.hpp"
 #include <memory>
 
@@ -100,22 +102,22 @@ public:
     /**
      * @brief 是否正在产卵
      */
-    [[nodiscard]] bool isLayingEgg() const { return m_layingEgg; }
+    [[nodiscard]] bool isLayingEgg() const;
 
     /**
      * @brief 设置产卵状态
      */
-    void setLayingEgg(bool laying) { m_layingEgg = laying; }
+    void setLayingEgg(bool laying);
 
     /**
      * @brief 是否有蛋
      */
-    [[nodiscard]] bool hasEgg() const { return m_hasEgg; }
+    [[nodiscard]] bool hasEgg() const;
 
     /**
      * @brief 设置是否有蛋
      */
-    void setHasEgg(bool hasEgg) { m_hasEgg = hasEgg; }
+    void setHasEgg(bool hasEgg);
 
     /**
      * @brief 开始产卵动画
@@ -123,7 +125,7 @@ public:
      */
     void startLayEgg()
     {
-        m_layingEgg = true;
+        setLayingEgg(true);
         m_layEggTimer = LAY_EGG_DURATION;
     }
 
@@ -190,9 +192,15 @@ public:
 
     // ========== 寻路权重 ==========
 
-    // TODO: 重写 getPathWeight — 海龟的寻路权重需要特殊逻辑：
-    // 回家状态下水中返回10.0f，沙滩上返回10.0f，否则返回亮度相关值
-    // 对应 MC Turtle.getWalkTargetValue
+    /**
+     * @brief 海龟寻路权重
+     *
+     * 对齐 MC Turtle.getWalkTargetValue：
+     * - 非回家状态 + 水中：返回 10.0f（偏好水域）
+     * - 沙滩上（脚下是沙子）：返回 10.0f（偏好沙滩产卵）
+     * - 其他位置：返回 brightness - 0.5f（基于亮度）
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
 
     // ========== 生命周期 ==========
 
@@ -215,6 +223,13 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 数据同步 ==========
+    void registerData() override;
+
+    // ========== NBT 序列化 ==========
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 private:
     /**
      * @brief 产卵
@@ -223,13 +238,25 @@ private:
      * 需要满足条件：下方是沙子类方块，当前位置为空气。
      */
     void _layEgg();
+
+    /**
+     * @brief 检查指定位置下方是否为沙子
+     *
+     * 对齐 MC TurtleEggBlock.onSand：检查给定位置下方一格是否为沙子类方块。
+     *
+     * @param world 世界引用
+     * @param pos 待检测位置
+     * @return true 如果下方是沙子
+     */
+    [[nodiscard]] static bool _isOnSand(const IWorld& world, const BlockPos& pos);
+
+    // ========== 数据同步参数 ==========
+    static entity::DataParameter<bool> DATA_HAS_EGG_PARAM;
+    static entity::DataParameter<bool> DATA_LAYING_EGG_PARAM;
+
     // 出生位置
     BlockPos m_homePos;
     bool m_hasHomePos = false;
-
-    // 产卵状态
-    bool m_layingEgg = false;
-    bool m_hasEgg = false;
 
     // 行进状态
     bool m_goingHome = false;

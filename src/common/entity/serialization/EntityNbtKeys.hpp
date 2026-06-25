@@ -231,6 +231,13 @@ constexpr const char* SLEEP_TIMER = "SleepTimer";
 
 constexpr const char* STRAY_CONVERSION_TIME = "StrayConversionTime";
 
+// ========== TurtleEntity 键 ==========
+
+constexpr const char* HOME_X = "HomePosX";
+constexpr const char* HOME_Y = "HomePosY";
+constexpr const char* HOME_Z = "HomePosZ";
+constexpr const char* HAS_EGG = "HasEgg";
+
 // ========== ItemStack 子键 ==========
 
 constexpr const char* ITEM_ID = "id";
