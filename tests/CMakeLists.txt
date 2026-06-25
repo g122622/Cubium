@@ -835,6 +835,7 @@ add_executable(mc_tests
     # Explosion system tests
     common/world/explosion/test_explosion.cpp
     common/world/explosion/ExplosionIntegrationTest.cpp
+    common/world/explosion/WitherSkullExplosionContextTest.cpp
     # 灏勭嚎妫€娴嬫祴璇?    common/math/RaycastTest.cpp
     # 视锥剔除测试
     common/util/math/FrustumTest.cpp
