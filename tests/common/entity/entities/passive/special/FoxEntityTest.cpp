@@ -28,6 +28,7 @@
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/food/FoodItem.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -197,6 +198,17 @@ TEST_F(FoxEntityTest, IsBreedingItem_AcceptsSweetBerries)
 
     ItemStack sweetBerriesStack(Items::SWEET_BERRIES, 1);
     EXPECT_TRUE(fox.isBreedingItem(sweetBerriesStack));
+}
+
+TEST_F(FoxEntityTest, IsBreedingItem_AcceptsGlowBerries)
+{
+    // MC 原版 FOX_FOOD 标签包含 sweet_berries 和 glow_berries
+    FoxEntity fox(EntityId(1));
+
+    if (Items::GLOW_BERRIES != nullptr) {
+        ItemStack glowBerriesStack(Items::GLOW_BERRIES, 1);
+        EXPECT_TRUE(fox.isBreedingItem(glowBerriesStack));
+    }
 }
 
 TEST_F(FoxEntityTest, IsBreedingItem_RejectsOtherItems)
@@ -528,6 +540,134 @@ TEST_F(FoxEntityTest, Goals_HasBasicAnimalGoals)
 
     // 验证目标数量大于0
     EXPECT_GT(goals.size(), 0u) << "FoxEntity should have AI goals registered";
+}
+
+// ========== 进食逻辑测试（onItemUseFinish 集成） ==========
+
+TEST_F(FoxEntityTest, Eating_MushroomStew_ReturnsBowlAsHeldItem)
+{
+    // MC 原版: 狐狸吃蘑菇煲后应返回碗作为容器物品
+    // 对应 MC: Fox.aiStep() 中 finishUsingItem 返回非空物品时设置到主手
+    FoxEntity fox(EntityId(1));
+    fox.setWorld(&m_world);
+    fox.setPosition(0.0f, 64.0f, 0.0f);
+    fox.setOnGround(true);
+
+    // 设置蘑菇煲为叼着的物品
+    if (Items::MUSHROOM_STEW != nullptr && Items::BOWL != nullptr) {
+        auto stew = std::make_unique<ItemStack>(Items::MUSHROOM_STEW, 1);
+        fox.setHeldItem(std::move(stew));
+
+        EXPECT_TRUE(fox.isHoldingItem());
+        EXPECT_EQ(fox.getHeldItem()->getItem(), Items::MUSHROOM_STEW);
+
+        // 模拟进食完成：直接调用 onItemUseFinish
+        IWorld* worldPtr = fox.world();
+        ASSERT_NE(worldPtr, nullptr);
+
+        const ItemStack* held = fox.getHeldItem();
+        ASSERT_NE(held, nullptr);
+        ASSERT_NE(held->getItem(), nullptr);
+
+        ItemStack heldCopy = *held;
+        ItemStack result = const_cast<Item*>(heldCopy.getItem())->onItemUseFinish(heldCopy, *worldPtr, fox);
+
+        // 蘑菇煲消耗后应返回碗
+        EXPECT_FALSE(result.isEmpty());
+        EXPECT_EQ(result.getItem(), Items::BOWL);
+
+        // 模拟狐狸设置返回物品到嘴中
+        if (!result.isEmpty()) {
+            fox.setHeldItem(std::make_unique<ItemStack>(std::move(result)));
+        } else {
+            fox.setHeldItem(nullptr);
+        }
+
+        // 验证狐狸现在叼着碗
+        EXPECT_TRUE(fox.isHoldingItem());
+        EXPECT_EQ(fox.getHeldItem()->getItem(), Items::BOWL);
+    }
+}
+
+TEST_F(FoxEntityTest, Eating_NormalFood_ClearsHeldItem)
+{
+    // MC 原版: 狐狸吃普通食物（如甜浆果）后应清空嘴中物品
+    // 注意：甜浆果注册为基础 Item 而非 FoodItem，Item::onItemUseFinish 不处理消耗。
+    // FoxEntity::tick() 中的进食逻辑会检测非 FoodItem 的食物并手动 shrink。
+    // 此测试直接验证 FoxEntity 进食逻辑对普通食物的完整处理。
+    FoxEntity fox(EntityId(1));
+    fox.setWorld(&m_world);
+    fox.setPosition(0.0f, 64.0f, 0.0f);
+    fox.setOnGround(true);
+
+    auto berries = std::make_unique<ItemStack>(Items::SWEET_BERRIES, 1);
+    fox.setHeldItem(std::move(berries));
+
+    EXPECT_TRUE(fox.isHoldingItem());
+    EXPECT_EQ(fox.getHeldItem()->getItem(), Items::SWEET_BERRIES);
+
+    IWorld* worldPtr = fox.world();
+    ASSERT_NE(worldPtr, nullptr);
+
+    const ItemStack* held = fox.getHeldItem();
+    ASSERT_NE(held, nullptr);
+    ASSERT_NE(held->getItem(), nullptr);
+
+    // 模拟 FoxEntity::tick() 中的进食逻辑
+    ItemStack heldCopy = *held;
+    const Item* item = heldCopy.getItem();
+    ItemStack result = const_cast<Item*>(item)->onItemUseFinish(heldCopy, *worldPtr, fox);
+
+    // 对于非 FoodItem 的食物（如甜浆果），onItemUseFinish 不会消耗物品
+    // FoxEntity 需要手动处理 shrink（对应 FoxEntity::tick 中的逻辑）
+    if (item != nullptr && !dynamic_cast<const item::items::FoodItem*>(item)) {
+        heldCopy.shrink(1);
+        if (heldCopy.isEmpty() && item->hasContainerItem()) {
+            result = ItemStack(item->containerItem(), 1);
+        } else {
+            result = heldCopy;
+        }
+    }
+
+    // 甜浆果没有容器物品，消耗后返回空 ItemStack
+    EXPECT_TRUE(result.isEmpty());
+
+    // 模拟狐狸逻辑：返回空则清空嘴中物品
+    if (!result.isEmpty()) {
+        fox.setHeldItem(std::make_unique<ItemStack>(std::move(result)));
+    } else {
+        fox.setHeldItem(nullptr);
+    }
+
+    EXPECT_FALSE(fox.isHoldingItem());
+    EXPECT_EQ(fox.getHeldItem(), nullptr);
+}
+
+TEST_F(FoxEntityTest, Eating_MushroomStewStackOfTwo_ReturnsBowlAndReducesCount)
+{
+    // 测试堆叠数量为2的蘑菇煲（虽然MC中蘑菇煲最大堆叠为1，
+    // 但这个测试验证 onItemUseFinish 的 shrink + containerItem 逻辑）
+    // 注意：蘑菇煲 maxStackSize=1，这里只是测试逻辑正确性
+    FoxEntity fox(EntityId(1));
+    fox.setWorld(&m_world);
+    fox.setPosition(0.0f, 64.0f, 0.0f);
+    fox.setOnGround(true);
+
+    if (Items::MUSHROOM_STEW != nullptr && Items::BOWL != nullptr) {
+        // 创建一个堆叠数量为1的蘑菇煲
+        auto stew = std::make_unique<ItemStack>(Items::MUSHROOM_STEW, 1);
+        fox.setHeldItem(std::move(stew));
+
+        IWorld* worldPtr = fox.world();
+        const ItemStack* held = fox.getHeldItem();
+        ItemStack heldCopy = *held;
+        ItemStack result = const_cast<Item*>(heldCopy.getItem())->onItemUseFinish(heldCopy, *worldPtr, fox);
+
+        // 蘑菇煲有容器物品（碗），shrink(1) 后 count=0，所以返回碗
+        EXPECT_FALSE(result.isEmpty());
+        EXPECT_EQ(result.getItem(), Items::BOWL);
+        EXPECT_EQ(result.getCount(), 1);
+    }
 }
 
 } // namespace

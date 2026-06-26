@@ -26,6 +26,7 @@
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/Item.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/food/FoodItem.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
@@ -484,14 +485,28 @@ void FoxEntity::tick()
         if (isHoldingItem() && canEat()) {
             if (m_ticksSinceEaten > MIN_TICKS_BEFORE_EAT) {
                 // 食用完成：调用 onItemUseFinish 处理物品消耗和效果应用
-                // onItemUseFinish 会减少物品数量、应用食物效果、返回容器物品（如碗）
+                // FoodItem 子类（蘑菇煲等）会在 onItemUseFinish 中处理 shrink 和容器物品返回
+                // 普通食物（甜浆果等，注册为 Item 而非 FoodItem）的 onItemUseFinish 不处理消耗，
+                // 需要在此手动 shrink
                 // 对应 MC 原版: itemstack.finishUsingItem(this.level(), this)
                 const ItemStack* held = getHeldItem();
                 if (held != nullptr && isConsumableFood(*held)) {
                     ItemStack heldCopy = *held;
                     // 注意：const_cast 是安全的，因为 Items 在注册后是不可变的
-                    ItemStack result =
-                        const_cast<Item*>(heldCopy.getItem())->onItemUseFinish(heldCopy, *worldPtr, *this);
+                    const Item* item = heldCopy.getItem();
+                    ItemStack result = const_cast<Item*>(item)->onItemUseFinish(heldCopy, *worldPtr, *this);
+
+                    // 对于非 FoodItem 的食物（如甜浆果），onItemUseFinish 不会消耗物品
+                    // 需要手动处理物品消耗
+                    if (item != nullptr && !dynamic_cast<const item::items::FoodItem*>(item)) {
+                        heldCopy.shrink(1);
+                        // 如果物品有容器物品（非食物路径不太可能，但保持一致性）
+                        if (heldCopy.isEmpty() && item->hasContainerItem()) {
+                            result = ItemStack(item->containerItem(), 1);
+                        } else {
+                            result = heldCopy;
+                        }
+                    }
 
                     // 如果消耗后返回物品不为空（如蘑菇煲返回碗），放入嘴中
                     // 如果消耗后返回物品为空（普通食物完全消耗），清除嘴中物品

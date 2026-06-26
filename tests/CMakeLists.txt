@@ -92,6 +92,7 @@ add_executable(mc_tests
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp
+    common/item/food/FoodItemTest.cpp
     common/item/NewItemTest.cpp
     common/item/ItemCraftedByTest.cpp
     common/item/BlockItemNbtTest.cpp
