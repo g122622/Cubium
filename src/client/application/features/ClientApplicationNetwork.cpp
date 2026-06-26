@@ -1981,6 +1981,25 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
             break;
         }
 
+        case WorldEvents::MOB_SPAWNER_PARTICLES: {
+            // 刷怪笼成功生成实体时爆发烟雾和火焰粒子
+            // 参考 MC: BaseSpawner.serverTick() 成功生成后调用 levelEvent(2004, pos, 0)
+            // 客户端在方块中心2格范围内随机生成20个烟雾粒子和20个火焰粒子
+            {
+                f32 cx = static_cast<f32>(x) + 0.5f;
+                f32 cy = static_cast<f32>(y) + 0.5f;
+                f32 cz = static_cast<f32>(z) + 0.5f;
+                for (i32 i = 0; i < 20; ++i) {
+                    f32 spx = cx + (random.nextFloat() - 0.5f) * 2.0f;
+                    f32 spy = cy + (random.nextFloat() - 0.5f) * 2.0f;
+                    f32 spz = cz + (random.nextFloat() - 0.5f) * 2.0f;
+                    m_world.addParticle(ParticleTypeId::Smoke, Vector3(spx, spy, spz), Vector3(0.0f, 0.0f, 0.0f));
+                    m_world.addParticle(ParticleTypeId::Flame, Vector3(spx, spy, spz), Vector3(0.0f, 0.0f, 0.0f));
+                }
+            }
+            break;
+        }
+
         case WorldEvents::SPAWN_EXPLOSION_PARTICLE: {
             // 爆炸粒子
             m_world.addParticle(ParticleTypeId::HugeExplosion, Vector3(px, py, pz), Vector3(0.0f, 0.0f, 0.0f));

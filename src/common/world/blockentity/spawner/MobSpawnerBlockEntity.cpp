@@ -34,6 +34,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/biome/Biomes.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
@@ -421,8 +422,9 @@ void MobSpawnerBlockEntity::_serverTick(IWorld& world)
     _delay(rng);
 
     if (spawnedAny) {
-        // 通知客户端更新（粒子效果等）
-        // TODO: 发送方块事件通知客户端播放烟雾和火焰粒子
+        // 通知客户端播放刷怪笼生成粒子效果
+        // 参考 MC: BaseSpawner.serverTick() 中成功生成后调用 levelEvent(2004, pos, 0)
+        world.playEvent(world::WorldEvents::MOB_SPAWNER_PARTICLES, m_pos, 0);
     }
 }
 
