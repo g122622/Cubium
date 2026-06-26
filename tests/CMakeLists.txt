@@ -1016,6 +1016,8 @@ add_executable(mc_tests
     common/world/gen/chunk/NoiseChunkGeneratorTest.cpp
     # 地形常识测试
     common/world/gen/chunk/TerrainCommonSenseTest.cpp
+    # 海洋水域生成复现测试
+    common/world/gen/chunk/OceanWaterReproTest.cpp
     # 表面规则一致性测试
     common/world/gen/chunk/SurfaceRuleParityTest.cpp
     # 区块内X轴高度不对称性测试

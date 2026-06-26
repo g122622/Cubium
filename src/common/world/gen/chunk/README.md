@@ -235,3 +235,31 @@ MC 默认超平坦世界启用 `minecraft:villages` 和 `minecraft:strongholds`�
 #### placeFeatures 中的结构放置
 
 在 FEATURES 阶段，按装饰阶段分组放置结构方块（`structuresByStage`），与生物群系特征交错执行，对齐 MC `ChunkGenerator.applyBiomeDecoration()` 的行为。
+
+### 12. getOrCreateNoiseChunk 缓存陷阱（含水层/方块状态规则链失效）
+
+`ChunkPrimer::getOrCreateNoiseChunk(factory)` 会**缓存第一次构造的 NoiseChunk 实例**：首次调用时执行 `factory` lambda 构造并缓存，后续调用直接返回缓存实例，**传入的 factory lambda 不会执行**。
+
+`generateBiomes` 阶段会先调用 `getOrCreateNoiseChunk` 创建并缓存 NoiseChunk（用于气候采样），因此 `generateNoise` 阶段再调用 `getOrCreateNoiseChunk` 时，传入的 factory lambda **被静默跳过**。
+
+**曾出现的 bug**：把含水层（`Aquifer`）和方块状态规则链（`MaterialRuleList`）的设置写在 `generateNoise` 的 factory lambda 内 → 永远不会执行 → `noiseChunk.aquifer()` 为 `nullptr` → 海洋群系地形正确（seafloor ~Y=34）但海平面以下全是空气（无水）。症状：玩家进入海洋群系，地形高度正确但地表完全无水。
+
+**正确写法**（见 `NoiseChunkGenerator.cpp::_generateNoiseWithDensityFunction`）：
+
+```cpp
+// Beardifier 是 NoiseChunk 构造的一部分，放在 factory lambda 中
+auto& noiseChunk = chunk.getOrCreateNoiseChunk([...]() {
+    auto beardifierDf = std::make_unique<Beardifier>(_buildBeardifier(region, chunk));
+    return std::make_unique<NoiseChunk>(..., std::move(beardifierDf));
+});
+
+// 含水层/方块状态规则链必须在 lambda 之外设置，并用 aquifer()==nullptr 守卫确保只设置一次
+if (noiseChunk.aquifer() == nullptr) {
+    noiseChunk.setAquifer(...);
+    noiseChunk.setBlockStateRule(...);
+}
+```
+
+**规则**：任何依赖"每个生成阶段都必须生效"的状态（aquifer、blockStateRule 等）都**不能**放在 `getOrCreateNoiseChunk` 的 factory lambda 中；只有 NoiseChunk 构造期必需的参数（路由器、Beardifier、cell 尺寸）才放进去。设置共享状态时用 `aquifer() == nullptr`（或对应 getter）做幂等守卫。
+
+**复现/回归测试**：`tests/common/world/gen/chunk/OceanWaterReproTest.cpp`（种子 114514，海洋列海平面下方必须有水方块）。

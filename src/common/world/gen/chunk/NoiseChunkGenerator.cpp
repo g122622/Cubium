@@ -918,7 +918,7 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
     // MC 1.21: 通过 ChunkPrimer 缓存 NoiseChunk，确保 biomes/noise/surface/carvers 阶段共享
     const i32 startBlockY = m_settings.noise.minY;
     const i32 cellCountY = math::floorDiv(m_settings.noise.height, m_cellHeight);
-    auto& noiseChunk = chunk.getOrCreateNoiseChunk([&]() {
+    auto& noiseChunk = chunk.getOrCreateNoiseChunk([this, cellCountY, startX, startBlockY, startZ, &region, &chunk]() {
         // MC 1.21: NoiseChunk 拥有自己的路由器副本，mapAll() 会将 Marker 替换为区块特定实现
         // Beardifier 在构造时集成到密度函数树中（叠加到 finalDensity 上）
         auto beardifierDf = std::make_unique<world::gen::density::Beardifier>(_buildBeardifier(region, chunk));
@@ -930,55 +930,59 @@ void NoiseChunkGenerator::_generateNoiseWithDensityFunction(WorldGenRegion& regi
             startBlockY,
             startZ,
             std::move(beardifierDf));
-
-        // MC 1.21: 创建含水层采样器
-        {
-            // 使用 RandomState 中的 aquiferRandom（与 MC 1.21 RandomState.aquiferRandom() 对应）
-            auto positionalRandom = std::make_unique<math::PositionalRandomFactory>(
-                m_randomState->aquiferRandom().seedLo(), m_randomState->aquiferRandom().seedHi());
-
-            // MC 1.21: 使用缓存的全局流体选择器
-            auto fluidPickerCopy = m_globalFluidPicker;
-
-            if (m_settings.noise.aquifersEnabled) {
-                auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(*nc,
-                    chunkX,
-                    chunkZ,
-                    nc->router(),
-                    *positionalRandom,
-                    m_settings.noise.minY,
-                    m_settings.noise.height,
-                    std::move(fluidPickerCopy));
-
-                // MC 1.21: 构建 BlockStateFiller 链
-                // AquiferFiller: 传入密度值，aquifer 确定流体/空气
-                auto* aquiferPtr = aquifer.get();
-                nc->setAquifer(std::move(aquifer));
-
-                std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
-                fillers.push_back(std::make_unique<world::gen::density::AquiferFiller>(*aquiferPtr));
-
-                // MC 1.21: 仅启用矿脉的维度添加 OreVeinifier
-                // oreVeinsEnabled 控制是否生成矿脉（主世界=true，下界/末地=false）
-                if (m_settings.oreVeinsEnabled) {
-                    auto& router = nc->router();
-                    fillers.push_back(std::make_unique<world::gen::density::OreVeinifier>(
-                        router.veinToggle(), router.veinRidged(), router.veinGap(), *positionalRandom));
-                }
-
-                nc->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
-            } else {
-                nc->setAquifer(world::gen::aquifer::Aquifer::createDisabled(m_globalFluidPicker));
-
-                // 禁用含水层时: density > 0 → nullptr(density > 0 → defaultBlock outside), density <= 0 → check fluid
-                std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
-                fillers.push_back(std::make_unique<world::gen::density::DisabledAquiferFiller>(
-                    m_settings.defaultFluid, m_settings.seaLevel));
-                nc->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
-            }
-        }
         return nc;
     });
+
+    // MC 1.21: 含水层采样器和方块状态规则链必须在 NoiseChunk 上设置。
+    // 【重要】不能放在 getOrCreateNoiseChunk 的 factory lambda 中：generateBiomes 阶段会先创建
+    // NoiseChunk（用于气候采样），getOrCreateNoiseChunk 会缓存该实例，导致 generateNoise 阶段
+    // 传入的 factory lambda 不会执行，含水层/方块状态规则链永远不会被设置。
+    // 这里在获取 NoiseChunk 之后设置，并用 aquifer()==nullptr 守卫确保只设置一次。
+    if (noiseChunk.aquifer() == nullptr) {
+        // 使用 RandomState 中的 aquiferRandom（与 MC 1.21 RandomState.aquiferRandom() 对应）
+        auto positionalRandom = std::make_unique<math::PositionalRandomFactory>(
+            m_randomState->aquiferRandom().seedLo(), m_randomState->aquiferRandom().seedHi());
+
+        // MC 1.21: 使用缓存的全局流体选择器
+        auto fluidPickerCopy = m_globalFluidPicker;
+
+        if (m_settings.noise.aquifersEnabled) {
+            auto aquifer = world::gen::aquifer::Aquifer::createNoiseBased(noiseChunk,
+                chunkX,
+                chunkZ,
+                noiseChunk.router(),
+                *positionalRandom,
+                m_settings.noise.minY,
+                m_settings.noise.height,
+                std::move(fluidPickerCopy));
+
+            // MC 1.21: 构建 BlockStateFiller 链
+            // AquiferFiller: 传入密度值，aquifer 确定流体/空气
+            auto* aquiferPtr = aquifer.get();
+            noiseChunk.setAquifer(std::move(aquifer));
+
+            std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
+            fillers.push_back(std::make_unique<world::gen::density::AquiferFiller>(*aquiferPtr));
+
+            // MC 1.21: 仅启用矿脉的维度添加 OreVeinifier
+            // oreVeinsEnabled 控制是否生成矿脉（主世界=true，下界/末地=false）
+            if (m_settings.oreVeinsEnabled) {
+                auto& router = noiseChunk.router();
+                fillers.push_back(std::make_unique<world::gen::density::OreVeinifier>(
+                    router.veinToggle(), router.veinRidged(), router.veinGap(), *positionalRandom));
+            }
+
+            noiseChunk.setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
+        } else {
+            noiseChunk.setAquifer(world::gen::aquifer::Aquifer::createDisabled(m_globalFluidPicker));
+
+            // 禁用含水层时: density > 0 → nullptr(density > 0 → defaultBlock outside), density <= 0 → check fluid
+            std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
+            fillers.push_back(std::make_unique<world::gen::density::DisabledAquiferFiller>(
+                m_settings.defaultFluid, m_settings.seaLevel));
+            noiseChunk.setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
+        }
+    }
 
     // MC 1.21: Beardifier 已集成到 NoiseChunk 密度函数树中，
     // 无需在外部逐方块计算，finalDensity().compute() 已包含 Beardifier 贡献

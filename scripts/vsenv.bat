@@ -18,4 +18,10 @@ if not exist "%VSDEVCMD%" (
 )
 
 call "%VSDEVCMD%" -arch=amd64 -host_arch=amd64 -no_logo
+
+REM Override VCPKG_ROOT to use our own vcpkg on E: drive instead of VS-bundled one
+REM (VS-bundled vcpkg stores its cache on C: drive which may run out of space)
+set "VCPKG_ROOT=E:\vcpkg"
+set "VCPKG_DEFAULT_BINARY_CACHE=E:\vcpkg\binary-cache"
+
 exit /b %errorlevel%

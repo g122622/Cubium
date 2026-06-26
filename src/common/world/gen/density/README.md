@@ -150,6 +150,8 @@ MC 1.21 中各密度的缓存层不同：
 
 当前使用 `constant(0.0)` 占位。MC 原版使用 `findTopSurface` 密度函数向下搜索密度 > 0 的位置，影响含水层水位和结构放置。完整实现需要 FindTopSurface 密度函数类和 remap 辅助函数。
 
+**已知影响范围**：此占位**不影响海洋地表水域生成**——海洋海平面以下的水由 `NoiseBasedAquifer::computeSubstance` 的快速路径 `blockY > m_skipSamplingAboveY` 直接返回全局流体（`createOverworldFluidPicker(seaLevel=63, WATER)` 在 y<63 返回水）填充，与 preliminarySurfaceLevel 无关。该占位仅影响含水层**内部精度**：洞穴水位、地下水水位、含水层边界过渡可能偏离原版（因为 `m_skipSamplingAboveY` 和含水层条带高度依赖 `maxPreliminarySurfaceLevel`）。完整实现优先级低于地表水域，可在后续独立任务中补齐。
+
 ### 12. BlendDensity
 
 当前为恒等函数（直接返回输入）。MC 原版通过 Blender.blendDensity() 实现旧区块混合，与 BlendAlpha/BlendOffset 一起用于区块边界平滑过渡。需要实现 BlendDensity 密度函数类和 Blender 系统后才能完整支持。
