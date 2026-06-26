@@ -64,6 +64,15 @@ public:
     [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     /**
+     * @brief 处理悬挂实体受到伤害
+     *
+     * 悬挂实体（画、物品展示框、拴绳结）被任何伤害一击即毁。
+     * 当 mobGriefing 游戏规则关闭时，生物造成的伤害不会影响悬挂实体。
+     * 对应 MC Java 的 BlockAttachedEntity.hurtServer()。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
      * @brief 设置悬挂位置
      */
     void setHangingPosition(BlockPos pos, Direction direction);

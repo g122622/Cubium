@@ -57,6 +57,17 @@ ProjectileEntity::ProjectileEntity(EntityId id)
     m_noGravity = false;
 }
 
+bool ProjectileEntity::hurt(DamageSource& source, f32 /*amount*/)
+{
+    // MC Java: Projectile.hurtServer()
+    // 投掷物不可被伤害，但当来源非无敌时标记 hurtMarked 以同步速度到客户端。
+    // 这使得投掷物在被击中时会产生击退效果（如恶魂火球被反射时的速度同步）。
+    if (!isInvulnerableTo(source)) {
+        markHurt();
+    }
+    return false;
+}
+
 void ProjectileEntity::tick()
 {
     if (!m_leftShooter) {

@@ -63,6 +63,17 @@ std::unique_ptr<Entity> FallingBlockEntity::create(IWorld* /*world*/)
     return std::make_unique<FallingBlockEntity>();
 }
 
+bool FallingBlockEntity::hurt(DamageSource& source, f32 /*amount*/)
+{
+    // MC Java: FallingBlockEntity.hurtServer()
+    // 下落方块不可被伤害，但当来源非无敌时标记 hurtMarked 以同步速度到客户端。
+    // 这使得下落方块在被击中时会产生击退效果（速度同步）。
+    if (!isInvulnerableTo(source)) {
+        markHurt();
+    }
+    return false;
+}
+
 void FallingBlockEntity::tick()
 {
     Entity::tick();

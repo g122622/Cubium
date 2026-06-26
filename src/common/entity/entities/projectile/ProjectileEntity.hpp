@@ -100,6 +100,15 @@ public:
 
     void tick() override;
 
+    /**
+     * @brief 处理投掷物实体受到伤害
+     *
+     * 投掷物不可被伤害，但当来源非无敌时标记 hurtMarked 以同步速度到客户端。
+     * 这使得投掷物在被击中时会产生击退效果（如恶魂火球被反射时的速度同步）。
+     * 对应 MC Java 的 Projectile.hurtServer()。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
     // ========== 投掷物属性 ==========
 
     /**

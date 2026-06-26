@@ -24,6 +24,8 @@
 #include "ExperienceOrbEntity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceManager.hpp"
 #include "common/entity/experience/ExperienceUtils.hpp"
@@ -33,6 +35,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -94,6 +98,43 @@ void ExperienceOrbEntity::tick()
         remove();
         return;
     }
+}
+
+// ============================================================================
+// 伤害处理
+// ============================================================================
+
+bool ExperienceOrbEntity::hurt(DamageSource& source, f32 amount)
+{
+    // MC Java: ExperienceOrb.hurtServer()
+    // 经验球可以被间接伤害（火焰、岩浆、爆炸等），但不能被玩家直接攻击
+
+    // 1. 检查无敌状态
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+
+    // 2. 标记受伤（触发速度同步到客户端）
+    markHurt();
+
+    // 3. 减少生命值
+    m_health = static_cast<i32>(m_health - amount);
+
+    // 4. 发送 ENTITY_DAMAGE 游戏事件（用于幽匿感测体检测）
+    if (m_world != nullptr) {
+        BlockPos blockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)),
+            static_cast<i32>(std::floor(m_position.z)));
+        m_world->gameEvent(
+            gameevent::GameEvents::ENTITY_DAMAGE, blockPos, gameevent::GameEvent::Context::of(source.getEntity()));
+    }
+
+    // 5. 如果生命值降至 0 或以下，销毁经验球
+    if (m_health <= 0) {
+        discard();
+    }
+
+    return true;
 }
 
 // ============================================================================

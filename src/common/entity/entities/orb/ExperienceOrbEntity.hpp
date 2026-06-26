@@ -121,6 +121,15 @@ public:
     // 无战利品表，覆写基类方法返回空字符串
     [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
+    /**
+     * @brief 处理经验球实体受到伤害
+     *
+     * 经验球有 5 点生命值，受到伤害时减少生命值。
+     * 当生命值降至 0 或以下时，经验球被销毁（调用 discard()）。
+     * 对应 MC Java 的 ExperienceOrb.hurtServer()。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
     // ========== 经验相关 ==========
 
     /**
