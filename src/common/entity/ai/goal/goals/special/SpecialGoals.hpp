@@ -81,24 +81,6 @@ private:
 };
 
 /**
- * @brief 末影人传送目标
- *
- * 当受到攻击或看向玩家时传送。
- *
- * TODO: 完整实现末影人传送逻辑
- */
-class EndermanTeleportGoal : public Goal {
-public:
-    explicit EndermanTeleportGoal(void* enderman)
-        : Goal(EnumSet<GoalFlag>{GoalFlag::Move})
-    {}
-    bool shouldExecute() override { return false; }
-    bool shouldContinueExecuting() override { return false; }
-    void startExecuting() override {}
-    void tick() override {}
-};
-
-/**
  * @brief 羊驼跟随商队目标
  *
  * 羊驼会跟随领头的羊驼形成商队。
