@@ -40,7 +40,7 @@
 #include "../ai/controller/MovementController.hpp"
 #include "../ai/pathfinding/PathNavigator.hpp"
 #include "../attribute/Attributes.hpp"
-#include "../combat/DifficultyHelper.hpp"
+#include "../combat/DifficultyInstance.hpp"
 #include "../combat/PlayerAttackHelper.hpp"
 #include "../core/AgeableEntity.hpp"
 #include "../damage/DamageSource.hpp"
@@ -53,6 +53,8 @@
 #include "EntityRegistry.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "EntityTypeIdNumber.hpp"
+
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
@@ -593,7 +595,8 @@ bool MobEntity::_spawnOffspringFromSpawnEgg(Player& player, const item::SpawnEgg
     babyMob->setRotation(yaw(), pitch());
 
     // 初始化生成
-    entity::combat::DifficultyInstance difficultyInstance(m_world->difficulty());
+    entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*m_world,
+        BlockPos(static_cast<i32>(std::floor(x())), static_cast<i32>(y()), static_cast<i32>(std::floor(z()))));
     babyMob->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::SpawnEgg);
 
     // 将幼体添加到世界

@@ -25,7 +25,12 @@
 
 #include "common/core/Types.hpp"
 
-namespace mc::entity::combat {
+namespace mc {
+
+class IWorld;
+class BlockPos;
+
+namespace entity::combat {
 
 /**
  * @brief 区域难度实例
@@ -53,11 +58,24 @@ public:
     DifficultyInstance(Difficulty baseDifficulty, i64 worldTime, i64 chunkInhabitedTime, f32 moonPhaseFactor);
 
     /**
+     * @brief 在指定位置创建区域难度实例
+     *
+     * 对应 MC 原版 ServerLevel.getCurrentDifficultyAt(BlockPos)。
+     * 从世界和时间信息中自动提取所有参数，包括世界运行时间、
+     * 区块居住时间和月相因子。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置（用于获取区块居住时间）
+     * @return 区域难度实例
+     */
+    [[nodiscard]] static DifficultyInstance at(const IWorld& world, const BlockPos& pos);
+
+    /**
      * @brief 简化构造，仅基于基础难度
      *
      * 不考虑世界时间、区块居住时间和月相，
      * 有效难度直接使用基础难度的固定倍率。
-     * 适用于不需要精确位置感知的场景。
+     * 适用于不需要精确位置感知的场景（如测试、命令生成等）。
      *
      * @param baseDifficulty 基础难度等级
      */
@@ -136,4 +154,5 @@ private:
     static constexpr f32 MAX_DIFFICULTY_TIME_LOCAL = 3600000.0f;
 };
 
-} // namespace mc::entity::combat
+} // namespace entity::combat
+} // namespace mc

@@ -88,22 +88,30 @@ f32 damage = DifficultyHelper::adjustPlayerDamage(Difficulty::Easy, baseDamage);
 // 例如：damage=10 -> min(5+1, 10) = 6，而不是 5
 ```
 
-### 3. DifficultyInstance 的简化构造 vs 完整构造
+### 3. DifficultyInstance 的简化构造 vs 位置感知构造
 
 ```cpp
-// 简化构造：仅基于全局难度，不考虑位置和时间因素
-DifficultyInstance diff(Difficulty::Hard);
-// 适用于 VillageSiege、NaturalSpawner 等不需要精确位置感知的场景
+// 位置感知构造（推荐）：考虑世界时间、区块居住时间和月相
+DifficultyInstance diff = DifficultyInstance::at(world, blockPos);
+// 适用于所有实体生成场景：NaturalSpawner、VillageSiege、Raid、SummonCommand 等
 
-// 完整构造：考虑世界时间、区块居住时间和月相
-DifficultyInstance diff(Difficulty::Hard, worldTime, chunkInhabitedTime, moonPhase);
-// 适用于需要精确区域难度的场景
+// 手动全参数构造：适合特殊场景
+DifficultyInstance diff(Difficulty::Hard, worldTime, chunkInhabitedTime, moonPhaseFactor);
+
+// 简化构造（仅用于测试或不需要位置感知的场景）
+DifficultyInstance diff(Difficulty::Hard);
 ```
+
+位置感知构造的 effectiveDifficulty 范围（随世界时间和区块居住时间递增）：
+- Peaceful: 固定 0.0
+- Easy: 0.75 ~ ~1.375
+- Normal: 1.5 ~ ~3.5
+- Hard: 2.25 ~ ~6.0
 
 简化构造的 effectiveDifficulty = DifficultyHelper::getRegionalDifficultyBase(difficulty) * difficultyId：
 - Peaceful=0.0, Easy=0.75, Normal=2.0, Hard=3.0
 - Normal 的 specialMultiplier=0.0（因为 2.0 不小于 2.0），导致 Normal 难度不会生成装备！
-- 这是预期行为：MC 原版中，刚创建的世界（时间=0）确实不会生成装备。
+- 这是预期行为：简化构造等价于新创建世界（时间=0）的区域难度。
 
 ### 4. 暴击判定的 6 个条件必须全部满足
 

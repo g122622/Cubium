@@ -437,7 +437,7 @@ EntityId Raid::_spawnRaider(IWorld& world, RaiderType type, BlockPos pos)
     // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
     auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
     if (mobEntity != nullptr) {
-        entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, pos);
         mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
     }
 

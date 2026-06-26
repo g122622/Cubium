@@ -41,6 +41,7 @@
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/chunk/load/ChunkLoadTicketManager.hpp"
 #include "common/world/entity/EntityManager.hpp"
@@ -569,7 +570,8 @@ i32 NaturalSpawner::_trySpawnAt(
         // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
         auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
         if (mobEntity != nullptr) {
-            entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+            entity::combat::DifficultyInstance difficultyInstance =
+                entity::combat::DifficultyInstance::at(world, BlockPos(x, y, z));
             mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Natural);
         }
 
