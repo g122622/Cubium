@@ -29,6 +29,7 @@
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -261,11 +262,11 @@ void SkeletonHorseEntity::triggerTrap()
         }
     }
 
-    // TODO: 当闪电实体实现后，在此处添加闪电视觉效果
-    // LightningBoltEntity lightning = EntityType.LIGHTNING_BOLT.create(serverworld);
-    // lightning.moveForced(horsePos.x, horsePos.y, horsePos.z);
-    // lightning.setEffectOnly(true);  // 只有视觉效果，不造成伤害
-    // serverworld.addEntity(lightning);
+    // 在骷髅马位置生成纯视觉效果闪电（不造成伤害、不点燃方块）
+    auto lightning = std::make_unique<entity::LightningBoltEntity>();
+    lightning->setPosition(horsePos);
+    lightning->setEffectOnly(true);
+    world->spawnEntity(std::move(lightning));
 }
 
 void SkeletonHorseEntity::onStruckByLightning()
