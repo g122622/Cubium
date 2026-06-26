@@ -29,6 +29,8 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/illager/IllusionerEntity.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -78,6 +80,12 @@ void IllusionerSpellGoal::startExecuting()
     // 设置施法状态
     m_illusioner->setSpellType(getSpellType());
     m_illusioner->setSpellTicks(m_spellWarmup + getCastingTime());
+
+    // 播放施法准备音效
+    const char* prepareSound = getSpellPrepareSoundId();
+    if (prepareSound != nullptr && prepareSound[0] != '\0') {
+        m_illusioner->playSound(ResourceLocation(prepareSound), 1.0f, 1.0f);
+    }
 }
 
 void IllusionerSpellGoal::resetTask()
@@ -109,6 +117,9 @@ void IllusionerSpellGoal::tick()
         if (m_spellWarmup <= 0) {
             // 执行施法
             castSpell();
+
+            // 播放施法完成音效
+            m_illusioner->playSound(SoundEvents::ENTITY_ILLUSIONER_CAST_SPELL, 1.0f, 1.0f);
         }
     }
 }
@@ -138,14 +149,14 @@ bool IllusionerBlindnessSpellGoal::shouldExecute()
         return false;
     }
 
-    // 检查难度是否为困难
+    // 难度必须 >= Normal（原版 isHarderThan(Difficulty.NORMAL)）
     IWorld* world = m_illusioner->world();
     if (world == nullptr) {
         return false;
     }
 
     Difficulty difficulty = world->difficulty();
-    if (difficulty != Difficulty::Hard) {
+    if (difficulty < Difficulty::Normal) {
         return false;
     }
 
@@ -205,6 +216,11 @@ SpellcastingIllagerEntity::SpellType IllusionerBlindnessSpellGoal::getSpellType(
     return SpellcastingIllagerEntity::SpellType::Blindness;
 }
 
+const char* IllusionerBlindnessSpellGoal::getSpellPrepareSoundId() const
+{
+    return "entity.illusioner.prepare_blindness";
+}
+
 // ============================================================================
 // IllusionerMirrorSpellGoal - 镜像法术（隐身）
 // ============================================================================
@@ -258,14 +274,16 @@ void IllusionerMirrorSpellGoal::castSpell()
     );
 
     m_illusioner->addEffect(std::move(invisibility));
-
-    // TODO: 客户端粒子效果和音效
-    // 在客户端，幻术师隐身时会生成云粒子和播放镜像移动音效
 }
 
 SpellcastingIllagerEntity::SpellType IllusionerMirrorSpellGoal::getSpellType() const
 {
     return SpellcastingIllagerEntity::SpellType::Disappear;
+}
+
+const char* IllusionerMirrorSpellGoal::getSpellPrepareSoundId() const
+{
+    return "entity.illusioner.prepare_mirror";
 }
 
 } // namespace mc::entity::ai::goal
