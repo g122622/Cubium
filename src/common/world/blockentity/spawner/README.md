@@ -71,3 +71,11 @@ NBT 格式：`SpawnData.CustomSpawnRules.block_light_limit` 和 `sky_light_limit
 ### 6. 和平难度下非和平生物不生成
 
 当 CustomSpawnRules 存在且实体分类为 Monster 时，和平难度下刷怪笼不会生成该实体（与 MC Java BaseSpawner 行为一致）。
+
+### 7. 成功生成实体时播放粒子事件
+
+刷怪笼成功生成实体后，会通过 `IWorld::playEvent(WorldEvents::MOB_SPAWNER_PARTICLES, pos, 0)` 通知客户端播放爆发粒子效果（2004 号世界事件）。客户端收到后在方块中心 2 格范围内随机生成 20 个烟雾粒子和 20 个火焰粒子。参考 MC Java `BaseSpawner.serverTick()` 中成功生成后调用 `levelEvent(2004, pos, 0)` 的逻辑。
+
+### 8. 客户端持续粒子效果（animateTick）
+
+刷怪笼方块 `SpawnerBlock::animateTick()` 每客户端 tick 在方块内随机位置生成 1 个烟雾粒子和 1 个火焰粒子，两者共享同一随机坐标。参考 MC Java `BaseSpawner.clientTick()` 中的持续粒子逻辑。注意这是与生成事件粒子独立的、持续播放的视觉效果。

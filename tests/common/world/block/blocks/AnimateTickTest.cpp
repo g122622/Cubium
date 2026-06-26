@@ -31,6 +31,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/block/blocks/cave/SporeBlossomBlock.hpp"
+#include "common/world/block/blocks/mob/SpawnerBlock.hpp"
 #include "common/world/block/blocks/ocean/BubbleColumnBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
@@ -308,6 +309,110 @@ TEST_F(AnimateTickTest, MockContext_GetBlockState_ReturnsStateForSet)
     context_.setBlockAt(BlockPos(0, 0, 0), stoneState);
 
     EXPECT_EQ(context_.getBlockState(0, 0, 0), stoneState);
+}
+
+// ========== SpawnerBlock::animateTick 测试 ==========
+
+TEST_F(AnimateTickTest, SpawnerBlock_GeneratesSmokeAndFlameParticles)
+{
+    auto spawner = std::make_unique<SpawnerBlock>(BlockProperties(Material::ROCK).hardness(5.0f).resistance(5.0f));
+    ASSERT_NE(spawner, nullptr);
+
+    const BlockState& state = spawner->defaultState();
+    BlockPos pos(10, 20, 30);
+    math::Random rng(42);
+
+    // 调用 animateTick
+    spawner->animateTick(context_, pos, state, rng);
+
+    // 应该生成恰好 2 个粒子：1 个 Smoke + 1 个 Flame
+    ASSERT_EQ(context_.particleCount(), 2u);
+
+    // 第一个粒子应该是 Smoke
+    EXPECT_EQ(context_.particles()[0].type, client::renderer::trident::particle::ParticleTypeId::Smoke);
+    // 第二个粒子应该是 Flame
+    EXPECT_EQ(context_.particles()[1].type, client::renderer::trident::particle::ParticleTypeId::Flame);
+}
+
+TEST_F(AnimateTickTest, SpawnerBlock_ParticlesPositionWithinBlockBounds)
+{
+    auto spawner = std::make_unique<SpawnerBlock>(BlockProperties(Material::ROCK).hardness(5.0f).resistance(5.0f));
+    const BlockState& state = spawner->defaultState();
+    BlockPos pos(10, 20, 30);
+    math::Random rng(42);
+
+    spawner->animateTick(context_, pos, state, rng);
+
+    ASSERT_EQ(context_.particleCount(), 2u);
+
+    // 验证粒子位置在方块范围内 [pos.x, pos.x+1) × [pos.y, pos.y+1) × [pos.z, pos.z+1)
+    for (const auto& p : context_.particles()) {
+        EXPECT_GE(p.pos.x, static_cast<f32>(pos.x));
+        EXPECT_LT(p.pos.x, static_cast<f32>(pos.x) + 1.0f);
+        EXPECT_GE(p.pos.y, static_cast<f32>(pos.y));
+        EXPECT_LT(p.pos.y, static_cast<f32>(pos.y) + 1.0f);
+        EXPECT_GE(p.pos.z, static_cast<f32>(pos.z));
+        EXPECT_LT(p.pos.z, static_cast<f32>(pos.z) + 1.0f);
+    }
+}
+
+TEST_F(AnimateTickTest, SpawnerBlock_ParticlesHaveZeroVelocity)
+{
+    auto spawner = std::make_unique<SpawnerBlock>(BlockProperties(Material::ROCK).hardness(5.0f).resistance(5.0f));
+    const BlockState& state = spawner->defaultState();
+    BlockPos pos(0, 0, 0);
+    math::Random rng(42);
+
+    spawner->animateTick(context_, pos, state, rng);
+
+    ASSERT_EQ(context_.particleCount(), 2u);
+
+    // 刷怪笼粒子的速度应为零
+    for (const auto& p : context_.particles()) {
+        EXPECT_FLOAT_EQ(p.velocity.x, 0.0f);
+        EXPECT_FLOAT_EQ(p.velocity.y, 0.0f);
+        EXPECT_FLOAT_EQ(p.velocity.z, 0.0f);
+    }
+}
+
+TEST_F(AnimateTickTest, SpawnerBlock_ParticlesAtSamePosition)
+{
+    auto spawner = std::make_unique<SpawnerBlock>(BlockProperties(Material::ROCK).hardness(5.0f).resistance(5.0f));
+    const BlockState& state = spawner->defaultState();
+    BlockPos pos(5, 10, 15);
+    math::Random rng(99);
+
+    spawner->animateTick(context_, pos, state, rng);
+
+    ASSERT_EQ(context_.particleCount(), 2u);
+
+    // Smoke 和 Flame 粒子应在同一位置（同一随机坐标）
+    // 参考 MC: BaseSpawner.clientTick() 中 d0/d1/d2 位置同时用于两种粒子
+    EXPECT_FLOAT_EQ(context_.particles()[0].pos.x, context_.particles()[1].pos.x);
+    EXPECT_FLOAT_EQ(context_.particles()[0].pos.y, context_.particles()[1].pos.y);
+    EXPECT_FLOAT_EQ(context_.particles()[0].pos.z, context_.particles()[1].pos.z);
+}
+
+TEST_F(AnimateTickTest, SpawnerBlock_DifferentSeedsProduceDifferentPositions)
+{
+    auto spawner = std::make_unique<SpawnerBlock>(BlockProperties(Material::ROCK).hardness(5.0f).resistance(5.0f));
+    const BlockState& state = spawner->defaultState();
+    BlockPos pos(0, 0, 0);
+
+    // 使用不同种子的随机数生成器
+    math::Random rng1(42);
+    context_.clear();
+    spawner->animateTick(context_, pos, state, rng1);
+    auto pos1 = context_.particles()[0].pos;
+
+    math::Random rng2(123);
+    context_.clear();
+    spawner->animateTick(context_, pos, state, rng2);
+    auto pos2 = context_.particles()[0].pos;
+
+    // 不同种子应该产生不同的随机位置（极大概率）
+    bool differentPosition = (pos1.x != pos2.x) || (pos1.y != pos2.y) || (pos1.z != pos2.z);
+    EXPECT_TRUE(differentPosition);
 }
 
 } // namespace

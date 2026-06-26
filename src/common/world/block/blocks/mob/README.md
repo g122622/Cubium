@@ -20,7 +20,7 @@ Block (基类)
     ├── BeehiveBlock      → 需要 BeehiveBlockEntity（蜜蜂存储、蜂蜜等级管理）
     ├── TurtleEggBlock    → 状态属性: EGGS_1_4, HATCH_0_2
     ├── InfestedBlock     → 静态映射表管理虫蚀方块关系
-    ├── SpawnerBlock      → 需要 SpawnerBlockEntity（待实现生物生成）
+    ├── SpawnerBlock      → 需要 MobSpawnerBlockEntity（周期性生物生成）
     └── DragonBreathBlock → 纯视觉方块，无碰撞无伤害；龙息伤害由 AreaEffectCloudEntity 处理
 ```
 
@@ -73,3 +73,4 @@ Block (基类)
 - **方块实体**：`hasBlockEntity()` 返回 `true`，`createBlockEntity()` 创建 `MobSpawnerBlockEntity`
 - **刷怪笼生成逻辑**：`MobSpawnerBlockEntity` 实现 `tick()` 周期性生成实体，支持加权候选列表、自定义光照规则、NBT 持久化
 - **结构集成**：要塞传送门房间通过 `setEntityId()` 配置蠹虫刷怪笼
+- **客户端动画**：`animateTick()` 每客户端 tick 在方块内随机位置生成 1 个烟雾粒子（Smoke）和 1 个火焰粒子（Flame），两者共享同一随机坐标。参考 MC Java `BaseSpawner.clientTick()` 中的持续粒子逻辑。这与成功生成实体时的爆发粒子效果（`WorldEvents::MOB_SPAWNER_PARTICLES`）是独立的

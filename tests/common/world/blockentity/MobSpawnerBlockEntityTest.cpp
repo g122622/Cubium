@@ -33,6 +33,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
@@ -94,6 +95,21 @@ public:
     }
     const std::vector<Entity*>& spawnedEntities() const { return m_spawnedEntities; }
 
+    // playEvent 记录
+    struct PlayEventCall {
+        i32 eventId;
+        BlockPos pos;
+        i32 data;
+    };
+
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        m_playEventCalls.push_back({eventId, pos, data});
+    }
+
+    [[nodiscard]] const std::vector<PlayEventCall>& playEventCalls() const { return m_playEventCalls; }
+    void clearPlayEventCalls() { m_playEventCalls.clear(); }
+
 private:
     u64 m_currentTick = 0;
     u64 m_seed = 12345;
@@ -102,6 +118,7 @@ private:
     std::vector<Entity*> m_spawnedEntities;
     std::vector<std::unique_ptr<Entity>> m_ownedEntities;
     u64 m_nextEntityId = 0;
+    std::vector<PlayEventCall> m_playEventCalls;
 };
 
 // ============================================================================
@@ -1210,4 +1227,114 @@ TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightBelowMin_BlocksSpawn)
     spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
 
     EXPECT_FALSE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+// ============================================================================
+// playEvent（刷怪笼生成粒子事件）测试
+// ============================================================================
+
+class MobSpawnerPlayEventTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        entity::VanillaEntities::registerAll();
+        spawner_ = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+        world_ = std::make_unique<MobSpawnerTestWorld>();
+
+        // 先设置延迟参数，再调用 setEntityId（setEntityId 内部会调用 _delay 重置延迟）
+        spawner_->setMinSpawnDelay(0);
+        spawner_->setMaxSpawnDelay(0);
+        spawner_->setRequiredPlayerRange(0);
+        spawner_->setSpawnCount(1);
+        spawner_->setMaxNearbyEntities(6);
+        spawner_->setSpawnRange(1);
+
+        math::Random rng(42);
+        spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+        world_->setSeed(12345);
+        world_->setCurrentTick(100);
+        world_->setDifficulty(Difficulty::Easy);
+    }
+
+    void TearDown() override {}
+
+    std::unique_ptr<MobSpawnerBlockEntity> spawner_;
+    std::unique_ptr<MobSpawnerTestWorld> world_;
+};
+
+TEST_F(MobSpawnerPlayEventTest, Tick_SpawnSuccess_EmitsMobSpawnerParticlesEvent)
+{
+    // 设置 CustomSpawnRules 允许所有光照，绕过 EntitySpawnPlacementRegistry 检查
+    // BaseTestWorld 没有 getBlockState 实现（返回 nullptr），OnGround 放置检查会失败
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 15;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 需要多次 tick 以触发生成
+    for (int i = 0; i < 10; ++i) {
+        spawner_->tick(*world_);
+    }
+
+    // 验证至少发出了一次 MOB_SPAWNER_PARTICLES 事件
+    bool foundMobSpawnerEvent = false;
+    for (const auto& call : world_->playEventCalls()) {
+        if (call.eventId == world::WorldEvents::MOB_SPAWNER_PARTICLES) {
+            foundMobSpawnerEvent = true;
+            // 验证事件位置是刷怪笼位置
+            EXPECT_EQ(call.pos.x, 10);
+            EXPECT_EQ(call.pos.y, 64);
+            EXPECT_EQ(call.pos.z, 20);
+            break;
+        }
+    }
+    EXPECT_TRUE(foundMobSpawnerEvent) << "Expected MOB_SPAWNER_PARTICLES event to be emitted on successful spawn";
+}
+
+TEST_F(MobSpawnerPlayEventTest, Tick_NoSpawn_NoMobSpawnerParticlesEvent)
+{
+    // 没有设置实体ID时，不应发出 MOB_SPAWNER_PARTICLES 事件
+    auto emptySpawner = std::make_unique<MobSpawnerBlockEntity>(BlockPos(5, 10, 5));
+    auto emptyWorld = std::make_unique<MobSpawnerTestWorld>();
+    emptyWorld->setSeed(42);
+    emptyWorld->setCurrentTick(0);
+
+    for (int i = 0; i < 50; ++i) {
+        emptySpawner->tick(*emptyWorld);
+    }
+
+    // 没有实体ID，不应发出 MOB_SPAWNER_PARTICLES 事件
+    for (const auto& call : emptyWorld->playEventCalls()) {
+        EXPECT_NE(call.eventId, world::WorldEvents::MOB_SPAWNER_PARTICLES)
+            << "Should not emit MOB_SPAWNER_PARTICLES when no entity ID is set";
+    }
+}
+
+TEST_F(MobSpawnerPlayEventTest, Tick_MultipleSpawns_EmitsEventForEachBatch)
+{
+    // 设置 CustomSpawnRules 允许所有光照
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 15;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 多次 tick 以触发生成（每次延迟=0，每个 tick 都应该尝试生成）
+    for (int i = 0; i < 20; ++i) {
+        spawner_->tick(*world_);
+    }
+
+    // 统计 MOB_SPAWNER_PARTICLES 事件次数
+    size_t eventCount = 0;
+    for (const auto& call : world_->playEventCalls()) {
+        if (call.eventId == world::WorldEvents::MOB_SPAWNER_PARTICLES) {
+            ++eventCount;
+        }
+    }
+    // 应该有多次成功生成事件
+    EXPECT_GE(eventCount, 1u) << "Expected at least one MOB_SPAWNER_PARTICLES event in 20 ticks";
 }
