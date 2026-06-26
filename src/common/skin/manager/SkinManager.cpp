@@ -229,6 +229,18 @@ void SkinManager::_loadFromTextures(
         return;
     }
 
+    // 验证 textures 属性签名状态
+    // 对应 MC Java 版 SkinManager 中对 SignatureState 的处理：
+    // - SIGNED: 皮肤来源可信，正常使用
+    // - UNSIGNED: 无签名（离线模式或会话服务未提供签名），允许使用
+    // - INVALID: 签名验证失败，记录警告日志，但仍允许使用（降级处理）
+    SignatureState sigState = SkinMetadataParser::getSignatureState(*texturesProp);
+    info->setSignatureState(sigState);
+    if (sigState == SignatureState::Invalid) {
+        spdlog::warn(
+            "SkinManager: Profile contained invalid signature for textures property (profile: {})", profile.name());
+    }
+
     // 解析 textures 属性
     auto parseResult = SkinMetadataParser::parse(*texturesProp);
     if (!parseResult.success()) {

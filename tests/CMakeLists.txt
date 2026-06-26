@@ -1065,6 +1065,7 @@ add_executable(mc_tests
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
     common/skin/test_game_profile.cpp
+    common/skin/test_skin_metadata_parser.cpp
     common/skin/test_skin_packets.cpp
     common/skin/test_skin_manager.cpp
     # 富文本系统测试
