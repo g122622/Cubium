@@ -28,6 +28,7 @@
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/sensor/Sensors.hpp"
 #include "common/entity/ai/brain/task/tasks/movement/MovementTasks.hpp"
+#include "common/entity/ai/brain/task/tasks/interact/InteractTasks.hpp" // 用于 Brain 任务注册
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
