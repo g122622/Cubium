@@ -225,8 +225,15 @@ std::unordered_map<const Block*, const Block*> HoneycombItem::_buildWaxablesMap(
     if (VanillaBlocks::OXIDIZED_COPPER_LANTERN && VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN)
         m[VanillaBlocks::OXIDIZED_COPPER_LANTERN] = VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN;
 
-    // 避雷针（仅未氧化 -> 涂蜡的映射，MC 1.21.11 避雷针也有氧化变种）
-    // TODO: 当 VanillaBlocks 中注册了氧化避雷针变种后，添加对应的涂蜡映射
+    // 避雷针（MC 1.21+ 新增氧化变种）
+    if (VanillaBlocks::LIGHTNING_ROD && VanillaBlocks::WAXED_LIGHTNING_ROD)
+        m[VanillaBlocks::LIGHTNING_ROD] = VanillaBlocks::WAXED_LIGHTNING_ROD;
+    if (VanillaBlocks::EXPOSED_LIGHTNING_ROD && VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD)
+        m[VanillaBlocks::EXPOSED_LIGHTNING_ROD] = VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD;
+    if (VanillaBlocks::WEATHERED_LIGHTNING_ROD && VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD)
+        m[VanillaBlocks::WEATHERED_LIGHTNING_ROD] = VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD;
+    if (VanillaBlocks::OXIDIZED_LIGHTNING_ROD && VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD)
+        m[VanillaBlocks::OXIDIZED_LIGHTNING_ROD] = VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD;
 
     return m;
 }

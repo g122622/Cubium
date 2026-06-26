@@ -796,6 +796,7 @@ add_library(mc_common STATIC
     world/block/blocks/copper/WeatheringCopperSlabBlock.cpp
     world/block/blocks/copper/WeatheringCopperStairBlock.cpp
     world/block/blocks/copper/WeatheringCopperTrapDoorBlock.cpp
+    world/block/blocks/copper/WeatheringLightningRodBlock.cpp
 
     # World - Block - Nether
     world/block/blocks/nether/EnderChestBlock.cpp

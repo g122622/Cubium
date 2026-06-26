@@ -145,8 +145,18 @@ struct CopperBlocks {
     static Block* WAXED_WEATHERED_COPPER_LANTERN;
     static Block* WAXED_OXIDIZED_COPPER_LANTERN;
 
-    // ========== 避雷针（1.17）==========
+    // ========== 避雷针（1.17 基础 + 1.21 铜扩展氧化变种）==========
+    // 未氧化避雷针（基础版，不参与氧化）
     static Block* LIGHTNING_ROD;
+    // 可氧化避雷针变种（1.21+）
+    static Block* EXPOSED_LIGHTNING_ROD;
+    static Block* WEATHERED_LIGHTNING_ROD;
+    static Block* OXIDIZED_LIGHTNING_ROD;
+    // 涂蜡避雷针变种（1.21+）
+    static Block* WAXED_LIGHTNING_ROD;
+    static Block* WAXED_EXPOSED_LIGHTNING_ROD;
+    static Block* WAXED_WEATHERED_LIGHTNING_ROD;
+    static Block* WAXED_OXIDIZED_LIGHTNING_ROD;
 
     // ========== 粗矿块（1.17）==========
     static Block* RAW_IRON_BLOCK;

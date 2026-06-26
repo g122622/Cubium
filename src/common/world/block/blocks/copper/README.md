@@ -16,7 +16,8 @@ IOxidizableBlock (接口)
 ├── WeatheringCopperStairBlock (铜楼梯)
 ├── WeatheringCopperSlabBlock (铜台阶)
 ├── WeatheringCopperDoorBlock (铜门)
-└── WeatheringCopperTrapDoorBlock (铜活板门)
+├── WeatheringCopperTrapDoorBlock (铜活板门)
+└── WeatheringLightningRodBlock (可氧化避雷针)
 ```
 
 ### IOxidizableBlock 接口
@@ -63,10 +64,11 @@ IOxidizableBlock (接口)
 Copper ← ExposedCopper ← WeatheredCopper ← OxidizedCopper
 ```
 
-反向链在 `CopperBlocks.cpp` 注册时通过 `setPreviousOxidationBlock()` 设置，覆盖全部 11 种铜变体：
+反向链在 `CopperBlocks.cpp` 注册时通过 `setPreviousOxidationBlock()` 设置，覆盖全部 12 种铜变体：
 - 铜方块、切制铜、切制铜楼梯、切制铜台阶
 - 铜门、铜活板门、铜格栅、铜灯
-- 铜锁链、凿纹铜
+- 铜锁链、凿纹铜、铜灯笼
+- 避雷针（MC 1.21+ 新增氧化变种）
 
 斧头刮削交互（`AxeItem::onItemUse`）通过 `IOxidizableBlock::getPreviousOxidationBlock()` 访问反向链，将铜方块降级到上一氧化等级（如 Exposed → Unaffected），并播放 SCRAPE 粒子效果。
 
@@ -92,3 +94,16 @@ Copper ← ExposedCopper ← WeatheredCopper ← OxidizedCopper
 | `WeatheringCopperChainBlock.hpp/cpp` | 可氧化铜锁链（含水，轴向放置） |
 | `WeatheringCopperLanternBlock.hpp/cpp` | 可氧化铜灯笼（含水，悬挂/站立） |
 | `CopperBulbBlock.hpp/cpp` | 铜灯（红石控制，LIT/POWERED 状态） |
+| `WeatheringLightningRodBlock.hpp/cpp` | 可氧化避雷针（方向性，红石信号输出，闪电吸引，含水支持） |
+
+### 避雷针氧化系统（MC 1.21+）
+
+MC 1.21 为避雷针新增了氧化变种。避雷针的氧化架构与其他铜方块略有不同：
+
+- **基础 `lightning_rod`**：使用普通 `LightningRodBlock`（不实现 `IOxidizableBlock`），相当于 Unaffected 等级，但不参与氧化 tick
+- **`exposed_lightning_rod` / `weathered_lightning_rod` / `oxidized_lightning_rod`**：使用 `WeatheringLightningRodBlock`（继承 `LightningRodBlock` + `IOxidizableBlock`），可随机 tick 氧化
+- **涂蜡变种**：使用 `WaxedLightningRodBlock`（继承 `LightningRodBlock`），不参与氧化
+
+氧化链：`lightning_rod → exposed_lightning_rod → weathered_lightning_rod → oxidized_lightning_rod`
+
+`WeatheringLightningRodBlock` 在构造函数中重建状态容器，添加 `OXIDATION` 属性到 `LightningRodBlock` 的 `FACING`、`POWERED`、`WATERLOGGED` 之上。涂蜡版本 `WaxedLightningRodBlock` 保持与基础 `LightningRodBlock` 相同的状态属性，不添加 `OXIDATION`。
