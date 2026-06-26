@@ -481,6 +481,39 @@ public:
     void replaceAirAndLiquidDownwards(
         IWorld& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
 
+    /**
+     * @brief 放置末地传送门框架方块环
+     *
+     * 在要塞末地传送门房间中放置 12 个末地传送门框架方块。
+     * 框架围绕中心位置形成 5×5 的环形（四边各 3 个，不含角落），
+     * 凸起朝外（背离传送门中心），与 MC Java 的
+     * EndPortalFrameBlock.getOrCreatePortalShape() 图案一致：
+     *   ? v v v ?      v = FACING=NORTH（北边框架，z = centerZ - 2）
+     *   > P P P <      > = FACING=WEST（西边框架，x = centerX - 2）
+     *   > P P P <      P = 末地传送门方块（3×3 内部区域，centerX/Z ± 1）
+     *   > P P P <      < = FACING=EAST（东边框架，x = centerX + 2）
+     *   ? ^ ^ ^ ?      ^ = FACING=SOUTH（南边框架，z = centerZ + 2）
+     *   ? = 角落，不放置方块
+     *
+     * 使用结构局部坐标和 bounding box 裁剪，与 StructurePiece::setBlockState()
+     * 行为一致（自动应用坐标变换、镜像和旋转）。
+     *
+     * @param world 世界写入接口
+     * @param bounds 结构边界框（用于区块裁剪）
+     * @param centerX 传送门框架中心 X 坐标（局部坐标）
+     * @param y 传送门框架 Y 坐标（局部坐标）
+     * @param centerZ 传送门框架中心 Z 坐标（局部坐标）
+     * @param eyeStates 12 个末影之眼状态数组，true 表示该框架有眼
+     * @param allEyesFilled 是否所有框架都有眼（为 true 时在内部 3×3 区域放置末地传送门方块）
+     */
+    void placeEndPortalFrames(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        i32 centerX,
+        i32 y,
+        i32 centerZ,
+        const bool eyeStates[12],
+        bool allEyesFilled);
+
     // ========== 结构构建方法 ==========
 
     /**

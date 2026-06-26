@@ -284,12 +284,13 @@ public:
      *   ? ^ ^ ^ ?      ^ = FACING=SOUTH（南边框架，z = center.z + 2）
      *   ? = 角落，不放置方块
      *
-     * TODO: 此方法已实现但尚未被调用。要塞生成中的传送门房间
-     * (StrongholdPortalRoom::generate) 目前手动逐个放置框架方块并支持
-     * 随机末影之眼（10%概率无眼），而此方法默认所有框架都带眼。
-     * 需要在集成时处理末影之眼的随机性差异。此外，要塞生成使用
-     * 结构局部坐标和 bounding box 裁剪，而此方法使用世界坐标，
-     * 直接替换需要适配坐标系统。
+     * 注意：要塞生成中的传送门房间使用 StructurePiece::placeEndPortalFrames()
+     * 放置框架，该方法支持结构局部坐标、区块裁剪、镜像旋转和随机末影之眼。
+     * 本方法使用世界绝对坐标，所有框架默认带眼，且总是放置传送门方块，
+     * 适用于运行时传送门创建等非结构生成场景。
+     *
+     * TODO: 此方法已实现但尚未被调用，等待 EndDragonFight 系统集成。
+     * 在 EnderDragonEntity::_onDeathUpdate() 中龙死亡后应调用此方法。
      *
      * @param world 世界引用
      * @param center 传送门框架中心（传送门内部 3×3 区域的中心）底部位置
