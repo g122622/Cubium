@@ -26,6 +26,7 @@
 #include "ITask.hpp"
 #include "common/core/Types.hpp"
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <memory>
@@ -33,6 +34,7 @@
 #include <queue>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -216,6 +218,22 @@ public:
      */
     [[nodiscard]] i32 threadCount() const { return m_threadCount; }
 
+    /**
+     * @brief 诊断：转储工作线程池状态（运行区域、队列任务区域分布）
+     *
+     * 用于死锁诊断：当 pendingTaskCount > 0 但 runningTaskCount == 0 时，
+     * 转储 m_runningRegions 和队列中任务的区域信息，判断是否区域互斥活锁。
+     */
+    void debugDumpState();
+
+    /**
+     * @brief 诊断：转储每个 worker 当前正在执行的任务（描述与已执行时长）
+     *
+     * 用于死锁定位：当 runningTaskCount > 0 但 pending 冻结时，转储各 worker 的执行任务，
+     * 判断是否卡在 execute（生成器死循环/死锁）还是 onChunkGenComplete（调度锁等待）。
+     */
+    void debugDumpRunningTasks();
+
 private:
     /**
      * @brief 内部任务结构
@@ -333,6 +351,19 @@ private:
 
     // 正在执行的任务数量
     std::atomic<size_t> m_runningTaskCount{0};
+
+    // 诊断：正在执行的任务信息（用于死锁定位）。
+    // m_runningTaskInfo 在 m_runningTaskMutex 下读写，记录每个 worker 当前执行任务的描述与开始时间。
+    struct RunningTaskInfo {
+        std::string description;
+        std::chrono::steady_clock::time_point startTime;
+        bool hasArea = false;
+        ChunkCoord areaCenterX = 0;
+        ChunkCoord areaCenterZ = 0;
+        i32 areaWriteRadius = 0;
+    };
+    std::mutex m_runningTaskMutex;
+    std::unordered_map<i32, RunningTaskInfo> m_runningTaskInfo; // key = workerId
 
     // 运行状态
     std::atomic<bool> m_running{false};

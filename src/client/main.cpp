@@ -130,6 +130,7 @@ int main(int argc, char* argv[])
         }
         if (arg == "--skip-integrated") {
             params.skipIntegratedServer = true;
+            
         }
         if (arg == "--quick-play" && i + 1 < argc) {
             params.quickPlayLevelId = argv[++i];

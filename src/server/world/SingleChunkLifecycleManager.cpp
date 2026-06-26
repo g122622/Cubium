@@ -175,6 +175,38 @@ std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::clearSati
     return removed;
 }
 
+std::vector<std::pair<SingleChunkLifecycleManager*, const ChunkStatus*>>
+SingleChunkLifecycleManager::takeWaitingNeighbours()
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    std::vector<std::pair<SingleChunkLifecycleManager*, const ChunkStatus*>> result;
+    result.reserve(m_waitingNeighbours.size());
+    for (auto& [neighbour, requiredStatus] : m_waitingNeighbours) {
+        result.emplace_back(neighbour, requiredStatus);
+    }
+    m_waitingNeighbours.clear();
+    return result;
+}
+
+void SingleChunkLifecycleManager::removeWaitingNeighbour(SingleChunkLifecycleManager* neighbour)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    if (neighbour != nullptr) {
+        m_waitingNeighbours.erase(neighbour);
+    }
+}
+
+std::vector<SingleChunkLifecycleManager*> SingleChunkLifecycleManager::blockingNeighbours() const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    std::vector<SingleChunkLifecycleManager*> result;
+    result.reserve(m_blockingNeighbours.size());
+    for (auto* neighbour : m_blockingNeighbours) {
+        result.push_back(neighbour);
+    }
+    return result;
+}
+
 // ============================================================================
 // 生成任务跟踪
 // ============================================================================
@@ -214,7 +246,12 @@ void SingleChunkLifecycleManager::clearGenerationTask()
 bool SingleChunkLifecycleManager::isSafeToUnload() const
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
-    return m_neighboursUsingThisChunk == 0 && m_generationTask == nullptr && !hasFailedGeneration();
+    // m_neighboursUsingThisChunk 用原子读写（worker 线程 add/remove 持调度锁，但不持本 m_mutex），
+    // 此处持 m_mutex 读取保证与依赖图操作（addWaitingNeighbour/removeBlockingNeighbour）的可见性。
+    // 注意：最终卸载一致性由 unloadChunkSync 持调度锁重新检查 isSafeToUnload 保证
+    // （见 ServerChunkManager::unloadChunkSync）。
+    return m_neighboursUsingThisChunk.load(std::memory_order_acquire) == 0 && m_generationTask == nullptr &&
+        !hasFailedGeneration() && m_blockingNeighbours.empty() && m_waitingNeighbours.empty();
 }
 
 // ============================================================================
@@ -309,8 +346,10 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
         m_requestPriority = priority;
     }
 
-    // 首次进入或取消后重新进入时，分配新的 generation 与取消令牌
-    if (!m_abortSignal) {
+    // 首次进入或取消后重新进入时，分配新的 generation 与取消令牌。
+    // 若 m_abortSignal 为 true（已被 cancelActiveWork 取消），分配新的 false 令牌，
+    // 使重新请求的任务不被旧取消标志影响。
+    if (!m_abortSignal || m_abortSignal->load(std::memory_order_acquire)) {
         ++m_requestGeneration;
         m_abortSignal = std::make_shared<std::atomic<bool>>(false);
     }
@@ -355,11 +394,15 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::noteSt
 SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancelActiveWork()
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // 设置取消标志（运行中/排队中的任务持有此 shared_ptr，检测到 true 后 onCancel→cancelGeneration 清理）。
+    // 不清除 m_abortSignal 为 null：保留 true 状态，使 cancelActiveWork 之后 onChunkGenComplete 的自重调度
+    // （schedule→submitTask→holder.abortSignal()）捕获到此 true 标志，新任务立即被取消，
+    // 避免"cancelActiveWork 清空 abortSignal 后自重调度提交不可取消任务"的竞态。
+    // 重新请求（submitRequest）时若发现 m_abortSignal 为 true，会分配新的 false 令牌。
     if (m_abortSignal) {
         m_abortSignal->store(true, std::memory_order_release);
     }
     ++m_requestGeneration;
-    m_abortSignal = nullptr;
     m_generationTask = nullptr;
     m_scheduledStatus = nullptr;
     m_requestPriority = std::numeric_limits<i32>::max();
@@ -403,6 +446,19 @@ std::shared_ptr<std::atomic<bool>> SingleChunkLifecycleManager::abortSignal() co
 {
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     return m_abortSignal;
+}
+
+bool SingleChunkLifecycleManager::reviveForScheduling()
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    // 仅当处于取消态（abortSignal 为 true）时复活：分配新的 false 令牌。
+    // 与 submitRequest 的令牌重置逻辑一致（见 submitRequest 第 352-355 行）。
+    if (m_abortSignal && m_abortSignal->load(std::memory_order_acquire)) {
+        ++m_requestGeneration;
+        m_abortSignal = std::make_shared<std::atomic<bool>>(false);
+        return true;
+    }
+    return false;
 }
 
 // ============================================================================

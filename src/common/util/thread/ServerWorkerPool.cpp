@@ -299,6 +299,82 @@ size_t ServerWorkerPool::runningTaskCount() const
     return m_runningTaskCount.load(std::memory_order_acquire);
 }
 
+void ServerWorkerPool::debugDumpState()
+{
+    size_t queueSize = 0;
+    size_t areaTaskCount = 0;
+    size_t cancelledCount = 0;
+    size_t nonAreaCount = 0;
+    std::unordered_map<i32, size_t> writeRadiusHistogram;
+    {
+        std::lock_guard<std::mutex> lock(m_queueMutex);
+        // 优先队列不支持遍历，用临时 vector 取出再放回
+        std::vector<std::shared_ptr<InternalTask>> tmp;
+        tmp.reserve(m_taskQueue.size());
+        while (!m_taskQueue.empty()) {
+            auto t = m_taskQueue.top();
+            m_taskQueue.pop();
+            tmp.push_back(t);
+            ++queueSize;
+            if (t->hasArea) {
+                ++areaTaskCount;
+                writeRadiusHistogram[t->areaWriteRadius]++;
+            } else {
+                ++nonAreaCount;
+            }
+            if (t->abortSignal && t->abortSignal->load(std::memory_order_acquire)) {
+                ++cancelledCount;
+            }
+        }
+        for (auto& t : tmp) {
+            m_taskQueue.push(t);
+        }
+    }
+    size_t runningRegionsCount = 0;
+    {
+        std::lock_guard<std::mutex> lock(m_runningRegionsMutex);
+        runningRegionsCount = m_runningRegions.size();
+    }
+    spdlog::info("[workerPool-debug] queueSize={}, areaTaskCount={}, nonAreaCount={}, cancelledInQueue={}, "
+                 "runningRegions={}, runningTaskCount={}",
+        queueSize,
+        areaTaskCount,
+        nonAreaCount,
+        cancelledCount,
+        runningRegionsCount,
+        m_runningTaskCount.load(std::memory_order_acquire));
+    for (const auto& [wr, cnt] : writeRadiusHistogram) {
+        spdlog::info("[workerPool-debug]   writeRadius={} count={}", wr, cnt);
+    }
+}
+
+void ServerWorkerPool::debugDumpRunningTasks()
+{
+    std::vector<std::pair<i32, RunningTaskInfo>> snapshot;
+    {
+        std::lock_guard<std::mutex> lock(m_runningTaskMutex);
+        for (const auto& [wid, info] : m_runningTaskInfo) {
+            snapshot.emplace_back(wid, info);
+        }
+    }
+    const auto now = std::chrono::steady_clock::now();
+    if (snapshot.empty()) {
+        spdlog::info("[workerPool-running] no task currently executing");
+        return;
+    }
+    for (const auto& [wid, info] : snapshot) {
+        const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - info.startTime).count();
+        spdlog::info("[workerPool-running] worker={} elapsedMs={} hasArea={} area=({},{},r={}) desc={}",
+            wid,
+            elapsedMs,
+            info.hasArea,
+            info.areaCenterX,
+            info.areaCenterZ,
+            info.areaWriteRadius,
+            info.description);
+    }
+}
+
 // ============================================================================
 // 工作线程
 // ============================================================================
@@ -330,6 +406,18 @@ void ServerWorkerPool::workerThread(i32 workerId)
 
         // 执行任务
         if (taskCopy) {
+            // 取消检查：被取消的任务（abortSignal=true）在入队期间被 cancelActiveWork 标记，
+            // 必须尽快走取消路径（onCancel → callback(false)）清理依赖图（cancelGeneration/clearGenerationTask/
+            // releaseNeighbourRefCounts），绝不能进入冲突重试循环（否则永远无法到达 executeTask 的取消检查，
+            // m_generationTask 永不清除 → isSafeToUnload 永假 → holder 永久卡住 → 测试挂起）。
+            if (isTaskCancelled(*taskCopy)) {
+                executeTask(std::move(taskCopy)); // executeTask 开头检测取消 → onCancel + callback(false)
+                if (pendingTaskCount() == 0 && runningTaskCount() == 0) {
+                    m_completionCondition.notify_all();
+                }
+                continue;
+            }
+
             // 区域互斥任务：执行前检查写入区域是否与正在执行的区域任务冲突。
             // 冲突时把任务放回队列，等待某个区域任务释放后重试。
             if (taskCopy->hasArea) {
@@ -365,7 +453,21 @@ void ServerWorkerPool::workerThread(i32 workerId)
                 const ChunkCoord areaZ = taskCopy->areaCenterZ;
                 const i32 areaR = taskCopy->areaWriteRadius;
 
+                {
+                    std::lock_guard<std::mutex> rlock(m_runningTaskMutex);
+                    auto& info = m_runningTaskInfo[workerId];
+                    info.description = taskCopy->task ? taskCopy->task->description() : std::string();
+                    info.startTime = std::chrono::steady_clock::now();
+                    info.hasArea = true;
+                    info.areaCenterX = areaX;
+                    info.areaCenterZ = areaZ;
+                    info.areaWriteRadius = areaR;
+                }
                 executeTask(std::move(taskCopy));
+                {
+                    std::lock_guard<std::mutex> rlock(m_runningTaskMutex);
+                    m_runningTaskInfo.erase(workerId);
+                }
 
                 // 执行完成：清除区域标记并通知等待冲突的工作线程
                 {
@@ -379,7 +481,21 @@ void ServerWorkerPool::workerThread(i32 workerId)
                 m_areaReleasedCondition.notify_all();
             } else {
                 // 无区域互斥任务：直接执行
+                {
+                    std::lock_guard<std::mutex> rlock(m_runningTaskMutex);
+                    auto& info = m_runningTaskInfo[workerId];
+                    info.description = taskCopy->task ? taskCopy->task->description() : std::string();
+                    info.startTime = std::chrono::steady_clock::now();
+                    info.hasArea = false;
+                    info.areaCenterX = 0;
+                    info.areaCenterZ = 0;
+                    info.areaWriteRadius = 0;
+                }
                 executeTask(std::move(taskCopy));
+                {
+                    std::lock_guard<std::mutex> rlock(m_runningTaskMutex);
+                    m_runningTaskInfo.erase(workerId);
+                }
             }
         }
 
@@ -438,8 +554,12 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         success = false;
     }
 
-    // 再次检查取消
-    if (isTaskCancelled(*task)) {
+    // 执行后取消检查：仅在任务未成功完成时才走取消路径。
+    // 若 execute 返回 true（成功），任务已在 execute 内调用 onChunkGenComplete 完成状态推进、
+    // 清除 m_generationTask 并可能自重调度新任务。此时即使 abortSignal 在执行期间被 cancelActiveWork
+    // 置位，也不应调用 onCancel——否则会取消自重调度的新任务（m_generationTask 已被新任务覆盖），
+    // 导致状态机错乱（新任务被误取消、依赖图被错误清理）。取消语义只在任务尚未完成时生效。
+    if (!success && isTaskCancelled(*task)) {
         task->task->onCancel();
         success = false;
     }

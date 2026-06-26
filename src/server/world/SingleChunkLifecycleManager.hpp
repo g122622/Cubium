@@ -249,6 +249,29 @@ public:
     }
 
     /**
+     * @brief 取出并清空等待我的邻居集合（取消/卸载清理用）
+     *
+     * 返回 m_waitingNeighbours 的内容并清空本端记录。调用方负责从返回的每个邻居的
+     * m_blockingNeighbours 中移除本 holder（解除入向依赖）。
+     */
+    std::vector<std::pair<SingleChunkLifecycleManager*, const ChunkStatus*>> takeWaitingNeighbours();
+
+    /**
+     * @brief 移除一个等待我的邻居记录（取消清理用）
+     *
+     * @param neighbour 要移除的邻居
+     */
+    void removeWaitingNeighbour(SingleChunkLifecycleManager* neighbour);
+
+    /**
+     * @brief 获取我正在等待的邻居集合的副本（取消清理用）
+     *
+     * 返回 m_blockingNeighbours 的副本。调用方负责从每个邻居的 m_waitingNeighbours 中
+     * 移除本 holder（解除出向依赖）。
+     */
+    [[nodiscard]] std::vector<SingleChunkLifecycleManager*> blockingNeighbours() const;
+
+    /**
      * @brief 移除已满足所需状态的等待邻居记录
      *
      * 在 onChunkGenComplete 中调用：遍历 m_waitingNeighbours，移除 completedStatus >= requiredStatus
@@ -332,17 +355,25 @@ public:
     /**
      * @brief 增加邻居引用计数（有邻居正在使用我的快照生成）
      */
-    void addNeighbourUsingChunk() { ++m_neighboursUsingThisChunk; }
+    void addNeighbourUsingChunk() { m_neighboursUsingThisChunk.fetch_add(1, std::memory_order_acq_rel); }
 
     /**
      * @brief 减少邻居引用计数
      */
-    void removeNeighbourUsingChunk() { --m_neighboursUsingThisChunk; }
+    void removeNeighbourUsingChunk() { m_neighboursUsingThisChunk.fetch_sub(1, std::memory_order_acq_rel); }
 
     /**
      * @brief 是否安全卸载（无邻居引用、无进行中任务）
      */
     [[nodiscard]] bool isSafeToUnload() const;
+
+    /**
+     * @brief 邻居引用计数（诊断用）：有多少邻居正在使用本区块生成
+     */
+    [[nodiscard]] i32 neighboursUsingThisChunkCount() const
+    {
+        return m_neighboursUsingThisChunk.load(std::memory_order_acquire);
+    }
 
     // === 票据与玩家追踪 ===
 
@@ -414,6 +445,26 @@ public:
      */
     [[nodiscard]] std::shared_ptr<std::atomic<bool>> abortSignal() const;
 
+    /**
+     * @brief 复活一个已被取消（abortSignal==true）的 holder，使其可被重新调度生成。
+     *
+     * checkNeighbour 遇到邻居 holder 处于取消态（cancelActiveWork 置位 abortSignal 但未移除 holder）
+     * 时调用：分配新的 false 令牌（与 submitRequest 一致），使后续 schedule 能正常提交任务。
+     *
+     * 为什么需要复活：cancelActiveWork 置位 abortSignal 后不清空（保留 true），仅 submitRequest 分配
+     * 新令牌。但 checkNeighbour→schedule 是邻居驱动的重新生成路径，不经 submitRequest，遇到取消态
+     * holder 会因 schedule 的取消守卫返回 nullptr，建立的双向依赖（addBlockingNeighbour/
+     * addWaitingNeighbour）永不解除，导致中心 holder 永久阻塞（依赖图泄漏）。
+     *
+     * 安全性：调用者必须持有调度区域锁（checkNeighbour 持有），cancelActiveWork 也持有同一把锁，
+     * 故复活期间 abortSignal 稳定。cancelActiveWork 已清空 m_generationTask（oldTask 身份不冲突），
+     * 旧运行任务检测到旧令牌（true）后自取消（execute 返回 false，onCancel→cancelGeneration
+     * 因 generationTask!=oldTask 为 no-op），不调用 onChunkGenComplete，不与复活的新任务冲突。
+     *
+     * @return true 表示发生了复活（此前处于取消态），false 表示未处于取消态（无需复活）。
+     */
+    bool reviveForScheduling();
+
 private:
     /**
      * @brief 根据当前内部状态构造调度决策（只读，无副作用）
@@ -447,7 +498,10 @@ private:
     std::unordered_map<SingleChunkLifecycleManager*, const ChunkStatus*> m_waitingNeighbours; // 等我的邻居及所需状态
 
     // === 邻居引用计数 ===
-    i32 m_neighboursUsingThisChunk = 0;
+    // 原子：worker 线程（scheduleStatusStep add / releaseNeighbourRefCounts remove，持调度锁）
+    // 与主线程（_checkChunkUnloading isSafeToUnload 读，不持调度锁）并发访问。
+    // 卸载决策的最终一致性由 unloadChunkSync 持调度锁重新检查 isSafeToUnload 保证。
+    std::atomic<i32> m_neighboursUsingThisChunk{0};
 
     // === 来源状态 ===
     SourceState m_sourceState = SourceState::Unknown;

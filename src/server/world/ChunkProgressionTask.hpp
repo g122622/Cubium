@@ -27,14 +27,12 @@
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "server/world/StaticChunkCache2D.hpp"
 #include <atomic>
+#include <memory>
 
 namespace mc::world::chunk {
 class ChunkPrimer;
-}
-
-namespace mc {
-class WorldGenRegion;
-}
+class SingleChunkLifecycleManager;
+} // namespace mc::world::chunk
 
 namespace mc::server {
 
@@ -63,6 +61,7 @@ public:
      *
      * @param scheduler 调度器（用于 onChunkGenComplete 回调）
      * @param manager 所属 ServerChunkManager（用于 _executeStepTask / _finalizeGeneratedChunkSync）
+     * @param holder 中心区块生命周期管理器的共享所有权（保证任务执行期间 holder 不被卸载销毁）
      * @param x 区块 X
      * @param z 区块 Z
      * @param toStatus 目标状态（= currentGenStatus.next()，本任务只推进一步）
@@ -71,6 +70,7 @@ public:
      */
     ChunkProgressionTask(ChunkTaskScheduler& scheduler,
         ServerChunkManager& manager,
+        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> holder,
         ChunkCoord x,
         ChunkCoord z,
         const ChunkStatus& toStatus,
@@ -108,6 +108,10 @@ private:
 
     ChunkTaskScheduler& m_scheduler;
     ServerChunkManager& m_manager;
+    /// 中心区块生命周期管理器的共享所有权。
+    /// 任务在 worker 线程执行 execute（含 onChunkGenComplete）及回调期间持有此 shared_ptr，
+    /// 保证 holder 不被主线程 unloadChunkSync 销毁（消除 use-after-free 竞态）。
+    std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> m_holder;
     ChunkCoord m_x;
     ChunkCoord m_z;
     const ChunkStatus* m_toStatus;

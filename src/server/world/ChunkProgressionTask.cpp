@@ -24,12 +24,12 @@
 #include "ServerChunkManager.hpp"
 #include "ServerWorld.hpp"
 #include "SingleChunkLifecycleManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStep.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 
 #include <spdlog/spdlog.h>
 
@@ -47,6 +47,7 @@ namespace ChunkStatuses = mc::world::chunk::ChunkStatuses;
 
 ChunkProgressionTask::ChunkProgressionTask(ChunkTaskScheduler& scheduler,
     ServerChunkManager& manager,
+    std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> holder,
     ChunkCoord x,
     ChunkCoord z,
     const ChunkStatus& toStatus,
@@ -54,6 +55,7 @@ ChunkProgressionTask::ChunkProgressionTask(ChunkTaskScheduler& scheduler,
     i32 writeRadius)
     : m_scheduler(scheduler)
     , m_manager(manager)
+    , m_holder(std::move(holder))
     , m_x(x)
     , m_z(z)
     , m_toStatus(&toStatus)
@@ -81,10 +83,15 @@ bool ChunkProgressionTask::execute(const std::atomic<bool>& abortSignal)
 
 void ChunkProgressionTask::onCancel()
 {
-    // 任务被取消：标记失败，由调度器清理
-    mc::world::chunk::SingleChunkLifecycleManager* holder = m_scheduler.findHolder(m_x, m_z);
-    if (holder != nullptr) {
-        m_scheduler.onChunkGenFailed(*holder);
+    // 任务被取消（abortSignal）：清理依赖图并通知等待者，但不 markFailed。
+    // 取消是正常操作（holder 卸载/票据级别下降），不是生成失败——holder 可被重新创建并重新生成。
+    // 对齐 Moonrise onChunkGenComplete(newChunk=null) 的取消路径（不 markFailed，清理依赖图）。
+    //
+    // 传递 this 调用任务身份感知的 cancelGeneration(holder, task)：仅当 holder.m_generationTask 仍指向
+    // 本任务时才清理。避免旧任务 A 的 onCancel 在新任务 B 已 setGenerationTask(B) 后误清 B 的依赖图
+    // （cancelActiveWork 清空 m_generationTask 后，submitRequest 可能已调度 B）。
+    if (m_holder != nullptr) {
+        m_scheduler.cancelGeneration(*m_holder, this);
     }
 }
 
@@ -104,10 +111,10 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
         return false;
     }
 
-    mc::world::chunk::SingleChunkLifecycleManager* holder = m_scheduler.findHolder(m_x, m_z);
-    if (holder == nullptr) {
+    if (m_holder == nullptr) {
         return false;
     }
+    mc::world::chunk::SingleChunkLifecycleManager& holder = *m_holder;
 
     // 尝试从存档加载
     std::unique_ptr<ChunkData> loadedData = m_manager._tryToLoadChunkFromStorageSync(m_x, m_z);
@@ -117,7 +124,7 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
         // ChunkPrimer(ChunkData) 构造函数设置 m_chunkStatus = FULL
         auto primer = std::make_unique<ChunkPrimer>(std::move(loadedData));
         ChunkPrimer* primerPtr = primer.get();
-        holder->setCurrentChunk(std::move(primer));
+        holder.setCurrentChunk(std::move(primer));
 
         // 存档命中：直接推进到 FULL，存入内存缓存。
         // toChunkData 非破坏性（返回 shared_ptr 共享同一份 ChunkData），primer 仍持有 m_data。
@@ -129,18 +136,18 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
         }
         // 不释放 primer：保留 currentChunk 供邻居引用（与 FULL 生成路径一致）。
         // 标记 holder 完成 FULL
-        holder->completeStatusTo(ChunkStatuses::FULL);
-        holder->markLoadedFromStorageReady();
-        m_scheduler.onChunkGenComplete(*holder, ChunkStatuses::FULL);
+        holder.completeStatusTo(ChunkStatuses::FULL);
+        holder.markLoadedFromStorageReady();
+        m_scheduler.onChunkGenComplete(holder, ChunkStatuses::FULL);
         return true;
     }
 
     // 存档缺失：新建空 Primer，SCLM 接管所有权
     auto primer = std::make_unique<ChunkPrimer>(m_x, m_z);
-    holder->setCurrentChunk(std::move(primer));
+    holder.setCurrentChunk(std::move(primer));
 
     // 推进 EMPTY 状态（primer 构造时已是 EMPTY，这里推进 holder.currentGenStatus）
-    m_scheduler.onChunkGenComplete(*holder, ChunkStatuses::EMPTY);
+    m_scheduler.onChunkGenComplete(holder, ChunkStatuses::EMPTY);
     return true;
 }
 
@@ -150,24 +157,34 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
 
 bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSignal)
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkProgressionTask::executeStatusStep", "x", m_x, "z", m_z, "targetStatus", m_toStatus->name(),
-    [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](
-            ::perfetto::EventContext ctx) { flow(ctx); }
-    );
+    MC_TRACE_EVENT("server.chunk",
+        "ChunkProgressionTask::executeStatusStep",
+        "x",
+        m_x,
+        "z",
+        m_z,
+        "targetStatus",
+        m_toStatus->name(),
+        [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](
+            ::perfetto::EventContext ctx) { flow(ctx); });
 
     if (abortSignal.load(std::memory_order_acquire)) {
         return false;
     }
 
-    mc::world::chunk::SingleChunkLifecycleManager* holder = m_scheduler.findHolder(m_x, m_z);
-    if (holder == nullptr) {
+    if (m_holder == nullptr) {
+        spdlog::warn("[ChunkProgressionTask] m_holder is null for ({}, {}) at status {}", m_x, m_z, m_toStatus->name());
         return false;
     }
+    mc::world::chunk::SingleChunkLifecycleManager& holder = *m_holder;
 
-    ChunkPrimer* primer = holder->getCurrentChunk();
+    ChunkPrimer* primer = holder.getCurrentChunk();
     if (primer == nullptr) {
-        spdlog::error(
-            "[ChunkProgressionTask] currentChunk is null for ({}, {}) at status {}", m_x, m_z, m_toStatus->name());
+        spdlog::warn("[ChunkProgressionTask] currentChunk is null for ({}, {}) at status {} (cancelled={})",
+            m_x,
+            m_z,
+            m_toStatus->name(),
+            abortSignal.load(std::memory_order_acquire));
         return false;
     }
 
@@ -220,12 +237,12 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
     // LIGHT 等状态可能并发读取已 FULL 的邻居），直到 holder 卸载（isSafeToUnload）才随 holder 析构。
     if (*m_toStatus == ChunkStatuses::FULL) {
         (void)m_manager._finalizeGeneratedChunkSync(m_x, m_z, *primer);
-        // 不调用 holder->releaseCurrentChunk()：primer 保留 m_currentChunk，邻居 getChunkIfPresentUnchecked
+        // 不调用 holder.releaseCurrentChunk()：primer 保留 m_currentChunk，邻居 getChunkIfPresentUnchecked
         // 仍可返回有效指针。ChunkData 已通过 shared_ptr 与 m_chunks 共享所有权。
     }
 
     // 通知调度器完成
-    m_scheduler.onChunkGenComplete(*holder, *m_toStatus);
+    m_scheduler.onChunkGenComplete(holder, *m_toStatus);
     return true;
 }
 

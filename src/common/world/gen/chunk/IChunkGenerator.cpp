@@ -234,14 +234,19 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     const i32 relX = chunkX - m_mainX;
     const i32 relZ = chunkZ - m_mainZ;
 
-    // 检查写入半径限制
+    // 检查写入是否落在访问窗口内（accumulatedRadius，而非 blockStateWriteRadius）。
+    // blockStateWriteRadius 仅用于 ServerWorkerPool 区域互斥调度（FEATURES=1 串行化重叠写区域），
+    // 不是写入边界——结构放置（placeFeatures）会跨越多个区块写入，写入距离可达 accumulatedRadius
+    // （对齐 Moonrise：WorldGenRegion 不限制 setBlockState 距离，仅由 radiusAwareScheduler 保证并发安全）。
+    // 访问窗口由 neighbourReadRadius(=accumulatedRadius) 构建，getIChunk 已校验该半径内的读取合法性，
+    // 故写入也以 accumulatedRadius 为边界。越界写入说明生成器写了未提供的区块，是真正的 bug，保留断言。
     if (m_generatingStep != nullptr) {
-        const i32 writeRadius = m_generatingStep->blockStateWriteRadius();
+        const i32 accessRadius = m_generatingStep->accumulatedRadius();
         const i32 dx = std::abs(relX);
         const i32 dz = std::abs(relZ);
-        if (writeRadius < 0 || dx > writeRadius || dz > writeRadius) {
-            spdlog::error("[WorldGenRegion] blocked setBlockState outside write radius: pos=({}, {}, {}), chunk=({}, "
-                          "{}), center=({}, {}), writeRadius={}, generatingStatus={}",
+        if (dx > accessRadius || dz > accessRadius) {
+            spdlog::error("[WorldGenRegion] blocked setBlockState outside access window: pos=({}, {}, {}), chunk=({}, "
+                          "{}), center=({}, {}), accessRadius={}, generatingStatus={}",
                 x,
                 y,
                 z,
@@ -249,9 +254,9 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
                 chunkZ,
                 m_mainX,
                 m_mainZ,
-                writeRadius,
+                accessRadius,
                 statusName(m_generatingStep->targetStatus()));
-            MC_ASSERT_RELEASE_MSG(false, "WorldGenRegion setBlockState outside of ChunkStep write radius");
+            MC_ASSERT_RELEASE_MSG(false, "WorldGenRegion setBlockState outside of access window");
             return false;
         }
     }

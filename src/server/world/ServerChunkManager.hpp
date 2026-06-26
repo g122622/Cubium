@@ -499,6 +499,16 @@ public:
     [[nodiscard]] IChunkGenerator* generator() { return m_generator.get(); }
 
     /**
+     * @brief 调试：转储所有无法安全卸载的 holder 状态（用于诊断死锁/泄漏）
+     *
+     * 遍历 m_lifecycleManagers，输出 isSafeToUnload()==false 的 holder 的关键状态：
+     * 坐标、currentGenStatus、requestedGenStatus、hasGenerationTask、blockingNeighbourCount、
+     * waitingNeighbourCount、neighboursUsingThisChunkCount、hasFailedGeneration、sourceState、ticketCount。
+     * 仅用于测试诊断，生产代码不应调用。
+     */
+    void _debugDumpStuckHolders() const;
+
+    /**
      * @brief 获取当前区块生成器（const 版本）
      */
     [[nodiscard]] const IChunkGenerator* generator() const { return m_generator.get(); }
@@ -543,6 +553,19 @@ private:
      */
     [[nodiscard]] const mc::world::chunk::SingleChunkLifecycleManager* _findLifecycleManager(
         ChunkCoord x, ChunkCoord z) const;
+
+    /**
+     * @brief 查询现有单区块生命周期管理器，以共享所有权返回
+     *
+     * 用于需要跨线程持有 holder 的场景（如 ChunkProgressionTask 在 worker 线程执行期间持锁 holder）。
+     * 返回的 shared_ptr 保证 holder 在调用方释放前不被 unloadChunkSync 销毁。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @return 若存在则返回 shared_ptr，否则返回 nullptr
+     */
+    [[nodiscard]] std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> _findLifecycleManagerShared(
+        ChunkCoord x, ChunkCoord z);
 
     /**
      * @brief 查询现有单区块生命周期管理器的共享实现
@@ -758,7 +781,7 @@ private:
     ChunkLoadedCallback m_chunkLoadedCallback;
     ChunkLoadedCallback m_chunkUnloadedCallback;
 
-    std::unordered_map<u64, std::unique_ptr<mc::world::chunk::SingleChunkLifecycleManager>> m_lifecycleManagers;
+    std::unordered_map<u64, std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> m_lifecycleManagers;
     mutable std::mutex m_lifecycleManagersMutex;
 
     std::unordered_map<u64, std::shared_ptr<ChunkData>> m_chunks;

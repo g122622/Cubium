@@ -129,6 +129,65 @@ public:
     void onChunkGenFailed(mc::world::chunk::SingleChunkLifecycleManager& holder);
 
     /**
+     * @brief 任务身份感知的失败回调
+     *
+     * 由 submitTask 回调调用。仅当 holder.m_generationTask 仍指向 task 时才执行失败处理
+     * （markFailed + clearGenerationTask + _failWaiters），避免以下竞态：
+     *   - 任务 A 被取消（abortSignal=true），execute 返回 false
+     *   - cancelActiveWork 清空 m_generationTask 后，新 submitRequest 调度任务 B 并 setGenerationTask(B)
+     *   - onCancel→cancelGeneration(holder, A) 是 no-op（generationTask()==B ≠ A）
+     *   - 回调若用 hasGenerationTask() 判定（B 非空）会误触发 onChunkGenFailed，markFailed 一个仍有
+     *     活跃任务 B 的 holder 并 clearGenerationTask 清掉 B → 依赖图永久阻塞 → 测试挂起。
+     * 用 generationTask()==task 比对：B ≠ A → no-op，B 继续正常运行。
+     *
+     * 持调度锁做身份比对，消除 execute 返回与回调之间的 TOCTOU 窗口。
+     *
+     * @param holder 任务所属的生命周期管理器
+     * @param task 调用回调的任务（rawTask），用于身份比对
+     */
+    void onChunkGenFailed(
+        mc::world::chunk::SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task);
+
+    /**
+     * @brief 取消 holder 的生成任务并清理依赖图（对齐 Moonrise cancelGenTask + onChunkGenComplete(null)）
+     *
+     * 由 unloadChunkSync（holder 卸载）和 onCancel（任务被 abortSignal 取消）调用。
+     * 与 onChunkGenFailed 的关键区别：不 markFailed（取消不是失败，holder 可被重新创建并重新生成）。
+     *
+     * 清理步骤（持调度锁）：
+     *   1. clearGenerationTask（abortSignal 已由 cancelActiveWork 设置，运行中的任务检测到后 onCancel 调用本方法）
+     *   2. releaseNeighbourRefCounts：补偿释放任务未执行的邻居引用计数（任务取消时 onChunkGenComplete 未运行）
+     *   3. 出向依赖：遍历 m_blockingNeighbours（本 holder 等待的邻居），从每个邻居的 m_waitingNeighbours 移除本 holder
+     *   4. 入向依赖：遍历 m_waitingNeighbours（等本 holder 的邻居），从每个邻居的 m_blockingNeighbours 移除本 holder，
+     *      若邻居不再阻塞且有请求目标，重新调度邻居（邻居的 schedule→checkNeighbour 会通过 getOrCreateHolder
+     *      重建本 holder——旧的已从 m_lifecycleManagers 移除）
+     *   5. 清空本 holder 的 m_blockingNeighbours / m_waitingNeighbours
+     *   6. _failWaiters(takeAllWaiters)：通知请求等待者失败
+     *
+     * 清理后 isSafeToUnload 返回 true（依赖图空、无生成任务），holder 可安全卸载。
+     * 被解除阻塞的邻居通过 rescheduleChunk 重新推进（若仍有请求目标）。
+     */
+    void cancelGeneration(mc::world::chunk::SingleChunkLifecycleManager& holder);
+
+    /**
+     * @brief 取消指定任务的生成并清理依赖图（任务身份感知版本）
+     *
+     * 由 ChunkProgressionTask::onCancel 调用。仅当 holder.m_generationTask 仍指向 task 时才执行清理，
+     * 避免旧任务的 onCancel 误清新任务的依赖图/状态（cancelActiveWork 清空 m_generationTask 后，
+     * submitRequest 可能已调度新任务 B 并 setGenerationTask(B)，旧任务 A 的 onCancel 不应干扰 B）。
+     *
+     * 若 m_generationTask != task（已被清除或被新任务取代），本方法为 no-op：
+     *   - 旧任务 A 的邻居引用计数已在 A 真正完成（onChunkGenComplete）或 holder 卸载（cancelGeneration(holder)）时释放
+     *   - 旧任务 A 的依赖图条目（m_blockingNeighbours/m_waitingNeighbours）同理
+     *   - 旧任务 A 的等待者已在 cancelActiveWork/_failWaiters 时通知
+     *
+     * @param holder 任务所属的生命周期管理器
+     * @param task 调用 onCancel 的任务（this），用于身份比对
+     */
+    void cancelGeneration(
+        mc::world::chunk::SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task);
+
+    /**
      * @brief 获取或创建 holder（委托给 ServerChunkManager 的 m_lifecycleManagers）
      */
     [[nodiscard]] mc::world::chunk::SingleChunkLifecycleManager& getOrCreateHolder(ChunkCoord x, ChunkCoord z);
@@ -142,6 +201,17 @@ public:
      * @brief 区域锁访问
      */
     [[nodiscard]] util::ReentrantAreaLock& schedulingLockArea() { return m_schedulingLockArea; }
+
+    /**
+     * @brief 标记调度器正在关闭
+     *
+     * 关闭期间 cancelGeneration 不重新调度被解除阻塞的邻居（避免无限重调度循环），
+     * 因为关闭时所有 holder 的 abortSignal 已失效，重调度的任务无法被取消。
+     * ServerChunkManager::shutdown 在 cancelActiveWork 之前调用此方法。
+     */
+    void setShuttingDown() { m_shuttingDown.store(true, std::memory_order_release); }
+
+    [[nodiscard]] bool isShuttingDown() const { return m_shuttingDown.load(std::memory_order_acquire); }
 
     /**
      * @brief 访问半径（= step.accumulatedRadius()），用于区域锁范围
@@ -170,13 +240,16 @@ private:
      * @param z 区块 Z
      * @param writeRadius 区域互斥写入半径
      * @param abortSignal 取消令牌
+     * @param holder 中心区块生命周期管理器的共享所有权。回调与 onCancel 持有此 shared_ptr，
+     *                保证任务执行完成后的回调期间 holder 不被卸载销毁。
      */
     void submitTask(std::unique_ptr<ChunkProgressionTask> task,
         const mc::world::chunk::ChunkStatus& status,
         ChunkCoord x,
         ChunkCoord z,
         i32 writeRadius,
-        std::shared_ptr<std::atomic<bool>> abortSignal);
+        std::shared_ptr<std::atomic<bool>> abortSignal,
+        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> holder);
 
     /**
      * @brief 推进单步状态（schedule 的核心实现）
@@ -291,6 +364,7 @@ private:
     util::ServerWorkerPool* m_parallelGenExecutor;
     util::ServerWorkerPool* m_radiusAwareExecutor;
     util::ReentrantAreaLock m_schedulingLockArea;
+    std::atomic<bool> m_shuttingDown{false};
 };
 
 } // namespace mc::server

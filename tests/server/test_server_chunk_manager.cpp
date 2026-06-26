@@ -29,9 +29,15 @@
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <atomic>
 #include <chrono>
+#include <cmath>
+#include <cstdlib>
+#include <future>
 #include <thread>
+#include <vector>
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
 
 using namespace mc;
 using namespace mc::server;
@@ -457,6 +463,181 @@ TEST_F(ServerChunkManagerTest, ConcurrentChunkAccess)
     EXPECT_EQ(successCount, 40);
     EXPECT_GT(m_manager->loadedChunkCount(), 0);
 
+    m_manager->shutdown();
+    m_workerPool->shutdown();
+}
+
+// ============================================================================
+// 并发生成与卸载竞态测试
+//
+// 复现场景：worker 线程执行 ChunkProgressionTask::execute → onChunkGenComplete 期间，
+// 主线程 tick→_checkChunkUnloading→unloadChunkSync 销毁 holder，导致 use-after-free
+// （notifyWaitingNeighbours 读取已释放 holder 的 m_waitingNeighbours，size=385290616 垃圾值）。
+//
+// 测试策略：
+// 1. 启动 worker 池
+// 2. 一个线程不断请求生成新区块（触发 ChunkTaskScheduler 调度，worker 执行 onChunkGenComplete）
+// 3. 同时不断移除玩家/更新位置（触发票据级别变化→_checkChunkUnloading→unloadChunkSync）
+// 4. 持续运行若干秒，观察是否崩溃
+//
+// 若 holder 在 onChunkGenComplete 期间被 unloadChunkSync 销毁，测试会触发 access violation
+// （notifyWaitingNeighbours 读取已释放内存）。
+// ============================================================================
+TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
+{
+    m_workerPool->start();
+    m_manager->initialize();
+
+    // 玩家初始位置在原点，生成初始区块
+    m_manager->updatePlayerPosition(1, 0.0, 0.0);
+    for (int i = 0; i < 50; ++i) {
+        m_manager->tick();
+    }
+
+    std::atomic<bool> stop{false};
+    std::atomic<int> crashFlag{0}; // 非零表示检测到异常（用于诊断）
+
+    // 看门狗线程：监控 pending/running 趋势，无进展（running==0 且 pending>0）判定死锁。
+    // 正常负载下 mover+generator 各 20 次、每次 sleep 1~2ms，应在数十秒内完成；
+    // 若 holder 因依赖图清理缺陷永久阻塞（m_waitingNeighbours 非空 → isSafeToUnload 永假），
+    // unloadChunkSync 重试会级联阻塞邻居，导致 stall。
+    // STALL_THRESHOLD_SECONDS 为硬超时（真正死锁时 running==0 触发提前 abort；纯吞吐量不足时
+    // running>0 持续下降，硬超时给 worker 足够时间消化级联生成任务）。
+    constexpr int STALL_THRESHOLD_SECONDS = 300;
+    std::thread watchdog([&]() {
+        int lastPending = -1;
+        int noProgressSamples = 0; // 连续 pending 未下降的 5 秒采样数（6 次=30 秒=死锁）
+        bool dumpedStuck = false;
+        for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order_acquire); ++sec) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            // 每 5 秒输出一次状态快照，观察 pending/running/holder 计数趋势
+            if (sec % 10 == 0) {
+                const size_t pending = m_workerPool->pendingTaskCount();
+                const size_t running = m_workerPool->runningTaskCount();
+                const size_t holders = m_manager->lifecycleManagerCount();
+                const int pendingInt = static_cast<int>(pending);
+                if (lastPending < 0 || pendingInt < lastPending) {
+                    // pending 下降：有进展，重置计数
+                    noProgressSamples = 0;
+                } else {
+                    // pending 未下降（持平或上升）：累加无进展计数
+                    ++noProgressSamples;
+                }
+                lastPending = pendingInt;
+                spdlog::info("[watchdog] {}s: pending={}, running={}, holders={}, noProgressSamples={}",
+                    sec / 2,
+                    pending,
+                    running,
+                    holders,
+                    noProgressSamples);
+                // 30 秒（6 个 5 秒采样）连续无进展判定为死锁。
+                // 真正的生成负载下 pending 会持续下降（即使缓慢），死锁时 pending 冻结。
+                // running=0 且 pending>0：worker 全空闲但队列有任务（队列饥饿/区域互斥活锁）。
+                // running>0 且 pending 冻结：worker 卡在某个永不完成的任务（executeTask 死循环/死锁）。
+                // 注意：级联生成期间 pending 会先增长（onChunkGenComplete 重调度入队 > worker 出队）后下降，
+                // 单纯 pending 增长不是死锁。仅当 running==0（worker 全空闲）且 pending>0 时才判定死锁——
+                // worker 空闲说明队列中的任务因区域互斥/依赖图缺陷无法执行。
+                if (noProgressSamples >= 6 && pending > 0 && running == 0) {
+                    spdlog::info("[watchdog] 检测到真正死锁：worker 全空闲但 pending={} 不下降", pending);
+                    break;
+                }
+                // 诊断：200s 时 dump 一次卡住的 holder（不 abort），定位依赖图泄漏/isSafeToUnload 永假。
+                // generator 的 inflight.front().get() 阻塞导致测试无法完成，但 running>0（worker 活跃），
+                // 真正死锁条件（running==0）不触发。用固定时点 dump 捕获卡住状态。
+                if (sec == 400 && !dumpedStuck) {
+                    dumpedStuck = true;
+                    spdlog::info(
+                        "[watchdog] 90s 诊断 dump：pending={}, running={}, holders={}", pending, running, holders);
+                    m_workerPool->debugDumpRunningTasks();
+                    m_manager->_debugDumpStuckHolders();
+                }
+            }
+        }
+        if (!stop.load(std::memory_order_acquire)) {
+            spdlog::info("[watchdog] 测试 stall 超过 {}s，强制 abort 以定位死锁。pendingTaskCount={}, "
+                         "runningTaskCount={}, holders={}",
+                STALL_THRESHOLD_SECONDS,
+                m_workerPool->pendingTaskCount(),
+                m_workerPool->runningTaskCount(),
+                m_manager->lifecycleManagerCount());
+            m_workerPool->debugDumpState();
+            m_workerPool->debugDumpRunningTasks();
+            m_manager->_debugDumpStuckHolders();
+            std::abort();
+        }
+    });
+
+    // 线程 A：移动玩家位置，触发票据级别变化 → _checkChunkUnloading → unloadChunkSync。
+    // 6 区块半径（viewDistance=8 范围内），减少并发 inflight 任务数，
+    // 避免任务饥饿（大规模 mover+generator 会堆积大量 inflight 任务级联阻塞）。
+    constexpr int MOVE_ITERATIONS = 20;
+    constexpr double MOVE_RADIUS_CHUNKS = 6.0;
+    std::thread mover([&]() {
+        try {
+            for (int i = 0; i < MOVE_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+                const double angle = (i % 32) * (3.14159265358979 / 16.0);
+                const double radius = MOVE_RADIUS_CHUNKS * 16.0;
+                const double wx = std::cos(angle) * radius;
+                const double wz = std::sin(angle) * radius;
+                m_manager->updatePlayerPosition(1, wx, wz);
+                m_manager->tick(); // tick 处理票据更新 + _checkChunkUnloading
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            }
+        }
+        catch (...) {
+            crashFlag.store(1, std::memory_order_release);
+        }
+    });
+
+    // 线程 B：请求生成区块，驱动 worker 执行 onChunkGenComplete。
+    // 用 MAX_INFLIGHT 限制未完成 future 数量，避免 inflight 任务堆积导致的级联阻塞
+    // （旧版本无限制地创建 future，大量 inflight 请求在卸载竞态下级联阻塞）。
+    // 坐标范围缩小到 ±12（24x24），与 mover 移动范围重叠，复用已生成区块减少总工作量。
+    constexpr int GEN_ITERATIONS = 20;
+    constexpr int MAX_INFLIGHT = 6;
+    std::thread generator([&]() {
+        try {
+            std::vector<std::future<ChunkData*>> inflight;
+            inflight.reserve(MAX_INFLIGHT + 1);
+            for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+                const int x = (i * 7) % 24 - 12;
+                const int z = (i * 13) % 24 - 12;
+                auto future = m_manager->getChunkAsync(x, z, &ChunkStatuses::FULL);
+                inflight.push_back(std::move(future));
+                // 超过 MAX_INFLIGHT 时回收最旧的 future（等待其完成或取消）
+                if (static_cast<int>(inflight.size()) > MAX_INFLIGHT) {
+                    inflight.front().get(); // 等待最旧的 future 完成（释放 holder 引用）
+                    inflight.erase(inflight.begin());
+                }
+                if (i % 10 == 0) {
+                    // 偶尔同步请求，增加 worker 与主线程的交错
+                    (void)m_manager->getChunkSync(x, z);
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            // 回收剩余 inflight
+            for (auto& f : inflight) {
+                if (f.valid()) {
+                    (void)f.get();
+                }
+            }
+        }
+        catch (...) {
+            crashFlag.store(2, std::memory_order_release);
+        }
+    });
+
+    mover.join();
+    generator.join();
+    stop.store(true, std::memory_order_release);
+    watchdog.join();
+
+    // 若任何线程捕获到异常，标记失败
+    EXPECT_EQ(crashFlag.load(std::memory_order_acquire), 0)
+        << "Concurrent generate/unload test detected an exception in worker thread";
+
+    // 清理：移除玩家并 shutdown
+    m_manager->removePlayer(1);
     m_manager->shutdown();
     m_workerPool->shutdown();
 }
