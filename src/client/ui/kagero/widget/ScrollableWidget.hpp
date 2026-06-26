@@ -129,14 +129,12 @@ public:
         // 检查是否点击垂直滚动条
         if (m_showScrollbar && isOnScrollbar(mouseX, mouseY)) {
             m_draggingScrollbar = true;
-            m_lastMouseY = mouseY;
             return true;
         }
 
         // 检查是否点击水平滚动条
         if (m_showHorizontalScrollbar && isOnHorizontalScrollbar(mouseX, mouseY)) {
             m_draggingHorizontalScrollbar = true;
-            m_lastMouseX = mouseX;
             return true;
         }
 
@@ -785,8 +783,6 @@ protected:
     // 状态
     bool m_draggingScrollbar = false;           ///< 是否正在拖动垂直滚动条
     bool m_draggingHorizontalScrollbar = false; ///< 是否正在拖动水平滚动条
-    i32 m_lastMouseX = 0;                       ///< 上次鼠标X位置（用于水平滚动条拖动）
-    i32 m_lastMouseY = 0;                       ///< 上次鼠标Y位置（用于垂直滚动条拖动）
     bool m_shiftHeld = false;                   ///< Shift键是否按下（用于Shift+滚轮水平滚动）
 
     // 回调
