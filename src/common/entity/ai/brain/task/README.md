@@ -13,7 +13,8 @@ task/
     ├── action/
     │   └── ActionTasks.hpp     # 攻击、繁殖、进食任务
     └── interact/
-        └── InteractTasks.hpp   # 门、玩家、物品互动任务
+        ├── InteractTasks.hpp   # 7个交互任务模板类（已实现）
+        └── README.md           # 交互任务详细说明
 ```
 
 ## 内部模块关系
@@ -48,10 +49,25 @@ Task<E> (基类)
 
 详细说明参见 [movement/README.md](tasks/movement/README.md)。
 
+### interact/ — 交互类任务（7个）
+
+| 任务类 | 记忆依赖 | 功能说明 |
+|--------|---------|---------|
+| `VillagerInteractTask<E>` | INTERACTION_TARGET(present), WALK_TARGET(registered) | 村民导航到互动目标 |
+| `InteractWithDoorTask<E>` | INTERACTABLE_DOORS(present), OPENED_DOORS(registered), WALK_TARGET(present) | 沿路径自动开关门 |
+| `FollowOwnerTask<E>` | 无（直接检查 TameableEntity 状态） | 驯服动物跟随主人 |
+| `ProtectOwnerTask<E>` | OWNER_HURT_BY(present), ATTACK_TARGET(registered) | 驯服动物保护主人 |
+| `PickupItemTask<E>` | NEAREST_VISIBLE_WANTED_ITEM(present) | 导航到物品位置并拾取 |
+| `FollowParentTask<E>` | NEAREST_VISIBLE_ADULT(present) | 幼年动物跟随成年同类 |
+| `TemptTask<E>` | TEMPTING_PLAYER(present) | 动物被手持诱惑物品的玩家吸引 |
+
+详细说明参见 [interact/README.md](tasks/interact/README.md)。
+
 ## 上下游外部依赖关系
 
 **被依赖（下游）**：
-- `entity/entities/villager/VillagerEntity.hpp` - 村民 Brain 初始化中注册了所有 6 个移动任务
+- `entity/entities/villager/VillagerEntity.hpp` - 村民 Brain 初始化中注册了所有 6 个移动任务和 InteractWithDoorTask
+- `entity/entities/passive/tamable/` - 驯服动物可使用 FollowOwnerTask、ProtectOwnerTask 等
 
 **依赖（上游）**：
 - `brain/Brain.hpp` - Brain 主控制器

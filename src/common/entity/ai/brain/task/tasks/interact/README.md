@@ -30,7 +30,10 @@ interact/
 2. **requiredMemoryState 声明**：每个任务在构造函数中声明了所需的记忆状态，Brain 框架自动检查这些条件。
 3. **FollowOwnerTask 不使用记忆模块**：因为 TameableEntity 当前只使用 Goal 系统，不使用 Brain 系统，直接通过 `dynamic_cast` 和 `getOwner()` 检查驯服状态。
 4. **InteractWithDoorTask 的门记录**：使用 OPENED_DOORS 记忆模块记录由任务打开的门，在任务结束时统一关闭，避免门永久敞开。
-5. **ProtectOwnerTask 依赖 OWNER_HURT_BY 记忆**：需要对应传感器在主人被攻击时写入此记忆。
+5. **ProtectOwnerTask 依赖 OWNER_HURT_BY 记忆**：需要对应传感器（OwnerHurtBySensor）在主人被攻击时写入此记忆。
+6. **InteractWithDoorTask 依赖 InteractableDoorsSensor**：需要 InteractableDoorsSensor 扫描附近的木门并写入 INTERACTABLE_DOORS 记忆。
+7. **TemptTask 依赖 TemptingPlayerSensor**：需要 TemptingPlayerSensor 检测手持诱惑物品的玩家并写入 TEMPTING_PLAYER 记忆。
+8. **VillagerEntity 已注册 InteractWithDoorTask**：在 IDLE、WORK、MEET、REST、PANIC 等活动中均注册了 InteractWithDoorTask。
 
 ## 上下游依赖
 

@@ -27,8 +27,8 @@
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/sensor/Sensors.hpp"
-#include "common/entity/ai/brain/task/tasks/movement/MovementTasks.hpp"
 #include "common/entity/ai/brain/task/tasks/interact/InteractTasks.hpp" // 用于 Brain 任务注册
+#include "common/entity/ai/brain/task/tasks/movement/MovementTasks.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
@@ -248,6 +248,10 @@ void VillagerEntity::initializeBrain()
     m_brain->registerMemory(MemoryModuleTypes::ATTACK_TARGET);
     m_brain->registerMemory(MemoryModuleTypes::INTERACTION_TARGET);
 
+    // 门交互任务所需的记忆模块
+    m_brain->registerMemory(MemoryModuleTypes::INTERACTABLE_DOORS);
+    m_brain->registerMemory(MemoryModuleTypes::OPENED_DOORS);
+
     // 注册传感器
     m_brain->registerSensor(std::make_unique<NearestPlayersSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<NearestVisibleLivingEntitySensor<VillagerEntity>>());
@@ -256,6 +260,7 @@ void VillagerEntity::initializeBrain()
     m_brain->registerSensor(std::make_unique<WorkStationSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<VillagePoiSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<BabySensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<InteractableDoorsSensor<VillagerEntity>>());
 
     // 设置日程
     m_brain->setSchedule(&ai::brain::schedule::Schedule::VILLAGER_DEFAULT);
@@ -266,6 +271,7 @@ void VillagerEntity::initializeBrain()
 
     // 注册核心移动任务 - 所有活动都使用
     using namespace ai::brain::task::movement;
+    using namespace ai::brain::task::interact;
     using TaskPtr = std::unique_ptr<ai::brain::task::Task<VillagerEntity>>;
 
     // 辅助函数：从 unique_ptr 列表构建 vector
@@ -276,7 +282,13 @@ void VillagerEntity::initializeBrain()
         return tasks;
     };
 
-    // IDLE 活动：随机漫步、看向实体
+    // IDLE 活动：随机漫步、看向实体、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::IDLE,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::IDLE,
         1,
         makeTasks(
@@ -290,7 +302,13 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
-    // WORK 活动：移动到目标、随机漫步（低频率）
+    // WORK 活动：移动到目标、随机漫步（低频率）、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::WORK,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::WORK,
         1,
         makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
@@ -304,7 +322,13 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
-    // MEET 活动：移动到目标、随机漫步（较高频率）、看向实体
+    // MEET 活动：移动到目标、随机漫步（较高频率）、看向实体、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
         1,
         makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
@@ -318,7 +342,13 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
-    // PANIC 活动：逃跑、移动到目标
+    // PANIC 活动：逃跑、移动到目标、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::PANIC,
+        -1,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::PANIC,
         0,
         makeTasks(std::make_unique<FleeTask<VillagerEntity>>(0.6f, 10.0f),
@@ -357,7 +387,13 @@ void VillagerEntity::initializeBrain()
         {{MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
         {});
 
-    // REST 活动：随机漫步（低频率）、看向实体
+    // REST 活动：随机漫步（低频率）、看向实体、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::REST,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::REST,
         1,
         makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),

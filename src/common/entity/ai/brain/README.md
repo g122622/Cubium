@@ -26,7 +26,7 @@ brain/
 ├── sensor/                      # 传感器系统
 │   ├── Sensor.hpp               # 传感器基类
 │   ├── SensorType.hpp           # 传感器类型工厂
-│   ├── Sensors.hpp              # 传感器声明（9种）
+│   ├── Sensors.hpp              # 传感器声明（12种）
 │   └── Sensors.cpp              # 传感器实现
 ├── task/                        # 任务系统
 │   ├── Task.hpp                 # 任务基类
@@ -37,8 +37,9 @@ brain/
 │       │   └── README.md
 │       ├── action/              # 行动相关任务
 │       │   └── ActionTasks.hpp
-│       └── interact/            # 互动相关任务
-│           └── InteractTasks.hpp
+│       └── interact/            # 互动相关任务（7个已实现）
+│           ├── InteractTasks.hpp
+│           └── README.md
 └── README.md
 ```
 
@@ -66,7 +67,7 @@ Brain.hpp (主控制器)
         └── tasks/ (具体任务)
             ├── movement/ (6个移动任务已实现：MoveToTargetTask, StrollTask, LookAtEntityTask, FindHiddenBlockTask, ChaseTask, FleeTask)
             ├── action/ (行动任务)
-            └── interact/ (互动任务)
+            └── interact/ (7个交互任务已实现：VillagerInteractTask, InteractWithDoorTask, FollowOwnerTask, ProtectOwnerTask, PickupItemTask, FollowParentTask, TemptTask)
 ```
 
 数据流：`Sensor` 更新 `Memory` → `Schedule` 选择 `Activity` → `Task` 根据 `Memory` 执行行为
@@ -74,7 +75,7 @@ Brain.hpp (主控制器)
 ## 上下游外部依赖关系
 
 **被依赖（下游）**：
-- `entity/entities/villager/VillagerEntity.hpp` - 村民使用 Brain 系统，已集成全部 6 个移动任务
+- `entity/entities/villager/VillagerEntity.hpp` - 村民使用 Brain 系统，已集成全部 6 个移动任务和 InteractWithDoorTask
 - `entity/entities/monster/nether/PiglinEntity.hpp` - 猪灵使用 Brain 系统（框架就绪，待集成）
 
 **依赖（上游）**：
@@ -86,7 +87,9 @@ Brain.hpp (主控制器)
 
 ## 任务系统
 
-移动类任务（6个）已实现并集成到 VillagerEntity：
+移动类任务（6个）和交互类任务（7个）已实现，其中 InteractWithDoorTask 已集成到 VillagerEntity：
+
+### 移动类任务
 
 | 任务类 | 记忆依赖 | 功能 |
 |--------|---------|------|
@@ -96,6 +99,18 @@ Brain.hpp (主控制器)
 | `FindHiddenBlockTask` | HIDING_PLACE(absent), WALK_TARGET(absent) | 寻找隐蔽点 |
 | `ChaseTask` | ATTACK_TARGET(present) | 追逐攻击目标 |
 | `FleeTask` | AVOID_TARGET(present), WALK_TARGET(absent) | 逃离威胁 |
+
+### 交互类任务
+
+| 任务类 | 记忆依赖 | 功能 |
+|--------|---------|------|
+| `VillagerInteractTask` | INTERACTION_TARGET(present), WALK_TARGET(registered) | 村民导航到互动目标 |
+| `InteractWithDoorTask` | INTERACTABLE_DOORS(present), OPENED_DOORS(registered), WALK_TARGET(present) | 沿路径自动开关门 |
+| `FollowOwnerTask` | 无（直接检查 TameableEntity 状态） | 驯服动物跟随主人 |
+| `ProtectOwnerTask` | OWNER_HURT_BY(present), ATTACK_TARGET(registered) | 驯服动物保护主人 |
+| `PickupItemTask` | NEAREST_VISIBLE_WANTED_ITEM(present) | 导航到物品位置并拾取 |
+| `FollowParentTask` | NEAREST_VISIBLE_ADULT(present) | 幼年动物跟随成年同类 |
+| `TemptTask` | TEMPTING_PLAYER(present) | 动物被手持诱惑物品的玩家吸引 |
 
 任务之间通过记忆模块解耦：StrollTask/ChaseTask/FleeTask 写入 WALK_TARGET → MoveToTargetTask 读取并执行导航。
 
