@@ -27,7 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
-#include "common/skin/parser/SkinMetadataParser.hpp"
+#include "common/skin/core/SkinTypes.hpp"
 #include <atomic>
 
 namespace mc::skin {

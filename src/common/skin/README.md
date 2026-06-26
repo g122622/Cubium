@@ -7,7 +7,7 @@
 ```
 skin/
 ├── core/                       # 核心类型定义
-│   ├── SkinTypes.hpp           # 皮肤类型枚举、18种默认皮肤变体和工具函数
+│   ├── SkinTypes.hpp           # 皮肤类型枚举、18种默认皮肤变体、SignatureState 签名状态枚举和工具函数
 │   ├── SkinTypes.cpp
 │   ├── SkinTextures.hpp        # 皮肤纹理数据结构（皮肤/披风/鞘翅URL和位置）
 │   ├── SkinTextures.cpp
@@ -28,10 +28,10 @@ skin/
 │   ├── HttpSkinLoader.hpp      # HTTP下载加载（textures.minecraft.net）
 │   └── HttpSkinLoader.cpp
 ├── parser/                     # 解析器
-│   ├── SkinMetadataParser.hpp  # textures属性的Base64 JSON解析
+│   ├── SkinMetadataParser.hpp  # textures属性的Base64 JSON解析和签名验证
 │   └── SkinMetadataParser.cpp
 └── network/                    # 网络同步
-    ├── PlayerSkinInfo.hpp      # 客户端玩家皮肤信息（加载状态、纹理引用、部件可见性）
+    ├── PlayerSkinInfo.hpp      # 客户端玩家皮肤信息（加载状态、纹理引用、签名安全状态、部件可见性）
     ├── PlayerSkinInfo.cpp
     ├── SkinPackets.hpp         # PlayerListItemPacket（玩家列表+皮肤属性）
     └── SkinPackets.cpp
@@ -143,6 +143,14 @@ SkinCache 在初始化时从 `metadata.json` 加载缓存条目信息，在关�
 - **SkinManager**: 所有公共方法线程安全
 - **SkinCache**: 所有公共方法线程安全
 - **PlayerSkinInfo**: 加载状态使用 atomic，纹理访问需要外部同步
+
+### 签名验证
+
+- **SignatureState** 枚举定义在 `core/SkinTypes.hpp`（不在 `parser/SkinMetadataParser.hpp`），避免网络层反向依赖解析层
+- **getSignatureState()**: 当前因项目未集成 RSA 加密库，有签名的属性降级为 `Unsigned`（而非 `Invalid`），避免误判有效签名导致皮肤不可用
+- **verifySignature()**: 基于 `getSignatureState()` 实现，`Unsigned` 和 `Signed` 视为有效，`Invalid` 视为无效
+- 签名验证数据是 `property.value` 的原始 ASCII 字节（不是 Base64 解码后内容），与 MC Java 版 authlib `Property.isSignatureValid()` 一致
+- 完整的 RSA-SHA1 验证流程已记录在 `SkinMetadataParser.cpp` 的 TODO 注释中
 
 ### 异步加载
 

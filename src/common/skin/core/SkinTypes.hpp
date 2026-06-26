@@ -31,6 +31,22 @@
 namespace mc::skin {
 
 /**
+ * @brief 纹理属性签名状态
+ *
+ * 与 MC Java 版 authlib 的 SignatureState 对应。
+ * 用于指示 textures 属性签名的验证结果。
+ *
+ * - Unsigned: 属性没有签名（离线模式或会话服务未提供签名）
+ * - Invalid:  有签名但验证失败（签名被篡改或使用了未知公钥）
+ * - Signed:   有签名且验证通过（属性来源可信）
+ */
+enum class SignatureState : u8 {
+    Unsigned = 0, // 无签名
+    Invalid = 1,  // 签名验证失败
+    Signed = 2    // 签名验证通过
+};
+
+/**
  * @brief 皮肤模型类型
  *
  * 决定玩家模型的手臂宽度：

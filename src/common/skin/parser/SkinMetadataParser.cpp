@@ -220,7 +220,7 @@ SignatureState SkinMetadataParser::getSignatureState(const GameProfileProperty& 
     // 以避免误判有效签名为无效，导致离线模式玩家无法正常使用皮肤。
     MC_UNUSED(valueBytes);
 
-    spdlog::debug("SkinMetadataParser: Signature verification requires crypto library support, "
+    spdlog::info("SkinMetadataParser: Signature verification requires crypto library support, "
                   "treating signed property as UNSIGNED");
     return SignatureState::Unsigned;
 }
