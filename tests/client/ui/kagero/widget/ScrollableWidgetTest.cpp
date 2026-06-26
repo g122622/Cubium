@@ -544,3 +544,120 @@ TEST(ScrollableWidgetTest, NoHorizontalScrollbarWhenContentFits)
     scrollable.setScrollX(100);
     EXPECT_EQ(0, scrollable.scrollX());
 }
+
+TEST(ScrollableWidgetTest, HorizontalScrollbarDragAndRelease)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 800);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+
+    // 水平滚动条在底部 y = bottom - scrollbarWidth = 400 - 6 = 394
+    // 内容宽度600 > 可见宽度294，水平滚动条可见
+
+    // 点击水平滚动条区域开始拖动
+    bool clicked = scrollable.onClick(150, 397, 0, 0);
+    EXPECT_TRUE(clicked);
+
+    // 释放鼠标结束拖动
+    bool released = scrollable.onRelease(150, 397, 0, 0);
+    EXPECT_TRUE(released);
+}
+
+TEST(ScrollableWidgetTest, HorizontalScrollbarDragScrolls)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 800);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+
+    // 点击水平滚动条开始拖动
+    scrollable.onClick(150, 397, 0, 0);
+
+    // 拖动应改变水平滚动位置
+    bool dragged = scrollable.onDrag(200, 397, 50, 0, 0);
+    EXPECT_TRUE(dragged);
+    // 拖动后scrollX应该有变化（deltaX=50应导致水平滚动）
+    EXPECT_GT(scrollable.scrollX(), 0);
+}
+
+TEST(ScrollableWidgetTest, VerticalScrollbarDragAndRelease)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentHeight(1000);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+
+    // 点击垂直滚动条开始拖动
+    bool clicked = scrollable.onClick(297, 100, 0, 0);
+    EXPECT_TRUE(clicked);
+
+    // 释放鼠标结束拖动
+    bool released = scrollable.onRelease(297, 100, 0, 0);
+    EXPECT_TRUE(released);
+}
+
+TEST(ScrollableWidgetTest, ScrollbarClickDoesNotReachChildren)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 1000);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+
+    // 点击垂直滚动条区域应被滚动条消费，不传递给子组件
+    bool clicked = scrollable.onClick(297, 100, 0, 0);
+    EXPECT_TRUE(clicked);
+
+    // 点击水平滚动条区域也应被滚动条消费
+    bool clickedH = scrollable.onClick(150, 397, 0, 0);
+    EXPECT_TRUE(clickedH);
+}
+
+TEST(ScrollableWidgetTest, ScrollByXClampsCorrectly)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 800);
+
+    // 正常滚动
+    scrollable.scrollByX(50);
+    EXPECT_EQ(50, scrollable.scrollX());
+
+    // 滚动超过最大值应被限制
+    scrollable.scrollByX(999);
+    // maxScrollX = 600 - 294 = 306 (294 = visibleWidth with scrollbar)
+    EXPECT_EQ(306, scrollable.scrollX());
+
+    // 负滚动应被限制到0
+    scrollable.scrollByX(-999);
+    EXPECT_EQ(0, scrollable.scrollX());
+}
+
+TEST(ScrollableWidgetTest, ShiftKeyTracking)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 800);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+    scrollable.setFocused(true);
+
+    // 按下Shift应更新m_shiftHeld但不消费事件
+    bool result = scrollable.onKey(Keys::LeftShift, 0, static_cast<i32>(KeyAction::Press), 0);
+    EXPECT_FALSE(result); // Shift事件不被消费
+
+    // 释放Shift应重置m_shiftHeld
+    result = scrollable.onKey(Keys::LeftShift, 0, static_cast<i32>(KeyAction::Release), 0);
+    EXPECT_FALSE(result); // Release事件也不被消费
+}
+
+TEST(ScrollableWidgetTest, OnKeyUnfocusedDoesNotScroll)
+{
+    ScrollableWidget scrollable("test", 0, 0, 300, 400);
+    scrollable.setContentSize(600, 800);
+    scrollable.setActive(true);
+    scrollable.setVisible(true);
+    // 未设置焦点
+
+    bool result = scrollable.onKey(Keys::Right, 0, static_cast<i32>(KeyAction::Press), 0);
+    EXPECT_FALSE(result);
+    EXPECT_EQ(0, scrollable.scrollX()); // 未聚焦时不应该滚动
+}

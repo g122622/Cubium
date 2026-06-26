@@ -280,9 +280,28 @@ save()/restore()必须配对使用，否则会导致绘图状态错乱。建议�
 
 通过BindingContext::exposeCallback注册的回调必须在使用TemplateInstance之前完成，否则模板中的事件绑定会找不到回调。
 
-### 10. ScrollableWidget 内容尺寸
+### 10. ScrollableWidget 水平与垂直滚动
 
-ScrollableWidget需要正确设置内容尺寸（setContentSize），否则滚动条不会出现或滚动范围不正确。
+ScrollableWidget同时支持水平和垂直双向滚动，提供完整的滚动条交互：
+
+**核心API：**
+- `setContentSize(width, height)` / `setContentWidth(width)` / `setContentHeight(height)` 设置内容尺寸
+- `setShowScrollbar(bool)` / `setShowHorizontalScrollbar(bool)` 控制滚动条可见性
+- `scrollBy(deltaY)` / `scrollByX(deltaX)` 增量滚动
+- `scrollToTop()` / `scrollToBottom()` / `scrollToLeft()` / `scrollToRight()` 滚动到边界
+- `scrollIntoView(y, height)` / `scrollXIntoView(x, width)` 滚动到指定区域可见
+- `horizontalScrollRatio()` / `scrollRatio()` 获取滚动比例（0.0-1.0）
+
+**交互方式：**
+- **鼠标拖拽**：点击并拖拽垂直滚动条（右侧）或水平滚动条（底部）
+- **鼠标滚轮**：垂直滚动；Shift+滚轮水平滚动（需组件获取焦点后Shift键状态才可追踪）
+- **键盘**：↑↓键垂直滚动、←→键水平滚动、PageUp/PageDown垂直翻页、Home/End滚动到首尾（Shift+Home/End水平方向）
+
+**注意事项：**
+- 必须正确设置内容尺寸，否则滚动条不会出现或滚动范围不正确
+- 当两轴滚动条同时可见时，右下角区域会预留间隙避免重叠
+- `visibleWidth()` 和 `visibleHeight()` 会自动扣除对应方向滚动条的占用空间
+- Shift+滚轮水平滚动需要组件获取焦点后才能正确追踪Shift键状态
 
 ### 11. TextFieldWidget UTF-8 注意事项
 

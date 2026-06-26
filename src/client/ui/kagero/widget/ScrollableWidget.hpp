@@ -256,11 +256,15 @@ public:
         if (!isActive() || !isVisible()) return false;
 
         // 追踪Shift键状态（用于Shift+滚轮水平滚动）
+        // 仅更新状态，不消费事件，以便Shift键正常传递给子组件和其他处理器
         if (key == Keys::LeftShift || key == Keys::RightShift) {
-            bool pressed =
+            m_shiftHeld =
                 (action == static_cast<i32>(KeyAction::Press) || action == static_cast<i32>(KeyAction::Repeat));
-            m_shiftHeld = pressed;
-            return pressed; // 消费Shift按键事件，避免传递给子组件
+            // Shift键释放时重置状态
+            if (action == static_cast<i32>(KeyAction::Release)) {
+                m_shiftHeld = false;
+            }
+            // 不消费Shift事件，让它继续传播
         }
 
         if (!isFocused()) return false;
