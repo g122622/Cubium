@@ -10,6 +10,8 @@ src/common/util/assert/
 ├── Assert.cpp          # 实现文件（跨平台堆栈跟踪、处理器实现）
 ├── AssertMacros.hpp    # 断言宏定义（MC_ASSERT_* 系列）
 ├── AssertAll.hpp       # 统一包含入口
+├── CrashHandler.hpp    # 崩溃处理器接口（SEH/信号/terminate 捕获）
+├── CrashHandler.cpp    # 崩溃处理器实现（调用栈+局部变量输出）
 └── README.md           # 本文档
 ```
 
@@ -18,10 +20,12 @@ src/common/util/assert/
 ```
 AssertAll.hpp（用户入口）
     ├── Assert.hpp（核心类型定义）
-    └── AssertMacros.hpp（断言宏，依赖 Assert.hpp）
+    ├── AssertMacros.hpp（断言宏，依赖 Assert.hpp）
+    └── CrashHandler.hpp（崩溃处理器，独立于 Assert.hpp）
 
 Assert.hpp ←→ Assert.cpp（实现关系）
 AssertMacros.hpp → AssertManager::handleFailure()（宏调用管理器）
+CrashHandler.hpp ←→ CrashHandler.cpp（崩溃处理器实现，依赖 DbgHelp/信号处理）
 ```
 
 ## 上下游外部依赖关系
@@ -100,3 +104,11 @@ for (int i = 0; i < millions; ++i) {
 ### 7. 比较断言的类型要求
 
 比较断言（如 `MC_ASSERT_EQ`）要求操作数支持对应的运算符（`==`, `<` 等），自定义类型需要定义相应运算符。
+
+### 8. CrashHandler 局部变量枚举
+
+`CrashHandler` 在 Windows 上尝试枚举每个栈帧的局部变量（使用 `SymSetContext` + `SymEnumSymbols`），但 RelWithDebInfo 下编译器优化会内联/消除局部变量，**输出可能不完整**。如果需要完整的变量信息，请使用 Debug 构建或在崩溃后用调试器附加。
+
+### 9. CrashHandler 与 MC_ASSERT 的关系
+
+`CrashHandler` 捕获的是**未处理的崩溃**（SEH 异常、信号、纯虚函数调用、std::terminate 等），而 `MC_ASSERT_*` 触发的断言走 `AssertManager` 的处理流程。两者是独立的，`CrashHandler` 不影响断言行为。

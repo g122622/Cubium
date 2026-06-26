@@ -1347,6 +1347,7 @@ add_library(mc_common STATIC
 
     # Assert library
     util/assert/Assert.cpp
+    util/assert/CrashHandler.cpp
 
     # Sound system - Core
     sound/SoundCategory.cpp

@@ -76,3 +76,4 @@
 
 #include "Assert.hpp"
 #include "AssertMacros.hpp"
+#include "CrashHandler.hpp"

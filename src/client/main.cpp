@@ -29,6 +29,8 @@
 #include <string>
 #include <spdlog/spdlog.h>
 
+#include "common/util/assert/AssertAll.hpp"
+
 namespace {
 
 void printBanner()
@@ -105,6 +107,18 @@ void printHelp()
 
 int main(int argc, char* argv[])
 {
+    // 安装崩溃处理器：捕获 SEH 异常、信号、纯虚函数调用等，
+    // 输出调用栈和局部变量信息到终端
+    mc::assert::CrashHandler::install();
+
+    // 注册崩溃清理回调：崩溃时刷新 Perfetto 跟踪数据
+    mc::assert::CrashHandler::setCleanupCallback([]() {
+        auto& perfettoManager = mc::perfetto::PerfettoManager::instance();
+        perfettoManager.stopTracing();
+        perfettoManager.shutdown();
+        std::cerr << "Perfetto tracing stopped due to crash" << std::endl;
+    });
+
     // 打印Banner
     printBanner();
 
@@ -130,14 +144,13 @@ int main(int argc, char* argv[])
         }
         if (arg == "--skip-integrated") {
             params.skipIntegratedServer = true;
-            
         }
         if (arg == "--quick-play" && i + 1 < argc) {
             params.quickPlayLevelId = argv[++i];
         }
-         if (arg == "--quick-play-new") {
+        if (arg == "--quick-play-new") {
             params.quickPlayNew = true;
-         }
+        }
         if (arg == "--benchmark-exit-after-initialize") {
             params.benchmarkExitAfterInitialize = true;
         }
