@@ -254,6 +254,8 @@ add_executable(mc_tests
     common/entity/damage/DamageSourceExplosionTest.cpp
     # 矿车 dropItem() 伤害源检测测试
     common/entity/entities/vehicle/MinecartDropItemTest.cpp
+    # 矿车 _checkRailState() 铁轨形状提取测试
+    common/entity/entities/vehicle/MinecartCheckRailStateTest.cpp
     # 船实体 getBoatItem() 和 dropItem() 测试
     common/entity/entities/vehicle/BoatEntityDropItemTest.cpp
     # 实体掉落 DO_ENTITY_DROPS 游戏规则测试
