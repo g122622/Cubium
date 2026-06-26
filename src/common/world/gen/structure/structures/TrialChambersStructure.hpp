@@ -57,6 +57,11 @@ public:
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
+    /**
+     * @brief 获取试炼密室关联的生物群系标签
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
     [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
 
     [[nodiscard]] bool canGenerate(

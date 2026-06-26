@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/structures/OceanMonumentPieces.hpp"
@@ -51,6 +52,13 @@ public:
     [[nodiscard]] const std::string& name() const override { return m_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
+
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/monument 标签，用于 O(1) 生物群系查找。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 海洋纪念碑使用非均匀间距分布

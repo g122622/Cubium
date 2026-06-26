@@ -31,9 +31,6 @@
 #include <vector>
 
 namespace mc {
-namespace biome {
-class BiomeTag;
-}
 namespace world {
 namespace gen {
 namespace structure {

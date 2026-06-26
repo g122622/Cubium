@@ -24,14 +24,19 @@
 #include "BuriedTreasureStructure.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 
-namespace mc::world::gen::structure {
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
 
 // BuriedTreasurePiece 实现
 BuriedTreasurePiece::BuriedTreasurePiece(i32 x, i32 y, i32 z)
@@ -82,6 +87,11 @@ const std::string BuriedTreasureStructure::m_name = "buried_treasure";
 
 const std::vector<BiomeId> BuriedTreasureStructure::m_validBiomes = {Biomes::Beach, Biomes::SnowyBeach};
 
+const biome::BiomeTag* BuriedTreasureStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_BURIED_TREASURE();
+}
+
 bool BuriedTreasureStructure::canGenerate(
     IWorld& /*world*/, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
@@ -120,4 +130,7 @@ std::unique_ptr<StructureStart> BuriedTreasureStructure::generate(
     return start;
 }
 
-} // namespace mc::world::gen::structure
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc

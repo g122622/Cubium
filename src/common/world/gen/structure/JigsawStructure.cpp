@@ -124,6 +124,20 @@ JigsawStructure::JigsawStructure(StructureType type,
     , m_terrainAdaptation(terrainAdaptation)
 {}
 
+JigsawStructure::JigsawStructure(ResourceLocation id,
+    JigsawConfig config,
+    i32 startY,
+    bool nearTerrain,
+    bool adjustForTerrain,
+    TerrainAdaptation terrainAdaptation)
+    : Structure(std::move(id))
+    , m_config(std::move(config))
+    , m_startY(startY)
+    , m_nearTerrain(nearTerrain)
+    , m_adjustForTerrain(adjustForTerrain)
+    , m_terrainAdaptation(terrainAdaptation)
+{}
+
 bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     MC_UNUSED(world);

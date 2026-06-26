@@ -30,7 +30,6 @@
 
 namespace mc::world::gen::structure {
 
-// 前向声明
 class MineshaftPiece;
 
 /**
@@ -314,6 +313,13 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
+
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/mineshaft 标签，用于 O(1) 生物群系查找。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 废弃矿井使用均匀间距分布

@@ -1,6 +1,7 @@
 #include "OceanMonumentStructure.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/biome/BiomeTags.hpp"
 
@@ -17,7 +18,7 @@ const SpawnOverrides OceanMonumentStructure::m_spawnOverrides = {
     SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 4, 4}}};
 
 OceanMonumentStructure::OceanMonumentStructure()
-    : Structure(StructureType::Monument)
+    : Structure(ResourceLocation("minecraft", "monument"))
 {
     _initializeBiomes();
 }
@@ -25,6 +26,11 @@ OceanMonumentStructure::OceanMonumentStructure()
 void OceanMonumentStructure::_initializeBiomes()
 {
     m_validBiomes = {DeepOcean, DeepWarmOcean, DeepLukewarmOcean, DeepColdOcean, DeepFrozenOcean};
+}
+
+const biome::BiomeTag* OceanMonumentStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_MONUMENT();
 }
 
 bool OceanMonumentStructure::canGenerate(

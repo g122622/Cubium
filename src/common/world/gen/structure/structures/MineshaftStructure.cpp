@@ -22,11 +22,13 @@
  */
 
 #include "MineshaftStructure.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../WorldConstants.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
@@ -781,10 +783,15 @@ const std::vector<BiomeId> MineshaftStructure::m_mesaBiomes = {
     Biomes::Badlands, Biomes::BadlandsPlateau, Biomes::ErodedBadlands, Biomes::WoodedBadlandsPlateau};
 
 MineshaftStructure::MineshaftStructure(MineshaftType type)
-    : Structure(StructureType::Mineshaft)
+    : Structure(ResourceLocation("minecraft", "mineshaft"))
 {
     m_config.type = type;
     m_config.probability = (type == MineshaftType::Mesa) ? 0.004f : 0.004f;
+}
+
+const biome::BiomeTag* MineshaftStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_MINESHAFT();
 }
 
 bool MineshaftStructure::canGenerate(

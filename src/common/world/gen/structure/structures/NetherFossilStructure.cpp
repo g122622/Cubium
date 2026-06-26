@@ -29,6 +29,7 @@
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -137,6 +138,11 @@ void NetherFossilPiece::generate(
 NetherFossilStructure::NetherFossilStructure()
     : Structure(ResourceLocation("minecraft", "nether_fossil"))
 {}
+
+const biome::BiomeTag* NetherFossilStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_NETHER_FOSSIL();
+}
 
 bool NetherFossilStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)

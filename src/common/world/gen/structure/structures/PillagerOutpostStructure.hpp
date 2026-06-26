@@ -48,6 +48,11 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
     /**
+     * @brief 获取掠夺者前哨站关联的生物群系标签
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
+    /**
      * @brief 掠夺者前哨站的生成覆盖
      *
      * 掠夺者在完整结构边界框内生成（1 只掠夺者）。

@@ -66,6 +66,11 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const noexcept override { return m_validBiomes; }
 
     /**
+     * @brief 获取结构关联的生物群系标签
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
+    /**
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(

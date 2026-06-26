@@ -90,6 +90,14 @@ public:
     [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
 
     /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/nether_fortress 标签，
+     * 用于判断下界要塞可生成的生物群系。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
+    /**
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(

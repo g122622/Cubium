@@ -157,7 +157,24 @@ public:
      * @param adjustForTerrain 是否根据地形调整高度
      * @param terrainAdaptation 地形适配模式
      */
+    // TODO: 所有子类迁移到 ResourceLocation 构造函数后删除此构造函数
     explicit JigsawStructure(StructureType type,
+        JigsawConfig config,
+        i32 startY = 0,
+        bool nearTerrain = false,
+        bool adjustForTerrain = false,
+        TerrainAdaptation terrainAdaptation = TerrainAdaptation::None);
+
+    /**
+     * @brief 构造函数（使用 ResourceLocation）
+     * @param id 结构资源位置 ID
+     * @param config 拼图配置
+     * @param startY 起始Y坐标偏移
+     * @param nearTerrain 是否靠近地形
+     * @param adjustForTerrain 是否调整地形
+     * @param terrainAdaptation 地形适配模式
+     */
+    explicit JigsawStructure(ResourceLocation id,
         JigsawConfig config,
         i32 startY = 0,
         bool nearTerrain = false,

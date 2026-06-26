@@ -49,6 +49,13 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
     [[nodiscard]] const SpawnOverrides* spawnOverrides() const override { return &s_spawnOverrides; }
 
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/bastion_remnant 标签，用于 O(1) 生物群系查找。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 

@@ -30,7 +30,10 @@
 #include <memory>
 #include <vector>
 
-namespace mc::world::gen::structure {
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
 
 /**
  * @brief 沉船配置
@@ -100,6 +103,8 @@ public:
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
@@ -142,4 +147,7 @@ private:
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };
 
-} // namespace mc::world::gen::structure
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc

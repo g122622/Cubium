@@ -27,6 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/jigsaw/JigsawManager.hpp"
@@ -108,8 +109,13 @@ constexpr i32 BASTION_WEIGHTS[] = {4, 2, 2, 2}; // units, stables, treasure, bri
 } // anonymous namespace
 
 BastionRemnantStructure::BastionRemnantStructure()
-    : Structure(StructureType::Bastion)
+    : Structure(ResourceLocation("minecraft", "bastion_remnant"))
 {}
+
+const biome::BiomeTag* BastionRemnantStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_BASTION_REMNANT();
+}
 
 bool BastionRemnantStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)

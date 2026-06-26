@@ -28,6 +28,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/jigsaw/JigsawManager.hpp"
@@ -146,7 +147,7 @@ private:
 } // anonymous namespace
 
 TrialChambersStructure::TrialChambersStructure()
-    : JigsawStructure(StructureType::TrialChambers,
+    : JigsawStructure(ResourceLocation("minecraft", "trial_chambers"),
           JigsawConfig(ResourceLocation("minecraft", "trial_chambers/chamber/end"),
               20, // maxDepth = 20
               valueprovider::UniformHeight::create(
@@ -162,6 +163,11 @@ TrialChambersStructure::TrialChambersStructure()
           TerrainAdaptation::Encapsulate // 用凝灰岩砖完全包裹
       )
 {}
+
+const biome::BiomeTag* TrialChambersStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_TRIAL_CHAMBERS();
+}
 
 jigsaw::PoolAliasBindings TrialChambersStructure::createPoolAliases()
 {

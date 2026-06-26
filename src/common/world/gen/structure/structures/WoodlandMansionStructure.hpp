@@ -64,6 +64,11 @@ public:
      */
     [[nodiscard]] bool useUniformSpacing() const override { return false; }
 
+    /**
+     * @brief 获取结构关联的生物群系标签
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 

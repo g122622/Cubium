@@ -28,6 +28,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -94,8 +95,13 @@ const std::string WoodlandMansionStructure::s_name = "Woodland_Mansion";
 const std::vector<BiomeId> WoodlandMansionStructure::s_validBiomes = {DarkForest, DarkForestHills};
 
 WoodlandMansionStructure::WoodlandMansionStructure()
-    : Structure(StructureType::WoodlandMansion)
+    : Structure(ResourceLocation("minecraft", "mansion"))
 {}
+
+const biome::BiomeTag* WoodlandMansionStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_MANSION();
+}
 
 bool WoodlandMansionStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)

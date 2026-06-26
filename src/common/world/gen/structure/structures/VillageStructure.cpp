@@ -24,9 +24,11 @@
 #include "VillageStructure.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/jigsaw/JigsawManager.hpp"
@@ -102,14 +104,14 @@ using namespace mc::Biomes;
 const std::string VillageStructure::m_name = "village";
 
 VillageStructure::VillageStructure(VillageType type)
-    : Structure(StructureType::Village)
+    : Structure(ResourceLocation("minecraft", "village"))
 {
     m_config.type = type;
     _initializeBiomes();
 }
 
 VillageStructure::VillageStructure(const VillageConfig& config)
-    : Structure(StructureType::Village)
+    : Structure(ResourceLocation("minecraft", "village"))
     , m_config(config)
 {
     _initializeBiomes();
@@ -139,6 +141,13 @@ void VillageStructure::_initializeBiomes()
             m_validBiomes = {Plains, Desert, Savanna, Taiga, SnowyPlains};
             break;
     }
+}
+
+const biome::BiomeTag* VillageStructure::biomeTag() const
+{
+    // 村庄有多个变体，每个变体对应不同的生物群系标签
+    // 默认返回平原村庄标签，canGenerate() 中根据村庄类型进行详细检查
+    return &biome::BiomeTags::HAS_STRUCTURE_VILLAGE_PLAINS();
 }
 
 bool VillageStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)

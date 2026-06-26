@@ -28,8 +28,10 @@
 #include "../../../../util/math/MathConstants.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../biome/BiomeIds.hpp"
+#include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <cmath>
@@ -62,13 +64,13 @@ using namespace mc::Biomes;
 const std::string StrongholdStructure::m_name = "stronghold";
 
 StrongholdStructure::StrongholdStructure()
-    : Structure(StructureType::Stronghold)
+    : Structure(ResourceLocation("minecraft", "stronghold"))
 {
     _initializeBiomes();
 }
 
 StrongholdStructure::StrongholdStructure(const Config& config)
-    : Structure(StructureType::Stronghold)
+    : Structure(ResourceLocation("minecraft", "stronghold"))
     , m_config(config)
 {
     _initializeBiomes();
@@ -118,6 +120,11 @@ void StrongholdStructure::_initializeBiomes()
         SnowyTaigaHills,
         SnowyTaigaMountains,
         SnowyBeach};
+}
+
+const biome::BiomeTag* StrongholdStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_STRONGHOLD();
 }
 
 bool StrongholdStructure::canGenerate(

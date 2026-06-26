@@ -27,10 +27,14 @@
 #include "../../feature/template/Template.hpp"
 #include "../../feature/template/TemplateManager.hpp"
 #include "../Structure.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include <memory>
 #include <vector>
 
-namespace mc::world::gen::structure {
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
 
 /**
  * @brief 废弃传送门垂直放置位置
@@ -142,6 +146,14 @@ public:
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/ruined_portal_standard 标签，用于 O(1) 生物群系查找。
+     * 实际变体区分在 canGenerate() 中根据生物群系/维度判断。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
 
@@ -199,4 +211,7 @@ private:
     [[nodiscard]] RuinedPortalLocation determineLocation(RuinedPortalType type, math::Random& rng) const;
 };
 
-} // namespace mc::world::gen::structure
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc

@@ -27,6 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
@@ -361,13 +362,13 @@ const SpawnOverrides FortressStructure::s_spawnOverrides = {
     SpawnOverrideType::Piece, {SpawnOverrideEntry{"monster", 2, 4}}};
 
 FortressStructure::FortressStructure()
-    : Structure(StructureType::Fortress)
+    : Structure(ResourceLocation("minecraft", "fortress"))
 {
     _initializeBiomes();
 }
 
 FortressStructure::FortressStructure(const Config& config)
-    : Structure(StructureType::Fortress)
+    : Structure(ResourceLocation("minecraft", "fortress"))
     , m_config(config)
 {
     _initializeBiomes();
@@ -380,6 +381,11 @@ void FortressStructure::_initializeBiomes()
         NetherWastes,  // 下界荒地
         SoulSandValley // 灵魂沙谷
     };
+}
+
+const biome::BiomeTag* FortressStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_FORTRESS();
 }
 
 bool FortressStructure::canGenerate(

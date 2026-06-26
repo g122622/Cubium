@@ -26,6 +26,7 @@
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../biome/BiomeIds.hpp"
+#include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/TemplateManager.hpp"
@@ -83,8 +84,13 @@ const std::string EndCityStructure::s_name = "End_City";
 const std::vector<BiomeId> EndCityStructure::s_validBiomes = {EndMidlands, EndHighlands};
 
 EndCityStructure::EndCityStructure()
-    : Structure(StructureType::EndCity)
+    : Structure(ResourceLocation("minecraft", "end_city"))
 {}
+
+const biome::BiomeTag* EndCityStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_END_CITY();
+}
 
 bool EndCityStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {

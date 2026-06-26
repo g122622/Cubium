@@ -27,6 +27,7 @@
 #include "../../../../util/math/MathUtils.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../biome/BiomeIds.hpp"
+#include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 
@@ -58,12 +59,17 @@ const std::vector<BiomeId> PillagerOutpostStructure::s_validBiomes = {Plains,
     GiantTreeTaigaHills};
 
 PillagerOutpostStructure::PillagerOutpostStructure()
-    : JigsawStructure(StructureType::PillagerOutpost,
+    : JigsawStructure(ResourceLocation("minecraft", "pillager_outpost"),
           JigsawConfig(ResourceLocation("minecraft", "pillager_outpost/base_plates"), 7),
           0,
           true,
           true)
 {}
+
+const biome::BiomeTag* PillagerOutpostStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_PILLAGER_OUTPOST();
+}
 
 bool PillagerOutpostStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)

@@ -67,6 +67,7 @@ public:
     [[nodiscard]] const std::string& name() const override { return s_name; }
     [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 末地城使用三角分布（非均匀间距）

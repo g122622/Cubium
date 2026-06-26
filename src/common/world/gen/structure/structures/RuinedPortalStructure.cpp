@@ -29,6 +29,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../biome/BiomeIds.hpp"
+#include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/Template.hpp"
@@ -36,6 +37,7 @@
 #include "../../feature/template/TemplateManager.hpp"
 #include "../../jigsaw/JigsawManager.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <spdlog/spdlog.h>
 
@@ -261,8 +263,13 @@ void RuinedPortalPiece::generate(
 // ============================================================================
 
 RuinedPortalStructure::RuinedPortalStructure()
-    : Structure(StructureType::RuinedPortal)
+    : Structure(ResourceLocation("minecraft", "ruined_portal"))
 {}
+
+const biome::BiomeTag* RuinedPortalStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_STANDARD();
+}
 
 RuinedPortalType RuinedPortalStructure::getPortalType(BiomeId biome)
 {

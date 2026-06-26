@@ -85,6 +85,14 @@ public:
     [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 村庄有多个变体，每个变体对应不同的生物群系标签。
+     * 默认返回平原村庄标签，canGenerate() 中根据村庄类型进行详细检查。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
+
+    /**
      * @brief 检查是否可以生成
      */
     [[nodiscard]] bool canGenerate(
