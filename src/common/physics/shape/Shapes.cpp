@@ -472,6 +472,8 @@ VoxelShape Shapes::slice(const VoxelShape& shape, Axis axis, i32 index)
     }
 
     // 创建坐标点列表
+    // 参考: MC Java SliceShape - 切片轴使用 {0.0, 1.0}，非切片轴使用原始坐标数组
+    // 坐标数组大小为 size + 1，因此需要取 endX + 1 (endY + 1, endZ + 1) 个元素
     const std::vector<f64>& xCoords = shape.getCoords(Axis::X);
     const std::vector<f64>& yCoords = shape.getCoords(Axis::Y);
     const std::vector<f64>& zCoords = shape.getCoords(Axis::Z);
@@ -482,17 +484,17 @@ VoxelShape Shapes::slice(const VoxelShape& shape, Axis axis, i32 index)
     switch (axis) {
         case Axis::X:
             newXCoords = sliceCoords;
-            newYCoords.assign(yCoords.begin() + startY, yCoords.begin() + endY);
-            newZCoords.assign(zCoords.begin() + startZ, zCoords.begin() + endZ);
+            newYCoords.assign(yCoords.begin() + startY, yCoords.begin() + endY + 1);
+            newZCoords.assign(zCoords.begin() + startZ, zCoords.begin() + endZ + 1);
             break;
         case Axis::Y:
-            newXCoords.assign(xCoords.begin() + startX, xCoords.begin() + endX);
+            newXCoords.assign(xCoords.begin() + startX, xCoords.begin() + endX + 1);
             newYCoords = sliceCoords;
-            newZCoords.assign(zCoords.begin() + startZ, zCoords.begin() + endZ);
+            newZCoords.assign(zCoords.begin() + startZ, zCoords.begin() + endZ + 1);
             break;
         case Axis::Z:
-            newXCoords.assign(xCoords.begin() + startX, xCoords.begin() + endX);
-            newYCoords.assign(yCoords.begin() + startY, yCoords.begin() + endY);
+            newXCoords.assign(xCoords.begin() + startX, xCoords.begin() + endX + 1);
+            newYCoords.assign(yCoords.begin() + startY, yCoords.begin() + endY + 1);
             newZCoords = sliceCoords;
             break;
     }

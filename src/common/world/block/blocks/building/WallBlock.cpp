@@ -23,6 +23,8 @@
 
 #include "common/world/block/blocks/building/WallBlock.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/physics/shape/BooleanOp.hpp"
+#include "common/physics/shape/Shapes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
@@ -32,6 +34,66 @@
 
 namespace mc {
 namespace blocks {
+
+// ============================================================================
+// 静态成员初始化
+// ============================================================================
+
+// 墙柱测试形状: 中心 2x16x2 像素柱形区域
+// 参考: net.minecraft.block.WallBlock#TEST_SHAPE_POST = Block.column(2.0, 0.0, 16.0)
+// Block.column(2.0, 0.0, 16.0) = box(7/16, 0, 7/16, 9/16, 1, 9/16)
+VoxelShape WallBlock::s_testShapePost = Shapes::box(7.0 / 16.0, 0.0, 7.0 / 16.0, 9.0 / 16.0, 1.0, 9.0 / 16.0);
+
+// 墙臂测试形状: 每个方向对应一个 2x16x9 像素的墙臂测试区域
+// 参考: net.minecraft.block.WallBlock#TEST_SHAPES_WALL = Shapes.rotateHorizontal(Block.boxZ(2.0, 16.0, 0.0, 9.0))
+// Block.boxZ(2.0, 16.0, 0.0, 9.0) 展开后 = box(7/16, 0, 0, 9/16, 1, 9/16) (北面方向)
+// 然后旋转到四个水平方向
+std::map<Direction, VoxelShape> WallBlock::s_testShapesWall = {
+    {Direction::North, Shapes::box(7.0 / 16.0, 0.0, 0.0, 9.0 / 16.0, 1.0, 9.0 / 16.0)},
+    {Direction::South, Shapes::box(7.0 / 16.0, 0.0, 7.0 / 16.0, 9.0 / 16.0, 1.0, 1.0)},
+    {Direction::East, Shapes::box(7.0 / 16.0, 0.0, 7.0 / 16.0, 1.0, 1.0, 9.0 / 16.0)},
+    {Direction::West, Shapes::box(0.0, 0.0, 7.0 / 16.0, 9.0 / 16.0, 1.0, 9.0 / 16.0)},
+};
+
+namespace {
+
+/**
+ * @brief 将 CollisionShape 转换为 VoxelShape
+ *
+ * 对于完整方块和空形状有优化路径。
+ * 对于 SimpleBox 类型，将所有碰撞盒合并为 VoxelShape。
+ *
+ * @param shape 碰撞形状
+ * @return 对应的体素形状
+ */
+VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
+{
+    if (shape.isEmpty()) {
+        return Shapes::empty();
+    }
+    if (shape.isFullBlock()) {
+        return Shapes::block();
+    }
+    const auto& boxes = shape.boxes();
+    if (boxes.empty()) {
+        return Shapes::empty();
+    }
+    if (boxes.size() == 1) {
+        const auto& box = boxes[0];
+        return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+    }
+    // 多碰撞盒：合并所有盒为 VoxelShape
+    VoxelShape result =
+        Shapes::box(boxes[0].minX, boxes[0].minY, boxes[0].minZ, boxes[0].maxX, boxes[0].maxY, boxes[0].maxZ);
+    for (size_t i = 1; i < boxes.size(); ++i) {
+        const auto& box = boxes[i];
+        VoxelShape part = Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+        result = Shapes::or_(result, part);
+    }
+    return result;
+}
+
+} // anonymous namespace
 
 WallBlock::WallBlock(const BlockProperties& properties)
     : Block(properties)
@@ -251,25 +313,38 @@ bool WallBlock::_shouldRaisePost(const BlockState& state,
         return true;
     }
 
-    // 对称直线墙（任意高度）不升起墙柱，除非上方有覆盖
-    // 参考: net.minecraft.block.WallBlock#shouldRaisePost 中的 straightNorthSouth/straightEastWest
-    // 注意：这里检查的是任意非None高度的直线墙，不仅限于Tall高度
-    bool straightNorthSouth = !northNone && !southNone && eastNone && westNone;
-    bool straightEastWest = !eastNone && !westNone && northNone && southNone;
+    // 对称直线墙：检查两侧是否都为Tall
+    // 参考: net.minecraft.block.WallBlock#shouldRaisePost
+    // MC原版中仅当两侧都为Tall时直线墙不升起墙柱，Low高度的直线墙
+    // 需要进一步检查上方覆盖情况
+    bool northTall = northHeight == BlockStateProperties::WallHeight::Tall;
+    bool southTall = southHeight == BlockStateProperties::WallHeight::Tall;
+    bool eastTall = eastHeight == BlockStateProperties::WallHeight::Tall;
+    bool westTall = westHeight == BlockStateProperties::WallHeight::Tall;
 
-    if (straightNorthSouth || straightEastWest) {
-        // 直线墙，不升起墙柱——除非上方有WALL_POST_OVERRIDE方块
-        if (aboveState && BlockTags::WALL_POST_OVERRIDE().contains(*aboveState)) {
-            return true;
-        }
-        // TODO: MC原版还检查上方方块的碰撞形状下方面是否覆盖墙柱测试形状(TEST_SHAPE_POST)，
-        // 即 isCovered(aboveState.getCollisionShape(world, abovePos).getFaceShape(Direction::DOWN), TEST_SHAPE_POST)。
-        // 当前项目的CollisionShape::coversFullBlock()可部分替代，但精确实现需要VoxelShape布尔运算支持。
-        // 暂时不实现此碰撞形状覆盖检查，大多数情况下WALL_POST_OVERRIDE标签已覆盖主要场景。
+    if ((northTall && southTall) || (eastTall && westTall)) {
+        // 两侧都为Tall的直线墙不升起墙柱
         return false;
     }
 
-    return true;
+    // 非Tall直线墙（Low连接）或角落连接：检查上方覆盖
+    if (aboveState && BlockTags::WALL_POST_OVERRIDE().contains(*aboveState)) {
+        return true;
+    }
+
+    // 检查上方方块的碰撞形状下方面是否覆盖墙柱测试形状(TEST_SHAPE_POST)
+    // 参考: net.minecraft.block.WallBlock#shouldRaisePost 中的 isCovered(faceShape, TEST_SHAPE_POST)
+    if (aboveState) {
+        const CollisionShape& aboveCollision = aboveState->getCollisionShape();
+        if (!aboveCollision.isEmpty()) {
+            VoxelShape aboveFaceShape = collisionShapeToVoxelShape(aboveCollision).getFaceShape(Direction::Down);
+            if (isCovered(s_testShapePost, aboveFaceShape)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, const BlockState& state) const
@@ -284,14 +359,31 @@ BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, 
     const BlockState* eastState = world.getBlockState(eastPos);
     const BlockState* westState = world.getBlockState(westPos);
 
-    BlockStateProperties::WallHeight northHeight =
-        northState ? _getWallHeight(*northState, Direction::North) : BlockStateProperties::WallHeight::None;
-    BlockStateProperties::WallHeight southHeight =
-        southState ? _getWallHeight(*southState, Direction::South) : BlockStateProperties::WallHeight::None;
-    BlockStateProperties::WallHeight eastHeight =
-        eastState ? _getWallHeight(*eastState, Direction::East) : BlockStateProperties::WallHeight::None;
-    BlockStateProperties::WallHeight westHeight =
-        westState ? _getWallHeight(*westState, Direction::West) : BlockStateProperties::WallHeight::None;
+    // 获取上方方块碰撞形状的下方面投影，用于确定墙连接高度(Tall/Low)
+    // 参考: net.minecraft.block.WallBlock#updateShape 中
+    //   voxelshape = aboveState.getCollisionShape(world, abovePos).getFaceShape(Direction.DOWN)
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+    VoxelShape aboveFaceShape = Shapes::empty();
+    if (aboveState) {
+        const CollisionShape& aboveCollision = aboveState->getCollisionShape();
+        if (!aboveCollision.isEmpty()) {
+            aboveFaceShape = collisionShapeToVoxelShape(aboveCollision).getFaceShape(Direction::Down);
+        }
+    }
+
+    BlockStateProperties::WallHeight northHeight = northState
+        ? _getWallHeight(*northState, Direction::North, aboveFaceShape)
+        : BlockStateProperties::WallHeight::None;
+    BlockStateProperties::WallHeight southHeight = southState
+        ? _getWallHeight(*southState, Direction::South, aboveFaceShape)
+        : BlockStateProperties::WallHeight::None;
+    BlockStateProperties::WallHeight eastHeight = eastState
+        ? _getWallHeight(*eastState, Direction::East, aboveFaceShape)
+        : BlockStateProperties::WallHeight::None;
+    BlockStateProperties::WallHeight westHeight = westState
+        ? _getWallHeight(*westState, Direction::West, aboveFaceShape)
+        : BlockStateProperties::WallHeight::None;
 
     bool hasUp = _shouldRaisePost(state, northHeight, eastHeight, southHeight, westHeight, world, pos);
 
@@ -302,17 +394,25 @@ BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, 
         .with(BlockStateProperties::WALL_HEIGHT_WEST(), westHeight);
 }
 
-BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& state, Direction neighborSide) const
+BlockStateProperties::WallHeight WallBlock::_getWallHeight(
+    const BlockState& state, Direction neighborSide, const VoxelShape& aboveFaceShape) const
 {
-    // 参考: net.minecraft.block.WallBlock#connectsTo
-    // 墙连接逻辑:
+    // 参考: net.minecraft.block.WallBlock#connectsTo + makeWallState
+    // 连接判定:
     // 1. 其他墙 -> 总是连接
     // 2. 栅栏门平行时 -> 连接
     // 3. 铁栏杆 -> 连接
     // 4. 固体方块（非连接例外）-> 连接
+    // 连接高度判定（参考 makeWallState）:
+    // - 如果连接且上方方块碰撞形状覆盖了对应方向的测试形状 -> Tall
+    // - 如果连接但上方不覆盖 -> Low
 
     if (isWall(state)) {
-        return BlockStateProperties::WallHeight::Tall;
+        // 墙与墙连接：检查上方覆盖决定高度
+        if (isCovered(s_testShapesWall.at(neighborSide), aboveFaceShape)) {
+            return BlockStateProperties::WallHeight::Tall;
+        }
+        return BlockStateProperties::WallHeight::Low;
     }
 
     if (fencehelpers::isFenceGate(state)) {
@@ -322,17 +422,43 @@ BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& sta
         return BlockStateProperties::WallHeight::None;
     }
 
-    // 铁栏杆连接到墙时返回 Low
+    // 铁栏杆连接到墙时，检查上方覆盖决定高度
     if (BlockTags::BARS().contains(state)) {
+        if (isCovered(s_testShapesWall.at(neighborSide), aboveFaceShape)) {
+            return BlockStateProperties::WallHeight::Tall;
+        }
         return BlockStateProperties::WallHeight::Low;
     }
 
     // 固体方块连接（排除连接例外方块）
     if (!Block::isExceptionForConnection(state) && state.isSolid()) {
-        return BlockStateProperties::WallHeight::Tall;
+        // 固体方块：上方覆盖时返回Tall，否则也返回Tall
+        // （MC原版中 isFaceSturdy 检查通过即为Tall）
+        // 对于固体方块，如果上方有覆盖形状则Tall，否则Low
+        if (isCovered(s_testShapesWall.at(neighborSide), aboveFaceShape)) {
+            return BlockStateProperties::WallHeight::Tall;
+        }
+        return BlockStateProperties::WallHeight::Low;
     }
 
     return BlockStateProperties::WallHeight::None;
+}
+
+bool WallBlock::isCovered(const VoxelShape& testShape, const VoxelShape& coverShape)
+{
+    // 参考: net.minecraft.block.WallBlock#isCovered
+    // isCovered(testShape, coverShape) = !Shapes.joinIsNotEmpty(testShape, coverShape, BooleanOp.ONLY_FIRST)
+    // 含义: 如果 testShape 中没有任何部分不被 coverShape 覆盖，则返回 true
+    if (Shapes::isBlock(coverShape)) {
+        return true;
+    }
+    if (testShape.isEmpty()) {
+        return true;
+    }
+    if (coverShape.isEmpty()) {
+        return false;
+    }
+    return !Shapes::joinIsNotEmpty(testShape, coverShape, BooleanOps::OnlyFirst());
 }
 
 bool WallBlock::isWall(const BlockState& state)
