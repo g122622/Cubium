@@ -23,9 +23,7 @@
 
 #pragma once
 
-#include "common/resource/ResourceLocation.hpp"
-#include "common/util/math/random/Random.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "SpawnerLogic.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
 #include <optional>
 #include <string>
@@ -35,67 +33,7 @@ namespace mc {
 
 class IWorld;
 
-namespace entity {
-class EntityType;
-enum class EntityClassification : u8;
-} // namespace entity
-
-namespace world::spawn {
-enum class SpawnReason : u8;
-class ISpawnWorldReader;
-} // namespace world::spawn
-
 namespace blockentity {
-
-/**
- * @brief 生成数据条目
- *
- * 描述刷怪笼可以生成的一种实体类型及其权重。
- * 对应 MC Java 的 SpawnData + WeightedEntry。
- */
-struct SpawnEntry {
-    /// 实体类型 ID（如 "minecraft:silverfish"）
-    ResourceLocation entityId;
-    /// 权重（默认 1）
-    i32 weight = 1;
-};
-
-/**
- * @brief 自定义生成规则
- *
- * 覆盖刷怪笼默认的生成位置检查，允许自定义光照限制。
- * 对应 MC Java 的 SpawnData.CustomSpawnRules。
- *
- * 当 CustomSpawnRules 存在时，刷怪笼在生成实体前会检查每个生成位置的
- * 方块光照和天空光照是否在指定范围内。如果不在范围内，跳过该位置。
- * 当 CustomSpawnRules 不存在时，刷怪笼会调用
- * EntitySpawnPlacementRegistry::canSpawnEntity() 检查默认生成规则。
- */
-struct CustomSpawnRules {
-    /// 方块光照范围 [min, max]，默认 [0, 15] 即不限制
-    i32 blockLightMin = 0;
-    i32 blockLightMax = 15;
-    /// 天空光照范围 [min, max]，默认 [0, 15] 即不限制
-    i32 skyLightMin = 0;
-    i32 skyLightMax = 15;
-
-    /**
-     * @brief 检查指定位置的光照条件是否满足自定义生成规则
-     *
-     * 对应 MC Java 的 SpawnData.CustomSpawnRules.isValidPosition()。
-     * 分别检查方块光照和天空光照是否在各自范围内。
-     * 注意：此检查使用原始光照值，不应用天空变暗（skyDarkening）。
-     *
-     * @param blockLight 位置的方块光照值 (0-15)
-     * @param skyLight 位置的天空光照值 (0-15)
-     * @return 光照条件是否满足
-     */
-    [[nodiscard]] bool isValidPosition(u8 blockLight, u8 skyLight) const
-    {
-        return blockLight >= static_cast<u8>(blockLightMin) && blockLight <= static_cast<u8>(blockLightMax) &&
-            skyLight >= static_cast<u8>(skyLightMin) && skyLight <= static_cast<u8>(skyLightMax);
-    }
-};
 
 /**
  * @brief 刷怪笼方块实体
@@ -103,13 +41,8 @@ struct CustomSpawnRules {
  * 自动生成实体（怪物/动物）的方块实体。
  * 当玩家在检测范围内时，刷怪笼会周期性地在附近区域尝试生成实体。
  *
- * 生成逻辑：
- * 1. 检测 requiredPlayerRange 范围内是否有玩家
- * 2. 等待 spawnDelay tick
- * 3. 从 spawnPotentials 中随机选择实体类型
- * 4. 在 spawnRange 范围内尝试生成 spawnCount 个实体
- * 5. 检查附近实体数量不超过 maxNearbyEntities
- * 6. 成功生成后重置延迟
+ * 生成逻辑委托给 SpawnerLogic 类（对应 MC Java 的 BaseSpawner）。
+ * SpawnerLogic 是独立的公共类，可被 MobSpawnerBlockEntity 和 SpawnerMinecartEntity 共用。
  *
  * 线程安全：tick() 在服务器线程调用，load()/save() 可能在保存线程调用。
  * 当前实现使用 m_mutex 保护共享状态。

@@ -8,15 +8,19 @@
 spawner/
 ├── MobSpawnerBlockEntity.hpp  # 刷怪笼方块实体定义
 ├── MobSpawnerBlockEntity.cpp  # 刷怪笼方块实体实现
+├── SpawnerLogic.hpp           # 刷怪笼逻辑公共类（对应 MC Java BaseSpawner）
+├── SpawnerLogic.cpp           # 刷怪笼逻辑实现
 └── README.md
 ```
 
 ## 内部模块关系
 
 ```
-BlockEntity（基类）
-    ↑
-MobSpawnerBlockEntity
+SpawnerLogic（公共类，对应 MC Java BaseSpawner）
+    ├── MobSpawnerBlockEntity（方块刷怪笼，持有 SpawnerLogic 实例）
+    └── SpawnerMinecartEntity（刷怪笼矿车，持有 SpawnerLogic 实例）
+
+SpawnerLogic 包含：
     - SpawnEntry（生成条目：实体ID + 权重）
     - CustomSpawnRules（自定义光照限制）
 ```

@@ -1075,6 +1075,14 @@ private:
                 .updateInterval(3)
                 .build());
 
+        // 刷怪笼矿车
+        registry.registerType(EntityTypes::SPAWNER_MINECART,
+            EntityType::Builder(&SpawnerMinecartEntity::create, EntityClassification::Misc)
+                .size(0.98f, 0.7f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .build());
+
         // ========== 其他实体 ==========
         // 下落方块
         registry.registerType(EntityTypes::FALLING_BLOCK,

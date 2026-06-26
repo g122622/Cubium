@@ -23,6 +23,7 @@
 
 #include "MinecartEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/core/Result.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
@@ -1835,6 +1836,72 @@ void CommandBlockMinecartEntity::_executeCommand()
     } else {
         m_lastOutput = "Command execution failed";
     }
+}
+
+// ============================================================================
+// SpawnerMinecartEntity
+// ============================================================================
+
+SpawnerMinecartEntity::SpawnerMinecartEntity(EntityId id)
+    : AbstractMinecartEntity(Type::Spawner, id)
+{}
+
+std::unique_ptr<Entity> SpawnerMinecartEntity::create(IWorld* /*world*/)
+{
+    return std::make_unique<SpawnerMinecartEntity>(EntityId(0));
+}
+
+void SpawnerMinecartEntity::tick()
+{
+    // 先调用基类 tick（铁轨运动、碰撞等）
+    AbstractMinecartEntity::tick();
+
+    // 刷怪笼逻辑 tick
+    IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    if (worldPtr->isClientSide()) {
+        // 客户端：更新旋转动画
+        m_spawnerLogic.clientTick(*worldPtr, x(), y(), z());
+    } else {
+        // 服务端：执行刷怪逻辑
+        m_spawnerLogic.serverTick(*worldPtr, x(), y(), z(), [this](IWorld& w) {
+            // 成功生成实体后广播刷怪笼粒子事件
+            // 对应 MC Java BaseSpawner.serverTick() 中成功生成后调用
+            // level.broadcastEntityEvent(MinecartSpawner.this, (byte)1)
+            // 参考 EntityStatusPacket::Status::SpawnerEvent(1)
+            w.broadcastEntityStatus(id(), static_cast<u8>(1));
+        });
+    }
+}
+
+void SpawnerMinecartEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    AbstractMinecartEntity::addAdditionalSaveData(tag);
+
+    // 保存刷怪笼逻辑数据
+    nbt::CompoundTag spawnerTag;
+    m_spawnerLogic.saveToNBT(spawnerTag);
+
+    // 将刷怪笼数据合并到实体标签中
+    for (auto& [key, value] : spawnerTag.value) {
+        tag.value.emplace(key, std::move(value));
+    }
+}
+
+Result<void> SpawnerMinecartEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    auto result = AbstractMinecartEntity::readAdditionalSaveData(tag);
+    if (!result.success()) {
+        return result;
+    }
+
+    // 读取刷怪笼逻辑数据
+    m_spawnerLogic.loadFromNBT(tag);
+
+    return Result<void>();
 }
 
 } // namespace entity

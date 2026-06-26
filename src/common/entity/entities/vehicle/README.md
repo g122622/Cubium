@@ -8,7 +8,7 @@
 vehicle/
 ├── BoatEntity.hpp          # 船实体定义（水上交通工具，10种木材变体，支持 hasChest 标志）
 ├── BoatEntity.cpp          # 船实体实现（浮力、控制、乘客管理、箱子船掉落）
-├── MinecartEntity.hpp      # 矿车实体定义（基类 + 6种变体）
+├── MinecartEntity.hpp      # 矿车实体定义（基类 + 7种变体）
 ├── MinecartEntity.cpp      # 矿车实体实现（铁轨移动、变体逻辑）
 └── README.md               # 本文档
 ```
@@ -27,7 +27,8 @@ Entity (基类)
         ├── FurnaceMinecartEntity     # 熔炉矿车（燃料驱动）
         ├── TNTMinecartEntity         # TNT矿车（可点燃爆炸）
         ├── HopperMinecartEntity      # 漏斗矿车（物品收集，实现 IHopper）
-        └── CommandBlockMinecartEntity # 命令方块矿车
+        ├── CommandBlockMinecartEntity # 命令方块矿车
+        └── SpawnerMinecartEntity     # 刷怪笼矿车（持有 SpawnerLogic，自动生成实体）
 ```
 
 ## 上下游外部依赖
@@ -178,3 +179,18 @@ Entity (基类)
 - `BoatEntity::dropItem()`：当 `DO_ENTITY_DROPS` 为 false 时，直接返回，不掉落船物品
 
 参考 MC 1.21.11：`VehicleEntity.destroy()` 中的 `ENTITY_DROPS` 检查
+
+### 13. 刷怪笼矿车（SpawnerMinecartEntity）
+
+**要点**：
+- 持有 `SpawnerLogic` 实例（对应 MC Java 的 `BaseSpawner`），与 `MobSpawnerBlockEntity` 共享生成逻辑
+- 刷怪笼矿车被摧毁时**不会掉落任何物品**（既不掉矿车也不掉刷怪笼方块），与 MC Java 一致
+- 刷怪笼矿车**没有对应物品**，只能通过 `/summon` 命令生成
+- 矿车内部显示刷怪笼方块（`DATA_SHOW_BLOCK_PARAM = true`）
+- 服务端 tick 执行生成逻辑，成功生成后通过 `broadcastEntityStatus(id, 1)` 广播粒子事件
+- 客户端 tick 更新旋转动画（`SpawnerLogic::clientTick()`）
+- 支持 NBT 序列化/反序列化，保存所有刷怪笼参数
+- 刷怪笼矿车**不响应激活铁轨**（无 `onActivatorRailPass` 重写）
+- 刷怪笼矿车**无比较器输出**（`getComparatorOutput()` 返回默认值 0）
+
+参考 MC 1.21.11：`MinecartSpawner`

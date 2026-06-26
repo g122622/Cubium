@@ -207,6 +207,7 @@ EntityTypeId CHEST_MINECART = 0;
 EntityTypeId FURNACE_MINECART = 0;
 EntityTypeId HOPPER_MINECART = 0;
 EntityTypeId TNT_MINECART = 0;
+EntityTypeId SPAWNER_MINECART = 0;
 
 // ============================================================================
 // 其他实体
@@ -368,6 +369,7 @@ void initialize()
     FURNACE_MINECART = safeGetId(registry, EntityTypes::FURNACE_MINECART);
     HOPPER_MINECART = safeGetId(registry, EntityTypes::HOPPER_MINECART);
     TNT_MINECART = safeGetId(registry, EntityTypes::TNT_MINECART);
+    SPAWNER_MINECART = safeGetId(registry, EntityTypes::SPAWNER_MINECART);
 
     // 其他实体
     FALLING_BLOCK = safeGetId(registry, EntityTypes::FALLING_BLOCK);

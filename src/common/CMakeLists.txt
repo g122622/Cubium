@@ -920,6 +920,7 @@ add_library(mc_common STATIC
     world/blockentity/trial/VaultBlockEntity.cpp
     world/blockentity/trial/CrafterBlockEntity.cpp
     world/blockentity/spawner/MobSpawnerBlockEntity.cpp
+    world/blockentity/spawner/SpawnerLogic.cpp
 
     # World - Chunk
     world/chunk/data/BiomeContainer.cpp

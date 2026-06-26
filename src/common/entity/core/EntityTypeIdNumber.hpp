@@ -201,6 +201,7 @@ extern EntityTypeId CHEST_MINECART;
 extern EntityTypeId FURNACE_MINECART;
 extern EntityTypeId HOPPER_MINECART;
 extern EntityTypeId TNT_MINECART;
+extern EntityTypeId SPAWNER_MINECART;
 
 // ============================================================================
 // 其他实体
