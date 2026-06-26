@@ -220,6 +220,14 @@ void VillagerEntity::remove()
 
 void VillagerEntity::releaseAllPois()
 {
+    // 防止 die() 和 remove() 双重释放
+    // 死亡流程：die() -> releaseAllPois() -> ... -> tickDeath() -> remove() -> releaseAllPois()
+    // 第二次调用时 POI 已释放，此处提前返回避免冗余操作
+    if (m_poisReleased) {
+        return;
+    }
+    m_poisReleased = true;
+
     if (!m_world) {
         return;
     }

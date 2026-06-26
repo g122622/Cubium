@@ -182,6 +182,8 @@ add_executable(mc_tests
     # RavagerEntity 劫掠兽测试
     entity/RavagerEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
+    # VillagerEntity die/remove/releaseAllPois 测试
+    common/entity/entities/villager/VillagerEntityTest.cpp
     # ZombieVillagerEntity 床和铁栏杆加速治愈测试
     entity/ZombieVillagerConversionTest.cpp
     # VillagerData 升级逻辑和交易经验球测试

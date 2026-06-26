@@ -448,6 +448,9 @@ private:
     // Brain系统
     std::unique_ptr<VillagerBrain> m_brain;
 
+    // POI释放守卫
+    bool m_poisReleased = false; // 防止 die() 和 remove() 双重释放
+
     // ========== 私有辅助方法 ==========
 
     /**
