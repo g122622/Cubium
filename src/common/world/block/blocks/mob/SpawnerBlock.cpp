@@ -22,6 +22,8 @@
  */
 
 #include "SpawnerBlock.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 
 namespace mc {
@@ -55,6 +57,22 @@ ActionResultType SpawnerBlock::onBlockActivated(const BlockState& state,
 std::unique_ptr<BlockEntity> SpawnerBlock::createBlockEntity(const BlockPos& pos)
 {
     return std::make_unique<blockentity::MobSpawnerBlockEntity>(pos);
+}
+
+void SpawnerBlock::animateTick(
+    IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const
+{
+    MC_UNUSED(state);
+
+    // 参考 MC: BaseSpawner.clientTick()，在刷怪笼方块内随机位置生成烟雾和火焰粒子
+    f32 x = static_cast<f32>(pos.x) + random.nextFloat();
+    f32 y = static_cast<f32>(pos.y) + random.nextFloat();
+    f32 z = static_cast<f32>(pos.z) + random.nextFloat();
+
+    context.addAnimateParticle(
+        client::renderer::trident::particle::ParticleTypeId::Smoke, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
+    context.addAnimateParticle(
+        client::renderer::trident::particle::ParticleTypeId::Flame, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
 }
 
 } // namespace blocks
