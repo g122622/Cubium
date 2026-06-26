@@ -510,7 +510,7 @@ void MansionGrid::_identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomG
                 roomType = 131072;
             }
 
-            // 随机选择门位置（MC原版逻辑：从房间范围内随机选一个单元格作为门位置）
+            // 随机选择门位置（从房间范围内随机选一个单元格作为门位置）
             i32 doorX = m_rng.nextBoolean() ? x1 : x2;
             i32 doorY = m_rng.nextBoolean() ? y1 : y2;
 

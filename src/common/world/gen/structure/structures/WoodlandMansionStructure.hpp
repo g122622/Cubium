@@ -59,7 +59,6 @@ public:
     /**
      * @brief 林地府邸使用三角分布（非均匀间距）
      *
-     * MC 1.21.11 中林地府邸使用 TRIANGULAR 分布类型，
      * 对应 useUniformSpacing = false。
      */
     [[nodiscard]] bool useUniformSpacing() const override { return false; }
@@ -160,6 +159,9 @@ private:
     [[nodiscard]] bool _cleanEdges(SimpleGrid& grid);
     void _identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomGrid);
     void _setupThirdFloor();
+
+    /// 房间网格位标志：0x10000=1x1, 0x20000=1x2, 0x40000=2x2, 0x100000=门位置, 0x200000=走廊入口, 0x400000=楼梯,
+    /// 0x800000=楼梯入口
 
     math::Random& m_rng;
     std::unique_ptr<SimpleGrid> m_baseGrid;
