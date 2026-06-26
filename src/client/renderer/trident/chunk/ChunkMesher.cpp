@@ -641,31 +641,6 @@ bool ChunkMesher::_shouldRenderBlock(const BlockState* state)
     }
 }
 
-/**
- * @brief 将 CollisionShape 转换为 VoxelShape
- *
- * 用于面遮挡检测。对于完整方块和空形状有优化路径。
- * 参考 BaseLightEngine 中的同名函数
- */
-[[nodiscard]] static VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
-{
-    if (shape.isEmpty()) {
-        return Shapes::empty();
-    }
-    if (shape.isFullBlock()) {
-        return Shapes::block();
-    }
-    // 对于简单盒，创建对应的 VoxelShape
-    const auto& boxes = shape.boxes();
-    if (boxes.empty()) {
-        return Shapes::empty();
-    }
-    // 使用第一个碰撞盒创建 VoxelShape
-    // 注意：对于复杂形状（多个盒），这只是一个近似
-    const auto& box = boxes[0];
-    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
-}
-
 // 将 Face 转换为 Direction（枚举值一一对应）
 [[nodiscard]] static Direction faceToDirection(Face face)
 {
@@ -786,8 +761,8 @@ bool ChunkMesher::_shouldRenderFace(const BlockState* block, const BlockState* n
     // 使用形状遮挡检测
     // 如果 blockFaceShape 有区域不在 neighborFaceShape 中，则需要渲染
     // 转换为 VoxelShape 进行精确比较
-    const VoxelShape blockVoxel = collisionShapeToVoxelShape(blockFaceShape);
-    const VoxelShape neighborVoxel = collisionShapeToVoxelShape(neighborFaceShape);
+    const VoxelShape blockVoxel = Shapes::fromCollisionShape(blockFaceShape);
+    const VoxelShape neighborVoxel = Shapes::fromCollisionShape(neighborFaceShape);
 
     // 使用 ONLY_FIRST 检测：如果 blockVoxel 有独占区域，则需要渲染
     // faceShapeOccludes 返回 true 表示完全遮挡，返回 false 表示有独占区域需要渲染

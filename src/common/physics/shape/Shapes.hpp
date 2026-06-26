@@ -25,6 +25,7 @@
 
 #include "BooleanOp.hpp"
 #include "VoxelShape.hpp"
+#include "common/physics/collision/CollisionShape.hpp"
 #include "common/util/Direction.hpp"
 #include <memory>
 #include <vector>
@@ -214,6 +215,17 @@ public:
      * @brief 检查形状是否为空
      */
     [[nodiscard]] static bool isEmpty(const VoxelShape& shape);
+
+    /**
+     * @brief 将 CollisionShape 转换为 VoxelShape
+     *
+     * 对于完整方块和空形状有优化路径。
+     * 对于多碰撞盒形状，使用 Shapes::or_() 合并所有盒。
+     *
+     * @param shape 碰撞形状
+     * @return 对应的体素形状
+     */
+    [[nodiscard]] static VoxelShape fromCollisionShape(const CollisionShape& shape);
 
     // 索引合并器（用于布尔运算）
     class IndexMerger;

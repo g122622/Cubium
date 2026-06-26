@@ -40,60 +40,17 @@ namespace blocks {
 // ============================================================================
 
 // 墙柱测试形状: 中心 2x16x2 像素柱形区域
-// 参考: net.minecraft.block.WallBlock#TEST_SHAPE_POST = Block.column(2.0, 0.0, 16.0)
-// Block.column(2.0, 0.0, 16.0) = box(7/16, 0, 7/16, 9/16, 1, 9/16)
+// box(7/16, 0, 7/16, 9/16, 1, 9/16)
 VoxelShape WallBlock::s_testShapePost = Shapes::box(7.0 / 16.0, 0.0, 7.0 / 16.0, 9.0 / 16.0, 1.0, 9.0 / 16.0);
 
 // 墙臂测试形状: 每个方向对应一个 2x16x9 像素的墙臂测试区域
-// 参考: net.minecraft.block.WallBlock#TEST_SHAPES_WALL = Shapes.rotateHorizontal(Block.boxZ(2.0, 16.0, 0.0, 9.0))
-// Block.boxZ(2.0, 16.0, 0.0, 9.0) 展开后 = box(7/16, 0, 0, 9/16, 1, 9/16) (北面方向)
-// 然后旋转到四个水平方向
+// 北面方向: box(7/16, 0, 0, 9/16, 1, 9/16)，然后旋转到四个水平方向
 std::map<Direction, VoxelShape> WallBlock::s_testShapesWall = {
     {Direction::North, Shapes::box(7.0 / 16.0, 0.0, 0.0, 9.0 / 16.0, 1.0, 9.0 / 16.0)},
     {Direction::South, Shapes::box(7.0 / 16.0, 0.0, 7.0 / 16.0, 9.0 / 16.0, 1.0, 1.0)},
     {Direction::East, Shapes::box(7.0 / 16.0, 0.0, 7.0 / 16.0, 1.0, 1.0, 9.0 / 16.0)},
     {Direction::West, Shapes::box(0.0, 0.0, 7.0 / 16.0, 9.0 / 16.0, 1.0, 9.0 / 16.0)},
 };
-
-namespace {
-
-/**
- * @brief 将 CollisionShape 转换为 VoxelShape
- *
- * 对于完整方块和空形状有优化路径。
- * 对于 SimpleBox 类型，将所有碰撞盒合并为 VoxelShape。
- *
- * @param shape 碰撞形状
- * @return 对应的体素形状
- */
-VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
-{
-    if (shape.isEmpty()) {
-        return Shapes::empty();
-    }
-    if (shape.isFullBlock()) {
-        return Shapes::block();
-    }
-    const auto& boxes = shape.boxes();
-    if (boxes.empty()) {
-        return Shapes::empty();
-    }
-    if (boxes.size() == 1) {
-        const auto& box = boxes[0];
-        return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
-    }
-    // 多碰撞盒：合并所有盒为 VoxelShape
-    VoxelShape result =
-        Shapes::box(boxes[0].minX, boxes[0].minY, boxes[0].minZ, boxes[0].maxX, boxes[0].maxY, boxes[0].maxZ);
-    for (size_t i = 1; i < boxes.size(); ++i) {
-        const auto& box = boxes[i];
-        VoxelShape part = Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
-        result = Shapes::or_(result, part);
-    }
-    return result;
-}
-
-} // anonymous namespace
 
 WallBlock::WallBlock(const BlockProperties& properties)
     : Block(properties)
@@ -288,7 +245,6 @@ bool WallBlock::_shouldRaisePost(const BlockState& state,
     const IWorld& world,
     const BlockPos& pos) const
 {
-    // 参考: net.minecraft.block.WallBlock#shouldRaisePost
     // 检查上方方块
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
@@ -314,8 +270,7 @@ bool WallBlock::_shouldRaisePost(const BlockState& state,
     }
 
     // 对称直线墙：检查两侧是否都为Tall
-    // 参考: net.minecraft.block.WallBlock#shouldRaisePost
-    // MC原版中仅当两侧都为Tall时直线墙不升起墙柱，Low高度的直线墙
+    // 仅当两侧都为Tall时直线墙不升起墙柱，Low高度的直线墙
     // 需要进一步检查上方覆盖情况
     bool northTall = northHeight == BlockStateProperties::WallHeight::Tall;
     bool southTall = southHeight == BlockStateProperties::WallHeight::Tall;
@@ -333,11 +288,10 @@ bool WallBlock::_shouldRaisePost(const BlockState& state,
     }
 
     // 检查上方方块的碰撞形状下方面是否覆盖墙柱测试形状(TEST_SHAPE_POST)
-    // 参考: net.minecraft.block.WallBlock#shouldRaisePost 中的 isCovered(faceShape, TEST_SHAPE_POST)
     if (aboveState) {
         const CollisionShape& aboveCollision = aboveState->getCollisionShape();
         if (!aboveCollision.isEmpty()) {
-            VoxelShape aboveFaceShape = collisionShapeToVoxelShape(aboveCollision).getFaceShape(Direction::Down);
+            VoxelShape aboveFaceShape = Shapes::fromCollisionShape(aboveCollision).getFaceShape(Direction::Down);
             if (isCovered(s_testShapePost, aboveFaceShape)) {
                 return true;
             }
@@ -360,15 +314,13 @@ BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, 
     const BlockState* westState = world.getBlockState(westPos);
 
     // 获取上方方块碰撞形状的下方面投影，用于确定墙连接高度(Tall/Low)
-    // 参考: net.minecraft.block.WallBlock#updateShape 中
-    //   voxelshape = aboveState.getCollisionShape(world, abovePos).getFaceShape(Direction.DOWN)
     BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
     VoxelShape aboveFaceShape = Shapes::empty();
     if (aboveState) {
         const CollisionShape& aboveCollision = aboveState->getCollisionShape();
         if (!aboveCollision.isEmpty()) {
-            aboveFaceShape = collisionShapeToVoxelShape(aboveCollision).getFaceShape(Direction::Down);
+            aboveFaceShape = Shapes::fromCollisionShape(aboveCollision).getFaceShape(Direction::Down);
         }
     }
 
@@ -397,13 +349,12 @@ BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, 
 BlockStateProperties::WallHeight WallBlock::_getWallHeight(
     const BlockState& state, Direction neighborSide, const VoxelShape& aboveFaceShape) const
 {
-    // 参考: net.minecraft.block.WallBlock#connectsTo + makeWallState
     // 连接判定:
     // 1. 其他墙 -> 总是连接
     // 2. 栅栏门平行时 -> 连接
     // 3. 铁栏杆 -> 连接
     // 4. 固体方块（非连接例外）-> 连接
-    // 连接高度判定（参考 makeWallState）:
+    // 连接高度判定:
     // - 如果连接且上方方块碰撞形状覆盖了对应方向的测试形状 -> Tall
     // - 如果连接但上方不覆盖 -> Low
 
@@ -432,9 +383,7 @@ BlockStateProperties::WallHeight WallBlock::_getWallHeight(
 
     // 固体方块连接（排除连接例外方块）
     if (!Block::isExceptionForConnection(state) && state.isSolid()) {
-        // 固体方块：上方覆盖时返回Tall，否则也返回Tall
-        // （MC原版中 isFaceSturdy 检查通过即为Tall）
-        // 对于固体方块，如果上方有覆盖形状则Tall，否则Low
+        // 固体方块：上方覆盖时返回Tall，否则Low
         if (isCovered(s_testShapesWall.at(neighborSide), aboveFaceShape)) {
             return BlockStateProperties::WallHeight::Tall;
         }
@@ -446,9 +395,8 @@ BlockStateProperties::WallHeight WallBlock::_getWallHeight(
 
 bool WallBlock::isCovered(const VoxelShape& testShape, const VoxelShape& coverShape)
 {
-    // 参考: net.minecraft.block.WallBlock#isCovered
-    // isCovered(testShape, coverShape) = !Shapes.joinIsNotEmpty(testShape, coverShape, BooleanOp.ONLY_FIRST)
-    // 含义: 如果 testShape 中没有任何部分不被 coverShape 覆盖，则返回 true
+    // isCovered: 判断 coverShape 是否完全覆盖 testShape
+    // 使用 OnlyFirst 布尔运算: 如果 testShape 中没有任何部分不被 coverShape 覆盖，则返回 true
     if (Shapes::isBlock(coverShape)) {
         return true;
     }

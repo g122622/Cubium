@@ -706,7 +706,6 @@ TEST_F(WallBlockTest, IsCovered_TestShapePostCoverage)
 
 // ============================================================================
 // WallBlock Face Shape Coverage Tests (上方方块覆盖决定 TALL/LOW)
-// 参考: net.minecraft.block.WallBlock#makeWallState
 // ============================================================================
 
 TEST_F(WallBlockTest, SolidBlockAboveMakesTallConnection)
@@ -726,4 +725,156 @@ TEST_F(WallBlockTest, SolidBlockAboveMakesTallConnection)
 
     // 上方有完整方块覆盖，连接应为 Tall
     EXPECT_EQ(state.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::Tall);
+}
+
+// ============================================================================
+// WallBlock 边界场景测试
+// ============================================================================
+
+TEST_F(WallBlockTest, CrossIntersection_AllFourSidesConnected_NoPostWhenLow)
+{
+    // 十字路口：四方向都有Low连接（上方无方块），不升起墙柱
+    // 四方向都连接 → 对称（northNone==southNone, eastNone==westNone）
+    // 不是直线Tall墙 → 检查上方覆盖 → 无覆盖 → UP=false
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    world.setBlockState(pos.north(), &solid.defaultState());
+    world.setBlockState(pos.south(), &solid.defaultState());
+    world.setBlockState(pos.east(), &solid.defaultState());
+    world.setBlockState(pos.west(), &solid.defaultState());
+
+    BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+    BlockState placedState = wall.getStateForPlacement(context);
+
+    // 四方向Low连接 + 上方无覆盖 → UP=false（不升起墙柱）
+    EXPECT_FALSE(placedState.get(BlockStateProperties::UP()));
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::Low);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::Low);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::Low);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::Low);
+}
+
+TEST_F(WallBlockTest, TShapeWithSolidAbove_StillRaisesPost)
+{
+    // T形墙（北、东、西有连接，南无连接）+ 上方有完整方块
+    // 不对称 → 应该升起墙柱
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    world.setBlockState(pos.north(), &solid.defaultState());
+    world.setBlockState(pos.east(), &solid.defaultState());
+    world.setBlockState(pos.west(), &solid.defaultState());
+    world.setBlockState(pos.up(), &solid.defaultState());
+
+    BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+    BlockState placedState = wall.getStateForPlacement(context);
+
+    // 不对称连接 → UP=true
+    EXPECT_TRUE(placedState.get(BlockStateProperties::UP()));
+    // 上方有完整方块 → 连接为Tall
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::Tall);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::Tall);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::Tall);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::None);
+}
+
+TEST_F(WallBlockTest, WallAboveWithUpTrue_ForceRaisePost)
+{
+    // 上方是墙且UP=true → 强制升起墙柱
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    // 设置南北方向有固体邻居（使连接对称），上方有墙且UP=true
+    world.setBlockState(pos.north(), &solid.defaultState());
+    world.setBlockState(pos.south(), &solid.defaultState());
+
+    if (VanillaBlocks::COBBLESTONE_WALL) {
+        const BlockState& wallAbove =
+            VanillaBlocks::COBBLESTONE_WALL->defaultState()
+                .with(BlockStateProperties::UP(), true)
+                .with(BlockStateProperties::WALL_HEIGHT_NORTH(), BlockStateProperties::WallHeight::None)
+                .with(BlockStateProperties::WALL_HEIGHT_EAST(), BlockStateProperties::WallHeight::None)
+                .with(BlockStateProperties::WALL_HEIGHT_SOUTH(), BlockStateProperties::WallHeight::None)
+                .with(BlockStateProperties::WALL_HEIGHT_WEST(), BlockStateProperties::WallHeight::None)
+                .with(BlockStateProperties::WATERLOGGED(), false);
+        world.setBlockState(pos.up(), &wallAbove);
+
+        BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+        BlockState placedState = wall.getStateForPlacement(context);
+
+        // 上方墙UP=true → 强制升起墙柱
+        EXPECT_TRUE(placedState.get(BlockStateProperties::UP()));
+    }
+}
+
+TEST_F(WallBlockTest, IsCovered_ShapeSliceFaceProjection)
+{
+    // 验证 Shapes::slice 坐标修复后 getFaceShape 的正确性
+    // 半砖的 Down 面投影应该是完整的 (0,0,0)→(1,1,1) 形状
+    VoxelShape halfSlab = Shapes::box(0.0, 0.0, 0.0, 1.0, 0.5, 1.0);
+    VoxelShape halfSlabDownFace = halfSlab.getFaceShape(Direction::Down);
+    // 半砖的 Down 面投影应该等同于完整方块
+    EXPECT_TRUE(Shapes::isBlock(halfSlabDownFace));
+
+    // 上半砖的 Down 面投影应该是空的（上半砖不接触底面）
+    VoxelShape upperSlab = Shapes::box(0.0, 0.5, 0.0, 1.0, 1.0, 1.0);
+    VoxelShape upperSlabDownFace = upperSlab.getFaceShape(Direction::Down);
+    EXPECT_TRUE(upperSlabDownFace.isEmpty());
+}
+
+TEST_F(WallBlockTest, SolidBlockAbove_CrossShapeAllTall)
+{
+    // 十字路口 + 上方完整方块 → 四方向都是 Tall
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    world.setBlockState(pos.north(), &solid.defaultState());
+    world.setBlockState(pos.south(), &solid.defaultState());
+    world.setBlockState(pos.east(), &solid.defaultState());
+    world.setBlockState(pos.west(), &solid.defaultState());
+    world.setBlockState(pos.up(), &solid.defaultState());
+
+    BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+    BlockState placedState = wall.getStateForPlacement(context);
+
+    // 上方有完整方块 → 所有连接都是 Tall
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::Tall);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::Tall);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::Tall);
+    EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::Tall);
+}
+
+TEST_F(WallBlockTest, FenceGateParallel_ConnectionIsLow)
+{
+    // 栅栏门平行连接 → Low 高度（不受上方覆盖影响）
+    WallBlock wall(BlockProperties(Material::ROCK).hardness(1.5f).resistance(3.0f));
+    TestSolidBlock solid(BlockProperties(Material::ROCK).hardness(1.5f).resistance(10.0f));
+    WallTestWorld world;
+    const BlockPos pos(5, 60, 5);
+
+    if (VanillaBlocks::OAK_FENCE_GATE) {
+        // 栅栏门朝南北方向（与墙的东西面平行）
+        const BlockState& gateState = VanillaBlocks::OAK_FENCE_GATE->defaultState().with(
+            BlockStateProperties::HORIZONTAL_FACING(), Direction::South);
+        world.setBlockState(pos.east(), &gateState);
+
+        BlockItemUseContext context = makePlacementContext(world, pos, Direction::Up, 0.0f);
+        BlockState placedState = wall.getStateForPlacement(context);
+
+        // 栅栏门平行方向连接 → Low
+        EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_EAST()), BlockStateProperties::WallHeight::Low);
+        // 其他方向无连接
+        EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_NORTH()), BlockStateProperties::WallHeight::None);
+        EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_SOUTH()), BlockStateProperties::WallHeight::None);
+        EXPECT_EQ(placedState.get(BlockStateProperties::WALL_HEIGHT_WEST()), BlockStateProperties::WallHeight::None);
+    }
 }

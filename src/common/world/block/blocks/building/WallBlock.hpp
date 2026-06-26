@@ -51,8 +51,6 @@ namespace blocks {
  * - UP: 是否有顶部突出
  * - NORTH/WEST/EAST/SOUTH: 各方向连接高度 (NONE, LOW, TALL)
  * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.WallBlock
  */
 class WallBlock : public Block, public IWaterLoggable {
 public:
@@ -81,7 +79,6 @@ public:
     /**
      * @brief 检查一个形状是否完全覆盖另一个形状
      *
-     * 参考: net.minecraft.block.WallBlock#isCovered
      * 使用 VoxelShape 布尔运算: !Shapes.joinIsNotEmpty(testShape, coverShape, OnlyFirst)
      * 含义: 如果 testShape 中没有任何部分不被 coverShape 覆盖，则返回 true。
      *
@@ -153,7 +150,6 @@ private:
     /**
      * @brief 检查邻居是否连接到墙，以及连接高度
      *
-     * 参考: net.minecraft.block.WallBlock#connectsTo + makeWallState
      * 连接逻辑:
      * 1. 其他墙 -> 总是连接
      * 2. 栅栏门平行时 -> 连接
@@ -175,7 +171,6 @@ private:
     /**
      * @brief 判断墙柱(UP)是否应该升起
      *
-     * 参考: net.minecraft.block.WallBlock#shouldRaisePost
      * 综合考虑四方向连接高度和上方方块状态决定是否显示墙柱。
      *
      * @param state 当前墙状态
@@ -220,11 +215,10 @@ private:
     std::array<CollisionShape, 162> m_shapes; // 2(up) * 3(north) * 3(east) * 3(south) * 3(west)
 
     /// 墙柱测试形状: 中心2x2像素的柱形区域 (7/16, 0, 7/16) -> (9/16, 1, 9/16)
-    /// 参考: net.minecraft.block.WallBlock#TEST_SHAPE_POST = Block.column(2.0, 0.0, 16.0)
+    /// 墙柱测试形状: 中心2x2像素的柱形区域 (7/16, 0, 7/16) -> (9/16, 1, 9/16)
     static VoxelShape s_testShapePost;
 
     /// 墙臂测试形状: 每个方向对应一个2x16x9像素的墙臂区域
-    /// 参考: net.minecraft.block.WallBlock#TEST_SHAPES_WALL = Shapes.rotateHorizontal(Block.boxZ(2.0, 16.0, 0.0, 9.0))
     /// 北面 (旋转前): (7/16, 0, 0) -> (9/16, 1, 9/16)
     static std::map<Direction, VoxelShape> s_testShapesWall;
 };

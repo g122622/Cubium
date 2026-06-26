@@ -472,7 +472,7 @@ VoxelShape Shapes::slice(const VoxelShape& shape, Axis axis, i32 index)
     }
 
     // 创建坐标点列表
-    // 参考: MC Java SliceShape - 切片轴使用 {0.0, 1.0}，非切片轴使用原始坐标数组
+    // 切片轴使用 {0.0, 1.0}，非切片轴使用原始坐标数组
     // 坐标数组大小为 size + 1，因此需要取 endX + 1 (endY + 1, endZ + 1) 个元素
     const std::vector<f64>& xCoords = shape.getCoords(Axis::X);
     const std::vector<f64>& yCoords = shape.getCoords(Axis::Y);
@@ -535,6 +535,33 @@ bool Shapes::isBlock(const VoxelShape& shape)
 bool Shapes::isEmpty(const VoxelShape& shape)
 {
     return shape.isEmpty();
+}
+
+VoxelShape Shapes::fromCollisionShape(const CollisionShape& shape)
+{
+    if (shape.isEmpty()) {
+        return empty();
+    }
+    if (shape.isFullBlock()) {
+        return block();
+    }
+    const auto& boxes = shape.boxes();
+    if (boxes.empty()) {
+        return empty();
+    }
+    if (boxes.size() == 1) {
+        const auto& box = boxes[0];
+        return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+    }
+    // 多碰撞盒：合并所有盒为 VoxelShape
+    VoxelShape result =
+        Shapes::box(boxes[0].minX, boxes[0].minY, boxes[0].minZ, boxes[0].maxX, boxes[0].maxY, boxes[0].maxZ);
+    for (size_t i = 1; i < boxes.size(); ++i) {
+        const auto& box = boxes[i];
+        VoxelShape part = Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+        result = Shapes::or_(result, part);
+    }
+    return result;
 }
 
 // ============================================================================

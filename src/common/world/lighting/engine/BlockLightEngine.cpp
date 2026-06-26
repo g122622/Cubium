@@ -23,9 +23,7 @@
 
 #include "BlockLightEngine.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/physics/collision/CollisionShape.hpp"
 #include "common/physics/shape/Shapes.hpp"
-#include "common/physics/shape/VoxelShape.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -37,36 +35,8 @@
 namespace mc {
 
 // ============================================================================
-// 辅助函数：将 CollisionShape 转换为 VoxelShape
+// 辅助函数
 // ============================================================================
-
-namespace {
-
-/**
- * @brief 将 CollisionShape 转换为 VoxelShape
- *
- * 用于面遮挡检测。对于完整方块和空形状有优化路径。
- */
-VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
-{
-    if (shape.isEmpty()) {
-        return Shapes::empty();
-    }
-    if (shape.isFullBlock()) {
-        return Shapes::block();
-    }
-    // 对于简单盒，创建对应的 VoxelShape
-    const auto& boxes = shape.boxes();
-    if (boxes.empty()) {
-        return Shapes::empty();
-    }
-    // 使用第一个碰撞盒创建 VoxelShape
-    // 注意：对于复杂形状（多个盒），这只是一个近似
-    const auto& box = boxes[0];
-    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
-}
-
-} // anonymous namespace
 
 // ============================================================================
 // 构造函数
@@ -291,8 +261,8 @@ i32 BlockStarLightEngine::calculateLightValue(
             }
 
             // 使用 Shapes::faceShapeOccludes 进行精确的面遮挡检测
-            VoxelShape neighbourVoxel = collisionShapeToVoxelShape(neighbourFace);
-            VoxelShape thisVoxel = collisionShapeToVoxelShape(thisFace);
+            VoxelShape neighbourVoxel = Shapes::fromCollisionShape(neighbourFace);
+            VoxelShape thisVoxel = Shapes::fromCollisionShape(thisFace);
 
             if (Shapes::faceShapeOccludes(thisVoxel, neighbourVoxel)) {
                 // 遮挡，不允许传播
