@@ -118,15 +118,8 @@ bool HangingEntity::canPlaceOn() const
     return Block::hasEnoughSolidSide(*m_world, attachPos, solidCheckDir);
 }
 
-void HangingEntity::onAttacked(Entity* attacker, f32 damage)
-{
-    dropItem();
-    remove();
-}
-
 bool HangingEntity::hurt(DamageSource& source, f32 /*amount*/)
 {
-    // MC Java: BlockAttachedEntity.hurtServer()
     // 悬挂实体被任何伤害一击即毁
 
     // 1. 检查无敌状态
@@ -233,7 +226,6 @@ void PaintingEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，画被破坏不产生掉落物品
-    // 参考 Painting.dropItem() 中的 ENTITY_DROPS 检查
     if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         return;
     }
@@ -297,7 +289,6 @@ void ItemFrameEntity::tick()
 void ItemFrameEntity::dropItem()
 {
     // 检查游戏规则 doEntityDrops
-    // 参考 ItemFrame.dropItem() 中的 ENTITY_DROPS 检查
     // 当 doEntityDrops 为 false 时不掉落任何物品，当为 true 时掉落物品展示框和内含物品
     if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         // 掉落物品展示框本身
@@ -415,7 +406,6 @@ void LeashKnotEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，拴绳结被破坏不产生掉落物品
-    // 参考 Leashable.tickLeash() 中 doEntityDrops 控制的 dropLeash/removeLeash 逻辑
     if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         return;
     }

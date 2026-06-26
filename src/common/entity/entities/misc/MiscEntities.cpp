@@ -65,7 +65,6 @@ std::unique_ptr<Entity> FallingBlockEntity::create(IWorld* /*world*/)
 
 bool FallingBlockEntity::hurt(DamageSource& source, f32 /*amount*/)
 {
-    // MC Java: FallingBlockEntity.hurtServer()
     // 下落方块不可被伤害，但当来源非无敌时标记 hurtMarked 以同步速度到客户端。
     // 这使得下落方块在被击中时会产生击退效果（速度同步）。
     if (!isInvulnerableTo(source)) {
@@ -95,7 +94,6 @@ void FallingBlockEntity::tick()
     setVelocity(vel);
 
     // 混凝土粉末下落过程中遇水提前固化
-    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中 ConcretePowderBlock 特殊处理：
     // 如果下落方块是混凝土粉末，且当前位置有水，则立即固化
     if (auto* block = Block::getBlock(m_blockId)) {
         if (auto* concretePowder = dynamic_cast<blocks::ConcretePowderBlock*>(block)) {
@@ -253,14 +251,12 @@ bool FallingBlockEntity::_tryPlaceBlock(
     }
 
     // 检查方块是否可以在该位置放置（如脚手架需要支撑、火把需要墙壁等）
-    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中的 canSurvive 检查
     IBlockReader& blockReader = static_cast<IBlockReader&>(*world);
     if (!fallingState->getBlock().isValidPosition(*fallingState, blockReader, landingPos)) {
         return false;
     }
 
     // 处理水浸透方块：如果方块支持 waterlogged 属性且目标位置有水源，设置 waterlogged = true
-    // 对齐 MC 1.21.11 FallingBlockEntity.tick() 中的水浸透处理
     const BlockState* placementState = fallingState;
     if (fallingState->hasProperty(BlockStateProperties::WATERLOGGED())) {
         const fluid::FluidState* fluidState = world->getFluidState(landingPos);
@@ -337,7 +333,6 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     }
 
     // 有效下落距离 = 总距离 - 1（第一格不造成伤害）
-    // 参考 MC 原版: Mth.ceil(fallDistance - 1.0)
     i32 effectiveDistance = static_cast<i32>(std::ceil(fallDistance - 1.0));
     if (effectiveDistance <= 0) {
         return;
@@ -388,7 +383,6 @@ void FallingBlockEntity::_hurtEntities(IWorld* world)
     }
 
     // ========== 铁砧损坏逻辑 ==========
-    // 参考 MC 原版 FallingBlockEntity.causeFallDamage:
     // 当方块是铁砧、伤害 > 0、且随机概率满足时，铁砧损坏
     // 概率公式: 0.05 + effectiveDistance * 0.05
     if (isAnvil && damage > 0 && m_fallingState != nullptr) {
@@ -512,7 +506,7 @@ void TNTEntity::explode()
     IWorld* worldPtr = world();
     if (worldPtr != nullptr) {
         // 检查 tntExplodes 游戏规则
-        // 对应 MC Java 的 PrimedTnt.explode() 中的 GameRules.TNT_EXPLODES 检查
+        // 检查 tntExplodes 游戏规则
         // 当规则为 false 时，TNT 实体仍然消失（remove），但不产生爆炸
         if (worldPtr->getGameRules().getBoolean(world::gamerule::GameRuleKeys::TNT_EXPLODES)) {
             // TNT 爆炸半径 4.0，模式 BREAK（破坏方块但不掉落物品）

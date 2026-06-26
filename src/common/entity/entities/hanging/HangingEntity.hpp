@@ -98,13 +98,6 @@ public:
     [[nodiscard]] bool canPlaceOn() const;
 
     /**
-     * @brief 被攻击
-     * @param attacker 攻击者
-     * @param damage 伤害值
-     */
-    void onAttacked(Entity* attacker, f32 damage);
-
-    /**
      * @brief 掉落物品
      */
     virtual void dropItem() = 0;

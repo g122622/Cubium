@@ -106,7 +106,6 @@ void ExperienceOrbEntity::tick()
 
 bool ExperienceOrbEntity::hurt(DamageSource& source, f32 amount)
 {
-    // MC Java: ExperienceOrb.hurtServer()
     // 经验球可以被间接伤害（火焰、岩浆、爆炸等），但不能被玩家直接攻击
 
     // 1. 检查无敌状态

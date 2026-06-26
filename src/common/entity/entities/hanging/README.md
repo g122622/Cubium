@@ -23,7 +23,7 @@ Entity (core/Entity.hpp)
 **HangingEntity 基类职责**：
 - 管理 `m_hangingPos`（悬挂位置）和 `m_direction`（悬挂方向）
 - 定期检查 `isValidPosition()` / `canPlaceOn()` 验证支撑方块
-- 被 `onAttacked()` 时调用 `dropItem()` 并移除
+- 受伤时调用 `hurt()`（覆写自 Entity），执行 `dropItem()` + `remove()` + `markHurt()`
 
 **子类实现**：
 - `PaintingEntity`：画作尺寸由 `PAINTING_TYPES` 静态数组定义

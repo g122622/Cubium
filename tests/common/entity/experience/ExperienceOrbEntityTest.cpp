@@ -22,6 +22,10 @@
  */
 
 #include "entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/entity/damage/DamageSource.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/experience/ExperienceConstants.hpp"
 #include "entity/experience/ExperienceUtils.hpp"
@@ -375,4 +379,234 @@ TEST_F(ExperienceOrbEntityIntegrationTest, EnderDragonXP)
     // 球的数量应该合理
     EXPECT_LT(orbs.size(), 20u); // 12000经验应该分成约10个球
     EXPECT_GT(orbs.size(), 5u);
+}
+
+// ============================================================================
+// ExperienceOrbEntity::hurt 测试
+// ============================================================================
+
+/**
+ * @brief ExperienceOrbEntity hurt 测试用的 Mock World
+ *
+ * 支持 GameEvent 捕获，用于验证 ENTITY_DAMAGE 事件派发。
+ */
+class ExperienceOrbHurtTestWorld : public mc::test::BaseTestWorld {
+public:
+    ExperienceOrbHurtTestWorld() = default;
+
+    void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override
+    {
+        m_lastGameEventId = event.id();
+        m_lastGameEventPos = pos;
+        m_lastGameEventSourceEntity = context.sourceEntity();
+        m_gameEventCount++;
+    }
+
+    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
+    [[nodiscard]] const std::string& lastGameEventId() const { return m_lastGameEventId; }
+    [[nodiscard]] const BlockPos& lastGameEventPos() const { return m_lastGameEventPos; }
+    [[nodiscard]] const Entity* lastGameEventSourceEntity() const { return m_lastGameEventSourceEntity; }
+
+    void clearGameState()
+    {
+        m_gameEventCount = 0;
+        m_lastGameEventId.clear();
+        m_lastGameEventPos = BlockPos(0, 0, 0);
+        m_lastGameEventSourceEntity = nullptr;
+    }
+
+private:
+    i32 m_gameEventCount = 0;
+    std::string m_lastGameEventId;
+    BlockPos m_lastGameEventPos{0, 0, 0};
+    const Entity* m_lastGameEventSourceEntity = nullptr;
+};
+
+class ExperienceOrbHurtTest : public ::testing::Test {
+protected:
+    void SetUp() override { m_world.clearGameState(); }
+
+    ExperienceOrbHurtTestWorld m_world;
+};
+
+TEST_F(ExperienceOrbHurtTest, InvulnerableSource_ReturnsFalse_DoesNotMarkHurt)
+{
+    // 无敌状态下，hurt() 应返回 false 且不调用 markHurt()
+    ExperienceOrbEntity orb(10);
+    orb.setInvulnerable(true);
+    EXPECT_FALSE(orb.isHurtMarked());
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(orb.hurt(source, 3.0f));
+    EXPECT_FALSE(orb.isHurtMarked());
+    EXPECT_FALSE(orb.isRemoved());
+}
+
+TEST_F(ExperienceOrbHurtTest, InvulnerableSource_VoidDamageBypasses_ReturnsTrue)
+{
+    // 虚空伤害绕过无敌，hurt() 应返回 true
+    ExperienceOrbEntity orb(10);
+    orb.setInvulnerable(true);
+
+    auto voidSource = DamageSources::outOfWorld();
+    EXPECT_TRUE(orb.hurt(voidSource, 100.0f));
+    EXPECT_TRUE(orb.isRemoved());
+}
+
+TEST_F(ExperienceOrbHurtTest, NormalDamage_ReducesHealth_MarksHurt_ReturnsTrue)
+{
+    // 正常伤害减少生命值，标记 hurtMarked，返回 true
+    // ExperienceOrbEntity 默认 m_health = 5
+    ExperienceOrbEntity orb(10);
+    orb.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    bool result = orb.hurt(source, 3.0f);
+    EXPECT_TRUE(result);
+    EXPECT_TRUE(orb.isHurtMarked());
+    EXPECT_FALSE(orb.isRemoved()); // 5 - 3 = 2 > 0，不会销毁
+}
+
+TEST_F(ExperienceOrbHurtTest, SmallDamage_DoesNotDiscard)
+{
+    // 3 点伤害：5 - 3 = 2，生命值 > 0，不会调用 discard()
+    ExperienceOrbEntity orb(10);
+    orb.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    orb.hurt(source, 3.0f);
+    EXPECT_FALSE(orb.isRemoved());
+}
+
+TEST_F(ExperienceOrbHurtTest, ExactHealthDamage_DiscardsEntity)
+{
+    // 5 点伤害：5 - 5 = 0，生命值 <= 0，调用 discard()
+    ExperienceOrbEntity orb(10);
+    orb.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    orb.hurt(source, 5.0f);
+    EXPECT_TRUE(orb.isRemoved());
+}
+
+TEST_F(ExperienceOrbHurtTest, OverkillDamage_DiscardsEntity)
+{
+    // 10 点伤害：5 - 10 = -5，生命值 < 0，调用 discard()
+    ExperienceOrbEntity orb(10);
+    orb.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    orb.hurt(source, 10.0f);
+    EXPECT_TRUE(orb.isRemoved());
+}
+
+TEST_F(ExperienceOrbHurtTest, MultipleHitsAccumulateDamage)
+{
+    // 多次攻击累积伤害直到销毁
+    ExperienceOrbEntity orb(10);
+    orb.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+
+    // 第一击：5 - 2 = 3
+    EXPECT_TRUE(orb.hurt(source, 2.0f));
+    EXPECT_FALSE(orb.isRemoved());
+
+    // 第二击：3 - 2 = 1
+    EXPECT_TRUE(orb.hurt(source, 2.0f));
+    EXPECT_FALSE(orb.isRemoved());
+
+    // 第三击：1 - 2 = -1，销毁
+    EXPECT_TRUE(orb.hurt(source, 2.0f));
+    EXPECT_TRUE(orb.isRemoved());
+}
+
+TEST_F(ExperienceOrbHurtTest, EntityDamageGameEvent_IsEmitted)
+{
+    // hurt() 成功时应派发 ENTITY_DAMAGE 游戏事件
+    ExperienceOrbEntity orb(10);
+    orb.setPosition(5.0f, 64.0f, 10.0f);
+    orb.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    EXPECT_TRUE(orb.hurt(source, 1.0f));
+
+    EXPECT_EQ(m_world.gameEventCount(), 1);
+    EXPECT_EQ(m_world.lastGameEventId(), "entity_damage");
+}
+
+TEST_F(ExperienceOrbHurtTest, EntityDamageGameEvent_PositionMatchesEntityBlockPos)
+{
+    // 游戏事件位置应与实体的方块坐标一致
+    // 位置 (5.5, 64.3, 10.7) -> BlockPos (5, 64, 10)
+    ExperienceOrbEntity orb(10);
+    orb.setPosition(5.5f, 64.3f, 10.7f);
+    orb.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    orb.hurt(source, 1.0f);
+
+    EXPECT_EQ(m_world.lastGameEventPos(), BlockPos(5, 64, 10));
+}
+
+TEST_F(ExperienceOrbHurtTest, EntityDamageGameEvent_NullSourceForEnvironmentalDamage)
+{
+    // 环境伤害的 sourceEntity 应为 nullptr
+    ExperienceOrbEntity orb(10);
+    orb.setPosition(5.0f, 64.0f, 10.0f);
+    orb.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    orb.hurt(source, 1.0f);
+
+    EXPECT_EQ(m_world.lastGameEventSourceEntity(), nullptr);
+}
+
+TEST_F(ExperienceOrbHurtTest, InvulnerableSource_DoesNotDispatchGameEvent)
+{
+    // 无敌状态下不派发游戏事件
+    ExperienceOrbEntity orb(10);
+    orb.setPosition(5.0f, 64.0f, 10.0f);
+    orb.setWorld(&m_world);
+    orb.setInvulnerable(true);
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(orb.hurt(source, 1.0f));
+    EXPECT_EQ(m_world.gameEventCount(), 0);
+}
+
+TEST_F(ExperienceOrbHurtTest, NoWorld_DoesNotDispatchGameEvent)
+{
+    // 没有 world 时不会派发游戏事件，也不会崩溃
+    ExperienceOrbEntity orb(10);
+    // 不设置 world
+
+    auto source = DamageSources::generic();
+    EXPECT_TRUE(orb.hurt(source, 1.0f));
+    EXPECT_FALSE(orb.isRemoved()); // 5 - 1 = 4 > 0
+}
+
+TEST_F(ExperienceOrbHurtTest, ClearHurtMarked_ResetsFlag)
+{
+    // clearHurtMarked() 应重置 hurtMarked 标志
+    ExperienceOrbEntity orb(10);
+
+    auto source = DamageSources::generic();
+    orb.hurt(source, 1.0f);
+    EXPECT_TRUE(orb.isHurtMarked());
+
+    orb.clearHurtMarked();
+    EXPECT_FALSE(orb.isHurtMarked());
+}
+
+TEST_F(ExperienceOrbHurtTest, MarkHurtCalledBeforeDiscard)
+{
+    // 即使伤害导致 discard()，markHurt 也应被调用
+    ExperienceOrbEntity orb(10);
+
+    auto source = DamageSources::generic();
+    orb.hurt(source, 5.0f);
+    EXPECT_TRUE(orb.isHurtMarked());
+    EXPECT_TRUE(orb.isRemoved());
 }

@@ -23,12 +23,16 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/hanging/HangingEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 
 #include <cmath>
 
@@ -301,6 +305,244 @@ TEST_F(HangingEntityTest, ItemRegistration)
     EXPECT_EQ(Items::PAINTING->maxStackSize(), 16);
     EXPECT_EQ(Items::ITEM_FRAME->maxStackSize(), 16);
     EXPECT_EQ(Items::LEAD->maxStackSize(), 16);
+}
+
+// ============================================================================
+// HangingEntity::hurt 测试
+//
+// HangingEntity::hurt() 对应 MC Java 的 BlockAttachedEntity.hurtServer()。
+// 悬挂实体被任何伤害一击即毁：无敌返回 false，mobGriefing 关闭时 Mob 攻击返回 false，
+// 否则调用 dropItem() + remove() + markHurt()，返回 true。
+// 已移除的实体不再执行 dropItem/remove/markHurt，但仍返回 true。
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief HangingEntity hurt 测试用的 Mock World
+ *
+ * 支持 GameRules 和 gameEvent 捕获。
+ */
+class HangingEntityHurtTestWorld : public mc::test::BaseTestWorld {
+public:
+    HangingEntityHurtTestWorld()
+    {
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+    }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size());
+    }
+
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
+        size_t index = static_cast<size_t>(id) - 1;
+        if (index < m_spawnedEntities.size()) {
+            return m_spawnedEntities[index].get();
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
+        size_t index = static_cast<size_t>(id) - 1;
+        if (index < m_spawnedEntities.size()) {
+            return m_spawnedEntities[index].get();
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
+        const AxisAlignedBB& box, const Entity* except = nullptr) const override
+    {
+        return {};
+    }
+
+    void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override
+    {
+        m_gameEventCount++;
+    }
+
+    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+private:
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    i32 m_gameEventCount = 0;
+    mutable math::Random m_random{12345};
+};
+
+/**
+ * @brief 测试用 MobEntity 子类（用于 mobGriefing 伤害源测试）
+ */
+class TestHangingMobEntity : public MobEntity {
+public:
+    TestHangingMobEntity()
+        : MobEntity(EntityId(200))
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+};
+
+} // namespace
+
+class HangingEntityHurtTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+
+    void SetUp() override {}
+
+    HangingEntityHurtTestWorld m_world;
+};
+
+/**
+ * @brief 无敌伤害源返回 false，不调用 markHurt
+ */
+TEST_F(HangingEntityHurtTest, InvulnerableSource_ReturnsFalse_NoMarkHurt)
+{
+    entity::PaintingEntity painting;
+    painting.setInvulnerable(true);
+    EXPECT_FALSE(painting.isHurtMarked());
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(painting.hurt(source, 1.0f));
+    EXPECT_FALSE(painting.isHurtMarked());
+    EXPECT_FALSE(painting.isRemoved());
+}
+
+/**
+ * @brief mobGriefing 关闭 + Mob 攻击者：返回 false，不掉落不移除
+ */
+TEST_F(HangingEntityHurtTest, MobGriefingOff_MobAttacker_ReturnsFalse_NoDropNoRemove)
+{
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false, nullptr);
+    ASSERT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    entity::PaintingEntity painting;
+    painting.setWorld(&m_world);
+
+    TestHangingMobEntity mob;
+    auto mobDamage = DamageSources::mobAttack(&mob);
+
+    EXPECT_FALSE(painting.hurt(mobDamage, 1.0f));
+    EXPECT_FALSE(painting.isRemoved());
+    EXPECT_FALSE(painting.isHurtMarked());
+}
+
+/**
+ * @brief mobGriefing 开启 + Mob 攻击者：正常伤害，调用 dropItem + remove + markHurt
+ */
+TEST_F(HangingEntityHurtTest, MobGriefingOn_MobAttacker_DropsAndRemoves)
+{
+    ASSERT_TRUE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    entity::PaintingEntity painting;
+    painting.setWorld(&m_world);
+
+    TestHangingMobEntity mob;
+    auto mobDamage = DamageSources::mobAttack(&mob);
+
+    EXPECT_TRUE(painting.hurt(mobDamage, 1.0f));
+    EXPECT_TRUE(painting.isRemoved());
+    EXPECT_TRUE(painting.isHurtMarked());
+}
+
+/**
+ * @brief 正常伤害（非 Mob 来源）：调用 dropItem + remove + markHurt，返回 true
+ */
+TEST_F(HangingEntityHurtTest, NormalDamage_DropsAndRemoves_MarksHurt)
+{
+    entity::PaintingEntity painting;
+    painting.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    EXPECT_TRUE(painting.hurt(source, 1.0f));
+    EXPECT_TRUE(painting.isRemoved());
+    EXPECT_TRUE(painting.isHurtMarked());
+}
+
+/**
+ * @brief 正常伤害对 ItemFrameEntity：调用 dropItem + remove + markHurt
+ */
+TEST_F(HangingEntityHurtTest, ItemFrame_NormalDamage_DropsAndRemoves)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+
+    auto source = DamageSources::generic();
+    EXPECT_TRUE(itemFrame.hurt(source, 1.0f));
+    EXPECT_TRUE(itemFrame.isRemoved());
+    EXPECT_TRUE(itemFrame.isHurtMarked());
+}
+
+/**
+ * @brief 已移除的实体：不调用 dropItem/remove/markHurt，但返回 true
+ *
+ * HangingEntity::hurt() 在 isRemoved() 为 true 时跳过 dropItem/remove/markHurt，
+ * 但仍返回 true（MC Java 行为：已经移除的悬挂实体仍然"接受"伤害）。
+ */
+TEST_F(HangingEntityHurtTest, AlreadyRemovedEntity_NoDropNoRemoveNoMarkHurt_ReturnsTrue)
+{
+    entity::PaintingEntity painting;
+    painting.setWorld(&m_world);
+
+    // 第一次 hurt 正常工作
+    auto source = DamageSources::generic();
+    EXPECT_TRUE(painting.hurt(source, 1.0f));
+    EXPECT_TRUE(painting.isRemoved());
+    EXPECT_TRUE(painting.isHurtMarked());
+
+    // 清除 hurtMarked 以验证第二次不重新标记
+    painting.clearHurtMarked();
+    EXPECT_FALSE(painting.isHurtMarked());
+
+    // 第二次 hurt：已移除，不再执行 dropItem/remove/markHurt，但返回 true
+    auto source2 = DamageSources::generic();
+    EXPECT_TRUE(painting.hurt(source2, 1.0f));
+    EXPECT_FALSE(painting.isHurtMarked()); // 不应被再次标记
+}
+
+/**
+ * @brief mobGriefing 关闭时，非 Mob 环境伤害仍正常生效
+ */
+TEST_F(HangingEntityHurtTest, MobGriefingOff_EnvironmentalDamage_StillWorks)
+{
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false, nullptr);
+    ASSERT_FALSE(m_world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    entity::PaintingEntity painting;
+    painting.setWorld(&m_world);
+
+    auto genericDamage = DamageSources::generic();
+    EXPECT_TRUE(painting.hurt(genericDamage, 1.0f));
+    EXPECT_TRUE(painting.isRemoved());
+    EXPECT_TRUE(painting.isHurtMarked());
+}
+
+/**
+ * @brief 没有 world 时 Mob 攻击者仍正常伤害（跳过 mobGriefing 检查）
+ */
+TEST_F(HangingEntityHurtTest, NoWorld_MobAttacker_StillDamages)
+{
+    entity::PaintingEntity painting;
+    // 不设置 world -> mobGriefing 检查被跳过
+
+    TestHangingMobEntity mob;
+    auto mobDamage = DamageSources::mobAttack(&mob);
+
+    EXPECT_TRUE(painting.hurt(mobDamage, 1.0f));
+    EXPECT_TRUE(painting.isRemoved());
+    EXPECT_TRUE(painting.isHurtMarked());
 }
 
 } // namespace
