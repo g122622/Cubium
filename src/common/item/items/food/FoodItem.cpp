@@ -24,6 +24,7 @@
 #include "FoodItem.hpp"
 
 #include "../../../entity/core/Entity.hpp"
+#include "../../../entity/core/LivingEntity.hpp"
 #include "../../../entity/effect/EffectInstance.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../sound/SoundEvents.hpp"
@@ -117,44 +118,47 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
         return stack;
     }
 
-    // 尝试转换为玩家
+    // 尝试转换为玩家和生物实体
     Player* player = dynamic_cast<Player*>(&entity);
+    LivingEntity* livingEntity = dynamic_cast<LivingEntity*>(&entity);
     bool isCreativePlayer = (player != nullptr && player->abilities().creativeMode);
 
     // 保存消耗前的物品副本（用于事件）
     ItemStack consumedItem = stack.copy();
 
-    // 只有玩家才处理饥饿恢复
+    // 使用实体ID和时间生成随机数（用于效果概率和音调变化）
+    math::Random rng(static_cast<u64>(entity.id()) ^
+        static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
+
+    // 应用药水效果（玩家和生物实体均可获得食物效果）
+    if (m_food->hasEffects()) {
+        for (const auto& effect : m_food->getEffects()) {
+            if (rng.nextFloat() < effect.probability) {
+                EffectInstance instance(effect.type,
+                    effect.duration,
+                    effect.amplifier,
+                    false, // 非环境效果
+                    true,  // 显示粒子
+                    true   // 显示图标
+                );
+                if (player != nullptr) {
+                    player->addEffect(instance);
+                } else if (livingEntity != nullptr) {
+                    livingEntity->addEffect(std::move(instance));
+                }
+            }
+        }
+    }
+
+    // 玩家专用逻辑：饥饿恢复、进食/打嗝音效、进度事件
     if (player != nullptr) {
         // 恢复饥饿值和饱和度
-        // 饱和度计算：saturation += food * saturationModifier * 2.0
         player->foodStats().addStats(m_food->getHunger(), m_food->getSaturationModifier());
 
         // 重置食物计时器（用于生命恢复计时）
         player->foodStats().setFoodTimer(0);
 
-        // 使用实体ID和时间生成随机数（用于效果概率和音调变化）
-        math::Random rng(static_cast<u64>(entity.id()) ^
-            static_cast<u64>(std::chrono::high_resolution_clock::now().time_since_epoch().count()));
-
-        // 应用药水效果
-        if (m_food->hasEffects()) {
-            for (const auto& effect : m_food->getEffects()) {
-                if (rng.nextFloat() < effect.probability) {
-                    EffectInstance instance(effect.type,
-                        effect.duration,
-                        effect.amplifier,
-                        false, // 非环境效果
-                        true,  // 显示粒子
-                        true   // 显示图标
-                    );
-                    player->addEffect(instance);
-                }
-            }
-        }
-
         // 播放进食音效
-        // 音调在 0.8-1.2 范围内随机变化
         f32 pitch = 0.8f + (rng.nextFloat() * 0.4f);
         f32 volume = 0.5f + (rng.nextFloat() * 0.5f);
         player->playSound(SoundEvents::ENTITY_GENERIC_EAT, volume, pitch);
@@ -168,7 +172,7 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
         stack.shrink(1);
     }
 
-    // 触发消耗物品事件（进度系统）
+    // 触发消耗物品事件（进度系统，仅玩家）
     if (player != nullptr) {
         world.onConsumeItem(player->id(), consumedItem);
     }

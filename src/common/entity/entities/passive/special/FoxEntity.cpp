@@ -24,6 +24,7 @@
 #include "FoxEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
+#include "../../../../item/core/Item.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
@@ -397,13 +398,13 @@ void FoxEntity::wakeUp()
 
 bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // 只有甜浆果可以用来繁殖狐狸
-    // 注意：发光浆果是后续版本添加的，本项目只支持甜浆果
+    // 甜浆果和发光浆果可以用来繁殖狐狸
+    // MC 原版 FOX_FOOD 标签包含 sweet_berries 和 glow_berries
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
     }
-    return item == Items::SWEET_BERRIES;
+    return item == Items::SWEET_BERRIES || item == Items::GLOW_BERRIES;
 }
 
 std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
@@ -475,23 +476,28 @@ void FoxEntity::tick()
     }
 
     // 进食逻辑：每 tick 递增计时器，达到阈值后食用物品
+    // MC 原版: Fox.aiStep() 中 ticksSinceEaten > 600 时调用 finishUsingItem
     IWorld* worldPtr = this->world();
     if (worldPtr != nullptr && !worldPtr->isClientSide() && isAlive()) {
         m_ticksSinceEaten++;
 
         if (isHoldingItem() && canEat()) {
             if (m_ticksSinceEaten > MIN_TICKS_BEFORE_EAT) {
-                // 食用完成，消耗物品
+                // 食用完成：调用 onItemUseFinish 处理物品消耗和效果应用
+                // onItemUseFinish 会减少物品数量、应用食物效果、返回容器物品（如碗）
+                // 对应 MC 原版: itemstack.finishUsingItem(this.level(), this)
                 const ItemStack* held = getHeldItem();
                 if (held != nullptr && isConsumableFood(*held)) {
-                    // TODO: 当 Item::finishUsingItem 实现后，应使用其返回值处理剩余物品（如碗）
-                    playEatSound();
+                    ItemStack heldCopy = *held;
+                    // 注意：const_cast 是安全的，因为 Items 在注册后是不可变的
+                    ItemStack result =
+                        const_cast<Item*>(heldCopy.getItem())->onItemUseFinish(heldCopy, *worldPtr, *this);
 
-                    // 消耗1个物品
-                    if (held->getCount() > 1) {
-                        ItemStack reduced = *held;
-                        reduced.shrink(1);
-                        m_heldItem = std::make_unique<ItemStack>(std::move(reduced));
+                    // 如果消耗后返回物品不为空（如蘑菇煲返回碗），放入嘴中
+                    // 如果消耗后返回物品为空（普通食物完全消耗），清除嘴中物品
+                    // 对应 MC 原版: if (!itemstack1.isEmpty()) { this.setItemSlot(MAINHAND, itemstack1); }
+                    if (!result.isEmpty()) {
+                        m_heldItem = std::make_unique<ItemStack>(std::move(result));
                     } else {
                         m_heldItem.reset();
                     }
