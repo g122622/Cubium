@@ -293,7 +293,9 @@ public:
     static constexpr i64 RAID_CHECK_INTERVAL = 20;
 
     /// 村民超时时间（6000 tick = 5 分钟不在村庄范围内视为离开）
-    /// 使用超时作为简化的离开检测
+    /// 参考 MC Java 的 Villager.removeWhenFarAway() == false：村民不会因为距离远而消失，
+    /// 但本项目的 Village 类维护显式村民列表，超时机制用于清理已离开村庄的村民关联。
+    /// 村民主动死亡/移除时通过 VillagerEntity::releaseAllPois() 立即通知村庄。
     static constexpr i64 VILLAGER_TIMEOUT = 6000;
 
     // ========== 序列化 ==========

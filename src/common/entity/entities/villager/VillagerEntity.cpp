@@ -47,6 +47,7 @@
 #include "common/entity/ai/goal/goals/villager/WorkAtJobSiteGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityPose.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
@@ -180,6 +181,75 @@ void VillagerEntity::tick()
     // - shouldExecute() 检查是否是工作时间 (2000-9000 ticks) 和是否有工作站点
     // - tick() 中使用 isWithinDistance() 检查是否在工作站点附近
     // - Schedule 系统在 2000 ticks 时自动切换到 WORK 活动
+}
+
+void VillagerEntity::die(DamageSource& cause)
+{
+    // MC Java Villager.die() 逻辑:
+    // 1. 调用 releaseAllPois() 释放所有占用的POI
+    // 2. 通知村庄管理器该村民已离开
+    // 3. 如果是被玩家杀死，触发 MajorNegative 流言
+    // 4. 调用父类 die() 处理通用死亡逻辑（掉落经验等）
+
+    releaseAllPois();
+
+    // 如果被玩家杀死，向村庄添加 MajorNegative 流言
+    // MC Java: onReputationEventFrom(ReputationEventType.VILLAGER_KILLED, killer)
+    if (m_world) {
+        Entity* sourceEntity = cause.getEntity();
+        Player* killer = dynamic_cast<Player*>(sourceEntity);
+        if (killer != nullptr) {
+            auto* villageManager = m_world->villageManager();
+            if (villageManager != nullptr) {
+                world::village::Village* village = villageManager->getVillageAt(
+                    BlockPos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z())));
+                if (village != nullptr) {
+                    village->addGossip(killer->playerId(), world::village::VillageGossipType::MajorNegative, 25);
+                }
+            }
+        }
+    }
+
+    // 调用父类 die() 处理通用死亡逻辑
+    AbstractVillagerEntity::die(cause);
+}
+
+void VillagerEntity::remove()
+{
+    // MC Java 中 Villager.removeWhenFarAway() 返回 false，村民不会因为距离远而被移除。
+    // 但当村民确实被移除时（如区块卸载），需要释放POI并通知村庄。
+    // 参考 MC Java: Villager 没有重写 remove()，而是在 finalizeSpawn 和
+    // ServerLevel.onEntityRemoved 中处理。本项目在此处统一处理。
+
+    releaseAllPois();
+
+    // 调用父类 remove()
+    AbstractVillagerEntity::remove();
+}
+
+void VillagerEntity::releaseAllPois()
+{
+    if (!m_world) {
+        return;
+    }
+
+    auto* villageManager = m_world->villageManager();
+    if (villageManager == nullptr) {
+        return;
+    }
+
+    const auto villagerId = static_cast<u64>(id());
+
+    // 释放该村民占用的所有POI（床位、工作站等）
+    villageManager->getPOIStorage().releaseAllByOwner(villagerId);
+
+    // 通知村庄管理器该村民已离开村庄
+    villageManager->onVillagerLeave(villagerId);
+
+    // 清除睡眠状态（如果正在睡眠）
+    if (isSleeping()) {
+        stopSleeping();
+    }
 }
 
 void VillagerEntity::setLastHurtBy(LivingEntity* attacker)
