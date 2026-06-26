@@ -1127,6 +1127,7 @@ public:
     static Item* OMINOUS_TRIAL_KEY;                 // 不祥试炼钥匙
     static Item* OMINOUS_BOTTLE;                    // 不祥之瓶
     static Item* WIND_CHARGE;                       // 风弹
+    static Item* BREEZE_ROD;                        // 狂风杖
     static Item* MACE;                              // 重锤
     static Item* GUSTER_BANNER_PATTERN;             // 旋风旗帜图案
     static Item* FLOW_BANNER_PATTERN;               // 涡流旗帜图案

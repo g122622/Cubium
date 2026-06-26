@@ -60,7 +60,8 @@ class ProjectileEntity;
  * - ShootWhenStuck：卡住时紧急射击
  *
  * 掉落：
- * - 风弹 0-1（受抢夺影响，每级+1最大）
+ * - 狂风杖 1-2（仅被玩家击杀时掉落，受抢夺附魔影响，每级额外+1~2）
+ * - 经验值 10
  *
  * 命名空间ID: minecraft:breeze
  */
@@ -124,7 +125,19 @@ public:
 
     // ========== 掉落物 ==========
 
-    // TODO(trial_chambers): 实现掉落风弹 (0-1，受抢夺影响)
+    /**
+     * @brief 重写死亡掉落逻辑
+     *
+     * MC 原版 Breeze 死亡时掉落狂风杖：
+     * - 仅在被玩家击杀时掉落（killed_by_player 条件）
+     * - 基础数量 1-2 个
+     * - 每级抢夺附魔额外增加 1-2 个
+     * - 对应战利品表: minecraft:entities/breeze
+     *
+     * 当前项目尚未实现通用的实体战利品表掉落流程，
+     * 因此在此直接硬编码掉落逻辑，待通用流程实现后迁移到战利品表。
+     */
+    void die(DamageSource& source) override;
 
     /**
      * @brief 检查是否可以攻击指定类型的实体

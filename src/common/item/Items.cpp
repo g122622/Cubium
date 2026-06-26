@@ -59,6 +59,7 @@
 #include "common/item/items/tool/ShearsItem.hpp"
 #include "common/item/items/tool/ShovelItem.hpp"
 #include "common/item/items/tool/SwordItem.hpp"
+#include "common/item/items/trial/BreezeRodItem.hpp"
 #include "common/item/items/trial/MaceItem.hpp"
 #include "common/item/items/trial/OminousBottleItem.hpp"
 #include "common/item/items/trial/OminousTrialKeyItem.hpp"
@@ -1031,6 +1032,7 @@ Item* Items::TRIAL_KEY = nullptr;
 Item* Items::OMINOUS_TRIAL_KEY = nullptr;
 Item* Items::OMINOUS_BOTTLE = nullptr;
 Item* Items::WIND_CHARGE = nullptr;
+Item* Items::BREEZE_ROD = nullptr;
 Item* Items::MACE = nullptr;
 Item* Items::GUSTER_BANNER_PATTERN = nullptr;
 Item* Items::FLOW_BANNER_PATTERN = nullptr;
@@ -3760,6 +3762,11 @@ void Items::_registerTrialChamberItems()
     // 旋风人掉落（0-1，受抢夺影响），试炼刷怪笼补给
     WIND_CHARGE = &registry.registerItem<item::WindChargeItem>(
         ResourceLocation("minecraft:wind_charge"), ItemProperties().maxStackSize(64));
+
+    // 狂风杖 - 旋风人掉落的材料物品
+    // 可用于酿造风充药水、合成重锤和锻造模板
+    BREEZE_ROD = &registry.registerItem<item::BreezeRodItem>(
+        ResourceLocation("minecraft:breeze_rod"), ItemProperties().maxStackSize(64));
 
     // ========================================================================
     // 重锤

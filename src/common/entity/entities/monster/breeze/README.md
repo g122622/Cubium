@@ -17,6 +17,7 @@ MonsterEntity (敌对生物基类)
   └── BreezeEntity — 旋风人
         ├── shootWindCharge() — 发射风弹
         ├── shouldDeflectProjectile() — 偏转投射物（风弹除外）
+        ├── die() — 死亡掉落狂风杖（仅被玩家击杀时，1-2个，受抢夺附魔影响）
         └── AI 行为目标（注册在 registerGoals()）
 ```
 
@@ -32,6 +33,10 @@ MonsterEntity (敌对生物基类)
 - `ProjectileEntity` — 弹射物基类（shouldDeflectProjectile 参数类型）
 - `SoundEvents` / `SoundCategory` — 音效播放
 - `IWorld` — 世界接口（spawnEntity、playSound）
+- `Items::BREEZE_ROD` — 狂风杖物品（死亡掉落）
+- `ItemDropHelper` — 物品掉落工具
+- `EnchantmentHelper` — 抢夺附魔查询
+- `Player` — 玩家实体（判断击杀者、获取武器附魔）
 
 ## 容易踩的坑
 

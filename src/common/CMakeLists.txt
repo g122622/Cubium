@@ -514,6 +514,7 @@ add_library(mc_common STATIC
     item/items/special/SpawnEggItem.cpp
 
     # Item - Trial Items
+    item/items/trial/BreezeRodItem.cpp
     item/items/trial/MaceItem.cpp
     item/items/trial/OminousBottleItem.cpp
     item/items/trial/OminousTrialKeyItem.cpp

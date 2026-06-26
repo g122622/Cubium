@@ -6,6 +6,7 @@ MC 1.21+ 新增的试炼密室相关物品。
 
 ```
 trial/
+├── BreezeRodItem.hpp/cpp          # 狂风杖（旋风人掉落的材料物品）
 ├── MaceItem.hpp/cpp              # 重锤（下落攻击伤害加成、三种专属魔咒）
 ├── OminousBottleItem.hpp/cpp     # 不祥之瓶（饮用获得不祥效果）
 ├── OminousTrialKeyItem.hpp/cpp   # 不祥试炼钥匙
@@ -19,6 +20,7 @@ trial/
 
 ```
 Item (基类)
+  ├── BreezeRodItem    — 直接继承，旋风人掉落的材料物品（可用于酿造、合成）
   ├── WindChargeItem   — 直接继承，自行实现 onItemRightClick（投掷 + 冷却）
   ├── MaceItem         — 直接继承，实现下落攻击、postHitEntity 回调
   │     ├── hitEntity()      → 砸地攻击：停止下落、播放音效、AOE击退
