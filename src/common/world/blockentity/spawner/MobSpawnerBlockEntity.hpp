@@ -291,6 +291,9 @@ private:
     static constexpr i32 DEFAULT_MAX_NEARBY_ENTITIES = 6;
     static constexpr i32 DEFAULT_REQUIRED_PLAYER_RANGE = 16;
     static constexpr i32 DEFAULT_SPAWN_RANGE = 4;
+
+    // 测试子类需要访问 _isValidSpawnPosition
+    friend class TestMobSpawnerBlockEntity;
 };
 
 } // namespace blockentity

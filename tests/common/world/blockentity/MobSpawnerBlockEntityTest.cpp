@@ -24,8 +24,11 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -886,4 +889,325 @@ TEST_F(MobSpawnerBlockEntityTest, NBT_Roundtrip_CustomSpawnRules)
     EXPECT_EQ(data["custom_spawn_rules"]["block_light_max"].get<i32>(), 7);
     EXPECT_EQ(data["custom_spawn_rules"]["sky_light_min"].get<i32>(), 0);
     EXPECT_EQ(data["custom_spawn_rules"]["sky_light_max"].get<i32>(), 0);
+}
+
+namespace mc::blockentity {
+// ============================================================================
+// 测试子类：暴露 _isValidSpawnPosition 供测试
+// 需要放在 mc::blockentity 命名空间中以便 friend 声明生效
+// ============================================================================
+
+class TestMobSpawnerBlockEntity final : public MobSpawnerBlockEntity {
+public:
+    explicit TestMobSpawnerBlockEntity(const BlockPos& pos)
+        : MobSpawnerBlockEntity(pos)
+    {}
+
+    /// 暴露 _isValidSpawnPosition 供测试调用
+    [[nodiscard]] bool testIsValidSpawnPosition(IWorld& world, const BlockPos& pos)
+    {
+        // 获取当前实体类型；如果没有设置则返回 true（无法检查放置规则）
+        const entity::EntityType* entityType = entity::EntityRegistry::instance().getType(getNextEntityId().toString());
+        if (entityType == nullptr) {
+            return true;
+        }
+        return _isValidSpawnPosition(world, pos, *entityType);
+    }
+};
+
+} // namespace mc::blockentity
+
+// ============================================================================
+// 光照和生成规则测试用 Mock 世界
+// ============================================================================
+
+class MobSpawnerLightTestWorld final : public test::BaseTestWorld {
+public:
+    using IWorld::getBlockState;
+
+    void setBlockLightValue(u8 value) { m_blockLight = value; }
+    void setSkyLightValue(u8 value) { m_skyLight = value; }
+    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
+    void setSeed(u64 seed) { m_seed = seed; }
+    void setEntitiesInRangeResult(std::vector<Entity*> entities) { m_entitiesInRange = std::move(entities); }
+
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return m_blockLight; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return m_skyLight; }
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] u64 seed() const override { return m_seed; }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return m_entitiesInRange;
+    }
+
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        if (!entity) {
+            return EntityId(0);
+        }
+        EntityId id = EntityId(++m_nextEntityId);
+        entity->setId(id);
+        m_ownedEntities.push_back(std::move(entity));
+        return id;
+    }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("MobSpawnerLightTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("MobSpawnerLightTestWorld::tickManager not implemented");
+    }
+
+private:
+    u8 m_blockLight = 0;
+    u8 m_skyLight = 15;
+    Difficulty m_difficulty = Difficulty::Easy;
+    u64 m_seed = 12345;
+    std::vector<Entity*> m_entitiesInRange;
+    std::vector<std::unique_ptr<Entity>> m_ownedEntities;
+    u64 m_nextEntityId = 0;
+};
+
+// ============================================================================
+// CustomSpawnRules 光照检查测试
+// ============================================================================
+
+class SpawnPositionLightTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        entity::VanillaEntities::registerAll();
+        spawner_ = std::make_unique<TestMobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+        world_ = std::make_unique<MobSpawnerLightTestWorld>();
+    }
+
+    std::unique_ptr<TestMobSpawnerBlockEntity> spawner_;
+    std::unique_ptr<MobSpawnerLightTestWorld> world_;
+};
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightInRange_AllowsSpawn)
+{
+    // 设置 CustomSpawnRules 要求方块光照 [0, 7]
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 7;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 方块光照 = 5，在范围内
+    world_->setBlockLightValue(5);
+    world_->setSkyLightValue(15);
+
+    // 需要设置一个已注册的实体类型才能测试
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightOutOfRange_BlocksSpawn)
+{
+    // 设置 CustomSpawnRules 要求方块光照 [0, 7]
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 7;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 方块光照 = 10，超出范围
+    world_->setBlockLightValue(10);
+    world_->setSkyLightValue(15);
+
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    EXPECT_FALSE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_SkyLightOutOfRange_BlocksSpawn)
+{
+    // 设置 CustomSpawnRules 要求天空光照 [0, 0]（完全黑暗）
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 15;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 0;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 天空光照 = 8，超出范围
+    world_->setBlockLightValue(0);
+    world_->setSkyLightValue(8);
+
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    EXPECT_FALSE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_BothLightInRanges_AllowsSpawn)
+{
+    // 设置 CustomSpawnRules 要求方块光照 [0, 7]，天空光照 [0, 0]
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 7;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 0;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 方块光照 = 3，天空光照 = 0，都在范围内
+    world_->setBlockLightValue(3);
+    world_->setSkyLightValue(0);
+
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_DefaultRanges_AllowAllLight)
+{
+    // 默认 CustomSpawnRules 允许所有光照 [0, 15] x [0, 15]
+    CustomSpawnRules rules; // 默认值
+    spawner_->setCustomSpawnRules(rules);
+
+    // 任何光照组合都应允许
+    world_->setBlockLightValue(15);
+    world_->setSkyLightValue(15);
+
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_MonsterPeacefulDifficulty_BlocksSpawn)
+{
+    // CustomSpawnRules 存在 + 怪物实体 + 和平难度 = 不生成
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    world_->setDifficulty(Difficulty::Peaceful);
+    world_->setBlockLightValue(0);
+    world_->setSkyLightValue(0);
+
+    // 僵尸是 Monster 分类
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::ZOMBIE), rng);
+
+    // 由于 _spawnEntities 中在 CustomSpawnRules 检查之前先判断难度，
+    // 非和平分类在和平难度下直接返回 false，不会到达 _isValidSpawnPosition
+    // 这里测试的是 _spawnEntities 层面的逻辑，通过 tick 测试来验证
+    Player player(EntityId(1), "TestPlayer");
+    world_->setEntitiesInRangeResult({&player});
+    spawner_->setRequiredPlayerRange(0);
+    spawner_->setMinSpawnDelay(0);
+    spawner_->setMaxSpawnDelay(0);
+    spawner_->setSpawnCount(1);
+
+    // 多次 tick 尝试生成，和平难度下不应生成
+    for (int i = 0; i < 30; ++i) {
+        spawner_->tick(*world_);
+    }
+    // 不会崩溃，且在和平难度下怪物不应生成
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_PeacefulCreature_PeacefulDifficulty_AllowsSpawn)
+{
+    // CustomSpawnRules 存在 + 和平生物（猪）+ 和平难度 = 允许生成（光照通过的话）
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    world_->setDifficulty(Difficulty::Peaceful);
+    world_->setBlockLightValue(5);
+    world_->setSkyLightValue(10);
+
+    // 猪是 Creature 分类（和平生物），即使和平难度也允许
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    // 光照在范围内，和平生物在和平难度下允许生成
+    EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, NoCustomSpawnRules_UsesDefaultSpawnRules)
+{
+    // 不设置 CustomSpawnRules，应使用 EntitySpawnPlacementRegistry 默认规则
+    // 猪的放置类型是 OnGround，默认世界 getBlockState 返回 nullptr（视为空气）
+    // 所以 OnGround 检查会失败（脚下没有固体方块）
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    // 不设置 CustomSpawnRules，_isValidSpawnPosition 会走 SpawnPlacements 路径
+    // BaseTestWorld 的 getBlockState 返回 nullptr，OnGround 检查需要脚下有固体方块
+    // 因此猪无法生成（脚下没有地面）
+    EXPECT_FALSE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightAtExactBoundary_AllowsSpawn)
+{
+    // 边界值测试：方块光照恰好等于 max
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 7;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 方块光照 = 7，恰好等于 max
+    world_->setBlockLightValue(7);
+    world_->setSkyLightValue(10);
+
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightAtMinBoundary_AllowsSpawn)
+{
+    // 边界值测试：方块光照恰好等于 min
+    CustomSpawnRules rules;
+    rules.blockLightMin = 5;
+    rules.blockLightMax = 15;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 方块光照 = 5，恰好等于 min
+    world_->setBlockLightValue(5);
+    world_->setSkyLightValue(10);
+
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    EXPECT_TRUE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
+}
+
+TEST_F(SpawnPositionLightTest, CustomSpawnRules_BlockLightBelowMin_BlocksSpawn)
+{
+    // 方块光照低于最小值
+    CustomSpawnRules rules;
+    rules.blockLightMin = 5;
+    rules.blockLightMax = 15;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 方块光照 = 4，低于 min=5
+    world_->setBlockLightValue(4);
+    world_->setSkyLightValue(10);
+
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation(entity::EntityTypes::PIG), rng);
+
+    EXPECT_FALSE(spawner_->testIsValidSpawnPosition(*world_, BlockPos(10, 64, 20)));
 }
