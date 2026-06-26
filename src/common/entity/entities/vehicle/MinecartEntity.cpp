@@ -172,19 +172,22 @@ void AbstractMinecartEntity::_checkRailState()
         static_cast<BlockCoord>(std::floor(y())),
         static_cast<BlockCoord>(std::floor(z())));
 
+    IWorld* worldPtr = Entity::world();
+
     // 检查当前方块
     if (isOnRailAt(currentPos)) {
         m_onRail = true;
         m_railPos = currentPos;
 
-        // 获取铁轨形状
-        IWorld* worldPtr = Entity::world();
+        // 从方块状态获取铁轨形状
         if (worldPtr) {
             const BlockState* state = worldPtr->getBlockState(currentPos);
             if (state) {
-                // 从方块状态获取铁轨形状
-                // 这里简化处理，实际需要从 AbstractRailBlock 获取
-                // m_railShape = getRailShapeFromState(state);
+                const Block* block = &state->getBlock();
+                const AbstractRailBlock* railBlock = dynamic_cast<const AbstractRailBlock*>(block);
+                if (railBlock) {
+                    m_railShape = railBlock->getRailShape(*state);
+                }
             }
         }
         return;
@@ -195,6 +198,18 @@ void AbstractMinecartEntity::_checkRailState()
     if (isOnRailAt(belowPos)) {
         m_onRail = true;
         m_railPos = belowPos;
+
+        // 从方块状态获取铁轨形状
+        if (worldPtr) {
+            const BlockState* state = worldPtr->getBlockState(belowPos);
+            if (state) {
+                const Block* block = &state->getBlock();
+                const AbstractRailBlock* railBlock = dynamic_cast<const AbstractRailBlock*>(block);
+                if (railBlock) {
+                    m_railShape = railBlock->getRailShape(*state);
+                }
+            }
+        }
         return;
     }
 
