@@ -36,6 +36,7 @@
 #include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -55,6 +56,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/spawn/IWorldSpawnAdapter.hpp"
 
 namespace mc {
 
@@ -229,6 +231,9 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
     i32 baseY = math::floorTo<i32>(m_position.y);
     i32 baseZ = math::floorTo<i32>(m_position.z);
 
+    // 创建 ISpawnWorldReader 适配器，用于 EntitySpawnPlacementRegistry 的生成位置检查
+    world::spawn::IWorldSpawnAdapter spawnWorldAdapter(world);
+
     // 最多尝试 50 次寻找有效生成位置
     for (i32 attempt = 0; attempt < REINFORCEMENT_ATTEMPTS; ++attempt) {
         // MC 1.21.11 Zombie.hurtServer() 增援位置计算：
@@ -249,32 +254,19 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
             continue;
         }
 
-        // TODO: MC 原版使用 SpawnPlacements.isSpawnPositionOk() 和 SpawnPlacements.checkSpawnRules()
-        // 检查生成位置有效性，此处使用简化检查：
-        // - 检查脚下需要固体方块支撑（不在 MC 原版中，但当前项目 SpawnPlacements 未完善）
-        // - 检查生成位置和上方是否有足够空间（不在 MC 原版中，MC 仅检查 isUnobstructed + noCollision）
-        // 待 SpawnPlacements 系统完善后应对齐 MC 原版逻辑
-        const BlockState* belowState = world.getBlockState(spawnX, spawnY - 1, spawnZ);
-        if (belowState == nullptr || !belowState->isSolid()) {
-            continue;
-        }
-
-        const BlockState* spawnState = world.getBlockState(spawnX, spawnY, spawnZ);
-        if (spawnState == nullptr || spawnState->isSolid()) {
-            continue;
-        }
-        if (world.hasFluid(spawnX, spawnY, spawnZ)) {
-            continue;
-        }
-        const BlockState* aboveState = world.getBlockState(spawnX, spawnY + 1, spawnZ);
-        if (aboveState == nullptr || aboveState->isSolid()) {
-            continue;
-        }
-        if (world.hasFluid(spawnX, spawnY + 1, spawnZ)) {
+        // 使用 EntitySpawnPlacementRegistry 检查生成位置有效性
+        // 对应 MC 原版 SpawnPlacements.isSpawnPositionOk() 和 SpawnPlacements.checkSpawnRules()
+        // - 对于僵尸：PlacementType::OnGround，检查脚底支撑 + 生成位和上方位可通行
+        // - 对于溺尸：PlacementType::InWater，检查生成位在水中 + 下方在水中 + 上方非实心
+        // - 谓词检查：canMonsterSpawnInLightPredicate（目前为空，光照检查在 NaturalSpawner 中进行）
+        Vector3i spawnVec(spawnX, spawnY, spawnZ);
+        if (!world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(
+                entityTypeId, spawnWorldAdapter, world::spawn::SpawnReason::Reinforcement, spawnVec, rng)) {
             continue;
         }
 
         // 检查附近7格内无存活玩家
+        // 对应 MC 原版 ServerLevel.hasNearbyAlivePlayer(x, y, z, 7.0)
         Player* nearbyPlayer = world.getClosestPlayer(
             Vector3(static_cast<f64>(spawnX) + 0.5, static_cast<f64>(spawnY), static_cast<f64>(spawnZ) + 0.5), 7.0f);
         if (nearbyPlayer != nullptr && nearbyPlayer->isAlive()) {
@@ -296,7 +288,8 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
         reinforcement->setPosition(
             Vector3(static_cast<f64>(spawnX) + 0.5, static_cast<f64>(spawnY), static_cast<f64>(spawnZ) + 0.5));
 
-        // 检查实体碰撞和无方块碰撞
+        // 检查实体碰撞和方块碰撞
+        // 对应 MC 原版 ServerLevel.noCollision(zombie) 和 ServerLevel.isUnobstructed(zombie)
         AxisAlignedBB reinBox = reinforcement->boundingBox();
         if (world.hasEntityCollision(reinBox, this)) {
             continue;
@@ -306,7 +299,8 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
         }
 
         // 检查不在液体中（溺尸可以在水中生成）
-        if (!reinforcement->shouldDrown() && world.containsAnyLiquid(reinBox)) {
+        // 对应 MC 原版 zombie.canSpawnInLiquids() || !level.containsAnyLiquid(zombie.getBoundingBox())
+        if (!reinforcement->canSpawnInLiquids() && world.containsAnyLiquid(reinBox)) {
             continue;
         }
 

@@ -81,6 +81,22 @@ public:
      */
     [[nodiscard]] bool canSwim() const noexcept { return true; }
 
+    /**
+     * @brief 溺尸可以在液体中生成
+     *
+     * 对应 MC 原版 Drowned.canSpawnInLiquids()。
+     * 溺尸是水中生物，增援生成时允许在水中生成。
+     */
+    [[nodiscard]] bool canSpawnInLiquids() const override { return true; }
+
+    /**
+     * @brief 溺尸不需要溺水转化（已是溺尸状态）
+     *
+     * 对应 MC 原版 Drowned.shouldDrown() = false。
+     * 防止溺尸反复触发溺水转化逻辑。
+     */
+    [[nodiscard]] bool shouldDrown() const override { return false; }
+
     // ========== 装备 ==========
 
     /**

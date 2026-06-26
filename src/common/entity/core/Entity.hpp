@@ -1089,6 +1089,17 @@ public:
     [[nodiscard]] bool canSwim() const { return m_eyesInWater && m_inWater; }
 
     /**
+     * @brief 检查实体是否可以在液体中生成
+     *
+     * 对应 MC 原版 Entity.canSpawnInLiquids()。
+     * 大多数实体返回 false（不能在液体中生成），
+     * 溺尸等水生实体重写返回 true。
+     *
+     * @return 如果可以在液体中生成返回 true
+     */
+    [[nodiscard]] virtual bool canSpawnInLiquids() const { return false; }
+
+    /**
      * @brief 获取实体眼睛位置的亮度
      *
      * 用于判断怪物是否在阳光下燃烧等。

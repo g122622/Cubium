@@ -35,8 +35,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
-#include "common/world/biome/Biomes.hpp"
-#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include <algorithm>
 #include <cmath>
 #include <nlohmann/json.hpp>
@@ -327,64 +326,7 @@ bool SpawnerLogic::isValidSpawnPosition(
     }
 
     // 当 CustomSpawnRules 不存在时，使用默认的生成放置规则检查。
-    class SpawnerWorldAdapter final : public world::spawn::ISpawnWorldReader {
-    public:
-        explicit SpawnerWorldAdapter(IWorld& world)
-            : m_world(world)
-        {}
-
-        [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
-        {
-            return m_world.getBlockState(BlockPos(x, y, z));
-        }
-
-        [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
-        {
-            return m_world.isWithinWorldBounds(x, y, z);
-        }
-
-        [[nodiscard]] i32 getHeight(world::chunk::HeightmapType type, i32 x, i32 z) const override
-        {
-            const ChunkCoord chunkX = world::toChunkCoord(x);
-            const ChunkCoord chunkZ = world::toChunkCoord(z);
-            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
-            if (chunk == nullptr) {
-                return m_world.getHeight(x, z);
-            }
-            const i32 localX = world::toLocalCoord(x);
-            const i32 localZ = world::toLocalCoord(z);
-            return chunk->getTopBlockY(type, localX, localZ);
-        }
-
-        [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override
-        {
-            const ChunkCoord chunkX = world::toChunkCoord(x);
-            const ChunkCoord chunkZ = world::toChunkCoord(z);
-            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
-            if (chunk == nullptr) {
-                return Biomes::Plains;
-            }
-            const i32 localX = world::toLocalCoord(x);
-            const i32 localZ = world::toLocalCoord(z);
-            return chunk->getBiomeAtBlock(localX, y, localZ);
-        }
-
-        [[nodiscard]] u64 seed() const override { return m_world.seed(); }
-
-        [[nodiscard]] Difficulty difficulty() const override { return m_world.difficulty(); }
-
-        [[nodiscard]] i64 dayTime() const override { return m_world.dayTime(); }
-
-        [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
-        {
-            return m_world.getMaxLocalRawBrightness(BlockPos(x, y, z));
-        }
-
-    private:
-        IWorld& m_world;
-    };
-
-    SpawnerWorldAdapter adapter(world);
+    world::spawn::IWorldSpawnAdapter adapter(world);
     math::Random rng(world.seed() ^ world.getGameTime());
     return world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(entityType.name(),
         adapter,
