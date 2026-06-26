@@ -94,6 +94,8 @@ MC 1.16.5 中驴、骡、羊驼都继承自 `AbstractChestedHorseEntity`，而�
 
 `TriggerSkeletonTrapGoal` 是动态注册的，只有 `setTrap(true)` 的骷髅马才会触发陷阱。雷暴天气生成的骷髅马需要正确设置陷阱状态。
 
+`triggerTrap()` 触发时会在骷髅马位置生成一个纯视觉效果的闪电实体（`LightningBoltEntity`，`setEffectOnly(true)`），该闪电不造成伤害、不点燃方块。困难模式下额外生成 3 只骷髅马+骑手，普通/简单模式只生成 1 只骷髅骑手骑原马。
+
 ### 4. 骷髅马与僵尸马的日光燃烧行为差异
 
 MC 1.16.5 中，骷髅马和僵尸马在日光下的行为截然不同：

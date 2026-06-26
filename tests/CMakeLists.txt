@@ -658,6 +658,7 @@ add_executable(mc_tests
     server/command/SetBlockCommandTest.cpp
     server/command/CloneCommandTest.cpp
     server/command/GiveCommandTest.cpp
+    server/command/ReplaceItemCommandTest.cpp
     server/command/LootCommandTest.cpp
     server/command/WhitelistBanCommandTest.cpp
     server/command/PlayerResolverTest.cpp
@@ -1980,6 +1981,7 @@ add_executable(mc_command_tests
     server/command/SpreadAlgorithmTest.cpp
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp
+    server/command/ReplaceItemCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
     common/command/arguments/FunctionArgumentTest.cpp
