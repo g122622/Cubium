@@ -30,7 +30,9 @@
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/WorldEvents.hpp"
 #include "../../../../world/block/BlockState.hpp"
+#include "../../../../world/block/registry/VanillaBlocks.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
@@ -532,8 +534,15 @@ void FoxEntity::tick()
         }
     }
 
-    // 如果卡在雪中，减少卡住计时器
-    // TODO: 实现卡住状态检测和脱离雪块的逻辑
+    // 卡在雪中时播放方块破坏粒子效果
+    // 对应 MC Java: Fox.tick() 中 isFaceplanted() 时 levelEvent(2001, blockpos, Block.getId(blockstate))
+    if (isStuck() && worldPtr != nullptr && getRandom().nextFloat() < 0.2f) {
+        BlockPos pos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z()));
+        const BlockState* state = worldPtr->getBlockState(pos);
+        if (state != nullptr) {
+            worldPtr->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(state->stateId()));
+        }
+    }
 }
 
 // ========== AI 目标注册 ==========
@@ -549,7 +558,8 @@ void FoxEntity::registerGoals()
     // 优先级 0: 游泳（最高优先级）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
-    // TODO: 优先级 1: 卡住时跳跃目标（用于从雪中逃脱）
+    // 优先级 1: 卡住时脱离雪块（扑击落地后卡在雪中的自动脱离）
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(this));
 
     // 优先级 2: 恐慌逃跑
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::PanicGoal>(this, 2.2));

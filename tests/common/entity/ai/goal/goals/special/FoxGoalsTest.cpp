@@ -1062,5 +1062,122 @@ TEST_F(FoxTargetGoalsTest, FoxRevengeGoalTrustIdConsistencyUsesPlayerId)
     EXPECT_FALSE(fox.trusts(99999ULL));
 }
 
+// ==================== FoxStuckInSnowGoal 测试 ====================
+
+TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_Construction)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(fox.get());
+    EXPECT_NE(goal, nullptr);
+    EXPECT_EQ(goal->getTypeName(), "FoxStuckInSnowGoal");
+}
+
+TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_MutexFlags)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(fox.get());
+
+    // FoxStuckInSnowGoal 应该有 Move、Look 和 Jump 标志
+    // 对应 MC Java FaceplantGoal: EnumSet.of(Goal.Flag.LOOK, Goal.Flag.JUMP, Goal.Flag.MOVE)
+    auto flags = goal->getMutexFlags();
+    EXPECT_TRUE(flags.test(entity::ai::GoalFlag::Move));
+    EXPECT_TRUE(flags.test(entity::ai::GoalFlag::Look));
+    EXPECT_TRUE(flags.test(entity::ai::GoalFlag::Jump));
+    EXPECT_FALSE(flags.test(entity::ai::GoalFlag::Target));
+}
+
+TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_ShouldExecuteWhenStuck)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(fox.get());
+
+    // 未卡住时不应执行
+    fox->setStuck(false);
+    EXPECT_FALSE(goal->shouldExecute());
+
+    // 卡住时应执行
+    fox->setStuck(true);
+    EXPECT_TRUE(goal->shouldExecute());
+}
+
+TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_StartSetsCountdown)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(fox.get());
+
+    fox->setStuck(true);
+    goal->startExecuting();
+
+    // 启动后应继续执行（倒计时 > 0 且 still stuck）
+    EXPECT_TRUE(goal->shouldContinueExecuting());
+}
+
+TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_TickDecrementsCountdown)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(fox.get());
+
+    fox->setStuck(true);
+    goal->startExecuting();
+
+    // 倒计时 40 tick，逐 tick 递减
+    for (int i = 0; i < 39; ++i) {
+        EXPECT_TRUE(goal->shouldContinueExecuting()) << "Still continuing at tick " << i;
+        goal->tick();
+    }
+
+    // 倒计时归零后不再继续
+    goal->tick();
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+}
+
+TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_ResetClearsStuckState)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(fox.get());
+
+    fox->setStuck(true);
+    goal->startExecuting();
+    EXPECT_TRUE(fox->isStuck());
+
+    // resetTask 应清除卡住状态
+    goal->resetTask();
+    EXPECT_FALSE(fox->isStuck());
+}
+
+TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_NotContinueIfNotStuck)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(fox.get());
+
+    fox->setStuck(true);
+    goal->startExecuting();
+
+    // 外部清除卡住状态后，目标应不再继续
+    fox->setStuck(false);
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+}
+
+TEST_F(FoxGoalsTest, FoxStuckInSnowGoal_FullCycle)
+{
+    auto goal = std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(fox.get());
+
+    // 1. 狐狸卡住 → 目标激活
+    fox->setStuck(true);
+    EXPECT_TRUE(goal->shouldExecute());
+
+    // 2. 开始执行，设置倒计时
+    goal->startExecuting();
+    EXPECT_TRUE(goal->shouldContinueExecuting());
+
+    // 3. 模拟 40 tick 的卡住状态
+    for (int i = 0; i < 40; ++i) {
+        goal->tick();
+    }
+
+    // 4. 倒计时结束，目标停止
+    EXPECT_FALSE(goal->shouldContinueExecuting());
+
+    // 5. resetTask 清除卡住状态
+    goal->resetTask();
+    EXPECT_FALSE(fox->isStuck());
+
+    // 6. 狐狸不再卡住，目标不会重新激活
+    EXPECT_FALSE(goal->shouldExecute());
+}
+
 } // namespace test
 } // namespace mc
