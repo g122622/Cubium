@@ -34,9 +34,15 @@ MobSpawnerBlockEntity
 
 - `world/blockentity/BlockEntity.hpp` - 方块实体基类
 - `entity/core/EntityRegistry.hpp` - 实体类型注册表（通过实体ID查找EntityType）
-- `entity/core/EntityType.hpp` - 实体类型（创建实体实例）
+- `entity/core/EntityType.hpp` - 实体类型（创建实体实例、查询分类）
+- `entity/core/EntityClassification.hpp` - 实体分类（判断是否为和平生物）
+- `entity/core/EntitySpawnPlacementRegistry.hpp` - 生成放置规则注册表（默认生成条件检查）
+- `entity/combat/DifficultyHelper.hpp` - 难度辅助（和平模式下禁止非和平生物生成）
 - `entity/combat/DifficultyInstance.hpp` - 难度实例（finalizeSpawn 需要）
-- `world/IWorld.hpp` - 世界接口（生成实体、查询附近实体）
+- `world/IWorld.hpp` - 世界接口（生成实体、查询附近实体、光照查询）
+- `world/chunk/data/ChunkData.hpp` - 区块数据（生成规则适配器中查询高度图和生物群系）
+- `world/biome/Biomes.hpp` - 生物群系常量（默认生物群系回退值）
+- `world/lighting/InternalLightUtils.hpp` - 光照工具（天空变暗计算）
 
 ## 容易踩的坑
 
@@ -55,3 +61,13 @@ MobSpawnerBlockEntity
 ### 4. onlyOpsCanSetNbt 返回 true
 
 与 MC Java 一致，刷怪笼的 NBT 数据仅 OP 玩家可修改。
+
+### 5. CustomSpawnRules 光照检查
+
+当 `m_customSpawnRules` 存在时，刷怪笼在生成前会检查每个生成位置的方块光照和天空光照是否在指定范围内，不满足时跳过该位置。当 `m_customSpawnRules` 不存在时，刷怪笼会通过 `EntitySpawnPlacementRegistry::canSpawnEntity()` 检查默认生成放置规则（地面/水中/岩浆放置类型和自定义谓词）。CustomSpawnRules 使用原始光照值，不应用天空变暗。
+
+NBT 格式：`SpawnData.CustomSpawnRules.block_light_limit` 和 `sky_light_limit` 为 `IntArray[min, max]`。
+
+### 6. 和平难度下非和平生物不生成
+
+当 CustomSpawnRules 存在且实体分类为 Monster 时，和平难度下刷怪笼不会生成该实体（与 MC Java BaseSpawner 行为一致）。

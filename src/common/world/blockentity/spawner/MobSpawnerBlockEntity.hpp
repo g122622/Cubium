@@ -37,7 +37,13 @@ class IWorld;
 
 namespace entity {
 class EntityType;
-}
+enum class EntityClassification : u8;
+} // namespace entity
+
+namespace world::spawn {
+enum class SpawnReason : u8;
+class ISpawnWorldReader;
+} // namespace world::spawn
 
 namespace blockentity {
 
@@ -59,14 +65,36 @@ struct SpawnEntry {
  *
  * 覆盖刷怪笼默认的生成位置检查，允许自定义光照限制。
  * 对应 MC Java 的 SpawnData.CustomSpawnRules。
+ *
+ * 当 CustomSpawnRules 存在时，刷怪笼在生成实体前会检查每个生成位置的
+ * 方块光照和天空光照是否在指定范围内。如果不在范围内，跳过该位置。
+ * 当 CustomSpawnRules 不存在时，刷怪笼会调用
+ * EntitySpawnPlacementRegistry::canSpawnEntity() 检查默认生成规则。
  */
 struct CustomSpawnRules {
-    /// 方块光照范围 [min, max]
+    /// 方块光照范围 [min, max]，默认 [0, 15] 即不限制
     i32 blockLightMin = 0;
     i32 blockLightMax = 15;
-    /// 天空光照范围 [min, max]
+    /// 天空光照范围 [min, max]，默认 [0, 15] 即不限制
     i32 skyLightMin = 0;
     i32 skyLightMax = 15;
+
+    /**
+     * @brief 检查指定位置的光照条件是否满足自定义生成规则
+     *
+     * 对应 MC Java 的 SpawnData.CustomSpawnRules.isValidPosition()。
+     * 分别检查方块光照和天空光照是否在各自范围内。
+     * 注意：此检查使用原始光照值，不应用天空变暗（skyDarkening）。
+     *
+     * @param blockLight 位置的方块光照值 (0-15)
+     * @param skyLight 位置的天空光照值 (0-15)
+     * @return 光照条件是否满足
+     */
+    [[nodiscard]] bool isValidPosition(u8 blockLight, u8 skyLight) const
+    {
+        return blockLight >= static_cast<u8>(blockLightMin) && blockLight <= static_cast<u8>(blockLightMax) &&
+            skyLight >= static_cast<u8>(skyLightMin) && skyLight <= static_cast<u8>(skyLightMax);
+    }
 };
 
 /**
@@ -203,6 +231,23 @@ private:
      * @param rng 随机数生成器
      */
     void _selectNextEntity(math::Random& rng);
+
+    /**
+     * @brief 检查生成位置是否满足光照和生成规则
+     *
+     * 当 m_customSpawnRules 存在时，检查方块光照和天空光照是否在指定范围内。
+     * 当 m_customSpawnRules 不存在时，调用 EntitySpawnPlacementRegistry::canSpawnEntity()
+     * 检查默认生成放置规则（包括地面/水中/岩浆放置类型和自定义谓词）。
+     *
+     * 对应 MC Java BaseSpawner.serverTick() 中的 CustomSpawnRules/SpawnPlacements 分支。
+     *
+     * @param world 世界引用
+     * @param spawnPos 生成位置（方块坐标）
+     * @param entityType 实体类型（用于查询分类和放置规则）
+     * @return 是否可以在该位置生成
+     */
+    [[nodiscard]] bool _isValidSpawnPosition(
+        IWorld& world, const BlockPos& spawnPos, const entity::EntityType& entityType) const;
 
     // ========== 生成参数 ==========
     // 默认值对齐 MC Java BaseSpawner

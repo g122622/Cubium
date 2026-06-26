@@ -22,8 +22,9 @@
  */
 
 #include "MobSpawnerBlockEntity.hpp"
-#include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityClassification.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -32,8 +33,12 @@
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/biome/Biomes.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -218,6 +223,32 @@ bool MobSpawnerBlockEntity::loadFromNBT(const nbt::CompoundTag& tag)
                 m_nextEntityId = ResourceLocation(*idStr);
             }
         }
+
+        // 读取 CustomSpawnRules（MC Java 格式：IntArray [min, max]）
+        const auto* customRulesTag = tryGetCompound(*spawnDataTag, "CustomSpawnRules");
+        if (customRulesTag != nullptr) {
+            CustomSpawnRules csr;
+
+            auto blockLightIt = customRulesTag->value.find("block_light_limit");
+            if (blockLightIt != customRulesTag->value.end() && blockLightIt->second->id() == nbt::TagId::IntArray) {
+                const auto& arr = dynamic_cast<const nbt::tags::intarray_tag&>(*blockLightIt->second).value;
+                if (arr.size() >= 2) {
+                    csr.blockLightMin = arr[0];
+                    csr.blockLightMax = arr[1];
+                }
+            }
+
+            auto skyLightIt = customRulesTag->value.find("sky_light_limit");
+            if (skyLightIt != customRulesTag->value.end() && skyLightIt->second->id() == nbt::TagId::IntArray) {
+                const auto& arr = dynamic_cast<const nbt::tags::intarray_tag&>(*skyLightIt->second).value;
+                if (arr.size() >= 2) {
+                    csr.skyLightMin = arr[0];
+                    csr.skyLightMax = arr[1];
+                }
+            }
+
+            m_customSpawnRules = csr;
+        }
     }
 
     // 读取 SpawnPotentials
@@ -273,6 +304,19 @@ void MobSpawnerBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
         nbt::tags::compound_tag entity;
         entity.put("id", m_nextEntityId.toString());
         spawnData.value.emplace("entity", std::make_unique<nbt::tags::compound_tag>(std::move(entity)));
+
+        // 保存 CustomSpawnRules（MC Java 格式：IntArray [min, max]）
+        if (m_customSpawnRules.has_value()) {
+            const auto& rules = m_customSpawnRules.value();
+            nbt::tags::compound_tag customRules;
+            customRules.value.emplace("block_light_limit",
+                std::make_unique<nbt::tags::intarray_tag>(std::vector<i32>{rules.blockLightMin, rules.blockLightMax}));
+            customRules.value.emplace("sky_light_limit",
+                std::make_unique<nbt::tags::intarray_tag>(std::vector<i32>{rules.skyLightMin, rules.skyLightMax}));
+            spawnData.value.emplace(
+                "CustomSpawnRules", std::make_unique<nbt::tags::compound_tag>(std::move(customRules)));
+        }
+
         tag.value.emplace("SpawnData", std::make_unique<nbt::tags::compound_tag>(std::move(spawnData)));
     }
 
@@ -423,13 +467,13 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         return false;
     }
 
-    // TODO: 检查 CustomSpawnRules 光照条件。MC Java 的 BaseSpawner 在生成实体前会检查
-    // CustomSpawnRules 的 blockLightMin/Max 和 skyLightMin/Max（调用 isValidPosition），
-    // 当 blockLight 或 skyLight 不在范围内时跳过该生成位置。IWorld 已提供
-    // getBlockLight(BlockPos) 和 getSkyLight(BlockPos) 接口，需要在每个生成位置
-    // 检查光照是否满足 m_customSpawnRules 的条件范围，不满足时 continue 跳过。
-    // 当 m_customSpawnRules 不存在时，MC Java 会调用 SpawnPlacements.checkSpawnRules()
-    // 检查默认生成规则，该检查也尚未实现。
+    // 当 CustomSpawnRules 存在时，非和平生物（Monster 分类）在和平难度下不生成
+    if (m_customSpawnRules.has_value()) {
+        if (!entity::isPeaceful(entityType->classification()) &&
+            !entity::combat::DifficultyHelper::allowsMobSpawning(world.difficulty())) {
+            return false;
+        }
+    }
 
     bool spawnedAny = false;
     math::Random rng(world.seed() ^ world.getGameTime());
@@ -443,6 +487,15 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         Vector3 spawnPos(static_cast<f32>(m_pos.x) + 0.5f + xOffset,
             static_cast<f32>(m_pos.y) + yOffset,
             static_cast<f32>(m_pos.z) + 0.5f + zOffset);
+
+        BlockPos spawnBlockPos(static_cast<i32>(std::floor(spawnPos.x)),
+            static_cast<i32>(std::floor(spawnPos.y)),
+            static_cast<i32>(std::floor(spawnPos.z)));
+
+        // 检查生成位置是否满足光照和生成规则
+        if (!_isValidSpawnPosition(world, spawnBlockPos, *entityType)) {
+            continue;
+        }
 
         // 检查附近同类型实体数量
         i32 nearbyCount = _countNearbyEntities(world, m_nextEntityId);
@@ -467,10 +520,6 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
         }
 
         // 尝试添加到世界
-        // TODO: 实体生成的集成测试待完善。当前单元测试中 MockWorld 未注册 EntityType，
-        // 因此 entityType->create(&world)、mobEntity->finalizeSpawn() 和
-        // world.spawnEntity() 的完整调用链未在测试中实际验证。待 EntityType 注册
-        // 机制可在测试环境中使用后，补充实体生成的端到端测试。
         EntityId id = world.spawnEntity(std::move(entity));
         if (id != EntityId(0)) {
             spawnedAny = true;
@@ -478,6 +527,90 @@ bool MobSpawnerBlockEntity::_spawnEntities(IWorld& world)
     }
 
     return spawnedAny;
+}
+
+bool MobSpawnerBlockEntity::_isValidSpawnPosition(
+    IWorld& world, const BlockPos& spawnPos, const entity::EntityType& entityType) const
+{
+    if (m_customSpawnRules.has_value()) {
+        // 当 CustomSpawnRules 存在时，检查方块光照和天空光照是否在指定范围内。
+        // 对应 MC Java 的 SpawnData.CustomSpawnRules.isValidPosition()。
+        // 注意：CustomSpawnRules 使用原始光照值，不应用天空变暗（skyDarkening）。
+        const u8 blockLight = world.getBlockLight(spawnPos);
+        const u8 skyLight = world.getSkyLight(spawnPos);
+        return m_customSpawnRules->isValidPosition(blockLight, skyLight);
+    }
+
+    // 当 CustomSpawnRules 不存在时，使用默认的生成放置规则检查。
+    // 对应 MC Java 的 SpawnPlacements.checkSpawnRules()。
+    // EntitySpawnPlacementRegistry::canSpawnEntity() 会根据实体类型注册的
+    // PlacementType（OnGround/InWater/InLava/NoRestrictions）和自定义谓词进行检查。
+    // 需要创建一个适配器将 IWorld 转换为 ISpawnWorldReader。
+    class SpawnerWorldAdapter final : public world::spawn::ISpawnWorldReader {
+    public:
+        explicit SpawnerWorldAdapter(IWorld& world)
+            : m_world(world)
+        {}
+
+        [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+        {
+            return m_world.getBlockState(BlockPos(x, y, z));
+        }
+
+        [[nodiscard]] bool isInWorldBounds(i32 x, i32 y, i32 z) const override
+        {
+            return m_world.isWithinWorldBounds(x, y, z);
+        }
+
+        [[nodiscard]] i32 getHeight(world::chunk::HeightmapType type, i32 x, i32 z) const override
+        {
+            const ChunkCoord chunkX = world::toChunkCoord(x);
+            const ChunkCoord chunkZ = world::toChunkCoord(z);
+            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+            if (chunk == nullptr) {
+                return m_world.getHeight(x, z);
+            }
+            const i32 localX = world::toLocalCoord(x);
+            const i32 localZ = world::toLocalCoord(z);
+            return chunk->getTopBlockY(type, localX, localZ);
+        }
+
+        [[nodiscard]] BiomeId getBiome(i32 x, i32 y, i32 z) const override
+        {
+            const ChunkCoord chunkX = world::toChunkCoord(x);
+            const ChunkCoord chunkZ = world::toChunkCoord(z);
+            const ChunkData* chunk = m_world.getChunk(chunkX, chunkZ);
+            if (chunk == nullptr) {
+                return Biomes::Plains;
+            }
+            const i32 localX = world::toLocalCoord(x);
+            const i32 localZ = world::toLocalCoord(z);
+            return chunk->getBiomeAtBlock(localX, y, localZ);
+        }
+
+        [[nodiscard]] u64 seed() const override { return m_world.seed(); }
+
+        [[nodiscard]] Difficulty difficulty() const override { return m_world.difficulty(); }
+
+        [[nodiscard]] i64 dayTime() const override { return m_world.dayTime(); }
+
+        [[nodiscard]] i32 getMaxLocalRawBrightness(i32 x, i32 y, i32 z) const override
+        {
+            return m_world.getMaxLocalRawBrightness(BlockPos(x, y, z));
+        }
+
+    private:
+        IWorld& m_world;
+    };
+
+    SpawnerWorldAdapter adapter(world);
+    // 刷怪笼生成使用 SpawnReason::Spawner
+    math::Random rng(world.seed() ^ world.getGameTime());
+    return world::spawn::EntitySpawnPlacementRegistry::canSpawnEntity(entityType.name(),
+        adapter,
+        world::spawn::SpawnReason::Spawner,
+        Vector3i(spawnPos.x, spawnPos.y, spawnPos.z),
+        rng);
 }
 
 i32 MobSpawnerBlockEntity::_countNearbyEntities(IWorld& world, const ResourceLocation& entityId) const

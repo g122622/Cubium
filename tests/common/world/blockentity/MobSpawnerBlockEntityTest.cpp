@@ -687,3 +687,203 @@ TEST_F(MobSpawnerTickTest, Tick_SetChangedOnConfiguration)
     spawner_->setCustomSpawnRules(rules);
     EXPECT_TRUE(spawner_->isChanged());
 }
+
+// ============================================================================
+// CustomSpawnRules::isValidPosition 测试
+// ============================================================================
+
+TEST(CustomSpawnRulesTest, DefaultValues_AllowAllLightLevels)
+{
+    CustomSpawnRules rules;
+    // 默认 [0, 15] 范围允许所有光照等级
+    EXPECT_TRUE(rules.isValidPosition(0, 0));
+    EXPECT_TRUE(rules.isValidPosition(15, 15));
+    EXPECT_TRUE(rules.isValidPosition(7, 8));
+    EXPECT_TRUE(rules.isValidPosition(0, 15));
+    EXPECT_TRUE(rules.isValidPosition(15, 0));
+}
+
+TEST(CustomSpawnRulesTest, RestrictedBlockLight_BlocksOutOfRange)
+{
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 7;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 15;
+
+    // 方块光照在范围内
+    EXPECT_TRUE(rules.isValidPosition(0, 10));
+    EXPECT_TRUE(rules.isValidPosition(7, 10));
+    // 方块光照超出范围
+    EXPECT_FALSE(rules.isValidPosition(8, 10));
+    EXPECT_FALSE(rules.isValidPosition(15, 10));
+}
+
+TEST(CustomSpawnRulesTest, RestrictedSkyLight_BlocksOutOfRange)
+{
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 15;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 0;
+
+    // 天空光照在范围内（仅允许完全黑暗）
+    EXPECT_TRUE(rules.isValidPosition(5, 0));
+    // 天空光照超出范围
+    EXPECT_FALSE(rules.isValidPosition(5, 1));
+    EXPECT_FALSE(rules.isValidPosition(0, 15));
+}
+
+TEST(CustomSpawnRulesTest, BothRestricted_BothMustPass)
+{
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 7;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 7;
+
+    // 两者都在范围内
+    EXPECT_TRUE(rules.isValidPosition(0, 0));
+    EXPECT_TRUE(rules.isValidPosition(7, 7));
+    EXPECT_TRUE(rules.isValidPosition(3, 5));
+
+    // 方块光照超出范围
+    EXPECT_FALSE(rules.isValidPosition(8, 3));
+    // 天空光照超出范围
+    EXPECT_FALSE(rules.isValidPosition(3, 8));
+    // 两者都超出范围
+    EXPECT_FALSE(rules.isValidPosition(8, 8));
+}
+
+// ============================================================================
+// CustomSpawnRules NBT 序列化测试
+// ============================================================================
+
+TEST_F(MobSpawnerBlockEntityTest, SaveToNBT_WritesCustomSpawnRules)
+{
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation("minecraft:silverfish"), rng);
+
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 7;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 0;
+    spawner_->setCustomSpawnRules(rules);
+
+    nbt::tags::compound_tag tag;
+    spawner_->saveToNBT(tag);
+
+    ASSERT_NE(tag.value.find("SpawnData"), tag.value.end());
+    const auto* spawnData = dynamic_cast<const nbt::tags::compound_tag*>(tag.value.at("SpawnData").get());
+    ASSERT_NE(spawnData, nullptr);
+
+    ASSERT_NE(spawnData->value.find("CustomSpawnRules"), spawnData->value.end());
+    const auto* customRules =
+        dynamic_cast<const nbt::tags::compound_tag*>(spawnData->value.at("CustomSpawnRules").get());
+    ASSERT_NE(customRules, nullptr);
+
+    // 验证 block_light_limit
+    ASSERT_NE(customRules->value.find("block_light_limit"), customRules->value.end());
+    const auto& blockLightArr =
+        dynamic_cast<const nbt::tags::intarray_tag&>(*customRules->value.at("block_light_limit"));
+    ASSERT_EQ(blockLightArr.value.size(), 2u);
+    EXPECT_EQ(blockLightArr.value[0], 0);
+    EXPECT_EQ(blockLightArr.value[1], 7);
+
+    // 验证 sky_light_limit
+    ASSERT_NE(customRules->value.find("sky_light_limit"), customRules->value.end());
+    const auto& skyLightArr = dynamic_cast<const nbt::tags::intarray_tag&>(*customRules->value.at("sky_light_limit"));
+    ASSERT_EQ(skyLightArr.value.size(), 2u);
+    EXPECT_EQ(skyLightArr.value[0], 0);
+    EXPECT_EQ(skyLightArr.value[1], 0);
+}
+
+TEST_F(MobSpawnerBlockEntityTest, LoadFromNBT_ReadsCustomSpawnRules)
+{
+    nbt::tags::compound_tag tag;
+    tag.put("id", std::string("minecraft:mob_spawner"));
+    tag.put("x", static_cast<i32>(10));
+    tag.put("y", static_cast<i32>(64));
+    tag.put("z", static_cast<i32>(20));
+
+    // SpawnData 包含 CustomSpawnRules
+    nbt::tags::compound_tag spawnData;
+    nbt::tags::compound_tag entityTag;
+    entityTag.put("id", std::string("minecraft:zombie"));
+    spawnData.value.emplace("entity", std::make_unique<nbt::tags::compound_tag>(std::move(entityTag)));
+
+    nbt::tags::compound_tag customRules;
+    customRules.value.emplace("block_light_limit", std::make_unique<nbt::tags::intarray_tag>(std::vector<i32>{0, 7}));
+    customRules.value.emplace("sky_light_limit", std::make_unique<nbt::tags::intarray_tag>(std::vector<i32>{0, 0}));
+    spawnData.value.emplace("CustomSpawnRules", std::make_unique<nbt::tags::compound_tag>(std::move(customRules)));
+
+    tag.value.emplace("SpawnData", std::make_unique<nbt::tags::compound_tag>(std::move(spawnData)));
+
+    auto loaded = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+    ASSERT_TRUE(loaded->loadFromNBT(tag));
+
+    // 通过 JSON 保存/加载来验证 CustomSpawnRules 被正确读取
+    nlohmann::json data;
+    loaded->save(data);
+
+    ASSERT_TRUE(data.contains("custom_spawn_rules"));
+    EXPECT_EQ(data["custom_spawn_rules"]["block_light_min"].get<i32>(), 0);
+    EXPECT_EQ(data["custom_spawn_rules"]["block_light_max"].get<i32>(), 7);
+    EXPECT_EQ(data["custom_spawn_rules"]["sky_light_min"].get<i32>(), 0);
+    EXPECT_EQ(data["custom_spawn_rules"]["sky_light_max"].get<i32>(), 0);
+}
+
+TEST_F(MobSpawnerBlockEntityTest, LoadFromNBT_NoCustomSpawnRules_NoRulesSet)
+{
+    nbt::tags::compound_tag tag;
+    tag.put("id", std::string("minecraft:mob_spawner"));
+    tag.put("x", static_cast<i32>(10));
+    tag.put("y", static_cast<i32>(64));
+    tag.put("z", static_cast<i32>(20));
+
+    // SpawnData 不含 CustomSpawnRules
+    nbt::tags::compound_tag spawnData;
+    nbt::tags::compound_tag entityTag;
+    entityTag.put("id", std::string("minecraft:zombie"));
+    spawnData.value.emplace("entity", std::make_unique<nbt::tags::compound_tag>(std::move(entityTag)));
+    tag.value.emplace("SpawnData", std::make_unique<nbt::tags::compound_tag>(std::move(spawnData)));
+
+    auto loaded = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+    ASSERT_TRUE(loaded->loadFromNBT(tag));
+
+    // 验证没有 CustomSpawnRules
+    nlohmann::json data;
+    loaded->save(data);
+    EXPECT_FALSE(data.contains("custom_spawn_rules"));
+}
+
+TEST_F(MobSpawnerBlockEntityTest, NBT_Roundtrip_CustomSpawnRules)
+{
+    math::Random rng(42);
+    spawner_->setEntityId(ResourceLocation("minecraft:silverfish"), rng);
+
+    CustomSpawnRules rules;
+    rules.blockLightMin = 0;
+    rules.blockLightMax = 7;
+    rules.skyLightMin = 0;
+    rules.skyLightMax = 0;
+    spawner_->setCustomSpawnRules(rules);
+
+    // 保存到 NBT
+    nbt::tags::compound_tag tag;
+    spawner_->saveToNBT(tag);
+
+    // 加载到新实体
+    auto loaded = std::make_unique<MobSpawnerBlockEntity>(BlockPos(10, 64, 20));
+    ASSERT_TRUE(loaded->loadFromNBT(tag));
+
+    // 通过 JSON 验证
+    nlohmann::json data;
+    loaded->save(data);
+    ASSERT_TRUE(data.contains("custom_spawn_rules"));
+    EXPECT_EQ(data["custom_spawn_rules"]["block_light_min"].get<i32>(), 0);
+    EXPECT_EQ(data["custom_spawn_rules"]["block_light_max"].get<i32>(), 7);
+    EXPECT_EQ(data["custom_spawn_rules"]["sky_light_min"].get<i32>(), 0);
+    EXPECT_EQ(data["custom_spawn_rules"]["sky_light_max"].get<i32>(), 0);
+}
