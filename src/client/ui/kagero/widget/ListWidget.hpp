@@ -214,8 +214,9 @@ public:
         (void)mods;
         if (!isActive() || !isVisible()) return false;
 
-        // 首先检查滚动条
-        if (m_showScrollbar && isOnScrollbar(mouseX, mouseY)) {
+        // 首先检查滚动条（垂直或水平）
+        if ((m_showScrollbar && isOnScrollbar(mouseX, mouseY)) ||
+            (m_showHorizontalScrollbar && isOnHorizontalScrollbar(mouseX, mouseY))) {
             return ScrollableWidget::onClick(mouseX, mouseY, button, mods);
         }
 

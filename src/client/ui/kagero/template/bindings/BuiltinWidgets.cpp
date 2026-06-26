@@ -517,6 +517,8 @@ void BuiltinWidgets::_registerScrollableWidget()
                 scrollable->setScrollSpeed(static_cast<f64>(widget_attrs::parseFloat(value)));
             } else if (key == "show-scrollbar") {
                 scrollable->setShowScrollbar(widget_attrs::parseBool(value));
+            } else if (key == "show-horizontal-scrollbar") {
+                scrollable->setShowHorizontalScrollbar(widget_attrs::parseBool(value));
             }
         }
 
