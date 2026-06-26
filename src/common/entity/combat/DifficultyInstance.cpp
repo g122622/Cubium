@@ -23,9 +23,15 @@
 
 #include "DifficultyInstance.hpp"
 #include "DifficultyHelper.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
 #include <algorithm>
 
-namespace mc::entity::combat {
+namespace mc {
+namespace entity::combat {
 
 DifficultyInstance::DifficultyInstance(
     Difficulty baseDifficulty, i64 worldTime, i64 chunkInhabitedTime, f32 moonPhaseFactor)
@@ -40,6 +46,26 @@ DifficultyInstance::DifficultyInstance(Difficulty baseDifficulty)
 {
     // 简化构造：使用 DifficultyHelper 的基值乘以难度等级作为有效难度
     // 这与完整构造在游戏初期（worldTime=0, chunkInhabitedTime=0）时的结果一致
+    // 适用于测试、命令生成等不需要位置感知的场景
+}
+
+DifficultyInstance DifficultyInstance::at(const IWorld& world, const BlockPos& pos)
+{
+    const i64 worldTime = static_cast<i64>(world.getGameTime());
+
+    // 获取区块居住时间
+    i64 chunkInhabitedTime = 0;
+    const ChunkCoord chunkX = world::toChunkCoord(pos.x);
+    const ChunkCoord chunkZ = world::toChunkCoord(pos.z);
+    if (const auto* chunk = world.getChunk(chunkX, chunkZ)) {
+        chunkInhabitedTime = chunk->inhabitedTime();
+    }
+
+    // 计算月相因子
+    const i32 moonPhase = InternalLightUtils::getMoonPhase(world.dayTime());
+    const f32 moonPhaseFactor = InternalLightUtils::getMoonBrightness(moonPhase);
+
+    return DifficultyInstance(world.difficulty(), worldTime, chunkInhabitedTime, moonPhaseFactor);
 }
 
 f32 DifficultyInstance::getSpecialMultiplier() const
@@ -102,4 +128,5 @@ f32 DifficultyInstance::calculateDifficulty(
     return static_cast<f32>(static_cast<i32>(baseDifficulty)) * f;
 }
 
-} // namespace mc::entity::combat
+} // namespace entity::combat
+} // namespace mc

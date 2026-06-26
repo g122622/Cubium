@@ -1817,7 +1817,10 @@ i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntit
         // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
         auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
         if (mobEntity != nullptr) {
-            entity::combat::DifficultyInstance difficultyInstance(difficulty());
+            entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*this,
+                BlockPos(static_cast<i32>(std::floor(entityData.x)),
+                    static_cast<i32>(entityData.y),
+                    static_cast<i32>(std::floor(entityData.z))));
             mobEntity->finalizeSpawn(*this, difficultyInstance, world::spawn::SpawnReason::ChunkGeneration);
         }
 

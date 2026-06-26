@@ -29,8 +29,8 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/redstone/AbstractRailBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
 namespace mc {
@@ -119,8 +119,7 @@ ActionResultType MinecartItem::onItemUse(ItemUseContext& context)
             minecart = std::make_unique<entity::CommandBlockMinecartEntity>(EntityId(0));
             break;
         case entity::AbstractMinecartEntity::Type::Spawner:
-            // TODO: Spawner minecart 尚未实现，暂时使用普通矿车替代
-            minecart = std::make_unique<entity::RideableMinecartEntity>(EntityId(0));
+            minecart = std::make_unique<entity::SpawnerMinecartEntity>(EntityId(0));
             break;
         default:
             minecart = std::make_unique<entity::RideableMinecartEntity>(EntityId(0));

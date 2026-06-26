@@ -241,7 +241,8 @@ bool VillageSiege::_spawnZombie(server::ServerWorld& world)
     auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
     if (mobEntity != nullptr) {
         // 创建区域难度实例
-        entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+        entity::combat::DifficultyInstance difficultyInstance =
+            entity::combat::DifficultyInstance::at(world, *spawnPos);
         // 调用 finalizeSpawn（由 MobEntity 提供，ZombieEntity 重写以添加僵尸特有逻辑）
         mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
     }

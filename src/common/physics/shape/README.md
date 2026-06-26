@@ -72,3 +72,7 @@ CubePointRange ──► DiscreteCubeMerger (优化路径)
 5. **contains() 半开区间**：`VoxelShape::contains(x, y, z)` 使用半开区间 `[min, max)`，边界判断需注意。
 
 6. **DiscreteVoxelShape 边界缓存**：内部有边界缓存（m_xMin/m_xMax 等），修改体素后会标记 dirty。频繁修改后查询边界会触发重算。
+
+7. **Shapes::slice 坐标提取**：`slice()` 在切片轴上使用 `{0.0, 1.0}` 替换原坐标，非切片轴必须取完整的 `size + 1` 个坐标值（即 `endX + 1`、`endY + 1`、`endZ + 1`），不能遗漏末尾坐标。坐标数量不匹配会导致后续 VoxelShape 操作（如 `isCubeLike()`、`joinIsNotEmpty()`）产生错误结果。
+
+8. **Shapes::fromCollisionShape 多盒合并**：`fromCollisionShape()` 将 `CollisionShape` 转换为 `VoxelShape`，对多碰撞盒形状使用 `Shapes::or_()` 合并。光照引擎、区块网格生成、墙方块等模块共用此函数，不要在局部重复实现简化版。

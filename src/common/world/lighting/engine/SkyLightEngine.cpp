@@ -24,7 +24,6 @@
 #include "SkyLightEngine.hpp"
 #include "common/core/Constants.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/physics/collision/CollisionShape.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
 #include "common/world/block/Block.hpp"
@@ -37,37 +36,6 @@
 #include <spdlog/spdlog.h>
 
 namespace mc {
-
-// ============================================================================
-// 辅助函数：将 CollisionShape 转换为 VoxelShape
-// ============================================================================
-
-namespace {
-
-/**
- * @brief 将 CollisionShape 转换为 VoxelShape
- *
- * 用于面遮挡检测。对于完整方块和空形状有优化路径。
- */
-VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
-{
-    if (shape.isEmpty()) {
-        return Shapes::empty();
-    }
-    if (shape.isFullBlock()) {
-        return Shapes::block();
-    }
-    // 对于简单盒，创建对应的 VoxelShape
-    const auto& boxes = shape.boxes();
-    if (boxes.empty()) {
-        return Shapes::empty();
-    }
-    // 使用第一个碰撞盒创建 VoxelShape
-    const auto& box = boxes[0];
-    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
-}
-
-} // anonymous namespace
 
 // ============================================================================
 // 构造函数
@@ -346,7 +314,7 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
 
         VoxelShape fromShape = Shapes::empty();
         if (above != nullptr && above->useShapeForLightOcclusion()) {
-            fromShape = collisionShapeToVoxelShape(above->getFaceOcclusionShape(Direction::Down));
+            fromShape = Shapes::fromCollisionShape(above->getFaceOcclusionShape(Direction::Down));
             if (Shapes::faceShapeOccludes(Shapes::empty(), fromShape)) {
                 // above wont let us propagate
                 break;
@@ -355,7 +323,7 @@ i32 SkyStarLightEngine::tryPropagateSkylight(
 
         u64 flags = 0;
         if (current != nullptr && current->useShapeForLightOcclusion()) {
-            const VoxelShape cullingFace = collisionShapeToVoxelShape(current->getFaceOcclusionShape(Direction::Up));
+            const VoxelShape cullingFace = Shapes::fromCollisionShape(current->getFaceOcclusionShape(Direction::Up));
             if (Shapes::faceShapeOccludes(fromShape, cullingFace)) {
                 // can't propagate here, we're done on this column
                 break;
@@ -529,8 +497,8 @@ i32 SkyStarLightEngine::calculateLightValue(
                 : CollisionShape(); // 空形状
 
             // 使用 VoxelShape 进行精确的面遮挡检测
-            VoxelShape neighbourVoxel = collisionShapeToVoxelShape(neighbourFaceShape);
-            VoxelShape thisVoxel = collisionShapeToVoxelShape(thisFaceShape);
+            VoxelShape neighbourVoxel = Shapes::fromCollisionShape(neighbourFaceShape);
+            VoxelShape thisVoxel = Shapes::fromCollisionShape(thisFaceShape);
 
             if (Shapes::faceShapeOccludes(thisVoxel, neighbourVoxel)) {
                 // not allowed to propagate

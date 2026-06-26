@@ -71,17 +71,28 @@ Block (基类)
 - **栅栏门**：使用 `FenceGateHelpers::isFenceGateParallel()` 检测是否平行连接
 - **同类方块**：
   - FenceBlock 使用 `BlockTags::FENCES()` 和 `BlockTags::WOODEN_FENCES()` 实现同类栅栏连接（木质栅栏连木质栅栏，下界砖栅栏连下界砖栅栏）
-  - WallBlock 使用 `BlockTags::WALLS()` 检测其他墙，返回 `WallHeight::Tall`
+  - WallBlock 使用 `BlockTags::WALLS()` 检测其他墙，根据上方方块覆盖情况返回 `WallHeight::Tall` 或 `WallHeight::Low`
   - PaneBlock 使用同类指针比较检测同类方块
-- **铁栏杆**：WallBlock 使用 `BlockTags::BARS()` 检测铁栏杆，返回 `WallHeight::Low`
+- **铁栏杆**：WallBlock 使用 `BlockTags::BARS()` 检测铁栏杆，根据上方方块覆盖情况返回 `WallHeight::Tall` 或 `WallHeight::Low`
 - **墙连接玻璃板**：PaneBlock 使用 `WallBlock::isWall()` 检测墙，始终连接
 - **固体方块**：使用 `Block::isExceptionForConnection()` 排除例外方块后，`isSolid()` 为 true 时连接
   - `isExceptionForConnection()` 返回 true 的方块：树叶（LEAVES 标签）、潜影盒（SHULKER_BOXES 标签）、屏障、雕刻南瓜、南瓜灯、西瓜、南瓜
   - FenceBlock: `!Block::isExceptionForConnection(state) && isNeighborSolid`
-  - WallBlock: `!Block::isExceptionForConnection(state) && state.isSolid()` → `WallHeight::Tall`
+  - WallBlock: `!Block::isExceptionForConnection(state) && state.isSolid()` → 根据上方覆盖返回 `Tall` 或 `Low`
   - PaneBlock: `!Block::isExceptionForConnection(neighborState) && isSolidSide`
 
 漏掉栅栏门平行检测会导致视觉错误。漏掉 `isExceptionForConnection()` 会导致栅栏/墙/玻璃板错误地连接到树叶、潜影盒等方块。
+
+### 6. WallBlock 墙柱升起与高度判定
+
+`_shouldRaisePost()` 和 `_getWallHeight()` 使用 VoxelShape 布尔运算判定墙柱升起和连接高度：
+
+- **`isCovered()`**：判断一个 VoxelShape 是否完全覆盖另一个。使用 `Shapes::joinIsNotEmpty(testShape, coverShape, OnlyFirst)` 实现。
+- **`s_testShapePost`**：中心 2×2 像素柱形测试区域，用于判定上方方块是否应强制升起墙柱。
+- **`s_testShapesWall`**：四方向墙臂测试区域，用于判定连接高度（Tall/Low）。
+- **高度判定逻辑**：获取上方方块碰撞形状的 Down 面投影（`getFaceShape(Direction::Down)`），用 `isCovered()` 判断是否覆盖测试形状。覆盖则 Tall，否则 Low。
+- **`_shouldRaisePost()`**：综合判断——上方为墙且 UP=true 则升起；无连接则升起；不对称则升起；两侧 Tall 直线墙不升起；Low 直线墙或角落则检查 `WALL_POST_OVERRIDE` 标签或 `isCovered(TEST_SHAPE_POST, aboveFaceShape)`。
+- **`Shapes::fromCollisionShape()`**：`Shapes` 类的公共静态方法，将 `CollisionShape` 转换为 `VoxelShape`，支持多碰撞盒合并。
 
 ### 6. TrapDoorBlock 铁活板门不能手动操作
 

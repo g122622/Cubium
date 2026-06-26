@@ -26,10 +26,12 @@
 #include "../../../world/block/BlockPos.hpp"
 #include "../../../world/block/blocks/redstone/AbstractRailBlock.hpp"
 #include "../../../world/blockentity/core/SimpleInventory.hpp"
+#include "../../../world/blockentity/spawner/SpawnerLogic.hpp"
 #include "../../../world/blockentity/transport/IHopper.hpp"
 #include "../../core/Entity.hpp"
 #include "../../core/EntityDataManager.hpp"
 #include "../../damage/DamageSource.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include <array>
 #include <memory>
 #include <string>
@@ -883,6 +885,64 @@ private:
     std::string m_lastOutput;
     i32 m_successCount = 0;
     bool mPowered = false; ///< 当前是否被激活
+};
+
+/**
+ * @brief 刷怪笼矿车
+ *
+ * 刷怪笼矿车可以：
+ * - 在矿车位置附近自动生成实体
+ * - 使用 SpawnerLogic 控制生成逻辑（与 MobSpawnerBlockEntity 共享）
+ * - 被破坏时不会掉落任何物品（既不掉矿车也不掉刷怪笼方块）
+ * - 在矿车内显示刷怪笼方块
+ *
+ * 对应 MC Java 的 MinecartSpawner（net.minecraft.world.entity.vehicle.MinecartSpawner），
+ * 内部持有 BaseSpawner 实例（本项目为 SpawnerLogic）。
+ *
+ * 注意：刷怪笼矿车在原版中没有对应物品，只能通过 /summon 命令生成。
+ * 创造模式选取（getPickResult）返回普通矿车。
+ */
+class SpawnerMinecartEntity : public AbstractMinecartEntity {
+public:
+    /**
+     * @brief 实体工厂方法
+     * @param world 世界实例
+     * @return 实体实例
+     */
+    static std::unique_ptr<Entity> create(IWorld* world);
+
+    SpawnerMinecartEntity(EntityId id);
+
+    // ========== Entity 接口重写 ==========
+
+    void tick() override;
+
+    /**
+     * @brief 序列化额外数据
+     *
+     * 保存刷怪笼逻辑参数（生成延迟、实体类型、生成候选列表等）。
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 反序列化额外数据
+     *
+     * 读取刷怪笼逻辑参数。
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
+    // ========== 刷怪笼逻辑访问 ==========
+
+    /**
+     * @brief 获取刷怪笼逻辑
+     * @return 刷怪笼逻辑的引用
+     */
+    [[nodiscard]] blockentity::SpawnerLogic& getSpawnerLogic() { return m_spawnerLogic; }
+    [[nodiscard]] const blockentity::SpawnerLogic& getSpawnerLogic() const { return m_spawnerLogic; }
+
+private:
+    /// 刷怪笼逻辑（对应 MC Java 的 BaseSpawner）
+    blockentity::SpawnerLogic m_spawnerLogic;
 };
 
 } // namespace entity

@@ -24,11 +24,14 @@
 #pragma once
 
 #include "common/physics/collision/CollisionShape.hpp"
+#include "common/physics/shape/Shapes.hpp"
+#include "common/physics/shape/VoxelShape.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IWaterLoggable.hpp"
 #include "common/world/block/Material.hpp"
 #include <array>
+#include <map>
 
 namespace mc {
 
@@ -48,8 +51,6 @@ namespace blocks {
  * - UP: 是否有顶部突出
  * - NORTH/WEST/EAST/SOUTH: 各方向连接高度 (NONE, LOW, TALL)
  * - WATERLOGGED: 是否含水
- *
- * 参考: net.minecraft.block.WallBlock
  */
 class WallBlock : public Block, public IWaterLoggable {
 public:
@@ -74,6 +75,18 @@ public:
         IWorld& world,
         const BlockPos& currentPos,
         const BlockPos& facingPos) override;
+
+    /**
+     * @brief 检查一个形状是否完全覆盖另一个形状
+     *
+     * 使用 VoxelShape 布尔运算: !Shapes.joinIsNotEmpty(testShape, coverShape, OnlyFirst)
+     * 含义: 如果 testShape 中没有任何部分不被 coverShape 覆盖，则返回 true。
+     *
+     * @param testShape 被测试的形状（需要被覆盖的区域）
+     * @param coverShape 覆盖形状
+     * @return 如果 coverShape 完全覆盖 testShape 则返回 true
+     */
+    [[nodiscard]] static bool isCovered(const VoxelShape& testShape, const VoxelShape& coverShape);
 
     // ========== 形状 ==========
 
@@ -135,18 +148,29 @@ private:
     [[nodiscard]] BlockState _calculateState(const IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
-     * @brief 检查邻居是否连接到墙
+     * @brief 检查邻居是否连接到墙，以及连接高度
+     *
+     * 连接逻辑:
+     * 1. 其他墙 -> 总是连接
+     * 2. 栅栏门平行时 -> 连接
+     * 3. 铁栏杆 -> 连接
+     * 4. 固体方块（非连接例外）-> 连接
+     *
+     * 连接高度的确定:
+     * - 如果上方方块的碰撞形状下方面覆盖了对应方向的测试形状，则连接为 Tall
+     * - 否则连接为 Low
+     *
      * @param state 邻居状态
      * @param neighborSide 邻居相对于墙的方向
+     * @param aboveFaceShape 上方方块碰撞形状的下方面投影
      * @return 连接高度
      */
     [[nodiscard]] BlockStateProperties::WallHeight _getWallHeight(
-        const BlockState& state, Direction neighborSide) const;
+        const BlockState& state, Direction neighborSide, const VoxelShape& aboveFaceShape) const;
 
     /**
      * @brief 判断墙柱(UP)是否应该升起
      *
-     * 参考: net.minecraft.block.WallBlock#shouldRaisePost
      * 综合考虑四方向连接高度和上方方块状态决定是否显示墙柱。
      *
      * @param state 当前墙状态
@@ -189,6 +213,14 @@ private:
 
     /// 预计算的形状缓存
     std::array<CollisionShape, 162> m_shapes; // 2(up) * 3(north) * 3(east) * 3(south) * 3(west)
+
+    /// 墙柱测试形状: 中心2x2像素的柱形区域 (7/16, 0, 7/16) -> (9/16, 1, 9/16)
+    /// 墙柱测试形状: 中心2x2像素的柱形区域 (7/16, 0, 7/16) -> (9/16, 1, 9/16)
+    static VoxelShape s_testShapePost;
+
+    /// 墙臂测试形状: 每个方向对应一个2x16x9像素的墙臂区域
+    /// 北面 (旋转前): (7/16, 0, 0) -> (9/16, 1, 9/16)
+    static std::map<Direction, VoxelShape> s_testShapesWall;
 };
 
 } // namespace blocks

@@ -332,6 +332,7 @@ constexpr const char* CHEST_MINECART = "minecraft:chest_minecart";
 constexpr const char* FURNACE_MINECART = "minecraft:furnace_minecart";
 constexpr const char* HOPPER_MINECART = "minecraft:hopper_minecart";
 constexpr const char* TNT_MINECART = "minecraft:tnt_minecart";
+constexpr const char* SPAWNER_MINECART = "minecraft:spawner_minecart";
 // 其他实体
 constexpr const char* FALLING_BLOCK = "minecraft:falling_block";
 constexpr const char* TNT = "minecraft:tnt";

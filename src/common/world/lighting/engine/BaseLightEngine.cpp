@@ -23,7 +23,6 @@
 
 #include "BaseLightEngine.hpp"
 #include "common/perfetto/TraceEvents.hpp"
-#include "common/physics/collision/CollisionShape.hpp"
 #include "common/physics/shape/Shapes.hpp"
 #include "common/physics/shape/VoxelShape.hpp"
 #include "common/util/Direction.hpp"
@@ -56,31 +55,6 @@ std::unique_ptr<bool[]> copyEmptinessMap(const std::vector<bool>& emptinessMap, 
         rawMap[i] = emptinessMap[i];
     }
     return rawMap;
-}
-
-/**
- * @brief 将 CollisionShape 转换为 VoxelShape
- *
- * 用于面遮挡检测。对于完整方块和空形状有优化路径。
- * 参考 Moonrise 中使用 Shapes.faceShapeOccludes 的逻辑
- */
-VoxelShape collisionShapeToVoxelShape(const CollisionShape& shape)
-{
-    if (shape.isEmpty()) {
-        return Shapes::empty();
-    }
-    if (shape.isFullBlock()) {
-        return Shapes::block();
-    }
-    // 对于简单盒，创建对应的 VoxelShape
-    const auto& boxes = shape.boxes();
-    if (boxes.empty()) {
-        return Shapes::empty();
-    }
-    // 使用第一个碰撞盒创建 VoxelShape
-    // 注意：对于复杂形状（多个盒），这只是一个近似
-    const auto& box = boxes[0];
-    return Shapes::box(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
 }
 
 } // anonymous namespace
@@ -1169,8 +1143,8 @@ void StarLightEngine::performLightIncrease(StarLightLightingProvider* lightAcces
                         blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
 
                     // 使用 VoxelShape 进行精确遮挡检测
-                    VoxelShape fromVoxel = collisionShapeToVoxelShape(fromShape);
-                    VoxelShape cullingVoxel = collisionShapeToVoxelShape(cullingFace);
+                    VoxelShape fromVoxel = Shapes::fromCollisionShape(fromShape);
+                    VoxelShape cullingVoxel = Shapes::fromCollisionShape(cullingFace);
 
                     if (Shapes::faceShapeOccludes(fromVoxel, cullingVoxel)) {
                         continue;
@@ -1362,8 +1336,8 @@ void StarLightEngine::performLightDecrease(StarLightLightingProvider* lightAcces
                         blockState->getFaceOcclusionShape(getNMSDirection(getOppositeDirection(propagate)));
 
                     // 使用 VoxelShape 进行精确遮挡检测
-                    VoxelShape fromVoxel = collisionShapeToVoxelShape(fromShape);
-                    VoxelShape cullingVoxel = collisionShapeToVoxelShape(cullingFace);
+                    VoxelShape fromVoxel = Shapes::fromCollisionShape(fromShape);
+                    VoxelShape cullingVoxel = Shapes::fromCollisionShape(cullingFace);
 
                     if (Shapes::faceShapeOccludes(fromVoxel, cullingVoxel)) {
                         continue;
@@ -1474,8 +1448,8 @@ bool StarLightEngine::isFaceOccluded(
     const CollisionShape& toCollisionShape = toState->getOcclusionShape();
 
     // 转换为 VoxelShape 进行面遮挡检测
-    VoxelShape fromShape = collisionShapeToVoxelShape(fromCollisionShape);
-    VoxelShape toShape = collisionShapeToVoxelShape(toCollisionShape);
+    VoxelShape fromShape = Shapes::fromCollisionShape(fromCollisionShape);
+    VoxelShape toShape = Shapes::fromCollisionShape(toCollisionShape);
 
     // 使用 Shapes 类进行面遮挡检测
     return Shapes::blockOccludes(fromShape, toShape, fromDir);
