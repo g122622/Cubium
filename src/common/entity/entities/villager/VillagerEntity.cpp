@@ -322,7 +322,7 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
-    // MEET 活动：移动到目标、随机漫步（较高频率）、看向实体、开关门
+    // MEET 活动：村民互动、移动到目标、随机漫步（较高频率）、看向实体、开关门
     m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
         0,
         makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
@@ -331,7 +331,8 @@ void VillagerEntity::initializeBrain()
 
     m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
         1,
-        makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
+        makeTasks(std::make_unique<VillagerInteractTask<VillagerEntity>>(),
+            std::make_unique<MoveToTargetTask<VillagerEntity>>(),
             std::make_unique<StrollTask<VillagerEntity>>(0.5f, 60)),
         {},
         {});

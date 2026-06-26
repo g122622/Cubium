@@ -818,9 +818,13 @@ template class BabySensor<VillagerEntity>;
 template class AvoidEntitySensor<VillagerEntity>;
 template class InteractableDoorsSensor<VillagerEntity>;
 template class TemptingPlayerSensor<VillagerEntity>;
-// 注意：OwnerHurtBySensor 仅适用于 TameableEntity 子类，
-// 需要在具体的驯服动物实体文件中实例化（如 WolfEntity、CatEntity 等）。
-// OwnerHurtBySensor<WolfEntity> 等需要在 WolfEntity.cpp 中添加。
+template class OwnerHurtBySensor<VillagerEntity>;
+// TODO: OwnerHurtBySensor 目前为 VillagerEntity 实例化用于测试，
+// 但 VillagerEntity 不是 TameableEntity 子类，因此该传感器对 VillagerEntity 无实际效果。
+// 当 TameableEntity 子类（WolfEntity、CatEntity 等）集成 Brain 系统后，
+// 需要在对应实体的 initializeBrain() 中注册 OwnerHurtBySensor 并实例化对应模板。
+// TODO: TemptingPlayerSensor 和 FollowParentTask/BabySensor 需要在 AnimalEntity 子类（如
+// CowEntity、PigEntity、SheepEntity 等） 集成 Brain 系统后进行注册和实例化。
 
 } // namespace sensor
 } // namespace brain

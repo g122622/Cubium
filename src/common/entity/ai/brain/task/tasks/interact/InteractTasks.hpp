@@ -291,6 +291,10 @@ protected:
  *
  * 驯服动物（狼、猫等）在未坐下时跟随主人移动，
  * 距离过远时传送到主人身边。
+ *
+ * TODO: 此任务需要 TameableEntity 子类（WolfEntity、CatEntity 等）集成 Brain 系统后
+ * 才能注册使用。当前这些实体仅使用 Goal 系统，对应的 Goal 版本为 FollowOwnerGoal。
+ * 集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 OwnerHurtBySensor。
  */
 template <typename E>
 class FollowOwnerTask : public Task<E> {
@@ -449,6 +453,10 @@ private:
  *
  * 当驯服动物的主人被攻击时，设置攻击目标到攻击者。
  * 通过读取 OWNER_HURT_BY 记忆模块获取攻击者信息。
+ *
+ * TODO: 此任务需要 TameableEntity 子类（WolfEntity、CatEntity 等）集成 Brain 系统后
+ * 才能注册使用。当前这些实体仅使用 Goal 系统，对应的 Goal 版本为 OwnerHurtByTargetGoal。
+ * 集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 OwnerHurtBySensor。
  */
 template <typename E>
 class ProtectOwnerTask : public Task<E> {
@@ -564,6 +572,9 @@ private:
  *
  * 实体检测到 NEAREST_VISIBLE_WANTED_ITEM 记忆后，
  * 导航到物品位置并拾取物品。
+ *
+ * TODO: 此任务需要注册到具有拾取物品行为的实体（如 VillagerEntity、PiglinEntity 等）的
+ * Brain 中。需要配合对应的传感器来写入 NEAREST_VISIBLE_WANTED_ITEM 记忆。
  */
 template <typename E>
 class PickupItemTask : public Task<E> {
@@ -674,6 +685,11 @@ private:
  *
  * 幼年动物跟随附近的成年同类。
  * 基于 NEAREST_VISIBLE_ADULT 记忆模块。
+ *
+ * TODO: 此任务需要 AnimalEntity 子类（如 CowEntity、PigEntity、SheepEntity 等）
+ * 集成 Brain 系统后才能注册使用。当前这些实体仅使用 Goal 系统，
+ * 对应的 Goal 版本为 FollowParentGoal。
+ * 集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 BabySensor。
  */
 template <typename E>
 class FollowParentTask : public Task<E> {
@@ -801,6 +817,10 @@ private:
  *
  * 动物被手持诱惑物品的玩家吸引，导航走向玩家。
  * 基于 TEMPTING_PLAYER 记忆模块。
+ *
+ * TODO: 此任务需要 AnimalEntity 子类集成 Brain 系统后才能注册使用。
+ * 当前这些实体仅使用 Goal 系统，对应的 Goal 版本为 TemptGoal。
+ * 集成 Brain 后需在对应实体的 initializeBrain() 中注册此任务和 TemptingPlayerSensor。
  */
 template <typename E>
 class TemptTask : public Task<E> {
