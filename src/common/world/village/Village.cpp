@@ -179,7 +179,7 @@ void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poi
         m_lastPOIStatUpdateTime = gameTime;
     }
 
-    // 4. 定期验证袭击状态（与 MC Java 村民袭击检查频率一致，每 20 tick 一次）
+    // 4. 定期验证袭击状态（每 20 tick 一次）
     if (gameTime - m_lastRaidCheckTime >= RAID_CHECK_INTERVAL) {
         _tickRaidCheck(world, gameTime);
         m_lastRaidCheckTime = gameTime;
@@ -189,14 +189,13 @@ void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poi
 void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage)
 {
     // 村庄村民归属管理：
-    // MC Java 中村民不隶属于某个 Village 对象，而是通过 POI 绑定（HOME/JOB_SITE/MEETING_POINT）
-    // 隐式关联到村庄区域。村民不会因远离村庄而被"移除"（removeWhenFarAway() 返回 false）。
+    // 村民不隶属于某个 Village 对象，而是通过 POI 绑定（HOME/JOB_SITE/MEETING_POINT）
+    // 隐式关联到村庄区域。村民不会因远离村庄而被"移除"。
     //
     // 本项目的 Village 类需要维护显式的村民列表用于流言系统和繁殖判定。
     // 村民与村庄的关联通过以下机制管理：
     // 1. VillagerEntity::die() / remove() 中主动调用 releaseAllPois() 和 onVillagerLeave()
     // 2. 本方法定期检查村民实体是否仍存在且在合理范围内
-    // 3. POI 绑定验证：如果村民不再持有村庄范围内的 POI，则视为脱离村庄
 
     std::vector<u64> villagersToRemove;
 
@@ -235,8 +234,7 @@ void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfIntere
             m_villagerLastSeenTime[villagerId] = gameTime;
         } else {
             // 村民不在村庄范围内
-            // 参考 MC Java 的 ValidateNearbyPoi：POI 记忆只在村民靠近时验证（16格内）
-            // 超出村庄范围的村民给予超时宽限期，与 MC 的 removeWhenFarAway() == false 对应
+            // POI 记忆只在村民靠近时验证，超出村庄范围的村民给予超时宽限期
             auto it = m_villagerLastSeenTime.find(villagerId);
             if (it != m_villagerLastSeenTime.end()) {
                 i64 timeSinceLastSeen = gameTime - it->second;
@@ -247,14 +245,8 @@ void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfIntere
                 // 未超时：村民可能暂时离开村庄（如去远处工作），保持关联
             } else {
                 // 没有最后出现时间记录，说明是新加入的村民但已经在范围外
-                // 检查是否在触发范围内（比村庄范围稍大，给予宽限）
-                if (isWithinRaidTrigger(blockPos)) {
-                    // 在触发范围内但不在村庄内，给予时间移动回来
-                    m_villagerLastSeenTime[villagerId] = gameTime;
-                } else {
-                    // 远离村庄范围，记录当前时间作为起点
-                    m_villagerLastSeenTime[villagerId] = gameTime;
-                }
+                // 记录当前时间作为超时起点，给予宽限期
+                m_villagerLastSeenTime[villagerId] = gameTime;
             }
         }
     }
@@ -305,11 +297,9 @@ void Village::_tickPOIStats(const poi::PointOfInterestStorage& poiStorage)
 void Village::_tickRaidCheck(IWorld& world, i64 gameTime)
 {
     // 通过 IWorld 获取 RaidManager，验证村庄的袭击状态与实际袭击同步。
-    // 参考 MC Java 中 Raid 与 Village 的关系：
-    //   - MC Java 没有 Village 对象，袭击状态通过 ServerLevel.getRaidAt(pos) 位置性查询。
-    //   - 本项目中 Village 持有 m_underRaid 标志，由 RaidManager 在 tryStartRaid/onRaidEnd 设置。
-    //   - _tickRaidCheck 作为冗余验证，确保标志与 RaidManager 中的实际袭击状态一致，
-    //     防止因异常情况（如 RaidManager 跳过 onRaidEnd）导致标志永远为 true。
+    // 本项目中 Village 持有 m_underRaid 标志，由 RaidManager 在 tryStartRaid/onRaidEnd 设置。
+    // _tickRaidCheck 作为冗余验证，确保标志与 RaidManager 中的实际袭击状态一致，
+    // 防止因异常情况（如 RaidManager 跳过 onRaidEnd）导致标志永远为 true。
     auto* raidManager = world.raidManager();
     if (raidManager == nullptr) {
         // 非 ServerWorld 环境（如客户端）没有 RaidManager，跳过检查

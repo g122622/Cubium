@@ -101,7 +101,24 @@ trade::（独立模块，被VillagerEntity使用）
 `VillageConfig::POI_STAT_UPDATE_INTERVAL = 1200` tick（约 1 分钟），POI 计数不是实时的，刚放置的床位可能需要等待下一个更新周期。
 
 ### 村民超时机制
-`VillageConfig::VILLAGER_TIMEOUT = 6000` tick（5 分钟），村民离开村庄范围后不会立即被移除，而是等待超时。
+`VillageConfig::VILLAGER_TIMEOUT = 6000` tick（5 分钟），村民离开村庄范围后不会立即被移除，而是等待超时。`_tickVillagerCheck` 的完整逻辑如下：
+1. **实体不存在**（`getEntity` 返回 `nullptr`）→ 立即移除并释放 POI
+2. **实体已标记移除**（`isRemoved()` 为 true）→ 立即移除并释放 POI
+3. **实体类型不是村民**→ 立即移除（数据错误修复）
+4. **村民在村庄范围内**→ 更新 `m_villagerLastSeenTime`
+5. **村民在村庄范围外**→ 检查超时：
+   - 有 `lastSeenTime` 记录且超过 `VILLAGER_TIMEOUT` → 移除并释放 POI
+   - 有 `lastSeenTime` 记录但未超时 → 保持关联（村民可能暂时外出）
+   - 无 `lastSeenTime` 记录（新加入但已在范围外）→ 记录当前时间作为超时起点，给予宽限期
+
+### 村民死亡/移除时的 POI 释放
+`VillagerEntity` 重写了 `die()` 和 `remove()` 方法，两者都调用 `releaseAllPois()`：
+- `releaseAllPois()` 释放该村民占用的所有 POI（床位、工作站等）
+- 通知 `VillageManager::onVillagerLeave()` 从村庄移除村民
+- 如果村民正在睡眠，调用 `stopSleeping()`
+- `die()` 额外处理：如果被玩家击杀，向所在村庄添加 MajorNegative 流言（+25）
+
+这确保了村民死亡或被移除时 POI 不会残留占用，也避免了 `_tickVillagerCheck` 的超时延迟。
 
 ### 流言衰减与声誉范围
 声誉范围是 `[-1000, +1000]`，流言会随时间衰减。声誉 +1000 对应价格 0.5 倍，声誉 -1000 对应价格 1.5 倍。

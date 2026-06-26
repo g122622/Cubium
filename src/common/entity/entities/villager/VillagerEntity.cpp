@@ -133,8 +133,7 @@ void VillagerEntity::tick()
         m_soundCooldown--;
     }
 
-    // 突袭恐慌流汗粒子效果
-    // MC原版 Villager.customServerAiStep: 每 tick 有 1/100 概率检查是否在活跃突袭中，
+    // 突袭恐慌流汗粒子效果：每 tick 有 1/100 概率检查是否在活跃突袭中，
     // 如果是则广播 VillagerSplash (42) 粒子效果
     if (m_world && getRandom().nextInt(100) == 0) {
         auto* raidManager = m_world->raidManager();
@@ -185,16 +184,10 @@ void VillagerEntity::tick()
 
 void VillagerEntity::die(DamageSource& cause)
 {
-    // MC Java Villager.die() 逻辑:
-    // 1. 调用 releaseAllPois() 释放所有占用的POI
-    // 2. 通知村庄管理器该村民已离开
-    // 3. 如果是被玩家杀死，触发 MajorNegative 流言
-    // 4. 调用父类 die() 处理通用死亡逻辑（掉落经验等）
-
+    // 死亡时释放所有占用的POI（床位、工作站、聚集点）并通知村庄管理器离开
     releaseAllPois();
 
     // 如果被玩家杀死，向村庄添加 MajorNegative 流言
-    // MC Java: onReputationEventFrom(ReputationEventType.VILLAGER_KILLED, killer)
     if (m_world) {
         Entity* sourceEntity = cause.getEntity();
         Player* killer = dynamic_cast<Player*>(sourceEntity);
@@ -216,10 +209,8 @@ void VillagerEntity::die(DamageSource& cause)
 
 void VillagerEntity::remove()
 {
-    // MC Java 中 Villager.removeWhenFarAway() 返回 false，村民不会因为距离远而被移除。
-    // 但当村民确实被移除时（如区块卸载），需要释放POI并通知村庄。
-    // 参考 MC Java: Villager 没有重写 remove()，而是在 finalizeSpawn 和
-    // ServerLevel.onEntityRemoved 中处理。本项目在此处统一处理。
+    // 村民被移除时释放POI并通知村庄。村民不会因距离远而消失，
+    // 但当确实被移除时（死亡动画结束、区块卸载等）需要清理POI占用。
 
     releaseAllPois();
 
@@ -254,7 +245,7 @@ void VillagerEntity::releaseAllPois()
 
 void VillagerEntity::setLastHurtBy(LivingEntity* attacker)
 {
-    // MC原版 Villager.setLastHurtByMob: 当被玩家攻击时，广播愤怒粒子效果并触发声望事件
+    // 当被玩家攻击时，广播愤怒粒子效果并触发声望事件
     if (attacker != nullptr && m_world && attacker != this) {
         Player* player = dynamic_cast<Player*>(attacker);
 
