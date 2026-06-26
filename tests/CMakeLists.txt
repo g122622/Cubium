@@ -202,6 +202,8 @@ add_executable(mc_tests
     common/entity/entities/monster/illager/WitchEntityTest.cpp
     # SpellcastingIllager 施法粒子颜色测试
     common/entity/entities/monster/illager/SpellcastingIllagerTest.cpp
+    # IllusionerEntity 镜像分身偏移、施法状态和远程攻击测试
+    common/entity/entities/monster/illager/IllusionerEntityTest.cpp
     # ShulkerEntity 贝壳状态、瞬移和投射物免疫测试
     common/entity/entities/monster/end/ShulkerEntityTest.cpp
     # EndermanEntity 注视检测测试（Player::getLookVector、isLookingAt、shouldAttackPlayer）
@@ -522,6 +524,8 @@ add_executable(mc_tests
     # EvokerFangsEntity 队伍伤害检查测试
     entity/EvokerFangsTest.cpp
     entity/VexGoalsTest.cpp
+    # IllusionerGoals 幻术师法术常量和 AI 优先级测试
+    entity/IllusionerGoalsTest.cpp
     entity/BrainScheduleTests.cpp
     entity/BrainMovementTaskTests.cpp
     entity/SensorTests.cpp
