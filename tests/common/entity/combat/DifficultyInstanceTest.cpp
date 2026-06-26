@@ -25,9 +25,113 @@
 
 #include "common/core/Types.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+#include "common/world/lighting/InternalLightUtils.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+
+#include <memory>
+#include <stdexcept>
+#include <unordered_map>
 
 using namespace mc::entity::combat;
 using namespace mc;
+
+// ============================================================================
+// 测试用 IWorld 桩实现
+// ============================================================================
+
+class DifficultyTestWorld final : public IWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
+    bool setBlockState(i32, i32, i32, const BlockState*) override { return false; }
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return fluid::Fluid::getFluidState(0);
+    }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord x, ChunkCoord z) const override
+    {
+        auto it = m_chunks.find(ChunkPos(x, z));
+        return it != m_chunks.end() ? it->second.get() : nullptr;
+    }
+    [[nodiscard]] bool hasChunk(ChunkCoord x, ChunkCoord z) const override
+    {
+        return m_chunks.find(ChunkPos(x, z)) != m_chunks.end();
+    }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
+    }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return 0; }
+    [[nodiscard]] u64 currentTick() const override { return m_gameTime; }
+    [[nodiscard]] i64 dayTime() const override { return m_dayTime; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("DifficultyTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("DifficultyTestWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+
+    // 测试辅助方法
+    void setGameTime(u64 time) { m_gameTime = time; }
+    void setDayTime(i64 time) { m_dayTime = time; }
+    void setDifficulty(Difficulty d) { m_difficulty = d; }
+
+    ChunkData& ensureChunk(ChunkCoord x, ChunkCoord z)
+    {
+        ChunkPos pos(x, z);
+        auto it = m_chunks.find(pos);
+        if (it == m_chunks.end()) {
+            it = m_chunks.emplace(pos, std::make_unique<ChunkData>(x, z)).first;
+        }
+        return *it->second;
+    }
+
+private:
+    u64 m_gameTime = 0;
+    i64 m_dayTime = 0;
+    Difficulty m_difficulty = Difficulty::Normal;
+    mutable math::Random m_random{12345};
+    world::border::WorldBorder m_worldBorder;
+    world::gamerule::GameRules m_gameRules;
+    std::unordered_map<ChunkPos, std::unique_ptr<ChunkData>> m_chunks;
+};
 
 // ============================================================================
 // DifficultyInstance 简化构造函数测试
@@ -455,4 +559,200 @@ TEST(DifficultyInstanceTest, Calculate_HardDifficultyFullFactors)
     EXPECT_NEAR(inst.getEffectiveDifficulty(), 6.7125f, 0.001f);
     // 6.7125 > 4.0 -> special = 1.0
     EXPECT_FLOAT_EQ(inst.getSpecialMultiplier(), 1.0f);
+}
+
+// ============================================================================
+// DifficultyInstance::at() 工厂方法测试
+// ============================================================================
+
+TEST(DifficultyInstanceAtTest, At_BasicConstructionMatchesFullConstructor)
+{
+    // at() 工厂方法的结果应与手动构造的完整参数版本一致
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Hard);
+    world.setGameTime(1440000);
+    world.setDayTime(60000); // 第2.5天，月相 = (60000/24000) % 8 = 1（亏凸月，0.75）
+
+    BlockPos pos(0, 64, 0);
+    auto& chunk = world.ensureChunk(0, 0);
+    chunk.setInhabitedTime(3600000);
+
+    DifficultyInstance fromAt = DifficultyInstance::at(world, pos);
+    DifficultyInstance fromConstructor(world.difficulty(),
+        static_cast<i64>(world.getGameTime()),
+        chunk.inhabitedTime(),
+        InternalLightUtils::getMoonBrightness(InternalLightUtils::getMoonPhase(world.dayTime())));
+
+    EXPECT_FLOAT_EQ(fromAt.getEffectiveDifficulty(), fromConstructor.getEffectiveDifficulty());
+    EXPECT_FLOAT_EQ(fromAt.getSpecialMultiplier(), fromConstructor.getSpecialMultiplier());
+    EXPECT_EQ(fromAt.getDifficulty(), fromConstructor.getDifficulty());
+}
+
+TEST(DifficultyInstanceAtTest, At_PeacefulAlwaysZero)
+{
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Peaceful);
+    world.setGameTime(1440000);
+    world.setDayTime(60000);
+
+    DifficultyInstance inst = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+    EXPECT_FLOAT_EQ(inst.getEffectiveDifficulty(), 0.0f);
+    EXPECT_FLOAT_EQ(inst.getSpecialMultiplier(), 0.0f);
+}
+
+TEST(DifficultyInstanceAtTest, At_NoChunkDefaultsInhabitedTimeToZero)
+{
+    // 当区块不存在时，inhabitedTime 默认为 0
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Normal);
+    world.setGameTime(720000);
+    world.setDayTime(60000);
+    // 不添加任何区块 -> getChunk 返回 nullptr -> inhabitedTime = 0
+
+    DifficultyInstance noChunk = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // 与手动构造 zero inhabitedTime 对比
+    const i32 moonPhase = InternalLightUtils::getMoonPhase(world.dayTime());
+    const f32 moonBrightness = InternalLightUtils::getMoonBrightness(moonPhase);
+    DifficultyInstance expected(Difficulty::Normal, static_cast<i64>(world.getGameTime()), 0, moonBrightness);
+
+    EXPECT_FLOAT_EQ(noChunk.getEffectiveDifficulty(), expected.getEffectiveDifficulty());
+    EXPECT_FLOAT_EQ(noChunk.getSpecialMultiplier(), expected.getSpecialMultiplier());
+}
+
+TEST(DifficultyInstanceAtTest, At_ChunkInhabitedTimeIncreasesDifficulty)
+{
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Normal);
+    world.setGameTime(720000);
+    world.setDayTime(60000);
+
+    // 无区块 -> inhabitedTime = 0
+    DifficultyInstance noInhabit = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // 有区块且 inhabitedTime 很高
+    auto& chunk = world.ensureChunk(0, 0);
+    chunk.setInhabitedTime(3600000);
+    DifficultyInstance highInhabit = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // 高居住时间应有更高的有效难度
+    EXPECT_GT(highInhabit.getEffectiveDifficulty(), noInhabit.getEffectiveDifficulty());
+}
+
+TEST(DifficultyInstanceAtTest, At_DifferentMoonPhasesAffectDifficulty)
+{
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Normal);
+    world.setGameTime(720000);
+
+    // dayTime = 0 -> 满月(月相0)，brightness = 1.0
+    world.setDayTime(0);
+    DifficultyInstance fullMoon = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // dayTime = 96000 -> 新月(月相4)，brightness = 0.0
+    // (96000 / 24000 = 4, 月相4 = 新月)
+    world.setDayTime(96000);
+    DifficultyInstance newMoon = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // 满月应增加难度
+    EXPECT_GT(fullMoon.getEffectiveDifficulty(), newMoon.getEffectiveDifficulty());
+}
+
+TEST(DifficultyInstanceAtTest, At_EarlyWorldTimeNoMoonEffect)
+{
+    // 世界时间 < 72000 时，timeGlobalFactor = 0
+    // moonPhaseFactor 被夹到 [0, 0]，月相不影响难度
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Normal);
+    world.setGameTime(0);
+
+    // dayTime = 0 -> 满月
+    world.setDayTime(0);
+    DifficultyInstance fullMoon = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // dayTime = 96000 -> 新月
+    world.setDayTime(96000);
+    DifficultyInstance newMoon = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // 世界时间0时，月相应不影响难度
+    EXPECT_FLOAT_EQ(fullMoon.getEffectiveDifficulty(), newMoon.getEffectiveDifficulty());
+}
+
+TEST(DifficultyInstanceAtTest, At_LongWorldTimeIncreasesDifficulty)
+{
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Normal);
+    world.setDayTime(0);
+
+    // 世界初期
+    world.setGameTime(0);
+    DifficultyInstance early = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // 世界运行很久后
+    world.setGameTime(1440000);
+    DifficultyInstance late = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // 长时间运行应有更高难度
+    EXPECT_GT(late.getEffectiveDifficulty(), early.getEffectiveDifficulty());
+}
+
+TEST(DifficultyInstanceAtTest, At_HardDifficultyWithAllFactors)
+{
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Hard);
+    world.setGameTime(1440000);
+    world.setDayTime(0); // 满月，brightness = 1.0
+
+    auto& chunk = world.ensureChunk(0, 0);
+    chunk.setInhabitedTime(3600000);
+
+    DifficultyInstance inst = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // effective = 3 * 2.2375 = 6.7125 (与 FullConstructor_AllMaxFactors 一致)
+    EXPECT_NEAR(inst.getEffectiveDifficulty(), 6.7125f, 0.001f);
+    EXPECT_FLOAT_EQ(inst.getSpecialMultiplier(), 1.0f);
+}
+
+TEST(DifficultyInstanceAtTest, At_SimplifiedConstructorDiffersFromZeroTimeAt)
+{
+    // 简化构造函数和 at() 在零时刻的结果不同
+    // 简化构造假设时间足够久（base=1.0），at() 在零时刻实际计算 timeGlobalFactor=0
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Hard);
+    world.setGameTime(0);
+    world.setDayTime(96000); // 月相4 -> brightness=0.0
+
+    DifficultyInstance fromAt = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+    DifficultyInstance simplified(Difficulty::Hard);
+
+    // 简化构造: effective = 1.0 * 3 = 3.0
+    // at() 在零时刻: effective = 3 * 0.75 = 2.25
+    EXPECT_NE(fromAt.getEffectiveDifficulty(), simplified.getEffectiveDifficulty());
+    EXPECT_FLOAT_EQ(fromAt.getEffectiveDifficulty(), 2.25f);
+    EXPECT_FLOAT_EQ(simplified.getEffectiveDifficulty(), 3.0f);
+}
+
+TEST(DifficultyInstanceAtTest, At_OffsetChunkCoordinates)
+{
+    // 测试非零区块坐标
+    DifficultyTestWorld world;
+    world.setDifficulty(Difficulty::Normal);
+    world.setGameTime(720000);
+    world.setDayTime(0);
+
+    // 区块 (5, 3) 居住时间长
+    auto& chunk53 = world.ensureChunk(5, 3);
+    chunk53.setInhabitedTime(2000000);
+
+    // 区块 (0, 0) 居住时间短
+    auto& chunk00 = world.ensureChunk(0, 0);
+    chunk00.setInhabitedTime(100000);
+
+    // BlockPos(80, 64, 48) -> 区块 (5, 3)
+    DifficultyInstance at53 = DifficultyInstance::at(world, BlockPos(80, 64, 48));
+    // BlockPos(0, 64, 0) -> 区块 (0, 0)
+    DifficultyInstance at00 = DifficultyInstance::at(world, BlockPos(0, 64, 0));
+
+    // 区块 (5,3) 居住时间更长，难度更高
+    EXPECT_GT(at53.getEffectiveDifficulty(), at00.getEffectiveDifficulty());
 }
