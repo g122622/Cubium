@@ -6,7 +6,7 @@
 
 ```text structure /
 ├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用、typeToId /
-        nameToStructureType 静态方法）
+        nameToStructureType 静态方法；辅助方法：generateChest / generateDispenser / reorientChest / placeEndPortalFrames）
 ├── Structure.cpp #结构基类实现（含 generateChest / generateDispenser / reorientChest 辅助方法）
 ├── StructureBoundingBox.hpp #结构边界框（用于判断片段与区块交集）
 ├── StructureBoundingBox.cpp

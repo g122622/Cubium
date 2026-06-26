@@ -805,6 +805,7 @@ add_executable(mc_tests
     common/world/gen/structure/test_structure_type_mapping.cpp
     common/world/gen/structure/StructureCheckTest.cpp
     common/world/gen/structure/StructurePieceChestDispenserTest.cpp
+    common/world/gen/structure/PlaceEndPortalFramesTest.cpp
     common/world/gen/structure/StrongholdPiecesTest.cpp
     common/world/gen/structure/TemplatedStructuresTest.cpp
     common/world/gen/jigsaw/test_jigsaw.cpp
