@@ -74,8 +74,7 @@ void StructureRegistry::initialize()
     pools::Pools::initialize();
 
     // 注册原版结构
-    // TODO: 子类构造函数需要更新为接受 ResourceLocation 参数
-    // 当前阶段先保持旧的构造方式，后续逐步迁移
+    // 所有子类已迁移到 ResourceLocation 构造函数
     registerStructure(std::make_unique<RuinedPortalStructure>());
     registerStructure(std::make_unique<BuriedTreasureStructure>());
     registerStructure(std::make_unique<MineshaftStructure>());

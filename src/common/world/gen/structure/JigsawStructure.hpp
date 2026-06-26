@@ -157,7 +157,7 @@ public:
      * @param adjustForTerrain 是否根据地形调整高度
      * @param terrainAdaptation 地形适配模式
      */
-    // TODO: 所有子类迁移到 ResourceLocation 构造函数后删除此构造函数
+    // 所有子类已迁移到 ResourceLocation 构造函数，待下游代码迁移后删除此构造函数
     explicit JigsawStructure(StructureType type,
         JigsawConfig config,
         i32 startY = 0,

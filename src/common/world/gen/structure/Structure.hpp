@@ -88,7 +88,8 @@ namespace world::gen::structure {
 /**
  * @brief 结构类型枚举（兼容旧代码）
  *
- * TODO: 所有子类迁移到 ResourceLocation 后删除此枚举。
+ * 所有子类已迁移到 ResourceLocation 构造函数。
+ * TODO: 待 LocateCommand 和 ServerWorld::findNearestStructure() 迁移到直接使用 ResourceLocation 后删除此枚举。
  * 新代码应使用 Structure(ResourceLocation) 构造函数。
  */
 enum class StructureType : u8 {
@@ -764,7 +765,8 @@ protected:
     /**
      * @brief 兼容旧代码的构造函数
      *
-     * TODO: 所有子类迁移到 ResourceLocation 构造函数后删除。
+     * 所有子类已迁移到 ResourceLocation 构造函数。
+     * TODO: 待 LocateCommand 和 ServerWorld::findNearestStructure() 迁移后删除。
      * 将 StructureType 转换为 ResourceLocation。
      *
      * @param type 结构类型枚举
@@ -792,12 +794,13 @@ protected:
 
 public:
     // ========== 兼容旧代码接口 ==========
-    // TODO: 所有子类迁移完成后删除以下方法
+    // 所有子类已迁移到 ResourceLocation 构造函数。
+    // TODO: 待 LocateCommand 和 ServerWorld::findNearestStructure() 迁移后删除以下方法
 
     /**
      * @brief 将 StructureType 转换为 ResourceLocation
      *
-     * TODO: 所有子类迁移后删除。
+     * TODO: 待下游代码迁移后删除。
      */
     [[nodiscard]] static ResourceLocation typeToId(StructureType type);
 
@@ -815,7 +818,7 @@ public:
     /**
      * @brief 获取结构类型枚举（兼容旧代码）
      *
-     * TODO: 迁移完成后删除，使用 id() 替代。
+     * TODO: 待下游代码迁移后删除，使用 id() 替代。
      */
     [[nodiscard]] StructureType structureType() const noexcept { return m_legacyType; }
 

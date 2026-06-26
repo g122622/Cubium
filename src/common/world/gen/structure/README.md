@@ -5,8 +5,9 @@
         ##目录结构树
 
 ```text structure /
-├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用、typeToId/nameToStructureType 静态方法）
-├── Structure.cpp #结构基类实现（含 generateChest/generateDispenser/reorientChest 辅助方法）
+├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用、typeToId /
+        nameToStructureType 静态方法）
+├── Structure.cpp #结构基类实现（含 generateChest / generateDispenser / reorientChest 辅助方法）
 ├── StructureBoundingBox.hpp #结构边界框（用于判断片段与区块交集）
 ├── StructureBoundingBox.cpp
 ├── StructureSet.hpp #结构集合模型（加权条目 +
@@ -20,7 +21,7 @@
 ├── JigsawStructure.cpp
 ├── StructureManager.hpp #结构管理器（注册、查询、生成协调）
 ├── StructureManager.cpp
-├── StructureCheck.hpp   #结构存在性检查缓存（对齐 MC StructureCheck）
+├── StructureCheck.hpp #结构存在性检查缓存（对齐 MC StructureCheck）
 ├── StructureCheck.cpp
 ├── placement / #结构放置策略（MC 1.21.11 对齐）
 │   ├── StructurePlacement.hpp #放置基类、FrequencyReductionMethod、ExclusionZone
@@ -60,7 +61,7 @@
     ├── TrialChambersStructure.*#试炼密室（Jigsaw）
     ├── VillageStructure.*#村庄（Jigsaw）
     └── WoodlandMansionStructure.*
-            #林地府邸（程序化房间布局）
+#林地府邸（程序化房间布局）
 ```
 
             ##MC 1.21.11 数据驱动管线
@@ -237,11 +238,13 @@ return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
 
 ### 10. 资源位置标识
 
-所有结构现在使用 `ResourceLocation` 作为标识（如 `minecraft:village_plains`），替代旧的 `StructureType` 枚举。`StructureType` 作为兼容接口保留，后续将迁移完成。使用 `Structure::typeToId()` 进行 `StructureType → ResourceLocation` 转换，使用 `Structure::nameToStructureType()` 进行反向转换（支持别名和 `minecraft:` 前缀）。
+所有结构子类均已迁移到 `ResourceLocation` 构造函数（如 `Structure(ResourceLocation("minecraft", "mineshaft"))`），不再使用 `StructureType` 枚举。每个子类都实现了 `biomeTag()` 方法返回对应的 `BiomeTags::HAS_STRUCTURE_*` 标签，实现 O(1) 生物群系匹配。
 
-### 11. StructureType 枚举与名称映射
+`StructureType` 枚举和兼容方法（`typeToId()`、`nameToStructureType()`、`structureType()`、`separationSettings()`、`validBiomes()`、`useUniformSpacing()`、`findStructureStart()`）仍作为兼容接口保留，供 `ServerWorld::findNearestStructure()` 和 `LocateCommand` 等下游代码使用，后续待下游迁移完成后将删除。
 
-`StructureType::Temple` 是多个结构的兼容类型（沙漠神殿、丛林神庙、雪屋、沼泽小屋、下界化石共享此枚举值）。`nameToStructureType()` 的别名映射将这些子名称都映射到 `StructureType::Temple`，而 `typeToId(StructureType::Temple)` 统一返回 `minecraft:temple`。注意 `bastion_remnant` / `bastion` 均映射到 `StructureType::Bastion`，而 `typeToId` 返回 `minecraft:bastion_remnant`（而非 `minecraft:bastion`）。
+### 11. StructureType 枚举与名称映射（兼容接口）
+
+`StructureType` 枚举和 `typeToId()`/`nameToStructureType()` 仍可用于向后兼容。`StructureType::Temple` 是多个旧结构的兼容类型（沙漠神殿、丛林神庙、雪屋、沼泽小屋、下界化石共享此枚举值）。新代码应直接使用 `Structure::id()` 获取 `ResourceLocation`，使用 `Structure::biomeTag()` 获取生物群系标签。
 
 ### 12. generateChest / generateDispenser / reorientChest 辅助方法
 
