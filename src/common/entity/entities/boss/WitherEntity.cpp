@@ -26,6 +26,8 @@
 #include "../../../core/Types.hpp"
 #include "../../../item/Items.hpp"
 #include "../../../sound/SoundEvents.hpp"
+#include "../../../util/math/MathConstants.hpp"
+#include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
@@ -33,6 +35,7 @@
 #include "../../../world/block/BlockTags.hpp"
 #include "../../../world/explosion/Explosion.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
+#include "../../ai/controller/FlyingMovementController.hpp"
 #include "../../ai/goal/Goal.hpp"
 #include "../../ai/goal/GoalFlag.hpp"
 #include "../../ai/goal/goals/LookAtGoal.hpp"
@@ -73,9 +76,12 @@ WitherEntity::WitherEntity(EntityId id)
     // 凋灵可以飞行（不受重力影响）
     setNoGravity(true);
 
+    // 设置飞行移动控制器
+    // maxTurn=10: 俯仰角每tick最大旋转10度
+    // hoversInPlace=false: 空闲时恢复重力
+    m_moveController = std::make_unique<ai::controller::FlyingMovementController>(this, 10, false);
+
     // 设置导航器可以游泳
-    // 注意：SwimGoal 会在 MonsterEntity::registerGoals() 中自动设置 setCanSwim(true)
-    // 这里显式设置以确保在导航器创建后立即生效
     if (auto* nav = navigator()) {
         nav->setCanSwim(true);
     }
@@ -330,14 +336,29 @@ void WitherEntity::tick()
     _spawnParticles();
 }
 
+void WitherEntity::aiStep()
+{
+    // 更新飞行追踪行为（在控制器更新之前执行，匹配MC Java调用顺序）
+    // MC Java: WitherBoss.aiStep() 在 super.aiStep() 之前做飞行计算
+    // 这样 FlyingMovementController.tick() 的旋转限制能正确覆盖
+    _updateFlightBehavior();
+
+    // 调用父类aiStep（LivingEntity::aiStep() 处理物理移动等）
+    // 注意：MobEntity::tick() 中的控制器更新在 LivingEntity::tick() 之后执行
+    // 所以调用链是：aiStep() -> LivingEntity::aiStep() -> 物理移动
+    // 然后 MobEntity::tick() 继续 -> m_moveController->tick() -> m_lookController->tick()
+    LivingEntity::aiStep();
+}
+
 void WitherEntity::_spawnParticles()
 {
     IWorld* worldPtr = world();
-    if (worldPtr == nullptr || worldPtr->isClientSide()) {
+    if (worldPtr == nullptr) {
         return;
     }
 
     // 充能状态下生成额外的烟雾粒子
+    // 3 个头都始终生成烟雾粒子（每 tick），充能时 1/4 概率额外 EntityEffect
     if (isCharged()) {
         // 每 2 tick 在每个头附近生成烟雾粒子
         if (ticksExisted() % 2 == 0) {
@@ -351,19 +372,28 @@ void WitherEntity::_spawnParticles()
                         headY + (getRandom().nextDouble() - 0.5) * 0.3,
                         headZ + (getRandom().nextDouble() - 0.5) * 0.3),
                     Vector3(0.0, 0.0, 0.0));
+
+                // 充能时 1/4 概率额外 EntityEffect 粒子（黄绿色 0.7, 0.7, 0.5）
+                if (worldPtr->getRandom().nextInt(4) == 0) {
+                    worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+                        Vector3(headX + (getRandom().nextDouble() - 0.5) * 0.6,
+                            headY + (getRandom().nextDouble() - 0.5) * 0.6,
+                            headZ + (getRandom().nextDouble() - 0.5) * 0.6),
+                        Vector3(0.7f, 0.7f, 0.5f));
+                }
             }
         }
     }
 
     // 无敌阶段生成紫色粒子（表示充能状态）
+    // 颜色: (0.7, 0.7, 0.9)
     if (getInvulTime() > 0 && getInvulTime() % 8 == 0) {
-        // 在身体周围生成紫色粒子
         for (i32 i = 0; i < 3; ++i) {
             worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
                 Vector3(x() + (getRandom().nextDouble() - 0.5) * width() * 2.0,
                     y() + getRandom().nextDouble() * height(),
                     z() + (getRandom().nextDouble() - 0.5) * width() * 2.0),
-                Vector3(0.0, 0.0, 0.0));
+                Vector3(0.7f, 0.7f, 0.9f));
         }
     }
 }
@@ -441,9 +471,33 @@ void WitherEntity::_updateAITasks()
         }
     }
 
-    // 生命值一半以下时持续恢复
+    // 生命值一半以下时持续恢复（每秒1HP）
     if (isCharged() && ticksExisted() % 20 == 0) {
         heal(1.0f);
+    }
+
+    // 侧头空闲攻击逻辑
+    // 仅在 NORMAL 和 HARD 难度下触发
+    IWorld* worldPtr = world();
+    if (worldPtr != nullptr) {
+        auto difficulty = worldPtr->difficulty();
+        if (difficulty == Difficulty::Normal || difficulty == Difficulty::Hard) {
+            for (i32 i = 1; i < 3; ++i) {
+                // 空闲攻击计数器递增已在上面的 _updateHeadTargets() 中处理
+                // 当空闲次数超过15时，发射随机蓝色凋灵之首
+                if (m_idleHeadUpdates[i - 1] > 15) {
+                    // 在凋灵周围 10x5x10 范围内随机选一个坐标
+                    math::Random& rng = getRandom();
+                    f64 targetX = rng.nextDouble() * 20.0 - 10.0 + x();
+                    f64 targetY = rng.nextDouble() * 10.0 - 5.0 + y();
+                    f64 targetZ = rng.nextDouble() * 20.0 - 10.0 + z();
+
+                    // 发射蓝色凋灵之首到随机位置
+                    launchWitherSkullToPosition(i, targetX, targetY, targetZ, true);
+                    m_idleHeadUpdates[i - 1] = 0;
+                }
+            }
+        }
     }
 }
 
@@ -623,19 +677,15 @@ void WitherEntity::_breakNearbyBlocks()
                 }
 
                 // 检查方块是否可以被凋灵破坏
-                // 使用 canDestroyBlock 静态方法或 WITHER_IMMUNE 标签
+                // 判断条件为 !isAir() && !is(WITHER_IMMUNE)
+                // 注：MC 1.21.11 中已不存在 BlockState.canEntityDestroy() 方法，
+                // 凋灵和末影龙的方块破坏完全依赖标签系统。
                 const Block& block = state->getBlock();
 
                 // 检查是否在 WITHER_IMMUNE 标签中
                 if (BlockTags::WITHER_IMMUNE().contains(block)) {
                     continue;
                 }
-
-                // 检查方块是否允许实体破坏
-                // BlockState.canEntityDestroy(world, pos, this)
-                // 目前简化实现：直接尝试破坏
-                // 注意：canEntityDestroy 默认返回 true，某些方块（如基岩）会重写返回 false
-                // 由于 WITHER_IMMUNE 已经覆盖了所有不可破坏方块，这里直接破坏
 
                 // 将方块设置为空气，并掉落物品
                 const BlockState* airState =
@@ -711,9 +761,11 @@ void WitherEntity::registerGoals()
             20.0f // 攻击半径
             ));
 
-    // 优先级 5: 避水随机行走
-    // 注意: 凋灵可以飞行，这个目标主要用于地面移动
-    // 暂时不添加，因为凋灵需要特殊的飞行移动逻辑
+    // 优先级 5: 避水随机飞行
+    // 由于 WitherEntity 继承自 MobEntity 而非 CreatureEntity，
+    // 不能直接使用 WaterAvoidingRandomFlyingGoal（它要求 CreatureEntity*），
+    // 因此使用专用 WitherRandomFlyGoal 实现类似效果。
+    m_goalSelector.addGoal(5, new WitherRandomFlyGoal(this));
 
     // 优先级 6: 看向玩家
     m_goalSelector.addGoal(
@@ -745,6 +797,165 @@ void WitherEntity::registerGoals()
             }));
 }
 
+// ========== WitherRandomFlyGoal 实现 ==========
+
+WitherRandomFlyGoal::WitherRandomFlyGoal(WitherEntity* wither)
+    : ai::Goal(EnumSet<ai::GoalFlag>{ai::GoalFlag::Move})
+    , m_wither(wither)
+{}
+
+bool WitherRandomFlyGoal::shouldExecute()
+{
+    if (m_wither == nullptr || m_wither->isBeingRidden()) {
+        return false;
+    }
+
+    // 无敌阶段不执行随机飞行
+    if (m_wither->isInvulnerablePhase()) {
+        return false;
+    }
+
+    // 执行概率 0.001
+    math::Random& rng = m_wither->getRandom();
+    if (rng.nextFloat() >= 0.001f) {
+        return false;
+    }
+
+    // 尝试生成飞行目标位置
+    return _generateFlightTarget();
+}
+
+bool WitherRandomFlyGoal::shouldContinueExecuting()
+{
+    if (m_wither == nullptr || m_wither->isBeingRidden()) {
+        return false;
+    }
+
+    if (m_wither->isInvulnerablePhase()) {
+        return false;
+    }
+
+    // 检查导航路径是否仍在执行
+    auto* nav = m_wither->navigator();
+    if (nav && nav->hasPath() && !nav->isDone()) {
+        return true;
+    }
+
+    // 检查移动控制器是否仍在移动
+    auto* moveCtrl = m_wither->moveController();
+    if (moveCtrl && moveCtrl->isUpdating()) {
+        return true;
+    }
+
+    return false;
+}
+
+void WitherRandomFlyGoal::startExecuting()
+{
+    // 使用导航器移动到目标位置
+    if (auto* nav = m_wither->navigator()) {
+        static_cast<void>(nav->moveTo(
+            static_cast<f64>(m_targetX), static_cast<f64>(m_targetY), static_cast<f64>(m_targetZ), m_speed));
+    }
+    m_hasTarget = true;
+}
+
+void WitherRandomFlyGoal::resetTask()
+{
+    m_wither->clearNavigation();
+    m_hasTarget = false;
+}
+
+void WitherRandomFlyGoal::tick()
+{
+    // 无额外 tick 逻辑，导航器和移动控制器自动处理飞行
+}
+
+bool WitherRandomFlyGoal::_generateFlightTarget()
+{
+    // 生成策略：在凋灵前方 PI/2 弧度锥形范围内随机选一个空气位置，避开水和岩浆
+    // 由于 WitherEntity 继承自 MobEntity 而非 CreatureEntity，
+    // 不能使用 RandomPositionGenerator（它要求 CreatureEntity*），
+    // 因此实现专用飞行目标生成逻辑。
+
+    IWorld* worldPtr = m_wither->world();
+    if (worldPtr == nullptr) {
+        return false;
+    }
+
+    math::Random& rng = m_wither->getRandom();
+    f64 srcX = m_wither->x();
+    f64 srcY = m_wither->y();
+    f64 srcZ = m_wither->z();
+
+    // 获取凋灵面朝方向的水平分量
+    f32 yawRad = m_wither->yaw() * math::DEG_TO_RAD;
+    f32 lookX = -std::sin(yawRad);
+    f32 lookZ = std::cos(yawRad);
+
+    // 尝试最多 10 次生成有效位置
+    for (i32 attempt = 0; attempt < 10; ++attempt) {
+        // 在 PI/2 弧度（90度）锥形范围内随机偏移
+        f32 angleOffset = (2.0f * rng.nextFloat() - 1.0f) * (math::PI / 2.0f);
+        f32 baseAngle = std::atan2(lookZ, lookX);
+        f32 finalAngle = baseAngle + angleOffset;
+
+        // 水平距离：使用 sqrt 分布保证均匀分布（范围 0~8）
+        f32 horizontalDist = std::sqrt(rng.nextFloat()) * 8.0f * math::SQRT2;
+
+        // 垂直偏移范围 -2 到 +7
+        f32 yOffset = rng.nextFloat() * 9.0f - 2.0f;
+
+        f64 targetX = srcX + static_cast<f64>(horizontalDist * std::cos(finalAngle));
+        f64 targetY = srcY + static_cast<f64>(yOffset);
+        f64 targetZ = srcZ + static_cast<f64>(horizontalDist * std::sin(finalAngle));
+
+        // 转换为方块坐标
+        i32 blockX = math::floorTo<i32>(targetX);
+        i32 blockY = math::floorTo<i32>(targetY);
+        i32 blockZ = math::floorTo<i32>(targetZ);
+
+        // 检查世界边界
+        if (blockY < mc::world::MIN_BUILD_HEIGHT || blockY >= mc::world::MAX_BUILD_HEIGHT) {
+            continue;
+        }
+
+        BlockPos pos(blockX, blockY, blockZ);
+
+        // 检查目标方块是否为空气或非固体（飞行目标不需要可行走）
+        const BlockState* state = worldPtr->getBlockState(pos);
+        if (state != nullptr && !state->isAir()) {
+            // 如果不是空气，检查上方是否为空气（向上寻找空间）
+            bool foundAir = false;
+            for (i32 up = 1; up <= 4; ++up) {
+                BlockPos abovePos(blockX, blockY + up, blockZ);
+                const BlockState* aboveState = worldPtr->getBlockState(abovePos);
+                if (aboveState == nullptr || aboveState->isAir()) {
+                    targetY = static_cast<f64>(blockY + up) + 0.5;
+                    foundAir = true;
+                    break;
+                }
+            }
+            if (!foundAir) {
+                continue;
+            }
+        }
+
+        // 检查是否在水或岩浆中
+        BlockPos checkPos(math::floorTo<i32>(targetX), math::floorTo<i32>(targetY), math::floorTo<i32>(targetZ));
+        if (worldPtr->isWaterAt(checkPos) || worldPtr->isLavaAt(checkPos)) {
+            continue;
+        }
+
+        m_targetX = static_cast<f32>(targetX);
+        m_targetY = static_cast<f32>(targetY);
+        m_targetZ = static_cast<f32>(targetZ);
+        return true;
+    }
+
+    return false;
+}
+
 // ========== WitherDoNothingGoal 实现 ==========
 
 WitherDoNothingGoal::WitherDoNothingGoal(WitherEntity* wither)
@@ -763,10 +974,108 @@ void WitherEntity::registerAttributes()
     MobEntity::registerAttributes();
 
     // 凋灵属性
+    m_attributes.registerAttribute(*entity::attribute::Attributes::flyingSpeed());
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 300.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.6);
+    m_attributes.setBaseValue(entity::attribute::Attributes::FLYING_SPEED, 0.6);
     m_attributes.setBaseValue(entity::attribute::Attributes::FOLLOW_RANGE, 40.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::ARMOR, 4.0);
+}
+
+void WitherEntity::launchWitherSkullToPosition(i32 head, f64 targetX, f64 targetY, f64 targetZ, bool isBlue)
+{
+    IWorld* worldPtr = world();
+    if (!worldPtr) {
+        return;
+    }
+
+    // 计算发射位置
+    f32 headX = _getHeadX(head);
+    f32 headY = _getHeadY(head);
+    f32 headZ = _getHeadZ(head);
+
+    // 计算发射方向
+    f64 dx = targetX - headX;
+    f64 dy = targetY - headY;
+    f64 dz = targetZ - headZ;
+    f64 dist = std::sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist > 0.0) {
+        dx /= dist;
+        dy /= dist;
+        dz /= dist;
+    }
+
+    // 创建凋灵之首实体
+    auto skull = std::make_unique<WitherSkullEntity>(EntityId(0));
+    skull->setPosition(Vector3(headX, headY, headZ));
+    skull->setShooter(this);
+    // 蓝色凋灵之首的运动因子为 0.73，普通为 0.95
+    f32 velocity = isBlue ? 1.095f : 1.5f; // 1.5 * 0.73 = 1.095, 1.5 * 1.0 = 1.5
+    skull->shoot(static_cast<f32>(dx), static_cast<f32>(dy), static_cast<f32>(dz), velocity, 0.0f);
+    skull->setBlue(isBlue);
+
+    // 生成实体
+    worldPtr->spawnEntity(std::move(skull));
+
+    // 播放发射音效
+    playSound(SoundEvents::ENTITY_WITHER_SHOOT, 1.0f, 1.0f);
+}
+
+void WitherEntity::_updateFlightBehavior()
+{
+    // Y轴阻尼：保留60%的Y轴速度（两端均执行）
+    Vector3 velocity = this->velocity();
+    velocity.y *= 0.6;
+
+    // 当主头有目标时，执行追踪飞行逻辑（仅服务端）
+    IWorld* worldPtr = world();
+    if (worldPtr && !worldPtr->isClientSide()) {
+        i32 targetId = getWatchedTargetId(0);
+        if (targetId > 0) {
+            Entity* targetEntity = worldPtr->getEntity(static_cast<EntityId>(targetId));
+            if (targetEntity != nullptr) {
+                f64 dY = velocity.y;
+
+                // Y轴追踪逻辑：
+                // 非充能时：凋灵低于目标Y+5.0时上升
+                // 充能时：凋灵低于目标Y时即上升
+                if (y() < targetEntity->y() || (!isCharged() && y() < targetEntity->y() + 5.0)) {
+                    // 确保Y速度不为负
+                    dY = std::max(0.0, dY);
+                    // 附加推力：0.3 - 当前Y速度 * 0.6
+                    // 这形成渐进上升，收敛于约0.5/tick的上升速度
+                    dY += 0.3 - dY * 0.6;
+                }
+
+                velocity.y = dY;
+
+                // 水平追踪逻辑：
+                // 只有水平距离大于3格时才追踪
+                Vector3 horizontalDir(
+                    static_cast<f32>(targetEntity->x() - x()), 0.0f, static_cast<f32>(targetEntity->z() - z()));
+                f64 horizontalDistSq = static_cast<f64>(horizontalDir.x) * horizontalDir.x +
+                    static_cast<f64>(horizontalDir.z) * horizontalDir.z;
+                if (horizontalDistSq > 9.0) {
+                    // 归一化水平方向
+                    f64 horizontalDist = std::sqrt(horizontalDistSq);
+                    f32 normX = static_cast<f32>(horizontalDir.x / horizontalDist);
+                    f32 normZ = static_cast<f32>(horizontalDir.z / horizontalDist);
+                    // 追踪推力 = 目标方向 * 0.3 - 当前水平速度 * 0.6
+                    velocity.x += normX * 0.3f - velocity.x * 0.6f;
+                    velocity.z += normZ * 0.3f - velocity.z * 0.6f;
+                }
+            }
+        }
+    }
+
+    setVelocity(velocity);
+
+    // 当有水平速度时，自动面向运动方向（两端均执行）
+    velocity = this->velocity();
+    f64 horizontalSpeedSq = static_cast<f64>(velocity.x) * velocity.x + static_cast<f64>(velocity.z) * velocity.z;
+    if (horizontalSpeedSq > 0.05) {
+        setRotation(static_cast<f32>(std::atan2(velocity.z, velocity.x) * (180.0 / math::PI) - 90.0), pitch());
+    }
 }
 
 } // namespace entity

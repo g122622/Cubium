@@ -263,6 +263,57 @@ public:
      */
     void dropHeldItem();
 
+    /**
+     * @brief 吐出物品（沿视线方向前方生成物品实体）
+     *
+     * 与 dropHeldItem 不同，spitOutItem 会在视线方向前方生成物品，
+     * 并带有 40 tick 拾取延迟，同时播放吐出音效。
+     *
+     * @param stack 要吐出的物品堆
+     */
+    void spitOutItem(const ItemStack& stack);
+
+    /**
+     * @brief 判断是否可以持握指定物品
+     *
+     * 主手为空时可拾取任何物品；当正在进食时（ticksSinceEaten > 0），
+     * 只有新物品是食物而当前物品不是食物时才替换。
+     *
+     * @param stack 要检查的物品堆
+     * @return 是否可以持握
+     */
+    [[nodiscard]] bool canHoldItem(const ItemStack& stack) const;
+
+    /**
+     * @brief 判断物品是否是可食用的食物
+     *
+     * 判断物品是否同时满足食物条件（用于狐狸食用逻辑）。
+     * 与 isBreedingItem 不同，isBreedingItem 只检查甜浆果，
+     * 而 isConsumableFood 检查更通用的食物属性。
+     *
+     * @param stack 物品堆
+     * @return 是否是可食用食物
+     */
+    [[nodiscard]] bool isConsumableFood(const ItemStack& stack) const;
+
+    /**
+     * @brief 判断当前是否可以吃食物
+     *
+     * 条件：物品是可食用食物、没有攻击目标、在地面上、不在睡觉
+     */
+    [[nodiscard]] bool canEat() const;
+
+    /**
+     * @brief 拾取物品实体
+     *
+     * 狐狸拾取地上的物品。如果物品堆叠数 > 1，
+     * 多余的丢到地上，只拿1个放入主手。
+     * 拾取前会先吐出当前手持物品。
+     *
+     * @param itemEntity 要拾取的物品实体
+     */
+    void pickUpItem(class ItemEntity& itemEntity);
+
     // ========== 行为辅助方法 ==========
 
     /**
@@ -383,8 +434,18 @@ private:
     // 叼着的物品
     std::unique_ptr<ItemStack> m_heldItem;
 
+    // 拾取食物后的进食计时器（tick）
+    // 拾取时重置为 0，每 tick 递增，超过 600 时食用完成
+    i32 m_ticksSinceEaten = 0;
+
     // 常量
     static constexpr size_t MAX_TRUSTED_PLAYERS = 2;
+
+    // 拾取到食用完成所需的最少 tick 数
+    static constexpr i32 MIN_TICKS_BEFORE_EAT = 600;
+
+    // 开始播放进食动画的 tick 数（560 ~ 600 期间播放吃音效）
+    static constexpr i32 EAT_ANIMATION_START_TICKS = 560;
 
     // 状态标志位定义
     static constexpr u8 FLAG_SITTING = 0x01;

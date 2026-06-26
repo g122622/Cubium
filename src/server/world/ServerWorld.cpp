@@ -950,6 +950,12 @@ void ServerWorld::tick()
         m_tickManager->tick(currentTick);
     }
 
+    // 方块实体tick - 熔炉、漏斗、刷怪笼等需要每tick更新的方块实体
+    if (!isDebugWorld()) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::BlockEntityTick");
+        tickBlockEntities();
+    }
+
     // 调试世界不执行随机刻
     if (!isDebugWorld()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::EnvironmentTick");
@@ -1032,6 +1038,31 @@ void ServerWorld::tick()
 
         const auto [oldCx, oldCz] = *trackedChunk;
         m_entityChunkTracker.onEntityMoved(entity->id(), oldCx, oldCz, currentCx, currentCz);
+        return true;
+    });
+}
+
+// ============================================================================
+// 方块实体tick
+// ============================================================================
+
+void ServerWorld::tickBlockEntities()
+{
+    if (!m_chunkManager) {
+        return;
+    }
+
+    MC_TRACE_EVENT("server.tick", "ServerWorld::tickBlockEntities");
+
+    // 遍历所有已加载区块，对需要tick的方块实体调用tick()
+    // 快照方块实体列表以避免迭代期间修改导致的问题
+    m_chunkManager->forEachLoadedChunk([this](ChunkData& chunk) {
+        auto blockEntities = chunk.getAllBlockEntities();
+        for (auto* blockEntity : blockEntities) {
+            if (blockEntity != nullptr && !blockEntity->isRemoved() && blockEntity->needsTick()) {
+                blockEntity->tick(*this);
+            }
+        }
         return true;
     });
 }
@@ -1590,6 +1621,11 @@ std::vector<Entity*> ServerWorld::getEntitiesInRange(const Vector3& pos, f32 ran
 std::vector<Entity*> ServerWorld::getPlayers() const
 {
     return m_entityManager.getPlayers();
+}
+
+std::vector<Entity*> ServerWorld::getEntitiesByType(entity::EntityTypeId typeId) const
+{
+    return m_entityManager.getEntitiesByType(typeId);
 }
 
 // ============================================================================
@@ -2179,6 +2215,34 @@ void ServerWorld::createExplosionWithSource(const Vector3& position,
         source,
         std::move(damageSourcePtr), // 传递自定义伤害来源
         m_lootTableManager          // 传递掉落表管理器用于生成方块掉落
+    );
+
+    // 执行爆炸
+    explosion->explode();
+
+    // 广播爆炸包给客户端（发送给爆炸点 64 格范围内的玩家）
+    if (m_onBroadcastExplosion) {
+        m_onBroadcastExplosion(position, radius, explosion->affectedBlocks(), explosion->playerKnockback());
+    }
+}
+
+void ServerWorld::createExplosionWithContext(const Vector3& position,
+    f32 radius,
+    world::explosion::ExplosionMode mode,
+    bool causesFire,
+    Entity* source,
+    std::unique_ptr<world::explosion::ExplosionContext> context)
+{
+    // 创建带自定义爆炸上下文的爆炸对象
+    auto explosion = std::make_unique<world::explosion::Explosion>(*this,
+        position,
+        radius,
+        mode,
+        causesFire,
+        source,
+        nullptr,            // 使用默认伤害来源
+        m_lootTableManager, // 传递掉落表管理器用于生成方块掉落
+        std::move(context)  // 传递自定义爆炸上下文
     );
 
     // 执行爆炸

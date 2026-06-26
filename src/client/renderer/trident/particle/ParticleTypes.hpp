@@ -112,6 +112,9 @@ enum class ParticleTypeId : u16 {
     /// 大烟雾粒子
     LargeSmoke = 22,
 
+    /// 白色烟雾粒子（合成器发射、干涸恶魂方块等）
+    WhiteSmoke = 56,
+
     /// 熔岩飞溅粒子
     Lava = 23,
 
@@ -214,6 +217,18 @@ enum class ParticleTypeId : u16 {
 
     /// 下落的黑曜石眼泪
     FallingObsidianTear = 50,
+
+    /// 滴落的滴水石水（钟乳石滴水）
+    DrippingDripstoneWater = 109,
+
+    /// 下落的滴水石水
+    FallingDripstoneWater = 110,
+
+    /// 滴落的滴水石熔岩（钟乳石滴熔岩）
+    DrippingDripstoneLava = 111,
+
+    /// 下落的滴水石熔岩
+    FallingDripstoneLava = 112,
 
     // ========================================================================
     // 天气类粒子 (51-59)

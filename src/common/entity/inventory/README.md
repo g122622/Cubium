@@ -1,4 +1,4 @@
-# Inventory 模块
+#Inventory 模块
 
 本模块实现了 Minecraft 的物品存储和容器交互系统。
 
@@ -19,6 +19,8 @@ inventory/
 ├── Slot.cpp
 ├── PlayerInventory.hpp            # 玩家背包（41 槽位：快捷栏、主背包、护甲、副手）
 ├── PlayerInventory.cpp
+├── PlayerEnderChestInventory.hpp  # 末影箱物品栏（27 槽位，数据存储在玩家 NBT 中）
+├── PlayerEnderChestInventory.cpp
 ├── CraftingInventory.hpp          # 合成网格背包和合成结果背包
 ├── CraftingInventory.cpp
 ├── CreativeInventory.hpp          # 创造模式物品库辅助
@@ -42,16 +44,16 @@ inventory/
                   IInventory (接口)
                        ▲
                        │
-      ┌────────────────┼────────────────┐
-      │                │                │
- PlayerInventory  CraftingInventory  CraftResultInventory
-      │                │                │ (实现 IRecipeHolder)
-      │                │                │
-      └────────┬───────┘                │
-               │                        │
-         CreativeInventory              │
-               │                        │
-             Slot ──────────────────────┘ (引用 IInventory)
+      ┌────────────────┼────────────────────────┐
+      │                │                        │
+ PlayerInventory  CraftingInventory  PlayerEnderChestInventory
+      │                │                        │ (27格末影箱物品栏)
+      │                │                (实现 IRecipeHolder)  │
+      └────────┬───────┘                        │
+               │                                │
+         CreativeInventory                      │
+               │                                │
+             Slot ──────────────────────────────┘ (引用 IInventory)
                │
                │
       AbstractContainerMenu
@@ -74,7 +76,7 @@ inventory/
 
 ### 被依赖
 
-- `entity/player/` - 玩家实体持有 PlayerInventory
+- `entity/player/` - 玩家实体持有 PlayerInventory 和 PlayerEnderChestInventory
 - `world/level/block/entity/` - 方块实体（箱子、熔炉等）实现 IInventory
 - `client/gui/` - GUI 系统使用 AbstractContainerMenu
 - `server/` - 服务端处理容器交互和数据包
@@ -116,3 +118,24 @@ inventory/
 ### 护甲槽位限制和绑定诅咒
 
 `ArmorSlot` 通过 `mayPlace()` 检查护甲类型匹配，`mayPickup()` 检查绑定诅咒——绑定诅咒的护甲在非创造模式下无法取下。
+
+### NBT 序列化格式（MC 1.21.11）
+
+`PlayerInventory::toNbt()` 和 `PlayerInventory::fromNbt()` 遵循 MC 1.21.11 新格式：
+
+- **Inventory 列表**：仅包含快捷栏（Slot 0-8）和主背包（Slot 9-35），不再包含护甲和副手
+- **equipment 复合标签**：由 `LivingEntity::addAdditionalSaveData()` 写入，使用 `EquipmentSlot` 枚举名作为键（`"head"`, `"chest"`, `"legs"`, `"feet"`, `"offhand"`, `"mainhand"`），空槽位省略
+- **SelectedItemSlot**：当前选中的快捷栏槽位
+
+`fromNbt()` 同时支持旧格式兼容读取：当 `equipment` 标签不存在时，从 Inventory 列表中读取护甲（Slot 100-103）和副手（Slot -106）。
+
+### 末影箱物品栏变更通知
+
+`PlayerEnderChestInventory` 使用 `setOnChanged(std::function<void()>)` 回调机制（与 `SimpleInventory` 一致）。物品变更时 `setChanged()` 会触发回调。`ServerPlayer::setupInventoryCallback()` 中注册了回调，通过 `PlayerDataManager::markDirty()` 标记玩家数据为脏以触发自动保存。
+
+### 末影箱容器打开/关闭流程
+
+1. `EnderChestBlock::onBlockActivated()` → `setActiveChest()` → `openContainer()` → `startOpen()`（开盖动画和音效）
+2. 容器菜单创建：`ContainerManager` 菜单工厂检测 `BlockEntityType::EnderChest`，创建 `ChestContainer` 以 `PlayerEnderChestInventory` 为背板
+3. 容器关闭：`ChestContainer::removed()` → `closeInventory()` → `stopOpen()`（关盖动画、音效、清除 `activeChest` 引用）
+4. **不要在 `StandaloneServer` 的容器关闭回调中再次调用 `stopOpen()`**，否则会导致 `EnderChestEntity::closeContainer()` 被调用两次，打开计数错误

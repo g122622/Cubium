@@ -29,6 +29,9 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -53,6 +56,7 @@
 #include "common/world/blockentity/ContainerBlockEntity.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/ConnectionManager.hpp"
 #include "server/core/PlayerManager.hpp"
@@ -98,9 +102,31 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 
 /**
  * @brief 获取命令源实体手持物品
+ *
+ * 使用 source.getEntity() 获取实体，
+ * 如果实体是 LivingEntity 则从装备槽获取手持物品，非 LivingEntity 实体报错。
+ * 回退到 source.getPlayer() 支持仅通过 PlayerId 标识的玩家。
  */
 ItemStack getHeldItem(ServerCommandSource& source, const std::string& hand)
 {
+    // 优先从 entity 获取（支持非玩家实体）
+    Entity* entity = source.entity();
+    if (entity != nullptr) {
+        auto* livingEntity = dynamic_cast<LivingEntity*>(entity);
+        if (livingEntity != nullptr) {
+            if (hand == "mainhand" || hand == "weapon") {
+                return livingEntity->getMainHandItem();
+            } else if (hand == "offhand") {
+                return livingEntity->getOffHandItem();
+            }
+            return ItemStack::EMPTY;
+        }
+        // 非 LivingEntity 实体没有手持物品，抛出 ERROR_NO_HELD_ITEMS
+        source.sendError("commands.loot.noHeldItem");
+        return ItemStack::EMPTY;
+    }
+
+    // 回退到玩家物品栏（当 entity 为空但 player 非空时，如早期命令源构造场景）
     auto* player = source.player();
     if (player == nullptr) {
         return ItemStack::EMPTY;
@@ -156,9 +182,9 @@ loot::LootContextBuilder createBaseContextBuilder(ServerCommandSource& source)
                            return manager.getPredicate(id);
                        });
 
-    // 设置命令源实体
-    if (source.player() != nullptr) {
-        builder.withNullableParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(source.player()));
+    // 设置命令源实体（THIS_ENTITY 使用 source.getEntity()）
+    if (source.entity() != nullptr) {
+        builder.withNullableParameter(loot::LootParams::THIS_ENTITY, source.entity());
     }
 
     return builder;
@@ -214,12 +240,48 @@ std::vector<ItemStack> generateFromKill(ServerCommandSource& source, Entity* tar
     }
 
     // 获取目标实体的战利品表ID
-    // LivingEntity 子类可能有 getLootTableId()，但 Entity 基类不一定有
-    // 简化处理：直接告知用户 kill 源需要实体有战利品表
-    // 注意：当前项目中 Entity/LivingEntity 可能尚未实现 getLootTableId()
-    // 使用简化版本：发送提示消息并返回空列表
-    source.sendError("Entity kill loot source is not yet fully supported (requires entity loot table integration)");
-    return {};
+    std::string lootTableId = target->getLootTableId();
+    if (lootTableId.empty()) {
+        source.sendError("Entity " + target->getTypeId() + " has no loot table");
+        return {};
+    }
+
+    // 查找战利品表
+    auto* table = resolveLootTable(source, lootTableId);
+    if (table == nullptr) {
+        return {};
+    }
+
+    // 构建 ENTITY 参数集的 LootContext
+    // 使用魔法伤害源，命令执行者作为攻击者
+    auto builder = createBaseContextBuilder(source);
+
+    // 设置 THIS_ENTITY（被杀实体）为必需参数
+    builder.withParameter(loot::LootParams::THIS_ENTITY, target);
+
+    // 设置 DAMAGE_SOURCE（魔法伤害，无实体来源）
+    // DamageSource 是抽象类，不能使用 withOwnedValue，
+    // 使用 withParameter 传入指针，确保 magicSource 生命周期覆盖 generate 调用
+    auto magicSource = DamageSources::magic();
+    builder.withParameter(loot::LootParams::DAMAGE_SOURCE, static_cast<DamageSource*>(&magicSource));
+
+    // 设置攻击者（命令执行者）
+    // 使用 source.entity() 支持非玩家命令执行者（如通过 /execute as @e 指定的实体）
+    Entity* sourceEntity = source.entity();
+    if (sourceEntity != nullptr) {
+        builder.withNullableParameter(loot::LootParams::DIRECT_KILLER, sourceEntity);
+        builder.withNullableParameter(loot::LootParams::KILLER_ENTITY, sourceEntity);
+    }
+
+    // 设置 LAST_DAMAGE_PLAYER（如果命令执行者是玩家）
+    // lootparams$builder.withParameter(LootContextParams.LAST_DAMAGE_PLAYER, player) }
+    Player* sourcePlayer = source.player();
+    if (sourcePlayer != nullptr) {
+        builder.withParameter(loot::LootParams::KILLER_PLAYER, sourcePlayer);
+    }
+
+    auto context = builder.build(loot::LootParameterSets::entity());
+    return table->generate(*context);
 }
 
 /**
@@ -1118,41 +1180,38 @@ i32 LootCommand::fishReplaceBlock(CommandContext<ServerCommandSource>& context)
 // /loot kill <target> - 目标分发
 // ============================================================================
 
+namespace {
+
+/**
+ * @brief 从kill目标实体选择器生成战利品
+ *
+ * 使用 EntityResolver 解析任意实体（包括非玩家实体如僵尸、动物等）。
+ *
+ * @param source 命令源
+ * @param selector 实体选择器
+ * @return 生成的所有战利品物品列表
+ */
+std::vector<ItemStack> collectKillLoot(ServerCommandSource& source, const EntitySelector& selector)
+{
+    std::vector<ItemStack> allItems;
+    auto entities = support::EntityResolver::resolve(source, selector);
+    for (Entity* entity : entities) {
+        auto items = generateFromKill(source, entity);
+        for (auto& item : items) {
+            allItems.push_back(std::move(item));
+        }
+    }
+    return allItems;
+}
+
+} // anonymous namespace
+
 i32 LootCommand::killGive(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
     auto selector = context.getArgument<EntitySelector>("kill_target");
 
-    // 简化实现：当前项目中实体战利品表系统尚未完全集成
-    // 先使用 playerIds 解析作为占位
-    auto playerIds = support::resolvePlayerIds(source, selector);
-    if (playerIds.empty()) {
-        source.sendError("No entity matched");
-        return 0;
-    }
-
-    // TODO: 需要实体战利品表集成后实现完整的 kill 源
-    auto* world = source.world();
-    if (world == nullptr) {
-        return 0;
-    }
-
-    // 尝试获取第一个匹配玩家的战利品表
-    std::vector<ItemStack> allItems;
-    for (PlayerId playerId : playerIds) {
-        auto* playerWorld = source.server()->getPlayerWorld(playerId);
-        auto* player =
-            playerWorld ? source.server()->playerEntityManager().getPlayerEntity(playerId, *playerWorld) : nullptr;
-        if (player == nullptr) {
-            continue;
-        }
-
-        auto items = generateFromKill(source, static_cast<Entity*>(player));
-        for (auto& item : items) {
-            allItems.push_back(std::move(item));
-        }
-    }
-
+    auto allItems = collectKillLoot(source, selector);
     if (allItems.empty()) {
         source.sendMessage("No loot generated from kill target");
         return 0;
@@ -1173,23 +1232,99 @@ i32 LootCommand::killGive(CommandContext<ServerCommandSource>& context)
 i32 LootCommand::killSpawn(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    // 简化实现
-    source.sendError("Kill source with spawn target is not yet fully supported");
-    return 0;
+    auto selector = context.getArgument<EntitySelector>("kill_target");
+
+    auto allItems = collectKillLoot(source, selector);
+    if (allItems.empty()) {
+        return 0;
+    }
+
+    auto pos = context.getArgument<Vector3d>("target_pos");
+    i32 result = spawnItemsAtPosition(source, pos, allItems);
+
+    sendSuccessMessage(source, allItems, "kill");
+    return result;
 }
 
 i32 LootCommand::killInsert(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    source.sendError("Kill source with insert target is not yet fully supported");
-    return 0;
+    auto selector = context.getArgument<EntitySelector>("kill_target");
+
+    auto allItems = collectKillLoot(source, selector);
+    if (allItems.empty()) {
+        return 0;
+    }
+
+    auto pos = context.getArgument<Vector3i>("insert_pos");
+    BlockPos blockPos(pos.x, pos.y, pos.z);
+
+    auto* world = source.world();
+    if (world == nullptr) {
+        return 0;
+    }
+
+    BlockEntity* blockEntity = world->getBlockEntity(blockPos);
+    auto* container = blockEntity ? dynamic_cast<ContainerBlockEntity*>(blockEntity) : nullptr;
+    IInventory* inventory = container ? container->getInventory() : nullptr;
+    if (inventory == nullptr) {
+        source.sendError("No container at that position");
+        return 0;
+    }
+
+    i32 inserted = 0;
+    for (auto& item : allItems) {
+        if (!item.isEmpty() && insertItemsIntoContainer(*inventory, item.copy())) {
+            inventory->setChanged();
+            inserted++;
+        }
+    }
+
+    sendSuccessMessage(source, allItems, "kill");
+    return inserted;
 }
 
 i32 LootCommand::killReplaceEntity(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    source.sendError("Kill source with replace target is not yet fully supported");
-    return 0;
+    auto selector = context.getArgument<EntitySelector>("kill_target");
+
+    auto allItems = collectKillLoot(source, selector);
+    if (allItems.empty()) {
+        return 0;
+    }
+
+    // kill replace 使用实体选择器获取目标玩家并替换其物品栏槽位
+    auto replaceSelector = context.getArgument<EntitySelector>("players");
+    auto replacePlayerIds = support::resolvePlayerIds(source, replaceSelector);
+    if (replacePlayerIds.empty()) {
+        source.sendError("No players matched");
+        return 0;
+    }
+
+    i32 slot = context.getArgument<i32>("slot");
+    i32 count = 0;
+
+    for (PlayerId replacePlayerId : replacePlayerIds) {
+        auto* replacePlayerWorld = source.server()->getPlayerWorld(replacePlayerId);
+        auto* replacePlayer = replacePlayerWorld
+            ? source.server()->playerEntityManager().getPlayerEntity(replacePlayerId, *replacePlayerWorld)
+            : nullptr;
+        if (replacePlayer == nullptr) {
+            continue;
+        }
+
+        PlayerInventory& inventory = replacePlayer->inventory();
+        if (slot >= 0 && slot < inventory.getContainerSize()) {
+            ItemStack replacement = allItems.empty() ? ItemStack::EMPTY : allItems[0].copy();
+            inventory.setItem(slot, replacement);
+            inventory.setChanged();
+            count++;
+        }
+    }
+
+    sendSuccessMessage(source, allItems, "kill");
+    return count;
 }
 
 // ============================================================================

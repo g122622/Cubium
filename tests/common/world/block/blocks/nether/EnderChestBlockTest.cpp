@@ -123,6 +123,15 @@ public:
 
     void setBlockStateAt(const BlockPos& pos, const BlockState* state) { m_blockStates[pos] = state; }
 
+    [[nodiscard]] bool openContainer(mc::ContainerType type, const BlockPos& pos, Player& player) override
+    {
+        MC_UNUSED(type);
+        MC_UNUSED(pos);
+        MC_UNUSED(player);
+        // 测试中总是返回 true，表示容器打开成功
+        return true;
+    }
+
     // ========== IWorld 存根方法 ==========
 
     [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override

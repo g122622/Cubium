@@ -198,6 +198,19 @@ private:
     void _sendMetadataPacket(IServer& server, PlayerId playerId, Entity* entity, const std::vector<u8>& metadata);
     void _sendItemEntityResyncPacket(IServer& server, PlayerId playerId, const Entity& entity);
 
+    /**
+     * @brief 发送实体速度同步包给玩家
+     *
+     * 当实体的 hurtMarked 标记为 true 时，发送 EntityVelocityPacket
+     * 将实体的当前速度同步到客户端。对应 MC Java 中
+     * ServerEntity.sendDirtyEntityData() 对 hurtMarked 的处理。
+     *
+     * @param server 服务器接口
+     * @param playerId 玩家ID
+     * @param entity 实体
+     */
+    void _sendVelocityPacket(IServer& server, PlayerId playerId, Entity* entity);
+
 public:
     /**
      * @brief 向当前追踪该实体的所有玩家稳定广播销毁包。

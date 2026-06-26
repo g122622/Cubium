@@ -27,6 +27,7 @@
 
 #include "common/entity/core/DataParameter.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <random>
 
@@ -62,6 +63,9 @@ public:
 
     /// 无限存活时间（用于创造模式等）
     static constexpr i32 INFINITE_LIFETIME = -1;
+
+    /// 默认生命值（5 点，物品实体被伤害时消耗）
+    static constexpr i32 DEFAULT_HEALTH = 5;
 
     /// 物品漂浮速度
     static constexpr f32 BUOYANCY = 0.1f;
@@ -119,15 +123,46 @@ public:
     [[nodiscard]] f32 height() const override { return 0.25f; }
     [[nodiscard]] f32 eyeHeight() const override { return 0.125f; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     void tick() override;
+
+    /**
+     * @brief 处理物品实体受到伤害
+     *
+     * 物品实体有 5 点生命值，受到伤害时减少生命值。
+     * 当生命值降至 0 或以下时，物品被销毁（调用 discard()）。
+     * 防火物品（如下界合金物品、下界星）免疫火焰和岩浆伤害。
+     * 当 mobGriefing 游戏规则关闭时，生物造成的伤害不会影响物品实体。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 检查物品实体是否免疫火焰
+     *
+     * 如果物品本身是防火的（如下界合金物品、下界星），则物品实体也免疫火焰。
+     * 否则回退到实体类型的默认行为。
+     */
+    [[nodiscard]] bool isImmuneToFire() const override;
 
     /**
      * @brief 检查物品实体是否阻尼振动
      *
-     * 当物品是羊毛物品时阻尼振动，与 MC 原版行为一致。
-     * 参考: net.minecraft.world.entity.item.ItemEntity.dampensVibrations()
+     * 当物品是羊毛物品时阻尼振动。
      */
     [[nodiscard]] bool dampensVibrations() const override;
+
+    /**
+     * @brief 判断是否应播放岩浆受伤音效
+     *
+     * 物品实体在岩浆中每 tick 都会受到伤害，如果每 tick 都播放音效会造成噪音。
+     * 因此重写此方法，仅在物品被销毁时（生命值归零）或每 10 tick 播放一次音效。
+     */
+    [[nodiscard]] bool shouldPlayLavaHurtSound() const override
+    {
+        return m_health <= 0 || static_cast<i32>(ticksExisted()) % 10 == 0;
+    }
 
     // ========== 物品相关 ==========
 
@@ -200,6 +235,17 @@ public:
      */
     [[nodiscard]] const std::string& throwerUuid() const { return m_throwerUuid; }
 
+    /**
+     * @brief 获取生命值
+     */
+    [[nodiscard]] i32 getHealth() const { return m_health; }
+
+    /**
+     * @brief 设置生命值
+     * @param health 生命值
+     */
+    void setHealth(i32 health) { m_health = health; }
+
     // ========== 玩家拾取 ==========
 
     /**
@@ -266,6 +312,7 @@ private:
     i32 m_age = 0;                            // 存活时间（ticks）
     i32 m_lifetime = DEFAULT_LIFETIME;        // 最大存活时间
     i32 m_pickupDelay = DEFAULT_PICKUP_DELAY; // 拾取延迟
+    i32 m_health = DEFAULT_HEALTH;            // 生命值
     bool m_unpickable = false;                // 是否不可拾取
 
     std::string m_ownerUuid;   // 所有者UUID（防止自己立即拾取）

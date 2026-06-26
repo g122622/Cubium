@@ -34,6 +34,7 @@ namespace item {
  * @brief 船物品类
  *
  * 继承自 Item 基类，实现放置船实体的功能。
+ * 同时用于普通船和带箱子的船（Chest Boat），通过 m_hasChest 区分。
  *
  * 使用方式：
  * - 玩家右键点击水面或陆地
@@ -46,9 +47,10 @@ public:
     /**
      * @brief 构造函数
      * @param boatType 船的木材类型
+     * @param hasChest 是否为带箱子的船
      * @param properties 物品属性
      */
-    BoatItem(entity::BoatEntity::Type boatType, const ItemProperties& properties);
+    BoatItem(entity::BoatEntity::Type boatType, bool hasChest, const ItemProperties& properties);
 
     ~BoatItem() override = default;
 
@@ -57,6 +59,12 @@ public:
      * @return 船的木材类型
      */
     [[nodiscard]] entity::BoatEntity::Type getBoatType() const noexcept { return m_boatType; }
+
+    /**
+     * @brief 是否为带箱子的船
+     * @return true 表示带箱子的船，false 表示普通船
+     */
+    [[nodiscard]] bool hasChest() const noexcept { return m_hasChest; }
 
     /**
      * @brief 在方块上使用物品
@@ -76,6 +84,7 @@ public:
 
 private:
     entity::BoatEntity::Type m_boatType;
+    bool m_hasChest;
 };
 
 } // namespace item

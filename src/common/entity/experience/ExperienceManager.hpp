@@ -191,6 +191,15 @@ public:
     [[nodiscard]] i32 getXpSeed() const noexcept { return m_xpSeed; }
 
     /**
+     * @brief 设置附魔随机种子
+     *
+     * 用于从存档数据恢复种子值。如果种子为 0，则下次附魔时会自动生成随机种子。
+     *
+     * @param seed 种子值
+     */
+    void setXpSeed(i32 seed) noexcept { m_xpSeed = seed; }
+
+    /**
      * @brief 重置附魔随机种子
      *
      * 在附魔后调用，生成新的随机种子。

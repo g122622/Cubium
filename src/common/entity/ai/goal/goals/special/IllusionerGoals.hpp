@@ -38,7 +38,13 @@ namespace entity::ai::goal {
 /**
  * @brief 幻术师法术目标基类
  *
- * 提供幻术师法术目标的基础框架，包括施法准备时间和冷却管理。
+ * 提供幻术师法术目标的基础框架，包括施法准备时间、施法持续时间和冷却管理。
+ *
+ * 施法流程：
+ * 1. shouldExecute() 检查前置条件（未在施法、冷却完成）
+ * 2. startExecuting() 设置 warmup 和 spellCastingTicks，播放施法准备音效
+ * 3. tick() 中 warmup 递减，warmup 归零时调用 castSpell() 并播放施法完成音效
+ * 4. resetTask() 清除施法状态
  */
 class IllusionerSpellGoal : public Goal {
 public:
@@ -56,12 +62,14 @@ public:
 
 protected:
     /**
-     * @brief 获取施法准备时间
+     * @brief 获取施法准备时间（warmup ticks）
      */
     [[nodiscard]] virtual i32 getCastWarmupTime() const = 0;
 
     /**
-     * @brief 获取施法持续时间
+     * @brief 获取施法持续时间（spellCastingTicks）
+     *
+     * 这是施法动画持续的总 tick 数，在此期间实体处于施法姿态。
      */
     [[nodiscard]] virtual i32 getCastingTime() const = 0;
 
@@ -80,6 +88,13 @@ protected:
      */
     [[nodiscard]] virtual SpellcastingIllagerEntity::SpellType getSpellType() const = 0;
 
+    /**
+     * @brief 获取施法准备音效的资源路径
+     *
+     * 在 startExecuting() 中播放，用于提示玩家幻术师正在准备施法。
+     */
+    [[nodiscard]] virtual const char* getSpellPrepareSoundId() const = 0;
+
     IllusionerEntity* m_illusioner;
     i32 m_spellWarmup = 0;
     i32 m_spellCooldown = 0;
@@ -89,13 +104,13 @@ protected:
  * @brief 幻术师失明法术目标
  *
  * 幻术师对目标施放失明效果。
- * - 只有当难度为困难时才会施放
+ * - 难度 >= Normal 时可施放（原版 isHarderThan(Normal)）
  * - 不能对同一个目标重复施法
  * - 持续时间：400 ticks (20秒)
  *
  * 施法参数：
  * - 准备时间：20 ticks
- * - 施法时间：无
+ * - 施法持续时间：20 ticks
  * - 冷却时间：180 ticks (9秒)
  */
 class IllusionerBlindnessSpellGoal : public IllusionerSpellGoal {
@@ -113,14 +128,15 @@ protected:
     [[nodiscard]] i32 getCastingInterval() const override;
     void castSpell() override;
     [[nodiscard]] SpellcastingIllagerEntity::SpellType getSpellType() const override;
+    [[nodiscard]] const char* getSpellPrepareSoundId() const override;
 
 private:
-    EntityId m_lastTargetId = 0; // 上一个失明目标的实体ID
+    EntityId m_lastTargetId = 0; ///< 上一个失明目标的实体ID
 
-    static constexpr i32 WARMUP_TIME = 20;         // 准备时间 20 ticks
-    static constexpr i32 CASTING_TIME = 0;         // 无施法时间
-    static constexpr i32 COOLDOWN = 180;           // 冷却时间 180 ticks (9秒)
-    static constexpr i32 BLINDNESS_DURATION = 400; // 失明持续 400 ticks (20秒)
+    static constexpr i32 WARMUP_TIME = 20;         ///< 准备时间 20 ticks
+    static constexpr i32 CASTING_TIME = 20;        ///< 施法持续时间 20 ticks
+    static constexpr i32 COOLDOWN = 180;           ///< 冷却时间 180 ticks (9秒)
+    static constexpr i32 BLINDNESS_DURATION = 400; ///< 失明持续 400 ticks (20秒)
 };
 
 /**
@@ -132,7 +148,7 @@ private:
  *
  * 施法参数：
  * - 准备时间：20 ticks
- * - 施法时间：无
+ * - 施法持续时间：20 ticks
  * - 冷却时间：340 ticks (17秒)
  */
 class IllusionerMirrorSpellGoal : public IllusionerSpellGoal {
@@ -149,12 +165,13 @@ protected:
     [[nodiscard]] i32 getCastingInterval() const override;
     void castSpell() override;
     [[nodiscard]] SpellcastingIllagerEntity::SpellType getSpellType() const override;
+    [[nodiscard]] const char* getSpellPrepareSoundId() const override;
 
 private:
-    static constexpr i32 WARMUP_TIME = 20;             // 准备时间 20 ticks
-    static constexpr i32 CASTING_TIME = 0;             // 无施法时间
-    static constexpr i32 COOLDOWN = 340;               // 冷却时间 340 ticks (17秒)
-    static constexpr i32 INVISIBILITY_DURATION = 1200; // 隐身持续 1200 ticks (60秒)
+    static constexpr i32 WARMUP_TIME = 20;             ///< 准备时间 20 ticks
+    static constexpr i32 CASTING_TIME = 20;            ///< 施法持续时间 20 ticks
+    static constexpr i32 COOLDOWN = 340;               ///< 冷却时间 340 ticks (17秒)
+    static constexpr i32 INVISIBILITY_DURATION = 1200; ///< 隐身持续 1200 ticks (60秒)
 };
 
 } // namespace entity::ai::goal

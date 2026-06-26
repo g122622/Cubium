@@ -25,10 +25,12 @@ feature/
 │   ├── LushCavesFeatures.hpp/cpp     # 繁茂洞穴特征
 │   ├── RootSystemFeature.hpp/cpp     # 根系特征
 │   └── VegetationPatchFeature.hpp/cpp # 植被贴片特征
-├── end/                              # 末地特征（黑曜石柱/折跃门/冰刺）
+├── end/                              # 末地特征（黑曜石柱/折跃门/冰刺/紫颂树/末地小岛）
 │   ├── EndSpikeFeature.hpp/cpp       # 黑曜石柱
 │   ├── EndGatewayFeature.hpp/cpp     # 末地折跃门
 │   ├── IceSpikeFeature.hpp/cpp       # 冰刺
+│   ├── ChorusPlantFeature.hpp/cpp    # 紫颂树特征（VegetalDecoration 阶段）
+│   ├── EndIslandFeature.hpp/cpp      # 末地小岛特征（RawGeneration 阶段）
 │   └── EndFeatures.hpp/cpp           # 末地特征注册
 ├── nether/                           # 下界特征（萤石/玄武岩/岩浆/火焰/巨型菌类）
 │   ├── GlowstoneFeature.hpp/cpp      # 萤石簇

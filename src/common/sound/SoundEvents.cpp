@@ -275,6 +275,17 @@ const ResourceLocation BLOCK_LILY_PAD_PLACE("minecraft:block.lily_pad.place");
 const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_DOWN("minecraft:block.big_dripleaf.tilt_down");
 const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_UP("minecraft:block.big_dripleaf.tilt_up");
 
+/// 滴水石音效
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_HIT("minecraft:block.pointed_dripstone.hit");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_FALL("minecraft:block.pointed_dripstone.fall");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_LAND("minecraft:block.pointed_dripstone.land");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_WATER("minecraft:block.pointed_dripstone.drip_water");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_LAVA("minecraft:block.pointed_dripstone.drip_lava");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_WATER_INTO_CAULDRON(
+    "minecraft:block.pointed_dripstone.drip_water_into_cauldron");
+const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON(
+    "minecraft:block.pointed_dripstone.drip_lava_into_cauldron");
+
 const ResourceLocation BLOCK_WATER_AMBIENT("minecraft:block.water.ambient");
 
 const ResourceLocation BLOCK_BARREL_CLOSE("minecraft:block.barrel.close");
@@ -500,6 +511,12 @@ const ResourceLocation ENTITY_GENERIC_EXPLODE("minecraft:entity.generic.explode"
 const ResourceLocation ENTITY_WIND_CHARGE_THROW("minecraft:entity.wind_charge.throw");
 const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST("minecraft:entity.wind_charge.wind_burst");
 const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST("minecraft:entity.breeze.wind_charge_burst");
+const ResourceLocation ENTITY_BREEZE_INHALE("minecraft:entity.breeze.inhale");
+const ResourceLocation ENTITY_BREEZE_SHOOT("minecraft:entity.breeze.shoot");
+const ResourceLocation ENTITY_BREEZE_CHARGE("minecraft:entity.breeze.charge");
+const ResourceLocation ENTITY_BREEZE_JUMP("minecraft:entity.breeze.jump");
+const ResourceLocation ENTITY_BREEZE_LAND("minecraft:entity.breeze.land");
+const ResourceLocation ENTITY_BREEZE_SLIDE("minecraft:entity.breeze.slide");
 
 // ============================================================================
 // 重锤声音
@@ -1271,6 +1288,7 @@ const ResourceLocation ENTITY_ITEM_PICKUP("minecraft:entity.item.pickup");
 
 // 盔甲装备
 const ResourceLocation ITEM_ARMOR_EQUIP_CHAIN("minecraft:item.armor.equip_chain");
+const ResourceLocation ITEM_ARMOR_EQUIP_COPPER("minecraft:item.armor.equip_copper");
 const ResourceLocation ITEM_ARMOR_EQUIP_DIAMOND("minecraft:item.armor.equip_diamond");
 const ResourceLocation ITEM_ARMOR_EQUIP_ELYTRA("minecraft:item.armor.equip_elytra");
 const ResourceLocation ITEM_ARMOR_EQUIP_GENERIC("minecraft:item.armor.equip_generic");
@@ -1293,6 +1311,8 @@ const ResourceLocation ITEM_BUCKET_FILL_LAVA("minecraft:item.bucket.fill_lava");
 
 // 工具
 const ResourceLocation ITEM_AXE_STRIP("minecraft:item.axe.strip");
+const ResourceLocation ITEM_AXE_SCRAPE("minecraft:item.axe.scrape");
+const ResourceLocation ITEM_AXE_WAX_OFF("minecraft:item.axe.wax_off");
 const ResourceLocation ITEM_HOE_TILL("minecraft:item.hoe.till");
 const ResourceLocation ITEM_SHOVEL_FLATTEN("minecraft:item.shovel.flatten");
 

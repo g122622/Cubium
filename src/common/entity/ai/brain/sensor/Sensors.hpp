@@ -32,6 +32,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/interfaces/IMob.hpp"
 #include <algorithm>
+#include <functional>
 #include <unordered_map>
 #include <vector>
 
@@ -313,6 +314,93 @@ protected:
 
 private:
     f32 m_range;
+};
+
+/**
+ * @brief 诱惑玩家传感器
+ *
+ * 检测手持可诱惑物品的最近玩家，写入 TEMPTING_PLAYER 记忆。
+ * 用于 TemptTask 等任务，使动物被手持食物的玩家吸引。
+ *
+ * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
+ */
+template <typename E>
+class TemptingPlayerSensor : public Sensor<E> {
+public:
+    using ItemPredicate = std::function<bool(const ItemStack&)>;
+
+    explicit TemptingPlayerSensor(ItemPredicate itemPredicate, f32 range = 10.0f, i32 interval = 20)
+        : Sensor<E>(interval)
+        , m_itemPredicate(std::move(itemPredicate))
+        , m_range(range)
+    {}
+
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::TEMPTING_PLAYER};
+    }
+
+protected:
+    void update(IWorld* world, E* entity) override;
+
+private:
+    ItemPredicate m_itemPredicate;
+    f32 m_range;
+};
+
+/**
+ * @brief 可交互门传感器
+ *
+ * 扫描实体附近路径上的木门，写入 INTERACTABLE_DOORS 记忆。
+ * 用于 InteractWithDoorTask 等任务，使实体能够自动开关门。
+ *
+ * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
+ */
+template <typename E>
+class InteractableDoorsSensor : public Sensor<E> {
+public:
+    explicit InteractableDoorsSensor(f32 range = 4.0f, i32 interval = 20)
+        : Sensor<E>(interval)
+        , m_range(range)
+    {}
+
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::INTERACTABLE_DOORS, memory::MemoryModuleTypes::OPENED_DOORS};
+    }
+
+protected:
+    void update(IWorld* world, E* entity) override;
+
+private:
+    f32 m_range;
+};
+
+/**
+ * @brief 主人受伤传感器
+ *
+ * 检测驯服动物的主人是否受到攻击，写入 OWNER_HURT_BY 记忆。
+ * 用于 ProtectOwnerTask 等任务，使宠物在主人被攻击时保护主人。
+ *
+ * 仅适用于 TameableEntity 子类。如果实体未驯服或主人不存在，
+ * 传感器将清除 OWNER_HURT_BY 记忆。
+ *
+ * @tparam E 实体类型，需要有 brain() 方法返回 Brain<E>&
+ */
+template <typename E>
+class OwnerHurtBySensor : public Sensor<E> {
+public:
+    OwnerHurtBySensor()
+        : Sensor<E>(1) // 每 tick 检查（需要快速响应主人被攻击事件）
+    {}
+
+    [[nodiscard]] std::unordered_set<const memory::MemoryModuleTypeBase*> getUsedMemories() const override
+    {
+        return {memory::MemoryModuleTypes::OWNER_HURT_BY};
+    }
+
+protected:
+    void update(IWorld* world, E* entity) override;
 };
 
 } // namespace sensor

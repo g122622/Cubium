@@ -29,6 +29,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/weather/WeatherConstants.hpp"
 #include <cmath>
 
@@ -58,51 +59,13 @@ bool SleepManager::canSleepAtTime(i64 dayTime, bool isThundering, bool isRaining
 }
 
 std::optional<Vector3> SleepManager::findWakeUpPosition(
-    const IWorld& world, const BlockPos& bedPos, Direction bedFacing)
+    const IWorld& world, const BlockPos& bedPos, Direction bedFacing, f32 entityYaw)
 {
-
-    // 尝试在床周围找到安全的站立位置
-    // 优先级：
-    // 1. 床头正前方
-    // 2. 床尾正前方
-    // 3. 床两侧
-
-    // 床尾位置（朝向的反方向）
-    Direction footDir = Directions::opposite(bedFacing);
-    BlockPos footPos = bedPos.offset(footDir);
-
-    // 尝试的方向列表：前方、两侧
-    std::vector<Direction> tryDirections = {bedFacing, // 床头前方
-        footDir,                                       // 床尾前方
-        Direction::West,
-        Direction::East,
-        Direction::North,
-        Direction::South};
-
-    for (Direction dir : tryDirections) {
-        BlockPos checkPos = bedPos.offset(dir).up(); // 床上方一格的位置
-        if (_hasStandingSpace(world, checkPos)) {
-            // 返回方块中心位置，Y 在地面以上一点
-            return Vector3(static_cast<f32>(checkPos.x) + 0.5f,
-                static_cast<f32>(checkPos.y) - 0.9f, // 从床的高度下来
-                static_cast<f32>(checkPos.z) + 0.5f);
-        }
-    }
-
-    // 尝试床尾周围
-    for (Direction dir : tryDirections) {
-        BlockPos checkPos = footPos.offset(dir).up();
-        if (_hasStandingSpace(world, checkPos)) {
-            return Vector3(static_cast<f32>(checkPos.x) + 0.5f,
-                static_cast<f32>(checkPos.y) - 0.9f,
-                static_cast<f32>(checkPos.z) + 0.5f);
-        }
-    }
-
-    // 找不到安全位置，返回床头正上方
-    BlockPos aboveBed = bedPos.up();
-    return Vector3(
-        static_cast<f32>(aboveBed.x) + 0.5f, static_cast<f32>(aboveBed.y) + 0.1f, static_cast<f32>(aboveBed.z) + 0.5f);
+    // 委托给 BedBlock::findStandUpPosition，该算法与 MC 原版一致
+    Vector3 result = blocks::BedBlock::findStandUpPosition(world, bedPos, bedFacing, entityYaw);
+    // BedBlock::findStandUpPosition 始终返回有效位置（最终回退到床头正上方），
+    // 所以直接返回
+    return result;
 }
 
 bool SleepManager::isPlayerNearBed(const Vector3& playerPos, const BlockPos& bedPos)

@@ -28,6 +28,7 @@
 #include "../world/ServerWorld.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Result.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/network/packet/DimensionPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -38,6 +39,7 @@
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -497,6 +499,16 @@ void ServerDimensionManager::_sendDimensionChangePacket(PlayerId playerId, Dimen
 
     // 维度切换时保留数据
     packet.setKeepData(true);
+
+    // 设置上次死亡位置（从玩家实体获取）
+    auto& playerEntityManager = m_server->playerEntityManager();
+    if (auto* dimension = getPlayerDimensionWorld(playerId)) {
+        if (auto* world = dimension->world()) {
+            if (Player* player = playerEntityManager.getPlayerEntity(playerId, *world)) {
+                packet.setLastDeathLocation(player->getLastDeathLocation());
+            }
+        }
+    }
 
     // 序列化包
     auto result = packet.serialize();

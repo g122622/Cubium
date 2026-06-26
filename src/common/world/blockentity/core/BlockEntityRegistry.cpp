@@ -45,6 +45,7 @@
 #include "world/blockentity/redstone/CommandBlockEntity.hpp"
 #include "world/blockentity/redstone/ComparatorEntity.hpp"
 #include "world/blockentity/redstone/DaylightDetectorEntity.hpp"
+#include "world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "world/blockentity/storage/EnderChestEntity.hpp"
@@ -177,6 +178,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
     registerType(BlockEntityType::Vault, [](const BlockPos& pos) { return std::make_unique<VaultBlockEntity>(pos); });
     registerType(
         BlockEntityType::Crafter, [](const BlockPos& pos) { return std::make_unique<CrafterBlockEntity>(pos); });
+
+    // 注册刷怪笼方块实体
+    registerType(BlockEntityType::MobSpawner,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::MobSpawnerBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

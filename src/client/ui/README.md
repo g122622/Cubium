@@ -19,7 +19,7 @@ ui/
 ├── TridentCanvas.hpp                 # Trident渲染器画布实现
 ├── TridentCanvas.cpp                 # 画布实现（ICanvas的Vulkan实现）
 ├── kagero/                           # Kagero UI框架（命名空间：mc::client::ui::kagero）
-│   ├── KageroEngine.hpp/cpp          # UI引擎核心（分层Widget管理）
+│   ├── KageroEngine.hpp/cpp          # UI引擎核心（分层Widget管理、双击检测、右键分发）
 │   ├── Types.hpp                     # 基础类型定义
 │   ├── README.md                     # 框架文档
 │   ├── docs/                         # 详细文档
@@ -62,7 +62,7 @@ ui/
 │   │   ├── core/                     # 核心配置
 │   │   └── bindings/                 # 内置绑定
 │   └── widget/                       # Widget组件
-│       ├── Widget.hpp                # Widget基类
+│       ├── Widget.hpp                # Widget基类（含onDoubleClick/onRightClick虚方法）
 │       ├── ButtonWidget.hpp          # 按钮组件
 │       ├── CheckboxWidget.hpp        # 复选框组件
 │       ├── ContainerWidget.hpp/cpp   # 容器组件
@@ -276,11 +276,15 @@ ui/
 
 Kagero框架的详细文档不在本文件中，请参考 `kagero/docs/` 目录下的专题文档。
 
-### 10. screen目录是旧版兼容
+### 10. Kagero右键点击双重触发
+
+右键点击（button == 1）时，`onClick` 和 `onRightClick` **都会触发**，这是有意为之的设计。组件应在 `onClick` 中检查 `button` 参数来区分左右键，或仅处理左键点击（button == 0）。
+
+### 11. screen目录是旧版兼容
 
 `ui/screen/` 目录是旧版屏幕系统，正在逐步迁移到 `minecraft/screens/`，新代码应使用后者。
 
-### 11. 混淆文字（§k）宽度索引
+### 12. 混淆文字（§k）宽度索引
 
 **问题**：`Font::getRandomGlyph()` 返回 nullptr。
 

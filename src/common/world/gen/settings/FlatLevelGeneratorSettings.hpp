@@ -24,6 +24,7 @@
 #pragma once
 
 #include "FlatLayerInfo.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/biome/BiomeIds.hpp"
 #include "common/world/block/BlockState.hpp"
 #include <vector>
@@ -116,6 +117,41 @@ public:
     [[nodiscard]] bool hasLakes() const { return m_addLakes; }
     void setLakes(bool addLakes) { m_addLakes = addLakes; }
 
+    // === 结构生成覆盖 ===
+
+    /**
+     * @brief 获取结构生成覆盖列表
+     *
+     * 指定平坦世界中允许生成的结构集（白名单）。
+     * 如果列表为空，表示使用所有可用的结构集（受生物群系过滤）。
+     * MC 1.21.11: 对应 FlatLevelGeneratorSettings.structureOverrides 字段。
+     *
+     * MC 默认超平坦世界启用: minecraft:villages, minecraft:strongholds
+     * MC 预设 "Tunneler's Dream": minecraft:mineshafts, minecraft:strongholds
+     */
+    [[nodiscard]] const std::vector<ResourceLocation>& structureOverrides() const { return m_structureOverrides; }
+
+    /** 获取结构生成覆盖列表（可修改） */
+    std::vector<ResourceLocation>& structureOverrides() { return m_structureOverrides; }
+
+    /** 设置结构生成覆盖列表 */
+    void setStructureOverrides(std::vector<ResourceLocation> overrides) { m_structureOverrides = std::move(overrides); }
+
+    /**
+     * @brief 检查是否启用了结构生成
+     *
+     * 当 structureOverrides 为空时返回 false（不生成任何结构），
+     * 因为空的覆盖列表在 MC 中表示"使用所有结构集"，但在项目中
+     * 我们选择与 hasDecoration/hasLakes 保持一致的行为——
+     * 需要显式指定才生成结构。
+     * 如果需要生成所有结构，可以使用 setStructureOverridesAll()。
+     *
+     * @note 实际上，MC 原版的 structureOverrides 为 Optional<HolderSet<StructureSet>>，
+     *       Optional.empty 表示使用所有结构集，Optional.present 表示仅使用指定集合。
+     *       这里简化为：空列表 = 不生成结构，非空列表 = 仅生成指定结构集。
+     */
+    [[nodiscard]] bool hasStructureGeneration() const { return !m_structureOverrides.empty(); }
+
     // === 虚空检测 ===
 
     /** 是否为虚空世界（所有层都是空气） */
@@ -147,11 +183,12 @@ private:
     std::vector<FlatLayerInfo> m_layersInfo; ///< 层定义（方块 + 高度）
     std::vector<const BlockState*>
         m_layers; ///< 展开后的层列表（每个 Y 级别一个 BlockState，nullptr 表示由特性系统放置）
-    std::vector<FillLayerEntry> m_fillLayerEntries; ///< 非运动阻挡层的填充信息（高度 + 方块状态）
-    BiomeId m_biomeId = Biomes::Plains;             ///< 生物群系
-    bool m_decoration = false;                      ///< 是否添加装饰特性
-    bool m_addLakes = false;                        ///< 是否添加湖泊
-    bool m_voidGen = true;                          ///< 是否为虚空世界（初始为 true，updateLayers 时更新）
+    std::vector<FillLayerEntry> m_fillLayerEntries;     ///< 非运动阻挡层的填充信息（高度 + 方块状态）
+    BiomeId m_biomeId = Biomes::Plains;                 ///< 生物群系
+    bool m_decoration = false;                          ///< 是否添加装饰特性
+    bool m_addLakes = false;                            ///< 是否添加湖泊
+    bool m_voidGen = true;                              ///< 是否为虚空世界（初始为 true，updateLayers 时更新）
+    std::vector<ResourceLocation> m_structureOverrides; ///< 结构生成覆盖列表（白名单，空=不生成结构）
 };
 
 } // namespace mc

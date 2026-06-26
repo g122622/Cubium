@@ -22,6 +22,7 @@
  */
 
 #include "network/packet/BossInfoPacket.hpp"
+#include "util/UuidUtils.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "util/text/TextStyle.hpp"
 #include <gtest/gtest.h>
@@ -29,8 +30,8 @@
 using namespace mc::network;
 using namespace mc::text;
 using mc::f32;
-using mc::u64;
 using mc::u8;
+using mc::Uuid;
 
 // ==================== BossInfoPacket 基础测试 ====================
 
@@ -38,11 +39,11 @@ class BossInfoPacketTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        testUuid = 12345678901234ULL;
+        testUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
         testText = R"({"text":"Dragon Health","color":"red"})";
     }
 
-    u64 testUuid;
+    Uuid testUuid;
     std::string testText;
 };
 
@@ -50,7 +51,7 @@ TEST_F(BossInfoPacketTest, DefaultConstruction)
 {
     BossInfoPacket packet;
     EXPECT_EQ(packet.action(), BossInfoAction::Add);
-    EXPECT_EQ(packet.uuid(), 0ULL);
+    EXPECT_EQ(packet.uuid(), Uuid{});
     EXPECT_EQ(packet.percent(), 1.0f);
     EXPECT_EQ(packet.color(), 0u);
     EXPECT_EQ(packet.overlay(), 0u);
@@ -126,9 +127,9 @@ TEST_F(BossInfoPacketTest, CreateUpdatePropertiesPacket)
 
 class BossInfoPacketSerializeTest : public ::testing::Test {
 protected:
-    void SetUp() override { testUuid = 12345678901234ULL; }
+    void SetUp() override { testUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef"); }
 
-    u64 testUuid;
+    Uuid testUuid;
 };
 
 TEST_F(BossInfoPacketSerializeTest, SerializeDeserializeAddPacket)
@@ -350,13 +351,13 @@ TEST(BossInfoPacketErrorTest, DeserializeEmptyData)
 TEST(BossInfoPacketErrorTest, DeserializeTruncatedData)
 {
     auto original =
-        BossInfoPacket::add(12345ULL, std::make_unique<StringTextComponent>("Test"), 0.5f, 0, 0, false, false, false);
+        BossInfoPacket::add(Uuid{}, std::make_unique<StringTextComponent>("Test"), 0.5f, 0, 0, false, false, false);
     auto result = original.serialize();
     ASSERT_TRUE(result.success());
 
     auto data = result.value();
-    // 截断数据 (至少需要 9 字节: UUID + Action)
-    if (data.size() > 10) {
+    // 截断数据 (至少需要 17 字节: UUID(16) + Action(1))
+    if (data.size() > 18) {
         data.resize(5);
 
         BossInfoPacket deserialized;
@@ -367,8 +368,8 @@ TEST(BossInfoPacketErrorTest, DeserializeTruncatedData)
 
 TEST(BossInfoPacketErrorTest, DeserializeMinimumValidData)
 {
-    // 最小有效数据: Remove 包 (UUID + Action = 9 字节)
-    auto original = BossInfoPacket::remove(12345ULL);
+    // 最小有效数据: Remove 包 (UUID(16) + Action(1) = 17 字节)
+    auto original = BossInfoPacket::remove(Uuid{});
     auto result = original.serialize();
     ASSERT_TRUE(result.success());
 
@@ -383,7 +384,7 @@ TEST(BossInfoPacketErrorTest, DeserializeMinimumValidData)
 TEST(BossInfoPacketComponentTest, CreateFromSimpleText)
 {
     auto component = std::make_unique<StringTextComponent>("Simple Boss Name");
-    auto packet = BossInfoPacket::add(1ULL, std::move(component), 1.0f, 0, 0, false, false, false);
+    auto packet = BossInfoPacket::add(Uuid{}, std::move(component), 1.0f, 0, 0, false, false, false);
 
     EXPECT_EQ(packet.action(), BossInfoAction::Add);
     EXPECT_TRUE(packet.nameJson().find("Simple Boss Name") != std::string::npos);
@@ -398,7 +399,7 @@ TEST(BossInfoPacketComponentTest, CreateFromStyledText)
     style.setItalic(true);
     component->setStyle(style);
 
-    auto packet = BossInfoPacket::add(1ULL, std::move(component), 1.0f, 0, 0, false, false, false);
+    auto packet = BossInfoPacket::add(Uuid{}, std::move(component), 1.0f, 0, 0, false, false, false);
 
     EXPECT_TRUE(packet.nameJson().find("gold") != std::string::npos);
     EXPECT_TRUE(packet.nameJson().find("bold") != std::string::npos);
@@ -418,7 +419,7 @@ TEST(BossInfoPacketComponentTest, CreateFromNestedText)
     extraText->setStyle(extraStyle);
     mainText->append(std::move(extraText));
 
-    auto packet = BossInfoPacket::add(1ULL, std::move(mainText), 1.0f, 0, 0, false, false, false);
+    auto packet = BossInfoPacket::add(Uuid{}, std::move(mainText), 1.0f, 0, 0, false, false, false);
 
     EXPECT_TRUE(packet.nameJson().find("Main") != std::string::npos);
     EXPECT_TRUE(packet.nameJson().find("Extra") != std::string::npos);
@@ -430,7 +431,7 @@ TEST(BossInfoPacketColorTest, AllColors)
 {
     // 测试所有 BossInfoColor 值
     for (u8 color = 0; color <= 6; ++color) {
-        auto packet = BossInfoPacket::updateStyle(1ULL, color, 0);
+        auto packet = BossInfoPacket::updateStyle(Uuid{}, color, 0);
 
         auto result = packet.serialize();
         ASSERT_TRUE(result.success()) << "Failed to serialize color " << color;
@@ -446,7 +447,7 @@ TEST(BossInfoPacketOverlayTest, AllOverlays)
 {
     // 测试所有 BossInfoOverlay 值
     for (u8 overlay = 0; overlay <= 4; ++overlay) {
-        auto packet = BossInfoPacket::updateStyle(1ULL, 0, overlay);
+        auto packet = BossInfoPacket::updateStyle(Uuid{}, 0, overlay);
 
         auto result = packet.serialize();
         ASSERT_TRUE(result.success()) << "Failed to serialize overlay " << overlay;
@@ -462,7 +463,7 @@ TEST(BossInfoPacketOverlayTest, AllOverlays)
 
 TEST(BossInfoPacketPerfTest, SerializeDeserializePerformance)
 {
-    u64 testUuid = 12345678901234ULL;
+    Uuid testUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
     auto name = std::make_unique<StringTextComponent>("Performance Test Boss");
     auto packet = BossInfoPacket::add(testUuid, std::move(name), 0.5f, 2, 1, true, false, true);
 
@@ -484,12 +485,13 @@ TEST(BossInfoPacketPerfTest, SerializeDeserializePerformance)
 TEST(BossInfoPacketScenarioTest, SimulateBossSpawn)
 {
     // 模拟 Boss 生成
+    Uuid bossUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
     auto name = std::make_unique<StringTextComponent>("Ender Dragon");
     Style style;
     style.setColor(TextFormatting::DarkPurple);
     name->setStyle(style);
 
-    auto packet = BossInfoPacket::add(12345ULL, std::move(name), 1.0f, 5, 0, true, true, false);
+    auto packet = BossInfoPacket::add(bossUuid, std::move(name), 1.0f, 5, 0, true, true, false);
 
     EXPECT_EQ(packet.action(), BossInfoAction::Add);
     EXPECT_FLOAT_EQ(packet.percent(), 1.0f);
@@ -503,8 +505,9 @@ TEST(BossInfoPacketScenarioTest, SimulateBossSpawn)
 TEST(BossInfoPacketScenarioTest, SimulateBossHealthUpdate)
 {
     // 模拟 Boss 血量更新
+    Uuid bossUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
     for (float percent = 1.0f; percent >= 0.0f; percent -= 0.1f) {
-        auto packet = BossInfoPacket::updatePercent(12345ULL, percent);
+        auto packet = BossInfoPacket::updatePercent(bossUuid, percent);
 
         auto result = packet.serialize();
         ASSERT_TRUE(result.success());
@@ -519,12 +522,13 @@ TEST(BossInfoPacketScenarioTest, SimulateBossHealthUpdate)
 TEST(BossInfoPacketScenarioTest, SimulateBossDeath)
 {
     // 模拟 Boss 死亡
+    Uuid bossUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
     // 先设置血量为 0
-    auto healthPacket = BossInfoPacket::updatePercent(12345ULL, 0.0f);
+    auto healthPacket = BossInfoPacket::updatePercent(bossUuid, 0.0f);
     EXPECT_EQ(healthPacket.action(), BossInfoAction::UpdatePercent);
 
     // 然后移除 Boss 栏
-    auto removePacket = BossInfoPacket::remove(12345ULL);
+    auto removePacket = BossInfoPacket::remove(bossUuid);
     EXPECT_EQ(removePacket.action(), BossInfoAction::Remove);
 
     auto result = removePacket.serialize();
@@ -534,8 +538,9 @@ TEST(BossInfoPacketScenarioTest, SimulateBossDeath)
 TEST(BossInfoPacketScenarioTest, SimulateCustomBossbarCreate)
 {
     // 模拟 /bossbar add 命令
+    Uuid bossUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
     auto name = std::make_unique<StringTextComponent>("Custom Boss Bar");
-    auto packet = BossInfoPacket::add(99999ULL, std::move(name), 0.0f, 6, 0, false, false, false);
+    auto packet = BossInfoPacket::add(bossUuid, std::move(name), 0.0f, 6, 0, false, false, false);
 
     EXPECT_EQ(packet.action(), BossInfoAction::Add);
     EXPECT_FLOAT_EQ(packet.percent(), 0.0f);
@@ -548,7 +553,7 @@ TEST(BossInfoPacketScenarioTest, SimulateCustomBossbarCreate)
 TEST(BossInfoPacketScenarioTest, SimulateCustomBossbarUpdate)
 {
     // 模拟 /bossbar set 命令序列
-    u64 bossUuid = 99999ULL;
+    Uuid bossUuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
 
     // 设置名称
     auto namePacket = BossInfoPacket::updateName(bossUuid, std::make_unique<StringTextComponent>("New Name"));
@@ -579,7 +584,7 @@ TEST(BossInfoPacketSpecialCharTest, UnicodeCharacters)
 {
     // 测试 Unicode 字符（中文、日文、表情符号等）
     auto name = std::make_unique<StringTextComponent>("Boss 名称 🐉 ドラゴン");
-    auto packet = BossInfoPacket::add(1ULL, std::move(name), 1.0f, 0, 0, false, false, false);
+    auto packet = BossInfoPacket::add(Uuid{}, std::move(name), 1.0f, 0, 0, false, false, false);
 
     EXPECT_TRUE(packet.nameJson().find("Boss") != std::string::npos);
 
@@ -595,7 +600,7 @@ TEST(BossInfoPacketSpecialCharTest, JsonEscapeSequences)
 {
     // 测试 JSON 转义序列
     auto name = std::make_unique<StringTextComponent>("Line1\nLine2\tTabbed");
-    auto packet = BossInfoPacket::add(1ULL, std::move(name), 1.0f, 0, 0, false, false, false);
+    auto packet = BossInfoPacket::add(Uuid{}, std::move(name), 1.0f, 0, 0, false, false, false);
 
     auto result = packet.serialize();
     ASSERT_TRUE(result.success());
@@ -609,7 +614,9 @@ TEST(BossInfoPacketSpecialCharTest, JsonEscapeSequences)
 
 TEST(BossInfoPacketBoundaryTest, MaxUuid)
 {
-    u64 maxUuid = UINT64_MAX;
+    // 全 0xFF 的 UUID
+    Uuid maxUuid{};
+    maxUuid.fill(0xFF);
     auto packet = BossInfoPacket::remove(maxUuid);
 
     EXPECT_EQ(packet.uuid(), maxUuid);
@@ -625,7 +632,7 @@ TEST(BossInfoPacketBoundaryTest, MaxUuid)
 
 TEST(BossInfoPacketBoundaryTest, ZeroUuid)
 {
-    u64 zeroUuid = 0;
+    Uuid zeroUuid{};
     auto packet = BossInfoPacket::remove(zeroUuid);
 
     EXPECT_EQ(packet.uuid(), zeroUuid);
@@ -642,7 +649,7 @@ TEST(BossInfoPacketBoundaryTest, ZeroUuid)
 TEST(BossInfoPacketBoundaryTest, RapidUpdateSequence)
 {
     // 模拟快速连续发送不同类型的 Boss 栏包
-    u64 uuid = 12345ULL;
+    Uuid uuid = mc::util::uuidFromString("0123456789abcdef0123456789abcdef");
 
     // Add
     auto addPacket =

@@ -26,6 +26,8 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -673,6 +675,214 @@ TEST_F(OcelotEntityTestFixture, DynamicAI_SetupTrustingAI)
     // 取消信任
     ocelot.setTrusting(false);
     EXPECT_FALSE(ocelot.isTrusting());
+}
+
+// ============================================================================
+// DataParameter 网络同步测试
+// ============================================================================
+
+TEST_F(OcelotEntityTestFixture, DataParameter_TrustingParamId_IsValid)
+{
+    // DATA_TRUSTING_PARAM 的 ID 应该是有效的（非零或合理值）
+    u16 paramId = OcelotEntity::getTrustingParamId();
+    // 参数 ID 由 EntityDataManager::createKey 自动分配，应该大于 0
+    EXPECT_GT(paramId, 0u);
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_IsTrusting_ReadsFromDataManager)
+{
+    // isTrusting() 应该从 DataManager 读取而非成员变量
+    OcelotEntity ocelot(EntityId(0));
+    EXPECT_FALSE(ocelot.isTrusting());
+
+    ocelot.setTrusting(true);
+    EXPECT_TRUE(ocelot.isTrusting());
+
+    // 通过 DataManager 直接读取验证
+    auto& dataManager = ocelot.dataManager();
+    u16 paramId = OcelotEntity::getTrustingParamId();
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_TRUE(storedValue);
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_SetTrusting_WritesToDataManager)
+{
+    OcelotEntity ocelot(EntityId(0));
+    auto& dataManager = ocelot.dataManager();
+    u16 paramId = OcelotEntity::getTrustingParamId();
+
+    // 设置信任状态
+    ocelot.setTrusting(true);
+
+    // 验证 DataManager 中的值
+    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_TRUE(storedValue);
+
+    // 设置为不信任
+    ocelot.setTrusting(false);
+    storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_FALSE(storedValue);
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_DirtyFlag_OnTrustingChange)
+{
+    OcelotEntity ocelot(EntityId(0));
+    auto& dataManager = ocelot.dataManager();
+
+    // 初始状态不应有脏数据
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置信任状态应该标记为脏数据
+    ocelot.setTrusting(true);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 清除脏标记后设置相同值不应标记为脏
+    dataManager.clearDirty();
+    ocelot.setTrusting(true);
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置不同值应该标记为脏
+    ocelot.setTrusting(false);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_SyncsStateChanges)
+{
+    // 验证多次状态变更正确同步
+    OcelotEntity ocelot(EntityId(0));
+
+    EXPECT_FALSE(ocelot.isTrusting());
+
+    ocelot.setTrusting(true);
+    EXPECT_TRUE(ocelot.isTrusting());
+
+    ocelot.setTrusting(false);
+    EXPECT_FALSE(ocelot.isTrusting());
+
+    ocelot.setTrusting(true);
+    EXPECT_TRUE(ocelot.isTrusting());
+}
+
+// ============================================================================
+// NBT 序列化测试
+// ============================================================================
+
+namespace {
+
+// 测试辅助类：暴露 protected 的 NBT 方法
+class TestOcelotEntity : public OcelotEntity {
+public:
+    using OcelotEntity::OcelotEntity;
+
+    // 暴露 protected 方法供测试使用
+    using OcelotEntity::addAdditionalSaveData;
+    using OcelotEntity::readAdditionalSaveData;
+};
+
+} // namespace
+
+TEST_F(OcelotEntityTestFixture, Nbt_Trusting_RoundTrip)
+{
+    // 信任状态 NBT 序列化往返测试
+    TestOcelotEntity ocelot(EntityId(0));
+    ocelot.setTrusting(true);
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    ocelot.addAdditionalSaveData(tag);
+
+    // 验证 NBT 键名正确
+    using namespace mc::entity::serialization;
+    auto trustingVal = nbt_helper::tryGetBool(tag, nbt_keys::TRUSTING);
+    ASSERT_TRUE(trustingVal.has_value());
+    EXPECT_TRUE(*trustingVal);
+
+    // 反序列化到新实体
+    TestOcelotEntity loaded(EntityId(1));
+    auto result = loaded.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+    EXPECT_TRUE(loaded.isTrusting());
+}
+
+TEST_F(OcelotEntityTestFixture, Nbt_Trusting_False_RoundTrip)
+{
+    // 信任状态为 false 时的序列化往返测试
+    TestOcelotEntity ocelot(EntityId(0));
+    // 默认不信任，显式设置
+    ocelot.setTrusting(false);
+
+    nbt::tags::compound_tag tag;
+    ocelot.addAdditionalSaveData(tag);
+
+    using namespace mc::entity::serialization;
+    auto trustingVal = nbt_helper::tryGetBool(tag, nbt_keys::TRUSTING);
+    ASSERT_TRUE(trustingVal.has_value());
+    EXPECT_FALSE(*trustingVal);
+
+    TestOcelotEntity loaded(EntityId(1));
+    auto result = loaded.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+    EXPECT_FALSE(loaded.isTrusting());
+}
+
+TEST_F(OcelotEntityTestFixture, Nbt_MissingTrustingKey_DefaultsToFalse)
+{
+    // 缺少 Trusting 键时应该保持默认值 false（MC 原版语义）
+    TestOcelotEntity ocelot(EntityId(0));
+
+    nbt::tags::compound_tag emptyTag;
+    auto result = ocelot.readAdditionalSaveData(emptyTag);
+    EXPECT_TRUE(result.success());
+    EXPECT_FALSE(ocelot.isTrusting());
+}
+
+TEST_F(OcelotEntityTestFixture, Nbt_MissingTrustingKey_DoesNotOverrideSetTrusting)
+{
+    // 读取空 NBT 不应覆盖已设置的信任状态为 true 的实体
+    // 我们的实现是：只有键存在时才调用 setTrusting()，
+    // 所以空 NBT 不应影响已设置的状态
+    TestOcelotEntity ocelot(EntityId(0));
+    ocelot.setTrusting(true);
+    EXPECT_TRUE(ocelot.isTrusting());
+
+    nbt::tags::compound_tag emptyTag;
+    auto result = ocelot.readAdditionalSaveData(emptyTag);
+    EXPECT_TRUE(result.success());
+    // 因为键不存在，不调用 setTrusting()，信任状态保持不变
+    EXPECT_TRUE(ocelot.isTrusting());
+}
+
+TEST_F(OcelotEntityTestFixture, Nbt_ReadTrustingFalse_OverridesTrue)
+{
+    // NBT 中 Trusting=false 应该覆盖已设置的 isTrusting()=true
+    TestOcelotEntity ocelot(EntityId(0));
+    ocelot.setTrusting(true);
+    EXPECT_TRUE(ocelot.isTrusting());
+
+    nbt::tags::compound_tag tag;
+    using namespace mc::entity::serialization;
+    tag.put(nbt_keys::TRUSTING, static_cast<i8>(0)); // false
+
+    auto result = ocelot.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+    EXPECT_FALSE(ocelot.isTrusting());
+}
+
+TEST_F(OcelotEntityTestFixture, Nbt_ReadTrustingTrue_OverridesFalse)
+{
+    // NBT 中 Trusting=true 应该覆盖默认的 isTrusting()=false
+    TestOcelotEntity ocelot(EntityId(0));
+    EXPECT_FALSE(ocelot.isTrusting());
+
+    nbt::tags::compound_tag tag;
+    using namespace mc::entity::serialization;
+    tag.put(nbt_keys::TRUSTING, static_cast<i8>(1)); // true
+
+    auto result = ocelot.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+    EXPECT_TRUE(ocelot.isTrusting());
 }
 
 } // namespace

@@ -57,7 +57,7 @@ void PlayerRenderer::render(Entity& entity, f64 partialTicks)
     // 计算动画参数
     f64 limbSwing = getLimbSwing(player, partialTicks);
     f64 limbSwingAmount = getLimbSwingAmount(player, partialTicks);
-    f64 ageInTicks = getAgeInTicks(player);
+    f64 ageInTicks = getAgeInTicks(player) + partialTicks;
     f64 headYaw = getHeadYaw(player, partialTicks);
     f64 headPitch = getHeadPitch(player, partialTicks);
     f64 scale = 1.0 / 16.0;
@@ -196,30 +196,15 @@ model::player::ArmPose PlayerRenderer::determineArmPose(::mc::Player& player, bo
 
 f64 PlayerRenderer::getLimbSwing(::mc::Player& player, f64 partialTicks) const
 {
-    // 计算水平移动距离
-    // 注意：Player 继承自 Entity，没有 limbSwing 字段，需要从移动距离计算
-    f64 dx = static_cast<f64>(player.x() - player.prevX());
-    f64 dz = static_cast<f64>(player.z() - player.prevZ());
-    f64 distance = std::sqrt(dx * dx + dz * dz);
-
-    // 计算动画周期
-    f64 limbSwing = static_cast<f64>(player.ticksExisted()) * distance;
-    f64 limbSwingAmount = std::min(distance * 4.0, 1.0);
-
-    return limbSwing - limbSwingAmount * (1.0 - partialTicks);
+    f64 limbSwingAmount = static_cast<f64>(player.limbSwingAmount());
+    f64 result = static_cast<f64>(player.limbSwing()) - limbSwingAmount * (1.0 - partialTicks);
+    return result;
 }
 
 f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) const
 {
-    // 计算步态动画强度
-    // 限制最大值为 1.0
-    f64 dx = static_cast<f64>(player.x() - player.prevX());
-    f64 dz = static_cast<f64>(player.z() - player.prevZ());
-    f64 speed = std::sqrt(dx * dx + dz * dz) * 4.0;
-
-    // TODO: prevAmount 使用 speed * 0.7 近似，应从 Entity 的 prevLimbSwingAmount 字段获取
-    f64 prevAmount = speed * 0.7;
-    f64 amount = speed;
+    f64 prevAmount = static_cast<f64>(player.prevLimbSwingAmount());
+    f64 amount = static_cast<f64>(player.limbSwingAmount());
     f64 result = prevAmount + (amount - prevAmount) * partialTicks;
 
     // 限制最大值为 1.0
@@ -233,8 +218,10 @@ f64 PlayerRenderer::getLimbSwingAmount(::mc::Player& player, f64 partialTicks) c
 f64 PlayerRenderer::getHeadYaw(::mc::Player& player, f64 partialTicks) const
 {
     // 头部偏航角（相对于身体）
-    f64 bodyYaw = player.prevYaw() + (player.yaw() - player.prevYaw()) * partialTicks;
-    f64 headYaw = player.prevYaw() + (player.yaw() - player.prevYaw()) * partialTicks;
+    f64 bodyYaw = static_cast<f64>(player.prevRenderYawOffset()) +
+        (static_cast<f64>(player.renderYawOffset()) - static_cast<f64>(player.prevRenderYawOffset())) * partialTicks;
+    f64 headYaw = static_cast<f64>(player.prevRotationYawHead()) +
+        (static_cast<f64>(player.rotationYawHead()) - static_cast<f64>(player.prevRotationYawHead())) * partialTicks;
     f64 diff = headYaw - bodyYaw;
 
     // 归一化到 -180 到 180
@@ -256,7 +243,7 @@ f64 PlayerRenderer::getHeadPitch(::mc::Player& player, f64 partialTicks) const
 
 f64 PlayerRenderer::getAgeInTicks(::mc::Player& player) const
 {
-    // 年龄（用于空闲动画）
+    // 年龄（用于空闲动画），加上 partialTicks 用于帧间插值
     return static_cast<f64>(player.ticksExisted());
 }
 

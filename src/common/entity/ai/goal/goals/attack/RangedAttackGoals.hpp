@@ -109,6 +109,18 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "RangedBowAttackGoal"; }
 
+    /**
+     * @brief 设置最小攻击间隔
+     *
+     * 允许在目标创建后动态调整最小攻击间隔，用于根据游戏难度
+     * 调整骷髅的射击频率（困难难度射击更快）。
+     *
+     * 对应 MC 原版 RangedBowAttackGoal.setMinAttackInterval()。
+     *
+     * @param interval 新的最小攻击间隔（ticks）
+     */
+    void setMinAttackInterval(i32 interval) { m_attackIntervalMin = interval; }
+
 protected:
     void performAttack(LivingEntity* target, f32 charge) override;
 

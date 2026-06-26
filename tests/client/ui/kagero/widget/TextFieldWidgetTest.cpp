@@ -30,6 +30,7 @@
 #include "client/ui/Font.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include "common/input/KeyBinding.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc::client::ui::kagero;
@@ -210,7 +211,7 @@ TEST(TextFieldWidgetTest, DeleteFromCursorBackspace)
     textField.setCursorPositionEnd();
 
     // 删除最后一个字符
-    textField.onKey(259, 0, 1, 0); // GLFW_KEY_BACKSPACE
+    textField.onKey(mc::Keys::Backspace, 0, 1, 0);
     EXPECT_EQ("Hell", textField.text());
 }
 
@@ -223,7 +224,7 @@ TEST(TextFieldWidgetTest, DeleteFromCursorDelete)
     textField.setCursorPositionStart();
 
     // 删除第一个字符
-    textField.onKey(261, 0, 1, 0); // GLFW_KEY_DELETE
+    textField.onKey(mc::Keys::Delete, 0, 1, 0);
     EXPECT_EQ("ello", textField.text());
 }
 
@@ -400,11 +401,11 @@ TEST(TextFieldWidgetTest, KeyHomeEnd)
     EXPECT_EQ(5, textField.cursorPosition());
 
     // Home键
-    textField.onKey(268, 0, 1, 0); // GLFW_KEY_HOME
+    textField.onKey(mc::Keys::Home, 0, 1, 0);
     EXPECT_EQ(0, textField.cursorPosition());
 
     // End键
-    textField.onKey(269, 0, 1, 0);             // GLFW_KEY_END
+    textField.onKey(mc::Keys::End, 0, 1, 0);
     EXPECT_EQ(11, textField.cursorPosition()); // "Hello World".length()
 }
 
@@ -419,15 +420,15 @@ TEST(TextFieldWidgetTest, KeyLeftRight)
     EXPECT_EQ(0, textField.cursorPosition());
 
     // 右键
-    textField.onKey(262, 0, 1, 0); // GLFW_KEY_RIGHT
+    textField.onKey(mc::Keys::Right, 0, 1, 0);
     EXPECT_EQ(1, textField.cursorPosition());
 
     // 左键
-    textField.onKey(263, 0, 1, 0); // GLFW_KEY_LEFT
+    textField.onKey(mc::Keys::Left, 0, 1, 0); // GLFW_KEY_LEFT
     EXPECT_EQ(0, textField.cursorPosition());
 
     // 左键不能超出边界
-    textField.onKey(263, 0, 1, 0);
+    textField.onKey(mc::Keys::Left, 0, 1, 0);
     EXPECT_EQ(0, textField.cursorPosition());
 }
 

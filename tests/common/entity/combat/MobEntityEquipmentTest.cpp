@@ -129,18 +129,24 @@ TEST_F(MobEntityEquipmentTest, GetEquipmentForSlot_ChainmailArmor)
     EXPECT_NE(MobEntity::getEquipmentForSlot(EquipmentSlot::Feet, 3), nullptr);
 }
 
-TEST_F(MobEntityEquipmentTest, GetEquipmentForSlot_CopperLevelReturnsIronFallback)
+TEST_F(MobEntityEquipmentTest, GetEquipmentForSlot_CopperArmor)
 {
-    // armorLevel 1 = 铜（当前回退为铁），铜级和铁级(4)返回相同物品
+    // armorLevel 1 = 铜护甲（MC 1.21.11 新增）
     const Item* copperHelmet = MobEntity::getEquipmentForSlot(EquipmentSlot::Head, 1);
     const Item* ironHelmet = MobEntity::getEquipmentForSlot(EquipmentSlot::Head, 4);
     EXPECT_NE(copperHelmet, nullptr);
     EXPECT_NE(ironHelmet, nullptr);
-    EXPECT_EQ(copperHelmet, ironHelmet); // 铜级当前回退为铁
+    // 铜护甲与铁护甲是不同物品
+    EXPECT_NE(copperHelmet, ironHelmet);
 
     const Item* copperChest = MobEntity::getEquipmentForSlot(EquipmentSlot::Chest, 1);
     const Item* ironChest = MobEntity::getEquipmentForSlot(EquipmentSlot::Chest, 4);
-    EXPECT_EQ(copperChest, ironChest);
+    EXPECT_NE(copperChest, ironChest);
+
+    const Item* copperLegs = MobEntity::getEquipmentForSlot(EquipmentSlot::Legs, 1);
+    const Item* copperFeet = MobEntity::getEquipmentForSlot(EquipmentSlot::Feet, 1);
+    EXPECT_NE(copperLegs, nullptr);
+    EXPECT_NE(copperFeet, nullptr);
 }
 
 TEST_F(MobEntityEquipmentTest, GetEquipmentForSlot_MainHandAndOffHandReturnNull)
@@ -179,17 +185,23 @@ TEST_F(MobEntityEquipmentTest, GetEquipmentForSlot_AllArmorLevelsPerSlot)
 
 TEST_F(MobEntityEquipmentTest, GetEquipmentForSlot_DifferentArmorTypesAreDistinct)
 {
-    // 不同护甲等级的相同槽位应返回不同物品（铜=铁除外）
+    // 不同护甲等级的相同槽位应返回不同物品
     const Item* leather = MobEntity::getEquipmentForSlot(EquipmentSlot::Head, 0);
+    const Item* copper = MobEntity::getEquipmentForSlot(EquipmentSlot::Head, 1);
     const Item* gold = MobEntity::getEquipmentForSlot(EquipmentSlot::Head, 2);
     const Item* chainmail = MobEntity::getEquipmentForSlot(EquipmentSlot::Head, 3);
     const Item* iron = MobEntity::getEquipmentForSlot(EquipmentSlot::Head, 4);
     const Item* diamond = MobEntity::getEquipmentForSlot(EquipmentSlot::Head, 5);
 
+    EXPECT_NE(leather, copper);
     EXPECT_NE(leather, gold);
     EXPECT_NE(leather, chainmail);
     EXPECT_NE(leather, iron);
     EXPECT_NE(leather, diamond);
+    EXPECT_NE(copper, gold);
+    EXPECT_NE(copper, chainmail);
+    EXPECT_NE(copper, iron);
+    EXPECT_NE(copper, diamond);
     EXPECT_NE(gold, chainmail);
     EXPECT_NE(gold, iron);
     EXPECT_NE(gold, diamond);

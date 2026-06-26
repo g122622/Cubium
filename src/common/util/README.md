@@ -75,7 +75,7 @@ util/
 ├── PlatformInfo.hpp/cpp           # 平台信息
 ├── RateLimiter.hpp                # 限流器
 ├── StringUtils.hpp                # 字符串工具
-├── TimeUtils.hpp                  # 时间工具
+├── TimeUtils.hpp                  # 时间工具（时间戳、file_time_type 跨平台转换）
 ├── SpecialDates.hpp               # 特殊日期工具
 └── UuidUtils.hpp/cpp              # UUID 工具（离线 UUID 生成）
 ```

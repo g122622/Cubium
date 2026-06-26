@@ -32,6 +32,8 @@
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <unordered_map>
+
 namespace mc::world::biome {
 
 // ============================================================================
@@ -143,16 +145,30 @@ Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPa
         return loadedCount;
     }
 
-    for (const auto& namespace_ : namespacesResult.value()) {
-        // 列出 tags/worldgen/biome/ 目录下的所有 JSON 文件
-        std::string directory = namespace_ + "/tags/worldgen/biome";
-        auto listResult = dataPackList.listResources(directory, ".json");
+    // 多数据包标签合并：使用 listResourceStacks 获取同一资源路径在所有数据包中的内容。
+    // MC Java 的标签加载语义：按数据包优先级从低到高遍历同名标签文件，
+    // 默认追加，replace=true 时清空已有条目后追加。
+    // listResourceStacks 返回的每个路径对应的 ResourceVersion 向量按数据包优先级从高到低排序，
+    // 因此需要逆序遍历以匹配 MC Java 的从低到高遍历顺序。
 
-        if (!listResult.success()) {
+    // 用于存储已解析的标签数据
+    // key: 标签 ResourceLocation, value: (replace标志, biomeId列表)
+    struct TagParseData {
+        bool replace = false;
+        std::vector<BiomeId> biomeIds;
+    };
+    std::unordered_map<ResourceLocation, TagParseData> parsedTags;
+
+    for (const auto& namespace_ : namespacesResult.value()) {
+        // 列出 tags/worldgen/biome/ 目录下所有数据包中的 JSON 文件及其内容栈
+        std::string directory = namespace_ + "/tags/worldgen/biome";
+        auto stacksResult = dataPackList.listResourceStacks(directory, ".json");
+
+        if (!stacksResult.success()) {
             continue;
         }
 
-        for (const auto& resourcePath : listResult.value()) {
+        for (auto& [resourcePath, versions] : stacksResult.value()) {
             // 从路径提取标签名称
             // 路径格式: namespace/tags/worldgen/biome/has_structure/xxx.json
             std::string tagName = namespace_ + ":" + resourcePath.substr(directory.length() + 1);
@@ -163,35 +179,59 @@ Result<size_t> BiomeTagLoader::loadFromDataPackRepository(const resource::DataPa
 
             ResourceLocation location(tagName);
 
-            // 读取 JSON 内容
-            auto readResult = dataPackList.readTextResource(resourcePath);
-            if (!readResult.success()) {
-                spdlog::warn("BiomeTagLoader: 无法读取标签文件: {}", resourcePath);
-                continue;
-            }
+            // 遍历同一资源路径在所有数据包中的版本（按优先级从低到高）
+            // listResourceStacks 返回的版本按优先级从高到低排序，
+            // 但 MC Java 的 TagLoader.load() 语义是先处理低优先级数据包，后处理高优先级数据包，
+            // replace=true 时清空已有条目后追加，默认追加。
+            // 因此需要逆序遍历，以匹配 MC Java 的行为。
+            for (auto it = versions.rbegin(); it != versions.rend(); ++it) {
+                auto& version = *it;
+                // 解析 JSON
+                auto parseResult = loadFromJson(version.content, location);
+                if (!parseResult.success()) {
+                    spdlog::warn("BiomeTagLoader: 无法解析标签 {} (来自数据包 {}): {}",
+                        tagName,
+                        version.packName,
+                        parseResult.error().message());
+                    continue;
+                }
 
-            // 解析 JSON
-            auto parseResult = loadFromJson(readResult.value(), location);
-            if (!parseResult.success()) {
-                spdlog::warn("BiomeTagLoader: 无法解析标签 {}: {}", tagName, parseResult.error().message());
-                continue;
-            }
-
-            // 将解析结果合并到 BiomeTags 注册表
-            std::unique_ptr<BiomeTag> parsedTag = parseResult.value();
-            auto* existingTag = BiomeTags::getTag(parsedTag->getId());
-            if (existingTag != nullptr) {
-                // 数据包覆盖：将新生物群系添加到现有标签
-                for (BiomeId id : parsedTag->getBiomeIds()) {
-                    existingTag->add(id);
+                std::unique_ptr<BiomeTag> parsedTag = parseResult.value();
+                auto& existing = parsedTags[location];
+                if (parsedTag->isReplace()) {
+                    // replace=true：清空已有条目，使用当前数据包的内容
+                    existing.replace = true;
+                    existing.biomeIds.clear();
+                    for (BiomeId id : parsedTag->getBiomeIds()) {
+                        existing.biomeIds.push_back(id);
+                    }
+                } else {
+                    // 默认追加模式
+                    for (BiomeId id : parsedTag->getBiomeIds()) {
+                        existing.biomeIds.push_back(id);
+                    }
                 }
             }
-            // 注意：如果标签在 BiomeTags::initialize() 中尚未注册，
-            // 数据包中的标签会被丢弃，因为 BiomeTags 使用静态注册表。
-            // 数据包加载应在 initialize() 之后执行。
-
-            ++loadedCount;
         }
+    }
+
+    // 将解析结果注册到 BiomeTags
+    for (auto& [location, tagData] : parsedTags) {
+        auto* existingTag = BiomeTags::getTag(location);
+        if (existingTag != nullptr) {
+            if (tagData.replace) {
+                // replace=true：清空现有标签内容，使用数据包的内容
+                existingTag->clear();
+            }
+            for (BiomeId id : tagData.biomeIds) {
+                existingTag->add(id);
+            }
+        }
+        // 注意：如果标签在 BiomeTags::initialize() 中尚未注册，
+        // 数据包中的标签会被丢弃，因为 BiomeTags 使用静态注册表。
+        // 数据包加载应在 initialize() 之后执行。
+
+        ++loadedCount;
     }
 
     if (loadedCount > 0) {
@@ -247,6 +287,10 @@ Result<size_t> BiomeTagLoader::loadFromResourcePack(const IResourcePack& pack)
             std::unique_ptr<BiomeTag> parsedTag = parseResult.value();
             auto* existingTag = BiomeTags::getTag(parsedTag->getId());
             if (existingTag != nullptr) {
+                if (parsedTag->isReplace()) {
+                    // replace=true：清空现有标签内容
+                    existingTag->clear();
+                }
                 for (BiomeId id : parsedTag->getBiomeIds()) {
                     existingTag->add(id);
                 }
@@ -265,15 +309,14 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
     try {
         nlohmann::json jsonObj = nlohmann::json::parse(json);
 
-        // 创建标签
-        auto tag = std::make_unique<BiomeTag>(location);
-
-        // 解析 replace 字段（如果为 true，清空已有标签内容）
-        // 注意：replace 仅在数据包覆盖场景有意义，这里先解析但不影响初始化逻辑
+        // 解析 replace 字段（可选，默认 false）
         bool replace = false;
         if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
             replace = jsonObj["replace"].get<bool>();
         }
+
+        // 创建标签，传入 replace 标志
+        auto tag = std::make_unique<BiomeTag>(location, replace);
 
         // 解析 values 数组
         if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
@@ -316,14 +359,8 @@ Result<std::unique_ptr<BiomeTag>> BiomeTagLoader::loadFromJson(
             }
         }
 
-        if (replace) {
-            // replace=true 时，数据包要完全替换此标签
-            // 对于新标签，直接添加所有值
-            tag->addAll(biomeIds);
-        } else {
-            // 默认追加模式
-            tag->addAll(biomeIds);
-        }
+        // 将解析到的生物群系 ID 添加到标签中
+        tag->addAll(biomeIds);
 
         if (biomeIds.empty()) {
             spdlog::info("BiomeTagLoader: 标签 '{}' 没有解析到有效的生物群系ID", location.toString());

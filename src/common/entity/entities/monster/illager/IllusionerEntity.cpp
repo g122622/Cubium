@@ -23,26 +23,29 @@
 
 #include "IllusionerEntity.hpp"
 
-#include "../../../../item/Items.hpp"
-#include "../../../../sound/SoundEvents.hpp"
-#include "../../../../util/math/MathUtils.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../../world/IWorld.hpp"
-#include "../../../ai/goal/GoalSelector.hpp"
-#include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
-#include "../../../ai/goal/goals/SwimGoal.hpp"
-#include "../../../ai/goal/goals/attack/RangedAttackGoals.hpp"
-#include "../../../ai/goal/goals/special/IllusionerGoals.hpp"
-#include "../../../ai/goal/goals/target/TargetGoals.hpp"
-#include "../../../attribute/Attributes.hpp"
-#include "../../../combat/DifficultyHelper.hpp"
-#include "../../../core/EntityRegistry.hpp"
-#include "../../../core/LivingEntity.hpp"
-#include "../../../entities/passive/golem/IronGolemEntity.hpp"
-#include "../../../entities/player/Player.hpp"
-#include "../../../entities/projectile/AbstractArrowEntity.hpp"
-#include "../../../entities/villager/AbstractVillagerEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/attack/RangedAttackGoals.hpp"
+#include "common/entity/ai/goal/goals/special/IllusionerGoals.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 #include <cmath>
 
 namespace mc {
@@ -50,6 +53,11 @@ namespace mc {
 IllusionerEntity::IllusionerEntity(EntityId id)
     : SpellcastingIllagerEntity(id)
 {
+    // 初始化镜像分身偏移数组为零向量
+    for (auto& offsets : m_illusionOffsets) {
+        offsets.fill(Vector3(0.0f, 0.0f, 0.0f));
+    }
+
     registerGoals();
     registerAttributes();
 }
@@ -100,6 +108,27 @@ void IllusionerEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 ch
     world()->spawnEntity(std::move(arrow));
 }
 
+std::array<Vector3, IllusionerEntity::NUM_ILLUSIONS> IllusionerEntity::getIllusionOffsets(f32 partialTick) const
+{
+    std::array<Vector3, NUM_ILLUSIONS> result;
+
+    if (m_clientSideIllusionTicks <= 0) {
+        // 无过渡动画，直接使用目标偏移
+        result = m_illusionOffsets[1];
+    } else {
+        // 过渡动画：使用四次方根缓动从旧偏移插值到新偏移
+        f64 t = static_cast<f64>(m_clientSideIllusionTicks - partialTick) / static_cast<f64>(ILLUSION_TRANSITION_TICKS);
+        t = std::pow(t, 0.25); // 四次方根缓动
+
+        f32 tf = static_cast<f32>(t);
+        for (i32 i = 0; i < NUM_ILLUSIONS; ++i) {
+            result[i] = m_illusionOffsets[1][i] * (1.0f - tf) + m_illusionOffsets[0][i] * tf;
+        }
+    }
+
+    return result;
+}
+
 void IllusionerEntity::tick()
 {
     SpellcastingIllagerEntity::tick();
@@ -110,6 +139,63 @@ void IllusionerEntity::tick()
     }
     if (m_mirrorCooldown > 0) {
         --m_mirrorCooldown;
+    }
+
+    // 客户端镜像分身逻辑
+    _updateIllusionLogic();
+}
+
+void IllusionerEntity::_updateIllusionLogic()
+{
+    // 仅在客户端且实体隐身时执行
+    if (!m_world || !m_world->isClientSide()) {
+        return;
+    }
+    if (!hasEffect(entity::effect::EffectType::Invisibility)) {
+        return;
+    }
+
+    // 递减过渡计时器
+    if (m_clientSideIllusionTicks > 0) {
+        --m_clientSideIllusionTicks;
+    }
+
+    // 受伤第1 tick 或每 1200 tick 重新生成分身偏移
+    if (hurtTime() == 1 || static_cast<i32>(ticksExisted()) % 1200 == 0) {
+        m_clientSideIllusionTicks = ILLUSION_TRANSITION_TICKS;
+
+        math::Random& rng = getRandom();
+
+        // 保存旧偏移作为过渡起点，生成新的目标偏移
+        for (i32 i = 0; i < NUM_ILLUSIONS; ++i) {
+            m_illusionOffsets[0][i] = m_illusionOffsets[1][i];
+            m_illusionOffsets[1][i] = Vector3((-6.0f + static_cast<f32>(rng.nextInt(ILLUSION_SPREAD * 2 + 7))) * 0.5f,
+                static_cast<f32>(std::max(0, rng.nextInt(6) - 4)),
+                (-6.0f + static_cast<f32>(rng.nextInt(ILLUSION_SPREAD * 2 + 7))) * 0.5f);
+        }
+
+        // 生成16个云粒子
+        for (i32 i = 0; i < 16; ++i) {
+            f32 px = x() + (rng.nextFloat() - 0.5f) * width() * 0.5f;
+            f32 py = y() + rng.nextFloat() * height();
+            f32 pz = z() + (rng.nextFloat() - 0.5f) * width() * 0.5f;
+
+            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Cloud,
+                Vector3(static_cast<f64>(px), static_cast<f64>(py), static_cast<f64>(pz)),
+                Vector3(0.0, 0.0, 0.0));
+        }
+
+        // 播放镜像移动音效
+        m_world->playSound(
+            SoundEvents::ENTITY_ILLUSIONER_MIRROR_MOVE, sound::SoundCategory::Hostile, position(), 1.0f, 1.0f);
+    } else if (hurtTime() == maxHurtTime() - 1) {
+        // 受伤结束时将分身偏移归零
+        m_clientSideIllusionTicks = ILLUSION_TRANSITION_TICKS;
+
+        for (i32 i = 0; i < NUM_ILLUSIONS; ++i) {
+            m_illusionOffsets[0][i] = m_illusionOffsets[1][i];
+            m_illusionOffsets[1][i] = Vector3(0.0f, 0.0f, 0.0f);
+        }
     }
 }
 
@@ -154,25 +240,34 @@ void IllusionerEntity::registerGoals()
 
     // 目标选择器 (targetSelector)
     // 优先级 1: 被攻击后反击并呼叫支援
-    // MC 原版: HurtByTargetGoal(this, Raider.class).setAlertOthers()
-    // 幻术师不会反击其他灾厄村民
     m_targetSelector.addGoal(
         1, std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
             return dynamic_cast<const AbstractRaiderEntity*>(attacker) != nullptr;
         }));
 
-    // 优先级 2: 攻击玩家（300 ticks 未见记忆）
-    m_targetSelector.addGoal(
-        2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true, 300));
+    // 优先级 2: 攻击玩家（穿透墙壁追踪15秒）
+    {
+        auto playerTarget = std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true);
+        playerTarget->setUnseenMemoryTicks(300);
+        m_targetSelector.addGoal(2, std::move(playerTarget));
+    }
 
-    // 优先级 3: 攻击村民（300 ticks 未见记忆）
-    m_targetSelector.addGoal(3,
-        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
-            this, false, 300));
+    // 优先级 3: 攻击村民（穿透墙壁感知）
+    {
+        auto villagerTarget =
+            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
+                this, false);
+        villagerTarget->setUnseenMemoryTicks(300);
+        m_targetSelector.addGoal(3, std::move(villagerTarget));
+    }
 
-    // 优先级 3: 攻击铁傀儡（300 ticks 未见记忆）
-    m_targetSelector.addGoal(
-        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, false, 300));
+    // 优先级 3: 攻击铁傀儡（穿透墙壁感知）
+    {
+        auto ironGolemTarget =
+            std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, false);
+        ironGolemTarget->setUnseenMemoryTicks(300);
+        m_targetSelector.addGoal(3, std::move(ironGolemTarget));
+    }
 }
 
 void IllusionerEntity::registerAttributes()

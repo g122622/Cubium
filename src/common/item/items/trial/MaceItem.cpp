@@ -78,6 +78,15 @@ bool MaceItem::hitEntity(ItemStack& stack, LivingEntity& target, LivingEntity& a
         // 停止攻击者的下落（将Y轴速度设为极小值）
         attacker.setVelocity(attacker.velocity().x, 0.01, attacker.velocity().z);
 
+        // 设置冲量冲击位置和坠落伤害免疫
+        // 对应 MC MaceItem.hurtEnemy 中设置 currentImpulseImpactPos 和
+        // setIgnoreFallDamageFromCurrentImpulse(true) 的逻辑
+        auto* player = dynamic_cast<Player*>(&attacker);
+        if (player != nullptr) {
+            player->setCurrentImpulseImpactPos(player->calculateMaceImpactPosition());
+            player->setIgnoreFallDamageFromCurrentImpulse(true);
+        }
+
         // 播放音效
         auto* world = attacker.world();
         if (world != nullptr) {
@@ -112,11 +121,8 @@ void MaceItem::postHitEntity(ItemStack& stack, LivingEntity& target, LivingEntit
 
     if (canSmashAttack(attacker)) {
         // 重置攻击者的下落距离
+        // 对应 MC MaceItem.postHurtEnemy 中的 resetFallDistance()
         attacker.setFallDistance(0.0f);
-        // TODO: 实现坠落伤害免疫机制（setIgnoreFallDamageFromCurrentImpulse）
-        // 原版中下落攻击后，玩家不仅重置 fallDistance，还会临时免疫当前冲量造成的坠落伤害，
-        // 防止在 Y 速度被设为 0.01 后若再次下落时仍受到坠落伤害。
-        // 需要在 LivingEntity 中添加类似 setIgnoreFallDamageFromCurrentImpulse() 的方法。
     }
 }
 

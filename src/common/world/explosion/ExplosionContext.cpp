@@ -24,6 +24,7 @@
 #include "ExplosionContext.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 namespace mc {
@@ -85,6 +86,38 @@ bool EntityExplosionContext::canDestroyBlock(const BlockState& blockState, f32 e
     // 默认行为：使用基类实现
     // 特殊实体（如 TNT 矿车不破坏铁轨）可以覆盖此方法
     return ExplosionContext::canDestroyBlock(blockState, explosionPower);
+}
+
+// ========== WitherSkullExplosionContext ==========
+
+WitherSkullExplosionContext::WitherSkullExplosionContext(const Entity* source, bool isDangerous)
+    : EntityExplosionContext(source)
+    , m_isDangerous(isDangerous)
+{}
+
+std::optional<f32> WitherSkullExplosionContext::getExplosionResistance(
+    const BlockState& blockState, const fluid::FluidState* fluidState) const
+{
+    // 获取基类的默认爆炸抗性
+    auto baseResistance = EntityExplosionContext::getExplosionResistance(blockState, fluidState);
+
+    // 普通凋灵之首：不做任何修改
+    if (!m_isDangerous) {
+        return baseResistance;
+    }
+
+    // 蓝色凋灵之首（dangerous skull）：对不在 WITHER_IMMUNE 中的非空方块，限制抗性上限为 0.8
+    // 对应 MC Java 的 WitherSkull.getBlockExplosionResistance()：
+    //   return this.isDangerous() && WitherBoss.canDestroy(p_480179_) ? Math.min(0.8F, p_480544_) : p_480544_;
+    // 其中 WitherBoss.canDestroy() = !state.isAir() && !state.is(BlockTags.WITHER_IMMUNE)
+
+    if (!blockState.isAir() && !BlockTags::WITHER_IMMUNE().contains(blockState)) {
+        if (baseResistance.has_value()) {
+            return std::min(0.8f, *baseResistance);
+        }
+    }
+
+    return baseResistance;
 }
 
 } // namespace explosion

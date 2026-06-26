@@ -95,6 +95,18 @@ public:
     void setCombatTask() override;
 
     /**
+     * @brief 检查是否可以使用非近战武器
+     *
+     * 凋灵骷髅不使用远程武器，始终返回 false。
+     * 对应 MC 原版 WitherSkeleton.canUseNonMeleeWeapon() 返回 false。
+     */
+    [[nodiscard]] bool canUseNonMeleeWeapon(const ItemStack& stack) const override
+    {
+        (void)stack;
+        return false;
+    }
+
+    /**
      * @brief 检查是否免疫凋零效果
      *
      * 凋灵骷髅免疫凋零效果。

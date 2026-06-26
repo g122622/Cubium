@@ -69,6 +69,9 @@ blockentity/
     ├── VaultBlockEntity.hpp/cpp       # 宝库
     ├── CrafterBlockEntity.hpp/cpp     # 自动合成器（9格存储、槽位锁定、6tick合成动画）
     └── README.md
+└── spawner/                         # 刷怪笼方块实体
+    ├── MobSpawnerBlockEntity.hpp/cpp  # 刷怪笼（实体生成逻辑、加权候选列表、NBT持久化）
+    └── README.md
 ```
 
 ## 内部模块关系
@@ -115,7 +118,8 @@ BlockEntity (基类)
 ├── EnderChestEntity (末影箱)
 ├── TrialSpawnerBlockEntity (试炼刷怪笼)
 ├── VaultBlockEntity (宝库)
-└── CrafterBlockEntity (自动合成器)
+├── CrafterBlockEntity (自动合成器)
+└── MobSpawnerBlockEntity (刷怪笼)
 
 BlockEntityRegistry ──创建──→ BlockEntity（及其子类）
 BlockEntityDeserializer ──反序列化──→ BlockEntity（通过 Registry 创建）

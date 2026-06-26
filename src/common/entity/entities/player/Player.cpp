@@ -40,9 +40,11 @@
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockSoundType.hpp"
 #include "../../../world/block/BlockState.hpp"
+#include "../../../world/dimension/MapDimensionId.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
 #include "../../attribute/EntityDefaultAttributes.hpp"
 #include "../../combat/PlayerAttackHelper.hpp"
+#include "../../core/EntityTypeIdNumber.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../entities/effect/EffectEntities.hpp"
 #include "../../entities/item/ItemEntity.hpp"
@@ -51,6 +53,8 @@
 #include "../../inventory/CreativeInventory.hpp"
 #include "../../inventory/INamedContainerProvider.hpp"
 #include "../../inventory/Slot.hpp"
+#include "../../serialization/EntityNbtKeys.hpp"
+#include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "GameModeUtils.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
@@ -157,6 +161,11 @@ void Player::setGameMode(GameMode mode)
 
     // 使用 GameModeUtils 更新能力
     m_abilities = entity::GameModeUtils::getAbilitiesForGameMode(mode);
+
+    // 切换到创造模式时重置冲量上下文（对应 MC ServerPlayerGameMode 切换游戏模式时的重置）
+    if (isCreative()) {
+        resetCurrentImpulseContext();
+    }
 
     // 同步移动速度到属性系统
     // PlayerAbilities 是配置层，属性系统是计算层
@@ -512,6 +521,18 @@ void Player::tick()
     // 更新 XP 冷却
     if (m_xpCooldown > 0) {
         m_xpCooldown--;
+    }
+
+    // 更新冲量上下文宽限期计时器
+    if (m_currentImpulseContextResetGraceTime > 0) {
+        m_currentImpulseContextResetGraceTime--;
+    }
+
+    // 当玩家着地、进入水中或正在攀爬时，尝试重置冲量上下文
+    // 对应 MC ServerGamePacketListenerImpl 中处理玩家移动数据包时的 tryResetCurrentImpulseContext 调用
+    // 注意：宽限期期间不会重置（tryResetCurrentImpulseContext 会检查 graceTime == 0）
+    if (m_onGround || isInWater() || isOnLadder()) {
+        tryResetCurrentImpulseContext();
     }
 
     // 更新攻击冷却
@@ -1491,8 +1512,14 @@ void Player::die(DamageSource& cause)
     // 调用父类方法处理死亡
     LivingEntity::die(cause);
 
+    // MC Java: Player.die() 中清除火焰状态
+    clearFire();
+
     // 玩家特有：掉落经验
     dropExperience();
+
+    // 记录死亡位置（维度+方块坐标），用于追溯指南针和存档持久化
+    m_lastDeathLocation = GlobalPos(m_dimension, onPos());
 }
 
 // ============================================================================
@@ -1507,7 +1534,100 @@ void Player::handleFallDamage(f32 distance, f32 damageMultiplier)
 
 void Player::causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source)
 {
-    LivingEntity::causeFallDamage(distance, damageMultiplier, source);
+    // 创造模式飞行玩家免疫坠落伤害
+    if (m_abilities.canFly) {
+        return;
+    }
+
+    // 冲量坠落伤害减免逻辑
+    // 当玩家处于冲量免疫状态（重锤砸地攻击或风弹爆炸后），
+    // 仅计算冲量冲击点以下部分的坠落伤害
+    bool hasImpulseContext = m_currentImpulseImpactPos.has_value() && m_ignoreFallDamageFromCurrentImpulse;
+
+    if (hasImpulseContext) {
+        // 计算从冲击位置到当前位置的坠落距离
+        // 如果玩家位置在冲击位置上方或相同高度，则坠落距离为 0
+        f64 impulseY = static_cast<f64>(m_currentImpulseImpactPos->y);
+        f64 playerY = static_cast<f64>(position().y);
+        f32 impulseFallDistance = static_cast<f32>(std::min(static_cast<f64>(distance), impulseY - playerY));
+
+        if (impulseFallDistance <= 0.0f) {
+            // 玩家在冲击位置上方或相同高度，不受到冲量坠落伤害，立即重置上下文
+            resetCurrentImpulseContext();
+        } else {
+            // 冲量减免了部分坠落伤害，尝试重置上下文（尊重宽限期）
+            tryResetCurrentImpulseContext();
+        }
+
+        if (impulseFallDistance > 0.0f) {
+            // 用减免后的坠落距离计算伤害
+            LivingEntity::causeFallDamage(impulseFallDistance, damageMultiplier, source);
+            // 受到伤害后重置冲量上下文
+            resetCurrentImpulseContext();
+        } else {
+            // 无有效坠落距离，传播原始坠落距离给乘客
+            propagateFallToPassengers(distance, damageMultiplier, source);
+        }
+    } else {
+        // 没有冲量上下文，正常计算坠落伤害
+        LivingEntity::causeFallDamage(distance, damageMultiplier, source);
+    }
+}
+
+// ============================================================================
+// 冲量坠落伤害免疫
+// ============================================================================
+
+void Player::setIgnoreFallDamageFromCurrentImpulse(bool ignore)
+{
+    m_ignoreFallDamageFromCurrentImpulse = ignore;
+    if (ignore) {
+        applyPostImpulseGraceTime(40);
+    } else {
+        m_currentImpulseContextResetGraceTime = 0;
+    }
+}
+
+void Player::applyPostImpulseGraceTime(i32 graceTime)
+{
+    m_currentImpulseContextResetGraceTime = std::max(m_currentImpulseContextResetGraceTime, graceTime);
+}
+
+void Player::tryResetCurrentImpulseContext()
+{
+    if (m_currentImpulseContextResetGraceTime == 0) {
+        resetCurrentImpulseContext();
+    }
+}
+
+void Player::resetCurrentImpulseContext()
+{
+    m_currentImpulseContextResetGraceTime = 0;
+    m_currentExplosionCause = 0;
+    m_currentImpulseImpactPos = std::nullopt;
+    m_ignoreFallDamageFromCurrentImpulse = false;
+}
+
+Vector3 Player::calculateMaceImpactPosition() const
+{
+    // 如果玩家已有活跃冲量且冲击位置不高于当前位置，保留原有冲击位置
+    // 防止连续砸地攻击时"双重获利"
+    if (m_ignoreFallDamageFromCurrentImpulse && m_currentImpulseImpactPos.has_value() &&
+        m_currentImpulseImpactPos->y <= position().y) {
+        return *m_currentImpulseImpactPos;
+    }
+    return position();
+}
+
+void Player::onExplosionHit(Entity* cause)
+{
+    m_currentImpulseImpactPos = position();
+    m_currentExplosionCause = cause != nullptr ? cause->id() : 0;
+
+    // 只有风弹引起的爆炸才启用坠落伤害免疫
+    // 对应 MC ServerPlayer.onExplosionHit 中对 WindCharge 实体类型的检查
+    bool isWindCharge = cause != nullptr && cause->typeId() == entity::EntityTypeIdNumber::WIND_CHARGE;
+    setIgnoreFallDamageFromCurrentImpulse(isWindCharge);
 }
 
 // ============================================================================
@@ -2017,7 +2137,7 @@ void Player::attack(Entity& target)
     bool wasBurning = false;
     if (fireAspectLevel > 0 && !livingTarget->isOnFire()) {
         wasBurning = true;
-        livingTarget->setFire(20); // 1 秒 = 20 ticks
+        livingTarget->igniteForTicks(20); // 1 秒 = 20 ticks
     }
 
     // 12. 应用暴击倍率
@@ -2038,23 +2158,22 @@ void Player::attack(Entity& target)
     // 重锤下落攻击使用专属伤害类型 MaceSmash
     EntityDamageSource damageSource =
         isMaceSmashAttack ? DamageSources::maceSmash(this) : DamageSources::playerAttack(this);
+
+    // 保存目标 hurt() 前的速度，用于 causeExtraKnockback 的 ServerPlayer 速度修正
+    Vector3 preHurtVelocity = target.velocity();
+
     bool attacked = livingTarget->hurt(damageSource, totalDamage);
 
     // 用于跟踪是否播放了特定攻击音效
     bool playedAttackSound = false;
 
     if (attacked) {
-        // 15. 应用击退
-        if (knockbackLevel > 0) {
-            entity::combat::PlayerAttackHelper::applyKnockback(*livingTarget, *this, static_cast<f32>(knockbackLevel));
-
-            // 疾跑击退后停止疾跑并减少水平速度
-            if (isSprintKnockback) {
-                Vector3 vel = velocity();
-                setVelocity(vel.x * 0.6f, vel.y, vel.z * 0.6f);
-                setSprinting(false);
-            }
-        }
+        // 15. 应用额外击退（包含附魔击退和冲刺击退）
+        // causeExtraKnockback 会：
+        // - 对目标施加击退（方向基于攻击者朝向）
+        // - 如果是冲刺击退，减缓攻击者水平速度并停止冲刺
+        // - 对 ServerPlayer 目标立即发送速度包并清除 hurtMarked，防止速度重复应用
+        causeExtraKnockback(target, static_cast<f32>(knockbackLevel), preHurtVelocity);
 
         // 16. 横扫攻击（仅当使用剑、冷却>90%、非暴击、非疾跑击退、在地面、且几乎静止时触发）
         // 用于检测玩家是否几乎静止（站立不动才能触发横扫攻击）
@@ -2125,7 +2244,7 @@ void Player::attack(Entity& target)
         // 17. 应用火焰附加
         if (fireAspectLevel > 0) {
             // 火焰附加持续时间 = level * 4 秒
-            livingTarget->setFire(fireAspectLevel * 4 * 20); // 20 ticks per second
+            livingTarget->igniteForSeconds(static_cast<f32>(fireAspectLevel) * 4.0f);
         }
 
         // 18. 设置最后攻击目标
@@ -2197,6 +2316,9 @@ void Player::attack(Entity& target)
                         f32 burstPower =
                             item::enchant::WindBurstEnchantment::getExplosionKnockbackMultiplier(windBurstLevel);
                         addVelocity(0.0f, burstPower * 0.5f, 0.0f);
+
+                        // 风爆附魔扩展冲量宽限期（对应 MC ApplyEntityImpulse 效果）
+                        applyPostImpulseGraceTime(10);
                     }
                 }
 
@@ -2250,7 +2372,55 @@ void Player::attack(Entity& target)
         playSound(SoundEvents::ENTITY_PLAYER_ATTACK_NODAMAGE, 1.0f, 1.0f);
 
         if (wasBurning) {
-            livingTarget->setFire(0); // 移除之前点燃的火焰
+            livingTarget->clearFire(); // 移除之前点燃的火焰
+        }
+    }
+}
+
+void Player::causeExtraKnockback(Entity& target, f32 strength, const Vector3& preHurtVelocity)
+{
+    // 与 LivingEntity 基类版本相比，添加了冲刺停止逻辑
+
+    if (strength > 0.0f) {
+        if (auto* livingTarget = dynamic_cast<LivingEntity*>(&target)) {
+            // 击退方向基于攻击者的朝向
+            f32 yawRad = math::toRadians(yaw());
+            f64 sinYaw = static_cast<f64>(std::sin(yawRad));
+            f64 cosYaw = static_cast<f64>(-std::cos(yawRad));
+            livingTarget->applyKnockback(strength, sinYaw, cosYaw);
+        } else {
+            // 非生物实体使用 push
+            f32 yawRad = math::toRadians(yaw());
+            target.addVelocity(-std::sin(yawRad) * strength, 0.1f, std::cos(yawRad) * strength);
+        }
+
+        // 减缓攻击者的水平速度
+        Vector3 vel = velocity();
+        setVelocity(vel.x * 0.6f, vel.y, vel.z * 0.6f);
+        setSprinting(false);
+    }
+
+    // ServerPlayer 目标的速度重复应用修复
+    // 当疾跑玩家攻击 ServerPlayer 时，hurt() 设置的 hurtMarked 会在 EntityTracker::tick() 中
+    // 再次发送 EntityVelocityPacket，导致客户端重复应用击退速度。
+    // 修复方法：立即发送速度包给 ServerPlayer，清除 hurtMarked，恢复 hurt 之前的速度。
+    // 注意：此逻辑仅对 ServerPlayer 执行（sendVelocityPacket 返回 true 表示实际发送了包），
+    // 非 ServerPlayer 的 Player 目标不会执行 clearHurtMarked/setVelocity 修正。
+    if (target.isHurtMarked()) {
+        Player* targetPlayer = dynamic_cast<Player*>(&target);
+        if (targetPlayer != nullptr) {
+            // 立即发送当前速度包给被击退的目标玩家
+            // ServerPlayer 会实际发送网络包并返回 true，Player 基类返回 false
+            bool sent = targetPlayer->sendVelocityPacket();
+            if (sent) {
+                // 清除 hurtMarked，避免 EntityTracker::tick() 再次发送速度包
+                target.clearHurtMarked();
+
+                // 恢复到 hurt() 之前的速度
+                // 服务端的物理引擎会在下一 tick 重新计算正确速度
+                // 这样 EntityTracker::tick() 就不会发送重复的速度同步
+                target.setVelocity(preHurtVelocity);
+            }
         }
     }
 }
@@ -2449,6 +2619,261 @@ bool Player::isWearingGoldArmor() const
     }
 
     return false;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void Player::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+    using namespace mc::entity::serialization::nbt_keys;
+
+    // 先调用基类序列化
+    LivingEntity::addAdditionalSaveData(tag);
+
+    // ========== 游戏模式 ==========
+    tag.put(PLAYER_GAME_TYPE, static_cast<i32>(m_gameMode));
+
+    // ========== 食物数据 ==========
+    tag.put(FOOD_LEVEL, m_foodStats.foodLevel());
+    tag.put(FOOD_SATURATION_LEVEL, m_foodStats.saturationLevel());
+    tag.put(FOOD_EXHAUSTION_LEVEL, m_foodStats.exhaustionLevel());
+    tag.put(FOOD_TICK_TIMER, m_foodStats.foodTimer());
+
+    // ========== 经验 ==========
+    tag.put(XP_LEVEL, m_experienceManager->getLevel());
+    tag.put(XP_P, m_experienceManager->getProgress());
+    tag.put(XP_TOTAL, m_experienceManager->getTotalExperience());
+    tag.put(XP_SEED, m_experienceManager->getXpSeed());
+
+    // ========== 玩家能力 ==========
+    {
+        auto abilities = std::make_unique<nbt::tags::compound_tag>();
+        abilities->put(ABILITIES_INVULNERABLE, static_cast<i8>(m_abilities.invulnerable ? 1 : 0));
+        abilities->put(ABILITIES_FLYING, static_cast<i8>(m_abilities.flying ? 1 : 0));
+        abilities->put(ABILITIES_MAY_FLY, static_cast<i8>(m_abilities.canFly ? 1 : 0));
+        abilities->put(ABILITIES_FLY_SPEED, m_abilities.flySpeed);
+        abilities->put(ABILITIES_WALK_SPEED, m_abilities.walkSpeed);
+        tag.value.emplace(ABILITIES, std::move(abilities));
+    }
+
+    // ========== 冲量上下文 ==========
+    // MC Java 序列化：current_explosion_impact_pos（可选 Vec3）、
+    // ignore_fall_damage_from_current_explosion（bool）、
+    // current_impulse_context_reset_grace_time（i32）。
+    // 注意：currentExplosionCause 是运行时瞬时引用，不持久化（MC Java 同样不序列化此字段）。
+    if (m_currentImpulseImpactPos.has_value()) {
+        auto posTag = std::make_unique<nbt::tags::compound_tag>();
+        posTag->put("x", static_cast<f64>(m_currentImpulseImpactPos->x));
+        posTag->put("y", static_cast<f64>(m_currentImpulseImpactPos->y));
+        posTag->put("z", static_cast<f64>(m_currentImpulseImpactPos->z));
+        tag.value.emplace(CURRENT_EXPLOSION_IMPACT_POS, std::move(posTag));
+    }
+    tag.put(IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION, static_cast<i8>(m_ignoreFallDamageFromCurrentImpulse ? 1 : 0));
+    tag.put(CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME, m_currentImpulseContextResetGraceTime);
+
+    // ========== 重生点 ==========
+    if (m_spawnPoint.has_value()) {
+        tag.put(SPAWN_X, m_spawnPoint->x());
+        tag.put(SPAWN_Y, m_spawnPoint->y());
+        tag.put(SPAWN_Z, m_spawnPoint->z());
+        tag.put(SPAWN_DIM, static_cast<i32>(m_spawnPoint->getDimensionId()));
+        if (m_spawnForced) {
+            tag.put(SPAWN_FORCED, static_cast<i8>(1));
+        }
+    }
+
+    // ========== 进入下界位置 ==========
+    if (m_enteredNetherPosition.has_value()) {
+        auto netherTag = std::make_unique<nbt::tags::compound_tag>();
+        netherTag->put("x", m_enteredNetherPosition->x);
+        netherTag->put("y", m_enteredNetherPosition->y);
+        netherTag->put("z", m_enteredNetherPosition->z);
+        tag.value.emplace(ENTERED_NETHER_POSITION, std::move(netherTag));
+    }
+
+    // ========== 背包和选中槽位 ==========
+    m_inventory.toNbt(tag);
+
+    // ========== 末影箱物品栏 ==========
+    m_enderChestInventory.toNbt(tag);
+
+    // ========== 分数 ==========
+    tag.put(SCORE, m_score);
+
+    // ========== 最后死亡位置 ==========
+    if (m_lastDeathLocation.has_value()) {
+        auto deathTag = std::make_unique<nbt::tags::compound_tag>();
+        deathTag->put(
+            LAST_DEATH_LOCATION_DIMENSION, std::string(dimensionIdToString(m_lastDeathLocation->getDimensionId())));
+        nbt_helper::putIntList(*deathTag,
+            LAST_DEATH_LOCATION_POS,
+            {m_lastDeathLocation->x(), m_lastDeathLocation->y(), m_lastDeathLocation->z()});
+        tag.value.emplace(LAST_DEATH_LOCATION, std::move(deathTag));
+    }
+}
+
+Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+    using namespace mc::entity::serialization::nbt_keys;
+
+    // 先调用基类反序列化
+    MC_TRY(LivingEntity::readAdditionalSaveData(tag));
+
+    // ========== 游戏模式 ==========
+    if (auto val = nbt_helper::tryGetInt(tag, PLAYER_GAME_TYPE)) {
+        m_gameMode = static_cast<GameMode>(*val);
+    }
+
+    // ========== 食物数据 ==========
+    if (auto val = nbt_helper::tryGetInt(tag, FOOD_LEVEL)) {
+        m_foodStats.setFoodLevel(*val);
+    }
+    if (auto val = nbt_helper::tryGetFloat(tag, FOOD_SATURATION_LEVEL)) {
+        m_foodStats.setSaturationLevel(*val);
+    }
+    if (auto val = nbt_helper::tryGetFloat(tag, FOOD_EXHAUSTION_LEVEL)) {
+        m_foodStats.setExhaustionLevel(*val);
+    }
+    if (auto val = nbt_helper::tryGetInt(tag, FOOD_TICK_TIMER)) {
+        m_foodStats.setFoodTimer(*val);
+    }
+
+    // ========== 经验 ==========
+    {
+        i32 xpLevel = m_experienceManager->getLevel();
+        f32 xpProgress = m_experienceManager->getProgress();
+        i32 xpTotal = m_experienceManager->getTotalExperience();
+        i32 xpSeed = m_experienceManager->getXpSeed();
+
+        if (auto val = nbt_helper::tryGetInt(tag, XP_LEVEL)) {
+            xpLevel = *val;
+        }
+        if (auto val = nbt_helper::tryGetFloat(tag, XP_P)) {
+            xpProgress = *val;
+        }
+        if (auto val = nbt_helper::tryGetInt(tag, XP_TOTAL)) {
+            xpTotal = *val;
+        }
+        if (auto val = nbt_helper::tryGetInt(tag, XP_SEED)) {
+            xpSeed = *val;
+        }
+
+        m_experienceManager->setExperience(xpLevel, xpProgress, xpTotal);
+        m_experienceManager->setXpSeed(xpSeed);
+    }
+
+    // ========== 玩家能力 ==========
+    if (auto* abilities = nbt_helper::tryGetCompound(tag, ABILITIES)) {
+        if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_INVULNERABLE)) {
+            m_abilities.invulnerable = *val;
+        }
+        if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_FLYING)) {
+            m_abilities.flying = *val;
+        }
+        if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_MAY_FLY)) {
+            m_abilities.canFly = *val;
+        }
+        if (auto val = nbt_helper::tryGetFloat(*abilities, ABILITIES_FLY_SPEED)) {
+            m_abilities.flySpeed = *val;
+        }
+        if (auto val = nbt_helper::tryGetFloat(*abilities, ABILITIES_WALK_SPEED)) {
+            m_abilities.walkSpeed = *val;
+        }
+    }
+
+    // ========== 冲量上下文 ==========
+    if (auto* posTag = nbt_helper::tryGetCompound(tag, CURRENT_EXPLOSION_IMPACT_POS)) {
+        auto x = nbt_helper::tryGetDouble(*posTag, "x");
+        auto y = nbt_helper::tryGetDouble(*posTag, "y");
+        auto z = nbt_helper::tryGetDouble(*posTag, "z");
+        if (x.has_value() && y.has_value() && z.has_value()) {
+            m_currentImpulseImpactPos = Vector3(static_cast<f32>(*x), static_cast<f32>(*y), static_cast<f32>(*z));
+        }
+    } else {
+        m_currentImpulseImpactPos = std::nullopt;
+    }
+    if (auto val = nbt_helper::tryGetBool(tag, IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION)) {
+        m_ignoreFallDamageFromCurrentImpulse = *val;
+    } else {
+        // MC Java: getBooleanOr(key, false) — 缺失时重置为 false
+        m_ignoreFallDamageFromCurrentImpulse = false;
+    }
+    if (auto val = nbt_helper::tryGetInt(tag, CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME)) {
+        m_currentImpulseContextResetGraceTime = *val;
+    } else {
+        // MC Java: getIntOr(key, 0) — 缺失时重置为 0
+        m_currentImpulseContextResetGraceTime = 0;
+    }
+    // 注意：currentExplosionCause 不从 NBT 读取（运行时瞬时状态，MC Java 同样不持久化）
+
+    // ========== 重生点 ==========
+    {
+        auto spawnX = nbt_helper::tryGetInt(tag, SPAWN_X);
+        auto spawnY = nbt_helper::tryGetInt(tag, SPAWN_Y);
+        auto spawnZ = nbt_helper::tryGetInt(tag, SPAWN_Z);
+        if (spawnX.has_value() && spawnY.has_value() && spawnZ.has_value()) {
+            DimensionId spawnDim = nbt_helper::tryGetInt(tag, SPAWN_DIM).value_or(0);
+            m_spawnPoint = GlobalPos(spawnDim, BlockPos(*spawnX, *spawnY, *spawnZ));
+            m_spawnForced = nbt_helper::tryGetBool(tag, SPAWN_FORCED).value_or(false);
+        } else {
+            m_spawnPoint = std::nullopt;
+            m_spawnForced = false;
+        }
+    }
+
+    // ========== 进入下界位置 ==========
+    if (auto* netherTag = nbt_helper::tryGetCompound(tag, ENTERED_NETHER_POSITION)) {
+        auto x = nbt_helper::tryGetDouble(*netherTag, "x");
+        auto y = nbt_helper::tryGetDouble(*netherTag, "y");
+        auto z = nbt_helper::tryGetDouble(*netherTag, "z");
+        if (x.has_value() && y.has_value() && z.has_value()) {
+            m_enteredNetherPosition = Vector3d(*x, *y, *z);
+        }
+    } else {
+        m_enteredNetherPosition = std::nullopt;
+    }
+
+    // ========== 背包和选中槽位 ==========
+    {
+        auto inventoryResult = PlayerInventory::fromNbt(tag);
+        if (inventoryResult.success()) {
+            m_inventory.copyInventory(inventoryResult.value());
+        }
+    }
+
+    // ========== 末影箱物品栏 ==========
+    m_enderChestInventory.fromNbt(tag);
+
+    // ========== 分数 ==========
+    if (auto scoreOpt = nbt_helper::tryGetInt(tag, SCORE)) {
+        m_score = *scoreOpt;
+    }
+
+    // ========== 最后死亡位置 ==========
+    if (auto* deathTag = nbt_helper::tryGetCompound(tag, LAST_DEATH_LOCATION)) {
+        auto dimStr = nbt_helper::tryGetString(*deathTag, LAST_DEATH_LOCATION_DIMENSION);
+        auto posList = nbt_helper::getIntList(*deathTag, LAST_DEATH_LOCATION_POS);
+        if (dimStr.has_value() && posList.size() >= 3) {
+            DimensionId dim = dimensionNameToId(*dimStr);
+            m_lastDeathLocation = GlobalPos(dim, BlockPos(posList[0], posList[1], posList[2]));
+        } else {
+            // 兼容整数维度格式
+            auto dimInt = nbt_helper::tryGetInt(*deathTag, LAST_DEATH_LOCATION_DIMENSION);
+            if (dimInt.has_value() && posList.size() >= 3) {
+                m_lastDeathLocation = GlobalPos(*dimInt, BlockPos(posList[0], posList[1], posList[2]));
+            } else {
+                m_lastDeathLocation = std::nullopt;
+            }
+        }
+    } else {
+        m_lastDeathLocation = std::nullopt;
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

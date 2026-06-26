@@ -22,7 +22,10 @@
  */
 
 #include "PlayerSaveData.hpp"
+#include "common/entity/inventory/Slot.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/util/CompressionUtils.hpp"
+#include "common/world/dimension/MapDimensionId.hpp"
 #include <cstdlib>
 #include <sstream>
 #include <spdlog/spdlog.h>
@@ -59,6 +62,9 @@ constexpr const char* SPAWN_Z = "SpawnZ";
 constexpr const char* SPAWN_FORCED = "SpawnForced";
 constexpr const char* SPAWN_DIM = "SpawnDimension";
 constexpr const char* ENTERED_NETHER_POS = "EnteredNetherPosition";
+constexpr const char* LAST_DEATH_LOCATION = "LastDeathLocation";
+constexpr const char* LDL_DIMENSION = "dimension";
+constexpr const char* LDL_POS = "pos";
 
 // 游戏模式
 constexpr const char* PLAYER_GAME_TYPE = "playerGameType";
@@ -272,6 +278,15 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
         tag.value.emplace(nbt_keys::ENTERED_NETHER_POS, std::move(netherPos));
     }
 
+    // 最后死亡位置
+    if (lastDeathLocation.has_value()) {
+        auto deathTag = std::make_unique<nbt::tags::compound_tag>();
+        deathTag->put(nbt_keys::LDL_DIMENSION, std::string(dimensionIdToString(lastDeathLocation->getDimensionId())));
+        entity::serialization::nbt_helper::putIntList(
+            *deathTag, nbt_keys::LDL_POS, {lastDeathLocation->x(), lastDeathLocation->y(), lastDeathLocation->z()});
+        tag.value.emplace(nbt_keys::LAST_DEATH_LOCATION, std::move(deathTag));
+    }
+
     // 游戏模式
     tag.put(nbt_keys::PLAYER_GAME_TYPE, static_cast<i32>(gameMode));
     tag.put(nbt_keys::FLYING, static_cast<i8>(flying ? 1 : 0));
@@ -302,21 +317,68 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
         tag.value.emplace(nbt_keys::ABILITIES, std::move(abilities));
     }
 
-    // 背包
+    // 背包（MC 1.21.11 新格式：Inventory 仅存储快捷栏和主背包 Slot 0-35，
+    // 护甲和副手通过 "equipment" 复合标签以枚举名独立存储）
     {
         auto inventoryList = std::make_unique<nbt::tags::compound_list_tag>();
-        for (size_t i = 0; i < inventoryItems.size(); ++i) {
-            const auto& itemOpt = inventoryItems[i];
+        // 仅写入快捷栏和主背包（索引 0-35）
+        constexpr i32 mainEnd = 35; // HOTBAR_SIZE(9) + MAIN_SIZE(27) - 1
+        for (i32 i = 0; i <= mainEnd && i < static_cast<i32>(inventoryItems.size()); ++i) {
+            const auto& itemOpt = inventoryItems[static_cast<size_t>(i)];
             if (!itemOpt.has_value() || itemOpt->isEmpty()) {
                 continue;
             }
 
             nbt::tags::compound_tag itemTag;
-            itemTag.put("Slot", static_cast<i8>(static_cast<i32>(i)));
+            itemTag.put("Slot", static_cast<i8>(i));
             itemOpt->toNbt(itemTag);
             inventoryList->value.push_back(std::move(itemTag));
         }
         tag.value.emplace(nbt_keys::INVENTORY, std::move(inventoryList));
+    }
+
+    // equipment 复合标签（护甲 + 副手，以枚举名存储）
+    // 参考: net.minecraft.world.entity.EntityEquipment.CODEC
+    // 键名: "offhand", "feet", "legs", "chest", "head"
+    // 空槽位不写入，MainHand 来自 Inventory 的选中快捷栏槽位
+    {
+        nbt::tags::compound_tag equipmentTag;
+
+        // 副手（索引 40）
+        if (inventoryItems.size() > 40) {
+            const auto& offhand = inventoryItems[40];
+            if (offhand.has_value() && !offhand->isEmpty()) {
+                nbt::tags::compound_tag itemTag;
+                offhand->toNbt(itemTag);
+                equipmentTag.value.emplace("offhand", std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
+            }
+        }
+
+        // 护甲（索引 36-39: HEAD=36, CHEST=37, LEGS=38, FEET=39）
+        constexpr struct {
+            const char* name;
+            size_t internalIndex;
+        } armorSlots[] = {
+            {"feet", 39},
+            {"legs", 38},
+            {"chest", 37},
+            {"head", 36},
+        };
+
+        for (const auto& [name, idx] : armorSlots) {
+            if (idx < inventoryItems.size()) {
+                const auto& item = inventoryItems[idx];
+                if (item.has_value() && !item->isEmpty()) {
+                    nbt::tags::compound_tag itemTag;
+                    item->toNbt(itemTag);
+                    equipmentTag.value.emplace(name, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
+                }
+            }
+        }
+
+        if (!equipmentTag.value.empty()) {
+            tag.value.emplace("equipment", std::make_unique<nbt::tags::compound_tag>(std::move(equipmentTag)));
+        }
     }
 
     // 鼠标持有物品
@@ -358,6 +420,17 @@ nbt::tags::compound_tag PlayerSaveData::toNbt() const
     tag.put(nbt_keys::ON_GROUND, static_cast<i8>(onGround ? 1 : 0));
     tag.put(nbt_keys::SPRINTING, static_cast<i8>(sprinting ? 1 : 0));
     tag.put(nbt_keys::SNEAKING, static_cast<i8>(sneaking ? 1 : 0));
+
+    // 冲量上下文
+    if (currentImpulseImpactPos.has_value()) {
+        auto impulsePos = std::make_unique<nbt::tags::compound_tag>();
+        impulsePos->put("x", static_cast<f64>(currentImpulseImpactPos->x));
+        impulsePos->put("y", static_cast<f64>(currentImpulseImpactPos->y));
+        impulsePos->put("z", static_cast<f64>(currentImpulseImpactPos->z));
+        tag.value.emplace("current_explosion_impact_pos", std::move(impulsePos));
+    }
+    tag.put("ignore_fall_damage_from_current_explosion", static_cast<i8>(ignoreFallDamageFromCurrentImpulse ? 1 : 0));
+    tag.put("current_impulse_context_reset_grace_time", currentImpulseContextResetGraceTime);
 
     return tag;
 }
@@ -433,6 +506,22 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
         }
     }
 
+    // 最后死亡位置
+    if (auto* deathTag = tryGetCompound(tag, nbt_keys::LAST_DEATH_LOCATION)) {
+        auto dimStr = tryGetString(*deathTag, nbt_keys::LDL_DIMENSION);
+        auto posList = entity::serialization::nbt_helper::getIntList(*deathTag, nbt_keys::LDL_POS);
+        if (dimStr.has_value() && posList.size() >= 3) {
+            DimensionId dim = dimensionNameToId(*dimStr);
+            data.lastDeathLocation = GlobalPos(dim, BlockPos(posList[0], posList[1], posList[2]));
+        } else {
+            // 兼容整数维度格式
+            auto dimInt = tryGetInt(*deathTag, nbt_keys::LDL_DIMENSION);
+            if (dimInt.has_value() && posList.size() >= 3) {
+                data.lastDeathLocation = GlobalPos(*dimInt, BlockPos(posList[0], posList[1], posList[2]));
+            }
+        }
+    }
+
     // 游戏模式
     if (auto opt = tryGetInt(tag, nbt_keys::PLAYER_GAME_TYPE)) {
         data.gameMode = static_cast<GameMode>(*opt);
@@ -472,30 +561,69 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
         if (auto opt = tryGetFloat(*abilities, nbt_keys::WALK_SPEED)) data.walkSpeed = *opt;
     }
 
-    // 背包
-    if (auto* invList = tryGetList(tag, nbt_keys::INVENTORY)) {
-        if (invList->element_id() == nbt::TagId::Compound) {
-            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);
-            // 预分配槽位（41个槽位：0-8快捷栏，9-35主背包，36-39护甲，40副手）
-            data.inventoryItems.resize(41);
+    // 背包（支持 MC 1.21.11 新格式和旧版格式）
+    // 新格式：Inventory 仅包含 Slot 0-35，装备通过 "equipment" 复合标签读取
+    // 旧格式：Inventory 包含所有槽位（0-40），护甲使用 Slot 100-103，副手使用 Slot -106
+    {
+        // 预分配槽位（41个槽位：0-8快捷栏，9-35主背包，36-39护甲，40副手）
+        data.inventoryItems.resize(41);
 
-            for (const auto& itemTag : compoundList.value) {
-                // 获取槽位索引
-                i8 slotIndex = 0;
-                if (auto slotOpt = tryGetByte(itemTag, "Slot")) {
-                    slotIndex = *slotOpt;
-                } else {
-                    continue;
+        // 先读取 equipment 复合标签（新格式）
+        bool hasEquipment = false;
+        if (auto* equipmentTag = tryGetCompound(tag, "equipment")) {
+            hasEquipment = true;
+            // EquipmentSlot 名称到内部索引的映射
+            constexpr struct {
+                const char* name;
+                size_t internalIndex;
+            } slotMapping[] = {
+                {"offhand", 40},
+                {"feet", 39},
+                {"legs", 38},
+                {"chest", 37},
+                {"head", 36},
+            };
+
+            for (const auto& [name, idx] : slotMapping) {
+                if (auto* itemCompound = tryGetCompound(*equipmentTag, name)) {
+                    auto stackResult = ItemStack::fromNbt(*itemCompound);
+                    if (stackResult.success() && !stackResult.value().isEmpty()) {
+                        data.inventoryItems[idx] = std::move(stackResult.value());
+                    }
                 }
+            }
+        }
 
-                if (slotIndex < 0 || slotIndex >= 41) {
-                    continue;
-                }
+        // 读取 Inventory 列表
+        if (auto* invList = tryGetList(tag, nbt_keys::INVENTORY)) {
+            if (invList->element_id() == nbt::TagId::Compound) {
+                auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);
 
-                // 从NBT恢复ItemStack
-                auto stackResult = ItemStack::fromNbt(itemTag);
-                if (stackResult.success() && !stackResult.value().isEmpty()) {
-                    data.inventoryItems[slotIndex] = std::move(stackResult.value());
+                for (const auto& itemTag : compoundList.value) {
+                    // 获取 NBT 槽位值
+                    i8 nbtSlot = 0;
+                    if (auto slotOpt = tryGetByte(itemTag, "Slot")) {
+                        nbtSlot = *slotOpt;
+                    } else {
+                        continue;
+                    }
+
+                    // 将 NBT 槽位值转换为内部索引
+                    i32 internalSlot = InventorySlots::fromNbtSlot(static_cast<i32>(nbtSlot));
+                    if (internalSlot < 0 || internalSlot >= 41) {
+                        continue; // 无效槽位，跳过
+                    }
+
+                    // 如果已有 equipment 字段，跳过护甲和副手槽位（它们已从 equipment 读取）
+                    if (hasEquipment && internalSlot >= 36) {
+                        continue;
+                    }
+
+                    // 从NBT恢复ItemStack
+                    auto stackResult = ItemStack::fromNbt(itemTag);
+                    if (stackResult.success() && !stackResult.value().isEmpty()) {
+                        data.inventoryItems[static_cast<size_t>(internalSlot)] = std::move(stackResult.value());
+                    }
                 }
             }
         }
@@ -544,6 +672,22 @@ Result<PlayerSaveData> PlayerSaveData::fromNbt(const nbt::tags::compound_tag& ta
     if (auto opt = tryGetBool(tag, nbt_keys::ON_GROUND)) data.onGround = *opt;
     if (auto opt = tryGetBool(tag, nbt_keys::SPRINTING)) data.sprinting = *opt;
     if (auto opt = tryGetBool(tag, nbt_keys::SNEAKING)) data.sneaking = *opt;
+
+    // 冲量上下文
+    if (auto* impulsePos = tryGetCompound(tag, "current_explosion_impact_pos")) {
+        auto x = tryGetDouble(*impulsePos, "x");
+        auto y = tryGetDouble(*impulsePos, "y");
+        auto z = tryGetDouble(*impulsePos, "z");
+        if (x.has_value() && y.has_value() && z.has_value()) {
+            data.currentImpulseImpactPos = Vector3(static_cast<f32>(*x), static_cast<f32>(*y), static_cast<f32>(*z));
+        }
+    }
+    if (auto opt = tryGetBool(tag, "ignore_fall_damage_from_current_explosion")) {
+        data.ignoreFallDamageFromCurrentImpulse = *opt;
+    }
+    if (auto opt = tryGetInt(tag, "current_impulse_context_reset_grace_time")) {
+        data.currentImpulseContextResetGraceTime = *opt;
+    }
 
     return data;
 }

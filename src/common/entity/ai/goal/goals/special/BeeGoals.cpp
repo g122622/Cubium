@@ -24,7 +24,12 @@
 #include "BeeGoals.hpp"
 #include "common/entity/ai/controller/MovementController.hpp"
 #include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/util/RandomPositionGenerator.hpp"
+#include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/entities/passive/special/BeeEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -34,8 +39,11 @@
 #include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/agricultural/CropBlock.hpp"
 #include "common/world/block/blocks/agricultural/StemBlock.hpp"
+#include "common/world/block/blocks/vegetation/DoublePlantBlock.hpp"
+#include "common/world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/block/registry/VegetationBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/BeehiveBlockEntity.hpp"
 #include <algorithm>
@@ -305,8 +313,11 @@ void BeePollinateGoal::tick()
         if (world != nullptr) {
             if (world->getRandom().nextFloat() < 0.05f && m_pollinationTicks > m_lastSoundTick + 60) {
                 m_lastSoundTick = m_pollinationTicks;
-                // TODO: 播放蜜蜂授粉声音
-                // world->playSound(m_bee->position(), SoundEvents::ENTITY_BEE_POLLINATE, 1.0f, 1.0f);
+                world->playSound(SoundEvents::ENTITY_BEE_POLLINATE,
+                    sound::SoundCategory::Neutral,
+                    m_bee->position(),
+                    1.0f,
+                    1.0f + (world->getRandom().nextFloat() - world->getRandom().nextFloat()) * 0.2f);
             }
         }
     }
@@ -331,8 +342,11 @@ bool BeePollinateGoal::_isFlower(const BlockPos& pos) const
 
     // 检查是否是高花朵
     if (BlockTags::TALL_FLOWERS().contains(*state)) {
-        // 向日葵只检测上半部分
-        // TODO: 需要检查 DoublePlantBlock.HALF 属性
+        // 向日葵只有上半部分吸引蜜蜂，下半部分不吸引
+        if (state->is(block_registry::VegetationBlocks::SUNFLOWER)) {
+            auto half = state->get(BlockStateProperties::DOUBLE_BLOCK_HALF());
+            return half == blocks::DoublePlantBlock::DoubleBlockHalf::Upper;
+        }
         return true;
     }
 
@@ -847,8 +861,9 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
                     // 状态未变化，说明生长未成功
                     return false;
                 }
-                // TODO: 待客户端实现 PLANT_GROWTH_PARTICLES(2011) 后切换
-                world->playEvent(world::WorldEvents::BONEMEAL_PARTICLES, pos, 15);
+                // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
+                // 区别是不播放骨粉使用音效
+                world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);
                 return true;
             }
         }
@@ -857,9 +872,9 @@ bool BeeFindPollinationTargetGoal::_growCrop(const BlockPos& pos)
     // 如果成功生长（newState 有效），更新方块状态并播放粒子
     if (newState != nullptr) {
         world->setBlockState(pos, newState, 2);
-        // TODO: 待客户端实现 PLANT_GROWTH_PARTICLES(2011) 后，将 BONEMEAL_PARTICLES(2005) 替换为
-        // PLANT_GROWTH_PARTICLES(2011)
-        world->playEvent(world::WorldEvents::BONEMEAL_PARTICLES, pos, 15);
+        // 蜜蜂授粉促进生长：使用 PLANT_GROWTH_PARTICLES(2011) 而非 BONEMEAL_PARTICLES(2005)，
+        // 区别是不播放骨粉使用音效
+        world->playEvent(world::WorldEvents::PLANT_GROWTH_PARTICLES, pos, 15);
         return true;
     }
 
@@ -921,46 +936,84 @@ math::Vector3f BeeWanderGoal::_getRandomLocation()
 {
     IWorld* world = m_bee->world();
     if (world == nullptr) {
-        return m_bee->position();
+        return math::Vector3f(static_cast<f32>(m_bee->x()), static_cast<f32>(m_bee->y()), static_cast<f32>(m_bee->z()));
     }
 
-    math::Vector3 beePos = m_bee->position();
-    math::Random& rng = world->getRandom();
-
-    // 如果有蜂巢且离得太远，飞回蜂巢方向
-    math::Vector3f direction(0.0f, 0.0f, 0.0f);
+    // 确定飞行方向偏好：如果离蜂巢太远则飞回蜂巢方向，否则使用朝向
+    math::Vector3f directionBias(0.0f, 0.0f, 0.0f);
 
     if (m_bee->hasHive()) {
         BlockPos hivePos = m_bee->getHivePos();
-        f64 distSq = (beePos.x - hivePos.x) * (beePos.x - hivePos.x) + (beePos.z - hivePos.z) * (beePos.z - hivePos.z);
+        f64 distSq =
+            (m_bee->x() - hivePos.x) * (m_bee->x() - hivePos.x) + (m_bee->z() - hivePos.z) * (m_bee->z() - hivePos.z);
 
-        if (distSq > HIVE_RETURN_DISTANCE * HIVE_RETURN_DISTANCE) {
+        if (distSq > static_cast<f64>(HIVE_RETURN_DISTANCE * HIVE_RETURN_DISTANCE)) {
             // 飞回蜂巢方向
-            direction = math::Vector3f(hivePos.x + 0.5f - beePos.x, 0.0f, hivePos.z + 0.5f - beePos.z);
-            direction = direction.normalized();
+            directionBias = math::Vector3f(
+                static_cast<f32>(hivePos.x + 0.5 - m_bee->x()), 0.0f, static_cast<f32>(hivePos.z + 0.5 - m_bee->z()));
+            f32 len = directionBias.length();
+            if (len > 0.001f) {
+                directionBias = directionBias / len;
+            }
         }
     }
 
-    if (direction.lengthSquared() < 0.01f) {
-        // 随机方向 - 使用yaw计算前方向
+    if (directionBias.lengthSquared() < 0.01f) {
+        // 使用蜜蜂朝向作为飞行方向
         f32 yaw = m_bee->yaw() * math::DEG_TO_RAD;
-        direction = math::Vector3f(-std::sin(yaw), 0.0f, std::cos(yaw));
+        directionBias = math::Vector3f(-std::sin(yaw), 0.0f, std::cos(yaw));
     }
 
-    // 寻找空中目标或地面目标
-    // TODO: 实现 RandomPositionGenerator.findAirTarget
-    // 简化实现：随机位置
-    f64 targetX = beePos.x + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + direction.x * WANDER_RANGE;
-    f64 targetY = beePos.y + (rng.nextDouble() * WANDER_HEIGHT * 2 - WANDER_HEIGHT);
-    f64 targetZ = beePos.z + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + direction.z * WANDER_RANGE;
+    // 蜜蜂是飞行实体，使用 findRandomTargetBlock（不要求可行走，适合飞行目标）
+    // 参考 MC 的 Bee.WanderGoal.getRandomLocation()
+    // TODO: MC 1.16.5 使用 RandomPositionGenerator.findAirTarget，MC 1.21.11 使用 HoverRandomPos.getPos，
+    // 两者都确保目标位置在固体方块上方且有足够的空气空间。当前使用 findRandomTargetBlock 作为近似，
+    // 待实现 findAirTarget / HoverRandomPos 后替换，以实现更精确的空中悬停目标选择。
+    {
+        math::Vector3f targetPos;
+        bool found = false;
+
+        // 如果有方向偏好，优先向该方向搜索
+        if (directionBias.lengthSquared() > 0.01f) {
+            math::Vector3f searchTarget = m_bee->position() + directionBias * static_cast<f32>(XZ_RANGE);
+            found = ai::util::RandomPositionGenerator::findRandomTargetBlockTowards(
+                m_bee, XZ_RANGE, Y_RANGE, searchTarget, targetPos);
+        }
+
+        // 如果方向搜索失败，尝试无方向搜索
+        if (!found) {
+            found = ai::util::RandomPositionGenerator::findRandomTargetBlock(
+                m_bee, XZ_RANGE, Y_RANGE, std::nullopt, targetPos);
+        }
+
+        if (found) {
+            return targetPos;
+        }
+    }
+
+    // 回退：使用简化随机位置
+    math::Random& rng = world->getRandom();
+    f64 targetX = m_bee->x() + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + directionBias.x * WANDER_RANGE;
+    f64 targetY = m_bee->y() + (rng.nextDouble() * WANDER_HEIGHT * 2 - WANDER_HEIGHT);
+    f64 targetZ = m_bee->z() + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + directionBias.z * WANDER_RANGE;
 
     return math::Vector3f(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
 }
 
-bool BeeWanderGoal::_isValidLocation(const math::Vector3f& /*pos*/) const
+bool BeeWanderGoal::_isValidLocation(const math::Vector3f& pos) const
 {
-    // 检查位置是否在有效范围内
-    // 简化实现
+    IWorld* world = m_bee->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    // 蜜蜂是飞行生物，目标位置不应在方块内部
+    BlockPos blockPos(static_cast<i32>(pos.x), static_cast<i32>(pos.y), static_cast<i32>(pos.z));
+    const BlockState* state = world->getBlockState(blockPos);
+    if (state != nullptr && state->isSolid()) {
+        return false;
+    }
+
     return true;
 }
 
@@ -1009,9 +1062,26 @@ bool BeeAttackPlayerGoal::shouldExecute()
         }
     }
 
-    // 搜索附近玩家
-    // TODO: 使用 EntityUtils::findClosestEntity<PlayerEntity>
-    // 简化实现
+    // 搜索附近玩家，仅攻击蜜蜂愤怒的目标玩家
+    LivingEntity* currentTarget = m_beeEntity->getAttackTarget();
+    Player* nearestPlayer = EntityUtils::findClosestEntity<Player>(
+        world, m_beeEntity->position(), TARGET_RANGE, m_beeEntity, [this, currentTarget](Player* player) {
+            if (!player->isAlive()) {
+                return false;
+            }
+            // 蜜蜂只攻击它当前愤怒的玩家目标
+            if (currentTarget != nullptr && currentTarget == player) {
+                return true;
+            }
+            return false;
+        });
+
+    if (nearestPlayer != nullptr) {
+        m_targetPlayer = nearestPlayer;
+        m_target = nearestPlayer;
+        return true;
+    }
+
     return false;
 }
 

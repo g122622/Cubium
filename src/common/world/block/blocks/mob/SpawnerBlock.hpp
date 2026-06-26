@@ -55,6 +55,8 @@ public:
 
     [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
 
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
     // ========== 渲染属性 ==========
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
@@ -62,6 +64,19 @@ public:
         MC_UNUSED(state);
         return false;
     }
+
+    // ========== 客户端动画 ==========
+
+    /**
+     * @brief 客户端方块动画 tick
+     *
+     * 在刷怪笼方块内随机位置生成烟雾和火焰粒子。
+     * 参考 MC: BaseSpawner.clientTick() 中的粒子效果逻辑。
+     */
+    void animateTick(IBlockAnimateContext& context,
+        const BlockPos& pos,
+        const BlockState& state,
+        math::IRandom& random) const override;
 };
 
 } // namespace blocks

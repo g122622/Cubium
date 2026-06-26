@@ -23,8 +23,11 @@
 
 #include "PlayerInventory.hpp"
 #include "../../item/core/Item.hpp"
+#include "../../util/nbt/Nbt.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
+#include "../serialization/EntityNbtKeys.hpp"
+#include "../serialization/NbtHelper.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -797,6 +800,118 @@ f32 PlayerInventory::getDestroySpeed(const BlockState& blockState) const
     }
 
     return selected.getDestroySpeed(blockState);
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void PlayerInventory::toNbt(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization::nbt_keys;
+
+    // ========== Inventory 列表（仅快捷栏和主背包，Slot 0-35）==========
+    // MC 1.21.11 新格式：护甲和副手不再存储在 Inventory 列表中，
+    // 而是通过 LivingEntity 的 "equipment" 复合标签以 EquipmentSlot 枚举名独立存储。
+    // 参考: net.minecraft.world.entity.player.Inventory.save()
+    // Player 的 equipment 标签由 LivingEntity::addAdditionalSaveData() 写入，
+    // PlayerInventory 仅负责 Inventory 列表和 SelectedItemSlot。
+    auto inventoryList = std::make_unique<nbt::tags::compound_list_tag>();
+    for (i32 i = 0; i < HOTBAR_SIZE + MAIN_SIZE; ++i) { // 0-35
+        const ItemStack& stack = m_items[static_cast<size_t>(i)];
+        if (stack.isEmpty()) {
+            continue;
+        }
+        nbt::tags::compound_tag itemTag;
+        itemTag.put("Slot", static_cast<i8>(i));
+        stack.toNbt(itemTag);
+        inventoryList->value.push_back(std::move(itemTag));
+    }
+    tag.value.emplace(INVENTORY, std::move(inventoryList));
+
+    // 写入当前选中的快捷栏槽位
+    tag.put(SELECTED_ITEM_SLOT, m_selectedSlot);
+}
+
+Result<PlayerInventory> PlayerInventory::fromNbt(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization::nbt_helper;
+    using namespace mc::entity::serialization::nbt_keys;
+
+    PlayerInventory inventory(nullptr);
+
+    // ========== 读取装备（MC 1.21.11 新格式：equipment 复合标签）==========
+    // 新格式使用 EquipmentSlot 枚举名作为键（"offhand", "feet", "legs", "chest", "head"）
+    // 空槽位在 equipment 标签中不存在
+    // 参考: net.minecraft.world.entity.LivingEntity.readAdditionalSaveData()
+    bool hasEquipment = false;
+    if (const auto* equipmentTag = tryGetCompound(tag, EQUIPMENT)) {
+        hasEquipment = true;
+        // EquipmentSlot 名称到内部背包索引的映射
+        static constexpr struct {
+            const char* name;
+            i32 internalSlot;
+        } slotMapping[] = {
+            {"offhand", InventorySlots::OFFHAND},
+            {"feet", InventorySlots::ARMOR_FEET},
+            {"legs", InventorySlots::ARMOR_LEGS},
+            {"chest", InventorySlots::ARMOR_CHEST},
+            {"head", InventorySlots::ARMOR_HEAD},
+        };
+
+        for (const auto& [name, internalSlot] : slotMapping) {
+            if (const auto* itemCompound = tryGetCompound(*equipmentTag, name)) {
+                auto stackResult = ItemStack::fromNbt(*itemCompound);
+                if (stackResult.success() && !stackResult.value().isEmpty()) {
+                    inventory.m_items[static_cast<size_t>(internalSlot)] = std::move(stackResult.value());
+                }
+            }
+        }
+    }
+
+    // ========== 读取背包物品列表 ==========
+    // 新格式（MC 1.21.11）：Inventory 仅包含 Slot 0-35，装备通过 equipment 字段读取
+    // 旧格式：Inventory 包含所有槽位（0-40），护甲使用 Slot 100-103，副手使用 Slot -106
+    // 为了向后兼容，当 equipment 字段不存在时，仍从 Inventory 列表中读取护甲和副手
+    if (const auto* invList = tryGetList(tag, INVENTORY)) {
+        if (invList->element_id() == nbt::TagId::Compound) {
+            auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*invList);
+            for (const auto& itemTag : compoundList.value) {
+                // 读取槽位索引（NBT Slot 值）
+                i8 nbtSlot = 0;
+                if (auto slotOpt = tryGetByte(itemTag, "Slot")) {
+                    nbtSlot = *slotOpt;
+                } else {
+                    continue;
+                }
+
+                // 将 NBT Slot 值转换为内部索引
+                i32 internalSlot = InventorySlots::fromNbtSlot(static_cast<i32>(nbtSlot));
+                if (internalSlot < 0) {
+                    continue; // 无效槽位，跳过
+                }
+
+                // 如果已有 equipment 字段，跳过护甲和副手槽位（它们已从 equipment 读取）
+                // 新格式的 Inventory 列表中 Slot 值仅为 0-35，不会出现护甲/副手的旧编号
+                if (hasEquipment && internalSlot >= InventorySlots::ARMOR_START) {
+                    continue;
+                }
+
+                // 反序列化物品
+                auto stackResult = ItemStack::fromNbt(itemTag);
+                if (stackResult.success() && !stackResult.value().isEmpty()) {
+                    inventory.m_items[static_cast<size_t>(internalSlot)] = std::move(stackResult.value());
+                }
+            }
+        }
+    }
+
+    // 读取当前选中的快捷栏槽位
+    if (auto slotOpt = tryGetInt(tag, SELECTED_ITEM_SLOT)) {
+        inventory.m_selectedSlot = std::clamp(*slotOpt, 0, HOTBAR_SIZE - 1);
+    }
+
+    return Result<PlayerInventory>(std::move(inventory));
 }
 
 } // namespace mc

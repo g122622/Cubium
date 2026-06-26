@@ -114,10 +114,12 @@ public:
     // ========== Entity 接口 ==========
 
     void tick() override;
-    void baseTick() override;
 
     [[nodiscard]] f32 width() const override { return 0.5f; }
     [[nodiscard]] f32 height() const override { return 0.5f; }
+
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     // ========== 经验相关 ==========
 

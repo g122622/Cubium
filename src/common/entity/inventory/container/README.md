@@ -114,6 +114,10 @@ if (containerId != expectedId) {
 
     修复成本超过40级时操作不可用（显示 "太贵"提示）。创造模式玩家绕过此限制。
 
+附魔兼容性检查使用 `Enchantment::isCompatibleWith()` 方法（对应 MC 原版
+`Enchantment.isCompatibleWith`），由 `_updateRepairOutput()` 内联调用。
+已移除历史遗留的 `_areEnchantmentsCompatible` 私有方法（从未被调用）。
+
     ## #5. 附魔台书架力量计算
 
     书架必须在附魔台周围2格范围内，且中间必须有空气。最大书架力量为15。

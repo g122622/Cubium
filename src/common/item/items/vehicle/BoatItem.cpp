@@ -36,9 +36,10 @@
 namespace mc {
 namespace item {
 
-BoatItem::BoatItem(entity::BoatEntity::Type boatType, const ItemProperties& properties)
+BoatItem::BoatItem(entity::BoatEntity::Type boatType, bool hasChest, const ItemProperties& properties)
     : Item(std::move(properties))
     , m_boatType(boatType)
+    , m_hasChest(hasChest)
 {}
 
 ActionResultType BoatItem::onItemUse(ItemUseContext& context)
@@ -71,6 +72,10 @@ ActionResultType BoatItem::onItemUse(ItemUseContext& context)
 
     // 设置船的朝向为玩家的朝向
     boat->setRotation(context.getPlayerYaw());
+
+    // 设置是否为带箱子的船
+    // TODO: 当 ChestBoatEntity 实现后，此处应创建 ChestBoatEntity 而非设置标志
+    boat->setHasChest(m_hasChest);
 
     // 检查碰撞：如果船的碰撞箱（缩小0.1格）与其他实体碰撞，返回 Fail
     AxisAlignedBB boatBox = boat->boundingBox().grow(-0.1f);

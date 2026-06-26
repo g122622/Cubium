@@ -30,10 +30,12 @@
 namespace mc::client::ui::minecraft {
 
 /**
- * @brief 饥饿值条控件
+ * @brief 饥饿值条控件（简单矩形后备版本）
  *
- * 显示玩家饥饿值的 HUD 控件。当前使用简单的矩形填充实现，
- * 未来需替换为与 MC 一致的鸡腿图标渲染。
+ * 显示玩家饥饿值的简化 HUD 控件，使用矩形填充表示饥饿值。
+ * 完整的鸡腿图标渲染（含饥饿效果变体和饱和度抖动动画）已实现于
+ * HudWidget::_renderHunger()，由 HudWidget 直接绘制。
+ * 本控件仅作为独立调试用途保留。
  */
 class HungerBarWidget : public kagero::widget::Widget {
 public:

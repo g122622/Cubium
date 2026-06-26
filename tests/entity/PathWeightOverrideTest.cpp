@@ -32,16 +32,20 @@
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/entity/entities/monster/basic/GiantEntity.hpp"
 #include "common/entity/entities/monster/end/EndermanEntity.hpp"
+#include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/entities/passive/special/StriderEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/passive/water/WaterMobEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/mob/InfestedBlock.hpp"
+#include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/Fluids.hpp"
@@ -599,6 +603,199 @@ TEST_F(SilverfishPathWeightTest, ReturnsZeroWhenNoWorld)
     // 没有世界时返回 0.0f
     SilverfishEntity silverfish(EntityId(70));
     EXPECT_FLOAT_EQ(silverfish.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+// ============================================================================
+// HoglinEntity::getPathWeight 测试
+// ============================================================================
+
+class HoglinPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(HoglinPathWeightTest, PrefersCrimsonNylium)
+{
+    // MC Hoglin.getWalkTargetValue: 站在绯红菌岩上返回 10.0f
+    world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::CRIMSON_NYLIUM->defaultState());
+
+    HoglinEntity hoglin(EntityId(80));
+    hoglin.setWorld(&world);
+    f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+}
+
+TEST_F(HoglinPathWeightTest, ReturnsZeroOnNonCrimsonNylium)
+{
+    // 非绯红菌岩方块返回 0.0f
+    HoglinEntity hoglin(EntityId(80));
+    hoglin.setWorld(&world);
+    f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
+
+TEST_F(HoglinPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    // 没有世界时返回 0.0f
+    HoglinEntity hoglin(EntityId(80));
+    EXPECT_FLOAT_EQ(hoglin.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(HoglinPathWeightTest, WarpedNyliumNotPreferred)
+{
+    // 诡异菌岩不是疣猪兽偏好方块，应返回 0.0f
+    world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::WARPED_NYLIUM->defaultState());
+
+    HoglinEntity hoglin(EntityId(80));
+    hoglin.setWorld(&world);
+    f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
+
+TEST_F(HoglinPathWeightTest, CrimsonNyliumOverridesDarknessPreference)
+{
+    // 绯红菌岩权重 (10.0f) 应远高于普通怪物的黑暗偏好
+    world.setBlockStateAt(0, 63, 0, &block_registry::NetherBlocks::CRIMSON_NYLIUM->defaultState());
+
+    HoglinEntity hoglin(EntityId(80));
+    hoglin.setWorld(&world);
+    f32 weight = hoglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+
+    // 没有绯红菌岩的位置权重应为 0.0f
+    f32 nonNyliumWeight = hoglin.getPathWeight(10.0f, 64.0f, 10.0f);
+    EXPECT_FLOAT_EQ(nonNyliumWeight, 0.0f);
+
+    // 绯红菌岩权重应高于非绯红菌岩权重
+    EXPECT_GT(weight, nonNyliumWeight);
+}
+
+// ============================================================================
+// TurtleEntity::getPathWeight 测试
+// ============================================================================
+
+class TurtlePathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(TurtlePathWeightTest, PrefersWaterWhenNotGoingHome)
+{
+    // 非回家状态 + 水中：返回 10.0f
+    world.setWaterAt(0, 64, 0);
+
+    TurtleEntity turtle(EntityId(90));
+    turtle.setWorld(&world);
+    turtle.setGoingHome(false);
+
+    f32 weight = turtle.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+}
+
+TEST_F(TurtlePathWeightTest, DoesNotPreferWaterWhenGoingHome)
+{
+    // 回家状态 + 水中：水中不再是高权重，回到亮度逻辑
+    world.setWaterAt(0, 64, 0);
+    world.setBrightness(0.8f);
+
+    TurtleEntity turtle(EntityId(90));
+    turtle.setWorld(&world);
+    turtle.setGoingHome(true);
+
+    f32 weight = turtle.getPathWeight(0.0f, 64.0f, 0.0f);
+    // 回家时水中不返回 10.0f，而是 brightness - 0.5
+    EXPECT_FLOAT_EQ(weight, 0.8f - 0.5f); // 0.3f
+}
+
+TEST_F(TurtlePathWeightTest, PrefersSandWhenGoingHome)
+{
+    // 回家状态 + 沙滩上：仍然返回 10.0f（偏好沙滩产卵）
+    world.setBlockStateAt(0, 63, 0, &block_registry::BaseBlocks::SAND->defaultState());
+    world.setBrightness(0.0f); // 即使在黑暗中
+
+    TurtleEntity turtle(EntityId(90));
+    turtle.setWorld(&world);
+    turtle.setGoingHome(true);
+
+    f32 weight = turtle.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+}
+
+TEST_F(TurtlePathWeightTest, PrefersSandWhenNotGoingHome)
+{
+    // 非回家状态 + 沙滩上：返回 10.0f
+    world.setBlockStateAt(0, 63, 0, &block_registry::BaseBlocks::SAND->defaultState());
+
+    TurtleEntity turtle(EntityId(90));
+    turtle.setWorld(&world);
+    turtle.setGoingHome(false);
+
+    f32 weight = turtle.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+}
+
+TEST_F(TurtlePathWeightTest, ReturnsBrightnessWeightOnNonWaterNonSand)
+{
+    // 非回家状态 + 非水非沙滩：返回 brightness - 0.5f
+    world.setBrightness(0.8f);
+
+    TurtleEntity turtle(EntityId(90));
+    turtle.setWorld(&world);
+    turtle.setGoingHome(false);
+
+    f32 weight = turtle.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.8f - 0.5f); // 0.3f
+}
+
+TEST_F(TurtlePathWeightTest, ReturnsNegativeWeightInDarkness)
+{
+    // 黑暗环境 + 非水非沙滩：返回负值
+    world.setBrightness(0.0f);
+
+    TurtleEntity turtle(EntityId(90));
+    turtle.setWorld(&world);
+    turtle.setGoingHome(false);
+
+    f32 weight = turtle.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, -0.5f);
+}
+
+TEST_F(TurtlePathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    // 没有世界时返回 0.0f
+    TurtleEntity turtle(EntityId(90));
+    EXPECT_FLOAT_EQ(turtle.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(TurtlePathWeightTest, WaterOverridesSandWhenNotGoingHome)
+{
+    // 非回家状态 + 水中（脚下虽有沙子但检测的是位置流体）：水中优先返回 10.0f
+    world.setWaterAt(0, 64, 0);
+    world.setBlockStateAt(0, 63, 0, &block_registry::BaseBlocks::SAND->defaultState());
+
+    TurtleEntity turtle(EntityId(90));
+    turtle.setWorld(&world);
+    turtle.setGoingHome(false);
+
+    f32 weight = turtle.getPathWeight(0.0f, 64.0f, 0.0f);
+    // 非回家时水中直接返回 10.0f，不会到沙子检查
+    EXPECT_FLOAT_EQ(weight, 10.0f);
+}
+
+TEST_F(TurtlePathWeightTest, GoingHomeSandOverridesDarkness)
+{
+    // 回家状态 + 沙滩 + 黑暗：沙子偏好优先于亮度
+    world.setBlockStateAt(0, 63, 0, &block_registry::BaseBlocks::SAND->defaultState());
+    world.setBrightness(0.0f);
+
+    TurtleEntity turtle(EntityId(90));
+    turtle.setWorld(&world);
+    turtle.setGoingHome(true);
+
+    f32 weight = turtle.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 10.0f);
 }
 
 } // namespace

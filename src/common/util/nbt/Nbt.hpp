@@ -628,6 +628,19 @@ struct tag {
     virtual TagId id() const noexcept = 0;
     virtual void write(std::ostream& output) const = 0;
     virtual std::unique_ptr<tag> copy() const = 0;
+
+    /**
+     * @brief 深度比较两个标签是否相等
+     *
+     * 递归比较标签内容。对于复合标签和列表标签，会递归比较所有子标签。
+     * 对于浮点数标签（float_tag、double_tag），使用 IEEE 754 精确比较
+     *（与 MC Java 的 record 自动 equals 行为一致）。
+     *
+     * @param other 要比较的另一个标签
+     * @return true 如果两个标签类型和内容完全相同
+     */
+    virtual bool equals(const tag& other) const = 0;
+
     virtual ~tag() {}
 };
 
@@ -680,6 +693,7 @@ struct end_tag final : public tag {
     virtual TagId id() const noexcept override { return tid; }
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
+    virtual bool equals(const tag& other) const override { return other.id() == TagId::End; }
 };
 
 inline end_tag end;
@@ -704,6 +718,13 @@ struct numeric_tag : public tag {
     }
     virtual void write(std::ostream& output) const override { dump(output, value, Context::get(output)); }
     virtual std::unique_ptr<tag> copy() const override { return std::make_unique<numeric_tag>(value); }
+    virtual bool equals(const tag& other) const override
+    {
+        if (other.id() != tid) {
+            return false;
+        }
+        return value == static_cast<const numeric_tag&>(other).value;
+    }
 };
 
 #define NUMERIC_TAG(name, tid, number_t)     \
@@ -748,6 +769,13 @@ struct array_tag final : public tag {
         dump_array(output, value, ctxt);
     }
     virtual std::unique_ptr<tag> copy() const override { return std::make_unique<array_tag>(value); }
+    virtual bool equals(const tag& other) const override
+    {
+        if (other.id() != tid) {
+            return false;
+        }
+        return value == static_cast<const array_tag&>(other).value;
+    }
 };
 
 #define ARRAY_TAG(name, tid, number_t, prefix)     \
@@ -774,6 +802,13 @@ struct string_tag final : public tag {
     static std::unique_ptr<string_tag> read(std::istream& input);
     virtual void write(std::ostream& output) const override;
     virtual std::unique_ptr<tag> copy() const override;
+    virtual bool equals(const tag& other) const override
+    {
+        if (other.id() != TagId::String) {
+            return false;
+        }
+        return value == static_cast<const string_tag&>(other).value;
+    }
 };
 
 TAG_FIND(string_tag)
@@ -792,6 +827,7 @@ struct list_tag : public tag {
     virtual std::unique_ptr<tag> operator[](size_t i) const = 0;
     static std::unique_ptr<list_tag> read(std::istream& input);
     virtual tag_list_tag as_tags() = 0;
+    virtual bool equals(const tag& other) const override;
 };
 
 template <>
@@ -1118,6 +1154,15 @@ struct compound_tag final : public tag {
     }
 
     bool erase(const std::string& name);
+
+    /**
+     * @brief 深度比较两个复合标签是否相等
+     *
+     * 递归比较所有键值对。键集合必须完全相同（大小和每个键都必须存在），
+     * 每个键对应的值也必须通过 tag::equals 递归比较相等。
+     * 这与 MC Java 的 CompoundTag.equals 行为一致。
+     */
+    virtual bool equals(const struct tag& other) const override;
 };
 
 TAG_FIND(compound_tag)
@@ -1183,6 +1228,44 @@ using ShortTag = tags::short_tag;
 using ByteArrayTag = tags::bytearray_tag;
 using IntArrayTag = tags::intarray_tag;
 using LongArrayTag = tags::longarray_tag;
+
+/**
+ * @brief 比较两个NBT标签是否深度相等
+ *
+ * 通过虚方法 tag::equals 实现多态深度比较。
+ * 对于复合标签和列表标签，递归比较所有子标签。
+ *
+ * @param a 第一个标签
+ * @param b 第二个标签
+ * @return true 如果两个标签类型和内容完全相同
+ */
+inline bool operator==(const tags::tag& a, const tags::tag& b)
+{
+    return a.equals(b);
+}
+
+/**
+ * @brief 比较两个NBT标签是否不相等
+ */
+inline bool operator!=(const tags::tag& a, const tags::tag& b)
+{
+    return !a.equals(b);
+}
+
+/**
+ * @brief 比较两个复合标签是否深度相等
+ *
+ * 对 unique_ptr<CompoundTag> 的便捷比较运算符。
+ */
+inline bool operator==(const tags::compound_tag& a, const tags::compound_tag& b)
+{
+    return a.equals(b);
+}
+
+inline bool operator!=(const tags::compound_tag& a, const tags::compound_tag& b)
+{
+    return !a.equals(b);
+}
 
 /**
  * @brief 从输入流读取复合标签

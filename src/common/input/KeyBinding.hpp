@@ -97,6 +97,16 @@ constexpr i32 Z = 90;
 constexpr i32 Semicolon = 59; // ;
 constexpr i32 Equal = 61;     // =
 
+// 括号、反斜杠、反引号
+constexpr i32 LeftBracket = 91;  // [
+constexpr i32 Backslash = 92;    // '\'
+constexpr i32 RightBracket = 93; // ]
+constexpr i32 GraveAccent = 96;  // `
+
+// 非 US 键盘布局键
+constexpr i32 World1 = 161;
+constexpr i32 World2 = 162;
+
 // 功能键 F1-F25
 constexpr i32 F1 = 290;
 constexpr i32 F2 = 291;
@@ -175,6 +185,9 @@ constexpr i32 KP_Subtract = 333;
 constexpr i32 KP_Add = 334;
 constexpr i32 KP_Enter = 335;
 constexpr i32 KP_Equal = 336;
+
+// 菜单键
+constexpr i32 Menu = 348;
 
 // 鼠标按键
 namespace Mouse {

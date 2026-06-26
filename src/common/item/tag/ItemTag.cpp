@@ -26,6 +26,7 @@
 #include "../../util/assert/AssertAll.hpp"
 #include "../core/Item.hpp"
 #include "../core/ItemStack.hpp"
+#include <spdlog/spdlog.h>
 
 namespace mc {
 namespace item::tag {
@@ -36,7 +37,12 @@ ItemTag::ItemTag(ResourceLocation id)
 
 void ItemTag::add(const Item* item)
 {
-    MC_ASSERT_RELEASE(item != nullptr);
+    if (item == nullptr) {
+        spdlog::warn("ItemTag::add(): Attempted to add null item to tag '{}', skipping. "
+                     "This usually indicates the item has not been registered yet.",
+            m_id.toString());
+        return;
+    }
     m_items.insert(item);
 }
 

@@ -857,6 +857,42 @@ BlockTag& BlockTags::GUARDED_BY_PIGLINS()
     return *tag;
 }
 
+BlockTag& BlockTags::BARS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bars"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::SHULKER_BOXES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "shulker_boxes"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::WALL_POST_OVERRIDE()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wall_post_override"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::CAULDRONS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "cauldrons"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -2469,6 +2505,138 @@ void BlockTags::initialize()
         // 猪灵所需方块
         ResourceLocation("minecraft", "gilded_blackstone")});
     tags[guardedByPiglins->getId()] = std::move(guardedByPiglins);
+
+    // 创建 BARS 标签（铁栏杆、铜栏杆等，用于墙壁和玻璃板连接判断）
+    // 参考: datapacks/Vanilla/data/minecraft/tags/block/bars.json
+    auto bars = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bars"));
+    bars->addAll({ResourceLocation("minecraft", "iron_bars"),
+        ResourceLocation("minecraft", "copper_bars"),
+        ResourceLocation("minecraft", "waxed_copper_bars"),
+        ResourceLocation("minecraft", "exposed_copper_bars"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_bars"),
+        ResourceLocation("minecraft", "weathered_copper_bars"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_bars"),
+        ResourceLocation("minecraft", "oxidized_copper_bars"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_bars")});
+    tags[bars->getId()] = std::move(bars);
+
+    // 创建 SHULKER_BOXES 标签（所有潜影盒变体，用于连接例外判断）
+    auto shulkerBoxes = std::make_unique<BlockTag>(ResourceLocation("minecraft", "shulker_boxes"));
+    shulkerBoxes->addAll({ResourceLocation("minecraft", "shulker_box"),
+        ResourceLocation("minecraft", "white_shulker_box"),
+        ResourceLocation("minecraft", "orange_shulker_box"),
+        ResourceLocation("minecraft", "magenta_shulker_box"),
+        ResourceLocation("minecraft", "light_blue_shulker_box"),
+        ResourceLocation("minecraft", "yellow_shulker_box"),
+        ResourceLocation("minecraft", "lime_shulker_box"),
+        ResourceLocation("minecraft", "pink_shulker_box"),
+        ResourceLocation("minecraft", "gray_shulker_box"),
+        ResourceLocation("minecraft", "light_gray_shulker_box"),
+        ResourceLocation("minecraft", "cyan_shulker_box"),
+        ResourceLocation("minecraft", "purple_shulker_box"),
+        ResourceLocation("minecraft", "blue_shulker_box"),
+        ResourceLocation("minecraft", "brown_shulker_box"),
+        ResourceLocation("minecraft", "green_shulker_box"),
+        ResourceLocation("minecraft", "red_shulker_box"),
+        ResourceLocation("minecraft", "black_shulker_box")});
+    tags[shulkerBoxes->getId()] = std::move(shulkerBoxes);
+
+    // 创建 WALL_POST_OVERRIDE 标签（放置在墙上时强制显示墙柱的方块）
+    // 参考: net.minecraft.data.tags.VanillaBlockTagsProvider - WALL_POST_OVERRIDE
+    // 参考: datapacks/Vanilla/data/minecraft/tags/block/wall_post_override.json
+    // 注意: JSON中使用标签引用(#minecraft:signs等)，此处展开为具体方块ID
+    auto wallPostOverride = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wall_post_override"));
+    wallPostOverride->addAll({ResourceLocation("minecraft", "torch"),
+        ResourceLocation("minecraft", "soul_torch"),
+        ResourceLocation("minecraft", "redstone_torch"),
+        ResourceLocation("minecraft", "copper_torch"),
+        ResourceLocation("minecraft", "tripwire"),
+        // 告示牌（所有变体）
+        ResourceLocation("minecraft", "oak_sign"),
+        ResourceLocation("minecraft", "spruce_sign"),
+        ResourceLocation("minecraft", "birch_sign"),
+        ResourceLocation("minecraft", "jungle_sign"),
+        ResourceLocation("minecraft", "acacia_sign"),
+        ResourceLocation("minecraft", "dark_oak_sign"),
+        ResourceLocation("minecraft", "mangrove_sign"),
+        ResourceLocation("minecraft", "cherry_sign"),
+        ResourceLocation("minecraft", "bamboo_sign"),
+        ResourceLocation("minecraft", "pale_oak_sign"),
+        ResourceLocation("minecraft", "crimson_sign"),
+        ResourceLocation("minecraft", "warped_sign"),
+        ResourceLocation("minecraft", "oak_wall_sign"),
+        ResourceLocation("minecraft", "spruce_wall_sign"),
+        ResourceLocation("minecraft", "birch_wall_sign"),
+        ResourceLocation("minecraft", "jungle_wall_sign"),
+        ResourceLocation("minecraft", "acacia_wall_sign"),
+        ResourceLocation("minecraft", "dark_oak_wall_sign"),
+        ResourceLocation("minecraft", "mangrove_wall_sign"),
+        ResourceLocation("minecraft", "cherry_wall_sign"),
+        ResourceLocation("minecraft", "bamboo_wall_sign"),
+        ResourceLocation("minecraft", "pale_oak_wall_sign"),
+        ResourceLocation("minecraft", "crimson_wall_sign"),
+        ResourceLocation("minecraft", "warped_wall_sign"),
+        // 旗帜（所有颜色）
+        ResourceLocation("minecraft", "white_banner"),
+        ResourceLocation("minecraft", "orange_banner"),
+        ResourceLocation("minecraft", "magenta_banner"),
+        ResourceLocation("minecraft", "light_blue_banner"),
+        ResourceLocation("minecraft", "yellow_banner"),
+        ResourceLocation("minecraft", "lime_banner"),
+        ResourceLocation("minecraft", "pink_banner"),
+        ResourceLocation("minecraft", "gray_banner"),
+        ResourceLocation("minecraft", "light_gray_banner"),
+        ResourceLocation("minecraft", "cyan_banner"),
+        ResourceLocation("minecraft", "purple_banner"),
+        ResourceLocation("minecraft", "blue_banner"),
+        ResourceLocation("minecraft", "brown_banner"),
+        ResourceLocation("minecraft", "green_banner"),
+        ResourceLocation("minecraft", "red_banner"),
+        ResourceLocation("minecraft", "black_banner"),
+        ResourceLocation("minecraft", "white_wall_banner"),
+        ResourceLocation("minecraft", "orange_wall_banner"),
+        ResourceLocation("minecraft", "magenta_wall_banner"),
+        ResourceLocation("minecraft", "light_blue_wall_banner"),
+        ResourceLocation("minecraft", "yellow_wall_banner"),
+        ResourceLocation("minecraft", "lime_wall_banner"),
+        ResourceLocation("minecraft", "pink_wall_banner"),
+        ResourceLocation("minecraft", "gray_wall_banner"),
+        ResourceLocation("minecraft", "light_gray_wall_banner"),
+        ResourceLocation("minecraft", "cyan_wall_banner"),
+        ResourceLocation("minecraft", "purple_wall_banner"),
+        ResourceLocation("minecraft", "blue_wall_banner"),
+        ResourceLocation("minecraft", "brown_wall_banner"),
+        ResourceLocation("minecraft", "green_wall_banner"),
+        ResourceLocation("minecraft", "red_wall_banner"),
+        ResourceLocation("minecraft", "black_wall_banner"),
+        // 压力板（所有变体）
+        ResourceLocation("minecraft", "oak_pressure_plate"),
+        ResourceLocation("minecraft", "spruce_pressure_plate"),
+        ResourceLocation("minecraft", "birch_pressure_plate"),
+        ResourceLocation("minecraft", "jungle_pressure_plate"),
+        ResourceLocation("minecraft", "acacia_pressure_plate"),
+        ResourceLocation("minecraft", "dark_oak_pressure_plate"),
+        ResourceLocation("minecraft", "mangrove_pressure_plate"),
+        ResourceLocation("minecraft", "cherry_pressure_plate"),
+        ResourceLocation("minecraft", "bamboo_pressure_plate"),
+        ResourceLocation("minecraft", "pale_oak_pressure_plate"),
+        ResourceLocation("minecraft", "crimson_pressure_plate"),
+        ResourceLocation("minecraft", "warped_pressure_plate"),
+        ResourceLocation("minecraft", "stone_pressure_plate"),
+        ResourceLocation("minecraft", "polished_blackstone_pressure_plate"),
+        ResourceLocation("minecraft", "heavy_weighted_pressure_plate"),
+        ResourceLocation("minecraft", "light_weighted_pressure_plate"),
+        // 仙人掌花
+        ResourceLocation("minecraft", "cactus_flower")});
+    tags[wallPostOverride->getId()] = std::move(wallPostOverride);
+
+    // 创建 CAULDRONS 标签（所有炼药锅变体）
+    // 参考: net.minecraft.data.tags.VanillaBlockTagsProvider - CAULDRONS
+    // 参考: datapacks/Vanilla/data/minecraft/tags/block/cauldrons.json
+    // 注意: water_cauldron 和 powder_snow_cauldron 尚未实现，待实现后加入此标签
+    auto cauldrons = std::make_unique<BlockTag>(ResourceLocation("minecraft", "cauldrons"));
+    cauldrons->addAll({ResourceLocation("minecraft", "cauldron"), ResourceLocation("minecraft", "lava_cauldron")});
+    tags[cauldrons->getId()] = std::move(cauldrons);
 
     s_initialized = true;
 }

@@ -122,6 +122,9 @@ public:
     [[nodiscard]] f32 height() const override { return 0.5625f; }
     [[nodiscard]] f32 eyeHeight() const override { return height(); }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     /**
      * @brief 乘客乘坐高度偏移
      */
@@ -168,9 +171,19 @@ public:
 
     /**
      * @brief 获取船对应的物品
-     * @return 对应木材类型的船物品指针
+     * @return 对应木材类型的船物品指针（根据 hasChest 返回带箱子或普通船物品）
      */
     [[nodiscard]] const Item* getBoatItem() const;
+
+    /**
+     * @brief 是否为带箱子的船
+     */
+    [[nodiscard]] bool hasChest() const { return m_hasChest; }
+
+    /**
+     * @brief 设置是否为带箱子的船
+     */
+    void setHasChest(bool hasChest) { m_hasChest = hasChest; }
 
     /**
      * @brief 获取船的状态
@@ -330,6 +343,9 @@ protected:
 private:
     // 船类型
     Type m_type = Type::OAK;
+
+    // 是否为带箱子的船
+    bool m_hasChest = false;
 
     // 状态
     BoatStatus m_status = BoatStatus::InWater;

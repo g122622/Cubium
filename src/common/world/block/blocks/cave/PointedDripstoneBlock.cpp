@@ -38,7 +38,9 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
+#include "common/world/block/blocks/LavaCauldronBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
+#include "common/world/block/registry/MudBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidTags.hpp"
@@ -130,7 +132,6 @@ BlockState PointedDripstoneBlock::getStateForPlacement(BlockItemUseContext& cont
         return defaultState();
     }
 
-    // MC 1.21.11: isSecondaryUseActive = 玩家正在潜行
     // 潜行时不合并尖端（isTipMerge = false），非潜行时允许合并
     Player* player = context.getPlayer();
     bool isSecondaryUseActive = player != nullptr && player->isSneaking();
@@ -287,7 +288,7 @@ void PointedDripstoneBlock::tick(IWorld& world, const BlockPos& pos, BlockState&
     } else if (isStalactite(state)) {
         // 钟乳石失去支撑：从最高处开始逐个生成掉落方块实体
         // 找到钟乳石柱的起始位置（最高处），然后逐个掉落
-        // MC: spawnFallingStalactite - 从触发位置开始向下遍历
+        // 从触发位置开始向下遍历
         _spawnFallingStalactite(world, pos, state);
     }
 }
@@ -303,7 +304,7 @@ void PointedDripstoneBlock::onFallenUpon(
     MC_UNUSED(pos);
 
     // 只有朝上的TIP厚度才增加摔落伤害
-    // 参考: MC 1.21 PointedDripstoneBlock.fallOn — 石笋替代普通摔落伤害
+    // 石笋替代普通摔落伤害
     if (state.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Up &&
         state.get(BlockStateProperties::DRIPSTONE_THICKNESS()) == BlockStateProperties::DripstoneThickness::Tip) {
         // 石笋伤害：摔落距离 + 2.5，伤害倍率 2.0
@@ -419,14 +420,13 @@ bool PointedDripstoneBlock::canTipGrow(const BlockState& state, IWorld& world, c
 
 bool PointedDripstoneBlock::canGrow(IWorld& world, const BlockPos& pos)
 {
-    // MC 1.21.11: 上方1格是滴水石块 + 上方2格是水源
+    // 上方1格是滴水石块 + 上方2格是水源
     const BlockState* aboveState = world.getBlockState(pos.up());
     if (aboveState == nullptr || !aboveState->is(VanillaBlocks::DRIPSTONE_BLOCK)) {
         return false;
     }
 
     // 检查上方2格是否为水源
-    // MC: p_154142_.is(Blocks.WATER) && p_154142_.getFluidState().isSource()
     const fluid::FluidState* aboveFluid = world.getFluidState(pos.up(2));
     return aboveFluid != nullptr && aboveFluid->isSource() && aboveFluid->getFluid().isIn(fluid::FluidTags::WATER());
 }
@@ -558,15 +558,25 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
             break;
         }
 
-        // MC 1.21.11: 检查是否为可接收滴水的炼药锅
-        // 当前仅支持水炼药锅（CauldronBlock），岩浆炼药锅尚未实现
-        if (state->is(block_registry::BuildingBlocks::CAULDRON)) {
-            // 水可以滴入未满的炼药锅
-            if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
-                return mutablePos.toImmutable();
+        // 检查是否为可接收滴水的炼药锅
+        // 参考 MC 原版：使用 instanceof AbstractCauldronBlock && canReceiveStalactiteDrip(fluid)
+        const Block& block = state->getBlock();
+        bool isCauldron = (&block == block_registry::BuildingBlocks::CAULDRON);
+        bool isLavaCauldron = (&block == block_registry::BuildingBlocks::LAVA_CAULDRON);
+
+        if (isCauldron || isLavaCauldron) {
+            // 检查该炼药锅是否可以接收指定流体的滴水
+            if (isCauldron && CauldronBlock::canReceiveStalactiteDrip(fluid)) {
+                // 水可以滴入未满的炼药锅；岩浆可以滴入空的炼药锅
+                if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
+                    return mutablePos.toImmutable();
+                }
+                if (fluid.isIn(fluid::FluidTags::LAVA()) && CauldronBlock::isEmpty(*state)) {
+                    return mutablePos.toImmutable();
+                }
             }
-            // TODO: 岩浆可以滴入岩浆炼药锅（当 LavaCauldronBlock 实现后，需在此处检查 LAVA_CAULDRON
-            // 方块并增加岩浆液面）
+            // LavaCauldronBlock::canReceiveStalactiteDrip 始终返回 false，不可接收任何滴水
+            // 不匹配的炼药锅不返回，继续检查 canDripThrough
         }
 
         // 检查是否可以穿过
@@ -576,6 +586,81 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
     }
 
     return std::nullopt;
+}
+
+std::optional<BlockPos> PointedDripstoneBlock::findStalactiteTipAboveCauldron(IWorld& world, const BlockPos& pos)
+{
+    // 从炼药锅位置向上搜索可滴水的钟乳石尖端
+    // 使用与 findFillableCauldronBelow 相同的 canDripThrough 检查来穿透方块
+    BlockPosMutable mutablePos(pos.x, pos.y, pos.z);
+
+    for (i32 i = 0; i < MAX_SEARCH_LENGTH_BETWEEN_TIP_AND_CAULDRON; i++) {
+        mutablePos.move(Direction::Up);
+        if (!world.isWithinWorldBounds(mutablePos.toImmutable())) {
+            break;
+        }
+        const BlockState* state = world.getBlockState(mutablePos.toImmutable());
+
+        if (state == nullptr) {
+            break;
+        }
+
+        // 找到可滴水的钟乳石尖端（朝下的 TIP，不含水）
+        // 注意：canDrip 只接受 TIP 厚度，不接受 TIP_MERGE
+        if (canDrip(*state)) {
+            return mutablePos.toImmutable();
+        }
+
+        // 不可穿透的方块停止搜索
+        if (!canDripThrough(world, mutablePos.toImmutable(), state)) {
+            break;
+        }
+    }
+
+    return std::nullopt;
+}
+
+const fluid::Fluid* PointedDripstoneBlock::getCauldronFillFluidType(IWorld& world, const BlockPos& tipPos)
+{
+    // 从钟乳石尖端向上查找根方块，然后检查根方块上方的流体
+    const BlockState* tipState = world.getBlockState(tipPos);
+    if (tipState == nullptr || !isStalactite(*tipState)) {
+        return fluid::Fluids::EMPTY();
+    }
+
+    std::optional<BlockPos> rootPosOpt =
+        findRootBlock(world, tipPos, *tipState, MAX_SEARCH_LENGTH_WHEN_CHECKING_DRIP_TYPE);
+    if (!rootPosOpt.has_value()) {
+        return fluid::Fluids::EMPTY();
+    }
+
+    // 根方块上方一格是流体位置
+    BlockPos fluidPos = rootPosOpt.value().up();
+    if (!world.isWithinWorldBounds(fluidPos)) {
+        return fluid::Fluids::EMPTY();
+    }
+
+    const BlockState* blockAboveRoot = world.getBlockState(fluidPos);
+    if (blockAboveRoot == nullptr) {
+        return fluid::Fluids::EMPTY();
+    }
+
+    // 特殊情况：泥巴上方产生水（在下界水蒸发，泥巴不产生水滴）
+    if (blockAboveRoot->is(block_registry::MudBlocks::MUD) && !world.isUltraWarm()) {
+        return fluid::Fluids::WATER();
+    }
+
+    // 检查流体状态
+    const fluid::FluidState* fluidState = world.getFluidState(fluidPos);
+    if (fluidState != nullptr && !fluidState->isEmpty()) {
+        const fluid::Fluid& fluid = fluidState->getFluid();
+        // 只接受水和岩浆
+        if (fluid.isIn(fluid::FluidTags::WATER()) || fluid.isIn(fluid::FluidTags::LAVA())) {
+            return &fluid;
+        }
+    }
+
+    return fluid::Fluids::EMPTY();
 }
 
 bool PointedDripstoneBlock::canDripThrough(IWorld& world, const BlockPos& pos, const BlockState* state)
@@ -593,7 +678,6 @@ bool PointedDripstoneBlock::canDripThrough(IWorld& world, const BlockPos& pos, c
         return false;
     }
     // 检查碰撞箱是否与 4x16x4 中心柱相交
-    // MC: Block.column(4.0, 0.0, 16.0) → 像素坐标中心区域 (6,0,6)-(10,16,10)
     // 即方块本地坐标 (0.375, 0, 0.375)-(0.625, 1, 0.625)
     static const AxisAlignedBB DRIP_SPACE_LOCAL(0.375f, 0.0f, 0.375f, 0.625f, 1.0f, 0.625f);
     const CollisionShape& shape = state->getCollisionShape();
@@ -660,7 +744,7 @@ void PointedDripstoneBlock::createMergedTips(IWorld& world, const BlockPos& pos,
 
     // 如果传入的是朝上的TIP，则上方在 pos 之上，下方在 pos
     // 如果传入的是朝下的TIP，则下方在 pos，上方在 pos 之上
-    // MC源码中：如果 upState.getValue(TIP_DIRECTION) == UP，则 upPos=pos, downPos=pos.below()
+    // 如果 upState 朝上，则 upPos=pos, downPos=pos.below()
     if (upState.get(BlockStateProperties::VERTICAL_DIRECTION()) == Direction::Up) {
         upPos = pos;
         downPos = pos.down();
@@ -784,14 +868,25 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
     }
 
     // 确定流体类型
-    const fluid::FluidState* fluidState = world.getFluidState(fluidPos);
-    if (fluidState == nullptr || fluidState->isEmpty()) {
+    // 特殊情况：泥巴上方产生水（在下界水蒸发，泥巴不产生水滴）
+    bool isMudWithWater = fluidBlockState->is(VanillaBlocks::MUD) && !world.isUltraWarm();
+    const fluid::Fluid* fluid = nullptr;
+
+    if (isMudWithWater) {
+        fluid = fluid::Fluids::WATER();
+    } else {
+        const fluid::FluidState* fluidState = world.getFluidState(fluidPos);
+        if (fluidState != nullptr && !fluidState->isEmpty()) {
+            fluid = &fluidState->getFluid();
+        }
+    }
+
+    if (fluid == nullptr) {
         return;
     }
 
-    const fluid::Fluid& fluid = fluidState->getFluid();
-    bool isWater = fluid.isIn(fluid::FluidTags::WATER());
-    bool isLava = fluid.isIn(fluid::FluidTags::LAVA());
+    bool isWater = fluid->isIn(fluid::FluidTags::WATER());
+    bool isLava = fluid->isIn(fluid::FluidTags::LAVA());
 
     if (!isWater && !isLava) {
         return;
@@ -810,9 +905,9 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
     }
     BlockPos tipPos = tipPosOpt2.value();
 
-    // MC 1.21.11: 泥巴变粘土逻辑
+    // 泥巴变粘土逻辑
     // 如果根方块上方是泥巴且流体为水，将泥巴替换为粘土
-    if (fluidBlockState != nullptr && fluidBlockState->is(VanillaBlocks::MUD) && isWater) {
+    if (isMudWithWater) {
         const BlockState* clayState = &VanillaBlocks::CLAY->defaultState();
         world.setBlockState(fluidPos, clayState, 3);
         world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, fluidPos, clayState);
@@ -820,8 +915,8 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
         return;
     }
 
-    // MC 1.21.11: 寻找下方可接收流体的炼药锅
-    std::optional<BlockPos> cauldronPosOpt = findFillableCauldronBelow(world, tipPos, fluid);
+    // 寻找下方可接收流体的炼药锅
+    std::optional<BlockPos> cauldronPosOpt = findFillableCauldronBelow(world, tipPos, *fluid);
     if (cauldronPosOpt.has_value()) {
         BlockPos cauldronPos = cauldronPosOpt.value();
         world.playEvent(world::WorldEvents::DRIPSTONE_DRIP, tipPos, 0);
@@ -836,7 +931,6 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
 
 void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // MC 1.21.11: spawnFallingStalactite
     // 从当前位置开始向下遍历，逐个生成掉落方块实体
     // 只有最底部的尖端（TIP 或 TIP_MERGE）会设置伤害参数
     const BlockState* airState = BlockRegistry::instance().airState();
@@ -875,7 +969,7 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
         fallingEntity->setFallingState(currentState);
         fallingEntity->setFallStartPos(static_cast<f64>(currentPos.y));
 
-        // MC: 只有尖端（TIP 或 TIP_MERGE）设置伤害
+        // 只有尖端（TIP 或 TIP_MERGE）设置伤害
         // 伤害 = max(高度差, 6) * 每格伤害系数，上限 MAX_DAMAGE
         if (isTip(currentState, true)) {
             i32 fallHeight = std::max(pos.y - currentPos.y + 1, 6);
@@ -892,6 +986,23 @@ void PointedDripstoneBlock::_spawnFallingStalactite(IWorld& world, const BlockPo
         mutablePos.move(Direction::Down);
         currentState = world.getBlockState(mutablePos.toImmutable());
     }
+}
+
+// ============================================================================
+// getDripParticlePosition
+// ============================================================================
+
+Vector3 PointedDripstoneBlock::getDripParticlePosition(const BlockPos& pos)
+{
+    // Y = blockPos.y + STALACTITE_DRIP_START_PIXEL - 0.0625
+    //   = blockPos.y + 5/16 - 1/16 = blockPos.y + 0.25
+    // X = blockPos.x + 0.5（居中）
+    // Z = blockPos.z + 0.5
+    f64 particleX = static_cast<f64>(pos.x) + 0.5;
+    f64 particleY = static_cast<f64>(pos.y) + STALACTITE_DRIP_START_PIXEL - 0.0625;
+    f64 particleZ = static_cast<f64>(pos.z) + 0.5;
+
+    return Vector3(static_cast<f32>(particleX), static_cast<f32>(particleY), static_cast<f32>(particleZ));
 }
 
 } // namespace blocks

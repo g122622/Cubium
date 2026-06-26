@@ -210,6 +210,21 @@ public:
      */
     std::unique_ptr<AnimalEntity> spawnBaby(AnimalEntity& partner) override;
 
+    // ========== 玩家交互 ==========
+
+    /**
+     * @brief 处理玩家与炽足兽的交互
+     *
+     * 交互优先级：
+     * 1. 玩家手持食物（诡异菌）→ 喂食/繁殖/加速成长
+     * 2. 炽足兽已装备鞍 + 无乘客 + 玩家未蹲下 → 玩家骑乘
+     * 3. 玩家手持鞍 → 委托给 SaddleItem::itemInteractionForEntity()（由 Player::interactOn 处理）
+     * 4. 其他 → 返回 Pass
+     *
+     * 参考: net.minecraft.world.entity.monster.Strider.mobInteract
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
     // ========== 属性 ==========
 
     /**

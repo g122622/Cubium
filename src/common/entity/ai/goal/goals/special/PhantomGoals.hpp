@@ -256,7 +256,8 @@ private:
      */
     bool _checkForCats();
 
-    i32 m_catCheckTimer = 0; ///< 猫检测计时器（每20tick检测一次）
+    i32 m_catCheckTimer = 20;     ///< 猫检测计时器（初始化为20使首次调用立即检测）
+    bool m_isScaredOfCat = false; ///< 是否害怕猫（检测到猫时设为true）
 };
 
 } // namespace entity::ai::goal

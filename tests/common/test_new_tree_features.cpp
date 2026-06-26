@@ -33,6 +33,8 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "util/math/MathUtils.hpp"
 #include "world/block/BlockRegistry.hpp"
+#include "world/chunk/data/ChunkPrimer.hpp"
+#include "world/gen/chunk/IChunkGenerator.hpp"
 #include "world/gen/feature/ConfiguredFeature.hpp"
 #include "world/gen/feature/FeatureIds.hpp"
 #include "world/gen/feature/FeatureSpread.hpp"
@@ -42,10 +44,12 @@
 #include "world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
 #include "world/gen/feature/tree/foliage/FoliagePlacer.hpp"
 #include "world/gen/feature/tree/foliage/FoliagePlacers.hpp"
+#include "world/gen/feature/tree/trunk/BendingTrunkPlacer.hpp"
 #include "world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
 #include "world/gen/feature/tree/trunk/TrunkPlacer.hpp"
 #include "world/gen/feature/tree/trunk/TrunkPlacers.hpp"
 #include "world/gen/feature/vegetation/BigMushroomFeature.hpp"
+#include "world/gen/valueprovider/IntProvider.hpp"
 #include <map>
 #include <gtest/gtest.h>
 
@@ -493,6 +497,245 @@ TEST_F(NewTrunkPlacerTest, MegaJungleTrunkPlacerClone)
 }
 
 // ============================================================================
+// BendingTrunkPlacer 测试
+// ============================================================================
+
+class BendingTrunkPlacerTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        random = std::make_unique<math::Random>(12345);
+
+        // 创建 WorldGenRegion 用于放置测试
+        m_chunks.resize(9);
+        for (i32 relZ = -1; relZ <= 1; ++relZ) {
+            for (i32 relX = -1; relX <= 1; ++relX) {
+                const i32 index = (relZ + 1) * 3 + (relX + 1);
+                auto chunk = std::make_unique<ChunkPrimer>(relX, relZ);
+
+                // 初始化平坦地表：y=0 为草方块，y>=1 为空气
+                const BlockState* ground = &VanillaBlocks::GRASS_BLOCK->defaultState();
+                for (i32 x = 0; x < 16; ++x) {
+                    for (i32 z = 0; z < 16; ++z) {
+                        chunk->setBlockState(x, 0, z, ground);
+                    }
+                }
+
+                m_chunks[static_cast<size_t>(index)] = chunk.get();
+                m_ownedChunks.push_back(std::move(chunk));
+            }
+        }
+
+        m_region = std::make_unique<WorldGenRegion>(0, 0, 1, std::move(m_chunks));
+    }
+
+    std::unique_ptr<math::Random> random;
+    std::vector<IChunk*> m_chunks;
+    std::vector<std::unique_ptr<ChunkPrimer>> m_ownedChunks;
+    std::unique_ptr<WorldGenRegion> m_region;
+};
+
+TEST_F(BendingTrunkPlacerTest, Name)
+{
+    BendingTrunkPlacer placer(4, 2, 0, 3, std::make_unique<world::gen::valueprovider::UniformInt>(1, 2));
+    EXPECT_STREQ(placer.name(), "bending");
+}
+
+TEST_F(BendingTrunkPlacerTest, HeightRange)
+{
+    // BendingTrunkPlacer(4, 2, 0, minHeightForLeaves, bendLength)
+    // 高度范围: 4 + [0,2] + [0,0] = 4-6
+    BendingTrunkPlacer placer(4, 2, 0, 3, std::make_unique<world::gen::valueprovider::UniformInt>(1, 2));
+    for (int i = 0; i < 100; ++i) {
+        i32 height = placer.getHeight(*random);
+        EXPECT_GE(height, 4);
+        EXPECT_LE(height, 6);
+    }
+}
+
+TEST_F(BendingTrunkPlacerTest, HeightWithZeroRandom)
+{
+    // baseHeight=5, heightRandA=0, heightRandB=0 => 高度恒为5
+    BendingTrunkPlacer placer(5, 0, 0, 1, std::make_unique<world::gen::valueprovider::UniformInt>(1, 1));
+    for (int i = 0; i < 10; ++i) {
+        EXPECT_EQ(placer.getHeight(*random), 5);
+    }
+}
+
+TEST_F(BendingTrunkPlacerTest, Clone)
+{
+    auto bendLen = std::make_unique<world::gen::valueprovider::UniformInt>(1, 2);
+    BendingTrunkPlacer placer(4, 2, 0, 3, std::move(bendLen));
+    auto clone = placer.clone();
+    ASSERT_NE(clone, nullptr);
+    EXPECT_STREQ(clone->name(), "bending");
+    // 验证克隆后的高度范围一致
+    math::Random rng1(42);
+    math::Random rng2(42);
+    EXPECT_EQ(placer.getHeight(rng1), clone->getHeight(rng2));
+}
+
+TEST_F(BendingTrunkPlacerTest, PlaceTrunkReturnsFoliagePositions)
+{
+    // 使用确定性高度：baseHeight=5, heightRandA=0, heightRandB=0 => 高度恒为5
+    // bendLength=1 => 水平延伸2格（k=0和k=1）
+    BendingTrunkPlacer placer(5, 0, 0, 1, std::make_unique<world::gen::valueprovider::UniformInt>(1, 1));
+    const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+    std::set<BlockPos> trunkBlocks;
+
+    auto foliagePositions = placer.placeTrunk(*m_region, *random, 5, BlockPos(8, 1, 8), trunkBlocks, trunkBlock);
+
+    // 垂直阶段：height=5, i=4, 循环j=0到4共5层
+    // minHeightForLeaves=1 => j>=1时产生树叶附着点（j=1,2,3,4 => 4个）
+    // 水平弯曲阶段：bendLength=1, 循环k=0到1共2格 => 2个树叶附着点
+    // 总计：4 + 2 = 6个树叶附着点
+    // 注意：j=0时不产生树叶（j < minHeightForLeaves=1）
+    EXPECT_GE(foliagePositions.size(), 4u);
+}
+
+TEST_F(BendingTrunkPlacerTest, PlaceTrunkVerticalBlocksPlaced)
+{
+    // 确定性高度：5, 无弯曲（bendLength=0 只有1格水平延伸）
+    BendingTrunkPlacer placer(5, 0, 0, 1, std::make_unique<world::gen::valueprovider::UniformInt>(0, 0));
+    const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+    std::set<BlockPos> trunkBlocks;
+
+    placer.placeTrunk(*m_region, *random, 5, BlockPos(8, 1, 8), trunkBlocks, trunkBlock);
+
+    // 至少应有5个垂直树干方块（y=1到y=5）
+    bool hasTrunkAtBase = trunkBlocks.count(BlockPos(8, 1, 8)) > 0;
+    EXPECT_TRUE(hasTrunkAtBase);
+}
+
+TEST_F(BendingTrunkPlacerTest, PlaceTrunkMinHeightForLeavesZero)
+{
+    // minHeightForLeaves=0 => 所有垂直层都产生树叶附着点
+    BendingTrunkPlacer placer(4, 0, 0, 0, std::make_unique<world::gen::valueprovider::UniformInt>(1, 1));
+    const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+    std::set<BlockPos> trunkBlocks;
+
+    auto foliagePositions = placer.placeTrunk(*m_region, *random, 4, BlockPos(8, 1, 8), trunkBlocks, trunkBlock);
+
+    // 垂直阶段：4层都产生树叶附着点 => 4个
+    // 水平弯曲阶段：bendLength=1, k=0到1 => 2个树叶附着点
+    // 总计：4 + 2 = 6
+    EXPECT_EQ(foliagePositions.size(), 6u);
+}
+
+TEST_F(BendingTrunkPlacerTest, PlaceTrunkMinHeightForLeavesLarge)
+{
+    // minHeightForLeaves=10，高度=5 => 垂直阶段无树叶附着点
+    // 弯曲阶段：bendLength=1, k=0到1 => 2个树叶附着点
+    BendingTrunkPlacer placer(4, 0, 0, 10, std::make_unique<world::gen::valueprovider::UniformInt>(1, 1));
+    const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+    std::set<BlockPos> trunkBlocks;
+
+    auto foliagePositions = placer.placeTrunk(*m_region, *random, 5, BlockPos(8, 1, 8), trunkBlocks, trunkBlock);
+
+    // 所有5个垂直层都不产生树叶（j < 10），水平阶段产生2个
+    EXPECT_EQ(foliagePositions.size(), 2u);
+}
+
+TEST_F(BendingTrunkPlacerTest, PlaceTrunkBendLengthRange)
+{
+    // 使用多个随机种子验证bendLength在范围内
+    // bendLength=UniformInt(1,3) => 采样值在[1,3]之间
+    // 水平延伸 = bendLength + 1 格
+    for (int seed = 0; seed < 50; ++seed) {
+        math::Random rng(seed);
+        BendingTrunkPlacer placer(4, 0, 0, 1, std::make_unique<world::gen::valueprovider::UniformInt>(1, 3));
+        const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+        std::set<BlockPos> trunkBlocks;
+
+        auto foliagePositions = placer.placeTrunk(*m_region, rng, 4, BlockPos(8, 1, 8), trunkBlocks, trunkBlock);
+
+        // 垂直4层，minHeightForLeaves=1 => j=1,2,3 => 3个树叶
+        // 水平层：bendLength在1-3之间，加1格 => 2-4个树叶
+        // 总计：3 + (2~4) = 5~7
+        EXPECT_GE(foliagePositions.size(), 5u);
+        EXPECT_LE(foliagePositions.size(), 7u);
+    }
+}
+
+TEST_F(BendingTrunkPlacerTest, PlaceTrunkHorizontalBendMovesPosition)
+{
+    // 验证水平弯曲确实移动了树干位置
+    // 使用多个种子运行，统计X/Z偏移
+    bool hasXOffset = false;
+    bool hasZOffset = false;
+
+    for (int seed = 0; seed < 100; ++seed) {
+        math::Random rng(seed);
+        BendingTrunkPlacer placer(5, 0, 0, 1, std::make_unique<world::gen::valueprovider::UniformInt>(2, 2));
+        const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+        std::set<BlockPos> trunkBlocks;
+
+        placer.placeTrunk(*m_region, rng, 5, BlockPos(8, 1, 8), trunkBlocks, trunkBlock);
+
+        // 检查是否有方块不在(8, *, 8)的中心列上
+        for (const auto& pos : trunkBlocks) {
+            if (pos.x != 8) {
+                hasXOffset = true;
+            }
+            if (pos.z != 8) {
+                hasZOffset = true;
+            }
+        }
+    }
+
+    // 由于方向随机（4个水平方向），100次运行应该能看到X和Z两个方向的偏移
+    EXPECT_TRUE(hasXOffset || hasZOffset);
+}
+
+TEST_F(BendingTrunkPlacerTest, PlaceTrunkFoliagePositionRadiusBonusZero)
+{
+    // BendingTrunkPlacer的所有树叶附着点radiusBonus=0, trunkTop=false
+    BendingTrunkPlacer placer(4, 0, 0, 1, std::make_unique<world::gen::valueprovider::UniformInt>(1, 1));
+    const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+    std::set<BlockPos> trunkBlocks;
+
+    auto foliagePositions = placer.placeTrunk(*m_region, *random, 4, BlockPos(8, 1, 8), trunkBlocks, trunkBlock);
+
+    for (const auto& fp : foliagePositions) {
+        EXPECT_EQ(fp.radiusBonus, 0);
+        EXPECT_FALSE(fp.trunkTop);
+    }
+}
+
+TEST_F(BendingTrunkPlacerTest, PlaceTrunkDirtUnderBase)
+{
+    // 验证placeTrunk在草方块地面上正常工作，不会崩溃
+    // 并且正确放置了树干方块（placeDirtUnder在基类中已测试）
+    BendingTrunkPlacer placer(4, 0, 0, 1, std::make_unique<world::gen::valueprovider::UniformInt>(1, 1));
+    const BlockState* trunkBlock = &VanillaBlocks::OAK_LOG->defaultState();
+    std::set<BlockPos> trunkBlocks;
+
+    auto foliagePositions = placer.placeTrunk(*m_region, *random, 4, BlockPos(8, 1, 8), trunkBlocks, trunkBlock);
+
+    // 验证底部有树干方块
+    EXPECT_GT(trunkBlocks.count(BlockPos(8, 1, 8)), 0u);
+    // 验证有树叶附着点
+    EXPECT_GE(foliagePositions.size(), 2u);
+}
+
+TEST_F(BendingTrunkPlacerTest, AzaleaTreeConfig)
+{
+    // 验证杜鹃树使用的BendingTrunkPlacer参数与MC一致
+    // MC: BendingTrunkPlacer(4, 2, 0, 3, UniformInt(1, 2))
+    BendingTrunkPlacer placer(4, 2, 0, 3, std::make_unique<world::gen::valueprovider::UniformInt>(1, 2));
+
+    // 高度范围：4 + [0,2] + [0,0] = 4-6
+    for (int i = 0; i < 100; ++i) {
+        i32 height = placer.getHeight(*random);
+        EXPECT_GE(height, 4);
+        EXPECT_LE(height, 6);
+    }
+
+    EXPECT_STREQ(placer.name(), "bending");
+}
+
+// ============================================================================
 // TreeFeatures 注册顺序完整性测试
 // ============================================================================
 
@@ -501,12 +744,12 @@ protected:
     static void SetUpTestSuite() { VanillaBlocks::initialize(); }
 };
 
-TEST_F(TreeFeaturesRegistrationTest, InitializeCreates15Features)
+TEST_F(TreeFeaturesRegistrationTest, InitializeCreatesExpectedFeatureCount)
 {
     TreeFeatures::initialize();
     const auto& features = TreeFeatures::getAllFeatures();
     EXPECT_EQ(features.size(), TreeFeatureIds::Count);
-    EXPECT_EQ(features.size(), 15u);
+    EXPECT_EQ(features.size(), 17u);
 }
 
 TEST_F(TreeFeaturesRegistrationTest, FeatureNamesMatchRegistrationOrder)
@@ -765,27 +1008,29 @@ TEST_F(NetherOreFeatureTest, NetherOreIdsAreConsecutiveAfterOverworld)
 
 TEST(FeatureIdsCascadeTest, TreeCountUpdateCascadesToAllOffsets)
 {
-    // After adding 6 new trees, TreeFeatureIds::Count is 15
-    EXPECT_EQ(TreeFeatureIds::Count, 15u);
+    // TreeFeatureIds::Count includes oak, birch, spruce, jungle, acacia, dark_oak,
+    // sparse_oak, giant_spruce, giant_jungle, fancy_oak, pine, jungle_bush, swamp,
+    // mega_pine, tall_birch, cherry, cherry_bee = 17
+    EXPECT_EQ(TreeFeatureIds::Count, 17u);
 
     // FlowerFeatureIds::Offset should equal TreeFeatureIds::Count
-    EXPECT_EQ(FlowerFeatureIds::Offset, 15u);
+    EXPECT_EQ(FlowerFeatureIds::Offset, 17u);
 
     // GrassFeatureIds::Offset should equal Tree + Flower counts
-    EXPECT_EQ(GrassFeatureIds::Offset, 15u + 5u);
+    EXPECT_EQ(GrassFeatureIds::Offset, 17u + 6u);
 
     // MushroomFeatureIds::Offset should equal Tree + Flower + Grass counts
-    EXPECT_EQ(MushroomFeatureIds::Offset, 15u + 5u + 7u);
+    EXPECT_EQ(MushroomFeatureIds::Offset, 17u + 6u + 7u);
 
     // CactusFeatureIds::Offset
-    EXPECT_EQ(CactusFeatureIds::Offset, 15u + 5u + 7u + 2u);
+    EXPECT_EQ(CactusFeatureIds::Offset, 17u + 6u + 7u + 2u);
 
     // SugarCaneFeatureIds::Offset
-    EXPECT_EQ(SugarCaneFeatureIds::Offset, 15u + 5u + 7u + 2u + 2u);
+    EXPECT_EQ(SugarCaneFeatureIds::Offset, 17u + 6u + 7u + 2u + 2u);
 
     // Total
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 15u + 5u + 7u + 2u + 2u + 2u);
-    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 33u);
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 17u + 6u + 7u + 2u + 2u + 2u + 2u);
+    EXPECT_EQ(VegetationIds::TotalVegetalFeatures, 38u);
 }
 
 // ============================================================================

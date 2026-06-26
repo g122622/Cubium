@@ -80,6 +80,7 @@ add_library(mc_common STATIC
     entity/core/FlyingEntity.cpp
     # Entity - Serialization
     entity/serialization/EntityDeserializer.cpp
+    entity/serialization/EquipmentSlotNames.cpp
     entity/serialization/NbtHelper.cpp
     # Entity - Effect
     entity/effect/EffectType.cpp
@@ -302,8 +303,10 @@ add_library(mc_common STATIC
     entity/ai/controller/LookController.cpp
     entity/ai/controller/MovementController.cpp
     entity/ai/controller/JumpController.cpp
+    entity/ai/controller/FlyingMovementController.cpp
     entity/ai/controller/VexMovementController.cpp
     entity/ai/controller/GhastMovementController.cpp
+    entity/ai/controller/DrownedMoveControl.cpp
     entity/ai/goal/goals/SwimGoal.cpp
     entity/ai/goal/goals/RandomWalkingGoal.cpp
     entity/ai/goal/goals/LookAtGoal.cpp
@@ -342,6 +345,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/DolphinGoals.cpp
     entity/ai/goal/goals/special/GuardianAttackGoal.cpp
     entity/ai/goal/goals/special/BlazeFireballAttackGoal.cpp
+    entity/ai/goal/goals/special/BreezeGoals.cpp
     entity/ai/goal/goals/special/PhantomGoals.cpp
     entity/ai/goal/goals/special/IronGolemGoals.cpp
     entity/ai/goal/goals/special/ShulkerGoals.cpp
@@ -359,6 +363,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/RavagerGoals.cpp
     entity/ai/goal/goals/special/GhastGoals.cpp
     entity/ai/goal/goals/special/SilverfishGoals.cpp
+    entity/ai/goal/goals/special/DrownedGoals.cpp
     entity/ai/goal/goals/AdditionalGoals.cpp
     # Entity - AI - Villager Goals
     entity/ai/goal/goals/villager/AvoidHostileGoal.cpp
@@ -392,6 +397,7 @@ add_library(mc_common STATIC
     entity/inventory/IInventory.cpp
     entity/inventory/Slot.cpp
     entity/inventory/PlayerInventory.cpp
+    entity/inventory/PlayerEnderChestInventory.cpp
     entity/inventory/CreativeInventory.cpp
     entity/inventory/CraftingInventory.cpp
     entity/inventory/AbstractContainerMenu.cpp
@@ -497,6 +503,7 @@ add_library(mc_common STATIC
     item/items/special/BucketItem.cpp
     item/items/special/FishBucketItem.cpp
     item/items/special/FlintAndSteelItem.cpp
+    item/items/special/HoneycombItem.cpp
     item/items/special/MilkBucketItem.cpp
     item/items/special/MusicDiscItem.cpp
     item/items/special/EnchantedBookItem.cpp
@@ -507,6 +514,7 @@ add_library(mc_common STATIC
     item/items/special/SpawnEggItem.cpp
 
     # Item - Trial Items
+    item/items/trial/BreezeRodItem.cpp
     item/items/trial/MaceItem.cpp
     item/items/trial/OminousBottleItem.cpp
     item/items/trial/OminousTrialKeyItem.cpp
@@ -590,6 +598,7 @@ add_library(mc_common STATIC
     command/CommandTreeSnapshot.cpp
     command/arguments/EntityArgument.cpp
     command/arguments/FunctionArgument.cpp
+    command/arguments/ItemArgument.cpp
     command/arguments/NbtPath.cpp
     command/arguments/NbtPathArgumentType.cpp
 
@@ -637,6 +646,7 @@ add_library(mc_common STATIC
     world/block/blocks/HorizontalBlock.cpp
     world/block/blocks/LiquidBlock.cpp
     world/block/blocks/CauldronBlock.cpp
+    world/block/blocks/LavaCauldronBlock.cpp
     world/block/blocks/EnchantingTableBlock.cpp
     world/block/blocks/BookshelfBlock.cpp
     world/block/blocks/ShelfBlock.cpp
@@ -909,6 +919,7 @@ add_library(mc_common STATIC
     world/blockentity/trial/TrialSpawnerBlockEntity.cpp
     world/blockentity/trial/VaultBlockEntity.cpp
     world/blockentity/trial/CrafterBlockEntity.cpp
+    world/blockentity/spawner/MobSpawnerBlockEntity.cpp
 
     # World - Chunk
     world/chunk/data/BiomeContainer.cpp
@@ -1041,6 +1052,7 @@ add_library(mc_common STATIC
     world/gen/feature/vegetation/BigMushroomFeature.cpp
     world/gen/feature/vegetation/CactusFeature.cpp
     world/gen/feature/vegetation/SugarCaneFeature.cpp
+    world/gen/feature/vegetation/BambooFeature.cpp
 
     # World - Generation - Feature - Cave
     world/gen/feature/cave/CaveFeatures.cpp
@@ -1236,6 +1248,7 @@ add_library(mc_common STATIC
     # World - Fluid System
     world/fluid/Fluid.cpp
     world/fluid/FluidRegistry.cpp
+    world/fluid/Fluids.cpp
     world/fluid/FluidTags.cpp
     world/fluid/FlowingFluid.cpp
     world/fluid/fluids/EmptyFluid.cpp

@@ -3,8 +3,8 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * in the Software without restriction, including without limitation to the rights
+ * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -26,7 +26,6 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
 #include "../../../ai/goal/goals/LookAtGoal.hpp"
-#include "../../../ai/goal/goals/RandomWalkingGoal.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/special/BlazeFireballAttackGoal.hpp"
 #include "../../../ai/goal/goals/target/TargetGoals.hpp"
@@ -74,31 +73,35 @@ std::optional<ResourceLocation> BlazeEntity::getDeathSound() const
     return SoundEvents::ENTITY_BLAZE_DEATH;
 }
 
-void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 /*charge*/)
+void BlazeEntity::attackEntityWithRangedAttack(LivingEntity* /*target*/, f32 /*charge*/)
 {
-    // 此方法由 RangedAttackGoal 调用，但烈焰人使用专用的 BlazeFireballAttackGoal
-    // 所以这个方法在当前实现中不会被调用，保留以实现 IRangedAttackMob 接口
-    if (!target || !target->isAlive()) {
-        return;
-    }
-
-    // 如果需要，可以在此实现备用发射逻辑
-    m_fireballCount--;
-    if (m_fireballCount <= 0) {
-        m_charging = false;
-        m_attackStep = 0;
-        m_attackTime = ATTACK_COOLDOWN;
-    }
+    // IRangedAttackMob 纯虚接口的空实现。
+    // 烈焰人使用专用的 BlazeFireballAttackGoal 管理火球攻击，
+    // 而非通用的 RangedAttackGoal，因此此方法不会被外部调用。
 }
 
 void BlazeEntity::tick()
 {
-    // 空中悬浮减速
+    // ========== 空中缓降 ==========
+    // 对齐 MC 1.21.11 Blaze.aiStep():
+    // 当不在地面且Y轴速度向下时，将Y速度乘以0.6实现缓降
     if (!onGround() && velocityY() < 0.0f) {
-        setVelocity(velocityX(), velocityY() * 0.6f, velocityZ());
+        setVelocity(velocityX(), velocityY() * FALL_DAMPING, velocityZ());
     }
 
-    // 客户端粒子效果和音效
+    // ========== 水伤害 ==========
+    // 对齐 MC 1.21.11 LivingEntity.baseTick():
+    // if (isSensitiveToWater() && isInWaterOrRain())
+    //     hurtServer(damageSources().drown(), 1.0F);
+    // 烈焰人 isSensitiveToWater() 返回 true，
+    // 在水中或雨中每 tick 受 1 点 drown 伤害
+    // 注：伤害源为 drown（非 onFire），影响死亡消息和火焰保护附魔交互
+    if (isWaterSensitive() && isWet()) {
+        auto damageSource = DamageSources::drown();
+        hurt(damageSource, WATER_DAMAGE_AMOUNT);
+    }
+
+    // ========== 客户端粒子效果和音效 ==========
     if (world() != nullptr && world()->isClientSide()) {
         math::Random& random = world()->getRandom();
 
@@ -122,11 +125,6 @@ void BlazeEntity::tick()
         }
     }
 
-    // 更新攻击冷却
-    if (m_attackTime > 0) {
-        m_attackTime--;
-    }
-
     MonsterEntity::tick();
 }
 
@@ -134,17 +132,17 @@ void BlazeEntity::registerGoals()
 {
     MonsterEntity::registerGoals();
 
-    // 优先级 4: FireballAttackGoal（火球攻击）
+    // 对齐 MC 1.21.11 Blaze.registerGoals():
+    // 优先级 4: BlazeAttackGoal（火球攻击，包含充能/发射/近战/追击）
     m_goalSelector.addGoal(4, std::make_unique<entity::ai::goal::BlazeFireballAttackGoal>(this));
 
-    // 优先级 5: 向限制点移动（暂时跳过，MoveTowardsRestrictionGoal 未实现）
-    // m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MoveTowardsRestrictionGoal>(this, 1.0));
+    // 优先级 5: MoveTowardsRestrictionGoal（向限制点移动，如下界堡垒区域）
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::MoveTowardsRestrictionGoal>(this, 1.0));
 
     // 优先级 7: WaterAvoidingRandomWalkingGoal（避水随机行走）
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0, 0.0f));
 
     // 优先级 8: LookAtGoal（看向玩家）
-    // 使用 filter 筛选 Player 类型
     m_goalSelector.addGoal(
         8, std::make_unique<entity::ai::goal::LookAtGoal>(this, 8.0f, 0.02f, [](const LivingEntity* entity) -> bool {
             return dynamic_cast<const Player*>(entity) != nullptr;
@@ -174,7 +172,36 @@ void BlazeEntity::registerAttributes()
 
 void BlazeEntity::updateAITasks()
 {
-    // 烈焰人的 AI 任务由 BlazeFireballAttackGoal 处理
+    // ========== 悬浮高度偏移随机化 ==========
+    // 对齐 MC 1.21.11 Blaze.customServerAiStep():
+    // 每 100 tick 通过三角分布重新随机化 allowedHeightOffset
+    --m_nextHeightOffsetChangeTick;
+    if (m_nextHeightOffsetChangeTick <= 0) {
+        m_nextHeightOffsetChangeTick = HEIGHT_OFFSET_CHANGE_INTERVAL;
+        // MC 原版: this.allowedHeightOffset = (float)this.random.triangle(0.5, 6.891);
+        // triangle(mode, deviation) = mode + (nextFloat() - nextFloat()) * deviation
+        math::Random& rng = getRandom();
+        m_allowedHeightOffset = HEIGHT_OFFSET_MODE + (rng.nextFloat() - rng.nextFloat()) * HEIGHT_OFFSET_DEVIATION;
+    }
+
+    // ========== 上升推力 ==========
+    // 对齐 MC 1.21.11 Blaze.customServerAiStep():
+    // 当攻击目标的眼高 > 烈焰人眼高 + allowedHeightOffset 时，施加上升推力
+    LivingEntity* target = attackTarget();
+    if (target != nullptr && target->isAlive()) {
+        f64 targetEyeY = target->y() + static_cast<f64>(target->eyeHeight());
+        f64 blazeEyeY = y() + static_cast<f64>(eyeHeight());
+
+        if (targetEyeY > blazeEyeY + static_cast<f64>(m_allowedHeightOffset)) {
+            // PD 控制器式的上升推力：向 ASCEND_TARGET_SPEED 收敛
+            // MC 原版: this.setDeltaMovement(this.getDeltaMovement().add(0.0, (0.3F - vec3.y) * 0.3F, 0.0));
+            f32 currentVelY = velocityY();
+            f32 ascendForce = (ASCEND_TARGET_SPEED - currentVelY) * ASCEND_ACCELERATION;
+            setVelocity(velocityX(), currentVelY + ascendForce, velocityZ());
+        }
+    }
+
+    MonsterEntity::updateAITasks();
 }
 
 } // namespace mc

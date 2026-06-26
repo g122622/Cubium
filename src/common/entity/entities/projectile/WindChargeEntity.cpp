@@ -268,6 +268,9 @@ void WindChargeEntity::applyWindBurst()
         // 风弹自身不受推力（addVelocity 已被重写为空方法）
         // 对应 MC: entity.push(vec32) 即 deltaMovement += vec32
         entity->addVelocity(dx * finalImpact, dy * finalImpact, dz * finalImpact);
+        // 标记受伤（风弹推力改变了实体速度，需要同步到客户端）
+        // 对应 MC Java ApplyEntityImpulse 中 hurtMarked = true
+        entity->markHurt();
 
         // ========== 6. 玩家特殊处理 ==========
         Player* player = dynamic_cast<Player*>(entity);
@@ -284,6 +287,10 @@ void WindChargeEntity::applyWindBurst()
             // TODO: 当爆炸同步系统完善后，需要向客户端发送爆炸击退数据包
             // 对应 MC: player.connection.send(new ClientboundExplodePacket(...))
         }
+
+        // ========== 7. 通知实体被爆炸击中 ==========
+        // 风弹爆炸触发冲量坠落伤害免疫（对应 MC ServerPlayer.onExplosionHit 中对 WindCharge 的检查）
+        entity->onExplosionHit(getShooter());
     }
 
     // ========== 7. 播放风爆音效 ==========

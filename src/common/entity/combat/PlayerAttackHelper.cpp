@@ -234,7 +234,7 @@ bool PlayerAttackHelper::applyFireAspect(LivingEntity& target, i32 fireAspectLev
     i32 duration = FIRE_ASPECT_DURATION * fireAspectLevel;
 
     // 设置目标着火
-    target.setFire(duration);
+    target.igniteForTicks(duration);
 
     return true;
 }

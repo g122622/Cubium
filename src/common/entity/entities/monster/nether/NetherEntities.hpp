@@ -228,6 +228,7 @@ public:
     // ========== 交易相关 ==========
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
+    [[nodiscard]] bool isChild() const override { return m_isBaby; }
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {
@@ -360,6 +361,7 @@ public:
     void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
+    [[nodiscard]] bool isChild() const override { return m_isBaby; }
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {
@@ -378,9 +380,7 @@ public:
 
     // ========== 寻路权重 ==========
 
-    // TODO: 重写 getPathWeight — 疣猪兽需要检查诡异菌距离和绯红菌岩方块：
-    // 靠近诡异菌返回 -1.0f，站在绯红菌岩上返回 10.0f，否则返回 0.0f
-    // 对应 MC Hoglin.getWalkTargetValue
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
 
 protected:
     void registerGoals() override;
@@ -409,6 +409,7 @@ public:
     ~ZoglinEntity() override = default;
 
     [[nodiscard]] bool isBaby() const { return m_isBaby; }
+    [[nodiscard]] bool isChild() const override { return m_isBaby; }
     void setBaby(bool baby)
     {
         if (m_isBaby == baby) {
@@ -419,6 +420,16 @@ public:
         refreshDimensions();
     }
     [[nodiscard]] i32 getFlingAnimationTicks() const override { return m_attackAnimationTicks; }
+
+    /**
+     * @brief 判断僵尸疣兽是否可以攻击指定类型的实体
+     *
+     * 对应 MC 原版 Zoglin.isTargetable 的类型过滤部分。
+     * 僵尸疣兽不攻击同类（ZOGLIN）和苦力怕（CREEPER）。
+     * 此方法由 TargetGoal::isSuitableTarget() 自动调用，
+     * 同时 registerGoals() 中的 TargetPredicate 也会进行同样的过滤。
+     */
+    [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
 
     void tick() override;
     bool attackLivingTarget(LivingEntity& target);

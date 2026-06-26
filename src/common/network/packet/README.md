@@ -29,7 +29,7 @@ src/common/network/packet/
 ├── PlayerAbilitiesPacket.cpp      # 玩家能力包实现
 ├── ServerDifficultyPacket.hpp     # 难度同步包
 ├── ServerDifficultyPacket.cpp     # 难度同步包实现
-├── DimensionPackets.hpp           # 维度切换数据包
+├── DimensionPackets.hpp           # 维度切换数据包（含 RespawnPacket 的 lastDeathLocation 同步）
 ├── DimensionPackets.cpp           # 维度数据包实现
 ├── SpawnPositionPacket.hpp        # 世界出生点数据包
 ├── SpawnPositionPacket.cpp        # 世界出生点包实现

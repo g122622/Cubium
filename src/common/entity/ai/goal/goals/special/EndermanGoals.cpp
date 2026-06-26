@@ -195,8 +195,8 @@ bool EndermanFindPlayerGoal::shouldContinueExecuting()
 
     // 如果有攻击目标，检查是否还能看到
     if (m_target != nullptr) {
-        // 使用 TargetGoal 的默认视线检查
-        if (m_checkSight && m_unseenTicks > MAX_UNSEEN_TICKS) {
+        // 使用 TargetGoal 的视线记忆检查
+        if (m_checkSight && m_unseenTicks > m_unseenMemoryTicks) {
             return false;
         }
         return m_target->isAlive();

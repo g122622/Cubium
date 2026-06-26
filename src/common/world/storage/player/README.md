@@ -25,19 +25,24 @@ player/
 ```
 ┌─────────────────┐      ┌─────────────────────┐
 │  ServerPlayer   │─────▶│  PlayerSaveData     │
-│  ServerPlayerData│     │  (序列化)            │
+│  ServerPlayerData│     │  (序列化)            │◀─────┐
+└─────────────────┘      └─────────────────────┘      │
+                                  │                   │
+                                  ▼                   │
+                         ┌─────────────────┐          │
+                         │ PlayerDataManager│          │
+                         └─────────────────┘          │
+                                  │                   │
+                                  ▼                   │
+                         ┌─────────────────┐          │
+                         │   RocksDB       │          │
+                         │  players 列族   │          │
+                         └─────────────────┘          │
+                                                       │
+┌─────────────────┐      ┌─────────────────────┐      │
+│  Player 实体     │◀─────│  applyToPlayer()    │──────┘
+│  (登录恢复)      │      │  (反序列化恢复)      │
 └─────────────────┘      └─────────────────────┘
-                                  │
-                                  ▼
-                         ┌─────────────────┐
-                         │ PlayerDataManager│
-                         └─────────────────┘
-                                  │
-                                  ▼
-                         ┌─────────────────┐
-                         │   RocksDB       │
-                         │  players 列族   │
-                         └─────────────────┘
 ```
 
 ## 上下游外部依赖关系
@@ -76,3 +81,11 @@ player/
 4. **自动保存时机**: 通过 `SingleLevelStorageManager` 内部的 `AutoSave` 机制，玩家数据会在世界保存时一起保存；析构函数不负责保存，上层必须显式调用
 
 5. **缓存与脏标记**: `savePlayer()` 只标记脏数据，`savePlayerImmediate()` 才同步写入；`saveAllDirty()` 批量保存脏数据，`saveAll()` 保存所有缓存
+
+6. **applyToPlayer()**: `PlayerDataManager::applyToPlayer(Player&, const PlayerSaveData&)` 将保存数据恢复到 Player 实体，在玩家登录时由 `StandaloneServer`/`IntegratedServer` 调用。恢复的字段包括：位置/旋转、维度、游戏模式、生命值、饥饿值、经验、玩家能力、重生点、下界入口位置、最后死亡位置、睡眠状态、空气供应、疾跑/潜行状态、冲量上下文、背包物品、鼠标持有物品、药水效果
+
+7. **两条序列化路径**:
+   - **Entity NBT 路径**: `Player::addAdditionalSaveData()` / `Player::readAdditionalSaveData()` — 实体序列化链，由 `EntityDeserializer` 在加载非玩家实体时使用
+   - **PlayerSaveData 路径**: `PlayerSaveData::toNbt()` / `PlayerSaveData::fromNbt()` + `PlayerDataManager::fromPlayer()` / `applyToPlayer()` — 独立的玩家存储系统，用于登录保存/恢复
+
+8. **冲量上下文持久化**: 冲量上下文字段（`currentImpulseImpactPos`、`ignoreFallDamageFromCurrentImpulse`、`currentImpulseContextResetGraceTime`）同时通过两条路径持久化。`m_currentExplosionCause` 不持久化（MC Java 同样不序列化此运行时瞬时字段）

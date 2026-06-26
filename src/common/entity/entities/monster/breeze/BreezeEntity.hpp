@@ -28,6 +28,13 @@
 
 namespace mc {
 
+namespace entity::ai::goal {
+class BreezeShootGoal;
+class BreezeLongJumpGoal;
+class BreezeSlideGoal;
+class BreezeShootWhenStuckGoal;
+} // namespace entity::ai::goal
+
 namespace entity {
 class ProjectileEntity;
 } // namespace entity
@@ -53,12 +60,18 @@ class ProjectileEntity;
  * - ShootWhenStuck：卡住时紧急射击
  *
  * 掉落：
- * - 风弹 0-1（受抢夺影响，每级+1最大）
+ * - 狂风杖 1-2（仅被玩家击杀时掉落，受抢夺附魔影响，每级额外+1~2）
+ * - 经验值 10
  *
  * 命名空间ID: minecraft:breeze
  */
 class BreezeEntity final : public MonsterEntity {
 public:
+    // AI 目标类需要访问 protected/private 成员
+    friend class entity::ai::goal::BreezeShootGoal;
+    friend class entity::ai::goal::BreezeLongJumpGoal;
+    friend class entity::ai::goal::BreezeSlideGoal;
+    friend class entity::ai::goal::BreezeShootWhenStuckGoal;
     /// 基础生命值
     static constexpr f32 MAX_HEALTH = 30.0f;
 
@@ -112,7 +125,19 @@ public:
 
     // ========== 掉落物 ==========
 
-    // TODO(trial_chambers): 实现掉落风弹 (0-1，受抢夺影响)
+    /**
+     * @brief 重写死亡掉落逻辑
+     *
+     * MC 原版 Breeze 死亡时掉落狂风杖：
+     * - 仅在被玩家击杀时掉落（killed_by_player 条件）
+     * - 基础数量 1-2 个
+     * - 每级抢夺附魔额外增加 1-2 个
+     * - 对应战利品表: minecraft:entities/breeze
+     *
+     * 当前项目尚未实现通用的实体战利品表掉落流程，
+     * 因此在此直接硬编码掉落逻辑，待通用流程实现后迁移到战利品表。
+     */
+    void die(DamageSource& source) override;
 
     /**
      * @brief 检查是否可以攻击指定类型的实体
@@ -141,6 +166,67 @@ protected:
      */
     bool shouldDeflectProjectile(const entity::ProjectileEntity& projectile) const;
 
+    // ========== AI 状态查询与设置 ==========
+
+    /**
+     * @brief 获取射击冷却剩余时间
+     */
+    [[nodiscard]] i32 shootCooldown() const { return m_shootCooldown; }
+
+    /**
+     * @brief 设置射击冷却时间
+     */
+    void setShootCooldown(i32 ticks) { m_shootCooldown = ticks; }
+
+    /**
+     * @brief 获取长跳冷却剩余时间
+     */
+    [[nodiscard]] i32 jumpCooldown() const { return m_jumpCooldown; }
+
+    /**
+     * @brief 设置长跳冷却时间
+     */
+    void setJumpCooldown(i32 ticks) { m_jumpCooldown = ticks; }
+
+    /**
+     * @brief 是否有射击许可
+     *
+     * 射击许可由 Slide/LongJump/ShootWhenStuck 设置，
+     * 表示旋风人已准备好进行射击攻击。
+     */
+    [[nodiscard]] bool hasShootPermit() const { return m_shootPermitTicks > 0; }
+
+    /**
+     * @brief 设置射击许可
+     * @param ticks 许可持续 ticks 数
+     */
+    void setShootPermit(i32 ticks) { m_shootPermitTicks = ticks; }
+
+    /**
+     * @brief 清除射击许可
+     */
+    void clearShootPermit() { m_shootPermitTicks = 0; }
+
+    /**
+     * @brief 是否正在长跳（吸气或跳跃中）
+     */
+    [[nodiscard]] bool isLongJumping() const { return m_isLongJumping; }
+
+    /**
+     * @brief 设置长跳状态
+     */
+    void setLongJumping(bool jumping) { m_isLongJumping = jumping; }
+
+    /**
+     * @brief 是否正在滑行
+     */
+    [[nodiscard]] bool isSliding() const { return m_sliding; }
+
+    /**
+     * @brief 设置滑行状态
+     */
+    void setSliding(bool sliding) { m_sliding = sliding; }
+
 private:
     /**
      * @brief 投掷风弹
@@ -154,6 +240,15 @@ private:
 
     /// 风弹射击冷却（ticks）
     i32 m_shootCooldown = 0;
+
+    /// 长跳冷却（ticks）
+    i32 m_jumpCooldown = 0;
+
+    /// 射击许可计时器（ticks），>0 表示有射击许可
+    i32 m_shootPermitTicks = 0;
+
+    /// 是否正在长跳中（吸气或跳跃阶段）
+    bool m_isLongJumping = false;
 };
 
 } // namespace mc

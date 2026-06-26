@@ -67,15 +67,16 @@ public:
     /**
      * @brief 计算玩家的起床位置
      *
-     * 尝试在床周围找到安全的站立位置。
+     * 使用 BedBlock::findStandUpPosition 算法在床周围找到安全的站立位置。
      *
      * @param world 世界引用
      * @param bedPos 床头位置
      * @param bedFacing 床的朝向
+     * @param entityYaw 实体的偏航角（度），默认为 0.0
      * @return 如果找到合适位置返回位置向量，否则返回 nullopt
      */
     [[nodiscard]] static std::optional<Vector3> findWakeUpPosition(
-        const IWorld& world, const BlockPos& bedPos, Direction bedFacing);
+        const IWorld& world, const BlockPos& bedPos, Direction bedFacing, f32 entityYaw = 0.0f);
 
     /**
      * @brief 检查玩家是否在床附近

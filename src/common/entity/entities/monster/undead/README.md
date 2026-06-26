@@ -17,7 +17,7 @@ undead/
 ├── WitherSkeletonEntity.hpp/cpp    # 凋灵骷髅（石剑近战、凋零效果）
 ├── ZombieEntity.hpp/cpp            # 僵尸基类（溺水转化、召唤援军）
 ├── HuskEntity.hpp/cpp              # 尸壳（沙漠变种、脱水攻击）
-├── DrownedEntity.hpp/cpp           # 溺尸（水中生成、三叉戟）
+├── DrownedEntity.hpp/cpp           # 溺尸（水中生成、三叉戟远程攻击、日间避阳、夜间登陆）
 └── ZombieVillagerEntity.hpp/cpp    # 僵尸村民（治愈系统）
 ```
 
@@ -79,16 +79,31 @@ Entity
 
 ### 骷髅类战斗目标切换
 
-1. **setCombatTask() 调用时机**：`registerGoals()` 只注册非战斗目标，`setCombatTask()` 在构造函数末尾调用，根据装备动态添加战斗目标
+1. **setCombatTask() 调用时机**：`registerGoals()` 只注册非战斗目标，`setCombatTask()` 在构造函数末尾、`finalizeSpawn()`、装备变更（`setEquipment`）时调用，根据装备动态添加战斗目标
 2. **战斗目标优先级**：战斗目标使用优先级 4（`COMBAT_GOAL_PRIORITY`），确保非战斗目标（游泳、看向等）优先执行
-3. **WitherSkeletonEntity 特殊处理**：凋灵骷髅重写 `setCombatTask()` 强制使用近战，因为默认生成时持石剑
-4. **远程箭矢伤害**：骷髅类使用 `arrow->setBaseDamageFromMob(charge)` 设置箭矢伤害，公式为 `power * 2.0 + triangle(difficulty * 0.11, 0.57425)`，与 AbstractArrowEntity 基类保持一致。不调用 `applyBowEnchantments()`，因为生物射出的箭矢不应有弓类附魔效果。
+3. **装备检查逻辑**：`setCombatTask()` 通过 `getWeaponHoldingHand()` 检查主手/副手是否持有弓，持弓注册 `RangedBowAttackGoal`，不持弓注册 `MeleeAttackGoal`
+4. **战斗目标所有权**：每次 `setCombatTask()` 调用时创建新的 Goal 对象并通过 `make_unique` 转移所有权给 `GoalSelector`，使用 `removeGoalsOfType<>()` 移除旧目标。不要使用 `unique_ptr` 成员 + `addGoal(priority, ptr.get())` 的模式，因为这会导致双重所有权（GoalSelector 和 unique_ptr 同时拥有同一个 Goal 对象）
+5. **canUseNonMeleeWeapon()**：判断物品是否为远程武器，默认检查 `UseAction::Bow`，凋灵骷髅重写返回 false
+6. **WitherSkeletonEntity 特殊处理**：凋灵骷髅重写 `setCombatTask()` 强制使用近战，`canUseNonMeleeWeapon()` 返回 false
+7. **远程箭矢伤害**：骷髅类使用 `arrow->setBaseDamageFromMob(charge)` 设置箭矢伤害，公式为 `power * 2.0 + triangle(difficulty * 0.11, 0.57425)`，与 AbstractArrowEntity 基类保持一致。不调用 `applyBowEnchantments()`，因为生物射出的箭矢不应有弓类附魔效果。
+8. **难度相关攻击间隔**：`setCombatTask()` 根据游戏难度调整 `RangedBowAttackGoal` 的最小攻击间隔：
+   - 困难难度：使用 `getHardAttackInterval()`（普通骷髅/流浪者 = 20 ticks，沼骸骷髅 = 50 ticks）
+   - 其他难度：使用 `getAttackInterval()`（普通骷髅/流浪者 = 40 ticks，沼骸骷髅 = 70 ticks）
+   - 子类可重写 `getHardAttackInterval()` / `getAttackInterval()` 提供不同间隔值
+   - 对应 MC 原版 `AbstractSkeleton.reassessWeaponGoal()` 中的 `bowGoal.setMinAttackInterval()` 逻辑
 
 ### 僵尸类溺水转化
 
 4. **shouldDrown() 重写**：HuskEntity 返回 true（先变僵尸再变溺尸），DrownedEntity 返回 false（已溺尸），ZombieVillagerEntity 返回 false（不会变溺尸）
 5. **convertToDrowned() 数据保留**：必须保留位置、生命值比例、装备、婴儿状态、自定义名称、持久化状态，清空原僵尸装备防止死亡掉落
 6. **转化时间常量**：水下 600 ticks（30秒）开始转化，转化持续 300 ticks（15秒）
+
+### 僵尸类增援系统
+
+15. **增援入口**：`trySummonReinforcements(LivingEntity* explicitTarget = nullptr)` 是增援逻辑的唯一公共入口。`hurt()` 通过此方法触发增援，传入伤害来源实体作为显式目标。不带参数调用时使用当前攻击目标（`attackTarget()`）
+16. **增援前置条件**：困难模式（`DifficultyHelper::canZombieReinforce()`）、增援概率属性（`zombie.spawn_reinforcements`）、`doMobSpawning` 游戏规则
+17. **增援生成逻辑**（`_trySpawnReinforcement()`）：50 次随机位置尝试，偏移公式 = `nextInt(7,40) * nextInt(-1,1)`（MC 1.21.11 原版，偏移可为 0），世界边界检查、附近无玩家检查（7格）、实体碰撞检查、AABB 液体检查（`IWorld::containsAnyLiquid()`）。注意：当前包含额外的地面支撑和固体方块检查，待 SpawnPlacements 系统完善后对齐
+18. **属性修饰符**：每次增援成功后，召唤者获得 `reinforcement_caller_charge`（-0.05 Addition，累加），被召唤者获得 `reinforcement_callee_charge`（-0.05 Addition），防止连锁增援
 
 ### 僵尸村民治愈系统
 

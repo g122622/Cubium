@@ -133,6 +133,9 @@ public:
      */
     [[nodiscard]] f32 eyeHeight() const override { return 0.0f; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     // ========== 矿车类型 ==========
 
     /**
@@ -148,7 +151,10 @@ public:
     [[nodiscard]] virtual f32 getMaxSpeed() const { return DEFAULT_MAX_SPEED; }
 
     /**
-     * @brief 获取铁轨上的最大速度（考虑铁轨速度限制）
+     * @brief 获取铁轨上的最大速度
+     *
+     * 速度 = max_minecart_speed 游戏规则值 / 20.0，水中减半。
+     * 默认 max_minecart_speed = 8，即 0.4 方块/刻。
      */
     [[nodiscard]] virtual f32 getMaxSpeedWithRail() const;
 

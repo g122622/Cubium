@@ -29,6 +29,7 @@
 #include "gamerule/GameRules.hpp"
 #include "redstone/RedstoneSystem.hpp"
 #include "util/Direction.hpp"
+#include "util/math/MathUtils.hpp"
 
 namespace mc {
 
@@ -72,6 +73,28 @@ bool IWorld::isLavaAt(i32 x, i32 y, i32 z) const
     const fluid::Fluid& fluid = fluidState->getFluid();
     const auto& loc = fluid.fluidLocation();
     return loc.namespace_() == "minecraft" && (loc.path() == "lava" || loc.path() == "flowing_lava");
+}
+
+bool IWorld::containsAnyLiquid(const AxisAlignedBB& box) const
+{
+    // 遍历碰撞箱覆盖的所有方块位置，检查是否存在流体
+    i32 minX = math::floorTo<i32>(box.minX);
+    i32 maxX = math::floorTo<i32>(box.maxX);
+    i32 minY = math::floorTo<i32>(box.minY);
+    i32 maxY = math::floorTo<i32>(box.maxY);
+    i32 minZ = math::floorTo<i32>(box.minZ);
+    i32 maxZ = math::floorTo<i32>(box.maxZ);
+
+    for (i32 x = minX; x <= maxX; ++x) {
+        for (i32 y = minY; y <= maxY; ++y) {
+            for (i32 z = minZ; z <= maxZ; ++z) {
+                if (hasFluid(x, y, z)) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 EntityId IWorld::spawnEntity(std::unique_ptr<Entity> entity)

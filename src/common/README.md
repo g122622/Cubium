@@ -218,7 +218,7 @@ src/common/
 │   └── Stats.hpp             # 自定义统计资源位置常量（与 MC Java Stats.java 对应）
 │
 ├── input/                    # 输入系统
-│   └── KeyBinding.hpp
+│   ├── KeyBinding.hpp         # Keys命名空间（平台无关键码常量）+ KeyBinding类（可重映射按键绑定）
 │
 ├── util/                     # 工具库
 │   ├── Direction.hpp         # 方向枚举

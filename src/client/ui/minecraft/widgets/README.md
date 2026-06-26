@@ -44,6 +44,17 @@ flowchart TB
 
 Widgets 模块负责把游戏状态转换成玩家可见的 UI 表达。它既承担 HUD、聊天和准星这类常驻控件，也承担容器与屏幕切换所需的交互桥接。`HudWidget` 直接渲染快捷栏、生命值、饥饿值、经验条等元素；`ScreenStackWidget` 桥接旧 `IScreen` 接口和新 `Screen` 体系。
 
+## HUD 渲染细节
+
+`HudWidget` 的饥饿条渲染（`_renderHunger`）已实现完整的 MC 原版行为：
+- **饥饿效果变体**：玩家受饥饿效果（`EffectType::Hunger`）影响时，切换为绿色变体精灵图标（`hunger_saturated_*`），对应资源包中的 `food_*_hunger.png`。
+- **饱和度抖动动画**：当饱和度 ≤ 0 时，饥饿图标随机上下偏移 ±1px，抖动频率与饥饿值成反比（`tickCount % (foodLevel * 3 + 1) == 0`），使用确定性随机种子（`tickCount * 312871`）确保帧内一致性。
+- **图标间距**：心形、饥饿、盔甲图标均使用 9×9px 尺寸、8px 间距，与原版一致。
+
+`HealthBarWidget` 和 `HungerBarWidget` 为简化矩形后备版本，仅用于独立调试；完整的图标渲染由 `HudWidget` 直接完成。
+
+`HudWidget` 的所有 HUD 元素均支持纹理/纯色双重渲染：优先使用 `GuiSpriteAtlas` 纹理绘制（如 `iconsAtlas` 的心形、饥饿图标），纹理不可用时自动回退到纯色矩形绘制（如快捷栏背景使用 `HudColors::HOTBAR_BACKGROUND`/`HOTBAR_BORDER`）。
+
 ## 上下游外部依赖关系
 
 **上游依赖（本模块依赖）：**

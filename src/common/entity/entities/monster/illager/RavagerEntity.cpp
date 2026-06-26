@@ -22,6 +22,7 @@
  */
 
 #include "RavagerEntity.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
@@ -35,7 +36,9 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -170,6 +173,7 @@ void RavagerEntity::constructKnockBackVector(LivingEntity* target)
             // 应用碰撞效果
             target->addVelocity(
                 static_cast<f32>(x() - target->x()) * 0.1f, 0.0f, static_cast<f32>(z() - target->z()) * 0.1f);
+            target->markHurt();
         }
     } else {
         // 发射目标
@@ -230,19 +234,23 @@ void RavagerEntity::_launchEntity(Entity* entity)
     f64 vz = dz * invDist * LAUNCH_POWER;
 
     entity->addVelocity(static_cast<f32>(vx), LAUNCH_Y_POWER, static_cast<f32>(vz));
+    // 标记受伤（发射改变了实体速度，需要同步到客户端）
+    // 对应 MC Java 中 Ravager.roar() 和 constructKnockBackVector() 里 hurtMarked = true
+    entity->markHurt();
 }
 
 void RavagerEntity::_spawnStunParticles()
 {
     // 眩晕时生成粒子效果
-    // 1/6 概率生成粒子
+    // 1/6 概率生成 ENTITY_EFFECT 粒子
+    // 颜色常量 STUNNED_COLOR = 8356754 即 RGB(127, 131, 146) -> R=0.498, G=0.514, B=0.573
     math::Random& rng = getRandom();
     if (rng.nextInt(6) != 0) return;
 
     IWorld* worldPtr = world();
     if (!worldPtr) return;
 
-    // 计算粒子位置
+    // 计算粒子位置（在实体身体上方偏移）
     f32 renderYawOffsetRad = math::toRadians(renderYawOffset());
     f64 offsetX =
         -static_cast<f64>(width()) * std::sin(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
@@ -252,13 +260,10 @@ void RavagerEntity::_spawnStunParticles()
     f64 offsetZ =
         static_cast<f64>(width()) * std::cos(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
 
-    // 颜色参数: (0.498, 0.514, 0.573) - 灰色效果粒子
-    // 注：粒子效果需要客户端实现，这里暂时跳过
-    // worldPtr->addParticle(ParticleTypes::ENTITY_EFFECT, x() + offsetX, offsetY, z() + offsetZ,
-    //                       0.498, 0.514, 0.573);
-    (void)offsetX;
-    (void)offsetY;
-    (void)offsetZ;
+    // 生成灰色效果粒子，颜色通过 velocity 向量传递 (R, G, B)
+    worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+        Vector3(x() + offsetX, offsetY, z() + offsetZ),
+        Vector3(0.498f, 0.514f, 0.573f));
 }
 
 void RavagerEntity::_breakLeavesOnCollision()
@@ -345,15 +350,19 @@ void RavagerEntity::registerGoals()
     // 优先级 3: 攻击玩家
     targetSelector().addGoal(3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
 
-    // 优先级 4: 攻击村民
-    // TODO: VillagerEntity 需要实现后添加
-    // targetSelector().addGoal(4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<VillagerEntity>>(this,
-    // true));
+    // 优先级 4: 攻击村民（排除幼年村民）
+    // MC 原版: NearestAttackableTargetGoal<>(this, AbstractVillager.class, true, (p_199899_, p_376378_) ->
+    // !p_199899_.isBaby())
+    targetSelector().addGoal(4,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<entity::AbstractVillagerEntity>>(
+            this, true, 0, [](const LivingEntity* entity) -> bool {
+                auto* villager = dynamic_cast<const entity::AbstractVillagerEntity*>(entity);
+                return villager != nullptr && !villager->isChild();
+            }));
 
     // 优先级 4: 攻击铁傀儡
-    // TODO: IronGolemEntity 需要实现后添加
-    // targetSelector().addGoal(4,
-    // std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
+    targetSelector().addGoal(
+        4, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<IronGolemEntity>>(this, true));
 }
 
 void RavagerEntity::registerAttributes()

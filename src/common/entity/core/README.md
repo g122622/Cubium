@@ -108,23 +108,23 @@
 
     ## #getEquipmentForSlot 护甲等级映射
 
-    | armorLevel | 材质 | Head | Chest | Legs | Feet | | -- -- -- -- -- -| -- -- --| -- -- --| -- -- -- -| -- -- --|
-    -- -- --| | 0 | 皮革 | LEATHER_HELMET | LEATHER_CHESTPLATE | LEATHER_LEGGINGS | LEATHER_BOOTS | | 1 |
-    铜(暂铁) | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS | | 2 | 金 | GOLDEN_HELMET | GOLDEN_CHESTPLATE
-    | GOLDEN_LEGGINGS | GOLDEN_BOOTS | | 3 | 锁链 | CHAINMAIL_HELMET | CHAINMAIL_CHESTPLATE | CHAINMAIL_LEGGINGS
-    | CHAINMAIL_BOOTS | | 4 | 铁 | IRON_HELMET | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS | | 5 | 钻石
-    | DIAMOND_HELMET | DIAMOND_CHESTPLATE | DIAMOND_LEGGINGS | DIAMOND_BOOTS |
+    | armorLevel | 材质 | Head | Chest | Legs | Feet | | -- -| -- -| -- -| -- -| -- -| -- -| | 0 | 皮革 | LEATHER_HELMET
+    | LEATHER_CHESTPLATE | LEATHER_LEGGINGS | LEATHER_BOOTS | | 1 | 铜 | COPPER_HELMET | COPPER_CHESTPLATE
+    | COPPER_LEGGINGS | COPPER_BOOTS | | 2 | 金 | GOLDEN_HELMET | GOLDEN_CHESTPLATE | GOLDEN_LEGGINGS | GOLDEN_BOOTS | |
+    3 | 锁链 | CHAINMAIL_HELMET | CHAINMAIL_CHESTPLATE | CHAINMAIL_LEGGINGS | CHAINMAIL_BOOTS | | 4 | 铁 | IRON_HELMET
+    | IRON_CHESTPLATE | IRON_LEGGINGS | IRON_BOOTS | | 5 | 钻石 | DIAMOND_HELMET | DIAMOND_CHESTPLATE | DIAMOND_LEGGINGS
+    | DIAMOND_BOOTS |
 
-    注意：armorLevel = 1 对应铜材质，但铜护甲尚未实现，当前回退为铁护甲。
+    对应 MC 1.21.11 原版 `Mob.getEquipmentForSlot()`，armorLevel = 1 为铜护甲。
 
-                       ##CreatureEntity 寻路权重与生成条件
+                                                                   ##CreatureEntity 寻路权重与生成条件
 
-                       ## #getPathWeight 寻路权重系统
+                                                                   ## #getPathWeight 寻路权重系统
 
-`CreatureEntity::getPathWeight(f32 x,
-                           f32 y,
-                           f32 z)` 返回实体偏好移动到该位置的程度，正值越高越偏好，负值越避开，0为中性。对应
-                       MC `PathfinderMob.getWalkTargetValue`，被 `RandomPositionGenerator` 用于 AI 随机位置选择。
+`CreatureEntity::getPathWeight(f32 x, f32 y, f32 z)` 返回实体偏好移动到该位置的程度，正值越高越偏好，负值越避开，0为中性。对应
+                                                                   MC `PathfinderMob
+                                                                       .getWalkTargetValue`，被 `RandomPositionGenerator` 用于
+                                                                   AI 随机位置选择。
 
     | 实体类 | 重写逻辑 | 对应 MC | | -- -- -- --| -- -- -- -- --| -- -- -- -- -| | CreatureEntity（默认）
     | 返回 0.0f | `PathfinderMob` 返回 0.0F | | AnimalEntity
@@ -163,7 +163,7 @@
         &`（持久化引用），每个实体拥有独立的 `m_random` 成员
             - 旧 `MobEntity::getRandom()` 按值返回临时对象（每次调用重新构造 RNG），已移除
             - 获取随机数时应使用引用赋值 `math::Random &rng = entity->getRandom()`，而非值赋值 `math::Random rng =
-                           entity->getRandom()` -
+                                                                       entity->getRandom()` -
     值赋值会拷贝 RNG 状态，导致原 RNG 不推进，且同一 tick 内多次值赋值得到相同序列
     - `getRandom()` 在 `const` 方法中也可调用（`mutable` 成员），这是有意为之——随机数生成是逻辑操作而非状态查询 -
     Brain 系统的 `Task::start()` 接收的 `random` 参数仅用于计算任务持续时间，AI 逻辑中的随机数应使用 `owner->getRandom()`
@@ -180,10 +180,25 @@
                 骑乘时步高会动态变化（IRideable）
 
                 ## #火焰系统注意事项
-                - `setFire(seconds)` 将秒转换为 tick（×20），只在当前值较小时更新
-                - `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间
-                - 火焰免疫由 `EntityType::immuneToFire()` 标志决定 -
-                烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
+                - `m_fire` 正值表示燃烧剩余 tick，负值表示火焰免疫期倒计时
+                - `igniteForSeconds(seconds)` 点燃实体指定秒数（推荐使用），内部转换为 tick
+                - `igniteForTicks(ticks)` 点燃实体指定 tick 数，仅在新值大于当前值时更新，同时清除冰冻状态
+                - `setFire(ticks)` 已弃用，请使用 igniteForTicks() 或 igniteForSeconds()
+                - `setRemainingFireTicks(ticks)` 直接设置火焰计时器值（含负值免疫期）
+                - `getRemainingFireTicks()` 获取剩余火焰 tick（含负值免疫期）
+                - `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间（Player 重写以限制创造模式）
+                - `clearFire()` 将正值火焰计时器清零，保留负值免疫期
+                - `extinguishFire()` 如果正在燃烧则播放灭火音效并调用 clearFire()
+                - `setFireImmunityCooldown()` 设置火焰免疫期（Player 为 20 tick / 1 秒，普通实体为 0）
+                - `getFireImmuneTicks()` 虚方法，返回火焰免疫期时长。基类返回 0，Player 返回 20
+                - `lavaIgnite()` 岩浆点燃：免疫火焰则跳过，否则 igniteForSeconds(15)（15 秒）
+                - `lavaHurt()` 岩浆伤害：免疫火焰则跳过，否则造成 4.0 点岩浆伤害 + 播放 GENERIC_BURN 音效
+                - `isOnFire()` 火焰免疫的实体永远不会被认为着火（m_fire > 0 && !isImmuneToFire()）
+                - 火焰免疫由 `EntityType::immuneToFire()` 标志决定，子类可重写（如 ItemEntity 检查物品是否防火）
+                - 烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
+                - 火焰免疫期机制：实体离开火焰/岩浆后获得短暂免疫期（m_fire 设为负值），防止立即被重新点燃
+                - doBlockCollisions() 末尾自动检测并设置免疫期（方块碰撞未点燃且当前不燃烧时触发）
+                - 雨中灭火会播放音效并设置免疫期
 
                 ## #亡灵日光燃烧系统(burnUndead)
 
@@ -199,7 +214,7 @@
                 -
                 **`burnUndead()`** — 亡灵日光燃烧主逻辑： 1. 如果不在日光下 → 直接返回
                  2. 如果防护槽位有可损坏物品 → 物品承受耐久损耗（`setDamage()`，绕过耐久保护附魔）
-                 3. 如果防护槽位为空 → `setFire(8)` 点燃实体 8 秒
+                 3. 如果防护槽位为空 → `igniteForSeconds(8)` 点燃实体 8 秒
 
                  ####调用位置
 
@@ -283,6 +298,28 @@
         ## #类型标识符获取 - `typeId()` 返回 `EntityTypeIdNumber` 命名空间中的常量 - `legacyType()` 返回 `LegacyEntityType` 枚举（旧版，仅用于兼容） -
         新代码应使用 `typeId()`
 
+        ## #战利品表ID获取（getLootTableId）
+
+        `Entity::getLootTableId()` 是虚方法，返回实体对应的战利品表资源路径（如 `"minecraft:entities/pig"`）。
+
+        **方法层次**：
+        - **`Entity::getLootTableId()`**（基类）：从 `m_typeId` 推导默认路径，格式为 `<namespace>:entities/<path>`（如 `"minecraft:pig"` → `"minecraft:entities/pig"`）。`m_typeId` 为空时返回空字符串。
+        - **`MobEntity::getLootTableId()`**（覆写）：优先返回 NBT 自定义掉落表 `m_deathLootTable`（对应 MC Java 的 `DeathLootTable` NBT 标签），为空或 nullopt 时回退到基类实现。对齐 MC Java 的 `Mob.getLootTable()`：`this.lootTable.isPresent() ? this.lootTable : super.getLootTable()`。
+        - **无战利品表实体覆写**：以下实体覆写返回空字符串，对齐 MC Java 的 `EntityType.Builder.noLootTable()`：
+          - `ProjectileEntity`（覆盖所有弹射物子类：箭矢、三叉戟、火球等）
+          - `ItemEntity`（掉落物）
+          - `ExperienceOrbEntity`（经验球）
+          - `BoatEntity`（船）
+          - `AbstractMinecartEntity`（覆盖所有矿车变体）
+          - `HangingEntity`（覆盖画、物品框、拴绳结）
+          - `AreaEffectCloudEntity`、`EnderCrystalEntity`、`LightningBoltEntity`（效果实体）
+          - `FallingBlockEntity`、`TNTEntity`（杂项实体）
+          - `FishingBobberEntity`、`EvokerFangsEntity`、`EyeOfEnderEntity`、`FireworkRocketEntity`（其他弹射物）
+
+        **使用场景**：
+        - `/loot kill` 命令：从目标实体获取战利品表ID，生成击杀掉落物
+        - 实体死亡掉落逻辑：`MobEntity` 死亡时使用 `getLootTableId()` 查询战利品表
+
         ## #ISpawnWorldReader 接口 -
         定义在 `EntitySpawnPlacementRegistry.hpp` 中，用于生成检查的最小世界读取接口 -
         主要方法： - `getBlockState(x, y, z)` - 获取方块状态 - `isInWorldBounds(x, y, z)` -
@@ -351,13 +388,12 @@
         - 保存时仅写入新格式（MC 1.21.4 +）：`drop_chances`（compound，仅包含非默认值）
         - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
 
-        ## #死亡掉落表(
-            DeathLootTable) - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/"
-                                                                                                "zombi"
-                                                                                                "e"`） - `m_lootTableSeed`：确定性种子，0
-        表示随机
-        - NBT 键：`DeathLootTable`（string，仅在有值时写入）、`DeathLootTableSeed`（long，仅非零时写入） -
-        对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段
+        ## #死亡掉落表(DeathLootTable)
+        - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/zombie"`）
+        - `m_lootTableSeed`：确定性种子，0 表示随机
+        - NBT 键：`DeathLootTable`（string，仅在有值时写入）、`DeathLootTableSeed`（long，仅非零时写入）
+        - 对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段
+        - 通过 `MobEntity::getLootTableId()` 虚方法统一访问：优先返回 `m_deathLootTable`，为空时回退到 `Entity::getLootTableId()`（从 typeId 推导默认路径）
 
         ## #拴绳系统(Leash) - `m_isLeashed`：是否被拴绳拴住
         - `m_leashHolderUuid`：拴绳目标实体的 UUID（拴在实体上时）
@@ -548,6 +584,36 @@
     -
     典型覆写示例：`VillagerEntity::
         setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
+
+    ## #hurtMarked 受伤标记机制
+    - `m_hurtMarked`（bool）— 瞬态标记，实体受到伤害或击退时设为 true
+    - `markHurt()` — 设置标记为 true
+    - `isHurtMarked()` — 查询标记状态
+    - `clearHurtMarked()` — 清除标记（由 EntityTracker 速度同步后调用）
+    - 用途：服务端 EntityTracker 在 tick 中检测 `isHurtMarked()`，为 true 时向所有追踪玩家发送 EntityVelocityPacket，然后清除标记；AI 目标检测（如 TradeWithPlayerGoal 检查 `isHurtMarked()` 判断是否中断交易）
+    - 字段位于 Entity 类 protected 区域，紧随 `m_invulnerable` 之后
+    - 该标记不参与 NBT 序列化，实体重载后从 false 开始
+
+    ## #causeExtraKnockback 额外击退机制
+
+    对应 MC Java 的 `LivingEntity.causeExtraKnockback()` / `Player.causeExtraKnockback()`，用于疾跑/附魔击退的速度修正。
+
+    ### 基类 LivingEntity::causeExtraKnockback(target, strength, preHurtVelocity)
+
+    - 当 `strength > 0` 时：基于攻击者朝向（yaw）对目标施加击退，攻击者水平速度 ×0.6 减速
+    - 注意：基类**不**调用 `setSprinting(false)`，那是 Player 子类的行为
+    - `preHurtVelocity` 参数在基类中未使用（仅 Player 子类需要）
+
+    ### Player 子类重写
+
+    - 在基类击退逻辑基础上增加 `setSprinting(false)`（疾跑停止）
+    - ServerPlayer 目标速度重复应用修复：当 `target.isHurtMarked() && targetPlayer->sendVelocityPacket()` 返回 true 时，立即清除 hurtMarked 并恢复 preHurtVelocity，避免 EntityTracker::tick() 重复发送速度包
+
+    ### sendVelocityPacket() 虚方法
+
+    - Player 基类返回 `false`（空操作）
+    - ServerPlayer 重写版本实际发送 EntityVelocityPacket 并返回 `true`
+    - 此设计避免 common 层对 server 层的依赖，通过虚方法桥接
 
     ## #setAttackTarget 虚方法
     - `MobEntity::setAttackTarget()` 和 `MobEntity::

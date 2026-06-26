@@ -43,8 +43,11 @@
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileHelper.hpp"
 #include "common/item/Items.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/core/UseAction.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/SpecialDates.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -55,14 +58,9 @@ namespace mc {
 AbstractSkeletonEntity::AbstractSkeletonEntity(EntityId id)
     : MonsterEntity(id)
 {
-    // 在构造函数中创建战斗目标（但不添加到选择器）
-    // setCombatTask() 会在 onInitialSpawn() 或需要时被调用
-    m_rangedAttackGoal = std::make_unique<entity::ai::goal::RangedBowAttackGoal>(
-        this, RANGED_ATTACK_SPEED, ATTACK_INTERVAL_MIN, ATTACK_INTERVAL_MAX);
-
-    // 近战目标是一个匿名子类，在 startExecuting/resetTask 中设置 aggro 状态
-    // 当前简化实现，使用标准 MeleeAttackGoal
-    m_meleeAttackGoal = std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, MELEE_ATTACK_SPEED, false);
+    // 战斗目标不再在构造函数中创建，而是在 setCombatTask() 中按需创建。
+    // setCombatTask() 会在 registerGoals() 之后（构造函数末尾）或
+    // finalizeSpawn() / setEquipment() 时被调用。
 }
 
 AbstractSkeletonEntity::~AbstractSkeletonEntity() = default;
@@ -133,31 +131,66 @@ void AbstractSkeletonEntity::tick()
 
 void AbstractSkeletonEntity::setCombatTask()
 {
-    // 先移除所有战斗目标，再根据装备添加正确的目标
+    // 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal()
 
-    // 移除现有的战斗目标
-    if (m_rangedAttackGoal) {
-        m_goalSelector.removeGoal(m_rangedAttackGoal.get());
+    // 先移除所有现有的战斗目标，再根据装备添加正确的目标。
+    // 使用 removeGoalsOfType 按类型移除，避免 unique_ptr 与 GoalSelector 之间的所有权冲突：
+    // GoalSelector 拥有 Goal 的所有权，removeGoalsOfType 会正确销毁旧目标并释放内存。
+    m_goalSelector.removeGoalsOfType<entity::ai::goal::RangedBowAttackGoal>();
+    m_goalSelector.removeGoalsOfType<entity::ai::goal::MeleeAttackGoal>();
+
+    // 检查主手/副手是否持有弓
+    // 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal()
+    // 安全检查：构造阶段或客户端不执行装备检查逻辑
+    bool shouldUseRanged = true; // 默认使用远程攻击（普通骷髅和流浪者默认持弓）
+    if (world() != nullptr && !world()->isClientSide()) {
+        Hand weaponHand = getWeaponHoldingHand(*this, Items::BOW);
+        const ItemStack& weaponStack = getEquipment(LivingEntity::handToEquipmentSlot(weaponHand));
+        const Item* weaponItem = weaponStack.getItem();
+        shouldUseRanged = (weaponItem != nullptr && canUseNonMeleeWeapon(weaponStack));
     }
-    if (m_meleeAttackGoal) {
-        m_goalSelector.removeGoal(m_meleeAttackGoal.get());
+
+    if (shouldUseRanged) {
+        // 持弓 -> 注册远程攻击目标（创建新实例并转移所有权给 GoalSelector）
+        // 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal()：
+        //   根据当前游戏难度调整最小攻击间隔
+        //   - 困难难度: 使用 getHardAttackInterval()（普通骷髅 20 ticks）
+        //   - 其他难度: 使用 getAttackInterval()（普通骷髅 40 ticks）
+        i32 minAttackInterval = getHardAttackInterval();
+        if (world() != nullptr && world()->difficulty() != Difficulty::Hard) {
+            minAttackInterval = getAttackInterval();
+        }
+
+        auto bowGoal = std::make_unique<entity::ai::goal::RangedBowAttackGoal>(
+            this, RANGED_ATTACK_SPEED, ATTACK_INTERVAL_MIN, ATTACK_INTERVAL_MAX);
+        bowGoal->setMinAttackInterval(minAttackInterval);
+        m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, std::move(bowGoal));
+    } else {
+        // 不持弓 -> 注册近战攻击目标（创建新实例并转移所有权给 GoalSelector）
+        m_goalSelector.addGoal(
+            COMBAT_GOAL_PRIORITY, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, MELEE_ATTACK_SPEED, false));
     }
+}
 
-    // 检查是否持有弓
-    // 当前简化实现：默认使用远程攻击
-    // 子类可以重写此方法来选择不同的战斗目标
-    //
-    // TODO: 当物品系统完善后，应该检查装备：
-    // ItemStack itemstack = getHeldItem(ProjectileHelper.getHandWith(this, Items.BOW));
-    // if (itemstack.getItem() == Items.BOW) {
-    //     m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_rangedAttackGoal.get());
-    // } else {
-    //     m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_meleeAttackGoal.get());
-    // }
+bool AbstractSkeletonEntity::canUseNonMeleeWeapon(const ItemStack& stack) const
+{
+    // 默认实现：检查物品的 UseAction 是否为 Bow
+    // 对应 MC 原版 AbstractSkeleton.canUseNonMeleeWeapon()
+    const Item* item = stack.getItem();
+    return item != nullptr && item->getUseAction(stack) == UseAction::Bow;
+}
 
-    // 默认使用远程攻击（普通骷髅和流浪者）
-    if (m_rangedAttackGoal) {
-        m_goalSelector.addGoal(COMBAT_GOAL_PRIORITY, m_rangedAttackGoal.get());
+void AbstractSkeletonEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
+{
+    // 先调用基类实现设置装备
+    MonsterEntity::setEquipment(slot, stack);
+
+    // 装备变更时重新评估战斗目标
+    // 对应 MC 原版 AbstractSkeleton.onEquipItem() 中的 reassessWeaponGoal() 调用
+    // 仅在主手/副手装备变更时触发，且仅在服务端执行
+    if ((slot == EquipmentSlot::MainHand || slot == EquipmentSlot::OffHand) && world() != nullptr &&
+        !world()->isClientSide()) {
+        setCombatTask();
     }
 }
 

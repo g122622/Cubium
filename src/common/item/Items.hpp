@@ -183,6 +183,14 @@ public:
     static Item* LEATHER_BOOTS;
 
     // ========================================================================
+    // 护甲 - 铜（MC 1.21.11 新增）
+    // ========================================================================
+    static Item* COPPER_HELMET;
+    static Item* COPPER_CHESTPLATE;
+    static Item* COPPER_LEGGINGS;
+    static Item* COPPER_BOOTS;
+
+    // ========================================================================
     // 护甲 - 锁链
     // ========================================================================
     static Item* CHAINMAIL_HELMET;
@@ -207,10 +215,12 @@ public:
     // ========================================================================
     // 马铠 - 用于装备马提供护甲
     // ========================================================================
-    static Item* LEATHER_HORSE_ARMOR; // 皮革马铠 - +3 护甲
-    static Item* IRON_HORSE_ARMOR;    // 铁马铠 - +5 护甲
-    static Item* GOLDEN_HORSE_ARMOR;  // 金马铠 - +7 护甲
-    static Item* DIAMOND_HORSE_ARMOR; // 钻石马铠 - +11 护甲
+    static Item* LEATHER_HORSE_ARMOR;   // 皮革马铠 - +3 护甲
+    static Item* COPPER_HORSE_ARMOR;    // 铜马铠 - +4 护甲
+    static Item* IRON_HORSE_ARMOR;      // 铁马铠 - +5 护甲
+    static Item* GOLDEN_HORSE_ARMOR;    // 金马铠 - +7 护甲
+    static Item* DIAMOND_HORSE_ARMOR;   // 钻石马铠 - +11 护甲
+    static Item* NETHERITE_HORSE_ARMOR; // 下界合金马铠 - +19 护甲，防火
 
     // ========================================================================
     // 食物
@@ -295,9 +305,10 @@ public:
     // ========================================================================
     static Item* FLINT;
     static Item* FLINT_AND_STEEL;
-    static Item* SHEARS;   // 剪刀
-    static Item* NAME_TAG; // 命名牌
-    static Item* SADDLE;   // 鞍
+    static Item* SHEARS;    // 剪刀
+    static Item* HONEYCOMB; // 蜜脾
+    static Item* NAME_TAG;  // 命名牌
+    static Item* SADDLE;    // 鞍
     static Item* STRING;
     static Item* FEATHER;
     static Item* GUNPOWDER;
@@ -475,6 +486,20 @@ public:
     static Item* CHERRY_BOAT;   // 樱花木船
     static Item* PALE_OAK_BOAT; // 苍白橡木船
     static Item* BAMBOO_RAFT;   // 竹筏
+
+    // ========================================================================
+    // 带箱子的船（10种木材类型）
+    // ========================================================================
+    static Item* OAK_CHEST_BOAT;      // 橡木箱子船
+    static Item* SPRUCE_CHEST_BOAT;   // 云杉木箱子船
+    static Item* BIRCH_CHEST_BOAT;    // 白桦木箱子船
+    static Item* JUNGLE_CHEST_BOAT;   // 丛林木箱子船
+    static Item* ACACIA_CHEST_BOAT;   // 金合欢木箱子船
+    static Item* DARK_OAK_CHEST_BOAT; // 深色橡木箱子船
+    static Item* MANGROVE_CHEST_BOAT; // 红树木箱子船
+    static Item* CHERRY_CHEST_BOAT;   // 樱花木箱子船
+    static Item* PALE_OAK_CHEST_BOAT; // 苍白橡木箱子船
+    static Item* BAMBOO_CHEST_RAFT;   // 箱子竹筏
 
     // ========================================================================
     // 悬挂实体物品
@@ -1102,6 +1127,7 @@ public:
     static Item* OMINOUS_TRIAL_KEY;                 // 不祥试炼钥匙
     static Item* OMINOUS_BOTTLE;                    // 不祥之瓶
     static Item* WIND_CHARGE;                       // 风弹
+    static Item* BREEZE_ROD;                        // 狂风杖
     static Item* MACE;                              // 重锤
     static Item* GUSTER_BANNER_PATTERN;             // 旋风旗帜图案
     static Item* FLOW_BANNER_PATTERN;               // 涡流旗帜图案
@@ -1157,6 +1183,7 @@ private:
     static void _registerSponges();
     static void _registerMinecarts();
     static void _registerBoats();
+    static void _registerChestBoats();
     static void _registerHangingItems();
     static void _registerSigns();
     static void _registerBanners();

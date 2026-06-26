@@ -26,10 +26,13 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/HoneycombItem.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/copper/IOxidizableBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -44,7 +47,6 @@ AxeItem::AxeItem(const tier::IItemTier& tier, f32 attackDamage, f32 attackSpeed,
 
 ActionResultType AxeItem::onItemUse(ItemUseContext& context)
 {
-    // 斧头去皮逻辑
     IWorld& world = context.world();
     const BlockPos& pos = context.blockPos();
     const BlockState* state = world.getBlockState(pos);
@@ -52,28 +54,54 @@ ActionResultType AxeItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Pass;
     }
 
-    // 检查是否可去皮
+    // MC Java AxeItem 交互顺序：1.去皮 → 2.去氧化(刮削) → 3.除蜡
+    // 每个步骤独立检查，只有第一个匹配的步骤被执行（fallthrough if-empty 模式）
+
+    // 1. 检查是否可去皮（原木 → 去皮原木）
     const Block* strippedBlock = getStrippedBlock(&state->owner());
-    if (strippedBlock == nullptr) {
-        return ActionResultType::Pass;
+    if (strippedBlock != nullptr) {
+        const BlockState& newState = strippedBlock->getDefaultState().withPropertiesOf(*state);
+
+        if (context.getPlayer() != nullptr) {
+            context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
+        }
+
+        world.setBlockState(pos, &newState, 11);
+        ItemStack& stack = context.getItemStackMut();
+        LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+        return ActionResultType::Success;
     }
 
-    // 获取新方块状态
-    const BlockState& newState = strippedBlock->getDefaultState();
+    // 2. 检查是否可去氧化（刮削铜方块，如 Exposed → Unaffected）
+    const Block& block = state->getBlock();
+    const auto* oxidizable = dynamic_cast<const blocks::IOxidizableBlock*>(&block);
+    if (oxidizable != nullptr) {
+        Block* previousBlock = oxidizable->getPreviousOxidationBlock();
+        if (previousBlock != nullptr) {
+            // 使用 withPropertiesOf 保留共有属性（楼梯朝向、台阶类型、含水状态等）
+            const BlockState& newState = previousBlock->defaultState().withPropertiesOf(*state);
 
-    // 播放去皮音效
-    if (context.getPlayer() != nullptr) {
-        context.getPlayer()->playSound(SoundEvents::ITEM_AXE_STRIP, 1.0f, 1.0f);
+            world.setBlockState(pos, &newState, 11);
+            // 去氧化播放 SCRAPE 粒子效果（worldEvent 3005 已包含音效和粒子）
+            world.playEvent(world::WorldEvents::SCRAPE, pos, 0);
+            ItemStack& stack = context.getItemStackMut();
+            LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+            return ActionResultType::Success;
+        }
     }
 
-    // 设置新方块状态（flags: 11 = 同步到客户端+更新邻居）
-    world.setBlockState(pos, &newState, 11);
+    // 3. 检查是否可除蜡（涂蜡铜方块 → 未涂蜡铜方块）
+    auto waxedOffState = item::items::HoneycombItem::getWaxedOff(*state);
+    if (waxedOffState.has_value()) {
+        // 除蜡：播放 WAX_OFF 世界事件（包含音效+粒子），无需单独调用 playSound
+        world.setBlockState(pos, &waxedOffState.value(), 11);
+        world.playEvent(world::WorldEvents::WAX_OFF, pos, 0);
+        ItemStack& stack = context.getItemStackMut();
+        LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
+        return ActionResultType::Success;
+    }
 
-    // 消耗耐久度，若物品损坏则触发 onEquippedItemBroken 回调
-    ItemStack& stack = context.getItemStackMut();
-    LivingEntity::hurtAndBreak(stack, 1, context.getPlayer(), EquipmentSlot::MainHand);
-
-    return ActionResultType::Success;
+    return ActionResultType::Pass;
 }
 
 const Block* AxeItem::getStrippedBlock(const Block* original)

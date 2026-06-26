@@ -54,13 +54,10 @@ bool QuickJSRuntime::initialize()
         return false;
     }
 
-    // 设置内存限制（默认64MB）
+    // 设置内存限制（如果已通过 setMemoryLimit 指定）
     if (m_memoryLimit > 0) {
         JS_SetMemoryLimit(m_runtime, m_memoryLimit);
     }
-
-    // 设置最大栈大小（4MB）
-    JS_SetMaxStackSize(m_runtime, 4 * 1024 * 1024);
 
     spdlog::info("[BedrockAddon] QuickJS runtime created successfully");
     return true;
@@ -73,7 +70,16 @@ std::unique_ptr<IScriptContext> QuickJSRuntime::createContext(const ContextConfi
         return nullptr;
     }
 
-    spdlog::info("[BedrockAddon] Creating QuickJS context");
+    spdlog::info("[BedrockAddon] Creating QuickJS context (memory={}, stack={})",
+        config.maxMemoryBytes,
+        config.maxStackSizeBytes);
+
+    // 应用上下文级别的内存限制
+    JS_SetMemoryLimit(m_runtime, config.maxMemoryBytes);
+    m_memoryLimit = config.maxMemoryBytes;
+
+    // 应用上下文级别的栈大小限制
+    JS_SetMaxStackSize(m_runtime, config.maxStackSizeBytes);
 
     auto context = std::make_unique<QuickJSContext>(*this, config);
     if (!context->initialize()) {

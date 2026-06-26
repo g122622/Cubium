@@ -28,7 +28,6 @@
  * @brief 紫颂树特征
  *
  * 在末地高地生物群系中生成紫颂树。
- * 对应 MC 原版 ChorusPlantFeature，使用 NoneFeatureConfiguration。
  *
  * 紫颂树的生成逻辑委托给 ChorusFlowerBlock::generatePlant()，
  * 该方法会递归地放置紫颂植物茎干和紫颂花。
@@ -52,8 +51,6 @@ class IChunkGenerator;
  * 在末地石上方的空气中放置紫颂树。
  * 特征检查起始位置是否为空气且下方为末地石，
  * 然后调用 ChorusFlowerBlock::generatePlant() 递归生成紫颂树。
- *
- * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.feature.ChorusPlantFeature
  */
 class ChorusPlantFeature {
 public:

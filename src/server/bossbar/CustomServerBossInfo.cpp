@@ -23,22 +23,27 @@
 
 #include "CustomServerBossInfo.hpp"
 #include "CustomServerBossInfoManager.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/util/text/ComponentUtils.hpp"
 #include "common/util/text/StringTextComponent.hpp"
 #include "common/util/text/TextEvents.hpp"
 #include "common/util/text/TextStyle.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include <algorithm>
+#include <random>
 
 namespace mc {
 namespace server {
 
+math::Random CustomServerBossInfo::s_random{std::random_device{}()};
+
 CustomServerBossInfo::CustomServerBossInfo(
     const ResourceLocation& id, std::unique_ptr<text::ITextComponent> name, CustomServerBossInfoManager& manager)
     : ServerBossInfo(
-          // 使用 id 的哈希值作为 UUID（简化实现，实际 MC 使用随机 UUID）
-          std::hash<std::string>{}(id.toString()),
+          // 使用随机 UUID v4，与 MC Java 的 Mth.createInsecureUUID() 一致
+          util::generateRandomUuid(s_random),
           std::move(name),
           BossInfoColor::White,
           BossInfoOverlay::Progress)

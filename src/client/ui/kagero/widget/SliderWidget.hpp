@@ -33,6 +33,7 @@
 #include "Widget.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/paint/PaintContext.hpp"
+#include "common/input/KeyBinding.hpp"
 
 namespace mc::client::ui::kagero::widget {
 
@@ -108,7 +109,16 @@ public:
         const Rect knob{knobX, y() + 2, knobSize, std::max(4, height() - 4)};
         ctx.drawFilledRect(knob, Colors::fromARGB(255, 200, 200, 200));
 
-        // TODO: 根据 m_showValue 绘制显示文本（displayText()）
+        // 根据 m_showValue 绘制显示文本
+        if (m_showValue) {
+            std::string text = displayText();
+            if (!text.empty()) {
+                f32 textWidth = ctx.getTextWidth(text);
+                i32 textX = x() + (width() - static_cast<i32>(textWidth)) / 2;
+                i32 textY = y() + (height() - static_cast<i32>(ctx.getFontHeight())) / 2;
+                ctx.drawText(text, textX, textY, Colors::WHITE);
+            }
+        }
     }
 
     // ==================== 事件处理 ====================
@@ -181,17 +191,16 @@ public:
         (void)mods;
 
         if (!isActive() || !isVisible() || !isFocused()) return false;
-        if (action != 1 && action != 2) return false;
+        if (action != static_cast<i32>(KeyAction::Press) && action != static_cast<i32>(KeyAction::Repeat)) return false;
 
         f64 step = (m_stepSize > 0) ? m_stepSize : (m_maxValue - m_minValue) / 20.0;
 
-        // TODO: 使用平台无关的键码常量替代硬编码值，避免依赖 GLFW
         switch (key) {
-            case 262: // Right
+            case Keys::Right:
                 setValue(m_value + step);
                 return true;
 
-            case 263: // Left
+            case Keys::Left:
                 setValue(m_value - step);
                 return true;
 

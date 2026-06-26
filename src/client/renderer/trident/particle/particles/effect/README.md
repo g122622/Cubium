@@ -1,6 +1,6 @@
 # 效果粒子 (Effect Particles)
 
-效果粒子用于各种视觉特效，如火焰、烟雾、爆炸、传送门等。参考 MC 1.16.5 `net.minecraft.client.particle.*` 实现。
+效果粒子用于各种视觉特效，如火焰、烟雾、爆炸、传送门等。
 
 ## 目录结构
 
@@ -8,6 +8,7 @@
 effect/
 ├── FlameParticle.hpp/cpp         # 火焰粒子（发光、向上漂浮、缩小淡出）
 ├── SmokeParticle.hpp/cpp         # 烟雾粒子（向上飘动、变大淡出）
+├── WhiteSmokeParticle.hpp/cpp    # 白色烟雾粒子（白灰色调、方向性发射、DISPENSER_SMOKE/SHOOT_WHITE_SMOKE）
 ├── LavaParticle.hpp/cpp          # 熔岩滴粒子（发光、下落）
 ├── PortalParticle.hpp/cpp        # 传送门粒子（紫色、水平摆动）
 ├── CritParticle.hpp/cpp          # 暴击粒子（含 EnchantedHitParticle 附魔暴击粒子）
@@ -38,6 +39,7 @@ Particle (基类，在 particle/ 目录)
     ├── DragonBreathParticle      │
     ├── SoulParticle              │
     ├── RedstoneParticle          │
+    ├── WhiteSmokeParticle        │
     ├── CampfireParticle ─────────┘
     │
     └── EmitterParticle ──────────┐

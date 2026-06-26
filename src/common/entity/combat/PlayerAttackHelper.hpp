@@ -119,6 +119,9 @@ public:
      * - Y轴速度：min(0.4, 当前Y速度/2 + 击退强度) 如果在地面
      * - X/Z轴速度：当前速度/2 - 击退方向 * 击退强度
      *
+     * TODO: Player::attack() 已改用 LivingEntity::causeExtraKnockback()（基于攻击者朝向），
+     * 此方法目前无调用方。待 Mob::doHurtTarget 实现后评估是否仍需保留。
+     *
      * @param target 目标
      * @param attacker 攻击者
      * @param strength 击退强度

@@ -454,8 +454,11 @@ void TemplateInstance::registerDefaultEventBinders()
                                         const std::string& callbackName,
                                         binder::BindingContext& ctx) {
         (void)eventName;
-        (void)widget;
-        ctx.invokeCallback(callbackName, widget, event::MouseClickEvent(0, 0, 0, 2));
+        if (widget && !callbackName.empty()) {
+            widget->setOnDoubleClickCallback([&ctx, callbackName, widget](widget::Widget& w) {
+                ctx.invokeCallback(callbackName, &w, event::MouseClickEvent(0, 0, 0, 2));
+            });
+        }
     };
 
     // 右键点击事件
@@ -464,8 +467,11 @@ void TemplateInstance::registerDefaultEventBinders()
                                        const std::string& callbackName,
                                        binder::BindingContext& ctx) {
         (void)eventName;
-        (void)widget;
-        ctx.invokeCallback(callbackName, widget, event::MouseClickEvent(0, 0, 1, 1));
+        if (widget && !callbackName.empty()) {
+            widget->setOnRightClickCallback([&ctx, callbackName, widget](widget::Widget& w) {
+                ctx.invokeCallback(callbackName, &w, event::MouseClickEvent(0, 0, 1, 1));
+            });
+        }
     };
 
     // 鼠标进入事件：只注册回调，状态修改由Widget自身的事件处理管理

@@ -349,3 +349,84 @@ TEST_F(ItemTagsTest, DampensVibrationsContains32Items)
     const auto& items = item::tag::ItemTags::DAMPENS_VIBRATIONS().getItems();
     EXPECT_EQ(items.size(), 32u);
 }
+
+// ============================================================================
+// FIRE_RESISTANT 标签测试 - 下界合金物品
+// ============================================================================
+
+TEST_F(ItemTagsTest, FireResistantContainsNetheriteIngot)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
+}
+
+TEST_F(ItemTagsTest, FireResistantContainsNetheriteScrap)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_scrap"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
+}
+
+TEST_F(ItemTagsTest, FireResistantContainsAncientDebris)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "ancient_debris"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
+}
+
+TEST_F(ItemTagsTest, FireResistantContainsNetherStar)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_star"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
+}
+
+TEST_F(ItemTagsTest, FireResistantContainsNetheriteBlock)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_block"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
+}
+
+TEST_F(ItemTagsTest, FireResistantContainsNetheriteTools)
+{
+    // 所有下界合金工具都应在防火标签中
+    const char* toolNames[] = {
+        "netherite_sword", "netherite_shovel", "netherite_pickaxe", "netherite_axe", "netherite_hoe"};
+    for (const char* name : toolNames) {
+        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+        ASSERT_NE(item, nullptr) << "Item not found: " << name;
+        EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT())) << "Not fire resistant: " << name;
+    }
+}
+
+TEST_F(ItemTagsTest, FireResistantContainsNetheriteArmor)
+{
+    // 所有下界合金盔甲都应在防火标签中
+    const char* armorNames[] = {"netherite_helmet", "netherite_chestplate", "netherite_leggings", "netherite_boots"};
+    for (const char* name : armorNames) {
+        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+        ASSERT_NE(item, nullptr) << "Item not found: " << name;
+        EXPECT_TRUE(item->isIn(item::tag::ItemTags::FIRE_RESISTANT())) << "Not fire resistant: " << name;
+    }
+}
+
+TEST_F(ItemTagsTest, FireResistantDoesNotContainIronItems)
+{
+    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_ingot"));
+    ASSERT_NE(ironIngot, nullptr);
+    EXPECT_FALSE(ironIngot->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
+}
+
+TEST_F(ItemTagsTest, FireResistantDoesNotContainDiamondItems)
+{
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    EXPECT_FALSE(diamond->isIn(item::tag::ItemTags::FIRE_RESISTANT()));
+}
+
+TEST_F(ItemTagsTest, FireResistantTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::FIRE_RESISTANT().getId(), ResourceLocation("minecraft", "fire_resistant"));
+}

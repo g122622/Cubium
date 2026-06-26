@@ -470,3 +470,37 @@ TEST(GameRulesTest, TntExplodes_NbtRoundTrip)
     GameRules rules2(*nbt);
     EXPECT_FALSE(rules2.getBoolean(GameRuleKeys::TNT_EXPLODES));
 }
+
+// ============================================================================
+// max_minecart_speed 游戏规则测试
+// ============================================================================
+
+TEST(GameRulesTest, MaxMinecartSpeed_DefaultValueIs8)
+{
+    GameRules rules;
+    // 默认值为 8，对应实际速度 0.4 方块/刻
+    EXPECT_EQ(rules.getInt(GameRuleKeys::MAX_MINECART_SPEED), 8);
+}
+
+TEST(GameRulesTest, MaxMinecartSpeed_CanBeSetAndRead)
+{
+    GameRules rules;
+    rules.setInt(GameRuleKeys::MAX_MINECART_SPEED, 16);
+    EXPECT_EQ(rules.getInt(GameRuleKeys::MAX_MINECART_SPEED), 16);
+}
+
+TEST(GameRulesTest, MaxMinecartSpeed_NbtRoundTrip)
+{
+    GameRules rules;
+    rules.setInt(GameRuleKeys::MAX_MINECART_SPEED, 20);
+    auto nbt = rules.write();
+
+    GameRules rules2(*nbt);
+    EXPECT_EQ(rules2.getInt(GameRuleKeys::MAX_MINECART_SPEED), 20);
+}
+
+TEST(GameRulesTest, MaxMinecartSpeed_CategoryIsMisc)
+{
+    IntegerGameRuleKey key("max_minecart_speed", GameRuleCategory::Misc);
+    EXPECT_EQ(key.getCategory(), GameRuleCategory::Misc);
+}

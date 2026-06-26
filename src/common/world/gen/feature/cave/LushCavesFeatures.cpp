@@ -32,7 +32,7 @@
 #include "common/world/gen/feature/predicate/BlockPredicate.hpp"
 #include "common/world/gen/feature/tree/TreeFeature.hpp"
 #include "common/world/gen/feature/tree/foliage/BlobFoliagePlacer.hpp"
-#include "common/world/gen/feature/tree/trunk/StraightTrunkPlacer.hpp"
+#include "common/world/gen/feature/tree/trunk/BendingTrunkPlacer.hpp"
 #include "common/world/gen/placement/BiomeFilterPlacement.hpp"
 #include "common/world/gen/placement/EnvironmentScanPlacement.hpp"
 #include "common/world/gen/placement/Placement.hpp"
@@ -225,11 +225,12 @@ std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createDripleaf()
 
 std::unique_ptr<ConfiguredFeatureBase> LushCavesFeatures::createAzaleaTree()
 {
-    // 杜鹃树 - 使用StraightTrunkPlacer + BlobFoliagePlacer
+    // 杜鹃树 - 使用BendingTrunkPlacer + BlobFoliagePlacer
     // MC: BendingTrunkPlacer(4,2,0,3,UniformInt(1,2)) + WeightedFoliage(AzaleaLeaves 3:FloweringAzaleaLeaves 1)
     //     + RandomSpreadFoliagePlacer(radius=3,offset=0,height=2) + forceDirt=true + dirtBlock=ROOTED_DIRT
-    // TODO: 实现BendingTrunkPlacer后替换
-    auto trunkPlacer = std::make_unique<StraightTrunkPlacer>(4, 2, 0);
+    // TODO: 实现RandomSpreadFoliagePlacer后替换BlobFoliagePlacer
+    // TODO: 实现加权树叶提供器后替换单一foliageBlock
+    auto trunkPlacer = std::make_unique<BendingTrunkPlacer>(4, 2, 0, 3, std::make_unique<UniformInt>(1, 2));
     auto foliagePlacer = std::make_unique<BlobFoliagePlacer>(FeatureSpread::spread(3, 0), FeatureSpread::fixed(0), 2);
 
     auto config = std::make_unique<TreeFeatureConfig>();

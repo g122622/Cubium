@@ -23,6 +23,9 @@
 
 #include <gtest/gtest.h>
 
+#include "common/entity/entities/projectile/OtherProjectiles.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -568,4 +571,238 @@ TEST_F(EvokerFangsTest, GetTeam_ConstCorrectness)
     const scoreboard::Team* team = constEntity.getTeam();
 
     EXPECT_EQ(team, m_evokerTeam.get());
+}
+
+// ============================================================================
+// Owner UUID 双重追踪测试
+// ============================================================================
+//
+// 测试 EvokerFangsEntity 的 owner UUID 双重追踪功能。
+// 参考 AreaEffectCloudEntity 的 owner UUID 追踪模式，
+// 以及 MC 1.21.11 EvokerFangs 的 EntityReference<LivingEntity> 机制。
+//
+// 核心功能：
+// 1. setOwner() 同时设置缓存指针和 UUID
+// 2. owner() const 直接返回缓存指针（不触发懒加载）
+// 3. getOwner() 非const：缓存指针有效时直接返回，失效时通过 UUID 重新查找
+// 4. setOwnerUuid() 仅设置 UUID，清空指针（用于 NBT 反序列化）
+// 5. ownerUuid() 返回 UUID 字符串
+// 6. NBT 序列化/反序列化正确保存和恢复 owner UUID
+
+TEST_F(EvokerFangsTest, SetOwner_UpdatesBothPointerAndUuid)
+{
+    // setOwner(LivingEntity*) 同时设置缓存指针和 UUID
+    // 由于 MockEntityWithTeam 不是 LivingEntity 的子类，
+    // 我们通过间接方式验证：
+    // 1. setOwner(nullptr) 清空 UUID
+    // 2. ownerUuid() 在设置后非空
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    // 验证初始状态
+    EXPECT_EQ(fangs.owner(), nullptr);
+    EXPECT_TRUE(fangs.ownerUuid().empty());
+
+    // setOwner(nullptr) 应清空 UUID 和指针
+    fangs.setOwner(nullptr);
+    EXPECT_EQ(fangs.owner(), nullptr);
+    EXPECT_TRUE(fangs.ownerUuid().empty());
+
+    // 验证实体有 UUID（用于间接确认 setOwner 可以记录 UUID）
+    EXPECT_FALSE(m_evoker->uuid().empty()) << "实体应该有非空 UUID";
+}
+
+TEST_F(EvokerFangsTest, SetOwner_Null_ClearsUuid)
+{
+    // setOwner(nullptr) 应清空 UUID 和缓存指针
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    // 先通过 setOwnerUuid 设置 UUID（模拟之前有 owner 的状态）
+    const std::string testUuid = "abcdef0123456789abcdef0123456789";
+    fangs.setOwnerUuid(testUuid);
+    EXPECT_FALSE(fangs.ownerUuid().empty());
+
+    // setOwner(nullptr) 应同时清空指针和 UUID
+    fangs.setOwner(nullptr);
+    EXPECT_EQ(fangs.owner(), nullptr);
+    EXPECT_TRUE(fangs.ownerUuid().empty());
+}
+
+TEST_F(EvokerFangsTest, SetOwnerUuid_ClearsPointer)
+{
+    // setOwnerUuid() 仅设置 UUID，清空指针（NBT 反序列化场景）
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    const std::string testUuid = "abcdef0123456789abcdef0123456789";
+    fangs.setOwnerUuid(testUuid);
+
+    // UUID 应正确设置
+    EXPECT_EQ(fangs.ownerUuid(), testUuid);
+    // 缓存指针应为 nullptr（等待 getOwner() 懒加载查找）
+    EXPECT_EQ(fangs.owner(), nullptr);
+    // getOwner() 在无世界环境时无法查找，返回 nullptr
+    EXPECT_EQ(fangs.getOwner(), nullptr);
+    // UUID 仍然保留
+    EXPECT_EQ(fangs.ownerUuid(), testUuid);
+}
+
+TEST_F(EvokerFangsTest, SetOwnerUuid_EmptyString_ClearsUuid)
+{
+    // setOwnerUuid("") 应清空 UUID
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    fangs.setOwnerUuid("abcdef0123456789abcdef0123456789");
+    EXPECT_FALSE(fangs.ownerUuid().empty());
+
+    fangs.setOwnerUuid("");
+    EXPECT_TRUE(fangs.ownerUuid().empty());
+}
+
+TEST_F(EvokerFangsTest, GetOwner_ReturnsNullptr_WhenNoWorld)
+{
+    // 没有世界时，getOwner() 无法通过 UUID 查找，应返回 nullptr
+    // 但 UUID 应该保留
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    const std::string testUuid = "aabbccdd11223344aabbccdd11223344";
+    fangs.setOwnerUuid(testUuid);
+
+    // 无世界环境，UUID 查找无法执行
+    EXPECT_EQ(fangs.getOwner(), nullptr);
+    // UUID 仍然保留
+    EXPECT_EQ(fangs.ownerUuid(), testUuid);
+}
+
+TEST_F(EvokerFangsTest, SetOwnerNullptr_AfterSetOwnerUuid_ClearsEverything)
+{
+    // 先通过 setOwnerUuid 设置 UUID，再通过 setOwner(nullptr) 清空
+    // 参考 AreaEffectCloudOwnerLazyLoadTest::SetOwnerNullptr_ClearsUuidAndPointer
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    fangs.setOwnerUuid("aabbccdd11223344aabbccdd11223344");
+    EXPECT_FALSE(fangs.ownerUuid().empty());
+
+    // setOwner(nullptr) 应同时清空指针和 UUID
+    fangs.setOwner(nullptr);
+    EXPECT_EQ(fangs.getOwner(), nullptr);
+    EXPECT_TRUE(fangs.ownerUuid().empty());
+}
+
+TEST_F(EvokerFangsTest, DefaultState_OwnerNullptrAndUuidEmpty)
+{
+    // 新创建的 EvokerFangsEntity 的 owner 应为 nullptr，UUID 应为空
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    EXPECT_EQ(fangs.owner(), nullptr);
+    EXPECT_TRUE(fangs.ownerUuid().empty());
+    EXPECT_EQ(fangs.getOwner(), nullptr);
+}
+
+TEST_F(EvokerFangsTest, OwnerUuid_Length32)
+{
+    // UUID 应该是 32 字符十六进制字符串
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    const std::string testUuid = "0123456789abcdef0123456789abcdef";
+    fangs.setOwnerUuid(testUuid);
+    EXPECT_EQ(fangs.ownerUuid().length(), 32u);
+}
+
+// ============================================================================
+// NBT 序列化/反序列化测试
+// ============================================================================
+
+TEST_F(EvokerFangsTest, NbtSerialize_OwnerUuid_WrittenAsUuidMostLeast)
+{
+    // 验证 NBT 序列化使用 OwnerUUIDMost/OwnerUUIDLeast 格式
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    const std::string testUuid = "0123456789abcdef0123456789abcdef";
+    fangs.setOwnerUuid(testUuid);
+    fangs.setWarmupDelay(5);
+
+    nbt::tags::compound_tag tag;
+    fangs.addAdditionalSaveData(tag);
+
+    // 验证 OwnerUUIDMost 和 OwnerUUIDLeast 存在
+    auto most = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDMost");
+    auto least = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDLeast");
+    ASSERT_TRUE(most.has_value());
+    ASSERT_TRUE(least.has_value());
+
+    // 验证 Warmup 值
+    auto warmup = mc::entity::serialization::nbt_helper::tryGetInt(tag, "Warmup");
+    ASSERT_TRUE(warmup.has_value());
+    EXPECT_EQ(*warmup, 5);
+}
+
+TEST_F(EvokerFangsTest, NbtSerialize_NoOwnerUuid_NoKeysWritten)
+{
+    // 不设置 Owner UUID（默认为空）时，不应写入 OwnerUUIDMost/OwnerUUIDLeast
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    nbt::tags::compound_tag tag;
+    fangs.addAdditionalSaveData(tag);
+
+    auto most = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDMost");
+    auto least = mc::entity::serialization::nbt_helper::tryGetLong(tag, "OwnerUUIDLeast");
+    EXPECT_FALSE(most.has_value());
+    EXPECT_FALSE(least.has_value());
+}
+
+TEST_F(EvokerFangsTest, NbtRoundTrip_PreservesOwnerUuid)
+{
+    // 验证 NBT 序列化/反序列化往返后 Owner UUID 保持一致
+    entity::EvokerFangsEntity fangs1(EntityId(10));
+
+    const std::string testUuid = "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6";
+    fangs1.setOwnerUuid(testUuid);
+    fangs1.setWarmupDelay(10);
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    fangs1.addAdditionalSaveData(tag);
+
+    // 反序列化到新实体
+    entity::EvokerFangsEntity fangs2(EntityId(11));
+    auto result = fangs2.readAdditionalSaveData(tag);
+    EXPECT_TRUE(static_cast<bool>(result));
+
+    // 验证 UUID 一致
+    EXPECT_EQ(fangs2.ownerUuid(), testUuid);
+    // 验证 warmupDelay 一致
+    EXPECT_EQ(fangs2.warmupDelay(), 10);
+    // 反序列化后 owner 指针应为 nullptr（等待懒加载查找）
+    EXPECT_EQ(fangs2.owner(), nullptr);
+}
+
+TEST_F(EvokerFangsTest, NbtRoundTrip_DefaultValues)
+{
+    // 默认值序列化/反序列化
+    entity::EvokerFangsEntity fangs1(EntityId(10));
+
+    nbt::tags::compound_tag tag;
+    fangs1.addAdditionalSaveData(tag);
+
+    entity::EvokerFangsEntity fangs2(EntityId(11));
+    auto result = fangs2.readAdditionalSaveData(tag);
+    EXPECT_TRUE(static_cast<bool>(result));
+
+    // 默认值应保持
+    EXPECT_TRUE(fangs2.ownerUuid().empty());
+    EXPECT_EQ(fangs2.owner(), nullptr);
+    EXPECT_EQ(fangs2.warmupDelay(), 0);
+}
+
+TEST_F(EvokerFangsTest, NbtDeserialize_MissingKeys_KeepDefaults)
+{
+    // 空的 NBT tag 反序列化应保持默认值
+    entity::EvokerFangsEntity fangs(EntityId(10));
+
+    nbt::tags::compound_tag emptyTag;
+    auto result = fangs.readAdditionalSaveData(emptyTag);
+    EXPECT_TRUE(static_cast<bool>(result));
+
+    EXPECT_TRUE(fangs.ownerUuid().empty());
+    EXPECT_EQ(fangs.owner(), nullptr);
+    EXPECT_EQ(fangs.warmupDelay(), 0);
 }

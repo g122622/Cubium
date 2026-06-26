@@ -124,15 +124,11 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
         return 0;
     }
 
-    // TODO: 多数据包标签合并 — 当前 DataPackRepository 的 listResources 返回去重后的路径列表，
-    // readTextResource 只返回最高优先级数据包的内容，因此无法获取低优先级数据包中同一标签文件。
-    // MC Java 按数据包优先级从高到低遍历同名标签文件，默认追加，replace=true 时清空已有条目后追加。
-    // 完整实现需要在 DataPackRepository 层面提供 readAllResourceVersions() 类似方法，
-    // 读取所有数据包中同一资源路径的内容列表（按优先级排序），此逻辑与 BiomeTagLoader 面临同样的限制。
-
-    // 由于同一 tagId 在当前实现中只会有一个数据包的内容，
-    // 下方的 replace/merge 分支实际不会触发（parsedTags 中同一 key 只会有一条记录）。
-    // 保留此逻辑是为了在 DataPackRepository 支持多版本读取后可直接生效。
+    // 多数据包标签合并：使用 listResourceStacks 获取同一资源路径在所有数据包中的内容。
+    // MC Java 的标签加载语义：按数据包优先级从低到高遍历同名标签文件，
+    // 默认追加，replace=true 时清空已有条目后追加。
+    // listResourceStacks 返回的每个路径对应的 ResourceVersion 向量按数据包优先级从高到低排序，
+    // 因此需要逆序遍历以匹配 MC Java 的从低到高遍历顺序。
 
     // 用于存储已解析的标签数据
     // key: 标签 ResourceLocation, value: (replace标志, 条目列表)
@@ -143,163 +139,286 @@ Size FunctionLoader::loadFunctionTags(const mc::resource::DataPackRepository& da
     std::unordered_map<ResourceLocation, TagParseData> parsedTags;
 
     for (const auto& namespace_ : namespacesResult.value()) {
-        // 列出 <namespace>/tags/functions/ 目录下的所有 JSON 文件
+        // 列出 <namespace>/tags/functions/ 目录下所有数据包中的 JSON 文件及其内容栈
         std::string directory = namespace_ + "/tags/functions";
-        auto listResult = dataPacks.listResources(directory, ".json");
+        auto stacksResult = dataPacks.listResourceStacks(directory, ".json");
 
-        if (!listResult.success()) {
+        if (!stacksResult.success()) {
             continue;
         }
 
-        for (const auto& resourcePath : listResult.value()) {
+        for (auto& [resourcePath, versions] : stacksResult.value()) {
             // 从路径提取标签名称
-            // 路径格式: namespace/tags/functions/xxx.json 或 namespace/tags/functions/sub/xxx.json
             std::string tagIdStr = pathToTagId(resourcePath);
             ResourceLocation tagLoc = ResourceLocation::parse(tagIdStr);
 
-            // 读取 JSON 内容
-            auto readResult = dataPacks.readTextResource(resourcePath);
-            if (!readResult.success()) {
-                spdlog::warn("FunctionLoader: 无法读取标签文件: {}", resourcePath);
-                ++result.failedCount;
-                result.errors.push_back(resourcePath + ": " + readResult.error().toString());
-                continue;
-            }
+            // 遍历同一资源路径在所有数据包中的版本（按优先级从低到高）
+            // listResourceStacks 返回的版本按优先级从高到低排序，
+            // 但 MC Java 的 TagLoader.load() 语义是先处理低优先级数据包，后处理高优先级数据包，
+            // replace=true 时清空已有条目后追加，默认追加。
+            // 因此需要逆序遍历，以匹配 MC Java 的行为。
+            for (auto it = versions.rbegin(); it != versions.rend(); ++it) {
+                auto& version = *it;
+                // 解析 JSON
+                auto parseResult = parseTagJson(tagLoc, version.content);
+                if (!parseResult.success()) {
+                    spdlog::warn("FunctionLoader: 无法解析标签 {} (来自数据包 {}): {}",
+                        tagIdStr,
+                        version.packName,
+                        parseResult.error().message());
+                    ++result.failedCount;
+                    result.errors.push_back(tagIdStr + " [" + version.packName + "]: " + parseResult.error().message());
+                    continue;
+                }
 
-            // 解析 JSON
-            auto parseResult = parseTagJson(tagLoc, readResult.value());
-            if (!parseResult.success()) {
-                spdlog::warn("FunctionLoader: 无法解析标签 {}: {}", tagIdStr, parseResult.error().message());
-                ++result.failedCount;
-                result.errors.push_back(tagIdStr + ": " + parseResult.error().message());
-                continue;
-            }
+                auto& tagData = parseResult.value();
 
-            auto& tagData = parseResult.value();
-
-            // 存储解析结果
-            // TODO: 当 DataPackRepository 支持读取所有数据包中同一资源后，
-            // 此处需要处理同一 tagId 的多条记录合并（replace=true 清空已有条目后追加，默认追加）。
-            // 当前由于 readTextResource 只返回最高优先级数据包的内容，
-            // 同一 tagId 只会有一条记录，因此 replace 分支实际不会触发替换效果。
-            auto& existing = parsedTags[tagLoc];
-            if (tagData.replace) {
-                // replace=true：清空已有条目，使用当前数据包的内容
-                existing.replace = true;
-                existing.entries = std::move(tagData.entries);
-            } else {
-                // 默认追加模式
-                for (auto& entry : tagData.entries) {
-                    existing.entries.push_back(std::move(entry));
+                // 合并到 parsedTags：replace=true 清空已有条目后追加，默认追加
+                auto& existing = parsedTags[tagLoc];
+                if (tagData.replace) {
+                    // replace=true：清空已有条目，使用当前数据包的内容
+                    existing.replace = true;
+                    existing.entries = std::move(tagData.entries);
+                } else {
+                    // 默认追加模式
+                    for (auto& entry : tagData.entries) {
+                        existing.entries.push_back(std::move(entry));
+                    }
                 }
             }
         }
     }
 
-    // 构建标签：解析标签引用（# 前缀），将引用的标签内容展开到函数列表
-    // 使用迭代方式解析，支持前向引用（被引用的标签可能尚未注册）
-    // 分两步：1. 收集所有条目到合并列表  2. 解析标签引用
+    // 构建标签：采用三阶段策略，与 MC Java 的 TagLoader.build() 行为一致：
+    // 1. 收集所有条目到合并列表（直接函数 + 标签引用）
+    // 2. 验证 required 条目并确定哪些标签应被丢弃（含级联丢弃）
+    // 3. 仅从有效（未被丢弃的）标签解析引用，构建最终的函数 ID 列表并注册
 
-    // 用于存储合并后的标签函数 ID 列表
-    // key: 标签 ResourceLocation, value: 函数ID列表
+    // 用于存储标签的原始条目
+    // key: 标签 ResourceLocation
     struct MergedTag {
-        std::vector<ResourceLocation> functionIds;
-        std::vector<ResourceLocation> tagReferences; // 需要展开的标签引用
+        std::vector<ResourceLocation> directFunctionIds; // 标签直接声明的函数条目
+        std::vector<ResourceLocation> tagReferences;     // 需要展开的标签引用（# 前缀）
     };
     std::unordered_map<ResourceLocation, MergedTag> mergedTags;
 
-    // 第一步：将直接函数引用加入合并列表，收集标签引用
-    // 同时建立条目ID到required的映射，用于后续验证
-    // key: 标签 ResourceLocation, value: (函数条目required映射, 标签条目required映射)
+    // 建立条目ID到required的映射，用于后续验证
     struct RequiredMaps {
         std::unordered_map<ResourceLocation, bool> functionRequired;
         std::unordered_map<ResourceLocation, bool> tagRequired;
     };
     std::unordered_map<ResourceLocation, RequiredMaps> requiredMaps;
 
+    // 第一步：将条目分类收集（直接函数引用 + 标签引用）
+    // 注意：必须先使用 entry.id 进行 map 操作，再移动 entry.id，避免使用 moved-from 对象
     for (auto& [tagLoc, tagData] : parsedTags) {
         auto& merged = mergedTags[tagLoc];
         auto& reqMaps = requiredMaps[tagLoc];
         for (auto& entry : tagData.entries) {
             if (entry.type == TagEntryType::Function) {
-                merged.functionIds.push_back(std::move(entry.id));
-                // 同一函数ID可能被多次引用，保留 required=true 的标记
+                // 先更新 required 映射（在移动 entry.id 之前）
                 auto it = reqMaps.functionRequired.find(entry.id);
                 if (it == reqMaps.functionRequired.end() || entry.required) {
                     reqMaps.functionRequired[entry.id] = entry.required;
                 }
+                merged.directFunctionIds.push_back(std::move(entry.id));
             } else {
-                merged.tagReferences.push_back(std::move(entry.id));
+                // 先更新 required 映射（在移动 entry.id 之前）
                 auto it = reqMaps.tagRequired.find(entry.id);
                 if (it == reqMaps.tagRequired.end() || entry.required) {
                     reqMaps.tagRequired[entry.id] = entry.required;
                 }
+                merged.tagReferences.push_back(std::move(entry.id));
             }
         }
     }
 
-    // 第二步：解析标签引用（# 前缀引用）
-    // 使用集合防止循环引用和重复
-    Size tagCount = 0;
-    for (auto& [tagLoc, tagData] : parsedTags) {
-        auto& merged = mergedTags[tagLoc];
-        auto& reqMaps = requiredMaps[tagLoc];
-        std::unordered_set<ResourceLocation> visitedTags;
-        visitedTags.insert(tagLoc); // 防止自引用
+    const Size tagCount = mergedTags.size();
 
-        for (const auto& refTagLoc : merged.tagReferences) {
-            // 防止循环引用
-            if (visitedTags.count(refTagLoc) > 0) {
-                bool isRequired = reqMaps.tagRequired.count(refTagLoc) > 0 && reqMaps.tagRequired[refTagLoc];
-                if (isRequired) {
-                    spdlog::warn("FunctionLoader: 循环标签引用 '{}' in tag '{}' (required), 跳过",
-                        refTagLoc.toString(),
-                        tagLoc.toString());
+    // 第二步：验证 required 条目并确定哪些标签应被丢弃
+    // 与 MC Java 的 TagLoader.build() 行为一致：
+    // - required=true 的函数条目缺失 → 整个标签被丢弃
+    // - required=true 的标签引用缺失 → 整个标签被丢弃
+    // - required=false 的条目缺失 → 静默跳过
+    // 级联效果：被丢弃的标签不会出现在 lookup map 中，导致引用它的标签也无法解析
+    std::unordered_set<ResourceLocation> discardedTags;
+
+    // 2a: 验证 required=true 的函数条目是否在 FunctionManager 中已注册
+    // 由于函数在第一阶段已全部加载到 FunctionManager 中，此时可以安全地验证
+    for (auto& [tagLoc, merged] : mergedTags) {
+        auto& reqMaps = requiredMaps[tagLoc];
+        std::vector<std::string> missingEntries;
+
+        for (const auto& [funcId, isRequired] : reqMaps.functionRequired) {
+            if (isRequired && !m_manager.hasFunction(funcId)) {
+                missingEntries.push_back(funcId.toString());
+            }
+        }
+
+        if (!missingEntries.empty()) {
+            // 拼接缺失条目列表（与 MC Java 错误消息格式一致）
+            std::string missingStr;
+            for (Size i = 0; i < missingEntries.size(); ++i) {
+                if (i > 0) {
+                    missingStr += ", ";
                 }
-                // required=false 时循环引用静默跳过
+                missingStr += missingEntries[i];
+            }
+            spdlog::error("FunctionLoader: Couldn't load tag {} as it is missing following references: {}",
+                tagLoc.toString(),
+                missingStr);
+            discardedTags.insert(tagLoc);
+        }
+    }
+
+    // 2b: 验证 required=true 的标签引用 + 级联丢弃
+    // 迭代直到没有新的标签被丢弃（处理多级级联）
+    bool newDiscards = true;
+    while (newDiscards) {
+        newDiscards = false;
+        for (auto& [tagLoc, merged] : mergedTags) {
+            if (discardedTags.count(tagLoc) > 0) {
                 continue;
             }
-            visitedTags.insert(refTagLoc);
 
-            // 在已解析的标签中查找引用
-            auto refIt = mergedTags.find(refTagLoc);
-            if (refIt != mergedTags.end()) {
-                for (const auto& funcId : refIt->second.functionIds) {
-                    merged.functionIds.push_back(funcId);
+            auto& reqMaps = requiredMaps[tagLoc];
+            for (const auto& [refTagLoc, isRequired] : reqMaps.tagRequired) {
+                if (!isRequired) {
+                    continue;
                 }
-            } else {
-                bool isRequired = reqMaps.tagRequired.count(refTagLoc) > 0 && reqMaps.tagRequired[refTagLoc];
-                if (isRequired) {
-                    // required=true 且引用的标签不存在：与 MC Java 不同，MC Java 会丢弃整个标签，
-                    // 当前实现仅输出警告并继续构建标签（行为差异见 README）
-                    spdlog::warn("FunctionLoader: 引用的标签 '{}' 未找到 (required), 标签 '{}' 可能不完整",
-                        refTagLoc.toString(),
-                        tagLoc.toString());
+                // 引用的标签不存在于 mergedTags 中（数据包中没有定义）
+                if (mergedTags.find(refTagLoc) == mergedTags.end()) {
+                    if (discardedTags.insert(tagLoc).second) {
+                        spdlog::error("FunctionLoader: 引用的标签 '{}' 未找到 (required), 标签 '{}' 将被丢弃",
+                            refTagLoc.toString(),
+                            tagLoc.toString());
+                        newDiscards = true;
+                    }
                 }
-                // required=false 且引用的标签不存在：静默跳过
+                // 引用的标签存在但已被丢弃
+                else if (discardedTags.count(refTagLoc) > 0) {
+                    if (discardedTags.insert(tagLoc).second) {
+                        spdlog::error("FunctionLoader: 引用的标签 '{}' 已被丢弃 (required), 标签 '{}' 也将被丢弃",
+                            refTagLoc.toString(),
+                            tagLoc.toString());
+                        newDiscards = true;
+                    }
+                }
+                if (discardedTags.count(tagLoc) > 0) {
+                    break; // 此标签已标记为丢弃，无需继续检查其他引用
+                }
             }
         }
-
-        // 验证函数条目的 required 语义
-        // TODO: 当前无法在加载阶段验证函数是否存在，因为函数和标签的加载顺序不确定。
-        // MC Java 在构建阶段（TagLoader.build）验证 required 条目，此时所有函数已加载。
-        // 完整实现需要在所有函数加载完成后进行二次验证，检查 required=true 的函数条目
-        // 是否在 FunctionManager 中已注册。当前仅在运行时（executeTagFunctions）中
-        // 输出 warn 日志跳过不存在的函数，等同于 required=false 的行为。
-
-        ++tagCount;
     }
 
-    // 将合并后的标签注册到 FunctionManager
+    // 第三步：仅从有效（未被丢弃的）标签构建并注册
+    // 这与 MC Java 的 TagLoader.build() 一致：只有成功构建的标签才会出现在 lookup map 中，
+    // 被丢弃的标签不会参与引用解析，其函数不会传播到引用它的其他标签。
+    //
+    // 多层标签引用的展开策略：
+    // MC Java 使用 DependencySorter 按拓扑顺序构建标签，确保被引用标签在引用它的标签之前构建，
+    // 因此被引用标签的函数列表已包含其自身引用的展开结果。
+    // 当前实现采用两阶段注册：先注册只含直接函数的标签，再迭代展开标签引用直到稳定，
+    // 这等效于 MC Java 的拓扑排序构建。
+
+    // 3a: 先注册所有有效标签的直接函数（不含标签引用展开）
+    Size registeredTagCount = 0;
     for (auto& [tagLoc, merged] : mergedTags) {
-        m_manager.registerTag(tagLoc, std::move(merged.functionIds));
+        if (discardedTags.count(tagLoc) > 0) {
+            continue;
+        }
+
+        // 构建只含直接函数的列表
+        std::vector<ResourceLocation> directOnlyIds;
+        for (const auto& funcId : merged.directFunctionIds) {
+            // 过滤掉 required=false 且不存在的函数（required=true 的缺失函数已在第二步导致标签丢弃）
+            auto reqIt = requiredMaps[tagLoc].functionRequired.find(funcId);
+            if (reqIt != requiredMaps[tagLoc].functionRequired.end() && !reqIt->second) {
+                if (!m_manager.hasFunction(funcId)) {
+                    continue;
+                }
+            }
+            directOnlyIds.push_back(funcId);
+        }
+
+        m_manager.registerTag(tagLoc, std::move(directOnlyIds));
+        ++registeredTagCount;
     }
 
-    if (tagCount > 0) {
-        spdlog::info("FunctionLoader: 从数据包加载了 {} 个函数标签", tagCount);
+    // 3b: 迭代展开标签引用并更新已注册的标签
+    // 由于标签可能多层引用（A → B → C），需要迭代展开直到所有标签引用都被解析。
+    // 每轮迭代中，从头构建每个标签的函数列表（直接函数 + 标签引用展开），
+    // 通过 FunctionManager.getTag() 获取被引用标签的函数列表（可能已包含前一轮展开的结果），
+    // 直到没有任何标签的函数列表发生变化（达到不动点）。
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (auto& [tagLoc, merged] : mergedTags) {
+            if (discardedTags.count(tagLoc) > 0) {
+                continue;
+            }
+
+            // 如果此标签没有标签引用，无需展开
+            if (merged.tagReferences.empty()) {
+                continue;
+            }
+
+            // 从头构建函数列表：直接函数 + 标签引用展开
+            std::vector<ResourceLocation> expandedIds;
+
+            // 添加直接声明的函数条目
+            for (const auto& funcId : merged.directFunctionIds) {
+                auto reqIt = requiredMaps[tagLoc].functionRequired.find(funcId);
+                if (reqIt != requiredMaps[tagLoc].functionRequired.end() && !reqIt->second) {
+                    if (!m_manager.hasFunction(funcId)) {
+                        continue;
+                    }
+                }
+                expandedIds.push_back(funcId);
+            }
+
+            // 展开标签引用
+            std::unordered_set<ResourceLocation> visitedTags;
+            visitedTags.insert(tagLoc); // 防止自引用
+
+            for (const auto& refTagLoc : merged.tagReferences) {
+                if (visitedTags.count(refTagLoc) > 0) {
+                    // 循环引用：required=true 已在第二步处理，required=false 静默跳过
+                    continue;
+                }
+                visitedTags.insert(refTagLoc);
+
+                // 从 FunctionManager 获取被引用标签的函数列表（可能已包含前一轮展开的结果）
+                const auto& refFuncIds = m_manager.getTag(refTagLoc);
+                if (!refFuncIds.empty()) {
+                    for (const auto& funcId : refFuncIds) {
+                        expandedIds.push_back(funcId);
+                    }
+                }
+                // 空列表表示标签不存在或已被丢弃：required=true 已在第二步处理，
+                // required=false 静默跳过
+            }
+
+            // 与当前注册的函数列表比较，仅在发生变化时更新
+            const auto& currentIds = m_manager.getTag(tagLoc);
+            if (expandedIds != currentIds) {
+                m_manager.registerTag(tagLoc, std::move(expandedIds));
+                changed = true;
+            }
+        }
     }
 
-    return tagCount;
+    if (!discardedTags.empty()) {
+        spdlog::warn("FunctionLoader: {} 个标签因缺失 required 条目被丢弃（共 {} 个标签被解析）",
+            discardedTags.size(),
+            tagCount);
+    }
+
+    if (registeredTagCount > 0) {
+        spdlog::info("FunctionLoader: 从数据包加载了 {} 个函数标签", registeredTagCount);
+    }
+
+    return registeredTagCount;
 }
 
 Result<FunctionLoader::TagData> FunctionLoader::parseTagJson(

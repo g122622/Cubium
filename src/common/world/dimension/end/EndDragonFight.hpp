@@ -12,8 +12,8 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -28,6 +28,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include <cmath>
 #include <optional>
+#include <string>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -40,13 +41,16 @@ class IWorld;
  * @brief 末影龙战斗管理器
  *
  * 协调末影龙击杀后的奖励分发，包括龙蛋放置、末地折跃门生成和经验掉落区分。
+ * 管理末影龙存活状态检测、旧存档状态扫描和末影龙 UUID 追踪。
  *
  * 生命周期：
  * - 由末地维度的 ServerWorld 持有
  * - 构造时从世界种子初始化折跃门列表
- * - 可从存档数据恢复 previouslyKilled 和 gateways 状态
+ * - 可从存档数据恢复 previouslyKilled、dragonKilled 和 dragonUUID 状态
  * - 龙死亡时通过 setDragonKilled() 触发奖励逻辑
  * - 每个游戏 tick 通过 tick() 更新状态（含旧存档状态扫描）
+ *
+ * 对应 MC Java: EndDragonFight
  */
 class EndDragonFight {
 public:
@@ -57,6 +61,7 @@ public:
         bool needsStateScanning = true;           ///< 是否需要扫描旧世界状态
         bool dragonKilled = false;                ///< 龙当前是否已死
         bool previouslyKilled = false;            ///< 是否曾经击杀过龙
+        std::optional<std::string> dragonUUID;    ///< 末影龙的 UUID（nullopt 表示无龙或未追踪）
         std::optional<std::vector<i32>> gateways; ///< 剩余折跃门索引列表（空=全部消耗，nullopt=首次初始化）
 
         /**
@@ -110,7 +115,7 @@ public:
      * @brief 每游戏 tick 调用
      *
      * 处理旧存档状态扫描：当 needsStateScanning 为 true 且竞技场区块已加载时，
-     * 扫描出口传送门是否存在以推断 previouslyKilled 状态。
+     * 扫描出口传送门是否存在以推断 previouslyKilled 状态，并检测末影龙是否存活。
      *
      * @param world 末地世界引用
      */
@@ -124,6 +129,7 @@ public:
      * 2. 生成一个末地折跃门（如果还有剩余）
      * 3. 首次击杀时在祭坛顶部放置龙蛋
      * 4. 设置 previouslyKilled = true
+     * 5. 清空末影龙 UUID（龙已死亡，不再追踪）
      *
      * @param world 末地世界引用
      */
@@ -177,7 +183,13 @@ private:
      * - 如果不存在活跃出口传送门，则 previouslyKilled = false，
      *   并检查是否存在讲台结构；如果不存在则创建非激活讲台
      *
-     * 同时检查末影龙实体是否仍存活，并据此更新 dragonKilled 状态。
+     * 同时检查末影龙实体是否仍存活：
+     * - 如果没有末影龙实体：dragonKilled = true
+     * - 如果有末影龙实体：记录 dragonUUID，dragonKilled = false
+     *   - 若同时无活跃传送门，则丢弃该龙（discard），因为无传送门的龙是无效状态
+     * - 最终安全检查：如果 !previouslyKilled && dragonKilled，则 dragonKilled = false
+     *
+     * 对应 MC Java: EndDragonFight.scanState()
      *
      * @param world 末地世界引用
      */
@@ -238,6 +250,7 @@ private:
     bool m_previouslyKilled = false;  ///< 是否曾经击杀过龙
     bool m_dragonKilled = false;      ///< 龙当前是否已死
     bool m_needsStateScanning = true; ///< 是否需要扫描旧世界状态
+    std::string m_dragonUUID;         ///< 末影龙的 UUID（空字符串表示无龙或未追踪）
     std::vector<i32> m_gateways;      ///< 剩余折跃门索引列表（随机打乱）
 
     // TODO: 末影龙重生系统尚未实现。需要：

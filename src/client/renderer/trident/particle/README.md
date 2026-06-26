@@ -50,6 +50,7 @@ particle/
     │   ├── DragonBreathParticle.hpp/cpp # 龙息粒子
     │   ├── EmitterParticle.hpp/cpp    # 发射器粒子基类
     │   ├── SoulParticle.hpp/cpp       # 灵魂粒子
+    │   ├── WhiteSmokeParticle.hpp/cpp # 白色烟雾粒子（方向性发射、DISPENSER_SMOKE/SHOOT_WHITE_SMOKE）
     │   ├── RedstoneParticle.hpp/cpp   # 红石粉尘粒子
     │   └── CampfireParticle.hpp/cpp   # 营火烟雾粒子
     │

@@ -65,7 +65,7 @@ util/
 
 ### 1. 相机信息必须每帧设置
 
-`WorldTextRenderer` 的视锥体剔除和背面剔除依赖相机信息。如果忘记调用 `setCameraPosition()`、`setViewMatrix()`、`setFrustum()`、`setCameraForward()`，剔除功能会失效或崩溃。
+`ShadowRenderer`、`WorldTextRenderer` 的视锥体剔除和背面剔除依赖相机信息。`ShadowRenderer` 的阴影距离衰减也需要相机位置。如果忘记调用 `setCameraPosition()`（由 `EntityRendererManager::setCameraInfo()` 每帧调用），阴影将在任何距离都保持最大透明度，名称标签和世界文本的剔除功能也会失效或崩溃。
 
 ### 2. 阴影渲染的方块检测条件
 
@@ -83,10 +83,10 @@ util/
 ### 4. 阴影透明度计算细节
 
 透明度受以下因素影响：
+- 到相机的距离衰减（距离平方 > 256 即距离 > 16 格时消失，参考 MC EntityRenderer.extractShadow()）
 - 实体到地面的高度（距离衰减）
 - 幼年实体减半
 - 方块位置亮度
-- 到相机的距离（>256 格时消失）
 
 ### 5. 名称标签位置计算
 

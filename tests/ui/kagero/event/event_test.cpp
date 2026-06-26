@@ -32,6 +32,7 @@
 #include "client/ui/kagero/event/InputEvents.hpp"
 #include "client/ui/kagero/event/UIEvents.hpp"
 #include "client/ui/kagero/event/WidgetEvents.hpp"
+#include "common/input/KeyBinding.hpp"
 
 using namespace mc::client::ui::kagero::event;
 using mc::i32;
@@ -303,7 +304,7 @@ TEST_F(InputEventsTest, MouseLeaveEvent)
 TEST_F(InputEventsTest, KeyEvent)
 {
     // 按下事件
-    KeyEvent pressEvent(65, 0, 1, 0); // GLFW_KEY_A
+    KeyEvent pressEvent(mc::Keys::A, 0, 1, 0);
     EXPECT_EQ(pressEvent.getType(), EventType::KeyPress);
     EXPECT_STREQ(pressEvent.getName(), "KeyPress");
     EXPECT_EQ(pressEvent.key(), 65);
@@ -315,7 +316,7 @@ TEST_F(InputEventsTest, KeyEvent)
     EXPECT_FALSE(pressEvent.isRepeat());
 
     // 释放事件
-    KeyEvent releaseEvent(65, 0, 0, 0);
+    KeyEvent releaseEvent(mc::Keys::A, 0, 0, 0);
     EXPECT_EQ(releaseEvent.getType(), EventType::KeyRelease);
     EXPECT_TRUE(releaseEvent.isReleased());
     EXPECT_FALSE(releaseEvent.isPressed());

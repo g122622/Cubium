@@ -22,12 +22,17 @@
  */
 
 #include "Sensors.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
 #include "common/entity/core/EntityUtils.hpp"
+#include "common/entity/entities/passive/tamable/TameableEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/entity/entities/villager/ProfessionMapping.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/DoorBlock.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
@@ -603,6 +608,205 @@ bool AvoidEntitySensor<E>::shouldAvoid(E* self, LivingEntity* other)
     return false;
 }
 
+// ============================================================================
+// TemptingPlayerSensor
+// ============================================================================
+
+template <typename E>
+void TemptingPlayerSensor<E>::update(IWorld* world, E* entity)
+{
+    if (!entity || !entity->isAlive()) {
+        return;
+    }
+
+    auto& brain = entity->brain();
+
+    // 获取附近玩家
+    auto players = world->getPlayers();
+    Vector3 pos = entity->position();
+
+    Player* nearestTemptingPlayer = nullptr;
+    f32 nearestDistSq = m_range * m_range;
+
+    for (Entity* playerEntity : players) {
+        if (!playerEntity || playerEntity->isRemoved() || !playerEntity->isAlive()) {
+            continue;
+        }
+
+        Player* player = dynamic_cast<Player*>(playerEntity);
+        if (!player) {
+            continue;
+        }
+
+        // 排除旁观者模式玩家（参考 MC 原版 TemptingSensor）
+        if (player->isSpectator()) {
+            continue;
+        }
+
+        // 排除被该玩家骑乘的情况（参考 MC 原版：!mob.hasPassenger(player)）
+        if (entity->isPassenger(player->id())) {
+            continue;
+        }
+
+        // 检查距离
+        f32 distSq = pos.distanceSquared(player->position());
+        if (distSq > nearestDistSq) {
+            continue;
+        }
+
+        // 检查玩家手持物品是否为诱惑物品
+        const ItemStack& mainHand = player->getMainHandItem();
+        const ItemStack& offHand = player->getOffHandItem();
+        bool isTempting = m_itemPredicate(mainHand) || m_itemPredicate(offHand);
+
+        if (!isTempting) {
+            continue;
+        }
+
+        // 检查可见性
+        if (!entity->canSee(*player)) {
+            continue;
+        }
+
+        nearestDistSq = distSq;
+        nearestTemptingPlayer = player;
+    }
+
+    if (nearestTemptingPlayer) {
+        brain.setMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER, nearestTemptingPlayer);
+    } else {
+        brain.removeMemory(memory::MemoryModuleTypes::TEMPTING_PLAYER);
+    }
+}
+
+// ============================================================================
+// InteractableDoorsSensor
+// ============================================================================
+
+template <typename E>
+void InteractableDoorsSensor<E>::update(IWorld* world, E* entity)
+{
+    if (!entity || !entity->isAlive()) {
+        return;
+    }
+
+    auto& brain = entity->brain();
+
+    // 检查实体是否能够使用门（canEnterDoors 或 canOpenDoors）
+    auto* navigator = entity->navigator();
+    if (!navigator) {
+        brain.removeMemory(memory::MemoryModuleTypes::INTERACTABLE_DOORS);
+        return;
+    }
+
+    if (!navigator->canEnterDoors()) {
+        brain.removeMemory(memory::MemoryModuleTypes::INTERACTABLE_DOORS);
+        return;
+    }
+
+    // 参考 MC 原版 InteractWithDoor 行为：
+    // 扫描实体附近的木门，将可交互的门位置存入 INTERACTABLE_DOORS 记忆。
+    // MC 原版在 InteractWithDoor 行为中直接检查路径上的门节点，
+    // 但我们这里先做基于范围的门扫描（与 MC 原版 Villager 登记门的逻辑一致），
+    // 然后在实际交互时由 InteractWithDoorTask 根据路径判断是否需要开门。
+    Vector3 pos = entity->position();
+    BlockPos entityBlockPos(
+        static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
+
+    std::vector<GlobalPos> interactableDoors;
+    DimensionId dimension = entity->dimension();
+
+    // 扫描范围内的方块，寻找木门
+    i32 rangeInt = static_cast<i32>(std::ceil(m_range));
+    for (i32 dx = -rangeInt; dx <= rangeInt; ++dx) {
+        for (i32 dy = -1; dy <= 2; ++dy) { // 检查门可能占据的 y 范围（底部和上半部分）
+            for (i32 dz = -rangeInt; dz <= rangeInt; ++dz) {
+                BlockPos checkPos(entityBlockPos.x + dx, entityBlockPos.y + dy, entityBlockPos.z + dz);
+
+                const BlockState* state = world->getBlockState(checkPos);
+                if (!state) {
+                    continue;
+                }
+
+                // 检查是否为木门（isWooden 已排除铁门等非木门）
+                if (!blocks::DoorBlock::isWooden(*state)) {
+                    continue;
+                }
+
+                // 检查是否为门的上半部分，如果是则跳过
+                // DoorBlock 使用 DOUBLE_BLOCK_HALF 属性：Lower 为下半部分，Upper 为上半部分
+                // 我们只登记下半部分的位置，避免重复
+                if (state->get(BlockStateProperties::DOUBLE_BLOCK_HALF()) ==
+                    BlockStateProperties::DoubleBlockHalf::Upper) {
+                    continue;
+                }
+
+                interactableDoors.emplace_back(dimension, checkPos);
+            }
+        }
+    }
+
+    brain.setMemory(memory::MemoryModuleTypes::INTERACTABLE_DOORS, interactableDoors);
+
+    // 如果 OPENED_DOORS 记忆不存在，初始化为空集合
+    auto openedDoors = brain.template getMemory<std::unordered_set<GlobalPos>>(memory::MemoryModuleTypes::OPENED_DOORS);
+    if (!openedDoors.has_value()) {
+        brain.setMemory(memory::MemoryModuleTypes::OPENED_DOORS, std::unordered_set<GlobalPos>{});
+    }
+}
+
+// ============================================================================
+// OwnerHurtBySensor
+// ============================================================================
+
+template <typename E>
+void OwnerHurtBySensor<E>::update(IWorld* world, E* entity)
+{
+    if (!entity || !entity->isAlive()) {
+        return;
+    }
+
+    auto& brain = entity->brain();
+
+    // 仅适用于 TameableEntity 子类
+    auto* tameable = dynamic_cast<TameableEntity*>(entity);
+    if (!tameable || !tameable->isTamed()) {
+        brain.removeMemory(memory::MemoryModuleTypes::OWNER_HURT_BY);
+        return;
+    }
+
+    Player* owner = tameable->getOwner();
+    if (!owner || !owner->isAlive()) {
+        brain.removeMemory(memory::MemoryModuleTypes::OWNER_HURT_BY);
+        return;
+    }
+
+    // 获取主人最后被攻击的实体
+    LivingEntity* ownerHurtBy = owner->getLastHurtBy();
+    if (ownerHurtBy && ownerHurtBy->isAlive()) {
+        // 不要让宠物攻击自己主人（如果主人被自己伤害则无意义）
+        if (ownerHurtBy != static_cast<LivingEntity*>(entity) && ownerHurtBy != owner) {
+            // 参考 MC 原版 OwnerHurtByTargetGoal：
+            // 使用 lastHurtByTimestamp 判断是否有新的伤害事件
+            // 这里简单地将攻击者写入记忆，由 ProtectOwnerTask 判断是否执行攻击
+            brain.setMemoryWithTTL(memory::MemoryModuleTypes::OWNER_HURT_BY, ownerHurtBy, 100);
+        } else {
+            brain.removeMemory(memory::MemoryModuleTypes::OWNER_HURT_BY);
+        }
+    } else {
+        brain.removeMemory(memory::MemoryModuleTypes::OWNER_HURT_BY);
+    }
+
+    // 检查当前记忆中的攻击者是否仍然有效
+    auto hurtByMemory = brain.template getMemory<LivingEntity*>(memory::MemoryModuleTypes::OWNER_HURT_BY);
+    if (hurtByMemory.has_value()) {
+        LivingEntity* attacker = hurtByMemory.value();
+        if (!attacker || !attacker->isAlive()) {
+            brain.removeMemory(memory::MemoryModuleTypes::OWNER_HURT_BY);
+        }
+    }
+}
+
 // 显式实例化常用类型
 template class NearestPlayersSensor<VillagerEntity>;
 template class NearestVisibleLivingEntitySensor<VillagerEntity>;
@@ -612,6 +816,15 @@ template class WorkStationSensor<VillagerEntity>;
 template class VillagePoiSensor<VillagerEntity>;
 template class BabySensor<VillagerEntity>;
 template class AvoidEntitySensor<VillagerEntity>;
+template class InteractableDoorsSensor<VillagerEntity>;
+template class TemptingPlayerSensor<VillagerEntity>;
+template class OwnerHurtBySensor<VillagerEntity>;
+// TODO: OwnerHurtBySensor 目前为 VillagerEntity 实例化用于测试，
+// 但 VillagerEntity 不是 TameableEntity 子类，因此该传感器对 VillagerEntity 无实际效果。
+// 当 TameableEntity 子类（WolfEntity、CatEntity 等）集成 Brain 系统后，
+// 需要在对应实体的 initializeBrain() 中注册 OwnerHurtBySensor 并实例化对应模板。
+// TODO: TemptingPlayerSensor 和 FollowParentTask/BabySensor 需要在 AnimalEntity 子类（如
+// CowEntity、PigEntity、SheepEntity 等） 集成 Brain 系统后进行注册和实例化。
 
 } // namespace sensor
 } // namespace brain

@@ -868,5 +868,79 @@ TEST_F(SettingsTest, FlatLevelGeneratorSettings_ParameterizedConstructor_WithFla
     EXPECT_TRUE(s.hasLakes());
 }
 
+// ============================================================================
+// FlatLevelGeneratorSettings structureOverrides 测试
+// ============================================================================
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_StructureOverrides_DefaultEmpty)
+{
+    // 默认构造的 FlatLevelGeneratorSettings 没有结构覆盖
+    FlatLevelGeneratorSettings s;
+    EXPECT_TRUE(s.structureOverrides().empty());
+    EXPECT_FALSE(s.hasStructureGeneration());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_StructureOverrides_CreateDefault)
+{
+    // MC 1.21.11: 默认超平坦世界启用 villages 和 strongholds
+    auto s = FlatLevelGeneratorSettings::createDefault();
+    ASSERT_EQ(s.structureOverrides().size(), 2u);
+    EXPECT_EQ(s.structureOverrides()[0], ResourceLocation::parse("minecraft:villages"));
+    EXPECT_EQ(s.structureOverrides()[1], ResourceLocation::parse("minecraft:strongholds"));
+    EXPECT_TRUE(s.hasStructureGeneration());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_StructureOverrides_SetOverrides)
+{
+    FlatLevelGeneratorSettings s(Biomes::Plains, false, false);
+    EXPECT_TRUE(s.structureOverrides().empty());
+    EXPECT_FALSE(s.hasStructureGeneration());
+
+    // 设置结构覆盖列表
+    std::vector<ResourceLocation> overrides = {
+        ResourceLocation::parse("minecraft:villages"),
+        ResourceLocation::parse("minecraft:desert_pyramids"),
+    };
+    s.setStructureOverrides(std::move(overrides));
+    ASSERT_EQ(s.structureOverrides().size(), 2u);
+    EXPECT_TRUE(s.hasStructureGeneration());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_StructureOverrides_DirectAccess)
+{
+    FlatLevelGeneratorSettings s(Biomes::Plains, false, false);
+
+    // 通过可变引用添加
+    s.structureOverrides().push_back(ResourceLocation::parse("minecraft:mineshafts"));
+    ASSERT_EQ(s.structureOverrides().size(), 1u);
+    EXPECT_TRUE(s.hasStructureGeneration());
+
+    // 添加更多
+    s.structureOverrides().push_back(ResourceLocation::parse("minecraft:strongholds"));
+    ASSERT_EQ(s.structureOverrides().size(), 2u);
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_StructureOverrides_EmptyListMeansNoStructures)
+{
+    // 空的覆盖列表表示不生成任何结构
+    FlatLevelGeneratorSettings s(Biomes::Plains, false, false);
+    s.setStructureOverrides({});
+    EXPECT_TRUE(s.structureOverrides().empty());
+    EXPECT_FALSE(s.hasStructureGeneration());
+}
+
+TEST_F(SettingsTest, FlatLevelGeneratorSettings_StructureOverrides_PreservesOtherSettings)
+{
+    // 设置结构覆盖不应影响其他设置
+    FlatLevelGeneratorSettings s(Biomes::Desert, true, true);
+    s.setStructureOverrides({ResourceLocation::parse("minecraft:villages")});
+
+    EXPECT_EQ(s.biomeId(), Biomes::Desert);
+    EXPECT_TRUE(s.hasDecoration());
+    EXPECT_TRUE(s.hasLakes());
+    EXPECT_TRUE(s.hasStructureGeneration());
+    ASSERT_EQ(s.structureOverrides().size(), 1u);
+}
+
 } // namespace
 } // namespace mc

@@ -193,16 +193,6 @@ private:
      */
     [[nodiscard]] static i32 _getNewRepairCost(i32 oldRepairCost);
 
-    /**
-     * @brief 检查两个附魔是否兼容
-     * @param ench1 附魔ID1
-     * @param ench2 附魔ID2
-     * @return 如果兼容返回true
-     *
-     * TODO: 此方法目前未被调用，待后续使用
-     */
-    [[nodiscard]] bool _areEnchantmentsCompatible(const std::string& ench1, const std::string& ench2) const;
-
 private:
     std::unique_ptr<IInventory> m_anvilInventory; ///< 铁砧背包
     BlockPos m_position;                          ///< 铁砧位置

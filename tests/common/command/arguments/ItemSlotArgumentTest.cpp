@@ -122,6 +122,66 @@ TEST_F(ItemSlotTest, CraftingSlots)
     EXPECT_FALSE(ItemSlot(504).isCraftingSlot());
 }
 
+TEST_F(ItemSlotTest, HorseChestSlot)
+{
+    EXPECT_TRUE(ItemSlot(499).isHorseChestSlot());
+    EXPECT_FALSE(ItemSlot(500).isHorseChestSlot());
+    EXPECT_FALSE(ItemSlot(498).isHorseChestSlot());
+}
+
+TEST_F(ItemSlotTest, CursorSlot)
+{
+    EXPECT_TRUE(ItemSlot(499).isCursorSlot());
+    EXPECT_FALSE(ItemSlot(500).isCursorSlot());
+    EXPECT_FALSE(ItemSlot(498).isCursorSlot());
+}
+
+TEST_F(ItemSlotTest, VillagerSlots)
+{
+    EXPECT_TRUE(ItemSlot(300).isVillagerSlot());
+    EXPECT_TRUE(ItemSlot(307).isVillagerSlot());
+    EXPECT_FALSE(ItemSlot(299).isVillagerSlot());
+    EXPECT_FALSE(ItemSlot(308).isVillagerSlot());
+}
+
+TEST_F(ItemSlotTest, ToEnderChestSlot)
+{
+    // 末影箱槽位 200-226 映射到内部索引 0-26
+    EXPECT_EQ(ItemSlot(200).toEnderChestSlot(), 0);
+    EXPECT_EQ(ItemSlot(213).toEnderChestSlot(), 13);
+    EXPECT_EQ(ItemSlot(226).toEnderChestSlot(), 26);
+    // 非末影箱槽位返回 -1
+    EXPECT_EQ(ItemSlot(199).toEnderChestSlot(), -1);
+    EXPECT_EQ(ItemSlot(227).toEnderChestSlot(), -1);
+    EXPECT_EQ(ItemSlot(0).toEnderChestSlot(), -1);
+    EXPECT_EQ(ItemSlot(98).toEnderChestSlot(), -1);
+}
+
+TEST_F(ItemSlotTest, ToHorseSlot)
+{
+    // 马匹槽位 500-514 映射到内部索引 0-14
+    EXPECT_EQ(ItemSlot(500).toHorseSlot(), 0);
+    EXPECT_EQ(ItemSlot(507).toHorseSlot(), 7);
+    EXPECT_EQ(ItemSlot(514).toHorseSlot(), 14);
+    // 非马匹槽位返回 -1
+    EXPECT_EQ(ItemSlot(499).toHorseSlot(), -1);
+    EXPECT_EQ(ItemSlot(515).toHorseSlot(), -1);
+    EXPECT_EQ(ItemSlot(0).toHorseSlot(), -1);
+    EXPECT_EQ(ItemSlot(98).toHorseSlot(), -1);
+}
+
+TEST_F(ItemSlotTest, ToVillagerSlot)
+{
+    // 村民槽位 300-307 映射到内部索引 0-7
+    EXPECT_EQ(ItemSlot(300).toVillagerSlot(), 0);
+    EXPECT_EQ(ItemSlot(304).toVillagerSlot(), 4);
+    EXPECT_EQ(ItemSlot(307).toVillagerSlot(), 7);
+    // 非村明槽位返回 -1
+    EXPECT_EQ(ItemSlot(299).toVillagerSlot(), -1);
+    EXPECT_EQ(ItemSlot(308).toVillagerSlot(), -1);
+    EXPECT_EQ(ItemSlot(0).toVillagerSlot(), -1);
+}
+
 TEST_F(ItemSlotTest, ToPlayerInventorySlot_DirectSlots)
 {
     // 直接映射的背包槽位

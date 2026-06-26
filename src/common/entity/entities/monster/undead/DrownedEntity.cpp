@@ -22,15 +22,26 @@
  */
 
 #include "DrownedEntity.hpp"
-#include "../../../attribute/Attributes.hpp"
+
+#include "common/entity/ai/controller/DrownedMoveControl.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/LookAtGoal.hpp"
+#include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
+#include "common/entity/ai/goal/goals/SwimGoal.hpp"
+#include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/DrownedGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/combat/DifficultyHelper.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/passive/water/AxolotlEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/entity/entities/projectile/TridentEntity.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 
 namespace mc {
 
@@ -39,6 +50,9 @@ DrownedEntity::DrownedEntity(EntityId id)
 {
     // 溺尸可以走上1格高的方块
     setStepHeight(1.0f);
+
+    // 使用溺尸专用的两栖移动控制器（水中游泳 + 陆地行走）
+    m_moveController = std::make_unique<entity::ai::controller::DrownedMoveControl>(this);
 
     // 注册属性
     registerAttributes();
@@ -66,46 +80,136 @@ bool DrownedEntity::shouldBurnInDaylight() const
     return !isInWater();
 }
 
-void DrownedEntity::registerGoals()
+bool DrownedEntity::okTarget(const LivingEntity* target) const
 {
-    // 调用父类方法（ZombieEntity::registerGoals 注册了基础僵尸 AI）
-    ZombieEntity::registerGoals();
-
-    // 溺尸需要替换父类注册的 HurtByTargetGoal
-    // MC 原版: Drowned 使用 HurtByTargetGoal(this, Drowned.class).setAlertOthers(ZombifiedPiglin.class)
-    // 即不反击同类溺尸，且不警醒僵尸猪灵
-    // 父类 ZombieEntity 注册了不带 Drowned 排除的 HurtByTargetGoal，需要先移除再添加
-    m_targetSelector.removeGoalsOfType<entity::ai::goal::HurtByTargetGoal>();
-
-    // 添加溺尸专用的 HurtByTargetGoal：排除同类溺尸，不警醒僵尸猪灵
-    {
-        auto hurtByTarget =
-            std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
-                // MC 原版: Drowned.class — 不反击同类溺尸
-                return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::DROWNED;
-            });
-        hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
-            // MC 原版: ZombifiedPiglin.class — 不警醒僵尸猪灵
-            return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
-        });
-        m_targetSelector.addGoal(1, std::move(hurtByTarget));
+    if (target == nullptr) {
+        return false;
     }
 
-    // TODO: 实现溺尸特有的行为目标（DrownedGoToWaterGoal、DrownedTridentAttackGoal、
-    // DrownedAttackGoal、DrownedGoToBeachGoal、DrownedSwimUpGoal）
-    // 这些目标需要先实现对应的 AI 目标类
+    // 非白天（夜晚或雷暴）时，所有目标都有效
+    if (world() != nullptr && !world()->isBrightOutside()) {
+        return true;
+    }
 
-    // 溺尸还需要攻击美西螈（Axolotl）— 需要实现 AxolotlEntity 后添加
-    // MC 原版: targetSelector.addGoal(3, NearestAttackableTargetGoal(Axolotl.class, true))
+    // 白天时，只有目标在水中才有效
+    return target->isInWater();
+}
+
+bool DrownedEntity::wantsToSwim() const
+{
+    // 正在搜索陆地或当前攻击目标在水中
+    if (m_searchingForLand) {
+        return true;
+    }
+
+    const LivingEntity* target = attackTarget();
+    if (target != nullptr && target->isInWater()) {
+        return true;
+    }
+
+    return false;
+}
+
+void DrownedEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge)
+{
+    if (target == nullptr || world() == nullptr) {
+        return;
+    }
+
+    // 创建三叉戟实体
+    auto trident = std::make_unique<entity::TridentEntity>(EntityId(0));
+    if (trident == nullptr) {
+        return;
+    }
+
+    trident->setWorld(world());
+    trident->setPosition(x(), y() + eyeHeight() - 0.1f, z());
+    trident->setShooter(this);
+
+    // 设置三叉戟的基础伤害
+    trident->setBaseDamageFromMob(charge);
+
+    // 计算射击方向
+    f64 dx = target->x() - x();
+    f64 dy = (target->y() + target->height() * 0.3333333333333333) - trident->y();
+    f64 dz = target->z() - z();
+    f64 horizontalDist = std::sqrt(dx * dx + dz * dz);
+
+    // 不精确度：难度越高，不精确度越低，三叉戟越精准
+    // Peaceful=14, Easy=10, Normal=6, Hard=2
+    f32 inaccuracy = entity::combat::DifficultyHelper::getRangedAttackInaccuracy(world()->difficulty());
+
+    // 发射三叉戟：速度 1.6，Y轴补偿水平距离的 0.2 倍用于抛物线弹道
+    trident->shoot(static_cast<f32>(dx),
+        static_cast<f32>(dy + horizontalDist * 0.2),
+        static_cast<f32>(dz),
+        TRIDENT_VELOCITY,
+        inaccuracy);
+
+    // 将三叉戟添加到世界
+    world()->spawnEntity(std::move(trident));
+
+    // 播放三叉戟投掷音效
+    playSound(SoundEvents::ITEM_TRIDENT_THROW, 1.0f, 1.0f);
 }
 
 void DrownedEntity::tick()
 {
     ZombieEntity::tick();
 
-    // 在水中时的特殊行为
-    // TODO: 实现溺尸水中游泳AI目标，游泳状态由AI目标控制
-    (void)isInWater(); // 暂时避免未使用警告，AI目标实现后会使用
+    // 溺尸在水中时的特殊移动控制由 DrownedMoveControl 处理
+    // DrownedSwimUpGoal 和 DrownedGoToBeachGoal 管理 searchingForLand 状态
+    // DrownedMoveControl 读取 wantsToSwim() 来决定水中移动方式
+}
+
+void DrownedEntity::registerGoals()
+{
+    // 调用父类方法（ZombieEntity::registerGoals 注册了基础僵尸 AI）
+    ZombieEntity::registerGoals();
+
+    // 溺尸需要替换父类注册的 HurtByTargetGoal
+    // 父类注册了不带溺尸排除的 HurtByTargetGoal，需要先移除再添加
+    m_targetSelector.removeGoalsOfType<entity::ai::goal::HurtByTargetGoal>();
+
+    // 添加溺尸专用的 HurtByTargetGoal：排除同类溺尸，不警醒僵尸猪灵
+    {
+        auto hurtByTarget =
+            std::make_unique<entity::ai::goal::HurtByTargetGoal>(this, true, [](const LivingEntity* attacker) -> bool {
+                // 不反击同类溺尸
+                return attacker != nullptr && attacker->typeId() == entity::EntityTypeIdNumber::DROWNED;
+            });
+        hurtByTarget->setAlertOthers([](const LivingEntity* ally) -> bool {
+            // 不警醒僵尸猪灵
+            return ally != nullptr && ally->typeId() == entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
+        });
+        m_targetSelector.addGoal(1, std::move(hurtByTarget));
+    }
+
+    // ===== 溺尸专属行为目标 =====
+
+    // 优先级 1: 白天前往水源
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::DrownedGoToWaterGoal>(this, 1.0));
+
+    // 优先级 2: 三叉戟远程攻击（仅当手持三叉戟时）
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::DrownedTridentAttackGoal>(this, 1.0, 40, 10.0f));
+
+    // 优先级 2: 近战攻击（带 okTarget 过滤）
+    m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::DrownedAttackGoal>(this, 1.0, false));
+
+    // 优先级 5: 夜间前往海滩
+    m_goalSelector.addGoal(5, std::make_unique<entity::ai::goal::DrownedGoToBeachGoal>(this, 1.0));
+
+    // 优先级 6: 夜间向上游泳
+    m_goalSelector.addGoal(6, std::make_unique<entity::ai::goal::DrownedSwimUpGoal>(this, 1.0, mc::world::SEA_LEVEL));
+
+    // ===== 溺尸专属目标选择 =====
+
+    // 优先级 2: 攻击玩家（带 okTarget 过滤）
+    m_targetSelector.addGoal(2, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<Player>>(this, true));
+
+    // 优先级 3: 攻击美西螈
+    m_targetSelector.addGoal(
+        3, std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<AxolotlEntity>>(this, true));
 }
 
 void DrownedEntity::registerAttributes()

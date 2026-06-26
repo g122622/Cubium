@@ -202,13 +202,14 @@ public:
     /**
      * @brief 检查配方是否在配方书中显示
      *
-     * 某些配方虽然已解锁但可能不在配方书中显示（如动态配方）。
-     * 目前简化实现，与 isUnlocked 相同。
+     * 动态配方（如染色、修复等特殊配方）虽然可以合成，
+     * 但不会出现在配方书中。此方法检查配方是否已解锁且非动态。
+     * 参考 MC 1.21.1: ServerRecipeBook 中的 isSpecial 过滤逻辑。
      *
      * @param recipeId 配方资源位置
-     * @return 是否在配方书中
+     * @return 是否在配方书中（已解锁且非动态配方）
      */
-    [[nodiscard]] bool isBookRecipe(const ResourceLocation& recipeId) const noexcept { return isUnlocked(recipeId); }
+    [[nodiscard]] bool isBookRecipe(const ResourceLocation& recipeId) const noexcept;
 
     // ========== 新配方管理 ==========
 
@@ -315,9 +316,22 @@ public:
     // ========== 批量操作 ==========
 
     /**
+     * @brief 检查配方是否为动态配方
+     *
+     * 动态配方（染色、修复、书本复制等特殊配方）不会出现在配方书中。
+     * 参考 MC 1.21.1: ServerRecipeBook.addRecipes() 中 !recipe.isSpecial() 过滤逻辑。
+     *
+     * @param recipeId 配方资源位置
+     * @return 如果是动态配方返回 true，否则返回 false
+     */
+    [[nodiscard]] static bool isDynamicRecipe(const ResourceLocation& recipeId);
+
+    /**
      * @brief 批量添加（解锁）配方
      *
      * 解锁配方、标记为新配方、触发成就、发送网络包。
+     * 动态配方（isDynamic() == true）会被自动过滤，不会添加到配方书中。
+     * 参考 MC 1.21.1: ServerRecipeBook.addRecipes() 中的 !recipe.isSpecial() 过滤。
      *
      * @tparam RecipeIter 配方迭代器类型
      * @param begin 配方ID迭代器起始
@@ -331,6 +345,12 @@ public:
         size_t added = 0;
         for (auto it = begin; it != end; ++it) {
             const ResourceLocation& recipeId = *it;
+
+            // 动态配方不添加到配方书
+            if (isDynamicRecipe(recipeId)) {
+                continue;
+            }
+
             // 检查是否已解锁
             if (m_recipes.contains(recipeId)) {
                 continue;

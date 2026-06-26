@@ -10,6 +10,7 @@ tree/
 ├── TreeFeature.cpp             # 树木特征实现
 ├── trunk/                      # 树干放置器
 │   ├── TrunkPlacer.hpp/cpp     # 树干放置器基类
+│   ├── BendingTrunkPlacer.hpp/cpp # 弯曲树干（杜鹃树/红树林）
 │   ├── StraightTrunkPlacer.hpp/cpp  # 直树干（橡树/白桦/云杉/丛林木）
 │   ├── CherryTrunkPlacer.hpp/cpp    # 樱花树干放置器
 │   └── TrunkPlacers.hpp/cpp    # 其他树干放置器（深色橡树/精美/金合欢/巨型云杉/巨型丛林木）
@@ -34,7 +35,8 @@ TreeFeature（主入口）
             │       ├── ForkyTrunkPlacer
             │       ├── GiantTrunkPlacer
             │       ├── MegaJungleTrunkPlacer
-            │       └── CherryTrunkPlacer
+            │       ├── CherryTrunkPlacer
+            │       └── BendingTrunkPlacer
             └── FoliagePlacer（树叶放置器）
                     ├── BlobFoliagePlacer
                     ├── PineFoliagePlacer

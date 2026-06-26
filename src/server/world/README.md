@@ -6,7 +6,7 @@
 
 ```
 src/server/world/
-├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/末影龙战斗管理/isBlockInLine射线遍历）
+├── ServerWorld.hpp/cpp              # 服务端世界核心类（区块/实体/光照/tick/方块实体tick/末影龙战斗管理/isBlockInLine射线遍历）
 ├── ServerChunkManager.hpp/cpp       # 区块管理器（加载/生成/卸载协调，委托 ChunkTaskScheduler 调度生成）
 ├── SingleChunkLifecycleManager.hpp/cpp  # 单区块生命周期状态机（NewChunkHolder 等价物：请求聚合/状态推进/等待者/双向邻居依赖）
 ├── ChunkTaskScheduler.hpp/cpp       # 调度核心：schedule/checkNeighbour/onChunkGenComplete，持有 ReentrantAreaLock
@@ -223,3 +223,33 @@ data/end_dragon_fight.json
     → SingleLevelStorageManager::saveDragonFightData()
     → data/end_dragon_fight.json
 ```
+
+### 方块实体 tick 系统
+
+`ServerWorld::tickBlockEntities()` 对应 MC Java 的 `Level.tickBlockEntities()`，在每 game tick 中遍历所有已加载区块的方块实体，对 `needsTick() == true` 且未被移除的方块实体调用其 `tick()` 方法。
+
+**调用时机**：在 `ServerWorld::tick()` 中，TickManager 之后、tickEnvironment 之前执行。调试世界（`isDebugWorld()`）不执行方块实体 tick。
+
+**遍历方式**：通过 `ServerChunkManager::forEachLoadedChunk()` 遍历所有已加载区块，对每个区块调用 `ChunkData::getAllBlockEntities()` 获取快照（返回 `std::vector<BlockEntity*>`，按值返回避免迭代失效），然后逐一检查并 tick。
+
+**需要 tick 的方块实体**（`needsTick() == true`）：
+- `MobSpawnerBlockEntity` — 刷怪笼（周期性生成实体）
+- `AbstractFurnaceEntity` — 熔炉/高炉/烟熏炉（燃烧进度）
+- `BrewingStandEntity` — 酿造台（酿造进度）
+- `HopperEntity` — 漏斗（物品传输）
+- `BeaconEntity` — 信标（效果应用）
+- `ConduitEntity` — 潮涌核心（效果应用）
+- `CampfireBlockEntity` — 营火（烹饪进度）
+- `CommandBlockEntity` — 命令方块（命令执行）
+- `PistonBlockEntity` — 活塞（移动动画）
+- `DaylightDetectorEntity` — 日光探测器（信号更新）
+- `TrialSpawnerBlockEntity` — 试炼刷怪笼（状态机推进）
+- `CrafterBlockEntity` — 自动合成器（红石脉冲）
+
+**不需要 tick 的方块实体**（`needsTick() == false`，默认值）：
+- `ChestEntity`、`BarrelEntity`、`ShulkerBoxEntity` 等纯存储方块实体
+- `SignEntity`、`BannerEntity`、`LecternEntity` 等交互方块实体
+
+**注意事项**：
+- 方块实体在 tick 期间可能修改所在区块的方块实体映射（如活塞移动方块实体），因此必须使用 `getAllBlockEntities()` 的快照而非直接引用 `m_blockEntities`。
+- 如果 tick 中的方块实体被移除（`isRemoved() == true`），应跳过其 tick。

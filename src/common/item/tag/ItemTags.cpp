@@ -101,6 +101,15 @@ ItemTag& ItemTags::DAMPENS_VIBRATIONS()
     return *tag;
 }
 
+ItemTag& ItemTags::FIRE_RESISTANT()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "fire_resistant"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -163,7 +172,6 @@ void ItemTags::initialize()
 
     // 创建 DAMPENS_VIBRATIONS 标签
     // 包含所有羊毛物品和地毯物品
-    // 参考: net.minecraft.data.tags.BlockItemTagsProvider - DAMPENS_VIBRATIONS 包含 wool 和 wool_carpets
     auto dampensVibrations = std::make_unique<ItemTag>(ResourceLocation("minecraft", "dampens_vibrations"));
 
     // 16 色羊毛物品
@@ -203,6 +211,41 @@ void ItemTags::initialize()
     dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_carpet")));
 
     allTags[dampensVibrations->getId()] = std::move(dampensVibrations);
+
+    // 创建 FIRE_RESISTANT 标签
+    // 包含所有防火物品：下界合金锭、下界合金碎片、远古残骸、下界星等
+    // 在 MC Java 中，此标签通过 Item.Properties.fireResistant() 自动添加，
+    // 但我们这里显式列出所有防火物品
+    auto fireResistant = std::make_unique<ItemTag>(ResourceLocation("minecraft", "fire_resistant"));
+
+    // 下界合金相关物品
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_scrap")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "ancient_debris")));
+
+    // 下界合金工具
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_sword")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_shovel")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_pickaxe")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_axe")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_hoe")));
+
+    // 下界合金盔甲
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_helmet")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_chestplate")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_leggings")));
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_boots")));
+
+    // 下界星
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "nether_star")));
+
+    // 下界合金块
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_block")));
+
+    // 下界合金马铠
+    fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_horse_armor")));
+
+    allTags[fireResistant->getId()] = std::move(fireResistant);
 
     s_initialized = true;
 }

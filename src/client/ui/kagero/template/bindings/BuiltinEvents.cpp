@@ -22,6 +22,7 @@
  */
 
 #include "BuiltinEvents.hpp"
+#include "common/input/KeyBinding.hpp"
 #include <algorithm>
 #include <cctype>
 
@@ -100,29 +101,26 @@ void BuiltinEvents::_registerClickEvents()
     m_eventTypes[event_names::CLICK] = event::EventType::MouseClick;
 
     // doubleClick事件
-    // TODO: Widget缺少onDoubleClick方法，目前复用onClick，需要添加专门的双击处理
     m_handlers[event_names::DOUBLE_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), clickEvent->mods());
+                widget->onDoubleClick(clickEvent->x(), clickEvent->y(), clickEvent->button(), clickEvent->mods());
             }
         }
     };
     m_eventTypes[event_names::DOUBLE_CLICK] = event::EventType::MouseClick;
 
     // rightClick事件
-    // TODO: Widget缺少onRightClick方法，目前硬编码button=1，需要添加专门的右键处理
     m_handlers[event_names::RIGHT_CLICK] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
-                widget->onClick(clickEvent->x(), clickEvent->y(), 1, clickEvent->mods());
+                widget->onRightClick(clickEvent->x(), clickEvent->y(), clickEvent->mods());
             }
         }
     };
     m_eventTypes[event_names::RIGHT_CLICK] = event::EventType::MouseClick;
 
     // mouseDown事件
-    // TODO: Widget缺少onMouseDown方法，目前复用onClick，需要添加专门的鼠标按下处理
     m_handlers[event_names::MOUSE_DOWN] = [](widget::Widget* widget, const event::Event& event) {
         if (widget && widget->isActive() && widget->isVisible()) {
             if (auto* clickEvent = dynamic_cast<const event::MouseClickEvent*>(&event)) {
@@ -386,64 +384,93 @@ template event::ValueChangeEvent<std::string> createValueChangeEvent(const std::
 
 i32 parseKeyCode(const std::string& keyName)
 {
-    // TODO: 简化版本，只支持常用键，需要补充完整的键盘映射
-    static const std::unordered_map<std::string, i32> keyMap = {{"unknown", 0},
-        {"space", 32},
-        {"enter", 257},
-        {"tab", 258},
-        {"backspace", 259},
-        {"insert", 260},
-        {"delete", 261},
-        {"right", 262},
-        {"left", 263},
-        {"down", 264},
-        {"up", 265},
-        {"page_up", 266},
-        {"page_down", 267},
-        {"home", 268},
-        {"end", 269},
-        {"caps_lock", 280},
-        {"scroll_lock", 281},
-        {"num_lock", 282},
-        {"print_screen", 283},
-        {"pause", 284},
-        {"f1", 290},
-        {"f2", 291},
-        {"f3", 292},
-        {"f4", 293},
-        {"f5", 294},
-        {"f6", 295},
-        {"f7", 296},
-        {"f8", 297},
-        {"f9", 298},
-        {"f10", 299},
-        {"f11", 300},
-        {"f12", 301},
-        {"kp_0", 320},
-        {"kp_1", 321},
-        {"kp_2", 322},
-        {"kp_3", 323},
-        {"kp_4", 324},
-        {"kp_5", 325},
-        {"kp_6", 326},
-        {"kp_7", 327},
-        {"kp_8", 328},
-        {"kp_9", 329},
-        {"kp_decimal", 330},
-        {"kp_divide", 331},
-        {"kp_multiply", 332},
-        {"kp_subtract", 333},
-        {"kp_add", 334},
-        {"kp_enter", 335},
-        {"kp_equal", 336},
-        {"left_shift", 340},
-        {"left_control", 341},
-        {"left_alt", 342},
-        {"left_super", 343},
-        {"right_shift", 344},
-        {"right_control", 345},
-        {"right_alt", 346},
-        {"right_super", 347}};
+    static const std::unordered_map<std::string, i32> keyMap = {
+        {"unknown", Keys::Unknown},
+        {"space", Keys::Space},
+        {"apostrophe", Keys::Apostrophe},
+        {"comma", Keys::Comma},
+        {"minus", Keys::Minus},
+        {"period", Keys::Period},
+        {"slash", Keys::Slash},
+        {"semicolon", Keys::Semicolon},
+        {"equal", Keys::Equal},
+        {"enter", Keys::Enter},
+        {"tab", Keys::Tab},
+        {"backspace", Keys::Backspace},
+        {"insert", Keys::Insert},
+        {"delete", Keys::Delete},
+        {"right", Keys::Right},
+        {"left", Keys::Left},
+        {"down", Keys::Down},
+        {"up", Keys::Up},
+        {"page_up", Keys::PageUp},
+        {"page_down", Keys::PageDown},
+        {"home", Keys::Home},
+        {"end", Keys::End},
+        {"caps_lock", Keys::CapsLock},
+        {"scroll_lock", Keys::ScrollLock},
+        {"num_lock", Keys::NumLock},
+        {"print_screen", Keys::PrintScreen},
+        {"pause", Keys::Pause},
+        {"escape", Keys::Escape},
+        {"f1", Keys::F1},
+        {"f2", Keys::F2},
+        {"f3", Keys::F3},
+        {"f4", Keys::F4},
+        {"f5", Keys::F5},
+        {"f6", Keys::F6},
+        {"f7", Keys::F7},
+        {"f8", Keys::F8},
+        {"f9", Keys::F9},
+        {"f10", Keys::F10},
+        {"f11", Keys::F11},
+        {"f12", Keys::F12},
+        {"f13", Keys::F13},
+        {"f14", Keys::F14},
+        {"f15", Keys::F15},
+        {"f16", Keys::F16},
+        {"f17", Keys::F17},
+        {"f18", Keys::F18},
+        {"f19", Keys::F19},
+        {"f20", Keys::F20},
+        {"f21", Keys::F21},
+        {"f22", Keys::F22},
+        {"f23", Keys::F23},
+        {"f24", Keys::F24},
+        {"f25", Keys::F25},
+        {"kp_0", Keys::KP_0},
+        {"kp_1", Keys::KP_1},
+        {"kp_2", Keys::KP_2},
+        {"kp_3", Keys::KP_3},
+        {"kp_4", Keys::KP_4},
+        {"kp_5", Keys::KP_5},
+        {"kp_6", Keys::KP_6},
+        {"kp_7", Keys::KP_7},
+        {"kp_8", Keys::KP_8},
+        {"kp_9", Keys::KP_9},
+        {"kp_decimal", Keys::KP_Decimal},
+        {"kp_divide", Keys::KP_Divide},
+        {"kp_multiply", Keys::KP_Multiply},
+        {"kp_subtract", Keys::KP_Subtract},
+        {"kp_add", Keys::KP_Add},
+        {"kp_enter", Keys::KP_Enter},
+        {"kp_equal", Keys::KP_Equal},
+        {"left_shift", Keys::LeftShift},
+        {"left_control", Keys::LeftControl},
+        {"left_alt", Keys::LeftAlt},
+        {"left_super", Keys::LeftSuper},
+        {"right_shift", Keys::RightShift},
+        {"right_control", Keys::RightControl},
+        {"right_alt", Keys::RightAlt},
+        {"right_super", Keys::RightSuper},
+        {"left_bracket", Keys::LeftBracket},
+        {"backslash", Keys::Backslash},
+        {"right_bracket", Keys::RightBracket},
+        {"grave_accent", Keys::GraveAccent},
+        {"world_1", Keys::World1},
+        {"world_2", Keys::World2},
+        {"menu", Keys::Menu},
+    };
 
     std::string lower = keyName;
     std::transform(
@@ -465,7 +492,7 @@ i32 parseKeyCode(const std::string& keyName)
         }
     }
 
-    return 0; // 未知键
+    return Keys::Unknown;
 }
 
 i32 parseMouseButton(const std::string& buttonName)
@@ -492,15 +519,14 @@ i32 parseKeyMods(const std::string& mods)
     std::transform(
         lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    // 修饰键位掩码（与GLFW修饰键定义一致）
-    if (lower.find("shift") != std::string::npos) result |= 0x01; // Shift
+    if (lower.find("shift") != std::string::npos) result |= static_cast<i32>(KeyMods::Shift);
     if (lower.find("ctrl") != std::string::npos || lower.find("control") != std::string::npos)
-        result |= 0x02;                                         // Control
-    if (lower.find("alt") != std::string::npos) result |= 0x04; // Alt
+        result |= static_cast<i32>(KeyMods::Control);
+    if (lower.find("alt") != std::string::npos) result |= static_cast<i32>(KeyMods::Alt);
     if (lower.find("super") != std::string::npos || lower.find("meta") != std::string::npos)
-        result |= 0x08;                                          // Super/Meta
-    if (lower.find("caps") != std::string::npos) result |= 0x10; // Caps Lock
-    if (lower.find("num") != std::string::npos) result |= 0x20;  // Num Lock
+        result |= static_cast<i32>(KeyMods::Super);
+    if (lower.find("caps") != std::string::npos) result |= static_cast<i32>(KeyMods::CapsLock);
+    if (lower.find("num") != std::string::npos) result |= static_cast<i32>(KeyMods::NumLock);
 
     return result;
 }

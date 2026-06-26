@@ -26,6 +26,7 @@
 #include "common/util/Direction.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/FenceGateHelpers.hpp"
 #include "common/world/block/WaterLoggableHelpers.hpp"
 
@@ -217,6 +218,60 @@ const BlockState& WallBlock::mirror(const BlockState& state, Mirror mirror) cons
     return state;
 }
 
+bool WallBlock::_shouldRaisePost(const BlockState& state,
+    BlockStateProperties::WallHeight northHeight,
+    BlockStateProperties::WallHeight eastHeight,
+    BlockStateProperties::WallHeight southHeight,
+    BlockStateProperties::WallHeight westHeight,
+    const IWorld& world,
+    const BlockPos& pos) const
+{
+    // 参考: net.minecraft.block.WallBlock#shouldRaisePost
+    // 检查上方方块
+    BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+    const BlockState* aboveState = world.getBlockState(abovePos);
+
+    // 如果上方是墙且UP=true，强制升起墙柱
+    if (aboveState && isWall(*aboveState) && aboveState->get(BlockStateProperties::UP())) {
+        return true;
+    }
+
+    bool northNone = northHeight == BlockStateProperties::WallHeight::None;
+    bool southNone = southHeight == BlockStateProperties::WallHeight::None;
+    bool eastNone = eastHeight == BlockStateProperties::WallHeight::None;
+    bool westNone = westHeight == BlockStateProperties::WallHeight::None;
+
+    // 无连接时升起墙柱
+    if (northNone && southNone && eastNone && westNone) {
+        return true;
+    }
+
+    // 南北或东西不对称时升起墙柱
+    if (northNone != southNone || eastNone != westNone) {
+        return true;
+    }
+
+    // 对称直线墙（任意高度）不升起墙柱，除非上方有覆盖
+    // 参考: net.minecraft.block.WallBlock#shouldRaisePost 中的 straightNorthSouth/straightEastWest
+    // 注意：这里检查的是任意非None高度的直线墙，不仅限于Tall高度
+    bool straightNorthSouth = !northNone && !southNone && eastNone && westNone;
+    bool straightEastWest = !eastNone && !westNone && northNone && southNone;
+
+    if (straightNorthSouth || straightEastWest) {
+        // 直线墙，不升起墙柱——除非上方有WALL_POST_OVERRIDE方块
+        if (aboveState && BlockTags::WALL_POST_OVERRIDE().contains(*aboveState)) {
+            return true;
+        }
+        // TODO: MC原版还检查上方方块的碰撞形状下方面是否覆盖墙柱测试形状(TEST_SHAPE_POST)，
+        // 即 isCovered(aboveState.getCollisionShape(world, abovePos).getFaceShape(Direction::DOWN), TEST_SHAPE_POST)。
+        // 当前项目的CollisionShape::coversFullBlock()可部分替代，但精确实现需要VoxelShape布尔运算支持。
+        // 暂时不实现此碰撞形状覆盖检查，大多数情况下WALL_POST_OVERRIDE标签已覆盖主要场景。
+        return false;
+    }
+
+    return true;
+}
+
 BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, const BlockState& state) const
 {
     BlockPos northPos(pos.x, pos.y, pos.z - 1);
@@ -238,25 +293,7 @@ BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, 
     BlockStateProperties::WallHeight westHeight =
         westState ? _getWallHeight(*westState, Direction::West) : BlockStateProperties::WallHeight::None;
 
-    bool hasConnections = northHeight != BlockStateProperties::WallHeight::None ||
-        southHeight != BlockStateProperties::WallHeight::None || eastHeight != BlockStateProperties::WallHeight::None ||
-        westHeight != BlockStateProperties::WallHeight::None;
-    bool straightNorthSouth = northHeight != BlockStateProperties::WallHeight::None &&
-        southHeight != BlockStateProperties::WallHeight::None && eastHeight == BlockStateProperties::WallHeight::None &&
-        westHeight == BlockStateProperties::WallHeight::None;
-    bool straightEastWest = eastHeight != BlockStateProperties::WallHeight::None &&
-        westHeight != BlockStateProperties::WallHeight::None && northHeight == BlockStateProperties::WallHeight::None &&
-        southHeight == BlockStateProperties::WallHeight::None;
-
-    bool oppositeTallNorthSouth = northHeight == BlockStateProperties::WallHeight::Tall &&
-        southHeight == BlockStateProperties::WallHeight::Tall && eastHeight == BlockStateProperties::WallHeight::None &&
-        westHeight == BlockStateProperties::WallHeight::None;
-    bool oppositeTallEastWest = eastHeight == BlockStateProperties::WallHeight::Tall &&
-        westHeight == BlockStateProperties::WallHeight::Tall && northHeight == BlockStateProperties::WallHeight::None &&
-        southHeight == BlockStateProperties::WallHeight::None;
-
-    bool hasUp = !hasConnections ||
-        (!oppositeTallNorthSouth && !oppositeTallEastWest && !straightNorthSouth && !straightEastWest);
+    bool hasUp = _shouldRaisePost(state, northHeight, eastHeight, southHeight, westHeight, world, pos);
 
     return state.with(BlockStateProperties::UP(), hasUp)
         .with(BlockStateProperties::WALL_HEIGHT_NORTH(), northHeight)
@@ -267,18 +304,17 @@ BlockState WallBlock::_calculateState(const IWorld& world, const BlockPos& pos, 
 
 BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& state, Direction neighborSide) const
 {
-    // 连接逻辑:
-    // 1. 墙总是连接到其他墙 (返回 Tall)
-    // 2. 栅栏门平行时连接 (返回 Low)
-    // 3. 玻璃板总是连接 (返回 Low)
-    // 4. 固体方块连接 (根据碰撞形状决定 Tall 或 Low)
+    // 参考: net.minecraft.block.WallBlock#connectsTo
+    // 墙连接逻辑:
+    // 1. 其他墙 -> 总是连接
+    // 2. 栅栏门平行时 -> 连接
+    // 3. 铁栏杆 -> 连接
+    // 4. 固体方块（非连接例外）-> 连接
 
-    // 检查是否为墙
     if (isWall(state)) {
         return BlockStateProperties::WallHeight::Tall;
     }
 
-    // 检查是否为栅栏门
     if (fencehelpers::isFenceGate(state)) {
         if (fencehelpers::isFenceGateParallel(state, neighborSide)) {
             return BlockStateProperties::WallHeight::Low;
@@ -286,21 +322,14 @@ BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& sta
         return BlockStateProperties::WallHeight::None;
     }
 
-    // 检查是否为玻璃板类方块 (PaneBlock)
-    // 简化实现：检查是否有NORTH/EAST/SOUTH/WEST布尔属性但没有WALL_HEIGHT属性
-    if (state.hasProperty(BlockStateProperties::NORTH()) &&
-        !state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH())) {
+    // 铁栏杆连接到墙时返回 Low
+    if (BlockTags::BARS().contains(state)) {
         return BlockStateProperties::WallHeight::Low;
     }
 
-    // 检查是否有不透明碰撞形状（固体方块）
-    if (state.hasOpaqueCollisionShape()) {
+    // 固体方块连接（排除连接例外方块）
+    if (!Block::isExceptionForConnection(state) && state.isSolid()) {
         return BlockStateProperties::WallHeight::Tall;
-    }
-
-    // 检查是否为普通固体方块
-    if (state.isSolid()) {
-        return BlockStateProperties::WallHeight::Low;
     }
 
     return BlockStateProperties::WallHeight::None;
@@ -308,7 +337,7 @@ BlockStateProperties::WallHeight WallBlock::_getWallHeight(const BlockState& sta
 
 bool WallBlock::isWall(const BlockState& state)
 {
-    return state.hasProperty(BlockStateProperties::WALL_HEIGHT_NORTH());
+    return BlockTags::WALLS().contains(state);
 }
 
 size_t WallBlock::_getShapeIndex(bool up,

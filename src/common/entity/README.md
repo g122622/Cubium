@@ -7,9 +7,9 @@
 ```
 src/common/entity/
 ├── core/                           # 核心实体框架
-│   ├── Entity.hpp/cpp              # 实体基类
+│   ├── Entity.hpp/cpp              # 实体基类（含 getLootTableId() 虚方法）
 │   ├── LivingEntity.hpp/cpp        # 生物实体基类
-│   ├── MobEntity.hpp/cpp           # AI生物基类
+│   ├── MobEntity.hpp/cpp           # AI生物基类（覆写 getLootTableId() 支持自定义 DeathLootTable）
 │   ├── CreatureEntity.hpp/cpp      # 陆地生物基类
 │   ├── AgeableEntity.hpp/cpp       # 可成长实体基类
 │   ├── FlyingEntity.hpp/cpp        # 飞行生物基类
@@ -405,3 +405,32 @@ signal = floor(fillRatio * 14) + (hasItems ? 1 : 0)
 **集成路径**：
 - `DetectorRailBlock::getComparatorInputOverride()` 通过 `RedstoneHelper::getEntitySignal()` 查询矿车实体信号
 - `RedstoneComparatorBlock` 对物品框直接调用 `ItemFrameEntity::getComparatorOutput()`
+
+### 30. 僵尸增援系统
+
+`ZombieEntity` 实现了 MC 1.21.11 的僵尸增援（Reinforcement）机制，当僵尸在困难模式下受到伤害时有概率召唤新的增援僵尸：
+
+**触发条件**（`ZombieEntity::hurt()`）：
+- 难度必须为 Hard（由 `DifficultyHelper::canZombieReinforce()` 判断）
+- 随机数 < `zombie.spawn_reinforcements` 属性值
+- 存在攻击目标（`attackTarget()` 或 `source.getEntity()`）
+
+**生成逻辑**（`ZombieEntity::_trySpawnReinforcement()`）：
+1. 检查 `doMobSpawning` 游戏规则
+2. 查找同类型实体（`EntityType` 注册表查找）
+3. 50 次尝试内随机选择生成位置：各轴偏移 = `nextInt(7, 40) * nextInt(-1, 1)`（MC 1.21.11 原版公式，`nextInt(-1, 1)` 产生 {-1, 0, 1}，偏移可为 0）
+4. 位置验证：世界边界、附近无存活玩家（7格）、无实体碰撞、无方块碰撞、非液体（`containsAnyLiquid`）
+5. 生成同类型僵尸并调用 `finalizeSpawn()`
+6. 设置攻击目标，通过 `spawnEntity()` 加入世界
+7. 召唤者获得 `reinforcement_caller_charge` 修饰符（-0.05 Addition，累加）
+8. 被召唤者获得 `reinforcement_callee_charge` 修饰符（-0.05 Addition）
+
+**注意**：当前实现中位置验证包含额外的地面支撑和固体方块检查（MC 原版使用 `SpawnPlacements.isSpawnPositionOk` + `checkSpawnRules`），代码中已标注 TODO，待 SpawnPlacements 系统完善后对齐。
+
+**公共入口**（`ZombieEntity::trySummonReinforcements()`）：
+- 完整的公共接口，内部进行 null 检查、难度检查、概率检查后委托给 `_trySpawnReinforcement()`
+- 适用于外部调用（如命令触发增援）
+
+**关键属性**：
+- `zombie.spawn_reinforcements`：增援概率，基础值 0.0，`finalizeSpawn()` 中根据区域难度随机设置（0.0~0.1）
+- 修饰符累加：每次增援后 caller/callee 各 -0.05，逐渐降低后续增援概率

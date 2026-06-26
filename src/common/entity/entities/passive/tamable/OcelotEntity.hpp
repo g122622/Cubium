@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include <memory>
 
@@ -118,7 +119,7 @@ public:
      * @brief 是否已被信任
      * 豹猫的"驯服"实际上是建立信任
      */
-    [[nodiscard]] bool isTrusting() const { return m_trusting; }
+    [[nodiscard]] bool isTrusting() const { return m_dataManager.get<bool>(DATA_TRUSTING_PARAM); }
 
     /**
      * @brief 设置信任状态
@@ -129,6 +130,13 @@ public:
      * @brief 获取信任玩家ID
      */
     [[nodiscard]] u64 getTrustingPlayerId() const { return m_trustingPlayerId; }
+
+    /**
+     * @brief 获取信任状态数据参数 ID
+     *
+     * 用于客户端从元数据中读取信任状态。
+     */
+    [[nodiscard]] static u16 getTrustingParamId() { return DATA_TRUSTING_PARAM.id(); }
 
     // ========== 逃跑状态 ==========
 
@@ -219,9 +227,15 @@ protected:
     // ========== 数据同步 ==========
     void registerData() override;
 
+    // ========== NBT 序列化 ==========
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 private:
+    // ========== 数据同步 ==========
+    static entity::DataParameter<bool> DATA_TRUSTING_PARAM;
+
     // 信任状态
-    bool m_trusting = false;
     u64 m_trustingPlayerId = 0;
 
     // 逃跑状态

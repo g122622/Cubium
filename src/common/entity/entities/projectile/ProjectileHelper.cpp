@@ -23,6 +23,10 @@
 
 #include "ProjectileHelper.hpp"
 
+#include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -202,4 +206,15 @@ RayTraceResult ProjectileHelper::rayTraceEntities(const IWorld& world,
 }
 
 } // namespace entity
+
+Hand getWeaponHoldingHand(const LivingEntity& entity, const Item* item)
+{
+    // 先检查主手是否持有指定物品，如果是则返回主手，否则返回副手
+    const ItemStack& mainHand = entity.getMainHandItem();
+    if (mainHand.getItem() == item) {
+        return Hand::MainHand;
+    }
+    return Hand::OffHand;
+}
+
 } // namespace mc

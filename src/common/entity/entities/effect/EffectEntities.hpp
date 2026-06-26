@@ -24,8 +24,10 @@
 #include "../../../entity/effect/EffectInstance.hpp"
 #include "../../../resource/ResourceLocation.hpp"
 #include "../../../util/AxisAlignedBB.hpp"
+#include "../../../util/nbt/Nbt.hpp"
 #include "../../../world/block/BlockPos.hpp"
 #include "../../core/Entity.hpp"
+#include "../../serialization/NbtHelper.hpp"
 #include <map>
 #include <memory>
 #include <vector>
@@ -62,6 +64,9 @@ public:
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     /**
      * @brief 检查是否显示基岩
@@ -124,6 +129,9 @@ public:
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     /**
      * @brief 设置是否只有效果（不造成伤害、不点燃方块）
@@ -208,6 +216,9 @@ public:
     [[nodiscard]] f32 height() const override;
     [[nodiscard]] bool isPushable() const { return false; }
     [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     // ========== 半径 ==========
 
@@ -298,9 +309,59 @@ public:
 
     /**
      * @brief 设置拥有者（造成效果的实体）
+     *
+     * 同时记录拥有者的 UUID，以便在拥有者实体失效后通过 UUID 重新查找。
+     * 采用双重追踪模式：缓存指针 + UUID 字符串。
+     *
+     * @param owner 拥有者实体（可以为 nullptr）
      */
     void setOwner(LivingEntity* owner);
+
+    /**
+     * @brief 获取拥有者实体
+     *
+     * 优先返回缓存的拥有者指针；如果缓存失效（实体已被移除），
+     * 则尝试通过 UUID 在世界中重新查找拥有者。
+     *
+     * @return 拥有者实体指针，可能为 nullptr
+     */
+    [[nodiscard]] LivingEntity* getOwner();
+
+    /**
+     * @brief 获取拥有者实体（const 版本）
+     *
+     * 注意：const 版本不会尝试通过 UUID 重新查找拥有者。
+     *
+     * @return 拥有者实体指针，可能为 nullptr
+     */
     [[nodiscard]] LivingEntity* getOwner() const { return m_owner; }
+
+    /**
+     * @brief 获取拥有者的 UUID
+     * @return 拥有者 UUID 字符串（32 字符十六进制），如果无拥有者则为空字符串
+     */
+    [[nodiscard]] const std::string& ownerUuid() const { return m_ownerUuid; }
+
+    /**
+     * @brief 仅通过 UUID 设置拥有者（用于 NBT 反序列化）
+     * @param uuid 拥有者 UUID 字符串
+     */
+    void setOwnerUuid(const std::string& uuid);
+
+    // ========== NBT 序列化 ==========
+
+    /**
+     * @brief 序列化区域效果云特有数据到 NBT
+     *
+     * 保存字段：Age, Duration, WaitTime, ReapplicationDelay, DurationOnUse,
+     * RadiusOnUse, RadiusPerTick, Radius, Owner (UUID), ParticleType, Effects
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 从 NBT 反序列化区域效果云特有数据
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
     // ========== 粒子 ==========
 
@@ -357,7 +418,8 @@ private:
     u32 m_color = 0;         ///< 效果颜色 (ARGB)
     bool m_colorSet = false; ///< 颜色是否已设置
 
-    LivingEntity* m_owner = nullptr; ///< 拥有者（苦力怕等）
+    LivingEntity* m_owner = nullptr; ///< 拥有者缓存指针（苦力怕、玩家等）
+    std::string m_ownerUuid;         ///< 拥有者 UUID（持久化，用于跨 tick 重新查找）
     u32 m_particleType = 0;          ///< 粒子类型
 
     // 默认值常量

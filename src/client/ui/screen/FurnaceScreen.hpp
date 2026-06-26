@@ -4,7 +4,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -36,6 +36,9 @@ namespace mc::client {
 
 /**
  * @brief 熔炉屏幕
+ *
+ * 显示熔炉GUI界面，包括背景纹理、燃烧火焰指示器和熔炼进度箭头。
+ * 燃烧和熔炼进度数据从关联的AbstractFurnaceEntity读取。
  */
 class FurnaceScreen : public AbstractContainerScreen<mc::blockentity::FurnaceContainer> {
 public:
@@ -56,6 +59,11 @@ public:
      */
     [[nodiscard]] std::string getTitle() const override { return "Furnace"; }
 
+    /// GUI宽度常量（与MC Java标准容器尺寸一致）
+    static constexpr i32 GUI_WIDTH = 176;
+    /// GUI高度常量（与MC Java标准容器尺寸一致）
+    static constexpr i32 GUI_HEIGHT = 166;
+
     // 允许移动
     FurnaceScreen(FurnaceScreen&&) noexcept = default;
     FurnaceScreen& operator=(FurnaceScreen&&) noexcept = default;
@@ -68,8 +76,24 @@ protected:
     void renderTooltip(i32 mouseX, i32 mouseY) override;
 
 private:
-    static constexpr i32 GUI_WIDTH = 176;
-    static constexpr i32 GUI_HEIGHT = 166;
+    /**
+     * @brief 获取燃料燃烧进度（0.0~1.0）
+     *
+     * 从熔炉实体获取当前燃烧时间与总燃烧时间的比值，
+     * 用于驱动火焰指示器动画。与MC Java的
+     * AbstractFurnaceMenu.getLitProgress()一致。
+     */
+    [[nodiscard]] f32 getLitProgress() const;
+
+    /**
+     * @brief 获取熔炼进度（0.0~1.0）
+     *
+     * 从熔炉实体获取当前熔炼时间与总熔炼时间的比值，
+     * 用于驱动进度箭头动画。与MC Java的
+     * AbstractFurnaceMenu.getBurnProgress()一致。
+     */
+    [[nodiscard]] f32 getBurnProgress() const;
+
     static constexpr i32 TITLE_X = 8;
     static constexpr i32 TITLE_Y = 6;
 };

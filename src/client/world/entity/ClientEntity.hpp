@@ -608,6 +608,14 @@ public:
     [[nodiscard]] bool axolotlPlayingDead() const { return m_axolotlPlayingDead; }
     void setAxolotlPlayingDead(bool playingDead) { m_axolotlPlayingDead = playingDead; }
 
+    // ========== 豹猫信任状态 ==========
+
+    /**
+     * @brief 是否已被信任（豹猫特有）
+     */
+    [[nodiscard]] bool isTrusting() const { return m_trusting; }
+    void setTrusting(bool trusting) { m_trusting = trusting; }
+
     // ========== 装备（用于层渲染） ==========
 
     /**
@@ -874,6 +882,9 @@ private:
 
     // 美西螈装死状态
     bool m_axolotlPlayingDead = false;
+
+    // 豹猫信任状态
+    bool m_trusting = false;
 
     // 装备（用于层渲染）
     std::unique_ptr<ItemStack> m_mainHandItem;

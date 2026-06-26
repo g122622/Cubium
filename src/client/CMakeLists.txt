@@ -70,6 +70,7 @@ add_executable(minecraft-client
     # 粒子实现 - 效果
     renderer/trident/particle/particles/effect/FlameParticle.cpp
     renderer/trident/particle/particles/effect/SmokeParticle.cpp
+    renderer/trident/particle/particles/effect/WhiteSmokeParticle.cpp
     renderer/trident/particle/particles/effect/LavaParticle.cpp
     renderer/trident/particle/particles/effect/PortalParticle.cpp
     renderer/trident/particle/particles/effect/CritParticle.cpp
@@ -91,6 +92,7 @@ add_executable(minecraft-client
     # 粒子实现 - 液体
     renderer/trident/particle/particles/liquid/DripParticle.cpp
     renderer/trident/particle/particles/liquid/DripWaterParticle.cpp
+    renderer/trident/particle/particles/liquid/DripstoneDripParticle.cpp
     # 方块破坏效果
     renderer/trident/block/BreakProgressManager.cpp
     renderer/trident/block/BreakProgressRenderer.cpp

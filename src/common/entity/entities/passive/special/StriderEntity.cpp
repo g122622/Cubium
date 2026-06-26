@@ -174,9 +174,6 @@ void StriderEntity::travel(const Vector3& travelVec)
 bool StriderEntity::isBreedingItem(const ItemStack& itemStack) const
 {
     // 炽足兽使用诡异菌繁殖
-    // TODO: 当 interactMob() 实现后，需在玩家喂食炽足兽时播放 ENTITY_STRIDER_EAT 音效，
-    // 参考 MC Java Strider.mobInteract() 中的 eat 音效播放逻辑：
-    // playSound(SoundEvents.STRIDER_EAT, 1.0F, 1.0F + (random.nextFloat() - random.nextFloat()) * 0.2F)
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
@@ -195,6 +192,79 @@ std::unique_ptr<AnimalEntity> StriderEntity::spawnBaby(AnimalEntity& /*partner*/
     baby->setChild(true);
     baby->setPosition(x(), y(), z());
     return baby;
+}
+
+// ========== 玩家交互 ==========
+
+ActionResultType StriderEntity::interactMob(Player& player, Hand hand)
+{
+    ItemStack& heldItem = player.getHeldItem(hand);
+    bool isFood = isBreedingItem(heldItem);
+
+    // 非食物 + 已装备鞍 + 无乘客 + 玩家未蹲下 → 玩家骑乘
+    // 参考: Strider.mobInteract 中的骑乘逻辑
+    if (!isFood && hasSaddle() && getPassengers().empty() && !player.isSneaking()) {
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            player.startRiding(*this);
+        }
+        return ActionResultType::Success;
+    }
+
+    // 喂食逻辑（与 MC Java Animal.mobInteract 一致）
+    // 项目中 AnimalEntity 未覆盖 interactMob()，因此在此直接实现
+    if (isFood) {
+        i32 age = getGrowingAge();
+
+        if (!isChild() && canBreed()) {
+            // 成年且可繁殖 → 进入爱心模式
+            if (!player.isCreative()) {
+                heldItem.shrink(1);
+            }
+            setInLove(player.playerId());
+
+            // 播放吃食音效
+            if (!isSilent() && m_world != nullptr) {
+                f32 pitch = 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f;
+                playSound(SoundEvents::ENTITY_STRIDER_EAT, 1.0f, pitch);
+            }
+
+            return m_world != nullptr && m_world->isClientSide() ? ActionResultType::Consume
+                                                                 : ActionResultType::Success;
+        }
+
+        if (isChild()) {
+            // 幼年 → 加速成长
+            if (!player.isCreative()) {
+                heldItem.shrink(1);
+            }
+            // MC: ageUp((int)(-age / 20.0F), true)
+            // 加速剩余成长时间的 10%（以秒为单位）
+            i32 speedUpSeconds = static_cast<i32>(-age / 20.0f);
+            ageUp(speedUpSeconds);
+
+            // 播放吃食音效
+            if (!isSilent() && m_world != nullptr) {
+                f32 pitch = 1.0f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.2f;
+                playSound(SoundEvents::ENTITY_STRIDER_EAT, 1.0f, pitch);
+            }
+
+            return ActionResultType::Success;
+        }
+
+        // 成年但已处于爱心模式 → 客户端返回 Consume 预测，服务端继续
+        if (m_world != nullptr && m_world->isClientSide()) {
+            return ActionResultType::Consume;
+        }
+    }
+
+    // 喂食未触发 → 检查鞍装备
+    // 参考: Strider.mobInteract 中 isEquippableInSlot 逻辑
+    // 手持鞍时返回 Pass，由 Player::interactOn 调用 SaddleItem::itemInteractionForEntity 处理
+    if (canEquip(heldItem, 0)) {
+        return ActionResultType::Pass;
+    }
+
+    return ActionResultType::Pass;
 }
 
 // ========== 生命周期 ==========

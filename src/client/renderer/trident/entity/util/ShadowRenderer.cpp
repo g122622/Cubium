@@ -45,9 +45,14 @@ u32 ShadowRenderer::s_segments = 16;
 std::vector<f32> ShadowRenderer::s_shadowVertices;
 std::vector<u32> ShadowRenderer::s_shadowIndices;
 pipeline::EntityMesh* ShadowRenderer::s_shadowMesh = nullptr;
+Vector3d ShadowRenderer::s_cameraPosition(0.0, 0.0, 0.0);
 
-// 阴影常量（参考 MC 1.16.5 EntityRendererManager.java:256-263）
-// 阴影透明度在距离 256 格时衰减为 0
+// 阴影常量（参考 MC EntityRenderer.java / EntityRendererManager.java:256-263）
+// MAX_SHADOW_DISTANCE = 256.0 有两种用途：
+// 1. 高度衰减：实体到地面高度超过 256 格时阴影消失
+// 2. 相机距离衰减：距离平方超过 256（即距离超过 16 格）时阴影消失
+//    参考 MC EntityRenderer.extractShadow()：
+//    float f1 = (float)((1.0 - distanceToCameraSq / 256.0) * shadowStrength);
 static constexpr f64 MAX_SHADOW_DISTANCE = 256.0;
 // 阴影纹理位置（在 textures/misc/shadow.png 中）
 static constexpr f64 SHADOW_TEX_U = 0.0;
@@ -90,6 +95,11 @@ void ShadowRenderer::cleanup()
 bool ShadowRenderer::isInitialized()
 {
     return s_initialized;
+}
+
+void ShadowRenderer::setCameraPosition(const Vector3d& position)
+{
+    s_cameraPosition = position;
 }
 
 void ShadowRenderer::renderShadow(Entity& entity, f64 partialTicks, f64 shadowRadius, f64 shadowAlpha)
@@ -196,11 +206,23 @@ void ShadowRenderer::renderShadow(VkCommandBuffer cmd,
         return;
     }
 
-    // 计算透明度（距离相机衰减）
-    // 参考 MC 1.16.5 EntityRendererManager.java:260
-    // float f = (float)((1.0D - d1 / 256.0D) * (double)entityrenderer.shadowOpaque);
-    // 这里我们不在渲染器中计算距离衰减，因为需要相机位置
-    // 假设调用方已经通过 shadowAlpha 参数传入了正确的衰减后透明度
+    // 计算相机距离衰减
+    // 参考 MC EntityRenderer.extractShadow()：
+    // float f1 = (float)((1.0 - distanceToCameraSq / 256.0) * shadowStrength);
+    // 其中 distanceToCameraSq 是相机到实体位置的欧几里得距离平方，
+    // 256.0 对应距离阈值 sqrt(256) = 16 格
+    f64 distanceToCameraSq = 0.0;
+    {
+        f64 dx = s_cameraPosition.x - static_cast<f64>(entity.x());
+        f64 dy = s_cameraPosition.y - static_cast<f64>(entity.y());
+        f64 dz = s_cameraPosition.z - static_cast<f64>(entity.z());
+        distanceToCameraSq = dx * dx + dy * dy + dz * dz;
+    }
+    f64 cameraDistanceFactor = 1.0 - (distanceToCameraSq / (MAX_SHADOW_DISTANCE * MAX_SHADOW_DISTANCE));
+    if (cameraDistanceFactor <= 0.0) {
+        return; // 超出阴影可见距离，不渲染
+    }
+    f64 adjustedAlpha = shadowAlpha * cameraDistanceFactor;
 
     // 幼体阴影减半
     // 参考 MC 1.16.5 EntityRendererManager.java:366-371
@@ -235,7 +257,7 @@ void ShadowRenderer::renderShadow(VkCommandBuffer cmd,
         for (i32 by = minY; by <= maxY; ++by) {
             for (i32 bz = minZ; bz <= maxZ; ++bz) {
                 renderBlockShadow(
-                    cmd, *world, bx, by, bz, interpX, interpY, interpZ, adjustedRadius, shadowAlpha, pipeline);
+                    cmd, *world, bx, by, bz, interpX, interpY, interpZ, adjustedRadius, adjustedAlpha, pipeline);
             }
         }
     }
@@ -495,6 +517,25 @@ f64 ShadowRenderer::computeShadowAlpha(Entity& entity, f64 partialTicks, f64 sha
     (void)partialTicks;
     (void)shadowRadius;
 
+    // 计算相机距离衰减
+    // 参考 MC EntityRenderer.extractShadow()：
+    // float f1 = (float)((1.0 - distanceToCameraSq / 256.0) * shadowStrength);
+    // distanceToCameraSq 是相机到实体位置的欧几里得距离平方
+    f64 cameraDistanceFactor = 1.0;
+    {
+        f64 dx = s_cameraPosition.x - static_cast<f64>(entity.x());
+        f64 dy = s_cameraPosition.y - static_cast<f64>(entity.y());
+        f64 dz = s_cameraPosition.z - static_cast<f64>(entity.z());
+        f64 distanceToCameraSq = dx * dx + dy * dy + dz * dz;
+        cameraDistanceFactor = 1.0 - (distanceToCameraSq / (MAX_SHADOW_DISTANCE * MAX_SHADOW_DISTANCE));
+        if (cameraDistanceFactor <= 0.0) {
+            return 0.0; // 超出阴影可见距离
+        }
+    }
+
+    // 应用相机距离衰减到基础透明度
+    f64 adjustedBaseAlpha = baseAlpha * cameraDistanceFactor;
+
     // 获取实体到地面的距离
     f64 entityY = entity.y();
     f64 groundY = entityY; // 默认假设在地面上
@@ -502,7 +543,7 @@ f64 ShadowRenderer::computeShadowAlpha(Entity& entity, f64 partialTicks, f64 sha
 
     // 如果实体有世界引用，尝试获取实际地面高度
     if (world) {
-        // 简化：向下扫描获取地面高度
+        // 向下扫描获取地面高度
         for (int dy = 0; dy <= static_cast<int>(MAX_SHADOW_DISTANCE); ++dy) {
             i32 checkY = static_cast<i32>(entityY) - dy;
             auto blockState = world->getBlockState(
@@ -521,11 +562,9 @@ f64 ShadowRenderer::computeShadowAlpha(Entity& entity, f64 partialTicks, f64 sha
         return 0.0;
     }
 
-    // 计算透明度衰减
-    // 参考 MC 1.16.5 EntityRendererManager.java:260
-    // (1.0 - distance / 256.0) * shadowOpaque
-    f64 distanceFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
-    distanceFactor = std::max(0.0, distanceFactor);
+    // 计算地面高度衰减
+    f64 heightFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
+    heightFactor = std::max(0.0, heightFactor);
 
     // 幼体阴影减半
     // 参考 MC 1.16.5 EntityRendererManager.java:366-371
@@ -545,7 +584,7 @@ f64 ShadowRenderer::computeShadowAlpha(Entity& entity, f64 partialTicks, f64 sha
         brightness = static_cast<f64>(world->getBrightness(blockPos));
     }
 
-    return baseAlpha * distanceFactor * sizeMultiplier * brightness;
+    return adjustedBaseAlpha * heightFactor * sizeMultiplier * brightness;
 }
 
 f64 ShadowRenderer::computeShadowAlpha(ClientEntity& entity, f64 partialTicks, f64 shadowRadius, f64 baseAlpha)
@@ -553,7 +592,25 @@ f64 ShadowRenderer::computeShadowAlpha(ClientEntity& entity, f64 partialTicks, f
     (void)partialTicks;
     (void)shadowRadius;
 
-    // TODO 获取相机距离用于距离衰减
+    // 计算相机距离衰减
+    // 参考 MC EntityRenderer.extractShadow()：
+    // float f1 = (float)((1.0 - distanceToCameraSq / 256.0) * shadowStrength);
+    // distanceToCameraSq 是相机到实体位置的欧几里得距离平方
+    f64 cameraDistanceFactor = 1.0;
+    {
+        Vector3 entityPos = entity.getInterpolatedPosition(static_cast<f32>(partialTicks));
+        f64 dx = s_cameraPosition.x - static_cast<f64>(entityPos.x);
+        f64 dy = s_cameraPosition.y - static_cast<f64>(entityPos.y);
+        f64 dz = s_cameraPosition.z - static_cast<f64>(entityPos.z);
+        f64 distanceToCameraSq = dx * dx + dy * dy + dz * dz;
+        cameraDistanceFactor = 1.0 - (distanceToCameraSq / (MAX_SHADOW_DISTANCE * MAX_SHADOW_DISTANCE));
+        if (cameraDistanceFactor <= 0.0) {
+            return 0.0; // 超出阴影可见距离
+        }
+    }
+
+    // 应用相机距离衰减到基础透明度
+    f64 adjustedBaseAlpha = baseAlpha * cameraDistanceFactor;
 
     // 获取实体高度（假设站在地面上）
     f64 entityHeight = static_cast<f64>(entity.height());
@@ -564,11 +621,10 @@ f64 ShadowRenderer::computeShadowAlpha(ClientEntity& entity, f64 partialTicks, f
         return 0.0;
     }
 
-    // 计算透明度衰减
-    // 参考 MC 1.16.5 EntityRendererManager.java:260
-    f64 distanceFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
-    if (distanceFactor < 0.0) {
-        distanceFactor = 0.0;
+    // 计算地面高度衰减
+    f64 heightFactor = 1.0 - (heightAboveGround / MAX_SHADOW_DISTANCE);
+    if (heightFactor < 0.0) {
+        heightFactor = 0.0;
     }
 
     // 幼体阴影减半
@@ -577,10 +633,10 @@ f64 ShadowRenderer::computeShadowAlpha(ClientEntity& entity, f64 partialTicks, f
         sizeMultiplier = 0.5;
     }
 
-    // 世界亮度因子（简化）
+    // 世界亮度因子
     f64 brightness = 1.0;
 
-    return baseAlpha * distanceFactor * sizeMultiplier * brightness;
+    return adjustedBaseAlpha * heightFactor * sizeMultiplier * brightness;
 }
 
 void ShadowRenderer::getShadowVertices(f64 radius, u32 segments, std::vector<f32>& vertices, std::vector<u32>& indices)

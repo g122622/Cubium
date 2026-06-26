@@ -75,6 +75,16 @@ public:
     void setNextOxidationBlock(Block* nextBlock) { m_nextOxidationBlock = nextBlock; }
 
     /**
+     * @brief 设置上一氧化等级对应的方块
+     */
+    void setPreviousOxidationBlock(Block* prevBlock) { m_previousOxidationBlock = prevBlock; }
+
+    /**
+     * @brief 获取上一氧化等级对应的方块
+     */
+    [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
+
+    /**
      * @brief 随机Tick - 尝试氧化
      */
     void randomTick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
@@ -93,6 +103,9 @@ protected:
 
     /// 下一氧化等级对应的方块
     Block* m_nextOxidationBlock = nullptr;
+
+    /// 上一氧化等级对应的方块
+    Block* m_previousOxidationBlock = nullptr;
 };
 
 /**

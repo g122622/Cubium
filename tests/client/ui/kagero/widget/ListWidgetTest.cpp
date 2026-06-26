@@ -468,14 +468,30 @@ TEST(ListWidgetTest, VariableItemHeight)
 
 // ==================== 双击检测测试 ====================
 
-TEST(ListWidgetTest, DoubleClickTime)
+TEST(ListWidgetTest, DoubleClickViaOnDoubleClick)
 {
+    // ListWidget now uses framework-level double-click detection from KageroEngine.
+    // The onDoubleClick override on ListWidget dispatches to IListItem::onDoubleClick
+    // and the m_onDoubleClick callback.
     ListWidget list("list");
+    list.setBounds(Rect(0, 0, 200, 300));
+    list.setItemHeight(20);
 
-    EXPECT_EQ(500, list.doubleClickTime());
+    int doubleClickCount = 0;
+    list.setOnDoubleClick([&](size_t index, IListItem* item) {
+        doubleClickCount++;
+        EXPECT_EQ(0u, index);
+        EXPECT_NE(item, nullptr);
+    });
 
-    list.setDoubleClickTime(300);
-    EXPECT_EQ(300, list.doubleClickTime());
+    auto item = std::make_unique<TextListItem>("Item 0");
+    list.addItem(std::move(item));
+
+    // Simulate a double-click via onDoubleClick (KageroEngine would call this
+    // when it detects a double-click within 250ms on the same widget)
+    list.onDoubleClick(10, 5, 0, 0);
+
+    EXPECT_EQ(1, doubleClickCount);
 }
 
 // ==================== TextListItem测试 ====================
@@ -536,4 +552,115 @@ TEST(TextListItemTest, PaintItem_DrawsTextAndSelectedBackground)
     EXPECT_EQ(120, canvas.lastFilledRect.width);
     EXPECT_EQ(20, canvas.lastFilledRect.height);
     EXPECT_EQ(item.textColor(), canvas.lastTextColor);
+}
+
+// ==================== 悬停检测测试 ====================
+
+TEST(ListWidgetTest, OnMouseMove_UpdatesHoveredIndex)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setActive(true);
+    list.setVisible(true);
+    list.setItemHeight(30);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+    list.addItem(std::make_unique<TestListItem>("Item 1"));
+    list.addItem(std::make_unique<TestListItem>("Item 2"));
+
+    // 鼠标移动到第一项区域 → hoveredIndex 应为 0
+    bool handled = list.onMouseMove(10, 5);
+    EXPECT_TRUE(handled);
+    EXPECT_EQ(0, list.hoveredIndex());
+
+    // 鼠标移动到第二项区域（y=35 在第二项 30~60 范围内）
+    list.onMouseMove(10, 35);
+    EXPECT_EQ(1, list.hoveredIndex());
+
+    // 鼠标移动到第三项区域（y=65 在第三项 60~90 范围内）
+    list.onMouseMove(10, 65);
+    EXPECT_EQ(2, list.hoveredIndex());
+}
+
+TEST(ListWidgetTest, OnMouseMove_OutOfBounds_ReturnsFalse)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setActive(true);
+    list.setVisible(true);
+    list.setItemHeight(30);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+
+    // 鼠标在列表范围外
+    bool handled = list.onMouseMove(-10, 10);
+    EXPECT_FALSE(handled);
+    EXPECT_EQ(-1, list.hoveredIndex());
+
+    handled = list.onMouseMove(10, -10);
+    EXPECT_FALSE(handled);
+    EXPECT_EQ(-1, list.hoveredIndex());
+}
+
+TEST(ListWidgetTest, OnMouseMove_InactiveWidget_ReturnsFalse)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setActive(false);
+    list.setVisible(true);
+    list.setItemHeight(30);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+
+    bool handled = list.onMouseMove(10, 10);
+    EXPECT_FALSE(handled);
+    // 非激活状态下 hoveredIndex 不应改变
+    EXPECT_EQ(-1, list.hoveredIndex());
+}
+
+TEST(ListWidgetTest, OnMouseMove_InvisibleWidget_ReturnsFalse)
+{
+    ListWidget list("list", 0, 0, 200, 300);
+    list.setActive(true);
+    list.setVisible(false);
+    list.setItemHeight(30);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+
+    bool handled = list.onMouseMove(10, 10);
+    EXPECT_FALSE(handled);
+    // 不可见状态下 hoveredIndex 不应改变
+    EXPECT_EQ(-1, list.hoveredIndex());
+}
+
+TEST(ListWidgetTest, OnMouseMove_ScrollOffsetAffectsIndex)
+{
+    ListWidget list("list", 0, 0, 200, 60);
+    list.setActive(true);
+    list.setVisible(true);
+    list.setItemHeight(20);
+
+    list.addItem(std::make_unique<TestListItem>("Item 0"));
+    list.addItem(std::make_unique<TestListItem>("Item 1"));
+    list.addItem(std::make_unique<TestListItem>("Item 2"));
+    list.addItem(std::make_unique<TestListItem>("Item 3"));
+
+    // 不滚动时，y=5 对应第 0 项
+    list.onMouseMove(10, 5);
+    EXPECT_EQ(0, list.hoveredIndex());
+
+    // 滚动 20px 后，y=5 对应第 1 项（逻辑 y = 5 + 20 = 25，在第 1 项 20~40 范围内）
+    list.scrollBy(20);
+    list.onMouseMove(10, 5);
+    EXPECT_EQ(1, list.hoveredIndex());
+
+    // 继续滚动到 40px 需要更大的内容高度
+    // 当前 4 项 * 20px = 80px，可见高度 60px，最大滚动 = 20px
+    // 所以 scrollBy(20) 已经到达最大滚动位置，再 scrollBy(20) 不再增加
+    // 我们需要更多的项目来允许更深的滚动
+    list.addItem(std::make_unique<TestListItem>("Item 4"));
+    list.addItem(std::make_unique<TestListItem>("Item 5"));
+    // 现在 6 项 * 20px = 120px，最大滚动 = 60px
+
+    // 滚动到 40px 位置
+    list.setScrollY(40);
+    list.onMouseMove(10, 5);
+    EXPECT_EQ(2, list.hoveredIndex());
 }

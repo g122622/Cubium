@@ -57,6 +57,7 @@ namespace entity {
 
 using namespace mc::math;
 using blocks::AbstractRailBlock;
+using blocks::ActivatorRailBlock;
 
 namespace {
 // 矿车常量
@@ -401,10 +402,11 @@ void AbstractMinecartEntity::_moveAlongTrack(const BlockPos& pos)
             static_cast<f32>(d26 * static_cast<f64>(i - pos.z)));
     }
 
-    // 调用 AbstractRailBlock.onMinecartPass()
-    if (shouldDoRailFunctions() && abstractRailBlock) {
-        // TODO: 当 onMinecartPass 方法实现后调用
-        // abstractRailBlock->onMinecartPass(*railState, *worldPtr, pos, *this);
+    // 激活铁轨回调：矿车实体自行检测铁轨类型并调用 onActivatorRailPass，
+    // 而不是通过方块回调。当矿车位于激活铁轨上时，根据充能状态触发回调。
+    if (shouldDoRailFunctions() && abstractRailBlock != nullptr && railState->is(VanillaBlocks::ACTIVATOR_RAIL)) {
+        bool powered = ActivatorRailBlock::isPowered(*railState);
+        onActivatorRailPass(pos.x, pos.y, pos.z, powered);
     }
 
     // 动力铁轨加速
@@ -841,20 +843,24 @@ f32 AbstractMinecartEntity::getMaxSpeedWithRail() const
         return getMaxSpeed();
     }
 
-    // 获取铁轨方块并检查其最大速度限制
+    // 使用 max_minecart_speed 游戏规则计算铁轨最大速度：
+    //   速度 = 规则值（默认 8） * (在水中 ? 0.5 : 1.0) / 20.0
+    // 默认值 8 / 20.0 = 0.4 方块/刻
     const IWorld* worldPtr = world();
     if (!worldPtr) {
         return getMaxSpeed();
     }
 
-    const BlockState* state = worldPtr->getBlockState(m_railPos);
-    if (!state) {
-        return getMaxSpeed();
+    i32 maxSpeedRule = worldPtr->getGameRules().getInt(world::gamerule::GameRuleKeys::MAX_MINECART_SPEED);
+    // 限制范围为 [1, 1000]，与 MC Java 一致
+    maxSpeedRule = std::clamp(maxSpeedRule, 1, 1000);
+
+    f64 maxSpeed = static_cast<f64>(maxSpeedRule) / 20.0;
+    if (isInWater()) {
+        maxSpeed *= 0.5;
     }
 
-    // TODO: 当 AbstractRailBlock::getRailMaxSpeed 实现后调用
-    // 目前使用默认最大速度
-    return getMaxSpeed();
+    return static_cast<f32>(maxSpeed);
 }
 
 void AbstractMinecartEntity::dropItem(DamageSource* source)
@@ -967,8 +973,8 @@ bool AbstractMinecartEntity::hurt(DamageSource& source, f32 amount)
     // 5. 设置摇晃时间
     m_rollingAmplitude = 10;
 
-    // 6. 标记速度已改变（用于同步）
-    // TODO: 当网络同步实现后设置
+    // 6. 标记速度已改变（用于同步到客户端）
+    markHurt();
 
     // 7. 累积伤害
     m_damage += static_cast<i32>(amount * 10.0f);
@@ -1553,26 +1559,12 @@ void HopperMinecartEntity::tick()
         return;
     }
 
-    // 检查是否被红石信号禁用
-    // 注意：MC 中的 isBlocked 语义是反转的！
-    // isBlocked = true 表示"可以工作"，isBlocked = false 表示"被禁用"
-    // 这是 MC 源码中的命名问题，我们用 m_disabled 来表示更清晰的语义
-    //
-    // 漏斗矿车在充能的激活铁轨上会被禁用
-    // 激活铁轨被充能时，漏斗矿车停止工作
-    if (isOnRail()) {
-        BlockPos railPos = getRailPosition();
-        const BlockState* railState = worldPtr->getBlockState(railPos);
-        if (railState && railState->is(VanillaBlocks::ACTIVATOR_RAIL)) {
-            // 激活铁轨充能时禁用漏斗
-            // m_disabled = isPowered
-            m_disabled = blocks::ActivatorRailBlock::isPowered(*railState);
-        } else {
-            m_disabled = false;
-        }
-    } else {
-        m_disabled = false;
-    }
+    // 漏斗矿车的启用/禁用状态由 onActivatorRailPass 回调控制：
+    // - 充能的激活铁轨 → m_disabled = true（禁用吸取和传输）
+    // - 未充能的激活铁轨 → m_disabled = false（启用）
+    // - 不在激活铁轨上时，保持当前状态不变
+    // 注意：漏斗矿车离开激活铁轨后不会自动重新启用，
+    // 必须经过一个未充能的激活铁轨才会重新启用。
 
     // 如果被禁用，跳过吸取和传输
     if (m_disabled) {

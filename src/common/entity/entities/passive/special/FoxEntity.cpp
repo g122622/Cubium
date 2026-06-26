@@ -27,6 +27,8 @@
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/BlockState.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
@@ -38,10 +40,14 @@
 #include "../../../ai/goal/goals/TemptGoal.hpp"
 #include "../../../ai/goal/goals/movement/MovementGoals.hpp"
 #include "../../../ai/goal/goals/special/FoxGoals.hpp"
+#include "../../../ai/goal/goals/target/TargetGoals.hpp"
 #include "../../../attribute/Attributes.hpp"
 #include "../../../core/EntityRegistry.hpp"
+#include "../../../core/EntityTypeIdNumber.hpp"
 #include "../../../core/EntityUtils.hpp"
 #include "../../../damage/DamageSource.hpp"
+#include "../../../entities/item/ItemEntity.hpp"
+#include "../../../entities/passive/special/TurtleEntity.hpp"
 #include "../../../entities/player/Player.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
 
@@ -253,6 +259,113 @@ void FoxEntity::dropHeldItem()
     m_heldItem.reset();
 }
 
+void FoxEntity::spitOutItem(const ItemStack& stack)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    IWorld* worldPtr = this->world();
+    if (worldPtr == nullptr) {
+        return;
+    }
+
+    // 沿视线方向前方生成物品实体，带 40 tick 拾取延迟
+    f32 lookX = -std::sin(math::toRadians(yaw()));
+    f32 lookZ = std::cos(math::toRadians(yaw()));
+
+    math::Random& rng = getRandom();
+    f32 spawnX = static_cast<f32>(x()) + lookX;
+    f32 spawnY = static_cast<f32>(y()) + 1.0f;
+    f32 spawnZ = static_cast<f32>(z()) + lookZ;
+
+    ItemDropHelper::spawnItemEntity(worldPtr, stack, spawnX, spawnY, spawnZ, rng, 40);
+
+    // 播放吐出音效
+    playSpitSound();
+}
+
+bool FoxEntity::canHoldItem(const ItemStack& stack) const
+{
+    if (stack.isEmpty()) {
+        return false;
+    }
+
+    // 主手为空时可拾取任何物品
+    if (!isHoldingItem()) {
+        return true;
+    }
+
+    // 当正在进食时（ticksSinceEaten > 0），只有新物品是食物而当前物品不是食物时才替换
+    const ItemStack* currentHeld = getHeldItem();
+    if (currentHeld != nullptr && m_ticksSinceEaten > 0) {
+        return isConsumableFood(stack) && !isConsumableFood(*currentHeld);
+    }
+
+    return false;
+}
+
+bool FoxEntity::isConsumableFood(const ItemStack& stack) const
+{
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return false;
+    }
+    // 判断物品是否是食物
+    return item->isFood();
+}
+
+bool FoxEntity::canEat() const
+{
+    if (!isHoldingItem()) {
+        return false;
+    }
+    const ItemStack* held = getHeldItem();
+    if (held == nullptr || !isConsumableFood(*held)) {
+        return false;
+    }
+    // 没有攻击目标、在地面上、不在睡觉
+    return attackTarget() == nullptr && onGround() && !isSleeping();
+}
+
+void FoxEntity::pickUpItem(ItemEntity& itemEntity)
+{
+    const ItemStack& itemStack = itemEntity.getItemStack();
+    if (!canHoldItem(itemStack)) {
+        return;
+    }
+
+    i32 count = itemStack.getCount();
+    if (count > 1) {
+        // 多余的物品在实体位置生成掉落物
+        IWorld* worldPtr = this->world();
+        if (worldPtr != nullptr) {
+            ItemStack extra(*itemStack.getItem(), count - 1);
+            math::Random& rng = getRandom();
+            ItemDropHelper::spawnItemAtEntity(this, extra, 0.0f, rng, 10);
+        }
+    }
+
+    // 吐出当前手持物品
+    if (isHoldingItem()) {
+        const ItemStack* current = getHeldItem();
+        if (current != nullptr) {
+            spitOutItem(*current);
+        }
+        m_heldItem.reset();
+    }
+
+    // 将新物品（只取1个）放入主手
+    ItemStack toHold(*itemStack.getItem(), 1);
+    m_heldItem = std::make_unique<ItemStack>(std::move(toHold));
+
+    // 移除物品实体
+    itemEntity.remove();
+
+    // 重置进食计时器
+    m_ticksSinceEaten = 0;
+}
+
 // ========== 行为辅助方法 ==========
 
 bool FoxEntity::canAct() const
@@ -361,6 +474,43 @@ void FoxEntity::tick()
         }
     }
 
+    // 进食逻辑：每 tick 递增计时器，达到阈值后食用物品
+    IWorld* worldPtr = this->world();
+    if (worldPtr != nullptr && !worldPtr->isClientSide() && isAlive()) {
+        m_ticksSinceEaten++;
+
+        if (isHoldingItem() && canEat()) {
+            if (m_ticksSinceEaten > MIN_TICKS_BEFORE_EAT) {
+                // 食用完成，消耗物品
+                const ItemStack* held = getHeldItem();
+                if (held != nullptr && isConsumableFood(*held)) {
+                    // TODO: 当 Item::finishUsingItem 实现后，应使用其返回值处理剩余物品（如碗）
+                    playEatSound();
+
+                    // 消耗1个物品
+                    if (held->getCount() > 1) {
+                        ItemStack reduced = *held;
+                        reduced.shrink(1);
+                        m_heldItem = std::make_unique<ItemStack>(std::move(reduced));
+                    } else {
+                        m_heldItem.reset();
+                    }
+                }
+                m_ticksSinceEaten = 0;
+            } else if (m_ticksSinceEaten > EAT_ANIMATION_START_TICKS && getRandom().nextFloat() < 0.1f) {
+                // 接近完成时有 10% 概率播放吃音效
+                playEatSound();
+            }
+        }
+
+        // 如果攻击目标失效，取消蹲伏和感兴趣状态
+        LivingEntity* target = attackTarget();
+        if (target == nullptr || !target->isAlive()) {
+            setCrouching(false);
+            setInterested(false);
+        }
+    }
+
     // 如果卡在雪中，减少卡住计时器
     // TODO: 实现卡住状态检测和脱离雪块的逻辑
 }
@@ -400,7 +550,7 @@ void FoxEntity::registerGoals()
                 // 不躲避旁观者或创造模式玩家
                 if (player->isSpectator() || player->isCreative()) return false;
                 // 不躲避信任的玩家
-                if (trusts(player->id())) return false;
+                if (trusts(player->playerId())) return false;
                 // 不躲避当狐狸处于攻击状态时
                 return !isFoxAggroed();
             }));
@@ -472,14 +622,44 @@ void FoxEntity::registerGoals()
     m_goalSelector.addGoal(13, std::make_unique<entity::ai::goal::FoxSitAndLookGoal>(this));
 
     // 目标选择器
-    // TODO: 实现复仇目标 - 当信任玩家被攻击时触发
-    // m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::FoxRevengeGoal>(this));
 
-    // TODO: 待相关目标类实现后，添加狐狸的猎物攻击目标：
-    //   优先级 1: 攻击小鸡和兔子（NearestAttackableTargetGoal<AnimalEntity>，过滤 ChickenEntity/RabbitEntity）
-    //   优先级 1: 攻击幼年海龟（NearestAttackableTargetGoal<TurtleEntity>，BABY_ON_LAND_SELECTOR）
-    //   优先级 1: 攻击鱼群（NearestAttackableTargetGoal<AbstractFishEntity>，过滤 AbstractGroupFishEntity）
-    // 对齐 MC 原版 FoxEntity.registerGoals() 中的 attackAnimals/attackTurtles/attackFish
+    // 优先级 3: 保卫信任玩家 - 当信任玩家被攻击时反击
+    m_targetSelector.addGoal(3, std::make_unique<entity::ai::goal::FoxRevengeGoal>(this));
+
+    // 优先级 4: 攻击小鸡和兔子
+    m_targetSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            false, // checkSight = false
+            10,    // chance = 10（随机检查间隔）
+            [](const LivingEntity* entity) -> bool {
+                if (!entity || !entity->isAlive()) return false;
+                auto type = entity->typeId();
+                return type == entity::EntityTypeIdNumber::CHICKEN || type == entity::EntityTypeIdNumber::RABBIT;
+            }));
+
+    // 优先级 4: 攻击幼年海龟（陆地上不在水中的幼体）
+    m_targetSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<TurtleEntity>>(this,
+            false, // checkSight = false
+            10,    // chance = 10
+            [](const LivingEntity* entity) -> bool {
+                const TurtleEntity* turtle = dynamic_cast<const TurtleEntity*>(entity);
+                if (!turtle) return false;
+                return turtle->isChild() && !turtle->isInWater();
+            }));
+
+    // 优先级 6: 攻击鱼群（仅群居鱼类：鳕鱼、鲑鱼、热带鱼，不包括河豚）
+    m_targetSelector.addGoal(6,
+        std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<LivingEntity>>(this,
+            false, // checkSight = false
+            20,    // chance = 20（比陆地猎物更低的检查频率）
+            [](const LivingEntity* entity) -> bool {
+                if (!entity || !entity->isAlive()) return false;
+                auto type = entity->typeId();
+                // 仅攻击群居鱼类：鳕鱼、鲑鱼、热带鱼（不包括河豚）
+                return type == entity::EntityTypeIdNumber::COD || type == entity::EntityTypeIdNumber::SALMON ||
+                    type == entity::EntityTypeIdNumber::TROPICAL_FISH;
+            }));
 }
 
 // ========== 属性注册 ==========

@@ -231,6 +231,14 @@ public:
      */
     void playEatSound();
 
+    /**
+     * @brief 发出嘶嘶声
+     *
+     * 当幻翼检测到附近的猫时，会调用此方法让猫发出嘶嘶声。
+     * 对应 MC 原版 Cat.hiss()，仅播放 ENTITY_CAT_HISS 音效。
+     */
+    void hiss();
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;

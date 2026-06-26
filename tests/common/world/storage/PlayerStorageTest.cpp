@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/entity/entities/player/Player.hpp"
 #include "server/core/ServerPlayerData.hpp"
 #include "world/storage/db/ColumnFamilies.hpp"
 #include "world/storage/db/RocksDBDatabase.hpp"
@@ -356,6 +357,275 @@ TEST_F(PlayerSaveDataTest, SleepingState)
     EXPECT_EQ(restored.sleepingPosition->z, 100);
 }
 
+// ========== 冲量上下文序列化测试 ==========
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_DefaultValues_RoundTrip)
+{
+    // 默认状态：无冲量上下文
+    PlayerSaveData original;
+    original.uuid = "impulse-default-test";
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_FALSE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FALSE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 0);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_WithImpactPosition_RoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "impulse-pos-test";
+    original.currentImpulseImpactPos = Vector3(100.0f, 64.0f, 200.0f);
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 40;
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->x, 100.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->y, 64.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->z, 200.0f);
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 40);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_IgnoreWithoutPosition)
+{
+    // 可以只设置 ignoreFallDamage 标志而不设置冲击位置
+    PlayerSaveData original;
+    original.uuid = "impulse-ignore-only-test";
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 20;
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_FALSE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 20);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_PositionWithoutIgnore)
+{
+    // 可以有冲击位置但不需要忽略坠落伤害
+    PlayerSaveData original;
+    original.uuid = "impulse-pos-no-ignore-test";
+    original.currentImpulseImpactPos = Vector3(50.0f, 70.0f, 80.0f);
+    original.ignoreFallDamageFromCurrentImpulse = false;
+    original.currentImpulseContextResetGraceTime = 0;
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->x, 50.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->y, 70.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->z, 80.0f);
+    EXPECT_FALSE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 0);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_NegativeCoordinates_RoundTrip)
+{
+    // 测试负坐标值
+    PlayerSaveData original;
+    original.uuid = "impulse-negative-test";
+    original.currentImpulseImpactPos = Vector3(-100.5f, -64.0f, -200.3f);
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 10;
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->x, -100.5f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->y, -64.0f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->z, -200.3f);
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 10);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_MissingFieldsInNbt_Defaults)
+{
+    // 测试从缺少冲量上下文字段的 NBT 反序列化时使用默认值
+    nbt::tags::compound_tag tag;
+    tag.put("UUID", std::string("impulse-missing-test"));
+
+    auto result = PlayerSaveData::fromNbt(tag);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_FALSE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FALSE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 0);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_BinarySerializationRoundTrip)
+{
+    // 测试通过二进制序列化的往返一致性
+    PlayerSaveData original;
+    original.uuid = "impulse-binary-test";
+    original.username = "TestPlayer";
+    original.currentImpulseImpactPos = Vector3(123.45f, 67.89f, -234.56f);
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 35;
+
+    auto serializeResult = original.serialize();
+    ASSERT_TRUE(serializeResult.success());
+
+    auto deserializeResult = PlayerSaveData::deserialize(serializeResult.value());
+    ASSERT_TRUE(deserializeResult.success());
+
+    const PlayerSaveData& restored = deserializeResult.value();
+    ASSERT_TRUE(restored.currentImpulseImpactPos.has_value());
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->x, 123.45f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->y, 67.89f);
+    EXPECT_FLOAT_EQ(restored.currentImpulseImpactPos->z, -234.56f);
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 35);
+}
+
+TEST_F(PlayerSaveDataTest, ImpulseContext_WindBurstExtendedGraceTime)
+{
+    // 测试风爆附魔扩展宽限期（10 tick）后的序列化
+    PlayerSaveData original;
+    original.uuid = "impulse-windburst-test";
+    original.currentImpulseImpactPos = Vector3(200.0f, 50.0f, 300.0f);
+    original.ignoreFallDamageFromCurrentImpulse = true;
+    original.currentImpulseContextResetGraceTime = 40; // setIgnoreFallDamageFromCurrentImpulse(true) 设置的 40 tick
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_EQ(restored.currentImpulseContextResetGraceTime, 40);
+    EXPECT_TRUE(restored.ignoreFallDamageFromCurrentImpulse);
+}
+
+// ========== LastDeathLocation 序列化测试 ==========
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationOverworldRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-overworld-test";
+    original.lastDeathLocation = GlobalPos(0, BlockPos(100, 64, -200));
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->getDimensionId(), 0);
+    EXPECT_EQ(restored.lastDeathLocation->x(), 100);
+    EXPECT_EQ(restored.lastDeathLocation->y(), 64);
+    EXPECT_EQ(restored.lastDeathLocation->z(), -200);
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationNetherRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-nether-test";
+    original.lastDeathLocation = GlobalPos(-1, BlockPos(50, 30, -100));
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->getDimensionId(), -1);
+    EXPECT_EQ(restored.lastDeathLocation->x(), 50);
+    EXPECT_EQ(restored.lastDeathLocation->y(), 30);
+    EXPECT_EQ(restored.lastDeathLocation->z(), -100);
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationEndRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-end-test";
+    original.lastDeathLocation = GlobalPos(1, BlockPos(-300, 80, 150));
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->getDimensionId(), 1);
+    EXPECT_EQ(restored.lastDeathLocation->x(), -300);
+    EXPECT_EQ(restored.lastDeathLocation->y(), 80);
+    EXPECT_EQ(restored.lastDeathLocation->z(), 150);
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationEmpty)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-empty-test";
+    // lastDeathLocation 默认为 std::nullopt
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+
+    // 验证反序列化时 lastDeathLocation 为空
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    EXPECT_FALSE(restored.lastDeathLocation.has_value());
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationBinarySerializationRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-binary-test";
+    original.username = "DeathTestPlayer";
+    original.lastDeathLocation = GlobalPos(-1, BlockPos(200, 50, 300));
+
+    auto serializeResult = original.serialize();
+    ASSERT_TRUE(serializeResult.success());
+
+    auto deserializeResult = PlayerSaveData::deserialize(serializeResult.value());
+    ASSERT_TRUE(deserializeResult.success());
+
+    const PlayerSaveData& restored = deserializeResult.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->getDimensionId(), -1);
+    EXPECT_EQ(restored.lastDeathLocation->x(), 200);
+    EXPECT_EQ(restored.lastDeathLocation->y(), 50);
+    EXPECT_EQ(restored.lastDeathLocation->z(), 300);
+}
+
+TEST_F(PlayerSaveDataTest, LastDeathLocationNegativeCoordinatesRoundTrip)
+{
+    PlayerSaveData original;
+    original.uuid = "ldl-negative-coords-test";
+    original.lastDeathLocation = GlobalPos(0, BlockPos(-1000000, -64, -2000000));
+
+    nbt::tags::compound_tag nbt = original.toNbt();
+    auto result = PlayerSaveData::fromNbt(nbt);
+    ASSERT_TRUE(result.success());
+
+    const PlayerSaveData& restored = result.value();
+    ASSERT_TRUE(restored.lastDeathLocation.has_value());
+    EXPECT_EQ(restored.lastDeathLocation->x(), -1000000);
+    EXPECT_EQ(restored.lastDeathLocation->y(), -64);
+    EXPECT_EQ(restored.lastDeathLocation->z(), -2000000);
+}
+
 // ============================================================================
 // PlayerDataManager 测试
 // ============================================================================
@@ -620,6 +890,248 @@ TEST_F(PlayerDataManagerTest, CallbackTest)
 
     EXPECT_TRUE(callbackCalled);
     EXPECT_EQ(savedUuid, "callback-test");
+}
+
+// ============================================================================
+// applyToPlayer 测试
+// ============================================================================
+
+class ApplyToPlayerTest : public ::testing::Test {
+protected:
+    void SetUp() override { player = std::make_unique<Player>(EntityId(1), "TestPlayer"); }
+    void TearDown() override { player.reset(); }
+
+    std::unique_ptr<Player> player;
+};
+
+TEST_F(ApplyToPlayerTest, RestoresPosition)
+{
+    PlayerSaveData data;
+    data.posX = 100.5;
+    data.posY = 70.0;
+    data.posZ = -200.3;
+    data.yaw = 90.0f;
+    data.pitch = 45.0f;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    const auto& pos = player->position();
+    EXPECT_FLOAT_EQ(pos.x, 100.5f);
+    EXPECT_FLOAT_EQ(pos.y, 70.0f);
+    EXPECT_FLOAT_EQ(pos.z, -200.3f);
+    EXPECT_FLOAT_EQ(player->yaw(), 90.0f);
+    EXPECT_FLOAT_EQ(player->pitch(), 45.0f);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresGameMode)
+{
+    PlayerSaveData data;
+    data.gameMode = GameMode::Creative;
+    // 创造模式的能力需要显式设置（与 MC Java 的 PlayerSaveData 一致）
+    data.invulnerable = true;
+    data.canFly = true;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    EXPECT_EQ(player->gameMode(), GameMode::Creative);
+    EXPECT_TRUE(player->abilities().canFly);
+    EXPECT_TRUE(player->abilities().invulnerable);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresFoodStats)
+{
+    PlayerSaveData data;
+    data.foodLevel = 12;
+    data.saturationLevel = 3.5f;
+    data.exhaustionLevel = 1.2f;
+    data.foodTickTimer = 50;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    EXPECT_EQ(player->foodStats().foodLevel(), 12);
+    EXPECT_FLOAT_EQ(player->foodStats().saturationLevel(), 3.5f);
+    EXPECT_FLOAT_EQ(player->foodStats().exhaustionLevel(), 1.2f);
+    EXPECT_EQ(player->foodStats().foodTimer(), 50);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresExperience)
+{
+    PlayerSaveData data;
+    data.experienceLevel = 30;
+    data.experienceProgress = 0.75f;
+    data.totalExperience = 1200;
+    data.xpSeed = 42;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    EXPECT_EQ(player->experienceManager().getLevel(), 30);
+    EXPECT_FLOAT_EQ(player->experienceManager().getProgress(), 0.75f);
+    EXPECT_EQ(player->experienceManager().getTotalExperience(), 1200);
+    EXPECT_EQ(player->experienceManager().getXpSeed(), 42);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresAbilities)
+{
+    PlayerSaveData data;
+    data.invulnerable = true;
+    data.canFly = true;
+    data.flying = true;
+    data.flySpeed = 0.1f;
+    data.walkSpeed = 0.2f;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    EXPECT_TRUE(player->abilities().invulnerable);
+    EXPECT_TRUE(player->abilities().canFly);
+    EXPECT_TRUE(player->abilities().flying);
+    EXPECT_FLOAT_EQ(player->abilities().flySpeed, 0.1f);
+    EXPECT_FLOAT_EQ(player->abilities().walkSpeed, 0.2f);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresImpulseContext)
+{
+    PlayerSaveData data;
+    data.currentImpulseImpactPos = Vector3(100.0f, 64.0f, 200.0f);
+    data.ignoreFallDamageFromCurrentImpulse = true;
+    data.currentImpulseContextResetGraceTime = 40;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    auto impactPos = player->currentImpulseImpactPos();
+    ASSERT_TRUE(impactPos.has_value());
+    EXPECT_FLOAT_EQ(impactPos->x, 100.0f);
+    EXPECT_FLOAT_EQ(impactPos->y, 64.0f);
+    EXPECT_FLOAT_EQ(impactPos->z, 200.0f);
+    EXPECT_TRUE(player->isIgnoringFallDamageFromCurrentImpulse());
+    EXPECT_EQ(player->currentImpulseContextResetGraceTime(), 40);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresSpawnPoint)
+{
+    PlayerSaveData data;
+    data.spawnPoint = GlobalPos(DimensionId(-1), BlockPos(50, 30, 100));
+    data.spawnForced = true;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    auto spawnPoint = player->getSpawnPoint();
+    ASSERT_TRUE(spawnPoint.has_value());
+    EXPECT_EQ(spawnPoint->getDimensionId(), DimensionId(-1));
+    EXPECT_EQ(spawnPoint->getPos().x, 50);
+    EXPECT_EQ(spawnPoint->getPos().y, 30);
+    EXPECT_EQ(spawnPoint->getPos().z, 100);
+    EXPECT_TRUE(player->isSpawnForced());
+}
+
+TEST_F(ApplyToPlayerTest, RestoresEnteredNetherPosition)
+{
+    PlayerSaveData data;
+    data.enteredNetherPosition = Vector3d(200.0, 50.0, 300.0);
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    auto netherPos = player->getEnteredNetherPosition();
+    ASSERT_TRUE(netherPos.has_value());
+    EXPECT_DOUBLE_EQ(netherPos->x, 200.0);
+    EXPECT_DOUBLE_EQ(netherPos->y, 50.0);
+    EXPECT_DOUBLE_EQ(netherPos->z, 300.0);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresLastDeathLocation)
+{
+    PlayerSaveData data;
+    data.lastDeathLocation = GlobalPos(DimensionId(-1), BlockPos(50, 30, -100));
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    auto deathLoc = player->getLastDeathLocation();
+    ASSERT_TRUE(deathLoc.has_value());
+    EXPECT_EQ(deathLoc->getDimensionId(), DimensionId(-1));
+    EXPECT_EQ(deathLoc->x(), 50);
+    EXPECT_EQ(deathLoc->y(), 30);
+    EXPECT_EQ(deathLoc->z(), -100);
+}
+
+TEST_F(ApplyToPlayerTest, ClearsLastDeathLocation)
+{
+    // 先设置死亡位置
+    player->setLastDeathLocation(GlobalPos(DimensionId(0), BlockPos(100, 64, 200)));
+    ASSERT_TRUE(player->getLastDeathLocation().has_value());
+
+    // 使用空的 PlayerSaveData 恢复（没有 lastDeathLocation）
+    PlayerSaveData data;
+    data.uuid = "clear-death-loc-test";
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    // 应该清除死亡位置
+    EXPECT_FALSE(player->getLastDeathLocation().has_value());
+}
+
+TEST_F(ApplyToPlayerTest, DefaultDataDoesNotCrash)
+{
+    // 默认 PlayerSaveData 应该安全地应用到 Player 而不崩溃
+    PlayerSaveData data;
+    data.uuid = "default-test";
+
+    EXPECT_NO_THROW(PlayerDataManager::applyToPlayer(*player, data));
+
+    // 默认位置
+    EXPECT_FLOAT_EQ(player->position().x, 0.0f);
+    // 默认游戏模式应该是 Survival
+    EXPECT_EQ(player->gameMode(), GameMode::Survival);
+}
+
+TEST_F(ApplyToPlayerTest, RestoresFullPlayerState)
+{
+    PlayerSaveData data;
+    data.posX = 500.0;
+    data.posY = 80.0;
+    data.posZ = -300.0;
+    data.yaw = 180.0f;
+    data.pitch = -30.0f;
+    data.gameMode = GameMode::Spectator;
+    data.health = 10.0f;
+    data.foodLevel = 8;
+    data.saturationLevel = 1.0f;
+    data.exhaustionLevel = 2.5f;
+    data.foodTickTimer = 75;
+    data.experienceLevel = 50;
+    data.experienceProgress = 0.9f;
+    data.totalExperience = 5000;
+    data.xpSeed = 999;
+    data.invulnerable = true;
+    data.canFly = true;
+    data.flying = false;
+    data.flySpeed = 0.07f;
+    data.walkSpeed = 0.15f;
+    data.currentImpulseImpactPos = Vector3(10.0f, 20.0f, 30.0f);
+    data.ignoreFallDamageFromCurrentImpulse = true;
+    data.currentImpulseContextResetGraceTime = 50; // 大于默认的 40 tick
+    data.spawnPoint = GlobalPos(DimensionId(0), BlockPos(100, 64, 200));
+    data.spawnForced = false;
+    data.enteredNetherPosition = Vector3d(150.0, 40.0, 250.0);
+    data.onGround = true;
+    data.sprinting = true;
+    data.sneaking = false;
+    data.airSupply = 150;
+
+    PlayerDataManager::applyToPlayer(*player, data);
+
+    // 验证关键字段
+    EXPECT_FLOAT_EQ(player->position().x, 500.0f);
+    EXPECT_EQ(player->gameMode(), GameMode::Spectator);
+    EXPECT_FLOAT_EQ(player->health(), 10.0f);
+    EXPECT_EQ(player->foodStats().foodLevel(), 8);
+    EXPECT_EQ(player->experienceManager().getLevel(), 50);
+    EXPECT_TRUE(player->abilities().invulnerable);
+    EXPECT_TRUE(player->isIgnoringFallDamageFromCurrentImpulse());
+    auto impactPos = player->currentImpulseImpactPos();
+    ASSERT_TRUE(impactPos.has_value());
+    EXPECT_FLOAT_EQ(impactPos->x, 10.0f);
+    EXPECT_EQ(player->currentImpulseContextResetGraceTime(), 50);
+    EXPECT_TRUE(player->isSprinting());
+    EXPECT_EQ(player->air(), 150);
 }
 
 } // namespace

@@ -70,11 +70,11 @@ std::unique_ptr<DensityFunction> TerrainProvider::splineWithBlending(
     std::unique_ptr<DensityFunction> splineFunc, std::unique_ptr<DensityFunction> blendTarget)
 {
     // MC 1.21: flatCache(cache2d(lerp(blendAlpha, blendTarget, splineFunc)))
-    // 当前 blendAlpha = constant(1.0)，所以 lerp(1.0, blendTarget, splineFunc) = splineFunc
-    // 简化为 flatCache(cache2d(splineFunc))
-    // TODO: 实现完整 blendAlpha 后改为 lerp 版本
-    (void)blendTarget;
-    return factory::flatCacheMarker(factory::cache2DMarker(std::move(splineFunc)));
+    // lerp(blendAlpha, blendTarget, splineFunc) = blendTarget + blendAlpha * (splineFunc - blendTarget)
+    // 当 BlendAlpha 返回 1.0（无旧区块混合）时，结果 = splineFunc，与之前简化实现等效
+    // 当 Blender 系统实现后，BlendAlpha 在区块边界处会从 1.0 过渡到 0.0，实现平滑混合
+    auto lerped = factory::lerp(factory::blendAlpha(), std::move(blendTarget), std::move(splineFunc));
+    return factory::flatCacheMarker(factory::cache2DMarker(std::move(lerped)));
 }
 
 std::unique_ptr<DensityFunction> TerrainProvider::yLimitedInterpolatable(std::unique_ptr<DensityFunction> yFunction,

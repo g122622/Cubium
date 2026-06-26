@@ -45,7 +45,8 @@ void ContainerManager::setInventoryManager(InventoryManager* inventoryManager)
 }
 
 void ContainerManager::setMenuFactory(
-    std::function<ContainerMenuCreateResult(ContainerId, ContainerType, const BlockPos&, PlayerInventory*)> factory)
+    std::function<ContainerMenuCreateResult(ContainerId, ContainerType, const BlockPos&, PlayerInventory*, PlayerId)>
+        factory)
 {
     m_menuFactory = std::move(factory);
 }
@@ -79,7 +80,7 @@ Result<mc::ContainerId> ContainerManager::openContainer(PlayerId playerId, mc::C
     ContainerMenuCreateResult createdMenu;
 
     if (m_menuFactory) {
-        createdMenu = m_menuFactory(containerId, type, pos, playerInventory);
+        createdMenu = m_menuFactory(containerId, type, pos, playerInventory, playerId);
     }
 
     if (!createdMenu.menu && type == mc::ContainerType::Crafting) {

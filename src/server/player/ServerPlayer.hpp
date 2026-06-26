@@ -90,6 +90,18 @@ public:
     [[nodiscard]] bool canReceiveMessages() const override { return hasConnection(); }
 
     /**
+     * @brief 向此玩家客户端发送速度同步包
+     *
+     * 重写 Player 基类版本，通过网络包将此实体的当前速度
+     * 发送给玩家客户端。用于 causeExtraKnockback() 中对 ServerPlayer
+     * 目标立即发送速度包，避免 EntityTracker::tick() 重复发送导致
+     * 击退速度重复应用。
+     *
+     * @return true 如果成功发送了速度包，false 如果连接不可用
+     */
+    [[nodiscard]] bool sendVelocityPacket() override;
+
+    /**
      * @brief 同步经验状态到客户端。
      * @note 仅在连接可用时发送网络包。
      */

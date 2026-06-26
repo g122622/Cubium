@@ -22,6 +22,7 @@
  */
 
 #include "BedrockColumnReader.hpp"
+#include "BedrockConstants.hpp"
 #include "LevelDBKey.hpp"
 
 namespace mc::world::storage::reader::bedrock {
@@ -57,11 +58,10 @@ Result<std::unique_ptr<ChunkData>> BedrockColumnReader::readColumn(
 Result<void> BedrockColumnReader::_readSubChunks(
     ChunkCoord x, ChunkCoord z, DimensionId dimension, BedrockLevelDb& db, ChunkData& chunk)
 {
-    // 基岩版子区块索引范围：-64 到 63
+    // 基岩版子区块索引范围由 BEDROCK_MIN_SUB_CHUNK_Y 和 BEDROCK_MAX_SUB_CHUNK_Y 定义
     // 对应 Y 坐标范围 -1024 到 1023（每个子区块高度 16）
-    // TODO: 考虑将此范围定义为常量，便于未来调整
     bool hasAnySection = false;
-    for (i8 subY = -64; subY < 64; ++subY) {
+    for (i8 subY = BEDROCK_MIN_SUB_CHUNK_Y; subY < BEDROCK_MAX_SUB_CHUNK_Y; ++subY) {
         auto subKey = LevelDBKey::key(dimension, ChunkPos(x, z), subY, LevelDBKey::ChunkType::SubChunkPrefix);
         auto subResult = db.get(subKey);
         if (subResult.failed()) {

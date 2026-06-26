@@ -6,7 +6,7 @@
 
 ```
 vehicle/
-├── BoatItem.hpp/cpp       # 船物品（放置船实体）
+├── BoatItem.hpp/cpp       # 船物品（放置船实体，支持普通船和带箱子的船）
 ├── MinecartItem.hpp/cpp   # 矿车物品（放置各类矿车实体）
 └── README.md              # 本文档
 ```
@@ -18,13 +18,13 @@ vehicle/
 │  MinecartItem  │──── 依赖 ────→ AbstractMinecartEntity (6种矿车类型)
 └────────────────┘
 ┌────────────────┐
-│   BoatItem     │──── 依赖 ────→ BoatEntity (10种木材类型)
+│   BoatItem     │──── 依赖 ────→ BoatEntity (10种木材类型 × 普通船/箱子船)
 └────────────────┘
         │
         └──── 两者均依赖 ────→ Item 基类、ItemUseContext、IWorld
 ```
 
-两个物品类相互独立，无直接依赖关系。
+BoatItem 通过 `m_hasChest` 标志区分普通船和带箱子的船。带箱子的船使用相同的 `BoatEntity` 实体，但 `hasChest` 设为 `true`，掉落时返回对应的 `*_CHEST_BOAT` / `*_CHEST_RAFT` 物品。
 
 ## 上下游外部依赖关系
 

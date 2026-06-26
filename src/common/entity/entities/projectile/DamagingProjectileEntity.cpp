@@ -44,7 +44,7 @@ void DamagingProjectileEntity::tick()
 
     // 火球类实体每 tick 燃烧 1 秒（20 ticks）
     if (isFiery()) {
-        setFire(20);
+        igniteForTicks(20);
     }
 
     const RayTraceResult result = performRayTrace();

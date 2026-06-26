@@ -26,7 +26,12 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/passive/basic/RabbitEntity.hpp"
+#include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
@@ -1624,6 +1629,167 @@ TEST_F(CatEntityTestFixture, DeathSound)
     auto sound = cat.getDeathSound();
     ASSERT_TRUE(sound.has_value());
     EXPECT_EQ(sound.value(), SoundEvents::ENTITY_CAT_DEATH);
+}
+
+// ============================================================================
+// hiss() 嘶嘶声测试
+// ============================================================================
+
+TEST_F(CatEntityTestFixture, Hiss_PlaysHissSound)
+{
+    // MC 原版：Cat.hiss() 播放 ENTITY_CAT_HISS 音效
+    // 当幻翼检测到附近的猫时，会调用此方法
+    CatTestWorld world;
+    CatEntity cat(EntityId(1));
+    cat.setWorld(&world);
+    cat.setTypeId("minecraft:cat");
+
+    world.resetSoundTracking();
+
+    cat.hiss();
+
+    // 应该播放 ENTITY_CAT_HISS 音效
+    EXPECT_EQ(world.getSoundPlayCount(), 1);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_CAT_HISS);
+}
+
+TEST_F(CatEntityTestFixture, Hiss_SilentCat_DoesNotPlaySound)
+{
+    // 静音的猫不应该播放嘶嘶声
+    // playSound 内部会检查 isSilent()，如果为 true 则不播放
+    CatTestWorld world;
+    CatEntity cat(EntityId(1));
+    cat.setWorld(&world);
+    cat.setTypeId("minecraft:cat");
+    cat.setSilent(true);
+
+    world.resetSoundTracking();
+
+    cat.hiss();
+
+    // 静音状态下不应该播放声音
+    EXPECT_EQ(world.getSoundPlayCount(), 0);
+}
+
+TEST_F(CatEntityTestFixture, Hiss_PitchVariation)
+{
+    // MC 原版：hiss() 的音调带有随机变化 [0.8, 1.2]
+    // 多次调用 hiss() 应该都能正常执行（不崩溃）
+    CatTestWorld world;
+    CatEntity cat(EntityId(1));
+    cat.setWorld(&world);
+    cat.setTypeId("minecraft:cat");
+
+    world.resetSoundTracking();
+
+    // 多次调用确保不崩溃
+    for (int i = 0; i < 10; ++i) {
+        cat.hiss();
+    }
+
+    // 每次调用都应该播放声音
+    EXPECT_EQ(world.getSoundPlayCount(), 10);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_CAT_HISS);
+}
+
+TEST_F(CatEntityTestFixture, Hiss_WithoutWorld_DoesNotCrash)
+{
+    // 没有世界时 hiss() 不应崩溃
+    // playSound 内部会检查 m_world == nullptr，如果为 null 则返回
+    CatEntity cat(EntityId(0));
+    // cat 没有 world
+
+    EXPECT_NO_THROW({ cat.hiss(); });
+}
+
+// ============================================================================
+// CatEntity 目标选择器注册测试
+// ============================================================================
+
+/**
+ * @brief 可公开目标选择器的测试用猫实体
+ */
+class TestCatEntity : public CatEntity {
+public:
+    explicit TestCatEntity(EntityId id)
+        : CatEntity(id)
+    {}
+
+    entity::ai::GoalSelector& testTargetSelector() { return targetSelector(); }
+};
+
+class CatTargetGoalsTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        entity::VanillaEntities::registerAll();
+    }
+};
+
+TEST_F(CatTargetGoalsTest, CatHasNonTamedTargetGoalForRabbit)
+{
+    // CatEntity::registerGoals() 注册了 NonTamedTargetGoal<RabbitEntity>
+    TestCatEntity cat(EntityId(1));
+
+    i32 nonTamedRabbitGoalCount = 0;
+    for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NonTamedTargetGoal<RabbitEntity>*>(goal) != nullptr) {
+            nonTamedRabbitGoalCount++;
+        }
+    }
+    EXPECT_EQ(nonTamedRabbitGoalCount, 1) << "CatEntity should have exactly 1 NonTamedTargetGoal<RabbitEntity>";
+}
+
+TEST_F(CatTargetGoalsTest, CatHasNonTamedTargetGoalForTurtle)
+{
+    // CatEntity::registerGoals() 注册了 NonTamedTargetGoal<TurtleEntity>（仅攻击陆地上的幼年海龟）
+    TestCatEntity cat(EntityId(1));
+
+    i32 nonTamedTurtleGoalCount = 0;
+    for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NonTamedTargetGoal<TurtleEntity>*>(goal) != nullptr) {
+            nonTamedTurtleGoalCount++;
+        }
+    }
+    EXPECT_EQ(nonTamedTurtleGoalCount, 1) << "CatEntity should have exactly 1 NonTamedTargetGoal<TurtleEntity>";
+}
+
+TEST_F(CatTargetGoalsTest, CatTargetGoalsOnlyActiveWhenUntamed)
+{
+    // NonTamedTargetGoal 只在未驯服时激活
+    // 验证驯服后的猫实体中 NonTamedTargetGoal 目标仍然注册（但不执行）
+    TestCatEntity cat(EntityId(1));
+    cat.setTamed(true);
+
+    bool hasNonTamedGoal = false;
+    for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::NonTamedTargetGoal<RabbitEntity>*>(goal) != nullptr) {
+            hasNonTamedGoal = true;
+        }
+    }
+    // 目标仍然注册，但驯服后 shouldExecute 返回 false
+    EXPECT_TRUE(hasNonTamedGoal) << "CatEntity should have NonTamedTargetGoal<RabbitEntity> registered even when tamed";
+}
+
+TEST_F(CatTargetGoalsTest, CatTargetGoalsCount)
+{
+    // CatEntity 应有 2 个 NonTamedTargetGoal（兔子 + 海龟）+ 1 个 HurtByTargetGoal
+    TestCatEntity cat(EntityId(1));
+
+    i32 targetGoalCount = 0;
+    for (const auto& pg : cat.testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::TargetGoal*>(goal) != nullptr) {
+            targetGoalCount++;
+        }
+    }
+    // 优先级1: NonTamedTargetGoal<RabbitEntity>
+    // 优先级1: NonTamedTargetGoal<TurtleEntity>
+    EXPECT_GE(targetGoalCount, 2) << "CatEntity should have at least 2 target goals";
 }
 
 } // namespace

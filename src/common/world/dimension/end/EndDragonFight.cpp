@@ -12,8 +12,8 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -23,6 +23,8 @@
 
 #include "EndDragonFight.hpp"
 
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -50,6 +52,11 @@ EndDragonFight::Data EndDragonFight::Data::fromJson(const nlohmann::json& json)
     data.dragonKilled = json.value("DragonKilled", false);
     data.previouslyKilled = json.value("PreviouslyKilled", false);
 
+    // 反序列化末影龙 UUID（MC Java 中键名为 "Dragon"）
+    if (json.contains("Dragon") && json["Dragon"].is_string()) {
+        data.dragonUUID = json["Dragon"].get<std::string>();
+    }
+
     if (json.contains("Gateways") && json["Gateways"].is_array()) {
         std::vector<i32> gateways;
         gateways.reserve(json["Gateways"].size());
@@ -69,6 +76,11 @@ EndDragonFight::Data EndDragonFight::Data::fromJson(const nlohmann::json& json)
     json["NeedsStateScanning"] = needsStateScanning;
     json["DragonKilled"] = dragonKilled;
     json["PreviouslyKilled"] = previouslyKilled;
+
+    // 序列化末影龙 UUID
+    if (dragonUUID.has_value() && !dragonUUID->empty()) {
+        json["Dragon"] = *dragonUUID;
+    }
 
     if (gateways.has_value()) {
         json["Gateways"] = *gateways;
@@ -110,7 +122,7 @@ EndDragonFight::EndDragonFight(u64 worldSeed, const std::optional<Data>& data)
 
 void EndDragonFight::tick(IWorld& world)
 {
-    // 状态扫描：首次加载旧存档时检查出口传送门
+    // 状态扫描：首次加载旧存档时检查出口传送门和末影龙存活状态
     if (m_needsStateScanning) {
         if (_isArenaLoaded(world)) {
             _scanState(world);
@@ -135,6 +147,9 @@ void EndDragonFight::setDragonKilled(IWorld& world)
     // 4. 更新状态标志
     m_previouslyKilled = true;
     m_dragonKilled = true;
+
+    // 5. 清空末影龙 UUID（龙已死亡，不再追踪）
+    m_dragonUUID.clear();
 }
 
 // ============================================================================
@@ -147,6 +162,12 @@ EndDragonFight::Data EndDragonFight::saveData() const
     data.needsStateScanning = m_needsStateScanning;
     data.dragonKilled = m_dragonKilled;
     data.previouslyKilled = m_previouslyKilled;
+
+    // 序列化末影龙 UUID
+    if (!m_dragonUUID.empty()) {
+        data.dragonUUID = m_dragonUUID;
+    }
+
     // gateways 始终保存（即使为空列表），区别于加载时的 nullopt
     data.gateways = m_gateways;
     return data;
@@ -161,6 +182,11 @@ void EndDragonFight::_loadData(const Data& data)
     m_needsStateScanning = data.needsStateScanning;
     m_dragonKilled = data.dragonKilled;
     m_previouslyKilled = data.previouslyKilled;
+
+    // 恢复末影龙 UUID
+    if (data.dragonUUID.has_value()) {
+        m_dragonUUID = *data.dragonUUID;
+    }
 
     if (data.gateways.has_value()) {
         // 从存档恢复折跃门列表
@@ -203,13 +229,36 @@ void EndDragonFight::_scanState(IWorld& world)
     }
 
     // 检查世界中是否存在末影龙实体
-    // TODO: 当前实体系统尚不支持按类型查询实体，暂时无法检测末影龙是否存活。
-    // 当实体系统完善后，应在此处检查末影龙实体是否存在来更新 dragonKilled 状态。
-    // MC Java 逻辑：
-    //   - 如果没有末影龙实体：dragonKilled = true
-    //   - 如果有末影龙实体：dragonUUID = enderdragon.getUUID(); dragonKilled = false;
-    //     - 若同时无活跃传送门，则丢弃该龙（enderdragon.discard()），因为无传送门的龙是无效状态
-    //   - 最终安全检查：如果 !previouslyKilled && dragonKilled，则 dragonKilled = false
+    // 对应 MC Java: EndDragonFight.scanState() 中 this.level.getDragons()
+    auto dragons = world.getEntitiesByType(entity::EntityTypeIdNumber::ENDER_DRAGON);
+
+    if (dragons.empty()) {
+        // 没有末影龙实体 -> 龙已死亡
+        m_dragonKilled = true;
+        m_dragonUUID.clear();
+        spdlog::info("EndDragonFight: No dragon entity found - dragon is killed.");
+    } else {
+        // 找到末影龙实体 -> 记录 UUID，龙仍存活
+        Entity* dragon = dragons[0];
+        m_dragonUUID = dragon->uuid();
+        m_dragonKilled = false;
+        spdlog::info("EndDragonFight: Found dragon entity ({}) - dragon is alive.", m_dragonUUID);
+
+        // 如果同时无活跃传送门，则丢弃该龙（discard），因为无传送门的龙是无效状态
+        // 对应 MC Java: enderdragon.discard()
+        if (!hasActivePortal) {
+            spdlog::info("EndDragonFight: Dragon exists but no active portal - discarding dragon.");
+            dragon->discard();
+            m_dragonUUID.clear();
+        }
+    }
+
+    // 最终安全检查：如果从未杀过龙但龙被标记为已死，则修正为未死
+    // 这确保初始世界中 dragonKilled 不会被错误地设为 true
+    // 对应 MC Java: if (!this.previouslyKilled && this.dragonKilled) { this.dragonKilled = false; }
+    if (!m_previouslyKilled && m_dragonKilled) {
+        m_dragonKilled = false;
+    }
 }
 
 bool EndDragonFight::_hasActiveExitPortal(IWorld& world)

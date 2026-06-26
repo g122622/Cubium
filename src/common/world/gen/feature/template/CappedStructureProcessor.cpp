@@ -124,18 +124,9 @@ std::vector<ProcessedBlockInfo> CappedStructureProcessor::finalizeProcessing(con
             } else if (!result->nbt && currentProcessed.nbt) {
                 changed = true;
             } else if (result->nbt && currentProcessed.nbt) {
-                // 两者都有 NBT，比较 NBT 内容是否不同
-                // 当前项目中 CompoundTag 没有深度比较方法，先比较键集合
-                // TODO: 当 CompoundTag 提供 operator== 或 equals 方法后，替换为深度比较
-                if (result->nbt->value.size() != currentProcessed.nbt->value.size()) {
+                // 两者都有 NBT，深度比较 NBT 内容是否不同
+                if (!result->nbt->equals(*currentProcessed.nbt)) {
                     changed = true;
-                } else {
-                    for (const auto& [key, val] : result->nbt->value) {
-                        if (currentProcessed.nbt->value.find(key) == currentProcessed.nbt->value.end()) {
-                            changed = true;
-                            break;
-                        }
-                    }
                 }
             }
 

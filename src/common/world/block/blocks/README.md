@@ -22,7 +22,8 @@ blocks/
 ├── SmokerBlock.hpp/cpp          # 烟熏炉方块（食物烹饪2x）
 ├── DoorBlock.hpp/cpp            # 门方块（双方块结构，HALF/FACING/OPEN/HINGE/POWERED 属性）
 ├── FenceGateBlock.hpp/cpp       # 栅栏门方块（FACING/OPEN/IN_WALL/POWERED 属性）
-├── CauldronBlock.hpp/cpp        # 炼药锅方块（LEVEL_0_3 属性，无方块实体）
+├── CauldronBlock.hpp/cpp        # 炼药锅方块（LEVEL_0_3 属性，无方块实体，滴石滴水接收）
+├── LavaCauldronBlock.hpp/cpp    # 岩浆炼药锅方块（始终满，发光15，实体碰撞伤害+点燃，空桶提取岩浆）
 ├── EnchantingTableBlock.hpp/cpp # 附魔台方块（书架增强附魔力量、延迟tick初始化、邻居通知）
 ├── BookshelfBlock.hpp/cpp       # 书架方块（附魔力量提供者、主动通知附近附魔台）
 ├── ShelfBlock.hpp/cpp           # 书架方块（1.21.4+ 木质书架，3槽位物品存储，侧链连接，红石充能，比较器信号）
@@ -114,6 +115,7 @@ classDiagram
     Block <|-- DoorBlock
     Block <|-- FenceGateBlock
     Block <|-- CauldronBlock
+    Block <|-- LavaCauldronBlock
     Block <|-- EnchantingTableBlock
     Block <|-- BookshelfBlock
     Block <|-- SignBlock
@@ -186,7 +188,11 @@ DoorBlock 使用 `HALF` 属性区分上下半部分，操作时需要同时处�
 
 ### 7. 炼药锅使用方块状态存储水位
 
-CauldronBlock 没有方块实体，使用 `LEVEL_0_3` 属性存储水位（0-3）。交互操作直接修改方块状态，不需要额外实体数据。
+CauldronBlock 没有方块实体，使用 `LEVEL_0_3` 属性存储水位（0-3）。交互操作直接修改方块状态，不需要额外实体数据。滴石滴水通过 `tick()` → `_receiveDripFromStalactiteTip()` → `receiveStalactiteDrip()` 链路填充炼药锅。
+
+### 7.1 岩浆炼药锅始终满
+
+LavaCauldronBlock 没有 LEVEL 属性，始终满。空桶可提取岩浆（替换为空炼药锅），岩浆桶右键无效果。实体进入时受到岩浆伤害并点燃。滴石滴水机制中，岩浆炼药锅不可接收滴水（`canReceiveStalactiteDrip` 返回 false）。
 
 ### 8. TrappedChestBlock 红石信号与双箱支持
 

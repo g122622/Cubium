@@ -27,6 +27,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
 #include "common/command/arguments/ItemSlotArgument.hpp"
+#include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -43,6 +44,7 @@
 #include "server/core/ServerPlayerData.hpp"
 #include "server/player/ServerPlayer.hpp"
 #include "server/world/ServerWorld.hpp"
+#include "server/world/player/ServerPlayerEntityManager.hpp"
 
 #include <sstream>
 
@@ -72,7 +74,7 @@ void syncInventoryToClient(ServerCommandSource& source, PlayerId playerId, const
 /**
  * @brief 在实体物品栏中设置指定槽位的物品
  *
- * 处理玩家背包槽位和装备槽位的映射，以及槽位有效性验证。
+ * 处理玩家背包槽位、装备槽位、末影箱槽位和马匹槽位的映射，以及槽位有效性验证。
  *
  * @return 是否设置成功
  */
@@ -110,21 +112,59 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
         return true;
     }
 
-    // TODO: 末影箱槽位 (200-226) 需要访问 EnderChestInventory，当末影箱系统集成后实现
+    // 末影箱槽位 (200-226)：通过 Player 实体访问末影箱物品栏
     if (slot.isEnderChestSlot()) {
-        source.sendError("Ender chest slots are not yet supported");
-        return false;
+        auto* world = source.world();
+        if (world == nullptr) {
+            source.sendError("No world available for ender chest access");
+            return false;
+        }
+        auto* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
+        if (playerEntity == nullptr) {
+            source.sendError("Player entity not found for ender chest access");
+            return false;
+        }
+        auto& enderChest = playerEntity->enderChestInventory();
+        i32 enderSlot = slot.toEnderChestSlot();
+        if (enderSlot < 0 || enderSlot >= enderChest.getContainerSize()) {
+            source.sendError("Ender chest slot index out of range");
+            return false;
+        }
+        enderChest.setItem(enderSlot, stack);
+        return true;
     }
 
-    // TODO: 马匹槽位 (500-514) 需要访问 HorseInventory/AbstractHorse，当马匹物品栏系统集成后实现
+    // 马匹槽位 (500-514)：需要解析目标马匹实体
+    // TODO: 当前 /replaceitem entity 仅支持玩家选择器，马匹槽位需要实体选择器支持
     if (slot.isHorseSlot()) {
-        source.sendError("Horse inventory slots are not yet supported");
+        source.sendError("Horse inventory slots require entity targeting (not yet supported in player-only mode)");
         return false;
     }
 
-    // TODO: 合成槽位 (500-503) 需要访问 CraftingContainer，当合成容器系统集成后实现
+    // 马匹箱子槽位 (499)：同样需要实体选择器
+    if (slot.isHorseChestSlot()) {
+        source.sendError("Horse chest slot requires entity targeting (not yet supported in player-only mode)");
+        return false;
+    }
+
+    // 合成槽位 (500-503)：需要访问玩家的合成容器
+    // TODO: 当永久合成菜单（InventoryCraftingMenu）集成到 Player 后实现
     if (slot.isCraftingSlot()) {
         source.sendError("Crafting slots are not yet supported");
+        return false;
+    }
+
+    // 玩家光标槽位 (499)：需要访问当前打开的容器菜单的 carried item
+    // TODO: 当 ContainerMenu::getCarried()/setCarried() 集成后实现
+    if (slot.isCursorSlot()) {
+        source.sendError("Cursor slot is not yet supported");
+        return false;
+    }
+
+    // 村民槽位 (300-307)：需要访问村民交易界面
+    // TODO: 当村民交易系统集成后实现
+    if (slot.isVillagerSlot()) {
+        source.sendError("Villager trade slots are not yet supported");
         return false;
     }
 
@@ -173,8 +213,29 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
         case 106:
             return "saddle";
         default:
-            return std::to_string(idx);
+            break;
     }
+    // 末影箱槽位
+    if (slot.isEnderChestSlot()) {
+        return "enderchest." + std::to_string(idx - 200);
+    }
+    // 马匹槽位
+    if (slot.isHorseSlot()) {
+        return "horse." + std::to_string(idx - 500);
+    }
+    // 马匹箱子槽位
+    if (slot.isHorseChestSlot()) {
+        return "horse.chest";
+    }
+    // 合成槽位
+    if (slot.isCraftingSlot()) {
+        return "player.crafting." + std::to_string(idx - 500);
+    }
+    // 村民槽位
+    if (slot.isVillagerSlot()) {
+        return "villager." + std::to_string(idx - 300);
+    }
+    return std::to_string(idx);
 }
 
 /**
@@ -318,13 +379,25 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
     }
 
     // 检查槽位类型是否支持实体操作
-    if (!slot.isPlayerInventorySlot() && !slot.isEquipmentSlot()) {
-        if (slot.isEnderChestSlot()) {
-            source.sendError("Ender chest slots are not yet supported for entity replacement");
+    if (!slot.isPlayerInventorySlot() && !slot.isEquipmentSlot() && !slot.isEnderChestSlot()) {
+        if (slot.isHorseSlot()) {
+            source.sendError("Horse inventory slots require entity targeting with @e selector");
             return 0;
         }
-        if (slot.isHorseSlot()) {
-            source.sendError("Horse inventory slots are not yet supported for entity replacement");
+        if (slot.isHorseChestSlot()) {
+            source.sendError("Horse chest slot requires entity targeting with @e selector");
+            return 0;
+        }
+        if (slot.isCraftingSlot()) {
+            source.sendError("Crafting slots are not yet supported for entity replacement");
+            return 0;
+        }
+        if (slot.isCursorSlot()) {
+            source.sendError("Cursor slot is not yet supported");
+            return 0;
+        }
+        if (slot.isVillagerSlot()) {
+            source.sendError("Villager trade slots are not yet supported");
             return 0;
         }
         source.sendError("Slot " + describeSlot(slot) + " is not valid for entities");
@@ -417,8 +490,9 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
     // 对于方块容器，只接受 container.N 格式或纯数字格式的槽位
     i32 slotIndex = slot.slotIndex();
     // 允许的槽位范围：0-53 (container slots), 0-40 也可以（如果槽位编号小于容器大小）
-    // 装备槽位 (98+) 不适用于方块容器
-    if (slot.isEquipmentSlot() || slot.isEnderChestSlot() || slot.isHorseSlot() || slot.isCraftingSlot()) {
+    // 装备槽位、末影箱槽位、马匹槽位、合成槽位、光标槽位、村民槽位不适用于方块容器
+    if (slot.isEquipmentSlot() || slot.isEnderChestSlot() || slot.isHorseSlot() || slot.isHorseChestSlot() ||
+        slot.isCraftingSlot() || slot.isCursorSlot() || slot.isVillagerSlot()) {
         source.sendError("Slot " + describeSlot(slot) + " is not valid for block containers");
         return 0;
     }

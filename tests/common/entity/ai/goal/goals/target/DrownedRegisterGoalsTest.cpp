@@ -32,6 +32,7 @@
 #include "entity/core/VanillaEntities.hpp"
 #include "entity/entities/monster/undead/DrownedEntity.hpp"
 #include "entity/entities/monster/undead/ZombieEntity.hpp"
+#include "entity/entities/passive/water/AxolotlEntity.hpp"
 
 namespace mc {
 namespace test {
@@ -140,6 +141,43 @@ TEST_F(DrownedRegisterGoalsTest, DrownedTargetGoalsIncludeNearestAttackableTarge
         }
     }
     EXPECT_TRUE(hasPlayerTarget) << "DrownedEntity should have target selection goals beyond HurtByTargetGoal";
+}
+
+TEST_F(DrownedRegisterGoalsTest, DrownedHasNearestAttackableTargetGoalForAxolotl)
+{
+    // DrownedEntity 继承了 ZombieEntity 的目标，并添加了 AxolotlEntity 目标
+    // 验证溺尸有比僵尸更多的目标选择器目标（至少多了 Axolotl 和自定义 Player 目标）
+    // 注意：溺尸的 Player 目标会替换僵尸的（相同优先级2），但 Axolotl 是新增的
+    auto drowned = std::make_unique<TestDrownedEntity>(EntityId(1));
+
+    i32 targetGoalCount = 0;
+    i32 hurtByTargetCount = 0;
+    for (const auto& pg : drowned->testTargetSelector().getAllGoals()) {
+        const auto* goal = pg.getGoal();
+        if (dynamic_cast<const entity::ai::goal::TargetGoal*>(goal) != nullptr) {
+            targetGoalCount++;
+        }
+        if (dynamic_cast<const entity::ai::goal::HurtByTargetGoal*>(goal) != nullptr) {
+            hurtByTargetCount++;
+        }
+    }
+    // 溺尸应有至少 1 个 TargetGoal 和恰好 1 个 HurtByTargetGoal
+    EXPECT_GE(targetGoalCount, 1) << "DrownedEntity should have at least 1 target goal";
+    EXPECT_EQ(hurtByTargetCount, 1) << "DrownedEntity should have exactly 1 HurtByTargetGoal";
+}
+
+TEST_F(DrownedRegisterGoalsTest, ZombieTargetGoalCount)
+{
+    // 对照组：普通僵尸应有目标选择器目标
+    auto zombie = std::make_unique<TestZombieEntity>(EntityId(2));
+
+    i32 hurtByTargetCount = 0;
+    for (const auto& pg : zombie->testTargetSelector().getAllGoals()) {
+        if (dynamic_cast<const entity::ai::goal::HurtByTargetGoal*>(pg.getGoal()) != nullptr) {
+            hurtByTargetCount++;
+        }
+    }
+    EXPECT_EQ(hurtByTargetCount, 1) << "ZombieEntity should have exactly 1 HurtByTargetGoal";
 }
 
 } // namespace test

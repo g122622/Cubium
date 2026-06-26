@@ -948,6 +948,66 @@ bool compound_tag::erase(const std::string& name)
     return value.erase(name) > 0;
 }
 
+bool list_tag::equals(const tag& other) const
+{
+    if (other.id() != TagId::List) {
+        return false;
+    }
+
+    const auto& otherList = static_cast<const list_tag&>(other);
+
+    // 元素类型必须相同
+    if (element_id() != otherList.element_id()) {
+        return false;
+    }
+
+    // 元素数量必须相同
+    if (size() != otherList.size()) {
+        return false;
+    }
+
+    // 按顺序逐一比较元素（与 MC Java 的 ListTag.equals 行为一致）
+    for (size_t i = 0; i < size(); ++i) {
+        auto thisElem = (*this)[i];
+        auto otherElem = otherList[i];
+        if (!thisElem->equals(*otherElem)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool compound_tag::equals(const struct tag& other) const
+{
+    if (other.id() != TagId::Compound) {
+        return false;
+    }
+
+    const auto& otherCompound = static_cast<const compound_tag&>(other);
+
+    // 键集合大小必须相同
+    if (value.size() != otherCompound.value.size()) {
+        return false;
+    }
+
+    // 逐一比较每个键值对
+    for (const auto& [key, val] : value) {
+        auto it = otherCompound.value.find(key);
+        if (it == otherCompound.value.end()) {
+            // 键不存在
+            return false;
+        }
+
+        // 递归比较值
+        if (!val->equals(*it->second)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 } // namespace tags
 
 void read_compound_text(std::istream& input, tags::compound_tag& compound, const Context& ctxt)

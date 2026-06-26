@@ -74,6 +74,88 @@ constexpr i32 OFFHAND = 40;
 
 // 总大小
 constexpr i32 TOTAL_SIZE = 41;
+
+// ========== MC Java NBT 槽位索引映射 ==========
+//
+// MC Java 存档格式中，Inventory 列表的 Slot 字段使用不同于内部索引的编号：
+// - 快捷栏和主背包 (0-35): NBT Slot 值与内部索引相同
+// - 护甲和副手: NBT Slot 值使用特殊编码
+//
+// 旧版格式 (1.21.11 之前):
+//   内部 36 (HEAD)   → NBT 103 (armor.head)
+//   内部 37 (CHEST)  → NBT 102 (armor.chest)
+//   内部 38 (LEGS)   → NBT 101 (armor.legs)
+//   内部 39 (FEET)   → NBT 100 (armor.feet)
+//   内部 40 (OFFHAND)→ NBT -106 (weapon.offhand)
+//
+// 1.21.11 新格式:
+//   装备通过 "equipment" 字段以枚举名保存，不再出现在 Inventory 列表中
+//   Inventory 列表仅包含快捷栏和主背包 (Slot 0-35)
+//   旧版存档由 PlayerEquipmentFix 数据迁移器自动转换
+
+/// NBT 护甲槽位起始编号 (armor.feet)
+static constexpr i32 NBT_ARMOR_SLOT_START = 100;
+
+/// NBT 副手槽位编号
+static constexpr i32 NBT_OFFHAND_SLOT = -106;
+
+/**
+ * @brief 将内部背包索引转换为 MC Java NBT Slot 值
+ *
+ * 快捷栏和主背包 (0-35) 直接使用内部索引。
+ * 护甲 (36-39) 映射为 100-103，副手 (40) 映射为 -106。
+ *
+ * @param internalSlot 内部背包索引 (0-40)
+ * @return NBT Slot 值
+ */
+[[nodiscard]] constexpr i32 toNbtSlot(i32 internalSlot) noexcept
+{
+    switch (internalSlot) {
+        case ARMOR_HEAD:
+            return 103; // armor.head
+        case ARMOR_CHEST:
+            return 102; // armor.chest
+        case ARMOR_LEGS:
+            return 101; // armor.legs
+        case ARMOR_FEET:
+            return 100; // armor.feet
+        case OFFHAND:
+            return NBT_OFFHAND_SLOT; // weapon.offhand
+        default:
+            return internalSlot; // 0-35 快捷栏和主背包
+    }
+}
+
+/**
+ * @brief 将 MC Java NBT Slot 值转换为内部背包索引
+ *
+ * 护甲 NBT 100-103 映射回 36-39，副手 -106 映射回 40。
+ * 快捷栏和主背包 (0-35) 直接使用 NBT Slot 值。
+ * 无法识别的值返回 -1。
+ *
+ * @param nbtSlot NBT Slot 值
+ * @return 内部背包索引 (0-40)，无效返回 -1
+ */
+[[nodiscard]] constexpr i32 fromNbtSlot(i32 nbtSlot) noexcept
+{
+    switch (nbtSlot) {
+        case 100:
+            return ARMOR_FEET; // armor.feet → 39
+        case 101:
+            return ARMOR_LEGS; // armor.legs → 38
+        case 102:
+            return ARMOR_CHEST; // armor.chest → 37
+        case 103:
+            return ARMOR_HEAD; // armor.head → 36
+        case -106:
+            return OFFHAND; // weapon.offhand → 40
+        default:
+            if (nbtSlot >= 0 && nbtSlot <= MAIN_END) {
+                return nbtSlot; // 0-35 快捷栏和主背包
+            }
+            return -1; // 无效槽位
+    }
+}
 } // namespace InventorySlots
 
 /**

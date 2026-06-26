@@ -183,6 +183,17 @@ public:
      */
     [[nodiscard]] static PlayerSaveData fromPlayer(const ServerPlayer& player);
 
+    /**
+     * @brief 将保存数据应用到玩家实体
+     *
+     * 将 PlayerSaveData 中的所有字段恢复到 Player 对象，
+     * 用于玩家登录时从存档恢复状态。
+     *
+     * @param player 目标玩家实体
+     * @param data 保存数据
+     */
+    static void applyToPlayer(Player& player, const PlayerSaveData& data);
+
     // ========== 批量操作 ==========
 
     /**

@@ -27,6 +27,8 @@
 #include "IChunkGenerator.hpp"
 #include "common/world/biome/source/FixedBiomeSource.hpp"
 #include "common/world/gen/feature/FeatureSorter.hpp"
+#include "common/world/gen/structure/StructureManager.hpp"
+#include "common/world/gen/structure/StructureSet.hpp"
 #include <memory>
 #include <mutex>
 
@@ -40,14 +42,18 @@ namespace mc {
  * 特点：
  * - 使用 FlatLevelGeneratorSettings 定义层配置
  * - generateNoise: 逐层填充方块（基岩、泥土、草方块等）
+ * - generateStructureStarts: 根据 structureOverrides 生成结构起点
+ * - generateStructureReferences: 扫描邻居区块建立结构引用
  * - buildSurface/applyCarvers/spawnInitialMobs: 空操作
- * - placeFeatures: 根据 decoration/addLakes 标志放置特性和填充层
+ * - placeFeatures: 根据 decoration/addLakes 标志放置特性和填充层，
+ *   同时按装饰阶段放置结构方块
  * - 所有位置返回固定生物群系
  *
  * MC 默认配置：
  * - 1x Bedrock + 2x Dirt + 1x Grass Block
  * - 生物群系: Plains
  * - 海平面: -63（低于世界底部，无水）
+ * - structureOverrides: minecraft:villages, minecraft:strongholds
  */
 class FlatChunkGenerator : public BaseChunkGenerator {
 public:
@@ -58,11 +64,12 @@ public:
      */
     FlatChunkGenerator(u64 seed, FlatLevelGeneratorSettings settings);
 
-    ~FlatChunkGenerator() override = default;
+    ~FlatChunkGenerator() override;
 
     // === IChunkGenerator 接口 ===
 
     void generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk) override;
+    void generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void generateNoise(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void buildSurface(WorldGenRegion& region, ChunkPrimer& chunk) override;
     void placeFeatures(WorldGenRegion& region, ChunkPrimer& chunk) override;
@@ -97,13 +104,39 @@ private:
      */
     void _placeFillLayers(WorldGenRegion& region, const BlockPos& chunkOrigin);
 
+    /**
+     * @brief 初始化结构与放置器注册表
+     *
+     * 初始化 StructureRegistry、StructureSetRegistry，并创建 StructureManager。
+     * 线程安全，仅初始化一次。
+     */
+    void _initGenerationRegistries();
+
+    /**
+     * @brief 检查结构集是否与平坦世界生物群系兼容
+     *
+     * 参考 MC 1.21.11 ChunkGeneratorStructureState.hasBiomesForStructureSet()：
+     * 如果结构集中的任何结构的有效生物群系列表与 FixedBiomeSource 的唯一生物群系
+     * 有交集，则认为该结构集与当前生物群系源兼容。
+     *
+     * @param structureSet 结构集合
+     * @return true 如果结构集与平坦世界生物群系兼容
+     */
+    [[nodiscard]] bool _hasBiomesForStructureSet(const world::gen::structure::StructureSet& structureSet) const;
+
     FlatLevelGeneratorSettings m_flatSettings;
     std::unique_ptr<world::biome::IBiomeSource> m_biomeSource;
+
+    // === 结构管理器 ===
+    std::unique_ptr<world::gen::structure::StructureManager> m_structureManager;
 
     // === 特性拓扑排序（MC 1.21 FeatureSorter）===
     /// 懒初始化：首次调用 placeFeatures 时构建
     std::vector<FeatureSorter::StepFeatureData> m_featuresPerStep;
     std::once_flag m_featuresPerStepFlag;
+
+    // === 结构注册表初始化标志 ===
+    std::once_flag m_generationRegistriesFlag;
 };
 
 } // namespace mc

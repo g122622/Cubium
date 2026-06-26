@@ -8,7 +8,7 @@
 tag/
 ├── ItemTag.hpp           # 物品标签类（物品集合）
 ├── ItemTag.cpp           # 物品标签实现
-├── ItemTags.hpp          # 物品标签注册表（FLOWERS、CARPETS 等）
+├── ItemTags.hpp          # 物品标签注册表（FLOWERS、CARPETS、DAMPENS_VIBRATIONS、FIRE_RESISTANT 等）
 ├── ItemTags.cpp          # 内置标签初始化
 └── README.md             # 本文件
 ```
@@ -16,12 +16,14 @@ tag/
 ## 内部模块关系
 
 ```
-┌─────────────────┐
-│    ItemTags     │  注册表（静态方法）
-│  FLOWERS()      │
-│  CARPETS()      │
-│  registerTag()  │
-└────────┬────────┘
+┌──────────────────────┐
+│      ItemTags        │  注册表（静态方法）
+│  FLOWERS()           │
+│  CARPETS()           │
+│  DAMPENS_VIBRATIONS()│
+│  FIRE_RESISTANT()    │
+│  registerTag()       │
+└────────┬─────────────┘
          │ 管理
          ▼
 ┌─────────────────┐
@@ -49,6 +51,9 @@ tag/
 |------|---------|
 | 实体繁殖逻辑 | `FLOWERS` 标签判断蜜蜂繁殖物品 |
 | 羊驼装饰槽位 | `CARPETS` 标签判断有效装饰 |
+| ItemEntity 振动阻尼 | `DAMPENS_VIBRATIONS` 标签判断羊毛物品是否阻尼振动 |
+| ItemEntity 伤害处理 | `FIRE_RESISTANT` 标签判断防火物品是否免疫火焰伤害 |
+| ItemStack::canBeHurtBy | `FIRE_RESISTANT` 标签检查物品是否可被火焰伤害源伤害 |
 | 配方系统（未来） | `Ingredient` 将支持标签匹配 |
 
 ## 容易踩的坑

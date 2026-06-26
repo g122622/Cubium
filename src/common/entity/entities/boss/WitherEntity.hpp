@@ -43,6 +43,45 @@ namespace entity {
 // 前向声明
 class WitherEntity;
 
+namespace ai::controller {
+class FlyingMovementController;
+}
+
+/**
+ * @brief 凋灵随机飞行目标
+ *
+ * 当凋灵没有其他高优先级目标时，随机选择一个飞行目标位置。
+ * 由于 WitherEntity 继承自 MobEntity 而非 CreatureEntity，
+ * 不能直接使用 WaterAvoidingRandomFlyingGoal（它要求 CreatureEntity*），
+ * 因此创建了此专用目标类。
+ */
+class WitherRandomFlyGoal : public ai::Goal {
+public:
+    explicit WitherRandomFlyGoal(WitherEntity* wither);
+
+    bool shouldExecute() override;
+    bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+    std::string getTypeName() const override { return "WitherRandomFlyGoal"; }
+
+private:
+    /**
+     * @brief 生成飞行目标位置
+     *
+     * 在凋灵前方 PI/2 弧度锥形范围内随机选择一个避水避岩浆的空气位置。
+     */
+    bool _generateFlightTarget();
+
+    WitherEntity* m_wither;
+    f64 m_speed = 1.0;
+    f32 m_targetX = 0.0f;
+    f32 m_targetY = 0.0f;
+    f32 m_targetZ = 0.0f;
+    bool m_hasTarget = false;
+};
+
 /**
  * @brief 凋灵无敌阶段目标
  *
@@ -100,6 +139,14 @@ public:
     // ========== LivingEntity 接口重写 ==========
 
     /**
+     * @brief AI步进，在LivingEntity::tick()中调用
+     *
+     * 重写以在控制器更新之前执行飞行追踪行为，
+     * 使 FlyingMovementController 的旋转限制能正确生效。
+     */
+    void aiStep() override;
+
+    /**
      * @brief 获取环境音效
      */
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
@@ -139,6 +186,20 @@ public:
      * @brief 摔落伤害免疫
      */
     [[nodiscard]] bool onLivingFall(f32 distance, f32 damageMultiplier) override;
+
+    /**
+     * @brief 凋灵永不自然消失
+     *
+     * 返回 true 使 DespawnManager 跳过距离判定并重置 idleTime。
+     */
+    [[nodiscard]] bool preventDespawn() const override { return true; }
+
+    /**
+     * @brief 和平难度下消失
+     *
+     * 返回 true 使 DespawnManager 在和平难度下移除此实体。
+     */
+    [[nodiscard]] bool isDespawnPeaceful() const override { return true; }
 
     // ========== IRangedAttackMob 接口实现 ==========
 
@@ -194,7 +255,17 @@ public:
     void updateWatchedTargetId(i32 head, i32 targetId);
 
     /**
-     * @brief 发射凋灵之首
+     * @brief 发射凋灵之首到指定位置
+     * @param head 头索引 (0=主头, 1=左头, 2=右头)
+     * @param targetX 目标X坐标
+     * @param targetY 目标Y坐标
+     * @param targetZ 目标Z坐标
+     * @param isBlue 是否为蓝色凋灵之首
+     */
+    void launchWitherSkullToPosition(i32 head, f64 targetX, f64 targetY, f64 targetZ, bool isBlue);
+
+    /**
+     * @brief 发射凋灵之首到实体目标
      * @param head 头索引 (0=主头, 1=左头, 2=右头)
      * @param target 目标实体
      */
@@ -248,8 +319,21 @@ private:
 
     /**
      * @brief 更新AI任务
+     *
+     * 包含无敌阶段处理、头部目标追踪、方块破坏逻辑和充能状态回血。
      */
     void _updateAITasks();
+
+    /**
+     * @brief 更新飞行追踪行为
+     *
+     * 当主头有目标时，凋灵会主动飞向目标：
+     * - Y轴速度保留60%（阻尼）
+     * - 低于目标时附加上升推力
+     * - 水平距离大于3格时附加追踪推力
+     * - 有水平速度时自动面向运动方向
+     */
+    void _updateFlightBehavior();
 
     /**
      * @brief 更新头部目标追踪

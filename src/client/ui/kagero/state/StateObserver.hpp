@@ -130,6 +130,9 @@ public:
     AutoObserver(const AutoObserver&) = delete;
     AutoObserver& operator=(const AutoObserver&) = delete;
 
+    // 禁止移动赋值——m_reactive 是引用无法重新绑定，赋值后 this 仍观察旧的 reactive
+    AutoObserver& operator=(AutoObserver&&) = delete;
+
     /**
      * @brief 移动构造函数
      *
@@ -149,32 +152,6 @@ public:
         // 移除旧观察者
         other.m_reactive.removeObserver(other.m_observerId);
         other.m_observerId = 0;
-    }
-
-    // TODO: 移动赋值运算符存在语义问题——m_reactive 是引用无法重新绑定，
-    // 赋值后 this 仍然观察旧的 reactive 而非 other.m_reactive，应考虑删除此运算符
-    AutoObserver& operator=(AutoObserver&& other) noexcept
-    {
-        if (this != &other) {
-            // 移除当前观察者
-            if (m_observerId != 0) {
-                m_reactive.removeObserver(m_observerId);
-            }
-
-            m_callback = std::move(other.m_callback);
-
-            // 重新注册观察者（仍在 this->m_reactive 上注册，而非 other.m_reactive）
-            m_observerId = m_reactive.observe([this](const T& /*oldValue*/, const T& newValue) {
-                if (m_callback) {
-                    m_callback(newValue);
-                }
-            });
-
-            // 移除旧观察者
-            other.m_reactive.removeObserver(other.m_observerId);
-            other.m_observerId = 0;
-        }
-        return *this;
     }
 
     /**

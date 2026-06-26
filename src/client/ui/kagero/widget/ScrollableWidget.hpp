@@ -26,6 +26,7 @@
 #include "../paint/PaintContext.hpp"
 #include "IWidgetContainer.hpp"
 #include "Widget.hpp"
+#include "common/input/KeyBinding.hpp"
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -144,6 +145,22 @@ public:
         return handleReleaseInChildren(mouseX, adjustedY, button, mods);
     }
 
+    bool onDoubleClick(i32 mouseX, i32 mouseY, i32 button, i32 mods) override
+    {
+        if (!isActive() || !isVisible()) return false;
+
+        i32 adjustedY = mouseY + m_scrollY;
+        return handleDoubleClickInChildren(mouseX, adjustedY, button, mods);
+    }
+
+    bool onRightClick(i32 mouseX, i32 mouseY, i32 mods) override
+    {
+        if (!isActive() || !isVisible()) return false;
+
+        i32 adjustedY = mouseY + m_scrollY;
+        return handleRightClickInChildren(mouseX, adjustedY, mods);
+    }
+
     bool onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button) override
     {
         (void)button;
@@ -188,22 +205,21 @@ public:
         if (!isActive() || !isVisible() || !isFocused()) return false;
 
         // 处理上下键滚动
-        if (action == 1 || action == 2) {
+        if (action == static_cast<i32>(KeyAction::Press) || action == static_cast<i32>(KeyAction::Repeat)) {
             switch (key) {
-                // TODO: 使用 GLFW 常量替代硬编码键码，需要引入 GLFW 依赖或定义平台无关的键码常量
-                case 264: // Down
+                case Keys::Down:
                     scrollBy(20);
                     return true;
 
-                case 265: // Up
+                case Keys::Up:
                     scrollBy(-20);
                     return true;
 
-                case 266: // Page Down
+                case Keys::PageDown:
                     scrollBy(m_bounds.height - m_padding.vertical());
                     return true;
 
-                case 267: // Page Up
+                case Keys::PageUp:
                     scrollBy(-(m_bounds.height - m_padding.vertical()));
                     return true;
 
@@ -476,17 +492,6 @@ protected:
         // 绘制滚动条滑块
         Rect thumb{m_bounds.right() - m_scrollbarWidth, scrollbarY, m_scrollbarWidth, scrollbarHeight};
         ctx.drawFilledRect(thumb, Colors::fromARGB(200, 120, 120, 120));
-    }
-
-    // TODO: 此方法未被调用且与基类 WidgetContainerMixin::handleDragInChildren 行为不同，
-    //       基类使用 isHovered 过滤而此处使用 getWidgetAt，需确认是否应统一或移除
-    bool handleDragInChildren(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
-    {
-        Widget* widget = getWidgetAt(mouseX, mouseY);
-        if (widget != nullptr) {
-            return widget->onDrag(mouseX, mouseY, deltaX, deltaY, button);
-        }
-        return false;
     }
 
     // 内容尺寸

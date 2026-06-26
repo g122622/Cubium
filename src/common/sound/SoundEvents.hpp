@@ -295,6 +295,15 @@ extern const ResourceLocation BLOCK_LILY_PAD_PLACE;
 extern const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_DOWN;
 extern const ResourceLocation BLOCK_BIG_DRIPLEAF_TILT_UP;
 
+/// 滴水石音效
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_HIT;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_FALL;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_LAND;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_WATER;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_LAVA;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_WATER_INTO_CAULDRON;
+extern const ResourceLocation BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON;
+
 extern const ResourceLocation BLOCK_WATER_AMBIENT;
 
 extern const ResourceLocation BLOCK_BARREL_CLOSE;
@@ -580,6 +589,24 @@ extern const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST;
 
 /// 旋风人风弹风爆声
 extern const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST;
+
+/// 旋风人吸气（射击前蓄力）
+extern const ResourceLocation ENTITY_BREEZE_INHALE;
+
+/// 旋风人发射风弹
+extern const ResourceLocation ENTITY_BREEZE_SHOOT;
+
+/// 旋风人蓄力（长跳前吸气）
+extern const ResourceLocation ENTITY_BREEZE_CHARGE;
+
+/// 旋风人跳跃
+extern const ResourceLocation ENTITY_BREEZE_JUMP;
+
+/// 旋风人着陆
+extern const ResourceLocation ENTITY_BREEZE_LAND;
+
+/// 旋风人滑行
+extern const ResourceLocation ENTITY_BREEZE_SLIDE;
 
 // ============================================================================
 // 重锤声音
@@ -1395,6 +1422,7 @@ extern const ResourceLocation ENTITY_ITEM_PICKUP;
 
 /// 盔甲装备
 extern const ResourceLocation ITEM_ARMOR_EQUIP_CHAIN;
+extern const ResourceLocation ITEM_ARMOR_EQUIP_COPPER;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_DIAMOND;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_ELYTRA;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_GENERIC;
@@ -1417,6 +1445,8 @@ extern const ResourceLocation ITEM_BUCKET_FILL_LAVA;
 
 /// 工具
 extern const ResourceLocation ITEM_AXE_STRIP;
+extern const ResourceLocation ITEM_AXE_SCRAPE;
+extern const ResourceLocation ITEM_AXE_WAX_OFF;
 extern const ResourceLocation ITEM_HOE_TILL;
 extern const ResourceLocation ITEM_SHOVEL_FLATTEN;
 

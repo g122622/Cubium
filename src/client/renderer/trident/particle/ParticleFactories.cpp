@@ -46,8 +46,10 @@
 #include "particles/effect/SmokeParticle.hpp"
 #include "particles/effect/SoulParticle.hpp"
 #include "particles/effect/SpellParticle.hpp"
+#include "particles/effect/WhiteSmokeParticle.hpp"
 #include "particles/liquid/DripParticle.hpp"
 #include "particles/liquid/DripWaterParticle.hpp"
+#include "particles/liquid/DripstoneDripParticle.hpp"
 #include "particles/mob/HeartParticle.hpp"
 #include "particles/mob/VillagerParticle.hpp"
 #include "particles/weather/FishingParticle.hpp"
@@ -156,6 +158,14 @@ void registerBuiltinParticleFactories()
     registry.registerType(ParticleTypeId::LargeSmoke,
         "minecraft:large_smoke",
         SmokeParticle::create, // LargeSmoke 使用 Smoke 粒子，但大小不同
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        8.0f,
+        false,
+        false);
+
+    registry.registerType(ParticleTypeId::WhiteSmoke,
+        "minecraft:white_smoke",
+        WhiteSmokeParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         8.0f,
         false,
@@ -450,6 +460,39 @@ void registerBuiltinParticleFactories()
         DripParticle::createLandingObsidianTear,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         28.0f,
+        true,
+        false);
+
+    // 滴水石专用粒子（落地时播放滴水音效）
+    registry.registerType(ParticleTypeId::DrippingDripstoneWater,
+        "minecraft:dripping_dripstone_water",
+        DripstoneWaterDripParticle::createDripping,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        40.0f,
+        true,
+        false);
+
+    registry.registerType(ParticleTypeId::FallingDripstoneWater,
+        "minecraft:falling_dripstone_water",
+        DripstoneWaterDripParticle::createFalling,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        64.0f,
+        true,
+        false);
+
+    registry.registerType(ParticleTypeId::DrippingDripstoneLava,
+        "minecraft:dripping_dripstone_lava",
+        DripstoneLavaDripParticle::createDripping,
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        40.0f,
+        true,
+        false);
+
+    registry.registerType(ParticleTypeId::FallingDripstoneLava,
+        "minecraft:falling_dripstone_lava",
+        DripstoneLavaDripParticle::createFalling,
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        64.0f,
         true,
         false);
 

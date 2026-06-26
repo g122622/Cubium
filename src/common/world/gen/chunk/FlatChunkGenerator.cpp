@@ -8,20 +8,22 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice shall be included in all copies or substantial portions
- * of the Software.
+ * The above copyright notice shall this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE
- * AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
  */
 
 #include "FlatChunkGenerator.hpp"
 #include "common/util/assert/AssertAll.hpp"
+#include "common/util/math/random/JavaLegacyRandom.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeGenerationSettings.hpp"
@@ -33,7 +35,16 @@
 #include "common/world/gen/feature/DecorationStage.hpp"
 #include "common/world/gen/feature/FeatureIds.hpp"
 #include "common/world/gen/feature/FeatureSorter.hpp"
+#include "common/world/gen/placement/PlacementRegistry.hpp"
+#include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/StructureManager.hpp"
+#include "common/world/gen/structure/StructureSet.hpp"
+#include "common/world/gen/structure/placement/StructurePlacement.hpp"
 #include "perfetto/TraceEvents.hpp"
+#include <algorithm>
+#include <map>
+#include <set>
+#include <unordered_set>
 
 namespace mc {
 
@@ -44,21 +55,198 @@ FlatChunkGenerator::FlatChunkGenerator(u64 seed, FlatLevelGeneratorSettings sett
 {
     // 设置默认生物群系，让 BaseChunkGenerator::generateBiomes 使用
     m_defaultBiome = m_flatSettings.biomeId();
+
+    // 初始化结构与放置器注册表
+    _initGenerationRegistries();
+}
+
+FlatChunkGenerator::~FlatChunkGenerator()
+{
+    if (m_structureManager) {
+        m_structureManager->clearCache();
+    }
+}
+
+// ============================================================================
+// 结构生成注册表初始化
+// ============================================================================
+
+void FlatChunkGenerator::_initGenerationRegistries()
+{
+    std::call_once(m_generationRegistriesFlag, [this]() {
+        MC_TRACE_EVENT("server.initialization", "FlatChunkGenerator::initGenerationRegistries");
+
+        // 初始化结构注册表和结构集合注册表
+        world::gen::structure::StructureRegistry::initialize();
+        world::gen::structure::StructureSetRegistry::instance().initialize();
+        m_structureManager = std::make_unique<world::gen::structure::StructureManager>(static_cast<i64>(m_seed));
+
+        // 初始化放置器注册表
+        PlacementRegistry::instance().initialize();
+    });
+}
+
+// ============================================================================
+// 结构生成
+// ============================================================================
+
+void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
+{
+    MC_TRACE_EVENT("world.chunk_gen", "FlatGenerateStructureStarts", "x", chunk.x(), "z", chunk.z());
+
+    if (!m_structureManager) {
+        chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
+        return;
+    }
+
+    // MC 1.21.11: FlatChunkGenerator 根据 structureOverrides 过滤结构集
+    // 如果 structureOverrides 为空，则不生成任何结构
+    // 如果指定了 structureOverrides，则只生成指定的结构集（受生物群系兼容性过滤）
+    const auto& overrides = m_flatSettings.structureOverrides();
+    if (overrides.empty()) {
+        chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
+        return;
+    }
+
+    const ChunkCoord chunkX = chunk.x();
+    const ChunkCoord chunkZ = chunk.z();
+
+    // 构建 structureOverrides 的快速查找集合
+    std::unordered_set<ResourceLocation> overrideSet(overrides.begin(), overrides.end());
+
+    // MC 1.21.11: 遍历 StructureSet，按放置规则决定候选区块，按权重选择结构
+    // 参考: ChunkGenerator.createStructures() + FlatLevelSource.createState()
+    auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
+
+    for (const auto& structureSetPtr : structureSetRegistry.getAll()) {
+        if (!structureSetPtr) continue;
+
+        const auto& structureSet = *structureSetPtr;
+
+        // MC 1.21.11: 如果指定了 structureOverrides，只处理覆盖列表中的结构集
+        if (overrideSet.find(structureSet.id()) == overrideSet.end()) {
+            continue;
+        }
+
+        // MC 1.21.11: 检查结构集是否与平坦世界的生物群系兼容
+        // 参考: ChunkGeneratorStructureState.createForFlat() 中的 hasBiomesForStructureSet 过滤
+        if (!_hasBiomesForStructureSet(structureSet)) {
+            continue;
+        }
+
+        const auto& placement = structureSet.placement();
+
+        // MC 1.21.11: 检查是否已有同 StructureSet 中的有效 StructureStart
+        bool hasExistingStart = false;
+        for (const auto& entry : structureSet.entries()) {
+            auto* existingStart = chunk.getStructureStart(entry.structureId);
+            if (existingStart && existingStart->isValid()) {
+                hasExistingStart = true;
+                break;
+            }
+        }
+        if (hasExistingStart) continue;
+
+        // 三步检查：1. 是否为候选区块
+        if (!placement.isStructureChunk(static_cast<i64>(m_seed), chunkX, chunkZ)) {
+            continue;
+        }
+
+        // 按权重选择结构
+        math::JavaLegacyRandom legacyRng;
+        legacyRng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
+        math::Random rng(legacyRng.nextLong());
+        const auto* entry = structureSet.selectEntry(rng);
+        if (!entry) continue;
+
+        // 查找结构定义
+        const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
+        if (!structure) continue;
+
+        // 检查结构是否可以在此位置生成（生物群系检查等）
+        if (m_structureManager->shouldGenerateStructureStart(*structure, chunkX, chunkZ)) {
+            // 生成结构起点
+            auto start = structure->generate(*this, rng, chunkX, chunkZ);
+            if (start) {
+                chunk.addStructureStart(entry->structureId, std::move(start));
+            }
+        }
+    }
+
+    // 通知 StructureCheck 缓存此区块的结构引用数据
+    {
+        auto& structureCheck = m_structureManager->structureCheck();
+        const u64 chunkPosId =
+            (static_cast<u64>(static_cast<u32>(chunkX)) << 32) | static_cast<u64>(static_cast<u32>(chunkZ));
+
+        std::unordered_map<ResourceLocation, i32> refCounts;
+        for (const auto& [structureId, start] : chunk.structureStarts()) {
+            if (start && start->isValid()) {
+                refCounts[structureId] = start->getRefCount();
+            }
+        }
+        structureCheck.onStructureLoad(chunkPosId, refCounts);
+    }
+
+    chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
+}
+
+void FlatChunkGenerator::generateStructureReferences(WorldGenRegion& region, ChunkPrimer& chunk)
+{
+    MC_TRACE_EVENT("world.chunk_gen", "FlatGenerateStructureReferences", "x", chunk.x(), "z", chunk.z());
+
+    // MC 1.21: StructureReferences 阶段
+    // 扫描以当前区块为中心的 17x17 区块范围（taskRange=8），
+    // 找到所有与当前区块相交的 StructureStart，将引用添加到当前区块。
+    // 此逻辑与 NoiseChunkGenerator 完全一致，因为结构引用阶段
+    // 不依赖于区块生成器类型，只依赖于已生成的结构起点。
+    const ChunkCoord cx = chunk.x();
+    const ChunkCoord cz = chunk.z();
+
+    for (i32 dx = -8; dx <= 8; ++dx) {
+        for (i32 dz = -8; dz <= 8; ++dz) {
+            const ChunkCoord ncx = cx + dx;
+            const ChunkCoord ncz = cz + dz;
+
+            const IChunk* neighbor = region.getIChunk(ncx, ncz, ChunkStatuses::STRUCTURE_STARTS);
+            if (!neighbor) {
+                continue;
+            }
+
+            // 获取邻居区块中与当前区块相交的结构起点
+            auto intersecting = neighbor->getIntersectingStructures(cx, cz);
+            for (auto& [structureId, srcX, srcZ] : intersecting) {
+                chunk.addStructureReference(structureId, srcX, srcZ);
+
+                // MC 1.21: 增加引用计数
+                auto* neighborPrimer = dynamic_cast<const ChunkPrimer*>(neighbor);
+                if (neighborPrimer) {
+                    auto* start = const_cast<ChunkPrimer*>(neighborPrimer)->getStructureStart(structureId);
+                    if (start) {
+                        start->incrementRefCount();
+
+                        // 通知 StructureCheck 缓存递增引用计数
+                        if (m_structureManager) {
+                            const u64 srcChunkPosId = (static_cast<u64>(static_cast<u32>(srcX)) << 32) |
+                                static_cast<u64>(static_cast<u32>(srcZ));
+                            m_structureManager->structureCheck().incrementReference(srcChunkPosId, structureId);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    chunk.setChunkStatus(ChunkStatuses::STRUCTURE_REFERENCES);
 }
 
 // ============================================================================
 // 区块生成接口
 // ============================================================================
 
-void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
-{
-    MC_UNUSED(region);
-    // TODO: 实现平坦世界结构生成（根据 structureOverrides）
-    chunk.setChunkStatus(ChunkStatuses::STRUCTURE_STARTS);
-}
-
 void FlatChunkGenerator::generateNoise(WorldGenRegion& region, ChunkPrimer& chunk)
 {
+    MC_UNUSED(region);
     // 逐层填充方块，null 条目跳过（由特性系统放置）
     const auto& layers = m_flatSettings.layers();
     const i32 minY = getMinY();
@@ -108,14 +296,45 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
     const bool hasDecoration = m_flatSettings.hasDecoration();
     const bool hasLakes = m_flatSettings.hasLakes();
 
+    // === MC 1.21.11: 按装饰阶段交错放置结构和特征 ===
+    // 参考: NoiseChunkGenerator::placeFeatures() 和 MC ChunkGenerator.applyBiomeDecoration()
+    math::Random worldgenRandom;
+    const u64 decorSeed = worldgenRandom.setDecorationSeed(m_seed, startX, startZ);
+
+    // 按结构装饰阶段分组
+    std::map<i32,
+        std::vector<std::pair<const world::gen::structure::Structure*, world::gen::structure::StructureStart*>>>
+        structuresByStage;
+    if (m_structureManager && chunk.hasStructureReferences()) {
+        for (const auto& [structureId, refs] : chunk.structureReferences()) {
+            const world::gen::structure::Structure* structure =
+                world::gen::structure::StructureRegistry::get(structureId);
+            if (!structure) continue;
+
+            for (const auto& [refX, refZ] : refs) {
+                // 从源区块获取 StructureStart
+                IChunk* sourceChunk = region.getIChunk(refX, refZ, ChunkStatuses::STRUCTURE_STARTS);
+                if (!sourceChunk) continue;
+
+                auto* sourcePrimer = dynamic_cast<ChunkPrimer*>(sourceChunk);
+                if (!sourcePrimer) continue;
+
+                auto* start = sourcePrimer->getStructureStart(structureId);
+                if (!start || !start->isValid()) continue;
+
+                const i32 stageOrdinal = static_cast<i32>(structure->decorationStage());
+                structuresByStage[stageOrdinal].emplace_back(structure, start);
+            }
+        }
+    }
+
     // 如果需要放置装饰特性或湖泊，使用完整的特性放置流水线
-    if (hasDecoration || hasLakes) {
+    if (hasDecoration || hasLakes || !structuresByStage.empty()) {
         // 初始化特征注册表（线程安全，仅初始化一次）
         static std::once_flag s_featureRegistryInitFlag;
         std::call_once(s_featureRegistryInitFlag, []() { FeatureRegistry::instance().initialize(); });
 
         // 懒初始化 FeatureSorter
-        // 平坦世界使用 FixedBiomeSource，possibleBiomes() 只有一个生物群系
         std::call_once(m_featuresPerStepFlag, [this]() {
             const std::vector<BiomeId>& possibleBiomes = m_biomeSource->possibleBiomes();
             m_featuresPerStep = FeatureSorter::buildFeaturesPerStep(
@@ -130,11 +349,6 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
         // 收集当前区块的生物群系（平坦世界只有一个生物群系）
         const BiomeId flatBiomeId = m_flatSettings.biomeId();
 
-        // 种子初始化
-        math::Random worldgenRandom;
-        const u64 decorSeed = worldgenRandom.setDecorationSeed(m_seed, startX, startZ);
-
-        // 按装饰阶段放置特征
         const i32 featureSteps = static_cast<i32>(m_featuresPerStep.size());
         const i32 totalSteps = std::max(static_cast<i32>(DecorationStage::Count), featureSteps);
 
@@ -142,28 +356,43 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
             const DecorationStage stage = DecorationStages::fromIndex(static_cast<u8>(stepIndex));
             const i32 stageOrdinal = stepIndex;
 
-            // 根据 decoration 和 addLakes 标志过滤阶段
+            // === 放置该阶段的结构的特征 ===
+            i32 structureIndex = 0;
+            auto structIt = structuresByStage.find(stageOrdinal);
+            if (structIt != structuresByStage.end()) {
+                for (const auto& [structure, start] : structIt->second) {
+                    worldgenRandom.setFeatureSeed(decorSeed, structureIndex, stageOrdinal);
+                    structure->placeInChunk(region, chunk, *start, chunkX, chunkZ);
+                    ++structureIndex;
+                }
+            }
+
+            // === 放置该阶段的生物群系特征 ===
             if (!hasDecoration) {
                 // decoration 为 false 时，不放置任何生物群系特性
                 // 参考 MC 1.21.11: FlatLevelGeneratorSettings.adjustGenerationSettings()
                 // 当 decoration=false 时，flag=false，整个生物群系特性复制循环被跳过
                 // 熔岩湖由循环后的 addLakes 专用逻辑放置，不经过此循环
-                continue;
-            } else {
-                // decoration 为 true 时，排除 UndergroundStructures 和 SurfaceStructures 阶段
-                // 参考 MC 1.21.11: FlatLevelGeneratorSettings.adjustGenerationSettings()
-                if (stage == DecorationStage::UndergroundStructures || stage == DecorationStage::SurfaceStructures) {
-                    continue;
-                }
-                // 如果 addLakes=true，跳过生物群系原生的 Lakes 阶段特性
-                // 避免与循环后的 addLakes 专用熔岩湖放置重复
-                // 参考 MC: !this.addLakes || i != GenerationStep.Decoration.LAKES.ordinal()
+                // 但如果 addLakes=true 且当前阶段是 Lakes，需要跳过以避免与后续专用逻辑重复
                 if (hasLakes && stage == DecorationStage::Lakes) {
                     continue;
                 }
+                // 非 Lakes 阶段且 decoration=false，直接跳过生物群系特性
+                continue;
             }
 
-            // 放置该阶段的生物群系特征
+            // decoration 为 true 时，排除 UndergroundStructures 和 SurfaceStructures 阶段
+            // 参考 MC 1.21.11: FlatLevelGeneratorSettings.adjustGenerationSettings()
+            if (stage == DecorationStage::UndergroundStructures || stage == DecorationStage::SurfaceStructures) {
+                continue;
+            }
+            // 如果 addLakes=true，跳过生物群系原生的 Lakes 阶段特性
+            // 避免与循环后的 addLakes 专用熔岩湖放置重复
+            // 参考 MC: !this.addLakes || i != GenerationStep.Decoration.LAKES.ordinal()
+            if (hasLakes && stage == DecorationStage::Lakes) {
+                continue;
+            }
+
             if (stepIndex < featureSteps) {
                 const FeatureSorter::StepFeatureData& stepData = m_featuresPerStep[static_cast<size_t>(stepIndex)];
                 if (stepData.features.empty()) {
@@ -220,6 +449,33 @@ void FlatChunkGenerator::placeFeatures(WorldGenRegion& region, ChunkPrimer& chun
     _placeFillLayers(region, chunkOrigin);
 
     chunk.setChunkStatus(ChunkStatuses::FEATURES);
+}
+
+bool FlatChunkGenerator::_hasBiomesForStructureSet(const world::gen::structure::StructureSet& structureSet) const
+{
+    // MC 1.21.11: 参考 ChunkGeneratorStructureState.hasBiomesForStructureSet()
+    // 检查结构集中的任何结构是否与平坦世界的生物群系兼容
+    // FixedBiomeSource 只有一个生物群系（m_flatSettings.biomeId()）
+    const BiomeId flatBiomeId = m_flatSettings.biomeId();
+
+    for (const auto& entry : structureSet.entries()) {
+        const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
+        if (!structure) continue;
+
+        // 使用结构的生物群系标签或有效生物群系列表检查兼容性
+        if (structure->isValidBiome(flatBiomeId)) {
+            return true;
+        }
+
+        // 如果结构的有效生物群系列表为空（未限制），也视为兼容
+        const auto& validBiomes = structure->validBiomes();
+        const auto* tag = structure->biomeTag();
+        if (!tag && validBiomes.empty()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void FlatChunkGenerator::_placeFillLayers(WorldGenRegion& region, const BlockPos& chunkOrigin)

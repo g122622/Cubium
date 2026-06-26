@@ -31,8 +31,10 @@
 #include "common/resource/pack/ZipResourcePack.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <functional>
+#include <map>
 #include <memory>
 #include <shared_mutex>
 #include <vector>
@@ -123,6 +125,46 @@ public:
     [[nodiscard]] Result<std::vector<std::string>> listResources(
         PackType type, std::string_view directory, std::string_view extension) const;
     [[nodiscard]] Result<std::vector<std::string>> getResourceNamespaces(PackType type) const;
+
+    /**
+     * @brief 读取同一资源路径在所有已启用数据包中的文本内容
+     *
+     * 与 readTextResource 只返回最高优先级数据包的内容不同，此方法遍历所有
+     * 已启用数据包，收集同一资源路径的所有版本。返回结果按数据包优先级从
+     * 高到低排序（与 getEnabledPacks 的顺序一致），每个条目包含数据包名称
+     * 和资源内容。
+     *
+     * 这对于标签系统的多数据包合并至关重要：MC Java 的标签加载需要按
+     * 数据包优先级从高到低遍历同名标签文件，replace=true 时清空已有条目后
+     * 追加，默认追加。
+     *
+     * @param type 资源包类型
+     * @param resourcePath 相对于类型根目录的资源路径
+     * @return 成功时返回 (packName, content) 对的向量；若没有任何数据包包含
+     *         该资源则返回 ResourceNotFound 错误
+     */
+    struct ResourceVersion {
+        std::string packName; ///< 数据包名称
+        std::string content;  ///< 资源文本内容
+    };
+    [[nodiscard]] Result<std::vector<ResourceVersion>> readAllResourceVersions(
+        PackType type, std::string_view resourcePath) const;
+
+    /**
+     * @brief 列出目录下的所有资源路径及其在各数据包中的内容栈
+     *
+     * 与 listResources 只返回去重后的路径列表不同，此方法对每个资源路径
+     * 收集所有数据包中的文本内容。返回结果为 map，键为资源路径，值为
+     * ResourceVersion 向量（按数据包优先级从高到低排序）。
+     *
+     * @param type 资源包类型
+     * @param directory 相对于类型根目录的目录前缀
+     * @param extension 文件扩展名过滤（如 ".json"）
+     * @return 成功时返回 路径 -> 内容栈 的映射；若没有任何数据包包含
+     *         匹配资源则返回空映射（非错误）
+     */
+    [[nodiscard]] Result<std::map<std::string, std::vector<ResourceVersion>>> listResourceStacks(
+        PackType type, std::string_view directory, std::string_view extension) const;
 
     // ========================================================================
     // 变更通知

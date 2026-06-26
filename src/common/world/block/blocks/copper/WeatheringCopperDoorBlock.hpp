@@ -65,6 +65,16 @@ public:
     void setNextOxidationBlock(Block* nextBlock) { m_nextOxidationBlock = nextBlock; }
 
     /**
+     * @brief 设置上一氧化等级对应的方块
+     */
+    void setPreviousOxidationBlock(Block* prevBlock) { m_previousOxidationBlock = prevBlock; }
+
+    /**
+     * @brief 获取上一氧化等级对应的方块
+     */
+    [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
+
+    /**
      * @brief 获取氧化概率修正系数
      *
      * 未氧化（Unaffected）返回 0.75，其余等级返回 1.0。
@@ -93,6 +103,9 @@ protected:
 
     /// 下一氧化等级对应的方块
     Block* m_nextOxidationBlock = nullptr;
+
+    /// 上一氧化等级对应的方块
+    Block* m_previousOxidationBlock = nullptr;
 };
 
 /**

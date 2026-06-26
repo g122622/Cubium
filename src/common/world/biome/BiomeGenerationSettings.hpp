@@ -145,6 +145,24 @@ public:
     static BiomeGenerationSettings createJungle();
 
     /**
+     * @brief 创建竹子丛林生物群系的生成设置
+     *
+     * 包含密集竹子（20%灰化土概率）、丛林树和丛林草丛。
+     * 参考 MC BambooJungle 生物群系。
+     * @return 竹子丛林设置
+     */
+    static BiomeGenerationSettings createBambooJungle();
+
+    /**
+     * @brief 创建竹子丛林丘陵生物群系的生成设置
+     *
+     * 与竹子丛林相同的植被，但地形起伏更大。
+     * 参考 MC BambooJungleHills 生物群系。
+     * @return 竹子丛林丘陵设置
+     */
+    static BiomeGenerationSettings createBambooJungleHills();
+
+    /**
      * @brief 创建稀树草原生物群系的生成设置
      * @return 稀树草原设置
      */

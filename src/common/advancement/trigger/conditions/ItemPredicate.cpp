@@ -27,6 +27,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/potion/PotionUtils.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/util/assert/AssertAll.hpp"
 
 namespace mc::advancement {
@@ -39,6 +40,26 @@ ItemPredicate::ItemPredicate(std::optional<ResourceLocation> item,
     std::vector<EnchantmentPredicate> storedEnchantments,
     NBTPredicate nbt)
     : m_item(std::move(item))
+    , m_count(std::move(count))
+    , m_durability(std::move(durability))
+    , m_potion(std::move(potion))
+    , m_enchantments(std::move(enchantments))
+    , m_storedEnchantments(std::move(storedEnchantments))
+    , m_nbt(std::move(nbt))
+{
+    _updateIsAny();
+}
+
+ItemPredicate::ItemPredicate(std::optional<ResourceLocation> item,
+    std::optional<ResourceLocation> tag,
+    IntBounds count,
+    IntBounds durability,
+    std::optional<ResourceLocation> potion,
+    std::vector<EnchantmentPredicate> enchantments,
+    std::vector<EnchantmentPredicate> storedEnchantments,
+    NBTPredicate nbt)
+    : m_item(std::move(item))
+    , m_tag(std::move(tag))
     , m_count(std::move(count))
     , m_durability(std::move(durability))
     , m_potion(std::move(potion))
@@ -66,6 +87,18 @@ bool ItemPredicate::test(const ItemStack& stack) const
             return false;
         }
         if (item->itemLocation() != m_item.value()) {
+            return false;
+        }
+    }
+
+    // 检查物品标签
+    if (m_tag.has_value()) {
+        item::tag::ItemTag* tag = item::tag::ItemTags::getTag(m_tag.value());
+        if (tag == nullptr) {
+            // 未知标签不匹配任何物品
+            return false;
+        }
+        if (!tag->contains(stack)) {
             return false;
         }
     }
@@ -134,6 +167,7 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
     }
 
     std::optional<ResourceLocation> item;
+    std::optional<ResourceLocation> tag;
     IntBounds count;
     IntBounds durability;
     std::optional<ResourceLocation> potion;
@@ -141,8 +175,25 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
     std::vector<EnchantmentPredicate> storedEnchantments;
     NBTPredicate nbt;
 
+    // 支持简写格式：直接传字符串表示物品ID
+    if (json.is_string()) {
+        item = ResourceLocation(json.get<std::string>());
+        return ItemPredicate(std::move(item),
+            std::move(tag),
+            std::move(count),
+            std::move(durability),
+            std::move(potion),
+            std::move(enchantments),
+            std::move(storedEnchantments),
+            std::move(nbt));
+    }
+
     if (json.contains("item")) {
         item = ResourceLocation(json["item"].get<std::string>());
+    }
+
+    if (json.contains("tag")) {
+        tag = ResourceLocation(json["tag"].get<std::string>());
     }
 
     if (json.contains("count")) {
@@ -186,6 +237,7 @@ Result<ItemPredicate> ItemPredicate::fromJson(const nlohmann::json& json)
     }
 
     return ItemPredicate(std::move(item),
+        std::move(tag),
         std::move(count),
         std::move(durability),
         std::move(potion),
@@ -203,6 +255,9 @@ nlohmann::json ItemPredicate::toJson() const
     nlohmann::json json;
     if (m_item.has_value()) {
         json["item"] = m_item.value().toString();
+    }
+    if (m_tag.has_value()) {
+        json["tag"] = m_tag.value().toString();
     }
     if (!m_count.isUnbounded()) {
         json["count"] = m_count.toJson();
@@ -235,8 +290,8 @@ nlohmann::json ItemPredicate::toJson() const
 
 void ItemPredicate::_updateIsAny()
 {
-    m_isAny = !m_item.has_value() && m_count.isUnbounded() && m_durability.isUnbounded() && !m_potion.has_value() &&
-        m_enchantments.empty() && m_storedEnchantments.empty() && m_nbt.isAny();
+    m_isAny = !m_item.has_value() && !m_tag.has_value() && m_count.isUnbounded() && m_durability.isUnbounded() &&
+        !m_potion.has_value() && m_enchantments.empty() && m_storedEnchantments.empty() && m_nbt.isAny();
 }
 
 bool ItemPredicate::_testEnchantments(

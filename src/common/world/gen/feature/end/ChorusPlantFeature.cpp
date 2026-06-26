@@ -36,7 +36,6 @@ namespace mc {
 
 bool ChorusPlantFeature::place(WorldGenRegion& world, math::Random& random, const BlockPos& pos)
 {
-    // 对应 MC 原版 ChorusPlantFeature.place()
     // 检查起始位置是否为空气且下方为末地石
     const BlockState* stateAtPos = world.getBlockState(pos);
     if (stateAtPos == nullptr || !stateAtPos->isAir()) {
@@ -110,8 +109,7 @@ std::vector<std::unique_ptr<ConfiguredChorusPlantFeature>> ChorusPlantFeatures::
 
 std::unique_ptr<ConfiguredChorusPlantFeature> ChorusPlantFeatures::createChorusPlant()
 {
-    // 对应 MC 1.21.11: Chorus Plant 使用 CountPlacement(0-4) + InSquarePlacement + Heightmap + BiomeFilter
-    // 在末地高地生物群系中以 VegetalDecoration 阶段生成
+    // 末地高地，表面放置，每区块2次
     auto placement = PlacementUtils::createCountedSurfacePlacement(2);
     return std::make_unique<ConfiguredChorusPlantFeature>(std::move(placement), "chorus_plant");
 }

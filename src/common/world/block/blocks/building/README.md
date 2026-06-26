@@ -64,14 +64,24 @@ Block (基类)
 
 墙有 162 种形状组合（`2 * 3^4 = 162`：UP × NORTH/LOW/TALL × EAST/LOW/TALL × SOUTH/LOW/TALL × WEST/LOW/TALL）。形状缓存数组必须预计算，运行时组合会导致性能问题。
 
-### 5. FenceBlock/WallBlock 连接检测
+### 5. FenceBlock/WallBlock/PaneBlock 连接检测
 
-`_canConnect()` 和 `_getWallHeight()` 必须正确处理三种情况：
-- 栅栏门：使用 `FenceGateHelpers::isFenceGateParallel()` 检测是否平行连接
-- 同类方块：栅栏连栅栏，墙连墙
-- 固体方块：`isSolid()` 为 true 时连接
+`_canConnect()`（FenceBlock）、`_getWallHeight()`（WallBlock）和 `shouldConnectTo()`（PaneBlock）必须正确处理以下情况：
 
-漏掉栅栏门平行检测会导致视觉错误。
+- **栅栏门**：使用 `FenceGateHelpers::isFenceGateParallel()` 检测是否平行连接
+- **同类方块**：
+  - FenceBlock 使用 `BlockTags::FENCES()` 和 `BlockTags::WOODEN_FENCES()` 实现同类栅栏连接（木质栅栏连木质栅栏，下界砖栅栏连下界砖栅栏）
+  - WallBlock 使用 `BlockTags::WALLS()` 检测其他墙，返回 `WallHeight::Tall`
+  - PaneBlock 使用同类指针比较检测同类方块
+- **铁栏杆**：WallBlock 使用 `BlockTags::BARS()` 检测铁栏杆，返回 `WallHeight::Low`
+- **墙连接玻璃板**：PaneBlock 使用 `WallBlock::isWall()` 检测墙，始终连接
+- **固体方块**：使用 `Block::isExceptionForConnection()` 排除例外方块后，`isSolid()` 为 true 时连接
+  - `isExceptionForConnection()` 返回 true 的方块：树叶（LEAVES 标签）、潜影盒（SHULKER_BOXES 标签）、屏障、雕刻南瓜、南瓜灯、西瓜、南瓜
+  - FenceBlock: `!Block::isExceptionForConnection(state) && isNeighborSolid`
+  - WallBlock: `!Block::isExceptionForConnection(state) && state.isSolid()` → `WallHeight::Tall`
+  - PaneBlock: `!Block::isExceptionForConnection(neighborState) && isSolidSide`
+
+漏掉栅栏门平行检测会导致视觉错误。漏掉 `isExceptionForConnection()` 会导致栅栏/墙/玻璃板错误地连接到树叶、潜影盒等方块。
 
 ### 6. TrapDoorBlock 铁活板门不能手动操作
 

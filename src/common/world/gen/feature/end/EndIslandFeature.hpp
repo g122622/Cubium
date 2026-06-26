@@ -29,7 +29,6 @@
  * @brief 末地小岛特征
  *
  * 在小型末地岛屿生物群系中生成末地石岛屿。
- * 对应 MC 原版 EndIslandFeature，使用 NoneFeatureConfiguration。
  *
  * 生成锥形/泪滴形末地石岛屿：初始半径 4.0-6.0，
  * 每层向下收缩 0.5-2.5，横截面为圆形。
@@ -53,8 +52,6 @@ class IChunkGenerator;
  * 生成末地石构成的锥形岛屿。
  * 初始半径在 4.0-6.0 之间随机，每层向下收缩，
  * 形成泪滴状的小岛结构。
- *
- * 参考 MC 1.21.11: net.minecraft.world.level.levelgen.feature.EndIslandFeature
  */
 class EndIslandFeature {
 public:

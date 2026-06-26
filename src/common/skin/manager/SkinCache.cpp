@@ -22,6 +22,7 @@
  */
 
 #include "SkinCache.hpp"
+#include "common/util/TimeUtils.hpp"
 #include <chrono>
 #include <fstream>
 #include <nlohmann/json.hpp>
@@ -204,17 +205,13 @@ void SkinCache::_loadMetadata()
                     entry.fileSize = item["fileSize"].get<size_t>();
                 }
 
-                // 时间戳：从 epoch 秒恢复为 file_time_type
+                // 时间戳：从 Unix 纪元秒恢复为 file_time_type（跨平台兼容）
                 if (item.contains("lastAccess") && item["lastAccess"].is_number()) {
-                    auto secs = std::chrono::seconds(item["lastAccess"].get<int64_t>());
-                    entry.lastAccess = std::filesystem::file_time_type(
-                        std::chrono::duration_cast<std::filesystem::file_time_type::duration>(secs));
+                    entry.lastAccess = util::TimeUtils::unixSecondsToFileTime(item["lastAccess"].get<int64_t>());
                 }
 
                 if (item.contains("lastModified") && item["lastModified"].is_number()) {
-                    auto secs = std::chrono::seconds(item["lastModified"].get<int64_t>());
-                    entry.lastModified = std::filesystem::file_time_type(
-                        std::chrono::duration_cast<std::filesystem::file_time_type::duration>(secs));
+                    entry.lastModified = util::TimeUtils::unixSecondsToFileTime(item["lastModified"].get<int64_t>());
                 }
 
                 entries[entry.hash] = entry;
@@ -244,13 +241,8 @@ void SkinCache::_loadMetadata()
 void SkinCache::_saveMetadata()
 {
     try {
-        // TODO: file_time_type 的 epoch 在不同平台可能不同（Windows 使用 1601-01-01，
-        // Unix 使用 1970-01-01）。当前实现假设 file_time_type::duration 可以转换为秒，
-        // 这在大多数平台上可行，但在极端跨平台场景下可能出现偏差。
-        // 如需更强的跨平台兼容性，应使用 last_write_time 与 clock::now() 的差值来计算。
-        auto toEpochSeconds = [](const std::filesystem::file_time_type& ft) -> int64_t {
-            auto secs = std::chrono::duration_cast<std::chrono::seconds>(ft.time_since_epoch());
-            return secs.count();
+        auto toUnixEpochSeconds = [](const std::filesystem::file_time_type& ft) -> int64_t {
+            return util::TimeUtils::fileTimeToUnixSeconds(ft);
         };
 
         nlohmann::json json;
@@ -265,8 +257,8 @@ void SkinCache::_saveMetadata()
                 item["hash"] = entry.hash;
                 item["location"] = entry.location.toString();
                 item["fileSize"] = entry.fileSize;
-                item["lastAccess"] = toEpochSeconds(entry.lastAccess);
-                item["lastModified"] = toEpochSeconds(entry.lastModified);
+                item["lastAccess"] = toUnixEpochSeconds(entry.lastAccess);
+                item["lastModified"] = toUnixEpochSeconds(entry.lastModified);
                 skinsArray.push_back(item);
             }
             json["skins"] = skinsArray;
@@ -278,8 +270,8 @@ void SkinCache::_saveMetadata()
                 item["hash"] = entry.hash;
                 item["location"] = entry.location.toString();
                 item["fileSize"] = entry.fileSize;
-                item["lastAccess"] = toEpochSeconds(entry.lastAccess);
-                item["lastModified"] = toEpochSeconds(entry.lastModified);
+                item["lastAccess"] = toUnixEpochSeconds(entry.lastAccess);
+                item["lastModified"] = toUnixEpochSeconds(entry.lastModified);
                 capesArray.push_back(item);
             }
             json["capes"] = capesArray;

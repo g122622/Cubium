@@ -23,25 +23,30 @@
 
 #pragma once
 
-#include "../../../../core/Types.hpp"
-#include "../../passive/water/WaterMobEntity.hpp"
+#include "../../../interfaces/IRangedAttackMob.hpp"
 #include "ZombieEntity.hpp"
 #include <memory>
 
 namespace mc {
 
+// 前向声明
+class LivingEntity;
+
 /**
  * @brief 溺尸实体
  *
- * 在水中生成的僵尸变种。
+ * 在水中生成的僵尸变种。可以手持三叉戟进行远程攻击，
+ * 也可以在水中游泳、在夜间登陆海滩攻击玩家。
  *
  * 特性：
  * - 水中生成：在海洋和河流中生成
  * - 水中生活：可以在水中呼吸
- * - 三叉戟：有概率手持三叉戟
- * - 溺水：玩家溺水后可能转化为溺尸
+ * - 三叉戟：有概率手持三叉戟，进行远程投掷攻击
+ * - 日间避阳：白天会主动寻找水源
+ * - 夜间登陆：夜间会游到水面并登陆海滩
+ * - 溺水转化：玩家溺水后可能转化为溺尸
  */
-class DrownedEntity : public ZombieEntity {
+class DrownedEntity : public ZombieEntity, public entity::IRangedAttackMob {
 public:
     /**
      * @brief 构造函数
@@ -95,6 +100,48 @@ public:
      */
     [[nodiscard]] bool shouldBurnInDaylight() const override;
 
+    // ========== 目标过滤 ==========
+
+    /**
+     * @brief 判断目标是否有效
+     *
+     * 溺尸只在非白天或目标在水中时才视为有效攻击目标。
+     * 这控制了溺尸何时主动攻击玩家等目标。
+     *
+     * @param target 潜在攻击目标
+     * @return 如果目标有效返回 true
+     */
+    [[nodiscard]] bool okTarget(const LivingEntity* target) const;
+
+    /**
+     * @brief 溺尸是否想要游泳
+     *
+     * 当 searchingForLand 为 true 或当前攻击目标在水中时返回 true。
+     * 用于 DrownedMoveControl 判断是否应用水中移动逻辑。
+     */
+    [[nodiscard]] bool wantsToSwim() const;
+
+    // ========== 陆地搜索状态 ==========
+
+    /**
+     * @brief 是否正在搜索陆地
+     */
+    [[nodiscard]] bool isSearchingForLand() const { return m_searchingForLand; }
+
+    /**
+     * @brief 设置搜索陆地状态
+     */
+    void setSearchingForLand(bool searching) { m_searchingForLand = searching; }
+
+    // ========== 远程攻击 (IRangedAttackMob) ==========
+
+    /**
+     * @brief 使用三叉戟进行远程攻击
+     * @param target 攻击目标
+     * @param charge 蓄力程度 (0.0 - 1.0)
+     */
+    void attackEntityWithRangedAttack(LivingEntity* target, f32 charge) override;
+
     // ========== 生命周期 ==========
 
     void tick() override;
@@ -105,6 +152,10 @@ protected:
 
 private:
     bool m_hasTrident = false;
+    bool m_searchingForLand = false;
+
+    /// 三叉戟投掷速度
+    static constexpr f32 TRIDENT_VELOCITY = 1.6f;
 };
 
 } // namespace mc

@@ -47,6 +47,7 @@
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
+#include "common/item/items/special/HoneycombItem.hpp"
 #include "common/item/items/special/MilkBucketItem.hpp"
 #include "common/item/items/special/MusicDiscItem.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
@@ -58,6 +59,7 @@
 #include "common/item/items/tool/ShearsItem.hpp"
 #include "common/item/items/tool/ShovelItem.hpp"
 #include "common/item/items/tool/SwordItem.hpp"
+#include "common/item/items/trial/BreezeRodItem.hpp"
 #include "common/item/items/trial/MaceItem.hpp"
 #include "common/item/items/trial/OminousBottleItem.hpp"
 #include "common/item/items/trial/OminousTrialKeyItem.hpp"
@@ -227,6 +229,12 @@ Item* Items::LEATHER_CHESTPLATE = nullptr;
 Item* Items::LEATHER_LEGGINGS = nullptr;
 Item* Items::LEATHER_BOOTS = nullptr;
 
+// 铜护甲
+Item* Items::COPPER_HELMET = nullptr;
+Item* Items::COPPER_CHESTPLATE = nullptr;
+Item* Items::COPPER_LEGGINGS = nullptr;
+Item* Items::COPPER_BOOTS = nullptr;
+
 // 锁链护甲
 Item* Items::CHAINMAIL_HELMET = nullptr;
 Item* Items::CHAINMAIL_CHESTPLATE = nullptr;
@@ -244,9 +252,11 @@ Item* Items::ELYTRA = nullptr;
 
 // 马铠
 Item* Items::LEATHER_HORSE_ARMOR = nullptr;
+Item* Items::COPPER_HORSE_ARMOR = nullptr;
 Item* Items::IRON_HORSE_ARMOR = nullptr;
 Item* Items::GOLDEN_HORSE_ARMOR = nullptr;
 Item* Items::DIAMOND_HORSE_ARMOR = nullptr;
+Item* Items::NETHERITE_HORSE_ARMOR = nullptr;
 
 // 食物
 Item* Items::APPLE = nullptr;
@@ -302,6 +312,7 @@ Item* Items::BOWL = nullptr;
 Item* Items::FLINT = nullptr;
 Item* Items::FLINT_AND_STEEL = nullptr;
 Item* Items::SHEARS = nullptr;
+Item* Items::HONEYCOMB = nullptr;
 Item* Items::NAME_TAG = nullptr;
 Item* Items::SADDLE = nullptr;
 Item* Items::STRING = nullptr;
@@ -472,6 +483,20 @@ Item* Items::MANGROVE_BOAT = nullptr;
 Item* Items::CHERRY_BOAT = nullptr;
 Item* Items::PALE_OAK_BOAT = nullptr;
 Item* Items::BAMBOO_RAFT = nullptr;
+
+// ============================================================================
+// 带箱子的船（10种木材类型）
+// ============================================================================
+Item* Items::OAK_CHEST_BOAT = nullptr;
+Item* Items::SPRUCE_CHEST_BOAT = nullptr;
+Item* Items::BIRCH_CHEST_BOAT = nullptr;
+Item* Items::JUNGLE_CHEST_BOAT = nullptr;
+Item* Items::ACACIA_CHEST_BOAT = nullptr;
+Item* Items::DARK_OAK_CHEST_BOAT = nullptr;
+Item* Items::MANGROVE_CHEST_BOAT = nullptr;
+Item* Items::CHERRY_CHEST_BOAT = nullptr;
+Item* Items::PALE_OAK_CHEST_BOAT = nullptr;
+Item* Items::BAMBOO_CHEST_RAFT = nullptr;
 
 // ============================================================================
 // 悬挂实体物品
@@ -1007,6 +1032,7 @@ Item* Items::TRIAL_KEY = nullptr;
 Item* Items::OMINOUS_TRIAL_KEY = nullptr;
 Item* Items::OMINOUS_BOTTLE = nullptr;
 Item* Items::WIND_CHARGE = nullptr;
+Item* Items::BREEZE_ROD = nullptr;
 Item* Items::MACE = nullptr;
 Item* Items::GUSTER_BANNER_PATTERN = nullptr;
 Item* Items::FLOW_BANNER_PATTERN = nullptr;
@@ -1108,6 +1134,7 @@ void Items::initialize()
     _registerSponges();      // 海绵物品
     _registerMinecarts();    // 矿车物品
     _registerBoats();        // 船物品
+    _registerChestBoats();   // 带箱子的船物品
     _registerHangingItems(); // 悬挂实体物品
     _registerSigns();        // 告示牌物品
     _registerBanners();      // 旗帜和图案物品
@@ -1491,6 +1518,31 @@ void Items::_registerArmor()
         ItemProperties().maxDamage(ArmorMaterials::LEATHER.getDurability(item::armor::ArmorSlot::Feet)));
 
     // ========================================================================
+    // 铜护甲（MC 1.21.11 新增）
+    // 铜护甲耐久介于皮革和锁链之间，防御值：头盔=2, 胸甲=4, 护腿=3, 靴子=1
+    // 附魔能力 8，韧性 0，击退抗性 0
+    // ========================================================================
+    COPPER_HELMET = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:copper_helmet"),
+        ArmorMaterials::COPPER,
+        item::armor::ArmorSlot::Head,
+        ItemProperties().maxDamage(ArmorMaterials::COPPER.getDurability(item::armor::ArmorSlot::Head)));
+
+    COPPER_CHESTPLATE = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:copper_chestplate"),
+        ArmorMaterials::COPPER,
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::COPPER.getDurability(item::armor::ArmorSlot::Chest)));
+
+    COPPER_LEGGINGS = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:copper_leggings"),
+        ArmorMaterials::COPPER,
+        item::armor::ArmorSlot::Legs,
+        ItemProperties().maxDamage(ArmorMaterials::COPPER.getDurability(item::armor::ArmorSlot::Legs)));
+
+    COPPER_BOOTS = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:copper_boots"),
+        ArmorMaterials::COPPER,
+        item::armor::ArmorSlot::Feet,
+        ItemProperties().maxDamage(ArmorMaterials::COPPER.getDurability(item::armor::ArmorSlot::Feet)));
+
+    // ========================================================================
     // 锁链护甲
     // ========================================================================
     CHAINMAIL_HELMET = &registry.registerItem<item::items::ArmorItem>(ResourceLocation("minecraft:chainmail_helmet"),
@@ -1564,6 +1616,13 @@ void Items::_registerArmor()
             3,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_leather.png"));
 
+    // 铜马铠 - +4 护甲
+    COPPER_HORSE_ARMOR =
+        &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:copper_horse_armor"),
+            ItemProperties().maxStackSize(1),
+            4,
+            ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_copper.png"));
+
     // 铁马铠 - +5 护甲
     IRON_HORSE_ARMOR =
         &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:iron_horse_armor"),
@@ -1584,6 +1643,13 @@ void Items::_registerArmor()
             ItemProperties().maxStackSize(1),
             11,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_diamond.png"));
+
+    // 下界合金马铠 - +19 护甲，防火（通过 FIRE_RESISTANT 标签实现）
+    NETHERITE_HORSE_ARMOR =
+        &registry.registerItem<item::items::HorseArmorItem>(ResourceLocation("minecraft:netherite_horse_armor"),
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),
+            19,
+            ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_netherite.png"));
 }
 
 void Items::_registerFood()
@@ -1787,6 +1853,10 @@ void Items::_registerMisc()
     // 剪刀 - 耐久度 238
     SHEARS = &registry.registerItem<item::tool::ShearsItem>(
         ResourceLocation("minecraft:shears"), ItemProperties().maxDamage(238));
+
+    // 蜜脾 - 右键铜方块涂蜡，阻止氧化
+    HONEYCOMB = &registry.registerItem<item::items::HoneycombItem>(
+        ResourceLocation("minecraft:honeycomb"), ItemProperties().maxStackSize(64));
 
     // 命名牌 - 给生物命名，使其持久化
     NAME_TAG = &registry.registerItem<item::items::NameTagItem>(
@@ -2270,51 +2340,135 @@ void Items::_registerBoats()
     auto& registry = ItemRegistry::instance();
 
     // ========================================================================
-    // 船物品
+    // 船物品（普通船，hasChest = false）
     // ========================================================================
 
     // 橡木船
     OAK_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:oak_boat"), entity::BoatEntity::Type::OAK, ItemProperties().maxStackSize(1));
+        ResourceLocation("minecraft:oak_boat"), entity::BoatEntity::Type::OAK, false, ItemProperties().maxStackSize(1));
 
     // 云杉木船
-    SPRUCE_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:spruce_boat"), entity::BoatEntity::Type::SPRUCE, ItemProperties().maxStackSize(1));
+    SPRUCE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:spruce_boat"),
+        entity::BoatEntity::Type::SPRUCE,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 白桦木船
-    BIRCH_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:birch_boat"), entity::BoatEntity::Type::BIRCH, ItemProperties().maxStackSize(1));
+    BIRCH_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:birch_boat"),
+        entity::BoatEntity::Type::BIRCH,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 丛林木船
-    JUNGLE_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:jungle_boat"), entity::BoatEntity::Type::JUNGLE, ItemProperties().maxStackSize(1));
+    JUNGLE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:jungle_boat"),
+        entity::BoatEntity::Type::JUNGLE,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 金合欢木船
-    ACACIA_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:acacia_boat"), entity::BoatEntity::Type::ACACIA, ItemProperties().maxStackSize(1));
+    ACACIA_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:acacia_boat"),
+        entity::BoatEntity::Type::ACACIA,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 深色橡木船
     DARK_OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:dark_oak_boat"),
         entity::BoatEntity::Type::DARK_OAK,
+        false,
         ItemProperties().maxStackSize(1));
 
     // 红树木船
     MANGROVE_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:mangrove_boat"),
         entity::BoatEntity::Type::MANGROVE,
+        false,
         ItemProperties().maxStackSize(1));
 
     // 樱花木船
-    CHERRY_BOAT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:cherry_boat"), entity::BoatEntity::Type::CHERRY, ItemProperties().maxStackSize(1));
+    CHERRY_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:cherry_boat"),
+        entity::BoatEntity::Type::CHERRY,
+        false,
+        ItemProperties().maxStackSize(1));
 
     // 苍白橡木船
     PALE_OAK_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:pale_oak_boat"),
         entity::BoatEntity::Type::PALE_OAK,
+        false,
         ItemProperties().maxStackSize(1));
 
     // 竹筏
-    BAMBOO_RAFT = &registry.registerItem<item::BoatItem>(
-        ResourceLocation("minecraft:bamboo_raft"), entity::BoatEntity::Type::BAMBOO, ItemProperties().maxStackSize(1));
+    BAMBOO_RAFT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:bamboo_raft"),
+        entity::BoatEntity::Type::BAMBOO,
+        false,
+        ItemProperties().maxStackSize(1));
+}
+
+void Items::_registerChestBoats()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // ========================================================================
+    // 带箱子的船物品（hasChest = true）
+    // ========================================================================
+
+    // 橡木箱子船
+    OAK_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:oak_chest_boat"),
+        entity::BoatEntity::Type::OAK,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 云杉木箱子船
+    SPRUCE_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:spruce_chest_boat"),
+        entity::BoatEntity::Type::SPRUCE,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 白桦木箱子船
+    BIRCH_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:birch_chest_boat"),
+        entity::BoatEntity::Type::BIRCH,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 丛林木箱子船
+    JUNGLE_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:jungle_chest_boat"),
+        entity::BoatEntity::Type::JUNGLE,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 金合欢木箱子船
+    ACACIA_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:acacia_chest_boat"),
+        entity::BoatEntity::Type::ACACIA,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 深色橡木箱子船
+    DARK_OAK_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:dark_oak_chest_boat"),
+        entity::BoatEntity::Type::DARK_OAK,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 红树木箱子船
+    MANGROVE_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:mangrove_chest_boat"),
+        entity::BoatEntity::Type::MANGROVE,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 樱花木箱子船
+    CHERRY_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:cherry_chest_boat"),
+        entity::BoatEntity::Type::CHERRY,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 苍白橡木箱子船
+    PALE_OAK_CHEST_BOAT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:pale_oak_chest_boat"),
+        entity::BoatEntity::Type::PALE_OAK,
+        true,
+        ItemProperties().maxStackSize(1));
+
+    // 箱子竹筏
+    BAMBOO_CHEST_RAFT = &registry.registerItem<item::BoatItem>(ResourceLocation("minecraft:bamboo_chest_raft"),
+        entity::BoatEntity::Type::BAMBOO,
+        true,
+        ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerHangingItems()
@@ -3608,6 +3762,11 @@ void Items::_registerTrialChamberItems()
     // 旋风人掉落（0-1，受抢夺影响），试炼刷怪笼补给
     WIND_CHARGE = &registry.registerItem<item::WindChargeItem>(
         ResourceLocation("minecraft:wind_charge"), ItemProperties().maxStackSize(64));
+
+    // 狂风杖 - 旋风人掉落的材料物品
+    // 可用于酿造风充药水、合成重锤和锻造模板
+    BREEZE_ROD = &registry.registerItem<item::BreezeRodItem>(
+        ResourceLocation("minecraft:breeze_rod"), ItemProperties().maxStackSize(64));
 
     // ========================================================================
     // 重锤

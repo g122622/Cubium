@@ -27,6 +27,7 @@
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/sensor/Sensors.hpp"
+#include "common/entity/ai/brain/task/tasks/interact/InteractTasks.hpp" // 用于 Brain 任务注册
 #include "common/entity/ai/brain/task/tasks/movement/MovementTasks.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
@@ -57,8 +58,14 @@
 #include "common/item/potion/Potions.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/village/Village.hpp"
 #include "common/world/village/VillageGossipType.hpp"
 #include "common/world/village/VillageManager.hpp"
@@ -67,6 +74,7 @@
 #include "common/world/village/trade/Merchant.hpp"
 #include "common/world/village/trade/VillagerTrades.hpp"
 #include "common/world/village/trade/WanderingTraderTrades.hpp"
+#include <cmath>
 #include <memory>
 
 namespace mc {
@@ -240,6 +248,10 @@ void VillagerEntity::initializeBrain()
     m_brain->registerMemory(MemoryModuleTypes::ATTACK_TARGET);
     m_brain->registerMemory(MemoryModuleTypes::INTERACTION_TARGET);
 
+    // 门交互任务所需的记忆模块
+    m_brain->registerMemory(MemoryModuleTypes::INTERACTABLE_DOORS);
+    m_brain->registerMemory(MemoryModuleTypes::OPENED_DOORS);
+
     // 注册传感器
     m_brain->registerSensor(std::make_unique<NearestPlayersSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<NearestVisibleLivingEntitySensor<VillagerEntity>>());
@@ -248,6 +260,7 @@ void VillagerEntity::initializeBrain()
     m_brain->registerSensor(std::make_unique<WorkStationSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<VillagePoiSensor<VillagerEntity>>());
     m_brain->registerSensor(std::make_unique<BabySensor<VillagerEntity>>());
+    m_brain->registerSensor(std::make_unique<InteractableDoorsSensor<VillagerEntity>>());
 
     // 设置日程
     m_brain->setSchedule(&ai::brain::schedule::Schedule::VILLAGER_DEFAULT);
@@ -258,6 +271,7 @@ void VillagerEntity::initializeBrain()
 
     // 注册核心移动任务 - 所有活动都使用
     using namespace ai::brain::task::movement;
+    using namespace ai::brain::task::interact;
     using TaskPtr = std::unique_ptr<ai::brain::task::Task<VillagerEntity>>;
 
     // 辅助函数：从 unique_ptr 列表构建 vector
@@ -268,7 +282,13 @@ void VillagerEntity::initializeBrain()
         return tasks;
     };
 
-    // IDLE 活动：随机漫步、看向实体
+    // IDLE 活动：随机漫步、看向实体、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::IDLE,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::IDLE,
         1,
         makeTasks(
@@ -282,7 +302,13 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
-    // WORK 活动：移动到目标、随机漫步（低频率）
+    // WORK 活动：移动到目标、随机漫步（低频率）、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::WORK,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::WORK,
         1,
         makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
@@ -296,10 +322,17 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
-    // MEET 活动：移动到目标、随机漫步（较高频率）、看向实体
+    // MEET 活动：村民互动、移动到目标、随机漫步（较高频率）、看向实体、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::MEET,
         1,
-        makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
+        makeTasks(std::make_unique<VillagerInteractTask<VillagerEntity>>(),
+            std::make_unique<MoveToTargetTask<VillagerEntity>>(),
             std::make_unique<StrollTask<VillagerEntity>>(0.5f, 60)),
         {},
         {});
@@ -310,7 +343,13 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
-    // PANIC 活动：逃跑、移动到目标
+    // PANIC 活动：逃跑、移动到目标、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::PANIC,
+        -1,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::PANIC,
         0,
         makeTasks(std::make_unique<FleeTask<VillagerEntity>>(0.6f, 10.0f),
@@ -349,7 +388,13 @@ void VillagerEntity::initializeBrain()
         {{MemoryModuleTypes::AVOID_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
         {});
 
-    // REST 活动：随机漫步（低频率）、看向实体
+    // REST 活动：随机漫步（低频率）、看向实体、开关门
+    m_brain->registerActivity(ai::brain::schedule::Activity::REST,
+        0,
+        makeTasks(std::make_unique<InteractWithDoorTask<VillagerEntity>>()),
+        {},
+        {});
+
     m_brain->registerActivity(ai::brain::schedule::Activity::REST,
         1,
         makeTasks(std::make_unique<MoveToTargetTask<VillagerEntity>>(),
@@ -715,6 +760,33 @@ void VillagerEntity::startSleeping(BlockPos pos)
         stopRiding();
     }
 
+    // 设置床为占用状态
+    if (m_world) {
+        const BlockState* bedState = m_world->getBlockState(pos);
+        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::BED_PART())) {
+            // 在 setBlockState 之前提取所需属性值，避免悬挂指针
+            bool hasOccupied = bedState->hasProperty(BlockStateProperties::OCCUPIED());
+            bool isFoot = bedState->get(BlockStateProperties::BED_PART()) == BlockStateProperties::BedPart::Foot;
+            bool hasFacing = bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING());
+            Direction facing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
+
+            // 设置床头为占用
+            if (hasOccupied) {
+                BlockState occupiedState = bedState->with(BlockStateProperties::OCCUPIED(), true);
+                m_world->setBlockState(pos, &occupiedState, 3);
+            }
+            // 如果当前是脚部，也设置头部为占用
+            if (isFoot && hasFacing) {
+                BlockPos headPos = pos.offset(facing);
+                const BlockState* headState = m_world->getBlockState(headPos);
+                if (headState != nullptr && headState->hasProperty(BlockStateProperties::OCCUPIED())) {
+                    BlockState occupiedHeadState = headState->with(BlockStateProperties::OCCUPIED(), true);
+                    m_world->setBlockState(headPos, &occupiedHeadState, 3);
+                }
+            }
+        }
+    }
+
     // 设置睡眠姿态
     setPose(EntityPose::Sleeping);
 
@@ -740,17 +812,44 @@ void VillagerEntity::stopSleeping()
         return;
     }
 
-    // 如果有睡眠位置，计算唤醒位置
+    // 如果有睡眠位置，根据床的朝向计算唤醒位置
     if (m_sleepingPos.has_value() && m_world) {
         BlockPos bedPos = m_sleepingPos.value();
+        const BlockState* bedState = m_world->getBlockState(bedPos);
 
-        // 计算唤醒位置（床旁边）
-        // 简化实现：在床的朝向方向找一个空位
-        // 这里暂时使用床上方位置
-        Vector3d wakeUpPos(bedPos.x + 0.5, bedPos.y + 1.0, bedPos.z + 0.5);
+        // 在 setBlockState 之前提取所需属性值，避免悬挂指针
+        bool hasOccupied = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED()));
+        bool hasFacing = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING()));
+        Direction bedFacing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
 
-        // 设置位置
-        setPosition(wakeUpPos.x, wakeUpPos.y, wakeUpPos.z);
+        // 清除床的占用状态
+        if (hasOccupied) {
+            BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
+            m_world->setBlockState(bedPos, &newBedState, 3);
+        }
+
+        // 使用床的朝向计算起床位置
+        if (hasFacing) {
+            Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*m_world, bedPos, bedFacing, yaw());
+
+            // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
+            Vector3d bedCenter(bedPos.x + 0.5, bedPos.y, bedPos.z + 0.5);
+            Vector3d dirToBed = bedCenter - Vector3d(wakePos.x, wakePos.y, wakePos.z);
+            f32 dirLen = std::sqrt(dirToBed.x * dirToBed.x + dirToBed.z * dirToBed.z);
+            if (dirLen > 0.001) {
+                dirToBed.x /= dirLen;
+                dirToBed.z /= dirLen;
+                f32 yawDeg = static_cast<f32>(math::toDegrees(std::atan2(dirToBed.z, dirToBed.x))) - 90.0f;
+                yawDeg = math::wrapDegrees(yawDeg);
+                setRotation(yawDeg, 0.0f);
+            }
+
+            setPosition(wakePos.x, wakePos.y, wakePos.z);
+        } else {
+            // 回退：床头正上方
+            BlockPos aboveBed = bedPos.up();
+            setPosition(aboveBed.x + 0.5, aboveBed.y + 0.1, aboveBed.z + 0.5);
+        }
     }
 
     // 恢复站立姿态

@@ -28,6 +28,7 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -323,6 +324,27 @@ void EntityTracker::tick(IServer& server, ServerWorld& world)
                 tracked.lastPitch = currentPitch;
                 tracked.needsFullUpdate = false;
             }
+
+            // 速度同步：当实体的 hurtMarked 为 true 时，发送速度同步包
+            // 注意：当 Player::causeExtraKnockback() 为 ServerPlayer 目标发送速度包后，
+            // 会立即清除 hurtMarked，此分支不会执行，从而避免速度重复应用。
+            if (entity->isHurtMarked()) {
+                // 向所有追踪此实体的玩家发送速度同步包
+                for (PlayerId playerId : tracked.trackingPlayers) {
+                    _sendVelocityPacket(server, playerId, entity);
+                }
+
+                // 如果实体本身是 Player，也需要向其自身发送速度同步包
+                // 即 "AndSelf" 模式：ServerPlayer 不会追踪自身，因此需要单独发送
+                // 通过 Player::sendVelocityPacket() 虚方法，ServerPlayer 会实际发送网络包，
+                // 而 Player 基类版本为空操作
+                if (auto* playerEntity = dynamic_cast<Player*>(entity)) {
+                    // 返回值不需要处理：此处是广播场景，发送失败也不影响逻辑
+                    (void)playerEntity->sendVelocityPacket();
+                }
+
+                entity->clearHurtMarked();
+            }
         }
 
         for (EntityId entityId : entitiesToErase) {
@@ -538,6 +560,36 @@ void EntityTracker::_sendMovePacket(IServer& server, PlayerId playerId, Entity* 
         network::PacketSerializer fullPacket;
         fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
         fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityTeleport));
+        fullPacket.writeU16(0);
+        fullPacket.writeU16(0);
+        fullPacket.writeU16(0);
+        fullPacket.writeBytes(result.value());
+
+        player->send(fullPacket.data(), fullPacket.size());
+    }
+}
+
+void EntityTracker::_sendVelocityPacket(IServer& server, PlayerId playerId, Entity* entity)
+{
+    if (!entity) return;
+
+    ServerPlayerData* player = server.playerManager().getPlayer(playerId);
+    if (!player || !player->hasConnection()) return;
+
+    // 发送实体速度同步包
+    // 速度单位：1/8000 block/tick（与 SpawnMobPacket/SpawnEntityPacket 一致）
+    network::EntityVelocityPacket packet;
+    packet.setEntityId(static_cast<u32>(entity->id()));
+    const auto velocity = entity->velocity();
+    packet.setVelocity(static_cast<i16>(std::clamp(velocity.x * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(velocity.y * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(velocity.z * 8000.0f, -32768.0f, 32767.0f)));
+
+    auto result = packet.serialize();
+    if (result.success()) {
+        network::PacketSerializer fullPacket;
+        fullPacket.writeU32(static_cast<u32>(network::PACKET_HEADER_SIZE + result.value().size()));
+        fullPacket.writeU16(static_cast<u16>(network::PacketType::EntityVelocity));
         fullPacket.writeU16(0);
         fullPacket.writeU16(0);
         fullPacket.writeU16(0);

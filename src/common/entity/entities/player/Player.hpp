@@ -32,6 +32,7 @@
 #include "../../effect/EffectInstance.hpp"
 #include "../../experience/ExperienceManager.hpp"
 #include "../../food/FoodStats.hpp"
+#include "../../inventory/PlayerEnderChestInventory.hpp"
 #include "../../inventory/PlayerInventory.hpp"
 #include "../../movement/AutoJump.hpp"
 #include "../../player/CooldownTracker.hpp"
@@ -41,6 +42,7 @@
 #include "PlayerModelPart.hpp"
 #include "spdlog/spdlog.h"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 #include <optional>
@@ -295,6 +297,32 @@ public:
      */
     [[nodiscard]] i32 getPortalCooldown() const override { return 10; }
 
+    // ========== 火焰系统 ==========
+
+    /**
+     * @brief 获取玩家火焰免疫期时长
+     *
+     * MC Java 中 Player 重写此方法返回 20（1 秒免疫期），
+     * 普通实体返回 0（无免疫期）。这使得玩家在火焰熄灭后有 1 秒
+     * 的时间不会被立即重新点燃。
+     *
+     * @return 20 tick
+     */
+    [[nodiscard]] i32 getFireImmuneTicks() const override { return 20; }
+
+    /**
+     * @brief 强制设置火焰计时器（创造模式限制）
+     *
+     * MC Java 中 Player 重写此方法，当创造模式（无敌状态）时
+     * 将火焰计时器限制为最多 1 tick，防止创造模式玩家燃烧。
+     *
+     * @param ticks 火焰计时器值
+     */
+    void forceFireTicks(i32 ticks) override
+    {
+        Entity::forceFireTicks(m_abilities.invulnerable ? std::min(ticks, 1) : ticks);
+    }
+
     /**
      * @brief 设置位置并重置步距采样
      */
@@ -528,6 +556,18 @@ public:
     [[nodiscard]] virtual const ServerPlayer* asServerPlayer() const { return nullptr; }
 
     /**
+     * @brief 向玩家客户端发送速度同步包
+     *
+     * 将实体当前的速度通过网络包发送给此玩家的客户端。
+     * 基类版本返回 false（未发送），ServerPlayer 重写以实际发送网络包并返回 true。
+     * 用于 causeExtraKnockback() 中对 ServerPlayer 目标立即发送速度包，
+     * 避免 EntityTracker::tick() 重复发送导致速度重复应用。
+     *
+     * @return true 如果成功发送了速度包，false 如果未发送（非 ServerPlayer）
+     */
+    [[nodiscard]] virtual bool sendVelocityPacket() { return false; }
+
+    /**
      * @brief 获取玩家所在的记分板
      *
      * 只有 ServerPlayer 会返回有效的指针，客户端实现返回 nullptr。
@@ -753,6 +793,20 @@ public:
      */
     void clearEnteredNetherPosition() { m_enteredNetherPosition = std::nullopt; }
 
+    // ========== 死亡位置追踪 ==========
+
+    /**
+     * @brief 获取上次死亡位置
+     * @return 死亡位置（维度+方块位置），如果未记录则返回空
+     */
+    [[nodiscard]] std::optional<GlobalPos> getLastDeathLocation() const { return m_lastDeathLocation; }
+
+    /**
+     * @brief 设置上次死亡位置
+     * @param location 死亡位置（维度+方块位置），传入 nullopt 清除
+     */
+    void setLastDeathLocation(std::optional<GlobalPos> location) { m_lastDeathLocation = std::move(location); }
+
     /**
      * @brief 切换飞行状态
      *
@@ -946,9 +1000,111 @@ public:
     /**
      * @brief 使用自定义伤害来源处理摔落伤害
      *
-     * Player 不需要特殊处理，直接委托给 LivingEntity::causeFallDamage()。
+     * 覆盖 LivingEntity::causeFallDamage()，实现冲量坠落伤害减免逻辑。
+     * 当玩家处于冲量免疫状态（如重锤砸地攻击或风弹爆炸后），
+     * 仅计算冲量冲击点以下部分的坠落伤害，冲量冲击点以上的部分不计伤害。
      */
     void causeFallDamage(f32 distance, f32 damageMultiplier, const DamageSource& source) override;
+
+    // ========== 冲量坠落伤害免疫 ==========
+
+    /**
+     * @brief 设置是否忽略当前冲量造成的坠落伤害
+     *
+     * 当设置为 true 时，同时启动 40 tick 的宽限期计时器。
+     * 当设置为 false 时，立即清除宽限期计时器。
+     *
+     * 由重锤砸地攻击和风弹爆炸触发。
+     *
+     * @param ignore 是否忽略坠落伤害
+     */
+    void setIgnoreFallDamageFromCurrentImpulse(bool ignore);
+
+    /**
+     * @brief 检查是否忽略当前冲量造成的坠落伤害
+     * @return 如果忽略则返回 true
+     */
+    [[nodiscard]] bool isIgnoringFallDamageFromCurrentImpulse() const { return m_ignoreFallDamageFromCurrentImpulse; }
+
+    /**
+     * @brief 应用冲量后宽限期
+     *
+     * 设置宽限期计时器为当前值和新值中的较大者，不会缩短已有的宽限期。
+     * 风爆附魔使用 10 tick 宽限期。
+     *
+     * @param graceTime 宽限期 tick 数
+     */
+    void applyPostImpulseGraceTime(i32 graceTime);
+
+    /**
+     * @brief 检查是否处于冲量后宽限期
+     * @return 如果宽限期计时器 > 0 则返回 true
+     */
+    [[nodiscard]] bool isInPostImpulseGraceTime() const { return m_currentImpulseContextResetGraceTime > 0; }
+
+    /**
+     * @brief 获取冲量上下文重置宽限期剩余 tick 数
+     * @return 剩余宽限期 tick 数，0 表示无宽限期
+     */
+    [[nodiscard]] i32 currentImpulseContextResetGraceTime() const { return m_currentImpulseContextResetGraceTime; }
+
+    /**
+     * @brief 尝试重置冲量上下文
+     *
+     * 仅当宽限期计时器为 0 时才重置。宽限期期间此方法为空操作。
+     */
+    void tryResetCurrentImpulseContext();
+
+    /**
+     * @brief 完全重置冲量上下文
+     *
+     * 清除所有冲量状态：宽限期计时器、爆炸原因、冲击位置、忽略坠落伤害标志。
+     */
+    void resetCurrentImpulseContext();
+
+    /**
+     * @brief 获取当前冲量冲击位置
+     * @return 冲击位置，如果没有活跃冲量则返回空
+     */
+    [[nodiscard]] const std::optional<Vector3>& currentImpulseImpactPos() const { return m_currentImpulseImpactPos; }
+
+    /**
+     * @brief 设置当前冲量冲击位置
+     * @param pos 冲击位置
+     */
+    void setCurrentImpulseImpactPos(const Vector3& pos) { m_currentImpulseImpactPos = pos; }
+
+    /**
+     * @brief 获取当前爆炸原因实体ID
+     * @return 实体ID，0 表示无
+     */
+    [[nodiscard]] EntityId currentExplosionCause() const { return m_currentExplosionCause; }
+
+    /**
+     * @brief 设置当前爆炸原因实体ID
+     * @param entityId 实体ID
+     */
+    void setCurrentExplosionCause(EntityId entityId) { m_currentExplosionCause = entityId; }
+
+    /**
+     * @brief 计算重锤砸地攻击的冲击位置
+     *
+     * 如果玩家已有活跃冲量且其冲击位置不高于当前位置，保留原有冲击位置
+     * （防止连续砸地攻击时"双重获利"）。否则使用玩家当前位置。
+     *
+     * @return 冲击位置
+     */
+    [[nodiscard]] Vector3 calculateMaceImpactPosition() const;
+
+    /**
+     * @brief 被爆炸击中时调用
+     *
+     * 设置冲量冲击位置和爆炸原因，如果爆炸由风弹引起则启用坠落伤害免疫。
+     * 子类可重写此方法以添加额外逻辑（如服务端进度触发）。
+     *
+     * @param cause 引起爆炸的实体，可能为 nullptr
+     */
+    virtual void onExplosionHit(Entity* cause) override;
 
 protected:
     /**
@@ -1122,6 +1278,30 @@ public:
      */
     [[nodiscard]] const PlayerInventory& inventory() const { return m_inventory; }
     PlayerInventory& inventory() { return m_inventory; }
+
+    /**
+     * @brief 获取末影箱物品栏
+     */
+    [[nodiscard]] const PlayerEnderChestInventory& enderChestInventory() const { return m_enderChestInventory; }
+    PlayerEnderChestInventory& enderChestInventory() { return m_enderChestInventory; }
+
+    /**
+     * @brief 获取玩家分数
+     *
+     * 分数是一个简单的整数计数器，在玩家死亡时增加。
+     * 与计分板系统（Scoreboard）独立，MC Java 中通过实体数据同步。
+     */
+    [[nodiscard]] i32 getScore() const { return m_score; }
+
+    /**
+     * @brief 设置玩家分数
+     */
+    void setScore(i32 score) { m_score = score; }
+
+    /**
+     * @brief 增加玩家分数
+     */
+    void increaseScore(i32 amount) { m_score += amount; }
 
     /**
      * @brief 获取当前打开的容器菜单
@@ -1398,6 +1578,19 @@ public:
     void attack(Entity& target);
 
     /**
+     * @brief 应用额外击退（冲刺击退/攻击击退）
+     *
+     * 重写 LivingEntity::causeExtraKnockback()，添加 ServerPlayer 目标的特殊处理：
+     * 当目标是 ServerPlayer 且 hurtMarked 为 true 时，立即发送 EntityVelocityPacket
+     * 并重置 hurtMarked，然后恢复 preHurtVelocity，避免疾跑击退导致速度重复应用。
+     *
+     * @param target 击退目标实体
+     * @param strength 额外击退强度（包含冲刺加成和附魔击退）
+     * @param preHurtVelocity 目标在 hurt() 调用之前的速度（用于 ServerPlayer 速度修正）
+     */
+    void causeExtraKnockback(Entity& target, f32 strength, const Vector3& preHurtVelocity) override;
+
+    /**
      * @brief 与实体交互
      *
      * 玩家右键点击实体时调用，处理实体交互和物品交互。
@@ -1461,6 +1654,21 @@ public:
     void serialize(network::PacketSerializer& ser) const;
     [[nodiscard]] static Result<std::unique_ptr<Player>> deserialize(network::PacketDeserializer& deser);
 
+    /**
+     * @brief 序列化玩家额外数据到 NBT
+     *
+     * 写入玩家特有字段：游戏模式、食物数据、经验、能力、背包、
+     * 冲量上下文等。调用 LivingEntity 基类实现后追加自身数据。
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 从 NBT 反序列化玩家额外数据
+     *
+     * 读取玩家特有字段，调用 LivingEntity 基类实现后读取自身数据。
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 private:
     /**
      * @brief 更新原版视野晃动强度
@@ -1518,8 +1726,11 @@ private:
 
     FoodStats m_foodStats;
     PlayerAbilities m_abilities;
-    PlayerInventory m_inventory{this}; // 玩家背包
+    PlayerInventory m_inventory{this};               // 玩家背包
+    PlayerEnderChestInventory m_enderChestInventory; // 末影箱物品栏
     AbstractContainerMenu* m_openContainerMenu = nullptr;
+
+    i32 m_score = 0; // 玩家分数（死亡计分，与计分板系统独立）
 
     // 经验管理器（唯一数据源）
     std::unique_ptr<entity::experience::ExperienceManager> m_experienceManager;
@@ -1551,6 +1762,9 @@ private:
 
     // 进入下界时的位置（用于进度触发器 nether_travel）
     std::optional<Vector3d> m_enteredNetherPosition;
+
+    // 上次死亡位置（用于追溯指南针和存档持久化）
+    std::optional<GlobalPos> m_lastDeathLocation;
 
     // 自动跳跃系统
     entity::movement::AutoJump m_autoJump;
@@ -1587,6 +1801,16 @@ private:
 
     // 钓鱼系统
     EntityId m_fishingBobber = 0; // 当前投掷的钓鱼浮标实体ID，0表示未投掷
+
+    // 冲量坠落伤害免疫上下文
+    // 当玩家执行重锤砸地攻击或被风弹爆炸击中时，这些字段记录冲量上下文，
+    // 用于减免从冲量冲击位置以下的坠落伤害。
+    // 冲量上下文字段已通过 addAdditionalSaveData/readAdditionalSaveData 和 PlayerSaveData 实现持久化。
+    // 注意：m_currentExplosionCause 不序列化到 NBT（MC Java 中为运行时瞬时引用，不持久化）。
+    std::optional<Vector3> m_currentImpulseImpactPos;  ///< 冲量冲击位置（砸地/爆炸位置）
+    EntityId m_currentExplosionCause = 0;              ///< 引起冲量的实体ID（用于进度触发，运行时瞬时状态，不持久化）
+    bool m_ignoreFallDamageFromCurrentImpulse = false; ///< 是否忽略当前冲量的坠落伤害
+    i32 m_currentImpulseContextResetGraceTime = 0;     ///< 冲量上下文重置宽限期（tick）
 };
 
 } // namespace mc

@@ -594,3 +594,91 @@ TEST_F(WithPropertiesOfTest, BlockStatePropertiesSingletonEnsuresPointerEquality
     const auto& half2 = BlockStateProperties::HALF();
     EXPECT_EQ(&half1, &half2);
 }
+
+// ========== 反向氧化链（斧头刮削）测试 ==========
+
+class PreviousOxidationChainTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() { VanillaBlocks::initialize(); }
+};
+
+TEST_F(PreviousOxidationChainTest, CopperBlock_ReverseChain)
+{
+    // 验证铜块的反向氧化链：Oxidized -> Weathered -> Exposed -> Copper (Unaffected)
+    auto* oxidizableCopper = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::COPPER_BLOCK);
+    auto* oxidizableExposed = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::EXPOSED_COPPER);
+    auto* oxidizableWeathered = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::WEATHERED_COPPER);
+    auto* oxidizableOxidized = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::OXIDIZED_COPPER);
+
+    ASSERT_NE(oxidizableCopper, nullptr);
+    ASSERT_NE(oxidizableExposed, nullptr);
+    ASSERT_NE(oxidizableWeathered, nullptr);
+    ASSERT_NE(oxidizableOxidized, nullptr);
+
+    // Unaffected 没有上一级
+    EXPECT_EQ(oxidizableCopper->getPreviousOxidationBlock(), nullptr);
+
+    // Exposed 的上一级是 Copper
+    EXPECT_EQ(oxidizableExposed->getPreviousOxidationBlock(), VanillaBlocks::COPPER_BLOCK);
+
+    // Weathered 的上一级是 Exposed
+    EXPECT_EQ(oxidizableWeathered->getPreviousOxidationBlock(), VanillaBlocks::EXPOSED_COPPER);
+
+    // Oxidized 的上一级是 Weathered
+    EXPECT_EQ(oxidizableOxidized->getPreviousOxidationBlock(), VanillaBlocks::WEATHERED_COPPER);
+}
+
+TEST_F(PreviousOxidationChainTest, CutCopperStairs_ReverseChain)
+{
+    // 验证切制铜楼梯的反向氧化链
+    auto* stairsUnaffected = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::CUT_COPPER_STAIRS);
+    auto* stairsExposed = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::EXPOSED_CUT_COPPER_STAIRS);
+    auto* stairsWeathered = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::WEATHERED_CUT_COPPER_STAIRS);
+    auto* stairsOxidized = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::OXIDIZED_CUT_COPPER_STAIRS);
+
+    ASSERT_NE(stairsUnaffected, nullptr);
+
+    EXPECT_EQ(stairsUnaffected->getPreviousOxidationBlock(), nullptr);
+    EXPECT_EQ(stairsExposed->getPreviousOxidationBlock(), VanillaBlocks::CUT_COPPER_STAIRS);
+    EXPECT_EQ(stairsWeathered->getPreviousOxidationBlock(), VanillaBlocks::EXPOSED_CUT_COPPER_STAIRS);
+    EXPECT_EQ(stairsOxidized->getPreviousOxidationBlock(), VanillaBlocks::WEATHERED_CUT_COPPER_STAIRS);
+}
+
+TEST_F(PreviousOxidationChainTest, CopperBulb_ReverseChain)
+{
+    // 验证铜灯的反向氧化链
+    auto* bulbUnaffected = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::COPPER_BULB);
+    auto* bulbExposed = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::EXPOSED_COPPER_BULB);
+    auto* bulbWeathered = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::WEATHERED_COPPER_BULB);
+    auto* bulbOxidized = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::OXIDIZED_COPPER_BULB);
+
+    ASSERT_NE(bulbUnaffected, nullptr);
+
+    EXPECT_EQ(bulbUnaffected->getPreviousOxidationBlock(), nullptr);
+    EXPECT_EQ(bulbExposed->getPreviousOxidationBlock(), VanillaBlocks::COPPER_BULB);
+    EXPECT_EQ(bulbWeathered->getPreviousOxidationBlock(), VanillaBlocks::EXPOSED_COPPER_BULB);
+    EXPECT_EQ(bulbOxidized->getPreviousOxidationBlock(), VanillaBlocks::WEATHERED_COPPER_BULB);
+}
+
+TEST_F(PreviousOxidationChainTest, CopperDoor_ReverseChain)
+{
+    // 验证铜门的反向氧化链
+    auto* doorUnaffected = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::COPPER_DOOR);
+    auto* doorExposed = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::EXPOSED_COPPER_DOOR);
+
+    ASSERT_NE(doorUnaffected, nullptr);
+    ASSERT_NE(doorExposed, nullptr);
+
+    EXPECT_EQ(doorUnaffected->getPreviousOxidationBlock(), nullptr);
+    EXPECT_EQ(doorExposed->getPreviousOxidationBlock(), VanillaBlocks::COPPER_DOOR);
+}
+
+TEST_F(PreviousOxidationChainTest, WaxedBlocks_NotOxidizable)
+{
+    // 涂蜡铜方块不应实现 IOxidizableBlock
+    auto* waxedCopper = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::WAXED_COPPER_BLOCK);
+    auto* waxedExposed = dynamic_cast<const IOxidizableBlock*>(VanillaBlocks::WAXED_EXPOSED_COPPER);
+
+    EXPECT_EQ(waxedCopper, nullptr);
+    EXPECT_EQ(waxedExposed, nullptr);
+}

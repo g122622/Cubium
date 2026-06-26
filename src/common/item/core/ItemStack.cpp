@@ -26,8 +26,10 @@
 #include "ItemRegistry.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/text/StringTextComponent.hpp"
@@ -183,6 +185,18 @@ bool ItemStack::isDamageable() const
         return false;
     }
     return m_item->isDamageable();
+}
+
+bool ItemStack::canBeHurtBy(const DamageSource& source) const
+{
+    // 防火物品不会被火焰伤害源摧毁
+    if (isEmpty()) {
+        return false;
+    }
+    if (m_item->isIn(item::tag::ItemTags::FIRE_RESISTANT()) && source.isFire()) {
+        return false;
+    }
+    return true;
 }
 
 bool ItemStack::isDamaged() const

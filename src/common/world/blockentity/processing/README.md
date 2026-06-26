@@ -118,9 +118,9 @@
             红树(Mangrove)、樱花(Cherry)、苍白橡木(Pale Oak)、竹木(Bamboo)
                 的燃烧时间与主世界木材一致。这些木材类型的方块物品已在 `BlockItemRegistry` 中注册，告示牌物品已在 `Items` 中注册（通过 `WallOrFloorItem`），代码中使用 `isBlockInList()` 和 `isItemInList()` 判断燃料类型。
 
-            ####未完成项
+            ####带箱子的船燃料注册
 
-        - 所有带箱子的船（CHEST_BOAT）尚未实现，待 ChestBoatEntity 实现后需补充燃料条目
+        带箱子的船（Chest Boat）燃烧时间与普通船相同，均为 1200 tick。10 种带箱子的船物品已在 `Items` 中注册（使用 `BoatItem` 类，`hasChest = true`），燃料条目已添加到 `getBurnTimeByItem()` 中与普通船合并判断。
 
         ## #7. 熔炉类型对比
 

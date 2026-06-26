@@ -39,7 +39,7 @@ namespace {
 
 TEST(SkeletonConstantsTest, ConstantsMatchMC1165)
 {
-    // MC 1.16.5 AbstractSkeletonEntity 常量验证
+    // MC 1.16.5 / MC 1.21.11 AbstractSkeletonEntity 常量验证
     // 这些是静态常量，不需要实体实例
     EXPECT_EQ(AbstractSkeletonEntity::ATTACK_COOLDOWN, 60);             // 3秒 = 60 ticks
     EXPECT_FLOAT_EQ(AbstractSkeletonEntity::ARROW_DAMAGE, 2.0f);        // 基础箭矢伤害
@@ -49,6 +49,17 @@ TEST(SkeletonConstantsTest, ConstantsMatchMC1165)
     EXPECT_EQ(AbstractSkeletonEntity::ATTACK_INTERVAL_MAX, 40);         // 最大攻击间隔
     EXPECT_FLOAT_EQ(AbstractSkeletonEntity::ATTACK_RADIUS, 15.0f);      // 远程攻击半径
     EXPECT_EQ(AbstractSkeletonEntity::COMBAT_GOAL_PRIORITY, 4);         // 战斗目标优先级
+
+    // MC 1.21.11 难度相关攻击间隔常量
+    // 对应 MC 原版 AbstractSkeleton 中的常量：
+    //   HARD_ATTACK_INTERVAL = 20 (困难难度最小攻击间隔)
+    //   NORMAL_ATTACK_INTERVAL = 40 (非困难难度最小攻击间隔)
+    //   INCREASED_HARD_ATTACK_INTERVAL = 50 (沼骸/焦枯骷髅困难难度间隔)
+    //   INCREASED_NORMAL_ATTACK_INTERVAL = 70 (沼骸/焦枯骷髅非困难难度间隔)
+    EXPECT_EQ(AbstractSkeletonEntity::HARD_ATTACK_INTERVAL, 20);
+    EXPECT_EQ(AbstractSkeletonEntity::NORMAL_ATTACK_INTERVAL, 40);
+    EXPECT_EQ(AbstractSkeletonEntity::INCREASED_HARD_ATTACK_INTERVAL, 50);
+    EXPECT_EQ(AbstractSkeletonEntity::INCREASED_NORMAL_ATTACK_INTERVAL, 70);
 }
 
 // ============================================================================
@@ -181,6 +192,73 @@ TEST(SkeletonBowStateTest, InitialStateConstants)
     // 由于构造函数需要全局状态，这里只测试静态常量
     EXPECT_EQ(AbstractSkeletonEntity::ATTACK_COOLDOWN, 60);
     EXPECT_EQ(0, 0); // 攻击计时器初始值为 0
+}
+
+// ============================================================================
+// 攻击间隔虚方法测试
+//
+// 验证 getHardAttackInterval() 和 getAttackInterval() 的默认行为。
+// 对应 MC 原版 AbstractSkeleton.getHardAttackInterval() 和 getAttackInterval()。
+// ============================================================================
+
+TEST(SkeletonAttackIntervalTest, DefaultAttackIntervals)
+{
+    // 普通骷髅和流浪者使用基类默认值
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(1));
+    EXPECT_EQ(skeleton->getHardAttackInterval(), 20); // HARD_ATTACK_INTERVAL
+    EXPECT_EQ(skeleton->getAttackInterval(), 40);     // NORMAL_ATTACK_INTERVAL
+
+    auto stray = std::make_unique<StrayEntity>(EntityId(2));
+    EXPECT_EQ(stray->getHardAttackInterval(), 20); // 流浪者继承基类值（MC 1.21.11）
+    EXPECT_EQ(stray->getAttackInterval(), 40);     // 流浪者继承基类值（MC 1.21.11）
+}
+
+TEST(SkeletonAttackIntervalTest, WitherSkeletonAttackIntervals)
+{
+    // 凋灵骷髅使用近战，但攻击间隔方法仍然返回基类值
+    auto witherSkeleton = std::make_unique<WitherSkeletonEntity>(EntityId(3));
+    EXPECT_EQ(witherSkeleton->getHardAttackInterval(), 20);
+    EXPECT_EQ(witherSkeleton->getAttackInterval(), 40);
+}
+
+// ============================================================================
+// 难度与攻击间隔关系测试
+//
+// 验证 setCombatTask() 中根据难度调整最小攻击间隔的逻辑。
+// 对应 MC 原版 AbstractSkeleton.reassessWeaponGoal() 中的难度判断：
+//   - 困难难度: setMinAttackInterval(getHardAttackInterval())
+//   - 其他难度: setMinAttackInterval(getAttackInterval())
+// ============================================================================
+
+TEST(SkeletonAttackIntervalTest, DifficultyBasedIntervalLogic)
+{
+    // 验证难度与攻击间隔的对应关系
+    // 困难难度: 普通骷髅 20 ticks（射击更快）
+    // 其他难度: 普通骷髅 40 ticks（射击更慢）
+    auto skeleton = std::make_unique<SkeletonEntity>(EntityId(4));
+
+    // 困难难度: 使用 getHardAttackInterval()
+    EXPECT_EQ(skeleton->getHardAttackInterval(), AbstractSkeletonEntity::HARD_ATTACK_INTERVAL);
+    EXPECT_EQ(AbstractSkeletonEntity::HARD_ATTACK_INTERVAL, 20);
+
+    // 其他难度: 使用 getAttackInterval()
+    EXPECT_EQ(skeleton->getAttackInterval(), AbstractSkeletonEntity::NORMAL_ATTACK_INTERVAL);
+    EXPECT_EQ(AbstractSkeletonEntity::NORMAL_ATTACK_INTERVAL, 40);
+
+    // 验证困难难度比其他难度射击更快
+    EXPECT_LT(skeleton->getHardAttackInterval(), skeleton->getAttackInterval());
+}
+
+TEST(SkeletonAttackIntervalTest, IncreasedAttackIntervalConstants)
+{
+    // 验证增大型攻击间隔常量（用于沼骸骷髅等射击更慢的变种）
+    // 对应 MC 原版 INCREASED_HARD_ATTACK_INTERVAL = 50, INCREASED_NORMAL_ATTACK_INTERVAL = 70
+    EXPECT_EQ(AbstractSkeletonEntity::INCREASED_HARD_ATTACK_INTERVAL, 50);
+    EXPECT_EQ(AbstractSkeletonEntity::INCREASED_NORMAL_ATTACK_INTERVAL, 70);
+
+    // 增大型间隔比基类间隔更慢
+    EXPECT_GT(AbstractSkeletonEntity::INCREASED_HARD_ATTACK_INTERVAL, AbstractSkeletonEntity::HARD_ATTACK_INTERVAL);
+    EXPECT_GT(AbstractSkeletonEntity::INCREASED_NORMAL_ATTACK_INTERVAL, AbstractSkeletonEntity::NORMAL_ATTACK_INTERVAL);
 }
 
 } // namespace

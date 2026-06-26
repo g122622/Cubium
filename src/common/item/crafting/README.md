@@ -156,6 +156,9 @@ src/common/item/crafting/
 8. **特殊配方的动态特性**
    - 特殊配方的 `isDynamic()` 返回 true，不会出现在配方书中
    - `assemble()` 返回的结果可能每次不同（如染色、修复）
+   - `ServerRecipeBook::add()` 自动过滤动态配方，不会将其加入解锁列表
+   - `RecipeBook::isBookRecipe()` 对动态配方返回 false（即使被手动 unlock）
+   - `ServerRecipeBook::isDynamicRecipe()` 静态方法用于判断配方是否为动态配方
 
 9. **熔炼配方继承关系**
    - `BlastingRecipe`（高炉）继承 `SmeltingRecipe`，烹饪时间 100 tick

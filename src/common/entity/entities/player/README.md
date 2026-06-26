@@ -86,18 +86,115 @@
     aiMoveSpeed()`），否则不会触发横扫效果。 - **权限等级与游戏模式分离 * *：`m_permissionLevel`（0 -
         4）独立于游戏模式存储，`setGameMode()` 会重置 `m_abilities` 但不会重置 `m_permissionLevel`。`canUseGameMasterBlocks()` 要求同时满足 `creativeMode` 和 `permissionLevel
     >= 2`。 - ** 权限等级网络同步**：服务端 `/ op`/`/ deop` 后会通过 `EntityStatusPacket`（status byte = 24 +
-    level）通知客户端权限等级变更，客户端收到后在 `ClientApplicationNetwork` 的 `onEntityStatus` 回调中更新本地玩家的 `m_permissionLevel`。 -
-    **冒险模式mayInteract检查双手 *
-        *：`Player::mayInteract()` 在冒险模式下会同时检查主手和副手物品的 CanPlaceOn
-         标签，任一只手的物品匹配即允许交互。参考 MC Java 的 `Player
-             .mayUseItemAt()`，该方法是逐手检查而非合并检查——服务端在处理交互包时，会根据包中指定的 InteractionHand
-         来决定检查哪只手的物品。
-    -
-    **重锤下落攻击流程 *
-        *：`Player::attack()` 中在计算附魔伤害前检测重锤下落攻击（`MaceItem::
-            canSmashAttack()`），如果触发则：跳过普通暴击判定、使用 `MaceItem::
-                getSmashAttackDamageBonus()` 计算下落攻击伤害加成（含致密魔咒）、使用 `DamageSources::
-                    maceSmash()` 伤害类型、调用 `MaceItem::
-                        hitEntity()` 处理砸地效果（停止下落、音效、击退）、调用 `postHitEntity()` 重置下落距离、检测风爆魔咒施加弹起速度。
-    -
-    **PvP 保护机制**：`Player::canHarmPlayer()` 控制玩家间伤害判定。基类实现检查队伍友伤规则（攻击者无队伍→可伤害；同队→取决于 `getAllowFriendlyFire()`；不同队→可伤害）。`ServerPlayer` 重写此方法，先检查 PVP 游戏规则（`IWorld::isPvpAllowed()`），PvP 禁用时直接返回 false。`ServerPlayer::hurt()` 在伤害来源为玩家时调用 `canHarmPlayer()` 拦截非法 PvP 伤害。驯服动物（如狼）的 `wantsToAttack()` 也调用 `canHarmPlayer()` 判断主人是否可以攻击目标玩家。
+            level）通知客户端权限等级变更，客户端收到后在 `ClientApplicationNetwork` 的 `onEntityStatus` 回调中更新本地玩家的 `m_permissionLevel`。 -
+            **冒险模式mayInteract检查双手 *
+                *：`Player::mayInteract()` 在冒险模式下会同时检查主手和副手物品的 CanPlaceOn
+                 标签，任一只手的物品匹配即允许交互。参考 MC Java 的 `Player
+                     .mayUseItemAt()`，该方法是逐手检查而非合并检查——服务端在处理交互包时，会根据包中指定的
+                 InteractionHand 来决定检查哪只手的物品。
+            -
+            **重锤下落攻击流程 *
+                *：`Player::attack()` 中在计算附魔伤害前检测重锤下落攻击（`MaceItem::
+                    canSmashAttack()`），如果触发则：跳过普通暴击判定、使用 `MaceItem::
+                        getSmashAttackDamageBonus()` 计算下落攻击伤害加成（含致密魔咒）、使用 `DamageSources::
+                            maceSmash()` 伤害类型、调用 `MaceItem::
+                                hitEntity()` 处理砸地效果（停止下落、音效、击退）、调用 `postHitEntity()` 重置下落距离、检测风爆魔咒施加弹起速度。
+            -
+            **PvP 保护机制 *
+                *：`Player::
+                    canHarmPlayer()` 控制玩家间伤害判定。基类实现检查队伍友伤规则（攻击者无队伍→可伤害；同队→取决于 `getAllowFriendlyFire()`；不同队→可伤害）。`ServerPlayer` 重写此方法，先检查
+                PVP 游戏规则（`IWorld::isPvpAllowed()`），PvP
+                禁用时直接返回 false。`ServerPlayer::hurt()` 在伤害来源为玩家时调用 `canHarmPlayer()` 拦截非法 PvP
+                伤害。驯服动物（如狼）的 `wantsToAttack()` 也调用 `canHarmPlayer()` 判断主人是否可以攻击目标玩家。
+            -
+            **疾跑击退与 causeExtraKnockback *
+                *：`Player::causeExtraKnockback()` 重写 LivingEntity 基类版本，在基类击退逻辑基础上增加 `setSprinting(
+                    false)`。当目标是 ServerPlayer 且 `hurtMarked` 为
+                true 时，立即通过 `sendVelocityPacket()` 发送速度包、清除 hurtMarked、恢复 preHurtVelocity，避免
+                EntityTracker::tick() 重复发送速度包导致客户端击退速度被重复应用。`sendVelocityPacket()` 是 Player
+                基类的虚方法（返回 false），ServerPlayer 重写版本实际发送网络包并返回 true。
+
+                -- -
+
+            ##冲量坠落伤害免疫系统
+
+            Player 实现了 MC Java `Player` 中的 impulse context 系统，用于重锤砸地攻击和风弹爆炸后的坠落伤害减免。
+
+            ## #核心字段
+
+        | 字段 | 类型 | 说明 | | -- -- --| -- -- --| -- -- --|
+        | `m_currentImpulseImpactPos` | `std::optional<Vector3>` | 冲量冲击位置（砸地 / 爆炸位置） |
+        | `m_ignoreFallDamageFromCurrentImpulse` | `bool` | 是否忽略当前冲量的坠落伤害 |
+        | `m_currentImpulseContextResetGraceTime` | `i32` | 冲量上下文重置宽限期（tick） |
+        | `m_currentExplosionCause` | `EntityId` | 引起冲量的实体ID（用于进度触发） |
+
+        ## #关键方法
+
+            - `setIgnoreFallDamageFromCurrentImpulse(bool)` — 设置免疫标志并启动 / 清除 40 tick 宽限期
+            - `isIgnoringFallDamageFromCurrentImpulse()` — 检查是否忽略冲量坠落伤害
+            - `applyPostImpulseGraceTime(i32)` — 扩展宽限期（取最大值，不缩短已有宽限期），风爆附魔用 10 tick
+            - `tryResetCurrentImpulseContext()` — 仅当宽限期为 0 时重置（着地 / 水中 / 攀爬时调用）
+            - `resetCurrentImpulseContext()` — 完全重置所有冲量状态
+            - `calculateMaceImpactPosition()` — 计算重锤冲击位置（防止连续砸地双重获利）
+            - `onExplosionHit(Entity*)` — 被爆炸击中时设置冲量上下文（仅风弹启用免疫）
+
+            ## #坠落伤害减免逻辑
+
+`Player::causeFallDamage()` 重写实现冲量减免：当 `m_ignoreFallDamageFromCurrentImpulse
+    &&
+    m_currentImpulseImpactPos` 为
+            true 时，坠落距离被限制为 `min(实际坠落距离, 冲击位置Y - 玩家Y)`。玩家在冲击位置上方时不受伤。
+
+            ## #冲量上下文生命周期
+
+            1. *
+            *设置 * *：重锤砸地攻击调用 `setIgnoreFallDamageFromCurrentImpulse(true)` +
+        设置冲击位置；风弹爆炸调用 `onExplosionHit()` 2. * *宽限期 *
+            *：40 tick 计时器逐 tick 递减，期间 `tryResetCurrentImpulseContext()` 不重置 3. * *减免 *
+            *：`causeFallDamage()` 中根据冲击位置计算减免后的坠落距离 4. * *重置触发 *
+            *：实际受到伤害、切换创造模式、着地 / 水中 /
+            攀爬（宽限期结束后）、卡在方块中（宽限期结束后）
+
+            ## #注意事项
+
+        - 冲量上下文字段已通过 `Player::addAdditionalSaveData`/`readAdditionalSaveData` 和 `PlayerSaveData` 实现持久化
+        - `m_currentExplosionCause` 不持久化（MC Java 同样不序列化此字段，因为它是运行时瞬时实体引用） -
+        对应 MC
+        Java `Player` 的 `setIgnoreFallDamageFromCurrentImpulse`、`currentImpulseImpactPos`、`currentImpulseContextResetGraceTime` 系列方法
+
+---
+
+## 最后死亡位置（LastDeathLocation）
+
+Player 实现了 MC Java `Player` 中的最后死亡位置记录系统，用于恢复指南针（Recovery Compass）指向。
+
+### 核心字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `m_lastDeathLocation` | `std::optional<GlobalPos>` | 最后死亡位置（维度ID + 方块坐标），未死亡时为空 |
+
+### 关键方法
+
+- `getLastDeathLocation()` — 获取最后死亡位置
+- `setLastDeathLocation(std::optional<GlobalPos>)` — 设置/清除最后死亡位置
+
+### 死亡记录逻辑
+
+`Player::die()` 在玩家死亡时自动记录 `m_lastDeathLocation = GlobalPos(m_dimension, onPos())`，包含当前维度和脚下方块位置。
+
+### 持久化
+
+最后死亡位置通过两条路径持久化：
+1. **Entity NBT 路径**: `Player::addAdditionalSaveData()`/`readAdditionalSaveData()` — NBT 格式为 `{LastDeathLocation: {dimension: "minecraft:overworld", pos: [x, y, z]}}`，与 MC Java 兼容
+2. **PlayerSaveData 路径**: `PlayerSaveData::toNbt()`/`fromNbt()` + `PlayerDataManager::fromPlayer()`/`applyToPlayer()` — 独立的玩家存储系统
+
+### 网络同步
+
+维度切换时，`RespawnPacket` 携带 `lastDeathLocation` 字段同步到客户端，客户端在 `ClientApplicationNetwork::onRespawn` 回调中更新本地玩家状态。
+
+### 注意事项
+
+- 反序列化同时支持字符串维度名（`"minecraft:overworld"`）和整数维度ID（向后兼容）
+- 项目不重新创建 Player 实体（与 MC Java 的 `restoreFrom` 不同），因此无需 `restoreFrom` 逻辑
+- 同维度重生的 RespawnPacket 发送属于尚未实现的死亡重生基础设施，超出 LastDeathLocation TODO 范围

@@ -7,7 +7,7 @@
 ```
 kagero/
 ├── Types.hpp                    # 基础类型定义（Rect, Margin, Padding, Anchor等）
-├── KageroEngine.hpp/cpp         # UI引擎核心类，统一管理所有UI组件
+├── KageroEngine.hpp/cpp         # UI引擎核心类，统一管理所有UI组件（含双击检测、右键分发）
 ├── README.md                    # 本文档
 │
 ├── event/                       # 事件系统
@@ -24,7 +24,7 @@ kagero/
 │   └── StateObserver.hpp        # 观察者辅助类
 │
 ├── widget/                      # Widget组件
-│   ├── Widget.hpp               # Widget基类，所有UI组件的基类
+│   ├── Widget.hpp               # Widget基类，所有UI组件的基类（含onDoubleClick/onRightClick虚方法）
 │   ├── IWidgetContainer.hpp     # 容器接口，CRTP模板
 │   ├── ContainerWidget.hpp/cpp  # 通用容器组件
 │   ├── ButtonWidget.hpp         # 按钮组件（ButtonWidget, ImageButtonWidget）
@@ -33,7 +33,7 @@ kagero/
 │   ├── TextFieldWidget.hpp      # 文本输入框组件
 │   ├── CheckboxWidget.hpp       # 复选框组件
 │   ├── SliderWidget.hpp         # 滑动条组件
-│   ├── ListWidget.hpp           # 列表组件
+│   ├── ListWidget.hpp           # 列表组件（支持框架级双击回调）
 │   ├── ScrollableWidget.hpp     # 可滚动容器组件
 │   ├── SlotWidget.hpp           # 物品槽组件（用于背包等）
 │   ├── Viewport3DWidget.hpp     # 3D视口组件（用于物品预览等）
@@ -129,6 +129,69 @@ kagero/
 - **Template** - 声明式UI定义，XML模板编译和实例化
 - **Paint** - 平台无关的绘制抽象接口，封装ICanvas/IPaint/IPath
 
+## 双击与右键事件系统
+
+Kagero引擎在框架层面统一实现了双击检测和右键事件分发，参考MC Java版 `MouseHandler` 的双击检测机制。
+
+### 事件分发流程
+
+```
+GLFW鼠标回调 → InputManager → ClientApplication → KageroEngine::handleClick()
+                                                         │
+                                                         ├─ onClick() → Widget::onClick()
+                                                         ├─ 双击检测（250ms内同Widget同按钮）
+                                                         │   └─ onDoubleClick() → Widget::onDoubleClick()
+                                                         └─ 右键分发（button == 1）
+                                                             └─ onRightClick() → Widget::onRightClick()
+```
+
+### KageroEngine 双击检测
+
+- **阈值**：250ms（`DOUBLE_CLICK_THRESHOLD_MS`）
+- **条件**：同一Widget、同一鼠标按钮、250ms内的第二次点击
+- **状态**：`m_lastClickWidget`、`m_lastClickButton`、`m_lastClickTimeMs`
+- **重置**：双击触发后状态立即重置，三击不会触发第二次双击
+
+### 右键点击行为
+
+右键点击（button == 1）时，`onClick` 和 `onRightClick` **都会触发**，这是有意为之的设计：
+- `onClick(x, y, 1, mods)` — 通用点击事件（button=1表示右键）
+- `onRightClick(x, y, mods)` — 专用右键事件
+
+组件应在 `onClick` 中检查 `button` 参数来区分左右键，或仅处理左键点击（button == 0）。
+右键双击同样遵循双击检测机制：250ms内同一Widget同一右键连续点击会触发 `onDoubleClick(x, y, 1, mods)`。
+
+### Widget 虚方法
+
+| 方法 | 说明 | 默认行为 |
+|------|------|----------|
+| `onDoubleClick(x, y, button, mods)` | 双击事件 | 调用 `m_onDoubleClickCallback`，无回调返回false |
+| `onRightClick(x, y, mods)` | 右键事件 | 调用 `m_onRightClickCallback`，无回调返回false |
+
+### Widget 回调设置
+
+```cpp
+widget.setOnDoubleClickCallback([](Widget& w) { /* 双击处理 */ });
+widget.setOnRightClickCallback([](Widget& w) { /* 右键处理 */ });
+```
+
+### 容器分发
+
+ContainerWidget 和 ScrollableWidget 均覆写了 `onDoubleClick`/`onRightClick`，自动将事件分发到子Widget：
+- ContainerWidget：遍历子Widget找到命中目标
+- ScrollableWidget：调整滚动偏移后分发到子Widget
+
+### ListWidget 双击
+
+ListWidget 的 `onDoubleClick` 覆写会将双击事件分发到列表项（`IListItem::onDoubleClick`），并触发 `m_onDoubleClick` 回调（签名：`void(size_t index, IListItem*)`），然后调用基类 `Widget::onDoubleClick` 以触发模板回调。
+
+### 模板绑定
+
+模板系统中可通过 `bind:doubleClick` 和 `bind:rightClick` 绑定事件：
+- `doubleClick` → `BuiltinEvents` 调用 `widget->onDoubleClick()`
+- `rightClick` → `BuiltinEvents` 调用 `widget->onRightClick()`
+- `TemplateInstance` 通过 `setOnDoubleClickCallback`/`setOnRightClickCallback` 桥接模板回调
+
 ## 上下游外部依赖关系
 
 **被依赖方（谁使用了Kagero）：**
@@ -139,11 +202,11 @@ kagero/
 - `common/core/Types.hpp` - 基础类型定义（i32, u32, String等）
 - `common/core/Result.hpp` - 错误处理
 - `common/util/text/Utf8.hpp` - UTF-8 编码/解码/迭代工具（所有文本Widget依赖此模块处理多字节字符）
+- `common/input/KeyBinding.hpp` - 平台无关键码常量（Keys命名空间），Widget组件通过此模块替代硬编码GLFW键码
 - `client/ui/Font.hpp` - 字体渲染和字形查找
 - `client/ui/Glyph.hpp` - 字形渲染
 - `client/renderer/api/` - 渲染抽象接口（ICanvas实现）
-- GLFW - 窗口/输入事件
-- spdlog - 日志
+- GLFW - 窗口/输入事件（仅KageroEngine层接收GLFW回调，Widget层不直接依赖GLFW键码）
 
 ## 容易踩的坑
 
@@ -229,3 +292,7 @@ TextFieldWidget 内部所有位置/索引操作基于 **码点**（而非字节�
 - `measureTextWidth`、`_measurePrefixWidth`、`positionFromTextOffset` 均按码点迭代
 - 光标闪烁使用 `m_cursorBlinkTimer`（秒）+ `m_cursorVisible` 布尔值，周期 500ms
 - 选区高亮使用 `m_selectionColor`（默认半透明蓝色 `0x8000AAFF`），在 `paint()` 中通过 `drawFilledRect` 绘制
+
+### 12. Widget 键码使用 Keys 常量
+
+Widget组件（TextFieldWidget、SliderWidget、ScrollableWidget等）的 `onKey()` 方法中的键码必须使用 `mc::Keys` 命名空间常量（定义在 `common/input/KeyBinding.hpp`），而非硬编码数值或GLFW宏。键动作判断使用 `KeyAction::Press/Repeat/Release`（定义在 `Types.hpp`），修饰键判断使用 `hasMod(static_cast<KeyMods>(mods), KeyMods::Shift)` 而非位掩码 `mods & 0x0001`。模板系统的 `parseKeyCode()` 和 `parseKeyMods()` 同样使用这些常量和枚举。

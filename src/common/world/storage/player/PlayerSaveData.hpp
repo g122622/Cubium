@@ -94,6 +94,9 @@ struct PlayerSaveData {
     /// 进入下界时的位置（用于进度追踪）
     std::optional<Vector3d> enteredNetherPosition;
 
+    /// 上次死亡位置（维度+方块坐标，用于追溯指南针和存档持久化）
+    std::optional<GlobalPos> lastDeathLocation;
+
     // ========== 游戏模式 ==========
 
     /// 游戏模式
@@ -200,6 +203,17 @@ struct PlayerSaveData {
 
     /// 潜行状态
     bool sneaking = false;
+
+    // ========== 冲量上下文（坠落伤害减免） ==========
+
+    /// 冲量冲击位置（砸地/爆炸位置），可选
+    std::optional<Vector3> currentImpulseImpactPos;
+
+    /// 是否忽略当前冲量的坠落伤害
+    bool ignoreFallDamageFromCurrentImpulse = false;
+
+    /// 冲量上下文重置宽限期（tick）
+    i32 currentImpulseContextResetGraceTime = 0;
 
     // ========== 构造函数 ==========
 

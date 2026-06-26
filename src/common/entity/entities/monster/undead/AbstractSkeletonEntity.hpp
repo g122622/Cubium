@@ -25,15 +25,12 @@
 
 #include "../../../interfaces/IRangedAttackMob.hpp"
 #include "../MonsterEntity.hpp"
-#include <memory>
-
-// Forward declarations
-namespace mc::entity::ai::goal {
-class RangedBowAttackGoal;
-class MeleeAttackGoal;
-} // namespace mc::entity::ai::goal
+#include "common/item/core/ItemStack.hpp"
 
 namespace mc {
+
+// Forward declarations
+class Item;
 
 /**
  * @brief 骷髅系怪物公共中间层
@@ -74,6 +71,17 @@ public:
     static constexpr i32 ATTACK_INTERVAL_MAX = 40;  // 最大攻击间隔（ticks）
     static constexpr f32 ATTACK_RADIUS = 15.0f;     // 远程攻击半径
 
+    /// 困难难度下的最小攻击间隔（ticks），对应 MC 原版 HARD_ATTACK_INTERVAL
+    static constexpr i32 HARD_ATTACK_INTERVAL = 20;
+    /// 非困难难度下的最小攻击间隔（ticks），对应 MC 原版 NORMAL_ATTACK_INTERVAL
+    static constexpr i32 NORMAL_ATTACK_INTERVAL = 40;
+    /// 增大型困难难度最小攻击间隔（ticks），用于射击更慢的骷髅变种
+    /// 对应 MC 原版 INCREASED_HARD_ATTACK_INTERVAL
+    static constexpr i32 INCREASED_HARD_ATTACK_INTERVAL = 50;
+    /// 增大型非困难难度最小攻击间隔（ticks），用于射击更慢的骷髅变种
+    /// 对应 MC 原版 INCREASED_NORMAL_ATTACK_INTERVAL
+    static constexpr i32 INCREASED_NORMAL_ATTACK_INTERVAL = 70;
+
     /// 战斗目标优先级
     static constexpr i32 COMBAT_GOAL_PRIORITY = 4;
 
@@ -95,16 +103,59 @@ public:
     // ========== 战斗目标管理 ==========
 
     /**
-     * @brief 设置战斗目标
+     * @brief 重新评估战斗目标
      *
      * 根据装备动态选择战斗目标：
      * - 如果持有弓，使用 RangedBowAttackGoal
      * - 否则使用 MeleeAttackGoal
      *
      * 此方法会先移除所有战斗目标，再根据装备添加正确的目标。
-     * 子类可以通过装备不同武器来影响战斗目标选择。
+     * 在以下时机被调用：
+     * - 构造函数末尾
+     * - finalizeSpawn() 中
+     * - 装备变更时（setEquipment 触发）
+     * - NBT 加载后（addAdditionalSaveData / readAdditionalSaveData）
      */
     virtual void setCombatTask();
+
+    /**
+     * @brief 检查实体是否可以使用非近战武器
+     *
+     * 当实体手持指定物品时，返回 true 表示该物品被视为远程武器。
+     * 默认实现检查物品是否为弓。
+     * 凋灵骷髅重写此方法返回 false，因为它不使用远程攻击。
+     *
+     * 对应 MC 原版 AbstractSkeleton.canUseNonMeleeWeapon()。
+     *
+     * @param stack 要检查的物品堆
+     * @return 如果该物品是远程武器则返回 true
+     */
+    [[nodiscard]] virtual bool canUseNonMeleeWeapon(const ItemStack& stack) const;
+
+    /**
+     * @brief 获取困难难度下的最小攻击间隔
+     *
+     * 子类可重写此方法以提供不同的攻击间隔（如沼骸骷髅射击更慢）。
+     * 默认实现返回 HARD_ATTACK_INTERVAL (20 ticks)。
+     *
+     * 对应 MC 原版 AbstractSkeleton.getHardAttackInterval()。
+     *
+     * @return 困难难度下的最小攻击间隔（ticks）
+     */
+    [[nodiscard]] virtual i32 getHardAttackInterval() const { return HARD_ATTACK_INTERVAL; }
+
+    /**
+     * @brief 获取非困难难度下的最小攻击间隔
+     *
+     * 子类可重写此方法以提供不同的攻击间隔（如沼骸骷髅射击更慢）。
+     * 默认实现返回 NORMAL_ATTACK_INTERVAL (40 ticks)。
+     *
+     * 对应 MC 原版 AbstractSkeleton.getAttackInterval()。
+     * 同时重写 IRangedAttackMob::getAttackInterval()（默认返回 20 ticks）。
+     *
+     * @return 非困难难度下的最小攻击间隔（ticks）
+     */
+    [[nodiscard]] i32 getAttackInterval() const override { return NORMAL_ATTACK_INTERVAL; }
 
     // ========== 生命周期 ==========
 
@@ -133,6 +184,14 @@ protected:
     void registerGoals() override;
     void registerAttributes() override;
 
+    /**
+     * @brief 装备变更回调
+     *
+     * 当装备槽位发生变化时，重新评估战斗目标（远程/近战切换）。
+     * 对应 MC 原版 AbstractSkeleton.onEquipItem() 中的 reassessWeaponGoal() 调用。
+     */
+    void setEquipment(EquipmentSlot slot, const ItemStack& stack) override;
+
     // ========== 弓箭状态 ==========
 
     bool m_chargingBow = false;
@@ -140,13 +199,9 @@ protected:
     i32 m_attackCooldown = 0;
 
     // ========== 战斗目标 ==========
-    /// 注意：这些目标指针在 GoalSelector 中被复制，所以需要通过原始指针操作
-
-    /// 远程攻击目标
-    std::unique_ptr<entity::ai::goal::RangedBowAttackGoal> m_rangedAttackGoal;
-
-    /// 近战攻击目标
-    std::unique_ptr<entity::ai::goal::MeleeAttackGoal> m_meleeAttackGoal;
+    // 注意：战斗目标的唯一所有权归 GoalSelector 所有，不再使用 unique_ptr 成员存储。
+    // setCombatTask() 每次调用时创建新的 Goal 对象并转移所有权给 GoalSelector，
+    // 通过 removeGoalsOfType() 移除旧目标。这避免了 unique_ptr 和 GoalSelector 之间的所有权冲突。
 };
 
 } // namespace mc

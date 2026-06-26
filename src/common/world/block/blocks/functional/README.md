@@ -7,7 +7,7 @@
 ``` functional /
 ├── AnvilBlock.hpp / cpp #铁砧（FallingBlock子类，X / Z不对称碰撞箱，GUI容器，下落伤害 +
         损坏降级，3个变体）
-├── BedBlock.hpp / cpp #床方块（16色，双格结构，设置重生点）
+├── BedBlock.hpp / cpp #床方块（16色，双格结构，设置重生点，起床位置算法）
 ├── BrewingStandBlock.hpp / cpp #酿造台（药水酿造，3瓶槽位）
 ├── CauldronBlock.hpp / cpp #炼药锅（储水、物品清洗，4级水位）
 ├── CompostableItems.hpp / cpp #可堆肥物品注册表（ ~66种物品概率表）
@@ -45,7 +45,10 @@
             / 破碎音效（WorldEvents 1031 /
             1029）
 ├── BedBlock
-│   └── 双方块结构处理
+│   ├── 双方块结构处理（HEAD/FOOT + OCCUPIED状态同步）
+│   ├── getBedOrientation() — 获取床朝向
+│   ├── getConnectedDirection() — 根据BED_PART获取连接方向
+│   └── findStandUpPosition() — MC原版12候选位置起床算法（支持双层床、实体yaw偏航角优先级）
 ├── BrewingStandBlock
 │   └── 容器方块实体
 ├── CauldronBlock

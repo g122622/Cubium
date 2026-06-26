@@ -83,6 +83,13 @@ CooldownTracker.hpp      ← 独立冷却追踪
 
 `SpawnPointValidator::validate()` 需要传入对应维度的世界对象，如果世界不存在会返回 `WorldNotFound`，调用方需处理回退到世界出生点的逻辑。
 
-### 7. 起床位置优先级
+### 7. 起床位置算法
 
-起床位置查找优先级：床头前方 > 床尾前方 > 床两侧 > 床上方。如果所有位置都被阻挡，玩家会被传送回世界出生点。
+起床位置查找委托给 `BedBlock::findStandUpPosition()`，算法与 MC 原版一致：
+- 根据床朝向计算顺时针方向，再根据实体 yaw 偏航角决定优先搜索左侧还是右侧
+- 生成 12 个候选位置（10 个周围位置 + 2 个床上方位置）
+- 支持双层床检测（床下方一格也有床时搜索下层）
+- 优先搜索安全位置（避开液体），然后回退到不安全位置
+- 最终回退到床头正上方
+
+`SleepManager::findWakeUpPosition()` 内部委托给 `BedBlock::findStandUpPosition()`，保持向后兼容。

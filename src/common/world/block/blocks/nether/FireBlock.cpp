@@ -291,26 +291,30 @@ void FireBlock::onEntityCollision(const BlockState& state, IWorld& world, const 
     MC_UNUSED(state);
     MC_UNUSED(pos);
 
+    // MC Java: BaseFireBlock.entityInside() -> InsideBlockEffectType.FIRE_IGNITE -> BaseFireBlock.fireIgnite()
     // 1. 检查实体是否免疫火焰
     if (entity.isImmuneToFire()) {
         return;
     }
 
-    // 2. 增加火焰计时器（每个碰撞 tick 增加 1）
-    entity.forceFireTicks(entity.getFireTimer() + 1);
-
-    // 3. 如果火焰计时器为 0，设置燃烧 8 秒（160 ticks）
-    if (entity.getFireTimer() == 0) {
-        entity.setFire(160);
+    // 2. 处理火焰免疫期倒计时
+    // MC Java: 如果 remainingFireTicks < 0（免疫期），每 tick 增加 1 直到归零
+    i32 fireTicks = entity.getRemainingFireTicks();
+    if (fireTicks < 0) {
+        entity.setRemainingFireTicks(fireTicks + 1);
+    } else {
+        // 3. 非免疫期，增加火焰计时器（每个碰撞 tick 增加 1）
+        entity.forceFireTicks(fireTicks + 1);
     }
 
-    // 4. 造成火焰伤害
-    // 只有 LivingEntity 才能受到伤害
-    auto* livingEntity = dynamic_cast<LivingEntity*>(&entity);
-    if (livingEntity != nullptr) {
-        auto damageSource = DamageSources::inFire();
-        livingEntity->hurt(damageSource, static_cast<f32>(m_fireDamage));
+    // 4. 如果火焰计时器 >= 0（不在免疫期），点燃 8 秒（160 ticks）
+    if (entity.getRemainingFireTicks() >= 0) {
+        entity.igniteForSeconds(8.0f);
     }
+
+    // 5. 造成火焰伤害
+    auto damageSource = DamageSources::inFire();
+    entity.hurt(damageSource, static_cast<f32>(m_fireDamage));
 }
 
 const CollisionShape& FireBlock::getShape(const BlockState& state) const

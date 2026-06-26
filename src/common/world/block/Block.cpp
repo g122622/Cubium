@@ -761,6 +761,18 @@ bool Block::isFaceFull(const CollisionShape& shape, Direction direction)
     return faceShape.coversFullBlock();
 }
 
+bool Block::isExceptionForConnection(const BlockState& state)
+{
+    // 参考: net.minecraft.block.Block#isExceptionForConnection
+    // 某些固体方块不应与栅栏、墙、玻璃板建立连接
+    return BlockTags::LEAVES().contains(state) || BlockTags::SHULKER_BOXES().contains(state) ||
+        state.is(BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "barrier"))) ||
+        state.is(BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "carved_pumpkin"))) ||
+        state.is(BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "jack_o_lantern"))) ||
+        state.is(BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "melon"))) ||
+        state.is(BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "pumpkin")));
+}
+
 const BlockState& Block::pushEntitiesUp(
     const BlockState& oldState, const BlockState& newState, IWorld& world, const BlockPos& pos)
 {

@@ -213,7 +213,8 @@ struct NetworkClientCallbacks {
         GameMode previousGameMode,
         bool isDebug,
         bool isFlat,
-        bool keepData)>
+        bool keepData,
+        std::optional<GlobalPos> lastDeathLocation)>
         onRespawn;
 
     // 维度信息事件

@@ -49,6 +49,10 @@ public:
 
     [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
 
+    void setPreviousOxidationBlock(Block* prevBlock) { m_previousOxidationBlock = prevBlock; }
+
+    [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
+
     [[nodiscard]] float getOxidationChanceModifier() const override
     {
         return m_oxidationLevel == BlockStateProperties::OxidationLevel::Unaffected ? 0.75f : 1.0f;
@@ -64,6 +68,7 @@ public:
 protected:
     BlockStateProperties::OxidationLevel m_oxidationLevel;
     Block* m_nextOxidationBlock = nullptr;
+    Block* m_previousOxidationBlock = nullptr;
 };
 
 /**

@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/IWaterLoggable.hpp"
@@ -29,9 +30,11 @@
 #include <unordered_map>
 
 namespace mc {
+
 namespace fluid {
 class Fluid;
 } // namespace fluid
+
 namespace blocks {
 
 /**
@@ -136,6 +139,12 @@ public:
     [[nodiscard]] static std::optional<BlockPos> findFillableCauldronBelow(
         IWorld& world, const BlockPos& tipPos, const fluid::Fluid& fluid);
 
+    /// 从炼药锅向上搜索可滴水的钟乳石尖端
+    [[nodiscard]] static std::optional<BlockPos> findStalactiteTipAboveCauldron(IWorld& world, const BlockPos& pos);
+
+    /// 获取钟乳石可填充炼药锅的流体类型
+    [[nodiscard]] static const fluid::Fluid* getCauldronFillFluidType(IWorld& world, const BlockPos& tipPos);
+
     /// 判断方块是否可被滴水穿透
     [[nodiscard]] static bool canDripThrough(IWorld& world, const BlockPos& pos, const BlockState* state);
 
@@ -163,6 +172,17 @@ public:
     /// 流体传输逻辑
     static void maybeTransferFluid(const BlockState& state, IWorld& world, const BlockPos& pos, f32 chance);
 
+    /**
+     * @brief 获取钟乳石滴水粒子位置
+     *
+     * Y = blockPos.y + STALACTITE_DRIP_START_PIXEL - 0.0625 = blockPos.y + 0.25
+     * X/Z = blockPos.x/z + 0.5（中心对齐）
+     *
+     * @param pos 钟乳石尖端方块位置
+     * @return 粒子生成位置（世界坐标）
+     */
+    [[nodiscard]] static Vector3 getDripParticlePosition(const BlockPos& pos);
+
 private:
     /// 碰撞形状，按厚度和方向索引
     std::unordered_map<BlockStateProperties::DripstoneThickness, CollisionShape> m_shapes;
@@ -175,6 +195,8 @@ private:
     static constexpr i32 MAX_SEARCH_LENGTH_WHEN_CHECKING_DRIP_TYPE = 11;
     /// 钟乳石掉落延迟(tick)
     static constexpr i32 DELAY_BEFORE_FALLING = 2;
+    /// 钟乳石尖端滴水起始 Y 偏移（像素），对应 SHAPE_TIP_DOWN.min(Y) = 5.0
+    static constexpr f64 STALACTITE_DRIP_START_PIXEL = 5.0 / 16.0;
     /// 水传输概率
     static constexpr f32 WATER_TRANSFER_PROBABILITY_PER_RANDOM_TICK = 0.17578125F;
     /// 岩浆传输概率

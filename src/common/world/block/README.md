@@ -6,13 +6,13 @@
 
 ``` block /
 ├── Block.hpp /
-    cpp #方块基类，定义核心属性和行为（含 updateFromNeighbourShapes 静态方法和 UPDATE_SHAPE_ORDER 常量）
+    cpp #方块基类，定义核心属性和行为（含 updateFromNeighbourShapes 静态方法、UPDATE_SHAPE_ORDER 常量、isExceptionForConnection 连接例外判断）
 ├── BlockState.hpp / cpp #方块状态类，不可变状态对象
 ├── BlockPos.hpp #方块位置坐标类
 ├── BlockRegistry.hpp / cpp #方块注册表（单例）
 ├── BlockSoundType.hpp / cpp #方块声音类型定义
 ├── BlockTags.hpp /
-    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS
+    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS
         等）
 ├── FireInfoRegistry.hpp /
     cpp #火焰信息注册表（燃烧 / 蔓延属性）
@@ -626,3 +626,34 @@ u32 stateId = state.stateId();         // 状态ID
     8. 调用 `Block::spawnAfterBreak()` 触发额外效果
 
         **客户端安全 **：`lootTableManager()` 在客户端返回 `nullptr`，方法直接返回，不生成任何掉落物
+
+                    ## #32. Block::isExceptionForConnection 连接例外方块判断
+
+`Block::isExceptionForConnection(const BlockState& state)` 是静态方法，判断方块是否属于"连接例外"——即虽然是固体方块但不应与栅栏、墙、玻璃板建立连接。对应 MC Java 的 `Block.isExceptionForConnection()`。
+
+**连接例外方块列表**：
+- `BlockTags::LEAVES()` — 所有树叶（橡树、云杉、白桦等）
+- `BlockTags::SHULKER_BOXES()` — 所有潜影盒变体（16色 + 无色）
+- `barrier` — 屏障方块
+- `carved_pumpkin` — 雕刻南瓜
+- `jack_o_lantern` — 南瓜灯
+- `melon` — 西瓜
+- `pumpkin` — 南瓜
+
+**使用场景**：
+- `FenceBlock::_canConnect()` — 固体方块连接时排除例外：`!Block::isExceptionForConnection(state) && isNeighborSolid`
+- `WallBlock::_getWallHeight()` — 固体方块连接时排除例外：`!Block::isExceptionForConnection(state) && state.isSolid()`
+- `PaneBlock::shouldConnectTo()` — 固体侧面连接时排除例外：`!Block::isExceptionForConnection(neighborState) && isSolidSide`
+
+**注意**：不要在连接逻辑中仅检查 `isSolid()` 而忘记 `isExceptionForConnection()`，否则栅栏/墙/玻璃板会错误地连接到树叶、潜影盒等方块。
+
+                    ## #33. BlockTags 新增标签说明
+
+### BARS 标签
+`BlockTags::BARS()` 包含铁栏杆（`iron_bars`），用于 WallBlock 的 `_getWallHeight()` 判断——铁栏杆与墙连接时返回 `WallHeight::Low`（低连接）。
+
+### SHULKER_BOXES 标签
+`BlockTags::SHULKER_BOXES()` 包含所有潜影盒变体（无色 + 16色），用于 `Block::isExceptionForConnection()` 判断——潜影盒虽然是固体，但不应与栅栏、墙、玻璃板建立连接。
+
+### WALL_POST_OVERRIDE 标签
+`BlockTags::WALL_POST_OVERRIDE()` 包含放置在墙上时强制显示墙柱的方块：火把、灵魂火把、红石火把、绊线、告示牌（站立/墙面所有变体）、旗帜（站立/墙面所有颜色）、压力板（木质/石质/铜质/金质/铁质所有变体）。用于 WallBlock 的 `_shouldRaisePost()` 判断——当直线 Tall 墙上方有 WALL_POST_OVERRIDE 标签方块时，强制升起墙柱（UP=true）。

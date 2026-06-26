@@ -37,6 +37,7 @@ add_executable(mc_tests
     common/TestWorldHelper.cpp
     common/BaseTestServer.cpp
     common/test_block.cpp
+    common/test_pointed_dripstone.cpp
     common/test_chunk_generation.cpp
     common/test_chunk_level.cpp
     common/test_biome.cpp
@@ -58,6 +59,7 @@ add_executable(mc_tests
     common/test_item.cpp
     common/test_block_item.cpp
     common/test_inventory.cpp
+    common/test_equipment_serialization.cpp
     common/test_item_entity.cpp
     common/test_container.cpp
     common/item/crafting/IngredientTest.cpp
@@ -82,6 +84,8 @@ add_executable(mc_tests
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp
+    common/item/special/HoneycombItemTest.cpp
+    common/item/special/WaxIntegrationTest.cpp
     common/item/special/OnAStickItemTest.cpp
     # MusicDiscItem 音乐唱片测试（比较器信号、isMusicDisc、声音事件ID）
     common/item/special/MusicDiscItemTest.cpp
@@ -100,10 +104,13 @@ add_executable(mc_tests
     common/item/enchantment/AttemptDamageItemTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
+    common/entity/inventory/PlayerInventoryNbtTest.cpp
+    common/entity/inventory/PlayerEnderChestInventoryTest.cpp
     common/entity/inventory/IRecipeHolderTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp
+    client/ui/screen/FurnaceScreenTextureTest.cpp
     common/entity/inventory/container/EnchantmentContainerTest.cpp
     common/entity/inventory/container/BrewingStandContainerTest.cpp
     common/entity/inventory/container/AnvilContainerTest.cpp
@@ -183,6 +190,8 @@ add_executable(mc_tests
     common/entity/entities/monster/undead/ZombieEntityTest.cpp
     # SkeletonEntity 骷髅射箭测试
     common/entity/entities/monster/undead/SkeletonEntityTest.cpp
+    # SkeletonEntity 骷髅战斗目标切换测试（getWeaponHoldingHand, canUseNonMeleeWeapon, setCombatTask, setEquipment）
+    common/entity/entities/monster/undead/SkeletonCombatTaskTest.cpp
     # VexEntity 穿墙能力和生命周期测试
     common/entity/entities/monster/illager/VexEntityTest.cpp
     # EvokerEntity 尖牙攻击和召唤恼鬼测试
@@ -193,6 +202,8 @@ add_executable(mc_tests
     common/entity/entities/monster/illager/WitchEntityTest.cpp
     # SpellcastingIllager 施法粒子颜色测试
     common/entity/entities/monster/illager/SpellcastingIllagerTest.cpp
+    # IllusionerEntity 镜像分身偏移、施法状态和远程攻击测试
+    common/entity/entities/monster/illager/IllusionerEntityTest.cpp
     # ShulkerEntity 贝壳状态、瞬移和投射物免疫测试
     common/entity/entities/monster/end/ShulkerEntityTest.cpp
     # EndermanEntity 注视检测测试（Player::getLookVector、isLookingAt、shouldAttackPlayer）
@@ -302,6 +313,10 @@ add_executable(mc_tests
     common/entity/ArrowEntityTest.cpp
     # ArrowEntity 修复验证测试（拾取状态、伤害公式、isPlayer判断）
     common/entity/ArrowEntityFixTest.cpp
+    # ItemEntity 伤害处理测试（hurt、isImmuneToFire、canBeHurtBy、FIRE_RESISTANT标签）
+    common/entity/ItemEntityTest.cpp
+    # Entity 岩浆伤害/火焰处理测试（lavaIgnite、lavaHurt、shouldPlayLavaHurtSound、clearFire、baseTick火焰逻辑）
+    common/entity/core/EntityLavaFireTest.cpp
     # 难度系统测试
     common/entity/combat/DifficultyHelperTest.cpp
     # DifficultyInstance 区域难度测试
@@ -314,12 +329,16 @@ add_executable(mc_tests
     common/entity/core/EntityRandomTest.cpp
     # MobEntity 序列化测试（掉落概率、死亡掉落表、拴绳数据 NBT 序列化）
     entity/MobEntitySerializationTest.cpp
+    # Entity::getLootTableId() 及其子类覆写测试
+    common/entity/core/GetLootTableIdTest.cpp
     # 战斗追踪器测试
     common/entity/combat/CombatTrackerTest.cpp
     # CombatRules EPF 测试
     common/entity/combat/CombatRulesEPFTest.cpp
     # 横扫攻击静止检测条件测试
     common/entity/combat/SweepAttackConditionTest.cpp
+    # 疾跑击退速度修正测试
+    common/entity/combat/CauseExtraKnockbackTest.cpp
     # GameRules 游戏规则测试
     common/world/gamerule/GameRulesTest.cpp
     # PVP 游戏规则测试
@@ -369,16 +388,20 @@ add_executable(mc_tests
     common/world/blockentity/CrafterBlockEntityTest.cpp
     # ShelfBlockEntity 书架方块实体测试（比较器信号、物品交换、序列化、克隆）
     common/world/blockentity/ShelfBlockEntityTest.cpp
+    # MobSpawnerBlockEntity 刷怪笼方块实体测试（生成逻辑、玩家检测、延迟重置、序列化、克隆）
+    common/world/blockentity/MobSpawnerBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
+    common/world/block/blocks/LavaCauldronBlockTest.cpp
     common/world/block/blocks/LightningRodBlockTest.cpp
     common/world/block/blocks/LecternBlockTest.cpp
     common/world/block/blocks/MobBlocksTest.cpp
     common/world/block/DispenseItemBehaviorTest.cpp
     common/world/storage/StorageTaskTest.cpp
     common/world/storage/PlayerStorageTest.cpp
+    common/world/storage/RocksDBDatabaseTest.cpp
     server/world/ServerWorldPersistenceTest.cpp
     common/world/storage/WorldNameSanitizerTest.cpp
     common/world/storage/JavaChunkReaderTest.cpp
@@ -392,6 +415,7 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
     common/world/block/blocks/decorative/TorchBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
+    common/world/block/blocks/functional/BedBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
     common/world/block/blocks/functional/ComposterBlockTest.cpp
     common/world/block/blocks/functional/AnvilBlockTest.cpp
@@ -444,6 +468,7 @@ add_executable(mc_tests
     common/world/block/blocks/OxidizableBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
     common/world/CanSeeSkyTest.cpp
+    common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp
     common/world/dimension/EndDragonFightTest.cpp
     common/command/test_command_dispatcher.cpp
@@ -459,12 +484,14 @@ add_executable(mc_tests
     # Player LUCK 属性测试
     entity/PlayerLuckAttributeTest.cpp
     entity/LivingEntityTests.cpp
+    entity/HurtMarkedTest.cpp
     entity/AnimalSoundTests.cpp
     entity/GoalTests.cpp
     entity/EatGrassGoalTest.cpp
     entity/CreeperSwellGoalTest.cpp
     entity/AreaEffectCloudEntityTest.cpp
     entity/BlazeFireballAttackGoalTest.cpp
+    entity/BlazeHoverBehaviorTest.cpp
     # 火球类投射物测试（伤害、爆炸、区域效果云）
     entity/FireballEntityTest.cpp
     # DamagingProjectileEntity 粒子效果测试（水下气泡、拖尾粒子）
@@ -486,7 +513,7 @@ add_executable(mc_tests
     entity/NetherEntitiesTest.cpp
     # PatrolGoal 测试
     common/entity/ai/goal/PatrolGoalTest.cpp
-    entity/WitherEntityTest.cpp
+    common/entity/entities/boss/WitherEntityTest.cpp
     # EnderDragonEntity 末影龙测试
     entity/EnderDragonEntityTest.cpp
     # EndermanEntity 受伤后瞬移逻辑测试
@@ -497,8 +524,11 @@ add_executable(mc_tests
     # EvokerFangsEntity 队伍伤害检查测试
     entity/EvokerFangsTest.cpp
     entity/VexGoalsTest.cpp
+    # IllusionerGoals 幻术师法术常量和 AI 优先级测试
+    entity/IllusionerGoalsTest.cpp
     entity/BrainScheduleTests.cpp
     entity/BrainMovementTaskTests.cpp
+    entity/BrainInteractTaskTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
     entity/FishSupportTypesTest.cpp
@@ -522,6 +552,10 @@ add_executable(mc_tests
     common/entity/player/PlayerMessageTest.cpp
     common/entity/player/PlayerPermissionTest.cpp
     common/entity/player/PlayerSleepTest.cpp
+    # Player 冲量坠落伤害免疫测试
+    common/entity/player/ImpulseContextTest.cpp
+    # Player NBT 序列化测试
+    common/entity/player/PlayerSerializationTest.cpp
     entity/ProjectileHelperTest.cpp
     # ThrowableEntity 传送门处理测试（下界传送门、末地折跃门）
     entity/ThrowablePortalTest.cpp
@@ -556,6 +590,8 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/special/AxolotlGoalsTest.cpp
     # DolphinGoals 海豚 AI 目标测试
     common/entity/ai/goal/goals/special/DolphinGoalsTest.cpp
+    # DrownedGoals 溺尸 AI 目标测试
+    common/entity/ai/goal/goals/special/DrownedGoalsTest.cpp
     # WanderingTraderGoals 流浪商人 AI 目标测试
     common/entity/ai/goal/goals/special/WanderingTraderGoalsTest.cpp
     # Sensors 传感器测试（VillagerHostilesSensor、AvoidEntitySensor）
@@ -570,6 +606,8 @@ add_executable(mc_tests
     common/entity/ai/goal/goals/interact/OpenDoorGoalTest.cpp
     # HurtByTargetGoal 被攻击反击目标测试
     common/entity/ai/goal/goals/target/HurtByTargetGoalTest.cpp
+    # TargetGoal 视线记忆（setUnseenMemoryTicks）测试
+    common/entity/ai/goal/goals/target/TargetGoalUnseenMemoryTest.cpp
     # DrownedEntity registerGoals 目标替换测试
     common/entity/ai/goal/goals/target/DrownedRegisterGoalsTest.cpp
     # GoalSelector 目标选择器测试（removeGoalsOfType 等）
@@ -692,6 +730,7 @@ add_executable(mc_tests
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
+    network/DimensionPacketsTest.cpp
     network/LocalServerConnectionTest.cpp
     network/TitlePacketTest.cpp
     network/BossInfoPacketTest.cpp
@@ -755,6 +794,7 @@ add_executable(mc_tests
     common/world/gen/feature/FeatureSorterTest.cpp
     common/world/gen/feature/NetherFeatureTest.cpp
     common/world/gen/feature/SnowAndFreezeFeatureTest.cpp
+    common/world/gen/feature/end/EndFeatureTest.cpp
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/feature/template/BlockAgeProcessorTest.cpp
     common/world/gen/feature/template/test_capped_processor.cpp
@@ -789,6 +829,8 @@ add_executable(mc_tests
     common/world/block/test_redstone_blocks.cpp
     common/world/block/InfestedBlockTest.cpp
     common/world/block/blocks/building/StairsBlockTest.cpp
+    common/world/block/blocks/building/FenceBlockTest.cpp
+    common/world/block/blocks/building/WallBlockTest.cpp
     common/world/block/blocks/redstone/NoteBlockTest.cpp
     common/world/block/blocks/redstone/TNTBlockTest.cpp
     common/world/block/blocks/redstone/PistonBlockTest.cpp
@@ -807,6 +849,7 @@ add_executable(mc_tests
     # Explosion system tests
     common/world/explosion/test_explosion.cpp
     common/world/explosion/ExplosionIntegrationTest.cpp
+    common/world/explosion/WitherSkullExplosionContextTest.cpp
     # 灏勭嚎妫€娴嬫祴璇?    common/math/RaycastTest.cpp
     # 视锥剔除测试
     common/util/math/FrustumTest.cpp
@@ -871,6 +914,8 @@ add_executable(mc_tests
     server/LightSyncTests.cpp
     # Kagero UI妯℃澘绯荤粺娴嬭瘯
     ui/kagero/template/template_test.cpp
+    # Kagero UI内置事件娴嬭瘯
+    ui/kagero/template/BuiltinEventsTest.cpp
     # Kagero UI甯冨眬绯荤粺娴嬭瘯
     client/ui/kagero/layout/MeasureSpecTest.cpp
     client/ui/kagero/layout/LayoutConstraintsTest.cpp
@@ -901,6 +946,7 @@ add_executable(mc_tests
     client/ui/kagero/widget/ListWidgetTest.cpp
     client/ui/kagero/widget/Viewport3DWidgetTest.cpp
     client/ui/kagero/widget/SlotWidgetTest.cpp
+    client/ui/kagero/KageroEngineTest.cpp
     client/ui/FontObfuscatedTest.cpp
     client/ui/minecraft/targetinfo/TargetInfoFormatterTest.cpp
     ${CMAKE_SOURCE_DIR}/src/client/ui/GuiScale.cpp
@@ -916,6 +962,8 @@ add_executable(mc_tests
     client/ui/screen/ContainerScreenInteractionTest.cpp
     # ScreenStackWidget 屏幕栈回调与事件通知测试
     client/ui/minecraft/widgets/ScreenStackWidgetTest.cpp
+    # HUD 饥饿条渲染逻辑测试（图标状态映射、饥饿效果变体、饱和度抖动动画）
+    client/ui/minecraft/widgets/HudHungerRenderingTest.cpp
     # 闄勯瓟绯荤粺娴嬭瘯
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
@@ -945,6 +993,8 @@ add_executable(mc_tests
     common/util/LinkedHashSetTest.cpp
     # NbtJsonUtils NBT-JSON转换工具测试
     util/NbtJsonUtilsTest.cpp
+    # NBT标签深度比较测试
+    util/NbtEqualsTest.cpp
     # 璋冭瘯鍖哄潡鐢熸垚鍣ㄦ祴璇?    common/world/gen/DebugChunkGeneratorTest.cpp
     # 区块生成器MC对齐测试
     common/world/gen/chunk/ChunkGeneratorAlignmentTest.cpp
@@ -981,10 +1031,13 @@ add_executable(mc_tests
     # 绮掑瓙绯荤粺娴嬭瘯
     client/renderer/particle/ParticleTest.cpp
     client/renderer/particle/ParticleRegistryTest.cpp
+    client/renderer/particle/WhiteSmokeParticleTest.cpp
     client/renderer/particle/ParticleManagerTest.cpp
     client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
     # 粒子缩放测试
     client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
+    # SpellParticle 颜色提取测试
+    client/renderer/trident/particle/particles/effect/SpellParticleColorTest.cpp
     # DiggingParticle 测试
     client/renderer/trident/particle/particles/block/DiggingParticleTest.cpp
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
@@ -1338,6 +1391,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/DiggingParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FlameParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SmokeParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/WhiteSmokeParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/LavaParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/PortalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/CritParticle.cpp
@@ -1353,6 +1407,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/VillagerParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripWaterParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/DripstoneDripParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/SplashParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/FishingParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
@@ -1427,9 +1482,10 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/ShovelItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/HoeItem.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/items/tool/SwordItem.cpp
-        # 鑳屽寘绯荤粺
+        # 背包系统
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/Slot.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerInventory.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/PlayerEnderChestInventory.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/inventory/CraftingInventory.cpp
         # 鍚堟垚绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/Ingredient.cpp
@@ -1605,6 +1661,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Lexer.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/parser/Parser.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/binder/BindingContext.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/bindings/BuiltinEvents.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/compiler/TemplateCompiler.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/template/runtime/UpdateScheduler.cpp
         # Kagero UI甯冨眬绯荤粺
@@ -1616,6 +1673,7 @@ target_sources(mc_tests
         # Kagero UI Widget缁勪欢
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ListWidget.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/KageroEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp
         # ScreenStackWidget 及 Screen 依赖
@@ -1913,6 +1971,7 @@ add_executable(mc_command_tests
     server/command/EntityDataAccessorEffectTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/EntityResolverTest.cpp
+    server/command/ServerCommandSourceTest.cpp
     server/command/StopSoundCommandTest.cpp
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp
@@ -1921,6 +1980,7 @@ add_executable(mc_command_tests
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
     common/command/arguments/FunctionArgumentTest.cpp
+    common/command/arguments/ItemArgumentTest.cpp
     common/command/arguments/ItemSlotArgumentTest.cpp
     common/command/arguments/NbtPathTest.cpp
     common/command/arguments/TimeArgumentTest.cpp

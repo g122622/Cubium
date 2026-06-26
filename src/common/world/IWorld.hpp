@@ -28,11 +28,13 @@
 #include "block/BlockPos.hpp"
 #include "border/WorldBorder.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "explosion/ExplosionContext.hpp"
 #include "explosion/ExplosionMode.hpp"
 #include "gameevent/GameEvent.hpp"
 #include "lighting/InternalLightUtils.hpp"
@@ -318,6 +320,17 @@ public:
      * @brief 检查位置是否为岩浆（使用 BlockPos）
      */
     [[nodiscard]] virtual bool isLavaAt(const BlockPos& pos) const { return isLavaAt(pos.x, pos.y, pos.z); }
+
+    /**
+     * @brief 检查碰撞箱范围内是否包含任何流体
+     *
+     * 遍历碰撞箱覆盖的所有方块位置，检查是否存在流体方块。
+     * 用于判断实体生成位置是否在液体中（如僵尸增援生成时排除水中位置）。
+     *
+     * @param box 碰撞箱
+     * @return 是否包含流体
+     */
+    [[nodiscard]] bool containsAnyLiquid(const AxisAlignedBB& box) const;
 
     // ========== 区块访问 ==========
 
@@ -782,6 +795,21 @@ public:
      */
     [[nodiscard]] virtual std::vector<Entity*> getPlayers() const { return {}; }
 
+    /**
+     * @brief 获取指定类型的所有实体
+     *
+     * 返回世界中所有匹配指定实体类型ID的存活实体。
+     * ServerWorld 通过 EntityManager 实现此方法。
+     *
+     * @param typeId 实体类型ID（来自 EntityTypeIdNumber）
+     * @return 匹配类型的实体列表
+     */
+    [[nodiscard]] virtual std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const
+    {
+        (void)typeId;
+        return {};
+    }
+
     // ========== 最近玩家查询 ==========
 
     /**
@@ -1177,6 +1205,31 @@ public:
     {
         // 默认实现：忽略 damageSource，退回到无自定义伤害来源版本
         (void)damageSource;
+        createExplosion(position, radius, mode, causesFire, source);
+    }
+
+    /**
+     * @brief 创建带自定义爆炸上下文的爆炸
+     *
+     * 允许调用者传入自定义的 ExplosionContext，以控制爆炸对方块的行为。
+     * 例如蓝色凋灵之首使用 WitherSkullExplosionContext 来穿透高抗性方块。
+     *
+     * @param position 爆炸中心位置
+     * @param radius 爆炸半径
+     * @param mode 爆炸模式
+     * @param causesFire 是否生成火焰
+     * @param source 爆炸源实体（可选）
+     * @param context 自定义爆炸上下文（必须非空）
+     */
+    virtual void createExplosionWithContext(const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode,
+        bool causesFire,
+        Entity* source,
+        std::unique_ptr<world::explosion::ExplosionContext> context)
+    {
+        // 默认实现：忽略自定义 context，退回到普通爆炸
+        (void)context;
         createExplosion(position, radius, mode, causesFire, source);
     }
 

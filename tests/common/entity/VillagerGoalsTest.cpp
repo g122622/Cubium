@@ -51,6 +51,7 @@
 #include "common/world/block/blocks/functional/CompostableItems.hpp"
 #include "common/world/block/blocks/functional/ComposterBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
@@ -2937,6 +2938,402 @@ TEST_F(VillagerVirtualMethodTest, SetLastHurtByCallsParentCorrectly)
 
     // 验证m_lastHurtBy被正确设置（通过LivingEntity基类方法）
     EXPECT_EQ(villager->getLastHurtBy(), &player) << "Parent setLastHurtBy should update m_lastHurtBy";
+}
+
+// ============================================================================
+// FarmerWorkGoal mobGriefing Tests
+// ============================================================================
+//
+// 验证 FarmerWorkGoal 中 MOB_GRIEFING 规则的检查行为：
+// - mobGriefing=false 时，农民不能收获和种植作物
+// - mobGriefing=false 时，农民仍可堆肥（MC 原版 WorkAtComposter 不检查此规则）
+// - mobGriefing=true 时，农民正常工作（收获+种植+堆肥）
+
+class FarmerMobGriefingTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        m_world = std::make_unique<FarmerTestWorld>();
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
+        m_villager->setWorld(m_world.get());
+        m_villager->setPosition(0.0, 64.0, 0.0);
+        m_villager->setProfession(VillagerProfession::Farmer);
+        m_villager->setWorkStation(BlockPos(0, 64, 0));
+
+        m_world->setDayTime(5000);
+    }
+
+    void TearDown() override
+    {
+        m_villager.reset();
+        m_world.reset();
+    }
+
+    /**
+     * @brief 在村民周围设置成熟作物和耕地
+     */
+    void setupMatureCrops()
+    {
+        const Block* wheatBlock = VanillaBlocks::WHEAT;
+        ASSERT_TRUE(wheatBlock != nullptr);
+        auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(wheatBlock);
+        ASSERT_TRUE(cropBlock != nullptr);
+        ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+
+        const BlockState& maxAgeState = cropBlock->withAge(cropBlock->getMaxAge());
+        const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+
+        for (int dx = -1; dx <= 1; ++dx) {
+            for (int dz = -1; dz <= 1; ++dz) {
+                if (dx == 0 && dz == 0) continue;
+                m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+                m_world->setBlockStateAt(dx, 64, dz, &maxAgeState);
+            }
+        }
+    }
+
+    /**
+     * @brief 在村民周围设置空耕地（可种植）
+     */
+    void setupEmptyFarmland()
+    {
+        ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+        const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+        const BlockState* airState = BlockRegistry::instance().airState();
+        ASSERT_TRUE(airState != nullptr);
+
+        for (int dx = -1; dx <= 1; ++dx) {
+            for (int dz = -1; dz <= 1; ++dz) {
+                if (dx == 0 && dz == 0) continue;
+                m_world->setBlockStateAt(dx, 63, dz, farmlandState);
+                m_world->setBlockStateAt(dx, 64, dz, airState);
+            }
+        }
+    }
+
+    std::unique_ptr<FarmerTestWorld> m_world;
+    std::unique_ptr<VillagerEntity> m_villager;
+};
+
+TEST_F(FarmerMobGriefingTest, MobGriefingDefault_IsTrue)
+{
+    // 验证 GameRules 默认值 mobGriefing = true
+    EXPECT_TRUE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+}
+
+TEST_F(FarmerMobGriefingTest, MobGriefingFalse_NoHarvest)
+{
+    // mobGriefing = false 时，农民不能收获成熟作物
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+    ASSERT_FALSE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    setupMatureCrops();
+
+    // 清空背包以便观察收获后的变化
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 多次以触发收获行为
+    for (int i = 0; i < 100; ++i) {
+        goal->tick();
+    }
+
+    // mobGriefing=false 时，背包不应有收获的作物物品
+    bool hasCropItem = false;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty()) {
+            const Item* item = stack.getItem();
+            if (item == mc::Items::WHEAT || item == mc::Items::WHEAT_SEEDS) {
+                hasCropItem = true;
+                break;
+            }
+        }
+    }
+    EXPECT_FALSE(hasCropItem) << "Farmer should NOT harvest crops when mobGriefing=false";
+}
+
+TEST_F(FarmerMobGriefingTest, MobGriefingFalse_NoPlant)
+{
+    // mobGriefing = false 时，农民不能种植种子
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+    ASSERT_FALSE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    setupEmptyFarmland();
+
+    // 给村民小麦种子
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+    const i32 initialSeedCount = 32;
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, initialSeedCount));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    for (int i = 0; i < 100; ++i) {
+        goal->tick();
+    }
+
+    // mobGriefing=false 时，种子数量不应减少（农民不种植）
+    i32 remainingSeeds = 0;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty() && stack.getItem() == mc::Items::WHEAT_SEEDS) {
+            remainingSeeds += stack.getCount();
+        }
+    }
+    EXPECT_EQ(remainingSeeds, initialSeedCount)
+        << "Farmer should NOT plant seeds when mobGriefing=false, seed count should remain unchanged";
+}
+
+TEST_F(FarmerMobGriefingTest, MobGriefingTrue_HarvestWorks)
+{
+    // mobGriefing = true 时，农民可以收获成熟作物
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, true);
+    ASSERT_TRUE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    setupMatureCrops();
+
+    // 清空背包
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    for (int i = 0; i < 25; ++i) {
+        goal->tick();
+    }
+
+    // mobGriefing=true 时，收获后背包应有小麦或小麦种子
+    bool hasCropItem = false;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty()) {
+            const Item* item = stack.getItem();
+            if (item == mc::Items::WHEAT || item == mc::Items::WHEAT_SEEDS) {
+                hasCropItem = true;
+                break;
+            }
+        }
+    }
+    EXPECT_TRUE(hasCropItem) << "Farmer should harvest crops when mobGriefing=true";
+}
+
+TEST_F(FarmerMobGriefingTest, MobGriefingTrue_PlantWorks)
+{
+    // mobGriefing = true 时，农民可以种植种子
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, true);
+    ASSERT_TRUE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    setupEmptyFarmland();
+
+    // 给村民小麦种子
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+    const i32 initialSeedCount = 32;
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, initialSeedCount));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    for (int i = 0; i < 25; ++i) {
+        goal->tick();
+    }
+
+    // mobGriefing=true 时，种子数量应减少
+    i32 remainingSeeds = 0;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty() && stack.getItem() == mc::Items::WHEAT_SEEDS) {
+            remainingSeeds += stack.getCount();
+        }
+    }
+    EXPECT_LT(remainingSeeds, initialSeedCount) << "Farmer should plant seeds when mobGriefing=true";
+}
+
+TEST_F(FarmerMobGriefingTest, MobGriefingFalse_CompostStillWorks)
+{
+    // mobGriefing = false 时，农民仍可堆肥（MC 原版 WorkAtComposter 不检查此规则）
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+    ASSERT_FALSE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    // 使用 FarmerCompostTestWorld 以支持堆肥桶测试
+    // 由于当前测试世界是 FarmerTestWorld（无 VillageManager/POI），
+    // 堆肥需要 POI 支持，所以这里仅验证 tick 不崩溃
+    // 更完整的堆肥 mobGriefing 测试见 FarmerCompostMobGriefingTest
+
+    mc::IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, mc::ItemStack::EMPTY);
+    }
+    inv.setItem(0, mc::ItemStack(mc::Items::WHEAT_SEEDS, 32));
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // tick 不应崩溃
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+}
+
+// ============================================================================
+// FarmerWorkGoal Compost mobGriefing Tests (with VillageManager support)
+// ============================================================================
+
+class FarmerCompostMobGriefingTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+
+        m_world = std::make_unique<FarmerCompostTestWorld>();
+
+        // 创建 VillageManager 并注册堆肥桶 POI
+        auto villageManager = std::make_unique<world::village::VillageManager>(*m_world);
+        m_composterPos = BlockPos(2, 64, 2);
+        villageManager->getPOIStorage().registerPOI(
+            m_composterPos, world::village::poi::PointOfInterestType::Composter);
+        m_world->setVillageManager(std::move(villageManager));
+
+        // 设置堆肥桶方块（等级0 = 空）
+        ASSERT_TRUE(VanillaBlocks::COMPOSTER != nullptr);
+        const BlockState* composterEmpty = &VanillaBlocks::COMPOSTER->defaultState();
+        m_world->setBlockStateAt(m_composterPos.x, m_composterPos.y, m_composterPos.z, composterEmpty);
+
+        m_villager = std::make_unique<VillagerEntity>(EntityId(1));
+        m_villager->setWorld(m_world.get());
+        m_villager->setPosition(0.0, 64.0, 0.0);
+        m_villager->setProfession(VillagerProfession::Farmer);
+        m_villager->setWorkStation(m_composterPos);
+
+        m_world->setDayTime(5000);
+    }
+
+    void TearDown() override
+    {
+        m_villager.reset();
+        m_world.reset();
+    }
+
+    i32 countItemInInventory(const Item* item) const
+    {
+        i32 total = 0;
+        IInventory& inv = m_villager->inventory();
+        for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+            ItemStack stack = inv.getItem(slot);
+            if (!stack.isEmpty() && stack.getItem() == item) {
+                total += stack.getCount();
+            }
+        }
+        return total;
+    }
+
+    std::unique_ptr<FarmerCompostTestWorld> m_world;
+    std::unique_ptr<VillagerEntity> m_villager;
+    BlockPos m_composterPos;
+};
+
+TEST_F(FarmerCompostMobGriefingTest, CompostWorksWhenMobGriefingFalse)
+{
+    // 验证：mobGriefing=false 时，堆肥仍然正常工作
+    // MC 原版 WorkAtComposter 不检查 mobGriefing 规则
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+    ASSERT_FALSE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    // 给村民大量种子用于堆肥
+    IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, ItemStack::EMPTY);
+    }
+    inv.setItem(0, ItemStack(Items::WHEAT_SEEDS, 32));
+
+    const i32 initialSeedCount = 32;
+    ASSERT_EQ(countItemInInventory(Items::WHEAT_SEEDS), initialSeedCount);
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    // FARMER_WORK_INTERVAL = 20 tick，tick 多次确保 _tryCompost 执行
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+
+    // mobGriefing=false 时堆肥仍应消耗种子
+    i32 remainingSeeds = countItemInInventory(Items::WHEAT_SEEDS);
+    EXPECT_LT(remainingSeeds, initialSeedCount) << "Compost should still consume seeds when mobGriefing=false";
+
+    // 村民应保留至少10个种子（MC 原版保留逻辑）
+    EXPECT_GE(remainingSeeds, 10) << "Farmer should keep at least 10 seeds even with composting";
+}
+
+TEST_F(FarmerCompostMobGriefingTest, NoHarvestWhenMobGriefingFalseEvenWithComposter)
+{
+    // 验证：mobGriefing=false 时，即使有堆肥桶，也不能收获作物
+    m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false);
+    ASSERT_FALSE(m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING));
+
+    // 设置成熟作物
+    const Block* wheatBlock = VanillaBlocks::WHEAT;
+    ASSERT_TRUE(wheatBlock != nullptr);
+    auto* cropBlock = dynamic_cast<const blocks::CropBlock*>(wheatBlock);
+    ASSERT_TRUE(cropBlock != nullptr);
+    ASSERT_TRUE(VanillaBlocks::FARMLAND != nullptr);
+
+    const BlockState& maxAgeState = cropBlock->withAge(cropBlock->getMaxAge());
+    const BlockState* farmlandState = &VanillaBlocks::FARMLAND->defaultState();
+
+    // 在堆肥桶周围设置成熟作物
+    for (int dx = -1; dx <= 1; ++dx) {
+        for (int dz = -1; dz <= 1; ++dz) {
+            if (dx == 0 && dz == 0) continue;
+            m_world->setBlockStateAt(m_composterPos.x + dx, m_composterPos.y - 1, m_composterPos.z + dz, farmlandState);
+            m_world->setBlockStateAt(m_composterPos.x + dx, m_composterPos.y, m_composterPos.z + dz, &maxAgeState);
+        }
+    }
+
+    // 清空背包
+    IInventory& inv = m_villager->inventory();
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        inv.setItem(slot, ItemStack::EMPTY);
+    }
+
+    auto goal = std::make_unique<entity::ai::goal::villager::FarmerWorkGoal>(m_villager.get());
+    goal->startExecuting();
+
+    for (int i = 0; i < 100; ++i) {
+        EXPECT_NO_THROW(goal->tick());
+    }
+
+    // mobGriefing=false 时不应收获
+    bool hasCropItem = false;
+    for (i32 slot = 0; slot < inv.getContainerSize(); ++slot) {
+        ItemStack stack = inv.getItem(slot);
+        if (!stack.isEmpty()) {
+            const Item* item = stack.getItem();
+            if (item == Items::WHEAT || item == Items::WHEAT_SEEDS) {
+                hasCropItem = true;
+                break;
+            }
+        }
+    }
+    EXPECT_FALSE(hasCropItem) << "Farmer should NOT harvest crops when mobGriefing=false, even with composter nearby";
 }
 
 } // namespace

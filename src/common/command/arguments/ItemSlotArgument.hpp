@@ -96,23 +96,40 @@ public:
 
     /**
      * @brief 判断该槽位是否为马匹槽位
+     *
+     * 注意：马匹槽位 (500-514) 与合成槽位 (500-503) 编号范围重叠，
+     * 需要根据命令上下文（目标实体类型）区分实际含义。
+     * 当目标实体为马匹时，500-514 均为马匹槽位；
+     * 当目标为玩家时，500-503 为合成槽位，504-514 无效。
      */
-    [[nodiscard]] bool isHorseSlot() const noexcept
-    {
-        // TODO: horse.0~horse.14 (500-514) 与 player.crafting.0~3 (500-503) 编号范围重叠，
-        // 需要根据命令上下文（entity/block）区分实际含义，当前统一视为 horse 槽位
-        return m_slotIndex >= 500 && m_slotIndex <= 514;
-    }
+    [[nodiscard]] bool isHorseSlot() const noexcept { return m_slotIndex >= 500 && m_slotIndex <= 514; }
+
+    /**
+     * @brief 判断该槽位是否为马匹箱子槽位 (horse.chest = 499)
+     */
+    [[nodiscard]] bool isHorseChestSlot() const noexcept { return m_slotIndex == 499; }
 
     /**
      * @brief 判断该槽位是否为合成槽位
+     *
+     * 注意：合成槽位 (500-503) 与马匹槽位 (500-503) 编号范围重叠，
+     * 需要根据命令上下文区分实际含义。
+     * 当目标为玩家时，500-503 为合成槽位；当目标为马匹时，500-514 为马匹槽位。
      */
-    [[nodiscard]] bool isCraftingSlot() const noexcept
-    {
-        // TODO: player.crafting.0~3 (500-503) 与 horse.0~3 (500-503) 编号范围重叠，
-        // 需要根据命令上下文区分实际含义，当前统一优先判定为 horse 槽位
-        return m_slotIndex >= 500 && m_slotIndex <= 503;
-    }
+    [[nodiscard]] bool isCraftingSlot() const noexcept { return m_slotIndex >= 500 && m_slotIndex <= 503; }
+
+    /**
+     * @brief 判断该槽位是否为村民交易槽位
+     */
+    [[nodiscard]] bool isVillagerSlot() const noexcept { return m_slotIndex >= 300 && m_slotIndex <= 307; }
+
+    /**
+     * @brief 判断该槽位是否为玩家光标槽位 (player.cursor = 499)
+     *
+     * 注意：player.cursor (499) 与 horse.chest (499) 编号重叠，
+     * 需根据命令上下文区分。
+     */
+    [[nodiscard]] bool isCursorSlot() const noexcept { return m_slotIndex == 499; }
 
     /**
      * @brief 获取装备槽位类型索引
@@ -185,6 +202,52 @@ public:
             default:
                 return -1;
         }
+    }
+
+    /**
+     * @brief 获取末影箱内部槽位索引
+     *
+     * 将命令槽位索引 (200-226) 转换为 PlayerEnderChestInventory 内部索引 (0-26)。
+     *
+     * @return 末影箱内部槽位索引 (0-26)，如果不是末影箱槽位返回 -1
+     */
+    [[nodiscard]] i32 toEnderChestSlot() const noexcept
+    {
+        if (isEnderChestSlot()) {
+            return m_slotIndex - 200; // PlayerEnderChestInventory::SLOT_INDEX_START
+        }
+        return -1;
+    }
+
+    /**
+     * @brief 获取马匹内部槽位索引
+     *
+     * 将命令槽位索引 (500-514) 转换为 AbstractHorseEntity 内部槽位索引 (0-14)。
+     * 马匹内部槽位布局：0=鞍, 1=马铠/地毯, 2+=箱子内容物（仅箱马）
+     *
+     * @return 马匹内部槽位索引 (0-14)，如果不是马匹槽位返回 -1
+     */
+    [[nodiscard]] i32 toHorseSlot() const noexcept
+    {
+        if (isHorseSlot()) {
+            return m_slotIndex - 500;
+        }
+        return -1;
+    }
+
+    /**
+     * @brief 获取村民交易槽位内部索引
+     *
+     * 将命令槽位索引 (300-307) 转换为村民内部槽位索引 (0-7)。
+     *
+     * @return 村民内部槽位索引 (0-7)，如果不是村民槽位返回 -1
+     */
+    [[nodiscard]] i32 toVillagerSlot() const noexcept
+    {
+        if (isVillagerSlot()) {
+            return m_slotIndex - 300;
+        }
+        return -1;
     }
 
 private:
@@ -329,8 +392,8 @@ private:
         }
 
         // 合成槽: player.crafting.0 ~ player.crafting.3 -> 500-503
-        // TODO: player.crafting 与 horse 槽位范围 (500-514) 部分重叠 (500-503)，
-        // 需根据命令上下文（entity 玩家/马匹）区分实际含义，当前 player.crafting 优先匹配
+        // 注意：player.crafting (500-503) 与 horse (500-514) 编号范围部分重叠，
+        // 命令上下文决定实际含义：目标为玩家时为合成槽，目标为马匹时为马匹槽
         if (str.starts_with("player.crafting.")) {
             i32 offset = _parseTrailingInt(str, 16);
             if (offset >= 0 && offset <= 3) return 500 + offset;
@@ -338,7 +401,8 @@ private:
         }
 
         // 玩家光标: player.cursor -> 499
-        // TODO: player.cursor (499) 与 horse.chest (499) 编号重叠，需根据命令上下文区分
+        // 注意：player.cursor (499) 与 horse.chest (499) 编号重叠，
+        // 命令上下文决定实际含义：目标为玩家时为光标，目标为马匹时为箱子
         if (str == "player.cursor") return 499;
 
         // 武器槽位

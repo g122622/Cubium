@@ -6,7 +6,7 @@
 
 ```
 core/
-├── AdventureModePredicate.hpp/cpp  # 冒险模式谓词（CanPlaceOn/CanDestroy方块匹配）
+├── AdventureModePredicate.hpp/cpp  # 冒险模式谓词（CanPlaceOn/CanDestroy方块匹配，支持属性过滤）
 ├── Item.hpp/cpp              # 物品基类，所有物品类型的父类（含 onCraftedBy/onCraftedPostProcess 合成回调）
 ├── ItemStack.hpp/cpp         # 物品堆，表示游戏中的一个物品实例（包含物品类型、数量、耐久、附魔、冒险模式谓词和结构化自定义标签，含 onCraftedBy 桥接方法）
 ├── ItemRegistry.hpp/cpp      # 物品注册表，管理所有物品的注册和查找
@@ -28,7 +28,7 @@ Item (抽象基类)
   │     ├── 冒险模式谓词 (AdventureModePredicate × 2: CanPlaceOn + CanDestroy)
   │     └── 自定义标签 (结构化NBT)
   │
-  ├── AdventureModePredicate (冒险模式方块匹配谓词，支持精确ID和#标签引用)
+  ├── AdventureModePredicate (冒险模式方块匹配谓词，支持精确ID、#标签引用和属性过滤)
   │
   ├── ItemRegistry (单例，管理Item注册)
   │
@@ -91,5 +91,12 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 - `Player::mayInteract()` 检查手持物品的 CanPlaceOn 标签，匹配目标方块时允许交互
 - `BlockInteractionManager::handleBlockPlacement()` 检查 CanPlaceOn 标签
 - `BlockInteractionManager::_canBreakBlock()` 检查 CanDestroy 标签
-- 谓词条目支持精确方块ID（`minecraft:stone`）和标签引用（`#minecraft:logs`）
+- 谓词条目支持三种格式：
+  - 精确方块ID：`minecraft:stone`
+  - 标签引用：`#minecraft:logs`
+  - 带属性匹配的方块ID/标签：`minecraft:oak_log[axis=y]`、`#minecraft:logs[axis=y]`、`minecraft:oak_stairs[half=top,facing=east]`
+- 属性匹配使用 AND 逻辑（同一条目内所有属性必须全部满足）
+- 多条目之间使用 OR 逻辑（任一条目匹配即可）
+- 属性值通过方块的 `StateContainer` 查找 `IProperty` 并调用 `parseValue()` 解析比较
+- NBT 匹配语法（`minecraft:chest{Items:[...]}`）暂不支持，待 NbtPredicate 实现后添加
 - 空谓词列表不匹配任何方块，冒险模式下无 CanPlaceOn/CanDestroy 标签的物品不能放置/破坏方块

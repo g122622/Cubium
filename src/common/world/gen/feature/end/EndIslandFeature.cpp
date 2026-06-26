@@ -37,7 +37,6 @@ namespace mc {
 
 bool EndIslandFeature::place(WorldGenRegion& world, math::Random& random, const BlockPos& pos)
 {
-    // 对应 MC 原版 EndIslandFeature.place()
     // 生成锥形/泪滴形末地石岛屿
     // 初始半径在 4.0-6.0 之间随机（nextInt(3) + 4.0）
     f32 radius = static_cast<f32>(random.nextInt(3)) + 4.0f;
@@ -125,9 +124,7 @@ std::vector<std::unique_ptr<ConfiguredEndIslandFeature>> EndIslandFeatures::getA
 
 std::unique_ptr<ConfiguredEndIslandFeature> EndIslandFeatures::createEndIsland()
 {
-    // 对应 MC 1.21.11: End Island 使用 RarityFilter(1/14) + CountExtra(1, 0.25, 1)
-    //   + InSquarePlacement + HeightRange(55-70) + BiomeFilter
-    // 在小型末地岛屿生物群系中以 RawGeneration 阶段生成
+    // 小型末地岛屿，高度55-70，每区块1次
     auto placement = PlacementUtils::createCountedHeightPlacement(1, 55, 70);
     return std::make_unique<ConfiguredEndIslandFeature>(std::move(placement), "end_island");
 }

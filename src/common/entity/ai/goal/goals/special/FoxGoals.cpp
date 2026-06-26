@@ -32,15 +32,23 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/monster/MonsterEntity.hpp"
 #include "common/entity/entities/passive/special/FoxEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/cave/CaveVinesBlock.hpp"
+#include "common/world/block/blocks/cave/CaveVinesPlantBlock.hpp"
+#include "common/world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -118,7 +126,7 @@ bool FoxPassiveGoal::hasAlertableTarget() const
         // 玩家检查
         Player* player = dynamic_cast<Player*>(living);
         if (player != nullptr && !player->isSpectator() && !player->isCreative()) {
-            if (!m_fox->trusts(player->id())) {
+            if (!m_fox->trusts(player->playerId())) {
                 return true;
             }
         }
@@ -596,20 +604,266 @@ bool FoxEatBerriesGoal::shouldExecute()
         return false;
     }
 
-    // TODO: 完整实现需要检测甜浆果丛
-    return false;
+    // 狐狸已经叼着物品时不再寻找浆果
+    if (m_fox->isHoldingItem()) {
+        return false;
+    }
+
+    return _searchForTarget();
 }
 
 bool FoxEatBerriesGoal::shouldContinueExecuting()
 {
+    if (m_fox->isSleeping()) {
+        return false;
+    }
+
+    // 如果狐狸已经叼着物品（可能从其他来源获得），停止
+    if (m_fox->isHoldingItem()) {
+        return false;
+    }
+
+    // 检查目标方块是否仍然有效
+    IWorld* world = m_fox->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    return _isValidTarget(world, m_targetPos);
+}
+
+void FoxEatBerriesGoal::startExecuting()
+{
+    m_eatTimer = 0;
+    m_reached = false;
+    m_fox->setSitting(false);
+
+    // 导航到目标位置
+    _moveToTarget();
+}
+
+void FoxEatBerriesGoal::resetTask()
+{
+    m_targetPos = BlockPos(0, 0, 0);
+    m_eatTimer = 0;
+    m_reached = false;
+    m_fox->clearNavigation();
+}
+
+void FoxEatBerriesGoal::tick()
+{
+    IWorld* world = m_fox->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    // 检查是否已到达目标附近
+    f32 distSq = m_fox->distanceSqTo(static_cast<f32>(m_targetPos.x) + 0.5f,
+        static_cast<f32>(m_targetPos.y),
+        static_cast<f32>(m_targetPos.z) + 0.5f);
+
+    if (distSq <= REACH_DISTANCE_SQ) {
+        // 已到达目标附近
+        m_reached = true;
+
+        if (m_eatTimer >= EAT_DURATION) {
+            // 吃完浆果
+            _eatBerry();
+        } else {
+            m_eatTimer++;
+        }
+    } else {
+        // 尚未到达，继续导航
+        m_reached = false;
+
+        // 5% 概率播放嗅探音效
+        if (m_fox->getRandom().nextFloat() < 0.05f) {
+            m_fox->playSniffSound();
+        }
+
+        // 定期重新导航
+        if (m_fox->getRandom().nextInt(40) == 0) {
+            _moveToTarget();
+        }
+    }
+}
+
+bool FoxEatBerriesGoal::_isValidTarget(const IWorld* world, const BlockPos& pos) const
+{
+    const BlockState* state = world->getBlockState(pos);
+    if (state == nullptr) {
+        return false;
+    }
+
+    const Block* block = &state->getBlock();
+
+    // 甜浆果丛：AGE >= 2（有浆果可采摘）
+    if (block == VanillaBlocks::SWEET_BERRY_BUSH) {
+        const auto* sweetBerry = static_cast<const blocks::SweetBerryBushBlock*>(block);
+        return sweetBerry->getAge(*state) >= 2;
+    }
+
+    // 洞穴藤蔓：BERRIES == true
+    if (block == VanillaBlocks::CAVE_VINES || block == VanillaBlocks::CAVE_VINES_PLANT) {
+        return state->get(BlockStateProperties::BERRIES());
+    }
+
     return false;
 }
 
-void FoxEatBerriesGoal::startExecuting() {}
+void FoxEatBerriesGoal::_eatBerry()
+{
+    IWorld* world = m_fox->world();
+    if (world == nullptr) {
+        return;
+    }
 
-void FoxEatBerriesGoal::resetTask() {}
+    // 当 mobGriefing 为 false 时，狐狸不会采摘浆果方块
+    if (!world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+        return;
+    }
 
-void FoxEatBerriesGoal::tick() {}
+    const BlockState* state = world->getBlockState(m_targetPos);
+    if (state == nullptr) {
+        return;
+    }
+
+    const Block* block = &state->getBlock();
+
+    if (block == VanillaBlocks::SWEET_BERRY_BUSH) {
+        _pickSweetBerries(*state);
+    } else if (block == VanillaBlocks::CAVE_VINES || block == VanillaBlocks::CAVE_VINES_PLANT) {
+        _pickGlowBerry(*state);
+    }
+}
+
+void FoxEatBerriesGoal::_pickSweetBerries(const BlockState& state)
+{
+    IWorld* world = m_fox->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    const auto* sweetBerry = static_cast<const blocks::SweetBerryBushBlock*>(&state.getBlock());
+    i32 age = sweetBerry->getAge(state);
+    bool fullyGrown = sweetBerry->isMaxAge(state);
+    math::Random& rng = m_fox->getRandom();
+
+    // 计算掉落数量：1 + random(0~1) + (fullyGrown ? 1 : 0)
+    i32 berryCount = 1 + rng.nextInt(2) + (fullyGrown ? 1 : 0);
+
+    // 如果主手为空，给狐狸装备1个甜浆果
+    if (!m_fox->isHoldingItem()) {
+        if (Items::SWEET_BERRIES != nullptr) {
+            m_fox->setHeldItem(std::make_unique<ItemStack>(*Items::SWEET_BERRIES, 1));
+        }
+        berryCount--;
+    }
+
+    // 剩余的浆果以物品形式弹出
+    if (berryCount > 0 && Items::SWEET_BERRIES != nullptr) {
+        Vector3 centerPos = m_targetPos.center();
+        ItemStack dropStack(*Items::SWEET_BERRIES, berryCount);
+        ItemDropHelper::spawnItemEntity(world,
+            dropStack,
+            static_cast<f64>(centerPos.x),
+            static_cast<f64>(centerPos.y),
+            static_cast<f64>(centerPos.z),
+            rng,
+            ItemEntity::DEFAULT_PICKUP_DELAY);
+    }
+
+    // 播放采摘音效
+    m_fox->playSound(SoundEvents::BLOCK_SWEET_BERRY_BUSH_BREAK, 1.0f, 1.0f);
+
+    // 将 AGE 重置为 1
+    const BlockState& newState = sweetBerry->withAge(state, 1);
+    world->setBlockState(m_targetPos, &newState, 2);
+
+    // 重置目标
+    m_eatTimer = 0;
+    m_reached = false;
+}
+
+void FoxEatBerriesGoal::_pickGlowBerry(const BlockState& state)
+{
+    IWorld* world = m_fox->world();
+    if (world == nullptr) {
+        return;
+    }
+
+    math::Random& rng = m_fox->getRandom();
+
+    // 如果主手为空，给狐狸装备1个发光浆果
+    if (!m_fox->isHoldingItem()) {
+        if (Items::GLOW_BERRIES != nullptr) {
+            m_fox->setHeldItem(std::make_unique<ItemStack>(*Items::GLOW_BERRIES, 1));
+        }
+    } else {
+        // 主手已有物品，直接掉落1个发光浆果
+        if (Items::GLOW_BERRIES != nullptr) {
+            Vector3 centerPos = m_targetPos.center();
+            ItemStack dropStack(*Items::GLOW_BERRIES, 1);
+            ItemDropHelper::spawnItemEntity(world,
+                dropStack,
+                static_cast<f64>(centerPos.x),
+                static_cast<f64>(centerPos.y),
+                static_cast<f64>(centerPos.z),
+                rng,
+                ItemEntity::DEFAULT_PICKUP_DELAY);
+        }
+    }
+
+    // 播放采摘音效
+    f32 pitch = 0.8f + rng.nextFloat() * 0.4f;
+    m_fox->playSound(SoundEvents::BLOCK_CAVE_VINES_PICK_BERRIES, 1.0f, pitch);
+
+    // 设置 BERRIES = false（藤蔓保留）
+    const BlockState& newState = state.with(BlockStateProperties::BERRIES(), false);
+    world->setBlockState(m_targetPos, &newState, 2);
+
+    // 重置目标
+    m_eatTimer = 0;
+    m_reached = false;
+    m_eatTimer = 0;
+    m_reached = false;
+}
+
+bool FoxEatBerriesGoal::_searchForTarget()
+{
+    IWorld* world = m_fox->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    // 螺旋搜索附近的方块
+    i32 foxX = static_cast<i32>(m_fox->x());
+    i32 foxY = static_cast<i32>(m_fox->y());
+    i32 foxZ = static_cast<i32>(m_fox->z());
+
+    for (i32 yOff = -m_verticalSearchRange; yOff <= m_verticalSearchRange; ++yOff) {
+        for (i32 xOff = -m_searchRange; xOff <= m_searchRange; ++xOff) {
+            for (i32 zOff = -m_searchRange; zOff <= m_searchRange; ++zOff) {
+                BlockPos pos(foxX + xOff, foxY + yOff, foxZ + zOff);
+                if (_isValidTarget(world, pos)) {
+                    m_targetPos = pos;
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+void FoxEatBerriesGoal::_moveToTarget()
+{
+    // 导航到目标方块的上方
+    m_fox->tryMoveTo(static_cast<f64>(m_targetPos.x) + 0.5,
+        static_cast<f64>(m_targetPos.y),
+        static_cast<f64>(m_targetPos.z) + 0.5,
+        m_speed);
+}
 
 // ============================================================================
 // FoxFindItemsGoal - 狐狸寻找物品目标
@@ -623,13 +877,118 @@ FoxFindItemsGoal::FoxFindItemsGoal(FoxEntity* fox)
 
 bool FoxFindItemsGoal::shouldExecute()
 {
-    // TODO: 完整实现需要检测附近的物品实体
+    // 主手已有物品时不搜索
+    if (m_fox->isHoldingItem()) {
+        return false;
+    }
+
+    // 有攻击目标或正在被攻击时不搜索
+    if (m_fox->attackTarget() != nullptr || m_fox->getLastHurtBy() != nullptr) {
+        return false;
+    }
+
+    // 不能行动时不搜索（坐着、蹲着、睡觉、卡住、激怒）
+    if (!m_fox->canAct()) {
+        return false;
+    }
+
+    // 1/10 概率触发
+    if (m_fox->getRandom().nextInt(CHANCE) != 0) {
+        return false;
+    }
+
+    // 搜索 8 格范围内的物品实体
+    IWorld* world = m_fox->world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    AxisAlignedBB searchBox = m_fox->boundingBox().expand(
+        static_cast<f32>(SEARCH_RADIUS), static_cast<f32>(SEARCH_RADIUS), static_cast<f32>(SEARCH_RADIUS));
+
+    std::vector<Entity*> nearbyEntities = world->getEntitiesInAABB(searchBox, m_fox);
+
+    for (Entity* entity : nearbyEntities) {
+        // 只关注物品实体
+        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
+            continue;
+        }
+
+        auto* itemEntity = static_cast<ItemEntity*>(entity);
+
+        // 过滤条件：没有拾取延迟且存活
+        if (!itemEntity->canBePickedUp()) {
+            continue;
+        }
+
+        // 找到可拾取的物品，确认主手仍为空
+        if (!m_fox->isHoldingItem()) {
+            return true;
+        }
+    }
+
     return false;
 }
 
-void FoxFindItemsGoal::startExecuting() {}
+void FoxFindItemsGoal::startExecuting()
+{
+    // 导航到最近的物品实体
+    ItemEntity* nearestItem = _findNearestItem();
+    if (nearestItem != nullptr) {
+        m_fox->tryMoveTo(nearestItem->x(), nearestItem->y(), nearestItem->z(), MOVE_SPEED);
+    }
+}
 
-void FoxFindItemsGoal::tick() {}
+void FoxFindItemsGoal::tick()
+{
+    // 持续导航到最近的物品
+    if (m_fox->isHoldingItem()) {
+        return;
+    }
+
+    ItemEntity* nearestItem = _findNearestItem();
+    if (nearestItem != nullptr) {
+        m_fox->tryMoveTo(nearestItem->x(), nearestItem->y(), nearestItem->z(), MOVE_SPEED);
+    }
+}
+
+ItemEntity* FoxFindItemsGoal::_findNearestItem() const
+{
+    IWorld* world = m_fox->world();
+    if (world == nullptr) {
+        return nullptr;
+    }
+
+    AxisAlignedBB searchBox = m_fox->boundingBox().expand(
+        static_cast<f32>(SEARCH_RADIUS), static_cast<f32>(SEARCH_RADIUS), static_cast<f32>(SEARCH_RADIUS));
+
+    std::vector<Entity*> nearbyEntities = world->getEntitiesInAABB(searchBox, m_fox);
+
+    ItemEntity* nearestItem = nullptr;
+    f64 nearestDistSq = SEARCH_RADIUS * SEARCH_RADIUS;
+
+    for (Entity* entity : nearbyEntities) {
+        // 只关注物品实体
+        if (entity->typeId() != entity::EntityTypeIdNumber::ITEM) {
+            continue;
+        }
+
+        auto* itemEntity = static_cast<ItemEntity*>(entity);
+
+        // 过滤条件：没有拾取延迟且存活
+        if (!itemEntity->canBePickedUp()) {
+            continue;
+        }
+
+        f64 distSq = m_fox->distanceSqTo(*itemEntity);
+        if (distSq < nearestDistSq) {
+            nearestDistSq = distSq;
+            nearestItem = itemEntity;
+        }
+    }
+
+    return nearestItem;
+}
 
 // ============================================================================
 // FoxSitAndLookGoal - 狐狸坐下观察目标
@@ -730,7 +1089,53 @@ FoxRevengeGoal::FoxRevengeGoal(FoxEntity* fox)
 
 bool FoxRevengeGoal::shouldExecute()
 {
-    // TODO: 完整实现需要检查信任玩家是否被攻击
+    if (!m_foxEntity) return false;
+
+    IWorld* world = m_foxEntity->world();
+    if (!world) return false;
+
+    const auto& trustedPlayers = m_foxEntity->getTrustedPlayers();
+    if (trustedPlayers.empty()) return false;
+
+    // 使用 getPlayers() 遍历玩家列表（通常仅 1~10 名玩家），
+    // 比 getEntitiesInAABB() 的 64 格全实体搜索高效得多
+    std::vector<Entity*> players = world->getPlayers();
+
+    for (u64 trustedPlayerId : trustedPlayers) {
+        Player* trustedPlayer = nullptr;
+        for (Entity* entity : players) {
+            Player* player = dynamic_cast<Player*>(entity);
+            if (player && player->playerId() == trustedPlayerId && player->isAlive()) {
+                trustedPlayer = player;
+                break;
+            }
+        }
+
+        if (trustedPlayer == nullptr) continue;
+
+        LivingEntity* attacker = trustedPlayer->getLastHurtBy();
+        if (attacker == nullptr || !attacker->isAlive()) continue;
+
+        if (attacker == m_foxEntity) continue;
+
+        if (attacker == trustedPlayer) continue;
+
+        i32 hurtTimestamp = trustedPlayer->lastHurtByTimestamp();
+        if (hurtTimestamp == m_revengeTimestamp) continue;
+
+        if (!isSuitableTarget(attacker)) continue;
+
+        const Player* attackerPlayer = dynamic_cast<const Player*>(attacker);
+        if (attackerPlayer != nullptr && m_foxEntity->trusts(attackerPlayer->playerId())) {
+            continue;
+        }
+
+        m_attackerOfTrusted = attacker;
+        m_trustedEntity = trustedPlayer;
+        m_target = attacker;
+        return true;
+    }
+
     return false;
 }
 

@@ -22,6 +22,7 @@
  */
 
 #include "CauldronBlock.hpp"
+#include "LavaCauldronBlock.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -34,11 +35,14 @@
 #include "common/item/potion/Potions.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
-#include "common/util/assert/AssertAll.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
+#include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/interactive/BannerEntity.hpp"
+#include "common/world/fluid/FluidTags.hpp"
+#include "common/world/fluid/Fluids.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 
 namespace mc {
@@ -160,8 +164,6 @@ void CauldronBlock::handlePrecipitation(
     world.setBlockState(pos, &newState, 3);
 
     // 触发 BLOCK_CHANGE 游戏事件，通知附近的幽匿感测体
-    // 参考: net.minecraft.block.CauldronBlock#handlePrecipitation 中调用
-    //       world.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state, newState))
     world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
 }
 
@@ -319,6 +321,41 @@ ActionResultType CauldronBlock::_handleBucketInteraction(
             }
         }
         return ActionResultType::Success;
+    }
+
+    // 岩浆桶：装岩浆到空炼药锅
+    if (item == Items::LAVA_BUCKET) {
+        if (currentLevel == 0 && !world.isClientSide()) {
+            // 岩浆桶倒入空炼药锅：空炼药锅 → 岩浆炼药锅
+            const BlockState* lavaCauldronState = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
+            world.setBlockState(pos, lavaCauldronState, 3);
+            world.playSound(SoundEvents::ITEM_BUCKET_EMPTY_LAVA,
+                sound::SoundCategory::Blocks,
+                Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                1.0f,
+                1.0f);
+
+            // 触发 FLUID_PLACE 游戏事件
+            world.gameEvent(gameevent::GameEvents::FLUID_PLACE, pos, lavaCauldronState);
+
+            // 非创造模式：替换为空桶
+            if (!player.abilities().creativeMode) {
+                heldItem.shrink(1);
+                if (heldItem.isEmpty()) {
+                    heldItem = ItemStack(Items::BUCKET, 1);
+                    player.inventory().setChanged();
+                } else {
+                    ItemStack emptyBucket(Items::BUCKET, 1);
+                    player.inventory().add(emptyBucket);
+                    if (!emptyBucket.isEmpty()) {
+                        ItemDropHelper::spawnItemAtEntity(&player, emptyBucket, 0.5f, world.getRandom());
+                    }
+                }
+            }
+            return ActionResultType::Success;
+        }
+        // 非空炼药锅不能用岩浆桶交互，返回 Pass 让其他交互继续处理
+        return ActionResultType::Pass;
     }
 
     // 空桶：从满的炼药锅取水
@@ -540,6 +577,58 @@ void CauldronBlock::_playEmptySound(IWorld& world, const BlockPos& pos)
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
         1.0f,
         1.0f);
+}
+
+// ========== 滴石填充 ==========
+
+void CauldronBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+
+    // 当滴石调度了炼药锅的 tick 时，重新验证上方是否存在可滴水的钟乳石尖端
+    // 参考 MC 原版 AbstractCauldronBlock.tick()：
+    // 1. 向上搜索可滴水的钟乳石尖端
+    // 2. 从尖端确定流体类型
+    // 3. 如果炼药锅可以接收该流体，则执行滴水填充
+    std::optional<BlockPos> tipPos = PointedDripstoneBlock::findStalactiteTipAboveCauldron(world, pos);
+    if (tipPos.has_value()) {
+        const fluid::Fluid* fluid = PointedDripstoneBlock::getCauldronFillFluidType(world, tipPos.value());
+        if (fluid != nullptr && fluid != fluid::Fluids::EMPTY() && canReceiveStalactiteDrip(*fluid)) {
+            receiveStalactiteDrip(world, pos, state, *fluid);
+        }
+    }
+}
+
+bool CauldronBlock::canReceiveStalactiteDrip(const fluid::Fluid& fluid)
+{
+    // 空炼药锅可以接收任何流体（水和岩浆）的滴石滴水
+    MC_UNUSED(fluid);
+    return true;
+}
+
+void CauldronBlock::receiveStalactiteDrip(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid)
+{
+    if (fluid.isIn(fluid::FluidTags::WATER())) {
+        // 水滴：每次增加1级水位
+        // TODO: 当实现 WaterCauldronBlock (LayeredCauldronBlock) 后，
+        // 空炼药锅接收水滴应替换为水位1的 WaterCauldronBlock，
+        // 而非在当前 CauldronBlock 上递增水位
+        i32 currentLevel = getLevel(state);
+        i32 newLevel = currentLevel + 1;
+        if (newLevel <= 3) {
+            BlockState newState = state.with(BlockStateProperties::LEVEL_0_3(), newLevel);
+            world.setBlockState(pos, &newState, 3);
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &newState);
+            world.playEvent(world::WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND, pos, 0);
+        }
+    } else if (fluid.isIn(fluid::FluidTags::LAVA())) {
+        // 岩浆滴：空炼药锅 → 替换为岩浆炼药锅
+        const BlockState* lavaCauldronState = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
+        world.setBlockState(pos, lavaCauldronState, 3);
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, lavaCauldronState);
+        world.playEvent(world::WorldEvents::DRIP_LAVA_INTO_CAULDRON_SOUND, pos, 0);
+    }
 }
 
 } // namespace blocks

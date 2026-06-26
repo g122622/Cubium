@@ -46,6 +46,8 @@
 #include "common/entity/entities/passive/basic/ChickenEntity.hpp"
 #include "common/entity/entities/passive/special/TurtleEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -55,6 +57,9 @@
 #include <unordered_set>
 
 namespace mc {
+
+// ==================== 静态成员初始化 ====================
+entity::DataParameter<bool> OcelotEntity::DATA_TRUSTING_PARAM = entity::EntityDataManager::createKey<bool>();
 
 // ==================== OcelotEntity ====================
 
@@ -75,14 +80,14 @@ std::unique_ptr<Entity> OcelotEntity::create(IWorld* /*world*/)
 
 bool OcelotEntity::trustsPlayer(u64 playerId) const
 {
-    return m_trusting && m_trustingPlayerId == playerId;
+    return isTrusting() && m_trustingPlayerId == playerId;
 }
 
 void OcelotEntity::setPlayerTrust(u64 playerId, bool trust)
 {
-    if (trust && !m_trusting) {
-        m_trusting = true;
+    if (trust && !isTrusting()) {
         m_trustingPlayerId = playerId;
+        m_dataManager.set(DATA_TRUSTING_PARAM, true);
         // 触发 AI 更新
         _setupTrustingAI();
     }
@@ -90,8 +95,8 @@ void OcelotEntity::setPlayerTrust(u64 playerId, bool trust)
 
 void OcelotEntity::setTrusting(bool trusting)
 {
-    if (m_trusting != trusting) {
-        m_trusting = trusting;
+    if (isTrusting() != trusting) {
+        m_dataManager.set(DATA_TRUSTING_PARAM, trusting);
         // 触发 AI 更新
         _setupTrustingAI();
     }
@@ -126,7 +131,7 @@ void OcelotEntity::tick()
     AnimalEntity::tick();
 
     // 如果已建立信任，停止逃跑
-    if (m_trusting) {
+    if (isTrusting()) {
         m_fleeing = false;
     }
 }
@@ -155,7 +160,7 @@ bool OcelotEntity::canDespawn(double distanceToClosestPlayer) const noexcept
 {
     // 未信任的豹猫存在超过 2400 tick (2分钟) 后可以消失
     MC_UNUSED(distanceToClosestPlayer);
-    return !m_trusting && ticksExisted() > DESPAWN_TICKS;
+    return !isTrusting() && ticksExisted() > DESPAWN_TICKS;
 }
 
 bool OcelotEntity::attackEntityAsMob(LivingEntity& target)
@@ -178,7 +183,7 @@ ActionResultType OcelotEntity::interactMob(Player& player, Hand hand)
     bool isBreedingFood = item != nullptr && (item == Items::COD || item == Items::SALMON);
     double distSq = player.distanceSqTo(*this);
 
-    if (isTempting && !m_trusting && isBreedingFood && distSq < 9.0) {
+    if (isTempting && !isTrusting() && isBreedingFood && distSq < 9.0) {
         // 消耗物品
         itemStack.shrink(1);
 
@@ -271,25 +276,52 @@ void OcelotEntity::registerData()
 {
     AnimalEntity::registerData();
 
-    // 注册信任状态数据参数
-    // TODO: 当前简化实现使用成员变量，未来可以添加网络同步
+    // 注册信任状态数据参数，用于客户端-服务端同步
+    m_dataManager.registerParam(DATA_TRUSTING_PARAM, false);
+}
+
+void OcelotEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    AnimalEntity::addAdditionalSaveData(tag);
+
+    // 信任状态
+    tag.put(nbt_keys::TRUSTING, static_cast<i8>(isTrusting() ? 1 : 0));
+}
+
+Result<void> OcelotEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    using namespace mc::entity::serialization;
+
+    // 先调用基类实现
+    MC_TRY(AnimalEntity::readAdditionalSaveData(tag));
+
+    // 信任状态（MC 原版默认为 false）
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::TRUSTING)) {
+        setTrusting(*val);
+    }
+
+    return Result<void>::ok();
 }
 
 void OcelotEntity::_setupTrustingAI()
 {
     // 动态添加/移除 AvoidPlayerGoal
-
-    if (m_avoidPlayerGoal == nullptr) {
-        // 创建躲避玩家目标
-        m_avoidPlayerGoal =
-            new entity::ai::goal::OcelotAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
-    }
+    // 注意：removeGoal 会销毁目标对象（GoalSelector 拥有所有权），
+    // 因此必须在移除后清空 m_avoidPlayerGoal 指针，避免悬空指针。
 
     // 先移除已有的 AvoidPlayerGoal
-    m_goalSelector.removeGoal(m_avoidPlayerGoal);
+    if (m_avoidPlayerGoal != nullptr) {
+        m_goalSelector.removeGoal(m_avoidPlayerGoal);
+        m_avoidPlayerGoal = nullptr; // removeGoal 销毁对象后置空指针
+    }
 
-    // 如果未信任，添加躲避玩家目标
-    if (!m_trusting) {
+    // 如果未信任，创建并添加躲避玩家目标
+    if (!isTrusting()) {
+        m_avoidPlayerGoal =
+            new entity::ai::goal::OcelotAvoidPlayerGoal(this, AVOID_DISTANCE, AVOID_FAR_SPEED, AVOID_NEAR_SPEED);
         m_goalSelector.addGoal(4, m_avoidPlayerGoal);
     }
 }

@@ -32,6 +32,7 @@
 #include "common/entity/player/SpawnPointValidator.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
@@ -42,9 +43,12 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/blocks/functional/BedBlock.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
 #include "common/world/dimension/DimensionType.hpp"
 #include "common/world/dimension/teleport/Teleporter.hpp"
+#include "common/world/storage/SingleLevelStorageManager.hpp"
+#include "common/world/storage/player/PlayerDataManager.hpp"
 #include "server/advancement/PlayerAdvancements.hpp"
 #include "server/advancement/TriggerInstantiation.hpp"
 #include "server/application/IServer.hpp"
@@ -56,6 +60,8 @@
 #include "server/event/events/ServerEvents.hpp"
 #include "server/scoreboard/ServerScoreboard.hpp"
 #include "server/world/ServerWorld.hpp"
+#include <algorithm>
+#include <cmath>
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -85,6 +91,15 @@ void ServerPlayer::setupInventoryCallback()
             oldItem.isEmpty() ? nullptr : &oldItem,
             newItem.isEmpty() ? nullptr : &newItem};
         server::event::ServerEventBus::instance().publish(event);
+    });
+
+    // 设置末影箱物品栏变更回调，标记玩家数据为脏以触发自动保存
+    enderChestInventory().setOnChanged([this]() {
+        if (auto* storage = getServer()->sharedStorage()) {
+            if (auto* pdm = storage->playerDataManager()) {
+                pdm->markDirty(uuid());
+            }
+        }
     });
 }
 
@@ -159,6 +174,39 @@ void ServerPlayer::syncExperience()
     if (!_sendFullPacket(fullPacket)) {
         spdlog::warn("ServerPlayer: experience sync skipped (player={}, no connection)", username());
     }
+}
+
+bool ServerPlayer::sendVelocityPacket()
+{
+    if (!hasConnection()) {
+        return false;
+    }
+
+    // 构建速度同步包，发送此实体的当前速度到玩家客户端
+    // 对应 MC Java 的 ServerPlayer.connection.send(new ClientboundSetEntityMotionPacket(entity))
+    // 速度单位转换：m/tick -> 1/8000 block/tick
+    network::EntityVelocityPacket packet;
+    packet.setEntityId(static_cast<u32>(id()));
+    const auto vel = velocity();
+    packet.setVelocity(static_cast<i16>(std::clamp(vel.x * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(vel.y * 8000.0f, -32768.0f, 32767.0f)),
+        static_cast<i16>(std::clamp(vel.z * 8000.0f, -32768.0f, 32767.0f)));
+
+    auto payloadResult = packet.serialize();
+    if (payloadResult.failed()) {
+        spdlog::warn("ServerPlayer: failed to serialize velocity packet (player={})", username());
+        return false;
+    }
+
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::EntityVelocity, payloadResult.value());
+
+    if (!_sendFullPacket(fullPacket)) {
+        spdlog::warn("ServerPlayer: velocity packet not sent (player={}, no connection)", username());
+        return false;
+    }
+
+    return true;
 }
 
 void ServerPlayer::addExperience(i32 amount)
@@ -385,17 +433,38 @@ void ServerPlayer::stopSleepInBed(bool resetTimer, bool updateSleepingFlag)
     // 发送唤醒包给客户端
     _sendWakeUpPacket();
 
-    // 同步玩家位置
+    // 清除床的占用状态，并计算起床位置
     if (bedPos.has_value() && m_world != nullptr) {
-        // 计算起床位置
         const BlockState* bedState = m_world->getBlockState(bedPos.value());
-        if (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING())) {
-            Direction bedFacing = bedState->get(BlockStateProperties::HORIZONTAL_FACING());
-            std::optional<Vector3> wakePos =
-                entity::SleepManager::findWakeUpPosition(*m_world, bedPos.value(), bedFacing);
-            if (wakePos.has_value()) {
-                setPosition(wakePos.value());
+
+        // 在 setBlockState 之前提取所需属性值，避免悬挂指针
+        bool hasOccupied = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::OCCUPIED()));
+        bool hasFacing = (bedState != nullptr && bedState->hasProperty(BlockStateProperties::HORIZONTAL_FACING()));
+        Direction bedFacing = hasFacing ? bedState->get(BlockStateProperties::HORIZONTAL_FACING()) : Direction::None;
+
+        // 清除床的占用状态
+        if (hasOccupied) {
+            BlockState newBedState = bedState->with(BlockStateProperties::OCCUPIED(), false);
+            m_world->setBlockState(bedPos.value(), &newBedState, 3);
+        }
+
+        // 使用 BedBlock::findStandUpPosition 计算起床位置
+        if (hasFacing) {
+            Vector3 wakePos = blocks::BedBlock::findStandUpPosition(*m_world, bedPos.value(), bedFacing, yaw());
+
+            // 计算面向床的方向（yaw）：从起床位置指向床底中心的方向
+            Vector3d bedCenter(bedPos.value().x + 0.5, bedPos.value().y, bedPos.value().z + 0.5);
+            Vector3d dirToBed = bedCenter - Vector3d(wakePos.x, wakePos.y, wakePos.z);
+            f32 dirLen = std::sqrt(dirToBed.x * dirToBed.x + dirToBed.z * dirToBed.z);
+            if (dirLen > 0.001) {
+                dirToBed.x /= dirLen;
+                dirToBed.z /= dirLen;
+                f32 yawDeg = static_cast<f32>(math::toDegrees(std::atan2(dirToBed.z, dirToBed.x))) - 90.0f;
+                yawDeg = math::wrapDegrees(yawDeg);
+                setRotation(yawDeg, 0.0f);
             }
+
+            setPosition(wakePos.x, wakePos.y, wakePos.z);
         }
     }
 

@@ -26,6 +26,7 @@
 #include "client/ui/kagero/paint/PaintContext.hpp"
 #include "client/ui/kagero/widget/Widget.hpp"
 #include "common/core/Types.hpp"
+#include "common/util/math/random/Random.hpp"
 
 namespace mc {
 class Player;
@@ -59,8 +60,9 @@ constexpr u32 HEALTH_YELLOW = 0xFFFFF600; // 黄心（吸收）
 constexpr u32 HEALTH_EMPTY = 0xFF2A0A0A;  // 空心
 
 // 饥饿值
-constexpr u32 HUNGER_FULL = 0xFFE0A010;  // 满饥饿
-constexpr u32 HUNGER_EMPTY = 0xFF1A0A00; // 空饥饿
+constexpr u32 HUNGER_FULL = 0xFFE0A010;   // 满饥饿
+constexpr u32 HUNGER_EMPTY = 0xFF1A0A00;  // 空饥饿
+constexpr u32 HUNGER_EFFECT = 0xFF60C010; // 饥饿效果变体（绿色调）
 
 // 经验条
 constexpr u32 XP_BACKGROUND = 0xFF202020; // 背景
@@ -176,8 +178,9 @@ private:
      * @param y Y坐标
      * @param full 是否满饥饿
      * @param half 是否半饥饿
+     * @param hasHungerEffect 是否有饥饿效果（绿色变体图标）
      */
-    void _drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half);
+    void _drawHunger(kagero::widget::PaintContext& ctx, f32 x, f32 y, bool full, bool half, bool hasHungerEffect);
 
     /**
      * @brief 绘制盔甲图标
@@ -204,6 +207,9 @@ private:
     renderer::trident::gui::GuiSpriteAtlas* m_iconsAtlas = nullptr;   // 心形、饥饿、盔甲、经验条
     renderer::trident::gui::GuiSpriteAtlas* m_widgetsAtlas = nullptr; // 快捷栏、按钮
     Player* m_player = nullptr;
+
+    // 动画状态
+    mutable mc::math::Random m_random; ///< 确定性随机数生成器（用于饥饿条抖动偏移，每帧重设种子）
 };
 
 } // namespace mc::client::ui::minecraft::widgets

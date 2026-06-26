@@ -73,6 +73,18 @@ public:
     [[nodiscard]] Block* getNextOxidationBlock() const override { return m_nextOxidationBlock; }
 
     /**
+     * @brief 设置上一氧化等级对应的方块
+     *
+     * 注册铜方块后调用，建立反向氧化链（用于斧头刮削）。
+     */
+    void setPreviousOxidationBlock(Block* prevBlock) { m_previousOxidationBlock = prevBlock; }
+
+    /**
+     * @brief 获取上一氧化等级对应的方块
+     */
+    [[nodiscard]] Block* getPreviousOxidationBlock() const override { return m_previousOxidationBlock; }
+
+    /**
      * @brief 随机Tick - 尝试氧化
      *
      * 非涂蜡铜方块有概率在随机刻中氧化到下一等级。
@@ -96,6 +108,9 @@ protected:
 
     /// 下一氧化等级对应的方块（由注册时设置）
     Block* m_nextOxidationBlock = nullptr;
+
+    /// 上一氧化等级对应的方块（由注册时设置，用于斧头刮削）
+    Block* m_previousOxidationBlock = nullptr;
 };
 
 /**

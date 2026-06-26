@@ -40,6 +40,11 @@ class LivingEntity;
 class MobEntity;
 class IWorld;
 class BlockState;
+class ItemEntity;
+
+namespace blocks {
+class SweetBerryBushBlock;
+} // namespace blocks
 
 namespace entity::ai::goal {
 
@@ -250,7 +255,15 @@ private:
 /**
  * @brief 狐狸吃浆果目标
  *
- * 狐狸寻找并吃成熟的甜浆果丛。
+ * 狐狸寻找并吃成熟的甜浆果丛或发光浆果藤。
+ * 继承自 Goal 而非 MoveToBlockGoal，因为需要自定义到达后的等待和交互逻辑。
+ *
+ * 行为流程：
+ * 1. shouldExecute: 搜索附近成熟的甜浆果丛或发光浆果藤
+ * 2. startExecuting: 取消坐下状态，导航到目标
+ * 3. tick: 到达后等待 40 tick，然后采摘浆果
+ * 4. 采摘甜浆果丛：AGE 重置为 1，掉落浆果，优先放入主手
+ * 5. 采摘发光浆果：BERRIES 设为 false，优先放入主手
  *
  * 优先级: 10
  */
@@ -268,14 +281,36 @@ public:
 
 private:
     /**
-     * @brief 检查目标方块是否是成熟的甜浆果丛
+     * @brief 检查目标方块是否是有效的浆果来源
+     * 甜浆果丛 AGE >= 2 或洞穴藤蔓 BERRIES == true
      */
     [[nodiscard]] bool _isValidTarget(const IWorld* world, const BlockPos& pos) const;
 
     /**
-     * @brief 吃浆果逻辑
+     * @brief 到达目标后执行采摘
      */
     void _eatBerry();
+
+    /**
+     * @brief 采摘甜浆果丛
+     */
+    void _pickSweetBerries(const BlockState& state);
+
+    /**
+     * @brief 采摘发光浆果
+     */
+    void _pickGlowBerry(const BlockState& state);
+
+    /**
+     * @brief 在搜索范围内寻找有效的浆果方块
+     * @return 是否找到目标
+     */
+    [[nodiscard]] bool _searchForTarget();
+
+    /**
+     * @brief 导航到目标方块位置
+     */
+    void _moveToTarget();
 
     FoxEntity* m_fox;
     f64 m_speed;
@@ -285,14 +320,16 @@ private:
     i32 m_eatTimer = 0;
     bool m_reached = false;
 
-    static constexpr i32 EAT_DURATION = 40;       // 吃浆果需要 40 tick
-    static constexpr f64 REACH_DISTANCE_SQ = 2.0; // 到达目标的距离平方
+    static constexpr i32 EAT_DURATION = 40;        // 吃浆果需要 40 tick
+    static constexpr f32 REACH_DISTANCE_SQ = 2.0f; // 到达目标的距离平方
 };
 
 /**
  * @brief 狐狸寻找物品目标
  *
  * 狐狸捡起地上的物品（如食物）。
+ * 搜索 8 格范围内的 ItemEntity，导航到最近的物品实体。
+ * 实际拾取逻辑由 FoxEntity::pickUpItem() 处理（由 ItemPickupManager 调用）。
  *
  * 优先级: 11
  * Mutex: MOVE
@@ -308,6 +345,12 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "FoxFindItemsGoal"; }
 
 private:
+    /**
+     * @brief 在搜索范围内寻找最近的可用物品实体
+     * @return 最近的物品实体指针，如果没有则返回 nullptr
+     */
+    [[nodiscard]] ItemEntity* _findNearestItem() const;
+
     FoxEntity* m_fox;
 
     static constexpr f64 SEARCH_RADIUS = 8.0; // 搜索半径

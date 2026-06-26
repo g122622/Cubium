@@ -30,11 +30,13 @@
 #include "entity/entities/monster/end/EndermanEntity.hpp"
 #include "entity/entities/monster/nether/NetherEntities.hpp"
 #include "entity/entities/passive/basic/ChickenEntity.hpp"
+#include "entity/entities/passive/basic/RabbitEntity.hpp"
 #include "entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "entity/entities/passive/special/FoxEntity.hpp"
 #include "entity/entities/passive/special/TurtleEntity.hpp"
 #include "entity/entities/passive/tamable/TameableEntity.hpp"
 #include "entity/entities/passive/tamable/WolfEntity.hpp"
+#include "entity/entities/passive/water/AxolotlEntity.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/entities/villager/VillagerEntity.hpp"
 #include "entity/interfaces/IAngerable.hpp"
@@ -70,7 +72,7 @@ bool TargetGoal::shouldContinueExecuting()
     if (m_checkSight) {
         if (!checkSight()) {
             m_unseenTicks++;
-            if (m_unseenTicks > MAX_UNSEEN_TICKS) {
+            if (m_unseenTicks > m_unseenMemoryTicks) {
                 return false;
             }
         } else {
@@ -224,6 +226,7 @@ template class NearestAttackableTargetGoal<LivingEntity>;
 template class NearestAttackableTargetGoal<MobEntity>;
 template class NearestAttackableTargetGoal<Player>;
 template class NearestAttackableTargetGoal<ChickenEntity>;
+template class NearestAttackableTargetGoal<RabbitEntity>;
 template class NearestAttackableTargetGoal<TurtleEntity>;
 template class NearestAttackableTargetGoal<FoxEntity>;
 template class NearestAttackableTargetGoal<IronGolemEntity>;
@@ -231,6 +234,7 @@ template class NearestAttackableTargetGoal<AbstractPiglinEntity>;
 template class NearestAttackableTargetGoal<entity::VillagerEntity>;
 template class NearestAttackableTargetGoal<entity::AbstractVillagerEntity>;
 template class NearestAttackableTargetGoal<EndermiteEntity>;
+template class NearestAttackableTargetGoal<AxolotlEntity>;
 
 // ==================== HurtByTargetGoal ====================
 
@@ -289,6 +293,10 @@ HurtByTargetGoal& HurtByTargetGoal::setAlertOthers(TargetPredicate ignoreAlertPr
 void HurtByTargetGoal::startExecuting()
 {
     TargetGoal::startExecuting();
+
+    // MC Java: HurtByTargetGoal.start() 中设置 unseenMemoryTicks = 300
+    // 被攻击后的反击目标记忆时间更长（15秒），即使失去视线也会持续追踪攻击者
+    m_unseenMemoryTicks = 300;
 
     // 警醒盟友
     // TODO(alertOthers_scope): 当前实现使用 typeId() 精确匹配同类型实体，
@@ -627,6 +635,7 @@ void ResetAngerGoal<T>::startExecuting()
 template class NonTamedTargetGoal<LivingEntity>;
 template class NonTamedTargetGoal<MobEntity>;
 template class NonTamedTargetGoal<TurtleEntity>;
+template class NonTamedTargetGoal<RabbitEntity>;
 
 // ResetAngerGoal 用于实现了 IAngerable 接口的 MobEntity 子类
 template class ResetAngerGoal<EndermanEntity>;

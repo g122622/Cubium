@@ -71,6 +71,7 @@ constexpr const char* ATTRIBUTES = "Attributes";
 
 constexpr const char* HAND_ITEMS = "HandItems";
 constexpr const char* ARMOR_ITEMS = "ArmorItems";
+constexpr const char* EQUIPMENT = "equipment";
 constexpr const char* HAND_DROP_CHANCES = "HandDropChances";
 constexpr const char* ARMOR_DROP_CHANCES = "ArmorDropChances";
 constexpr const char* DROP_CHANCES = "drop_chances";
@@ -140,6 +141,10 @@ constexpr const char* SITTING = "Sitting";
 constexpr const char* OWNER_UUID = "OwnerUUID";
 constexpr const char* ANGER_TIME = "AngerTime";
 
+// ========== OcelotEntity 键 ==========
+
+constexpr const char* TRUSTING = "Trusting";
+
 // ========== CatEntity 键 ==========
 
 constexpr const char* CAT_TYPE = "CatType";
@@ -159,9 +164,79 @@ constexpr const char* FUSE = "Fuse";
 constexpr const char* IGNITED = "ignited";
 constexpr const char* POWERED = "powered";
 
+// ========== AreaEffectCloudEntity 键 ==========
+
+constexpr const char* CLOUD_AGE = "Age";
+constexpr const char* CLOUD_DURATION = "Duration";
+constexpr const char* CLOUD_WAIT_TIME = "WaitTime";
+constexpr const char* CLOUD_REAPPLICATION_DELAY = "ReapplicationDelay";
+constexpr const char* CLOUD_DURATION_ON_USE = "DurationOnUse";
+constexpr const char* CLOUD_RADIUS_ON_USE = "RadiusOnUse";
+constexpr const char* CLOUD_RADIUS_PER_TICK = "RadiusPerTick";
+constexpr const char* CLOUD_RADIUS = "Radius";
+constexpr const char* CLOUD_OWNER = "Owner";
+constexpr const char* CLOUD_PARTICLE = "ParticleType";
+constexpr const char* CLOUD_COLOR = "Color";
+constexpr const char* CLOUD_EFFECTS = "CustomPotionEffects";
+
+// ========== EvokerFangsEntity 键 ==========
+// 参考 MC 1.21.11 EvokerFangs.addAdditionalSaveData()，NBT 键名为 "Warmup" 和 "Owner"
+// Owner UUID 使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式存储
+// 注意：MC 1.21.11 原版使用 int[4] 格式存储 "Owner" 键，
+// 但为与项目现有模式（AreaEffectCloudEntity）保持一致，采用 OwnerUUIDMost/OwnerUUIDLeast 格式
+
+constexpr const char* WARMUP = "Warmup";
+constexpr const char* FANGS_OWNER_UUID_MOST = "OwnerUUIDMost";
+constexpr const char* FANGS_OWNER_UUID_LEAST = "OwnerUUIDLeast";
+
+// ========== Player 键 ==========
+
+constexpr const char* PLAYER_GAME_TYPE = "playerGameType";
+constexpr const char* INVENTORY = "Inventory";
+constexpr const char* SELECTED_ITEM_SLOT = "SelectedItemSlot";
+constexpr const char* SCORE = "Score";
+constexpr const char* FOOD_LEVEL = "foodLevel";
+constexpr const char* FOOD_SATURATION_LEVEL = "foodSaturationLevel";
+constexpr const char* FOOD_EXHAUSTION_LEVEL = "foodExhaustionLevel";
+constexpr const char* FOOD_TICK_TIMER = "foodTickTimer";
+constexpr const char* XP_LEVEL = "XpLevel";
+constexpr const char* XP_P = "XpP";
+constexpr const char* XP_TOTAL = "XpTotal";
+constexpr const char* XP_SEED = "XpSeed";
+constexpr const char* XP_COOLDOWN = "XpCooldown";
+constexpr const char* ABILITIES = "abilities";
+constexpr const char* ABILITIES_INVULNERABLE = "invulnerable";
+constexpr const char* ABILITIES_FLYING = "flying";
+constexpr const char* ABILITIES_MAY_FLY = "mayfly";
+constexpr const char* ABILITIES_INSTABUILD = "instabuild";
+constexpr const char* ABILITIES_MAY_BUILD = "mayBuild";
+constexpr const char* ABILITIES_FLY_SPEED = "flySpeed";
+constexpr const char* ABILITIES_WALK_SPEED = "walkSpeed";
+constexpr const char* SPAWN_X = "SpawnX";
+constexpr const char* SPAWN_Y = "SpawnY";
+constexpr const char* SPAWN_Z = "SpawnZ";
+constexpr const char* SPAWN_FORCED = "SpawnForced";
+constexpr const char* SPAWN_DIM = "SpawnDimension";
+constexpr const char* ENTERED_NETHER_POSITION = "enteredNetherPosition";
+constexpr const char* CURRENT_EXPLOSION_IMPACT_POS = "current_explosion_impact_pos";
+constexpr const char* IGNORE_FALL_DAMAGE_FROM_CURRENT_EXPLOSION = "ignore_fall_damage_from_current_explosion";
+constexpr const char* CURRENT_IMPULSE_CONTEXT_RESET_GRACE_TIME = "current_impulse_context_reset_grace_time";
+constexpr const char* ENDER_ITEMS = "EnderItems";
+constexpr const char* LAST_DEATH_LOCATION = "LastDeathLocation";
+constexpr const char* LAST_DEATH_LOCATION_DIMENSION = "dimension"; ///< LastDeathLocation 子键：维度名称
+constexpr const char* LAST_DEATH_LOCATION_POS = "pos"; ///< LastDeathLocation 子键：方块位置（int 列表 [x, y, z]）
+constexpr const char* SLEEP_TIMER = "SleepTimer";
+
 // ========== SkeletonEntity 键 ==========
 
 constexpr const char* STRAY_CONVERSION_TIME = "StrayConversionTime";
+
+// ========== TurtleEntity 键 ==========
+
+constexpr const char* HOME_X = "HomePosX";
+constexpr const char* HOME_Y = "HomePosY";
+constexpr const char* HOME_Z = "HomePosZ";
+constexpr const char* HAS_EGG = "HasEgg";
 
 // ========== ItemStack 子键 ==========
 

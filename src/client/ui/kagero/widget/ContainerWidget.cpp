@@ -66,6 +66,16 @@ bool ContainerWidget::onRelease(i32 mouseX, i32 mouseY, i32 button, i32 mods)
     return handleReleaseInChildren(mouseX, mouseY, button, mods);
 }
 
+bool ContainerWidget::onDoubleClick(i32 mouseX, i32 mouseY, i32 button, i32 mods)
+{
+    return handleDoubleClickInChildren(mouseX, mouseY, button, mods);
+}
+
+bool ContainerWidget::onRightClick(i32 mouseX, i32 mouseY, i32 mods)
+{
+    return handleRightClickInChildren(mouseX, mouseY, mods);
+}
+
 bool ContainerWidget::onDrag(i32 mouseX, i32 mouseY, i32 deltaX, i32 deltaY, i32 button)
 {
     return handleDragInChildren(mouseX, mouseY, deltaX, deltaY, button);

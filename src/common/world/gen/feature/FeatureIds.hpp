@@ -149,6 +149,15 @@ constexpr u32 Dense = 1 + Offset;  // 密集甘蔗
 constexpr u32 Count = 2;           // 甘蔗特征总数
 } // namespace SugarCaneFeatureIds
 
+namespace BambooFeatureIds {
+// 竹子特征 (23-24)
+constexpr u32 Offset = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count +
+    MushroomFeatureIds::Count + CactusFeatureIds::Count + SugarCaneFeatureIds::Count;
+constexpr u32 BambooJungle = 0 + Offset; // 竹子丛林竹子（密集，20%灰化土）
+constexpr u32 LightBamboo = 1 + Offset;  // 稀疏竹子（无灰化土）
+constexpr u32 Count = 2;                 // 竹子特征总数
+} // namespace BambooFeatureIds
+
 // ============================================================================
 // SurfaceStructures 阶段特征ID
 // ============================================================================
@@ -214,7 +223,7 @@ constexpr u32 Count = 2;                // 岩浆池特征总数
 namespace VegetationIds {
 /// VegetalDecoration阶段陆地植被特征总数
 constexpr u32 TotalVegetalFeatures = TreeFeatureIds::Count + FlowerFeatureIds::Count + GrassFeatureIds::Count +
-    MushroomFeatureIds::Count + CactusFeatureIds::Count + SugarCaneFeatureIds::Count;
+    MushroomFeatureIds::Count + CactusFeatureIds::Count + SugarCaneFeatureIds::Count + BambooFeatureIds::Count;
 } // namespace VegetationIds
 
 namespace KelpFeatureIds {

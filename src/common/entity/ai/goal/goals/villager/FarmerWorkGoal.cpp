@@ -40,6 +40,7 @@
 #include "common/world/block/blocks/agricultural/FarmlandBlock.hpp"
 #include "common/world/block/blocks/functional/ComposterBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/poi/PointOfInterestStorage.hpp"
 #include "common/world/village/poi/PointOfInterestType.hpp"
@@ -73,11 +74,19 @@ void FarmerWorkGoal::tick()
 
     // 农民特有行为
     if (m_farmerWorkTicks % FARMER_WORK_INTERVAL == 0) {
-        // 尝试收获
-        _tryHarvest();
+        // 当 mobGriefing 为 false 时，农民不能收获和种植作物
+        // 堆肥不受 mobGriefing 限制（原版 WorkAtComposter 不检查此规则）
+        IWorld* world = m_villager->world();
+        const bool canGrief =
+            world != nullptr && world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING);
 
-        // 尝试种植
-        _tryPlant();
+        if (canGrief) {
+            // 尝试收获
+            _tryHarvest();
+
+            // 尝试种植
+            _tryPlant();
+        }
 
         // 尝试堆肥
         _tryCompost();

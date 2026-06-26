@@ -656,11 +656,12 @@ std::vector<Entity*> EntityResolver::resolve(const ServerCommandSource& source, 
     switch (selector.type()) {
         case EntitySelectorType::Self: {
             // @s: 返回命令源自身的实体
-            auto* player = source.player();
-            if (player == nullptr) {
+            // 支持非玩家实体执行者（如 /execute as @e[type=zombie] run kill @s）
+            Entity* entity = source.entity();
+            if (entity == nullptr) {
+                // 命令源没有关联实体（如控制台、命令方块执行）
                 return {};
             }
-            Entity* entity = static_cast<Entity*>(player);
             // 对自身也应用过滤条件
             if (!selector.distance().isUnbounded()) {
                 f32 distSq = entityDistanceSq(*entity, refX, refY, refZ);

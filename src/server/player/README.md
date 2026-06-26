@@ -109,7 +109,13 @@ if (player->canReceiveMessages()) {
 
 **注意**：`canHarmPlayer(target)` 的调用约定是 this=攻击者, param=目标。在 `hurt()` 中的调用是 `attackingPlayer->canHarmPlayer(*this)`，即攻击者检查自己能否伤害被攻击者。
 
-### 10. 单元测试
+### 10. sendVelocityPacket 速度同步
+
+`ServerPlayer::sendVelocityPacket()` 重写 Player 基类版本（返回 false），实际发送 `EntityVelocityPacket` 给玩家客户端并返回 true。用于两个场景：
+1. `Player::causeExtraKnockback()` 中对 ServerPlayer 目标立即发送速度包，避免 EntityTracker::tick() 重复发送导致击退速度重复应用
+2. `EntityTracker::tick()` 中对自身发送速度包（"AndSelf" 模式，ServerPlayer 不在自身追踪列表中）
+
+### 11. 单元测试
 
 PvP 保护机制的单元测试位于：
 

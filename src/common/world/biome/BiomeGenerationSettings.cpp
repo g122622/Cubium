@@ -287,7 +287,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createTaiga()
 
 BiomeGenerationSettings BiomeGenerationSettings::createJungle()
 {
-    // 丛林：基础矿石 + 丛林树 + 丛林草丛
+    // 丛林：基础矿石 + 丛林树 + 丛林草丛 + 稀疏竹子
     BiomeGenerationSettings settings = createDefault();
 
     // 添加丛林树
@@ -297,7 +297,33 @@ BiomeGenerationSettings BiomeGenerationSettings::createJungle()
     // 添加丛林草丛
     settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::JungleGrass);
 
+    // 添加稀疏竹子（普通丛林中竹子稀疏，无灰化土）
+    settings.addFeature(DecorationStage::VegetalDecoration, BambooFeatureIds::LightBamboo);
+
     return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createBambooJungle()
+{
+    // 竹子丛林：基础矿石 + 密集竹子 + 丛林树 + 丛林草丛
+    BiomeGenerationSettings settings = createDefault();
+
+    // 添加密集竹子（20%灰化土概率）
+    settings.addFeature(DecorationStage::VegetalDecoration, BambooFeatureIds::BambooJungle);
+
+    // 添加丛林树（竹子丛林中树木较少）
+    settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::JungleTree);
+
+    // 添加丛林草丛
+    settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::JungleGrass);
+
+    return settings;
+}
+
+BiomeGenerationSettings BiomeGenerationSettings::createBambooJungleHills()
+{
+    // 竹子丛林丘陵：与竹子丛林相同的植被
+    return createBambooJungle();
 }
 
 BiomeGenerationSettings BiomeGenerationSettings::createSavanna()

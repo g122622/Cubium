@@ -22,6 +22,7 @@
  */
 
 // 树干放置器聚合源文件（包含所有实现）
+#include "BendingTrunkPlacer.cpp"
 #include "DarkOakTrunkPlacer.cpp"
 #include "FancyTrunkPlacer.cpp"
 #include "ForkyTrunkPlacer.cpp"

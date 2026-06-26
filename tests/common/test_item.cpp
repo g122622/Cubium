@@ -181,8 +181,9 @@ TEST_F(ItemTest, ArmorMaterialsUseVanillaSoundsAndRepairItems)
         const Item* repairItem;
     };
 
-    const std::array<ArmorMaterialCase, 7> cases = {{
+    const std::array<ArmorMaterialCase, 8> cases = {{
         {&item::armor::ArmorMaterials::LEATHER, "minecraft:item.armor.equip_leather", Items::LEATHER},
+        {&item::armor::ArmorMaterials::COPPER, "minecraft:item.armor.equip_copper", Items::COPPER_INGOT},
         {&item::armor::ArmorMaterials::CHAIN, "minecraft:item.armor.equip_chain", Items::IRON_INGOT},
         {&item::armor::ArmorMaterials::IRON, "minecraft:item.armor.equip_iron", Items::IRON_INGOT},
         {&item::armor::ArmorMaterials::GOLD, "minecraft:item.armor.equip_gold", Items::GOLD_INGOT},

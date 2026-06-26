@@ -433,6 +433,19 @@ public:
     /// 猪灵守护的方块标签（破坏时激怒附近猪灵）
     static BlockTag& GUARDED_BY_PIGLINS();
 
+    /// 栏杆方块标签（铁栏杆等，用于墙壁和玻璃板连接判断）
+    static BlockTag& BARS();
+
+    /// 潜影盒标签（所有潜影盒变体，用于连接例外判断）
+    static BlockTag& SHULKER_BOXES();
+
+    /// 墙柱覆盖标签（火把、告示牌、旗帜、压力板等，放置在墙上时强制显示墙柱）
+    static BlockTag& WALL_POST_OVERRIDE();
+
+    /// 炼药锅标签（所有炼药锅变体：空炼药锅、水炼药锅、岩浆炼药锅、细雪炼药锅）
+    /// 参考: net.minecraft.tags.BlockTags.CAULDRONS
+    static BlockTag& CAULDRONS();
+
     /**
      * @brief 初始化所有内置标签
      *

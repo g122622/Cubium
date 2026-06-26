@@ -88,7 +88,7 @@ void AbstractArrowEntity::tick()
 
     // 如果在水中，灭火并生成气泡粒子
     if (isInWater()) {
-        setFire(0);
+        clearFire();
         // 水中生成气泡粒子尾迹
         if (m_world) {
             for (int j = 0; j < 4; ++j) {
@@ -310,7 +310,7 @@ void AbstractArrowEntity::onEntityHit(const RayTraceResult& result)
 
     // 火焰伤害
     if (isOnFire()) {
-        target->setFire(5);
+        target->igniteForSeconds(5.0f);
     }
 
     // 播放命中音效
@@ -382,7 +382,7 @@ void AbstractArrowEntity::applyBowEnchantments(LivingEntity& shooter)
     // 火焰附魔：设置箭矢着火 100 ticks（5 秒），命中时点燃目标
     if (item::enchant::EnchantmentHelper::getEnchantmentLevel(
             shooter.getMainHandItem(), &item::enchant::AllEnchantments::FLAME) > 0) {
-        setFire(100);
+        igniteForTicks(100);
     }
 }
 

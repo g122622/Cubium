@@ -102,6 +102,9 @@ public:
     [[nodiscard]] f32 width() const override { return 0.25f; }
     [[nodiscard]] f32 height() const override { return 0.25f; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     void tick() override;
 
     // ========== 钓鱼浮标方法 ==========
@@ -392,21 +395,58 @@ public:
     [[nodiscard]] f32 width() const override { return 0.5f; }
     [[nodiscard]] f32 height() const override { return 0.8f; }
 
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
+
     void tick() override;
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
     // ========== 尖牙方法 ==========
 
     /**
      * @brief 设置所有者
-     * @param owner 所有者实体（唤魔者）
+     *
+     * 同时设置缓存指针和 UUID，确保两者同步。
+     * 参考 MC 1.21.11 EvokerFangs.setOwner(LivingEntity)，
+     * 使用双重追踪模式（缓存指针 + UUID），owner 实体失效后可通过 UUID 重新查找。
+     *
+     * @param owner 所有者实体（唤魔者），可以为 nullptr
      */
-    void setOwner(LivingEntity* owner) { m_owner = owner; }
+    void setOwner(LivingEntity* owner);
 
     /**
-     * @brief 获取所有者
-     * @return 所有者实体
+     * @brief 获取所有者（非const版本，可能触发 UUID 懒加载查找）
+     *
+     * 如果缓存指针有效且实体存活，直接返回缓存指针。
+     * 如果缓存指针失效但 UUID 非空，尝试通过 UUID 在世界中重新查找 owner。
+     * 参考 AreaEffectCloudEntity::getOwner() 的双重追踪模式。
+     *
+     * @return 所有者实体指针，可能为 nullptr
+     */
+    [[nodiscard]] LivingEntity* getOwner();
+
+    /**
+     * @brief 获取所有者（const版本，不触发懒加载查找）
+     * @return 所有者实体缓存指针，可能为 nullptr
      */
     [[nodiscard]] LivingEntity* owner() const { return m_owner; }
+
+    /**
+     * @brief 获取所有者 UUID
+     * @return 所有者 UUID 字符串（32字符十六进制），可能为空
+     */
+    [[nodiscard]] const std::string& ownerUuid() const { return m_ownerUuid; }
+
+    /**
+     * @brief 仅设置所有者 UUID（用于 NBT 反序列化）
+     *
+     * 仅设置 UUID 字段，清空缓存指针，等到 getOwner() 被调用时再通过 UUID 懒加载查找。
+     *
+     * @param uuid 所有者 UUID 字符串
+     */
+    void setOwnerUuid(const std::string& uuid);
 
     /**
      * @brief 设置预热延迟
@@ -432,7 +472,8 @@ private:
      */
     void _damageEntities();
 
-    LivingEntity* m_owner = nullptr;        ///< 所有者（唤魔者）
+    LivingEntity* m_owner = nullptr;        ///< 所有者缓存指针（唤魔者）
+    std::string m_ownerUuid;                ///< 所有者 UUID（持久化，用于跨 tick 重新查找）
     i32 m_warmupDelay = 0;                  ///< 预热延迟（ticks）
     bool m_sentAttackEvent = false;         ///< 是否已发送攻击事件
     i32 m_lifeTicks = 22;                   ///< 生命时长（ticks），默认22
@@ -460,6 +501,9 @@ public:
 
     [[nodiscard]] f32 width() const override { return 0.25f; }
     [[nodiscard]] f32 height() const override { return 0.25f; }
+
+    // 无战利品表，覆写基类方法返回空字符串
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     void tick() override;
 
@@ -521,6 +565,9 @@ public:
 
     [[nodiscard]] f32 width() const override { return 0.25f; }
     [[nodiscard]] f32 height() const override { return 0.25f; }
+
+    // 无战利品表，覆写基类方法返回空字符串（ProjectileEntity基类已覆写，此处显式标记）
+    [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     void tick() override;
 

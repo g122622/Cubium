@@ -22,6 +22,7 @@
  */
 
 #include "PlayerDataManager.hpp"
+#include "common/entity/effect/EffectManager.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceManager.hpp"
 #include "common/entity/food/FoodStats.hpp"
@@ -301,6 +302,12 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
         data.enteredNetherPosition = netherPos.value();
     }
 
+    // 最后死亡位置
+    auto deathLoc = player.getLastDeathLocation();
+    if (deathLoc.has_value()) {
+        data.lastDeathLocation = deathLoc.value();
+    }
+
     // 睡眠状态
     data.sleeping = player.isSleeping();
     data.sleepTimer = player.getSleepTimer();
@@ -316,6 +323,14 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
     data.onGround = player.isOnGround();
     data.sprinting = player.isSprinting();
     data.sneaking = player.isSneaking();
+
+    // 冲量上下文
+    auto impulsePos = player.currentImpulseImpactPos();
+    if (impulsePos.has_value()) {
+        data.currentImpulseImpactPos = impulsePos.value();
+    }
+    data.ignoreFallDamageFromCurrentImpulse = player.isIgnoringFallDamageFromCurrentImpulse();
+    data.currentImpulseContextResetGraceTime = player.currentImpulseContextResetGraceTime();
 
     // 背包物品
     const auto& inventory = player.inventory();
@@ -343,6 +358,123 @@ PlayerSaveData PlayerDataManager::fromPlayer(const ServerPlayer& player)
     data.effects = effects;
 
     return data;
+}
+
+// ============================================================================
+// 从保存数据恢复到玩家实体
+// ============================================================================
+
+void PlayerDataManager::applyToPlayer(Player& player, const PlayerSaveData& data)
+{
+    // ========== 位置和旋转 ==========
+    player.setPosition(static_cast<f32>(data.posX), static_cast<f32>(data.posY), static_cast<f32>(data.posZ));
+    player.setRotation(data.yaw, data.pitch);
+
+    // ========== 维度 ==========
+    player.setDimension(data.dimension);
+
+    // ========== 游戏模式 ==========
+    player.setGameMode(data.gameMode);
+
+    // ========== 生命值 ==========
+    player.setHealth(data.health);
+
+    // ========== 饥饿值 ==========
+    auto& foodStats = player.foodStats();
+    foodStats.setFoodLevel(data.foodLevel);
+    foodStats.setSaturationLevel(data.saturationLevel);
+    foodStats.setExhaustionLevel(data.exhaustionLevel);
+    foodStats.setFoodTimer(data.foodTickTimer);
+
+    // ========== 经验 ==========
+    player.experienceManager().setExperience(data.experienceLevel, data.experienceProgress, data.totalExperience);
+    player.experienceManager().setXpSeed(data.xpSeed);
+
+    // ========== 能力 ==========
+    auto& abilities = player.abilities();
+    abilities.invulnerable = data.invulnerable;
+    abilities.canFly = data.canFly;
+    abilities.flying = data.flying;
+    abilities.flySpeed = data.flySpeed;
+    abilities.walkSpeed = data.walkSpeed;
+
+    // ========== 重生点 ==========
+    if (data.spawnPoint.has_value()) {
+        player.setSpawnPoint(data.spawnPoint->getDimensionId(), data.spawnPoint->getPos(), data.spawnForced);
+    }
+
+    // ========== 进入下界位置 ==========
+    if (data.enteredNetherPosition.has_value()) {
+        player.setEnteredNetherPosition(data.enteredNetherPosition.value());
+    }
+
+    // ========== 最后死亡位置 ==========
+    if (data.lastDeathLocation.has_value()) {
+        player.setLastDeathLocation(data.lastDeathLocation.value());
+    } else {
+        player.setLastDeathLocation(std::nullopt);
+    }
+
+    // ========== 睡眠状态 ==========
+    if (data.sleeping) {
+        player.setSleeping(true);
+        if (data.sleepingPosition.has_value()) {
+            player.setSleepingPosition(data.sleepingPosition.value());
+        }
+        player.setSleepTimer(data.sleepTimer);
+    }
+
+    // ========== 空气供应 ==========
+    player.setAir(data.airSupply);
+
+    // ========== 状态标志 ==========
+    player.setOnGround(data.onGround);
+    if (data.sprinting) {
+        player.setSprinting(true);
+    }
+    if (data.sneaking) {
+        player.setSneaking(true);
+    }
+
+    // ========== 冲量上下文 ==========
+    // 先重置冲量上下文，再逐字段恢复，避免 setIgnoreFallDamageFromCurrentImpulse 的副作用
+    // （该方法会设置 40 tick 宽限期，覆盖保存数据中的实际值）
+    player.resetCurrentImpulseContext();
+    if (data.currentImpulseImpactPos.has_value()) {
+        player.setCurrentImpulseImpactPos(data.currentImpulseImpactPos.value());
+    }
+    if (data.ignoreFallDamageFromCurrentImpulse) {
+        player.setIgnoreFallDamageFromCurrentImpulse(true);
+    }
+    // 恢复冲量上下文宽限期：setIgnoreFallDamageFromCurrentImpulse(true) 会设置 40 tick，
+    // 但保存数据中可能有不同的值，需要用 applyPostImpulseGraceTime 调整。
+    // applyPostImpulseGraceTime 取最大值，所以如果保存值 > 40 则扩展，否则保持 40。
+    if (data.currentImpulseContextResetGraceTime > 0) {
+        player.applyPostImpulseGraceTime(data.currentImpulseContextResetGraceTime);
+    }
+
+    // ========== 背包物品 ==========
+    auto& inventory = player.inventory();
+    for (i32 slot = 0; slot < static_cast<i32>(data.inventoryItems.size()) && slot < PlayerInventory::TOTAL_SIZE;
+        ++slot) {
+        const auto& itemOpt = data.inventoryItems[slot];
+        if (itemOpt.has_value() && !itemOpt->isEmpty()) {
+            inventory.setItem(slot, itemOpt->copy());
+        }
+    }
+    inventory.setSelectedSlot(data.selectedSlot);
+
+    // ========== 鼠标持有物品 ==========
+    if (data.carriedItem.has_value() && !data.carriedItem->isEmpty()) {
+        inventory.setCarriedItem(data.carriedItem->copy());
+    }
+
+    // ========== 药水效果 ==========
+    auto& effectManager = player.effectManager();
+    effectManager.removeAllEffects(player);
+    for (const auto& effect : data.effects) {
+        effectManager.addEffect(entity::effect::EffectInstance(effect), player);
+    }
 }
 
 // ============================================================================

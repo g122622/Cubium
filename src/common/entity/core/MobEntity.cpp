@@ -347,7 +347,7 @@ void MobEntity::burnUndead()
         // 如果物品不可损坏（如附魔绑定/无限耐久），实体也不会燃烧
     } else {
         // 防护槽位为空：实体被点燃 8 秒
-        setFire(8);
+        igniteForSeconds(8.0f);
     }
 }
 
@@ -397,9 +397,8 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
     EntityDamageSource damageSource = DamageSources::mobAttack(this);
 
     // 如果有火焰附加，在攻击前点燃目标 1 秒（用于燃烧传递）
-    // setFire 接收 ticks，1 秒 = 20 ticks
     if (fireAspectLevel > 0) {
-        target.setFire(20); // 1 秒 = 20 ticks
+        target.igniteForTicks(20); // 1 秒 = 20 ticks
     }
 
     bool attacked = target.hurt(damageSource, attackDamage);
@@ -447,7 +446,7 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
         // 7. 应用火焰附加（攻击后应用完整燃烧时间）
         if (fireAspectLevel > 0) {
             // 火焰附加持续时间 = level * 4 秒
-            target.setFire(fireAspectLevel * 4 * 20); // 20 ticks per second
+            target.igniteForSeconds(static_cast<f32>(fireAspectLevel) * 4.0f);
         }
 
         // 8. 设置最后攻击者
@@ -637,6 +636,16 @@ void MobEntity::setGuaranteedDrop(EquipmentSlot slot)
 bool MobEntity::isEquipmentDropPreserved(EquipmentSlot slot) const
 {
     return getEquipmentDropChance(slot) > 1.0f;
+}
+
+std::string MobEntity::getLootTableId() const
+{
+    // NBT 覆盖优先：如果实体从存档加载了自定义掉落表，使用它
+    if (m_deathLootTable.has_value() && !m_deathLootTable->empty()) {
+        return *m_deathLootTable;
+    }
+    // 回退到实体类型的默认掉落表路径
+    return Entity::getLootTableId();
 }
 
 // ============================================================================
@@ -987,9 +996,7 @@ void MobEntity::populateDefaultEquipmentEnchantments(
 const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
 {
     // 对应 Minecraft 原版 Mob.getEquipmentForSlot()
-    // armorLevel: 0=皮革, 1=铁(原版1.21.11中为铜), 2=金, 3=锁链, 4=铁, 5=钻石
-    // 注意：原版 MC 1.21.11 中 level 1 是铜护甲，但当前项目尚未实现铜护甲，
-    // 因此 level 1 使用铁护甲作为替代
+    // armorLevel: 0=皮革, 1=铜, 2=金, 3=锁链, 4=铁, 5=钻石
 
     switch (slot) {
         case EquipmentSlot::Head:
@@ -997,7 +1004,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
                 case 0:
                     return Items::LEATHER_HELMET;
                 case 1:
-                    return Items::IRON_HELMET; // TODO: 替换为 COPPER_HELMET 当铜护甲实现后
+                    return Items::COPPER_HELMET;
                 case 2:
                     return Items::GOLDEN_HELMET;
                 case 3:
@@ -1014,7 +1021,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
                 case 0:
                     return Items::LEATHER_CHESTPLATE;
                 case 1:
-                    return Items::IRON_CHESTPLATE; // TODO: 替换为 COPPER_CHESTPLATE
+                    return Items::COPPER_CHESTPLATE;
                 case 2:
                     return Items::GOLDEN_CHESTPLATE;
                 case 3:
@@ -1031,7 +1038,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
                 case 0:
                     return Items::LEATHER_LEGGINGS;
                 case 1:
-                    return Items::IRON_LEGGINGS; // TODO: 替换为 COPPER_LEGGINGS
+                    return Items::COPPER_LEGGINGS;
                 case 2:
                     return Items::GOLDEN_LEGGINGS;
                 case 3:
@@ -1048,7 +1055,7 @@ const Item* MobEntity::getEquipmentForSlot(EquipmentSlot slot, i32 armorLevel)
                 case 0:
                     return Items::LEATHER_BOOTS;
                 case 1:
-                    return Items::IRON_BOOTS; // TODO: 替换为 COPPER_BOOTS
+                    return Items::COPPER_BOOTS;
                 case 2:
                     return Items::GOLDEN_BOOTS;
                 case 3:

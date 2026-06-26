@@ -144,6 +144,29 @@ private:
         const BlockState& state, Direction neighborSide) const;
 
     /**
+     * @brief 判断墙柱(UP)是否应该升起
+     *
+     * 参考: net.minecraft.block.WallBlock#shouldRaisePost
+     * 综合考虑四方向连接高度和上方方块状态决定是否显示墙柱。
+     *
+     * @param state 当前墙状态
+     * @param northHeight 北面连接高度
+     * @param eastHeight 东面连接高度
+     * @param southHeight 南面连接高度
+     * @param westHeight 西面连接高度
+     * @param world 世界
+     * @param pos 墙位置
+     * @return 如果应该升起墙柱返回 true
+     */
+    [[nodiscard]] bool _shouldRaisePost(const BlockState& state,
+        BlockStateProperties::WallHeight northHeight,
+        BlockStateProperties::WallHeight eastHeight,
+        BlockStateProperties::WallHeight southHeight,
+        BlockStateProperties::WallHeight westHeight,
+        const IWorld& world,
+        const BlockPos& pos) const;
+
+    /**
      * @brief 获取形状索引
      * @param up 是否有顶部
      * @param north 北面高度

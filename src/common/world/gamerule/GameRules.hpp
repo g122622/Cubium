@@ -205,6 +205,10 @@ extern const BooleanGameRuleKey TNT_EXPLODES;
 /// 最大命令链长度
 extern const IntegerGameRuleKey MAX_COMMAND_CHAIN_LENGTH;
 
+/// 矿车最大速度（默认8，实际速度 = 规则值 / 20.0 方块/刻，水中减半）
+/// 范围 [1, 1000]，对应 max_minecart_speed 游戏规则
+extern const IntegerGameRuleKey MAX_MINECART_SPEED;
+
 } // namespace GameRuleKeys
 
 /**

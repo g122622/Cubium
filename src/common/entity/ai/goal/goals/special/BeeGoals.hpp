@@ -38,6 +38,7 @@ class BeeEntity;
 class CreatureEntity;
 class LivingEntity;
 class MobEntity;
+class Player;
 class IWorld;
 class BlockState;
 
@@ -153,10 +154,11 @@ public:
     /// 检查是否正在授粉
     [[nodiscard]] bool isRunning() const { return m_running; }
 
-private:
+protected:
     /// 检查位置是否是花朵
     [[nodiscard]] bool _isFlower(const BlockPos& pos) const;
 
+private:
     /// 搜索附近的花朵
     [[nodiscard]] bool _findFlower();
 
@@ -317,17 +319,20 @@ public:
 
     [[nodiscard]] std::string getTypeName() const override { return "BeeWanderGoal"; }
 
+protected:
+    /// 检查位置是否有效
+    [[nodiscard]] bool _isValidLocation(const math::Vector3f& pos) const;
+
 private:
     /// 获取随机飞行位置
     [[nodiscard]] math::Vector3f _getRandomLocation();
 
-    /// 检查位置是否有效
-    [[nodiscard]] bool _isValidLocation(const math::Vector3f& pos) const;
-
     BeeEntity* m_bee;
 
-    static constexpr f32 WANDER_RANGE = 8.0f;          ///< 漫游范围
-    static constexpr f32 WANDER_HEIGHT = 7.0f;         ///< 漫游高度范围
+    static constexpr f32 WANDER_RANGE = 8.0f;          ///< 漫游范围（回退时使用）
+    static constexpr f32 WANDER_HEIGHT = 7.0f;         ///< 漫游高度范围（回退时使用）
+    static constexpr i32 XZ_RANGE = 8;                 ///< RandomPositionGenerator 水平搜索范围
+    static constexpr i32 Y_RANGE = 7;                  ///< RandomPositionGenerator 垂直搜索范围
     static constexpr f32 HIVE_RETURN_DISTANCE = 22.0f; ///< 触发返回蜂巢的距离
     static constexpr i32 WANDER_CHANCE = 10;           ///< 漫游概率倒数
 };
@@ -381,7 +386,7 @@ private:
     [[nodiscard]] bool _canSting() const;
 
     BeeEntity* m_beeEntity;
-    LivingEntity* m_targetPlayer = nullptr;
+    Player* m_targetPlayer = nullptr;
     i32 m_chance;
 
     static constexpr f32 TARGET_RANGE = 10.0f; ///< 目标搜索范围

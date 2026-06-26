@@ -53,11 +53,16 @@
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/network/SkinPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
+#include "common/world/block/registry/CaveBlocks.hpp"
+#include "common/world/block/registry/MudBlocks.hpp"
+#include "common/world/fluid/FluidTags.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -1469,7 +1474,8 @@ void ClientApplication::setupNetworkCallbacks()
                               GameMode previousGameMode,
                               bool isDebug,
                               bool isFlat,
-                              bool keepData) {
+                              bool keepData,
+                              std::optional<GlobalPos> lastDeathLocation) {
         spdlog::info("Received Respawn: dimensionType={}, dimension={}, gameMode={}, keepData={}",
             dimensionType,
             static_cast<i32>(dimension),
@@ -1525,6 +1531,9 @@ void ClientApplication::setupNetworkCallbacks()
             if (!keepData) {
                 m_player->respawn();
             }
+
+            // 12. 更新玩家的上次死亡位置（从服务端同步）
+            m_player->setLastDeathLocation(std::move(lastDeathLocation));
         }
 
         // 12. 重置预测器
@@ -1837,7 +1846,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::CRAFTER_CRAFT_SOUND:
             // 合成器合成成功音效
-            // 参考 MC: LevelEventHandler.levelEvent() case 1049
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_CRAFTER_CRAFT, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
@@ -1846,7 +1854,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::CRAFTER_FAIL_SOUND:
             // 合成器合成失败音效
-            // 参考 MC: LevelEventHandler.levelEvent() case 1050
             if (m_audioService) {
                 m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
                     SoundEvents::BLOCK_CRAFTER_FAIL, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
@@ -1948,15 +1955,47 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::DISPENSER_SMOKE: {
             // 发射器烟雾粒子，data 为方向（Direction.getIndex()）
-            for (int i = 0; i < 10; ++i) {
-                // 简化实现：在发射器位置周围生成烟雾粒子
-                f32 spx = static_cast<f32>(x) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                f32 spy = static_cast<f32>(y) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                f32 spz = static_cast<f32>(z) + 0.5f + (random.nextFloat() - 0.5f) * 0.5f;
-                f32 svx = static_cast<f32>(random.nextGaussian()) * 0.02f;
-                f32 svy = static_cast<f32>(random.nextGaussian()) * 0.02f + 0.05f;
-                f32 svz = static_cast<f32>(random.nextGaussian()) * 0.02f;
-                m_world.addParticle(ParticleTypeId::Smoke, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
+            // 参考 MC Java: LevelEventHandler.shootParticles(pos, data, random, ParticleTypes.SMOKE)
+            {
+                Direction dir = static_cast<Direction>(data);
+                i32 stepX = Directions::xOffset(dir);
+                i32 stepY = Directions::yOffset(dir);
+                i32 stepZ = Directions::zOffset(dir);
+                for (int i = 0; i < 10; ++i) {
+                    f32 speed = static_cast<f32>(random.nextDouble() * 0.2 + 0.01);
+                    f32 spx = static_cast<f32>(x) + static_cast<f32>(stepX) * 0.6f + 0.5f +
+                        static_cast<f32>(stepX) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepZ) * 0.5f;
+                    f32 spy = static_cast<f32>(y) + static_cast<f32>(stepY) * 0.6f + 0.5f +
+                        static_cast<f32>(stepY) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepY) * 0.5f;
+                    f32 spz = static_cast<f32>(z) + static_cast<f32>(stepZ) * 0.6f + 0.5f +
+                        static_cast<f32>(stepZ) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepX) * 0.5f;
+                    f32 svx = static_cast<f32>(stepX) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    f32 svy = static_cast<f32>(stepY) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    f32 svz = static_cast<f32>(stepZ) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    m_world.addParticle(ParticleTypeId::Smoke, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
+                }
+            }
+            break;
+        }
+
+        case WorldEvents::MOB_SPAWNER_PARTICLES: {
+            // 刷怪笼成功生成实体时爆发烟雾和火焰粒子
+            // 参考 MC: BaseSpawner.serverTick() 成功生成后调用 levelEvent(2004, pos, 0)
+            // 客户端在方块中心2格范围内随机生成20个烟雾粒子和20个火焰粒子
+            {
+                f32 cx = static_cast<f32>(x) + 0.5f;
+                f32 cy = static_cast<f32>(y) + 0.5f;
+                f32 cz = static_cast<f32>(z) + 0.5f;
+                for (i32 i = 0; i < 20; ++i) {
+                    f32 spx = cx + (random.nextFloat() - 0.5f) * 2.0f;
+                    f32 spy = cy + (random.nextFloat() - 0.5f) * 2.0f;
+                    f32 spz = cz + (random.nextFloat() - 0.5f) * 2.0f;
+                    m_world.addParticle(ParticleTypeId::Smoke, Vector3(spx, spy, spz), Vector3(0.0f, 0.0f, 0.0f));
+                    m_world.addParticle(ParticleTypeId::Flame, Vector3(spx, spy, spz), Vector3(0.0f, 0.0f, 0.0f));
+                }
             }
             break;
         }
@@ -1990,9 +2029,122 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         }
 
         case WorldEvents::DRIPSTONE_DRIP: {
-            // 滴石滴水效果
-            // TODO: 实现滴石滴水的完整粒子效果，当前仅生成水滴粒子
-            m_world.addParticle(ParticleTypeId::DrippingWater, Vector3(px, py, pz), Vector3(0.0f, 0.0f, 0.0f));
+            // 滴石滴水粒子效果
+            // 事件由服务端在 maybeTransferFluid 中触发（钟乳石成功向炼药锅传输流体时）
+            // 客户端需要根据钟乳石上方的流体类型选择正确的粒子类型
+            {
+                // 获取钟乳石尖端位置的方块状态
+                const BlockState* dripstoneState = m_world.getBlockState(x, y, z);
+                if (dripstoneState != nullptr) {
+                    // 使用 PointedDripstoneBlock 静态方法计算粒子位置和检测流体类型
+                    BlockPos tipPos(x, y, z);
+                    Vector3 particlePos = blocks::PointedDripstoneBlock::getDripParticlePosition(tipPos);
+
+                    // 检测流体类型：沿钟乳石向上搜索非滴石方块，然后检查其流体状态
+                    // 由于 ClientWorld 不继承 IWorld，无法直接调用 getFluidAboveStalactite，
+                    // 因此在此处内联流体检测逻辑
+                    ParticleTypeId dripType = ParticleTypeId::DrippingDripstoneWater; // 默认水滴
+
+                    if (blocks::PointedDripstoneBlock::isStalactite(*dripstoneState)) {
+                        i32 searchX = x, searchY = y + 1, searchZ = z;
+                        const BlockState* aboveState = nullptr;
+                        for (i32 i = 0; i < 11; ++i) {
+                            aboveState = m_world.getBlockState(searchX, searchY, searchZ);
+                            if (aboveState == nullptr ||
+                                !aboveState->is(block_registry::CaveBlocks::POINTED_DRIPSTONE)) {
+                                break;
+                            }
+                            searchY++;
+                        }
+                        // aboveState 现在是根方块上方的方块
+                        if (aboveState != nullptr) {
+                            // 检查是否是泥巴（Mud），泥巴视为水源
+                            if (aboveState->is(block_registry::MudBlocks::MUD)) {
+                                dripType = ParticleTypeId::DrippingDripstoneWater;
+                            } else {
+                                // 检查流体状态
+                                const fluid::FluidState* fluidState = aboveState->getFluidState();
+                                if (fluidState != nullptr && !fluidState->isEmpty()) {
+                                    const fluid::Fluid& fluid = fluidState->getFluid();
+                                    if (fluid.isIn(fluid::FluidTags::LAVA())) {
+                                        dripType = ParticleTypeId::DrippingDripstoneLava;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    m_world.addParticle(dripType, particlePos, Vector3(0.0f, 0.0f, 0.0f));
+                }
+            }
+            break;
+        }
+
+        case WorldEvents::PLANT_GROWTH_EFFECT: {
+            // 植物生长粒子与音效事件 (MC 1.21 主事件，由骨粉使用触发)
+            // data 为粒子数量，0 则生成 15 个
+            // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 BonemealableBlock 类型
+            // 决定粒子分布方式，同时播放骨粉使用音效
+            // TODO: 当前简化实现使用与 BONEMEAL_PARTICLES 相同的粒子分布（方块内随机偏移），
+            // 未区分 NEIGHBOR_SPREADER 和 GROWER 两种 BonemealableBlock 类型的不同分布模式。
+            // NEIGHBOR_SPREADER（草方块等）应使用 spawnParticles 水平扩散 3 倍粒子数，
+            // GROWER（作物等）应使用 spawnParticleInBlock 自动计算方块形状高度。
+            // 待 BonemealableBlock::getType() 和 getParticlePos() 接口完善后实现精确分布。
+            {
+                i32 count = (data == 0) ? 15 : data;
+                m_world.addParticle(ParticleTypeId::HappyVillager,
+                    Vector3(px, py, pz),
+                    Vector3(0.0f, 0.0f, 0.0f),
+                    Vector3(0.5f, 1.0f, 0.5f),
+                    static_cast<u32>(count));
+
+                // 播放骨粉使用音效
+                if (m_audioService) {
+                    m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                        SoundEvents::ITEM_BONE_MEAL_USE, SoundCategory::Blocks, px, py, pz, 1.0f, 1.0f)));
+                }
+            }
+            break;
+        }
+
+        case WorldEvents::POINTED_DRIPSTONE_LAND_SOUND: {
+            // 滴石尖锥落地音效
+            if (m_audioService) {
+                f32 pitch = random.nextFloat() * 0.1f + 0.9f;
+                m_audioService->play(std::make_unique<sound::SoundInstance>(sound::SoundInstance::createLocated(
+                    SoundEvents::BLOCK_POINTED_DRIPSTONE_LAND, SoundCategory::Blocks, px, py, pz, 2.0f, pitch)));
+            }
+            break;
+        }
+
+        case WorldEvents::DRIP_LAVA_INTO_CAULDRON_SOUND: {
+            // 熔岩滴入炼药锅音效
+            if (m_audioService) {
+                f32 pitch = random.nextFloat() * 0.1f + 0.9f;
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(SoundEvents::BLOCK_POINTED_DRIPSTONE_DRIP_LAVA_INTO_CAULDRON,
+                        SoundCategory::Blocks,
+                        px,
+                        py,
+                        pz,
+                        2.0f,
+                        pitch)));
+            }
+            break;
+        }
+
+        case WorldEvents::DRIP_WATER_INTO_CAULDRON_SOUND: {
+            // 水滴入炼药锅音效
+            if (m_audioService) {
+                f32 pitch = random.nextFloat() * 0.1f + 0.9f;
+                m_audioService->play(std::make_unique<sound::SoundInstance>(
+                    sound::SoundInstance::createLocated(SoundEvents::BLOCK_POINTED_DRIPSTONE_DRIP_WATER_INTO_CAULDRON,
+                        SoundCategory::Blocks,
+                        px,
+                        py,
+                        pz,
+                        2.0f,
+                        pitch)));
+            }
             break;
         }
 
@@ -2040,6 +2192,64 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                     f32 spz = pz + std::sin(angle) * dist;
                     m_world.addParticle(ParticleTypeId::Poof, Vector3(spx, py, spz), Vector3(0.0f, 0.1f, 0.0f));
                 }
+            }
+            break;
+        }
+
+        case WorldEvents::SHOOT_WHITE_SMOKE: {
+            // 白烟粒子效果（方向性），与 DISPENSER_SMOKE(2000) 类似但为白色烟雾
+            // data 为烟雾方向（Direction.getIndex()）
+            // 参考 MC Java: LevelEventHandler.shootParticles(pos, data, random, ParticleTypes.WHITE_SMOKE)
+            {
+                Direction dir = static_cast<Direction>(data);
+                i32 stepX = Directions::xOffset(dir);
+                i32 stepY = Directions::yOffset(dir);
+                i32 stepZ = Directions::zOffset(dir);
+                for (int i = 0; i < 10; ++i) {
+                    f32 speed = static_cast<f32>(random.nextDouble() * 0.2 + 0.01);
+                    f32 spx = static_cast<f32>(x) + static_cast<f32>(stepX) * 0.6f + 0.5f +
+                        static_cast<f32>(stepX) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepZ) * 0.5f;
+                    f32 spy = static_cast<f32>(y) + static_cast<f32>(stepY) * 0.6f + 0.5f +
+                        static_cast<f32>(stepY) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepY) * 0.5f;
+                    f32 spz = static_cast<f32>(z) + static_cast<f32>(stepZ) * 0.6f + 0.5f +
+                        static_cast<f32>(stepZ) * 0.01f +
+                        static_cast<f32>(random.nextFloat() - 0.5f) * static_cast<f32>(stepX) * 0.5f;
+                    f32 svx = static_cast<f32>(stepX) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    f32 svy = static_cast<f32>(stepY) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    f32 svz = static_cast<f32>(stepZ) * speed + static_cast<f32>(random.nextGaussian()) * 0.01f;
+                    m_world.addParticle(ParticleTypeId::WhiteSmoke, Vector3(spx, spy, spz), Vector3(svx, svy, svz));
+                }
+            }
+            break;
+        }
+
+        case WorldEvents::PLANT_GROWTH_PARTICLES: {
+            // 植物生长粒子效果（蜜蜂授粉促进作物生长时触发）
+            // data 为粒子数量（通常为 15），0 则生成 15 个
+            // 与 BONEMEAL_PARTICLES(2005) 的区别：不播放骨粉使用音效
+            {
+                i32 count = (data == 0) ? 15 : data;
+                m_world.addParticle(ParticleTypeId::HappyVillager,
+                    Vector3(px, py, pz),
+                    Vector3(0.0f, 0.0f, 0.0f),
+                    Vector3(0.5f, 1.0f, 0.5f),
+                    static_cast<u32>(count));
+            }
+            break;
+        }
+
+        case WorldEvents::TURTLE_EGG_PLACEMENT: {
+            // 海龟蛋放置粒子效果
+            // 与 PLANT_GROWTH_PARTICLES(2011) 逻辑相同，均为 HappyVillager 粒子
+            {
+                i32 count = (data == 0) ? 15 : data;
+                m_world.addParticle(ParticleTypeId::HappyVillager,
+                    Vector3(px, py, pz),
+                    Vector3(0.0f, 0.0f, 0.0f),
+                    Vector3(0.5f, 1.0f, 0.5f),
+                    static_cast<u32>(count));
             }
             break;
         }

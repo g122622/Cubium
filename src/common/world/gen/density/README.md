@@ -142,17 +142,17 @@ MC 1.21 中各密度的缓存层不同：
 
 ### 10. BlendAlpha / BlendOffset / BeardifierMarker
 
-- `BlendAlpha`：始终返回 1.0（minValue=1.0, maxValue=1.0）
-- `BlendOffset`：始终返回 0.0（minValue=0.0, maxValue=0.0）
+- `BlendAlpha`：默认返回 1.0（无旧区块混合）。在 `splineWithBlending` 中用作 `lerp(blendAlpha, blendTarget, splineFunc)` 的 alpha 参数。当 NoiseChunk 构造时有 Blender 数据时，会被替换为实际的混合 alpha 值（0.0~1.0 的 smoothstep 过渡）
+- `BlendOffset`：默认返回 0.0（无旧区块混合）。在 `splineWithBlending` 中用作 offset 的 blendTarget 参数。当有 Blender 数据时，会被替换为实际的混合偏移值
 - `BeardifierMarker`：Marker 类型，在 NoiseChunk::apply() 中替换为实际 Beardifier（当前暂返回 0.0）
 
 ### 11. preliminarySurfaceLevel
 
-当前使用 `constant(0.0)` 占位。MC 原版使用 `findTopSurface` 密度函数向下搜索密度 > 0 的位置，影响含水层水位和结构放置。
+当前使用 `constant(0.0)` 占位。MC 原版使用 `findTopSurface` 密度函数向下搜索密度 > 0 的位置，影响含水层水位和结构放置。完整实现需要 FindTopSurface 密度函数类和 remap 辅助函数。
 
 ### 12. BlendDensity
 
-当前为恒等函数（直接返回输入）。MC 原版通过 Blender.blendDensity() 实现旧区块混合，与 BlendAlpha/BlendOffset 一起用于区块边界平滑过渡。
+当前为恒等函数（直接返回输入）。MC 原版通过 Blender.blendDensity() 实现旧区块混合，与 BlendAlpha/BlendOffset 一起用于区块边界平滑过渡。需要实现 BlendDensity 密度函数类和 Blender 系统后才能完整支持。
 
 ## 容易踩的坑
 

@@ -244,6 +244,15 @@ public:
 
 private:
     /**
+     * @brief 执行方块实体tick
+     *
+     * 遍历所有已加载区块中的方块实体，对 needsTick() 返回 true
+     * 且未被移除的方块实体调用其 tick() 方法。
+     * 对应 MC Java 的 Level.tickBlockEntities()。
+     */
+    void tickBlockEntities();
+
+    /**
      * @brief 执行环境随机刻
      *
      * 对每个已加载区块，随机选择位置执行方块和流体的随机刻。
@@ -308,6 +317,7 @@ public:
     [[nodiscard]] std::vector<Entity*> getEntitiesInRange(
         const Vector3& pos, f32 range, const Entity* except = nullptr) const override;
     [[nodiscard]] std::vector<Entity*> getPlayers() const override;
+    [[nodiscard]] std::vector<Entity*> getEntitiesByType(entity::EntityTypeId typeId) const override;
 
     // ========== 最近玩家查询 ==========
 
@@ -585,6 +595,13 @@ public:
         bool causesFire,
         Entity* source,
         const DamageSource* damageSource) override;
+
+    void createExplosionWithContext(const Vector3& position,
+        f32 radius,
+        world::explosion::ExplosionMode mode,
+        bool causesFire,
+        Entity* source,
+        std::unique_ptr<world::explosion::ExplosionContext> context) override;
 
     // ========== 命令执行 (IWorld override) ==========
 

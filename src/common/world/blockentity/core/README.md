@@ -44,6 +44,7 @@ BlockEntityDeserializer ──反序列化──→ BlockEntity（通过Registry
 - **transport/** - `HopperEntity` 继承 `LockableBlockEntity`
 - **processing/** - `AbstractFurnaceEntity`, `BrewingStandEntity` 继承 `LockableBlockEntity`
 - **interactive/** - `DispenserBlockEntity` 继承 `LootableContainerBlockEntity`
+- **spawner/** - `MobSpawnerBlockEntity` 继承 `BlockEntity`，通过 `BlockEntityRegistry` 注册
 - **world/chunk/** - 区块加载时通过 `BlockEntityDeserializer` 反序列化方块实体
 - **server/** - 服务器启动时调用 `BlockEntityRegistry::registerBuiltinTypes()`
 

@@ -48,8 +48,8 @@ namespace mc::client::renderer::entity::renderer::player {
  *
  * 支持标准手臂和纤细手臂两种模式。
  *
- * 注意：Player 类不继承 LivingEntity，因此这里直接继承 EntityRenderer，
- * 但实现了层渲染器支持和 IEntityRenderer 接口。
+ * Player 继承自 LivingEntity，拥有 limbSwing/limbSwingAmount 等动画字段，
+ * 可直接使用 LivingEntity 的访问器获取步态动画参数。
  */
 class PlayerRenderer : public core::EntityRenderer,
                        public core::IEntityRenderer<::mc::Player, model::player::PlayerModel> {

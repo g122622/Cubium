@@ -29,6 +29,7 @@
 #include "common/skin/manager/SkinCache.hpp"
 #include "common/skin/network/PlayerSkinInfo.hpp"
 #include "common/skin/network/SkinPackets.hpp"
+#include "common/util/TimeUtils.hpp"
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -233,6 +234,87 @@ TEST_F(SkinCacheTest, CleanExpiredRemovesEntry)
     // 皮肤应被清理
     EXPECT_FALSE(cache_->hasSkin("expired_hash"));
     EXPECT_EQ(0u, cache_->cacheCount());
+}
+
+TEST_F(SkinCacheTest, MetadataTimestampRoundTrip)
+{
+    // 验证时间戳在序列化/反序列化后保持正确
+    auto initResult = cache_->initialize();
+    ASSERT_TRUE(initResult.success());
+
+    std::string skinHash = "timestamp_test_hash";
+    std::vector<mc::u8> skinData(256, 0x42);
+    auto saveResult = cache_->saveSkin(skinHash, skinData);
+    ASSERT_TRUE(saveResult.success());
+
+    // 关闭缓存（触发元数据保存）
+    cache_->shutdown();
+    cache_.reset();
+
+    // 重新打开缓存（从 metadata.json 加载）
+    cache_ = std::make_unique<SkinCache>(testDir_);
+    auto reinitResult = cache_->initialize();
+    ASSERT_TRUE(reinitResult.success());
+
+    // 皮肤数据应该仍然可用
+    EXPECT_TRUE(cache_->hasSkin(skinHash));
+    auto readResult = cache_->readSkin(skinHash);
+    EXPECT_TRUE(readResult.success());
+    EXPECT_EQ(skinData.size(), readResult.value().size());
+
+    // 清理过期缓存应该不会移除刚加载的条目（它们刚被访问）
+    cache_->cleanExpired(std::chrono::hours(1));
+    EXPECT_TRUE(cache_->hasSkin(skinHash));
+}
+
+TEST_F(SkinCacheTest, CleanExpiredPreservesRecentEntry)
+{
+    auto initResult = cache_->initialize();
+    ASSERT_TRUE(initResult.success());
+
+    std::string skinHash = "recent_hash";
+    std::vector<mc::u8> skinData(100, 0x55);
+    cache_->saveSkin(skinHash, skinData);
+
+    // 清理超过 1 小时的缓存——刚保存的条目不应被清理
+    cache_->cleanExpired(std::chrono::hours(1));
+    EXPECT_TRUE(cache_->hasSkin(skinHash));
+    EXPECT_EQ(1u, cache_->cacheCount());
+}
+
+// ============================================================================
+// TimeUtils 跨平台时间戳转换测试
+// ============================================================================
+
+TEST(TimeUtilsFileTimeTest, FileTimeToUnixSecondsRoundTrip)
+{
+    // 使用当前时间进行往返测试
+    auto now = std::filesystem::file_time_type::clock::now();
+    auto unixSeconds = mc::util::TimeUtils::fileTimeToUnixSeconds(now);
+    auto restored = mc::util::TimeUtils::unixSecondsToFileTime(unixSeconds);
+
+    // 由于秒级精度截断，往返后的时间与原始时间差应在 1 秒以内
+    auto diff = std::chrono::duration_cast<std::chrono::seconds>((now > restored) ? (now - restored) : (restored - now))
+                    .count();
+    EXPECT_LE(diff, 1);
+}
+
+TEST(TimeUtilsFileTimeTest, FileTimeToUnixSecondsKnownEpoch)
+{
+    // Unix 纪元（1970-01-01 00:00:00 UTC）对应的 file_time_type 转换后应为 0
+    auto unixEpoch = std::chrono::system_clock::from_time_t(0);
+    auto fileTimeAtEpoch = std::chrono::clock_cast<std::filesystem::file_time_type::clock>(unixEpoch);
+    auto seconds = mc::util::TimeUtils::fileTimeToUnixSeconds(fileTimeAtEpoch);
+    EXPECT_EQ(0, seconds);
+}
+
+TEST(TimeUtilsFileTimeTest, UnixSecondsToFileTimeKnownValue)
+{
+    // 2024-01-01 00:00:00 UTC ≈ 1704067200 秒
+    constexpr mc::i64 testTimestamp = 1704067200;
+    auto fileTime = mc::util::TimeUtils::unixSecondsToFileTime(testTimestamp);
+    auto backToSeconds = mc::util::TimeUtils::fileTimeToUnixSeconds(fileTime);
+    EXPECT_EQ(testTimestamp, backToSeconds);
 }
 
 // ============================================================================

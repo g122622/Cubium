@@ -120,6 +120,7 @@ std::optional<client::renderer::trident::particle::ParticleTypeId> ParticleComma
         {"flame", ParticleTypeId::Flame},
         {"smoke", ParticleTypeId::Smoke},
         {"large_smoke", ParticleTypeId::LargeSmoke},
+        {"white_smoke", ParticleTypeId::WhiteSmoke},
         {"lava", ParticleTypeId::Lava},
         {"portal", ParticleTypeId::Portal},
         {"reverse_portal", ParticleTypeId::ReversePortal},

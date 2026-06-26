@@ -12,6 +12,7 @@ reader/bedrock/
 ├── BedrockChunkReader.hpp/cpp   # section 级解码器，subchunk palette、Data2D、BiomeState 解码
 ├── BedrockBiomeMapper.hpp/cpp   # 生物群系映射器，基岩版 ID → 内部 BiomeId
 ├── BedrockLevelDatReader.hpp/cpp # level.dat 读取器，解析基岩版世界元数据（8 字节头 + 小端序 NBT）
+├── BedrockConstants.hpp         # 基岩版格式常量（子区块范围、调色板参数、Data2D 尺寸等）
 ├── LevelDBKey.hpp/cpp           # Bedrock 键空间语义，统一表达各种键类型
 ├── PaletteUtil.hpp/cpp          # Bedrock palette 公共解包工具，varuint 和 32-bit packed indices
 └── README.md

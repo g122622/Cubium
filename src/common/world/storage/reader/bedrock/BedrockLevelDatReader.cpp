@@ -22,6 +22,7 @@
  */
 
 #include "BedrockLevelDatReader.hpp"
+#include "BedrockConstants.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include <fstream>
 #include <spdlog/spdlog.h>
@@ -38,9 +39,9 @@ Result<std::unique_ptr<compound_tag>> BedrockLevelDatReader::_readBedrockNbt(con
         return Error(ErrorCode::FileOpenFailed, fmt::format("Cannot open {}", filePath.string()));
     }
 
-    // 基岩版 level.dat 有 8 字节文件头
-    u8 header[8] = {};
-    if (!file.read(reinterpret_cast<char*>(header), 8)) {
+    // 基岩版 level.dat 有 BEDROCK_LEVEL_DAT_HEADER_SIZE 字节文件头
+    u8 header[BEDROCK_LEVEL_DAT_HEADER_SIZE] = {};
+    if (!file.read(reinterpret_cast<char*>(header), BEDROCK_LEVEL_DAT_HEADER_SIZE)) {
         return Error(ErrorCode::FileCorrupted, "Failed to read Bedrock level.dat header");
     }
 

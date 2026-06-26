@@ -41,6 +41,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
+#include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
@@ -83,6 +84,29 @@ Explosion::Explosion(IWorld& world,
     , m_lootTableManager(lootTableManager)
     , m_random(static_cast<u64>(std::abs(position.x * 3129871.0 + position.y * 116129781.0 + position.z * 172917.0)))
 {}
+
+Explosion::Explosion(IWorld& world,
+    const Vector3& position,
+    f32 radius,
+    ExplosionMode mode,
+    bool causesFire,
+    Entity* source,
+    std::unique_ptr<DamageSource> damageSource,
+    const loot::LootTableManager* lootTableManager,
+    std::unique_ptr<ExplosionContext> context)
+    : m_world(world)
+    , m_position(position)
+    , m_radius(radius)
+    , m_mode(mode)
+    , m_causesFire(causesFire)
+    , m_source(source)
+    , m_damageSource(std::move(damageSource))
+    , m_context(std::move(context))
+    , m_lootTableManager(lootTableManager)
+    , m_random(static_cast<u64>(std::abs(position.x * 3129871.0 + position.y * 116129781.0 + position.z * 172917.0)))
+{
+    MC_ASSERT_RELEASE(m_context != nullptr);
+}
 
 LivingEntity* Explosion::getIndirectSourceEntity() const
 {
@@ -349,6 +373,9 @@ void Explosion::_calculateAffectedEntities()
                 }
                 m_playerKnockback[player->id()] = Vector3(dx * impact, dy * impact, dz * impact);
             }
+
+            // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
+            entity->onExplosionHit(m_source);
         }
     }
 }

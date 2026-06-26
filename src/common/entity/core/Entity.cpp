@@ -280,6 +280,29 @@ entity::EntityTypeId Entity::typeId() const
     return 0; // 未知类型返回 0
 }
 
+std::string Entity::getLootTableId() const
+{
+    // 从实体类型ID推导默认战利品表路径
+    // minecraft:pig -> minecraft:entities/pig
+    // minecraft:zombie -> minecraft:entities/zombie
+    const std::string& typeId = m_typeId;
+    if (typeId.empty()) {
+        return {};
+    }
+
+    // 查找命名空间和路径的分隔符
+    auto colonPos = typeId.find(':');
+    if (colonPos == std::string::npos) {
+        // 没有命名空间前缀，使用默认 minecraft 命名空间
+        return "minecraft:entities/" + typeId;
+    }
+
+    // 在路径部分前插入 "entities/"
+    std::string ns = typeId.substr(0, colonPos);
+    std::string path = typeId.substr(colonPos + 1);
+    return ns + ":entities/" + path;
+}
+
 std::optional<ResourceLocation> Entity::makeSoundEventId(std::string_view suffix) const
 {
     const std::string typeId = getTypeId();
@@ -622,12 +645,38 @@ void Entity::baseTick()
     }
 
     // 处理着火
+    // MC Java: Entity.baseTick() 火焰处理逻辑
+    // 正值 m_fire = 燃烧剩余 tick，负值 = 火焰免疫期倒计时
     if (m_fire > 0) {
-        if (isInWater() || isInLava()) {
-            m_fire = 0;
+        if (isImmuneToFire()) {
+            // 免疫火焰的实体立即清除火焰
+            clearFire();
+        } else if (isInWater()) {
+            // MC Java: 水中熄灭火焰由 applyEffectsFromBlocks() 中方块碰撞触发
+            // 此处简化处理：水中直接熄灭，播放音效并设置免疫期
+            extinguishFire();
+            setFireImmunityCooldown();
         } else {
+            // 燃烧伤害：每 20 tick（1 秒）造成 1 点 onFire 伤害
+            // 注意：在岩浆中时不造成燃烧伤害，因为岩浆伤害由 lavaHurt() 单独处理
+            if (m_fire % 20 == 0 && !isInLava()) {
+                auto onFireSource = DamageSources::onFire();
+                hurt(onFireSource, 1.0f);
+            }
             m_fire--;
         }
+    }
+
+    // MC Java: applyEffectsFromBlocks() 中雨中灭火 + 灭火音效
+    // 在雨中熄灭火焰时，播放音效并设置免疫期
+    if (isInRain() && isOnFire()) {
+        extinguishFire();
+        setFireImmunityCooldown();
+    }
+
+    // 在岩浆中减少坠落距离
+    if (isInLava()) {
+        m_fallDistance *= 0.5f;
     }
 
     // 处理空气值（简化版本）
@@ -1162,6 +1211,10 @@ void Entity::doBlockCollisions()
         return;
     }
 
+    // MC Java: applyEffectsFromBlocks() - 记录方块碰撞前的火焰计时器
+    // 用于判断方块碰撞是否点燃了实体，如果未被点燃且不处于燃烧状态，则设置火焰免疫期
+    i32 fireTicksBeforeCollision = m_fire;
+
     // 获取碰撞箱范围，稍微收缩避免边界精度问题
     AxisAlignedBB box = m_boundingBox.shrink(0.001);
     BlockPos minPos(static_cast<i32>(std::floor(box.minX)),
@@ -1202,6 +1255,14 @@ void Entity::doBlockCollisions()
                 }
             }
         }
+    }
+
+    // MC Java: applyEffectsFromBlocks() - 方块碰撞后检查火焰免疫期
+    // 如果实体不在燃烧，且方块碰撞没有增加火焰计时器，则设置火焰免疫期
+    // 这防止实体刚离开火方块时被立即重新点燃
+    bool fireTicksIncreased = m_fire > fireTicksBeforeCollision;
+    if (m_world != nullptr && !m_world->isClientSide() && !isOnFire() && !fireTicksIncreased) {
+        setFireImmunityCooldown();
     }
 }
 
@@ -1818,6 +1879,67 @@ bool Entity::isImmuneToFire() const
         return type->immuneToFire();
     }
     return false;
+}
+
+void Entity::lavaIgnite()
+{
+    if (!isImmuneToFire()) {
+        igniteForSeconds(15.0f); // 15 秒 = 300 ticks
+    }
+}
+
+void Entity::lavaHurt()
+{
+    if (isImmuneToFire()) {
+        return;
+    }
+
+    // 仅在服务端处理伤害和音效
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        auto damageSource = DamageSources::lava();
+        if (hurt(damageSource, 4.0f)) {
+            if (shouldPlayLavaHurtSound() && !isSilent()) {
+                playSound(SoundEvents::ENTITY_GENERIC_BURN, 0.4f, 2.0f + getRandom().nextFloat() * 0.4f);
+            }
+        }
+    }
+}
+
+void Entity::clearFire()
+{
+    // MC Java: setRemainingFireTicks(Math.min(0, getRemainingFireTicks()))
+    // 保留负值（火焰免疫期倒计时），仅将正值清零
+    if (m_fire > 0) {
+        m_fire = 0;
+    }
+}
+
+void Entity::extinguishFire()
+{
+    // MC Java: extinguishFire()
+    // 如果实体正在燃烧，先播放灭火音效，然后清除火焰
+    if (isOnFire()) {
+        playExtinguishSound();
+    }
+    clearFire();
+}
+
+void Entity::playExtinguishSound()
+{
+    playSound(SoundEvents::ENTITY_GENERIC_EXTINGUISH_FIRE,
+        0.7f,
+        1.6f + (getRandom().nextFloat() - getRandom().nextFloat()) * 0.4f);
+}
+
+void Entity::setFireImmunityCooldown()
+{
+    // MC Java: applyEffectsFromBlocks() 中，当实体火焰被方块碰撞系统熄灭时，
+    // 设置火焰免疫期倒计时为 -getFireImmuneTicks()。
+    // 基类 getFireImmuneTicks() 返回 0（无免疫期），Player 重写返回 20（1 秒）。
+    i32 immuneTicks = getFireImmuneTicks();
+    if (immuneTicks > 0) {
+        m_fire = -immuneTicks;
+    }
 }
 
 std::string Entity::toString() const

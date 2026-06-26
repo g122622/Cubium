@@ -127,6 +127,43 @@ crafting::Ingredient ChainArmorMaterial::getRepairMaterial() const
 }
 
 // ============================================================================
+// CopperArmorMaterial
+// ============================================================================
+
+i32 CopperArmorMaterial::getDurability(ArmorSlot slot) const
+{
+    // 基础耐久度: 11（MC 1.21.11 原版数据）
+    return 11 * getDurabilityMultiplier(slot);
+}
+
+i32 CopperArmorMaterial::getDefense(ArmorSlot slot) const
+{
+    // MC 1.21.11 原版防御值：头盔=2, 胸甲=4, 护腿=3, 靴子=1
+    switch (slot) {
+        case ArmorSlot::Head:
+            return 2;
+        case ArmorSlot::Chest:
+            return 4;
+        case ArmorSlot::Legs:
+            return 3;
+        case ArmorSlot::Feet:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+sound::SoundEvent CopperArmorMaterial::getEquipSound() const
+{
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_copper"));
+}
+
+crafting::Ingredient CopperArmorMaterial::getRepairMaterial() const
+{
+    return crafting::Ingredient::fromItem(Items::COPPER_INGOT);
+}
+
+// ============================================================================
 // IronArmorMaterial
 // ============================================================================
 
@@ -307,6 +344,7 @@ crafting::Ingredient NetheriteArmorMaterial::getRepairMaterial() const
 namespace ArmorMaterials {
 
 const LeatherArmorMaterial LEATHER;
+const CopperArmorMaterial COPPER;
 const ChainArmorMaterial CHAIN;
 const IronArmorMaterial IRON;
 const GoldArmorMaterial GOLD;

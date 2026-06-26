@@ -27,7 +27,6 @@
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 
 using namespace mc;
-
 /**
  * @brief 猪灵实体测试夹具
  *
@@ -363,6 +362,97 @@ TEST_F(ZoglinEntityTest, BabyState)
     // 设置回成年
     zoglin->setBaby(false);
     EXPECT_FALSE(zoglin->isBaby());
+}
+
+// ============================================================================
+// isChild() 虚函数重写测试
+// ============================================================================
+
+/**
+ * @brief 验证 HoglinEntity::isChild() 正确重写 Entity::isChild()
+ *
+ * HoglinEntity 使用 m_isBaby 标记幼年状态，isChild() 必须委托给 isBaby()
+ * 以确保多态调用 isChild() 返回正确结果。
+ */
+TEST_F(HoglinEntityTest, IsChildOverridesEntityVirtual)
+{
+    auto entity = HoglinEntity::create(nullptr);
+    auto* hoglin = dynamic_cast<HoglinEntity*>(entity.get());
+    ASSERT_NE(hoglin, nullptr);
+
+    // 默认成年，isChild() 应返回 false
+    EXPECT_FALSE(hoglin->isBaby());
+    EXPECT_FALSE(hoglin->isChild());
+
+    // 设为幼年，isChild() 应返回 true
+    hoglin->setBaby(true);
+    EXPECT_TRUE(hoglin->isBaby());
+    EXPECT_TRUE(hoglin->isChild());
+
+    // 通过 Entity* 指针多态调用 isChild()
+    Entity* basePtr = hoglin;
+    EXPECT_TRUE(basePtr->isChild());
+
+    // 设回成年
+    hoglin->setBaby(false);
+    EXPECT_FALSE(hoglin->isBaby());
+    EXPECT_FALSE(basePtr->isChild());
+}
+
+/**
+ * @brief 验证 ZoglinEntity::isChild() 正确重写 Entity::isChild()
+ */
+TEST_F(ZoglinEntityTest, IsChildOverridesEntityVirtual)
+{
+    auto entity = ZoglinEntity::create(nullptr);
+    auto* zoglin = dynamic_cast<ZoglinEntity*>(entity.get());
+    ASSERT_NE(zoglin, nullptr);
+
+    // 默认成年
+    EXPECT_FALSE(zoglin->isBaby());
+    EXPECT_FALSE(zoglin->isChild());
+
+    // 设为幼年
+    zoglin->setBaby(true);
+    EXPECT_TRUE(zoglin->isBaby());
+    EXPECT_TRUE(zoglin->isChild());
+
+    // 通过 Entity* 指针多态调用 isChild()
+    Entity* basePtr = zoglin;
+    EXPECT_TRUE(basePtr->isChild());
+
+    // 设回成年
+    zoglin->setBaby(false);
+    EXPECT_FALSE(zoglin->isBaby());
+    EXPECT_FALSE(basePtr->isChild());
+}
+
+/**
+ * @brief 验证 PiglinEntity::isChild() 正确重写 Entity::isChild()
+ */
+TEST_F(PiglinEntityTest, IsChildOverridesEntityVirtual)
+{
+    auto entity = PiglinEntity::create(nullptr);
+    auto* piglin = dynamic_cast<PiglinEntity*>(entity.get());
+    ASSERT_NE(piglin, nullptr);
+
+    // 默认成年
+    EXPECT_FALSE(piglin->isBaby());
+    EXPECT_FALSE(piglin->isChild());
+
+    // 设为幼年
+    piglin->setBaby(true);
+    EXPECT_TRUE(piglin->isBaby());
+    EXPECT_TRUE(piglin->isChild());
+
+    // 通过 Entity* 指针多态调用 isChild()
+    Entity* basePtr = piglin;
+    EXPECT_TRUE(basePtr->isChild());
+
+    // 设回成年
+    piglin->setBaby(false);
+    EXPECT_FALSE(piglin->isBaby());
+    EXPECT_FALSE(basePtr->isChild());
 }
 
 // ============================================================================

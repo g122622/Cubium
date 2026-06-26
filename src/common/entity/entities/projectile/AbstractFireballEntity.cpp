@@ -139,10 +139,10 @@ void SmallFireballEntity::onEntityHit(const RayTraceResult& result)
     // 只有目标不免疫火焰时才造成伤害和点燃
     if (!result.hitEntity->isImmuneToFire()) {
         // 保存当前燃烧时间
-        i32 fireTicks = result.hitEntity->getFireTimer();
+        i32 fireTicks = result.hitEntity->getRemainingFireTicks();
 
         // 点燃目标 5 秒
-        result.hitEntity->setFire(5);
+        result.hitEntity->igniteForSeconds(5.0f);
 
         // 对 LivingEntity 造成 5.0 点伤害
         LivingEntity* livingTarget = dynamic_cast<LivingEntity*>(result.hitEntity);
@@ -367,14 +367,16 @@ void WitherSkullEntity::onEntityHit(const RayTraceResult& result)
             ? world::explosion::ExplosionMode::Destroy
             : world::explosion::ExplosionMode::None;
 
-        // TODO: 蓝色凋灵之首有特殊的方块破坏规则，需要在爆炸系统中实现
-        (void)m_blue;
+        // 蓝色凋灵之首（dangerous skull）使用特殊爆炸上下文，
+        // 可以穿透高抗性方块（黑曜石等），但不能破坏 WITHER_IMMUNE 方块（基岩等）
+        auto context = std::make_unique<world::explosion::WitherSkullExplosionContext>(shooter, m_blue);
 
-        worldPtr->createExplosion(result.hitPosition,
+        worldPtr->createExplosionWithContext(result.hitPosition,
             game::explosion::WITHER_SKULL_RADIUS,
             mode,
             false, // 不生成火焰
-            shooter);
+            shooter,
+            std::move(context));
     }
 
     remove();
@@ -392,14 +394,16 @@ void WitherSkullEntity::onBlockHit(const RayTraceResult& result)
             ? world::explosion::ExplosionMode::Destroy
             : world::explosion::ExplosionMode::None;
 
-        // TODO: 蓝色凋灵之首有特殊的方块破坏规则，需要在爆炸系统中实现
-        (void)m_blue;
+        // 蓝色凋灵之首（dangerous skull）使用特殊爆炸上下文，
+        // 可以穿透高抗性方块（黑曜石等），但不能破坏 WITHER_IMMUNE 方块（基岩等）
+        auto context = std::make_unique<world::explosion::WitherSkullExplosionContext>(shooter, m_blue);
 
-        worldPtr->createExplosion(result.hitPosition,
+        worldPtr->createExplosionWithContext(result.hitPosition,
             game::explosion::WITHER_SKULL_RADIUS,
             mode,
             false, // 不生成火焰
-            shooter);
+            shooter,
+            std::move(context));
     }
 
     remove();

@@ -25,6 +25,7 @@
 
 #include "../../core/Types.hpp"
 #include "../../util/math/Vector3.hpp"
+#include "../../world/GlobalPos.hpp"
 #include "Packet.hpp"
 #include <vector>
 
@@ -121,6 +122,16 @@ public:
     [[nodiscard]] bool keepData() const { return m_keepData; }
     void setKeepData(bool keep) { m_keepData = keep; }
 
+    /**
+     * @brief 获取上次死亡位置
+     *
+     * 用于追溯指南针指向。当玩家死亡时记录死亡位置，
+     * 在重生/维度切换时同步到客户端。
+     * 如果玩家从未死亡，则为空。
+     */
+    [[nodiscard]] const std::optional<GlobalPos>& lastDeathLocation() const { return m_lastDeathLocation; }
+    void setLastDeathLocation(std::optional<GlobalPos> location) { m_lastDeathLocation = std::move(location); }
+
 private:
     i32 m_dimensionType = 0;     // 维度类型（用于渲染设置）
     DimensionId m_dimension = 0; // 维度ID (0=主世界, -1=下界, 1=末地)
@@ -129,7 +140,8 @@ private:
     GameMode m_previousGameMode = GameMode::NotSet;
     bool m_isDebug = false;
     bool m_isFlat = false;
-    bool m_keepData = false; // 维度切换时保留数据
+    bool m_keepData = false;                      // 维度切换时保留数据
+    std::optional<GlobalPos> m_lastDeathLocation; // 上次死亡位置
 };
 
 /**

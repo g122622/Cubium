@@ -33,6 +33,10 @@
 
 namespace mc {
 
+namespace fluid {
+class Fluid;
+} // namespace fluid
+
 class World;
 class BlockItemUseContext;
 class Player;
@@ -45,6 +49,11 @@ namespace blocks {
  * @brief 炼药锅方块
  *
  * 炼药锅是一个可以储存水的方块，没有方块实体，使用方块状态表示水位。
+ *
+ * TODO: 当前 CauldronBlock 同时承担空炼药锅和水炼药锅的职责。
+ * MC 原版中，水炼药锅由 WaterCauldronBlock (LayeredCauldronBlock) 单独实现，
+ * 空炼药锅不持有水位。当 WaterCauldronBlock/PowderSnowCauldronBlock 实现后，
+ * 应将水位相关逻辑（handlePrecipitation、玻璃瓶/空桶取水等）迁移到对应子类。
  *
  * 状态属性：
  * - LEVEL: 水位 (0-3，0=空，3=满)
@@ -97,8 +106,6 @@ public:
      * 在降水 tick 中被调用，用于炼药锅收集降水。
      * - 雨天：5% 概率增加水位（如果未满）
      * - 雪天：10% 概率增加水位（如果未满）
-     *
-     * 参考: net.minecraft.block.CauldronBlock#handlePrecipitation
      *
      * @param world 世界
      * @param pos 方块位置
@@ -201,6 +208,47 @@ public:
      * @return 如果水位为3返回true
      */
     [[nodiscard]] static bool isFull(const BlockState& state);
+
+    // ========== 滴石填充 ==========
+
+    /**
+     * @brief 方块 tick 处理
+     *
+     * 由 PointedDripstoneBlock::maybeTransferFluid() 调度，用于接收滴石滴水填充。
+     * 在 tick 中调用 PointedDripstoneBlock::findStalactiteTipAboveCauldron 和
+     * PointedDripstoneBlock::getCauldronFillFluidType 重新验证滴石尖端和流体类型，
+     * 然后调用 receiveStalactiteDrip 填充炼药锅。
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
+     * @brief 判断是否可以接收滴石滴水
+     *
+     * 空炼药锅可以接收任何流体（水和岩浆）的滴石滴水。
+     *
+     * @param fluid 流体类型
+     * @return 始终返回 true
+     */
+    [[nodiscard]] static bool canReceiveStalactiteDrip(const fluid::Fluid& fluid);
+
+    /**
+     * @brief 接收滴石滴水填充
+     *
+     * 根据流体类型处理炼药锅填充：
+     * - 水滴 → 每次增加1级水位
+     * - 岩浆滴 → 替换为岩浆炼药锅
+     *
+     * TODO: 当实现 WaterCauldronBlock (LayeredCauldronBlock) 后，
+     * 水滴填充应将空炼药锅替换为水位1的 WaterCauldronBlock，
+     * 而非在当前 CauldronBlock 上递增水位。岩浆滴替换为 LavaCauldronBlock 保持不变。
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param fluid 流体类型
+     */
+    static void receiveStalactiteDrip(
+        IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid);
 
 private:
     /**

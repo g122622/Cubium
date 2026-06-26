@@ -273,6 +273,12 @@ void registerCopperBlocks()
     weatheredCopper->setNextOxidationBlock(oxidizedCopper);
     // oxidized_copper 的 m_nextOxidationBlock 保持 nullptr（最高等级）
 
+    // 设置反向氧化链（用于斧头刮削）
+    exposedCopper->setPreviousOxidationBlock(copperBlock);
+    weatheredCopper->setPreviousOxidationBlock(exposedCopper);
+    oxidizedCopper->setPreviousOxidationBlock(weatheredCopper);
+    // copper_block 的 m_previousOxidationBlock 保持 nullptr（最低等级）
+
     CopperBlocks::COPPER_BLOCK = copperBlock;
     CopperBlocks::EXPOSED_COPPER = exposedCopper;
     CopperBlocks::WEATHERED_COPPER = weatheredCopper;
@@ -313,6 +319,11 @@ void registerCopperBlocks()
     cutCopper->setNextOxidationBlock(exposedCutCopper);
     exposedCutCopper->setNextOxidationBlock(weatheredCutCopper);
     weatheredCutCopper->setNextOxidationBlock(oxidizedCutCopper);
+
+    // 设置反向氧化链（用于斧头刮削）
+    exposedCutCopper->setPreviousOxidationBlock(cutCopper);
+    weatheredCutCopper->setPreviousOxidationBlock(exposedCutCopper);
+    oxidizedCutCopper->setPreviousOxidationBlock(weatheredCutCopper);
 
     CopperBlocks::CUT_COPPER = cutCopper;
     CopperBlocks::EXPOSED_CUT_COPPER = exposedCutCopper;
@@ -421,6 +432,14 @@ void registerCopperBlocks()
     static_cast<blocks::WeatheringCopperStairBlock*>(CopperBlocks::WEATHERED_CUT_COPPER_STAIRS)
         ->setNextOxidationBlock(CopperBlocks::OXIDIZED_CUT_COPPER_STAIRS);
 
+    // 设置切制铜楼梯反向氧化链（用于斧头刮削）
+    static_cast<blocks::WeatheringCopperStairBlock*>(CopperBlocks::EXPOSED_CUT_COPPER_STAIRS)
+        ->setPreviousOxidationBlock(CopperBlocks::CUT_COPPER_STAIRS);
+    static_cast<blocks::WeatheringCopperStairBlock*>(CopperBlocks::WEATHERED_CUT_COPPER_STAIRS)
+        ->setPreviousOxidationBlock(CopperBlocks::EXPOSED_CUT_COPPER_STAIRS);
+    static_cast<blocks::WeatheringCopperStairBlock*>(CopperBlocks::OXIDIZED_CUT_COPPER_STAIRS)
+        ->setPreviousOxidationBlock(CopperBlocks::WEATHERED_CUT_COPPER_STAIRS);
+
     // 设置切制铜台阶氧化链
     static_cast<blocks::WeatheringCopperSlabBlock*>(CopperBlocks::CUT_COPPER_SLAB)
         ->setNextOxidationBlock(CopperBlocks::EXPOSED_CUT_COPPER_SLAB);
@@ -428,6 +447,14 @@ void registerCopperBlocks()
         ->setNextOxidationBlock(CopperBlocks::WEATHERED_CUT_COPPER_SLAB);
     static_cast<blocks::WeatheringCopperSlabBlock*>(CopperBlocks::WEATHERED_CUT_COPPER_SLAB)
         ->setNextOxidationBlock(CopperBlocks::OXIDIZED_CUT_COPPER_SLAB);
+
+    // 设置切制铜台阶反向氧化链（用于斧头刮削）
+    static_cast<blocks::WeatheringCopperSlabBlock*>(CopperBlocks::EXPOSED_CUT_COPPER_SLAB)
+        ->setPreviousOxidationBlock(CopperBlocks::CUT_COPPER_SLAB);
+    static_cast<blocks::WeatheringCopperSlabBlock*>(CopperBlocks::WEATHERED_CUT_COPPER_SLAB)
+        ->setPreviousOxidationBlock(CopperBlocks::EXPOSED_CUT_COPPER_SLAB);
+    static_cast<blocks::WeatheringCopperSlabBlock*>(CopperBlocks::OXIDIZED_CUT_COPPER_SLAB)
+        ->setPreviousOxidationBlock(CopperBlocks::WEATHERED_CUT_COPPER_SLAB);
 
     // ============================================================================
     // 1.21 铜扩展：铜门（8个）
@@ -453,6 +480,11 @@ void registerCopperBlocks()
     copperDoor->setNextOxidationBlock(exposedCopperDoor);
     exposedCopperDoor->setNextOxidationBlock(weatheredCopperDoor);
     weatheredCopperDoor->setNextOxidationBlock(oxidizedCopperDoor);
+
+    // 设置铜门反向氧化链（用于斧头刮削）
+    exposedCopperDoor->setPreviousOxidationBlock(copperDoor);
+    weatheredCopperDoor->setPreviousOxidationBlock(exposedCopperDoor);
+    oxidizedCopperDoor->setPreviousOxidationBlock(weatheredCopperDoor);
 
     CopperBlocks::COPPER_DOOR = copperDoor;
     CopperBlocks::EXPOSED_COPPER_DOOR = exposedCopperDoor;
@@ -499,6 +531,11 @@ void registerCopperBlocks()
     exposedCopperTrapdoor->setNextOxidationBlock(weatheredCopperTrapdoor);
     weatheredCopperTrapdoor->setNextOxidationBlock(oxidizedCopperTrapdoor);
 
+    // 设置铜活板门反向氧化链（用于斧头刮削）
+    exposedCopperTrapdoor->setPreviousOxidationBlock(copperTrapdoor);
+    weatheredCopperTrapdoor->setPreviousOxidationBlock(exposedCopperTrapdoor);
+    oxidizedCopperTrapdoor->setPreviousOxidationBlock(weatheredCopperTrapdoor);
+
     CopperBlocks::COPPER_TRAPDOOR = copperTrapdoor;
     CopperBlocks::EXPOSED_COPPER_TRAPDOOR = exposedCopperTrapdoor;
     CopperBlocks::WEATHERED_COPPER_TRAPDOOR = weatheredCopperTrapdoor;
@@ -540,6 +577,11 @@ void registerCopperBlocks()
     copperGrate->setNextOxidationBlock(exposedCopperGrate);
     exposedCopperGrate->setNextOxidationBlock(weatheredCopperGrate);
     weatheredCopperGrate->setNextOxidationBlock(oxidizedCopperGrate);
+
+    // 设置反向氧化链（用于斧头刮削）
+    exposedCopperGrate->setPreviousOxidationBlock(copperGrate);
+    weatheredCopperGrate->setPreviousOxidationBlock(exposedCopperGrate);
+    oxidizedCopperGrate->setPreviousOxidationBlock(weatheredCopperGrate);
 
     CopperBlocks::COPPER_GRATE = copperGrate;
     CopperBlocks::EXPOSED_COPPER_GRATE = exposedCopperGrate;
@@ -589,6 +631,14 @@ void registerCopperBlocks()
     static_cast<blocks::WeatheringCopperBlock*>(CopperBlocks::WEATHERED_COPPER_BULB)
         ->setNextOxidationBlock(static_cast<blocks::WeatheringCopperBlock*>(CopperBlocks::OXIDIZED_COPPER_BULB));
 
+    // 设置铜灯反向氧化链（用于斧头刮削）
+    static_cast<blocks::WeatheringCopperBlock*>(CopperBlocks::EXPOSED_COPPER_BULB)
+        ->setPreviousOxidationBlock(static_cast<blocks::WeatheringCopperBlock*>(CopperBlocks::COPPER_BULB));
+    static_cast<blocks::WeatheringCopperBlock*>(CopperBlocks::WEATHERED_COPPER_BULB)
+        ->setPreviousOxidationBlock(static_cast<blocks::WeatheringCopperBlock*>(CopperBlocks::EXPOSED_COPPER_BULB));
+    static_cast<blocks::WeatheringCopperBlock*>(CopperBlocks::OXIDIZED_COPPER_BULB)
+        ->setPreviousOxidationBlock(static_cast<blocks::WeatheringCopperBlock*>(CopperBlocks::WEATHERED_COPPER_BULB));
+
     CopperBlocks::WAXED_COPPER_BULB = &registry.registerBlock<blocks::WaxedCopperBulbBlock>(
         ResourceLocation("minecraft:waxed_copper_bulb"), copperBulbProps);
 
@@ -625,6 +675,11 @@ void registerCopperBlocks()
     chiseledCopper->setNextOxidationBlock(exposedChiseledCopper);
     exposedChiseledCopper->setNextOxidationBlock(weatheredChiseledCopper);
     weatheredChiseledCopper->setNextOxidationBlock(oxidizedChiseledCopper);
+
+    // 设置反向氧化链（用于斧头刮削）
+    exposedChiseledCopper->setPreviousOxidationBlock(chiseledCopper);
+    weatheredChiseledCopper->setPreviousOxidationBlock(exposedChiseledCopper);
+    oxidizedChiseledCopper->setPreviousOxidationBlock(weatheredChiseledCopper);
 
     CopperBlocks::CHISELED_COPPER = chiseledCopper;
     CopperBlocks::EXPOSED_CHISELED_COPPER = exposedChiseledCopper;
@@ -667,6 +722,11 @@ void registerCopperBlocks()
     copperChain->setNextOxidationBlock(exposedCopperChain);
     exposedCopperChain->setNextOxidationBlock(weatheredCopperChain);
     weatheredCopperChain->setNextOxidationBlock(oxidizedCopperChain);
+
+    // 设置反向氧化链（用于斧头刮削）
+    exposedCopperChain->setPreviousOxidationBlock(copperChain);
+    weatheredCopperChain->setPreviousOxidationBlock(exposedCopperChain);
+    oxidizedCopperChain->setPreviousOxidationBlock(weatheredCopperChain);
 
     CopperBlocks::COPPER_CHAIN = copperChain;
     CopperBlocks::EXPOSED_COPPER_CHAIN = exposedCopperChain;
@@ -715,6 +775,11 @@ void registerCopperBlocks()
     copperLantern->setNextOxidationBlock(exposedCopperLantern);
     exposedCopperLantern->setNextOxidationBlock(weatheredCopperLantern);
     weatheredCopperLantern->setNextOxidationBlock(oxidizedCopperLantern);
+
+    // 设置反向氧化链（用于斧头刮削）
+    exposedCopperLantern->setPreviousOxidationBlock(copperLantern);
+    weatheredCopperLantern->setPreviousOxidationBlock(exposedCopperLantern);
+    oxidizedCopperLantern->setPreviousOxidationBlock(weatheredCopperLantern);
 
     CopperBlocks::COPPER_LANTERN = copperLantern;
     CopperBlocks::EXPOSED_COPPER_LANTERN = exposedCopperLantern;

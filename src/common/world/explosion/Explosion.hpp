@@ -96,6 +96,32 @@ public:
         const loot::LootTableManager* lootTableManager = nullptr);
 
     /**
+     * @brief 构造带自定义爆炸上下文的爆炸对象
+     *
+     * 允许调用者传入自定义的 ExplosionContext，以控制爆炸对方块的行为。
+     * 例如蓝色凋灵之首使用 WitherSkullExplosionContext 来穿透高抗性方块。
+     *
+     * @param world 世界引用
+     * @param position 爆炸中心位置
+     * @param radius 爆炸半径
+     * @param mode 爆炸模式
+     * @param causesFire 是否生成火焰
+     * @param source 爆炸源实体（可能为空）
+     * @param damageSource 自定义伤害来源（可能为空）
+     * @param lootTableManager 掉落表管理器（可能为空）
+     * @param context 自定义爆炸上下文（必须非空）
+     */
+    Explosion(IWorld& world,
+        const Vector3& position,
+        f32 radius,
+        ExplosionMode mode,
+        bool causesFire,
+        Entity* source,
+        std::unique_ptr<DamageSource> damageSource,
+        const loot::LootTableManager* lootTableManager,
+        std::unique_ptr<ExplosionContext> context);
+
+    /**
      * @brief 执行爆炸
      *
      * 执行完整的爆炸流程：

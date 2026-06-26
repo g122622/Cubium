@@ -203,6 +203,18 @@ public:
      */
     [[nodiscard]] entity::EntityTypeId typeId() const;
 
+    /**
+     * @brief 获取实体的默认战利品表ID
+     *
+     * 默认实现从实体类型ID推导战利品表路径：
+     * minecraft:pig -> minecraft:entities/pig
+     * 子类可覆写此方法返回空字符串表示无战利品表（如投射物、区域效果云等），
+     * 或返回自定义战利品表路径。
+     *
+     * @return 战利品表ID字符串，无战利品表时返回空字符串
+     */
+    [[nodiscard]] virtual std::string getLootTableId() const;
+
     // ========== 世界访问 ==========
 
     [[nodiscard]] IWorld* world() { return m_world; }
@@ -722,8 +734,19 @@ public:
      *
      * 标记实体为已移除状态。子类可以重写此方法在移除前执行额外逻辑
      * （例如史莱姆分裂）。
+     * 对应 MC Java 的 Entity.remove(RemovalReason.KILLED)。
      */
     virtual void remove() { m_removed = true; }
+
+    /**
+     * @brief 静默丢弃实体
+     *
+     * 与 remove() 不同，discard() 不触发任何掉落物、经验或其他死亡相关逻辑，
+     * 仅将实体标记为已移除。适用于实体需要立即消失但不应产生副作用的场景，
+     * 例如末影龙战斗状态扫描中发现无传送门的孤龙时将其丢弃。
+     * 对应 MC Java 的 Entity.discard()。
+     */
+    virtual void discard() { m_removed = true; }
 
     /**
      * @brief 由 /kill 命令调用
@@ -1142,26 +1165,77 @@ public:
 
     /**
      * @brief 检查实体是否着火
+     *
+     * 火焰免疫的实体永远不会被认为着火。
      */
-    [[nodiscard]] bool isOnFire() const { return m_fire > 0; }
+    [[nodiscard]] bool isOnFire() const { return !isImmuneToFire() && m_fire > 0; }
+
+    /**
+     * @brief 获取剩余着火时间（tick）
+     *
+     * 正值表示燃烧剩余时间，负值表示火焰免疫期倒计时。
+     * 对应 MC Java 的 getRemainingFireTicks()。
+     */
+    [[nodiscard]] i32 getRemainingFireTicks() const { return m_fire; }
+
+    /**
+     * @brief 设置剩余着火时间
+     *
+     * 直接设置火焰计时器值，不做任何检查。
+     * 正值表示燃烧剩余时间，负值表示火焰免疫期倒计时。
+     * 对应 MC Java 的 setRemainingFireTicks(int)。
+     *
+     * @param ticks 火焰计时器值
+     */
+    void setRemainingFireTicks(i32 ticks) { m_fire = ticks; }
 
     /**
      * @brief 获取着火时间（tick）
+     * @deprecated 使用 getRemainingFireTicks() 替代
      */
     [[nodiscard]] i32 fire() const { return m_fire; }
 
     /**
      * @brief 获取火焰计时器
-     *
-     * 与 fire() 功能相同。
+     * @deprecated 使用 getRemainingFireTicks() 替代
      */
     [[nodiscard]] i32 getFireTimer() const { return m_fire; }
 
     /**
+     * @brief 点燃实体指定秒数
+     *
+     * 将秒数转换为 tick 数（1 秒 = 20 tick），然后调用 igniteForTicks()。
+     * 仅在新燃烧时间大于当前剩余时间时才会更新，不会覆盖免疫期。
+     * 同时清除冰冻状态（对应 MC Java 的 clearFreeze）。
+     *
+     * @param seconds 燃烧时间（秒）
+     */
+    void igniteForSeconds(f32 seconds) { igniteForTicks(static_cast<i32>(seconds * 20.0f)); }
+
+    /**
+     * @brief 点燃实体指定 tick 数
+     *
+     * 仅在新燃烧时间大于当前剩余时间时才会更新。
+     * 如果当前处于火焰免疫期（m_fire < 0），只有新值大于当前负值时才会覆盖。
+     * 同时清除冰冻状态（对应 MC Java 的 clearFreeze）。
+     *
+     * @param ticks 燃烧时间（tick）
+     */
+    void igniteForTicks(i32 ticks)
+    {
+        if (m_fire < ticks) {
+            m_fire = ticks;
+        }
+        clearFreeze();
+    }
+
+    /**
      * @brief 设置着火时间
      *
-     * 只增加燃烧时间，不会减少。
-     * 如果当前燃烧时间已经大于等于传入值，则不改变。
+     * @deprecated 使用 igniteForTicks() 或 igniteForSeconds() 替代
+     *
+     * 仅在新燃烧时间大于当前剩余时间时才会更新。
+     * 如果当前处于火焰免疫期（m_fire < 0），只有新值大于当前负值时才会覆盖。
      *
      * @param ticks 燃烧时间（tick）
      */
@@ -1176,11 +1250,31 @@ public:
      * @brief 强制设置火焰计时器
      *
      * 直接设置火焰计时器值，不检查当前值。
-     * 用于增加/减少火焰时间，包括设置为负值（表示短暂火焰免疫期）。
+     * 用于增加/减少火焰时间，包括设置为负值（表示火焰免疫期）。
+     * Player 重写此方法以限制创造模式下的燃烧时间。
      *
      * @param ticks 火焰计时器值
      */
-    void forceFireTicks(i32 ticks) { m_fire = ticks; }
+    virtual void forceFireTicks(i32 ticks) { m_fire = ticks; }
+
+    /**
+     * @brief 清除冰冻状态
+     *
+     * 当实体被点燃时调用，清除冰冻效果。
+     * 子类（如 LivingEntity）可重写以实现完整的冰冻清除逻辑。
+     * TODO: 当冰冻系统（powder snow 等）实现后，LivingEntity 需要重写此方法清除冰冻状态。
+     */
+    virtual void clearFreeze() {}
+
+    /**
+     * @brief 获取火焰免疫期时长（tick）
+     *
+     * 返回实体在火焰熄灭后获得的短暂免疫期（负值火焰计时器的绝对值）。
+     * 基类返回 0（无免疫期），Player 重写返回 20（1 秒免疫期）。
+     *
+     * @return 免疫期 tick 数
+     */
+    [[nodiscard]] virtual i32 getFireImmuneTicks() const { return 0; }
 
     /**
      * @brief 检查是否免疫火焰
@@ -1191,6 +1285,68 @@ public:
      * @return 如果免疫火焰返回 true
      */
     [[nodiscard]] virtual bool isImmuneToFire() const;
+
+    /**
+     * @brief 岩浆点燃实体
+     *
+     * 将实体点燃 15 秒（300 ticks）。如果实体免疫火焰则不点燃。
+     * 在岩浆方块碰撞时调用。
+     */
+    void lavaIgnite();
+
+    /**
+     * @brief 对实体造成岩浆伤害并播放灼烧音效
+     *
+     * 对非火焰免疫的实体造成 4.0 点岩浆伤害。
+     * 如果伤害成功且 shouldPlayLavaHurtSound() 返回 true 且实体未静音，
+     * 播放 GENERIC_BURN 音效。
+     */
+    void lavaHurt();
+
+    /**
+     * @brief 判断是否应播放岩浆受伤音效
+     *
+     * 基类实现始终返回 true。子类可重写以限制音效播放频率。
+     * 例如 ItemEntity 重写此方法，仅在生命值归零或每 10 tick 播放一次音效，
+     * 避免物品在岩浆中每 tick 都播放音效造成噪音。
+     *
+     * @return 如果应播放岩浆受伤音效返回 true
+     */
+    [[nodiscard]] virtual bool shouldPlayLavaHurtSound() const { return true; }
+
+    /**
+     * @brief 清除火焰（将火焰计时器设为不超过 0）
+     *
+     * 对应 MC Java 的 clearFire()。
+     * 如果当前火焰计时器为正数，设为 0；如果已为负数（火焰免疫期），保持不变。
+     */
+    void clearFire();
+
+    /**
+     * @brief 熄灭火焰并播放灭火音效
+     *
+     * 对应 MC Java 的 extinguishFire()。
+     * 如果实体正在燃烧，先播放灭火音效，然后调用 clearFire()。
+     */
+    void extinguishFire();
+
+    /**
+     * @brief 播放实体灭火音效
+     *
+     * 在实体火焰被水或雨熄灭时播放 GENERIC_EXTINGUISH_FIRE 音效。
+     * 仅在服务端调用，音效会广播给附近玩家。
+     */
+    void playExtinguishSound();
+
+    /**
+     * @brief 设置火焰免疫期倒计时
+     *
+     * 当实体的火焰被熄灭时（例如离开火方块、进入水中、被雨淋），
+     * 调用此方法设置一个短暂的免疫期，防止实体立即被重新点燃。
+     * 免疫期长度由 getFireImmuneTicks() 决定。
+     * 基类 Entity 返回 0（不设置免疫期），Player 返回 20 tick（1 秒）。
+     */
+    void setFireImmunityCooldown();
 
     // ========== 空气管理 ==========
 
@@ -1208,6 +1364,35 @@ public:
      * @brief 获取最大空气值
      */
     [[nodiscard]] virtual i32 maxAir() const { return 300; }
+
+    // ========== 受伤标记 ==========
+
+    /**
+     * @brief 标记实体已受伤（需要同步速度到客户端）
+     *
+     * 在实体受到带冲击力的伤害或被施加击退时调用，设置 m_hurtMarked = true。
+     * 服务端在同步实体速度后将其重置为 false。
+     * 对应 MC Java 的 Entity.hurtMarked 字段。
+     * 在 MC Java 中，此标记用于两个目的：
+     * 1. 在 ServerEntity.sendDirtyEntityData() 中触发速度同步包（ClientboundSetEntityMotionPacket）
+     * 2. 在 AI 目标中检测实体是否处于刚被击退的状态（如 TradeWithPlayerGoal）
+     */
+    void markHurt() { m_hurtMarked = true; }
+
+    /**
+     * @brief 检查实体是否被标记为已受伤
+     *
+     * @return 如果实体需要速度同步返回 true
+     */
+    [[nodiscard]] bool isHurtMarked() const { return m_hurtMarked; }
+
+    /**
+     * @brief 清除受伤标记
+     *
+     * 在服务端发送速度同步包后调用，将 m_hurtMarked 重置为 false。
+     * 对应 MC Java 的 ServerEntity.sendDirtyEntityData() 中 hurtMarked = false。
+     */
+    void clearHurtMarked() { m_hurtMarked = false; }
 
     // ========== 无敌 ==========
 
@@ -1514,6 +1699,19 @@ public:
      * 此方法用于处理特殊变形效果。
      */
     virtual void onStruckByLightning() {}
+
+    /**
+     * @brief 被爆炸击中时调用
+     *
+     * 在爆炸对实体施加击退和伤害之后调用，允许实体对爆炸做出额外响应。
+     * 默认实现为空操作。
+     *
+     * Player 重写此方法以设置冲量上下文（impulse context），
+     * 当爆炸由风弹引起时启用坠落伤害免疫。
+     *
+     * @param cause 引起爆炸的实体，可能为 nullptr（如床爆炸等无来源爆炸）
+     */
+    virtual void onExplosionHit(Entity* cause) { (void)cause; }
 
     // ========== 乘客/骑乘系统 ==========
 
@@ -2055,7 +2253,7 @@ protected:
     f32 m_fluidHeight = 0.0f;   // 流体高度（方块单位，已废弃）
     f32 m_waterHeight = 0.0f;   // 水浸入高度（0.0-1.0）
     f32 m_lavaHeight = 0.0f;    // 岩浆浸入高度（0.0-1.0）
-    i32 m_fire = 0;             // 着火时间（tick）
+    i32 m_fire = 0;             // 剩余着火时间（tick），正值=燃烧，负值=火焰免疫期倒计时
 
     // 攀爬追踪（用于摔落死亡消息）
     std::optional<BlockPos> m_lastClimbPos; // 最后攀爬位置
@@ -2065,6 +2263,14 @@ protected:
 
     // 无敌
     bool m_invulnerable = false;
+
+    // 受伤标记（服务端：设为 true 表示需要同步速度到客户端）
+    // 对应 MC Java 的 Entity.hurtMarked 字段
+    // TODO: ExperienceOrbEntity、FallingBlockEntity、HangingEntity、ProjectileEntity
+    // 等非生物实体需要重写 hurt() 方法并调用 markHurt()，与 MC Java 对齐。
+    // 当前这些实体使用基类 Entity::hurt()（返回 false），不会设置 hurtMarked。
+    // 注：ItemEntity 已实现 hurt() 重写。
+    bool m_hurtMarked = false;
 
     // 自定义名称
     std::unique_ptr<text::ITextComponent> m_customName; ///< 自定义名称
