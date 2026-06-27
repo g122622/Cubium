@@ -68,7 +68,9 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
     if (context.hasArgument("pos")) {
         auto coords = context.getArgument<Coordinates::Ptr>("pos");
         Vector3d anchorPos = (source.anchor() == EntityAnchorType::Eyes && source.entity() != nullptr)
-            ? Vector3d(source.position().x, source.position().y + static_cast<f64>(source.entity()->eyeHeight()), source.position().z)
+            ? Vector3d(source.position().x,
+                  source.position().y + static_cast<f64>(source.entity()->eyeHeight()),
+                  source.position().z)
             : source.position();
         pos = coords->getPosition(anchorPos, source.rotation());
     }
@@ -189,6 +191,7 @@ std::optional<client::renderer::trident::particle::ParticleTypeId> ParticleComma
         {"soul_fire_flame", ParticleTypeId::SoulFireFlame},
         {"soul", ParticleTypeId::Soul},
         {"ambient_entity_effect", ParticleTypeId::AmbientEntityEffect},
+        {"mycelium", ParticleTypeId::Mycelium},
     };
 
     auto it = particleMap.find(normalizedName);

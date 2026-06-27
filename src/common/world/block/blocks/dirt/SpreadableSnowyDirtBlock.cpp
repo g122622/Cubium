@@ -34,6 +34,7 @@
 #include "../../registry/VanillaBlocks.hpp"
 #include "../../registry/VegetationBlocks.hpp"
 #include "../ice/SnowBlock.hpp"
+#include "client/renderer/trident/particle/ParticleTypes.hpp"
 
 namespace mc::blocks {
 
@@ -293,5 +294,19 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
 MyceliumBlock::MyceliumBlock(BlockProperties properties)
     : SpreadableSnowyDirtBlock(std::move(properties))
 {}
+
+void MyceliumBlock::animateTick(
+    IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const
+{
+    MC_UNUSED(state);
+    // MC 原版: 1/10 概率在菌丝方块上方生成菌丝粒子（SuspendedTownParticle）
+    if (random.nextInt(10) == 0) {
+        f32 x = static_cast<f32>(pos.x) + random.nextFloat();
+        f32 y = static_cast<f32>(pos.y) + 1.1f;
+        f32 z = static_cast<f32>(pos.z) + random.nextFloat();
+        context.addAnimateParticle(
+            client::renderer::trident::particle::ParticleTypeId::Mycelium, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
+    }
+}
 
 } // namespace mc::blocks

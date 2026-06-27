@@ -8,6 +8,7 @@ ambient/
 ├── BubblePopParticle.hpp/cpp     # 气泡破裂粒子（BubbleParticle 离开水面时生成）
 ├── CloudParticle.hpp/cpp         # 云朵、屏障、水花、海豚粒子
 ├── SporeBlossomParticle.hpp/cpp  # 孢子花粒子（掉落+空气漂浮）
+├── SuspendedTownParticle.hpp/cpp # 菌丝悬浮粒子（幻翼翼尖、菌丝方块表面）
 └── UnderwaterParticle.hpp/cpp    # 水下悬浮粒子
 ```
 
@@ -55,3 +56,5 @@ ambient/
 4. **SporeBlossomAirParticle 生成区域**：孢子花空气粒子在孢子花下方 21x10x21 区域内随机生成，不是直接从方块位置生成。
 
 5. **淡出计算**：多个粒子使用 `FADE_START_RATIO` 和 `FADE_RANGE` 计算淡出，需确保 alpha 值在 0-1 范围内。
+
+6. **SuspendedTownParticle（菌丝粒子）**：对齐 MC Java 版 `SuspendedTownParticle.Provider`。MC 原版中 `SuspendedTownParticle` 有5个 Provider 子类（默认/mycelium、composter_fill、dolphin、egg_crack、happy_villager），当前项目仅实现默认 Provider（灰色菌丝粒子），其他变体使用独立的粒子类（如 `HeartParticle`、`VillagerParticle` 等）。菌丝粒子特性：无重力、无碰撞、灰色、小尺寸(0.02)、极低速度(0.02x)、OPAQUE 渲染、使用 `generic` 纹理。

@@ -31,6 +31,7 @@
 #include "particles/ambient/BubblePopParticle.hpp"
 #include "particles/ambient/CloudParticle.hpp"
 #include "particles/ambient/SporeBlossomParticle.hpp"
+#include "particles/ambient/SuspendedTownParticle.hpp"
 #include "particles/ambient/UnderwaterParticle.hpp"
 #include "particles/block/DiggingParticle.hpp"
 #include "particles/block/DustPillarParticle.hpp"
@@ -97,6 +98,15 @@ void registerBuiltinParticleFactories()
         UnderwaterParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         30.0f,
+        false,
+        false);
+
+    // 菌丝悬浮粒子（MC 原版 SuspendedTownParticle.Provider）
+    registry.registerType(ParticleTypeId::Mycelium,
+        "minecraft:mycelium",
+        SuspendedTownParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        20.0f,
         false,
         false);
 

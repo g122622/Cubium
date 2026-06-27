@@ -332,6 +332,8 @@ Result<void> ParticleTextureAtlas::loadFromResourcePacks(const std::vector<IReso
             "white_ash",
             "crimson_spore",
             "warped_spore",
+            // 通用粒子纹理（菌丝粒子 SuspendedTownParticle 使用）
+            "generic",
             // 其他
             "dragon_breath",
             "soul",

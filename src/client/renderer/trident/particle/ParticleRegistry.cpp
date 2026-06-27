@@ -353,6 +353,8 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:fishing",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Mycelium, "minecraft:mycelium", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
 
     // 生物相关粒子
     registerSimpleType(

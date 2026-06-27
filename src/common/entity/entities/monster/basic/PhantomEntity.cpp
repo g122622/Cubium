@@ -203,11 +203,10 @@ void PhantomEntity::_clientTickEffects()
     f32 wingTipZ2 = static_cast<f32>(z()) - sinYaw * wingSpan;
     f32 wingY = static_cast<f32>(y()) + (0.3f + flapCosCurrent * 0.45f) * height() * 2.5f;
 
-    // TODO: MC 原版使用 MYCELIUM 粒子类型，当前项目尚未实现该粒子，
-    // 临时使用 WhiteSmoke 替代，待 ParticleTypeId::Mycelium 添加后替换
+    // MC 原版使用 MYCELIUM 粒子类型（SuspendedTownParticle）
     using namespace client::renderer::trident::particle;
-    world()->addParticle(ParticleTypeId::WhiteSmoke, Vector3(wingTipX1, wingY, wingTipZ1), Vector3(0.0, 0.0, 0.0));
-    world()->addParticle(ParticleTypeId::WhiteSmoke, Vector3(wingTipX2, wingY, wingTipZ2), Vector3(0.0, 0.0, 0.0));
+    world()->addParticle(ParticleTypeId::Mycelium, Vector3(wingTipX1, wingY, wingTipZ1), Vector3(0.0, 0.0, 0.0));
+    world()->addParticle(ParticleTypeId::Mycelium, Vector3(wingTipX2, wingY, wingTipZ2), Vector3(0.0, 0.0, 0.0));
 }
 
 } // namespace mc

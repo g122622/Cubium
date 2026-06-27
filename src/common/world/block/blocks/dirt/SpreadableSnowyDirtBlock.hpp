@@ -184,6 +184,11 @@ public:
 class MyceliumBlock : public SpreadableSnowyDirtBlock {
 public:
     explicit MyceliumBlock(BlockProperties properties);
+
+    void animateTick(IBlockAnimateContext& context,
+        const BlockPos& pos,
+        const BlockState& state,
+        math::IRandom& random) const override;
 };
 
 } // namespace blocks
