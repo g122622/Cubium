@@ -24,6 +24,8 @@
 #pragma once
 
 #include "../../../../core/Types.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../world/block/Block.hpp"
 #include "../../../interfaces/IShearable.hpp"
 #include "CowEntity.hpp"
 #include <memory>
@@ -34,6 +36,14 @@ namespace mc {
 class Player;
 class ItemStack;
 
+namespace entity::effect {
+class EffectInstance;
+}
+
+namespace blocks {
+class FlowerBlock;
+}
+
 /**
  * @brief 哞菇实体
  *
@@ -43,9 +53,11 @@ class ItemStack;
  * - 两种皮肤：红色哞菇、棕色哞菇
  * - 蘑菇繁殖：被雷击后红色哞菇变为棕色
  * - 剪毛：使用剪刀获得蘑菇并变成普通牛
- * - 碗交互：使用空碗获得蘑菇汤
- * - 繁殖：与普通牛相同
+ * - 碗交互：使用空碗获得蘑菇汤（或迷之炖菜）
  * - 棕色哞菇：喂食花朵后可产出迷之炖菜
+ * - 繁殖：与普通牛相同
+ *
+ * 参考: net.minecraft.world.entity.animal.cow.MushroomCow
  */
 class MooshroomEntity : public CowEntity, public entity::IShearable {
 public:
@@ -116,20 +128,48 @@ public:
      */
     std::vector<ItemStack> shear(Player* player = nullptr) override;
 
-    // ========== 其他交互 ==========
+    // ========== 玩家交互 ==========
 
     /**
-     * @brief 检查是否可以用空碗获取蘑菇汤
-     * @param itemStack 物品
-     * @return 如果是空碗返回true
+     * @brief 实体交互
+     *
+     * 处理以下交互：
+     * 1. 空碗 → 蘑菇汤/迷之炖菜
+     * 2. 棕色哞菇 + 花朵 → 存储迷之炖菜效果
+     *
+     * 参考: MushroomCow.mobInteract()
      */
-    [[nodiscard]] bool canBeStewed(const ItemStack& itemStack) const;
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
+    // ========== 迷之炖菜效果 ==========
 
     /**
-     * @brief 获取蘑菇汤
-     * @return 蘑菇汤物品
+     * @brief 是否存储了迷之炖菜效果
      */
-    ItemStack getStew();
+    [[nodiscard]] bool hasStewEffect() const { return m_stewEffectType.has_value(); }
+
+    /**
+     * @brief 获取存储的迷之炖菜效果类型
+     * @return 效果类型，如果没有则返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<entity::effect::EffectType> getStewEffectType() const { return m_stewEffectType; }
+
+    /**
+     * @brief 获取存储的迷之炖菜效果持续时间（秒）
+     */
+    [[nodiscard]] i32 getStewEffectDuration() const { return m_stewEffectDuration; }
+
+    /**
+     * @brief 设置迷之炖菜效果（棕色哞菇被喂食花朵时调用）
+     * @param type 效果类型
+     * @param duration 持续时间（秒）
+     */
+    void setStewEffect(entity::effect::EffectType type, i32 duration);
+
+    /**
+     * @brief 清除迷之炖菜效果（被取汤后调用）
+     */
+    void clearStewEffect();
 
     // ========== 繁殖 ==========
 
@@ -156,6 +196,11 @@ public:
      */
     void onStruckByLightning() override;
 
+    // ========== NBT序列化 ==========
+
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 protected:
     // ========== AI 目标注册 ==========
     void registerGoals() override;
@@ -164,9 +209,23 @@ private:
     // 哞菇类型
     MooshroomType m_mooshroomType = MooshroomType::Red;
 
-    // 效果花（棕色哞菇用）
-    // 注：迷之炖菜效果系统待效果系统实现后添加
-    // EffectInstance m_effect;
+    // 迷之炖菜效果（棕色哞菇用）
+    // 当棕色哞菇被喂食花朵时，存储花朵对应的效果；
+    // 当玩家用空碗右键时，效果转移到迷之炖菜中并清除此存储。
+    std::optional<entity::effect::EffectType> m_stewEffectType;
+    i32 m_stewEffectDuration = 0; // 持续时间（秒），瞬间效果也为原始秒值
+
+    /**
+     * @brief 从物品获取花朵的迷之炖菜效果
+     *
+     * 检查物品是否为花朵方块物品，如果是则返回其迷之炖菜效果。
+     * 对应 MC 的 SuspiciousEffectHolder.tryGet() + FlowerBlock.getSuspiciousEffects()
+     *
+     * @param itemStack 物品堆
+     * @return 如果物品是花朵且有效果，返回 pair<EffectType, durationSeconds>；否则返回 nullopt
+     */
+    [[nodiscard]] static std::optional<std::pair<entity::effect::EffectType, i32>> getStewEffectFromItem(
+        const ItemStack& itemStack);
 };
 
 } // namespace mc

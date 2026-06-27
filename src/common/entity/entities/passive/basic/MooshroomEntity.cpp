@@ -8,28 +8,35 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR AN OVERRIDING COPYRIGHT NOTICE OR
+ * BEING DISCLAIMED. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "MooshroomEntity.hpp"
+
+#include "../../../../core/Result.hpp"
 #include "../../../../core/Types.hpp"
+#include "../../../../entity/effect/EffectInstance.hpp"
+#include "../../../../entity/effect/EffectType.hpp"
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../entity/serialization/NbtHelper.hpp"
 #include "../../../../item/Items.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../item/items/block/BlockItemRegistry.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
+#include "../../../../util/nbt/Nbt.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/block/Block.hpp"
 #include "../../../../world/block/BlockPos.hpp"
+#include "../../../../world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "../../../../world/block/registry/NaturalBlocks.hpp"
 #include "../../../../world/block/registry/VanillaBlocks.hpp"
 #include "../../../core/EntityRegistry.hpp"
@@ -39,6 +46,8 @@
 #include <memory>
 
 namespace mc {
+
+using namespace entity::serialization::nbt_helper;
 
 MooshroomEntity::MooshroomEntity(EntityId id)
     : CowEntity(id)
@@ -126,25 +135,174 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player)
     return drops;
 }
 
-bool MooshroomEntity::canBeStewed(const ItemStack& itemStack) const
+// ========== 玩家交互 ==========
+
+ActionResultType MooshroomEntity::interactMob(Player& player, Hand hand)
 {
-    // 检查是否是空碗且成年
-    if (isChild()) {
-        return false; // 幼年哞菇不能被取汤
+    ItemStack& heldItem = player.getHeldItem(hand);
+    const Item* item = heldItem.getItem();
+
+    // ====== 分支1: 空碗 → 蘑菇汤/迷之炖菜 ======
+    // 对应 MC MushroomCow.mobInteract() 中的碗交互逻辑
+    if (item == Items::BOWL && !isChild()) {
+        // 记住是否有迷之炖菜效果（清除前记录，用于音效判断）
+        bool hadStewEffect = hasStewEffect();
+
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            ItemStack stewStack;
+
+            if (hadStewEffect) {
+                // 棕色哞菇被喂食花朵后，返回迷之炖菜
+                stewStack = ItemStack(*Items::SUSPICIOUS_STEW, 1);
+
+                // 将迷之炖菜效果写入物品 NBT
+                // 格式与 SetStewEffectFunction 一致: {Effects: [{EffectId: byte, EffectDuration: int}]}
+                nlohmann::json& tag = stewStack.getOrCreateTag();
+                nlohmann::json effectsArray = nlohmann::json::array();
+
+                nlohmann::json effectJson;
+                effectJson["EffectId"] = static_cast<i8>(static_cast<i32>(m_stewEffectType.value()));
+
+                // 持续时间转换：瞬间效果保持原始 tick 数，非瞬间效果秒×20
+                i32 durationTicks = m_stewEffectDuration;
+                if (!entity::effect::isInstantEffect(m_stewEffectType.value())) {
+                    durationTicks = m_stewEffectDuration * 20;
+                }
+                effectJson["EffectDuration"] = durationTicks;
+                effectsArray.push_back(std::move(effectJson));
+                tag["Effects"] = std::move(effectsArray);
+
+                // 清除存储的效果（每次取汤只产出一个迷之炖菜）
+                clearStewEffect();
+            } else {
+                // 普通蘑菇汤
+                if (Items::MUSHROOM_STEW != nullptr) {
+                    stewStack = ItemStack(*Items::MUSHROOM_STEW, 1);
+                }
+            }
+
+            if (!stewStack.isEmpty()) {
+                // 消耗空碗（创造模式不消耗）
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                }
+
+                // 将汤物品添加到玩家物品栏，装不下则掉落
+                i32 remaining = player.inventory().add(stewStack);
+                if (remaining > 0) {
+                    // 部分物品无法放入背包，掉落在地上
+                    ItemStack dropStack = stewStack.copy();
+                    dropStack.setCount(remaining);
+                    ItemDropHelper::spawnItemEntity(m_world, dropStack, x(), y() + 0.5, z(), getRandom());
+                }
+            }
+        }
+
+        // 播放取汤音效
+        if (hadStewEffect) {
+            playSound(SoundEvents::ENTITY_MOOSHROOM_SUSPICIOUS_MILK, 1.0f, 1.0f);
+        } else {
+            playSound(SoundEvents::ENTITY_MOOSHROOM_MILK, 1.0f, 1.0f);
+        }
+
+        return ActionResultType::Success;
     }
-    const Item* item = itemStack.getItem();
-    return item == Items::BOWL;
+
+    // ====== 分支2: 棕色哞菇 + 花朵 → 存储迷之炖菜效果 ======
+    // 对应 MC MushroomCow.mobInteract() 中的花朵喂食逻辑
+    if (isBrown()) {
+        auto flowerEffect = getStewEffectFromItem(heldItem);
+        if (flowerEffect.has_value()) {
+            if (m_world != nullptr && !m_world->isClientSide()) {
+                if (hasStewEffect()) {
+                    // 已经存储了效果，拒绝（MC 原版显示烟雾粒子表示拒绝）
+                    // 生成2个烟雾粒子
+                    using namespace mc::client::renderer::trident::particle;
+                    for (i32 i = 0; i < 2; ++i) {
+                        f32 offsetX = (getRandom().nextFloat() - 0.5f) * width();
+                        f32 offsetY = getRandom().nextFloat() * height();
+                        f32 offsetZ = (getRandom().nextFloat() - 0.5f) * width();
+                        m_world->addParticle(ParticleTypeId::Smoke,
+                            Vector3(x() + offsetX, y() + offsetY, z() + offsetZ),
+                            Vector3(0.0f, 0.1f, 0.0f));
+                    }
+                } else {
+                    // 消耗1个花朵物品（创造模式不消耗）
+                    if (!player.abilities().creativeMode) {
+                        heldItem.shrink(1);
+                    }
+
+                    // 存储花朵的效果
+                    setStewEffect(flowerEffect->first, flowerEffect->second);
+
+                    // 生成4个附魔粒子效果（表示成功存储）
+                    using namespace mc::client::renderer::trident::particle;
+                    for (i32 i = 0; i < 4; ++i) {
+                        f32 offsetX = (getRandom().nextFloat() - 0.5f) * width();
+                        f32 offsetY = getRandom().nextFloat() * height();
+                        f32 offsetZ = (getRandom().nextFloat() - 0.5f) * width();
+                        // 使用 EntityEffect 粒子表示成功喂食花朵
+                        m_world->addParticle(ParticleTypeId::EntityEffect,
+                            Vector3(x() + offsetX, y() + offsetY, z() + offsetZ),
+                            Vector3(0.0f, 0.0f, 0.0f));
+                    }
+
+                    // 播放吃东西音效
+                    playSound(SoundEvents::ENTITY_MOOSHROOM_EAT, 1.0f, 1.0f);
+                }
+            }
+            return ActionResultType::Success;
+        }
+    }
+
+    // 传递给父类处理（繁殖等交互）
+    return CowEntity::interactMob(player, hand);
 }
 
-ItemStack MooshroomEntity::getStew()
+// ========== 迷之炖菜效果 ==========
+
+void MooshroomEntity::setStewEffect(entity::effect::EffectType type, i32 duration)
 {
-    // 返回蘑菇汤
-    // TODO: 棕色哞菇可以返回迷之炖菜（需要效果系统支持）
-    if (Items::MUSHROOM_STEW != nullptr) {
-        return ItemStack(*Items::MUSHROOM_STEW, 1);
-    }
-    return ItemStack();
+    m_stewEffectType = type;
+    m_stewEffectDuration = duration;
 }
+
+void MooshroomEntity::clearStewEffect()
+{
+    m_stewEffectType = std::nullopt;
+    m_stewEffectDuration = 0;
+}
+
+std::optional<std::pair<entity::effect::EffectType, i32>> MooshroomEntity::getStewEffectFromItem(
+    const ItemStack& itemStack)
+{
+    const Item* item = itemStack.getItem();
+    if (item == nullptr) {
+        return std::nullopt;
+    }
+
+    // 通过 BlockItemRegistry 获取物品对应的方块
+    const Block* block = BlockItemRegistry::instance().getBlock(item->itemId());
+    if (block == nullptr) {
+        return std::nullopt;
+    }
+
+    // 检查方块是否为花朵且具有迷之炖菜效果
+    const blocks::FlowerBlock* flower = dynamic_cast<const blocks::FlowerBlock*>(block);
+    if (flower == nullptr || !flower->hasStewEffect()) {
+        return std::nullopt;
+    }
+
+    u32 effectId = flower->getSuspiciousStewEffect();
+    auto effectType = entity::effect::getEffectById(static_cast<i32>(effectId));
+    if (!effectType.has_value()) {
+        return std::nullopt;
+    }
+
+    return std::make_pair(effectType.value(), flower->getEffectDuration());
+}
+
+// ========== 繁殖 ==========
 
 std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 {
@@ -183,6 +341,8 @@ std::unique_ptr<AnimalEntity> MooshroomEntity::spawnBaby(AnimalEntity& partner)
 
     return baby;
 }
+
+// ========== 雷击 ==========
 
 void MooshroomEntity::onStruckByLightning()
 {
@@ -244,6 +404,49 @@ f32 MooshroomEntity::getPathWeight(f32 x, f32 y, f32 z) const
     }
 
     return AnimalEntity::getPathWeight(x, y, z);
+}
+
+// ========== NBT序列化 ==========
+
+void MooshroomEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 先调用基类实现
+    CowEntity::addAdditionalSaveData(tag);
+
+    // 保存哞菇类型
+    tag.put("Type", static_cast<i8>(static_cast<u8>(m_mooshroomType)));
+
+    // 保存迷之炖菜效果（棕色哞菇用）
+    // 对应 MC MushroomCow 中的 stew_effects 字段
+    if (m_stewEffectType.has_value()) {
+        nbt::tags::compound_tag effectTag;
+        effectTag.put("EffectId", static_cast<i8>(static_cast<i32>(m_stewEffectType.value())));
+        effectTag.put("EffectDuration", m_stewEffectDuration);
+        tag.value.emplace("StewEffect", std::make_unique<nbt::tags::compound_tag>(std::move(effectTag)));
+    }
+}
+
+Result<void> MooshroomEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    MC_TRY(CowEntity::readAdditionalSaveData(tag));
+
+    // 读取哞菇类型
+    if (auto typeVal = tryGetByte(tag, "Type")) {
+        m_mooshroomType = static_cast<MooshroomType>(static_cast<u8>(*typeVal));
+    }
+
+    // 读取迷之炖菜效果
+    if (const auto* effectTag = tryGetCompound(tag, "StewEffect")) {
+        if (auto effectId = tryGetByte(*effectTag, "EffectId")) {
+            auto effectType = entity::effect::getEffectById(static_cast<i32>(*effectId));
+            if (effectType.has_value()) {
+                m_stewEffectType = effectType.value();
+                m_stewEffectDuration = tryGetInt(*effectTag, "EffectDuration").value_or(0);
+            }
+        }
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

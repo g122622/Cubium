@@ -100,7 +100,7 @@ const Food Foods::SALMON(2, 0.1f);
 
 const Food Foods::SPIDER_EYE = Food(2, 0.8f).addEffect(EffectType::Poison, 100, 0, 1.0f); // 100%概率中毒 5秒
 
-const Food Foods::SUSPICIOUS_STEW(6, 0.6f); // 随机效果，返回碗
+const Food Foods::SUSPICIOUS_STEW = Food(6, 0.6f).setAlwaysEdible(); // 随机效果，返回碗，始终可食用
 
 const Food Foods::SWEET_BERRIES(2, 0.1f);
 
