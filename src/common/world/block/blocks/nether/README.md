@@ -12,7 +12,7 @@ nether/
 ├── SoulFireBlock.hpp           # 灵魂火焰方块（蓝色火焰，更高伤害）
 ├── NetherPortalBlock.hpp       # 下界传送门方块
 ├── NetherWartBlock.hpp         # 下界疣方块（可生长）
-├── NyliumBlock.hpp             # 绯红/诡异菌岩方块
+├── NyliumBlock.hpp/cpp           # 绯红/诡异菌岩方块（实现 IGrowable 接口）
 ├── MagmaBlock.hpp              # 岩浆块方块
 ├── NetherSproutsBlock.hpp      # 下界苗方块（小型装饰植物）
 └── NetherRootsBlock.hpp        # 下界菌索方块（绯红/诡异根须）
@@ -27,7 +27,7 @@ nether/
 | `SoulFireBlock` | 灵魂火焰（继承 FireBlock） | 同 FireBlock |
 | `NetherPortalBlock` | 下界传送门 | HORIZONTAL_AXIS |
 | `NetherWartBlock` | 下界疣（可生长） | AGE_0_3 |
-| `NyliumBlock` | 绯红/诡异菌岩 | 无 |
+| `NyliumBlock` | 绯红/诡异菌岩 | 无（实现 IGrowable） |
 | `MagmaBlock` | 岩浆块 | 无 |
 | `NetherSproutsBlock` | 下界苗（继承 BushBlock） | 无 |
 | `NetherRootsBlock` | 下界菌索（继承 BushBlock） | 无 |
@@ -46,7 +46,10 @@ BushBlock (来自 agricultural/ 模块)
 - `FireBlock`：火焰基类，实现蔓延、点燃、实体碰撞伤害等核心逻辑。提供静态方法 `getFireState()` 根据下方方块自动选择火焰类型
 - `SoulFireBlock`：继承 FireBlock，重写 `isValidPosition()` 限制基座，重写 `canBurn()` 禁止蔓延
 - `NetherWartBlock`：独立方块，4阶段生长，只能种在灵魂沙上
-- `NyliumBlock`：独立方块，光照过高时退化为下界岩
+- `NyliumBlock`：独立方块，光照过高时退化为下界岩。实现 IGrowable 接口用于骨粉交互：
+  - getBoneMealType() 返回 NEIGHBOR_SPREADER（粒子在方块上方水平扩散，3 倍数量）
+  - canGrow() 检查上方是否有空气
+  - grow() 绯红菌岩放置绯红菌/绯红菌索，诡异菌岩放置诡异菌/诡异菌索/下界苗
 - `MagmaBlock`：独立方块，水中生成气泡柱，踩踏时造成烫脚伤害
 - `NetherPortalBlock`：独立方块，检测框架有效性、实体传送
 - `NetherSproutsBlock` / `NetherRootsBlock`：继承 BushBlock，扩展 `canSustain()` 支持菌岩和灵魂土，返回 PlantType::Nether

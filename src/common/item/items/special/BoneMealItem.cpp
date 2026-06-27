@@ -79,7 +79,6 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context)
 
                     // 发送植物生长效果事件（粒子 + 音效）
                     // 客户端收到后将根据 IGrowable::getBoneMealType() 区分粒子分布方式
-                    // 参考: net.minecraft.world.item.BoneMealItem.useOn -> level.levelEvent(1505, pos, 15)
                     if (!world.isClientSide()) {
                         world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
                     }
@@ -105,7 +104,6 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context)
             }
 
             // 发送植物生长效果事件（粒子 + 音效）
-            // 参考: net.minecraft.world.item.BoneMealItem.useOn -> level.levelEvent(1505, pos, 15)
             if (!world.isClientSide()) {
                 world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
             }
@@ -158,7 +156,6 @@ bool BoneMealItem::applyBonemeal(ItemStack& stack, IWorld& world, const BlockPos
         }
 
         // 发送植物生长效果事件（粒子 + 音效）
-        // 参考: net.minecraft.world.item.BoneMealItem.useOn -> level.levelEvent(1505, pos, 15)
         if (!world.isClientSide()) {
             world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
         }

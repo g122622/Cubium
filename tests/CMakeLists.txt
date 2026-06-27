@@ -443,6 +443,7 @@ add_executable(mc_tests
     common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/SnowBlockTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
+    common/world/block/blocks/nether/NyliumBlockTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp
     common/world/block/blocks/FireBlockCollisionTest.cpp
     common/world/block/blocks/FireBlockTest.cpp
@@ -467,6 +468,7 @@ add_executable(mc_tests
     common/world/block/blocks/end/ChorusPlantBlockTest.cpp
     common/world/block/blocks/end/DragonEggBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
+    common/world/block/IGrowableTest.cpp
     common/world/gameevent/VibrationSystemTest.cpp
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp

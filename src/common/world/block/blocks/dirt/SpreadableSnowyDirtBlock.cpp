@@ -203,7 +203,6 @@ bool GrassBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockSt
     MC_UNUSED(state);
     MC_UNUSED(isClientSide);
     // 草方块上方需要有空气才能使用骨粉
-    // 参考: net.minecraft.world.level.block.GrassBlock.isValidBonemealTarget
     const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
     const BlockState* aboveState = world.getBlockState(abovePos);
     return aboveState != nullptr && aboveState->isAir();
@@ -224,7 +223,6 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
 {
     MC_UNUSED(state);
     // 在草方块上方散布花朵和短草
-    // 参考: net.minecraft.world.level.block.GrassBlock.performBonemeal
     //
     // MC 原版使用 128 次循环散布，从生物群系获取花列表，通过 PlacedFeature 系统放置。
     // 当前为简化实现：在上方散布短草，小概率放置花朵。

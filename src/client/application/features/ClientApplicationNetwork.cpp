@@ -1976,7 +1976,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::DISPENSER_SMOKE: {
             // 发射器烟雾粒子，data 为方向（Direction.getIndex()）
-            // 参考 MC Java: LevelEventHandler.shootParticles(pos, data, random, ParticleTypes.SMOKE)
             {
                 Direction dir = static_cast<Direction>(data);
                 i32 stepX = Directions::xOffset(dir);
@@ -2004,7 +2003,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::MOB_SPAWNER_PARTICLES: {
             // 刷怪笼成功生成实体时爆发烟雾和火焰粒子
-            // 参考 MC: BaseSpawner.serverTick() 成功生成后调用 levelEvent(2004, pos, 0)
             // 客户端在方块中心2格范围内随机生成20个烟雾粒子和20个火焰粒子
             {
                 f32 cx = static_cast<f32>(x) + 0.5f;
@@ -2101,11 +2099,10 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         }
 
         case WorldEvents::PLANT_GROWTH_EFFECT: {
-            // 植物生长粒子与音效事件 (MC 1.21 主事件，由骨粉使用触发)
+            // 植物生长粒子与音效事件（由骨粉使用触发）
             // data 为粒子数量，0 则生成 15 个
             // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 IGrowable::getBoneMealType()
             // 决定粒子分布方式，同时播放骨粉使用音效。
-            // 参考: net.minecraft.world.item.BoneMealItem.addGrowthParticles
             {
                 i32 count = (data == 0) ? 15 : data;
 
@@ -2122,8 +2119,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                         switch (growable->getBoneMealType()) {
                             case IGrowable::BoneMealType::NEIGHBOR_SPREADER:
                                 // 邻居传播型（草方块、菌岩等）：粒子水平扩散 3 倍数量
-                                // 参考: ParticleUtils.spawnParticles(level, pos, data * 3, 3.0, 1.0, false,
-                                // HAPPY_VILLAGER)
                                 m_world.addParticle(ParticleTypeId::HappyVillager,
                                     Vector3(static_cast<f32>(particlePos.x) + 0.5f,
                                         static_cast<f32>(particlePos.y),
@@ -2136,8 +2131,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                             case IGrowable::BoneMealType::GROWER:
                             default:
                                 // 自身成长型（作物、树苗等）：粒子在方块形状高度内生成
-                                // 参考: ParticleUtils.spawnParticleInBlock(level, pos, data, HAPPY_VILLAGER)
-                                // spawnParticleInBlock 使用方块碰撞箱的 Y 轴最大值作为垂直范围
+                                // 使用方块碰撞箱的 Y 轴最大值作为垂直范围
                                 {
                                     // 获取方块的碰撞形状高度
                                     f32 shapeHeight = 1.0f;
@@ -2162,7 +2156,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                         }
                     } else {
                         // 非 IGrowable 方块（如水面）：使用与 NEIGHBOR_SPREADER 相同的分布
-                        // 参考 MC: blockstate.is(Blocks.WATER) -> spawnParticles(level, pos, data * 3, 3.0, 1.0, false)
                         m_world.addParticle(ParticleTypeId::HappyVillager,
                             Vector3(px, py, pz),
                             Vector3(0.0f, 0.0f, 0.0f),
@@ -2308,7 +2301,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         case WorldEvents::SHOOT_WHITE_SMOKE: {
             // 白烟粒子效果（方向性），与 DISPENSER_SMOKE(2000) 类似但为白色烟雾
             // data 为烟雾方向（Direction.getIndex()）
-            // 参考 MC Java: LevelEventHandler.shootParticles(pos, data, random, ParticleTypes.WHITE_SMOKE)
             {
                 Direction dir = static_cast<Direction>(data);
                 i32 stepX = Directions::xOffset(dir);

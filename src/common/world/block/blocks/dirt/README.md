@@ -25,7 +25,13 @@ Block
 - 实现蔓延机制（光照充足时向周围泥土蔓延）
 - 实现退化机制（光照不足时退化成泥土）
 
-**子类差异**：GrassBlock 和 MyceliumBlock 仅在构造函数传入不同的 BlockProperties，核心逻辑完全继承自基类。
+**GrassBlock 额外职责**：
+- 实现 IGrowable 接口（骨粉催熟）
+- getBoneMealType() 返回 NEIGHBOR_SPREADER（粒子在方块上方水平扩散，3 倍数量）
+- canGrow() 检查上方是否有空气
+- grow() 在上方散布短草和花朵（128 次循环随机偏移）
+
+**子类差异**：GrassBlock 实现了 IGrowable 接口用于骨粉交互；MyceliumBlock 不实现 IGrowable（MC 原版行为）。
 
 ## 上下游外部依赖关系
 

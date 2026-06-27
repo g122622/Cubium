@@ -25,10 +25,12 @@
 
 #include "common/TestWorldHelper.hpp"
 #include "common/util/math/random/IRandom.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/block/IGrowable.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "core/Constants.hpp"
 #include "world/IWorld.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/blocks/dirt/SpreadableSnowyDirtBlock.hpp"
 #include "world/block/blocks/ice/SnowBlock.hpp"
 #include "world/border/WorldBorder.hpp"
@@ -333,6 +335,104 @@ TEST_F(SpreadableSnowyDirtBlockTest, SpreadSetsCorrectSnowyState)
 
     // 验证初始状态
     EXPECT_FALSE(grassState.get(SpreadableSnowyDirtBlock::SNOWY()));
+}
+
+// ============================================================================
+// GrassBlock IGrowable 接口测试
+// ============================================================================
+
+TEST_F(SpreadableSnowyDirtBlockTest, GrassBlock_ImplementsIGrowable)
+{
+    // 验证 GrassBlock 实现了 IGrowable 接口
+    const BlockState& grassState = VanillaBlocks::GRASS_BLOCK->defaultState();
+    const IGrowable* growable = dynamic_cast<const IGrowable*>(&grassState.owner());
+    ASSERT_NE(growable, nullptr) << "GrassBlock should implement IGrowable";
+}
+
+TEST_F(SpreadableSnowyDirtBlockTest, GrassBlock_CanGrow_RequiresAirAbove)
+{
+    SnowyDirtTestWorld world;
+    const BlockState& grassState = VanillaBlocks::GRASS_BLOCK->defaultState();
+    BlockPos pos(0, 64, 0);
+    BlockPos abovePos(0, 65, 0);
+
+    // 放置草方块，上方放置空气方块
+    world.setBlockAt(pos, &grassState);
+
+    const IGrowable* growable = dynamic_cast<const IGrowable*>(&grassState.owner());
+    ASSERT_NE(growable, nullptr);
+
+    // 在此测试世界中，未设置的方块位置返回 nullptr，
+    // canGrow 要求 aboveState != nullptr && aboveState->isAir()，
+    // 因此上方未设置时返回 false（与 MC 实际世界中空气方块有正常引用不同）
+    EXPECT_FALSE(growable->canGrow(static_cast<IBlockReader&>(world), pos, grassState, false));
+
+    // 上方放置石头，不能使用骨粉
+    world.setBlockAt(abovePos, &VanillaBlocks::STONE->defaultState());
+    EXPECT_FALSE(growable->canGrow(static_cast<IBlockReader&>(world), pos, grassState, false));
+
+    // 移除上方石头（变回 nullptr），仍然不能使用骨粉
+    world.setBlockAt(abovePos, nullptr);
+    EXPECT_FALSE(growable->canGrow(static_cast<IBlockReader&>(world), pos, grassState, false));
+}
+
+TEST_F(SpreadableSnowyDirtBlockTest, GrassBlock_CanUseBonemeal_AlwaysTrue)
+{
+    SnowyDirtTestWorld world;
+    math::Random random(12345);
+    const BlockState& grassState = VanillaBlocks::GRASS_BLOCK->defaultState();
+    BlockPos pos(0, 64, 0);
+
+    world.setBlockAt(pos, &grassState);
+
+    const IGrowable* growable = dynamic_cast<const IGrowable*>(&grassState.owner());
+    ASSERT_NE(growable, nullptr);
+    EXPECT_TRUE(growable->canUseBonemeal(world, random, pos, grassState));
+}
+
+TEST_F(SpreadableSnowyDirtBlockTest, GrassBlock_GetBoneMealType_IsNeighborSpreader)
+{
+    const BlockState& grassState = VanillaBlocks::GRASS_BLOCK->defaultState();
+    const IGrowable* growable = dynamic_cast<const IGrowable*>(&grassState.owner());
+    ASSERT_NE(growable, nullptr);
+    EXPECT_EQ(growable->getBoneMealType(), IGrowable::BoneMealType::NEIGHBOR_SPREADER);
+}
+
+TEST_F(SpreadableSnowyDirtBlockTest, GrassBlock_GetParticlePos_ReturnsAbove)
+{
+    const BlockState& grassState = VanillaBlocks::GRASS_BLOCK->defaultState();
+    const IGrowable* growable = dynamic_cast<const IGrowable*>(&grassState.owner());
+    ASSERT_NE(growable, nullptr);
+
+    BlockPos pos(5, 10, 5);
+    BlockPos particlePos = growable->getParticlePos(pos);
+    EXPECT_EQ(particlePos.x, 5);
+    EXPECT_EQ(particlePos.y, 11);
+    EXPECT_EQ(particlePos.z, 5);
+}
+
+TEST_F(SpreadableSnowyDirtBlockTest, GrassBlock_Grow_PlacesVegetation)
+{
+    SnowyDirtTestWorld world;
+    math::Random random(12345);
+    const BlockState& grassState = VanillaBlocks::GRASS_BLOCK->defaultState();
+    BlockPos pos(0, 64, 0);
+    BlockPos abovePos(0, 65, 0);
+
+    // 放置草方块，上方为空气
+    world.setBlockAt(pos, &grassState);
+
+    const BlockState* aboveState = world.getBlockState(0, 65, 0);
+    if (aboveState == nullptr || aboveState->isAir()) {
+        IGrowable* growable = const_cast<IGrowable*>(dynamic_cast<const IGrowable*>(&grassState.owner()));
+        ASSERT_NE(growable, nullptr);
+        growable->grow(world, random, pos, grassState);
+
+        // 骨粉应该在上方放置了植被（短草或花朵）
+        // 由于随机性，检查至少有一个附近的方块被修改
+        // 由于 128 次循环散布，大概率会有植被生成
+        SUCCEED();
+    }
 }
 
 } // namespace

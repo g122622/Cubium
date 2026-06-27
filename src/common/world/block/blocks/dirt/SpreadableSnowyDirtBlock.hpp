@@ -134,7 +134,6 @@ protected:
  * 在光照不足时退化成泥土。骨粉可以在其上方生成花朵和草。
  *
  * MC ID: minecraft:grass_block
- * 参考: net.minecraft.world.level.block.GrassBlock
  */
 class GrassBlock : public SpreadableSnowyDirtBlock, public IGrowable {
 public:
@@ -146,8 +145,6 @@ public:
      * @brief 检查草方块是否可以使用骨粉
      *
      * 草方块上方需要有空气才能使用骨粉。
-     *
-     * 参考: net.minecraft.world.level.block.GrassBlock.isValidBonemealTarget
      */
     [[nodiscard]] bool canGrow(
         IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
@@ -165,8 +162,6 @@ public:
      *
      * TODO: 完整实现需要 PlacedFeature/ConfiguredFeature 系统，当前为简化版本，
      * 仅放置短草和少量花朵。待世界生成系统完善后应改为从生物群系获取花列表。
-     *
-     * 参考: net.minecraft.world.level.block.GrassBlock.performBonemeal
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
@@ -174,8 +169,6 @@ public:
      * @brief 草方块为邻居传播型骨粉类型
      *
      * 粒子在方块上方水平扩散，数量为传入值的3倍。
-     *
-     * 参考: net.minecraft.world.level.block.GrassBlock.getType()
      */
     [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
 };

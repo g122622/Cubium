@@ -21,7 +21,7 @@
 ├── IBeaconBeamColorProvider.hpp #信标光束颜色提供者接口
 ├── IBlockAnimateContext.hpp #方块动画 tick 上下文接口（客户端粒子 / 音效）
 ├── IBucketPickupHandler.hpp #桶提取接口
-├── IGrowable.hpp #可生长方块接口
+├── IGrowable.hpp #可生长方块接口（含 BoneMealType 枚举、getParticlePos 方法）
 ├── ILiquidContainer.hpp #液体容器接口
 ├── IWaterLoggable.hpp / cpp #含水方块接口
 ├── Material.hpp / cpp #材质系统（物理属性）

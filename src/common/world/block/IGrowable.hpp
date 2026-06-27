@@ -41,8 +41,6 @@ class IRandom;
  *
  * 实现此接口的方块可以被骨粉催熟。
  * 包括农作物、树苗、花朵、草等植物。
- *
- * 参考: net.minecraft.world.level.block.BonemealableBlock
  */
 class IGrowable {
 public:
@@ -53,9 +51,6 @@ public:
      * - NEIGHBOR_SPREADER: 邻居传播型（草方块、菌岩、下界岩），
      *   粒子在方块上方水平扩散 3 倍数量
      * - GROWER: 自身成长型（默认，作物、树苗等），
-     *   粒子在方块内部按形状高度生成
-     *
-     * 参考: net.minecraft.world.level.block.BonemealableBlock.Type
      */
     enum class BoneMealType {
         GROWER,           ///< 自身成长型（默认）
@@ -111,8 +106,6 @@ public:
      * NEIGHBOR_SPREADER 类型的方块（草方块、菌岩、下界岩等）
      * 应重写此方法返回 NEIGHBOR_SPREADER。
      *
-     * 参考: net.minecraft.world.level.block.BonemealableBlock.getType()
-     *
      * @return 骨粉类型
      */
     [[nodiscard]] virtual BoneMealType getBoneMealType() const { return BoneMealType::GROWER; }
@@ -122,8 +115,6 @@ public:
      *
      * NEIGHBOR_SPREADER 类型返回方块上方一格位置（pos.above()），
      * GROWER 类型返回方块自身位置。
-     *
-     * 参考: net.minecraft.world.level.block.BonemealableBlock.getParticlePos()
      *
      * @param pos 方块位置
      * @return 粒子生成位置
