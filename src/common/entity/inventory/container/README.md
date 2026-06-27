@@ -13,6 +13,7 @@
 ├── BrewingStandContainer.hpp / cpp #酿造台容器（3药水槽 / 材料槽 / 燃料槽）
 ├── CartographyContainer.hpp / cpp #制图台容器（地图扩展 / 锁定 / 复制）
 ├── ChestContainer.hpp / cpp #箱子容器（单箱27格 / 双箱54格）
+├── CrafterContainer.hpp / cpp #自动合成器容器（3x3合成网格 + 预览结果槽）
 ├── EnchantmentContainer.hpp / cpp #附魔台容器（物品槽 / 青金石槽）
 ├── FurnaceContainer.hpp / cpp #熔炉容器（输入 / 燃料 / 输出槽）
 ├── HopperContainer.hpp / cpp #漏斗容器（5格）
@@ -34,6 +35,7 @@
         ├── FurnaceContainer ──关联── > AbstractFurnaceEntity
         ├── EnchantmentContainer ──关联── > EnchantingTableEntity（位置）
         ├── BrewingStandContainer ──关联── > BrewingStandEntity
+        ├── CrafterContainer ──关联── > CrafterBlockEntity
         ├── AnvilContainer ──关联── > 铁砧方块位置
         ├── HopperContainer ──关联── > HopperEntity
         ├── CartographyContainer ──关联── > 制图台方块位置

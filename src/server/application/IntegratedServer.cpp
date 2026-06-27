@@ -27,6 +27,7 @@
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
+#include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
@@ -45,6 +46,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
+#include "common/world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -846,6 +848,24 @@ bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& po
             m_openInventoryOwner.reset();
             menu = std::make_unique<blockentity::FurnaceContainer>(
                 containerId, &m_clientInventory, furnace->getInventory(), furnace);
+            break;
+        }
+        case ContainerType::Crafter: {
+            auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(m_clientPlayerId);
+            auto* playerWorld = playerDim ? playerDim->world() : nullptr;
+            if (playerWorld == nullptr) {
+                return false;
+            }
+
+            BlockEntity* blockEntity = playerWorld->getBlockEntity(pos);
+            if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::Crafter) {
+                return false;
+            }
+
+            auto* crafter = static_cast<CrafterBlockEntity*>(blockEntity);
+            m_openInventoryOwner.reset();
+            menu = std::make_unique<mc::CrafterContainer>(
+                containerId, &m_clientInventory, crafter->getInventory(), crafter);
             break;
         }
         case ContainerType::Player:

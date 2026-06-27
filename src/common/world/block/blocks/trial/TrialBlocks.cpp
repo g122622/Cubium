@@ -22,6 +22,7 @@
 
 #include "TrialBlocks.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/inventory/ContainerTypes.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/entity/inventory/ISidedInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -279,15 +280,12 @@ ActionResultType CrafterBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Success;
     }
 
-    // TODO: 实现自动合成器GUI（ContainerType::Crafter尚未添加）
-    // 当GUI系统实现后，应打开合成器界面：
-    //   BlockEntity* entity = world.getBlockEntity(pos);
-    //   if (entity != nullptr && entity->getType() == BlockEntityType::Crafter) {
-    //       auto* crafter = static_cast<CrafterBlockEntity*>(entity);
-    //       if (world.openContainer(ContainerType::Crafter, pos, player)) {
-    //           return ActionResultType::Consume;
-    //       }
-    //   }
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::Crafter) {
+        if (world.openContainer(ContainerType::Crafter, pos, player)) {
+            return ActionResultType::Consume;
+        }
+    }
 
     return ActionResultType::Pass;
 }
