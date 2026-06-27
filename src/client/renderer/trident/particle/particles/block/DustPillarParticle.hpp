@@ -15,8 +15,9 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
- * OR OTHER DEALINGS IN THE SOFTWARE.
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
  */
 
@@ -40,8 +41,8 @@ namespace mc::client::renderer::trident::particle::particles {
  * 特性：
  * - 继承 DiggingParticle 的方块纹理渲染能力（TERRAIN_SHEET 渲染类型）
  * - 重力 1.0（粒子会先上升后下落）
- * - 水平速度极低（高斯分布 sigma=1/30），形成窄柱效果
- * - 垂直速度保留传入的 Y 分量并叠加高斯偏移（sigma=0.5），形成先扬后抑的抛物线
+ * - 构造时重写速度：水平分量替换为高斯分布 sigma=1/30（极低水平扩散），
+ *   垂直分量保留传入的 Y 分量并叠加高斯偏移 sigma=0.5（先扬后抑的抛物线）
  * - 生命周期 20-40 tick（1-2 秒）
  * - 颜色继承自方块染色（乘以 0.6 基础亮度）
  */
@@ -49,6 +50,10 @@ class DustPillarParticle : public DiggingParticle {
 public:
     /**
      * @brief 构造尘柱粒子
+     *
+     * 构造时会重写速度（匹配 MC Java DustPillarProvider 行为）：
+     * - X/Z 速度替换为 nextGaussian() / 30.0
+     * - Y 速度保留传入值并叠加 nextGaussian() / 2.0
      *
      * @param pos 初始位置
      * @param velocity 初始速度（Y 分量用于控制上升高度）
@@ -58,6 +63,9 @@ public:
 
     /**
      * @brief 默认工厂方法（使用石头方块状态，不推荐）
+     *
+     * TODO: 当方块状态可通过世界查询自动获取时，应移除此默认回退，
+     * 改为始终使用 createWithBlock 传入正确的方块状态
      */
     static std::unique_ptr<Particle> create(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);

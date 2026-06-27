@@ -2175,11 +2175,9 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::SMASH_ATTACK: {
             // 重锤砸地攻击粒子效果（对应 MC LevelEvent.PARTICLES_SMASH_ATTACK = 2013）
-            // 参考 MC Java: ParticleUtils.spawnSmashAttackParticles
-            // data 值为粒子数量（MaceItem 传入 750）
             // 使用 DustPillar 粒子携带方块状态纹理，分两层分布：
             //   - 内层簇（count/3 个）：高斯分布聚集在中心
-            //   - 外层环（count/1.5 个）：半径 3.5 的圆形分布
+            //   - 外层环（count/1.5 个）：半径 3.5 的圆形均匀分布
             {
                 // 获取冲击位置方块的状态，用于 DustPillar 粒子纹理
                 const BlockState* blockState = m_world.getBlockState(x, y, z);
@@ -2188,14 +2186,15 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                     break;
                 }
 
-                // 中心点位于方块中心偏上 0.5 格（MC: blockPos.getCenter().add(0, 0.5, 0)）
+                // 中心点位于方块中心偏上 0.5 格
                 f32 cx = static_cast<f32>(x) + 0.5f;
-                f32 cy = static_cast<f32>(y) + 1.0f; // 方块中心 + 0.5
+                f32 cy = static_cast<f32>(y) + 1.0f;
                 f32 cz = static_cast<f32>(z) + 0.5f;
 
                 i32 count = (data == 0) ? 750 : data;
 
                 // 内层簇：count/3 个粒子，高斯分布在中心附近
+                // 速度会被 DustPillarProvider 覆盖：X/Z → gaussian/30，Y → 传入Y + gaussian/2
                 i32 innerCount = static_cast<i32>(count / 3.0f);
                 for (i32 i = 0; i < innerCount; ++i) {
                     f32 px = cx + static_cast<f32>(random.nextGaussian()) / 2.0f;
@@ -2208,10 +2207,10 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                         ParticleTypeId::DustPillar, Vector3(px, py, pz), Vector3(vx, vy, vz), *blockState);
                 }
 
-                // 外层环：count/1.5 个粒子，半径 3.5 的圆形分布
+                // 外层环：count/1.5 个粒子，半径 3.5 的均匀圆形分布
                 i32 outerCount = static_cast<i32>(count / 1.5f);
                 for (i32 j = 0; j < outerCount; ++j) {
-                    f32 angle = static_cast<f32>(j); // 使用索引作为角度（均匀分布）
+                    f32 angle = static_cast<f32>(j) * math::TWO_PI / static_cast<f32>(outerCount);
                     f32 px = cx + 3.5f * std::cos(angle) + static_cast<f32>(random.nextGaussian()) / 2.0f;
                     f32 py = cy;
                     f32 pz = cz + 3.5f * std::sin(angle) + static_cast<f32>(random.nextGaussian()) / 2.0f;

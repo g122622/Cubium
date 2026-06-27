@@ -1155,28 +1155,6 @@ public:
         return true;
     }
 
-    /**
-     * @brief 生成携带方块状态纹理的粒子
-     *
-     * 用于生成 DustPillar、Block、Breaking 等需要方块状态信息的粒子。
-     * 服务端为空操作，客户端会创建携带方块纹理的粒子实例。
-     *
-     * @param type 粒子类型（必须是需要方块状态的类型，如 DustPillar）
-     * @param pos 粒子位置
-     * @param velocity 粒子速度
-     * @param blockState 方块状态（用于粒子纹理和颜色）
-     */
-    virtual void addBlockParticle(client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const BlockState& blockState)
-    {
-        (void)type;
-        (void)pos;
-        (void)velocity;
-        (void)blockState;
-    }
-
     // ========== 爆炸 ==========
 
     /**

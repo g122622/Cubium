@@ -3,20 +3,18 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including limitation to the rights
+ * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
- * OR OTHER DEALINGS IN THE SOFTWARE.
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  *
  */
 
@@ -36,11 +34,19 @@ DustPillarParticle::DustPillarParticle(const glm::vec3& pos, const glm::vec3& ve
     // - 重力 1.0（DiggingParticle 默认 0.03，DustPillar 需要更重的重力形成先扬后抑的柱状效果）
     //   在本项目中，重力通过 velocity.y -= gravity * 0.04 计算，
     //   gravity=1.0 对应 MC Java 的 gravity=1.0F
-    // - 生命周期 20-40 tick（DiggingParticle 默认 16-24 tick）
+    // - 生命周期 20-40 tick（DiggingParticle 默认基于 maxAge 公式）
     // - 颜色乘以 0.6 基础亮度（MC Java TerrainParticle 默认 rCol=gCol=bCol=0.6F）
     setGravity(1.0);
     setMaxAge(20.0 + m_random.nextInt(21));
     setColor(glm::vec4(m_color.r * 0.6f, m_color.g * 0.6f, m_color.b * 0.6f, m_color.a));
+
+    // 重写速度以匹配 MC Java DustPillarProvider.setParticleSpeed() 行为：
+    // - X/Z 速度替换为 nextGaussian() / 30.0（极低水平扩散，形成窄柱效果）
+    // - Y 速度保留传入的原始 Y 分量并叠加 nextGaussian() / 2.0（先扬后抑的抛物线）
+    f32 originalY = static_cast<f32>(m_velocity.y);
+    setVelocity(glm::vec3(static_cast<f32>(m_random.nextGaussian()) / 30.0f,
+        originalY + static_cast<f32>(m_random.nextGaussian()) / 2.0f,
+        static_cast<f32>(m_random.nextGaussian()) / 30.0f));
 }
 
 std::unique_ptr<Particle> DustPillarParticle::create(

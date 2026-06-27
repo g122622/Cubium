@@ -1055,6 +1055,8 @@ add_executable(mc_tests
     client/renderer/trident/particle/particles/effect/SpellParticleColorTest.cpp
     # DiggingParticle 测试
     client/renderer/trident/particle/particles/block/DiggingParticleTest.cpp
+    # DustPillarParticle 测试
+    client/renderer/trident/particle/particles/block/DustPillarParticleTest.cpp
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp
