@@ -504,8 +504,8 @@ void LivingEntity::detectEquipmentUpdates()
                             if (entry.equipmentSlot == static_cast<i32>(slot)) {
                                 // 先移除可能存在的同ID修饰符，再添加新的
                                 // 对应 MC 原版 removeModifier(id) + addTransientModifier()
-                                m_attributes.removeModifier(entry.attribute->registryName(), entry.modifier.id());
-                                m_attributes.addModifier(entry.attribute->registryName(), entry.modifier);
+                                m_attributes.removeModifier(entry.attributeName, entry.modifier.id());
+                                m_attributes.addModifier(entry.attributeName, entry.modifier);
                             }
                         }
                     }
@@ -535,7 +535,7 @@ void LivingEntity::stopLocationBasedEffects(const ItemStack& stack, EquipmentSlo
     item::ItemAttributeModifiers modifiers = item->getAttributeModifiers(static_cast<i32>(slot));
     for (const auto& entry : modifiers.getEntries()) {
         if (entry.equipmentSlot == static_cast<i32>(slot)) {
-            m_attributes.removeModifier(entry.attribute->registryName(), entry.modifier.id());
+            m_attributes.removeModifier(entry.attributeName, entry.modifier.id());
         }
     }
 

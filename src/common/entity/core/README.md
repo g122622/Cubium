@@ -259,6 +259,40 @@
                     burnUndead()` — 使用 `setDamage()` 直接增加伤害值（绕过耐久保护附魔），手动实现回调逻辑
         - `PlayerInventory::damageArmor()` — 使用 `hurtAndBreak()` 统一处理
 
+        ## #装备变化检测与属性修饰符同步
+
+        LivingEntity 在每个 tick 中自动检测装备变化并同步属性修饰符，对应 MC 原版 `LivingEntity.collectEquipmentChanges()` / `stopLocationBasedEffects()` 机制。
+
+            **新增方法 **：
+
+        - **`detectEquipmentUpdates()`** — 每tick调用，检测装备变化并应用/移除属性修饰符
+          - 首次调用初始化装备快照 `m_lastEquipment`（不应用修饰符）
+          - 后续调用比较当前装备与快照，检测变化后：
+            1. 对旧物品调用 `stopLocationBasedEffects()` 移除属性修饰符
+            2. 对新物品通过 `item->getAttributeModifiers(slot)` 获取修饰符并添加到 `AttributeMap`
+          - 客户端世界（`isClientSide()`）跳过检测
+          - 对应 MC 原版 `LivingEntity.tick()` 中的 `collectEquipmentChanges()` 调用链
+
+        - **`stopLocationBasedEffects(stack, slot)`** — 移除物品在指定槽位提供的属性修饰符
+          - 遍历 `item->getAttributeModifiers(slot)` 中匹配槽位的条目，逐一调用 `AttributeMap::removeModifier()`
+          - 对应 MC 原版 `LivingEntity.stopLocationBasedEffects()`
+          - TODO: 当附魔基于位置的效果系统实现后，需同时调用 `EnchantmentHelper.stopLocationBasedEffects()` 停用 Frost Walker、Soul Speed 等效果
+
+        - **`equipmentHasChanged(a, b)`** (静态) — 比较两个 ItemStack 是否发生变化（物品类型、数量、伤害值）
+
+        - **`onEquippedItemBroken(item, slot)`** (虚方法) — 装备损坏回调，现已集成 `stopLocationBasedEffects()` 调用
+          - 在广播破损动画和音效之前，先移除损坏物品的属性修饰符
+          - 确保损坏物品不再影响实体的属性值
+
+            **新增成员变量 **：
+
+        - `m_lastEquipment` — `std::array<ItemStack, 6>` 装备快照，记录上次 tick 的装备状态
+        - `m_lastEquipmentInitialized` — `bool` 标记快照是否已初始化
+
+            **Player 子类兼容性 **：
+
+        Player 重写了 `getEquipment()`/`setEquipment()` 虚方法，通过 `PlayerInventory` 间接管理装备。`detectEquipmentUpdates()` 通过虚方法调用读取装备，因此 Player 实例的装备快照正确反映 PlayerInventory 中的数据。快照使用 `ItemStack` 值拷贝，与底层存储无关。
+
             **方法实现 **： - `LivingEntity::onEquippedItemBroken()` — 广播 EntityStatus 装备破损状态码
         + 播放 ENTITY_ITEM_BREAK 音效
         - `ServerPlayer::onEquippedItemBroken()` — 额外更新物品损坏统计（`minecraft.broken:

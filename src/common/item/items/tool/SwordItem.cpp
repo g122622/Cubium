@@ -98,19 +98,17 @@ item::ItemAttributeModifiers SwordItem::getAttributeModifiers(i32 equipmentSlot)
         std::string uuid = entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_DAMAGE_MODIFIER_UUID);
 
         // 添加攻击伤害修饰符
-        auto attackDamageAttr = entity::attribute::Attributes::attackDamage();
         auto attackDamageModifier = entity::attribute::AttributeModifier(
             uuid, "Weapon modifier", static_cast<f64>(m_attackDamage), entity::attribute::Operation::Addition);
-        modifiers.add(attackDamageAttr.get(), attackDamageModifier, equipmentSlot);
+        modifiers.add(entity::attribute::Attributes::ATTACK_DAMAGE, attackDamageModifier, equipmentSlot);
 
         // 添加攻击速度修饰符
-        auto attackSpeedAttr = entity::attribute::Attributes::attackSpeed();
         auto attackSpeedModifier = entity::attribute::AttributeModifier(
             entity::attribute::uuids::fromString(entity::attribute::uuids::ATTACK_SPEED_MODIFIER_UUID),
             "Weapon modifier",
             static_cast<f64>(m_attackSpeed),
             entity::attribute::Operation::Addition);
-        modifiers.add(attackSpeedAttr.get(), attackSpeedModifier, equipmentSlot);
+        modifiers.add(entity::attribute::Attributes::ATTACK_SPEED, attackSpeedModifier, equipmentSlot);
 
         return modifiers;
     }

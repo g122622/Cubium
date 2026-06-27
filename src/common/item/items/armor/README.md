@@ -40,3 +40,22 @@ armor/
 - **马铠装备判断**：`HorseArmorItem` 仅对 `HorseEntity` 有效，其他实体（如驴、骡）使用不同的装备槽逻辑。
 - **铜马铠护甲值**：MC 1.21.11 中铜马铠的护甲值为 4（不是 5），与铁马铠（5）不同。其他马铠护甲值：皮革(3)、金(7)、钻石(11)、下界合金(19)。
 - **下界合金马铠防火**：下界合金马铠通过 `ItemTags::FIRE_RESISTANT` 标签实现防火效果（免疫火焰/岩浆伤害），与 MC Java 通过 `Item.Properties.fireResistant()` 机制不同。
+
+## ArmorItem 属性修饰符系统
+
+`ArmorItem` 在构造时通过 `_buildAttributeModifiers()` 预构建属性修饰符，存储在 `m_attributeModifiers` 成员中。
+
+### 新增方法
+
+- **`getAttributeModifiers(i32 equipmentSlot)`** (重写 `Item::getAttributeModifiers(i32)`)
+  - 当槽位匹配盔甲槽位时（如 Head 槽位的头盔），返回预构建的修饰符
+  - 不匹配时返回空修饰符
+  - 对应 MC 原版 `ArmorItem.getAttributeModifiers(EquipmentSlot)`
+  - 修饰符条目使用属性注册名字符串（如 `"generic.armor"`）而非 `const Attribute*` 指针，避免悬挂指针问题
+
+### 修饰符内容
+
+每个盔甲物品根据材质提供以下修饰符：
+1. **护甲值** (`generic.armor`) — 加法操作，值为 `getDefense()`
+2. **护甲韧性** (`generic.armor_toughness`) — 加法操作，值为 `getToughness()`（铁/皮革/链甲/金/铜的韧性为 0）
+3. **击退抗性** (`generic.knockback_resistance`) — 加法操作，仅当 `getKnockbackResistance() > 0` 时添加（下界合金 0.1，龟壳无）

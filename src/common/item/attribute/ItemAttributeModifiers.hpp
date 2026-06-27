@@ -23,17 +23,11 @@
 
 #pragma once
 
-#include "common/entity/attribute/Attribute.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include <unordered_map>
+#include <string>
 #include <vector>
 
 namespace mc {
-
-// Forward declarations
-class ItemStack;
-
 namespace item {
 
 /**
@@ -58,16 +52,18 @@ class ItemAttributeModifiers {
 public:
     /**
      * @brief 槽位修饰符条目
+     *
+     * 存储属性修饰符及其对应的属性注册名和装备槽位。
+     * 使用属性注册名（如 "generic.armor"）而非 const Attribute* 指针，
+     * 避免 Attribute 生命周期问题导致的悬挂指针。
      */
     struct Entry {
-        const entity::attribute::Attribute* attribute;
+        std::string attributeName; ///< 属性注册名（如 "generic.armor"）
         entity::attribute::AttributeModifier modifier;
-        i32 equipmentSlot; // 使用int代替EquipmentSlot避免循环依赖
+        i32 equipmentSlot; ///< 使用int代替EquipmentSlot避免循环依赖
 
-        Entry(const entity::attribute::Attribute* attr,
-            const entity::attribute::AttributeModifier& mod,
-            i32 slot) noexcept
-            : attribute(attr)
+        Entry(std::string attrName, const entity::attribute::AttributeModifier& mod, i32 slot) noexcept
+            : attributeName(std::move(attrName))
             , modifier(mod)
             , equipmentSlot(slot)
         {}
@@ -75,13 +71,11 @@ public:
 
     /**
      * @brief 添加属性修饰符
-     * @param attribute 属性
+     * @param attributeName 属性注册名（如 "generic.armor"）
      * @param modifier 修饰符
-     * @param slot 装备槽位
+     * @param equipmentSlot 装备槽位
      */
-    void add(const entity::attribute::Attribute* attribute,
-        const entity::attribute::AttributeModifier& modifier,
-        i32 equipmentSlot);
+    void add(const std::string& attributeName, const entity::attribute::AttributeModifier& modifier, i32 equipmentSlot);
 
     /**
      * @brief 获取所有修饰符
