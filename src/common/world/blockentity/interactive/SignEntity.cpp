@@ -23,6 +23,7 @@
 
 #include "world/blockentity/interactive/SignEntity.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/serialization/NbtHelper.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "util/text/TextParser.hpp"
@@ -274,6 +275,81 @@ void SignEntity::save(nlohmann::json& data) const
 
     // 保存涂蜡状态
     data["is_waxed"] = m_waxed;
+}
+
+bool SignEntity::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    if (!BlockEntity::loadFromNBT(tag)) {
+        return false;
+    }
+
+    // 加载文本行
+    auto* linesList = mc::entity::serialization::nbt_helper::tryGetList(tag, "lines");
+    if (linesList != nullptr && linesList->element_id() == nbt::TagId::String) {
+        auto& stringList = dynamic_cast<const nbt::tags::string_list_tag&>(*linesList);
+        for (std::size_t i = 0; i < LINE_COUNT && i < stringList.value.size(); ++i) {
+            const auto& lineText = stringList.value[i];
+            m_lines[i] = text::TextParser::parse(lineText);
+            if (m_lines[i]) {
+                m_lines[i] = _truncateText(std::move(m_lines[i]));
+                if (!_validateText(*m_lines[i])) {
+                    m_lines[i] = std::make_unique<text::StringTextComponent>("");
+                }
+            } else {
+                m_lines[i] = std::make_unique<text::StringTextComponent>("");
+            }
+        }
+    }
+
+    // 加载可编辑状态
+    if (auto val = mc::entity::serialization::nbt_helper::tryGetBool(tag, "editable")) {
+        m_editable = *val;
+    }
+
+    // 加载文本颜色
+    if (auto val = mc::entity::serialization::nbt_helper::tryGetInt(tag, "color")) {
+        m_textColor = *val;
+    }
+
+    // 加载发光状态
+    if (auto val = mc::entity::serialization::nbt_helper::tryGetBool(tag, "glowing")) {
+        m_glowing = *val;
+    }
+
+    // 加载涂蜡状态
+    if (auto val = mc::entity::serialization::nbt_helper::tryGetBool(tag, "is_waxed")) {
+        m_waxed = *val;
+    }
+
+    return true;
+}
+
+void SignEntity::saveToNBT(nbt::CompoundTag& tag) const
+{
+    BlockEntity::saveToNBT(tag);
+
+    // 保存文本行（NBT 格式使用字符串列表）
+    auto linesList = std::make_unique<nbt::tags::string_list_tag>();
+    for (const auto& line : m_lines) {
+        if (line) {
+            linesList->value.push_back(line->getUnformattedText());
+        } else {
+            linesList->value.push_back("");
+        }
+    }
+    tag.value.emplace("lines", std::move(linesList));
+
+    // 保存可编辑状态
+    tag.put("editable", static_cast<i8>(m_editable ? 1 : 0));
+
+    // 保存文本颜色
+    tag.put("color", static_cast<i32>(m_textColor));
+
+    // 保存发光状态
+    tag.put("glowing", static_cast<i8>(m_glowing ? 1 : 0));
+
+    // 保存涂蜡状态
+    tag.put("is_waxed", static_cast<i8>(m_waxed ? 1 : 0));
 }
 
 std::unique_ptr<BlockEntity> SignEntity::clone() const

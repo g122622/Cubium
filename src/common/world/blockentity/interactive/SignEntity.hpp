@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "util/nbt/Nbt.hpp"
 #include "util/text/ITextComponent.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include <array>
@@ -220,6 +221,8 @@ public:
 
     bool load(const nlohmann::json& data) override;
     void save(nlohmann::json& data) const override;
+    bool loadFromNBT(const nbt::CompoundTag& tag) override;
+    void saveToNBT(nbt::CompoundTag& tag) const override;
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
 private:
