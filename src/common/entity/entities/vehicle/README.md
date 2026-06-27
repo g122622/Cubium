@@ -137,7 +137,7 @@ Entity (基类)
 
 **问题**：船最多承载2名乘客，但水下状态的船不能承载乘客。
 
-**解决方案**：`canFitPassenger()` 检查 `m_status != BoatStatus::UnderWater`。
+**解决方案**：`canAddPassenger()` 覆写检查 `m_passengers.size() < MAX_PASSENGERS && m_status != BoatStatus::UnderWater`。基类 `couldAcceptPassenger()` 未覆写（返回 true），乘客准入由 `canAddPassenger()` 控制。
 
 ### 9. 铁轨形状与移动
 

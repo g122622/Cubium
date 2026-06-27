@@ -615,6 +615,49 @@
     - ServerPlayer 重写版本实际发送 EntityVelocityPacket 并返回 `true`
     - 此设计避免 common 层对 server 层的依赖，通过虚方法桥接
 
+    ## #乘客系统与压力板触发
+
+    Entity 基类提供两层乘客准入检查和压力板触发控制，对应 MC Java 的 `couldAcceptPassenger()` / `canAddPassenger()` / `isIgnoringBlockTriggers()`。
+
+    ### 乘客准入检查
+
+    - **`couldAcceptPassenger()`** — 硬门槛，返回 `false` 表示该实体完全不能接受乘客。基类默认返回 `true`。
+    - **`canAddPassenger(const Entity& passenger)`** — 软门槛，允许基于乘客身份和当前乘客数量做细粒度判断。基类默认返回 `m_passengers.size() < getMaxPassengers()`。
+    - **`getMaxPassengers()`** — 最大乘客数量，基类默认返回 1。
+
+    **调用链**：`addPassenger()` / `startRiding()` 先检查 `couldAcceptPassenger()`，再检查 `canAddPassenger()`，两层都通过才允许骑乘。
+
+    **子类覆写示例**：
+
+    | 实体 | couldAcceptPassenger | canAddPassenger | getMaxPassengers | 说明 |
+    |------|---------------------|-----------------|------------------|------|
+    | Entity（基类） | true | passengers < max | 1 | 默认单乘客 |
+    | BoatEntity | true（继承） | passengers < 2 && 非水下 | — | 覆写 canAddPassenger，水下禁止乘客 |
+    | OminousItemSpawnerEntity | **false** | **false** | — | 完全禁止乘客 |
+    | AbstractHorseEntity | true（继承） | passengers < max | 2（马类） | 覆写 getMaxPassengers |
+
+    ### 压力板触发控制
+
+    - **`doesEntityNotTriggerPressurePlate()`** — 返回 `true` 表示该实体不触发压力板。基类默认返回 `false`。
+
+    **覆写情况**（对应 MC Java 的 `isIgnoringBlockTriggers()`）：
+
+    | 实体 | 返回值 | 说明 |
+    |------|--------|------|
+    | Entity（基类） | false | 默认触发压力板 |
+    | BatEntity | true | 蝙蝠不触发压力板 |
+    | ArmorStandEntity（marker=true） | true | 标记模式盔甲架不触发压力板 |
+    | ArmorStandEntity（marker=false） | false | 普通盔甲架触发压力板 |
+    | OminousItemSpawnerEntity | true | 不祥物品生成器不触发压力板 |
+
+    **压力板灵敏度分类**：
+
+    - **石质/磨制黑石压力板**（MOBS 灵敏度）：使用 `dynamic_cast<LivingEntity*>` 过滤，只检测生物实体，同时排除 `doesEntityNotTriggerPressurePlate()` 返回 true 的实体。
+    - **木质/铜/铁/金等压力板**（EVERYTHING 灵敏度）：检测所有实体类型，但排除 `doesEntityNotTriggerPressurePlate()` 返回 true 的实体。
+    - **测重压力板**：与木质压力板相同，检测所有实体并排除不触发的实体。
+
+    注意：物品实体和投射物**不**覆写 `doesEntityNotTriggerPressurePlate()`。在 MC 原版中，木质/测重压力板可检测所有实体（包括物品），石质压力板通过 LivingEntity 类型过滤自动排除非生物实体。
+
     ## #setAttackTarget 虚方法
     - `MobEntity::setAttackTarget()` 和 `MobEntity::
         attackTarget()` 现为 `virtual` 方法，允许IAngerable实体在设置攻击目标时同步更新愤怒状态
