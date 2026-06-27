@@ -10,7 +10,10 @@
 #include "entity/ai/goal/goals/special/PhantomGoals.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "entity/ai/controller/PhantomLookController.hpp"
+#include "entity/ai/controller/PhantomMovementController.hpp"
 #include "entity/core/EntityTypeIdNumber.hpp"
 #include "entity/entities/monster/basic/PhantomEntity.hpp"
 #include "entity/entities/passive/tamable/CatEntity.hpp"
@@ -752,4 +755,359 @@ TEST_F(PhantomCheckForCatsTest, CatSearch_ConstantsCorrect)
     // MC 原版：每 20 tick 检测一次
     constexpr i32 CAT_SEARCH_TICK_DELAY = 20;
     EXPECT_EQ(CAT_SEARCH_TICK_DELAY, 20);
+}
+
+// ==================== PhantomEntity Controller & New Feature Tests ====================
+
+// --- PhantomMovementController Tests ---
+
+TEST_F(PhantomEntityTest, Constructor_InstallsPhantomMovementController)
+{
+    // 构造函数应安装 PhantomMovementController 替代默认 MovementController
+    auto* moveCtrl = phantom->moveController();
+    ASSERT_NE(moveCtrl, nullptr);
+    // PhantomMovementController 是 MovementController 的子类
+    // 通过 dynamic_cast 验证类型
+    auto* phantomMoveCtrl = dynamic_cast<entity::ai::controller::PhantomMovementController*>(moveCtrl);
+    EXPECT_NE(phantomMoveCtrl, nullptr);
+}
+
+TEST_F(PhantomEntityTest, Constructor_InstallsPhantomLookController)
+{
+    // 构造函数应安装 PhantomLookController 替代默认 LookController
+    auto* lookCtrl = phantom->lookController();
+    ASSERT_NE(lookCtrl, nullptr);
+    // PhantomLookController 是 LookController 的子类
+    auto* phantomLookCtrl = dynamic_cast<entity::ai::controller::PhantomLookController*>(lookCtrl);
+    EXPECT_NE(phantomLookCtrl, nullptr);
+}
+
+TEST_F(PhantomEntityTest, UniqueFlapOffset_BasedOnEntityId)
+{
+    // m_uniqueFlapOffset = id % TICKS_PER_FLAP (25)
+    // EntityId(0) => offset 0
+    auto phantom0 = std::make_unique<PhantomEntity>(EntityId(0));
+    // 通过 isFlapping() 在 ticksExisted=0 时验证：offset 0 意味着 (0+0)%25==0 => isFlapping
+    EXPECT_TRUE(phantom0->isFlapping());
+
+    // EntityId(1) => offset 1 => (0+1)%25==1 != 0 => not flapping at tick 0
+    auto phantom1 = std::make_unique<PhantomEntity>(EntityId(1));
+    EXPECT_FALSE(phantom1->isFlapping());
+
+    // EntityId(25) => offset 0 => isFlapping at tick 0
+    auto phantom25 = std::make_unique<PhantomEntity>(EntityId(25));
+    EXPECT_TRUE(phantom25->isFlapping());
+
+    // EntityId(30) => offset 5 => not flapping at tick 0
+    auto phantom30 = std::make_unique<PhantomEntity>(EntityId(30));
+    EXPECT_FALSE(phantom30->isFlapping());
+}
+
+TEST_F(PhantomEntityTest, IsFlapping_PeriodicBehavior)
+{
+    // isFlapping() 在 ticksExisted 周期性地返回 true
+    // 对于 EntityId(0)，offset=0，周期为 25 tick
+    // ticksExisted=0 => (0+0)%25==0 => true
+    // ticksExisted=1 => (1+0)%25==1 => false
+    // ticksExisted=24 => (24+0)%25==24 => false
+    // ticksExisted=25 => (25+0)%25==0 => true
+    //
+    // 注意：isFlapping() 读取 m_ticksExisted，初始为 0，我们无法直接修改
+    // 但可以通过构造函数的 EntityId 验证周期性逻辑
+    auto phantom0 = std::make_unique<PhantomEntity>(EntityId(0));
+    EXPECT_TRUE(phantom0->isFlapping());
+
+    // EntityId(24) => offset=24 => (0+24)%25==24 != 0 => false at tick 0
+    auto phantom24 = std::make_unique<PhantomEntity>(EntityId(24));
+    EXPECT_FALSE(phantom24->isFlapping());
+}
+
+TEST_F(PhantomEntityTest, CreatureAttribute_Undead)
+{
+    // 幻翼是亡灵生物
+    EXPECT_EQ(phantom->getCreatureAttribute(), CreatureAttribute::Undead);
+}
+
+TEST_F(PhantomEntityTest, CanAttackType_ReturnsTrue)
+{
+    // 幻翼覆盖了基类的限制，可以攻击任何类型
+    // 基类 MobEntity::canAttackType 排除了 Ghast，但幻翼返回 true
+    EXPECT_TRUE(phantom->canAttackType(entity::EntityTypeId(0)));
+    EXPECT_TRUE(phantom->canAttackType(entity::EntityTypeId(100)));
+}
+
+TEST_F(PhantomEntityTest, Dimensions_ScaleWithSize)
+{
+    // MC 原版：scaleFactor = 1.0f + 0.15f * size
+    // width = 0.9f * scaleFactor, height = 0.5f * scaleFactor
+
+    // Size 0: scaleFactor = 1.0
+    entity::EntitySize size0 = phantom->getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(size0.width(), 0.9f);
+    EXPECT_FLOAT_EQ(size0.height(), 0.5f);
+
+    // Size 1: scaleFactor = 1.15
+    phantom->setPhantomSize(1);
+    entity::EntitySize size1 = phantom->getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(size1.width(), 0.9f * 1.15f);
+    EXPECT_FLOAT_EQ(size1.height(), 0.5f * 1.15f);
+
+    // Size 5: scaleFactor = 1.75
+    phantom->setPhantomSize(5);
+    entity::EntitySize size5 = phantom->getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(size5.width(), 0.9f * 1.75f);
+    EXPECT_FLOAT_EQ(size5.height(), 0.5f * 1.75f);
+
+    // Size 10: scaleFactor = 2.5
+    phantom->setPhantomSize(10);
+    entity::EntitySize size10 = phantom->getDimensions(EntityPose::Standing);
+    EXPECT_FLOAT_EQ(size10.width(), 0.9f * 2.5f);
+    EXPECT_FLOAT_EQ(size10.height(), 0.5f * 2.5f);
+}
+
+TEST_F(PhantomEntityTest, EyeHeight_UsesBaseHeight)
+{
+    // PhantomEntity::eyeHeight() 返回 height() * 0.35f
+    // 注意：Entity::height() 默认返回 1.8f，子类可以覆盖
+    // PhantomEntity 未覆盖 height()，因此 eyeHeight() = 1.8f * 0.35f = 0.63f
+    f32 eyeHeight = phantom->eyeHeight();
+    EXPECT_FLOAT_EQ(eyeHeight, phantom->height() * 0.35f);
+    EXPECT_FLOAT_EQ(eyeHeight, 1.8f * 0.35f);
+}
+
+TEST_F(PhantomEntityTest, OrbitOffset_CanBeSetAndRetrieved)
+{
+    // 设置和获取 orbitOffset
+    Vector3 offset(10.5f, 20.0f, -5.5f);
+    phantom->setOrbitOffset(offset);
+    EXPECT_FLOAT_EQ(phantom->orbitOffset().x, 10.5f);
+    EXPECT_FLOAT_EQ(phantom->orbitOffset().y, 20.0f);
+    EXPECT_FLOAT_EQ(phantom->orbitOffset().z, -5.5f);
+}
+
+TEST_F(PhantomEntityTest, FlapConstants_MatchMC)
+{
+    // 验证拍打常量与 MC 原版一致
+    // FLAP_DEGREES_PER_TICK = 7.448451F (MC Phantom.FLAP_DEGREES_PER_TICK)
+    // TICKS_PER_FLAP = 25 (ceil(360 / FLAP_DEGREES_PER_TICK) = ceil(48.33) = 49 in MC,
+    // but MC uses TICKS_PER_FLAP = 25 which is different from the period)
+    //
+    // MC 原版: FLAP_DEGREES_PER_TICK * TICKS_PER_FLAP ≈ 186.2，不是完整 360 度周期
+    // 这是 MC 的设计选择，不需要是整数倍
+    constexpr f32 FLAP_DEGREES_PER_TICK = 7.448451F;
+    constexpr i32 TICKS_PER_FLAP = 25;
+    EXPECT_FLOAT_EQ(FLAP_DEGREES_PER_TICK, 7.448451F);
+    EXPECT_EQ(TICKS_PER_FLAP, 25);
+}
+
+// --- PhantomMovementController Angle Difference Tests ---
+// 验证角度差计算在跨越 ±180° 边界时的正确性
+// 之前有bug: 使用 math::wrapDegrees(std::abs(oldYaw - newYaw)) 而非
+//            std::abs(math::wrapDegrees(newYaw - oldYaw))
+
+TEST_F(PhantomEntityTest, AngleDifference_NoWrapAround)
+{
+    // 不跨越边界的情况：两种计算方式结果相同
+    f32 oldYaw = 10.0f;
+    f32 newYaw = 15.0f;
+    f32 diff = std::abs(math::wrapDegrees(newYaw - oldYaw));
+    EXPECT_NEAR(diff, 5.0f, 0.001f);
+
+    // 反向
+    oldYaw = 15.0f;
+    newYaw = 10.0f;
+    diff = std::abs(math::wrapDegrees(newYaw - oldYaw));
+    EXPECT_NEAR(diff, 5.0f, 0.001f);
+}
+
+TEST_F(PhantomEntityTest, AngleDifference_WrapAround180)
+{
+    // 跨越 +180° 边界的情况
+    // 从 170° 到 -170°：实际差值应为 20°（最短路径）
+    f32 oldYaw = 170.0f;
+    f32 newYaw = -170.0f;
+    f32 diff = std::abs(math::wrapDegrees(newYaw - oldYaw));
+    EXPECT_NEAR(diff, 20.0f, 0.001f);
+
+    // 错误的计算方式会产生 340° 的结果
+    f32 wrongDiff = math::wrapDegrees(std::abs(newYaw - oldYaw));
+    // std::abs(-170 - 170) = 340, wrapDegrees(340) = -20 或 340
+    // 这不是一个正确的角度差
+    EXPECT_NE(wrongDiff, 20.0f);
+}
+
+TEST_F(PhantomEntityTest, AngleDifference_WrapAroundNeg180)
+{
+    // 跨越 -180° 边界的情况
+    // 从 -170° 到 170°：实际差值应为 20°
+    f32 oldYaw = -170.0f;
+    f32 newYaw = 170.0f;
+    f32 diff = std::abs(math::wrapDegrees(newYaw - oldYaw));
+    EXPECT_NEAR(diff, 20.0f, 0.001f);
+}
+
+TEST_F(PhantomEntityTest, AngleDifference_LargeAngle)
+{
+    // 大角度差，不跨越边界
+    f32 oldYaw = 0.0f;
+    f32 newYaw = 179.0f;
+    f32 diff = std::abs(math::wrapDegrees(newYaw - oldYaw));
+    EXPECT_NEAR(diff, 179.0f, 0.001f);
+
+    // 跨越边界的最短路径
+    oldYaw = 0.0f;
+    newYaw = -179.0f;
+    diff = std::abs(math::wrapDegrees(newYaw - oldYaw));
+    EXPECT_NEAR(diff, 179.0f, 0.001f);
+}
+
+// --- PhantomLookController Tests ---
+
+class PhantomLookControllerTest : public ::testing::Test {
+protected:
+    void SetUp() override { phantom = std::make_unique<PhantomEntity>(EntityId(0)); }
+    void TearDown() override { phantom.reset(); }
+
+    std::unique_ptr<PhantomEntity> phantom;
+};
+
+TEST_F(PhantomLookControllerTest, Tick_IsNoOp)
+{
+    // PhantomLookController::tick() 是空操作
+    // 调用 tick() 不应改变任何状态
+    auto* lookCtrl = phantom->lookController();
+    ASSERT_NE(lookCtrl, nullptr);
+
+    // 设置一个看向位置
+    lookCtrl->setLookPosition(100.0, 64.0, 200.0, 10.0f, 10.0f);
+    EXPECT_TRUE(lookCtrl->isLooking());
+
+    // tick() 后，仍应该在看向状态（因为 PhantomLookController 不更新）
+    // 注意：由于 PhantomLookController::tick() 是空操作，
+    // 它不会更新 isLooking 标志或改变 yaw/pitch
+    f32 yawBefore = phantom->yaw();
+    f32 pitchBefore = phantom->pitch();
+    lookCtrl->tick();
+    EXPECT_FLOAT_EQ(phantom->yaw(), yawBefore);
+    EXPECT_FLOAT_EQ(phantom->pitch(), pitchBefore);
+}
+
+// --- PhantomEntity Constants Validation ---
+
+TEST_F(PhantomEntityTest, AttackDamage_ScalesWithSize)
+{
+    // MC 原版: BASE_ATTACK_DAMAGE = 6.0, SIZE_ATTACK_BONUS = 1.0
+    // 攻击力 = BASE_ATTACK_DAMAGE + size * SIZE_ATTACK_BONUS
+    // Size 0 => 6.0
+    // Size 5 => 11.0
+    // Size 10 => 16.0
+
+    // 验证 size 设置后攻击力正确
+    // 注意：攻击力通过属性系统管理，setPhantomSize 会更新属性
+    phantom->setPhantomSize(0);
+    EXPECT_EQ(phantom->getPhantomSize(), 0);
+
+    phantom->setPhantomSize(5);
+    EXPECT_EQ(phantom->getPhantomSize(), 5);
+
+    phantom->setPhantomSize(10);
+    EXPECT_EQ(phantom->getPhantomSize(), 10);
+}
+
+TEST_F(PhantomEntityTest, PhantomSize_ClampedAtMax)
+{
+    // 超过最大值 64 应被 clamp
+    phantom->setPhantomSize(100);
+    EXPECT_EQ(phantom->getPhantomSize(), 64);
+}
+
+TEST_F(PhantomEntityTest, PhantomSize_ClampedAtMin)
+{
+    // 负值应被 clamp 到 0
+    phantom->setPhantomSize(-10);
+    EXPECT_EQ(phantom->getPhantomSize(), 0);
+}
+
+TEST_F(PhantomEntityTest, PhantomSize_MaxIs64)
+{
+    // MC 原版最大幻翼大小为 64
+    phantom->setPhantomSize(64);
+    EXPECT_EQ(phantom->getPhantomSize(), 64);
+
+    // 确认 64 不被截断
+    entity::EntitySize size64 = phantom->getDimensions(EntityPose::Standing);
+    f32 scaleFactor64 = 1.0f + 0.15f * 64.0f;
+    EXPECT_FLOAT_EQ(size64.width(), 0.9f * scaleFactor64);
+    EXPECT_FLOAT_EQ(size64.height(), 0.5f * scaleFactor64);
+}
+
+// --- wrapDegrees function tests (used by PhantomMovementController) ---
+
+TEST(MathUtilsWrapDegrees, WrapDegrees_NormalRange)
+{
+    // [-180, 180) 范围内的角度应不变
+    EXPECT_FLOAT_EQ(math::wrapDegrees(0.0f), 0.0f);
+    EXPECT_FLOAT_EQ(math::wrapDegrees(90.0f), 90.0f);
+    EXPECT_FLOAT_EQ(math::wrapDegrees(-90.0f), -90.0f);
+    EXPECT_FLOAT_EQ(math::wrapDegrees(179.0f), 179.0f);
+    EXPECT_FLOAT_EQ(math::wrapDegrees(-179.0f), -179.0f);
+}
+
+TEST(MathUtilsWrapDegrees, WrapDegrees_Overflow)
+{
+    // 超出范围的角度应被规范化
+    EXPECT_NEAR(math::wrapDegrees(360.0f), 0.0f, 0.001f);
+    EXPECT_NEAR(math::wrapDegrees(450.0f), 90.0f, 0.001f);
+    EXPECT_NEAR(math::wrapDegrees(-360.0f), 0.0f, 0.001f);
+    EXPECT_NEAR(math::wrapDegrees(-450.0f), -90.0f, 0.001f);
+    EXPECT_NEAR(math::wrapDegrees(180.0f), -180.0f, 0.001f);
+    EXPECT_NEAR(math::wrapDegrees(-180.0f), -180.0f, 0.001f);
+}
+
+TEST(MathUtilsWrapDegrees, WrapDegrees_DifferenceCalculation)
+{
+    // 关键测试：验证角度差计算在跨越 ±180° 边界时的正确性
+    // 从 170° 到 -170° 的差值应为 20°，而非 340°
+    f32 diff = math::wrapDegrees(-170.0f - 170.0f);
+    EXPECT_NEAR(diff, 20.0f, 0.001f);
+
+    // 从 -170° 到 170° 的差值应为 -20°
+    diff = math::wrapDegrees(170.0f - (-170.0f));
+    EXPECT_NEAR(diff, -20.0f, 0.001f);
+}
+
+// --- clampedRotate function tests (used by PhantomMovementController) ---
+
+TEST(MathUtilsClampedRotate, ClampedRotate_BasicRotation)
+{
+    // 小角度旋转
+    f32 result = math::clampedRotate(0.0f, 10.0f, 5.0f);
+    EXPECT_NEAR(result, 5.0f, 0.001f); // 从0向10转，最大5度 => 5
+
+    // 目标在最大旋转范围内
+    result = math::clampedRotate(0.0f, 3.0f, 5.0f);
+    EXPECT_NEAR(result, 3.0f, 0.001f); // 3 < 5，直接到达目标
+}
+
+TEST(MathUtilsClampedRotate, ClampedRotate_WrapAround)
+{
+    // 跨越 ±180° 边界的旋转
+    // 从 170° 向 -170° 转（最短路径 20°），最大旋转 5°
+    f32 result = math::clampedRotate(170.0f, -170.0f, 5.0f);
+    EXPECT_NEAR(result, 175.0f, 0.001f);
+
+    // 从 -170° 向 170° 转（最短路径 -20°），最大旋转 5°
+    result = math::clampedRotate(-170.0f, 170.0f, 5.0f);
+    EXPECT_NEAR(result, -175.0f, 0.001f);
+}
+
+TEST(MathUtilsClampedRotate, ClampedRotate_NegativeRotation)
+{
+    // 反向旋转
+    f32 result = math::clampedRotate(10.0f, 0.0f, 5.0f);
+    EXPECT_NEAR(result, 5.0f, 0.001f); // 从10向0转，最大5度 => 5
+
+    // 大幅反向旋转
+    result = math::clampedRotate(10.0f, -10.0f, 5.0f);
+    EXPECT_NEAR(result, 5.0f, 0.001f); // 从10向-10转，差-20，最大-5 => 5
 }

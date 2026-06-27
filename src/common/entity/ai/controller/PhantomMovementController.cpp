@@ -80,7 +80,10 @@ void PhantomMovementController::tick()
     m_phantom->setRenderYawOffset(m_phantom->yaw());
 
     // 判断是否接近目标方向：角度差小于3度时加速
-    if (math::wrapDegrees(std::abs(oldYaw - m_phantom->yaw())) < 3.0f) {
+    // MC 原版: Mth.degreesDifferenceAbs(oldYaw, getYRot()) < 3.0F
+    // 正确计算角度差：先 wrapDegrees 计算有符号差值，再取绝对值
+    f32 yawDifference = std::abs(math::wrapDegrees(m_phantom->yaw() - oldYaw));
+    if (yawDifference < 3.0f) {
         // 接近目标方向：加速到 1.8
         // MC 原版: Mth.approach(speed, 1.8F, 0.005F * (1.8F / speed))
         f32 step = 0.005f * (1.8f / m_speed);
