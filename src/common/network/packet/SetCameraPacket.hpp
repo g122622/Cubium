@@ -23,25 +23,43 @@
 
 #pragma once
 
-/**
- * @file Packet.hpp
- * @brief 网络数据包模块统一头文件
- *
- * 包含所有数据包相关的类。
- */
-
-#include "CommandTreePacket.hpp"
-#include "ContainerPacketHandler.hpp"
-#include "EntityMetadataSerializer.hpp"
-#include "EntityPackets.hpp"
-#include "GameStateChangePacket.hpp"
-#include "InventoryPackets.hpp"
 #include "Packet.hpp"
-#include "PacketDeserializer.hpp"
-#include "PacketSerializer.hpp"
-#include "ParticlePacket.hpp"
-#include "ProtocolPackets.hpp"
-#include "RecipePackets.hpp"
-#include "ServerDifficultyPacket.hpp"
-#include "SetCameraPacket.hpp"
-#include "TitlePacket.hpp"
+#include "common/core/Types.hpp"
+
+namespace mc::network {
+
+/**
+ * @brief 设置摄像机实体包（S2C）
+ *
+ * 服务端向客户端发送此包以设置玩家的摄像机实体。
+ * 当玩家进入旁观者模式并使用 /spectate 命令跟踪目标实体时，
+ * 服务端发送此包通知客户端切换渲染视角到目标实体。
+ *
+ * 当 cameraEntityId 为玩家自身的实体ID时，表示恢复正常视角。
+ */
+class SetCameraPacket : public Packet {
+public:
+    SetCameraPacket();
+    explicit SetCameraPacket(u32 cameraEntityId);
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+    size_t expectedSize() const override;
+
+    /**
+     * @brief 获取摄像机实体的ID
+     * @return 实体ID
+     */
+    [[nodiscard]] u32 cameraEntityId() const { return m_cameraEntityId; }
+
+    /**
+     * @brief 设置摄像机实体的ID
+     * @param id 实体ID
+     */
+    void setCameraEntityId(u32 id) { m_cameraEntityId = id; }
+
+private:
+    u32 m_cameraEntityId = 0;
+};
+
+} // namespace mc::network

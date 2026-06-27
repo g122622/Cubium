@@ -30,6 +30,7 @@
 #include "common/network/packet/Packet.hpp"
 #include "common/network/packet/PlayerAbilitiesPacket.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
+#include "common/network/packet/SetCameraPacket.hpp"
 #include "common/network/packet/SetPassengersPacket.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
@@ -830,6 +831,11 @@ void NetworkClient::_processPacket(const u8* data, size_t size)
 
         case network::PacketType::SetPassengers: {
             _handleSetPassengers(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::SetCamera: {
+            _handleSetCamera(bodyDeser);
             break;
         }
 
@@ -1849,6 +1855,25 @@ void NetworkClient::_handleSetPassengers(network::PacketDeserializer& deser)
 
     if (m_callbacks.onSetPassengers) {
         m_callbacks.onSetPassengers(packet.entityId(), packet.passengerIds());
+    }
+}
+
+void NetworkClient::_handleSetCamera(network::PacketDeserializer& deser)
+{
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::SetCameraPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize SetCamera packet: {}", result.error().message());
+        return;
+    }
+
+    spdlog::info("SetCamera: camera entity id = {}", packet.cameraEntityId());
+
+    if (m_callbacks.onSetCamera) {
+        m_callbacks.onSetCamera(packet.cameraEntityId());
     }
 }
 

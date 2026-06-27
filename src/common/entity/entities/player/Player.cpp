@@ -157,6 +157,7 @@ void Player::setPosition(f32 x, f32 y, f32 z)
 
 void Player::setGameMode(GameMode mode)
 {
+    const GameMode oldMode = m_gameMode;
     m_gameMode = mode;
 
     // 使用 GameModeUtils 更新能力
@@ -165,6 +166,16 @@ void Player::setGameMode(GameMode mode)
     // 切换到创造模式时重置冲量上下文（对应 MC ServerPlayerGameMode 切换游戏模式时的重置）
     if (isCreative()) {
         resetCurrentImpulseContext();
+    }
+
+    // 旁观者模式 noclip 设置
+    // 切换到旁观者模式时启用 noclip（穿透碰撞），离开旁观者模式时关闭
+    if (isSpectator()) {
+        setNoClip(true);
+    } else if (oldMode == GameMode::Spectator) {
+        setNoClip(false);
+        // 离开旁观者模式时清除旁观目标
+        m_cameraEntityId = std::nullopt;
     }
 
     // 同步移动速度到属性系统
@@ -2047,10 +2058,9 @@ void Player::resetCooldown()
 
 void Player::attack(Entity& target)
 {
-    // 完整的玩家攻击逻辑
-
-    // 1. 检查目标是否可被攻击（创造/观察模式不能攻击）
+    // 旁观者模式下攻击实体等同于设置旁观目标
     if (isSpectator()) {
+        setCameraEntityId(target.id());
         return;
     }
 

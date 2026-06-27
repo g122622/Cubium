@@ -1486,6 +1486,28 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
+    // ========== 旁观者摄像机事件 ==========
+
+    callbacks.onSetCamera = [this](u32 cameraEntityId) {
+        // 设置客户端的摄像机跟踪目标实体
+        // cameraEntityId 为本地玩家自身 ID 时表示恢复正常视角
+        const EntityId localPlayerEntityId = m_localIdentity.entityId();
+
+        if (cameraEntityId == static_cast<u32>(localPlayerEntityId)) {
+            // 恢复自身视角
+            if (m_player) {
+                m_player->setCameraEntityId(std::nullopt);
+            }
+            spdlog::info("SetCamera: reset to self (entityId={})", cameraEntityId);
+        } else {
+            // 跟踪目标实体
+            if (m_player) {
+                m_player->setCameraEntityId(static_cast<EntityId>(cameraEntityId));
+            }
+            spdlog::info("SetCamera: spectating entity {}", cameraEntityId);
+        }
+    };
+
     // ========== 重生/维度切换事件 ==========
 
     callbacks.onRespawn = [this](i32 dimensionType,

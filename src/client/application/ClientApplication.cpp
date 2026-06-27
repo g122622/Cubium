@@ -430,14 +430,39 @@ void ClientApplication::update(f32 deltaTime)
 
     // 更新相机（暂停时也更新，以便 UI 渲染）
     if (m_player) {
-        const Vector3 renderPosition = m_player->prevPosition().lerp(m_player->position(), partialTick);
+        // 检查是否有旁观目标实体
+        auto cameraTargetId = m_player->getCameraEntityId();
+        if (cameraTargetId.has_value()) {
+            // 旁观者模式：跟随目标实体的位置和旋转
+            ClientEntity* targetEntity = m_world.entityManager().getEntity(cameraTargetId.value());
+            if (targetEntity != nullptr) {
+                const Vector3 renderPosition = targetEntity->prevPosition().lerp(targetEntity->position(), partialTick);
+                // ClientEntity 没有眼高信息，使用玩家默认眼高
+                constexpr f32 defaultEyeHeight = mc::game::PLAYER_EYE_HEIGHT;
+                m_camera.setPosition(renderPosition.x, renderPosition.y + defaultEyeHeight, renderPosition.z);
+                m_camera.setYaw(targetEntity->yaw());
+                m_camera.setPitch(targetEntity->pitch());
+            } else {
+                // 目标实体不存在，回退到自身视角
+                const Vector3 renderPosition = m_player->prevPosition().lerp(m_player->position(), partialTick);
+                m_camera.setPosition(
+                    renderPosition.x, renderPosition.y + static_cast<f32>(m_player->eyeHeight()), renderPosition.z);
+                m_camera.setYaw(m_player->yaw());
+                m_camera.setPitch(m_player->pitch());
+            }
+            // 旁观者模式下不使用视野晃动
+            m_camera.clearViewTransform();
+        } else {
+            // 正常视角：跟随玩家位置和旋转
+            const Vector3 renderPosition = m_player->prevPosition().lerp(m_player->position(), partialTick);
 
-        // 同步相机位置到玩家眼睛位置
-        m_camera.setPosition(
-            renderPosition.x, renderPosition.y + static_cast<f32>(m_player->eyeHeight()), renderPosition.z);
-        m_camera.setYaw(m_player->yaw());
-        m_camera.setPitch(m_player->pitch());
-        m_camera.setViewTransform(buildViewBobbingTransform(partialTick));
+            // 同步相机位置到玩家眼睛位置
+            m_camera.setPosition(
+                renderPosition.x, renderPosition.y + static_cast<f32>(m_player->eyeHeight()), renderPosition.z);
+            m_camera.setYaw(m_player->yaw());
+            m_camera.setPitch(m_player->pitch());
+            m_camera.setViewTransform(buildViewBobbingTransform(partialTick));
+        }
         m_camera.update(deltaTime);
 
     } else {

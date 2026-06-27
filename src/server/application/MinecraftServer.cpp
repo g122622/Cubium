@@ -92,6 +92,7 @@
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
@@ -384,6 +385,58 @@ void MinecraftServer::initializeCoreManagers()
         *m_timeManager,
         static_cast<GameMode>(m_settings.defaultGameMode.get()));
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
+
+    // 注册游戏模式变化回调：当从旁观者模式切换到其他模式时，重置旁观目标
+    m_gameModeManager->setOnGameModeChange([this](PlayerId playerId, GameMode oldMode, GameMode newMode) {
+        if (oldMode == GameMode::Spectator && newMode != GameMode::Spectator) {
+            // 从旁观者模式切换出来时，重置旁观目标并发送 SetCameraPacket
+            // 需要找到 ServerPlayer 实体来操作
+            auto* playerData = m_playerManager->getPlayer(playerId);
+            if (playerData == nullptr) {
+                return;
+            }
+
+            // 遍历所有维度世界寻找玩家实体
+            for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
+                auto* dimension = m_dimensionManager->getDimension(dimId);
+                if (dimension == nullptr || dimension->world() == nullptr) {
+                    continue;
+                }
+                Entity* entity = dimension->world()->getEntity(static_cast<EntityId>(playerId));
+                if (entity == nullptr) {
+                    continue;
+                }
+                auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
+                if (serverPlayer != nullptr) {
+                    serverPlayer->resetCamera();
+                    // 同时更新 Player 实体的游戏模式、能力和 noclip 状态
+                    serverPlayer->setGameMode(newMode);
+                    break;
+                }
+            }
+        } else if (newMode == GameMode::Spectator) {
+            // 切换到旁观者模式时，更新 Player 实体的游戏模式和 noclip
+            auto* playerData = m_playerManager->getPlayer(playerId);
+            if (playerData == nullptr) {
+                return;
+            }
+            for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
+                auto* dimension = m_dimensionManager->getDimension(dimId);
+                if (dimension == nullptr || dimension->world() == nullptr) {
+                    continue;
+                }
+                Entity* entity = dimension->world()->getEntity(static_cast<EntityId>(playerId));
+                if (entity == nullptr) {
+                    continue;
+                }
+                auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
+                if (serverPlayer != nullptr) {
+                    serverPlayer->setGameMode(newMode);
+                    break;
+                }
+            }
+        }
+    });
     m_whitelistManager = std::make_unique<core::WhitelistManager>();
     m_bannedPlayerList = std::make_unique<core::BannedPlayerList>();
     m_bannedIpList = std::make_unique<core::BannedIpList>();

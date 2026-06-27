@@ -34,6 +34,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
+#include "common/network/packet/SetCameraPacket.hpp"
 #include "common/network/packet/SleepPacket.hpp"
 #include "common/network/packet/TitlePacket.hpp"
 #include "common/scoreboard/core/Team.hpp"
@@ -853,6 +854,129 @@ bool ServerPlayer::hurt(DamageSource& source, f32 amount)
 
     // 委托给基类处理（创造模式无敌检查等）
     return Player::hurt(source, amount);
+}
+
+void ServerPlayer::attack(Entity& target)
+{
+    // 旁观者模式下攻击实体等同于设置旁观目标
+    // 对应 MC Java: ServerPlayer.attack() -> this.setCamera(p_9220_)
+    if (isSpectator()) {
+        setCamera(&target);
+        return;
+    }
+
+    // 非旁观者模式：正常攻击
+    Player::attack(target);
+}
+
+// ========== 旁观者跟踪系统实现 ==========
+
+void ServerPlayer::tick()
+{
+    Player::tick();
+    tickSpectator();
+}
+
+bool ServerPlayer::setCamera(Entity* target)
+{
+    // 获取旧的 camera 实体 ID
+    std::optional<EntityId> oldCameraId = getCameraEntityId();
+
+    // 设置新的 camera 目标
+    if (target != nullptr) {
+        setCameraEntityId(target->id());
+    } else {
+        // nullptr 表示恢复自身视角
+        setCameraEntityId(std::nullopt);
+    }
+
+    std::optional<EntityId> newCameraId = getCameraEntityId();
+
+    // 仅在 camera 实际改变时执行操作
+    if (oldCameraId == newCameraId) {
+        return true;
+    }
+
+    // 如果有新的旁观目标，立即将玩家传送到目标位置
+    if (target != nullptr) {
+        // 传送到目标实体位置
+        setPosition(target->position());
+        setRotation(target->yaw(), target->pitch());
+        snapshotInterpolationState();
+    }
+
+    // 发送 SetCameraPacket 给客户端
+    // cameraEntityId 为玩家自身 ID 时表示恢复正常视角
+    u32 cameraId = newCameraId.value_or(static_cast<EntityId>(id()));
+    _sendSetCameraPacket(cameraId);
+
+    spdlog::info("ServerPlayer: player {} spectating entity {}",
+        username(),
+        newCameraId.has_value() ? static_cast<i32>(newCameraId.value()) : -1);
+
+    return true;
+}
+
+void ServerPlayer::resetCamera()
+{
+    if (isSpectating()) {
+        setCamera(nullptr);
+    }
+}
+
+void ServerPlayer::tickSpectator()
+{
+    // 仅在旁观者模式下且有旁观目标时处理
+    if (!isSpectator() || !isSpectating()) {
+        return;
+    }
+
+    EntityId cameraEntityId = getCameraEntityId().value();
+
+    // 获取目标实体
+    if (m_world == nullptr) {
+        resetCamera();
+        return;
+    }
+
+    Entity* target = m_world->getEntity(cameraEntityId);
+    if (target == nullptr || target->isRemoved()) {
+        // 目标实体已消失或死亡，停止旁观
+        resetCamera();
+        return;
+    }
+
+    // 每tick将旁观者位置同步到目标实体位置
+    // 使用 absSnapTo 语义：同时更新 prevPosition 和 position，避免插值动画
+    setPosition(target->position());
+    setRotation(target->yaw(), target->pitch());
+    snapshotInterpolationState();
+
+    // 检查玩家是否按住潜行键，如果是则停止旁观
+    if (isInputSneaking()) {
+        resetCamera();
+    }
+}
+
+void ServerPlayer::_sendSetCameraPacket(u32 cameraEntityId)
+{
+    if (!hasConnection()) {
+        return;
+    }
+
+    network::SetCameraPacket packet(cameraEntityId);
+    auto payloadResult = packet.serialize();
+    if (payloadResult.failed()) {
+        spdlog::warn("ServerPlayer: failed to serialize SetCamera packet (player={})", username());
+        return;
+    }
+
+    const auto fullPacket =
+        server::core::ConnectionManager::encapsulatePacket(network::PacketType::SetCamera, payloadResult.value());
+
+    if (!_sendFullPacket(fullPacket)) {
+        spdlog::warn("ServerPlayer: SetCamera packet not sent (player={}, no connection)", username());
+    }
 }
 
 } // namespace mc

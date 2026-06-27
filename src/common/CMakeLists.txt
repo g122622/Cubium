@@ -57,6 +57,7 @@ add_library(mc_common STATIC
     network/packet/SleepPacket.cpp
     network/packet/SpawnPositionPacket.cpp
     network/packet/MapDataPacket.cpp
+    network/packet/SetCameraPacket.cpp
     network/packet/SetPassengersPacket.cpp
     network/packet/TitlePacket.cpp
     network/packet/WorldBorderPacket.cpp

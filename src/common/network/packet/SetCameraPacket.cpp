@@ -11,7 +11,7 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -21,27 +21,44 @@
  *
  */
 
-#pragma once
-
-/**
- * @file Packet.hpp
- * @brief 网络数据包模块统一头文件
- *
- * 包含所有数据包相关的类。
- */
-
-#include "CommandTreePacket.hpp"
-#include "ContainerPacketHandler.hpp"
-#include "EntityMetadataSerializer.hpp"
-#include "EntityPackets.hpp"
-#include "GameStateChangePacket.hpp"
-#include "InventoryPackets.hpp"
-#include "Packet.hpp"
-#include "PacketDeserializer.hpp"
-#include "PacketSerializer.hpp"
-#include "ParticlePacket.hpp"
-#include "ProtocolPackets.hpp"
-#include "RecipePackets.hpp"
-#include "ServerDifficultyPacket.hpp"
 #include "SetCameraPacket.hpp"
-#include "TitlePacket.hpp"
+#include "PacketSerializer.hpp"
+
+namespace mc::network {
+
+SetCameraPacket::SetCameraPacket()
+    : Packet(PacketType::SetCamera)
+{}
+
+SetCameraPacket::SetCameraPacket(u32 cameraEntityId)
+    : Packet(PacketType::SetCamera)
+    , m_cameraEntityId(cameraEntityId)
+{}
+
+Result<std::vector<u8>> SetCameraPacket::serialize() const
+{
+    PacketSerializer ser;
+    ser.writeVarInt(static_cast<i32>(m_cameraEntityId));
+    return ser.buffer();
+}
+
+Result<void> SetCameraPacket::deserialize(const u8* data, size_t size)
+{
+    PacketDeserializer deser(data, size);
+
+    auto idResult = deser.readVarInt();
+    if (idResult.failed()) {
+        return idResult.error();
+    }
+    m_cameraEntityId = static_cast<u32>(idResult.value());
+
+    return Result<void>::ok();
+}
+
+size_t SetCameraPacket::expectedSize() const
+{
+    // VarInt 最大5字节，但实体ID通常在1-4字节范围
+    return 4;
+}
+
+} // namespace mc::network

@@ -202,6 +202,34 @@ public:
      */
     [[nodiscard]] bool isSpectator() const { return entity::GameModeUtils::isSpectator(m_gameMode); }
 
+    // ========== 旁观者跟踪系统 ==========
+
+    /**
+     * @brief 获取当前旁观目标的实体ID
+     *
+     * 返回当前玩家正在旁观（摄像机跟踪）的实体ID。
+     * 如果没有旁观目标（即正常视角），返回 std::nullopt。
+     *
+     * @return 旁观目标的实体ID，或 std::nullopt 表示正常视角
+     */
+    [[nodiscard]] std::optional<EntityId> getCameraEntityId() const { return m_cameraEntityId; }
+
+    /**
+     * @brief 检查当前是否正在旁观某个实体
+     * @return 如果有旁观目标返回 true
+     */
+    [[nodiscard]] bool isSpectating() const { return m_cameraEntityId.has_value(); }
+
+    /**
+     * @brief 设置旁观目标实体ID
+     *
+     * 设置玩家的摄像机跟踪目标。当设置后，玩家的视角将跟随目标实体。
+     * 传入 std::nullopt 表示恢复正常视角（摄像机跟踪自身）。
+     *
+     * @param entityId 旁观目标的实体ID，或 std::nullopt 恢复正常视角
+     */
+    void setCameraEntityId(std::optional<EntityId> entityId) { m_cameraEntityId = entityId; }
+
     /**
      * @brief 检查是否是生存模式
      */
@@ -647,6 +675,14 @@ public:
     [[nodiscard]] bool isSneaking() const override { return m_isSneaking; }
     [[nodiscard]] bool isSwimming() const { return m_isSwimming; }
     [[nodiscard]] bool isSleeping() const { return m_isSleeping; }
+
+    /**
+     * @brief 获取玩家是否正在输入潜行
+     *
+     * 与 isSneaking() 不同，此方法返回的是玩家是否按住了潜行键，
+     * 而非实际的潜行状态（旁观者模式下输入潜行用于退出旁观跟踪）。
+     */
+    [[nodiscard]] bool isInputSneaking() const { return m_inputSneaking; }
 
     /**
      * @brief 获取玩家前进移动输入
@@ -1575,7 +1611,7 @@ public:
      *
      * @param target 目标实体
      */
-    void attack(Entity& target);
+    virtual void attack(Entity& target);
 
     /**
      * @brief 应用额外击退（冲刺击退/攻击击退）
@@ -1811,6 +1847,11 @@ private:
     EntityId m_currentExplosionCause = 0;              ///< 引起冲量的实体ID（用于进度触发，运行时瞬时状态，不持久化）
     bool m_ignoreFallDamageFromCurrentImpulse = false; ///< 是否忽略当前冲量的坠落伤害
     i32 m_currentImpulseContextResetGraceTime = 0;     ///< 冲量上下文重置宽限期（tick）
+
+    // 旁观者跟踪系统
+    // 当前旁观目标实体ID。std::nullopt 表示正常视角（摄像机跟踪自身）。
+    // 在旁观者模式下，玩家的视角将跟随目标实体的位置和旋转。
+    std::optional<EntityId> m_cameraEntityId;
 };
 
 } // namespace mc
