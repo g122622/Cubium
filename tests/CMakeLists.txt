@@ -103,6 +103,7 @@ add_executable(mc_tests
     common/item/WoodVariantBlockItemTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp
+    common/item/core/ProjectileItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
     common/item/enchantment/AttemptDamageItemTest.cpp

@@ -175,7 +175,7 @@ private:
      * @brief 生成弹射物实体
      *
      * 通过 ProjectileItem 接口创建弹射物，替代硬编码映射表。
-     * 对齐 MC 1.21.11 OminousItemSpawner.spawnProjectile()。
+     * 通过 ProjectileItem 接口创建弹射物，替代硬编码映射表。
      *
      * @param world 世界引用
      * @param projectileItem 弹射物物品接口

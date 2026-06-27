@@ -190,7 +190,6 @@ void OminousItemSpawnerEntity::spawnItem()
     Entity* spawnedEntity = nullptr;
 
     // 通过 ProjectileItem 接口判断物品是否为弹射物类型，替代硬编码映射。
-    // 对齐 MC 1.21.11 OminousItemSpawner.spawnItem() 中的 instanceof ProjectileItem 检查。
     // 实现了 ProjectileItem 的物品包括：ThrowableItem（雪球/鸡蛋/末影珍珠/经验瓶/药水）、
     // WindChargeItem（风弹）等。
     const item::ProjectileItem* projectileItem = dynamic_cast<const item::ProjectileItem*>(item);
@@ -226,11 +225,11 @@ void OminousItemSpawnerEntity::spawnItem()
 Entity* OminousItemSpawnerEntity::spawnProjectile(
     IWorld& world, const item::ProjectileItem& projectileItem, const ItemStack& itemStack)
 {
-    // 对齐 MC 1.21.11 OminousItemSpawner.spawnProjectile()：
+    // 通过 ProjectileItem 接口创建弹射物：
     // 1. 从 ProjectileItem 获取发射配置
     // 2. 方向始终为 DOWN (0, -1, 0)
     // 3. 通过 asProjectile 创建弹射物
-    // 4. 通过 Projectile.spawnProjectileUsingShoot 将弹射物添加到世界并设定射击参数
+    // 4. 添加到世界并设定射击参数
     // 5. 设置 owner 为 OminousItemSpawner 自身
 
     auto config = projectileItem.getDispenseConfig();

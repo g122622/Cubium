@@ -165,6 +165,10 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
         6.0f);
 
     // --- 投掷物品 ---
+    // TODO(ProjectileItem): 当前 ProjectileDispenseBehavior 使用 lambda 工厂函数注册弹射物发射行为。
+    // 当 ProjectileItem 接口完善后，应重构为通过 ProjectileItem::asProjectile() 和
+    // ProjectileItem::getDispenseConfig() 自动注册，避免在注册表中维护与 ProjectileItem
+    // 接口重复的硬编码映射。新增投掷物物品时需要同步更新此处的注册和 ProjectileItem 接口实现。
     // 雪球: velocity=1.1, inaccuracy=6.0
     registerBehavior<ProjectileDispenseBehavior>(
         "minecraft:snowball",

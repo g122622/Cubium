@@ -11,7 +11,7 @@ weapon/
 ├── CrossbowItem.hpp/cpp        # 弩物品，可预装填的远程武器
 ├── FishingRodItem.hpp/cpp      # 钓鱼竿物品
 ├── ShieldItem.hpp/cpp          # 盾牌物品，格挡攻击（框架实现）
-├── ThrowableItem.hpp/cpp       # 投掷物品基类
+├── ThrowableItem.hpp/cpp       # 投掷物品基类（实现 ProjectileItem 接口）
 ├── ThrowableItems.hpp/cpp      # 具体投掷物品（雪球/鸡蛋/末影珍珠/经验瓶）
 ├── TippedArrowItem.hpp/cpp     # 药水箭物品，带药水效果的箭矢
 ├── TridentItem.hpp/cpp         # 三叉戟物品，近战与投掷结合
@@ -21,8 +21,14 @@ weapon/
 ## 内部模块关系
 
 ```
-ThrowableItem (基类)
-└── ThrowableItems (SnowballItem/EggItem/EnderPearlItem/ExperienceBottleItem)
+ThrowableItem (基类，实现 ProjectileItem 接口)
+├── ThrowableItems (SnowballItem/EggItem/EnderPearlItem)
+│   └── 默认 getDispenseConfig() → defaults()（power=1.1, uncertainty=6.0）
+│   └── 默认 shoot() → 委托 ProjectileEntity::shoot()
+├── ExperienceBottleItem
+│   └── 覆写 getDispenseConfig() → potion()（power=1.375, uncertainty=3.0）
+│   └── 子类需实现 createProjectileEntity()
+└── [ThrowablePotionItem → 见 items/potion/ 模块]
 
 ArrowItem (基类)
 └── TippedArrowItem (继承 ArrowItem)
@@ -36,7 +42,7 @@ FishingRodItem → FishingBobberEntity
 ## 上下游外部依赖关系
 
 **本目录依赖：**
-- `item/core/` - Item 基类、ItemStack、ActionResult、UseAction
+- `item/core/` - Item 基类、ItemStack、ActionResult、UseAction、ProjectileItem 接口、ProjectileDispenseConfig
 - `item/tag/ItemTags.hpp` - ARROWS 标签（箭矢检测）
 - `item/enchantment/EnchantmentHelper.hpp` - 附魔查询
 - `entity/projectile/` - AbstractArrowEntity、TridentEntity、FishingBobberEntity、ProjectileItemEntity
@@ -85,3 +91,16 @@ ShieldItem 目前只有框架实现：`getUseDuration()` 返回 72000，`getUseA
 ### 7. 投掷物品速度参数
 
 `ThrowableItem` 的 `getThrowVelocity()` 默认返回 1.5f，`getThrowInaccuracy()` 默认返回 0.0f。子类可以重写这些方法调整投掷参数。
+
+### 8. ThrowableItem 实现 ProjectileItem 接口
+
+`ThrowableItem` 同时继承 `Item` 和 `ProjectileItem`，提供：
+- `asProjectile()`：调用子类的 `createProjectileEntity()` 创建弹射物实体，设置位置，但不添加到世界。调用方负责将实体添加到世界、设置发射者和调用 `shoot()`。
+- `getDispenseConfig()`：默认返回 `ProjectileDispenseConfig::defaults()`（power=1.1, uncertainty=6.0）。ExperienceBottleItem 和 ThrowablePotionItem 覆写返回 `potion()` 配置。
+- `shoot()`：默认委托给 `ProjectileEntity::shoot()`。
+
+`ThrowableItem` 新增纯虚方法 `createProjectileEntity()`，子类必须实现以创建对应类型的弹射物实体。此方法供 `asProjectile()` 和 `createProjectile()` 共用，消除了两处创建弹射物实体的重复代码。
+
+### 9. ExperienceBottleItem 的发射器配置
+
+`ExperienceBottleItem` 覆写 `getDispenseConfig()` 返回 `ProjectileDispenseConfig::potion()`（power=1.375, uncertainty=3.0），与药水投掷物使用相同的发射器参数。这是因为它和药水一样需要更精确的发射轨迹。

@@ -89,9 +89,7 @@ public:
     /**
      * @brief 获取发射器配置（药水专用）
      *
-     * 对齐 MC ThrowablePotionItem.createDispenseConfig()：
-     * uncertainty = DEFAULT * 0.5 = 3.0
-     * power = DEFAULT * 1.25 = 1.375
+     * 发射器配置：散布减半（3.0）、力度增加 25%（1.375）
      */
     [[nodiscard]] ProjectileDispenseConfig getDispenseConfig() const override
     {

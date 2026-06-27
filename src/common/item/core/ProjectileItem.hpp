@@ -41,14 +41,13 @@ namespace item {
 /**
  * @brief 弹射物发射配置
  *
- * 对齐 MC 1.21.11 ProjectileItem.DispenseConfig，封装弹射物发射参数。
- * 用于发射器（Dispenser）和不祥物品生成器（OminousItemSpawner）等场景。
+ * 封装弹射物发射参数，用于发射器和不祥物品生成器等场景。
  */
 struct ProjectileDispenseConfig {
-    /// 发射力度（默认 1.1，对齐 MC DEFAULT）
+    /// 发射力度（默认 1.1）
     f32 power = 1.1f;
 
-    /// 发射散布精度（默认 6.0，对齐 MC DEFAULT）
+    /// 发射散布精度（默认 6.0）
     f32 uncertainty = 6.0f;
 
     /**
@@ -59,7 +58,6 @@ struct ProjectileDispenseConfig {
     /**
      * @brief 构建药水投掷配置（散布减半、力度增加 25%）
      *
-     * 对齐 MC ThrowablePotionItem / ExperienceBottleItem 的 DispenseConfig：
      * uncertainty = DEFAULT * 0.5 = 3.0
      * power = DEFAULT * 1.25 = 1.375
      */
@@ -68,7 +66,6 @@ struct ProjectileDispenseConfig {
     /**
      * @brief 构建风弹配置
      *
-     * 对齐 MC WindChargeItem 的 DispenseConfig：
      * power = 1.0, uncertainty = 6.6666665
      */
     static ProjectileDispenseConfig windCharge() { return {.power = 1.0f, .uncertainty = 6.6666665f}; }
@@ -77,9 +74,9 @@ struct ProjectileDispenseConfig {
 /**
  * @brief 弹射物物品接口
  *
- * 对齐 MC 1.21.11 net.minecraft.world.item.ProjectileItem，提供统一的
- * "物品 -> 弹射物" 创建接口。实现此接口的物品可以被发射器、不祥物品生成器等
- * 通用代码通过多态方式创建弹射物，无需硬编码物品到弹射物的映射表。
+ * 提供统一的"物品 -> 弹射物"创建接口。实现此接口的物品可以被发射器、
+ * 不祥物品生成器等通用代码通过多态方式创建弹射物，无需硬编码物品到
+ * 弹射物的映射表。
  *
  * 实现类：
  * - ThrowableItem（雪球、鸡蛋、末影珍珠、附魔之瓶、药水等）
@@ -90,7 +87,7 @@ struct ProjectileDispenseConfig {
  * @code
  * const Item* item = itemStack.getItem();
  * if (auto* projectileItem = dynamic_cast<const ProjectileItem*>(item)) {
- *     auto entity = projectileItem->asProjectile(world, position, itemStack, direction);
+ *     auto entity = projectileItem->asProjectile(world, position, itemStack, dirX, dirY, dirZ);
  *     auto config = projectileItem->getDispenseConfig();
  *     // ... shoot and spawn
  * }
@@ -105,8 +102,6 @@ public:
      *
      * 根据给定的世界、位置、物品和方向，构造并返回一个弹射物实体。
      * 实体应已设置好位置和方向，但尚未调用 shoot() 或添加到世界。
-     *
-     * 对齐 MC ProjectileItem.asProjectile(Level, Position, ItemStack, Direction)。
      *
      * @param world 世界引用
      * @param position 生成位置（x, y, z）
@@ -129,8 +124,6 @@ public:
      * 返回此物品的发射器行为参数（力度、散布等）。
      * 子类可覆盖以自定义配置。
      *
-     * 对齐 MC ProjectileItem.createDispenseConfig()。
-     *
      * @return 发射器配置
      */
     [[nodiscard]] virtual ProjectileDispenseConfig getDispenseConfig() const
@@ -144,8 +137,6 @@ public:
      * 默认实现委托给 ProjectileEntity::shoot()。
      * 某些弹射物（如风弹）在 asProjectile() 中已设置初速度，
      * 需要覆盖此方法为空操作以避免覆盖已设置的速度。
-     *
-     * 对齐 MC ProjectileItem.shoot(Projectile, double, double, double, float, float)。
      *
      * @param projectile 弹射物实体
      * @param directionX 方向 X 分量

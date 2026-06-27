@@ -11,6 +11,7 @@ core/
 ├── ItemStack.hpp/cpp         # 物品堆，表示游戏中的一个物品实例（包含物品类型、数量、耐久、附魔、冒险模式谓词和结构化自定义标签，含 onCraftedBy 桥接方法）
 ├── ItemRegistry.hpp/cpp      # 物品注册表，管理所有物品的注册和查找
 ├── ItemGroup.hpp/cpp         # 创造模式物品组（标签页）
+├── ProjectileItem.hpp/cpp    # 弹射物物品接口，提供 asProjectile()/getDispenseConfig()/shoot() 三个核心方法
 ├── UseAction.hpp             # 物品使用动作枚举（EAT、DRINK、BLOCK等）
 ├── ActionResult.hpp          # 物品使用结果枚举
 └── README.md
@@ -32,7 +33,13 @@ Item (抽象基类)
   │
   ├── ItemRegistry (单例，管理Item注册)
   │
-  └── ItemGroup (创造模式物品分组)
+  ├── ItemGroup (创造模式物品分组)
+  │
+  └── ProjectileItem (弹射物物品接口)
+        ├── ProjectileDispenseConfig (弹射物发射配置，提供 defaults()/potion()/windCharge() 三种预设)
+        ├── asProjectile() → 创建弹射物实体
+        ├── getDispenseConfig() → 获取发射器行为参数
+        └── shoot() → 发射弹射物（默认委托 ProjectileEntity::shoot()，风弹覆写为空操作）
 ```
 
 ## 上下游外部依赖关系
@@ -42,13 +49,18 @@ Item (抽象基类)
 - `common/resource/ResourceLocation.hpp` - 资源位置标识
 - `common/network/packet/PacketSerializer.hpp` - ItemStack网络序列化
 - `item/enchantment/EnchantmentContainer.hpp` - 附魔容器
+- `common/util/math/Vector3.hpp` - 向量类型（ProjectileItem::asProjectile 参数）
+- `entity/projectile/ProjectileEntity.hpp` - 弹射物实体（ProjectileItem::shoot 参数）
 
 **依赖本目录的模块：**
 - `item/items/` - 所有具体物品实现（FoodItem、ArmorItem、ToolItem等）
+- `item/items/weapon/` - ThrowableItem 实现 ProjectileItem 接口
+- `item/items/potion/` - ThrowablePotionItem 覆写 getDispenseConfig() 返回 potion() 配置
+- `item/items/trial/` - WindChargeItem 实现 ProjectileItem 接口
 - `item/food/` - 食物属性系统
 - `item/armor/` - 盔甲材质系统
 - `item/crafting/` - 合成系统（Ingredient匹配）
-- `entity/` - 实体背包、物品掉落
+- `entity/` - 实体背包、物品掉落；OminousItemSpawnerEntity 通过 ProjectileItem 接口多态创建弹射物
 - `world/` - 方块掉落、物品实体
 - `network/` - 物品数据包同步
 - `client/inventory/` - 客户端背包UI
@@ -101,3 +113,20 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 - 属性值通过方块的 `StateContainer` 查找 `IProperty` 并调用 `parseValue()` 解析比较
 - NBT 匹配语法（`minecraft:chest{Items:[...]}`）已支持，通过 NBTPredicate 进行子集匹配，需要使用带 BlockPos 参数的 AdventureModePredicate::test() 重载
 - 空谓词列表不匹配任何方块，冒险模式下无 CanPlaceOn/CanDestroy 标签的物品不能放置/破坏方块
+
+### 9. ProjectileItem 接口与多态创建弹射物
+
+`ProjectileItem` 是一个纯虚接口（非继承自 Item），供需要创建弹射物实体的物品实现。当前实现类：
+- **ThrowableItem**：投掷物品基类，实现 `asProjectile()` 调用子类的 `createProjectileEntity()` 创建弹射物实体，默认 `getDispenseConfig()` 返回 `defaults()`，默认 `shoot()` 委托给 `ProjectileEntity::shoot()`
+- **WindChargeItem**：风弹物品，直接继承 Item 并实现 ProjectileItem，覆写 `shoot()` 为空操作（因为 `asProjectile()` 中已预设初速度），`getDispenseConfig()` 返回 `windCharge()` 配置
+
+使用方式：通过 `dynamic_cast<const ProjectileItem*>(item)` 检测物品是否可创建弹射物，无需硬编码物品到弹射物的映射表。
+
+### 10. ProjectileDispenseConfig 预设配置
+
+三种预设配置对应不同弹射物的发射器行为：
+- `defaults()`：power=1.1, uncertainty=6.0（雪球、鸡蛋、末影珍珠等普通投掷物）
+- `potion()`：power=1.375, uncertainty=3.0（药水、附魔之瓶，散布减半力度增加25%）
+- `windCharge()`：power=1.0, uncertainty=6.6666665（风弹）
+
+ThrowablePotionItem 和 ExperienceBottleItem 覆写 `getDispenseConfig()` 返回 `potion()` 配置。WindChargeItem 覆写返回 `windCharge()` 配置。

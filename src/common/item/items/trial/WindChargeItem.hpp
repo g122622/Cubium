@@ -110,8 +110,7 @@ public:
     /**
      * @brief 获取发射器配置（风弹专用）
      *
-     * 对齐 MC WindChargeItem.createDispenseConfig()：
-     * power = 1.0, uncertainty = 6.6666665
+     * 发射器配置：power = 1.0, uncertainty = 6.6666665
      */
     [[nodiscard]] ProjectileDispenseConfig getDispenseConfig() const override
     {
@@ -121,7 +120,7 @@ public:
     /**
      * @brief 风弹的 shoot 方法为空操作
      *
-     * 对齐 MC WindChargeItem.shoot()，风弹在 asProjectile 中
+     * 风弹在 asProjectile 中
      * 已根据方向预设了 deltaMovement，不需要再调用 shoot()。
      */
     void shoot(entity::ProjectileEntity& projectile,

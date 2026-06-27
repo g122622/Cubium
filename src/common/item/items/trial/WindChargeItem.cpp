@@ -97,8 +97,7 @@ std::unique_ptr<entity::ProjectileEntity> WindChargeItem::asProjectile(IWorld& /
     entity->setPosition(position.x, position.y, position.z);
 
     // 风弹在 asProjectile 中根据方向预设初速度
-    // 对齐 MC WindChargeItem.asProjectile() 中的行为：
-    // 使用 DispenseConfig 中的 power 和 uncertainty 来设置初速度
+    // 使用 DispenseConfig 中的 power 来设置初速度
     auto config = getDispenseConfig();
     // 预设 deltaMovement，方向归一化后乘以 power
     f32 length = std::sqrt(directionX * directionX + directionY * directionY + directionZ * directionZ);
@@ -120,7 +119,6 @@ void WindChargeItem::shoot(entity::ProjectileEntity& /*projectile*/,
     f32 /*uncertainty*/) const
 {
     // 风弹在 asProjectile 中已预设 deltaMovement，不需要再调用 shoot()
-    // 对齐 MC WindChargeItem.shoot() 为空操作
 }
 
 } // namespace item
