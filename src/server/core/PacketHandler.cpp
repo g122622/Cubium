@@ -399,15 +399,25 @@ PacketHandleResult PacketHandler::handleMoveVehicle(u32 sessionId, const u8* dat
             playerId,
             std::sqrt(deltaSq),
             std::sqrt(vehicleSpeedSq));
+
         // 发送校正包回客户端，恢复到服务端已知位置
-        // 暂时不实现校正包，只记录警告
-        // 实际应该发送 SMoveVehiclePacket 回客户端
+        // 对应 MC Java ServerGamePacketListenerImpl.handleMoveVehicle 中
+        // 的 ClientboundMoveVehiclePacket.fromEntity(entity) 校正逻辑
+        network::VehicleMovePacket correction;
+        correction.setPosition(vehiclePos.x, vehiclePos.y, vehiclePos.z);
+        correction.setRotation(vehicle->yaw(), vehicle->pitch());
+        auto serialResult = correction.serialize();
+        if (serialResult.success()) {
+            m_connectionManager.sendPacketToPlayer(playerId, network::PacketType::VehicleMove, serialResult.value());
+        }
+
         return PacketHandleResult::Success;
     }
 
     // 更新载具位置
-    // 暂时简化实现：直接设置载具位置
-    // 实际会进行碰撞检测和位置校正
+    // TODO: 实际应进行碰撞检测和位置校正（对应 MC Java 的 entity.move() 后的 moved wrongly 检测），
+    // 若碰撞检测发现移动不合理，应回退到原位置并发送 VehicleMovePacket 校正包。
+    // 当前简化实现：直接设置载具位置
     vehicle->setPosition(packetPos.x, packetPos.y, packetPos.z);
     vehicle->setRotation(packet.yaw(), packet.pitch());
 
