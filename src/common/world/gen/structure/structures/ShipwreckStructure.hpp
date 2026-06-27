@@ -100,8 +100,6 @@ public:
     ShipwreckStructure();
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
@@ -130,8 +128,6 @@ public:
     static const std::vector<std::string> s_allTemplates;
 
 private:
-    void _initializeBiomes();
-
     /**
      * @brief 获取随机沉船模板名称
      * @param rng 随机数生成器
@@ -140,9 +136,7 @@ private:
      */
     [[nodiscard]] std::string _getRandomTemplateName(math::Random& rng, bool isBeached) const;
 
-    static constexpr StructureSeparationSettings m_settings{24, 4, 165745295};
     static const std::string m_name;
-    std::vector<BiomeId> m_validBiomes;
     ShipwreckConfig m_config;
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };

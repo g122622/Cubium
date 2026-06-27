@@ -48,9 +48,6 @@ const std::string SwampHutStructure::s_name = "Swamp_Hut";
 const SpawnOverrides SwampHutStructure::s_spawnOverrides = {
     SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 1, 1}}};
 
-// 仅包含 Swamp，与数据包 has_structure/swamp_hut 标签一致
-const std::vector<BiomeId> SwampHutStructure::s_validBiomes = {Swamp};
-
 SwampHutStructure::SwampHutStructure()
     : Structure(ResourceLocation("minecraft", "swamp_hut"))
 {}

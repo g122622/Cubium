@@ -44,66 +44,6 @@ using namespace mc::Biomes;
 
 const std::string TrialChambersStructure::s_name = "trial_chambers";
 
-// 试炼密室可在大多数主世界生物群系中生成
-// 根据MC 1.21规范，使用 has_structure/trial_chambers 生物群系标签
-// 深暗之域生成概率降低
-const std::vector<BiomeId> TrialChambersStructure::s_validBiomes = {
-    Plains,
-    SunflowerPlains,
-    Forest,
-    FlowerForest,
-    BirchForest,
-    OldGrowthBirchForest,
-    DarkForest,
-    CherryGrove,
-    Swamp,
-    MangroveSwamp,
-    Taiga,
-    OldGrowthPineTaiga,
-    OldGrowthSpruceTaiga,
-    SnowyPlains,
-    IceSpikes,
-    SnowyTaiga,
-    WindsweptHills,
-    WindsweptForest,
-    WindsweptGravellyHills,
-    Jungle,
-    SparseJungle,
-    BambooJungle,
-    Badlands,
-    ErodedBadlands,
-    WoodedBadlands,
-    Meadow,
-    Grove,
-    SnowySlopes,
-    FrozenPeaks,
-    JaggedPeaks,
-    StonyPeaks,
-    River,
-    FrozenRiver,
-    Beach,
-    SnowyBeach,
-    StonyShore,
-    WarmOcean,
-    LukewarmOcean,
-    DeepLukewarmOcean,
-    Ocean,
-    DeepOcean,
-    ColdOcean,
-    DeepColdOcean,
-    FrozenOcean,
-    DeepFrozenOcean,
-    MushroomFields,
-    DripstoneCaves,
-    LushCaves,
-    Savanna,
-    SavannaPlateau,
-    WindsweptSavanna,
-    Desert,
-    SparseJungle,
-    // TODO(trial_chambers): 深暗之域应降低生成概率，需要特殊处理
-};
-
 namespace {
 
 /// 试炼密室片段适配器
@@ -237,12 +177,7 @@ bool TrialChambersStructure::canGenerate(
 
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 0, chunkZ * CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            return true;
-        }
-    }
-    return false;
+    return isValidBiome(biome);
 }
 
 std::unique_ptr<StructureStart> TrialChambersStructure::generate(

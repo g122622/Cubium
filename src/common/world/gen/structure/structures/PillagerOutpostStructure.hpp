@@ -44,8 +44,6 @@ public:
     ~PillagerOutpostStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
     /**
      * @brief 获取掠夺者前哨站关联的生物群系标签
@@ -72,8 +70,6 @@ private:
         IChunkGenerator& generator, i64 seed, math::Random& rng, i32 chunkX, i32 chunkZ) const;
 
     static const std::string s_name;
-    static constexpr StructureSeparationSettings s_settings{32, 8, 165745296};
-    static const std::vector<BiomeId> s_validBiomes;
     static const SpawnOverrides s_spawnOverrides;
 };
 

@@ -53,15 +53,6 @@ public:
     ~WoodlandMansionStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
-
-    /**
-     * @brief 林地府邸使用三角分布（非均匀间距）
-     *
-     * 对应 useUniformSpacing = false。
-     */
-    [[nodiscard]] bool useUniformSpacing() const override { return false; }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -76,9 +67,6 @@ public:
 
 private:
     static const std::string s_name;
-    // spacing=80, separation=20, salt=10387319
-    static constexpr StructureSeparationSettings s_settings{80, 20, 10387319};
-    static const std::vector<BiomeId> s_validBiomes;
 };
 
 /**

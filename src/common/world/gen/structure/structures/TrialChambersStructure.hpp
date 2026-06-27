@@ -54,8 +54,6 @@ public:
     ~TrialChambersStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
     /**
      * @brief 获取试炼密室关联的生物群系标签
@@ -85,8 +83,6 @@ public:
 
 private:
     static const std::string s_name;
-    static constexpr StructureSeparationSettings s_settings{34, 12, 94251327};
-    static const std::vector<BiomeId> s_validBiomes;
 };
 
 } // namespace structure

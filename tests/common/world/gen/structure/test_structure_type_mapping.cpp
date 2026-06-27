@@ -8,7 +8,7 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -23,171 +23,86 @@
 
 #include <gtest/gtest.h>
 
-#include "common/world/gen/structure/Structure.hpp"
+#include "common/world/gen/structure/StructureSet.hpp"
 
 using namespace mc;
 using namespace mc::world::gen::structure;
 
 // ============================================================================
-// Structure::typeToId 测试
+// StructureSetRegistry::findByStructure 测试
 // ============================================================================
 
-TEST(StructureTypeMappingTest, TypeToId_AllTypesReturnValidResourceLocation)
+TEST(StructureSetRegistryTest, FindByStructure_KnownStructures)
 {
-    // 验证所有 StructureType 枚举值都能正确转换为 ResourceLocation
-    auto temple = Structure::typeToId(StructureType::Temple);
-    EXPECT_EQ(temple.toString(), "minecraft:temple");
+    auto& registry = StructureSetRegistry::instance();
 
-    auto monument = Structure::typeToId(StructureType::Monument);
-    EXPECT_EQ(monument.toString(), "minecraft:ocean_monument");
+    // 验证已知结构能通过 findByStructure 找到对应的 StructureSet
+    auto* villages = registry.findByStructure(ResourceLocation("minecraft", "village_plains"));
+    ASSERT_NE(villages, nullptr);
+    EXPECT_EQ(villages->id().toString(), "minecraft:villages");
 
-    auto stronghold = Structure::typeToId(StructureType::Stronghold);
-    EXPECT_EQ(stronghold.toString(), "minecraft:stronghold");
+    auto* desertPyramid = registry.findByStructure(ResourceLocation("minecraft", "desert_pyramid"));
+    ASSERT_NE(desertPyramid, nullptr);
+    EXPECT_EQ(desertPyramid->id().toString(), "minecraft:desert_pyramids");
 
-    auto village = Structure::typeToId(StructureType::Village);
-    EXPECT_EQ(village.toString(), "minecraft:village");
+    auto* stronghold = registry.findByStructure(ResourceLocation("minecraft", "stronghold"));
+    ASSERT_NE(stronghold, nullptr);
+    EXPECT_EQ(stronghold->id().toString(), "minecraft:strongholds");
 
-    auto mineshaft = Structure::typeToId(StructureType::Mineshaft);
-    EXPECT_EQ(mineshaft.toString(), "minecraft:mineshaft");
+    auto* monument = registry.findByStructure(ResourceLocation("minecraft", "monument"));
+    ASSERT_NE(monument, nullptr);
+    EXPECT_EQ(monument->id().toString(), "minecraft:ocean_monuments");
 
-    auto ruinedPortal = Structure::typeToId(StructureType::RuinedPortal);
-    EXPECT_EQ(ruinedPortal.toString(), "minecraft:ruined_portal");
+    auto* endCity = registry.findByStructure(ResourceLocation("minecraft", "end_city"));
+    ASSERT_NE(endCity, nullptr);
+    EXPECT_EQ(endCity->id().toString(), "minecraft:end_cities");
 
-    auto buriedTreasure = Structure::typeToId(StructureType::BuriedTreasure);
-    EXPECT_EQ(buriedTreasure.toString(), "minecraft:buried_treasure");
-
-    auto shipwreck = Structure::typeToId(StructureType::Shipwreck);
-    EXPECT_EQ(shipwreck.toString(), "minecraft:shipwreck");
-
-    auto oceanRuin = Structure::typeToId(StructureType::OceanRuin);
-    EXPECT_EQ(oceanRuin.toString(), "minecraft:ocean_ruin");
-
-    auto mansion = Structure::typeToId(StructureType::WoodlandMansion);
-    EXPECT_EQ(mansion.toString(), "minecraft:woodland_mansion");
-
-    auto bastion = Structure::typeToId(StructureType::Bastion);
-    EXPECT_EQ(bastion.toString(), "minecraft:bastion_remnant");
-
-    auto fortress = Structure::typeToId(StructureType::Fortress);
-    EXPECT_EQ(fortress.toString(), "minecraft:fortress");
-
-    auto endCity = Structure::typeToId(StructureType::EndCity);
-    EXPECT_EQ(endCity.toString(), "minecraft:end_city");
-
-    auto outpost = Structure::typeToId(StructureType::PillagerOutpost);
-    EXPECT_EQ(outpost.toString(), "minecraft:pillager_outpost");
-
-    auto trial = Structure::typeToId(StructureType::TrialChambers);
-    EXPECT_EQ(trial.toString(), "minecraft:trial_chambers");
+    auto* fortress = registry.findByStructure(ResourceLocation("minecraft", "fortress"));
+    ASSERT_NE(fortress, nullptr);
+    EXPECT_EQ(fortress->id().toString(), "minecraft:nether_complexes");
 }
 
-// ============================================================================
-// Structure::nameToStructureType 测试 — 标准名称
-// ============================================================================
-
-TEST(StructureTypeMappingTest, NameToType_StandardNames)
+TEST(StructureSetRegistryTest, FindByStructure_UnknownStructure)
 {
-    // 验证标准结构名称（无 minecraft: 前缀）能正确转换
-    EXPECT_EQ(Structure::nameToStructureType("village").value(), StructureType::Village);
-    EXPECT_EQ(Structure::nameToStructureType("stronghold").value(), StructureType::Stronghold);
-    EXPECT_EQ(Structure::nameToStructureType("mineshaft").value(), StructureType::Mineshaft);
-    EXPECT_EQ(Structure::nameToStructureType("ocean_monument").value(), StructureType::Monument);
-    EXPECT_EQ(Structure::nameToStructureType("buried_treasure").value(), StructureType::BuriedTreasure);
-    EXPECT_EQ(Structure::nameToStructureType("shipwreck").value(), StructureType::Shipwreck);
-    EXPECT_EQ(Structure::nameToStructureType("ocean_ruin").value(), StructureType::OceanRuin);
-    EXPECT_EQ(Structure::nameToStructureType("woodland_mansion").value(), StructureType::WoodlandMansion);
-    EXPECT_EQ(Structure::nameToStructureType("bastion_remnant").value(), StructureType::Bastion);
-    EXPECT_EQ(Structure::nameToStructureType("fortress").value(), StructureType::Fortress);
-    EXPECT_EQ(Structure::nameToStructureType("end_city").value(), StructureType::EndCity);
-    EXPECT_EQ(Structure::nameToStructureType("pillager_outpost").value(), StructureType::PillagerOutpost);
-    EXPECT_EQ(Structure::nameToStructureType("trial_chambers").value(), StructureType::TrialChambers);
-    EXPECT_EQ(Structure::nameToStructureType("temple").value(), StructureType::Temple);
-    EXPECT_EQ(Structure::nameToStructureType("ruined_portal").value(), StructureType::RuinedPortal);
+    auto& registry = StructureSetRegistry::instance();
+
+    // 验证未知结构返回 nullptr
+    auto* unknown = registry.findByStructure(ResourceLocation("minecraft", "nonexistent_structure"));
+    EXPECT_EQ(unknown, nullptr);
 }
 
-// ============================================================================
-// Structure::nameToStructureType 测试 — 带前缀名称
-// ============================================================================
-
-TEST(StructureTypeMappingTest, NameToType_WithMinecraftPrefix)
+TEST(StructureSetRegistryTest, FindByStructure_MultiEntrySet)
 {
-    // 验证带 minecraft: 前缀的名称能正确转换
-    EXPECT_EQ(Structure::nameToStructureType("minecraft:village").value(), StructureType::Village);
-    EXPECT_EQ(Structure::nameToStructureType("minecraft:fortress").value(), StructureType::Fortress);
-    EXPECT_EQ(Structure::nameToStructureType("minecraft:end_city").value(), StructureType::EndCity);
-    EXPECT_EQ(Structure::nameToStructureType("minecraft:bastion_remnant").value(), StructureType::Bastion);
+    auto& registry = StructureSetRegistry::instance();
+
+    // 验证同一 StructureSet 中的多个结构都能找到同一集合
+    auto* villagePlains = registry.findByStructure(ResourceLocation("minecraft", "village_plains"));
+    auto* villageDesert = registry.findByStructure(ResourceLocation("minecraft", "village_desert"));
+    auto* villageSnowy = registry.findByStructure(ResourceLocation("minecraft", "village_snowy"));
+
+    ASSERT_NE(villagePlains, nullptr);
+    ASSERT_NE(villageDesert, nullptr);
+    ASSERT_NE(villageSnowy, nullptr);
+
+    // 所有村庄变体应该映射到同一个 StructureSet
+    EXPECT_EQ(villagePlains, villageDesert);
+    EXPECT_EQ(villageDesert, villageSnowy);
+    EXPECT_EQ(villagePlains->id().toString(), "minecraft:villages");
 }
 
-// ============================================================================
-// Structure::nameToStructureType 测试 — 别名映射
-// ============================================================================
-
-TEST(StructureTypeMappingTest, NameToType_Aliases)
+TEST(StructureSetRegistryTest, FindByStructure_PlacementTypes)
 {
-    // 验证常见别名能正确映射
-    EXPECT_EQ(Structure::nameToStructureType("mansion").value(), StructureType::WoodlandMansion);
-    EXPECT_EQ(Structure::nameToStructureType("monument").value(), StructureType::Monument);
-    EXPECT_EQ(Structure::nameToStructureType("nether_fortress").value(), StructureType::Fortress);
-    EXPECT_EQ(Structure::nameToStructureType("ocean_ruins").value(), StructureType::OceanRuin);
-    EXPECT_EQ(Structure::nameToStructureType("endcity").value(), StructureType::EndCity);
-    EXPECT_EQ(Structure::nameToStructureType("bastion").value(), StructureType::Bastion);
-    EXPECT_EQ(Structure::nameToStructureType("desert_pyramid").value(), StructureType::Temple);
-    EXPECT_EQ(Structure::nameToStructureType("desert_temple").value(), StructureType::Temple);
-    EXPECT_EQ(Structure::nameToStructureType("jungle_temple").value(), StructureType::Temple);
-    EXPECT_EQ(Structure::nameToStructureType("jungle_pyramid").value(), StructureType::Temple);
-    EXPECT_EQ(Structure::nameToStructureType("igloo").value(), StructureType::Temple);
-    EXPECT_EQ(Structure::nameToStructureType("swamp_hut").value(), StructureType::Temple);
-    EXPECT_EQ(Structure::nameToStructureType("witch_hut").value(), StructureType::Temple);
-    EXPECT_EQ(Structure::nameToStructureType("nether_fossil").value(), StructureType::Temple);
-}
+    auto& registry = StructureSetRegistry::instance();
 
-// ============================================================================
-// Structure::nameToStructureType 测试 — 无效输入
-// ============================================================================
+    // 验证 RandomSpread 结构集
+    auto* villages = registry.findByStructure(ResourceLocation("minecraft", "village_plains"));
+    ASSERT_NE(villages, nullptr);
+    auto& villagePlacement = villages->placement();
+    EXPECT_TRUE(dynamic_cast<const placement::RandomSpreadStructurePlacement*>(&villagePlacement) != nullptr);
 
-TEST(StructureTypeMappingTest, NameToType_InvalidInput)
-{
-    // 验证无效名称返回 std::nullopt
-    EXPECT_FALSE(Structure::nameToStructureType("nonexistent_structure").has_value());
-    EXPECT_FALSE(Structure::nameToStructureType("").has_value());
-    EXPECT_FALSE(Structure::nameToStructureType("minecraft:nonexistent").has_value());
-    EXPECT_FALSE(Structure::nameToStructureType("VILLAGE").has_value()); // 大小写敏感
-    EXPECT_FALSE(Structure::nameToStructureType("Village").has_value());
-}
-
-// ============================================================================
-// Structure::typeToId 与 nameToStructureType 往返一致性测试
-// ============================================================================
-
-TEST(StructureTypeMappingTest, RoundTrip_AllTypes)
-{
-    // 验证 typeToId 的结果可以被 nameToStructureType 反向解析
-    // 即：nameToStructureType(typeToId(type).path()) == type
-    const StructureType types[] = {
-        StructureType::Temple,
-        StructureType::Monument,
-        StructureType::Stronghold,
-        StructureType::Village,
-        StructureType::Mineshaft,
-        StructureType::RuinedPortal,
-        StructureType::BuriedTreasure,
-        StructureType::Shipwreck,
-        StructureType::OceanRuin,
-        StructureType::WoodlandMansion,
-        StructureType::Bastion,
-        StructureType::Fortress,
-        StructureType::EndCity,
-        StructureType::PillagerOutpost,
-        StructureType::TrialChambers,
-    };
-
-    for (auto type : types) {
-        auto id = Structure::typeToId(type);
-        auto result = Structure::nameToStructureType(id.path());
-        ASSERT_TRUE(result.has_value()) << "typeToId(" << static_cast<int>(type) << ") returned path '" << id.path()
-                                        << "' which nameToStructureType cannot resolve";
-        EXPECT_EQ(result.value(), type) << "Round-trip failed for type " << static_cast<int>(type) << ": typeToId -> '"
-                                        << id.path() << "' -> nameToStructureType returned type "
-                                        << static_cast<int>(result.value());
-    }
+    // 验证 ConcentricRings 结构集（要塞）
+    auto* stronghold = registry.findByStructure(ResourceLocation("minecraft", "stronghold"));
+    ASSERT_NE(stronghold, nullptr);
+    auto& strongholdPlacement = stronghold->placement();
+    EXPECT_TRUE(dynamic_cast<const placement::ConcentricRingsStructurePlacement*>(&strongholdPlacement) != nullptr);
 }

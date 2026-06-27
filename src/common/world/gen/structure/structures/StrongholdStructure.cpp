@@ -65,62 +65,12 @@ const std::string StrongholdStructure::m_name = "stronghold";
 
 StrongholdStructure::StrongholdStructure()
     : Structure(ResourceLocation("minecraft", "stronghold"))
-{
-    _initializeBiomes();
-}
+{}
 
 StrongholdStructure::StrongholdStructure(const Config& config)
     : Structure(ResourceLocation("minecraft", "stronghold"))
     , m_config(config)
-{
-    _initializeBiomes();
-}
-
-void StrongholdStructure::_initializeBiomes()
-{
-    // 要塞可以在大多数主世界生物群系生成
-    m_validBiomes = {Plains,
-        SunflowerPlains,
-        Forest,
-        FlowerForest,
-        BirchForest,
-        BirchForestHills,
-        DarkForest,
-        DarkForestHills,
-        Taiga,
-        TaigaHills,
-        TaigaMountains,
-        GiantTreeTaiga,
-        GiantTreeTaigaHills,
-        GiantSpruceTaiga,
-        GiantSpruceTaigaHills,
-        Mountains,
-        WoodedMountains,
-        GravellyMountains,
-        MountainEdge,
-        Jungle,
-        JungleHills,
-        JungleEdge,
-        ModifiedJungle,
-        ModifiedJungleEdge,
-        Desert,
-        DesertHills,
-        DesertLakes,
-        Badlands,
-        BadlandsPlateau,
-        WoodedBadlandsPlateau,
-        Savanna,
-        SavannaPlateau,
-        ShatteredSavanna,
-        Swamp,
-        SwampHills,
-        SnowyPlains,
-        SnowyMountains,
-        SnowyTaiga,
-        SnowyTaigaHills,
-        SnowyTaigaMountains,
-        SnowyBeach};
-}
+{}
 
 const biome::BiomeTag* StrongholdStructure::biomeTag() const
 {

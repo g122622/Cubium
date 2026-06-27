@@ -67,8 +67,6 @@ const std::vector<std::string> NetherFossilStructure::s_fossilTemplates = {"neth
     "nether_fossils/fossil_13",
     "nether_fossils/fossil_14"};
 
-const std::vector<BiomeId> NetherFossilStructure::s_validBiomes = {SoulSandValley};
-
 // ============================================================================
 // NetherFossilPiece
 // ============================================================================
@@ -152,11 +150,10 @@ bool NetherFossilStructure::canGenerate(
 
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            return true;
-        }
+    if (!isValidBiome(biome)) {
+        return false;
     }
+    return true;
     return false;
 }
 

@@ -85,8 +85,6 @@ public:
     NetherFossilStructure();
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
     [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundDecoration; }
 
     /**
@@ -110,8 +108,6 @@ public:
 
 private:
     static const std::string s_name;
-    static constexpr StructureSeparationSettings s_settings{2, 1, 14357921};
-    static const std::vector<BiomeId> s_validBiomes;
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };
 

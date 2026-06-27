@@ -176,29 +176,11 @@ void ShipwreckPiece::generate(
 
 ShipwreckStructure::ShipwreckStructure()
     : Structure(ResourceLocation("minecraft", "shipwreck"))
-{
-    _initializeBiomes();
-}
+{}
 
 const biome::BiomeTag* ShipwreckStructure::biomeTag() const
 {
     return &biome::BiomeTags::HAS_STRUCTURE_SHIPWRECK();
-}
-
-void ShipwreckStructure::_initializeBiomes()
-{
-    m_validBiomes = {Biomes::Ocean,
-        Biomes::WarmOcean,
-        Biomes::LukewarmOcean,
-        Biomes::ColdOcean,
-        Biomes::FrozenOcean,
-        Biomes::DeepOcean,
-        Biomes::DeepWarmOcean,
-        Biomes::DeepLukewarmOcean,
-        Biomes::DeepColdOcean,
-        Biomes::DeepFrozenOcean,
-        Biomes::Beach,
-        Biomes::SnowyBeach};
 }
 
 bool ShipwreckStructure::canGenerate(

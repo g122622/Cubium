@@ -138,15 +138,6 @@ StructureManager::StructureManager(i64 seed)
     : m_seed(seed)
 {}
 
-bool StructureManager::shouldGenerateStructureStart(const Structure& structure, i32 chunkX, i32 chunkZ) const
-{
-    // 使用兼容的间距设置检查是否应该在此位置生成
-    // TODO: 迁移到使用 StructurePlacement::isStructureChunk() 判断
-    i32 startX, startZ;
-    return Structure::findStructureStart(
-        m_seed, chunkX, chunkZ, structure.separationSettings(), startX, startZ, structure.useUniformSpacing());
-}
-
 std::unique_ptr<StructureStart> StructureManager::generateStructureStart(const Structure& structure,
     IWorldWriter& /*world*/,
     IChunkGenerator& generator,

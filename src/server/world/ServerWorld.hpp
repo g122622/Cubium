@@ -1110,17 +1110,18 @@ public:
     /**
      * @brief 查找最近的结构
      *
-     * 在指定范围内搜索指定类型结构的最近位置。
-     * 使用螺旋搜索算法，从中心向外扩展搜索。
+     * 在指定范围内搜索指定结构的最近位置。
+     * 使用 StructureSet/StructurePlacement 系统进行定位，
+     * 支持 RandomSpread 和 ConcentricRings 两种放置策略。
      *
      * @param center 搜索中心位置
-     * @param structureType 结构类型
-     * @param maxDistance 最大搜索距离（格），默认 50
-     * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索），默认 false
+     * @param structureId 结构资源位置 ID（如 minecraft:village_plains）
+     * @param maxDistance 最大搜索距离（格）
+     * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索）
      * @return 最近结构位置，如果未找到返回空
      */
     [[nodiscard]] std::optional<BlockPos> findNearestStructure(const BlockPos& center,
-        world::gen::structure::StructureType structureType,
+        const ResourceLocation& structureId,
         i32 maxDistance,
         bool skipExisting = false) override;
 

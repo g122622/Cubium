@@ -92,7 +92,6 @@ static Direction rotationToSouth(feature::template_::Rotation rotation)
 // ============================================================================
 
 const std::string WoodlandMansionStructure::s_name = "Woodland_Mansion";
-const std::vector<BiomeId> WoodlandMansionStructure::s_validBiomes = {DarkForest, DarkForestHills};
 
 WoodlandMansionStructure::WoodlandMansionStructure()
     : Structure(ResourceLocation("minecraft", "mansion"))
@@ -111,12 +110,7 @@ bool WoodlandMansionStructure::canGenerate(
 
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, SEA_LEVEL, chunkZ * CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            return true;
-        }
-    }
-    return false;
+    return isValidBiome(biome);
 }
 
 std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(

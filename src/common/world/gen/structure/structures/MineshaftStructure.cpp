@@ -758,27 +758,6 @@ void MineshaftStairs::buildComponent(
 
 const std::string MineshaftStructure::m_name = "mineshaft";
 
-const std::vector<BiomeId> MineshaftStructure::m_validBiomes = {Biomes::Plains,
-    Biomes::Forest,
-    Biomes::Taiga,
-    Biomes::SnowyTaiga,
-    Biomes::Jungle,
-    Biomes::Desert,
-    Biomes::Savanna,
-    Biomes::WoodedHills,
-    Biomes::TaigaHills,
-    Biomes::JungleHills,
-    Biomes::DesertHills,
-    Biomes::SavannaPlateau,
-    Biomes::DarkForest,
-    Biomes::DarkForestHills,
-    Biomes::BirchForest,
-    Biomes::BirchForestHills,
-    Biomes::GiantTreeTaiga,
-    Biomes::GiantSpruceTaiga,
-    Biomes::Mountains,
-    Biomes::WoodedMountains};
-
 const std::vector<BiomeId> MineshaftStructure::m_mesaBiomes = {
     Biomes::Badlands, Biomes::BadlandsPlateau, Biomes::ErodedBadlands, Biomes::WoodedBadlandsPlateau};
 
@@ -795,15 +774,10 @@ const biome::BiomeTag* MineshaftStructure::biomeTag() const
 }
 
 bool MineshaftStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
-    // 使用间距设置检查
-    i32 startX, startZ;
-    if (!findStructureStart(static_cast<i64>(generator.seed()), chunkX, chunkZ, m_settings, startX, startZ)) {
-        return false;
-    }
-
-    // 概率检查
+    // 间距检查已由 StructurePlacement::isStructureChunk() 处理
+    // 仅做概率检查
     return rng.nextFloat() < m_config.probability;
 }
 

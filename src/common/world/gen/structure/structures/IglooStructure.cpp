@@ -49,8 +49,6 @@ using namespace mc::Biomes;
 // ============================================================================
 
 const std::string IglooStructure::s_name = "Igloo";
-// 与数据包 has_structure/igloo 标签一致
-const std::vector<BiomeId> IglooStructure::s_validBiomes = {SnowyTaiga, SnowyPlains, SnowySlopes};
 
 // 雪屋模板名称
 const std::string IglooStructure::s_topTemplateName = "igloo/top";

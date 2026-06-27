@@ -149,23 +149,6 @@ struct JigsawConfig {
 class JigsawStructure : public Structure {
 public:
     /**
-     * @brief 构造 Jigsaw 结构（简单版本，兼容旧代码）
-     * @param type 结构类型
-     * @param config Jigsaw 配置
-     * @param startY 起始 Y 坐标，0 表示自动检测
-     * @param nearTerrain 是否需要贴近地形生成
-     * @param adjustForTerrain 是否根据地形调整高度
-     * @param terrainAdaptation 地形适配模式
-     */
-    // 所有子类已迁移到 ResourceLocation 构造函数，待下游代码迁移后删除此构造函数
-    explicit JigsawStructure(StructureType type,
-        JigsawConfig config,
-        i32 startY = 0,
-        bool nearTerrain = false,
-        bool adjustForTerrain = false,
-        TerrainAdaptation terrainAdaptation = TerrainAdaptation::None);
-
-    /**
      * @brief 构造函数（使用 ResourceLocation）
      * @param id 结构资源位置 ID
      * @param config 拼图配置
@@ -182,8 +165,6 @@ public:
         TerrainAdaptation terrainAdaptation = TerrainAdaptation::None);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     /**
      * @brief 获取地形适配模式
@@ -208,9 +189,7 @@ protected:
     bool m_adjustForTerrain;               ///< 是否根据地形调整
     TerrainAdaptation m_terrainAdaptation; ///< 地形适配模式
 
-    static constexpr StructureSeparationSettings m_settings{8, 4, 12345};
     static const std::string m_name;
-    static const std::vector<BiomeId> m_validBiomes;
 };
 
 } // namespace structure

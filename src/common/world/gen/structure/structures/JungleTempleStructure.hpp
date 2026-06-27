@@ -69,8 +69,6 @@ public:
     JungleTempleStructure() noexcept;
 
     [[nodiscard]] const std::string& name() const noexcept override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const noexcept override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const noexcept override { return m_validBiomes; }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -92,12 +90,7 @@ public:
         IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    void _initializeBiomes() noexcept;
-
-    // spacing=32, separation=8, salt=14357619
-    static constexpr StructureSeparationSettings m_settings{32, 8, 14357619};
     static const std::string m_name;
-    std::vector<BiomeId> m_validBiomes;
 };
 
 } // namespace structure

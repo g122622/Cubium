@@ -208,14 +208,11 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
         if (!structure) continue;
 
-        // 检查结构是否可以在此位置生成（生物群系检查等）
-        if (m_structureManager->shouldGenerateStructureStart(*structure, chunkX, chunkZ)) {
-            // 生成结构起点
-            auto start = structure->generate(*this, rng, chunkX, chunkZ);
-            if (start) {
-                chunk.addStructureStart(
-                    entry->structureId, std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
-            }
+        // 生成结构起点（间距和生物群系检查已由 StructurePlacement::isStructureChunk() 完成）
+        auto start = structure->generate(*this, rng, chunkX, chunkZ);
+        if (start) {
+            chunk.addStructureStart(
+                entry->structureId, std::shared_ptr<mc::world::gen::structure::StructureStart>(std::move(start)));
         }
     }
 

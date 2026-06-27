@@ -143,8 +143,6 @@ public:
     RuinedPortalStructure();
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -188,8 +186,6 @@ public:
 
 private:
     static const std::string s_name;
-    static constexpr StructureSeparationSettings s_settings{40, 15, 34222645};
-    static const std::vector<BiomeId> s_validBiomes;
     feature::template_::TemplateManager* m_templateManager = nullptr;
 
     /**

@@ -116,6 +116,17 @@ public:
     /** 按 ID 查询结构集合 */
     [[nodiscard]] const StructureSet* get(const ResourceLocation& id) const;
 
+    /**
+     * @brief 按结构 ID 查询所属结构集合
+     *
+     * 遍历所有结构集合，找到包含指定结构 ID 的第一个集合。
+     * 用于 /locate 命令和探险地图等功能，根据结构 ID 查找对应的放置规则。
+     *
+     * @param structureId 结构资源位置（如 minecraft:village_plains）
+     * @return 包含该结构的结构集合指针，找不到返回 nullptr
+     */
+    [[nodiscard]] const StructureSet* findByStructure(const ResourceLocation& structureId) const;
+
     /** 获取所有结构集合 */
     [[nodiscard]] const std::vector<std::unique_ptr<StructureSet>>& getAll() const { return m_sets; }
 
@@ -126,6 +137,7 @@ private:
     StructureSetRegistry() = default;
     std::vector<std::unique_ptr<StructureSet>> m_sets;
     std::unordered_map<ResourceLocation, StructureSet*> m_byId;
+    std::unordered_map<ResourceLocation, StructureSet*> m_byStructureId; ///< 结构 ID → 所属结构集合的反向索引
 };
 
 } // namespace mc::world::gen::structure

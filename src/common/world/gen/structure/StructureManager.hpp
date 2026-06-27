@@ -118,15 +118,6 @@ public:
     void setReferenceDistance(i32 distance) { m_referenceDistance = distance; }
 
     /**
-     * @brief 检查是否应该在指定区块生成结构起点
-     * @param structure 结构类型
-     * @param chunkX 区块 X 坐标
-     * @param chunkZ 区块 Z 坐标
-     * @return 是否应该生成
-     */
-    [[nodiscard]] bool shouldGenerateStructureStart(const Structure& structure, i32 chunkX, i32 chunkZ) const;
-
-    /**
      * @brief 在指定区块生成结构起点
      * @param structure 结构类型
      * @param world 世界写入器
@@ -182,7 +173,6 @@ public:
      * - NoiseChunkGenerator::generateStructureReferences() 通过此方法调用 incrementReference()
      *
      * TODO: 后续需添加以下调用方：
-     * - NoiseChunkGenerator::shouldGenerateStructureStart() 调用 checkStart() 避免重复生成
      * - ServerWorld::findNearestStructure() 调用 checkStart() 快速跳过不含结构的区块
      */
     [[nodiscard]] StructureCheck& structureCheck() { return m_structureCheck; }

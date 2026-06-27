@@ -200,23 +200,7 @@ void OceanRuinPiece::generate(
 
 OceanRuinStructure::OceanRuinStructure()
     : Structure(ResourceLocation("minecraft", "ocean_ruin"))
-{
-    _initializeBiomes();
-}
-
-void OceanRuinStructure::_initializeBiomes() noexcept
-{
-    m_validBiomes = {Biomes::Ocean,
-        Biomes::WarmOcean,
-        Biomes::LukewarmOcean,
-        Biomes::ColdOcean,
-        Biomes::FrozenOcean,
-        Biomes::DeepOcean,
-        Biomes::DeepWarmOcean,
-        Biomes::DeepLukewarmOcean,
-        Biomes::DeepColdOcean,
-        Biomes::DeepFrozenOcean};
-}
+{}
 
 const biome::BiomeTag* OceanRuinStructure::biomeTag() const
 {

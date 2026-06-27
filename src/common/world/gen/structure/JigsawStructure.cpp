@@ -108,21 +108,6 @@ namespace gen {
 namespace structure {
 
 const std::string JigsawStructure::m_name = "jigsaw";
-const std::vector<BiomeId> JigsawStructure::m_validBiomes;
-
-JigsawStructure::JigsawStructure(StructureType type,
-    JigsawConfig config,
-    i32 startY,
-    bool nearTerrain,
-    bool adjustForTerrain,
-    TerrainAdaptation terrainAdaptation)
-    : Structure(type)
-    , m_config(std::move(config))
-    , m_startY(startY)
-    , m_nearTerrain(nearTerrain)
-    , m_adjustForTerrain(adjustForTerrain)
-    , m_terrainAdaptation(terrainAdaptation)
-{}
 
 JigsawStructure::JigsawStructure(ResourceLocation id,
     JigsawConfig config,

@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
@@ -117,34 +118,19 @@ TEST_F(OceanRuinStructureTest, Structure_BasicProperties)
     OceanRuinStructure structure;
 
     EXPECT_EQ(structure.name(), "ocean_ruin");
-    EXPECT_FALSE(structure.validBiomes().empty());
-
-    // 验证间距设置
-    auto settings = structure.separationSettings();
-    EXPECT_GT(settings.spacing, 0);
-    EXPECT_GT(settings.separation, 0);
-    EXPECT_GT(settings.salt, 0);
+    ASSERT_NE(structure.biomeTag(), nullptr);
 }
 
-TEST_F(OceanRuinStructureTest, Structure_ValidBiomes)
+TEST_F(OceanRuinStructureTest, Structure_ValidBiomeTag)
 {
     OceanRuinStructure structure;
-    const auto& biomes = structure.validBiomes();
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
 
     // 验证海洋生物群系
-    bool hasOcean = false;
-    bool hasWarmOcean = false;
-    bool hasDeepOcean = false;
-
-    for (auto biome : biomes) {
-        if (biome == Biomes::Ocean) hasOcean = true;
-        if (biome == Biomes::WarmOcean) hasWarmOcean = true;
-        if (biome == Biomes::DeepOcean) hasDeepOcean = true;
-    }
-
-    EXPECT_TRUE(hasOcean) << "Missing Ocean biome";
-    EXPECT_TRUE(hasWarmOcean) << "Missing WarmOcean biome";
-    EXPECT_TRUE(hasDeepOcean) << "Missing DeepOcean biome";
+    EXPECT_TRUE(tag->contains(Biomes::Ocean));
+    EXPECT_TRUE(tag->contains(Biomes::WarmOcean));
+    EXPECT_TRUE(tag->contains(Biomes::DeepOcean));
 }
 
 TEST_F(OceanRuinStructureTest, Structure_TemplateNames)
@@ -242,21 +228,6 @@ TEST_F(OceanRuinStructureTest, Rotation_AllVariants)
         // 验证构造成功
         EXPECT_EQ(piece.templateName(), "test_template");
     }
-}
-
-// ============================================================================
-// 分离设置测试
-// ============================================================================
-
-TEST_F(OceanRuinStructureTest, SeparationSettings_MC1165Values)
-{
-    OceanRuinStructure structure;
-    auto settings = structure.separationSettings();
-
-    // MC 1.16.5: spacing=20, separation=8, salt=14357621
-    EXPECT_EQ(settings.spacing, 20);
-    EXPECT_EQ(settings.separation, 8);
-    EXPECT_EQ(settings.salt, 14357621);
 }
 
 // ============================================================================

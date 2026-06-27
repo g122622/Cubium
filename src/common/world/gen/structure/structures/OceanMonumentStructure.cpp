@@ -19,14 +19,7 @@ const SpawnOverrides OceanMonumentStructure::m_spawnOverrides = {
 
 OceanMonumentStructure::OceanMonumentStructure()
     : Structure(ResourceLocation("minecraft", "monument"))
-{
-    _initializeBiomes();
-}
-
-void OceanMonumentStructure::_initializeBiomes()
-{
-    m_validBiomes = {DeepOcean, DeepWarmOcean, DeepLukewarmOcean, DeepColdOcean, DeepFrozenOcean};
-}
+{}
 
 const biome::BiomeTag* OceanMonumentStructure::biomeTag() const
 {

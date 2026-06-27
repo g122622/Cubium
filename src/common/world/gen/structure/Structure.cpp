@@ -639,14 +639,13 @@ StructurePiece* StructurePiece::findIntersecting(
 
 bool Structure::isValidBiome(BiomeId biomeId) const
 {
-    // 优先使用 BiomeTag 进行 O(1) 查找
+    // 使用 BiomeTag 进行 O(1) 查找
     const biome::BiomeTag* tag = biomeTag();
     if (tag) {
         return tag->contains(biomeId);
     }
-    // 标签未加载时，回退到线性搜索（兼容旧代码）
-    const auto& biomes = validBiomes();
-    return std::find(biomes.begin(), biomes.end(), biomeId) != biomes.end();
+    // 标签未加载时，无法判断，返回 false
+    return false;
 }
 
 bool Structure::canGenerate(
@@ -686,133 +685,6 @@ math::Random Structure::createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt)
     u64 combinedSeed = static_cast<u64>(chunkX) * 341873128712ULL + static_cast<u64>(chunkZ) * 132897987541ULL +
         static_cast<u64>(seed) + static_cast<u64>(salt);
     return math::Random(static_cast<i64>(combinedSeed));
-}
-
-ResourceLocation Structure::typeToId(StructureType type)
-{
-    switch (type) {
-        case StructureType::Temple:
-            return ResourceLocation("minecraft", "temple");
-        case StructureType::Monument:
-            return ResourceLocation("minecraft", "ocean_monument");
-        case StructureType::Stronghold:
-            return ResourceLocation("minecraft", "stronghold");
-        case StructureType::Village:
-            return ResourceLocation("minecraft", "village");
-        case StructureType::Mineshaft:
-            return ResourceLocation("minecraft", "mineshaft");
-        case StructureType::RuinedPortal:
-            return ResourceLocation("minecraft", "ruined_portal");
-        case StructureType::BuriedTreasure:
-            return ResourceLocation("minecraft", "buried_treasure");
-        case StructureType::Shipwreck:
-            return ResourceLocation("minecraft", "shipwreck");
-        case StructureType::OceanRuin:
-            return ResourceLocation("minecraft", "ocean_ruin");
-        case StructureType::WoodlandMansion:
-            return ResourceLocation("minecraft", "woodland_mansion");
-        case StructureType::Bastion:
-            return ResourceLocation("minecraft", "bastion_remnant");
-        case StructureType::Fortress:
-            return ResourceLocation("minecraft", "fortress");
-        case StructureType::EndCity:
-            return ResourceLocation("minecraft", "end_city");
-        case StructureType::PillagerOutpost:
-            return ResourceLocation("minecraft", "pillager_outpost");
-        case StructureType::TrialChambers:
-            return ResourceLocation("minecraft", "trial_chambers");
-        default:
-            return ResourceLocation("minecraft", "unknown");
-    }
-}
-
-std::optional<StructureType> Structure::nameToStructureType(std::string_view name)
-{
-    // 移除 minecraft: 前缀
-    std::string_view normalized = name;
-    if (normalized.find("minecraft:") == 0) {
-        normalized = normalized.substr(10);
-    }
-
-    // 别名映射：支持常见名称变体
-    static const std::unordered_map<std::string_view, StructureType> aliases = {
-        {"temple", StructureType::Temple},
-        {"desert_pyramid", StructureType::Temple},
-        {"desert_temple", StructureType::Temple},
-        {"jungle_temple", StructureType::Temple},
-        {"jungle_pyramid", StructureType::Temple},
-        {"igloo", StructureType::Temple},
-        {"swamp_hut", StructureType::Temple},
-        {"witch_hut", StructureType::Temple},
-        {"nether_fossil", StructureType::Temple},
-        {"ocean_monument", StructureType::Monument},
-        {"monument", StructureType::Monument},
-        {"stronghold", StructureType::Stronghold},
-        {"village", StructureType::Village},
-        {"mineshaft", StructureType::Mineshaft},
-        {"ruined_portal", StructureType::RuinedPortal},
-        {"buried_treasure", StructureType::BuriedTreasure},
-        {"shipwreck", StructureType::Shipwreck},
-        {"ocean_ruin", StructureType::OceanRuin},
-        {"ocean_ruins", StructureType::OceanRuin},
-        {"woodland_mansion", StructureType::WoodlandMansion},
-        {"mansion", StructureType::WoodlandMansion},
-        {"bastion", StructureType::Bastion},
-        {"bastion_remnant", StructureType::Bastion},
-        {"fortress", StructureType::Fortress},
-        {"nether_fortress", StructureType::Fortress},
-        {"end_city", StructureType::EndCity},
-        {"endcity", StructureType::EndCity},
-        {"pillager_outpost", StructureType::PillagerOutpost},
-        {"trial_chambers", StructureType::TrialChambers},
-    };
-
-    auto it = aliases.find(normalized);
-    if (it != aliases.end()) {
-        return it->second;
-    }
-
-    return std::nullopt;
-}
-
-bool Structure::findStructureStart(i64 seed,
-    i32 chunkX,
-    i32 chunkZ,
-    const StructureSeparationSettings& settings,
-    i32& outStartX,
-    i32& outStartZ,
-    bool useUniformSpacing)
-{
-    i32 spacing = settings.spacing;
-    i32 separation = settings.separation;
-
-    if (spacing <= 0) {
-        return false;
-    }
-
-    i32 gridX = math::floorDiv(chunkX, spacing);
-    i32 gridZ = math::floorDiv(chunkZ, spacing);
-
-    u64 combinedSeed = static_cast<u64>(gridX) * 341873128712ULL + static_cast<u64>(gridZ) * 132897987541ULL +
-        static_cast<u64>(seed) + static_cast<u64>(settings.salt);
-    math::Random rng(static_cast<i64>(combinedSeed));
-
-    i32 offsetRange = spacing - separation;
-
-    // 均匀分布 vs 三角分布（两次随机取平均，产生更集中的分布）
-    i32 offsetX, offsetZ;
-    if (useUniformSpacing) {
-        offsetX = rng.nextInt(offsetRange);
-        offsetZ = rng.nextInt(offsetRange);
-    } else {
-        offsetX = (rng.nextInt(offsetRange) + rng.nextInt(offsetRange)) / 2;
-        offsetZ = (rng.nextInt(offsetRange) + rng.nextInt(offsetRange)) / 2;
-    }
-
-    outStartX = gridX * spacing + offsetX;
-    outStartZ = gridZ * spacing + offsetZ;
-
-    return outStartX == chunkX && outStartZ == chunkZ;
 }
 
 // ========== StructureStart ==========

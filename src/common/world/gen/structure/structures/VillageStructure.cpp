@@ -107,41 +107,12 @@ VillageStructure::VillageStructure(VillageType type)
     : Structure(ResourceLocation("minecraft", "village"))
 {
     m_config.type = type;
-    _initializeBiomes();
 }
 
 VillageStructure::VillageStructure(const VillageConfig& config)
     : Structure(ResourceLocation("minecraft", "village"))
     , m_config(config)
-{
-    _initializeBiomes();
-}
-
-void VillageStructure::_initializeBiomes()
-{
-    // 根据村庄类型设置有效生物群系
-    switch (m_config.type) {
-        case VillageType::Plains:
-            m_validBiomes = {Plains, SunflowerPlains};
-            break;
-        case VillageType::Desert:
-            m_validBiomes = {Desert, DesertHills, DesertLakes};
-            break;
-        case VillageType::Savanna:
-            m_validBiomes = {Savanna, SavannaPlateau, ShatteredSavanna};
-            break;
-        case VillageType::Taiga:
-            m_validBiomes = {Taiga, TaigaHills, TaigaMountains, SnowyTaiga, SnowyTaigaHills, SnowyTaigaMountains};
-            break;
-        case VillageType::Snowy:
-            m_validBiomes = {SnowyPlains, SnowyMountains};
-            break;
-        case VillageType::Zombie:
-            // 僵尸村庄可以在任何村庄生物群系生成
-            m_validBiomes = {Plains, Desert, Savanna, Taiga, SnowyPlains};
-            break;
-    }
-}
+{}
 
 const biome::BiomeTag* VillageStructure::biomeTag() const
 {

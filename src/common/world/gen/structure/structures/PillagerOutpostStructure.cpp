@@ -44,20 +44,6 @@ const std::string PillagerOutpostStructure::s_name = "Pillager_Outpost";
 const SpawnOverrides PillagerOutpostStructure::s_spawnOverrides = {
     SpawnOverrideType::Full, {SpawnOverrideEntry{"monster", 1, 1}}};
 
-const std::vector<BiomeId> PillagerOutpostStructure::s_validBiomes = {Plains,
-    Desert,
-    Savanna,
-    Taiga,
-    SnowyPlains,
-    SnowyTaiga,
-    SavannaPlateau,
-    WoodedHills,
-    BirchForest,
-    DarkForest,
-    TaigaHills,
-    GiantTreeTaiga,
-    GiantTreeTaigaHills};
-
 PillagerOutpostStructure::PillagerOutpostStructure()
     : JigsawStructure(ResourceLocation("minecraft", "pillager_outpost"),
           JigsawConfig(ResourceLocation("minecraft", "pillager_outpost/base_plates"), 7),
@@ -78,21 +64,19 @@ bool PillagerOutpostStructure::canGenerate(
 
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, 64, chunkZ * CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            // 20% 的生成概率
-            i32 i = chunkX >> 4;
-            i32 j = chunkZ >> 4;
-            rng.setSeed(static_cast<i64>(i ^ j << 4) ^ static_cast<i64>(generator.seed()));
-            (void)rng.nextInt();
+    if (isValidBiome(biome)) {
+        // 20% 的生成概率
+        i32 i = chunkX >> 4;
+        i32 j = chunkZ >> 4;
+        rng.setSeed(static_cast<i64>(i ^ j << 4) ^ static_cast<i64>(generator.seed()));
+        (void)rng.nextInt();
 
-            if (rng.nextInt(5) != 0) {
-                return false;
-            }
-
-            // 检查附近是否有村庄
-            return !_isNearVillage(generator, static_cast<i64>(generator.seed()), rng, chunkX, chunkZ);
+        if (rng.nextInt(5) != 0) {
+            return false;
         }
+
+        // 检查附近是否有村庄
+        return !_isNearVillage(generator, static_cast<i64>(generator.seed()), rng, chunkX, chunkZ);
     }
     return false;
 }

@@ -363,25 +363,12 @@ const SpawnOverrides FortressStructure::s_spawnOverrides = {
 
 FortressStructure::FortressStructure()
     : Structure(ResourceLocation("minecraft", "fortress"))
-{
-    _initializeBiomes();
-}
+{}
 
 FortressStructure::FortressStructure(const Config& config)
     : Structure(ResourceLocation("minecraft", "fortress"))
     , m_config(config)
-{
-    _initializeBiomes();
-}
-
-void FortressStructure::_initializeBiomes()
-{
-    // 下界要塞只生成在下界荒地和灵魂沙谷
-    m_validBiomes = {
-        NetherWastes,  // 下界荒地
-        SoulSandValley // 灵魂沙谷
-    };
-}
+{}
 
 const biome::BiomeTag* FortressStructure::biomeTag() const
 {

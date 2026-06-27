@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/util/math/random/Random.hpp"
+#include "common/world/biome/Biome.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/feature/template/Template.hpp"
@@ -114,37 +115,20 @@ TEST_F(ShipwreckStructureTest, Structure_BasicProperties)
     ShipwreckStructure structure;
 
     EXPECT_EQ(structure.name(), "shipwreck");
-    EXPECT_FALSE(structure.validBiomes().empty());
-
-    // 验证间距设置
-    auto settings = structure.separationSettings();
-    EXPECT_GT(settings.spacing, 0);
-    EXPECT_GT(settings.separation, 0);
-    EXPECT_GT(settings.salt, 0);
+    ASSERT_NE(structure.biomeTag(), nullptr);
 }
 
-TEST_F(ShipwreckStructureTest, Structure_ValidBiomes)
+TEST_F(ShipwreckStructureTest, Structure_ValidBiomeTag)
 {
     ShipwreckStructure structure;
-    const auto& biomes = structure.validBiomes();
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
 
     // 验证海洋和沙滩生物群系
-    bool hasOcean = false;
-    bool hasBeach = false;
-    bool hasSnowyBeach = false;
-    bool hasDeepOcean = false;
-
-    for (auto biome : biomes) {
-        if (biome == Biomes::Ocean) hasOcean = true;
-        if (biome == Biomes::Beach) hasBeach = true;
-        if (biome == Biomes::SnowyBeach) hasSnowyBeach = true;
-        if (biome == Biomes::DeepOcean) hasDeepOcean = true;
-    }
-
-    EXPECT_TRUE(hasOcean) << "Missing Ocean biome";
-    EXPECT_TRUE(hasBeach) << "Missing Beach biome";
-    EXPECT_TRUE(hasSnowyBeach) << "Missing SnowyBeach biome";
-    EXPECT_TRUE(hasDeepOcean) << "Missing DeepOcean biome";
+    EXPECT_TRUE(tag->contains(Biomes::Ocean));
+    EXPECT_TRUE(tag->contains(Biomes::Beach));
+    EXPECT_TRUE(tag->contains(Biomes::SnowyBeach));
+    EXPECT_TRUE(tag->contains(Biomes::DeepOcean));
 }
 
 TEST_F(ShipwreckStructureTest, Structure_TemplateNames)
@@ -241,21 +225,6 @@ TEST_F(ShipwreckStructureTest, Structure_BeachedTemplatesSubsetOfAll)
         }
         EXPECT_TRUE(found) << "Beached template not in all templates: " << beachedName;
     }
-}
-
-// ============================================================================
-// 分离设置测试
-// ============================================================================
-
-TEST_F(ShipwreckStructureTest, SeparationSettings_MC1165Values)
-{
-    ShipwreckStructure structure;
-    auto settings = structure.separationSettings();
-
-    // MC 1.16.5: spacing=24, separation=4, salt=165745295
-    EXPECT_EQ(settings.spacing, 24);
-    EXPECT_EQ(settings.separation, 4);
-    EXPECT_EQ(settings.salt, 165745295);
 }
 
 // ============================================================================

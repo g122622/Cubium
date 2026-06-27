@@ -68,8 +68,6 @@ public:
     {}
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -102,12 +100,8 @@ public:
         IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    // spacing=1, separation=0, salt=0
-    // BuriedTreasure使用DimensionStructuresSettings中的默认配置
     // 注意：canGenerate中使用单独的salt(10387320)来计算概率种子
-    static constexpr StructureSeparationSettings m_settings{1, 0, 0};
     static const std::string m_name;
-    static const std::vector<BiomeId> m_validBiomes;
 };
 
 } // namespace structure

@@ -25,6 +25,7 @@
 
 #include "common/command/CommandDispatcher.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "server/command/ServerCommandSource.hpp"
 
 namespace mc {
@@ -42,7 +43,17 @@ public:
 
 private:
     static i32 _locateStructure(CommandContext<ServerCommandSource>& context);
-    static std::string _normalizeStructureName(const std::string& name);
+
+    /**
+     * @brief 将用户输入的结构名称规范化为 ResourceLocation
+     *
+     * 支持带命名空间（minecraft:village）、不带命名空间（village）、
+     * 以及常见别名（mansion → minecraft:mansion）。
+     *
+     * @param name 用户输入的结构名称
+     * @return 规范化后的 ResourceLocation
+     */
+    static ResourceLocation _normalizeToResourceLocation(const std::string& name);
 };
 
 } // namespace command

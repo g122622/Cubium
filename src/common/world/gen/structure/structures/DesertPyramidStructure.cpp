@@ -243,15 +243,7 @@ const std::string DesertPyramidStructure::m_name = "desert_pyramid";
 
 DesertPyramidStructure::DesertPyramidStructure()
     : Structure(ResourceLocation("minecraft", "desert_pyramid"))
-{
-    _initializeBiomes();
-}
-
-void DesertPyramidStructure::_initializeBiomes()
-{
-    // 仅包含 Desert，与数据包 has_structure/desert_pyramid 标签一致
-    m_validBiomes = {Desert};
-}
+{}
 
 const biome::BiomeTag* DesertPyramidStructure::biomeTag() const
 {
