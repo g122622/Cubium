@@ -307,6 +307,7 @@ add_library(mc_common STATIC
     entity/ai/controller/FlyingMovementController.cpp
     entity/ai/controller/VexMovementController.cpp
     entity/ai/controller/GhastMovementController.cpp
+    entity/ai/controller/PhantomMovementController.cpp
     entity/ai/controller/DrownedMoveControl.cpp
     entity/ai/goal/goals/SwimGoal.cpp
     entity/ai/goal/goals/RandomWalkingGoal.cpp

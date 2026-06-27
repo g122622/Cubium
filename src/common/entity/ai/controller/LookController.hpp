@@ -106,7 +106,7 @@ public:
      *
      * 每tick调用，更新实体头部旋转。
      */
-    void tick();
+    virtual void tick();
 
 protected:
     /**

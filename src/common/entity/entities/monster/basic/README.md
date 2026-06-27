@@ -26,7 +26,10 @@ MonsterEntity（基类）
     │   └── 仅定义尺寸和属性，无AI行为
     │
     └── PhantomEntity ─────────── 继承 FlyingEntity（非 MonsterEntity 直接子类）
-        └── 环绕-俯冲攻击AI目标（在 ai/goal/goals/special/ 中实现）
+        ├── 环绕-俯冲攻击AI目标（在 ai/goal/goals/special/ 中实现）
+        ├── PhantomMovementController（直接操控速度向量的飞行移动）
+        ├── PhantomLookController（空操作，朝向由移动控制器控制）
+        └── 客户端侧翅膀拍打音效和菌丝粒子
 ```
 
 ## 上下游外部依赖关系
