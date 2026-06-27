@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -50,7 +51,7 @@ namespace {
 class EffectTestWorld final : public test::BaseTestWorld {
 public:
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void addParticle(client::renderer::trident::particle::ParticleTypeId,
+    void addParticle(particle::ParticleTypeId,
         const Vector3&,
         const Vector3&,
         const Vector3&,

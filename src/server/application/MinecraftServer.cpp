@@ -58,6 +58,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
@@ -492,7 +493,7 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
                              const Vector3& position,
                              f32 volume,
                              f32 pitch) { broadcastSound(soundEventId, category, position, volume, pitch); });
-    world.setOnBroadcastParticle([this](client::renderer::trident::particle::ParticleTypeId type,
+    world.setOnBroadcastParticle([this](particle::ParticleTypeId type,
                                      const Vector3& pos,
                                      const Vector3& velocity,
                                      const Vector3& offset,
@@ -2415,7 +2416,7 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
 // 粒子广播
 // ============================================================================
 
-void MinecraftServer::broadcastParticleInRange(client::renderer::trident::particle::ParticleTypeId type,
+void MinecraftServer::broadcastParticleInRange(particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
@@ -2453,7 +2454,7 @@ void MinecraftServer::broadcastParticleInRange(client::renderer::trident::partic
 }
 
 void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
-    client::renderer::trident::particle::ParticleTypeId type,
+    particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
@@ -2516,7 +2517,7 @@ void MinecraftServer::broadcastParticleInRange(u32 type,
     f32 range)
 {
     // 转换为强类型枚举并调用现有的实现
-    auto particleType = static_cast<client::renderer::trident::particle::ParticleTypeId>(type);
+    auto particleType = static_cast<particle::ParticleTypeId>(type);
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     Vector3 velocity(velocityX, velocityY, velocityZ);
     Vector3 offset(offsetX, offsetY, offsetZ);

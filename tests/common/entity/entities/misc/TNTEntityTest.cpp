@@ -28,7 +28,7 @@
  * 测试 TNT 实体的核心功能：点燃、爆炸、物理等。
  */
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -201,13 +201,13 @@ private:
 
     // 粒子记录
     i32 m_particleCount = 0;
-    client::renderer::trident::particle::ParticleTypeId m_lastParticleType =
-        client::renderer::trident::particle::ParticleTypeId::Invalid;
+    particle::ParticleTypeId m_lastParticleType =
+        particle::ParticleTypeId::Invalid;
 
 public:
     // 粒子生成接口实现
     void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particleCount++;
         m_lastParticleType = type;
@@ -215,7 +215,7 @@ public:
         (void)velocity;
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -232,7 +232,7 @@ public:
 
     [[nodiscard]] i32 particleCount() const { return m_particleCount; }
 
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId lastParticleType() const
+    [[nodiscard]] particle::ParticleTypeId lastParticleType() const
     {
         return m_lastParticleType;
     }
@@ -240,7 +240,7 @@ public:
     void resetParticleCount()
     {
         m_particleCount = 0;
-        m_lastParticleType = client::renderer::trident::particle::ParticleTypeId::Invalid;
+        m_lastParticleType = particle::ParticleTypeId::Invalid;
     }
 };
 
@@ -596,7 +596,7 @@ TEST_F(TNTEntityTest, ExplosionRadiusBoundaryValues)
  */
 TEST_F(TNTEntityTest, ClientSideSmokeParticles)
 {
-    using namespace client::renderer::trident::particle;
+    using namespace particle;
 
     m_world.setClientSide(true);
 

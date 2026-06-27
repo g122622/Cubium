@@ -19,17 +19,13 @@
 
 #include "OminousItemSpawnerEntity.hpp"
 
-// TODO(ParticleTypeId): ParticleTypeId 定义在 client 层，common 层不应依赖 client。
-// 这是整个项目的既有架构问题（42+ 个 common 层文件依赖此类型），
-// 正确的做法是将 ParticleTypeId 枚举移至 common 层（如 common/particle/ParticleTypes.hpp），
-// 客户端渲染层再引用 common 层的定义。当前遵循项目既有模式暂不修改。
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ProjectileItem.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -284,9 +280,8 @@ void OminousItemSpawnerEntity::addParticles()
         f64 velY = offsetY;
         f64 velZ = offsetZ;
 
-        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::OminousSpawning,
-            Vector3(x(), y(), z()),
-            Vector3(velX, velY, velZ));
+        m_world->addParticle(
+            particle::ParticleTypeId::OminousSpawning, Vector3(x(), y(), z()), Vector3(velX, velY, velZ));
     }
 }
 

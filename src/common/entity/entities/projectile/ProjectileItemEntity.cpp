@@ -22,7 +22,6 @@
  */
 
 #include "ProjectileItemEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -30,6 +29,7 @@
 #include "common/entity/entities/orb/ExperienceOrbEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/potion/PotionUtils.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -110,11 +110,8 @@ void SnowballEntity::onImpact(const RayTraceResult& /*result*/)
 {
     // 播放破裂粒子效果
     if (m_world) {
-        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Snowflake,
-            m_position,
-            Vector3(0.0f, 0.0f, 0.0f),
-            Vector3(0.5f, 0.5f, 0.5f),
-            8);
+        m_world->addParticle(
+            particle::ParticleTypeId::Snowflake, m_position, Vector3(0.0f, 0.0f, 0.0f), Vector3(0.5f, 0.5f, 0.5f), 8);
     }
 
     remove();
@@ -154,13 +151,12 @@ void EggEntity::onImpact(const RayTraceResult& /*result*/)
     if (_tryHatchChicken()) {
         // 孵化成功
         if (m_world) {
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Heart, m_position, Vector3(0.0f, 0.0f, 0.0f));
+            m_world->addParticle(particle::ParticleTypeId::Heart, m_position, Vector3(0.0f, 0.0f, 0.0f));
         }
     } else {
         // 播放破裂粒子效果
         if (m_world) {
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Snowflake,
+            m_world->addParticle(particle::ParticleTypeId::Snowflake,
                 m_position,
                 Vector3(0.0f, 0.0f, 0.0f),
                 Vector3(0.3f, 0.3f, 0.3f),
@@ -275,11 +271,8 @@ void PotionEntity::onImpact(const RayTraceResult& result)
         u32 color = potion::PotionUtils::getColor(effects);
 
         // 生成喷溅粒子
-        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Splash,
-            m_position,
-            Vector3(0.0f, 0.0f, 0.0f),
-            Vector3(0.5f, 0.5f, 0.5f),
-            20);
+        m_world->addParticle(
+            particle::ParticleTypeId::Splash, m_position, Vector3(0.0f, 0.0f, 0.0f), Vector3(0.5f, 0.5f, 0.5f), 20);
 
         // 应用效果到范围内的生物
         if (!effects.empty()) {
@@ -415,11 +408,8 @@ void ExperienceBottleEntity::onImpact(const RayTraceResult& /*result*/)
         }
 
         // 播放破裂效果
-        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Snowflake,
-            m_position,
-            Vector3(0.0f, 0.0f, 0.0f),
-            Vector3(0.3f, 0.3f, 0.3f),
-            4);
+        m_world->addParticle(
+            particle::ParticleTypeId::Snowflake, m_position, Vector3(0.0f, 0.0f, 0.0f), Vector3(0.3f, 0.3f, 0.3f), 4);
     }
 
     remove();

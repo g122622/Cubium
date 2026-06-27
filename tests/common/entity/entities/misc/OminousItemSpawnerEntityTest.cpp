@@ -30,7 +30,7 @@
  */
 
 #include "common/entity/entities/misc/OminousItemSpawnerEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
@@ -119,7 +119,7 @@ public:
     }
 
     void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particleCount++;
         m_lastParticleType = type;
@@ -154,7 +154,7 @@ public:
     [[nodiscard]] const Entity* lastGameEventSourceEntity() const { return m_lastGameEventSourceEntity; }
 
     [[nodiscard]] i32 particleCount() const { return m_particleCount; }
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId lastParticleType() const
+    [[nodiscard]] particle::ParticleTypeId lastParticleType() const
     {
         return m_lastParticleType;
     }
@@ -184,8 +184,8 @@ private:
 
     // 粒子记录
     i32 m_particleCount = 0;
-    client::renderer::trident::particle::ParticleTypeId m_lastParticleType =
-        client::renderer::trident::particle::ParticleTypeId::Invalid;
+    particle::ParticleTypeId m_lastParticleType =
+        particle::ParticleTypeId::Invalid;
 };
 
 // ============================================================================

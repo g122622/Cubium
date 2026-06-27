@@ -21,7 +21,6 @@
 
 #include "AbstractFireballEntity.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -29,6 +28,7 @@
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
@@ -255,7 +255,7 @@ void DragonFireballEntity::_createDragonBreathCloud()
     cloud->addEffect(instantDamage);
 
     // 设置龙息粒子类型
-    cloud->setParticleType(static_cast<u32>(client::renderer::trident::particle::ParticleTypeId::DragonBreath));
+    cloud->setParticleType(static_cast<u32>(particle::ParticleTypeId::DragonBreath));
 
     // 生成区域效果云
     worldPtr->spawnEntity(std::move(cloud));
@@ -267,10 +267,10 @@ void DragonFireballEntity::_createDragonBreathCloud()
         isSilent() ? -1 : 1);
 }
 
-client::renderer::trident::particle::ParticleTypeId DragonFireballEntity::getParticleType() const
+particle::ParticleTypeId DragonFireballEntity::getParticleType() const
 {
     // 返回 DRAGON_BREATH 粒子
-    return client::renderer::trident::particle::ParticleTypeId::DragonBreath;
+    return particle::ParticleTypeId::DragonBreath;
 }
 
 WitherSkullEntity::WitherSkullEntity(EntityId id)

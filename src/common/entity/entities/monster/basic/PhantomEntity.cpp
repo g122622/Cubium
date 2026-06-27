@@ -23,7 +23,6 @@
 
 #include "PhantomEntity.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/ai/controller/PhantomLookController.hpp"
 #include "common/entity/ai/controller/PhantomMovementController.hpp"
 #include "common/entity/ai/goal/goals/special/PhantomGoals.hpp"
@@ -32,6 +31,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityUtils.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -204,7 +204,7 @@ void PhantomEntity::_clientTickEffects()
     f32 wingY = static_cast<f32>(y()) + (0.3f + flapCosCurrent * 0.45f) * height() * 2.5f;
 
     // MC 原版使用 MYCELIUM 粒子类型（SuspendedTownParticle）
-    using namespace client::renderer::trident::particle;
+    using namespace particle;
     world()->addParticle(ParticleTypeId::Mycelium, Vector3(wingTipX1, wingY, wingTipZ1), Vector3(0.0, 0.0, 0.0));
     world()->addParticle(ParticleTypeId::Mycelium, Vector3(wingTipX2, wingY, wingTipZ2), Vector3(0.0, 0.0, 0.0));
 }

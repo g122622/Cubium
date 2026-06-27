@@ -34,7 +34,7 @@
 #include "../../registry/VanillaBlocks.hpp"
 #include "../../registry/VegetationBlocks.hpp"
 #include "../ice/SnowBlock.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 
 namespace mc::blocks {
 
@@ -305,7 +305,7 @@ void MyceliumBlock::animateTick(
         f32 y = static_cast<f32>(pos.y) + 1.1f;
         f32 z = static_cast<f32>(pos.z) + random.nextFloat();
         context.addAnimateParticle(
-            client::renderer::trident::particle::ParticleTypeId::Mycelium, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
+            particle::ParticleTypeId::Mycelium, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
     }
 }
 

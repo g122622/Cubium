@@ -50,6 +50,10 @@
 #include <thread>
 #include <asio.hpp>
 
+namespace mc::particle {
+enum class ParticleTypeId : u16;
+}
+
 namespace mc::client {
 
 // ============================================================================
@@ -192,7 +196,7 @@ struct NetworkClientCallbacks {
         onPlayerListUpdateDisplayName;
 
     // 粒子事件
-    std::function<void(client::renderer::trident::particle::ParticleTypeId type,
+    std::function<void(::mc::particle::ParticleTypeId type,
         f64 x,
         f64 y,
         f64 z,

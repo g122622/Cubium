@@ -23,7 +23,7 @@
 
 #include "JukeboxSongPlayer.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
@@ -124,7 +124,7 @@ void JukeboxSongPlayer::spawnMusicParticles(IWorld& world)
     const f32 colorData = static_cast<f32>(world.getRandom().nextInt(4)) / 24.0f;
 
     world.addParticle(
-        client::renderer::trident::particle::ParticleTypeId::Note, Vector3(x, y, z), Vector3(colorData, 0.0f, 0.0f));
+        particle::ParticleTypeId::Note, Vector3(x, y, z), Vector3(colorData, 0.0f, 0.0f));
 }
 
 } // namespace mc

@@ -42,7 +42,7 @@
 #include "../../../core/EntityRegistry.hpp"
 #include "../../../entities/passive/basic/CowEntity.hpp"
 #include "../../../utils/ItemDropHelper.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include <memory>
 
 namespace mc {
@@ -79,7 +79,7 @@ std::vector<ItemStack> MooshroomEntity::shear(Player* player)
     }
 
     // 生成爆炸粒子效果（客户端检查已在上面）
-    using namespace mc::client::renderer::trident::particle;
+    using namespace mc::particle;
     math::Random& random = worldPtr->getRandom();
     for (i32 i = 0; i < 20; ++i) {
         f32 offsetX = (random.nextFloat() - 0.5f) * width();
@@ -214,7 +214,7 @@ ActionResultType MooshroomEntity::interactMob(Player& player, Hand hand)
                 if (hasStewEffect()) {
                     // 已经存储了效果，拒绝（生成烟雾粒子表示拒绝）
                     // 生成2个烟雾粒子
-                    using namespace mc::client::renderer::trident::particle;
+                    using namespace mc::particle;
                     for (i32 i = 0; i < 2; ++i) {
                         f32 offsetX = (getRandom().nextFloat() - 0.5f) * width();
                         f32 offsetY = getRandom().nextFloat() * height();
@@ -233,7 +233,7 @@ ActionResultType MooshroomEntity::interactMob(Player& player, Hand hand)
                     setStewEffect(flowerEffect->first, flowerEffect->second);
 
                     // 生成4个附魔粒子效果（表示成功存储）
-                    using namespace mc::client::renderer::trident::particle;
+                    using namespace mc::particle;
                     for (i32 i = 0; i < 4; ++i) {
                         f32 offsetX = (getRandom().nextFloat() - 0.5f) * width();
                         f32 offsetY = getRandom().nextFloat() * height();
@@ -356,7 +356,7 @@ void MooshroomEntity::onStruckByLightning()
 
     // 生成爆炸粒子效果（客户端）
     if (world() != nullptr && world()->isClientSide()) {
-        using namespace mc::client::renderer::trident::particle;
+        using namespace mc::particle;
         math::Random& random = world()->getRandom();
 
         // 生成多个爆炸粒子

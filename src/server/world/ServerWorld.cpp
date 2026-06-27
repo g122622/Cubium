@@ -28,7 +28,6 @@
 
 #include "ServerWorld.hpp"
 #include "ServerChunkManager.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -41,6 +40,7 @@
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -2134,8 +2134,7 @@ std::vector<std::reference_wrapper<const BlockEntity>> ServerWorld::_collectLoad
 // 粒子接口实现
 // ============================================================================
 
-void ServerWorld::addParticle(
-    client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+void ServerWorld::addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
 {
     // 服务端不生成粒子，而是广播给附近玩家
     if (m_onBroadcastParticle) {
@@ -2143,11 +2142,8 @@ void ServerWorld::addParticle(
     }
 }
 
-void ServerWorld::addParticle(client::renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const Vector3& offset,
-    u32 count)
+void ServerWorld::addParticle(
+    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
 {
     // 服务端不生成粒子，而是广播给附近玩家
     if (m_onBroadcastParticle) {

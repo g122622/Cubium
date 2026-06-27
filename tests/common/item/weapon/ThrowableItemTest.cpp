@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -60,7 +61,7 @@ public:
         return ++m_lastEntityId;
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId,
+    void addParticle(particle::ParticleTypeId,
         const Vector3&,
         const Vector3&,
         const Vector3& = Vector3(0, 0, 0),

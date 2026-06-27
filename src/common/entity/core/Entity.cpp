@@ -43,10 +43,10 @@
 #include "../serialization/NbtHelper.hpp"
 #include "EntityRegistry.hpp"
 #include "EntityTypeIdNumber.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -382,7 +382,7 @@ void Entity::doWaterSplashEffect()
     f32 particleY = std::floor(m_position.y) + 1.0f;
 
     // 引入粒子类型
-    using client::renderer::trident::particle::ParticleTypeId;
+    using particle::ParticleTypeId;
 
     // 生成气泡粒子 (BUBBLE)
     for (i32 i = 0; i < particleCount; ++i) {

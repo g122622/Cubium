@@ -22,7 +22,7 @@
  */
 
 #include "ConduitEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -410,7 +410,7 @@ void ConduitEntity::_spawnParticles(IWorld& world)
             static_cast<f32>(relativePos.z) + offsetZ);
 
         // 生成鹦鹉螺粒子
-        world.addParticle(client::renderer::trident::particle::ParticleTypeId::Nautilus, particleOrigin, velocity);
+        world.addParticle(particle::ParticleTypeId::Nautilus, particleOrigin, velocity);
     }
 
     // 如果有攻击目标，在目标位置生成粒子
@@ -429,7 +429,7 @@ void ConduitEntity::_spawnParticles(IWorld& world)
         const Vector3 velocity(offsetX, offsetY, offsetZ);
 
         // 生成鹦鹉螺粒子
-        world.addParticle(client::renderer::trident::particle::ParticleTypeId::Nautilus, targetEyePos, velocity);
+        world.addParticle(particle::ParticleTypeId::Nautilus, targetEyePos, velocity);
     }
 }
 

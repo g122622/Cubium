@@ -26,7 +26,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/blockentity/interactive/EndGatewayEntity.hpp"
 #include "../../core/LivingEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -118,7 +118,7 @@ void ThrowableEntity::tick()
             Vector3 pos(m_position.x - velocity.x * offset,
                 m_position.y - velocity.y * offset,
                 m_position.z - velocity.z * offset);
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Bubble, pos, velocity);
+            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, velocity);
         }
     }
 

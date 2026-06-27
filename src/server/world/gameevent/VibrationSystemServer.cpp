@@ -31,10 +31,10 @@
 
 #include "common/world/gameevent/VibrationSystem.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/advancement/trigger/CriterionTriggers.hpp"
 #include "common/advancement/trigger/impl/AvoidVibrationTrigger.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -336,7 +336,7 @@ void VibrationSystem::Ticker::trySelectAndScheduleVibration(server::ServerWorld&
             world.addVibrationParticle(particlePos, listenerPosOpt.value(), travelTime);
         } else {
             // 无法获取监听器位置时，使用简化的静态粒子效果（向后兼容）
-            world.addParticle(client::renderer::trident::particle::ParticleTypeId::Vibration,
+            world.addParticle(particle::ParticleTypeId::Vibration,
                 particlePos,
                 Vector3(0.0f, 0.0f, 0.0f),
                 Vector3(0.0f, 0.0f, 0.0f),

@@ -22,7 +22,7 @@
 
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/util/property/StateContainer.hpp"
@@ -176,7 +176,7 @@ TEST(InfestedBlockSpawnTest, PoofParticleType_ExistsAndValid)
 {
     // 验证 Poof 粒子类型常量存在
     // InfestedBlock::spawnAfterBreak 使用 ParticleTypeId::Poof
-    auto poofType = client::renderer::trident::particle::ParticleTypeId::Poof;
+    auto poofType = particle::ParticleTypeId::Poof;
     (void)poofType;
     SUCCEED();
 }

@@ -73,6 +73,9 @@
 namespace mc {
 class BlockPos;
 enum class ContainerType : u8;
+namespace particle {
+enum class ParticleTypeId : u16;
+}
 namespace command {
 class CommandRegistry;
 }
@@ -719,7 +722,7 @@ protected:
      * @param count 粒子数量
      * @param range 广播范围（格），默认 256 格
      */
-    void broadcastParticleInRange(client::renderer::trident::particle::ParticleTypeId type,
+    void broadcastParticleInRange(particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -799,7 +802,7 @@ protected:
      * @param count 粒子数量
      */
     void sendParticleToPlayer(PlayerId playerId,
-        client::renderer::trident::particle::ParticleTypeId type,
+        particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,

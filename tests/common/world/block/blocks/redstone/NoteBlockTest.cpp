@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -91,7 +92,7 @@ public:
     }
 
     void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         MC_UNUSED(type);
         MC_UNUSED(pos);

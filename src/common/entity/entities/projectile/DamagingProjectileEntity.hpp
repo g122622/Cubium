@@ -25,17 +25,11 @@
 
 #include "ProjectileEntity.hpp"
 
-// 前向声明粒子类型（与 IWorld.hpp 中的声明一致）
+// 前向声明粒子类型（与 common/particle/ParticleTypes.hpp 中的定义一致）
 namespace mc {
-namespace client {
-namespace renderer {
-namespace trident {
 namespace particle {
 enum class ParticleTypeId : u16;
 }
-} // namespace trident
-} // namespace renderer
-} // namespace client
 } // namespace mc
 
 namespace mc {
@@ -89,7 +83,7 @@ protected:
      *
      * @return 粒子类型ID
      */
-    [[nodiscard]] virtual client::renderer::trident::particle::ParticleTypeId getParticleType() const;
+    [[nodiscard]] virtual particle::ParticleTypeId getParticleType() const;
 
     /**
      * @brief 生成拖尾粒子

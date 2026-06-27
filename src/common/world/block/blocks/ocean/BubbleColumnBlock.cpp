@@ -23,7 +23,7 @@
 
 #include "BubbleColumnBlock.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -290,7 +290,7 @@ void BubbleColumnBlock::animateTick(
 
     if (isDrag(state)) {
         // 下拖模式（岩浆块产生）：生成向下水流粒子
-        context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::CurrentDown,
+        context.addAnimateParticle(particle::ParticleTypeId::CurrentDown,
             Vector3(centerX, centerY + 0.8f, static_cast<f32>(pos.z)),
             Vector3(0.0f, 0.0f, 0.0f));
 
@@ -304,11 +304,11 @@ void BubbleColumnBlock::animateTick(
         }
     } else {
         // 上推模式（灵魂沙产生）：生成向上气泡粒子
-        context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::BubbleColumnUp,
+        context.addAnimateParticle(particle::ParticleTypeId::BubbleColumnUp,
             Vector3(centerX, centerY, centerZ),
             Vector3(0.0f, 0.04f, 0.0f));
 
-        context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::BubbleColumnUp,
+        context.addAnimateParticle(particle::ParticleTypeId::BubbleColumnUp,
             Vector3(static_cast<f32>(pos.x) + random.nextFloat(),
                 centerY + random.nextFloat(),
                 static_cast<f32>(pos.z) + random.nextFloat()),

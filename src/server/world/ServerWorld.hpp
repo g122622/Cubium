@@ -61,7 +61,7 @@ namespace mc {
 struct SpawnedEntityData;
 class INamedContainerProvider;
 
-namespace client::renderer::trident::particle {
+namespace particle {
 enum class ParticleTypeId : u16;
 }
 
@@ -456,11 +456,8 @@ public:
      * 当服务端需要广播粒子给玩家时调用。
      * 参数：粒子类型、位置、速度、偏移、数量
      */
-    using ParticleBroadcastCallback = std::function<void(client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3& offset,
-        u32 count)>;
+    using ParticleBroadcastCallback = std::function<void(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)>;
 
     void setOnBroadcastParticle(ParticleBroadcastCallback callback) { m_onBroadcastParticle = std::move(callback); }
 
@@ -579,10 +576,9 @@ public:
 
     // ========== IWorld 接口实现 ==========
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override;
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override;
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,

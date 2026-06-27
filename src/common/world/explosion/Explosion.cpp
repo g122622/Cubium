@@ -22,7 +22,7 @@
  */
 
 #include "Explosion.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -490,15 +490,12 @@ void Explosion::_applyKnockback()
 
 void Explosion::_spawnParticles()
 {
-    // 根据爆炸半径选择粒子类型
-    using ParticleTypeId = client::renderer::trident::particle::ParticleTypeId;
-
     if (m_radius >= 2.0f && m_mode != ExplosionMode::None) {
         // 大爆炸：使用发射器粒子
-        m_world.addParticle(ParticleTypeId::HugeExplosion, m_position, Vector3(1.0f, 0.0f, 0.0f));
+        m_world.addParticle(particle::ParticleTypeId::HugeExplosion, m_position, Vector3(1.0f, 0.0f, 0.0f));
     } else {
         // 小爆炸：使用普通爆炸粒子
-        m_world.addParticle(ParticleTypeId::Explosion, m_position, Vector3(1.0f, 0.0f, 0.0f));
+        m_world.addParticle(particle::ParticleTypeId::Explosion, m_position, Vector3(1.0f, 0.0f, 0.0f));
     }
 }
 

@@ -24,7 +24,6 @@
  */
 
 #include "MiscEntities.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -32,6 +31,7 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -434,7 +434,7 @@ void TNTEntity::tick()
 
         // 客户端添加烟雾粒子效果
         if (world() != nullptr && world()->isClientSide()) {
-            using namespace mc::client::renderer::trident::particle;
+            using namespace mc::particle;
 
             // 在 TNT 上方随机位置生成烟雾粒子
             // 每帧有 1/3 概率生成粒子

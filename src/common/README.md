@@ -193,6 +193,10 @@ src/common/
 │   ├── TraceCategories.hpp   # 追踪类别
 │   └── CMakeLists.txt
 │
+├── particle/                 # 粒子类型定义
+│   ├── ParticleTypes.hpp     # 粒子类型枚举 (ParticleTypeId) 及辅助函数
+│   └── README.md             # 粒子系统说明
+│
 ├── physics/                  # 物理引擎
 │   ├── PhysicsEngine.hpp     # 物理引擎
 │   ├── PhysicsConstants.hpp  # 物理常量

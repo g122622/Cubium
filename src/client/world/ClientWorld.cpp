@@ -851,8 +851,7 @@ void ClientWorld::setSpawnPoint(i32 x, i32 y, i32 z, f32 angle)
 
 // ========== 粒子接口实现 ==========
 
-void ClientWorld::addParticle(
-    renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+void ClientWorld::addParticle(::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
 {
     if (!m_particleManager) {
         return;
@@ -866,11 +865,8 @@ void ClientWorld::addParticle(
     }
 }
 
-void ClientWorld::addParticle(renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const Vector3& offset,
-    u32 count)
+void ClientWorld::addParticle(
+    ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
 {
     if (!m_particleManager) {
         return;
@@ -894,10 +890,8 @@ void ClientWorld::addParticle(renderer::trident::particle::ParticleTypeId type,
     }
 }
 
-void ClientWorld::addBlockParticle(renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const BlockState& blockState)
+void ClientWorld::addBlockParticle(
+    ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const BlockState& blockState)
 {
     if (!m_particleManager) {
         return;

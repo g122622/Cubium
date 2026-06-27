@@ -23,7 +23,7 @@
 
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -48,7 +48,7 @@ namespace {
 class MockAnimateContext : public IBlockAnimateContext {
 public:
     struct ParticleCall {
-        client::renderer::trident::particle::ParticleTypeId type;
+        particle::ParticleTypeId type;
         Vector3 pos;
         Vector3 velocity;
     };
@@ -62,7 +62,7 @@ public:
     };
 
     void addAnimateParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
@@ -245,7 +245,7 @@ TEST_F(AnimateTickTest, SporeBlossom_GeneratesFallingSporeBlossomParticle)
     // 第一个粒子应该是 FallingSporeBlossom
     bool foundFallingSpore = false;
     for (const auto& p : context_.particles()) {
-        if (p.type == client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom) {
+        if (p.type == particle::ParticleTypeId::FallingSporeBlossom) {
             foundFallingSpore = true;
             // 验证粒子位置在方块范围内
             EXPECT_GE(p.pos.x, static_cast<f32>(pos.x) + 0.1f);
@@ -281,7 +281,7 @@ TEST_F(AnimateTickTest, SporeBlossom_AirParticlesCheckBlockSolidity)
 TEST_F(AnimateTickTest, MockContext_RecordsParticlesAndSounds)
 {
     // 验证 MockAnimateContext 基本功能
-    context_.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom,
+    context_.addAnimateParticle(particle::ParticleTypeId::FallingSporeBlossom,
         Vector3(1.0f, 2.0f, 3.0f),
         Vector3(0.0f, 0.0f, 0.0f));
 
@@ -293,7 +293,7 @@ TEST_F(AnimateTickTest, MockContext_RecordsParticlesAndSounds)
 
     EXPECT_EQ(context_.particleCount(), 1u);
     EXPECT_EQ(context_.soundCount(), 1u);
-    EXPECT_EQ(context_.particles()[0].type, client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom);
+    EXPECT_EQ(context_.particles()[0].type, particle::ParticleTypeId::FallingSporeBlossom);
     EXPECT_EQ(context_.sounds()[0].category, sound::SoundCategory::Blocks);
 }
 
@@ -329,9 +329,9 @@ TEST_F(AnimateTickTest, SpawnerBlock_GeneratesSmokeAndFlameParticles)
     ASSERT_EQ(context_.particleCount(), 2u);
 
     // 第一个粒子应该是 Smoke
-    EXPECT_EQ(context_.particles()[0].type, client::renderer::trident::particle::ParticleTypeId::Smoke);
+    EXPECT_EQ(context_.particles()[0].type, particle::ParticleTypeId::Smoke);
     // 第二个粒子应该是 Flame
-    EXPECT_EQ(context_.particles()[1].type, client::renderer::trident::particle::ParticleTypeId::Flame);
+    EXPECT_EQ(context_.particles()[1].type, particle::ParticleTypeId::Flame);
 }
 
 TEST_F(AnimateTickTest, SpawnerBlock_ParticlesPositionWithinBlockBounds)

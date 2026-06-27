@@ -39,8 +39,8 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../../serialization/EntityNbtKeys.hpp"
 #include "../../../serialization/NbtHelper.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -198,7 +198,7 @@ void AnimalEntity::spawnHeartParticles()
     Vector3 pos(x() + ox, y() + oy, z() + oz);
     Vector3 vel(0.0f, 0.0f, 0.0f);
 
-    m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Heart, pos, vel);
+    m_world->addParticle(particle::ParticleTypeId::Heart, pos, vel);
 }
 
 bool AnimalEntity::hurt(DamageSource& source, f32 amount)

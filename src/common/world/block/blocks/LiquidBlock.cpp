@@ -22,7 +22,7 @@
  */
 
 #include "common/world/block/blocks/LiquidBlock.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -264,7 +264,7 @@ void LiquidBlock::triggerMixEffects(IWorld& world, const BlockPos& pos)
         math::Random random(particleSeed);
         f32 offsetX = random.nextFloat() * 0.6f - 0.3f;
         f32 offsetZ = random.nextFloat() * 0.6f - 0.3f;
-        world.addParticle(client::renderer::trident::particle::ParticleTypeId::Smoke,
+        world.addParticle(particle::ParticleTypeId::Smoke,
             Vector3(pos.x + 0.5f + offsetX, pos.y + 1.0f, pos.z + 0.5f + offsetZ),
             Vector3(0.0f, 0.1f, 0.0f));
     }

@@ -38,7 +38,7 @@
 #include "../../../damage/DamageSource.hpp"
 #include "../../passive/golem/IronGolemEntity.hpp"
 #include "../../player/Player.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -122,10 +122,10 @@ std::optional<ResourceLocation> SlimeEntity::getJumpSound() const
     return getSquishSound();
 }
 
-client::renderer::trident::particle::ParticleTypeId SlimeEntity::getSquishParticle() const
+particle::ParticleTypeId SlimeEntity::getSquishParticle() const
 {
     // 史莱姆使用粘液粒子
-    return client::renderer::trident::particle::ParticleTypeId::ItemSlime;
+    return particle::ParticleTypeId::ItemSlime;
 }
 
 i32 SlimeEntity::getJumpDelay() const

@@ -23,9 +23,9 @@
 
 #include "SquidEntity.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/ai/goal/goals/special/SquidGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -54,7 +54,7 @@ void SquidEntity::sprayInk()
 
         // 在鱿鱼位置生成墨汁粒子
         if (world() != nullptr && world()->isClientSide()) {
-            using namespace mc::client::renderer::trident::particle;
+            using namespace mc::particle;
             math::Random& random = world()->getRandom();
 
             // 生成多个墨汁粒子形成云状效果

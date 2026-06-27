@@ -34,7 +34,7 @@
 #include "../../serialization/EntityNbtKeys.hpp"
 #include "../boss/EnderDragonEntity.hpp"
 #include "../player/Player.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <chrono>
 #include <cmath>

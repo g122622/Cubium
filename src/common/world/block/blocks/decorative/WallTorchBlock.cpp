@@ -23,7 +23,7 @@
 
 #include "WallTorchBlock.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
@@ -34,7 +34,7 @@ namespace mc {
 namespace blocks {
 
 WallTorchBlock::WallTorchBlock(
-    const BlockProperties& properties, client::renderer::trident::particle::ParticleTypeId flameParticle)
+    const BlockProperties& properties, particle::ParticleTypeId flameParticle)
     : TorchBlock(properties, flameParticle)
     , m_northShape(CollisionShape::fromPixelBox(5.5f, 3.0f, 11.0f, 10.5f, 13.0f, 16.0f))
     , m_southShape(CollisionShape::fromPixelBox(5.5f, 3.0f, 0.0f, 10.5f, 13.0f, 5.0f))
@@ -181,7 +181,7 @@ void WallTorchBlock::animateTick(
     f32 offsetY = 0.22f;
 
     // 烟雾粒子
-    context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::Smoke,
+    context.addAnimateParticle(particle::ParticleTypeId::Smoke,
         Vector3(x + offsetX, y + offsetY, z + offsetZ),
         Vector3(0.0f, 0.0f, 0.0f));
 

@@ -22,7 +22,7 @@
  */
 
 #include "InfestedBlock.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
@@ -85,7 +85,7 @@ void InfestedBlock::spawnAfterBreak(
     world.spawnEntity(std::move(silverfish));
 
     // 生成蠹虫出现的烟雾粒子效果
-    world.addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
+    world.addParticle(particle::ParticleTypeId::Poof,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
         Vector3(0.0f, 0.0f, 0.0f));
 }

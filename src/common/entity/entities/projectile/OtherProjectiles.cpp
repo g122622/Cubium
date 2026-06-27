@@ -43,13 +43,13 @@
 #include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -342,7 +342,7 @@ void FishingBobberEntity::_catchingFish()
             f32 px = x() + std::sin(angle) * radius;
             f32 py = std::floor(y()) + 1.0f;
             f32 pz = z() + std::cos(angle) * radius;
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Splash,
+            m_world->addParticle(particle::ParticleTypeId::Splash,
                 Vector3(px, py, pz),
                 Vector3(0.0f, 0.0f, 0.0f),
                 Vector3(0.1f, 0.0f, 0.1f),
@@ -367,16 +367,15 @@ void FishingBobberEntity::_catchingFish()
 
             // 15% 概率生成气泡
             if (rng.nextFloat() < 0.15f) {
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Bubble,
-                    Vector3(d0, d1 - 0.1f, d2),
-                    Vector3(sinAngle, 0.1f, cosAngle));
+                m_world->addParticle(
+                    particle::ParticleTypeId::Bubble, Vector3(d0, d1 - 0.1f, d2), Vector3(sinAngle, 0.1f, cosAngle));
             }
 
             // 钓鱼涟漪粒子
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Fishing,
+            m_world->addParticle(particle::ParticleTypeId::Fishing,
                 Vector3(d0, d1, d2),
                 Vector3(cosAngle * 0.04f, 0.01f, -sinAngle * 0.04f));
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Fishing,
+            m_world->addParticle(particle::ParticleTypeId::Fishing,
                 Vector3(d0, d1, d2),
                 Vector3(-cosAngle * 0.04f, 0.01f, sinAngle * 0.04f));
         }
@@ -409,8 +408,7 @@ void FishingBobberEntity::_spawnFishingParticles()
     if (isInWater() && m_world) {
         math::Random rng;
         if (rng.nextInt(5) == 0) {
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Fishing, m_position, Vector3(0.0f, 0.01f, 0.0f));
+            m_world->addParticle(particle::ParticleTypeId::Fishing, m_position, Vector3(0.0f, 0.01f, 0.0f));
         }
     }
 }
@@ -1054,7 +1052,7 @@ void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
 {
     // 命中方块时生成爆炸粒子
     if (m_world != nullptr) {
-        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Explosion,
+        m_world->addParticle(particle::ParticleTypeId::Explosion,
             m_position,
             Vector3(0.0f, 0.0f, 0.0f), // 速度为 0
             Vector3(0.2f, 0.2f, 0.2f), // 随机偏移范围
@@ -1414,8 +1412,7 @@ void FireworkRocketEntity::tick()
         f32 vy = static_cast<f32>(-m_velocity.y * 0.5); // Y速度与火箭运动方向相反
         f32 vz = static_cast<f32>(rng.nextGaussian() * 0.05);
 
-        m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));
+        m_world->addParticle(particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));
     }
 
     // 检查是否爆炸（lifetime = flightTime * 10 + random(6) + random(7)，简化为 flightTime * 10）
@@ -1446,16 +1443,13 @@ void FireworkRocketEntity::_explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
 
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
-                    Vector3(x() + ox, y() + oy, z() + oz),
-                    Vector3(0.0f, 0.0f, 0.0f));
+                m_world->addParticle(
+                    particle::ParticleTypeId::Poof, Vector3(x() + ox, y() + oy, z() + oz), Vector3(0.0f, 0.0f, 0.0f));
             }
         } else {
             // 有爆炸效果时，生成烟花粒子
             // 生成爆炸闪光
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Flash,
-                Vector3(x(), y(), z()),
-                Vector3(0.0f, 0.0f, 0.0f));
+            m_world->addParticle(particle::ParticleTypeId::Flash, Vector3(x(), y(), z()), Vector3(0.0f, 0.0f, 0.0f));
 
             // 生成主要爆炸粒子云
             i32 particleCount = 20 + rng.nextInt(20);
@@ -1473,9 +1467,8 @@ void FireworkRocketEntity::_explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
 
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Firework,
-                    Vector3(x() + ox, y() + oy, z() + oz),
-                    Vector3(vx, vy, vz));
+                m_world->addParticle(
+                    particle::ParticleTypeId::Firework, Vector3(x() + ox, y() + oy, z() + oz), Vector3(vx, vy, vz));
             }
 
             // 生成烟雾粒子
@@ -1484,9 +1477,8 @@ void FireworkRocketEntity::_explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
 
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
-                    Vector3(x() + ox, y() + oy, z() + oz),
-                    Vector3(0.0f, 0.02f, 0.0f));
+                m_world->addParticle(
+                    particle::ParticleTypeId::Poof, Vector3(x() + ox, y() + oy, z() + oz), Vector3(0.0f, 0.02f, 0.0f));
             }
         }
     }

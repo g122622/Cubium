@@ -108,9 +108,9 @@ class Fluid;
 class FluidState;
 } // namespace fluid
 
-namespace client::renderer::trident::particle {
+namespace particle {
 enum class ParticleTypeId : u16;
-}
+} // namespace particle
 
 namespace gameevent {
 class GameEvent; // 前向声明
@@ -1108,7 +1108,7 @@ public:
      * @param velocity 粒子速度
      */
     virtual void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
     {
         (void)type;
         (void)pos;
@@ -1126,7 +1126,7 @@ public:
      * @param offset 随机偏移范围
      * @param count 粒子数量
      */
-    virtual void addParticle(client::renderer::trident::particle::ParticleTypeId type,
+    virtual void addParticle(particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,

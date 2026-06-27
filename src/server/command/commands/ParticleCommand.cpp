@@ -23,12 +23,12 @@
 
 #include "ParticleCommand.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <sstream>
@@ -113,10 +113,9 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
     return 1;
 }
 
-std::optional<client::renderer::trident::particle::ParticleTypeId> ParticleCommand::_parseParticleType(
-    const std::string& name) noexcept
+std::optional<particle::ParticleTypeId> ParticleCommand::_parseParticleType(const std::string& name) noexcept
 {
-    using namespace client::renderer::trident::particle;
+    using namespace particle;
 
     // 支持简化名称（不带 minecraft: 前缀）
     std::string normalizedName = name;

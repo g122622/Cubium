@@ -24,6 +24,7 @@
 #include <map>
 #include <gtest/gtest.h>
 
+#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
@@ -117,7 +118,7 @@ public:
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void addParticle(client::renderer::trident::particle::ParticleTypeId,
+    void addParticle(particle::ParticleTypeId,
         const Vector3&,
         const Vector3&,
         const Vector3&,

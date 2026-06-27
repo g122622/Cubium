@@ -45,7 +45,7 @@ public:
      * @param flameParticle 火焰粒子类型（普通火把为 Flame，灵魂火把为 SoulFireFlame）
      */
     explicit WallTorchBlock(
-        const BlockProperties& properties, client::renderer::trident::particle::ParticleTypeId flameParticle);
+        const BlockProperties& properties, particle::ParticleTypeId flameParticle);
 
     ~WallTorchBlock() override = default;
 

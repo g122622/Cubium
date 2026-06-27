@@ -810,7 +810,7 @@ void ClientApplication::setupNetworkCallbacks()
                         glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.25f, ry * 0.25f + 0.5f, rz * 0.25f);
                         glm::vec3 velocity(rx, ry + 0.2f, rz);
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Crit, particlePos, velocity, &m_world);
+                            ::mc::particle::ParticleTypeId::Crit, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -830,10 +830,7 @@ void ClientApplication::setupNetworkCallbacks()
                         glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.25f, ry * 0.25f + 0.5f, rz * 0.25f);
                         glm::vec3 velocity(rx, ry + 0.2f, rz);
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::EnchantedHit,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::EnchantedHit, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -891,10 +888,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Heart,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Heart, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -914,10 +908,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Smoke,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Smoke, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -927,10 +918,7 @@ void ClientApplication::setupNetworkCallbacks()
                 if (m_world.particleManager() != nullptr) {
                     glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
                     m_world.particleManager()->addPendingParticle(
-                        client::renderer::trident::particle::ParticleTypeId::Heart,
-                        heartPos,
-                        glm::vec3(0.0f, 0.0f, 0.0f),
-                        &m_world);
+                        ::mc::particle::ParticleTypeId::Heart, heartPos, glm::vec3(0.0f, 0.0f, 0.0f), &m_world);
                 }
                 break;
             }
@@ -961,10 +949,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Heart,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Heart, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -984,10 +969,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Smoke,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Smoke, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1005,10 +987,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.05f),
                             m_random.nextGaussian(0.0f, 0.05f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Portal,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Portal, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1061,10 +1040,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Heart,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Heart, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1081,10 +1057,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::AngryVillager,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::AngryVillager, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1101,10 +1074,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::HappyVillager,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::HappyVillager, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1121,10 +1091,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Splash,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Splash, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1159,10 +1126,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.05f) + 0.1f,
                             m_random.nextGaussian(0.0f, 0.05f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Breaking,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Breaking, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1327,7 +1291,7 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     // 粒子回调
-    callbacks.onParticle = [this](client::renderer::trident::particle::ParticleTypeId type,
+    callbacks.onParticle = [this](::mc::particle::ParticleTypeId type,
                                f64 x,
                                f64 y,
                                f64 z,
