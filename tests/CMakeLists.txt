@@ -1102,6 +1102,7 @@ add_executable(mc_tests
     server/scoreboard/ScoreCriteriaTest.cpp
     server/scoreboard/TeamTest.cpp
     server/scoreboard/ScoreboardPersistenceTest.cpp
+    server/scoreboard/ScoreboardDataManagerTest.cpp
     server/scoreboard/GetTeamTest.cpp
     # Boss 栏系统测试
     server/bossbar/BossBarTest.cpp
@@ -1171,6 +1172,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardDataManager.cpp
         # Boss 栏系统
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
@@ -2146,6 +2148,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardDataManager.cpp
         # Boss 栏系统
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
