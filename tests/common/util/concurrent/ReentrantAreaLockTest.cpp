@@ -30,6 +30,7 @@
 #include <vector>
 #include <gtest/gtest.h>
 
+using mc::i32;
 using mc::util::ReentrantAreaLock;
 
 // ============================================================================
@@ -316,7 +317,7 @@ TEST(ReentrantAreaLockTest, NoDeadlockUnderHighContention)
     ReentrantAreaLock lock(0);
 
     constexpr int kThreads = 8;
-    constexpr int kIterations = 50;
+    constexpr int kIterations = 200;
 
     std::atomic<int> completed{0};
 
@@ -368,4 +369,342 @@ TEST(ReentrantAreaLockTest, LockReleasedThenReacquiredByOtherThread)
     t2.join();
 
     EXPECT_TRUE(reacquired.load());
+}
+
+// ============================================================================
+// 回归：大区域 unlock 不阻塞其他线程（:notify 热点的核心回归测试）
+//
+// 旧实现 unlock 对每个 key 逐一 notify_all（onChunkGenComplete 半径 22 → 2025 key），
+// 且全表共用一把 mutex，导致远处不相交区域的 lock 被 unlock 阻塞。新实现无锁：
+// unlock 只排空本 Node 的等待队列，不影响不相交区域的 lock。
+// 此测试：线程 A 持有大区域 [0±10]，线程 B 锁远处不相交区域 [1000,1000] 应立即成功。
+// ============================================================================
+
+TEST(ReentrantAreaLockTest, LargeAreaUnlockDoesNotBlockDistantArea)
+{
+    ReentrantAreaLock lock(0);
+
+    std::atomic<bool> otherHoldsLarge{false};
+    std::atomic<bool> distantAcquired{false};
+    std::atomic<bool> distantDone{false};
+    std::barrier sync(2);
+
+    std::thread tA([&] {
+        // 持有大区域 [0..20, 0..20]（441 个 section）
+        auto node = lock.lock(10, 10, 10);
+        otherHoldsLarge = true;
+        // 等 B 尝试锁远处区域
+        sync.arrive_and_wait();
+        // 等 B 完成
+        sync.arrive_and_wait();
+        node.reset();
+    });
+
+    std::thread tB([&] {
+        sync.arrive_and_wait();
+        // A 持有大区域时，B 锁 [1000,1000]（不相交）应立即成功（无锁，不被 A 的 441-key 操作阻塞）
+        auto start = std::chrono::steady_clock::now();
+        auto node = lock.tryLock(1000, 1000);
+        auto elapsed = std::chrono::steady_clock::now() - start;
+        distantAcquired = (node != nullptr);
+        node.reset();
+        distantDone = true;
+        sync.arrive_and_wait();
+
+        // tryLock 应在毫秒级完成（不被 A 阻塞）
+        EXPECT_LT(elapsed, std::chrono::milliseconds(500));
+    });
+
+    tA.join();
+    tB.join();
+
+    EXPECT_TRUE(otherHoldsLarge.load());
+    EXPECT_TRUE(distantAcquired.load());
+    EXPECT_TRUE(distantDone.load());
+}
+
+// ============================================================================
+// 回归：大区域 unlock 不阻塞其他线程的 lock（阻塞路径，非 tryLock）
+//
+// 与上一测试的区别：B 用 lock()（阻塞路径），验证 A 的大区域持有期间 B 的不相交区域
+// lock() 立即返回（不需要等 A 释放）。这覆盖 :notify 热点的典型场景——旧实现下 B 会
+// 在 m_mutex 上排队等 A 的 unlock 完成。
+// ============================================================================
+
+TEST(ReentrantAreaLockTest, LargeAreaHeldDoesNotBlockDistantLock)
+{
+    ReentrantAreaLock lock(0);
+
+    std::atomic<bool> distantAcquired{false};
+    std::barrier sync(2);
+
+    std::thread tA([&] {
+        auto node = lock.lock(10, 10, 10); // [0..20, 0..20]
+        sync.arrive_and_wait();            // B 开始
+        // 等 B 锁到远处区域
+        sync.arrive_and_wait();
+        node.reset();
+    });
+
+    std::thread tB([&] {
+        sync.arrive_and_wait();
+        auto start = std::chrono::steady_clock::now();
+        auto node = lock.lock(1000, 1000); // 不相交，应立即返回
+        auto elapsed = std::chrono::steady_clock::now() - start;
+        distantAcquired = true;
+        node.reset();
+        sync.arrive_and_wait();
+
+        EXPECT_LT(elapsed, std::chrono::milliseconds(500));
+    });
+
+    tA.join();
+    tB.join();
+
+    EXPECT_TRUE(distantAcquired.load());
+}
+
+// ============================================================================
+// N 线程锁重叠区域：严格互斥，临界区并发数始终为 1
+// ============================================================================
+
+TEST(ReentrantAreaLockTest, IntersectingAreasStrictMutexNThreads)
+{
+    // 8 线程锁完全相同的区域，验证同一时刻只有一个线程在临界区
+    ReentrantAreaLock lock(0);
+
+    constexpr int kThreads = 8;
+    constexpr int kIterations = 50;
+
+    std::atomic<int> inCriticalSection{0};
+    std::atomic<int> maxConcurrent{0};
+    std::atomic<int> completed{0};
+
+    auto worker = [&]() {
+        for (int i = 0; i < kIterations; ++i) {
+            auto node = lock.lock(0, 0, 3); // 所有线程锁同一区域 [0..6]
+            int cur = ++inCriticalSection;
+            int prevMax = maxConcurrent.load();
+            while (cur > prevMax) {
+                if (maxConcurrent.compare_exchange_weak(prevMax, cur)) {
+                    break;
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::microseconds(50));
+            --inCriticalSection;
+            node.reset();
+            ++completed;
+        }
+    };
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < kThreads; ++i) {
+        threads.emplace_back(worker);
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    EXPECT_EQ(maxConcurrent.load(), 1); // 严格互斥
+    EXPECT_EQ(completed.load(), kThreads * kIterations);
+}
+
+// ============================================================================
+// 不相交多区域高并发：不同线程锁不同区域，无串行化，全部完成
+// ============================================================================
+
+TEST(ReentrantAreaLockTest, NonIntersectingAreasHighContentionAllComplete)
+{
+    // 每个线程锁自己独占的区域（不相交），验证无锁路径不误阻塞、全部完成
+    ReentrantAreaLock lock(0);
+
+    constexpr int kThreads = 8;
+    constexpr int kIterations = 100;
+
+    std::atomic<int> completed{0};
+
+    auto worker = [&](int tid) {
+        // 每个线程的区域中心间隔 1000，完全不相交
+        i32 base = tid * 1000;
+        for (int i = 0; i < kIterations; ++i) {
+            auto node = lock.lock(base, base, 5);
+            ++completed;
+            node.reset();
+        }
+    };
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < kThreads; ++i) {
+        threads.emplace_back(worker, i);
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    EXPECT_EQ(completed.load(), kThreads * kIterations);
+}
+
+// ============================================================================
+// 同线程重入相交但不被覆盖的区域应断言失败（非法锁使用）
+//
+// 对齐 Moonrise "Should never acquire intersecting areas"：
+// 同线程已持有 [0..4]，再锁 [3..6]（相交但不被覆盖）应触发断言。
+// 注：MC_ASSERT_RELEASE_MSG 在 Release 下也触发，此测试验证断言路径。
+// 由于断言会终止进程，本测试用 EXPECT_DEATH（若断言实现为 abort）。
+// 若项目断言抛异常，则用 EXPECT_ANY_THROW。这里按 MC_ASSERT_RELEASE（abort）处理。
+// ============================================================================
+
+// 注：此测试默认禁用——MC_ASSERT_RELEASE 终止进程，EXPECT_DEATH 会 fork 子进程，
+// 在某些构建配置下可能不可用。保留为注释，供需要时启用。
+// 如需启用，取消注释并确保测试框架支持死亡测试。
+//
+// TEST(ReentrantAreaLockTest, IntersectingNotCoveredReentryAsserts)
+// {
+//     testing::FLAGS_gtest_death_test_style = "threadsafe";
+//     EXPECT_DEATH(
+//         {
+//             ReentrantAreaLock lock(0);
+//             auto outer = lock.lock(2, 2, 2); // [0..4]
+//             auto inner = lock.lock(4, 4, 2); // [2..6] 相交但不被覆盖
+//         },
+//         "Intersecting areas not fully covered");
+// }
+
+// ============================================================================
+// tryLock 多区域：tryLock 不相交区域全部成功，tryLock 相交区域失败
+// ============================================================================
+
+TEST(ReentrantAreaLockTest, TryLockNonIntersectingSucceedsConcurrent)
+{
+    // 主线程持有 [0,0]，另一线程 tryLock 多个不相交区域应全部成功
+    ReentrantAreaLock lock(0);
+
+    auto node = lock.tryLock(0, 0);
+    ASSERT_NE(node, nullptr);
+
+    std::atomic<int> success{0};
+    std::thread t([&] {
+        for (i32 x : {100, 200, 300, 400, 500}) {
+            auto n = lock.tryLock(x, x);
+            if (n != nullptr) {
+                ++success;
+                n.reset();
+            }
+        }
+    });
+    t.join();
+
+    EXPECT_EQ(success.load(), 5); // 全部不相交，全部成功
+    node.reset();
+}
+
+// ============================================================================
+// 嵌套 lock 与 isHeldByCurrentThread 覆盖性
+// ============================================================================
+
+TEST(ReentrantAreaLockTest, NestedLockHoldsAllLayers)
+{
+    ReentrantAreaLock lock(0);
+
+    auto a = lock.lock(0, 0); // [0,0]
+    EXPECT_TRUE(lock.isHeldByCurrentThread(0, 0));
+    auto b = lock.lock(10, 10, 2); // [8..12, 8..12]
+    EXPECT_TRUE(lock.isHeldByCurrentThread(0, 0));
+    EXPECT_TRUE(lock.isHeldByCurrentThread(10, 10, 2));
+    auto c = lock.lock(20, 20); // [20,20]
+    EXPECT_TRUE(lock.isHeldByCurrentThread(0, 0));
+    EXPECT_TRUE(lock.isHeldByCurrentThread(10, 10, 2));
+    EXPECT_TRUE(lock.isHeldByCurrentThread(20, 20));
+
+    // 释放中间层，外层和内层仍持有
+    b.reset();
+    EXPECT_TRUE(lock.isHeldByCurrentThread(0, 0));
+    EXPECT_FALSE(lock.isHeldByCurrentThread(10, 10, 2));
+    EXPECT_TRUE(lock.isHeldByCurrentThread(20, 20));
+
+    c.reset();
+    EXPECT_FALSE(lock.isHeldByCurrentThread(20, 20));
+    EXPECT_TRUE(lock.isHeldByCurrentThread(0, 0));
+
+    a.reset();
+    EXPECT_FALSE(lock.isHeldByCurrentThread(0, 0));
+}
+
+// ============================================================================
+// 同线程重入单区块多次（areaAffectedLen=0 纯重入路径）
+// ============================================================================
+
+TEST(ReentrantAreaLockTest, ReentrantSingleChunkMultipleTimes)
+{
+    // 同线程对同一单区块重入多次，unlock 顺序无关，最终释放后可被其他线程获取
+    ReentrantAreaLock lock(0);
+
+    auto a = lock.lock(5, 5);
+    auto b = lock.lock(5, 5);
+    auto c = lock.lock(5, 5);
+    ASSERT_NE(a, nullptr);
+    ASSERT_NE(b, nullptr);
+    ASSERT_NE(c, nullptr);
+    EXPECT_TRUE(lock.isHeldByCurrentThread(5, 5));
+
+    // 乱序释放
+    b.reset();
+    EXPECT_TRUE(lock.isHeldByCurrentThread(5, 5));
+    c.reset();
+    EXPECT_TRUE(lock.isHeldByCurrentThread(5, 5));
+    a.reset();
+    EXPECT_FALSE(lock.isHeldByCurrentThread(5, 5));
+
+    // 其他线程可获取
+    std::atomic<bool> got{false};
+    std::thread t([&] {
+        auto node = lock.tryLock(5, 5);
+        got = (node != nullptr);
+        node.reset();
+    });
+    t.join();
+    EXPECT_TRUE(got.load());
+}
+
+// ============================================================================
+// park/unpark-before-park 不丢唤醒（ReentrantAreaLock 集成层面）
+//
+// 线程 A 持有锁，线程 B 阻塞在 lock（park）。A 释放锁（unpark B）。
+// 验证 B 被唤醒并获取锁。重复多次验证不丢唤醒。
+// ============================================================================
+
+TEST(ReentrantAreaLockTest, ParkUnparkNoLostWakeupRepeated)
+{
+    ReentrantAreaLock lock(0);
+
+    constexpr int kRounds = 20;
+
+    for (int round = 0; round < kRounds; ++round) {
+        std::atomic<bool> aHolds{false};
+        std::atomic<bool> bAcquired{false};
+        std::barrier sync(2);
+
+        std::thread tA([&] {
+            auto node = lock.lock(7, 7);
+            aHolds = true;
+            sync.arrive_and_wait();                                     // B 开始尝试 lock（将 park）
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 确保 B 已 park
+            node.reset();                                               // 释放，unpark B
+            sync.arrive_and_wait();                                     // B 应已获取
+        });
+
+        std::thread tB([&] {
+            sync.arrive_and_wait();
+            auto node = lock.lock(7, 7); // 阻塞直到 A 释放
+            bAcquired = true;
+            node.reset();
+            sync.arrive_and_wait();
+        });
+
+        tA.join();
+        tB.join();
+
+        EXPECT_TRUE(aHolds.load()) << "round " << round;
+        EXPECT_TRUE(bAcquired.load()) << "round " << round;
+    }
 }
