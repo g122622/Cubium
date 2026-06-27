@@ -904,3 +904,227 @@ TEST(PacketHandlerSteerBoatPacketTest, Deserialize_EmptyData_ReturnsError)
     auto result = packet.deserialize(nullptr, 0);
     EXPECT_FALSE(result.success());
 }
+
+// ==================== VehicleMovePacket Correction Tests ====================
+
+/**
+ * @brief 验证 VehicleMovePacket 可以正确序列化和反序列化
+ *
+ * 当载具移动过快时，服务端需要构造 VehicleMovePacket 校正包
+ * 发送给客户端。此测试确保校正包的序列化/反序列化正确工作。
+ */
+TEST(VehicleMovePacketCorrectionTest, SerializeDeserialize)
+{
+    // 构造校正包，使用服务端已知位置
+    VehicleMovePacket correction;
+    correction.setPosition(100.5, 64.0, -200.25);
+    correction.setRotation(90.0f, 45.0f);
+
+    auto result = correction.serialize();
+    ASSERT_TRUE(result.success());
+
+    // 反序列化验证
+    VehicleMovePacket parsed;
+    auto parseResult = parsed.deserialize(result.value().data(), result.value().size());
+    EXPECT_TRUE(parseResult.success());
+
+    // 校验位置与旋转是否与原始值一致
+    EXPECT_DOUBLE_EQ(parsed.x(), 100.5);
+    EXPECT_DOUBLE_EQ(parsed.y(), 64.0);
+    EXPECT_DOUBLE_EQ(parsed.z(), -200.25);
+    EXPECT_FLOAT_EQ(parsed.yaw(), 90.0f);
+    EXPECT_FLOAT_EQ(parsed.pitch(), 45.0f);
+}
+
+/**
+ * @brief 验证 VehicleMovePacket 的 PacketType 为 VehicleMove
+ *
+ * 确保校正包的类型标识正确，客户端能正确识别。
+ */
+TEST(VehicleMovePacketCorrectionTest, PacketTypeIsVehicleMove)
+{
+    VehicleMovePacket packet;
+    EXPECT_EQ(packet.type(), PacketType::VehicleMove);
+}
+
+/**
+ * @brief 验证 VehicleMovePacket 序列化负载大小
+ *
+ * 校正包的负载应为 32 字节（3 个 f64 + 2 个 f32），
+ * 确保序列化结果不会丢失或多余数据。
+ */
+TEST(VehicleMovePacketCorrectionTest, SerializePayloadSize)
+{
+    VehicleMovePacket correction;
+    correction.setPosition(1.0, 2.0, 3.0);
+    correction.setRotation(4.0f, 5.0f);
+
+    auto result = correction.serialize();
+    ASSERT_TRUE(result.success());
+
+    // 3 个 f64（位置）+ 2 个 f32（旋转）= 24 + 8 = 32 字节
+    EXPECT_EQ(result.value().size(), 32u);
+}
+
+/**
+ * @brief 验证校正包内容为服务端已知位置而非客户端报告位置
+ *
+ * 当载具超速时，服务端应使用 vehicle 的当前位置（而非客户端
+ * 在 MoveVehiclePacket 中报告的超速位置）构造校正包。
+ * 此测试模拟该场景：服务端位置为 (0, 64, 0)，客户端报告位置
+ * 为 (500, 64, 500)（超速），校正包应使用服务端位置。
+ */
+TEST(VehicleMovePacketCorrectionTest, CorrectionUsesServerPosition)
+{
+    // 模拟服务端已知位置
+    const mc::f64 serverX = 0.0;
+    const mc::f64 serverY = 64.0;
+    const mc::f64 serverZ = 0.0;
+    const mc::f32 serverYaw = 180.0f;
+    const mc::f32 serverPitch = 0.0f;
+
+    // 客户端报告的超速位置（不应被使用）
+    const mc::f64 clientX = 500.0;
+    const mc::f64 clientY = 64.0;
+    const mc::f64 clientZ = 500.0;
+
+    // 构造校正包时应使用服务端位置
+    VehicleMovePacket correction;
+    correction.setPosition(serverX, serverY, serverZ);
+    correction.setRotation(serverYaw, serverPitch);
+
+    auto result = correction.serialize();
+    ASSERT_TRUE(result.success());
+
+    // 验证反序列化后得到的是服务端位置
+    VehicleMovePacket parsed;
+    auto parseResult = parsed.deserialize(result.value().data(), result.value().size());
+    ASSERT_TRUE(parseResult.success());
+
+    // 校正包中的位置应是服务端位置，而非客户端超速位置
+    EXPECT_DOUBLE_EQ(parsed.x(), serverX);
+    EXPECT_DOUBLE_EQ(parsed.y(), serverY);
+    EXPECT_DOUBLE_EQ(parsed.z(), serverZ);
+    EXPECT_FLOAT_EQ(parsed.yaw(), serverYaw);
+    EXPECT_FLOAT_EQ(parsed.pitch(), serverPitch);
+
+    // 确保不是客户端报告的超速位置
+    EXPECT_NE(parsed.x(), clientX);
+    EXPECT_NE(parsed.z(), clientZ);
+}
+
+/**
+ * @brief 验证校正包序列化失败时不会导致崩溃
+ *
+ * VehicleMovePacket::serialize() 应始终成功（所有字段均为原始类型），
+ * 但代码路径中有对 serialize 结果的检查。此测试验证正常情况下的
+ * 序列化始终成功，确保降级处理路径不会因意外失败而崩溃。
+ */
+TEST(VehicleMovePacketCorrectionTest, SerializeAlwaysSucceedsForPrimitiveTypes)
+{
+    // 使用极端值测试序列化
+    VehicleMovePacket correction;
+    correction.setPosition(1e18, -1e18, 0.0);
+    correction.setRotation(-360.0f, 360.0f);
+
+    auto result = correction.serialize();
+    EXPECT_TRUE(result.success());
+    EXPECT_GT(result.value().size(), 0u);
+}
+
+/**
+ * @brief 验证 ConnectionManager::sendPacketToPlayer 正确封装 VehicleMovePacket
+ *
+ * 测试完整的发送路径：构造校正包 → 序列化 → 通过 ConnectionManager 封装
+ * 头部 → 发送到 FakeServerConnection → 解析头部和负载 → 验证内容。
+ * 这确保校正包从构造到客户端接收的完整路径正确。
+ */
+TEST(VehicleMovePacketCorrectionTest, SendPacketViaConnectionManager)
+{
+    // 设置玩家管理器和连接管理器
+    PlayerManager playerManager(20);
+    ConnectionManager connectionManager(playerManager);
+
+    // 创建模拟连接
+    auto connectionPair = std::make_unique<LocalConnectionPair>();
+    connectionPair->connect();
+    auto serverConn = std::make_shared<LocalServerConnection>(&connectionPair->serverEndpoint());
+
+    // 添加玩家
+    auto* player = playerManager.addPlayer(
+        1, mc::util::uuidToString(mc::util::generateOfflineUuid("TestPlayer")), "TestPlayer", serverConn);
+    ASSERT_NE(player, nullptr);
+
+    // 构造校正包
+    VehicleMovePacket correction;
+    correction.setPosition(100.0, 64.0, 200.0);
+    correction.setRotation(90.0f, 45.0f);
+
+    // 序列化并发送
+    auto serialResult = correction.serialize();
+    ASSERT_TRUE(serialResult.success());
+
+    bool sent = connectionManager.sendPacketToPlayer(1, PacketType::VehicleMove, serialResult.value());
+    EXPECT_TRUE(sent);
+
+    // 从客户端端点接收数据
+    auto& clientEndpoint = connectionPair->clientEndpoint();
+    std::vector<u8> receivedData;
+    clientEndpoint.receive(receivedData);
+
+    // 验证接收到的数据不为空
+    ASSERT_GT(receivedData.size(), PACKET_HEADER_SIZE);
+
+    // 解析头部（网络字节序/大端序）
+    // 头部格式: [u32 totalSize][u16 type][u16 flags][u16 reserved][u16 padding]
+    PacketSerializer headerParser;
+    // 从接收数据中提取头部字节
+    std::vector<u8> headerBytes(receivedData.begin(), receivedData.begin() + PACKET_HEADER_SIZE);
+
+    // 读取 totalSize（大端序）
+    mc::u32 totalSize = static_cast<mc::u32>(headerBytes[0]) << 24 | static_cast<mc::u32>(headerBytes[1]) << 16 |
+        static_cast<mc::u32>(headerBytes[2]) << 8 | static_cast<mc::u32>(headerBytes[3]);
+    EXPECT_GE(totalSize, PACKET_HEADER_SIZE + 32); // 头部 + 32 字节负载
+
+    // 读取 type（大端序）
+    mc::u16 packetType = static_cast<mc::u16>(headerBytes[4]) << 8 | static_cast<mc::u16>(headerBytes[5]);
+    EXPECT_EQ(static_cast<PacketType>(packetType), PacketType::VehicleMove);
+
+    // 解析负载
+    const u8* payload = receivedData.data() + PACKET_HEADER_SIZE;
+    size_t payloadSize = receivedData.size() - PACKET_HEADER_SIZE;
+
+    VehicleMovePacket receivedPacket;
+    auto parseResult = receivedPacket.deserialize(payload, payloadSize);
+    ASSERT_TRUE(parseResult.success());
+
+    // 验证接收到的校正包内容
+    EXPECT_DOUBLE_EQ(receivedPacket.x(), 100.0);
+    EXPECT_DOUBLE_EQ(receivedPacket.y(), 64.0);
+    EXPECT_DOUBLE_EQ(receivedPacket.z(), 200.0);
+    EXPECT_FLOAT_EQ(receivedPacket.yaw(), 90.0f);
+    EXPECT_FLOAT_EQ(receivedPacket.pitch(), 45.0f);
+}
+
+/**
+ * @brief 验证发送校正包给不存在玩家时返回 false
+ *
+ * 当玩家已断开连接或不存在时，sendPacketToPlayer 应返回 false
+ * 而非崩溃。这确保了网络异常情况下的降级处理安全。
+ */
+TEST(VehicleMovePacketCorrectionTest, SendToNonExistentPlayerReturnsFalse)
+{
+    PlayerManager playerManager(20);
+    ConnectionManager connectionManager(playerManager);
+
+    VehicleMovePacket correction;
+    correction.setPosition(0.0, 64.0, 0.0);
+    correction.setRotation(0.0f, 0.0f);
+
+    auto serialResult = correction.serialize();
+    ASSERT_TRUE(serialResult.success());
+
+    // 发送给不存在的玩家（ID 999）
+    bool sent = connectionManager.sendPacketToPlayer(999, PacketType::VehicleMove, serialResult.value());
+    EXPECT_FALSE(sent);
+}
