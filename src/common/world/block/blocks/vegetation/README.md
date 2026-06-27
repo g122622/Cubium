@@ -122,3 +122,7 @@ Block (基类)
 2. **`MushroomBlock::isValidPosition()`**：在 `canSustainPlant` 通过后额外检查光照条件。若下方方块属于 `MUSHROOM_GROW_BLOCK` 标签，则无条件允许放置；否则要求下方为固体方块且光照 < 13。
 
 因此，**不要在 `canSustainPlant` 的 `PlantType::Cave` 分支中添加光照检查**——光照检查由 `MushroomBlock::isValidPosition()` 独立完成。
+
+### 9. 花朵迷之炖菜效果
+
+所有 `FlowerBlock` 注册时都带有迷之炖菜效果参数（EffectType + duration），通过 `hasStewEffect()` / `getSuspiciousStewEffect()` / `getEffectDuration()` 查询。效果映射在 `VegetationBlocks.cpp` 和 `PaleGardenBlocks.cpp` 注册时指定。`MooshroomEntity::_getStewEffectFromItem()` 通过 `BlockItemRegistry` 将物品转换为方块再检查是否为 `FlowerBlock` 来获取效果。

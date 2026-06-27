@@ -153,7 +153,6 @@ ItemStack FoodItem::onItemUseFinish(ItemStack& stack, IWorld& world, Entity& ent
     }
 
     // 应用迷之炖菜效果（从物品 NBT 标签读取）
-    // 对应 MC 的 SuspiciousStewEffects.onConsume()
     // NBT 格式: {Effects: [{EffectId: byte, EffectDuration: int}, ...]}
     if (stack.hasTag()) {
         const nlohmann::json* tag = stack.getTag();

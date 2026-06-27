@@ -143,7 +143,6 @@ ActionResultType MooshroomEntity::interactMob(Player& player, Hand hand)
     const Item* item = heldItem.getItem();
 
     // ====== 分支1: 空碗 → 蘑菇汤/迷之炖菜 ======
-    // 对应 MC MushroomCow.mobInteract() 中的碗交互逻辑
     if (item == Items::BOWL && !isChild()) {
         // 记住是否有迷之炖菜效果（清除前记录，用于音效判断）
         bool hadStewEffect = hasStewEffect();
@@ -156,7 +155,6 @@ ActionResultType MooshroomEntity::interactMob(Player& player, Hand hand)
                 stewStack = ItemStack(*Items::SUSPICIOUS_STEW, 1);
 
                 // 将迷之炖菜效果写入物品 NBT
-                // 格式与 SetStewEffectFunction 一致: {Effects: [{EffectId: byte, EffectDuration: int}]}
                 nlohmann::json& tag = stewStack.getOrCreateTag();
                 nlohmann::json effectsArray = nlohmann::json::array();
 
@@ -209,13 +207,12 @@ ActionResultType MooshroomEntity::interactMob(Player& player, Hand hand)
     }
 
     // ====== 分支2: 棕色哞菇 + 花朵 → 存储迷之炖菜效果 ======
-    // 对应 MC MushroomCow.mobInteract() 中的花朵喂食逻辑
     if (isBrown()) {
-        auto flowerEffect = getStewEffectFromItem(heldItem);
+        auto flowerEffect = _getStewEffectFromItem(heldItem);
         if (flowerEffect.has_value()) {
             if (m_world != nullptr && !m_world->isClientSide()) {
                 if (hasStewEffect()) {
-                    // 已经存储了效果，拒绝（MC 原版显示烟雾粒子表示拒绝）
+                    // 已经存储了效果，拒绝（生成烟雾粒子表示拒绝）
                     // 生成2个烟雾粒子
                     using namespace mc::client::renderer::trident::particle;
                     for (i32 i = 0; i < 2; ++i) {
@@ -273,7 +270,7 @@ void MooshroomEntity::clearStewEffect()
     m_stewEffectDuration = 0;
 }
 
-std::optional<std::pair<entity::effect::EffectType, i32>> MooshroomEntity::getStewEffectFromItem(
+std::optional<std::pair<entity::effect::EffectType, i32>> MooshroomEntity::_getStewEffectFromItem(
     const ItemStack& itemStack)
 {
     const Item* item = itemStack.getItem();
@@ -389,9 +386,6 @@ void MooshroomEntity::registerGoals()
 f32 MooshroomEntity::getPathWeight(f32 x, f32 y, f32 z) const
 {
     // 哞菇偏好菌丝：站在菌丝上返回10.0f，否则返回亮度相关值
-    // 对应 MC MushroomCow.getWalkTargetValue:
-    //   return level.getBlockState(pos.below()).is(Blocks.MYCELIUM) ? 10.0F
-    //        : level.getPathfindingCostFromLightLevels(pos);
     const IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
         return 0.0f;
@@ -417,7 +411,6 @@ void MooshroomEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
     tag.put("Type", static_cast<i8>(static_cast<u8>(m_mooshroomType)));
 
     // 保存迷之炖菜效果（棕色哞菇用）
-    // 对应 MC MushroomCow 中的 stew_effects 字段
     if (m_stewEffectType.has_value()) {
         nbt::tags::compound_tag effectTag;
         effectTag.put("EffectId", static_cast<i8>(static_cast<i32>(m_stewEffectType.value())));

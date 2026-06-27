@@ -12,7 +12,7 @@ basic/
 ├── SheepEntity.hpp/cpp        # 羊（实现 IShearable 接口，16 种颜色）
 ├── ChickenEntity.hpp/cpp      # 鸡（自动下蛋、无摔落伤害）
 ├── RabbitEntity.hpp/cpp       # 兔子（8 种皮肤，含杀手兔变种）
-└── MooshroomEntity.hpp/cpp    # 哞菇（继承 CowEntity，实现 IShearable）
+└── MooshroomEntity.hpp/cpp    # 哞菇（继承 CowEntity，实现 IShearable，迷之炖菜效果）
 ```
 
 ## 内部模块关系
@@ -26,7 +26,10 @@ AgeableEntity (父类)
             │  注册基础属性（MAX_HEALTH=10, MOVEMENT_SPEED=0.2）
             │
             ├── CowEntity ──────────┬── MooshroomEntity (继承 CowEntity)
-            │   (挤奶在 BucketItem)  │      └── IShearable (剪毛返回蘑菇)
+            │   (挤奶在 BucketItem)  │      ├── IShearable (剪毛返回蘑菇，转换为普通牛)
+            │                        │      ├── interactMob (空碗→蘑菇汤/迷之炖菜，花朵→存储效果)
+            │                        │      ├── _getStewEffectFromItem (花朵→迷之炖菜效果映射)
+            │                        │      └── NBT序列化 (Type, StewEffect)
             │                        │
             ├── SheepEntity          │
             │   └── IShearable       │
@@ -52,7 +55,10 @@ AgeableEntity (父类)
 - `entity/interfaces/IEquipable` - 装备接口（PigEntity）
 - `entity/core/BoostHelper` - 猪加速辅助
 - `util/color/DyeColor` - 羊毛颜色枚举
-- `item/Items` - 物品检查（小麦、胡萝卜等）
+- `item/Items` - 物品检查（小麦、胡萝卜、碗、蘑菇汤等）
+- `item/items/block/BlockItemRegistry` - 方块物品注册表（花朵→迷之炖菜效果映射）
+- `world/block/blocks/vegetation/FlowerBlock` - 花朵方块（存储迷之炖菜效果类型和持续时间）
+- `entity/effect/EffectType` - 药水效果类型（迷之炖菜效果枚举）
 
 **下游依赖（使用本目录）：**
 - `entity/core/VanillaEntities.hpp` - 注册所有实体类型
@@ -73,6 +79,10 @@ AgeableEntity (父类)
 4. **哞菇剪毛后转换**：剪毛会生成 5 个蘑菇并转换为普通牛，继承位置、朝向、生命值、自定义名称等状态。
 
 5. **哞菇繁殖变异**：双亲类型相同时有 1/1024 概率变异为另一种类型（红↔棕）。
+
+6. **哞菇迷之炖菜**：棕色哞菇被喂食花朵后存储迷之炖菜效果，用空碗右键获得迷之炖菜（含 NBT 效果标签）。红色哞菇用空碗获得普通蘑菇汤。花朵到效果的映射由 `FlowerBlock` 存储，`_getStewEffectFromItem()` 查询。效果持续时间以秒为单位存储，非瞬间效果在写入 NBT 时乘以 20 转换为 tick。
+
+7. **哞菇 NBT 序列化**：Type 字段为 i8（0=红, 1=棕），StewEffect 为复合标签（EffectId: i8, EffectDuration: i32）。
 
 6. **鸡骑士标记**：`m_chickenJockey = true` 时不下蛋。
 

@@ -56,8 +56,6 @@ class FlowerBlock;
  * - 碗交互：使用空碗获得蘑菇汤（或迷之炖菜）
  * - 棕色哞菇：喂食花朵后可产出迷之炖菜
  * - 繁殖：与普通牛相同
- *
- * 参考: net.minecraft.world.entity.animal.cow.MushroomCow
  */
 class MooshroomEntity : public CowEntity, public entity::IShearable {
 public:
@@ -136,8 +134,6 @@ public:
      * 处理以下交互：
      * 1. 空碗 → 蘑菇汤/迷之炖菜
      * 2. 棕色哞菇 + 花朵 → 存储迷之炖菜效果
-     *
-     * 参考: MushroomCow.mobInteract()
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
@@ -184,7 +180,6 @@ public:
      * @brief 获取路径权重
      *
      * 哞菇偏好菌丝：站在菌丝上返回10.0f，否则返回亮度相关值。
-     * 对应 MC MushroomCow.getWalkTargetValue。
      */
     [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
 
@@ -219,12 +214,11 @@ private:
      * @brief 从物品获取花朵的迷之炖菜效果
      *
      * 检查物品是否为花朵方块物品，如果是则返回其迷之炖菜效果。
-     * 对应 MC 的 SuspiciousEffectHolder.tryGet() + FlowerBlock.getSuspiciousEffects()
      *
      * @param itemStack 物品堆
      * @return 如果物品是花朵且有效果，返回 pair<EffectType, durationSeconds>；否则返回 nullopt
      */
-    [[nodiscard]] static std::optional<std::pair<entity::effect::EffectType, i32>> getStewEffectFromItem(
+    [[nodiscard]] static std::optional<std::pair<entity::effect::EffectType, i32>> _getStewEffectFromItem(
         const ItemStack& itemStack);
 };
 
