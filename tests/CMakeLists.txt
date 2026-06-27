@@ -662,6 +662,7 @@ add_executable(mc_tests
     server/weather/WeatherManagerTest.cpp
     server/world/spawn/DespawnManagerTest.cpp
     server/command/CommandRegistryTest.cpp
+    server/command/LocateCommandTest.cpp
     server/command/SetBlockCommandTest.cpp
     server/command/CloneCommandTest.cpp
     server/command/GiveCommandTest.cpp
@@ -1982,6 +1983,7 @@ endif()
 add_executable(mc_command_tests
     common/BaseTestServer.cpp
     server/command/CommandRegistryTest.cpp
+    server/command/LocateCommandTest.cpp
     server/command/CommandStorageTest.cpp
     server/command/EntityDataAccessorEffectTest.cpp
     server/command/PlayerResolverTest.cpp

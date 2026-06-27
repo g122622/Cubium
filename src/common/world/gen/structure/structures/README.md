@@ -2,7 +2,7 @@
 
 本目录存放具体结构实现类，负责把抽象结构规则转化为可写入世界的方块布局。
 
-## 1. 目录结构树
+## 目录结构树
 
 ```text
 structures/
@@ -27,28 +27,28 @@ structures/
 ├── WoodlandMansionStructure.hpp/.cpp # 林地府邸 (模板+程序化)
 ```
 
-## 2. 内部模块关系
+## 内部模块关系
 
 结构类型按生成方式分为三类：
 
 1. **模板化结构**：使用 `TemplateManager` 加载 NBT 模板
    - `IglooStructure`、`ShipwreckStructure`、`OceanRuinStructure`、`NetherFossilStructure`、`RuinedPortalStructure`
-   
+
 2. **递归生成结构**：程序化递归生成片段
    - `EndCityStructure`、`StrongholdStructure`（配合 `StrongholdPieces`）
-   
+
 3. **Jigsaw 结构**：使用 Jigsaw 拼图系统
    - `VillageStructure`、`BastionRemnantStructure`、`PillagerOutpostStructure`
-   
+
 4. **程序化结构**：完全程序化生成，无模板依赖
    - `BuriedTreasureStructure`、`DesertPyramidStructure`、`FortressStructure`、`JungleTempleStructure`、`MineshaftStructure`、`OceanMonumentStructure`、`SwampHutStructure`
 
 5. **混合结构**：模板化片段 + 程序化布局网格
    - `WoodlandMansionStructure`（使用 `MansionGrid` 递归走廊算法生成布局，`MansionPlacer` 放置模板片段）
 
-所有结构类继承自 `Structure` 基类，通过 `StructureStart` 管理生成起点。
+所有结构类继承自 `Structure` 基类，通过 `ResourceLocation` 标识，使用 `biomeTag()` 进行生物群系匹配，通过 `StructureStart` 管理生成起点。
 
-## 3. 上下游外部依赖关系
+## 上下游外部依赖关系
 
 **上游依赖（本目录依赖的外部模块）**：
 - `world/gen/structure/Structure.hpp` - 结构基类
@@ -65,9 +65,8 @@ structures/
 - `StructureManager` - 统一调度结构生成
 - 各生物群系的 `StructureProvider` - 决定哪些结构在哪些生物群系生成
 
-## 4. 容易踩的坑
+## 容易踩的坑
 
-- **枚举注册遗漏**：仅在 `StructureType` 增加枚举但未在 `StructureRegistry::initialize()` 注册，运行时不会生成该结构
 - **方块未注册**：结构使用的新方块若未在 `VanillaBlocks` 注册，会出现空指针或降级方块
 - **阶段顺序错误**：结构过早直接写入世界可能被后续地形阶段覆盖，需结合当前生成链路验证阶段顺序
 - **模板管理器未设置**：模板化结构必须在使用前调用 `setTemplateManager()`，否则模板加载会失败

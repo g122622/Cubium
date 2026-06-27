@@ -41,9 +41,6 @@ class LocateCommand {
 public:
     static void registerTo(CommandDispatcher<ServerCommandSource>& dispatcher);
 
-private:
-    static i32 _locateStructure(CommandContext<ServerCommandSource>& context);
-
     /**
      * @brief 将用户输入的结构名称规范化为 ResourceLocation
      *
@@ -54,6 +51,9 @@ private:
      * @return 规范化后的 ResourceLocation
      */
     static ResourceLocation _normalizeToResourceLocation(const std::string& name);
+
+private:
+    static i32 _locateStructure(CommandContext<ServerCommandSource>& context);
 };
 
 } // namespace command

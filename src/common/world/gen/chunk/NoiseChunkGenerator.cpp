@@ -208,7 +208,11 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
         if (!structure) continue;
 
-        // 生成结构起点（间距和生物群系检查已由 StructurePlacement::isStructureChunk() 完成）
+        // 生成结构起点
+        // TODO: 目前 isStructureChunk() 仅做间距/频率/排斥区检查，不做生物群系检查。
+        // MC 1.21.11 中 StructurePlacement.isStructureChunk() 还会检查候选位置的生物群系
+        // 是否匹配结构的 biomeTag，当前实现缺少此步骤。结构的 canGenerate() 方法内部
+        // 会做部分生物群系验证，但应在放置层面统一检查。
         auto start = structure->generate(*this, rng, chunkX, chunkZ);
         if (start) {
             chunk.addStructureStart(
