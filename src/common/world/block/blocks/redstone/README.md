@@ -150,9 +150,23 @@ if (!redstone.isUpdating(pos)) {
 
     ## #12. 压力板实体过滤
 
-    压力板检测实体时需要调用 `entity->doesEntityNotTriggerPressurePlate()`： -
-    玩家、生物：返回 `false`（会触发） -
-    物品实体、箭矢等：返回 `true`（不触发）
+    压力板检测实体时使用不同的过滤策略，与 MC Java 对齐：
+
+    - **石质/磨制黑石压力板**（MOBS 灵敏度）：使用 `dynamic_cast<LivingEntity*>` 过滤，
+      只检测生物实体。同时排除 `doesEntityNotTriggerPressurePlate()` 返回 true 的实体
+      （蝙蝠、标记模式盔甲架、不祥物品生成器等）。
+    - **木质/铜/铁/金等压力板**（EVERYTHING 灵敏度）：检测所有实体类型，
+      但排除 `doesEntityNotTriggerPressurePlate()` 返回 true 的实体。
+    - **测重压力板**：与木质压力板相同，检测所有实体并排除不触发的实体。
+
+    `doesEntityNotTriggerPressurePlate()` 覆写情况（对应 MC Java 的 `isIgnoringBlockTriggers()`）：
+    - 蝙蝠（BatEntity）：返回 `true`
+    - 标记模式盔甲架（ArmorStandEntity, isMarker=true）：返回 `true`
+    - 不祥物品生成器（OminousItemSpawnerEntity）：返回 `true`
+    - 其他实体默认返回 `false`
+
+    注意：物品实体和投射物**不**覆写此方法。在 MC 原版中，木质/测重压力板可检测
+    所有实体（包括物品），石质压力板通过 LivingEntity 类型过滤自动排除非生物实体。
 
     ## #13. 比较器物品展示框检测
 

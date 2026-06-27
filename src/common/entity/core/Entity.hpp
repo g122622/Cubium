@@ -1875,17 +1875,6 @@ public:
     [[nodiscard]] virtual i32 getMaxPassengers() const { return 1; }
 
     /**
-     * @brief 检查是否可以容纳更多乘客
-     *
-     * 子类可重写此方法添加额外检查（如 BoatEntity 检查是否在水下）。
-     * 默认实现只检查乘客数量限制。
-     */
-    [[nodiscard]] virtual bool canFitPassenger() const
-    {
-        return static_cast<i32>(m_passengers.size()) < getMaxPassengers();
-    }
-
-    /**
      * @brief 检查此实体是否根本可以接受乘客
      *
      * 对应 MC Java 的 Entity.couldAcceptPassenger()。
@@ -1906,9 +1895,12 @@ public:
      * 这是骑乘检查的"软门槛"——在 couldAcceptPassenger 之后检查，
      * 但可以通过强制骑乘绕过。
      *
-     * 默认实现：仅当当前没有乘客时才允许（单乘客载具）。
-     * 多乘客载具（如船、骆驼等）应重写此方法和 getMaxPassengers()。
-     * 不允许任何乘客的实体应同时重写 couldAcceptPassenger() 返回 false。
+     * 默认实现：检查当前乘客数量是否小于最大乘客数。
+     * MC Java 原版默认为 passengers.isEmpty()（仅限单乘客），
+     * 但本项目中 getMaxPassengers() 机制已完善，故默认实现使用
+     * passengers.size() < getMaxPassengers() 以自动适配多乘客载具。
+     * 需要额外条件（如船检查是否在水下）的子类应重写此方法。
+     * 不允许任何乘客的实体应重写 couldAcceptPassenger() 返回 false。
      *
      * @param passenger 待添加的乘客实体
      * @return 如果可以添加指定乘客返回 true
@@ -1916,7 +1908,7 @@ public:
     [[nodiscard]] virtual bool canAddPassenger(const Entity& passenger) const
     {
         (void)passenger;
-        return m_passengers.empty();
+        return static_cast<i32>(m_passengers.size()) < getMaxPassengers();
     }
 
     /**
