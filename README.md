@@ -33,6 +33,22 @@
 
 详细的构建指南见 [docs/BUILD.md](docs/BUILD.md)，包含环境配置、构建命令、运行方式、着色器编译、VS Code IntelliSense 配置、本地 Sanitizer 构建等。
 
+## 测试崩溃时查看完整调用栈
+
+`mc_tests` 在 `main` 中安装了 `mc::assert::CrashHandler`（参考 `src/client/main.cpp`、`src/server/main.cpp`），崩溃（SEH 访问违例、除零、栈溢出、纯虚调用、`std::terminate`、`MC_ASSERT_RELEASE` 触发的 `abort`）时输出调用栈和寄存器到 stderr。
+
+但 GoogleTest 默认安装自己的 SEH 处理器（`--gtest_catch_exceptions=1`），会抢先捕获 SEH 并打印 `unknown file: error: SEH exception with code 0x... thrown in the test body.` **不带栈**，CrashHandler 拿不到崩溃现场。要看到完整栈，必须禁用 gtest 的 SEH 捕获，让 CrashHandler 接管：
+
+```bash
+# 禁用 gtest SEH 捕获，崩溃时由 CrashHandler 输出完整调用栈
+./build/bin/RelWithDebInfo/mc_tests --gtest_filter='ServerChunkManagerTest.GetChunkSync_MultipleChunks' --gtest_catch_exceptions=0
+```
+
+- `--gtest_catch_exceptions=0`：关闭 gtest 的 SEH 捕获，SEH 直接传给 CrashHandler。
+- 崩溃时输出 `Reason: ACCESS_VIOLATION - Read/Write access at address 0x...`、寄存器转储、`Stack trace:`（帧序号 + 函数名 + 文件:行号）。
+- 仅 Windows 需要 `--gtest_catch_exceptions=0`（Linux/macOS 用信号处理，gtest 默认不捕获 SIGSEGV）。
+- 配合 `--gtest_filter` 定位到单个用例，栈最干净。`--gtest_break_on_failure` 会让 gtest 抛 `BREAKPOINT`（被 CrashHandler 当作断点，不是原始崩溃点），调试时不要混用。
+
 ## clang-tidy 静态分析
 
 项目配置了 `.clang-tidy` 文件，启用 `bugprone-*`、`clang-analyzer-*`、`concurrency-*`、`performance-*` 等检查规则。

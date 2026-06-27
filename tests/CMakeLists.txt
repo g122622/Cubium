@@ -15,6 +15,7 @@ endfunction()
 
 # 通用测试可执行文件
 add_executable(mc_tests
+    main.cpp
     common/test_math.cpp
     common/test_network.cpp
     common/test_world.cpp
@@ -995,6 +996,12 @@ add_executable(mc_tests
     common/util/thread/ServerWorkerPoolAreaMutexTest.cpp
     # ReentrantAreaLock 区域锁测试
     common/util/concurrent/ReentrantAreaLockTest.cpp
+    # LockSupport park/unpark 原语测试
+    common/util/concurrent/LockSupportTest.cpp
+    # MultiThreadedQueue 无锁队列测试
+    common/util/concurrent/MultiThreadedQueueTest.cpp
+    # ConcurrentLong2ObjectHashTable 无锁哈希表测试
+    common/util/concurrent/ConcurrentLong2ObjectHashTableTest.cpp
     # SHA-256 加密工具测试
     common/util/crypto/Sha256Test.cpp
     # SHA-1 加密工具测试
@@ -1768,7 +1775,7 @@ target_link_libraries(mc_tests
     PRIVATE
         mc_common
         mc_bedrock_addon
-        GTest::gtest_main
+        GTest::gtest
         asio::asio
         nlohmann_json::nlohmann_json
         glm::glm
