@@ -581,6 +581,10 @@ extern const ResourceLocation ENTITY_GENERIC_EXPLODE;
 // 试炼密室相关音效 (Trial Chambers)
 // ============================================================================
 
+/// 试炼刷怪笼即将生成物品的警告音效
+/// 对应 MC Java: SoundEvents.TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM
+extern const ResourceLocation TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM;
+
 /// 风弹投掷声
 extern const ResourceLocation ENTITY_WIND_CHARGE_THROW;
 

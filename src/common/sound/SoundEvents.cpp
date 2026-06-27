@@ -508,6 +508,8 @@ const ResourceLocation ENTITY_GENERIC_EXPLODE("minecraft:entity.generic.explode"
 // 试炼密室相关音效 (Trial Chambers)
 // ============================================================================
 
+const ResourceLocation TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM("minecraft:block.trial_spawner.about_to_spawn_item");
+
 const ResourceLocation ENTITY_WIND_CHARGE_THROW("minecraft:entity.wind_charge.throw");
 const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST("minecraft:entity.wind_charge.wind_burst");
 const ResourceLocation ENTITY_BREEZE_WIND_CHARGE_BURST("minecraft:entity.breeze.wind_charge_burst");

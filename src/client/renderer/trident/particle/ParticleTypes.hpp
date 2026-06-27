@@ -357,6 +357,9 @@ enum class ParticleTypeId : u16 {
     /// 风爆发射器粒子（大型）
     GustEmitterLarge = 108,
 
+    /// 不祥生成粒子（不祥物品生成器周围生成的不祥粒子）
+    OminousSpawning = 109,
+
     /// 孢子花掉落粒子
     FallingSporeBlossom = 105,
 

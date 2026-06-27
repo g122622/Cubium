@@ -43,6 +43,15 @@ MiscEntities.hpp
 │   └── 支持自定义引信时间 ignite(i32 fuseTicks)，用于连锁爆炸短引信
 ├── WardenWarningEffect（独立类，非实体）
 └── OminousItemSpawnerEntity 继承 Entity
+    ├── 依赖 ItemEntity 进行普通物品掉落
+    ├── 依赖 ProjectileEntity / WindChargeEntity 进行弹射物发射
+    ├── 依赖 ThrowableItem / WindChargeItem 判断物品是否为弹射物类型
+    ├── 依赖 EntityRegistry 按类型创建弹射物实体
+    ├── 依赖 IWorld::playSound() 播放警告音效
+    ├── 依赖 IWorld::playEvent() 播放世界事件（粒子效果）
+    ├── 依赖 IWorld::gameEvent() 触发游戏事件（幽匿感测体检测）
+    ├── 依赖 IWorld::addParticle() 生成 OminousSpawning 粒子
+    └── 依赖 ItemStack::toNbt()/fromNbt() 进行物品序列化
 ```
 
 ## 上下游外部依赖关系
