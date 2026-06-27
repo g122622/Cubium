@@ -38,7 +38,7 @@ description: 运行测试，认领并收敛项目代码中的一个测试错误
 
 例如：当你修改想修改或查看`src\common\world\chunk\ChunkLoadTicketManager.cpp`，你必须提前依次查看目录链上的各级目录上的readme文件：
 
-- 项目根目录的 README.md
+- 项目根目录的 README.md(其中包含如何在测试用例崩溃的时候看到调用栈的方法，必须看)
 - src\common\README.md
 - src\common\world\README.md
 - src\common\world\chunk\README.md
