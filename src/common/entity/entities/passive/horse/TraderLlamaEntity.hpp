@@ -45,8 +45,6 @@ struct compound_tag;
  * - 防御目标：当流浪商人受到攻击时，商队羊驼会反击攻击者
  * - 特殊骑乘限制：被拴在流浪商人身上时不允许玩家骑乘
  * - 目标选择：攻击僵尸（除僵尸猪灵）和灾厄村民
- *
- * 对齐 MC Java TraderLlama 实现。
  */
 class TraderLlamaEntity : public LlamaEntity {
 public:
@@ -102,10 +100,12 @@ public:
      *
      * 商队羊驼在以下情况下不会消失：
      * 1. 已被驯服
-     * 2. 被拴在流浪商人以外的实体上（如玩家或栅栏）
+     * 2. 被拴住（任何拴绳持有者，包括流浪商人）
      * 3. 正好有一名玩家乘客
      *
-     * 对齐 MC Java TraderLlama.canDespawn()
+     * 注意：被拴住时不应消失，因为拴绳状态意味着实体受玩家/商人控制。
+     * 流浪商人自身的消失机制通过 maybeDespawn() 管理，
+     * 不应被 DespawnManager 的距离判断干扰。
      */
     [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override;
 
@@ -115,7 +115,6 @@ public:
      * @brief 玩家与商队羊驼交互
      *
      * 当商队羊驼被拴在流浪商人身上时，不允许玩家骑乘。
-     * 对齐 MC Java TraderLlama.doPlayerRide()
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
@@ -130,6 +129,20 @@ public:
     // ========== 生命周期 ==========
 
     void tick() override;
+
+    /**
+     * @brief 完成商队羊驼的生成初始化
+     *
+     * 重写 MobEntity::finalizeSpawn() 以确保消失倒计时正确设置。
+     * 当商队羊驼自然生成时（非由流浪商人生成），需要初始化消失倒计时。
+     *
+     * @param world 世界引用
+     * @param difficulty 区域难度实例
+     * @param spawnReason 生成原因
+     */
+    void finalizeSpawn(IWorld& world,
+        const entity::combat::DifficultyInstance& difficulty,
+        world::spawn::SpawnReason spawnReason) override;
 
 protected:
     /**
@@ -157,7 +170,6 @@ private:
     /**
      * @brief 每 tick 执行消失倒计时逻辑
      *
-     * 对齐 MC Java TraderLlama.maybeDespawn()：
      * - 如果 canDespawn() 返回 true：
      *   - 被拴在流浪商人身上时，同步流浪商人的消失倒计时（-1）
      *   - 否则自行递减消失倒计时
@@ -169,11 +181,6 @@ private:
      * @brief 检查是否被拴在流浪商人身上
      */
     [[nodiscard]] bool isLeashedToWanderingTrader() const;
-
-    /**
-     * @brief 检查是否被拴在流浪商人以外的实体上
-     */
-    [[nodiscard]] bool isLeashedToSomethingOtherThanWanderingTrader() const;
 
     /**
      * @brief 检查是否正好有一名玩家乘客

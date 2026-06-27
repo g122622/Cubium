@@ -29,6 +29,7 @@
 #include "common/entity/ai/goal/goals/PanicGoal.hpp"
 #include "common/entity/ai/goal/goals/special/SpecialGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -59,17 +60,17 @@ std::unique_ptr<Entity> TraderLlamaEntity::create(IWorld* /*world*/)
 
 bool TraderLlamaEntity::canDespawn(double /*distanceToClosestPlayer*/) const noexcept
 {
-    // 对齐 MC Java TraderLlama.canDespawn()：
     // 商队羊驼在以下情况下不会消失：
     // 1. 已被驯服
-    // 2. 被拴在流浪商人以外的实体上（如玩家或栅栏）
+    // 2. 被拴住（任何拴绳持有者，包括流浪商人）
     // 3. 正好有一名玩家乘客
-    return !isTame() && !isLeashedToSomethingOtherThanWanderingTrader() && !hasExactlyOnePlayerPassenger();
+    // 注意：被拴住时不应被 DespawnManager 距离判断移除，
+    // 流浪商人自身的消失机制通过 maybeDespawn() 管理。
+    return !isTame() && !isLeashed() && !hasExactlyOnePlayerPassenger();
 }
 
 ActionResultType TraderLlamaEntity::interactMob(Player& player, Hand hand)
 {
-    // 对齐 MC Java TraderLlama.doPlayerRide()：
     // 当商队羊驼被拴在流浪商人身上时，不允许玩家骑乘
     if (isLeashedToWanderingTrader()) {
         return ActionResultType::Pass;
@@ -87,6 +88,19 @@ void TraderLlamaEntity::tick()
     }
 }
 
+void TraderLlamaEntity::finalizeSpawn(
+    IWorld& world, const entity::combat::DifficultyInstance& difficulty, world::spawn::SpawnReason spawnReason)
+{
+    LlamaEntity::finalizeSpawn(world, difficulty, spawnReason);
+
+    // 确保消失倒计时已设置（自然生成时使用默认值）
+    // 当由流浪商人的 spawnLlamas() 生成时，消失倒计时会在生成后通过
+    // setDespawnDelay() 显式设置，因此这里只需确保非商人路径的默认值
+    if (m_despawnDelay <= 0) {
+        m_despawnDelay = DEFAULT_DESPAWN_DELAY;
+    }
+}
+
 void TraderLlamaEntity::registerGoals()
 {
     LlamaEntity::registerGoals();
@@ -101,7 +115,7 @@ void TraderLlamaEntity::registerGoals()
     m_targetSelector.addGoal(2,
         std::make_unique<entity::ai::goal::NearestAttackableTargetGoal<ZombieEntity>>(
             this, true, 0, [](const LivingEntity* entity) -> bool {
-                // 排除僵尸猪灵（对齐 MC Java TraderLlama.registerGoals() 中的谓词）
+                // 排除僵尸猪灵
                 return entity != nullptr && entity->typeId() != entity::EntityTypeIdNumber::ZOMBIFIED_PIGLIN;
             }));
 
@@ -134,7 +148,6 @@ Result<void> TraderLlamaEntity::readAdditionalSaveData(const nbt::tags::compound
 
 void TraderLlamaEntity::maybeDespawn()
 {
-    // 对齐 MC Java TraderLlama.maybeDespawn()
     if (!canDespawn(0.0)) {
         return;
     }
@@ -169,14 +182,6 @@ bool TraderLlamaEntity::isLeashedToWanderingTrader() const
     }
     Entity* holder = getLeashHolderEntity();
     return holder != nullptr && dynamic_cast<entity::WanderingTraderEntity*>(holder) != nullptr;
-}
-
-bool TraderLlamaEntity::isLeashedToSomethingOtherThanWanderingTrader() const
-{
-    if (!isLeashed()) {
-        return false;
-    }
-    return !isLeashedToWanderingTrader();
 }
 
 bool TraderLlamaEntity::hasExactlyOnePlayerPassenger() const

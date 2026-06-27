@@ -1156,10 +1156,17 @@ void WanderingTraderEntity::spawnLlamas()
         llama->setPosition(spawnX, spawnY, spawnZ);
         llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
 
-        // TODO: 当拴绳系统实现后，将羊驼拴在商人身上
-        // llama->attachToEntity(this, ...);
-
-        m_world->spawnEntity(std::move(llama));
+        // 生成羊驼并在生成后将拴绳绑定到流浪商人
+        // 注意：setLeashedToEntity 需要实体已拥有有效的 UUID，
+        // 因此拴绳绑定必须在 spawnEntity() 之后执行
+        EntityId llamaId = m_world->spawnEntity(std::move(llama));
+        Entity* spawnedLlama = m_world->getEntity(llamaId);
+        if (spawnedLlama != nullptr) {
+            auto* traderLlama = dynamic_cast<TraderLlamaEntity*>(spawnedLlama);
+            if (traderLlama != nullptr) {
+                traderLlama->setLeashedToEntity(uuid());
+            }
+        }
     }
 
     m_hasLlamas = true;

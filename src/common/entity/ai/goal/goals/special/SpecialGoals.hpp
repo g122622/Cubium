@@ -272,8 +272,6 @@ private:
  * 当商队羊驼被拴在流浪商人身上时，如果流浪商人受到攻击，
  * 商队羊驼会反击攻击者。类似于 OwnerHurtByTargetGoal，
  * 但目标来源是拴绳持有者（流浪商人）而非驯服者。
- *
- * 对齐 MC Java TraderLlama.TraderLlamaDefendWanderingTraderGoal。
  */
 class TraderLlamaDefendWanderingTraderGoal : public Goal {
 public:

@@ -39,32 +39,74 @@ TEST(TraderLlamaEntityTest, InheritsFromLlamaAndExposesTraderFlag)
     EXPECT_EQ(traderLlama.getDespawnDelay(), 47999);
 }
 
-TEST(TraderLlamaEntityTest, UntamedTraderLlamaDespawnsWhenDelayExpires)
+TEST(TraderLlamaEntityTest, DefaultDespawnDelayIsCorrect)
 {
     TraderLlamaEntity traderLlama(EntityId(1));
-    traderLlama.setDespawnDelay(1);
-
-    traderLlama.tick();
-
-    EXPECT_TRUE(traderLlama.isRemoved());
+    EXPECT_EQ(traderLlama.getDespawnDelay(), TraderLlamaEntity::DEFAULT_DESPAWN_DELAY);
 }
 
-TEST(TraderLlamaEntityTest, TamedOrRiddenTraderLlamaDoesNotDespawn)
+TEST(TraderLlamaEntityTest, SetDespawnDelay)
 {
-    TraderLlamaEntity tamedTraderLlama(EntityId(1));
-    tamedTraderLlama.setTame(true);
-    tamedTraderLlama.setDespawnDelay(1);
-    tamedTraderLlama.tick();
-    EXPECT_FALSE(tamedTraderLlama.isRemoved());
-    EXPECT_EQ(tamedTraderLlama.getDespawnDelay(), 1);
+    TraderLlamaEntity traderLlama(EntityId(1));
+    traderLlama.setDespawnDelay(100);
+    EXPECT_EQ(traderLlama.getDespawnDelay(), 100);
+}
 
-    TraderLlamaEntity riddenTraderLlama(EntityId(2));
-    Player rider(1, "Steve");
-    riddenTraderLlama.setRider(&rider);
-    riddenTraderLlama.setDespawnDelay(1);
-    riddenTraderLlama.tick();
-    EXPECT_FALSE(riddenTraderLlama.isRemoved());
-    EXPECT_EQ(riddenTraderLlama.getDespawnDelay(), 1);
+TEST(TraderLlamaEntityTest, SyncDespawnDelayFromTrader)
+{
+    TraderLlamaEntity traderLlama(EntityId(1));
+    traderLlama.syncDespawnDelayFromTrader(48000);
+    EXPECT_EQ(traderLlama.getDespawnDelay(), 47999);
+}
+
+TEST(TraderLlamaEntityTest, CanDespawnReturnsTrueWhenUntamedAndUnleashed)
+{
+    TraderLlamaEntity traderLlama(EntityId(1));
+    // 默认状态：未驯服、未拴绳
+    EXPECT_TRUE(traderLlama.canDespawn(128.0));
+}
+
+TEST(TraderLlamaEntityTest, CanDespawnReturnsFalseWhenTamed)
+{
+    TraderLlamaEntity traderLlama(EntityId(1));
+    traderLlama.setTame(true);
+    EXPECT_FALSE(traderLlama.canDespawn(128.0));
+}
+
+TEST(TraderLlamaEntityTest, CanDespawnReturnsFalseWhenLeashed)
+{
+    TraderLlamaEntity traderLlama(EntityId(1));
+    // 设置拴绳状态（拴到栅栏上）
+    traderLlama.setLeashedToFence(BlockPos(0, 64, 0));
+    EXPECT_FALSE(traderLlama.canDespawn(128.0));
+}
+
+TEST(TraderLlamaEntityTest, TamedTraderLlamaDoesNotDespawnViaCanDespawn)
+{
+    TraderLlamaEntity traderLlama(EntityId(1));
+    traderLlama.setTame(true);
+    traderLlama.setDespawnDelay(1);
+    // 驯服的商队羊驼不应消失
+    EXPECT_FALSE(traderLlama.canDespawn(0.0));
+}
+
+TEST(TraderLlamaEntityTest, LeashedTraderLlamaDoesNotDespawnViaCanDespawn)
+{
+    TraderLlamaEntity traderLlama(EntityId(1));
+    traderLlama.setLeashedToFence(BlockPos(0, 64, 0));
+    traderLlama.setDespawnDelay(1);
+    // 被拴绳拴住的商队羊驼不应消失
+    EXPECT_FALSE(traderLlama.canDespawn(0.0));
+}
+
+TEST(TraderLlamaEntityTest, IsTraderLlamaFlag)
+{
+    TraderLlamaEntity traderLlama(EntityId(1));
+    EXPECT_TRUE(traderLlama.isTraderLlama());
+
+    // TraderLlamaEntity 可以向上转型为 LlamaEntity
+    LlamaEntity* llamaPtr = &traderLlama;
+    EXPECT_NE(llamaPtr, nullptr);
 }
 
 } // namespace

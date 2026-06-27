@@ -716,7 +716,6 @@ TraderLlamaDefendWanderingTraderGoal::TraderLlamaDefendWanderingTraderGoal(Trade
 
 bool TraderLlamaDefendWanderingTraderGoal::shouldExecute()
 {
-    // 对齐 MC Java TraderLlama.TraderLlamaDefendWanderingTraderGoal.canUse()
     // 1. 商队羊驼必须被拴住
     if (!m_llama->isLeashed()) {
         return false;
@@ -757,7 +756,6 @@ bool TraderLlamaDefendWanderingTraderGoal::shouldExecute()
 
 void TraderLlamaDefendWanderingTraderGoal::startExecuting()
 {
-    // 对齐 MC Java TraderLlama.TraderLlamaDefendWanderingTraderGoal.start()
     m_llama->setAttackTarget(m_ownerLastHurtBy);
 
     // 更新时间戳，防止重复触发
