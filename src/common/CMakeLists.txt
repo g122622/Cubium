@@ -146,6 +146,7 @@ add_library(mc_common STATIC
     entity/entities/passive/horse/SkeletonHorseEntity.cpp
     entity/entities/passive/horse/ZombieHorseEntity.cpp
     entity/entities/passive/horse/LlamaEntity.cpp
+    entity/entities/passive/horse/TraderLlamaEntity.cpp
     # Entity - Monster
     entity/interfaces/IFlinging.cpp
     entity/interfaces/IRideable.cpp

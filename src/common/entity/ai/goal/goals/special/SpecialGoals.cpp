@@ -39,8 +39,10 @@
 #include "../../../../entities/passive/horse/AbstractHorseEntity.hpp"
 #include "../../../../entities/passive/horse/LlamaEntity.hpp"
 #include "../../../../entities/passive/horse/SkeletonHorseEntity.hpp"
+#include "../../../../entities/passive/horse/TraderLlamaEntity.hpp"
 #include "../../../../entities/passive/tamable/WolfEntity.hpp"
 #include "../../../../entities/player/Player.hpp"
+#include "../../../../entities/villager/VillagerEntity.hpp"
 #include "../../../EntitySenses.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
@@ -701,6 +703,73 @@ void TriggerSkeletonTrapGoal::tick()
     if (m_horse && m_horse->isAlive() && m_horse->isTrap()) {
         m_horse->triggerTrap();
     }
+}
+
+// ============================================================================
+// TraderLlamaDefendWanderingTraderGoal
+// ============================================================================
+
+TraderLlamaDefendWanderingTraderGoal::TraderLlamaDefendWanderingTraderGoal(TraderLlamaEntity* llama)
+    : Goal(EnumSet<GoalFlag>{GoalFlag::Target})
+    , m_llama(llama)
+{}
+
+bool TraderLlamaDefendWanderingTraderGoal::shouldExecute()
+{
+    // 对齐 MC Java TraderLlama.TraderLlamaDefendWanderingTraderGoal.canUse()
+    // 1. 商队羊驼必须被拴住
+    if (!m_llama->isLeashed()) {
+        return false;
+    }
+
+    // 2. 拴绳持有者必须是流浪商人
+    Entity* holder = m_llama->getLeashHolderEntity();
+    if (holder == nullptr) {
+        return false;
+    }
+    auto* trader = dynamic_cast<mc::entity::WanderingTraderEntity*>(holder);
+    if (trader == nullptr) {
+        return false;
+    }
+
+    // 3. 流浪商人必须受到过攻击，且攻击时间戳有更新
+    LivingEntity* hurtBy = trader->getLastHurtBy();
+    if (hurtBy == nullptr) {
+        return false;
+    }
+    i32 traderHurtTimestamp = trader->lastHurtByTimestamp();
+    if (traderHurtTimestamp == m_timestamp) {
+        return false;
+    }
+
+    // 4. 攻击者必须是有效的目标
+    if (!hurtBy->isAlive()) {
+        return false;
+    }
+    if (hurtBy == m_llama) {
+        return false;
+    }
+
+    // 保存攻击者引用
+    m_ownerLastHurtBy = hurtBy;
+    return true;
+}
+
+void TraderLlamaDefendWanderingTraderGoal::startExecuting()
+{
+    // 对齐 MC Java TraderLlama.TraderLlamaDefendWanderingTraderGoal.start()
+    m_llama->setAttackTarget(m_ownerLastHurtBy);
+
+    // 更新时间戳，防止重复触发
+    Entity* holder = m_llama->getLeashHolderEntity();
+    if (holder != nullptr) {
+        auto* trader = dynamic_cast<mc::entity::WanderingTraderEntity*>(holder);
+        if (trader != nullptr) {
+            m_timestamp = trader->lastHurtByTimestamp();
+        }
+    }
+
+    Goal::startExecuting();
 }
 
 } // namespace mc::entity::ai::goal

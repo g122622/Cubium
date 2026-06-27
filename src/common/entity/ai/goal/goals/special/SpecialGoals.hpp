@@ -36,6 +36,7 @@ class LivingEntity;
 class PufferfishEntity;
 class LlamaEntity;
 class WolfEntity;
+class TraderLlamaEntity;
 class SkeletonHorseEntity;
 
 namespace entity::ai::goal {
@@ -263,6 +264,36 @@ public:
 private:
     LlamaEntity* m_llama;
     LivingEntity* m_target = nullptr;
+};
+
+/**
+ * @brief 商队羊驼保卫流浪商人目标
+ *
+ * 当商队羊驼被拴在流浪商人身上时，如果流浪商人受到攻击，
+ * 商队羊驼会反击攻击者。类似于 OwnerHurtByTargetGoal，
+ * 但目标来源是拴绳持有者（流浪商人）而非驯服者。
+ *
+ * 对齐 MC Java TraderLlama.TraderLlamaDefendWanderingTraderGoal。
+ */
+class TraderLlamaDefendWanderingTraderGoal : public Goal {
+public:
+    /**
+     * @brief 构造函数
+     * @param llama 商队羊驼实体
+     */
+    explicit TraderLlamaDefendWanderingTraderGoal(TraderLlamaEntity* llama);
+
+    ~TraderLlamaDefendWanderingTraderGoal() override = default;
+
+    [[nodiscard]] bool shouldExecute() override;
+    void startExecuting() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "TraderLlamaDefendWanderingTraderGoal"; }
+
+private:
+    TraderLlamaEntity* m_llama;
+    LivingEntity* m_ownerLastHurtBy = nullptr;
+    i32 m_timestamp = 0;
 };
 
 /**

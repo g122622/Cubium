@@ -3,7 +3,7 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
+ * in the Software without restriction, including without limitation the the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
@@ -29,20 +29,34 @@
 
 namespace mc {
 
+// 前向声明
+class Player;
+
+namespace nbt::tags {
+struct compound_tag;
+}
+
 /**
  * @brief 商队羊驼实体
  *
- * TODO: 当前实现了消失倒计时与类型层次，后续需要补充拴绳、流浪商人仇恨联动和生成逻辑。
+ * 商队羊驼是跟随流浪商人的特殊羊驼，具有以下特性：
+ * - 与流浪商人绑定：被拴绳拴在流浪商人身上，保卫流浪商人
+ * - 消失机制：与流浪商人的消失倒计时同步，或独立倒计时消失
+ * - 防御目标：当流浪商人受到攻击时，商队羊驼会反击攻击者
+ * - 特殊骑乘限制：被拴在流浪商人身上时不允许玩家骑乘
+ * - 目标选择：攻击僵尸（除僵尸猪灵）和灾厄村民
+ *
+ * 对齐 MC Java TraderLlama 实现。
  */
 class TraderLlamaEntity : public LlamaEntity {
 public:
+    static constexpr i32 DEFAULT_DESPAWN_DELAY = 47999;
+
     /**
      * @brief 构造商队羊驼
      * @param id 实体 ID
      */
-    TraderLlamaEntity(EntityId id)
-        : LlamaEntity(id)
-    {}
+    TraderLlamaEntity(EntityId id);
 
     ~TraderLlamaEntity() override = default;
 
@@ -54,12 +68,16 @@ public:
     /**
      * @brief 创建商队羊驼
      */
-    static std::unique_ptr<Entity> create(IWorld* /*world*/) { return std::make_unique<TraderLlamaEntity>(0); }
+    static std::unique_ptr<Entity> create(IWorld* world);
+
+    // ========== 标识 ==========
 
     /**
      * @brief 当前是否为商队羊驼
      */
     [[nodiscard]] bool isTraderLlama() const { return true; }
+
+    // ========== 消失倒计时 ==========
 
     /**
      * @brief 获取消失倒计时
@@ -73,36 +91,96 @@ public:
 
     /**
      * @brief 以流浪商人倒计时同步自身倒计时
+     * @param traderDespawnDelay 流浪商人的消失倒计时
      */
     void syncDespawnDelayFromTrader(i32 traderDespawnDelay) { m_despawnDelay = traderDespawnDelay - 1; }
 
+    // ========== 消失逻辑 ==========
+
     /**
-     * @brief 当前是否允许自然消失
+     * @brief 检查是否可以消失
      *
-     * TODO: 当前仅实现最小语义（被驯服或被骑乘时不消失），后续需要补充拴绳和流浪商人关联逻辑。
+     * 商队羊驼在以下情况下不会消失：
+     * 1. 已被驯服
+     * 2. 被拴在流浪商人以外的实体上（如玩家或栅栏）
+     * 3. 正好有一名玩家乘客
+     *
+     * 对齐 MC Java TraderLlama.canDespawn()
      */
-    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override
-    {
-        (void)distanceToClosestPlayer;
-        return !isTame() && !isBeingRidden();
-    }
+    [[nodiscard]] bool canDespawn(double distanceToClosestPlayer) const noexcept override;
 
-    void tick() override
-    {
-        LlamaEntity::tick();
+    // ========== 交互 ==========
 
-        if (isTame() || isBeingRidden()) {
-            return;
-        }
+    /**
+     * @brief 玩家与商队羊驼交互
+     *
+     * 当商队羊驼被拴在流浪商人身上时，不允许玩家骑乘。
+     * 对齐 MC Java TraderLlama.doPlayerRide()
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
-        --m_despawnDelay;
-        if (m_despawnDelay <= 0) {
-            remove();
-        }
-    }
+    /**
+     * @brief 获取拴绳持有者实体（通过 UUID 查找）
+     * @return 拴绳持有者实体指针，未找到或未拴住返回 nullptr
+     *
+     * 此方法为 public 以供 AI 目标类访问。
+     */
+    [[nodiscard]] Entity* getLeashHolderEntity() const;
+
+    // ========== 生命周期 ==========
+
+    void tick() override;
+
+protected:
+    /**
+     * @brief 注册商队羊驼的 AI 目标
+     *
+     * 在羊驼目标基础上添加：
+     * - PanicGoal（优先级 1）
+     * - TraderLlamaDefendWanderingTraderGoal（目标优先级 1）
+     * - NearestAttackableTargetGoal<ZombieEntity>（目标优先级 2，排除僵尸猪灵）
+     * - NearestAttackableTargetGoal<AbstractIllagerEntity>（目标优先级 2）
+     */
+    void registerGoals() override;
+
+    /**
+     * @brief NBT 序列化：写入商队羊驼特有数据
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief NBT 反序列化：读取商队羊驼特有数据
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
 private:
-    i32 m_despawnDelay = 47999;
+    /**
+     * @brief 每 tick 执行消失倒计时逻辑
+     *
+     * 对齐 MC Java TraderLlama.maybeDespawn()：
+     * - 如果 canDespawn() 返回 true：
+     *   - 被拴在流浪商人身上时，同步流浪商人的消失倒计时（-1）
+     *   - 否则自行递减消失倒计时
+     * - 当倒计时 <= 0 时：解除拴绳并丢弃实体
+     */
+    void maybeDespawn();
+
+    /**
+     * @brief 检查是否被拴在流浪商人身上
+     */
+    [[nodiscard]] bool isLeashedToWanderingTrader() const;
+
+    /**
+     * @brief 检查是否被拴在流浪商人以外的实体上
+     */
+    [[nodiscard]] bool isLeashedToSomethingOtherThanWanderingTrader() const;
+
+    /**
+     * @brief 检查是否正好有一名玩家乘客
+     */
+    [[nodiscard]] bool hasExactlyOnePlayerPassenger() const;
+
+    i32 m_despawnDelay = DEFAULT_DESPAWN_DELAY;
 };
 
 } // namespace mc

@@ -28,7 +28,9 @@
 #include "entity/core/MobEntity.hpp"
 #include "entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "entity/entities/monster/end/EndermanEntity.hpp"
+#include "entity/entities/monster/illager/AbstractIllagerEntity.hpp"
 #include "entity/entities/monster/nether/NetherEntities.hpp"
+#include "entity/entities/monster/undead/ZombieEntity.hpp"
 #include "entity/entities/passive/basic/ChickenEntity.hpp"
 #include "entity/entities/passive/basic/RabbitEntity.hpp"
 #include "entity/entities/passive/golem/IronGolemEntity.hpp"
@@ -235,6 +237,8 @@ template class NearestAttackableTargetGoal<entity::VillagerEntity>;
 template class NearestAttackableTargetGoal<entity::AbstractVillagerEntity>;
 template class NearestAttackableTargetGoal<EndermiteEntity>;
 template class NearestAttackableTargetGoal<AxolotlEntity>;
+template class NearestAttackableTargetGoal<ZombieEntity>;
+template class NearestAttackableTargetGoal<AbstractIllagerEntity>;
 
 // ==================== HurtByTargetGoal ====================
 

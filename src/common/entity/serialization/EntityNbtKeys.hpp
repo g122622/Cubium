@@ -238,6 +238,10 @@ constexpr const char* HOME_Y = "HomePosY";
 constexpr const char* HOME_Z = "HomePosZ";
 constexpr const char* HAS_EGG = "HasEgg";
 
+// ========== TraderLlamaEntity 键 ==========
+
+constexpr const char* DESPAWN_DELAY = "DespawnDelay";
+
 // ========== ItemStack 子键 ==========
 
 constexpr const char* ITEM_ID = "id";
