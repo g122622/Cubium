@@ -121,6 +121,7 @@ add_executable(mc_tests
     common/entity/inventory/container/AnvilContainerTest.cpp
     common/entity/inventory/container/LoomContainerTest.cpp
     common/entity/inventory/container/MerchantContainerTest.cpp
+    common/entity/inventory/container/CrafterContainerTest.cpp
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
