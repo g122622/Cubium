@@ -36,6 +36,7 @@
 #include "../../../chunk/data/ChunkData.hpp"
 #include "../../../fluid/Fluid.hpp"
 #include "../../../gen/feature/ConfiguredFeature.hpp"
+#include "../../../gen/feature/DecorationStage.hpp"
 #include "../../../gen/feature/vegetation/FlowerFeature.hpp"
 #include "../../../lighting/engine/LightEngineUtils.hpp"
 #include "../../registry/VanillaBlocks.hpp"
@@ -288,18 +289,24 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
                     const auto& flowerIds = biome.generationSettings().getFlowerFeatureIds();
 
                     if (!flowerIds.empty()) {
-                        // 随机选择一个花卉特征
+                        // 随机选择一个花卉特征ID
+                        // 花卉特征ID是VegetalDecoration阶段内的索引（定义在FeatureIds.hpp中）
                         const u32 chosenId = flowerIds[random.nextInt(static_cast<i32>(flowerIds.size()))];
-                        ConfiguredFeatureBase* feature = FeatureRegistry::instance().getFeatureById(chosenId);
-                        auto* flowerFeature = dynamic_cast<ConfiguredFlowerFeature*>(feature);
-                        if (flowerFeature != nullptr) {
-                            // 从花卉配置中随机选择花朵方块状态
-                            const BlockState* flower = flowerFeature->getConfig().getRandomFlower(random);
-                            if (flower != nullptr) {
-                                world.setBlockState(currentPos, flower, 3);
-                                continue;
+
+                        // 通过阶段内索引查找花卉特征配置
+                        const auto& vegFeatures =
+                            FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
+                        if (chosenId < vegFeatures.size()) {
+                            auto* feature = dynamic_cast<ConfiguredFlowerFeature*>(vegFeatures[chosenId]);
+                            if (feature != nullptr) {
+                                // 从花卉配置中随机选择花朵方块状态
+                                const BlockState* flower = feature->getConfig().getRandomFlower(random);
+                                if (flower != nullptr) {
+                                    world.setBlockState(currentPos, flower, 3);
+                                }
                             }
                         }
+                        continue;
                     }
                 }
 

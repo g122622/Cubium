@@ -30,6 +30,7 @@ Block
 - getBoneMealType() 返回 NEIGHBOR_SPREADER（粒子在方块上方水平扩散，3 倍数量）
 - canGrow() 检查上方是否有空气
 - grow() 在上方散布短草和花朵（128 次循环随机偏移）
+- grow() 花朵放置基于生物群系花卉特征列表：通过 ChunkData 获取散布位置对应的生物群系，从 BiomeGenerationSettings::getFlowerFeatureIds() 获取花卉特征列表，随机选择 ConfiguredFlowerFeature 中的花朵方块状态；无花卉特征的生物群系回退到蒲公英
 
 **子类差异**：GrassBlock 实现了 IGrowable 接口用于骨粉交互；MyceliumBlock 不实现 IGrowable（MC 原版行为）。
 
@@ -41,6 +42,12 @@ Block
 |------|------|
 | `world/block/Block` | 方块基类 |
 | `world/IWorld` | 世界接口（获取方块状态、光照、设置方块） |
+| `world/biome/Biome` | 生物群系定义（获取 generationSettings） |
+| `world/biome/BiomeGenerationSettings` | 生物群系生成设置（获取花卉特征列表） |
+| `world/biome/BiomeRegistry` | 生物群系注册表（通过 BiomeId 查找生物群系） |
+| `world/chunk/data/ChunkData` | 区块数据（获取某位置的生物群系ID） |
+| `world/gen/feature/ConfiguredFeature` | 特征注册表（通过 ID 查找特征） |
+| `world/gen/feature/vegetation/FlowerFeature` | 花卉特征（ConfiguredFlowerFeature、FlowerFeatureConfig） |
 | `world/block/BlockRegistry` | 方块注册表（获取 DIRT 方块） |
 | `world/block/blocks/ice/SnowBlock` | 雪层方块（用于 LAYERS 属性检查） |
 | `world/fluid/Fluid` | 流体系统（检测水源） |

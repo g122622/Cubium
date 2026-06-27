@@ -120,7 +120,9 @@
                 沼泽的生成
 
                 ## #5. 中央岛屿判定使用区块坐标
-`EndBiomeSource::isInCentralIsland()` 使用区块坐标（blockX
+
+## #6. getFlowerFeatureIds() 与 addFlowerFeature()
+`BiomeGenerationSettings::getFlowerFeatureIds()` 返回通过 `addFlowerFeature()` 添加的花卉特征ID列表。花卉特征ID是 VegetalDecoration 阶段内的索引（定义在 `FeatureIds.hpp` 的 `FlowerFeatureIds` 命名空间中），可直接用作 `FeatureRegistry::getFeatures(DecorationStage::VegetalDecoration)` 返回向量的下标来查找对应的 `ConfiguredFlowerFeature`。注意：这些ID不是 `featureId()` 返回的全局ID，而是阶段内索引。调用 `clear()` 会清空花卉特征列表。`EndBiomeSource::isInCentralIsland()` 使用区块坐标（blockX
         >> 4），不是方块坐标。4096 = 64²（64 个区块半径）。
 
     ## #6. Parameter::span 支持两种重载
