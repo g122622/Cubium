@@ -1436,8 +1436,13 @@ bool Entity::addPassenger(Entity& passenger)
         }
     }
 
-    // 检查乘客数量限制
-    if (!canFitPassenger()) {
+    // 检查是否可以接受乘客（硬门槛）
+    if (!couldAcceptPassenger()) {
+        return false;
+    }
+
+    // 检查是否可以添加此特定乘客（软门槛）
+    if (!canAddPassenger(passenger)) {
         return false;
     }
 
@@ -1526,7 +1531,15 @@ bool Entity::startRiding(Entity& vehicle)
         return false;
     }
 
-    if (!vehicle.canFitPassenger()) {
+    // 硬门槛：检查载具是否根本可以接受乘客
+    // 对应 MC Java 的 Entity.couldAcceptPassenger()
+    if (!vehicle.couldAcceptPassenger()) {
+        return false;
+    }
+
+    // 软门槛：检查载具是否可以添加此特定乘客
+    // 对应 MC Java 的 Entity.canAddPassenger(Entity)
+    if (!vehicle.canAddPassenger(*this)) {
         return false;
     }
 

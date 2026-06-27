@@ -91,12 +91,14 @@ i32 WeightedPressurePlateBlock::_getEntityCount(IWorld& world, const BlockPos& p
         static_cast<f32>(pos.z) + 0.875f);
 
     // 查询碰撞箱内的实体
+    // 对应 MC Java 的 getEntityCount(Level, AABB, Entity.class)
+    // 测重压力板检测所有实体，但排除不触发压力板的实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
 
-    // 计算实体数量
+    // 计算实体数量（排除不触发压力板的实体）
     i32 count = 0;
     for (Entity* entity : entities) {
-        if (entity != nullptr) {
+        if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
             count++;
         }
     }

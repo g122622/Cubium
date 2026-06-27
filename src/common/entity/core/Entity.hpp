@@ -1886,6 +1886,40 @@ public:
     }
 
     /**
+     * @brief 检查此实体是否根本可以接受乘客
+     *
+     * 对应 MC Java 的 Entity.couldAcceptPassenger()。
+     * 这是骑乘检查的"硬门槛"——在 canAddPassenger 之前检查，
+     * 如果返回 false，则无论如何都无法骑乘此实体。
+     *
+     * 默认返回 true（可以接受乘客）。
+     * 不祥物品生成器（OminousItemSpawner）等不应被骑乘的实体重写返回 false。
+     *
+     * @return 如果此实体可以接受乘客返回 true
+     */
+    [[nodiscard]] virtual bool couldAcceptPassenger() const { return true; }
+
+    /**
+     * @brief 检查此实体是否可以添加指定乘客
+     *
+     * 对应 MC Java 的 Entity.canAddPassenger(Entity)。
+     * 这是骑乘检查的"软门槛"——在 couldAcceptPassenger 之后检查，
+     * 但可以通过强制骑乘绕过。
+     *
+     * 默认实现：仅当当前没有乘客时才允许（单乘客载具）。
+     * 多乘客载具（如船、骆驼等）应重写此方法和 getMaxPassengers()。
+     * 不允许任何乘客的实体应同时重写 couldAcceptPassenger() 返回 false。
+     *
+     * @param passenger 待添加的乘客实体
+     * @return 如果可以添加指定乘客返回 true
+     */
+    [[nodiscard]] virtual bool canAddPassenger(const Entity& passenger) const
+    {
+        (void)passenger;
+        return m_passengers.empty();
+    }
+
+    /**
      * @brief 获取载具骑乘高度偏移
      * @return 载具顶部到乘客底部的距离
      *
@@ -2053,10 +2087,16 @@ public:
     /**
      * @brief 检查实体是否不触发压力板/绊线
      *
-     * 某些实体（如盔甲架、蝙蝠、投射物等）不会触发压力板和绊线。
+     * 对应 MC Java 的 Entity.isIgnoringBlockTriggers()。
+     * 某些实体不会触发压力板和绊线。
      * 默认返回 false（会触发）。
-     * 蝙蝠重写返回 true（蝙蝠不触发）。
-     * 盔甲架、物品实体、投射物等也应该重写返回 true。
+     *
+     * 重写返回 true 的实体：蝙蝠、盔甲架（标记模式）、
+     * 不祥物品生成器等。
+     *
+     * 注意：物品实体和投射物不重写此方法——在 MC 原版中，木质/测重
+     * 压力板可以检测所有实体（包括物品），而石质压力板通过
+     * LivingEntity 类型过滤自动排除非生物实体。
      *
      * @return 如果实体不触发压力板返回true
      */

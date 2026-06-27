@@ -118,11 +118,29 @@ public:
      */
     [[nodiscard]] PushReaction getPushReaction() const override { return PushReaction::Ignore; }
 
-    // TODO(Entity): OminousItemSpawner 覆写了以下方法，但当前 Entity 基类尚无对应虚方法：
-    //   - isIgnoringBlockTriggers() -> true  (实体不触发方块压力板等)
-    //   - canAddPassenger(Entity) -> false   (实体不可骑乘)
-    //   - couldAcceptPassenger() -> false    (实体不可被骑乘)
-    // 当 Entity 基类添加这些虚方法后，应在此处覆写。
+    /**
+     * @brief 检查实体是否不触发压力板/绊线
+     * @return true，不祥物品生成器不触发压力板和绊线
+     *
+     * 对应 MC Java 的 OminousItemSpawner.isIgnoringBlockTriggers()
+     */
+    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return true; }
+
+    /**
+     * @brief 检查此实体是否根本可以接受乘客
+     * @return false，不祥物品生成器不允许任何实体骑乘
+     *
+     * 对应 MC Java 的 OminousItemSpawner.couldAcceptPassenger()
+     */
+    [[nodiscard]] bool couldAcceptPassenger() const override { return false; }
+
+    /**
+     * @brief 检查此实体是否可以添加指定乘客
+     * @return false，不祥物品生成器不允许任何实体骑乘
+     *
+     * 对应 MC Java 的 OminousItemSpawner.canAddPassenger(Entity)
+     */
+    [[nodiscard]] bool canAddPassenger(const Entity& /*passenger*/) const override { return false; }
 
     // ========== 序列化 ==========
 

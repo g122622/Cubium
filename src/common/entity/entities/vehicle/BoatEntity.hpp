@@ -272,10 +272,14 @@ public:
     // ========== 乘客 ==========
 
     /**
-     * @brief 是否可以添加乘客
+     * @brief 检查是否可以添加指定乘客
+     *
+     * 对应 MC Java 的 AbstractBoat.canAddPassenger()。
+     * 检查乘客数量未满且船不在水下。
      */
-    [[nodiscard]] bool canFitPassenger() const override
+    [[nodiscard]] bool canAddPassenger(const Entity& passenger) const override
     {
+        (void)passenger;
         return static_cast<i32>(m_passengers.size()) < MAX_PASSENGERS && m_status != BoatStatus::UnderWater;
     }
 

@@ -24,7 +24,7 @@
 #include "StonePressurePlateBlock.hpp"
 
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/EntityTypeIdNumber.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -42,8 +42,9 @@ StonePressurePlateBlock::StonePressurePlateBlock(const BlockProperties& properti
 
 i32 StonePressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const
 {
-    // 石头压力板只能被生物触发，物品不会触发
-    // 有生物时输出15，无生物时输出0
+    // 石头压力板（及磨制黑石压力板）只能被生物实体触发
+    // 对应 MC Java 的 PressurePlateSensitivity.MOBS：使用 LivingEntity.class 过滤
+    // 物品、箭矢等非生物实体不会触发石头压力板
 
     // 创建压力板上方的碰撞箱
     AxisAlignedBB detectionBox(static_cast<f32>(pos.x) + 0.125f,
@@ -56,15 +57,15 @@ i32 StonePressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockP
     // 查询碰撞箱内的实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
 
-    // 石头压力板只被生物触发（不包括物品）
+    // 石头压力板只被生物实体（LivingEntity）触发
+    // 同时排除不触发压力板的实体（蝙蝠、标记模式盔甲架等）
     for (Entity* entity : entities) {
-        if (entity != nullptr) {
-            entity::EntityTypeId type = entity->typeId();
-            // 石头压力板只检测玩家（后续可添加 Mob 类型）
-            if (type == entity::EntityTypeIdNumber::PLAYER) {
+        if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
+            // 对应 MC Java 的 getEntitiesOfClass(LivingEntity.class, ...)
+            // 使用 dynamic_cast 检查是否为生物实体
+            if (dynamic_cast<LivingEntity*>(entity) != nullptr) {
                 return 15; // 有生物就输出最大信号
             }
-            // Item 类型不触发石头压力板
         }
     }
 
