@@ -35,6 +35,7 @@
 #include "../../blockentity/BlockEntityType.hpp"
 #include "../../blockentity/core/BlockEntityRegistry.hpp"
 #include "../../blockentity/interactive/SignEntity.hpp"
+#include "../../gameevent/GameEvents.hpp"
 #include "../IWaterLoggable.hpp"
 #include "../WaterLoggableHelpers.hpp"
 #include <cmath>
@@ -103,9 +104,13 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
                 // 播放涂蜡粒子与音效
                 world.playEvent(world::WorldEvents::WAX_ON, pos, 0);
 
-                // TODO: 涂蜡成功后执行告示牌点击命令（executeClickCommandsIfPresent）
-                // TODO: 涂蜡成功后触发 GameEvent.BLOCK_CHANGE 振动事件
-                // TODO: 涂蜡成功后调用 player.awardStat(Stats.ITEM_USED.get(honeycombItem)) 统计计数
+                // 涂蜡成功后触发方块变更游戏事件（通知附近的幽匿感测体等监听器）
+                world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE,
+                    pos,
+                    gameevent::GameEvent::Context::of(static_cast<const Entity*>(&player), &state));
+
+                // 涂蜡成功后记录玩家使用蜜脾的统计
+                player.awardUsedStat(Items::HONEYCOMB->itemLocation(), 1);
 
                 // 消耗一个蜜脾（非创造模式）
                 if (!player.abilities().creativeMode) {
