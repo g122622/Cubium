@@ -192,9 +192,9 @@ void EntityPipeline::destroy()
 {
     const bool hadResources = m_initialized || m_pipeline != VK_NULL_HANDLE ||
         m_additiveBlendPipeline != VK_NULL_HANDLE || m_linePipeline != VK_NULL_HANDLE ||
-        m_pipelineLayout != VK_NULL_HANDLE ||
-        m_textureSampler != VK_NULL_HANDLE || m_textureDescriptorLayout != VK_NULL_HANDLE ||
-        m_vertexStagingBuffer != VK_NULL_HANDLE || m_indexStagingBuffer != VK_NULL_HANDLE;
+        m_pipelineLayout != VK_NULL_HANDLE || m_textureSampler != VK_NULL_HANDLE ||
+        m_textureDescriptorLayout != VK_NULL_HANDLE || m_vertexStagingBuffer != VK_NULL_HANDLE ||
+        m_indexStagingBuffer != VK_NULL_HANDLE;
 
     // 销毁管线
     if (m_pipeline != VK_NULL_HANDLE) {
@@ -467,7 +467,8 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
     f64 scale,
     const Vector4f& overlayColor,
     f32 hurtTime,
-    f32 deathTime)
+    f32 deathTime,
+    f32 fullbright)
 {
     if (mesh.vertexCount == 0 || mesh.indexCount == 0) {
         return;
@@ -489,7 +490,7 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
     //     vec4 overlayColor;    // 16 bytes (4 floats)
     //     float hurtTime;       // 4 bytes (1 float)
     //     float deathTime;      // 4 bytes (1 float)
-    //     float _padding0;      // 4 bytes (1 float)
+    //     float fullbright;     // 4 bytes (1 float) - 全亮光照因子
     //     float _padding1;      // 4 bytes (1 float)
     // };                        // Total: 112 bytes (28 floats)
     struct PushConstants {
@@ -504,7 +505,7 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
         f32 overlayA;
         f32 hurtTime;
         f32 deathTime;
-        f32 _padding0;
+        f32 fullbright;
         f32 _padding1;
     } pc{};
 
@@ -527,7 +528,7 @@ void EntityPipeline::drawMesh(VkCommandBuffer cmd,
     pc.overlayA = overlayColor.w;
     pc.hurtTime = hurtTime;
     pc.deathTime = deathTime;
-    pc._padding0 = 0.0f;
+    pc.fullbright = fullbright;
     pc._padding1 = 0.0f;
 
     vkCmdPushConstants(cmd,

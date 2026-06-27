@@ -69,9 +69,9 @@ FishingBobberRenderer：独立实现，使用 LINE_LIST 拓扑渲染浮标和钓
 
 3. **经验球纹理为 64×64 精灵图集**：`experience_orb.png` 包含 4列×3行共 11 个 16×16 图标（索引 0-10），UV 映射由 `ExperienceOrbRenderer::calculateIconUV()` 根据 XP 值选择图标。XP 值变化（合并）时通过 `xpOrbIconIndex` 自动触发网格重建
 
-4. **经验球光照是固定的**：`ExperienceOrbRenderer` 使用固定光照（blockLight ≥ 7），不会受环境光照影响
+4. **经验球光照是增强的**：`ExperienceOrbRenderer` 使用增强光照（fullbright 因子 7/15 ≈ 0.467），对应 MC Java 中 `getBlockLightLevel() = clamp(worldLight + 7, 0, 15)` 的行为，确保经验球在黑暗中也有一定可见度
 
-5. **Billboard 渲染器的 fullbright 参数**：继承 `ItemBillboardRenderer` 时需注意 fullbright 参数，末影之眼、火球等发光实体需要 `fullbright=true`
+5. **Billboard 渲染器的 fullbright 参数**：继承 `ItemBillboardRenderer` 时需注意 fullbright 参数，末影之眼、火球等发光实体需要 `fullbright=true`。fullbright 通过 `EntityRenderer::isFullbright()` 虚方法传递到渲染管线，在着色器中将光照混合到最大亮度 1.0，使实体在黑暗中也清晰可见。对应 MC Java 中 `EntityRenderer.getBlockLightLevel()` 返回 15 的行为。
 
 6. **FishingBobberRenderer 使用 LINE_LIST 拓扑**：与其他渲染器不同，钓线使用线段而非三角形渲染，需注意管线配置
 

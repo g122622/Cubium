@@ -35,6 +35,9 @@ namespace mc::client::renderer::entity::renderer::monster {
 
 /**
  * @brief 凋灵渲染器
+ *
+ * MC Java 中 WitherBossRenderer.getBlockLightLevel() 返回 15，
+ * 凋灵在黑暗中也会发光，使用全亮光照。
  */
 class WitherRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::WitherModel> {
 public:
@@ -51,10 +54,14 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither.png");
     }
+
+    [[nodiscard]] bool isFullbright() const override { return true; }
 };
 
 /**
  * @brief 凋灵（护甲）渲染器
+ *
+ * 凋灵护甲同样使用全亮光照。
  */
 class WitherArmorRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::WitherModel> {
 public:
@@ -71,6 +78,8 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/wither/wither_armor.png");
     }
+
+    [[nodiscard]] bool isFullbright() const override { return true; }
 };
 
 /**
@@ -215,6 +224,9 @@ public:
 
 /**
  * @brief 恼鬼渲染器
+ *
+ * MC Java 中 VexRenderer.getBlockLightLevel() 返回 15，
+ * 恼鬼在黑暗中也会发光，使用全亮光照。
  */
 class VexRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::VexModel> {
 public:
@@ -231,6 +243,8 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/illager/vex.png");
     }
+
+    [[nodiscard]] bool isFullbright() const override { return true; }
 };
 
 /**

@@ -210,6 +210,17 @@ public:
     [[nodiscard]] virtual bool supportsLayers() const { return false; }
 
     /**
+     * @brief 是否使用全亮光照渲染
+     *
+     * 返回 true 时，实体在黑暗环境中也会以最大亮度渲染，
+     * 对应 MC Java 中 EntityRenderer.getBlockLightLevel() 返回 15 的行为。
+     * 例如：烈焰人、岩浆怪、末影之眼、火球等发光实体。
+     *
+     * @return true 表示使用全亮光照（忽略环境光照），false 表示正常光照
+     */
+    [[nodiscard]] virtual bool isFullbright() const { return false; }
+
+    /**
      * @brief 获取管线网格提供者
      *
      * 如果渲染器支持自定义网格生成（如 Arrow、Boat、FishingBobber），

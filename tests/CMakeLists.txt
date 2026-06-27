@@ -713,6 +713,8 @@ add_executable(mc_tests
     client/renderer/entity/ArmorLayerVisibilityTest.cpp
     client/renderer/entity/LlamaModelTest.cpp
     client/renderer/entity/LlamaRendererTest.cpp
+    # Fullbright 渲染器 isFullbright() 测试
+    client/renderer/entity/FullbrightRendererTest.cpp
     # WitchModel 女巫模型测试
     client/renderer/entity/WitchModelTest.cpp
     client/renderer/entity/test_entity_renderer_manager.cpp

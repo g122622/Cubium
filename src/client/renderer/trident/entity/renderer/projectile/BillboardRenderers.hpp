@@ -60,6 +60,14 @@ public:
 
     [[nodiscard]] core::PipelineMeshProvider* getPipelineMeshProvider() override { return this; }
 
+    /**
+     * @brief 是否使用全亮光照渲染
+     *
+     * 当 m_fullbright 为 true 时返回 true，使投掷物在黑暗中也清晰可见。
+     * 对应 MC Java ThrownItemRenderer 的 fullBright 标志。
+     */
+    [[nodiscard]] bool isFullbright() const override { return m_fullbright; }
+
     // ========== PipelineMeshProvider 接口 ==========
 
     [[nodiscard]] bool generateMesh(::mc::client::ClientEntity& entity,

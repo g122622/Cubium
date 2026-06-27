@@ -19,10 +19,10 @@ layout(push_constant) uniform PushConstants {
     mat4 model;
     vec3 entityPos;      // 实体世界位置
     float scale;         // 缩放因子
-    vec4 overlayColor;   // 覆盖层颜色 (受伤闪烁/道德效果)
+    vec4 overlayColor;   // 覆盖层颜色 (受伤闪烁/经验球色调等)
     float hurtTime;      // 受伤时间 (0-10)
     float deathTime;     // 死亡时间
-    float _padding0;
+    float fullbright;    // 全亮光照因子 (0.0=正常光照, 1.0=最大亮度)
     float _padding1;
 } pc;
 
@@ -75,6 +75,11 @@ void main() {
     float skyVisibility = clamp(lighting.sunIntensity + lighting.moonIntensity * 0.35, 0.0, 1.0);
     float ambient = 0.18 + 0.12 * skyVisibility;
     fragLight = clamp(ambient + sunDiffuse + moonDiffuse, 0.0, 1.0);
+
+    // 全亮光照：当 fullbright = 1.0 时，光照值混合到最大亮度 1.0，
+    // 使实体在黑暗环境中也清晰可见（如末影之眼、火球等发光实体）。
+    // MC Java 通过覆盖 getBlockLightLevel() 返回 15 来实现同等效果。
+    fragLight = mix(fragLight, 1.0, pc.fullbright);
 
     // 计算覆盖层 UV（受伤闪烁/道德效果）
     // MC 1.16.5: U = hurtTime / 10.0 * 16.0, V = 0

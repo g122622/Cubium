@@ -49,6 +49,9 @@ private:
 
 /**
  * @brief 潜影贝子弹渲染器
+ *
+ * MC Java 中 ShulkerBulletRenderer.getBlockLightLevel() 返回 15，
+ * 潜影贝子弹在黑暗中也会发光，使用全亮光照。
  */
 class ShulkerBulletRenderer : public core::EntityRenderer {
 public:
@@ -56,6 +59,8 @@ public:
     ~ShulkerBulletRenderer() override = default;
 
     void render(Entity& entity, f64 partialTicks) override;
+
+    [[nodiscard]] bool isFullbright() const override { return true; }
 
 private:
     std::shared_ptr<model::projectile::ShulkerBulletModel> m_model;
@@ -91,6 +96,9 @@ private:
 
 /**
  * @brief 凋灵之首渲染器
+ *
+ * MC Java 中 WitherSkullRenderer.getBlockLightLevel() 返回 15，
+ * 凋灵之首在黑暗中也会发光，使用全亮光照。
  */
 class WitherSkullRenderer : public core::EntityRenderer {
 public:
@@ -99,12 +107,17 @@ public:
 
     void render(Entity& entity, f64 partialTicks) override;
 
+    [[nodiscard]] bool isFullbright() const override { return true; }
+
 private:
     std::shared_ptr<model::projectile::WitherSkullModel> m_model;
 };
 
 /**
  * @brief 龙火球渲染器
+ *
+ * MC Java 中 DragonFireballRenderer.getBlockLightLevel() 返回 15，
+ * 龙火球在黑暗中也会发光，使用全亮光照。
  */
 class DragonFireballRenderer : public core::EntityRenderer {
 public:
@@ -112,6 +125,8 @@ public:
     ~DragonFireballRenderer() override = default;
 
     void render(Entity& entity, f64 partialTicks) override;
+
+    [[nodiscard]] bool isFullbright() const override { return true; }
 
 private:
     std::shared_ptr<model::projectile::DragonFireballModel> m_model;
