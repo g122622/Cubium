@@ -1034,6 +1034,10 @@ add_library(mc_common STATIC
 
     # World - Generation - Aquifer
     world/gen/aquifer/Aquifer.cpp
+    world/gen/aquifer/DisabledAquifer.cpp
+    world/gen/aquifer/FluidPickerFactory.cpp
+    world/gen/aquifer/FluidStatus.cpp
+    world/gen/aquifer/NoiseBasedAquifer.cpp
 
     # World - Generation - Feature
     world/gen/feature/Feature.cpp

@@ -20,28 +20,19 @@
  * SOFTWARE.
  */
 
-#include "Aquifer.hpp"
-#include "DisabledAquifer.hpp"
-#include "NoiseBasedAquifer.hpp"
+#include "FluidStatus.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc::world::gen::aquifer {
 
-std::unique_ptr<Aquifer> Aquifer::createNoiseBased(const density::NoiseChunk& noiseChunk,
-    i32 chunkX,
-    i32 chunkZ,
-    const density::NoiseRouter& router,
-    const math::PositionalRandomFactory& positionalRandom,
-    i32 minY,
-    i32 height,
-    FluidPicker globalFluidPicker)
+const BlockState* FluidStatus::at(i32 y) const
 {
-    return std::make_unique<NoiseBasedAquifer>(
-        noiseChunk, chunkX, chunkZ, router, positionalRandom, minY, height, std::move(globalFluidPicker));
-}
-
-std::unique_ptr<Aquifer> Aquifer::createDisabled(FluidPicker globalFluidPicker)
-{
-    return std::make_unique<DisabledAquifer>(std::move(globalFluidPicker));
+    if (y < fluidLevel) {
+        return fluidType;
+    }
+    // MC 1.21: 返回空气 BlockState 而非 nullptr
+    // Java 中 FluidStatus.at() 返回空气方块状态
+    return VanillaBlocks::getState(VanillaBlocks::AIR);
 }
 
 } // namespace mc::world::gen::aquifer

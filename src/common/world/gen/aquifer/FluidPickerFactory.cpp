@@ -20,28 +20,38 @@
  * SOFTWARE.
  */
 
-#include "Aquifer.hpp"
-#include "DisabledAquifer.hpp"
-#include "NoiseBasedAquifer.hpp"
+#include "FluidPickerFactory.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include <algorithm>
+#include <limits>
 
 namespace mc::world::gen::aquifer {
 
-std::unique_ptr<Aquifer> Aquifer::createNoiseBased(const density::NoiseChunk& noiseChunk,
-    i32 chunkX,
-    i32 chunkZ,
-    const density::NoiseRouter& router,
-    const math::PositionalRandomFactory& positionalRandom,
-    i32 minY,
-    i32 height,
-    FluidPicker globalFluidPicker)
+FluidPicker createOverworldFluidPicker(i32 seaLevel, const BlockState* defaultFluid)
 {
-    return std::make_unique<NoiseBasedAquifer>(
-        noiseChunk, chunkX, chunkZ, router, positionalRandom, minY, height, std::move(globalFluidPicker));
+    const i32 lavaLevel = -54;
+    const BlockState* lavaState = &VanillaBlocks::LAVA->defaultState();
+    const i32 minFluidLevel = std::min(lavaLevel, seaLevel);
+
+    return [seaLevel, lavaLevel, minFluidLevel, defaultFluid, lavaState](i32, i32 y, i32) -> FluidStatus {
+        if (y < minFluidLevel) {
+            return {lavaLevel, lavaState};
+        }
+        return {seaLevel, defaultFluid};
+    };
 }
 
-std::unique_ptr<Aquifer> Aquifer::createDisabled(FluidPicker globalFluidPicker)
+FluidPicker createNetherFluidPicker()
 {
-    return std::make_unique<DisabledAquifer>(std::move(globalFluidPicker));
+    const BlockState* lavaState = &VanillaBlocks::LAVA->defaultState();
+    return [lavaState](i32, i32, i32) -> FluidStatus { return {32, lavaState}; };
+}
+
+FluidPicker createEndFluidPicker()
+{
+    // MC 1.21: End 没有流体，FluidStatus 返回空气方块状态
+    const BlockState* airState = VanillaBlocks::getState(VanillaBlocks::AIR);
+    return [airState](i32, i32, i32) -> FluidStatus { return {std::numeric_limits<i32>::min(), airState}; };
 }
 
 } // namespace mc::world::gen::aquifer

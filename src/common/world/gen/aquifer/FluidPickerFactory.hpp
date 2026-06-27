@@ -20,28 +20,39 @@
  * SOFTWARE.
  */
 
-#include "Aquifer.hpp"
-#include "DisabledAquifer.hpp"
-#include "NoiseBasedAquifer.hpp"
+#pragma once
+
+#include "FluidStatus.hpp"
 
 namespace mc::world::gen::aquifer {
 
-std::unique_ptr<Aquifer> Aquifer::createNoiseBased(const density::NoiseChunk& noiseChunk,
-    i32 chunkX,
-    i32 chunkZ,
-    const density::NoiseRouter& router,
-    const math::PositionalRandomFactory& positionalRandom,
-    i32 minY,
-    i32 height,
-    FluidPicker globalFluidPicker)
-{
-    return std::make_unique<NoiseBasedAquifer>(
-        noiseChunk, chunkX, chunkZ, router, positionalRandom, minY, height, std::move(globalFluidPicker));
-}
+/**
+ * @brief 创建主世界流体选择器
+ *
+ * Y < min(-54, seaLevel) 返回熔岩，Y < seaLevel 返回水，否则返回空气。
+ *
+ * @param seaLevel 海平面高度
+ * @param defaultFluid 默认流体（水）
+ * @return 流体选择器
+ */
+[[nodiscard]] FluidPicker createOverworldFluidPicker(i32 seaLevel, const BlockState* defaultFluid);
 
-std::unique_ptr<Aquifer> Aquifer::createDisabled(FluidPicker globalFluidPicker)
-{
-    return std::make_unique<DisabledAquifer>(std::move(globalFluidPicker));
-}
+/**
+ * @brief 创建下界流体选择器
+ *
+ * 全部返回熔岩。
+ *
+ * @return 流体选择器
+ */
+[[nodiscard]] FluidPicker createNetherFluidPicker();
+
+/**
+ * @brief 创建末地流体选择器
+ *
+ * 全部返回空气。
+ *
+ * @return 流体选择器
+ */
+[[nodiscard]] FluidPicker createEndFluidPicker();
 
 } // namespace mc::world::gen::aquifer

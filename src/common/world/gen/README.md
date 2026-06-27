@@ -7,7 +7,12 @@
 ```
 gen/
 ├── aquifer/                     # 含水层系统
-│   └── Aquifer.hpp/cpp          # 地下水体生成
+│   ├── Aquifer.hpp/cpp          # 含水层抽象基类（含工厂方法）
+│   ├── Aquifers.hpp             # 便捷包含头文件
+│   ├── DisabledAquifer.hpp/cpp  # 禁用含水层的空实现
+│   ├── FluidPickerFactory.hpp/cpp # 流体选择器工厂函数
+│   ├── FluidStatus.hpp/cpp      # 流体状态记录 + FluidPicker 类型别名
+│   └── NoiseBasedAquifer.hpp/cpp # 基于噪声的含水层实现
 ├── carver/                      # 雕刻器系统
 │   ├── WorldCarver.hpp/cpp      # 雕刻器基类
 │   ├── CaveCarver.hpp/cpp       # 洞穴雕刻器

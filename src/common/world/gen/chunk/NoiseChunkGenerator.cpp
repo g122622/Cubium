@@ -31,6 +31,7 @@
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../biome/source/MultiNoiseBiomeSource.hpp"
 #include "../aquifer/Aquifer.hpp"
+#include "../aquifer/FluidPickerFactory.hpp"
 #include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
 #include "../carver/CarvingMask.hpp"

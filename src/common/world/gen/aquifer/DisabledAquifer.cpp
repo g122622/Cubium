@@ -9,7 +9,7 @@
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * copies of substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -20,28 +20,18 @@
  * SOFTWARE.
  */
 
-#include "Aquifer.hpp"
 #include "DisabledAquifer.hpp"
-#include "NoiseBasedAquifer.hpp"
 
 namespace mc::world::gen::aquifer {
 
-std::unique_ptr<Aquifer> Aquifer::createNoiseBased(const density::NoiseChunk& noiseChunk,
-    i32 chunkX,
-    i32 chunkZ,
-    const density::NoiseRouter& router,
-    const math::PositionalRandomFactory& positionalRandom,
-    i32 minY,
-    i32 height,
-    FluidPicker globalFluidPicker)
+const BlockState* DisabledAquifer::computeSubstance(i32 blockX, i32 blockY, i32 blockZ, f64 densityValue)
 {
-    return std::make_unique<NoiseBasedAquifer>(
-        noiseChunk, chunkX, chunkZ, router, positionalRandom, minY, height, std::move(globalFluidPicker));
-}
+    if (densityValue > 0.0) {
+        return nullptr; // 固体方块
+    }
 
-std::unique_ptr<Aquifer> Aquifer::createDisabled(FluidPicker globalFluidPicker)
-{
-    return std::make_unique<DisabledAquifer>(std::move(globalFluidPicker));
+    FluidStatus fluid = m_globalFluidPicker(blockX, blockY, blockZ);
+    return fluid.at(blockY);
 }
 
 } // namespace mc::world::gen::aquifer

@@ -20,28 +20,30 @@
  * SOFTWARE.
  */
 
+#pragma once
+
 #include "Aquifer.hpp"
-#include "DisabledAquifer.hpp"
-#include "NoiseBasedAquifer.hpp"
 
 namespace mc::world::gen::aquifer {
 
-std::unique_ptr<Aquifer> Aquifer::createNoiseBased(const density::NoiseChunk& noiseChunk,
-    i32 chunkX,
-    i32 chunkZ,
-    const density::NoiseRouter& router,
-    const math::PositionalRandomFactory& positionalRandom,
-    i32 minY,
-    i32 height,
-    FluidPicker globalFluidPicker)
-{
-    return std::make_unique<NoiseBasedAquifer>(
-        noiseChunk, chunkX, chunkZ, router, positionalRandom, minY, height, std::move(globalFluidPicker));
-}
+/**
+ * @brief 禁用含水层的实现
+ *
+ * 在 finalDensity < 0 时直接返回全局流体（海平面水或熔岩）。
+ * 用于下界和末地，或者设置中禁用含水层的情况。
+ */
+class DisabledAquifer final : public Aquifer {
+public:
+    explicit DisabledAquifer(FluidPicker globalFluidPicker)
+        : m_globalFluidPicker(std::move(globalFluidPicker))
+    {}
 
-std::unique_ptr<Aquifer> Aquifer::createDisabled(FluidPicker globalFluidPicker)
-{
-    return std::make_unique<DisabledAquifer>(std::move(globalFluidPicker));
-}
+    [[nodiscard]] const BlockState* computeSubstance(i32 blockX, i32 blockY, i32 blockZ, f64 densityValue) override;
+
+    [[nodiscard]] bool shouldScheduleFluidUpdate() const override { return false; }
+
+private:
+    FluidPicker m_globalFluidPicker;
+};
 
 } // namespace mc::world::gen::aquifer
