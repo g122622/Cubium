@@ -49,7 +49,9 @@ BushBlock (来自 agricultural/ 模块)
 - `NyliumBlock`：独立方块，光照过高时退化为下界岩。实现 IGrowable 接口用于骨粉交互：
   - getBoneMealType() 返回 NEIGHBOR_SPREADER（粒子在方块上方水平扩散，3 倍数量）
   - canGrow() 检查上方是否有空气
-  - grow() 绯红菌岩放置绯红菌/绯红菌索，诡异菌岩放置诡异菌/诡异菌索/下界苗
+  - grow() 使用 NetherForestVegetationFeature 散布算法（9次散布，3×1×3范围）：
+    - 绯红菌岩：加权放置绯红菌索(87/99)、绯红菌(11/99)、诡异菌(1/99)
+    - 诡异菌岩：加权放置诡异菌索(85/100)、诡异菌(13/100)、绯红菌索(1/100)、绯红菌(1/100)，额外放置下界苗散布，1/8概率放置缠怨藤
 - `MagmaBlock`：独立方块，水中生成气泡柱，踩踏时造成烫脚伤害
 - `NetherPortalBlock`：独立方块，检测框架有效性、实体传送
 - `NetherSproutsBlock` / `NetherRootsBlock`：继承 BushBlock，扩展 `canSustain()` 支持菌岩和灵魂土，返回 PlantType::Nether

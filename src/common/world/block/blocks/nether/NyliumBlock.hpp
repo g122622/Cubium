@@ -83,10 +83,17 @@ public:
     /**
      * @brief 使用骨粉生长
      *
-     * 在菌岩上方生成下界植物。
-     * 绯红菌岩生成绯红菌和绯红菌索，诡异菌岩生成诡异菌、诡异菌索和下界苗。
+     * 在菌岩上方生成下界植物，使用与 MC 原版 NetherForestVegetationFeature 一致的散布算法。
      *
-     * TODO: 完整实现需要 NetherFeatures/PlacedFeature 系统，当前为简化版本。
+     * 绯红菌岩：
+     *   - 执行 CRIMSON_FOREST_VEGETATION_BONEMEAL（9次散布，加权选择）：
+     *     绯红菌索 87/99, 绯红菌 11/99, 诡异菌 1/99
+     *
+     * 诡异菌岩：
+     *   - 执行 WARPED_FOREST_VEGETATION_BONEMEAL（9次散布，加权选择）：
+     *     诡异菌索 85/100, 诡异菌 13/100, 绯红菌索 1/100, 绯红菌 1/100
+     *   - 执行 NETHER_SPROUTS_BONEMEAL（9次散布，固定下界苗）
+     *   - 1/8 概率执行 TWISTING_VINES_BONEMEAL（9次散布，1~4格高缠怨藤柱）
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 
@@ -98,6 +105,55 @@ public:
     [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
 
 private:
+    /**
+     * @brief 下界植被类型，用于加权随机选择
+     */
+    enum class NetherVegetationType : u8 {
+        Crimson, ///< 绯红菌岩植被
+        Warped   ///< 诡异菌岩植被
+    };
+
+    /**
+     * @brief 散布放置下界植被（菌索、菌类）
+     *
+     * 对应 MC NetherForestVegetationFeature。
+     * 在 origin 附近 3×1×3 范围内进行 9 次散布尝试，
+     * 每次尝试根据植被类型加权随机选择放置的方块。
+     *
+     * @param world 世界引用
+     * @param random 随机数生成器
+     * @param origin 散布原点（菌岩上方一格）
+     * @param type 植被类型（绯红/诡异）
+     */
+    static void _placeNetherVegetation(
+        IWorld& world, math::IRandom& random, const BlockPos& origin, NetherVegetationType type);
+
+    /**
+     * @brief 散布放置下界苗
+     *
+     * 对应 MC NETHER_SPROUTS_BONEMEAL。
+     * 在 origin 附近 3×1×3 范围内进行 9 次散布尝试，固定放置下界苗。
+     *
+     * @param world 世界引用
+     * @param random 随机数生成器
+     * @param origin 散布原点（菌岩上方一格）
+     */
+    static void _placeNetherSprouts(IWorld& world, math::IRandom& random, const BlockPos& origin);
+
+    /**
+     * @brief 散布放置缠怨藤
+     *
+     * 对应 MC TWISTING_VINES_BONEMEAL (TwistingVinesFeature)。
+     * 在 origin 附近 3×1×3 范围内进行 9 次散布尝试，
+     * 每次尝试在合适位置放置 1~4 格高的缠怨藤柱。
+     * 地面方块需为下界岩、诡异菌岩或诡异疣块。
+     *
+     * @param world 世界引用
+     * @param random 随机数生成器
+     * @param origin 散布原点（菌岩上方一格）
+     */
+    static void _placeTwistingVines(IWorld& world, math::IRandom& random, const BlockPos& origin);
+
     /**
      * @brief 检查位置是否足够暗
      *

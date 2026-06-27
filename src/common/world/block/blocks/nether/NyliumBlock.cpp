@@ -24,6 +24,7 @@
 #include "NyliumBlock.hpp"
 #include "common/util/math/random/IRandom.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/lighting/engine/LightEngineUtils.hpp"
@@ -72,43 +73,189 @@ bool NyliumBlock::canUseBonemeal(
 
 void NyliumBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
 {
-    MC_UNUSED(random);
-    // 在菌岩上方生成下界植物
-    // 绯红菌岩：生成绯红菌或绯红菌索
-    // 诡异菌岩：生成诡异菌、诡异菌索和下界苗
-    // TODO: 完整实现需要 NetherFeatures/PlacedFeature 系统，当前为简化版本。
-
-    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
-    const BlockState* aboveState = world.getBlockState(abovePos);
-    if (aboveState == nullptr || !aboveState->isAir()) {
-        return;
-    }
-
     // 判断是绯红菌岩还是诡异菌岩
     bool isCrimson = state.is(VanillaBlocks::CRIMSON_NYLIUM);
     bool isWarped = state.is(VanillaBlocks::WARPED_NYLIUM);
 
+    if (!isCrimson && !isWarped) {
+        return;
+    }
+
+    const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
+
+    // 下界菌岩骨粉散布算法
+    // 对应 MC NetherForestVegetationFeature：spreadWidth=3, spreadHeight=1
+    // 每个特性执行 spreadWidth * spreadWidth = 9 次散布尝试
+    // 每次尝试在 origin 附近随机偏移 [0, spreadWidth) 范围内选择位置
+    // 偏移方式：nextInt(spreadWidth) - nextInt(spreadWidth)，产生三角分布
+
     if (isCrimson) {
-        // 绯红菌岩：生成绯红菌或绯红菌索
-        // TODO: 应使用 CRIMSON_FOREST_VEGETATION_BONEMEAL 特性放置，当前简化实现
-        if (VanillaBlocks::CRIMSON_FUNGUS != nullptr && random.nextInt(4) == 0) {
-            world.setBlockState(abovePos, &VanillaBlocks::CRIMSON_FUNGUS->defaultState(), 3);
-        } else if (VanillaBlocks::CRIMSON_ROOTS != nullptr) {
-            world.setBlockState(abovePos, &VanillaBlocks::CRIMSON_ROOTS->defaultState(), 3);
+        // 绯红菌岩：CRIMSON_FOREST_VEGETATION_BONEMEAL
+        // 权重：绯红菌索 87, 绯红菌 11, 诡异菌 1（总计 99）
+        _placeNetherVegetation(world, random, abovePos, NetherVegetationType::Crimson);
+    } else {
+        // 诡异菌岩：WARPED_FOREST_VEGETATION_BONEMEAL + NETHER_SPROUTS_BONEMEAL
+        // 权重：诡异菌索 85, 诡异菌 13, 绯红菌索 1, 绯红菌 1（总计 100）
+        _placeNetherVegetation(world, random, abovePos, NetherVegetationType::Warped);
+
+        // NETHER_SPROUTS_BONEMEAL：在同样的散布范围内放置下界苗
+        _placeNetherSprouts(world, random, abovePos);
+
+        // TWISTING_VINES_BONEMEAL：1/8 概率在散布范围内放置缠怨藤
+        if (random.nextInt(8) == 0) {
+            _placeTwistingVines(world, random, abovePos);
         }
-    } else if (isWarped) {
-        // 诡异菌岩：生成诡异菌、诡异菌索和下界苗
-        // TODO: 应使用 WARPED_FOREST_VEGETATION_BONEMEAL + NETHER_SPROUTS_BONEMEAL 特性放置，当前简化实现
-        if (VanillaBlocks::WARPED_FUNGUS != nullptr && random.nextInt(4) == 0) {
-            world.setBlockState(abovePos, &VanillaBlocks::WARPED_FUNGUS->defaultState(), 3);
-        } else if (VanillaBlocks::WARPED_ROOTS != nullptr) {
-            world.setBlockState(abovePos, &VanillaBlocks::WARPED_ROOTS->defaultState(), 3);
+    }
+}
+
+void NyliumBlock::_placeNetherVegetation(
+    IWorld& world, math::IRandom& random, const BlockPos& origin, NetherVegetationType type)
+{
+    // 对应 MC NetherForestVegetationFeature.place()
+    // spreadWidth=3, spreadHeight=1 → 9 次散布尝试
+    constexpr i32 SPREAD_WIDTH = 3;
+    constexpr i32 SPREAD_HEIGHT = 1;
+
+    for (i32 i = 0; i < SPREAD_WIDTH * SPREAD_WIDTH; ++i) {
+        // 随机偏移：nextInt(spreadWidth) - nextInt(spreadWidth)
+        i32 dx = random.nextInt(SPREAD_WIDTH) - random.nextInt(SPREAD_WIDTH);
+        i32 dy = random.nextInt(SPREAD_HEIGHT) - random.nextInt(SPREAD_HEIGHT);
+        i32 dz = random.nextInt(SPREAD_WIDTH) - random.nextInt(SPREAD_WIDTH);
+        BlockPos currentPos(origin.x + dx, origin.y + dy, origin.z + dz);
+
+        // 检查目标位置是否为空气
+        const BlockState* currentState = world.getBlockState(currentPos);
+        if (currentState == nullptr || !currentState->isAir()) {
+            continue;
         }
-        // 1/8 概率生成缠怨藤
-        if (VanillaBlocks::TWISTING_VINES != nullptr && random.nextInt(8) == 0) {
-            const BlockPos vinePos(pos.x, pos.y + 2, pos.z);
-            const BlockState* vineState = world.getBlockState(vinePos);
-            if (vineState != nullptr && vineState->isAir()) {
+
+        // 检查目标位置下方是否为菌岩（支持 NYLIUM 标签的方块）
+        const BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
+        if (belowState == nullptr ||
+            (!belowState->is(VanillaBlocks::CRIMSON_NYLIUM) && !belowState->is(VanillaBlocks::WARPED_NYLIUM))) {
+            continue;
+        }
+
+        // 根据植被类型进行加权随机选择
+        const Block* vegetationBlock = nullptr;
+        if (type == NetherVegetationType::Crimson) {
+            // 绯红菌岩植被权重：绯红菌索 87, 绯红菌 11, 诡异菌 1（总计 99）
+            i32 choice = random.nextInt(99);
+            if (choice < 87) {
+                vegetationBlock = VanillaBlocks::CRIMSON_ROOTS;
+            } else if (choice < 98) {
+                vegetationBlock = VanillaBlocks::CRIMSON_FUNGUS;
+            } else {
+                vegetationBlock = VanillaBlocks::WARPED_FUNGUS;
+            }
+        } else {
+            // 诡异菌岩植被权重：诡异菌索 85, 诡异菌 13, 绯红菌索 1, 绯红菌 1（总计 100）
+            i32 choice = random.nextInt(100);
+            if (choice < 85) {
+                vegetationBlock = VanillaBlocks::WARPED_ROOTS;
+            } else if (choice < 98) {
+                vegetationBlock = VanillaBlocks::WARPED_FUNGUS;
+            } else if (choice < 99) {
+                vegetationBlock = VanillaBlocks::CRIMSON_ROOTS;
+            } else {
+                vegetationBlock = VanillaBlocks::CRIMSON_FUNGUS;
+            }
+        }
+
+        if (vegetationBlock != nullptr) {
+            world.setBlockState(currentPos, &vegetationBlock->defaultState(), 3);
+        }
+    }
+}
+
+void NyliumBlock::_placeNetherSprouts(IWorld& world, math::IRandom& random, const BlockPos& origin)
+{
+    // 对应 MC NETHER_SPROUTS_BONEMEAL
+    // 使用相同的 NetherForestVegetationFeature，但 stateProvider 固定为下界苗
+    constexpr i32 SPREAD_WIDTH = 3;
+    constexpr i32 SPREAD_HEIGHT = 1;
+
+    for (i32 i = 0; i < SPREAD_WIDTH * SPREAD_WIDTH; ++i) {
+        i32 dx = random.nextInt(SPREAD_WIDTH) - random.nextInt(SPREAD_WIDTH);
+        i32 dy = random.nextInt(SPREAD_HEIGHT) - random.nextInt(SPREAD_HEIGHT);
+        i32 dz = random.nextInt(SPREAD_WIDTH) - random.nextInt(SPREAD_WIDTH);
+        BlockPos currentPos(origin.x + dx, origin.y + dy, origin.z + dz);
+
+        const BlockState* currentState = world.getBlockState(currentPos);
+        if (currentState == nullptr || !currentState->isAir()) {
+            continue;
+        }
+
+        const BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
+        if (belowState == nullptr ||
+            (!belowState->is(VanillaBlocks::CRIMSON_NYLIUM) && !belowState->is(VanillaBlocks::WARPED_NYLIUM))) {
+            continue;
+        }
+
+        if (VanillaBlocks::NETHER_SPROUTS != nullptr) {
+            world.setBlockState(currentPos, &VanillaBlocks::NETHER_SPROUTS->defaultState(), 3);
+        }
+    }
+}
+
+void NyliumBlock::_placeTwistingVines(IWorld& world, math::IRandom& random, const BlockPos& origin)
+{
+    // 对应 MC TWISTING_VINES_BONEMEAL (TwistingVinesFeature)
+    // spreadWidth=3, spreadHeight=1, maxHeight=2
+    // 在散布范围内寻找合适位置，向上放置 1-2 格高的缠怨藤柱
+    constexpr i32 SPREAD_WIDTH = 3;
+    constexpr i32 SPREAD_HEIGHT = 1;
+
+    for (i32 i = 0; i < SPREAD_WIDTH * SPREAD_WIDTH; ++i) {
+        i32 dx = random.nextInt(SPREAD_WIDTH) - random.nextInt(SPREAD_WIDTH);
+        i32 dy = random.nextInt(SPREAD_HEIGHT) - random.nextInt(SPREAD_HEIGHT);
+        i32 dz = random.nextInt(SPREAD_WIDTH) - random.nextInt(SPREAD_WIDTH);
+        BlockPos currentPos(origin.x + dx, origin.y + dy, origin.z + dz);
+
+        // 缠怨藤需要从地面开始向上生长，找到第一个空气位置
+        // 对应 MC: 找到地面上方第一个空气方块
+        // 地面方块需要是下界岩、诡异菌岩或诡异疣块
+        const BlockState* groundState = world.getBlockState(currentPos);
+        if (groundState == nullptr || !groundState->isAir()) {
+            continue;
+        }
+
+        const BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
+        const BlockState* belowState = world.getBlockState(belowPos);
+        if (belowState == nullptr ||
+            (!belowState->is(VanillaBlocks::NETHERRACK) && !belowState->is(VanillaBlocks::WARPED_NYLIUM) &&
+                !belowState->is(VanillaBlocks::WARPED_WART_BLOCK))) {
+            continue;
+        }
+
+        if (VanillaBlocks::TWISTING_VINES == nullptr || VanillaBlocks::TWISTING_VINES_PLANT == nullptr) {
+            continue;
+        }
+
+        // 确定藤蔓高度：1~2，1/6 概率翻倍，1/5 概率强制为 1
+        i32 vineHeight = random.nextInt(1, 2); // [1, 2]
+        if (random.nextInt(6) == 0) {
+            vineHeight *= 2;
+        }
+        if (random.nextInt(5) == 0) {
+            vineHeight = 1;
+        }
+
+        // 放置藤蔓柱：底部是 TWISTING_VINES_PLANT，顶部是 TWISTING_VINES（头部）
+        for (i32 h = 0; h < vineHeight; ++h) {
+            BlockPos vinePos(currentPos.x, currentPos.y + h, currentPos.z);
+            const BlockState* vinePosState = world.getBlockState(vinePos);
+            if (vinePosState == nullptr || !vinePosState->isAir()) {
+                break;
+            }
+
+            if (h < vineHeight - 1) {
+                // 藤蔓身体
+                world.setBlockState(vinePos, &VanillaBlocks::TWISTING_VINES_PLANT->defaultState(), 3);
+            } else {
+                // 藤蔓头部（带 AGE 属性）
                 world.setBlockState(vinePos, &VanillaBlocks::TWISTING_VINES->defaultState(), 3);
             }
         }
