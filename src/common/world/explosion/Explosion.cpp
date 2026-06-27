@@ -22,7 +22,6 @@
  */
 
 #include "Explosion.hpp"
-#include "common/particle/ParticleTypes.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
@@ -38,6 +37,7 @@
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"

@@ -49,8 +49,7 @@ public:
      * @param properties 方块属性
      * @param flameParticle 火焰粒子类型（普通火把为 Flame，灵魂火把为 SoulFireFlame）
      */
-    explicit TorchBlock(
-        const BlockProperties& properties, particle::ParticleTypeId flameParticle);
+    explicit TorchBlock(const BlockProperties& properties, particle::ParticleTypeId flameParticle);
 
     ~TorchBlock() override = default;
 

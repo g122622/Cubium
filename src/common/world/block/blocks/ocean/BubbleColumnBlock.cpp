@@ -23,9 +23,9 @@
 
 #include "BubbleColumnBlock.hpp"
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
@@ -304,9 +304,8 @@ void BubbleColumnBlock::animateTick(
         }
     } else {
         // 上推模式（灵魂沙产生）：生成向上气泡粒子
-        context.addAnimateParticle(particle::ParticleTypeId::BubbleColumnUp,
-            Vector3(centerX, centerY, centerZ),
-            Vector3(0.0f, 0.04f, 0.0f));
+        context.addAnimateParticle(
+            particle::ParticleTypeId::BubbleColumnUp, Vector3(centerX, centerY, centerZ), Vector3(0.0f, 0.04f, 0.0f));
 
         context.addAnimateParticle(particle::ParticleTypeId::BubbleColumnUp,
             Vector3(static_cast<f32>(pos.x) + random.nextFloat(),

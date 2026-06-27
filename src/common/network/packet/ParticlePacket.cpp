@@ -25,11 +25,8 @@
 
 namespace mc::network {
 
-ParticlePacket::ParticlePacket(particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const Vector3& offset,
-    u32 count)
+ParticlePacket::ParticlePacket(
+    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
     : Packet(PacketType::Particle)
     , m_particleType(type)
     , m_x(pos.x)
@@ -196,18 +193,14 @@ Result<void> ParticlePacket::deserialize(const u8* data, size_t size)
 }
 
 // static
-ParticlePacket ParticlePacket::create(particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const Vector3& offset,
-    u32 count)
+ParticlePacket ParticlePacket::create(
+    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
 {
     return ParticlePacket(type, pos, velocity, offset, count);
 }
 
 // static
-ParticlePacket ParticlePacket::createSingle(
-    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+ParticlePacket ParticlePacket::createSingle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
 {
     return ParticlePacket(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1);
 }

@@ -23,10 +23,10 @@
 
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

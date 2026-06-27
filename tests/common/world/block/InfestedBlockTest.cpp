@@ -22,9 +22,9 @@
 
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"

@@ -21,7 +21,6 @@
 
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
@@ -34,6 +33,7 @@
 #include "common/item/items/special/HoneycombItem.hpp"
 #include "common/item/items/tool/AxeItem.hpp"
 #include "common/item/tier/ItemTiers.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -133,11 +133,8 @@ public:
         return ++m_lastEntityId;
     }
 
-    void addParticle(particle::ParticleTypeId,
-        const Vector3&,
-        const Vector3&,
-        const Vector3& = Vector3(0, 0, 0),
-        u32 = 1) override
+    void addParticle(
+        particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3& = Vector3(0, 0, 0), u32 = 1) override
     {
         // 测试中忽略粒子效果
     }

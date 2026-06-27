@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/property/Properties.hpp"
@@ -34,8 +34,8 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/Material.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/redstone/NoteBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 
 #include <cmath>
@@ -91,8 +91,7 @@ public:
         m_lastPitch = pitch;
     }
 
-    void addParticle(
-        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         MC_UNUSED(type);
         MC_UNUSED(pos);

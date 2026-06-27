@@ -25,8 +25,8 @@
 
 #include "Packet.hpp"
 #include "PacketSerializer.hpp"
-#include "common/particle/ParticleTypes.hpp"
 #include "common/core/Types.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <optional>
 #include <vector>
@@ -74,11 +74,8 @@ public:
      * @param offset 偏移范围
      * @param count 粒子数量
      */
-    ParticlePacket(particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3& offset,
-        u32 count);
+    ParticlePacket(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count);
 
     [[nodiscard]] Result<std::vector<u8>> serialize() const override;
     [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
@@ -86,10 +83,7 @@ public:
 
     // ========== Getters ==========
 
-    [[nodiscard]] particle::ParticleTypeId particleType() const noexcept
-    {
-        return m_particleType;
-    }
+    [[nodiscard]] particle::ParticleTypeId particleType() const noexcept { return m_particleType; }
 
     [[nodiscard]] f64 x() const noexcept { return m_x; }
     [[nodiscard]] f64 y() const noexcept { return m_y; }
@@ -175,11 +169,8 @@ public:
      * @param offset 偏移范围
      * @param count 粒子数量
      */
-    static ParticlePacket create(particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3& offset,
-        u32 count);
+    static ParticlePacket create(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count);
 
     /**
      * @brief 创建单个粒子包（无偏移）
@@ -187,8 +178,7 @@ public:
      * @param pos 位置
      * @param velocity 速度
      */
-    static ParticlePacket createSingle(
-        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity);
+    static ParticlePacket createSingle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity);
 
     /**
      * @brief 创建振动粒子包（带目标位置和到达时间）
@@ -236,8 +226,7 @@ public:
     [[nodiscard]] std::optional<i32> decodeVibrationArrivalInTicks() const;
 
 private:
-    particle::ParticleTypeId m_particleType =
-        particle::ParticleTypeId::Invalid;
+    particle::ParticleTypeId m_particleType = particle::ParticleTypeId::Invalid;
 
     f64 m_x = 0.0;
     f64 m_y = 0.0;

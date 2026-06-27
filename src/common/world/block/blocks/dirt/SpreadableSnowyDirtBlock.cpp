@@ -304,8 +304,7 @@ void MyceliumBlock::animateTick(
         f32 x = static_cast<f32>(pos.x) + random.nextFloat();
         f32 y = static_cast<f32>(pos.y) + 1.1f;
         f32 z = static_cast<f32>(pos.z) + random.nextFloat();
-        context.addAnimateParticle(
-            particle::ParticleTypeId::Mycelium, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
+        context.addAnimateParticle(particle::ParticleTypeId::Mycelium, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
     }
 }
 

@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
@@ -32,6 +31,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"

@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
@@ -38,6 +37,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -119,8 +119,7 @@ public:
     };
 
     // 粒子生成记录
-    void addParticle(
-        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }

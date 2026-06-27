@@ -28,13 +28,13 @@
  * 测试 TNT 实体的核心功能：点燃、爆炸、物理等。
  */
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
@@ -201,13 +201,11 @@ private:
 
     // 粒子记录
     i32 m_particleCount = 0;
-    particle::ParticleTypeId m_lastParticleType =
-        particle::ParticleTypeId::Invalid;
+    particle::ParticleTypeId m_lastParticleType = particle::ParticleTypeId::Invalid;
 
 public:
     // 粒子生成接口实现
-    void addParticle(
-        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particleCount++;
         m_lastParticleType = type;
@@ -232,10 +230,7 @@ public:
 
     [[nodiscard]] i32 particleCount() const { return m_particleCount; }
 
-    [[nodiscard]] particle::ParticleTypeId lastParticleType() const
-    {
-        return m_lastParticleType;
-    }
+    [[nodiscard]] particle::ParticleTypeId lastParticleType() const { return m_lastParticleType; }
 
     void resetParticleCount()
     {

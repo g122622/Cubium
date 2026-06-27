@@ -1107,8 +1107,7 @@ public:
      * @param pos 粒子位置
      * @param velocity 粒子速度
      */
-    virtual void addParticle(
-        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+    virtual void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
     {
         (void)type;
         (void)pos;
@@ -1126,11 +1125,8 @@ public:
      * @param offset 随机偏移范围
      * @param count 粒子数量
      */
-    virtual void addParticle(particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3& offset,
-        u32 count)
+    virtual void addParticle(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
     {
         (void)type;
         (void)pos;

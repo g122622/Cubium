@@ -24,7 +24,6 @@
 #include <map>
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
@@ -38,6 +37,7 @@
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
@@ -118,12 +118,7 @@ public:
     [[nodiscard]] u64 currentTick() const override { return 0; }
     [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Normal; }
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void addParticle(particle::ParticleTypeId,
-        const Vector3&,
-        const Vector3&,
-        const Vector3&,
-        u32) override
-    {}
+    void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
 
     // 实体管理（用于测试船骑乘）
     void addTestEntity(Entity* entity) { m_testEntities[entity->id()] = entity; }

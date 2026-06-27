@@ -61,8 +61,7 @@ public:
         f32 pitch;
     };
 
-    void addAnimateParticle(
-        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addAnimateParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
@@ -281,9 +280,8 @@ TEST_F(AnimateTickTest, SporeBlossom_AirParticlesCheckBlockSolidity)
 TEST_F(AnimateTickTest, MockContext_RecordsParticlesAndSounds)
 {
     // 验证 MockAnimateContext 基本功能
-    context_.addAnimateParticle(particle::ParticleTypeId::FallingSporeBlossom,
-        Vector3(1.0f, 2.0f, 3.0f),
-        Vector3(0.0f, 0.0f, 0.0f));
+    context_.addAnimateParticle(
+        particle::ParticleTypeId::FallingSporeBlossom, Vector3(1.0f, 2.0f, 3.0f), Vector3(0.0f, 0.0f, 0.0f));
 
     context_.playLocalSound(ResourceLocation("minecraft:block.bubble_column.whirlpool_ambient"),
         sound::SoundCategory::Blocks,

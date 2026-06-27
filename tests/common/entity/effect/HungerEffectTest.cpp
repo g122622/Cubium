@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
@@ -32,6 +31,7 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/food/FoodStats.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
@@ -51,12 +51,7 @@ namespace {
 class EffectTestWorld final : public test::BaseTestWorld {
 public:
     void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
-    void addParticle(particle::ParticleTypeId,
-        const Vector3&,
-        const Vector3&,
-        const Vector3&,
-        u32) override
-    {}
+    void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3&, u32) override {}
 
     [[nodiscard]] world::tick::TickManager& tickManager() override
     {

@@ -34,10 +34,10 @@
  */
 
 #include "common/entity/ai/goal/goals/special/SquidGoals.hpp"
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -122,17 +122,13 @@ public:
     /** 设置固体方块状态（isAir()==false 的 BlockState 指针） */
     void setSolidBlockState(const BlockState* state) { m_solidBlockState = state; }
 
-    void addParticle(
-        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void addParticle(particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3&,
-        u32) override
+    void addParticle(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3&, u32) override
     {
         m_particles.push_back({type, pos, velocity});
     }

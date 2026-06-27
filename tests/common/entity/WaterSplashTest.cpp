@@ -26,12 +26,12 @@
 #include <vector>
 #include <gtest/gtest.h>
 
-#include "common/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -111,17 +111,13 @@ public:
         m_sounds.push_back({soundEvent, category, position, volume, pitch});
     }
 
-    void addParticle(
-        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void addParticle(particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3&,
-        u32) override
+    void addParticle(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3&, u32) override
     {
         m_particles.push_back({type, pos, velocity});
     }

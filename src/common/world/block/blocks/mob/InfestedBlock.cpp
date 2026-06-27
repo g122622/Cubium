@@ -22,12 +22,12 @@
  */
 
 #include "InfestedBlock.hpp"
-#include "common/particle/ParticleTypes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"

@@ -346,16 +346,16 @@ enum class ParticleTypeId : u16 {
     GustEmitterLarge = 108,
 
     /// 滴落的滴水石水（钟乳石滴水）
-    DrippingDripstoneWater = 113,
+    DrippingDripstoneWater = 109,
 
     /// 下落的滴水石水
-    FallingDripstoneWater = 114,
+    FallingDripstoneWater = 110,
 
     /// 滴落的滴水石熔岩（钟乳石滴熔岩）
-    DrippingDripstoneLava = 115,
+    DrippingDripstoneLava = 111,
 
     /// 下落的滴水石熔岩
-    FallingDripstoneLava = 116,
+    FallingDripstoneLava = 112,
 
     // ========================================================================
     // 扩展粒子 (100-112)
@@ -378,12 +378,6 @@ enum class ParticleTypeId : u16 {
 
     /// 不祥生成粒子（不祥物品生成器周围生成的不祥粒子）
     OminousSpawning = 109,
-
-    /// 暴风雪粒子（旋风人攻击产生）
-    GustDust = 110,
-
-    /// 嗅探兽挖掘粒子
-    SculkDust = 111,
 
     // ========================================================================
     // 计数与无效值
