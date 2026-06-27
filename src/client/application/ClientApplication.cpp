@@ -437,7 +437,9 @@ void ClientApplication::update(f32 deltaTime)
             ClientEntity* targetEntity = m_world.entityManager().getEntity(cameraTargetId.value());
             if (targetEntity != nullptr) {
                 const Vector3 renderPosition = targetEntity->prevPosition().lerp(targetEntity->position(), partialTick);
-                // ClientEntity 没有眼高信息，使用玩家默认眼高
+                // TODO: ClientEntity 目前没有 eyeHeight() 方法，这里使用玩家默认眼高作为旁观目标的视点高度。
+                // 后续应为 ClientEntity 添加基于实体类型的眼高查询接口，以便对非玩家实体（如末影龙、羊驼等）
+                // 使用正确的眼高值，与 MC Java ClientboundSetCameraPacket 的渲染行为一致。
                 constexpr f32 defaultEyeHeight = mc::game::PLAYER_EYE_HEIGHT;
                 m_camera.setPosition(renderPosition.x, renderPosition.y + defaultEyeHeight, renderPosition.z);
                 m_camera.setYaw(targetEntity->yaw());

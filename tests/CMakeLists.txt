@@ -567,6 +567,8 @@ add_executable(mc_tests
     common/entity/player/PlayerMessageTest.cpp
     common/entity/player/PlayerPermissionTest.cpp
     common/entity/player/PlayerSleepTest.cpp
+    # Player 旁观者摄像机跟踪测试
+    common/entity/player/PlayerSpectatorTest.cpp
     # Player 冲量坠落伤害免疫测试
     common/entity/player/ImpulseContextTest.cpp
     # Player NBT 序列化测试
@@ -754,6 +756,8 @@ add_executable(mc_tests
     network/LocalServerConnectionTest.cpp
     network/TitlePacketTest.cpp
     network/BossInfoPacketTest.cpp
+    # 旁观者摄像机同步包测试
+    network/SetCameraPacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/entity/loot/LootSerializersTest.cpp

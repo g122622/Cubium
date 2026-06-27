@@ -198,3 +198,41 @@ Player 实现了 MC Java `Player` 中的最后死亡位置记录系统，用于�
 - 反序列化同时支持字符串维度名（`"minecraft:overworld"`）和整数维度ID（向后兼容）
 - 项目不重新创建 Player 实体（与 MC Java 的 `restoreFrom` 不同），因此无需 `restoreFrom` 逻辑
 - 同维度重生的 RespawnPacket 发送属于尚未实现的死亡重生基础设施，超出 LastDeathLocation TODO 范围
+
+---
+
+## 旁观者摄像机跟踪（Spectator Camera Tracking）
+
+Player 基类中包含旁观者模式摄像机跟踪的核心状态字段，由 `ServerPlayer` 负责完整的网络同步和每 tick 位置更新。
+
+### 核心字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `m_cameraEntityId` | `std::optional<EntityId>` | 旁观目标实体 ID，空值表示自身视角 |
+
+### 关键方法
+
+- `getCameraEntityId()` — 获取旁观目标实体 ID（optional）
+- `isSpectating()` — 是否正在旁观某个实体（`m_cameraEntityId.has_value()`）
+- `setCameraEntityId(std::optional<EntityId>)` — 设置/清除旁观目标
+- `isInputSneaking()` — 获取潜行输入状态（用于 ServerPlayer::tickSpectator 检测退出旁观）
+- `attack(Entity&)` 虚方法 — 旁观者模式下设置旁观目标，ServerPlayer 重写为调用 `setCamera()`
+
+### 旁观者 noclip
+
+`Player::setGameMode()` 中：
+- 切换到旁观者模式 → `setNoClip(true)`
+- 离开旁观者模式 → `setNoClip(false)` + `m_cameraEntityId = std::nullopt`
+
+### 数据流
+
+1. **设置旁观**：SpectateCommand / 旁观者攻击 → `ServerPlayer::setCamera()` → 更新 `m_cameraEntityId` + 传送到目标 + 发送 SetCameraPacket
+2. **每 tick 同步**：`ServerPlayer::tick()` → `tickSpectator()` → 同步位置到目标、检查有效性、潜行退出
+3. **模式切换**：GameModeManager 回调 → `resetCamera()` + `setGameMode()`（离开旁观模式时）
+4. **客户端**：收到 SetCameraPacket → 设置 `m_cameraEntityId` → 渲染循环跟随目标 ClientEntity
+
+### 注意事项
+
+- `Player::attack()` 基类中旁观者路径调用 `setCameraEntityId()` 但**不发送 SetCameraPacket**，仅 ServerPlayer 重写版本通过网络同步。TODO: 未来应考虑将此逻辑抽象为虚方法或回调
+- 客户端旁观目标眼高暂时使用 `PLAYER_EYE_HEIGHT` 常量，待 ClientEntity 添加 `eyeHeight()` 接口后改进

@@ -2059,6 +2059,10 @@ void Player::resetCooldown()
 void Player::attack(Entity& target)
 {
     // 旁观者模式下攻击实体等同于设置旁观目标
+    // TODO: 此基类路径仅设置 m_cameraEntityId 字段，不会向客户端发送 SetCameraPacket，
+    // 导致客户端不知道摄像机已切换。ServerPlayer::attack() 重写了此方法并正确调用
+    // setCamera()（包含网络同步），但若 Player 子类未重写 attack()，则在非 ServerPlayer
+    // 场景下客户端将不会收到摄像机变更通知。未来应考虑将此逻辑抽象为虚方法或回调。
     if (isSpectator()) {
         setCameraEntityId(target.id());
         return;
