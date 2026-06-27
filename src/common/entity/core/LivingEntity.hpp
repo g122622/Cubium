@@ -29,12 +29,14 @@
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectManager.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 
 #include <array>
+#include <map>
 #include <memory>
 
 namespace mc {
@@ -325,6 +327,44 @@ public:
      * @param slot 破损的装备槽位
      */
     void broadcastBreakEvent(EquipmentSlot slot);
+
+    /**
+     * @brief 检测装备更新
+     *
+     * 每tick调用，检测装备槽位变化并同步属性修饰符。
+     * 当装备发生变化时：
+     * 1. 移除旧物品的属性修饰符
+     * 2. 添加新物品的属性修饰符
+     * 3. 同步装备数据到客户端
+     *
+     * 对应 MC 原版 LivingEntity.detectEquipmentUpdates()。
+     */
+    void detectEquipmentUpdates();
+
+    /**
+     * @brief 检查两个物品堆是否不同（用于装备变化检测）
+     *
+     * 对应 MC 原版 LivingEntity.equipmentHasChanged()。
+     *
+     * @param a 第一个物品堆
+     * @param b 第二个物品堆
+     * @return 如果两个物品堆不同返回 true
+     */
+    [[nodiscard]] static bool equipmentHasChanged(const ItemStack& a, const ItemStack& b);
+
+    /**
+     * @brief 停止基于位置的物品效果
+     *
+     * 当装备从槽位移除时调用，移除物品提供的属性修饰符。
+     * 对应 MC 原版 LivingEntity.stopLocationBasedEffects() 中移除属性修饰符的部分。
+     * TODO: 当附魔基于位置的效果系统（Frost Walker、Soul Speed 等）实现后，
+     * 此方法应同时调用 EnchantmentHelper.stopLocationBasedEffects() 来停用
+     * 位置相关的附魔效果。
+     *
+     * @param stack 物品堆
+     * @param slot 装备槽位
+     */
+    void stopLocationBasedEffects(const ItemStack& stack, EquipmentSlot slot);
 
     /**
      * @brief 将 Hand 转换为 EquipmentSlot
@@ -1135,6 +1175,13 @@ protected:
 
     // 装备
     std::array<ItemStack, static_cast<size_t>(EquipmentSlot::Count)> m_equipment;
+
+    // 上一tick的装备快照（用于检测装备变化并同步属性修饰符）
+    // 对应 MC 原版 LivingEntity.lastEquipmentItems
+    std::array<ItemStack, static_cast<size_t>(EquipmentSlot::Count)> m_lastEquipment;
+
+    // 是否已初始化上一tick装备快照
+    bool m_lastEquipmentInitialized = false;
 
     // 主手偏好
     HandSide m_primaryHand = HandSide::Right; // 默认右手为主手

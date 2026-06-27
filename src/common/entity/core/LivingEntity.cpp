@@ -29,6 +29,7 @@
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
@@ -417,9 +418,11 @@ void LivingEntity::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
     // 广播装备破损动画给追踪玩家
     broadcastBreakEvent(slot);
 
-    // TODO: 调用 stopLocationBasedEffects() 停止基于位置的持续效果（如指南针、时钟等
-    // 基于位置的物品效果），待属性修饰符系统完善后集成。对应 MC 原版
-    // LivingEntity.onEquippedItemBroken() 中的 stopLocationBasedEffects() 调用。
+    // 停止基于位置的物品效果（移除属性修饰符）
+    // 对应 MC 原版 LivingEntity.onEquippedItemBroken() 中调用 stopLocationBasedEffects()
+    // 注意：MC 原版读取当前槽位中的物品（此时可能已被清空或替换），
+    // 这里使用传入的 item 引用获取该物品类型的属性修饰符
+    stopLocationBasedEffects(getEquipment(slot), slot);
 
     // 播放装备破损音效
     if (m_world != nullptr && !isSilent()) {
@@ -438,6 +441,112 @@ void LivingEntity::broadcastBreakEvent(EquipmentSlot slot)
         auto status = network::EntityStatusPacket::equipmentBreakStatus(slotIndex);
         m_world->broadcastEntityStatus(m_id, static_cast<u8>(status));
     }
+}
+
+bool LivingEntity::equipmentHasChanged(const ItemStack& a, const ItemStack& b)
+{
+    // 对应 MC 原版 LivingEntity.equipmentHasChanged()
+    // 使用 operator!= 比较两个物品堆（比较物品类型、数量、耐久、附魔、自定义名称等）
+    return a != b;
+}
+
+void LivingEntity::detectEquipmentUpdates()
+{
+    // 对应 MC 原版 LivingEntity.detectEquipmentUpdates()
+    // 仅在服务端执行
+    if (m_world != nullptr && m_world->isClientSide()) {
+        return;
+    }
+
+    // 首次调用时初始化装备快照
+    if (!m_lastEquipmentInitialized) {
+        for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+            m_lastEquipment[i] = getEquipment(static_cast<EquipmentSlot>(i));
+        }
+        m_lastEquipmentInitialized = true;
+        return;
+    }
+
+    // 检查每个槽位是否有变化
+    bool anyChanged = false;
+
+    for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
+        auto slot = static_cast<EquipmentSlot>(i);
+        const ItemStack& lastStack = m_lastEquipment[i];
+        const ItemStack& currentStack = getEquipment(slot);
+
+        if (equipmentHasChanged(lastStack, currentStack)) {
+            anyChanged = true;
+
+            // 移除旧物品的属性修饰符
+            // 对应 MC 原版 collectEquipmentChanges() 中对旧物品调用 stopLocationBasedEffects()
+            if (!lastStack.isEmpty()) {
+                stopLocationBasedEffects(lastStack, slot);
+            }
+        }
+    }
+
+    // 对变化槽位的新物品应用属性修饰符
+    if (anyChanged) {
+        for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
+            auto slot = static_cast<EquipmentSlot>(i);
+            const ItemStack& lastStack = m_lastEquipment[i];
+            const ItemStack& currentStack = getEquipment(slot);
+
+            if (equipmentHasChanged(lastStack, currentStack)) {
+                // 添加新物品的属性修饰符
+                // 对应 MC 原版 collectEquipmentChanges() 中的 forEachModifier + addTransientModifier
+                if (!currentStack.isEmpty()) {
+                    const Item* item = currentStack.getItem();
+                    if (item != nullptr) {
+                        item::ItemAttributeModifiers modifiers = item->getAttributeModifiers(static_cast<i32>(slot));
+                        for (const auto& entry : modifiers.getEntries()) {
+                            if (entry.equipmentSlot == static_cast<i32>(slot)) {
+                                // 先移除可能存在的同ID修饰符，再添加新的
+                                // 对应 MC 原版 removeModifier(id) + addTransientModifier()
+                                m_attributes.removeModifier(entry.attribute->registryName(), entry.modifier.id());
+                                m_attributes.addModifier(entry.attribute->registryName(), entry.modifier);
+                            }
+                        }
+                    }
+                }
+
+                // 更新快照
+                m_lastEquipment[i] = currentStack;
+            }
+        }
+    }
+}
+
+void LivingEntity::stopLocationBasedEffects(const ItemStack& stack, EquipmentSlot slot)
+{
+    // 对应 MC 原版 LivingEntity.stopLocationBasedEffects()
+    // 移除物品提供的属性修饰符
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return;
+    }
+
+    // 移除该物品在该槽位提供的所有属性修饰符
+    item::ItemAttributeModifiers modifiers = item->getAttributeModifiers(static_cast<i32>(slot));
+    for (const auto& entry : modifiers.getEntries()) {
+        if (entry.equipmentSlot == static_cast<i32>(slot)) {
+            m_attributes.removeModifier(entry.attribute->registryName(), entry.modifier.id());
+        }
+    }
+
+    // TODO: 当附魔基于位置的效果系统实现后，此处应同时调用
+    // EnchantmentHelper.stopLocationBasedEffects(stack, *this, slot) 来停用
+    // 位置相关的附魔效果（如 Frost Walker 冰面替换、Soul Speed 速度加成等）。
+    // 这需要以下基础设施：
+    // 1. EnchantedItemInUse 记录类（持有物品、槽位、实体引用、破坏回调）
+    // 2. activeLocationDependentEnchantments 映射表（按槽位和附魔追踪活跃效果）
+    // 3. EnchantmentLocationBasedEffect 接口（onChangedBlock / onDeactivated）
+    // 4. EnchantmentHelper.forEachModifier() 迭代附魔属性修饰符
 }
 
 bool LivingEntity::hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot)
@@ -527,6 +636,10 @@ void LivingEntity::tick()
 
     // 更新效果
     m_effectManager.tick(*this);
+
+    // 检测装备更新（服务端）
+    // 对应 MC 原版 LivingEntity.tick() 中的 detectEquipmentUpdates() 调用
+    detectEquipmentUpdates();
 
     // 更新无敌帧计时器
     if (m_hurtResistantTime > 0) {

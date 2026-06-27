@@ -131,6 +131,16 @@ void ArmorItem::_buildAttributeModifiers()
     }
 }
 
+item::ItemAttributeModifiers ArmorItem::getAttributeModifiers(i32 equipmentSlot) const
+{
+    // 只有当槽位匹配盔甲的槽位时才返回修饰符
+    // 对应 MC 原版 ArmorItem.getAttributeModifiers(EquipmentSlot)
+    if (equipmentSlot == armorSlotToEquipmentSlot(m_slot)) {
+        return m_attributeModifiers;
+    }
+    return item::ItemAttributeModifiers();
+}
+
 f32 ArmorItem::getDestroySpeed(const ItemStack& /*stack*/, const BlockState& /*state*/) const noexcept
 {
     // 盔甲不是工具，返回默认速度
