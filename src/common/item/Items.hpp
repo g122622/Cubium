@@ -1131,11 +1131,56 @@ public:
     static Item* MACE;                              // 重锤
     static Item* GUSTER_BANNER_PATTERN;             // 旋风旗帜图案
     static Item* FLOW_BANNER_PATTERN;               // 涡流旗帜图案
-    static Item* RIB_ARMOR_TRIM_SMITHING_TEMPLATE;  // 镶铆盔甲纹饰
-    static Item* FLOW_ARMOR_TRIM_SMITHING_TEMPLATE; // 涡流盔甲纹饰
-    static Item* FLOW_POTTERY_SHERD;                // 涡流纹样陶片
-    static Item* GUSTER_POTTERY_SHERD;              // 旋风纹样陶片
-    static Item* SCRAPE_POTTERY_SHERD;              // 刮削纹样陶片
+
+    // ========================================================================
+    // 锻造模板物品（盔甲纹饰 + 下界合金升级）
+    // ========================================================================
+    static Item* NETHERITE_UPGRADE_SMITHING_TEMPLATE;         // 下界合金升级锻造模板
+    static Item* SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE;         // 哨兵盔甲纹饰
+    static Item* VEX_ARMOR_TRIM_SMITHING_TEMPLATE;            // 恼鬼盔甲纹饰
+    static Item* WILD_ARMOR_TRIM_SMITHING_TEMPLATE;           // 荒野盔甲纹饰
+    static Item* COAST_ARMOR_TRIM_SMITHING_TEMPLATE;          // 海岸盔甲纹饰
+    static Item* DUNE_ARMOR_TRIM_SMITHING_TEMPLATE;           // 沙丘盔甲纹饰
+    static Item* WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE;      // 寻路者盔甲纹饰
+    static Item* RAISER_ARMOR_TRIM_SMITHING_TEMPLATE;         // 升起者盔甲纹饰
+    static Item* SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE;         // 塑造者盔甲纹饰
+    static Item* HOST_ARMOR_TRIM_SMITHING_TEMPLATE;           // 宿主盔甲纹饰
+    static Item* WARD_ARMOR_TRIM_SMITHING_TEMPLATE;           // 监守者盔甲纹饰
+    static Item* SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE;        // 寂静盔甲纹饰
+    static Item* TIDE_ARMOR_TRIM_SMITHING_TEMPLATE;           // 潮汐盔甲纹饰
+    static Item* SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE;          // 猪鼻盔甲纹饰
+    static Item* RIB_ARMOR_TRIM_SMITHING_TEMPLATE;            // 镶铆盔甲纹饰
+    static Item* EYE_ARMOR_TRIM_SMITHING_TEMPLATE;            // 眼睛盔甲纹饰
+    static Item* SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE;          // 尖塔盔甲纹饰
+    static Item* FLOW_ARMOR_TRIM_SMITHING_TEMPLATE;           // 涡流盔甲纹饰
+    static Item* BOLT_ARMOR_TRIM_SMITHING_TEMPLATE;           // 闪电盔甲纹饰
+
+    // ========================================================================
+    // 陶片物品（1.20 考古学 + 1.21 试炼密室）
+    // ========================================================================
+    static Item* ANGLER_POTTERY_SHERD;     // 钓鱼者陶片
+    static Item* ARCHER_POTTERY_SHERD;     // 射手陶片
+    static Item* ARMS_UP_POTTERY_SHERD;    // 举手陶片
+    static Item* BLADE_POTTERY_SHERD;      // 刀刃陶片
+    static Item* BREWER_POTTERY_SHERD;     // 酿造者陶片
+    static Item* BURN_POTTERY_SHERD;       // 燃烧陶片
+    static Item* DANGER_POTTERY_SHERD;     // 危险陶片
+    static Item* EXPLORER_POTTERY_SHERD;   // 探险者陶片
+    static Item* FRIEND_POTTERY_SHERD;     // 朋友陶片
+    static Item* HEART_POTTERY_SHERD;      // 心陶片
+    static Item* HEARTBREAK_POTTERY_SHERD; // 碎心陶片
+    static Item* HOWL_POTTERY_SHERD;       // 嚎叫陶片
+    static Item* MINER_POTTERY_SHERD;      // 矿工陶片
+    static Item* MOURNER_POTTERY_SHERD;    // 哀悼者陶片
+    static Item* PLENTY_POTTERY_SHERD;     // 丰饶陶片
+    static Item* PRIZE_POTTERY_SHERD;      // 奖赏陶片
+    static Item* SHEAF_POTTERY_SHERD;      // 麦捆陶片
+    static Item* SHELTER_POTTERY_SHERD;    // 庇护所陶片
+    static Item* SKULL_POTTERY_SHERD;      // 骷髅陶片
+    static Item* SNORT_POTTERY_SHERD;      // 喷鼻陶片
+    static Item* FLOW_POTTERY_SHERD;       // 涡流陶片
+    static Item* GUSTER_POTTERY_SHERD;     // 旋风陶片
+    static Item* SCRAPE_POTTERY_SHERD;     // 刮削陶片
 
     // ========================================================================
     // 音乐唱片

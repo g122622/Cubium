@@ -507,6 +507,8 @@ add_library(mc_common STATIC
     item/items/special/HoneycombItem.cpp
     item/items/special/MilkBucketItem.cpp
     item/items/special/MusicDiscItem.cpp
+    item/items/special/PotterySherdItem.cpp
+    item/items/special/SmithingTemplateItem.cpp
     item/items/special/EnchantedBookItem.cpp
     item/items/special/NameTagItem.cpp
     item/items/special/SaddleItem.cpp
@@ -892,6 +894,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/SignEntity.cpp
     world/blockentity/interactive/BannerEntity.cpp
     world/blockentity/interactive/BannerPattern.cpp
+    world/blockentity/interactive/DecoratedPotPattern.cpp
     world/blockentity/interactive/BeehiveBlockEntity.cpp
     world/blockentity/interactive/JukeboxEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp
