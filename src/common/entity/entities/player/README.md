@@ -235,4 +235,4 @@ Player 基类中包含旁观者模式摄像机跟踪的核心状态字段，由 
 ### 注意事项
 
 - `Player::attack()` 基类中旁观者路径调用 `setCameraEntityId()` 但**不发送 SetCameraPacket**，仅 ServerPlayer 重写版本通过网络同步。TODO: 未来应考虑将此逻辑抽象为虚方法或回调
-- 客户端旁观目标眼高暂时使用 `PLAYER_EYE_HEIGHT` 常量，待 ClientEntity 添加 `eyeHeight()` 接口后改进
+- 客户端旁观目标眼高已通过 `ClientEntity::eyeHeight()` 接口实现，根据实体类型和姿态返回正确的眼高值

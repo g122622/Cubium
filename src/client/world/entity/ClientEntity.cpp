@@ -22,8 +22,11 @@
  */
 
 #include "ClientEntity.hpp"
+#include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
@@ -643,6 +646,40 @@ bool ClientEntity::_tryReadMetadataSlot(const u8* data, size_t size, size_t& off
     outStack = stackResult.value();
     offset = size - deser.remaining();
     return true;
+}
+
+void ClientEntity::refreshEyeHeight()
+{
+    // 从实体注册表中查找基础眼高
+    f32 baseEyeHeight = game::PLAYER_EYE_HEIGHT; // 默认玩家站立眼高
+
+    const auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* type = registry.getType(m_typeId);
+    if (type != nullptr) {
+        baseEyeHeight = type->size().eyeHeight();
+    }
+
+    // 玩家实体根据姿态调整眼高
+    // 玩家 type ID 包括 minecraft:player
+    if (m_typeId == entity::EntityTypes::PLAYER || m_typeId == "minecraft:player" || m_typeId == "player") {
+        if (m_sleeping) {
+            m_eyeHeight = 0.2f;
+        } else if (m_swimming || isFallFlying()) {
+            m_eyeHeight = 0.4f;
+        } else if (m_sneaking) {
+            m_eyeHeight = 1.27f;
+        } else {
+            m_eyeHeight = game::PLAYER_EYE_HEIGHT;
+        }
+        return;
+    }
+
+    // 幼年个体眼高减半（与 MC Java 的 AgeableEntity.getAgeScale() = 0.5 一致）
+    if (m_child) {
+        baseEyeHeight *= 0.5f;
+    }
+
+    m_eyeHeight = baseEyeHeight;
 }
 
 } // namespace mc::client

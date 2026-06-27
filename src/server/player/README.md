@@ -136,7 +136,7 @@ if (player->canReceiveMessages()) {
 **注意**：
 - `Player::attack()` 基类中旁观者路径调用 `setCameraEntityId()` 但不发送 SetCameraPacket（仅 ServerPlayer 重写版本通过网络同步）
 - `Player::tick()` 不包含旁观者位置同步逻辑，由 `ServerPlayer::tickSpectator()` 统一处理
-- 客户端旁观目标眼高暂时使用 `PLAYER_EYE_HEIGHT` 常量，待 ClientEntity 添加 eyeHeight() 接口后改进
+- 客户端旁观目标眼高已通过 `ClientEntity::eyeHeight()` 接口实现，根据实体类型和姿态返回正确的眼高值
 
 ### 12. 单元测试
 

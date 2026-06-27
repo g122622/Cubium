@@ -355,13 +355,44 @@ public:
     [[nodiscard]] f32 height() const { return m_height; }
     void setHeight(f32 height) { m_height = height; }
 
+    /**
+     * @brief 获取实体眼睛高度（从脚底到眼睛的距离）
+     *
+     * 根据实体类型和当前姿态（蹲伏、游泳、睡眠等）计算眼睛高度。
+     * 对于玩家实体，蹲伏时为 1.27，游泳/鞘翅飞行/旋转攻击时为 0.4，
+     * 睡眠时为 0.2，站立时为 1.62。
+     * 对于其他实体，使用实体注册表中注册的 EntitySize 的眼高，
+     * 幼年个体眼高为站立时的一半。
+     */
+    [[nodiscard]] f32 eyeHeight() const { return m_eyeHeight; }
+
+    /**
+     * @brief 设置实体眼睛高度
+     * @param eyeHeight 眼睛高度
+     */
+    void setEyeHeight(f32 eyeHeight) { m_eyeHeight = eyeHeight; }
+
+    /**
+     * @brief 根据实体类型和当前状态刷新眼睛高度
+     *
+     * 从实体注册表中查找基础眼高，然后根据姿态（蹲伏、游泳、睡眠）
+     * 和年龄（幼年）进行调整。当实体类型、姿态或年龄发生变化时应调用此方法。
+     */
+    void refreshEyeHeight();
+
     // ========== 年龄（用于幼年动物渲染） ==========
 
     /**
      * @brief 是否是幼年个体
      */
     [[nodiscard]] bool isChild() const { return m_child; }
-    void setChild(bool child) { m_child = child; }
+    void setChild(bool child)
+    {
+        if (m_child != child) {
+            m_child = child;
+            refreshEyeHeight();
+        }
+    }
 
     // ========== 受伤和死亡状态 ==========
 
@@ -385,13 +416,25 @@ public:
      * @brief 是否正在蹲伏
      */
     [[nodiscard]] bool isSneaking() const { return m_sneaking; }
-    void setSneaking(bool sneaking) { m_sneaking = sneaking; }
+    void setSneaking(bool sneaking)
+    {
+        if (m_sneaking != sneaking) {
+            m_sneaking = sneaking;
+            refreshEyeHeight();
+        }
+    }
 
     /**
      * @brief 是否正在游泳
      */
     [[nodiscard]] bool isSwimming() const { return m_swimming; }
-    void setSwimming(bool swimming) { m_swimming = swimming; }
+    void setSwimming(bool swimming)
+    {
+        if (m_swimming != swimming) {
+            m_swimming = swimming;
+            refreshEyeHeight();
+        }
+    }
 
     /**
      * @brief 是否正在乘坐载具
@@ -425,7 +468,13 @@ public:
      * @brief 是否正在睡眠
      */
     [[nodiscard]] bool isSleeping() const { return m_sleeping; }
-    void setSleeping(bool sleeping) { m_sleeping = sleeping; }
+    void setSleeping(bool sleeping)
+    {
+        if (m_sleeping != sleeping) {
+            m_sleeping = sleeping;
+            refreshEyeHeight();
+        }
+    }
 
     /**
      * @brief 获取睡眠位置
@@ -838,6 +887,7 @@ private:
     // 尺寸
     f32 m_width = 0.6f;
     f32 m_height = 1.8f;
+    f32 m_eyeHeight = 1.62f; // 眼睛高度，默认为玩家站立眼高
 
     // 受伤和死亡状态
     i32 m_hurtTime = 0;  // 受伤时间 (0-10)

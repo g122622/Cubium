@@ -30,6 +30,7 @@ ClientEntity
 ├── 旋转插值系统：yaw, pitch, headYaw 及其 target 值
 ├── 动画状态：limbSwing, swingProgress, hurtTime
 ├── 实体状态：onGround, sneaking, swimming, riding, sleeping
+├── 实体尺寸：width, height, eyeHeight（根据实体类型和姿态计算）
 ├── 元数据缓存：EntityDataManager, metadata bytes
 └── 特殊实体数据：puffState(河豚), axolotlVariant(美西螈), xpValue(经验球), ironGolemAttackTimer/ironGolemArmsRaised/ironGolemHoldingRose(铁傀儡), itemStack(物品实体), fuseTimer(TNT矿车), eatAnimationTimer(羊等吃草动画)
 ```
@@ -92,3 +93,10 @@ ClientEntity
    - 客户端在 `onEntityStatus` 回调中根据 `typeId() == TNT_MINECART` 区分：TNT矿车调用 `setFuseTimer(80)`，羊调用 `setEatAnimationTimer(40)`
    - `ClientEntity::tick()` 中递减 `m_fuseTimer`
    - 与铁傀儡状态同步模式一致：服务端 `broadcastEntityStatus()` → 网络包 → 客户端回调设置字段
+
+10. **眼高计算依赖注册表和姿态**：
+    - `ClientEntity::eyeHeight()` 返回实体的眼睛高度，用于旁观者相机定位等场景
+    - 实体创建时从 `EntityRegistry` 查找 `EntitySize` 初始化 `width`/`height`/`eyeHeight`
+    - 玩家实体根据姿态动态调整：蹲伏=1.27，游泳/鞘翅飞行=0.4，睡眠=0.2，站立=1.62
+    - 非玩家幼年个体眼高为站立眼高的一半（与 MC Java 的 `getAgeScale() = 0.5` 一致）
+    - 姿态变化（`setSneaking`/`setSwimming`/`setSleeping`/`setChild`）自动触发 `refreshEyeHeight()`
