@@ -84,7 +84,30 @@ public:
      */
     [[nodiscard]] f32 getThrowInaccuracy() const override { return 0.0f; }
 
+    // ========== ProjectileItem 接口重写 ==========
+
+    /**
+     * @brief 获取发射器配置（药水专用）
+     *
+     * 对齐 MC ThrowablePotionItem.createDispenseConfig()：
+     * uncertainty = DEFAULT * 0.5 = 3.0
+     * power = DEFAULT * 1.25 = 1.375
+     */
+    [[nodiscard]] ProjectileDispenseConfig getDispenseConfig() const override
+    {
+        return ProjectileDispenseConfig::potion();
+    }
+
 protected:
+    /**
+     * @brief 创建弹射物实体（通用场景）
+     *
+     * 创建 PotionEntity 并设置物品堆和滞留属性。
+     * 子类通过 isLingering() 控制药水类型。
+     */
+    [[nodiscard]] std::unique_ptr<entity::ProjectileEntity> createProjectileEntity(
+        IWorld& world, const ItemStack& stack) const override;
+
     /**
      * @brief 获取基础翻译键（不含药水效果后缀）
      * @return 基础翻译键，如 "item.minecraft.splash_potion"
@@ -96,6 +119,12 @@ protected:
      * @return 翻译键前缀，如 "item.minecraft.splash_potion.effect."
      */
     [[nodiscard]] virtual std::string getEffectTranslationKeyPrefix() const = 0;
+
+    /**
+     * @brief 是否为滞留药水
+     * @return true 表示滞留药水，false 表示喷溅药水
+     */
+    [[nodiscard]] virtual bool isLingering() const = 0;
 };
 
 } // namespace item

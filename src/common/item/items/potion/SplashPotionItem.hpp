@@ -60,6 +60,11 @@ public:
     [[nodiscard]] entity::ProjectileItemEntity* createProjectile(
         IWorld& world, Player& player, const ItemStack& stack) const override;
 
+    /**
+     * @brief 喷溅药水不是滞留型
+     */
+    [[nodiscard]] bool isLingering() const override { return false; }
+
 protected:
     /**
      * @brief 获取基础翻译键

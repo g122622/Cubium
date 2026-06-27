@@ -423,6 +423,7 @@ add_library(mc_common STATIC
     item/core/ItemStack.cpp
     item/core/ItemRegistry.cpp
     item/core/ItemGroup.cpp
+    item/core/ProjectileItem.cpp
     item/Items.cpp
 
     # Item System - Context

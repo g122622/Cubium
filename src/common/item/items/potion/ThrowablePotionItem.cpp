@@ -23,9 +23,12 @@
 
 #include "common/item/items/potion/ThrowablePotionItem.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 namespace item {
@@ -61,6 +64,17 @@ void ThrowablePotionItem::playThrowSound(Player& player) const
     math::Random rng(static_cast<u64>(player.id()) ^ static_cast<u64>(player.ticksExisted()));
     f32 pitch = 0.4f / (rng.nextFloat() * 0.4f + 0.8f);
     player.playSound(SoundEvents::ENTITY_SPLASH_POTION_THROW, 0.5f, pitch);
+}
+
+// ========== ProjectileItem 接口实现 ==========
+
+std::unique_ptr<entity::ProjectileEntity> ThrowablePotionItem::createProjectileEntity(
+    IWorld& /*world*/, const ItemStack& stack) const
+{
+    auto entity = std::make_unique<entity::PotionEntity>(EntityId(0));
+    entity->setItemStack(stack);
+    entity->setLingering(isLingering());
+    return entity;
 }
 
 } // namespace item

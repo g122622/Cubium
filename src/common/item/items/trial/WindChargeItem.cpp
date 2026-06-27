@@ -6,24 +6,21 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * furnished to do so, substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR USE OF
+ * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "WindChargeItem.hpp"
 
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -83,6 +80,47 @@ ItemActionResult WindChargeItem::onItemRightClick(IWorld& world, Player& player,
     }
 
     return ItemActionResult::success(heldStack);
+}
+
+// ============================================================================
+// ProjectileItem 接口实现
+// ============================================================================
+
+std::unique_ptr<entity::ProjectileEntity> WindChargeItem::asProjectile(IWorld& /*world*/,
+    const Vector3& position,
+    const ItemStack& /*stack*/,
+    f32 directionX,
+    f32 directionY,
+    f32 directionZ) const
+{
+    auto entity = std::make_unique<entity::WindChargeEntity>(EntityId(0));
+    entity->setPosition(position.x, position.y, position.z);
+
+    // 风弹在 asProjectile 中根据方向预设初速度
+    // 对齐 MC WindChargeItem.asProjectile() 中的行为：
+    // 使用 DispenseConfig 中的 power 和 uncertainty 来设置初速度
+    auto config = getDispenseConfig();
+    // 预设 deltaMovement，方向归一化后乘以 power
+    f32 length = std::sqrt(directionX * directionX + directionY * directionY + directionZ * directionZ);
+    if (length > 0.0f) {
+        f32 nx = directionX / length;
+        f32 ny = directionY / length;
+        f32 nz = directionZ / length;
+        entity->setVelocity(nx * config.power, ny * config.power, nz * config.power);
+    }
+
+    return entity;
+}
+
+void WindChargeItem::shoot(entity::ProjectileEntity& /*projectile*/,
+    f32 /*directionX*/,
+    f32 /*directionY*/,
+    f32 /*directionZ*/,
+    f32 /*power*/,
+    f32 /*uncertainty*/) const
+{
+    // 风弹在 asProjectile 中已预设 deltaMovement，不需要再调用 shoot()
+    // 对齐 MC WindChargeItem.shoot() 为空操作
 }
 
 } // namespace item

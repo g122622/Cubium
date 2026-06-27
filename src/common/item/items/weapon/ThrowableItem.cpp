@@ -6,24 +6,21 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * furnished to do so, substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR USE OF
+ * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "ThrowableItem.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -77,6 +74,27 @@ ItemActionResult ThrowableItem::onItemRightClick(IWorld& world, Player& player, 
     }
 
     return ItemActionResult::success(heldStack);
+}
+
+// ========== ProjectileItem 接口实现 ==========
+
+std::unique_ptr<entity::ProjectileEntity> ThrowableItem::asProjectile(IWorld& world,
+    const Vector3& position,
+    const ItemStack& stack,
+    f32 /*directionX*/,
+    f32 /*directionY*/,
+    f32 /*directionZ*/) const
+{
+    // 调用子类实现的 createProjectileEntity 创建弹射物实体
+    auto entity = createProjectileEntity(world, stack);
+    if (entity == nullptr) {
+        return nullptr;
+    }
+
+    // 设置位置（不设置发射者和方向，由调用方负责）
+    entity->setPosition(position.x, position.y, position.z);
+
+    return entity;
 }
 
 // ========== 投掷物品特有方法 ==========

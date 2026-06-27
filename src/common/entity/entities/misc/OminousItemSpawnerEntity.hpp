@@ -29,6 +29,11 @@
 #include <memory>
 
 namespace mc {
+
+namespace item {
+class ProjectileItem;
+}
+
 namespace entity {
 
 /**
@@ -168,11 +173,16 @@ private:
 
     /**
      * @brief 生成弹射物实体
+     *
+     * 通过 ProjectileItem 接口创建弹射物，替代硬编码映射表。
+     * 对齐 MC 1.21.11 OminousItemSpawner.spawnProjectile()。
+     *
      * @param world 世界引用
-     * @param item 物品（用于确定弹射物类型）
+     * @param projectileItem 弹射物物品接口
+     * @param itemStack 物品堆（某些弹射物需要从中读取数据）
      * @return 生成的实体指针，失败返回 nullptr
      */
-    Entity* spawnProjectile(IWorld& world, const Item& item);
+    Entity* spawnProjectile(IWorld& world, const item::ProjectileItem& projectileItem, const ItemStack& itemStack);
 
     /**
      * @brief 生成不祥粒子效果

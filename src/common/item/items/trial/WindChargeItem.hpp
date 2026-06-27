@@ -6,18 +6,14 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies of substantial portions of the Software.
+ * furnished to do so, substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR USE OF
+ * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -26,6 +22,7 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
+#include "common/item/core/ProjectileItem.hpp"
 
 namespace mc {
 
@@ -39,6 +36,9 @@ namespace item {
  *
  * 右键投掷风弹弹射物实体。风弹命中实体或方块时产生风爆效果，
  * 推开周围的实体和弹射物。
+ *
+ * 同时实现 ProjectileItem 接口，供发射器和不祥物品生成器等
+ * 通用代码通过多态方式创建风弹弹射物。
  *
  * 属性：
  * - 最大堆叠：64
@@ -54,7 +54,7 @@ namespace item {
  *
  * 命名空间ID: minecraft:wind_charge
  */
-class WindChargeItem final : public Item {
+class WindChargeItem final : public Item, public ProjectileItem {
 public:
     /// 玩家投掷冷却时间（ticks）
     static constexpr i32 COOLDOWN_TICKS = 10;
@@ -90,6 +90,46 @@ public:
      * 非创造模式消耗1个风弹，使用后进入 10 tick 冷却。
      */
     [[nodiscard]] ItemActionResult onItemRightClick(IWorld& world, Player& player, Hand hand) override;
+
+    // ========== ProjectileItem 接口实现 ==========
+
+    /**
+     * @brief 创建风弹弹射物实体
+     *
+     * 创建 WindChargeEntity 并设置位置。
+     * 注意：风弹在 asProjectile 中已根据方向预设初速度，
+     * 因此 shoot() 被覆盖为空操作。
+     */
+    [[nodiscard]] std::unique_ptr<entity::ProjectileEntity> asProjectile(IWorld& world,
+        const Vector3& position,
+        const ItemStack& stack,
+        f32 directionX,
+        f32 directionY,
+        f32 directionZ) const override;
+
+    /**
+     * @brief 获取发射器配置（风弹专用）
+     *
+     * 对齐 MC WindChargeItem.createDispenseConfig()：
+     * power = 1.0, uncertainty = 6.6666665
+     */
+    [[nodiscard]] ProjectileDispenseConfig getDispenseConfig() const override
+    {
+        return ProjectileDispenseConfig::windCharge();
+    }
+
+    /**
+     * @brief 风弹的 shoot 方法为空操作
+     *
+     * 对齐 MC WindChargeItem.shoot()，风弹在 asProjectile 中
+     * 已根据方向预设了 deltaMovement，不需要再调用 shoot()。
+     */
+    void shoot(entity::ProjectileEntity& projectile,
+        f32 directionX,
+        f32 directionY,
+        f32 directionZ,
+        f32 power,
+        f32 uncertainty) const override;
 };
 
 } // namespace item

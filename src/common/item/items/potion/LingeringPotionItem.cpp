@@ -6,24 +6,21 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * furnished to do so, substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR USE OF
+ * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "LingeringPotionItem.hpp"
 
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -41,17 +38,15 @@ LingeringPotionItem::LingeringPotionItem(const ItemProperties& properties)
 entity::ProjectileItemEntity* LingeringPotionItem::createProjectile(
     IWorld& world, Player& player, const ItemStack& stack) const
 {
-    // 创建药水实体（滞留型）
-    auto entity = std::make_unique<entity::PotionEntity>(0);
-    entity->setWorld(&world);
+    auto entity = createProjectileEntity(world, stack);
+    if (entity == nullptr) {
+        return nullptr;
+    }
+
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
-    entity->setItemStack(stack);
-    // 滞留药水设置为滞留型
-    entity->setLingering(true);
 
-    // 生成实体到世界，并返回原始指针
-    entity::ProjectileItemEntity* result = entity.get();
+    entity::ProjectileItemEntity* result = dynamic_cast<entity::ProjectileItemEntity*>(entity.get());
     world.spawnEntity(std::move(entity));
     return result;
 }
