@@ -79,7 +79,6 @@ public:
     /**
      * @brief 工厂方法（含物品）
      *
-     * 对应 MC Java: OminousItemSpawner.create(Level, ItemStack)
      * 创建不祥物品生成器并设置物品和随机延迟。
      *
      * @param world 世界引用，用于获取随机数生成器
@@ -116,12 +115,10 @@ public:
     /**
      * @brief 获取活塞推动反应
      * @return PushReaction::Ignore，实体不受活塞推动
-     *
-     * 对应 MC Java: OminousItemSpawner.getPistonPushReaction() = PushReaction.IGNORE
      */
     [[nodiscard]] PushReaction getPushReaction() const override { return PushReaction::Ignore; }
 
-    // TODO(Entity): MC Java OminousItemSpawner 覆写了以下方法，但当前 Entity 基类尚无对应虚方法：
+    // TODO(Entity): OminousItemSpawner 覆写了以下方法，但当前 Entity 基类尚无对应虚方法：
     //   - isIgnoringBlockTriggers() -> true  (实体不触发方块压力板等)
     //   - canAddPassenger(Entity) -> false   (实体不可骑乘)
     //   - couldAcceptPassenger() -> false    (实体不可被骑乘)
@@ -146,7 +143,6 @@ private:
     /**
      * @brief 从存储的物品生成实体（弹射物或物品实体）
      *
-     * 对应 MC Java OminousItemSpawner.spawnItem()。
      * 如果物品是弹射物类型（如风弹、雪球等），向下发射弹射物；
      * 否则创建普通物品实体自然掉落。
      */
@@ -163,7 +159,6 @@ private:
     /**
      * @brief 生成不祥粒子效果
      *
-     * 对应 MC Java OminousItemSpawner.addParticles()。
      * 在实体周围生成 1-3 个 OMINOUS_SPAWNING 粒子。
      */
     void addParticles();
@@ -172,7 +167,6 @@ private:
     ItemStack m_item;
 
     /// 生成物品的绝对 tick 时间
-    /// 对应 MC Java 的 spawnItemAfterTicks，基于 tickCount 判断
     i64 m_spawnItemAfterTicks = 0;
 
     /// 是否已播放警告音效

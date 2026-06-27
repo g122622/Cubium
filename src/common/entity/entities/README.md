@@ -141,7 +141,8 @@ entities/
 │   └── README.md
 │
 ├── misc/                       # 杂项实体
-│   ├── MiscEntities.hpp/cpp        # 下落方块、TNT等
+│   ├── MiscEntities.hpp/cpp        # 下落方块、TNT、寂守者警告效果
+│   ├── OminousItemSpawnerEntity.hpp/cpp # 不祥物品生成器
 │   └── README.md
 │
 ├── orb/                        # 经验球
@@ -207,9 +208,8 @@ Entity (core/Entity.hpp)
 ├── MiscEntity (misc/)
 │   ├── FallingBlockEntity
 │   ├── TNTEntity
-│   ├── EyeOfEnderEntity
-│   ├── ConduitEntity
-│   └── EvokerFangsEntity
+│   ├── WardenWarningEffect
+│   └── OminousItemSpawnerEntity
 └── ProjectileEntity (projectile/)
     ├── ThrowableEntity
     │   └── ProjectileItemEntity (Snowball, Egg, EnderPearl, Potion)

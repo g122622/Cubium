@@ -23,6 +23,10 @@
 
 #include "OminousItemSpawnerEntity.hpp"
 
+// TODO(ParticleTypeId): ParticleTypeId 定义在 client 层，common 层不应依赖 client。
+// 这是整个项目的既有架构问题（42+ 个 common 层文件依赖此类型），
+// 正确的做法是将 ParticleTypeId 枚举移至 common 层（如 common/particle/ParticleTypes.hpp），
+// 客户端渲染层再引用 common 层的定义。当前遵循项目既有模式暂不修改。
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
@@ -59,7 +63,6 @@ using namespace entity::serialization;
 OminousItemSpawnerEntity::OminousItemSpawnerEntity(EntityId id)
     : Entity(id)
 {
-    // MC Java: this.noPhysics = true
     // 实体穿透方块，不受碰撞影响
     setNoClip(true);
 
@@ -75,10 +78,7 @@ std::unique_ptr<Entity> OminousItemSpawnerEntity::create(IWorld* /*world*/)
 
 std::unique_ptr<Entity> OminousItemSpawnerEntity::createWithItem(IWorld& world, const ItemStack& stack)
 {
-    // 对应 MC Java: OminousItemSpawner.create(Level, ItemStack)
-    // 1. 创建实体
-    // 2. 设置随机延迟 [60, 120] ticks
-    // 3. 设置物品
+    // 创建实体、设置随机延迟 [60, 120] ticks、设置物品
     auto entity = std::make_unique<OminousItemSpawnerEntity>(EntityId(0));
     entity->m_spawnItemAfterTicks = world.getRandom().nextInt(SPAWN_ITEM_DELAY_MIN, SPAWN_ITEM_DELAY_MAX);
     entity->m_item = stack;
@@ -93,7 +93,7 @@ void OminousItemSpawnerEntity::tick()
 {
     Entity::tick();
 
-    // MC Java 将 tick 逻辑分为服务端和客户端
+    // tick 逻辑分为服务端和客户端
     if (m_world != nullptr) {
         if (m_world->isClientSide()) {
             tickClient();
@@ -106,7 +106,6 @@ void OminousItemSpawnerEntity::tick()
 void OminousItemSpawnerEntity::tickServer()
 {
     // 生成前 36 ticks 播放警告音效
-    // 对应 MC Java: tickCount == spawnItemAfterTicks - 36
     if (!m_warnedSoundPlayed &&
         static_cast<i64>(m_ticksExisted) >= m_spawnItemAfterTicks - TICKS_BEFORE_ABOUT_TO_SPAWN_SOUND) {
         m_warnedSoundPlayed = true;
@@ -117,7 +116,6 @@ void OminousItemSpawnerEntity::tickServer()
     }
 
     // 到达生成时间，投掷物品并移除自身
-    // 对应 MC Java: tickCount >= spawnItemAfterTicks
     if (static_cast<i64>(m_ticksExisted) >= m_spawnItemAfterTicks) {
         spawnItem();
         remove();
@@ -126,8 +124,7 @@ void OminousItemSpawnerEntity::tickServer()
 
 void OminousItemSpawnerEntity::tickClient()
 {
-    // MC Java: 每 5 个游戏 tick 生成不祥粒子
-    // 对应 MC Java: level.getGameTime() % 5L == 0L
+    // 每 5 个游戏 tick 生成不祥粒子
     if (m_world != nullptr && m_world->getGameTime() % 5 == 0) {
         addParticles();
     }
@@ -204,9 +201,7 @@ void OminousItemSpawnerEntity::spawnItem()
 
     Entity* spawnedEntity = nullptr;
 
-    // MC Java: if (itemstack.getItem() instanceof ProjectileItem projectileitem)
     // 判断物品是否为弹射物类型，如果是则向下发射弹射物
-    // 在 C++ 中，ThrowableItem 和 WindChargeItem 是弹射物物品
     // ThrowableItem 包括: SnowballItem, EggItem, EnderPearlItem, ExperienceBottleItem, ThrowablePotionItem
     // WindChargeItem 是独立的弹射物物品
     const item::ThrowableItem* throwableItem = dynamic_cast<const item::ThrowableItem*>(item);
@@ -217,7 +212,6 @@ void OminousItemSpawnerEntity::spawnItem()
         spawnedEntity = spawnProjectile(*m_world, *item);
     } else {
         // 普通物品：创建物品实体自然掉落
-        // MC Java: new ItemEntity(serverlevel, this.getX(), this.getY(), this.getZ(), itemstack)
         auto itemEntity = std::make_unique<ItemEntity>(
             EntityId(0), itemStack, static_cast<f32>(x()), static_cast<f32>(y()), static_cast<f32>(z()));
 
@@ -228,29 +222,26 @@ void OminousItemSpawnerEntity::spawnItem()
         }
     }
 
-    // MC Java: serverlevel.levelEvent(3021, this.blockPosition(), 1)
     // 播放不祥物品生成器的粒子效果
     BlockPos pos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z()));
     m_world->playEvent(world::WorldEvents::TRIAL_SPAWNER_SPAWN_ITEM, pos, 1);
 
-    // MC Java: serverlevel.gameEvent(entity, GameEvent.ENTITY_PLACE, this.position())
     // 触发游戏事件（用于幽匿感测体检测）
     if (spawnedEntity != nullptr) {
         m_world->gameEvent(gameevent::GameEvents::ENTITY_PLACE, pos, gameevent::GameEvent::Context::of(spawnedEntity));
     }
 
-    // MC Java: this.setItem(ItemStack.EMPTY)
     // 清空存储的物品
     m_item = ItemStack{};
 }
 
 Entity* OminousItemSpawnerEntity::spawnProjectile(IWorld& world, const Item& item)
 {
-    // MC Java 的 OminousItemSpawner.spawnProjectile():
-    // 1. 获取 ProjectileItem 的 DispenseConfig（默认 power=1.1, uncertainty=6.0）
-    // 2. 方向始终为 DOWN (0, -1, 0)
-    // 3. 调用 Projectile.spawnProjectileUsingShoot() 创建并发射弹射物
-    // 4. 设置 owner 为 this
+    // 弹射物发射参数：
+    // 默认 DispenseConfig: power=1.1, uncertainty=6.0
+    // ThrowablePotionItem 覆写: power=1.375, uncertainty=3.0
+    // WindChargeItem 覆写: power=1.0, uncertainty=6.6666665
+    // 方向始终为 DOWN (0, -1, 0)
 
     // 确定弹射物实体类型和发射参数
     const item::WindChargeItem* windChargeItem = dynamic_cast<const item::WindChargeItem*>(&item);
@@ -318,10 +309,8 @@ Entity* OminousItemSpawnerEntity::spawnProjectile(IWorld& world, const Item& ite
     }
 
     // 向下发射弹射物
-    // MC Java: direction = Direction.DOWN, 即 (0, -1, 0)
     projectile->shoot(0.0f, -1.0f, 0.0f, power, uncertainty);
 
-    // MC Java: projectile.setOwner(this)
     projectile->setShooter(this);
 
     return projectile;
@@ -329,7 +318,6 @@ Entity* OminousItemSpawnerEntity::spawnProjectile(IWorld& world, const Item& ite
 
 void OminousItemSpawnerEntity::addParticles()
 {
-    // MC Java OminousItemSpawner.addParticles():
     // 生成 1-3 个 OMINOUS_SPAWNING 粒子
     // 每个粒子的速度为从实体位置到随机偏移位置的向量
     // 偏移: 0.4 * (random.nextGaussian() - random.nextGaussian()) 各轴
@@ -341,10 +329,6 @@ void OminousItemSpawnerEntity::addParticles()
     i32 count = rng.nextInt(1, 3);
 
     for (i32 i = 0; i < count; ++i) {
-        // MC Java: Vec3 vec31 = new Vec3(
-        //     this.getX() + 0.4 * (this.random.nextGaussian() - this.random.nextGaussian()),
-        //     this.getY() + 0.4 * (this.random.nextGaussian() - this.random.nextGaussian()),
-        //     this.getZ() + 0.4 * (this.random.nextGaussian() - this.random.nextGaussian()));
         f64 offsetX = 0.4 * (rng.nextGaussian() - rng.nextGaussian());
         f64 offsetY = 0.4 * (rng.nextGaussian() - rng.nextGaussian());
         f64 offsetZ = 0.4 * (rng.nextGaussian() - rng.nextGaussian());
@@ -354,7 +338,6 @@ void OminousItemSpawnerEntity::addParticles()
         f64 velY = offsetY;
         f64 velZ = offsetZ;
 
-        // MC Java: ParticleTypes.OMINOUS_SPAWNING
         m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::OminousSpawning,
             Vector3(x(), y(), z()),
             Vector3(velX, velY, velZ));

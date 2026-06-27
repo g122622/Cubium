@@ -65,7 +65,7 @@ src/common/entity/
 │   ├── item/                       # 物品相关实体（ItemEntity）
 │   ├── hanging/                    # 悬挂实体（HangingEntity）
 │   ├── effect/                     # 效果实体（闪电、末影水晶等）
-│   ├── misc/                       # 杂项实体（下落方块、TNT等）
+│   ├── misc/                       # 杂项实体（下落方块、TNT、不祥物品生成器等）
 │   └── player/                     # 玩家实体（Player, GameModeUtils）
 │
 ├── interfaces/                     # 实体接口

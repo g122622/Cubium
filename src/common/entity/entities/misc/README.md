@@ -127,5 +127,10 @@
     11. ** FallingBlockEntity 铁砧完全摧毁的标志选择**：铁砧完全损坏时使用 `m_dontSetBlock =
                 true`（而非 `m_cancelDrop`），因为 `m_cancelDrop` 会跳过 `onBroken` 回调，而铁砧需要 `onBroken` 来播放破碎音效。`m_dontSetBlock` 路径会调用 `onBroken` 但不放置方块也不掉落物品。
 
-    12. *
-    *MAX_FALL_TIME 超时处理 * *：FallingBlockEntity 下落超过 600 tick（30秒）后会强制放置，防止永久下落。
+    12. **MAX_FALL_TIME 超时处理**：FallingBlockEntity 下落超过 600 tick（30秒）后会强制放置，防止永久下落。
+
+    13. **OminousItemSpawnerEntity 弹射物映射硬编码**：`spawnProjectile()` 中通过物品 `ResourceLocation` 硬编码映射到弹射物实体类型（雪球、鸡蛋、末影珍珠等），当 `ProjectileItem` 接口完善后应改为通过接口获取弹射物实体类型。新增投掷物物品时需要同步更新此处的映射。
+
+    14. **OminousItemSpawnerEntity 缺少 Entity 基类虚方法覆写**：MC Java 的 `isIgnoringBlockTriggers()=true`、`canAddPassenger()=false`、`couldAcceptPassenger()=false` 尚未实现，因为 Entity 基类暂无这些虚方法，已在头文件中标注 TODO。
+
+    15. **OminousItemSpawnerEntity 依赖 client 层 ParticleTypeId**：`addParticles()` 使用 `client::renderer::trident::particle::ParticleTypeId::OminousSpawning`，这是整个项目的既有架构问题（42+ 个 common 层文件依赖此类型），`ParticleTypeId` 应移至 common 层。
