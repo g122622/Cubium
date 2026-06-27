@@ -289,7 +289,7 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
     if (playerData->gameMode == GameMode::Adventure) {
         if (!heldItem.isEmpty() && heldItem.hasCanPlaceOn()) {
             const BlockState* targetState = world->getBlockState(pos);
-            if (targetState == nullptr || !heldItem.canPlaceOnBlockInAdventureMode(*targetState)) {
+            if (targetState == nullptr || !heldItem.canPlaceOnBlockInAdventureMode(*world, pos, *targetState)) {
                 return Error(
                     ErrorCode::PermissionDenied, "Cannot place block in adventure mode: CanPlaceOn restriction");
             }
@@ -654,7 +654,7 @@ bool BlockInteractionManager::_canBreakBlock(
     if (playerData && playerData->gameMode == GameMode::Adventure) {
         ItemStack heldItem = _getHeldTool(playerId);
         if (!heldItem.isEmpty() && heldItem.hasCanDestroy()) {
-            if (!heldItem.canBreakBlockInAdventureMode(*state)) {
+            if (!heldItem.canBreakBlockInAdventureMode(world, pos, *state)) {
                 return false;
             }
         } else {

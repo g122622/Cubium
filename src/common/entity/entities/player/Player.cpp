@@ -196,7 +196,7 @@ bool Player::mayInteract(IWorld& world, const BlockPos& pos) const
     // 检查主手
     const ItemStack& mainHand = getHeldItem(Hand::MainHand);
     if (!mainHand.isEmpty() && mainHand.hasCanPlaceOn()) {
-        if (mainHand.canPlaceOnBlockInAdventureMode(world, *state)) {
+        if (mainHand.canPlaceOnBlockInAdventureMode(world, pos, *state)) {
             return true;
         }
     }
@@ -204,7 +204,7 @@ bool Player::mayInteract(IWorld& world, const BlockPos& pos) const
     // 检查副手
     const ItemStack& offHand = getHeldItem(Hand::OffHand);
     if (!offHand.isEmpty() && offHand.hasCanPlaceOn()) {
-        if (offHand.canPlaceOnBlockInAdventureMode(world, *state)) {
+        if (offHand.canPlaceOnBlockInAdventureMode(world, pos, *state)) {
             return true;
         }
     }
