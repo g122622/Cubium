@@ -32,10 +32,16 @@
 #include "common/entity/entities/misc/OminousItemSpawnerEntity.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/entities/projectile/WindChargeEntity.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/trial/WindChargeItem.hpp"
+#include "common/item/items/weapon/ThrowableItem.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -274,6 +280,9 @@ TEST_F(OminousItemSpawnerTest, CreateWithItem_RandomDelayInRange)
 
     // 创建多个实体，验证它们最终会在合理时间后移除
     // 间接验证随机延迟在 [60, 120] 范围内
+    // Entity::tick() 先递增 m_ticksExisted 再调用子类 tickServer()
+    // 当 m_ticksExisted >= m_spawnItemAfterTicks 时移除
+    // 因此 m_spawnItemAfterTicks=60 时需要 60 次 tick，m_spawnItemAfterTicks=120 时需要 120 次 tick
     bool allRemovedInExpectedRange = true;
     for (int i = 0; i < 10; ++i) {
         auto entityPtr = OminousItemSpawnerEntity::createWithItem(m_world, stack);
@@ -281,16 +290,15 @@ TEST_F(OminousItemSpawnerTest, CreateWithItem_RandomDelayInRange)
         ASSERT_NE(entity, nullptr);
         entity->setWorld(&m_world);
 
-        // tick 直到实体被移除（应在 60~120 ticks 内）
+        // tick 直到实体被移除
         i32 ticksNeeded = 0;
         while (!entity->isRemoved() && ticksNeeded <= 200) {
             entity->tick();
             ticksNeeded++;
         }
 
-        // 实体应该在 121 ticks 内被移除（60 + 1~61）
-        // 但不超过 121 ticks（120 + 1 tick for the removal）
-        if (ticksNeeded < 61 || ticksNeeded > 121) {
+        // 实体应在 [60, 120] 次 tick 内被移除
+        if (ticksNeeded < 60 || ticksNeeded > 120) {
             allRemovedInExpectedRange = false;
             break;
         }
@@ -672,4 +680,182 @@ TEST_F(OminousItemSpawnerTest, GetPushReaction_IsIgnore)
 {
     OminousItemSpawnerEntity entity(EntityId(1));
     EXPECT_EQ(entity.getPushReaction(), PushReaction::Ignore);
+}
+
+// ============================================================================
+// 弹射物生成测试（需要实体注册）
+// ============================================================================
+
+class OminousItemSpawnerProjectileTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        entity::VanillaEntities::registerAll();
+    }
+
+    void SetUp() override { m_world.clearSpawnedEntities(); }
+
+    OminousItemSpawnerTestWorld m_world;
+};
+
+TEST_F(OminousItemSpawnerProjectileTest, ThrowableItem_Snowball_SpawnsProjectile)
+{
+    // 雪球是 ThrowableItem，应通过 spawnProjectile 路径创建弹射物
+    Item* snowball = Items::SNOWBALL;
+    ASSERT_NE(snowball, nullptr);
+
+    // 验证物品是 ThrowableItem
+    const auto* throwableItem = dynamic_cast<const item::ThrowableItem*>(snowball);
+    ASSERT_NE(throwableItem, nullptr) << "雪球应该是 ThrowableItem";
+
+    auto entityPtr = OminousItemSpawnerEntity::createWithItem(m_world, ItemStack(*snowball, 1));
+    auto* entity = dynamic_cast<OminousItemSpawnerEntity*>(entityPtr.get());
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setClientSide(false);
+
+    // tick 直到实体被移除
+    for (int i = 0; i < 200 && !entity->isRemoved(); ++i) {
+        entity->tick();
+    }
+
+    // 实体应被移除
+    EXPECT_TRUE(entity->isRemoved());
+
+    // 应生成一个实体（弹射物）
+    EXPECT_GT(m_world.spawnedEntityCount(), 0u);
+
+    // 应播放世界事件
+    EXPECT_GT(m_world.playEventCount(), 0);
+    EXPECT_EQ(m_world.lastPlayEventId(), world::WorldEvents::TRIAL_SPAWNER_SPAWN_ITEM);
+
+    // 应触发 ENTITY_PLACE 游戏事件
+    EXPECT_GT(m_world.gameEventCount(), 0);
+    EXPECT_EQ(m_world.lastGameEventId(), gameevent::GameEvents::ENTITY_PLACE.id());
+}
+
+TEST_F(OminousItemSpawnerProjectileTest, ThrowableItem_Egg_SpawnsProjectile)
+{
+    // 鸡蛋是 ThrowableItem
+    Item* egg = Items::EGG;
+    ASSERT_NE(egg, nullptr);
+
+    const auto* throwableItem = dynamic_cast<const item::ThrowableItem*>(egg);
+    ASSERT_NE(throwableItem, nullptr) << "鸡蛋应该是 ThrowableItem";
+
+    auto entityPtr = OminousItemSpawnerEntity::createWithItem(m_world, ItemStack(*egg, 1));
+    auto* entity = dynamic_cast<OminousItemSpawnerEntity*>(entityPtr.get());
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setClientSide(false);
+
+    for (int i = 0; i < 200 && !entity->isRemoved(); ++i) {
+        entity->tick();
+    }
+
+    EXPECT_TRUE(entity->isRemoved());
+    EXPECT_GT(m_world.spawnedEntityCount(), 0u);
+}
+
+TEST_F(OminousItemSpawnerProjectileTest, ThrowableItem_EnderPearl_SpawnsProjectile)
+{
+    // 末影珍珠是 ThrowableItem
+    Item* enderPearl = Items::ENDER_PEARL;
+    ASSERT_NE(enderPearl, nullptr);
+
+    const auto* throwableItem = dynamic_cast<const item::ThrowableItem*>(enderPearl);
+    ASSERT_NE(throwableItem, nullptr) << "末影珍珠应该是 ThrowableItem";
+
+    auto entityPtr = OminousItemSpawnerEntity::createWithItem(m_world, ItemStack(*enderPearl, 1));
+    auto* entity = dynamic_cast<OminousItemSpawnerEntity*>(entityPtr.get());
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setClientSide(false);
+
+    for (int i = 0; i < 200 && !entity->isRemoved(); ++i) {
+        entity->tick();
+    }
+
+    EXPECT_TRUE(entity->isRemoved());
+    EXPECT_GT(m_world.spawnedEntityCount(), 0u);
+}
+
+TEST_F(OminousItemSpawnerProjectileTest, ThrowableItem_ExperienceBottle_SpawnsProjectile)
+{
+    // 经验瓶是 ThrowableItem
+    Item* experienceBottle = Items::EXPERIENCE_BOTTLE;
+    ASSERT_NE(experienceBottle, nullptr);
+
+    const auto* throwableItem = dynamic_cast<const item::ThrowableItem*>(experienceBottle);
+    ASSERT_NE(throwableItem, nullptr) << "经验瓶应该是 ThrowableItem";
+
+    auto entityPtr = OminousItemSpawnerEntity::createWithItem(m_world, ItemStack(*experienceBottle, 1));
+    auto* entity = dynamic_cast<OminousItemSpawnerEntity*>(entityPtr.get());
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setClientSide(false);
+
+    for (int i = 0; i < 200 && !entity->isRemoved(); ++i) {
+        entity->tick();
+    }
+
+    EXPECT_TRUE(entity->isRemoved());
+    EXPECT_GT(m_world.spawnedEntityCount(), 0u);
+}
+
+TEST_F(OminousItemSpawnerProjectileTest, WindChargeItem_SpawnsProjectile)
+{
+    // 风弹是 WindChargeItem（不是 ThrowableItem，是独立的弹射物类型）
+    Item* windCharge = Items::WIND_CHARGE;
+    ASSERT_NE(windCharge, nullptr);
+
+    // 验证风弹不是 ThrowableItem
+    const auto* throwableItem = dynamic_cast<const item::ThrowableItem*>(windCharge);
+    EXPECT_EQ(throwableItem, nullptr) << "风弹不应该是 ThrowableItem";
+
+    // 验证风弹是 WindChargeItem
+    const auto* windChargeItem = dynamic_cast<const item::WindChargeItem*>(windCharge);
+    ASSERT_NE(windChargeItem, nullptr) << "风弹应该是 WindChargeItem";
+
+    auto entityPtr = OminousItemSpawnerEntity::createWithItem(m_world, ItemStack(*windCharge, 1));
+    auto* entity = dynamic_cast<OminousItemSpawnerEntity*>(entityPtr.get());
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setClientSide(false);
+
+    for (int i = 0; i < 200 && !entity->isRemoved(); ++i) {
+        entity->tick();
+    }
+
+    EXPECT_TRUE(entity->isRemoved());
+    EXPECT_GT(m_world.spawnedEntityCount(), 0u);
+
+    // 应播放世界事件
+    EXPECT_GT(m_world.playEventCount(), 0);
+    EXPECT_EQ(m_world.lastPlayEventId(), world::WorldEvents::TRIAL_SPAWNER_SPAWN_ITEM);
+}
+
+TEST_F(OminousItemSpawnerProjectileTest, SplashPotionItem_SpawnsProjectile)
+{
+    // 喷溅药水是 ThrowablePotionItem（继承自 ThrowableItem）
+    Item* splashPotion = Items::SPLASH_POTION;
+    ASSERT_NE(splashPotion, nullptr);
+
+    const auto* throwableItem = dynamic_cast<const item::ThrowableItem*>(splashPotion);
+    ASSERT_NE(throwableItem, nullptr) << "喷溅药水应该是 ThrowableItem（通过 ThrowablePotionItem 继承）";
+
+    auto entityPtr = OminousItemSpawnerEntity::createWithItem(m_world, ItemStack(*splashPotion, 1));
+    auto* entity = dynamic_cast<OminousItemSpawnerEntity*>(entityPtr.get());
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setClientSide(false);
+
+    for (int i = 0; i < 200 && !entity->isRemoved(); ++i) {
+        entity->tick();
+    }
+
+    EXPECT_TRUE(entity->isRemoved());
+    EXPECT_GT(m_world.spawnedEntityCount(), 0u);
 }

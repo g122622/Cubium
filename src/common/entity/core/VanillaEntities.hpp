@@ -920,6 +920,7 @@ private:
                 .size(0.25f, 0.25f)
                 .trackingRange(4)
                 .updateInterval(1)
+                .canSummon(true)
                 .build());
 
         // 鸡蛋
@@ -928,6 +929,7 @@ private:
                 .size(0.25f, 0.25f)
                 .trackingRange(4)
                 .updateInterval(1)
+                .canSummon(true)
                 .build());
 
         // 末影珍珠
@@ -936,6 +938,7 @@ private:
                 .size(0.25f, 0.25f)
                 .trackingRange(4)
                 .updateInterval(1)
+                .canSummon(true)
                 .build());
 
         // 喷溅药水
@@ -944,6 +947,7 @@ private:
                 .size(0.25f, 0.25f)
                 .trackingRange(4)
                 .updateInterval(1)
+                .canSummon(true)
                 .build());
 
         // 附魔之瓶
@@ -952,6 +956,7 @@ private:
                 .size(0.25f, 0.25f)
                 .trackingRange(4)
                 .updateInterval(1)
+                .canSummon(true)
                 .build());
 
         // 火球
@@ -1024,6 +1029,7 @@ private:
                 .size(0.3125f, 0.3125f)
                 .trackingRange(4)
                 .updateInterval(1)
+                .canSummon(true)
                 .build());
 
         // ========== 交通工具 ==========
