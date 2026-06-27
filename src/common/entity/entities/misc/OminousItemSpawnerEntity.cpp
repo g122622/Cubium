@@ -73,6 +73,18 @@ std::unique_ptr<Entity> OminousItemSpawnerEntity::create(IWorld* /*world*/)
     return std::make_unique<OminousItemSpawnerEntity>(EntityId(0));
 }
 
+std::unique_ptr<Entity> OminousItemSpawnerEntity::createWithItem(IWorld& world, const ItemStack& stack)
+{
+    // 对应 MC Java: OminousItemSpawner.create(Level, ItemStack)
+    // 1. 创建实体
+    // 2. 设置随机延迟 [60, 120] ticks
+    // 3. 设置物品
+    auto entity = std::make_unique<OminousItemSpawnerEntity>(EntityId(0));
+    entity->m_spawnItemAfterTicks = world.getRandom().nextInt(SPAWN_ITEM_DELAY_MIN, SPAWN_ITEM_DELAY_MAX);
+    entity->m_item = stack;
+    return entity;
+}
+
 // ============================================================================
 // 生命周期
 // ============================================================================
@@ -263,7 +275,10 @@ Entity* OminousItemSpawnerEntity::spawnProjectile(IWorld& world, const Item& ite
         uncertainty = 3.0f;
         entityType = EntityTypes::POTION;
     } else {
-        // 其他投掷物：根据物品的 ResourceLocation 映射到弹射物实体类型
+        // TODO(ProjectileItem): 其他投掷物目前通过物品 ResourceLocation 硬编码映射到弹射物实体类型。
+        // 当 ProjectileItem 接口完善后（类似 MC Java 的 ProjectileItem.asProjectile() 和
+        // ProjectileItem.createProjectile()），应改为通过接口获取弹射物实体类型，
+        // 而非在此处维护硬编码映射表。新增投掷物物品时需要同步更新此处的映射。
         const auto& itemId = item.itemLocation();
         if (itemId == ResourceLocation("minecraft:snowball")) {
             entityType = EntityTypes::SNOWBALL;
@@ -274,8 +289,7 @@ Entity* OminousItemSpawnerEntity::spawnProjectile(IWorld& world, const Item& ite
         } else if (itemId == ResourceLocation("minecraft:experience_bottle")) {
             entityType = EntityTypes::EXPERIENCE_BOTTLE;
         } else {
-            // 其他投掷物默认使用雪球实体
-            // TODO: 当 ProjectileItem 接口完善后，可通过接口获取弹射物实体类型
+            // 未识别的投掷物默认使用雪球实体
             entityType = EntityTypes::SNOWBALL;
         }
     }

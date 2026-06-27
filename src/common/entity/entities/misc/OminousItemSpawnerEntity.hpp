@@ -68,9 +68,25 @@ public:
     ~OminousItemSpawnerEntity() override = default;
 
     /**
-     * @brief 工厂方法
+     * @brief 工厂方法（无物品）
+     *
+     * 创建不含物品的不祥物品生成器。
+     * 注意：此方法不会设置物品和随机延迟，仅用于反序列化等场景。
+     * 正常创建应使用 createWithItem()。
      */
     static std::unique_ptr<Entity> create(IWorld* world);
+
+    /**
+     * @brief 工厂方法（含物品）
+     *
+     * 对应 MC Java: OminousItemSpawner.create(Level, ItemStack)
+     * 创建不祥物品生成器并设置物品和随机延迟。
+     *
+     * @param world 世界引用，用于获取随机数生成器
+     * @param stack 要投掷的物品堆
+     * @return 创建的实体
+     */
+    static std::unique_ptr<Entity> createWithItem(IWorld& world, const ItemStack& stack);
 
     // ========== 实体尺寸 ==========
 
@@ -104,6 +120,12 @@ public:
      * 对应 MC Java: OminousItemSpawner.getPistonPushReaction() = PushReaction.IGNORE
      */
     [[nodiscard]] PushReaction getPushReaction() const override { return PushReaction::Ignore; }
+
+    // TODO(Entity): MC Java OminousItemSpawner 覆写了以下方法，但当前 Entity 基类尚无对应虚方法：
+    //   - isIgnoringBlockTriggers() -> true  (实体不触发方块压力板等)
+    //   - canAddPassenger(Entity) -> false   (实体不可骑乘)
+    //   - couldAcceptPassenger() -> false    (实体不可被骑乘)
+    // 当 Entity 基类添加这些虚方法后，应在此处覆写。
 
     // ========== 序列化 ==========
 

@@ -218,6 +218,8 @@ add_executable(mc_tests
     common/entity/entities/misc/TNTEntityTest.cpp
     # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试
     common/entity/entities/misc/FallingBlockEntityTest.cpp
+    # OminousItemSpawnerEntity 不祥物品生成器测试
+    common/entity/entities/misc/OminousItemSpawnerEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
     # EnderCrystalEntity 治愈末影龙测试
     common/entity/entities/effect/EnderCrystalHealTest.cpp
