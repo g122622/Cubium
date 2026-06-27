@@ -15,6 +15,7 @@ endfunction()
 
 # 通用测试可执行文件
 add_executable(mc_tests
+    main.cpp
     common/test_math.cpp
     common/test_network.cpp
     common/test_world.cpp
@@ -1746,7 +1747,7 @@ target_link_libraries(mc_tests
     PRIVATE
         mc_common
         mc_bedrock_addon
-        GTest::gtest_main
+        GTest::gtest
         asio::asio
         nlohmann_json::nlohmann_json
         glm::glm

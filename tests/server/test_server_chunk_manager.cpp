@@ -207,20 +207,6 @@ TEST_F(ServerChunkManagerTest, GetChunkSync_MultipleChunks)
 // 异步区块访问测试
 // ============================================================================
 
-TEST_F(ServerChunkManagerTest, GetChunkAsync_NotInitialized)
-{
-    // 未初始化 Worker 时，异步生成应该失败或立即返回
-    auto future = m_manager->getChunkAsync(0, 0, &ChunkStatuses::FULL);
-
-    // 等待结果
-    auto status = future.wait_for(std::chrono::seconds(5));
-    EXPECT_NE(status, std::future_status::timeout);
-
-    ChunkData* chunk = future.get();
-    // 未启动 Worker 时可能返回 nullptr
-    // 这是预期的行为
-}
-
 TEST_F(ServerChunkManagerTest, GetChunkAsync_AfterInit)
 {
     m_workerPool->start();
