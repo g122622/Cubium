@@ -1079,6 +1079,47 @@ void FoxSitAndLookGoal::_chooseRandomLookDirection()
 }
 
 // ============================================================================
+// FoxStuckInSnowGoal - 狐狸卡在雪中目标
+// ============================================================================
+
+FoxStuckInSnowGoal::FoxStuckInSnowGoal(FoxEntity* fox)
+    : m_fox(fox)
+{
+    // 卡住期间禁止移动、观察和跳跃
+    setMutexFlags(EnumSet<GoalFlag>{GoalFlag::Move, GoalFlag::Look, GoalFlag::Jump});
+}
+
+bool FoxStuckInSnowGoal::shouldExecute()
+{
+    // 当狐狸处于卡住状态时激活
+    return m_fox->isStuck();
+}
+
+bool FoxStuckInSnowGoal::shouldContinueExecuting()
+{
+    // 持续执行直到不再卡住或倒计时结束
+    return m_fox->isStuck() && m_countdown > 0;
+}
+
+void FoxStuckInSnowGoal::startExecuting()
+{
+    // 设置卡住持续时间（40 tick = 2 秒）
+    // 对应 MC Java: this.countdown = this.adjustedTickDelay(40);
+    m_countdown = STUCK_DURATION;
+}
+
+void FoxStuckInSnowGoal::resetTask()
+{
+    // 目标结束时清除卡住状态，狐狸恢复自由
+    m_fox->setStuck(false);
+}
+
+void FoxStuckInSnowGoal::tick()
+{
+    m_countdown--;
+}
+
+// ============================================================================
 // FoxRevengeGoal - 狐狸复仇目标
 // ============================================================================
 

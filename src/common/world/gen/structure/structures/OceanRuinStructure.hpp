@@ -115,8 +115,15 @@ public:
     OceanRuinStructure();
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
+
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/ocean_ruin_cold 标签。
+     * 海底废墟同时处理冷海和暖海两种变体，
+     * 实际变体区分在 canGenerate() 中根据生物群系判断。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
@@ -147,10 +154,7 @@ public:
     static const std::vector<std::string> s_mossyBigTemplates;
 
 private:
-    void _initializeBiomes() noexcept;
-
     /**
-     * @brief 生成废墟片段
      * @param templateManager 模板管理器
      * @param pos 放置位置
      * @param rotation 旋转
@@ -196,9 +200,7 @@ private:
 
     [[nodiscard]] bool _isWarmBiome(BiomeId biomeId) const noexcept;
 
-    static constexpr StructureSeparationSettings m_settings{20, 8, 14357621};
     static const std::string m_name;
-    std::vector<BiomeId> m_validBiomes;
     OceanRuinConfig m_config;
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };

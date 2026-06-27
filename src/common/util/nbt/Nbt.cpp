@@ -387,7 +387,7 @@ TagId deduce_tag(std::istream& input)
             input.putback(*iter);
         return deduced;
     }
-    if (a == '"' || is_valid_char(a)) {
+    if (a == '"' || a == '\'' || is_valid_char(a)) {
         input.putback(a);
         return TagId::String;
     }
@@ -401,18 +401,32 @@ std::string read_string_text(std::istream& input)
 {
     skip_space(input);
     char first = cheof(input);
-    if (first == '"') {
+    if (first == '"' || first == '\'') {
+        char quote = first;
         std::string result;
         for (;;) {
             int c = cheof(input);
             switch (c) {
+                case '\'':
+                    if (quote == '\'') {
+                        return result;
+                    }
+                    result.push_back(c);
+                    break;
                 case '"':
-                    return result;
+                    if (quote == '"') {
+                        return result;
+                    }
+                    result.push_back(c);
+                    break;
                 case '\\': {
                     int s = cheof(input);
                     switch (s) {
                         case '"':
                             result.push_back('"');
+                            break;
+                        case '\'':
+                            result.push_back('\'');
                             break;
                         case '\\':
                             result.push_back('\\');

@@ -1,72 +1,70 @@
-#结构生成系统(Structure Generation System)
+# 结构生成系统 (Structure Generation System)
 
 本模块实现 MC 1.21.11 的数据驱动结构生成管线，包括结构定义、结构集合、放置策略和 Jigsaw 组装。
 
-        ##目录结构树
+## 目录结构树
 
-```text structure /
-├── Structure.hpp #结构基类定义（含 SpawnOverrides、BiomeTag 引用、typeToId/nameToStructureType 静态方法）
-├── Structure.cpp #结构基类实现（含 generateChest/generateDispenser/reorientChest 辅助方法）
-├── StructureBoundingBox.hpp #结构边界框（用于判断片段与区块交集）
+```text
+structure/
+├── Structure.hpp             # 结构基类（ResourceLocation 标识、BiomeTag、SpawnOverrides、地形适配）
+├── Structure.cpp             # 结构基类实现（generateChest/generateDispenser/reorientChest 辅助方法）
+├── StructureBoundingBox.hpp  # 结构边界框（用于判断片段与区块交集）
 ├── StructureBoundingBox.cpp
-├── StructureSet.hpp #结构集合模型（加权条目 +
-    放置规则）
-├── StructureSet.cpp #20 个原版 StructureSet 注册
-├── StructureSetLoader.hpp #结构集合 JSON 加载器（数据包）
+├── StructureSet.hpp          # 结构集合模型（加权条目 + 放置规则 + findByStructure 反向查找）
+├── StructureSet.cpp          # 20 个原版 StructureSet 注册
+├── StructureSetLoader.hpp    # 结构集合 JSON 加载器（数据包）
 ├── StructureSetLoader.cpp
-├── StructureDefinitionLoader.hpp #结构定义 JSON 加载器（数据包）
+├── StructureDefinitionLoader.hpp # 结构定义 JSON 加载器（数据包）
 ├── StructureDefinitionLoader.cpp
-├── JigsawStructure.hpp #Jigsaw 拼图结构基类
-├── JigsawStructure.cpp
-├── StructureManager.hpp #结构管理器（注册、查询、生成协调）
-├── StructureManager.cpp
-├── StructureCheck.hpp   #结构存在性检查缓存（对齐 MC StructureCheck）
+├── StructureCheck.hpp        # 结构存在性检查缓存（对齐 MC StructureCheck）
 ├── StructureCheck.cpp
-├── placement / #结构放置策略（MC 1.21.11 对齐）
-│   ├── StructurePlacement.hpp #放置基类、FrequencyReductionMethod、ExclusionZone
-│   ├── StructurePlacement.cpp #频率缩减检查、排斥区检查
-│   ├── RandomSpreadStructurePlacement.hpp #网格随机 / 三角分布（大多数结构）
+├── StructureManager.hpp      # 结构管理器（注册、查询、生成协调）
+├── StructureManager.cpp
+├── JigsawStructure.hpp       # Jigsaw 拼图结构基类
+├── JigsawStructure.cpp
+├── placement/                # 结构放置策略（MC 1.21.11 对齐）
+│   ├── StructurePlacement.hpp         # 放置基类、FrequencyReductionMethod、ExclusionZone
+│   ├── StructurePlacement.cpp         # 频率缩减检查、排斥区检查
+│   ├── RandomSpreadStructurePlacement.hpp  # 网格随机/三角分布（大多数结构）
 │   ├── RandomSpreadStructurePlacement.cpp
-│   ├── ConcentricRingsStructurePlacement.hpp #同心环分布（要塞）
+│   ├── ConcentricRingsStructurePlacement.hpp # 同心环分布（要塞）
 │   ├── ConcentricRingsStructurePlacement.cpp
 │   └── README.md
-├── pools / #Jigsaw 模板池
-│   ├── Pools.hpp / cpp #模板池注册入口
-│   ├── ProcessorLists.hpp / cpp #结构处理器列表
-│   ├── bastion / #堡垒遗迹模板池
-│   ├── pillager_outpost / #掠夺者前哨站模板池
-│   ├── trial_chambers / #试炼密室模板池
-│   └── village / #村庄模板池
-└── structures / #具体结构实现
-    ├── BastionRemnantStructure.*#堡垒遗迹（Jigsaw）
-    ├── BuriedTreasureStructure.*#埋藏宝藏（程序化）
-    ├── DesertPyramidStructure.*#沙漠神殿（程序化）
-    ├── EndCityStructure.*#末地城（递归模板）
-    ├── FortressStructure.*#下界要塞（程序化）
-    ├── IglooStructure.*#雪屋（模板堆叠）
-    ├── JungleTempleStructure.*#丛林神庙（程序化）
-    ├── MineshaftStructure.*#废弃矿井（程序化片段）
-    ├── NetherFossilStructure.*#下界化石（模板）
-    ├── OceanMonumentPieces.*#海洋纪念碑片段
-    ├── OceanMonumentStructure.*#海洋纪念碑（程序化）
-    ├── OceanRuinStructure.*#海底废墟（模板 +
-    IntegrityProcessor）
-    ├── PillagerOutpostStructure.*#掠夺者前哨站（Jigsaw）
-    ├── RuinedPortalStructure.*#废弃传送门（模板）
-    ├── ShipwreckStructure.*#沉船（模板）
-    ├── StrongholdPieces.*#要塞片段（走廊、房间、传送门室等）
-    ├── StrongholdStructure.*#要塞（递归片段系统）
-    ├── SwampHutStructure.*#沼泽小屋（程序化）
-    ├── TrialChambersStructure.*#试炼密室（Jigsaw）
-    ├── VillageStructure.*#村庄（Jigsaw）
-    └── WoodlandMansionStructure.*
-            #林地府邸（程序化房间布局）
+├── pools/                    # Jigsaw 模板池
+│   ├── Pools.hpp / cpp       # 模板池注册入口
+│   ├── ProcessorLists.hpp / cpp # 结构处理器列表
+│   ├── bastion/              # 堡垒遗迹模板池
+│   ├── pillager_outpost/     # 掠夺者前哨站模板池
+│   ├── trial_chambers/       # 试炼密室模板池
+│   └── village/              # 村庄模板池
+└── structures/               # 具体结构实现
+    ├── BastionRemnantStructure.*     # 堡垒遗迹（Jigsaw）
+    ├── BuriedTreasureStructure.*     # 埋藏宝藏（程序化）
+    ├── DesertPyramidStructure.*      # 沙漠神殿（程序化）
+    ├── EndCityStructure.*            # 末地城（递归模板）
+    ├── FortressStructure.*           # 下界要塞（程序化）
+    ├── IglooStructure.*              # 雪屋（模板堆叠）
+    ├── JungleTempleStructure.*       # 丛林神庙（程序化）
+    ├── MineshaftStructure.*          # 废弃矿井（程序化片段）
+    ├── NetherFossilStructure.*       # 下界化石（模板）
+    ├── OceanMonumentPieces.*         # 海洋纪念碑片段
+    ├── OceanMonumentStructure.*      # 海洋纪念碑（程序化）
+    ├── OceanRuinStructure.*          # 海底废墟（模板 + IntegrityProcessor）
+    ├── PillagerOutpostStructure.*    # 掠夺者前哨站（Jigsaw）
+    ├── RuinedPortalStructure.*       # 废弃传送门（模板）
+    ├── ShipwreckStructure.*          # 沉船（模板）
+    ├── StrongholdPieces.*            # 要塞片段（走廊、房间、传送门室等）
+    ├── StrongholdStructure.*         # 要塞（递归片段系统）
+    ├── SwampHutStructure.*           # 沼泽小屋（程序化）
+    ├── TrialChambersStructure.*      # 试炼密室（Jigsaw）
+    ├── VillageStructure.*            # 村庄（Jigsaw）
+    └── WoodlandMansionStructure.*    # 林地府邸（程序化房间布局）
 ```
 
-            ##MC 1.21.11 数据驱动管线
+## MC 1.21.11 数据驱动管线
 
-``` worldgen /
-        structure/*.json     → Structure (定义结构类型、生物群系标签、装饰阶段)
+```text
+worldgen/structure/*.json     → Structure (定义结构类型、生物群系标签、装饰阶段)
 worldgen/structure_set/*.json → StructureSet (加权条目 + StructurePlacement)
 tags/worldgen/biome/*.json    → BiomeTag (has_structure/* 标签)
 worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
@@ -93,10 +91,11 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
 
 ## 内部模块关系
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    StructureSetRegistry                          │
 │            (20 个原版 StructureSet，按放置策略分组)                │
+│            findByStructure() → 按 ResourceLocation 反向查找       │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
             ┌───────────────┼───────────────┐
@@ -123,11 +122,10 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
     │              Structure (基类)                     │
     │  ├─ id() → ResourceLocation                      │
     │  ├─ biomeTag() → BiomeTag*                       │
+    │  ├─ isValidBiome(biomeId) → bool                 │
     │  ├─ spawnOverrides() → SpawnOverrides*           │
     │  ├─ terrainAdaptation() → None/Bury/BeardThin/   │
     │  │                          BeardBox/Encapsulate │
-    │  ├─ typeToId(StructureType) → ResourceLocation   │
-    │  ├─ nameToStructureType(name) → optional<Type>   │
     │  ├─ generate() → StructureStart (仅创建片段)     │
     │  ├─ generateChest() → 放置宝箱+设置战利品表      │
     │  ├─ generateDispenser() → 放置发射器+设置战利品表 │
@@ -165,9 +163,12 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
 | 模块 | 用途 |
 |------|------|
 | `world/gen/chunk/NoiseChunkGenerator` | 区块生成器在三个阶段调用结构生成 |
+| `world/gen/chunk/FlatChunkGenerator` | 超平坦区块生成器，含生物群系预过滤 |
 | `world/gen/density/Beardifier` | 结构地形平滑密度函数 |
-| `server/world/ServerWorld` | 世界初始化时调用注册；`findNearestStructure()` 使用 `typeToId()` 查询注册表 |
-| `server/command/commands/LocateCommand` | `/locate` 命令使用 `nameToStructureType()` 解析玩家输入 |
+| `server/world/ServerWorld` | `findNearestStructure()` 使用 `findByStructure()` 查询 StructureSetRegistry |
+| `server/command/commands/LocateCommand` | `/locate` 命令使用 `ResourceLocation` 别名映射 |
+| `common/entity/ai/goal/goals/special/DolphinGoals` | 海豚引导到结构使用 `ResourceLocation` |
+| `common/item/loot/functions/ExplorationMapFunction` | 探险地图使用 `ResourceLocation` 定位结构 |
 
 ## 容易踩的坑
 
@@ -191,8 +192,6 @@ FEATURES 和 Beardifier 阶段必须使用 `chunk.structureReferences()` 遍历�
 2. 频率缩减（Default/LegacyType1/LegacyType2/LegacyType3）
 3. 排斥区（ExclusionZone，如掠夺者前哨站排斥村庄）
 
-旧代码路径（StructureSeparationSettings + findStructureStart）仍作为兼容接口存在，新代码应使用 StructureSet + StructurePlacement。
-
 ### 4. FrequencyReductionMethod 差异
 
 - `Default`: `nextFloat() < frequency`，大多数结构使用
@@ -207,7 +206,7 @@ FEATURES 和 Beardifier 阶段必须使用 `chunk.structureReferences()` 遍历�
 
 ### 6. 生物群系标签
 
-结构生物群系过滤已从 `validBiomes()` 线性搜索迁移到 `biomeTag()` O(1) 查找。BiomeTags 注册了 34 个 `has_structure/*` 标签。旧代码路径仍保留以兼容。
+结构生物群系过滤使用 `biomeTag()` O(1) 查找。BiomeTags 注册了 34 个 `has_structure/*` 标签。`Structure::isValidBiome(biomeId)` 内部通过 `biomeTag()->contains(biomeId)` 判断。FlatChunkGenerator 使用 `_hasBiomesForStructureSet()` + `isValidBiome()` 做生物群系预过滤。
 
 ### 7. SpawnOverrides
 
@@ -237,13 +236,9 @@ return m_maxX >= chunkMinX && m_minX <= chunkMaxX &&
 
 ### 10. 资源位置标识
 
-所有结构现在使用 `ResourceLocation` 作为标识（如 `minecraft:village_plains`），替代旧的 `StructureType` 枚举。`StructureType` 作为兼容接口保留，后续将迁移完成。使用 `Structure::typeToId()` 进行 `StructureType → ResourceLocation` 转换，使用 `Structure::nameToStructureType()` 进行反向转换（支持别名和 `minecraft:` 前缀）。
+所有结构子类均使用 `ResourceLocation` 构造函数（如 `Structure(ResourceLocation("minecraft", "mineshaft"))`）。结构定位通过 `StructureSetRegistry::findByStructure(ResourceLocation)` 反向查找，无需 `StructureType` 枚举。`LocateCommand` 和 `ServerWorld::findNearestStructure()` 均使用 `ResourceLocation` 接口。
 
-### 11. StructureType 枚举与名称映射
-
-`StructureType::Temple` 是多个结构的兼容类型（沙漠神殿、丛林神庙、雪屋、沼泽小屋、下界化石共享此枚举值）。`nameToStructureType()` 的别名映射将这些子名称都映射到 `StructureType::Temple`，而 `typeToId(StructureType::Temple)` 统一返回 `minecraft:temple`。注意 `bastion_remnant` / `bastion` 均映射到 `StructureType::Bastion`，而 `typeToId` 返回 `minecraft:bastion_remnant`（而非 `minecraft:bastion`）。
-
-### 12. generateChest / generateDispenser / reorientChest 辅助方法
+### 11. generateChest / generateDispenser / reorientChest 辅助方法
 
 `StructurePiece` 基类提供了 `generateChest()`、`generateDispenser()` 和 `reorientChest()` 辅助方法，用于在结构生成中放置带有战利品表的容器方块：
 

@@ -29,6 +29,7 @@
 #include "../../../IWorld.hpp"
 #include "../../../IWorldWriter.hpp"
 #include "../../../biome/BiomeIds.hpp"
+#include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/Template.hpp"
@@ -36,6 +37,7 @@
 #include "../../feature/template/TemplateManager.hpp"
 #include "../../jigsaw/JigsawManager.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <spdlog/spdlog.h>
 
@@ -65,74 +67,6 @@ const std::vector<std::string> RuinedPortalStructure::s_normalTemplates = {"ruin
 // 巨型传送门模板（3个）
 const std::vector<std::string> RuinedPortalStructure::s_giantTemplates = {
     "ruined_portal/giant_portal_1", "ruined_portal/giant_portal_2", "ruined_portal/giant_portal_3"};
-
-// 主世界生物群系列表（包含所有变体）
-const std::vector<BiomeId> RuinedPortalStructure::s_validBiomes = {Plains,
-    Desert,
-    DesertHills,
-    DesertLakes,
-    Forest,
-    Taiga,
-    Mountains,
-    WoodedMountains,
-    GravellyMountains,
-    MountainEdge,
-    SnowyMountains,
-    SnowyPlains,
-    Swamp,
-    SwampHills,
-    Badlands,
-    WoodedBadlandsPlateau,
-    BadlandsPlateau,
-    ErodedBadlands,
-    ModifiedWoodedBadlandsPlateau,
-    ModifiedBadlandsPlateau,
-    Jungle,
-    JungleHills,
-    JungleEdge,
-    ModifiedJungle,
-    ModifiedJungleEdge,
-    BambooJungle,
-    BambooJungleHills,
-    Savanna,
-    SavannaPlateau,
-    ShatteredSavanna,
-    ShatteredSavannaPlateau,
-    BirchForest,
-    BirchForestHills,
-    TallBirchForest,
-    TallBirchHills,
-    DarkForest,
-    DarkForestHills,
-    WoodedHills,
-    TaigaHills,
-    TaigaMountains,
-    SnowyTaiga,
-    SnowyTaigaHills,
-    SnowyTaigaMountains,
-    GiantTreeTaiga,
-    GiantTreeTaigaHills,
-    GiantSpruceTaiga,
-    GiantSpruceTaigaHills,
-    River,
-    Beach,
-    SnowyBeach,
-    StoneShore,
-    LukewarmOcean,
-    DeepLukewarmOcean,
-    WarmOcean,
-    DeepWarmOcean,
-    ColdOcean,
-    DeepColdOcean,
-    FrozenOcean,
-    DeepFrozenOcean,
-    Ocean,
-    DeepOcean,
-    MushroomFields,
-    MushroomFieldShore,
-    SunflowerPlains,
-    FlowerForest,
-    IceSpikes};
 
 // ============================================================================
 // RuinedPortalPiece
@@ -261,8 +195,13 @@ void RuinedPortalPiece::generate(
 // ============================================================================
 
 RuinedPortalStructure::RuinedPortalStructure()
-    : Structure(StructureType::RuinedPortal)
+    : Structure(ResourceLocation("minecraft", "ruined_portal"))
 {}
+
+const biome::BiomeTag* RuinedPortalStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_RUINED_PORTAL_STANDARD();
+}
 
 RuinedPortalType RuinedPortalStructure::getPortalType(BiomeId biome)
 {
@@ -291,15 +230,9 @@ RuinedPortalType RuinedPortalStructure::getPortalType(BiomeId biome)
 }
 
 bool RuinedPortalStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
 {
-    // 废弃传送门有概率检查
-    // 使用间距设置检查是否应该在此位置生成
-    i32 startX, startZ;
-    if (!findStructureStart(static_cast<i64>(generator.seed()), chunkX, chunkZ, s_settings, startX, startZ)) {
-        return false;
-    }
-
+    // 间距检查已由 StructurePlacement::isStructureChunk() 处理
     // 概率检查（约 30% 基础概率，具体由生物群系调整）
     return rng.nextFloat() < 0.3f;
 }

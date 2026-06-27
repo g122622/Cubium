@@ -436,6 +436,10 @@ extern const ResourceLocation BLOCK_BEEHIVE_EXIT;
 extern const ResourceLocation BLOCK_BEEHIVE_SHEAR;
 extern const ResourceLocation BLOCK_BEEHIVE_WORK;
 
+/// 告示牌
+extern const ResourceLocation BLOCK_SIGN_WAXED_INTERACT_FAIL;
+extern const ResourceLocation BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL;
+
 /// 钟
 extern const ResourceLocation BLOCK_BELL_USE;
 extern const ResourceLocation BLOCK_BELL_RESONATE;
@@ -580,6 +584,10 @@ extern const ResourceLocation ENTITY_GENERIC_EXPLODE;
 // ============================================================================
 // 试炼密室相关音效 (Trial Chambers)
 // ============================================================================
+
+/// 试炼刷怪笼即将生成物品的警告音效
+/// 对应 MC Java: SoundEvents.TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM
+extern const ResourceLocation TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM;
 
 /// 风弹投掷声
 extern const ResourceLocation ENTITY_WIND_CHARGE_THROW;

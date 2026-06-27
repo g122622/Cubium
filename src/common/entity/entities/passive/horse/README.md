@@ -16,7 +16,7 @@ horse/
 ├── SkeletonHorseEntity.hpp/cpp   # 骷髅马（亡灵，陷阱马）
 ├── ZombieHorseEntity.hpp/cpp     # 僵尸马（亡灵）
 ├── LlamaEntity.hpp/cpp           # 羊驼（商队、吐口水）
-├── TraderLlamaEntity.hpp         # 商队羊驼（随流浪商人生成）
+├── TraderLlamaEntity.hpp/cpp     # 商队羊驼（随流浪商人生成，消失机制，保卫商人）
 └── README.md                     # 本文件
 ```
 
@@ -93,6 +93,8 @@ MC 1.16.5 中驴、骡、羊驼都继承自 `AbstractChestedHorseEntity`，而�
 ### 3. 骷髅马的陷阱机制
 
 `TriggerSkeletonTrapGoal` 是动态注册的，只有 `setTrap(true)` 的骷髅马才会触发陷阱。雷暴天气生成的骷髅马需要正确设置陷阱状态。
+
+`triggerTrap()` 触发时会在骷髅马位置生成一个纯视觉效果的闪电实体（`LightningBoltEntity`，`setEffectOnly(true)`），该闪电不造成伤害、不点燃方块。困难模式下额外生成 3 只骷髅马+骑手，普通/简单模式只生成 1 只骷髅骑手骑原马。
 
 ### 4. 骷髅马与僵尸马的日光燃烧行为差异
 
@@ -175,3 +177,16 @@ MC 1.16.5 中跳跃提升效果直接修改跳跃力度：`跳跃力度 = 基础
 - 钻石马铠：减免 12 点（6颗心）
 - 金马铠：减免 6 点（3颗心）
 - 铁马铠：减免 5 点（2.5颗心）
+
+### 14. 商队羊驼的特殊机制
+
+`TraderLlamaEntity` 是 `LlamaEntity` 的子类，具有以下特殊行为：
+
+- **消失机制**：与流浪商人绑定，通过 `m_despawnDelay` 倒计时消失。被拴在流浪商人身上时，同步商人的消失倒计时（-1）；否则自行递减倒计时。默认 47999 tick。
+- **canDespawn() 逻辑**：驯服、被拴绳拴住、有玩家骑乘时不消失。注意：被拴绳拴住（包括拴在流浪商人身上）时不被 DespawnManager 距离判断移除，仅通过 `maybeDespawn()` 定时消失。
+- **防御目标**：`TraderLlamaDefendWanderingTraderGoal`（优先级1）在被拴在流浪商人身上时，当商人受到攻击会反击攻击者。
+- **攻击目标**：攻击僵尸（排除僵尸猪灵）和灾厄村民（`NearestAttackableTargetGoal`，优先级2）。
+- **骑乘限制**：被拴在流浪商人身上时，`interactMob()` 返回 `ActionResultType::Pass`，阻止玩家骑乘。
+- **NBT 序列化**：额外存储 `DespawnDelay` 字段。
+- **finalizeSpawn()**：确保消失倒计时在自然生成时被正确初始化。
+- **与流浪商人的集成**：`WanderingTraderEntity::spawnLlamas()` 创建 TraderLlamaEntity 并通过 `setLeashedToEntity()` 将拴绳绑定到商人。

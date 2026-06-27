@@ -65,16 +65,7 @@ public:
     ~EndCityStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
-
-    /**
-     * @brief 末地城使用三角分布（非均匀间距）
-     *
-     * MC 1.21.11 中末地城使用 TRIANGULAR 分布类型，
-     * 对应 useUniformSpacing = false。
-     */
-    [[nodiscard]] bool useUniformSpacing() const override { return false; }
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
@@ -92,9 +83,6 @@ private:
     static constexpr i32 MAX_DEPTH = 8;
 
     static const std::string s_name;
-    /// 结构分隔设置: spacing=20, separation=11, salt=10387313
-    static constexpr StructureSeparationSettings s_settings{20, 11, 10387313};
-    static const std::vector<BiomeId> s_validBiomes;
 };
 
 namespace end_city {

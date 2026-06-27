@@ -26,6 +26,8 @@
 #include "../../TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
@@ -109,7 +111,10 @@ class TestVillagerEntity : public Entity {
 public:
     TestVillagerEntity(EntityId id, IWorld* world = nullptr)
         : Entity(id, world)
-    {}
+    {
+        // 设置实体类型为村民
+        setTypeId(entity::EntityTypes::VILLAGER);
+    }
 
     void tick() override { /* 空实现 */ }
 };
@@ -122,6 +127,7 @@ protected:
     void SetUp() override
     {
         VanillaBlocks::initialize();
+        entity::VanillaEntities::registerAll();
         m_world.setCurrentTick(0);
     }
 
@@ -230,6 +236,61 @@ TEST_F(VillageTickTest, TickVillagerCheck_NonVillagerEntity_RemovedFromVillage)
     // Tick 后应该被移除
     m_world.setCurrentTick(100);
     village.tick(m_world, 100, &m_poiStorage);
+    EXPECT_FALSE(village.hasVillager(1));
+
+    m_world.removeTestEntity(1);
+}
+
+TEST_F(VillageTickTest, TickVillagerCheck_RemovedEntity_RemovedFromVillage)
+{
+    // 测试 isRemoved() 为 true 的实体应从村庄中移除
+    Village village(BlockPos(0, 64, 0));
+
+    auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    villager->setPosition(10.0f, 64.0f, 10.0f); // 在村庄范围内
+    m_world.addTestEntity(villager.get(), 1);
+    village.addVillager(1);
+
+    // 第一次 tick，确认村民在村庄中
+    m_world.setCurrentTick(100);
+    village.tick(m_world, 100, &m_poiStorage);
+    EXPECT_TRUE(village.hasVillager(1));
+
+    // 标记实体为已移除（模拟死亡动画结束等场景）
+    villager->remove(); // 设置 m_removed = true
+    EXPECT_TRUE(villager->isRemoved());
+
+    // Tick 后村民应该从村庄移除
+    m_world.setCurrentTick(200);
+    village.tick(m_world, 200, &m_poiStorage);
+    EXPECT_FALSE(village.hasVillager(1));
+    EXPECT_EQ(village.getPopulation(), 0);
+}
+
+TEST_F(VillageTickTest, TickVillagerCheck_OutOfRangeNewVillager_GetsGracePeriod)
+{
+    // 测试新加入的村民如果在村庄范围外，会获得超时宽限期而不是立即被移除
+    Village village(BlockPos(0, 64, 0));
+
+    auto villager = std::make_unique<TestVillagerEntity>(EntityId(1), &m_world);
+    villager->setPosition(200.0f, 64.0f, 200.0f); // 初始就在村庄范围外
+    m_world.addTestEntity(villager.get(), 1);
+    village.addVillager(1);
+
+    // 第一次 tick，村民在范围外但没有 lastSeenTime 记录
+    // 应给予宽限期，不应该立即被移除
+    m_world.setCurrentTick(100);
+    village.tick(m_world, 100, &m_poiStorage);
+    EXPECT_TRUE(village.hasVillager(1)); // 仍然在村庄中，获得宽限期
+
+    // 等待部分超时时间，村民应该仍在列表中
+    m_world.setCurrentTick(100 + Village::VILLAGER_TIMEOUT / 2);
+    village.tick(m_world, 100 + Village::VILLAGER_TIMEOUT / 2, &m_poiStorage);
+    EXPECT_TRUE(village.hasVillager(1));
+
+    // 超过超时时间后，村民应该被移除
+    m_world.setCurrentTick(100 + Village::VILLAGER_TIMEOUT + 100);
+    village.tick(m_world, 100 + Village::VILLAGER_TIMEOUT + 100, &m_poiStorage);
     EXPECT_FALSE(village.hasVillager(1));
 
     m_world.removeTestEntity(1);

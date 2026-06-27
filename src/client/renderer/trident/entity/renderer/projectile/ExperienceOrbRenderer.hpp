@@ -61,7 +61,7 @@ namespace client::renderer::entity::renderer::projectile {
  * 关键实现细节：
  * - 浮动偏移: sin((age + partialTick) / 20.0) * 0.1 + 0.3
  * - Billboard: 始终面向摄像机
- * - 光照: getBlockLight() = max(worldLight, 7)（待管线支持）
+ * - 光照: getBlockLight() = max(worldLight, 7)，通过 fullbright 因子 7/15 ≈ 0.467 实现
  * - 阴影: shadowRadius = 0.15, shadowStrength = 0.75
  */
 class ExperienceOrbRenderer : public core::EntityRenderer {

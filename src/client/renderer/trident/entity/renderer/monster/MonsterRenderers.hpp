@@ -121,6 +121,9 @@ private:
 
 /**
  * @brief 烈焰人渲染器
+ *
+ * MC Java 中 BlazeRenderer.getBlockLightLevel() 返回 15，
+ * 烈焰人在黑暗中也会发光，使用全亮光照。
  */
 class BlazeRenderer : public core::LivingRenderer<::mc::LivingEntity, model::monster::BlazeModel> {
 public:
@@ -129,6 +132,8 @@ public:
 
     [[nodiscard]] ResourceLocation getEntityTexture(::mc::LivingEntity& entity) override;
     [[nodiscard]] ResourceLocation getEntityTexture(const ::mc::LivingEntity& entity) const override;
+
+    [[nodiscard]] bool isFullbright() const override { return true; }
 
 private:
     void _setupLayers();

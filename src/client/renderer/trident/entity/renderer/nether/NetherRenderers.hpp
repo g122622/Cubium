@@ -75,6 +75,9 @@ public:
 
 /**
  * @brief 岩浆怪渲染器
+ *
+ * MC Java 中 MagmaCubeRenderer.getBlockLightLevel() 返回 15，
+ * 岩浆怪在黑暗中也会发光，使用全亮光照。
  */
 class MagmaCubeRenderer : public core::LivingRenderer<::mc::LivingEntity, model::nether::MagmaCubeModel> {
 public:
@@ -91,6 +94,8 @@ public:
         (void)entity;
         return ResourceLocation("minecraft", "textures/entity/slime/magmacube.png");
     }
+
+    [[nodiscard]] bool isFullbright() const override { return true; }
 };
 
 /**

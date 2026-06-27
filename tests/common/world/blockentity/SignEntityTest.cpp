@@ -280,3 +280,119 @@ TEST_F(SignEntityTest, Constants_CorrectValues)
     EXPECT_EQ(SignEntity::LINE_COUNT, 4);
     EXPECT_EQ(SignEntity::MAX_LINE_LENGTH, 15);
 }
+
+// ========== SignEntity 涂蜡状态测试 ==========
+
+TEST_F(SignEntityTest, Waxed_InitiallyFalse)
+{
+    EXPECT_FALSE(signEntity->isWaxed());
+}
+
+TEST_F(SignEntityTest, SetWaxed_ChangesState)
+{
+    EXPECT_TRUE(signEntity->setWaxed(true));
+    EXPECT_TRUE(signEntity->isWaxed());
+
+    EXPECT_TRUE(signEntity->setWaxed(false));
+    EXPECT_FALSE(signEntity->isWaxed());
+}
+
+TEST_F(SignEntityTest, SetWaxed_SameValue_ReturnsFalse)
+{
+    // 初始未涂蜡，再次设置未涂蜡应返回 false
+    EXPECT_FALSE(signEntity->setWaxed(false));
+
+    // 涂蜡后，再次设置涂蜡应返回 false
+    EXPECT_TRUE(signEntity->setWaxed(true));
+    EXPECT_FALSE(signEntity->setWaxed(true));
+}
+
+TEST_F(SignEntityTest, SetWaxed_PreventsTextModification)
+{
+    signEntity->setLineFromLegacy(0, "Original Text");
+
+    // 涂蜡后不应允许修改文字
+    signEntity->setWaxed(true);
+    EXPECT_FALSE(signEntity->setLineFromLegacy(0, "Modified Text"));
+    EXPECT_EQ(signEntity->getLineText(0), "Original Text");
+}
+
+TEST_F(SignEntityTest, SetWaxed_PreventsSetLine)
+{
+    signEntity->setLineFromLegacy(0, "Original");
+
+    signEntity->setWaxed(true);
+    auto newText = std::make_unique<text::StringTextComponent>("New");
+    EXPECT_FALSE(signEntity->setLine(0, std::move(newText)));
+    EXPECT_EQ(signEntity->getLineText(0), "Original");
+}
+
+TEST_F(SignEntityTest, SetWaxed_PreventsSetLines)
+{
+    signEntity->setLineFromLegacy(0, "Original");
+
+    signEntity->setWaxed(true);
+    std::array<std::unique_ptr<text::ITextComponent>, SignEntity::LINE_COUNT> lines;
+    for (auto& line : lines) {
+        line = std::make_unique<text::StringTextComponent>("New");
+    }
+    signEntity->setLines(std::move(lines));
+    EXPECT_EQ(signEntity->getLineText(0), "Original");
+}
+
+TEST_F(SignEntityTest, SetWaxed_PreventsClearLines)
+{
+    signEntity->setLineFromLegacy(0, "Original");
+
+    signEntity->setWaxed(true);
+    signEntity->clearLines();
+    EXPECT_EQ(signEntity->getLineText(0), "Original");
+}
+
+TEST_F(SignEntityTest, Unwaxed_AllowsTextModification)
+{
+    signEntity->setLineFromLegacy(0, "Original");
+    EXPECT_TRUE(signEntity->setLineFromLegacy(0, "Modified"));
+    EXPECT_EQ(signEntity->getLineText(0), "Modified");
+}
+
+TEST_F(SignEntityTest, SaveLoad_PreservesWaxedState)
+{
+    signEntity->setLineFromLegacy(0, "Test");
+    signEntity->setWaxed(true);
+
+    nlohmann::json data;
+    signEntity->save(data);
+    EXPECT_TRUE(data["is_waxed"].get<bool>());
+
+    auto loaded = std::make_unique<SignEntity>(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded->load(data));
+    EXPECT_TRUE(loaded->isWaxed());
+}
+
+TEST_F(SignEntityTest, SaveLoad_DefaultWaxedFalse)
+{
+    signEntity->setLineFromLegacy(0, "Test");
+
+    nlohmann::json data;
+    signEntity->save(data);
+    // 未涂蜡时保存不应包含 is_waxed 键，或值为 false
+    if (data.contains("is_waxed")) {
+        EXPECT_FALSE(data["is_waxed"].get<bool>());
+    }
+
+    auto loaded = std::make_unique<SignEntity>(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded->load(data));
+    EXPECT_FALSE(loaded->isWaxed());
+}
+
+TEST_F(SignEntityTest, Clone_PreservesWaxedState)
+{
+    signEntity->setLineFromLegacy(0, "Test");
+    signEntity->setWaxed(true);
+
+    auto copy = signEntity->clone();
+    auto* signCopy = dynamic_cast<SignEntity*>(copy.get());
+    ASSERT_NE(signCopy, nullptr);
+    EXPECT_TRUE(signCopy->isWaxed());
+}

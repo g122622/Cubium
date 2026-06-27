@@ -215,6 +215,17 @@ VillagerEntity 提供基于库存食物点数的分享和繁殖判断：
 - 覆写方法中**必须调用基类实现** `LivingEntity::setLastHurtBy()`，否则 `lastHurtByPlayer` 等基类字段不会更新
 - 仅在攻击者为玩家时触发流言和粒子，非玩家攻击者只走基类逻辑
 
+### 村民死亡与移除的 POI 释放
+
+- `VillagerEntity` 覆写了 `die()` 和 `remove()`，两者都调用 `releaseAllPois()`：
+  - `die(DamageSource&)`：先释放 POI，若被玩家击杀则向所在村庄添加 MajorNegative 流言（+25），再调用父类 `die()`
+  - `remove()`：释放 POI 后调用父类 `remove()`
+- `releaseAllPois()` 执行以下操作：
+  1. 通过 `VillageManager::getPOIStorage().releaseAllByOwner(villagerId)` 释放所有占用 POI
+  2. 调用 `VillageManager::onVillagerLeave(villagerId)` 从村庄移除村民关联
+  3. 若村民正在睡眠则调用 `stopSleeping()`
+- 这确保了村民死亡或被移除时 POI 立即释放，不依赖 `_tickVillagerCheck` 的超时机制
+
 ### 袭击恐慌粒子（Raid Panic）
 
 - `VillagerEntity::tick()` 中检查 `RaidManager` 是否存在活跃袭击

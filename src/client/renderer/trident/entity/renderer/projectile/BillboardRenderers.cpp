@@ -51,8 +51,9 @@ bool ItemBillboardRenderer::generateMesh(
 {
     (void)entity;
 
-    // TODO: m_fullbright 未使用 — fullbright 模式下应将顶点光照设为最大亮度，
-    // 使投掷物在黑暗中也清晰可见（例如末影之眼）
+    // 全亮光照由 EntityRenderer::isFullbright() 控制，
+    // 当 m_fullbright 为 true 时，渲染管线会将光照混合到最大亮度 1.0，
+    // 使投掷物在黑暗中也清晰可见（例如末影之眼、火球等）。
     const f64 baseSize = 0.25;
     const f64 halfWidth = baseSize * m_scale * 0.5;
     const f64 height = baseSize * m_scale;

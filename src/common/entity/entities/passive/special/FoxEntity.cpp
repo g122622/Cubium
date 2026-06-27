@@ -24,11 +24,15 @@
 #include "FoxEntity.hpp"
 #include "../../../../core/Types.hpp"
 #include "../../../../item/Items.hpp"
+#include "../../../../item/core/Item.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../item/items/food/FoodItem.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../world/IWorld.hpp"
+#include "../../../../world/WorldEvents.hpp"
 #include "../../../../world/block/BlockState.hpp"
+#include "../../../../world/block/registry/VanillaBlocks.hpp"
 #include "../../../ai/goal/GoalSelector.hpp"
 #include "../../../ai/goal/goals/AvoidEntityGoal.hpp"
 #include "../../../ai/goal/goals/BreedGoal.hpp"
@@ -397,13 +401,13 @@ void FoxEntity::wakeUp()
 
 bool FoxEntity::isBreedingItem(const ItemStack& itemStack) const
 {
-    // 只有甜浆果可以用来繁殖狐狸
-    // 注意：发光浆果是后续版本添加的，本项目只支持甜浆果
+    // 甜浆果和发光浆果可以用来繁殖狐狸
+    // MC 原版 FOX_FOOD 标签包含 sweet_berries 和 glow_berries
     const Item* item = itemStack.getItem();
     if (item == nullptr) {
         return false;
     }
-    return item == Items::SWEET_BERRIES;
+    return item == Items::SWEET_BERRIES || item == Items::GLOW_BERRIES;
 }
 
 std::unique_ptr<AnimalEntity> FoxEntity::spawnBaby(AnimalEntity& partner)
@@ -475,23 +479,42 @@ void FoxEntity::tick()
     }
 
     // 进食逻辑：每 tick 递增计时器，达到阈值后食用物品
+    // MC 原版: Fox.aiStep() 中 ticksSinceEaten > 600 时调用 finishUsingItem
     IWorld* worldPtr = this->world();
     if (worldPtr != nullptr && !worldPtr->isClientSide() && isAlive()) {
         m_ticksSinceEaten++;
 
         if (isHoldingItem() && canEat()) {
             if (m_ticksSinceEaten > MIN_TICKS_BEFORE_EAT) {
-                // 食用完成，消耗物品
+                // 食用完成：调用 onItemUseFinish 处理物品消耗和效果应用
+                // FoodItem 子类（蘑菇煲等）会在 onItemUseFinish 中处理 shrink 和容器物品返回
+                // 普通食物（甜浆果等，注册为 Item 而非 FoodItem）的 onItemUseFinish 不处理消耗，
+                // 需要在此手动 shrink
+                // 对应 MC 原版: itemstack.finishUsingItem(this.level(), this)
                 const ItemStack* held = getHeldItem();
                 if (held != nullptr && isConsumableFood(*held)) {
-                    // TODO: 当 Item::finishUsingItem 实现后，应使用其返回值处理剩余物品（如碗）
-                    playEatSound();
+                    ItemStack heldCopy = *held;
+                    // 注意：const_cast 是安全的，因为 Items 在注册后是不可变的
+                    const Item* item = heldCopy.getItem();
+                    ItemStack result = const_cast<Item*>(item)->onItemUseFinish(heldCopy, *worldPtr, *this);
 
-                    // 消耗1个物品
-                    if (held->getCount() > 1) {
-                        ItemStack reduced = *held;
-                        reduced.shrink(1);
-                        m_heldItem = std::make_unique<ItemStack>(std::move(reduced));
+                    // 对于非 FoodItem 的食物（如甜浆果），onItemUseFinish 不会消耗物品
+                    // 需要手动处理物品消耗
+                    if (item != nullptr && !dynamic_cast<const item::items::FoodItem*>(item)) {
+                        heldCopy.shrink(1);
+                        // 如果物品有容器物品（非食物路径不太可能，但保持一致性）
+                        if (heldCopy.isEmpty() && item->hasContainerItem()) {
+                            result = ItemStack(item->containerItem(), 1);
+                        } else {
+                            result = heldCopy;
+                        }
+                    }
+
+                    // 如果消耗后返回物品不为空（如蘑菇煲返回碗），放入嘴中
+                    // 如果消耗后返回物品为空（普通食物完全消耗），清除嘴中物品
+                    // 对应 MC 原版: if (!itemstack1.isEmpty()) { this.setItemSlot(MAINHAND, itemstack1); }
+                    if (!result.isEmpty()) {
+                        m_heldItem = std::make_unique<ItemStack>(std::move(result));
                     } else {
                         m_heldItem.reset();
                     }
@@ -511,8 +534,15 @@ void FoxEntity::tick()
         }
     }
 
-    // 如果卡在雪中，减少卡住计时器
-    // TODO: 实现卡住状态检测和脱离雪块的逻辑
+    // 卡在雪中时播放方块破坏粒子效果
+    // 对应 MC Java: Fox.tick() 中 isFaceplanted() 时 levelEvent(2001, blockpos, Block.getId(blockstate))
+    if (isStuck() && worldPtr != nullptr && getRandom().nextFloat() < 0.2f) {
+        BlockPos pos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z()));
+        const BlockState* state = worldPtr->getBlockState(pos);
+        if (state != nullptr) {
+            worldPtr->playEvent(world::WorldEvents::BREAK_BLOCK_EFFECTS, pos, static_cast<i32>(state->stateId()));
+        }
+    }
 }
 
 // ========== AI 目标注册 ==========
@@ -528,7 +558,8 @@ void FoxEntity::registerGoals()
     // 优先级 0: 游泳（最高优先级）
     m_goalSelector.addGoal(0, std::make_unique<entity::ai::goal::SwimGoal>(this));
 
-    // TODO: 优先级 1: 卡住时跳跃目标（用于从雪中逃脱）
+    // 优先级 1: 卡住时脱离雪块（扑击落地后卡在雪中的自动脱离）
+    m_goalSelector.addGoal(1, std::make_unique<entity::ai::goal::FoxStuckInSnowGoal>(this));
 
     // 优先级 2: 恐慌逃跑
     m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::PanicGoal>(this, 2.2));

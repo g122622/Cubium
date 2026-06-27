@@ -67,6 +67,14 @@ public:
     [[nodiscard]] std::string getLootTableId() const override { return {}; }
 
     /**
+     * @brief 处理下落方块实体受到伤害
+     *
+     * 下落方块不可被伤害，但当来源非无敌时标记 hurtMarked 以同步速度。
+     * 对应 MC Java 的 FallingBlockEntity.hurtServer()。
+     */
+    bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
      * @brief 设置方块ID
      */
     void setBlockId(u32 blockId) { m_blockId = blockId; }

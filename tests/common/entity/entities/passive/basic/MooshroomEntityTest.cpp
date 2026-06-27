@@ -29,14 +29,18 @@
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/basic/CowEntity.hpp"
 #include "common/entity/entities/passive/basic/MooshroomEntity.hpp"
 #include "common/entity/interfaces/IShearable.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
@@ -261,7 +265,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
     mooshroom.onStruckByLightning();
 
     // 验证生成了爆炸粒子
-    // 参考 MC 1.16.5: 生成 20 个 Explosion 粒子
+    // 生成 20 个 Explosion 粒子
     EXPECT_EQ(m_world.particleCount(), 20u);
 
     // 验证粒子类型
@@ -429,66 +433,54 @@ TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles)
     }
 }
 
-// ==================== 碗交互测试 ====================
+// ==================== 迷之炖菜效果测试 ====================
 
-TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsTrue_ForBowl)
+TEST_F(MooshroomEntityTest, StewEffect_DefaultEmpty)
 {
     MooshroomEntity mooshroom(EntityId(1));
 
-    // 成年哞菇可以用碗取汤
-    EXPECT_FALSE(mooshroom.isChild());
-
-    // 测试空碗
-    if (mc::Items::BOWL != nullptr) {
-        ItemStack bowl(*mc::Items::BOWL, 1);
-        EXPECT_TRUE(mooshroom.canBeStewed(bowl));
-    }
+    // 默认情况下没有迷之炖菜效果
+    EXPECT_FALSE(mooshroom.hasStewEffect());
+    EXPECT_EQ(mooshroom.getStewEffectType(), std::nullopt);
+    EXPECT_EQ(mooshroom.getStewEffectDuration(), 0);
 }
 
-TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForChild)
+TEST_F(MooshroomEntityTest, StewEffect_SetAndClear)
 {
     MooshroomEntity mooshroom(EntityId(1));
-    mooshroom.setChild(true);
 
-    // 幼年哞菇不能用碗取汤
-    EXPECT_TRUE(mooshroom.isChild());
+    // 设置效果
+    mooshroom.setStewEffect(entity::effect::EffectType::NightVision, 4);
+    EXPECT_TRUE(mooshroom.hasStewEffect());
+    EXPECT_EQ(mooshroom.getStewEffectType(), entity::effect::EffectType::NightVision);
+    EXPECT_EQ(mooshroom.getStewEffectDuration(), 4);
 
-    if (mc::Items::BOWL != nullptr) {
-        ItemStack bowl(*mc::Items::BOWL, 1);
-        EXPECT_FALSE(mooshroom.canBeStewed(bowl));
-    }
+    // 清除效果
+    mooshroom.clearStewEffect();
+    EXPECT_FALSE(mooshroom.hasStewEffect());
+    EXPECT_EQ(mooshroom.getStewEffectType(), std::nullopt);
+    EXPECT_EQ(mooshroom.getStewEffectDuration(), 0);
 }
 
-TEST_F(MooshroomEntityTest, CanBeStewed_ReturnsFalse_ForOtherItems)
+TEST_F(MooshroomEntityTest, StewEffect_BrownMooshroomCanStoreEffect)
 {
     MooshroomEntity mooshroom(EntityId(1));
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
 
-    // 非碗物品
-    if (mc::Items::DIAMOND != nullptr) {
-        ItemStack diamond(*mc::Items::DIAMOND, 1);
-        EXPECT_FALSE(mooshroom.canBeStewed(diamond));
-    }
-
-    // 空物品
-    ItemStack empty;
-    EXPECT_FALSE(mooshroom.canBeStewed(empty));
+    // 棕色哞菇可以存储效果
+    mooshroom.setStewEffect(entity::effect::EffectType::FireResistance, 4);
+    EXPECT_TRUE(mooshroom.hasStewEffect());
+    EXPECT_TRUE(mooshroom.isBrown());
 }
 
-// ==================== 蘑菇汤测试 ====================
-
-TEST_F(MooshroomEntityTest, GetStew_ReturnsMushroomStew)
+TEST_F(MooshroomEntityTest, StewEffect_RedMooshroomCanStoreEffect)
 {
     MooshroomEntity mooshroom(EntityId(1));
+    mooshroom.setMooshroomType(MooshroomEntity::MooshroomType::Red);
 
-    // 获取蘑菇汤
-    ItemStack stew = mooshroom.getStew();
-
-    // 验证返回蘑菇汤（如果已注册）
-    if (mc::Items::MUSHROOM_STEW != nullptr) {
-        EXPECT_FALSE(stew.isEmpty());
-        EXPECT_EQ(stew.getItem(), mc::Items::MUSHROOM_STEW);
-        EXPECT_EQ(stew.getCount(), 1);
-    }
+    // 红色哞菇也可以存储效果（虽然在正常游戏中只有棕色哞菇会被喂食花朵）
+    mooshroom.setStewEffect(entity::effect::EffectType::Weakness, 7);
+    EXPECT_TRUE(mooshroom.hasStewEffect());
 }
 
 // ==================== 繁殖测试 ====================
@@ -566,6 +558,194 @@ TEST_F(MooshroomEntityTest, ImplementsIShearable)
     entity::IShearable* shearable = dynamic_cast<entity::IShearable*>(&mooshroom);
     EXPECT_NE(shearable, nullptr);
     EXPECT_TRUE(shearable->isShearable());
+}
+
+// ==================== NBT序列化测试 ====================
+
+TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_DefaultType)
+{
+    // 默认红色哞菇，无迷之炖菜效果
+    MooshroomEntity original(EntityId(1));
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    original.addAdditionalSaveData(tag);
+
+    // 反序列化到新实体
+    MooshroomEntity loaded(EntityId(2));
+    auto result = loaded.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+
+    // 验证类型
+    EXPECT_EQ(loaded.getMooshroomType(), MooshroomEntity::MooshroomType::Red);
+    EXPECT_TRUE(loaded.isRed());
+
+    // 验证无迷之炖菜效果
+    EXPECT_FALSE(loaded.hasStewEffect());
+}
+
+TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_BrownType)
+{
+    MooshroomEntity original(EntityId(1));
+    original.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    original.addAdditionalSaveData(tag);
+
+    // 反序列化
+    MooshroomEntity loaded(EntityId(2));
+    auto result = loaded.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+
+    EXPECT_EQ(loaded.getMooshroomType(), MooshroomEntity::MooshroomType::Brown);
+    EXPECT_TRUE(loaded.isBrown());
+}
+
+TEST_F(MooshroomEntityTest, NBT_Serialization_RoundTrip_StewEffect)
+{
+    MooshroomEntity original(EntityId(1));
+    original.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
+    original.setStewEffect(entity::effect::EffectType::NightVision, 4);
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    original.addAdditionalSaveData(tag);
+
+    // 反序列化
+    MooshroomEntity loaded(EntityId(2));
+    auto result = loaded.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+
+    EXPECT_TRUE(loaded.hasStewEffect());
+    EXPECT_EQ(loaded.getStewEffectType(), entity::effect::EffectType::NightVision);
+    EXPECT_EQ(loaded.getStewEffectDuration(), 4);
+}
+
+TEST_F(MooshroomEntityTest, NBT_Serialization_StewEffect_InstantEffect)
+{
+    // 瞬间效果（如饱和）的持续时间也可以正确序列化
+    MooshroomEntity original(EntityId(1));
+    original.setStewEffect(entity::effect::EffectType::Saturation, 0);
+
+    nbt::tags::compound_tag tag;
+    original.addAdditionalSaveData(tag);
+
+    MooshroomEntity loaded(EntityId(2));
+    auto result = loaded.readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success());
+
+    EXPECT_TRUE(loaded.hasStewEffect());
+    EXPECT_EQ(loaded.getStewEffectType(), entity::effect::EffectType::Saturation);
+    EXPECT_EQ(loaded.getStewEffectDuration(), 0);
+}
+
+TEST_F(MooshroomEntityTest, NBT_Serialization_MissingKeys_Defaults)
+{
+    // 空 NBT 标签应该保留默认值
+    nbt::tags::compound_tag emptyTag;
+
+    MooshroomEntity loaded(EntityId(1));
+    auto result = loaded.readAdditionalSaveData(emptyTag);
+    EXPECT_TRUE(result.success());
+
+    // 默认为红色
+    EXPECT_EQ(loaded.getMooshroomType(), MooshroomEntity::MooshroomType::Red);
+    // 无迷之炖菜效果
+    EXPECT_FALSE(loaded.hasStewEffect());
+    EXPECT_EQ(loaded.getStewEffectDuration(), 0);
+}
+
+TEST_F(MooshroomEntityTest, NBT_Serialization_TypeKey_ByteValue)
+{
+    // 验证 Type 键值正确写入（应为 i8）
+    MooshroomEntity original(EntityId(1));
+    original.setMooshroomType(MooshroomEntity::MooshroomType::Brown);
+
+    nbt::tags::compound_tag tag;
+    original.addAdditionalSaveData(tag);
+
+    // 验证 Type 字段存在且为棕色(1)
+    auto typeVal = entity::serialization::nbt_helper::tryGetByte(tag, "Type");
+    ASSERT_TRUE(typeVal.has_value());
+    EXPECT_EQ(*typeVal, 1);
+}
+
+TEST_F(MooshroomEntityTest, NBT_Serialization_StewEffectKey_Structure)
+{
+    // 验证 StewEffect 复合标签结构正确
+    MooshroomEntity original(EntityId(1));
+    original.setStewEffect(entity::effect::EffectType::FireResistance, 4);
+
+    nbt::tags::compound_tag tag;
+    original.addAdditionalSaveData(tag);
+
+    // 验证 StewEffect 复合标签存在
+    const nbt::tags::compound_tag* stewTag = entity::serialization::nbt_helper::tryGetCompound(tag, "StewEffect");
+    ASSERT_NE(stewTag, nullptr);
+
+    // 验证 EffectId 和 EffectDuration
+    auto effectId = entity::serialization::nbt_helper::tryGetByte(*stewTag, "EffectId");
+    ASSERT_TRUE(effectId.has_value());
+    EXPECT_EQ(*effectId, static_cast<i8>(static_cast<i32>(entity::effect::EffectType::FireResistance)));
+
+    auto duration = entity::serialization::nbt_helper::tryGetInt(*stewTag, "EffectDuration");
+    ASSERT_TRUE(duration.has_value());
+    EXPECT_EQ(*duration, 4);
+}
+
+TEST_F(MooshroomEntityTest, NBT_Serialization_NoStewEffect_NoTag)
+{
+    // 没有迷之炖菜效果时不应该写入 StewEffect 标签
+    MooshroomEntity original(EntityId(1));
+    // 默认无效果
+
+    nbt::tags::compound_tag tag;
+    original.addAdditionalSaveData(tag);
+
+    // StewEffect 不应该存在
+    const nbt::tags::compound_tag* stewTag = entity::serialization::nbt_helper::tryGetCompound(tag, "StewEffect");
+    EXPECT_EQ(stewTag, nullptr);
+}
+
+// ==================== 迷之炖菜效果覆盖测试 ====================
+
+TEST_F(MooshroomEntityTest, StewEffect_Overwrite)
+{
+    MooshroomEntity mooshroom(EntityId(1));
+
+    // 先设置一个效果
+    mooshroom.setStewEffect(entity::effect::EffectType::NightVision, 4);
+    EXPECT_EQ(mooshroom.getStewEffectType(), entity::effect::EffectType::NightVision);
+
+    // 覆盖为另一个效果
+    mooshroom.setStewEffect(entity::effect::EffectType::Poison, 8);
+    EXPECT_EQ(mooshroom.getStewEffectType(), entity::effect::EffectType::Poison);
+    EXPECT_EQ(mooshroom.getStewEffectDuration(), 8);
+}
+
+TEST_F(MooshroomEntityTest, StewEffect_MultipleEffectTypes)
+{
+    // 验证各种效果类型都能正确设置
+    MooshroomEntity mooshroom(EntityId(1));
+
+    const std::vector<entity::effect::EffectType> effectTypes = {
+        entity::effect::EffectType::Saturation,
+        entity::effect::EffectType::NightVision,
+        entity::effect::EffectType::FireResistance,
+        entity::effect::EffectType::Blindness,
+        entity::effect::EffectType::Weakness,
+        entity::effect::EffectType::Poison,
+        entity::effect::EffectType::Regeneration,
+        entity::effect::EffectType::Wither,
+        entity::effect::EffectType::JumpBoost,
+    };
+
+    for (const auto& effectType : effectTypes) {
+        mooshroom.setStewEffect(effectType, 4);
+        EXPECT_TRUE(mooshroom.hasStewEffect());
+        EXPECT_EQ(mooshroom.getStewEffectType(), effectType);
+    }
 }
 
 } // namespace

@@ -24,14 +24,19 @@
 #include "BuriedTreasureStructure.hpp"
 
 #include "common/core/Constants.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 
-namespace mc::world::gen::structure {
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
 
 // BuriedTreasurePiece 实现
 BuriedTreasurePiece::BuriedTreasurePiece(i32 x, i32 y, i32 z)
@@ -80,13 +85,15 @@ void BuriedTreasurePiece::generate(
 
 const std::string BuriedTreasureStructure::m_name = "buried_treasure";
 
-const std::vector<BiomeId> BuriedTreasureStructure::m_validBiomes = {Biomes::Beach, Biomes::SnowyBeach};
+const biome::BiomeTag* BuriedTreasureStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_BURIED_TREASURE();
+}
 
 bool BuriedTreasureStructure::canGenerate(
     IWorld& /*world*/, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
     // 使用单独的 salt=10387320 计算种子，然后检查概率
-    // 注意：这里的 rng 已经由 findStructureStart 使用正确的种子初始化了
     // 埋藏宝藏的概率检查：nextFloat() < 0.01 (1% 概率)
     return rng.nextFloat() < 0.01f;
 }
@@ -120,4 +127,7 @@ std::unique_ptr<StructureStart> BuriedTreasureStructure::generate(
     return start;
 }
 
-} // namespace mc::world::gen::structure
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc

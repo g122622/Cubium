@@ -26,6 +26,7 @@
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../biome/BiomeIds.hpp"
+#include "../../../biome/BiomeTags.hpp"
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/TemplateManager.hpp"
@@ -80,11 +81,15 @@ feature::template_::Rotation addRotation(feature::template_::Rotation a, feature
 // ============================================================================
 
 const std::string EndCityStructure::s_name = "End_City";
-const std::vector<BiomeId> EndCityStructure::s_validBiomes = {EndMidlands, EndHighlands};
 
 EndCityStructure::EndCityStructure()
-    : Structure(StructureType::EndCity)
+    : Structure(ResourceLocation("minecraft", "end_city"))
 {}
+
+const biome::BiomeTag* EndCityStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_END_CITY();
+}
 
 bool EndCityStructure::canGenerate(IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
@@ -93,11 +98,9 @@ bool EndCityStructure::canGenerate(IWorld& world, IChunkGenerator& generator, ma
 
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            // 末地城只在高度 >= 60 的位置生成
-            return _getYPosition(chunkX, chunkZ, generator) >= 60;
-        }
+    if (isValidBiome(biome)) {
+        // 末地城只在高度 >= 60 的位置生成
+        return _getYPosition(chunkX, chunkZ, generator) >= 60;
     }
     return false;
 }

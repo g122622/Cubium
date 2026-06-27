@@ -1089,6 +1089,17 @@ public:
     [[nodiscard]] bool canSwim() const { return m_eyesInWater && m_inWater; }
 
     /**
+     * @brief 检查实体是否可以在液体中生成
+     *
+     * 对应 MC 原版 Entity.canSpawnInLiquids()。
+     * 大多数实体返回 false（不能在液体中生成），
+     * 溺尸等水生实体重写返回 true。
+     *
+     * @return 如果可以在液体中生成返回 true
+     */
+    [[nodiscard]] virtual bool canSpawnInLiquids() const { return false; }
+
+    /**
      * @brief 获取实体眼睛位置的亮度
      *
      * 用于判断怪物是否在阳光下燃烧等。
@@ -2266,10 +2277,6 @@ protected:
 
     // 受伤标记（服务端：设为 true 表示需要同步速度到客户端）
     // 对应 MC Java 的 Entity.hurtMarked 字段
-    // TODO: ExperienceOrbEntity、FallingBlockEntity、HangingEntity、ProjectileEntity
-    // 等非生物实体需要重写 hurt() 方法并调用 markHurt()，与 MC Java 对齐。
-    // 当前这些实体使用基类 Entity::hurt()（返回 false），不会设置 hurtMarked。
-    // 注：ItemEntity 已实现 hurt() 重写。
     bool m_hurtMarked = false;
 
     // 自定义名称

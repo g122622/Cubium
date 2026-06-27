@@ -26,6 +26,7 @@
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/NbtPathArgumentType.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -64,8 +65,8 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data get block <pos> [<path>] [<scale>]
     auto getBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto getBlockPosArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto getBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
     auto getBlockPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     auto getBlockScaleArg =
@@ -120,8 +121,8 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data set block <pos> <path> <value>
     auto setBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto setBlockPosArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto setBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
     auto setBlockPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
     auto setBlockValueArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::tag>>>(
@@ -172,8 +173,8 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data merge block <pos> <nbt>
     auto mergeBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto mergeBlockPosArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto mergeBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
     auto mergeBlockNbtArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::shared_ptr<nbt::tags::compound_tag>>>(
             "nbt", NbtCompoundArgumentType::nbtCompound());
@@ -216,8 +217,8 @@ void DataCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
 
     // /data remove block <pos> <path>
     auto removeBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto removeBlockPosArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto removeBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
     auto removeBlockPathArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, NbtPath>>("path", NbtPathArgumentType::nbtPath());
 
@@ -267,7 +268,7 @@ i32 DataCommand::_getBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    Vector3i pos = context.getArgument<Vector3i>("pos");
+    Vector3i pos = BlockPosArgumentType::getBlockPos(context, "pos", source);
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
 
     if (!accessor.isValid()) {
@@ -473,7 +474,7 @@ i32 DataCommand::_setBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    Vector3i pos = context.getArgument<Vector3i>("pos");
+    Vector3i pos = BlockPosArgumentType::getBlockPos(context, "pos", source);
     NbtPath path = context.getArgument<NbtPath>("path");
     auto value = context.getArgument<std::shared_ptr<nbt::tags::tag>>("value");
 
@@ -607,7 +608,7 @@ i32 DataCommand::_mergeBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    Vector3i pos = context.getArgument<Vector3i>("pos");
+    Vector3i pos = BlockPosArgumentType::getBlockPos(context, "pos", source);
     auto nbt = context.getArgument<std::shared_ptr<nbt::tags::compound_tag>>("nbt");
 
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));
@@ -706,7 +707,7 @@ i32 DataCommand::_removeBlock(CommandContext<ServerCommandSource>& context)
         return 0;
     }
 
-    Vector3i pos = context.getArgument<Vector3i>("pos");
+    Vector3i pos = BlockPosArgumentType::getBlockPos(context, "pos", source);
     NbtPath path = context.getArgument<NbtPath>("path");
 
     BlockDataAccessor accessor(world, BlockPos(pos.x, pos.y, pos.z));

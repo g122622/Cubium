@@ -224,7 +224,7 @@ MC 默认超平坦世界启用 `minecraft:villages` 和 `minecraft:strongholds`�
 6. 检查是否已有同集合的有效 StructureStart
 7. `placement.isStructureChunk()` 判断候选区块
 8. `structureSet.selectEntry()` 按权重选择结构
-9. `m_structureManager->shouldGenerateStructureStart()` 二次检查
+9. `structure->generate()` 创建 StructureStart
 10. `structure->generate()` 创建 StructureStart
 11. 通知 StructureCheck 缓存
 

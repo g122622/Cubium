@@ -33,6 +33,7 @@
 #include "particles/ambient/SporeBlossomParticle.hpp"
 #include "particles/ambient/UnderwaterParticle.hpp"
 #include "particles/block/DiggingParticle.hpp"
+#include "particles/block/DustPillarParticle.hpp"
 #include "particles/effect/CampfireParticle.hpp"
 #include "particles/effect/CritParticle.hpp"
 #include "particles/effect/DragonBreathParticle.hpp"
@@ -52,6 +53,8 @@
 #include "particles/liquid/DripstoneDripParticle.hpp"
 #include "particles/mob/HeartParticle.hpp"
 #include "particles/mob/VillagerParticle.hpp"
+#include "particles/special/NautilusParticle.hpp"
+#include "particles/special/VibrationSignalParticle.hpp"
 #include "particles/weather/FishingParticle.hpp"
 #include "particles/weather/SplashParticle.hpp"
 
@@ -521,6 +524,15 @@ void registerBuiltinParticleFactories()
         true,
         false);
 
+    // 尘柱粒子（重锤砸地攻击，使用方块状态纹理）
+    registry.registerType(ParticleTypeId::DustPillar,
+        "minecraft:dust_pillar",
+        DustPillarParticle::create,
+        ParticleRenderType::TERRAIN_SHEET,
+        30.0f,
+        true,
+        false);
+
     // 云朵粒子
     registry.registerType(ParticleTypeId::Cloud,
         "minecraft:cloud",
@@ -538,6 +550,15 @@ void registerBuiltinParticleFactories()
         8.0f,
         false,
         false);
+
+    // 振动信号粒子（从源位置飞向目标位置）
+    registry.registerType(ParticleTypeId::Vibration,
+        "minecraft:vibration",
+        VibrationSignalParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        60.0f,
+        false,
+        true); // 忽略距离限制，确保可见
 }
 
 } // namespace mc::client::renderer::trident::particle

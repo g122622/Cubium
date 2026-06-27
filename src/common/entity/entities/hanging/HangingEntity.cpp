@@ -23,6 +23,8 @@
 
 #include "HangingEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -116,10 +118,33 @@ bool HangingEntity::canPlaceOn() const
     return Block::hasEnoughSolidSide(*m_world, attachPos, solidCheckDir);
 }
 
-void HangingEntity::onAttacked(Entity* attacker, f32 damage)
+bool HangingEntity::hurt(DamageSource& source, f32 /*amount*/)
 {
-    dropItem();
-    remove();
+    // 悬挂实体被任何伤害一击即毁
+
+    // 1. 检查无敌状态
+    if (isInvulnerableTo(source)) {
+        return false;
+    }
+
+    // 2. 检查 mobGriefing 游戏规则：如果伤害来源是 Mob 且 mobGriefing 关闭，则不受伤害
+    if (m_world != nullptr) {
+        Entity* sourceEntity = source.getEntity();
+        if (sourceEntity != nullptr && dynamic_cast<MobEntity*>(sourceEntity) != nullptr) {
+            if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING)) {
+                return false;
+            }
+        }
+    }
+
+    // 3. 如果未被移除，销毁悬挂实体并掉落物品
+    if (!isRemoved()) {
+        dropItem();
+        remove();
+        markHurt();
+    }
+
+    return true;
 }
 
 void HangingEntity::updateBoundingBox()
@@ -201,7 +226,6 @@ void PaintingEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，画被破坏不产生掉落物品
-    // 参考 Painting.dropItem() 中的 ENTITY_DROPS 检查
     if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         return;
     }
@@ -265,7 +289,6 @@ void ItemFrameEntity::tick()
 void ItemFrameEntity::dropItem()
 {
     // 检查游戏规则 doEntityDrops
-    // 参考 ItemFrame.dropItem() 中的 ENTITY_DROPS 检查
     // 当 doEntityDrops 为 false 时不掉落任何物品，当为 true 时掉落物品展示框和内含物品
     if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         // 掉落物品展示框本身
@@ -383,7 +406,6 @@ void LeashKnotEntity::dropItem()
     }
 
     // 检查游戏规则 doEntityDrops：当该规则为 false 时，拴绳结被破坏不产生掉落物品
-    // 参考 Leashable.tickLeash() 中 doEntityDrops 控制的 dropLeash/removeLeash 逻辑
     if (!m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
         return;
     }

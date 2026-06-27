@@ -146,6 +146,7 @@ add_library(mc_common STATIC
     entity/entities/passive/horse/SkeletonHorseEntity.cpp
     entity/entities/passive/horse/ZombieHorseEntity.cpp
     entity/entities/passive/horse/LlamaEntity.cpp
+    entity/entities/passive/horse/TraderLlamaEntity.cpp
     # Entity - Monster
     entity/interfaces/IFlinging.cpp
     entity/interfaces/IRideable.cpp
@@ -506,6 +507,8 @@ add_library(mc_common STATIC
     item/items/special/HoneycombItem.cpp
     item/items/special/MilkBucketItem.cpp
     item/items/special/MusicDiscItem.cpp
+    item/items/special/PotterySherdItem.cpp
+    item/items/special/SmithingTemplateItem.cpp
     item/items/special/EnchantedBookItem.cpp
     item/items/special/NameTagItem.cpp
     item/items/special/SaddleItem.cpp
@@ -796,6 +799,7 @@ add_library(mc_common STATIC
     world/block/blocks/copper/WeatheringCopperSlabBlock.cpp
     world/block/blocks/copper/WeatheringCopperStairBlock.cpp
     world/block/blocks/copper/WeatheringCopperTrapDoorBlock.cpp
+    world/block/blocks/copper/WeatheringLightningRodBlock.cpp
 
     # World - Block - Nether
     world/block/blocks/nether/EnderChestBlock.cpp
@@ -890,6 +894,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/SignEntity.cpp
     world/blockentity/interactive/BannerEntity.cpp
     world/blockentity/interactive/BannerPattern.cpp
+    world/blockentity/interactive/DecoratedPotPattern.cpp
     world/blockentity/interactive/BeehiveBlockEntity.cpp
     world/blockentity/interactive/JukeboxEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp

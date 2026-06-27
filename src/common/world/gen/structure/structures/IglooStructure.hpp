@@ -31,9 +31,6 @@
 #include <vector>
 
 namespace mc {
-namespace biome {
-class BiomeTag;
-}
 namespace world {
 namespace gen {
 namespace structure {
@@ -105,8 +102,6 @@ public:
     IglooStructure();
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
     /**
      * @brief 获取结构关联的生物群系标签
@@ -133,8 +128,6 @@ public:
 
 private:
     static const std::string s_name;
-    static constexpr StructureSeparationSettings s_settings{32, 8, 14357618};
-    static const std::vector<BiomeId> s_validBiomes;
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };
 

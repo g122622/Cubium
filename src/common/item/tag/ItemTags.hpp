@@ -74,6 +74,24 @@ public:
     static ItemTag& FIRE_RESISTANT();
 
     /**
+     * @brief 陶片物品标签
+     *
+     * 包含所有陶片物品（1.20 考古学陶片 + 1.21 试炼密室陶片）。
+     * 用于饰纹陶罐合成配方中判断物品是否可作为陶罐面材料。
+     * 对应 MC 原版标签 minecraft:decorated_pot_sherds。
+     */
+    static ItemTag& DECORATED_POT_SHERDS();
+
+    /**
+     * @brief 饰纹陶罐原料标签
+     *
+     * 包含所有可用于合成饰纹陶罐的物品，即陶片 + 砖块。
+     * 砖块作为空白面使用（对应 Blank 图案）。
+     * 对应 MC 原版标签 minecraft:decorated_pot_ingredients。
+     */
+    static ItemTag& DECORATED_POT_INGREDIENTS();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

@@ -30,6 +30,7 @@
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/particles/special/VibrationSignalParticle.hpp"
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
@@ -1360,6 +1361,25 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
+    // 振动粒子回调（携带目标位置和到达时间）
+    callbacks.onVibrationParticle =
+        [this](f64 x, f64 y, f64 z, f64 targetX, f64 targetY, f64 targetZ, i32 arrivalInTicks) {
+            if (!m_world.particleManager()) {
+                return;
+            }
+
+            // 创建振动信号粒子，从当前位置飞向目标位置
+            glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+            Vector3d targetPosition(targetX, targetY, targetZ);
+
+            auto particle = client::renderer::trident::particle::particles::VibrationSignalParticle::createWithTarget(
+                pos, targetPosition, arrivalInTicks);
+
+            if (particle) {
+                m_world.particleManager()->addParticle(std::move(particle));
+            }
+        };
+
     // 玩家列表回调 - 皮肤系统集成
     callbacks.onPlayerListAdd = [this](const std::vector<::mc::skin::PlayerListEntry>& entries) {
         if (!m_skinManager) {
@@ -2175,22 +2195,50 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::SMASH_ATTACK: {
             // 重锤砸地攻击粒子效果（对应 MC LevelEvent.PARTICLES_SMASH_ATTACK = 2013）
-            // data 值（750）用于粒子扩散半径的参数
-            // TODO: 当实现专用 SmashAttack 粒子后替换下面的临时实现
-            // 当前使用爆炸粒子 + 烟雾粒子近似砸地冲击波效果
+            // 使用 DustPillar 粒子携带方块状态纹理，分两层分布：
+            //   - 内层簇（count/3 个）：高斯分布聚集在中心
+            //   - 外层环（count/1.5 个）：半径 3.5 的圆形均匀分布
             {
-                f32 px = static_cast<f32>(x) + 0.5f;
-                f32 py = static_cast<f32>(y) + 1.0f;
-                f32 pz = static_cast<f32>(z) + 0.5f;
-                // 中心爆炸粒子
-                m_world.addParticle(ParticleTypeId::HugeExplosion, Vector3(px, py, pz), Vector3(0.0f, 0.0f, 0.0f));
-                // 周围烟雾粒子
-                for (i32 i = 0; i < 8; ++i) {
-                    f32 angle = random.nextFloat() * 6.2831855f;
-                    f32 dist = random.nextFloat() * 2.0f;
-                    f32 spx = px + std::cos(angle) * dist;
-                    f32 spz = pz + std::sin(angle) * dist;
-                    m_world.addParticle(ParticleTypeId::Poof, Vector3(spx, py, spz), Vector3(0.0f, 0.1f, 0.0f));
+                // 获取冲击位置方块的状态，用于 DustPillar 粒子纹理
+                const BlockState* blockState = m_world.getBlockState(x, y, z);
+                if (blockState == nullptr || blockState->isAir()) {
+                    // 方块状态不可用或为空气，跳过粒子生成
+                    break;
+                }
+
+                // 中心点位于方块中心偏上 0.5 格
+                f32 cx = static_cast<f32>(x) + 0.5f;
+                f32 cy = static_cast<f32>(y) + 1.0f;
+                f32 cz = static_cast<f32>(z) + 0.5f;
+
+                i32 count = (data == 0) ? 750 : data;
+
+                // 内层簇：count/3 个粒子，高斯分布在中心附近
+                // 速度会被 DustPillarProvider 覆盖：X/Z → gaussian/30，Y → 传入Y + gaussian/2
+                i32 innerCount = static_cast<i32>(count / 3.0f);
+                for (i32 i = 0; i < innerCount; ++i) {
+                    f32 px = cx + static_cast<f32>(random.nextGaussian()) / 2.0f;
+                    f32 py = cy;
+                    f32 pz = cz + static_cast<f32>(random.nextGaussian()) / 2.0f;
+                    f32 vx = static_cast<f32>(random.nextGaussian()) * 0.2f;
+                    f32 vy = static_cast<f32>(random.nextGaussian()) * 0.2f;
+                    f32 vz = static_cast<f32>(random.nextGaussian()) * 0.2f;
+                    m_world.addBlockParticle(
+                        ParticleTypeId::DustPillar, Vector3(px, py, pz), Vector3(vx, vy, vz), *blockState);
+                }
+
+                // 外层环：count/1.5 个粒子，半径 3.5 的均匀圆形分布
+                i32 outerCount = static_cast<i32>(count / 1.5f);
+                for (i32 j = 0; j < outerCount; ++j) {
+                    f32 angle = static_cast<f32>(j) * math::TWO_PI / static_cast<f32>(outerCount);
+                    f32 px = cx + 3.5f * std::cos(angle) + static_cast<f32>(random.nextGaussian()) / 2.0f;
+                    f32 py = cy;
+                    f32 pz = cz + 3.5f * std::sin(angle) + static_cast<f32>(random.nextGaussian()) / 2.0f;
+                    f32 vx = static_cast<f32>(random.nextGaussian()) * 0.05f;
+                    f32 vy = static_cast<f32>(random.nextGaussian()) * 0.05f;
+                    f32 vz = static_cast<f32>(random.nextGaussian()) * 0.05f;
+                    m_world.addBlockParticle(
+                        ParticleTypeId::DustPillar, Vector3(px, py, pz), Vector3(vx, vy, vz), *blockState);
                 }
             }
             break;

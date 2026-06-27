@@ -29,6 +29,7 @@
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -65,8 +66,6 @@ const std::vector<std::string> NetherFossilStructure::s_fossilTemplates = {"neth
     "nether_fossils/fossil_12",
     "nether_fossils/fossil_13",
     "nether_fossils/fossil_14"};
-
-const std::vector<BiomeId> NetherFossilStructure::s_validBiomes = {SoulSandValley};
 
 // ============================================================================
 // NetherFossilPiece
@@ -138,6 +137,11 @@ NetherFossilStructure::NetherFossilStructure()
     : Structure(ResourceLocation("minecraft", "nether_fossil"))
 {}
 
+const biome::BiomeTag* NetherFossilStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_NETHER_FOSSIL();
+}
+
 bool NetherFossilStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
 {
@@ -146,11 +150,10 @@ bool NetherFossilStructure::canGenerate(
 
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            return true;
-        }
+    if (!isValidBiome(biome)) {
+        return false;
     }
+    return true;
     return false;
 }
 

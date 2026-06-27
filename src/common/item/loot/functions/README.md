@@ -41,7 +41,7 @@ loot/LootPool.hpp            # 函数的容器（池）
 loot/context/LootContext.hpp # 掉落上下文（提供世界、随机数、位置等）
 loot/context/LootParams.hpp  # 上下文参数定义（BLOCK_POS、THIS_ENTITY 等）
 world/map/MapDecoration.hpp  # DecorationType 枚举（ExplorationMapFunction）
-world/gen/structure/Structure.hpp # StructureType 枚举（ExplorationMapFunction）
+world/gen/structure/Structure.hpp # ResourceLocation（ExplorationMapFunction 结构定位）
 ```
 
 ### 外部对本模块的依赖

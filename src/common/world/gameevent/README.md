@@ -173,7 +173,7 @@ Minecraft 1.17 +
     | `Entity::dampensVibrations()` | `Entity.dampensVibrations()` |
     | `User::canTriggerAvoidVibration()` + `AvoidVibrationTrigger` | `CriteriaTriggers.AVOID_VIBRATION` |
     | `Ticker::tryReloadVibrationParticle()` | `VibrationSystem.Ticker.reloadVibrationParticle()` |
-    | `ServerWorld::addParticle(ParticleTypeId::Vibration)` | `ServerLevel.sendParticles(VibrationParticleOption)` |
+    | `ServerWorld::addVibrationParticle()` | `ServerLevel.sendParticles(VibrationParticleOption)` |
     | `IWorld::gameEvent()` | `LevelAccessor.gameEvent()` | | `ServerWorld::gameEvent()` | `ServerLevel.gameEvent()` |
 
     ##数据流

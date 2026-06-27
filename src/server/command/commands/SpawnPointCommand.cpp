@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/world/GlobalPos.hpp"
 #include "common/world/dimension/DimensionManager.hpp"
@@ -58,7 +59,7 @@ void SpawnPointCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispa
 
     // /spawnpoint <player> <pos>
     auto posNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPlayerSpawnPointAtPosition(ctx); });
 
     playerNode->addChild(posNode);
@@ -171,7 +172,7 @@ i32 SpawnPointCommand::_setPlayerSpawnPointAtPosition(CommandContext<ServerComma
         dimensionId = world->dimension();
     }
 
-    const auto& pos = context.getArgument<Vector3d>("pos");
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
     BlockPos spawnPos(static_cast<BlockCoord>(std::floor(pos.x)),
         static_cast<BlockCoord>(std::floor(pos.y)),
         static_cast<BlockCoord>(std::floor(pos.z)));

@@ -288,7 +288,7 @@ public:
      * @brief 判断物品是否是可食用的食物
      *
      * 判断物品是否同时满足食物条件（用于狐狸食用逻辑）。
-     * 与 isBreedingItem 不同，isBreedingItem 只检查甜浆果，
+     * 与 isBreedingItem 不同，isBreedingItem 只检查甜浆果和发光浆果，
      * 而 isConsumableFood 检查更通用的食物属性。
      *
      * @param stack 物品堆

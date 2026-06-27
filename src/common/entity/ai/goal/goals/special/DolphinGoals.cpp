@@ -33,6 +33,7 @@
 #include "../../../../../entity/utils/ItemDropHelper.hpp"
 #include "../../../../../item/core/ItemStack.hpp"
 #include "../../../../../network/packet/EntityPackets.hpp"
+#include "../../../../../resource/ResourceLocation.hpp"
 #include "../../../../../util/Direction.hpp"
 #include "../../../../../util/math/MathUtils.hpp"
 #include "../../../../../util/math/random/Random.hpp"
@@ -40,7 +41,6 @@
 #include "../../../../../world/block/Block.hpp"
 #include "../../../../../world/fluid/Fluid.hpp"
 #include "../../../../../world/fluid/FluidTags.hpp"
-#include "../../../../../world/gen/structure/Structure.hpp"
 #include "../../../util/RandomPositionGenerator.hpp"
 #include <algorithm>
 #include <cmath>
@@ -383,10 +383,9 @@ std::optional<BlockPos> SwimToTreasureGoal::_findStructure(i32 structureType) co
     }
 
     // 海豚寻找沉船或海底废墟
-    // structureType: 0 = 沉船 (Shipwreck), 1 = 海底废墟 (Ocean Ruin)
-    using namespace world::gen::structure;
-
-    StructureType type = (structureType == 0) ? StructureType::Shipwreck : StructureType::OceanRuin;
+    // structureType: 0 = 沉船 (minecraft:shipwreck), 1 = 海底废墟 (minecraft:ocean_ruin_cold)
+    ResourceLocation structureId = (structureType == 0) ? ResourceLocation("minecraft", "shipwreck")
+                                                        : ResourceLocation("minecraft", "ocean_ruin_cold");
 
     // 获取海豚的方块位置
     Vector3 pos = m_dolphin->position();
@@ -394,7 +393,7 @@ std::optional<BlockPos> SwimToTreasureGoal::_findStructure(i32 structureType) co
         static_cast<i32>(std::floor(pos.x)), static_cast<i32>(std::floor(pos.y)), static_cast<i32>(std::floor(pos.z)));
 
     // 使用世界 API 查找最近的结构
-    return world->findNearestStructure(dolphinPos, type, m_searchRadius, false);
+    return world->findNearestStructure(dolphinPos, structureId, m_searchRadius, false);
 }
 
 // ============================================================================

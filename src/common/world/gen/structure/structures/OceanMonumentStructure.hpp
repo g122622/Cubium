@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/structure/Structure.hpp"
 #include "common/world/gen/structure/structures/OceanMonumentPieces.hpp"
@@ -49,15 +50,13 @@ public:
     OceanMonumentStructure();
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     /**
-     * @brief 海洋纪念碑使用非均匀间距分布
+     * @brief 获取结构关联的生物群系标签
      *
-     * 使用两次随机平均值作为偏移，产生更集中的分布。
+     * 返回 minecraft:has_structure/monument 标签，用于 O(1) 生物群系查找。
      */
-    [[nodiscard]] bool useUniformSpacing() const override { return false; }
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 海洋纪念碑的生成覆盖
@@ -79,12 +78,8 @@ public:
         IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    void _initializeBiomes();
-
-    static constexpr StructureSeparationSettings m_settings{32, 5, 10387313};
     static const std::string m_name;
     static const SpawnOverrides m_spawnOverrides;
-    std::vector<BiomeId> m_validBiomes;
 };
 
 } // namespace structure

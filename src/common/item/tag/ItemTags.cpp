@@ -110,11 +110,34 @@ ItemTag& ItemTags::FIRE_RESISTANT()
     return *tag;
 }
 
+ItemTag& ItemTags::DECORATED_POT_SHERDS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "decorated_pot_sherds"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::DECORATED_POT_INGREDIENTS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "decorated_pot_ingredients"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
         return;
     }
+
+    // TODO: 当前所有物品标签的成员列表均为硬编码注册，与 MC 原版通过数据包
+    // （minecraft/tags/items/ 下的 JSON 文件）定义标签的方式不一致。待数据包
+    // 加载系统完善后，应改为从数据包动态加载标签成员列表，仅在数据包不可用时
+    // 回退到硬编码默认值。
 
     auto& allTags = tags();
 
@@ -246,6 +269,78 @@ void ItemTags::initialize()
     fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_horse_armor")));
 
     allTags[fireResistant->getId()] = std::move(fireResistant);
+
+    // 创建 DECORATED_POT_SHERDS 标签
+    // 包含所有陶片物品（1.20 考古学陶片 + 1.21 试炼密室陶片）
+    // 对应 MC 原版标签 minecraft:decorated_pot_sherds
+    auto sherds = std::make_unique<ItemTag>(ResourceLocation("minecraft", "decorated_pot_sherds"));
+
+    // 1.20 考古学陶片（20种）
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "angler_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "archer_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "arms_up_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blade_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brewer_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "burn_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "danger_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "explorer_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "friend_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "heart_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "heartbreak_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "howl_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "miner_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mourner_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "plenty_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "prize_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "sheaf_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "shelter_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "skull_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "snort_pottery_sherd")));
+
+    // 1.21 试炼密室陶片（3种）
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "flow_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "guster_pottery_sherd")));
+    sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "scrape_pottery_sherd")));
+
+    allTags[sherds->getId()] = std::move(sherds);
+
+    // 创建 DECORATED_POT_INGREDIENTS 标签
+    // 包含所有陶片 + 砖块，用于饰纹陶罐合成配方
+    // 对应 MC 原版标签 minecraft:decorated_pot_ingredients
+    auto ingredients = std::make_unique<ItemTag>(ResourceLocation("minecraft", "decorated_pot_ingredients"));
+
+    // 砖块（作为空白面使用）
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brick")));
+
+    // 所有陶片（复用 sherds 标签的内容）
+    // 1.20 考古学陶片
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "angler_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "archer_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "arms_up_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blade_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brewer_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "burn_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "danger_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "explorer_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "friend_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "heart_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "heartbreak_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "howl_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "miner_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mourner_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "plenty_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "prize_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "sheaf_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "shelter_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "skull_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "snort_pottery_sherd")));
+
+    // 1.21 试炼密室陶片
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "flow_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "guster_pottery_sherd")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "scrape_pottery_sherd")));
+
+    allTags[ingredients->getId()] = std::move(ingredients);
 
     s_initialized = true;
 }

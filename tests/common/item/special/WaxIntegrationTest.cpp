@@ -22,7 +22,9 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/core/Constants.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
@@ -38,7 +40,10 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/blocks/SignBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gamerule/GameRules.hpp"
@@ -100,6 +105,27 @@ public:
         m_sounds.push_back({sound, category, pos, volume, pitch});
     }
 
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
+    }
+
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
+    }
+
+    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    {
+        if (entity != nullptr) {
+            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+        } else {
+            m_blockEntities.erase(pos);
+        }
+    }
+
     [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
     {
         (void)entity;
@@ -147,6 +173,7 @@ public:
 private:
     // 存储 BlockState 副本，避免悬空指针问题
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
     std::vector<EventRecord> m_events;
     std::vector<SoundRecord> m_sounds;
     EntityId m_lastEntityId = 0;
@@ -653,6 +680,244 @@ TEST_F(WaxIntegrationTest, ScrapeThenScrape_MultipleScrapingSteps)
     ItemStack axeStack4(&axe, 1);
     ItemUseContext context4(m_world, nullptr, axeStack4, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
     EXPECT_EQ(axe.onItemUse(context4), ActionResultType::Pass);
+}
+
+// ============================================================================
+// HoneycombItem 告示牌涂蜡集成测试
+// ============================================================================
+
+TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxesSignEntity)
+{
+    // 在 (0, 64, 0) 放置告示牌并创建 SignEntity
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
+    auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(0, 64, 0));
+    signEntity->setLineFromLegacy(0, "Hello World");
+    blockentity::SignEntity* signPtr = signEntity.get();
+    m_world.setBlockEntity(BlockPos(0, 64, 0), signEntity.release());
+
+    // 使用蜜脾
+    ItemStack honeycombStack(Items::HONEYCOMB, 1);
+    ItemUseContext context(
+        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = Items::HONEYCOMB->onItemUse(context);
+
+    // 应该成功
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // SignEntity 应被涂蜡
+    ASSERT_NE(signPtr, nullptr);
+    EXPECT_TRUE(signPtr->isWaxed());
+
+    // 应触发 WAX_ON 世界事件
+    ASSERT_EQ(m_world.events().size(), 1u);
+    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_ON);
+    EXPECT_EQ(m_world.events()[0].pos, BlockPos(0, 64, 0));
+}
+
+TEST_F(WaxIntegrationTest, HoneycombOnItemUse_SignAlreadyWaxed_ReturnsPass)
+{
+    // 在 (0, 64, 0) 放置告示牌并创建已涂蜡的 SignEntity
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
+    auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(0, 64, 0));
+    signEntity->setWaxed(true);
+    m_world.setBlockEntity(BlockPos(0, 64, 0), signEntity.release());
+
+    // 使用蜜脾
+    ItemStack honeycombStack(Items::HONEYCOMB, 1);
+    ItemUseContext context(
+        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = Items::HONEYCOMB->onItemUse(context);
+
+    // 已涂蜡的告示牌应返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+
+    // 不应触发任何事件
+    EXPECT_TRUE(m_world.events().empty());
+}
+
+TEST_F(WaxIntegrationTest, HoneycombOnItemUse_SignWithoutBlockEntity_ReturnsPass)
+{
+    // 在 (0, 64, 0) 放置告示牌但不创建 SignEntity
+    m_world.setBlockState(0, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
+
+    // 使用蜜脾
+    ItemStack honeycombStack(Items::HONEYCOMB, 1);
+    ItemUseContext context(
+        m_world, nullptr, honeycombStack, Vector3(0.5f, 64.5f, 0.5f), BlockPos(0, 64, 0), Direction::Up);
+
+    ActionResultType result = Items::HONEYCOMB->onItemUse(context);
+
+    // 没有 BlockEntity，应跳过告示牌涂蜡，尝试铜块涂蜡
+    // 告示牌不是铜块，应返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+}
+
+TEST_F(WaxIntegrationTest, HoneycombOnItemUse_WaxedSignPreventsTextModification)
+{
+    // 创建并涂蜡 SignEntity
+    auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(0, 64, 0));
+    signEntity->setLineFromLegacy(0, "Original");
+    signEntity->setWaxed(true);
+    m_world.setBlockEntity(BlockPos(0, 64, 0), signEntity.release());
+
+    // 获取 SignEntity 指针
+    BlockEntity* be = m_world.getBlockEntity(BlockPos(0, 64, 0));
+    ASSERT_NE(be, nullptr);
+    auto* sign = static_cast<blockentity::SignEntity*>(be);
+
+    // 涂蜡后不应允许修改文字
+    EXPECT_FALSE(sign->setLineFromLegacy(0, "Modified"));
+    EXPECT_EQ(sign->getLineText(0), "Original");
+
+    EXPECT_FALSE(sign->setLine(0, std::make_unique<text::StringTextComponent>("New")));
+    EXPECT_EQ(sign->getLineText(0), "Original");
+
+    sign->clearLines();
+    EXPECT_EQ(sign->getLineText(0), "Original");
+}
+
+// ============================================================================
+// AbstractSignBlock::onBlockActivated 蜜脾涂蜡集成测试
+// ============================================================================
+
+TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_WaxesSignWithHoneycomb)
+{
+    // 在 (1, 64, 0) 放置告示牌并创建 SignEntity
+    m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
+    auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(1, 64, 0));
+    blockentity::SignEntity* signPtr = signEntity.get();
+    m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
+
+    // 设置告示牌文本
+    signPtr->setLineFromLegacy(0, "Hello");
+
+    // 创建玩家并设置手持蜜脾
+    Player player(EntityId(1), "TestPlayer");
+    player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
+
+    // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
+    const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
+    BlockRaycastResult hit;
+    ActionResultType result =
+        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+
+    // 应该成功
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // SignEntity 应被涂蜡
+    EXPECT_TRUE(signPtr->isWaxed());
+
+    // 应触发 WAX_ON 世界事件
+    ASSERT_EQ(m_world.events().size(), 1u);
+    EXPECT_EQ(m_world.events()[0].eventId, world::WorldEvents::WAX_ON);
+    EXPECT_EQ(m_world.events()[0].pos, BlockPos(1, 64, 0));
+
+    // 非创造模式下应消耗一个蜜脾
+    ItemStack& heldItem = player.inventory().getSelectedStackRef();
+    EXPECT_EQ(heldItem.getCount(), 4);
+}
+
+TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_CreativeModeDoesNotConsumeHoneycomb)
+{
+    // 在 (1, 64, 0) 放置告示牌并创建 SignEntity
+    m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
+    auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(1, 64, 0));
+    m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
+
+    // 创建创造模式玩家并设置手持蜜脾
+    Player player(EntityId(1), "TestPlayer");
+    player.abilities().creativeMode = true;
+    player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
+
+    // 调用 onBlockActivated
+    const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
+    BlockRaycastResult hit;
+    ActionResultType result =
+        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+
+    // 应该成功
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 创造模式下不应消耗蜜脾
+    ItemStack& heldItem = player.inventory().getSelectedStackRef();
+    EXPECT_EQ(heldItem.getCount(), 5);
+}
+
+TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_AlreadyWaxedReturnsConsume)
+{
+    // 在 (1, 64, 0) 放置告示牌并创建已涂蜡的 SignEntity
+    m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
+    auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(1, 64, 0));
+    signEntity->setWaxed(true);
+    m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
+
+    // 创建玩家并设置手持蜜脾
+    Player player(EntityId(1), "TestPlayer");
+    player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
+
+    // 调用 onBlockActivated
+    const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
+    BlockRaycastResult hit;
+    ActionResultType result =
+        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+
+    // 已涂蜡告示牌应返回 Consume（防止蜜脾被放置）
+    EXPECT_EQ(result, ActionResultType::Consume);
+
+    // 不应消耗蜜脾
+    ItemStack& heldItem = player.inventory().getSelectedStackRef();
+    EXPECT_EQ(heldItem.getCount(), 5);
+
+    // 不应触发事件
+    EXPECT_TRUE(m_world.events().empty());
+}
+
+TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NoBlockEntityReturnsPass)
+{
+    // 在 (1, 64, 0) 放置告示牌但不创建 SignEntity
+    m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
+
+    // 创建玩家并设置手持蜜脾
+    Player player(EntityId(1), "TestPlayer");
+    player.inventory().getSelectedStackRef() = ItemStack(Items::HONEYCOMB, 5);
+
+    // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
+    const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
+    BlockRaycastResult hit;
+    ActionResultType result =
+        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+
+    // 没有 BlockEntity，应返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+
+    // 不应消耗蜜脾
+    ItemStack& heldItem = player.inventory().getSelectedStackRef();
+    EXPECT_EQ(heldItem.getCount(), 5);
+}
+
+TEST_F(WaxIntegrationTest, SignBlock_OnBlockActivated_NonHoneycombItemExecutesCommand)
+{
+    // 在 (1, 64, 0) 放置告示牌并创建 SignEntity
+    m_world.setBlockState(1, 64, 0, &VanillaBlocks::OAK_SIGN->defaultState());
+    auto signEntity = std::make_unique<blockentity::SignEntity>(BlockPos(1, 64, 0));
+    m_world.setBlockEntity(BlockPos(1, 64, 0), signEntity.release());
+
+    // 创建玩家但不手持蜜脾（空手）
+    Player player(EntityId(1), "TestPlayer");
+
+    // 调用 onBlockActivated（直接使用方块指针，因为 onBlockActivated 不是 const 方法）
+    const BlockState& state = VanillaBlocks::OAK_SIGN->defaultState();
+    BlockRaycastResult hit;
+    ActionResultType result =
+        VanillaBlocks::OAK_SIGN->onBlockActivated(state, m_world, BlockPos(1, 64, 0), player, Hand::MainHand, hit);
+
+    // 空手交互告示牌应返回 Success（执行命令交互）
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 不应触发 WAX_ON 事件
+    EXPECT_TRUE(m_world.events().empty());
 }
 
 } // namespace

@@ -47,6 +47,7 @@
 #include "common/entity/ai/goal/goals/villager/WorkAtJobSiteGoal.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityPose.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/passive/horse/TraderLlamaEntity.hpp"
@@ -132,8 +133,7 @@ void VillagerEntity::tick()
         m_soundCooldown--;
     }
 
-    // 突袭恐慌流汗粒子效果
-    // MC原版 Villager.customServerAiStep: 每 tick 有 1/100 概率检查是否在活跃突袭中，
+    // 突袭恐慌流汗粒子效果：每 tick 有 1/100 概率检查是否在活跃突袭中，
     // 如果是则广播 VillagerSplash (42) 粒子效果
     if (m_world && getRandom().nextInt(100) == 0) {
         auto* raidManager = m_world->raidManager();
@@ -182,9 +182,78 @@ void VillagerEntity::tick()
     // - Schedule 系统在 2000 ticks 时自动切换到 WORK 活动
 }
 
+void VillagerEntity::die(DamageSource& cause)
+{
+    // 死亡时释放所有占用的POI（床位、工作站、聚集点）并通知村庄管理器离开
+    releaseAllPois();
+
+    // 如果被玩家杀死，向村庄添加 MajorNegative 流言
+    if (m_world) {
+        Entity* sourceEntity = cause.getEntity();
+        Player* killer = dynamic_cast<Player*>(sourceEntity);
+        if (killer != nullptr) {
+            auto* villageManager = m_world->villageManager();
+            if (villageManager != nullptr) {
+                world::village::Village* village = villageManager->getVillageAt(
+                    BlockPos(static_cast<i32>(x()), static_cast<i32>(y()), static_cast<i32>(z())));
+                if (village != nullptr) {
+                    village->addGossip(killer->playerId(), world::village::VillageGossipType::MajorNegative, 25);
+                }
+            }
+        }
+    }
+
+    // 调用父类 die() 处理通用死亡逻辑
+    AbstractVillagerEntity::die(cause);
+}
+
+void VillagerEntity::remove()
+{
+    // 村民被移除时释放POI并通知村庄。村民不会因距离远而消失，
+    // 但当确实被移除时（死亡动画结束、区块卸载等）需要清理POI占用。
+
+    releaseAllPois();
+
+    // 调用父类 remove()
+    AbstractVillagerEntity::remove();
+}
+
+void VillagerEntity::releaseAllPois()
+{
+    // 防止 die() 和 remove() 双重释放
+    // 死亡流程：die() -> releaseAllPois() -> ... -> tickDeath() -> remove() -> releaseAllPois()
+    // 第二次调用时 POI 已释放，此处提前返回避免冗余操作
+    if (m_poisReleased) {
+        return;
+    }
+    m_poisReleased = true;
+
+    if (!m_world) {
+        return;
+    }
+
+    auto* villageManager = m_world->villageManager();
+    if (villageManager == nullptr) {
+        return;
+    }
+
+    const auto villagerId = static_cast<u64>(id());
+
+    // 释放该村民占用的所有POI（床位、工作站等）
+    villageManager->getPOIStorage().releaseAllByOwner(villagerId);
+
+    // 通知村庄管理器该村民已离开村庄
+    villageManager->onVillagerLeave(villagerId);
+
+    // 清除睡眠状态（如果正在睡眠）
+    if (isSleeping()) {
+        stopSleeping();
+    }
+}
+
 void VillagerEntity::setLastHurtBy(LivingEntity* attacker)
 {
-    // MC原版 Villager.setLastHurtByMob: 当被玩家攻击时，广播愤怒粒子效果并触发声望事件
+    // 当被玩家攻击时，广播愤怒粒子效果并触发声望事件
     if (attacker != nullptr && m_world && attacker != this) {
         Player* player = dynamic_cast<Player*>(attacker);
 
@@ -1087,10 +1156,17 @@ void WanderingTraderEntity::spawnLlamas()
         llama->setPosition(spawnX, spawnY, spawnZ);
         llama->setDespawnDelay(m_despawnDelay - 1); // 羊驼比商人早消失1 tick
 
-        // TODO: 当拴绳系统实现后，将羊驼拴在商人身上
-        // llama->attachToEntity(this, ...);
-
-        m_world->spawnEntity(std::move(llama));
+        // 生成羊驼并在生成后将拴绳绑定到流浪商人
+        // 注意：setLeashedToEntity 需要实体已拥有有效的 UUID，
+        // 因此拴绳绑定必须在 spawnEntity() 之后执行
+        EntityId llamaId = m_world->spawnEntity(std::move(llama));
+        Entity* spawnedLlama = m_world->getEntity(llamaId);
+        if (spawnedLlama != nullptr) {
+            auto* traderLlama = dynamic_cast<TraderLlamaEntity*>(spawnedLlama);
+            if (traderLlama != nullptr) {
+                traderLlama->setLeashedToEntity(uuid());
+            }
+        }
     }
 
     m_hasLlamas = true;

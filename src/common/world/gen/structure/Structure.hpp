@@ -86,48 +86,6 @@ namespace world::gen::structure {
 // Direction.hpp 中已定义 Direction, Axis, Rotation, Mirror, Directions 等
 
 /**
- * @brief 结构类型枚举（兼容旧代码）
- *
- * TODO: 所有子类迁移到 ResourceLocation 后删除此枚举。
- * 新代码应使用 Structure(ResourceLocation) 构造函数。
- */
-enum class StructureType : u8 {
-    Temple,          ///< 已废弃：子类已迁移到独立 ResourceLocation，仅保留用于 nameToStructureType 向后兼容
-    Monument,        ///< 海洋纪念碑
-    Stronghold,      ///< 要塞
-    Village,         ///< 村庄
-    Mineshaft,       ///< 废弃矿井
-    RuinedPortal,    ///< 废弃传送门
-    BuriedTreasure,  ///< 埋藏宝藏
-    Shipwreck,       ///< 沉船
-    OceanRuin,       ///< 海洋废墟
-    WoodlandMansion, ///< 林地府邸
-    Bastion,         ///< 堡垒遗迹
-    Fortress,        ///< 下界要塞
-    EndCity,         ///< 末地城
-    PillagerOutpost, ///< 掠夺者前哨站
-    TrialChambers    ///< 试炼密室
-};
-
-/**
- * @brief 结构间距设置（兼容旧代码）
- *
- * TODO: 所有子类迁移到 StructurePlacement 后删除此结构。
- * 新代码应使用 placement::RandomSpreadStructurePlacement 或 placement::ConcentricRingsStructurePlacement。
- */
-struct StructureSeparationSettings {
-    i32 spacing;    ///< 平均间距（区块）
-    i32 separation; ///< 最小间距（区块）
-    i32 salt;       ///< 随机种子盐
-
-    constexpr StructureSeparationSettings(i32 s = 1, i32 sep = 0, i32 st = 0)
-        : spacing(s)
-        , separation(sep)
-        , salt(st)
-    {}
-};
-
-/**
  * @brief 生物生成覆盖类型
  *
  * 控制结构内生物生成时使用的边界框类型。
@@ -480,6 +438,39 @@ public:
     void replaceAirAndLiquidDownwards(
         IWorld& world, const BlockState* state, i32 x, i32 y, i32 z, const StructureBoundingBox& bounds);
 
+    /**
+     * @brief 放置末地传送门框架方块环
+     *
+     * 在要塞末地传送门房间中放置 12 个末地传送门框架方块。
+     * 框架围绕中心位置形成 5×5 的环形（四边各 3 个，不含角落），
+     * 凸起朝外（背离传送门中心），与 MC Java 的
+     * EndPortalFrameBlock.getOrCreatePortalShape() 图案一致：
+     *   ? v v v ?      v = FACING=NORTH（北边框架，z = centerZ - 2）
+     *   > P P P <      > = FACING=WEST（西边框架，x = centerX - 2）
+     *   > P P P <      P = 末地传送门方块（3×3 内部区域，centerX/Z ± 1）
+     *   > P P P <      < = FACING=EAST（东边框架，x = centerX + 2）
+     *   ? ^ ^ ^ ?      ^ = FACING=SOUTH（南边框架，z = centerZ + 2）
+     *   ? = 角落，不放置方块
+     *
+     * 使用结构局部坐标和 bounding box 裁剪，与 StructurePiece::setBlockState()
+     * 行为一致（自动应用坐标变换、镜像和旋转）。
+     *
+     * @param world 世界写入接口
+     * @param bounds 结构边界框（用于区块裁剪）
+     * @param centerX 传送门框架中心 X 坐标（局部坐标）
+     * @param y 传送门框架 Y 坐标（局部坐标）
+     * @param centerZ 传送门框架中心 Z 坐标（局部坐标）
+     * @param eyeStates 12 个末影之眼状态数组，true 表示该框架有眼
+     * @param allEyesFilled 是否所有框架都有眼（为 true 时在内部 3×3 区域放置末地传送门方块）
+     */
+    void placeEndPortalFrames(IWorldWriter& world,
+        const StructureBoundingBox& bounds,
+        i32 centerX,
+        i32 y,
+        i32 centerZ,
+        const bool eyeStates[12],
+        bool allEyesFilled);
+
     // ========== 结构构建方法 ==========
 
     /**
@@ -762,19 +753,6 @@ protected:
     {}
 
     /**
-     * @brief 兼容旧代码的构造函数
-     *
-     * TODO: 所有子类迁移到 ResourceLocation 构造函数后删除。
-     * 将 StructureType 转换为 ResourceLocation。
-     *
-     * @param type 结构类型枚举
-     */
-    explicit Structure(StructureType type)
-        : m_id(typeToId(type))
-        , m_legacyType(type)
-    {}
-
-    /**
      * @brief 创建结构随机数生成器
      *
      * 使用世界种子、区块坐标和盐值生成确定性的随机数序列。
@@ -787,82 +765,7 @@ protected:
      */
     [[nodiscard]] static math::Random createRandom(i64 seed, i32 chunkX, i32 chunkZ, i32 salt);
 
-    ResourceLocation m_id;                                        ///< 结构资源位置 ID
-    StructureType m_legacyType = static_cast<StructureType>(255); ///< 兼容旧代码的结构类型（无效值标记）
-
-public:
-    // ========== 兼容旧代码接口 ==========
-    // TODO: 所有子类迁移完成后删除以下方法
-
-    /**
-     * @brief 将 StructureType 转换为 ResourceLocation
-     *
-     * TODO: 所有子类迁移后删除。
-     */
-    [[nodiscard]] static ResourceLocation typeToId(StructureType type);
-
-    /**
-     * @brief 将结构名称字符串转换为 StructureType 枚举
-     *
-     * 支持带或不带 "minecraft:" 前缀的名称，以及常见别名
-     * （如 "mansion" -> WoodlandMansion, "nether_fortress" -> Fortress）。
-     *
-     * @param name 结构名称字符串
-     * @return 对应的 StructureType，未匹配时返回 std::nullopt
-     */
-    [[nodiscard]] static std::optional<StructureType> nameToStructureType(std::string_view name);
-
-    /**
-     * @brief 获取结构类型枚举（兼容旧代码）
-     *
-     * TODO: 迁移完成后删除，使用 id() 替代。
-     */
-    [[nodiscard]] StructureType structureType() const noexcept { return m_legacyType; }
-
-    /**
-     * @brief 获取结构间距设置（兼容旧代码）
-     *
-     * TODO: 迁移完成后删除，间距设置现在由 StructurePlacement 管理。
-     * 子类仍需覆盖此方法直到迁移完成。
-     */
-    [[nodiscard]] virtual StructureSeparationSettings separationSettings() const
-    {
-        return StructureSeparationSettings{};
-    }
-
-    /**
-     * @brief 获取有效生物群系列表（兼容旧代码）
-     *
-     * TODO: 迁移完成后删除，使用 biomeTag() 替代。
-     * 子类仍需覆盖此方法直到迁移完成。
-     */
-    [[nodiscard]] virtual const std::vector<BiomeId>& validBiomes() const
-    {
-        static const std::vector<BiomeId> empty;
-        return empty;
-    }
-
-    /**
-     * @brief 是否使用均匀间距分布（兼容旧代码）
-     *
-     * TODO: 迁移完成后删除，分布类型现在由 RandomSpreadStructurePlacement 管理。
-     */
-    [[nodiscard]] virtual bool useUniformSpacing() const { return true; }
-
-    /**
-     * @brief 查找结构起始位置（兼容旧代码）
-     *
-     * TODO: 迁移完成后删除，放置逻辑现在由 StructurePlacement::isStructureChunk() 管理。
-     */
-    [[nodiscard]] static bool findStructureStart(i64 seed,
-        i32 chunkX,
-        i32 chunkZ,
-        const StructureSeparationSettings& settings,
-        i32& outStartX,
-        i32& outStartZ,
-        bool useUniformSpacing = true);
-
-protected:
+    ResourceLocation m_id; ///< 结构资源位置 ID
 };
 
 // 片段类型常量

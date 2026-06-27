@@ -135,6 +135,11 @@ public:
 
     /**
      * @brief 是否应该溺水转化
+     *
+     * 僵尸和尸壳返回 true（在水中会转化为溺尸），
+     * 僵尸村民和溺尸返回 false。
+     * 注意：此方法仅用于溺水转化逻辑，不用于增援生成检查。
+     * 增援生成中的液体检查使用 canSpawnInLiquids()。
      */
     [[nodiscard]] virtual bool shouldDrown() const { return true; }
 
@@ -315,10 +320,14 @@ private:
      * 对应 MC 1.21.11 Zombie.hurtServer() 中的增援生成逻辑：
      * 1. 在 50 次尝试内随机选择有效生成位置
      * 2. 位置范围：距离 [7, 40] 方块，各轴独立随机正负
-     * 3. 验证：生成位置检测、附近无存活玩家、无实体碰撞、无液体
-     * 4. 生成同类型僵尸，设置攻击目标，调用 finalizeSpawn
-     * 5. 召唤者获得 reinforcement_caller_charge 修饰符 (-0.05)
-     * 6. 被召唤者获得 reinforcement_callee_charge 修饰符 (-0.05)
+     * 3. 验证：使用 EntitySpawnPlacementRegistry 检查生成位置有效性
+     *    （对应 MC 的 SpawnPlacements.isSpawnPositionOk + checkSpawnRules）
+     * 4. 附近无存活玩家（7格内）
+     * 5. 无实体碰撞、无方块碰撞
+     * 6. 不在液体中（溺尸除外，使用 canSpawnInLiquids() 判断）
+     * 7. 生成同类型僵尸，设置攻击目标，调用 finalizeSpawn
+     * 8. 召唤者获得 reinforcement_caller_charge 修饰符 (-0.05)
+     * 9. 被召唤者获得 reinforcement_callee_charge 修饰符 (-0.05)
      *
      * @param world 世界引用
      * @param target 增援僵尸的攻击目标

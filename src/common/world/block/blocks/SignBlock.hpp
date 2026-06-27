@@ -27,6 +27,7 @@
 #include "../../../core/Types.hpp"
 #include "../../../item/core/ActionResult.hpp"
 #include "../../../physics/collision/CollisionShape.hpp"
+#include "../../../resource/ResourceLocation.hpp"
 #include "../../../util/property/Properties.hpp"
 #include "../Block.hpp"
 #include "../IWaterLoggable.hpp"
@@ -145,6 +146,17 @@ public:
 protected:
     /// 木材类型
     WoodType m_woodType;
+
+    /**
+     * @brief 获取涂蜡告示牌交互失败的音效
+     *
+     * 普通告示牌返回 BLOCK_SIGN_WAXED_INTERACT_FAIL，
+     * 悬挂告示牌子类覆盖返回 BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL。
+     * 对应 MC Java 的 SignBlockEntity.getSignInteractionFailedSoundEvent()。
+     *
+     * @return 音效事件的资源定位符
+     */
+    [[nodiscard]] virtual const ResourceLocation& getWaxedInteractFailSound() const;
 };
 
 /**

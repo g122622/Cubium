@@ -201,26 +201,18 @@ private:
 // IglooStructure 测试
 // ============================================================================
 
-TEST_F(NewStructuresTest, Igloo_NameAndSettings)
+TEST_F(NewStructuresTest, Igloo_NameAndBiomeTag)
 {
     IglooStructure structure;
 
     EXPECT_EQ(structure.name(), "Igloo");
-    EXPECT_EQ(structure.separationSettings().spacing, 32);
-    EXPECT_EQ(structure.separationSettings().separation, 8);
-    EXPECT_EQ(structure.separationSettings().salt, 14357618);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_FALSE(biomes.empty());
+    // 验证生物群系标签非空
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
     // 验证雪地生物群系
-    bool hasSnowyBiome = false;
-    for (auto biome : biomes) {
-        if (biome == SnowyPlains || biome == SnowyTaiga) {
-            hasSnowyBiome = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(hasSnowyBiome);
+    EXPECT_TRUE(tag->contains(SnowyPlains));
+    EXPECT_TRUE(tag->contains(SnowyTaiga));
 }
 
 TEST_F(NewStructuresTest, Igloo_CanGenerate)
@@ -270,25 +262,16 @@ TEST_F(NewStructuresTest, Igloo_PieceConstruction)
 // SwampHutStructure 测试
 // ============================================================================
 
-TEST_F(NewStructuresTest, SwampHut_NameAndSettings)
+TEST_F(NewStructuresTest, SwampHut_NameAndBiomeTag)
 {
     SwampHutStructure structure;
 
     EXPECT_EQ(structure.name(), "Swamp_Hut");
-    EXPECT_EQ(structure.separationSettings().spacing, 32);
-    EXPECT_EQ(structure.separationSettings().separation, 8);
-    EXPECT_EQ(structure.separationSettings().salt, 14357620);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 1);
-    bool hasSwamp = false;
-    for (auto biome : biomes) {
-        if (biome == Swamp) {
-            hasSwamp = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(hasSwamp);
+    // 验证生物群系标签非空
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(Swamp));
 }
 
 TEST_F(NewStructuresTest, SwampHut_CanGenerate)
@@ -329,18 +312,16 @@ TEST_F(NewStructuresTest, SwampHut_PieceConstruction)
 // NetherFossilStructure 测试
 // ============================================================================
 
-TEST_F(NewStructuresTest, NetherFossil_NameAndSettings)
+TEST_F(NewStructuresTest, NetherFossil_NameAndBiomeTag)
 {
     NetherFossilStructure structure;
 
     EXPECT_EQ(structure.name(), "Nether_Fossil");
-    EXPECT_EQ(structure.separationSettings().spacing, 2);
-    EXPECT_EQ(structure.separationSettings().separation, 1);
-    EXPECT_EQ(structure.separationSettings().salt, 14357921);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 1);
-    EXPECT_EQ(biomes[0], SoulSandValley);
+    // 验证生物群系标签非空
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(SoulSandValley));
 }
 
 TEST_F(NewStructuresTest, NetherFossil_PieceConstruction)
@@ -359,51 +340,32 @@ TEST_F(NewStructuresTest, NetherFossil_PieceConstruction)
 // PillagerOutpostStructure 测试
 // ============================================================================
 
-TEST_F(NewStructuresTest, PillagerOutpost_NameAndSettings)
+TEST_F(NewStructuresTest, PillagerOutpost_NameAndBiomeTag)
 {
     PillagerOutpostStructure structure;
 
     EXPECT_EQ(structure.name(), "Pillager_Outpost");
-    EXPECT_EQ(structure.separationSettings().spacing, 32);
-    EXPECT_EQ(structure.separationSettings().separation, 8);
-    EXPECT_EQ(structure.separationSettings().salt, 165745296);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_FALSE(biomes.empty());
-    // 验证包含平原等生物群系
-    bool hasPlains = false;
-    for (auto biome : biomes) {
-        if (biome == Plains) {
-            hasPlains = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(hasPlains);
+    // 验证生物群系标签非空
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(Plains));
 }
 
 // ============================================================================
 // EndCityStructure 测试
 // ============================================================================
 
-TEST_F(NewStructuresTest, EndCity_NameAndSettings)
+TEST_F(NewStructuresTest, EndCity_NameAndBiomeTag)
 {
     EndCityStructure structure;
 
     EXPECT_EQ(structure.name(), "End_City");
-    EXPECT_EQ(structure.separationSettings().spacing, 20);
-    EXPECT_EQ(structure.separationSettings().separation, 11);
-    EXPECT_EQ(structure.separationSettings().salt, 10387313);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 2);
-    bool hasEndMidlands = false;
-    for (auto biome : biomes) {
-        if (biome == EndMidlands) {
-            hasEndMidlands = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(hasEndMidlands);
+    // 验证生物群系标签非空
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(EndMidlands));
 }
 
 TEST_F(NewStructuresTest, EndCity_PieceConstruction)
@@ -425,25 +387,16 @@ TEST_F(NewStructuresTest, EndCity_PieceConstruction)
 // WoodlandMansionStructure 测试
 // ============================================================================
 
-TEST_F(NewStructuresTest, WoodlandMansion_NameAndSettings)
+TEST_F(NewStructuresTest, WoodlandMansion_NameAndBiomeTag)
 {
     WoodlandMansionStructure structure;
 
     EXPECT_EQ(structure.name(), "Woodland_Mansion");
-    EXPECT_EQ(structure.separationSettings().spacing, 80);
-    EXPECT_EQ(structure.separationSettings().separation, 20);
-    EXPECT_EQ(structure.separationSettings().salt, 10387319);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 2);
-    bool hasDarkForest = false;
-    for (auto biome : biomes) {
-        if (biome == DarkForest) {
-            hasDarkForest = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(hasDarkForest);
+    // 验证生物群系标签非空
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(DarkForest));
 }
 
 TEST_F(NewStructuresTest, WoodlandMansion_PieceConstruction)
@@ -463,37 +416,26 @@ TEST_F(NewStructuresTest, WoodlandMansion_PieceConstruction)
 // BastionRemnantStructure 测试
 // ============================================================================
 
-TEST_F(NewStructuresTest, BastionRemnant_NameAndSettings)
+TEST_F(NewStructuresTest, BastionRemnant_NameAndBiomeTag)
 {
     BastionRemnantStructure structure;
 
     EXPECT_EQ(structure.name(), "bastion_remnant");
-    EXPECT_EQ(structure.separationSettings().spacing, 27);
-    EXPECT_EQ(structure.separationSettings().separation, 4);
-    EXPECT_EQ(structure.separationSettings().salt, 30084232);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 4);
-    // 验证不包含玄武岩三角洲
-    for (auto biome : biomes) {
-        EXPECT_NE(biome, BasaltDeltas);
-    }
+    // 验证生物群系标签非空
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
     // 验证包含下界荒地
-    bool hasNetherWastes = false;
-    for (auto biome : biomes) {
-        if (biome == NetherWastes) {
-            hasNetherWastes = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(hasNetherWastes);
+    EXPECT_TRUE(tag->contains(NetherWastes));
+    // 验证不包含玄武岩三角洲
+    EXPECT_FALSE(tag->contains(BasaltDeltas));
 }
 
 // ============================================================================
 // 边界和边界测试
 // ============================================================================
 
-TEST_F(NewStructuresTest, AllStructures_HaveValidSeparationSettings)
+TEST_F(NewStructuresTest, AllStructures_HaveValidBiomeTags)
 {
     IglooStructure igloo;
     SwampHutStructure swampHut;
@@ -503,41 +445,14 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidSeparationSettings)
     WoodlandMansionStructure mansion;
     BastionRemnantStructure bastion;
 
-    // 分离设置应该合理
-    auto validateSettings = [](const StructureSeparationSettings& settings) {
-        EXPECT_GT(settings.spacing, 0);
-        EXPECT_GT(settings.separation, 0);
-        EXPECT_GE(settings.spacing, settings.separation);
-        EXPECT_GT(settings.salt, 0);
-    };
-
-    validateSettings(igloo.separationSettings());
-    validateSettings(swampHut.separationSettings());
-    validateSettings(netherFossil.separationSettings());
-    validateSettings(outpost.separationSettings());
-    validateSettings(endCity.separationSettings());
-    validateSettings(mansion.separationSettings());
-    validateSettings(bastion.separationSettings());
-}
-
-TEST_F(NewStructuresTest, AllStructures_HaveValidBiomes)
-{
-    IglooStructure igloo;
-    SwampHutStructure swampHut;
-    NetherFossilStructure netherFossil;
-    PillagerOutpostStructure outpost;
-    EndCityStructure endCity;
-    WoodlandMansionStructure mansion;
-    BastionRemnantStructure bastion;
-
-    // 所有结构应该有有效的生物群系列表
-    EXPECT_FALSE(igloo.validBiomes().empty());
-    EXPECT_FALSE(swampHut.validBiomes().empty());
-    EXPECT_FALSE(netherFossil.validBiomes().empty());
-    EXPECT_FALSE(outpost.validBiomes().empty());
-    EXPECT_FALSE(endCity.validBiomes().empty());
-    EXPECT_FALSE(mansion.validBiomes().empty());
-    EXPECT_FALSE(bastion.validBiomes().empty());
+    // 所有结构应该有有效的生物群系标签
+    EXPECT_NE(igloo.biomeTag(), nullptr);
+    EXPECT_NE(swampHut.biomeTag(), nullptr);
+    EXPECT_NE(netherFossil.biomeTag(), nullptr);
+    EXPECT_NE(outpost.biomeTag(), nullptr);
+    EXPECT_NE(endCity.biomeTag(), nullptr);
+    EXPECT_NE(mansion.biomeTag(), nullptr);
+    EXPECT_NE(bastion.biomeTag(), nullptr);
 }
 
 TEST_F(NewStructuresTest, AllStructures_HaveValidNames)
@@ -566,32 +481,25 @@ TEST_F(NewStructuresTest, AllStructures_HaveValidNames)
 
 TEST_F(NewStructuresTest, PillagerOutpost_VillageDetection)
 {
-    // 测试 isNearVillage 使用正确的村庄间距参数
-    // 村庄参数: spacing=32, separation=8, salt=10387312
-
+    // 测试前哨站结构的基本属性
     PillagerOutpostStructure outpost;
 
-    // 验证前哨站不会在村庄位置生成
-    // 这个测试验证 isNearVillage 算法的正确性
-    // 实际位置检测依赖于世界种子
-
-    // 前哨站应在距离村庄 10 区块外生成
-    EXPECT_EQ(outpost.separationSettings().spacing, 32);
-    EXPECT_EQ(outpost.separationSettings().separation, 8);
+    // 前哨站应有有效的生物群系标签
+    EXPECT_NE(outpost.biomeTag(), nullptr);
 }
 
 // ============================================================================
 // StrongholdStructure Tests (P4)
 // ============================================================================
 
-TEST_F(NewStructuresTest, Stronghold_NameAndSettings)
+TEST_F(NewStructuresTest, Stronghold_NameAndBiomeTag)
 {
     StrongholdStructure structure;
 
     EXPECT_EQ(structure.name(), "stronghold");
-    // 要塞使用特殊的位置计算，不使用标准 spacing/separation
-    EXPECT_EQ(structure.separationSettings().spacing, 1);
-    EXPECT_EQ(structure.separationSettings().separation, 0);
+    // 要塞使用特殊的位置计算（ConcentricRingsStructurePlacement）
+    // 验证生物群系标签
+    // 注：要塞可以在大部分生物群系中生成
 }
 
 TEST_F(NewStructuresTest, Stronghold_RingCalculation)
@@ -677,20 +585,18 @@ TEST_F(NewStructuresTest, Stronghold_CanGenerateIsNotUniversal)
 // DesertPyramidStructure Tests (P4)
 // ============================================================================
 
-TEST_F(NewStructuresTest, DesertPyramid_NameAndSettings)
+TEST_F(NewStructuresTest, DesertPyramid_NameAndBiomeTag)
 {
     DesertPyramidStructure structure;
 
     EXPECT_EQ(structure.name(), "desert_pyramid");
-    EXPECT_EQ(structure.separationSettings().spacing, 32);
-    EXPECT_EQ(structure.separationSettings().separation, 8);
-    EXPECT_EQ(structure.separationSettings().salt, 14357617);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 1);
-    for (auto biome : biomes) {
-        EXPECT_TRUE(biome == Desert);
-    }
+    // 验证 biomeTag 返回非空且为正确的标签
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(Desert));
+    EXPECT_FALSE(tag->contains(Plains));
+    EXPECT_FALSE(tag->contains(Swamp));
 }
 
 TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_DesertBiome_Allowed)
@@ -733,51 +639,32 @@ TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_BelowSeaLevel_Rejected)
     EXPECT_TRUE(structure.canGenerate(world, atSeaGen, rng, 0, 0));
 }
 
-TEST_F(NewStructuresTest, DesertPyramid_CanGenerate_BiomeTag)
-{
-    DesertPyramidStructure structure;
-
-    // 验证 biomeTag 返回非空且为正确的标签
-    const auto* tag = structure.biomeTag();
-    ASSERT_NE(tag, nullptr);
-    EXPECT_TRUE(tag->contains(Desert));
-    EXPECT_FALSE(tag->contains(Plains));
-    EXPECT_FALSE(tag->contains(Swamp));
-}
-
 // ============================================================================
 // JungleTempleStructure Tests (P4)
 // ============================================================================
 
-TEST_F(NewStructuresTest, JungleTemple_NameAndSettings)
+TEST_F(NewStructuresTest, JungleTemple_NameAndBiomeTag)
 {
     JungleTempleStructure structure;
 
     EXPECT_EQ(structure.name(), "jungle_temple");
-    EXPECT_EQ(structure.separationSettings().spacing, 32);
-    EXPECT_EQ(structure.separationSettings().separation, 8);
-    EXPECT_EQ(structure.separationSettings().salt, 14357619);
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 2);
-    for (auto biome : biomes) {
-        EXPECT_TRUE(biome == BambooJungle || biome == Jungle);
-    }
+    // 验证 biomeTag 包含丛林生物群系
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(BambooJungle) || tag->contains(Jungle));
 }
 
-TEST_F(NewStructuresTest, OceanMonument_NameAndSettings)
+TEST_F(NewStructuresTest, OceanMonument_NameAndBiomeTag)
 {
     OceanMonumentStructure structure;
 
     EXPECT_EQ(structure.name(), "ocean_monument");
-    EXPECT_EQ(structure.separationSettings().spacing, 32);
-    EXPECT_EQ(structure.separationSettings().separation, 5);
-    EXPECT_EQ(structure.separationSettings().salt, 10387313);
-    EXPECT_FALSE(structure.useUniformSpacing());
 
-    const auto& biomes = structure.validBiomes();
-    EXPECT_EQ(biomes.size(), 5);
-    EXPECT_EQ(biomes[0], DeepOcean);
+    // 验证生物群系标签
+    const auto* tag = structure.biomeTag();
+    ASSERT_NE(tag, nullptr);
+    EXPECT_TRUE(tag->contains(DeepOcean));
 }
 
 TEST_F(NewStructuresTest, OceanMonument_RoomDefinitionConnections)

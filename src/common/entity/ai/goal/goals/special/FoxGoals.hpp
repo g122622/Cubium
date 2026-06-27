@@ -396,6 +396,36 @@ private:
     static constexpr f32 TRIGGER_CHANCE = 0.02f;  // 触发概率
 };
 
+/**
+ * @brief 狐狸卡在雪中目标
+ *
+ * 当狐狸扑击后落在雪方块上时，会进入卡住（faceplanted）状态。
+ * 此目标使狐狸在 40 tick（2 秒）内保持卡住状态，然后自动脱离。
+ *
+ * 对应 MC Java: Fox.FaceplantGoal
+ * 优先级: 1
+ * Mutex: MOVE, LOOK, JUMP（卡住期间禁止移动、观察和跳跃）
+ */
+class FoxStuckInSnowGoal : public Goal {
+public:
+    explicit FoxStuckInSnowGoal(FoxEntity* fox);
+
+    [[nodiscard]] bool shouldExecute() override;
+    [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
+    void tick() override;
+
+    [[nodiscard]] std::string getTypeName() const override { return "FoxStuckInSnowGoal"; }
+
+private:
+    FoxEntity* m_fox;
+    i32 m_countdown = 0;
+
+    /// 卡住持续时间（tick），对应 MC 的 adjustedTickDelay(40)
+    static constexpr i32 STUCK_DURATION = 40;
+};
+
 // ============================================================================
 // 狐狸目标选择器目标 (Target Selector)
 // ============================================================================

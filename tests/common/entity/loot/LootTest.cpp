@@ -1503,6 +1503,21 @@ TEST_F(LootTest, ExplorationMapFunction_DestinationStringConversion)
     EXPECT_FALSE(ExplorationMapFunction::destinationFromString("unknown").has_value());
 }
 
+TEST_F(LootTest, ExplorationMapFunction_DestinationToResourceLocation)
+{
+    // 验证 Destination 到 ResourceLocation 的映射
+    EXPECT_EQ(ResourceLocation("minecraft", "buried_treasure"),
+        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::BuriedTreasure));
+    EXPECT_EQ(ResourceLocation("minecraft", "mansion"),
+        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::Mansion));
+    EXPECT_EQ(ResourceLocation("minecraft", "monument"),
+        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::Monument));
+    EXPECT_EQ(ResourceLocation("minecraft", "shipwreck"),
+        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::Shipwreck));
+    EXPECT_EQ(ResourceLocation("minecraft", "ruined_portal"),
+        ExplorationMapFunction::destinationToResourceLocation(ExplorationMapFunction::Destination::RuinedPortal));
+}
+
 TEST_F(LootTest, SetStewEffectFunction_Creation)
 {
     SetStewEffectFunction func;

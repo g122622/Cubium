@@ -163,13 +163,10 @@ void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPr
         const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
         if (!structure) continue;
 
-        // 检查结构是否可以在此位置生成（生物群系检查等）
-        if (m_structureManager->shouldGenerateStructureStart(*structure, chunkX, chunkZ)) {
-            // 生成结构起点
-            auto start = structure->generate(*this, rng, chunkX, chunkZ);
-            if (start) {
-                chunk.addStructureStart(entry->structureId, std::move(start));
-            }
+        // 生成结构起点（间距和生物群系检查已由 StructurePlacement::isStructureChunk() 完成）
+        auto start = structure->generate(*this, rng, chunkX, chunkZ);
+        if (start) {
+            chunk.addStructureStart(entry->structureId, std::move(start));
         }
     }
 
@@ -462,15 +459,8 @@ bool FlatChunkGenerator::_hasBiomesForStructureSet(const world::gen::structure::
         const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
         if (!structure) continue;
 
-        // 使用结构的生物群系标签或有效生物群系列表检查兼容性
+        // 使用 isValidBiome() 检查兼容性（内部优先使用 biomeTag，回退到空列表检查）
         if (structure->isValidBiome(flatBiomeId)) {
-            return true;
-        }
-
-        // 如果结构的有效生物群系列表为空（未限制），也视为兼容
-        const auto& validBiomes = structure->validBiomes();
-        const auto* tag = structure->biomeTag();
-        if (!tag && validBiomes.empty()) {
             return true;
         }
     }

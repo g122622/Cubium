@@ -90,9 +90,12 @@ add_executable(mc_tests
     common/item/special/OnAStickItemTest.cpp
     # MusicDiscItem 音乐唱片测试（比较器信号、isMusicDisc、声音事件ID）
     common/item/special/MusicDiscItemTest.cpp
+    # PotterySherdItem / SmithingTemplateItem 测试（陶片图案映射、锻造模板类型、注册完整性）
+    common/item/special/PotterySherdAndSmithingTemplateTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp
+    common/item/food/FoodItemTest.cpp
     common/item/NewItemTest.cpp
     common/item/ItemCraftedByTest.cpp
     common/item/BlockItemNbtTest.cpp
@@ -183,6 +186,8 @@ add_executable(mc_tests
     # RavagerEntity 劫掠兽测试
     entity/RavagerEntityTest.cpp
     common/entity/entities/monster/ZombieVillagerEntityTest.cpp
+    # VillagerEntity die/remove/releaseAllPois 测试
+    common/entity/entities/villager/VillagerEntityTest.cpp
     # ZombieVillagerEntity 床和铁栏杆加速治愈测试
     entity/ZombieVillagerConversionTest.cpp
     # VillagerData 升级逻辑和交易经验球测试
@@ -216,6 +221,8 @@ add_executable(mc_tests
     common/entity/entities/misc/TNTEntityTest.cpp
     # FallingBlockEntity 落地放置方块、物品掉落、伤害实体测试
     common/entity/entities/misc/FallingBlockEntityTest.cpp
+    # OminousItemSpawnerEntity 不祥物品生成器测试
+    common/entity/entities/misc/OminousItemSpawnerEntityTest.cpp
     common/entity/entities/HangingEntityTest.cpp
     # EnderCrystalEntity 治愈末影龙测试
     common/entity/entities/effect/EnderCrystalHealTest.cpp
@@ -252,6 +259,8 @@ add_executable(mc_tests
     common/entity/damage/DamageSourceExplosionTest.cpp
     # 矿车 dropItem() 伤害源检测测试
     common/entity/entities/vehicle/MinecartDropItemTest.cpp
+    # 矿车 _checkRailState() 铁轨形状提取测试
+    common/entity/entities/vehicle/MinecartCheckRailStateTest.cpp
     # 船实体 getBoatItem() 和 dropItem() 测试
     common/entity/entities/vehicle/BoatEntityDropItemTest.cpp
     # 实体掉落 DO_ENTITY_DROPS 游戏规则测试
@@ -656,9 +665,11 @@ add_executable(mc_tests
     server/weather/WeatherManagerTest.cpp
     server/world/spawn/DespawnManagerTest.cpp
     server/command/CommandRegistryTest.cpp
+    server/command/LocateCommandTest.cpp
     server/command/SetBlockCommandTest.cpp
     server/command/CloneCommandTest.cpp
     server/command/GiveCommandTest.cpp
+    server/command/ReplaceItemCommandTest.cpp
     server/command/LootCommandTest.cpp
     server/command/WhitelistBanCommandTest.cpp
     server/command/PlayerResolverTest.cpp
@@ -705,6 +716,8 @@ add_executable(mc_tests
     client/renderer/entity/ArmorLayerVisibilityTest.cpp
     client/renderer/entity/LlamaModelTest.cpp
     client/renderer/entity/LlamaRendererTest.cpp
+    # Fullbright 渲染器 isFullbright() 测试
+    client/renderer/entity/FullbrightRendererTest.cpp
     # WitchModel 女巫模型测试
     client/renderer/entity/WitchModelTest.cpp
     client/renderer/entity/test_entity_renderer_manager.cpp
@@ -728,6 +741,7 @@ add_executable(mc_tests
     client/resource/test_resource_manager_cloud_texture.cpp
     network/EntityPacketsTest.cpp
     network/ParticlePacketTest.cpp
+    network/ParticlePacketVibrationTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
@@ -803,9 +817,11 @@ add_executable(mc_tests
     common/world/gen/structure/test_ocean_ruin_structure.cpp
     common/world/gen/structure/test_shipwreck_structure.cpp
     common/world/gen/structure/test_new_structures.cpp
+    common/world/gen/structure/test_mansion_grid.cpp
     common/world/gen/structure/test_structure_type_mapping.cpp
     common/world/gen/structure/StructureCheckTest.cpp
     common/world/gen/structure/StructurePieceChestDispenserTest.cpp
+    common/world/gen/structure/PlaceEndPortalFramesTest.cpp
     common/world/gen/structure/StrongholdPiecesTest.cpp
     common/world/gen/structure/TemplatedStructuresTest.cpp
     common/world/gen/jigsaw/test_jigsaw.cpp
@@ -1043,12 +1059,16 @@ add_executable(mc_tests
     client/renderer/particle/WhiteSmokeParticleTest.cpp
     client/renderer/particle/ParticleManagerTest.cpp
     client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
+    client/renderer/trident/particle/particles/special/VibrationSignalParticleTest.cpp
+    client/renderer/trident/particle/data/VibrationParticleDataTest.cpp
     # 粒子缩放测试
     client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
     # SpellParticle 颜色提取测试
     client/renderer/trident/particle/particles/effect/SpellParticleColorTest.cpp
     # DiggingParticle 测试
     client/renderer/trident/particle/particles/block/DiggingParticleTest.cpp
+    # DustPillarParticle 测试
+    client/renderer/trident/particle/particles/block/DustPillarParticleTest.cpp
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp
@@ -1070,6 +1090,7 @@ add_executable(mc_tests
     common/skin/test_skin_types.cpp
     common/skin/test_skin_cache.cpp
     common/skin/test_game_profile.cpp
+    common/skin/test_skin_metadata_parser.cpp
     common/skin/test_skin_packets.cpp
     common/skin/test_skin_manager.cpp
     # 富文本系统测试
@@ -1100,6 +1121,7 @@ add_executable(mc_tests
     server/scoreboard/ScoreCriteriaTest.cpp
     server/scoreboard/TeamTest.cpp
     server/scoreboard/ScoreboardPersistenceTest.cpp
+    server/scoreboard/ScoreboardDataManagerTest.cpp
     server/scoreboard/GetTeamTest.cpp
     # Boss 栏系统测试
     server/bossbar/BossBarTest.cpp
@@ -1169,6 +1191,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardDataManager.cpp
         # Boss 栏系统
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp
@@ -1384,6 +1407,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/SporeBlossomParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BasicParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BlockParticleData.cpp
@@ -1398,6 +1423,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/UnderwaterParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/CloudParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/DiggingParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/DustPillarParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FlameParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SmokeParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/WhiteSmokeParticle.cpp
@@ -1420,6 +1446,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/SplashParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/FishingParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/Feature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/FeatureSpread.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ConfiguredFeature.cpp
@@ -1976,6 +2004,7 @@ endif()
 add_executable(mc_command_tests
     common/BaseTestServer.cpp
     server/command/CommandRegistryTest.cpp
+    server/command/LocateCommandTest.cpp
     server/command/CommandStorageTest.cpp
     server/command/EntityDataAccessorEffectTest.cpp
     server/command/PlayerResolverTest.cpp
@@ -1986,6 +2015,7 @@ add_executable(mc_command_tests
     server/command/SpreadAlgorithmTest.cpp
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp
+    server/command/ReplaceItemCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
     common/command/arguments/FunctionArgumentTest.cpp
@@ -2143,6 +2173,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/criteria/TeamKillCriteria.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/network/ScoreboardPackets.cpp
         ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardSaveData.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/scoreboard/storage/ScoreboardDataManager.cpp
         # Boss 栏系统
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/BossInfo.cpp
         ${CMAKE_SOURCE_DIR}/src/server/bossbar/ServerBossInfo.cpp

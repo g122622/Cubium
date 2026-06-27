@@ -586,5 +586,29 @@ TEST_F(ZombieEntityTest, DoMobSpawningGameruleDisablesReinforcement)
     m_world->getGameRules().setBoolean(world::gamerule::GameRuleKeys::DO_MOB_SPAWNING, true);
 }
 
+// ============================================================================
+// DrownedEntity 特殊行为测试
+// ============================================================================
+
+TEST_F(ZombieEntityTest, DrownedShouldNotDrown)
+{
+    // 溺尸不应该触发溺水转化（已经是溺尸状态）
+    auto drowned = std::make_unique<DrownedEntity>(EntityId(100));
+    EXPECT_FALSE(drowned->shouldDrown());
+}
+
+TEST_F(ZombieEntityTest, DrownedCanSpawnInLiquids)
+{
+    // 溺尸可以在液体中生成（增援生成时允许在水中）
+    auto drowned = std::make_unique<DrownedEntity>(EntityId(101));
+    EXPECT_TRUE(drowned->canSpawnInLiquids());
+}
+
+TEST_F(ZombieEntityTest, ZombieCannotSpawnInLiquids)
+{
+    // 普通僵尸不能在液体中生成
+    EXPECT_FALSE(m_zombie->canSpawnInLiquids());
+}
+
 } // namespace
 } // namespace mc

@@ -12,13 +12,12 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- *
  */
 
 #pragma once
@@ -26,6 +25,10 @@
 #include "ArgumentType.hpp"
 #include "common/command/CommandContext.hpp"
 #include "common/command/StringReader.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
+#include "common/command/coordinates/LocalCoordinates.hpp"
+#include "common/command/coordinates/WorldCoordinate.hpp"
+#include "common/command/coordinates/WorldCoordinates.hpp"
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector2.hpp"
@@ -168,24 +171,45 @@ public:
     }
 };
 
+// ========== 坐标参数异常 ==========
+
+/**
+ * @brief 创建混合坐标类型异常
+ *
+ * 当在同一坐标中混合使用 ^ 和 ~ 或绝对坐标时抛出。
+ * MC Java 不允许混合局部坐标与世界坐标。
+ */
+inline CommandException createMixedCoordinateTypeError()
+{
+    return CommandException(
+        CommandErrorType::Unknown, "Mixed coordinate types: cannot mix ^ with ~ or absolute coordinates");
+}
+
 /**
  * @brief 方块位置参数类型
  *
  * 支持三种坐标格式：
  * - 绝对坐标：100 64 -200
- * - 相对坐标：~ ~ ~（~表示当前位置）
- * - 局部坐标：^ ^ ^（^表示相对于视线方向）
+ * - 相对坐标：~ ~ ~（~表示当前位置），~5 ~-2 ~10
+ * - 局部坐标：^ ^ ^（相对于视线方向），^1 ^2 ^3
+ *
+ * 返回 Coordinates::Ptr，调用方需要在执行时调用 getPosition(source) 获取最终坐标。
+ * 使用 getBlockPos(source) 获取取整后的方块坐标。
  */
-class BlockPosArgumentType : public ArgumentType<Vector3i> {
+class BlockPosArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
-    [[nodiscard]] Vector3i parse(StringReader& reader) override
+    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
     {
-        i32 x = _parseCoordinate(reader, 'x');
-        reader.skipWhitespace();
-        i32 y = _parseCoordinate(reader, 'y');
-        reader.skipWhitespace();
-        i32 z = _parseCoordinate(reader, 'z');
-        return Vector3i(x, y, z);
+        i32 start = reader.getCursor();
+
+        // 检查第一个字符判断坐标类型
+        if (reader.canRead() && reader.peek() == LocalCoordinates::PREFIX) {
+            // 局部坐标 ^ ^ ^
+            return _parseLocalCoordinates(reader, start);
+        } else {
+            // 绝对/相对坐标
+            return _parseWorldCoordinatesInt(reader, start);
+        }
     }
 
     [[nodiscard]] std::string getTypeName() const override { return "block_pos"; }
@@ -199,32 +223,99 @@ public:
 
     static std::shared_ptr<BlockPosArgumentType> blockPos() { return std::make_shared<BlockPosArgumentType>(); }
 
+    // ========== 静态获取方法 ==========
+
+    /**
+     * @brief 获取方块坐标（取整后的 Vector3i）
+     */
     template <typename S>
-    static Vector3i getBlockPos(CommandContext<S>& context, const std::string& name)
+    static Vector3i getBlockPos(CommandContext<S>& context, const std::string& name, const S& source)
     {
-        return context.template getArgument<Vector3i>(name);
+        auto coords = context.template getArgument<Coordinates::Ptr>(name);
+        Vector3d anchorPos = _getAnchorPosition(source);
+        return coords->getBlockPos(anchorPos, source.rotation());
+    }
+
+    /**
+     * @brief 获取世界坐标（Vector3d）
+     */
+    template <typename S>
+    static Vector3d getPosition(CommandContext<S>& context, const std::string& name, const S& source)
+    {
+        auto coords = context.template getArgument<Coordinates::Ptr>(name);
+        Vector3d anchorPos = _getAnchorPosition(source);
+        return coords->getPosition(anchorPos, source.rotation());
     }
 
 private:
     /**
-     * @brief 解析单个坐标分量
+     * @brief 解析局部坐标 ^left ^up ^forwards
      */
-    i32 _parseCoordinate(StringReader& reader, [[maybe_unused]] char axis)
+    [[nodiscard]] Coordinates::Ptr _parseLocalCoordinates(StringReader& reader, i32 start)
     {
-        if (reader.canRead() && reader.peek() == '~') {
-            reader.skip();
-        } else if (reader.canRead() && reader.peek() == '^') {
-            reader.skip();
-        }
+        f64 left = _parseLocalDouble(reader, start);
+        reader.skipWhitespace();
+        f64 up = _parseLocalDouble(reader, start);
+        reader.skipWhitespace();
+        f64 forwards = _parseLocalDouble(reader, start);
+        return std::make_shared<LocalCoordinates>(left, up, forwards);
+    }
 
-        // 如果后面没有数字，返回0（~ 或 ^ 单独出现）
+    /**
+     * @brief 解析局部坐标的单个分量，必须以 ^ 开头
+     */
+    f64 _parseLocalDouble(StringReader& reader, i32 start)
+    {
+        if (!reader.canRead()) {
+            throw CommandException(CommandErrorType::Unknown, "Expected local coordinate", reader.getCursor());
+        }
+        if (reader.peek() != LocalCoordinates::PREFIX) {
+            reader.setCursor(start);
+            throw createMixedCoordinateTypeError();
+        }
+        reader.skip();
+        // ^ 后无数字时默认为 0.0
         if (!reader.canRead() || _isWhitespace(reader.peek())) {
-            return 0;
+            return 0.0;
+        }
+        return reader.readDouble();
+    }
+
+    /**
+     * @brief 解析绝对/相对坐标（整数版本，用于方块坐标）
+     */
+    [[nodiscard]] Coordinates::Ptr _parseWorldCoordinatesInt(StringReader& reader, i32 start)
+    {
+        WorldCoordinate x = _parseCoordinateInt(reader, start);
+        reader.skipWhitespace();
+        WorldCoordinate y = _parseCoordinateInt(reader, start);
+        reader.skipWhitespace();
+        WorldCoordinate z = _parseCoordinateInt(reader, start);
+        return std::make_shared<WorldCoordinates>(x, y, z);
+    }
+
+    /**
+     * @brief 解析单个整数坐标分量
+     */
+    WorldCoordinate _parseCoordinateInt(StringReader& reader, i32 start)
+    {
+        bool relative = false;
+        if (reader.canRead() && reader.peek() == '~') {
+            relative = true;
+            reader.skip();
+        } else if (reader.canRead() && reader.peek() == LocalCoordinates::PREFIX) {
+            // 在世界坐标中遇到 ^ 前缀，抛出混合类型错误
+            reader.setCursor(start);
+            throw createMixedCoordinateTypeError();
         }
 
-        // 解析数字部分
-        i32 value = reader.readInt();
-        return value;
+        // 如果后面没有数字，返回 0（~ 或单独出现时）
+        if (!reader.canRead() || _isWhitespace(reader.peek())) {
+            return WorldCoordinate(relative, 0.0);
+        }
+
+        f64 value = reader.readDouble();
+        return WorldCoordinate(relative, value);
     }
 
     static bool _isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
@@ -233,18 +324,33 @@ private:
 /**
  * @brief 向量位置参数类型
  *
- * 与 BlockPosArgumentType 类似，但返回浮点坐标
+ * 与 BlockPosArgumentType 类似，但返回浮点坐标。
+ * 支持 centerCorrect 选项：当为 true 时，绝对整数坐标会加 0.5 偏移到方块中心。
+ *
+ * centerCorrect 行为（与 MC Java 一致）：
+ * - centerCorrect=true 且绝对整数坐标 → 加 0.5（如 10 → 10.5）
+ * - centerCorrect=true 且绝对小数坐标 → 不加偏移（如 10.0 → 10.0）
+ * - 相对坐标 → 不受 centerCorrect 影响
+ * - 局部坐标 → 不受 centerCorrect 影响
  */
-class Vec3ArgumentType : public ArgumentType<Vector3d> {
+class Vec3ArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
-    [[nodiscard]] Vector3d parse(StringReader& reader) override
+    explicit Vec3ArgumentType(bool centerCorrect = true)
+        : m_centerCorrect(centerCorrect)
+    {}
+
+    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
     {
-        f64 x = _parseCoordinate(reader);
-        reader.skipWhitespace();
-        f64 y = _parseCoordinate(reader);
-        reader.skipWhitespace();
-        f64 z = _parseCoordinate(reader);
-        return Vector3d(x, y, z);
+        i32 start = reader.getCursor();
+
+        // 检查第一个字符判断坐标类型
+        if (reader.canRead() && reader.peek() == LocalCoordinates::PREFIX) {
+            // 局部坐标 ^ ^ ^
+            return _parseLocalCoordinates(reader, start);
+        } else {
+            // 绝对/相对坐标
+            return _parseWorldCoordinatesDouble(reader, start);
+        }
     }
 
     [[nodiscard]] std::string getTypeName() const override { return "vec3"; }
@@ -256,29 +362,130 @@ public:
 
     // ========== 静态工厂方法 ==========
 
-    static std::shared_ptr<Vec3ArgumentType> vec3() { return std::make_shared<Vec3ArgumentType>(); }
+    static std::shared_ptr<Vec3ArgumentType> vec3() { return std::make_shared<Vec3ArgumentType>(true); }
 
+    /**
+     * @brief 创建不带中心偏移的 Vec3 参数（用于 /execute positioned 等场景）
+     */
+    static std::shared_ptr<Vec3ArgumentType> vec3NoCenter() { return std::make_shared<Vec3ArgumentType>(false); }
+
+    // ========== 静态获取方法 ==========
+
+    /**
+     * @brief 获取世界坐标（Vector3d）
+     */
     template <typename S>
-    static Vector3d getVec3(CommandContext<S>& context, const std::string& name)
+    static Vector3d getVec3(CommandContext<S>& context, const std::string& name, const S& source)
     {
-        return context.template getArgument<Vector3d>(name);
+        auto coords = context.template getArgument<Coordinates::Ptr>(name);
+        Vector3d anchorPos = _getAnchorPosition(source);
+        return coords->getPosition(anchorPos, source.rotation());
+    }
+
+    /**
+     * @brief 获取坐标对象（用于需要判断坐标类型的场景）
+     */
+    template <typename S>
+    static Coordinates::Ptr getCoordinates(CommandContext<S>& context, const std::string& name)
+    {
+        return context.template getArgument<Coordinates::Ptr>(name);
     }
 
 private:
-    f64 _parseCoordinate(StringReader& reader)
-    {
-        if (reader.canRead() && reader.peek() == '~') {
-            reader.skip();
-        } else if (reader.canRead() && reader.peek() == '^') {
-            reader.skip();
-            // TODO: 局部坐标目前暂时忽略，后续需要实现相对于视线方向的坐标计算
-        }
+    bool m_centerCorrect;
 
+    /**
+     * @brief 解析局部坐标 ^left ^up ^forwards
+     */
+    [[nodiscard]] Coordinates::Ptr _parseLocalCoordinates(StringReader& reader, i32 start)
+    {
+        f64 left = _parseLocalDouble(reader, start);
+        reader.skipWhitespace();
+        f64 up = _parseLocalDouble(reader, start);
+        reader.skipWhitespace();
+        f64 forwards = _parseLocalDouble(reader, start);
+        return std::make_shared<LocalCoordinates>(left, up, forwards);
+    }
+
+    /**
+     * @brief 解析局部坐标的单个分量，必须以 ^ 开头
+     */
+    f64 _parseLocalDouble(StringReader& reader, i32 start)
+    {
+        if (!reader.canRead()) {
+            throw CommandException(CommandErrorType::Unknown, "Expected local coordinate", reader.getCursor());
+        }
+        if (reader.peek() != LocalCoordinates::PREFIX) {
+            reader.setCursor(start);
+            throw createMixedCoordinateTypeError();
+        }
+        reader.skip();
+        // ^ 后无数字时默认为 0.0
         if (!reader.canRead() || _isWhitespace(reader.peek())) {
             return 0.0;
         }
-
         return reader.readDouble();
+    }
+
+    /**
+     * @brief 解析绝对/相对坐标（浮点版本）
+     */
+    [[nodiscard]] Coordinates::Ptr _parseWorldCoordinatesDouble(StringReader& reader, i32 start)
+    {
+        WorldCoordinate x = _parseCoordinateDouble(reader, start);
+        reader.skipWhitespace();
+        WorldCoordinate y = _parseCoordinateDouble(reader, start);
+        reader.skipWhitespace();
+        WorldCoordinate z = _parseCoordinateDouble(reader, start);
+        return std::make_shared<WorldCoordinates>(x, y, z);
+    }
+
+    /**
+     * @brief 解析单个浮点坐标分量
+     *
+     * 支持 ~ 前缀（相对坐标）和 centerCorrect 逻辑。
+     * 遇到 ^ 前缀会抛出混合类型错误。
+     */
+    WorldCoordinate _parseCoordinateDouble(StringReader& reader, i32 start)
+    {
+        bool relative = false;
+        i32 cursorBeforeNumber = reader.getCursor();
+
+        if (reader.canRead() && reader.peek() == '~') {
+            relative = true;
+            reader.skip();
+        } else if (reader.canRead() && reader.peek() == LocalCoordinates::PREFIX) {
+            // 在世界坐标中遇到 ^ 前缀，抛出混合类型错误
+            reader.setCursor(start);
+            throw createMixedCoordinateTypeError();
+        }
+
+        // 如果后面没有数字，返回 0（~ 或单独出现时）
+        if (!reader.canRead() || _isWhitespace(reader.peek())) {
+            return WorldCoordinate(relative, 0.0);
+        }
+
+        i32 cursorBeforeValue = reader.getCursor();
+        f64 value = reader.readDouble();
+
+        // centerCorrect: 绝对整数坐标加 0.5（方块中心偏移）
+        // 条件：centerCorrect=true 且 非相对坐标 且 原始输入不含小数点
+        if (m_centerCorrect && !relative) {
+            // 检查原始输入是否不含小数点
+            std::string_view input = reader.getString();
+            bool hasDot = false;
+            for (i32 i = cursorBeforeNumber; i < reader.getCursor(); ++i) {
+                if (input[static_cast<size_t>(i)] == '.') {
+                    hasDot = true;
+                    break;
+                }
+            }
+            if (!hasDot) {
+                value += 0.5;
+            }
+        }
+
+        return WorldCoordinate(relative, value);
     }
 
     static bool _isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
@@ -288,7 +495,7 @@ private:
  * @brief 二维向量位置参数类型（水平面 x, z 坐标）
  *
  * 解析两个以空格分隔的双精度浮点坐标分量（x 和 z），
- * 支持 ~ 相对坐标前缀。
+ * 支持 ~ 相对坐标前缀，不支持 ^ 局部坐标。
  *
  * 与 Vec3ArgumentType 的区别：
  * - Vec3ArgumentType 解析三个分量 (x, y, z)，适用于三维坐标
@@ -297,14 +504,15 @@ private:
  * 用于 /spreadplayers 等只需要水平面坐标的命令。
  * MC 原版对应: Vec2Argument（返回 Coordinates 接口，内部构造 WorldCoordinates(x, relative(0), z)）
  */
-class Vec2ArgumentType : public ArgumentType<Vector2d> {
+class Vec2ArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
-    [[nodiscard]] Vector2d parse(StringReader& reader) override
+    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
     {
-        f64 x = _parseCoordinate(reader);
+        WorldCoordinate x = _parseCoordinate(reader);
         reader.skipWhitespace();
-        f64 z = _parseCoordinate(reader);
-        return Vector2d(x, z);
+        WorldCoordinate z = _parseCoordinate(reader);
+        // y 分量填充为相对 0（与 MC Java 一致）
+        return std::make_shared<WorldCoordinates>(x, WorldCoordinate(true, 0.0), z);
     }
 
     [[nodiscard]] std::string getTypeName() const override { return "vec2"; }
@@ -317,25 +525,36 @@ public:
 
     // ========== 静态获取方法 ==========
 
+    /**
+     * @brief 获取水平面坐标 (x, z)
+     */
     template <typename S>
-    static Vector2d getVec2(CommandContext<S>& context, const std::string& name)
+    static Vector2d getVec2(CommandContext<S>& context, const std::string& name, const S& source)
     {
-        return context.template getArgument<Vector2d>(name);
+        auto coords = context.template getArgument<Coordinates::Ptr>(name);
+        Vector3d anchorPos = _getAnchorPosition(source);
+        Vector3d pos = coords->getPosition(anchorPos, source.rotation());
+        return Vector2d(pos.x, pos.z);
     }
 
 private:
-    f64 _parseCoordinate(StringReader& reader)
+    WorldCoordinate _parseCoordinate(StringReader& reader)
     {
+        bool relative = false;
         if (reader.canRead() && reader.peek() == '~') {
+            relative = true;
             reader.skip();
         }
         // Vec2Argument 不支持 ^ 局部坐标（与 Vec3Argument 不同）
+        // 遇到 ^ 抛出混合类型错误
+        // 注意：MC Java 的 Vec2Argument 内部使用 WorldCoordinate.parseDouble，
+        // 它会对 ^ 抛出 ERROR_MIXED_TYPE
 
         if (!reader.canRead() || _isWhitespace(reader.peek())) {
-            return 0.0;
+            return WorldCoordinate(relative, 0.0);
         }
 
-        return reader.readDouble();
+        return WorldCoordinate(relative, reader.readDouble());
     }
 
     static bool _isWhitespace(char c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
@@ -343,15 +562,24 @@ private:
 
 /**
  * @brief 方块旋转参数类型（yaw, pitch）
+ *
+ * 支持 ~ 前缀表示相对角度偏移。
+ * 返回 WorldCoordinates，其中 x 分量为 pitch，y 分量为 yaw。
+ *
+ * MC 原版对应: RotationArgument（返回 WorldCoordinates(pitch, yaw, relative(0))）
  */
-class RotationArgumentType : public ArgumentType<Vector2f> {
+class RotationArgumentType : public ArgumentType<Coordinates::Ptr> {
 public:
-    [[nodiscard]] Vector2f parse(StringReader& reader) override
+    [[nodiscard]] Coordinates::Ptr parse(StringReader& reader) override
     {
-        f32 yaw = static_cast<f32>(_parseAngle(reader));
+        // 第一个参数是 yaw（对应 y 分量），第二个参数是 pitch（对应 x 分量）
+        // MC Java 的 RotationArgument 构造 WorldCoordinates(yawCoord, pitchCoord, relative(0))
+        // 即 WorldCoordinates.x = yaw, WorldCoordinates.y = pitch
+        WorldCoordinate yawCoord = _parseAngle(reader);
         reader.skipWhitespace();
-        f32 pitch = static_cast<f32>(_parseAngle(reader));
-        return Vector2f(yaw, pitch);
+        WorldCoordinate pitchCoord = _parseAngle(reader);
+        // z 分量填充为相对 0
+        return std::make_shared<WorldCoordinates>(yawCoord, pitchCoord, WorldCoordinate(true, 0.0));
     }
 
     [[nodiscard]] std::string getTypeName() const override { return "rotation"; }
@@ -360,28 +588,50 @@ public:
 
     static std::shared_ptr<RotationArgumentType> rotation() { return std::make_shared<RotationArgumentType>(); }
 
+    /**
+     * @brief 获取旋转角 (yaw, pitch)
+     */
     template <typename S>
-    static Vector2f getRotation(CommandContext<S>& context, const std::string& name)
+    static Vector2f getRotation(CommandContext<S>& context, const std::string& name, const S& source)
     {
-        return context.template getArgument<Vector2f>(name);
+        auto coords = context.template getArgument<Coordinates::Ptr>(name);
+        return coords->getRotation(source.rotation());
     }
 
 private:
-    f64 _parseAngle(StringReader& reader)
+    WorldCoordinate _parseAngle(StringReader& reader)
     {
+        bool relative = false;
         if (reader.canRead() && reader.peek() == '~') {
+            relative = true;
             reader.skip();
         }
 
         if (!reader.canRead() || _isWhitespace(reader.peek())) {
-            return 0.0;
+            return WorldCoordinate(relative, 0.0);
         }
 
-        return reader.readDouble();
+        return WorldCoordinate(relative, reader.readDouble());
     }
 
     static bool _isWhitespace(char c) { return c == ' ' || c == '\t'; }
 };
+
+/**
+ * @brief 根据命令源的锚点类型计算锚点位置
+ *
+ * Feet 锚点使用命令源位置，Eyes 锚点使用位置 + 实体眼睛高度。
+ * 如果没有关联实体，退回到使用命令源位置。
+ */
+template <typename S>
+Vector3d _getAnchorPosition(const S& source)
+{
+    if (source.anchor() == EntityAnchorType::Eyes && source.entity() != nullptr) {
+        const Vector3d& pos = source.position();
+        return Vector3d(pos.x, pos.y + static_cast<f64>(source.entity()->eyeHeight()), pos.z);
+    }
+    return source.position();
+}
 
 } // namespace command
 } // namespace mc

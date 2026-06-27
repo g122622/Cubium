@@ -23,12 +23,14 @@
 
 #include "ShipwreckStructure.hpp"
 
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -173,25 +175,12 @@ void ShipwreckPiece::generate(
 // ============================================================================
 
 ShipwreckStructure::ShipwreckStructure()
-    : Structure(StructureType::Shipwreck)
-{
-    _initializeBiomes();
-}
+    : Structure(ResourceLocation("minecraft", "shipwreck"))
+{}
 
-void ShipwreckStructure::_initializeBiomes()
+const biome::BiomeTag* ShipwreckStructure::biomeTag() const
 {
-    m_validBiomes = {Biomes::Ocean,
-        Biomes::WarmOcean,
-        Biomes::LukewarmOcean,
-        Biomes::ColdOcean,
-        Biomes::FrozenOcean,
-        Biomes::DeepOcean,
-        Biomes::DeepWarmOcean,
-        Biomes::DeepLukewarmOcean,
-        Biomes::DeepColdOcean,
-        Biomes::DeepFrozenOcean,
-        Biomes::Beach,
-        Biomes::SnowyBeach};
+    return &biome::BiomeTags::HAS_STRUCTURE_SHIPWRECK();
 }
 
 bool ShipwreckStructure::canGenerate(

@@ -288,8 +288,15 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
                 layerPos.z += 0.005f * static_cast<f32>(layerIndex);
             }
 
-            m_pipeline->drawMesh(
-                cmd, *mesh, modelMatrix, layerPos, MODEL_SCALE * 16.0f, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), 0.0f, 0.0f);
+            m_pipeline->drawMesh(cmd,
+                *mesh,
+                modelMatrix,
+                layerPos,
+                MODEL_SCALE * 16.0f,
+                Vector4f(0.0f, 0.0f, 0.0f, 0.0f),
+                0.0f,
+                0.0f,
+                0.0f);
         }
     } else if (isExperienceOrb) {
         // ExperienceOrb 特殊渲染：应用浮动动画、动态大小和颜色动画
@@ -318,8 +325,13 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         f64 time = static_cast<f64>(entity.ticksExisted()) + partialTicks;
         Vector4f orbColor = renderer::projectile::ExperienceOrbRenderer::calculateColor(time);
 
+        // 经验球最小亮度：MC Java 中 getBlockLightLevel() 返回 clamp(worldLight + 7, 0, 15)，
+        // 即最小方块光照为 7。在没有世界光照查询的情况下，使用 fullbright 因子模拟：
+        // 7/15 ≈ 0.467，确保经验球在黑暗中也有一定可见度。
+        const f32 orbMinBrightness = 7.0f / 15.0f;
+
         // 绘制网格
-        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale, orbColor, 0.0f, 0.0f);
+        m_pipeline->drawMesh(cmd, *mesh, modelMatrix, pos, scale, orbColor, 0.0f, 0.0f, orbMinBrightness);
     } else {
         // 普通实体渲染
         // 变换顺序：scale(-1, -1, 1) → preRenderCallback → translate(0, -1.501, 0)
@@ -355,9 +367,20 @@ void EntityRendererManager::renderWithPipeline(VkCommandBuffer cmd, ClientEntity
         f32 hurtTime = static_cast<f32>(entity.hurtTime()) / 10.0f; // 归一化到 0-1
         f32 deathTime = static_cast<f32>(entity.deathTime());
 
+        // 全亮光照：MC Java 中部分实体覆盖 getBlockLightLevel() 返回 15，
+        // 使其在黑暗中也清晰可见（如烈焰人、岩浆怪、凋灵、恼鬼等）。
+        f32 fullbright = (renderer && renderer->isFullbright()) ? 1.0f : 0.0f;
+
         // 绘制网格
-        m_pipeline->drawMesh(
-            cmd, *mesh, modelMatrix, pos, MODEL_SCALE, Vector4f(0.0f, 0.0f, 0.0f, 0.0f), hurtTime, deathTime);
+        m_pipeline->drawMesh(cmd,
+            *mesh,
+            modelMatrix,
+            pos,
+            MODEL_SCALE,
+            Vector4f(0.0f, 0.0f, 0.0f, 0.0f),
+            hurtTime,
+            deathTime,
+            fullbright);
 
         // 渲染层（盔甲、手持物品等）
         if (renderer && renderer->supportsLayers()) {

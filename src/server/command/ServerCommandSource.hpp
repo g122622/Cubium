@@ -221,6 +221,11 @@ public:
     [[nodiscard]] ServerCommandSource withSuppressedOutput() const;
 
     /**
+     * @brief 创建指定锚点类型的新命令源
+     */
+    [[nodiscard]] ServerCommandSource withAnchor(EntityAnchorType anchor) const;
+
+    /**
      * @brief 创建指定权限等级的新命令源
      */
     [[nodiscard]] ServerCommandSource withPermissionLevel(i32 level) const;
@@ -229,6 +234,13 @@ public:
      * @brief 创建权限不低于指定值的新命令源
      */
     [[nodiscard]] ServerCommandSource withMaximumPermission(i32 level) const;
+
+    // ========== 锚点 ==========
+
+    /**
+     * @brief 获取实体锚点类型
+     */
+    [[nodiscard]] EntityAnchorType anchor() const noexcept { return m_anchor; }
 
     // ========== 反馈控制 ==========
 
@@ -254,6 +266,7 @@ private:
     i32 m_permissionLevel;
     std::string m_name;
     bool m_feedbackDisabled;
+    EntityAnchorType m_anchor = EntityAnchorType::Feet;
 };
 
 } // namespace command

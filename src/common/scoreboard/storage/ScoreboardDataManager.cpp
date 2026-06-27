@@ -202,9 +202,33 @@ Result<void> ScoreboardDataManager::deleteObjective(const std::string& name)
     m_objectiveCache.erase(name);
     m_dirtyObjectives.erase(name);
 
-    // 删除该目标的所有分数
-    // 注意：这里需要遍历所有分数键，实际应用中可能需要优化
-    // 暂时不实现，留给 saveScoreboard 统一处理
+    // 级联删除该目标的所有分数
+    // 1. 从缓存中移除该目标的所有分数
+    m_scoreCache.erase(name);
+
+    // 2. 从脏分数集合中移除该目标的所有脏分数条目
+    std::erase_if(m_dirtyScores, [&name](const std::string& key) {
+        // 脏分数键格式: "objectiveName:playerName"
+        return key.size() > name.size() && key.substr(0, name.size()) == name && key[name.size()] == ':';
+    });
+
+    // 3. 从数据库中删除该目标的所有分数键（使用前缀迭代器）
+    auto iter = m_storage._database()->newIterator(world::storage::cf::SCOREBOARD);
+    if (iter) {
+        const std::string scorePrefix(std::string(KEY_PREFIX_SCORES) + name + ":");
+        std::vector<std::vector<u8>> keysToDelete;
+
+        for (iter->Seek(scorePrefix); iter->Valid() && iter->key().starts_with(scorePrefix); iter->Next()) {
+            keysToDelete.push_back(std::vector<u8>(iter->key().data(), iter->key().data() + iter->key().size()));
+        }
+
+        for (const auto& key : keysToDelete) {
+            auto delResult = m_storage._database()->del(world::storage::cf::SCOREBOARD, key);
+            if (delResult.failed()) {
+                spdlog::warn("Failed to delete score for objective '{}': {}", name, delResult.error().message());
+            }
+        }
+    }
 
     return {};
 }

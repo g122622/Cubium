@@ -26,7 +26,6 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
-#include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/Block.hpp"
@@ -1298,128 +1297,9 @@ void StrongholdPortalRoom::generate(
         }
     }
 
-    // 获取 EndPortalFrameBlock 的方块状态
-    // TODO: 当前手动逐个放置12个传送门框架方块，可考虑改用 EndTeleporter::placeEndPortalFrame()
-    //       统一放置逻辑。需要注意以下差异：
-    //       1. 要塞生成的框架有随机末影之眼（10%概率有眼），而 placeEndPortalFrame 默认所有框架都带眼
-    //       2. 要塞生成使用结构局部坐标和 bounding box 裁剪，而 placeEndPortalFrame 使用世界坐标
-    //       3. 要塞生成仅在所有眼都填满时才放置传送门方块，而 placeEndPortalFrame 总是放置
-    //       4. 方向已修正为与 MC Java 一致：北=North, 南=South, 西=West, 东=East（凸起朝外）
-    // 北侧框架（朝北）
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[0])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North),
-        4,
-        3,
-        8,
-        chunkBounds);
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[1])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North),
-        5,
-        3,
-        8,
-        chunkBounds);
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[2])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North),
-        6,
-        3,
-        8,
-        chunkBounds);
-
-    // 南侧框架（朝南）
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[3])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South),
-        4,
-        3,
-        12,
-        chunkBounds);
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[4])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South),
-        5,
-        3,
-        12,
-        chunkBounds);
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[5])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South),
-        6,
-        3,
-        12,
-        chunkBounds);
-
-    // 西侧框架（朝西）
-    // 参考 MC Java EndPortalFrameBlock.getOrCreatePortalShape() 图案: > = FACING=WEST
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[6])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
-        3,
-        3,
-        9,
-        chunkBounds);
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[7])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
-        3,
-        3,
-        10,
-        chunkBounds);
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[8])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West),
-        3,
-        3,
-        11,
-        chunkBounds);
-
-    // 东侧框架（朝东）
-    // 参考 MC Java EndPortalFrameBlock.getOrCreatePortalShape() 图案: < = FACING=EAST
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[9])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
-        7,
-        3,
-        9,
-        chunkBounds);
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[10])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
-        7,
-        3,
-        10,
-        chunkBounds);
-    setBlockState(world,
-        &VanillaBlocks::END_PORTAL_FRAME->defaultState()
-            .with(BlockStateProperties::EYE(), eyeStates[11])
-            .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East),
-        7,
-        3,
-        11,
-        chunkBounds);
-
-    // 末地传送门 - 只有当所有眼睛都填满时才放置
-    if (allEyesFilled) {
-        const BlockState* endPortal = VanillaBlocks::getState(VanillaBlocks::END_PORTAL);
-        for (i32 px = 4; px <= 6; ++px) {
-            for (i32 pz = 9; pz <= 11; ++pz) {
-                setBlockState(world, endPortal, px, 3, pz, chunkBounds);
-            }
-        }
-    }
+    // 放置末地传送门框架方块环
+    // 传送门中心在局部坐标 (5, 3, 10)，框架围绕中心 ±2 格
+    placeEndPortalFrames(world, chunkBounds, 5, 3, 10, eyeStates, allEyesFilled);
 
     // 蠹虫刷怪笼
     if (!m_hasSpawner) {

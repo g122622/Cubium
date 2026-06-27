@@ -21,6 +21,7 @@
  */
 
 #include "world/block/registry/VegetationBlocks.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
@@ -109,51 +110,88 @@ void registerVegetationBlocks()
     // 花朵属性
     BlockProperties flowerProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
 
-    // 蒲公英
-    VegetationBlocks::DANDELION =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:dandelion"), flowerProps);
+    // 蒲公英 → 饱和 0.35秒（7 tick，瞬间效果）
+    VegetationBlocks::DANDELION = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:dandelion"),
+        flowerProps,
+        static_cast<u32>(entity::effect::EffectType::Saturation),
+        0);
 
-    // 虞美人
-    VegetationBlocks::POPPY =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:poppy"), flowerProps);
+    // 虞美人 → 夜视 4秒（80 tick）
+    VegetationBlocks::POPPY = &registry.registerBlock<blocks::FlowerBlock>(
+        ResourceLocation("minecraft:poppy"), flowerProps, static_cast<u32>(entity::effect::EffectType::NightVision), 4);
 
-    // 兰花
+    // 兰花 → 饱和 0.35秒（7 tick，瞬间效果）
     VegetationBlocks::BLUE_ORCHID =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:blue_orchid"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:blue_orchid"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::Saturation),
+            0);
 
-    // 绒球葱
-    VegetationBlocks::ALLIUM =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:allium"), flowerProps);
+    // 绒球葱 → 防火 4秒（80 tick）
+    VegetationBlocks::ALLIUM = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:allium"),
+        flowerProps,
+        static_cast<u32>(entity::effect::EffectType::FireResistance),
+        4);
 
-    // 蓝花美耳草
+    // 蓝花美耳草 → 失明 6秒（120 tick）
     VegetationBlocks::AZURE_BLUET =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:azure_bluet"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:azure_bluet"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::Blindness),
+            6);
 
     // 郁金香系列
-    VegetationBlocks::RED_TULIP =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:red_tulip"), flowerProps);
+    // 红色郁金香 → 虚弱 7秒（140 tick）
+    VegetationBlocks::RED_TULIP = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:red_tulip"),
+        flowerProps,
+        static_cast<u32>(entity::effect::EffectType::Weakness),
+        7);
+    // 橙色郁金香 → 虚弱 7秒（140 tick）
     VegetationBlocks::ORANGE_TULIP =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:orange_tulip"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:orange_tulip"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::Weakness),
+            7);
+    // 白色郁金香 → 中毒 8秒（160 tick）
     VegetationBlocks::WHITE_TULIP =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:white_tulip"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:white_tulip"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::Poison),
+            8);
+    // 粉色郁金香 → 虚弱 7秒（140 tick）
     VegetationBlocks::PINK_TULIP =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:pink_tulip"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:pink_tulip"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::Weakness),
+            7);
 
-    // 滨菊
+    // 滨菊 → 生命恢复 6秒（120 tick）
     VegetationBlocks::OXEYE_DAISY =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:oxeye_daisy"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:oxeye_daisy"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::Regeneration),
+            6);
 
-    // 铃兰
+    // 铃兰 → 中毒 8秒（160 tick）
     VegetationBlocks::LILY_OF_THE_VALLEY =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:lily_of_the_valley"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:lily_of_the_valley"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::Poison),
+            8);
 
-    // 矢车菊
+    // 矢车菊 → 跳跃提升 4秒（80 tick）
     VegetationBlocks::CORNFLOWER =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:cornflower"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:cornflower"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::JumpBoost),
+            4);
 
-    // 凋零玫瑰
+    // 凋零玫瑰 → 凋零 6秒（120 tick）
     VegetationBlocks::WITHER_ROSE =
-        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:wither_rose"), flowerProps);
+        &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:wither_rose"),
+            flowerProps,
+            static_cast<u32>(entity::effect::EffectType::Wither),
+            6);
 
     // 高花属性（双高植物）
     BlockProperties tallFlowerProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();

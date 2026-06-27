@@ -4,16 +4,16 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
+ * The above notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", KIND, EXPRESS OR IMPLIED,
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN THE EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
@@ -26,9 +26,9 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/map/FilledMapItem.hpp"
 #include "common/item/loot/context/LootParams.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/IWorld.hpp"
-#include "common/world/gen/structure/Structure.hpp"
 #include "common/world/map/MapData.hpp"
 
 namespace mc {
@@ -81,8 +81,8 @@ ItemStack ExplorationMapFunction::apply(ItemStack stack, LootContext& context) c
 
     // 搜索最近的结构
     IWorld& world = context.getWorld();
-    auto structureType = destinationToStructureType(m_destination);
-    auto foundPos = world.findNearestStructure(*blockPos, structureType, m_searchRadius, m_skipKnownStructures);
+    ResourceLocation structureId = destinationToResourceLocation(m_destination);
+    auto foundPos = world.findNearestStructure(*blockPos, structureId, m_searchRadius, m_skipKnownStructures);
 
     if (!foundPos.has_value()) {
         // 未找到结构，返回原始物品
@@ -166,25 +166,21 @@ world::map::DecorationType ExplorationMapFunction::getEffectiveDecoration() cons
     return destinationToDecorationType(m_destination);
 }
 
-// ============================================================================
-// Destination → StructureType 转换
-// ============================================================================
-
-world::gen::structure::StructureType ExplorationMapFunction::destinationToStructureType(Destination destination)
+ResourceLocation ExplorationMapFunction::destinationToResourceLocation(Destination destination)
 {
     switch (destination) {
         case Destination::BuriedTreasure:
-            return world::gen::structure::StructureType::BuriedTreasure;
+            return ResourceLocation("minecraft", "buried_treasure");
         case Destination::Mansion:
-            return world::gen::structure::StructureType::WoodlandMansion;
+            return ResourceLocation("minecraft", "mansion");
         case Destination::Monument:
-            return world::gen::structure::StructureType::Monument;
+            return ResourceLocation("minecraft", "monument");
         case Destination::Shipwreck:
-            return world::gen::structure::StructureType::Shipwreck;
+            return ResourceLocation("minecraft", "shipwreck");
         case Destination::RuinedPortal:
-            return world::gen::structure::StructureType::RuinedPortal;
+            return ResourceLocation("minecraft", "ruined_portal");
         default:
-            return world::gen::structure::StructureType::BuriedTreasure;
+            return ResourceLocation("minecraft", "buried_treasure");
     }
 }
 

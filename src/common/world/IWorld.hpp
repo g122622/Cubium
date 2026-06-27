@@ -92,7 +92,7 @@ class GameRules; // 前向声明
 }
 
 namespace world::gen::structure {
-enum class StructureType : u8; // 前向声明
+class StructureSet; // 前向声明
 }
 
 namespace loot {
@@ -1664,18 +1664,16 @@ public:
      * 服务端世界实现此方法，客户端世界返回空。
      *
      * @param center 搜索中心位置
-     * @param structureType 结构类型
+     * @param structureId 结构资源位置 ID（如 minecraft:village_plains）
      * @param maxDistance 最大搜索距离（格）
      * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索）
      * @return 最近结构位置，如果未找到返回空
      */
-    [[nodiscard]] virtual std::optional<BlockPos> findNearestStructure(const BlockPos& center,
-        world::gen::structure::StructureType structureType,
-        i32 maxDistance,
-        bool skipExisting = false)
+    [[nodiscard]] virtual std::optional<BlockPos> findNearestStructure(
+        const BlockPos& center, const ResourceLocation& structureId, i32 maxDistance, bool skipExisting = false)
     {
         (void)center;
-        (void)structureType;
+        (void)structureId;
         (void)maxDistance;
         (void)skipExisting;
         return std::nullopt;

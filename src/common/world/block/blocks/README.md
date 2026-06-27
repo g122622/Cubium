@@ -27,7 +27,7 @@ blocks/
 ├── EnchantingTableBlock.hpp/cpp # 附魔台方块（书架增强附魔力量、延迟tick初始化、邻居通知）
 ├── BookshelfBlock.hpp/cpp       # 书架方块（附魔力量提供者、主动通知附近附魔台）
 ├── ShelfBlock.hpp/cpp           # 书架方块（1.21.4+ 木质书架，3槽位物品存储，侧链连接，红石充能，比较器信号）
-├── SignBlock.hpp/cpp            # 告示牌方块（站立/墙面两种形式，含水支持）
+├── SignBlock.hpp/cpp            # 告示牌方块（站立/墙面两种形式，含水支持，蜜脾涂蜡交互）
 ├── redstone/                    # 红石方块子目录
 │   ├── README.md                # 红石方块文档
 │   └── ...（红石相关方块）

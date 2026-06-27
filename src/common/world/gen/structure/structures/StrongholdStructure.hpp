@@ -62,8 +62,11 @@ public:
     explicit StrongholdStructure(const Config& config);
 
     [[nodiscard]] const std::string& name() const noexcept override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const noexcept override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const noexcept override { return m_validBiomes; }
+
+    /**
+     * @brief 获取结构关联的生物群系标签
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 检查是否可以生成
@@ -93,8 +96,6 @@ public:
     [[nodiscard]] static i32 getRing(i32 index) noexcept;
 
 private:
-    void _initializeBiomes();
-
     /**
      * @brief 使用 StrongholdPieces 生成要塞
      */
@@ -110,12 +111,7 @@ private:
         StrongholdStartStairs* start) const;
 
     Config m_config;
-    // 要塞使用特殊的位置计算算法，不使用标准 spacing/separation
-    // 但 Structure 基类需要这些参数，所以设置为 {1, 0, 0}
-    // 实际位置由 calculateStrongholdPos() 计算
-    static constexpr StructureSeparationSettings m_settings{1, 0, 0};
     static const std::string m_name;
-    std::vector<BiomeId> m_validBiomes;
 };
 
 } // namespace structure

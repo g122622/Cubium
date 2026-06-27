@@ -27,6 +27,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/jigsaw/JigsawManager.hpp"
@@ -43,9 +44,6 @@ const std::string BastionRemnantStructure::s_name = "bastion_remnant";
 
 const SpawnOverrides BastionRemnantStructure::s_spawnOverrides = {
     SpawnOverrideType::Piece, {SpawnOverrideEntry{"monster", 2, 4}, SpawnOverrideEntry{"creature", 2, 4}}};
-
-const std::vector<BiomeId> BastionRemnantStructure::s_validBiomes = {
-    NetherWastes, CrimsonForest, WarpedForest, SoulSandValley};
 
 namespace {
 
@@ -108,8 +106,13 @@ constexpr i32 BASTION_WEIGHTS[] = {4, 2, 2, 2}; // units, stables, treasure, bri
 } // anonymous namespace
 
 BastionRemnantStructure::BastionRemnantStructure()
-    : Structure(StructureType::Bastion)
+    : Structure(ResourceLocation("minecraft", "bastion_remnant"))
 {}
+
+const biome::BiomeTag* BastionRemnantStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_BASTION_REMNANT();
+}
 
 bool BastionRemnantStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
@@ -119,12 +122,10 @@ bool BastionRemnantStructure::canGenerate(
 
     // 检查生物群系 - 堡垒遗迹在所有下界生物群系中生成（玄武岩三角洲除外）
     BiomeId biome = generator.getBiome(chunkX * world::CHUNK_WIDTH + 8, 64, chunkZ * world::CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            return true;
-        }
+    if (!isValidBiome(biome)) {
+        return false;
     }
-    return false;
+    return true;
 }
 
 std::unique_ptr<StructureStart> BastionRemnantStructure::generate(

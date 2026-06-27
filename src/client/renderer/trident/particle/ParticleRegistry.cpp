@@ -201,6 +201,9 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleTypeId::Breaking, "minecraft:breaking", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
     registerSimpleType(
         ParticleTypeId::FallingDust, "minecraft:falling_dust", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+    // 尘柱粒子（重锤砸地攻击，使用方块状态纹理）
+    registerSimpleType(
+        ParticleTypeId::DustPillar, "minecraft:dust_pillar", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
     registerSimpleType(
         ParticleTypeId::Item, "minecraft:item", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::ItemSlime,

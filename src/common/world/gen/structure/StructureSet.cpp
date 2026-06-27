@@ -97,6 +97,11 @@ void StructureSetRegistry::registerSet(std::unique_ptr<StructureSet> set)
     const ResourceLocation id = set->id();
     spdlog::info("Registering structure set '{}' with {} entries", id.toString(), set->entries().size());
 
+    // 建立结构 ID → 所属集合的反向索引
+    for (const auto& entry : set->entries()) {
+        m_byStructureId[entry.structureId] = set.get();
+    }
+
     m_byId[id] = set.get();
     m_sets.push_back(std::move(set));
 }
@@ -110,9 +115,19 @@ const StructureSet* StructureSetRegistry::get(const ResourceLocation& id) const
     return nullptr;
 }
 
+const StructureSet* StructureSetRegistry::findByStructure(const ResourceLocation& structureId) const
+{
+    auto it = m_byStructureId.find(structureId);
+    if (it != m_byStructureId.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
 void StructureSetRegistry::clear()
 {
     m_byId.clear();
+    m_byStructureId.clear();
     m_sets.clear();
 }
 

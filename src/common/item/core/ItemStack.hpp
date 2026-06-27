@@ -44,6 +44,7 @@ class BlockState;
 class LivingEntity;
 class Entity;
 class IWorld;
+class BlockPos;
 class Player;
 class DamageSource;
 
@@ -573,11 +574,30 @@ public:
     /**
      * @brief 检查此物品是否可以在冒险模式下放置在指定方块上（带世界参数）
      *
+     * 不支持方块实体NBT匹配，仅检查方块状态。
+     * 如需NBT匹配，请使用带 BlockPos 的重载版本。
+     *
      * @param world 世界引用
      * @param state 目标方块状态
      * @return 如果允许放置返回 true
      */
     [[nodiscard]] bool canPlaceOnBlockInAdventureMode(IWorld& world, const BlockState& state) const;
+
+    /**
+     * @brief 检查此物品是否可以在冒险模式下放置在指定方块上（完整版，支持NBT匹配）
+     *
+     * 对应 MC Java 的 ItemStack.canPlaceOnBlockInAdventureMode(BlockInWorld)。
+     * 如果物品没有 CanPlaceOn 标签，返回 false。
+     * 如果有 CanPlaceOn 标签，检查目标方块是否匹配任一谓词。
+     * 当谓词包含NBT条件时，会从世界获取对应位置的方块实体数据进行匹配。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置（用于获取方块实体）
+     * @param state 目标方块状态
+     * @return 如果允许放置返回 true
+     */
+    [[nodiscard]] bool canPlaceOnBlockInAdventureMode(
+        IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     /**
      * @brief 是否有 CanDestroy 谓词
@@ -615,11 +635,29 @@ public:
     /**
      * @brief 检查此物品是否可以在冒险模式下破坏指定方块（带世界参数）
      *
+     * 不支持方块实体NBT匹配，仅检查方块状态。
+     * 如需NBT匹配，请使用带 BlockPos 的重载版本。
+     *
      * @param world 世界引用
      * @param state 目标方块状态
      * @return 如果允许破坏返回 true
      */
     [[nodiscard]] bool canBreakBlockInAdventureMode(IWorld& world, const BlockState& state) const;
+
+    /**
+     * @brief 检查此物品是否可以在冒险模式下破坏指定方块（完整版，支持NBT匹配）
+     *
+     * 对应 MC Java 的 ItemStack.canBreakBlockInAdventureMode(BlockInWorld)。
+     * 如果物品没有 CanDestroy 标签，返回 false。
+     * 如果有 CanDestroy 标签，检查目标方块是否匹配任一谓词。
+     * 当谓词包含NBT条件时，会从世界获取对应位置的方块实体数据进行匹配。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置（用于获取方块实体）
+     * @param state 目标方块状态
+     * @return 如果允许破坏返回 true
+     */
+    [[nodiscard]] bool canBreakBlockInAdventureMode(IWorld& world, const BlockPos& pos, const BlockState& state) const;
 
     // ========== 堆叠兼容性检查 ==========
 

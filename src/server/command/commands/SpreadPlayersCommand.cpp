@@ -27,6 +27,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/scoreboard/core/ScorePlayerTeam.hpp"
 #include "common/scoreboard/core/Scoreboard.hpp"
 #include "common/util/assert/AssertMacros.hpp"
@@ -147,7 +148,7 @@ i32 spreadPlayersImpl(CommandContext<ServerCommandSource>& context, i32 maxHeigh
     MC_ASSERT_RELEASE(server != nullptr);
 
     // 解析命令参数（center 为水平面 x, z 坐标）
-    const Vector2d& center = context.getArgument<Vector2d>("center");
+    const Vector2d center = Vec2ArgumentType::getVec2(context, "center", source);
     const f32 spreadDistance = context.getArgument<f32>("spreadDistance");
     const f32 maxRange = context.getArgument<f32>("maxRange");
     const bool respectTeams = context.getArgument<bool>("respectTeams");
@@ -250,8 +251,8 @@ void SpreadPlayersCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
             {},
             true));
 
-    auto centerArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector2d>>("center", Vec2ArgumentType::vec2());
+    auto centerArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "center", Vec2ArgumentType::vec2());
 
     auto spreadDistanceArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, f32>>(
         "spreadDistance", FloatArgumentType::floatArg(0.0f));

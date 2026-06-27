@@ -91,12 +91,13 @@ MC 1.16.5中，附魔物品堆叠是基于NBT标签完全相等判断的。如�
 - `Player::mayInteract()` 检查手持物品的 CanPlaceOn 标签，匹配目标方块时允许交互
 - `BlockInteractionManager::handleBlockPlacement()` 检查 CanPlaceOn 标签
 - `BlockInteractionManager::_canBreakBlock()` 检查 CanDestroy 标签
-- 谓词条目支持三种格式：
+- 谓词条目支持四种格式：
   - 精确方块ID：`minecraft:stone`
   - 标签引用：`#minecraft:logs`
   - 带属性匹配的方块ID/标签：`minecraft:oak_log[axis=y]`、`#minecraft:logs[axis=y]`、`minecraft:oak_stairs[half=top,facing=east]`
+  - 带NBT匹配的方块ID/标签：`minecraft:chest{Items:[...]}`、`minecraft:chest[waterlogged=false]{Items:[...]}`
 - 属性匹配使用 AND 逻辑（同一条目内所有属性必须全部满足）
 - 多条目之间使用 OR 逻辑（任一条目匹配即可）
 - 属性值通过方块的 `StateContainer` 查找 `IProperty` 并调用 `parseValue()` 解析比较
-- NBT 匹配语法（`minecraft:chest{Items:[...]}`）暂不支持，待 NbtPredicate 实现后添加
+- NBT 匹配语法（`minecraft:chest{Items:[...]}`）已支持，通过 NBTPredicate 进行子集匹配，需要使用带 BlockPos 参数的 AdventureModePredicate::test() 重载
 - 空谓词列表不匹配任何方块，冒险模式下无 CanPlaceOn/CanDestroy 标签的物品不能放置/破坏方块

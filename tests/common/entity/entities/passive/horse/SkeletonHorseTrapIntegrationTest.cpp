@@ -29,6 +29,7 @@
  * - triggerTrap() 完整流程（骷髅生成、装备设置、无敌帧）
  * - TriggerSkeletonTrapGoal 实际行为测试
  * - 困难模式额外骷髅马生成逻辑
+ * - 触发陷阱时生成纯视觉效果闪电（setEffectOnly）
  */
 
 #include <gtest/gtest.h>
@@ -41,6 +42,7 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
 #include "common/entity/entities/passive/horse/SkeletonHorseEntity.hpp"
 #include "common/item/Items.hpp"
@@ -481,6 +483,110 @@ TEST_F(SkeletonHorseTrapIntegrationTest, GoalConstructor_NoCrash)
     entity::ai::goal::TriggerSkeletonTrapGoal goal(horse.get());
 
     SUCCEED();
+}
+
+// ============================================================================
+// 陷阱触发闪电实体生成测试
+// ============================================================================
+
+/**
+ * @brief 测试 triggerTrap() 在有世界时生成闪电实体
+ *
+ * 验证触发陷阱时会在骷髅马位置生成一个纯视觉效果闪电，
+ * 并且闪电实体正确设置了 setEffectOnly(true)。
+ */
+TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_SpawnsLightningEntity)
+{
+    m_world->setDifficulty(Difficulty::Normal);
+
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    horse->setTrap(true);
+    horse->setPosition(Vector3(100, 64, 200));
+
+    // 将骷髅马放入世界
+    EntityId horseId = m_world->spawnEntity(std::move(horse));
+
+    // 获取世界中的骷髅马指针
+    Entity* horseEntity = m_world->getEntity(horseId);
+    ASSERT_NE(horseEntity, nullptr);
+
+    auto* skeletonHorse = dynamic_cast<SkeletonHorseEntity*>(horseEntity);
+    ASSERT_NE(skeletonHorse, nullptr);
+    EXPECT_TRUE(skeletonHorse->isTrap());
+
+    // 记录触发前的实体数量（骷髅马自身）
+    size_t entityCountBefore = m_world->entityCount();
+
+    // 触发陷阱
+    skeletonHorse->triggerTrap();
+
+    // 陷阱状态应该被清除
+    EXPECT_FALSE(skeletonHorse->isTrap());
+
+    // 应该生成了闪电实体（在普通难度下还会生成骷髅骑手）
+    // 普通难度：1个闪电 + 1个骷髅骑手 = 2个新实体
+    size_t entityCountAfter = m_world->entityCount();
+    EXPECT_GE(entityCountAfter, entityCountBefore + 1) << "triggerTrap() should spawn at least the lightning entity";
+
+    // 查找生成的闪电实体
+    bool foundLightning = false;
+    for (const auto& entity : m_world->entities()) {
+        auto* lightning = dynamic_cast<entity::LightningBoltEntity*>(entity.get());
+        if (lightning != nullptr) {
+            foundLightning = true;
+            // 闪电应该是纯视觉效果（不造成伤害、不点燃方块）
+            EXPECT_TRUE(lightning->isEffectOnly())
+                << "Lightning spawned by trap should be effect-only (no damage, no fire)";
+            // 闪电位置应该在骷髅马位置
+            EXPECT_FLOAT_EQ(lightning->x(), 100.0f);
+            EXPECT_FLOAT_EQ(lightning->y(), 64.0f);
+            EXPECT_FLOAT_EQ(lightning->z(), 200.0f);
+            break;
+        }
+    }
+    EXPECT_TRUE(foundLightning) << "triggerTrap() should spawn a LightningBoltEntity";
+}
+
+/**
+ * @brief 测试 triggerTrap() 闪电在困难模式下也是纯视觉效果
+ *
+ * 困难模式下会额外生成3只骷髅马+骑手，但闪电仍然应该是 effect-only。
+ */
+TEST_F(SkeletonHorseTrapIntegrationTest, TriggerTrap_HardDifficulty_LightningIsEffectOnly)
+{
+    m_world->setDifficulty(Difficulty::Hard);
+
+    auto horse = std::make_unique<SkeletonHorseEntity>(EntityId(1));
+    horse->setTrap(true);
+    horse->setPosition(Vector3(0, 64, 0));
+
+    EntityId horseId = m_world->spawnEntity(std::move(horse));
+    Entity* horseEntity = m_world->getEntity(horseId);
+    ASSERT_NE(horseEntity, nullptr);
+
+    auto* skeletonHorse = dynamic_cast<SkeletonHorseEntity*>(horseEntity);
+    ASSERT_NE(skeletonHorse, nullptr);
+
+    // 触发陷阱
+    skeletonHorse->triggerTrap();
+
+    // 查找闪电实体
+    bool foundLightning = false;
+    for (const auto& entity : m_world->entities()) {
+        auto* lightning = dynamic_cast<entity::LightningBoltEntity*>(entity.get());
+        if (lightning != nullptr) {
+            foundLightning = true;
+            EXPECT_TRUE(lightning->isEffectOnly()) << "Lightning in Hard difficulty should still be effect-only";
+            break;
+        }
+    }
+    EXPECT_TRUE(foundLightning) << "triggerTrap() should spawn lightning even in Hard difficulty";
+
+    // 困难模式应该有更多实体（闪电 + 骷髅骑手 + 3只额外骷髅马+骑手）
+    // 普通模式：1闪电 + 1骷髅 = 2
+    // 困难模式：1闪电 + 1骷髅 + 3额外骷髅马 + 3额外骷髅 = 8
+    size_t totalEntities = m_world->entityCount();
+    EXPECT_GE(totalEntities, 4u) << "Hard difficulty should spawn more entities than just lightning";
 }
 
 } // namespace

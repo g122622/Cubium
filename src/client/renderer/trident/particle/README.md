@@ -36,7 +36,8 @@ particle/
     │   └── SporeBlossomParticle.hpp/cpp # 孢子花粒子
     │
     ├── block/                    # 方块粒子
-    │   └── DiggingParticle.hpp/cpp    # 挖掘粒子（使用方块纹理）
+    │   ├── DiggingParticle.hpp/cpp    # 挖掘粒子（使用方块纹理）
+    │   └── DustPillarParticle.hpp/cpp # 尘柱粒子（重锤砸地攻击，继承DiggingParticle）
     │
     ├── effect/                   # 特效粒子
     │   ├── FlameParticle.hpp/cpp      # 火焰粒子

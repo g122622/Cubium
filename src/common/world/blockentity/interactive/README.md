@@ -7,6 +7,7 @@
 ``` interactive /
 ├── BannerEntity.hpp / cpp #旗帜方块实体（图案存储、最多6层）
 ├── BannerPattern.hpp / cpp #旗帜图案类型定义
+├── DecoratedPotPattern.hpp / cpp #饰纹陶罐图案类型定义（24种图案：Blank+20考古学+3试炼密室）
 ├── BeehiveBlockEntity.hpp / cpp #蜂巢方块实体（蜜蜂存储、蜂蜜等级管理）
 ├── DispenserBlockEntity.hpp / cpp #发射器方块实体基类（9格存储、战利品表填充）
 ├── DropperBlockEntity.hpp / cpp #投掷器方块实体（继承DispenserBlockEntity）
@@ -17,7 +18,7 @@
 ├── PistonBlockEntity.hpp / cpp #活塞方块实体（方块移动动画）
 ├── ShelfBlockEntity.hpp / cpp #书架方块实体（3槽位物品存储、比较器3位二进制信号、侧链连接）
 ├── SignEntity.hpp /
-        cpp #告示牌方块实体（富文本存储、点击事件）
+        cpp #告示牌方块实体（富文本存储、点击事件、涂蜡保护）
 └── README.md
 ```
 
@@ -92,7 +93,11 @@
 
         `_generateExitPortal()` 在出口折跃门方块实体上设置返回位置（`setExitPortal(m_pos, false)`），形成双向传送链。
 
-        ## #6. BannerEntity 序列化键名差异
+        ## #6. SignEntity 的涂蜡状态
+
+`SignEntity` 的 `isWaxed` 属性用于保护告示牌文字不被修改。涂蜡后 `setLine`、`setLines`、`clearLines`、`setLineFromLegacy` 均被拒绝。涂蜡交互由 `AbstractSignBlock::onBlockActivated()` 中检测蜜脾手持物品触发，同时 `HoneycombItem::onItemUse()` 也实现了告示牌涂蜡路径。`setWaxed()` 仅在状态变化时返回 true 并标记 dirty。NBT 序列化中布尔值以 `i8` 存储。
+
+        ## #7. BannerEntity 序列化键名差异
 
         JSON 序列化（`load`/`save`，用于区块存档）和 NBT 序列化（`loadFromNBT`/`saveToNBT`，用于 Java
         存档和结构模板）使用不同的键名：

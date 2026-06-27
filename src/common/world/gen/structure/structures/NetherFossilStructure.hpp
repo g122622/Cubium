@@ -85,9 +85,12 @@ public:
     NetherFossilStructure();
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
     [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundDecoration; }
+
+    /**
+     * @brief 获取下界化石关联的生物群系标签
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
@@ -105,8 +108,6 @@ public:
 
 private:
     static const std::string s_name;
-    static constexpr StructureSeparationSettings s_settings{2, 1, 14357921};
-    static const std::vector<BiomeId> s_validBiomes;
     feature::template_::TemplateManager* m_templateManager = nullptr;
 };
 

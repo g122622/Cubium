@@ -48,6 +48,7 @@ Entity
 各实体通过重写父类方法实现差异化行为：
 - `shouldBurnInDaylight()`：HuskEntity/DrownedEntity 返回 false
 - `shouldDrown()`：ZombieVillagerEntity 返回 false，DrownedEntity 返回 false
+- `canSpawnInLiquids()`：DrownedEntity 返回 true（增援生成时允许在水中生成），其他僵尸返回 false
 - `setCombatTask()`：WitherSkeletonEntity 重写使用近战，其他骷髅使用远程
 - `finalizeSpawn()`：ZombieEntity 覆写，设置破门能力（概率 = specialMultiplier × 0.1）、万圣节南瓜头（10月31日 25% 概率）、属性修饰符（随机增援概率、击退抗性、跟随范围、领袖僵尸判定）
 - `populateDefaultEquipmentSlots()`：ZombieEntity 覆写，Hard 难度 5%/其他 1% 概率生成铁剑或铁锹
@@ -102,7 +103,7 @@ Entity
 
 15. **增援入口**：`trySummonReinforcements(LivingEntity* explicitTarget = nullptr)` 是增援逻辑的唯一公共入口。`hurt()` 通过此方法触发增援，传入伤害来源实体作为显式目标。不带参数调用时使用当前攻击目标（`attackTarget()`）
 16. **增援前置条件**：困难模式（`DifficultyHelper::canZombieReinforce()`）、增援概率属性（`zombie.spawn_reinforcements`）、`doMobSpawning` 游戏规则
-17. **增援生成逻辑**（`_trySpawnReinforcement()`）：50 次随机位置尝试，偏移公式 = `nextInt(7,40) * nextInt(-1,1)`（MC 1.21.11 原版，偏移可为 0），世界边界检查、附近无玩家检查（7格）、实体碰撞检查、AABB 液体检查（`IWorld::containsAnyLiquid()`）。注意：当前包含额外的地面支撑和固体方块检查，待 SpawnPlacements 系统完善后对齐
+17. **增援生成逻辑**（`_trySpawnReinforcement()`）：50 次随机位置尝试，偏移公式 = `nextInt(7,40) * nextInt(-1,1)`（MC 1.21.11 原版，偏移可为 0），使用 `EntitySpawnPlacementRegistry::canSpawnEntity()` 检查生成位置有效性（对应 MC 的 `SpawnPlacements.isSpawnPositionOk()` + `checkSpawnRules()`），附近无玩家检查（7格）、实体碰撞检查、AABB 液体检查（`IWorld::containsAnyLiquid()`，溺尸通过 `canSpawnInLiquids()` 豁免）
 18. **属性修饰符**：每次增援成功后，召唤者获得 `reinforcement_caller_charge`（-0.05 Addition，累加），被召唤者获得 `reinforcement_callee_charge`（-0.05 Addition），防止连锁增援
 
 ### 僵尸村民治愈系统

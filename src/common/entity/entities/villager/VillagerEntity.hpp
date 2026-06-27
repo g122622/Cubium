@@ -82,6 +82,33 @@ public:
     void tick() override;
 
     /**
+     * @brief 重写死亡回调
+     *
+     * 村民死亡时释放占用的POI（床位、工作站、聚集点），
+     * 并通知村庄管理器该村民已离开村庄。
+     * 参考 MC Java Villager.die() -> releaseAllPois()
+     */
+    void die(DamageSource& cause) override;
+
+    /**
+     * @brief 重写实体移除回调
+     *
+     * 村民被移除时释放占用的POI并通知村庄管理器。
+     * 与 die() 不同，remove() 在实体被标记为移除时调用（如死亡动画结束后、
+     * 区块卸载、/kill 命令等场景）。
+     */
+    void remove() override;
+
+    /**
+     * @brief 释放村民占用的所有POI
+     *
+     * 释放 HOME、JOB_SITE、POTENTIAL_JOB_SITE、MEETING_POINT 对应的 POI 占用，
+     * 并通知村庄管理器该村民已离开村庄。
+     * 参考 MC Java Villager.releasePoi() / releaseAllPois()
+     */
+    void releaseAllPois();
+
+    /**
      * @brief 重写被攻击回调
      *
      * 当村民被玩家攻击时，广播愤怒粒子效果（VillagerAngry）。
@@ -420,6 +447,9 @@ private:
 
     // Brain系统
     std::unique_ptr<VillagerBrain> m_brain;
+
+    // POI释放守卫
+    bool m_poisReleased = false; // 防止 die() 和 remove() 双重释放
 
     // ========== 私有辅助方法 ==========
 

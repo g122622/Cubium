@@ -446,15 +446,7 @@ const std::string JungleTempleStructure::m_name = "jungle_temple";
 
 JungleTempleStructure::JungleTempleStructure() noexcept
     : Structure(ResourceLocation("minecraft", "jungle_pyramid"))
-{
-    _initializeBiomes();
-}
-
-void JungleTempleStructure::_initializeBiomes() noexcept
-{
-    // 与数据包 has_structure/jungle_pyramid 标签一致
-    m_validBiomes = {BambooJungle, Jungle};
-}
+{}
 
 const biome::BiomeTag* JungleTempleStructure::biomeTag() const
 {

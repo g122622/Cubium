@@ -27,6 +27,7 @@
 #include "common/command/arguments/DimensionArgument.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/world/block/Block.hpp"
@@ -154,7 +155,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // ========== positioned <pos> run <command> ==========
     // /execute positioned <pos> run <command> - 在指定位置执行命令
     auto positionedNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("positioned");
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    auto posArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     auto posRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
     auto posCommandArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>(
         "command", StringArgumentType::greedyString());
@@ -183,8 +185,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /execute if block <pos> <block> run <command> - 如果指定位置是指定方块则执行
     auto ifNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("if");
     auto ifBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto ifBlockPosArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto ifBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
     auto ifBlockArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("block", StringArgumentType::string());
     auto ifBlockRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
@@ -202,8 +204,8 @@ void ExecuteCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatch
     // /execute unless block <pos> <block> run <command> - 如果指定位置不是指定方块则执行
     auto unlessNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("unless");
     auto unlessBlockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto unlessBlockPosArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto unlessBlockPosArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
     auto unlessBlockArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("block", StringArgumentType::string());
     auto unlessBlockRunNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("run");
@@ -299,7 +301,7 @@ i32 ExecuteCommand::_executeAt(CommandContext<ServerCommandSource>& context)
 i32 ExecuteCommand::_executePositioned(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    Vector3d position = context.getArgument<Vector3d>("pos");
+    Vector3d position = Vec3ArgumentType::getVec3(context, "pos", source);
     std::string command = context.getArgument<std::string>("command");
 
     // 创建修改位置的命令源
@@ -349,7 +351,7 @@ i32 ExecuteCommand::_executeIn(CommandContext<ServerCommandSource>& context)
 i32 ExecuteCommand::_executeIfBlock(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    Vector3i position = context.getArgument<Vector3i>("pos");
+    Vector3i position = BlockPosArgumentType::getBlockPos(context, "pos", source);
     std::string blockInput = context.getArgument<std::string>("block");
     std::string command = context.getArgument<std::string>("command");
 
@@ -386,7 +388,7 @@ i32 ExecuteCommand::_executeIfBlock(CommandContext<ServerCommandSource>& context
 i32 ExecuteCommand::_executeUnlessBlock(CommandContext<ServerCommandSource>& context)
 {
     auto& source = context.getSource();
-    Vector3i position = context.getArgument<Vector3i>("pos");
+    Vector3i position = BlockPosArgumentType::getBlockPos(context, "pos", source);
     std::string blockInput = context.getArgument<std::string>("block");
     std::string command = context.getArgument<std::string>("command");
 

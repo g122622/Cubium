@@ -179,7 +179,7 @@ void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poi
         m_lastPOIStatUpdateTime = gameTime;
     }
 
-    // 4. 定期验证袭击状态（与 MC Java 村民袭击检查频率一致，每 20 tick 一次）
+    // 4. 定期验证袭击状态（每 20 tick 一次）
     if (gameTime - m_lastRaidCheckTime >= RAID_CHECK_INTERVAL) {
         _tickRaidCheck(world, gameTime);
         m_lastRaidCheckTime = gameTime;
@@ -188,9 +188,14 @@ void Village::tick(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poi
 
 void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfInterestStorage* poiStorage)
 {
-    // 村庄不直接管理村民列表的移除，由 VillageManager 通过
-    // 村民的 Brain 记忆模块和工作站绑定来管理村民与村庄的关联。
-    // 这里实现简化的范围检查：记录村民最后出现时间，超时的村民从列表移除。
+    // 村庄村民归属管理：
+    // 村民不隶属于某个 Village 对象，而是通过 POI 绑定（HOME/JOB_SITE/MEETING_POINT）
+    // 隐式关联到村庄区域。村民不会因远离村庄而被"移除"。
+    //
+    // 本项目的 Village 类需要维护显式的村民列表用于流言系统和繁殖判定。
+    // 村民与村庄的关联通过以下机制管理：
+    // 1. VillagerEntity::die() / remove() 中主动调用 releaseAllPois() 和 onVillagerLeave()
+    // 2. 本方法定期检查村民实体是否仍存在且在合理范围内
 
     std::vector<u64> villagersToRemove;
 
@@ -199,14 +204,20 @@ void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfIntere
         Entity* entity = world.getEntity(static_cast<EntityId>(villagerId));
 
         if (entity == nullptr) {
-            // 实体不存在（可能已卸载或死亡），标记移除
+            // 实体不存在（已卸载或死亡），标记移除
+            villagersToRemove.push_back(villagerId);
+            continue;
+        }
+
+        // 检查实体是否已标记为移除（死亡动画结束等）
+        if (entity->isRemoved()) {
             villagersToRemove.push_back(villagerId);
             continue;
         }
 
         // 检查是否为村民实体
         if (entity->typeId() != entity::EntityTypeIdNumber::VILLAGER) {
-            // 不是村民，可能是数据错误，移除
+            // 不是村民（可能是数据错误），移除
             villagersToRemove.push_back(villagerId);
             continue;
         }
@@ -222,29 +233,25 @@ void Village::_tickVillagerCheck(IWorld& world, i64 gameTime, poi::PointOfIntere
             // 村民在范围内，更新最后出现时间
             m_villagerLastSeenTime[villagerId] = gameTime;
         } else {
-            // 村民不在范围内，检查是否超时
+            // 村民不在村庄范围内
+            // POI 记忆只在村民靠近时验证，超出村庄范围的村民给予超时宽限期
             auto it = m_villagerLastSeenTime.find(villagerId);
             if (it != m_villagerLastSeenTime.end()) {
                 i64 timeSinceLastSeen = gameTime - it->second;
                 if (timeSinceLastSeen > VILLAGER_TIMEOUT) {
-                    // 超时，移除村民
+                    // 超时，村民长时间不在村庄范围内，视为离开
                     villagersToRemove.push_back(villagerId);
                 }
+                // 未超时：村民可能暂时离开村庄（如去远处工作），保持关联
             } else {
-                // 没有记录的最后出现时间，可能是新加入的村民
-                // 检查是否在触发范围内（比村庄范围稍大）
-                if (isWithinRaidTrigger(blockPos)) {
-                    // 在触发范围内但不在村庄内，给予时间移动
-                    m_villagerLastSeenTime[villagerId] = gameTime;
-                } else {
-                    // 太远，直接移除
-                    villagersToRemove.push_back(villagerId);
-                }
+                // 没有最后出现时间记录，说明是新加入的村民但已经在范围外
+                // 记录当前时间作为超时起点，给予宽限期
+                m_villagerLastSeenTime[villagerId] = gameTime;
             }
         }
     }
 
-    // 移除超时的村民，并释放其占用的 POI
+    // 移除离开村庄的村民，并释放其占用的 POI
     for (u64 villagerId : villagersToRemove) {
         // 释放该村民占用的所有 POI（床位、工作站等）
         if (poiStorage != nullptr) {
@@ -290,11 +297,9 @@ void Village::_tickPOIStats(const poi::PointOfInterestStorage& poiStorage)
 void Village::_tickRaidCheck(IWorld& world, i64 gameTime)
 {
     // 通过 IWorld 获取 RaidManager，验证村庄的袭击状态与实际袭击同步。
-    // 参考 MC Java 中 Raid 与 Village 的关系：
-    //   - MC Java 没有 Village 对象，袭击状态通过 ServerLevel.getRaidAt(pos) 位置性查询。
-    //   - 本项目中 Village 持有 m_underRaid 标志，由 RaidManager 在 tryStartRaid/onRaidEnd 设置。
-    //   - _tickRaidCheck 作为冗余验证，确保标志与 RaidManager 中的实际袭击状态一致，
-    //     防止因异常情况（如 RaidManager 跳过 onRaidEnd）导致标志永远为 true。
+    // 本项目中 Village 持有 m_underRaid 标志，由 RaidManager 在 tryStartRaid/onRaidEnd 设置。
+    // _tickRaidCheck 作为冗余验证，确保标志与 RaidManager 中的实际袭击状态一致，
+    // 防止因异常情况（如 RaidManager 跳过 onRaidEnd）导致标志永远为 true。
     auto* raidManager = world.raidManager();
     if (raidManager == nullptr) {
         // 非 ServerWorld 环境（如客户端）没有 RaidManager，跳过检查

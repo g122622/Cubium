@@ -24,14 +24,20 @@
 #include "SignBlock.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../item/Items.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../item/core/ItemStack.hpp"
+#include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../IWorld.hpp"
+#include "../../WorldEvents.hpp"
 #include "../../blockentity/BlockEntityType.hpp"
 #include "../../blockentity/core/BlockEntityRegistry.hpp"
 #include "../../blockentity/interactive/SignEntity.hpp"
+#include "../../gameevent/GameEvents.hpp"
 #include "../IWaterLoggable.hpp"
 #include "../WaterLoggableHelpers.hpp"
 #include <cmath>
@@ -80,19 +86,64 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
 {
 
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // 当玩家右键点击告示牌时，执行告示牌上的命令
     BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (blockEntity && blockEntity->getType() == BlockEntityType::Sign) {
-        auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
-        // 执行告示牌上的命令
-        signEntity->executeCommand(world, player);
-        return ActionResultType::Success;
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::Sign) {
+        return ActionResultType::Pass;
     }
 
-    return ActionResultType::Pass;
+    auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
+
+    // 检查玩家手持物品是否为蜜脾（涂蜡交互）
+    ItemStack& heldItem = player.getHeldItem(hand);
+    if (!heldItem.isEmpty() && heldItem.getItem() == Items::HONEYCOMB) {
+        // TODO: 当多人编辑系统完善后添加 otherPlayerIsEditing 检查，
+        //       如果另一玩家正在编辑告示牌，应阻止涂蜡并返回 TRY_WITH_EMPTY_HAND
+        // 涂蜡：如果告示牌未涂蜡，则设置涂蜡状态
+        if (!signEntity->isWaxed()) {
+            if (signEntity->setWaxed(true)) {
+                // 播放涂蜡粒子与音效
+                world.playEvent(world::WorldEvents::WAX_ON, pos, 0);
+
+                // 涂蜡成功后触发方块变更游戏事件（通知附近的幽匿感测体等监听器）
+                world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE,
+                    pos,
+                    gameevent::GameEvent::Context::of(static_cast<const Entity*>(&player), &state));
+
+                // 涂蜡成功后记录玩家使用蜜脾的统计
+                player.awardUsedStat(Items::HONEYCOMB->itemLocation(), 1);
+
+                // 消耗一个蜜脾（非创造模式）
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                }
+
+                return ActionResultType::Success;
+            }
+        }
+        // 告示牌已涂蜡或涂蜡失败，返回 Consume 防止物品被放置
+        return ActionResultType::Consume;
+    }
+
+    // 已涂蜡的告示牌不可编辑，播放交互失败音效并仅执行命令
+    // 对应 MC Java SignBlock.useWithoutItem() 中 isWaxed() 分支：
+    //   serverlevel.playSound(null, signblockentity.getBlockPos(),
+    //       signblockentity.getSignInteractionFailedSoundEvent(), SoundSource.BLOCKS);
+    if (signEntity->isWaxed()) {
+        world.playSound(getWaxedInteractFailSound(), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+    }
+
+    // 执行告示牌上的命令
+    signEntity->executeCommand(world, player);
+    return ActionResultType::Success;
+}
+
+const ResourceLocation& AbstractSignBlock::getWaxedInteractFailSound() const
+{
+    // 普通告示牌（站立/墙面）返回 WAXED_SIGN_INTERACT_FAIL
+    // 对应 MC Java SignBlockEntity.getSignInteractionFailedSoundEvent()
+    return SoundEvents::BLOCK_SIGN_WAXED_INTERACT_FAIL;
 }
 
 const fluid::FluidState* AbstractSignBlock::getFluidState(const BlockState& state) const

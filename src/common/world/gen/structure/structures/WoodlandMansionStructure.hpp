@@ -53,16 +53,11 @@ public:
     ~WoodlandMansionStructure() override = default;
 
     [[nodiscard]] const std::string& name() const override { return s_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return s_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return s_validBiomes; }
 
     /**
-     * @brief 林地府邸使用三角分布（非均匀间距）
-     *
-     * MC 1.21.11 中林地府邸使用 TRIANGULAR 分布类型，
-     * 对应 useUniformSpacing = false。
+     * @brief 获取结构关联的生物群系标签
      */
-    [[nodiscard]] bool useUniformSpacing() const override { return false; }
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     [[nodiscard]] bool canGenerate(
         IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) override;
@@ -72,9 +67,6 @@ public:
 
 private:
     static const std::string s_name;
-    // spacing=80, separation=20, salt=10387319
-    static constexpr StructureSeparationSettings s_settings{80, 20, 10387319};
-    static const std::vector<BiomeId> s_validBiomes;
 };
 
 /**
@@ -155,6 +147,9 @@ private:
     [[nodiscard]] bool _cleanEdges(SimpleGrid& grid);
     void _identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomGrid);
     void _setupThirdFloor();
+
+    /// 房间网格位标志：0x10000=1x1, 0x20000=1x2, 0x40000=2x2, 0x100000=门位置, 0x200000=走廊入口, 0x400000=楼梯,
+    /// 0x800000=楼梯入口
 
     math::Random& m_rng;
     std::unique_ptr<SimpleGrid> m_baseGrid;

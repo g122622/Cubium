@@ -401,6 +401,9 @@ const ResourceLocation BLOCK_BEEHIVE_EXIT("minecraft:block.beehive.exit");
 const ResourceLocation BLOCK_BEEHIVE_SHEAR("minecraft:block.beehive.shear");
 const ResourceLocation BLOCK_BEEHIVE_WORK("minecraft:block.beehive.work");
 
+const ResourceLocation BLOCK_SIGN_WAXED_INTERACT_FAIL("minecraft:block.sign.waxed_interact_fail");
+const ResourceLocation BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL("minecraft:block.hanging_sign.waxed_interact_fail");
+
 const ResourceLocation BLOCK_BELL_USE("minecraft:block.bell.use");
 const ResourceLocation BLOCK_BELL_RESONATE("minecraft:block.bell.resonate");
 
@@ -507,6 +510,8 @@ const ResourceLocation ENTITY_GENERIC_EXPLODE("minecraft:entity.generic.explode"
 // ============================================================================
 // 试炼密室相关音效 (Trial Chambers)
 // ============================================================================
+
+const ResourceLocation TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM("minecraft:block.trial_spawner.about_to_spawn_item");
 
 const ResourceLocation ENTITY_WIND_CHARGE_THROW("minecraft:entity.wind_charge.throw");
 const ResourceLocation ENTITY_WIND_CHARGE_WIND_BURST("minecraft:entity.wind_charge.wind_burst");

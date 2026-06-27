@@ -30,7 +30,6 @@
 
 namespace mc::world::gen::structure {
 
-// 前向声明
 class MineshaftPiece;
 
 /**
@@ -310,18 +309,15 @@ public:
     explicit MineshaftStructure(MineshaftType type = MineshaftType::Normal);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
 
     [[nodiscard]] DecorationStage decorationStage() const override { return DecorationStage::UndergroundStructures; }
 
     /**
-     * @brief 废弃矿井使用均匀间距分布
+     * @brief 获取结构关联的生物群系标签
      *
-     * MC 1.21.11 中废弃矿井使用 LegacyType3 频率缩减方法，
-     * 分布类型为 LINEAR，对应 useUniformSpacing = true。
+     * 返回 minecraft:has_structure/mineshaft 标签，用于 O(1) 生物群系查找。
      */
-    [[nodiscard]] bool useUniformSpacing() const override { return true; }
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 检查是否可以生成
@@ -336,10 +332,7 @@ public:
         IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    // spacing=1, separation=0, salt=0 (每个区块都可能生成)
-    static constexpr StructureSeparationSettings m_settings{1, 0, 0};
     static const std::string m_name;
-    static const std::vector<BiomeId> m_validBiomes;
     static const std::vector<BiomeId> m_mesaBiomes;
 
     MineshaftConfig m_config;

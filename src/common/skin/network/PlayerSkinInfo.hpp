@@ -27,6 +27,7 @@
 #include "common/resource/ResourceLocation.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
+#include "common/skin/core/SkinTypes.hpp"
 #include <atomic>
 
 namespace mc::skin {
@@ -194,11 +195,49 @@ public:
      */
     [[nodiscard]] ResourceLocation getDefaultSkinLocation() const;
 
+    // ========== 签名安全 ==========
+
+    /**
+     * @brief 皮肤是否安全（签名验证通过）
+     *
+     * 对应 MC Java 版 PlayerSkin.secure 字段。
+     * 当 textures 属性签名状态为 SIGNED 时为 true。
+     * UNSIGNED（离线模式）视为不安全但允许使用。
+     * INVALID（签名验证失败）视为不安全。
+     *
+     * 非本地玩家且 secure=false 时，MC 客户端会回退到默认皮肤。
+     */
+    [[nodiscard]] bool isSecure() const noexcept { return m_secure; }
+
+    /**
+     * @brief 设置皮肤安全状态
+     * @param secure 是否安全
+     */
+    void setSecure(bool secure) noexcept { m_secure = secure; }
+
+    /**
+     * @brief 获取签名状态
+     * @return 签名状态
+     */
+    [[nodiscard]] SignatureState signatureState() const noexcept { return m_signatureState; }
+
+    /**
+     * @brief 设置签名状态
+     * @param state 签名状态
+     */
+    void setSignatureState(SignatureState state) noexcept
+    {
+        m_signatureState = state;
+        m_secure = (state == SignatureState::Signed);
+    }
+
 private:
     GameProfile m_profile;                                            // 玩家档案
     SkinTextures m_textures;                                          // 皮肤纹理集合
     std::atomic<SkinLoadState> m_loadState{SkinLoadState::NotLoaded}; // 加载状态
     u8 m_modelParts = 0x7F;                                           // 默认显示所有部件（除披风外，Bit 0 = 0）
+    bool m_secure = false;                                            // 皮肤是否安全（签名验证通过）
+    SignatureState m_signatureState{SignatureState::Unsigned};        // 签名状态
 };
 
 } // namespace mc::skin

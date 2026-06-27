@@ -28,6 +28,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
@@ -91,11 +92,15 @@ static Direction rotationToSouth(feature::template_::Rotation rotation)
 // ============================================================================
 
 const std::string WoodlandMansionStructure::s_name = "Woodland_Mansion";
-const std::vector<BiomeId> WoodlandMansionStructure::s_validBiomes = {DarkForest, DarkForestHills};
 
 WoodlandMansionStructure::WoodlandMansionStructure()
-    : Structure(StructureType::WoodlandMansion)
+    : Structure(ResourceLocation("minecraft", "mansion"))
 {}
+
+const biome::BiomeTag* WoodlandMansionStructure::biomeTag() const
+{
+    return &biome::BiomeTags::HAS_STRUCTURE_MANSION();
+}
 
 bool WoodlandMansionStructure::canGenerate(
     IWorld& world, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
@@ -105,12 +110,7 @@ bool WoodlandMansionStructure::canGenerate(
 
     // 检查生物群系
     BiomeId biome = generator.getBiome(chunkX * CHUNK_WIDTH + 8, SEA_LEVEL, chunkZ * CHUNK_WIDTH + 8);
-    for (BiomeId valid : s_validBiomes) {
-        if (biome == valid) {
-            return true;
-        }
-    }
-    return false;
+    return isValidBiome(biome);
 }
 
 std::unique_ptr<StructureStart> WoodlandMansionStructure::generate(
@@ -452,7 +452,7 @@ void MansionGrid::_identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomG
         }
     }
 
-    // 随机打乱
+    // 随机打乱（与MC原版使用Collections.shuffle等效）
     for (size_t i = rooms.size(); i > 1; --i) {
         size_t j = static_cast<size_t>(m_rng.nextInt(static_cast<i32>(i)));
         std::swap(rooms[i - 1], rooms[j]);
@@ -469,7 +469,7 @@ void MansionGrid::_identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomG
             i32 x2 = x;
             i32 y1 = y;
             i32 y2 = y;
-            i32 roomType = 65536; // 1x1 房间
+            i32 roomType = 65536; // 0x10000: 1x1 房间
 
             // 检查是否可以形成更大的房间
             if (roomGrid.get(x + 1, y) == 0 && roomGrid.get(x, y + 1) == 0 && roomGrid.get(x + 1, y + 1) == 0 &&
@@ -477,7 +477,7 @@ void MansionGrid::_identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomG
                 // 2x2 房间
                 x2 = x + 1;
                 y2 = y + 1;
-                roomType = 262144;
+                roomType = 262144; // 0x40000
             } else if (roomGrid.get(x - 1, y) == 0 && roomGrid.get(x, y + 1) == 0 && roomGrid.get(x - 1, y + 1) == 0 &&
                 sourceGrid.get(x - 1, y) == 2 && sourceGrid.get(x, y + 1) == 2 && sourceGrid.get(x - 1, y + 1) == 2) {
                 x1 = x - 1;
@@ -491,7 +491,7 @@ void MansionGrid::_identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomG
             } else if (roomGrid.get(x + 1, y) == 0 && sourceGrid.get(x + 1, y) == 2) {
                 // 1x2 水平房间
                 x2 = x + 1;
-                roomType = 131072;
+                roomType = 131072; // 0x20000
             } else if (roomGrid.get(x, y + 1) == 0 && sourceGrid.get(x, y + 1) == 2) {
                 // 1x2 垂直房间
                 y2 = y + 1;
@@ -504,10 +504,43 @@ void MansionGrid::_identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomG
                 roomType = 131072;
             }
 
+            // 随机选择门位置（从房间范围内随机选一个单元格作为门位置）
+            i32 doorX = m_rng.nextBoolean() ? x1 : x2;
+            i32 doorY = m_rng.nextBoolean() ? y1 : y2;
+
+            // 检查门位置是否与走廊(value=1)相邻，0x200000 表示有走廊入口
+            i32 doorFlag = 2097152; // 0x200000
+            if (!sourceGrid.edgesTo(doorX, doorY, 1)) {
+                // 尝试交换X
+                doorX = (doorX == x1) ? x2 : x1;
+                doorY = (doorY == y1) ? y2 : y1;
+                if (!sourceGrid.edgesTo(doorX, doorY, 1)) {
+                    // 尝试仅交换Y
+                    doorY = (doorY == y1) ? y2 : y1;
+                    if (!sourceGrid.edgesTo(doorX, doorY, 1)) {
+                        // 尝试仅交换X
+                        doorX = (doorX == x1) ? x2 : x1;
+                        doorY = (doorY == y1) ? y2 : y1;
+                        if (!sourceGrid.edgesTo(doorX, doorY, 1)) {
+                            // 没有任何位置与走廊相邻，不设楼梯入口标志
+                            doorFlag = 0;
+                            doorX = x1;
+                            doorY = y1;
+                        }
+                    }
+                }
+            }
+
             // 设置房间网格
             for (i32 ry = y1; ry <= y2; ++ry) {
                 for (i32 rx = x1; rx <= x2; ++rx) {
-                    roomGrid.set(rx, ry, roomType | roomId);
+                    if (rx == doorX && ry == doorY) {
+                        // 门位置：设置 0x100000（门位置标志）| 楼梯入口标志 | 房间类型 | 房间ID
+                        roomGrid.set(rx, ry, 1048576 | doorFlag | roomType | roomId);
+                    } else {
+                        // 非门位置：仅设置房间类型 | 房间ID
+                        roomGrid.set(rx, ry, roomType | roomId);
+                    }
                 }
             }
             ++roomId;
@@ -517,15 +550,16 @@ void MansionGrid::_identifyRooms(const SimpleGrid& sourceGrid, SimpleGrid& roomG
 
 void MansionGrid::_setupThirdFloor()
 {
-    // 找到二楼有楼梯的房间
+    // 找到二楼有楼梯的房间：1x2房间类型(0x20000)且有走廊入口标志(0x200000)
     std::vector<std::pair<i32, i32>> stairRooms;
     SimpleGrid& secondFloor = *m_floorRooms[1];
 
     for (i32 y = 0; y < m_baseGrid->height(); ++y) {
         for (i32 x = 0; x < m_baseGrid->width(); ++x) {
             i32 value = secondFloor.get(x, y);
-            if ((value & 0xF0000) == 0x20000 && (value & 0x200000) == 0x200000) {
-                // 1x2 房间且有楼梯入口
+            i32 roomType = value & 0xF0000;
+            if (roomType == 0x20000 && (value & 0x200000) == 0x200000) {
+                // 1x2 房间且有走廊入口（可放置楼梯）
                 stairRooms.emplace_back(x, y);
             }
         }
@@ -542,9 +576,14 @@ void MansionGrid::_setupThirdFloor()
     i32 sx = chosen.first;
     i32 sy = chosen.second;
 
-    // 标记二楼该房间为通往三楼
+    // 标记二楼该房间为通往三楼（0x400000）
     i32 oldValue = secondFloor.get(sx, sy);
     secondFloor.set(sx, sy, oldValue | 0x400000);
+
+    // 获取1x2房间的方向，找到另一个单元格的位置
+    Direction roomDir = get1x2RoomDirection(*m_baseGrid, sx, sy, 1, oldValue & 0xFFFF);
+    i32 adjX = sx + Directions::xOffset(roomDir);
+    i32 adjY = sy + Directions::zOffset(roomDir);
 
     // 设置三楼布局
     for (i32 y = 0; y < m_thirdFloorGrid->height(); ++y) {
@@ -552,12 +591,44 @@ void MansionGrid::_setupThirdFloor()
             if (!isHouse(*m_baseGrid, x, y)) {
                 m_thirdFloorGrid->set(x, y, MANSION_GRID_OUTSIDE_VALUE);
             } else if (x == sx && y == sy) {
+                // 楼梯单元格
                 m_thirdFloorGrid->set(x, y, 3);
+            } else if (x == adjX && y == adjY) {
+                // 1x2房间的另一个单元格，作为走廊起点
+                m_thirdFloorGrid->set(x, y, 3);
+                // 标记为入口（0x800000）
+                m_floorRooms[2]->set(x, y, 8388608);
             }
         }
     }
 
-    // TODO: 从楼梯位置生成走廊，当前为简化实现
+    // 从走廊起点查找可用方向
+    std::vector<Direction> availableDirs;
+    const Direction horizontalDirs[] = {Direction::North, Direction::East, Direction::South, Direction::West};
+    for (i32 i = 0; i < 4; ++i) {
+        Direction dir = horizontalDirs[i];
+        i32 nx = adjX + Directions::xOffset(dir);
+        i32 ny = adjY + Directions::zOffset(dir);
+        if (m_thirdFloorGrid->get(nx, ny) == 0) {
+            availableDirs.push_back(dir);
+        }
+    }
+
+    if (availableDirs.empty()) {
+        // 没有可用方向，清除三楼并恢复二楼标记
+        m_thirdFloorGrid->set(0, 0, m_thirdFloorGrid->width(), m_thirdFloorGrid->height(), MANSION_GRID_OUTSIDE_VALUE);
+        secondFloor.set(sx, sy, oldValue); // 恢复原始值（去掉0x400000标志）
+    } else {
+        // 从随机可用方向开始递归走廊生成
+        Direction corridorDir =
+            availableDirs[static_cast<size_t>(m_rng.nextInt(static_cast<i32>(availableDirs.size())))];
+        i32 startX = adjX + Directions::xOffset(corridorDir);
+        i32 startY = adjY + Directions::zOffset(corridorDir);
+        _recursiveCorridor(*m_thirdFloorGrid, startX, startY, corridorDir, 4);
+
+        // 清理边缘
+        while (_cleanEdges(*m_thirdFloorGrid)) {}
+    }
 }
 
 // ============================================================================

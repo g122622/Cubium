@@ -25,14 +25,11 @@
 
 #include "LootFunction.hpp"
 #include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/map/MapDecoration.hpp"
 #include <memory>
 #include <optional>
 #include <string>
-
-namespace mc::world::gen::structure {
-enum class StructureType : u8;
-}
 
 namespace mc {
 namespace loot {
@@ -118,9 +115,9 @@ public:
     [[nodiscard]] world::map::DecorationType getEffectiveDecoration() const;
 
     /**
-     * @brief 将目的地类型转换为结构类型（用于结构搜索）
+     * @brief 将目的地类型转换为结构资源位置（用于结构搜索）
      */
-    [[nodiscard]] static world::gen::structure::StructureType destinationToStructureType(Destination destination);
+    [[nodiscard]] static ResourceLocation destinationToResourceLocation(Destination destination);
 
 private:
     Destination m_destination;

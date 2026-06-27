@@ -36,6 +36,7 @@
 #include "common/util/text/TextParser.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <algorithm>
 #include <chrono>
 
@@ -487,6 +488,14 @@ bool ItemStack::canPlaceOnBlockInAdventureMode(IWorld& world, const BlockState& 
     return m_canPlaceOn.test(world, state);
 }
 
+bool ItemStack::canPlaceOnBlockInAdventureMode(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
+    if (isEmpty() || !hasCanPlaceOn()) {
+        return false;
+    }
+    return m_canPlaceOn.test(world, pos, state);
+}
+
 bool ItemStack::canBreakBlockInAdventureMode(const BlockState& state) const
 {
     if (isEmpty() || !hasCanDestroy()) {
@@ -501,6 +510,14 @@ bool ItemStack::canBreakBlockInAdventureMode(IWorld& world, const BlockState& st
         return false;
     }
     return m_canDestroy.test(world, state);
+}
+
+bool ItemStack::canBreakBlockInAdventureMode(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
+    if (isEmpty() || !hasCanDestroy()) {
+        return false;
+    }
+    return m_canDestroy.test(world, pos, state);
 }
 
 void ItemStack::inventoryTick(IWorld& world, Entity& entity, i32 itemSlot, bool isSelected)

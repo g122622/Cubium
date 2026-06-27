@@ -75,3 +75,12 @@ storage/
 ### 分数键的 playerName 可能包含冒号
 
 玩家名理论上可以包含冒号，但当前键格式使用冒号分隔 `score:{objective}:{player}`。如果玩家名包含冒号会导致 `parseScoreKey()` 解析错误。目前 MC 玩家名不允许冒号，但自定义记分板实体名可能触发此问题。
+
+### deleteObjective 会级联删除关联分数
+
+删除目标时，`deleteObjective()` 会自动删除该目标下的所有分数（缓存和数据库），无需手动清理。这包括：
+1. 从 `m_scoreCache` 中移除该目标的整个分数缓存
+2. 从 `m_dirtyScores` 中移除该目标的所有脏分数条目
+3. 使用前缀迭代器删除数据库中 `score:{objectiveName}:` 前缀的所有键
+
+注意：`deleteTeam()` 不会级联删除成员的分数，因为队伍和分数之间没有直接关联。

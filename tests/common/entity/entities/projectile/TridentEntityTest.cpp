@@ -23,6 +23,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/TridentEntity.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -563,6 +564,112 @@ TEST_F(TridentLoyaltyTest, LoyaltyTrident_TimeInGround_Tracked)
     EXPECT_EQ(trident.timeInGround(), 0);
     trident.setTimeInGround(5);
     EXPECT_EQ(trident.timeInGround(), 5);
+}
+
+// ============================================================================
+// ProjectileEntity::hurt 测试
+//
+// 通过 TridentEntity（ProjectileEntity 子类）测试 ProjectileEntity::hurt()。
+// ProjectileEntity::hurt() 始终返回 false（投掷物不可被伤害），
+// 但当来源非无敌时标记 hurtMarked 以同步速度到客户端。
+// ============================================================================
+
+/**
+ * @brief 无敌伤害源：markHurt 不被调用，返回 false
+ */
+TEST_F(TridentLoyaltyTest, Hurt_InvulnerableSource_ReturnsFalse_NoMarkHurt)
+{
+    auto& trident = createTrident();
+    trident.setInvulnerable(true);
+    EXPECT_FALSE(trident.isHurtMarked());
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(trident.hurt(source, 5.0f));
+    EXPECT_FALSE(trident.isHurtMarked());
+}
+
+/**
+ * @brief 正常伤害源：markHurt 被调用，返回 false
+ *
+ * ProjectileEntity::hurt() 对非无敌伤害源标记 hurtMarked
+ * （以同步速度到客户端产生击退效果），但始终返回 false
+ * 因为投掷物不可被伤害。
+ */
+TEST_F(TridentLoyaltyTest, Hurt_NormalSource_MarksHurt_ReturnsFalse)
+{
+    auto& trident = createTrident();
+    EXPECT_FALSE(trident.isHurtMarked());
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(trident.hurt(source, 5.0f));
+    EXPECT_TRUE(trident.isHurtMarked());
+}
+
+/**
+ * @brief 伤害量不影响返回值——始终返回 false
+ */
+TEST_F(TridentLoyaltyTest, Hurt_AnyAmount_ReturnsFalse)
+{
+    auto& trident = createTrident();
+
+    auto source1 = DamageSources::generic();
+    EXPECT_FALSE(trident.hurt(source1, 0.0f));
+
+    auto source2 = DamageSources::generic();
+    EXPECT_FALSE(trident.hurt(source2, 1000.0f));
+}
+
+/**
+ * @brief hurt() 不移除实体
+ *
+ * ProjectileEntity 不会因为 hurt() 而被移除。
+ */
+TEST_F(TridentLoyaltyTest, Hurt_DoesNotRemoveEntity)
+{
+    auto& trident = createTrident();
+
+    auto source = DamageSources::generic();
+    trident.hurt(source, 100.0f);
+    EXPECT_FALSE(trident.isRemoved());
+}
+
+/**
+ * @brief 清除 hurtMarked 后可以再次标记
+ */
+TEST_F(TridentLoyaltyTest, Hurt_ClearAndReMarkHurt)
+{
+    auto& trident = createTrident();
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(trident.hurt(source, 1.0f));
+    EXPECT_TRUE(trident.isHurtMarked());
+
+    trident.clearHurtMarked();
+    EXPECT_FALSE(trident.isHurtMarked());
+
+    auto source2 = DamageSources::generic();
+    EXPECT_FALSE(trident.hurt(source2, 1.0f));
+    EXPECT_TRUE(trident.isHurtMarked());
+}
+
+/**
+ * @brief 虚空伤害绕过无敌但 ProjectileEntity 仍返回 false
+ *
+ * 即使 isInvulnerableTo() 对虚空伤害返回 false，
+ * ProjectileEntity::hurt() 仍然返回 false（投掷物不可被伤害），
+ * 但会标记 hurtMarked。
+ */
+TEST_F(TridentLoyaltyTest, Hurt_VoidDamageBypassesInvulnerability_StillReturnsFalse)
+{
+    auto& trident = createTrident();
+    trident.setInvulnerable(true);
+
+    auto voidSource = DamageSources::outOfWorld();
+    // 虚空伤害绕过无敌，所以 isInvulnerableTo() 返回 false
+    // 因此 markHurt() 应被调用，但 hurt() 仍返回 false
+    EXPECT_FALSE(trident.hurt(voidSource, 100.0f));
+    EXPECT_TRUE(trident.isHurtMarked());
+    EXPECT_FALSE(trident.isRemoved()); // 投掷物不会被虚空伤害摧毁
 }
 
 } // namespace

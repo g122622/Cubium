@@ -70,3 +70,7 @@ ExperienceOrbEntity
 ### 7. 常量来源
 
 所有常量（`MAX_ORB_SIZE`, `MAX_AGE`, `TRACKING_RANGE`, `PICKUP_DISTANCE` 等）都来自 `ExperienceConstants.hpp`，不要硬编码。
+
+### 8. 伤害处理
+
+经验球有 5 点生命值（`m_health = 5`），覆写了 `Entity::hurt()`。受伤时减少生命值并标记 `hurtMarked` 以同步速度到客户端，生命值归零时调用 `discard()` 销毁。对应 MC Java 的 `ExperienceOrb.hurtServer()`。

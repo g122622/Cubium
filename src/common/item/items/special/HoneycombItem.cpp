@@ -29,6 +29,8 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/interactive/SignEntity.hpp"
 
 namespace mc {
 namespace item::items {
@@ -46,13 +48,31 @@ ActionResultType HoneycombItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Pass;
     }
 
-    // 检查方块是否可涂蜡
+    // 检查是否对告示牌使用蜜脾（涂蜡）
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Sign) {
+        auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
+        if (!signEntity->isWaxed()) {
+            if (signEntity->setWaxed(true)) {
+                // 播放涂蜡粒子与音效
+                world.playEvent(world::WorldEvents::WAX_ON, pos, 0);
+
+                // 消耗一个蜜脾（非创造模式）
+                ItemStack& stack = context.getItemStackMut();
+                if (context.getPlayer() == nullptr || !context.getPlayer()->abilities().creativeMode) {
+                    stack.shrink(1);
+                }
+
+                return ActionResultType::Success;
+            }
+        }
+        // 告示牌已涂蜡，不处理
+        return ActionResultType::Pass;
+    }
+
+    // 检查方块是否可涂蜡（铜块系列）
     auto waxedState = getWaxed(*state);
     if (!waxedState.has_value()) {
-        // TODO: 实现告示牌涂蜡交互（SignApplicator 接口）。
-        // MC 原版 HoneycombItem 实现了 SignApplicator 接口，
-        // 右键告示牌时调用 SignBlockEntity::setWaxed(true) 并播放 WAX_ON 效果。
-        // 待 SignBlockEntity 的 isWaxed 属性和 SignApplicator 接口实现后集成。
         return ActionResultType::Pass;
     }
 
@@ -225,8 +245,15 @@ std::unordered_map<const Block*, const Block*> HoneycombItem::_buildWaxablesMap(
     if (VanillaBlocks::OXIDIZED_COPPER_LANTERN && VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN)
         m[VanillaBlocks::OXIDIZED_COPPER_LANTERN] = VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN;
 
-    // 避雷针（仅未氧化 -> 涂蜡的映射，MC 1.21.11 避雷针也有氧化变种）
-    // TODO: 当 VanillaBlocks 中注册了氧化避雷针变种后，添加对应的涂蜡映射
+    // 避雷针（MC 1.21+ 新增氧化变种）
+    if (VanillaBlocks::LIGHTNING_ROD && VanillaBlocks::WAXED_LIGHTNING_ROD)
+        m[VanillaBlocks::LIGHTNING_ROD] = VanillaBlocks::WAXED_LIGHTNING_ROD;
+    if (VanillaBlocks::EXPOSED_LIGHTNING_ROD && VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD)
+        m[VanillaBlocks::EXPOSED_LIGHTNING_ROD] = VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD;
+    if (VanillaBlocks::WEATHERED_LIGHTNING_ROD && VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD)
+        m[VanillaBlocks::WEATHERED_LIGHTNING_ROD] = VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD;
+    if (VanillaBlocks::OXIDIZED_LIGHTNING_ROD && VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD)
+        m[VanillaBlocks::OXIDIZED_LIGHTNING_ROD] = VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD;
 
     return m;
 }

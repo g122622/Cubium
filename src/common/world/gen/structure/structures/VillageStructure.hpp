@@ -81,8 +81,14 @@ public:
     explicit VillageStructure(const VillageConfig& config);
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
+
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 村庄有多个变体，每个变体对应不同的生物群系标签。
+     * 默认返回平原村庄标签，canGenerate() 中根据村庄类型进行详细检查。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 检查是否可以生成
@@ -107,16 +113,8 @@ public:
     [[nodiscard]] static const char* getVillageTypeName(VillageType type);
 
 private:
-    /**
-     * @brief 初始化生物群系列表
-     */
-    void _initializeBiomes();
-
     VillageConfig m_config;
-    // 村庄结构生成间距设置
-    static constexpr StructureSeparationSettings m_settings{34, 8, 10387312};
     static const std::string m_name;
-    std::vector<BiomeId> m_validBiomes;
 };
 
 } // namespace structure

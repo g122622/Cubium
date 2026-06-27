@@ -15,10 +15,10 @@ layout(push_constant) uniform PushConstants {
     mat4 model;
     vec3 entityPos;
     float scale;
-    vec4 overlayColor;   // 覆盖层颜色 (受伤闪烁/道德效果)
+    vec4 overlayColor;   // 覆盖层颜色 (受伤闪烁/经验球色调等)
     float hurtTime;      // 受伤时间 (0-10)
     float deathTime;     // 死亡时间
-    float _padding0;
+    float fullbright;    // 全亮光照因子 (0.0=正常光照, 1.0=最大亮度)
     float _padding1;
 } pc;
 

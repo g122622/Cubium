@@ -99,6 +99,9 @@ enum class ParticleTypeId : u16 {
     /// 雪球粒子
     ItemSnowball = 15,
 
+    /// 尘柱粒子（重锤砸地攻击产生，使用方块状态纹理）
+    DustPillar = 16,
+
     // ========================================================================
     // 效果类粒子 (20-39)
     // ========================================================================
@@ -357,6 +360,9 @@ enum class ParticleTypeId : u16 {
     /// 风爆发射器粒子（大型）
     GustEmitterLarge = 108,
 
+    /// 不祥生成粒子（不祥物品生成器周围生成的不祥粒子）
+    OminousSpawning = 109,
+
     /// 孢子花掉落粒子
     FallingSporeBlossom = 105,
 
@@ -393,7 +399,8 @@ enum class ParticleTypeId : u16 {
  */
 [[nodiscard]] constexpr bool requiresBlockState(ParticleTypeId id)
 {
-    return id == ParticleTypeId::Block || id == ParticleTypeId::Breaking || id == ParticleTypeId::FallingDust;
+    return id == ParticleTypeId::Block || id == ParticleTypeId::Breaking || id == ParticleTypeId::FallingDust ||
+        id == ParticleTypeId::DustPillar;
 }
 
 /**
@@ -416,6 +423,17 @@ enum class ParticleTypeId : u16 {
 [[nodiscard]] constexpr bool requiresDustColor(ParticleTypeId id)
 {
     return id == ParticleTypeId::Redstone || id == ParticleTypeId::Dust || id == ParticleTypeId::DustColorTransition;
+}
+
+/**
+ * @brief 检查粒子类型是否需要振动数据（目标位置 + 到达时间）
+ *
+ * @param id 粒子类型 ID
+ * @return 是否需要振动数据
+ */
+[[nodiscard]] constexpr bool requiresVibrationData(ParticleTypeId id)
+{
+    return id == ParticleTypeId::Vibration;
 }
 
 } // namespace mc::client::renderer::trident::particle

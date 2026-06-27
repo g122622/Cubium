@@ -24,10 +24,14 @@
 #pragma once
 
 #include "../Structure.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/math/Vector3.hpp"
 #include <memory>
 
-namespace mc::world::gen::structure {
+namespace mc {
+namespace world {
+namespace gen {
+namespace structure {
 
 /**
  * @brief 埋藏的宝藏结构片段
@@ -60,12 +64,17 @@ private:
 class BuriedTreasureStructure : public Structure {
 public:
     BuriedTreasureStructure()
-        : Structure(StructureType::BuriedTreasure)
+        : Structure(ResourceLocation("minecraft", "buried_treasure"))
     {}
 
     [[nodiscard]] const std::string& name() const override { return m_name; }
-    [[nodiscard]] StructureSeparationSettings separationSettings() const override { return m_settings; }
-    [[nodiscard]] const std::vector<BiomeId>& validBiomes() const override { return m_validBiomes; }
+
+    /**
+     * @brief 获取结构关联的生物群系标签
+     *
+     * 返回 minecraft:has_structure/buried_treasure 标签，用于 O(1) 生物群系查找。
+     */
+    [[nodiscard]] const biome::BiomeTag* biomeTag() const override;
 
     /**
      * @brief 埋藏宝藏的定位偏移
@@ -91,12 +100,11 @@ public:
         IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const override;
 
 private:
-    // spacing=1, separation=0, salt=0
-    // BuriedTreasure使用DimensionStructuresSettings中的默认配置
     // 注意：canGenerate中使用单独的salt(10387320)来计算概率种子
-    static constexpr StructureSeparationSettings m_settings{1, 0, 0};
     static const std::string m_name;
-    static const std::vector<BiomeId> m_validBiomes;
 };
 
-} // namespace mc::world::gen::structure
+} // namespace structure
+} // namespace gen
+} // namespace world
+} // namespace mc

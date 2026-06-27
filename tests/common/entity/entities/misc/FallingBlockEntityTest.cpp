@@ -1090,6 +1090,90 @@ TEST_F(FallingBlockEntityTest, MovingPistonBlockExists)
     ASSERT_NE(VanillaBlocks::MOVING_PISTON, nullptr);
 }
 
+// ============================================================================
+// FallingBlockEntity::hurt 测试
+// ============================================================================
+
+/**
+ * @brief 无敌伤害源：markHurt 不被调用，返回 false
+ *
+ * FallingBlockEntity::hurt() 在无敌状态下直接返回 false，
+ * 不执行 markHurt()。
+ */
+TEST_F(FallingBlockEntityTest, Hurt_InvulnerableSource_ReturnsFalse_NoMarkHurt)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+    entity->setInvulnerable(true);
+    EXPECT_FALSE(entity->isHurtMarked());
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(entity->hurt(source, 5.0f));
+    EXPECT_FALSE(entity->isHurtMarked());
+}
+
+/**
+ * @brief 正常伤害源：markHurt 被调用，但始终返回 false
+ *
+ * FallingBlockEntity::hurt() 对非无敌伤害源标记 hurtMarked
+ * （以同步速度到客户端产生击退效果），但始终返回 false
+ * 因为下落方块不可被伤害。
+ */
+TEST_F(FallingBlockEntityTest, Hurt_NormalSource_MarksHurt_ReturnsFalse)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+    EXPECT_FALSE(entity->isHurtMarked());
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(entity->hurt(source, 5.0f));
+    EXPECT_TRUE(entity->isHurtMarked());
+}
+
+/**
+ * @brief 伤害量不影响返回值——始终返回 false
+ *
+ * FallingBlockEntity 不受伤害量影响，无论多少伤害都返回 false。
+ */
+TEST_F(FallingBlockEntityTest, Hurt_AnyAmount_ReturnsFalse)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(entity->hurt(source, 0.0f));
+    EXPECT_FALSE(entity->hurt(source, 100.0f));
+}
+
+/**
+ * @brief 多次受伤清除 hurtMarked 后再次标记
+ */
+TEST_F(FallingBlockEntityTest, Hurt_ClearAndReMarkHurt)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    auto source = DamageSources::generic();
+    EXPECT_FALSE(entity->hurt(source, 1.0f));
+    EXPECT_TRUE(entity->isHurtMarked());
+
+    entity->clearHurtMarked();
+    EXPECT_FALSE(entity->isHurtMarked());
+
+    EXPECT_FALSE(entity->hurt(source, 1.0f));
+    EXPECT_TRUE(entity->isHurtMarked());
+}
+
+/**
+ * @brief hurt() 不移除实体
+ *
+ * FallingBlockEntity 不会因为 hurt() 而被移除。
+ */
+TEST_F(FallingBlockEntityTest, Hurt_DoesNotRemoveEntity)
+{
+    auto entity = std::make_unique<FallingBlockEntity>();
+
+    auto source = DamageSources::generic();
+    entity->hurt(source, 1000.0f);
+    EXPECT_FALSE(entity->isRemoved());
+}
+
 } // namespace test
 } // namespace entity
 } // namespace mc

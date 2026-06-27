@@ -74,8 +74,7 @@ void StructureRegistry::initialize()
     pools::Pools::initialize();
 
     // 注册原版结构
-    // TODO: 子类构造函数需要更新为接受 ResourceLocation 参数
-    // 当前阶段先保持旧的构造方式，后续逐步迁移
+    // 所有子类已迁移到 ResourceLocation 构造函数
     registerStructure(std::make_unique<RuinedPortalStructure>());
     registerStructure(std::make_unique<BuriedTreasureStructure>());
     registerStructure(std::make_unique<MineshaftStructure>());
@@ -138,15 +137,6 @@ const std::vector<const Structure*>& StructureRegistry::getAll()
 StructureManager::StructureManager(i64 seed)
     : m_seed(seed)
 {}
-
-bool StructureManager::shouldGenerateStructureStart(const Structure& structure, i32 chunkX, i32 chunkZ) const
-{
-    // 使用兼容的间距设置检查是否应该在此位置生成
-    // TODO: 迁移到使用 StructurePlacement::isStructureChunk() 判断
-    i32 startX, startZ;
-    return Structure::findStructureStart(
-        m_seed, chunkX, chunkZ, structure.separationSettings(), startX, startZ, structure.useUniformSpacing());
-}
 
 std::unique_ptr<StructureStart> StructureManager::generateStructureStart(const Structure& structure,
     IWorldWriter& /*world*/,

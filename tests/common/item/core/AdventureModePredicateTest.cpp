@@ -606,17 +606,23 @@ TEST_F(AdventureModePredicateTest, PropertyMatch_EqualityWithPropertyStrings)
     EXPECT_FALSE(predicate1 == predicate3);
 }
 
-TEST_F(AdventureModePredicateTest, PropertyMatch_NBTBracketSyntax_IgnoredForNow)
+TEST_F(AdventureModePredicateTest, PropertyMatch_NBTBracketSyntax_BlockIdExtracted)
 {
-    // "minecraft:chest{Items:[...]}" —— NBT 匹配暂不支持
-    // 当前行为：花括号被当作方块ID的一部分，不会匹配任何方块
-    AdventureModePredicate predicate({"minecraft:chest{Items:[...]}"});
+    // "minecraft:chest{Items:[{id:'minecraft:diamond',Count:1b}]}" —— NBT 花括号语法的方块ID部分应正确提取
+    // NBT 语法支持后，方块ID部分应被正确提取为 "minecraft:chest"
+    AdventureModePredicate predicate({"minecraft:chest{Items:[{id:'minecraft:diamond',Count:1b}]}"});
     const BlockState& chestState =
         VanillaBlocks::CHEST ? VanillaBlocks::CHEST->defaultState() : VanillaBlocks::STONE->defaultState();
 
-    // 当前不支持 NBT 匹配，花括号部分会被当作方块ID的一部分
-    // 因此不会匹配（ResourceLocation("minecraft:chest{Items:[...]}") 不等于 "minecraft:chest"）
-    EXPECT_FALSE(predicate.test(chestState));
+    // 方块ID "minecraft:chest" 应该正确匹配（NBT 部分不影响方块ID匹配）
+    // 但没有世界上下文时（纯 BlockState 版本的 test），NBT 检查被跳过
+    // 如果 chestState 是 CHEST，则应匹配；如果是 STONE 回退，则不匹配
+    if (VanillaBlocks::CHEST) {
+        // 纯方块状态版本跳过 NBT 检查，方块ID 匹配即通过
+        EXPECT_TRUE(predicate.test(chestState));
+    } else {
+        EXPECT_FALSE(predicate.test(chestState));
+    }
 }
 
 TEST_F(AdventureModePredicateTest, BlockWithBooleanProperty)
@@ -697,4 +703,193 @@ TEST_F(AdventureModePredicateTest, BlockWithIntegerProperty)
     if (moisture0State) {
         EXPECT_FALSE(predicate.test(*moisture0State));
     }
+}
+
+// ============================================================================
+// NBT 谓词解析测试
+// ============================================================================
+
+TEST_F(AdventureModePredicateTest, NBTBracket_BlockIdExtractedCorrectly)
+{
+    // "minecraft:stone{CustomName:'test'}" —— 方块ID应正确提取为 "minecraft:stone"
+    AdventureModePredicate predicate({"minecraft:stone{CustomName:'test'}"});
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
+
+    // 纯方块状态版本的 test 跳过 NBT 检查，方块ID 匹配即通过
+    EXPECT_TRUE(predicate.test(stoneState));
+    EXPECT_FALSE(predicate.test(dirtState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_PropertyAndNBTCombined)
+{
+    // "minecraft:oak_log[axis=y]{CustomName:'test'}" —— 属性和NBT同时存在
+    AdventureModePredicate predicate({"minecraft:oak_log[axis=y]{CustomName:'test'}"});
+
+    const Block& oakLog = *VanillaBlocks::OAK_LOG;
+    const auto& container = oakLog.stateContainer();
+    const IProperty* axisProp = container.getProperty("axis");
+    ASSERT_NE(axisProp, nullptr);
+
+    const BlockState* yAxisState = nullptr;
+    const BlockState* xAxisState = nullptr;
+    for (const auto& state : container.validStates()) {
+        auto valIdx = state->getValueIndex(*axisProp);
+        if (valIdx.has_value()) {
+            auto parsedY = axisProp->parseValue("y");
+            auto parsedX = axisProp->parseValue("x");
+            if (parsedY.has_value() && *valIdx == *parsedY) {
+                yAxisState = state.get();
+            }
+            if (parsedX.has_value() && *valIdx == *parsedX) {
+                xAxisState = state.get();
+            }
+        }
+    }
+
+    ASSERT_NE(yAxisState, nullptr);
+    ASSERT_NE(xAxisState, nullptr);
+
+    // 纯方块状态版本跳过 NBT 检查
+    // axis=y 应该匹配（属性和方块ID都匹配，NBT被忽略）
+    EXPECT_TRUE(predicate.test(*yAxisState));
+    // axis=x 不应该匹配（属性不匹配）
+    EXPECT_FALSE(predicate.test(*xAxisState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_PropertyAfterNBTNotSupported)
+{
+    // NBT 部分必须在属性之后："[...]{...}" 格式
+    // "minecraft:stone{CustomName:'test'}[axis=y]" 不是有效格式
+    // 在这种情况下，{...} 之后的部分不会被识别为属性
+    // 方块ID 仍应正确提取为 "minecraft:stone"
+    AdventureModePredicate predicate({"minecraft:stone{CustomName:'test'}[axis=y]"});
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    // 方块ID 匹配（NBT和属性部分按解析规则处理）
+    EXPECT_TRUE(predicate.test(stoneState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_OnlyNBTNoProperties)
+{
+    // "minecraft:stone{Count:1b}" —— 只有NBT，没有属性
+    AdventureModePredicate predicate({"minecraft:stone{Count:1b}"});
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    // 纯方块状态版本跳过 NBT 检查，方块ID 匹配即通过
+    EXPECT_TRUE(predicate.test(stoneState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_TagReferenceWithNBT)
+{
+    // "#minecraft:logs{CustomName:'test'}" —— 标签引用 + NBT
+    AdventureModePredicate predicate({"#minecraft:logs{CustomName:'test'}"});
+
+    const BlockState& oakLogState = VanillaBlocks::OAK_LOG->defaultState();
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    // 纯方块状态版本跳过 NBT 检查
+    EXPECT_TRUE(predicate.test(oakLogState));
+    EXPECT_FALSE(predicate.test(stoneState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_MultiplePredicatesWithNBT)
+{
+    // 混合含NBT和不含NBT的谓词条目
+    AdventureModePredicate predicate({"minecraft:stone", "minecraft:dirt{CustomName:'test'}"});
+
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
+
+    // stone 不含NBT，匹配
+    EXPECT_TRUE(predicate.test(stoneState));
+    // dirt 含NBT但纯状态版本跳过NBT检查，方块ID匹配即通过
+    EXPECT_TRUE(predicate.test(dirtState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_EmptyNBTBraces)
+{
+    // "minecraft:stone{}" —— 空NBT
+    AdventureModePredicate predicate({"minecraft:stone{}"});
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    // 空NBT {} 解析为空 compound_tag，isAny() 为 true
+    // 纯方块状态版本跳过 NBT 检查，方块ID 匹配即通过
+    EXPECT_TRUE(predicate.test(stoneState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_InvalidNBTFormat)
+{
+    // "minecraft:stone{invalid" —— 无效NBT格式（没有闭合大括号）
+    // parseMojangson 会失败，nbtTag 为 nullptr，hasNbt 为 false
+    AdventureModePredicate predicate({"minecraft:stone{invalid"});
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    // 方块ID 部分仍然正确提取，NBT 解析失败但不影响方块匹配
+    EXPECT_TRUE(predicate.test(stoneState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_GetPredicatesIncludesNBT)
+{
+    // getPredicates() 应该返回原始字符串，包含NBT部分
+    AdventureModePredicate predicate({"minecraft:chest{Items:[{id:'minecraft:diamond',Count:1b}]}"});
+    const auto& preds = predicate.getPredicates();
+
+    EXPECT_EQ(preds.size(), 1u);
+    EXPECT_EQ(preds[0], "minecraft:chest{Items:[{id:'minecraft:diamond',Count:1b}]}");
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_EqualityWithNBTStrings)
+{
+    // 带NBT的谓词字符串也参与相等比较
+    AdventureModePredicate predicate1({"minecraft:stone{Count:1}", "minecraft:dirt"});
+    AdventureModePredicate predicate2({"minecraft:stone{Count:1}", "minecraft:dirt"});
+    AdventureModePredicate predicate3({"minecraft:stone{Count:2}", "minecraft:dirt"});
+
+    EXPECT_TRUE(predicate1 == predicate2);
+    EXPECT_FALSE(predicate1 == predicate3);
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_ComplexNBT)
+{
+    // 复杂NBT匹配：嵌套compound
+    AdventureModePredicate predicate({"minecraft:stone{display:{Name:'Test'}}"});
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+
+    // 纯方块状态版本跳过 NBT 检查
+    EXPECT_TRUE(predicate.test(stoneState));
+}
+
+TEST_F(AdventureModePredicateTest, NBTBracket_PropertyAndNBTWithTagReference)
+{
+    // "#minecraft:logs[axis=y]{CustomName:'test'}" —— 标签+属性+NBT
+    AdventureModePredicate predicate({"#minecraft:logs[axis=y]{CustomName:'test'}"});
+
+    const Block& oakLog = *VanillaBlocks::OAK_LOG;
+    const auto& container = oakLog.stateContainer();
+    const IProperty* axisProp = container.getProperty("axis");
+    ASSERT_NE(axisProp, nullptr);
+
+    const BlockState* yAxisState = nullptr;
+    const BlockState* xAxisState = nullptr;
+    for (const auto& state : container.validStates()) {
+        auto valIdx = state->getValueIndex(*axisProp);
+        if (valIdx.has_value()) {
+            auto parsedY = axisProp->parseValue("y");
+            auto parsedX = axisProp->parseValue("x");
+            if (parsedY.has_value() && *valIdx == *parsedY) {
+                yAxisState = state.get();
+            }
+            if (parsedX.has_value() && *valIdx == *parsedX) {
+                xAxisState = state.get();
+            }
+        }
+    }
+
+    ASSERT_NE(yAxisState, nullptr);
+    ASSERT_NE(xAxisState, nullptr);
+
+    // 纯方块状态版本跳过 NBT 检查
+    EXPECT_TRUE(predicate.test(*yAxisState));
+    EXPECT_FALSE(predicate.test(*xAxisState));
 }

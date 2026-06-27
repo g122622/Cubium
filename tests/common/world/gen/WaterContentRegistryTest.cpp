@@ -23,9 +23,9 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/gen/structure/StructureManager.hpp"
 
 using namespace mc;
@@ -90,6 +90,6 @@ TEST(WaterContentRegistryTest, RegistersShipwreckAndOceanRuinStructures)
     ASSERT_NE(shipwreck, nullptr);
     ASSERT_NE(oceanRuin, nullptr);
 
-    EXPECT_EQ(shipwreck->structureType(), world::gen::structure::StructureType::Shipwreck);
-    EXPECT_EQ(oceanRuin->structureType(), world::gen::structure::StructureType::OceanRuin);
+    EXPECT_EQ(shipwreck->id(), ResourceLocation("minecraft", "shipwreck"));
+    EXPECT_EQ(oceanRuin->id(), ResourceLocation("minecraft", "ocean_ruin"));
 }

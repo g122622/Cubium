@@ -5,7 +5,7 @@
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software or
+ * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
@@ -23,14 +23,18 @@
 
 #include "common/item/core/AdventureModePredicate.hpp"
 
+#include "common/advancement/trigger/conditions/NBTPredicate.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
 #include "common/util/property/IProperty.hpp"
 #include "common/util/property/StateContainer.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 
 namespace mc {
 
@@ -38,14 +42,138 @@ AdventureModePredicate::AdventureModePredicate(std::vector<std::string> predicat
     : m_predicates(std::move(predicates))
 {}
 
+void AdventureModePredicate::ensureParsed() const
+{
+    if (m_parsed) {
+        return;
+    }
+
+    m_parsedPredicates.clear();
+    m_parsedPredicates.reserve(m_predicates.size());
+
+    for (const auto& predicate : m_predicates) {
+        m_parsedPredicates.push_back(parsePredicate(predicate));
+    }
+
+    m_parsed = true;
+}
+
+AdventureModePredicate::ParsedPredicate AdventureModePredicate::parsePredicate(const std::string& predicate)
+{
+    ParsedPredicate result;
+
+    if (predicate.empty()) {
+        return result;
+    }
+
+    // 解析格式: block_part[properties]{nbt}
+    // 其中 properties 和 nbt 部分都是可选的
+    // 属性部分必须在 NBT 部分之前（MC 标准格式）
+
+    // 第一步：查找 NBT 部分 '{' 的位置
+    // NBT 部分从第一个 '{' 开始，Mojangson 解析器会处理嵌套的大括号
+    const size_t nbtStart = predicate.find('{');
+
+    // 第二步：查找属性部分 '[' 的位置
+    // 只接受在 NBT 部分之前的 '['（如果有 NBT 部分）
+    // 如果 '[' 出现在 '{' 之后，它是 NBT 内容的一部分，不是属性
+    size_t bracketPos = std::string::npos;
+    if (nbtStart != std::string::npos) {
+        // 只在 '{' 之前查找 '['
+        bracketPos = predicate.find('[', 0);
+        if (bracketPos >= nbtStart) {
+            // '[' 在 '{' 之后，不是有效的属性部分
+            bracketPos = std::string::npos;
+        }
+    } else {
+        bracketPos = predicate.find('[');
+    }
+
+    // 检查方括号是否闭合：未闭合的方括号视为无效格式
+    size_t closeBracket = std::string::npos;
+    if (bracketPos != std::string::npos) {
+        closeBracket = predicate.find(']', bracketPos);
+        if (closeBracket == std::string::npos) {
+            // 未闭合的方括号，整个谓词条目无效
+            return result;
+        }
+    }
+
+    // 提取方块/标签部分
+    // blockPart 的结束位置是 '[' 或 '{' 中先出现的那个
+    size_t blockPartEnd = predicate.size();
+    if (bracketPos != std::string::npos) {
+        blockPartEnd = std::min(blockPartEnd, bracketPos);
+    }
+    if (nbtStart != std::string::npos) {
+        blockPartEnd = std::min(blockPartEnd, nbtStart);
+    }
+
+    result.blockPart = predicate.substr(0, blockPartEnd);
+
+    // 解析属性部分
+    if (bracketPos != std::string::npos) {
+        const std::string_view propsStr(predicate.data() + bracketPos + 1, closeBracket - bracketPos - 1);
+        auto parsedProps = parseProperties(propsStr);
+        if (!parsedProps.has_value()) {
+            // 属性格式无效（如 "axis" 缺少等号），整个谓词条目无效
+            result.blockPart.clear();
+            return result;
+        }
+        result.properties = std::move(parsedProps);
+    }
+
+    // 解析 NBT 部分
+    if (nbtStart != std::string::npos) {
+        result.nbtTag = parseNbt(predicate, nbtStart);
+        result.hasNbt = (result.nbtTag != nullptr);
+    }
+
+    return result;
+}
+
+std::shared_ptr<nbt::tags::compound_tag> AdventureModePredicate::parseNbt(const std::string& predicate, size_t nbtStart)
+{
+    // 提取从 '{' 到字符串末尾的 NBT 子串
+    // Mojangson 解析器会自动处理嵌套的大括号，因此直接传递从 '{' 开始的子串
+    const std::string nbtStr = predicate.substr(nbtStart);
+
+    // 使用项目的 Mojangson 解析器解析 NBT 字符串
+    auto tag = nbt::parseMojangson(nbtStr);
+    if (tag == nullptr) {
+        // NBT 解析失败，记录警告但不影响其他匹配
+        return nullptr;
+    }
+
+    return std::shared_ptr<nbt::tags::compound_tag>(std::move(tag));
+}
+
 bool AdventureModePredicate::test(const BlockState& state) const
 {
     if (m_predicates.empty()) {
         return false;
     }
 
-    for (const auto& predicate : m_predicates) {
-        if (matchesPredicate(predicate, state)) {
+    ensureParsed();
+
+    for (const auto& predicate : m_parsedPredicates) {
+        if (matchesParsedPredicate(predicate, state)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool AdventureModePredicate::test(IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
+    if (m_predicates.empty()) {
+        return false;
+    }
+
+    ensureParsed();
+
+    for (const auto& predicate : m_parsedPredicates) {
+        if (matchesParsedPredicateWithNbt(predicate, world, pos, state)) {
             return true;
         }
     }
@@ -54,53 +182,24 @@ bool AdventureModePredicate::test(const BlockState& state) const
 
 bool AdventureModePredicate::test(IWorld& /*world*/, const BlockState& state) const
 {
-    // 当前实现不需要世界上下文，直接委托给纯方块状态版本
-    // TODO: 当 NbtPredicate 实现后，可扩展用于检查方块实体的 NBT 匹配
+    // 无 BlockPos 时无法获取方块实体，退化为纯方块状态匹配
+    // 注意：如果谓词包含 NBT 条件，此处无法检查方块实体 NBT，
+    // 因此含 NBT 条件的谓词条目可能会错误地匹配（忽略 NBT 检查）。
+    // 调用方应优先使用带 BlockPos 的重载版本以支持完整的 NBT 匹配。
     return test(state);
 }
 
-bool AdventureModePredicate::matchesPredicate(const std::string& predicate, const BlockState& state) const
+bool AdventureModePredicate::matchesParsedPredicate(const ParsedPredicate& predicate, const BlockState& state) const
 {
-    if (predicate.empty()) {
+    if (predicate.blockPart.empty()) {
         return false;
-    }
-
-    // 解析属性部分：查找第一个 '['，支持 "minecraft:oak_log[axis=y]" 格式
-    std::string blockPart;
-    std::optional<std::vector<PropertyMatch>> properties;
-
-    const size_t bracketPos = predicate.find('[');
-    if (bracketPos != std::string::npos) {
-        // 提取方块/标签部分（'[' 之前的内容）
-        blockPart = predicate.substr(0, bracketPos);
-
-        // 提取属性部分（'[' 和 ']' 之间的内容）
-        const size_t closeBracket = predicate.find(']', bracketPos);
-        if (closeBracket == std::string::npos) {
-            // 没有闭合方括号，视为无效谓词
-            return false;
-        }
-
-        // 解析属性键值对
-        const std::string_view propsStr(predicate.data() + bracketPos + 1, closeBracket - bracketPos - 1);
-        properties = parseProperties(propsStr);
-        if (!properties.has_value()) {
-            // 属性解析失败，视为不匹配
-            return false;
-        }
-    } else {
-        blockPart = predicate;
     }
 
     bool blockMatched = false;
 
-    if (blockPart.empty()) {
-        return false;
-    }
-
-    if (blockPart[0] == '#') {
+    if (predicate.blockPart[0] == '#') {
         // 标签引用格式: "#minecraft:logs"
-        const std::string tagId = blockPart.substr(1);
+        const std::string tagId = predicate.blockPart.substr(1);
         const ResourceLocation tagLocation(tagId);
 
         auto* tag = BlockTags::getTag(tagLocation);
@@ -109,7 +208,7 @@ bool AdventureModePredicate::matchesPredicate(const std::string& predicate, cons
         }
     } else {
         // 精确方块ID匹配: "minecraft:stone"
-        const ResourceLocation blockLocation(blockPart);
+        const ResourceLocation blockLocation(predicate.blockPart);
         blockMatched = (state.blockLocation() == blockLocation);
     }
 
@@ -119,12 +218,42 @@ bool AdventureModePredicate::matchesPredicate(const std::string& predicate, cons
     }
 
     // 如果没有属性条件，方块匹配即成功
-    if (!properties.has_value() || properties->empty()) {
+    if (!predicate.properties.has_value() || predicate.properties->empty()) {
         return true;
     }
 
     // 检查属性条件
-    return matchesProperties(state, *properties);
+    return matchesProperties(state, *predicate.properties);
+}
+
+bool AdventureModePredicate::matchesParsedPredicateWithNbt(
+    const ParsedPredicate& predicate, IWorld& world, const BlockPos& pos, const BlockState& state) const
+{
+    // 先检查方块状态匹配（包括方块ID/标签和属性）
+    if (!matchesParsedPredicate(predicate, state)) {
+        return false;
+    }
+
+    // 如果没有 NBT 条件，方块状态匹配即成功
+    if (!predicate.hasNbt || predicate.nbtTag == nullptr) {
+        return true;
+    }
+
+    // 获取方块实体
+    const BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr) {
+        // 谓词要求 NBT 匹配，但该位置没有方块实体，匹配失败
+        // 这与 MC Java 的行为一致：NbtPredicate 匹配时，null 标签返回 false
+        return false;
+    }
+
+    // 将方块实体数据序列化为 NBT
+    nbt::tags::compound_tag entityTag;
+    blockEntity->saveToNBT(entityTag);
+
+    // 使用 NBTPredicate::matchNBT 进行子集匹配
+    // 期望标签中的所有字段必须在实际标签中存在且值相等（子集语义）
+    return advancement::NBTPredicate::matchNBT(*predicate.nbtTag, entityTag);
 }
 
 bool AdventureModePredicate::matchesProperties(

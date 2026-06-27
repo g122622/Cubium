@@ -22,11 +22,13 @@
  */
 
 #include "MineshaftStructure.hpp"
-#include "../../../../util/math/random/Random.hpp"
-#include "../../../IWorldWriter.hpp"
-#include "../../../WorldConstants.hpp"
 #include "../StructureBoundingBox.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorldWriter.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/biome/BiomeIds.hpp"
+#include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 
@@ -756,47 +758,26 @@ void MineshaftStairs::buildComponent(
 
 const std::string MineshaftStructure::m_name = "mineshaft";
 
-const std::vector<BiomeId> MineshaftStructure::m_validBiomes = {Biomes::Plains,
-    Biomes::Forest,
-    Biomes::Taiga,
-    Biomes::SnowyTaiga,
-    Biomes::Jungle,
-    Biomes::Desert,
-    Biomes::Savanna,
-    Biomes::WoodedHills,
-    Biomes::TaigaHills,
-    Biomes::JungleHills,
-    Biomes::DesertHills,
-    Biomes::SavannaPlateau,
-    Biomes::DarkForest,
-    Biomes::DarkForestHills,
-    Biomes::BirchForest,
-    Biomes::BirchForestHills,
-    Biomes::GiantTreeTaiga,
-    Biomes::GiantSpruceTaiga,
-    Biomes::Mountains,
-    Biomes::WoodedMountains};
-
 const std::vector<BiomeId> MineshaftStructure::m_mesaBiomes = {
     Biomes::Badlands, Biomes::BadlandsPlateau, Biomes::ErodedBadlands, Biomes::WoodedBadlandsPlateau};
 
 MineshaftStructure::MineshaftStructure(MineshaftType type)
-    : Structure(StructureType::Mineshaft)
+    : Structure(ResourceLocation("minecraft", "mineshaft"))
 {
     m_config.type = type;
     m_config.probability = (type == MineshaftType::Mesa) ? 0.004f : 0.004f;
 }
 
-bool MineshaftStructure::canGenerate(
-    IWorld& /*world*/, IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ)
+const biome::BiomeTag* MineshaftStructure::biomeTag() const
 {
-    // 使用间距设置检查
-    i32 startX, startZ;
-    if (!findStructureStart(static_cast<i64>(generator.seed()), chunkX, chunkZ, m_settings, startX, startZ)) {
-        return false;
-    }
+    return &biome::BiomeTags::HAS_STRUCTURE_MINESHAFT();
+}
 
-    // 概率检查
+bool MineshaftStructure::canGenerate(
+    IWorld& /*world*/, IChunkGenerator& /*generator*/, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/)
+{
+    // 间距检查已由 StructurePlacement::isStructureChunk() 处理
+    // 仅做概率检查
     return rng.nextFloat() < m_config.probability;
 }
 

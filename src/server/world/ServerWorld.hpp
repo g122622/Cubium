@@ -464,6 +464,21 @@ public:
 
     void setOnBroadcastParticle(ParticleBroadcastCallback callback) { m_onBroadcastParticle = std::move(callback); }
 
+    /**
+     * @brief 振动粒子广播回调类型
+     *
+     * 当服务端需要广播振动粒子给玩家时调用。
+     * 振动粒子需要额外的目标位置和到达时间信息。
+     * 参数：粒子起始位置、目标位置、到达 tick 数
+     */
+    using VibrationParticleBroadcastCallback =
+        std::function<void(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks)>;
+
+    void setOnBroadcastVibrationParticle(VibrationParticleBroadcastCallback callback)
+    {
+        m_onBroadcastVibrationParticle = std::move(callback);
+    }
+
     // ========== 实体状态广播回调 ==========
 
     /**
@@ -572,6 +587,18 @@ public:
         const Vector3& velocity,
         const Vector3& offset,
         u32 count) override;
+
+    /**
+     * @brief 添加振动粒子（带目标位置和到达时间）
+     *
+     * 振动粒子从 pos 飞向 targetPosition，飞行时间为 arrivalInTicks 个 tick。
+     * 与普通 addParticle 不同，振动粒子需要携带目标位置信息以实现定向飞行效果。
+     *
+     * @param pos 粒子起始位置（振动源位置）
+     * @param targetPosition 粒子飞向的目标位置（监听器位置）
+     * @param arrivalInTicks 到达目标的 tick 数
+     */
+    void addVibrationParticle(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
 
     [[nodiscard]] bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const override;
 
@@ -1110,17 +1137,18 @@ public:
     /**
      * @brief 查找最近的结构
      *
-     * 在指定范围内搜索指定类型结构的最近位置。
-     * 使用螺旋搜索算法，从中心向外扩展搜索。
+     * 在指定范围内搜索指定结构的最近位置。
+     * 使用 StructureSet/StructurePlacement 系统进行定位，
+     * 支持 RandomSpread 和 ConcentricRings 两种放置策略。
      *
      * @param center 搜索中心位置
-     * @param structureType 结构类型
-     * @param maxDistance 最大搜索距离（格），默认 50
-     * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索），默认 false
+     * @param structureId 结构资源位置 ID（如 minecraft:village_plains）
+     * @param maxDistance 最大搜索距离（格）
+     * @param skipExisting 是否跳过已找到的结构（用于定位命令的多次搜索）
      * @return 最近结构位置，如果未找到返回空
      */
     [[nodiscard]] std::optional<BlockPos> findNearestStructure(const BlockPos& center,
-        world::gen::structure::StructureType structureType,
+        const ResourceLocation& structureId,
         i32 maxDistance,
         bool skipExisting = false) override;
 
@@ -1182,6 +1210,7 @@ private:
     std::function<void(const BlockPos&, u32)> m_onBlockChanged;
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
     ParticleBroadcastCallback m_onBroadcastParticle;
+    VibrationParticleBroadcastCallback m_onBroadcastVibrationParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
     WorldEventCallback m_onBroadcastWorldEvent;

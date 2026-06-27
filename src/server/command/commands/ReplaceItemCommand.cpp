@@ -27,6 +27,8 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
 #include "common/command/arguments/ItemSlotArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
+#include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/Slot.hpp"
@@ -141,23 +143,38 @@ bool setEntitySlotItem(ServerCommandSource& source, PlayerId playerId, const Ite
         return false;
     }
 
-    // 马匹箱子槽位 (499)：同样需要实体选择器
-    if (slot.isHorseChestSlot()) {
-        source.sendError("Horse chest slot requires entity targeting (not yet supported in player-only mode)");
-        return false;
+    // 玩家光标槽位 (499)：访问当前打开的容器菜单的 carried item，
+    // 若无打开的容器菜单则使用 PlayerInventory 的 carried item。
+    // 注意：player.cursor (499) 与 horse.chest (499) 编号重叠，
+    // 当前 /replaceitem entity 仅支持玩家选择器，因此优先匹配光标槽位。
+    // isHorseChestSlot() 也对 499 返回 true，但在玩家上下文中光标槽位优先。
+    if (slot.isCursorSlot()) {
+        auto* world = source.world();
+        if (world == nullptr) {
+            source.sendError("No world available for cursor slot access");
+            return false;
+        }
+        auto* playerEntity = server->playerEntityManager().getPlayerEntity(playerId, *world);
+        if (playerEntity == nullptr) {
+            source.sendError("Player entity not found for cursor slot access");
+            return false;
+        }
+
+        // 优先使用当前打开的容器菜单的 carried item（与 MC 原版 containerMenu.getCarried() 一致）
+        auto* openMenu = playerEntity->openContainerMenu();
+        if (openMenu != nullptr) {
+            openMenu->setCarriedItem(stack);
+        } else {
+            // 无打开的容器菜单时，使用 PlayerInventory 的 carried item
+            playerEntity->inventory().setCarriedItem(stack);
+        }
+        return true;
     }
 
     // 合成槽位 (500-503)：需要访问玩家的合成容器
     // TODO: 当永久合成菜单（InventoryCraftingMenu）集成到 Player 后实现
     if (slot.isCraftingSlot()) {
         source.sendError("Crafting slots are not yet supported");
-        return false;
-    }
-
-    // 玩家光标槽位 (499)：需要访问当前打开的容器菜单的 carried item
-    // TODO: 当 ContainerMenu::getCarried()/setCarried() 集成后实现
-    if (slot.isCursorSlot()) {
-        source.sendError("Cursor slot is not yet supported");
         return false;
     }
 
@@ -314,8 +331,8 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /replaceitem block <pos> <slot> <item> [count]
     auto blockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto posArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
     auto blockSlotArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemSlot>>("slot", ItemSlotArgumentType::itemSlot());
     auto blockItemArg =
@@ -379,7 +396,7 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
     }
 
     // 检查槽位类型是否支持实体操作
-    if (!slot.isPlayerInventorySlot() && !slot.isEquipmentSlot() && !slot.isEnderChestSlot()) {
+    if (!slot.isPlayerInventorySlot() && !slot.isEquipmentSlot() && !slot.isEnderChestSlot() && !slot.isCursorSlot()) {
         if (slot.isHorseSlot()) {
             source.sendError("Horse inventory slots require entity targeting with @e selector");
             return 0;
@@ -390,10 +407,6 @@ i32 ReplaceItemCommand::_replaceEntityItem(CommandContext<ServerCommandSource>& 
         }
         if (slot.isCraftingSlot()) {
             source.sendError("Crafting slots are not yet supported for entity replacement");
-            return 0;
-        }
-        if (slot.isCursorSlot()) {
-            source.sendError("Cursor slot is not yet supported");
             return 0;
         }
         if (slot.isVillagerSlot()) {
@@ -454,7 +467,7 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
     auto& source = context.getSource();
 
     // 解析参数
-    const Vector3i& blockPos = context.getArgument<Vector3i>("pos");
+    const Vector3i blockPos = BlockPosArgumentType::getBlockPos(context, "pos", source);
     const ItemSlot slot = context.getArgument<ItemSlot>("slot");
     const ItemInput itemInput = context.getArgument<ItemInput>("item");
 

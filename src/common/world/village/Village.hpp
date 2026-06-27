@@ -126,6 +126,11 @@ public:
 
     /**
      * @brief 检查位置是否在村庄内
+     *
+     * 当前使用 3D 欧几里得距离判断（中心点+半径模型），
+     * TODO: 实现 Section 距离传播系统，将 isWithinVillage 改为基于 POI 密度
+     * 的区域判定，使村庄边界更准确地反映 POI 分布而非简单圆形范围。
+     *
      * @param pos 方块位置
      * @return 是否在村庄范围内
      */
@@ -289,11 +294,13 @@ public:
     /// POI 统计更新间隔（每 1200 tick = 1 分钟更新一次）
     static constexpr i64 POI_STAT_UPDATE_INTERVAL = 1200;
 
-    /// 袭击状态验证间隔（每 20 tick 验证一次，与 MC Java 村民袭击检查频率一致）
+    /// 袭击状态验证间隔（每 20 tick 验证一次）
     static constexpr i64 RAID_CHECK_INTERVAL = 20;
 
     /// 村民超时时间（6000 tick = 5 分钟不在村庄范围内视为离开）
-    /// 使用超时作为简化的离开检测
+    /// 村民不会因为距离远而消失，但本项目的 Village 类维护显式村民列表，
+    /// 超时机制用于清理已离开村庄的村民关联。
+    /// 村民主动死亡/移除时通过 VillagerEntity::releaseAllPois() 立即通知村庄。
     static constexpr i64 VILLAGER_TIMEOUT = 6000;
 
     // ========== 序列化 ==========

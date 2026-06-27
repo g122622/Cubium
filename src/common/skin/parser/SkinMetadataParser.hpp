@@ -27,6 +27,7 @@
 #include "common/core/Types.hpp"
 #include "common/skin/core/GameProfile.hpp"
 #include "common/skin/core/SkinTextures.hpp"
+#include "common/skin/core/SkinTypes.hpp"
 #include <string>
 #include <vector>
 
@@ -49,10 +50,19 @@ namespace mc::skin {
  *     },
  *     "CAPE": {
  *       "url": "http://textures.minecraft.net/texture/..."
+ *     },
+ *     "ELYTRA": {
+ *       "url": "http://textures.minecraft.net/texture/..."
  *     }
  *   }
  * }
  * @endcode
+ *
+ * 签名验证遵循 MC Java 版 authlib YggdrasilServicesKeyInfo 的规范：
+ * - 算法: SHA1withRSA (4096-bit RSA)
+ * - 验证数据: property.value 的原始 ASCII 字节（不是 Base64 解码后的内容）
+ * - 签名: property.signature 的 Base64 解码字节
+ * - 公钥: 从 https://api.minecraftservices.com/publickeys 获取的 X509 编码 RSA 公钥
  */
 class SkinMetadataParser {
 public:
@@ -81,13 +91,27 @@ public:
     [[nodiscard]] static Result<SkinTextures> parseJson(const std::string& jsonData);
 
     /**
-     * @brief 验证签名
+     * @brief 验证 textures 属性签名并返回签名状态
      *
-     * 验证 textures 属性的签名是否有效。
-     * 注意：此方法需要 Mojang 的公钥，简化实现中可能跳过验证。
+     * 遵循 MC Java 版 authlib 的签名验证流程：
+     * 1. 无签名 → UNSIGNED
+     * 2. 有签名但无法验证（缺少加密库支持或公钥未加载）→ UNSIGNED（降级处理）
+     * 3. 有签名且验证失败 → INVALID
+     * 4. 有签名且验证通过 → SIGNED
      *
      * @param property textures 属性
-     * @return 签名是否有效
+     * @return 签名状态
+     */
+    [[nodiscard]] static SignatureState getSignatureState(const GameProfileProperty& property);
+
+    /**
+     * @brief 验证签名
+     *
+     * 便捷方法：调用 getSignatureState 并返回签名是否有效。
+     * UNSIGNED 和 SIGNED 状态下返回 true，INVALID 返回 false。
+     *
+     * @param property textures 属性
+     * @return 签名是否有效（UNSIGNED 视为有效）
      */
     [[nodiscard]] static bool verifySignature(const GameProfileProperty& property);
 
@@ -95,7 +119,10 @@ private:
     /**
      * @brief 解析单个纹理信息
      *
-     * @param textureObj JSON 纹理对象
+     * 从 JSON 纹理对象中提取 URL、哈希和可选元数据（如模型类型），
+     * 并设置到 SkinTextures 中。
+     *
+     * @param textureObj JSON 纹理对象（nlohmann::json 对象）
      * @param type 纹理类型（"SKIN", "CAPE", "ELYTRA"）
      * @param textures 输出的皮肤纹理集合
      */

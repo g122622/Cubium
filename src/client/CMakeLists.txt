@@ -56,6 +56,7 @@ add_executable(minecraft-client
     renderer/trident/particle/data/BlockParticleData.cpp
     renderer/trident/particle/data/ItemParticleData.cpp
     renderer/trident/particle/data/RedstoneParticleData.cpp
+    renderer/trident/particle/data/VibrationParticleData.cpp
     # 粒子实现 - 天气
     renderer/trident/particle/particles/RainParticle.cpp
     renderer/trident/particle/particles/SnowParticle.cpp
@@ -87,8 +88,10 @@ add_executable(minecraft-client
     renderer/trident/particle/particles/mob/VillagerParticle.cpp
     # 粒子实现 - 特殊
     renderer/trident/particle/particles/special/NautilusParticle.cpp
+    renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
     # 粒子实现 - 方块
     renderer/trident/particle/particles/block/DiggingParticle.cpp
+    renderer/trident/particle/particles/block/DustPillarParticle.cpp
     # 粒子实现 - 液体
     renderer/trident/particle/particles/liquid/DripParticle.cpp
     renderer/trident/particle/particles/liquid/DripWaterParticle.cpp

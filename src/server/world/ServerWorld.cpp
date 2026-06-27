@@ -65,6 +65,9 @@
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
+#include "common/world/gen/structure/StructureSet.hpp"
+#include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
+#include "common/world/gen/structure/placement/RandomSpreadStructurePlacement.hpp"
 #include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/lighting/storage/SWMRNibbleArray.hpp"
 #include "common/world/redstone/RedstoneSystem.hpp"
@@ -2152,6 +2155,14 @@ void ServerWorld::addParticle(client::renderer::trident::particle::ParticleTypeI
     }
 }
 
+void ServerWorld::addVibrationParticle(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks)
+{
+    // 服务端不生成粒子，而是广播振动粒子给附近玩家
+    if (m_onBroadcastVibrationParticle) {
+        m_onBroadcastVibrationParticle(pos, targetPosition, arrivalInTicks);
+    }
+}
+
 bool ServerWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const
 {
     // 服务端总是返回 true，广播系统会根据玩家距离决定是否发送
@@ -2504,93 +2515,95 @@ void ServerWorld::onSummonedEntity(PlayerId playerId, Entity* entity)
 // ============================================================================
 
 std::optional<BlockPos> ServerWorld::findNearestStructure(
-    const BlockPos& center, world::gen::structure::StructureType structureType, i32 maxDistance, bool skipExisting)
+    const BlockPos& center, const ResourceLocation& structureId, i32 maxDistance, bool skipExisting)
 {
     MC_UNUSED(skipExisting); // 当前实现不使用此参数
 
-    // 通过 ResourceLocation 从注册表获取结构定义
-    auto structureId = world::gen::structure::Structure::typeToId(structureType);
-    const world::gen::structure::Structure* structure = world::gen::structure::StructureRegistry::get(structureId);
-    if (structure == nullptr) {
+    // 通过结构 ID 查找所属的 StructureSet，获取放置规则
+    auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
+    const world::gen::structure::StructureSet* structureSet = structureSetRegistry.findByStructure(structureId);
+    if (structureSet == nullptr) {
         return std::nullopt;
     }
 
-    // 获取区块生成器
-    IChunkGenerator* generator = m_chunkManager ? m_chunkManager->generator() : nullptr;
-    if (generator == nullptr) {
-        return std::nullopt;
-    }
-
-    // 获取结构间距设置
-    auto settings = structure->separationSettings();
+    const auto& placement = structureSet->placement();
+    i64 worldSeed = static_cast<i64>(m_config.seed);
 
     // 将方块坐标转换为区块坐标
     i32 centerChunkX = center.x >> 4;
     i32 centerChunkZ = center.z >> 4;
 
-    // 将最大距离转换为区块范围
+    // 将最大搜索距离转换为区块范围
     i32 chunkRadius = (maxDistance + 15) >> 4; // 向上取整到区块
-
-    // 螺旋搜索：从中心向外扩展
-    i32 spacing = settings.spacing;
-    i64 worldSeed = static_cast<i64>(m_config.seed);
 
     std::optional<BlockPos> nearestPos;
     f64 nearestDistSq = static_cast<f64>(maxDistance * maxDistance) + 1.0;
 
-    // 创建共享随机数生成器
-    math::Random rng;
+    // 根据放置策略类型使用不同的搜索算法
+    auto* randomSpread =
+        dynamic_cast<const world::gen::structure::placement::RandomSpreadStructurePlacement*>(&placement);
+    auto* concentricRings =
+        dynamic_cast<const world::gen::structure::placement::ConcentricRingsStructurePlacement*>(&placement);
 
-    // 螺旋搜索
-    for (i32 l = 0; l <= chunkRadius; ++l) {
-        for (i32 i1 = -l; i1 <= l; ++i1) {
-            bool isEdge1 = (i1 == -l || i1 == l);
+    if (randomSpread != nullptr) {
+        // RandomSpread：网格搜索，使用 getPotentialStructureChunk 计算候选区块
+        i32 spacing = randomSpread->spacing();
 
-            for (i32 j1 = -l; j1 <= l; ++j1) {
-                bool isEdge2 = (j1 == -l || j1 == l);
+        i32 minGridX = (centerChunkX - chunkRadius) / spacing - 1;
+        i32 maxGridX = (centerChunkX + chunkRadius) / spacing + 1;
+        i32 minGridZ = (centerChunkZ - chunkRadius) / spacing - 1;
+        i32 maxGridZ = (centerChunkZ + chunkRadius) / spacing + 1;
 
-                // 只处理边缘（螺旋的外围）
-                if (!isEdge1 && !isEdge2) {
+        for (i32 gridX = minGridX; gridX <= maxGridX; ++gridX) {
+            for (i32 gridZ = minGridZ; gridZ <= maxGridZ; ++gridZ) {
+                i32 baseChunkX = gridX * spacing;
+                i32 baseChunkZ = gridZ * spacing;
+
+                // 使用放置规则计算此网格中的候选区块
+                auto candidate = randomSpread->getPotentialStructureChunk(worldSeed, baseChunkX, baseChunkZ);
+
+                // 检查候选区块距离是否在搜索范围内
+                i32 dx = candidate.x - centerChunkX;
+                i32 dz = candidate.z - centerChunkZ;
+                if (dx * dx + dz * dz > chunkRadius * chunkRadius) {
                     continue;
                 }
 
-                // 计算候选区块坐标（按 spacing 缩放）
-                i32 candidateChunkX = centerChunkX + spacing * i1;
-                i32 candidateChunkZ = centerChunkZ + spacing * j1;
-
-                // 使用结构静态方法检查是否在此区块生成结构
-                i32 startX, startZ;
-                bool hasStructure = world::gen::structure::Structure::findStructureStart(worldSeed,
-                    candidateChunkX,
-                    candidateChunkZ,
-                    settings,
-                    startX,
-                    startZ,
-                    structure->useUniformSpacing());
-
-                if (!hasStructure) {
+                // 验证此候选区块是否真正生成结构（频率缩减 + 排斥区检查）
+                if (!placement.isStructureChunk(worldSeed, candidate.x, candidate.z)) {
                     continue;
                 }
 
-                // 检查该区块是否已加载或可加载
-                // 尝试获取区块来验证结构是否实际存在
-                const ChunkData* chunk = getChunk(startX >> 4, startZ >> 4);
-                if (chunk != nullptr) {
-                    // 检查区块是否有该结构的起点
-                    // 注意：如果区块已生成，结构起点应该在 ChunkPrimer 中
-                    // 但 ChunkData 可能没有这个信息，所以我们使用种子计算的位置
-                }
+                // 使用放置规则的定位偏移计算最终方块位置
+                BlockPos locatePos = placement.getLocatePos(candidate);
+                i32 posDx = locatePos.x - center.x;
+                i32 posDz = locatePos.z - center.z;
+                f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
 
-                // 计算距离
-                i32 dx = startX - center.x;
-                i32 dz = startZ - center.z;
-                f64 distSq = static_cast<f64>(dx * dx + dz * dz);
-
-                // 检查是否在范围内且比之前找到的更近
                 if (distSq < nearestDistSq) {
                     nearestDistSq = distSq;
-                    nearestPos = BlockPos(startX, 0, startZ);
+                    nearestPos = locatePos;
                 }
+            }
+        }
+    } else if (concentricRings != nullptr) {
+        // ConcentricRings（要塞）：直接获取所有预计算位置，找最近的
+        const auto& ringPositions = concentricRings->getRingPositions(worldSeed);
+        for (const auto& chunkPos : ringPositions) {
+            i32 dx = chunkPos.x - centerChunkX;
+            i32 dz = chunkPos.z - centerChunkZ;
+            if (dx * dx + dz * dz > chunkRadius * chunkRadius) {
+                continue;
+            }
+
+            BlockPos locatePos = placement.getLocatePos(chunkPos);
+            i32 posDx = locatePos.x - center.x;
+            i32 posDz = locatePos.z - center.z;
+            f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
+
+            if (distSq < nearestDistSq) {
+                nearestDistSq = distSq;
+                nearestPos = locatePos;
             }
         }
     }

@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
@@ -74,8 +75,8 @@ i32 calculateBlockCount(const Vector3i& from, const Vector3i& to)
 i32 executeFill(CommandContext<ServerCommandSource>& context, FillMode mode, const BlockState* filterState = nullptr)
 {
     auto& source = context.getSource();
-    Vector3i from = context.getArgument<Vector3i>("from");
-    Vector3i to = context.getArgument<Vector3i>("to");
+    Vector3i from = BlockPosArgumentType::getBlockPos(context, "from", source);
+    Vector3i to = BlockPosArgumentType::getBlockPos(context, "to", source);
     BlockStateInput blockInput = context.getArgument<BlockStateInput>("block");
 
     // 获取世界
@@ -246,11 +247,11 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
             false));
 
     // /fill <from> <to> <block>
-    auto fromArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("from", BlockPosArgumentType::blockPos());
+    auto fromArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "from", BlockPosArgumentType::blockPos());
 
-    auto toArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("to", BlockPosArgumentType::blockPos());
+    auto toArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "to", BlockPosArgumentType::blockPos());
 
     auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "block", BlockStateArgumentType::blockState());
@@ -281,8 +282,8 @@ void FillCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher)
         "filter", BlockStateArgumentType::blockState());
     filterArg->setCommand([](CommandContext<ServerCommandSource>& ctx) {
         auto& source = ctx.getSource();
-        Vector3i from = ctx.getArgument<Vector3i>("from");
-        Vector3i to = ctx.getArgument<Vector3i>("to");
+        Vector3i from = BlockPosArgumentType::getBlockPos(ctx, "from", source);
+        Vector3i to = BlockPosArgumentType::getBlockPos(ctx, "to", source);
 
         server::ServerWorld* world = source.world();
         if (world == nullptr) {

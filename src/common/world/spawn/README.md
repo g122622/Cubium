@@ -6,6 +6,7 @@
 
 ```
 src/common/world/spawn/
+├── IWorldSpawnAdapter.hpp  # IWorld → ISpawnWorldReader 适配器（供 EntitySpawnPlacementRegistry 使用）
 ├── MobSpawnInfo.hpp        # 生成信息类型定义（SpawnCosts、SpawnEntry、SpawnCategory、MobSpawnInfo）
 ├── MobSpawnInfo.cpp        # 各生物群系的工厂方法实现（createPlains、createOcean 等）
 ├── SlimeChunkChecker.hpp   # 史莱姆区块判断工具（使用世界种子确定性计算）

@@ -444,6 +444,10 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
                                      const Vector3& velocity,
                                      const Vector3& offset,
                                      u32 count) { broadcastParticleInRange(type, pos, velocity, offset, count); });
+    world.setOnBroadcastVibrationParticle(
+        [this](const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks) {
+            broadcastVibrationParticleInRange(pos, targetPosition, arrivalInTicks);
+        });
     world.setOnBroadcastEntityStatus([this, &world](EntityId entityId, u8 status) {
         Entity* entity = world.getEntity(entityId);
         if (entity != nullptr) {
@@ -2412,6 +2416,37 @@ void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
     sendPacketToPlayer(playerId, fullPacket.data(), fullPacket.size());
+}
+
+void MinecraftServer::broadcastVibrationParticleInRange(
+    const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks, f32 range)
+{
+    network::ParticlePacket packet = network::ParticlePacket::createVibration(pos, targetPosition, arrivalInTicks);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize VibrationParticlePacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::Particle, result.value());
+
+    // 只发送给范围内的玩家
+    m_playerManager->forEachPlayer([this, &pos, range, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 dx = player.x - pos.x;
+        f32 dy = player.y - pos.y;
+        f32 dz = player.z - pos.z;
+        f32 distSq = dx * dx + dy * dy + dz * dz;
+        f32 rangeSq = range * range;
+
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
 }
 
 void MinecraftServer::broadcastParticleInRange(u32 type,

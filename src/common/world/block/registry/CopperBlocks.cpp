@@ -40,6 +40,7 @@
 #include "world/block/blocks/copper/WeatheringCopperSlabBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperStairBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperTrapDoorBlock.hpp"
+#include "world/block/blocks/copper/WeatheringLightningRodBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -177,9 +178,16 @@ Block* CopperBlocks::WAXED_WEATHERED_COPPER_LANTERN = nullptr;
 Block* CopperBlocks::WAXED_OXIDIZED_COPPER_LANTERN = nullptr;
 
 // ============================================================================
-// 避雷针
+// 避雷针（1.17 基础 + 1.21 铜扩展氧化变种）
 // ============================================================================
 Block* CopperBlocks::LIGHTNING_ROD = nullptr;
+Block* CopperBlocks::EXPOSED_LIGHTNING_ROD = nullptr;
+Block* CopperBlocks::WEATHERED_LIGHTNING_ROD = nullptr;
+Block* CopperBlocks::OXIDIZED_LIGHTNING_ROD = nullptr;
+Block* CopperBlocks::WAXED_LIGHTNING_ROD = nullptr;
+Block* CopperBlocks::WAXED_EXPOSED_LIGHTNING_ROD = nullptr;
+Block* CopperBlocks::WAXED_WEATHERED_LIGHTNING_ROD = nullptr;
+Block* CopperBlocks::WAXED_OXIDIZED_LIGHTNING_ROD = nullptr;
 
 // ============================================================================
 // 粗矿块
@@ -799,18 +807,71 @@ void registerCopperBlocks()
         ResourceLocation("minecraft:waxed_oxidized_copper_lantern"), copperLanternProps, 15);
 
     // ============================================================================
-    // 避雷针（1.17）
-    // 避雷针是方向性方块，FACING + POWERED + WATERLOGGED，可被闪电激活输出红石信号
+    // 避雷针（1.17 基础 + 1.21 铜扩展氧化变种）
+    // MC 1.21+ 避雷针新增氧化变种：4个可氧化 + 4个涂蜡 = 8个变种
+    // 基础 lightning_rod 仍为 LightningRodBlock（不参与氧化链），
+    // exposed/weathered/oxidized 为 WeatheringLightningRodBlock（可氧化），
+    // waxed 系列为 WaxedLightningRodBlock（不氧化）。
+    // 氧化链：lightning_rod -> exposed_lightning_rod -> weathered_lightning_rod -> oxidized_lightning_rod
     // ============================================================================
-    CopperBlocks::LIGHTNING_ROD =
-        &registry.registerBlock<blocks::LightningRodBlock>(ResourceLocation("minecraft:lightning_rod"),
-            BlockProperties(Material::IRON)
-                .hardness(3.0f)
-                .resistance(6.0f)
-                .harvestTool(HarvestTool::Pickaxe)
-                .requiresTool()
-                .notSolid()
-                .soundType(BlockSoundTypes::COPPER));
+
+    // 避雷针基础属性: Material::IRON, 硬度3.0, 抗爆6.0, notSolid, 声音类型COPPER
+    BlockProperties lightningRodProps = BlockProperties(Material::IRON)
+                                            .hardness(3.0f)
+                                            .resistance(6.0f)
+                                            .harvestTool(HarvestTool::Pickaxe)
+                                            .requiresTool()
+                                            .notSolid()
+                                            .soundType(BlockSoundTypes::COPPER);
+
+    // 基础避雷针（未氧化，不参与氧化链 - MC 原版 LIGHTNING_ROD 是普通 LightningRodBlock）
+    CopperBlocks::LIGHTNING_ROD = &registry.registerBlock<blocks::LightningRodBlock>(
+        ResourceLocation("minecraft:lightning_rod"), lightningRodProps);
+
+    // 可氧化避雷针变种（Exposed, Weathered, Oxidized）
+    auto* exposedLightningRod = &registry.registerBlock<blocks::WeatheringLightningRodBlock>(
+        ResourceLocation("minecraft:exposed_lightning_rod"),
+        lightningRodProps,
+        BlockStateProperties::OxidationLevel::Exposed);
+    auto* weatheredLightningRod = &registry.registerBlock<blocks::WeatheringLightningRodBlock>(
+        ResourceLocation("minecraft:weathered_lightning_rod"),
+        lightningRodProps,
+        BlockStateProperties::OxidationLevel::Weathered);
+    auto* oxidizedLightningRod = &registry.registerBlock<blocks::WeatheringLightningRodBlock>(
+        ResourceLocation("minecraft:oxidized_lightning_rod"),
+        lightningRodProps,
+        BlockStateProperties::OxidationLevel::Oxidized);
+
+    // 设置避雷针氧化链: lightning_rod -> exposed_lightning_rod -> weathered_lightning_rod -> oxidized_lightning_rod
+    // 注意：MC 原版中基础 lightning_rod 虽然不实现 WeatheringCopper，
+    // 但它仍然处于氧化链的 Unaffected 位置，即 exposed 的前驱是 lightning_rod。
+    // 本项目中 lightning_rod 是普通 LightningRodBlock（不实现 IOxidizableBlock），
+    // 所以它没有 setNextOxidationBlock 方法。氧化链从 exposed 开始：
+    exposedLightningRod->setNextOxidationBlock(weatheredLightningRod);
+    weatheredLightningRod->setNextOxidationBlock(oxidizedLightningRod);
+    // oxidized 的 m_nextOxidationBlock 保持 nullptr
+
+    // 设置避雷针反向氧化链（用于斧头刮削）
+    exposedLightningRod->setPreviousOxidationBlock(CopperBlocks::LIGHTNING_ROD);
+    weatheredLightningRod->setPreviousOxidationBlock(exposedLightningRod);
+    oxidizedLightningRod->setPreviousOxidationBlock(weatheredLightningRod);
+
+    CopperBlocks::EXPOSED_LIGHTNING_ROD = exposedLightningRod;
+    CopperBlocks::WEATHERED_LIGHTNING_ROD = weatheredLightningRod;
+    CopperBlocks::OXIDIZED_LIGHTNING_ROD = oxidizedLightningRod;
+
+    // 涂蜡避雷针变种
+    CopperBlocks::WAXED_LIGHTNING_ROD = &registry.registerBlock<blocks::WaxedLightningRodBlock>(
+        ResourceLocation("minecraft:waxed_lightning_rod"), lightningRodProps);
+
+    CopperBlocks::WAXED_EXPOSED_LIGHTNING_ROD = &registry.registerBlock<blocks::WaxedLightningRodBlock>(
+        ResourceLocation("minecraft:waxed_exposed_lightning_rod"), lightningRodProps);
+
+    CopperBlocks::WAXED_WEATHERED_LIGHTNING_ROD = &registry.registerBlock<blocks::WaxedLightningRodBlock>(
+        ResourceLocation("minecraft:waxed_weathered_lightning_rod"), lightningRodProps);
+
+    CopperBlocks::WAXED_OXIDIZED_LIGHTNING_ROD = &registry.registerBlock<blocks::WaxedLightningRodBlock>(
+        ResourceLocation("minecraft:waxed_oxidized_lightning_rod"), lightningRodProps);
 
     // ============================================================================
     // 粗矿块（1.17）
