@@ -24,6 +24,7 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/advancement/trigger/conditions/NBTPredicate.hpp"
 #include "common/core/Types.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -32,8 +33,11 @@
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/nbt/Nbt.hpp"
+#include "common/util/nbt/NbtJsonUtils.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntity.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockTags.hpp"
 
@@ -637,4 +641,358 @@ TEST_F(ItemStackAdventureModeNbtTest, EmptyAdventureModePredicateNotSerialized)
     // needTag() 应该返回 false（没有冒险模式标签）
     EXPECT_FALSE(stack.hasCanPlaceOn());
     EXPECT_FALSE(stack.hasCanDestroy());
+}
+
+// ============================================================================
+// AdventureModePredicate NBT 匹配测试（带 IWorld + BlockPos）
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 支持 BlockEntity 的测试世界，用于 NBT 匹配测试
+ */
+class NbtMatchingTestWorld final : public test::BaseTestWorld {
+public:
+    NbtMatchingTestWorld() = default;
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(BlockPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second.get();
+        }
+        return &VanillaBlocks::AIR->defaultState();
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        if (state == nullptr) {
+            m_blocks.erase(BlockPos(x, y, z));
+        } else {
+            m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
+        }
+        return true;
+    }
+
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
+        const auto it = m_blockEntities.find(pos);
+        if (it != m_blockEntities.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
+        const auto it = m_blockEntities.find(pos);
+        if (it != m_blockEntities.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    void setBlockEntity(const BlockPos& pos, std::unique_ptr<BlockEntity> entity)
+    {
+        m_blockEntities[pos] = std::move(entity);
+    }
+
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override {}
+
+    void clearState()
+    {
+        m_blocks.clear();
+        m_blockEntities.clear();
+    }
+
+private:
+    std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
+};
+
+/**
+ * @brief 测试用简单方块实体，用于验证 NBT 匹配
+ */
+class TestBlockEntity : public BlockEntity {
+public:
+    TestBlockEntity(const BlockPos& pos, nbt::tags::compound_tag customData)
+        : BlockEntity(BlockEntityType::Chest, pos)
+        , m_customData(std::move(customData))
+    {}
+
+    void saveToNBT(nbt::tags::compound_tag& tag) const override
+    {
+        BlockEntity::saveToNBT(tag);
+        // 合并自定义数据到标签中
+        for (const auto& [key, value] : m_customData.value) {
+            tag.value.emplace(key, value->copy());
+        }
+    }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override
+    {
+        auto copiedData = nbt::tags::compound_tag();
+        for (const auto& [key, value] : m_customData.value) {
+            copiedData.value.emplace(key, value->copy());
+        }
+        return std::make_unique<TestBlockEntity>(m_pos, std::move(copiedData));
+    }
+
+private:
+    nbt::tags::compound_tag m_customData;
+};
+
+} // namespace
+
+class AdventureModeNbtMatchingTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+    }
+
+    void TearDown() override { m_world.clearState(); }
+
+    NbtMatchingTestWorld m_world;
+};
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_NoBlockEntity_NbtPredicateFails)
+{
+    // 谓词包含 NBT 条件，但没有方块实体时，匹配应失败
+    AdventureModePredicate predicate({"minecraft:stone{CustomName:'test'}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    // 没有方块实体，NBT 条件匹配失败
+    EXPECT_FALSE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_WithBlockEntity_MatchingNbt)
+{
+    // 谓词包含 NBT 条件，方块实体的 NBT 匹配时应成功
+    AdventureModePredicate predicate({"minecraft:stone{CustomName:'test'}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    // 创建带有匹配 NBT 数据的方块实体
+    auto customData = nbt::tags::compound_tag();
+    customData.value.emplace("CustomName", std::make_unique<nbt::tags::string_tag>("test"));
+    m_world.setBlockEntity(pos, std::make_unique<TestBlockEntity>(pos, std::move(customData)));
+
+    // NBT 匹配（子集匹配：谓词的 {CustomName:'test'} 是实际数据的子集）
+    EXPECT_TRUE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_WithBlockEntity_NonMatchingNbt)
+{
+    // 谓词包含 NBT 条件，但方块实体的 NBT 不匹配时应失败
+    AdventureModePredicate predicate({"minecraft:stone{CustomName:'expected'}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    // 创建带有不同 NBT 数据的方块实体
+    auto customData = nbt::tags::compound_tag();
+    customData.value.emplace("CustomName", std::make_unique<nbt::tags::string_tag>("different"));
+    m_world.setBlockEntity(pos, std::make_unique<TestBlockEntity>(pos, std::move(customData)));
+
+    // NBT 不匹配
+    EXPECT_FALSE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_SubsetMatching)
+{
+    // NBT 使用子集匹配：谓词中的字段在实际NBT中存在且值相等即匹配
+    AdventureModePredicate predicate({"minecraft:stone{CustomName:'test'}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    // 创建带有更多字段的方块实体（包含谓词要求的字段 + 额外字段）
+    auto customData = nbt::tags::compound_tag();
+    customData.value.emplace("CustomName", std::make_unique<nbt::tags::string_tag>("test"));
+    customData.value.emplace("ExtraField", std::make_unique<nbt::tags::int_tag>(42));
+    m_world.setBlockEntity(pos, std::make_unique<TestBlockEntity>(pos, std::move(customData)));
+
+    // 子集匹配：谓词 {CustomName:'test'} 是实际数据 {CustomName:'test', ExtraField:42} 的子集
+    EXPECT_TRUE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_NoNbtCondition_BlockEntityIrrelevant)
+{
+    // 不含 NBT 条件的谓词，不管有没有方块实体都只看方块状态
+    AdventureModePredicate predicate({"minecraft:stone"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    // 不设置方块实体，但谓词不含 NBT 条件，方块状态匹配即可
+    EXPECT_TRUE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_WrongBlockId_NbtDoesNotHelp)
+{
+    // 方块ID不匹配时，即使NBT匹配也不行
+    AdventureModePredicate predicate({"minecraft:dirt{CustomName:'test'}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    auto customData = nbt::tags::compound_tag();
+    customData.value.emplace("CustomName", std::make_unique<nbt::tags::string_tag>("test"));
+    m_world.setBlockEntity(pos, std::make_unique<TestBlockEntity>(pos, std::move(customData)));
+
+    // 方块ID不匹配，即使NBT匹配也失败
+    EXPECT_FALSE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_PropertyAndNbtBothRequired)
+{
+    // 带属性和NBT的谓词：两者都要匹配
+    AdventureModePredicate predicate({"minecraft:stone{Count:5}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    auto customData = nbt::tags::compound_tag();
+    customData.value.emplace("Count", std::make_unique<nbt::tags::int_tag>(5));
+    m_world.setBlockEntity(pos, std::make_unique<TestBlockEntity>(pos, std::move(customData)));
+
+    // 方块ID匹配 + NBT匹配
+    EXPECT_TRUE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_IntTagMismatch)
+{
+    // NBT中整数标签值不匹配
+    AdventureModePredicate predicate({"minecraft:stone{Count:5}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    auto customData = nbt::tags::compound_tag();
+    customData.value.emplace("Count", std::make_unique<nbt::tags::int_tag>(10)); // 不同值
+    m_world.setBlockEntity(pos, std::make_unique<TestBlockEntity>(pos, std::move(customData)));
+
+    // Count值不匹配
+    EXPECT_FALSE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_MultiplePredicates_OrLogic)
+{
+    // 多个谓词条目使用 OR 逻辑
+    AdventureModePredicate predicate({"minecraft:stone{CustomName:'test'}", "minecraft:dirt{CustomName:'other'}"});
+
+    {
+        // 匹配第一个条目
+        BlockPos pos1(10, 64, 20);
+        m_world.setBlockState(pos1.x, pos1.y, pos1.z, &VanillaBlocks::STONE->defaultState());
+        const BlockState* state1 = m_world.getBlockState(pos1.x, pos1.y, pos1.z);
+        ASSERT_NE(state1, nullptr);
+
+        auto customData1 = nbt::tags::compound_tag();
+        customData1.value.emplace("CustomName", std::make_unique<nbt::tags::string_tag>("test"));
+        m_world.setBlockEntity(pos1, std::make_unique<TestBlockEntity>(pos1, std::move(customData1)));
+
+        EXPECT_TRUE(predicate.test(m_world, pos1, *state1));
+    }
+
+    {
+        // 匹配第二个条目
+        BlockPos pos2(20, 64, 30);
+        m_world.setBlockState(pos2.x, pos2.y, pos2.z, &VanillaBlocks::DIRT->defaultState());
+        const BlockState* state2 = m_world.getBlockState(pos2.x, pos2.y, pos2.z);
+        ASSERT_NE(state2, nullptr);
+
+        auto customData2 = nbt::tags::compound_tag();
+        customData2.value.emplace("CustomName", std::make_unique<nbt::tags::string_tag>("other"));
+        m_world.setBlockEntity(pos2, std::make_unique<TestBlockEntity>(pos2, std::move(customData2)));
+
+        EXPECT_TRUE(predicate.test(m_world, pos2, *state2));
+    }
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_WithoutBlockPos_FallsBackToStateOnly)
+{
+    // test(IWorld&, BlockState&) 重载不支持 NBT 匹配，退化为纯方块状态匹配
+    AdventureModePredicate predicate({"minecraft:stone{CustomName:'test'}"});
+
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    const BlockState& dirtState = VanillaBlocks::DIRT->defaultState();
+
+    // 无 BlockPos 版本跳过 NBT 检查，方块ID 匹配即通过
+    EXPECT_TRUE(predicate.test(m_world, stoneState));
+    EXPECT_FALSE(predicate.test(m_world, dirtState));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_NbtPredicateOnly_NoBlockEntityMatch)
+{
+    // 纯NBT谓词（无属性）但没有方块实体
+    AdventureModePredicate predicate({"minecraft:stone{Level:3}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    // 不设置方块实体，NBT 匹配失败
+    EXPECT_FALSE(predicate.test(m_world, pos, *state));
+
+    // 但纯方块状态版本跳过 NBT 检查
+    EXPECT_TRUE(predicate.test(*state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_EmptyCompoundTag_MatchesAnyNbt)
+{
+    // 空NBT {} 应匹配任何方块实体（空 compound 是任何 compound 的子集）
+    AdventureModePredicate predicate({"minecraft:stone{}"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    // 创建带有数据的方块实体
+    auto customData = nbt::tags::compound_tag();
+    customData.value.emplace("SomeField", std::make_unique<nbt::tags::string_tag>("value"));
+    m_world.setBlockEntity(pos, std::make_unique<TestBlockEntity>(pos, std::move(customData)));
+
+    // 空 compound 是任何 compound 的子集，应匹配
+    EXPECT_TRUE(predicate.test(m_world, pos, *state));
+}
+
+TEST_F(AdventureModeNbtMatchingTest, NBTMatching_InvalidNbtFormat_NoNbtCondition)
+{
+    // 无效NBT格式（如未闭合大括号），parseMojangson返回nullptr
+    // hasNbt 为 false，等价于没有NBT条件
+    AdventureModePredicate predicate({"minecraft:stone{invalid"});
+
+    BlockPos pos(10, 64, 20);
+    m_world.setBlockState(pos.x, pos.y, pos.z, &VanillaBlocks::STONE->defaultState());
+    const BlockState* state = m_world.getBlockState(pos.x, pos.y, pos.z);
+    ASSERT_NE(state, nullptr);
+
+    // 无效NBT解析失败，hasNbt为false，不检查NBT
+    // 方块ID匹配即通过
+    EXPECT_TRUE(predicate.test(m_world, pos, *state));
 }

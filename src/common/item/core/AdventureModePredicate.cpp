@@ -66,28 +66,40 @@ AdventureModePredicate::ParsedPredicate AdventureModePredicate::parsePredicate(c
         return result;
     }
 
-    // 查找属性部分 '[' 和 NBT 部分 '{' 的位置
-    // 注意：'{' 可能出现在 NBT 字符串内部的字符串值中，因此需要
-    // 先找到属性结束的 ']'（如果有的话），再查找 '{'
-    const size_t bracketPos = predicate.find('[');
-    size_t nbtStart = std::string::npos;
+    // 解析格式: block_part[properties]{nbt}
+    // 其中 properties 和 nbt 部分都是可选的
+    // 属性部分必须在 NBT 部分之前（MC 标准格式）
 
-    if (bracketPos != std::string::npos) {
-        // 先找到属性结束的 ']'
-        const size_t closeBracket = predicate.find(']', bracketPos);
-        if (closeBracket != std::string::npos) {
-            // 在属性之后查找 NBT 部分
-            nbtStart = predicate.find('{', closeBracket);
-        } else {
-            // 没有闭合方括号，视为无效，但在 ']' 之后依然尝试查找 '{'
-            nbtStart = predicate.find('{', bracketPos);
+    // 第一步：查找 NBT 部分 '{' 的位置
+    // NBT 部分从第一个 '{' 开始，Mojangson 解析器会处理嵌套的大括号
+    const size_t nbtStart = predicate.find('{');
+
+    // 第二步：查找属性部分 '[' 的位置
+    // 只接受在 NBT 部分之前的 '['（如果有 NBT 部分）
+    // 如果 '[' 出现在 '{' 之后，它是 NBT 内容的一部分，不是属性
+    size_t bracketPos = std::string::npos;
+    if (nbtStart != std::string::npos) {
+        // 只在 '{' 之前查找 '['
+        bracketPos = predicate.find('[', 0);
+        if (bracketPos >= nbtStart) {
+            // '[' 在 '{' 之后，不是有效的属性部分
+            bracketPos = std::string::npos;
         }
     } else {
-        // 没有属性部分，直接查找 '{'
-        nbtStart = predicate.find('{');
+        bracketPos = predicate.find('[');
     }
 
-    // 提取方块/标签部分和属性部分
+    // 检查方括号是否闭合：未闭合的方括号视为无效格式
+    size_t closeBracket = std::string::npos;
+    if (bracketPos != std::string::npos) {
+        closeBracket = predicate.find(']', bracketPos);
+        if (closeBracket == std::string::npos) {
+            // 未闭合的方括号，整个谓词条目无效
+            return result;
+        }
+    }
+
+    // 提取方块/标签部分
     // blockPart 的结束位置是 '[' 或 '{' 中先出现的那个
     size_t blockPartEnd = predicate.size();
     if (bracketPos != std::string::npos) {
@@ -100,14 +112,15 @@ AdventureModePredicate::ParsedPredicate AdventureModePredicate::parsePredicate(c
     result.blockPart = predicate.substr(0, blockPartEnd);
 
     // 解析属性部分
-    if (bracketPos != std::string::npos && bracketPos < blockPartEnd) {
-        // 不应该发生，因为 blockPartEnd 已经被限制了
-    } else if (bracketPos != std::string::npos) {
-        const size_t closeBracket = predicate.find(']', bracketPos);
-        if (closeBracket != std::string::npos) {
-            const std::string_view propsStr(predicate.data() + bracketPos + 1, closeBracket - bracketPos - 1);
-            result.properties = parseProperties(propsStr);
+    if (bracketPos != std::string::npos) {
+        const std::string_view propsStr(predicate.data() + bracketPos + 1, closeBracket - bracketPos - 1);
+        auto parsedProps = parseProperties(propsStr);
+        if (!parsedProps.has_value()) {
+            // 属性格式无效（如 "axis" 缺少等号），整个谓词条目无效
+            result.blockPart.clear();
+            return result;
         }
+        result.properties = std::move(parsedProps);
     }
 
     // 解析 NBT 部分
