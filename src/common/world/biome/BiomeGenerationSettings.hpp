@@ -93,6 +93,17 @@ public:
     [[nodiscard]] bool hasFeature(u32 featureId) const noexcept;
 
     /**
+     * @brief 获取此生物群系的花卉特征ID列表
+     *
+     * 从 VegetalDecoration 阶段中筛选出类型为 ConfiguredFlowerFeature 的特征ID。
+     * 用于骨粉在草方块上放置花朵时，根据生物群系选择对应的花卉列表。
+     * 结果在首次调用后缓存，后续调用直接返回缓存结果。
+     *
+     * @return 花卉特征ID列表（可能为空，表示此群系没有花卉特征）
+     */
+    [[nodiscard]] const std::vector<u32>& getFlowerFeatureIds() const;
+
+    /**
      * @brief 清除所有特征和雕刻器
      */
     void clear() noexcept;
@@ -361,6 +372,10 @@ private:
     // 按阶段存储特征ID列表
     // 使用特征ID而不是直接存储特征对象，以减少内存占用
     std::vector<std::vector<u32>> m_featuresByStage;
+
+    // 缓存的花卉特征ID列表，首次调用 getFlowerFeatureIds() 时惰性计算
+    mutable std::vector<u32> m_cachedFlowerFeatureIds;
+    mutable bool m_flowerFeatureIdsCached = false;
 
     // 配置化雕刻器列表
     std::vector<std::unique_ptr<ConfiguredCarverBase>> m_carvers;

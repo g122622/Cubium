@@ -137,6 +137,13 @@ public:
     [[nodiscard]] const std::vector<ConfiguredFeatureBase*>& getFeatures(DecorationStage stage) const;
 
     /**
+     * @brief 根据特征ID获取特征
+     * @param featureId 特征ID
+     * @return 特征指针，如果ID无效则返回nullptr
+     */
+    [[nodiscard]] ConfiguredFeatureBase* getFeatureById(u32 featureId) const;
+
+    /**
      * @brief 获取所有特征
      * @return 所有特征（按阶段组织）
      */

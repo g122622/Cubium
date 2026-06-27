@@ -319,6 +319,14 @@ const std::vector<ConfiguredFeatureBase*>& FeatureRegistry::getFeatures(Decorati
     return m_featuresByStage[stageIndex];
 }
 
+ConfiguredFeatureBase* FeatureRegistry::getFeatureById(u32 featureId) const
+{
+    if (featureId >= m_ownedFeatures.size()) {
+        return nullptr;
+    }
+    return m_ownedFeatures[featureId].get();
+}
+
 void FeatureRegistry::clear()
 {
     m_featuresByStage.clear();

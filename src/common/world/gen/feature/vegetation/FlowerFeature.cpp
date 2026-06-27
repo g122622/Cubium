@@ -35,7 +35,7 @@ namespace mc {
 // FlowerFeatureConfig 实现
 // ============================================================================
 
-const BlockState* FlowerFeatureConfig::getRandomFlower(math::Random& random) const
+const BlockState* FlowerFeatureConfig::getRandomFlower(math::IRandom& random) const
 {
     if (flowers.empty()) {
         return nullptr;

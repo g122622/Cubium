@@ -158,10 +158,10 @@ public:
     /**
      * @brief 使用骨粉生长
      *
-     * 在草方块上方散布花朵和短草。当前为简化实现。
-     *
-     * TODO: 完整实现需要 PlacedFeature/ConfiguredFeature 系统，当前为简化版本，
-     * 仅放置短草和少量花朵。待世界生成系统完善后应改为从生物群系获取花列表。
+     * 在草方块上方散布花朵和短草。从生物群系获取花列表，
+     * 不同生物群系会产生不同种类的花朵（如平原蒲公英/虞美人、
+     * 沼泽兰花、繁花森林全部花种等）。
+     * 没有花卉特征的生物群系回退到蒲公英。
      */
     void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
 

@@ -26,6 +26,7 @@
 #include <memory>
 #include <vector>
 
+#include "common/util/math/random/IRandom.hpp"
 #include "common/world/gen/feature/ConfiguredFeature.hpp"
 #include "common/world/gen/feature/Feature.hpp"
 
@@ -80,7 +81,7 @@ struct FlowerFeatureConfig : public IFeatureConfig {
     /**
      * @brief 获取随机花卉
      */
-    [[nodiscard]] const BlockState* getRandomFlower(math::Random& random) const;
+    [[nodiscard]] const BlockState* getRandomFlower(math::IRandom& random) const;
 };
 
 /**

@@ -31,6 +31,7 @@
 #include "../gen/carver/WorldCarver.hpp"
 #include "../gen/feature/ConfiguredFeature.hpp"
 #include "../gen/feature/FeatureIds.hpp"
+#include "../gen/feature/vegetation/FlowerFeature.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -186,12 +187,35 @@ bool BiomeGenerationSettings::hasFeature(u32 featureId) const noexcept
     return false;
 }
 
+const std::vector<u32>& BiomeGenerationSettings::getFlowerFeatureIds() const
+{
+    if (m_flowerFeatureIdsCached) {
+        return m_cachedFlowerFeatureIds;
+    }
+
+    // 从 VegetalDecoration 阶段中筛选出类型为 ConfiguredFlowerFeature 的特征ID
+    const auto& vegFeatures = getFeatures(DecorationStage::VegetalDecoration);
+    FeatureRegistry& registry = FeatureRegistry::instance();
+
+    for (u32 featureId : vegFeatures) {
+        ConfiguredFeatureBase* feature = registry.getFeatureById(featureId);
+        if (feature != nullptr && dynamic_cast<ConfiguredFlowerFeature*>(feature) != nullptr) {
+            m_cachedFlowerFeatureIds.push_back(featureId);
+        }
+    }
+
+    m_flowerFeatureIdsCached = true;
+    return m_cachedFlowerFeatureIds;
+}
+
 void BiomeGenerationSettings::clear() noexcept
 {
     for (auto& features : m_featuresByStage) {
         features.clear();
     }
     m_carvers.clear();
+    m_cachedFlowerFeatureIds.clear();
+    m_flowerFeatureIdsCached = false;
 }
 
 void BiomeGenerationSettings::addCarver(std::unique_ptr<ConfiguredCarverBase> carver)

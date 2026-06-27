@@ -29,7 +29,14 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../../util/property/StateContainer.hpp"
 #include "../../../IWorld.hpp"
+#include "../../../biome/Biome.hpp"
+#include "../../../biome/BiomeGenerationSettings.hpp"
+#include "../../../biome/BiomeIds.hpp"
+#include "../../../biome/BiomeRegistry.hpp"
+#include "../../../chunk/data/ChunkData.hpp"
 #include "../../../fluid/Fluid.hpp"
+#include "../../../gen/feature/ConfiguredFeature.hpp"
+#include "../../../gen/feature/vegetation/FlowerFeature.hpp"
 #include "../../../lighting/engine/LightEngineUtils.hpp"
 #include "../../registry/VanillaBlocks.hpp"
 #include "../../registry/VegetationBlocks.hpp"
@@ -226,8 +233,7 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
     // 在草方块上方散布花朵和短草
     //
     // MC 原版使用 128 次循环散布，从生物群系获取花列表，通过 PlacedFeature 系统放置。
-    // 当前为简化实现：在上方散布短草，小概率放置花朵。
-    // TODO: 待 PlacedFeature/ConfiguredFeature 系统完善后，改为从生物群系获取花列表并使用特性放置。
+    // 当前实现：在上方散布短草，小概率放置花朵（从生物群系的花卉特征列表中选择）。
 
     const BlockPos abovePos(pos.x, pos.y + 1, pos.z);
 
@@ -271,14 +277,38 @@ void GrassBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos,
 
         // 如果当前位置是空气，放置植被
         if (currentState != nullptr && currentState->isAir()) {
-            // 1/8 概率放置花朵（简化版：使用雏菊作为默认花）
+            // 1/8 概率放置花朵：从生物群系获取花列表
             if (random.nextInt(8) == 0) {
-                // TODO: 应从生物群系获取花列表，当前使用默认花
+                // 获取散布位置对应的生物群系
+                const ChunkData* chunk = world.getChunk(currentPos.chunkX(), currentPos.chunkZ());
+                if (chunk != nullptr) {
+                    const BiomeId biomeId =
+                        chunk->getBiomeAtBlock(currentPos.localX(), currentPos.y, currentPos.localZ());
+                    const Biome& biome = BiomeRegistry::instance().get(biomeId);
+                    const auto& flowerIds = biome.generationSettings().getFlowerFeatureIds();
+
+                    if (!flowerIds.empty()) {
+                        // 随机选择一个花卉特征
+                        const u32 chosenId = flowerIds[random.nextInt(static_cast<i32>(flowerIds.size()))];
+                        ConfiguredFeatureBase* feature = FeatureRegistry::instance().getFeatureById(chosenId);
+                        auto* flowerFeature = dynamic_cast<ConfiguredFlowerFeature*>(feature);
+                        if (flowerFeature != nullptr) {
+                            // 从花卉配置中随机选择花朵方块状态
+                            const BlockState* flower = flowerFeature->getConfig().getRandomFlower(random);
+                            if (flower != nullptr) {
+                                world.setBlockState(currentPos, flower, 3);
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                // 生物群系没有花卉特征或获取失败时，回退到默认花朵（蒲公英）
                 if (VanillaBlocks::DANDELION != nullptr) {
                     world.setBlockState(currentPos, &VanillaBlocks::DANDELION->defaultState(), 3);
                 }
             } else {
-                // 放置短草
+                // 7/8 概率放置短草
                 if (VanillaBlocks::SHORT_GRASS != nullptr) {
                     world.setBlockState(currentPos, &VanillaBlocks::SHORT_GRASS->defaultState(), 3);
                 }
