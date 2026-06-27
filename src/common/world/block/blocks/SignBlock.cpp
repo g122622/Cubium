@@ -27,6 +27,8 @@
 #include "../../../item/Items.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../item/core/ItemStack.hpp"
+#include "../../../sound/SoundCategory.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
@@ -124,12 +126,24 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Consume;
     }
 
-    // 已涂蜡的告示牌不可编辑，仅执行命令
-    // TODO: 当音效系统完善后，对已涂蜡告示牌播放 WAXED_SIGN_INTERACT_FAIL 音效
+    // 已涂蜡的告示牌不可编辑，播放交互失败音效并仅执行命令
+    // 对应 MC Java SignBlock.useWithoutItem() 中 isWaxed() 分支：
+    //   serverlevel.playSound(null, signblockentity.getBlockPos(),
+    //       signblockentity.getSignInteractionFailedSoundEvent(), SoundSource.BLOCKS);
+    if (signEntity->isWaxed()) {
+        world.playSound(getWaxedInteractFailSound(), sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+    }
 
     // 执行告示牌上的命令
     signEntity->executeCommand(world, player);
     return ActionResultType::Success;
+}
+
+const ResourceLocation& AbstractSignBlock::getWaxedInteractFailSound() const
+{
+    // 普通告示牌（站立/墙面）返回 WAXED_SIGN_INTERACT_FAIL
+    // 对应 MC Java SignBlockEntity.getSignInteractionFailedSoundEvent()
+    return SoundEvents::BLOCK_SIGN_WAXED_INTERACT_FAIL;
 }
 
 const fluid::FluidState* AbstractSignBlock::getFluidState(const BlockState& state) const

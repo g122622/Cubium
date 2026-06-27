@@ -56,6 +56,11 @@ public:
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
+    /**
+     * @brief 悬挂告示牌交互失败时播放悬挂告示牌专属音效
+     */
+    [[nodiscard]] const ResourceLocation& getWaxedInteractFailSound() const override;
+
 private:
     CollisionShape m_shape;
 };
@@ -88,6 +93,11 @@ public:
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+
+    /**
+     * @brief 悬挂告示牌交互失败时播放悬挂告示牌专属音效
+     */
+    [[nodiscard]] const ResourceLocation& getWaxedInteractFailSound() const override;
 
 private:
     std::unordered_map<Direction, CollisionShape> m_shapesByDirection;

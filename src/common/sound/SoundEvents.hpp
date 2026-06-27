@@ -436,6 +436,10 @@ extern const ResourceLocation BLOCK_BEEHIVE_EXIT;
 extern const ResourceLocation BLOCK_BEEHIVE_SHEAR;
 extern const ResourceLocation BLOCK_BEEHIVE_WORK;
 
+/// 告示牌
+extern const ResourceLocation BLOCK_SIGN_WAXED_INTERACT_FAIL;
+extern const ResourceLocation BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL;
+
 /// 钟
 extern const ResourceLocation BLOCK_BELL_USE;
 extern const ResourceLocation BLOCK_BELL_RESONATE;

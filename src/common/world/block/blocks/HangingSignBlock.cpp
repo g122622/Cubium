@@ -23,6 +23,7 @@
 
 #include "HangingSignBlock.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../IWorld.hpp"
@@ -118,6 +119,13 @@ void CeilingHangingSignBlock::fillStateContainer(StateContainer<Block, BlockStat
     // 状态已在构造函数中通过 Builder 创建
 }
 
+const ResourceLocation& CeilingHangingSignBlock::getWaxedInteractFailSound() const
+{
+    // 悬挂告示牌返回专属音效
+    // 对应 MC Java HangingSignBlockEntity.getSignInteractionFailedSoundEvent()
+    return SoundEvents::BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL;
+}
+
 // ========== WallHangingSignBlock ==========
 
 WallHangingSignBlock::WallHangingSignBlock(const BlockProperties& properties, WoodType woodType)
@@ -210,6 +218,13 @@ const CollisionShape& WallHangingSignBlock::getShape(const BlockState& state) co
 void WallHangingSignBlock::fillStateContainer(StateContainer<Block, BlockState>& container)
 {
     // 状态已在构造函数中通过 Builder 创建
+}
+
+const ResourceLocation& WallHangingSignBlock::getWaxedInteractFailSound() const
+{
+    // 墙面悬挂告示牌返回专属音效（与天花板悬挂告示牌相同）
+    // 对应 MC Java HangingSignBlockEntity.getSignInteractionFailedSoundEvent()
+    return SoundEvents::BLOCK_HANGING_SIGN_WAXED_INTERACT_FAIL;
 }
 
 } // namespace blocks
