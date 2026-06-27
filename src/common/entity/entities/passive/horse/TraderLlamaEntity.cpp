@@ -206,7 +206,8 @@ Entity* TraderLlamaEntity::getLeashHolderEntity() const
         return nullptr;
     }
 
-    // 通过 UUID 在世界中查找拴绳持有者实体
+    // TODO: 性能优化 - 当前使用 128 格范围全量搜索实体再逐个比较 UUID，复杂度较高。
+    // 可改为在 IWorld 中提供 getByUuid() 方法，利用 UUID 索引直接查找，避免全量遍历。
     const std::string& uuid = *leashHolderUuid();
 
     // 搜索附近实体（使用较大范围）

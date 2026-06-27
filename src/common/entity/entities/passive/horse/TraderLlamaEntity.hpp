@@ -115,6 +115,11 @@ public:
      * @brief 玩家与商队羊驼交互
      *
      * 当商队羊驼被拴在流浪商人身上时，不允许玩家骑乘。
+     *
+     * TODO: 需要集成测试验证 interactMob() 在拴绳状态下的行为：
+     * - 被拴在流浪商人身上时返回 ActionResultType::Pass
+     * - 其他情况委托给 LlamaEntity::interactMob()
+     * 当前单元测试缺少 World mock 来设置拴绳+玩家交互场景。
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
@@ -123,6 +128,9 @@ public:
      * @return 拴绳持有者实体指针，未找到或未拴住返回 nullptr
      *
      * 此方法为 public 以供 AI 目标类访问。
+     *
+     * TODO: 性能优化 - 当前使用 128 格范围全量搜索实体再逐个比较 UUID，
+     * 可改为在 IWorld 中提供 getByUuid() 方法利用 UUID 索引直接查找。
      */
     [[nodiscard]] Entity* getLeashHolderEntity() const;
 
@@ -174,16 +182,34 @@ private:
      *   - 被拴在流浪商人身上时，同步流浪商人的消失倒计时（-1）
      *   - 否则自行递减消失倒计时
      * - 当倒计时 <= 0 时：解除拴绳并丢弃实体
+     *
+     * TODO: 需要集成测试验证 maybeDespawn() 的完整行为：
+     * - 未拴绳时倒计时递减并最终 discard()
+     * - 拴在流浪商人身上时同步商人倒计时
+     * - canDespawn() 为 false 时（驯服/拴绳/骑乘）不递减
+     * 当前缺少 World mock 来模拟拴绳+流浪商人交互场景。
      */
     void maybeDespawn();
 
     /**
      * @brief 检查是否被拴在流浪商人身上
+     *
+     * TODO: 需要集成测试验证 isLeashedToWanderingTrader() 的行为：
+     * - 拴在流浪商人身上时返回 true
+     * - 拴在其他实体/栅栏上时返回 false
+     * - 未拴绳时返回 false
+     * 当前缺少 World mock 来设置拴绳持有者实体。
      */
     [[nodiscard]] bool isLeashedToWanderingTrader() const;
 
     /**
      * @brief 检查是否正好有一名玩家乘客
+     *
+     * TODO: 需要集成测试验证 hasExactlyOnePlayerPassenger() 的行为：
+     * - 恰好一名玩家乘客时返回 true
+     * - 无乘客或多于一名乘客时返回 false
+     * - 非 Player 乘客时返回 false
+     * 当前缺少 World mock 来设置乘客实体。
      */
     [[nodiscard]] bool hasExactlyOnePlayerPassenger() const;
 

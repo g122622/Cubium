@@ -272,6 +272,12 @@ private:
  * 当商队羊驼被拴在流浪商人身上时，如果流浪商人受到攻击，
  * 商队羊驼会反击攻击者。类似于 OwnerHurtByTargetGoal，
  * 但目标来源是拴绳持有者（流浪商人）而非驯服者。
+ *
+ * TODO: 需要集成测试验证 TraderLlamaDefendWanderingTraderGoal 的完整行为：
+ * - 被拴在流浪商人身上且商人受攻击时 shouldExecute() 返回 true
+ * - 未拴绳或拴在其他实体上时 shouldExecute() 返回 false
+ * - 时间戳更新防止重复触发
+ * 当前缺少 World mock 来设置拴绳+流浪商人+攻击者交互场景。
  */
 class TraderLlamaDefendWanderingTraderGoal : public Goal {
 public:
