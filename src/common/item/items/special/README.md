@@ -17,7 +17,9 @@ special/
 ├── MusicDiscItem.hpp/cpp        # 音乐唱片（放入唱片机播放，比较器信号1-15）
 ├── NameTagItem.hpp/cpp          # 命名牌（给生物命名、持久化）
 ├── OnAStickItem.hpp/cpp         # 钓竿类物品基类（控制可骑乘实体）
+├── PotterySherdItem.hpp/cpp     # 陶片（饰纹陶罐合成材料，关联DecoratedPotPattern枚举）
 ├── SaddleItem.hpp/cpp           # 鞍（装备可骑乘实体）
+├── SmithingTemplateItem.hpp/cpp # 锻造模板（盔甲纹饰/下界合金升级，锻造台配方模板）
 ├── SpawnEggItem.hpp/cpp         # 生成蛋（右键生成实体）
 ├── StickItems.hpp/cpp           # 具体钓竿物品（胡萝卜钓竿、诡异菌钓竿）
 ```
@@ -77,3 +79,6 @@ special/
 10. **HoneycombItem 涂蜡映射使用 "construct on first use" 模式**：`getWaxablesMap()` 和 `getWaxOffMap()` 是函数局部静态变量，首次调用时初始化。必须确保 `VanillaBlocks` 已初始化后再调用，否则所有铜方块指针为 nullptr，映射表将为空
 11. **HoneycombItem::getWaxedOff 供 AxeItem 使用**：AxeItem 除蜡逻辑调用此静态方法，无需实例化 HoneycombItem
 12. **HoneycombItem 告示牌涂蜡路径**：`onItemUse()` 先检测告示牌 SignEntity 再检测铜块。`AbstractSignBlock::onBlockActivated()` 也实现了涂蜡交互（检测蜜脾手持物品），两条路径互为补充
+13. **PotterySherdItem 关联 DecoratedPotPattern**：每个陶片物品持有 DecoratedPotPattern 枚举值，该枚举与 MC 原版 DecoratedPotPattern 一一对应。待 DecoratedPotBlockEntity 实现后需建立陶片物品到图案的双向映射
+14. **SmithingTemplateItem 提示文本为翻译键占位**：appliesTo/ingredients/baseSlotDescription/additionsSlotDescription 字段当前存储翻译键字符串，待翻译系统完善后应改为 ITextComponent
+15. **SmithingTemplateItem 与锻造台配方系统**：此类当前仅提供物品标识和提示信息，待 TrimPattern 注册表和 SmithingTrimRecipe/SmithingTransformRecipe 实现后需进行集成

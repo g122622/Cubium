@@ -15,8 +15,8 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN NO EVENT SHALL FROM IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *
  */
 
@@ -27,11 +27,6 @@
 #include <vector>
 
 namespace mc {
-
-namespace text {
-class ITextComponent;
-}
-
 namespace item {
 
 /**
@@ -113,6 +108,11 @@ public:
      * @brief 添加物品提示信息
      *
      * 显示"适用于"和"材料"提示。
+     *
+     * TODO: 当前直接输出翻译键字符串作为占位，待翻译系统完善后
+     * 应改为使用 ITextComponent 构建格式化的翻译文本。
+     * TODO: 待锻造台配方系统（SmithingTransformRecipe / SmithingTrimRecipe）集成后，
+     * 此类应与 TrimPattern 注册表关联，并提供空槽位图标路径用于客户端锻造台界面渲染。
      */
     void addInformation(
         const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;

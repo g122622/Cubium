@@ -89,6 +89,8 @@ add_executable(mc_tests
     common/item/special/OnAStickItemTest.cpp
     # MusicDiscItem 音乐唱片测试（比较器信号、isMusicDisc、声音事件ID）
     common/item/special/MusicDiscItemTest.cpp
+    # PotterySherdItem / SmithingTemplateItem 测试（陶片图案映射、锻造模板类型、注册完整性）
+    common/item/special/PotterySherdAndSmithingTemplateTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp

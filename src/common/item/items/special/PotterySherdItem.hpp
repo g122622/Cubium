@@ -28,11 +28,6 @@
 #include <vector>
 
 namespace mc {
-
-namespace text {
-class ITextComponent;
-}
-
 namespace item {
 
 /**
@@ -72,6 +67,9 @@ public:
      * @brief 添加物品提示信息
      *
      * 显示陶片的翻译名称。
+     *
+     * TODO: 当前直接输出翻译键字符串作为占位，待翻译系统完善后
+     * 应改为使用 ITextComponent 构建格式化的翻译文本。
      */
     void addInformation(
         const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;

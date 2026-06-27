@@ -1123,37 +1123,37 @@ public:
     // ========================================================================
     // 试炼密室 (Trial Chambers)
     // ========================================================================
-    static Item* TRIAL_KEY;                         // 试炼钥匙
-    static Item* OMINOUS_TRIAL_KEY;                 // 不祥试炼钥匙
-    static Item* OMINOUS_BOTTLE;                    // 不祥之瓶
-    static Item* WIND_CHARGE;                       // 风弹
-    static Item* BREEZE_ROD;                        // 狂风杖
-    static Item* MACE;                              // 重锤
-    static Item* GUSTER_BANNER_PATTERN;             // 旋风旗帜图案
-    static Item* FLOW_BANNER_PATTERN;               // 涡流旗帜图案
+    static Item* TRIAL_KEY;             // 试炼钥匙
+    static Item* OMINOUS_TRIAL_KEY;     // 不祥试炼钥匙
+    static Item* OMINOUS_BOTTLE;        // 不祥之瓶
+    static Item* WIND_CHARGE;           // 风弹
+    static Item* BREEZE_ROD;            // 狂风杖
+    static Item* MACE;                  // 重锤
+    static Item* GUSTER_BANNER_PATTERN; // 旋风旗帜图案
+    static Item* FLOW_BANNER_PATTERN;   // 涡流旗帜图案
 
     // ========================================================================
     // 锻造模板物品（盔甲纹饰 + 下界合金升级）
     // ========================================================================
-    static Item* NETHERITE_UPGRADE_SMITHING_TEMPLATE;         // 下界合金升级锻造模板
-    static Item* SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE;         // 哨兵盔甲纹饰
-    static Item* VEX_ARMOR_TRIM_SMITHING_TEMPLATE;            // 恼鬼盔甲纹饰
-    static Item* WILD_ARMOR_TRIM_SMITHING_TEMPLATE;           // 荒野盔甲纹饰
-    static Item* COAST_ARMOR_TRIM_SMITHING_TEMPLATE;          // 海岸盔甲纹饰
-    static Item* DUNE_ARMOR_TRIM_SMITHING_TEMPLATE;           // 沙丘盔甲纹饰
-    static Item* WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE;      // 寻路者盔甲纹饰
-    static Item* RAISER_ARMOR_TRIM_SMITHING_TEMPLATE;         // 升起者盔甲纹饰
-    static Item* SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE;         // 塑造者盔甲纹饰
-    static Item* HOST_ARMOR_TRIM_SMITHING_TEMPLATE;           // 宿主盔甲纹饰
-    static Item* WARD_ARMOR_TRIM_SMITHING_TEMPLATE;           // 监守者盔甲纹饰
-    static Item* SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE;        // 寂静盔甲纹饰
-    static Item* TIDE_ARMOR_TRIM_SMITHING_TEMPLATE;           // 潮汐盔甲纹饰
-    static Item* SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE;          // 猪鼻盔甲纹饰
-    static Item* RIB_ARMOR_TRIM_SMITHING_TEMPLATE;            // 镶铆盔甲纹饰
-    static Item* EYE_ARMOR_TRIM_SMITHING_TEMPLATE;            // 眼睛盔甲纹饰
-    static Item* SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE;          // 尖塔盔甲纹饰
-    static Item* FLOW_ARMOR_TRIM_SMITHING_TEMPLATE;           // 涡流盔甲纹饰
-    static Item* BOLT_ARMOR_TRIM_SMITHING_TEMPLATE;           // 闪电盔甲纹饰
+    static Item* NETHERITE_UPGRADE_SMITHING_TEMPLATE;    // 下界合金升级锻造模板
+    static Item* SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE;    // 哨兵盔甲纹饰
+    static Item* VEX_ARMOR_TRIM_SMITHING_TEMPLATE;       // 恼鬼盔甲纹饰
+    static Item* WILD_ARMOR_TRIM_SMITHING_TEMPLATE;      // 荒野盔甲纹饰
+    static Item* COAST_ARMOR_TRIM_SMITHING_TEMPLATE;     // 海岸盔甲纹饰
+    static Item* DUNE_ARMOR_TRIM_SMITHING_TEMPLATE;      // 沙丘盔甲纹饰
+    static Item* WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE; // 寻路者盔甲纹饰
+    static Item* RAISER_ARMOR_TRIM_SMITHING_TEMPLATE;    // 升起者盔甲纹饰
+    static Item* SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE;    // 塑造者盔甲纹饰
+    static Item* HOST_ARMOR_TRIM_SMITHING_TEMPLATE;      // 宿主盔甲纹饰
+    static Item* WARD_ARMOR_TRIM_SMITHING_TEMPLATE;      // 监守者盔甲纹饰
+    static Item* SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE;   // 寂静盔甲纹饰
+    static Item* TIDE_ARMOR_TRIM_SMITHING_TEMPLATE;      // 潮汐盔甲纹饰
+    static Item* SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE;     // 猪鼻盔甲纹饰
+    static Item* RIB_ARMOR_TRIM_SMITHING_TEMPLATE;       // 镶铆盔甲纹饰
+    static Item* EYE_ARMOR_TRIM_SMITHING_TEMPLATE;       // 眼睛盔甲纹饰
+    static Item* SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE;     // 尖塔盔甲纹饰
+    static Item* FLOW_ARMOR_TRIM_SMITHING_TEMPLATE;      // 涡流盔甲纹饰
+    static Item* BOLT_ARMOR_TRIM_SMITHING_TEMPLATE;      // 闪电盔甲纹饰
 
     // ========================================================================
     // 陶片物品（1.20 考古学 + 1.21 试炼密室）

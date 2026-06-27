@@ -134,6 +134,11 @@ void ItemTags::initialize()
         return;
     }
 
+    // TODO: 当前所有物品标签的成员列表均为硬编码注册，与 MC 原版通过数据包
+    // （minecraft/tags/items/ 下的 JSON 文件）定义标签的方式不一致。待数据包
+    // 加载系统完善后，应改为从数据包动态加载标签成员列表，仅在数据包不可用时
+    // 回退到硬编码默认值。
+
     auto& allTags = tags();
 
     // 创建 FLOWERS 标签

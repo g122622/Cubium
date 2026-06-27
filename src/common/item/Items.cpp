@@ -3843,197 +3843,178 @@ void Items::_registerTrialChamberItems()
 
     // 下界合金升级锻造模板 - 用于在锻造台中升级钻石装备为下界合金装备
     // 可通过在工作台中用 1x 下界合金升级模板 + 1x 钻石 + 7x 下界合金锭 复制
-    NETHERITE_UPGRADE_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:netherite_upgrade_smithing_template"),
-            item::SmithingTemplateType::NetheriteUpgrade,
-            "item.minecraft.smithing_template.applies_to.netherite_upgrade",
-            "item.minecraft.smithing_template.ingredients.netherite_upgrade",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::netheriteUpgradeProperties());
+    NETHERITE_UPGRADE_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:netherite_upgrade_smithing_template"),
+        item::SmithingTemplateType::NetheriteUpgrade,
+        "item.minecraft.smithing_template.applies_to.netherite_upgrade",
+        "item.minecraft.smithing_template.ingredients.netherite_upgrade",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::netheriteUpgradeProperties());
 
     // 盔甲纹饰锻造模板 - 用于在锻造台中为盔甲添加纹饰
     // 18种纹饰模板，每种可通过工作台用 1x 模板 + 1x 钻石 + 对应材料 复制
-    SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:sentry_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:sentry_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    VEX_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:vex_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    VEX_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:vex_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    WILD_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:wild_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    WILD_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:wild_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    COAST_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:coast_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    COAST_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:coast_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    DUNE_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:dune_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    DUNE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:dune_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:wayfinder_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:wayfinder_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    RAISER_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:raiser_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    RAISER_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:raiser_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:shaper_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:shaper_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    HOST_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:host_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    HOST_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:host_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    WARD_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:ward_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    WARD_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:ward_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:silence_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:silence_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    TIDE_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:tide_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    TIDE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:tide_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:snout_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:snout_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    RIB_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:rib_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    RIB_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:rib_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    EYE_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:eye_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    EYE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:eye_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:spire_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:spire_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    FLOW_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:flow_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    FLOW_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:flow_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
-    BOLT_ARMOR_TRIM_SMITHING_TEMPLATE =
-        &registry.registerItem<item::SmithingTemplateItem>(
-            ResourceLocation("minecraft:bolt_armor_trim_smithing_template"),
-            item::SmithingTemplateType::ArmorTrim,
-            "item.minecraft.smithing_template.applies_to.armor",
-            "item.minecraft.smithing_template.ingredients.armor",
-            "item.minecraft.smithing_template.base_slot_description",
-            "item.minecraft.smithing_template.additions_slot_description",
-            item::SmithingTemplateItem::armorTrimProperties());
+    BOLT_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
+        ResourceLocation("minecraft:bolt_armor_trim_smithing_template"),
+        item::SmithingTemplateType::ArmorTrim,
+        "item.minecraft.smithing_template.applies_to.armor",
+        "item.minecraft.smithing_template.ingredients.armor",
+        "item.minecraft.smithing_template.base_slot_description",
+        "item.minecraft.smithing_template.additions_slot_description",
+        item::SmithingTemplateItem::armorTrimProperties());
 
     // ========================================================================
     // 陶片物品
@@ -4041,122 +4022,122 @@ void Items::_registerTrialChamberItems()
 
     // 1.20 考古学陶片 - 通过考古发掘获取（遗迹废墟、沙漠井、沙漠神殿、平原考古点等）
 
-    ANGLER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:angler_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Angler,
-        ItemProperties().maxStackSize(64));
+    ANGLER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:angler_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Angler,
+            ItemProperties().maxStackSize(64));
 
-    ARCHER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:archer_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Archer,
-        ItemProperties().maxStackSize(64));
+    ARCHER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:archer_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Archer,
+            ItemProperties().maxStackSize(64));
 
-    ARMS_UP_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:arms_up_pottery_sherd"),
-        blockentity::DecoratedPotPattern::ArmsUp,
-        ItemProperties().maxStackSize(64));
+    ARMS_UP_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:arms_up_pottery_sherd"),
+            blockentity::DecoratedPotPattern::ArmsUp,
+            ItemProperties().maxStackSize(64));
 
-    BLADE_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:blade_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Blade,
-        ItemProperties().maxStackSize(64));
+    BLADE_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:blade_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Blade,
+            ItemProperties().maxStackSize(64));
 
-    BREWER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:brewer_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Brewer,
-        ItemProperties().maxStackSize(64));
+    BREWER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:brewer_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Brewer,
+            ItemProperties().maxStackSize(64));
 
-    BURN_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:burn_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Burn,
-        ItemProperties().maxStackSize(64));
+    BURN_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:burn_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Burn,
+            ItemProperties().maxStackSize(64));
 
-    DANGER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:danger_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Danger,
-        ItemProperties().maxStackSize(64));
+    DANGER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:danger_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Danger,
+            ItemProperties().maxStackSize(64));
 
-    EXPLORER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:explorer_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Explorer,
-        ItemProperties().maxStackSize(64));
+    EXPLORER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:explorer_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Explorer,
+            ItemProperties().maxStackSize(64));
 
-    FRIEND_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:friend_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Friend,
-        ItemProperties().maxStackSize(64));
+    FRIEND_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:friend_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Friend,
+            ItemProperties().maxStackSize(64));
 
-    HEART_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:heart_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Heart,
-        ItemProperties().maxStackSize(64));
+    HEART_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:heart_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Heart,
+            ItemProperties().maxStackSize(64));
 
-    HEARTBREAK_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:heartbreak_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Heartbreak,
-        ItemProperties().maxStackSize(64));
+    HEARTBREAK_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:heartbreak_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Heartbreak,
+            ItemProperties().maxStackSize(64));
 
-    HOWL_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:howl_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Howl,
-        ItemProperties().maxStackSize(64));
+    HOWL_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:howl_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Howl,
+            ItemProperties().maxStackSize(64));
 
-    MINER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:miner_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Miner,
-        ItemProperties().maxStackSize(64));
+    MINER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:miner_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Miner,
+            ItemProperties().maxStackSize(64));
 
-    MOURNER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:mourner_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Mourner,
-        ItemProperties().maxStackSize(64));
+    MOURNER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:mourner_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Mourner,
+            ItemProperties().maxStackSize(64));
 
-    PLENTY_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:plenty_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Plenty,
-        ItemProperties().maxStackSize(64));
+    PLENTY_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:plenty_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Plenty,
+            ItemProperties().maxStackSize(64));
 
-    PRIZE_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:prize_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Prize,
-        ItemProperties().maxStackSize(64));
+    PRIZE_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:prize_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Prize,
+            ItemProperties().maxStackSize(64));
 
-    SHEAF_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:sheaf_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Sheaf,
-        ItemProperties().maxStackSize(64));
+    SHEAF_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:sheaf_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Sheaf,
+            ItemProperties().maxStackSize(64));
 
-    SHELTER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:shelter_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Shelter,
-        ItemProperties().maxStackSize(64));
+    SHELTER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:shelter_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Shelter,
+            ItemProperties().maxStackSize(64));
 
-    SKULL_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:skull_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Skull,
-        ItemProperties().maxStackSize(64));
+    SKULL_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:skull_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Skull,
+            ItemProperties().maxStackSize(64));
 
-    SNORT_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:snort_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Snort,
-        ItemProperties().maxStackSize(64));
+    SNORT_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:snort_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Snort,
+            ItemProperties().maxStackSize(64));
 
     // 1.21 试炼密室陶片 - 通过试炼密室饰纹陶罐掉落获取
 
-    FLOW_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:flow_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Flow,
-        ItemProperties().maxStackSize(64));
+    FLOW_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:flow_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Flow,
+            ItemProperties().maxStackSize(64));
 
-    GUSTER_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:guster_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Guster,
-        ItemProperties().maxStackSize(64));
+    GUSTER_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:guster_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Guster,
+            ItemProperties().maxStackSize(64));
 
-    SCRAPE_POTTERY_SHERD = &registry.registerItem<item::PotterySherdItem>(
-        ResourceLocation("minecraft:scrape_pottery_sherd"),
-        blockentity::DecoratedPotPattern::Scrape,
-        ItemProperties().maxStackSize(64));
+    SCRAPE_POTTERY_SHERD =
+        &registry.registerItem<item::PotterySherdItem>(ResourceLocation("minecraft:scrape_pottery_sherd"),
+            blockentity::DecoratedPotPattern::Scrape,
+            ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerMusicDiscs()
