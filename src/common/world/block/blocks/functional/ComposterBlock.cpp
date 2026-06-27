@@ -264,7 +264,7 @@ ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
     }
 
     // 检查玩家手持物品
-    ItemStack heldItem = player.inventory().getSelectedStack();
+    ItemStack& heldItem = player.getHeldItem(hand);
     if (heldItem.isEmpty()) {
         return ActionResultType::Pass;
     }

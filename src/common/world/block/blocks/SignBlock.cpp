@@ -25,8 +25,8 @@
 #include "../../../core/Types.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/Items.hpp"
-#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
@@ -93,7 +93,7 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
     auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
 
     // 检查玩家手持物品是否为蜜脾（涂蜡交互）
-    ItemStack heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = player.getHeldItem(hand);
     if (!heldItem.isEmpty() && heldItem.getItem() == Items::HONEYCOMB) {
         // 涂蜡：如果告示牌未涂蜡，则设置涂蜡状态
         if (!signEntity->isWaxed()) {

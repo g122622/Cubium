@@ -135,7 +135,7 @@ ActionResultType JukeboxBlock::onBlockActivated(const BlockState& state,
     }
 
     // 如果没有唱片，检查玩家手中是否有唱片
-    ItemStack heldItem = player.getHeldItem(hand);
+    ItemStack& heldItem = player.getHeldItem(hand);
     if (!heldItem.isEmpty() && heldItem.getItem() != nullptr && heldItem.getItem()->isMusicDisc()) {
         // 放入唱片
         ItemStack recordToInsert = heldItem.copy();
