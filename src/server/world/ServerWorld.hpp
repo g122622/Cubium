@@ -573,8 +573,6 @@ public:
         const Vector3& offset,
         u32 count) override;
 
-    // 服务端不需要生成携带方块状态的粒子，使用 IWorld 默认空实现
-
     [[nodiscard]] bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const override;
 
     // ========== 实体状态广播 (IWorld override) ==========
