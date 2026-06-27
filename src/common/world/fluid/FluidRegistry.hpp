@@ -106,7 +106,7 @@ public:
     /**
      * @brief 获取流体状态数量
      */
-    [[nodiscard]] size_t fluidStateCount() const { return m_stateIdCounter; }
+    [[nodiscard]] size_t fluidStateCount() const { return m_statesById.size(); }
 
     /**
      * @brief 遍历所有流体
@@ -141,21 +141,12 @@ private:
      */
     void _registerFluidInternal(Fluid* fluid, const ResourceLocation& id, u32 fluidId);
 
-    /**
-     * @brief 分配下一个状态ID
-     *
-     * TODO: 此方法目前未被使用，状态ID由StateContainer在创建时自动分配。
-     * 未来如需手动分配状态ID，可启用此方法。
-     */
-    [[nodiscard]] u32 _nextStateId() { return m_stateIdCounter++; }
-
 private:
     std::vector<std::unique_ptr<Fluid>> m_fluids;
     std::unordered_map<ResourceLocation, Fluid*> m_fluidsById;
     std::unordered_map<u32, Fluid*> m_fluidsByNumericId;
     std::unordered_map<u32, FluidState*> m_statesById;
 
-    u32 m_stateIdCounter = 0;
     bool m_initialized = false;
 
     friend class Fluid;
