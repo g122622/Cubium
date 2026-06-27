@@ -1046,6 +1046,8 @@ add_executable(mc_tests
     common/world/gen/chunk/ChunkGeneratorInterfaceTest.cpp
     # NoiseChunkGenerator单元测试
     common/world/gen/chunk/NoiseChunkGeneratorTest.cpp
+    # 结构生成生物群系过滤测试
+    common/world/gen/chunk/BiomeFilterTest.cpp
     # 地形常识测试
     common/world/gen/chunk/TerrainCommonSenseTest.cpp
     # 海洋水域生成复现测试
