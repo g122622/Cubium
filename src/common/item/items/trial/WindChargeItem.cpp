@@ -86,7 +86,7 @@ ItemActionResult WindChargeItem::onItemRightClick(IWorld& world, Player& player,
 // ProjectileItem 接口实现
 // ============================================================================
 
-std::unique_ptr<entity::ProjectileEntity> WindChargeItem::asProjectile(IWorld& /*world*/,
+std::unique_ptr<entity::ProjectileEntity> WindChargeItem::asProjectile(IWorld& world,
     const Vector3& position,
     const ItemStack& /*stack*/,
     f32 directionX,
@@ -94,6 +94,7 @@ std::unique_ptr<entity::ProjectileEntity> WindChargeItem::asProjectile(IWorld& /
     f32 directionZ) const
 {
     auto entity = std::make_unique<entity::WindChargeEntity>(EntityId(0));
+    entity->setWorld(&world);
     entity->setPosition(position.x, position.y, position.z);
 
     // 风弹在 asProjectile 中根据方向预设初速度

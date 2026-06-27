@@ -44,6 +44,7 @@ entity::ProjectileItemEntity* SnowballItem::createProjectile(
         return nullptr;
     }
 
+    entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 
@@ -71,6 +72,7 @@ entity::ProjectileItemEntity* EggItem::createProjectile(IWorld& world, Player& p
         return nullptr;
     }
 
+    entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 
@@ -99,6 +101,7 @@ entity::ProjectileItemEntity* EnderPearlItem::createProjectile(
         return nullptr;
     }
 
+    entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 
@@ -127,6 +130,7 @@ entity::ProjectileItemEntity* ExperienceBottleItem::createProjectile(
         return nullptr;
     }
 
+    entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 

@@ -41,6 +41,7 @@ entity::ProjectileItemEntity* SplashPotionItem::createProjectile(
         return nullptr;
     }
 
+    entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 

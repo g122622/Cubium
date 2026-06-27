@@ -91,6 +91,10 @@ std::unique_ptr<entity::ProjectileEntity> ThrowableItem::asProjectile(IWorld& wo
         return nullptr;
     }
 
+    // 设置世界引用（部分实体方法如 getShooter() 依赖 m_world，
+    // 需在 spawnEntity 之前设置）
+    entity->setWorld(&world);
+
     // 设置位置（不设置发射者和方向，由调用方负责）
     entity->setPosition(position.x, position.y, position.z);
 
