@@ -22,13 +22,13 @@
  */
 
 #include "BoneMealItem.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldEvents.hpp"
 #include "common/world/biome/Biome.hpp"
 #include "common/world/biome/BiomeRegistry.hpp"
 #include "common/world/biome/Biomes.hpp"
@@ -77,8 +77,12 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context)
                         const_cast<ItemStack&>(context.itemStack()).shrink(1);
                     }
 
-                    // 生成快乐村民粒子
-                    _spawnBonemealParticles(world, pos);
+                    // 发送植物生长效果事件（粒子 + 音效）
+                    // 客户端收到后将根据 IGrowable::getBoneMealType() 区分粒子分布方式
+                    // 参考: net.minecraft.world.item.BoneMealItem.useOn -> level.levelEvent(1505, pos, 15)
+                    if (!world.isClientSide()) {
+                        world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
+                    }
 
                     return ActionResultType::Success;
                 }
@@ -100,8 +104,11 @@ ActionResultType BoneMealItem::onItemUse(ItemUseContext& context)
                 const_cast<ItemStack&>(context.itemStack()).shrink(1);
             }
 
-            // 生成快乐村民粒子
-            _spawnBonemealParticles(world, pos);
+            // 发送植物生长效果事件（粒子 + 音效）
+            // 参考: net.minecraft.world.item.BoneMealItem.useOn -> level.levelEvent(1505, pos, 15)
+            if (!world.isClientSide()) {
+                world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
+            }
 
             return ActionResultType::Success;
         }
@@ -150,8 +157,11 @@ bool BoneMealItem::applyBonemeal(ItemStack& stack, IWorld& world, const BlockPos
             stack.shrink(1);
         }
 
-        // 生成快乐村民粒子
-        _spawnBonemealParticles(world, pos);
+        // 发送植物生长效果事件（粒子 + 音效）
+        // 参考: net.minecraft.world.item.BoneMealItem.useOn -> level.levelEvent(1505, pos, 15)
+        if (!world.isClientSide()) {
+            world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, pos, 15);
+        }
 
         return true;
     }
@@ -305,26 +315,6 @@ bool BoneMealItem::growSeagrass(IWorld& world, const BlockPos& pos, math::IRando
     }
 
     return placedAny;
-}
-
-void BoneMealItem::_spawnBonemealParticles(IWorld& world, const BlockPos& pos)
-{
-    // 在方块周围生成快乐村民粒子
-    // 粒子在方块上方随机分布
-
-    constexpr f32 offsetX = 0.5f;
-    constexpr f32 offsetY = 0.5f;
-    constexpr f32 offsetZ = 0.5f;
-
-    // 生成 15 个粒子
-    constexpr u32 particleCount = 15;
-
-    world.addParticle(client::renderer::trident::particle::ParticleTypeId::HappyVillager,
-        Vector3(
-            static_cast<f32>(pos.x) + offsetX, static_cast<f32>(pos.y) + offsetY, static_cast<f32>(pos.z) + offsetZ),
-        Vector3(0.0f, 0.0f, 0.0f), // 速度为0
-        Vector3(1.0f, 1.0f, 1.0f), // 偏移范围
-        particleCount);
 }
 
 } // namespace item::items

@@ -24,13 +24,13 @@
 #pragma once
 
 #include "common/core/Types.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 namespace mc {
 
 // Forward declarations
 class IBlockReader;
 class IWorld;
-class BlockPos;
 class BlockState;
 namespace math {
 class IRandom;
@@ -41,9 +41,27 @@ class IRandom;
  *
  * 实现此接口的方块可以被骨粉催熟。
  * 包括农作物、树苗、花朵、草等植物。
+ *
+ * 参考: net.minecraft.world.level.block.BonemealableBlock
  */
 class IGrowable {
 public:
+    /**
+     * @brief 骨粉类型枚举
+     *
+     * 决定骨粉粒子效果的分布方式：
+     * - NEIGHBOR_SPREADER: 邻居传播型（草方块、菌岩、下界岩），
+     *   粒子在方块上方水平扩散 3 倍数量
+     * - GROWER: 自身成长型（默认，作物、树苗等），
+     *   粒子在方块内部按形状高度生成
+     *
+     * 参考: net.minecraft.world.level.block.BonemealableBlock.Type
+     */
+    enum class BoneMealType {
+        GROWER,           ///< 自身成长型（默认）
+        NEIGHBOR_SPREADER ///< 邻居传播型
+    };
+
     virtual ~IGrowable() = default;
 
     /**
@@ -85,6 +103,41 @@ public:
      * @param state 当前方块状态
      */
     virtual void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) = 0;
+
+    /**
+     * @brief 获取骨粉类型
+     *
+     * 决定骨粉粒子的分布方式。默认为 GROWER。
+     * NEIGHBOR_SPREADER 类型的方块（草方块、菌岩、下界岩等）
+     * 应重写此方法返回 NEIGHBOR_SPREADER。
+     *
+     * 参考: net.minecraft.world.level.block.BonemealableBlock.getType()
+     *
+     * @return 骨粉类型
+     */
+    [[nodiscard]] virtual BoneMealType getBoneMealType() const { return BoneMealType::GROWER; }
+
+    /**
+     * @brief 获取骨粉粒子生成位置
+     *
+     * NEIGHBOR_SPREADER 类型返回方块上方一格位置（pos.above()），
+     * GROWER 类型返回方块自身位置。
+     *
+     * 参考: net.minecraft.world.level.block.BonemealableBlock.getParticlePos()
+     *
+     * @param pos 方块位置
+     * @return 粒子生成位置
+     */
+    [[nodiscard]] virtual BlockPos getParticlePos(const BlockPos& pos) const
+    {
+        switch (getBoneMealType()) {
+            case BoneMealType::NEIGHBOR_SPREADER:
+                return BlockPos(pos.x, pos.y + 1, pos.z);
+            case BoneMealType::GROWER:
+            default:
+                return pos;
+        }
+    }
 };
 
 } // namespace mc

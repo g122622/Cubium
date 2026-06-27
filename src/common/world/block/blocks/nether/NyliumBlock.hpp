@@ -25,6 +25,7 @@
 
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/IGrowable.hpp"
 
 namespace mc {
 
@@ -43,10 +44,12 @@ namespace blocks {
  * @brief 绯红/诡异菌岩方块
  *
  * 下界的可蔓延岩类方块，在光照过高时会退化为下界岩。
+ * 骨粉可以在其上方生成下界植物（菌类、菌索等）。
  *
  * MC ID: minecraft:crimson_nylium, minecraft:warped_nylium
+ * 参考: net.minecraft.world.level.block.NyliumBlock
  */
-class NyliumBlock : public Block {
+class NyliumBlock : public Block, public IGrowable {
 public:
     explicit NyliumBlock(BlockProperties properties);
 
@@ -61,6 +64,45 @@ public:
      * @brief 是否响应随机刻
      */
     [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
+
+    // ========== IGrowable 接口实现 ==========
+
+    /**
+     * @brief 检查菌岩上方是否可以使用骨粉
+     *
+     * 菌岩上方需要有空气才能使用骨粉。
+     *
+     * 参考: net.minecraft.world.level.block.NyliumBlock.isValidBonemealTarget
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
+
+    /**
+     * @brief 菌岩骨粉总是有效
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
+
+    /**
+     * @brief 使用骨粉生长
+     *
+     * 在菌岩上方生成下界植物。
+     * 绯红菌岩生成绯红菌和绯红菌索，诡异菌岩生成诡异菌、诡异菌索和下界苗。
+     *
+     * TODO: 完整实现需要 NetherFeatures/PlacedFeature 系统，当前为简化版本。
+     *
+     * 参考: net.minecraft.world.level.block.NyliumBlock.performBonemeal
+     */
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 菌岩为邻居传播型骨粉类型
+     *
+     * 粒子在方块上方水平扩散，数量为传入值的3倍。
+     *
+     * 参考: net.minecraft.world.level.block.NyliumBlock.getType()
+     */
+    [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
 
 private:
     /**

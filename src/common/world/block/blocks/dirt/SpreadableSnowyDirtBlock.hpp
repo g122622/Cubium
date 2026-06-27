@@ -25,6 +25,7 @@
 
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../IGrowable.hpp"
 
 namespace mc {
 
@@ -130,13 +131,53 @@ protected:
  * @brief 草方块
  *
  * 可蔓延的草方块，在光照充足时向周围泥土蔓延，
- * 在光照不足时退化成泥土。
+ * 在光照不足时退化成泥土。骨粉可以在其上方生成花朵和草。
  *
  * MC ID: minecraft:grass_block
+ * 参考: net.minecraft.world.level.block.GrassBlock
  */
-class GrassBlock : public SpreadableSnowyDirtBlock {
+class GrassBlock : public SpreadableSnowyDirtBlock, public IGrowable {
 public:
     explicit GrassBlock(BlockProperties properties);
+
+    // ========== IGrowable 接口实现 ==========
+
+    /**
+     * @brief 检查草方块是否可以使用骨粉
+     *
+     * 草方块上方需要有空气才能使用骨粉。
+     *
+     * 参考: net.minecraft.world.level.block.GrassBlock.isValidBonemealTarget
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
+
+    /**
+     * @brief 草方块骨粉总是有效
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
+
+    /**
+     * @brief 使用骨粉生长
+     *
+     * 在草方块上方散布花朵和短草。当前为简化实现。
+     *
+     * TODO: 完整实现需要 PlacedFeature/ConfiguredFeature 系统，当前为简化版本，
+     * 仅放置短草和少量花朵。待世界生成系统完善后应改为从生物群系获取花列表。
+     *
+     * 参考: net.minecraft.world.level.block.GrassBlock.performBonemeal
+     */
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 草方块为邻居传播型骨粉类型
+     *
+     * 粒子在方块上方水平扩散，数量为传入值的3倍。
+     *
+     * 参考: net.minecraft.world.level.block.GrassBlock.getType()
+     */
+    [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
 };
 
 /**

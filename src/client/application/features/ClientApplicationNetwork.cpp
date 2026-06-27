@@ -60,6 +60,7 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/MudBlocks.hpp"
@@ -2102,20 +2103,80 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         case WorldEvents::PLANT_GROWTH_EFFECT: {
             // 植物生长粒子与音效事件 (MC 1.21 主事件，由骨粉使用触发)
             // data 为粒子数量，0 则生成 15 个
-            // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 BonemealableBlock 类型
-            // 决定粒子分布方式，同时播放骨粉使用音效
-            // TODO: 当前简化实现使用与 BONEMEAL_PARTICLES 相同的粒子分布（方块内随机偏移），
-            // 未区分 NEIGHBOR_SPREADER 和 GROWER 两种 BonemealableBlock 类型的不同分布模式。
-            // NEIGHBOR_SPREADER（草方块等）应使用 spawnParticles 水平扩散 3 倍粒子数，
-            // GROWER（作物等）应使用 spawnParticleInBlock 自动计算方块形状高度。
-            // 待 BonemealableBlock::getType() 和 getParticlePos() 接口完善后实现精确分布。
+            // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 IGrowable::getBoneMealType()
+            // 决定粒子分布方式，同时播放骨粉使用音效。
+            // 参考: net.minecraft.world.item.BoneMealItem.addGrowthParticles
             {
                 i32 count = (data == 0) ? 15 : data;
-                m_world.addParticle(ParticleTypeId::HappyVillager,
-                    Vector3(px, py, pz),
-                    Vector3(0.0f, 0.0f, 0.0f),
-                    Vector3(0.5f, 1.0f, 0.5f),
-                    static_cast<u32>(count));
+
+                // 查询位置处的方块是否为 IGrowable，根据骨粉类型决定粒子分布
+                const BlockState* blockState = m_world.getBlockState(x, y, z);
+                if (blockState != nullptr) {
+                    const Block& block = blockState->owner();
+                    const IGrowable* growable = dynamic_cast<const IGrowable*>(&block);
+
+                    if (growable != nullptr) {
+                        // 获取粒子生成位置（NEIGHBOR_SPREADER 类型在方块上方，GROWER 类型在方块自身）
+                        BlockPos particlePos = growable->getParticlePos(BlockPos(x, y, z));
+
+                        switch (growable->getBoneMealType()) {
+                            case IGrowable::BoneMealType::NEIGHBOR_SPREADER:
+                                // 邻居传播型（草方块、菌岩等）：粒子水平扩散 3 倍数量
+                                // 参考: ParticleUtils.spawnParticles(level, pos, data * 3, 3.0, 1.0, false,
+                                // HAPPY_VILLAGER)
+                                m_world.addParticle(ParticleTypeId::HappyVillager,
+                                    Vector3(static_cast<f32>(particlePos.x) + 0.5f,
+                                        static_cast<f32>(particlePos.y),
+                                        static_cast<f32>(particlePos.z) + 0.5f),
+                                    Vector3(0.0f, 0.0f, 0.0f),
+                                    Vector3(3.0f, 1.0f, 3.0f),
+                                    static_cast<u32>(count * 3));
+                                break;
+
+                            case IGrowable::BoneMealType::GROWER:
+                            default:
+                                // 自身成长型（作物、树苗等）：粒子在方块形状高度内生成
+                                // 参考: ParticleUtils.spawnParticleInBlock(level, pos, data, HAPPY_VILLAGER)
+                                // spawnParticleInBlock 使用方块碰撞箱的 Y 轴最大值作为垂直范围
+                                {
+                                    // 获取方块的碰撞形状高度
+                                    f32 shapeHeight = 1.0f;
+                                    const CollisionShape& shape = blockState->getShape();
+                                    if (!shape.isEmpty() && !shape.isFullBlock()) {
+                                        // 获取碰撞箱的最大 Y 值
+                                        for (const auto& box : shape.boxes()) {
+                                            if (box.maxY > shapeHeight) {
+                                                shapeHeight = box.maxY;
+                                            }
+                                        }
+                                    }
+                                    m_world.addParticle(ParticleTypeId::HappyVillager,
+                                        Vector3(static_cast<f32>(particlePos.x) + 0.5f,
+                                            static_cast<f32>(particlePos.y),
+                                            static_cast<f32>(particlePos.z) + 0.5f),
+                                        Vector3(0.0f, 0.0f, 0.0f),
+                                        Vector3(0.5f, shapeHeight, 0.5f),
+                                        static_cast<u32>(count));
+                                }
+                                break;
+                        }
+                    } else {
+                        // 非 IGrowable 方块（如水面）：使用与 NEIGHBOR_SPREADER 相同的分布
+                        // 参考 MC: blockstate.is(Blocks.WATER) -> spawnParticles(level, pos, data * 3, 3.0, 1.0, false)
+                        m_world.addParticle(ParticleTypeId::HappyVillager,
+                            Vector3(px, py, pz),
+                            Vector3(0.0f, 0.0f, 0.0f),
+                            Vector3(3.0f, 1.0f, 3.0f),
+                            static_cast<u32>(count * 3));
+                    }
+                } else {
+                    // 方块状态不可用时，使用默认的 GROWER 分布
+                    m_world.addParticle(ParticleTypeId::HappyVillager,
+                        Vector3(px, py, pz),
+                        Vector3(0.0f, 0.0f, 0.0f),
+                        Vector3(0.5f, 1.0f, 0.5f),
+                        static_cast<u32>(count));
+                }
 
                 // 播放骨粉使用音效
                 if (m_audioService) {
