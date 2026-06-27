@@ -1000,7 +1000,7 @@ add_executable(mc_tests
     common/util/concurrent/LockSupportTest.cpp
     # MultiThreadedQueue 无锁队列测试
     common/util/concurrent/MultiThreadedQueueTest.cpp
-    # ConcurrentLong2ObjectHashTable 无锁哈希表测试
+    # ConcurrentLong2ObjectHashTable 分段锁哈希表测试
     common/util/concurrent/ConcurrentLong2ObjectHashTableTest.cpp
     # SHA-256 加密工具测试
     common/util/crypto/Sha256Test.cpp

@@ -122,15 +122,17 @@ private:
  * 4. **RAII**：`lock()` 返回 `LockHandle`（持有锁所有权），`LockHandle` 析构时
  *    `unlock` + 释放 `shared_ptr`。`tryLock()` 返回 `LockHandle`，失败返回空 `LockHandle`。
  *
- * ## 无锁实现（对齐 Moonrise）
+ * ## 实现（对齐 Moonrise）
  *
- * - `m_nodes`：无锁并发哈希表
- * `ConcurrentLong2ObjectHashTable<shared_ptr<Node>>`（putIfAbsent/remove(key,expected)/get）， 无 mutex。对齐 Moonrise
- * 的 `ConcurrentChainedLong2ReferenceHashTable`。
+ * - `m_nodes`：每桶 mutex 分段锁哈希表 `ConcurrentLong2ObjectHashTable<shared_ptr<Node>>`
+ *   （putIfAbsent/remove(key,expected)/get），对齐 Moonrise 的 `ConcurrentChainedLong2ReferenceHashTable`
+ *   （每桶 `synchronized(node)` 分段锁）。4096 桶，每桶独立锁，不同桶完全并行，同桶争用时阻塞睡眠。
+ *   先前版本用 `std::atomic<shared_ptr>` 无锁方案，高争用下（onChunkGenComplete 持 2025-section 锁）
+ *   逻辑删除节点堆积 + CAS 忙等导致 livelock；改回分段锁消除该问题。
  * - **等待队列**：每个 Node 自身继承 `MultiThreadedQueue<ThreadHandle*>`，作为该 Node 的等待线程队列。
  *   冲突线程把自己加入被冲突 Node 的等待队列（`park->add(currThread)`），然后 `LockSupport::park()` 阻塞。
  *   unlock 时 `node.pollOrBlockAdds()` 排空等待队列并 `LockSupport::unpark` 逐个唤醒。
- *   这套无锁协议替代了旧的 mutex+condition_variable，消除 `unlock:notify` 的 per-key notify_all 惊群。
+ *   这套无锁等待协议替代了旧的 mutex+condition_variable，消除 `unlock:notify` 的 per-key notify_all 惊群。
  *
  * ## 在区块生成中的作用
  *
@@ -336,7 +338,7 @@ private:
     i32 m_coordinateShift;
 
     /**
-     * @brief section 键 -> Node 的无锁并发哈希表
+     * @brief section 键 -> Node 的每桶 mutex 分段锁哈希表
      *
      * 每个被占有的 section 都映射到持有它的 Node。多个 section 可映射到同一个 Node
      * （一次区域锁覆盖多个 section 时）。Node 由 shared_ptr 管理：哈希表 + 持有线程的 LockHandle +
