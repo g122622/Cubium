@@ -42,7 +42,7 @@ namespace blockentity {
  * 告示牌用于显示富文本，特点：
  * - 4行文本，每行最多15个字符
  * - 支持富文本（颜色、样式、点击事件等）
- * - 可编辑（右键点击）
+ * - 可编辑（右键点击），涂蜡后不可编辑
  * - 木告示牌和荧光告示牌
  */
 class SignEntity : public BlockEntity {
@@ -155,6 +155,25 @@ public:
      */
     void setTextColor(i32 color);
 
+    // ========== 涂蜡状态 ==========
+
+    /**
+     * @brief 检查告示牌是否已涂蜡
+     *
+     * 涂蜡后的告示牌文字不可编辑，玩家尝试编辑时播放失败音效。
+     *
+     * @return 如果已涂蜡返回 true
+     */
+    [[nodiscard]] bool isWaxed() const { return m_waxed; }
+
+    /**
+     * @brief 设置告示牌的涂蜡状态
+     *
+     * @param waxed 涂蜡状态
+     * @return 如果状态发生了变化返回 true（即之前未涂蜡→涂蜡，或涂蜡→未涂蜡）
+     */
+    bool setWaxed(bool waxed);
+
     // ========== 光照 ==========
 
     /**
@@ -224,6 +243,7 @@ private:
     Player* m_editor = nullptr;                                            ///< 当前编辑者
     i32 m_textColor = 0;                                                   ///< 文本颜色（DyeColor 值）
     bool m_glowing = false;                                                ///< 是否发光
+    bool m_waxed = false;                                                  ///< 是否已涂蜡（涂蜡后不可编辑）
 };
 
 } // namespace blockentity

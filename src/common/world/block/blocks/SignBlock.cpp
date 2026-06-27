@@ -24,11 +24,14 @@
 #include "SignBlock.hpp"
 #include "../../../core/Types.hpp"
 #include "../../../entity/entities/player/Player.hpp"
+#include "../../../item/Items.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/assert/AssertAll.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../IWorld.hpp"
+#include "../../WorldEvents.hpp"
 #include "../../blockentity/BlockEntityType.hpp"
 #include "../../blockentity/core/BlockEntityRegistry.hpp"
 #include "../../blockentity/interactive/SignEntity.hpp"
@@ -80,19 +83,42 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
 {
 
     MC_UNUSED(state);
-    MC_UNUSED(hand);
     MC_UNUSED(hit);
 
-    // 当玩家右键点击告示牌时，执行告示牌上的命令
     BlockEntity* blockEntity = world.getBlockEntity(pos);
-    if (blockEntity && blockEntity->getType() == BlockEntityType::Sign) {
-        auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
-        // 执行告示牌上的命令
-        signEntity->executeCommand(world, player);
-        return ActionResultType::Success;
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::Sign) {
+        return ActionResultType::Pass;
     }
 
-    return ActionResultType::Pass;
+    auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
+
+    // 检查玩家手持物品是否为蜜脾（涂蜡交互）
+    ItemStack heldItem = player.getHeldItem(hand);
+    if (!heldItem.isEmpty() && heldItem.getItem() == Items::HONEYCOMB) {
+        // 涂蜡：如果告示牌未涂蜡，则设置涂蜡状态
+        if (!signEntity->isWaxed()) {
+            if (signEntity->setWaxed(true)) {
+                // 播放涂蜡粒子与音效
+                world.playEvent(world::WorldEvents::WAX_ON, pos, 0);
+
+                // 消耗一个蜜脾（非创造模式）
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                }
+
+                return ActionResultType::Success;
+            }
+        }
+        // 告示牌已涂蜡或涂蜡失败，返回 Consume 防止物品被放置
+        return ActionResultType::Consume;
+    }
+
+    // 已涂蜡的告示牌不可编辑，仅执行命令
+    // TODO: 当音效系统完善后，对已涂蜡告示牌播放 WAXED_SIGN_INTERACT_FAIL 音效
+
+    // 执行告示牌上的命令
+    signEntity->executeCommand(world, player);
+    return ActionResultType::Success;
 }
 
 const fluid::FluidState* AbstractSignBlock::getFluidState(const BlockState& state) const

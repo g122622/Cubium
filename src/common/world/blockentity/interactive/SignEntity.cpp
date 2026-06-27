@@ -59,6 +59,11 @@ bool SignEntity::setLine(i32 line, std::unique_ptr<text::ITextComponent> text)
         return false;
     }
 
+    // 涂蜡后的告示牌不允许修改文字
+    if (m_waxed) {
+        return false;
+    }
+
     // 验证并截断文本
     auto truncated = _truncateText(std::move(text));
     if (!_validateText(*truncated)) {
@@ -91,6 +96,11 @@ std::string SignEntity::getLineFormatted(i32 line) const
 
 void SignEntity::setLines(std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> lines)
 {
+    // 涂蜡后的告示牌不允许修改文字
+    if (m_waxed) {
+        return;
+    }
+
     for (std::size_t i = 0; i < LINE_COUNT; ++i) {
         if (lines[i]) {
             m_lines[i] = _truncateText(std::move(lines[i]));
@@ -102,6 +112,11 @@ void SignEntity::setLines(std::array<std::unique_ptr<text::ITextComponent>, LINE
 
 void SignEntity::clearLines()
 {
+    // 涂蜡后的告示牌不允许修改文字
+    if (m_waxed) {
+        return;
+    }
+
     for (auto& line : m_lines) {
         line = std::make_unique<text::StringTextComponent>("");
     }
@@ -135,6 +150,16 @@ void SignEntity::setGlowing(bool glowing)
         m_glowing = glowing;
         setChanged();
     }
+}
+
+bool SignEntity::setWaxed(bool waxed)
+{
+    if (m_waxed != waxed) {
+        m_waxed = waxed;
+        setChanged();
+        return true;
+    }
+    return false;
 }
 
 void SignEntity::tick(IWorld& world)
@@ -215,6 +240,11 @@ bool SignEntity::load(const nlohmann::json& data)
         m_glowing = data["glowing"].get<bool>();
     }
 
+    // 加载涂蜡状态
+    if (data.contains("is_waxed")) {
+        m_waxed = data["is_waxed"].get<bool>();
+    }
+
     return true;
 }
 
@@ -241,6 +271,9 @@ void SignEntity::save(nlohmann::json& data) const
 
     // 保存发光状态
     data["glowing"] = m_glowing;
+
+    // 保存涂蜡状态
+    data["is_waxed"] = m_waxed;
 }
 
 std::unique_ptr<BlockEntity> SignEntity::clone() const
@@ -254,6 +287,7 @@ std::unique_ptr<BlockEntity> SignEntity::clone() const
     cloned->m_editable = m_editable;
     cloned->m_textColor = m_textColor;
     cloned->m_glowing = m_glowing;
+    cloned->m_waxed = m_waxed;
     return cloned;
 }
 
