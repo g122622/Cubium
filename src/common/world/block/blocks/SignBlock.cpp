@@ -95,11 +95,17 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
     // 检查玩家手持物品是否为蜜脾（涂蜡交互）
     ItemStack& heldItem = player.getHeldItem(hand);
     if (!heldItem.isEmpty() && heldItem.getItem() == Items::HONEYCOMB) {
+        // TODO: 当多人编辑系统完善后添加 otherPlayerIsEditing 检查，
+        //       如果另一玩家正在编辑告示牌，应阻止涂蜡并返回 TRY_WITH_EMPTY_HAND
         // 涂蜡：如果告示牌未涂蜡，则设置涂蜡状态
         if (!signEntity->isWaxed()) {
             if (signEntity->setWaxed(true)) {
                 // 播放涂蜡粒子与音效
                 world.playEvent(world::WorldEvents::WAX_ON, pos, 0);
+
+                // TODO: 涂蜡成功后执行告示牌点击命令（executeClickCommandsIfPresent）
+                // TODO: 涂蜡成功后触发 GameEvent.BLOCK_CHANGE 振动事件
+                // TODO: 涂蜡成功后调用 player.awardStat(Stats.ITEM_USED.get(honeycombItem)) 统计计数
 
                 // 消耗一个蜜脾（非创造模式）
                 if (!player.abilities().creativeMode) {
