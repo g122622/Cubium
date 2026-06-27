@@ -165,6 +165,34 @@ public:
      * @return 装备槽位索引 (0-3对应头、胸、腿、脚)
      */
     [[nodiscard]] static i32 toEquipmentSlotIndex(ArmorSlot slot);
+
+    // ========== 纹理路径工具 ==========
+
+    /**
+     * @brief 根据材质资产ID和槽位构建盔甲纹理路径
+     *
+     * 使用 MC 1.21+ 的 equipment 纹理路径格式：
+     * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/<assetId>.png
+     * - 护腿: textures/entity/equipment/humanoid_leggings/<assetId>.png
+     *
+     * @param assetId 材质资产ID（来自 ArmorMaterial::getAssetId()）
+     * @param slot 盔甲槽位
+     * @return 纹理资源路径
+     */
+    [[nodiscard]] static ResourceLocation getArmorTexturePath(const std::string& assetId, ArmorSlot slot);
+
+    /**
+     * @brief 根据槽位构建皮革盔甲覆盖层纹理路径
+     *
+     * 皮革盔甲有两层纹理：底色层（可染色）和覆盖层（不可染色，显示细节图案）。
+     * 覆盖层纹理路径格式：
+     * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/leather_overlay.png
+     * - 护腿: textures/entity/equipment/humanoid_leggings/leather_overlay.png
+     *
+     * @param slot 盔甲槽位
+     * @return 覆盖层纹理资源路径
+     */
+    [[nodiscard]] static ResourceLocation getLeatherOverlayTexturePath(ArmorSlot slot);
 };
 
 // ============================================================================

@@ -54,6 +54,22 @@ i32 ArmorMaterial::toEquipmentSlotIndex(ArmorSlot slot)
     return static_cast<i32>(slot);
 }
 
+ResourceLocation ArmorMaterial::getArmorTexturePath(const std::string& assetId, ArmorSlot slot)
+{
+    if (slot == ArmorSlot::Legs) {
+        return ResourceLocation("minecraft", "textures/entity/equipment/humanoid_leggings/" + assetId + ".png");
+    }
+    return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/" + assetId + ".png");
+}
+
+ResourceLocation ArmorMaterial::getLeatherOverlayTexturePath(ArmorSlot slot)
+{
+    if (slot == ArmorSlot::Legs) {
+        return ResourceLocation("minecraft", "textures/entity/equipment/humanoid_leggings/leather_overlay.png");
+    }
+    return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/leather_overlay.png");
+}
+
 // ============================================================================
 // LeatherArmorMaterial
 // ============================================================================

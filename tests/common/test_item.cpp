@@ -227,6 +227,102 @@ TEST_F(ItemTest, ArmorMaterialAssetIdsMatchVanillaEquipmentPaths)
     }
 }
 
+TEST_F(ItemTest, ArmorTexturePathReturnsCorrectHumanoidPaths)
+{
+    using ArmorSlot = item::armor::ArmorSlot;
+
+    // 头盔/胸甲/靴子使用 humanoid 子目录
+    EXPECT_EQ(item::armor::ArmorMaterial::getArmorTexturePath("iron", ArmorSlot::Head),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid/iron.png"));
+    EXPECT_EQ(item::armor::ArmorMaterial::getArmorTexturePath("diamond", ArmorSlot::Chest),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid/diamond.png"));
+    EXPECT_EQ(item::armor::ArmorMaterial::getArmorTexturePath("netherite", ArmorSlot::Feet),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid/netherite.png"));
+    EXPECT_EQ(item::armor::ArmorMaterial::getArmorTexturePath("turtle_scute", ArmorSlot::Head),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid/turtle_scute.png"));
+}
+
+TEST_F(ItemTest, ArmorTexturePathReturnsCorrectLeggingsPaths)
+{
+    using ArmorSlot = item::armor::ArmorSlot;
+
+    // 护腿使用 humanoid_leggings 子目录
+    EXPECT_EQ(item::armor::ArmorMaterial::getArmorTexturePath("iron", ArmorSlot::Legs),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid_leggings/iron.png"));
+    EXPECT_EQ(item::armor::ArmorMaterial::getArmorTexturePath("chainmail", ArmorSlot::Legs),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid_leggings/chainmail.png"));
+    EXPECT_EQ(item::armor::ArmorMaterial::getArmorTexturePath("leather", ArmorSlot::Legs),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid_leggings/leather.png"));
+}
+
+TEST_F(ItemTest, ArmorTexturePathMatchesAllMaterialAssetIds)
+{
+    using ArmorSlot = item::armor::ArmorMaterial;
+
+    // 验证每种材质的 assetId 都能正确构建纹理路径
+    struct PathCase {
+        const item::armor::ArmorMaterial* material;
+        const char* expectedHeadPath;
+        const char* expectedLegsPath;
+    };
+
+    const std::array<PathCase, 8> cases = {{
+        {&item::armor::ArmorMaterials::LEATHER,
+            "minecraft:textures/entity/equipment/humanoid/leather.png",
+            "minecraft:textures/entity/equipment/humanoid_leggings/leather.png"},
+        {&item::armor::ArmorMaterials::COPPER,
+            "minecraft:textures/entity/equipment/humanoid/copper.png",
+            "minecraft:textures/entity/equipment/humanoid_leggings/copper.png"},
+        {&item::armor::ArmorMaterials::CHAIN,
+            "minecraft:textures/entity/equipment/humanoid/chainmail.png",
+            "minecraft:textures/entity/equipment/humanoid_leggings/chainmail.png"},
+        {&item::armor::ArmorMaterials::IRON,
+            "minecraft:textures/entity/equipment/humanoid/iron.png",
+            "minecraft:textures/entity/equipment/humanoid_leggings/iron.png"},
+        {&item::armor::ArmorMaterials::GOLD,
+            "minecraft:textures/entity/equipment/humanoid/gold.png",
+            "minecraft:textures/entity/equipment/humanoid_leggings/gold.png"},
+        {&item::armor::ArmorMaterials::DIAMOND,
+            "minecraft:textures/entity/equipment/humanoid/diamond.png",
+            "minecraft:textures/entity/equipment/humanoid_leggings/diamond.png"},
+        {&item::armor::ArmorMaterials::TURTLE,
+            "minecraft:textures/entity/equipment/humanoid/turtle_scute.png",
+            "minecraft:textures/entity/equipment/humanoid_leggings/turtle_scute.png"},
+        {&item::armor::ArmorMaterials::NETHERITE,
+            "minecraft:textures/entity/equipment/humanoid/netherite.png",
+            "minecraft:textures/entity/equipment/humanoid_leggings/netherite.png"},
+    }};
+
+    for (const auto& testCase : cases) {
+        ASSERT_NE(testCase.material, nullptr);
+        auto headPath = item::armor::ArmorMaterial::getArmorTexturePath(
+            testCase.material->getAssetId(), item::armor::ArmorSlot::Head);
+        auto legsPath = item::armor::ArmorMaterial::getArmorTexturePath(
+            testCase.material->getAssetId(), item::armor::ArmorSlot::Legs);
+        EXPECT_EQ(headPath, ResourceLocation(testCase.expectedHeadPath))
+            << "Head texture path mismatch for " << testCase.material->getName();
+        EXPECT_EQ(legsPath, ResourceLocation(testCase.expectedLegsPath))
+            << "Legs texture path mismatch for " << testCase.material->getName();
+    }
+}
+
+TEST_F(ItemTest, LeatherOverlayTexturePathReturnsCorrectPaths)
+{
+    using ArmorSlot = item::armor::ArmorSlot;
+
+    // 头盔/胸甲/靴子使用 humanoid 子目录的覆盖层
+    EXPECT_EQ(item::armor::ArmorMaterial::getLeatherOverlayTexturePath(ArmorSlot::Head),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid/leather_overlay.png"));
+    EXPECT_EQ(item::armor::ArmorMaterial::getLeatherOverlayTexturePath(ArmorSlot::Chest),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid/leather_overlay.png"));
+    EXPECT_EQ(item::armor::ArmorMaterial::getLeatherOverlayTexturePath(ArmorSlot::Feet),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid/leather_overlay.png"));
+
+    // 护腿使用 humanoid_leggings 子目录的覆盖层
+    EXPECT_EQ(item::armor::ArmorMaterial::getLeatherOverlayTexturePath(ArmorSlot::Legs),
+        ResourceLocation("minecraft:textures/entity/equipment/humanoid_leggings/leather_overlay.png"));
+}
+
 TEST_F(ItemTest, NonExistentItem)
 {
     Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:nonexistent"));

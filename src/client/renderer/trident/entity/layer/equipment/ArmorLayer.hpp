@@ -131,6 +131,12 @@ public:
 protected:
     /**
      * @brief 渲染特定部位的盔甲（GPU管线路径）
+     *
+     * TODO: 当前使用 ItemMeshBuilder::buildArmorMesh 构建网格，未根据盔甲材质切换纹理。
+     * getArmorTexture() 和 getArmorOverlayTexture() 已实现动态纹理路径选择，
+     * 但尚未接入渲染管线。需要将这两个方法的返回值传递给 EntityPipeline，
+     * 在 drawMesh 时绑定正确的盔甲纹理图集（而非实体通用纹理图集）。
+     * 皮革盔甲还需分两遍渲染：底色层（可染色）+ 覆盖层（不可染色）。
      */
     virtual void renderArmorPartPipeline(TEntity& entity,
         ArmorSlot slot,
@@ -424,6 +430,9 @@ protected:
      * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/<assetId>.png
      * - 护腿: textures/entity/equipment/humanoid_leggings/<assetId>.png
      *
+     * TODO: 此方法尚未被 renderArmorPartPipeline 调用，纹理路径返回值
+     * 需要在渲染管线中绑定到对应的纹理图集后方可生效。
+     *
      * @param entity 实体引用（用于子类自定义纹理）
      * @param slot 盔甲槽位
      * @return 纹理资源路径
@@ -432,22 +441,17 @@ protected:
     {
         const ::mc::ItemStack* armorItem = getArmorItem(entity, slot);
         if (!armorItem || armorItem->isEmpty()) {
-            return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/iron.png");
+            return ::mc::item::armor::ArmorMaterial::getArmorTexturePath("iron", slot);
         }
 
         const ::mc::Item* item = armorItem->getItem();
         const auto* armor = dynamic_cast<const ::mc::item::items::ArmorItem*>(item);
         if (!armor) {
             // 鞘翅等非盔甲物品走默认纹理
-            return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/iron.png");
+            return ::mc::item::armor::ArmorMaterial::getArmorTexturePath("iron", slot);
         }
 
-        const std::string assetId = armor->getMaterial().getAssetId();
-        // 护腿使用 humanoid_leggings 子目录，其余使用 humanoid 子目录
-        if (slot == ArmorSlot::Legs) {
-            return ResourceLocation("minecraft", "textures/entity/equipment/humanoid_leggings/" + assetId + ".png");
-        }
-        return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/" + assetId + ".png");
+        return ::mc::item::armor::ArmorMaterial::getArmorTexturePath(armor->getMaterial().getAssetId(), slot);
     }
 
     /**
@@ -457,6 +461,9 @@ protected:
      * 覆盖层纹理路径格式：
      * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/leather_overlay.png
      * - 护腿: textures/entity/equipment/humanoid_leggings/leather_overlay.png
+     *
+     * TODO: 此方法尚未被 renderArmorPartPipeline 调用，覆盖层纹理需要
+     * 在底色层渲染之后以第二遍渲染方式叠加，方可显示皮革盔甲的细节图案。
      *
      * @param entity 实体引用
      * @param slot 盔甲槽位
@@ -475,10 +482,7 @@ protected:
             return std::nullopt;
         }
 
-        if (slot == ArmorSlot::Legs) {
-            return ResourceLocation("minecraft", "textures/entity/equipment/humanoid_leggings/leather_overlay.png");
-        }
-        return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/leather_overlay.png");
+        return ::mc::item::armor::ArmorMaterial::getLeatherOverlayTexturePath(slot);
     }
 
     /**
