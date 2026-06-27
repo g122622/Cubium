@@ -58,7 +58,7 @@ public:
 };
 
 // ============================================================================
-// 测试用 TestLivingEntity
+// 测试用 TestLivingEntity（不注册 ATTACK_DAMAGE 属性）
 // ============================================================================
 
 class TestLivingEntity : public LivingEntity {
@@ -68,6 +68,25 @@ public:
     {
         registerData();
         registerAttributes();
+        setHealth(maxHealth());
+    }
+};
+
+// ============================================================================
+// 测试用 TestLivingEntityWithAttack（注册 ATTACK_DAMAGE 和 ATTACK_SPEED 属性）
+// 用于验证剑的修饰符是否正确应用
+// ============================================================================
+
+class TestLivingEntityWithAttack : public LivingEntity {
+public:
+    TestLivingEntityWithAttack()
+        : LivingEntity(EntityId(2))
+    {
+        registerData();
+        registerAttributes();
+        // MonsterEntity 会注册这两个属性，此处手动注册以模拟怪物实体
+        m_attributes.registerAttribute(*entity::attribute::Attributes::attackDamage());
+        m_attributes.registerAttribute(*entity::attribute::Attributes::attackSpeed());
         setHealth(maxHealth());
     }
 };
@@ -192,30 +211,20 @@ TEST_F(EquipmentUpdateTest, DetectEquipmentUpdatesNoChangeNoEffect)
     EXPECT_DOUBLE_EQ(m_living->getAttributeValue(Attributes::ATTACK_DAMAGE, 0.0), 0.0);
 }
 
-TEST_F(EquipmentUpdateTest, DetectEquipmentUpdatesAppliesSwordModifiers)
+TEST_F(EquipmentUpdateTest, DetectEquipmentUpdatesSwordNoEffectWithoutAttribute)
 {
+    // LivingEntity 基类不注册 ATTACK_DAMAGE 和 ATTACK_SPEED 属性，
+    // 所以剑的修饰符无法被应用（AttributeMap::addModifier 返回 false）。
+    // 这是正确的行为——子类需要在 registerAttributes() 中注册这些属性。
     ASSERT_NE(Items::IRON_SWORD, nullptr);
 
-    // 初始化快照
+    m_living->detectEquipmentUpdates();
+    m_living->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
     m_living->detectEquipmentUpdates();
 
-    // 装备铁剑
-    ItemStack ironSword(Items::IRON_SWORD, 1);
-    m_living->setEquipment(EquipmentSlot::MainHand, ironSword);
-
-    // 检测装备变化并应用修饰符
-    m_living->detectEquipmentUpdates();
-
-    // 铁剑攻击伤害修饰符：攻击伤害 +6，攻击速度 -2.4
-    // 基础 ATTACK_DAMAGE = 1.0 (MonsterEntity) 或 0.0 (LivingEntity)
-    // LivingEntity 基类不注册 ATTACK_DAMAGE，所以修饰符不会被应用
-    // 但 ATTACK_SPEED 基类也不注册
-    // 让我们检查实际注册的属性——只有 MAX_HEALTH, KNOCKBACK_RESISTANCE, MOVEMENT_SPEED,
-    // ARMOR, ARMOR_TOUGHNESS, MAX_ABSORPTION
-
-    // 对于 LivingEntity 基类，ATTACK_DAMAGE 属性未注册
-    // 所以修饰符添加会失败（AttributeMap::addModifier 返回 false）
-    // 这是正确的行为——子类需要在 registerAttributes() 中注册 ATTACK_DAMAGE
+    // 攻击伤害属性未注册，因此修饰符添加被忽略，值仍为默认
+    EXPECT_DOUBLE_EQ(m_living->getAttributeValue(Attributes::ATTACK_DAMAGE, -1.0), -1.0)
+        << "ATTACK_DAMAGE should not change when attribute is not registered";
 }
 
 TEST_F(EquipmentUpdateTest, DetectEquipmentUpdatesAppliesArmorModifiers)
@@ -531,4 +540,114 @@ TEST_F(EquipmentUpdateTest, DetectEquipmentUpdatesMultipleTicksNoChange)
     f64 armorAfterMultipleTicks = m_living->getAttributeValue(Attributes::ARMOR, 0.0);
     EXPECT_DOUBLE_EQ(armorAfterMultipleTicks, armor)
         << "Armor should remain stable across multiple ticks with no equipment change";
+}
+
+// ============================================================================
+// MonsterEntity 装备修饰符测试（ATTACK_DAMAGE 属性已注册）
+// ============================================================================
+
+class MonsterEquipmentTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            Items::initialize();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override
+    {
+        m_world = std::make_unique<EquipmentUpdateTestWorld>();
+        m_entity = std::make_unique<TestLivingEntityWithAttack>();
+        m_entity->setWorld(m_world.get());
+    }
+
+    void TearDown() override
+    {
+        m_entity.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<EquipmentUpdateTestWorld> m_world;
+    std::unique_ptr<TestLivingEntityWithAttack> m_entity;
+};
+
+TEST_F(MonsterEquipmentTest, SwordAppliesAttackDamageModifier)
+{
+    // 注册了 ATTACK_DAMAGE 属性后，铁剑的攻击伤害修饰符应正确应用
+    // 铁剑攻击伤害 = 铁材质攻击伤害 2.0 + 基础 4.0 = 6.0
+    ASSERT_NE(Items::IRON_SWORD, nullptr);
+
+    m_entity->detectEquipmentUpdates();
+
+    // 装备前的攻击伤害应为默认值 2.0（ATTACK_DAMAGE 属性默认值）
+    f64 attackDamageBefore = m_entity->getAttributeValue(Attributes::ATTACK_DAMAGE, 0.0);
+    EXPECT_DOUBLE_EQ(attackDamageBefore, 2.0);
+
+    // 装备铁剑
+    m_entity->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
+    m_entity->detectEquipmentUpdates();
+
+    // 装备后攻击伤害应增加
+    // 铁剑攻击伤害修饰符为 +5.0（参数 3 + 材质 2.0），总计 2.0 + 5.0 = 7.0
+    f64 attackDamageAfter = m_entity->getAttributeValue(Attributes::ATTACK_DAMAGE, 0.0);
+    EXPECT_GT(attackDamageAfter, attackDamageBefore) << "Attack damage should increase after equipping iron sword";
+    EXPECT_DOUBLE_EQ(attackDamageAfter, 7.0);
+}
+
+TEST_F(MonsterEquipmentTest, SwordRemovesAttackDamageOnUnequip)
+{
+    ASSERT_NE(Items::IRON_SWORD, nullptr);
+
+    m_entity->detectEquipmentUpdates();
+    m_entity->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
+    m_entity->detectEquipmentUpdates();
+
+    f64 attackDamageWithSword = m_entity->getAttributeValue(Attributes::ATTACK_DAMAGE, 0.0);
+    EXPECT_GT(attackDamageWithSword, 2.0); // 大于默认值 2.0
+
+    // 卸下铁剑
+    m_entity->setEquipment(EquipmentSlot::MainHand, ItemStack());
+    m_entity->detectEquipmentUpdates();
+
+    f64 attackDamageAfter = m_entity->getAttributeValue(Attributes::ATTACK_DAMAGE, 0.0);
+    EXPECT_DOUBLE_EQ(attackDamageAfter, 2.0) << "Attack damage should return to default after unequipping sword";
+}
+
+TEST_F(MonsterEquipmentTest, SwordAttackSpeedModifier)
+{
+    // 铁剑的攻击速度修饰符应为 -2.4
+    ASSERT_NE(Items::IRON_SWORD, nullptr);
+
+    m_entity->detectEquipmentUpdates();
+
+    // 装备前的攻击速度应为默认值 4.0（Attributes::attackSpeed 默认值）
+    f64 attackSpeedBefore = m_entity->getAttributeValue(Attributes::ATTACK_SPEED, 0.0);
+
+    m_entity->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
+    m_entity->detectEquipmentUpdates();
+
+    // 装备后攻击速度应降低（-2.4 修饰符）
+    f64 attackSpeedAfter = m_entity->getAttributeValue(Attributes::ATTACK_SPEED, 0.0);
+    EXPECT_LT(attackSpeedAfter, attackSpeedBefore) << "Attack speed should decrease after equipping iron sword";
+}
+
+TEST_F(MonsterEquipmentTest, SwordDoesNotAffectOtherSlots)
+{
+    ASSERT_NE(Items::IRON_SWORD, nullptr);
+
+    m_entity->detectEquipmentUpdates();
+
+    f64 attackDamageBefore = m_entity->getAttributeValue(Attributes::ATTACK_DAMAGE, 0.0);
+
+    // 将铁剑放在 Head 槽位（不应该生效）
+    m_entity->setEquipment(EquipmentSlot::Head, ItemStack(Items::IRON_SWORD, 1));
+    m_entity->detectEquipmentUpdates();
+
+    // 攻击伤害不应改变（剑的修饰符只对 MainHand 生效）
+    f64 attackDamageAfter = m_entity->getAttributeValue(Attributes::ATTACK_DAMAGE, 0.0);
+    EXPECT_DOUBLE_EQ(attackDamageAfter, attackDamageBefore)
+        << "Sword should not affect attack damage when in Head slot";
 }

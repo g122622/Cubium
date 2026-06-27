@@ -34,7 +34,6 @@ namespace item {
  * @brief 物品属性修饰符管理器
  *
  * 管理物品提供的属性修饰符。
- * 参考: net.minecraft.item.ItemAttributeModifiers
  *
  * 用法示例:
  * @code
