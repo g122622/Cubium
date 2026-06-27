@@ -27,6 +27,8 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
 #include <sstream>
@@ -46,7 +48,8 @@ void ParticleCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
         std::make_shared<ArgumentCommandNode<ServerCommandSource, std::string>>("name", StringArgumentType::string());
     nameArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spawnParticle(ctx); });
 
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    auto posArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _spawnParticle(ctx); });
 
     nameArg->addChild(posArg);
@@ -63,7 +66,11 @@ i32 ParticleCommand::_spawnParticle(CommandContext<ServerCommandSource>& context
 
     // 如果提供了位置参数，使用它
     if (context.hasArgument("pos")) {
-        pos = context.getArgument<Vector3d>("pos");
+        auto coords = context.getArgument<Coordinates::Ptr>("pos");
+        Vector3d anchorPos = (source.anchor() == EntityAnchorType::Eyes && source.entity() != nullptr)
+            ? Vector3d(source.position().x, source.position().y + static_cast<f64>(source.entity()->eyeHeight()), source.position().z)
+            : source.position();
+        pos = coords->getPosition(anchorPos, source.rotation());
     }
 
     // 解析粒子类型

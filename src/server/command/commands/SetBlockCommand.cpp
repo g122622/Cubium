@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -56,7 +57,7 @@ namespace {
 i32 executeSetBlock(CommandContext<ServerCommandSource>& context, bool onlyIfAir, bool doDrop)
 {
     auto& source = context.getSource();
-    Vector3i position = context.getArgument<Vector3i>("pos");
+    Vector3i position = BlockPosArgumentType::getBlockPos(context, "pos", source);
     BlockStateInput blockInput = context.getArgument<BlockStateInput>("block");
 
     // 获取世界
@@ -150,8 +151,8 @@ void SetBlockCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatc
             "Changes a block to another block.", "/setblock <pos> <block> [destroy|keep|replace]", 2, {}, false));
 
     // /setblock <pos> <block> - 默认replace模式
-    auto posArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
 
     auto blockArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, BlockStateInput>>(
         "block", BlockStateArgumentType::blockState());

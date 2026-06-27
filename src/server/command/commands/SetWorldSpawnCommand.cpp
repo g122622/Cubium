@@ -26,6 +26,7 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "server/application/IServer.hpp"
@@ -51,7 +52,7 @@ void SetWorldSpawnCommand::registerTo(CommandDispatcher<ServerCommandSource>& di
 
     // /setworldspawn <pos>
     auto posNode =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     posNode->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _setPosition(ctx); });
 
     // /setworldspawn <pos> <angle> - 设置世界出生点到指定位置和朝向
@@ -109,7 +110,7 @@ i32 SetWorldSpawnCommand::_setPosition(CommandContext<ServerCommandSource>& cont
     auto& source = context.getSource();
     auto* server = source.server();
 
-    const auto& pos = context.getArgument<Vector3d>("pos");
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
 
     DimensionId dimensionId = DimensionId(0); // 默认主世界
     auto* dimension = server->dimensionManager().getDimension(dimensionId);
@@ -121,7 +122,7 @@ i32 SetWorldSpawnCommand::_setPosition(CommandContext<ServerCommandSource>& cont
 
     dimension->setSpawnPoint(pos);
 
-    // 参考 MC 1.21.11: 不指定朝向时默认为 0.0f
+    // 不指定朝向时默认为 0.0f
     f32 angle = 0.0f;
 
     // 同步更新 ServerWorld 的世界出生点
@@ -145,7 +146,7 @@ i32 SetWorldSpawnCommand::_setPositionWithAngle(CommandContext<ServerCommandSour
     auto& source = context.getSource();
     auto* server = source.server();
 
-    const auto& pos = context.getArgument<Vector3d>("pos");
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
     f32 angle = context.getArgument<f32>("angle");
     // 将角度归一化到 [-180, 180] 范围，与 MC 原版行为一致
     angle = math::wrapDegrees(angle);

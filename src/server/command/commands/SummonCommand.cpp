@@ -25,6 +25,7 @@
 
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -57,7 +58,8 @@ void SummonCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatche
     entityArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _summonEntity(ctx); });
 
     // /summon <entity> <pos> - 在指定位置生成
-    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+    auto posArg =
+        std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>("pos", Vec3ArgumentType::vec3());
     posArg->setCommand([](CommandContext<ServerCommandSource>& ctx) { return _summonEntityAtPosition(ctx); });
 
     entityArg->addChild(posArg);
@@ -149,7 +151,7 @@ i32 SummonCommand::_summonEntityAtPosition(CommandContext<ServerCommandSource>& 
 {
     auto& source = context.getSource();
     ResourceLocation entityId = context.getArgument<ResourceLocation>("entity");
-    Vector3d position = context.getArgument<Vector3d>("pos");
+    Vector3d position = Vec3ArgumentType::getVec3(context, "pos", source);
 
     // 获取世界
     server::ServerWorld* world = source.world();

@@ -27,6 +27,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/sound/network/SoundPackets.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
@@ -131,8 +132,8 @@ void PlaySoundCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispat
             return _playSoundDefault(ctx, parseSoundCategory(sourceName));
         });
 
-        auto posNode =
-            std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3d>>("pos", Vec3ArgumentType::vec3());
+        auto posNode = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+            "pos", Vec3ArgumentType::vec3());
         posNode->setCommand([sourceName = sourceNode->getName()](CommandContext<ServerCommandSource>& ctx) {
             return _playSoundAtPosition(ctx, parseSoundCategory(sourceName));
         });
@@ -210,7 +211,7 @@ i32 PlaySoundCommand::_playSoundAtPosition(CommandContext<ServerCommandSource>& 
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
     const auto& selector = context.getArgument<EntitySelector>("player");
-    const Vector3d& pos = context.getArgument<Vector3d>("pos");
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
     auto playerIds = support::resolvePlayerIds(source, selector);
 
     if (playerIds.empty()) {
@@ -237,7 +238,7 @@ i32 PlaySoundCommand::_playSoundWithVolume(CommandContext<ServerCommandSource>& 
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
     const auto& selector = context.getArgument<EntitySelector>("player");
-    const Vector3d& pos = context.getArgument<Vector3d>("pos");
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
     f32 volume = context.getArgument<f32>("volume");
     auto playerIds = support::resolvePlayerIds(source, selector);
 
@@ -265,7 +266,7 @@ i32 PlaySoundCommand::_playSoundWithPitch(CommandContext<ServerCommandSource>& c
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
     const auto& selector = context.getArgument<EntitySelector>("player");
-    const Vector3d& pos = context.getArgument<Vector3d>("pos");
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
     f32 volume = context.getArgument<f32>("volume");
     f32 pitch = context.getArgument<f32>("pitch");
     auto playerIds = support::resolvePlayerIds(source, selector);
@@ -295,7 +296,7 @@ i32 PlaySoundCommand::_playSoundWithMinVolume(
 
     const ResourceLocation& soundId = context.getArgument<ResourceLocation>("sound");
     const auto& selector = context.getArgument<EntitySelector>("player");
-    const Vector3d& pos = context.getArgument<Vector3d>("pos");
+    const Vector3d pos = Vec3ArgumentType::getVec3(context, "pos", source);
     f32 volume = context.getArgument<f32>("volume");
     f32 pitch = context.getArgument<f32>("pitch");
     f32 minVolume = context.getArgument<f32>("minimumVolume");

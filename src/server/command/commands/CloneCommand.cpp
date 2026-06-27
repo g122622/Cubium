@@ -27,6 +27,7 @@
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/BlockStateArgument.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/inventory/IInventory.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
@@ -336,13 +337,13 @@ void CloneCommand::registerTo(CommandDispatcher<ServerCommandSource>& dispatcher
             false));
 
     // /clone <begin> <end> <destination>
-    auto beginArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("begin", BlockPosArgumentType::blockPos());
+    auto beginArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "begin", BlockPosArgumentType::blockPos());
 
-    auto endArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("end", BlockPosArgumentType::blockPos());
+    auto endArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "end", BlockPosArgumentType::blockPos());
 
-    auto destArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>(
+    auto destArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
         "destination", BlockPosArgumentType::blockPos());
 
     // 默认执行：replace + normal
@@ -453,9 +454,10 @@ i32 CloneCommand::_doCloneDefault(CommandContext<ServerCommandSource>& context)
 i32 CloneCommand::_doCloneStatic(
     CommandContext<ServerCommandSource>& context, FilterMode filterMode, CloneMode cloneMode)
 {
-    const Vector3i& begin = context.getArgument<Vector3i>("begin");
-    const Vector3i& end = context.getArgument<Vector3i>("end");
-    const Vector3i& dest = context.getArgument<Vector3i>("destination");
+    auto& source = context.getSource();
+    Vector3i begin = BlockPosArgumentType::getBlockPos(context, "begin", source);
+    Vector3i end = BlockPosArgumentType::getBlockPos(context, "end", source);
+    Vector3i dest = BlockPosArgumentType::getBlockPos(context, "destination", source);
 
     BlockPos beginPos(begin.x, begin.y, begin.z);
     BlockPos endPos(end.x, end.y, end.z);
@@ -466,9 +468,10 @@ i32 CloneCommand::_doCloneStatic(
 
 i32 CloneCommand::_doCloneFilteredStatic(CommandContext<ServerCommandSource>& context, CloneMode cloneMode)
 {
-    const Vector3i& begin = context.getArgument<Vector3i>("begin");
-    const Vector3i& end = context.getArgument<Vector3i>("end");
-    const Vector3i& dest = context.getArgument<Vector3i>("destination");
+    auto& source = context.getSource();
+    Vector3i begin = BlockPosArgumentType::getBlockPos(context, "begin", source);
+    Vector3i end = BlockPosArgumentType::getBlockPos(context, "end", source);
+    Vector3i dest = BlockPosArgumentType::getBlockPos(context, "destination", source);
     BlockStateInput filterInput = context.getArgument<BlockStateInput>("filter");
 
     BlockPos beginPos(begin.x, begin.y, begin.z);

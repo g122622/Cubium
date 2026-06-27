@@ -27,6 +27,7 @@
 #include "common/command/arguments/GameModeArgument.hpp"
 #include "common/command/arguments/ItemArgument.hpp"
 #include "common/command/arguments/ItemSlotArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
@@ -330,8 +331,8 @@ void ReplaceItemCommand::registerTo(CommandDispatcher<ServerCommandSource>& disp
 
     // /replaceitem block <pos> <slot> <item> [count]
     auto blockNode = std::make_shared<LiteralCommandNode<ServerCommandSource>>("block");
-    auto posArg =
-        std::make_shared<ArgumentCommandNode<ServerCommandSource, Vector3i>>("pos", BlockPosArgumentType::blockPos());
+    auto posArg = std::make_shared<ArgumentCommandNode<ServerCommandSource, Coordinates::Ptr>>(
+        "pos", BlockPosArgumentType::blockPos());
     auto blockSlotArg =
         std::make_shared<ArgumentCommandNode<ServerCommandSource, ItemSlot>>("slot", ItemSlotArgumentType::itemSlot());
     auto blockItemArg =
@@ -466,7 +467,7 @@ i32 ReplaceItemCommand::_replaceBlockItem(CommandContext<ServerCommandSource>& c
     auto& source = context.getSource();
 
     // 解析参数
-    const Vector3i& blockPos = context.getArgument<Vector3i>("pos");
+    const Vector3i blockPos = BlockPosArgumentType::getBlockPos(context, "pos", source);
     const ItemSlot slot = context.getArgument<ItemSlot>("slot");
     const ItemInput itemInput = context.getArgument<ItemInput>("item");
 

@@ -34,16 +34,38 @@
  * - getTypeName 和 getExamples
  * - 工厂方法
  * - 游标位置
+ *
+ * Vec2ArgumentType::parse() 返回 Coordinates::Ptr（实际为 WorldCoordinates），
+ * 其中 x 分量对应水平 x，y 分量填充为 relative(0)，z 分量对应水平 z。
+ * 测试通过 dynamic_pointer_cast<WorldCoordinates> 验证各分量。
  */
 
 #include <gtest/gtest.h>
 
 #include "common/command/StringReader.hpp"
 #include "common/command/arguments/GameModeArgument.hpp"
+#include "common/command/coordinates/Coordinates.hpp"
+#include "common/command/coordinates/WorldCoordinates.hpp"
 
-using mc::Vector2d;
+using mc::command::Coordinates;
 using mc::command::StringReader;
 using mc::command::Vec2ArgumentType;
+using mc::command::WorldCoordinates;
+
+// ========== 辅助函数 ==========
+
+/**
+ * @brief 解析并转换为 WorldCoordinates 指针
+ *
+ * Vec2ArgumentType::parse() 返回 Coordinates::Ptr，这里转换为 WorldCoordinates*
+ * 以便访问各分量。如果转换失败则触发 ASSERT 失败。
+ */
+static const WorldCoordinates* toWorldCoords(const Coordinates::Ptr& ptr)
+{
+    auto* wc = dynamic_cast<const WorldCoordinates*>(ptr.get());
+    EXPECT_NE(wc, nullptr) << "parse() should return WorldCoordinates";
+    return wc;
+}
 
 // ========== 基础解析测试 ==========
 
@@ -54,85 +76,121 @@ protected:
 
 TEST_F(Vec2ArgumentTypeTest, ParseAbsoluteCoordinates)
 {
-    // "100 -200" -> Vector2d(100, -200)
+    // "100 -200" -> WorldCoordinates(abs(100), rel(0), abs(-200))
     StringReader reader("100 -200");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 100.0);
-    EXPECT_DOUBLE_EQ(result.y, -200.0);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 100.0);
+    EXPECT_DOUBLE_EQ(wc->z().value(), -200.0);
+    EXPECT_FALSE(wc->isXRelative());
+    EXPECT_FALSE(wc->isZRelative());
 }
 
 TEST_F(Vec2ArgumentTypeTest, ParseZeroCoordinates)
 {
-    // "0 0" -> Vector2d(0, 0)
+    // "0 0" -> WorldCoordinates(abs(0), rel(0), abs(0))
     StringReader reader("0 0");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 0.0);
-    EXPECT_DOUBLE_EQ(result.y, 0.0);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 0.0);
+    EXPECT_DOUBLE_EQ(wc->z().value(), 0.0);
+    EXPECT_FALSE(wc->isXRelative());
+    EXPECT_FALSE(wc->isZRelative());
 }
 
 TEST_F(Vec2ArgumentTypeTest, ParseDecimalCoordinates)
 {
-    // "0.1 -0.5" -> Vector2d(0.1, -0.5)
+    // "0.1 -0.5" -> WorldCoordinates(abs(0.1), rel(0), abs(-0.5))
     StringReader reader("0.1 -0.5");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 0.1);
-    EXPECT_DOUBLE_EQ(result.y, -0.5);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 0.1);
+    EXPECT_DOUBLE_EQ(wc->z().value(), -0.5);
+    EXPECT_FALSE(wc->isXRelative());
+    EXPECT_FALSE(wc->isZRelative());
 }
 
 TEST_F(Vec2ArgumentTypeTest, ParseNegativeCoordinates)
 {
-    // "-50.5 -100.7" -> Vector2d(-50.5, -100.7)
+    // "-50.5 -100.7" -> WorldCoordinates(abs(-50.5), rel(0), abs(-100.7))
     StringReader reader("-50.5 -100.7");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, -50.5);
-    EXPECT_DOUBLE_EQ(result.y, -100.7);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), -50.5);
+    EXPECT_DOUBLE_EQ(wc->z().value(), -100.7);
+    EXPECT_FALSE(wc->isXRelative());
+    EXPECT_FALSE(wc->isZRelative());
 }
 
 // ========== 相对坐标解析测试 ==========
 
 TEST_F(Vec2ArgumentTypeTest, ParseTildeTilde)
 {
-    // "~ ~" -> Vector2d(0, 0)（~ 后无数值时返回 0）
+    // "~ ~" -> WorldCoordinates(rel(0), rel(0), rel(0))
     StringReader reader("~ ~");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 0.0);
-    EXPECT_DOUBLE_EQ(result.y, 0.0);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 0.0);
+    EXPECT_DOUBLE_EQ(wc->z().value(), 0.0);
+    EXPECT_TRUE(wc->isXRelative());
+    EXPECT_TRUE(wc->isZRelative());
 }
 
 TEST_F(Vec2ArgumentTypeTest, ParseTildeWithOffset)
 {
-    // "~1 ~-2" -> Vector2d(1, -2)（~ 前缀被跳过，仅读取偏移数值）
+    // "~1 ~-2" -> WorldCoordinates(rel(1), rel(0), rel(-2))
     StringReader reader("~1 ~-2");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 1.0);
-    EXPECT_DOUBLE_EQ(result.y, -2.0);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 1.0);
+    EXPECT_DOUBLE_EQ(wc->z().value(), -2.0);
+    EXPECT_TRUE(wc->isXRelative());
+    EXPECT_TRUE(wc->isZRelative());
 }
 
 TEST_F(Vec2ArgumentTypeTest, ParseTildeWithDecimalOffset)
 {
-    // "~1.5 ~-0.5" -> Vector2d(1.5, -0.5)
+    // "~1.5 ~-0.5" -> WorldCoordinates(rel(1.5), rel(0), rel(-0.5))
     StringReader reader("~1.5 ~-0.5");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 1.5);
-    EXPECT_DOUBLE_EQ(result.y, -0.5);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 1.5);
+    EXPECT_DOUBLE_EQ(wc->z().value(), -0.5);
+    EXPECT_TRUE(wc->isXRelative());
+    EXPECT_TRUE(wc->isZRelative());
 }
 
 TEST_F(Vec2ArgumentTypeTest, ParseMixedAbsoluteAndRelative)
 {
-    // "100 ~5" -> Vector2d(100, 5)（第一个绝对坐标，第二个相对坐标带偏移）
+    // "100 ~5" -> WorldCoordinates(abs(100), rel(0), rel(5))
     StringReader reader("100 ~5");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 100.0);
-    EXPECT_DOUBLE_EQ(result.y, 5.0);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 100.0);
+    EXPECT_DOUBLE_EQ(wc->z().value(), 5.0);
+    EXPECT_FALSE(wc->isXRelative());
+    EXPECT_TRUE(wc->isZRelative());
 }
 
 TEST_F(Vec2ArgumentTypeTest, ParseTildeAloneThenNumber)
 {
-    // "~ 50" -> Vector2d(0, 50)（~ 后无数字返回 0，然后解析第二个坐标）
+    // "~ 50" -> WorldCoordinates(rel(0), rel(0), abs(50))
     StringReader reader("~ 50");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 0.0);
-    EXPECT_DOUBLE_EQ(result.y, 50.0);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 0.0);
+    EXPECT_DOUBLE_EQ(wc->z().value(), 50.0);
+    EXPECT_TRUE(wc->isXRelative());
+    EXPECT_FALSE(wc->isZRelative());
 }
 
 // ========== 类型名称和示例 ==========
@@ -194,18 +252,26 @@ TEST_F(Vec2ArgumentTypeTest, ParseLargeCoordinates)
 {
     // 大坐标值
     StringReader reader("30000000 -30000000");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 30000000.0);
-    EXPECT_DOUBLE_EQ(result.y, -30000000.0);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 30000000.0);
+    EXPECT_DOUBLE_EQ(wc->z().value(), -30000000.0);
+    EXPECT_FALSE(wc->isXRelative());
+    EXPECT_FALSE(wc->isZRelative());
 }
 
 TEST_F(Vec2ArgumentTypeTest, ParseVerySmallDecimals)
 {
     // 极小小数
     StringReader reader("0.001 -0.001");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 0.001);
-    EXPECT_DOUBLE_EQ(result.y, -0.001);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 0.001);
+    EXPECT_DOUBLE_EQ(wc->z().value(), -0.001);
+    EXPECT_FALSE(wc->isXRelative());
+    EXPECT_FALSE(wc->isZRelative());
 }
 
 // ========== 多空格分隔测试 ==========
@@ -214,7 +280,24 @@ TEST_F(Vec2ArgumentTypeTest, TabSeparatedCoordinates)
 {
     // Tab 分隔也可以被 skipWhitespace 处理
     StringReader reader("100\t200");
-    Vector2d result = parser.parse(reader);
-    EXPECT_DOUBLE_EQ(result.x, 100.0);
-    EXPECT_DOUBLE_EQ(result.y, 200.0);
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->x().value(), 100.0);
+    EXPECT_DOUBLE_EQ(wc->z().value(), 200.0);
+    EXPECT_FALSE(wc->isXRelative());
+    EXPECT_FALSE(wc->isZRelative());
+}
+
+// ========== Y 分量测试 ==========
+
+TEST_F(Vec2ArgumentTypeTest, YComponentIsAlwaysRelativeZero)
+{
+    // Vec2ArgumentType 将 y 分量填充为 relative(0)，无论输入如何
+    StringReader reader("100 -200");
+    auto result = parser.parse(reader);
+    auto* wc = toWorldCoords(result);
+    ASSERT_NE(wc, nullptr);
+    EXPECT_DOUBLE_EQ(wc->y().value(), 0.0);
+    EXPECT_TRUE(wc->isYRelative());
 }

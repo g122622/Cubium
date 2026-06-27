@@ -187,7 +187,12 @@ public:
     /**
      * @brief 创建指定锚点类型的新命令源
      */
-    [[nodiscard]] CommandSource withAnchor(EntityAnchorType anchor) const;
+    [[nodiscard]] CommandSource withAnchor(EntityAnchorType anchor) const
+    {
+        CommandSource copy(*this);
+        copy.m_anchor = anchor;
+        return copy;
+    }
 
     // ========== 状态 ==========
 

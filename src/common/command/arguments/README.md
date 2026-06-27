@@ -95,7 +95,18 @@ EntityArgument.hpp
 
 ### 3. 相对坐标和局部坐标
 
-`BlockPosArgumentType` 当前实现只返回绝对坐标，未实现相对（`~`）和局部（`^`）坐标的计算。这需要命令执行时的额外上下文信息。
+坐标参数类型（BlockPosArgumentType、Vec3ArgumentType 等）支持三种坐标格式：
+- **绝对坐标**: `100 64 -200` — 直接使用输入值
+- **相对坐标**: `~ ~ ~` / `~5 ~-2 ~10` — 以执行者位置为基准的偏移
+- **局部坐标**: `^ ^ ^` / `^1 ^2 ^3` — 以执行者视线方向为基准的偏移
+
+解析时返回 `Coordinates::Ptr`（共享指针），命令执行时调用 `getPosition()` 或 `getBlockPos()` 获取最终坐标。
+
+**坐标类型混合规则**: 不允许在同一坐标中混合使用 `^` 和 `~`/绝对坐标，否则抛出 `createMixedCoordinateTypeError()` 异常。
+
+**centerCorrect 行为**: Vec3ArgumentType 的 `centerCorrect` 选项（默认 true）控制绝对整数坐标是否加 0.5 偏移到方块中心。
+
+**锚点类型**: 局部坐标的基准位置取决于实体锚点（Feet/Eyes），通过 `EntityAnchorType` 指定。
 
 ### 4. 物品/方块解析失败
 
@@ -124,9 +135,15 @@ auto enumArg = std::shared_ptr<EnumArgumentType<Color>>(
 
 `EntitySelector` 中的 `NbtCondition` 和 `PredicateCondition` 目前只实现了参数解析，过滤逻辑需要 Entity 类支持 NBT 序列化和 LootConditionManager 支持。
 
-### 8. 相对/局部坐标的执行时计算
+### 8. 坐标参数的执行时计算
 
-`BlockPosArgumentType` 和 `Vec3ArgumentType` 解析 `~` 和 `^` 前缀时，需要在命令执行时根据执行者位置/朝向进行计算，这不在参数解析阶段完成。
+`BlockPosArgumentType`、`Vec3ArgumentType`、`Vec2ArgumentType` 和 `RotationArgumentType` 在解析时返回 `Coordinates::Ptr`，命令执行时需调用 `getPosition(source.position(), source.rotation(), source.anchor(), source.entity())` 获取最终坐标。也可使用 `Vec3ArgumentType::getVec3(context, name, source)` 等静态便捷方法。
+
+静态便捷方法：
+- `Vec3ArgumentType::getVec3(context, name, source)` → `Vector3d`
+- `BlockPosArgumentType::getBlockPos(context, name, source)` → `Vector3i`
+- `Vec2ArgumentType::getVec2(context, name, source)` → `Vector2d`
+- `RotationArgumentType::getRotation(context, name, source)` → `Vector2f`
 
 ### 9. ItemSlot 槽位编号重叠
 

@@ -196,6 +196,13 @@ ServerCommandSource ServerCommandSource::withDimension(DimensionId dimensionId) 
     return source;
 }
 
+ServerCommandSource ServerCommandSource::withAnchor(EntityAnchorType anchor) const
+{
+    ServerCommandSource source(*this);
+    source.m_anchor = anchor;
+    return source;
+}
+
 ServerCommandSource ServerCommandSource::withFeedbackDisabled() const
 {
     ServerCommandSource source(*this);
