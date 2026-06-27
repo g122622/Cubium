@@ -36,7 +36,6 @@
 #include "common/sound/SoundCategory.hpp"
 
 #include <array>
-#include <map>
 #include <memory>
 
 namespace mc {
