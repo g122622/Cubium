@@ -130,6 +130,15 @@ void CrafterContainer::slotsChanged(IInventory* inventory)
     AbstractContainerMenu::slotsChanged(inventory);
 }
 
+void CrafterContainer::removed(Player& player)
+{
+    // 配对构造函数中的 openInventory 调用，通知方块实体玩家已关闭容器
+    // 即使当前 IInventory::closeInventory 默认为空操作，也必须配对调用，
+    // 以防子类（如未来的查看者计数实现）重写该方法
+    m_crafterInventory->closeInventory(player);
+    AbstractContainerMenu::removed(player);
+}
+
 bool CrafterContainer::isSlotDisabled(i32 slot) const
 {
     if (slot < 0 || slot >= CRAFT_SLOTS) {

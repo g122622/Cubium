@@ -73,6 +73,13 @@ void HopperContainer::slotsChanged(IInventory* inventory)
     AbstractContainerMenu::slotsChanged(inventory);
 }
 
+void HopperContainer::removed(Player& player)
+{
+    // 配对构造函数中的 openInventory 调用，通知方块实体玩家已关闭容器
+    m_hopperInventory->closeInventory(player);
+    AbstractContainerMenu::removed(player);
+}
+
 ItemStack HopperContainer::quickMoveStack(i32 slotIndex, Player& player)
 {
     (void)player;

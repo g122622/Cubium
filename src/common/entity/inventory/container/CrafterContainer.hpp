@@ -101,6 +101,11 @@ public:
      */
     void slotsChanged(IInventory* inventory) override;
 
+    /**
+     * @brief 关闭容器时调用，配对构造函数中的openInventory
+     */
+    void removed(Player& player) override;
+
     // ========== 合成器特有方法 ==========
 
     /**
