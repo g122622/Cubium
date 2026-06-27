@@ -73,6 +73,21 @@ public:
     [[nodiscard]] virtual std::string getName() const = 0;
 
     /**
+     * @brief 获取材质的资源资产ID
+     *
+     * 用于构造装备纹理路径。与 getName() 不同，资产ID与 MC 1.21+ 的
+     * equipment 纹理目录名称一致（如 "chainmail" 而非 "chain"，"turtle_scute" 而非 "turtle"）。
+     *
+     * 纹理路径格式：
+     * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/<assetId>.png
+     * - 护腿: textures/entity/equipment/humanoid_leggings/<assetId>.png
+     * - 皮革盔甲覆盖层: textures/entity/equipment/<layerType>/leather_overlay.png
+     *
+     * @return 资产ID字符串
+     */
+    [[nodiscard]] virtual std::string getAssetId() const = 0;
+
+    /**
      * @brief 获取指定槽位的耐久度
      * @param slot 盔甲槽位
      * @return 耐久度
@@ -166,6 +181,7 @@ public:
 class LeatherArmorMaterial : public ArmorMaterial {
 public:
     [[nodiscard]] std::string getName() const override { return "leather"; }
+    [[nodiscard]] std::string getAssetId() const override { return "leather"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 15; }
@@ -182,6 +198,7 @@ public:
 class ChainArmorMaterial : public ArmorMaterial {
 public:
     [[nodiscard]] std::string getName() const override { return "chain"; }
+    [[nodiscard]] std::string getAssetId() const override { return "chainmail"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 12; }
@@ -201,6 +218,7 @@ public:
 class CopperArmorMaterial : public ArmorMaterial {
 public:
     [[nodiscard]] std::string getName() const override { return "copper"; }
+    [[nodiscard]] std::string getAssetId() const override { return "copper"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 8; }
@@ -217,6 +235,7 @@ public:
 class IronArmorMaterial : public ArmorMaterial {
 public:
     [[nodiscard]] std::string getName() const override { return "iron"; }
+    [[nodiscard]] std::string getAssetId() const override { return "iron"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 9; }
@@ -234,6 +253,7 @@ public:
 class GoldArmorMaterial : public ArmorMaterial {
 public:
     [[nodiscard]] std::string getName() const override { return "gold"; }
+    [[nodiscard]] std::string getAssetId() const override { return "gold"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 25; }
@@ -251,6 +271,7 @@ public:
 class DiamondArmorMaterial : public ArmorMaterial {
 public:
     [[nodiscard]] std::string getName() const override { return "diamond"; }
+    [[nodiscard]] std::string getAssetId() const override { return "diamond"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 10; }
@@ -268,6 +289,7 @@ public:
 class TurtleArmorMaterial : public ArmorMaterial {
 public:
     [[nodiscard]] std::string getName() const override { return "turtle"; }
+    [[nodiscard]] std::string getAssetId() const override { return "turtle_scute"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 9; }
@@ -287,6 +309,7 @@ public:
 class NetheriteArmorMaterial : public ArmorMaterial {
 public:
     [[nodiscard]] std::string getName() const override { return "netherite"; }
+    [[nodiscard]] std::string getAssetId() const override { return "netherite"; }
     [[nodiscard]] i32 getDurability(ArmorSlot slot) const override;
     [[nodiscard]] i32 getDefense(ArmorSlot slot) const override;
     [[nodiscard]] i32 getEnchantability() const override { return 15; }

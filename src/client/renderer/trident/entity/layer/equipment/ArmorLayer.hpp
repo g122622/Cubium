@@ -417,15 +417,68 @@ protected:
     }
 
     /**
-     * @brief 获取盔甲纹理
-     * TODO: 当前返回硬编码的默认纹理，需要根据盔甲材质动态选择纹理
+     * @brief 获取盔甲纹理路径
+     *
+     * 根据盔甲材质和装备槽位返回对应的纹理路径。
+     * 使用 MC 1.21+ 的 equipment 纹理路径格式：
+     * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/<assetId>.png
+     * - 护腿: textures/entity/equipment/humanoid_leggings/<assetId>.png
+     *
+     * @param entity 实体引用（用于子类自定义纹理）
+     * @param slot 盔甲槽位
+     * @return 纹理资源路径
      */
     [[nodiscard]] virtual ResourceLocation getArmorTexture(const TEntity& entity, ArmorSlot slot)
     {
-        (void)entity;
-        (void)slot;
-        // 返回默认盔甲纹理
-        return ResourceLocation("minecraft", "textures/models/armor/iron_layer_1.png");
+        const ::mc::ItemStack* armorItem = getArmorItem(entity, slot);
+        if (!armorItem || armorItem->isEmpty()) {
+            return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/iron.png");
+        }
+
+        const ::mc::Item* item = armorItem->getItem();
+        const auto* armor = dynamic_cast<const ::mc::item::items::ArmorItem*>(item);
+        if (!armor) {
+            // 鞘翅等非盔甲物品走默认纹理
+            return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/iron.png");
+        }
+
+        const std::string assetId = armor->getMaterial().getAssetId();
+        // 护腿使用 humanoid_leggings 子目录，其余使用 humanoid 子目录
+        if (slot == ArmorSlot::Legs) {
+            return ResourceLocation("minecraft", "textures/entity/equipment/humanoid_leggings/" + assetId + ".png");
+        }
+        return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/" + assetId + ".png");
+    }
+
+    /**
+     * @brief 获取皮革盔甲覆盖层纹理路径
+     *
+     * 皮革盔甲有两层纹理：底色层（可染色）和覆盖层（不可染色，显示细节图案）。
+     * 覆盖层纹理路径格式：
+     * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/leather_overlay.png
+     * - 护腿: textures/entity/equipment/humanoid_leggings/leather_overlay.png
+     *
+     * @param entity 实体引用
+     * @param slot 盔甲槽位
+     * @return 覆盖层纹理路径，若非皮革盔甲则返回空
+     */
+    [[nodiscard]] virtual std::optional<ResourceLocation> getArmorOverlayTexture(const TEntity& entity, ArmorSlot slot)
+    {
+        const ::mc::ItemStack* armorItem = getArmorItem(entity, slot);
+        if (!armorItem || armorItem->isEmpty()) {
+            return std::nullopt;
+        }
+
+        // 仅皮革盔甲有覆盖层
+        const ::mc::Item* item = armorItem->getItem();
+        if (!dynamic_cast<const ::mc::item::items::DyeableArmorItem*>(item)) {
+            return std::nullopt;
+        }
+
+        if (slot == ArmorSlot::Legs) {
+            return ResourceLocation("minecraft", "textures/entity/equipment/humanoid_leggings/leather_overlay.png");
+        }
+        return ResourceLocation("minecraft", "textures/entity/equipment/humanoid/leather_overlay.png");
     }
 
     /**

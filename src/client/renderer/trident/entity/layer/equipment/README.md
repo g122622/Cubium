@@ -55,8 +55,12 @@ ArmorLayer  HeldItemLayer  HeadLayer
 
 5. **HeadLayer 头部变换**：优先使用 `parentModel->getModelHead()->getTransformMatrix()` 获取头部变换，仅在无父模型时回退到 `computeHeadTransform()` 硬编码变换。
 
+6. **盔甲纹理路径**：`getArmorTexture()` 使用 MC 1.21+ 的 `textures/entity/equipment/<layerType>/<assetId>.png` 路径格式，不是旧版 `textures/models/armor/` 格式。护腿使用 `humanoid_leggings` 子目录，其余使用 `humanoid` 子目录。`getAssetId()` 和 `getName()` 不同（如 chain vs chainmail、turtle vs turtle_scute），构建纹理路径必须用 `getAssetId()`。
+
+7. **皮革盔甲双层纹理**：皮革盔甲有底色层（可染色）和覆盖层（不可染色），`getArmorOverlayTexture()` 返回覆盖层路径，仅对 `DyeableArmorItem` 返回有效值。
+
 ## 参考
 
-- MC 1.16.5 BipedArmorLayer
-- MC 1.16.5 HeldItemLayer
-- MC 1.16.5 HeadLayer
+- MC 1.21 HumanoidArmorLayer / EquipmentLayerRenderer
+- MC 1.21 HeldItemLayer
+- MC 1.21 HeadLayer

@@ -201,6 +201,32 @@ TEST_F(ItemTest, ArmorMaterialsUseVanillaSoundsAndRepairItems)
     }
 }
 
+TEST_F(ItemTest, ArmorMaterialAssetIdsMatchVanillaEquipmentPaths)
+{
+    // getAssetId() 返回的资产ID应与 MC 1.21+ equipment 纹理目录名称一致
+    struct AssetIdCase {
+        const item::armor::ArmorMaterial* material;
+        const char* expectedAssetId;
+    };
+
+    const std::array<AssetIdCase, 8> cases = {{
+        {&item::armor::ArmorMaterials::LEATHER, "leather"},
+        {&item::armor::ArmorMaterials::COPPER, "copper"},
+        {&item::armor::ArmorMaterials::CHAIN, "chainmail"},
+        {&item::armor::ArmorMaterials::IRON, "iron"},
+        {&item::armor::ArmorMaterials::GOLD, "gold"},
+        {&item::armor::ArmorMaterials::DIAMOND, "diamond"},
+        {&item::armor::ArmorMaterials::TURTLE, "turtle_scute"},
+        {&item::armor::ArmorMaterials::NETHERITE, "netherite"},
+    }};
+
+    for (const auto& testCase : cases) {
+        ASSERT_NE(testCase.material, nullptr);
+        EXPECT_EQ(testCase.material->getAssetId(), testCase.expectedAssetId)
+            << "Material " << testCase.material->getName() << " asset ID mismatch";
+    }
+}
+
 TEST_F(ItemTest, NonExistentItem)
 {
     Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft:nonexistent"));
