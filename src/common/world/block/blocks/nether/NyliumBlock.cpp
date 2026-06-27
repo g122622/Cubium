@@ -123,13 +123,13 @@ void NyliumBlock::_placeNetherVegetation(
         i32 dz = random.nextInt(SPREAD_WIDTH) - random.nextInt(SPREAD_WIDTH);
         BlockPos currentPos(origin.x + dx, origin.y + dy, origin.z + dz);
 
-        // 检查目标位置是否为空气
+        // 检查目标位置是否为空气（nullptr 视为空气，兼容测试世界）
         const BlockState* currentState = world.getBlockState(currentPos);
-        if (currentState == nullptr || !currentState->isAir()) {
+        if (currentState != nullptr && !currentState->isAir()) {
             continue;
         }
 
-        // 检查目标位置下方是否为菌岩（支持 NYLIUM 标签的方块）
+        // 检查目标位置下方是否为菌岩
         const BlockPos belowPos(currentPos.x, currentPos.y - 1, currentPos.z);
         const BlockState* belowState = world.getBlockState(belowPos);
         if (belowState == nullptr ||
@@ -183,7 +183,7 @@ void NyliumBlock::_placeNetherSprouts(IWorld& world, math::IRandom& random, cons
         BlockPos currentPos(origin.x + dx, origin.y + dy, origin.z + dz);
 
         const BlockState* currentState = world.getBlockState(currentPos);
-        if (currentState == nullptr || !currentState->isAir()) {
+        if (currentState != nullptr && !currentState->isAir()) {
             continue;
         }
 
@@ -218,7 +218,7 @@ void NyliumBlock::_placeTwistingVines(IWorld& world, math::IRandom& random, cons
         // 对应 MC: 找到地面上方第一个空气方块
         // 地面方块需要是下界岩、诡异菌岩或诡异疣块
         const BlockState* groundState = world.getBlockState(currentPos);
-        if (groundState == nullptr || !groundState->isAir()) {
+        if (groundState != nullptr && !groundState->isAir()) {
             continue;
         }
 
@@ -247,7 +247,7 @@ void NyliumBlock::_placeTwistingVines(IWorld& world, math::IRandom& random, cons
         for (i32 h = 0; h < vineHeight; ++h) {
             BlockPos vinePos(currentPos.x, currentPos.y + h, currentPos.z);
             const BlockState* vinePosState = world.getBlockState(vinePos);
-            if (vinePosState == nullptr || !vinePosState->isAir()) {
+            if (vinePosState != nullptr && !vinePosState->isAir()) {
                 break;
             }
 
