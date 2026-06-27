@@ -738,6 +738,7 @@ add_executable(mc_tests
     client/resource/test_resource_manager_cloud_texture.cpp
     network/EntityPacketsTest.cpp
     network/ParticlePacketTest.cpp
+    network/ParticlePacketVibrationTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
@@ -1049,6 +1050,8 @@ add_executable(mc_tests
     client/renderer/particle/WhiteSmokeParticleTest.cpp
     client/renderer/particle/ParticleManagerTest.cpp
     client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
+    client/renderer/trident/particle/particles/special/VibrationSignalParticleTest.cpp
+    client/renderer/trident/particle/data/VibrationParticleDataTest.cpp
     # 粒子缩放测试
     client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
     # SpellParticle 颜色提取测试
