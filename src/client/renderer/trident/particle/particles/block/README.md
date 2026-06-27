@@ -6,13 +6,16 @@
 
 ```
 block/
-├── DiggingParticle.hpp   # 挖掘粒子（破坏方块时产生）
-└── DiggingParticle.cpp   # 挖掘粒子实现
+├── DiggingParticle.hpp     # 挖掘粒子（破坏方块时产生）
+├── DiggingParticle.cpp     # 挖掘粒子实现
+├── DustPillarParticle.hpp  # 尘柱粒子（重锤砸地攻击产生，使用方块纹理）
+└── DustPillarParticle.cpp  # 尘柱粒子实现
 ```
 
 ## 内部模块关系
 
-当前目录只有 `DiggingParticle` 一个粒子类，无内部模块依赖。
+- `DustPillarParticle` 继承自 `DiggingParticle`，复用方块纹理渲染逻辑（`_initializeBlockTexture()`、`buildVertices()` 等）。
+- `DustPillarParticle` 重写重力（1.0 vs DiggingParticle 的 0.03）和生命周期（20-40 tick vs 16-24 tick），以匹配 MC Java 的 DustPillarProvider 行为。
 
 ## 上下游外部依赖关系
 

@@ -99,6 +99,9 @@ enum class ParticleTypeId : u16 {
     /// 雪球粒子
     ItemSnowball = 15,
 
+    /// 尘柱粒子（重锤砸地攻击产生，使用方块状态纹理）
+    DustPillar = 16,
+
     // ========================================================================
     // 效果类粒子 (20-39)
     // ========================================================================
@@ -396,7 +399,8 @@ enum class ParticleTypeId : u16 {
  */
 [[nodiscard]] constexpr bool requiresBlockState(ParticleTypeId id)
 {
-    return id == ParticleTypeId::Block || id == ParticleTypeId::Breaking || id == ParticleTypeId::FallingDust;
+    return id == ParticleTypeId::Block || id == ParticleTypeId::Breaking || id == ParticleTypeId::FallingDust ||
+        id == ParticleTypeId::DustPillar;
 }
 
 /**

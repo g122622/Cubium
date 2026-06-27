@@ -31,6 +31,8 @@
 #include "../renderer/trident/particle/ParticleManager.hpp"
 #include "../renderer/trident/particle/ParticleRegistry.hpp"
 #include "../renderer/trident/particle/ParticleTypes.hpp"
+#include "../renderer/trident/particle/particles/block/DiggingParticle.hpp"
+#include "../renderer/trident/particle/particles/block/DustPillarParticle.hpp"
 #include "common/core/Constants.hpp"
 #include "common/network/sync/ChunkSync.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -890,6 +892,37 @@ void ClientWorld::addParticle(renderer::trident::particle::ParticleTypeId type,
             m_particleManager->addParticle(std::move(particle));
         }
     }
+}
+
+void ClientWorld::addBlockParticle(renderer::trident::particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    const BlockState& blockState)
+{
+    if (!m_particleManager) {
+        return;
+    }
+
+    using namespace renderer::trident::particle;
+
+    glm::vec3 glmPos(pos.x, pos.y, pos.z);
+    glm::vec3 glmVel(velocity.x, velocity.y, velocity.z);
+
+    if (type == ParticleTypeId::DustPillar) {
+        // DustPillar 粒子：使用 createWithBlock 以传递方块状态
+        auto particle = particles::DustPillarParticle::createWithBlock(glmPos, glmVel, blockState);
+        if (particle) {
+            m_particleManager->addParticle(std::move(particle));
+        }
+    } else if (type == ParticleTypeId::Block || type == ParticleTypeId::Breaking ||
+        type == ParticleTypeId::FallingDust) {
+        // 其他方块粒子：使用 DiggingParticle::createWithBlock
+        auto particle = particles::DiggingParticle::createWithBlock(glmPos, glmVel, blockState);
+        if (particle) {
+            m_particleManager->addParticle(std::move(particle));
+        }
+    }
+    // 其他粒子类型暂时不支持方块状态，忽略
 }
 
 bool ClientWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const

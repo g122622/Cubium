@@ -33,6 +33,7 @@
 #include "particles/ambient/SporeBlossomParticle.hpp"
 #include "particles/ambient/UnderwaterParticle.hpp"
 #include "particles/block/DiggingParticle.hpp"
+#include "particles/block/DustPillarParticle.hpp"
 #include "particles/effect/CampfireParticle.hpp"
 #include "particles/effect/CritParticle.hpp"
 #include "particles/effect/DragonBreathParticle.hpp"
@@ -518,6 +519,15 @@ void registerBuiltinParticleFactories()
         FallingDustParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         29.0f,
+        true,
+        false);
+
+    // 尘柱粒子（重锤砸地攻击，使用方块状态纹理）
+    registry.registerType(ParticleTypeId::DustPillar,
+        "minecraft:dust_pillar",
+        DustPillarParticle::create,
+        ParticleRenderType::TERRAIN_SHEET,
+        30.0f,
         true,
         false);
 

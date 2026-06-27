@@ -89,6 +89,7 @@ add_executable(minecraft-client
     renderer/trident/particle/particles/special/NautilusParticle.cpp
     # 粒子实现 - 方块
     renderer/trident/particle/particles/block/DiggingParticle.cpp
+    renderer/trident/particle/particles/block/DustPillarParticle.cpp
     # 粒子实现 - 液体
     renderer/trident/particle/particles/liquid/DripParticle.cpp
     renderer/trident/particle/particles/liquid/DripWaterParticle.cpp

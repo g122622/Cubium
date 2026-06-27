@@ -335,6 +335,22 @@ public:
         u32 count);
 
     /**
+     * @brief 生成携带方块状态纹理的粒子
+     *
+     * 创建携带方块纹理的粒子（如 DustPillar、Block、Breaking 等），
+     * 直接使用指定的 BlockState 作为粒子纹理来源。
+     *
+     * @param type 粒子类型（必须是需要方块状态的类型）
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param blockState 方块状态（用于粒子纹理和颜色）
+     */
+    void addBlockParticle(renderer::trident::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const BlockState& blockState);
+
+    /**
      * @brief 检查是否应在指定位置生成粒子
      *
      * 用于距离裁剪，避免在玩家视野外生成粒子。
