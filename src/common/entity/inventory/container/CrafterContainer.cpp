@@ -117,6 +117,16 @@ bool CrafterContainer::stillValid(const Player& player) const
 
 void CrafterContainer::slotsChanged(IInventory* inventory)
 {
+    // TODO: 实现合成预览结果更新逻辑
+    // 当合成网格内容变化时，应通过 RecipeManager 查找匹配配方并更新 m_resultInventory 的预览结果。
+    // 参考MC原版 CrafterMenu.slotChanged() → refreshRecipeResult() 的实现流程：
+    //   1. 检查玩家是否为 ServerPlayer（仅服务端执行）
+    //   2. 调用 m_crafterEntity->asCraftInput() 构建合成输入（禁用槽位视为空）
+    //   3. 通过 CrafterBlock::getPotentialResults(level, craftingInput) 查找匹配配方
+    //   4. 调用 recipe.assemble(craftingInput, registryAccess) 生成预览物品
+    //   5. 将结果写入 m_resultInventory->setItem(0, result)
+    // 当前 m_resultInventory 已创建并绑定到 CrafterResultSlot，但缺少配方查找和结果填充逻辑。
+    // 依赖：RecipeManager/RecipeCache 配方缓存系统、ServerLevel 注册表访问
     AbstractContainerMenu::slotsChanged(inventory);
 }
 
