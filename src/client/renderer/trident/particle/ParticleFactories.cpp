@@ -53,6 +53,8 @@
 #include "particles/liquid/DripstoneDripParticle.hpp"
 #include "particles/mob/HeartParticle.hpp"
 #include "particles/mob/VillagerParticle.hpp"
+#include "particles/special/NautilusParticle.hpp"
+#include "particles/special/VibrationSignalParticle.hpp"
 #include "particles/weather/FishingParticle.hpp"
 #include "particles/weather/SplashParticle.hpp"
 
@@ -548,6 +550,15 @@ void registerBuiltinParticleFactories()
         8.0f,
         false,
         false);
+
+    // 振动信号粒子（从源位置飞向目标位置）
+    registry.registerType(ParticleTypeId::Vibration,
+        "minecraft:vibration",
+        VibrationSignalParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        60.0f,
+        false,
+        true); // 忽略距离限制，确保可见
 }
 
 } // namespace mc::client::renderer::trident::particle

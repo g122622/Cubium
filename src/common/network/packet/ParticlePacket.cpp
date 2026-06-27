@@ -212,4 +212,103 @@ ParticlePacket ParticlePacket::createSingle(
     return ParticlePacket(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1);
 }
 
+// static
+ParticlePacket ParticlePacket::createVibration(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks)
+{
+    // 构建振动粒子包：粒子类型为 Vibration，无偏移，数量为 1
+    ParticlePacket packet(client::renderer::trident::particle::ParticleTypeId::Vibration,
+        pos,
+        Vector3(0.0f, 0.0f, 0.0f), // 无速度
+        Vector3(0.0f, 0.0f, 0.0f), // 无偏移
+        1);                        // 单个粒子
+
+    // 编码可选数据：f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
+    // 振动粒子协议格式与 MC Java 版 VibrationParticleOption.STREAM_CODEC 一致：
+    // PositionSource 使用 BlockPositionSource (type=0) 序列化为 3 个 VarInt (x, y, z)，
+    // 后跟 VarInt arrivalInTicks。此处简化为直接写入目标坐标和 tick 数。
+    PacketSerializer serializer(32);
+    serializer.writeF64(targetPosition.x);
+    serializer.writeF64(targetPosition.y);
+    serializer.writeF64(targetPosition.z);
+    serializer.writeVarInt(arrivalInTicks);
+
+    std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
+    packet.setOptionalData(std::move(data));
+
+    return packet;
+}
+
+bool ParticlePacket::isVibrationParticle() const noexcept
+{
+    return m_particleType == client::renderer::trident::particle::ParticleTypeId::Vibration && !m_optionalData.empty();
+}
+
+std::optional<Vector3d> ParticlePacket::decodeVibrationTarget() const
+{
+    if (!isVibrationParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
+    if (m_optionalData.size() < 3 * sizeof(f64)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+
+    auto xResult = deserializer.readF64();
+    if (!xResult.success()) {
+        return std::nullopt;
+    }
+
+    auto yResult = deserializer.readF64();
+    if (!yResult.success()) {
+        return std::nullopt;
+    }
+
+    auto zResult = deserializer.readF64();
+    if (!zResult.success()) {
+        return std::nullopt;
+    }
+
+    return Vector3d(xResult.value(), yResult.value(), zResult.value());
+}
+
+std::optional<i32> ParticlePacket::decodeVibrationArrivalInTicks() const
+{
+    if (!isVibrationParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
+    if (m_optionalData.size() < 3 * sizeof(f64)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+
+    // 跳过 3 个 f64（targetX, targetY, targetZ）
+    auto xResult = deserializer.readF64();
+    if (!xResult.success()) {
+        return std::nullopt;
+    }
+
+    auto yResult = deserializer.readF64();
+    if (!yResult.success()) {
+        return std::nullopt;
+    }
+
+    auto zResult = deserializer.readF64();
+    if (!zResult.success()) {
+        return std::nullopt;
+    }
+
+    auto tickResult = deserializer.readVarInt();
+    if (!tickResult.success()) {
+        return std::nullopt;
+    }
+
+    return tickResult.value();
+}
+
 } // namespace mc::network

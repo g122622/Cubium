@@ -2155,6 +2155,14 @@ void ServerWorld::addParticle(client::renderer::trident::particle::ParticleTypeI
     }
 }
 
+void ServerWorld::addVibrationParticle(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks)
+{
+    // 服务端不生成粒子，而是广播振动粒子给附近玩家
+    if (m_onBroadcastVibrationParticle) {
+        m_onBroadcastVibrationParticle(pos, targetPosition, arrivalInTicks);
+    }
+}
+
 bool ServerWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const
 {
     // 服务端总是返回 true，广播系统会根据玩家距离决定是否发送

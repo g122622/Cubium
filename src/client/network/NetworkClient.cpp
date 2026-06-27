@@ -1783,6 +1783,16 @@ void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
             packet.offsetZ(),
             packet.count());
     }
+
+    // 振动粒子特殊处理：解码目标位置和到达时间
+    if (packet.isVibrationParticle() && m_callbacks.onVibrationParticle) {
+        auto target = packet.decodeVibrationTarget();
+        auto arrivalInTicks = packet.decodeVibrationArrivalInTicks();
+        if (target.has_value() && arrivalInTicks.has_value()) {
+            m_callbacks.onVibrationParticle(
+                packet.x(), packet.y(), packet.z(), target->x, target->y, target->z, arrivalInTicks.value());
+        }
+    }
 }
 
 void NetworkClient::_handleMovingSound(network::PacketDeserializer& deser)

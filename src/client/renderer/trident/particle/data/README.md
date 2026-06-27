@@ -8,11 +8,12 @@
 
 ```
 data/
-├── ParticleData.hpp           # 粒子数据基类，定义 getType()/getTypeName()/getParameters()/clone() 接口
-├── BasicParticleData.hpp/cpp  # 无参数粒子数据（火焰、烟雾等）
-├── BlockParticleData.hpp/cpp  # 方块粒子数据，携带 BlockState 参数
-├── ItemParticleData.hpp/cpp   # 物品粒子数据，携带 ItemStack 参数
-├── RedstoneParticleData.hpp/cpp # 红石粒子数据，携带 RGB 颜色参数
+├── ParticleData.hpp              # 粒子数据基类，定义 getType()/getTypeName()/getParameters()/clone() 接口
+├── BasicParticleData.hpp/cpp     # 无参数粒子数据（火焰、烟雾等）
+├── BlockParticleData.hpp/cpp     # 方块粒子数据，携带 BlockState 参数
+├── ItemParticleData.hpp/cpp      # 物品粒子数据，携带 ItemStack 参数
+├── RedstoneParticleData.hpp/cpp  # 红石粒子数据，携带 RGB 颜色参数
+├── VibrationParticleData.hpp/cpp # 振动粒子数据，携带目标位置和到达时间参数
 └── README.md
 ```
 
@@ -23,7 +24,8 @@ ParticleData (基类)
     ├── BasicParticleData (无参数粒子)
     ├── BlockParticleData (方块粒子，依赖 BlockState)
     ├── ItemParticleData (物品粒子，依赖 ItemStack)
-    └── RedstoneParticleData (红石粒子，依赖 glm::vec3 颜色)
+    ├── RedstoneParticleData (红石粒子，依赖 glm::vec3 颜色)
+    └── VibrationParticleData (振动粒子，携带目标位置 Vector3d + 到达时间 i32)
 ```
 
 所有具体粒子数据类都继承自 `ParticleData` 基类，实现 `getType()`、`getTypeName()`、`getParameters()`、`clone()` 接口。

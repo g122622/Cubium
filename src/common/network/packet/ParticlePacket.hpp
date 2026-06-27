@@ -28,6 +28,7 @@
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Types.hpp"
 #include "common/util/math/Vector3.hpp"
+#include <optional>
 #include <vector>
 
 namespace mc::network {
@@ -51,12 +52,13 @@ namespace mc::network {
  * | velocityY   | f32       | Y速度                       |
  * | velocityZ   | f32       | Z速度                       |
  * | count       | VarInt    | 粒子数量                    |
- * | data        | bytes[]   | 可选数据（方块/物品/红石）   |
+ * | data        | bytes[]   | 可选数据（方块/物品/红石/振动）|
  *
  * 可选数据格式：
  * - Block/Breaking/FallingDust: VarInt blockStateId
  * - Item/ItemSlime/ItemSnowball: ItemStack (NBT)
  * - Redstone/Dust/DustColorTransition: f32 r, f32 g, f32 b, f32 scale
+ * - Vibration: f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
  */
 class ParticlePacket : public Packet {
 public:
@@ -187,6 +189,51 @@ public:
      */
     static ParticlePacket createSingle(
         client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity);
+
+    /**
+     * @brief 创建振动粒子包（带目标位置和到达时间）
+     *
+     * 振动粒子需要额外数据：目标位置和到达 tick 数。
+     * 这些数据编码到 optionalData 中，客户端解码后创建 VibrationSignalParticle。
+     *
+     * 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
+     *
+     * @param pos 粒子起始位置（振动源位置）
+     * @param targetPosition 粒子飞向的目标位置（监听器位置）
+     * @param arrivalInTicks 到达目标的 tick 数
+     */
+    static ParticlePacket createVibration(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
+
+    // ========== 振动粒子数据解码 ==========
+
+    /**
+     * @brief 检查此粒子包是否为振动粒子
+     *
+     * 振动粒子包的粒子类型为 ParticleTypeId::Vibration 且含有可选数据。
+     *
+     * @return 是否为振动粒子
+     */
+    [[nodiscard]] bool isVibrationParticle() const noexcept;
+
+    /**
+     * @brief 解码振动粒子目标位置
+     *
+     * 仅当 isVibrationParticle() 返回 true 时有效。
+     * 从可选数据中解码目标位置。
+     *
+     * @return 目标位置，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<Vector3d> decodeVibrationTarget() const;
+
+    /**
+     * @brief 解码振动粒子到达时间
+     *
+     * 仅当 isVibrationParticle() 返回 true 时有效。
+     * 从可选数据中解码到达 tick 数。
+     *
+     * @return 到达 tick 数，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<i32> decodeVibrationArrivalInTicks() const;
 
 private:
     client::renderer::trident::particle::ParticleTypeId m_particleType =

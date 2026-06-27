@@ -834,6 +834,20 @@ protected:
         u32 count,
         f32 range = 256.0f) override;
 
+    /**
+     * @brief 广播振动粒子给指定范围内的玩家
+     *
+     * 振动粒子需要携带目标位置和到达时间信息，与普通粒子包不同。
+     * 使用 ParticlePacket 的振动粒子扩展格式。
+     *
+     * @param pos 粒子起始位置（振动源位置）
+     * @param targetPosition 粒子飞向的目标位置（监听器位置）
+     * @param arrivalInTicks 到达目标的 tick 数
+     * @param range 广播范围（格），默认 256 格
+     */
+    void broadcastVibrationParticleInRange(
+        const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks, f32 range = 256.0f);
+
     // ========== 爆炸广播方法 ==========
 
     /**

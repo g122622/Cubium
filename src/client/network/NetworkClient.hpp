@@ -202,6 +202,10 @@ struct NetworkClientCallbacks {
         u32 count)>
         onParticle;
 
+    // 振动粒子回调（携带目标位置和到达时间）
+    std::function<void(f64 x, f64 y, f64 z, f64 targetX, f64 targetY, f64 targetZ, i32 arrivalInTicks)>
+        onVibrationParticle;
+
     // 世界事件（音效/粒子效果）
     std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)> onWorldEvent;
 

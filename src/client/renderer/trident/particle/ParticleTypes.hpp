@@ -425,4 +425,15 @@ enum class ParticleTypeId : u16 {
     return id == ParticleTypeId::Redstone || id == ParticleTypeId::Dust || id == ParticleTypeId::DustColorTransition;
 }
 
+/**
+ * @brief 检查粒子类型是否需要振动数据（目标位置 + 到达时间）
+ *
+ * @param id 粒子类型 ID
+ * @return 是否需要振动数据
+ */
+[[nodiscard]] constexpr bool requiresVibrationData(ParticleTypeId id)
+{
+    return id == ParticleTypeId::Vibration;
+}
+
 } // namespace mc::client::renderer::trident::particle

@@ -329,19 +329,19 @@ void VibrationSystem::Ticker::trySelectAndScheduleVibration(server::ServerWorld&
         data.setTravelTimeInTicks(travelTime);
 
         // 发送振动粒子效果，从振动源位置飞向监听器位置
-        // 粒子类型为 Vibration，在振动源位置生成
+        // 粒子类型为 Vibration，携带目标位置和到达时间
         Vector3 particlePos(static_cast<f32>(info.pos.x), static_cast<f32>(info.pos.y), static_cast<f32>(info.pos.z));
-        world.addParticle(client::renderer::trident::particle::ParticleTypeId::Vibration,
-            particlePos,
-            Vector3(0.0f, 0.0f, 0.0f),
-            Vector3(0.0f, 0.0f, 0.0f),
-            1);
-
-        // TODO: 当前粒子系统不支持携带 PositionSource 和 arrivalInTicks 的 VibrationParticleOption，
-        // 因此无法实现 MC 原版的从源位置到监听器位置的定向飞行粒子效果。
-        // 未来需要扩展 ParticlePacket 支持自定义粒子数据后，改用：
-        // world.sendParticles(VibrationParticleOption(user.getPositionSource(), travelTime),
-        //     info.pos.x, info.pos.y, info.pos.z, 1, 0, 0, 0, 0);
+        auto listenerPosOpt = user.getPositionSource().getPosition(world);
+        if (listenerPosOpt.has_value()) {
+            world.addVibrationParticle(particlePos, listenerPosOpt.value(), travelTime);
+        } else {
+            // 无法获取监听器位置时，使用简化的静态粒子效果（向后兼容）
+            world.addParticle(client::renderer::trident::particle::ParticleTypeId::Vibration,
+                particlePos,
+                Vector3(0.0f, 0.0f, 0.0f),
+                Vector3(0.0f, 0.0f, 0.0f),
+                1);
+        }
 
         user.onDataChanged();
         data.selectionStrategy().startOver();
@@ -423,13 +423,9 @@ void VibrationSystem::Ticker::tryReloadVibrationParticle(server::ServerWorld& wo
     f32 particleY = static_cast<f32>(info.pos.y + (listenerPos->y - info.pos.y) * progress);
     f32 particleZ = static_cast<f32>(info.pos.z + (listenerPos->z - info.pos.z) * progress);
 
-    // 在插值位置发送振动粒子
+    // 在插值位置发送振动粒子，携带监听器目标位置和剩余传播时间
     Vector3 particlePos(particleX, particleY, particleZ);
-    world.addParticle(client::renderer::trident::particle::ParticleTypeId::Vibration,
-        particlePos,
-        Vector3(0.0f, 0.0f, 0.0f),
-        Vector3(0.0f, 0.0f, 0.0f),
-        1);
+    world.addVibrationParticle(particlePos, listenerPos.value(), remainingTicks);
 
     // 重载完成，清除标志
     data.setReloadVibrationParticle(false);

@@ -30,6 +30,7 @@
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/particles/special/VibrationSignalParticle.hpp"
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
@@ -1359,6 +1360,25 @@ void ClientApplication::setupNetworkCallbacks()
             }
         }
     };
+
+    // 振动粒子回调（携带目标位置和到达时间）
+    callbacks.onVibrationParticle =
+        [this](f64 x, f64 y, f64 z, f64 targetX, f64 targetY, f64 targetZ, i32 arrivalInTicks) {
+            if (!m_world.particleManager()) {
+                return;
+            }
+
+            // 创建振动信号粒子，从当前位置飞向目标位置
+            glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+            Vector3d targetPosition(targetX, targetY, targetZ);
+
+            auto particle = client::renderer::trident::particle::particles::VibrationSignalParticle::createWithTarget(
+                pos, targetPosition, arrivalInTicks);
+
+            if (particle) {
+                m_world.particleManager()->addParticle(std::move(particle));
+            }
+        };
 
     // 玩家列表回调 - 皮肤系统集成
     callbacks.onPlayerListAdd = [this](const std::vector<::mc::skin::PlayerListEntry>& entries) {
