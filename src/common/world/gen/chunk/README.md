@@ -74,6 +74,26 @@ math::JavaLegacyRandom rng;
 rng.setLargeFeatureSeed(static_cast<i64>(m_seed), chunkX, chunkZ);
 ```
 
+### 3. generateStructureStarts 结构生成生物群系检查
+
+NoiseChunkGenerator 的 `generateStructureStarts()` 包含两层生物群系过滤：
+
+1. **结构集级快速预过滤** (`_hasBiomesForStructureSet()`)：检查 BiomeSource 的 `possibleBiomes()` 是否与结构集中任意结构的 `biomeTag` 有交集，无交集则跳过整个结构集。对齐 MC 1.21.11 `ChunkGeneratorStructureState.hasBiomesForStructureSet()`。
+
+2. **候选区块级精确检查**：在 `isStructureChunk()` 通过后、选择结构条目后，对候选区块中心采样噪声生物群系（`getNoiseBiome()`，四分坐标精度），检查是否匹配所选结构的 `biomeTag`。对齐 MC 1.21.11 `StructurePlacement.isStructureChunk()` 中的生物群系检查。
+
+```cpp
+// 快速预过滤
+if (!_hasBiomesForStructureSet(structureSet)) continue;
+
+// 精确检查：采样候选区块中心生物群系
+const BiomeId biomeAtCandidate = getNoiseBiome(
+    (chunkX * CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * CHUNK_WIDTH + 8) >> 2);
+if (!structure->isValidBiome(biomeAtCandidate)) continue;
+```
+
+FlatChunkGenerator 使用相同逻辑，但利用 FixedBiomeSource 的单生物群系特性，预过滤后无需逐区块检查。
+
 ### 4. getHeight 列采样
 
 ```cpp

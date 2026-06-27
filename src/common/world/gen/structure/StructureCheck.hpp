@@ -51,8 +51,10 @@ enum class StructureCheckResult {
  * 当结构引用被递增时，通过 incrementReference() 更新缓存；
  * 通过 checkStart() 可以快速查询某区块是否包含某结构。
  *
- * TODO: 后续集成生物群系检查层（对齐 MC StructureCheck.featureChecks），
- * 在 StructurePlacement 判断逻辑中添加近似缓存，避免重复执行昂贵的生物群系检查。
+ * TODO: 后续集成 featureChecks 近似缓存层（对齐 MC StructureCheck.featureChecks），
+ * 在 checkStart() 的 loadedChunks 未命中路径中添加基于噪声采样的生物群系预判，
+ * 避免需要加载完整区块才能判断结构是否可能生成。
+ * 当前生物群系检查已在 NoiseChunkGenerator::generateStructureStarts() 中实现。
  */
 class StructureCheck {
 public:
