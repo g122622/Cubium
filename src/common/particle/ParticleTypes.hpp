@@ -35,6 +35,14 @@ namespace mc::particle {
  *
  * 对应 MC Java 版的 ParticleType / ParticleTypes 注册表。
  *
+ * TODO: 当前枚举值采用自定义分组编号，与 MC Java 1.21.11 的协议 ID 不一致。
+ *   MC 原版中粒子类型 ID 由注册顺序决定（0~114），而本项目采用按功能分组的编号方案。
+ *   未来需统一为 MC 协议 ID 以保证网络兼容性。届时需同步修改：
+ *   - ParticlePacket 的序列化/反序列化（VarInt 映射）
+ *   - 客户端粒子渲染器的类型分发
+ *   - 服务端粒子发送逻辑
+ *   - 资源包中粒子定义的索引
+ *
  * 分类：
  * - 0-9: 环境类粒子
  * - 10-19: 方块/物品类粒子
@@ -346,6 +354,9 @@ enum class ParticleTypeId : u16 {
     GustEmitterLarge = 108,
 
     /// 滴落的滴水石水（钟乳石滴水）
+    /// TODO: 与 OminousSpawning 枚举值冲突（均为 109），需要与 MC 原版协议 ID 对齐时一并修复。
+    ///   MC Java 1.21.11 中粒子类型 ID 由注册顺序决定（0~114），当前项目采用自定义分组编号，
+    ///   两者不一致，未来需统一为协议 ID 以保证网络兼容性。
     DrippingDripstoneWater = 109,
 
     /// 下落的滴水石水
@@ -377,6 +388,9 @@ enum class ParticleTypeId : u16 {
     ItemPickup = 104,
 
     /// 不祥生成粒子（不祥物品生成器周围生成的不祥粒子）
+    /// TODO: 与 DrippingDripstoneWater 枚举值冲突（均为 109），需要与 MC 原版协议 ID 对齐时一并修复。
+    ///   MC Java 1.21.11 中粒子类型 ID 由注册顺序决定（0~114），当前项目采用自定义分组编号，
+    ///   两者不一致，未来需统一为协议 ID 以保证网络兼容性。
     OminousSpawning = 109,
 
     // ========================================================================
