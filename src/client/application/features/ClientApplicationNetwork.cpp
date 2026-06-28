@@ -67,6 +67,7 @@
 #include "common/world/fluid/FluidTags.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -1942,6 +1943,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         case WorldEvents::BREAK_BLOCK_EFFECTS: {
             // 方块破坏效果：根据方块状态ID获取正确的破坏音效和破坏粒子
             // data = 方块状态ID（BlockState::stateId()）
+            // 对应 MC ClientLevel.addDestroyBlockEffect / LevelEventHandler case 2001
             const BlockState* blockState = BlockRegistry::instance().getBlockState(static_cast<u32>(data));
             if (blockState && !blockState->isAir()) {
                 const BlockSoundType& soundType = blockState->getSoundType();
@@ -1955,7 +1957,47 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                             (soundType.getVolume() + 1.0f) / 2.0f,
                             soundType.getPitch() * 0.8f)));
                 }
-                // TODO: 生成方块破碎粒子（Breaking 粒子需要方块状态纹理作为附加参数，暂不实现）
+
+                // 生成方块破碎粒子
+                // 算法对齐 MC ClientLevel.addDestroyBlockEffect：
+                // 获取方块的形状，对每个AABB按0.25格间距均匀分布粒子
+                // 标准完整方块(1x1x1)生成 4x4x4 = 64 个粒子
+                const auto& shape = blockState->getShape();
+                for (const auto& box : shape.boxes()) {
+                    const f32 d1 = std::min(1.0f, box.maxX - box.minX); // AABB宽度
+                    const f32 d2 = std::min(1.0f, box.maxY - box.minY); // AABB高度
+                    const f32 d3 = std::min(1.0f, box.maxZ - box.minZ); // AABB深度
+
+                    const i32 countX = std::max(2, static_cast<i32>(std::ceil(d1 / 0.25)));
+                    const i32 countY = std::max(2, static_cast<i32>(std::ceil(d2 / 0.25)));
+                    const i32 countZ = std::max(2, static_cast<i32>(std::ceil(d3 / 0.25)));
+
+                    for (i32 ix = 0; ix < countX; ++ix) {
+                        for (i32 iy = 0; iy < countY; ++iy) {
+                            for (i32 iz = 0; iz < countZ; ++iz) {
+                                // 归一化位置（0~1），位于网格单元中心
+                                const f32 nx = (static_cast<f32>(ix) + 0.5f) / static_cast<f32>(countX);
+                                const f32 ny = (static_cast<f32>(iy) + 0.5f) / static_cast<f32>(countY);
+                                const f32 nz = (static_cast<f32>(iz) + 0.5f) / static_cast<f32>(countZ);
+
+                                // 粒子世界位置：AABB内偏移 + 方块位置
+                                const f32 particleX = px + nx * d1 + box.minX;
+                                const f32 particleY = py + ny * d2 + box.minY;
+                                const f32 particleZ = pz + nz * d3 + box.minZ;
+
+                                // 粒子速度：从中心向外扩散
+                                const f32 vx = nx - 0.5f;
+                                const f32 vy = ny - 0.5f;
+                                const f32 vz = nz - 0.5f;
+
+                                m_world.addBlockParticle(ParticleTypeId::Breaking,
+                                    Vector3(particleX, particleY, particleZ),
+                                    Vector3(vx, vy, vz),
+                                    *blockState);
+                            }
+                        }
+                    }
+                }
             }
             break;
         }
