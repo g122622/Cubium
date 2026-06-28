@@ -191,13 +191,11 @@ bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
         return false;
     }
 
+    // 对应 MC Java Projectile.canHitEntity:
+    // 发射者未离开前，不能命中与发射者骑乘同一载具的实体（包括发射者自身）
     const Entity* shooter = getShooter();
-    if (!m_leftShooter && shooter != nullptr) {
-        // 检查是否骑乘同一实体
-        // 简化检查：直接比较
-        if (shooter == &target) {
-            return false;
-        }
+    if (!m_leftShooter && shooter != nullptr && shooter->isRidingSameEntity(target)) {
+        return false;
     }
 
     return true;
