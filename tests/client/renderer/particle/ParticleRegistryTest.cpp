@@ -199,8 +199,8 @@ TEST(ParticleRegistryTest, RegisterCustomType)
         return std::make_unique<Particle>(pos, vel);
     };
 
-    // 使用未使用的ID范围
-    ParticleTypeId customId = static_cast<ParticleTypeId>(100);
+    // 覆盖注册一个已有类型（Flame，ID=32）以测试 registerType 方法
+    ParticleTypeId customId = ParticleTypeId::Flame;
 
     registry.registerType(customId,
         "test:custom_particle",
@@ -243,8 +243,8 @@ TEST(ParticleRegistryTest, CreateParticle)
         return particle;
     };
 
-    // 使用一个未使用的 ID
-    ParticleTypeId testId = static_cast<ParticleTypeId>(101);
+    // 使用一个未注册工厂的已有类型 ID（Gust，ID=24）
+    ParticleTypeId testId = ParticleTypeId::Gust;
     registry.registerSimpleType(
         testId, "test:create_test", testFactory, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 
@@ -276,7 +276,7 @@ TEST(ParticleRegistryTest, CreateParticleByName)
         return std::make_unique<Particle>(pos, vel);
     };
 
-    ParticleTypeId testId = static_cast<ParticleTypeId>(102);
+    ParticleTypeId testId = ParticleTypeId::SmallGust;
     registry.registerSimpleType(
         testId, "test:name_create_test", testFactory, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 

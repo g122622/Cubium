@@ -97,9 +97,8 @@ TEST_F(ExplosionParticleTypeTest, ExplosionParticle_ValueCorrect)
 {
     using namespace client::renderer::trident::particle;
 
-    // 验证 Explosion 粒子类型的值
-    // MC 1.16.5 ParticleTypes.EXPLOSION
-    EXPECT_EQ(static_cast<u32>(ParticleTypeId::Explosion), 26u);
+    // 验证 Explosion 粒子类型的值（MC 1.21.11 协议 ID = 23）
+    EXPECT_EQ(static_cast<u32>(ParticleTypeId::Explosion), 23u);
 }
 
 TEST_F(ExplosionParticleTypeTest, ExplosionParticle_CanBeUsedForShulkerBullet)
@@ -107,10 +106,10 @@ TEST_F(ExplosionParticleTypeTest, ExplosionParticle_CanBeUsedForShulkerBullet)
     using namespace client::renderer::trident::particle;
 
     // 验证 Explosion 粒子可用于 ShulkerBulletEntity.onBlockHit()
-    // 参考 MC 1.16.5 ShulkerBulletEntity.func_230299_a_()
+    // 参考 MC ShulkerBulletEntity.onBlockHit()
     // spawnParticle(ParticleTypes.EXPLOSION, this.getPosX(), this.getPosY(), this.getPosZ(), 2, 0.2D, 0.2D, 0.2D, 0.0D)
     constexpr u32 EXPLOSION_PARTICLE = static_cast<u32>(ParticleTypeId::Explosion);
-    EXPECT_EQ(EXPLOSION_PARTICLE, 26u);
+    EXPECT_EQ(EXPLOSION_PARTICLE, 23u);
 }
 
 // ============================================================================

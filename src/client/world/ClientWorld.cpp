@@ -908,8 +908,9 @@ void ClientWorld::addBlockParticle(
         if (particle) {
             m_particleManager->addParticle(std::move(particle));
         }
-    } else if (type == ParticleTypeId::Block || type == ParticleTypeId::Breaking ||
-        type == ParticleTypeId::FallingDust) {
+    } else if (type == ParticleTypeId::Block || type == ParticleTypeId::BlockMarker ||
+        type == ParticleTypeId::Breaking || type == ParticleTypeId::FallingDust ||
+        type == ParticleTypeId::BlockCrumble) {
         // 其他方块粒子：使用 DiggingParticle::createWithBlock
         auto particle = particles::DiggingParticle::createWithBlock(glmPos, glmVel, blockState);
         if (particle) {

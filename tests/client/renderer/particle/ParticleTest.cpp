@@ -468,11 +468,11 @@ TEST(ParticleTypesTest, TypeValidation)
     EXPECT_TRUE(isValidParticleType(ParticleTypeId::Flame));
     EXPECT_TRUE(isValidParticleType(ParticleTypeId::Smoke));
     EXPECT_TRUE(isValidParticleType(ParticleTypeId::Heart));
-    EXPECT_TRUE(isValidParticleType(static_cast<ParticleTypeId>(127)));
+    EXPECT_TRUE(isValidParticleType(static_cast<ParticleTypeId>(123))); // 最后一个有效值 (LandingCherryLeaves)
 
     // 无效类型
     EXPECT_FALSE(isValidParticleType(ParticleTypeId::Invalid));
-    EXPECT_FALSE(isValidParticleType(static_cast<ParticleTypeId>(128)));
+    EXPECT_FALSE(isValidParticleType(static_cast<ParticleTypeId>(124))); // == Count，无效
     EXPECT_FALSE(isValidParticleType(static_cast<ParticleTypeId>(255)));
 }
 
@@ -481,22 +481,36 @@ TEST(ParticleTypesTest, TypeValidation)
  */
 TEST(ParticleTypesTest, DataRequirements)
 {
-    // 需要方块状态的类型
+    // 需要方块状态的类型（MC 协议：Block, BlockMarker, FallingDust, DustPillar, BlockCrumble）
     EXPECT_TRUE(requiresBlockState(ParticleTypeId::Block));
-    EXPECT_TRUE(requiresBlockState(ParticleTypeId::Breaking));
+    EXPECT_TRUE(requiresBlockState(ParticleTypeId::BlockMarker));
     EXPECT_TRUE(requiresBlockState(ParticleTypeId::FallingDust));
+    EXPECT_TRUE(requiresBlockState(ParticleTypeId::DustPillar));
+    EXPECT_TRUE(requiresBlockState(ParticleTypeId::BlockCrumble));
+    // 内部扩展：Breaking 也需要方块状态
+    EXPECT_TRUE(requiresBlockState(ParticleTypeId::Breaking));
 
     // 不需要方块状态的类型
     EXPECT_FALSE(requiresBlockState(ParticleTypeId::Flame));
     EXPECT_FALSE(requiresBlockState(ParticleTypeId::Smoke));
 
-    // 需要物品数据的类型
+    // 需要物品数据的类型（MC 协议：Item, ItemSlime, ItemSnowball, ItemCobweb）
     EXPECT_TRUE(requiresItemData(ParticleTypeId::Item));
     EXPECT_TRUE(requiresItemData(ParticleTypeId::ItemSlime));
+    EXPECT_TRUE(requiresItemData(ParticleTypeId::ItemSnowball));
+    EXPECT_TRUE(requiresItemData(ParticleTypeId::ItemCobweb));
 
-    // 需要红石颜色的类型
-    EXPECT_TRUE(requiresDustColor(ParticleTypeId::Redstone));
+    // 需要颜色数据的类型（MC 协议：Dust, DustColorTransition, EntityEffect, Flash, TintedLeaves）
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::Dust));
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::DustColorTransition));
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::EntityEffect));
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::Flash));
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::TintedLeaves));
+
+    // 需要红石颜色的类型（Dust, DustColorTransition，内部扩展：Redstone）
     EXPECT_TRUE(requiresDustColor(ParticleTypeId::Dust));
+    EXPECT_TRUE(requiresDustColor(ParticleTypeId::DustColorTransition));
+    EXPECT_TRUE(requiresDustColor(ParticleTypeId::Redstone));
 }
 
 /**

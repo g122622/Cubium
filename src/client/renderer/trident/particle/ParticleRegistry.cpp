@@ -152,140 +152,39 @@ void ParticleRegistry::_registerBuiltinTypes()
 {
     // 注意：这里只注册类型元数据，不注册工厂函数
     // 工厂函数在具体粒子类型实现后注册
+    // 枚举值与 MC Java 1.21.11 协议 ID 一致（0~114）
+    // 115~123 为项目内部扩展粒子，不参与网络通信
 
-    // 环境类粒子
-    registerSimpleType(ParticleTypeId::AmbientEntityEffect,
-        "minecraft:ambient_entity_effect",
+    // 方块类粒子 (0-2)
+    registerSimpleType(ParticleTypeId::AngryVillager,
+        "minecraft:angry_villager",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::Block, "minecraft:block", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+    registerSimpleType(
+        ParticleTypeId::BlockMarker, "minecraft:block_marker", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+
+    // 环境类粒子 (3-8)
     registerSimpleType(
         ParticleTypeId::Bubble, "minecraft:bubble", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::BubblePop,
-        "minecraft:bubble_pop",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE);
-    registerSimpleType(ParticleTypeId::BubbleColumnUp,
-        "minecraft:bubble_column_up",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::CurrentDown,
-        "minecraft:current_down",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::Underwater,
-        "minecraft:underwater",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::FallingSporeBlossom,
-        "minecraft:falling_spore_blossom",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::SporeBlossomAir,
-        "minecraft:spore_blossom_air",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(
-        ParticleTypeId::Barrier, "minecraft:barrier", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
-    registerSimpleType(
-        ParticleTypeId::Light, "minecraft:light", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(ParticleTypeId::SoulFireFlame,
-        "minecraft:soul_fire_flame",
+        ParticleTypeId::Cloud, "minecraft:cloud", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::CopperFireFlame,
+        "minecraft:copper_fire_flame",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(
-        ParticleTypeId::Soul, "minecraft:soul", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-
-    // 方块/物品类粒子
-    registerSimpleType(ParticleTypeId::Block, "minecraft:block", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
-    registerSimpleType(
-        ParticleTypeId::Breaking, "minecraft:breaking", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
-    registerSimpleType(
-        ParticleTypeId::FallingDust, "minecraft:falling_dust", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
-    // 尘柱粒子（重锤砸地攻击，使用方块状态纹理）
-    registerSimpleType(
-        ParticleTypeId::DustPillar, "minecraft:dust_pillar", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
-    registerSimpleType(
-        ParticleTypeId::Item, "minecraft:item", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::ItemSlime,
-        "minecraft:item_slime",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::ItemSnowball,
-        "minecraft:item_snowball",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-
-    // 效果类粒子
-    registerSimpleType(
-        ParticleTypeId::Flame, "minecraft:flame", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(
-        ParticleTypeId::Smoke, "minecraft:smoke", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::LargeSmoke,
-        "minecraft:large_smoke",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::WhiteSmoke,
-        "minecraft:white_smoke",
+        ParticleTypeId::Crit, "minecraft:crit", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+    registerSimpleType(ParticleTypeId::DamageIndicator,
+        "minecraft:damage_indicator",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_OPAQUE);
-    registerSimpleType(
-        ParticleTypeId::Lava, "minecraft:lava", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(
-        ParticleTypeId::Portal, "minecraft:portal", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::ReversePortal,
-        "minecraft:reverse_portal",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::Explosion,
-        "minecraft:explosion",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Poof, "minecraft:poof", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Crit, "minecraft:crit", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
-    registerSimpleType(ParticleTypeId::EnchantedHit,
-        "minecraft:enchanted_hit",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Spell, "minecraft:spell", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::InstantSpell,
-        "minecraft:instant_spell",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::EntityEffect,
-        "minecraft:entity_effect",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Redstone, "minecraft:redstone", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(ParticleTypeId::Enchant,
-        "minecraft:enchant",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Spit, "minecraft:spit", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::SquidInk,
-        "minecraft:squid_ink",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::DragonBreath,
         "minecraft:dragon_breath",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::EndRod, "minecraft:end_rod", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
 
-    // 液体滴落类粒子
-    registerSimpleType(ParticleTypeId::DrippingWater,
-        "minecraft:dripping_water",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::FallingWater,
-        "minecraft:falling_water",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // 液体滴落类粒子 (9-13)
     registerSimpleType(ParticleTypeId::DrippingLava,
         "minecraft:dripping_lava",
         ParticleFactory{},
@@ -298,6 +197,232 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:landing_lava",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::DrippingWater,
+        "minecraft:dripping_water",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::FallingWater,
+        "minecraft:falling_water",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    // 染色粒子 (14-15)
+    registerSimpleType(
+        ParticleTypeId::Dust, "minecraft:dust", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::DustColorTransition,
+        "minecraft:dust_color_transition",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+
+    // 效果类粒子 (16-28)
+    registerSimpleType(
+        ParticleTypeId::Spell, "minecraft:spell", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::ElderGuardian,
+        "minecraft:elder_guardian",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::EnchantedHit,
+        "minecraft:enchanted_hit",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::Enchant,
+        "minecraft:enchant",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::EndRod, "minecraft:end_rod", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::EntityEffect,
+        "minecraft:entity_effect",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::HugeExplosion,
+        "minecraft:explosion_emitter",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::Explosion,
+        "minecraft:explosion",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Gust, "minecraft:gust", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::SmallGust,
+        "minecraft:small_gust",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::GustEmitterLarge,
+        "minecraft:gust_emitter_large",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::GustEmitterSmall,
+        "minecraft:gust_emitter_small",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::SonicBoom,
+        "minecraft:sonic_boom",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    // 方块/物品/烟花粒子 (29-31)
+    registerSimpleType(
+        ParticleTypeId::FallingDust, "minecraft:falling_dust", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+    registerSimpleType(ParticleTypeId::Firework,
+        "minecraft:firework",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::Fishing,
+        "minecraft:fishing",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    // 火焰/效果粒子 (32-52)
+    registerSimpleType(
+        ParticleTypeId::Flame, "minecraft:flame", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::Infested,
+        "minecraft:infested",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::CherryLeaves,
+        "minecraft:cherry_leaves",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::PaleOakLeaves,
+        "minecraft:pale_oak_leaves",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::TintedLeaves,
+        "minecraft:tinted_leaves",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::SculkSoul, "minecraft:sculk_soul", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::SculkCharge,
+        "minecraft:sculk_charge",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::SculkChargePop,
+        "minecraft:sculk_charge_pop",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::SoulFireFlame,
+        "minecraft:soul_fire_flame",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(
+        ParticleTypeId::Soul, "minecraft:soul", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Flash, "minecraft:flash", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::HappyVillager,
+        "minecraft:happy_villager",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::Composter,
+        "minecraft:composter",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Heart, "minecraft:heart", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::InstantSpell,
+        "minecraft:instant_spell",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Item, "minecraft:item", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::Vibration,
+        "minecraft:vibration",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Trail, "minecraft:trail", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::ItemSlime,
+        "minecraft:item_slime",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::ItemCobweb,
+        "minecraft:item_cobweb",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::ItemSnowball,
+        "minecraft:item_snowball",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    // 烟雾/天气/生物粒子 (53-69)
+    registerSimpleType(ParticleTypeId::LargeSmoke,
+        "minecraft:large_smoke",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Lava, "minecraft:lava", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(
+        ParticleTypeId::Mycelium, "minecraft:mycelium", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+    registerSimpleType(
+        ParticleTypeId::Note, "minecraft:note", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(
+        ParticleTypeId::Poof, "minecraft:poof", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Portal, "minecraft:portal", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Rain, "minecraft:rain", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Smoke, "minecraft:smoke", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::WhiteSmoke,
+        "minecraft:white_smoke",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+    registerSimpleType(
+        ParticleTypeId::Sneeze, "minecraft:sneeze", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Spit, "minecraft:spit", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::SquidInk,
+        "minecraft:squid_ink",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::SweepAttack,
+        "minecraft:sweep_attack",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::TotemOfUndying,
+        "minecraft:totem_of_undying",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::Underwater,
+        "minecraft:underwater",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Splash, "minecraft:splash", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Witch, "minecraft:witch", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+
+    // 水下/营地/蜂蜜粒子 (70-79)
+    registerSimpleType(ParticleTypeId::BubblePop,
+        "minecraft:bubble_pop",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+    registerSimpleType(ParticleTypeId::CurrentDown,
+        "minecraft:current_down",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::BubbleColumnUp,
+        "minecraft:bubble_column_up",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::Nautilus,
+        "minecraft:nautilus",
+        particles::NautilusParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::Dolphin,
+        "minecraft:dolphin",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::CampfireCozy,
+        "minecraft:campfire_cozy_smoke",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::CampfireSignal,
+        "minecraft:campfire_signal_smoke",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::DrippingHoney,
         "minecraft:dripping_honey",
         ParticleFactory{},
@@ -310,97 +435,18 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:landing_honey",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::DrippingObsidianTear,
-        "minecraft:dripping_obsidian_tear",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::FallingObsidianTear,
-        "minecraft:falling_obsidian_tear",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 
-    // 滴水石专用粒子
-    registerSimpleType(ParticleTypeId::DrippingDripstoneWater,
-        "minecraft:dripping_dripstone_water",
+    // 花蜜/孢子/下界粒子 (80-98)
+    registerSimpleType(ParticleTypeId::FallingNectar,
+        "minecraft:falling_nectar",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-
-    registerSimpleType(ParticleTypeId::FallingDripstoneWater,
-        "minecraft:falling_dripstone_water",
+    registerSimpleType(ParticleTypeId::FallingSporeBlossom,
+        "minecraft:falling_spore_blossom",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-
-    registerSimpleType(ParticleTypeId::DrippingDripstoneLava,
-        "minecraft:dripping_dripstone_lava",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_LIT);
-
-    registerSimpleType(ParticleTypeId::FallingDripstoneLava,
-        "minecraft:falling_dripstone_lava",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_LIT);
-
-    // 天气类粒子
-    registerSimpleType(
-        ParticleTypeId::Rain, "minecraft:rain", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::Snowflake,
-        "minecraft:snowflake",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Splash, "minecraft:splash", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::Fishing,
-        "minecraft:fishing",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Mycelium, "minecraft:mycelium", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
-
-    // 生物相关粒子
-    registerSimpleType(
-        ParticleTypeId::Heart, "minecraft:heart", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::AngryVillager,
-        "minecraft:angry_villager",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::HappyVillager,
-        "minecraft:happy_villager",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Sneeze, "minecraft:sneeze", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::Dolphin,
-        "minecraft:dolphin",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-
-    // 特殊粒子
-    registerSimpleType(ParticleTypeId::TotemOfUndying,
-        "minecraft:totem_of_undying",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(
-        ParticleTypeId::Flash, "minecraft:flash", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(ParticleTypeId::ElderGuardian,
-        "minecraft:elder_guardian",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::Nautilus,
-        "minecraft:nautilus",
-        particles::NautilusParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(ParticleTypeId::Firework,
-        "minecraft:firework",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-
-    // 下界更新粒子
     registerSimpleType(
         ParticleTypeId::Ash, "minecraft:ash", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::WhiteAsh,
-        "minecraft:white_ash",
-        ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::CrimsonSpore,
         "minecraft:crimson_spore",
         ParticleFactory{},
@@ -409,18 +455,50 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:warped_spore",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::SporeBlossomAir,
+        "minecraft:spore_blossom_air",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::DrippingObsidianTear,
+        "minecraft:dripping_obsidian_tear",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::FallingObsidianTear,
+        "minecraft:falling_obsidian_tear",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::LandingObsidianTear,
         "minecraft:landing_obsidian_tear",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::ReversePortal,
+        "minecraft:reverse_portal",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::WhiteAsh,
+        "minecraft:white_ash",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(
-        ParticleTypeId::Dust, "minecraft:dust", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(ParticleTypeId::DustColorTransition,
-        "minecraft:dust_color_transition",
+        ParticleTypeId::SmallFlame, "minecraft:small_flame", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::Snowflake,
+        "minecraft:snowflake",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::DrippingDripstoneLava,
+        "minecraft:dripping_dripstone_lava",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(ParticleTypeId::Vibration,
-        "minecraft:vibration",
+    registerSimpleType(ParticleTypeId::FallingDripstoneLava,
+        "minecraft:falling_dripstone_lava",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(ParticleTypeId::DrippingDripstoneWater,
+        "minecraft:dripping_dripstone_water",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::FallingDripstoneWater,
+        "minecraft:falling_dripstone_water",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::GlowSquidInk,
@@ -430,31 +508,87 @@ void ParticleRegistry::_registerBuiltinTypes()
     registerSimpleType(
         ParticleTypeId::Glow, "minecraft:glow", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
 
-    // 营火烟雾粒子
-    registerSimpleType(ParticleTypeId::CampfireCozy,
-        "minecraft:campfire_cozy_smoke",
+    // 铜蚀/幽匿/试炼/不祥粒子 (99-114)
+    registerSimpleType(
+        ParticleTypeId::WaxOn, "minecraft:wax_on", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::WaxOff, "minecraft:wax_off", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::ElectricSpark,
+        "minecraft:electric_spark",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(
+        ParticleTypeId::Scrape, "minecraft:scrape", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::Shriek, "minecraft:shriek", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::EggCrack,
+        "minecraft:egg_crack",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(ParticleTypeId::CampfireSignal,
-        "minecraft:campfire_signal_smoke",
+    registerSimpleType(ParticleTypeId::DustPlume,
+        "minecraft:dust_plume",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::TrialSpawnerDetection,
+        "minecraft:trial_spawner_detection",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::TrialSpawnerDetectionOminous,
+        "minecraft:trial_spawner_detection_ominous",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::VaultConnection,
+        "minecraft:vault_connection",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::DustPillar, "minecraft:dust_pillar", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+    registerSimpleType(ParticleTypeId::OminousSpawning,
+        "minecraft:ominous_spawning",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::RaidOmen,
+        "minecraft:raid_omen",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::TrialOmen,
+        "minecraft:trial_omen",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(
+        ParticleTypeId::BlockCrumble, "minecraft:block_crumble", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+    registerSimpleType(
+        ParticleTypeId::Firefly, "minecraft:firefly", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
 
-    // 爆炸粒子
+    // 项目内部扩展粒子（不在 MC 协议中）
+    registerSimpleType(
+        ParticleTypeId::Breaking, "minecraft:breaking", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+    registerSimpleType(
+        ParticleTypeId::Barrier, "minecraft:barrier", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+    registerSimpleType(
+        ParticleTypeId::Light, "minecraft:light", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    registerSimpleType(
+        ParticleTypeId::Redstone, "minecraft:redstone", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(ParticleTypeId::LargeExplosion,
-        "minecraft:explosion_emitter",
+        "minecraft:large_explosion",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(ParticleTypeId::HugeExplosion,
-        "minecraft:explosion_huge",
+    registerSimpleType(ParticleTypeId::ItemPickup,
+        "minecraft:item_pickup",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-
-    // 横扫攻击粒子
-    registerSimpleType(ParticleTypeId::SweepAttack,
-        "minecraft:sweep_attack",
+    registerSimpleType(ParticleTypeId::DrippingCherryLeaves,
+        "minecraft:dripping_cherry_leaves",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_LIT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::FallingCherryLeaves,
+        "minecraft:falling_cherry_leaves",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    registerSimpleType(ParticleTypeId::LandingCherryLeaves,
+        "minecraft:landing_cherry_leaves",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
 }
 
 } // namespace mc::client::renderer::trident::particle

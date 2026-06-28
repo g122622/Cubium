@@ -351,9 +351,10 @@ TEST(ParticlePacketFactoryTest, CreateSingleMethod)
 
 // ==================== 所有粒子类型测试 ====================
 
-TEST(ParticlePacketAllTypesTest, AllParticleTypesSerialize)
+TEST(ParticlePacketAllTypesTest, AllProtocolParticleTypesSerialize)
 {
-    for (u16 i = 0; i < static_cast<u16>(ParticleTypeId::Count); ++i) {
+    // 仅测试 MC 协议定义的粒子类型（0~114），内部扩展类型（115~123）不参与网络通信
+    for (u16 i = 0; i < mc::particle::PROTOCOL_PARTICLE_TYPE_COUNT; ++i) {
         ParticleTypeId type = static_cast<ParticleTypeId>(i);
 
         ParticlePacket original(type, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), 1);
@@ -409,7 +410,7 @@ TEST(ParticleSyncIntegrationTest, MultiplePacketsInSequence)
 {
     std::vector<ParticleTypeId> types = {ParticleTypeId::Flame,
         ParticleTypeId::Smoke,
-        ParticleTypeId::LargeExplosion,
+        ParticleTypeId::HugeExplosion,
         ParticleTypeId::Bubble,
         ParticleTypeId::Heart};
 
@@ -448,7 +449,7 @@ TEST(ParticleSyncIntegrationTest, ParticleWithBlockData)
 
 TEST(ParticleSyncIntegrationTest, ParticleWithRedstoneData)
 {
-    ParticlePacket redstoneParticle(ParticleTypeId::Redstone, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), 1);
+    ParticlePacket redstoneParticle(ParticleTypeId::Dust, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), 1);
 
     // 设置红石颜色数据
     std::vector<u8> colorData;
@@ -471,7 +472,7 @@ TEST(ParticleSyncIntegrationTest, ParticleWithRedstoneData)
     auto deserResult = received.deserialize(result.value().data(), result.value().size());
     ASSERT_TRUE(deserResult.success());
 
-    EXPECT_EQ(received.particleType(), ParticleTypeId::Redstone);
+    EXPECT_EQ(received.particleType(), ParticleTypeId::Dust);
     EXPECT_EQ(received.optionalData().size(), sizeof(f32) * 4);
 }
 

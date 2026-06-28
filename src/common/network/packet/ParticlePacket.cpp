@@ -53,7 +53,7 @@ Result<std::vector<u8>> ParticlePacket::serialize() const
 {
     PacketSerializer serializer(expectedSize());
 
-    // 写入粒子类型ID
+    // 写入粒子类型ID（枚举值与 MC 协议 ID 一致，可直接序列化）
     serializer.writeVarInt(static_cast<i32>(m_particleType));
 
     // 写入位置 (f64)
@@ -98,11 +98,12 @@ Result<void> ParticlePacket::deserialize(const u8* data, size_t size)
     if (!typeResult.success()) {
         return typeResult.error();
     }
+    // 读取粒子类型ID（枚举值与 MC 协议 ID 一致，VarInt 直接转为枚举）
     m_particleType = static_cast<particle::ParticleTypeId>(typeResult.value());
 
-    // 验证粒子类型
-    if (!particle::isValidParticleType(m_particleType)) {
-        return Error(ErrorCode::InvalidData, "ParticlePacket: invalid particle type");
+    // 验证粒子类型：网络通信仅接受 MC 协议定义的粒子类型
+    if (!particle::isProtocolParticleType(m_particleType)) {
+        return Error(ErrorCode::InvalidData, "ParticlePacket: invalid or non-protocol particle type");
     }
 
     // 读取位置 (f64)

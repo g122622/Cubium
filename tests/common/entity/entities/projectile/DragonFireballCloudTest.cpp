@@ -100,13 +100,12 @@ TEST_F(DragonBreathCloudParticleTest, DragonBreathParticle_ValueCorrect)
 {
     using namespace client::renderer::trident::particle;
 
-    // 验证 DragonBreath 粒子类型的值
-    // 参考 MC 1.16.5 ParticleTypes.DRAGON_BREATH
-    EXPECT_EQ(static_cast<u32>(ParticleTypeId::DragonBreath), 38u);
+    // 验证 DragonBreath 粒子类型的值（MC 1.21.11 协议 ID = 8）
+    EXPECT_EQ(static_cast<u32>(ParticleTypeId::DragonBreath), 8u);
 
     // 设置并验证
     m_cloud->setParticleType(static_cast<u32>(ParticleTypeId::DragonBreath));
-    EXPECT_EQ(m_cloud->getParticleType(), 38u);
+    EXPECT_EQ(m_cloud->getParticleType(), 8u);
 }
 
 // ============================================================================
@@ -181,7 +180,7 @@ TEST_F(ProjectileParticleTypeEnumTest, ExplosionParticle_ValueCorrect)
 
     // 验证 Explosion 粒子类型的值
     // 参考 MC 1.16.5 ParticleTypes.EXPLOSION
-    EXPECT_EQ(static_cast<u32>(ParticleTypeId::Explosion), 26u);
+    EXPECT_EQ(static_cast<u32>(ParticleTypeId::Explosion), 23u);
 }
 
 TEST_F(ProjectileParticleTypeEnumTest, SmokeParticle_ValueCorrect)
@@ -189,7 +188,7 @@ TEST_F(ProjectileParticleTypeEnumTest, SmokeParticle_ValueCorrect)
     using namespace client::renderer::trident::particle;
 
     // 验证 Smoke 粒子类型的值
-    EXPECT_EQ(static_cast<u32>(ParticleTypeId::Smoke), 21u);
+    EXPECT_EQ(static_cast<u32>(ParticleTypeId::Smoke), 60u);
 }
 
 TEST_F(ProjectileParticleTypeEnumTest, DragonBreathParticle_ValueCorrect)
@@ -197,7 +196,7 @@ TEST_F(ProjectileParticleTypeEnumTest, DragonBreathParticle_ValueCorrect)
     using namespace client::renderer::trident::particle;
 
     // 验证 DragonBreath 粒子类型的值
-    EXPECT_EQ(static_cast<u32>(ParticleTypeId::DragonBreath), 38u);
+    EXPECT_EQ(static_cast<u32>(ParticleTypeId::DragonBreath), 8u);
 }
 
 // ============================================================================

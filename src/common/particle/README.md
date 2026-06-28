@@ -14,29 +14,60 @@ src/common/particle/
 
 ### ParticleTypes.hpp
 
-定义 `mc::particle::ParticleTypeId` 枚举（底层类型 `u16`），包含 MC Java 版所有粒子类型 ID。
+定义 `mc::particle::ParticleTypeId` 枚举（底层类型 `u16`），包含 MC Java 1.21.11 所有粒子类型 ID 及项目内部扩展。
 
-**枚举值按分类组织**：
+**枚举值与 MC 协议 ID 一致**：0~114 为 MC Java 1.21.11 协议中定义的粒子类型，由注册顺序决定。115~123 为项目内部扩展粒子，不参与网络通信。
 
-| 区间       | 分类           | 示例                                       |
-|-----------|---------------|-------------------------------------------|
-| 0-9       | 环境类粒子      | AmbientEntityEffect, Bubble, Soul          |
-| 10-19     | 方块/物品类粒子  | Block, Breaking, Item, DustPillar          |
-| 20-39     | 效果类粒子      | Flame, Smoke, Explosion, Portal            |
-| 40-49     | 液体滴落类粒子   | DrippingWater, DrippingLava, DrippingHoney  |
-| 50-59     | 天气类粒子      | Rain, Snowflake, Splash, Cloud             |
-| 60-69     | 生物相关粒子    | Heart, AngryVillager, Sneeze               |
-| 70-79     | 特殊粒子       | TotemOfUndying, Flash, Firework            |
-| 80-99     | 下界更新粒子    | Ash, Vibration, SculkSoul, CherryLeaves    |
-| 100-116   | 扩展粒子       | CampfireCozy, OminousSpawning, GustDust    |
+**协议粒子分类**（基于 MC 功能分组，不影响枚举值）：
+
+| 区间       | 分类               | 示例                                           |
+|-----------|-------------------|-----------------------------------------------|
+| 0-2       | 方块类粒子         | AngryVillager, Block, BlockMarker              |
+| 3-8       | 环境类粒子         | Bubble, Cloud, Crit, DragonBreath              |
+| 9-13      | 液体滴落类粒子      | DrippingLava, FallingLava, DrippingWater       |
+| 14-15     | 染色粒子           | Dust, DustColorTransition                     |
+| 16-28     | 效果类粒子         | Spell, Enchant, Explosion, Gust, SonicBoom     |
+| 29-31     | 方块/物品/烟花粒子  | FallingDust, Firework, Fishing                 |
+| 32-52     | 火焰/效果粒子       | Flame, Infested, CherryLeaves, Item, Vibration |
+| 53-69     | 烟雾/天气/生物粒子  | LargeSmoke, Lava, Smoke, Splash, Witch          |
+| 70-79     | 水下/营地/蜂蜜粒子  | BubblePop, CampfireCozy, DrippingHoney         |
+| 80-98     | 花蜜/孢子/下界粒子  | FallingNectar, Ash, Snowflake, Glow             |
+| 99-114    | 铜蚀/幽匿/试炼粒子  | WaxOn, SculkSoul, TrialSpawnerDetection, Firefly|
+
+**内部扩展粒子**（115~123，不在 MC 协议中）：
+
+| 值  | 名称                  | 说明                                    |
+|-----|----------------------|----------------------------------------|
+| 115 | Breaking             | 方块破坏粒子（MC 中 Block 兼用此功能）       |
+| 116 | Barrier              | 屏障方块显示粒子                           |
+| 117 | Light                | 结构方块标记粒子                           |
+| 118 | Redstone             | 红石粉尘粒子（MC 中由 Dust + 颜色数据实现）   |
+| 119 | LargeExplosion       | 大型爆炸粒子（MC 中为 explosion_emitter）    |
+| 120 | ItemPickup           | 物品拾取粒子                              |
+| 121 | DrippingCherryLeaves | 滴落樱花树叶                              |
+| 122 | FallingCherryLeaves  | 下落樱花树叶                              |
+| 123 | LandingCherryLeaves  | 落地樱花树叶                              |
 
 **辅助函数**：
 
-- `isValidParticleType(id)` — 检查 ID 是否在有效范围内
-- `requiresBlockState(id)` — 检查是否需要方块状态数据（Block/Breaking/FallingDust/DustPillar）
-- `requiresItemData(id)` — 检查是否需要物品数据（Item/ItemSlime/ItemSnowball）
-- `requiresDustColor(id)` — 检查是否需要红石颜色数据（Redstone/Dust/DustColorTransition）
+- `isValidParticleType(id)` — 检查 ID 是否在有效范围内（< Count）
+- `isProtocolParticleType(id)` — 检查 ID 是否为 MC 协议定义的类型（< 115）
+- `requiresBlockState(id)` — 检查是否需要方块状态数据（Block/BlockMarker/FallingDust/DustPillar/BlockCrumble）
+- `requiresItemData(id)` — 检查是否需要物品数据（Item/ItemSlime/ItemSnowball/ItemCobweb）
+- `requiresColorData(id)` — 检查是否需要颜色数据（Dust/DustColorTransition/EntityEffect/Flash/TintedLeaves）
+- `requiresDustColor(id)` — 检查是否需要红石颜色数据（Dust/DustColorTransition，以及内部扩展 Redstone）
+- `requiresSpellData(id)` — 检查是否需要药水类型数据（Spell/InstantSpell）
 - `requiresVibrationData(id)` — 检查是否需要振动数据（Vibration）
+- `requiresSculkChargeData(id)` — 检查是否需要幽匿充能数据（SculkCharge）
+- `requiresShriekData(id)` — 检查是否需要尖啸延迟数据（Shriek）
+- `requiresTrailData(id)` — 检查是否需要轨迹数据（Trail）
+- `requiresPowerData(id)` — 检查是否需要力量数据（DragonBreath）
+
+## 容易踩的坑
+
+- **协议 ID 一致性**：0~114 的枚举值必须与 MC Java 1.21.11 协议严格一致，不可随意修改。新增 MC 协议粒子时必须按注册顺序追加。
+- **内部扩展粒子不能用于网络通信**：115~123 仅用于项目内部渲染，`ParticlePacket` 的反序列化会拒绝非协议类型的 ID。
+- **命名差异**：部分 Cubium 内部扩展粒子的名称与 MC 不同（如 Cubium 用 `Breaking` 对应 MC 的 `block` 方块破坏场景，Cubium 用 `Redstone` 对应 MC 的 `dust` 红石场景），使用时注意区分。
 
 ## 架构说明
 
@@ -74,6 +105,7 @@ using ParticleTypeId = mc::particle::ParticleTypeId;
 
 ## 注意事项
 
-1. **枚举值分配**：新增粒子类型时，必须在此处分配唯一 ID 并按分类区间编排，避免与已有值冲突
+1. **枚举值分配**：0~114 为 MC 协议 ID，不可修改。项目内部扩展粒子使用 115+，新增内部扩展粒子时需在 Count 之前追加。
 2. **命名空间**：common 层使用 `mc::particle::ParticleTypeId`，客户端兼容层仍可使用 `mc::client::renderer::trident::particle::ParticleTypeId`
 3. **前向声明**：如需前向声明，使用 `namespace mc::particle { enum class ParticleTypeId : u16; }`
+4. **网络序列化**：`ParticlePacket` 直接将枚举值作为 VarInt 序列化，因此协议 ID 一致性至关重要。
