@@ -1414,6 +1414,16 @@ public:
     [[nodiscard]] const ItemStack& getEquipment(EquipmentSlot slot) const override;
 
     /**
+     * @brief 获取装备可变引用（重写 LivingEntity::getMutableEquipment）
+     *
+     * 将 EquipmentSlot 映射到 PlayerInventory 的对应可变槽位引用。
+     *
+     * @param slot 装备槽位
+     * @return 装备物品堆的可变引用
+     */
+    [[nodiscard]] ItemStack& getMutableEquipment(EquipmentSlot slot) override;
+
+    /**
      * @brief 设置装备（重写 LivingEntity::setEquipment）
      *
      * 将装备设置到 PlayerInventory 的对应槽位。

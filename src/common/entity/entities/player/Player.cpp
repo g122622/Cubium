@@ -1202,6 +1202,28 @@ const ItemStack& Player::getEquipment(EquipmentSlot slot) const
     }
 }
 
+ItemStack& Player::getMutableEquipment(EquipmentSlot slot)
+{
+    // Player 重写 getMutableEquipment 从 PlayerInventory 获取装备可变引用
+    switch (slot) {
+        case EquipmentSlot::MainHand:
+            return m_inventory.getSelectedStackRef();
+        case EquipmentSlot::OffHand:
+            return m_inventory.getOffhandItemRef();
+        case EquipmentSlot::Head:
+            return m_inventory.getHelmetRef();
+        case EquipmentSlot::Chest:
+            return m_inventory.getChestplateRef();
+        case EquipmentSlot::Legs:
+            return m_inventory.getLeggingsRef();
+        case EquipmentSlot::Feet:
+            return m_inventory.getBootsRef();
+        default:
+            static ItemStack empty;
+            return empty;
+    }
+}
+
 void Player::setEquipment(EquipmentSlot slot, const ItemStack& stack)
 {
     // Player 重写 setEquipment 设置装备到 PlayerInventory
@@ -2318,11 +2340,11 @@ void Player::attack(Entity& target)
                 // 剑 SwordItem::hitEntity() 消耗 1 点
                 // 工具 ToolItem::hitEntity() 消耗 2 点
                 // 重锤 MaceItem::hitEntity() 消耗 1 点 + 砸地攻击效果
-                item->hitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+                item->hitEntity(getMutableMainHandItem(), *livingTarget, *this);
 
                 // 调用物品的 postHitEntity 方法（伤害结算后回调）
                 // 重锤使用此回调重置攻击者的下落距离
-                item->postHitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+                item->postHitEntity(getMutableMainHandItem(), *livingTarget, *this);
 
                 // 重锤风爆附魔效果：下落攻击命中后产生风爆将攻击者弹起
                 if (isMaceSmashAttack && !mainHand.isEmpty()) {

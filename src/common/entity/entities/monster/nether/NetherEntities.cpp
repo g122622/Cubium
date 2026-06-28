@@ -313,7 +313,7 @@ void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge
     if (!target || !m_world) return;
 
     // 获取主手弩
-    ItemStack& crossbow = const_cast<ItemStack&>(getMainHandItem());
+    ItemStack& crossbow = getMutableMainHandItem();
     const Item* item = crossbow.getItem();
 
     // 检查是否是弩

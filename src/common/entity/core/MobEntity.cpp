@@ -323,7 +323,7 @@ void MobEntity::burnUndead()
 
     // 获取防护槽位中的物品
     EquipmentSlot protectionSlot = sunProtectionSlot();
-    ItemStack& protectionItem = m_equipment[static_cast<size_t>(protectionSlot)];
+    ItemStack& protectionItem = getMutableEquipment(protectionSlot);
 
     if (!protectionItem.isEmpty()) {
         // 防护槽位有物品：如果物品可损坏，则物品承受耐久损耗

@@ -219,18 +219,14 @@ void SoulSpeedEnchantment::tryConsumeDurability(LivingEntity& entity, i32 slot) 
 
     // 将槽位索引转换为 EquipmentSlot
     auto equipmentSlot = static_cast<EquipmentSlot>(slot);
-    const ItemStack& stack = entity.getEquipment(equipmentSlot);
+    ItemStack& stack = entity.getMutableEquipment(equipmentSlot);
     if (stack.isEmpty() || !stack.isDamageable()) {
         return;
     }
 
     // 使用 LivingEntity::hurtAndBreak 消耗耐久
     // hurtAndBreak 会处理耐久消耗、Unbreaking 附魔检测和物品损坏回调
-    // TODO: 当前 getEquipment() 仅返回 const 引用，附魔回调需要可变访问才能调用 hurtAndBreak。
-    //       应在 LivingEntity 中添加 getMutableEquipment(EquipmentSlot) 方法返回可变引用，
-    //       以替代此处的 const_cast。此处 const_cast 安全是因为 m_equipment 数组实际是可变的。
-    ItemStack& mutableStack = const_cast<ItemStack&>(stack);
-    LivingEntity::hurtAndBreak(mutableStack, 1, &entity, equipmentSlot);
+    LivingEntity::hurtAndBreak(stack, 1, &entity, equipmentSlot);
 }
 
 } // namespace enchant

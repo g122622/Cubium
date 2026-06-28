@@ -318,10 +318,22 @@ public:
     // ========== 装备 ==========
 
     /**
-     * @brief 获取装备
+     * @brief 获取装备（只读）
      * @param slot 装备槽位
      */
     [[nodiscard]] virtual const ItemStack& getEquipment(EquipmentSlot slot) const;
+
+    /**
+     * @brief 获取装备（可变引用）
+     *
+     * 返回指定槽位装备的可变引用，用于需要直接修改装备物品的场景
+     * （如附魔耐久消耗 hurtAndBreak、弩装填 setCharged 等）。
+     * Player 子类重写此方法以委托到 PlayerInventory。
+     *
+     * @param slot 装备槽位
+     * @return 装备物品堆的可变引用；槽位无效时返回静态空物品堆
+     */
+    [[nodiscard]] virtual ItemStack& getMutableEquipment(EquipmentSlot slot);
 
     /**
      * @brief 设置装备
@@ -451,6 +463,11 @@ public:
     [[nodiscard]] const ItemStack& getMainHandItem() const { return getEquipment(EquipmentSlot::MainHand); }
 
     /**
+     * @brief 获取主手物品（可变引用）
+     */
+    [[nodiscard]] ItemStack& getMutableMainHandItem() { return getMutableEquipment(EquipmentSlot::MainHand); }
+
+    /**
      * @brief 设置主手物品
      */
     void setMainHandItem(const ItemStack& stack) { setEquipment(EquipmentSlot::MainHand, stack); }
@@ -459,6 +476,11 @@ public:
      * @brief 获取副手物品
      */
     [[nodiscard]] const ItemStack& getOffHandItem() const { return getEquipment(EquipmentSlot::OffHand); }
+
+    /**
+     * @brief 获取副手物品（可变引用）
+     */
+    [[nodiscard]] ItemStack& getMutableOffHandItem() { return getMutableEquipment(EquipmentSlot::OffHand); }
 
     /**
      * @brief 设置副手物品

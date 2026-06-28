@@ -441,6 +441,16 @@ const ItemStack& LivingEntity::getEquipment(EquipmentSlot slot) const
     return m_equipment[index];
 }
 
+ItemStack& LivingEntity::getMutableEquipment(EquipmentSlot slot)
+{
+    size_t index = static_cast<size_t>(slot);
+    if (index >= m_equipment.size()) {
+        static ItemStack empty;
+        return empty;
+    }
+    return m_equipment[index];
+}
+
 void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
 {
     size_t index = static_cast<size_t>(slot);
