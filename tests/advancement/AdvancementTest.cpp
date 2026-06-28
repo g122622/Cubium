@@ -393,11 +393,15 @@ TEST_F(AdvancementTest, CriterionProgressToJsonMcJavaStringFormat)
     ASSERT_TRUE(json.is_string());
 
     std::string timeStr = json.get<std::string>();
-    // 验证格式结构：yyyy-MM-dd HH:mm:ss +ZZZZ
+    // 验证格式结构：yyyy-MM-dd HH:mm:ss ZZZZ
     EXPECT_NE(timeStr.find('-'), std::string::npos); // 日期分隔符
     EXPECT_NE(timeStr.find(':'), std::string::npos); // 时间分隔符
     EXPECT_NE(timeStr.find(' '), std::string::npos); // 日期与时间之间的空格
-    EXPECT_NE(timeStr.find('+'), std::string::npos); // 时区偏移（正偏移含 +）
+    // 时区偏移：格式为 "yyyy-MM-dd HH:mm:ss +HHMM" 或 "yyyy-MM-dd HH:mm:ss -HHMM"
+    // 位置 19 为空格，位置 20 为 '+' 或 '-'（负时区机器上为 '-'，不能断言 '+'）
+    ASSERT_GE(timeStr.size(), 25u);
+    EXPECT_EQ(timeStr[19], ' ');
+    EXPECT_TRUE(timeStr[20] == '+' || timeStr[20] == '-');
 }
 
 TEST_F(AdvancementTest, CriterionProgressRoundTripStringFormat)
