@@ -26,6 +26,7 @@
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/resource/pack/InMemoryResourcePack.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
@@ -649,4 +650,219 @@ TEST_F(ItemTagLoaderTest, TwoPhaseChainedTagReference)
     EXPECT_TRUE(tagA->contains(emerald));
     EXPECT_TRUE(tagA->contains(diamond));
     EXPECT_EQ(tagA->getItems().size(), 2u);
+}
+
+TEST_F(ItemTagLoaderTest, TwoPhaseDependencyOrderingSimulation)
+{
+    // 模拟数据包中 flowers.json 引用 #minecraft:small_flowers_dep_test
+    // 和 #minecraft:tall_flowers_dep_test 的场景。
+    // 在两阶段加载中，即使 flowers 在依赖标签之前被遍历，
+    // 递归依赖解析也能确保依赖标签先被填充。
+
+    // 模拟第一阶段：注册空标签占位符（所有数据包标签同时注册）
+    auto& smallFlowers = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "small_flowers_dep_test"));
+    auto& tallFlowers = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "tall_flowers_dep_test"));
+    auto& allFlowers = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "all_flowers_dep_test"));
+
+    // 模拟第二阶段：先填充被引用的标签（模拟递归依赖解析）
+    // small_flowers_dep_test 包含蒲公英和罂粟
+    Item* dandelion = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dandelion"));
+    Item* poppy = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "poppy"));
+    ASSERT_NE(dandelion, nullptr);
+    ASSERT_NE(poppy, nullptr);
+    smallFlowers.add(dandelion);
+    smallFlowers.add(poppy);
+
+    // tall_flowers_dep_test 包含向日葵和丁香
+    Item* sunflower = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "sunflower"));
+    Item* lilac = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lilac"));
+    ASSERT_NE(sunflower, nullptr);
+    ASSERT_NE(lilac, nullptr);
+    tallFlowers.add(sunflower);
+    tallFlowers.add(lilac);
+
+    // 现在解析 all_flowers_dep_test（引用 #small_flowers_dep_test 和 #tall_flowers_dep_test）
+    const std::string json = R"({
+        "values": [
+            "#minecraft:small_flowers_dep_test",
+            "#minecraft:tall_flowers_dep_test"
+        ]
+    })";
+    auto result = item::tag::ItemTagLoader::loadFromJson(json, ResourceLocation("minecraft", "all_flowers_dep_test"));
+    ASSERT_TRUE(result.success());
+
+    auto parsedTag = result.value();
+    // all_flowers 应包含 small_flowers 和 tall_flowers 的所有物品
+    EXPECT_TRUE(parsedTag->contains(dandelion));
+    EXPECT_TRUE(parsedTag->contains(poppy));
+    EXPECT_TRUE(parsedTag->contains(sunflower));
+    EXPECT_TRUE(parsedTag->contains(lilac));
+    EXPECT_EQ(parsedTag->getItems().size(), 4u);
+
+    // 也可以直接写入 allFlowers 标签（模拟第二阶段填充到 ItemTags）
+    for (const auto* item : parsedTag->getItems()) {
+        allFlowers.add(item);
+    }
+    EXPECT_TRUE(allFlowers.contains(dandelion));
+    EXPECT_TRUE(allFlowers.contains(sunflower));
+}
+
+// ============================================================================
+// 集成测试：loadFromResourcePack
+// ============================================================================
+
+TEST_F(ItemTagLoaderTest, LoadFromResourcePackBasicTags)
+{
+    // 使用 InMemoryResourcePack 测试 loadFromResourcePack
+    auto pack = std::make_unique<mc::InMemoryResourcePack>("test_pack");
+
+    // 添加一个小型花朵标签
+    pack->addServerDataResource("minecraft/tags/item/test_small_flowers.json",
+        R"({
+            "values": [
+                "minecraft:dandelion",
+                "minecraft:poppy"
+            ]
+        })");
+
+    // 添加一个大型花朵标签
+    pack->addServerDataResource("minecraft/tags/item/test_tall_flowers.json",
+        R"({
+            "values": [
+                "minecraft:sunflower",
+                "minecraft:lilac"
+            ]
+        })");
+
+    // 添加一个引用其他标签的标签
+    pack->addServerDataResource("minecraft/tags/item/test_all_flowers.json",
+        R"({
+            "values": [
+                "#minecraft:test_small_flowers",
+                "#minecraft:test_tall_flowers"
+            ]
+        })");
+
+    auto result = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
+    ASSERT_TRUE(result.success());
+    EXPECT_GE(result.value(), 3u);
+
+    // 验证 test_small_flowers 标签
+    auto* smallFlowers = item::tag::ItemTags::getTag(ResourceLocation("minecraft", "test_small_flowers"));
+    ASSERT_NE(smallFlowers, nullptr);
+    Item* dandelion = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dandelion"));
+    Item* poppy = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "poppy"));
+    ASSERT_NE(dandelion, nullptr);
+    ASSERT_NE(poppy, nullptr);
+    EXPECT_TRUE(smallFlowers->contains(dandelion));
+    EXPECT_TRUE(smallFlowers->contains(poppy));
+
+    // 验证 test_tall_flowers 标签
+    auto* tallFlowers = item::tag::ItemTags::getTag(ResourceLocation("minecraft", "test_tall_flowers"));
+    ASSERT_NE(tallFlowers, nullptr);
+    Item* sunflower = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "sunflower"));
+    Item* lilac = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lilac"));
+    ASSERT_NE(sunflower, nullptr);
+    ASSERT_NE(lilac, nullptr);
+    EXPECT_TRUE(tallFlowers->contains(sunflower));
+    EXPECT_TRUE(tallFlowers->contains(lilac));
+
+    // 验证 test_all_flowers 标签（引用了其他两个标签）
+    auto* allFlowers = item::tag::ItemTags::getTag(ResourceLocation("minecraft", "test_all_flowers"));
+    ASSERT_NE(allFlowers, nullptr);
+    EXPECT_TRUE(allFlowers->contains(dandelion));
+    EXPECT_TRUE(allFlowers->contains(poppy));
+    EXPECT_TRUE(allFlowers->contains(sunflower));
+    EXPECT_TRUE(allFlowers->contains(lilac));
+    EXPECT_EQ(allFlowers->getItems().size(), 4u);
+}
+
+TEST_F(ItemTagLoaderTest, LoadFromResourcePackReplaceSemantics)
+{
+    // 测试 loadFromResourcePack 的 replace 语义
+    // 先注册一个内置标签，然后用数据包的 replace=true 覆盖
+    auto& builtinTag = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "test_replace_pack_tag"));
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    builtinTag.add(diamond);
+
+    auto pack = std::make_unique<mc::InMemoryResourcePack>("replace_pack");
+
+    // 使用 replace=true 替换内置标签内容
+    pack->addServerDataResource("minecraft/tags/item/test_replace_pack_tag.json",
+        R"({
+            "replace": true,
+            "values": [
+                "minecraft:emerald"
+            ]
+        })");
+
+    auto result = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
+    ASSERT_TRUE(result.success());
+    EXPECT_GE(result.value(), 1u);
+
+    // 验证 replace 后标签内容被替换
+    auto* tag = item::tag::ItemTags::getTag(ResourceLocation("minecraft", "test_replace_pack_tag"));
+    ASSERT_NE(tag, nullptr);
+    Item* emerald = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "emerald"));
+    ASSERT_NE(emerald, nullptr);
+    EXPECT_TRUE(tag->contains(emerald));
+    EXPECT_FALSE(tag->contains(diamond)); // diamond 被 replace 清除
+}
+
+TEST_F(ItemTagLoaderTest, LoadFromResourcePackAppendSemantics)
+{
+    // 测试 loadFromResourcePack 的追加语义
+    auto& builtinTag = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "test_append_pack_tag"));
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    builtinTag.add(diamond);
+
+    auto pack = std::make_unique<mc::InMemoryResourcePack>("append_pack");
+
+    // 默认追加模式（replace=false）
+    pack->addServerDataResource("minecraft/tags/item/test_append_pack_tag.json",
+        R"({
+            "values": [
+                "minecraft:emerald"
+            ]
+        })");
+
+    auto result = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
+    ASSERT_TRUE(result.success());
+    EXPECT_GE(result.value(), 1u);
+
+    // 验证追加后标签同时包含原有物品和新物品
+    auto* tag = item::tag::ItemTags::getTag(ResourceLocation("minecraft", "test_append_pack_tag"));
+    ASSERT_NE(tag, nullptr);
+    Item* emerald = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "emerald"));
+    ASSERT_NE(emerald, nullptr);
+    EXPECT_TRUE(tag->contains(diamond));
+    EXPECT_TRUE(tag->contains(emerald));
+}
+
+TEST_F(ItemTagLoaderTest, LoadFromResourcePackRequiredFalse)
+{
+    // 测试 loadFromResourcePack 中 required=false 对未知物品的处理
+    auto pack = std::make_unique<mc::InMemoryResourcePack>("required_pack");
+
+    pack->addServerDataResource("minecraft/tags/item/test_required_tag.json",
+        R"({
+            "values": [
+                "minecraft:diamond",
+                {"id": "minecraft:future_item", "required": false},
+                {"id": "minecraft:another_future_item", "required": false}
+            ]
+        })");
+
+    auto result = item::tag::ItemTagLoader::loadFromResourcePack(*pack);
+    ASSERT_TRUE(result.success());
+
+    auto* tag = item::tag::ItemTags::getTag(ResourceLocation("minecraft", "test_required_tag"));
+    ASSERT_NE(tag, nullptr);
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    EXPECT_TRUE(tag->contains(diamond));
+    // required=false 的未知物品应静默跳过
+    EXPECT_EQ(tag->getItems().size(), 1u);
 }

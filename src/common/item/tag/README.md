@@ -93,13 +93,14 @@ tag/
 - 解析所有 JSON 文件，提取原始条目（不解析 `#` 标签引用）
 - 将尚不存在的标签注册为空标签占位符到 `ItemTags`
 
-**第二阶段**（解析引用并填充）：
-- 解析所有 `#` 标签引用（此时所有标签已注册到 `ItemTags`）
-- 将解析后的物品填充到对应标签中
+**第二阶段**（按依赖顺序解析引用并填充）：
+- 使用递归依赖解析确保被引用的标签先于引用者被填充
+- 当标签 A 引用 `#B` 时，先递归解析 B 再读取 B 的物品
+- 通过 `resolved`/`resolving` 集合检测循环依赖
 
 两阶段加载解决了标签间的加载顺序依赖问题：例如 `flowers.json` 引用
-`#minecraft:small_flowers` 时，即使 `small_flowers` 尚未加载内容，
-只要它已注册为空标签占位符，引用就不会失败。
+`#minecraft:small_flowers` 时，即使 `small_flowers` 在 `flowers` 之后被遍历，
+递归依赖解析会先填充 `small_flowers` 的内容，再解析 `flowers` 的引用。
 
 注意：`loadFromJson()` 是单次使用的便捷方法，不经过两阶段加载，
 标签引用只能解析到已经在 `ItemTags` 中注册的标签。

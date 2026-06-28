@@ -222,9 +222,8 @@ static Result<RawTagData> parseJsonRaw(const std::string& json, const ResourceLo
 }
 
 /**
- * @brief 将合并后的标签数据解析并填充到 ItemTag（第二阶段：解析引用）
+ * @brief 将合并后的标签数据解析并填充到 ItemTag
  *
- * 在所有标签都已注册到 ItemTags 后调用此函数，
  * 解析 # 标签引用并将物品添加到目标标签中。
  *
  * @param location 标签资源位置
@@ -254,6 +253,65 @@ static void resolveAndFillTag(const ResourceLocation& location, const MergedTagD
     if (items.empty()) {
         spdlog::info("ItemTagLoader: 标签 '{}' 没有解析到有效的物品", location.toString());
     }
+}
+
+/**
+ * @brief 递归解析标签及其依赖（第二阶段：带依赖顺序的解析）
+ *
+ * 当标签 A 引用 #B 时，需要先确保 B 的内容已被填充，
+ * 否则 A 从 B 引用到的物品列表为空。
+ * 此函数通过递归确保被引用的标签先于引用者被解析。
+ *
+ * @param location 要解析的标签位置
+ * @param mergedTags 所有标签的合并数据
+ * @param resolved 已完成解析的标签集合
+ * @param resolving 正在解析中的标签集合（用于检测循环依赖）
+ */
+static void resolveTagWithDependencies(const ResourceLocation& location,
+    std::unordered_map<ResourceLocation, MergedTagData>& mergedTags,
+    std::unordered_set<ResourceLocation>& resolved,
+    std::unordered_set<ResourceLocation>& resolving)
+{
+    // 已经解析过，无需重复处理
+    if (resolved.count(location) > 0) {
+        return;
+    }
+
+    // 不在本次数据包加载范围内，可能是内置标签或不存在
+    auto it = mergedTags.find(location);
+    if (it == mergedTags.end()) {
+        return;
+    }
+
+    // 检测循环依赖：如果标签在 resolving 集合中，说明存在循环引用
+    if (resolving.count(location) > 0) {
+        spdlog::warn("ItemTagLoader: 检测到循环标签依赖 '{}', 跳过", location.toString());
+        return;
+    }
+
+    resolving.insert(location);
+
+    const auto& data = it->second;
+
+    // 先递归解析所有 # 标签引用的依赖
+    for (const auto& entry : data.entries) {
+        if (!entry.id.empty() && entry.id[0] == '#') {
+            std::string tagRef = entry.id.substr(1);
+            ResourceLocation tagRefLocation = ResourceLocation::parse(tagRef);
+
+            // 递归解析依赖的标签（确保它在被引用前已填充内容）
+            resolveTagWithDependencies(tagRefLocation, mergedTags, resolved, resolving);
+        }
+    }
+
+    // 所有依赖已解析，现在解析当前标签
+    auto* tag = ItemTags::getTag(location);
+    if (tag != nullptr) {
+        resolveAndFillTag(location, data, *tag);
+    }
+
+    resolving.erase(location);
+    resolved.insert(location);
 }
 
 /**
@@ -352,7 +410,7 @@ Result<size_t> ItemTagLoader::loadFromDataPackRepository(const resource::DataPac
     }
 
     // ========================================
-    // 第二阶段：注册空标签（确保引用可解析），然后解析引用并填充内容
+    // 第二阶段：注册空标签（确保引用可解析），然后按依赖顺序解析引用并填充内容
     // ========================================
 
     // 2a. 先注册所有尚不存在的标签（空标签），确保标签引用可以找到目标
@@ -363,13 +421,14 @@ Result<size_t> ItemTagLoader::loadFromDataPackRepository(const resource::DataPac
         }
     }
 
-    // 2b. 解析所有标签的引用并填充内容
-    for (auto& [location, data] : mergedTags) {
-        auto* tag = ItemTags::getTag(location);
-        if (tag != nullptr) {
-            resolveAndFillTag(location, data, *tag);
-        }
+    // 2b. 按依赖顺序解析所有标签的引用并填充内容
+    // 使用递归依赖解析确保被引用的标签先于引用者被解析，
+    // 避免因 unordered_map 的遍历顺序不确定导致标签引用到空内容。
+    std::unordered_set<ResourceLocation> resolved;  // 已完成解析的标签
+    std::unordered_set<ResourceLocation> resolving; // 正在解析中的标签（检测循环依赖）
 
+    for (auto& [location, data] : mergedTags) {
+        resolveTagWithDependencies(location, mergedTags, resolved, resolving);
         ++loadedCount;
     }
 
@@ -438,7 +497,7 @@ Result<size_t> ItemTagLoader::loadFromResourcePack(const resource::IResourcePack
     }
 
     // ========================================
-    // 第二阶段：注册空标签（确保引用可解析），然后解析引用并填充内容
+    // 第二阶段：注册空标签（确保引用可解析），然后按依赖顺序解析引用并填充内容
     // ========================================
 
     // 2a. 先注册所有尚不存在的标签（空标签），确保标签引用可以找到目标
@@ -448,13 +507,12 @@ Result<size_t> ItemTagLoader::loadFromResourcePack(const resource::IResourcePack
         }
     }
 
-    // 2b. 解析所有标签的引用并填充内容
-    for (auto& [location, data] : mergedTags) {
-        auto* tag = ItemTags::getTag(location);
-        if (tag != nullptr) {
-            resolveAndFillTag(location, data, *tag);
-        }
+    // 2b. 按依赖顺序解析所有标签的引用并填充内容
+    std::unordered_set<ResourceLocation> resolved;
+    std::unordered_set<ResourceLocation> resolving;
 
+    for (auto& [location, data] : mergedTags) {
+        resolveTagWithDependencies(location, mergedTags, resolved, resolving);
         ++loadedCount;
     }
 
