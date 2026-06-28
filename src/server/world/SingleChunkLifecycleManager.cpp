@@ -19,6 +19,7 @@
 #include "SingleChunkLifecycleManager.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <limits>
 
@@ -85,6 +86,7 @@ ChunkPrimer* SingleChunkLifecycleManager::getChunkIfPresentUnchecked(const Chunk
 
 void SingleChunkLifecycleManager::onChunkGenComplete(const ChunkStatus& completedStatus)
 {
+    MC_TRACE_EVENT("server.chunk", "SingleChunkLifecycleManager::onChunkGenComplete", "completedStatus", completedStatus.name());
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     // Cubium ChunkPrimer 累积式：primer 是同一对象（_executeStepTask 修改同一 primer），
     // 只需推进 m_currentGenStatus，无需重存区块（对齐 Moonrise onChunkGenComplete 的 currentGenStatus 赋值）。

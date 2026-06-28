@@ -53,6 +53,7 @@ ReentrantAreaLock::LockHandle ReentrantAreaLock::lock(
 {
     MC_ASSERT_RELEASE_MSG(fromX <= toX, "ReentrantAreaLock::lock: fromX > toX");
     MC_ASSERT_RELEASE_MSG(fromZ <= toZ, "ReentrantAreaLock::lock: fromZ > toZ");
+    MC_TRACE_EVENT("server.chunk", "ReentrantAreaLock::lock", "fromX", fromX, "fromZ", fromZ, "toX", toX, "toZ", toZ);
 
     const std::thread::id currThread = std::this_thread::get_id();
     const i32 shift = m_coordinateShift;
