@@ -1084,6 +1084,18 @@ add_executable(mc_tests
     client/renderer/trident/particle/particles/block/DustPillarParticleTest.cpp
     # 新增粒子类测试
     client/renderer/trident/particle/particles/NewParticleTest.cpp
+    # Effect particle tests
+    client/renderer/trident/particle/particles/effect/EffectParticleTest.cpp
+    # Block particle tests
+    client/renderer/trident/particle/particles/block/BlockParticleTest.cpp
+    # Ambient particle tests
+    client/renderer/trident/particle/particles/ambient/AmbientParticleTest.cpp
+    # Mob particle tests
+    client/renderer/trident/particle/particles/mob/MobParticleTest.cpp
+    # Liquid particle tests
+    client/renderer/trident/particle/particles/liquid/LiquidParticleTest.cpp
+    # Particle tick behavior tests
+    client/renderer/trident/particle/particles/TickBehaviorTest.cpp
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp

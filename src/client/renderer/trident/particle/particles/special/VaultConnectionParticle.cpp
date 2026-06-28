@@ -23,7 +23,7 @@
 
 #include "VaultConnectionParticle.hpp"
 
-#include <cstdlib>
+#include "common/util/math/random/Random.hpp"
 #include <glm/glm.hpp>
 
 namespace mc::client::renderer::trident::particle::particles {
@@ -58,7 +58,8 @@ std::unique_ptr<Particle> VaultConnectionParticle::create(
         static_cast<f64>(pos.y) + static_cast<f64>(velocity.y),
         static_cast<f64>(pos.z) + static_cast<f64>(velocity.z));
     // MC 原版: lifetime = 30 + random.nextInt(10) (30~39 tick)
-    i32 arrivalInTicks = 30 + std::rand() % 10;
+    mc::math::Random rng(static_cast<u64>(pos.x * 3129871.0 + pos.y * 11613187.0 + pos.z * 4598127.0));
+    i32 arrivalInTicks = 30 + rng.nextInt(10);
     return std::make_unique<VaultConnectionParticle>(pos, targetPos, arrivalInTicks);
 }
 
