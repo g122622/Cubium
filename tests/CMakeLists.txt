@@ -1800,6 +1800,7 @@ target_sources(mc_tests
         # Kagero UI Widget缁勪欢
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ListWidget.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/Widget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/KageroEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp

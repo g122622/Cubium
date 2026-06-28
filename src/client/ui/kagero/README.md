@@ -24,10 +24,12 @@ kagero/
 │   └── StateObserver.hpp        # 观察者辅助类
 │
 ├── widget/                      # Widget组件
-│   ├── Widget.hpp               # Widget基类，所有UI组件的基类（含onDoubleClick/onRightClick虚方法）
+│   ├── Widget.hpp               # Widget基类，所有UI组件的基类（含onDoubleClick/onRightClick虚方法、Tooltip支持）
 │   ├── IWidgetContainer.hpp     # 容器接口，CRTP模板
 │   ├── ContainerWidget.hpp/cpp  # 通用容器组件
 │   ├── ButtonWidget.hpp         # 按钮组件（ButtonWidget, ImageButtonWidget）
+│   ├── Tooltip.hpp              # Tooltip数据类（多行文本、最大宽度）
+│   ├── TooltipRenderer.hpp      # Tooltip渲染工具（MC风格背景/边框/文字）
 │   ├── TextWidget.hpp           # 文本显示组件
 │   ├── RichTextWidget.hpp       # 富文本组件，支持ITextComponent渲染
 │   ├── TextFieldWidget.hpp      # 文本输入框组件
@@ -184,6 +186,61 @@ ContainerWidget 和 ScrollableWidget 均覆写了 `onDoubleClick`/`onRightClick`
 ### ListWidget 双击
 
 ListWidget 的 `onDoubleClick` 覆写会将双击事件分发到列表项（`IListItem::onDoubleClick`），并触发 `m_onDoubleClick` 回调（签名：`void(size_t index, IListItem*)`），然后调用基类 `Widget::onDoubleClick` 以触发模板回调。
+
+## Tooltip 系统
+
+Widget 基类内置了 Minecraft 风格的 Tooltip 支持，参考 MC Java 版的 `WidgetTooltipHolder` + `Tooltip` 设计模式。
+
+### 核心 API
+
+| 方法 | 说明 |
+|------|------|
+| `setTooltip(const Tooltip&)` | 设置 Tooltip 数据 |
+| `setTooltip(const string&)` | 设置单行 Tooltip（便捷方法） |
+| `clearTooltip()` | 清除 Tooltip |
+| `tooltip()` | 获取当前 Tooltip |
+| `hasTooltip()` | 检查是否设置了 Tooltip |
+| `setTooltipDelay(i32 ms)` | 设置显示延迟（毫秒） |
+| `tooltipDelay()` | 获取显示延迟 |
+| `refreshTooltip(PaintContext&, f32, f32)` | 刷新并渲染 Tooltip（在 paint 末尾调用） |
+
+### 使用方式
+
+```cpp
+// 单行 Tooltip
+button->setTooltip("保存");
+
+// 多行 Tooltip
+button->setTooltip(Tooltip::create("保存", "将当前进度保存到存档"));
+
+// 延迟显示（参考 MC Java 版的 setTooltipDelay）
+button->setTooltipDelay(500); // 悬停500ms后显示
+
+// 在 paint() 末尾调用 refreshTooltip
+void paint(PaintContext& ctx) override {
+    // ... 组件自身渲染 ...
+    refreshTooltip(ctx, static_cast<f32>(ctx.canvas().width()),
+                        static_cast<f32>(ctx.canvas().height()));
+}
+```
+
+### 渲染风格
+
+TooltipRenderer 使用 Minecraft 风格的渲染：
+- 背景：半透明深色 (`0xF0100010`)
+- 边框：紫色 (`0x505000FF`)
+- 文本：白色 (`0xFFFFFFFF`)
+- 内边距：4px
+- 鼠标偏移：12px
+- 自动翻转：超出屏幕边界时翻转到鼠标左方或上方
+
+### 延迟机制
+
+参考 MC Java 版的 `WidgetTooltipHolder.refreshTooltipForNextRenderPass()`：
+- 鼠标进入组件时记录开始时间
+- 延迟期间不渲染 Tooltip
+- 鼠标离开时重置计时状态
+- 默认延迟为 0（立即显示）
 
 ### 模板绑定
 

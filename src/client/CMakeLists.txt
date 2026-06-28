@@ -354,6 +354,7 @@ add_executable(minecraft-client
     ui/kagero/paint/TextureImage.cpp
     ui/kagero/widget/ContainerWidget.cpp
     ui/kagero/widget/ListWidget.cpp
+    ui/kagero/widget/Widget.cpp
     # UI Kagero 引擎
     ui/kagero/KageroEngine.cpp
     # UI Kagero widgets

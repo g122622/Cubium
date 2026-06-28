@@ -23,8 +23,10 @@
 
 #pragma once
 
+#include "Tooltip.hpp"
 #include "client/ui/Glyph.hpp"
 #include "client/ui/kagero/Types.hpp"
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <string>
@@ -650,12 +652,103 @@ public:
     /**
      * @brief 更新悬停状态
      *
-     * 由容器调用以更新悬停状态
+     * 由容器调用以更新悬停状态。
+     * 同时记录最新的鼠标位置，供 Tooltip 定位使用。
      *
      * @param mouseX 鼠标X坐标
      * @param mouseY 鼠标Y坐标
      */
-    virtual void updateHover(i32 mouseX, i32 mouseY) { setHovered(isMouseOver(mouseX, mouseY)); }
+    virtual void updateHover(i32 mouseX, i32 mouseY)
+    {
+        m_lastMouseX = mouseX;
+        m_lastMouseY = mouseY;
+        setHovered(isMouseOver(mouseX, mouseY));
+    }
+
+    // ==================== Tooltip 支持 ====================
+
+    /**
+     * @brief 设置 Tooltip
+     *
+     * 参考 MC Java 版的 AbstractWidget.setTooltip(Tooltip)，
+     * 为组件设置悬停时显示的工具提示。
+     *
+     * @param tooltip Tooltip 数据，传入空 Tooltip 或 nullptr 等效值可清除提示
+     *
+     * @code
+     * auto tooltip = Tooltip::create("保存", "将当前进度保存到存档");
+     * button->setTooltip(tooltip);
+     * @endcode
+     */
+    void setTooltip(const Tooltip& tooltip) { m_tooltip = tooltip; }
+
+    /**
+     * @brief 设置单行 Tooltip
+     *
+     * 便捷方法，等价于 setTooltip(Tooltip::create(text))
+     *
+     * @param text 提示文本
+     */
+    void setTooltip(const std::string& text) { m_tooltip = Tooltip::create(text); }
+
+    /**
+     * @brief 清除 Tooltip
+     */
+    void clearTooltip() { m_tooltip = Tooltip(); }
+
+    /**
+     * @brief 获取 Tooltip
+     */
+    [[nodiscard]] const Tooltip& tooltip() const { return m_tooltip; }
+
+    /**
+     * @brief 检查是否设置了 Tooltip
+     */
+    [[nodiscard]] bool hasTooltip() const { return !m_tooltip.isEmpty(); }
+
+    /**
+     * @brief 设置 Tooltip 显示延迟
+     *
+     * 参考 MC Java 版的 AbstractWidget.setTooltipDelay(Duration)，
+     * 设置鼠标悬停后延迟多久才显示 Tooltip。
+     * 默认延迟为 0（立即显示）。
+     *
+     * @param delayMs 延迟时间（毫秒）
+     *
+     * @code
+     * button->setTooltipDelay(500); // 悬停500ms后显示提示
+     * @endcode
+     */
+    void setTooltipDelay(i32 delayMs) { m_tooltipDelayMs = delayMs; }
+
+    /**
+     * @brief 获取 Tooltip 显示延迟
+     */
+    [[nodiscard]] i32 tooltipDelay() const { return m_tooltipDelayMs; }
+
+    /**
+     * @brief 刷新并渲染 Tooltip（如果应显示）
+     *
+     * 参考 MC Java 版的 WidgetTooltipHolder.refreshTooltipForNextRenderPass()，
+     * 根据当前悬停状态和延迟计时决定是否渲染 Tooltip。
+     * 应在 paint() 方法的最后调用，确保 Tooltip 绘制在组件内容之上。
+     * 使用 updateHover() 中记录的最新鼠标位置进行定位。
+     *
+     * @param ctx 绘图上下文
+     * @param canvasWidth 画布宽度（用于位置计算）
+     * @param canvasHeight 画布高度（用于位置计算）
+     */
+    void refreshTooltip(PaintContext& ctx, f32 canvasWidth, f32 canvasHeight);
+
+    /**
+     * @brief 获取鼠标最后已知的X坐标（在 updateHover 中更新）
+     */
+    [[nodiscard]] i32 lastMouseX() const { return m_lastMouseX; }
+
+    /**
+     * @brief 获取鼠标最后已知的Y坐标（在 updateHover 中更新）
+     */
+    [[nodiscard]] i32 lastMouseY() const { return m_lastMouseY; }
 
     // ==================== UI音效支持 ====================
 
@@ -746,6 +839,14 @@ protected:
     std::unordered_map<std::string, std::string> m_userData; ///< 自定义数据存储
     DoubleClickCallback m_onDoubleClickCallback;             ///< 双击回调
     RightClickCallback m_onRightClickCallback;               ///< 右键点击回调
+
+    // ==================== Tooltip 成员 ====================
+    Tooltip m_tooltip;                                               ///< Tooltip 数据
+    i32 m_tooltipDelayMs = 0;                                        ///< Tooltip 显示延迟（毫秒）
+    bool m_tooltipWasDisplayed = false;                              ///< Tooltip 上帧是否应显示（用于延迟计时）
+    std::chrono::steady_clock::time_point m_tooltipDisplayStartTime; ///< Tooltip 显示开始时间
+    i32 m_lastMouseX = 0;                                            ///< 最后已知的鼠标X坐标（updateHover中更新）
+    i32 m_lastMouseY = 0;                                            ///< 最后已知的鼠标Y坐标（updateHover中更新）
 
     // 静态成员：UI音效回调（inline 允许在头文件中定义）
     inline static UiSoundCallback s_uiSoundCallback;
