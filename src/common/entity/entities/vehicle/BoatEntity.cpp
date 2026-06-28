@@ -27,6 +27,8 @@
 #include "../../../util/math/MathConstants.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../world/IWorld.hpp"
+#include "../../../world/block/BlockState.hpp"
+#include "../../../world/block/registry/NaturalBlocks.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../../world/fluid/FluidTags.hpp"
 #include "../../../world/gamerule/GameRules.hpp"
@@ -45,7 +47,6 @@ constexpr f32 BUOYANCY = 0.06153846f; // 1/16.25 近似
 constexpr f32 GRAVITY = 0.04f;
 constexpr f32 WATER_FRICTION = 0.9f;
 constexpr f32 AIR_FRICTION = 0.9f;
-constexpr f32 LAND_FRICTION = 0.5f;
 constexpr f32 UNDERWATER_FRICTION = 0.45f;
 constexpr f32 UNDERWATER_GRAVITY = -0.0007f; // -7.0e-4D
 constexpr f32 MAX_SPEED = 0.4f;
@@ -469,14 +470,70 @@ bool BoatEntity::checkInWater()
 
 f32 BoatEntity::getBoatGlide()
 {
-    // 计算地面滑动系数
+    // 对应 MC Java AbstractBoat.getGroundFriction()
+    // 遍历船底下方薄碰撞箱范围内的方块，计算平均滑度
     if (m_world == nullptr) {
         return 0.0f;
     }
 
-    // 简化实现：返回默认陆地摩擦系数
-    // 完整实现需要遍历碰撞箱内的方块并获取其滑度
-    return LAND_FRICTION;
+    // 创建船底下方薄碰撞箱（Y 方向向下扩展 0.001）
+    AxisAlignedBB boatBox = boundingBox();
+    AxisAlignedBB checkBox(boatBox.minX, boatBox.minY - 0.001, boatBox.minZ, boatBox.maxX, boatBox.minY, boatBox.maxZ);
+
+    // 扩展搜索范围：每个方向扩展 1 格
+    i32 minX = static_cast<i32>(std::floor(checkBox.minX)) - 1;
+    i32 maxX = static_cast<i32>(std::ceil(checkBox.maxX)) + 1;
+    i32 minY = static_cast<i32>(std::floor(checkBox.minY)) - 1;
+    i32 maxY = static_cast<i32>(std::ceil(checkBox.maxY)) + 1;
+    i32 minZ = static_cast<i32>(std::floor(checkBox.minZ)) - 1;
+    i32 maxZ = static_cast<i32>(std::ceil(checkBox.maxZ)) + 1;
+
+    f32 totalSlipperiness = 0.0f;
+    i32 count = 0;
+
+    for (i32 x = minX; x < maxX; ++x) {
+        for (i32 z = minZ; z < maxZ; ++z) {
+            // 跳过角落列（MC Java 的优化：角列只检查非角落行）
+            bool isEdgeX = (x == minX || x == maxX - 1);
+            bool isEdgeZ = (z == minZ || z == maxZ - 1);
+            if (isEdgeX && isEdgeZ) {
+                continue; // 4 个角落列跳过
+            }
+
+            for (i32 y = minY; y < maxY; ++y) {
+                // 角列内部的边缘行也跳过
+                if (isEdgeX && (y == minY || y == maxY - 1)) {
+                    continue;
+                }
+                if (isEdgeZ && (y == minY || y == maxY - 1)) {
+                    continue;
+                }
+
+                BlockPos pos(x, y, z);
+                const BlockState* state = m_world->getBlockState(pos);
+                if (state == nullptr) {
+                    continue;
+                }
+
+                // 跳过睡莲（MC Java 排除 WaterlilyBlock）
+                if (state->is(block_registry::NaturalBlocks::LILY_PAD)) {
+                    continue;
+                }
+
+                // 检查方块碰撞箱是否与船底薄碰撞箱相交
+                if (!state->getCollisionShape().intersects(checkBox, x, y, z)) {
+                    continue;
+                }
+
+                // 累加滑度值
+                totalSlipperiness += state->getBlock().getSlipperiness(*state);
+                ++count;
+            }
+        }
+    }
+
+    // 返回平均滑度；若无相交方块则返回 0（表示船在空中）
+    return count > 0 ? totalSlipperiness / static_cast<f32>(count) : 0.0f;
 }
 
 void BoatEntity::updatePassengerPosition(Entity& passenger)
