@@ -91,6 +91,7 @@
 #include "particles/mob/TotemParticle.hpp"
 #include "particles/mob/VillagerParticle.hpp"
 #include "particles/special/NautilusParticle.hpp"
+#include "particles/special/TrailParticle.hpp"
 #include "particles/special/VaultConnectionParticle.hpp"
 #include "particles/special/VibrationSignalParticle.hpp"
 #include "particles/weather/FishingParticle.hpp"
@@ -505,7 +506,7 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // Composter: 堆肥桶粒子（MC 原版 SuspendedTownParticle.ComposterFillProvider）
+    // Composter: 堆肥桶粒子
     registry.registerType(ParticleTypeId::Composter,
         "minecraft:composter",
         ComposterParticle::create,
@@ -548,12 +549,13 @@ void registerBuiltinParticleFactories()
         false,
         true); // 忽略距离限制，确保可见
 
-    // Trail: 轨迹粒子（带颜色/目标数据）
-    // TODO: TrailParticle 需要颜色+目标位置数据支持，当前使用 FlameParticle 作为简化回退
+    // Trail: 轨迹粒子（带颜色+目标数据）
+    // TODO: 粒子数据管线尚未支持颜色+目标位置+持续时间数据传递，当前 create() 工厂方法使用默认值/回退行为。
+    // 待 ParticleFactory 签名扩展后，应通过 createWithTarget() 方法传递真实数据。
     registry.registerType(ParticleTypeId::Trail,
         "minecraft:trail",
-        FlameParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_LIT,
+        TrailParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         10.0f,
         false,
         false);
@@ -605,7 +607,7 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // 菌丝悬浮粒子（MC 原版 SuspendedTownParticle.Provider）
+    // 菌丝悬浮粒子
     registry.registerType(ParticleTypeId::Mycelium,
         "minecraft:mycelium",
         SuspendedTownParticle::create,
@@ -988,7 +990,7 @@ void registerBuiltinParticleFactories()
     // 铜蚀/幽匿/试炼/不祥粒子 (99-114)
     // ========================================================================
 
-    // WaxOn: 涂蜡粒子（MC 原版 GlowParticle.WaxOnProvider）
+    // WaxOn: 涂蜡粒子
     registry.registerType(ParticleTypeId::WaxOn,
         "minecraft:wax_on",
         WaxOnParticle::create,
@@ -997,7 +999,7 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // WaxOff: 除蜡粒子（MC 原版 GlowParticle.WaxOffProvider）
+    // WaxOff: 除蜡粒子
     registry.registerType(ParticleTypeId::WaxOff,
         "minecraft:wax_off",
         WaxOffParticle::create,
@@ -1015,7 +1017,7 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // Scrape: 刮擦粒子（MC 原版 GlowParticle.ScrapeProvider）
+    // Scrape: 刮擦粒子
     registry.registerType(ParticleTypeId::Scrape,
         "minecraft:scrape",
         ScrapeParticle::create,

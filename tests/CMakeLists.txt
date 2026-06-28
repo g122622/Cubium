@@ -1072,6 +1072,7 @@ add_executable(mc_tests
     client/renderer/particle/WhiteSmokeParticleTest.cpp
     client/renderer/particle/ParticleManagerTest.cpp
     client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
+    client/renderer/trident/particle/particles/special/SpecialParticleTest.cpp
     client/renderer/trident/particle/particles/special/VibrationSignalParticleTest.cpp
     client/renderer/trident/particle/data/VibrationParticleDataTest.cpp
     # 粒子缩放测试
@@ -1434,6 +1435,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/SporeBlossomParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
@@ -1474,6 +1476,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/SplashParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/FishingParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
         # 粒子实现 - 环境（新增）
@@ -1509,6 +1512,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/SquidInkParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/TotemParticle.cpp
         # 粒子实现 - 特殊（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VaultConnectionParticle.cpp
         # 粒子实现 - 方块（新增）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ComposterParticle.cpp

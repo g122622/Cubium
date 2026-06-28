@@ -33,7 +33,7 @@ CopperFireFlameParticle::CopperFireFlameParticle(const glm::vec3& pos, const glm
     setSize(0.04 * (0.6 + m_random.nextFloat() * 0.4));
     m_initialSize = size();
 
-    // MC 原版: 与普通火焰粒子相同的颜色（橙黄色）
+    // 与普通火焰粒子相同的颜色（橙黄色）
     f64 colorVariation = m_random.nextFloat() * 0.2f;
     setColor(glm::vec4(1.0f, 0.6f + static_cast<f32>(colorVariation), 0.1f, 1.0f));
 
@@ -62,7 +62,7 @@ void CopperFireFlameParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // MC 原版 FlameParticle: 速度衰减
+    // 速度衰减
     m_velocity.x *= static_cast<f32>(m_friction);
     m_velocity.y *= static_cast<f32>(m_friction);
     m_velocity.z *= static_cast<f32>(m_friction);

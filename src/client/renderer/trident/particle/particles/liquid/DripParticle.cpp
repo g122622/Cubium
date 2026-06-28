@@ -187,7 +187,7 @@ std::unique_ptr<Particle> DripParticle::createLandingObsidianTear(
     MC_UNUSED(world);
     auto particle = std::make_unique<DripParticle>(pos, velocity, DripType::ObsidianTear);
     particle->m_dripState = DripState::Landed;
-    // 黑曜石眼泪落地粒子寿命比其他类型更长，对齐 MC Java 版的 28.0 / (random * 0.8 + 0.2)
+    // 黑曜石眼泪落地粒子寿命比其他类型更长，28.0 / (random * 0.8 + 0.2)
     particle->setMaxAge(28.0);
     particle->setSize(0.04);
     return particle;

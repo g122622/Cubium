@@ -31,11 +31,11 @@ ScrapeParticle::ScrapeParticle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_initialSize(0.0)
 {
     setGravity(DEFAULT_GRAVITY);
-    // MC 原版 GlowParticle: quadSize = 0.1 * (random * 0.5 + 0.2)
+    // quadSize = 0.1 * (random * 0.5 + 0.2)
     setSize(0.1 * (0.2 + m_random.nextFloat() * 0.5));
     m_initialSize = size();
 
-    // MC 原版 GlowParticle.ScrapeProvider: 随机选择两种氧化铜绿色之一
+    // 随机选择两种氧化铜绿色之一
     if (m_random.nextFloat() < 0.5f) {
         // 铜绿色变体 1: (0.29, 0.58, 0.51)
         setColor(glm::vec4(0.29f, 0.58f, 0.51f, 1.0f));
@@ -44,13 +44,13 @@ ScrapeParticle::ScrapeParticle(const glm::vec3& pos, const glm::vec3& velocity)
         setColor(glm::vec4(0.43f, 0.77f, 0.62f, 1.0f));
     }
 
-    // MC 原版: 速度缩放 dx*0.01, dy*0.01, dz*0.01
+    // 速度缩放 dx*0.01, dy*0.01, dz*0.01
     m_velocity *= static_cast<f32>(VELOCITY_SCALE);
 
     setFriction(0.96);
     setHasPhysics(false);
 
-    // MC 原版: lifetime = 10 + random.nextInt(30) (10~40 tick)
+    // lifetime = 10 + random.nextInt(30) (10~40 tick)
     setMaxAge(10.0 + m_random.nextInt(30));
 }
 
@@ -74,7 +74,7 @@ void ScrapeParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // MC 原版 GlowParticle: 轻微水平漂移
+    // 轻微水平漂移
     m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.004f;
     m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.004f;
 

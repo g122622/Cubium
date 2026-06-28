@@ -27,7 +27,6 @@ namespace mc::client::renderer::trident::particle::particles {
 BubblePopParticle::BubblePopParticle(const glm::vec3& pos, const glm::vec3& velocity)
     : Particle(pos, velocity)
 {
-    // 对应 MC 原版 BubblePopParticle：
     // quadSize = random.nextFloat() * 0.5F + 0.5F) * 0.1F * 2.0F
     // 即 0.1 ~ 0.2
     setSize(0.1 * (m_random.nextFloat() * 0.5 + 0.5) * 2.0);

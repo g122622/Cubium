@@ -27,6 +27,9 @@
 #include "client/renderer/trident/particle/particles/block/DiggingParticle.hpp"
 #include "client/renderer/trident/particle/particles/block/ItemParticle.hpp"
 #include "client/renderer/trident/particle/particles/block/LeavesParticle.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 #include <memory>
 
@@ -224,6 +227,80 @@ TEST(BlockCrumbleParticleTest, HasGravity)
 
     // BlockCrumbleParticle has DEFAULT_GRAVITY = 0.03
     EXPECT_GT(particle->gravity(), 0.0);
+}
+
+// ============================================================================
+// BlockMarkerParticle createWithBlock 测试
+// ============================================================================
+
+class BlockMarkerWithBlockTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+};
+
+TEST_F(BlockMarkerWithBlockTest, CreateWithBlock_ReturnsNonNull)
+{
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto particle = BlockMarkerParticle::createWithBlock(glm::vec3(0.0f), glm::vec3(0.0f), stoneState);
+
+    ASSERT_NE(particle, nullptr);
+    EXPECT_TRUE(particle->isAlive());
+    EXPECT_EQ(particle->getRenderType(), ParticleRenderType::TERRAIN_SHEET);
+}
+
+TEST_F(BlockMarkerWithBlockTest, CreateWithBlock_NoGravity)
+{
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto particle = BlockMarkerParticle::createWithBlock(glm::vec3(0.0f), glm::vec3(0.0f), stoneState);
+
+    ASSERT_NE(particle, nullptr);
+    EXPECT_DOUBLE_EQ(particle->gravity(), 0.0);
+}
+
+TEST_F(BlockMarkerWithBlockTest, CreateWithBlock_TextureIsStone)
+{
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto particle = BlockMarkerParticle::createWithBlock(glm::vec3(0.0f), glm::vec3(0.0f), stoneState);
+
+    ASSERT_NE(particle, nullptr);
+    EXPECT_EQ(particle->getTextureLocation().toString(), "minecraft:block/stone");
+}
+
+// ============================================================================
+// BlockCrumbleParticle createWithBlock 测试
+// ============================================================================
+
+class BlockCrumbleWithBlockTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+};
+
+TEST_F(BlockCrumbleWithBlockTest, CreateWithBlock_ReturnsNonNull)
+{
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto particle = BlockCrumbleParticle::createWithBlock(glm::vec3(0.0f), glm::vec3(0.0f), stoneState);
+
+    ASSERT_NE(particle, nullptr);
+    EXPECT_TRUE(particle->isAlive());
+    EXPECT_EQ(particle->getRenderType(), ParticleRenderType::TERRAIN_SHEET);
+}
+
+TEST_F(BlockCrumbleWithBlockTest, CreateWithBlock_HasGravity)
+{
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto particle = BlockCrumbleParticle::createWithBlock(glm::vec3(0.0f), glm::vec3(0.0f), stoneState);
+
+    ASSERT_NE(particle, nullptr);
+    EXPECT_GT(particle->gravity(), 0.0);
+}
+
+TEST_F(BlockCrumbleWithBlockTest, CreateWithBlock_TextureIsStone)
+{
+    const BlockState& stoneState = VanillaBlocks::STONE->defaultState();
+    auto particle = BlockCrumbleParticle::createWithBlock(glm::vec3(0.0f), glm::vec3(0.0f), stoneState);
+
+    ASSERT_NE(particle, nullptr);
+    EXPECT_EQ(particle->getTextureLocation().toString(), "minecraft:block/stone");
 }
 
 } // namespace

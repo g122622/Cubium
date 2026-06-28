@@ -30,19 +30,19 @@ ComposterParticle::ComposterParticle(const glm::vec3& pos, const glm::vec3& velo
 {
     setGravity(DEFAULT_GRAVITY);
 
-    // MC 原版: this.setSize(0.02F, 0.02F) + this.quadSize *= (random * 0.6F + 0.5F)
+    // this.setSize(0.02F, 0.02F) + this.quadSize *= (random * 0.6F + 0.5F)
     setSize(DEFAULT_SIZE * (0.5 + m_random.nextFloat() * 0.6));
 
-    // MC 原版: 白色 r=g=b=1.0, alpha=1.0
+    // 白色 r=g=b=1.0, alpha=1.0
     setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
-    // MC 原版: velocity *= 0.02
+    // velocity *= 0.02
     m_velocity *= static_cast<f32>(VELOCITY_SCALE);
 
     setFriction(FRICTION);
     setHasPhysics(false);
 
-    // MC 原版: lifetime = 3 + random.nextInt(5) (3~7 tick)
+    // lifetime = 3 + random.nextInt(5) (3~7 tick)
     setMaxAge(3.0 + m_random.nextInt(5));
 }
 
@@ -65,7 +65,7 @@ void ComposterParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // MC 原版 SuspendedTownParticle.tick(): 简单移动 + 摩擦
+    // 简单移动 + 摩擦
     m_position += m_velocity;
     m_velocity *= static_cast<f32>(m_friction);
 }

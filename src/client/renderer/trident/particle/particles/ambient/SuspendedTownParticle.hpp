@@ -34,9 +34,9 @@ class ClientWorld;
 namespace mc::client::renderer::trident::particle::particles {
 
 /**
- * @brief 悬浮环境粒子（MC 原版 SuspendedTownParticle）
+ * @brief 悬浮环境粒子（SuspendedTownParticle）
  *
- * 对齐 MC Java 版 SuspendedTownParticle.Provider（mycelium 粒子）的行为：
+ * 菌丝粒子行为：
  * - 深灰色 (r/g/b = random * 0.1 + 0.2)
  * - 非常小的尺寸 (0.02)
  * - 极低速度 (velocity *= 0.02)

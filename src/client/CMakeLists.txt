@@ -118,6 +118,7 @@ add_executable(minecraft-client
     renderer/trident/particle/particles/mob/VillagerParticle.cpp
     # 粒子实现 - 特殊
     renderer/trident/particle/particles/special/NautilusParticle.cpp
+    renderer/trident/particle/particles/special/TrailParticle.cpp
     renderer/trident/particle/particles/special/VaultConnectionParticle.cpp
     renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
     # 粒子实现 - 方块

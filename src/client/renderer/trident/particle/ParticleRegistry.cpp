@@ -332,7 +332,7 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(
-        ParticleTypeId::Trail, "minecraft:trail", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleTypeId::Trail, "minecraft:trail", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
     registerSimpleType(ParticleTypeId::ItemSlime,
         "minecraft:item_slime",
         ParticleFactory{},

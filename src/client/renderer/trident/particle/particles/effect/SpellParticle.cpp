@@ -167,7 +167,7 @@ EntityEffectParticle::EntityEffectParticle(
     setHasPhysics(false);
 
     if (m_ambient) {
-        // 环境模式：MC 原版 alpha=38/255≈0.149，更慢的漂浮速度，更长的生命周期
+        // 环境模式：alpha=38/255≈0.149，更慢的漂浮速度，更长的生命周期
         setFriction(0.98f);
         setMaxAge(AMBIENT_LIFETIME + m_random.nextFloat() * 6.0);
         setColor(glm::vec4(color.r, color.g, color.b, AMBIENT_ALPHA));

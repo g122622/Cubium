@@ -36,7 +36,7 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 涂蜡粒子
  *
- * 对齐 MC Java 版 GlowParticle.WaxOnProvider 的行为：
+ * GlowParticle.WaxOnProvider 的行为：
  * - 无重力、无物理碰撞
  * - 蜂蜜橙黄色 (0.91, 0.55, 0.08)
  * - TRANSLUCENT 渲染层
@@ -76,7 +76,7 @@ private:
 /**
  * @brief 除蜡粒子
  *
- * 对齐 MC Java 版 GlowParticle.WaxOffProvider 的行为：
+ * GlowParticle.WaxOffProvider 的行为：
  * - 无重力、无物理碰撞
  * - 白粉色 (1.0, 0.9, 1.0)
  * - TRANSLUCENT 渲染层

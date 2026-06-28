@@ -35,14 +35,14 @@ WaxOnParticle::WaxOnParticle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_initialSize(0.0)
 {
     setGravity(DEFAULT_GRAVITY);
-    // MC 原版 GlowParticle: quadSize = 0.1 * (random * 0.5 + 0.2)
+    // quadSize = 0.1 * (random * 0.5 + 0.2)
     setSize(0.1 * (0.2 + m_random.nextFloat() * 0.5));
     m_initialSize = size();
 
-    // MC 原版 GlowParticle.WaxOnProvider: 蜂蜜橙色 (0.91, 0.55, 0.08)
+    // 蜂蜜橙色 (0.91, 0.55, 0.08)
     setColor(glm::vec4(0.91f, 0.55f, 0.08f, 1.0f));
 
-    // MC 原版: 速度缩放 dx*0.005, dy*0.01, dz*0.005
+    // 速度缩放 dx*0.005, dy*0.01, dz*0.005
     m_velocity.x = static_cast<f32>(m_velocity.x * VELOCITY_SCALE);
     m_velocity.y = static_cast<f32>(m_velocity.y * 0.01);
     m_velocity.z = static_cast<f32>(m_velocity.z * VELOCITY_SCALE);
@@ -50,7 +50,7 @@ WaxOnParticle::WaxOnParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setFriction(0.96);
     setHasPhysics(false);
 
-    // MC 原版: lifetime = 10 + random.nextInt(30) (10~40 tick)
+    // lifetime = 10 + random.nextInt(30) (10~40 tick)
     setMaxAge(10.0 + m_random.nextInt(30));
 }
 
@@ -74,7 +74,7 @@ void WaxOnParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // MC 原版 GlowParticle: 轻微水平漂移
+    // 轻微水平漂移
     m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.004f;
     m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.004f;
 
@@ -107,14 +107,14 @@ WaxOffParticle::WaxOffParticle(const glm::vec3& pos, const glm::vec3& velocity)
     , m_initialSize(0.0)
 {
     setGravity(DEFAULT_GRAVITY);
-    // MC 原版 GlowParticle: quadSize = 0.1 * (random * 0.5 + 0.2)
+    // quadSize = 0.1 * (random * 0.5 + 0.2)
     setSize(0.1 * (0.2 + m_random.nextFloat() * 0.5));
     m_initialSize = size();
 
-    // MC 原版 GlowParticle.WaxOffProvider: 白粉色 (1.0, 0.9, 1.0)
+    // 白粉色 (1.0, 0.9, 1.0)
     setColor(glm::vec4(1.0f, 0.9f, 1.0f, 1.0f));
 
-    // MC 原版: 速度缩放 dx*0.005, dy*0.01, dz*0.005
+    // 速度缩放 dx*0.005, dy*0.01, dz*0.005
     m_velocity.x = static_cast<f32>(m_velocity.x * VELOCITY_SCALE);
     m_velocity.y = static_cast<f32>(m_velocity.y * 0.01);
     m_velocity.z = static_cast<f32>(m_velocity.z * VELOCITY_SCALE);
@@ -122,7 +122,7 @@ WaxOffParticle::WaxOffParticle(const glm::vec3& pos, const glm::vec3& velocity)
     setFriction(0.96);
     setHasPhysics(false);
 
-    // MC 原版: lifetime = 10 + random.nextInt(30) (10~40 tick)
+    // lifetime = 10 + random.nextInt(30) (10~40 tick)
     setMaxAge(10.0 + m_random.nextInt(30));
 }
 
@@ -146,7 +146,7 @@ void WaxOffParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // MC 原版 GlowParticle: 轻微水平漂移
+    // 轻微水平漂移
     m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.004f;
     m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.004f;
 

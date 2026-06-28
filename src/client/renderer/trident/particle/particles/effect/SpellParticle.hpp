@@ -129,9 +129,8 @@ public:
     /**
      * @brief 创建环境模式的实体效果粒子
      *
-     * 环境模式粒子的 alpha 值更低（约 15%，MC 原版 alpha=38/255≈0.149），
+     * 环境模式粒子的 alpha 值更低（约 15%，alpha=38/255≈0.149），
      * 漂浮速度更慢，生命周期更长。
-     * 对应 MC 1.21.11 中 MobEffect.particleFactory 对 ambient 效果的处理。
      *
      * @param pos 初始位置
      * @param velocity 初始速度（RGB 编码在 xyz 分量中）
@@ -163,7 +162,7 @@ public:
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
     static constexpr f64 AMBIENT_LIFETIME = 12.0;
-    static constexpr f32 AMBIENT_ALPHA = 38.0f / 255.0f; ///< MC 原版环境 alpha = 38/255 ≈ 0.149
+    static constexpr f32 AMBIENT_ALPHA = 38.0f / 255.0f; ///< 环境模式 alpha = 38/255 ≈ 0.149
 
     bool m_ambient = false;
 };

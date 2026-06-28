@@ -37,7 +37,7 @@ namespace mc::client::renderer::trident::particle::particles {
  * @brief 堆肥桶粒子
  *
  * 堆肥桶填充时产生的白色小粒子。
- * 对齐 MC Java 版 SuspendedTownParticle.ComposterFillProvider 的行为：
+ * SuspendedTownParticle.ComposterFillProvider 的行为：
  * - 白色 (r=g=b=1.0)
  * - 非常小的尺寸 (0.02)
  * - 极低速度 (velocity *= 0.02)

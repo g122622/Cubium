@@ -40,7 +40,7 @@ std::string VibrationParticleData::getTypeName() const
 std::string VibrationParticleData::getParameters() const
 {
     // 振动粒子参数格式: targetX targetY targetZ arrivalInTicks
-    // 用于 /particle 命令（虽然 MC 原版禁止命令生成 EntityPositionSource 的振动粒子）
+    // 用于 /particle 命令
     char buf[256];
     std::snprintf(buf,
         sizeof(buf),

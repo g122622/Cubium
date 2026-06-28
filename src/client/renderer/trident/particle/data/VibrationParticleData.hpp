@@ -36,7 +36,6 @@ namespace mc::client::renderer::trident::particle::data {
  * 用于幽匿感测体、幽匿尖啸体、监守者等振动监听器的振动粒子效果。
  * 粒子从源位置向目标位置飞行，飞行时间为 arrivalInTicks 个 tick。
  *
- * 参考: net.minecraft.core.particles.VibrationParticleOption
  */
 class VibrationParticleData : public ParticleData {
 public:
@@ -74,8 +73,7 @@ public:
     /**
      * @brief 获取目标位置
      *
-     * 粒子飞向的目标位置（世界坐标）。在 MC 原版中这是 PositionSource 解析后的位置。
-     * 网络序列化时已将 PositionSource 解析为具体坐标，因此客户端不需要再解析。
+     * 粒子飞向的目标位置（世界坐标）。网络序列化时已将 PositionSource 解析为具体坐标，因此客户端不需要再解析。
      *
      * @return 目标位置
      */

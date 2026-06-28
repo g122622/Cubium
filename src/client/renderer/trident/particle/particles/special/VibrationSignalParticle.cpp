@@ -82,14 +82,14 @@ void VibrationSignalParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // 向目标位置插值移动（MC 原版: x = Mth.lerp(1.0 / remainingTicks, x, target.x)）
+    // 向目标位置插值移动（x = Mth.lerp(1.0 / remainingTicks, x, target.x)）
     // 这会产生指数缓动效果，粒子越接近目标移动越慢
     f64 lerpFactor = 1.0 / static_cast<f64>(remainingTicks);
     m_position.x = static_cast<f32>(glm::mix(static_cast<f64>(m_position.x), m_targetPosition.x, lerpFactor));
     m_position.y = static_cast<f32>(glm::mix(static_cast<f64>(m_position.y), m_targetPosition.y, lerpFactor));
     m_position.z = static_cast<f32>(glm::mix(static_cast<f64>(m_position.z), m_targetPosition.z, lerpFactor));
 
-    // 轻微摆动效果（MC 原版的 extract() 中有正弦摆动）
+    // 轻微摆动效果
     m_roll += 0.05;
 
     // 根据年龄淡出

@@ -36,7 +36,7 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 铜氧化刮削粒子
  *
- * 对齐 MC Java 版 GlowParticle.ScrapeProvider 的行为：
+ * GlowParticle.ScrapeProvider 的行为：
  * - 无重力、无物理碰撞
  * - 随机氧化铜绿色 (0.29/0.58/0.51 或 0.43/0.77/0.62)
  * - TRANSLUCENT 渲染层
