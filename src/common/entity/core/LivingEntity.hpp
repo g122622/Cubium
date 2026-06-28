@@ -300,6 +300,21 @@ public:
      */
     void setAttributeBaseValue(const std::string& name, f64 value);
 
+    /**
+     * @brief 获取脚下方块的速度因子，考虑 MOVEMENT_EFFICIENCY 属性
+     *
+     * 对齐 MC 1.21.11 LivingEntity.getBlockSpeedFactor()：
+     *   finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
+     * 当 MOVEMENT_EFFICIENCY=0.0 时，使用方块原始 speedFactor
+     * 当 MOVEMENT_EFFICIENCY=1.0 时，完全忽略方块减速效果（speedFactor=1.0）
+     *
+     * 此方法用于移动物理中，在计算地面移动速度时替代方块原始 speedFactor。
+     * 灵魂疾行附魔通过为 MOVEMENT_EFFICIENCY 添加 +1.0 修饰符来抵消灵魂沙/土的减速。
+     *
+     * @return 速度因子 (0.0~1.0+)
+     */
+    [[nodiscard]] virtual f32 getBlockSpeedFactor();
+
     // ========== 装备 ==========
 
     /**

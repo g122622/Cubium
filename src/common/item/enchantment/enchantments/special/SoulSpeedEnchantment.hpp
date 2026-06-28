@@ -32,19 +32,24 @@ namespace enchant {
 /**
  * @brief 灵魂疾行附魔
  *
- * 在灵魂沙和灵魂土上增加移动速度。
+ * 在灵魂沙和灵魂土上增加移动速度并抵消减速效果。
  *
- * 效果:
- * - 每级增加灵魂沙/土上的移动速度
- * - I: +40%, II: +60%, III: +80%
+ * 效果（对齐 MC 1.21.11 数据驱动实现）:
+ * - 通过 MOVEMENT_SPEED 属性修饰符增加移动速度：
+ *   使用 Addition 操作，等级 I: +0.0405, II: +0.051, III: +0.0615
+ *   公式: 0.0405 + 0.0105 * (level - 1)
+ * - 通过 MOVEMENT_EFFICIENCY 属性修饰符抵消灵魂沙/土的减速：
+ *   使用 Addition 操作，所有等级均为 +1.0
+ *   （MOVEMENT_EFFICIENCY=1.0 时，LivingEntity.getBlockSpeedFactor() 在灵魂沙上
+ *    将从默认的 0.4 插值到 1.0，即完全抵消减速）
  * - 最大 III 级
  * - 属于宝藏附魔
+ * - 每次位置变化事件有 4% 概率消耗靴子 1 点耐久
+ * - 每tick在满足条件时生成灵魂粒子效果和灵魂逃脱音效
  *
  * 位置依赖效果:
- * - 当实体站在灵魂沙/灵魂土上时激活速度修饰符
- * - 当实体离开灵魂沙/灵魂土时停用速度修饰符
- * - 每次位置变化有 4% 概率消耗靴子耐久
- * - 灵魂粒子效果和音效
+ * - 当实体站在灵魂沙/灵魂土上且在地面上、非骑乘、非飞行时激活
+ * - 当条件不再满足时停用速度修饰符和效率修饰符
  */
 class SoulSpeedEnchantment : public Enchantment {
 public:
@@ -86,35 +91,45 @@ public:
     [[nodiscard]] i32 getMaxCost(i32 level) const override { return getMinCost(level) + 15; }
 
     /**
-     * @brief 获取灵魂沙/土上的移动速度乘数
+     * @brief 获取灵魂疾行的 MOVEMENT_SPEED 修饰符值
      * @param level 附魔等级
-     * @return 速度乘数
+     * @return Addition 操作的修饰符值
      *
-     * TODO: 当前使用 MultiplyTotal 操作（I: +40%, II: +60%, III: +80%），
-     *       待属性系统完善后切换为 AddValue 操作。
+     * 对齐 MC 1.21.11 LevelBasedValue.perLevel(0.0405F, 0.0105F):
+     * 公式: 0.0405 + 0.0105 * (level - 1)
+     * Level I: +0.0405, Level II: +0.051, Level III: +0.0615
      */
-    [[nodiscard]] static f32 getSoulSpeedMultiplier(i32 level)
+    [[nodiscard]] static f32 getMovementSpeedBonus(i32 level)
     {
-        // I: 1.4 (+40%), II: 1.6 (+60%), III: 1.8 (+80%)
-        // 修饰符值 = 0.2 * (level + 1): I=0.4, II=0.6, III=0.8
-        return 1.0f + 0.2f * static_cast<f32>(level + 1);
+        return 0.0405f + 0.0105f * static_cast<f32>(level - 1);
     }
+
+    /**
+     * @brief 获取灵魂疾行的 MOVEMENT_EFFICIENCY 修饰符值
+     * @return Addition 操作的修饰符值，固定为 1.0
+     *
+     * 对齐 MC 1.21.11 LevelBasedValue.constant(1.0F):
+     * 所有等级均为 +1.0，配合 LivingEntity.getBlockSpeedFactor() 中的插值逻辑，
+     * 当 MOVEMENT_EFFICIENCY=1.0 时，在灵魂沙上 (speedFactor=0.4) 将从 0.4 插值到 1.0，
+     * 完全抵消减速效果。
+     */
+    [[nodiscard]] static f32 getMovementEfficiencyBonus() { return 1.0f; }
 
     /**
      * @brief 获取耐久消耗概率
      * @param level 附魔等级（未使用，概率固定）
-     * @return 每tick消耗耐久的概率（固定4%）
+     * @return 每次位置变化事件消耗耐久的概率（固定4%）
      */
     [[nodiscard]] static f32 getDurabilityConsumeChance(i32 level)
     {
-        (void)level;  // 概率固定为4%，与等级无关
-        return 0.04f; // 固定4%概率
+        (void)level; // 概率固定为4%，与等级无关
+        return 0.04f;
     }
 
     /**
-     * @brief 位置依赖效果：在灵魂沙/土上激活速度加成
+     * @brief 位置依赖效果：在灵魂沙/土上激活速度加成和效率加成
      *
-     * 当实体站在灵魂沙/灵魂土上且在地面上、非骑乘时，激活速度修饰符。
+     * 当实体站在灵魂沙/灵魂土上且在地面上、非骑乘、非飞行时，激活属性修饰符。
      * 当条件不再满足时，由 onLocationEffectDeactivated 移除修饰符。
      *
      * @param entity 持有附魔物品的实体
@@ -128,7 +143,7 @@ public:
         LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const override;
 
     /**
-     * @brief 停用位置依赖效果：移除灵魂疾行速度修饰符
+     * @brief 停用位置依赖效果：移除灵魂疾行速度修饰符和效率修饰符
      *
      * @param entity 持有附魔物品的实体
      * @param stack 附魔物品堆
@@ -144,14 +159,29 @@ private:
     [[nodiscard]] bool isOnSoulSpeedBlock(LivingEntity& entity) const;
 
     /**
-     * @brief 应用灵魂疾行速度修饰符
+     * @brief 检查实体是否正在飞行（创造/旁观模式飞行或鞘翅滑翔）
      */
-    void applySoulSpeedModifier(LivingEntity& entity, i32 level) const;
+    [[nodiscard]] bool isFlying(const LivingEntity& entity) const;
 
     /**
-     * @brief 移除灵魂疾行速度修饰符
+     * @brief 应用灵魂疾行属性修饰符（MOVEMENT_SPEED 和 MOVEMENT_EFFICIENCY）
      */
-    void removeSoulSpeedModifier(LivingEntity& entity) const;
+    void applySoulSpeedModifiers(LivingEntity& entity, i32 level) const;
+
+    /**
+     * @brief 移除灵魂疾行属性修饰符
+     */
+    void removeSoulSpeedModifiers(LivingEntity& entity) const;
+
+    /**
+     * @brief 生成灵魂粒子效果
+     */
+    void spawnSoulParticles(LivingEntity& entity) const;
+
+    /**
+     * @brief 尝试消耗靴子耐久
+     */
+    void tryConsumeDurability(LivingEntity& entity, i32 slot) const;
 };
 
 } // namespace enchant

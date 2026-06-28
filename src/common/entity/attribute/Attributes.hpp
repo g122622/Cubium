@@ -267,6 +267,27 @@ inline std::unique_ptr<Attribute> swimSpeed()
     return std::make_unique<Attribute>("forge.swim_speed", 1.0, 0.0, 1024.0);
 }
 
+/**
+ * @brief 移动效率
+ *
+ * 决定实体在减速方块（灵魂沙、蜂蜜块等）上的移动效率。
+ * 对齐 MC 1.21.11 generic.movement_efficiency 属性。
+ * 默认值: 0.0（不抵消减速效果）
+ * 范围: 0.0 ~ 1.0
+ *
+ * 在 LivingEntity.getBlockSpeedFactor() 中的使用方式：
+ *   finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
+ * 当 movementEfficiency=0.0 时，使用方块原始 speedFactor（灵魂沙=0.4，正常=1.0）
+ * 当 movementEfficiency=1.0 时，完全忽略方块减速效果（speedFactor 插值到 1.0）
+ *
+ * 灵魂疾行附魔通过 Addition 操作为此属性添加 +1.0 修饰符，
+ * 从而完全抵消灵魂沙/灵魂土的减速效果。
+ */
+inline std::unique_ptr<Attribute> movementEfficiency()
+{
+    return std::make_unique<Attribute>("generic.movement_efficiency", 0.0, 0.0, 1.0);
+}
+
 // ============================================================================
 // 属性名称常量
 // ============================================================================
@@ -285,6 +306,9 @@ constexpr const char* ARMOR_TOUGHNESS = "generic.armor_toughness";
 constexpr const char* LUCK = "generic.luck";
 constexpr const char* ZOMBIE_SPAWN_REINFORCEMENTS = "zombie.spawn_reinforcements";
 constexpr const char* HORSE_JUMP_STRENGTH = "horse.jump_strength";
+
+// MC 1.21+ 新增属性
+constexpr const char* MOVEMENT_EFFICIENCY = "generic.movement_efficiency";
 
 // 非原版属性（项目自定义或Forge扩展）
 constexpr const char* MAX_ABSORPTION = "generic.max_absorption";

@@ -397,6 +397,31 @@ void LivingEntity::setAttributeBaseValue(const std::string& name, f64 value)
     m_attributes.setBaseValue(name, value);
 }
 
+f32 LivingEntity::getBlockSpeedFactor()
+{
+    // 获取脚下方块的 speedFactor
+    f32 blockSpeedFactor = 1.0f;
+    if (m_world != nullptr) {
+        BlockPos belowPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
+            static_cast<i32>(std::floor(m_position.z)));
+        const BlockState* state = m_world->getBlockState(belowPos);
+        if (state != nullptr) {
+            blockSpeedFactor = state->getBlock().getSpeedFactor(*state, m_world, &belowPos);
+        }
+    }
+
+    // 对齐 MC 1.21.11 LivingEntity.getBlockSpeedFactor():
+    //   return Mth.lerp((float)this.getAttributeValue(Attributes.MOVEMENT_EFFICIENCY),
+    //   super.getBlockSpeedFactor(), 1.0F);
+    // 当 MOVEMENT_EFFICIENCY=0.0 时，返回 blockSpeedFactor（原始值）
+    // 当 MOVEMENT_EFFICIENCY=1.0 时，返回 1.0（完全忽略减速效果）
+    f64 efficiency = getAttributeValue(entity::attribute::Attributes::MOVEMENT_EFFICIENCY, 0.0);
+    efficiency = std::clamp(efficiency, 0.0, 1.0);
+    f32 result = static_cast<f32>(blockSpeedFactor + (1.0f - blockSpeedFactor) * static_cast<f32>(efficiency));
+    return result;
+}
+
 f32 LivingEntity::getSoundPitch() const
 {
     math::Random random(static_cast<u64>(m_id) ^ (static_cast<u64>(m_ticksExisted) << 32));
@@ -1036,6 +1061,12 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     if (m_onGround) {
         // 地面移动：使用滑度计算
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
+
+        // 对齐 MC 1.21.11 LivingEntity.travel()：
+        // 地面移动因子需要乘以 getBlockSpeedFactor()
+        // getBlockSpeedFactor() 使用 MOVEMENT_EFFICIENCY 属性在方块 speedFactor 和 1.0 之间插值
+        // 灵魂疾行附魔设置 MOVEMENT_EFFICIENCY=1.0，使灵魂沙/土上的 speedFactor 从 0.4 插值到 1.0
+        moveFactor *= getBlockSpeedFactor();
     } else {
         // 空中移动：使用跳跃移动因子
         moveFactor = m_jumpMovementFactor;

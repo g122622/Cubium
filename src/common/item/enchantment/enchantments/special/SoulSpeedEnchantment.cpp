@@ -24,9 +24,12 @@
 #include "SoulSpeedEnchantment.hpp"
 #include "common/entity/attribute/AttributeModifier.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -38,16 +41,18 @@ namespace enchant {
 // 灵魂疾行速度修饰器 ID
 static const std::string SOUL_SPEED_MODIFIER_ID = "enchantment.soul_speed";
 
+// 灵魂疾行效率修饰器 ID
+static const std::string SOUL_SPEED_EFFICIENCY_MODIFIER_ID = "enchantment.soul_speed.efficiency";
+
 bool SoulSpeedEnchantment::onLocationChanged(
     LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const
 {
     (void)stack;
-    (void)slot;
 
     // 灵魂疾行仅在以下条件下激活：
     // 1. 实体在地面上
     // 2. 实体没有骑乘
-    // 3. 实体没有在飞行
+    // 3. 实体没有在飞行（创造/旁观模式飞行或鞘翅滑翔）
     // 4. 脚下是灵魂沙/灵魂土
     if (!entity.onGround()) {
         return false;
@@ -55,29 +60,24 @@ bool SoulSpeedEnchantment::onLocationChanged(
     if (entity.isRiding()) {
         return false;
     }
-
-    // 检查脚下是否是灵魂沙/灵魂土
+    if (isFlying(entity)) {
+        return false;
+    }
     if (!isOnSoulSpeedBlock(entity)) {
         return false;
     }
 
-    // 检查实体是否在飞行（适用于创造模式玩家）
-    // TODO: 当 Player 飞行状态检查完善后，添加飞行检测
-
-    // 如果之前不活跃，添加速度修饰符
+    // 如果之前不活跃，添加属性修饰符
     if (!isActive) {
-        applySoulSpeedModifier(entity, level);
+        applySoulSpeedModifiers(entity, level);
     }
 
-    // 生成灵魂粒子效果
-    if (entity.world() != nullptr && !entity.world()->isClientSide()) {
-        // 使用简单的概率检查，每 tick 有 35% 概率生成粒子
-        // 这里使用 ticksExisted 做伪随机
-        if ((entity.ticksExisted() * 31 + 17) % 100 < 35) {
-            entity.world()->addParticle(
-                particle::ParticleTypeId::Soul, entity.position() + Vector3(0.0, 0.1, 0.0), Vector3(0.0, 0.02, 0.0));
-        }
-    }
+    // 尝试消耗耐久（每次位置变化事件有4%概率消耗1点耐久）
+    // 对齐 MC 1.21.11 ChangeItemDamage 效果：随机概率 + 站在灵魂沙/土上
+    tryConsumeDurability(entity, slot);
+
+    // 生成灵魂粒子效果和音效
+    spawnSoulParticles(entity);
 
     return true; // 灵魂疾行在灵魂沙上处于活跃状态
 }
@@ -89,8 +89,8 @@ void SoulSpeedEnchantment::onLocationEffectDeactivated(
     (void)slot;
     (void)level;
 
-    // 移除灵魂疾行速度修饰符
-    removeSoulSpeedModifier(entity);
+    // 移除灵魂疾行属性修饰符（MOVEMENT_SPEED 和 MOVEMENT_EFFICIENCY）
+    removeSoulSpeedModifiers(entity);
 }
 
 bool SoulSpeedEnchantment::isOnSoulSpeedBlock(LivingEntity& entity) const
@@ -110,29 +110,129 @@ bool SoulSpeedEnchantment::isOnSoulSpeedBlock(LivingEntity& entity) const
         return false;
     }
 
+    // 使用 SOUL_FIRE_BASE_BLOCKS 标签（包含 soul_sand 和 soul_soil）
+    // 对齐 MC 1.21.11 中的 SOUL_SPEED_BLOCKS 标签
     return BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(state->getBlock());
 }
 
-void SoulSpeedEnchantment::applySoulSpeedModifier(LivingEntity& entity, i32 level) const
+bool SoulSpeedEnchantment::isFlying(const LivingEntity& entity) const
 {
-    // 添加速度修饰符
-    // 当前使用 MultiplyTotal 操作：I: +40%, II: +60%, III: +80%
-    // TODO: 待属性系统完善后切换为 AddValue 操作
-    f32 multiplier = getSoulSpeedMultiplier(level);
-    f32 modifierAmount = multiplier - 1.0f; // 转换为属性修饰符值
+    // 检查鞘翅滑翔（对所有实体类型有效）
+    if (entity.isElytraFlying()) {
+        return true;
+    }
 
-    entity::attribute::AttributeModifier modifier(SOUL_SPEED_MODIFIER_ID,
-        "Soul Speed",
-        static_cast<f64>(modifierAmount),
-        entity::attribute::Operation::MultiplyTotal);
+    // 检查创造/旁观模式飞行（仅对玩家有效）
+    const Player* player = dynamic_cast<const Player*>(&entity);
+    if (player != nullptr && player->abilities().flying) {
+        return true;
+    }
 
-    entity.attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, modifier);
+    return false;
 }
 
-void SoulSpeedEnchantment::removeSoulSpeedModifier(LivingEntity& entity) const
+void SoulSpeedEnchantment::applySoulSpeedModifiers(LivingEntity& entity, i32 level) const
 {
-    // 移除速度修饰符
+    // MOVEMENT_SPEED 修饰符：使用 Addition 操作
+    // 对齐 MC 1.21.11: LevelBasedValue.perLevel(0.0405F, 0.0105F)
+    // Level I: +0.0405, Level II: +0.051, Level III: +0.0615
+    f32 speedBonus = getMovementSpeedBonus(level);
+
+    entity::attribute::AttributeModifier speedModifier(
+        SOUL_SPEED_MODIFIER_ID, "Soul Speed", static_cast<f64>(speedBonus), entity::attribute::Operation::Addition);
+
+    entity.attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedModifier);
+
+    // MOVEMENT_EFFICIENCY 修饰符：使用 Addition 操作
+    // 对齐 MC 1.21.11: LevelBasedValue.constant(1.0F)
+    // 值为 1.0，配合 LivingEntity.getBlockSpeedFactor() 中的插值逻辑：
+    //   finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
+    // 当 movementEfficiency=1.0 时，lerp(1.0, 0.4, 1.0) = 1.0，完全抵消灵魂沙减速
+    f32 efficiencyBonus = getMovementEfficiencyBonus();
+
+    entity::attribute::AttributeModifier efficiencyModifier(SOUL_SPEED_EFFICIENCY_MODIFIER_ID,
+        "Soul Speed Efficiency",
+        static_cast<f64>(efficiencyBonus),
+        entity::attribute::Operation::Addition);
+
+    entity.attributes().addModifier(entity::attribute::Attributes::MOVEMENT_EFFICIENCY, efficiencyModifier);
+}
+
+void SoulSpeedEnchantment::removeSoulSpeedModifiers(LivingEntity& entity) const
+{
+    // 移除 MOVEMENT_SPEED 修饰符
     entity.attributes().removeModifier(entity::attribute::Attributes::MOVEMENT_SPEED, SOUL_SPEED_MODIFIER_ID);
+
+    // 移除 MOVEMENT_EFFICIENCY 修饰符
+    entity.attributes().removeModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, SOUL_SPEED_EFFICIENCY_MODIFIER_ID);
+}
+
+void SoulSpeedEnchantment::spawnSoulParticles(LivingEntity& entity) const
+{
+    IWorld* world = entity.world();
+    if (world == nullptr || world->isClientSide()) {
+        return;
+    }
+
+    // 对齐 MC 1.21.11 粒子效果条件：
+    // - periodicTick(5)：每5tick触发一次
+    // - isFlying(false)：非飞行
+    // - onGround(true)：在地面上
+    // - 水平速度 > 1.0E-5：正在移动
+    // 粒子类型: ParticleTypes.SOUL
+    // 粒子偏移: SpawnParticlesEffect.inBoundingBox() + offsetFromEntityPosition(0.1F)
+    // 粒子速度: movementScaled(-0.2F) + fixedVelocity(ConstantFloat.of(0.1F))
+    // 粒子数量: ConstantFloat.of(1.0F) = 1个粒子
+    if (entity.ticksExisted() % 5 == 0) {
+        // 检查实体是否在水平方向移动
+        f32 horizontalSpeed =
+            std::sqrt(entity.velocity().x * entity.velocity().x + entity.velocity().z * entity.velocity().z);
+        if (horizontalSpeed > 1.0E-5f) {
+            world->addParticle(
+                particle::ParticleTypeId::Soul, entity.position() + Vector3(0.0, 0.1, 0.0), Vector3(0.0, 0.1, 0.0));
+        }
+    }
+
+    // 对齐 MC 1.21.11 音效条件：
+    // - 35% 随机概率
+    // - 与粒子条件相同（非飞行、在地面、在灵魂沙/土上、正在移动）
+    // 音效: SoundEvents.PARTICLE_SOUL_ESCAPE
+    // 音量: 0.6
+    // 音调: 0.6~1.0 随机
+    if (entity.getRandom().nextFloat() < 0.35f) {
+        f32 pitch = 0.6f + entity.getRandom().nextFloat() * 0.4f;
+        entity.playSound(SoundEvents::PARTICLE_SOUL_ESCAPE, 0.6f, pitch);
+    }
+}
+
+void SoulSpeedEnchantment::tryConsumeDurability(LivingEntity& entity, i32 slot) const
+{
+    IWorld* world = entity.world();
+    if (world == nullptr || world->isClientSide()) {
+        return;
+    }
+
+    // 对齐 MC 1.21.11 ChangeItemDamage 效果：
+    // - 损坏量: LevelBasedValue.constant(1.0F) = 1点耐久
+    // - 概率: randomChance(EnchantmentLevelProvider.forEnchantmentLevel(LevelBasedValue.constant(0.04F)))
+    //   = 固定4%概率，与附魔等级无关
+    if (entity.getRandom().nextFloat() >= getDurabilityConsumeChance(0)) {
+        return;
+    }
+
+    // 将槽位索引转换为 EquipmentSlot
+    auto equipmentSlot = static_cast<EquipmentSlot>(slot);
+    const ItemStack& stack = entity.getEquipment(equipmentSlot);
+    if (stack.isEmpty() || !stack.isDamageable()) {
+        return;
+    }
+
+    // 使用 LivingEntity::hurtAndBreak 消耗耐久
+    // 需要通过 const_cast 获取可变引用，因为 getEquipment 返回 const 引用
+    // hurtAndBreak 会处理耐久消耗、Unbreaking 附魔检测和物品损坏回调
+    ItemStack& mutableStack = const_cast<ItemStack&>(stack);
+    LivingEntity::hurtAndBreak(mutableStack, 1, &entity, equipmentSlot);
 }
 
 } // namespace enchant

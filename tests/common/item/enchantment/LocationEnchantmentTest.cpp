@@ -273,14 +273,22 @@ TEST_F(SoulSpeedEnchantmentTest, GetNameKey)
     EXPECT_EQ(soulSpeed.getNameKey(3), "enchantment.minecraft.soul_speed");
 }
 
-TEST_F(SoulSpeedEnchantmentTest, GetSoulSpeedMultiplier)
+TEST_F(SoulSpeedEnchantmentTest, GetMovementSpeedBonus)
 {
-    // I: 1.0 + 0.2 + (1-1)*0.2 = 1.4 (+40%)
-    EXPECT_FLOAT_EQ(SoulSpeedEnchantment::getSoulSpeedMultiplier(1), 1.4f);
-    // II: 1.0 + 0.2 + (2-1)*0.2 = 1.6 (+60%)
-    EXPECT_FLOAT_EQ(SoulSpeedEnchantment::getSoulSpeedMultiplier(2), 1.6f);
-    // III: 1.0 + 0.2 + (3-1)*0.2 = 1.8 (+80%)
-    EXPECT_FLOAT_EQ(SoulSpeedEnchantment::getSoulSpeedMultiplier(3), 1.8f);
+    // 对齐 MC 1.21.11 LevelBasedValue.perLevel(0.0405F, 0.0105F):
+    // 公式: 0.0405 + 0.0105 * (level - 1)
+    // Level I: 0.0405
+    EXPECT_FLOAT_EQ(SoulSpeedEnchantment::getMovementSpeedBonus(1), 0.0405f);
+    // Level II: 0.0405 + 0.0105 = 0.051
+    EXPECT_FLOAT_EQ(SoulSpeedEnchantment::getMovementSpeedBonus(2), 0.051f);
+    // Level III: 0.0405 + 0.0105 * 2 = 0.0615
+    EXPECT_FLOAT_EQ(SoulSpeedEnchantment::getMovementSpeedBonus(3), 0.0615f);
+}
+
+TEST_F(SoulSpeedEnchantmentTest, GetMovementEfficiencyBonus)
+{
+    // MOVEMENT_EFFICIENCY 修饰符值固定为 1.0（所有等级）
+    EXPECT_FLOAT_EQ(SoulSpeedEnchantment::getMovementEfficiencyBonus(), 1.0f);
 }
 
 TEST_F(SoulSpeedEnchantmentTest, GetDurabilityConsumeChance)
