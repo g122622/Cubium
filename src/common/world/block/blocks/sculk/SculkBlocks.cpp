@@ -25,6 +25,9 @@
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/property/Properties.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
+#include "world/blockentity/BlockEntityType.hpp"
+#include "world/blockentity/sculk/SculkSensorBlockEntity.hpp"
+#include "world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 
 namespace mc {
@@ -135,6 +138,16 @@ const BlockState& SculkSensorBlock::mirror(const BlockState& state, Mirror mirro
 const fluid::FluidState* SculkSensorBlock::getFluidState(const BlockState& state) const
 {
     return waterloggable::getWaterFluidState(state);
+}
+
+std::unique_ptr<BlockEntity> SculkSensorBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::SculkSensorBlockEntity>(pos);
+}
+
+BlockEntityType SculkSensorBlock::getBlockEntityType() const
+{
+    return BlockEntityType::SculkSensor;
 }
 
 // ============================================================================
@@ -309,6 +322,16 @@ const CollisionShape& SculkShriekerBlock::getShape(const BlockState& state) cons
 const fluid::FluidState* SculkShriekerBlock::getFluidState(const BlockState& state) const
 {
     return waterloggable::getWaterFluidState(state);
+}
+
+std::unique_ptr<BlockEntity> SculkShriekerBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::SculkShriekerBlockEntity>(pos);
+}
+
+BlockEntityType SculkShriekerBlock::getBlockEntityType() const
+{
+    return BlockEntityType::SculkShrieker;
 }
 
 } // namespace blocks

@@ -28,6 +28,10 @@
 #include "../../IWaterLoggable.hpp"
 
 namespace mc {
+
+class BlockEntity;
+enum class BlockEntityType : u16;
+
 namespace blocks {
 
 /**
@@ -111,6 +115,11 @@ public:
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
+
+    /// 方块实体支持
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+    [[nodiscard]] BlockEntityType getBlockEntityType() const;
 
     /// 活跃阶段持续tick数
     static constexpr i32 ACTIVE_TICKS = 30;
@@ -213,6 +222,11 @@ public:
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
+
+    /// 方块实体支持
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+    [[nodiscard]] BlockEntityType getBlockEntityType() const;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

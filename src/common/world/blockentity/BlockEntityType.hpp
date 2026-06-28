@@ -95,6 +95,10 @@ enum class BlockEntityType : u16 {
     Vault,        ///< 宝库
     Crafter,      ///< 自动合成器
 
+    // 幽匿
+    SculkSensor,   ///< 幽匿感测体
+    SculkShrieker, ///< 幽匿尖啸体
+
     Count ///< 类型数量
 };
 

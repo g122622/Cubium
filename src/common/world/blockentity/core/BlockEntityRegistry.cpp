@@ -45,6 +45,8 @@
 #include "world/blockentity/redstone/CommandBlockEntity.hpp"
 #include "world/blockentity/redstone/ComparatorEntity.hpp"
 #include "world/blockentity/redstone/DaylightDetectorEntity.hpp"
+#include "world/blockentity/sculk/SculkSensorBlockEntity.hpp"
+#include "world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
@@ -182,6 +184,14 @@ void BlockEntityRegistry::registerBuiltinTypes()
     // 注册刷怪笼方块实体
     registerType(BlockEntityType::MobSpawner,
         [](const BlockPos& pos) { return std::make_unique<blockentity::MobSpawnerBlockEntity>(pos); });
+
+    // 注册幽匿感测体方块实体
+    registerType(BlockEntityType::SculkSensor,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::SculkSensorBlockEntity>(pos); });
+
+    // 注册幽匿尖啸体方块实体
+    registerType(BlockEntityType::SculkShrieker,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::SculkShriekerBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

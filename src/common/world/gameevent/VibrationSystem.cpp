@@ -34,9 +34,12 @@
 #include "common/world/gameevent/VibrationSystem.hpp"
 
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 
 #include <cmath>
+#include <nlohmann/json.hpp>
 
 namespace mc::gameevent {
 
@@ -282,6 +285,311 @@ i32 VibrationSystem::getRedstoneStrengthForDistance(f32 distance, i32 radius)
 i32 VibrationSystem::User::calculateTravelTimeInTicks(f32 distance) const
 {
     return static_cast<i32>(std::floor(static_cast<f64>(distance)));
+}
+
+// ============================================================================
+// VibrationInfo 序列化
+// ============================================================================
+
+void VibrationInfo::saveToNBT(nbt::CompoundTag& tag) const
+{
+    // game_event: 事件 ID 字符串
+    if (gameEvent != nullptr) {
+        tag.put("game_event", std::string(gameEvent->id()));
+    }
+
+    // distance: 振动传播距离
+    tag.put("distance", static_cast<f32>(distance));
+
+    // pos: 振动源位置 [x, y, z]
+    auto posList = std::make_unique<nbt::tags::double_list_tag>();
+    posList->value.push_back(pos.x);
+    posList->value.push_back(pos.y);
+    posList->value.push_back(pos.z);
+    tag.value.emplace("pos", std::move(posList));
+
+    // source: 源实体 ID（可选）
+    if (hasSourceEntity) {
+        tag.put("source", static_cast<i64>(sourceEntityId));
+    }
+}
+
+bool VibrationInfo::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    // game_event: 事件 ID 字符串
+    auto eventId = entity::serialization::nbt_helper::tryGetString(tag, "game_event");
+    if (eventId.has_value()) {
+        gameEvent = GameEvents::getGameEventById(*eventId);
+        // 如果事件 ID 无法识别，gameEvent 将为 nullptr，但仍视为成功加载
+        // （存档中可能包含未来版本的事件）
+    } else {
+        // 缺少 game_event 字段，振动信息无效
+        return false;
+    }
+
+    // distance: 振动传播距离
+    auto distOpt = entity::serialization::nbt_helper::tryGetFloat(tag, "distance");
+    if (distOpt.has_value()) {
+        distance = *distOpt;
+    }
+
+    // pos: 振动源位置 [x, y, z]
+    auto* posList = entity::serialization::nbt_helper::tryGetList(tag, "pos");
+    if (posList != nullptr && posList->element_id() == nbt::TagId::Double) {
+        const auto& doubles = dynamic_cast<const nbt::tags::double_list_tag&>(*posList);
+        if (doubles.value.size() >= 3) {
+            pos.x = doubles.value[0];
+            pos.y = doubles.value[1];
+            pos.z = doubles.value[2];
+        }
+    }
+
+    // source: 源实体 ID（可选）
+    auto sourceOpt = entity::serialization::nbt_helper::tryGetLong(tag, "source");
+    if (sourceOpt.has_value()) {
+        sourceEntityId = static_cast<u64>(*sourceOpt);
+        hasSourceEntity = true;
+    } else {
+        sourceEntityId = 0;
+        hasSourceEntity = false;
+    }
+
+    return true;
+}
+
+void VibrationInfo::saveToJson(nlohmann::json& data) const
+{
+    if (gameEvent != nullptr) {
+        data["game_event"] = gameEvent->id();
+    }
+    data["distance"] = distance;
+    data["pos"] = {pos.x, pos.y, pos.z};
+    if (hasSourceEntity) {
+        data["source"] = static_cast<i64>(sourceEntityId);
+    }
+}
+
+bool VibrationInfo::loadFromJson(const nlohmann::json& data)
+{
+    // game_event
+    if (data.contains("game_event") && data["game_event"].is_string()) {
+        gameEvent = GameEvents::getGameEventById(data["game_event"].get<std::string>());
+    } else {
+        return false;
+    }
+
+    // distance
+    if (data.contains("distance") && data["distance"].is_number()) {
+        distance = data["distance"].get<f32>();
+    }
+
+    // pos
+    if (data.contains("pos") && data["pos"].is_array() && data["pos"].size() >= 3) {
+        pos.x = data["pos"][0].get<f64>();
+        pos.y = data["pos"][1].get<f64>();
+        pos.z = data["pos"][2].get<f64>();
+    }
+
+    // source
+    if (data.contains("source") && data["source"].is_number_integer()) {
+        sourceEntityId = static_cast<u64>(data["source"].get<i64>());
+        hasSourceEntity = true;
+    } else {
+        sourceEntityId = 0;
+        hasSourceEntity = false;
+    }
+
+    return true;
+}
+
+// ============================================================================
+// VibrationSelector 序列化
+// ============================================================================
+
+void VibrationSelector::saveToNBT(nbt::CompoundTag& tag) const
+{
+    if (m_currentCandidate.has_value()) {
+        const auto& [info, tick] = m_currentCandidate.value();
+
+        // event: 候选振动信息
+        auto eventTag = std::make_unique<nbt::CompoundTag>();
+        info.saveToNBT(*eventTag);
+        tag.value.emplace("event", std::move(eventTag));
+
+        // tick: 候选被添加时的游戏 tick
+        tag.put("tick", static_cast<i64>(tick));
+    } else {
+        // 无候选时，tick 为 -1
+        tag.put("tick", static_cast<i64>(-1));
+    }
+}
+
+bool VibrationSelector::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    // tick: 候选被添加时的游戏 tick
+    auto tickOpt = entity::serialization::nbt_helper::tryGetLong(tag, "tick");
+    i64 tick = tickOpt.value_or(-1);
+
+    // event: 候选振动信息（可选）
+    const nbt::CompoundTag* eventTag = entity::serialization::nbt_helper::tryGetCompound(tag, "event");
+    if (eventTag != nullptr && tick >= 0) {
+        VibrationInfo info;
+        if (info.loadFromNBT(*eventTag)) {
+            m_currentCandidate = std::make_pair(std::move(info), static_cast<u64>(tick));
+        } else {
+            m_currentCandidate = std::nullopt;
+        }
+    } else {
+        m_currentCandidate = std::nullopt;
+    }
+
+    return true;
+}
+
+void VibrationSelector::saveToJson(nlohmann::json& data) const
+{
+    if (m_currentCandidate.has_value()) {
+        const auto& [info, tick] = m_currentCandidate.value();
+        nlohmann::json eventData;
+        info.saveToJson(eventData);
+        data["event"] = std::move(eventData);
+        data["tick"] = tick;
+    } else {
+        data["tick"] = -1;
+    }
+}
+
+bool VibrationSelector::loadFromJson(const nlohmann::json& data)
+{
+    i64 tick = -1;
+    if (data.contains("tick") && data["tick"].is_number_integer()) {
+        tick = data["tick"].get<i64>();
+    }
+
+    if (data.contains("event") && data["event"].is_object() && tick >= 0) {
+        VibrationInfo info;
+        if (info.loadFromJson(data["event"])) {
+            m_currentCandidate = std::make_pair(std::move(info), static_cast<u64>(tick));
+        } else {
+            m_currentCandidate = std::nullopt;
+        }
+    } else {
+        m_currentCandidate = std::nullopt;
+    }
+
+    return true;
+}
+
+// ============================================================================
+// VibrationSystem::Data 序列化
+// ============================================================================
+
+void VibrationSystem::Data::saveToNBT(nbt::CompoundTag& tag) const
+{
+    // event: 当前正在传播的振动（可选）
+    if (m_currentVibration.has_value()) {
+        auto eventTag = std::make_unique<nbt::CompoundTag>();
+        m_currentVibration.value().saveToNBT(*eventTag);
+        tag.value.emplace("event", std::move(eventTag));
+    }
+
+    // selector: 振动选择器
+    auto selectorTag = std::make_unique<nbt::CompoundTag>();
+    m_selectionStrategy.saveToNBT(*selectorTag);
+    tag.value.emplace("selector", std::move(selectorTag));
+
+    // event_delay: 传播剩余时间（tick）
+    tag.put("event_delay", static_cast<i32>(m_travelTimeInTicks));
+
+    // 注意：reloadVibrationParticle 不序列化到 NBT，反序列化时始终设为 true
+}
+
+bool VibrationSystem::Data::loadFromNBT(const nbt::CompoundTag& tag)
+{
+    // event: 当前正在传播的振动（可选，对齐 MC 原版 lenientOptionalFieldOf）
+    const nbt::CompoundTag* eventTag = entity::serialization::nbt_helper::tryGetCompound(tag, "event");
+    if (eventTag != nullptr) {
+        VibrationInfo info;
+        if (info.loadFromNBT(*eventTag)) {
+            m_currentVibration = std::move(info);
+        } else {
+            m_currentVibration = std::nullopt;
+        }
+    } else {
+        m_currentVibration = std::nullopt;
+    }
+
+    // selector: 振动选择器
+    const nbt::CompoundTag* selectorTag = entity::serialization::nbt_helper::tryGetCompound(tag, "selector");
+    if (selectorTag != nullptr) {
+        (void)m_selectionStrategy.loadFromNBT(*selectorTag);
+    } else {
+        m_selectionStrategy.startOver();
+    }
+
+    // event_delay: 传播剩余时间（tick），默认 0
+    auto delayOpt = entity::serialization::nbt_helper::tryGetInt(tag, "event_delay");
+    m_travelTimeInTicks = delayOpt.value_or(0);
+    if (m_travelTimeInTicks < 0) {
+        m_travelTimeInTicks = 0;
+    }
+
+    // 对齐 MC 原版 CODEC 行为：从存档加载时 reloadVibrationParticle = true
+    m_reloadVibrationParticle = true;
+
+    return true;
+}
+
+void VibrationSystem::Data::saveToJson(nlohmann::json& data) const
+{
+    // event: 当前正在传播的振动
+    if (m_currentVibration.has_value()) {
+        nlohmann::json eventData;
+        m_currentVibration.value().saveToJson(eventData);
+        data["event"] = std::move(eventData);
+    }
+
+    // selector: 振动选择器
+    nlohmann::json selectorData;
+    m_selectionStrategy.saveToJson(selectorData);
+    data["selector"] = std::move(selectorData);
+
+    // event_delay: 传播剩余时间
+    data["event_delay"] = m_travelTimeInTicks;
+}
+
+bool VibrationSystem::Data::loadFromJson(const nlohmann::json& data)
+{
+    // event
+    if (data.contains("event") && data["event"].is_object()) {
+        VibrationInfo info;
+        if (info.loadFromJson(data["event"])) {
+            m_currentVibration = std::move(info);
+        } else {
+            m_currentVibration = std::nullopt;
+        }
+    } else {
+        m_currentVibration = std::nullopt;
+    }
+
+    // selector
+    if (data.contains("selector") && data["selector"].is_object()) {
+        (void)m_selectionStrategy.loadFromJson(data["selector"]);
+    } else {
+        m_selectionStrategy.startOver();
+    }
+
+    // event_delay
+    if (data.contains("event_delay") && data["event_delay"].is_number_integer()) {
+        m_travelTimeInTicks = std::max(0, data["event_delay"].get<i32>());
+    } else {
+        m_travelTimeInTicks = 0;
+    }
+
+    // 对齐 MC 原版行为：从存档加载时 reloadVibrationParticle = true
+    m_reloadVibrationParticle = true;
+
+    return true;
 }
 
 } // namespace mc::gameevent

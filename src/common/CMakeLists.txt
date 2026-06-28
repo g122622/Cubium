@@ -933,6 +933,11 @@ add_library(mc_common STATIC
     world/blockentity/trial/TrialSpawnerBlockEntity.cpp
     world/blockentity/trial/VaultBlockEntity.cpp
     world/blockentity/trial/CrafterBlockEntity.cpp
+
+    # World - Block Entity - Sculk
+    world/blockentity/sculk/SculkSensorBlockEntity.cpp
+    world/blockentity/sculk/SculkShriekerBlockEntity.cpp
+
     world/blockentity/spawner/MobSpawnerBlockEntity.cpp
     world/blockentity/spawner/SpawnerLogic.cpp
 
@@ -951,6 +956,7 @@ add_library(mc_common STATIC
 
     # World - Game Event System
     # Note: .cpp files that depend on server headers are in src/server/world/gameevent/
+    world/gameevent/GameEvents.cpp
     world/gameevent/VibrationSystem.cpp
 
     # World - Generation - Noise
