@@ -47,6 +47,7 @@
 
     ##容易踩的坑
 
+    - **装备虚方法重写**：Player 重写了 `getEquipment()`/`setEquipment()`/`getMutableEquipment()` 三个虚方法，通过 `PlayerInventory` 间接管理装备（而非基类 `m_equipment` 数组）。任何需要修改装备的代码必须使用 `getMutableEquipment()` 或 `getMutableMainHandItem()`，而非 `const_cast<ItemStack&>(getEquipment(...))`，否则对 Player 实例会修改基类 `m_equipment` 而非 `PlayerInventory`。
     - **awardCustomStat 虚方法**：`Player::
             awardCustomStat()` 是虚方法，基类空实现（不会崩溃也不会更新统计）；仅 `ServerPlayer` 重写版本实际委托给 `StatisticsManager::
                 incrementCustom()`。客户端调用安全但无效果。常量定义在 `common

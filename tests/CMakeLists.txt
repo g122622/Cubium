@@ -243,6 +243,8 @@ add_executable(mc_tests
     common/entity/core/LivingEntityBreakEventTest.cpp
     # LivingEntity 装备更新检测（detectEquipmentUpdates、stopLocationBasedEffects、equipmentHasChanged）测试
     common/entity/core/EquipmentUpdateTest.cpp
+    # LivingEntity::getMutableEquipment() 可变装备访问测试
+    common/entity/core/MutableEquipmentTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试

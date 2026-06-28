@@ -291,8 +291,12 @@
                     **Player 子类兼容性 **：
 
                 Player
-                重写了 `getEquipment()`/`setEquipment()` 虚方法，通过 `PlayerInventory` 间接管理装备。`detectEquipmentUpdates()` 通过虚方法调用读取装备，因此
+                重写了 `getEquipment()`/`setEquipment()`/`getMutableEquipment()` 虚方法，通过 `PlayerInventory` 间接管理装备。`detectEquipmentUpdates()` 通过虚方法调用读取装备，因此
                 Player 实例的装备快照正确反映 PlayerInventory 中的数据。快照使用 `ItemStack` 值拷贝，与底层存储无关。
+
+                    **可变装备访问**：
+
+                `getMutableEquipment(EquipmentSlot)` 返回 `ItemStack&` 可变引用，用于需要直接修改装备物品的场景（如附魔耐久消耗 `hurtAndBreak`、弩装填 `setCharged` 等）。Player 子类重写此方法以委托到 `PlayerInventory` 的可变引用访问器。便利方法 `getMutableMainHandItem()` 和 `getMutableOffHandItem()` 分别对应主手和副手槽位。所有需要修改装备的代码应使用这些方法而非 `const_cast<ItemStack&>(getEquipment(...))`。
 
                     **方法实现 **： - `LivingEntity::onEquippedItemBroken()` — 广播 EntityStatus 装备破损状态码
             + 播放 ENTITY_ITEM_BREAK 音效
