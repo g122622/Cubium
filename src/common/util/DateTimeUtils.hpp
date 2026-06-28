@@ -100,6 +100,7 @@ inline constexpr char MC_DATE_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
  * 与 MC Java 版 AdvancementProgress 中 OBTAINED_TIME_CODEC 的解析逻辑兼容。
  *
  * 注意：Windows 的 std::get_time 不支持 %z 时区偏移解析，因此此函数手动解析时区部分。
+ * 使用 _mkgmtime/timegm 避免 mktime 的本地时区和夏令时(DST)干扰。
  *
  * @param dateTimeStr 日期时间字符串，如 "2024-06-15 14:30:00 +0800"
  * @return 解析成功返回毫秒时间戳，解析失败返回 std::nullopt
@@ -143,31 +144,24 @@ inline constexpr char MC_DATE_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
         // 如果没有时区部分或格式不正确，tzOffsetSeconds 保持为 0
     }
 
-    // mktime 将本地时间的 tm 转换为 time_t
-    auto timeT = std::mktime(&tm);
-    if (timeT == -1) {
+    // 将 tm 视为 UTC 时间转换为 time_t，再减去时区偏移得到真实 UTC 时间戳
+    // 字符串时间在 tzOffsetSeconds 时区，因此：
+    //   UTC = stringTime - tzOffsetSeconds
+    //   utcTimeT = timegm(tm) - tzOffsetSeconds
+    // 使用 timegm/_mkgmtime 避免本地时区和夏令时(DST)干扰
+#ifdef _WIN32
+    auto utcTimeT = _mkgmtime(&tm);
+#else
+    // TODO: timegm 非 POSIX 标准，但在 Linux/macOS/BSD 上均可用。
+    //      若需移植到不支持 timegm 的平台，需实现基于 TZ 环境变量的替代方案。
+    auto utcTimeT = timegm(&tm);
+#endif
+    if (utcTimeT == -1) {
         return std::nullopt;
     }
 
-    // 时区偏移校正：mktime 将 tm 视为本地时间，但字符串中的时间在 tzOffsetSeconds 时区
-    // mktime 结果：timeT = stringTime - localTzOffset（本地时区偏移，东为负）
-    // 字符串真实 UTC：UTC = stringTime - tzOffsetSeconds
-    // 因此：UTC = timeT + localTzOffset - tzOffsetSeconds
-    // 即：utcTimeT = timeT - tzOffsetSeconds - localTzOffset
-    // （localTzOffset 在 _get_timezone 中为秒数偏西，UTC+8 返回 -28800）
-#ifdef _WIN32
-    long localTzOffsetSec = 0;
-    _tzset();
-    long dstSec = 0;
-    _get_timezone(&localTzOffsetSec);
-    _get_dstbias(&dstSec);
-    // _get_timezone 返回 UTC 以西的秒数（UTC+8 返回 -28800）
-    auto utcTimeT = timeT - tzOffsetSeconds - localTzOffsetSec;
-#else
-    // POSIX: tm.tm_gmtoff 是 UTC 以东的秒数（UTC+8 为 +28800）
-    long localTzOffsetSec = tm.tm_gmtoff;
-    auto utcTimeT = timeT - tzOffsetSeconds + localTzOffsetSec;
-#endif
+    // 减去字符串中的时区偏移（正偏移表示东时区，需减去以得到 UTC）
+    utcTimeT -= tzOffsetSeconds;
 
     // 转换为毫秒时间戳
     auto timePoint = std::chrono::system_clock::from_time_t(utcTimeT);
