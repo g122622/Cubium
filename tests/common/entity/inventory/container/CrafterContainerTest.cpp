@@ -411,6 +411,76 @@ TEST_F(CrafterContainerTest, SlotsChanged_DoesNotCrash)
     SUCCEED() << "slotsChanged did not crash";
 }
 
+TEST_F(CrafterContainerTest, SlotsChanged_UpdatesResultOnInventoryChange)
+{
+    auto crafterEntity = std::make_unique<CrafterBlockEntity>(BlockPos(10, 20, 30));
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity->getInventory(), crafterEntity.get());
+
+    // 空网格不应匹配任何配方
+    container.slotsChanged(crafterEntity->getInventory());
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+}
+
+TEST_F(CrafterContainerTest, SetSlotState_UpdatesResult)
+{
+    auto crafterEntity = std::make_unique<CrafterBlockEntity>(BlockPos(10, 20, 30));
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity->getInventory(), crafterEntity.get());
+
+    // 禁用一个槽位应触发 updateResult
+    container.setSlotState(0, false);
+    // 结果应为空（空网格不会匹配任何配方）
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+}
+
+TEST_F(CrafterContainerTest, UpdateResult_EmptyGrid_NoMatch)
+{
+    auto crafterEntity = std::make_unique<CrafterBlockEntity>(BlockPos(10, 20, 30));
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity->getInventory(), crafterEntity.get());
+
+    // 空网格不应匹配任何配方
+    container.updateResult();
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+    EXPECT_EQ(container.getCurrentRecipeId(), ResourceLocation());
+}
+
+TEST_F(CrafterContainerTest, UpdateResult_WithEntity_UsesAsCraftInput)
+{
+    auto crafterEntity = std::make_unique<CrafterBlockEntity>(BlockPos(10, 20, 30));
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity->getInventory(), crafterEntity.get());
+
+    // 禁用槽位0
+    container.setSlotState(0, false);
+    EXPECT_TRUE(container.isSlotDisabled(0));
+
+    // asCraftInput 应将禁用槽位视为空，空网格不应匹配任何配方
+    container.updateResult();
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+}
+
+TEST_F(CrafterContainerTest, UpdateResult_WithoutEntity_FallbackPath)
+{
+    // 无 CrafterBlockEntity 时，使用直接从 IInventory 构建输入的回退路径
+    CrafterContainer container(ContainerId(1), playerInventory_.get(), crafterInventory_.get());
+
+    // 空网格不应匹配任何配方
+    container.updateResult();
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+    EXPECT_EQ(container.getCurrentRecipeId(), ResourceLocation());
+}
+
+TEST_F(CrafterContainerTest, GetResultInventory_InitiallyEmpty)
+{
+    CrafterContainer container(ContainerId(1), playerInventory_.get(), crafterInventory_.get());
+
+    // 空网格的结果应为空
+    EXPECT_TRUE(container.getResultInventory().getItem(0).isEmpty());
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+}
+
 // ========== ContainerType 枚举值测试 ==========
 
 TEST(CrafterTypeTest, ContainerType_HasCorrectValue)

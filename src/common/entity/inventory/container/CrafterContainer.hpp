@@ -24,7 +24,9 @@
 #pragma once
 
 #include "entity/inventory/AbstractContainerMenu.hpp"
+#include "entity/inventory/CraftingInventory.hpp"
 #include "entity/inventory/IInventory.hpp"
+#include "item/crafting/RecipeManager.hpp"
 #include <memory>
 
 namespace mc {
@@ -98,6 +100,9 @@ public:
 
     /**
      * @brief 容器内容变化时调用
+     *
+     * 当合成器背包内容或禁用槽位状态发生变化时，重新查找匹配配方
+     * 并更新预览结果槽位。
      */
     void slotsChanged(IInventory* inventory) override;
 
@@ -132,6 +137,29 @@ public:
      */
     [[nodiscard]] IInventory* getCrafterInventory() const { return m_crafterInventory; }
 
+    /**
+     * @brief 获取预览结果背包
+     */
+    [[nodiscard]] CraftResultInventory& getResultInventory() noexcept { return *m_resultInventory; }
+    [[nodiscard]] const CraftResultInventory& getResultInventory() const noexcept { return *m_resultInventory; }
+
+    /**
+     * @brief 更新合成预览结果
+     *
+     * 通过 RecipeManager 查找匹配配方，使用 CrafterBlockEntity::asCraftInput()
+     * 构建合成输入（禁用槽位视为空），并将组装结果写入预览槽位。
+     */
+    void updateResult();
+
+    /**
+     * @brief 获取当前匹配的配方ID
+     * @return 当前配方的资源位置ID，如果没有匹配配方则返回空
+     */
+    [[nodiscard]] ResourceLocation getCurrentRecipeId() const noexcept override
+    {
+        return m_currentRecipe != nullptr ? m_currentRecipe->getId() : ResourceLocation();
+    }
+
 protected:
     ItemStack quickMoveStack(i32 slotIndex, Player& player) override;
 
@@ -141,9 +169,10 @@ private:
      */
     void _initSlots(PlayerInventory* playerInventory);
 
-    IInventory* m_crafterInventory;                ///< 合成器背包
-    CrafterBlockEntity* m_crafterEntity;           ///< 合成器方块实体
-    std::unique_ptr<IInventory> m_resultInventory; ///< 预览结果背包（仅用于显示）
+    IInventory* m_crafterInventory;                            ///< 合成器背包
+    CrafterBlockEntity* m_crafterEntity;                       ///< 合成器方块实体
+    std::unique_ptr<CraftResultInventory> m_resultInventory;   ///< 预览结果背包（仅用于显示）
+    const crafting::CraftingRecipe* m_currentRecipe = nullptr; ///< 当前匹配的配方
 };
 
 } // namespace mc

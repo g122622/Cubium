@@ -26,6 +26,7 @@
 #include "entity/inventory/CraftingInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
+#include "item/crafting/RecipeManager.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/blockentity/trial/CrafterBlockEntity.hpp"
 
@@ -97,6 +98,16 @@ CrafterContainer::CrafterContainer(
     crafterInventory->openInventory(*playerInventory->getPlayer());
 
     _initSlots(playerInventory);
+
+    // 注册合成器背包内容变更回调，当物品变化时触发 slotsChanged 以更新预览结果
+    // CrafterBlockEntity 使用 SimpleInventory，其 setOnChanged 回调在 setChanged() 时触发
+    // 但 SimpleInventory 的 setOnChanged 是单一回调（被 CrafterBlockEntity 的 _onInventoryChanged 占用），
+    // 因此我们通过 IInventory 的监听器机制来监听变化。
+    // 这里我们直接在 slotsChanged 中处理更新，因为 AbstractContainerMenu 的
+    // broadcastChanges/detectAndSendChanges 机制会在物品变化时调用 slotsChanged。
+
+    // 初始更新预览结果
+    updateResult();
 }
 
 // ========== 容器接口 ==========
@@ -117,17 +128,53 @@ bool CrafterContainer::stillValid(const Player& player) const
 
 void CrafterContainer::slotsChanged(IInventory* inventory)
 {
-    // TODO: 实现合成预览结果更新逻辑
-    // 当合成网格内容变化时，应通过 RecipeManager 查找匹配配方并更新 m_resultInventory 的预览结果。
-    // 参考MC原版 CrafterMenu.slotChanged() → refreshRecipeResult() 的实现流程：
-    //   1. 检查玩家是否为 ServerPlayer（仅服务端执行）
-    //   2. 调用 m_crafterEntity->asCraftInput() 构建合成输入（禁用槽位视为空）
-    //   3. 通过 CrafterBlock::getPotentialResults(level, craftingInput) 查找匹配配方
-    //   4. 调用 recipe.assemble(craftingInput, registryAccess) 生成预览物品
-    //   5. 将结果写入 m_resultInventory->setItem(0, result)
-    // 当前 m_resultInventory 已创建并绑定到 CrafterResultSlot，但缺少配方查找和结果填充逻辑。
-    // 依赖：RecipeManager/RecipeCache 配方缓存系统、ServerLevel 注册表访问
+    // 当合成器背包内容变化时，更新预览结果
+    if (inventory == m_crafterInventory) {
+        updateResult();
+    }
     AbstractContainerMenu::slotsChanged(inventory);
+}
+
+void CrafterContainer::updateResult()
+{
+    // 通过 CrafterBlockEntity::asCraftInput() 构建合成输入，
+    // 禁用槽位在 asCraftInput() 中被视为空槽位，符合 MC 原版行为
+    if (m_crafterEntity != nullptr) {
+        CraftingInventory craftingInput = m_crafterEntity->asCraftInput();
+        m_currentRecipe = crafting::RecipeManager::instance().findMatchingRecipe(craftingInput);
+
+        if (m_currentRecipe != nullptr) {
+            m_resultInventory->setResultItem(m_currentRecipe->assemble(craftingInput));
+            m_resultInventory->setCraftingRecipeUsed(m_currentRecipe);
+        } else {
+            m_resultInventory->clear();
+            m_resultInventory->setCraftingRecipeUsed(nullptr);
+        }
+    } else {
+        // 无 CrafterBlockEntity 时（不应发生，但做防御处理），
+        // 直接使用合成器背包构建输入
+        // 注意：此时禁用槽位的物品仍会被包含在配方匹配中，
+        // 因为 IInventory 接口无法区分禁用槽位
+        CraftingInventory craftingInput(3, 3);
+        for (i32 i = 0; i < CRAFT_SLOTS; ++i) {
+            const ItemStack& stack = m_crafterInventory->getItem(i);
+            if (!stack.isEmpty()) {
+                craftingInput.setItemAt(i % 3, i / 3, stack.copy());
+            }
+        }
+
+        m_currentRecipe = crafting::RecipeManager::instance().findMatchingRecipe(craftingInput);
+
+        if (m_currentRecipe != nullptr) {
+            m_resultInventory->setResultItem(m_currentRecipe->assemble(craftingInput));
+            m_resultInventory->setCraftingRecipeUsed(m_currentRecipe);
+        } else {
+            m_resultInventory->clear();
+            m_resultInventory->setCraftingRecipeUsed(nullptr);
+        }
+    }
+
+    broadcastChanges();
 }
 
 void CrafterContainer::removed(Player& player)
@@ -151,6 +198,8 @@ void CrafterContainer::setSlotState(i32 slot, bool enabled)
 {
     if (m_crafterEntity != nullptr && slot >= 0 && slot < CRAFT_SLOTS) {
         m_crafterEntity->setSlotState(slot, enabled);
+        // 禁用/启用槽位改变了合成输入，需要更新预览结果
+        updateResult();
     }
 }
 
