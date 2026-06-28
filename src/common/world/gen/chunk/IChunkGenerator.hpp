@@ -29,6 +29,7 @@
 #include "../../border/WorldBorder.hpp"
 #include "../../dimension/DimensionType.hpp"
 #include "../settings/DimensionSettings.hpp"
+#include "../structure/StructureCheck.hpp"
 #include "NoiseColumn.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
@@ -215,6 +216,23 @@ public:
      * @return true 如果是调试世界生成器
      */
     [[nodiscard]] virtual bool isDebugGenerator() const { return false; }
+
+    // === 结构缓存 ===
+
+    /**
+     * @brief 获取结构存在性检查缓存
+     *
+     * 允许外部代码访问 StructureCheck 以进行结构存在性查询和缓存通知。
+     * 用于 /locate 命令搜索最近结构时快速跳过不含结构的区块，
+     * 以及区块生成时避免对已有结构数据的区块重复生成。
+     *
+     * 默认实现返回 nullptr（不支持的生成器类型）。
+     * NoiseChunkGenerator 和 FlatChunkGenerator 会重写此方法返回实际的缓存实例。
+     *
+     * @return 结构检查缓存指针，如果生成器不支持则返回 nullptr
+     */
+    [[nodiscard]] virtual world::gen::structure::StructureCheck* structureCheck() { return nullptr; }
+    [[nodiscard]] virtual const world::gen::structure::StructureCheck* structureCheck() const { return nullptr; }
 
     // === 结构查找与生物生成 ===
 

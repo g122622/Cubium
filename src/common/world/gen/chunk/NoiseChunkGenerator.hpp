@@ -104,6 +104,17 @@ public:
     [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
     [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
 
+    // === 结构缓存 ===
+
+    [[nodiscard]] world::gen::structure::StructureCheck* structureCheck() override
+    {
+        return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
+    }
+    [[nodiscard]] const world::gen::structure::StructureCheck* structureCheck() const override
+    {
+        return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
+    }
+
     // === 结构地形平滑 ===
 
 private:

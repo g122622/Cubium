@@ -442,3 +442,160 @@ TEST(StructureCheckTest, IncrementReference_MultipleTimesOnSameStructure)
     // 应仍返回 StartPresent（引用计数 >= 0）
     EXPECT_EQ(StructureCheckResult::StartPresent, check.checkStart(chunkPos, villageId));
 }
+
+// ============================================================================
+// skipKnownStructures 测试
+// ============================================================================
+
+TEST(StructureCheckTest, CheckStart_SkipKnownStructures_RefZero_ReturnsPresent)
+{
+    // skipKnownStructures=true 时，引用计数为 0 的结构应返回 StartPresent
+    StructureCheck check;
+    ResourceLocation villageId("minecraft:village_plains");
+    u64 chunkPos = packChunkPos(10, 20);
+
+    std::unordered_map<ResourceLocation, i32> refCounts;
+    refCounts[villageId] = 0; // 引用计数为 0，结构刚生成未被引用
+    check.onStructureLoad(chunkPos, refCounts);
+
+    // skipKnownStructures=true：引用计数为 0，不算"已发现"，应返回 StartPresent
+    EXPECT_EQ(StructureCheckResult::StartPresent, check.checkStart(chunkPos, villageId, nullptr, true));
+}
+
+TEST(StructureCheckTest, CheckStart_SkipKnownStructures_RefPositive_ReturnsNotPresent)
+{
+    // skipKnownStructures=true 时，引用计数 > 0 的结构应返回 StartNotPresent
+    StructureCheck check;
+    ResourceLocation villageId("minecraft:village_plains");
+    u64 chunkPos = packChunkPos(10, 20);
+
+    std::unordered_map<ResourceLocation, i32> refCounts;
+    refCounts[villageId] = 0;
+    check.onStructureLoad(chunkPos, refCounts);
+    check.incrementReference(chunkPos, villageId); // 引用计数变为 1
+
+    // skipKnownStructures=false：引用计数 > 0，仍返回 StartPresent
+    EXPECT_EQ(StructureCheckResult::StartPresent, check.checkStart(chunkPos, villageId, nullptr, false));
+
+    // skipKnownStructures=true：引用计数 > 0，视为"已发现"，返回 StartNotPresent
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, villageId, nullptr, true));
+}
+
+TEST(StructureCheckTest, CheckStart_SkipKnownStructures_NotPresent_StaysNotPresent)
+{
+    // skipKnownStructures=true 不影响 StartNotPresent 的返回
+    StructureCheck check;
+    ResourceLocation villageId("minecraft:village_plains");
+    ResourceLocation fortressId("minecraft:fortress");
+    u64 chunkPos = packChunkPos(5, 5);
+
+    // 只有 village，没有 fortress
+    std::unordered_map<ResourceLocation, i32> refCounts;
+    refCounts[villageId] = 0;
+    check.onStructureLoad(chunkPos, refCounts);
+
+    // fortress 不存在于该区块，无论 skipKnownStructures 取值如何都返回 StartNotPresent
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, fortressId, nullptr, false));
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, fortressId, nullptr, true));
+}
+
+// ============================================================================
+// 近似缓存层（setFeatureCheckResult）测试
+// ============================================================================
+
+TEST(StructureCheckTest, SetFeatureCheckResult_CanCreate_False_ReturnsNotPresent)
+{
+    // 当精确缓存未命中且近似缓存值为 false 时，应返回 StartNotPresent
+    StructureCheck check;
+    ResourceLocation villageId("minecraft:village_plains");
+    u64 chunkPos = packChunkPos(3, 7);
+
+    // 设置近似缓存：该区块不可能包含结构
+    check.setFeatureCheckResult(chunkPos, false);
+
+    // 精确缓存未命中，近似缓存值为 false → StartNotPresent
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, villageId));
+}
+
+TEST(StructureCheckTest, SetFeatureCheckResult_CanCreate_True_ReturnsChunkLoadNeeded)
+{
+    // 当精确缓存未命中且近似缓存值为 true 时，应返回 ChunkLoadNeeded
+    StructureCheck check;
+    ResourceLocation villageId("minecraft:village_plains");
+    u64 chunkPos = packChunkPos(3, 7);
+
+    // 设置近似缓存：该区块可能包含结构（放置规则检查通过）
+    check.setFeatureCheckResult(chunkPos, true);
+
+    // 精确缓存未命中，近似缓存值为 true → ChunkLoadNeeded
+    EXPECT_EQ(StructureCheckResult::ChunkLoadNeeded, check.checkStart(chunkPos, villageId));
+}
+
+TEST(StructureCheckTest, SetFeatureCheckResult_OverriddenByExactCache)
+{
+    // 精确缓存写入后，应覆盖近似缓存的结果
+    StructureCheck check;
+    ResourceLocation villageId("minecraft:village_plains");
+    u64 chunkPos = packChunkPos(1, 2);
+
+    // 先设置近似缓存
+    check.setFeatureCheckResult(chunkPos, false);
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, villageId));
+
+    // 写入精确缓存（结构存在）
+    std::unordered_map<ResourceLocation, i32> refCounts;
+    refCounts[villageId] = 0;
+    check.onStructureLoad(chunkPos, refCounts);
+
+    // 现在精确缓存命中，应返回 StartPresent（而非近似缓存的 StartNotPresent）
+    EXPECT_EQ(StructureCheckResult::StartPresent, check.checkStart(chunkPos, villageId));
+}
+
+TEST(StructureCheckTest, OnStructureLoad_ClearsFeatureCheckCache)
+{
+    // onStructureLoad 应清除对应区块的近似缓存条目
+    StructureCheck check;
+    ResourceLocation villageId("minecraft:village_plains");
+    ResourceLocation fortressId("minecraft:fortress");
+    u64 chunkPos = packChunkPos(4, 5);
+
+    // 设置近似缓存
+    check.setFeatureCheckResult(chunkPos, true);
+    EXPECT_EQ(StructureCheckResult::ChunkLoadNeeded, check.checkStart(chunkPos, villageId));
+
+    // 写入精确缓存（只有 village，没有 fortress）
+    std::unordered_map<ResourceLocation, i32> refCounts;
+    refCounts[villageId] = 0;
+    check.onStructureLoad(chunkPos, refCounts);
+
+    // fortress 查询应返回 StartNotPresent（精确缓存命中，不是 ChunkLoadNeeded）
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, fortressId));
+}
+
+TEST(StructureCheckTest, ClearCache_ClearsFeatureChecks)
+{
+    // clearCache 应同时清空精确缓存和近似缓存
+    StructureCheck check;
+    ResourceLocation villageId("minecraft:village_plains");
+    u64 chunkPos1 = packChunkPos(1, 1);
+    u64 chunkPos2 = packChunkPos(2, 2);
+
+    // 精确缓存
+    std::unordered_map<ResourceLocation, i32> refCounts;
+    refCounts[villageId] = 0;
+    check.onStructureLoad(chunkPos1, refCounts);
+
+    // 近似缓存
+    check.setFeatureCheckResult(chunkPos2, false);
+
+    EXPECT_EQ(1u, check.loadedChunkCount());
+
+    // 清空缓存
+    check.clearCache();
+
+    EXPECT_EQ(0u, check.loadedChunkCount());
+
+    // 两个区块都应返回 ChunkLoadNeeded
+    EXPECT_EQ(StructureCheckResult::ChunkLoadNeeded, check.checkStart(chunkPos1, villageId));
+    EXPECT_EQ(StructureCheckResult::ChunkLoadNeeded, check.checkStart(chunkPos2, villageId));
+}

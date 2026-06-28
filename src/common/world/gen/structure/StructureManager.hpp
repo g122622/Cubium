@@ -171,9 +171,7 @@ public:
      * 当前调用方：
      * - NoiseChunkGenerator::generateStructureStarts() 通过此方法调用 onStructureLoad()
      * - NoiseChunkGenerator::generateStructureReferences() 通过此方法调用 incrementReference()
-     *
-     * TODO: 后续需添加以下调用方：
-     * - ServerWorld::findNearestStructure() 调用 checkStart() 快速跳过不含结构的区块
+     * - ServerWorld::findNearestStructure() 通过 IChunkGenerator::structureCheck() 调用 checkStart()
      */
     [[nodiscard]] StructureCheck& structureCheck() { return m_structureCheck; }
     [[nodiscard]] const StructureCheck& structureCheck() const { return m_structureCheck; }

@@ -2516,8 +2516,6 @@ void ServerWorld::onSummonedEntity(PlayerId playerId, Entity* entity)
 std::optional<BlockPos> ServerWorld::findNearestStructure(
     const BlockPos& center, const ResourceLocation& structureId, i32 maxDistance, bool skipExisting)
 {
-    MC_UNUSED(skipExisting); // 当前实现不使用此参数
-
     // 通过结构 ID 查找所属的 StructureSet，获取放置规则
     auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
     const world::gen::structure::StructureSet* structureSet = structureSetRegistry.findByStructure(structureId);
@@ -2527,6 +2525,14 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
 
     const auto& placement = structureSet->placement();
     i64 worldSeed = static_cast<i64>(m_config.seed);
+
+    // 获取 StructureCheck 缓存（用于快速跳过不含结构的区块）
+    world::gen::structure::StructureCheck* structureCheck = nullptr;
+    if (auto* cm = chunkManager()) {
+        if (auto* gen = cm->generator()) {
+            structureCheck = gen->structureCheck();
+        }
+    }
 
     // 将方块坐标转换为区块坐标
     i32 centerChunkX = center.x >> 4;
@@ -2573,6 +2579,37 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
                     continue;
                 }
 
+                // 对齐 MC 1.21.11 ChunkGenerator.getStructureGeneratingAt()：
+                // 使用 StructureCheck 缓存快速判断区块是否包含目标结构
+                if (structureCheck != nullptr) {
+                    const u64 chunkPosId = (static_cast<u64>(static_cast<u32>(candidate.x)) << 32) |
+                        static_cast<u64>(static_cast<u32>(candidate.z));
+                    auto result = structureCheck->checkStart(chunkPosId, structureId, &placement, skipExisting);
+
+                    if (result == world::gen::structure::StructureCheckResult::StartPresent) {
+                        // 精确缓存命中：结构存在于该区块，直接返回位置
+                        BlockPos locatePos = placement.getLocatePos(candidate);
+                        i32 posDx = locatePos.x - center.x;
+                        i32 posDz = locatePos.z - center.z;
+                        f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
+
+                        if (distSq < nearestDistSq) {
+                            nearestDistSq = distSq;
+                            nearestPos = locatePos;
+                        }
+                        continue;
+                    }
+
+                    if (result == world::gen::structure::StructureCheckResult::StartNotPresent) {
+                        // 精确缓存或近似缓存确认该区块不含目标结构，跳过
+                        continue;
+                    }
+
+                    // ChunkLoadNeeded：缓存未命中，继续执行当前逻辑（基于放置规则判断）
+                    // 将放置规则检查结果写入近似缓存，供后续查询使用
+                    structureCheck->setFeatureCheckResult(chunkPosId, true);
+                }
+
                 // 使用放置规则的定位偏移计算最终方块位置
                 BlockPos locatePos = placement.getLocatePos(candidate);
                 i32 posDx = locatePos.x - center.x;
@@ -2593,6 +2630,30 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
             i32 dz = chunkPos.z - centerChunkZ;
             if (dx * dx + dz * dz > chunkRadius * chunkRadius) {
                 continue;
+            }
+
+            // 对齐 MC 1.21.11：ConcentricRings 也使用 StructureCheck 缓存
+            if (structureCheck != nullptr) {
+                const u64 chunkPosId = (static_cast<u64>(static_cast<u32>(chunkPos.x)) << 32) |
+                    static_cast<u64>(static_cast<u32>(chunkPos.z));
+                auto result = structureCheck->checkStart(chunkPosId, structureId, &placement, skipExisting);
+
+                if (result == world::gen::structure::StructureCheckResult::StartPresent) {
+                    BlockPos locatePos = placement.getLocatePos(chunkPos);
+                    i32 posDx = locatePos.x - center.x;
+                    i32 posDz = locatePos.z - center.z;
+                    f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
+
+                    if (distSq < nearestDistSq) {
+                        nearestDistSq = distSq;
+                        nearestPos = locatePos;
+                    }
+                    continue;
+                }
+
+                if (result == world::gen::structure::StructureCheckResult::StartNotPresent) {
+                    continue;
+                }
             }
 
             BlockPos locatePos = placement.getLocatePos(chunkPos);
