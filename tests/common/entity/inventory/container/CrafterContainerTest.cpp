@@ -24,11 +24,14 @@
 #include "entity/inventory/container/CrafterContainer.hpp"
 #include "entity/entities/player/Player.hpp"
 #include "entity/inventory/ContainerTypes.hpp"
+#include "entity/inventory/CraftingInventory.hpp"
 #include "entity/inventory/PlayerInventory.hpp"
 #include "entity/inventory/Slot.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "item/core/ItemStack.hpp"
+#include "item/crafting/RecipeManager.hpp"
+#include "item/crafting/ShapedRecipe.hpp"
 #include "network/packet/ContainerPacketHandler.hpp"
 #include "resource/ResourceLocation.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
@@ -520,4 +523,256 @@ TEST_F(CrafterContainerTest, DestructionOrder_WithEntity_DoesNotCrash)
             ContainerId(1), playerInventory_.get(), crafterEntity->getInventory(), crafterEntity.get());
     }
     SUCCEED() << "Container with entity destruction did not crash";
+}
+
+// ========== 配方匹配集成测试 ==========
+
+class CrafterRecipeIntegrationTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 确保 RecipeManager 为空，避免跨测试污染
+        crafting::RecipeManager::instance().clear();
+
+        player_ = std::make_unique<Player>(1, "RecipeTestPlayer");
+        playerInventory_ = std::make_unique<PlayerInventory>(player_.get());
+        crafterEntity_ = std::make_unique<CrafterBlockEntity>(BlockPos(0, 64, 0));
+    }
+
+    void TearDown() override { crafting::RecipeManager::instance().clear(); }
+
+    std::unique_ptr<Player> player_;
+    std::unique_ptr<PlayerInventory> playerInventory_;
+    std::unique_ptr<CrafterBlockEntity> crafterEntity_;
+};
+
+// 测试：注册 2x2 有序配方，放置匹配物品后预览结果正确
+TEST_F(CrafterRecipeIntegrationTest, ShapedRecipe_MatchingItems_ProducesResult)
+{
+    Item* planks = ensureTestItem("oak_planks");
+    Item* craftingTable = ensureTestItem("crafting_table");
+    ASSERT_NE(planks, nullptr);
+    ASSERT_NE(craftingTable, nullptr);
+
+    // 注册 2x2 合成台配方（4个橡木板 → 1个合成台）
+    crafting::Ingredient planksIng = crafting::Ingredient::fromItem(*planks);
+    auto recipe = std::make_unique<crafting::ShapedRecipe>(ResourceLocation("minecraft", "crafting_table"),
+        2, // width
+        2, // height
+        std::vector<crafting::Ingredient>{planksIng, planksIng, planksIng, planksIng},
+        ItemStack(*craftingTable, 1));
+    ASSERT_TRUE(crafting::RecipeManager::instance().registerRecipe(std::move(recipe)));
+
+    // 在合成器网格左上角放置 4 个橡木板
+    // 槽位布局：(0,0)=slot0, (1,0)=slot1, (2,0)=slot2
+    //           (0,1)=slot3, (1,1)=slot4, (2,1)=slot5
+    //           (0,2)=slot6, (1,2)=slot7, (2,2)=slot8
+    IInventory* inv = crafterEntity_->getInventory();
+    inv->setItem(0, ItemStack(*planks, 1)); // (0,0)
+    inv->setItem(1, ItemStack(*planks, 1)); // (1,0)
+    inv->setItem(3, ItemStack(*planks, 1)); // (0,1)
+    inv->setItem(4, ItemStack(*planks, 1)); // (1,1)
+
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity_->getInventory(), crafterEntity_.get());
+    container.updateResult();
+
+    // 预览结果应为 1 个合成台
+    const CraftResultInventory& resultInv = container.getResultInventory();
+    ASSERT_TRUE(resultInv.hasResult());
+    EXPECT_EQ(resultInv.getItem(0).getItem(), craftingTable);
+    EXPECT_EQ(resultInv.getItem(0).getCount(), 1);
+
+    // 当前配方 ID 应匹配
+    EXPECT_EQ(container.getCurrentRecipeId(), ResourceLocation("minecraft", "crafting_table"));
+}
+
+// 测试：物品不匹配配方时预览结果为空
+TEST_F(CrafterRecipeIntegrationTest, ShapedRecipe_IncompletePattern_NoResult)
+{
+    Item* planks = ensureTestItem("oak_planks");
+    Item* craftingTable = ensureTestItem("crafting_table");
+
+    // 注册 2x2 合成台配方
+    crafting::Ingredient planksIng = crafting::Ingredient::fromItem(*planks);
+    auto recipe = std::make_unique<crafting::ShapedRecipe>(ResourceLocation("minecraft", "crafting_table"),
+        2,
+        2,
+        std::vector<crafting::Ingredient>{planksIng, planksIng, planksIng, planksIng},
+        ItemStack(*craftingTable, 1));
+    crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
+
+    // 只放 3 个橡木板（缺少 slot4），配方不匹配
+    IInventory* inv = crafterEntity_->getInventory();
+    inv->setItem(0, ItemStack(*planks, 1));
+    inv->setItem(1, ItemStack(*planks, 1));
+    inv->setItem(3, ItemStack(*planks, 1));
+    // slot 4 为空
+
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity_->getInventory(), crafterEntity_.get());
+    container.updateResult();
+
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+    EXPECT_EQ(container.getCurrentRecipeId(), ResourceLocation());
+}
+
+// 测试：禁用槽位被视为空，导致配方不匹配
+TEST_F(CrafterRecipeIntegrationTest, DisabledSlot_TreatedAsEmpty_NoResult)
+{
+    Item* planks = ensureTestItem("oak_planks");
+    Item* craftingTable = ensureTestItem("crafting_table");
+
+    crafting::Ingredient planksIng = crafting::Ingredient::fromItem(*planks);
+    auto recipe = std::make_unique<crafting::ShapedRecipe>(ResourceLocation("minecraft", "crafting_table"),
+        2,
+        2,
+        std::vector<crafting::Ingredient>{planksIng, planksIng, planksIng, planksIng},
+        ItemStack(*craftingTable, 1));
+    crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
+
+    // 先禁用 slot4（空槽位才能禁用），再放置其他物品
+    crafterEntity_->setSlotState(4, false);
+    ASSERT_TRUE(crafterEntity_->isSlotDisabled(4));
+
+    // 放置 3 个橡木板（slot4 被禁用，即使放物品也会自动启用，所以这里不放）
+    IInventory* inv = crafterEntity_->getInventory();
+    inv->setItem(0, ItemStack(*planks, 1));
+    inv->setItem(1, ItemStack(*planks, 1));
+    inv->setItem(3, ItemStack(*planks, 1));
+
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity_->getInventory(), crafterEntity_.get());
+    container.updateResult();
+
+    // 禁用槽位被视为空，只有 3 个有效物品，配方不匹配
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+}
+
+// 测试：getCurrentRecipeId 在有匹配配方时返回正确的 ID
+TEST_F(CrafterRecipeIntegrationTest, GetCurrentRecipeId_Matching_ReturnsRecipeId)
+{
+    Item* planks = ensureTestItem("oak_planks");
+    Item* craftingTable = ensureTestItem("crafting_table");
+
+    crafting::Ingredient planksIng = crafting::Ingredient::fromItem(*planks);
+    auto recipe = std::make_unique<crafting::ShapedRecipe>(ResourceLocation("minecraft", "crafting_table"),
+        2,
+        2,
+        std::vector<crafting::Ingredient>{planksIng, planksIng, planksIng, planksIng},
+        ItemStack(*craftingTable, 1));
+    crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
+
+    // 放置匹配物品
+    IInventory* inv = crafterEntity_->getInventory();
+    inv->setItem(0, ItemStack(*planks, 1));
+    inv->setItem(1, ItemStack(*planks, 1));
+    inv->setItem(3, ItemStack(*planks, 1));
+    inv->setItem(4, ItemStack(*planks, 1));
+
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity_->getInventory(), crafterEntity_.get());
+    container.updateResult();
+
+    EXPECT_EQ(container.getCurrentRecipeId(), ResourceLocation("minecraft", "crafting_table"));
+}
+
+// 测试：getCurrentRecipeId 在无匹配配方时返回空 ID
+TEST_F(CrafterRecipeIntegrationTest, GetCurrentRecipeId_NoMatch_ReturnsEmpty)
+{
+    Item* planks = ensureTestItem("oak_planks");
+
+    // 不注册任何配方
+
+    IInventory* inv = crafterEntity_->getInventory();
+    inv->setItem(0, ItemStack(*planks, 1));
+
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity_->getInventory(), crafterEntity_.get());
+    container.updateResult();
+
+    EXPECT_EQ(container.getCurrentRecipeId(), ResourceLocation());
+}
+
+// 测试：slotsChanged 触发预览结果更新
+TEST_F(CrafterRecipeIntegrationTest, SlotsChanged_TriggersResultUpdate)
+{
+    Item* planks = ensureTestItem("oak_planks");
+    Item* craftingTable = ensureTestItem("crafting_table");
+
+    crafting::Ingredient planksIng = crafting::Ingredient::fromItem(*planks);
+    auto recipe = std::make_unique<crafting::ShapedRecipe>(ResourceLocation("minecraft", "crafting_table"),
+        2,
+        2,
+        std::vector<crafting::Ingredient>{planksIng, planksIng, planksIng, planksIng},
+        ItemStack(*craftingTable, 1));
+    crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
+
+    IInventory* inv = crafterEntity_->getInventory();
+
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity_->getInventory(), crafterEntity_.get());
+
+    // 初始状态：空网格，无匹配
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+
+    // 放置匹配物品后，调用 slotsChanged 触发更新
+    inv->setItem(0, ItemStack(*planks, 1));
+    inv->setItem(1, ItemStack(*planks, 1));
+    inv->setItem(3, ItemStack(*planks, 1));
+    inv->setItem(4, ItemStack(*planks, 1));
+    container.slotsChanged(inv);
+
+    // 预览结果应更新为合成台
+    ASSERT_TRUE(container.getResultInventory().hasResult());
+    EXPECT_EQ(container.getResultInventory().getItem(0).getItem(), craftingTable);
+
+    // 移除一个物品，slotsChanged 应清除结果
+    inv->setItem(4, ItemStack());
+    container.slotsChanged(inv);
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+}
+
+// 测试：setSlotState 禁用槽位后触发预览结果更新
+TEST_F(CrafterRecipeIntegrationTest, SetSlotState_DisableSlot_UpdatesResult)
+{
+    Item* planks = ensureTestItem("oak_planks");
+    Item* craftingTable = ensureTestItem("crafting_table");
+
+    crafting::Ingredient planksIng = crafting::Ingredient::fromItem(*planks);
+    auto recipe = std::make_unique<crafting::ShapedRecipe>(ResourceLocation("minecraft", "crafting_table"),
+        2,
+        2,
+        std::vector<crafting::Ingredient>{planksIng, planksIng, planksIng, planksIng},
+        ItemStack(*craftingTable, 1));
+    crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
+
+    // 放置 4 个橡木板（左上角 2x2），先不放 slot4
+    // 改用 slot 0,1,3,6 的布局（不匹配 2x2 有序配方）
+    IInventory* inv = crafterEntity_->getInventory();
+    inv->setItem(0, ItemStack(*planks, 1));
+    inv->setItem(1, ItemStack(*planks, 1));
+    inv->setItem(3, ItemStack(*planks, 1));
+
+    CrafterContainer container(
+        ContainerId(1), playerInventory_.get(), crafterEntity_->getInventory(), crafterEntity_.get());
+
+    // 初始：只有 3 个物品，不匹配 2x2 配方
+    EXPECT_FALSE(container.getResultInventory().hasResult());
+
+    // 在空 slot4 上放入物品，使其匹配 2x2 配方
+    inv->setItem(4, ItemStack(*planks, 1));
+    container.slotsChanged(inv);
+
+    // 现在应该匹配
+    ASSERT_TRUE(container.getResultInventory().hasResult());
+    EXPECT_EQ(container.getResultInventory().getItem(0).getItem(), craftingTable);
+
+    // 移除 slot4 的物品
+    inv->setItem(4, ItemStack());
+
+    // 禁用空 slot4 并验证结果被清除
+    container.setSlotState(4, false);
+    EXPECT_TRUE(container.isSlotDisabled(4));
+    EXPECT_FALSE(container.getResultInventory().hasResult());
 }

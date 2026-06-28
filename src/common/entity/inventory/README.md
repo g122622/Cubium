@@ -35,7 +35,8 @@ inventory/
     ├── EnchantmentContainer.hpp/cpp  # 附魔台容器（书架力量、附魔等级公式）
     ├── FurnaceContainer.hpp/cpp      # 熔炉容器
     ├── HopperContainer.hpp/cpp       # 漏斗容器
-    └── LoomContainer.hpp/cpp         # 织布机容器
+    ├── LoomContainer.hpp/cpp         # 织布机容器
+    └── CrafterContainer.hpp/cpp      # 自动合成器容器（3x3网格+预览结果，配方匹配预览）
 ```
 
 ## 内部模块关系

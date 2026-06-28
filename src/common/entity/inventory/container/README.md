@@ -137,3 +137,13 @@ if (containerId != expectedId) {
     ## #8. 熔炉输出槽经验发放
 
 `FurnaceResultSlot` 在取出物品时自动发放熔炼累积的经验。经验值向下取整后发放。
+
+## #9. 自动合成器预览结果更新
+
+`CrafterContainer::updateResult()` 通过 `RecipeManager` 查找匹配配方，使用 `CrafterBlockEntity::asCraftInput()` 构建合成输入（禁用槽位视为空），将组装结果写入 `CraftResultInventory` 预览槽位。当合成器背包内容变化（`slotsChanged`）或槽位禁用/启用状态改变（`setSlotState`）时自动调用。
+
+关键点：
+- `m_resultInventory` 类型为 `CraftResultInventory`（不是 `IInventory`），以支持 `setResultItem`/`setCraftingRecipeUsed`
+- `m_currentRecipe` 追踪当前匹配配方，`getCurrentRecipeId()` 供客户端配方解锁使用
+- 无 `CrafterBlockEntity` 时（测试场景），回退到直接从 `m_crafterInventory` 构建 `CraftingInventory`，但禁用槽位信息丢失
+- 预览结果槽位（`CrafterResultSlot`）不可交互，实际合成由红石触发 `CrafterBlock::_dispenseFrom()` 完成
