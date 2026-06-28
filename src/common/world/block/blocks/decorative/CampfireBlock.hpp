@@ -41,6 +41,7 @@ class IBlockReader;
 class BlockItemUseContext;
 class Player;
 class BlockEntity;
+class VoxelShape;
 
 namespace blocks {
 
@@ -227,6 +228,17 @@ public:
      * @return 是否为点燃的营火
      */
     [[nodiscard]] static bool isLitCampfire(const BlockState& state);
+
+    /**
+     * @brief 获取虚拟烟雾柱形状
+     *
+     * 返回一个 4x16x4 像素（方块本地坐标 0.375x1.0x0.375）的中心柱形状，
+     * 用于 isSmokeyPos 检测烟雾是否被方块碰撞形状阻挡。
+     * 对应 MC Java 的 CampfireBlock.SHAPE_VIRTUAL_POST = Block.column(4.0, 0.0, 16.0)。
+     *
+     * @return 虚拟烟雾柱的体素形状
+     */
+    [[nodiscard]] static const VoxelShape& getVirtualPostShape();
 
     // ========== IWaterLoggable 接口实现 ==========
 

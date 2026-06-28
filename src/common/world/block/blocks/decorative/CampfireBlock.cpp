@@ -26,6 +26,9 @@
 #include "../../../../item/context/BlockItemUseContext.hpp"
 #include "../../../../item/core/ActionResult.hpp"
 #include "../../../../item/core/ItemStack.hpp"
+#include "../../../../physics/shape/BooleanOp.hpp"
+#include "../../../../physics/shape/Shapes.hpp"
+#include "../../../../physics/shape/VoxelShape.hpp"
 #include "../../../../sound/SoundCategory.hpp"
 #include "../../../../sound/SoundEvents.hpp"
 #include "../../../../stats/Stats.hpp"
@@ -323,26 +326,41 @@ const fluid::FluidState* CampfireBlock::getFluidState(const BlockState& state) c
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
+const VoxelShape& CampfireBlock::getVirtualPostShape()
+{
+    // 对应 MC Java 的 CampfireBlock.SHAPE_VIRTUAL_POST = Block.column(4.0, 0.0, 16.0)
+    // Block.column(4.0, 0.0, 16.0) -> column(4.0, 4.0, 0.0, 16.0) -> box(8-2, 0, 8-2, 8+2, 16, 8+2)
+    // = box(6, 0, 6, 10, 16, 10) in pixel coordinates
+    // = box(0.375, 0.0, 0.375, 0.625, 1.0, 0.625) in block-local coordinates
+    // 这是一个 4x16x4 像素的中心柱，用于检测烟雾是否被方块碰撞形状阻挡
+    static const VoxelShape s_virtualPost = Shapes::box(0.375, 0.0, 0.375, 0.625, 1.0, 0.625);
+    return s_virtualPost;
+}
+
 bool CampfireBlock::isSmokeyPos(IWorld& world, const BlockPos& pos)
 {
+    const VoxelShape& virtualPost = getVirtualPostShape();
+
     for (i32 i = 1; i <= 5; ++i) {
         BlockPos checkPos(pos.x, pos.y - i, pos.z);
         const BlockState* state = world.getBlockState(checkPos);
         if (state && isLitCampfire(*state)) {
             return true;
         }
-        // TODO: MC原版使用SHAPE_VIRTUAL_POST(4x16x4中心柱)与方块碰撞形状的交集检测，
-        // 而非简单的isSolid()。isSolid()对台阶等部分方块会产生与原版不同的结果。
-        // 当碰撞形状系统完善后应替换为形状交集检测。
-        if (state && state->isSolid()) {
-            // 检查该方块下方是否有点燃的营火
-            BlockPos belowPos(pos.x, pos.y - i - 1, pos.z);
-            const BlockState* belowState = world.getBlockState(belowPos);
-            if (belowState && isLitCampfire(*belowState)) {
-                return true;
+
+        // 使用虚拟烟雾柱与方块碰撞形状的交集检测，对齐 MC Java 原版逻辑：
+        // Shapes.joinIsNotEmpty(SHAPE_VIRTUAL_POST, blockstate.getCollisionShape(...), BooleanOp.AND)
+        // 当虚拟柱与方块碰撞形状有交集时，表示烟雾被该方块阻挡
+        if (state) {
+            const CollisionShape& collisionShape = state->getCollisionShape();
+            VoxelShape blockShape = Shapes::fromCollisionShape(collisionShape);
+            bool blocked = Shapes::joinIsNotEmpty(virtualPost, blockShape, BooleanOps::And());
+            if (blocked) {
+                // 烟雾被阻挡，检查阻挡方块下方是否有点燃的营火
+                BlockPos belowPos(pos.x, pos.y - i - 1, pos.z);
+                const BlockState* belowState = world.getBlockState(belowPos);
+                return belowState && isLitCampfire(*belowState);
             }
-            // 实心方块阻挡，停止搜索
-            break;
         }
     }
     return false;
