@@ -76,6 +76,8 @@ add_executable(mc_tests
     common/item/tool/ShearsItemTest.cpp
     # ItemTags 花朵标签测试
     common/item/tag/ItemTagsTest.cpp
+    # ItemTagLoader 数据包标签加载测试
+    common/item/tag/ItemTagLoaderTest.cpp
     common/item/potion/GlassBottleItemTest.cpp
     common/item/potion/PotionUtilsTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
@@ -1602,6 +1604,7 @@ target_sources(mc_tests
         # 鍚堟垚绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/Ingredient.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTag.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTagLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTags.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeManager.cpp

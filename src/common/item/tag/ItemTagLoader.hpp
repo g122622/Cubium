@@ -42,7 +42,7 @@ namespace item::tag {
 /**
  * @brief 物品标签 JSON 加载器
  *
- * 从数据包加载物品标签 JSON 文件，遵循 MC Java 的标签加载语义。
+ * 从数据包加载物品标签 JSON 文件。
  *
  * JSON 格式:
  * {
@@ -60,7 +60,7 @@ namespace item::tag {
  * 多数据包合并语义：
  * - 默认追加模式：新数据包的标签内容追加到已有标签内容之后
  * - replace=true 时：清空已有标签内容，仅使用当前数据包的内容
- * - 数据包优先级从低到高遍历（与 MC Java 的 TagLoader 一致）
+ * - 数据包优先级从低到高遍历
  */
 class ItemTagLoader {
 public:
@@ -79,6 +79,10 @@ public:
 
     /**
      * @brief 从单个资源包加载所有物品标签
+     *
+     * 与 loadFromDataPackRepository() 不同，此方法仅加载单个资源包中的标签，
+     * 不支持多数据包合并语义。适用于测试或单包加载场景。
+     * 主加载流程应使用 loadFromDataPackRepository()。
      *
      * @param pack 资源包
      * @return 加载的标签数量

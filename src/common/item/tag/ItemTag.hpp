@@ -62,7 +62,7 @@ public:
      * @param id 标签资源位置
      * @param replace 是否替换已有数据包标签内容（用于数据包合并语义）
      */
-    explicit ItemTag(ResourceLocation id, bool replace = false);
+    explicit ItemTag(ResourceLocation id, bool replace);
 
     // 默认的拷贝和移动操作
     ItemTag(const ItemTag&) = default;
