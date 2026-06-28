@@ -6,8 +6,10 @@
 
 ```
 vehicle/
-├── BoatEntity.hpp          # 船实体定义（水上交通工具，10种木材变体，支持 hasChest 标志）
-├── BoatEntity.cpp          # 船实体实现（浮力、控制、乘客管理、箱子船掉落）
+├── BoatEntity.hpp          # 船实体定义（水上交通工具，10种木材变体）
+├── BoatEntity.cpp          # 船实体实现（浮力、控制、乘客管理）
+├── ChestBoatEntity.hpp     # 箱子船实体定义（27格容器，实现 INamedContainerProvider）
+├── ChestBoatEntity.cpp     # 箱子船实体实现（容器交互、物品掉落、NBT序列化）
 ├── MinecartEntity.hpp      # 矿车实体定义（基类 + 7种变体）
 ├── MinecartEntity.cpp      # 矿车实体实现（铁轨移动、变体逻辑）
 └── README.md               # 本文档
@@ -20,6 +22,7 @@ Entity (基类)
     │
     ├── BoatEntity
     │   └── 水上交通工具，不实现 IRideable（船不需要鞍）
+    │       └── ChestBoatEntity  # 箱子船（27格容器，实现 INamedContainerProvider，最多1名乘客）
     │
     └── AbstractMinecartEntity
         ├── RideableMinecartEntity    # 普通矿车（可乘坐）

@@ -195,6 +195,7 @@ add_library(mc_common STATIC
     entity/entities/monster/breeze/BreezeEntity.cpp
     # Entity - Vehicle
     entity/entities/vehicle/BoatEntity.cpp
+    entity/entities/vehicle/ChestBoatEntity.cpp
     entity/entities/vehicle/MinecartEntity.cpp
     # Entity - Hanging
     entity/entities/hanging/HangingEntity.cpp

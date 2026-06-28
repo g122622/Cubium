@@ -108,6 +108,7 @@
 #include "common/entity/entities/projectile/TridentEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
 #include "common/entity/entities/vehicle/MinecartEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
 #include <mutex>
@@ -1036,6 +1037,14 @@ private:
         // 船
         registry.registerType(EntityTypes::BOAT,
             EntityType::Builder(&BoatEntity::create, EntityClassification::Misc)
+                .size(1.375f, 0.5625f)
+                .trackingRange(10)
+                .updateInterval(3)
+                .build());
+
+        // 箱子船
+        registry.registerType(EntityTypes::CHEST_BOAT,
+            EntityType::Builder(&ChestBoatEntity::create, EntityClassification::Misc)
                 .size(1.375f, 0.5625f)
                 .trackingRange(10)
                 .updateInterval(3)

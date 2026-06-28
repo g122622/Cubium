@@ -242,6 +242,12 @@ constexpr const char* HAS_EGG = "HasEgg";
 
 constexpr const char* DESPAWN_DELAY = "DespawnDelay";
 
+// ========== Vehicle 容器通用键 ==========
+
+constexpr const char* ITEMS = "Items";          ///< 容器物品列表（用于 ChestBoatEntity、ChestMinecartEntity 等）
+constexpr const char* LOOT_TABLE = "LootTable"; ///< 战利品表ID（用于延迟填充容器）
+constexpr const char* LOOT_TABLE_SEED = "LootTableSeed"; ///< 战利品表种子
+
 // ========== ItemStack 子键 ==========
 
 constexpr const char* ITEM_ID = "id";

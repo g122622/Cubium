@@ -196,6 +196,7 @@ extern EntityTypeId WIND_CHARGE;
 // ============================================================================
 
 extern EntityTypeId BOAT;
+extern EntityTypeId CHEST_BOAT;
 extern EntityTypeId MINECART;
 extern EntityTypeId CHEST_MINECART;
 extern EntityTypeId FURNACE_MINECART;

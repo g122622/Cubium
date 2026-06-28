@@ -816,8 +816,6 @@ void BoatEntity::dropItem()
     // 使用 ItemDropHelper 在船的位置生成物品实体
     math::Random& rng = worldPtr->getRandom();
     ItemDropHelper::spawnItemEntity(worldPtr, stack, x(), y(), z(), rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
-
-    // TODO: 当实现 ChestBoatEntity 容器物品栏后，带箱子的船被摧毁时应掉落容器内的物品
 }
 
 void BoatEntity::dropItemWithDamage()

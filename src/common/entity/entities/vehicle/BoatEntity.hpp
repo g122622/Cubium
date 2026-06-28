@@ -150,12 +150,12 @@ public:
     /**
      * @brief 掉落船物品
      */
-    void dropItem();
+    virtual void dropItem();
 
     /**
      * @brief 掉落船物品（带伤害倍率）
      */
-    void dropItemWithDamage();
+    virtual void dropItemWithDamage();
 
     // ========== 船类型 ==========
 

@@ -25,6 +25,7 @@
 
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
+#include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
 #include "common/item/context/ItemUseContext.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -66,16 +67,19 @@ ActionResultType BoatItem::onItemUse(ItemUseContext& context)
     f32 y = hitPos.y;
     f32 z = hitPos.z;
 
-    // 创建船实体
-    auto boat = std::make_unique<entity::BoatEntity>(m_boatType);
-    boat->setPosition(x, y, z);
-
-    // 设置船的朝向为玩家的朝向
-    boat->setRotation(context.getPlayerYaw());
-
-    // 设置是否为带箱子的船
-    // TODO: 当 ChestBoatEntity 实现后，此处应创建 ChestBoatEntity 而非设置标志
-    boat->setHasChest(m_hasChest);
+    // 创建船实体（带箱子的船使用 ChestBoatEntity，普通船使用 BoatEntity）
+    std::unique_ptr<mc::Entity> boat;
+    if (m_hasChest) {
+        auto chestBoat = std::make_unique<entity::ChestBoatEntity>(m_boatType);
+        chestBoat->setPosition(x, y, z);
+        chestBoat->setRotation(context.getPlayerYaw());
+        boat = std::move(chestBoat);
+    } else {
+        auto normalBoat = std::make_unique<entity::BoatEntity>(m_boatType);
+        normalBoat->setPosition(x, y, z);
+        normalBoat->setRotation(context.getPlayerYaw());
+        boat = std::move(normalBoat);
+    }
 
     // 检查碰撞：如果船的碰撞箱（缩小0.1格）与其他实体碰撞，返回 Fail
     AxisAlignedBB boatBox = boat->boundingBox().grow(-0.1f);
