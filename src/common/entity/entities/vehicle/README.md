@@ -139,6 +139,18 @@ Entity (基类)
 
 **解决方案**：`canAddPassenger()` 覆写检查 `m_passengers.size() < MAX_PASSENGERS && m_status != BoatStatus::UnderWater`。基类 `couldAcceptPassenger()` 未覆写（返回 true），乘客准入由 `canAddPassenger()` 控制。
 
+### 8.5. 船的地面滑度采样
+
+**要点**：
+- `getBoatGlide()` 对应 MC Java `AbstractBoat.getGroundFriction()`，实现船在陆地上的摩擦力采样算法
+- 采样范围：船底碰撞箱向下扩展 0.001 格的薄碰撞盒区域
+- 搜索范围：碰撞盒各方向扩展 1 格，排除角落 4 个柱状区域
+- 跳过睡莲方块（`NaturalBlocks::LILY_PAD`），不参与滑度采样
+- 仅采样碰撞箱与船底有交集的方块
+- 返回值：所有有效方块滑度的平均值（`Block::getSlipperiness()`），无有效方块时返回 0
+- 冰（0.98）和蓝冰（0.989）提供更高的滑度，使船在冰面上滑行更远
+- TODO: `updateMotion()` 中陆地摩擦力减半的条件应检查控制乘客是否为 Player，而非 `m_forwardInputDown`
+
 ### 9. 铁轨形状与移动
 
 **问题**：铁轨有10种形状，需要正确处理每种形状的移动方向。

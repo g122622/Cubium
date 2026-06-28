@@ -269,6 +269,8 @@ add_executable(mc_tests
     common/entity/entities/vehicle/MinecartCheckRailStateTest.cpp
     # 船实体 getBoatItem() 和 dropItem() 测试
     common/entity/entities/vehicle/BoatEntityDropItemTest.cpp
+    # 船实体 getBoatGlide() 滑度采样测试
+    common/entity/entities/vehicle/BoatGlideTest.cpp
     # 实体掉落 DO_ENTITY_DROPS 游戏规则测试
     common/entity/entities/EntityDropGameRuleTest.cpp
     # 实体 dropItem 受 DO_ENTITY_DROPS 控制的集成测试
@@ -583,6 +585,10 @@ add_executable(mc_tests
     entity/ThrowablePortalTest.cpp
     # FishingBobberEntity 钩住实体测试
     common/entity/entities/projectile/FishingBobberHookEntityTest.cpp
+    # FishingBobberEntity 开放水域检测测试
+    common/entity/entities/projectile/OpenWaterCheckTest.cpp
+    # ProjectileEntity canHitEntity 骑乘同载具测试
+    common/entity/entities/projectile/ProjectileCanHitEntityTest.cpp
     # FireworkRocketEntity 爆炸伤害测试
     common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
     # DragonFireballEntity 龙息云和粒子类型测试

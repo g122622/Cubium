@@ -217,6 +217,10 @@ void BoatEntity::updateMotion()
             break;
         case BoatStatus::OnLand:
             friction = m_boatGlide;
+            // TODO: MC Java 中此处的判断条件是"控制乘客是否为 Player"，
+            // 即当船的控制乘客是玩家时才将 friction 除以 2。当前实现使用
+            // m_forwardInputDown 作为判断条件，这与原版行为不一致。
+            // 应改为检查 getControllingPassenger() 是否为 Player。
             if (m_forwardInputDown) {
                 friction /= 2.0f;
             }
