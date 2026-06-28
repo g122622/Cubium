@@ -149,7 +149,7 @@ Entity (基类)
 - 仅采样碰撞箱与船底有交集的方块
 - 返回值：所有有效方块滑度的平均值（`Block::getSlipperiness()`），无有效方块时返回 0
 - 冰（0.98）和蓝冰（0.989）提供更高的滑度，使船在冰面上滑行更远
-- TODO: `updateMotion()` 中陆地摩擦力减半的条件应检查控制乘客是否为 Player，而非 `m_forwardInputDown`
+- `updateMotion()` 中陆地摩擦力减半的条件检查控制乘客是否为 Player（通过 `getControllingPassenger()` + `typeId() == EntityTypeIdNumber::PLAYER`）
 
 ### 9. 铁轨形状与移动
 
