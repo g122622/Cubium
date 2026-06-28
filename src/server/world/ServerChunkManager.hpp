@@ -767,6 +767,31 @@ private:
     void _incrementInhabitedTime();
 
     /**
+     * @brief 入队主线程后处理任务（worker 线程调用）
+     *
+     * 对齐 Moonrise offThreadPendingFullLoadUpdate：worker 线程在 FULL 完成/存档加载时
+     * 不能直接调用主线程独占的世界状态（onChunkLoaded / m_chunkLoadedCallback /
+     * spawnEntitiesFromChunkGeneration / _postProcessChunk 触及 ServerTickList、EntityManager、
+     * setBlockState、POI、光照等，均非线程安全）。入队后由主线程 tick() 的
+     * _drainPendingPostProcess 出队执行。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param spawnedEntities 区块生成产生的实体（生成路径传入，存档加载路径传空）
+     * @param needsPostProcess 是否需要 _postProcessChunk（生成路径 true，存档加载路径 false）
+     */
+    void _enqueuePostProcess(
+        ChunkCoord x, ChunkCoord z, std::vector<SpawnedEntityData>&& spawnedEntities, bool needsPostProcess);
+
+    /**
+     * @brief 出队并执行主线程后处理任务（仅主线程调用）
+     *
+     * 在 tick() 中调用。依次执行 onChunkLoaded / m_chunkLoadedCallback /
+     * spawnEntitiesFromChunkGeneration / _postProcessChunk，全部在主线程完成。
+     */
+    void _drainPendingPostProcess();
+
+    /**
      * @brief 将坐标转换为内部哈希键
      *
      * @param x 区块 X 坐标
@@ -786,6 +811,24 @@ private:
 
     std::unordered_map<u64, std::shared_ptr<ChunkData>> m_chunks;
     mutable std::mutex m_chunksMutex;
+
+    /**
+     * @brief 主线程后处理队列（对齐 Moonrise offThreadPendingFullLoadUpdate）
+     *
+     * worker 线程在 FULL 完成（_finalizeGeneratedChunkSync）或存档加载（executeEmptyLoad）时
+     * 入队，主线程 tick() 出队执行。onChunkLoaded / m_chunkLoadedCallback /
+     * spawnEntitiesFromChunkGeneration / _postProcessChunk 触及的主线程独占状态
+     * （ServerTickList、EntityManager、setBlockState、POI、光照）必须在主线程执行，
+     * 不能在 worker 线程调用（会导致 ServerTickList 数据竞争等崩溃）。
+     */
+    struct PendingPostProcess {
+        ChunkCoord x = 0;
+        ChunkCoord z = 0;
+        std::vector<SpawnedEntityData> spawnedEntities;
+        bool needsPostProcess = false; ///< true: 生成完成（需 _postProcessChunk）；false: 仅 onChunkLoaded+callback
+    };
+    std::mutex m_pendingPostProcessMutex;
+    std::vector<PendingPostProcess> m_pendingPostProcess;
 
     /**
      * @brief 区块生成调度核心（对齐 Moonrise ChunkTaskScheduler）

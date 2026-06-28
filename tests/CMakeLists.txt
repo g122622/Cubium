@@ -644,6 +644,8 @@ add_executable(mc_tests
     # GenerationChunkCache 已删除（被 StaticChunkCache2D + ChunkTaskScheduler 取代）
     # ChunkSnapshot 已删除（可变 ChunkPrimer 模型取代不可变快照）
     server/test_server_chunk_manager.cpp
+    # 结构引用阶段并发竞态复现：大视距 + 多 worker + 玩家移动触发卸载/重生成，复现 getIntersectingStructures 崩溃
+    server/StructureReferencesRaceTest.cpp
     server/core/TimeManagerTest.cpp
     server/core/PlayerManagerTest.cpp
     server/core/ConnectionManagerTest.cpp
