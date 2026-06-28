@@ -32,6 +32,8 @@
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -1333,11 +1335,17 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
     }
 
     // 归一化方向向量
-    f64 length = std::sqrt(ratioX * ratioX + ratioZ * ratioZ);
-    if (length < 1.0E-7) {
-        return; // 零向量，不应用击退
+    // 对应 MC Java LivingEntity.knockback():
+    // 如果方向向量过小（长度平方 < 1.0E-5），随机扰动方向以避免零向量
+    f64 lengthSquared = ratioX * ratioX + ratioZ * ratioZ;
+    if (lengthSquared < 1.0E-5) {
+        auto& rng = m_world->getRandom();
+        ratioX = static_cast<f64>(rng.nextFloat() - rng.nextFloat()) * 0.01;
+        ratioZ = static_cast<f64>(rng.nextFloat() - rng.nextFloat()) * 0.01;
+        lengthSquared = ratioX * ratioX + ratioZ * ratioZ;
     }
 
+    f64 length = std::sqrt(lengthSquared);
     ratioX /= length;
     ratioZ /= length;
 
@@ -1407,6 +1415,30 @@ void LivingEntity::causeExtraKnockback(Entity& target, f32 strength, const Vecto
     }
 
     // 注意：Player 子类重写此方法，添加 setSprinting(false) 和 ServerPlayer 速度修正
+}
+
+f32 LivingEntity::getKnockback(Entity& /*target*/)
+{
+    // 对应 MC Java LivingEntity.getKnockback()
+    // 从 ATTACK_KNOCKBACK 属性获取基础击退值，加上击退附魔加成，然后除以 2.0
+    // MC Java 使用 EnchantmentHelper.modifyKnockback() 遍历附魔修改击退值，
+    // 当前项目简化为直接获取击退附魔等级并计算加成
+    f32 baseKnockback = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 0.0));
+
+    // 加上击退附魔加成（每级 +0.5）
+    const ItemStack& weapon = getMainHandItem();
+    if (!weapon.isEmpty()) {
+        i32 knockbackLevel =
+            item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, &item::enchant::AllEnchantments::KNOCKBACK);
+        if (knockbackLevel > 0) {
+            baseKnockback += item::enchant::KnockbackEnchantment::getKnockbackBonus(knockbackLevel);
+        }
+    }
+
+    // MC Java 的 getKnockback() 返回值除以 2.0
+    // 这是因为 hurt() 中已经有 0.4F 的基础击退，而 causeExtraKnockback 的击退值
+    // 来自 getKnockback() 的返回值，除以 2.0 使得总击退保持合理
+    return baseKnockback / 2.0f;
 }
 
 // ============================================================================

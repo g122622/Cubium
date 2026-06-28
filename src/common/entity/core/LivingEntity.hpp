@@ -688,6 +688,18 @@ public:
      */
     virtual void causeExtraKnockback(Entity& target, f32 strength, const Vector3& preHurtVelocity);
 
+    /**
+     * @brief 获取攻击击退强度
+     *
+     * 对应 MC Java 的 LivingEntity.getKnockback()。
+     * 计算 ATTACK_KNOCKBACK 属性值加上击退附魔加成，然后除以 2.0。
+     * 此方法在 Mob::doHurtTarget 和 Player::attack 中用于计算 causeExtraKnockback 的击退强度。
+     *
+     * @param target 攻击目标实体（用于未来附魔修正，当前未使用）
+     * @return 击退强度值
+     */
+    [[nodiscard]] virtual f32 getKnockback(Entity& target);
+
     // ========== 渲染属性（用于客户端插值）==========
 
     /**

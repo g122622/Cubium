@@ -125,14 +125,17 @@ f32 PlayerAttackHelper::calculateKnockback(
     // 目标击退抗性减伤（在 applyKnockback 中处理）
     // 这里返回原始击退值，实际击退由目标属性决定
 
-    (void)target; // 暂时未使用，击退抗性在 applyKnockback 中处理
     (void)attacker;
+    (void)target;
 
     return knockback;
 }
 
 void PlayerAttackHelper::applyKnockback(LivingEntity& target, const LivingEntity& attacker, f32 strength)
 {
+    // 已废弃：Player::attack() 使用 LivingEntity::causeExtraKnockback()，MobEntity::attackEntityAsMob() 同样使用
+    // causeExtraKnockback()。 所有击退最终通过 LivingEntity::applyKnockback() 实现。 保留此方法仅供参考，后续可移除。
+
     // 从攻击者位置计算击退方向
     f64 ratioX = static_cast<f64>(attacker.position().x - target.position().x);
     f64 ratioZ = static_cast<f64>(attacker.position().z - target.position().z);
@@ -142,6 +145,9 @@ void PlayerAttackHelper::applyKnockback(LivingEntity& target, const LivingEntity
 
 void PlayerAttackHelper::applyKnockback(LivingEntity& target, f64 ratioX, f64 ratioZ, f32 strength)
 {
+    // 已废弃：请使用 LivingEntity::applyKnockback() 代替。
+    // 保留此方法仅供参考，后续可移除。
+
     // 击退抗性降低击退强度
     strength = static_cast<f32>(static_cast<f64>(strength) *
         (1.0 - target.getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0)));

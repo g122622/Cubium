@@ -364,14 +364,11 @@ bool MobEntity::canAttackType(entity::EntityTypeId typeId) const
 
 bool MobEntity::attackEntityAsMob(LivingEntity& target)
 {
+    // 对应 MC Java Mob.doHurtTarget()
     // 1. 获取攻击伤害属性
     f32 attackDamage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
 
-    // 2. 获取击退强度属性
-    f32 knockbackStrength = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 0.0));
-
-    // 3. 如果目标有武器，应用附魔伤害加成和击退附魔
-    // 获取主手武器
+    // 2. 获取主手武器，应用附魔伤害加成
     const ItemStack& mainHand = getMainHandItem();
 
     if (!mainHand.isEmpty()) {
@@ -379,23 +376,16 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
         // 使用 PlayerAttackHelper::getEnchantmentDamageBonus 计算附魔伤害
         attackDamage +=
             entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(mainHand, target.getCreatureAttribute());
-
-        // 击退附魔
-        i32 knockbackLevel =
-            item::enchant::EnchantmentHelper::getEnchantmentLevel(mainHand, &item::enchant::AllEnchantments::KNOCKBACK);
-        if (knockbackLevel > 0) {
-            knockbackStrength += static_cast<f32>(knockbackLevel) * 0.5f;
-        }
     }
 
-    // 4. 火焰附加（在攻击前应用）
+    // 3. 火焰附加（在攻击前应用，用于燃烧传递判定）
     i32 fireAspectLevel = 0;
     if (!mainHand.isEmpty()) {
         fireAspectLevel = item::enchant::EnchantmentHelper::getEnchantmentLevel(
             mainHand, &item::enchant::AllEnchantments::FIRE_ASPECT);
     }
 
-    // 5. 创建伤害来源并应用伤害
+    // 4. 创建伤害来源并应用伤害
     EntityDamageSource damageSource = DamageSources::mobAttack(this);
 
     // 如果有火焰附加，在攻击前点燃目标 1 秒（用于燃烧传递）
@@ -403,62 +393,34 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
         target.igniteForTicks(20); // 1 秒 = 20 ticks
     }
 
+    // 保存目标 hurt() 前的速度，用于 causeExtraKnockback 的速度修正
+    Vector3 preHurtVelocity = target.velocity();
+
     bool attacked = target.hurt(damageSource, attackDamage);
 
     if (attacked) {
-        // 6. 应用击退
-        if (knockbackStrength > 0.0f) {
-            // 计算击退方向
-            f64 ratioX = static_cast<f64>(position().x - target.position().x);
-            f64 ratioZ = static_cast<f64>(position().z - target.position().z);
+        // 5. 应用额外击退（附魔击退 + 攻击击退属性）
+        // 对应 MC Java: this.causeExtraKnockback(target, this.getKnockback(target, damageSource), preHurtVelocity)
+        // getKnockback() 返回 (ATTACK_KNOCKBACK + 附魔击退) / 2.0
+        f32 knockbackStrength = getKnockback(target);
+        causeExtraKnockback(target, knockbackStrength, preHurtVelocity);
 
-            // 归一化方向向量
-            f64 length = std::sqrt(ratioX * ratioX + ratioZ * ratioZ);
-            if (length > 0.0) {
-                ratioX /= length;
-                ratioZ /= length;
-
-                // 击退受击退抗性影响
-                knockbackStrength = static_cast<f32>(static_cast<f64>(knockbackStrength) *
-                    (1.0 - target.getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0)));
-
-                if (knockbackStrength > 0.0f) {
-                    // LivingEntity.applyKnockback()
-                    Vector3 velocity = target.velocity();
-
-                    f64 knockbackX = ratioX * static_cast<f64>(knockbackStrength);
-                    f64 knockbackZ = ratioZ * static_cast<f64>(knockbackStrength);
-
-                    f64 newVelocityY;
-                    if (target.onGround()) {
-                        newVelocityY =
-                            std::min(0.4, static_cast<f64>(velocity.y) / 2.0 + static_cast<f64>(knockbackStrength));
-                    } else {
-                        newVelocityY = static_cast<f64>(velocity.y);
-                    }
-
-                    target.setVelocity(static_cast<f32>(static_cast<f64>(velocity.x) / 2.0 - knockbackX),
-                        static_cast<f32>(newVelocityY),
-                        static_cast<f32>(static_cast<f64>(velocity.z) / 2.0 - knockbackZ));
-                    target.setOnGround(false);
-                }
-            }
-        }
-
-        // 7. 应用火焰附加（攻击后应用完整燃烧时间）
+        // 6. 应用火焰附加（攻击后应用完整燃烧时间）
         if (fireAspectLevel > 0) {
             // 火焰附加持续时间 = level * 4 秒
             target.igniteForSeconds(static_cast<f32>(fireAspectLevel) * 4.0f);
         }
+
+        // 7. 武器损耗
+        // TODO: 当 ItemStack::hurtAndBreak() 实现后，添加武器耐久损耗
+        // 对应 MC Java: itemstack.hurtEnemy(livingentity, this);
+        // if (!mainHand.isEmpty()) { mainHand.hurtAndBreak(1, *this, [](LivingEntity&) {}); }
 
         // 8. 设置最后攻击者
         target.setLastHurtBy(this);
 
         // 9. 播放攻击声音
         playAttackSound(target);
-
-        // 10. 设置攻击者的速度（击退反作用）
-        setVelocity(velocity().x * 0.6f, velocity().y, velocity().z * 0.6f);
     }
 
     return attacked;

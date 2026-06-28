@@ -103,6 +103,9 @@ public:
      * @param isSprinting 是否在疾跑
      * @param knockbackLevel 击退附魔等级
      * @return 击退强度
+     * @deprecated 此方法无外部调用方。Player::attack() 直接内联计算击退，
+     *             MobEntity::attackEntityAsMob() 使用 LivingEntity::getKnockback() + causeExtraKnockback()。
+     *             保留仅供参考，后续可移除。
      */
     [[nodiscard]] static f32 calculateKnockback(const LivingEntity& attacker,
         const LivingEntity& target,
@@ -119,12 +122,15 @@ public:
      * - Y轴速度：min(0.4, 当前Y速度/2 + 击退强度) 如果在地面
      * - X/Z轴速度：当前速度/2 - 击退方向 * 击退强度
      *
-     * TODO: Player::attack() 已改用 LivingEntity::causeExtraKnockback()（基于攻击者朝向），
-     * 此方法目前无调用方。待 Mob::doHurtTarget 实现后评估是否仍需保留。
+     * 此方法目前无调用方。Player::attack() 使用 LivingEntity::causeExtraKnockback()，
+     * MobEntity::attackEntityAsMob() 也使用 causeExtraKnockback()。
+     * LivingEntity::applyKnockback() 是核心击退方法，所有路径最终通过它实现。
+     * 保留仅供参考，后续可移除。
      *
      * @param target 目标
      * @param attacker 攻击者
      * @param strength 击退强度
+     * @deprecated 使用 LivingEntity::applyKnockbackFrom() 或 causeExtraKnockback() 代替
      */
     static void applyKnockback(LivingEntity& target, const LivingEntity& attacker, f32 strength);
 
@@ -135,6 +141,7 @@ public:
      * @param ratioX X方向比例
      * @param ratioZ Z方向比例
      * @param strength 击退强度
+     * @deprecated 使用 LivingEntity::applyKnockback() 代替
      */
     static void applyKnockback(LivingEntity& target, f64 ratioX, f64 ratioZ, f32 strength);
 
