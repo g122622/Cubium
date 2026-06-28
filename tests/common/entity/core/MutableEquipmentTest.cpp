@@ -26,6 +26,8 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/core/MobEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/item/Items.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -342,4 +344,184 @@ TEST_F(MutableEquipmentTest, SetEquipmentThenMutableAccessConsistent)
     m_living->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::DIAMOND_SWORD, 1));
     EXPECT_EQ(m_living->getMutableEquipment(EquipmentSlot::MainHand).getItem(), Items::DIAMOND_SWORD);
     EXPECT_EQ(m_living->getEquipment(EquipmentSlot::MainHand).getDamage(), 0);
+}
+
+// ============================================================================
+// Player::getMutableEquipment 虚方法派发测试
+//
+// Player 重写 getMutableEquipment()，委托到 PlayerInventory 而非基类 m_equipment。
+// 以下测试验证 Player 的 override 实现正确地将可变引用指向 PlayerInventory。
+// ============================================================================
+
+class PlayerMutableEquipmentTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            Items::initialize();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override
+    {
+        m_world = std::make_unique<MutableEquipmentTestWorld>();
+        m_player = std::make_unique<Player>(static_cast<EntityId>(10), "TestPlayer");
+        m_player->setWorld(m_world.get());
+    }
+
+    void TearDown() override
+    {
+        m_player.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<MutableEquipmentTestWorld> m_world;
+    std::unique_ptr<Player> m_player;
+};
+
+TEST_F(PlayerMutableEquipmentTest, PlayerGetMutableEquipmentDelegatesToPlayerInventory)
+{
+    ASSERT_NE(Items::IRON_SWORD, nullptr);
+
+    // 通过 setEquipment 设置主手物品（Player 的 override 会写入 PlayerInventory）
+    m_player->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
+
+    // 通过 PlayerInventory 直接验证物品存在
+    EXPECT_EQ(m_player->inventory().getSelectedStackRef().getItem(), Items::IRON_SWORD);
+
+    // 通过 getMutableEquipment 修改伤害值
+    m_player->getMutableEquipment(EquipmentSlot::MainHand).setDamage(42);
+
+    // 修改应通过 PlayerInventory 可见
+    EXPECT_EQ(m_player->inventory().getSelectedStackRef().getDamage(), 42);
+
+    // 同时通过 const 访问也可见
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::MainHand).getDamage(), 42);
+}
+
+TEST_F(PlayerMutableEquipmentTest, PlayerGetMutableMainHandItemDelegatesToPlayerInventory)
+{
+    ASSERT_NE(Items::DIAMOND_SWORD, nullptr);
+
+    m_player->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::DIAMOND_SWORD, 1));
+
+    // getMutableMainHandItem 应修改 PlayerInventory 中的主手物品
+    m_player->getMutableMainHandItem().setDamage(99);
+
+    // 验证 PlayerInventory 中的引用被修改
+    EXPECT_EQ(m_player->inventory().getSelectedStackRef().getDamage(), 99);
+    // 验证 const 访问一致
+    EXPECT_EQ(m_player->getMainHandItem().getDamage(), 99);
+}
+
+TEST_F(PlayerMutableEquipmentTest, PlayerGetMutableOffHandItemDelegatesToPlayerInventory)
+{
+    ASSERT_NE(Items::SHIELD, nullptr);
+
+    m_player->setEquipment(EquipmentSlot::OffHand, ItemStack(Items::SHIELD, 1));
+
+    // getMutableOffHandItem 应修改 PlayerInventory 中的副手物品
+    m_player->getMutableOffHandItem().setDamage(77);
+
+    // 验证 PlayerInventory 中的引用被修改
+    EXPECT_EQ(m_player->inventory().getOffhandItemRef().getDamage(), 77);
+    // 验证 const 访问一致
+    EXPECT_EQ(m_player->getOffHandItem().getDamage(), 77);
+}
+
+TEST_F(PlayerMutableEquipmentTest, PlayerArmorSlotsMutableViaPlayerInventory)
+{
+    ASSERT_NE(Items::IRON_HELMET, nullptr);
+    ASSERT_NE(Items::IRON_CHESTPLATE, nullptr);
+    ASSERT_NE(Items::IRON_LEGGINGS, nullptr);
+    ASSERT_NE(Items::IRON_BOOTS, nullptr);
+
+    // 设置护甲
+    m_player->setEquipment(EquipmentSlot::Head, ItemStack(Items::IRON_HELMET, 1));
+    m_player->setEquipment(EquipmentSlot::Chest, ItemStack(Items::IRON_CHESTPLATE, 1));
+    m_player->setEquipment(EquipmentSlot::Legs, ItemStack(Items::IRON_LEGGINGS, 1));
+    m_player->setEquipment(EquipmentSlot::Feet, ItemStack(Items::IRON_BOOTS, 1));
+
+    // 通过 getMutableEquipment 修改伤害
+    m_player->getMutableEquipment(EquipmentSlot::Head).setDamage(10);
+    m_player->getMutableEquipment(EquipmentSlot::Chest).setDamage(20);
+    m_player->getMutableEquipment(EquipmentSlot::Legs).setDamage(30);
+    m_player->getMutableEquipment(EquipmentSlot::Feet).setDamage(40);
+
+    // 验证 PlayerInventory 中的护甲引用被修改
+    EXPECT_EQ(m_player->inventory().getHelmetRef().getDamage(), 10);
+    EXPECT_EQ(m_player->inventory().getChestplateRef().getDamage(), 20);
+    EXPECT_EQ(m_player->inventory().getLeggingsRef().getDamage(), 30);
+    EXPECT_EQ(m_player->inventory().getBootsRef().getDamage(), 40);
+
+    // 验证 const 访问一致
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::Head).getDamage(), 10);
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::Chest).getDamage(), 20);
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::Legs).getDamage(), 30);
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::Feet).getDamage(), 40);
+}
+
+TEST_F(PlayerMutableEquipmentTest, PlayerInventoryMutationVisibleViaGetMutableEquipment)
+{
+    ASSERT_NE(Items::IRON_SWORD, nullptr);
+
+    // 通过 setEquipment 设置主手物品
+    m_player->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
+
+    // 直接通过 PlayerInventory 修改伤害值
+    m_player->inventory().getSelectedStackRef().setDamage(55);
+
+    // 通过 getMutableEquipment 应可见
+    EXPECT_EQ(m_player->getMutableEquipment(EquipmentSlot::MainHand).getDamage(), 55);
+    // 通过 getEquipment 也应可见
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::MainHand).getDamage(), 55);
+}
+
+TEST_F(PlayerMutableEquipmentTest, PlayerHurtAndBreakViaGetMutableEquipment)
+{
+    ASSERT_NE(Items::IRON_SWORD, nullptr);
+
+    // 设置主手物品
+    m_player->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
+    i32 maxDamage = m_player->getEquipment(EquipmentSlot::MainHand).getMaxDamage();
+    ASSERT_GT(maxDamage, 0);
+
+    // 通过 getMutableEquipment 获取可变引用并调用 hurtAndBreak
+    ItemStack& stack = m_player->getMutableEquipment(EquipmentSlot::MainHand);
+    bool broken = LivingEntity::hurtAndBreak(stack, 1, m_player.get(), EquipmentSlot::MainHand);
+    EXPECT_FALSE(broken);
+
+    // hurtAndBreak 修改的物品应反映在 PlayerInventory 中
+    EXPECT_EQ(m_player->inventory().getSelectedStackRef().getDamage(), 1);
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::MainHand).getDamage(), 1);
+}
+
+TEST_F(PlayerMutableEquipmentTest, PlayerInvalidSlotReturnsEmpty)
+{
+    // Player 对越界槽位也应返回空物品堆
+    auto& ref = m_player->getMutableEquipment(static_cast<EquipmentSlot>(999));
+    EXPECT_TRUE(ref.isEmpty());
+}
+
+TEST_F(PlayerMutableEquipmentTest, PlayerDoesNotModifyBaseClassMEquipment)
+{
+    ASSERT_NE(Items::IRON_SWORD, nullptr);
+    ASSERT_NE(Items::DIAMOND_SWORD, nullptr);
+
+    // 通过 Player 的 setEquipment 设置主手物品（写入 PlayerInventory）
+    m_player->setEquipment(EquipmentSlot::MainHand, ItemStack(Items::IRON_SWORD, 1));
+
+    // 通过 getMutableEquipment 修改（应修改 PlayerInventory，而非基类 m_equipment）
+    m_player->getMutableEquipment(EquipmentSlot::MainHand).setDamage(33);
+
+    // 基类 m_equipment[MainHand] 应仍为空（Player 不使用基类 m_equipment）
+    // 通过 LivingEntity::getEquipment 虚方法验证：Player override 返回 PlayerInventory 数据
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::MainHand).getDamage(), 33);
+    EXPECT_EQ(m_player->getEquipment(EquipmentSlot::MainHand).getItem(), Items::IRON_SWORD);
+
+    // 通过 PlayerInventory 直接验证一致
+    EXPECT_EQ(m_player->inventory().getSelectedStackRef().getDamage(), 33);
+    EXPECT_EQ(m_player->inventory().getSelectedStackRef().getItem(), Items::IRON_SWORD);
 }
