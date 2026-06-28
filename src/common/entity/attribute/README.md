@@ -84,3 +84,13 @@ AttributeInstance 使用脏标记缓存计算结果。调用 `getValue()` 后会
 ### 8. 属性数据单一来源
 
 新增属性时，只需在 `Attributes.hpp` 中添加工厂函数和名称常量，然后在 `AttributeRegistry::_registerBuiltinAttributes()` 中注册即可。**不要**在命令或其他地方硬编码属性范围数据，一律通过 `AttributeRegistry::instance()` 查询。
+
+### 9. MOVEMENT_EFFICIENCY 属性
+
+`generic.movement_efficiency` 是移动效率属性，决定实体在减速方块（灵魂沙、蜂蜜块等）上的移动效率。
+- 默认值: 0.0（不抵消减速效果）
+- 范围: 0.0 ~ 1.0
+- 在 `LivingEntity::getBlockSpeedFactor()` 中的使用方式：`finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)`
+- 当 movementEfficiency=0.0 时，使用方块原始 speedFactor（灵魂沙=0.4，正常=1.0）
+- 当 movementEfficiency=1.0 时，完全忽略方块减速效果（speedFactor 插值到 1.0）
+- 灵魂疾行附魔通过 Addition 操作为此属性添加 +1.0 修饰符，从而完全抵消灵魂沙/灵魂土的减速效果

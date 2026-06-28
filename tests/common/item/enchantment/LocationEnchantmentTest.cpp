@@ -275,7 +275,7 @@ TEST_F(SoulSpeedEnchantmentTest, GetNameKey)
 
 TEST_F(SoulSpeedEnchantmentTest, GetMovementSpeedBonus)
 {
-    // 对齐 MC 1.21.11 LevelBasedValue.perLevel(0.0405F, 0.0105F):
+    // LevelBasedValue.perLevel(0.0405F, 0.0105F):
     // 公式: 0.0405 + 0.0105 * (level - 1)
     // Level I: 0.0405
     EXPECT_FLOAT_EQ(SoulSpeedEnchantment::getMovementSpeedBonus(1), 0.0405f);
@@ -907,15 +907,14 @@ TEST_F(SoulSpeedIntegrationTest, ModifierValueLevel1)
 
     m_entity->onChangedBlock();
 
-    // 修饰符值应为 0.4（MultiplyTotal 操作，I: +40%）
+    // 修饰符应存在（Addition 操作，I: +0.0405）
     EXPECT_TRUE(
         m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
 
-    // 验证修饰符效果：基础速度 + 40% 加成
-    f64 baseSpeed = m_entity->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
-    // 基础速度应该在有修饰符后增加
-    // 注意：此处无法直接获取修饰符值，只能通过属性值变化验证
-    (void)baseSpeed;
+    // 验证修饰符值
+    f64 speedModValue = m_entity->attributes().getModifierValue(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed");
+    EXPECT_NEAR(speedModValue, 0.0405, 0.0001);
 }
 
 TEST_F(SoulSpeedIntegrationTest, RemovesModifierWhenOffSoulSand)
@@ -1257,4 +1256,227 @@ TEST_F(OnChangedBlockChainTest, MultipleEnchantmentsOnSameSlot)
         static_cast<i32>(EquipmentSlot::Feet), "minecraft:frost_walker"));
     EXPECT_TRUE(
         m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
+}
+
+// ============================================================================
+// 集成测试：SoulSpeed MOVEMENT_SPEED 修饰符值和 Addition 操作验证
+// ============================================================================
+
+TEST_F(SoulSpeedIntegrationTest, SpeedModifierUsesAdditionOperation)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 I 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 激活灵魂疾行
+    m_entity->onChangedBlock();
+
+    // 验证 MOVEMENT_SPEED 修饰符使用 Addition 操作（值=0.0405）
+    f64 speedModValue = m_entity->attributes().getModifierValue(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed");
+    EXPECT_NEAR(speedModValue, 0.0405, 0.0001);
+}
+
+TEST_F(SoulSpeedIntegrationTest, SpeedModifierValueLevel2)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    m_entity->onChangedBlock();
+
+    // Level II: 0.0405 + 0.0105 = 0.051
+    f64 speedModValue = m_entity->attributes().getModifierValue(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed");
+    EXPECT_NEAR(speedModValue, 0.051, 0.0001);
+}
+
+TEST_F(SoulSpeedIntegrationTest, SpeedModifierValueLevel3)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 III 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 3}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    m_entity->onChangedBlock();
+
+    // Level III: 0.0405 + 0.0105 * 2 = 0.0615
+    f64 speedModValue = m_entity->attributes().getModifierValue(
+        entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed");
+    EXPECT_NEAR(speedModValue, 0.0615, 0.0001);
+}
+
+// ============================================================================
+// 集成测试：SoulSpeed MOVEMENT_EFFICIENCY 修饰符验证
+// ============================================================================
+
+TEST_F(SoulSpeedIntegrationTest, EfficiencyModifierAppliedOnSoulSand)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 初始状态没有修饰符
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+
+    m_entity->onChangedBlock();
+
+    // 激活后应有 MOVEMENT_EFFICIENCY 修饰符
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+
+    // 修饰符值应为 1.0（所有等级均为 +1.0）
+    f64 efficiencyValue = m_entity->attributes().getModifierValue(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency");
+    EXPECT_NEAR(efficiencyValue, 1.0, 0.0001);
+}
+
+TEST_F(SoulSpeedIntegrationTest, EfficiencyModifierRemovedWhenOffSoulSand)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 激活
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+
+    // 移动到新位置（没有灵魂沙）
+    m_entity->setPosition(10.5, 65.0, 10.5);
+    m_entity->onChangedBlock();
+
+    // 效率修饰符应被移除
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+}
+
+// ============================================================================
+// 集成测试：getBlockSpeedFactor() 插值逻辑
+// ============================================================================
+
+TEST_F(SoulSpeedIntegrationTest, GetBlockSpeedFactorDefaultIsOne)
+{
+    // 默认情况下（没有减速方块、没有修饰符），getBlockSpeedFactor() 应返回 1.0
+    // 脚下没有方块，blockSpeedFactor 默认为 1.0
+    f32 factor = m_entity->getBlockSpeedFactor();
+    EXPECT_NEAR(factor, 1.0f, 0.001f);
+}
+
+TEST_F(SoulSpeedIntegrationTest, GetBlockSpeedFactorSoulSandReduces)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 没有 MOVEMENT_EFFICIENCY 修饰符时，应返回灵魂沙的 speedFactor（0.4）
+    f32 factor = m_entity->getBlockSpeedFactor();
+    EXPECT_NEAR(factor, 0.4f, 0.01f);
+}
+
+TEST_F(SoulSpeedIntegrationTest, GetBlockSpeedFactorSoulSandWithEfficiency)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 激活灵魂疾行（添加 MOVEMENT_EFFICIENCY=1.0 修饰符）
+    m_entity->onChangedBlock();
+
+    // MOVEMENT_EFFICIENCY=1.0 时，lerp(1.0, 0.4, 1.0) = 1.0
+    // 灵魂疾行完全抵消灵魂沙减速
+    f32 factor = m_entity->getBlockSpeedFactor();
+    EXPECT_NEAR(factor, 1.0f, 0.01f);
+}
+
+TEST_F(SoulSpeedIntegrationTest, GetBlockSpeedFactorLerpWithPartialEfficiency)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 手动添加部分 MOVEMENT_EFFICIENCY（0.5），验证插值
+    entity::attribute::AttributeModifier partialEfficiency(
+        "test.partial_efficiency", "Partial Efficiency", 0.5, entity::attribute::Operation::Addition);
+    m_entity->attributes().addModifier(entity::attribute::Attributes::MOVEMENT_EFFICIENCY, partialEfficiency);
+
+    // lerp(0.5, 0.4, 1.0) = 0.4 + (1.0 - 0.4) * 0.5 = 0.4 + 0.3 = 0.7
+    f32 factor = m_entity->getBlockSpeedFactor();
+    EXPECT_NEAR(factor, 0.7f, 0.01f);
+
+    // 清理
+    m_entity->attributes().removeModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "test.partial_efficiency");
 }

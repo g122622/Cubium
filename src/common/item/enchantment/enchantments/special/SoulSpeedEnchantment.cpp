@@ -73,7 +73,7 @@ bool SoulSpeedEnchantment::onLocationChanged(
     }
 
     // 尝试消耗耐久（每次位置变化事件有4%概率消耗1点耐久）
-    // 对齐 MC 1.21.11 ChangeItemDamage 效果：随机概率 + 站在灵魂沙/土上
+    // ChangeItemDamage 效果：随机概率 + 站在灵魂沙/土上
     tryConsumeDurability(entity, slot);
 
     // 生成灵魂粒子效果和音效
@@ -101,8 +101,10 @@ bool SoulSpeedEnchantment::isOnSoulSpeedBlock(LivingEntity& entity) const
     }
 
     // 检查实体脚下的方块是否是灵魂沙或灵魂土
+    // 使用 boundingBox.minY - 0.001f 确定脚下方块位置，与 getBlockSpeedFactor() 和
+    // LivingEntity::travel() 中的脚下方块检测逻辑一致
     BlockPos belowPos(static_cast<i32>(std::floor(entity.position().x)),
-        static_cast<i32>(std::floor(entity.position().y)) - 1,
+        static_cast<i32>(std::floor(entity.boundingBox().minY - 0.001f)),
         static_cast<i32>(std::floor(entity.position().z)));
 
     const BlockState* state = world->getBlockState(belowPos);
@@ -111,7 +113,6 @@ bool SoulSpeedEnchantment::isOnSoulSpeedBlock(LivingEntity& entity) const
     }
 
     // 使用 SOUL_FIRE_BASE_BLOCKS 标签（包含 soul_sand 和 soul_soil）
-    // 对齐 MC 1.21.11 中的 SOUL_SPEED_BLOCKS 标签
     return BlockTags::SOUL_FIRE_BASE_BLOCKS().contains(state->getBlock());
 }
 
@@ -134,7 +135,7 @@ bool SoulSpeedEnchantment::isFlying(const LivingEntity& entity) const
 void SoulSpeedEnchantment::applySoulSpeedModifiers(LivingEntity& entity, i32 level) const
 {
     // MOVEMENT_SPEED 修饰符：使用 Addition 操作
-    // 对齐 MC 1.21.11: LevelBasedValue.perLevel(0.0405F, 0.0105F)
+    // LevelBasedValue.perLevel(0.0405F, 0.0105F)
     // Level I: +0.0405, Level II: +0.051, Level III: +0.0615
     f32 speedBonus = getMovementSpeedBonus(level);
 
@@ -144,8 +145,8 @@ void SoulSpeedEnchantment::applySoulSpeedModifiers(LivingEntity& entity, i32 lev
     entity.attributes().addModifier(entity::attribute::Attributes::MOVEMENT_SPEED, speedModifier);
 
     // MOVEMENT_EFFICIENCY 修饰符：使用 Addition 操作
-    // 对齐 MC 1.21.11: LevelBasedValue.constant(1.0F)
-    // 值为 1.0，配合 LivingEntity.getBlockSpeedFactor() 中的插值逻辑：
+    // LevelBasedValue.constant(1.0F)，所有等级均为 +1.0
+    // 配合 LivingEntity.getBlockSpeedFactor() 中的插值逻辑：
     //   finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
     // 当 movementEfficiency=1.0 时，lerp(1.0, 0.4, 1.0) = 1.0，完全抵消灵魂沙减速
     f32 efficiencyBonus = getMovementEfficiencyBonus();
@@ -175,11 +176,9 @@ void SoulSpeedEnchantment::spawnSoulParticles(LivingEntity& entity) const
         return;
     }
 
-    // 对齐 MC 1.21.11 粒子效果条件：
+    // 粒子效果条件：
     // - periodicTick(5)：每5tick触发一次
-    // - isFlying(false)：非飞行
-    // - onGround(true)：在地面上
-    // - 水平速度 > 1.0E-5：正在移动
+    // - 非飞行、在地面、在灵魂沙/土上、正在移动
     // 粒子类型: ParticleTypes.SOUL
     // 粒子偏移: SpawnParticlesEffect.inBoundingBox() + offsetFromEntityPosition(0.1F)
     // 粒子速度: movementScaled(-0.2F) + fixedVelocity(ConstantFloat.of(0.1F))
@@ -194,9 +193,7 @@ void SoulSpeedEnchantment::spawnSoulParticles(LivingEntity& entity) const
         }
     }
 
-    // 对齐 MC 1.21.11 音效条件：
-    // - 35% 随机概率
-    // - 与粒子条件相同（非飞行、在地面、在灵魂沙/土上、正在移动）
+    // 音效条件：35% 随机概率，与粒子条件相同
     // 音效: SoundEvents.PARTICLE_SOUL_ESCAPE
     // 音量: 0.6
     // 音调: 0.6~1.0 随机
@@ -213,10 +210,9 @@ void SoulSpeedEnchantment::tryConsumeDurability(LivingEntity& entity, i32 slot) 
         return;
     }
 
-    // 对齐 MC 1.21.11 ChangeItemDamage 效果：
-    // - 损坏量: LevelBasedValue.constant(1.0F) = 1点耐久
-    // - 概率: randomChance(EnchantmentLevelProvider.forEnchantmentLevel(LevelBasedValue.constant(0.04F)))
-    //   = 固定4%概率，与附魔等级无关
+    // ChangeItemDamage 效果：
+    // - 损坏量: 1点耐久
+    // - 概率: 固定4%，与附魔等级无关
     if (entity.getRandom().nextFloat() >= getDurabilityConsumeChance(0)) {
         return;
     }
@@ -229,8 +225,10 @@ void SoulSpeedEnchantment::tryConsumeDurability(LivingEntity& entity, i32 slot) 
     }
 
     // 使用 LivingEntity::hurtAndBreak 消耗耐久
-    // 需要通过 const_cast 获取可变引用，因为 getEquipment 返回 const 引用
     // hurtAndBreak 会处理耐久消耗、Unbreaking 附魔检测和物品损坏回调
+    // TODO: 当前 getEquipment() 仅返回 const 引用，附魔回调需要可变访问才能调用 hurtAndBreak。
+    //       应在 LivingEntity 中添加 getMutableEquipment(EquipmentSlot) 方法返回可变引用，
+    //       以替代此处的 const_cast。此处 const_cast 安全是因为 m_equipment 数组实际是可变的。
     ItemStack& mutableStack = const_cast<ItemStack&>(stack);
     LivingEntity::hurtAndBreak(mutableStack, 1, &entity, equipmentSlot);
 }

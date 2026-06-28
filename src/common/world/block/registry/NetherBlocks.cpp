@@ -157,7 +157,7 @@ void registerNetherBlocks()
     // ============================================================================
 
     // 灵魂沙
-    // speedFactor=0.4: 实体走在上面会被减速（对齐 MC Block.speedFactor）
+    // speedFactor=0.4: 实体走在上面会被减速（Block.speedFactor）
     // 配合 MOVEMENT_EFFICIENCY 属性，灵魂疾行附魔可以将减速效果抵消
     NetherBlocks::SOUL_SAND = &registry.registerBlock<SimpleBlock>(
         ResourceLocation("minecraft:soul_sand"), BlockProperties(Material::SAND).hardness(0.5f).speedFactor(0.4f));

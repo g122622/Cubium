@@ -275,8 +275,7 @@
 
             - **`stopLocationBasedEffects(stack, slot)`** — 移除物品在指定槽位提供的属性修饰符
             - 遍历 `item->getAttributeModifiers(slot)` 中匹配槽位的条目，逐一调用 `AttributeMap::removeModifier()` -
-            TODO : 当附魔基于位置的效果系统实现后，需同时调用 `EnchantmentHelper.stopLocationBasedEffects()` 停用 Frost
-                   Walker、Soul Speed 等效果
+              同时通过 `EnchantmentHelper::stopLocationBasedEffects()` 停用灵魂疾行、冰霜行者等位置依赖附魔效果
 
             - **`equipmentHasChanged(a, b)`**(静态) — 比较两个 ItemStack 是否发生变化（物品类型、数量、伤害值）
 
@@ -311,6 +310,38 @@
             * *客户端处理 * *： -
         收到状态码 47 - 52 时，播放 ENTITY_ITEM_BREAK 音效 +
         Breaking 粒子效果
+
+        ## #方块速度因子（getBlockSpeedFactor）
+
+        `LivingEntity::getBlockSpeedFactor()` 返回实体脚下方块的有效速度因子，考虑 `MOVEMENT_EFFICIENCY` 属性的插值效果。
+
+        ### 计算公式
+
+        ```
+        finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
+        ```
+
+        即 `blockSpeedFactor + (1.0 - blockSpeedFactor) * movementEfficiency`
+
+        - 当 `movementEfficiency=0.0`（默认）：返回方块原始 `speedFactor`（灵魂沙=0.4，正常方块=1.0）
+        - 当 `movementEfficiency=1.0`：返回 1.0，完全忽略方块减速效果
+
+        ### 方块 speedFactor
+
+        大多数方块 `speedFactor=1.0`（无减速）。灵魂沙 `speedFactor=0.4`，蜂蜜块 `speedFactor=0.4`。通过 `BlockState::getSpeedFactor()` 获取。
+
+        ### 调用位置
+
+        - `LivingEntity::travel()` — 地面移动速度计算：`moveFactor *= getBlockSpeedFactor()`
+        - `Player::_applyCachedMovementInput()` — 玩家地面移动速度计算：`speedFactor *= getBlockSpeedFactor()`
+
+        ### 与灵魂疾行附魔的关系
+
+        灵魂疾行附魔通过 Addition 操作为 `MOVEMENT_EFFICIENCY` 属性添加 +1.0 修饰符，使 `getBlockSpeedFactor()` 在灵魂沙/灵魂土上返回 1.0，完全抵消减速效果。同时附魔还为 `MOVEMENT_SPEED` 添加加成。
+
+        ### 属性注册
+
+        `MOVEMENT_EFFICIENCY` 在 `LivingEntity::registerAttributes()` 中注册，所有生物实体默认拥有此属性（默认值 0.0，范围 0.0~1.0）。
 
         ## #空气供应与溺水 -
         空气值可从正数变成负数（用于溺水计时） - 当空气值降到 - 20 时重置为 0 并触发溺水伤害 -

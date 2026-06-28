@@ -164,7 +164,7 @@ const Enchantment* e = EnchantmentRegistry::get("minecraft:fortune");
 
 冰霜行者和灵魂疾行是位置依赖附魔，覆写了 `Enchantment::onLocationChanged()` 和 `onLocationEffectDeactivated()`：
 - **冰霜行者**：`onLocationChanged()` 在地面时放置霜冰，`onLocationEffectDeactivated()` 为空实现（霜冰自行融化）
-- **灵魂疾行**：`onLocationChanged()` 在灵魂沙/土上添加速度修饰符，`onLocationEffectDeactivated()` 必须移除修饰符
+- **灵魂疾行**：`onLocationChanged()` 在灵魂沙/土上添加 MOVEMENT_SPEED（Addition）和 MOVEMENT_EFFICIENCY（Addition）属性修饰符，`onLocationEffectDeactivated()` 移除这两个修饰符
 
 新增位置依赖附魔时，**必须同时覆写两个方法**，即使停用时无需清理也应提供空实现。
 

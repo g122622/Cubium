@@ -34,7 +34,7 @@ namespace enchant {
  *
  * 在灵魂沙和灵魂土上增加移动速度并抵消减速效果。
  *
- * 效果（对齐 MC 1.21.11 数据驱动实现）:
+ * 效果:
  * - 通过 MOVEMENT_SPEED 属性修饰符增加移动速度：
  *   使用 Addition 操作，等级 I: +0.0405, II: +0.051, III: +0.0615
  *   公式: 0.0405 + 0.0105 * (level - 1)
@@ -95,7 +95,6 @@ public:
      * @param level 附魔等级
      * @return Addition 操作的修饰符值
      *
-     * 对齐 MC 1.21.11 LevelBasedValue.perLevel(0.0405F, 0.0105F):
      * 公式: 0.0405 + 0.0105 * (level - 1)
      * Level I: +0.0405, Level II: +0.051, Level III: +0.0615
      */
@@ -108,7 +107,6 @@ public:
      * @brief 获取灵魂疾行的 MOVEMENT_EFFICIENCY 修饰符值
      * @return Addition 操作的修饰符值，固定为 1.0
      *
-     * 对齐 MC 1.21.11 LevelBasedValue.constant(1.0F):
      * 所有等级均为 +1.0，配合 LivingEntity.getBlockSpeedFactor() 中的插值逻辑，
      * 当 MOVEMENT_EFFICIENCY=1.0 时，在灵魂沙上 (speedFactor=0.4) 将从 0.4 插值到 1.0，
      * 完全抵消减速效果。

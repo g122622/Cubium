@@ -303,7 +303,7 @@ public:
     /**
      * @brief 获取脚下方块的速度因子，考虑 MOVEMENT_EFFICIENCY 属性
      *
-     * 对齐 MC 1.21.11 LivingEntity.getBlockSpeedFactor()：
+     * LivingEntity.getBlockSpeedFactor()：
      *   finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
      * 当 MOVEMENT_EFFICIENCY=0.0 时，使用方块原始 speedFactor
      * 当 MOVEMENT_EFFICIENCY=1.0 时，完全忽略方块减速效果（speedFactor=1.0）

@@ -736,7 +736,7 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
                 static_cast<f32>(
                     getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_abilities.walkSpeed)),
                 groundSlipperiness);
-            // 对齐 MC 1.21.11: 地面移动因子需要乘以 getBlockSpeedFactor()
+            // 地面移动因子需要乘以 getBlockSpeedFactor()
             // getBlockSpeedFactor() 使用 MOVEMENT_EFFICIENCY 属性在方块 speedFactor 和 1.0 之间插值
             speedFactor *= getBlockSpeedFactor();
         } else {

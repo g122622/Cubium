@@ -271,7 +271,7 @@ inline std::unique_ptr<Attribute> swimSpeed()
  * @brief 移动效率
  *
  * 决定实体在减速方块（灵魂沙、蜂蜜块等）上的移动效率。
- * 对齐 MC 1.21.11 generic.movement_efficiency 属性。
+ * generic.movement_efficiency 属性。
  * 默认值: 0.0（不抵消减速效果）
  * 范围: 0.0 ~ 1.0
  *

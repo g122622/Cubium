@@ -378,6 +378,7 @@ void LivingEntity::registerAttributes()
     m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armorToughness());
     m_attributes.registerAttribute(*entity::attribute::Attributes::maxAbsorption());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::movementEfficiency());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -411,11 +412,8 @@ f32 LivingEntity::getBlockSpeedFactor()
         }
     }
 
-    // 对齐 MC 1.21.11 LivingEntity.getBlockSpeedFactor():
-    //   return Mth.lerp((float)this.getAttributeValue(Attributes.MOVEMENT_EFFICIENCY),
-    //   super.getBlockSpeedFactor(), 1.0F);
-    // 当 MOVEMENT_EFFICIENCY=0.0 时，返回 blockSpeedFactor（原始值）
-    // 当 MOVEMENT_EFFICIENCY=1.0 时，返回 1.0（完全忽略减速效果）
+    // 使用 MOVEMENT_EFFICIENCY 属性在方块 speedFactor 和 1.0 之间插值
+    // efficiency=0.0 返回原始 blockSpeedFactor，efficiency=1.0 返回 1.0（完全忽略减速）
     f64 efficiency = getAttributeValue(entity::attribute::Attributes::MOVEMENT_EFFICIENCY, 0.0);
     efficiency = std::clamp(efficiency, 0.0, 1.0);
     f32 result = static_cast<f32>(blockSpeedFactor + (1.0f - blockSpeedFactor) * static_cast<f32>(efficiency));
@@ -1062,7 +1060,6 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
         // 地面移动：使用滑度计算
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
 
-        // 对齐 MC 1.21.11 LivingEntity.travel()：
         // 地面移动因子需要乘以 getBlockSpeedFactor()
         // getBlockSpeedFactor() 使用 MOVEMENT_EFFICIENCY 属性在方块 speedFactor 和 1.0 之间插值
         // 灵魂疾行附魔设置 MOVEMENT_EFFICIENCY=1.0，使灵魂沙/土上的 speedFactor 从 0.4 插值到 1.0
