@@ -171,4 +171,4 @@ const Enchantment* e = EnchantmentRegistry::get("minecraft:fortune");
 ### 8. 冰霜行者只冻结水源方块
 
 `FrostWalkerEnchantment::placeFrostedIce()` 使用 `isWaterAt()` + `FluidState::isSource()` 双重检查，
-确保只冻结水源方块而不冻结流动水，与 MC Java 的 `ReplaceDisk` 效果中 `matchesFluids(Fluids.WATER)` 行为一致。
+确保只冻结水源方块而不冻结流动水，与原版 ReplaceDisk 效果中 matchesFluids(WATER) 行为一致。

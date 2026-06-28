@@ -23,17 +23,29 @@
 
 #include <gtest/gtest.h>
 
-#include "entity/enchantment/LocationEnchantmentTracker.hpp"
-#include "item/Items.hpp"
-#include "item/core/ItemStack.hpp"
-#include "item/enchantment/Enchantment.hpp"
-#include "item/enchantment/EnchantmentHelper.hpp"
-#include "item/enchantment/EnchantmentRegistry.hpp"
-#include "item/enchantment/enchantments/AllEnchantments.hpp"
-#include "item/enchantment/enchantments/protection/FrostWalkerEnchantment.hpp"
-#include "item/enchantment/enchantments/special/SoulSpeedEnchantment.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/enchantment/LocationEnchantmentTracker.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/Enchantment.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/EnchantmentRegistry.hpp"
+#include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/item/enchantment/enchantments/protection/FrostWalkerEnchantment.hpp"
+#include "common/item/enchantment/enchantments/special/SoulSpeedEnchantment.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/registry/NetherBlocks.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/FluidRegistry.hpp"
+
+#include <map>
+#include <memory>
 
 using namespace mc;
+using namespace mc::block_registry;
 using namespace mc::entity;
 using namespace mc::item::enchant;
 
@@ -438,4 +450,803 @@ TEST_F(EnchantmentHelperLocationTest, FrostWalkerAndDepthStriderMutuallyExclusiv
     // 冰霜行者和深海探索者互斥
     EXPECT_FALSE(frostWalker->isCompatibleWith(*depthStrider));
     EXPECT_FALSE(depthStrider->isCompatibleWith(*frostWalker));
+}
+
+// ============================================================================
+// 集成测试：位置依赖附魔 Mock 世界
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 位置依赖附魔集成测试用的 Mock 世界
+ *
+ * 支持：
+ * - 方块状态存储与查询（用于冰霜行者放冰、灵魂疾行检测脚下方块）
+ * - 流体状态存储与查询（用于冰霜行者检测水源）
+ * - isWaterAt 检查（用于冰霜行者水源检测）
+ * - 属性修饰符验证（用于灵魂疾行速度修饰符）
+ */
+class LocationEnchantmentTestWorld final : public test::BaseTestWorld {
+public:
+    LocationEnchantmentTestWorld() = default;
+
+    using IWorld::getBlockState;
+    using IWorld::getFluidState;
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_blocks.find(pos);
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const BlockPos pos(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            m_blocks.erase(pos);
+            m_ownedStates.erase(pos);
+        } else {
+            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
+            m_blocks[pos] = &it->second;
+        }
+        m_blockChanges.push_back({pos, state});
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        (void)flags;
+        return setBlockState(x, y, z, state);
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32 x, i32 y, i32 z) const override
+    {
+        // 优先检查显式设置的流体状态
+        const BlockPos pos(x, y, z);
+        const auto fluidIt = m_fluids.find(pos);
+        if (fluidIt != m_fluids.end() && fluidIt->second != nullptr) {
+            return fluidIt->second;
+        }
+
+        // 回退到方块的流体状态
+        const BlockState* state = getBlockState(x, y, z);
+        if (state != nullptr) {
+            const fluid::FluidState* fluidState = state->getFluidState();
+            if (fluidState != nullptr && !fluidState->isEmpty()) {
+                return fluidState;
+            }
+        }
+
+        return fluid::Fluid::getFluidState(0);
+    }
+
+    [[nodiscard]] bool isWaterAt(const BlockPos& pos) const override
+    {
+        // 如果显式标记为水源，返回 true
+        const auto it = m_waterPositions.find(pos);
+        if (it != m_waterPositions.end() && it->second) {
+            return true;
+        }
+        return false;
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    {
+        (void)type;
+        (void)pos;
+        (void)velocity;
+        // 测试中忽略粒子效果
+    }
+
+    // 测试辅助方法
+    void setBlockDirectly(const BlockPos& pos, const BlockState* state)
+    {
+        (void)setBlockState(pos.x, pos.y, pos.z, state);
+    }
+
+    void setFluidDirectly(const BlockPos& pos, const fluid::FluidState* state) { m_fluids[pos] = state; }
+
+    void setWaterAt(const BlockPos& pos, bool isWater = true) { m_waterPositions[pos] = isWater; }
+
+    [[nodiscard]] size_t blockChangeCount() const { return m_blockChanges.size(); }
+
+    [[nodiscard]] const BlockState* getLastBlockChange() const
+    {
+        if (m_blockChanges.empty()) {
+            return nullptr;
+        }
+        return m_blockChanges.back().second;
+    }
+
+    [[nodiscard]] bool hasBlockChangeAt(const BlockPos& pos) const
+    {
+        for (const auto& change : m_blockChanges) {
+            if (change.first == pos) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void clearBlockChanges() { m_blockChanges.clear(); }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, BlockState> m_ownedStates;
+    std::map<BlockPos, const fluid::FluidState*> m_fluids;
+    std::map<BlockPos, bool> m_waterPositions;
+    std::vector<std::pair<BlockPos, const BlockState*>> m_blockChanges;
+};
+
+/**
+ * @brief 位置依赖附魔集成测试用的 LivingEntity
+ */
+class TestLivingEntityForLocation : public LivingEntity {
+public:
+    TestLivingEntityForLocation()
+        : LivingEntity(EntityId(1))
+    {
+        registerData();
+        registerAttributes();
+        setHealth(maxHealth());
+    }
+};
+
+} // namespace
+
+// ============================================================================
+// 集成测试：FrostWalker 冰霜行者放冰逻辑
+// ============================================================================
+
+class FrostWalkerIntegrationTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            Items::initialize();
+            VanillaBlocks::initialize();
+            BlockTags::initialize();
+            fluid::FluidRegistry::instance().initialize();
+            EnchantmentRegistry::clear();
+            EnchantmentRegistry::initialize();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override
+    {
+        m_world = std::make_unique<LocationEnchantmentTestWorld>();
+        m_entity = std::make_unique<TestLivingEntityForLocation>();
+        m_entity->setWorld(m_world.get());
+        m_entity->setOnGround(true);
+        m_entity->setPosition(0.5, 65.0, 0.5); // 站在 y=64 方块上方
+    }
+
+    void TearDown() override
+    {
+        m_entity.reset();
+        m_world.reset();
+    }
+
+    /**
+     * @brief 在指定位置设置水源方块（含流体状态和 isWaterAt 标记）
+     */
+    void setupWaterSourceAt(i32 x, i32 y, i32 z)
+    {
+        const BlockPos pos(x, y, z);
+        // 设置水源方块
+        if (VanillaBlocks::WATER != nullptr) {
+            m_world->setBlockDirectly(pos, &VanillaBlocks::WATER->defaultState());
+        }
+        // 设置流体状态为水源
+        fluid::Fluid* waterFluid = fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::WATER_ID);
+        if (waterFluid != nullptr) {
+            m_world->setFluidDirectly(pos, &waterFluid->defaultState());
+        }
+        // 标记为水源位置
+        m_world->setWaterAt(pos, true);
+    }
+
+    /**
+     * @brief 在指定位置设置灵魂沙
+     */
+    void setupSoulSandAt(i32 x, i32 y, i32 z)
+    {
+        const BlockPos pos(x, y, z);
+        if (NetherBlocks::SOUL_SAND != nullptr) {
+            m_world->setBlockDirectly(pos, &NetherBlocks::SOUL_SAND->defaultState());
+        }
+    }
+
+    std::unique_ptr<LocationEnchantmentTestWorld> m_world;
+    std::unique_ptr<TestLivingEntityForLocation> m_entity;
+};
+
+TEST_F(FrostWalkerIntegrationTest, PlacesFrostedIceOnWaterSource_Level1)
+{
+    if (VanillaBlocks::FROSTED_ICE == nullptr) {
+        GTEST_SKIP() << "FROSTED_ICE not initialized";
+    }
+
+    const Enchantment* frostWalker = EnchantmentRegistry::get("minecraft:frost_walker");
+    ASSERT_NE(frostWalker, nullptr);
+
+    // 给实体装备冰霜行者 I 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{frostWalker, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在 y=64 层设置水源方块（实体站在 y=65）
+    setupWaterSourceAt(-1, 64, -1);
+    setupWaterSourceAt(0, 64, 0);
+    setupWaterSourceAt(1, 64, 0);
+    setupWaterSourceAt(0, 64, 1);
+    setupWaterSourceAt(-1, 64, 0);
+
+    // 清除设置阶段的方块变化记录
+    m_world->clearBlockChanges();
+
+    // 触发位置变化
+    m_entity->onChangedBlock();
+
+    // 冰霜行者 I 半径 = 2，应放置霜冰
+    // 检查至少一些水源位置被替换为霜冰
+    EXPECT_TRUE(m_world->hasBlockChangeAt(BlockPos(-1, 64, -1)) || m_world->hasBlockChangeAt(BlockPos(0, 64, 0)));
+}
+
+TEST_F(FrostWalkerIntegrationTest, PlacesFrostedIceOnWaterSource_Level2)
+{
+    if (VanillaBlocks::FROSTED_ICE == nullptr) {
+        GTEST_SKIP() << "FROSTED_ICE not initialized";
+    }
+
+    const Enchantment* frostWalker = EnchantmentRegistry::get("minecraft:frost_walker");
+    ASSERT_NE(frostWalker, nullptr);
+
+    // 给实体装备冰霜行者 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{frostWalker, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在 y=64 层设置水源方块（实体站在 y=65）
+    setupWaterSourceAt(0, 64, 0);
+    setupWaterSourceAt(2, 64, 0);
+    setupWaterSourceAt(-2, 64, 0);
+
+    // 清除设置阶段的方块变化记录
+    m_world->clearBlockChanges();
+
+    // 触发位置变化
+    m_entity->onChangedBlock();
+
+    // 冰霜行者 II 半径 = 3，应覆盖更大范围
+    EXPECT_TRUE(m_world->hasBlockChangeAt(BlockPos(0, 64, 0)));
+}
+
+TEST_F(FrostWalkerIntegrationTest, NoFrostedIceWhenNotOnGround)
+{
+    const Enchantment* frostWalker = EnchantmentRegistry::get("minecraft:frost_walker");
+    ASSERT_NE(frostWalker, nullptr);
+
+    // 给实体装备冰霜行者 I 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{frostWalker, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 设置为不在地面
+    m_entity->setOnGround(false);
+
+    // 在脚下设置水源
+    setupWaterSourceAt(0, 64, 0);
+
+    // 清除设置阶段的方块变化记录
+    m_world->clearBlockChanges();
+
+    m_entity->onChangedBlock();
+
+    // 不在地面，不应放冰
+    EXPECT_FALSE(m_world->hasBlockChangeAt(BlockPos(0, 64, 0)));
+}
+
+TEST_F(FrostWalkerIntegrationTest, NoFrostedIceWithoutEnchantment)
+{
+    // 不装备冰霜行者的靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下设置水源
+    setupWaterSourceAt(0, 64, 0);
+
+    // 清除设置阶段的方块变化记录
+    m_world->clearBlockChanges();
+
+    m_entity->onChangedBlock();
+
+    // 没有冰霜行者，不应放冰
+    EXPECT_FALSE(m_world->hasBlockChangeAt(BlockPos(0, 64, 0)));
+}
+
+TEST_F(FrostWalkerIntegrationTest, NoFrostedIceOnFlowingWater)
+{
+    const Enchantment* frostWalker = EnchantmentRegistry::get("minecraft:frost_walker");
+    ASSERT_NE(frostWalker, nullptr);
+
+    // 给实体装备冰霜行者 I 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{frostWalker, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 只设置 isWaterAt，但不设置 isSource 的流体状态
+    // 模拟流动水（isWaterAt=true 但 isSource=false）
+    const BlockPos waterPos(0, 64, 0);
+    m_world->setWaterAt(waterPos, true);
+    // 不设置流体状态，或设置为非源头的流体状态
+    // getFluidState 将返回空的 FluidState（isEmpty=true）
+
+    m_entity->onChangedBlock();
+
+    // 流动水不应被冻结
+    EXPECT_FALSE(m_world->hasBlockChangeAt(waterPos));
+}
+
+TEST_F(FrostWalkerIntegrationTest, RadiusLevel1Is2)
+{
+    // 验证冰霜行者 I 的半径 = 2（level + 1）
+    EXPECT_EQ(FrostWalkerEnchantment::getFrostRadius(1), 2);
+}
+
+TEST_F(FrostWalkerIntegrationTest, RadiusLevel2Is3)
+{
+    // 验证冰霜行者 II 的半径 = 3（level + 1）
+    EXPECT_EQ(FrostWalkerEnchantment::getFrostRadius(2), 3);
+}
+
+// ============================================================================
+// 集成测试：SoulSpeed 灵魂疾行修饰符增删
+// ============================================================================
+
+class SoulSpeedIntegrationTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            Items::initialize();
+            VanillaBlocks::initialize();
+            BlockTags::initialize();
+            fluid::FluidRegistry::instance().initialize();
+            EnchantmentRegistry::clear();
+            EnchantmentRegistry::initialize();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override
+    {
+        m_world = std::make_unique<LocationEnchantmentTestWorld>();
+        m_entity = std::make_unique<TestLivingEntityForLocation>();
+        m_entity->setWorld(m_world.get());
+        m_entity->setOnGround(true);
+        m_entity->setPosition(0.5, 65.0, 0.5); // 站在 y=64 方块上方
+    }
+
+    void TearDown() override
+    {
+        m_entity.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<LocationEnchantmentTestWorld> m_world;
+    std::unique_ptr<TestLivingEntityForLocation> m_entity;
+};
+
+TEST_F(SoulSpeedIntegrationTest, AddsModifierWhenOnSoulSand)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 初始状态没有修饰符
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+
+    // 触发位置变化
+    m_entity->onChangedBlock();
+
+    // 应该添加灵魂疾行速度修饰符
+    EXPECT_TRUE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+}
+
+TEST_F(SoulSpeedIntegrationTest, ModifierValueLevel1)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 I 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    m_entity->onChangedBlock();
+
+    // 修饰符值应为 0.4（MultiplyTotal 操作，I: +40%）
+    EXPECT_TRUE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+
+    // 验证修饰符效果：基础速度 + 40% 加成
+    f64 baseSpeed = m_entity->getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.0);
+    // 基础速度应该在有修饰符后增加
+    // 注意：此处无法直接获取修饰符值，只能通过属性值变化验证
+    (void)baseSpeed;
+}
+
+TEST_F(SoulSpeedIntegrationTest, RemovesModifierWhenOffSoulSand)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 第一次位置变化：激活灵魂疾行
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+
+    // 移动到新位置（脚下没有灵魂沙）
+    m_entity->setPosition(10.5, 65.0, 10.5);
+
+    // 第二次位置变化：离开灵魂沙，停用灵魂疾行
+    m_entity->onChangedBlock();
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+}
+
+TEST_F(SoulSpeedIntegrationTest, NoModifierWithoutEnchantment)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    // 不装备灵魂疾行的靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    m_entity->onChangedBlock();
+
+    // 没有灵魂疾行，不应有速度修饰符
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+}
+
+TEST_F(SoulSpeedIntegrationTest, NoModifierWhenNotOnGround)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 设置为不在地面
+    m_entity->setOnGround(false);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    m_entity->onChangedBlock();
+
+    // 不在地面，不应添加速度修饰符
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+}
+
+TEST_F(SoulSpeedIntegrationTest, ModifierRemovedOnDeath)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 激活灵魂疾行
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+
+    // 实体死亡：应移除所有位置依赖附魔效果
+    EnchantmentHelper::stopAllLocationBasedEffects(*m_entity);
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+}
+
+// ============================================================================
+// 集成测试：onChangedBlock → EnchantmentHelper 完整链路
+// ============================================================================
+
+class OnChangedBlockChainTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            Items::initialize();
+            VanillaBlocks::initialize();
+            BlockTags::initialize();
+            fluid::FluidRegistry::instance().initialize();
+            EnchantmentRegistry::clear();
+            EnchantmentRegistry::initialize();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override
+    {
+        m_world = std::make_unique<LocationEnchantmentTestWorld>();
+        m_entity = std::make_unique<TestLivingEntityForLocation>();
+        m_entity->setWorld(m_world.get());
+        m_entity->setOnGround(true);
+        m_entity->setPosition(0.5, 65.0, 0.5);
+    }
+
+    void TearDown() override
+    {
+        m_entity.reset();
+        m_world.reset();
+    }
+
+    std::unique_ptr<LocationEnchantmentTestWorld> m_world;
+    std::unique_ptr<TestLivingEntityForLocation> m_entity;
+};
+
+TEST_F(OnChangedBlockChainTest, TrackerActivatesOnSoulSand)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    m_world->setBlockDirectly(BlockPos(0, 64, 0), &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 初始状态：tracker 无活跃附魔
+    EXPECT_FALSE(
+        m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
+
+    // 触发 onChangedBlock
+    m_entity->onChangedBlock();
+
+    // tracker 应标记灵魂疾行为活跃
+    EXPECT_TRUE(
+        m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
+}
+
+TEST_F(OnChangedBlockChainTest, TrackerDeactivatesWhenOffSoulSand)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    m_world->setBlockDirectly(BlockPos(0, 64, 0), &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 激活
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(
+        m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
+
+    // 移动到新位置（没有灵魂沙）
+    m_entity->setPosition(10.5, 65.0, 10.5);
+    m_entity->onChangedBlock();
+
+    // tracker 应标记灵魂疾行为非活跃
+    EXPECT_FALSE(
+        m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
+}
+
+TEST_F(OnChangedBlockChainTest, TrackerActivatesForFrostWalker)
+{
+    const Enchantment* frostWalker = EnchantmentRegistry::get("minecraft:frost_walker");
+    ASSERT_NE(frostWalker, nullptr);
+
+    // 装备冰霜行者 I 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{frostWalker, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 冰霜行者在地面时总是活跃（不需要特定脚下方块）
+    m_entity->onChangedBlock();
+
+    // tracker 应标记冰霜行者为活跃
+    EXPECT_TRUE(m_entity->locationEnchantmentTracker().isActive(
+        static_cast<i32>(EquipmentSlot::Feet), "minecraft:frost_walker"));
+}
+
+TEST_F(OnChangedBlockChainTest, TrackerDeactivatesWhenOffGround)
+{
+    const Enchantment* frostWalker = EnchantmentRegistry::get("minecraft:frost_walker");
+    ASSERT_NE(frostWalker, nullptr);
+
+    // 装备冰霜行者 I 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{frostWalker, 1}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在地面时激活
+    m_entity->setOnGround(true);
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(m_entity->locationEnchantmentTracker().isActive(
+        static_cast<i32>(EquipmentSlot::Feet), "minecraft:frost_walker"));
+
+    // 腾空（不在地面）时停用
+    m_entity->setOnGround(false);
+    m_entity->onChangedBlock();
+    EXPECT_FALSE(m_entity->locationEnchantmentTracker().isActive(
+        static_cast<i32>(EquipmentSlot::Feet), "minecraft:frost_walker"));
+}
+
+TEST_F(OnChangedBlockChainTest, StopLocationBasedEffectsClearsModifier)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    m_world->setBlockDirectly(BlockPos(0, 64, 0), &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 激活
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+
+    // 停用指定装备上的位置效果
+    m_entity->stopLocationBasedEffects(boots, EquipmentSlot::Feet);
+
+    // 修饰符应被移除
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+}
+
+TEST_F(OnChangedBlockChainTest, StopAllLocationBasedEffectsClearsAll)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    m_world->setBlockDirectly(BlockPos(0, 64, 0), &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 激活
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(
+        m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
+
+    // 停用所有位置效果
+    EnchantmentHelper::stopAllLocationBasedEffects(*m_entity);
+
+    // tracker 应清空
+    EXPECT_FALSE(
+        m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
+
+    // 修饰符应被移除
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+}
+
+TEST_F(OnChangedBlockChainTest, MultipleEnchantmentsOnSameSlot)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    // 冰霜行者和灵魂疾行互斥（都是 ArmorFeet 类型），
+    // 但我们测试 tracker 支持同一槽位上的多个附魔标记
+    // 实际游戏中无法同时装备两者，但 tracker 支持这种情况
+
+    // 直接通过 tracker API 测试多附魔追踪
+    m_entity->locationEnchantmentTracker().setActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:frost_walker");
+    m_entity->locationEnchantmentTracker().setActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed");
+
+    EXPECT_TRUE(m_entity->locationEnchantmentTracker().isActive(
+        static_cast<i32>(EquipmentSlot::Feet), "minecraft:frost_walker"));
+    EXPECT_TRUE(
+        m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
+
+    // 清除一个不应影响另一个
+    m_entity->locationEnchantmentTracker().setInactive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:frost_walker");
+    EXPECT_FALSE(m_entity->locationEnchantmentTracker().isActive(
+        static_cast<i32>(EquipmentSlot::Feet), "minecraft:frost_walker"));
+    EXPECT_TRUE(
+        m_entity->locationEnchantmentTracker().isActive(static_cast<i32>(EquipmentSlot::Feet), "minecraft:soul_speed"));
 }

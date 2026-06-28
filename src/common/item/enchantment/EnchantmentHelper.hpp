@@ -439,8 +439,6 @@ public:
      * 当附魔从非活跃变为活跃时执行效果（如冰霜行者放置霜冰），
      * 当附魔从活跃变为非活跃时调用 onLocationEffectDeactivated()。
      *
-     * 对应 MC Java 的 EnchantmentHelper.runLocationChangedEffects()。
-     *
      * @param entity 实体
      */
     static void runLocationChangedEffects(LivingEntity& entity);
@@ -461,7 +459,7 @@ public:
      *
      * 当装备被移除或物品损坏时调用，停用所有活跃的位置依赖效果。
      *
-     * 对应 MC Java 的 EnchantmentHelper.stopLocationBasedEffects()。
+     * 当装备被移除或物品损坏时调用，停用所有活跃的位置依赖效果。
      *
      * @param entity 实体
      * @param stack 物品堆
@@ -472,7 +470,7 @@ public:
     /**
      * @brief 停止实体所有装备上所有位置依赖的附魔效果
      *
-     * 对应 MC Java 的 EnchantmentHelper.stopLocationBasedEffects()（全装备版本）。
+     * 停用实体所有装备上所有位置依赖的附魔效果。
      *
      * @param entity 实体
      */

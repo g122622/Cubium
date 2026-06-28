@@ -51,7 +51,7 @@ namespace entity {
  * 按装备槽位和附魔ID记录活跃的效果集合，当实体移动到新的方块位置时
  * 评估效果是否应该激活/停用。
  *
- * 对应 MC Java 的 LivingEntity.activeLocationDependentEnchantments。
+ * 对应 LivingEntity.activeLocationDependentEnchantments。
  */
 class LocationEnchantmentTracker {
 public:

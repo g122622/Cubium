@@ -356,6 +356,15 @@ void LivingEntity::onKillCommand()
     hurt(damageSource, std::numeric_limits<f32>::max());
 }
 
+void LivingEntity::remove()
+{
+    // 停用所有位置依赖的附魔效果（如灵魂疾行的速度修饰符）
+    // 防止实体被移除后属性修饰符残留
+    item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
+
+    Entity::remove();
+}
+
 // ============================================================================
 // 属性
 // ============================================================================
@@ -561,7 +570,9 @@ void LivingEntity::onChangedBlock()
     }
 
     // 运行位置依赖附魔效果
-    // 对应 MC Java 的 EnchantmentHelper.runLocationChangedEffects()
+    // TODO: 当前仅在方块位置变化时触发检测。若实体未移动但脚下方块被破坏
+    // （如灵魂沙被挖走），灵魂疾行的速度修饰符不会移除。需增加周期性检测或
+    // 方块变更事件通知机制，确保脚下方块变化时也能正确停用附魔效果。
     item::enchant::EnchantmentHelper::runLocationChangedEffects(*this);
 }
 

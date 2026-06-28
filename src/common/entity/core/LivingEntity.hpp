@@ -196,6 +196,15 @@ public:
     virtual void die(DamageSource& cause);
 
     /**
+     * @brief 重写 Entity::remove()，在实体移除时清理位置依赖附魔效果
+     *
+     * 当实体被移除（包括死亡后被清除、卸载等场景）时，
+     * 需要停用所有活跃的位置依赖附魔效果（如灵魂疾行的速度修饰符），
+     * 防止属性修饰符残留。
+     */
+    void remove() override;
+
+    /**
      * @brief 由 /kill 命令调用
      *
      * 重写 Entity::onKillCommand()，使用虚空伤害杀死实体。

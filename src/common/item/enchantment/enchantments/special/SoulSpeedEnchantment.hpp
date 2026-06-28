@@ -92,7 +92,7 @@ public:
      *
      * TODO: MC 1.21.11 使用 AddValue 操作（perLevel(0.0405, 0.0105)），
      *       当前实现使用 MultiplyTotal（I: +40%, II: +60%, III: +80%），
-     *       与 MC 1.16.5 风格一致，待属性系统完善后对齐。
+     *       与项目1.16.5风格一致，待属性系统完善后对齐。
      */
     [[nodiscard]] static f32 getSoulSpeedMultiplier(i32 level)
     {

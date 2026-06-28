@@ -100,7 +100,7 @@ void FrostWalkerEnchantment::placeFrostedIce(IWorld& world, const BlockPos& cent
     }
     const BlockState& frostedIceState = VanillaBlocks::FROSTED_ICE->defaultState();
 
-    i32 y = center.y - 1; // MC Java: ReplaceDisk 使用 Vec3i(0, -1, 0) 偏移，冻结实体脚下方块
+    i32 y = center.y - 1; // 冻结实体脚下方块（ReplaceDisk 使用 Vec3i(0, -1, 0) 偏移）
 
     // 遍历以实体为中心的圆形区域
     for (i32 dx = -radius; dx <= radius; ++dx) {
@@ -118,7 +118,7 @@ void FrostWalkerEnchantment::placeFrostedIce(IWorld& world, const BlockPos& cent
                 continue;
             }
 
-            // MC Java: 冰霜行者只冻结水源方块（不冻结流动水）
+            // 冰霜行者只冻结水源方块（不冻结流动水）
             // 使用 isWaterAt + isSource 双重检查，与 GlassBottleItem 一致
             const fluid::FluidState* fluidState = world.getFluidState(pos);
             if (fluidState == nullptr || fluidState->isEmpty() || !fluidState->isSource()) {
