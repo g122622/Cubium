@@ -122,19 +122,21 @@ if (player->canReceiveMessages()) {
 
 | 方法 | 说明 |
 |------|------|
-| `setCamera(Entity* target)` | 设置旁观目标，传送到目标位置，发送 SetCameraPacket |
-| `resetCamera()` | 停止旁观，恢复自身视角 |
+| `setCamera(Entity* target)` | 设置旁观目标，委托 `setCameraEntityId()` 触发 `onCameraEntityChanged()` |
+| `resetCamera()` | 停止旁观，恢复自身视角（调用 `setCamera(nullptr)`） |
+| `onCameraEntityChanged(oldId, newId)` | 重写 Player 基类虚方法：传送玩家到目标位置 + 发送 SetCameraPacket |
 | `tickSpectator()` | 每 tick 同步旁观者位置到目标；目标消失或玩家潜行时自动停止 |
 | `attack(Entity& target)` 重写 | 旁观者模式下攻击实体 = 设置旁观目标 |
 
 **数据流**：
-1. SpectateCommand / 旁观者攻击 → `ServerPlayer::setCamera()` → 更新 `Player::m_cameraEntityId` + 发送 SetCameraPacket
-2. GameModeManager 回调 → 离开旁观模式时自动 `resetCamera()` + `setGameMode()`
+1. SpectateCommand / 旁观者攻击 → `setCameraEntityId()` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket + 传送到目标
+2. `setGameMode()` 离开旁观模式时 → `setCameraEntityId(nullopt)` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket
 3. `ServerPlayer::tick()` → `tickSpectator()` → 同步位置、检查有效性、潜行退出
 4. 客户端收到 SetCameraPacket → 设置 `Player::m_cameraEntityId` → 渲染循环跟随目标实体
 
 **注意**：
-- `Player::attack()` 基类中旁观者路径调用 `setCameraEntityId()` 但不发送 SetCameraPacket（仅 ServerPlayer 重写版本通过网络同步）
+- `setCameraEntityId()` 内含相等性检查，值未变化时不触发 `onCameraEntityChanged()`，避免重复发包
+- `Player::attack()` 基类中旁观者路径通过 `setCameraEntityId()` → `onCameraEntityChanged()` 虚方法自动触发 ServerPlayer 网络同步，无需手动发包
 - `Player::tick()` 不包含旁观者位置同步逻辑，由 `ServerPlayer::tickSpectator()` 统一处理
 - 客户端旁观目标眼高已通过 `ClientEntity::eyeHeight()` 接口实现，根据实体类型和姿态返回正确的眼高值
 

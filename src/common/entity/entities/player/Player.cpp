@@ -155,6 +155,16 @@ void Player::setPosition(f32 x, f32 y, f32 z)
     m_swimSoundVolume = 0.0f;
 }
 
+void Player::setCameraEntityId(std::optional<EntityId> entityId)
+{
+    if (m_cameraEntityId == entityId) {
+        return;
+    }
+    std::optional<EntityId> oldCameraId = m_cameraEntityId;
+    m_cameraEntityId = entityId;
+    onCameraEntityChanged(oldCameraId, entityId);
+}
+
 void Player::setGameMode(GameMode mode)
 {
     const GameMode oldMode = m_gameMode;
@@ -175,7 +185,9 @@ void Player::setGameMode(GameMode mode)
     } else if (oldMode == GameMode::Spectator) {
         setNoClip(false);
         // 离开旁观者模式时清除旁观目标
-        m_cameraEntityId = std::nullopt;
+        // 通过 setCameraEntityId() 触发 onCameraEntityChanged()，
+        // ServerPlayer 将发送 SetCameraPacket 给客户端以同步摄像机状态
+        setCameraEntityId(std::nullopt);
     }
 
     // 同步移动速度到属性系统
@@ -2084,10 +2096,8 @@ void Player::resetCooldown()
 void Player::attack(Entity& target)
 {
     // 旁观者模式下攻击实体等同于设置旁观目标
-    // TODO: 此基类路径仅设置 m_cameraEntityId 字段，不会向客户端发送 SetCameraPacket，
-    // 导致客户端不知道摄像机已切换。ServerPlayer::attack() 重写了此方法并正确调用
-    // setCamera()（包含网络同步），但若 Player 子类未重写 attack()，则在非 ServerPlayer
-    // 场景下客户端将不会收到摄像机变更通知。未来应考虑将此逻辑抽象为虚方法或回调。
+    // setCameraEntityId() 会触发 onCameraEntityChanged()，ServerPlayer 重写该方法
+    // 以发送 SetCameraPacket 给客户端并执行传送，确保客户端同步摄像机状态
     if (isSpectator()) {
         setCameraEntityId(target.id());
         return;

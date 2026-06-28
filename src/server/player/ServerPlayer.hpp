@@ -103,6 +103,18 @@ public:
     [[nodiscard]] bool sendVelocityPacket() override;
 
     /**
+     * @brief 摄像机目标变更通知（重写 Player 基类）
+     *
+     * 当 setCameraEntityId() 导致摄像机目标实际变化时调用。
+     * ServerPlayer 重写以发送 SetCameraPacket 给客户端，
+     * 并在旁观新实体时将玩家传送到目标位置。
+     *
+     * @param oldCameraId 变更前的摄像机目标实体ID
+     * @param newCameraId 变更后的摄像机目标实体ID
+     */
+    void onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId) override;
+
+    /**
      * @brief 同步经验状态到客户端。
      * @note 仅在连接可用时发送网络包。
      */

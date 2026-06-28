@@ -237,9 +237,24 @@ public:
      * 设置玩家的摄像机跟踪目标。当设置后，玩家的视角将跟随目标实体。
      * 传入 std::nullopt 表示恢复正常视角（摄像机跟踪自身）。
      *
+     * 当摄像机目标实际发生变化时，会调用虚方法 onCameraEntityChanged()，
+     * ServerPlayer 重写该方法以发送 SetCameraPacket 给客户端并执行传送等操作。
+     *
      * @param entityId 旁观目标的实体ID，或 std::nullopt 恢复正常视角
      */
-    void setCameraEntityId(std::optional<EntityId> entityId) { m_cameraEntityId = entityId; }
+    void setCameraEntityId(std::optional<EntityId> entityId);
+
+    /**
+     * @brief 摄像机目标变更通知
+     *
+     * 当 setCameraEntityId() 导致摄像机目标实际发生变化时调用。
+     * 基类版本为空操作，ServerPlayer 重写以发送 SetCameraPacket 给客户端
+     * 并执行传送等网络同步操作。
+     *
+     * @param oldCameraId 变更前的摄像机目标实体ID（std::nullopt 表示正常视角）
+     * @param newCameraId 变更后的摄像机目标实体ID（std::nullopt 表示恢复正常视角）
+     */
+    virtual void onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId) {}
 
     /**
      * @brief 检查是否是生存模式

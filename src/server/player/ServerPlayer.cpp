@@ -879,10 +879,8 @@ void ServerPlayer::tick()
 
 bool ServerPlayer::setCamera(Entity* target)
 {
-    // 获取旧的 camera 实体 ID
-    std::optional<EntityId> oldCameraId = getCameraEntityId();
-
     // 设置新的 camera 目标
+    // setCameraEntityId() 会触发 onCameraEntityChanged()，后者负责传送和发送 SetCameraPacket
     if (target != nullptr) {
         setCameraEntityId(target->id());
     } else {
@@ -890,19 +888,26 @@ bool ServerPlayer::setCamera(Entity* target)
         setCameraEntityId(std::nullopt);
     }
 
-    std::optional<EntityId> newCameraId = getCameraEntityId();
+    return true;
+}
 
-    // 仅在 camera 实际改变时执行操作
-    if (oldCameraId == newCameraId) {
-        return true;
-    }
+void ServerPlayer::onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId)
+{
+    // 当摄像机目标变更时：
+    // 1. 如果有新的旁观目标，将玩家传送到目标实体位置
+    // 2. 发送 SetCameraPacket 给客户端以同步摄像机状态
+    // 对应 MC Java: ServerPlayer.setCamera() 的传送和发包逻辑
 
-    // 如果有新的旁观目标，立即将玩家传送到目标位置
-    if (target != nullptr) {
-        // 传送到目标实体位置
-        setPosition(target->position());
-        setRotation(target->yaw(), target->pitch());
-        snapshotInterpolationState();
+    if (newCameraId.has_value()) {
+        // 传送到新的旁观目标实体位置
+        if (m_world != nullptr) {
+            Entity* target = m_world->getEntity(newCameraId.value());
+            if (target != nullptr) {
+                setPosition(target->position());
+                setRotation(target->yaw(), target->pitch());
+                snapshotInterpolationState();
+            }
+        }
     }
 
     // 发送 SetCameraPacket 给客户端
@@ -913,8 +918,6 @@ bool ServerPlayer::setCamera(Entity* target)
     spdlog::info("ServerPlayer: player {} spectating entity {}",
         username(),
         newCameraId.has_value() ? static_cast<i32>(newCameraId.value()) : -1);
-
-    return true;
 }
 
 void ServerPlayer::resetCamera()

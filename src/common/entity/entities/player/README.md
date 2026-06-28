@@ -216,24 +216,26 @@ Player 基类中包含旁观者模式摄像机跟踪的核心状态字段，由 
 
 - `getCameraEntityId()` — 获取旁观目标实体 ID（optional）
 - `isSpectating()` — 是否正在旁观某个实体（`m_cameraEntityId.has_value()`）
-- `setCameraEntityId(std::optional<EntityId>)` — 设置/清除旁观目标
+- `setCameraEntityId(std::optional<EntityId>)` — 设置/清除旁观目标，值变化时触发 `onCameraEntityChanged()` 虚方法通知
+- `onCameraEntityChanged(oldId, newId)` — 摄像机目标变更通知虚方法，基类空操作，ServerPlayer 重写以发送 SetCameraPacket 和传送
 - `isInputSneaking()` — 获取潜行输入状态（用于 ServerPlayer::tickSpectator 检测退出旁观）
-- `attack(Entity&)` 虚方法 — 旁观者模式下设置旁观目标，ServerPlayer 重写为调用 `setCamera()`
+- `attack(Entity&)` 虚方法 — 旁观者模式下调用 `setCameraEntityId()` 设置旁观目标，通过 `onCameraEntityChanged()` 自动同步网络
 
 ### 旁观者 noclip
 
 `Player::setGameMode()` 中：
 - 切换到旁观者模式 → `setNoClip(true)`
-- 离开旁观者模式 → `setNoClip(false)` + `m_cameraEntityId = std::nullopt`
+- 离开旁观者模式 → `setNoClip(false)` + `setCameraEntityId(std::nullopt)`（触发 `onCameraEntityChanged()` 通知 ServerPlayer 发送 SetCameraPacket）
 
 ### 数据流
 
-1. **设置旁观**：SpectateCommand / 旁观者攻击 → `ServerPlayer::setCamera()` → 更新 `m_cameraEntityId` + 传送到目标 + 发送 SetCameraPacket
+1. **设置旁观**：SpectateCommand / 旁观者攻击 → `setCameraEntityId()` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket + 传送到目标
 2. **每 tick 同步**：`ServerPlayer::tick()` → `tickSpectator()` → 同步位置到目标、检查有效性、潜行退出
-3. **模式切换**：GameModeManager 回调 → `resetCamera()` + `setGameMode()`（离开旁观模式时）
+3. **模式切换**：`setGameMode()` 离开旁观模式时 → `setCameraEntityId(nullopt)` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket
 4. **客户端**：收到 SetCameraPacket → 设置 `m_cameraEntityId` → 渲染循环跟随目标 ClientEntity
 
 ### 注意事项
 
-- `Player::attack()` 基类中旁观者路径调用 `setCameraEntityId()` 但**不发送 SetCameraPacket**，仅 ServerPlayer 重写版本通过网络同步。TODO: 未来应考虑将此逻辑抽象为虚方法或回调
+- `setCameraEntityId()` 内含相等性检查，值未变化时不触发 `onCameraEntityChanged()`，避免重复发包
+- `Player::attack()` 基类中旁观者路径调用 `setCameraEntityId()`，通过虚方法 `onCameraEntityChanged()` 自动触发 ServerPlayer 的网络同步，无需手动发包
 - 客户端旁观目标眼高已通过 `ClientEntity::eyeHeight()` 接口实现，根据实体类型和姿态返回正确的眼高值
