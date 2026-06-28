@@ -28,6 +28,7 @@
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/fluid/Fluid.hpp"
 
 namespace mc {
 namespace item {
@@ -79,6 +80,18 @@ bool FrostWalkerEnchantment::onLocationChanged(
     return true; // 冰霜行者总是处于"活跃"状态（在地面时）
 }
 
+void FrostWalkerEnchantment::onLocationEffectDeactivated(
+    LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level) const
+{
+    (void)entity;
+    (void)stack;
+    (void)slot;
+    (void)level;
+
+    // 冰霜行者不需要停用清理：霜冰由 FrostedIceBlock 自行融化
+    // 提供空实现以保证设计一致性（所有位置依赖附魔都应覆写此方法）
+}
+
 void FrostWalkerEnchantment::placeFrostedIce(IWorld& world, const BlockPos& center, i32 radius) const
 {
     // 获取霜冰的默认方块状态
@@ -105,7 +118,12 @@ void FrostWalkerEnchantment::placeFrostedIce(IWorld& world, const BlockPos& cent
                 continue;
             }
 
-            // 检查当前位置是否是水（使用 isWaterAt 检测水源方块）
+            // MC Java: 冰霜行者只冻结水源方块（不冻结流动水）
+            // 使用 isWaterAt + isSource 双重检查，与 GlassBottleItem 一致
+            const fluid::FluidState* fluidState = world.getFluidState(pos);
+            if (fluidState == nullptr || fluidState->isEmpty() || !fluidState->isSource()) {
+                continue;
+            }
             if (!world.isWaterAt(pos)) {
                 continue;
             }

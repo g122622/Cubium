@@ -92,8 +92,9 @@ public:
      */
     [[nodiscard]] static f32 getSoulSpeedMultiplier(i32 level)
     {
-        // I: 1.4, II: 1.6, III: 1.8
-        return 1.0f + 0.2f + static_cast<f32>(level - 1) * 0.2f;
+        // I: 1.4 (+40%), II: 1.6 (+60%), III: 1.8 (+80%)
+        // 修饰符值 = 0.2 * (level + 1): I=0.4, II=0.6, III=0.8
+        return 1.0f + 0.2f * static_cast<f32>(level + 1);
     }
 
     /**

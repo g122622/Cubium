@@ -110,6 +110,19 @@ public:
     [[nodiscard]] bool onLocationChanged(
         LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const override;
 
+    /**
+     * @brief 停用位置依赖效果（冰霜行者无需清理，提供空实现）
+     *
+     * 冰霜行者每次位置变化时重新放置霜冰，不需要在停用时移除效果。
+     * 霜冰会由 FrostedIceBlock 自行融化。
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     */
+    void onLocationEffectDeactivated(LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level) const override;
+
 private:
     /**
      * @brief 在实体脚下放置霜冰

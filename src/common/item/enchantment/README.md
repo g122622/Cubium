@@ -67,6 +67,7 @@ enchantment/
 │  • 查询物品附魔等级、特定附魔检测                              │
 │  • 计算伤害加成、保护值                                       │
 │  • 附魔回调分发：applyArthropodEnchantments、applyThorns      │
+│  • 位置依赖效果：runLocationChangedEffects、stopLocationBased  │
 │  • 附魔台生成：calcItemStackEnchantability、buildEnchantmentList│
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -92,6 +93,7 @@ enchantment/
 **下游依赖（依赖本模块的外部模块）：**
 - `ItemStack` - 持有 `EnchantmentContainer` 存储附魔
 - `LivingEntity` - 调用 `EnchantmentHelper::applyArthropodEnchantmentDamage` 和 `applyThornsEnchantments`
+- `LivingEntity` - 调用 `EnchantmentHelper::runLocationChangedEffects` 和 `stopLocationBasedEffects`（位置依赖附魔）
 - `AnvilMenu` - 铁砧合并附魔，检查兼容性
 - `EnchantmentScreen` - 附魔台 GUI，计算附魔选项
 - `LootTable` - 战利品表中的 `ApplyBonusFunction` 使用时运计算
@@ -153,3 +155,12 @@ LivingEntity::actuallyHurt()
 ### 6. 附魔注册时机
 
 `EnchantmentRegistry::initialize()` 必须在游戏启动时调用，在使用任何附魔之前完成注册。注册后的附魔实例由注册表持有所有权。
+
+### 7. 位置依赖附魔效果
+
+冰霜行者和灵魂疾行是位置依赖附魔，其效果根据实体所处的方块位置激活或停用：
+- `Enchantment::onLocationChanged()` — 实体跨越方块边界时调用，返回是否应激活
+- `Enchantment::onLocationEffectDeactivated()` — 附魔从活跃变为非活跃时调用，用于清理
+- `LocationEnchantmentTracker` — 追踪每个装备槽位上活跃的位置依赖附魔
+
+**激活/停用必须成对**：覆写了 `onLocationChanged()` 的附魔**必须**同时覆写 `onLocationEffectDeactivated()`。即使不需要清理（如冰霜行者），也应提供空实现以保证设计一致性。

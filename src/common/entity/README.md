@@ -117,6 +117,10 @@ src/common/entity/
 │   ├── AttackContext.hpp/cpp      # 攻击上下文
 │   └── PlayerAttackHelper.hpp/cpp # 玩家攻击辅助
 │
+├── enchantment/                   # 附魔效果追踪
+│   ├── LocationEnchantmentTracker.hpp/cpp # 位置依赖附魔跟踪器
+│   └── README.md                  # 模块说明
+│
 ├── damage/                        # 伤害系统
 │   ├── DamageSource.hpp           # 伤害来源
 │   ├── CombatEntry.hpp/cpp        # 战斗记录条目

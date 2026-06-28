@@ -31,14 +31,14 @@ enchantments/
 │   ├── DepthStriderEnchantment.hpp/cpp # 深海探索者
 │   ├── FeatherFallingEnchantment.hpp  # 摔落保护
 │   ├── FireProtectionEnchantment.hpp  # 火焰保护
-│   ├── FrostWalkerEnchantment.hpp/cpp # 冰霜行者
+│   ├── FrostWalkerEnchantment.hpp/cpp # 冰霜行者（位置依赖：水面冻结）
 │   ├── ProjectileProtectionEnchantment.hpp # 弹射物保护
 │   ├── RespirationEnchantment.hpp     # 水下呼吸
 │   └── ThornsEnchantment.hpp/cpp      # 荆棘
 ├── special/                       # 特殊附魔（4种）
 │   ├── BindingCurseEnchantment.hpp  # 绑定诅咒
 │   ├── MendingEnchantment.hpp       # 经验修补
-│   ├── SoulSpeedEnchantment.hpp     # 灵魂疾行
+│   ├── SoulSpeedEnchantment.hpp/cpp # 灵魂疾行（位置依赖：灵魂沙/土速度加成）
 │   └── VanishingCurseEnchantment.hpp # 消失诅咒
 ├── tool/                          # 工具类附魔（4种）
 │   ├── EfficiencyEnchantment.hpp    # 效率附魔
@@ -159,3 +159,16 @@ const Enchantment* e = EnchantmentRegistry::get("minecraft:fortune");
 ### 6. 耐久附魔对盔甲有特殊处理
 
 盔甲的耐久保护概率只有工具的 40%（`UnbreakingEnchantment::shouldArmorConsumeDurability`），不要误用工具的方法。
+
+### 7. 位置依赖附魔的激活/停用成对性
+
+冰霜行者和灵魂疾行是位置依赖附魔，覆写了 `Enchantment::onLocationChanged()` 和 `onLocationEffectDeactivated()`：
+- **冰霜行者**：`onLocationChanged()` 在地面时放置霜冰，`onLocationEffectDeactivated()` 为空实现（霜冰自行融化）
+- **灵魂疾行**：`onLocationChanged()` 在灵魂沙/土上添加速度修饰符，`onLocationEffectDeactivated()` 必须移除修饰符
+
+新增位置依赖附魔时，**必须同时覆写两个方法**，即使停用时无需清理也应提供空实现。
+
+### 8. 冰霜行者只冻结水源方块
+
+`FrostWalkerEnchantment::placeFrostedIce()` 使用 `isWaterAt()` + `FluidState::isSource()` 双重检查，
+确保只冻结水源方块而不冻结流动水，与 MC Java 的 `ReplaceDisk` 效果中 `matchesFluids(Fluids.WATER)` 行为一致。
