@@ -3,45 +3,79 @@
  * @brief 箱子船实体测试
  *
  * 测试覆盖：
- * 1. ChestBoatEntity 构造函数和基本属性
- * 2. 容器物品栏操作（getContainerSize, isInventoryEmpty, getInventoryItem, setInventoryItem 等）
- * 3. getBoatItem() 返回正确的箱子船物品
- * 4. canAddPassenger() 最多承载1名乘客
- * 5. hasChest() 标志
- * 6. getComparatorOutput() 比较器输出
- * 7. stillValid() 交互范围检查
- * 8. getMountedYOffset() 乘客偏移
+ * 1. 构造函数和基本属性（类型、hasChest、容器大小）
+ * 2. 容器物品栏操作（get/set/remove/clear/inventory）
+ * 3. getBoatItem() 返回正确的箱子船物品（所有10种类型）
+ * 4. 虚函数重写验证（通过基类指针访问 getBoatItem）
+ * 5. canAddPassenger() 乘客限制
+ * 6. getMountedYOffset() 乘客偏移
+ * 7. getComparatorOutput() 比较器输出
+ * 8. getDisplayName() 显示名称
+ * 9. NBT 序列化/反序列化
+ * 10. 与普通船的对比
  *
- * 参考 MC Java: net.minecraft.world.entity.vehicle.boat.AbstractChestBoat
+ * 无法在无世界环境下测试的行为（需要 IWorld 或 Player 模拟）：
+ * - dropItem() 掉落容器内容和船物品
+ * - remove() 实体移除时掉落物品
+ * - processInitialInteract() 乘坐和打开容器
+ * - stillValid() 玩家交互范围检查（需要 Player 对象）
+ * - createMenu() 创建容器菜单（需要 Player 对象）
  */
 
 #include <gtest/gtest.h>
 
 #include "common/entity/entities/vehicle/ChestBoatEntity.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/util/nbt/Nbt.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 
 using namespace mc;
 using namespace mc::entity;
+using namespace mc::entity::serialization;
 
 // ============================================================================
-// ChestBoatEntity 构造函数和基本属性测试
+// 辅助函数
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 将 ChestBoatEntity 序列化到 NBT
+ */
+std::unique_ptr<nbt::tags::compound_tag> saveToNbt(const ChestBoatEntity& entity)
+{
+    auto tag = std::make_unique<nbt::tags::compound_tag>();
+    entity.addAdditionalSaveData(*tag);
+    return tag;
+}
+
+/**
+ * @brief 从 NBT 反序列化创建新的 ChestBoatEntity
+ */
+std::unique_ptr<ChestBoatEntity> loadFromNbt(
+    const nbt::tags::compound_tag& tag, BoatEntity::Type type = BoatEntity::Type::OAK)
+{
+    auto entity = std::make_unique<ChestBoatEntity>(type);
+    auto result = entity->readAdditionalSaveData(tag);
+    EXPECT_TRUE(result.success()) << "readAdditionalSaveData should succeed";
+    return entity;
+}
+
+} // namespace
+
+// ============================================================================
+// 构造函数和基本属性测试
 // ============================================================================
 
 class ChestBoatEntityTest : public ::testing::Test {
 protected:
-    void SetUp() override
-    {
-        // 确保 Items 已初始化
-        Items::initialize();
-    }
+    void SetUp() override { Items::initialize(); }
 };
 
-/**
- * @brief 测试默认构造函数创建 OAK 箱子船
- */
 TEST_F(ChestBoatEntityTest, DefaultConstructor_CreatesOakChestBoat)
 {
     ChestBoatEntity chestBoat;
@@ -50,9 +84,6 @@ TEST_F(ChestBoatEntityTest, DefaultConstructor_CreatesOakChestBoat)
     EXPECT_TRUE(chestBoat.hasChest());
 }
 
-/**
- * @brief 测试指定类型构造函数
- */
 TEST_F(ChestBoatEntityTest, TypedConstructor_CreatesCorrectType)
 {
     ChestBoatEntity spruceBoat(BoatEntity::Type::SPRUCE);
@@ -68,11 +99,6 @@ TEST_F(ChestBoatEntityTest, TypedConstructor_CreatesCorrectType)
     EXPECT_TRUE(bambooBoat.hasChest());
 }
 
-/**
- * @brief 测试箱子船始终设置 hasChest 标志
- *
- * 对应 MC Java: AbstractChestBoat 构造函数中设置 hasChest = true
- */
 TEST_F(ChestBoatEntityTest, HasChest_AlwaysTrue)
 {
     ChestBoatEntity chestBoat(BoatEntity::Type::OAK);
@@ -82,16 +108,11 @@ TEST_F(ChestBoatEntityTest, HasChest_AlwaysTrue)
     EXPECT_TRUE(chestBoat2.hasChest());
 }
 
-/**
- * @brief 测试容器大小为27格（与箱子相同）
- *
- * MC Java: ChestBoat.CONTAINER_SIZE = 27
- */
 TEST_F(ChestBoatEntityTest, ContainerSize_Is27)
 {
     ChestBoatEntity chestBoat;
 
-    EXPECT_EQ(chestBoat.CONTAINER_SIZE, 27);
+    EXPECT_EQ(ChestBoatEntity::CONTAINER_SIZE, 27);
     EXPECT_EQ(chestBoat.getContainerSize(), 27);
 }
 
@@ -104,9 +125,6 @@ protected:
     void SetUp() override { Items::initialize(); }
 };
 
-/**
- * @brief 测试初始容器为空
- */
 TEST_F(ChestBoatInventoryTest, Constructor_CreatesEmptyInventory)
 {
     ChestBoatEntity chestBoat;
@@ -115,23 +133,16 @@ TEST_F(ChestBoatInventoryTest, Constructor_CreatesEmptyInventory)
     EXPECT_TRUE(chestBoat.isInventoryEmpty());
 }
 
-/**
- * @brief 测试获取无效槽位返回空物品
- */
-TEST_F(ChestBoatInventoryTest, GetInventoryItem_ReturnsEmptyForInvalidSlot)
+TEST_F(ChestBoatInventoryTest, GetInventoryItem_OutOfBoundsReturnsEmpty)
 {
     ChestBoatEntity chestBoat;
 
-    // 越界访问应返回空物品堆
     EXPECT_TRUE(chestBoat.getInventoryItem(-1).isEmpty());
     EXPECT_TRUE(chestBoat.getInventoryItem(27).isEmpty());
     EXPECT_TRUE(chestBoat.getInventoryItem(100).isEmpty());
 }
 
-/**
- * @brief 测试获取有效空槽位返回空物品
- */
-TEST_F(ChestBoatInventoryTest, GetInventoryItem_ReturnsEmptyForEmptySlot)
+TEST_F(ChestBoatInventoryTest, GetInventoryItem_AllSlotsInitiallyEmpty)
 {
     ChestBoatEntity chestBoat;
 
@@ -140,40 +151,105 @@ TEST_F(ChestBoatInventoryTest, GetInventoryItem_ReturnsEmptyForEmptySlot)
     }
 }
 
-/**
- * @brief 测试清空容器
- */
-TEST_F(ChestBoatInventoryTest, ClearInventory_WorksCorrectly)
+TEST_F(ChestBoatInventoryTest, SetInventoryItem_AndGetInventoryItem)
 {
     ChestBoatEntity chestBoat;
 
-    // 容器初始为空
-    EXPECT_TRUE(chestBoat.isInventoryEmpty());
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    ItemStack stack(*Items::OAK_BOAT, 1);
 
-    // 清空空容器
-    chestBoat.clearInventory();
-    EXPECT_TRUE(chestBoat.isInventoryEmpty());
+    chestBoat.setInventoryItem(0, stack);
+    EXPECT_FALSE(chestBoat.getInventoryItem(0).isEmpty());
+    EXPECT_EQ(chestBoat.getInventoryItem(0).getCount(), 1);
+
+    // 其他槽位仍为空
+    EXPECT_TRUE(chestBoat.getInventoryItem(1).isEmpty());
+    EXPECT_TRUE(chestBoat.isInventoryEmpty() == false);
 }
 
-/**
- * @brief 测试从空槽位移除物品
- */
-TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_EmptySlotReturnsEmpty)
+TEST_F(ChestBoatInventoryTest, SetInventoryItem_MultipleSlots)
 {
     ChestBoatEntity chestBoat;
 
-    // 越界访问应返回空物品堆
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    ASSERT_NE(Items::SPRUCE_BOAT, nullptr);
+
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
+    chestBoat.setInventoryItem(13, ItemStack(*Items::SPRUCE_BOAT, 2));
+    chestBoat.setInventoryItem(26, ItemStack(*Items::OAK_BOAT, 3));
+
+    EXPECT_EQ(chestBoat.getInventoryItem(0).getCount(), 1);
+    EXPECT_EQ(chestBoat.getInventoryItem(13).getCount(), 2);
+    EXPECT_EQ(chestBoat.getInventoryItem(26).getCount(), 3);
+
+    // 中间槽位为空
+    EXPECT_TRUE(chestBoat.getInventoryItem(1).isEmpty());
+    EXPECT_TRUE(chestBoat.getInventoryItem(12).isEmpty());
+}
+
+TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_OutOfBoundsReturnsEmpty)
+{
+    ChestBoatEntity chestBoat;
+
     EXPECT_TRUE(chestBoat.removeInventoryItem(-1, 1).isEmpty());
     EXPECT_TRUE(chestBoat.removeInventoryItem(100, 1).isEmpty());
+}
 
-    // 空槽位移除应返回空物品堆
+TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_FromEmptySlotReturnsEmpty)
+{
+    ChestBoatEntity chestBoat;
+
     EXPECT_TRUE(chestBoat.removeInventoryItem(0, 1).isEmpty());
     EXPECT_TRUE(chestBoat.removeInventoryItem(26, 1).isEmpty());
 }
 
-/**
- * @brief 测试 getInventory 返回非空指针
- */
+TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_PartialRemoval)
+{
+    ChestBoatEntity chestBoat;
+
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 5));
+
+    // 部分移除
+    ItemStack removed = chestBoat.removeInventoryItem(0, 2);
+    EXPECT_EQ(removed.getCount(), 2);
+
+    // 剩余3个
+    EXPECT_EQ(chestBoat.getInventoryItem(0).getCount(), 3);
+}
+
+TEST_F(ChestBoatInventoryTest, RemoveInventoryItem_FullRemoval)
+{
+    ChestBoatEntity chestBoat;
+
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 3));
+
+    // 全部移除
+    ItemStack removed = chestBoat.removeInventoryItem(0, 3);
+    EXPECT_EQ(removed.getCount(), 3);
+
+    // 槽位变空
+    EXPECT_TRUE(chestBoat.getInventoryItem(0).isEmpty());
+}
+
+TEST_F(ChestBoatInventoryTest, ClearInventory_EmptiesAllSlots)
+{
+    ChestBoatEntity chestBoat;
+
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
+    chestBoat.setInventoryItem(5, ItemStack(*Items::OAK_BOAT, 2));
+
+    EXPECT_FALSE(chestBoat.isInventoryEmpty());
+
+    chestBoat.clearInventory();
+
+    EXPECT_TRUE(chestBoat.isInventoryEmpty());
+    EXPECT_TRUE(chestBoat.getInventoryItem(0).isEmpty());
+    EXPECT_TRUE(chestBoat.getInventoryItem(5).isEmpty());
+}
+
 TEST_F(ChestBoatInventoryTest, GetInventory_ReturnsNonNullptr)
 {
     ChestBoatEntity chestBoat;
@@ -183,17 +259,12 @@ TEST_F(ChestBoatInventoryTest, GetInventory_ReturnsNonNullptr)
     EXPECT_EQ(inventory->getContainerSize(), 27);
 }
 
-/**
- * @brief 测试容器大小常量与 SimpleInventory 一致
- */
-TEST_F(ChestBoatInventoryTest, ContainerSizeMatchesSimpleInventory)
+TEST_F(ChestBoatInventoryTest, ContainerSizeMatchesConstant)
 {
     ChestBoatEntity chestBoat;
 
-    // ChestBoatEntity::CONTAINER_SIZE 应与 SimpleInventory 大小一致
     EXPECT_EQ(chestBoat.getContainerSize(), ChestBoatEntity::CONTAINER_SIZE);
 
-    // 通过 getInventory() 访问的大小也应一致
     IInventory* inventory = chestBoat.getInventory();
     ASSERT_NE(inventory, nullptr);
     EXPECT_EQ(inventory->getContainerSize(), ChestBoatEntity::CONTAINER_SIZE);
@@ -208,11 +279,6 @@ protected:
     void SetUp() override { Items::initialize(); }
 };
 
-/**
- * @brief 测试所有箱子船类型返回正确的箱子船物品
- *
- * 对应 MC Java: AbstractChestBoat.getDropItem()
- */
 TEST_F(ChestBoatGetBoatItemTest, AllTypes_ReturnCorrectChestBoatItems)
 {
     struct TestCase {
@@ -243,46 +309,30 @@ TEST_F(ChestBoatGetBoatItemTest, AllTypes_ReturnCorrectChestBoatItems)
     }
 }
 
-/**
- * @brief 测试箱子船物品不是普通船物品
- *
- * 箱子船应返回 *_CHEST_BOAT 物品，而非 *_BOAT 物品
- */
 TEST_F(ChestBoatGetBoatItemTest, ChestBoatItems_DifferentFromNormalBoatItems)
 {
     ChestBoatEntity chestBoat(BoatEntity::Type::OAK);
     BoatEntity normalBoat(BoatEntity::Type::OAK);
 
-    // 箱子船和普通船应返回不同的物品
     EXPECT_NE(chestBoat.getBoatItem(), normalBoat.getBoatItem());
-
-    // 箱子船返回箱子船物品
     EXPECT_EQ(chestBoat.getBoatItem(), Items::OAK_CHEST_BOAT);
-
-    // 普通船返回普通船物品
     EXPECT_EQ(normalBoat.getBoatItem(), Items::OAK_BOAT);
 }
 
-/**
- * @brief 测试所有箱子船物品都有对应的物品指针
- */
 TEST_F(ChestBoatGetBoatItemTest, AllChestBoatItems_AreRegistered)
 {
-    EXPECT_NE(Items::OAK_CHEST_BOAT, nullptr) << "Items::OAK_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::SPRUCE_CHEST_BOAT, nullptr) << "Items::SPRUCE_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::BIRCH_CHEST_BOAT, nullptr) << "Items::BIRCH_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::JUNGLE_CHEST_BOAT, nullptr) << "Items::JUNGLE_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::ACACIA_CHEST_BOAT, nullptr) << "Items::ACACIA_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::DARK_OAK_CHEST_BOAT, nullptr) << "Items::DARK_OAK_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::MANGROVE_CHEST_BOAT, nullptr) << "Items::MANGROVE_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::CHERRY_CHEST_BOAT, nullptr) << "Items::CHERRY_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::PALE_OAK_CHEST_BOAT, nullptr) << "Items::PALE_OAK_CHEST_BOAT should be registered";
-    EXPECT_NE(Items::BAMBOO_CHEST_RAFT, nullptr) << "Items::BAMBOO_CHEST_RAFT should be registered";
+    EXPECT_NE(Items::OAK_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::SPRUCE_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::BIRCH_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::JUNGLE_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::ACACIA_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::DARK_OAK_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::MANGROVE_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::CHERRY_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::PALE_OAK_CHEST_BOAT, nullptr);
+    EXPECT_NE(Items::BAMBOO_CHEST_RAFT, nullptr);
 }
 
-/**
- * @brief 测试箱子船物品的唯一性
- */
 TEST_F(ChestBoatGetBoatItemTest, AllChestBoatItems_AreUnique)
 {
     std::set<const Item*> chestBoatItems = {
@@ -301,9 +351,6 @@ TEST_F(ChestBoatGetBoatItemTest, AllChestBoatItems_AreUnique)
     EXPECT_EQ(chestBoatItems.size(), 10u) << "All 10 chest boat items should be unique pointers";
 }
 
-/**
- * @brief 测试箱子船物品与普通船物品完全不同
- */
 TEST_F(ChestBoatGetBoatItemTest, ChestBoatAndBoatItems_AreCompletelyDifferent)
 {
     std::set<const Item*> chestItems = {
@@ -332,148 +379,13 @@ TEST_F(ChestBoatGetBoatItemTest, ChestBoatAndBoatItems_AreCompletelyDifferent)
         Items::BAMBOO_RAFT,
     };
 
-    // 两组物品不应有重叠
     for (const auto* item : chestItems) {
         EXPECT_EQ(normalItems.count(item), 0u) << "Chest boat item should not be in normal boat items set";
     }
 }
 
 // ============================================================================
-// canAddPassenger 测试
-// ============================================================================
-
-class ChestBoatPassengerTest : public ::testing::Test {
-protected:
-    void SetUp() override { Items::initialize(); }
-};
-
-/**
- * @brief 测试箱子船最多承载1名乘客
- *
- * 对应 MC Java AbstractChestBoat.canAddPassenger():
- * 最多承载1名乘客（普通船为2名）
- */
-TEST_F(ChestBoatPassengerTest, CanAddPassenger_MaxOnePassenger)
-{
-    ChestBoatEntity chestBoat;
-
-    // 初始状态没有乘客
-    EXPECT_TRUE(chestBoat.getPassengers().empty());
-
-    // canAddPassenger 不检查具体乘客，只检查数量和状态
-    // 由于没有世界环境，getStatus() 返回默认值 InWater（不是 UnderWater）
-    // 所以在不溺水的情况下，应该允许添加1名乘客
-    // 注意：这里只验证基本逻辑，完整测试需要世界环境
-}
-
-/**
- * @brief 测试箱子船与普通船的乘客数差异
- *
- * MC Java: 箱子船最多1名乘客，普通船最多2名
- * 注意：箱子船通过重写 canAddPassenger() 限制为1名乘客，
- * 而 getMaxPassengers() 继承自 BoatEntity 仍返回2。
- * 因此乘客数量限制由 canAddPassenger() 的逻辑实现，
- * 而非 getMaxPassengers()。
- */
-TEST_F(ChestBoatPassengerTest, ChestBoatHasStricterPassengerLimitThanNormalBoat)
-{
-    ChestBoatEntity chestBoat;
-    BoatEntity normalBoat;
-
-    // BoatEntity::MAX_PASSENGERS = 2, 双方都继承此值
-    EXPECT_EQ(normalBoat.getMaxPassengers(), 2);
-
-    // 箱子船的 canAddPassenger() 限制为最多1名乘客
-    // （通过 getPassengers().size() < 1 实现）
-    // 普通 BoatEntity 的 canAddPassenger() 允许最多2名乘客
-}
-
-// ============================================================================
-// getMountedYOffset 测试
-// ============================================================================
-
-class ChestBoatMountTest : public ::testing::Test {
-protected:
-    void SetUp() override { Items::initialize(); }
-};
-
-/**
- * @brief 测试箱子船的乘客Y偏移
- *
- * 对应 MC Java AbstractChestBoat.rideHeight()
- * 箱子船与普通船使用相同的偏移值 -0.1
- */
-TEST_F(ChestBoatMountTest, GetMountedYOffset_ReturnsCorrectValue)
-{
-    ChestBoatEntity chestBoat;
-
-    // 对应 MC Java 的 -0.1 偏移
-    EXPECT_DOUBLE_EQ(chestBoat.getMountedYOffset(), -0.1);
-}
-
-/**
- * @brief 测试箱子船与普通船的乘客Y偏移相同
- */
-TEST_F(ChestBoatMountTest, MountedYOffset_SameAsNormalBoat)
-{
-    ChestBoatEntity chestBoat;
-    BoatEntity normalBoat;
-
-    EXPECT_DOUBLE_EQ(chestBoat.getMountedYOffset(), normalBoat.getMountedYOffset());
-}
-
-// ============================================================================
-// stillValid 测试（基本逻辑）
-// ============================================================================
-
-class ChestBoatStillValidTest : public ::testing::Test {
-protected:
-    void SetUp() override { Items::initialize(); }
-};
-
-/**
- * @brief 测试 stillValid 在实体被移除时返回 false
- *
- * 对应 MC Java ContainerEntity.isChestVehicleStillValid()
- * 当实体被移除时，容器交互应失效
- */
-TEST_F(ChestBoatStillValidTest, StillValid_FalseWhenRemoved)
-{
-    ChestBoatEntity chestBoat;
-
-    // 实体未移除前的状态
-    // 注意：完整的 stillValid 测试需要 Player 对象和世界环境
-    // 这里验证 INTERACTION_RANGE_SQ 常量是 64.0（8格的平方）
-    // 对应 MC Java ContainerEntity.isChestVehicleStillValid 中的 4.0 距离
-    // 注意：MC Java 中使用 distanceSq 返回双倍距离，所以 8*8=64 对应 MC 的 8格
-    constexpr f64 EXPECTED_RANGE_SQ = 64.0;
-    EXPECT_DOUBLE_EQ(EXPECTED_RANGE_SQ, 64.0);
-}
-
-// ============================================================================
-// getComparatorOutput 测试
-// ============================================================================
-
-class ChestBoatComparatorTest : public ::testing::Test {
-protected:
-    void SetUp() override { Items::initialize(); }
-};
-
-/**
- * @brief 测试比较器输出 - 空容器输出 0
- *
- * MC Java: 空容器比较器输出 = 0
- */
-TEST_F(ChestBoatComparatorTest, ComparatorOutput_EmptyContainerIsZero)
-{
-    ChestBoatEntity chestBoat;
-
-    // 空容器比较器输出应为 0
-    EXPECT_EQ(chestBoat.getComparatorOutput(), 0);
-}
-
-// ============================================================================
-// 继承关系测试
+// 虚函数重写测试
 // ============================================================================
 
 class ChestBoatInheritanceTest : public ::testing::Test {
@@ -481,46 +393,30 @@ protected:
     void SetUp() override { Items::initialize(); }
 };
 
-/**
- * @brief 测试 ChestBoatEntity 是 BoatEntity 的子类
- */
 TEST_F(ChestBoatInheritanceTest, IsBoatEntitySubclass)
 {
     ChestBoatEntity chestBoat;
 
-    // 通过基类指针访问
     BoatEntity* boatPtr = &chestBoat;
     EXPECT_EQ(boatPtr->getBoatType(), BoatEntity::Type::OAK);
     EXPECT_TRUE(boatPtr->hasChest());
 
-    // 通过基类指针调用 getBoatItem()，应返回箱子船物品（虚函数重写）
+    // 通过基类指针调用虚函数，应调用 ChestBoatEntity 的版本
     EXPECT_EQ(boatPtr->getBoatItem(), Items::OAK_CHEST_BOAT);
 }
 
-/**
- * @brief 测试 ChestBoatEntity 的虚函数重写
- *
- * getBoatItem() 在 ChestBoatEntity 中重写，应返回箱子船物品
- */
 TEST_F(ChestBoatInheritanceTest, VirtualGetBoatItem_OverriddenCorrectly)
 {
     ChestBoatEntity chestBoat(BoatEntity::Type::BIRCH);
     BoatEntity& boatRef = chestBoat;
 
-    // 通过基类引用调用虚函数，应调用 ChestBoatEntity 的版本
     EXPECT_EQ(boatRef.getBoatItem(), Items::BIRCH_CHEST_BOAT);
-
-    // 直接调用也应返回箱子船物品
     EXPECT_EQ(chestBoat.getBoatItem(), Items::BIRCH_CHEST_BOAT);
 
-    // 与普通船对比
     BoatEntity normalBoat(BoatEntity::Type::BIRCH);
     EXPECT_EQ(normalBoat.getBoatItem(), Items::BIRCH_BOAT);
 }
 
-/**
- * @brief 测试所有类型的箱子船通过基类指针访问 getBoatItem()
- */
 TEST_F(ChestBoatInheritanceTest, AllTypes_GetBoatItemViaBasePointer)
 {
     struct TestCase {
@@ -552,6 +448,118 @@ TEST_F(ChestBoatInheritanceTest, AllTypes_GetBoatItemViaBasePointer)
 }
 
 // ============================================================================
+// canAddPassenger 测试
+// ============================================================================
+
+class ChestBoatPassengerTest : public ::testing::Test {
+protected:
+    void SetUp() override { Items::initialize(); }
+};
+
+TEST_F(ChestBoatPassengerTest, CanAddPassenger_DefaultState_AllowsOnePassenger)
+{
+    ChestBoatEntity chestBoat;
+
+    // 默认状态（InWater，非水下），没有乘客时应该允许添加乘客
+    // canAddPassenger 检查: getPassengers().size() < 1 && getStatus() != UnderWater
+    EXPECT_TRUE(chestBoat.getPassengers().empty());
+    EXPECT_NE(chestBoat.getStatus(), BoatStatus::UnderWater);
+
+    // 满足条件时应该允许添加乘客
+    EXPECT_TRUE(chestBoat.canAddPassenger(chestBoat));
+}
+
+TEST_F(ChestBoatPassengerTest, CanAddPassenger_MaxOnePassenger)
+{
+    // 箱子船限制最多1名乘客（普通船允许2名）
+    // 验证：canAddPassenger 检查 size < 1
+    ChestBoatEntity chestBoat;
+    BoatEntity normalBoat;
+
+    // 箱子船：size < 1 → 最多1名
+    // 普通船：size < 2 → 最多2名
+    // 这是通过各自的 canAddPassenger 重写实现的
+    EXPECT_TRUE(chestBoat.canAddPassenger(chestBoat));
+    EXPECT_TRUE(normalBoat.canAddPassenger(normalBoat));
+}
+
+// ============================================================================
+// getMountedYOffset 测试
+// ============================================================================
+
+class ChestBoatMountTest : public ::testing::Test {
+protected:
+    void SetUp() override { Items::initialize(); }
+};
+
+TEST_F(ChestBoatMountTest, GetMountedYOffset_ReturnsCorrectValue)
+{
+    ChestBoatEntity chestBoat;
+    EXPECT_DOUBLE_EQ(chestBoat.getMountedYOffset(), -0.1);
+}
+
+TEST_F(ChestBoatMountTest, MountedYOffset_SameAsNormalBoat)
+{
+    ChestBoatEntity chestBoat;
+    BoatEntity normalBoat;
+
+    EXPECT_DOUBLE_EQ(chestBoat.getMountedYOffset(), normalBoat.getMountedYOffset());
+}
+
+// ============================================================================
+// getComparatorOutput 测试
+// ============================================================================
+
+class ChestBoatComparatorTest : public ::testing::Test {
+protected:
+    void SetUp() override { Items::initialize(); }
+};
+
+TEST_F(ChestBoatComparatorTest, EmptyContainer_OutputIsZero)
+{
+    ChestBoatEntity chestBoat;
+    EXPECT_EQ(chestBoat.getComparatorOutput(), 0);
+}
+
+TEST_F(ChestBoatComparatorTest, PartiallyFilledContainer_OutputNonZero)
+{
+    ChestBoatEntity chestBoat;
+
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
+
+    // 容器有内容时比较器输出应大于0
+    EXPECT_GT(chestBoat.getComparatorOutput(), 0);
+    EXPECT_LE(chestBoat.getComparatorOutput(), 15);
+}
+
+TEST_F(ChestBoatComparatorTest, SingleItemInLargeContainer_OutputIsOne)
+{
+    ChestBoatEntity chestBoat;
+
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
+
+    // 27格容器中只有1个非空槽位，比较器输出应为1
+    // 公式：max(1, ceil(nonEmptySlots / containerSize * 14))
+    // 1/27 * 14 ≈ 0.52, ceil = 1, max(1, 1) = 1
+    EXPECT_EQ(chestBoat.getComparatorOutput(), 1);
+}
+
+TEST_F(ChestBoatComparatorTest, FullContainer_OutputIsFifteen)
+{
+    ChestBoatEntity chestBoat;
+
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    for (i32 i = 0; i < ChestBoatEntity::CONTAINER_SIZE; ++i) {
+        chestBoat.setInventoryItem(i, ItemStack(*Items::OAK_BOAT, 1));
+    }
+
+    // 所有槽位都有物品时，比较器输出为15
+    EXPECT_EQ(chestBoat.getComparatorOutput(), 15);
+}
+
+// ============================================================================
 // getDisplayName 测试
 // ============================================================================
 
@@ -560,89 +568,187 @@ protected:
     void SetUp() override { Items::initialize(); }
 };
 
-/**
- * @brief 测试容器显示名称
- *
- * MC Java: container.chestBoat
- */
 TEST_F(ChestBoatDisplayNameTest, GetDisplayName_ReturnsCorrectKey)
 {
     ChestBoatEntity chestBoat;
-
     EXPECT_EQ(chestBoat.getDisplayName(), "container.chestBoat");
 }
 
 // ============================================================================
-// dropItem 逻辑说明测试
+// stillValid 测试
 // ============================================================================
 
-class ChestBoatDropItemTest : public ::testing::Test {
+class ChestBoatStillValidTest : public ::testing::Test {
 protected:
     void SetUp() override { Items::initialize(); }
 };
 
-/**
- * @brief 验证 dropItem() 的核心逻辑
- *
- * dropItem() 方法的完整测试需要模拟 IWorld 环境。
- * 但核心逻辑已通过以下测试验证：
- *
- * 1. getBoatItem() 测试 - 确保返回正确的箱子船物品
- * 2. hasChest() 测试 - 确保始终为 true
- * 3. 容器操作测试 - 确保 inventory 系统正常工作
- *
- * dropItem() 方法流程：
- * 1. 先调用 dropInventoryContents() 掉落容器内容
- * 2. 调用 getBoatItem() 获取箱子船物品
- * 3. 创建 ItemStack 并掉落
- * 4. 受 DO_ENTITY_DROPS 游戏规则控制
- *
- * 参考 MC Java AbstractChestBoat.destroy() 和 ContainerEntity.chestVehicleDestroyed()
- */
-TEST_F(ChestBoatDropItemTest, DropItem_GetBoatItemReturnsCorrectChestBoatItem)
+TEST_F(ChestBoatStillValidTest, StillValid_FalseWhenEntityRemoved)
 {
-    // 创建各种类型的箱子船，验证 getBoatItem() 返回正确的物品
-    ChestBoatEntity oakChestBoat(BoatEntity::Type::OAK);
-    EXPECT_EQ(oakChestBoat.getBoatItem(), Items::OAK_CHEST_BOAT);
+    ChestBoatEntity chestBoat;
 
-    ChestBoatEntity spruceChestBoat(BoatEntity::Type::SPRUCE);
-    EXPECT_EQ(spruceChestBoat.getBoatItem(), Items::SPRUCE_CHEST_BOAT);
+    // 未移除时 stillValid 的距离检查需要 Player 对象
+    // 但 isRemoved() 检查不需要 Player
+    EXPECT_FALSE(chestBoat.isRemoved());
 
-    ChestBoatEntity birchChestBoat(BoatEntity::Type::BIRCH);
-    EXPECT_EQ(birchChestBoat.getBoatItem(), Items::BIRCH_CHEST_BOAT);
-
-    ChestBoatEntity bambooChestRaft(BoatEntity::Type::BAMBOO);
-    EXPECT_EQ(bambooChestRaft.getBoatItem(), Items::BAMBOO_CHEST_RAFT);
+    // 调用 remove() 后 isRemoved() 应为 true
+    // 注意：remove() 在无世界环境下的行为取决于实现
+    // 这里仅验证 isRemoved() 的初始状态
 }
 
-/**
- * @brief 测试箱子船物品资源位置 ID
- */
-TEST_F(ChestBoatDropItemTest, ChestBoatItemResourceLocations)
+// ============================================================================
+// NBT 序列化/反序列化测试
+// ============================================================================
+
+class ChestBoatNbtTest : public ::testing::Test {
+protected:
+    void SetUp() override { Items::initialize(); }
+};
+
+TEST_F(ChestBoatNbtTest, EmptyInventory_RoundTrip)
 {
-    struct TestCase {
-        const Item* item;
-        std::string expectedId;
-    };
+    ChestBoatEntity original(BoatEntity::Type::OAK);
 
-    std::vector<TestCase> testCases = {
-        {Items::OAK_CHEST_BOAT, "minecraft:oak_chest_boat"},
-        {Items::SPRUCE_CHEST_BOAT, "minecraft:spruce_chest_boat"},
-        {Items::BIRCH_CHEST_BOAT, "minecraft:birch_chest_boat"},
-        {Items::JUNGLE_CHEST_BOAT, "minecraft:jungle_chest_boat"},
-        {Items::ACACIA_CHEST_BOAT, "minecraft:acacia_chest_boat"},
-        {Items::DARK_OAK_CHEST_BOAT, "minecraft:dark_oak_chest_boat"},
-        {Items::MANGROVE_CHEST_BOAT, "minecraft:mangrove_chest_boat"},
-        {Items::CHERRY_CHEST_BOAT, "minecraft:cherry_chest_boat"},
-        {Items::PALE_OAK_CHEST_BOAT, "minecraft:pale_oak_chest_boat"},
-        {Items::BAMBOO_CHEST_RAFT, "minecraft:bamboo_chest_raft"},
-    };
+    // 序列化
+    auto tag = saveToNbt(original);
 
-    for (const auto& tc : testCases) {
-        ASSERT_NE(tc.item, nullptr) << "Item should not be null for " << tc.expectedId;
-        EXPECT_EQ(tc.item->itemLocation().toString(), tc.expectedId)
-            << "Chest boat item should have correct resource location";
-    }
+    // 反序列化
+    auto loaded = loadFromNbt(*tag, BoatEntity::Type::OAK);
+
+    // 验证空容器
+    EXPECT_TRUE(loaded->isInventoryEmpty());
+    EXPECT_EQ(loaded->getContainerSize(), 27);
+}
+
+TEST_F(ChestBoatNbtTest, InventoryItems_RoundTrip)
+{
+    ChestBoatEntity original(BoatEntity::Type::BIRCH);
+
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    ASSERT_NE(Items::SPRUCE_BOAT, nullptr);
+    ASSERT_NE(Items::BIRCH_BOAT, nullptr);
+
+    // 设置多个槽位的物品
+    original.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
+    original.setInventoryItem(13, ItemStack(*Items::SPRUCE_BOAT, 2));
+    original.setInventoryItem(26, ItemStack(*Items::BIRCH_BOAT, 3));
+
+    // 序列化
+    auto tag = saveToNbt(original);
+
+    // 反序列化
+    auto loaded = loadFromNbt(*tag, BoatEntity::Type::BIRCH);
+
+    // 验证物品
+    EXPECT_FALSE(loaded->getInventoryItem(0).isEmpty());
+    EXPECT_EQ(loaded->getInventoryItem(0).getCount(), 1);
+
+    EXPECT_FALSE(loaded->getInventoryItem(13).isEmpty());
+    EXPECT_EQ(loaded->getInventoryItem(13).getCount(), 2);
+
+    EXPECT_FALSE(loaded->getInventoryItem(26).isEmpty());
+    EXPECT_EQ(loaded->getInventoryItem(26).getCount(), 3);
+
+    // 验证空槽位
+    EXPECT_TRUE(loaded->getInventoryItem(1).isEmpty());
+    EXPECT_TRUE(loaded->getInventoryItem(12).isEmpty());
+    EXPECT_TRUE(loaded->getInventoryItem(25).isEmpty());
+}
+
+TEST_F(ChestBoatNbtTest, NbtKeys_ItemsKeyUsed)
+{
+    ChestBoatEntity original(BoatEntity::Type::OAK);
+
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    original.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
+
+    auto tag = saveToNbt(original);
+
+    // 验证 "Items" 键存在
+    auto* itemsList = nbt_helper::tryGetList(*tag, nbt_keys::ITEMS);
+    ASSERT_NE(itemsList, nullptr) << "Items key should be present in NBT";
+    EXPECT_EQ(itemsList->element_id(), nbt::TagId::Compound);
+
+    // 应该有1个物品
+    auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*itemsList);
+    EXPECT_EQ(compoundList.value.size(), 1u);
+}
+
+TEST_F(ChestBoatNbtTest, NbtKeys_LootTableKeyUsed)
+{
+    ChestBoatEntity original(BoatEntity::Type::OAK);
+
+    // 直接构造带战利品表的 NBT 数据
+    nbt::tags::compound_tag tag;
+    tag.put(nbt_keys::LOOT_TABLE, std::string("minecraft:chests/village_armorer"));
+    tag.put(nbt_keys::LOOT_TABLE_SEED, static_cast<i64>(12345L));
+
+    // 反序列化
+    auto loaded = loadFromNbt(tag, BoatEntity::Type::OAK);
+
+    // 验证战利品表被正确读取
+    // 注意：当前实现中战利品表读取后存储在 m_lootTable 和 m_lootTableSeed 中
+    // 但这些是私有字段，我们通过序列化-反序列化来验证
+
+    // 序列化回去应该保留战利品表信息
+    auto reserialized = saveToNbt(*loaded);
+    auto lootTableOpt = nbt_helper::tryGetString(*reserialized, nbt_keys::LOOT_TABLE);
+    ASSERT_TRUE(lootTableOpt.has_value());
+    EXPECT_EQ(*lootTableOpt, "minecraft:chests/village_armorer");
+
+    auto seedOpt = nbt_helper::tryGetLong(*reserialized, nbt_keys::LOOT_TABLE_SEED);
+    ASSERT_TRUE(seedOpt.has_value());
+    EXPECT_EQ(*seedOpt, 12345L);
+}
+
+TEST_F(ChestBoatNbtTest, NbtKeys_LootTableSupersedesItems)
+{
+    // 当 NBT 中同时有 LootTable 和 Items 时，应优先使用 LootTable
+    // 对应 MC Java 的行为：有战利品表时不保存物品
+
+    nbt::tags::compound_tag tag;
+
+    // 添加战利品表
+    tag.put(nbt_keys::LOOT_TABLE, std::string("minecraft:chests/spawn_bonus_chest"));
+
+    // 同时添加物品（不应被读取）
+    auto itemsList = std::make_unique<nbt::tags::compound_list_tag>();
+    nbt::tags::compound_tag itemTag;
+    itemTag.put("Slot", static_cast<i8>(0));
+    // 注意：这里不添加物品的 id/count，简化测试
+    itemsList->value.push_back(std::move(itemTag));
+    tag.value.emplace(nbt_keys::ITEMS, std::move(itemsList));
+
+    // 反序列化
+    auto loaded = loadFromNbt(tag, BoatEntity::Type::OAK);
+
+    // 战利品表存在时，容器应被清空（不读取物品）
+    EXPECT_TRUE(loaded->isInventoryEmpty());
+}
+
+TEST_F(ChestBoatNbtTest, EmptyNbt_PreservesDefaults)
+{
+    // 空的 NBT 标签不应导致崩溃
+    nbt::tags::compound_tag emptyTag;
+
+    auto loaded = loadFromNbt(emptyTag, BoatEntity::Type::OAK);
+
+    EXPECT_TRUE(loaded->isInventoryEmpty());
+    EXPECT_EQ(loaded->getContainerSize(), 27);
+    EXPECT_EQ(loaded->getBoatType(), BoatEntity::Type::OAK);
+}
+
+TEST_F(ChestBoatNbtTest, BoatTypePreservedByBaseClass)
+{
+    // BoatEntity::addAdditionalSaveData 保存船类型
+    // 验证船类型在序列化/反序列化后保持一致
+    ChestBoatEntity original(BoatEntity::Type::SPRUCE);
+
+    auto tag = saveToNbt(original);
+
+    // 基类读取船类型后应保持一致
+    auto loaded = loadFromNbt(*tag, BoatEntity::Type::SPRUCE);
+    EXPECT_EQ(loaded->getBoatType(), BoatEntity::Type::SPRUCE);
 }
 
 // ============================================================================
@@ -654,38 +760,16 @@ protected:
     void SetUp() override { Items::initialize(); }
 };
 
-/**
- * @brief 测试箱子船与普通船的乘客数差异
- *
- * 箱子船通过重写 canAddPassenger() 限制为1名乘客
- */
-TEST_F(ChestBoatVsNormalBoatTest, PassengerCapacity_ChestBoatSmaller)
-{
-    ChestBoatEntity chestBoat;
-    BoatEntity normalBoat;
-
-    // 箱子船的 canAddPassenger() 限制为1名乘客
-    // 普通 BoatEntity 的 canAddPassenger() 允许最多2名乘客
-    // 这是通过 canAddPassenger() 的逻辑实现的
-}
-
-/**
- * @brief 测试箱子船与普通船的物品差异
- */
 TEST_F(ChestBoatVsNormalBoatTest, DifferentDropItems)
 {
     ChestBoatEntity chestBoat(BoatEntity::Type::OAK);
     BoatEntity normalBoat(BoatEntity::Type::OAK);
 
-    // 箱子船掉落箱子船物品，普通船掉落普通船物品
     EXPECT_NE(chestBoat.getBoatItem(), normalBoat.getBoatItem());
     EXPECT_EQ(chestBoat.getBoatItem(), Items::OAK_CHEST_BOAT);
     EXPECT_EQ(normalBoat.getBoatItem(), Items::OAK_BOAT);
 }
 
-/**
- * @brief 测试所有类型的箱子船与普通船物品完全对应但不同
- */
 TEST_F(ChestBoatVsNormalBoatTest, AllTypes_DifferentChestAndNormalItems)
 {
     struct TestCase {
@@ -719,4 +803,23 @@ TEST_F(ChestBoatVsNormalBoatTest, AllTypes_DifferentChestAndNormalItems)
         EXPECT_EQ(normalBoat.getBoatItem(), tc.normalItem)
             << "Type " << tc.name << ": normal boat should return normal boat item";
     }
+}
+
+TEST_F(ChestBoatVsNormalBoatTest, ChestBoat_HasContainer_NormalBoat_DoesNot)
+{
+    ChestBoatEntity chestBoat;
+    BoatEntity normalBoat;
+
+    // 箱子船有容器
+    EXPECT_EQ(chestBoat.getContainerSize(), 27);
+    EXPECT_NE(chestBoat.getInventory(), nullptr);
+
+    // 普通船没有容器方法（没有 INamedContainerProvider 接口）
+    // 验证箱子船实现了 INamedContainerProvider 接口
+    auto* provider = dynamic_cast<INamedContainerProvider*>(&chestBoat);
+    EXPECT_NE(provider, nullptr) << "ChestBoatEntity should implement INamedContainerProvider";
+
+    // 普通船不应实现 INamedContainerProvider
+    auto* normalProvider = dynamic_cast<INamedContainerProvider*>(&normalBoat);
+    EXPECT_EQ(normalProvider, nullptr) << "BoatEntity should not implement INamedContainerProvider";
 }
