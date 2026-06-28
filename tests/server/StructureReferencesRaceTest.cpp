@@ -125,6 +125,184 @@ TEST_F(StructureReferencesRaceTest, GenerateGrid_NoMove)
     m_workerPool->shutdown();
 }
 
+// 针对性复现 0x50 崩溃：use-after-free of neighbour ChunkPrimer during STRUCTURE_REFERENCES。
+//
+// 根因（已通过代码分析确认）：
+//   ChunkProgressionTask::executeStatusStep 在 worker 线程执行 generateStructureReferences 时，
+//   通过 StaticChunkCache2D<ChunkPrimer*>（裸指针，无所有权）遍历 17x17 邻居，调用
+//   neighbor->getIntersectingStructures（ChunkPrimer.hpp:326 读 m_structureStarts）。
+//   StaticChunkCache2D 在 scheduleStatusStep 时构建，仅靠邻居 holder 的 m_neighboursUsingThisChunk
+//   引用计数防止邻居被卸载。但：
+//     - worker 线程执行 executeStatusStep 期间不持调度锁；
+//     - 中心区块被卸载时（_onTicketLevelChanged/isSafeToUnload 或 _checkChunkUnloading→unloadChunkSync），
+//       unloadChunkSync→cancelGeneration(center) 清空 m_generationTask 并释放 288 个邻居的引用计数
+//       （removeNeighbourUsingChunk），随后 isSafeToUnload(center) 可能为 true（m_neighboursUsingThisChunk==0），
+//       holder 从 m_lifecycleManagers 移除（center 的 primer 由 task 的 m_holder shared_ptr 保活，但邻居无此保护）；
+//     - 邻居 m_neighboursUsingThisChunk 归零后，后续 _checkChunkUnloading→unloadChunkSync(neighbour) 即可销毁
+//       邻居 holder 及其 m_currentChunk（ChunkPrimer）；
+//     - worker 线程仍持 StaticChunkCache2D 中的裸 ChunkPrimer* → 解引用已释放内存 → ACCESS_VIOLATION at 0x50。
+//   abortSignal 仅在 executeStatusStep 起止检查（ChunkProgressionTask.cpp:175/229），generateStructureReferences
+//   的 17x17 循环内不检查，无法在卸载窗口内退出。
+//
+// 本测试最大化该窗口：高并发 STRUCTURE_REFERENCES 进行中 + 激进玩家传送触发卸载/取消，
+// 迫使 cancelGeneration 释放引用计数与邻居卸载发生在 worker 遍历邻居期间。
+TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50Repro)
+{
+    m_workerPool->start();
+    ASSERT_TRUE(m_manager->initialize().success());
+
+    // 先在原点周围生成一片区块到 STRUCTURE_REFERENCES，使半径 8 邻居完成 STRUCTURE_STARTS
+    // （m_structureStarts 已填充），为后续 STRUCTURE_REFERENCES 读邻居提供结构起点。
+    // 不生成到 FULL：避免 _finalizeGeneratedChunkSync 入队 _postProcessChunk（scheduleFluidTick 0x10 路径），
+    // 隔离 0x50 崩溃窗口。
+    {
+        std::vector<std::future<ChunkData*>> seeds;
+        for (int x = -4; x <= 4; ++x) {
+            for (int z = -4; z <= 4; ++z) {
+                seeds.push_back(m_manager->getChunkAsync(x, z, &ChunkStatuses::STRUCTURE_REFERENCES));
+            }
+        }
+        for (auto& f : seeds) {
+            if (f.valid()) {
+                ASSERT_EQ(f.wait_for(std::chrono::seconds(120)), std::future_status::ready)
+                    << "seed generation timed out";
+                (void)f.get();
+            }
+        }
+    }
+
+    // 玩家初始位置在原点，建立 ticket。
+    m_manager->updatePlayerPosition(1, 0.0, 0.0);
+    for (int i = 0; i < 30; ++i) {
+        m_manager->tick();
+    }
+
+    std::atomic<bool> stop{false};
+    std::atomic<int> crashFlag{0};
+
+    // 看门狗：检测死锁/挂起。
+    constexpr int STALL_THRESHOLD_SECONDS = 600;
+    std::thread watchdog([&]() {
+        int lastPending = -1;
+        int noProgressSamples = 0;
+        for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order_acquire); ++sec) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            if (sec % 10 == 0) {
+                const size_t pending = m_workerPool->pendingTaskCount();
+                const size_t running = m_workerPool->runningTaskCount();
+                const int pendingInt = static_cast<int>(pending);
+                if (lastPending < 0 || pendingInt < lastPending) {
+                    noProgressSamples = 0;
+                } else {
+                    ++noProgressSamples;
+                }
+                lastPending = pendingInt;
+                spdlog::info("[watchdog] {}s: pending={}, running={}, noProgress={}",
+                    sec / 2,
+                    pending,
+                    running,
+                    noProgressSamples);
+                if (noProgressSamples >= 6 && pending > 0 && running == 0) {
+                    spdlog::info("[watchdog] deadlock: workers idle but pending={}", pending);
+                    break;
+                }
+            }
+        }
+        if (!stop.load(std::memory_order_acquire)) {
+            spdlog::info("[watchdog] stall > {}s, abort", STALL_THRESHOLD_SECONDS);
+            std::abort();
+        }
+    });
+
+    // 线程 A：激进传送玩家。每次传送到远处，触发大批区块 ticket 级别下降（shouldLoad=false）→
+    // _checkChunkUnloading→unloadChunkSync→cancelGeneration（释放邻居引用计数）→邻居卸载。
+    // 再传回原点附近，触发重新生成。反复横跳最大化 cancel 与 STRUCTURE_REFERENCES 并发窗口。
+    constexpr int TELEPORT_ITERATIONS = 200;
+    constexpr double FAR_RADIUS_CHUNKS = 48.0; // 远离原点的传送距离（区块单位）
+    std::thread teleporter([&]() {
+        try {
+            for (int i = 0; i < TELEPORT_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+                // 交替远点与原点附近，每次都驱动 ticket 更新 + 卸载检查
+                if (i % 2 == 0) {
+                    const double angle = (i * 0.3) * 3.14159265358979;
+                    const double wx = std::cos(angle) * FAR_RADIUS_CHUNKS * 16.0;
+                    const double wz = std::sin(angle) * FAR_RADIUS_CHUNKS * 16.0;
+                    m_manager->updatePlayerPosition(1, wx, wz);
+                } else {
+                    // 原点附近抖动，重新请求生成刚被卸载的区块
+                    const double jx = ((i * 37) % 32 - 16) * 16.0;
+                    const double jz = ((i * 53) % 32 - 16) * 16.0;
+                    m_manager->updatePlayerPosition(1, jx, jz);
+                }
+                // 每个 tick 触发 _checkChunkUnloading（每 UNLOAD_CHECK_INTERVAL_TICKS=20 tick 一次卸载扫描）
+                for (int t = 0; t < 25; ++t) {
+                    m_manager->tick();
+                }
+                std::this_thread::sleep_for(std::chrono::microseconds(200));
+            }
+        }
+        catch (...) {
+            crashFlag.store(3, std::memory_order_release);
+        }
+    });
+
+    // 线程 B/C/D：并发请求生成区块到 STRUCTURE_REFERENCES（而非 FULL），驱动 STRUCTURE_STARTS/
+    // STRUCTURE_REFERENCES 在多 worker 上并发，同时避免触发 FULL 后处理路径（_postProcessChunk/
+    // scheduleFluidTick），隔离 0x50 崩溃窗口。请求 STRUCTURE_REFERENCES 仍会经依赖图驱动半径 8 邻居
+    // 完成 STRUCTURE_STARTS，StaticChunkCache2D 在 scheduleStatusStep 捕获邻居裸 ChunkPrimer*。
+    // 高并发 + 大量 in-flight 请求，最大化"某区块 STRUCTURE_REFERENCES 进行中"与"另一线程卸载其
+    // 邻居/中心"重叠，迫使 cancelGeneration 释放引用计数 → 邻居 primer 被卸载 → worker 解引用悬空指针。
+    constexpr int GEN_THREADS = 3;
+    constexpr int GEN_ITERATIONS = 120;
+    constexpr int MAX_INFLIGHT = 16;
+    std::vector<std::thread> generators;
+    generators.reserve(GEN_THREADS);
+    for (int tid = 0; tid < GEN_THREADS; ++tid) {
+        generators.emplace_back([&, tid]() {
+            try {
+                std::vector<std::future<ChunkData*>> inflight;
+                inflight.reserve(MAX_INFLIGHT + 1);
+                for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+                    // 围绕原点的伪随机区块，混入远点，使生成与卸载区重叠
+                    const int base = (tid * 17 + i * 7) % 40 - 20;
+                    const int x = base + ((i * 5) % 8);
+                    const int z = ((tid * 13 + i * 11) % 40) - 20 + ((i * 3) % 6);
+                    auto future = m_manager->getChunkAsync(x, z, &ChunkStatuses::STRUCTURE_REFERENCES);
+                    inflight.push_back(std::move(future));
+                    if (static_cast<int>(inflight.size()) > MAX_INFLIGHT) {
+                        inflight.front().get();
+                        inflight.erase(inflight.begin());
+                    }
+                    std::this_thread::sleep_for(std::chrono::microseconds(50));
+                }
+                for (auto& f : inflight) {
+                    if (f.valid()) {
+                        (void)f.get();
+                    }
+                }
+            }
+            catch (...) {
+                crashFlag.store(4, std::memory_order_release);
+            }
+        });
+    }
+
+    teleporter.join();
+    for (auto& g : generators) {
+        g.join();
+    }
+    stop.store(true, std::memory_order_release);
+    watchdog.join();
+
+    // crashFlag 非 0 表示 generator/teleporter 线程捕获到异常（worker 线程的 ACCESS_VIOLATION
+    // 会直接进程终止，不进入 catch；此处仅捕获逻辑层异常）。
+    EXPECT_EQ(crashFlag.load(std::memory_order_acquire), 0) << "teleporter/generator thread caught an exception";
+
+    m_manager->removePlayer(1);
+    m_manager->shutdown();
+    m_workerPool->shutdown();
+}
+
 // 完整跑图场景：玩家移动 + 异步请求生成，触发卸载/重生成循环。
 // 对齐用户报告的"跑图时崩溃"场景：视距调大后更容易触发。
 TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
