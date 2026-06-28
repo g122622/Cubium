@@ -35,8 +35,10 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <thread>
 
 namespace mc::client::renderer::trident::particle {
 
@@ -405,7 +407,10 @@ bool ParticleManager::shouldShowParticle(ParticleTypeId type) const
     // Decreased 模式：约 2/3 的普通粒子通过（1/3 概率降级为 Minimal 行为）
     // 使用线程局部随机数，每帧每粒子独立判定
     // MC Java 使用 ClientLevel.random.nextInt(3) == 0 来降级
-    thread_local mc::math::Random s_decreaseRng(0);
+    // 使用时间+线程ID初始化种子，确保每次运行产生不同序列
+    thread_local mc::math::Random s_decreaseRng(
+        static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count()) ^
+        static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id())));
     return s_decreaseRng.nextInt(3) != 0;
 }
 
