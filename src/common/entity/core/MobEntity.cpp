@@ -409,8 +409,11 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
         }
 
         // 7. 武器损耗
-        // TODO: 当 ItemStack::hurtAndBreak() 实现后，添加武器耐久损耗
-        // if (!mainHand.isEmpty()) { mainHand.hurtAndBreak(1, *this, [](LivingEntity&) {}); }
+        // 注意：MC Java 版的 Mob.doHurtTarget() 仅调用 hurtEnemy()（空操作，仅 MaceItem 等重写），
+        // 不调用 postHurtEnemy()，因此 Mob 近战攻击不会造成武器耐久损耗。
+        // 武器耐久损耗仅通过 Player.itemAttackInteraction() -> postHurtEnemy() 路径发生。
+        // 如果未来需要为特定 Mob 添加武器损耗，应在子类的 attackEntityAsMob 中调用
+        // LivingEntity::hurtAndBreak(getMutableMainHandItem(), 1, this, EquipmentSlot::MainHand)。
 
         // 8. 设置最后攻击者
         target.setLastHurtBy(this);

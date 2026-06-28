@@ -23,18 +23,13 @@
 
 #include "BannedIpList.hpp"
 
+#include "common/util/DateTimeUtils.hpp"
 #include <algorithm>
-#include <ctime>
 #include <fstream>
-#include <iomanip>
-#include <sstream>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 namespace mc::server::core {
-
-// 日期格式：yyyy-MM-dd HH:mm:ss Z
-static const char* DATE_FORMAT = "%Y-%m-%d %H:%M:%S %z";
 
 BannedIpList::BannedIpList() = default;
 
@@ -371,19 +366,7 @@ void BannedIpList::_removeExpired() const
 
 std::string BannedIpList::_getCurrentTimeString()
 {
-    auto now = std::chrono::system_clock::now();
-    auto now_time = std::chrono::system_clock::to_time_t(now);
-
-    std::tm tm;
-#ifdef _WIN32
-    localtime_s(&tm, &now_time);
-#else
-    localtime_r(&now_time, &tm);
-#endif
-
-    std::ostringstream ss;
-    ss << std::put_time(&tm, DATE_FORMAT);
-    return ss.str();
+    return util::DateTimeUtils::getCurrentDateTimeString();
 }
 
 // ========== BannedIpEntry 方法 ==========
@@ -394,18 +377,14 @@ bool BannedIpEntry::hasExpired() const
         return false;
     }
 
-    // 解析过期时间
-    std::tm tm = {};
-    std::istringstream ss(expires);
-    ss >> std::get_time(&tm, DATE_FORMAT);
-
-    if (ss.fail()) {
+    // 解析过期时间（使用与 MC Java 版兼容的日期时间格式）
+    auto expireMillis = util::DateTimeUtils::parseDateTimeToMillis(expires);
+    if (!expireMillis.has_value()) {
         // 解析失败，假设永不过期
         return false;
     }
 
-    // 转换为时间点
-    auto expireTime = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+    auto expireTime = util::DateTimeUtils::millisToTimePoint(expireMillis.value());
     auto now = std::chrono::system_clock::now();
 
     return now >= expireTime;
