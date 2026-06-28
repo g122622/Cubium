@@ -28,9 +28,10 @@
  * 测试 Player 基类中旁观者摄像机跟踪的相关方法：
  * - m_cameraEntityId 字段的读写（getCameraEntityId/setCameraEntityId）
  * - isSpectating() 状态查询
+ * - onCameraEntityChanged() 虚方法调度和相等性守卫
  * - 旁观者模式下 noclip 设置
- * - 离开旁观者模式时 camera 清除
- * - 旁观者模式下 attack() 设置旁观目标
+ * - 离开旁观者模式时 camera 清除及 onCameraEntityChanged 通知
+ * - 旁观者模式下 attack() 设置旁观目标及 onCameraEntityChanged 通知
  */
 
 #include "common/entity/core/Entity.hpp"
@@ -38,6 +39,70 @@
 #include <gtest/gtest.h>
 
 using namespace mc;
+
+// ==================== 测试辅助：记录 onCameraEntityChanged 调用的 TestPlayer ====================
+
+/**
+ * @brief 重写 onCameraEntityChanged() 的测试用 Player 子类
+ *
+ * 记录每次 onCameraEntityChanged() 调用的参数，用于验证虚方法调度和相等性守卫逻辑。
+ * 类似于 CauseExtraKnockbackTest 中 TestPlayer 重写 sendVelocityPacket() 的模式。
+ */
+class CameraTrackingTestPlayer : public Player {
+public:
+    explicit CameraTrackingTestPlayer(EntityId id)
+        : Player(id, "CameraTestPlayer")
+    {
+        registerAttributes();
+        m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 20.0);
+        m_attributes.setBaseValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0);
+        m_attributes.setBaseValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0);
+        setHealth(20.0f);
+    }
+
+    /**
+     * @brief 重写 onCameraEntityChanged，记录调用参数
+     */
+    void onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId) override
+    {
+        m_cameraChangeCalls.push_back({oldCameraId, newCameraId});
+    }
+
+    // ========== 查询接口 ==========
+
+    /// onCameraEntityChanged 被调用的次数
+    [[nodiscard]] size_t cameraChangeCallCount() const { return m_cameraChangeCalls.size(); }
+
+    /// 是否被调用过
+    [[nodiscard]] bool wasCameraChangeCalled() const { return !m_cameraChangeCalls.empty(); }
+
+    /// 获取第 N 次调用的参数（从 0 开始）
+    [[nodiscard]] std::optional<EntityId> oldCameraIdAt(size_t index) const
+    {
+        if (index >= m_cameraChangeCalls.size()) {
+            return std::nullopt;
+        }
+        return m_cameraChangeCalls[index].oldCameraId;
+    }
+
+    [[nodiscard]] std::optional<EntityId> newCameraIdAt(size_t index) const
+    {
+        if (index >= m_cameraChangeCalls.size()) {
+            return std::nullopt;
+        }
+        return m_cameraChangeCalls[index].newCameraId;
+    }
+
+    /// 清除所有记录的调用
+    void resetCameraChangeCalls() { m_cameraChangeCalls.clear(); }
+
+private:
+    struct CameraChangeCall {
+        std::optional<EntityId> oldCameraId;
+        std::optional<EntityId> newCameraId;
+    };
+    std::vector<CameraChangeCall> m_cameraChangeCalls;
+};
 
 // ==================== Player 旁观者摄像机跟踪测试 ====================
 
@@ -202,4 +267,238 @@ TEST_F(PlayerSpectatorTest, IsInputSneakingDefaultFalse)
 {
     // 默认不潜行
     EXPECT_FALSE(player->isInputSneaking());
+}
+
+// ==================== onCameraEntityChanged 虚方法调度和相等性守卫测试 ====================
+
+class CameraChangedTrackingTest : public ::testing::Test {
+protected:
+    void SetUp() override { trackingPlayer = std::make_unique<CameraTrackingTestPlayer>(EntityId(1)); }
+
+    void TearDown() override { trackingPlayer.reset(); }
+
+    std::unique_ptr<CameraTrackingTestPlayer> trackingPlayer;
+};
+
+// ---------- 值变化时 onCameraEntityChanged 被调用 ----------
+
+TEST_F(CameraChangedTrackingTest, OnCameraEntityChangedCalledWhenValueChanges)
+{
+    // 从 nullopt 变为有值时，应该触发 onCameraEntityChanged
+    trackingPlayer->setCameraEntityId(EntityId(42));
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
+    EXPECT_FALSE(trackingPlayer->oldCameraIdAt(0).has_value()); // 旧值是 nullopt
+    EXPECT_TRUE(trackingPlayer->newCameraIdAt(0).has_value());
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(0).value(), EntityId(42));
+}
+
+TEST_F(CameraChangedTrackingTest, OnCameraEntityChangedCalledWhenValueChangesToDifferentEntity)
+{
+    // 从一个实体 ID 变为另一个实体 ID 时，应该触发
+    trackingPlayer->setCameraEntityId(EntityId(10));
+    trackingPlayer->setCameraEntityId(EntityId(20));
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 2u);
+
+    // 第一次：nullopt -> 10
+    EXPECT_FALSE(trackingPlayer->oldCameraIdAt(0).has_value());
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(0).value(), EntityId(10));
+
+    // 第二次：10 -> 20
+    EXPECT_TRUE(trackingPlayer->oldCameraIdAt(1).has_value());
+    EXPECT_EQ(trackingPlayer->oldCameraIdAt(1).value(), EntityId(10));
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(1).value(), EntityId(20));
+}
+
+TEST_F(CameraChangedTrackingTest, OnCameraEntityChangedCalledWhenValueClearedToNullopt)
+{
+    // 从有值变为 nullopt 时，应该触发
+    trackingPlayer->setCameraEntityId(EntityId(42));
+    trackingPlayer->resetCameraChangeCalls(); // 清除记录
+
+    trackingPlayer->setCameraEntityId(std::nullopt);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
+    EXPECT_TRUE(trackingPlayer->oldCameraIdAt(0).has_value());
+    EXPECT_EQ(trackingPlayer->oldCameraIdAt(0).value(), EntityId(42));
+    EXPECT_FALSE(trackingPlayer->newCameraIdAt(0).has_value()); // 新值是 nullopt
+}
+
+// ---------- 值未变化时 onCameraEntityChanged 不被调用（相等性守卫） ----------
+
+TEST_F(CameraChangedTrackingTest, OnCameraEntityChangedNotCalledWhenSameValueSet)
+{
+    // 设置相同的实体 ID，不应该触发回调
+    trackingPlayer->setCameraEntityId(EntityId(42));
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
+
+    // 重复设置相同的值
+    trackingPlayer->setCameraEntityId(EntityId(42));
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u); // 仍然只调用了一次
+}
+
+TEST_F(CameraChangedTrackingTest, OnCameraEntityChangedNotCalledWhenNulloptToNullopt)
+{
+    // 初始值是 nullopt，再次设置 nullopt 不应该触发回调
+    EXPECT_FALSE(trackingPlayer->getCameraEntityId().has_value()); // 默认就是 nullopt
+
+    trackingPlayer->setCameraEntityId(std::nullopt);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 0u); // 不应该被调用
+}
+
+TEST_F(CameraChangedTrackingTest, OnCameraEntityChangedNotCalledAfterClearToNullopt)
+{
+    // 先设置值，再清除，再清除一次
+    trackingPlayer->setCameraEntityId(EntityId(42));
+    trackingPlayer->setCameraEntityId(std::nullopt);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 2u);
+
+    // 再次清除（已经是 nullopt）
+    trackingPlayer->setCameraEntityId(std::nullopt);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 2u); // 不应该再被调用
+}
+
+// ---------- setGameMode 触发 onCameraEntityChanged ----------
+
+TEST_F(CameraChangedTrackingTest, SetGameModeLeavingSpectatorTriggersCameraChange)
+{
+    // 进入旁观者模式并设置旁观目标
+    trackingPlayer->setGameMode(GameMode::Spectator);
+    trackingPlayer->setCameraEntityId(EntityId(100));
+    trackingPlayer->resetCameraChangeCalls(); // 清除之前调用的记录
+
+    // 离开旁观者模式，setGameMode 应该通过 setCameraEntityId(nullopt) 触发回调
+    trackingPlayer->setGameMode(GameMode::Survival);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
+    EXPECT_TRUE(trackingPlayer->oldCameraIdAt(0).has_value());
+    EXPECT_EQ(trackingPlayer->oldCameraIdAt(0).value(), EntityId(100));
+    EXPECT_FALSE(trackingPlayer->newCameraIdAt(0).has_value()); // 清除为 nullopt
+}
+
+TEST_F(CameraChangedTrackingTest, SetGameModeLeavingSpectatorWithoutCameraDoesNotTrigger)
+{
+    // 进入旁观者模式但没有设置旁观目标
+    trackingPlayer->setGameMode(GameMode::Spectator);
+    EXPECT_FALSE(trackingPlayer->isSpectating()); // 没有旁观目标
+    trackingPlayer->resetCameraChangeCalls();
+
+    // 离开旁观者模式，因为 cameraEntityId 已经是 nullopt，
+    // setGameMode 中 setCameraEntityId(nullopt) 不会触发回调
+    trackingPlayer->setGameMode(GameMode::Survival);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 0u);
+}
+
+// ---------- attack 旁观者路径触发 onCameraEntityChanged ----------
+
+TEST_F(CameraChangedTrackingTest, SpectatorAttackTriggersCameraChange)
+{
+    trackingPlayer->setGameMode(GameMode::Spectator);
+    trackingPlayer->resetCameraChangeCalls();
+
+    Entity target(EntityId(99));
+    trackingPlayer->attack(target);
+
+    // attack 旁观者路径应该通过 setCameraEntityId 触发 onCameraEntityChanged
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
+    EXPECT_FALSE(trackingPlayer->oldCameraIdAt(0).has_value()); // 之前没有旁观目标
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(0).value(), EntityId(99));
+}
+
+TEST_F(CameraChangedTrackingTest, SpectatorAttackToDifferentEntityTriggersChange)
+{
+    trackingPlayer->setGameMode(GameMode::Spectator);
+
+    // 第一次攻击实体 99
+    Entity target1(EntityId(99));
+    trackingPlayer->attack(target1);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
+
+    // 第二次攻击实体 100（切换目标）
+    Entity target2(EntityId(100));
+    trackingPlayer->attack(target2);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 2u);
+
+    // 验证第二次调用的参数
+    EXPECT_EQ(trackingPlayer->oldCameraIdAt(1).value(), EntityId(99));
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(1).value(), EntityId(100));
+}
+
+TEST_F(CameraChangedTrackingTest, SpectatorAttackSameEntityDoesNotTriggerChange)
+{
+    trackingPlayer->setGameMode(GameMode::Spectator);
+
+    // 第一次攻击实体 99
+    Entity target(EntityId(99));
+    trackingPlayer->attack(target);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
+
+    // 再次攻击同一实体（值相同，不应该触发回调）
+    trackingPlayer->attack(target);
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u); // 仍然只调用了一次
+}
+
+// ---------- 基类 Player 的 onCameraEntityChanged 是空操作 ----------
+
+TEST_F(PlayerSpectatorTest, BaseClassOnCameraEntityChangedIsNoOp)
+{
+    // 使用基类 Player 设置 setCameraEntityId，不应该崩溃或产生副作用
+    // 基类的 onCameraEntityChanged() 是空操作
+    player->setCameraEntityId(EntityId(42));
+    EXPECT_TRUE(player->isSpectating());
+    EXPECT_EQ(player->getCameraEntityId().value(), EntityId(42));
+
+    // 多次设置不同值也不应该有问题
+    player->setCameraEntityId(EntityId(100));
+    EXPECT_EQ(player->getCameraEntityId().value(), EntityId(100));
+
+    player->setCameraEntityId(std::nullopt);
+    EXPECT_FALSE(player->isSpectating());
+}
+
+// ---------- 连续切换和边界场景 ----------
+
+TEST_F(CameraChangedTrackingTest, RapidCameraSwitchingRecordsAllChanges)
+{
+    // 快速切换多个旁观目标
+    trackingPlayer->setCameraEntityId(EntityId(1));
+    trackingPlayer->setCameraEntityId(EntityId(2));
+    trackingPlayer->setCameraEntityId(EntityId(3));
+    trackingPlayer->setCameraEntityId(std::nullopt);
+
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 4u);
+
+    // 验证每次调用的参数
+    EXPECT_FALSE(trackingPlayer->oldCameraIdAt(0).has_value());
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(0).value(), EntityId(1));
+
+    EXPECT_EQ(trackingPlayer->oldCameraIdAt(1).value(), EntityId(1));
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(1).value(), EntityId(2));
+
+    EXPECT_EQ(trackingPlayer->oldCameraIdAt(2).value(), EntityId(2));
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(2).value(), EntityId(3));
+
+    EXPECT_EQ(trackingPlayer->oldCameraIdAt(3).value(), EntityId(3));
+    EXPECT_FALSE(trackingPlayer->newCameraIdAt(3).has_value());
+}
+
+TEST_F(CameraChangedTrackingTest, EntityIdZeroIsNotNullopt)
+{
+    // EntityId(0) 不是 nullopt，设置 EntityId(0) 应该触发从 nullopt 的变更
+    trackingPlayer->setCameraEntityId(EntityId(0));
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 1u);
+    EXPECT_FALSE(trackingPlayer->oldCameraIdAt(0).has_value()); // 旧值是 nullopt
+    EXPECT_TRUE(trackingPlayer->newCameraIdAt(0).has_value());  // 新值是 EntityId(0)
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(0).value(), EntityId(0));
+    EXPECT_TRUE(trackingPlayer->isSpectating()); // EntityId(0) 也是有效的旁观目标
+}
+
+TEST_F(CameraChangedTrackingTest, ClearingToNulloptAndSettingAgain)
+{
+    // 设置 -> 清除 -> 再设置
+    trackingPlayer->setCameraEntityId(EntityId(42));
+    trackingPlayer->setCameraEntityId(std::nullopt);
+    trackingPlayer->setCameraEntityId(EntityId(42)); // 再设置回同一个 ID
+    EXPECT_EQ(trackingPlayer->cameraChangeCallCount(), 3u);
+
+    // 最后一次：nullopt -> 42
+    EXPECT_FALSE(trackingPlayer->oldCameraIdAt(2).has_value());
+    EXPECT_EQ(trackingPlayer->newCameraIdAt(2).value(), EntityId(42));
 }
