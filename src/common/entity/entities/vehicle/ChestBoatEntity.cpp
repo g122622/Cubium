@@ -33,6 +33,7 @@
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
@@ -161,6 +162,36 @@ f64 ChestBoatEntity::getMountedYOffset() const
     // 对应 MC Java ChestBoat.rideHeight(): height / 3.0F
     // 与 BoatEntity 相同的 -0.1 偏移
     return -0.1;
+}
+
+const Item* ChestBoatEntity::getBoatItem() const
+{
+    // 重写基类方法，始终返回箱子船物品
+    // 对应 MC Java AbstractChestBoat.getDropItem()
+    switch (getBoatType()) {
+        case Type::OAK:
+            return Items::OAK_CHEST_BOAT;
+        case Type::SPRUCE:
+            return Items::SPRUCE_CHEST_BOAT;
+        case Type::BIRCH:
+            return Items::BIRCH_CHEST_BOAT;
+        case Type::JUNGLE:
+            return Items::JUNGLE_CHEST_BOAT;
+        case Type::ACACIA:
+            return Items::ACACIA_CHEST_BOAT;
+        case Type::DARK_OAK:
+            return Items::DARK_OAK_CHEST_BOAT;
+        case Type::MANGROVE:
+            return Items::MANGROVE_CHEST_BOAT;
+        case Type::CHERRY:
+            return Items::CHERRY_CHEST_BOAT;
+        case Type::PALE_OAK:
+            return Items::PALE_OAK_CHEST_BOAT;
+        case Type::BAMBOO:
+            return Items::BAMBOO_CHEST_RAFT;
+        default:
+            return Items::OAK_CHEST_BOAT;
+    }
 }
 
 i32 ChestBoatEntity::getComparatorOutput() const

@@ -173,7 +173,7 @@ public:
      * @brief 获取船对应的物品
      * @return 对应木材类型的船物品指针（根据 hasChest 返回带箱子或普通船物品）
      */
-    [[nodiscard]] const Item* getBoatItem() const;
+    [[nodiscard]] virtual const Item* getBoatItem() const;
 
     /**
      * @brief 是否为带箱子的船

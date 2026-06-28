@@ -276,6 +276,8 @@ add_executable(mc_tests
     common/entity/entities/vehicle/BoatGlideTest.cpp
     # 船实体陆地摩擦力减半条件测试
     common/entity/entities/vehicle/BoatLandFrictionTest.cpp
+    # 箱子船实体测试（容器、物品、乘客、继承等）
+    common/entity/entities/vehicle/ChestBoatEntityTest.cpp
     # 实体掉落 DO_ENTITY_DROPS 游戏规则测试
     common/entity/entities/EntityDropGameRuleTest.cpp
     # 实体 dropItem 受 DO_ENTITY_DROPS 控制的集成测试

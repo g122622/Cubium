@@ -106,6 +106,14 @@ public:
     [[nodiscard]] f64 getMountedYOffset() const override;
 
     /**
+     * @brief 获取箱子船对应的物品
+     *
+     * 重写基类方法，始终返回箱子船物品（而非普通船物品）。
+     * 对应 MC Java AbstractChestBoat.getDropItem()。
+     */
+    [[nodiscard]] const Item* getBoatItem() const override;
+
+    /**
      * @brief 获取比较器输出信号强度
      *
      * 基于容器填充率计算信号强度（0-15）。
