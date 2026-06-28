@@ -188,6 +188,31 @@ private:
     [[nodiscard]] bool _checkOpenWater();
 
     /**
+     * @brief 判断单个方块位置的水类型
+     *
+     * 对应 MC Java FishingHook.getOpenWaterTypeFor。
+     * - 空气或睡莲 → AboveWater
+     * - 水源方块且碰撞箱为空 → InsideWater
+     * - 其他 → Invalid
+     *
+     * @param pos 方块位置
+     * @return 水类型
+     */
+    [[nodiscard]] WaterType _getOpenWaterTypeForBlock(const BlockPos& pos) const;
+
+    /**
+     * @brief 判断一个矩形区域（5×1×5）的水类型
+     *
+     * 对应 MC Java FishingHook.getOpenWaterTypeForArea。
+     * 区域内所有方块必须为同一类型，否则为 Invalid。
+     *
+     * @param from 起始位置（含）
+     * @param to 结束位置（含）
+     * @return 区域水类型
+     */
+    [[nodiscard]] WaterType _getOpenWaterTypeForArea(const BlockPos& from, const BlockPos& to) const;
+
+    /**
      * @brief 钓鱼逻辑tick
      */
     void _catchingFish();

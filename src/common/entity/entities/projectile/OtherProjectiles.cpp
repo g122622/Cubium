@@ -31,6 +31,9 @@
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../world/block/WaterLoggableHelpers.hpp"
+#include "../../../world/block/registry/NaturalBlocks.hpp"
+#include "../../../world/fluid/FluidTags.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../effect/EffectInstance.hpp"
@@ -298,8 +301,9 @@ bool FishingBobberEntity::isInWater() const
 
 bool FishingBobberEntity::_checkOpenWater()
 {
-    // 检查浮标位置周围是否满足开放水域条件
-    // 需要检查 Y-1 到 Y+2 四层，每层 5x5 范围
+    // 对应 MC Java FishingHook.calculateOpenWater
+    // 检查浮标位置周围 4 层（Y-1 到 Y+2），每层 5×5 范围
+    // 水类型必须从 InsideWater → AboveWater 单调过渡，不能回退或出现 Invalid
     if (m_world == nullptr) {
         return false;
     }
@@ -308,23 +312,87 @@ bool FishingBobberEntity::_checkOpenWater()
         static_cast<i32>(std::floor(m_position.y)),
         static_cast<i32>(std::floor(m_position.z)));
 
-    // 简化实现：检查浮标周围是否有足够的水
-    // 完整实现需要检查每层的水类型
-    i32 waterCount = 0;
+    WaterType prevType = WaterType::Invalid;
+
     for (i32 dy = -1; dy <= 2; ++dy) {
-        for (i32 dx = -2; dx <= 2; ++dx) {
-            for (i32 dz = -2; dz <= 2; ++dz) {
-                BlockPos checkPos(bobberPos.x + dx, bobberPos.y + dy, bobberPos.z + dz);
-                const BlockState* state = m_world->getBlockState(checkPos);
-                if (state != nullptr && state->isLiquid()) {
-                    waterCount++;
+        BlockPos from(bobberPos.x - 2, bobberPos.y + dy, bobberPos.z - 2);
+        BlockPos to(bobberPos.x + 2, bobberPos.y + dy, bobberPos.z + 2);
+        WaterType layerType = _getOpenWaterTypeForArea(from, to);
+
+        switch (layerType) {
+            case WaterType::Invalid:
+                return false;
+            case WaterType::AboveWater:
+                // 水上方块不能出现在最底层（前一层还是 Invalid 表示第一层就是 AboveWater）
+                if (prevType == WaterType::Invalid) {
+                    return false;
+                }
+                break;
+            case WaterType::InsideWater:
+                // 水内部不能出现在水上方块之后（不能从水面再回到水下）
+                if (prevType == WaterType::AboveWater) {
+                    return false;
+                }
+                break;
+        }
+
+        prevType = layerType;
+    }
+
+    return true;
+}
+
+FishingBobberEntity::WaterType FishingBobberEntity::_getOpenWaterTypeForBlock(const BlockPos& pos) const
+{
+    // 对应 MC Java FishingHook.getOpenWaterTypeFor
+    const BlockState* blockState = m_world->getBlockState(pos);
+    if (blockState == nullptr) {
+        return WaterType::Invalid;
+    }
+
+    // 空气 → AboveWater
+    if (blockState->isAir()) {
+        return WaterType::AboveWater;
+    }
+
+    // 睡莲 → AboveWater
+    if (blockState->is(block_registry::NaturalBlocks::LILY_PAD)) {
+        return WaterType::AboveWater;
+    }
+
+    // 非空气、非睡莲：检查是否为水源方块且碰撞箱为空
+    const fluid::FluidState* fluidState = blockState->getFluidState();
+    if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER()) &&
+        fluidState->isSource() && blockState->getCollisionShape().isEmpty()) {
+        return WaterType::InsideWater;
+    }
+
+    return WaterType::Invalid;
+}
+
+FishingBobberEntity::WaterType FishingBobberEntity::_getOpenWaterTypeForArea(
+    const BlockPos& from, const BlockPos& to) const
+{
+    // 对应 MC Java FishingHook.getOpenWaterTypeForArea
+    // 区域内所有方块必须为同一 WaterType，否则整个区域为 Invalid
+    WaterType result = WaterType::Invalid;
+    bool first = true;
+
+    for (i32 x = from.x; x <= to.x; ++x) {
+        for (i32 y = from.y; y <= to.y; ++y) {
+            for (i32 z = from.z; z <= to.z; ++z) {
+                WaterType type = _getOpenWaterTypeForBlock(BlockPos(x, y, z));
+                if (first) {
+                    result = type;
+                    first = false;
+                } else if (type != result) {
+                    return WaterType::Invalid;
                 }
             }
         }
     }
 
-    // 开放水域大约需要 75% 以上是水
-    return waterCount >= 60; // 4层 * 25格 * 0.6 = 60
+    return result;
 }
 
 void FishingBobberEntity::_catchingFish()
