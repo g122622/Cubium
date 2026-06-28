@@ -1335,7 +1335,6 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
     }
 
     // 归一化方向向量
-    // 对应 MC Java LivingEntity.knockback():
     // 如果方向向量过小（长度平方 < 1.0E-5），随机扰动方向以避免零向量
     f64 lengthSquared = ratioX * ratioX + ratioZ * ratioZ;
     if (lengthSquared < 1.0E-5) {
@@ -1419,9 +1418,7 @@ void LivingEntity::causeExtraKnockback(Entity& target, f32 strength, const Vecto
 
 f32 LivingEntity::getKnockback(Entity& /*target*/)
 {
-    // 对应 MC Java LivingEntity.getKnockback()
     // 从 ATTACK_KNOCKBACK 属性获取基础击退值，加上击退附魔加成，然后除以 2.0
-    // MC Java 使用 EnchantmentHelper.modifyKnockback() 遍历附魔修改击退值，
     // 当前项目简化为直接获取击退附魔等级并计算加成
     f32 baseKnockback = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 0.0));
 
@@ -1435,9 +1432,8 @@ f32 LivingEntity::getKnockback(Entity& /*target*/)
         }
     }
 
-    // MC Java 的 getKnockback() 返回值除以 2.0
-    // 这是因为 hurt() 中已经有 0.4F 的基础击退，而 causeExtraKnockback 的击退值
-    // 来自 getKnockback() 的返回值，除以 2.0 使得总击退保持合理
+    // hurt() 中有 0.4F 的基础击退，causeExtraKnockback 的击退值来自此方法，
+    // 除以 2.0 使得总击退保持合理
     return baseKnockback / 2.0f;
 }
 

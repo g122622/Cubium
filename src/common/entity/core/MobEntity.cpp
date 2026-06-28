@@ -364,7 +364,6 @@ bool MobEntity::canAttackType(entity::EntityTypeId typeId) const
 
 bool MobEntity::attackEntityAsMob(LivingEntity& target)
 {
-    // 对应 MC Java Mob.doHurtTarget()
     // 1. 获取攻击伤害属性
     f32 attackDamage = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_DAMAGE, 1.0));
 
@@ -373,7 +372,6 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
 
     if (!mainHand.isEmpty()) {
         // 附魔伤害加成（锋利、亡灵杀手、节肢杀手）
-        // 使用 PlayerAttackHelper::getEnchantmentDamageBonus 计算附魔伤害
         attackDamage +=
             entity::combat::PlayerAttackHelper::getEnchantmentDamageBonus(mainHand, target.getCreatureAttribute());
     }
@@ -400,7 +398,6 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
 
     if (attacked) {
         // 5. 应用额外击退（附魔击退 + 攻击击退属性）
-        // 对应 MC Java: this.causeExtraKnockback(target, this.getKnockback(target, damageSource), preHurtVelocity)
         // getKnockback() 返回 (ATTACK_KNOCKBACK + 附魔击退) / 2.0
         f32 knockbackStrength = getKnockback(target);
         causeExtraKnockback(target, knockbackStrength, preHurtVelocity);
@@ -413,7 +410,6 @@ bool MobEntity::attackEntityAsMob(LivingEntity& target)
 
         // 7. 武器损耗
         // TODO: 当 ItemStack::hurtAndBreak() 实现后，添加武器耐久损耗
-        // 对应 MC Java: itemstack.hurtEnemy(livingentity, this);
         // if (!mainHand.isEmpty()) { mainHand.hurtAndBreak(1, *this, [](LivingEntity&) {}); }
 
         // 8. 设置最后攻击者

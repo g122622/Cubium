@@ -362,6 +362,8 @@ add_executable(mc_tests
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试
     common/entity/combat/CauseExtraKnockbackTest.cpp
+    # getKnockback 击退强度计算和 applyKnockback 零向量扰动测试
+    common/entity/combat/GetKnockbackTest.cpp
     # GameRules 游戏规则测试
     common/world/gamerule/GameRulesTest.cpp
     # PVP 游戏规则测试

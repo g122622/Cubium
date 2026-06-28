@@ -33,10 +33,6 @@ class Player;
 class LivingEntity;
 class Entity;
 
-namespace item::enchant {
-class KnockbackEnchantment; // 前向声明
-}
-
 namespace entity::combat {
 
 /**
@@ -45,8 +41,11 @@ namespace entity::combat {
  * 提供玩家攻击相关的辅助函数，包括：
  * - 暴击判定
  * - 攻击冷却
- * - 击退计算
  * - 附魔伤害加成
+ * - 火焰附加
+ * - 横扫攻击
+ *
+ * 击退计算由 LivingEntity::getKnockback() 和 LivingEntity::causeExtraKnockback() 处理。
  */
 class PlayerAttackHelper {
 public:
@@ -86,64 +85,6 @@ public:
      * @return 计算后的伤害值
      */
     [[nodiscard]] static f32 calculateDamage(const Player& player, f32 baseDamage, f32 cooldownProgress);
-
-    // ========== 击退计算 ==========
-
-    /**
-     * @brief 计算击退强度
-     *
-     * 击退计算：
-     * - 基础击退 = 1.0（或武器的攻击击退属性）
-     * - 疾跑加成 = +0.5
-     * - 击退附魔加成 = level * 0.5（每级击退附魔）
-     *
-     * @param attacker 攻击者
-     * @param target 目标
-     * @param baseKnockback 基础击退强度
-     * @param isSprinting 是否在疾跑
-     * @param knockbackLevel 击退附魔等级
-     * @return 击退强度
-     * @deprecated 此方法无外部调用方。Player::attack() 直接内联计算击退，
-     *             MobEntity::attackEntityAsMob() 使用 LivingEntity::getKnockback() + causeExtraKnockback()。
-     *             保留仅供参考，后续可移除。
-     */
-    [[nodiscard]] static f32 calculateKnockback(const LivingEntity& attacker,
-        const LivingEntity& target,
-        f32 baseKnockback = 1.0f,
-        bool isSprinting = false,
-        i32 knockbackLevel = 0);
-
-    /**
-     * @brief 应用击退
-     *
-     * 击退处理：
-     * - 击退方向：从攻击者指向目标
-     * - 击退受击退抗性属性影响
-     * - Y轴速度：min(0.4, 当前Y速度/2 + 击退强度) 如果在地面
-     * - X/Z轴速度：当前速度/2 - 击退方向 * 击退强度
-     *
-     * 此方法目前无调用方。Player::attack() 使用 LivingEntity::causeExtraKnockback()，
-     * MobEntity::attackEntityAsMob() 也使用 causeExtraKnockback()。
-     * LivingEntity::applyKnockback() 是核心击退方法，所有路径最终通过它实现。
-     * 保留仅供参考，后续可移除。
-     *
-     * @param target 目标
-     * @param attacker 攻击者
-     * @param strength 击退强度
-     * @deprecated 使用 LivingEntity::applyKnockbackFrom() 或 causeExtraKnockback() 代替
-     */
-    static void applyKnockback(LivingEntity& target, const LivingEntity& attacker, f32 strength);
-
-    /**
-     * @brief 应用击退（从指定方向）
-     *
-     * @param target 目标
-     * @param ratioX X方向比例
-     * @param ratioZ Z方向比例
-     * @param strength 击退强度
-     * @deprecated 使用 LivingEntity::applyKnockback() 代替
-     */
-    static void applyKnockback(LivingEntity& target, f64 ratioX, f64 ratioZ, f32 strength);
 
     // ========== 攻击冷却 ==========
 
@@ -261,7 +202,6 @@ private:
     static constexpr f32 CRITICAL_MULTIPLIER = 1.5f;    // 暴击伤害倍率
     static constexpr f32 SPRINT_KNOCKBACK_BONUS = 0.5f; // 疾跑击退加成
     static constexpr i32 FIRE_ASPECT_DURATION = 80;     // 火焰附加基础持续时间（4秒）
-    static constexpr f32 MIN_COOLDOWN_THRESHOLD = 0.9f; // 最小冷却阈值
 };
 
 } // namespace entity::combat

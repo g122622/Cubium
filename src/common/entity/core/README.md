@@ -676,6 +676,7 @@
 
             - 当 `strength
         > 0` 时：基于攻击者朝向（yaw）对目标施加击退，攻击者水平速度 ×0.6 减速
+            - 当 `strength <= 0` 时：不施加击退，攻击者也不减速
             - 注意：基类 **不 **调用 `setSprinting(false)`，那是 Player 子类的行为
             - `preHurtVelocity` 参数在基类中未使用（仅 Player 子类需要）
 
@@ -685,6 +686,28 @@
             - ServerPlayer 目标速度重复应用修复：当 `target.isHurtMarked() &&
     targetPlayer->sendVelocityPacket()` 返回
                 true 时，立即清除 hurtMarked 并恢复 preHurtVelocity，避免 EntityTracker::tick() 重复发送速度包
+
+            ## #getKnockback 击退强度计算
+
+            `LivingEntity::getKnockback(Entity& target)` 返回攻击击退强度，计算公式为：
+            ```
+            (ATTACK_KNOCKBACK属性 + 击退附魔加成) / 2.0
+            ```
+
+            - `ATTACK_KNOCKBACK` 属性默认值为 0.0，大多数生物不注册此属性
+            - 击退附魔加成通过 `KnockbackEnchantment::getKnockbackBonus(level)` 计算（每级 +0.5）
+            - 除以 2.0 是因为 `hurt()` 中已有 0.4 的基础击退，`causeExtraKnockback` 的击退值需要减半以保持总击退合理
+            - 子类可重写此方法以定制击退行为
+
+            **调用位置**：
+            - `MobEntity::attackEntityAsMob()` — 调用 `getKnockback(target)` 获取击退强度后传给 `causeExtraKnockback()`
+            - `Player::attack()` — 直接内联计算击退强度（疾跑 + 附魔），不调用 `getKnockback()`
+
+            ## #applyKnockback 零向量随机扰动
+
+            `LivingEntity::applyKnockback(strength, ratioX, ratioZ)` 中，当方向向量过小（长度平方 < 1.0E-5）时，
+            不直接返回，而是对方向向量添加随机扰动，避免零向量导致无击退的问题。
+            扰动方式：`ratioX = (random - random) * 0.01`，`ratioZ = (random - random) * 0.01`。
 
                 ## #sendVelocityPacket() 虚方法
 
