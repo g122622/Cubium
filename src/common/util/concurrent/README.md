@@ -50,7 +50,7 @@ ReentrantAreaLock
 
 ## ReentrantAreaLock 设计要点
 
-- **section 分区粒度**：区块坐标右移 `coordinateShift` 位得到 section 键，`coordinateShift = 0` 时一区块一锁条目（最细粒度，对齐 Moonrise 默认配置）。
+- **section 分区粒度**：区块坐标右移 `coordinateShift` 位得到 section 键。`coordinateShift = 0` 时一区块一锁条目（最细粒度）；`coordinateShift = N` 时每 `(1<<N)×(1<<N)` 区块共用一个 section 锁。由调用方按场景选择——`ChunkTaskScheduler` 用 6（对齐 Moonrise `getChunkSystemLockShift()`），使 `2*maxAccessRadius` 锁只触达 1~4 个 section。
 - **Node 所有权（shared_ptr）**：一次 `lock` 创建一个 `Node`（`shared_ptr` 管理），代表调用线程对区域内所有 section 的占有。`m_nodes` 哈希表、持有线程的 `LockHandle`、阻塞线程的 `park` 引用共同保活 Node，对齐 Moonrise 的 GC 语义（C++ 无 GC，用 `shared_ptr` + `enable_shared_from_this` 等价实现）。
 - **不相交不变量**：不同线程不能同时持有相交区域；相交时后到者阻塞等待。同线程重入只允许"完全被覆盖"的子区域（相交但不被覆盖触发断言）。
 - **RAII**：`lock`/`tryLock` 返回 `LockHandle`（持有 `shared_ptr<Node>`），析构时 `unlock`（移除 section + 排空等待队列 + unpark）再释放 `shared_ptr`。
@@ -98,6 +98,8 @@ ReentrantAreaLock
 - `unlock` 是 O(areaAffected) 的 `remove`（每 section 一次桶锁）+ 一次 `pollOrBlockAdds` 排空逐个 `unpark`，无 per-key cv、唤醒精确到 Node 局部。
 - 不相交区域的 lock/unlock 完全并行（不同桶、不同 Node），不被大区域 unlock 阻塞。
 - 与 Moonrise `ConcurrentChainedLong2ReferenceHashTable` 的 `synchronized(node)` 分段锁语义一致。
+
+**`coordinateShift` 是 `lock` 性能的关键调节项**：`lock(center, radius)` 的 section 操作数 = `((2*radius)>>shift + 1)²`。`ChunkTaskScheduler` 的 `2*maxAccessRadius=22` 锁在 shift=0 下触达 45²=2025 个 section（每次 `putIfAbsent` 取一次桶锁，冲突时回滚最多 2025 次 `remove` + 退避重试），是 `ReentrantAreaLock::lock` 成为 Perfetto #1 热点（10.35s/357 次）的根因。shift=6 后同一锁只触达 1~4 个 section，开销降低约 500 倍。Moonrise 用 `getChunkSystemLockShift()=6`（`SECTION_SHIFT=6`，64×64 区块/section），Cubium 对齐之。
 
 ## 测试
 

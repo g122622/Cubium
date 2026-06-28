@@ -53,7 +53,10 @@ ChunkTaskScheduler::ChunkTaskScheduler(ServerChunkManager& manager,
     , m_world(world)
     , m_parallelGenExecutor(parallelGenExecutor)
     , m_radiusAwareExecutor(radiusAwareExecutor)
-    , m_schedulingLockArea(0) // coordinateShift=0：一个区块一个锁条目（区块级粒度）
+    , m_schedulingLockArea(
+          6) // coordinateShift=6：对齐 Moonrise getChunkSystemLockShift()=max(regionChunkShift,SECTION_SHIFT)=6，每
+             // section 覆盖 64×64 区块。2*maxAccessRadius(22) 的锁从 shift=0 的 2025 sections 降到 1~4 sections，消除
+             // ReentrantAreaLock::lock 获取争用热点。
 {}
 
 i32 ChunkTaskScheduler::getAccessRadius(const ChunkStatus& status)

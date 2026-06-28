@@ -107,8 +107,10 @@ private:
  * ## 设计要点
  *
  * 1. **分区粒度（coordinateShift）**：区块坐标右移 `coordinateShift` 位得到分区(section)键。
- *    `coordinateShift = 0` 时一个区块一个锁条目（最细粒度，对齐 Moonrise 默认配置）。
- *    多个区块可以共用同一个 section 锁，减少内存占用但增大锁竞争粒度。
+ *    `coordinateShift = 0` 时一个区块一个锁条目（最细粒度）；`coordinateShift = N` 时每 `(1<<N)×(1<<N)` 个区块
+ *    共用一个 section 锁，减少哈希表条目数与 `lock`/`unlock` 的 section 操作数，但增大锁竞争粒度。
+ *    调用方按场景选择：`ChunkTaskScheduler` 用 6（对齐 Moonrise `getChunkSystemLockShift()`），使
+ *    `2*maxAccessRadius` 锁只触达 1~4 个 section 而非 2025 个。
  *
  * 2. **Node 所有权**：一次 `lock` 调用创建一个 `Node`，该 Node 代表调用线程对区域内所有
  *    section 的占有。内部哈希表为 `sectionKey -> shared_ptr<Node>`。同一线程对已占有 section 的重入
@@ -222,8 +224,9 @@ public:
     /**
      * @brief 构造区域锁
      *
-     * @param coordinateShift 区块坐标右移位数，得到 section 键。0 表示一个区块一个锁条目。
-     *                        Moonrise 使用 0（区块级粒度）。负值非法。
+     * @param coordinateShift 区块坐标右移位数，得到 section 键。0 表示一个区块一个锁条目（最细粒度）；
+     *                        N>0 时每 (1<<N)×(1<<N) 个区块共用一个 section 锁。由调用方按场景选择
+     *                        （ChunkTaskScheduler 用 6，对齐 Moonrise getChunkSystemLockShift()）。负值非法。
      */
     explicit ReentrantAreaLock(i32 coordinateShift)
         : m_coordinateShift(coordinateShift)
