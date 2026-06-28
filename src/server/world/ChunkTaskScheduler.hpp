@@ -281,13 +281,34 @@ private:
         ChunkCoord x, ChunkCoord z, const mc::world::chunk::ChunkStep& step);
 
     /**
+     * @brief 待重调度的区块（onChunkGenComplete/cancelGeneration 在锁内收集，释放锁后 rescheduleChunk）
+     *
+     * 对齐 Moonrise needsScheduling：持锁期间只做依赖图变更 + 收集待重调度列表，
+     * 释放区域锁后再 rescheduleChunk，避免持锁期间嵌套获取邻居的 2*maxAccessRadius 锁。
+     * target 为 requestedGenStatus() 的指针（ChunkStatus 静态单例，释放锁后仍有效）。
+     */
+    struct PendingReschedule {
+        ChunkCoord x;
+        ChunkCoord z;
+        const mc::world::chunk::ChunkStatus* target;
+    };
+
+    /**
      * @brief 在 onChunkGenComplete 后通知等待该区块的邻居重新调度
+     *
+     * 持锁期间仅做依赖图变更（removeBlockingNeighbour/clearSatisfiedWaitingNeighbours），
+     * 对就绪的邻居不立即 rescheduleChunk，而是收集到 pending 列表（对齐 Moonrise needsScheduling）。
+     * 调用方（onChunkGenComplete）在释放区域锁后统一 rescheduleChunk，避免持锁期间嵌套获取邻居的
+     * 2*maxAccessRadius 锁（ReentrantAreaLock::lock 竞争的主要放大器）。
      *
      * @param holder 完成任务的生命周期管理器
      * @param completedStatus 本次完成的状态
+     * @param pending 输出：就绪邻居的待重调度列表（{x, z, target}），调用方在释放锁后遍历 rescheduleChunk。
+     *            target 为 neighbour->requestedGenStatus() 的指针（静态单例，释放锁后仍有效）。
      */
-    void notifyWaitingNeighbours(
-        mc::world::chunk::SingleChunkLifecycleManager& holder, const mc::world::chunk::ChunkStatus& completedStatus);
+    void notifyWaitingNeighbours(mc::world::chunk::SingleChunkLifecycleManager& holder,
+        const mc::world::chunk::ChunkStatus& completedStatus,
+        std::vector<PendingReschedule>& pending);
 
     /**
      * @brief 释放邻居引用计数
@@ -335,12 +356,7 @@ private:
     struct SyncSchedulingContext {
         /// 当前线程的同步调度深度（>0 表示处于在线执行模式）
         int depth = 0;
-        /// 延迟重调度队列：{(x, z, targetStatus)}
-        struct PendingReschedule {
-            ChunkCoord x;
-            ChunkCoord z;
-            const mc::world::chunk::ChunkStatus* target;
-        };
+        /// 延迟重调度队列（复用 PendingReschedule）
         std::vector<PendingReschedule> pending;
     };
 
