@@ -90,9 +90,8 @@ public:
      * @param level 附魔等级
      * @return 速度乘数
      *
-     * TODO: MC 1.21.11 使用 AddValue 操作（perLevel(0.0405, 0.0105)），
-     *       当前实现使用 MultiplyTotal（I: +40%, II: +60%, III: +80%），
-     *       与项目1.16.5风格一致，待属性系统完善后对齐。
+     * TODO: 当前使用 MultiplyTotal 操作（I: +40%, II: +60%, III: +80%），
+     *       待属性系统完善后切换为 AddValue 操作。
      */
     [[nodiscard]] static f32 getSoulSpeedMultiplier(i32 level)
     {
