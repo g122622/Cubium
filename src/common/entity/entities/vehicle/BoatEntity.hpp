@@ -315,6 +315,16 @@ protected:
     void updateStatus();
 
     /**
+     * @brief 设置船的状态（用于测试和子类）
+     */
+    void setStatus(BoatStatus status) { m_status = status; }
+
+    /**
+     * @brief 设置陆地滑度值（用于测试和子类）
+     */
+    void setBoatGlide(f32 glide) { m_boatGlide = glide; }
+
+    /**
      * @brief 获取水下状态
      */
     [[nodiscard]] BoatStatus getUnderwaterStatus();
