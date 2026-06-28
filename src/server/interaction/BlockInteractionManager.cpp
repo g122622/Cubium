@@ -215,7 +215,7 @@ Result<BlockInteractionResult> BlockInteractionManager::handleBlockInteraction(
                 // 通知方块玩家即将破坏（如活塞头在创造模式下级联销毁活塞基座）
                 Player* stopPlayer = _getPlayerEntity(playerId, *world);
                 if (stopPlayer != nullptr) {
-                    const_cast<Block&>(state->getBlock()).playerWillDestroy(*world, pos, *state, *stopPlayer);
+                    state->getBlockMutable().playerWillDestroy(*world, pos, *state, *stopPlayer);
                 }
 
                 // 创造模式不产生掉落物
@@ -547,7 +547,7 @@ Result<BlockBreakResult> BlockInteractionManager::handleBlockBreak(PlayerId play
     // 通知方块玩家即将破坏（如活塞头在创造模式下级联销毁活塞基座）
     Player* playerEntity = _getPlayerEntity(playerId, *world);
     if (playerEntity != nullptr) {
-        const_cast<Block&>(oldState.getBlock()).playerWillDestroy(*world, pos, oldState, *playerEntity);
+        oldState.getBlockMutable().playerWillDestroy(*world, pos, oldState, *playerEntity);
     }
 
     // 创造模式不产生掉落物

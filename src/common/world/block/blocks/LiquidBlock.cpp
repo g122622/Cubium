@@ -99,6 +99,7 @@ void LiquidBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& sta
 {
     const fluid::FluidState* fluidState = getFluidState(state);
     if (fluidState != nullptr && !fluidState->isEmpty()) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast) — randomTick 是非 const 方法，需要 const_cast
         fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
         fluidRef.randomTick(world, pos, *fluidState, random);
     }
@@ -111,7 +112,7 @@ void LiquidBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockSt
     if (reactWithNeighbors(world, pos, state)) {
         const fluid::FluidState* fluidState = getFluidState(state);
         if (fluidState != nullptr && !fluidState->isEmpty()) {
-            fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+            const fluid::Fluid& fluidRef = fluidState->getFluid();
             world.tickManager().scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
         }
     }
@@ -130,7 +131,7 @@ void LiquidBlock::neighborChanged(
     if (reactWithNeighbors(world, pos, *currentState)) {
         const fluid::FluidState* fluidState = currentState->getFluidState();
         if (fluidState != nullptr && !fluidState->isEmpty()) {
-            fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+            const fluid::Fluid& fluidRef = fluidState->getFluid();
             world.tickManager().scheduleFluidTick(pos, fluidRef, fluidRef.getTickDelay(world));
         }
     }
@@ -170,7 +171,7 @@ BlockState LiquidBlock::updatePostPlacement(const BlockState& state,
             }
 
             if (currentIsSource || neighborIsSource) {
-                fluid::Fluid& fluidRef = const_cast<fluid::Fluid&>(fluidState->getFluid());
+                const fluid::Fluid& fluidRef = fluidState->getFluid();
                 world.tickManager().scheduleFluidTick(currentPos, fluidRef, fluidRef.getTickDelay(world));
             }
         }

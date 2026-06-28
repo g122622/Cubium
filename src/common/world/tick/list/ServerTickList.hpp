@@ -84,17 +84,17 @@ public:
     /**
      * @brief Tick执行回调类型
      */
-    using TickCallback = std::function<void(IWorld&, const BlockPos&, T&)>;
+    using TickCallback = std::function<void(IWorld&, const BlockPos&, const T&)>;
 
     /**
      * @brief 过滤器类型，返回true表示忽略该目标
      */
-    using Filter = std::function<bool(T&)>;
+    using Filter = std::function<bool(const T&)>;
 
     /**
      * @brief 序列化函数类型（目标 -> ResourceLocation）
      */
-    using Serializer = std::function<const ResourceLocation&(T&)>;
+    using Serializer = std::function<const ResourceLocation&(const T&)>;
 
     /**
      * @brief 反序列化函数类型（ResourceLocation -> 目标指针）
@@ -118,10 +118,10 @@ public:
     // 引入基类的默认优先级版本
     using ITickList<T>::scheduleTick;
 
-    [[nodiscard]] bool isTickScheduled(const BlockPos& pos, T& target) const override;
-    [[nodiscard]] bool isTickPending(const BlockPos& pos, T& target) const override;
-    void scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority) override;
-    bool cancelTick(const BlockPos& pos, T& target) override;
+    [[nodiscard]] bool isTickScheduled(const BlockPos& pos, const T& target) const override;
+    [[nodiscard]] bool isTickPending(const BlockPos& pos, const T& target) const override;
+    void scheduleTick(const BlockPos& pos, const T& target, i32 delay, TickPriority priority) override;
+    bool cancelTick(const BlockPos& pos, const T& target) override;
     [[nodiscard]] size_t pendingCount() const override;
 
     // ========== 核心方法 ==========
@@ -252,14 +252,14 @@ ServerTickList<T>::ServerTickList(
 {}
 
 template <typename T>
-bool ServerTickList<T>::isTickScheduled(const BlockPos& pos, T& target) const
+bool ServerTickList<T>::isTickScheduled(const BlockPos& pos, const T& target) const
 {
     ScheduledTick<T> key(pos, &target, 0, TickPriority::Normal, 0);
     return m_pendingTicksSet.find(key) != m_pendingTicksSet.end();
 }
 
 template <typename T>
-bool ServerTickList<T>::isTickPending(const BlockPos& pos, T& target) const
+bool ServerTickList<T>::isTickPending(const BlockPos& pos, const T& target) const
 {
     // 检查当前tick待处理队列
     std::queue<ScheduledTick<T>> tempQueue = m_ticksThisTick;
@@ -274,7 +274,7 @@ bool ServerTickList<T>::isTickPending(const BlockPos& pos, T& target) const
 }
 
 template <typename T>
-void ServerTickList<T>::scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority)
+void ServerTickList<T>::scheduleTick(const BlockPos& pos, const T& target, i32 delay, TickPriority priority)
 {
     // 检查过滤器
     if (m_filter && m_filter(target)) {
@@ -298,7 +298,7 @@ void ServerTickList<T>::scheduleTick(const BlockPos& pos, T& target, i32 delay, 
 }
 
 template <typename T>
-bool ServerTickList<T>::cancelTick(const BlockPos& pos, T& target)
+bool ServerTickList<T>::cancelTick(const BlockPos& pos, const T& target)
 {
     ScheduledTick<T> key(pos, &target, 0, TickPriority::Normal, 0);
 

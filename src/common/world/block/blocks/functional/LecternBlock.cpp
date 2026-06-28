@@ -254,7 +254,7 @@ void LecternBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const Bloc
 
     // 如果处于激活状态，通知下方方块更新红石
     if (state.get(BlockStateProperties::POWERED())) {
-        updateBelow(world, pos, state.getBlock());
+        updateBelow(world, pos, state.getBlockMutable());
     }
 
     Block::onBlockRemoved(world, pos, state);
@@ -325,7 +325,7 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, bool hasBook)
     world.setBlockState(pos, &updated, 3);
 
     // 通知下方方块红石更新（POWERED 状态可能改变）
-    updateBelow(world, pos, updated.getBlock());
+    updateBelow(world, pos, updated.getBlockMutable());
 
     if (BlockEntity* blockEntity = world.getBlockEntity(pos);
         blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Lectern) {
@@ -336,24 +336,23 @@ void LecternBlock::setHasBook(IWorld& world, const BlockPos& pos, bool hasBook)
 void LecternBlock::pulse(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     changePowered(world, pos, state, true);
-    world.tickManager().scheduleBlockTick(
-        pos, const_cast<Block&>(state.getBlock()), 2, world::tick::TickPriority::High);
+    world.tickManager().scheduleBlockTick(pos, state.getBlockMutable(), 2, world::tick::TickPriority::High);
 }
 
 void LecternBlock::changePowered(IWorld& world, const BlockPos& pos, const BlockState& state, bool powered)
 {
     BlockState updated = state.with(BlockStateProperties::POWERED(), powered);
     world.setBlockState(pos, &updated, 3);
-    updateBelow(world, pos, state.getBlock());
+    updateBelow(world, pos, state.getBlockMutable());
 }
 
-void LecternBlock::updateBelow(IWorld& world, const BlockPos& pos, const Block& block)
+void LecternBlock::updateBelow(IWorld& world, const BlockPos& pos, Block& block)
 {
     // 讲台向所有方向输出弱信号，仅在上方输出强信号，
     // 红石更新只需通知正下方位置的方块即可，
     // 因为 setBlockState 已经会通知6个方向的邻居执行 updatePostPlacement 和 neighborChanged，
     // 但下方方块作为强信号接收者需要额外的红石更新通知。
-    world.updateNeighbors(pos.down(), const_cast<Block&>(block));
+    world.updateNeighbors(pos.down(), block);
 }
 
 } // namespace blocks

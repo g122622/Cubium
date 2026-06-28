@@ -163,8 +163,7 @@ void RedstoneSystem::updateComparators(IWorld& world, const BlockPos& pos)
         // 检查是否是红石元件（包括比较器）
         if (neighborBlock.canProvidePower(*neighborState)) {
             // 使用 IWorld 的封装方法
-            world.notifyNeighborChanged(
-                neighborPos, *neighborState, const_cast<Block&>(sourceState->getBlock()), pos, false);
+            world.notifyNeighborChanged(neighborPos, *neighborState, sourceState->getBlockMutable(), pos, false);
         }
     }
 }

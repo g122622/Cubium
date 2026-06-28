@@ -73,7 +73,7 @@ void RedstoneTorchBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const 
         BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            Block& neighborBlock = neighborState->getBlockMutable();
             neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
         }
     }
@@ -97,7 +97,7 @@ void RedstoneTorchBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, cons
         BlockPos neighborPos = pos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            Block& neighborBlock = neighborState->getBlockMutable();
             neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
         }
     }

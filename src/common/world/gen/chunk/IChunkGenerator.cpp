@@ -279,7 +279,7 @@ bool WorldGenRegion::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             data->removeBlockEntity(pos);
         }
         if (data != nullptr && state != nullptr && state->getBlock().hasBlockEntity()) {
-            auto& block = const_cast<Block&>(state->getBlock());
+            auto& block = state->getBlockMutable();
             data->setBlockEntity(pos, block.createBlockEntity(pos));
         }
         if (state != nullptr && state->isLiquid()) {

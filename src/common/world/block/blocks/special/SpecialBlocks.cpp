@@ -763,7 +763,7 @@ i32 SpongeBlock::absorb(IWorld& world, const BlockPos& pos)
                 continue;
             }
 
-            Block& block = const_cast<Block&>(blockState->getBlock());
+            Block& block = blockState->getBlockMutable();
 
             // 情况1：可舀取的水源（如水源方块）
             IBucketPickupHandler* bucketPickup = dynamic_cast<IBucketPickupHandler*>(&block);

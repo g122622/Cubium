@@ -42,7 +42,7 @@ MagmaBlock::MagmaBlock(BlockProperties properties)
 void MagmaBlock::onBlockAdded(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
     // 调度 tick 以检查气泡柱
-    Block& block = const_cast<Block&>(state.getBlock());
+    Block& block = state.getBlockMutable();
     world.tickManager().scheduleBlockTick(pos, block, 20);
 }
 

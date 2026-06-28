@@ -180,7 +180,7 @@ void ObserverBlock::_updateNeighborsInFront(IWorld& world, const BlockPos& pos, 
     // 先通知观察面的方块
     const BlockState* observeState = world.getBlockState(observePos);
     if (observeState && !observeState->isAir()) {
-        Block& observeBlock = const_cast<Block&>(observeState->getBlock());
+        Block& observeBlock = observeState->getBlockMutable();
         observeBlock.neighborChanged(world, observePos, *this, pos, false);
     }
 
@@ -191,7 +191,7 @@ void ObserverBlock::_updateNeighborsInFront(IWorld& world, const BlockPos& pos, 
         BlockPos neighborPos = observePos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            Block& neighborBlock = neighborState->getBlockMutable();
             neighborBlock.neighborChanged(world, neighborPos, *this, observePos, false);
         }
     }

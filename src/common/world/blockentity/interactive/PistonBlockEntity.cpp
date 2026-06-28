@@ -243,12 +243,12 @@ void PistonBlockEntity::clearPistonBlockEntity(IWorld& world)
         BlockState updatedState = Block::updateFromNeighbourShapes(*m_pistonState, world, m_pos);
         world.setBlockState(m_pos, &updatedState, 67);
 
-        Block& block = const_cast<Block&>(updatedState.getBlock());
+        Block& block = updatedState.getBlockMutable();
         for (Direction dir : Directions::all()) {
             const BlockPos neighborPos = m_pos.offset(dir);
             const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState != nullptr && !neighborState->isAir()) {
-                Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                Block& neighborBlock = neighborState->getBlockMutable();
                 neighborBlock.neighborChanged(world, neighborPos, block, m_pos, false);
             }
         }

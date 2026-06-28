@@ -75,9 +75,8 @@ void TrappedChestEntity::openContainer(Player* player)
         if (connected != nullptr) {
             const BlockState* connectedState = m_world->getBlockState(connected->getPos());
             if (connectedState != nullptr) {
-                const Block& connectedBlock = connectedState->getBlock();
                 world::redstone::RedstoneSystem::instance().updateNeighbors(
-                    *m_world, connected->getPos(), const_cast<Block&>(connectedBlock));
+                    *m_world, connected->getPos(), connectedState->getBlockMutable());
                 world::redstone::RedstoneSystem::instance().updateComparators(*m_world, connected->getPos());
             }
         }
@@ -97,9 +96,8 @@ void TrappedChestEntity::closeContainer(Player* player)
         if (connected != nullptr) {
             const BlockState* connectedState = m_world->getBlockState(connected->getPos());
             if (connectedState != nullptr) {
-                const Block& connectedBlock = connectedState->getBlock();
                 world::redstone::RedstoneSystem::instance().updateNeighbors(
-                    *m_world, connected->getPos(), const_cast<Block&>(connectedBlock));
+                    *m_world, connected->getPos(), connectedState->getBlockMutable());
                 world::redstone::RedstoneSystem::instance().updateComparators(*m_world, connected->getPos());
             }
         }
@@ -113,8 +111,7 @@ void TrappedChestEntity::_notifyNeighbors(IWorld& world)
         return;
     }
 
-    const Block& block = state->getBlock();
-    world::redstone::RedstoneSystem::instance().updateNeighbors(world, getPos(), const_cast<Block&>(block));
+    world::redstone::RedstoneSystem::instance().updateNeighbors(world, getPos(), state->getBlockMutable());
     world::redstone::RedstoneSystem::instance().updateComparators(world, getPos());
 }
 

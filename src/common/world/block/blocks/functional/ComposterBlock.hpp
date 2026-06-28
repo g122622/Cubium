@@ -122,7 +122,7 @@ public:
      * @return 新的方块状态（可能改变等级）
      */
     static BlockState attemptCompost(
-        const BlockState& state, IWorld& world, const BlockPos& pos, Block& block, u32 itemId);
+        const BlockState& state, IWorld& world, const BlockPos& pos, const Block& block, u32 itemId);
 
     /**
      * @brief 清空堆肥桶

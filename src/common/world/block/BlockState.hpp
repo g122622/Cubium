@@ -151,9 +151,26 @@ public:
 
     /**
      * @brief 获取此状态所属的方块
-     * @return 方块引用
+     * @return 方块的const引用
      */
     [[nodiscard]] const Block& getBlock() const { return owner(); }
+
+    /**
+     * @brief 获取此状态所属方块的可变引用
+     *
+     * Block 对象在 BlockRegistry 中注册，生命周期与程序相同，
+     * 且 BlockRegistry 以非const方式持有 Block。此方法提供了从
+     * BlockState 获取非const Block 引用的安全途径，避免了调用方
+     * 需要手动 const_cast 的不便。
+     *
+     * 适用场景：调用 Block 的非const虚方法（如 tick、onBlockAdded、
+     * onBlockRemoved、neighborChanged、scheduleBlockTick 等），
+     * 这些方法在语义上不修改 Block 对象自身的状态，但由于 C++
+     * 虚方法机制需要非const引用。
+     *
+     * @return 方块的可变引用
+     */
+    [[nodiscard]] Block& getBlockMutable() const { return const_cast<Block&>(owner()); }
 
     /**
      * @brief 获取光照透明度 (0-15)

@@ -332,14 +332,14 @@ void AbstractButtonBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, Di
     BlockPos outputPos = pos.offset(outputDir);
     const BlockState* outputState = world.getBlockState(outputPos);
     if (outputState && !outputState->isAir()) {
-        Block& outputBlock = const_cast<Block&>(outputState->getBlock());
+        Block& outputBlock = outputState->getBlockMutable();
         outputBlock.neighborChanged(world, outputPos, *this, pos, false);
     }
 
     // 通过支撑方块传递信号（支撑方块也被充能）
     const BlockState* supportState = world.getBlockState(supportPos);
     if (supportState && !supportState->isAir()) {
-        Block& supportBlock = const_cast<Block&>(supportState->getBlock());
+        Block& supportBlock = supportState->getBlockMutable();
         supportBlock.neighborChanged(world, supportPos, *this, pos, false);
     }
 }

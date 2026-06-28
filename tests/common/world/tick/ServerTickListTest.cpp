@@ -240,13 +240,13 @@ TEST(ServerTickListTest, TickRemovesEntryFromPendingSetBeforeExecution)
 
     ServerTickList<MockTickTarget> tickList(
         world,
-        [](MockTickTarget&) { return false; },
-        [](MockTickTarget&) -> const mc::ResourceLocation& {
+        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) -> const mc::ResourceLocation& {
             static const mc::ResourceLocation id("test", "mock_target");
             return id;
         },
         [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
-        [&executionCount](mc::IWorld&, const mc::BlockPos&, MockTickTarget&) { ++executionCount; });
+        [&executionCount](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) { ++executionCount; });
 
     const mc::BlockPos pos(64, 62, 87);
     tickList.setCurrentTick(20);

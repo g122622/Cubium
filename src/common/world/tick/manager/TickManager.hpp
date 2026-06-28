@@ -78,7 +78,7 @@ public:
      * @param block 方块引用
      * @param delay 延迟tick数
      */
-    void scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay);
+    void scheduleBlockTick(const BlockPos& pos, const Block& block, i32 delay);
 
     /**
      * @brief 调度方块tick（指定优先级）
@@ -88,7 +88,7 @@ public:
      * @param delay 延迟tick数
      * @param priority 执行优先级
      */
-    void scheduleBlockTick(const BlockPos& pos, Block& block, i32 delay, TickPriority priority);
+    void scheduleBlockTick(const BlockPos& pos, const Block& block, i32 delay, TickPriority priority);
 
     /**
      * @brief 检查方块tick是否已调度
@@ -97,7 +97,7 @@ public:
      * @param block 方块引用
      * @return 是否已调度
      */
-    [[nodiscard]] bool isBlockTickScheduled(const BlockPos& pos, Block& block) const;
+    [[nodiscard]] bool isBlockTickScheduled(const BlockPos& pos, const Block& block) const;
 
     /**
      * @brief 检查方块tick是否在本tick待执行
@@ -106,7 +106,7 @@ public:
      * @param block 方块引用
      * @return 是否本tick待执行
      */
-    [[nodiscard]] bool isBlockTickPending(const BlockPos& pos, Block& block) const;
+    [[nodiscard]] bool isBlockTickPending(const BlockPos& pos, const Block& block) const;
 
     /**
      * @brief 取消方块tick
@@ -115,7 +115,7 @@ public:
      * @param block 方块引用
      * @return 是否成功取消
      */
-    bool cancelBlockTick(const BlockPos& pos, Block& block);
+    bool cancelBlockTick(const BlockPos& pos, const Block& block);
 
     // ========== 流体tick调度 ==========
 
@@ -126,7 +126,7 @@ public:
      * @param fluid 流体引用
      * @param delay 延迟tick数
      */
-    void scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay);
+    void scheduleFluidTick(const BlockPos& pos, const fluid::Fluid& fluid, i32 delay);
 
     /**
      * @brief 调度流体tick（指定优先级）
@@ -136,7 +136,7 @@ public:
      * @param delay 延迟tick数
      * @param priority 执行优先级
      */
-    void scheduleFluidTick(const BlockPos& pos, fluid::Fluid& fluid, i32 delay, TickPriority priority);
+    void scheduleFluidTick(const BlockPos& pos, const fluid::Fluid& fluid, i32 delay, TickPriority priority);
 
     /**
      * @brief 检查流体tick是否已调度
@@ -145,7 +145,7 @@ public:
      * @param fluid 流体引用
      * @return 是否已调度
      */
-    [[nodiscard]] bool isFluidTickScheduled(const BlockPos& pos, fluid::Fluid& fluid) const;
+    [[nodiscard]] bool isFluidTickScheduled(const BlockPos& pos, const fluid::Fluid& fluid) const;
 
     /**
      * @brief 检查流体tick是否在本tick待执行
@@ -154,7 +154,7 @@ public:
      * @param fluid 流体引用
      * @return 是否本tick待执行
      */
-    [[nodiscard]] bool isFluidTickPending(const BlockPos& pos, fluid::Fluid& fluid) const;
+    [[nodiscard]] bool isFluidTickPending(const BlockPos& pos, const fluid::Fluid& fluid) const;
 
     /**
      * @brief 取消流体tick
@@ -163,7 +163,7 @@ public:
      * @param fluid 流体引用
      * @return 是否成功取消
      */
-    bool cancelFluidTick(const BlockPos& pos, fluid::Fluid& fluid);
+    bool cancelFluidTick(const BlockPos& pos, const fluid::Fluid& fluid);
 
     // ========== 执行tick ==========
 

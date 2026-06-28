@@ -1012,8 +1012,8 @@ void Entity::_handleLandingOnBlock()
         static_cast<i32>(std::floor(m_position.z)));
     const BlockState* state = m_world->getBlockState(landingPos);
     if (state != nullptr) {
-        // onFallenUpon 是非 const 方法，但逻辑上不会修改方块本身
-        const_cast<Block&>(state->getBlock()).onFallenUpon(*m_world, landingPos, *state, *this, m_fallDistance);
+        // onFallenUpon 是非 const 方法，需要通过 getBlockMutable() 获取可变引用
+        state->getBlockMutable().onFallenUpon(*m_world, landingPos, *state, *this, m_fallDistance);
     }
 }
 

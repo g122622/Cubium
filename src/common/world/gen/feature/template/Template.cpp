@@ -851,7 +851,7 @@ bool Template::placeInWorld(
 
         // 处理液体填充
         if (fluidState && !fluidState->isEmpty()) {
-            Block& block = const_cast<Block&>(transformedState->getBlock());
+            Block& block = transformedState->getBlockMutable();
             ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
             if (liquidContainer &&
                 liquidContainer->canContainFluid(
@@ -902,7 +902,7 @@ bool Template::placeInWorld(
                 if (bestFluid && bestFluid->isSource()) {
                     const BlockState* blockState = world.getBlockState(fluidPos);
                     if (blockState) {
-                        Block& block = const_cast<Block&>(blockState->getBlock());
+                        Block& block = blockState->getBlockMutable();
                         ILiquidContainer* liquidContainer = dynamic_cast<ILiquidContainer*>(&block);
                         if (liquidContainer &&
                             liquidContainer->canContainFluid(world, fluidPos, *blockState, bestFluid->getFluid())) {

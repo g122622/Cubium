@@ -620,7 +620,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         }
 
         if (!oldIsAir && blockTypeChanged) {
-            Block& oldBlock = const_cast<Block&>(oldState->getBlock());
+            Block& oldBlock = oldState->getBlockMutable();
             oldBlock.onBlockRemoved(*this, changedPos, *oldState);
         }
     }
@@ -638,13 +638,13 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         }
 
         if (!newIsAir && blockTypeChanged) {
-            Block& newBlock = const_cast<Block&>(newState->getBlock());
+            Block& newBlock = newState->getBlockMutable();
             newBlock.onBlockAdded(*this, changedPos, *newState);
         }
 
         // 新方块有方块实体时创建
         if (!newIsAir && newState->getBlock().hasBlockEntity()) {
-            Block& newBlock = const_cast<Block&>(newState->getBlock());
+            Block& newBlock = newState->getBlockMutable();
             auto blockEntity = newBlock.createBlockEntity(changedPos);
             if (blockEntity != nullptr) {
                 setBlockEntity(changedPos, blockEntity.release());
@@ -660,7 +660,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     const BlockState* sourceState = (!newIsAir) ? newState : oldState;
     Block* sourceBlock = nullptr;
     if (sourceState != nullptr && !sourceState->isAir()) {
-        sourceBlock = &const_cast<Block&>(sourceState->getBlock());
+        sourceBlock = &sourceState->getBlockMutable();
     }
 
     struct NeighborDelta {
@@ -698,7 +698,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
                     neighborPos.z);
 
                 if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
-                    Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                    Block& neighborBlock = neighborState->getBlockMutable();
                     const BlockState* stateBeforeUpdate = neighborState;
                     BlockState updatedStateValue = neighborBlock.updatePostPlacement(*neighborState,
                         Directions::opposite(neighbor.direction),
@@ -735,7 +735,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
                     neighborPos.z);
 
                 if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
-                    Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                    Block& neighborBlock = neighborState->getBlockMutable();
                     neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
                 }
             }
@@ -777,7 +777,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             return;
         }
 
-        fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
+        const fluid::Fluid& fluid = fluidState->getFluid();
         m_tickManager->scheduleFluidTick(pos, fluid, fluid.getTickDelay(*this), world::tick::TickPriority::Normal);
     };
 
@@ -1110,7 +1110,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
                 if (blockState) {
                     // 执行方块随机刻
                     if (blockState->getBlock().ticksRandomly()) {
-                        Block& block = const_cast<Block&>(blockState->getBlock());
+                        Block& block = blockState->getBlockMutable();
                         block.randomTick(*this, pos, const_cast<BlockState&>(*blockState), m_random);
 
                         // 派发自定义方块组件回调 - onRandomTick
@@ -1130,6 +1130,8 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
                     // 执行流体随机刻
                     const fluid::FluidState* fluidState = blockState->getFluidState();
                     if (fluidState && !fluidState->isEmpty() && fluidState->getFluid().ticksRandomly()) {
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast) — randomTick 是非 const 方法，需要
+                        // const_cast
                         fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
                         fluid.randomTick(*this, pos, *fluidState, m_random);
                     }
@@ -1257,7 +1259,7 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
                 if (precipitation != BiomeClimate::Precipitation::None) {
                     const BlockState* surfaceState = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
                     if (surfaceState != nullptr) {
-                        Block& block = const_cast<Block&>(surfaceState->getBlock());
+                        Block& block = surfaceState->getBlockMutable();
                         block.handlePrecipitation(*this, surfacePos, precipitation);
                     }
                 }

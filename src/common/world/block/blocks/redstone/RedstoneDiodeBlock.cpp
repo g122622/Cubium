@@ -139,7 +139,7 @@ void RedstoneDiodeBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
         BlockPos outputPos = pos.offset(facing);
         const BlockState* outputState = world.getBlockState(outputPos);
         if (outputState && !outputState->isAir()) {
-            Block& outputBlock = const_cast<Block&>(outputState->getBlock());
+            Block& outputBlock = outputState->getBlockMutable();
             outputBlock.neighborChanged(world, outputPos, *this, pos, false);
         }
     }
@@ -320,7 +320,7 @@ void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, con
     // 先通知输入端的方块
     const BlockState* inputState = world.getBlockState(inputPos);
     if (inputState && !inputState->isAir()) {
-        Block& inputBlock = const_cast<Block&>(inputState->getBlock());
+        Block& inputBlock = inputState->getBlockMutable();
         inputBlock.neighborChanged(world, inputPos, *this, pos, false);
     }
 
@@ -331,7 +331,7 @@ void RedstoneDiodeBlock::notifyNeighbors(IWorld& world, const BlockPos& pos, con
         BlockPos neighborPos = inputPos.offset(dir);
         const BlockState* neighborState = world.getBlockState(neighborPos);
         if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            Block& neighborBlock = neighborState->getBlockMutable();
             neighborBlock.neighborChanged(world, neighborPos, *this, inputPos, false);
         }
     }

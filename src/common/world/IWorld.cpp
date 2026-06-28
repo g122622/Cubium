@@ -111,9 +111,8 @@ void IWorld::notifyNeighborChanged(const BlockPos& neighborPos,
     const BlockPos& sourcePos,
     bool isMoving)
 {
-    // 封装 const_cast，因为 neighborChanged 是非 const 成员函数
     // neighborChanged 需要调度 tick，因此不能是 const 方法
-    const_cast<Block&>(neighborState.getBlock()).neighborChanged(*this, neighborPos, sourceBlock, sourcePos, isMoving);
+    neighborState.getBlockMutable().neighborChanged(*this, neighborPos, sourceBlock, sourcePos, isMoving);
 }
 
 void IWorld::updateNeighbors(const BlockPos& pos, Block& sourceBlock)

@@ -233,9 +233,7 @@ void ProjectileEntity::onBlockHit(const RayTraceResult& result)
     if (m_world != nullptr && result.type == RayTraceResultType::Block) {
         const BlockState* state = m_world->getBlockState(result.blockPos);
         if (state != nullptr) {
-            // Block::onProjectileHit 是非 const 方法（方块交互可能修改世界状态），
-            // 而 BlockState::owner() 返回 const Block&，因此需要 const_cast
-            Block& block = const_cast<Block&>(state->owner());
+            Block& block = state->getBlockMutable();
             BlockRaycastResult hitResult =
                 BlockRaycastResult::hit(result.hitPosition, result.blockPos, result.face, 0.0f);
             block.onProjectileHit(*m_world, *state, hitResult, *this);
