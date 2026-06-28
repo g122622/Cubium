@@ -45,6 +45,7 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/entity/EntityChunkTracker.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
@@ -1238,6 +1239,9 @@ private:
 
     // 游戏事件分发器
     std::unique_ptr<gameevent::GameEventDispatcher> m_gameEventDispatcher; ///< 游戏事件分发器
+
+    // 幽匿方块实体振动系统管理器
+    SculkVibrationManager m_sculkVibrationManager;
 
     // 世界边界
     world::border::WorldBorder m_worldBorder; ///< 世界边界

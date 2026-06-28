@@ -36,15 +36,11 @@ namespace blockentity {
  * @brief 幽匿感测体方块实体
  *
  * 检测振动并输出红石信号的方块实体。存储振动系统数据和最后振动频率。
- * VibrationSystem 的集成（User/Listener/Ticker）在服务端目录中实现，
- * 避免方块实体对 ServerWorld 的编译依赖。
  *
- * 服务端集成需要在以下位置完成：
- * - SculkSensorBlockEntityServer.cpp: 定义 VibrationSystem::User 子类
- * - ServerWorld::setBlockEntity(): 注册 VibrationSystem::Listener 到
- *   GameEventListenerRegistry
- * - ServerWorld::tickBlockEntities(): 驱动 VibrationSystem::Ticker::tick()
- * - ServerWorld::removeBlockEntity(): 注销 Listener
+ * VibrationSystem 的集成采用"附件"模式：
+ * - 本类持有 VibrationSystem::Data（序列化/反序列化）
+ * - SculkVibrationSystem（服务端）持有 VibrationSystem::User 和 Listener
+ * - SculkVibrationManager 在 ServerWorld 中管理附件的生命周期
  *
  * 振动系统数据通过 NBT/JSON 序列化保存到存档，键名为 "listener"，
  * 与 MC 原版 SculkSensorBlockEntity 的序列化格式兼容。

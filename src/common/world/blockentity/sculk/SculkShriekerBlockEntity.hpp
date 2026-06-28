@@ -37,15 +37,11 @@ namespace blockentity {
  *
  * 接收振动信号并递增警告等级。当警告等级达到阈值（4级）时，
  * 可召唤监守者（Warden）。存储振动系统数据和警告等级。
- * VibrationSystem 的集成（User/Listener/Ticker）在服务端目录中实现，
- * 避免方块实体对 ServerWorld 的编译依赖。
  *
- * 服务端集成需要在以下位置完成：
- * - SculkShriekerBlockEntityServer.cpp: 定义 VibrationSystem::User 子类
- * - ServerWorld::setBlockEntity(): 注册 VibrationSystem::Listener 到
- *   GameEventListenerRegistry
- * - ServerWorld::tickBlockEntities(): 驱动 VibrationSystem::Ticker::tick()
- * - ServerWorld::removeBlockEntity(): 注销 Listener
+ * VibrationSystem 的集成采用"附件"模式：
+ * - 本类持有 VibrationSystem::Data（序列化/反序列化）
+ * - SculkVibrationSystem（服务端）持有 VibrationSystem::User 和 Listener
+ * - SculkVibrationManager 在 ServerWorld 中管理附件的生命周期
  *
  * 警告等级和振动系统数据通过 NBT/JSON 序列化保存到存档，
  * 与 MC 原版 SculkShriekerBlockEntity 的序列化格式兼容。

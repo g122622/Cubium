@@ -55,6 +55,9 @@
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/sculk/SculkSensorBlockEntity.hpp"
+#include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -77,6 +80,7 @@
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
+#include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "weather/WeatherManager.hpp"
 #include <algorithm>
 #include <array>
@@ -166,6 +170,9 @@ Result<void> ServerWorld::initialize()
 
     // 初始化游戏事件分发器
     m_gameEventDispatcher = std::make_unique<gameevent::GameEventDispatcher>(*this);
+
+    // 初始化幽匿振动系统管理器
+    m_sculkVibrationManager.setWorld(*this);
 
     // 初始化村庄和袭击管理器
     m_villageManager = std::make_unique<world::village::VillageManager>(*this);
@@ -879,6 +886,20 @@ void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
     // 如果有旧实体，它会被自动销毁
     // 标记区块为已修改
     chunk->setDirty(true);
+
+    // 对齐 MC Java: LevelChunk.addAndRegisterBlockEntity()
+    // 检测幽匿方块实体并注册振动监听器到 GameEventListenerRegistry
+    if (entity->getType() == BlockEntityType::SculkSensor) {
+        auto* sensor = dynamic_cast<blockentity::SculkSensorBlockEntity*>(entity);
+        if (sensor != nullptr) {
+            m_sculkVibrationManager.registerSculkSensor(*sensor);
+        }
+    } else if (entity->getType() == BlockEntityType::SculkShrieker) {
+        auto* shrieker = dynamic_cast<blockentity::SculkShriekerBlockEntity*>(entity);
+        if (shrieker != nullptr) {
+            m_sculkVibrationManager.registerSculkShrieker(*shrieker);
+        }
+    }
 }
 
 void ServerWorld::removeBlockEntity(const BlockPos& pos)
@@ -903,6 +924,10 @@ void ServerWorld::removeBlockEntity(const BlockPos& pos)
     // 如果有旧实体，标记区块为已修改
     if (oldEntity) {
         chunk->setDirty(true);
+
+        // 对齐 MC Java: LevelChunk.removeBlockEntity() → removeGameEventListener()
+        // 注销幽匿方块实体的振动监听器
+        m_sculkVibrationManager.unregisterSculkBlockEntity(pos);
     }
 }
 
@@ -1069,6 +1094,10 @@ void ServerWorld::tickBlockEntities()
         }
         return true;
     });
+
+    // 对齐 MC Java: Block.getTicker() → VibrationSystem.Ticker.tick()
+    // 驱动所有已注册幽匿方块实体的振动系统 tick
+    m_sculkVibrationManager.tickAll();
 }
 
 // ============================================================================
