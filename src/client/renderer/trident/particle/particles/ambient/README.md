@@ -7,6 +7,7 @@ ambient/
 ├── BubbleParticle.hpp/cpp        # 水下气泡粒子
 ├── BubblePopParticle.hpp/cpp     # 气泡破裂粒子（BubbleParticle 离开水面时生成）
 ├── CloudParticle.hpp/cpp         # 云朵、屏障、水花、海豚粒子
+├── NetherSporeParticle.hpp/cpp   # 下界孢子粒子（CrimsonSporeParticle + WarpedSporeParticle）
 ├── SporeBlossomParticle.hpp/cpp  # 孢子花粒子（掉落+空气漂浮）
 ├── SuspendedTownParticle.hpp/cpp # 菌丝悬浮粒子（幻翼翼尖、菌丝方块表面）
 └── UnderwaterParticle.hpp/cpp    # 水下悬浮粒子
@@ -17,6 +18,10 @@ ambient/
 - `BarrierParticle` - 屏障粒子
 - `WaterWakeParticle` - 水花粒子
 - `DolphinParticle` - 海豚粒子
+
+**NetherSporeParticle.hpp 包含的粒子类：**
+- `CrimsonSporeParticle` - 绯红孢子（红紫色，绯红森林环境粒子）
+- `WarpedSporeParticle` - 诡异孢子（青绿色，诡异森林环境粒子）
 
 **SporeBlossomParticle.hpp 包含的粒子类：**
 - `FallingSporeBlossomParticle` - 孢子花掉落粒子

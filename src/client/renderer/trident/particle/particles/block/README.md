@@ -6,10 +6,17 @@
 
 ```
 block/
-├── DiggingParticle.hpp     # 挖掘粒子（破坏方块时产生）
-├── DiggingParticle.cpp     # 挖掘粒子实现
+├── DiggingParticle.hpp     # 挖掘粒子 + 方块标记粒子 + 方块碎裂粒子
+├── DiggingParticle.cpp     # 挖掘粒子、方块标记粒子、方块碎裂粒子实现
+├── ComposterParticle.hpp   # 堆肥桶粒子（棕色灰尘，重力下落+旋转漂移）
+├── ComposterParticle.cpp   # 堆肥桶粒子实现
+├── WaxParticle.hpp         # 涂蜡粒子（WaxOn 蜂蜜黄）+ 除蜡粒子（WaxOff 铜锈绿）
+├── WaxParticle.cpp         # 涂蜡/除蜡粒子实现
+├── ScrapeParticle.hpp      # 铜氧化刮削粒子（铜棕色灰尘）
+├── ScrapeParticle.cpp      # 刮削粒子实现
 ├── DustPillarParticle.hpp  # 尘柱粒子（重锤砸地攻击产生，使用方块纹理）
-└── DustPillarParticle.cpp  # 尘柱粒子实现
+├── DustPillarParticle.cpp  # 尘柱粒子实现
+└── ItemParticle.hpp/cpp    # 物品粒子（Item/ItemSlime/ItemCobweb/ItemSnowball 共用）
 ```
 
 ## 内部模块关系
@@ -17,6 +24,11 @@ block/
 - `DustPillarParticle` 继承自 `DiggingParticle`，复用方块纹理渲染逻辑（`_initializeBlockTexture()`、`buildVertices()` 等）。
 - `DustPillarParticle` 重写重力（1.0 vs DiggingParticle 的 0.03）和生命周期（20-40 tick vs 16-24 tick），以匹配 MC Java 的 DustPillarProvider 行为。
 - `DustPillarParticle` 在构造函数中重写速度：X/Z 替换为 `nextGaussian() / 30.0`（极低水平扩散），Y 保留传入值并叠加 `nextGaussian() / 2.0`（先扬后抑的抛物线），匹配 MC Java 的 `DustPillarProvider.setParticleSpeed()` 行为。
+- `BlockMarkerParticle` 和 `BlockCrumbleParticle` 与 `DiggingParticle` 共存于同一文件，共享方块纹理初始化逻辑和 `buildVertices()` 渲染逻辑。
+- `BlockMarkerParticle` 不移动、不受重力，用于结构方块静态标记显示。
+- `BlockCrumbleParticle` 比 `DiggingParticle` 更小（0.05 vs 0.1）且生命周期更短（15 vs 20 tick）。
+- `ComposterParticle`、`WaxOnParticle`、`WaxOffParticle`、`ScrapeParticle` 均继承自 `Particle`，使用 `PARTICLE_SHEET_OPAQUE` 渲染类型和 `falling_dust`/`wax_on`/`wax_off`/`scrape` 纹理，行为类似 `FallingDustParticle`（重力下落 + 旋转 + 水平漂移 + 淡出 + 淡入缩放）。
+- `ItemParticle` 用于物品破碎效果，当前使用占位纹理 `generic`，待 ItemModelCache 集成后将使用物品纹理图集。Item/ItemSlime/ItemCobweb/ItemSnowball 四种 ParticleTypeId 均注册为 `ItemParticle::create`，行为相同仅类型 ID 不同。
 
 ## 上下游外部依赖关系
 

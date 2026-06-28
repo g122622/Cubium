@@ -108,4 +108,158 @@ void BubbleParticle::tick(mc::client::ClientWorld* world)
     }
 }
 
+// ============================================================================
+// CurrentDownParticle
+// ============================================================================
+
+CurrentDownParticle::CurrentDownParticle(const glm::vec3& pos, const glm::vec3& velocity)
+    : Particle(pos, velocity)
+{
+    // 与 BubbleParticle 相同的尺寸
+    setSize(0.02f + m_random.nextFloat() * 0.02f);
+
+    // 速度缩放 0.2 倍加上随机偏移
+    m_velocity.x = m_velocity.x * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
+    m_velocity.y = m_velocity.y * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
+    m_velocity.z = m_velocity.z * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
+
+    setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.6f));
+
+    setFriction(0.85f);
+    setHasPhysics(false);
+
+    // 生命周期 = (int)(8.0 / (rand * 0.8 + 0.2))，与 BubbleParticle 相同
+    setMaxAge(static_cast<f64>(static_cast<i32>(8.0 / (m_random.nextFloat() * 0.8f + 0.2f))));
+}
+
+std::unique_ptr<Particle> CurrentDownParticle::create(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    return std::make_unique<CurrentDownParticle>(pos, velocity);
+}
+
+void CurrentDownParticle::tick(mc::client::ClientWorld* world)
+{
+    // 保存上一帧位置
+    m_prevPosition = m_position;
+
+    // 生命周期递增
+    m_age += 1.0f;
+    if (m_age >= m_maxAge) {
+        setExpired();
+        return;
+    }
+
+    // 向下移动（与 BubbleParticle 方向相反）
+    m_velocity.y -= 0.005f;
+
+    // 摩擦衰减
+    m_velocity.x *= static_cast<f32>(m_friction);
+    m_velocity.y *= static_cast<f32>(m_friction);
+    m_velocity.z *= static_cast<f32>(m_friction);
+
+    // 直接移动，不做碰撞检测
+    m_position += m_velocity;
+
+    // 检查是否离开水面：如果不在水中则消失（不生成 BubblePop）
+    if (world != nullptr) {
+        i32 blockX = mc::math::floorTo<i32>(m_position.x);
+        i32 blockY = mc::math::floorTo<i32>(m_position.y);
+        i32 blockZ = mc::math::floorTo<i32>(m_position.z);
+
+        const BlockState* state = world->getBlockState(blockX, blockY, blockZ);
+        if (state != nullptr && !state->isAir()) {
+            const mc::fluid::FluidState* fluidState = state->getFluidState();
+            if (fluidState == nullptr || fluidState->isEmpty() ||
+                !fluidState->getFluid().isIn(mc::fluid::FluidTags::WATER())) {
+                // 离开水面，直接消失
+                setExpired();
+                return;
+            }
+        } else {
+            // 不在方块中（空气），直接消失
+            setExpired();
+            return;
+        }
+    }
+}
+
+// ============================================================================
+// BubbleColumnUpParticle
+// ============================================================================
+
+BubbleColumnUpParticle::BubbleColumnUpParticle(const glm::vec3& pos, const glm::vec3& velocity)
+    : Particle(pos, velocity)
+{
+    // 与 BubbleParticle 相同的尺寸
+    setSize(0.02f + m_random.nextFloat() * 0.02f);
+
+    // 速度缩放 0.2 倍加上随机偏移
+    m_velocity.x = m_velocity.x * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
+    m_velocity.y = m_velocity.y * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
+    m_velocity.z = m_velocity.z * 0.2f + (m_random.nextFloat() * 2.0f - 1.0f) * 0.02f;
+
+    setColor(glm::vec4(1.0f, 1.0f, 1.0f, 0.6f));
+
+    setFriction(0.85f);
+    setHasPhysics(false);
+
+    // 生命周期 = (int)(8.0 / (rand * 0.8 + 0.2))，与 BubbleParticle 相同
+    setMaxAge(static_cast<f64>(static_cast<i32>(8.0 / (m_random.nextFloat() * 0.8f + 0.2f))));
+}
+
+std::unique_ptr<Particle> BubbleColumnUpParticle::create(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    return std::make_unique<BubbleColumnUpParticle>(pos, velocity);
+}
+
+void BubbleColumnUpParticle::tick(mc::client::ClientWorld* world)
+{
+    // 保存上一帧位置
+    m_prevPosition = m_position;
+
+    // 生命周期递增
+    m_age += 1.0f;
+    if (m_age >= m_maxAge) {
+        setExpired();
+        return;
+    }
+
+    // 气泡浮力（与 BubbleParticle 相同，向上）
+    m_velocity.y += 0.005f;
+
+    // 摩擦衰减
+    m_velocity.x *= static_cast<f32>(m_friction);
+    m_velocity.y *= static_cast<f32>(m_friction);
+    m_velocity.z *= static_cast<f32>(m_friction);
+
+    // 直接移动，不做碰撞检测
+    m_position += m_velocity;
+
+    // 检查是否离开水面：静默消失（不生成 BubblePop 粒子）
+    if (world != nullptr) {
+        i32 blockX = mc::math::floorTo<i32>(m_position.x);
+        i32 blockY = mc::math::floorTo<i32>(m_position.y);
+        i32 blockZ = mc::math::floorTo<i32>(m_position.z);
+
+        const BlockState* state = world->getBlockState(blockX, blockY, blockZ);
+        if (state != nullptr && !state->isAir()) {
+            const mc::fluid::FluidState* fluidState = state->getFluidState();
+            if (fluidState == nullptr || fluidState->isEmpty() ||
+                !fluidState->getFluid().isIn(mc::fluid::FluidTags::WATER())) {
+                // 离开水面，静默消失
+                setExpired();
+                return;
+            }
+        } else {
+            // 不在方块中（空气），静默消失
+            setExpired();
+            return;
+        }
+    }
+}
+
 } // namespace mc::client::renderer::trident::particle::particles

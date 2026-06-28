@@ -64,4 +64,56 @@ public:
     }
 };
 
+/**
+ * @brief 向下水流粒子
+ *
+ * 气泡柱中向下移动的气泡粒子，与 BubbleParticle 方向相反。
+ * 如果离开水面则直接消失（不生成 BubblePop）。
+ */
+class CurrentDownParticle : public Particle {
+public:
+    CurrentDownParticle(const glm::vec3& pos, const glm::vec3& velocity);
+
+    static std::unique_ptr<Particle> create(
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
+
+    void tick(mc::client::ClientWorld* world) override;
+
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+    }
+
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
+        return ResourceLocation("minecraft:particle/bubble");
+    }
+};
+
+/**
+ * @brief 气泡柱上升粒子
+ *
+ * 气泡柱中向上移动的气泡粒子，与 BubbleParticle 行为类似，
+ * 但离开水面时静默消失（不生成 BubblePop 粒子）。
+ */
+class BubbleColumnUpParticle : public Particle {
+public:
+    BubbleColumnUpParticle(const glm::vec3& pos, const glm::vec3& velocity);
+
+    static std::unique_ptr<Particle> create(
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
+
+    void tick(mc::client::ClientWorld* world) override;
+
+    [[nodiscard]] ParticleRenderType getRenderType() const override
+    {
+        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
+    }
+
+    [[nodiscard]] ResourceLocation getTextureLocation() const override
+    {
+        return ResourceLocation("minecraft:particle/bubble");
+    }
+};
+
 } // namespace mc::client::renderer::trident::particle::particles

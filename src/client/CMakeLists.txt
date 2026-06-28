@@ -67,36 +67,73 @@ add_executable(minecraft-client
     renderer/trident/particle/particles/ambient/BubblePopParticle.cpp
     renderer/trident/particle/particles/ambient/UnderwaterParticle.cpp
     renderer/trident/particle/particles/ambient/CloudParticle.cpp
+    renderer/trident/particle/particles/ambient/NetherSporeParticle.cpp
     renderer/trident/particle/particles/ambient/SporeBlossomParticle.cpp
     renderer/trident/particle/particles/ambient/SuspendedTownParticle.cpp
     # 粒子实现 - 效果
-    renderer/trident/particle/particles/effect/FlameParticle.cpp
-    renderer/trident/particle/particles/effect/SmokeParticle.cpp
-    renderer/trident/particle/particles/effect/WhiteSmokeParticle.cpp
-    renderer/trident/particle/particles/effect/LavaParticle.cpp
-    renderer/trident/particle/particles/effect/PortalParticle.cpp
-    renderer/trident/particle/particles/effect/CritParticle.cpp
-    renderer/trident/particle/particles/effect/ExplosionParticle.cpp
-    renderer/trident/particle/particles/effect/EmitterParticle.cpp
-    renderer/trident/particle/particles/effect/PoofParticle.cpp
-    renderer/trident/particle/particles/effect/SpellParticle.cpp
-    renderer/trident/particle/particles/effect/DragonBreathParticle.cpp
-    renderer/trident/particle/particles/effect/SoulParticle.cpp
-    renderer/trident/particle/particles/effect/RedstoneParticle.cpp
+    renderer/trident/particle/particles/effect/AshParticle.cpp
     renderer/trident/particle/particles/effect/CampfireParticle.cpp
+    renderer/trident/particle/particles/effect/CopperFireFlameParticle.cpp
+    renderer/trident/particle/particles/effect/CritParticle.cpp
+    renderer/trident/particle/particles/effect/DamageIndicatorParticle.cpp
+    renderer/trident/particle/particles/effect/DragonBreathParticle.cpp
+    renderer/trident/particle/particles/effect/DustParticle.cpp
+    renderer/trident/particle/particles/effect/DustPlumeParticle.cpp
+    renderer/trident/particle/particles/effect/EggCrackParticle.cpp
+    renderer/trident/particle/particles/effect/ElderGuardianParticle.cpp
+    renderer/trident/particle/particles/effect/ElectricSparkParticle.cpp
+    renderer/trident/particle/particles/effect/EmitterParticle.cpp
+    renderer/trident/particle/particles/effect/ExplosionParticle.cpp
+    renderer/trident/particle/particles/effect/FireflyParticle.cpp
+    renderer/trident/particle/particles/effect/FireworkParticle.cpp
+    renderer/trident/particle/particles/effect/FlameParticle.cpp
+    renderer/trident/particle/particles/effect/FlashParticle.cpp
+    renderer/trident/particle/particles/effect/GlowParticle.cpp
+    renderer/trident/particle/particles/effect/GustEmitterParticle.cpp
+    renderer/trident/particle/particles/effect/GustParticle.cpp
+    renderer/trident/particle/particles/effect/InfestedParticle.cpp
+    renderer/trident/particle/particles/effect/ItemPickupParticle.cpp
+    renderer/trident/particle/particles/effect/LavaParticle.cpp
+    renderer/trident/particle/particles/effect/LightParticle.cpp
+    renderer/trident/particle/particles/effect/NoteParticle.cpp
+    renderer/trident/particle/particles/effect/OmenParticle.cpp
+    renderer/trident/particle/particles/effect/PortalParticle.cpp
+    renderer/trident/particle/particles/effect/PoofParticle.cpp
+    renderer/trident/particle/particles/effect/RedstoneParticle.cpp
+    renderer/trident/particle/particles/effect/SculkChargeParticle.cpp
+    renderer/trident/particle/particles/effect/SculkSoulParticle.cpp
+    renderer/trident/particle/particles/effect/ShriekParticle.cpp
+    renderer/trident/particle/particles/effect/SmallFlameParticle.cpp
+    renderer/trident/particle/particles/effect/SmokeParticle.cpp
+    renderer/trident/particle/particles/effect/SonicBoomParticle.cpp
+    renderer/trident/particle/particles/effect/SoulParticle.cpp
+    renderer/trident/particle/particles/effect/SpellParticle.cpp
+    renderer/trident/particle/particles/effect/TrialSpawnerParticle.cpp
+    renderer/trident/particle/particles/effect/WhiteSmokeParticle.cpp
     # 粒子实现 - 生物
     renderer/trident/particle/particles/mob/HeartParticle.cpp
+    renderer/trident/particle/particles/mob/SpitParticle.cpp
+    renderer/trident/particle/particles/mob/SquidInkParticle.cpp
+    renderer/trident/particle/particles/mob/TotemParticle.cpp
     renderer/trident/particle/particles/mob/VillagerParticle.cpp
     # 粒子实现 - 特殊
     renderer/trident/particle/particles/special/NautilusParticle.cpp
+    renderer/trident/particle/particles/special/VaultConnectionParticle.cpp
     renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
     # 粒子实现 - 方块
+    renderer/trident/particle/particles/block/ComposterParticle.cpp
     renderer/trident/particle/particles/block/DiggingParticle.cpp
     renderer/trident/particle/particles/block/DustPillarParticle.cpp
+    renderer/trident/particle/particles/block/ItemParticle.cpp
+    renderer/trident/particle/particles/block/LeavesParticle.cpp
+    renderer/trident/particle/particles/block/ScrapeParticle.cpp
+    renderer/trident/particle/particles/block/WaxParticle.cpp
     # 粒子实现 - 液体
+    renderer/trident/particle/particles/liquid/CherryLeavesDripParticle.cpp
     renderer/trident/particle/particles/liquid/DripParticle.cpp
     renderer/trident/particle/particles/liquid/DripWaterParticle.cpp
     renderer/trident/particle/particles/liquid/DripstoneDripParticle.cpp
+    renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
     # 方块破坏效果
     renderer/trident/block/BreakProgressManager.cpp
     renderer/trident/block/BreakProgressRenderer.cpp

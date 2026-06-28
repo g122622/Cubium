@@ -30,31 +30,68 @@
 #include "particles/ambient/BubbleParticle.hpp"
 #include "particles/ambient/BubblePopParticle.hpp"
 #include "particles/ambient/CloudParticle.hpp"
+#include "particles/ambient/NetherSporeParticle.hpp"
 #include "particles/ambient/SporeBlossomParticle.hpp"
 #include "particles/ambient/SuspendedTownParticle.hpp"
 #include "particles/ambient/UnderwaterParticle.hpp"
+#include "particles/block/ComposterParticle.hpp"
 #include "particles/block/DiggingParticle.hpp"
 #include "particles/block/DustPillarParticle.hpp"
+#include "particles/block/ItemParticle.hpp"
+#include "particles/block/LeavesParticle.hpp"
+#include "particles/block/ScrapeParticle.hpp"
+#include "particles/block/WaxParticle.hpp"
+#include "particles/effect/AshParticle.hpp"
 #include "particles/effect/CampfireParticle.hpp"
+#include "particles/effect/CopperFireFlameParticle.hpp"
 #include "particles/effect/CritParticle.hpp"
+#include "particles/effect/DamageIndicatorParticle.hpp"
 #include "particles/effect/DragonBreathParticle.hpp"
+#include "particles/effect/DustParticle.hpp"
+#include "particles/effect/DustPlumeParticle.hpp"
+#include "particles/effect/EggCrackParticle.hpp"
+#include "particles/effect/ElderGuardianParticle.hpp"
+#include "particles/effect/ElectricSparkParticle.hpp"
 #include "particles/effect/EmitterParticle.hpp"
 #include "particles/effect/ExplosionParticle.hpp"
+#include "particles/effect/FireflyParticle.hpp"
+#include "particles/effect/FireworkParticle.hpp"
 #include "particles/effect/FlameParticle.hpp"
+#include "particles/effect/FlashParticle.hpp"
+#include "particles/effect/GlowParticle.hpp"
+#include "particles/effect/GustEmitterParticle.hpp"
+#include "particles/effect/GustParticle.hpp"
+#include "particles/effect/InfestedParticle.hpp"
+#include "particles/effect/ItemPickupParticle.hpp"
 #include "particles/effect/LavaParticle.hpp"
+#include "particles/effect/LightParticle.hpp"
+#include "particles/effect/NoteParticle.hpp"
+#include "particles/effect/OmenParticle.hpp"
 #include "particles/effect/PoofParticle.hpp"
 #include "particles/effect/PortalParticle.hpp"
 #include "particles/effect/RedstoneParticle.hpp"
+#include "particles/effect/SculkChargeParticle.hpp"
+#include "particles/effect/SculkSoulParticle.hpp"
+#include "particles/effect/ShriekParticle.hpp"
+#include "particles/effect/SmallFlameParticle.hpp"
 #include "particles/effect/SmokeParticle.hpp"
+#include "particles/effect/SonicBoomParticle.hpp"
 #include "particles/effect/SoulParticle.hpp"
 #include "particles/effect/SpellParticle.hpp"
+#include "particles/effect/TrialSpawnerParticle.hpp"
 #include "particles/effect/WhiteSmokeParticle.hpp"
+#include "particles/liquid/CherryLeavesDripParticle.hpp"
 #include "particles/liquid/DripParticle.hpp"
 #include "particles/liquid/DripWaterParticle.hpp"
 #include "particles/liquid/DripstoneDripParticle.hpp"
+#include "particles/liquid/FallingNectarParticle.hpp"
 #include "particles/mob/HeartParticle.hpp"
+#include "particles/mob/SpitParticle.hpp"
+#include "particles/mob/SquidInkParticle.hpp"
+#include "particles/mob/TotemParticle.hpp"
 #include "particles/mob/VillagerParticle.hpp"
 #include "particles/special/NautilusParticle.hpp"
+#include "particles/special/VaultConnectionParticle.hpp"
 #include "particles/special/VibrationSignalParticle.hpp"
 #include "particles/weather/FishingParticle.hpp"
 #include "particles/weather/SplashParticle.hpp"
@@ -88,14 +125,13 @@ void registerBuiltinParticleFactories()
         true,
         false);
 
-    // BlockMarker: 方块标记粒子（需要方块状态，用于结构方块等标记显示）
-    // TODO: 实现 BlockMarkerParticle，暂时复用 DiggingParticle
+    // BlockMarker: 方块标记粒子（静态显示方块纹理，用于结构方块等标记显示）
     registry.registerType(ParticleTypeId::BlockMarker,
         "minecraft:block_marker",
-        DiggingParticle::create,
+        BlockMarkerParticle::create,
         ParticleRenderType::TERRAIN_SHEET,
-        20.0f,
-        true,
+        80.0f,
+        false,
         false);
 
     // ========================================================================
@@ -118,11 +154,10 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // CopperFireFlame: 铜火火焰粒子（类似灵魂火焰）
-    // TODO: 实现 CopperFireFlameParticle，暂时复用 SoulFireFlameParticle
+    // CopperFireFlame: 铜火火焰粒子
     registry.registerType(ParticleTypeId::CopperFireFlame,
         "minecraft:copper_fire_flame",
-        SoulFireFlameParticle::create,
+        CopperFireFlameParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         30.0f,
         false,
@@ -136,11 +171,10 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // DamageIndicator: 伤害指示器粒子（实体受伤时弹出）
-    // TODO: 实现 DamageIndicatorParticle，暂时复用 CritParticle
+    // DamageIndicator: 伤害指示器粒子（实体受伤时弹出，向上飘散）
     registry.registerType(ParticleTypeId::DamageIndicator,
         "minecraft:damage_indicator",
-        CritParticle::create,
+        DamageIndicatorParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         6.0f,
         false,
@@ -203,20 +237,18 @@ void registerBuiltinParticleFactories()
     // ========================================================================
 
     // Dust: 染色粒子（红石粉尘等，需要颜色数据）
-    // TODO: 实现 DustParticle，暂时复用 RedstoneParticle
     registry.registerType(ParticleTypeId::Dust,
         "minecraft:dust",
-        RedstoneParticle::create,
+        DustParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         8.0f,
         false,
         false);
 
     // DustColorTransition: 颜色过渡染色粒子
-    // TODO: 实现 DustColorTransitionParticle，暂时复用 RedstoneParticle
     registry.registerType(ParticleTypeId::DustColorTransition,
         "minecraft:dust_color_transition",
-        RedstoneParticle::create,
+        DustColorTransitionParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         8.0f,
         false,
@@ -235,10 +267,9 @@ void registerBuiltinParticleFactories()
         false);
 
     // ElderGuardian: 守卫者外观粒子
-    // TODO: 实现 ElderGuardianParticle
     registry.registerType(ParticleTypeId::ElderGuardian,
         "minecraft:elder_guardian",
-        EntityEffectParticle::create,
+        ElderGuardianParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         8.0f,
         false,
@@ -293,51 +324,46 @@ void registerBuiltinParticleFactories()
         false);
 
     // Gust: 风爆粒子
-    // TODO: 实现 GustParticle，暂时复用 CloudParticle
     registry.registerType(ParticleTypeId::Gust,
         "minecraft:gust",
-        CloudParticle::create,
+        GustParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
         false);
 
     // SmallGust: 小型风爆粒子
-    // TODO: 实现 SmallGustParticle，暂时复用 CloudParticle
     registry.registerType(ParticleTypeId::SmallGust,
         "minecraft:small_gust",
-        CloudParticle::create,
+        SmallGustParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
         false);
 
     // GustEmitterLarge: 大型风爆发射器粒子
-    // TODO: 实现 GustEmitterLargeParticle
     registry.registerType(ParticleTypeId::GustEmitterLarge,
         "minecraft:gust_emitter_large",
-        HugeExplosionEmitterParticle::create,
+        GustEmitterLargeParticle::create,
         ParticleRenderType::NO_RENDER,
         8.0f,
         false,
         false);
 
     // GustEmitterSmall: 小型风爆发射器粒子
-    // TODO: 实现 GustEmitterSmallParticle
     registry.registerType(ParticleTypeId::GustEmitterSmall,
         "minecraft:gust_emitter_small",
-        HugeExplosionEmitterParticle::create,
+        GustEmitterSmallParticle::create,
         ParticleRenderType::NO_RENDER,
         8.0f,
         false,
         false);
 
     // SonicBoom: 声波轰击粒子（监守者远程攻击）
-    // TODO: 实现 SonicBoomParticle，暂时复用 DragonBreathParticle
     registry.registerType(ParticleTypeId::SonicBoom,
         "minecraft:sonic_boom",
-        DragonBreathParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        SonicBoomParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_LIT,
         10.0f,
         false,
         false);
@@ -355,10 +381,9 @@ void registerBuiltinParticleFactories()
         false);
 
     // Firework: 烟花粒子
-    // TODO: 实现 FireworkParticle
     registry.registerType(ParticleTypeId::Firework,
         "minecraft:firework",
-        ExplosionParticle::create,
+        FireworkParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         6.0f,
         false,
@@ -385,70 +410,63 @@ void registerBuiltinParticleFactories()
         false);
 
     // Infested: 虫蚀方块粒子（蠹虫出现时）
-    // TODO: 实现 InfestedParticle，暂时复用 CloudParticle
     registry.registerType(ParticleTypeId::Infested,
         "minecraft:infested",
-        CloudParticle::create,
+        InfestedParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
         false);
 
     // CherryLeaves: 樱花树叶粒子
-    // TODO: 实现 CherryLeavesParticle，暂时复用 CloudParticle
     registry.registerType(ParticleTypeId::CherryLeaves,
         "minecraft:cherry_leaves",
-        CloudParticle::create,
+        CherryLeavesParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
-        20.0f,
+        40.0f,
         true,
         false);
 
     // PaleOakLeaves: 苍白橡树树叶粒子
-    // TODO: 实现 PaleOakLeavesParticle，暂时复用 CloudParticle
     registry.registerType(ParticleTypeId::PaleOakLeaves,
         "minecraft:pale_oak_leaves",
-        CloudParticle::create,
+        PaleOakLeavesParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
-        20.0f,
+        40.0f,
         true,
         false);
 
     // TintedLeaves: 着色树叶粒子（带颜色数据）
-    // TODO: 实现 TintedLeavesParticle，暂时复用 FallingDustParticle
     registry.registerType(ParticleTypeId::TintedLeaves,
         "minecraft:tinted_leaves",
-        FallingDustParticle::create,
+        TintedLeavesParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        20.0f,
+        40.0f,
         true,
         false);
 
     // SculkSoul: 幽匿灵魂粒子
-    // TODO: 实现 SculkSoulParticle，暂时复用 SoulParticle
     registry.registerType(ParticleTypeId::SculkSoul,
         "minecraft:sculk_soul",
-        SoulParticle::create,
+        SculkSoulParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         12.0f,
         false,
         false);
 
     // SculkCharge: 幽匿充能粒子（带充能数据）
-    // TODO: 实现 SculkChargeParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::SculkCharge,
         "minecraft:sculk_charge",
-        FlameParticle::create,
+        SculkChargeParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         10.0f,
         false,
         false);
 
     // SculkChargePop: 幽匿充能弹出粒子
-    // TODO: 实现 SculkChargePopParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::SculkChargePop,
         "minecraft:sculk_charge_pop",
-        FlameParticle::create,
+        SculkChargePopParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         5.0f,
         false,
@@ -470,11 +488,10 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // Flash: 闪光粒子（带颜色数据）
-    // TODO: 实现 FlashParticle，暂时复用 ExplosionParticle
+    // Flash: 闪光粒子
     registry.registerType(ParticleTypeId::Flash,
         "minecraft:flash",
-        ExplosionParticle::create,
+        FlashParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         4.0f,
         false,
@@ -489,13 +506,12 @@ void registerBuiltinParticleFactories()
         false);
 
     // Composter: 堆肥桶粒子
-    // TODO: 实现 ComposterParticle，暂时复用 FallingDustParticle
     registry.registerType(ParticleTypeId::Composter,
         "minecraft:composter",
-        FallingDustParticle::create,
+        ComposterParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        20.0f,
-        true,
+        29.0f,
+        false,
         false);
 
     registry.registerType(ParticleTypeId::Heart,
@@ -514,11 +530,10 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // Item: 物品粒子（需要物品数据）
-    // TODO: 实现 ItemParticle，暂时复用 DiggingParticle
+    // Item: 物品粒子（物品破碎效果）
     registry.registerType(ParticleTypeId::Item,
         "minecraft:item",
-        DiggingParticle::create,
+        ItemParticle::create,
         ParticleRenderType::TERRAIN_SHEET,
         20.0f,
         true,
@@ -534,7 +549,7 @@ void registerBuiltinParticleFactories()
         true); // 忽略距离限制，确保可见
 
     // Trail: 轨迹粒子（带颜色/目标数据）
-    // TODO: 实现 TrailParticle，暂时复用 FlameParticle
+    // TODO: TrailParticle 需要颜色+目标位置数据支持，当前使用 FlameParticle 作为简化回退
     registry.registerType(ParticleTypeId::Trail,
         "minecraft:trail",
         FlameParticle::create,
@@ -543,31 +558,28 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // ItemSlime: 史莱姆粒子（需要物品数据）
-    // TODO: 实现 ItemSlimeParticle，暂时复用 DiggingParticle
+    // 史莱姆物品粒子
     registry.registerType(ParticleTypeId::ItemSlime,
         "minecraft:item_slime",
-        DiggingParticle::create,
+        ItemParticle::create,
         ParticleRenderType::TERRAIN_SHEET,
         20.0f,
         true,
         false);
 
-    // ItemCobweb: 蛛网物品粒子（需要物品数据）
-    // TODO: 实现 ItemCobwebParticle，暂时复用 DiggingParticle
+    // 蛛网物品粒子
     registry.registerType(ParticleTypeId::ItemCobweb,
         "minecraft:item_cobweb",
-        DiggingParticle::create,
+        ItemParticle::create,
         ParticleRenderType::TERRAIN_SHEET,
         20.0f,
         true,
         false);
 
-    // ItemSnowball: 雪球粒子（需要物品数据）
-    // TODO: 实现 ItemSnowballParticle，暂时复用 DiggingParticle
+    // 雪球物品粒子
     registry.registerType(ParticleTypeId::ItemSnowball,
         "minecraft:item_snowball",
-        DiggingParticle::create,
+        ItemParticle::create,
         ParticleRenderType::TERRAIN_SHEET,
         20.0f,
         true,
@@ -603,10 +615,9 @@ void registerBuiltinParticleFactories()
         false);
 
     // Note: 音符粒子（音符盒）
-    // TODO: 实现 NoteParticle
     registry.registerType(ParticleTypeId::Note,
         "minecraft:note",
-        EnchantParticle::create,
+        NoteParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         30.0f,
         false,
@@ -661,20 +672,18 @@ void registerBuiltinParticleFactories()
         false);
 
     // Spit: 羊驼吐沫粒子
-    // TODO: 实现 SpitParticle，暂时复用 CloudParticle
     registry.registerType(ParticleTypeId::Spit,
         "minecraft:spit",
-        CloudParticle::create,
+        SpitParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         6.0f,
-        false,
+        true,
         false);
 
     // SquidInk: 鱿鱼墨汁粒子
-    // TODO: 实现 SquidInkParticle，暂时复用 CloudParticle
     registry.registerType(ParticleTypeId::SquidInk,
         "minecraft:squid_ink",
-        CloudParticle::create,
+        SquidInkParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
@@ -689,10 +698,9 @@ void registerBuiltinParticleFactories()
         false);
 
     // TotemOfUndying: 不死图腾粒子
-    // TODO: 实现 TotemOfUndyingParticle，暂时复用 EntityEffectParticle
     registry.registerType(ParticleTypeId::TotemOfUndying,
         "minecraft:totem_of_undying",
-        EntityEffectParticle::create,
+        TotemParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
@@ -735,21 +743,19 @@ void registerBuiltinParticleFactories()
         false);
 
     // CurrentDown: 向下的水流粒子
-    // TODO: 实现 CurrentDownParticle，暂时复用 BubbleParticle
     registry.registerType(ParticleTypeId::CurrentDown,
         "minecraft:current_down",
-        BubbleParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        CurrentDownParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         8.0f,
         false,
         false);
 
     // BubbleColumnUp: 气泡柱上升粒子
-    // TODO: 实现 BubbleColumnUpParticle，暂时复用 BubbleParticle
     registry.registerType(ParticleTypeId::BubbleColumnUp,
         "minecraft:bubble_column_up",
-        BubbleParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        BubbleColumnUpParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         8.0f,
         false,
         false);
@@ -816,10 +822,9 @@ void registerBuiltinParticleFactories()
     // ========================================================================
 
     // FallingNectar: 下落的花蜜粒子（蜜蜂相关）
-    // TODO: 实现 FallingNectarParticle，暂时复用 DripWaterParticle::createDripping
     registry.registerType(ParticleTypeId::FallingNectar,
         "minecraft:falling_nectar",
-        DripWaterParticle::createDripping,
+        FallingNectarParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         40.0f,
         true,
@@ -843,30 +848,27 @@ void registerBuiltinParticleFactories()
         false);
 
     // Ash: 灰烬粒子
-    // TODO: 实现 AshParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::Ash,
         "minecraft:ash",
-        FlameParticle::create,
+        AshParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         20.0f,
         false,
         false);
 
-    // CrimsonSpore: 绯红孢子
-    // TODO: 实现 CrimsonSporeParticle，暂时复用 SuspendedTownParticle
+    // 绯红孢子
     registry.registerType(ParticleTypeId::CrimsonSpore,
         "minecraft:crimson_spore",
-        SuspendedTownParticle::create,
+        CrimsonSporeParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         20.0f,
         false,
         false);
 
-    // WarpedSpore: 诡异孢子
-    // TODO: 实现 WarpedSporeParticle，暂时复用 SuspendedTownParticle
+    // 诡异孢子
     registry.registerType(ParticleTypeId::WarpedSpore,
         "minecraft:warped_spore",
-        SuspendedTownParticle::create,
+        WarpedSporeParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         20.0f,
         false,
@@ -897,30 +899,27 @@ void registerBuiltinParticleFactories()
         false);
 
     // ReversePortal: 反向传送门粒子
-    // TODO: 实现 ReversePortalParticle，暂时复用 PortalParticle
     registry.registerType(ParticleTypeId::ReversePortal,
         "minecraft:reverse_portal",
-        PortalParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        ReversePortalParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         45.0f,
         false,
         false);
 
     // WhiteAsh: 白色灰烬粒子
-    // TODO: 实现 WhiteAshParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::WhiteAsh,
         "minecraft:white_ash",
-        FlameParticle::create,
+        WhiteAshParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         20.0f,
         false,
         false);
 
     // SmallFlame: 小型火焰粒子（蜡烛等）
-    // TODO: 实现 SmallFlameParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::SmallFlame,
         "minecraft:small_flame",
-        FlameParticle::create,
+        SmallFlameParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         20.0f,
         false,
@@ -968,20 +967,18 @@ void registerBuiltinParticleFactories()
         false);
 
     // GlowSquidInk: 荧光墨囊粒子
-    // TODO: 实现 GlowSquidInkParticle，暂时复用 CloudParticle
     registry.registerType(ParticleTypeId::GlowSquidInk,
         "minecraft:glow_squid_ink",
-        CloudParticle::create,
+        GlowSquidInkParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
         false);
 
     // Glow: 荧光地衣粒子
-    // TODO: 实现 GlowParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::Glow,
         "minecraft:glow",
-        FlameParticle::create,
+        GlowParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         10.0f,
         false,
@@ -992,100 +989,90 @@ void registerBuiltinParticleFactories()
     // ========================================================================
 
     // WaxOn: 蜡烛涂抹粒子（上蜡）
-    // TODO: 实现 WaxOnParticle，暂时复用 FallingDustParticle
     registry.registerType(ParticleTypeId::WaxOn,
         "minecraft:wax_on",
-        FallingDustParticle::create,
+        WaxOnParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        10.0f,
-        true,
+        29.0f,
+        false,
         false);
 
     // WaxOff: 蜡烛涂抹粒子（除蜡）
-    // TODO: 实现 WaxOffParticle，暂时复用 FallingDustParticle
     registry.registerType(ParticleTypeId::WaxOff,
         "minecraft:wax_off",
-        FallingDustParticle::create,
+        WaxOffParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        10.0f,
-        true,
+        29.0f,
+        false,
         false);
 
     // ElectricSpark: 电火花粒子（避雷针等）
-    // TODO: 实现 ElectricSparkParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::ElectricSpark,
         "minecraft:electric_spark",
-        FlameParticle::create,
+        ElectricSparkParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         10.0f,
         false,
         false);
 
     // Scrape: 刮擦粒子（铜氧化去除）
-    // TODO: 实现 ScrapeParticle，暂时复用 FallingDustParticle
     registry.registerType(ParticleTypeId::Scrape,
         "minecraft:scrape",
-        FallingDustParticle::create,
+        ScrapeParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        10.0f,
-        true,
+        29.0f,
+        false,
         false);
 
     // Shriek: 幽匿尖啸体粒子（带延迟数据）
-    // TODO: 实现 ShriekParticle，暂时复用 SoulParticle
     registry.registerType(ParticleTypeId::Shriek,
         "minecraft:shriek",
-        SoulParticle::create,
+        ShriekParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         12.0f,
         false,
         false);
 
     // EggCrack: 蛋破裂粒子
-    // TODO: 实现 EggCrackParticle，暂时复用 PoofParticle
     registry.registerType(ParticleTypeId::EggCrack,
         "minecraft:egg_crack",
-        PoofParticle::create,
+        EggCrackParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         8.0f,
         false,
         false);
 
-    // DustPlume: 尘柱粒子
-    // TODO: 实现 DustPlumeParticle（与 DustPillar 不同，DustPlume 不需要方块状态）
+    // DustPlume: 尘柱粒子（不需要方块状态）
     registry.registerType(ParticleTypeId::DustPlume,
         "minecraft:dust_plume",
-        CloudParticle::create,
+        DustPlumeParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         20.0f,
         false,
         false);
 
     // TrialSpawnerDetection: 试炼刷怪笼检测粒子
-    // TODO: 实现 TrialSpawnerDetectionParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::TrialSpawnerDetection,
         "minecraft:trial_spawner_detection",
-        FlameParticle::create,
+        TrialSpawnerDetectionParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         20.0f,
         false,
         false);
 
     // TrialSpawnerDetectionOminous: 试炼刷怪笼检测粒子（不祥）
-    // TODO: 实现 TrialSpawnerDetectionOminousParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::TrialSpawnerDetectionOminous,
         "minecraft:trial_spawner_detection_ominous",
-        FlameParticle::create,
+        TrialSpawnerDetectionOminousParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         20.0f,
         false,
         false);
 
-    // VaultConnection: 宝库连接粒子
-    // TODO: 实现 VaultConnectionParticle，暂时复用 VibrationSignalParticle
+    // 宝库连接粒子
     registry.registerType(ParticleTypeId::VaultConnection,
         "minecraft:vault_connection",
-        VibrationSignalParticle::create,
+        VaultConnectionParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         60.0f,
         false,
@@ -1101,50 +1088,45 @@ void registerBuiltinParticleFactories()
         false);
 
     // OminousSpawning: 不祥生成粒子
-    // TODO: 实现 OminousSpawningParticle，暂时复用 EntityEffectParticle
     registry.registerType(ParticleTypeId::OminousSpawning,
         "minecraft:ominous_spawning",
-        EntityEffectParticle::create,
+        OminousSpawningParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
         false);
 
     // RaidOmen: 袭击预兆粒子
-    // TODO: 实现 RaidOmenParticle，暂时复用 EntityEffectParticle
     registry.registerType(ParticleTypeId::RaidOmen,
         "minecraft:raid_omen",
-        EntityEffectParticle::create,
+        RaidOmenParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
         false);
 
     // TrialOmen: 试炼预兆粒子
-    // TODO: 实现 TrialOmenParticle，暂时复用 EntityEffectParticle
     registry.registerType(ParticleTypeId::TrialOmen,
         "minecraft:trial_omen",
-        EntityEffectParticle::create,
+        TrialOmenParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         10.0f,
         false,
         false);
 
     // BlockCrumble: 方块碎裂粒子（带方块状态）
-    // TODO: 实现 BlockCrumbleParticle，暂时复用 DiggingParticle
     registry.registerType(ParticleTypeId::BlockCrumble,
         "minecraft:block_crumble",
-        DiggingParticle::create,
+        BlockCrumbleParticle::create,
         ParticleRenderType::TERRAIN_SHEET,
-        20.0f,
+        15.0f,
         true,
         false);
 
     // Firefly: 萤火虫粒子
-    // TODO: 实现 FireflyParticle，暂时复用 FlameParticle
     registry.registerType(ParticleTypeId::Firefly,
         "minecraft:firefly",
-        FlameParticle::create,
+        FireflyParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         30.0f,
         false,
@@ -1172,11 +1154,10 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // 光标粒子（显示结构方块位置，项目内部）
-    // TODO: 实现 LightParticle，暂时复用 FlameParticle
+    // 光标粒子（显示结构方块位置）
     registry.registerType(ParticleTypeId::Light,
         "minecraft:light",
-        FlameParticle::create,
+        LightParticle::create,
         ParticleRenderType::PARTICLE_SHEET_LIT,
         30.0f,
         false,
@@ -1200,44 +1181,40 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // 物品拾取粒子（项目内部）
-    // TODO: 实现 ItemPickupParticle，暂时复用 DiggingParticle
+    // 物品拾取粒子
     registry.registerType(ParticleTypeId::ItemPickup,
         "minecraft:item_pickup",
-        DiggingParticle::create,
-        ParticleRenderType::TERRAIN_SHEET,
+        ItemPickupParticle::create,
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
         10.0f,
-        true,
+        false,
         false);
 
-    // 滴落的樱花树叶（项目内部，MC 中仅有 CherryLeaves）
-    // TODO: 实现 DrippingCherryLeavesParticle
+    // 滴落的樱花树叶
     registry.registerType(ParticleTypeId::DrippingCherryLeaves,
         "minecraft:dripping_cherry_leaves",
-        CloudParticle::create,
+        DrippingCherryLeavesParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
-        20.0f,
+        40.0f,
         true,
         false);
 
-    // 下落的樱花树叶（项目内部，MC 中仅有 CherryLeaves）
-    // TODO: 实现 FallingCherryLeavesParticle
+    // 下落的樱花树叶
     registry.registerType(ParticleTypeId::FallingCherryLeaves,
         "minecraft:falling_cherry_leaves",
-        CloudParticle::create,
+        FallingCherryLeavesParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
-        20.0f,
+        30.0f,
         true,
         false);
 
-    // 落地的樱花树叶（项目内部，MC 中仅有 CherryLeaves）
-    // TODO: 实现 LandingCherryLeavesParticle
+    // 落地的樱花树叶
     registry.registerType(ParticleTypeId::LandingCherryLeaves,
         "minecraft:landing_cherry_leaves",
-        CloudParticle::create,
+        LandingCherryLeavesParticle::create,
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
         20.0f,
-        true,
+        false,
         false);
 }
 

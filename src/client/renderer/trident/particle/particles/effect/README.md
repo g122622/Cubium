@@ -6,20 +6,25 @@
 
 ```
 effect/
-├── FlameParticle.hpp/cpp         # 火焰粒子（发光、向上漂浮、缩小淡出）
-├── SmokeParticle.hpp/cpp         # 烟雾粒子（向上飘动、变大淡出）
-├── WhiteSmokeParticle.hpp/cpp    # 白色烟雾粒子（白灰色调、方向性发射、DISPENSER_SMOKE/SHOOT_WHITE_SMOKE）
-├── LavaParticle.hpp/cpp          # 熔岩滴粒子（发光、下落）
-├── PortalParticle.hpp/cpp        # 传送门粒子（紫色、水平摆动）
-├── CritParticle.hpp/cpp          # 暴击粒子（含 EnchantedHitParticle 附魔暴击粒子）
-├── ExplosionParticle.hpp/cpp     # 爆炸粒子（大型爆炸效果）
-├── PoofParticle.hpp/cpp          # 消散粒子（云雾消散效果）
-├── SpellParticle.hpp/cpp         # 药水效果粒子（魔法效果、多种颜色）
-├── DragonBreathParticle.hpp/cpp  # 龙息粒子（含 EndRod、SweepAttack）
-├── SoulParticle.hpp/cpp          # 灵魂粒子（灵魂火效果）
-├── RedstoneParticle.hpp/cpp      # 红石粉尘粒子（发光、颜色可变）
-├── CampfireParticle.hpp/cpp      # 营火烟雾粒子（Cozy/Signal 两种类型）
-└── EmitterParticle.hpp/cpp       # 发射器粒子基类及实现（HugeExplosion/Flame/Smoke Emitter）
+├── CampfireParticle.hpp/cpp         # 营火烟雾粒子（Cozy/Signal 两种类型）
+├── CritParticle.hpp/cpp             # 暴击粒子（含 EnchantedHitParticle 附魔暴击粒子）
+├── DamageIndicatorParticle.hpp/cpp  # 伤害指示器粒子
+├── DragonBreathParticle.hpp/cpp     # 龙息粒子（含 EndRod、SweepAttack）
+├── EmitterParticle.hpp/cpp          # 发射器粒子基类及实现（HugeExplosion/Flame/Smoke Emitter）
+├── ExplosionParticle.hpp/cpp        # 爆炸粒子（大型爆炸效果）
+├── FlameParticle.hpp/cpp            # 火焰粒子（发光、向上漂浮、缩小淡出）
+├── InfestedParticle.hpp/cpp         # 虫蚀方块粒子（蠹虫出现时生成）
+├── ItemPickupParticle.hpp/cpp       # 物品拾取粒子（拾取物品时的烟雾效果）
+├── LavaParticle.hpp/cpp             # 熔岩滴粒子（发光、下落）
+├── LightParticle.hpp/cpp            # 光源粒子（结构方块显示用）
+├── PoofParticle.hpp/cpp             # 消散粒子（云雾消散效果）
+├── PortalParticle.hpp/cpp           # 传送门粒子（紫色、水平摆动）
+├── RedstoneParticle.hpp/cpp         # 红石粉尘粒子（发光、颜色可变）+ 附魔粒子 + 下落灰尘粒子
+├── DustParticle.hpp/cpp             # 灰尘粒子（Dust 可配置颜色）+ 颜色过渡灰尘粒子（DustColorTransition）
+├── SmokeParticle.hpp/cpp            # 烟雾粒子（向上飘动、变大淡出）
+├── SoulParticle.hpp/cpp             # 灵魂粒子（灵魂火效果）
+├── SpellParticle.hpp/cpp            # 药水效果粒子（魔法效果、多种颜色）
+└── WhiteSmokeParticle.hpp/cpp       # 白色烟雾粒子（白灰色调、方向性发射）
 ```
 
 ## 内部模块关系

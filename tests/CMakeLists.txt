@@ -1462,6 +1462,49 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
+        # 粒子实现 - 环境（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/NetherSporeParticle.cpp
+        # 粒子实现 - 效果（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/AshParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/CopperFireFlameParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DamageIndicatorParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DustParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DustPlumeParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/EggCrackParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ElderGuardianParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ElectricSparkParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FireflyParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FireworkParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FlashParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GlowParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GustParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GustEmitterParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/InfestedParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ItemPickupParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/LightParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/NoteParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/OmenParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SculkChargeParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SculkSoulParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ShriekParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SmallFlameParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SonicBoomParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/TrialSpawnerParticle.cpp
+        # 粒子实现 - 生物（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/SpitParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/SquidInkParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/TotemParticle.cpp
+        # 粒子实现 - 特殊（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VaultConnectionParticle.cpp
+        # 粒子实现 - 方块（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ComposterParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ItemParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/LeavesParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ScrapeParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/WaxParticle.cpp
+        # 粒子实现 - 液体（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/CherryLeavesDripParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/Feature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/FeatureSpread.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ConfiguredFeature.cpp

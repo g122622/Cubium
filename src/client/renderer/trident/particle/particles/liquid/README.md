@@ -6,6 +6,7 @@
 
 ```
 liquid/
+├── CherryLeavesDripParticle.hpp/cpp # 樱花树叶滴落粒子（Dripping/Falling/Landing 三阶段）
 ├── DripParticle.hpp/cpp          # 液体滴落粒子基类，实现三阶段状态机（Hanging → Falling → Landed）
 ├── DripWaterParticle.hpp/cpp     # 水滴粒子，从含水方块下方滴落
 ├── DripstoneDripParticle.hpp/cpp # 滴水石专用粒子（水/熔岩），落地时播放滴水音效
@@ -32,6 +33,11 @@ DripParticle (基类)
 `DripstoneWaterDripParticle` 和 `DripstoneLavaDripParticle` 是滴水石（钟乳石）专用的滴落粒子，
 与普通水滴/熔岩滴粒子的区别在于：落地时会播放 `block.pointed_dripstone.drip_water` 或
 `block.pointed_dripstone.drip_lava` 音效。
+
+`CherryLeavesDripParticle.hpp/cpp` 包含三个独立的粒子类：
+- `DrippingCherryLeavesParticle`：樱花树叶悬挂粒子，70% 生命周期后转为下落状态
+- `FallingCherryLeavesParticle`：樱花花瓣飘落，受微弱重力和正弦摆动影响
+- `LandingCherryLeavesParticle`：樱花花瓣落地后静止，仅淡出消失
 
 粒子生命周期链：
 - **水滴石**: DRIPSTONE_WATER(悬挂) → FALLING_DRIPSTONE_WATER(下落) → SPLASH(落地) + 音效
