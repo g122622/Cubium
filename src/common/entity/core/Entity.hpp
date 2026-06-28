@@ -619,8 +619,27 @@ public:
 
     /**
      * @brief 实体是否可被碰撞或射线命中
+     *
+     * 对应 MC Java 的 isPickable()。决定实体是否拥有可交互的碰撞箱。
      */
     [[nodiscard]] virtual bool canBeCollidedWith() const { return true; }
+
+    /**
+     * @brief 实体是否可被弹射物命中
+     *
+     * 对应 MC Java 的 canBeHitByProjectile()。
+     * 默认实现为 isAlive() && canBeCollidedWith()（MC Java 中为 isAlive() && isPickable()，
+     * 本项目中 canBeCollidedWith() 对应 isPickable() 的语义）。
+     *
+     * 子类可重写此方法以改变弹射物命中行为：
+     * - Player 重写为 !isSpectator() && Entity::canBeHitByProjectile()
+     * - Interaction 实体重写为返回 false（本项目中尚未实现该实体）
+     *
+     * 与 canBeCollidedWith() 的区别：
+     * - canBeCollidedWith() 关注碰撞箱是否可交互（物理碰撞、射线命中）
+     * - canBeHitByProjectile() 关注弹射物是否可命中（综合判断存活状态和旁观者模式等）
+     */
+    [[nodiscard]] virtual bool canBeHitByProjectile() const { return isAlive() && canBeCollidedWith(); }
 
     /**
      * @brief 命中检测时额外扩张的碰撞边界

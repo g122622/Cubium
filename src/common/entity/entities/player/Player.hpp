@@ -202,6 +202,17 @@ public:
      */
     [[nodiscard]] bool isSpectator() const { return entity::GameModeUtils::isSpectator(m_gameMode); }
 
+    /**
+     * @brief 弹射物是否可命中此玩家
+     *
+     * 对应 MC Java Player.canBeHitByProjectile()。
+     * 旁观者模式的玩家不可被弹射物命中。
+     */
+    [[nodiscard]] bool canBeHitByProjectile() const override
+    {
+        return !isSpectator() && Entity::canBeHitByProjectile();
+    }
+
     // ========== 旁观者跟踪系统 ==========
 
     /**

@@ -232,9 +232,9 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 
 **命中过滤**（`canHitEntity`）：
 对应 MC Java `Projectile.canHitEntity`，过滤可命中的实体：
-- 已死亡或已移除的实体不可命中
-- 不可碰撞的实体（`canBeCollidedWith()` 返回 false）不可命中
-- TODO: MC Java 使用 `canBeHitByProjectile()` 而非 `canBeCollidedWith()`，当前用后者替代，待补充 `canBeHitByProjectile()` 虚方法
+- 不可被弹射物命中的实体（`canBeHitByProjectile()` 返回 false）不可命中
+  - `canBeHitByProjectile()` 默认为 `isAlive() && canBeCollidedWith()`（对应 MC Java 的 `isAlive() && isPickable()`）
+  - `Player` 重写为 `!isSpectator() && Entity::canBeHitByProjectile()`，旁观者不可被弹射物命中
 - 发射者未离开碰撞箱前，不能命中与发射者骑乘同一载具的实体（`isRidingSameEntity`）
 
 ### 14. EvokerFangsEntity Owner UUID 双重追踪

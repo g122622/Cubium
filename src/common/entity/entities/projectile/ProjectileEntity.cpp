@@ -183,22 +183,12 @@ void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchO
 
 bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
 {
-    if (!target.isAlive() || target.isRemoved()) {
-        return false;
-    }
-
-    // TODO: MC Java 中此处的判断条件是 !target.canBeHitByProjectile()，
-    // 而 canBeHitByProjectile() 在 Entity 基类中默认返回 true，
-    // 仅在 EnderDragonPart 等少数实体中重写为返回 false。
-    // 当前项目使用 canBeCollidedWith() 作为替代，两者语义不完全一致：
-    // canBeCollidedWith 关注的是碰撞箱是否可交互，而 canBeHitByProjectile
-    // 关注的是弹射物是否可命中。应在 Entity 中添加 canBeHitByProjectile()
-    // 虚方法后替换此处的判断。
-    if (!target.canBeCollidedWith()) {
-        return false;
-    }
-
     // 对应 MC Java Projectile.canHitEntity:
+    // 首先检查目标是否可被弹射物命中（综合判断存活状态、碰撞箱可交互性、旁观者模式等）
+    if (!target.canBeHitByProjectile()) {
+        return false;
+    }
+
     // 发射者未离开前，不能命中与发射者骑乘同一载具的实体（包括发射者自身）
     const Entity* shooter = getShooter();
     if (!m_leftShooter && shooter != nullptr && shooter->isRidingSameEntity(target)) {

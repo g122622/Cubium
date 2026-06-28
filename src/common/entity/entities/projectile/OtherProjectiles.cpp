@@ -701,29 +701,27 @@ RayTraceResult FishingBobberEntity::_performRayTrace()
 
 bool FishingBobberEntity::_canHitEntity(const Entity& target) const
 {
-    // 钓鱼浮标可以命中：普通可命中实体 + 物品实体
-    // 不能命中已死亡或已移除的实体
-    if (!target.isAlive() || target.isRemoved()) {
-        return false;
-    }
-
-    // 不能命中不可碰撞的实体
-    if (!target.canBeCollidedWith()) {
-        return false;
-    }
+    // 对应 MC Java FishingHook.canHitEntity:
+    // super.canHitEntity(target) || target.isAlive() && target instanceof ItemEntity
+    // 即：普通弹射物命中逻辑 + 物品实体可被钩住
+    //
+    // 物品实体的 canBeHitByProjectile() 返回 false（因为 ItemEntity 的
+    // canBeCollidedWith() 返回 false，即 MC Java 的 isPickable() 为 false），
+    // 但钓鱼浮标需要能钩住水中的物品实体，因此需要特殊处理。
 
     // 不能命中钓鱼者自己
     if (&target == m_angler) {
         return false;
     }
 
-    // 物品实体可以被钩住
-    if (dynamic_cast<const ItemEntity*>(&target) != nullptr) {
+    // 物品实体可被钩住（绕过 canBeHitByProjectile 检查）
+    // 对应 MC Java: target.isAlive() && target instanceof ItemEntity
+    if (target.isAlive() && dynamic_cast<const ItemEntity*>(&target) != nullptr) {
         return true;
     }
 
-    // 其他实体需要满足基本碰撞条件
-    return target.canBeCollidedWith();
+    // 其他实体使用标准弹射物命中判断（包含 canBeHitByProjectile 检查）
+    return target.canBeHitByProjectile();
 }
 
 void FishingBobberEntity::_onEntityHit(const RayTraceResult& result)

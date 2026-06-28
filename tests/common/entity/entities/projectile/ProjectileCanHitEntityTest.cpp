@@ -240,5 +240,79 @@ TEST_F(CanHitEntityTest, CannotHitEntityOnSameVehicle)
     EXPECT_FALSE(projectile.canHitEntity(target));
 }
 
+// ============================================================================
+// canBeHitByProjectile 测试
+// ============================================================================
+
+/**
+ * @brief 不可碰撞的实体不能被弹射物命中
+ *
+ * canBeHitByProjectile() 默认返回 isAlive() && canBeCollidedWith()，
+ * 当 canBeCollidedWith() 返回 false 时，canBeHitByProjectile() 也返回 false。
+ */
+TEST_F(CanHitEntityTest, CannotHitNonCollidableEntity)
+{
+    class NonCollidableEntity : public Entity {
+    public:
+        explicit NonCollidableEntity(EntityId id)
+            : Entity(id)
+        {}
+        [[nodiscard]] f32 width() const override { return 0.6f; }
+        [[nodiscard]] f32 height() const override { return 1.8f; }
+        [[nodiscard]] std::string getTypeId() const override { return "test:non_collidable"; }
+        [[nodiscard]] bool canBeCollidedWith() const override { return false; }
+    };
+
+    TestProjectile projectile(EntityId(1));
+    NonCollidableEntity target(EntityId(2));
+
+    // canBeCollidedWith() 返回 false → canBeHitByProjectile() 返回 false → canHitEntity 返回 false
+    EXPECT_FALSE(target.canBeHitByProjectile());
+    EXPECT_FALSE(projectile.canHitEntity(target));
+}
+
+/**
+ * @brief 已死亡的实体不能被弹射物命中
+ *
+ * canBeHitByProjectile() 默认包含 isAlive() 检查，
+ * 已死亡的实体 isAlive() 返回 false，因此 canBeHitByProjectile() 返回 false。
+ */
+TEST_F(CanHitEntityTest, CannotHitDeadEntity)
+{
+    class DeadEntity : public Entity {
+    public:
+        explicit DeadEntity(EntityId id)
+            : Entity(id)
+        {}
+        [[nodiscard]] f32 width() const override { return 0.6f; }
+        [[nodiscard]] f32 height() const override { return 1.8f; }
+        [[nodiscard]] std::string getTypeId() const override { return "test:dead"; }
+        [[nodiscard]] bool canBeCollidedWith() const override { return true; }
+        [[nodiscard]] bool isAlive() const override { return false; }
+    };
+
+    TestProjectile projectile(EntityId(1));
+    DeadEntity target(EntityId(2));
+
+    // isAlive() 返回 false → canBeHitByProjectile() 返回 false → canHitEntity 返回 false
+    EXPECT_FALSE(target.canBeHitByProjectile());
+    EXPECT_FALSE(projectile.canHitEntity(target));
+}
+
+/**
+ * @brief 可碰撞且存活的实体可以被弹射物命中
+ *
+ * canBeHitByProjectile() = isAlive() && canBeCollidedWith()
+ * 当两者都为 true 时，canBeHitByProjectile() 返回 true。
+ */
+TEST_F(CanHitEntityTest, CanHitByProjectileWhenCollidableAndAlive)
+{
+    TestRideableEntity target(EntityId(2));
+    TestProjectile projectile(EntityId(1));
+
+    EXPECT_TRUE(target.canBeHitByProjectile());
+    EXPECT_TRUE(projectile.canHitEntity(target));
+}
+
 } // namespace
 } // namespace mc
