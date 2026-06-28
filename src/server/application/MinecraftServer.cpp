@@ -48,6 +48,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
+#include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
@@ -885,6 +886,17 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         item::tag::ItemTags::initialize();
     }
     spdlog::info("Item tags initialized");
+
+    // 从数据包加载物品标签（追加到或替换内置默认值）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ItemTagLoader");
+        auto dataPackLoadResult = item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} item tags from data packs", dataPackLoadResult.value());
+        }
+    }
 
     // 初始化发射器行为注册表
     {

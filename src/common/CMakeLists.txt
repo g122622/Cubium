@@ -451,6 +451,7 @@ add_library(mc_common STATIC
 
     # Item System - Tags
     item/tag/ItemTag.cpp
+    item/tag/ItemTagLoader.cpp
     item/tag/ItemTags.cpp
 
     # Item System - Block Items

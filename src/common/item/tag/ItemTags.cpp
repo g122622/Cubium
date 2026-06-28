@@ -134,10 +134,11 @@ void ItemTags::initialize()
         return;
     }
 
-    // TODO: 当前所有物品标签的成员列表均为硬编码注册，与 MC 原版通过数据包
-    // （minecraft/tags/items/ 下的 JSON 文件）定义标签的方式不一致。待数据包
-    // 加载系统完善后，应改为从数据包动态加载标签成员列表，仅在数据包不可用时
-    // 回退到硬编码默认值。
+    // 物品标签的成员列表从数据包动态加载（ItemTagLoader），此处注册内置标签的默认值。
+    // 当数据包可用时，ItemTagLoader 会追加或替换（replace=true）这些默认值；
+    // 当数据包不可用时（如单元测试环境），这些硬编码默认值作为回退。
+    // 数据包加载路径: data/<namespace>/tags/item/<path>.json
+    // 参见 ItemTagLoader.hpp
 
     auto& allTags = tags();
 
