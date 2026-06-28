@@ -1042,6 +1042,8 @@ add_executable(mc_tests
     common/util/UuidUtilsTest.cpp
     # 特殊日期工具测试
     common/util/SpecialDatesTest.cpp
+    # 日期时间格式化/解析工具测试
+    common/util/DateTimeUtilsTest.cpp
     # LinkedHashSet 有序集合测试
     common/util/LinkedHashSetTest.cpp
     # NbtJsonUtils NBT-JSON转换工具测试

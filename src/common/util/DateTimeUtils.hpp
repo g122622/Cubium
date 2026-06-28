@@ -99,6 +99,8 @@ inline constexpr char MC_DATE_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
  * 解析 "yyyy-MM-dd HH:mm:ss Z" 格式的字符串，返回自 Unix 纪元以来的毫秒数。
  * 与 MC Java 版 AdvancementProgress 中 OBTAINED_TIME_CODEC 的解析逻辑兼容。
  *
+ * 注意：Windows 的 std::get_time 不支持 %z 时区偏移解析，因此此函数手动解析时区部分。
+ *
  * @param dateTimeStr 日期时间字符串，如 "2024-06-15 14:30:00 +0800"
  * @return 解析成功返回毫秒时间戳，解析失败返回 std::nullopt
  */
@@ -108,22 +110,67 @@ inline constexpr char MC_DATE_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
         return std::nullopt;
     }
 
+    // MC Java 格式："2024-06-15 14:30:00 +0800"
+    // 预期最小长度：19 字符（不含时区），完整格式至少 24 字符
+    // 格式：yyyy-MM-dd HH:mm:ss +HHMM 或 -HHMM
+    // 先尝试不带时区部分的解析
     std::tm tm{};
     std::istringstream ss(dateTimeStr);
-    ss >> std::get_time(&tm, MC_DATE_FORMAT);
+    ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
 
     if (ss.fail()) {
         return std::nullopt;
     }
 
-    // mktime 将本地时间的 tm 转换为 time_t（会考虑 tm_gmtoff/tm_isdst）
+    // 手动解析时区偏移部分（"+HHMM" 或 "-HHMM"）
+    i64 tzOffsetSeconds = 0;
+    std::string remaining;
+    if (ss >> remaining) {
+        // remaining 应为 "+HHMM" 或 "-HHMM"
+        if (remaining.size() >= 5 && (remaining[0] == '+' || remaining[0] == '-')) {
+            try {
+                int tzHours = std::stoi(remaining.substr(1, 2));
+                int tzMinutes = std::stoi(remaining.substr(3, 2));
+                tzOffsetSeconds = static_cast<i64>(tzHours) * 3600 + static_cast<i64>(tzMinutes) * 60;
+                if (remaining[0] == '-') {
+                    tzOffsetSeconds = -tzOffsetSeconds;
+                }
+            }
+            catch (...) {
+                // 时区解析失败，忽略时区偏移（使用本地时间）
+            }
+        }
+        // 如果没有时区部分或格式不正确，tzOffsetSeconds 保持为 0
+    }
+
+    // mktime 将本地时间的 tm 转换为 time_t
     auto timeT = std::mktime(&tm);
     if (timeT == -1) {
         return std::nullopt;
     }
 
+    // 时区偏移校正：mktime 将 tm 视为本地时间，但字符串中的时间在 tzOffsetSeconds 时区
+    // mktime 结果：timeT = stringTime - localTzOffset（本地时区偏移，东为负）
+    // 字符串真实 UTC：UTC = stringTime - tzOffsetSeconds
+    // 因此：UTC = timeT + localTzOffset - tzOffsetSeconds
+    // 即：utcTimeT = timeT - tzOffsetSeconds - localTzOffset
+    // （localTzOffset 在 _get_timezone 中为秒数偏西，UTC+8 返回 -28800）
+#ifdef _WIN32
+    long localTzOffsetSec = 0;
+    _tzset();
+    long dstSec = 0;
+    _get_timezone(&localTzOffsetSec);
+    _get_dstbias(&dstSec);
+    // _get_timezone 返回 UTC 以西的秒数（UTC+8 返回 -28800）
+    auto utcTimeT = timeT - tzOffsetSeconds - localTzOffsetSec;
+#else
+    // POSIX: tm.tm_gmtoff 是 UTC 以东的秒数（UTC+8 为 +28800）
+    long localTzOffsetSec = tm.tm_gmtoff;
+    auto utcTimeT = timeT - tzOffsetSeconds + localTzOffsetSec;
+#endif
+
     // 转换为毫秒时间戳
-    auto timePoint = std::chrono::system_clock::from_time_t(timeT);
+    auto timePoint = std::chrono::system_clock::from_time_t(utcTimeT);
     auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(timePoint.time_since_epoch()).count();
     return millis;
 }
