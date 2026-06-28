@@ -341,6 +341,10 @@ void LivingEntity::die(DamageSource& /*cause*/)
 
     m_deathTime = 0;
 
+    // 停用所有位置依赖的附魔效果（如灵魂疾行的速度修饰符）
+    // 避免实体死亡后属性修饰符残留
+    item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
+
     // 掉落经验
     dropExperience();
 }

@@ -100,7 +100,7 @@ void FrostWalkerEnchantment::placeFrostedIce(IWorld& world, const BlockPos& cent
     }
     const BlockState& frostedIceState = VanillaBlocks::FROSTED_ICE->defaultState();
 
-    i32 y = center.y - 1; // 实体脚下方的方块层
+    i32 y = center.y - 1; // MC Java: ReplaceDisk 使用 Vec3i(0, -1, 0) 偏移，冻结实体脚下方块
 
     // 遍历以实体为中心的圆形区域
     for (i32 dx = -radius; dx <= radius; ++dx) {

@@ -116,8 +116,10 @@ bool SoulSpeedEnchantment::isOnSoulSpeedBlock(LivingEntity& entity) const
 void SoulSpeedEnchantment::applySoulSpeedModifier(LivingEntity& entity, i32 level) const
 {
     // 添加速度修饰符
-    // MC 1.16.5: 灵魂疾行使用 MultiplyTotal 操作
-    // I: +40% (0.4), II: +60% (0.6), III: +80% (0.8)
+    // 当前实现使用 MultiplyTotal 操作：I: +40%, II: +60%, III: +80%
+    // TODO: MC 1.21.11 改为 AddValue 操作，值为 perLevel(0.0405, 0.0105)
+    //       即 I: +0.0405, II: +0.0510, III: +0.0615（直接加到基础移动速度上）
+    //       当前 MultiplyTotal 实现与 MC 1.16.5 风格一致，待属性系统完善后对齐
     f32 multiplier = getSoulSpeedMultiplier(level);
     f32 modifierAmount = multiplier - 1.0f; // 转换为属性修饰符值
 

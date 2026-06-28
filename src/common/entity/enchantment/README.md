@@ -94,13 +94,18 @@ entity/enchantment/
 `SoulSpeedEnchantment::onLocationEffectDeactivated()` 必须移除 `MOVEMENT_SPEED`
 属性修饰符，否则速度加成会一直残留。
 
-### 4. 装备变更触发
+### 4. 实体死亡时清理
+
+`LivingEntity::die()` 中调用 `EnchantmentHelper::stopAllLocationBasedEffects()`
+停用所有活跃的位置依赖附魔效果，防止属性修饰符在实体死亡后残留。
+
+### 5. 装备变更触发
 
 当装备发生变更时（`detectEquipmentUpdates()`），新装备会立即执行一次
 `runLocationChangedEffects()`，确保穿上附魔靴子后立即检测当前位置。
 旧装备会通过 `stopLocationBasedEffects()` 停用所有活跃效果。
 
-### 5. 方块位置变化检测
+### 6. 方块位置变化检测
 
 `LivingEntity::tick()` 中通过比较 `m_lastBlockPos` 与当前 `BlockPos` 来检测
 方块位置变化。只有实际跨越方块边界时才触发 `onChangedBlock()`，避免每 tick
