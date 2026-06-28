@@ -459,7 +459,7 @@ TEST(StructureCheckTest, CheckStart_SkipKnownStructures_RefZero_ReturnsPresent)
     check.onStructureLoad(chunkPos, refCounts);
 
     // skipKnownStructures=true：引用计数为 0，不算"已发现"，应返回 StartPresent
-    EXPECT_EQ(StructureCheckResult::StartPresent, check.checkStart(chunkPos, villageId, nullptr, true));
+    EXPECT_EQ(StructureCheckResult::StartPresent, check.checkStart(chunkPos, villageId, true));
 }
 
 TEST(StructureCheckTest, CheckStart_SkipKnownStructures_RefPositive_ReturnsNotPresent)
@@ -475,10 +475,10 @@ TEST(StructureCheckTest, CheckStart_SkipKnownStructures_RefPositive_ReturnsNotPr
     check.incrementReference(chunkPos, villageId); // 引用计数变为 1
 
     // skipKnownStructures=false：引用计数 > 0，仍返回 StartPresent
-    EXPECT_EQ(StructureCheckResult::StartPresent, check.checkStart(chunkPos, villageId, nullptr, false));
+    EXPECT_EQ(StructureCheckResult::StartPresent, check.checkStart(chunkPos, villageId, false));
 
     // skipKnownStructures=true：引用计数 > 0，视为"已发现"，返回 StartNotPresent
-    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, villageId, nullptr, true));
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, villageId, true));
 }
 
 TEST(StructureCheckTest, CheckStart_SkipKnownStructures_NotPresent_StaysNotPresent)
@@ -495,8 +495,8 @@ TEST(StructureCheckTest, CheckStart_SkipKnownStructures_NotPresent_StaysNotPrese
     check.onStructureLoad(chunkPos, refCounts);
 
     // fortress 不存在于该区块，无论 skipKnownStructures 取值如何都返回 StartNotPresent
-    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, fortressId, nullptr, false));
-    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, fortressId, nullptr, true));
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, fortressId, false));
+    EXPECT_EQ(StructureCheckResult::StartNotPresent, check.checkStart(chunkPos, fortressId, true));
 }
 
 // ============================================================================

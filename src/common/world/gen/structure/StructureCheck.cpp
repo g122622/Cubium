@@ -22,14 +22,11 @@
  */
 
 #include "StructureCheck.hpp"
-#include "placement/StructurePlacement.hpp"
 
 namespace mc::world::gen::structure {
 
-StructureCheckResult StructureCheck::checkStart(u64 chunkPosId,
-    const ResourceLocation& structureId,
-    const placement::StructurePlacement* placement,
-    bool skipKnownStructures) const
+StructureCheckResult StructureCheck::checkStart(
+    u64 chunkPosId, const ResourceLocation& structureId, bool skipKnownStructures) const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 

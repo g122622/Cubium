@@ -29,11 +29,6 @@
 
 namespace mc::world::gen::structure {
 
-// 前向声明
-namespace placement {
-class StructurePlacement;
-}
-
 /**
  * @brief 结构存在性检查结果
  *
@@ -89,16 +84,13 @@ public:
      *
      * @param chunkPosId 区块坐标打包的 64 位 ID（高32位=X，低32位=Z）
      * @param structureId 结构 ID
-     * @param placement 结构放置规则（用于近似缓存层的频率缩减和排斥区检查），可为 nullptr
      * @param skipKnownStructures 是否跳过已发现的结构（/locate 命令搜索时使用）：
      *        当为 true 时，引用计数 > 0 的结构被视为 StartNotPresent，
      *        即只返回引用计数为 0 的"全新"结构起点
      * @return 检查结果
      */
-    [[nodiscard]] StructureCheckResult checkStart(u64 chunkPosId,
-        const ResourceLocation& structureId,
-        const placement::StructurePlacement* placement = nullptr,
-        bool skipKnownStructures = false) const;
+    [[nodiscard]] StructureCheckResult checkStart(
+        u64 chunkPosId, const ResourceLocation& structureId, bool skipKnownStructures = false) const;
 
     /**
      * @brief 区块结构数据加载完成时通知缓存

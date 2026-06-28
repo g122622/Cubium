@@ -2584,7 +2584,7 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
                 if (structureCheck != nullptr) {
                     const u64 chunkPosId = (static_cast<u64>(static_cast<u32>(candidate.x)) << 32) |
                         static_cast<u64>(static_cast<u32>(candidate.z));
-                    auto result = structureCheck->checkStart(chunkPosId, structureId, &placement, skipExisting);
+                    auto result = structureCheck->checkStart(chunkPosId, structureId, skipExisting);
 
                     if (result == world::gen::structure::StructureCheckResult::StartPresent) {
                         // 精确缓存命中：结构存在于该区块，直接返回位置
@@ -2636,7 +2636,7 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
             if (structureCheck != nullptr) {
                 const u64 chunkPosId = (static_cast<u64>(static_cast<u32>(chunkPos.x)) << 32) |
                     static_cast<u64>(static_cast<u32>(chunkPos.z));
-                auto result = structureCheck->checkStart(chunkPosId, structureId, &placement, skipExisting);
+                auto result = structureCheck->checkStart(chunkPosId, structureId, skipExisting);
 
                 if (result == world::gen::structure::StructureCheckResult::StartPresent) {
                     BlockPos locatePos = placement.getLocatePos(chunkPos);
