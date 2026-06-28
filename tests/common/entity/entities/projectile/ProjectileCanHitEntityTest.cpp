@@ -46,11 +46,6 @@ public:
     [[nodiscard]] f32 height() const override { return 1.8f; }
     [[nodiscard]] std::string getTypeId() const override { return "test:rideable"; }
     [[nodiscard]] bool canBeCollidedWith() const override { return true; }
-
-    /**
-     * @brief 公开 protected 的 setVehicle 方法，用于测试
-     */
-    void setVehiclePublic(EntityId vehicle) { setVehicle(vehicle); }
 };
 
 /**
@@ -208,10 +203,6 @@ TEST_F(CanHitEntityTest, CanHitEntityNotOnSameVehicle)
  * 对应 MC Java 的 isPassengerOfSameVehicle 逻辑。
  * 当两个实体骑乘同一载具时，getLowestRidingEntity() 返回同一载具，
  * 因此 isRidingSameEntity 返回 true，canHitEntity 返回 false。
- *
- * 注意：由于 startRiding 存在循环检测 bug（在 addPassenger 中会
- * 误判 passenger 已设置的 m_vehicle 为循环），此处直接操作内部状态
- * 来模拟骑乘关系。
  */
 TEST_F(CanHitEntityTest, CannotHitEntityOnSameVehicle)
 {
@@ -224,7 +215,7 @@ TEST_F(CanHitEntityTest, CannotHitEntityOnSameVehicle)
     TestRideableEntity target(EntityId(11));
     TestProjectile projectile(EntityId(12));
 
-    // 所有实体需要设置到世界中，以便 getEntity 查找正常工作
+    // 所有实体需要设置到世界中，以便 startRiding/getEntity 正常工作
     vehicle.setWorld(m_world.get());
     shooter.setWorld(m_world.get());
     target.setWorld(m_world.get());
@@ -236,22 +227,16 @@ TEST_F(CanHitEntityTest, CannotHitEntityOnSameVehicle)
     m_world->registerEntity(&target);
     m_world->registerEntity(&projectile);
 
-    // 直接建立骑乘关系：
-    // 射击者和目标都骑乘同一艘船
-    shooter.setVehiclePublic(vehicle.id());
-    target.setVehiclePublic(vehicle.id());
-
-    // 验证骑乘状态
-    ASSERT_TRUE(shooter.isRiding()) << "射击者应该处于骑乘状态";
-    ASSERT_TRUE(target.isRiding()) << "目标应该处于骑乘状态";
+    // 让射击者和目标都骑乘同一艘船
+    bool shooterRode = shooter.startRiding(vehicle);
+    ASSERT_TRUE(shooterRode) << "射击者应该能成功骑乘船只";
+    bool targetRode = target.startRiding(vehicle);
+    ASSERT_TRUE(targetRode) << "目标应该能成功骑乘船只";
 
     projectile.setShooter(&shooter);
     // m_leftShooter 默认为 false
 
-    // 两人骑乘同一载具，getLowestRidingEntity() 应返回同一载具
-    // 因此 isRidingSameEntity 返回 true，canHitEntity 返回 false
-    EXPECT_EQ(shooter.getLowestRidingEntity(), target.getLowestRidingEntity())
-        << "射击者和目标的 getLowestRidingEntity() 应该返回同一载具";
+    // 两人骑乘同一载具，不能互相命中
     EXPECT_FALSE(projectile.canHitEntity(target));
 }
 

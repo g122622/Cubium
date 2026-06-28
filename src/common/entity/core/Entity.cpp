@@ -1551,17 +1551,23 @@ bool Entity::startRiding(Entity& vehicle)
     // 设置姿态为站立
     setPose(EntityPose::Standing);
 
-    // 设置骑乘的车辆引用
-    m_vehicle = vehicle.id();
-
     // 添加到车辆的乘客列表
     // 注意：MC中是先设置ridingEntity，再调用addPassenger
-    // addPassenger会验证ridingEntity是否正确
+    // 但我们的addPassenger有循环检测会读取m_vehicle，
+    // 如果先设置m_vehicle再调用addPassenger，循环检测会误判。
+    // 因此先调用addPassenger，成功后再设置m_vehicle。
+    // TODO: 考虑重构addPassenger的循环检测逻辑，使其在passenger.m_vehicle
+    // 已被设置的情况下也能正确判断，与MC Java保持一致的调用顺序。
     if (!vehicle.addPassenger(*this)) {
-        // 添加失败，清空引用
-        m_vehicle = INVALID_ENTITY_ID;
+        // 添加失败
         return false;
     }
+
+    // addPassenger 成功后设置骑乘的车辆引用
+    // 注意：addPassenger 内部已经通过 passenger.setVehicle() 设置了 m_vehicle，
+    // 但如果 addPassenger 的调用路径没有经过 setVehicle（例如通过 startRiding 以外的路径），
+    // 这里确保 m_vehicle 被正确设置。
+    m_vehicle = vehicle.id();
 
     return true;
 }

@@ -287,6 +287,9 @@ private:
     i32 m_speedBonus = 0;             // 饵钓附魔等级
     i32 m_outOfWaterTime = 0;         // 离开水的时间计数器
     i32 m_lifetime = 0;               // 存在时间
+
+    // 允许测试类访问私有方法
+    friend class FishingBobberTestAccess;
 };
 
 /**
