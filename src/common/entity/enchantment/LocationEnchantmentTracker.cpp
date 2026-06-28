@@ -70,6 +70,11 @@ void LocationEnchantmentTracker::clearAll()
     m_activeEnchantments.clear();
 }
 
+bool LocationEnchantmentTracker::hasActiveEnchantments() const
+{
+    return !m_activeEnchantments.empty();
+}
+
 const std::unordered_set<std::string>& LocationEnchantmentTracker::getActiveEnchantments(i32 slot) const
 {
     static const std::unordered_set<std::string> empty;

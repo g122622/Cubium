@@ -25,6 +25,7 @@ entity/enchantment/
 │           LocationEnchantmentTracker                 │
 │  （按槽位追踪活跃的位置依赖附魔）                     │
 │  • isActive(slot, enchantmentId) → bool              │
+│  • hasActiveEnchantments() → bool                    │
 │  • setActive(slot, enchantmentId)                    │
 │  • setInactive(slot, enchantmentId) → bool           │
 │  • clearSlot(slot) → set<string>                     │
@@ -110,3 +111,9 @@ entity/enchantment/
 `LivingEntity::tick()` 中通过比较 `m_lastBlockPos` 与当前 `BlockPos` 来检测
 方块位置变化。只有实际跨越方块边界时才触发 `onChangedBlock()`，避免每 tick
 都执行位置检测。
+
+此外，当实体有活跃的位置依赖附魔但未移动时，每 20 tick 周期性调用
+`onChangedBlock()` 重新评估，确保脚下方块被破坏/替换后附魔效果能正确停用
+（如实体站在灵魂沙上不动，灵魂沙被挖走后灵魂疾行的速度修饰符需要被移除）。
+此周期性检查通过 `LocationEnchantmentTracker::hasActiveEnchantments()` 判断
+是否有活跃附魔，避免无附魔时的不必要开销。

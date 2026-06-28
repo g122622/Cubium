@@ -179,6 +179,67 @@ TEST_F(LocationEnchantmentTrackerTest, GetActiveEnchantmentsWithEntries)
     EXPECT_TRUE(active.count("minecraft:soul_speed") > 0);
 }
 
+TEST_F(LocationEnchantmentTrackerTest, HasActiveEnchantmentsEmpty)
+{
+    // 空tracker不应有活跃附魔
+    EXPECT_FALSE(tracker.hasActiveEnchantments());
+}
+
+TEST_F(LocationEnchantmentTrackerTest, HasActiveEnchantmentsAfterSetActive)
+{
+    tracker.setActive(0, "minecraft:frost_walker");
+    EXPECT_TRUE(tracker.hasActiveEnchantments());
+
+    tracker.setActive(3, "minecraft:soul_speed");
+    EXPECT_TRUE(tracker.hasActiveEnchantments());
+}
+
+TEST_F(LocationEnchantmentTrackerTest, HasActiveEnchantmentsAfterSetInactive)
+{
+    tracker.setActive(0, "minecraft:frost_walker");
+    EXPECT_TRUE(tracker.hasActiveEnchantments());
+
+    // 移除唯一的活跃附魔后应为空
+    tracker.setInactive(0, "minecraft:frost_walker");
+    EXPECT_FALSE(tracker.hasActiveEnchantments());
+}
+
+TEST_F(LocationEnchantmentTrackerTest, HasActiveEnchantmentsAfterClearSlot)
+{
+    tracker.setActive(0, "minecraft:frost_walker");
+    tracker.setActive(0, "minecraft:soul_speed");
+    EXPECT_TRUE(tracker.hasActiveEnchantments());
+
+    // 清除槽位后应为空
+    tracker.clearSlot(0);
+    EXPECT_FALSE(tracker.hasActiveEnchantments());
+}
+
+TEST_F(LocationEnchantmentTrackerTest, HasActiveEnchantmentsMultipleSlots)
+{
+    tracker.setActive(0, "minecraft:frost_walker");
+    tracker.setActive(3, "minecraft:soul_speed");
+    EXPECT_TRUE(tracker.hasActiveEnchantments());
+
+    // 清除一个槽位，另一个仍有活跃附魔
+    tracker.clearSlot(0);
+    EXPECT_TRUE(tracker.hasActiveEnchantments());
+
+    // 清除最后一个槽位
+    tracker.clearSlot(3);
+    EXPECT_FALSE(tracker.hasActiveEnchantments());
+}
+
+TEST_F(LocationEnchantmentTrackerTest, HasActiveEnchantmentsAfterClearAll)
+{
+    tracker.setActive(0, "minecraft:frost_walker");
+    tracker.setActive(3, "minecraft:soul_speed");
+    EXPECT_TRUE(tracker.hasActiveEnchantments());
+
+    tracker.clearAll();
+    EXPECT_FALSE(tracker.hasActiveEnchantments());
+}
+
 // ============================================================================
 // FrostWalkerEnchantment 属性测试
 // ============================================================================

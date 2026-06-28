@@ -592,10 +592,11 @@ void LivingEntity::onChangedBlock()
         return;
     }
 
-    // 运行位置依赖附魔效果
-    // TODO: 当前仅在方块位置变化时触发检测。若实体未移动但脚下方块被破坏
-    // （如灵魂沙被挖走），灵魂疾行的速度修饰符不会移除。需增加周期性检测或
-    // 方块变更事件通知机制，确保脚下方块变化时也能正确停用附魔效果。
+    // 评估位置依赖附魔效果（如冰霜行者、灵魂疾行）
+    // 当附魔的激活条件不再满足时（如灵魂沙被挖走），自动停用效果并清理属性修饰符。
+    // 此方法在两种场景下被调用：
+    // 1. 实体跨越方块边界时（tick 中检测 m_lastBlockPos 变化）
+    // 2. 周期性重新评估（每 20 tick，当有活跃位置附魔但未移动时）
     item::enchant::EnchantmentHelper::runLocationChangedEffects(*this);
 }
 
@@ -700,6 +701,13 @@ void LivingEntity::tick()
         if (currentBlockPos != m_lastBlockPos) {
             m_lastBlockPos = currentBlockPos;
             onChangedBlock();
+        } else if (m_locationEnchantmentTracker.hasActiveEnchantments()) {
+            // 周期性重新评估位置依赖附魔效果：当实体有活跃的位置依赖附魔但未移动时，
+            // 脚下方块可能已被破坏或替换（如灵魂沙被挖走），需要重新评估附魔是否应停用。
+            // 每 20 tick（1秒）检查一次，与 MC 原版行为一致（MC 通过 tickEffects 提供周期性评估机会）。
+            if (m_ticksExisted % 20 == 0) {
+                onChangedBlock();
+            }
         }
     }
 

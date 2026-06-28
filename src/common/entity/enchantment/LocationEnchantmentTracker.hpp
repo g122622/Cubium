@@ -95,6 +95,17 @@ public:
     void clearAll();
 
     /**
+     * @brief 检查是否存在任何活跃的位置依赖附魔
+     *
+     * 当实体有活跃的位置依赖附魔但未移动时，需要周期性重新评估
+     * 附魔效果（例如实体站在灵魂沙上，灵魂沙被挖走后需要移除灵魂疾行
+     * 的速度修饰符）。
+     *
+     * @return 是否存在至少一个活跃的位置依赖附魔
+     */
+    [[nodiscard]] bool hasActiveEnchantments() const;
+
+    /**
      * @brief 获取指定槽位的活跃附魔集合
      *
      * @param slot 装备槽位
