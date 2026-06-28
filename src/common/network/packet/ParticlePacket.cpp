@@ -101,9 +101,10 @@ Result<void> ParticlePacket::deserialize(const u8* data, size_t size)
     // 读取粒子类型ID（枚举值与 MC 协议 ID 一致，VarInt 直接转为枚举）
     m_particleType = static_cast<particle::ParticleTypeId>(typeResult.value());
 
-    // 验证粒子类型：网络通信仅接受 MC 协议定义的粒子类型
-    if (!particle::isProtocolParticleType(m_particleType)) {
-        return Error(ErrorCode::InvalidData, "ParticlePacket: invalid or non-protocol particle type");
+    // 验证粒子类型：接受协议类型和内部扩展类型
+    // TODO: 与原版 MC 通信时，需将内部扩展粒子（115~123）映射到对应的 MC 协议粒子 ID
+    if (!particle::isValidParticleType(m_particleType)) {
+        return Error(ErrorCode::InvalidData, "ParticlePacket: invalid particle type");
     }
 
     // 读取位置 (f64)

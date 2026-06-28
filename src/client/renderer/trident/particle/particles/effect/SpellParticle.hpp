@@ -136,6 +136,11 @@ private:
  * @brief 环境实体效果粒子
  *
  * 信标效果粒子，更透明、更慢。
+ * TODO: MC 1.21.11 已移除独立的 ambient_entity_effect 粒子类型，
+ * 其功能由 EntityEffect（粒子 ID 21）+ 颜色数据（低 alpha 值）实现。
+ * 当前此类无对应 ParticleTypeId 枚举值，属于孤岛代码。
+ * 后续应将其集成到 EntityEffectParticle 中作为"环境模式"变体，
+ * 或在内部扩展粒子区间为其分配枚举值。
  */
 class AmbientEntityEffectParticle : public Particle {
 public:
