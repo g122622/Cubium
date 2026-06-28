@@ -87,6 +87,29 @@ void Enchantment::onUserHurt(LivingEntity& user, Entity& attacker, i32 level) co
     (void)level;
 }
 
+bool Enchantment::onLocationChanged(
+    LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const
+{
+    // 默认实现：不激活位置依赖效果
+    // 子类（如 FrostWalkerEnchantment、SoulSpeedEnchantment）覆盖此方法
+    (void)entity;
+    (void)stack;
+    (void)slot;
+    (void)level;
+    (void)isActive;
+    return false;
+}
+
+void Enchantment::onLocationEffectDeactivated(LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level) const
+{
+    // 默认实现：无操作
+    // 子类可以覆盖此方法来清理位置依赖效果（如移除属性修饰符）
+    (void)entity;
+    (void)stack;
+    (void)slot;
+    (void)level;
+}
+
 i32 Enchantment::getMinCost(i32 level) const
 {
     // 默认公式：1 + (level - 1) * 10

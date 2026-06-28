@@ -280,6 +280,41 @@ public:
      */
     virtual void onUserHurt(LivingEntity& user, Entity& attacker, i32 level) const;
 
+    // ========== 位置依赖附魔回调 ==========
+
+    /**
+     * @brief 当实体移动到新的方块位置时调用
+     *
+     * 用于实现冰霜行者（在水面上放置霜冰）、灵魂疾行（灵魂沙/土上加速）等
+     * 基于位置的附魔效果。
+     *
+     * 此方法在每个 tick 中，当实体的方块位置发生变化时被调用。
+     * 附魔应该在此方法中检查当前环境条件（如脚下方块、是否在地面等），
+     * 然后决定是否激活效果。
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     * @param isActive 当前该附魔是否已经处于活跃状态
+     * @return 如果附魔在此位置应该激活返回 true（活跃），否则返回 false（非活跃）
+     */
+    [[nodiscard]] virtual bool onLocationChanged(
+        LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const;
+
+    /**
+     * @brief 当位置依赖附魔效果被停用时调用
+     *
+     * 当附魔效果从活跃变为非活跃时调用（例如实体离开灵魂沙、装备被移除等）。
+     * 应在此方法中移除 onLocationChanged 中添加的临时效果（如属性修饰符）。
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     */
+    virtual void onLocationEffectDeactivated(LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level) const;
+
     // ========== 稀有度权重 ==========
 
     /**

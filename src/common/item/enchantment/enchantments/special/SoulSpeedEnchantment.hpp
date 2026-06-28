@@ -39,6 +39,12 @@ namespace enchant {
  * - I: +40%, II: +60%, III: +80%
  * - 最大 III 级
  * - 属于宝藏附魔
+ *
+ * 位置依赖效果:
+ * - 当实体站在灵魂沙/灵魂土上时激活速度修饰符
+ * - 当实体离开灵魂沙/灵魂土时停用速度修饰符
+ * - 每次位置变化有 4% 概率消耗靴子耐久
+ * - 灵魂粒子效果和音效
  */
 class SoulSpeedEnchantment : public Enchantment {
 public:
@@ -100,6 +106,48 @@ public:
         (void)level;  // 概率固定为4%，与等级无关
         return 0.04f; // 固定4%概率
     }
+
+    /**
+     * @brief 位置依赖效果：在灵魂沙/土上激活速度加成
+     *
+     * 当实体站在灵魂沙/灵魂土上且在地面上、非骑乘时，激活速度修饰符。
+     * 当条件不再满足时，由 onLocationEffectDeactivated 移除修饰符。
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     * @param isActive 当前该附魔是否已经处于活跃状态
+     * @return 是否应该处于活跃状态
+     */
+    [[nodiscard]] bool onLocationChanged(
+        LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const override;
+
+    /**
+     * @brief 停用位置依赖效果：移除灵魂疾行速度修饰符
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     */
+    void onLocationEffectDeactivated(LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level) const override;
+
+private:
+    /**
+     * @brief 检查实体是否站在灵魂沙/灵魂土上
+     */
+    [[nodiscard]] bool isOnSoulSpeedBlock(LivingEntity& entity) const;
+
+    /**
+     * @brief 应用灵魂疾行速度修饰符
+     */
+    void applySoulSpeedModifier(LivingEntity& entity, i32 level) const;
+
+    /**
+     * @brief 移除灵魂疾行速度修饰符
+     */
+    void removeSoulSpeedModifier(LivingEntity& entity) const;
 };
 
 } // namespace enchant

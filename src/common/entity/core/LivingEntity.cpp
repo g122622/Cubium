@@ -509,6 +509,12 @@ void LivingEntity::detectEquipmentUpdates()
                             }
                         }
                     }
+
+                    // 对新装备运行位置依赖附魔效果
+                    // 对应 MC Java 中 collectEquipmentChanges() 后调用 runLocationChangedEffects()
+                    if (m_world != nullptr && !m_world->isClientSide()) {
+                        item::enchant::EnchantmentHelper::runLocationChangedEffects(*this, currentStack, slot);
+                    }
                 }
 
                 // 更新快照
@@ -539,14 +545,20 @@ void LivingEntity::stopLocationBasedEffects(const ItemStack& stack, EquipmentSlo
         }
     }
 
-    // TODO: 当附魔基于位置的效果系统实现后，此处应同时调用
-    // EnchantmentHelper.stopLocationBasedEffects(stack, *this, slot) 来停用
-    // 位置相关的附魔效果（如 Frost Walker 冰面替换、Soul Speed 速度加成等）。
-    // 这需要以下基础设施：
-    // 1. EnchantedItemInUse 记录类（持有物品、槽位、实体引用、破坏回调）
-    // 2. activeLocationDependentEnchantments 映射表（按槽位和附魔追踪活跃效果）
-    // 3. EnchantmentLocationBasedEffect 接口（onChangedBlock / onDeactivated）
-    // 4. EnchantmentHelper.forEachModifier() 迭代附魔属性修饰符
+    // 停用位置相关的附魔效果（如 Frost Walker 冰面替换、Soul Speed 速度加成等）
+    item::enchant::EnchantmentHelper::stopLocationBasedEffects(*this, stack, slot);
+}
+
+void LivingEntity::onChangedBlock()
+{
+    // 仅在服务端运行位置依赖附魔效果
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 运行位置依赖附魔效果
+    // 对应 MC Java 的 EnchantmentHelper.runLocationChangedEffects()
+    item::enchant::EnchantmentHelper::runLocationChangedEffects(*this);
 }
 
 bool LivingEntity::hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot)
@@ -640,6 +652,18 @@ void LivingEntity::tick()
     // 检测装备更新（服务端）
     // 对应 MC 原版 LivingEntity.tick() 中的 detectEquipmentUpdates() 调用
     detectEquipmentUpdates();
+
+    // 检测方块位置变化（服务端），触发位置依赖的附魔效果
+    // 对应 MC Java 的 LivingEntity.baseTick() 中 lastPos != blockPosition() 检测
+    if (!m_world->isClientSide()) {
+        BlockPos currentBlockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)),
+            static_cast<i32>(std::floor(m_position.z)));
+        if (currentBlockPos != m_lastBlockPos) {
+            m_lastBlockPos = currentBlockPos;
+            onChangedBlock();
+        }
+    }
 
     // 更新无敌帧计时器
     if (m_hurtResistantTime > 0) {

@@ -29,6 +29,7 @@
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectManager.hpp"
+#include "common/entity/enchantment/LocationEnchantmentTracker.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/PhysicsConstants.hpp"
@@ -354,16 +355,40 @@ public:
     /**
      * @brief 停止基于位置的物品效果
      *
-     * 当装备从槽位移除时调用，移除物品提供的属性修饰符。
-     * 对应 MC 原版 LivingEntity.stopLocationBasedEffects() 中移除属性修饰符的部分。
-     * TODO: 当附魔基于位置的效果系统（Frost Walker、Soul Speed 等）实现后，
-     * 此方法应同时调用 EnchantmentHelper.stopLocationBasedEffects() 来停用
-     * 位置相关的附魔效果。
+     * 当装备从槽位移除时调用，移除物品提供的属性修饰符，
+     * 并停用位置相关的附魔效果（如冰霜行者、灵魂疾行）。
+     * 对应 MC 原版 LivingEntity.stopLocationBasedEffects()。
      *
      * @param stack 物品堆
      * @param slot 装备槽位
      */
     void stopLocationBasedEffects(const ItemStack& stack, EquipmentSlot slot);
+
+    /**
+     * @brief 当实体移动到新的方块位置时调用
+     *
+     * 检测实体方块位置的变化，并运行位置依赖的附魔效果
+     * （如冰霜行者在水面上放置霜冰、灵魂疾行在灵魂沙上提供加速）。
+     *
+     * 对应 MC Java 的 LivingEntity.onChangedBlock()。
+     */
+    void onChangedBlock();
+
+    /**
+     * @brief 获取位置依赖附魔效果跟踪器
+     *
+     * 用于追踪当前活跃的位置依赖附魔效果（如冰霜行者、灵魂疾行）。
+     *
+     * @return 跟踪器引用
+     */
+    [[nodiscard]] entity::LocationEnchantmentTracker& locationEnchantmentTracker()
+    {
+        return m_locationEnchantmentTracker;
+    }
+    [[nodiscard]] const entity::LocationEnchantmentTracker& locationEnchantmentTracker() const
+    {
+        return m_locationEnchantmentTracker;
+    }
 
     /**
      * @brief 将 Hand 转换为 EquipmentSlot
@@ -1181,6 +1206,14 @@ protected:
 
     // 是否已初始化上一tick装备快照
     bool m_lastEquipmentInitialized = false;
+
+    // 上一tick的方块位置（用于检测位置变化触发位置依赖附魔效果）
+    // 对应 MC Java 的 LivingEntity.lastPos
+    BlockPos m_lastBlockPos{0, std::numeric_limits<i32>::min(), 0};
+
+    // 位置依赖附魔效果跟踪器
+    // 追踪冰霜行者、灵魂疾行等基于位置的附魔效果是否处于活跃状态
+    entity::LocationEnchantmentTracker m_locationEnchantmentTracker;
 
     // 主手偏好
     HandSide m_primaryHand = HandSide::Right; // 默认右手为主手

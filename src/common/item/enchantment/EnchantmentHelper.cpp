@@ -413,6 +413,91 @@ void EnchantmentHelper::applyArthropodEnchantments(LivingEntity& user, Entity& t
     }
 }
 
+// ========== 位置依赖附魔效果 ==========
+
+void EnchantmentHelper::runLocationChangedEffects(LivingEntity& entity)
+{
+    // 遍历所有装备槽位
+    for (i32 slotIndex = 0; slotIndex < static_cast<i32>(EquipmentSlot::Count); ++slotIndex) {
+        auto slot = static_cast<EquipmentSlot>(slotIndex);
+        const ItemStack& stack = entity.getEquipment(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+        runLocationChangedEffects(entity, stack, slot);
+    }
+}
+
+void EnchantmentHelper::runLocationChangedEffects(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    auto enchantments = getEnchantments(stack);
+    i32 slotIndex = static_cast<i32>(slot);
+
+    for (const auto& [enchantment, level] : enchantments) {
+        if (enchantment == nullptr || level <= 0) {
+            continue;
+        }
+
+        bool wasActive = entity.locationEnchantmentTracker().isActive(slotIndex, enchantment->id());
+        bool shouldActivate = enchantment->onLocationChanged(entity, stack, slotIndex, level, wasActive);
+
+        if (shouldActivate && !wasActive) {
+            // 附魔从非活跃变为活跃
+            entity.locationEnchantmentTracker().setActive(slotIndex, enchantment->id());
+        } else if (!shouldActivate && wasActive) {
+            // 附魔从活跃变为非活跃，需要停用效果
+            entity.locationEnchantmentTracker().setInactive(slotIndex, enchantment->id());
+            enchantment->onLocationEffectDeactivated(entity, stack, slotIndex, level);
+        }
+    }
+}
+
+void EnchantmentHelper::stopLocationBasedEffects(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot)
+{
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    i32 slotIndex = static_cast<i32>(slot);
+    auto activeEnchantments = entity.locationEnchantmentTracker().clearSlot(slotIndex);
+
+    auto enchantments = getEnchantments(stack);
+    for (const auto& [enchantment, level] : enchantments) {
+        if (enchantment == nullptr || level <= 0) {
+            continue;
+        }
+        if (activeEnchantments.count(enchantment->id()) > 0) {
+            enchantment->onLocationEffectDeactivated(entity, stack, slotIndex, level);
+        }
+    }
+}
+
+void EnchantmentHelper::stopAllLocationBasedEffects(LivingEntity& entity)
+{
+    for (i32 slotIndex = 0; slotIndex < static_cast<i32>(EquipmentSlot::Count); ++slotIndex) {
+        auto slot = static_cast<EquipmentSlot>(slotIndex);
+        const ItemStack& stack = entity.getEquipment(slot);
+        if (stack.isEmpty()) {
+            continue;
+        }
+
+        auto activeEnchantments = entity.locationEnchantmentTracker().clearSlot(slotIndex);
+        auto enchantments = getEnchantments(stack);
+        for (const auto& [enchantment, level] : enchantments) {
+            if (enchantment == nullptr || level <= 0) {
+                continue;
+            }
+            if (activeEnchantments.count(enchantment->id()) > 0) {
+                enchantment->onLocationEffectDeactivated(entity, stack, slotIndex, level);
+            }
+        }
+    }
+}
+
 // ========== 附魔生成（附魔台用） ==========
 
 i32 EnchantmentHelper::calcItemStackEnchantability(

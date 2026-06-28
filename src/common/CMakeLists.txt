@@ -88,6 +88,7 @@ add_library(mc_common STATIC
     entity/effect/EffectInstance.cpp
     entity/effect/EffectManager.cpp
     entity/effect/EffectAttributeModifiers.cpp
+    entity/enchantment/LocationEnchantmentTracker.cpp
     # Entity - Food
     entity/food/FoodStats.cpp
     # Entity - Player
@@ -572,6 +573,7 @@ add_library(mc_common STATIC
     item/enchantment/enchantments/protection/ThornsEnchantment.cpp
     item/enchantment/enchantments/protection/DepthStriderEnchantment.cpp
     item/enchantment/enchantments/protection/FrostWalkerEnchantment.cpp
+    item/enchantment/enchantments/special/SoulSpeedEnchantment.cpp
     item/enchantment/enchantments/weapon/DamageEnchantment.cpp
     item/enchantment/enchantments/weapon/BaneOfArthropodsEnchantment.cpp
     item/enchantment/enchantments/mace/DensityEnchantment.cpp

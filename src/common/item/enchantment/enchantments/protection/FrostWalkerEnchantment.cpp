@@ -23,6 +23,11 @@
 
 #include "FrostWalkerEnchantment.hpp"
 #include "DepthStriderEnchantment.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace item {
@@ -35,6 +40,82 @@ bool FrostWalkerEnchantment::isCompatibleWith(const Enchantment& other) const
         return false;
     }
     return Enchantment::isCompatibleWith(other);
+}
+
+bool FrostWalkerEnchantment::onLocationChanged(
+    LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const
+{
+    (void)stack;
+    (void)slot;
+    (void)isActive;
+
+    // 冰霜行者仅在以下条件下激活：
+    // 1. 实体在地面上
+    // 2. 实体没有骑乘
+    // 3. 实体所在世界可用
+    if (!entity.onGround()) {
+        return false;
+    }
+    if (entity.isRiding()) {
+        return false;
+    }
+
+    IWorld* world = entity.world();
+    if (world == nullptr) {
+        return false;
+    }
+
+    // 冰霜行者在每个方块位置变化时放置霜冰
+    // 半径 = level + 1（I: 2, II: 3）
+    i32 radius = getFrostRadius(level);
+
+    BlockPos entityPos(static_cast<i32>(std::floor(entity.position().x)),
+        static_cast<i32>(std::floor(entity.position().y)),
+        static_cast<i32>(std::floor(entity.position().z)));
+
+    // 在实体脚下 Y-1 层的圆形区域内放置霜冰
+    placeFrostedIce(*world, entityPos, radius);
+
+    return true; // 冰霜行者总是处于"活跃"状态（在地面时）
+}
+
+void FrostWalkerEnchantment::placeFrostedIce(IWorld& world, const BlockPos& center, i32 radius) const
+{
+    // 获取霜冰的默认方块状态
+    if (VanillaBlocks::FROSTED_ICE == nullptr) {
+        return;
+    }
+    const BlockState& frostedIceState = VanillaBlocks::FROSTED_ICE->defaultState();
+
+    i32 y = center.y - 1; // 实体脚下方的方块层
+
+    // 遍历以实体为中心的圆形区域
+    for (i32 dx = -radius; dx <= radius; ++dx) {
+        for (i32 dz = -radius; dz <= radius; ++dz) {
+            // 圆形范围检测
+            if (dx * dx + dz * dz > radius * radius) {
+                continue;
+            }
+
+            BlockPos pos(center.x + dx, y, center.z + dz);
+
+            // 检查上方是否有空气（不能在上方有实体方块时放置霜冰）
+            const BlockState* aboveState = world.getBlockState(pos.x, pos.y + 1, pos.z);
+            if (aboveState != nullptr && !aboveState->isAir()) {
+                continue;
+            }
+
+            // 检查当前位置是否是水（使用 isWaterAt 检测水源方块）
+            if (!world.isWaterAt(pos)) {
+                continue;
+            }
+
+            // 放置霜冰（仅在服务端）
+            if (!world.isClientSide()) {
+                world.setBlockState(pos, &frostedIceState);
+            }
+        }
+    }
 }
 
 } // namespace enchant
