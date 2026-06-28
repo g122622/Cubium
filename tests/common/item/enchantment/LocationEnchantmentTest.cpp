@@ -606,6 +606,12 @@ public:
         registerAttributes();
         setHealth(maxHealth());
     }
+
+    /**
+     * @brief 测试辅助方法：设置骑乘状态
+     * Entity::setVehicle() 是 protected 方法，测试中通过此辅助方法访问
+     */
+    void setVehicleForTest(EntityId vehicle) { setVehicle(vehicle); }
 };
 
 } // namespace
@@ -1479,4 +1485,158 @@ TEST_F(SoulSpeedIntegrationTest, GetBlockSpeedFactorLerpWithPartialEfficiency)
     // 清理
     m_entity->attributes().removeModifier(
         entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "test.partial_efficiency");
+}
+
+// ============================================================================
+// 集成测试：SoulSpeed 骑乘状态下不激活
+// ============================================================================
+
+TEST_F(SoulSpeedIntegrationTest, NoModifierWhenRiding)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 设置骑乘状态（模拟骑在另一个实体上）
+    m_entity->setVehicleForTest(EntityId(42));
+    ASSERT_TRUE(m_entity->isRiding());
+
+    // 在地面且在灵魂沙上，但骑乘中 → 灵魂疾行不应激活
+    m_entity->onChangedBlock();
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+
+    // 清理：恢复非骑乘状态后应正常激活
+    m_entity->setVehicleForTest(INVALID_ENTITY_ID);
+    ASSERT_FALSE(m_entity->isRiding());
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+}
+
+// ============================================================================
+// 集成测试：SoulSpeed 鞘翅滑翔时不激活
+// ============================================================================
+
+TEST_F(SoulSpeedIntegrationTest, NoModifierWhenElytraFlying)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 设置鞘翅滑翔标志（模拟正在使用鞘翅滑翔）
+    m_entity->addFlag(mc::EntityFlags::FallFlying);
+
+    // 在地面且在灵魂沙上，但鞘翅滑翔中 → 灵魂疾行不应激活
+    m_entity->onChangedBlock();
+    EXPECT_FALSE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_FALSE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+
+    // 清理：移除鞘翅滑翔标志后应正常激活
+    m_entity->removeFlag(mc::EntityFlags::FallFlying);
+    m_entity->onChangedBlock();
+    EXPECT_TRUE(
+        m_entity->attributes().hasModifier(entity::attribute::Attributes::MOVEMENT_SPEED, "enchantment.soul_speed"));
+    EXPECT_TRUE(m_entity->attributes().hasModifier(
+        entity::attribute::Attributes::MOVEMENT_EFFICIENCY, "enchantment.soul_speed.efficiency"));
+}
+
+// ============================================================================
+// 集成测试：SoulSpeed 耐久消耗
+// ============================================================================
+
+TEST_F(SoulSpeedIntegrationTest, DurabilityConsumedOverMultipleTicks)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 在脚下放置灵魂沙
+    const BlockPos soulSandPos(0, 64, 0);
+    m_world->setBlockDirectly(soulSandPos, &NetherBlocks::SOUL_SAND->defaultState());
+
+    // 记录初始伤害值
+    i32 initialDamage = m_entity->getEquipment(EquipmentSlot::Feet).getDamage();
+    EXPECT_EQ(initialDamage, 0); // 新物品没有伤害
+
+    // 灵魂疾行每次位置变化有4%概率消耗1点耐久
+    // 多次触发 onChangedBlock，期望至少有一次耐久消耗
+    i32 totalTicks = 200; // 足够多次以确保至少触发一次
+    for (i32 i = 0; i < totalTicks; ++i) {
+        // 微小位置变化以触发 onChangedBlock
+        m_entity->setPosition(0.5 + static_cast<f32>(i) * 0.01f, 65.0, 0.5);
+        m_entity->onChangedBlock();
+    }
+
+    // 验证耐久消耗发生了（伤害值 > 0）
+    i32 finalDamage = m_entity->getEquipment(EquipmentSlot::Feet).getDamage();
+    // 4%概率 × 200次 ≈ 8次消耗期望值，至少应该 > 0
+    EXPECT_GT(finalDamage, 0);
+
+    // 验证消耗量合理：200次 × 4% ≈ 8次，但允许范围在1-30之间（宽泛容差）
+    EXPECT_LT(finalDamage, 50);
+}
+
+TEST_F(SoulSpeedIntegrationTest, NoDurabilityConsumptionWhenNotOnSoulSand)
+{
+    if (NetherBlocks::SOUL_SAND == nullptr) {
+        GTEST_SKIP() << "SOUL_SAND not initialized";
+    }
+
+    const Enchantment* soulSpeed = EnchantmentRegistry::get("minecraft:soul_speed");
+    ASSERT_NE(soulSpeed, nullptr);
+
+    // 装备灵魂疾行 II 靴子
+    ItemStack boots(Items::DIAMOND_BOOTS, 1);
+    EnchantmentHelper::setEnchantments({{soulSpeed, 2}}, boots);
+    m_entity->setEquipment(EquipmentSlot::Feet, boots);
+
+    // 脚下没有灵魂沙
+    // 灵魂疾行不会激活，不应消耗耐久
+    i32 initialDamage = m_entity->getEquipment(EquipmentSlot::Feet).getDamage();
+
+    for (i32 i = 0; i < 100; ++i) {
+        m_entity->setPosition(0.5 + static_cast<f32>(i) * 0.01f, 65.0, 0.5);
+        m_entity->onChangedBlock();
+    }
+
+    i32 finalDamage = m_entity->getEquipment(EquipmentSlot::Feet).getDamage();
+    // 不在灵魂沙上，灵魂疾行不会激活，耐久不应被消耗
+    EXPECT_EQ(finalDamage, initialDamage);
 }
