@@ -33,6 +33,8 @@
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
+#include "world/block/blocks/vegetation/SaplingBlock.hpp"
+#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -189,15 +191,13 @@ void registerCherryBlocks()
         BlockProperties(Material::LEAVES).hardness(0.2f).resistance(0.2f).soundType(BlockSoundTypes::CHERRY_LEAVES));
 
     // 樱花树苗
-    // TODO: 当 SaplingBlock 生长系统支持 IWorld→WorldGenRegion 适配后，
-    // 应改为 SaplingBlock 并提供樱花树生成回调。
-    // 当前所有树苗（包括 VanillaBlocks 中的）均为 SimpleBlock，
-    // 因为 TreeFeature::place() 需要 WorldGenRegion& 而 SaplingBlock::grow() 只有 IWorld&。
-    CherryBlocks::CHERRY_SAPLING = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cherry_sapling"),
-        BlockProperties(Material::REPLACEABLE_PLANT)
-            .noCollision()
-            .notSolid()
-            .soundType(BlockSoundTypes::CHERRY_SAPLING));
+    CherryBlocks::CHERRY_SAPLING =
+        &registry.registerBlock<blocks::SaplingBlock>(ResourceLocation("minecraft:cherry_sapling"),
+            blocks::TreeGenerators::cherryTree(),
+            BlockProperties(Material::REPLACEABLE_PLANT)
+                .noCollision()
+                .notSolid()
+                .soundType(BlockSoundTypes::CHERRY_SAPLING));
 }
 
 } // namespace block_registry

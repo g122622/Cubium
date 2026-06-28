@@ -736,6 +736,7 @@ add_library(mc_common STATIC
     world/block/blocks/vegetation/TallGrassBlock.cpp
     world/block/blocks/vegetation/FlowerBlock.cpp
     world/block/blocks/vegetation/SaplingBlock.cpp
+    world/block/blocks/vegetation/TreeGenerators.cpp
     world/block/blocks/vegetation/MushroomBlock.cpp
     world/block/blocks/vegetation/CactusBlock.cpp
     world/block/blocks/vegetation/SugarCaneBlock.cpp
@@ -1046,6 +1047,7 @@ add_library(mc_common STATIC
 
     # World - Generation - Feature
     world/gen/feature/Feature.cpp
+    world/gen/FeaturePlacer.cpp
     world/gen/feature/FeatureSpread.cpp
     world/gen/feature/ConfiguredFeature.cpp
     world/gen/feature/FeatureSorter.cpp

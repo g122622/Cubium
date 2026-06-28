@@ -30,9 +30,11 @@
 #include "world/block/blocks/vegetation/FlowerBlock.hpp"
 #include "world/block/blocks/vegetation/LeavesBlock.hpp"
 #include "world/block/blocks/vegetation/MushroomBlock.hpp"
+#include "world/block/blocks/vegetation/SaplingBlock.hpp"
 #include "world/block/blocks/vegetation/SugarCaneBlock.hpp"
 #include "world/block/blocks/vegetation/SweetBerryBushBlock.hpp"
 #include "world/block/blocks/vegetation/TallGrassBlock.hpp"
+#include "world/block/blocks/vegetation/TreeGenerators.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -245,18 +247,18 @@ void registerVegetationBlocks()
     // 树苗属性
     BlockProperties saplingProps = BlockProperties(Material::REPLACEABLE_PLANT).noCollision().notSolid();
 
-    VegetationBlocks::OAK_SAPLING =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:oak_sapling"), saplingProps);
-    VegetationBlocks::SPRUCE_SAPLING =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:spruce_sapling"), saplingProps);
-    VegetationBlocks::BIRCH_SAPLING =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:birch_sapling"), saplingProps);
-    VegetationBlocks::JUNGLE_SAPLING =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:jungle_sapling"), saplingProps);
-    VegetationBlocks::ACACIA_SAPLING =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:acacia_sapling"), saplingProps);
-    VegetationBlocks::DARK_OAK_SAPLING =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:dark_oak_sapling"), saplingProps);
+    VegetationBlocks::OAK_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
+        ResourceLocation("minecraft:oak_sapling"), blocks::TreeGenerators::oakTree(), saplingProps);
+    VegetationBlocks::SPRUCE_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
+        ResourceLocation("minecraft:spruce_sapling"), blocks::TreeGenerators::spruceTree(), saplingProps);
+    VegetationBlocks::BIRCH_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
+        ResourceLocation("minecraft:birch_sapling"), blocks::TreeGenerators::birchTree(), saplingProps);
+    VegetationBlocks::JUNGLE_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
+        ResourceLocation("minecraft:jungle_sapling"), blocks::TreeGenerators::jungleTree(), saplingProps);
+    VegetationBlocks::ACACIA_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
+        ResourceLocation("minecraft:acacia_sapling"), blocks::TreeGenerators::acaciaTree(), saplingProps);
+    VegetationBlocks::DARK_OAK_SAPLING = &registry.registerBlock<blocks::SaplingBlock>(
+        ResourceLocation("minecraft:dark_oak_sapling"), blocks::TreeGenerators::darkOakTree(), saplingProps);
 
     // 竹子属性
     BlockProperties bambooProps = BlockProperties(Material::BAMBOO).hardness(1.0f).notSolid();

@@ -12,12 +12,11 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * LIABILITY, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+ * OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -26,11 +25,14 @@
 #include "common/item/context/BlockItemUseContext.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
 #include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/IGrowable.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/chunk/IChunkGenerator.hpp"
 
 #include <algorithm>
-
+#include <spdlog/spdlog.h>
 namespace mc {
 namespace blocks {
 
@@ -118,22 +120,36 @@ bool SaplingBlock::grow(IWorld& world, const BlockPos& pos, BlockState& state)
         return true;
     }
 
-    if (m_treeGenerator) {
-        u64 seed = world.seed();
-        seed ^= static_cast<u64>(static_cast<i64>(pos.x)) * 3129871ULL;
-        seed ^= static_cast<u64>(static_cast<i64>(pos.y)) * 116129781ULL;
-        seed ^= static_cast<u64>(static_cast<i64>(pos.z)) * 42317861ULL;
-
-        math::Random rng(0);
-        rng.setSeedWithHash(static_cast<i64>(seed));
-
-        const BlockState* airState = BlockRegistry::instance().airState();
-        world.setBlockState(pos, airState, 2);
-        m_treeGenerator(world, pos, rng);
-        return true;
+    if (!m_treeGenerator) {
+        return false;
     }
 
-    return false;
+    // 通过 IWorld::createFeatureRegion() 从已加载区块构建 WorldGenRegion
+    // ServerWorld 会重写此方法，返回有效的 WorldGenRegion；
+    // 客户端和其他实现返回 nullptr
+    auto region = world.createFeatureRegion(pos);
+    if (region == nullptr) {
+        // 非服务器环境或周围区块未加载，无法生成树木
+        spdlog::debug("SaplingBlock::grow: cannot create WorldGenRegion at ({}, {}, {})", pos.x, pos.y, pos.z);
+        return false;
+    }
+
+    // 使用世界种子和位置派生随机数种子
+    u64 seed = world.seed();
+    seed ^= static_cast<u64>(static_cast<i64>(pos.x)) * 3129871ULL;
+    seed ^= static_cast<u64>(static_cast<i64>(pos.y)) * 116129781ULL;
+    seed ^= static_cast<u64>(static_cast<i64>(pos.z)) * 42317861ULL;
+
+    math::Random rng(0);
+    rng.setSeedWithHash(static_cast<i64>(seed));
+
+    // 清除树苗方块
+    const BlockState* airState = BlockRegistry::instance().airState();
+    world.setBlockState(pos, airState, 2);
+
+    // 通过 WorldGenRegion 调用树木生成器
+    m_treeGenerator(*region, pos, rng);
+    return true;
 }
 
 // ========== 形状 ==========
@@ -153,6 +169,34 @@ bool SaplingBlock::canSustain(const BlockState& groundState, IWorld& world, cons
     MC_UNUSED(groundPos);
 
     return isSaplingGround(groundState);
+}
+
+// ========== IGrowable 接口 ==========
+
+bool SaplingBlock::canGrow(IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    MC_UNUSED(isClientSide);
+    return true;
+}
+
+bool SaplingBlock::canUseBonemeal(
+    IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    MC_UNUSED(state);
+    // 骨粉有概率成功（MC 原版树苗骨粉概率约 45%）
+    return random.nextFloat() < 0.45f;
+}
+
+void SaplingBlock::grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state)
+{
+    // IGrowable::grow 调用内部的 grow 方法
+    BlockState mutableState = state;
+    SaplingBlock::grow(world, pos, mutableState);
 }
 
 } // namespace blocks

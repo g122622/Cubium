@@ -366,10 +366,7 @@ struct TreeFeatures {
     /// 创建樱花树（带蜂巢）配置
     static std::unique_ptr<ConfiguredTreeFeature> createCherryBeeTree();
 
-private:
-    static std::vector<std::unique_ptr<ConfiguredTreeFeature>> s_features;
-
-    /// 创建树木特征的基础配置
+    /// 创建树木特征的基础配置（公开供 TreeGenerators 使用）
     static TreeFeatureConfig oakConfig();
     static TreeFeatureConfig birchConfig();
     static TreeFeatureConfig spruceConfig();
@@ -385,6 +382,9 @@ private:
     static TreeFeatureConfig megaPineConfig();
     static TreeFeatureConfig tallBirchConfig();
     static TreeFeatureConfig cherryConfig();
+
+private:
+    static std::vector<std::unique_ptr<ConfiguredTreeFeature>> s_features;
 };
 
 } // namespace mc

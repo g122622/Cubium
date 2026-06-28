@@ -10,7 +10,8 @@ vegetation/
 ├── DoublePlantBlock.hpp/cpp     # 双格植物基类（向日葵、丁香、大型蕨等）
 ├── TallGrassBlock.hpp/cpp       # 高草/蕨类
 ├── FlowerBlock.hpp/cpp          # 花朵（蒲公英、玫瑰等）及双格花朵（丁香、牡丹等）
-├── SaplingBlock.hpp/cpp         # 树苗（可生长成树木）
+├── SaplingBlock.hpp/cpp         # 树苗（可生长成树木，通过 FeaturePlacer 构建 WorldGenRegion 调用 TreeFeature）
+├── TreeGenerators.hpp/cpp       # 树苗树木生成器工厂（为每种树苗创建 TreeGenerator 回调）
 ├── MushroomBlock.hpp/cpp        # 蘑菇（IPlantable/Cave，MUSHROOM_GROW_BLOCK 标签判定）及巨型蘑菇方块（6方向属性）
 ├── CactusBlock.hpp/cpp          # 仙人掌（接触伤害、高度限制3格）
 ├── SugarCaneBlock.hpp/cpp       # 甘蔗（需靠近水源）
@@ -34,7 +35,7 @@ Block (基类)
 │   ├── TallGrassBlock
 │   │   └── FernBlock
 │   ├── FlowerBlock
-│   ├── SaplingBlock
+│   ├── SaplingBlock        # 继承 BushBlock + IGrowable，通过 FeaturePlacer 构建 WorldGenRegion 调用 TreeFeature
 │   └── LilyPadBlock
 ├── MushroomBlock        # 独立实现，IPlantable(Cave)，使用 MUSHROOM_GROW_BLOCK 标签判定放置
 ├── HugeMushroomBlock    # 巨型蘑菇组成方块（6方向属性：UP/DOWN/NORTH/SOUTH/EAST/WEST）
@@ -126,3 +127,15 @@ Block (基类)
 ### 9. 花朵迷之炖菜效果
 
 所有 `FlowerBlock` 注册时都带有迷之炖菜效果参数（EffectType + duration），通过 `hasStewEffect()` / `getSuspiciousStewEffect()` / `getEffectDuration()` 查询。效果映射在 `VegetationBlocks.cpp` 和 `PaleGardenBlocks.cpp` 注册时指定。`MooshroomEntity::_getStewEffectFromItem()` 通过 `BlockItemRegistry` 将物品转换为方块再检查是否为 `FlowerBlock` 来获取效果。
+
+### 10. 树苗生长与 WorldGenRegion 适配
+
+`SaplingBlock::grow()` 在 `IWorld&` 上下文中被调用（来自 `randomTick` 或骨粉），但 `TreeFeature::place()` 需要 `WorldGenRegion&`。这通过 `FeaturePlacer` 工具类桥接：
+
+1. `SaplingBlock::grow()` 通过 `IWorld::asServerWorld()` 获取 `ServerWorld*`
+2. 从 `ServerChunkManager::tryToGetChunkInMem()` 收集周围 3×3 已加载区块（`ChunkData*` → `IChunk*`）
+3. 通过 `FeaturePlacer::createRegion()` 构建临时的 `WorldGenRegion`（使用无步骤验证构造函数，`m_generatingStep=nullptr` 使写入验证跳过）
+4. 通过 `FeaturePlacer::populateWorldState()` 填充世界状态（种子、tick、时间等）
+5. 将 `WorldGenRegion&` 传递给 `TreeGenerator` 回调，回调内调用 `TreeFeature::place()`
+
+**注意**：`WorldGenRegion` 从 `ChunkData*`（而非 `ChunkPrimer*`）构造时，`dynamic_cast<ChunkPrimer*>` 会返回 nullptr，方块实体管理和液体后处理会被跳过。对于树木生成（仅设置原木和树叶方块，无方块实体和液体），这是可接受的。

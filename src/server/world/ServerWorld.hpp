@@ -60,6 +60,7 @@ namespace mc {
 // 前向声明
 struct SpawnedEntityData;
 class INamedContainerProvider;
+class WorldGenRegion;
 
 namespace particle {
 enum class ParticleTypeId : u16;
@@ -374,6 +375,19 @@ public:
 
     [[nodiscard]] ServerWorld* asServerWorld() noexcept override { return this; }
     [[nodiscard]] const ServerWorld* asServerWorld() const noexcept override { return this; }
+
+    // ========== 按需特征放置 ==========
+
+    /**
+     * @brief 从已加载区块构建临时 WorldGenRegion
+     *
+     * 在指定位置周围收集 3x3 区块窗口，构建 WorldGenRegion，
+     * 用于 SaplingBlock::grow() 等按需特征放置场景。
+     *
+     * @param position 中心位置
+     * @return 创建的 WorldGenRegion，如果区块未加载则返回 nullptr
+     */
+    [[nodiscard]] std::unique_ptr<WorldGenRegion> createFeatureRegion(const BlockPos& position) override;
 
     // ========== 天气接口 (IWorld) ==========
 

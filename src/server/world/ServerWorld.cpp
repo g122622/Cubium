@@ -64,6 +64,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/gen/FeaturePlacer.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
 #include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
@@ -2607,6 +2608,50 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
     }
 
     return nearestPos;
+}
+
+// ========== 按需特征放置 ==========
+
+std::unique_ptr<WorldGenRegion> ServerWorld::createFeatureRegion(const BlockPos& position)
+{
+    constexpr i32 chunkRadius = 1;
+    const ChunkCoord centerChunkX = world::toChunkCoord(position.x);
+    const ChunkCoord centerChunkZ = world::toChunkCoord(position.z);
+    const i32 diameter = 2 * chunkRadius + 1;
+
+    auto* chunkManager = this->chunkManager();
+    if (chunkManager == nullptr) {
+        return nullptr;
+    }
+
+    // 收集已加载的区块
+    std::vector<IChunk*> chunks;
+    chunks.reserve(static_cast<size_t>(diameter) * static_cast<size_t>(diameter));
+
+    for (i32 dz = -chunkRadius; dz <= chunkRadius; ++dz) {
+        for (i32 dx = -chunkRadius; dx <= chunkRadius; ++dx) {
+            const ChunkCoord cx = centerChunkX + dx;
+            const ChunkCoord cz = centerChunkZ + dz;
+
+            ChunkData* chunkData = chunkManager->tryToGetChunkInMem(cx, cz);
+            if (chunkData == nullptr) {
+                return nullptr;
+            }
+
+            // ChunkData 继承自 IChunk，可以直接作为 IChunk* 使用
+            chunks.push_back(static_cast<IChunk*>(chunkData));
+        }
+    }
+
+    // 使用 FeaturePlacer 构建 WorldGenRegion
+    auto region = world::gen::FeaturePlacer::createRegion(
+        centerChunkX, centerChunkZ, std::move(chunks), chunkRadius, this->dimension());
+
+    // 填充世界状态
+    world::gen::FeaturePlacer::populateWorldState(
+        *region, this->seed(), this->currentTick(), this->dayTime(), this->isHardcore(), this->difficulty());
+
+    return region;
 }
 
 } // namespace mc::server
