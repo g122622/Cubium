@@ -717,7 +717,6 @@ protected:
     /**
      * @brief 检查字符码点是否允许输入（过滤控制字符和 § 符号）
      *
-     * 参考 MC Java 版 StringUtil.isAllowedChatCharacter()，
      * 除控制字符外还禁止 § (0xA7) 符号（Minecraft 格式化前缀）。
      */
     static bool isAllowedCharacter(u32 codePoint)

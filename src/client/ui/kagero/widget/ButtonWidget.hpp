@@ -276,6 +276,9 @@ public:
         (void)ctx;
         // TODO: 实际渲染逻辑
         // 绑定纹理并渲染
+
+        // 渲染 Tooltip（如果有且悬停）
+        refreshTooltip(ctx, static_cast<f32>(ctx.canvas().width()), static_cast<f32>(ctx.canvas().height()));
     }
 
     /**

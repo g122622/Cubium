@@ -35,7 +35,6 @@ namespace mc::client::ui::kagero::widget {
  * @brief Tooltip 渲染工具
  *
  * 提供工具方法来渲染 Minecraft 风格的工具提示框。
- * 参考 MC Java 版的 TooltipRenderUtil 和 GuiGraphics.renderTooltip 实现，
  * 使用 PaintContext 的基本绘图原语绘制背景、边框和文本。
  *
  * 渲染风格与 AbstractContainerScreen::renderItemTooltip 一致：
@@ -53,7 +52,7 @@ namespace mc::client::ui::kagero::widget {
 class TooltipRenderer {
 public:
     /**
-     * @brief Tooltip 渲染常量，参考 MC Java 版 TooltipRenderUtil
+     * @brief Tooltip 渲染常量
      */
     static constexpr f32 PADDING = 4.0f;       ///< 内边距
     static constexpr f32 MOUSE_OFFSET = 12.0f; ///< 鼠标位置偏移
@@ -97,11 +96,10 @@ public:
     /**
      * @brief 计算 Tooltip 的渲染位置
      *
-     * 参考 MC Java 版的 DefaultTooltipPositioner：
-     * - 默认在鼠标右下方偏移 MOUSE_OFFSET
+     * 默认在鼠标右下方偏移 MOUSE_OFFSET，超出边界时自动翻转：
      * - 超出屏幕右侧时翻转到鼠标左方
      * - 超出屏幕底部时翻转到鼠标上方
-     * - 位置不低于 MIN_POSITION
+     * - 位置不低于 MIN_POSITION（避免贴边）
      *
      * @param mouseX 鼠标 X 坐标
      * @param mouseY 鼠标 Y 坐标

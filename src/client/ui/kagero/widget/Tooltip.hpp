@@ -32,20 +32,20 @@ namespace mc::client::ui::kagero::widget {
 /**
  * @brief Tooltip 数据类
  *
- * 表示一个工具提示的内容。参考 MC Java 版的 Tooltip 类设计，
+ * 表示一个工具提示的内容。
  * 支持多行文本、最大宽度限制和延迟显示。
  *
  * 使用示例：
  * @code
  * auto tooltip = Tooltip::create("保存", "将当前进度保存到存档");
  * button->setTooltip(tooltip);
- * button->setTooltipDelay(std::chrono::milliseconds(500));
+ * button->setTooltipDelay(500);
  * @endcode
  */
 class Tooltip {
 public:
     /**
-     * @brief Tooltip 默认最大宽度（像素），参考 MC Java 版的 MAX_WIDTH = 170
+     * @brief Tooltip 默认最大宽度（像素），默认值 170
      */
     static constexpr i32 DEFAULT_MAX_WIDTH = 170;
 

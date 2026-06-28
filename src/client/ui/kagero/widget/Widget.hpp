@@ -670,7 +670,6 @@ public:
     /**
      * @brief 设置 Tooltip
      *
-     * 参考 MC Java 版的 AbstractWidget.setTooltip(Tooltip)，
      * 为组件设置悬停时显示的工具提示。
      *
      * @param tooltip Tooltip 数据，传入空 Tooltip 或 nullptr 等效值可清除提示
@@ -709,7 +708,6 @@ public:
     /**
      * @brief 设置 Tooltip 显示延迟
      *
-     * 参考 MC Java 版的 AbstractWidget.setTooltipDelay(Duration)，
      * 设置鼠标悬停后延迟多久才显示 Tooltip。
      * 默认延迟为 0（立即显示）。
      *
@@ -729,7 +727,6 @@ public:
     /**
      * @brief 刷新并渲染 Tooltip（如果应显示）
      *
-     * 参考 MC Java 版的 WidgetTooltipHolder.refreshTooltipForNextRenderPass()，
      * 根据当前悬停状态和延迟计时决定是否渲染 Tooltip。
      * 应在 paint() 方法的最后调用，确保 Tooltip 绘制在组件内容之上。
      * 使用 updateHover() 中记录的最新鼠标位置进行定位。
