@@ -65,7 +65,7 @@ ITickList<T> (接口)
 
 6. **线程安全**: 所有操作应在主线程执行，非线程安全
 
-7. **指针有效性**: `ScheduledTick` 存储目标对象的原始指针，需要确保目标对象生命周期
+7. **const 正确性**: `ScheduledTick<T>::target` 类型为 `const T*`，`ITickList`/`ServerTickList`/`EmptyTickList`/`TickManager` 的所有接口参数均为 `const T&`。tick 回调签名 `TickCallback = std::function<void(IWorld&, const BlockPos&, const T&)>`，回调内部通过 `const_cast` 调用 `Block::tick()` 等非 const 虚方法。调用方无需 `const_cast`。
 
 8. **双向容器同步**: `m_pendingTicksTree` 和 `m_pendingTicksSet` 需要保持同步，代码中有自动修复机制
 

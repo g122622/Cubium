@@ -290,6 +290,18 @@ u32 stateId = state.stateId();         // 状态ID
 
 `SaplingBlock` 和 `TreeFeature` 必须就根支撑方块达成一致，否则会出现 "可以放置但不能生长"的不匹配。
 
+## #10. getBlock() vs getBlockMutable()
+
+`BlockState::getBlock()` 返回 `const Block&`，适用于只读访问。当需要调用非 const 方法（如 `tick`、`neighborChanged`、`onBlockRemoved`、`scheduleBlockTick` 等）时，使用 `getBlockMutable()` 获取 `Block&`：
+
+```cpp
+// 只读访问
+const Block& block = state->getBlock();
+
+// 需要非const引用时（如调用scheduleBlockTick、onBlockRemoved等）
+Block& block = state->getBlockMutable();
+```
+
     ## #10. 冰块融化与破坏路径分离
 
 `IceBlock::randomTick()` 只负责融化，`onBlockRemoved()` 只负责破坏后的替换。不要让随机刻回调 `onBlockRemoved()`。
