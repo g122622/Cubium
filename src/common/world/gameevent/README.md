@@ -9,7 +9,8 @@ Minecraft 1.17 +
 
 ```text gameevent /
 ├── GameEvent.hpp #游戏事件类定义（含 Context）
-├── GameEvents.hpp #所有原版游戏事件常量定义
+├── GameEvents.hpp #所有原版游戏事件常量定义 + getGameEventById() 反序列化查找函数
+├── GameEvents.cpp #getGameEventById() 实现（延迟初始化的 unordered_map 查找表）
 ├── GameEventListener.hpp #游戏事件监听器接口（含 DeliveryMode、ListenerInfo）
 ├── GameEventListenerRegistry.hpp #监听器注册表接口
 ├── GameEventListenerRegistry.cpp #EuclideanGameEventListenerRegistry 实现

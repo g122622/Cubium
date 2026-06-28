@@ -39,6 +39,13 @@ namespace blockentity {
  * VibrationSystem 的集成（User/Listener/Ticker）在服务端目录中实现，
  * 避免方块实体对 ServerWorld 的编译依赖。
  *
+ * 服务端集成需要在以下位置完成：
+ * - SculkSensorBlockEntityServer.cpp: 定义 VibrationSystem::User 子类
+ * - ServerWorld::setBlockEntity(): 注册 VibrationSystem::Listener 到
+ *   GameEventListenerRegistry
+ * - ServerWorld::tickBlockEntities(): 驱动 VibrationSystem::Ticker::tick()
+ * - ServerWorld::removeBlockEntity(): 注销 Listener
+ *
  * 振动系统数据通过 NBT/JSON 序列化保存到存档，键名为 "listener"，
  * 与 MC 原版 SculkSensorBlockEntity 的序列化格式兼容。
  *

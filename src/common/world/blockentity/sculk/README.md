@@ -63,3 +63,7 @@ sculk/
 
 - SculkSensorBlockEntity：振动接收后触发方块状态变化（ACTIVE_PHASE）和红石信号更新
 - SculkShriekerBlockEntity：警告等级达到阈值时召唤监守者（WardenEntity）
+- 服务端集成：在 ServerWorld::setBlockEntity() 中注册 VibrationSystem::Listener 到 GameEventListenerRegistry，
+  在 ServerWorld::tickBlockEntities() 中驱动 VibrationSystem::Ticker::tick()，
+  在 ServerWorld::removeBlockEntity() 中注销 Listener。
+  参见服务端文件 SculkSensorBlockEntityServer.cpp 和 SculkShriekerBlockEntityServer.cpp 中的 TODO 注释。

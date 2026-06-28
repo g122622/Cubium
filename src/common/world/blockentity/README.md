@@ -72,6 +72,10 @@ blockentity/
 └── spawner/                         # 刷怪笼方块实体
     ├── MobSpawnerBlockEntity.hpp/cpp  # 刷怪笼（实体生成逻辑、加权候选列表、NBT持久化）
     └── README.md
+└── sculk/                            # 幽匿方块实体
+    ├── SculkSensorBlockEntity.hpp/cpp   # 幽匿感测体（振动检测、频率输出、VibrationSystem::Data 序列化）
+    ├── SculkShriekerBlockEntity.hpp/cpp # 幽匿尖啸体（振动检测、警告等级递增、VibrationSystem::Data 序列化）
+    └── README.md
 ```
 
 ## 内部模块关系
@@ -119,7 +123,9 @@ BlockEntity (基类)
 ├── TrialSpawnerBlockEntity (试炼刷怪笼)
 ├── VaultBlockEntity (宝库)
 ├── CrafterBlockEntity (自动合成器)
-└── MobSpawnerBlockEntity (刷怪笼)
+├── MobSpawnerBlockEntity (刷怪笼)
+├── SculkSensorBlockEntity (幽匿感测体)
+└── SculkShriekerBlockEntity (幽匿尖啸体)
 
 BlockEntityRegistry ──创建──→ BlockEntity（及其子类）
 BlockEntityDeserializer ──反序列化──→ BlockEntity（通过 Registry 创建）
@@ -149,6 +155,7 @@ BlockEntityDeserializer ──反序列化──→ BlockEntity（通过 Registr
 - `entity/loot/LootTableManager.hpp` - 战利品表管理器
 - `util/nbt/Nbt.hpp` - NBT 序列化
 - `command/ICommandSource.hpp` - 命令源接口（命令方块）
+- `world/gameevent/VibrationSystem.hpp` - 振动系统（幽匿感测体、幽匿尖啸体）
 
 ## 容易踩的坑
 

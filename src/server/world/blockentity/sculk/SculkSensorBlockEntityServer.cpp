@@ -29,6 +29,14 @@
  * 用于将振动系统与方块实体连接。该类在服务端目录中，
  * 因为 VibrationSystem::User::canReceiveVibration 和 onReceiveVibration
  * 需要 ServerWorld 参数。
+ *
+ * TODO: 集成步骤（需在 ServerWorld 中完成）：
+ * 1. 在 ServerWorld::setBlockEntity() 中检测 SculkSensorBlockEntity，
+ *    创建 SculkSensorVibrationUser 和 VibrationSystem::Listener，
+ *    并注册到区块的 GameEventListenerRegistry
+ * 2. 在 ServerWorld::tickBlockEntities() 中对 SculkSensorBlockEntity
+ *    调用 VibrationSystem::Ticker::tick()
+ * 3. 在 ServerWorld::removeBlockEntity() 中注销 Listener
  */
 
 #include "common/entity/core/Entity.hpp"

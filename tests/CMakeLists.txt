@@ -486,6 +486,10 @@ add_executable(mc_tests
     common/world/block/BlockTagsTest.cpp
     common/world/block/IGrowableTest.cpp
     common/world/gameevent/VibrationSystemTest.cpp
+    # VibrationSystem 序列化测试（VibrationInfo/VibrationSelector/Data 的 NBT/JSON 序列化）
+    common/world/gameevent/VibrationSystemSerializationTest.cpp
+    # 幽匿方块实体测试（SculkSensor/SculkShrieker 序列化、警告等级、频率）
+    common/world/blockentity/sculk/SculkBlockEntityTest.cpp
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp
     common/world/block/blocks/StemBlocksTest.cpp
