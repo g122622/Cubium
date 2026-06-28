@@ -107,13 +107,38 @@ private:
 /**
  * @brief 实体效果粒子
  *
- * 用于实体上的药水效果。
+ * 用于实体上的药水效果。MC 1.21.11 中 ambient_entity_effect 已被移除，
+ * 其功能由此类通过低 alpha 值（环境模式）实现。
+ * 环境模式通过构造时设置较低的初始 alpha 和更慢的漂浮速度来区分。
  */
 class EntityEffectParticle : public Particle {
 public:
-    EntityEffectParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color);
+    /**
+     * @brief 构造实体效果粒子
+     *
+     * @param pos 初始位置
+     * @param velocity 初始速度
+     * @param color 粒子颜色（ARGB）
+     * @param ambient 是否为环境模式（信标效果，更透明、更慢）
+     */
+    EntityEffectParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color, bool ambient = false);
 
     static std::unique_ptr<Particle> create(
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
+
+    /**
+     * @brief 创建环境模式的实体效果粒子
+     *
+     * 环境模式粒子的 alpha 值更低（约 15%，MC 原版 alpha=38/255≈0.149），
+     * 漂浮速度更慢，生命周期更长。
+     * 对应 MC 1.21.11 中 MobEffect.particleFactory 对 ambient 效果的处理。
+     *
+     * @param pos 初始位置
+     * @param velocity 初始速度（RGB 编码在 xyz 分量中）
+     * @param world 客户端世界
+     * @return 粒子实例
+     */
+    static std::unique_ptr<Particle> createAmbient(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
     void tick(mc::client::ClientWorld* world) override;
@@ -128,41 +153,19 @@ public:
         return ResourceLocation("minecraft:particle/entity_effect");
     }
 
+    /**
+     * @brief 是否为环境模式
+     *
+     * 环境模式粒子更透明、漂浮更慢，用于信标等产生的 ambient 药水效果。
+     */
+    [[nodiscard]] bool isAmbient() const noexcept { return m_ambient; }
+
 private:
     static constexpr f64 DEFAULT_LIFETIME = 8.0;
-};
+    static constexpr f64 AMBIENT_LIFETIME = 12.0;
+    static constexpr f32 AMBIENT_ALPHA = 38.0f / 255.0f; ///< MC 原版环境 alpha = 38/255 ≈ 0.149
 
-/**
- * @brief 环境实体效果粒子
- *
- * 信标效果粒子，更透明、更慢。
- * TODO: MC 1.21.11 已移除独立的 ambient_entity_effect 粒子类型，
- * 其功能由 EntityEffect（粒子 ID 21）+ 颜色数据（低 alpha 值）实现。
- * 当前此类无对应 ParticleTypeId 枚举值，属于孤岛代码。
- * 后续应将其集成到 EntityEffectParticle 中作为"环境模式"变体，
- * 或在内部扩展粒子区间为其分配枚举值。
- */
-class AmbientEntityEffectParticle : public Particle {
-public:
-    AmbientEntityEffectParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color);
-
-    static std::unique_ptr<Particle> create(
-        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
-
-    void tick(mc::client::ClientWorld* world) override;
-
-    [[nodiscard]] ParticleRenderType getRenderType() const override
-    {
-        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
-    }
-
-    [[nodiscard]] ResourceLocation getTextureLocation() const override
-    {
-        return ResourceLocation("minecraft:particle/ambient_entity_effect");
-    }
-
-private:
-    static constexpr f64 DEFAULT_LIFETIME = 12.0;
+    bool m_ambient = false;
 };
 
 /**

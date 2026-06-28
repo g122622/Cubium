@@ -157,16 +157,26 @@ void InstantSpellParticle::tick(mc::client::ClientWorld* world)
 // EntityEffectParticle
 // ============================================================================
 
-EntityEffectParticle::EntityEffectParticle(const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
+EntityEffectParticle::EntityEffectParticle(
+    const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color, bool ambient)
     : Particle(pos, velocity)
+    , m_ambient(ambient)
 {
     setGravity(0.0f);
     setSize(0.1f + m_random.nextFloat() * 0.03f);
-    setFriction(0.95f);
     setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
 
-    setColor(color);
+    if (m_ambient) {
+        // 环境模式：MC 原版 alpha=38/255≈0.149，更慢的漂浮速度，更长的生命周期
+        setFriction(0.98f);
+        setMaxAge(AMBIENT_LIFETIME + m_random.nextFloat() * 6.0);
+        setColor(glm::vec4(color.r, color.g, color.b, AMBIENT_ALPHA));
+    } else {
+        // 普通模式：alpha=0.5
+        setFriction(0.95f);
+        setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 4.0);
+        setColor(color);
+    }
 }
 
 std::unique_ptr<Particle> EntityEffectParticle::create(
@@ -189,6 +199,24 @@ std::unique_ptr<Particle> EntityEffectParticle::create(
     return std::make_unique<EntityEffectParticle>(pos, velocity, glm::vec4(r, g, b, 0.5f));
 }
 
+std::unique_ptr<Particle> EntityEffectParticle::createAmbient(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    // 从 velocity 中提取 RGB 颜色信息，与 create() 相同
+    // 但使用环境模式：更低的 alpha (38/255≈0.149)，更慢的漂浮，更长的生命周期
+    f32 r = static_cast<f32>(velocity.x);
+    f32 g = static_cast<f32>(velocity.y);
+    f32 b = static_cast<f32>(velocity.z);
+    if (r == 0.0f && g == 0.0f && b == 0.0f) {
+        // 默认蓝色（信标效果粒子）
+        r = 0.5f;
+        g = 0.5f;
+        b = 1.0f;
+    }
+    return std::make_unique<EntityEffectParticle>(pos, velocity, glm::vec4(r, g, b, 1.0f), true);
+}
+
 void EntityEffectParticle::tick(mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);
@@ -202,66 +230,25 @@ void EntityEffectParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // 漂浮并漂移
-    m_velocity.y += 0.002f;
-    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.003f;
-    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.003f;
-
-    m_position += m_velocity;
-    m_velocity *= m_friction;
-
-    f64 lifeRatio = m_age / m_maxAge;
-    m_color.a = static_cast<f32>(0.5f * (1.0f - lifeRatio));
-}
-
-// ============================================================================
-// AmbientEntityEffectParticle
-// ============================================================================
-
-AmbientEntityEffectParticle::AmbientEntityEffectParticle(
-    const glm::vec3& pos, const glm::vec3& velocity, const glm::vec4& color)
-    : Particle(pos, velocity)
-{
-    setGravity(0.0f);
-    setSize(0.1f + m_random.nextFloat() * 0.02f);
-    setFriction(0.98f); // 更高的摩擦，更慢
-    setHasPhysics(false);
-    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * 6.0);
-
-    // 更透明的颜色
-    setColor(glm::vec4(color.r, color.g, color.b, 0.3f));
-}
-
-std::unique_ptr<Particle> AmbientEntityEffectParticle::create(
-    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
-{
-    MC_UNUSED(world);
-    return std::make_unique<AmbientEntityEffectParticle>(pos, velocity, glm::vec4(0.5f, 0.5f, 1.0f, 0.3f));
-}
-
-void AmbientEntityEffectParticle::tick(mc::client::ClientWorld* world)
-{
-    MC_UNUSED(world);
-
-    m_prevPosition = m_position;
-    m_prevRoll = m_roll;
-
-    m_age += 1.0f;
-    if (m_age >= m_maxAge) {
-        setExpired();
-        return;
+    if (m_ambient) {
+        // 环境模式：更慢的漂浮和漂移速度
+        m_velocity.y += 0.001f;
+        m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.001f;
+        m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.001f;
+    } else {
+        // 普通模式
+        m_velocity.y += 0.002f;
+        m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.003f;
+        m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.003f;
     }
 
-    // 很慢的漂浮
-    m_velocity.y += 0.001f;
-    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.001f;
-    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.001f;
-
     m_position += m_velocity;
     m_velocity *= m_friction;
 
+    // 淡出：根据环境/普通模式使用不同的基础 alpha
     f64 lifeRatio = m_age / m_maxAge;
-    m_color.a = static_cast<f32>(0.3f * (1.0f - lifeRatio));
+    f32 baseAlpha = m_ambient ? AMBIENT_ALPHA : 0.5f;
+    m_color.a = static_cast<f32>(baseAlpha * (1.0f - lifeRatio));
 }
 
 // ============================================================================

@@ -635,4 +635,73 @@ inline constexpr u16 PROTOCOL_PARTICLE_TYPE_COUNT = 115;
     return id == ParticleTypeId::DragonBreath;
 }
 
+/**
+ * @brief 将内部粒子类型 ID 转换为 MC 协议 ID
+ *
+ * MC 协议 ID 范围为 0~114，与枚举值完全一致。
+ * 内部扩展粒子（115~123）不在 MC 协议中，需要映射到最接近的
+ * MC 协议粒子类型以保证与原版 MC 客户端的兼容性。
+ *
+ * 映射规则：
+ * - 协议粒子（0~114）：直接返回自身
+ * - Breaking(115) → Block(1)：方块破坏在 MC 中由 Block 粒子承担
+ * - Barrier(116) → Block(1)：屏障显示使用方块粒子
+ * - Light(117) → Block(1)：结构方块标记使用方块粒子
+ * - Redstone(118) → Dust(14)：红石粉尘在 MC 中由 Dust 粒子承担
+ * - LargeExplosion(119) → HugeExplosion(22)：大型爆炸映射为爆炸发射器
+ * - ItemPickup(120) → Poof(57)：物品拾取在 MC 中使用消散效果
+ * - DrippingCherryLeaves(121) → CherryLeaves(34)：樱花树叶滴落映射为樱花树叶
+ * - FallingCherryLeaves(122) → CherryLeaves(34)：樱花树叶下落映射为樱花树叶
+ * - LandingCherryLeaves(123) → CherryLeaves(34)：樱花树叶落地映射为樱花树叶
+ *
+ * @param id 粒子类型 ID
+ * @return MC 协议 ID；若类型无效返回 -1
+ */
+[[nodiscard]] constexpr i32 toProtocolId(ParticleTypeId id)
+{
+    if (isProtocolParticleType(id)) {
+        return static_cast<i32>(id);
+    }
+    switch (id) {
+        case ParticleTypeId::Breaking:
+            return 1; // → Block
+        case ParticleTypeId::Barrier:
+            return 1; // → Block
+        case ParticleTypeId::Light:
+            return 1; // → Block
+        case ParticleTypeId::Redstone:
+            return 14; // → Dust
+        case ParticleTypeId::LargeExplosion:
+            return 22; // → HugeExplosion
+        case ParticleTypeId::ItemPickup:
+            return 57; // → Poof
+        case ParticleTypeId::DrippingCherryLeaves:
+            return 34; // → CherryLeaves
+        case ParticleTypeId::FallingCherryLeaves:
+            return 34; // → CherryLeaves
+        case ParticleTypeId::LandingCherryLeaves:
+            return 34; // → CherryLeaves
+        default:
+            return -1;
+    }
+}
+
+/**
+ * @brief 从 MC 协议 ID 转换为内部粒子类型 ID
+ *
+ * 协议粒子（0~114）直接转为对应的枚举值。
+ * 此函数不创建内部扩展粒子——内部扩展粒子由项目内部逻辑产生，
+ * 不应从网络数据包中反序列化。
+ *
+ * @param protocolId MC 协议粒子类型 ID
+ * @return 对应的 ParticleTypeId；若无效返回 ParticleTypeId::Invalid
+ */
+[[nodiscard]] constexpr ParticleTypeId fromProtocolId(i32 protocolId)
+{
+    if (protocolId >= 0 && protocolId < static_cast<i32>(PROTOCOL_PARTICLE_TYPE_COUNT)) {
+        return static_cast<ParticleTypeId>(protocolId);
+    }
+    return ParticleTypeId::Invalid;
+}
+
 } // namespace mc::particle

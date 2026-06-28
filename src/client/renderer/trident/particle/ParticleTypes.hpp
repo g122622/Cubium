@@ -80,4 +80,10 @@ using ::mc::particle::isProtocolParticleType;
 /// MC 协议粒子类型数量（从 common 层引入）
 using ::mc::particle::PROTOCOL_PARTICLE_TYPE_COUNT;
 
+/// 将内部粒子类型 ID 转换为 MC 协议 ID（从 common 层引入）
+using ::mc::particle::toProtocolId;
+
+/// 从 MC 协议 ID 转换为内部粒子类型 ID（从 common 层引入）
+using ::mc::particle::fromProtocolId;
+
 } // namespace mc::client::renderer::trident::particle

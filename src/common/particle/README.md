@@ -52,6 +52,8 @@ src/common/particle/
 
 - `isValidParticleType(id)` — 检查 ID 是否在有效范围内（< Count）
 - `isProtocolParticleType(id)` — 检查 ID 是否为 MC 协议定义的类型（< 115）
+- `toProtocolId(id)` — 将内部粒子类型 ID 转换为 MC 协议 ID（内部扩展粒子映射到最接近的协议粒子）
+- `fromProtocolId(protocolId)` — 从 MC 协议 ID 转换为内部粒子类型 ID
 - `requiresBlockState(id)` — 检查是否需要方块状态数据（Block/BlockMarker/FallingDust/DustPillar/BlockCrumble）
 - `requiresItemData(id)` — 检查是否需要物品数据（Item/ItemSlime/ItemSnowball/ItemCobweb）
 - `requiresColorData(id)` — 检查是否需要颜色数据（Dust/DustColorTransition/EntityEffect/Flash/TintedLeaves）
@@ -63,10 +65,26 @@ src/common/particle/
 - `requiresTrailData(id)` — 检查是否需要轨迹数据（Trail）
 - `requiresPowerData(id)` — 检查是否需要力量数据（DragonBreath）
 
+**内部扩展粒子的协议映射**：
+
+`toProtocolId()` 将内部扩展粒子（115~123）映射到最接近的 MC 协议粒子类型，确保 Cubium 向原版 MC 客户端发送这些粒子时不会出现协议错误：
+
+| 内部扩展粒子 | → 协议粒子 | 映射原因 |
+|------------|-----------|---------|
+| Breaking(115) | Block(1) | MC 中方块破坏由 Block 粒子承担 |
+| Barrier(116) | Block(1) | 屏障显示使用方块粒子 |
+| Light(117) | Block(1) | 结构方块标记使用方块粒子 |
+| Redstone(118) | Dust(14) | MC 中红石粉尘由 Dust 粒子承担 |
+| LargeExplosion(119) | HugeExplosion(22) | 大型爆炸映射为爆炸发射器 |
+| ItemPickup(120) | Poof(57) | MC 中物品拾取使用消散效果 |
+| DrippingCherryLeaves(121) | CherryLeaves(34) | 樱花树叶滴落映射为樱花树叶 |
+| FallingCherryLeaves(122) | CherryLeaves(34) | 樱花树叶下落映射为樱花树叶 |
+| LandingCherryLeaves(123) | CherryLeaves(34) | 樱花树叶落地映射为樱花树叶 |
+
 ## 容易踩的坑
 
 - **协议 ID 一致性**：0~114 的枚举值必须与 MC Java 1.21.11 协议严格一致，不可随意修改。新增 MC 协议粒子时必须按注册顺序追加。
-- **内部扩展粒子不能用于网络通信**：115~123 仅用于项目内部渲染，`ParticlePacket` 的反序列化会拒绝非协议类型的 ID。
+- **内部扩展粒子的网络通信**：115~123 的内部扩展粒子在序列化时会通过 `toProtocolId()` 映射为最接近的 MC 协议粒子类型。反序列化时通过 `fromProtocolId()` 转换，仅接受 0~114 的协议 ID。
 - **命名差异**：部分 Cubium 内部扩展粒子的名称与 MC 不同（如 Cubium 用 `Breaking` 对应 MC 的 `block` 方块破坏场景，Cubium 用 `Redstone` 对应 MC 的 `dust` 红石场景），使用时注意区分。
 
 ## 架构说明
@@ -108,4 +126,4 @@ using ParticleTypeId = mc::particle::ParticleTypeId;
 1. **枚举值分配**：0~114 为 MC 协议 ID，不可修改。项目内部扩展粒子使用 115+，新增内部扩展粒子时需在 Count 之前追加。
 2. **命名空间**：common 层使用 `mc::particle::ParticleTypeId`，客户端兼容层仍可使用 `mc::client::renderer::trident::particle::ParticleTypeId`
 3. **前向声明**：如需前向声明，使用 `namespace mc::particle { enum class ParticleTypeId : u16; }`
-4. **网络序列化**：`ParticlePacket` 直接将枚举值作为 VarInt 序列化，因此协议 ID 一致性至关重要。
+4. **网络序列化**：`ParticlePacket` 序列化时使用 `toProtocolId()` 将内部扩展粒子映射为协议 ID，反序列化时使用 `fromProtocolId()` 将协议 ID 转换为枚举值。

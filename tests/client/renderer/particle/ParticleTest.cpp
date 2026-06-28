@@ -514,6 +514,52 @@ TEST(ParticleTypesTest, DataRequirements)
 }
 
 /**
+ * @brief 测试协议 ID 转换函数
+ */
+TEST(ParticleTypesTest, ProtocolIdConversion)
+{
+    // 协议粒子（0~114）的 toProtocolId 应返回自身
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Flame), 32);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Smoke), 60);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Block), 1);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Dust), 14);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::EntityEffect), 21);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Vibration), 48);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Firefly), 114); // 最后一个协议粒子
+
+    // 内部扩展粒子的 toProtocolId 应映射到最接近的协议粒子
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Breaking), 1);              // → Block
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Barrier), 1);               // → Block
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Light), 1);                 // → Block
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Redstone), 14);             // → Dust
+    EXPECT_EQ(toProtocolId(ParticleTypeId::LargeExplosion), 22);       // → HugeExplosion
+    EXPECT_EQ(toProtocolId(ParticleTypeId::ItemPickup), 57);           // → Poof
+    EXPECT_EQ(toProtocolId(ParticleTypeId::DrippingCherryLeaves), 34); // → CherryLeaves
+    EXPECT_EQ(toProtocolId(ParticleTypeId::FallingCherryLeaves), 34);  // → CherryLeaves
+    EXPECT_EQ(toProtocolId(ParticleTypeId::LandingCherryLeaves), 34);  // → CherryLeaves
+
+    // 无效类型的 toProtocolId 应返回 -1
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Invalid), -1);
+    EXPECT_EQ(toProtocolId(static_cast<ParticleTypeId>(200)), -1);
+
+    // fromProtocolId 应正确转换协议 ID
+    EXPECT_EQ(fromProtocolId(0), ParticleTypeId::AngryVillager);
+    EXPECT_EQ(fromProtocolId(32), ParticleTypeId::Flame);
+    EXPECT_EQ(fromProtocolId(114), ParticleTypeId::Firefly);
+
+    // fromProtocolId 对无效 ID 应返回 Invalid
+    EXPECT_EQ(fromProtocolId(-1), ParticleTypeId::Invalid);
+    EXPECT_EQ(fromProtocolId(115), ParticleTypeId::Invalid); // 内部扩展 ID 不在协议中
+    EXPECT_EQ(fromProtocolId(255), ParticleTypeId::Invalid);
+
+    // 协议粒子的 toProtocolId 和 fromProtocolId 应互为逆运算
+    for (int i = 0; i < 115; ++i) {
+        ParticleTypeId type = fromProtocolId(i);
+        EXPECT_EQ(toProtocolId(type), i) << "Round-trip failed for protocol ID " << i;
+    }
+}
+
+/**
  * @brief 测试钓鱼粒子构造
  *
  * 参考 MC 1.16.5 FishingParticle：

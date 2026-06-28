@@ -351,11 +351,11 @@ TEST(ParticlePacketFactoryTest, CreateSingleMethod)
 
 // ==================== 所有粒子类型测试 ====================
 
-TEST(ParticlePacketAllTypesTest, AllParticleTypesSerialize)
+TEST(ParticlePacketAllTypesTest, AllProtocolParticleTypesSerializeDeserialize)
 {
-    // 测试所有有效粒子类型（0~Count-1）的序列化/反序列化
-    // 注意：0~114 为 MC 协议 ID，115~123 为内部扩展粒子
-    for (u16 i = 0; i < static_cast<u16>(ParticleTypeId::Count); ++i) {
+    // 测试所有 MC 协议粒子类型（0~114）的序列化/反序列化
+    // 协议粒子的枚举值与协议 ID 一致，序列化/反序列化应完全保持一致
+    for (u16 i = 0; i < mc::particle::PROTOCOL_PARTICLE_TYPE_COUNT; ++i) {
         ParticleTypeId type = static_cast<ParticleTypeId>(i);
 
         ParticlePacket original(type, Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, 0, 0), 1);
@@ -366,7 +366,41 @@ TEST(ParticlePacketAllTypesTest, AllParticleTypesSerialize)
         ParticlePacket deserialized;
         auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
         ASSERT_TRUE(deserResult.success()) << "Failed to deserialize particle type " << i;
-        EXPECT_EQ(deserialized.particleType(), type);
+        EXPECT_EQ(deserialized.particleType(), type) << "Type mismatch for particle ID " << i;
+    }
+}
+
+TEST(ParticlePacketAllTypesTest, InternalExtensionParticlesMapToProtocolId)
+{
+    // 内部扩展粒子（115~123）序列化时映射到协议粒子 ID，
+    // 反序列化后得到的是映射后的协议粒子类型，而非原始内部类型
+    struct Mapping {
+        ParticleTypeId internal;
+        ParticleTypeId mapped;
+    };
+
+    Mapping mappings[] = {
+        {ParticleTypeId::Breaking, ParticleTypeId::Block},
+        {ParticleTypeId::Barrier, ParticleTypeId::Block},
+        {ParticleTypeId::Light, ParticleTypeId::Block},
+        {ParticleTypeId::Redstone, ParticleTypeId::Dust},
+        {ParticleTypeId::LargeExplosion, ParticleTypeId::HugeExplosion},
+        {ParticleTypeId::ItemPickup, ParticleTypeId::Poof},
+        {ParticleTypeId::DrippingCherryLeaves, ParticleTypeId::CherryLeaves},
+        {ParticleTypeId::FallingCherryLeaves, ParticleTypeId::CherryLeaves},
+        {ParticleTypeId::LandingCherryLeaves, ParticleTypeId::CherryLeaves},
+    };
+
+    for (const auto& m : mappings) {
+        ParticlePacket original(m.internal, Vector3(10, 20, 30), Vector3(0, 0, 0), Vector3(1, 1, 1), 5);
+        auto result = original.serialize();
+        ASSERT_TRUE(result.success()) << "Failed to serialize internal type " << static_cast<int>(m.internal);
+
+        ParticlePacket deserialized;
+        auto deserResult = deserialized.deserialize(result.value().data(), result.value().size());
+        ASSERT_TRUE(deserResult.success()) << "Failed to deserialize internal type " << static_cast<int>(m.internal);
+        EXPECT_EQ(deserialized.particleType(), m.mapped)
+            << "Internal type " << static_cast<int>(m.internal) << " should map to " << static_cast<int>(m.mapped);
     }
 }
 
