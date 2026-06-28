@@ -303,9 +303,10 @@ void ZombieVillagerEntity::finishConverting()
     // 设置婴儿状态
     villager->setChild(isBaby());
 
-    // 对村民调用 finalizeSpawn 进行基于难度的初始化
+    // 对村民调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
     {
-        entity::combat::DifficultyInstance difficultyInstance(m_world->difficulty());
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*m_world,
+            BlockPos(static_cast<i32>(std::floor(x())), static_cast<i32>(y()), static_cast<i32>(std::floor(z()))));
         villager->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::Conversion);
     }
 

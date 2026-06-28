@@ -39,6 +39,7 @@
 #include "../../passive/golem/IronGolemEntity.hpp"
 #include "../../player/Player.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <algorithm>
 #include <cmath>
 #include <spdlog/spdlog.h>
@@ -395,8 +396,10 @@ void SlimeEntity::performSplit()
         smallSlime->setPosition(spawnX, spawnY, spawnZ);
         smallSlime->setRotation(spawnYaw, 0.0f);
 
-        // 对分裂生成的小史莱姆调用 finalizeSpawn
-        entity::combat::DifficultyInstance difficultyInstance(world()->difficulty());
+        // 对分裂生成的小史莱姆调用 finalizeSpawn（使用位置感知的区域难度）
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*world(),
+            BlockPos(
+                static_cast<i32>(std::floor(spawnX)), static_cast<i32>(spawnY), static_cast<i32>(std::floor(spawnZ))));
         smallSlime->finalizeSpawn(*world(), difficultyInstance, world::spawn::SpawnReason::Reinforcement);
 
         // 设置随机速度

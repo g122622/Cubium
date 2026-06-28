@@ -38,6 +38,7 @@
 #include "common/entity/entities/passive/basic/AnimalEntity.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 
 #include <cmath>
 
@@ -155,10 +156,13 @@ void BreedGoal::spawnBaby()
             // 设置幼体年龄
             baby->setGrowingAge(AgeableEntity::BABY_AGE);
 
-            // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+            // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
             auto* babyMob = dynamic_cast<MobEntity*>(baby.get());
             if (babyMob != nullptr) {
-                entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+                entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*world,
+                    BlockPos(static_cast<i32>(std::floor(babyX)),
+                        static_cast<i32>(babyY),
+                        static_cast<i32>(std::floor(babyZ))));
                 babyMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Breeding);
             }
 

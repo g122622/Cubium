@@ -33,6 +33,7 @@
 #include "common/item/Items.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include <memory>
 
 namespace mc {
@@ -134,9 +135,12 @@ void SkeletonHorseEntity::triggerTrap()
             mobEntity->enablePersistence();
         }
 
-        // 调用 finalizeSpawn 进行基于难度的初始化
+        // 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
         if (mobEntity != nullptr) {
-            entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+            entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*world,
+                BlockPos(static_cast<i32>(std::floor(horsePos.x)),
+                    static_cast<i32>(horsePos.y),
+                    static_cast<i32>(std::floor(horsePos.z))));
             mobEntity->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Trigger);
         }
 
@@ -197,9 +201,12 @@ void SkeletonHorseEntity::triggerTrap()
             extraHorseMob->enablePersistence();
         }
 
-        // 对额外骷髅马调用 finalizeSpawn
+        // 对额外骷髅马调用 finalizeSpawn（使用位置感知的区域难度）
         if (extraHorseMob != nullptr) {
-            entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+            entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*world,
+                BlockPos(static_cast<i32>(std::floor(horsePos.x)),
+                    static_cast<i32>(horsePos.y),
+                    static_cast<i32>(std::floor(horsePos.z))));
             extraHorseMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Trigger);
         }
 
@@ -228,9 +235,12 @@ void SkeletonHorseEntity::triggerTrap()
             extraSkeletonMob->enablePersistence();
         }
 
-        // 对额外骷髅骑手调用 finalizeSpawn
+        // 对额外骷髅骑手调用 finalizeSpawn（使用位置感知的区域难度）
         if (extraSkeletonMob != nullptr) {
-            entity::combat::DifficultyInstance difficultyInstance(world->difficulty());
+            entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*world,
+                BlockPos(static_cast<i32>(std::floor(horsePos.x)),
+                    static_cast<i32>(horsePos.y),
+                    static_cast<i32>(std::floor(horsePos.z))));
             extraSkeletonMob->finalizeSpawn(*world, difficultyInstance, world::spawn::SpawnReason::Trigger);
         }
 

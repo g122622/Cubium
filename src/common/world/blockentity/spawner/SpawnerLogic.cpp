@@ -35,6 +35,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/spawn/IWorldSpawnAdapter.hpp"
 #include <algorithm>
 #include <cmath>
@@ -252,10 +253,13 @@ bool SpawnerLogic::spawnEntities(IWorld& world, f64 centerX, f64 centerY, f64 ce
         entity->setPosition(spawnPos);
         entity->setRotation(rng.nextFloat() * 360.0f, 0.0f);
 
-        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
         auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
         if (mobEntity != nullptr) {
-            entity::combat::DifficultyInstance difficulty(world.difficulty());
+            entity::combat::DifficultyInstance difficulty = entity::combat::DifficultyInstance::at(world,
+                BlockPos(static_cast<i32>(std::floor(spawnPos.x)),
+                    static_cast<i32>(spawnPos.y),
+                    static_cast<i32>(std::floor(spawnPos.z))));
             mobEntity->finalizeSpawn(world, difficulty, world::spawn::SpawnReason::Spawner);
         }
 

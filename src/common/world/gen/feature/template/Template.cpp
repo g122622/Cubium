@@ -1026,10 +1026,14 @@ bool Template::placeInWorld(
                         // 1. Entity::loadFromNBT(nbt) 方法
                         // 2. 实体数据参数的 NBT 反序列化
 
-                        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+                        // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
                         auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
                         if (mobEntity != nullptr) {
-                            entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                            BlockPos entityBlockPos(static_cast<i32>(std::floor(entityX)),
+                                static_cast<i32>(entityY),
+                                static_cast<i32>(std::floor(entityZ)));
+                            entity::combat::DifficultyInstance difficultyInstance =
+                                entity::combat::DifficultyInstance::at(world, entityBlockPos);
                             mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Structure);
                         }
 
