@@ -54,7 +54,7 @@ namespace entity {
 // ============================================================================
 
 namespace {
-/// 玩家与箱子船的有效交互距离（格）的平方，对应 MC Java ContainerEntity.isChestVehicleStillValid 中的 4.0 距离
+/// 玩家与箱子船的有效交互距离（格）的平方
 constexpr f64 INTERACTION_RANGE_SQ = 64.0; // 8格的平方
 } // namespace
 
@@ -86,19 +86,21 @@ ChestBoatEntity::ChestBoatEntity(Type type)
 
 ActionResultType ChestBoatEntity::processInitialInteract(Player& player, Hand hand)
 {
-    // 对应 MC Java AbstractChestBoat.interact()
-    // 1. 先尝试基类交互（乘坐）
+    // 先尝试基类交互（乘坐）
+    // BoatEntity::processInitialInteract 会在玩家不蹲下且船可控时让玩家乘坐
     ActionResultType result = BoatEntity::processInitialInteract(player, hand);
     if (result != ActionResultType::Pass) {
         return result;
     }
 
-    // 2. 如果可以添加乘客且玩家没有蹲下，让玩家乘坐
+    // 到达这里说明玩家蹲下或船失控或船已满
+    // 如果玩家本可以乘坐但基类仍返回了 Pass，说明是船失控等边缘情况
+    // 此时不应打开容器，而是继续传递 Pass
     if (canAddPassenger(player) && !player.isSneaking()) {
         return ActionResultType::Pass;
     }
 
-    // 3. 打开容器菜单
+    // 玩家蹲下或船已满时，打开容器菜单
     if (!player.openContainer(*this)) {
         return ActionResultType::Fail;
     }
@@ -148,7 +150,6 @@ void ChestBoatEntity::dropItem()
 
 void ChestBoatEntity::remove()
 {
-    // 对应 MC Java AbstractChestBoat.remove()
     // 在服务端且实体被销毁时，掉落容器内容
     if (m_world && !m_world->isClientSide()) {
         dropInventoryContents();
@@ -159,15 +160,13 @@ void ChestBoatEntity::remove()
 
 f64 ChestBoatEntity::getMountedYOffset() const
 {
-    // 对应 MC Java ChestBoat.rideHeight(): height / 3.0F
-    // 与 BoatEntity 相同的 -0.1 偏移
+    // 箱子船的乘客Y偏移
     return -0.1;
 }
 
 const Item* ChestBoatEntity::getBoatItem() const
 {
     // 重写基类方法，始终返回箱子船物品
-    // 对应 MC Java AbstractChestBoat.getDropItem()
     switch (getBoatType()) {
         case Type::OAK:
             return Items::OAK_CHEST_BOAT;
@@ -276,11 +275,10 @@ Result<void> ChestBoatEntity::readAdditionalSaveData(const nbt::tags::compound_t
 
 std::unique_ptr<AbstractContainerMenu> ChestBoatEntity::createMenu(i32 containerId, Player& player)
 {
-    // 对应 MC Java AbstractChestBoat.createMenu()
     // 如果有战利品表且玩家是旁观者，不允许打开
     // TODO: 当战利品表系统完善后，在此解包战利品表
 
-    // 创建3行9列的箱子容器菜单（对应 MC Java 的 ChestMenu.threeRows / GENERIC_9x3）
+    // 创建3行9列的箱子容器菜单
     auto menu = std::make_unique<blockentity::ChestContainer>(ContainerId(containerId),
         &player.inventory(),
         m_inventory.get(),
@@ -335,7 +333,6 @@ IInventory* ChestBoatEntity::getInventory()
 
 bool ChestBoatEntity::stillValid(const Player& player) const
 {
-    // 对应 MC Java ContainerEntity.isChestVehicleStillValid()
     // 玩家距离实体8格以内为有效
     if (isRemoved()) {
         return false;

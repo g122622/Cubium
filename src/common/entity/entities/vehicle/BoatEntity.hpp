@@ -96,6 +96,15 @@ public:
     void tick() override;
 
     /**
+     * @brief 处理玩家交互
+     *
+     * 玩家右键点击船时，优先尝试让玩家乘坐。
+     * 蹲下时不会乘坐（由 ChestBoatEntity 使用此行为来打开容器）。
+     * 船失控（水下超时）时也会拒绝乘坐。
+     */
+    ActionResultType processInitialInteract(Player& player, Hand hand) override;
+
+    /**
      * @brief 处理伤害
      * @note 船不继承LivingEntity，所以不重写hurt方法
      */
@@ -155,7 +164,7 @@ public:
     /**
      * @brief 掉落船物品（带伤害倍率）
      */
-    virtual void dropItemWithDamage();
+    void dropItemWithDamage();
 
     // ========== 船类型 ==========
 
@@ -171,7 +180,7 @@ public:
 
     /**
      * @brief 获取船对应的物品
-     * @return 对应木材类型的船物品指针（根据 hasChest 返回带箱子或普通船物品）
+     * @return 对应木材类型的普通船物品（箱子船由子类重写返回箱子船物品）
      */
     [[nodiscard]] virtual const Item* getBoatItem() const;
 
@@ -274,7 +283,7 @@ public:
     /**
      * @brief 检查是否可以添加指定乘客
      *
-     * 对应 MC Java 的 AbstractBoat.canAddPassenger()。
+     * 检查乘客数量未满且船不在水下。
      * 检查乘客数量未满且船不在水下。
      */
     [[nodiscard]] bool canAddPassenger(const Entity& passenger) const override

@@ -47,8 +47,6 @@ namespace entity {
  * - 被摧毁时掉落容器内的物品
  * - 支持比较器输出红石信号
  * - 实现 INamedContainerProvider 接口，支持打开容器菜单
- *
- * 参考 MC Java: net.minecraft.world.entity.vehicle.boat.AbstractChestBoat
  */
 class ChestBoatEntity : public BoatEntity, public INamedContainerProvider {
 public:
@@ -83,9 +81,6 @@ public:
 
     /**
      * @brief 实体被移除时掉落容器内容
-     *
-     * 对应 MC Java AbstractChestBoat.remove()：当实体被销毁时，
-     * 在服务端掉落容器内的所有物品。
      */
     void remove() override;
 
@@ -100,8 +95,6 @@ public:
 
     /**
      * @brief 箱子船的乘客Y偏移
-     *
-     * 对应 MC Java AbstractChestBoat 中的 rideHeight() 计算。
      */
     [[nodiscard]] f64 getMountedYOffset() const override;
 
@@ -109,7 +102,6 @@ public:
      * @brief 获取箱子船对应的物品
      *
      * 重写基类方法，始终返回箱子船物品（而非普通船物品）。
-     * 对应 MC Java AbstractChestBoat.getDropItem()。
      */
     [[nodiscard]] const Item* getBoatItem() const override;
 
@@ -139,7 +131,7 @@ public:
     /**
      * @brief 创建箱子容器菜单
      *
-     * 创建3行9列的通用容器菜单（对应 MC Java 的 ChestMenu.threeRows）。
+     * 创建3行9列的通用容器菜单。
      * 如果玩家是旁观者模式且容器有战利品表，返回 nullptr。
      *
      * @param containerId 容器ID（由服务端分配）
@@ -194,7 +186,6 @@ public:
     /**
      * @brief 检查玩家是否仍在交互范围内
      *
-     * 对应 MC Java ContainerEntity.isChestVehicleStillValid()。
      * 玩家距离实体8格以内为有效。
      */
     [[nodiscard]] bool stillValid(const Player& player) const;
@@ -212,7 +203,6 @@ private:
     /**
      * @brief 掉落容器内的所有物品
      *
-     * 对应 MC Java ContainerEntity.chestVehicleDestroyed()。
      * 受 doEntityDrops 游戏规则控制。
      */
     void dropInventoryContents();

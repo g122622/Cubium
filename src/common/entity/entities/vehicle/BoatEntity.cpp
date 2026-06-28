@@ -104,6 +104,34 @@ void BoatEntity::registerData()
     m_dataManager.registerParam(DATA_RIGHT_PADDLE_PARAM, false);
 }
 
+ActionResultType BoatEntity::processInitialInteract(Player& player, Hand hand)
+{
+    // 先调用基类交互（处理拴绳等）
+    ActionResultType result = Entity::processInitialInteract(player, hand);
+    if (result != ActionResultType::Pass) {
+        return result;
+    }
+
+    // 蹲下时不乘坐
+    if (player.isSneaking()) {
+        return ActionResultType::Pass;
+    }
+
+    // 船失控（水下超时）时不乘坐
+    if (m_outOfControlTicks >= OUT_OF_CONTROL_THRESHOLD) {
+        return ActionResultType::Pass;
+    }
+
+    // 服务端尝试让玩家乘坐
+    if (m_world && !m_world->isClientSide()) {
+        if (!player.startRiding(*this)) {
+            return ActionResultType::Pass;
+        }
+    }
+
+    return ActionResultType::Success;
+}
+
 void BoatEntity::tick()
 {
     // 更新 previousStatus 和 status
@@ -731,35 +759,8 @@ void BoatEntity::updateFallState(f64 y, bool onGround)
 
 const Item* BoatEntity::getBoatItem() const
 {
-    // 根据船类型和是否带箱子返回对应的船物品
-    if (m_hasChest) {
-        switch (m_type) {
-            case Type::OAK:
-                return Items::OAK_CHEST_BOAT;
-            case Type::SPRUCE:
-                return Items::SPRUCE_CHEST_BOAT;
-            case Type::BIRCH:
-                return Items::BIRCH_CHEST_BOAT;
-            case Type::JUNGLE:
-                return Items::JUNGLE_CHEST_BOAT;
-            case Type::ACACIA:
-                return Items::ACACIA_CHEST_BOAT;
-            case Type::DARK_OAK:
-                return Items::DARK_OAK_CHEST_BOAT;
-            case Type::MANGROVE:
-                return Items::MANGROVE_CHEST_BOAT;
-            case Type::CHERRY:
-                return Items::CHERRY_CHEST_BOAT;
-            case Type::PALE_OAK:
-                return Items::PALE_OAK_CHEST_BOAT;
-            case Type::BAMBOO:
-                return Items::BAMBOO_CHEST_RAFT;
-            default:
-                return Items::OAK_CHEST_BOAT;
-        }
-    }
-
-    // 普通船
+    // 返回对应木材类型的普通船物品
+    // 箱子船物品由 ChestBoatEntity::getBoatItem() 重写返回
     switch (m_type) {
         case Type::OAK:
             return Items::OAK_BOAT;
