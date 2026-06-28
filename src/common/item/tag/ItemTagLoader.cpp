@@ -27,7 +27,6 @@
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
-#include "common/util/assert/AssertAll.hpp"
 
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -38,16 +37,43 @@
 namespace mc::item::tag {
 
 // ============================================================================
+// 内部数据结构
+// ============================================================================
+
+/**
+ * @brief 标签条目的原始数据（未解析引用）
+ *
+ * 在两阶段加载中，第一阶段仅解析 JSON 结构并收集原始条目，
+ * 第二阶段再解析 # 标签引用并填充物品。
+ * 这样可以确保标签引用在被解析时，被引用的标签已经注册到 ItemTags 中。
+ */
+struct RawTagEntry {
+    std::string id;       ///< 条目标识符（物品名或 # 标签引用）
+    bool required = true; ///< 是否必须存在
+};
+
+/**
+ * @brief 单个标签文件的原始解析数据（未解析引用）
+ */
+struct RawTagData {
+    bool replace = false;             ///< 数据包 replace 语义标志
+    std::vector<RawTagEntry> entries; ///< 原始条目列表
+};
+
+/**
+ * @brief 多数据包合并后的标签数据（未解析引用）
+ */
+struct MergedTagData {
+    bool replace = false;             ///< 合并后的 replace 标志
+    std::vector<RawTagEntry> entries; ///< 合并后的条目列表
+};
+
+// ============================================================================
 // 内部辅助函数
 // ============================================================================
 
 /**
  * @brief 根据 ResourceLocation 解析物品指针
- *
- * 在 ItemRegistry 中查找匹配的已注册物品。
- *
- * @param itemLocation 物品的资源位置
- * @return 对应的 Item 指针，未找到则返回 nullptr
  */
 static const Item* resolveItem(const ResourceLocation& itemLocation)
 {
@@ -56,11 +82,6 @@ static const Item* resolveItem(const ResourceLocation& itemLocation)
 
 /**
  * @brief 解析物品名称为 Item 指针
- *
- * 支持带命名空间前缀（"minecraft:diamond"）和不带前缀（"diamond"）的格式。
- *
- * @param itemName 物品名称
- * @return 对应的 Item 指针，未找到则返回 nullptr
  */
 static const Item* resolveItemByName(const std::string& itemName)
 {
@@ -69,65 +90,191 @@ static const Item* resolveItemByName(const std::string& itemName)
 }
 
 /**
- * @brief 解析标签值列表中的单个条目
+ * @brief 解析标签值列表中的单个条目（解析引用阶段）
  *
- * 支持三种格式：
- * - 直接物品名称: "minecraft:diamond"
- * - 标签引用: "#minecraft:arrows"（解析引用标签中的所有物品）
- * - 对象格式: {"id":"minecraft:diamond","required":false}
+ * 将 RawTagEntry 解析为实际的 Item 指针。
+ * 标签引用 (#namespace:path) 会从 ItemTags 注册表中查找已注册的标签并展开其物品。
  *
- * @param entry 值条目字符串（如 "minecraft:diamond" 或 "#minecraft:arrows"）
- * @param required 是否必须存在（required=true 时缺失条目会输出警告，required=false 时静默跳过）
+ * @param entry 原始条目
  * @param items 输出参数：收集的 Item 指针
  * @param visitedTags 已访问的标签集合（防止循环引用）
+ * @param tagLocation 当前正在解析的标签位置（用于日志输出）
  */
-static void resolveTagEntry(const std::string& entry,
-    bool required,
+static void resolveTagEntry(const RawTagEntry& entry,
     std::vector<const Item*>& items,
-    std::unordered_set<ResourceLocation>& visitedTags)
+    std::unordered_set<ResourceLocation>& visitedTags,
+    const ResourceLocation& tagLocation)
 {
-    if (entry.empty()) {
+    if (entry.id.empty()) {
         return;
     }
 
-    if (entry[0] == '#') {
+    if (entry.id[0] == '#') {
         // 标签引用: #namespace:path
-        std::string tagRef = entry.substr(1);
-        ResourceLocation tagLocation = ResourceLocation::parse(tagRef);
+        std::string tagRef = entry.id.substr(1);
+        ResourceLocation tagRefLocation = ResourceLocation::parse(tagRef);
 
         // 防止循环引用
-        if (visitedTags.count(tagLocation) > 0) {
-            if (required) {
-                spdlog::warn("ItemTagLoader: 循环标签引用 '{}' (required), 跳过", entry);
+        if (visitedTags.count(tagRefLocation) > 0) {
+            if (entry.required) {
+                spdlog::warn(
+                    "ItemTagLoader: 循环标签引用 '{}' (required), 跳过 (标签: {})", entry.id, tagLocation.toString());
             }
             return;
         }
-        visitedTags.insert(tagLocation);
+        visitedTags.insert(tagRefLocation);
 
         // 查找被引用的标签
-        auto* referencedTag = ItemTags::getTag(tagLocation);
+        auto* referencedTag = ItemTags::getTag(tagRefLocation);
         if (referencedTag != nullptr) {
             for (const auto* item : referencedTag->getItems()) {
                 items.push_back(item);
             }
         } else {
-            if (required) {
-                spdlog::warn("ItemTagLoader: 引用的标签 '{}' 未找到 (required), 跳过", entry);
+            if (entry.required) {
+                spdlog::warn("ItemTagLoader: 引用的标签 '{}' 未找到 (required), 跳过 (标签: {})",
+                    entry.id,
+                    tagLocation.toString());
             }
             // required=false 时静默跳过
         }
     } else {
         // 直接物品名称
-        const Item* item = resolveItemByName(entry);
+        const Item* item = resolveItemByName(entry.id);
         if (item != nullptr) {
             items.push_back(item);
         } else {
-            if (required) {
-                spdlog::warn("ItemTagLoader: 未知的物品 '{}' (required), 跳过", entry);
+            if (entry.required) {
+                spdlog::warn(
+                    "ItemTagLoader: 未知的物品 '{}' (required), 跳过 (标签: {})", entry.id, tagLocation.toString());
             }
             // required=false 时静默跳过
         }
     }
+}
+
+/**
+ * @brief 解析 JSON 字符串为原始标签数据（第一阶段：不解析引用）
+ *
+ * 仅解析 JSON 结构，收集原始条目（包括 # 标签引用），
+ * 不尝试解析引用目标。这在两阶段加载的第一阶段使用，
+ * 确保所有标签都已注册后再解析引用。
+ *
+ * @param json JSON 内容
+ * @param location 标签资源位置
+ * @return 原始标签数据，或错误信息
+ */
+static Result<RawTagData> parseJsonRaw(const std::string& json, const ResourceLocation& location)
+{
+    try {
+        nlohmann::json jsonObj = nlohmann::json::parse(json);
+
+        RawTagData rawData;
+
+        // 解析 replace 字段（可选，默认 false）
+        if (jsonObj.contains("replace") && jsonObj["replace"].is_boolean()) {
+            rawData.replace = jsonObj["replace"].get<bool>();
+        }
+
+        // 解析 values 数组
+        if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
+            return Error(ErrorCode::InvalidData, "物品标签缺少 'values' 数组");
+        }
+
+        for (const auto& value : jsonObj["values"]) {
+            if (value.is_string()) {
+                // 字符串格式: "minecraft:diamond" 或 "#minecraft:arrows"
+                // 字符串格式默认 required=true
+                rawData.entries.push_back({value.get<std::string>(), true});
+            } else if (value.is_object()) {
+                // 对象格式: {"id":"minecraft:diamond","required":false}
+                if (!value.contains("id") || !value["id"].is_string()) {
+                    spdlog::warn("ItemTagLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", location.toString());
+                    continue;
+                }
+
+                std::string id = value["id"].get<std::string>();
+                if (id.empty()) {
+                    spdlog::warn("ItemTagLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", location.toString());
+                    continue;
+                }
+
+                // 解析 required 字段（可选，默认 true）
+                bool required = true;
+                if (value.contains("required") && value["required"].is_boolean()) {
+                    required = value["required"].get<bool>();
+                }
+
+                rawData.entries.push_back({id, required});
+            } else {
+                spdlog::warn("ItemTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
+            }
+        }
+
+        return rawData;
+    }
+    catch (const nlohmann::json::parse_error& e) {
+        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+    }
+    catch (const std::exception& e) {
+        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+    }
+}
+
+/**
+ * @brief 将合并后的标签数据解析并填充到 ItemTag（第二阶段：解析引用）
+ *
+ * 在所有标签都已注册到 ItemTags 后调用此函数，
+ * 解析 # 标签引用并将物品添加到目标标签中。
+ *
+ * @param location 标签资源位置
+ * @param data 合并后的标签数据
+ * @param tag 目标 ItemTag（可以是已有标签或新注册的标签）
+ */
+static void resolveAndFillTag(const ResourceLocation& location, const MergedTagData& data, ItemTag& tag)
+{
+    if (data.replace) {
+        tag.clear();
+    }
+
+    if (data.entries.empty()) {
+        return;
+    }
+
+    std::vector<const Item*> items;
+    std::unordered_set<ResourceLocation> visitedTags;
+    visitedTags.insert(location); // 防止自引用
+
+    for (const auto& entry : data.entries) {
+        resolveTagEntry(entry, items, visitedTags, location);
+    }
+
+    tag.addAll(items);
+
+    if (items.empty()) {
+        spdlog::info("ItemTagLoader: 标签 '{}' 没有解析到有效的物品", location.toString());
+    }
+}
+
+/**
+ * @brief 从路径提取标签名称
+ *
+ * 路径格式: namespace/tags/item/subdir/xxx.json -> namespace:subdir/xxx
+ *
+ * @param namespace_ 命名空间
+ * @param directory 目录前缀（如 "minecraft/tags/item"）
+ * @param resourcePath 资源路径
+ * @return 标签资源位置
+ */
+static ResourceLocation extractTagLocation(
+    const std::string& namespace_, const std::string& directory, const std::string& resourcePath)
+{
+    std::string tagName = namespace_ + ":" + resourcePath.substr(directory.length() + 1);
+    // 移除 .json 扩展名
+    if (tagName.size() >= 5 && tagName.substr(tagName.size() - 5) == ".json") {
+        tagName = tagName.substr(0, tagName.size() - 5);
+    }
+    return ResourceLocation(tagName);
 }
 
 // ============================================================================
@@ -150,16 +297,13 @@ Result<size_t> ItemTagLoader::loadFromDataPackRepository(const resource::DataPac
     // listResourceStacks 返回的每个路径对应的 ResourceVersion 向量按数据包优先级从高到低排序，
     // 因此需要逆序遍历以匹配从低到高遍历顺序。
 
-    // 用于存储已解析的标签数据
-    // key: 标签 ResourceLocation, value: (replace标志, item指针列表)
-    struct TagParseData {
-        bool replace = false;
-        std::vector<const Item*> items;
-    };
-    std::unordered_map<ResourceLocation, TagParseData> parsedTags;
+    // ========================================
+    // 第一阶段：解析所有 JSON 文件，收集原始条目数据
+    // （不解析 # 标签引用，仅记录原始条目）
+    // ========================================
+    std::unordered_map<ResourceLocation, MergedTagData> mergedTags;
 
     for (const auto& namespace_ : namespacesResult.value()) {
-        // 列出 tags/item/ 目录下所有数据包中的 JSON 文件及其内容栈
         std::string directory = namespace_ + "/tags/item";
         auto stacksResult = dataPackList.listResourceStacks(directory, ".json");
 
@@ -168,15 +312,7 @@ Result<size_t> ItemTagLoader::loadFromDataPackRepository(const resource::DataPac
         }
 
         for (auto& [resourcePath, versions] : stacksResult.value()) {
-            // 从路径提取标签名称
-            // 路径格式: namespace/tags/item/subdir/xxx.json
-            std::string tagName = namespace_ + ":" + resourcePath.substr(directory.length() + 1);
-            // 移除 .json 扩展名
-            if (tagName.size() >= 5 && tagName.substr(tagName.size() - 5) == ".json") {
-                tagName = tagName.substr(0, tagName.size() - 5);
-            }
-
-            ResourceLocation location(tagName);
+            ResourceLocation location = extractTagLocation(namespace_, directory, resourcePath);
 
             // 遍历同一资源路径在所有数据包中的版本（按优先级从低到高）
             // listResourceStacks 返回的版本按优先级从高到低排序，
@@ -185,58 +321,53 @@ Result<size_t> ItemTagLoader::loadFromDataPackRepository(const resource::DataPac
             // 因此需要逆序遍历。
             for (auto it = versions.rbegin(); it != versions.rend(); ++it) {
                 auto& version = *it;
-                // 解析 JSON
-                auto parseResult = loadFromJson(version.content, location);
+
+                // 第一阶段：仅解析 JSON 结构，不解析引用
+                auto parseResult = parseJsonRaw(version.content, location);
                 if (!parseResult.success()) {
                     spdlog::warn("ItemTagLoader: 无法解析标签 {} (来自数据包 {}): {}",
-                        tagName,
+                        location.toString(),
                         version.packName,
                         parseResult.error().message());
                     continue;
                 }
 
-                std::unique_ptr<ItemTag> parsedTag = parseResult.value();
-                auto& existing = parsedTags[location];
-                if (parsedTag->isReplace()) {
+                auto& rawData = parseResult.value();
+                auto& existing = mergedTags[location];
+                if (rawData.replace) {
                     // replace=true：清空已有条目，使用当前数据包的内容
                     existing.replace = true;
-                    existing.items.clear();
-                    for (const auto* item : parsedTag->getItems()) {
-                        existing.items.push_back(item);
+                    existing.entries.clear();
+                    for (const auto& entry : rawData.entries) {
+                        existing.entries.push_back(entry);
                     }
                 } else {
                     // 默认追加模式
-                    for (const auto* item : parsedTag->getItems()) {
-                        existing.items.push_back(item);
+                    for (const auto& entry : rawData.entries) {
+                        existing.entries.push_back(entry);
                     }
                 }
             }
         }
     }
 
-    // 将解析结果注册到 ItemTags
-    for (auto& [location, tagData] : parsedTags) {
-        // 尝试获取已有标签（可能由 ItemTags::initialize() 注册的内置标签）
-        auto* existingTag = ItemTags::getTag(location);
-        if (existingTag != nullptr) {
-            // 已有标签：根据 replace 语义合并
-            if (tagData.replace) {
-                // replace=true：清空现有标签内容，使用数据包的内容
-                existingTag->clear();
-            }
-            for (const auto* item : tagData.items) {
-                existingTag->add(item);
-            }
-        } else {
-            // 全新标签：注册到 ItemTags
-            auto& newTag = ItemTags::registerTag(location);
-            if (tagData.replace) {
-                // replace 对新标签无意义，但保持语义一致
-                newTag.setReplace(true);
-            }
-            for (const auto* item : tagData.items) {
-                newTag.add(item);
-            }
+    // ========================================
+    // 第二阶段：注册空标签（确保引用可解析），然后解析引用并填充内容
+    // ========================================
+
+    // 2a. 先注册所有尚不存在的标签（空标签），确保标签引用可以找到目标
+    for (auto& [location, data] : mergedTags) {
+        if (ItemTags::getTag(location) == nullptr) {
+            // 注册空标签占位符，后续会填充内容
+            ItemTags::registerTag(location);
+        }
+    }
+
+    // 2b. 解析所有标签的引用并填充内容
+    for (auto& [location, data] : mergedTags) {
+        auto* tag = ItemTags::getTag(location);
+        if (tag != nullptr) {
+            resolveAndFillTag(location, data, *tag);
         }
 
         ++loadedCount;
@@ -259,8 +390,13 @@ Result<size_t> ItemTagLoader::loadFromResourcePack(const resource::IResourcePack
         return loadedCount;
     }
 
+    // ========================================
+    // 第一阶段：解析所有 JSON 文件，收集原始条目数据
+    // （不解析 # 标签引用，仅记录原始条目）
+    // ========================================
+    std::unordered_map<ResourceLocation, MergedTagData> mergedTags;
+
     for (const auto& namespace_ : namespacesResult.value()) {
-        // 列出 tags/item/ 目录下的所有 JSON 文件
         std::string directory = namespace_ + "/tags/item";
         auto listResult = pack.listResources(resource::PackType::ServerData, directory, ".json");
 
@@ -269,13 +405,7 @@ Result<size_t> ItemTagLoader::loadFromResourcePack(const resource::IResourcePack
         }
 
         for (const auto& resourcePath : listResult.value()) {
-            // 从路径提取标签名称
-            std::string tagName = namespace_ + ":" + resourcePath.substr(directory.length() + 1);
-            if (tagName.size() >= 5 && tagName.substr(tagName.size() - 5) == ".json") {
-                tagName = tagName.substr(0, tagName.size() - 5);
-            }
-
-            ResourceLocation location(tagName);
+            ResourceLocation location = extractTagLocation(namespace_, directory, resourcePath);
 
             // 读取 JSON 内容
             auto readResult = pack.readTextResource(resource::PackType::ServerData, resourcePath);
@@ -284,37 +414,48 @@ Result<size_t> ItemTagLoader::loadFromResourcePack(const resource::IResourcePack
                 continue;
             }
 
-            // 解析 JSON
-            auto parseResult = loadFromJson(readResult.value(), location);
+            // 第一阶段：仅解析 JSON 结构，不解析引用
+            auto parseResult = parseJsonRaw(readResult.value(), location);
             if (!parseResult.success()) {
-                spdlog::warn("ItemTagLoader: 无法解析标签 {}: {}", tagName, parseResult.error().message());
+                spdlog::warn("ItemTagLoader: 无法解析标签 {}: {}", location.toString(), parseResult.error().message());
                 continue;
             }
 
-            // 将解析结果合并到 ItemTags 注册表
-            std::unique_ptr<ItemTag> parsedTag = parseResult.value();
-            auto* existingTag = ItemTags::getTag(parsedTag->getId());
-            if (existingTag != nullptr) {
-                if (parsedTag->isReplace()) {
-                    // replace=true：清空现有标签内容
-                    existingTag->clear();
-                }
-                for (const auto* item : parsedTag->getItems()) {
-                    existingTag->add(item);
+            auto& rawData = parseResult.value();
+            auto& existing = mergedTags[location];
+            if (rawData.replace) {
+                existing.replace = true;
+                existing.entries.clear();
+                for (const auto& entry : rawData.entries) {
+                    existing.entries.push_back(entry);
                 }
             } else {
-                // 全新标签：注册到 ItemTags
-                auto& newTag = ItemTags::registerTag(parsedTag->getId());
-                if (parsedTag->isReplace()) {
-                    newTag.setReplace(true);
-                }
-                for (const auto* item : parsedTag->getItems()) {
-                    newTag.add(item);
+                for (const auto& entry : rawData.entries) {
+                    existing.entries.push_back(entry);
                 }
             }
-
-            ++loadedCount;
         }
+    }
+
+    // ========================================
+    // 第二阶段：注册空标签（确保引用可解析），然后解析引用并填充内容
+    // ========================================
+
+    // 2a. 先注册所有尚不存在的标签（空标签），确保标签引用可以找到目标
+    for (auto& [location, data] : mergedTags) {
+        if (ItemTags::getTag(location) == nullptr) {
+            ItemTags::registerTag(location);
+        }
+    }
+
+    // 2b. 解析所有标签的引用并填充内容
+    for (auto& [location, data] : mergedTags) {
+        auto* tag = ItemTags::getTag(location);
+        if (tag != nullptr) {
+            resolveAndFillTag(location, data, *tag);
+        }
+
+        ++loadedCount;
     }
 
     return loadedCount;
@@ -348,7 +489,8 @@ Result<std::unique_ptr<ItemTag>> ItemTagLoader::loadFromJson(const std::string& 
                 // 字符串格式: "minecraft:diamond" 或 "#minecraft:arrows"
                 // 字符串格式默认 required=true
                 std::string entry = value.get<std::string>();
-                resolveTagEntry(entry, true, items, visitedTags);
+                RawTagEntry rawEntry{entry, true};
+                resolveTagEntry(rawEntry, items, visitedTags, location);
             } else if (value.is_object()) {
                 // 对象格式: {"id":"minecraft:diamond","required":false}
                 // 支持 required 语义
@@ -369,7 +511,8 @@ Result<std::unique_ptr<ItemTag>> ItemTagLoader::loadFromJson(const std::string& 
                     required = value["required"].get<bool>();
                 }
 
-                resolveTagEntry(id, required, items, visitedTags);
+                RawTagEntry rawEntry{id, required};
+                resolveTagEntry(rawEntry, items, visitedTags, location);
             } else {
                 spdlog::warn("ItemTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
             }

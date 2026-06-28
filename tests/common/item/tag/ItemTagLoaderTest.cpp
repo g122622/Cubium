@@ -26,7 +26,6 @@
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/resource/ResourceLocation.hpp"
-#include "common/util/assert/AssertAll.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
@@ -517,4 +516,137 @@ TEST_F(ItemTagLoaderTest, DatapackAppendToBuiltinTag)
     Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
     ASSERT_NE(diamond, nullptr);
     EXPECT_TRUE(flowersTag->contains(diamond));
+}
+
+// ============================================================================
+// 两阶段加载：跨标签引用解析
+// ============================================================================
+
+TEST_F(ItemTagLoaderTest, TwoPhaseCrossTagReferenceResolution)
+{
+    // 模拟两阶段加载：先注册空标签占位符，再解析引用
+    // 这确保了当标签 A 引用标签 B 时，即使 B 尚未填充内容，
+    // 只要 B 已注册到 ItemTags 中，引用就能正确解析。
+
+    // 第一阶段：注册一个空标签占位符（模拟尚未加载的标签）
+    auto& smallFlowersTag = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "small_flowers_test"));
+
+    // 给这个标签添加内容（模拟另一个数据包已经加载了它）
+    Item* dandelion = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dandelion"));
+    Item* poppy = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "poppy"));
+    ASSERT_NE(dandelion, nullptr);
+    ASSERT_NE(poppy, nullptr);
+    smallFlowersTag.add(dandelion);
+    smallFlowersTag.add(poppy);
+
+    // 第二阶段：解析引用 #minecraft:small_flowers_test 的标签
+    // 由于 small_flowers_test 已注册到 ItemTags，引用应能解析成功
+    const std::string json = R"({
+        "values": [
+            "#minecraft:small_flowers_test",
+            "minecraft:iron_ingot"
+        ]
+    })";
+
+    auto result = item::tag::ItemTagLoader::loadFromJson(json, ResourceLocation("minecraft", "all_flowers_test"));
+    ASSERT_TRUE(result.success());
+
+    auto tag = result.value();
+    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_ingot"));
+    ASSERT_NE(ironIngot, nullptr);
+
+    // 应包含来自 #minecraft:small_flowers_test 引用的物品
+    EXPECT_TRUE(tag->contains(dandelion));
+    EXPECT_TRUE(tag->contains(poppy));
+    // 应包含直接指定的物品
+    EXPECT_TRUE(tag->contains(ironIngot));
+    EXPECT_EQ(tag->getItems().size(), 3u);
+}
+
+TEST_F(ItemTagLoaderTest, TwoPhaseForwardReferenceResolution)
+{
+    // 模拟两阶段加载场景：
+    // 假设有标签 A 引用标签 B，但 B 尚未注册。
+    // 在两阶段加载中，第一阶段会先注册空标签 B，第二阶段再解析引用。
+
+    // 第一阶段：注册空标签占位符
+    auto& tagB = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "forward_ref_target_test"));
+
+    // 第二阶段：先解析标签 A（引用 B）
+    const std::string jsonA = R"({
+        "values": [
+            "#minecraft:forward_ref_target_test"
+        ]
+    })";
+    auto resultA =
+        item::tag::ItemTagLoader::loadFromJson(jsonA, ResourceLocation("minecraft", "forward_ref_source_test"));
+    ASSERT_TRUE(resultA.success());
+
+    // 此时 B 还是空标签，所以 A 的引用解析后应该没有物品
+    auto tagA = resultA.value();
+    EXPECT_EQ(tagA->getItems().size(), 0u);
+
+    // 现在给 B 添加内容（模拟 B 的数据包在之后被加载）
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    tagB.add(diamond);
+
+    // 再次解析标签 A，这次应该能解析到 B 的内容
+    auto resultA2 =
+        item::tag::ItemTagLoader::loadFromJson(jsonA, ResourceLocation("minecraft", "forward_ref_source_test_2"));
+    ASSERT_TRUE(resultA2.success());
+    auto tagA2 = resultA2.value();
+    EXPECT_TRUE(tagA2->contains(diamond));
+    EXPECT_EQ(tagA2->getItems().size(), 1u);
+}
+
+TEST_F(ItemTagLoaderTest, TwoPhaseChainedTagReference)
+{
+    // 测试链式标签引用：A 引用 B，B 引用 C
+    // 在两阶段加载中，所有标签都先注册为空占位符，
+    // 然后按依赖顺序填充内容，引用链应能正确解析。
+
+    // 注册链式标签
+    auto& tagC = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "chain_c_test"));
+    auto& tagB = item::tag::ItemTags::registerTag(ResourceLocation("minecraft", "chain_b_test"));
+
+    // 填充 C 的内容
+    Item* emerald = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "emerald"));
+    ASSERT_NE(emerald, nullptr);
+    tagC.add(emerald);
+
+    // 填充 B 的内容（B 引用 C + 直接物品）
+    const std::string jsonB = R"({
+        "values": [
+            "#minecraft:chain_c_test",
+            "minecraft:diamond"
+        ]
+    })";
+    auto resultB = item::tag::ItemTagLoader::loadFromJson(jsonB, ResourceLocation("minecraft", "chain_b_fill_test"));
+    ASSERT_TRUE(resultB.success());
+    auto parsedB = resultB.value();
+    for (const auto* item : parsedB->getItems()) {
+        tagB.add(item);
+    }
+
+    // 验证 B 包含 C 的内容 + 直接物品
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    EXPECT_TRUE(tagB.contains(emerald));
+    EXPECT_TRUE(tagB.contains(diamond));
+
+    // 解析 A（引用 B）
+    const std::string jsonA = R"({
+        "values": [
+            "#minecraft:chain_b_test"
+        ]
+    })";
+    auto resultA = item::tag::ItemTagLoader::loadFromJson(jsonA, ResourceLocation("minecraft", "chain_a_test"));
+    ASSERT_TRUE(resultA.success());
+    auto tagA = resultA.value();
+
+    // A 应包含 B 的所有内容（即 emerald + diamond）
+    EXPECT_TRUE(tagA->contains(emerald));
+    EXPECT_TRUE(tagA->contains(diamond));
+    EXPECT_EQ(tagA->getItems().size(), 2u);
 }
