@@ -10,6 +10,7 @@ liquid/
 ├── DripParticle.hpp/cpp          # 液体滴落粒子基类，实现三阶段状态机（Hanging → Falling → Landed）
 ├── DripWaterParticle.hpp/cpp     # 水滴粒子，从含水方块下方滴落
 ├── DripstoneDripParticle.hpp/cpp # 滴水石专用粒子（水/熔岩），落地时播放滴水音效
+├── FallingNectarParticle.hpp/cpp # 下落花蜜粒子（蜜蜂携带花蜜时滴落的金色琥珀色液滴）
 └── README.md
 ```
 
@@ -33,6 +34,9 @@ DripParticle (基类)
 `DripstoneWaterDripParticle` 和 `DripstoneLavaDripParticle` 是滴水石（钟乳石）专用的滴落粒子，
 与普通水滴/熔岩滴粒子的区别在于：落地时会播放 `block.pointed_dripstone.drip_water` 或
 `block.pointed_dripstone.drip_lava` 音效。
+
+`FallingNectarParticle` 是独立的下落花蜜粒子，蜜蜂携带花蜜时滴落的金色琥珀色液滴，
+受重力影响缓慢下落（0.01），碰到地面减速，生命后期淡出，OPAQUE 渲染类型。
 
 `CherryLeavesDripParticle.hpp/cpp` 包含三个独立的粒子类：
 - `DrippingCherryLeavesParticle`：樱花树叶悬挂粒子，70% 生命周期后转为下落状态

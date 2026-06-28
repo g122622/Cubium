@@ -10,6 +10,8 @@ block/
 ├── DiggingParticle.cpp     # 挖掘粒子、方块标记粒子、方块碎裂粒子实现
 ├── ComposterParticle.hpp   # 堆肥桶粒子（棕色灰尘，重力下落+旋转漂移）
 ├── ComposterParticle.cpp   # 堆肥桶粒子实现
+├── LeavesParticle.hpp      # 树叶粒子（CherryLeaves/PaleOakLeaves/TintedLeaves）
+├── LeavesParticle.cpp      # 树叶粒子实现
 ├── WaxParticle.hpp         # 涂蜡粒子（WaxOn 蜂蜜黄）+ 除蜡粒子（WaxOff 铜锈绿）
 ├── WaxParticle.cpp         # 涂蜡/除蜡粒子实现
 ├── ScrapeParticle.hpp      # 铜氧化刮削粒子（铜棕色灰尘）
@@ -29,6 +31,10 @@ block/
 - `BlockCrumbleParticle` 比 `DiggingParticle` 更小（0.05 vs 0.1）且生命周期更短（15 vs 20 tick）。
 - `ComposterParticle`、`WaxOnParticle`、`WaxOffParticle`、`ScrapeParticle` 均继承自 `Particle`，使用 `PARTICLE_SHEET_OPAQUE` 渲染类型和 `falling_dust`/`wax_on`/`wax_off`/`scrape` 纹理，行为类似 `FallingDustParticle`（重力下落 + 旋转 + 水平漂移 + 淡出 + 淡入缩放）。
 - `ItemParticle` 用于物品破碎效果，当前使用占位纹理 `generic`，待 ItemModelCache 集成后将使用物品纹理图集。Item/ItemSlime/ItemCobweb/ItemSnowball 四种 ParticleTypeId 均注册为 `ItemParticle::create`，行为相同仅类型 ID 不同。
+- `LeavesParticle.hpp` 包含三个独立的树叶粒子类：
+  - `CherryLeavesParticle` - 樱花树叶粒子（粉色花瓣缓慢飘落，正弦摆动，旋转动画，TRANSLUCENT 渲染，使用 cherry 纹理）
+  - `PaleOakLeavesParticle` - 苍白橡树叶粒子（灰绿色叶片缓慢飘落，较弱正弦摆动，TRANSLUCENT 渲染，使用 pale_oak 纹理）
+  - `TintedLeavesParticle` - 着色树叶粒子（接收生物群系颜色，正弦摆动，旋转动画，OPAQUE 渲染，使用 leaf 纹理。TODO: 待生物群系颜色数据管线支持）
 
 ## 上下游外部依赖关系
 

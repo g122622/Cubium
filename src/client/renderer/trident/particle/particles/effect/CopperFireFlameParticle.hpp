@@ -36,11 +36,13 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 铜火火焰粒子
  *
- * 特性：
- * - 铜橙色发光粒子
- * - 与灵魂火焰类似的大小和运动模式
- * - 向上飘动并随机摇摆
- * - 随年龄缩小并淡出
+ * 对齐 MC Java 版 FlameParticle.Provider 的行为（copper_fire_flame 使用相同的 Provider）：
+ * - 与普通火焰粒子完全相同的行为
+ * - 使用铜火纹理而非普通火焰纹理（纹理由资源包 JSON 定义）
+ * - 发光粒子（不受世界光照影响）
+ * - 向上飘动
+ * - 随年龄变小
+ * - 淡出消失
  */
 class CopperFireFlameParticle : public Particle {
 public:
@@ -55,7 +57,7 @@ public:
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
     {
-        return ResourceLocation("minecraft:particle/flame");
+        return ResourceLocation("minecraft:particle/copper_fire_flame");
     }
 
     [[nodiscard]] u32 getLightColor(mc::client::ClientWorld* world) const override

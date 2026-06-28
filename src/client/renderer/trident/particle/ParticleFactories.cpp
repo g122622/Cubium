@@ -505,12 +505,12 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // Composter: 堆肥桶粒子
+    // Composter: 堆肥桶粒子（MC 原版 SuspendedTownParticle.ComposterFillProvider）
     registry.registerType(ParticleTypeId::Composter,
         "minecraft:composter",
         ComposterParticle::create,
         ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        29.0f,
+        5.0f,
         false,
         false);
 
@@ -988,21 +988,21 @@ void registerBuiltinParticleFactories()
     // 铜蚀/幽匿/试炼/不祥粒子 (99-114)
     // ========================================================================
 
-    // WaxOn: 蜡烛涂抹粒子（上蜡）
+    // WaxOn: 涂蜡粒子（MC 原版 GlowParticle.WaxOnProvider）
     registry.registerType(ParticleTypeId::WaxOn,
         "minecraft:wax_on",
         WaxOnParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        29.0f,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        25.0f,
         false,
         false);
 
-    // WaxOff: 蜡烛涂抹粒子（除蜡）
+    // WaxOff: 除蜡粒子（MC 原版 GlowParticle.WaxOffProvider）
     registry.registerType(ParticleTypeId::WaxOff,
         "minecraft:wax_off",
         WaxOffParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        29.0f,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        25.0f,
         false,
         false);
 
@@ -1015,12 +1015,12 @@ void registerBuiltinParticleFactories()
         false,
         false);
 
-    // Scrape: 刮擦粒子（铜氧化去除）
+    // Scrape: 刮擦粒子（MC 原版 GlowParticle.ScrapeProvider）
     registry.registerType(ParticleTypeId::Scrape,
         "minecraft:scrape",
         ScrapeParticle::create,
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
-        29.0f,
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        25.0f,
         false,
         false);
 

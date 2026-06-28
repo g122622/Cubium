@@ -40,8 +40,18 @@ namespace mc::client::renderer::trident::particle::particles {
  * @brief 宝库连接粒子
  *
  * 从宝库位置飞向目标位置的定向粒子效果，类似于 VibrationSignalParticle。
- * 用于宝库解锁时的连接光束视觉反馈。
- * 使用指数缓动向目标飞行，并带有轻微旋转和淡出效果。
+ * 对齐 MC Java 版 FlyTowardsPositionParticle.VaultConnectionProvider 的行为：
+ * - SimpleParticleType，速度参数即为目标偏移（targetPos = spawnPos + velocity）
+ * - 发光蓝白色 (0.9*f, 0.9*f, f)，f = random*0.6+0.4
+ * - 生命周期 30~39 tick
+ * - 无重力、无物理碰撞
+ * - 指数缓动向目标位置飞行
+ * - 尺寸：1.5 * 0.1 * (random*0.5+0.2)
+ * - 透明度：先淡入 0→0.6，后淡出 0.6→0
+ *
+ * TODO: 粒子数据管线尚未支持目标位置数据传递，当前 create() 工厂方法通过 velocity 字段传递目标偏移
+ * （与 MC Java 行为一致）。createWithTarget() 方法已存在，可用于显式传递目标位置，
+ * 待 ParticleFactory 签名扩展后应统一通过 createWithTarget() 传递真实数据。
  */
 class VaultConnectionParticle : public Particle {
 public:
@@ -57,7 +67,8 @@ public:
     /**
      * @brief 标准工厂方法（用于 ParticleRegistry 注册）
      *
-     * 默认创建一个向正上方 8 格飞行 60 tick 的粒子。
+     * MC Java 中 vault_connection 是 SimpleParticleType，
+     * velocity 参数表示目标偏移：targetPos = pos + velocity
      */
     static std::unique_ptr<Particle> create(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
@@ -78,7 +89,7 @@ public:
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
     {
-        return ResourceLocation("minecraft:particle/vibration");
+        return ResourceLocation("minecraft:particle/vault_connection");
     }
 
     /**
@@ -91,6 +102,8 @@ public:
         MC_UNUSED(world);
         return FULL_BRIGHTNESS;
     }
+
+    [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
     /// 最大亮度光照值（skyLight=15, blockLight=15 的组合值）

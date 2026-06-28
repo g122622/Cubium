@@ -115,6 +115,9 @@ private:
  * - 正弦摆动效果
  * - 旋转动画
  * - 有物理碰撞
+ *
+ * TODO: 粒子数据管线尚未支持生物群系颜色数据传递，当前 create() 工厂方法使用默认值/回退行为。
+ * 待 ParticleFactory 签名扩展后，应通过 createWithBiomeColor() 方法传递真实数据。
  */
 class TintedLeavesParticle : public Particle {
 public:

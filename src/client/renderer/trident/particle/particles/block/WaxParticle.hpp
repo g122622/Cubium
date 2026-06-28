@@ -4,14 +4,14 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -36,17 +36,16 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 涂蜡粒子
  *
- * 向铜方块涂蜡时产生的蜂蜜黄色粒子。
- * 受重力影响，带有旋转和水平漂移。
+ * 对齐 MC Java 版 GlowParticle.WaxOnProvider 的行为：
+ * - 无重力、无物理碰撞
+ * - 蜂蜜橙黄色 (0.91, 0.55, 0.08)
+ * - TRANSLUCENT 渲染层
+ * - 发光纹理，速度缩放后极低
+ * - 生命周期 10~40 tick
+ * - 缩放：先淡入后淡出
  */
 class WaxOnParticle : public Particle {
 public:
-    /**
-     * @brief 构造涂蜡粒子
-     *
-     * @param pos 初始位置
-     * @param velocity 初始速度
-     */
     WaxOnParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
@@ -56,7 +55,7 @@ public:
 
     [[nodiscard]] ParticleRenderType getRenderType() const override
     {
-        return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
+        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
@@ -67,24 +66,26 @@ public:
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.003;
-    static constexpr f64 DEFAULT_LIFETIME = 20.0;
+    static constexpr f64 DEFAULT_GRAVITY = 0.0;
+    static constexpr f64 DEFAULT_LIFETIME = 25.0;
+    static constexpr f64 VELOCITY_SCALE = 0.005;
+
+    f64 m_initialSize;
 };
 
 /**
- * @brief 除蜡/刮削粒子
+ * @brief 除蜡粒子
  *
- * 从铜方块上移除蜡时产生的铜锈绿色粒子。
- * 受重力影响，带有旋转和水平漂移。
+ * 对齐 MC Java 版 GlowParticle.WaxOffProvider 的行为：
+ * - 无重力、无物理碰撞
+ * - 白粉色 (1.0, 0.9, 1.0)
+ * - TRANSLUCENT 渲染层
+ * - 发光纹理，速度缩放后极低
+ * - 生命周期 10~40 tick
+ * - 缩放：先淡入后淡出
  */
 class WaxOffParticle : public Particle {
 public:
-    /**
-     * @brief 构造除蜡粒子
-     *
-     * @param pos 初始位置
-     * @param velocity 初始速度
-     */
     WaxOffParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
@@ -94,7 +95,7 @@ public:
 
     [[nodiscard]] ParticleRenderType getRenderType() const override
     {
-        return ParticleRenderType::PARTICLE_SHEET_OPAQUE;
+        return ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT;
     }
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
@@ -105,8 +106,11 @@ public:
     [[nodiscard]] f64 getScale(f64 partialTick) const override;
 
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.003;
-    static constexpr f64 DEFAULT_LIFETIME = 20.0;
+    static constexpr f64 DEFAULT_GRAVITY = 0.0;
+    static constexpr f64 DEFAULT_LIFETIME = 25.0;
+    static constexpr f64 VELOCITY_SCALE = 0.005;
+
+    f64 m_initialSize;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

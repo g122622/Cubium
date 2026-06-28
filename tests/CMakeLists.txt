@@ -1082,6 +1082,8 @@ add_executable(mc_tests
     client/renderer/trident/particle/particles/block/DiggingParticleTest.cpp
     # DustPillarParticle 测试
     client/renderer/trident/particle/particles/block/DustPillarParticleTest.cpp
+    # 新增粒子类测试
+    client/renderer/trident/particle/particles/NewParticleTest.cpp
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp

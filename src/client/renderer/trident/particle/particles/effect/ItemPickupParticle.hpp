@@ -38,6 +38,9 @@ namespace mc::client::renderer::trident::particle::particles {
  *
  * 拾取物品时产生的小型向上烟雾效果。
  * 微弱负重力使粒子缓慢上升，快速淡出并缩小。
+ *
+ * TODO: 粒子数据管线尚未支持实体渲染数据传递，当前 create() 工厂方法使用默认值/回退行为。
+ * 待 ParticleFactory 签名扩展后，应通过 createWithEntity() 方法传递真实数据。
  */
 class ItemPickupParticle : public Particle {
 public:

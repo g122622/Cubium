@@ -33,13 +33,11 @@ CopperFireFlameParticle::CopperFireFlameParticle(const glm::vec3& pos, const glm
     setSize(0.04 * (0.6 + m_random.nextFloat() * 0.4));
     m_initialSize = size();
 
-    // 铜橙色火焰颜色
-    setColor(glm::vec4(0.9f + m_random.nextFloat() * 0.1f,
-        0.5f + m_random.nextFloat() * 0.2f,
-        0.2f + m_random.nextFloat() * 0.1f,
-        1.0f));
+    // MC 原版: 与普通火焰粒子相同的颜色（橙黄色）
+    f64 colorVariation = m_random.nextFloat() * 0.2f;
+    setColor(glm::vec4(1.0f, 0.6f + static_cast<f32>(colorVariation), 0.1f, 1.0f));
 
-    setFriction(0.95);
+    setFriction(0.96);
     setHasPhysics(false);
     setMaxAge(DEFAULT_LIFETIME * (0.8 + m_random.nextFloat() * 0.4));
 }
@@ -64,21 +62,20 @@ void CopperFireFlameParticle::tick(mc::client::ClientWorld* world)
         return;
     }
 
-    // 随机水平摇摆
-    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.02f;
-    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.02f;
+    // MC 原版 FlameParticle: 速度衰减
+    m_velocity.x *= static_cast<f32>(m_friction);
+    m_velocity.y *= static_cast<f32>(m_friction);
+    m_velocity.z *= static_cast<f32>(m_friction);
 
-    // 向上飘动
-    m_velocity.y += 0.002f;
-
+    // 火焰粒子不做碰撞检测，直接移动
     m_position += m_velocity;
-    m_velocity *= static_cast<f32>(m_friction);
 
     // 根据生命周期缩小粒子
     f64 lifeRatio = m_age / m_maxAge;
-    setSize(m_initialSize * (1.0 - lifeRatio * 0.5));
+    f64 scale = 1.0 - lifeRatio * lifeRatio * 0.5;
+    setSize(m_initialSize * scale);
 
-    // 生命周期 50% 后淡出
+    // 生命周期后半段淡出
     if (lifeRatio > 0.5) {
         m_color.a = static_cast<f32>(1.0 - (lifeRatio - 0.5) * 2.0);
     }

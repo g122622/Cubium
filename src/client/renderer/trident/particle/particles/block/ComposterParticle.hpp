@@ -4,14 +4,14 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
+ * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software
  * furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -36,17 +36,19 @@ namespace mc::client::renderer::trident::particle::particles {
 /**
  * @brief 堆肥桶粒子
  *
- * 堆肥桶填充时产生的棕色灰尘粒子，类似 FallingDustParticle
- * 但使用特定的堆肥色调。受重力影响，带有旋转和水平漂移。
+ * 堆肥桶填充时产生的白色小粒子。
+ * 对齐 MC Java 版 SuspendedTownParticle.ComposterFillProvider 的行为：
+ * - 白色 (r=g=b=1.0)
+ * - 非常小的尺寸 (0.02)
+ * - 极低速度 (velocity *= 0.02)
+ * - 无重力、无物理碰撞
+ * - OPAQUE 渲染层
+ * - 使用 generic 纹理
+ * - 摩擦系数 0.99
+ * - 生命周期约 3~7 tick
  */
 class ComposterParticle : public Particle {
 public:
-    /**
-     * @brief 构造堆肥桶粒子
-     *
-     * @param pos 初始位置
-     * @param velocity 初始速度
-     */
     ComposterParticle(const glm::vec3& pos, const glm::vec3& velocity);
 
     static std::unique_ptr<Particle> create(
@@ -61,14 +63,15 @@ public:
 
     [[nodiscard]] ResourceLocation getTextureLocation() const override
     {
-        return ResourceLocation("minecraft:particle/falling_dust");
+        return ResourceLocation("minecraft:particle/generic");
     }
 
-    [[nodiscard]] f64 getScale(f64 partialTick) const override;
-
 private:
-    static constexpr f64 DEFAULT_GRAVITY = 0.003;
-    static constexpr f64 DEFAULT_LIFETIME = 29.0;
+    static constexpr f64 DEFAULT_GRAVITY = 0.0;
+    static constexpr f64 DEFAULT_SIZE = 0.02;
+    static constexpr f64 DEFAULT_LIFETIME = 5.0;
+    static constexpr f64 VELOCITY_SCALE = 0.02;
+    static constexpr f64 FRICTION = 0.99;
 };
 
 } // namespace mc::client::renderer::trident::particle::particles

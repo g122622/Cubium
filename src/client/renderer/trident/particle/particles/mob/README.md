@@ -4,21 +4,40 @@
 
 ```
 mob/
-├── HeartParticle.hpp             # 爱心粒子 - 繁殖/驯服时显示
-├── HeartParticle.cpp
-├── VillagerParticle.hpp          # 村民粒子 - 愤怒/开心/喷嚏
-├── VillagerParticle.cpp
+├── HeartParticle.hpp/cpp         # 爱心粒子 - 繁殖/驯服时显示
+├── VillagerParticle.hpp/cpp      # 村民粒子 - 愤怒/开心/喷嚏
+├── SpitParticle.hpp/cpp          # 羊驼吐沫粒子 - 羊驼攻击时发射，弹道轨迹
+├── SquidInkParticle.hpp/cpp      # 鱿鱼墨汁粒子（SquidInk + GlowSquidInk）
+├── TotemParticle.hpp/cpp         # 不死图腾粒子 - 金色粒子效果，膨胀淡出
 └── README.md
 ```
 
 ## 内部模块关系
 
 ```
-HeartParticle          → 独立粒子类，无子模块
-VillagerParticle.hpp   → 包含 AngryVillagerParticle、HappyVillagerParticle、SneezeParticle
+HeartParticle              → 独立粒子类，无子模块
+VillagerParticle.hpp       → 包含 AngryVillagerParticle、HappyVillagerParticle、SneezeParticle
+SpitParticle               → 独立粒子类，弹道轨迹（重力 0.03）
+SquidInkParticle.hpp       → 包含 SquidInkParticle、GlowSquidInkParticle
+TotemParticle              → 独立粒子类，金色粒子效果
 ```
 
 所有粒子类继承自 `Particle` 基类 (`client/renderer/trident/particle/Particle.hpp`)。
+
+**SpitParticle 特性：**
+- 羊驼攻击时发射的吐沫粒子
+- 具有弹道轨迹，受重力影响（0.03），碰到地面后减速
+- TRANSLUCENT 渲染类型，使用 `spit` 纹理
+- 带旋转效果，生命后期淡出
+
+**SquidInkParticle.hpp 包含的粒子类：**
+- `SquidInkParticle` - 鱿鱼墨汁粒子（深色墨汁，随机漂移上浮，膨胀淡出，TRANSLUCENT 渲染）
+- `GlowSquidInkParticle` - 发光鱿鱼墨汁粒子（明亮青蓝色，行为与 SquidInk 相同但自发光 0xF0，TRANSLUCENT 渲染）
+
+**TotemParticle 特性：**
+- 玩家使用不死图腾复活时产生的金色粒子效果
+- 随机漂移、向上微浮，随生命周期膨胀并淡出
+- TRANSLUCENT 渲染类型，使用 `totem_of_undying` 纹理
 
 ## 上下游外部依赖关系
 
@@ -30,6 +49,9 @@ VillagerParticle.hpp   → 包含 AngryVillagerParticle、HappyVillagerParticle�
 
 **被依赖方（下游）**：
 - 实体系统 - 在生物繁殖、驯服、交易等事件中创建粒子
+- 鱿鱼/发光鱿鱼 - 受攻击时创建 SquidInkParticle/GlowSquidInkParticle
+- 羊驼 - 攻击时创建 SpitParticle
+- 不死图腾 - 玩家复活时创建 TotemParticle
 - 网络同步 - 通过 `ParticlePacket` 接收服务端粒子事件
 
 ## 容易踩的坑

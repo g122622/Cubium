@@ -136,6 +136,9 @@ private:
  * 用于结构方块显示的静态位置标记粒子。
  * 不移动、不受重力影响，仅在生命周期结束后淡出。
  * 使用方块纹理渲染，与 DiggingParticle 共享纹理逻辑。
+ *
+ * TODO: 粒子数据管线尚未支持BlockState传递，当前 create() 工厂方法使用默认值/回退行为。
+ * 待 ParticleFactory 签名扩展后，应通过 createWithBlockState() 方法传递真实数据。
  */
 class BlockMarkerParticle : public Particle {
 public:
@@ -205,6 +208,9 @@ private:
  *
  * 比挖掘粒子更小、生命周期更短的方块碎片粒子。
  * 受重力影响，使用方块纹理渲染，与 DiggingParticle 共享纹理逻辑。
+ *
+ * TODO: 粒子数据管线尚未支持BlockState传递，当前 create() 工厂方法使用默认值/回退行为。
+ * 待 ParticleFactory 签名扩展后，应通过 createWithBlockState() 方法传递真实数据。
  */
 class BlockCrumbleParticle : public Particle {
 public:

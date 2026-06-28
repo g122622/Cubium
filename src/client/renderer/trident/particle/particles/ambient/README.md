@@ -4,7 +4,7 @@
 
 ```
 ambient/
-├── BubbleParticle.hpp/cpp        # 水下气泡粒子
+├── BubbleParticle.hpp/cpp        # 气泡粒子（BubbleParticle + CurrentDownParticle + BubbleColumnUpParticle）
 ├── BubblePopParticle.hpp/cpp     # 气泡破裂粒子（BubbleParticle 离开水面时生成）
 ├── CloudParticle.hpp/cpp         # 云朵、屏障、水花、海豚粒子
 ├── NetherSporeParticle.hpp/cpp   # 下界孢子粒子（CrimsonSporeParticle + WarpedSporeParticle）
@@ -26,6 +26,11 @@ ambient/
 **SporeBlossomParticle.hpp 包含的粒子类：**
 - `FallingSporeBlossomParticle` - 孢子花掉落粒子
 - `SporeBlossomAirParticle` - 孢子花空气粒子
+
+**BubbleParticle.hpp 包含的粒子类：**
+- `BubbleParticle` - 水中气泡粒子（上浮，到达水面后生成 BubblePop）
+- `CurrentDownParticle` - 向下水流粒子（气泡柱中向下移动，离开水面静默消失）
+- `BubbleColumnUpParticle` - 气泡柱上升粒子（气泡柱中向上移动，离开水面静默消失）
 
 **BubblePopParticle 特性：**
 - 生命周期 4 tick，微弱重力 0.008，有碰撞检测
@@ -54,7 +59,7 @@ ambient/
 
 1. **BubbleParticle 水面检测**：必须使用 `FluidTags::WATER()` 而非 `isWaterAt()`，因为后者可能不识别流体标签。
 
-2. **BubblePop 粒子生成**：BubbleParticle 在 `tick()` 中检测到离开水面时，通过 `m_emitCallback(ParticleTypeId::BubblePop, ...)` 生成 BubblePop 粒子。必须先检查 `m_emitCallback` 是否存在（为空则跳过），避免在非 ParticleManager 管理的场景中崩溃。
+2. **BubblePop 粒子生成**：BubbleParticle 在 `tick()` 中检测到离开水面时，通过 `m_emitCallback(ParticleTypeId::BubblePop, ...)` 生成 BubblePop 粒子。必须先检查 `m_emitCallback` 是否存在（为空则跳过），避免在非 ParticleManager 管理的场景中崩溃。注意 `CurrentDownParticle` 和 `BubbleColumnUpParticle` 离开水面时静默消失，不生成 BubblePop。
 
 3. **BubblePop 帧动画**：BubblePopParticle 使用5帧动画纹理（bubble_pop_0 ~ bubble_pop_4），通过 `getTextureLocation()` 根据年龄进度动态返回帧路径。ParticleTextureAtlas 中需注册所有5帧纹理名称。
 
