@@ -25,6 +25,7 @@
 
 #include "Particle.hpp"
 #include "ParticleTextureAtlas.hpp"
+#include "client/settings/ClientSettings.hpp"
 #include "common/core/Result.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
 #include <array>
@@ -152,6 +153,37 @@ public:
      * @param distance 最大距离
      */
     void setMaxParticleDistance(f32 distance) { m_maxParticleDistance = distance; }
+
+    /**
+     * @brief 设置粒子效果模式
+     *
+     * 控制 ambient 粒子的过滤级别：
+     * - Minimal: 仅显示 overrideLimiter=true 的重要粒子
+     * - Decreased: 约 2/3 的普通粒子通过（每帧 1/3 概率降级为 Minimal）
+     * - All: 显示所有粒子
+     *
+     * @param mode 粒子效果模式
+     */
+    void setParticleMode(client::ParticleMode mode) { m_particleMode = mode; }
+
+    /**
+     * @brief 获取当前粒子效果模式
+     */
+    [[nodiscard]] client::ParticleMode particleMode() const { return m_particleMode; }
+
+    /**
+     * @brief 判断是否应该生成/显示该类型的粒子
+     *
+     * 根据当前粒子效果模式和粒子类型的 overrideLimiter 标志，
+     * 判断是否应该生成或显示该粒子。重要粒子（overrideLimiter=true）
+     * 始终通过，不受模式影响。
+     *
+     * 在 Decreased 模式下，每帧对非重要粒子有 1/3 概率降级为 Minimal 行为。
+     *
+     * @param type 粒子类型 ID
+     * @return true 如果粒子应该被生成/显示
+     */
+    [[nodiscard]] bool shouldShowParticle(ParticleTypeId type) const;
 
     /**
      * @brief 清除所有粒子
@@ -310,6 +342,9 @@ private:
     // 距离裁剪
     glm::vec3 m_cameraPosition = glm::vec3(0.0f); ///< 相机位置（用于距离裁剪）
     f32 m_maxParticleDistance = 256.0f;           ///< 最大粒子距离
+
+    // 粒子效果模式
+    client::ParticleMode m_particleMode = client::ParticleMode::All; ///< 粒子效果模式（默认全部显示）
 
     // 纹理图集
     ParticleTextureAtlas m_textureAtlas;

@@ -45,7 +45,8 @@ void ParticleRegistry::registerType(ParticleTypeId id,
     ParticleRenderType defaultRenderType,
     f64 defaultLifetime,
     bool hasPhysics,
-    bool ignoreDistance)
+    bool ignoreDistance,
+    bool overrideLimiter)
 {
 
     MC_ASSERT_RELEASE_MSG(isValidParticleType(id), "Invalid particle type ID");
@@ -60,16 +61,20 @@ void ParticleRegistry::registerType(ParticleTypeId id,
     info.defaultLifetime = defaultLifetime;
     info.hasPhysics = hasPhysics;
     info.ignoreDistance = ignoreDistance;
+    info.overrideLimiter = overrideLimiter;
 
     m_types[id] = std::move(info);
     m_nameToId[name] = id;
 }
 
-void ParticleRegistry::registerSimpleType(
-    ParticleTypeId id, const std::string& name, ParticleFactory factory, ParticleRenderType defaultRenderType)
+void ParticleRegistry::registerSimpleType(ParticleTypeId id,
+    const std::string& name,
+    ParticleFactory factory,
+    ParticleRenderType defaultRenderType,
+    bool overrideLimiter)
 {
 
-    registerType(id, name, std::move(factory), defaultRenderType, 1.0, true, false);
+    registerType(id, name, std::move(factory), defaultRenderType, 1.0, true, false, overrideLimiter);
 }
 
 std::unique_ptr<Particle> ParticleRegistry::createParticle(
@@ -161,8 +166,12 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::Block, "minecraft:block", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
-    registerSimpleType(
-        ParticleTypeId::BlockMarker, "minecraft:block_marker", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+    // BlockMarker: overrideLimiter=true — 重要粒子，始终显示
+    registerSimpleType(ParticleTypeId::BlockMarker,
+        "minecraft:block_marker",
+        ParticleFactory{},
+        ParticleRenderType::TERRAIN_SHEET,
+        true);
 
     // 环境类粒子 (3-8)
     registerSimpleType(
@@ -175,10 +184,12 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleRenderType::PARTICLE_SHEET_LIT);
     registerSimpleType(
         ParticleTypeId::Crit, "minecraft:crit", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+    // DamageIndicator: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::DamageIndicator,
         "minecraft:damage_indicator",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_OPAQUE);
+        ParticleRenderType::PARTICLE_SHEET_OPAQUE,
+        true);
     registerSimpleType(ParticleTypeId::DragonBreath,
         "minecraft:dragon_breath",
         ParticleFactory{},
@@ -217,10 +228,12 @@ void ParticleRegistry::_registerBuiltinTypes()
     // 效果类粒子 (16-28)
     registerSimpleType(
         ParticleTypeId::Spell, "minecraft:spell", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // ElderGuardian: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::ElderGuardian,
         "minecraft:elder_guardian",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(ParticleTypeId::EnchantedHit,
         "minecraft:enchanted_hit",
         ParticleFactory{},
@@ -235,32 +248,46 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:entity_effect",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // HugeExplosion: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::HugeExplosion,
         "minecraft:explosion_emitter",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_LIT);
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        true);
+    // Explosion: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::Explosion,
         "minecraft:explosion",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Gust, "minecraft:gust", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // Gust: overrideLimiter=true — 重要粒子，始终显示
+    registerSimpleType(ParticleTypeId::Gust,
+        "minecraft:gust",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(ParticleTypeId::SmallGust,
         "minecraft:small_gust",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // GustEmitterLarge: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::GustEmitterLarge,
         "minecraft:gust_emitter_large",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // GustEmitterSmall: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::GustEmitterSmall,
         "minecraft:gust_emitter_small",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // SonicBoom: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::SonicBoom,
         "minecraft:sonic_boom",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
 
     // 方块/物品/烟花粒子 (29-31)
     registerSimpleType(
@@ -295,14 +322,18 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(
         ParticleTypeId::SculkSoul, "minecraft:sculk_soul", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+    // SculkCharge: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::SculkCharge,
         "minecraft:sculk_charge",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // SculkChargePop: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::SculkChargePop,
         "minecraft:sculk_charge_pop",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(ParticleTypeId::SoulFireFlame,
         "minecraft:soul_fire_flame",
         ParticleFactory{},
@@ -327,10 +358,12 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(
         ParticleTypeId::Item, "minecraft:item", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // Vibration: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::Vibration,
         "minecraft:vibration",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(
         ParticleTypeId::Trail, "minecraft:trail", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
     registerSimpleType(ParticleTypeId::ItemSlime,
@@ -357,8 +390,12 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleTypeId::Mycelium, "minecraft:mycelium", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_OPAQUE);
     registerSimpleType(
         ParticleTypeId::Note, "minecraft:note", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(
-        ParticleTypeId::Poof, "minecraft:poof", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // Poof: overrideLimiter=true — 重要粒子，始终显示
+    registerSimpleType(ParticleTypeId::Poof,
+        "minecraft:poof",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(
         ParticleTypeId::Portal, "minecraft:portal", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(
@@ -371,16 +408,24 @@ void ParticleRegistry::_registerBuiltinTypes()
         ParticleRenderType::PARTICLE_SHEET_OPAQUE);
     registerSimpleType(
         ParticleTypeId::Sneeze, "minecraft:sneeze", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::Spit, "minecraft:spit", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // Spit: overrideLimiter=true — 重要粒子，始终显示
+    registerSimpleType(ParticleTypeId::Spit,
+        "minecraft:spit",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // SquidInk: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::SquidInk,
         "minecraft:squid_ink",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // SweepAttack: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::SweepAttack,
         "minecraft:sweep_attack",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_LIT);
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        true);
     registerSimpleType(ParticleTypeId::TotemOfUndying,
         "minecraft:totem_of_undying",
         ParticleFactory{},
@@ -415,14 +460,18 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:dolphin",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // CampfireCozy: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::CampfireCozy,
         "minecraft:campfire_cozy_smoke",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // CampfireSignal: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::CampfireSignal,
         "minecraft:campfire_signal_smoke",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(ParticleTypeId::DrippingHoney,
         "minecraft:dripping_honey",
         ParticleFactory{},
@@ -501,24 +550,41 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:falling_dripstone_water",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // GlowSquidInk: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::GlowSquidInk,
         "minecraft:glow_squid_ink",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_LIT);
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        true);
+    // Glow: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(
-        ParticleTypeId::Glow, "minecraft:glow", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT);
+        ParticleTypeId::Glow, "minecraft:glow", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_LIT, true);
 
     // 铜蚀/幽匿/试炼/不祥粒子 (99-114)
-    registerSimpleType(
-        ParticleTypeId::WaxOn, "minecraft:wax_on", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
-    registerSimpleType(
-        ParticleTypeId::WaxOff, "minecraft:wax_off", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // WaxOn: overrideLimiter=true — 重要粒子，始终显示
+    registerSimpleType(ParticleTypeId::WaxOn,
+        "minecraft:wax_on",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // WaxOff: overrideLimiter=true — 重要粒子，始终显示
+    registerSimpleType(ParticleTypeId::WaxOff,
+        "minecraft:wax_off",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // ElectricSpark: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::ElectricSpark,
         "minecraft:electric_spark",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_LIT);
-    registerSimpleType(
-        ParticleTypeId::Scrape, "minecraft:scrape", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_LIT,
+        true);
+    // Scrape: overrideLimiter=true — 重要粒子，始终显示
+    registerSimpleType(ParticleTypeId::Scrape,
+        "minecraft:scrape",
+        ParticleFactory{},
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(
         ParticleTypeId::Shriek, "minecraft:shriek", ParticleFactory{}, ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
     registerSimpleType(ParticleTypeId::EggCrack,
@@ -529,24 +595,32 @@ void ParticleRegistry::_registerBuiltinTypes()
         "minecraft:dust_plume",
         ParticleFactory{},
         ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+    // TrialSpawnerDetection: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::TrialSpawnerDetection,
         "minecraft:trial_spawner_detection",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // TrialSpawnerDetectionOminous: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::TrialSpawnerDetectionOminous,
         "minecraft:trial_spawner_detection_ominous",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
+    // VaultConnection: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::VaultConnection,
         "minecraft:vault_connection",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(
         ParticleTypeId::DustPillar, "minecraft:dust_pillar", ParticleFactory{}, ParticleRenderType::TERRAIN_SHEET);
+    // OminousSpawning: overrideLimiter=true — 重要粒子，始终显示
     registerSimpleType(ParticleTypeId::OminousSpawning,
         "minecraft:ominous_spawning",
         ParticleFactory{},
-        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT);
+        ParticleRenderType::PARTICLE_SHEET_TRANSLUCENT,
+        true);
     registerSimpleType(ParticleTypeId::RaidOmen,
         "minecraft:raid_omen",
         ParticleFactory{},

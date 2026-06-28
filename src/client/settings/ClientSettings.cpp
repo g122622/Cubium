@@ -59,6 +59,12 @@ ClientSettings::ClientSettings()
               static_cast<u8>(AmbientOcclusionMode::Max)},
           static_cast<u8>(AmbientOcclusionMode::Max),
           {"off", "min", "max"})
+    , particles("particles",
+          {static_cast<u8>(ParticleMode::Minimal),
+              static_cast<u8>(ParticleMode::Decreased),
+              static_cast<u8>(ParticleMode::All)},
+          static_cast<u8>(ParticleMode::All),
+          {"minimal", "decreased", "all"})
     , biomeBlendRadius("biomeBlendRadius", 0, 7, defaults::client::biomeBlendRadius)
     , antiAliasing("antiAliasing", defaults::client::antiAliasing)
 
@@ -113,6 +119,7 @@ ClientSettings::ClientSettings()
     registerOption("video", &screenShakeScale);
     registerOption("video", &fogDensity);
     registerOption("video", &ambientOcclusion);
+    registerOption("video", &particles);
     registerOption("video", &biomeBlendRadius);
     registerOption("video", &antiAliasing);
 

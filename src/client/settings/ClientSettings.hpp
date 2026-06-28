@@ -54,7 +54,10 @@ enum class CloudMode : u8 {
 /**
  * @brief 粒子效果模式
  *
- * TODO: 暂未使用，待实现粒子效果质量设置选项
+ * 控制客户端粒子渲染质量：
+ * - Minimal: 仅显示重要粒子（overrideLimiter=true 的粒子），ambient 粒子被完全跳过
+ * - Decreased: 约 2/3 的普通粒子通过（每帧 1/3 概率降级为 Minimal 行为）
+ * - All: 显示所有粒子
  */
 enum class ParticleMode : u8 {
     Minimal = 0,   // 最小
@@ -154,6 +157,12 @@ public:
     /// Min: 最小 AO（较低质量）
     /// Max: 最大 AO（最高质量，平滑光照）
     EnumOption<u8> ambientOcclusion;
+
+    /// 粒子效果模式
+    /// Minimal: 仅显示重要粒子
+    /// Decreased: 减少普通粒子密度（约 2/3 通过）
+    /// All: 显示所有粒子
+    EnumOption<u8> particles;
 
     /// 生物群系颜色混合半径（0-7）
     /// 0: 无混合（直接使用当前生物群系颜色）

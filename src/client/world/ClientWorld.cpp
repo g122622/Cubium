@@ -857,6 +857,11 @@ void ClientWorld::addParticle(::mc::particle::ParticleTypeId type, const Vector3
         return;
     }
 
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!m_particleManager->shouldShowParticle(type)) {
+        return;
+    }
+
     auto particle = renderer::trident::particle::ParticleRegistry::instance().createParticle(
         type, glm::vec3(pos.x, pos.y, pos.z), glm::vec3(velocity.x, velocity.y, velocity.z), this);
 
@@ -869,6 +874,11 @@ void ClientWorld::addParticle(
     ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
 {
     if (!m_particleManager) {
+        return;
+    }
+
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!m_particleManager->shouldShowParticle(type)) {
         return;
     }
 
@@ -894,6 +904,11 @@ void ClientWorld::addBlockParticle(
     ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const BlockState& blockState)
 {
     if (!m_particleManager) {
+        return;
+    }
+
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!m_particleManager->shouldShowParticle(type)) {
         return;
     }
 

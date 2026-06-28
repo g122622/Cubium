@@ -51,6 +51,7 @@ struct ParticleTypeInfo {
     ParticleFactory factory;              ///< 工厂函数
     ParticleRenderType defaultRenderType; ///< 默认渲染类型
     bool ignoreDistance;                  ///< 是否忽略距离限制
+    bool overrideLimiter;                 ///< 是否忽略粒子质量限制（重要粒子始终显示）
     f64 defaultLifetime;                  ///< 默认生命周期（ticks）
     bool hasPhysics;                      ///< 是否有物理碰撞
 };
@@ -107,6 +108,7 @@ public:
      * @param defaultLifetime 默认生命周期（ticks）
      * @param hasPhysics 是否有物理碰撞
      * @param ignoreDistance 是否忽略距离限制
+     * @param overrideLimiter 是否忽略粒子质量限制（重要粒子始终显示）
      */
     void registerType(ParticleTypeId id,
         const std::string& name,
@@ -114,7 +116,8 @@ public:
         ParticleRenderType defaultRenderType,
         f64 defaultLifetime,
         bool hasPhysics,
-        bool ignoreDistance);
+        bool ignoreDistance,
+        bool overrideLimiter = false);
 
     /**
      * @brief 注册简单粒子类型（无参数粒子）
@@ -125,9 +128,13 @@ public:
      * @param name 类型名称
      * @param factory 工厂函数（可以为 nullptr，用于仅注册元数据）
      * @param defaultRenderType 默认渲染类型
+     * @param overrideLimiter 是否忽略粒子质量限制（重要粒子始终显示）
      */
-    void registerSimpleType(
-        ParticleTypeId id, const std::string& name, ParticleFactory factory, ParticleRenderType defaultRenderType);
+    void registerSimpleType(ParticleTypeId id,
+        const std::string& name,
+        ParticleFactory factory,
+        ParticleRenderType defaultRenderType,
+        bool overrideLimiter = false);
 
     // ========================================================================
     // 创建粒子

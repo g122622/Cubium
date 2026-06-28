@@ -25,6 +25,7 @@
 #include "ParticleRegistry.hpp"
 #include "client/renderer/util/ShaderPath.hpp"
 #include "common/util/math/Vector3.hpp"
+#include "common/util/math/random/Random.hpp"
 #include <spdlog/spdlog.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -326,6 +327,11 @@ void ParticleManager::addParticle(std::unique_ptr<Particle> particle)
 void ParticleManager::addPendingParticle(
     ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity, ClientWorld* world)
 {
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!shouldShowParticle(type)) {
+        return;
+    }
+
     // 粒子将在下一帧 tick 时处理，避免在 tick 中途修改粒子列表
     if (m_pendingParticles.size() < MAX_PARTICLES) {
         m_pendingParticles.push_back({type, pos, velocity, world});
@@ -375,6 +381,32 @@ void ParticleManager::tick(mc::client::ClientWorld* world)
 
     // 处理发射器粒子发射的新粒子
     processPendingParticles();
+}
+
+bool ParticleManager::shouldShowParticle(ParticleTypeId type) const
+{
+    // All 模式：显示所有粒子
+    if (m_particleMode == client::ParticleMode::All) {
+        return true;
+    }
+
+    // 检查粒子类型是否为重要粒子（overrideLimiter=true）
+    // 重要粒子在任何模式下都显示
+    const ParticleTypeInfo* info = ParticleRegistry::instance().getTypeInfo(type);
+    if (info != nullptr && info->overrideLimiter) {
+        return true;
+    }
+
+    // Minimal 模式：跳过所有非重要粒子
+    if (m_particleMode == client::ParticleMode::Minimal) {
+        return false;
+    }
+
+    // Decreased 模式：约 2/3 的普通粒子通过（1/3 概率降级为 Minimal 行为）
+    // 使用线程局部随机数，每帧每粒子独立判定
+    // MC Java 使用 ClientLevel.random.nextInt(3) == 0 来降级
+    thread_local mc::math::Random s_decreaseRng(0);
+    return s_decreaseRng.nextInt(3) != 0;
 }
 
 void ParticleManager::processPendingParticles()
