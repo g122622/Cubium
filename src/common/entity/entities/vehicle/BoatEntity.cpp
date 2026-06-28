@@ -217,13 +217,16 @@ void BoatEntity::updateMotion()
             break;
         case BoatStatus::OnLand:
             friction = m_boatGlide;
-            // 当控制乘客是玩家时，摩擦力减半（玩家操控的船在陆地上减速更快）
+            // 当控制乘客是玩家时，对 m_boatGlide 字段减半（非局部变量 friction）
+            // MC Java 中 floatBoat() 先将 landFriction 赋给局部变量 f，再对字段 landFriction /= 2，
+            // 速度乘以的是原始 f（未减半），字段减半的效果在下一 tick 被 getStatus() 覆盖。
+            // 此处保持语义一致：friction 保持原始值用于速度衰减，m_boatGlide 减半作为字段副作用。
             {
                 EntityId controllerId = getControllingPassenger();
                 if (controllerId != INVALID_ENTITY_ID && m_world) {
                     Entity* controller = m_world->getEntity(controllerId);
                     if (controller != nullptr && controller->typeId() == entity::EntityTypeIdNumber::PLAYER) {
-                        friction /= 2.0f;
+                        m_boatGlide /= 2.0f;
                     }
                 }
             }

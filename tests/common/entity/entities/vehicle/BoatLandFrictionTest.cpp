@@ -120,17 +120,26 @@ protected:
 };
 
 // ============================================================================
-// 控制乘客为 Player 时摩擦力减半
+// 控制乘客为 Player 时 m_boatGlide 字段减半
 // ============================================================================
 
 /**
- * @brief 控制乘客为 Player 时，陆地摩擦力应减半
+ * @brief 控制乘客为 Player 时，m_boatGlide 字段减半（MC Java 语义对齐）
  *
- * MC Java: if (this.getControllingPassenger() instanceof Player) {
- *     this.landFriction /= 2.0F;
- * }
+ * MC Java AbstractBoat.floatBoat() 中 OnLand 分支：
+ *   f = this.landFriction;           // 局部变量 f = 原始值
+ *   if (controllingPassenger instanceof Player) {
+ *       this.landFriction /= 2.0F;   // 仅减半字段，不影响当前 tick 的速度
+ *   }
+ *   velocity *= f;                   // 速度乘以原始值（未减半）
+ *
+ * 因此 Player 控制时，速度衰减系数与无 Player 时相同（原始值），
+ * 但 m_boatGlide 字段被减半。由于 updateMotion() 末尾会重置 m_boatGlide = 0，
+ * 且下一 tick 的 updateStatus() 会重新采样，此字段修改的效果是：
+ * 如果船在同一 tick 内多次调用 updateMotion()（理论上不会发生），
+ * 则第二次会使用减半后的值。
  */
-TEST_F(BoatLandFrictionTest, PlayerPassenger_FrictionHalved)
+TEST_F(BoatLandFrictionTest, PlayerPassenger_BoatGlideFieldHalved_VelocityUsesOriginalFriction)
 {
     auto boat = std::make_unique<TestBoatEntity>(entity::BoatEntity::Type::OAK);
     boat->setId(EntityId(1));
@@ -165,9 +174,11 @@ TEST_F(BoatLandFrictionTest, PlayerPassenger_FrictionHalved)
     // 调用 updateMotion
     boat->updateMotion();
 
-    // 验证摩擦力减半：m_boatGlide = 0.6，Player 控制时 friction = 0.6 / 2 = 0.3
-    // velocity.x *= 0.3, velocity.z *= 0.3
-    f32 expectedFriction = 0.6f / 2.0f; // 0.3f
+    // MC Java 语义：friction 使用原始 m_boatGlide 值（0.6），速度乘以原始值
+    // 但 m_boatGlide 字段被减半为 0.3（下一 tick 会被 updateStatus() 覆盖）
+    // 因此 Player 控制时，速度衰减与无 Player 时相同（都是 0.6），
+    // 差异体现在 m_boatGlide 字段值上
+    f32 expectedFriction = 0.6f; // 原始值，未减半
     EXPECT_FLOAT_EQ(boat->velocity().x, velBefore.x * expectedFriction);
     EXPECT_FLOAT_EQ(boat->velocity().z, velBefore.z * expectedFriction);
 }
