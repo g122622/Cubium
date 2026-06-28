@@ -121,6 +121,9 @@ struct BuildingVariantBlocks {
     static Block* STRUCTURE_VOID;
     static Block* JIGSAW;
     static Block* BARRIER;
+    static Block* COMMAND_BLOCK;
+    static Block* REPEATING_COMMAND_BLOCK;
+    static Block* CHAIN_COMMAND_BLOCK;
 };
 
 void registerBuildingVariantBlocks();
