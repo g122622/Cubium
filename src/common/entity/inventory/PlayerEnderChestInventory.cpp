@@ -29,6 +29,8 @@
 #include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 
+#include <algorithm>
+
 namespace mc {
 
 // ============================================================================
@@ -118,6 +120,10 @@ void PlayerEnderChestInventory::setChanged()
     if (m_onChanged) {
         m_onChanged();
     }
+    // 通知所有注册的 ContainerListener
+    for (auto* listener : m_listeners) {
+        listener->containerChanged(*this);
+    }
 }
 
 bool PlayerEnderChestInventory::isUsableByPlayer(const Player& player) const
@@ -159,6 +165,27 @@ void PlayerEnderChestInventory::closeInventory(Player& player)
 bool PlayerEnderChestInventory::isActiveChestValid() const
 {
     return m_activeChest != nullptr;
+}
+
+void PlayerEnderChestInventory::addListener(ContainerListener* listener)
+{
+    if (listener != nullptr) {
+        // 避免重复添加
+        auto it = std::find(m_listeners.begin(), m_listeners.end(), listener);
+        if (it == m_listeners.end()) {
+            m_listeners.push_back(listener);
+        }
+    }
+}
+
+void PlayerEnderChestInventory::removeListener(ContainerListener* listener)
+{
+    if (listener != nullptr) {
+        auto it = std::find(m_listeners.begin(), m_listeners.end(), listener);
+        if (it != m_listeners.end()) {
+            m_listeners.erase(it);
+        }
+    }
 }
 
 void PlayerEnderChestInventory::startOpen(Player& player)

@@ -23,6 +23,7 @@
 
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "entity/inventory/ContainerListener.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "world/block/BlockPos.hpp"
@@ -394,6 +395,106 @@ TEST_F(SimpleInventoryTest, SaveLoad_RoundTripPreservesSlotData)
     EXPECT_EQ(loaded.getItem(0).getCount(), 12);
     EXPECT_EQ(loaded.getItem(5).getItem(), m_stick);
     EXPECT_EQ(loaded.getItem(5).getCount(), 9);
+}
+
+// ========== SimpleInventory ContainerListener 测试 ==========
+
+/// 测试用 ContainerListener
+class SimpleInventoryListener : public ContainerListener {
+public:
+    void containerChanged(IInventory& inventory) override
+    {
+        m_callCount++;
+        m_lastInventory = &inventory;
+    }
+
+    [[nodiscard]] i32 callCount() const { return m_callCount; }
+    [[nodiscard]] IInventory* lastInventory() const { return m_lastInventory; }
+    void reset()
+    {
+        m_callCount = 0;
+        m_lastInventory = nullptr;
+    }
+
+private:
+    i32 m_callCount = 0;
+    IInventory* m_lastInventory = nullptr;
+};
+
+TEST_F(SimpleInventoryTest, AddListener_ReceivesNotifications)
+{
+    SimpleInventoryListener listener;
+    inventory_->addListener(&listener);
+
+    inventory_->setItem(0, ItemStack(m_diamond, 10));
+    EXPECT_EQ(listener.callCount(), 1);
+    EXPECT_EQ(listener.lastInventory(), inventory_.get());
+}
+
+TEST_F(SimpleInventoryTest, RemoveListener_StopsNotifications)
+{
+    SimpleInventoryListener listener;
+    inventory_->addListener(&listener);
+    inventory_->removeListener(&listener);
+
+    inventory_->setItem(0, ItemStack(m_diamond, 10));
+    EXPECT_EQ(listener.callCount(), 0);
+}
+
+TEST_F(SimpleInventoryTest, MultipleListeners_AllReceiveNotifications)
+{
+    SimpleInventoryListener listener1;
+    SimpleInventoryListener listener2;
+    SimpleInventoryListener listener3;
+
+    inventory_->addListener(&listener1);
+    inventory_->addListener(&listener2);
+    inventory_->addListener(&listener3);
+
+    inventory_->setItem(0, ItemStack(m_diamond, 10));
+
+    EXPECT_EQ(listener1.callCount(), 1);
+    EXPECT_EQ(listener2.callCount(), 1);
+    EXPECT_EQ(listener3.callCount(), 1);
+}
+
+TEST_F(SimpleInventoryTest, AddListener_DuplicateIgnored)
+{
+    SimpleInventoryListener listener;
+    inventory_->addListener(&listener);
+    inventory_->addListener(&listener);
+
+    inventory_->setItem(0, ItemStack(m_diamond, 10));
+    EXPECT_EQ(listener.callCount(), 1);
+}
+
+TEST_F(SimpleInventoryTest, ListenerAndOnChangedCallback_BothCalled)
+{
+    i32 callbackCount = 0;
+    SimpleInventoryListener listener;
+
+    inventory_->setOnChanged([&callbackCount]() { callbackCount++; });
+    inventory_->addListener(&listener);
+
+    inventory_->setItem(0, ItemStack(m_diamond, 10));
+
+    EXPECT_EQ(callbackCount, 1);
+    EXPECT_EQ(listener.callCount(), 1);
+}
+
+TEST_F(SimpleInventoryTest, RemoveItemNoUpdate_DoesNotTriggerListeners)
+{
+    SimpleInventoryListener listener;
+    inventory_->addListener(&listener);
+
+    // 先放入一个物品
+    inventory_->setItem(0, ItemStack(m_diamond, 10));
+    EXPECT_EQ(listener.callCount(), 1);
+    listener.reset();
+
+    // removeItemNoUpdate 不应该触发监听器
+    inventory_->removeItemNoUpdate(0);
+    EXPECT_EQ(listener.callCount(), 0);
 }
 
 // ========== TrappedChestEntity 红石信号测试 ==========

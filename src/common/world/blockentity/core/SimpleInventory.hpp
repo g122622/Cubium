@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/core/Constants.hpp"
+#include "entity/inventory/ContainerListener.hpp"
 #include "entity/inventory/IInventory.hpp"
 #include <functional>
 #include <vector>
@@ -104,8 +105,30 @@ public:
     /**
      * @brief 设置变更回调
      * @param callback 回调函数
+     *
+     * @note 此方法为便捷接口，内部将 callback 包装为 ContainerListener 注册。
+     *       如果需要更精细的控制，请直接使用 addListener()/removeListener()。
      */
     void setOnChanged(std::function<void()> callback) { m_onChanged = std::move(callback); }
+
+    /**
+     * @brief 添加容器变更监听器
+     *
+     * 监听器在容器内容变更时通过 containerChanged() 被通知。
+     * 参考: net.minecraft.world.SimpleContainer.addListener()
+     *
+     * @param listener 监听器指针（调用方负责确保指针在移除前有效）
+     */
+    void addListener(ContainerListener* listener) override;
+
+    /**
+     * @brief 移除容器变更监听器
+     *
+     * 参考: net.minecraft.world.SimpleContainer.removeListener()
+     *
+     * @param listener 要移除的监听器指针
+     */
+    void removeListener(ContainerListener* listener) override;
 
     /**
      * @brief 添加物品到第一个可用槽位
@@ -180,6 +203,7 @@ private:
     std::vector<ItemStack> m_items;
     i32 m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
     std::function<void()> m_onChanged;
+    std::vector<ContainerListener*> m_listeners; ///< 容器变更监听器列表
 };
 
 } // namespace blockentity

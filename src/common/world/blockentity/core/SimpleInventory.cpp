@@ -26,6 +26,8 @@
 #include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
 
+#include <algorithm>
+
 namespace mc {
 namespace blockentity {
 
@@ -46,10 +48,12 @@ SimpleInventory::SimpleInventory(SimpleInventory&& other) noexcept
     : m_items(std::move(other.m_items))
     , m_maxStackSize(other.m_maxStackSize)
     , m_onChanged(std::move(other.m_onChanged))
+    , m_listeners(std::move(other.m_listeners))
 {
     // 重置源对象
     other.m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
     other.m_onChanged = nullptr;
+    other.m_listeners.clear();
 }
 
 SimpleInventory& SimpleInventory::operator=(SimpleInventory&& other) noexcept
@@ -58,10 +62,12 @@ SimpleInventory& SimpleInventory::operator=(SimpleInventory&& other) noexcept
         m_items = std::move(other.m_items);
         m_maxStackSize = other.m_maxStackSize;
         m_onChanged = std::move(other.m_onChanged);
+        m_listeners = std::move(other.m_listeners);
 
         // 重置源对象
         other.m_maxStackSize = mc::item::DEFAULT_MAX_STACK_SIZE;
         other.m_onChanged = nullptr;
+        other.m_listeners.clear();
     }
     return *this;
 }
@@ -284,6 +290,31 @@ void SimpleInventory::_onChanged()
 {
     if (m_onChanged) {
         m_onChanged();
+    }
+    // 通知所有注册的 ContainerListener
+    for (auto* listener : m_listeners) {
+        listener->containerChanged(*this);
+    }
+}
+
+void SimpleInventory::addListener(ContainerListener* listener)
+{
+    if (listener != nullptr) {
+        // 避免重复添加
+        auto it = std::find(m_listeners.begin(), m_listeners.end(), listener);
+        if (it == m_listeners.end()) {
+            m_listeners.push_back(listener);
+        }
+    }
+}
+
+void SimpleInventory::removeListener(ContainerListener* listener)
+{
+    if (listener != nullptr) {
+        auto it = std::find(m_listeners.begin(), m_listeners.end(), listener);
+        if (it != m_listeners.end()) {
+            m_listeners.erase(it);
+        }
     }
 }
 

@@ -61,14 +61,17 @@ BlockEntityDeserializer ──反序列化──→ BlockEntity（通过Registry
 
 ## 容易踩的坑
 
-### 1. 忘记设置 SimpleInventory 变更回调
+### 1. 忘记设置 SimpleInventory 变更通知
 
-修改 `SimpleInventory` 的数据后不会自动通知方块实体保存，必须设置回调：
+修改 `SimpleInventory` 的数据后不会自动通知方块实体保存，必须设置回调或注册监听器：
 ```cpp
-// 正确：设置变更回调
+// 方式一：设置变更回调（兼容旧接口）
 m_inventory(27, [this]() { setChanged(); })
 
-// 错误：忘记回调，数据不会保存
+// 方式二：注册 ContainerListener（推荐，支持多监听者）
+m_inventory.addListener(&myListener);
+
+// 错误：忘记设置通知，数据不会保存
 m_inventory(27)
 ```
 

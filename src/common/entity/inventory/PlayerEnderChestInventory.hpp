@@ -23,10 +23,12 @@
 
 #pragma once
 
+#include "ContainerListener.hpp"
 #include "IInventory.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include <array>
 #include <functional>
+#include <vector>
 
 namespace mc {
 
@@ -143,8 +145,30 @@ public:
      * 参考 MC Java: SimpleContainer.addListener() / setChanged() 通知机制。
      *
      * @param callback 变更回调函数
+     *
+     * @note 此方法为便捷接口，内部将 callback 包装为 ContainerListener 注册。
+     *       如果需要更精细的控制，请直接使用 addListener()/removeListener()。
      */
     void setOnChanged(std::function<void()> callback) { m_onChanged = std::move(callback); }
+
+    /**
+     * @brief 添加容器变更监听器
+     *
+     * 监听器在容器内容变更时通过 containerChanged() 被通知。
+     * 参考: net.minecraft.world.SimpleContainer.addListener()
+     *
+     * @param listener 监听器指针（调用方负责确保指针在移除前有效）
+     */
+    void addListener(ContainerListener* listener) override;
+
+    /**
+     * @brief 移除容器变更监听器
+     *
+     * 参考: net.minecraft.world.SimpleContainer.removeListener()
+     *
+     * @param listener 要移除的监听器指针
+     */
+    void removeListener(ContainerListener* listener) override;
 
     // ========== 序列化 ==========
 
@@ -168,10 +192,8 @@ public:
 private:
     std::array<ItemStack, ENDER_CHEST_SIZE> m_items;
     blockentity::EnderChestEntity* m_activeChest = nullptr;
-    // TODO: 当网络同步系统就绪后，需将 m_onChanged 扩展为监听者列表（std::vector<std::function<void()>>）
-    // 或采用 IContainerListener 模式，以支持多个监听者（如容器菜单广播、客户端同步等）。
-    // 当前单一回调仅用于 ServerPlayer 中标记玩家数据为脏以触发自动保存。
-    std::function<void()> m_onChanged; ///< 变更回调，物品变更时通知监听者
+    std::vector<ContainerListener*> m_listeners; ///< 容器变更监听器列表
+    std::function<void()> m_onChanged;           ///< 变更回调（兼容旧接口，由 setOnChanged 设置）
 };
 
 } // namespace mc
