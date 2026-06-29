@@ -130,7 +130,7 @@ public:
      * @param stack 要检查的物品堆
      * @return 如果该物品是远程武器则返回 true
      */
-    [[nodiscard]] virtual bool canUseNonMeleeWeapon(const ItemStack& stack) const;
+    [[nodiscard]] bool canUseNonMeleeWeapon(const ItemStack& stack) const override;
 
     /**
      * @brief 获取困难难度下的最小攻击间隔

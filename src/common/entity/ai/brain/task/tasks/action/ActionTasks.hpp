@@ -24,8 +24,9 @@
 #pragma once
 
 #include "../../../core/MobEntity.hpp"
-#include "../../../world/ServerWorld.hpp"
 #include "../../memory/Brain.hpp"
+#include "../../memory/MemoryModuleStatus.hpp"
+#include "../../memory/MemoryModuleType.hpp"
 #include "../Task.hpp"
 
 namespace mc {
@@ -36,78 +37,127 @@ namespace task {
 namespace action {
 
 /**
- * @brief 攻击任务
+ * @brief 近战攻击任务（对应 MC MeleeAttack）
  *
- * 控制实体攻击目标。
+ * 当实体拥有攻击目标、不在冷却中、且处于近战攻击范围内时，
+ * 执行近战攻击：面向目标、挥动手臂、调用 attackEntityAsMob、设置冷却。
  *
- * TODO: 功能尚未实现
+ * 记忆模块要求：
+ * - ATTACK_TARGET (VALUE_PRESENT): 必须有攻击目标
+ * - ATTACK_COOLING_DOWN (VALUE_ABSENT): 不能处于冷却中
+ * - LOOK_TARGET (REGISTERED): 用于设置面向目标
+ *
+ * 攻击成功后设置 ATTACK_COOLING_DOWN 记忆，TTL 为 cooldownTicks，
+ * 由 Brain 的记忆过期机制自动清除，从而允许下次攻击。
+ *
+ * 本任务为单次触发型：每次满足条件时触发一次攻击，而非持续执行。
+ * 冷却由 ATTACK_COOLING_DOWN 记忆的 TTL 管理，无需手动计数器。
+ *
+ * @tparam E 实体类型，必须继承自 MobEntity
  */
 template <typename E>
 class AttackTask : public Task<E> {
 public:
-    AttackTask(i32 attackInterval = 20, f32 attackRange = 2.0f)
-        : Task<E>({}, attackInterval, attackInterval * 2)
-        , m_attackInterval(attackInterval)
-        , m_attackRange(attackRange)
-        , m_attackCooldown(0)
+    /**
+     * @brief 构造近战攻击任务
+     * @param cooldownTicks 攻击冷却时间（tick），对应 MC MeleeAttack.create(int)
+     */
+    explicit AttackTask(i32 cooldownTicks = 20)
+        : Task<E>({{MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_PRESENT},
+                      {MemoryModuleTypes::ATTACK_COOLING_DOWN, MemoryModuleStatus::VALUE_ABSENT},
+                      {MemoryModuleTypes::LOOK_TARGET, MemoryModuleStatus::REGISTERED}},
+              cooldownTicks,
+              cooldownTicks)
+        , m_cooldownTicks(cooldownTicks)
     {}
 
     std::string getName() const override { return "AttackTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override
+    bool shouldExecute(IWorld* world, E* owner) override
     {
-        if (!owner || !owner->isAlive()) return false;
+        if (!owner || !owner->isAlive()) {
+            return false;
+        }
 
-        // auto brain = owner->getBrain();
-        // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
-        // if (!target.has_value() || !(*target)->isAlive()) return false;
-        //
-        // return owner->distanceTo(**target) <= m_attackRange;
+        auto& brain = owner->brain();
+        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTarget.has_value() || *attackTarget == nullptr || !(*attackTarget)->isAlive()) {
+            return false;
+        }
+
+        LivingEntity* target = *attackTarget;
+
+        // 检查是否手持远程武器（持有可用非近战武器时不进行近战攻击）
+        const ItemStack& mainHand = owner->getMainHandItem();
+        if (!mainHand.isEmpty() && owner->canUseNonMeleeWeapon(mainHand)) {
+            return false;
+        }
+
+        // 检查是否在近战攻击范围内
+        return _isWithinMeleeAttackRange(owner, target);
+    }
+
+    bool shouldContinueExecuting(IWorld* world, E* owner, i64 gameTime) override
+    {
+        // 单次触发型任务，不需要持续执行
         return false;
     }
 
-    bool shouldContinueExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
-        if (!owner || !owner->isAlive()) return false;
+        auto& brain = owner->brain();
+        auto attackTarget = brain.template getMemory<LivingEntity*>(MemoryModuleTypes::ATTACK_TARGET);
+        if (!attackTarget.has_value() || *attackTarget == nullptr) {
+            return;
+        }
 
-        // auto brain = owner->getBrain();
-        // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
-        // return target.has_value() && (*target)->isAlive();
-        return false;
+        LivingEntity* target = *attackTarget;
+
+        // 面向攻击目标
+        if (auto* lookCtrl = owner->lookController()) {
+            lookCtrl->setLookPositionWithEntity(
+                *target, owner->getHorizontalFaceSpeed(), owner->getVerticalFaceSpeed());
+        }
+
+        // 挥动手臂（播放攻击动画）
+        owner->swingArm();
+
+        // 执行近战攻击
+        owner->attackEntityAsMob(*target);
+
+        // 设置攻击冷却记忆，TTL 后自动过期
+        brain.template setMemoryWithTTL<bool>(MemoryModuleTypes::ATTACK_COOLING_DOWN, true, m_cooldownTicks);
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override { m_attackCooldown = 0; }
-
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
-        // auto brain = owner->getBrain();
-        // auto target = brain->getMemory(memory::MemoryModuleTypes::ATTACK_TARGET);
-        // if (!target.has_value() || !(*target)->isAlive()) return;
-        //
-        // auto targetEntity = *target;
-        //
-        // // 看向目标
-        // owner->getLookController()->setLookAt(targetEntity);
-        //
-        // // 攻击冷却
-        // if (m_attackCooldown <= 0) {
-        //     // 检查距离
-        //     if (owner->distanceTo(*targetEntity) <= m_attackRange) {
-        //         owner->attack(targetEntity);
-        //         m_attackCooldown = m_attackInterval;
-        //     }
-        // } else {
-        //     m_attackCooldown--;
-        // }
+        // 单次触发型任务，所有逻辑在 startExecuting 中完成
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override { m_attackCooldown = 0; }
+    void resetTask(IWorld* world, E* owner, i64 gameTime) override
+    {
+        // 无需清理：冷却记忆由 TTL 自动管理
+    }
 
 private:
-    i32 m_attackInterval;
-    f32 m_attackRange;
-    i32 m_attackCooldown;
+    /**
+     * @brief 检查目标是否在近战攻击范围内
+     *
+     * 计算公式：(攻击者宽度 * 2)^2 + 目标宽度
+     * 与 MeleeAttackGoal::getAttackReachSqr() 一致
+     */
+    static bool _isWithinMeleeAttackRange(const E* owner, const LivingEntity* target)
+    {
+        f32 attackerWidth = owner->width();
+        f32 targetWidth = target->width();
+        f32 reachWidth = attackerWidth * 2.0f;
+        f32 attackReachSq = reachWidth * reachWidth + targetWidth;
+        f64 distSq = static_cast<f64>(owner->distanceSqTo(*target));
+        return distSq <= static_cast<f64>(attackReachSq);
+    }
+
+    i32 m_cooldownTicks;
 };
 
 /**
@@ -128,7 +178,7 @@ public:
     std::string getName() const override { return "BreedTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override
+    bool shouldExecute(IWorld* world, E* owner) override
     {
         if (!owner || !owner->isAlive()) return false;
 
@@ -142,7 +192,7 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         // auto brain = owner->getBrain();
         // auto breedTarget = brain->getMemory(memory::MemoryModuleTypes::BREED_TARGET);
@@ -151,7 +201,7 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         // auto brain = owner->getBrain();
         // auto breedTarget = brain->getMemory(memory::MemoryModuleTypes::BREED_TARGET);
@@ -168,7 +218,7 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    void resetTask(IWorld* world, E* owner, i64 gameTime) override
     {
         // owner->getNavigator()->clearPath();
         // owner->getBrain()->removeMemory(memory::MemoryModuleTypes::BREED_TARGET);
@@ -197,7 +247,7 @@ public:
     std::string getName() const override { return "EatTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override
+    bool shouldExecute(IWorld* world, E* owner) override
     {
         if (!owner || !owner->isAlive()) return false;
         // 检查是否饥饿
@@ -205,7 +255,7 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         m_eatTimer = 0;
         // 寻找食物
@@ -215,7 +265,7 @@ protected:
         // }
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         m_eatTimer++;
         // if (m_eatTimer >= m_eatDuration) {
@@ -223,7 +273,7 @@ protected:
         // }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override { m_eatTimer = 0; }
+    void resetTask(IWorld* world, E* owner, i64 gameTime) override { m_eatTimer = 0; }
 
 private:
     i32 m_eatDuration;
@@ -248,7 +298,7 @@ public:
     std::string getName() const override { return "PlayDeadTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override
+    bool shouldExecute(IWorld* world, E* owner) override
     {
         if (!owner || !owner->isAlive()) return false;
 
@@ -258,19 +308,19 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         m_isPlayingDead = true;
         // owner->setPlayingDead(true);
         // owner->getNavigator()->clearPath();
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         // 保持装死状态
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override
+    void resetTask(IWorld* world, E* owner, i64 gameTime) override
     {
         m_isPlayingDead = false;
         // owner->setPlayingDead(false);
@@ -300,27 +350,27 @@ public:
     std::string getName() const override { return "JumpTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override
+    bool shouldExecute(IWorld* world, E* owner) override
     {
         if (!owner || !owner->isAlive()) return false;
         // return owner->isOnGround() && m_cooldownTimer <= 0;
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         // owner->jump(m_jumpHeight);
         m_cooldownTimer = m_cooldown;
     }
 
-    void updateTask(ServerWorld* world, E* owner, i64 gameTime) override
+    void updateTask(IWorld* world, E* owner, i64 gameTime) override
     {
         if (m_cooldownTimer > 0) {
             m_cooldownTimer--;
         }
     }
 
-    void resetTask(ServerWorld* world, E* owner, i64 gameTime) override { m_cooldownTimer = 0; }
+    void resetTask(IWorld* world, E* owner, i64 gameTime) override { m_cooldownTimer = 0; }
 
 private:
     f32 m_jumpHeight;
@@ -347,7 +397,7 @@ public:
     std::string getName() const override { return "KickTask"; }
 
 protected:
-    bool shouldExecute(ServerWorld* world, E* owner) override
+    bool shouldExecute(IWorld* world, E* owner) override
     {
         if (!owner || !owner->isAlive()) return false;
 
@@ -358,7 +408,7 @@ protected:
         return false;
     }
 
-    void startExecuting(ServerWorld* world, E* owner, i64 gameTime) override
+    void startExecuting(IWorld* world, E* owner, i64 gameTime) override
     {
         // 执行踢攻击
         // auto brain = owner->getBrain();

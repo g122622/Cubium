@@ -764,6 +764,26 @@ public:
     // ========== 攻击 ==========
 
     /**
+     * @brief 检查实体是否可以使用非近战武器
+     *
+     * 当实体手持指定物品时，返回 true 表示该物品被视为远程武器，
+     * 近战攻击任务将跳过攻击以允许远程攻击任务接管。
+     *
+     * 默认实现返回 false（大多数生物不使用远程武器）。
+     * 骷髅类实体重写此方法以检查弓等远程武器。
+     *
+     * 对应 MC 原版 Mob.canUseNonMeleeWeapon(ItemStack)。
+     *
+     * @param stack 要检查的物品堆
+     * @return 如果该物品是远程武器且应使用远程攻击则返回 true
+     */
+    [[nodiscard]] virtual bool canUseNonMeleeWeapon(const ItemStack& stack) const
+    {
+        (void)stack;
+        return false;
+    }
+
+    /**
      * @brief 作为生物攻击实体
      *
      * 执行近战攻击，包括：
