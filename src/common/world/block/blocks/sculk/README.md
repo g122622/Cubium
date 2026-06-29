@@ -54,14 +54,14 @@ sculk/
 
 ### SculkShriekerBlock 方法说明
 
-| 方法 | 说明 | 对齐 MC Java |
-|------|------|-------------|
-| onEntityWalk() | 实体踩上方块时发出 SHRIEK 事件 | SculkShriekerBlock.stepOn() |
-| tick() | SHRIEKING 状态到期后转回非 SHRIEKING | SculkShriekerBlock.tick() |
-| onBlockRemoved() | SHRIEKING 状态下被移除时仍触发响应 | SculkShriekerBlock.preRemoveSideEffects() |
-| shriek() | 设置 SHRIEKING 状态、播放粒子、发出 SHRIEK 事件 | SculkShriekerBlockEntity.shriek() |
+| 方法 | 说明 |
+|------|------|
+| onEntityWalk() | 实体踩上方块时发出 SHRIEK 事件 |
+| tick() | SHRIEKING 状态到期后转回非 SHRIEKING |
+| onBlockRemoved() | SHRIEKING 状态下被移除时仍触发响应 |
+| shriek() | 设置 SHRIEKING 状态、播放粒子、发出 SHRIEK 事件 |
 
-SHRIEKING_TICKS = 90（4.5 秒），对齐 MC Java。
+SHRIEKING_TICKS = 90（4.5 秒）。
 
 ## 容易踩的坑
 

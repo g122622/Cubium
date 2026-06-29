@@ -59,7 +59,7 @@ tryShriek():
     2. 检查 SHRIEKING 状态（不能重复激活）
     3. 检查旁观者模式
     4. 重置警告等级
-    5. canRespond() 为 true 时调用 tryWarn() 递增警告等级
+    5. _canRespond() 为 true 时调用 _tryWarn() 递增警告等级
     6. 执行 shriek()（设置 SHRIEKING 状态、播放粒子、发出 SHRIEK 事件）
     ↓
 90 tick 后 SHRIEKING 状态到期
@@ -69,33 +69,33 @@ SculkShriekerBlock::tick() → 设置 shriekingFinished 标志
 SculkVibrationManager::tickAll() → SculkShriekerHelper::checkShriekingFinished()
     ↓
 SculkShriekerHelper::tryRespond():
-    1. canRespond() 检查（CAN_SUMMON + 非和平 + 游戏规则）
-    2. 警告等级 >= 4 时尝试 trySummonWarden()
-    3. 未召唤监守者时播放 playWardenReplySound()
-    4. applyDarknessAround() 对附近玩家施加黑暗效果
+    1. _canRespond() 检查（CAN_SUMMON + 非和平 + 游戏规则）
+    2. 警告等级 >= 4 时尝试 _trySummonWarden()
+    3. 未召唤监守者时播放 _playWardenReplySound()
+    4. _applyDarknessAround() 对附近玩家施加黑暗效果
 ```
 
 #### 方法说明
 
-| 方法 | 说明 | 对齐 MC Java |
-|------|------|-------------|
-| tryShriek() | 尝试激活幽匿尖啸体 | SculkShriekerBlockEntity.tryShriek() |
-| tryRespond() | 尖啸结束后的响应 | SculkShriekerBlockEntity.tryRespond() |
-| checkShriekingFinished() | 检查尖啸结束标志 | SculkShriekerBlock.tick() |
-| canRespond() | 检查 CAN_SUMMON + 非和平 + 游戏规则 | SculkShriekerBlockEntity.canRespond() |
-| trySummonWarden() | 在附近寻找有效位置召唤监守者 | SculkShriekerBlockEntity.trySummonWarden() |
-| hasNearbyWarden() | 48 格范围内搜索监守者 | WardenSpawnTracker.hasNearbyWarden() |
-| tryWarn() | 递增附近 16 格内玩家的警告等级 | WardenSpawnTracker.tryWarn() |
-| playWardenReplySound() | 根据警告等级播放监守者回应声音 | SculkShriekerBlockEntity.playWardenReplySound() |
-| applyDarknessAround() | 对 40 格内玩家施加 260 tick 黑暗效果 | Warden.applyDarknessAround() |
-| tryGetPlayer() | 将触发实体解析为玩家 | SculkShriekerBlockEntity.tryGetPlayer() |
+| 方法 | 说明 |
+|------|------|
+| tryShriek() | 尝试激活幽匿尖啸体 |
+| tryRespond() | 尖啸结束后的响应 |
+| checkShriekingFinished() | 检查尖啸结束标志 |
+| _canRespond() | 检查 CAN_SUMMON + 非和平 + 游戏规则 |
+| _trySummonWarden() | 在附近寻找有效位置召唤监守者 |
+| _hasNearbyWarden() | 48 格范围内搜索监守者 |
+| _tryWarn() | 递增附近 16 格内玩家的警告等级 |
+| _playWardenReplySound() | 根据警告等级播放监守者回应声音 |
+| _applyDarknessAround() | 对 40 格内玩家施加 260 tick 黑暗效果 |
+| tryGetPlayer() | 将触发实体解析为玩家 |
 
 #### 关键常量
 
 | 常量 | 值 | 说明 |
 |------|-----|------|
 | WARDEN_SEARCH_RADIUS | 48.0 | 附近监守者搜索半径 |
-| PLAYER_SEARCH_RADIUS | 16.0 | 附近玩家搜索半径（tryWarn） |
+| PLAYER_SEARCH_RADIUS | 16.0 | 附近玩家搜索半径（_tryWarn） |
 | DARKNESS_RADIUS | 40.0 | 黑暗效果应用半径 |
 | DARKNESS_DURATION | 260 | 黑暗效果持续时间（tick） |
 | DARKNESS_COOLDOWN | 200 | 黑暗效果冷却（tick） |
@@ -116,4 +116,4 @@ SculkShriekerHelper::tryRespond():
 ## 待实现
 
 - tryGetPlayer() 中载具乘客、投射物主人、物品主人解析（依赖未来子系统完善）
-- trySummonWarden() 中监守者实体类型未注册时的优雅跳过（依赖 WardenEntity 实现）
+- _trySummonWarden() 中监守者实体类型未注册时的优雅跳过（依赖 WardenEntity 实现）

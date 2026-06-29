@@ -125,7 +125,6 @@ i32 SculkSensorBlock::getWeakPower(
 
 i32 SculkSensorBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
-    // 对齐 MC Java: SculkSensorBlock.getAnalogOutputSignal()
     // 比较器输出的是振动频率（1-15），而非红石信号强度（基于距离）
     // 非 Active 状态时输出 0
     if (getPhase(state) != BlockStateProperties::SculkSensorPhase::Active) {
@@ -278,7 +277,6 @@ void SculkSensorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
 
 void SculkSensorBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 对齐 MC Java: SculkSensorBlock.affectNeighborsAfterRemoval()
     // 如果移除时处于 Active 状态，需要通知邻居更新红石信号
     if (getPhase(state) == BlockStateProperties::SculkSensorPhase::Active) {
         world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, state.getBlockMutable());
@@ -333,7 +331,6 @@ BlockState CalibratedSculkSensorBlock::getStateForPlacement(BlockItemUseContext&
 i32 CalibratedSculkSensorBlock::getWeakPower(
     const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
-    // 对齐 MC Java: CalibratedSculkSensorBlock.getSignal()
     // FACING 方向是输入面（从该方向读取红石信号频率过滤），
     // 红石信号只在非 FACING 方向输出。
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());

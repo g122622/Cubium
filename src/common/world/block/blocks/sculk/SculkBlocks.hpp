@@ -40,8 +40,6 @@ namespace blocks {
  *
  * 深暗之域的主要构成方块，可通过幽匿催化体蔓延。
  * 当被精确采集时掉落经验。
- *
- * 参考: net.minecraft.block.SculkBlock
  */
 class SculkBlock : public Block {
 public:
@@ -56,8 +54,6 @@ public:
  * @brief 幽匿脉络
  *
  * 可附着在方块表面的幽匿蔓延物，可被骨粉催生。
- *
- * 参考: net.minecraft.block.SculkVeinBlock
  */
 class SculkVeinBlock : public Block {
 public:
@@ -73,8 +69,6 @@ public:
  *
  * 检测振动并输出红石信号的方块。
  * 状态属性：SCULK_SENSOR_PHASE, POWER, WATERLOGGED
- *
- * 参考: net.minecraft.block.SculkSensorBlock
  */
 class SculkSensorBlock : public Block, public IWaterLoggable {
 public:
@@ -149,7 +143,6 @@ public:
      * @brief 检查幽匿感测体是否可以被激活
      *
      * 只有当前 Phase 为 Inactive 时才能被激活。
-     * 对齐 MC Java: SculkSensorBlock.canActivate()
      */
     [[nodiscard]] static bool canActivate(const BlockState& state);
 
@@ -177,7 +170,6 @@ public:
      * @brief 停用幽匿感测体（Active→Cooldown）
      *
      * 设置方块状态为 Cooldown，红石信号归零，调度 tick，通知邻居红石更新。
-     * 对齐 MC Java: SculkSensorBlock.deactivate()
      */
     static void deactivate(IWorld& world, const BlockPos& pos, const BlockState& state);
 
@@ -205,8 +197,6 @@ private:
  *
  * 可通过红石信号过滤振动频率的高级感测体。
  * 状态属性：FACING, SCULK_SENSOR_PHASE, POWER, WATERLOGGED
- *
- * 参考: net.minecraft.block.CalibratedSculkSensorBlock
  */
 class CalibratedSculkSensorBlock : public SculkSensorBlock {
 public:
@@ -241,8 +231,6 @@ protected:
  *
  * 生物在此附近死亡时生成幽匿块。
  * 状态属性：BLOOM
- *
- * 参考: net.minecraft.block.SculkCatalystBlock
  */
 class SculkCatalystBlock : public Block {
 public:
@@ -274,11 +262,8 @@ private:
  * 4. 90 tick 后 tick() 将 SHRIEKING 设回 false 并调用 tryRespond()
  * 5. tryRespond() 播放警告声音、应用黑暗效果、在警告等级 >= 4 时尝试召唤监守者
  *
- * 服务端逻辑（tryShriek, tryRespond, trySummonWarden 等）位于
+ * 服务端逻辑（tryShriek, tryRespond, _trySummonWarden 等）位于
  * SculkShriekerHelper（server/world/blockentity/sculk/），因为它们依赖 ServerWorld。
- *
- * 参考: net.minecraft.block.SculkShriekerBlock
- * 参考: net.minecraft.block.entity.SculkShriekerBlockEntity
  */
 class SculkShriekerBlock : public Block, public IWaterLoggable {
 public:
@@ -319,7 +304,6 @@ public:
      * @brief 实体踩上方块时触发
      *
      * 非潜行实体踩上时发出 SHRIEK 游戏事件，触发附近的幽匿尖啸体。
-     * 对齐 MC Java: SculkShriekerBlock.stepOn()
      */
     void onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
@@ -327,7 +311,6 @@ public:
      * @brief 方块 tick 回调
      *
      * 处理 SHRIEKING→!SHRIEKING 的状态转换，并通知服务端执行响应逻辑。
-     * 对齐 MC Java: SculkShriekerBlock.tick()
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
 
@@ -344,7 +327,6 @@ public:
     /**
      * @brief 播放尖啸声音和粒子效果，设置 SHRIEKING 状态
      *
-     * 对齐 MC Java: SculkShriekerBlockEntity.shriek()
      * 此方法仅处理视觉效果和状态转换，不涉及警告等级或召唤逻辑。
      *
      * @param world 世界引用
@@ -354,7 +336,7 @@ public:
      */
     static void shriek(IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* sourceEntity);
 
-    /// SHRIEKING 状态持续tick数（对齐 MC Java: 90 ticks = 4.5秒）
+    /// SHRIEKING 状态持续tick数（90 ticks = 4.5秒）
     static constexpr i32 SHRIEKING_TICKS = 90;
 
 protected:

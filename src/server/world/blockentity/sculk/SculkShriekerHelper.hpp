@@ -28,10 +28,11 @@
  * 实现 SculkShriekerBlock 的服务端专属逻辑，包括：
  * - tryShriek(): 尖啸触发条件检查（玩家解析、附近监守者检查、警告等级递增）
  * - tryRespond(): 尖啸结束后的响应（播放警告声音、应用黑暗效果、尝试召唤监守者）
- * - trySummonWarden(): 监守者召唤尝试
- * - hasNearbyWarden(): 附近监守者检测
- * - playWardenReplySound(): 警告等级对应声音
- * - applyDarknessAround(): 黑暗效果应用
+ * - _canRespond(): 检查 CAN_SUMMON + 非和平 + 游戏规则
+ * - _trySummonWarden(): 监守者召唤尝试
+ * - _hasNearbyWarden(): 附近监守者检测
+ * - _playWardenReplySound(): 警告等级对应声音
+ * - _applyDarknessAround(): 黑暗效果应用
  *
  * 这些逻辑依赖 ServerWorld（玩家查找、实体搜索、效果应用等），
  * 因此不能放在 mc_common 层的 SculkShriekerBlock 中。
@@ -66,13 +67,11 @@ public:
     /**
      * @brief 尝试激活幽匿尖啸体
      *
-     * 对齐 MC Java: SculkShriekerBlockEntity.tryShriek()
-     *
      * 检查流程：
      * 1. 尖啸体不能处于 SHRIEKING 状态
      * 2. 尝试将触发实体解析为玩家（直接玩家、载具乘客、投射物主人、物品主人）
-     * 3. 如果 canRespond() 为 true，调用 tryWarn() 递增警告等级
-     * 4. 警告等级递增成功或 canRespond() 为 false 时，执行 shriek() 播放效果
+     * 3. 如果 _canRespond() 为 true，调用 _tryWarn() 递增警告等级
+     * 4. 警告等级递增成功或 _canRespond() 为 false 时，执行 shriek() 播放效果
      *
      * @param world 服务端世界
      * @param pos 方块位置
@@ -83,9 +82,7 @@ public:
     /**
      * @brief 尖啸结束后的响应逻辑
      *
-     * 对齐 MC Java: SculkShriekerBlockEntity.tryRespond()
-     *
-     * 1. 检查 canRespond()（CAN_SUMMON + 非和平 + 游戏规则）
+     * 1. 检查 _canRespond()（CAN_SUMMON + 非和平 + 游戏规则）
      * 2. 检查警告等级 > 0
      * 3. 尝试召唤监守者（警告等级 >= 4），失败则播放警告声音
      * 4. 对附近玩家应用黑暗效果
@@ -109,7 +106,6 @@ public:
     /**
      * @brief 将触发实体解析为玩家
      *
-     * 对齐 MC Java: SculkShriekerBlockEntity.tryGetPlayer()
      * 支持直接玩家、载具乘客、投射物主人、物品主人。
      */
     static Player* tryGetPlayer(const Entity* entity);
