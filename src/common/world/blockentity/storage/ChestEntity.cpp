@@ -45,10 +45,6 @@ namespace blockentity {
 namespace {
 /// 盖子动画速度（每tick变化量），参考 MC ChestLidController
 constexpr f32 LID_OPEN_SPEED = 0.1f;
-/// 盖子动画关闭音效触发阈值
-constexpr f32 LID_CLOSE_SOUND_THRESHOLD = 0.5f;
-/// 同步间隔（ticks），参考 MC ChestBlockEntity 每 200 ticks 同步一次
-constexpr i32 SYNC_INTERVAL = 200;
 /// 音效音量
 constexpr f32 CHEST_SOUND_VOLUME = 0.5f;
 } // namespace
@@ -289,17 +285,20 @@ void ChestEntity::tick(IWorld& world)
     // 更新同步计数器
     ++m_ticksSinceSync;
 
-    // 定期重新检查打开者数量
-    // 参考 MC ContainerOpenersCounter.recheckOpeners
+    // 每 RECHECK_INTERVAL(5) ticks 重新检查打开者数量
+    // 参考 MC ContainerOpenersCounter.recheckOpeners / CHECK_TICK_DELAY
     if (m_ticksSinceSync >= RECHECK_INTERVAL) {
-        m_ticksSinceSync = 0;
-
         // 如果有打开者，重新检查附近玩家是否仍在使用此容器
         if (m_openCount > 0) {
             _recheckOpeners(world);
         }
+    }
 
-        // 定期通知客户端方块实体数据更新
+    // 每 SYNC_INTERVAL(200) ticks 进行完整的客户端同步
+    // 参考 MC 每 200 ticks 调用 level.sendBlockUpdated()
+    if (m_ticksSinceSync >= SYNC_INTERVAL) {
+        m_ticksSinceSync = 0;
+        // 通知客户端方块实体数据更新
         world.notifyBlockUpdate(m_pos);
     }
 
@@ -504,13 +503,16 @@ void ChestEntity::_recheckOpeners(IWorld& world)
         }
 
         // 检查玩家当前打开的容器菜单是否包含此箱子
-        // 参考 MC ContainerOpenersCounter.isOwnContainer
+        // 参考 MC ContainerOpenersCounter.isOwnContainer:
+        //   MC 会检查 player.containerMenu 是否持有此 Container（包括 DoubleSidedInventory 的情况）
+        //   即: player.containerMenu.getContainer() == this 或
+        //       (player.containerMenu.getContainer() instanceof DoubleInventory &&
+        //        ((DoubleInventory)player.containerMenu.getContainer()).contains(this))
+        // TODO: 当 ContainerMenu 系统实现后，需验证菜单持有的容器是否为当前箱子（含双箱合并场景），
+        //       而非仅检查 player.openContainerMenu() != nullptr。
+        //       当前简化：只要玩家在范围内且有打开的容器菜单，即认为仍在使用此容器。
         auto* menu = player->openContainerMenu();
         if (menu != nullptr) {
-            // 检查菜单的容器是否就是当前箱子
-            // 对于双箱，菜单可能持有 DoubleSidedInventory
-            // TODO: 当菜单系统完善后，应检查菜单是否持有此箱子的 Inventory
-            // 当前简化检查：如果玩家在范围内且有打开的容器菜单，认为仍在使用
             ++actualOpenCount;
         }
     }

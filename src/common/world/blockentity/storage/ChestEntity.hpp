@@ -83,6 +83,9 @@ public:
     /// 重新检查打开者的间隔（ticks），参考 MC ContainerOpenersCounter.CHECK_TICK_DELAY
     static constexpr i32 RECHECK_INTERVAL = 5;
 
+    /// 客户端完整同步间隔（ticks），参考 MC 每 200 ticks 同步一次
+    static constexpr i32 SYNC_INTERVAL = 200;
+
     /// 玩家访问最大距离（8格），参考 MC isUsableByPlayer 默认距离
     static constexpr f32 MAX_ACCESS_DISTANCE = 8.0f;
 
