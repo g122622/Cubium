@@ -340,8 +340,14 @@ void DecoratedPotBlock::onProjectileHit(
         return;
     }
 
-    // 投射物命中陶罐时，总是将陶罐设为 CRACKED 状态然后破坏。
-    // 投射物破坏的陶罐总是碎裂为陶片，不受精准采集保护。
+    // TODO: MC Java 还检查 projectile.mayBreak(serverLevel)，该方法需要：
+    //   1. 添加 EntityTypeTags::IMPACT_PROJECTILES 实体类型标签
+    //   2. 添加 GameRuleKeys::PROJECTILES_CAN_BREAK_BLOCKS 游戏规则
+    //   3. 在 ProjectileEntity 上实现 mayBreak() 方法
+    // 当前实现仅检查 mayInteract，允许所有可交互投射物（如雪球、鸡蛋）破坏陶罐，
+    // 这与 MC Java 行为不一致。MC Java 中只有 #minecraft:impact_projectiles 标签内的
+    // 投射物（箭、三叉戟、火球等）且 PROJECTILES_CAN_BREAK_BLOCKS 游戏规则为 true 时
+    // 才能破坏陶罐。
     auto* projEntity = dynamic_cast<entity::ProjectileEntity*>(&projectile);
     if (projEntity != nullptr && projEntity->mayInteract(world, hitResult.blockPos())) {
         BlockPos blockPos = hitResult.blockPos();

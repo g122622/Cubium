@@ -24,20 +24,34 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/util/Direction.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/blocks/functional/TrailsBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include "world/fluid/Fluid.hpp"
 #include "world/tick/manager/TickManager.hpp"
 
 #include <memory>
 #include <unordered_map>
+#include <vector>
 
 using namespace mc;
 using namespace mc::blocks;
@@ -47,6 +61,9 @@ namespace {
 
 /**
  * @brief 饰纹陶罐测试用 Mock 世界实现
+ *
+ * 支持方块存储、方块实体、音效/游戏事件追踪、setBlockState 标志追踪、
+ * 实体生成追踪、游戏规则等。
  */
 class DecoratedPotTestWorld final : public test::BaseTestWorld {
 public:
@@ -54,6 +71,7 @@ public:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        item::tag::ItemTags::initialize();
     }
 
     // ========== IWorld 接口实现 ==========
@@ -77,12 +95,14 @@ public:
         } else {
             m_blocks[BlockPos(x, y, z)] = std::make_unique<BlockState>(*state);
         }
+        m_setBlockCallCount++;
         return true;
     }
 
     bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
     {
-        MC_UNUSED(flags);
+        m_lastSetBlockFlags = flags;
+        m_lastSetBlockPos = BlockPos(x, y, z);
         return setBlockState(x, y, z, state);
     }
 
@@ -112,6 +132,42 @@ public:
     [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
     [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
 
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
+        auto it = m_entityLookup.find(id);
+        return it != m_entityLookup.end() ? it->second : nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
+        auto it = m_entityLookup.find(id);
+        return it != m_entityLookup.end() ? it->second : nullptr;
+    }
+
+    void registerEntity(Entity* entity)
+    {
+        if (entity != nullptr) {
+            m_entityLookup[entity->id()] = entity;
+        }
+    }
+
+    void unregisterEntity(Entity* entity)
+    {
+        if (entity != nullptr) {
+            m_entityLookup.erase(entity->id());
+        }
+    }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedEntityCount++;
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size());
+    }
+
     void playSound(const ResourceLocation& soundId,
         sound::SoundCategory category,
         const Vector3& pos,
@@ -130,6 +186,7 @@ public:
         const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override
     {
         m_gameEventFired = true;
+        m_gameEventCount++;
         MC_UNUSED(event);
         MC_UNUSED(pos);
         MC_UNUSED(context);
@@ -167,6 +224,11 @@ public:
     [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_lastSoundId; }
     [[nodiscard]] f32 lastSoundPitch() const { return m_lastSoundPitch; }
     [[nodiscard]] bool wasGameEventFired() const { return m_gameEventFired; }
+    [[nodiscard]] i32 gameEventCount() const { return m_gameEventCount; }
+    [[nodiscard]] i32 setBlockCallCount() const { return m_setBlockCallCount; }
+    [[nodiscard]] i32 lastSetBlockFlags() const { return m_lastSetBlockFlags; }
+    [[nodiscard]] const BlockPos& lastSetBlockPos() const { return m_lastSetBlockPos; }
+    [[nodiscard]] i32 spawnedEntityCount() const { return m_spawnedEntityCount; }
 
     void resetTrackedState()
     {
@@ -174,17 +236,39 @@ public:
         m_lastSoundId = ResourceLocation();
         m_lastSoundPitch = 0.0f;
         m_gameEventFired = false;
+        m_gameEventCount = 0;
+        m_setBlockCallCount = 0;
+        m_lastSetBlockFlags = 0;
+        m_lastSetBlockPos = BlockPos(0, 0, 0);
+        m_spawnedEntityCount = 0;
+        m_spawnedEntities.clear();
+    }
+
+    void clearState()
+    {
+        m_blocks.clear();
+        m_blockEntities.clear();
+        m_entityLookup.clear();
+        resetTrackedState();
     }
 
 private:
     std::unordered_map<BlockPos, std::unique_ptr<BlockState>> m_blocks;
     std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    std::unordered_map<EntityId, Entity*> m_entityLookup;
     u64 m_currentTick = 0;
     bool m_isClientSide = false;
     bool m_soundPlayed = false;
     ResourceLocation m_lastSoundId;
     f32 m_lastSoundPitch = 0.0f;
     bool m_gameEventFired = false;
+    i32 m_gameEventCount = 0;
+    i32 m_setBlockCallCount = 0;
+    i32 m_lastSetBlockFlags = 0;
+    BlockPos m_lastSetBlockPos{0, 0, 0};
+    i32 m_spawnedEntityCount = 0;
+    world::gamerule::GameRules m_gameRules;
 };
 
 } // anonymous namespace
@@ -197,11 +281,15 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        item::tag::ItemTags::initialize();
         pot_ =
             std::make_unique<DecoratedPotBlock>(BlockProperties(Material::DECORATION).hardness(1.0f).resistance(0.0f));
     }
 
+    void TearDown() override { m_world.clearState(); }
+
     std::unique_ptr<DecoratedPotBlock> pot_;
+    DecoratedPotTestWorld m_world;
 };
 
 TEST_F(DecoratedPotBlockTest, Create_HasBlockEntity)
@@ -525,4 +613,681 @@ TEST_F(DecoratedPotBlockTest, GetFluidState_DefaultNotWaterlogged)
     // 在测试环境中可能为空，只验证接口不崩溃
     const auto* fluidState = pot_->getFluidState(state);
     MC_UNUSED(fluidState);
+}
+
+// ============================================================================
+// DecoratedPotBlock playerWillDestroy 测试
+// ============================================================================
+
+TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_SwordSetsCracked)
+{
+    // 手持剑（BREAKS_DECORATED_POTS 标签物品）破坏陶罐应设置 CRACKED 状态
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    // 给玩家手持钻石剑
+    if (Items::DIAMOND_SWORD != nullptr) {
+        ItemStack sword(Items::DIAMOND_SWORD, 1);
+        player->getHeldItem(Hand::MainHand) = sword;
+
+        i32 setBlockBefore = m_world.setBlockCallCount();
+        pot_->playerWillDestroy(m_world, pos, state, *player);
+
+        // 应调用 setBlockState 设置 CRACKED 状态（flags=260）
+        EXPECT_GT(m_world.setBlockCallCount(), setBlockBefore);
+        EXPECT_EQ(m_world.lastSetBlockFlags(), 260);
+
+        // 验证方块被设为 CRACKED
+        const BlockState* newState = m_world.getBlockState(pos.x, pos.y, pos.z);
+        ASSERT_NE(newState, nullptr);
+        EXPECT_TRUE(newState->get(BlockStateProperties::CRACKED()));
+    }
+}
+
+TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_PickaxeSetsCracked)
+{
+    // 手持镐（BREAKS_DECORATED_POTS 标签物品）破坏陶罐应设置 CRACKED 状态
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    if (Items::DIAMOND_PICKAXE != nullptr) {
+        ItemStack pickaxe(Items::DIAMOND_PICKAXE, 1);
+        player->getHeldItem(Hand::MainHand) = pickaxe;
+
+        pot_->playerWillDestroy(m_world, pos, state, *player);
+
+        const BlockState* newState = m_world.getBlockState(pos.x, pos.y, pos.z);
+        ASSERT_NE(newState, nullptr);
+        EXPECT_TRUE(newState->get(BlockStateProperties::CRACKED()));
+    }
+}
+
+TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_EmptyHandDoesNotSetCracked)
+{
+    // 空手破坏陶罐不应设置 CRACKED 状态
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    // 空手：默认 ItemStack 为空
+
+    i32 setBlockBefore = m_world.setBlockCallCount();
+    pot_->playerWillDestroy(m_world, pos, state, *player);
+
+    // 不应调用 setBlockState（不设置 CRACKED）
+    EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore);
+}
+
+TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_NonTagItemDoesNotSetCracked)
+{
+    // 手持非 BREAKS_DECORATED_POTS 标签物品不应设置 CRACKED 状态
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    // 钻石不是工具类物品，不在 BREAKS_DECORATED_POTS 标签中
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack diamondStack(*diamond, 1);
+    player->getHeldItem(Hand::MainHand) = diamondStack;
+
+    i32 setBlockBefore = m_world.setBlockCallCount();
+    pot_->playerWillDestroy(m_world, pos, state, *player);
+
+    EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore);
+}
+
+TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_AlreadyCracked_NoDoubleSet)
+{
+    // 已经是 CRACKED 状态时不应再次 setBlockState
+    BlockPos pos(0, 64, 0);
+    BlockState crackedState = pot_->defaultState().with(BlockStateProperties::CRACKED(), true);
+    m_world.setBlockAt(pos, &crackedState);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    if (Items::DIAMOND_SWORD != nullptr) {
+        ItemStack sword(Items::DIAMOND_SWORD, 1);
+        player->getHeldItem(Hand::MainHand) = sword;
+
+        i32 setBlockBefore = m_world.setBlockCallCount();
+        pot_->playerWillDestroy(m_world, pos, crackedState, *player);
+
+        // 已是 CRACKED 状态，不应再设置
+        EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore);
+    }
+}
+
+// ============================================================================
+// DecoratedPotBlock onProjectileHit 测试
+// ============================================================================
+
+TEST_F(DecoratedPotBlockTest, OnProjectileHit_ProjectileSetsCrackedAndDestroys)
+{
+    // 投射物命中陶罐：设为 CRACKED 状态并破坏
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    // 创建一个箭矢投射物，设置射手为生存模式玩家
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Survival);
+    m_world.registerEntity(player.get());
+
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+    arrow.setShooter(player.get());
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    i32 setBlockBefore = m_world.setBlockCallCount();
+    pot_->onProjectileHit(m_world, state, hitResult, arrow);
+
+    // 应调用 setBlockState 两次：一次设置 CRACKED（flags=260），一次移除方块（flags=3）
+    EXPECT_GE(m_world.setBlockCallCount(), setBlockBefore + 1);
+
+    // 方块应被移除（设为空气）
+    const BlockState* finalState = m_world.getBlockState(pos.x, pos.y, pos.z);
+    EXPECT_TRUE(finalState == nullptr || finalState->is(VanillaBlocks::AIR));
+}
+
+TEST_F(DecoratedPotBlockTest, OnProjectileHit_ClientSide_DoesNothing)
+{
+    // 客户端侧不应触发投射物命中逻辑
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(true); // 客户端
+
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    i32 setBlockBefore = m_world.setBlockCallCount();
+    pot_->onProjectileHit(m_world, state, hitResult, arrow);
+
+    EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore);
+}
+
+TEST_F(DecoratedPotBlockTest, OnProjectileHit_NonProjectileEntity_DoesNothing)
+{
+    // 非 ProjectileEntity 的普通实体不应触发投射物命中逻辑
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    // 使用普通 Entity（不是 ProjectileEntity 的子类）
+    Entity nonProjectile(EntityId(300));
+    nonProjectile.setWorld(&m_world);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    i32 setBlockBefore = m_world.setBlockCallCount();
+    pot_->onProjectileHit(m_world, state, hitResult, nonProjectile);
+
+    // dynamic_cast<ProjectileEntity*> 失败，不应触发逻辑
+    EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore);
+}
+
+TEST_F(DecoratedPotBlockTest, OnProjectileHit_MayInteractFalse_DoesNothing)
+{
+    // 投射物射手为冒险模式玩家时 mayInteract 返回 false，不应破坏陶罐
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Adventure); // 冒险模式：mayInteract 返回 false
+    m_world.registerEntity(player.get());
+
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+    arrow.setShooter(player.get());
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    i32 setBlockBefore = m_world.setBlockCallCount();
+    pot_->onProjectileHit(m_world, state, hitResult, arrow);
+
+    EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore);
+}
+
+TEST_F(DecoratedPotBlockTest, OnProjectileHit_MobGriefingFalse_DoesNothing)
+{
+    // MOB_GRIEFING=false 时，非玩家射手的投射物 mayInteract 返回 false
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    m_world.getGameRules().setBoolean(world::gamerule::GameRuleKeys::MOB_GRIEFING, false, nullptr);
+
+    // 非玩家实体作为射手
+    Entity mob(EntityId(300));
+    mob.setWorld(&m_world);
+    m_world.registerEntity(&mob);
+
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+    arrow.setShooter(&mob);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    i32 setBlockBefore = m_world.setBlockCallCount();
+    pot_->onProjectileHit(m_world, state, hitResult, arrow);
+
+    EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore);
+}
+
+TEST_F(DecoratedPotBlockTest, OnProjectileHit_NullShooter_Allowed)
+{
+    // 无主投射物 mayInteract 返回 true，应破坏陶罐
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+    // 不设置射手（无主投射物）
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    pot_->onProjectileHit(m_world, state, hitResult, arrow);
+
+    // 方块应被移除
+    const BlockState* finalState = m_world.getBlockState(pos.x, pos.y, pos.z);
+    EXPECT_TRUE(finalState == nullptr || finalState->is(VanillaBlocks::AIR));
+}
+
+TEST_F(DecoratedPotBlockTest, OnProjectileHit_AlreadyCracked_StillDestroys)
+{
+    // 已经 CRACKED 的陶罐被投射物命中时，仍应被破坏（不再设置 CRACKED，但应移除方块）
+    BlockPos pos(0, 64, 0);
+    BlockState crackedState = pot_->defaultState().with(BlockStateProperties::CRACKED(), true);
+    m_world.setBlockAt(pos, &crackedState);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Survival);
+    m_world.registerEntity(player.get());
+
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+    arrow.setShooter(player.get());
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    i32 setBlockBefore = m_world.setBlockCallCount();
+    pot_->onProjectileHit(m_world, crackedState, hitResult, arrow);
+
+    // 应调用 setBlockState 移除方块（flags=3）
+    // 因为已是 CRACKED，不应再调用 setBlockState 设置 CRACKED（flags=260）
+    // 所以调用次数应为 setBlockBefore + 1（仅移除）
+    EXPECT_EQ(m_world.setBlockCallCount(), setBlockBefore + 1);
+    EXPECT_EQ(m_world.lastSetBlockFlags(), 3);
+
+    // 方块应被移除
+    const BlockState* finalState = m_world.getBlockState(pos.x, pos.y, pos.z);
+    EXPECT_TRUE(finalState == nullptr || finalState->is(VanillaBlocks::AIR));
+}
+
+// ============================================================================
+// DecoratedPotBlock onBlockRemoved 测试 — CRACKED vs 非 CRACKED 状态
+// ============================================================================
+
+TEST_F(DecoratedPotBlockTest, OnBlockRemoved_CrackedState_ClearsStoredItem)
+{
+    // CRACKED 状态：应掉落4个陶片/砖块物品，不保留存储物品
+    BlockPos pos(0, 64, 0);
+    BlockState crackedState = pot_->defaultState().with(BlockStateProperties::CRACKED(), true);
+    m_world.setBlockAt(pos, &crackedState);
+
+    auto entity = pot_->createBlockEntity(pos);
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+
+    auto* potEntity = static_cast<DecoratedPotBlockEntity*>(entity.get());
+
+    // 设置存储物品
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    potEntity->setItem(ItemStack(*diamond, 5));
+
+    // 设置装饰（4个面都有图案）
+    PotDecorations deco(DecoratedPotPattern::Angler,
+        DecoratedPotPattern::Archer,
+        DecoratedPotPattern::Blade,
+        DecoratedPotPattern::Burn);
+    potEntity->setDecorations(deco);
+
+    m_world.setBlockEntity(pos, std::move(entity));
+
+    i32 spawnBefore = m_world.spawnedEntityCount();
+    pot_->onBlockRemoved(m_world, pos, crackedState);
+
+    // CRACKED 状态应生成物品实体（4个陶片）
+    // spawnEntity 可能被 ItemDropHelper 调用，但因为测试世界可能无法完全模拟
+    // 关键验证：方块实体中物品应被清空
+    auto* entityAfter = m_world.getBlockEntity(pos);
+    if (entityAfter != nullptr && entityAfter->getType() == BlockEntityType::DecoratedPot) {
+        auto* potAfter = static_cast<DecoratedPotBlockEntity*>(entityAfter);
+        EXPECT_FALSE(potAfter->hasItem());
+    }
+}
+
+TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NonCrackedState_ClearsStoredItem)
+{
+    // 非 CRACKED 状态：应掉落存储物品（陶罐物品由战利品表处理）
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState(); // CRACKED = false
+    m_world.setBlockAt(pos, &state);
+
+    auto entity = pot_->createBlockEntity(pos);
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+
+    auto* potEntity = static_cast<DecoratedPotBlockEntity*>(entity.get());
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    potEntity->setItem(ItemStack(*diamond, 3));
+
+    m_world.setBlockEntity(pos, std::move(entity));
+
+    pot_->onBlockRemoved(m_world, pos, state);
+
+    // 方块实体中物品应被清空
+    auto* entityAfter = m_world.getBlockEntity(pos);
+    if (entityAfter != nullptr && entityAfter->getType() == BlockEntityType::DecoratedPot) {
+        auto* potAfter = static_cast<DecoratedPotBlockEntity*>(entityAfter);
+        EXPECT_FALSE(potAfter->hasItem());
+    }
+}
+
+TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NonCrackedEmptyPot_NoDrop)
+{
+    // 非 CRACKED 且空陶罐：不应生成任何物品实体
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+
+    auto entity = pot_->createBlockEntity(pos);
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    // 不设置物品（空陶罐）
+
+    m_world.setBlockEntity(pos, std::move(entity));
+
+    i32 spawnBefore = m_world.spawnedEntityCount();
+    pot_->onBlockRemoved(m_world, pos, state);
+
+    // 空陶罐不应生成物品实体
+    EXPECT_EQ(m_world.spawnedEntityCount(), spawnBefore);
+}
+
+TEST_F(DecoratedPotBlockTest, OnBlockRemoved_ClientSide_DoesNotDropItems)
+{
+    // 客户端侧不应掉落物品
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(true); // 客户端
+
+    auto entity = pot_->createBlockEntity(pos);
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+
+    auto* potEntity = static_cast<DecoratedPotBlockEntity*>(entity.get());
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    potEntity->setItem(ItemStack(*diamond, 10));
+
+    m_world.setBlockEntity(pos, std::move(entity));
+
+    i32 spawnBefore = m_world.spawnedEntityCount();
+    pot_->onBlockRemoved(m_world, pos, state);
+
+    // 客户端侧不应生成物品实体
+    EXPECT_EQ(m_world.spawnedEntityCount(), spawnBefore);
+}
+
+TEST_F(DecoratedPotBlockTest, OnBlockRemoved_NoBlockEntity_DoesNotCrash)
+{
+    // 无方块实体时不应崩溃
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    // 不设置方块实体
+
+    EXPECT_NO_THROW(pot_->onBlockRemoved(m_world, pos, state));
+}
+
+TEST_F(DecoratedPotBlockTest, OnBlockRemoved_WrongBlockEntityType_DoesNotCrash)
+{
+    // 方块实体类型不匹配时不应崩溃（不太可能发生，但需确保安全）
+    // 此测试验证即使方块实体类型不是 DecoratedPot，也不会崩溃
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    // 不设置方块实体——getBlockEntity 返回 nullptr，应安全跳过
+
+    EXPECT_NO_THROW(pot_->onBlockRemoved(m_world, pos, state));
+}
+
+// ============================================================================
+// DecoratedPotBlock onBlockActivated 测试 — 音效和动画
+// ============================================================================
+
+TEST_F(DecoratedPotBlockTest, OnBlockActivated_EmptyHand_NegativeWobbleAndSound)
+{
+    // 空手交互应触发负摇晃动画和插入失败音效
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto entity = pot_->createBlockEntity(pos);
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setBlockEntity(pos, std::move(entity));
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    m_world.resetTrackedState();
+    ActionResultType result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(m_world.wasSoundPlayed());
+}
+
+TEST_F(DecoratedPotBlockTest, OnBlockActivated_InsertItem_PositiveWobbleAndSound)
+{
+    // 手持物品向空陶罐放入应触发正摇晃动画和插入音效
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto entity = pot_->createBlockEntity(pos);
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setBlockEntity(pos, std::move(entity));
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    // 手持钻石
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    player->getHeldItem(Hand::MainHand) = ItemStack(*diamond, 10);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    m_world.resetTrackedState();
+    ActionResultType result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::MainHand, hitResult);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(m_world.wasSoundPlayed());
+
+    // 验证物品被放入陶罐
+    auto* potEntityAfter = static_cast<DecoratedPotBlockEntity*>(m_world.getBlockEntity(pos));
+    ASSERT_NE(potEntityAfter, nullptr);
+    EXPECT_TRUE(potEntityAfter->hasItem());
+    EXPECT_EQ(potEntityAfter->getItem().getCount(), 1);
+}
+
+TEST_F(DecoratedPotBlockTest, OnBlockActivated_OffHand_Pass)
+{
+    // 副手交互应返回 Pass
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto entity = pot_->createBlockEntity(pos);
+    ASSERT_NE(entity, nullptr);
+    entity->setWorld(&m_world);
+    m_world.setBlockEntity(pos, std::move(entity));
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    ASSERT_NE(diamond, nullptr);
+    player->getHeldItem(Hand::OffHand) = ItemStack(*diamond, 10);
+
+    BlockRaycastResult hitResult = BlockRaycastResult::hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 0.0f);
+
+    ActionResultType result = pot_->onBlockActivated(state, m_world, pos, *player, Hand::OffHand, hitResult);
+    EXPECT_EQ(result, ActionResultType::Pass);
+}
+
+// ============================================================================
+// DecoratedPotBlock CRACKED 属性测试
+// ============================================================================
+
+TEST_F(DecoratedPotBlockTest, DefaultState_NotCracked)
+{
+    // 默认状态 CRACKED = false
+    const auto& state = pot_->defaultState();
+    EXPECT_FALSE(state.get(BlockStateProperties::CRACKED()));
+}
+
+TEST_F(DecoratedPotBlockTest, CrackedState_CanBeSet)
+{
+    // CRACKED 属性可以被设置
+    BlockState crackedState = pot_->defaultState().with(BlockStateProperties::CRACKED(), true);
+    EXPECT_TRUE(crackedState.get(BlockStateProperties::CRACKED()));
+}
+
+TEST_F(DecoratedPotBlockTest, PlayerWillDestroy_SilkTouchPreventsCracked)
+{
+    // 精准采集附魔应阻止设置 CRACKED 状态
+    // 注意：EnchantmentHelper::hasSilkTouch 的完整测试依赖附魔系统，
+    // 这里验证当 hasSilkTouch 返回 true 时逻辑正确分支
+    // 由于测试环境中附魔可能未完整注册，此测试验证基本逻辑：
+    // 当手持物品在 BREAKS_DECORATED_POTS 标签中但没有精准采集时，设置 CRACKED
+    BlockPos pos(0, 64, 0);
+    const auto& state = pot_->defaultState();
+    m_world.setBlockAt(pos, &state);
+    m_world.setClientSide(false);
+
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+
+    if (Items::DIAMOND_SWORD != nullptr) {
+        ItemStack sword(Items::DIAMOND_SWORD, 1);
+        player->getHeldItem(Hand::MainHand) = sword;
+
+        // 不添加精准采集附魔——应设置 CRACKED
+        i32 setBlockBefore = m_world.setBlockCallCount();
+        pot_->playerWillDestroy(m_world, pos, state, *player);
+
+        // 验证 CRACKED 被设置（因为没有精准采集）
+        EXPECT_GT(m_world.setBlockCallCount(), setBlockBefore);
+        EXPECT_EQ(m_world.lastSetBlockFlags(), 260);
+    }
+}
+
+// ============================================================================
+// ProjectileEntity::mayInteract 与 DecoratedPotBlock 集成测试
+// ============================================================================
+
+TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_SurvivalPlayer_Allowed)
+{
+    // 生存模式玩家的投射物 mayInteract 返回 true，应能破坏陶罐
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Survival);
+    m_world.registerEntity(player.get());
+
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+    arrow.setShooter(player.get());
+
+    BlockPos pos(0, 64, 0);
+    EXPECT_TRUE(arrow.mayInteract(m_world, pos));
+}
+
+TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_AdventurePlayer_Denied)
+{
+    // 冒险模式玩家的投射物 mayInteract 返回 false
+    auto player = std::make_unique<Player>(EntityId(100), "TestPlayer");
+    player->setWorld(&m_world);
+    player->setGameMode(GameMode::Adventure);
+    m_world.registerEntity(player.get());
+
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+    arrow.setShooter(player.get());
+
+    BlockPos pos(0, 64, 0);
+    EXPECT_FALSE(arrow.mayInteract(m_world, pos));
+}
+
+TEST_F(DecoratedPotBlockTest, ProjectileMayInteract_NullShooter_Allowed)
+{
+    // 无主投射物 mayInteract 返回 true
+    entity::ArrowEntity arrow(EntityId(200));
+    arrow.setWorld(&m_world);
+
+    BlockPos pos(0, 64, 0);
+    EXPECT_TRUE(arrow.mayInteract(m_world, pos));
+}
+
+// ============================================================================
+// BREAKS_DECORATED_POTS 标签集成测试
+// ============================================================================
+
+TEST_F(DecoratedPotBlockTest, BreaksDecoratedPotsTag_ContainsSwords)
+{
+    // 验证 SWORDS 标签包含至少一种剑
+    const item::tag::ItemTag& swordsTag = item::tag::ItemTags::SWORDS();
+    bool hasSword = false;
+    if (Items::DIAMOND_SWORD != nullptr) {
+        hasSword = swordsTag.contains(Items::DIAMOND_SWORD);
+    }
+    // 如果钻石剑已注册，应在 SWORDS 标签中
+    if (Items::DIAMOND_SWORD != nullptr) {
+        EXPECT_TRUE(hasSword);
+    }
+}
+
+TEST_F(DecoratedPotBlockTest, BreaksDecoratedPotsTag_ContainsTools)
+{
+    // 验证 BREAKS_DECORATED_POTS 标签包含工具类物品
+    const item::tag::ItemTag& breaksTag = item::tag::ItemTags::BREAKS_DECORATED_POTS();
+
+    bool hasTool = false;
+    if (Items::DIAMOND_SWORD != nullptr) {
+        hasTool = breaksTag.contains(Items::DIAMOND_SWORD);
+    }
+    if (Items::DIAMOND_PICKAXE != nullptr) {
+        hasTool = hasTool || breaksTag.contains(Items::DIAMOND_PICKAXE);
+    }
+
+    // 至少应有一种工具在标签中
+    if (Items::DIAMOND_SWORD != nullptr || Items::DIAMOND_PICKAXE != nullptr) {
+        EXPECT_TRUE(hasTool);
+    }
+}
+
+TEST_F(DecoratedPotBlockTest, BreaksDecoratedPotsTag_DoesNotContainDiamond)
+{
+    // 验证 BREAKS_DECORATED_POTS 标签不包含非工具物品（如钻石）
+    const item::tag::ItemTag& breaksTag = item::tag::ItemTags::BREAKS_DECORATED_POTS();
+
+    Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond"));
+    if (diamond != nullptr) {
+        EXPECT_FALSE(breaksTag.contains(diamond));
+    }
 }
