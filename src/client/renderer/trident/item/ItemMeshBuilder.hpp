@@ -214,6 +214,45 @@ private:
     static void _applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix);
 
     /**
+     * @brief 构建元素旋转矩阵（含rescale缩放）
+     *
+     * 参考 MC FaceBakery.bakeQuad() 的元素旋转逻辑：
+     * 1. 构建绕指定轴的旋转矩阵
+     * 2. 若 rescale 为 true，计算各轴缩放因子补偿旋转投影收缩
+     * 3. 组合为 origin^-1 * R(可选S) * origin 的变换矩阵
+     *
+     * @param rotation 模型元素旋转参数
+     * @param scale 顶点缩放因子（用于将像素坐标转为世界坐标）
+     * @return 旋转+平移组合矩阵，若无旋转则返回单位矩阵
+     */
+    static glm::mat4 _buildElementRotationMatrix(const ::mc::ModelRotation& rotation, f64 scale);
+
+    /**
+     * @brief 计算旋转后各轴的rescale缩放因子
+     *
+     * 对于每个坐标轴，取该轴单位向量经过旋转矩阵变换后的最大绝对分量，
+     * 其倒数即为缩放因子。这补偿了旋转导致的轴向投影收缩。
+     *
+     * @param rotMatrix 旋转矩阵（3x3部分）
+     * @return 各轴缩放因子 (sx, sy, sz)
+     */
+    static glm::vec3 _computeRescaleFactors(const glm::mat3& rotMatrix);
+
+    /**
+     * @brief 获取面UV旋转后的顶点UV坐标
+     *
+     * UV旋转通过顶点索引排列实现，参考 MC Quadrant.rotateVertexIndex()。
+     * rotation 为 0/90/180/270 度，对应 shift 为 0/1/2/3。
+     * 每个顶点 i 使用无旋转时顶点 (i + shift) % 4 的 UV 坐标。
+     *
+     * @param vertexIndex 顶点索引 (0-3)
+     * @param uvRotation UV旋转角度 (0/90/180/270)
+     * @param u0, v0, u1, v1 UV坐标范围
+     * @return 该顶点的 (u, v) 坐标
+     */
+    static std::pair<f32, f32> _getRotatedUV(int vertexIndex, i32 uvRotation, f32 u0, f32 v0, f32 u1, f32 v1);
+
+    /**
      * @brief 应用手持物品变换
      */
     static void _applyHeldItemTransform(std::vector<model::ModelVertex>& vertices,
