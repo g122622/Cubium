@@ -517,8 +517,7 @@ public:
      *
      * 优先使用 NBT 中设置的自定义掉落表（m_deathLootTable），
      * 如果没有自定义掉落表则回退到实体类型的默认掉落表路径。
-     * 对齐 MC Java 中 Mob.getLootTable() 的逻辑：
-     * this.lootTable.isPresent() ? this.lootTable : super.getLootTable()
+     * 逻辑：this.lootTable.isPresent() ? this.lootTable : super.getLootTable()
      *
      * @return 战利品表ID字符串，无战利品表时返回空字符串
      */

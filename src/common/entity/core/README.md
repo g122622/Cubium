@@ -378,11 +378,11 @@
             <path>`（如 `"minecraft:pig"` → `"minecraft:entities/pig"`）。`m_typeId` 为空时返回空字符串。 -
         **`MobEntity::getLootTableId()`*
             *（覆写）：优先返回 NBT 自定义掉落表 `m_deathLootTable`（对应 MC Java 的 `DeathLootTable` NBT 标签），为空或
-                 nullopt 时回退到基类实现。对齐 MC Java 的 `Mob.getLootTable()`：`this.lootTable.isPresent()
+                 nullopt 时回退到基类实现。逻辑：`Mob.getLootTable()`：`this.lootTable.isPresent()
     ? this.lootTable
     : super.getLootTable()`。 -
             **无战利品表实体覆写 *
-                *：以下实体覆写返回空字符串，对齐 MC Java 的 `EntityType.Builder
+                *：以下实体覆写返回空字符串，对应 `EntityType.Builder
                      .noLootTable()`： - `ProjectileEntity`（覆盖所有弹射物子类：箭矢、三叉戟、火球等） - `ItemEntity`（掉落物） - `ExperienceOrbEntity`（经验球） - `BoatEntity`（船） - `AbstractMinecartEntity`（覆盖所有矿车变体） - `HangingEntity`（覆盖画、物品框、拴绳结） - `AreaEffectCloudEntity`、`EnderCrystalEntity`、`LightningBoltEntity`（效果实体） - `FallingBlockEntity`、`TNTEntity`（杂项实体） - `FishingBobberEntity`、`EvokerFangsEntity`、`EyeOfEnderEntity`、`FireworkRocketEntity`（其他弹射物）
 
                 * *使用场景 * *： - `/ loot kill` 命令：从目标实体获取战利品表ID，生成击杀掉落物 -
@@ -730,7 +730,42 @@
 
                     *
                     *调用链 *
-                        *：`startRiding()` 负责循环检测、准入检查（先 `couldAcceptPassenger()` 再 `canAddPassenger()`），然后设置 vehicle 字段并调用 `addPassenger()`。`addPassenger()` 仅操作乘客列表，不进行循环检测（对齐 MC Java）。
+                        *：`startRiding()` 负责循环检测、准入检查（先 `couldAcceptPassenger()` 再 `canAddPassenger()`），然后设置 vehicle 字段并调用 `addPassenger()`。`addPassenger()` 仅操作乘客列表，不进行循环检测。
+
+                    ## #骑乘关系建立与解除流程
+
+                    ### startRiding() 建立骑乘关系
+
+                    1. 检查不能骑乘自己
+                    2. 检查是否已在骑乘同一载具（避免重复骑乘）
+                    3. 硬门槛：`couldAcceptPassenger()`
+                    4. 循环检测：沿 vehicle 链向上遍历，检查是否形成环（需要 World 环境）
+                    5. 软门槛：`canBeRidden()`（潜行状态、骑乘冷却）和 `canAddPassenger()`
+                    6. 如已在骑乘其他载具，先调用 `stopRiding()`
+                    7. 设置 `m_vehicle = vehicle.id()`（**先于** addPassenger）
+                    8. 调用 `vehicle.addPassenger(*this)`；失败时回滚 `m_vehicle = INVALID_ENTITY_ID`
+
+                    ### addPassenger() 添加乘客
+
+                    - 验证 `passenger.getVehicle() == m_id`（前置检查）
+                    - 若 `passenger.getVehicle() == INVALID_ENTITY_ID`，自动关联（兼容路径，MC Java 会抛 IllegalStateException）
+                    - 若 `passenger.getVehicle()` 指向其他载具，返回 false
+                    - 检查 `couldAcceptPassenger()` 和 `canAddPassenger()`
+                    - 将 passenger 添加到乘客列表（服务端玩家插入头部）
+                    - 设置骑乘冷却 `rideCooldown = 60`
+
+                    ### removePassenger() 移除乘客
+
+                    - 按 passenger id 在乘客列表中查找并移除（不依赖 `passenger.getVehicle()` 判断）
+                    - `dismount()` 先清空 passenger 的 `m_vehicle`，再调用 `removePassenger()`
+                    - 如果 passenger 的 `m_vehicle` 仍指向本载具（非标准调用路径），清空为 `INVALID_ENTITY_ID`
+                    - 设置骑乘冷却 `rideCooldown = 60`
+
+                    ### isRidingOrBeingRiddenBy() 双向骑乘关系检查
+
+                    - 向下搜索：检查 other 是否是 this 的间接乘客（遍历 passengers 子树）
+                    - 向上搜索：检查 other 是否是 this 的间接载具（沿 vehicle 链向上遍历）
+                    - 需要 World 环境（`m_world != nullptr`），无 World 时返回 false
 
                         **子类覆写示例 **：
 

@@ -1412,9 +1412,9 @@ bool Entity::isPassenger(EntityId entityId) const
 
 bool Entity::addPassenger(Entity& passenger)
 {
-    // 对齐 MC Java: addPassenger 不进行循环检测，仅操作乘客列表。
+    // addPassenger 不进行循环检测，仅操作乘客列表。
     // 循环检测由 startRiding() 负责，addPassenger 验证 passenger 已正确关联到此载具。
-    // MC Java: if (p_20349_.getVehicle() != this) throw IllegalStateException
+    // 前置条件：passenger.getVehicle() 应该已经指向 this（由 startRiding 在调用前设置）
 
     // 检查是否已经是乘客
     if (isPassenger(passenger.id())) {
@@ -1433,7 +1433,7 @@ bool Entity::addPassenger(Entity& passenger)
             passenger.setVehicle(m_id);
         } else {
             // passenger 已关联到其他载具，这是编程错误
-            // 对齐 MC Java: Use x.startRiding(y), not y.addPassenger(x)
+            // 应使用 x.startRiding(y) 而非 y.addPassenger(x)
             return false;
         }
     }
@@ -1480,13 +1480,9 @@ bool Entity::addPassenger(Entity& passenger)
 
 void Entity::removePassenger(Entity& passenger)
 {
-    // 对齐 MC Java: removePassenger 的职责是操作乘客列表。
-    // 在 MC Java 中，removePassenger 验证 passenger.getVehicle() != this
-    // （即 vehicle 引用已经被清空，由 stopRiding/removeVehicle 在调用
-    // removePassenger 之前清空），然后从 passengers 列表中移除。
-    // 我们的 C++ 实现中，dismount() 也在调用 removePassenger 之前
-    // 清空了 passenger 的 m_vehicle，所以这里不应该依赖
-    // passenger.getVehicle() 来判断是否移除。
+    // removePassenger 的职责是操作乘客列表。
+    // dismount() 在调用 removePassenger 之前已经清空了 passenger 的 m_vehicle，
+    // 然后从 passengers 列表中移除。
     //
     // 改为直接查找并移除乘客，无论 passenger.getVehicle() 的状态如何。
     // 这是安全的，因为 removePassenger 是内部方法，总是由 stopRiding/dismount
@@ -1511,7 +1507,14 @@ void Entity::removePassenger(Entity& passenger)
 
 bool Entity::startRiding(Entity& vehicle)
 {
-    // 对齐 MC Java Entity.startRiding(Entity, boolean, boolean) 的逻辑顺序
+    // startRiding 的逻辑顺序：
+    // 1. 不能骑乘自己
+    // 2. 不能已在骑乘同一载具
+    // 3. 硬门槛：couldAcceptPassenger()
+    // 4. 循环检测
+    // 5. 软门槛：canBeRidden() + canAddPassenger()
+    // 6. 先 stopRiding 当前载具
+    // 7. 先设置 vehicle，再调用 addPassenger
 
     // 1. 不能骑乘自己
     if (vehicle.id() == m_id) {
@@ -1531,8 +1534,6 @@ bool Entity::startRiding(Entity& vehicle)
 
     // 4. 循环检测：从载具开始沿 vehicle 链向上遍历，
     // 检查是否形成 A骑B、B骑A 的循环
-    // 对齐 MC Java: for (Entity entity = p_19966_; entity.vehicle != null; entity = entity.vehicle)
-    //                   if (entity.vehicle == this) return false;
     if (m_world) {
         Entity* current = &vehicle;
         while (current != nullptr) {
@@ -1561,7 +1562,6 @@ bool Entity::startRiding(Entity& vehicle)
     }
 
     // 7. 如果已经在骑乘其他载具，先停止
-    // 对齐 MC Java: if (this.isPassenger()) this.stopRiding();
     if (isRiding()) {
         stopRiding();
     }
@@ -1570,7 +1570,6 @@ bool Entity::startRiding(Entity& vehicle)
     setPose(EntityPose::Standing);
 
     // 9. 先设置 vehicle 引用，再调用 addPassenger
-    // 对齐 MC Java: this.vehicle = p_19966_; this.vehicle.addPassenger(this);
     // 此顺序保证 addPassenger 内部可以验证 passenger.getVehicle() == this
     m_vehicle = vehicle.id();
 

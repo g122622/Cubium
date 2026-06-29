@@ -1781,7 +1781,7 @@ public:
     /**
      * @brief 添加乘客到本载具
      *
-     * 对齐 MC Java Entity.addPassenger()：仅操作乘客列表，不进行循环检测。
+     * 仅操作乘客列表，不进行循环检测。
      * 循环检测由 startRiding() 负责。
      *
      * 前置条件：passenger.getVehicle() 必须等于 this.id()，
@@ -1804,7 +1804,6 @@ public:
     /**
      * @brief 开始骑乘载具
      *
-     * 对齐 MC Java Entity.startRiding(Entity, boolean, boolean)：
      * 1. 循环检测（从载具沿 vehicle 链向上遍历）
      * 2. 检查 couldAcceptPassenger / canBeRidden / canAddPassenger
      * 3. 如已在骑乘则先停止
