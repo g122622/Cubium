@@ -77,6 +77,9 @@ enum class EffectType : u8 {
     WindCharged = 34, // 风充能
     RaidOmen = 35,    // 袭击之兆
 
+    // MC 1.19 深暗之域效果
+    Darkness = 36, // 黑暗
+
     // 数量
     Count
 };
@@ -99,7 +102,7 @@ enum class EffectType : u8 {
 /**
  * @brief 从数值ID获取效果类型
  *
- * @param id 效果ID（1-32）
+ * @param id 效果ID（1-36）
  * @return 效果类型，如果ID无效返回 std::nullopt
  */
 [[nodiscard]] std::optional<EffectType> getEffectById(i32 id) noexcept;

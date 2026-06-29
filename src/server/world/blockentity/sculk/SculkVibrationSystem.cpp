@@ -31,6 +31,7 @@
  */
 
 #include "SculkVibrationSystem.hpp"
+#include "SculkShriekerHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/core/CoordConverter.hpp"
 #include "common/world/IWorld.hpp"
@@ -146,20 +147,16 @@ void SculkShriekerVibrationUser::onReceiveVibration(ServerWorld& world,
     const Entity* sourceEntity,
     f32 distance)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
     MC_UNUSED(event);
-    MC_UNUSED(sourceEntity);
     MC_UNUSED(distance);
 
-    // 递增警告等级
-    m_entity.incrementWarningLevel();
+    // 对齐 MC Java: SculkShriekerBlockEntity.VibrationUser.onReceiveVibration()
+    // 振动到达时，触发尖啸体的 tryShriek 逻辑
+    // tryShriek 内部会检查 SHRIEKING 状态、解析玩家、检查条件、递增警告等级、播放效果
+    SculkShriekerHelper::tryShriek(world, pos, sourceEntity);
 
     // 标记方块实体已修改（需要保存）
     m_entity.setChanged();
-
-    // TODO: 当警告等级达到阈值时，触发监守者召唤逻辑
-    // 当前仅递增警告等级，召唤逻辑待 WardenEntity 实现后集成
 }
 
 // ============================================================================
@@ -224,6 +221,17 @@ void SculkVibrationManager::tickAll()
 {
     for (auto& [pos, system] : m_vibrationSystems) {
         gameevent::VibrationSystem::Ticker::tick(*m_world, system->getVibrationData(), system->getVibrationUser());
+    }
+
+    // 检查幽匿尖啸体的 SHRIEKING 结束标志
+    // 对齐 MC Java: SculkShriekerBlock.tick() 中 SHRIEKING → false 后调用 tryRespond()
+    for (auto& [pos, system] : m_vibrationSystems) {
+        // 仅检查尖啸体（感测体没有 SHRIEKING 机制）
+        if (system->getVibrationUser().canTriggerAvoidVibration()) {
+            // SculkSensorVibrationUser returns true, SculkShriekerVibrationUser returns false
+            continue;
+        }
+        SculkShriekerHelper::checkShriekingFinished(*m_world, pos);
     }
 }
 

@@ -495,6 +495,15 @@ const ResourceLocation BLOCK_CHAIN_STEP("minecraft:block.chain.step");
 const ResourceLocation BLOCK_SCULK_SENSOR_CLICKING("minecraft:block.sculk_sensor.clicking");
 const ResourceLocation BLOCK_SCULK_SENSOR_CLICKING_STOP("minecraft:block.sculk_sensor.clicking_stop");
 
+// 幽匿尖啸体
+const ResourceLocation BLOCK_SCULK_SHRIEKER_SHRIEK("minecraft:block.sculk_shrieker.shriek");
+
+// 监守者
+const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSE("minecraft:entity.warden.nearby_close");
+const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSER("minecraft:entity.warden.nearby_closer");
+const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSEST("minecraft:entity.warden.nearby_closest");
+const ResourceLocation ENTITY_WARDEN_LISTENING_ANGRY("minecraft:entity.warden.listening_angry");
+
 // ============================================================================
 // 实体通用声音
 // ============================================================================

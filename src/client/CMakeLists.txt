@@ -440,6 +440,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
     # 幽匿方块实体振动系统（服务端方法）
     ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkShriekerHelper.cpp
     ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
     ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
     # 事件系统

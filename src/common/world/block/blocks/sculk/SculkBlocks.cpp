@@ -22,12 +22,16 @@
  */
 
 #include "SculkBlocks.hpp"
+#include "entity/core/Entity.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "item/context/BlockItemUseContext.hpp"
+#include "sound/SoundCategory.hpp"
 #include "sound/SoundEvents.hpp"
 #include "util/Direction.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/WorldConstants.hpp"
+#include "world/WorldEvents.hpp"
 #include "world/block/BlockTags.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
@@ -479,6 +483,89 @@ std::unique_ptr<BlockEntity> SculkShriekerBlock::createBlockEntity(const BlockPo
 BlockEntityType SculkShriekerBlock::getBlockEntityType() const
 {
     return BlockEntityType::SculkShrieker;
+}
+
+// ========== SculkShriekerBlock 激活逻辑 ==========
+
+void SculkShriekerBlock::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    // 对齐 MC Java: SculkShriekerBlock.stepOn()
+    // 只有非潜行实体踩上时才发出 SHRIEK 游戏事件
+    // 潜行实体不会触发幽匿尖啸体
+    if (entity.isSteppingCarefully()) {
+        return;
+    }
+
+    // 当前处于 SHRIEKING 状态时不重复触发
+    if (state.get(BlockStateProperties::SHRIEKING())) {
+        return;
+    }
+
+    // 发出 SHRIEK 游戏事件，通知附近的幽匿尖啸体振动系统
+    // 对齐 MC Java: SculkShriekerBlock.stepOn() 中调用 gameEvent(GameEvent.SHRIEK)
+    world.gameEvent(gameevent::GameEvents::SHRIEK, pos, gameevent::GameEvent::Context(&entity, &state));
+}
+
+void SculkShriekerBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+
+    // 对齐 MC Java: SculkShriekerBlock.tick()
+    // SHRIEKING 状态到期后转回非 SHRIEKING 状态
+    if (state.get(BlockStateProperties::SHRIEKING())) {
+        // 将 SHRIEKING 设回 false
+        const BlockState* newState = &state.with(BlockStateProperties::SHRIEKING(), false);
+        world.setBlockState(pos, newState, 3);
+
+        // 尖啸结束后，通知服务端执行响应逻辑（警告声音、黑暗效果、召唤检查）
+        // 通过 gameEvent 机制通知，服务端 SculkShriekerHelper 会处理
+        // 这里用一个 SHRIEK 完成事件标记（MC Java 中直接在 block entity 调用 tryRespond）
+        // 由于 block tick 在 common 层，我们设置方块实体标记以让服务端处理
+        BlockEntity* be = world.getBlockEntity(pos);
+        if (be != nullptr && be->getType() == BlockEntityType::SculkShrieker) {
+            auto* shrieker = static_cast<blockentity::SculkShriekerBlockEntity*>(be);
+            shrieker->setShriekingFinished(true);
+            shrieker->setChanged();
+        }
+    }
+}
+
+void SculkShriekerBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 对齐 MC Java: SculkShriekerBlock.preRemoveSideEffects()
+    // 如果方块正在 SHRIEKING 状态时被移除，仍需执行响应逻辑
+    if (state.get(BlockStateProperties::SHRIEKING())) {
+        BlockEntity* be = world.getBlockEntity(pos);
+        if (be != nullptr && be->getType() == BlockEntityType::SculkShrieker) {
+            auto* shrieker = static_cast<blockentity::SculkShriekerBlockEntity*>(be);
+            shrieker->setShriekingFinished(true);
+            shrieker->setChanged();
+        }
+    }
+
+    Block::onBlockRemoved(world, pos, state);
+}
+
+void SculkShriekerBlock::shriek(IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* sourceEntity)
+{
+    // 对齐 MC Java: SculkShriekerBlockEntity.shriek()
+    // 1. 设置 SHRIEKING 方块状态为 true
+    const BlockState* newState = &state.with(BlockStateProperties::SHRIEKING(), true);
+    world.setBlockState(pos, newState, 3);
+
+    // 2. 调度 tick：SHRIEKING_TICKS 后触发状态转换回 false
+    world.tickManager().scheduleBlockTick(pos, state.getBlock(), SHRIEKING_TICKS);
+
+    // 3. 发出尖啸粒子效果（事件 ID 3007）
+    // 对齐 MC Java: ServerLevel.levelEvent(3007, pos, 0)
+    world.playEvent(mc::world::WorldEvents::SCULK_SHRIEK, pos, 0);
+
+    // 4. 发出 SHRIEK 游戏事件（通知附近的幽匿感测体/尖啸体振动系统）
+    // 对齐 MC Java: level.gameEvent(GameEvent.SHRIEK, pos, Context.of(sourceEntity))
+    const BlockState* currentState = world.getBlockState(pos);
+    world.gameEvent(gameevent::GameEvents::SHRIEK,
+        pos,
+        gameevent::GameEvent::Context(sourceEntity, currentState != nullptr ? currentState : &state));
 }
 
 } // namespace blocks

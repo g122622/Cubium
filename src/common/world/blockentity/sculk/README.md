@@ -111,4 +111,4 @@ SculkVibrationManager 在 ServerWorld 中的三个关键时机介入：
 
 ## 待实现
 
-- SculkShriekerBlockEntity：警告等级达到阈值时召唤监守者（WardenEntity）
+- SculkShriekerBlockEntity：当 WardenEntity 实现后，完善 trySummonWarden 中的实体生成逻辑（当前已通过 EntityRegistry 查询 "minecraft:warden" 类型，类型未注册时优雅跳过）

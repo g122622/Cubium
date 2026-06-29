@@ -95,6 +95,7 @@ struct RuleRegistry {
         registerBoolean("doInsomnia", GameRuleCategory::Spawning, true);
         registerBoolean("doPatrolSpawning", GameRuleCategory::Spawning, true);
         registerBoolean("doTraderSpawning", GameRuleCategory::Spawning, true);
+        registerBoolean("doWardenSpawning", GameRuleCategory::Spawning, true);
 
         // 掉落相关
         registerBoolean("doMobLoot", GameRuleCategory::Drops, true);
@@ -191,6 +192,7 @@ const BooleanGameRuleKey DO_MOB_SPAWNING("doMobSpawning", GameRuleCategory::Spaw
 const BooleanGameRuleKey DO_INSOMNIA("doInsomnia", GameRuleCategory::Spawning);
 const BooleanGameRuleKey DO_PATROL_SPAWNING("doPatrolSpawning", GameRuleCategory::Spawning);
 const BooleanGameRuleKey DO_TRADER_SPAWNING("doTraderSpawning", GameRuleCategory::Spawning);
+const BooleanGameRuleKey DO_WARDEN_SPAWNING("doWardenSpawning", GameRuleCategory::Spawning);
 
 // 掉落相关
 const BooleanGameRuleKey DO_MOB_LOOT("doMobLoot", GameRuleCategory::Drops);

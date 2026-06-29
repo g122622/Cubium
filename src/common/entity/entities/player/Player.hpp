@@ -37,6 +37,7 @@
 #include "../../movement/AutoJump.hpp"
 #include "../../player/CooldownTracker.hpp"
 #include "../../player/SleepResult.hpp"
+#include "../misc/MiscEntities.hpp"
 #include "ChatVisibility.hpp"
 #include "GameModeUtils.hpp"
 #include "PlayerModelPart.hpp"
@@ -255,6 +256,31 @@ public:
      * @param newCameraId 变更后的摄像机目标实体ID（std::nullopt 表示恢复正常视角）
      */
     virtual void onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId) {}
+
+    // ========== 幽匿尖啸体警告追踪 ==========
+
+    /**
+     * @brief 获取监守者警告效果
+     *
+     * 对齐 MC Java: ServerPlayer.getWardenSpawnTracker()
+     * 用于追踪玩家在深暗之域中被幽匿尖啸体警告的等级和冷却。
+     */
+    [[nodiscard]] entity::WardenWarningEffect& wardenWarningEffect() { return m_wardenWarningEffect; }
+    [[nodiscard]] const entity::WardenWarningEffect& wardenWarningEffect() const { return m_wardenWarningEffect; }
+
+    /**
+     * @brief 递增监守者警告等级
+     *
+     * 当幽匿尖啸体被激活时调用，递增玩家的警告等级并设置冷却。
+     * 对齐 MC Java: WardenSpawnTracker.increaseWarningLevel()
+     *
+     * @param shriekerPos 触发警告的幽匿尖啸体位置
+     */
+    void increaseWardenWarning(const BlockPos& shriekerPos)
+    {
+        m_wardenWarningEffect.setSourcePos(shriekerPos);
+        m_wardenWarningEffect.increaseWarning();
+    }
 
     /**
      * @brief 检查是否是生存模式
@@ -1888,6 +1914,11 @@ private:
     // 当前旁观目标实体ID。std::nullopt 表示正常视角（摄像机跟踪自身）。
     // 在旁观者模式下，玩家的视角将跟随目标实体的位置和旋转。
     std::optional<EntityId> m_cameraEntityId;
+
+    // 幽匿尖啸体警告追踪系统
+    // 对齐 MC Java: ServerPlayer.wardenSpawnTracker (WardenSpawnTracker)
+    // 记录玩家在深暗之域中被幽匿尖啸体警告的等级和冷却时间
+    entity::WardenWarningEffect m_wardenWarningEffect;
 };
 
 } // namespace mc

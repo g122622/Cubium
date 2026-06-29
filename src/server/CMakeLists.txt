@@ -51,6 +51,7 @@ add_executable(minecraft-server
 
     # 世界模块 - 幽匿方块实体（服务端方法）
     world/blockentity/sculk/SculkVibrationSystem.cpp
+    world/blockentity/sculk/SculkShriekerHelper.cpp
 
     player/ServerPlayer.cpp
     # 成就系统

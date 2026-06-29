@@ -72,6 +72,7 @@ const std::unordered_map<std::string, EffectType> s_effectResourceNameMap = {
     {"trial_omen", EffectType::TrialOmen},
     {"wind_charged", EffectType::WindCharged},
     {"raid_omen", EffectType::RaidOmen},
+    {"darkness", EffectType::Darkness},
 };
 
 /// 效果类型到资源名称的映射
@@ -112,10 +113,11 @@ const char* s_effectResourceNames[] = {
     "trial_omen",          // 33
     "wind_charged",        // 34
     "raid_omen",           // 35
+    "darkness",            // 36
 };
 
 /// 效果类型数量（不包括 0）
-constexpr i32 EFFECT_COUNT = 35;
+constexpr i32 EFFECT_COUNT = 36;
 
 } // namespace
 
@@ -196,6 +198,8 @@ const char* getEffectName(EffectType type) noexcept
             return "Wind Charged";
         case EffectType::RaidOmen:
             return "Raid Omen";
+        case EffectType::Darkness:
+            return "Darkness";
         default:
             return "Unknown";
     }
@@ -226,6 +230,7 @@ bool isBeneficialEffect(EffectType type) noexcept
             return true;
         case EffectType::WindCharged:
             return true;
+        case EffectType::Darkness:
         default:
             return false;
     }
@@ -304,6 +309,8 @@ u32 getEffectColor(EffectType type) noexcept
             return 0x77FFD4; // 浅青色 - 风充能
         case EffectType::RaidOmen:
             return 0x5B0B0B; // 深红色 - 袭击之兆
+        case EffectType::Darkness:
+            return 0x1F1F21; // 深灰色 - 黑暗
         default:
             return 0xFFFFFF;
     }

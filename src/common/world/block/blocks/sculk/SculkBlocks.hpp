@@ -265,10 +265,20 @@ private:
 /**
  * @brief 幽匿尖啸体
  *
- * 被激活多次后可召唤监守者。
- * 状态属性：SHRIEKING, CAN_SUMMON, WATERLOGGED
+ * 被激活多次后可召唤监守者。状态属性：SHRIEKING, CAN_SUMMON, WATERLOGGED
+ *
+ * 激活流程：
+ * 1. 实体踩上方块或接收到 SHRIEK 振动事件时触发 tryShriek()
+ * 2. tryShriek() 检查 CAN_SUMMON、难度、游戏规则、附近监守者、玩家冷却等条件
+ * 3. 条件通过后调用 shriek() 设置 SHRIEKING=true、播放声音、发射 SHRIEK 事件
+ * 4. 90 tick 后 tick() 将 SHRIEKING 设回 false 并调用 tryRespond()
+ * 5. tryRespond() 播放警告声音、应用黑暗效果、在警告等级 >= 4 时尝试召唤监守者
+ *
+ * 服务端逻辑（tryShriek, tryRespond, trySummonWarden 等）位于
+ * SculkShriekerHelper（server/world/blockentity/sculk/），因为它们依赖 ServerWorld。
  *
  * 参考: net.minecraft.block.SculkShriekerBlock
+ * 参考: net.minecraft.block.entity.SculkShriekerBlockEntity
  */
 class SculkShriekerBlock : public Block, public IWaterLoggable {
 public:
@@ -304,6 +314,48 @@ public:
     [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
     [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
     [[nodiscard]] BlockEntityType getBlockEntityType() const;
+
+    /**
+     * @brief 实体踩上方块时触发
+     *
+     * 非潜行实体踩上时发出 SHRIEK 游戏事件，触发附近的幽匿尖啸体。
+     * 对齐 MC Java: SculkShriekerBlock.stepOn()
+     */
+    void onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
+
+    /**
+     * @brief 方块 tick 回调
+     *
+     * 处理 SHRIEKING→!SHRIEKING 的状态转换，并通知服务端执行响应逻辑。
+     * 对齐 MC Java: SculkShriekerBlock.tick()
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
+     * @brief 方块移除时的清理
+     *
+     * 如果方块正在 SHRIEKING 状态时被移除，仍需执行 tryRespond()
+     * 以确保警告效果（黑暗效果、监守者召唤检查）被触发。
+     */
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    // ========== 静态方法 ==========
+
+    /**
+     * @brief 播放尖啸声音和粒子效果，设置 SHRIEKING 状态
+     *
+     * 对齐 MC Java: SculkShriekerBlockEntity.shriek()
+     * 此方法仅处理视觉效果和状态转换，不涉及警告等级或召唤逻辑。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @param sourceEntity 触发实体（用于游戏事件上下文，可为nullptr）
+     */
+    static void shriek(IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* sourceEntity);
+
+    /// SHRIEKING 状态持续tick数（对齐 MC Java: 90 ticks = 4.5秒）
+    static constexpr i32 SHRIEKING_TICKS = 90;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

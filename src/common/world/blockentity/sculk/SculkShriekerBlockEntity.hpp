@@ -117,6 +117,20 @@ public:
      */
     [[nodiscard]] bool canSummonWarden() const { return m_warningLevel >= MAX_WARNING_LEVEL; }
 
+    /**
+     * @brief 检查尖啸是否刚结束（用于触发 tryRespond）
+     *
+     * 当 SHRIEKING 状态到期或方块被移除时设置为 true，
+     * 服务端 tick 中检测到此标志后执行响应逻辑。
+     */
+    [[nodiscard]] bool isShriekingFinished() const { return m_shriekingFinished; }
+
+    /**
+     * @brief 设置尖啸结束标志
+     * @param finished 是否结束
+     */
+    void setShriekingFinished(bool finished) { m_shriekingFinished = finished; }
+
     /// 最大警告等级
     static constexpr i32 MAX_WARNING_LEVEL = 4;
 
@@ -126,6 +140,9 @@ private:
 
     /// 警告等级 (0-4)，对齐 MC 原版 SculkShriekerBlockEntity.warningLevel
     i32 m_warningLevel = 0;
+
+    /// 尖啸结束标志（SHRIEKING 状态到期或方块被移除时设置，服务端检测后触发 tryRespond）
+    bool m_shriekingFinished = false;
 };
 
 } // namespace blockentity

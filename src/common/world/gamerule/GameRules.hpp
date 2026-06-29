@@ -141,6 +141,9 @@ extern const BooleanGameRuleKey DO_PATROL_SPAWNING;
 /// 是否生成流浪商人
 extern const BooleanGameRuleKey DO_TRADER_SPAWNING;
 
+/// 是否生成监守者
+extern const BooleanGameRuleKey DO_WARDEN_SPAWNING;
+
 // ============================================================================
 // 掉落相关 (Drops)
 // ============================================================================
