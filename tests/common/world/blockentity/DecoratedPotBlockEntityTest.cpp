@@ -415,8 +415,8 @@ TEST_F(DecoratedPotItemMappingTest, GetItemFromPattern_BlankReturnsBrick)
     if (brick == nullptr) {
         GTEST_SKIP() << "Brick item not registered in test environment";
     }
-    // 验证返回的是砖块物品
-    EXPECT_EQ(brick->itemLocation(), ResourceLocation("minecraft", "brick"));
+    // 验证返回的是砖块物品（项目注册名为 "minecraft:bricks"）
+    EXPECT_EQ(brick->itemLocation(), ResourceLocation("minecraft", "bricks"));
 }
 
 TEST_F(DecoratedPotItemMappingTest, GetItemFromPattern_PatternReturnsSherd)

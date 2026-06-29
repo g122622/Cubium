@@ -72,6 +72,7 @@ add_executable(mc_tests
     common/item/crafting/RecipeSerializersTest.cpp
     common/item/crafting/BannerDuplicateRecipeTest.cpp
     common/item/crafting/ShieldDecorationRecipeTest.cpp
+    common/item/crafting/DecoratedPotRecipeTest.cpp
     common/item/tool/ToolTests.cpp
     common/item/tool/ShearsItemTest.cpp
     # ItemTags 花朵标签测试

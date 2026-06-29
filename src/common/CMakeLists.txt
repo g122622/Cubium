@@ -564,6 +564,7 @@ add_library(mc_common STATIC
     item/crafting/special/TippedArrowRecipe.cpp
     item/crafting/special/BannerDuplicateRecipe.cpp
     item/crafting/special/ShieldDecorationRecipe.cpp
+    item/crafting/special/DecoratedPotRecipe.cpp
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp

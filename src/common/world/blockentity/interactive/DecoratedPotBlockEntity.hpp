@@ -273,8 +273,7 @@ private:
  * @brief 从 Item 指针获取对应的 DecoratedPotPattern
  *
  * 陶片物品映射到对应图案，砖块映射到 Blank，未知物品映射到 Blank。
- * TODO: 当 DecoratedPotRecipe 实现后，此函数将在合成配方中被调用，
- * 将输入的4个陶片/砖块物品转换为对应的图案。
+ * 在 DecoratedPotRecipe 合成配方中，将输入的陶片/砖块物品转换为对应的图案。
  *
  * @param item 物品指针
  * @return 对应的图案，如果物品不是陶片或砖块则返回 Blank
@@ -285,8 +284,7 @@ private:
  * @brief 从 DecoratedPotPattern 获取对应的 Item 指针
  *
  * Blank 图案返回砖块物品，其他图案返回对应的陶片物品。
- * TODO: 当 DecoratedPotRecipe 实现后，此函数将在合成结果展示中被调用，
- * 将图案反向映射为对应的陶片物品用于配方展示。
+ * 在合成结果展示中，将图案反向映射为对应的陶片物品用于配方展示。
  *
  * @param pattern 图案类型
  * @return 对应的物品指针，如果找不到则返回 nullptr

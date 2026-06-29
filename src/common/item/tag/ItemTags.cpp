@@ -307,7 +307,7 @@ void ItemTags::initialize()
     auto ingredients = std::make_unique<ItemTag>(ResourceLocation("minecraft", "decorated_pot_ingredients"), false);
 
     // 砖块（作为空白面使用）
-    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brick")));
+    ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bricks")));
 
     // 所有陶片（复用 sherds 标签的内容）
     // 1.20 考古学陶片

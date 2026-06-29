@@ -45,8 +45,6 @@ namespace blockentity {
  * - PotDecorations 类存储四面的 DecoratedPotPattern（对应 MC PotDecorations）
  * - getPatternFromItem() 实现 PotterySherdItem/砖块到 DecoratedPotPattern 的映射
  * - getItemFromPattern() 实现 DecoratedPotPattern 到物品的反向映射
- * - TODO: 实现 DecoratedPotRecipe（十字形合成：陶片/砖块 -> 饰纹陶罐）
- * - TODO: 在 DecoratedPotRenderer 中根据图案查找纹理资源
  */
 enum class DecoratedPotPattern : u8 {
     // 空白图案（砖块面）

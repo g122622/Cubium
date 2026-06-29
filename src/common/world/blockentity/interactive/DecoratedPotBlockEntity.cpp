@@ -423,8 +423,8 @@ DecoratedPotPattern getPatternFromItem(const Item* item)
     }
 
     // 检查是否是砖块
-    // 砖块物品ID为 "minecraft:brick"，通过 ItemRegistry 查找
-    const Item* brickItem = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brick"));
+    // 砖块物品ID为 "minecraft:bricks"，通过 ItemRegistry 查找
+    const Item* brickItem = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bricks"));
     if (item == brickItem) {
         return DecoratedPotPattern::Blank;
     }
@@ -437,7 +437,7 @@ const Item* getItemFromPattern(DecoratedPotPattern pattern)
 {
     if (DecoratedPotPatterns::isBlank(pattern)) {
         // Blank 图案对应砖块物品
-        return ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brick"));
+        return ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bricks"));
     }
 
     // 非 Blank 图案，构造陶片物品ID并查找

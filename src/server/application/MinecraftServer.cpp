@@ -40,6 +40,7 @@
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/special/ArmorDyeRecipe.hpp"
 #include "common/item/crafting/special/BookCloningRecipe.hpp"
+#include "common/item/crafting/special/DecoratedPotRecipe.hpp"
 #include "common/item/crafting/special/MapCloningRecipe.hpp"
 #include "common/item/crafting/special/MapExtendingRecipe.hpp"
 #include "common/item/crafting/special/RepairItemRecipe.hpp"
@@ -845,7 +846,11 @@ void MinecraftServer::registerSpecialRecipes()
     RecipeManager::instance().registerRecipe(
         std::make_unique<TippedArrowRecipe>(ResourceLocation("minecraft", "tipped_arrow")));
 
-    spdlog::info("Special recipes registered (6 recipes)");
+    // 注册饰纹陶罐配方
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<DecoratedPotRecipe>(ResourceLocation("minecraft", "decorated_pot")));
+
+    spdlog::info("Special recipes registered (7 recipes)");
 }
 
 void MinecraftServer::initializeRegistries(bool registerEntities)
