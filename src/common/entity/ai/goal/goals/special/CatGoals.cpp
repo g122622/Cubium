@@ -325,13 +325,12 @@ void CatRelaxOnOwnerGoal::_giveMorningGift()
     // 对应 MC 原版 cat_morning_gift 战利品表中的物品：
     //   rabbit_hide(10), rabbit_foot(10), chicken(10), feather(10),
     //   rotten_flesh(10), string(10), phantom_membrane(2)
-    // 注意：rabbit_hide 当前尚未注册，暂用 rabbit 代替
     struct GiftItem {
         const Item* item;
         i32 weight;
     };
     const GiftItem giftItems[] = {
-        {Items::RABBIT, 10},          // TODO: 当 Items::RABBIT_HIDE 注册后，替换为 RABBIT_HIDE（对应MC原版兔子皮）
+        {Items::RABBIT_HIDE, 10},     // 兔子皮
         {Items::RABBIT_FOOT, 10},     // 兔子脚
         {Items::CHICKEN, 10},         // 生鸡肉
         {Items::FEATHER, 10},         // 羽毛

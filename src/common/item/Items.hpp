@@ -313,6 +313,7 @@ public:
     static Item* FEATHER;
     static Item* GUNPOWDER;
     static Item* LEATHER;
+    static Item* RABBIT_HIDE; // 兔子皮 - 可合成皮革
     static Item* SLIME_BALL;
     static Item* EGG;
     static Item* SNOWBALL; // 雪球

@@ -322,6 +322,7 @@ Item* Items::STRING = nullptr;
 Item* Items::FEATHER = nullptr;
 Item* Items::GUNPOWDER = nullptr;
 Item* Items::LEATHER = nullptr;
+Item* Items::RABBIT_HIDE = nullptr;
 Item* Items::SLIME_BALL = nullptr;
 Item* Items::EGG = nullptr;
 Item* Items::SNOWBALL = nullptr;
@@ -1917,6 +1918,8 @@ void Items::_registerMisc()
     GUNPOWDER = &registry.registerItem(ResourceLocation("minecraft:gunpowder"), ItemProperties().maxStackSize(64));
 
     LEATHER = &registry.registerItem(ResourceLocation("minecraft:leather"), ItemProperties().maxStackSize(64));
+
+    RABBIT_HIDE = &registry.registerItem(ResourceLocation("minecraft:rabbit_hide"), ItemProperties().maxStackSize(64));
 
     SLIME_BALL = &registry.registerItem(ResourceLocation("minecraft:slime_ball"), ItemProperties().maxStackSize(64));
 
