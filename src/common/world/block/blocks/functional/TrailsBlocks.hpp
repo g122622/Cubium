@@ -127,6 +127,22 @@ public:
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
     /**
+     * @brief 玩家右键交互
+     *
+     * 手持物品时：向陶罐中放入1个物品（如果可以放入），
+     * 触发正摇晃(Positive wobble)动画和插入音效。
+     * 空手时：触发负摇晃(Negative wobble)动画和插入失败音效。
+     *
+     * 参考: net.minecraft.block.DecoratedPotBlock.useItemOn / useWithoutItem
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    /**
      * @brief 玩家破坏前处理
      *
      * 如果玩家手持的物品具有 BREAKS_DECORATED_POTS 标签

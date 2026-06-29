@@ -530,6 +530,10 @@ extern const ResourceLocation BLOCK_SHELF_TAKE_ITEM;
 extern const ResourceLocation BLOCK_SHELF_SINGLE_SWAP;
 extern const ResourceLocation BLOCK_SHELF_MULTI_SWAP;
 
+/// 饰纹陶罐
+extern const ResourceLocation BLOCK_DECORATED_POT_INSERT;
+extern const ResourceLocation BLOCK_DECORATED_POT_INSERT_FAIL;
+
 /// 灯笼
 extern const ResourceLocation BLOCK_LANTERN_BREAK;
 extern const ResourceLocation BLOCK_LANTERN_FALL;

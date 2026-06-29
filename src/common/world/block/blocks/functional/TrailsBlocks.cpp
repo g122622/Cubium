@@ -22,9 +22,13 @@
  */
 
 #include "TrailsBlocks.hpp"
+#include "common/core/BlockRaycastResult.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/math/random/IRandom.hpp"
 #include "util/property/Properties.hpp"
@@ -33,6 +37,7 @@
 #include "world/block/registry/TrailsBlocks.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
+#include "world/gameevent/GameEvents.hpp"
 
 namespace mc {
 namespace blocks {
@@ -199,6 +204,106 @@ i32 DecoratedPotBlock::getComparatorInputOverride(const BlockState& state, IWorl
         return potEntity->getComparatorSignal();
     }
     return 0;
+}
+
+ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hit);
+
+    // 副手不处理
+    if (hand == Hand::OffHand) {
+        return ActionResultType::Pass;
+    }
+
+    // 获取方块实体
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::DecoratedPot) {
+        return ActionResultType::Pass;
+    }
+    auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(blockEntity);
+
+    // 客户端：直接返回成功以播放动画
+    if (world.isClientSide()) {
+        ItemStack heldItem = player.getHeldItem(hand);
+        return heldItem.isEmpty() ? ActionResultType::Success : ActionResultType::Success;
+    }
+
+    // === 服务端逻辑 ===
+    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack potItem = potEntity->getItem();
+
+    if (!heldItem.isEmpty()) {
+        // 手持物品：尝试向陶罐中放入1个物品
+        // 对应 MC Java 的 DecoratedPotBlock.useItemOn
+
+        // 检查是否可以放入：陶罐为空，或罐内物品与手持物品相同且未达到最大堆叠
+        bool canInsert = false;
+        if (potItem.isEmpty()) {
+            // 陶罐为空，可以放入
+            canInsert = true;
+        } else if (potItem.canMergeWith(heldItem) && potItem.getCount() < potItem.getMaxStackSize()) {
+            // 罐内物品与手持物品相同且未满，可以叠加
+            canInsert = true;
+        }
+
+        if (canInsert) {
+            // 触发正摇晃动画
+            potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Positive);
+
+            // 分离1个物品
+            ItemStack toInsert = heldItem.split(1);
+
+            if (potItem.isEmpty()) {
+                // 陶罐为空，直接设置
+                potEntity->setItem(toInsert);
+            } else {
+                // 叠加到已有物品
+                potItem.grow(1);
+                potEntity->setItem(potItem);
+            }
+
+            // 播放插入音效
+            // 音高随填充程度变化：0.7 + 0.5 * (count / maxStackSize)
+            ItemStack newItem = potEntity->getItem();
+            f32 pitch =
+                0.7f + 0.5f * (static_cast<f32>(newItem.getCount()) / static_cast<f32>(newItem.getMaxStackSize()));
+            world.playSound(
+                SoundEvents::BLOCK_DECORATED_POT_INSERT, sound::SoundCategory::Blocks, pos.center(), 1.0f, pitch);
+
+            // 触发方块变化游戏事件
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
+
+            // 标记方块实体已修改
+            potEntity->setChanged();
+
+            // TODO: 当 IWorld::updateComparatorOutputLevel 实现后，
+            // 调用 world.updateComparatorOutputLevel(pos) 通知红石比较器更新
+
+            return ActionResultType::Success;
+        }
+
+        // 物品无法放入，回退到空手交互逻辑
+        // （MC Java 返回 TRY_WITH_EMPTY_HAND，我们直接执行空手逻辑）
+    }
+
+    // 空手交互或物品无法放入：触发负摇晃动画
+    // 对应 MC Java 的 DecoratedPotBlock.useWithoutItem
+    potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Negative);
+
+    // 播放插入失败音效
+    world.playSound(
+        SoundEvents::BLOCK_DECORATED_POT_INSERT_FAIL, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+
+    // 触发方块变化游戏事件
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
+
+    return ActionResultType::Success;
 }
 
 void DecoratedPotBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)

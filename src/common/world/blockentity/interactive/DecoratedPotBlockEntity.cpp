@@ -207,30 +207,6 @@ void DecoratedPotBlockEntity::setDecorations(const PotDecorations& decorations)
     setChanged();
 }
 
-void DecoratedPotBlockEntity::applyFromItemStack(const ItemStack& itemStack)
-{
-    if (itemStack.isEmpty()) {
-        m_decorations = PotDecorations::EMPTY;
-        return;
-    }
-
-    // 从物品的NBT标签中读取 sherds 信息
-    // 在 MC Java 1.21 中，这是通过 Data Components 存储的
-    // 在我们的项目中，通过物品标签的 "BlockEntityTag.sherds" 传递
-    const nlohmann::json* tag = itemStack.getTag();
-    if (tag != nullptr && tag->contains("BlockEntityTag") && (*tag)["BlockEntityTag"].is_object()) {
-        const auto& bet = (*tag)["BlockEntityTag"];
-        if (bet.contains("sherds") && bet["sherds"].is_array()) {
-            m_decorations = PotDecorations::fromJson(bet["sherds"]);
-            setChanged();
-            return;
-        }
-    }
-
-    // 如果没有携带图案数据，保持默认空图案
-    m_decorations = PotDecorations::EMPTY;
-}
-
 ItemStack DecoratedPotBlockEntity::getItem() const
 {
     return m_inventory.getItem(0);
@@ -249,9 +225,11 @@ bool DecoratedPotBlockEntity::hasItem() const
 
 void DecoratedPotBlockEntity::wobble(WobbleStyle style)
 {
-    // 需要 IWorld 来获取游戏 tick，暂存样式
-    // 实际 tick 值由调用方通过世界时间设置
+    // TODO: 当 IWorld::blockEvent 实现后，应调用 world.blockEvent(pos, block, 1, style.ordinal())
+    // 以同步摇晃动画到客户端。对应 MC Java 的 DecoratedPotBlockEntity.wobble()。
+    // 当前仅服务端记录摇晃样式，客户端动画待 blockEvent 系统实现后自动生效。
     m_lastWobbleStyle = style;
+    m_wobbleStartedAtTick = 0; // 重置，待客户端事件触发时设置实际 tick
     setChanged();
 }
 

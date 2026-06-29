@@ -185,16 +185,6 @@ public:
      */
     void setDecorations(const PotDecorations& decorations);
 
-    /**
-     * @brief 从物品推断图案
-     *
-     * 当陶罐从物品放置时，根据物品携带的图案数据设置图案。
-     * 对应 MC Java 的 applyImplicitComponents。
-     *
-     * @param itemStack 陶罐物品
-     */
-    void applyFromItemStack(const ItemStack& itemStack);
-
     // ========== 物品存取 ==========
 
     /**
