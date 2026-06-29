@@ -23,6 +23,9 @@
 
 #include "world/block/blocks/CauldronBlock.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityType.hpp"
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BannerItem.hpp"
@@ -197,6 +200,84 @@ TEST_F(CauldronBlockTest, GetContentShape_ReturnsValidShapeForAllLevels)
             EXPECT_FALSE(shape.isEmpty()) << "Level " << level << " should have content shape";
         }
     }
+}
+
+TEST_F(CauldronBlockTest, GetEntityInsideCollisionShape_EmptyCauldron_ReturnsFullBlock)
+{
+    // 空炼药锅（水位0）返回完整方块形状，与 MC 原版一致
+    const auto& state = cauldron_->defaultState();
+    ASSERT_EQ(CauldronBlock::getLevel(state), 0);
+    const auto& shape = cauldron_->getEntityInsideCollisionShape(state);
+    EXPECT_TRUE(shape.isFullBlock()) << "Empty cauldron should return full block shape";
+}
+
+TEST_F(CauldronBlockTest, GetEntityInsideCollisionShape_Level1_ReturnsFilledShape)
+{
+    const auto& state = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 1);
+    const auto& shape = cauldron_->getEntityInsideCollisionShape(state);
+    EXPECT_FALSE(shape.isEmpty()) << "Level 1 should have entity inside collision shape";
+    EXPECT_FALSE(shape.isFullBlock()) << "Level 1 should not be full block (smaller fill area)";
+}
+
+TEST_F(CauldronBlockTest, GetEntityInsideCollisionShape_Level2_ReturnsFilledShape)
+{
+    const auto& state = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 2);
+    const auto& shape = cauldron_->getEntityInsideCollisionShape(state);
+    EXPECT_FALSE(shape.isEmpty()) << "Level 2 should have entity inside collision shape";
+    EXPECT_FALSE(shape.isFullBlock()) << "Level 2 should not be full block";
+}
+
+TEST_F(CauldronBlockTest, GetEntityInsideCollisionShape_Level3_ReturnsFilledShape)
+{
+    const auto& state = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
+    const auto& shape = cauldron_->getEntityInsideCollisionShape(state);
+    EXPECT_FALSE(shape.isEmpty()) << "Level 3 should have entity inside collision shape";
+    EXPECT_FALSE(shape.isFullBlock()) << "Level 3 should not be full block";
+}
+
+TEST_F(CauldronBlockTest, GetEntityInsideCollisionShape_FilledShapeContainsOuterShape)
+{
+    // 填充形状应包含外部炼药锅形状（碰撞箱不应小于外部形状）
+    const auto& outerShape = cauldron_->getShape(cauldron_->defaultState());
+    for (i32 level = 1; level <= 3; ++level) {
+        const auto& state = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), level);
+        const auto& filledShape = cauldron_->getEntityInsideCollisionShape(state);
+        // 填充形状应有更多的碰撞箱（外部形状 + 内容形状）
+        EXPECT_GE(filledShape.boxCount(), outerShape.boxCount())
+            << "Level " << level << " filled shape should have at least as many boxes as outer shape";
+    }
+}
+
+TEST_F(CauldronBlockTest, GetContentShape_HeightsMatchMCValues)
+{
+    // MC 原版 LayeredCauldronBlock 内容高度：
+    // 水位1: 9像素 (0.5625), 水位2: 12像素 (0.75), 水位3: 15像素 (0.9375)
+    // 内容区域从 y=4/16 开始
+    constexpr f32 innerMinY = 4.0f / 16.0f;
+    constexpr f32 innerX1 = 2.0f / 16.0f;
+    constexpr f32 innerX2 = 14.0f / 16.0f;
+
+    // 水位1：y从 4/16 到 9/16
+    const auto& shape1 = cauldron_->getContentShape(1);
+    EXPECT_FALSE(shape1.isEmpty());
+    const auto& boxes1 = shape1.boxes();
+    ASSERT_FALSE(boxes1.empty());
+    EXPECT_FLOAT_EQ(boxes1[0].minY, innerMinY);
+    EXPECT_FLOAT_EQ(boxes1[0].maxY, 9.0f / 16.0f);
+    EXPECT_FLOAT_EQ(boxes1[0].minX, innerX1);
+    EXPECT_FLOAT_EQ(boxes1[0].maxX, innerX2);
+
+    // 水位2：y从 4/16 到 12/16
+    const auto& shape2 = cauldron_->getContentShape(2);
+    const auto& boxes2 = shape2.boxes();
+    ASSERT_FALSE(boxes2.empty());
+    EXPECT_FLOAT_EQ(boxes2[0].maxY, 12.0f / 16.0f);
+
+    // 水位3：y从 4/16 到 15/16
+    const auto& shape3 = cauldron_->getContentShape(3);
+    const auto& boxes3 = shape3.boxes();
+    ASSERT_FALSE(boxes3.empty());
+    EXPECT_FLOAT_EQ(boxes3[0].maxY, 15.0f / 16.0f);
 }
 
 // ============================================================================
@@ -612,4 +693,282 @@ TEST_F(CauldronBannerCleaningTest, CauldronLevelConstants)
     EXPECT_FALSE(CauldronBlock::isEmpty(state1));
     EXPECT_TRUE(CauldronBlock::isFull(state3));
     EXPECT_FALSE(CauldronBlock::isFull(state2));
+}
+
+// ============================================================================
+// Block::getEntityInsideCollisionShape 默认行为测试
+// ============================================================================
+
+class BlockEntityInsideCollisionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 使用 SimpleBlock（公开构造的 Block 子类）测试默认行为
+        VanillaBlocks::initialize();
+        // 使用石头的 BlockState 来测试默认的 getEntityInsideCollisionShape
+        block_ = VanillaBlocks::STONE;
+    }
+
+    const Block* block_ = nullptr;
+};
+
+TEST_F(BlockEntityInsideCollisionTest, DefaultReturnsFullBlock)
+{
+    // 默认的 getEntityInsideCollisionShape 应返回完整方块形状
+    // 参考 MC 原版: BlockBehaviour.getEntityInsideCollisionShape() 默认返回 Shapes.block()
+    ASSERT_NE(block_, nullptr);
+    const auto& state = block_->defaultState();
+    const auto& shape = block_->getEntityInsideCollisionShape(state);
+    EXPECT_TRUE(shape.isFullBlock()) << "Default getEntityInsideCollisionShape should return full block shape";
+}
+
+// ============================================================================
+// CauldronBlock::onEntityCollision 测试
+// ============================================================================
+
+/**
+ * @brief 炼药锅实体碰撞测试用实体
+ *
+ * 简单的 LivingEntity 实现，支持设置着火状态
+ */
+class CauldronTestEntity : public LivingEntity {
+public:
+    CauldronTestEntity(EntityId id, IWorld* world = nullptr)
+        : LivingEntity(id, world)
+    {
+        setHealth(20.0f);
+    }
+
+    [[nodiscard]] bool isImmuneToFire() const override { return m_immuneToFire; }
+
+    void setImmuneToFire(bool immune) { m_immuneToFire = immune; }
+
+private:
+    bool m_immuneToFire = false;
+};
+
+/**
+ * @brief 炼药锅实体碰撞测试用世界
+ *
+ * 继承 BaseTestWorld，提供方块状态存储。
+ */
+class CauldronCollisionTestWorld : public test::BaseTestWorld {
+public:
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_blocks.find(pos);
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const BlockPos pos(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            m_blocks.erase(pos);
+            m_ownedStates.erase(pos);
+        } else {
+            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
+            m_blocks[pos] = &it->second;
+        }
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+
+    [[nodiscard]] i32 getCauldronLevel(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return -1;
+        }
+        return CauldronBlock::getLevel(*it->second);
+    }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, BlockState> m_ownedStates;
+};
+
+class CauldronEntityCollisionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+
+        cauldron_ = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
+    }
+
+    std::unique_ptr<CauldronBlock> cauldron_;
+    CauldronCollisionTestWorld world_;
+};
+
+TEST_F(CauldronEntityCollisionTest, EmptyCauldron_NoEffect)
+{
+    // 空炼药锅（水位0）：onEntityCollision 不执行任何操作
+    const BlockPos pos(0, 64, 0);
+    const auto& state0 = cauldron_->defaultState(); // 水位0
+    world_.setBlockAt(pos, &state0);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 0);
+
+    CauldronTestEntity entity(EntityId(1), &world_);
+    entity.igniteForTicks(100); // 设置实体着火
+    ASSERT_TRUE(entity.isOnFire());
+
+    cauldron_->onEntityCollision(state0, world_, pos, entity);
+
+    // 空炼药锅不灭火，不降低水位
+    EXPECT_TRUE(entity.isOnFire()) << "Empty cauldron should not extinguish entity";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 0) << "Empty cauldron level should remain 0";
+}
+
+TEST_F(CauldronEntityCollisionTest, WaterLevel1_BurningEntity_ExtinguishesAndLowersLevel)
+{
+    // 水位1 + 着火实体 → 灭火 + 水位降为0
+    const BlockPos pos(0, 64, 0);
+    const auto& state1 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 1);
+    world_.setBlockAt(pos, &state1);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 1);
+
+    CauldronTestEntity entity(EntityId(1), &world_);
+    entity.igniteForTicks(100);
+    ASSERT_TRUE(entity.isOnFire());
+
+    cauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    // 灭火成功
+    EXPECT_FALSE(entity.isOnFire()) << "Water cauldron should extinguish burning entity";
+    // 水位降低1级
+    EXPECT_EQ(world_.getCauldronLevel(pos), 0) << "Water level should decrease from 1 to 0";
+}
+
+TEST_F(CauldronEntityCollisionTest, WaterLevel2_BurningEntity_ExtinguishesAndLowersLevel)
+{
+    // 水位2 + 着火实体 → 灭火 + 水位降为1
+    const BlockPos pos(0, 64, 0);
+    const auto& state2 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 2);
+    world_.setBlockAt(pos, &state2);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 2);
+
+    CauldronTestEntity entity(EntityId(1), &world_);
+    entity.igniteForTicks(100);
+    ASSERT_TRUE(entity.isOnFire());
+
+    cauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    EXPECT_FALSE(entity.isOnFire()) << "Water cauldron should extinguish burning entity";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 1) << "Water level should decrease from 2 to 1";
+}
+
+TEST_F(CauldronEntityCollisionTest, WaterLevel3_BurningEntity_ExtinguishesAndLowersLevel)
+{
+    // 水位3（满）+ 着火实体 → 灭火 + 水位降为2
+    const BlockPos pos(0, 64, 0);
+    const auto& state3 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
+    world_.setBlockAt(pos, &state3);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    CauldronTestEntity entity(EntityId(1), &world_);
+    entity.igniteForTicks(100);
+    ASSERT_TRUE(entity.isOnFire());
+
+    cauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    EXPECT_FALSE(entity.isOnFire()) << "Water cauldron should extinguish burning entity";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 2) << "Water level should decrease from 3 to 2";
+}
+
+TEST_F(CauldronEntityCollisionTest, NonBurningEntity_NoEffect)
+{
+    // 水位3 + 未着火实体 → 不灭火 + 水位不变
+    const BlockPos pos(0, 64, 0);
+    const auto& state3 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
+    world_.setBlockAt(pos, &state3);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    CauldronTestEntity entity(EntityId(1), &world_);
+    // 默认不着火
+    ASSERT_FALSE(entity.isOnFire());
+
+    cauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    // 未着火实体不触发灭火和降水位
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3) << "Non-burning entity should not affect water level";
+}
+
+TEST_F(CauldronEntityCollisionTest, FireImmuneBurningEntity_NoExtinguishNoLevelChange)
+{
+    // 着火但免疫火焰的实体（isOnFire 返回 false）→ 不触发灭火
+    // 因为 isOnFire() = !isImmuneToFire() && m_fire > 0
+    // 免疫火焰时 isOnFire() 返回 false
+    const BlockPos pos(0, 64, 0);
+    const auto& state3 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
+    world_.setBlockAt(pos, &state3);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    CauldronTestEntity entity(EntityId(1), &world_);
+    entity.setImmuneToFire(true);
+    entity.igniteForTicks(100);
+    // 免疫火焰的实体，isOnFire() 返回 false
+    ASSERT_FALSE(entity.isOnFire()) << "Fire-immune entity should not be considered on fire";
+
+    cauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    // 免疫火焰的实体不触发灭火和降水位
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3) << "Fire-immune entity should not affect water level";
+}
+
+TEST_F(CauldronEntityCollisionTest, MultipleExtinguish_DecreasesLevelEachTime)
+{
+    // 连续灭火：水位3 → 2 → 1 → 0
+    const BlockPos pos(0, 64, 0);
+    const auto& state3 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
+    world_.setBlockAt(pos, &state3);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    // 第一次：水位3 → 2
+    {
+        CauldronTestEntity entity(EntityId(1), &world_);
+        entity.igniteForTicks(100);
+        cauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+        EXPECT_EQ(world_.getCauldronLevel(pos), 2);
+    }
+
+    // 第二次：水位2 → 1
+    {
+        CauldronTestEntity entity(EntityId(2), &world_);
+        entity.igniteForTicks(100);
+        cauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+        EXPECT_EQ(world_.getCauldronLevel(pos), 1);
+    }
+
+    // 第三次：水位1 → 0
+    {
+        CauldronTestEntity entity(EntityId(3), &world_);
+        entity.igniteForTicks(100);
+        cauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+        EXPECT_EQ(world_.getCauldronLevel(pos), 0);
+    }
+
+    // 第四次：水位0，空炼药锅不执行任何操作
+    {
+        CauldronTestEntity entity(EntityId(4), &world_);
+        entity.igniteForTicks(100);
+        const BlockState* currentState = world_.getBlockState(pos.x, pos.y, pos.z);
+        cauldron_->onEntityCollision(*currentState, world_, pos, entity);
+        // 空炼药锅不灭火
+        EXPECT_TRUE(entity.isOnFire()) << "Empty cauldron should not extinguish entity";
+        EXPECT_EQ(world_.getCauldronLevel(pos), 0);
+    }
 }
