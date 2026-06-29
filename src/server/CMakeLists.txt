@@ -152,6 +152,7 @@ add_executable(minecraft-server
     command/commands/ReplaceItemCommand.cpp
     command/commands/SpectateCommand.cpp
     command/commands/TriggerCommand.cpp
+    command/commands/WardenSpawnTrackerCommand.cpp
     # 菜单系统
     menu/CraftingMenu.cpp
     # Boss栏系统

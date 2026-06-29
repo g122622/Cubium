@@ -12,7 +12,8 @@
 ├── DifficultyCommand.hpp / DifficultyCommand.cpp #修改世界难度
 ├── SpreadPlayersCommand.hpp /
         SpreadPlayersCommand.cpp #随机分散玩家到区域内（支持 under<maxHeight> 子命令，维度感知高度）
-├── ExecuteCommand.hpp / ExecuteCommand.cpp #执行嵌套命令，支持多种执行上下文修改（as/at/in/positioned/run/if/unless）
+├── ExecuteCommand.hpp / ExecuteCommand.cpp #执行嵌套命令，支持多种执行上下文修改（as / at / in / positioned / run /
+        if / unless）
 ├── ExperienceCommand.hpp / ExperienceCommand.cpp #管理经验值和等级
 ├── FillCommand.hpp / FillCommand.cpp #填充区域方块
 ├── GameModeCommand.hpp / GameModeCommand.cpp #切换玩家游戏模式
@@ -23,7 +24,8 @@
 ├── ListCommand.hpp / ListCommand.cpp #列出在线玩家
 ├── ReloadCommand.hpp / ReloadCommand.cpp #重新加载战利品表、配方、函数、谓词和进度
 ├── SayCommand.hpp / SayCommand.cpp #广播聊天消息
-├── ReplaceItemCommand.hpp / ReplaceItemCommand.cpp #替换物品栏/容器槽位物品（支持玩家背包、装备、末影箱、光标槽位，方块容器槽位）
+├── ReplaceItemCommand.hpp / ReplaceItemCommand.cpp #替换物品栏 /
+        容器槽位物品（支持玩家背包、装备、末影箱、光标槽位，方块容器槽位）
 ├── ScoreboardCommand.hpp / ScoreboardCommand.cpp #记分板目标管理
 ├── SeedCommand.hpp / SeedCommand.cpp #显示当前世界种子
 ├── SetBlockCommand.hpp / SetBlockCommand.cpp #放置单个方块
@@ -35,6 +37,7 @@
 ├── TeleportCommand.hpp / TeleportCommand.cpp #处理 / tp 与 / teleport 传送逻辑
 ├── TimeCommand.hpp / TimeCommand.cpp #修改或查询游戏时间
 ├── TriggerCommand.hpp / TriggerCommand.cpp #触发器命令（权限等级0，所有玩家可用）
+├── WardenSpawnTrackerCommand.hpp / WardenSpawnTrackerCommand.cpp #监守者警告追踪器命令（clear / set子命令）
 └── WeatherCommand.hpp /
         WeatherCommand.cpp #修改或查询天气状态
 ```

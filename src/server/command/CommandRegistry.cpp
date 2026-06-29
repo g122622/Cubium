@@ -86,6 +86,7 @@
 #include "commands/TimeCommand.hpp"
 #include "commands/TitleCommand.hpp"
 #include "commands/TriggerCommand.hpp"
+#include "commands/WardenSpawnTrackerCommand.hpp"
 #include "commands/WeatherCommand.hpp"
 #include "commands/WhitelistCommand.hpp"
 #include "commands/WorldBorderCommand.hpp"
@@ -204,6 +205,7 @@ void CommandRegistry::registerDefaults()
     SpectateCommand::registerTo(m_dispatcher);
     TriggerCommand::registerTo(m_dispatcher);
     GameRuleCommand::registerTo(m_dispatcher);
+    WardenSpawnTrackerCommand::registerTo(m_dispatcher);
     m_defaultsRegistered = true;
 
     spdlog::info("[CommandRegistry] Registered {} default commands", getCommandNames().size());

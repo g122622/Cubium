@@ -1360,6 +1360,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WardenSpawnTrackerCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WorldBorderCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScoreboardCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp
@@ -2269,6 +2270,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WardenSpawnTrackerCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WorldBorderCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScoreboardCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp

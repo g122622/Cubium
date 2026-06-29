@@ -299,8 +299,7 @@ public:
     /// 每tick调用：递增计时器、冷却递减、超时自动降级
     void tick();
 
-    /// 重置所有状态为初始值
-    /// TODO: 需要在 /warden_spawn_tracker clear 命令实现时调用此方法
+    /// 重置所有状态为初始值（由 /warden_spawn_tracker clear 命令调用）
     void reset();
 
     [[nodiscard]] i32 getWarningLevel() const { return m_warningLevel; }
