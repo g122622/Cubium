@@ -545,5 +545,340 @@ TEST_F(HangingEntityHurtTest, NoWorld_MobAttacker_StillDamages)
     EXPECT_TRUE(painting.isHurtMarked());
 }
 
+// ============================================================================
+// ItemFrameEntity 红石比较器更新和游戏事件测试
+//
+// 验证 ItemFrameEntity 在物品变化时正确通知红石比较器更新，
+// 并发出 BLOCK_CHANGE 游戏事件。
+// 由于 Mock World 缺少 BlockState 数据，RedstoneSystem::updateComparators
+// 在 getBlockState 返回 nullptr 时提前返回不崩溃，因此比较器更新测试
+// 验证不崩溃和 getAnalogOutput 返回值正确性。游戏事件测试验证事件捕获。
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief ItemFrame 红石比较器测试用的 Mock World
+ *
+ * 支持 GameRules 和 gameEvent 捕获。
+ */
+class ItemFrameComparatorTestWorld : public mc::test::BaseTestWorld {
+public:
+    ItemFrameComparatorTestWorld()
+    {
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+    }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size());
+    }
+
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
+        size_t index = static_cast<size_t>(id) - 1;
+        if (index < m_spawnedEntities.size()) {
+            return m_spawnedEntities[index].get();
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
+        size_t index = static_cast<size_t>(id) - 1;
+        if (index < m_spawnedEntities.size()) {
+            return m_spawnedEntities[index].get();
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(
+        const AxisAlignedBB& box, const Entity* except = nullptr) const override
+    {
+        return {};
+    }
+
+    void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override
+    {
+        m_gameEvents.push_back({std::string(event.id()), pos, context.sourceEntity(), context.affectedState()});
+    }
+
+    [[nodiscard]] i32 gameEventCount() const { return static_cast<i32>(m_gameEvents.size()); }
+
+    [[nodiscard]] bool hasGameEvent(const std::string& eventId) const
+    {
+        for (const auto& ev : m_gameEvents) {
+            if (ev.id == eventId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    [[nodiscard]] i32 gameEventCountFor(const std::string& eventId) const
+    {
+        i32 count = 0;
+        for (const auto& ev : m_gameEvents) {
+            if (ev.id == eventId) {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    [[nodiscard]] const Entity* gameEventSourceEntity(i32 index = 0) const
+    {
+        if (index >= 0 && index < static_cast<i32>(m_gameEvents.size())) {
+            return m_gameEvents[index].sourceEntity;
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] BlockPos gameEventPos(i32 index = 0) const
+    {
+        if (index >= 0 && index < static_cast<i32>(m_gameEvents.size())) {
+            return m_gameEvents[index].pos;
+        }
+        return BlockPos(0, 0, 0);
+    }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+private:
+    struct GameEventRecord {
+        std::string id;
+        BlockPos pos;
+        const Entity* sourceEntity;
+        const BlockState* affectedState;
+    };
+
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    std::vector<GameEventRecord> m_gameEvents;
+    mutable math::Random m_random{12345};
+};
+
+} // namespace
+
+class ItemFrameComparatorTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+
+    ItemFrameComparatorTestWorld m_world;
+};
+
+/**
+ * @brief setDisplayedItem(updateComparator=true) 不崩溃
+ *
+ * RedstoneSystem::updateComparators 在 getBlockState 返回 nullptr 时提前返回，
+ * 因此即使 Mock World 没有方块数据也不会崩溃。
+ */
+TEST_F(ItemFrameComparatorTest, SetDisplayedItem_WithUpdateComparator_DoesNotCrash)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+
+    // 放入物品，触发比较器更新，不应崩溃
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, true);
+    EXPECT_TRUE(itemFrame.hasItem());
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 1);
+
+    // 再次设置应不崩溃
+    ItemStack iron(Items::IRON_INGOT, 1);
+    itemFrame.setDisplayedItem(iron, true);
+    EXPECT_TRUE(itemFrame.hasItem());
+}
+
+/**
+ * @brief setDisplayedItem(updateComparator=false) 不触发比较器更新
+ *
+ * 对应 MC Java 中 ItemFrame.setItem(stack, false) 的场景，
+ * 如 NBT 加载时不需要触发更新。
+ */
+TEST_F(ItemFrameComparatorTest, SetDisplayedItem_WithoutUpdateComparator_SkipsComparatorUpdate)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+
+    // updateComparator=false 不应崩溃
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, false);
+    EXPECT_TRUE(itemFrame.hasItem());
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 1);
+}
+
+/**
+ * @brief setItemRotation(updateComparator=true) 不崩溃
+ */
+TEST_F(ItemFrameComparatorTest, SetItemRotation_WithUpdateComparator_DoesNotCrash)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, false);
+
+    // 旋转应触发比较器更新，不应崩溃
+    itemFrame.setItemRotation(3, true);
+    EXPECT_EQ(itemFrame.getItemRotation(), 3);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 4);
+
+    itemFrame.setItemRotation(5, true);
+    EXPECT_EQ(itemFrame.getItemRotation(), 5);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 6);
+}
+
+/**
+ * @brief setItemRotation(updateComparator=false) 不触发比较器更新
+ */
+TEST_F(ItemFrameComparatorTest, SetItemRotation_WithoutUpdateComparator_SkipsComparatorUpdate)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, false);
+
+    // updateComparator=false 不应崩溃
+    itemFrame.setItemRotation(3, false);
+    EXPECT_EQ(itemFrame.getItemRotation(), 3);
+}
+
+/**
+ * @brief rotateItem() 触发比较器更新，不崩溃
+ */
+TEST_F(ItemFrameComparatorTest, RotateItem_TriggersComparatorUpdate_DoesNotCrash)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, false);
+
+    itemFrame.rotateItem();
+    EXPECT_EQ(itemFrame.getItemRotation(), 1);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 2);
+
+    itemFrame.rotateItem();
+    EXPECT_EQ(itemFrame.getItemRotation(), 2);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 3);
+}
+
+/**
+ * @brief 无 world 时 notifyComparatorUpdate 不崩溃
+ */
+TEST_F(ItemFrameComparatorTest, NotifyComparatorUpdate_NoWorld_DoesNotCrash)
+{
+    entity::ItemFrameEntity itemFrame;
+    // 不设置 world
+
+    // 不应崩溃
+    itemFrame.setDisplayedItem(ItemStack(Items::DIAMOND, 1), true);
+    itemFrame.setItemRotation(3, true);
+    itemFrame.rotateItem();
+    itemFrame.notifyComparatorUpdate();
+}
+
+/**
+ * @brief setDisplayedItem 默认参数 updateComparator=true
+ */
+TEST_F(ItemFrameComparatorTest, SetDisplayedItem_DefaultParameter_TriggersComparatorUpdate)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+
+    // 不传 updateComparator 参数，默认为 true，不应崩溃
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond);
+    EXPECT_TRUE(itemFrame.hasItem());
+}
+
+/**
+ * @brief setItemRotation 默认参数 updateComparator=true
+ */
+TEST_F(ItemFrameComparatorTest, SetItemRotation_DefaultParameter_TriggersComparatorUpdate)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, false);
+
+    // 不传 updateComparator 参数，默认为 true，不应崩溃
+    itemFrame.setItemRotation(5);
+    EXPECT_EQ(itemFrame.getItemRotation(), 5);
+}
+
+/**
+ * @brief dropItem 触发 BLOCK_CHANGE 游戏事件
+ */
+TEST_F(ItemFrameComparatorTest, DropItem_TriggersGameEvent)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+    BlockPos pos(10, 64, 20);
+    itemFrame.setHangingPosition(pos, entity::HangingEntity::Direction::SOUTH);
+
+    // 设置物品
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, false);
+
+    i32 initialGameEvents = m_world.gameEventCount();
+
+    // dropItem 应触发游戏事件
+    itemFrame.dropItem();
+
+    EXPECT_EQ(m_world.gameEventCount(), initialGameEvents + 1);
+    EXPECT_TRUE(m_world.hasGameEvent("block_change"));
+    EXPECT_EQ(m_world.gameEventPos(), pos);
+}
+
+/**
+ * @brief dropItem 清空展示物品后模拟输出归零
+ */
+TEST_F(ItemFrameComparatorTest, DropItem_ClearsItem_AnalogOutputReturnsZero)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(&m_world);
+
+    // 设置物品
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, false);
+    itemFrame.setItemRotation(5, false);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 6);
+
+    // dropItem 后物品清空
+    itemFrame.dropItem();
+    EXPECT_FALSE(itemFrame.hasItem());
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 0);
+}
+
+/**
+ * @brief setDisplayedItem 后 getAnalogOutput 正确反映变化
+ */
+TEST_F(ItemFrameComparatorTest, AnalogOutput_ReflectsSetDisplayedItem)
+{
+    entity::ItemFrameEntity itemFrame;
+
+    // 无物品返回 0
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 0);
+
+    // 设置物品后返回 rotation + 1（默认 rotation=0）
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond, false);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 1); // rotation 0 + 1 = 1
+
+    // 设置旋转
+    itemFrame.setItemRotation(5, false);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 6); // rotation 5 + 1 = 6
+
+    // 清空物品后返回 0
+    itemFrame.setDisplayedItem(ItemStack(), false);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 0);
+}
+
 } // namespace
 } // namespace mc
