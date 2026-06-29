@@ -446,6 +446,9 @@ LeashKnotEntity* LeashKnotEntity::getOrCreateKnot(IWorld& world, const BlockPos&
     if (id == INVALID_ENTITY_ID) {
         return nullptr;
     }
+
+    // 播放放置音效
+    rawPtr->playPlacementSound();
     return rawPtr;
 }
 
