@@ -51,8 +51,6 @@ namespace mc::server {
 
 void SculkShriekerHelper::tryShriek(ServerWorld& world, const BlockPos& pos, const Entity* sourceEntity)
 {
-    // 对齐 MC Java: SculkShriekerBlockEntity.tryShriek()
-
     // 1. 尝试将触发实体解析为玩家
     Player* player = tryGetPlayer(sourceEntity);
     if (player == nullptr) {
@@ -72,9 +70,8 @@ void SculkShriekerHelper::tryShriek(ServerWorld& world, const BlockPos& pos, con
         return;
     }
 
-    // 4. 重置警告等级为 0（对齐 MC Java: this.warningLevel = 0）
-    //    MC Java 的 tryShriek 每次调用都重置 warningLevel，
-    //    然后通过 tryWarn 重新递增
+    // 4. 重置警告等级为 0
+    //    tryShriek 每次调用都重置 warningLevel，然后通过 _tryWarn 重新递增
     BlockEntity* be = world.getBlockEntity(pos);
     if (be == nullptr || be->getType() != BlockEntityType::SculkShrieker) {
         return;
@@ -84,13 +81,12 @@ void SculkShriekerHelper::tryShriek(ServerWorld& world, const BlockPos& pos, con
 
     // 5. 如果可以响应（CAN_SUMMON + 非和平 + 游戏规则），尝试递增警告等级
     bool warningIncreased = false;
-    if (canRespond(world, pos)) {
-        warningIncreased = tryWarn(world, pos);
+    if (_canRespond(world, pos)) {
+        warningIncreased = _tryWarn(world, pos);
     }
 
     // 6. 执行尖啸效果（无论是否成功递增警告等级都会执行）
-    //    对齐 MC Java: if (!canRespond || tryWarn) { shriek(); }
-    if (!canRespond(world, pos) || warningIncreased) {
+    if (!_canRespond(world, pos) || warningIncreased) {
         blocks::SculkShriekerBlock::shriek(world, pos, *state, sourceEntity);
     }
 }
@@ -101,15 +97,13 @@ void SculkShriekerHelper::tryShriek(ServerWorld& world, const BlockPos& pos, con
 
 void SculkShriekerHelper::tryRespond(ServerWorld& world, const BlockPos& pos)
 {
-    // 对齐 MC Java: SculkShriekerBlockEntity.tryRespond()
-
     BlockEntity* be = world.getBlockEntity(pos);
     if (be == nullptr || be->getType() != BlockEntityType::SculkShrieker) {
         return;
     }
     auto* shrieker = static_cast<blockentity::SculkShriekerBlockEntity*>(be);
 
-    if (!canRespond(world, pos)) {
+    if (!_canRespond(world, pos)) {
         return;
     }
 
@@ -119,15 +113,15 @@ void SculkShriekerHelper::tryRespond(ServerWorld& world, const BlockPos& pos)
     }
 
     // 尝试召唤监守者（仅在警告等级达到4级时）
-    bool wardenSummoned = trySummonWarden(world, pos);
+    bool wardenSummoned = _trySummonWarden(world, pos);
 
     // 如果未召唤监守者，播放警告等级对应的声音
     if (!wardenSummoned) {
-        playWardenReplySound(world, pos, warningLevel);
+        _playWardenReplySound(world, pos, warningLevel);
     }
 
     // 对附近玩家应用黑暗效果
-    applyDarknessAround(world, pos);
+    _applyDarknessAround(world, pos);
 }
 
 // ============================================================================
@@ -153,12 +147,11 @@ void SculkShriekerHelper::checkShriekingFinished(ServerWorld& world, const Block
 }
 
 // ============================================================================
-// canRespond - 检查是否可以响应（召唤监守者的前置条件）
+// _canRespond - 检查是否可以响应（召唤监守者的前置条件）
 // ============================================================================
 
-bool SculkShriekerHelper::canRespond(ServerWorld& world, const BlockPos& pos)
+bool SculkShriekerHelper::_canRespond(ServerWorld& world, const BlockPos& pos)
 {
-    // 对齐 MC Java: SculkShriekerBlockEntity.canRespond()
     // 条件1: CAN_SUMMON 方块状态属性为 true（自然生成的尖啸体）
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr || !state->get(BlockStateProperties::CAN_SUMMON())) {
@@ -179,12 +172,11 @@ bool SculkShriekerHelper::canRespond(ServerWorld& world, const BlockPos& pos)
 }
 
 // ============================================================================
-// trySummonWarden - 尝试召唤监守者
+// _trySummonWarden - 尝试召唤监守者
 // ============================================================================
 
-bool SculkShriekerHelper::trySummonWarden(ServerWorld& world, const BlockPos& pos)
+bool SculkShriekerHelper::_trySummonWarden(ServerWorld& world, const BlockPos& pos)
 {
-    // 对齐 MC Java: SculkShriekerBlockEntity.trySummonWarden()
     // 仅在警告等级 >= 4 时尝试召唤
 
     BlockEntity* be = world.getBlockEntity(pos);
@@ -198,7 +190,7 @@ bool SculkShriekerHelper::trySummonWarden(ServerWorld& world, const BlockPos& po
     }
 
     // 检查附近是否已有监守者
-    if (hasNearbyWarden(world, pos)) {
+    if (_hasNearbyWarden(world, pos)) {
         return false;
     }
 
@@ -210,7 +202,6 @@ bool SculkShriekerHelper::trySummonWarden(ServerWorld& world, const BlockPos& po
         return false;
     }
 
-    // 对齐 MC Java: SpawnUtil.trySpawnMob()
     // 在尖啸体附近尝试找到有效生成位置
     math::Random& rng = world.getRandom();
     for (i32 attempt = 0; attempt < SUMMON_ATTEMPTS; ++attempt) {
@@ -218,7 +209,6 @@ bool SculkShriekerHelper::trySummonWarden(ServerWorld& world, const BlockPos& po
         i32 dx = rng.nextInt(SUMMON_HORIZONTAL_RANGE * 2 + 1) - SUMMON_HORIZONTAL_RANGE;
         i32 dz = rng.nextInt(SUMMON_HORIZONTAL_RANGE * 2 + 1) - SUMMON_HORIZONTAL_RANGE;
 
-        // 对齐 MC Java: SpawnUtil.Strategy.ON_TOP_OF_COLLIDER
         // 从 pos.y + SUMMON_VERTICAL_RANGE 向下搜索有效生成位置
         for (i32 y = pos.y + SUMMON_VERTICAL_RANGE; y >= pos.y - SUMMON_VERTICAL_RANGE; --y) {
             BlockPos checkPos(pos.x + dx, y, pos.z + dz);
@@ -230,7 +220,7 @@ bool SculkShriekerHelper::trySummonWarden(ServerWorld& world, const BlockPos& po
                 continue;
             }
 
-            // 检查下方方块有完整的上表面碰撞（对齐 MC Java: SpawnUtil.Strategy.ON_TOP_OF_COLLIDER）
+            // 检查下方方块有完整的上表面碰撞
             if (!belowState->isFaceFull(Direction::Up)) {
                 continue;
             }
@@ -252,7 +242,6 @@ bool SculkShriekerHelper::trySummonWarden(ServerWorld& world, const BlockPos& po
             wardenEntity->setPosition(spawnWorldPos);
             wardenEntity->setRotation(rng.nextFloat() * 360.0f, 0.0f);
 
-            // 对齐 MC Java: mob.checkSpawnRules() && mob.checkSpawnObstruction()
             // 跳过生成规则检查，因为监守者是特殊召唤而非自然生成
 
             // 生成到世界中
@@ -273,12 +262,11 @@ bool SculkShriekerHelper::trySummonWarden(ServerWorld& world, const BlockPos& po
 }
 
 // ============================================================================
-// playWardenReplySound - 播放监守者回应声音
+// _playWardenReplySound - 播放监守者回应声音
 // ============================================================================
 
-void SculkShriekerHelper::playWardenReplySound(ServerWorld& world, const BlockPos& pos, i32 warningLevel)
+void SculkShriekerHelper::_playWardenReplySound(ServerWorld& world, const BlockPos& pos, i32 warningLevel)
 {
-    // 对齐 MC Java: SculkShriekerBlockEntity.playWardenReplySound()
     if (warningLevel < 1 || warningLevel > 4) {
         return;
     }
@@ -292,17 +280,15 @@ void SculkShriekerHelper::playWardenReplySound(ServerWorld& world, const BlockPo
     f32 soundY = static_cast<f32>(pos.y + rng.nextInt(21) - 10);
     f32 soundZ = static_cast<f32>(pos.z + rng.nextInt(21) - 10) + 0.5f;
 
-    // 对齐 MC Java: level.playSound(null, x, y, z, soundEvent, SoundSource.HOSTILE, 5.0F, 1.0F)
     world.playSound(soundEvent, sound::SoundCategory::Hostile, Vector3(soundX, soundY, soundZ), 5.0f, 1.0f);
 }
 
 // ============================================================================
-// hasNearbyWarden - 检查附近是否有监守者
+// _hasNearbyWarden - 检查附近是否有监守者
 // ============================================================================
 
-bool SculkShriekerHelper::hasNearbyWarden(ServerWorld& world, const BlockPos& pos)
+bool SculkShriekerHelper::_hasNearbyWarden(ServerWorld& world, const BlockPos& pos)
 {
-    // 对齐 MC Java: WardenSpawnTracker.hasNearbyWarden()
     // 在 48x48x48 范围内搜索是否存在监守者实体
     Vector3 center = pos.center();
     AxisAlignedBB searchBox(center.x - WARDEN_SEARCH_RADIUS,
@@ -312,8 +298,6 @@ bool SculkShriekerHelper::hasNearbyWarden(ServerWorld& world, const BlockPos& po
         center.y + WARDEN_SEARCH_RADIUS,
         center.z + WARDEN_SEARCH_RADIUS);
 
-    // 检查是否有 warden 类型的实体在范围内
-    // 对齐 MC Java: level.getEntitiesOfClass(Warden.class, aabb)
     // TODO: 当 WardenEntity 实现后，使用 getEntitiesByType 查询监守者类型
     // 当前使用 getEntitiesInAABB + 名称匹配作为简化实现
     std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox);
@@ -330,12 +314,11 @@ bool SculkShriekerHelper::hasNearbyWarden(ServerWorld& world, const BlockPos& po
 }
 
 // ============================================================================
-// applyDarknessAround - 对附近玩家应用黑暗效果
+// _applyDarknessAround - 对附近玩家应用黑暗效果
 // ============================================================================
 
-void SculkShriekerHelper::applyDarknessAround(ServerWorld& world, const BlockPos& pos)
+void SculkShriekerHelper::_applyDarknessAround(ServerWorld& world, const BlockPos& pos)
 {
-    // 对齐 MC Java: Warden.applyDarknessAround()
     // 对半径 DARKNESS_RADIUS (40格) 内的玩家应用黑暗效果
     Vector3 center = pos.center();
 
@@ -363,8 +346,6 @@ void SculkShriekerHelper::applyDarknessAround(ServerWorld& world, const BlockPos
         }
 
         // 应用黑暗效果：260 tick 持续，amplifier 0，非环境效果，不显示粒子
-        // 对齐 MC Java: MobEffectInstance(MobEffects.DARKNESS, 260, 0, false, false)
-        // 以及 MobEffectUtil.addEffectToPlayersAround 的 200 tick 冷却
         entity::effect::EffectInstance darknessEffect(entity::effect::EffectType::Darkness,
             DARKNESS_DURATION, // duration: 260 ticks = 13 seconds
             0,                 // amplifier: 0
@@ -376,15 +357,13 @@ void SculkShriekerHelper::applyDarknessAround(ServerWorld& world, const BlockPos
 }
 
 // ============================================================================
-// tryWarn - 尝试递增附近玩家的警告等级
+// _tryWarn - 尝试递增附近玩家的警告等级
 // ============================================================================
 
-bool SculkShriekerHelper::tryWarn(ServerWorld& world, const BlockPos& pos)
+bool SculkShriekerHelper::_tryWarn(ServerWorld& world, const BlockPos& pos)
 {
-    // 对齐 MC Java: WardenSpawnTracker.tryWarn()
-
     // 检查附近是否已有监守者
-    if (hasNearbyWarden(world, pos)) {
+    if (_hasNearbyWarden(world, pos)) {
         return false;
     }
 
@@ -413,10 +392,9 @@ bool SculkShriekerHelper::tryWarn(ServerWorld& world, const BlockPos& pos)
         return false;
     }
 
-    // 对齐 MC Java: 如果任何附近玩家的 WardenSpawnTracker 在冷却中，则不递增
     // 当前项目的 WardenWarningEffect 由方块实体管理，
     // 冷却逻辑通过方块实体的警告等级递增间隔实现。
-    // 为简化实现，直接递增方块实体的警告等级。
+    // TODO: 完善冷却逻辑，当任何附近玩家 WardenWarningEffect 在冷却中时不递增
 
     // 递增警告等级
     BlockEntity* be = world.getBlockEntity(pos);
@@ -428,8 +406,7 @@ bool SculkShriekerHelper::tryWarn(ServerWorld& world, const BlockPos& pos)
     i32 newLevel = shrieker->incrementWarningLevel();
     shrieker->setChanged();
 
-    // 对齐 MC Java: 同步附近玩家的 WardenSpawnTracker
-    // 将警告效果应用到附近玩家（通过 WardenWarningEffect）
+    // 同步附近玩家的警告效果（通过 WardenWarningEffect）
     for (Player* player : nearbyPlayers) {
         player->increaseWardenWarning(pos);
     }
@@ -443,7 +420,6 @@ bool SculkShriekerHelper::tryWarn(ServerWorld& world, const BlockPos& pos)
 
 Player* SculkShriekerHelper::tryGetPlayer(const Entity* entity)
 {
-    // 对齐 MC Java: SculkShriekerBlockEntity.tryGetPlayer()
     if (entity == nullptr) {
         return nullptr;
     }

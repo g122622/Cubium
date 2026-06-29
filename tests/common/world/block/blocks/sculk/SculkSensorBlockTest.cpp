@@ -302,7 +302,7 @@ TEST_F(SculkShriekerBlockTest, DefaultState_NotShriekingNotSummonNotWaterlogged)
 
 TEST_F(SculkShriekerBlockTest, ShriekingTicksConstant_Is90)
 {
-    // 对齐 MC Java: SHRIEKING_TICKS = 90 (4.5秒)
+    // SHRIEKING_TICKS = 90 (4.5秒)
     EXPECT_EQ(SculkShriekerBlock::SHRIEKING_TICKS, 90);
 }
 

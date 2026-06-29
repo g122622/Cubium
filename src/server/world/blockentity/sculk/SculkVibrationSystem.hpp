@@ -35,13 +35,6 @@
  * 方块实体的 Data 和 User 的引用，同时拥有 Listener 实例。
  * SculkVibrationManager 负责管理所有幽匿方块实体的振动系统附件，
  * 并在 ServerWorld 的生命周期钩子中驱动注册、注销和 tick。
- *
- * 参考 MC Java:
- * - SculkSensorBlockEntity 实现 VibrationSystem + GameEventListener.Provider
- * - SculkShriekerBlockEntity 实现 VibrationSystem + GameEventListener.Provider
- * - LevelChunk.addAndRegisterBlockEntity() 中注册 Listener
- * - LevelChunk.removeBlockEntity() 中注销 Listener
- * - Block.getTicker() 中调用 VibrationSystem.Ticker.tick()
  */
 
 #pragma once
@@ -68,7 +61,6 @@ class ServerChunkManager;
  * @brief 幽匿感测体的 VibrationSystem::User 实现
  *
  * 配置检测半径为 8 格，处理振动接收回调。
- * 对齐 MC 原版 SculkSensorBlockEntity.VibrationUser。
  */
 class SculkSensorVibrationUser : public gameevent::VibrationSystem::User {
 public:
@@ -122,7 +114,6 @@ private:
  * @brief 幽匿尖啸体的 VibrationSystem::User 实现
  *
  * 配置检测半径为 8 格，仅响应 SHRIEK 事件。
- * 对齐 MC 原版 SculkShriekerBlockEntity.VibrationUser。
  */
 class SculkShriekerVibrationUser : public gameevent::VibrationSystem::User {
 public:
@@ -178,9 +169,6 @@ private:
  * 持有 VibrationUser 和 VibrationSystem::Listener，通过引用
  * 访问方块实体的 VibrationSystem::Data。该类在 mc_server 中实例化，
  * 避免 mc_common 中的方块实体依赖 ServerWorld。
- *
- * 对齐 MC 原版：SculkSensorBlockEntity / SculkShriekerBlockEntity
- * 实现 VibrationSystem 接口 + GameEventListener.Provider。
  */
 class SculkVibrationSystem : public gameevent::VibrationSystem {
 public:
@@ -239,11 +227,6 @@ private:
  * - 在方块实体添加到世界时，创建 VibrationSystem 并注册 Listener
  * - 在方块实体从世界移除时，注销 Listener 并销毁 VibrationSystem
  * - 每 tick 驱动所有 VibrationSystem 的 Ticker
- *
- * 对齐 MC Java:
- * - LevelChunk.addAndRegisterBlockEntity() → registerSculkBlockEntity()
- * - LevelChunk.removeBlockEntity() → unregisterSculkBlockEntity()
- * - VibrationSystem.Ticker.tick() → tickAll()
  */
 class SculkVibrationManager {
 public:
@@ -261,7 +244,6 @@ public:
      * @brief 为幽匿感测体注册振动系统
      *
      * 创建 VibrationSystem 附件并注册 Listener 到区块的 GameEventListenerRegistry。
-     * 对齐 MC Java: LevelChunk.addAndRegisterBlockEntity()
      */
     void registerSculkSensor(blockentity::SculkSensorBlockEntity& entity);
 
@@ -269,7 +251,6 @@ public:
      * @brief 为幽匿尖啸体注册振动系统
      *
      * 创建 VibrationSystem 附件并注册 Listener 到区块的 GameEventListenerRegistry。
-     * 对齐 MC Java: LevelChunk.addAndRegisterBlockEntity()
      */
     void registerSculkShrieker(blockentity::SculkShriekerBlockEntity& entity);
 
@@ -277,14 +258,11 @@ public:
      * @brief 注销幽匿方块实体的振动系统
      *
      * 从区块的 GameEventListenerRegistry 注销 Listener 并销毁 VibrationSystem 附件。
-     * 对齐 MC Java: LevelChunk.removeBlockEntity() → removeGameEventListener()
      */
     void unregisterSculkBlockEntity(const BlockPos& pos);
 
     /**
      * @brief 驱动所有已注册幽匿方块实体的振动 tick
-     *
-     * 对齐 MC Java: Block.getTicker() → VibrationSystem.Ticker.tick()
      */
     void tickAll();
 

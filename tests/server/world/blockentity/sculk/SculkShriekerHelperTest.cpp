@@ -30,7 +30,7 @@
  * - SculkShriekerBlockEntity: warningLevel 与 canSummonWarden 的边界条件
  * - WardenWarningEffect: 警告等级递增/递减/冷却逻辑
  * - SculkShriekerHelper: tryGetPlayer 实体解析逻辑
- * - SculkShriekerHelper: 常量值验证（对齐 MC Java）
+ * - SculkShriekerHelper: 常量值验证
  *
  * 注意：SculkShriekerHelper 的 tryShriek/tryRespond/trySummonWarden 等方法
  * 依赖 ServerWorld，需要集成测试覆盖。此处仅测试不依赖 ServerWorld 的纯逻辑。
@@ -38,6 +38,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "server/world/blockentity/sculk/SculkShriekerHelper.hpp"
@@ -109,7 +110,7 @@ TEST_F(SculkShriekerBlockEntityShriekTest, ShriekingFinishedWithMaxWarningLevel)
 
 TEST_F(SculkShriekerBlockEntityShriekTest, WarningLevelResetAfterTryShriek)
 {
-    // 对齐 MC Java: tryShriek 每次调用都重置 warningLevel 为 0
+    // tryShriek 每次调用都重置 warningLevel 为 0
     // 此测试验证 BlockEntity 的 setWarningLevel(0) 行为
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
@@ -324,7 +325,7 @@ TEST_F(WardenWarningEffectTest, WarningRadius)
 }
 
 // ============================================================================
-// SculkShriekerHelper 常量验证测试（对齐 MC Java）
+// SculkShriekerHelper 常量验证测试
 // ============================================================================
 
 class SculkShriekerHelperConstantsTest : public ::testing::Test {
@@ -334,49 +335,49 @@ protected:
 
 TEST_F(SculkShriekerHelperConstantsTest, WardenSearchRadius)
 {
-    // 对齐 MC Java: WardenSpawnTracker.hasNearbyWarden() 搜索半径 48
+    // 搜索半径 48 格
     EXPECT_FLOAT_EQ(SculkShriekerHelper::WARDEN_SEARCH_RADIUS, 48.0f);
 }
 
 TEST_F(SculkShriekerHelperConstantsTest, PlayerSearchRadius)
 {
-    // 对齐 MC Java: WardenSpawnTracker.tryWarn() 搜索半径 16
+    // 搜索半径 16 格
     EXPECT_FLOAT_EQ(SculkShriekerHelper::PLAYER_SEARCH_RADIUS, 16.0f);
 }
 
 TEST_F(SculkShriekerHelperConstantsTest, DarknessRadius)
 {
-    // 对齐 MC Java: Warden.applyDarknessAround() 半径 40
+    // 黑暗效果半径 40 格
     EXPECT_FLOAT_EQ(SculkShriekerHelper::DARKNESS_RADIUS, 40.0f);
 }
 
 TEST_F(SculkShriekerHelperConstantsTest, DarknessDuration)
 {
-    // 对齐 MC Java: 260 tick = 13 秒
+    // 260 tick = 13 秒
     EXPECT_EQ(SculkShriekerHelper::DARKNESS_DURATION, 260);
 }
 
 TEST_F(SculkShriekerHelperConstantsTest, DarknessCooldown)
 {
-    // 对齐 MC Java: MobEffectUtil.addEffectToPlayersAround 冷却 200 tick
+    // 黑暗效果应用冷却 200 tick
     EXPECT_EQ(SculkShriekerHelper::DARKNESS_COOLDOWN, 200);
 }
 
 TEST_F(SculkShriekerHelperConstantsTest, SummonAttempts)
 {
-    // 对齐 MC Java: SpawnUtil.trySpawnMob() 20 次尝试
+    // 20 次尝试
     EXPECT_EQ(SculkShriekerHelper::SUMMON_ATTEMPTS, 20);
 }
 
 TEST_F(SculkShriekerHelperConstantsTest, SummonHorizontalRange)
 {
-    // 对齐 MC Java: 水平偏移 +/-5
+    // 水平偏移 +/-5
     EXPECT_EQ(SculkShriekerHelper::SUMMON_HORIZONTAL_RANGE, 5);
 }
 
 TEST_F(SculkShriekerHelperConstantsTest, SummonVerticalRange)
 {
-    // 对齐 MC Java: 垂直偏移 +/-6
+    // 垂直偏移 +/-6
     EXPECT_EQ(SculkShriekerHelper::SUMMON_VERTICAL_RANGE, 6);
 }
 
@@ -406,9 +407,47 @@ TEST_F(SculkShriekerHelperTryGetPlayerTest, NullptrEntityReturnsNullptr)
     EXPECT_EQ(result, nullptr);
 }
 
-// 注意：tryGetPlayer 的完整测试（直接玩家、载具乘客、投射物主人、物品主人）
-// 需要创建 Player/Entity 实例，依赖 IWorld，应在集成测试中覆盖。
-// 当前 tryGetPlayer 仅支持直接玩家解析，其余为 TODO。
+TEST_F(SculkShriekerHelperTryGetPlayerTest, DirectPlayerReturnsPlayer)
+{
+    // 直接传入玩家实体应返回该玩家
+    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    Player* result = SculkShriekerHelper::tryGetPlayer(player.get());
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result, player.get());
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, NonPlayerEntityReturnsNullptr)
+{
+    // 传入非玩家实体应返回 nullptr
+    // 当前 tryGetPlayer 仅支持直接玩家解析
+    // 投射物、载具、掉落物的主人解析为 TODO
+    // 使用 LivingEntity 作为非玩家实体
+    auto entity = std::make_unique<LivingEntity>(EntityId(2));
+    Player* result = SculkShriekerHelper::tryGetPlayer(entity.get());
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ConstPlayerReturnsMutablePlayer)
+{
+    // 传入 const Player* 应返回可变 Player*
+    auto player = std::make_unique<Player>(EntityId(3), "ConstPlayer");
+    const Player* constPlayer = player.get();
+    Player* result = SculkShriekerHelper::tryGetPlayer(constPlayer);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result, player.get());
+}
+
+// ============================================================================
+// SculkShriekerHelper canRespond 条件逻辑说明
+// ============================================================================
+//
+// _canRespond 的逻辑依赖 ServerWorld，无法在纯单元测试中覆盖。
+// 其条件为：
+//   1. CAN_SUMMON 方块状态属性为 true（自然生成的尖啸体）
+//   2. 非和平难度
+//   3. 游戏规则 DO_WARDEN_SPAWNING 为 true
+// 三个条件全部满足时才返回 true。
+// 这些条件需要集成测试覆盖。
 
 // ============================================================================
 // SculkShriekerBlockEntity 综合场景测试

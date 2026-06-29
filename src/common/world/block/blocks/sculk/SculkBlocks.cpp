@@ -489,7 +489,6 @@ BlockEntityType SculkShriekerBlock::getBlockEntityType() const
 
 void SculkShriekerBlock::onEntityWalk(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
-    // 对齐 MC Java: SculkShriekerBlock.stepOn()
     // 只有非潜行实体踩上时才发出 SHRIEK 游戏事件
     // 潜行实体不会触发幽匿尖啸体
     if (entity.isSteppingCarefully()) {
@@ -502,7 +501,6 @@ void SculkShriekerBlock::onEntityWalk(const BlockState& state, IWorld& world, co
     }
 
     // 发出 SHRIEK 游戏事件，通知附近的幽匿尖啸体振动系统
-    // 对齐 MC Java: SculkShriekerBlock.stepOn() 中调用 gameEvent(GameEvent.SHRIEK)
     world.gameEvent(gameevent::GameEvents::SHRIEK, pos, gameevent::GameEvent::Context(&entity, &state));
 }
 
@@ -510,7 +508,6 @@ void SculkShriekerBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
 {
     MC_UNUSED(random);
 
-    // 对齐 MC Java: SculkShriekerBlock.tick()
     // SHRIEKING 状态到期后转回非 SHRIEKING 状态
     if (state.get(BlockStateProperties::SHRIEKING())) {
         // 将 SHRIEKING 设回 false
@@ -518,9 +515,7 @@ void SculkShriekerBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
         world.setBlockState(pos, newState, 3);
 
         // 尖啸结束后，通知服务端执行响应逻辑（警告声音、黑暗效果、召唤检查）
-        // 通过 gameEvent 机制通知，服务端 SculkShriekerHelper 会处理
-        // 这里用一个 SHRIEK 完成事件标记（MC Java 中直接在 block entity 调用 tryRespond）
-        // 由于 block tick 在 common 层，我们设置方块实体标记以让服务端处理
+        // 由于 block tick 在 common 层，设置方块实体标记以让服务端处理
         BlockEntity* be = world.getBlockEntity(pos);
         if (be != nullptr && be->getType() == BlockEntityType::SculkShrieker) {
             auto* shrieker = static_cast<blockentity::SculkShriekerBlockEntity*>(be);
@@ -532,7 +527,6 @@ void SculkShriekerBlock::tick(IWorld& world, const BlockPos& pos, BlockState& st
 
 void SculkShriekerBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 对齐 MC Java: SculkShriekerBlock.preRemoveSideEffects()
     // 如果方块正在 SHRIEKING 状态时被移除，仍需执行响应逻辑
     if (state.get(BlockStateProperties::SHRIEKING())) {
         BlockEntity* be = world.getBlockEntity(pos);
@@ -548,7 +542,6 @@ void SculkShriekerBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, cons
 
 void SculkShriekerBlock::shriek(IWorld& world, const BlockPos& pos, const BlockState& state, const Entity* sourceEntity)
 {
-    // 对齐 MC Java: SculkShriekerBlockEntity.shriek()
     // 1. 设置 SHRIEKING 方块状态为 true
     const BlockState* newState = &state.with(BlockStateProperties::SHRIEKING(), true);
     world.setBlockState(pos, newState, 3);
@@ -557,11 +550,9 @@ void SculkShriekerBlock::shriek(IWorld& world, const BlockPos& pos, const BlockS
     world.tickManager().scheduleBlockTick(pos, state.getBlock(), SHRIEKING_TICKS);
 
     // 3. 发出尖啸粒子效果（事件 ID 3007）
-    // 对齐 MC Java: ServerLevel.levelEvent(3007, pos, 0)
     world.playEvent(mc::world::WorldEvents::SCULK_SHRIEK, pos, 0);
 
     // 4. 发出 SHRIEK 游戏事件（通知附近的幽匿感测体/尖啸体振动系统）
-    // 对齐 MC Java: level.gameEvent(GameEvent.SHRIEK, pos, Context.of(sourceEntity))
     const BlockState* currentState = world.getBlockState(pos);
     world.gameEvent(gameevent::GameEvents::SHRIEK,
         pos,

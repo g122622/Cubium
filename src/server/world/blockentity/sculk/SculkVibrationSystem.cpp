@@ -68,7 +68,7 @@ bool SculkSensorVibrationUser::canReceiveVibration(ServerWorld& world,
         }
     }
 
-    // 对齐 MC Java: 只有当前 Phase 为 Inactive 时才能接收振动
+    // 只有当前 Phase 为 Inactive 时才能接收振动
     // 活跃或冷却期间不能再次被激活
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
@@ -78,7 +78,7 @@ bool SculkSensorVibrationUser::canReceiveVibration(ServerWorld& world,
         return false;
     }
 
-    // 对齐 MC Java: 拒绝来自自身位置的 BLOCK_DESTROY/BLOCK_PLACE 事件
+    // 拒绝来自自身位置的 BLOCK_DESTROY/BLOCK_PLACE 事件
     // （防止感测体被放置/破坏时自己激活自己，但允许来自其他位置的同类事件）
     if (&event == &gameevent::GameEvents::BLOCK_DESTROY || &event == &gameevent::GameEvents::BLOCK_PLACE) {
         if (pos == m_entity.getPos()) {
@@ -128,7 +128,6 @@ bool SculkShriekerVibrationUser::canReceiveVibration(ServerWorld& world,
     MC_UNUSED(pos);
 
     // 幽匿尖啸体只响应 SHRIEK 事件（来自其他尖啸体）
-    // 对齐 MC 原版：SculkShriekerBlockEntity.VibrationUser.canReceiveVibration()
     if (&event != &gameevent::GameEvents::SHRIEK) {
         return false;
     }
@@ -150,7 +149,6 @@ void SculkShriekerVibrationUser::onReceiveVibration(ServerWorld& world,
     MC_UNUSED(event);
     MC_UNUSED(distance);
 
-    // 对齐 MC Java: SculkShriekerBlockEntity.VibrationUser.onReceiveVibration()
     // 振动到达时，触发尖啸体的 tryShriek 逻辑
     // tryShriek 内部会检查 SHRIEKING 状态、解析玩家、检查条件、递增警告等级、播放效果
     SculkShriekerHelper::tryShriek(world, pos, sourceEntity);
@@ -224,7 +222,6 @@ void SculkVibrationManager::tickAll()
     }
 
     // 检查幽匿尖啸体的 SHRIEKING 结束标志
-    // 对齐 MC Java: SculkShriekerBlock.tick() 中 SHRIEKING → false 后调用 tryRespond()
     for (auto& [pos, system] : m_vibrationSystems) {
         // 仅检查尖啸体（感测体没有 SHRIEKING 机制）
         if (!system->getVibrationUser().isSculkShrieker()) {
@@ -236,7 +233,6 @@ void SculkVibrationManager::tickAll()
 
 void SculkVibrationManager::registerListenerInChunk(const BlockPos& pos, gameevent::GameEventListener& listener)
 {
-    // 对齐 MC Java: LevelChunk.addGameEventListener()
     // 计算方块所在的区块和段落坐标
     ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
@@ -261,7 +257,6 @@ void SculkVibrationManager::registerListenerInChunk(const BlockPos& pos, gameeve
 
 void SculkVibrationManager::unregisterListenerFromChunk(const BlockPos& pos, gameevent::GameEventListener& listener)
 {
-    // 对齐 MC Java: LevelChunk.removeGameEventListener()
     ChunkCoord chunkX = CoordConverter::blockToChunk(pos.x);
     ChunkCoord chunkZ = CoordConverter::blockToChunk(pos.z);
     i32 sectionY = pos.sectionCoord();

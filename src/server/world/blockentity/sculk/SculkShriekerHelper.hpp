@@ -35,15 +35,6 @@
  *
  * 这些逻辑依赖 ServerWorld（玩家查找、实体搜索、效果应用等），
  * 因此不能放在 mc_common 层的 SculkShriekerBlock 中。
- *
- * 参考 MC Java:
- * - SculkShriekerBlockEntity.tryShriek()
- * - SculkShriekerBlockEntity.tryRespond()
- * - SculkShriekerBlockEntity.trySummonWarden()
- * - SculkShriekerBlockEntity.canRespond()
- * - SculkShriekerBlockEntity.playWardenReplySound()
- * - WardenSpawnTracker.tryWarn()
- * - Warden.applyDarknessAround()
  */
 
 #pragma once
@@ -125,7 +116,7 @@ public:
 
     // ========== 常量 ==========
 
-    /// 尖啸体警告等级对应的声音（对齐 MC Java SOUND_BY_LEVEL 映射）
+    /// 尖啸体警告等级对应的声音
     static constexpr const char* WARDEN_SOUND_BY_LEVEL[5] = {
         nullptr,                                  // level 0: no sound
         "minecraft:entity.warden.nearby_close",   // level 1
@@ -162,56 +153,50 @@ private:
     /**
      * @brief 检查尖啸体是否可以响应（召唤监守者的前置条件）
      *
-     * 对齐 MC Java: SculkShriekerBlockEntity.canRespond()
      * 条件：CAN_SUMMON=true、非和平难度、游戏规则允许监守者生成
      */
-    static bool canRespond(ServerWorld& world, const BlockPos& pos);
+    static bool _canRespond(ServerWorld& world, const BlockPos& pos);
 
     /**
      * @brief 尝试召唤监守者
      *
-     * 对齐 MC Java: SculkShriekerBlockEntity.trySummonWarden()
      * 在尖啸体附近 +/-5 水平、+6 垂直范围内尝试找到有效生成位置。
      * 需要监守者实体类型已注册且可生成。
      *
      * @return 是否成功召唤
      */
-    static bool trySummonWarden(ServerWorld& world, const BlockPos& pos);
+    static bool _trySummonWarden(ServerWorld& world, const BlockPos& pos);
 
     /**
      * @brief 播放监守者回应声音
      *
-     * 对齐 MC Java: SculkShriekerBlockEntity.playWardenReplySound()
      * 根据警告等级播放不同声音，在尖啸体附近随机偏移位置播放。
      */
-    static void playWardenReplySound(ServerWorld& world, const BlockPos& pos, i32 warningLevel);
+    static void _playWardenReplySound(ServerWorld& world, const BlockPos& pos, i32 warningLevel);
 
     /**
      * @brief 检查附近是否有监守者
      *
-     * 对齐 MC Java: WardenSpawnTracker.hasNearbyWarden()
      * 在 48x48x48 范围内搜索是否存在监守者实体。
      */
-    static bool hasNearbyWarden(ServerWorld& world, const BlockPos& pos);
+    static bool _hasNearbyWarden(ServerWorld& world, const BlockPos& pos);
 
     /**
      * @brief 对附近玩家应用黑暗效果
      *
-     * 对齐 MC Java: Warden.applyDarknessAround()
      * 对半径 40 格内的玩家应用黑暗效果（260 tick 持续时间）。
      */
-    static void applyDarknessAround(ServerWorld& world, const BlockPos& pos);
+    static void _applyDarknessAround(ServerWorld& world, const BlockPos& pos);
 
     /**
      * @brief 尝试递增附近玩家的警告等级
      *
-     * 对齐 MC Java: WardenSpawnTracker.tryWarn()
      * 查找附近 16 格内的玩家，检查冷却，递增最高警告等级玩家的等级，
      * 并同步所有附近玩家的警告等级。
      *
      * @return 警告等级是否成功递增
      */
-    static bool tryWarn(ServerWorld& world, const BlockPos& pos);
+    static bool _tryWarn(ServerWorld& world, const BlockPos& pos);
 };
 
 } // namespace server
