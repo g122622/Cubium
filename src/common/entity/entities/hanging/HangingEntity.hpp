@@ -207,8 +207,9 @@ public:
     /**
      * @brief 设置展示的物品
      * @param stack 要展示的物品堆
+     * @param updateComparator 是否通知红石比较器更新（NBT加载时传false，交互时传true）
      */
-    void setDisplayedItem(const ItemStack& stack);
+    void setDisplayedItem(const ItemStack& stack, bool updateComparator = true);
 
     /**
      * @brief 获取展示的物品堆
@@ -224,8 +225,9 @@ public:
     /**
      * @brief 设置物品旋转
      * @param rotation 0-7（每45度一个位置）
+     * @param updateComparator 是否通知红石比较器更新（NBT加载时传false，交互时传true）
      */
-    void setItemRotation(i32 rotation);
+    void setItemRotation(i32 rotation, bool updateComparator = true);
 
     /**
      * @brief 获取物品旋转值
@@ -237,6 +239,14 @@ public:
      * @brief 旋转物品（右键交互时调用）
      */
     void rotateItem();
+
+    /**
+     * @brief 通知悬挂位置周围的红石比较器重新计算输入信号
+     *
+     * 当物品展示框的内容变化（放入/取出/旋转物品）时调用，
+     * 使相邻的红石比较器能够感知到信号变化并更新状态。
+     */
+    void notifyComparatorUpdate();
 
     /**
      * @brief 获取红石比较器模拟输出信号

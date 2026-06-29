@@ -39,6 +39,7 @@
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -298,11 +299,12 @@ ActionResultType ItemFrameEntity::processInitialInteract(Player& player, Hand ha
         if (m_displayedItem.isEmpty()) {
             // 展示框为空：放入玩家手中的物品
             if (!heldItem.isEmpty()) {
-                setDisplayedItem(heldItem);
+                setDisplayedItem(heldItem, true);
                 if (!player.abilities().creativeMode) {
                     heldItem.shrink(1);
                 }
-                // TODO: 触发红石比较器更新
+                m_world->gameEvent(
+                    gameevent::GameEvents::BLOCK_CHANGE, m_hangingPos, gameevent::GameEvent::Context::of(&player));
                 return ActionResultType::Success;
             }
         } else if (player.isSneaking()) {
@@ -311,14 +313,15 @@ ActionResultType ItemFrameEntity::processInitialInteract(Player& player, Hand ha
                 math::Random& rng = m_world->getRandom();
                 ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
             }
-            m_displayedItem = ItemStack();
-            m_rotation = 0;
-            // TODO: 触发红石比较器更新
+            setDisplayedItem(ItemStack(), true);
+            m_world->gameEvent(
+                gameevent::GameEvents::BLOCK_CHANGE, m_hangingPos, gameevent::GameEvent::Context::of(&player));
             return ActionResultType::Success;
         } else {
             // 右键有物品的展示框（不潜行）：旋转物品
-            rotateItem();
-            // TODO: 触发红石比较器更新
+            setItemRotation(m_rotation + 1, true);
+            m_world->gameEvent(
+                gameevent::GameEvents::BLOCK_CHANGE, m_hangingPos, gameevent::GameEvent::Context::of(&player));
             return ActionResultType::Success;
         }
     }
@@ -353,9 +356,17 @@ void ItemFrameEntity::dropItem()
 
     // 无论 doEntityDrops 是否为 true，都清空展示物品
     m_displayedItem = ItemStack();
+
+    // 展示框内容变化，通知红石比较器更新
+    notifyComparatorUpdate();
+
+    // 触发方块变化游戏事件（幽匿感测体等可感知）
+    if (m_world != nullptr) {
+        m_world->gameEvent(gameevent::GameEvents::BLOCK_CHANGE, m_hangingPos, nullptr);
+    }
 }
 
-void ItemFrameEntity::setDisplayedItem(const ItemStack& stack)
+void ItemFrameEntity::setDisplayedItem(const ItemStack& stack, bool updateComparator)
 {
     if (!stack.isEmpty()) {
         // 复制物品堆并设置数量为1
@@ -366,21 +377,38 @@ void ItemFrameEntity::setDisplayedItem(const ItemStack& stack)
     }
     // 旋转重置为0
     m_rotation = 0;
+
+    if (updateComparator) {
+        notifyComparatorUpdate();
+    }
 }
 
-void ItemFrameEntity::setItemRotation(i32 rotation)
+void ItemFrameEntity::setItemRotation(i32 rotation, bool updateComparator)
 {
     // 旋转值限制在 0-7 范围内
     m_rotation = rotation % 8;
     if (m_rotation < 0) {
         m_rotation += 8;
     }
+
+    if (updateComparator) {
+        notifyComparatorUpdate();
+    }
 }
 
 void ItemFrameEntity::rotateItem()
 {
     // 右键交互时旋转物品
-    m_rotation = (m_rotation + 1) % 8;
+    setItemRotation(m_rotation + 1, true);
+}
+
+void ItemFrameEntity::notifyComparatorUpdate()
+{
+    // 通知悬挂位置周围的红石比较器重新计算输入信号
+    // 物品展示框的内容变化（放入/取出/旋转物品）会影响比较器输出
+    if (m_world != nullptr) {
+        world::redstone::RedstoneSystem::instance().updateComparators(*m_world, m_hangingPos);
+    }
 }
 
 i32 ItemFrameEntity::getAnalogOutput() const
