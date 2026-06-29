@@ -58,6 +58,7 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
+#include "common/network/packet/SetEntityLinkPacket.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -513,6 +514,12 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
         Entity* entity = world.getEntity(entityId);
         if (entity != nullptr) {
             broadcastEntityAnimationInRange(entityId, animation, entity->position());
+        }
+    });
+    world.setOnBroadcastSetEntityLink([this, &world](EntityId entityId, EntityId linkedEntityId) {
+        Entity* entity = world.getEntity(entityId);
+        if (entity != nullptr) {
+            broadcastSetEntityLinkInRange(entityId, linkedEntityId, entity->position());
         }
     });
     world.setOnBroadcastWorldEvent(
@@ -2577,6 +2584,32 @@ void MinecraftServer::broadcastEntityAnimationInRange(EntityId entityId, u8 anim
     }
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityAnimation, result.value());
+
+    f32 rangeSq = range * range;
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastSetEntityLinkInRange(
+    EntityId entityId, EntityId linkedEntityId, const Vector3& pos, f32 range)
+{
+    network::SetEntityLinkPacket packet(static_cast<u32>(entityId), static_cast<u32>(linkedEntityId));
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize SetEntityLinkPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::SetEntityLink, result.value());
 
     f32 rangeSq = range * range;
     m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {

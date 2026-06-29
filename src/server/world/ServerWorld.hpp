@@ -519,6 +519,21 @@ public:
         m_onBroadcastEntityAnimation = std::move(callback);
     }
 
+    // ========== 实体拴绳链接广播回调 ==========
+
+    /**
+     * @brief 实体拴绳链接广播回调类型
+     *
+     * 当拴绳状态变更时广播给客户端，用于绳索渲染同步。
+     * 参数：被拴实体ID、持有者实体ID（0=解除拴绳）
+     */
+    using SetEntityLinkCallback = std::function<void(EntityId entityId, EntityId linkedEntityId)>;
+
+    void setOnBroadcastSetEntityLink(SetEntityLinkCallback callback)
+    {
+        m_onBroadcastSetEntityLink = std::move(callback);
+    }
+
     // ========== 世界事件回调 ==========
 
     /**
@@ -618,6 +633,8 @@ public:
     void broadcastEntityStatus(EntityId entityId, u8 status) override;
 
     void broadcastEntityAnimation(EntityId entityId, u8 animation) override;
+
+    void broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId) override;
 
     // ========== 爆炸 ==========
 
@@ -1226,6 +1243,7 @@ private:
     VibrationParticleBroadcastCallback m_onBroadcastVibrationParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
+    SetEntityLinkCallback m_onBroadcastSetEntityLink;
     WorldEventCallback m_onBroadcastWorldEvent;
     BlockBreakProgressCallback m_onDestroyBlockProgress;
     ExplosionBroadcastCallback m_onBroadcastExplosion;

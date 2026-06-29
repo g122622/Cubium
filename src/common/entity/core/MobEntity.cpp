@@ -47,6 +47,7 @@
 #include "../combat/PlayerAttackHelper.hpp"
 #include "../core/AgeableEntity.hpp"
 #include "../damage/DamageSource.hpp"
+#include "../entities/hanging/HangingEntity.hpp"
 #include "../entities/player/Player.hpp"
 #include "../entities/vehicle/BoatEntity.hpp"
 #include "../experience/ExperienceDropHandler.hpp"
@@ -673,6 +674,23 @@ void MobEntity::setLeashedToEntity(const std::string& holderUuid)
     m_isLeashed = true;
     m_leashHolderUuid = holderUuid;
     m_leashFencePos = std::nullopt;
+
+    // 广播拴绳链接变更给客户端
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        // 查找持有者实体ID
+        EntityId linkedId = INVALID_ENTITY_ID;
+        Vector3 centerPos(m_position.x, m_position.y, m_position.z);
+        auto entities = m_world->getEntitiesInRange(centerPos, 20.0f);
+        for (Entity* entity : entities) {
+            if (entity->uuid() == holderUuid) {
+                linkedId = entity->id();
+                break;
+            }
+        }
+        if (linkedId != INVALID_ENTITY_ID) {
+            m_world->broadcastSetEntityLink(id(), linkedId);
+        }
+    }
 }
 
 void MobEntity::setLeashedToFence(const BlockPos& pos)
@@ -680,10 +698,29 @@ void MobEntity::setLeashedToFence(const BlockPos& pos)
     m_isLeashed = true;
     m_leashHolderUuid = std::nullopt;
     m_leashFencePos = pos;
+
+    // 广播拴绳链接变更给客户端
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        // 查找栅栏位置的拴绳结实体
+        Vector3 centerPos(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
+        auto entities = m_world->getEntitiesInRange(centerPos, 2.0f);
+        for (Entity* entity : entities) {
+            auto* knot = dynamic_cast<entity::LeashKnotEntity*>(entity);
+            if (knot != nullptr && knot->isAlive() && knot->getHangingBlockPos() == pos) {
+                m_world->broadcastSetEntityLink(id(), knot->id());
+                break;
+            }
+        }
+    }
 }
 
 void MobEntity::clearLeash()
 {
+    // 广播拴绳解除给客户端（必须在清除状态之前发送，因为需要被拴实体的ID）
+    if (m_isLeashed && m_world != nullptr && !m_world->isClientSide()) {
+        m_world->broadcastSetEntityLink(id(), EntityId(0));
+    }
+
     m_isLeashed = false;
     m_leashHolderUuid = std::nullopt;
     m_leashFencePos = std::nullopt;

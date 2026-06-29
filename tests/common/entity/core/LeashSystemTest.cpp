@@ -1,0 +1,472 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include <gtest/gtest.h>
+
+#include "common/TestWorldHelper.hpp"
+#include "common/entity/core/MobEntity.hpp"
+#include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/entities/hanging/HangingEntity.hpp"
+#include "common/entity/entities/monster/undead/ZombieEntity.hpp"
+#include "common/entity/entities/passive/basic/PigEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/interfaces/IMob.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/items/special/LeadItem.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+
+using namespace mc;
+using namespace mc::entity;
+
+// ============================================================================
+// 测试世界
+// ============================================================================
+
+class LeashTestWorld final : public test::BaseTestWorld {
+public:
+    LeashTestWorld()
+    {
+        Items::initialize();
+        VanillaBlocks::initialize();
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    void setDifficulty(Difficulty d) { m_difficulty = d; }
+
+private:
+    Difficulty m_difficulty = Difficulty::Normal;
+};
+
+// ============================================================================
+// 测试夹具
+// ============================================================================
+
+class LeashSystemTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            VanillaEntities::registerAll();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override { m_world = std::make_unique<LeashTestWorld>(); }
+
+    std::unique_ptr<LeashTestWorld> m_world;
+};
+
+// ============================================================================
+// MobEntity 拴绳状态测试
+// ============================================================================
+
+TEST_F(LeashSystemTest, MobInitiallyNotLeashed)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+
+    EXPECT_FALSE(pig->isLeashed());
+    EXPECT_FALSE(pig->leashHolderUuid().has_value());
+    EXPECT_FALSE(pig->leashFencePos().has_value());
+}
+
+TEST_F(LeashSystemTest, SetLeashedToEntity_SetsLeashedState)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+
+    const std::string playerUuid = "test-player-uuid-1234";
+    pig->setLeashedToEntity(playerUuid);
+
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_TRUE(pig->leashHolderUuid().has_value());
+    EXPECT_EQ(pig->leashHolderUuid().value(), playerUuid);
+    EXPECT_FALSE(pig->leashFencePos().has_value());
+}
+
+TEST_F(LeashSystemTest, SetLeashedToFence_SetsLeashedState)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+
+    BlockPos fencePos(10, 64, 20);
+    pig->setLeashedToFence(fencePos);
+
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_FALSE(pig->leashHolderUuid().has_value());
+    EXPECT_TRUE(pig->leashFencePos().has_value());
+    EXPECT_EQ(pig->leashFencePos().value(), fencePos);
+}
+
+TEST_F(LeashSystemTest, ClearLeash_ClearsAllLeashState)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+
+    pig->setLeashedToEntity("test-uuid");
+    EXPECT_TRUE(pig->isLeashed());
+
+    pig->clearLeash();
+    EXPECT_FALSE(pig->isLeashed());
+    EXPECT_FALSE(pig->leashHolderUuid().has_value());
+    EXPECT_FALSE(pig->leashFencePos().has_value());
+}
+
+TEST_F(LeashSystemTest, DropLeash_ClearsLeashState)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+
+    pig->setLeashedToEntity("test-uuid");
+    EXPECT_TRUE(pig->isLeashed());
+
+    pig->dropLeash();
+    EXPECT_FALSE(pig->isLeashed());
+    EXPECT_FALSE(pig->leashHolderUuid().has_value());
+}
+
+TEST_F(LeashSystemTest, CanBeLeashed_PassiveMobReturnsTrue)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    EXPECT_TRUE(pig->canBeLeashed());
+}
+
+TEST_F(LeashSystemTest, CanBeLeashed_HostileMobReturnsFalse)
+{
+    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    EXPECT_FALSE(zombie->canBeLeashed());
+}
+
+// ============================================================================
+// processInitialInteract 拴绳交互测试
+// ============================================================================
+
+TEST_F(LeashSystemTest, ProcessInitialInteract_LeadLeashesPig)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Survival);
+
+    // 设置玩家手持拴绳
+    ItemStack leadStack(Items::LEAD, 1);
+    player->getHeldItem(Hand::MainHand) = leadStack;
+
+    EXPECT_FALSE(pig->isLeashed());
+
+    auto result = pig->processInitialInteract(*player, Hand::MainHand);
+
+    // 应返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 猪应该被拴住
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_TRUE(pig->leashHolderUuid().has_value());
+    EXPECT_EQ(pig->leashHolderUuid().value(), player->uuid());
+
+    // 生存模式下拴绳应被消耗
+    EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 0);
+}
+
+TEST_F(LeashSystemTest, ProcessInitialInteract_LeadLeashesPig_CreativeModeNoConsume)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Creative);
+
+    // 设置玩家手持拴绳
+    ItemStack leadStack(Items::LEAD, 1);
+    player->getHeldItem(Hand::MainHand) = leadStack;
+
+    auto result = pig->processInitialInteract(*player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(pig->isLeashed());
+
+    // 创造模式下拴绳不应被消耗
+    EXPECT_EQ(player->getHeldItem(Hand::MainHand).getCount(), 1);
+}
+
+TEST_F(LeashSystemTest, ProcessInitialInteract_LeadUnleashesAlreadyLeashedPig)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+    player->setGameMode(GameMode::Survival);
+
+    // 先拴住猪
+    pig->setLeashedToEntity(player->uuid());
+    EXPECT_TRUE(pig->isLeashed());
+
+    // 手持拴绳再次右键应该解除拴绳
+    ItemStack leadStack(Items::LEAD, 1);
+    player->getHeldItem(Hand::MainHand) = leadStack;
+
+    auto result = pig->processInitialInteract(*player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_FALSE(pig->isLeashed());
+}
+
+TEST_F(LeashSystemTest, ProcessInitialInteract_LeadCannotLeashHostileMob)
+{
+    auto zombie = std::make_unique<ZombieEntity>(EntityId(1));
+    zombie->setWorld(m_world.get());
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+
+    // 设置玩家手持拴绳
+    ItemStack leadStack(Items::LEAD, 1);
+    player->getHeldItem(Hand::MainHand) = leadStack;
+
+    auto result = zombie->processInitialInteract(*player, Hand::MainHand);
+
+    // 敌对生物不能被拴住，应返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+    EXPECT_FALSE(zombie->isLeashed());
+}
+
+TEST_F(LeashSystemTest, ProcessInitialInteract_EmptyHandDoesNotLeash)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+
+    // 空手不应拴住生物
+    auto result = pig->processInitialInteract(*player, Hand::MainHand);
+
+    // 空手交互不应拴住猪（可能调用 interactMob）
+    EXPECT_FALSE(pig->isLeashed());
+}
+
+// ============================================================================
+// LeashKnotEntity 测试
+// ============================================================================
+
+TEST_F(LeashSystemTest, LeashKnotEntityCreation)
+{
+    entity::LeashKnotEntity knot;
+    EXPECT_EQ(knot.getWidth(), 1);
+    EXPECT_EQ(knot.getHeight(), 1);
+}
+
+TEST_F(LeashSystemTest, LeashKnotEntityAttachDetach)
+{
+    entity::LeashKnotEntity knot;
+
+    // 创建测试实体用于绑定
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    Entity* rawPig = pig.get();
+
+    // 绑定
+    knot.attachLeash(rawPig);
+    EXPECT_EQ(knot.getLeashedEntities().size(), 1u);
+    EXPECT_EQ(knot.getLeashedEntities()[0], rawPig);
+
+    // 重复绑定不应添加重复
+    knot.attachLeash(rawPig);
+    EXPECT_EQ(knot.getLeashedEntities().size(), 1u);
+
+    // 解绑
+    knot.detachLeash(rawPig);
+    EXPECT_EQ(knot.getLeashedEntities().size(), 0u);
+
+    // 解绑不存在的实体不应崩溃
+    knot.detachLeash(rawPig);
+    EXPECT_EQ(knot.getLeashedEntities().size(), 0u);
+}
+
+TEST_F(LeashSystemTest, LeashKnotEntitySurivesWithoutWorld)
+{
+    entity::LeashKnotEntity knot;
+    // 没有设置世界时应返回 false
+    EXPECT_FALSE(knot.survives());
+}
+
+// ============================================================================
+// ItemFrameEntity processInitialInteract 测试
+// ============================================================================
+
+TEST_F(LeashSystemTest, ItemFrameProcessInitialInteract_PlaceItem)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(m_world.get());
+    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    player->setWorld(m_world.get());
+
+    // 展示框初始为空
+    EXPECT_FALSE(itemFrame.hasItem());
+    EXPECT_EQ(itemFrame.getItemRotation(), 0);
+
+    // 手持钻石放入展示框
+    ItemStack diamond(Items::DIAMOND, 1);
+    player->getHeldItem(Hand::MainHand) = diamond;
+
+    auto result = itemFrame.processInitialInteract(*player, Hand::MainHand);
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(itemFrame.hasItem());
+}
+
+TEST_F(LeashSystemTest, ItemFrameProcessInitialInteract_RotateItem)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(m_world.get());
+    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    player->setWorld(m_world.get());
+
+    // 先放入物品
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond);
+    EXPECT_TRUE(itemFrame.hasItem());
+
+    // 空手右键应旋转物品
+    auto result = itemFrame.processInitialInteract(*player, Hand::MainHand);
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_EQ(itemFrame.getItemRotation(), 1);
+}
+
+TEST_F(LeashSystemTest, ItemFrameProcessInitialInteract_SneakRemoveItem)
+{
+    entity::ItemFrameEntity itemFrame;
+    itemFrame.setWorld(m_world.get());
+    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    player->setWorld(m_world.get());
+
+    // 先放入物品
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond);
+    EXPECT_TRUE(itemFrame.hasItem());
+
+    // 潜行+右键应取出物品
+    player->setSneaking(true);
+
+    auto result = itemFrame.processInitialInteract(*player, Hand::MainHand);
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_FALSE(itemFrame.hasItem());
+    EXPECT_EQ(itemFrame.getItemRotation(), 0);
+}
+
+// ============================================================================
+// ItemFrameEntity 红石信号测试
+// ============================================================================
+
+TEST_F(LeashSystemTest, ItemFrameAnalogOutput_NoItem_ReturnsZero)
+{
+    entity::ItemFrameEntity itemFrame;
+    EXPECT_FALSE(itemFrame.hasItem());
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 0);
+}
+
+TEST_F(LeashSystemTest, ItemFrameAnalogOutput_WithItem_ReturnsRotationPlusOne)
+{
+    entity::ItemFrameEntity itemFrame;
+    ItemStack diamond(Items::DIAMOND, 1);
+    itemFrame.setDisplayedItem(diamond);
+
+    itemFrame.setItemRotation(0);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 1);
+
+    itemFrame.setItemRotation(7);
+    EXPECT_EQ(itemFrame.getAnalogOutput(), 8);
+}
+
+// ============================================================================
+// MobEntity NBT 序列化 - 拴绳数据测试
+// ============================================================================
+
+TEST_F(LeashSystemTest, LeashDataNbtSerialization_EntityLeash)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+
+    // 设置拴绳绑定到实体
+    pig->setLeashedToEntity("550e8400-e29b-41d4-a716-446655440000");
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_TRUE(pig->leashHolderUuid().has_value());
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    pig->addAdditionalSaveData(tag);
+
+    // 反序列化到新实体
+    auto pig2 = std::make_unique<PigEntity>(EntityId(2));
+    pig2->readAdditionalSaveData(tag);
+
+    // 验证拴绳数据
+    EXPECT_TRUE(pig2->isLeashed());
+    EXPECT_TRUE(pig2->leashHolderUuid().has_value());
+    EXPECT_EQ(pig2->leashHolderUuid().value(), "550e8400-e29b-41d4-a716-446655440000");
+    EXPECT_FALSE(pig2->leashFencePos().has_value());
+}
+
+TEST_F(LeashSystemTest, LeashDataNbtSerialization_FenceLeash)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+
+    // 设置拴绳绑定到栅栏
+    BlockPos fencePos(100, 64, -200);
+    pig->setLeashedToFence(fencePos);
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_TRUE(pig->leashFencePos().has_value());
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    pig->addAdditionalSaveData(tag);
+
+    // 反序列化到新实体
+    auto pig2 = std::make_unique<PigEntity>(EntityId(2));
+    pig2->readAdditionalSaveData(tag);
+
+    // 验证拴绳数据
+    EXPECT_TRUE(pig2->isLeashed());
+    EXPECT_FALSE(pig2->leashHolderUuid().has_value());
+    EXPECT_TRUE(pig2->leashFencePos().has_value());
+    EXPECT_EQ(pig2->leashFencePos().value(), fencePos);
+}
+
+TEST_F(LeashSystemTest, LeashDataNbtSerialization_NoLeash)
+{
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+
+    // 不设置拴绳
+    EXPECT_FALSE(pig->isLeashed());
+
+    // 序列化
+    nbt::tags::compound_tag tag;
+    pig->addAdditionalSaveData(tag);
+
+    // 反序列化到新实体
+    auto pig2 = std::make_unique<PigEntity>(EntityId(2));
+    pig2->readAdditionalSaveData(tag);
+
+    // 应该仍然没有被拴住
+    EXPECT_FALSE(pig2->isLeashed());
+}

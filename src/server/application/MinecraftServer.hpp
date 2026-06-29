@@ -749,6 +749,20 @@ protected:
      */
     void broadcastEntityAnimationInRange(EntityId entityId, u8 animation, const Vector3& pos, f32 range = 64.0f);
 
+    /**
+     * @brief 向范围内玩家广播实体拴绳链接变更
+     *
+     * 创建 SetEntityLinkPacket 并发送给指定位置附近的玩家，
+     * 用于客户端拴绳绳索的渲染同步。
+     *
+     * @param entityId 被拴实体的ID
+     * @param linkedEntityId 拴绳持有者实体ID（0=解除拴绳）
+     * @param pos 被拴实体位置（用于确定广播范围）
+     * @param range 广播范围（格），默认 64 格
+     */
+    void broadcastSetEntityLinkInRange(
+        EntityId entityId, EntityId linkedEntityId, const Vector3& pos, f32 range = 64.0f);
+
     // ========== 世界事件广播方法 ==========
 
     /**

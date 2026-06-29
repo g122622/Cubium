@@ -191,6 +191,16 @@ public:
     void tick() override;
     void dropItem() override;
 
+    /**
+     * @brief 处理玩家与物品展示框的交互
+     *
+     * 当玩家右键点击物品展示框时：
+     * - 空手/有物品时空展示框：放入物品
+     * - 空手时有物品的展示框：旋转物品
+     * - 潜行时有物品的展示框：取出物品
+     */
+    ActionResultType processInitialInteract(Player& player, Hand hand) override;
+
     [[nodiscard]] i32 getWidth() const override { return 1; }
     [[nodiscard]] i32 getHeight() const override { return 1; }
 
@@ -287,6 +297,13 @@ public:
 
     void tick() override;
     void dropItem() override;
+
+    /**
+     * @brief 处理玩家与拴绳结的交互
+     *
+     * 当玩家右键点击拴绳结时，委派给 interact() 方法处理拴绳转移逻辑。
+     */
+    ActionResultType processInitialInteract(Player& player, Hand hand) override;
 
     [[nodiscard]] i32 getWidth() const override { return 1; }
     [[nodiscard]] i32 getHeight() const override { return 1; }

@@ -290,6 +290,47 @@ void ItemFrameEntity::tick()
     // ItemStack 是值类型，不需要检查存活状态
 }
 
+ActionResultType ItemFrameEntity::processInitialInteract(Player& player, Hand hand)
+{
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        ItemStack& heldItem = player.getHeldItem(hand);
+
+        if (m_displayedItem.isEmpty()) {
+            // 展示框为空：放入玩家手中的物品
+            if (!heldItem.isEmpty()) {
+                setDisplayedItem(heldItem);
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                }
+                // TODO: 触发红石比较器更新
+                return ActionResultType::Success;
+            }
+        } else if (player.isSneaking()) {
+            // 潜行+右键有物品的展示框：取出物品
+            if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+                math::Random& rng = m_world->getRandom();
+                ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
+            }
+            m_displayedItem = ItemStack();
+            m_rotation = 0;
+            // TODO: 触发红石比较器更新
+            return ActionResultType::Success;
+        } else {
+            // 右键有物品的展示框（不潜行）：旋转物品
+            rotateItem();
+            // TODO: 触发红石比较器更新
+            return ActionResultType::Success;
+        }
+    }
+
+    // 客户端直接返回成功
+    if (m_world != nullptr && m_world->isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
+}
+
 void ItemFrameEntity::dropItem()
 {
     // 检查游戏规则 doEntityDrops
@@ -486,9 +527,29 @@ ActionResultType LeashKnotEntity::interact(Player& player, Hand hand)
     return ActionResultType::Pass;
 }
 
+ActionResultType LeashKnotEntity::processInitialInteract(Player& player, Hand hand)
+{
+    return interact(player, hand);
+}
+
 void LeashKnotEntity::tick()
 {
     HangingEntity::tick();
+
+    // 检查栅栏方块是否仍然存在，如果栅栏被破坏则拴绳结也应销毁
+    if (!survives()) {
+        // 将绑定的生物释放回自由状态（不掉落拴绳，因为栅栏被破坏时应掉落）
+        for (Entity* entity : m_leashedEntities) {
+            auto* mob = dynamic_cast<MobEntity*>(entity);
+            if (mob != nullptr && mob->isAlive()) {
+                mob->dropLeash();
+            }
+        }
+        m_leashedEntities.clear();
+        dropItem();
+        remove();
+        return;
+    }
 
     // 检查绑定的实体
     for (auto it = m_leashedEntities.begin(); it != m_leashedEntities.end();) {

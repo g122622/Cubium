@@ -15,6 +15,7 @@ special/
 ├── HoneycombItem.hpp/cpp        # 蜜脾（涂蜡铜方块、涂蜡告示牌阻止文字修改）
 ├── MilkBucketItem.hpp/cpp       # 牛奶桶（清除药水效果）
 ├── MusicDiscItem.hpp/cpp        # 音乐唱片（放入唱片机播放，比较器信号1-15）
+├── LeadItem.hpp/cpp             # 拴绳（绑定生物到栅栏、玩家右键生物拴住/解除）
 ├── NameTagItem.hpp/cpp          # 命名牌（给生物命名、持久化）
 ├── OnAStickItem.hpp/cpp         # 钓竿类物品基类（控制可骑乘实体）
 ├── PotterySherdItem.hpp/cpp     # 陶片（饰纹陶罐合成材料，关联DecoratedPotPattern枚举）
@@ -82,3 +83,4 @@ special/
 13. **PotterySherdItem 关联 DecoratedPotPattern**：每个陶片物品持有 DecoratedPotPattern 枚举值，该枚举与 MC 原版 DecoratedPotPattern 一一对应。待 DecoratedPotBlockEntity 实现后需建立陶片物品到图案的双向映射
 14. **SmithingTemplateItem 提示文本为翻译键占位**：appliesTo/ingredients/baseSlotDescription/additionsSlotDescription 字段当前存储翻译键字符串，待翻译系统完善后应改为 ITextComponent
 15. **SmithingTemplateItem 与锻造台配方系统**：此类当前仅提供物品标识和提示信息，待 TrimPattern 注册表和 SmithingTrimRecipe/SmithingTransformRecipe 实现后需进行集成
+16. **LeadItem 拴绳交互流程**：`onItemUse()` 只对栅栏方块生效（`BlockTags::FENCES()`），搜索半径16格内被当前玩家拴住的生物（`mob->leashHolderUuid() == player->uuid()`），通过 `LeashKnotEntity::getOrCreateKnot()` 创建/复用拴绳结，调用 `mob->setLeashedToFence()` 转移绑定。玩家右键生物拴住/解除拴绳的逻辑在 `MobEntity::processInitialInteract()` 中
