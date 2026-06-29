@@ -27,6 +27,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/blocks/sculk/SculkBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
 
@@ -276,4 +277,84 @@ TEST(VibrationSystemFrequencyTest, Shriek_Frequency15)
 TEST(VibrationSystemFrequencyTest, SculkSensorTendrilsClicking_Frequency9)
 {
     EXPECT_EQ(VibrationSystem::getGameEventFrequency(GameEvents::SCULK_SENSOR_TENDRILS_CLICKING), 9);
+}
+
+// ============================================================================
+// SculkShriekerBlock 状态属性测试
+// ============================================================================
+
+class SculkShriekerBlockTest : public ::testing::Test {
+protected:
+    void SetUp() override { VanillaBlocks::initialize(); }
+
+    BlockProperties sculkProperties() const { return BlockProperties(Material::SCULK).noCollision().notSolid(); }
+};
+
+TEST_F(SculkShriekerBlockTest, DefaultState_NotShriekingNotSummonNotWaterlogged)
+{
+    SculkShriekerBlock block(sculkProperties());
+    const BlockState& state = block.defaultState();
+
+    EXPECT_FALSE(state.get(BlockStateProperties::SHRIEKING()));
+    EXPECT_FALSE(state.get(BlockStateProperties::CAN_SUMMON()));
+    EXPECT_FALSE(state.get(BlockStateProperties::WATERLOGGED()));
+}
+
+TEST_F(SculkShriekerBlockTest, ShriekingTicksConstant_Is90)
+{
+    // 对齐 MC Java: SHRIEKING_TICKS = 90 (4.5秒)
+    EXPECT_EQ(SculkShriekerBlock::SHRIEKING_TICKS, 90);
+}
+
+TEST_F(SculkShriekerBlockTest, HasBlockEntity)
+{
+    SculkShriekerBlock block(sculkProperties());
+    EXPECT_TRUE(block.hasBlockEntity());
+}
+
+TEST_F(SculkShriekerBlockTest, BlockEntityType_IsSculkShrieker)
+{
+    SculkShriekerBlock block(sculkProperties());
+    EXPECT_EQ(block.getBlockEntityType(), BlockEntityType::SculkShrieker);
+}
+
+TEST_F(SculkShriekerBlockTest, ShriekingState_CanBeSet)
+{
+    SculkShriekerBlock block(sculkProperties());
+    const BlockState& defaultState = block.defaultState();
+    EXPECT_FALSE(defaultState.get(BlockStateProperties::SHRIEKING()));
+
+    const BlockState& shriekingState = defaultState.with(BlockStateProperties::SHRIEKING(), true);
+    EXPECT_TRUE(shriekingState.get(BlockStateProperties::SHRIEKING()));
+
+    // 其他属性应保持不变
+    EXPECT_FALSE(shriekingState.get(BlockStateProperties::CAN_SUMMON()));
+    EXPECT_FALSE(shriekingState.get(BlockStateProperties::WATERLOGGED()));
+}
+
+TEST_F(SculkShriekerBlockTest, CanSummonState_CanBeSet)
+{
+    SculkShriekerBlock block(sculkProperties());
+    const BlockState& defaultState = block.defaultState();
+    EXPECT_FALSE(defaultState.get(BlockStateProperties::CAN_SUMMON()));
+
+    // 自然生成的尖啸体 CAN_SUMMON=true
+    const BlockState& naturalState = defaultState.with(BlockStateProperties::CAN_SUMMON(), true);
+    EXPECT_TRUE(naturalState.get(BlockStateProperties::CAN_SUMMON()));
+}
+
+TEST_F(SculkShriekerBlockTest, UseShapeForLightOcclusion)
+{
+    SculkShriekerBlock block(sculkProperties());
+    EXPECT_TRUE(block.useShapeForLightOcclusion(block.defaultState()));
+}
+
+TEST_F(SculkShriekerBlockTest, IsWaterloggable)
+{
+    SculkShriekerBlock block(sculkProperties());
+    const BlockState& state = block.defaultState();
+    EXPECT_FALSE(block.isWaterlogged(state));
+
+    const BlockState& waterloggedState = state.with(BlockStateProperties::WATERLOGGED(), true);
+    EXPECT_TRUE(block.isWaterlogged(waterloggedState));
 }

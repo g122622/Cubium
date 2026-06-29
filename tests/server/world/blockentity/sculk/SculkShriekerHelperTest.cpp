@@ -496,3 +496,96 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, WarningLevelPersistence)
     loaded->incrementWarningLevel();
     EXPECT_TRUE(loaded->canSummonWarden());
 }
+
+// ============================================================================
+// SculkShriekerVibrationUser isSculkShrieker 区分测试
+// ============================================================================
+
+#include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
+
+using namespace mc::blockentity;
+using namespace mc::gameevent;
+
+class SculkVibrationUserTypeTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        sensorPos_ = BlockPos(0, 64, 0);
+        shriekerPos_ = BlockPos(10, 64, 10);
+    }
+
+    BlockPos sensorPos_;
+    BlockPos shriekerPos_;
+};
+
+TEST_F(SculkVibrationUserTypeTest, SensorUser_IsNotSculkShrieker)
+{
+    SculkSensorBlockEntity sensorEntity(sensorPos_);
+    SculkSensorVibrationUser sensorUser(sensorEntity);
+
+    // SculkSensorVibrationUser 不是 SculkShrieker
+    EXPECT_FALSE(sensorUser.isSculkShrieker());
+
+    // SculkSensorVibrationUser 可以触发规避振动成就
+    EXPECT_TRUE(sensorUser.canTriggerAvoidVibration());
+}
+
+TEST_F(SculkVibrationUserTypeTest, ShriekerUser_IsSculkShrieker)
+{
+    SculkShriekerBlockEntity shriekerEntity(shriekerPos_);
+    SculkShriekerVibrationUser shriekerUser(shriekerEntity);
+
+    // SculkShriekerVibrationUser 是 SculkShrieker
+    EXPECT_TRUE(shriekerUser.isSculkShrieker());
+
+    // SculkShriekerVibrationUser 不可以触发规避振动成就
+    EXPECT_FALSE(shriekerUser.canTriggerAvoidVibration());
+}
+
+TEST_F(SculkVibrationUserTypeTest, ShriekerUser_OnlyReceivesShriekEvent)
+{
+    // SculkShriekerVibrationUser 的 canReceiveVibration 只接受 SHRIEK 事件
+    // 这在 SculkVibrationSystem.cpp 中实现，此处验证基础属性
+    SculkShriekerBlockEntity shriekerEntity(shriekerPos_);
+    SculkShriekerVibrationUser shriekerUser(shriekerEntity);
+
+    // 检测半径应为 8
+    EXPECT_EQ(shriekerUser.getListenerRadius(), 8);
+
+    // 需要相邻区块 tick
+    EXPECT_TRUE(shriekerUser.requiresAdjacentChunksToBeTicking());
+}
+
+TEST_F(SculkVibrationUserTypeTest, SensorUser_ListenerRadius)
+{
+    SculkSensorBlockEntity sensorEntity(sensorPos_);
+    SculkSensorVibrationUser sensorUser(sensorEntity);
+
+    // 检测半径应为 8
+    EXPECT_EQ(sensorUser.getListenerRadius(), 8);
+
+    // 需要相邻区块 tick
+    EXPECT_TRUE(sensorUser.requiresAdjacentChunksToBeTicking());
+}
+
+// ============================================================================
+// SculkVibrationSystem 类型区分测试
+// ============================================================================
+
+TEST(SculkVibrationSystemTypeTest, SensorSystem_UserIsNotShrieker)
+{
+    SculkSensorBlockEntity sensorEntity(BlockPos(0, 0, 0));
+    SculkVibrationSystem system(sensorEntity);
+
+    auto& user = system.getVibrationUser();
+    EXPECT_FALSE(user.isSculkShrieker());
+}
+
+TEST(SculkVibrationSystemTypeTest, ShriekerSystem_UserIsShrieker)
+{
+    SculkShriekerBlockEntity shriekerEntity(BlockPos(0, 0, 0));
+    SculkVibrationSystem system(shriekerEntity);
+
+    auto& user = system.getVibrationUser();
+    EXPECT_TRUE(user.isSculkShrieker());
+}
