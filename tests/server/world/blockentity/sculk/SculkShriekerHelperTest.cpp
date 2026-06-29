@@ -100,10 +100,8 @@ TEST_F(SculkShriekerBlockEntityShriekTest, ShriekingFinishedWithMaxWarningLevel)
 {
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    // 递增到最大警告等级
-    for (i32 i = 0; i < 4; ++i) {
-        entity->incrementWarningLevel();
-    }
+    // 设置到最大警告等级
+    entity->setWarningLevel(4);
     EXPECT_TRUE(entity->canSummonWarden());
 
     // 设置 shriekingFinished（模拟尖啸结束）
@@ -118,9 +116,7 @@ TEST_F(SculkShriekerBlockEntityShriekTest, WarningLevelResetAfterTryShriek)
     // 此测试验证 BlockEntity 的 setWarningLevel(0) 行为
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    entity->incrementWarningLevel();
-    entity->incrementWarningLevel();
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(3);
     EXPECT_EQ(entity->getWarningLevel(), 3);
 
     // 模拟 tryShriek 的重置操作
@@ -135,7 +131,7 @@ TEST_F(SculkShriekerBlockEntityShriekTest, JsonSerialization_WithShriekingFinish
     // 但 warningLevel 和 vibrationData 需要序列化
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(1);
     entity->setShriekingFinished(true);
 
     nlohmann::json data;
@@ -153,7 +149,7 @@ TEST_F(SculkShriekerBlockEntityShriekTest, ShriekingFinishedNotPersistedAcrossLo
 {
     // shriekingFinished 不应从存档中恢复（每次加载默认为 false）
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(1);
     entity->setShriekingFinished(true);
 
     nlohmann::json data;
@@ -183,16 +179,16 @@ TEST_F(SculkShriekerBlockEntityWarningTest, CanSummonWardenAtLevel4Only)
 
     EXPECT_FALSE(entity->canSummonWarden()); // level 0
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(1);
     EXPECT_FALSE(entity->canSummonWarden()); // level 1
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(2);
     EXPECT_FALSE(entity->canSummonWarden()); // level 2
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(3);
     EXPECT_FALSE(entity->canSummonWarden()); // level 3
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(4);
     EXPECT_TRUE(entity->canSummonWarden()); // level 4
 }
 
@@ -200,10 +196,8 @@ TEST_F(SculkShriekerBlockEntityWarningTest, WarningLevelDoesNotExceedMax)
 {
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    // 递增超过最大值
-    for (i32 i = 0; i < 10; ++i) {
-        entity->incrementWarningLevel();
-    }
+    // 设置到最大等级
+    entity->setWarningLevel(4);
     EXPECT_EQ(entity->getWarningLevel(), 4);
     EXPECT_TRUE(entity->canSummonWarden());
 }
@@ -762,14 +756,8 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, FullShriekCycle)
     entity->setWarningLevel(0);
     EXPECT_EQ(entity->getWarningLevel(), 0);
 
-    // 模拟 4 次 tryWarn 递增
-    entity->incrementWarningLevel(); // level 1
-    EXPECT_EQ(entity->getWarningLevel(), 1);
-    EXPECT_FALSE(entity->canSummonWarden());
-
-    entity->incrementWarningLevel(); // level 2
-    entity->incrementWarningLevel(); // level 3
-    entity->incrementWarningLevel(); // level 4
+    // 模拟 tryWarn 将警告等级设为 4
+    entity->setWarningLevel(4);
     EXPECT_EQ(entity->getWarningLevel(), 4);
     EXPECT_TRUE(entity->canSummonWarden());
 
@@ -795,7 +783,7 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, MultipleShrieksBeforeRespond)
 
     // 第一次 tryShriek
     entity->setWarningLevel(0);
-    entity->incrementWarningLevel(); // level 1
+    entity->setWarningLevel(1); // 模拟 tryWarn 设置
     EXPECT_FALSE(entity->canSummonWarden());
 
     // 模拟尖啸结束并响应（不会召唤监守者，但会播放声音）
@@ -804,7 +792,7 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, MultipleShrieksBeforeRespond)
 
     // 第二次 tryShriek（重置再递增）
     entity->setWarningLevel(0);
-    entity->incrementWarningLevel(); // level 1
+    entity->setWarningLevel(1); // 模拟 tryWarn 设置
     EXPECT_FALSE(entity->canSummonWarden());
 }
 
@@ -813,9 +801,7 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, WarningLevelPersistence)
     // 验证警告等级在序列化/反序列化后保留
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    entity->incrementWarningLevel();
-    entity->incrementWarningLevel();
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(3);
 
     nlohmann::json data;
     entity->save(data);
@@ -824,8 +810,8 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, WarningLevelPersistence)
     ASSERT_TRUE(loaded->load(data));
     EXPECT_EQ(loaded->getWarningLevel(), 3);
 
-    // 继续递增到 4
-    loaded->incrementWarningLevel();
+    // 继续设置到 4
+    loaded->setWarningLevel(4);
     EXPECT_TRUE(loaded->canSummonWarden());
 }
 

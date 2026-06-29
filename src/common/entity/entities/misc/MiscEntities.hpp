@@ -300,6 +300,7 @@ public:
     void tick();
 
     /// 重置所有状态为初始值
+    /// TODO: 需要在 /warden_spawn_tracker clear 命令实现时调用此方法
     void reset();
 
     [[nodiscard]] i32 getWarningLevel() const { return m_warningLevel; }

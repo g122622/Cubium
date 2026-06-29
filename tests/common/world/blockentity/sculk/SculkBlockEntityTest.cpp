@@ -263,38 +263,33 @@ TEST_F(SculkShriekerBlockEntityTest, DefaultConstruction)
     EXPECT_EQ(entity->getPos(), pos_);
 }
 
-TEST_F(SculkShriekerBlockEntityTest, IncrementWarningLevel)
+TEST_F(SculkShriekerBlockEntityTest, SetWarningLevelValues)
 {
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    EXPECT_EQ(entity->incrementWarningLevel(), 1);
+    entity->setWarningLevel(1);
     EXPECT_EQ(entity->getWarningLevel(), 1);
     EXPECT_FALSE(entity->canSummonWarden());
 
-    EXPECT_EQ(entity->incrementWarningLevel(), 2);
+    entity->setWarningLevel(2);
     EXPECT_EQ(entity->getWarningLevel(), 2);
 
-    EXPECT_EQ(entity->incrementWarningLevel(), 3);
+    entity->setWarningLevel(3);
     EXPECT_EQ(entity->getWarningLevel(), 3);
 
-    EXPECT_EQ(entity->incrementWarningLevel(), 4);
+    entity->setWarningLevel(4);
     EXPECT_EQ(entity->getWarningLevel(), 4);
     EXPECT_TRUE(entity->canSummonWarden());
 }
 
-TEST_F(SculkShriekerBlockEntityTest, WarningLevelCapped)
+TEST_F(SculkShriekerBlockEntityTest, WarningLevelMax)
 {
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    // 递增到最大值
-    for (i32 i = 0; i < 4; ++i) {
-        entity->incrementWarningLevel();
-    }
+    // 设置到最大值
+    entity->setWarningLevel(4);
     EXPECT_EQ(entity->getWarningLevel(), 4);
-
-    // 超过最大值不再递增
-    EXPECT_EQ(entity->incrementWarningLevel(), 4);
-    EXPECT_EQ(entity->getWarningLevel(), 4);
+    EXPECT_TRUE(entity->canSummonWarden());
 }
 
 TEST_F(SculkShriekerBlockEntityTest, SetWarningLevel)
@@ -352,10 +347,8 @@ TEST_F(SculkShriekerBlockEntityTest, JsonRoundTrip)
     VibrationSystem::Data vData(info, std::move(selector), 5, false);
     original->setVibrationData(std::move(vData));
 
-    // 递增警告等级到 3
-    original->incrementWarningLevel();
-    original->incrementWarningLevel();
-    original->incrementWarningLevel();
+    // 设置警告等级到 3
+    original->setWarningLevel(3);
     EXPECT_EQ(original->getWarningLevel(), 3);
 
     nlohmann::json data;
@@ -388,10 +381,8 @@ TEST_F(SculkShriekerBlockEntityTest, NBTRoundTrip)
     VibrationSystem::Data vData(info, std::move(selector), 12, false);
     original->setVibrationData(std::move(vData));
 
-    // 递增到 4 级（可召唤监守者）
-    for (i32 i = 0; i < 4; ++i) {
-        original->incrementWarningLevel();
-    }
+    // 设置到 4 级（可召唤监守者）
+    original->setWarningLevel(4);
 
     nbt::CompoundTag tag;
     original->saveToNBT(tag);
@@ -416,8 +407,7 @@ TEST_F(SculkShriekerBlockEntityTest, NBTRoundTrip)
 TEST_F(SculkShriekerBlockEntityTest, ClonePreservesData)
 {
     auto original = std::make_unique<SculkShriekerBlockEntity>(pos_);
-    original->incrementWarningLevel();
-    original->incrementWarningLevel();
+    original->setWarningLevel(2);
 
     auto clone = original->clone();
     ASSERT_NE(clone, nullptr);

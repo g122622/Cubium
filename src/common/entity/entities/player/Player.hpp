@@ -262,7 +262,6 @@ public:
     /**
      * @brief 获取监守者警告效果
      *
-     * 对齐 MC Java: ServerPlayer.getWardenSpawnTracker()
      * 用于追踪玩家在深暗之域中被幽匿尖啸体警告的等级和冷却。
      */
     [[nodiscard]] entity::WardenWarningEffect& wardenWarningEffect() { return m_wardenWarningEffect; }
@@ -1902,7 +1901,6 @@ private:
     std::optional<EntityId> m_cameraEntityId;
 
     // 幽匿尖啸体警告追踪系统
-    // 对齐 MC Java: ServerPlayer.wardenSpawnTracker (WardenSpawnTracker)
     // 记录玩家在深暗之域中被幽匿尖啸体警告的等级和冷却时间
     entity::WardenWarningEffect m_wardenWarningEffect;
 };

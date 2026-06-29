@@ -37,15 +37,6 @@ SculkShriekerBlockEntity::SculkShriekerBlockEntity(const BlockPos& pos)
     : BlockEntity(BlockEntityType::SculkShrieker, pos)
 {}
 
-i32 SculkShriekerBlockEntity::incrementWarningLevel()
-{
-    if (m_warningLevel < MAX_WARNING_LEVEL) {
-        ++m_warningLevel;
-        setChanged();
-    }
-    return m_warningLevel;
-}
-
 // ============================================================================
 // 序列化
 // ============================================================================
