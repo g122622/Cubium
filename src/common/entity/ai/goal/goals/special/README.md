@@ -45,6 +45,9 @@
 ``` Goal(基类)
 ├── CreeperSwellGoal ─────────────── 苦力怕膨胀爆炸
 ├── RunAroundLikeCrazyGoal ───────── 未驯服马疯狂奔跑
+├── LlamaFollowCaravanGoal ──────── 羊驼跟随商队（两阶段搜索、拴绳检查、栅栏拴绳早返回）
+├── LlamaDefendTargetGoal ───────── 羊驼防御目标（吐口水反击）
+├── TraderLlamaDefendWanderingTraderGoal ── 商队羊驼保卫流浪商人
 ├── TriggerSkeletonTrapGoal ──────── 骷髅马陷阱触发
 ├── GuardianAttackGoal ───────────── 守卫者激光攻击（充能→发射→冷却）
 ├── BlazeFireballAttackGoal ──────── 烈焰人连发火球（充能→连发→冷却）
@@ -366,30 +369,55 @@ if (targetPlayer != nullptr && (targetPlayer->isCreative() || targetPlayer->isSp
                    ** 解决**：MC 1.21.11 中 `IllusionerSpellGoal.getCastingTime()` 返回
                20，两个子类的 `CASTING_TIME` 都应为
                20。施法时间决定了实体在施法姿态中停留的 tick 数，`m_spellTicks = warmup +
-        castingTime`。
+            castingTime`。
 
-            ## #21. 幻术师失明法术的难度检查
+                ## #21. 幻术师失明法术的难度检查
 
-            * *问题 * *：`IllusionerBlindnessSpellGoal::shouldExecute()` 的难度检查使用 `difficulty
-    !=
-    Difficulty::Hard`，导致只在困难难度施放失明法术，与 MC 原版不一致。
+                * *问题 * *：`IllusionerBlindnessSpellGoal::shouldExecute()` 的难度检查使用 `difficulty
+        !=
+        Difficulty::Hard`，导致只在困难难度施放失明法术，与 MC 原版不一致。
 
-            * *解决 * *：MC 1.21.11 使用 `world.getDifficulty().isHarderThan(Difficulty.NORMAL)`，即难度
-        >= Normal（Normal 和 Hard）时可以施放。应使用 `difficulty < Difficulty::Normal` 判断不施放。
+                * *解决 * *：MC 1.21.11 使用 `world.getDifficulty().isHarderThan(Difficulty.NORMAL)`，即难度
+            >= Normal（Normal 和 Hard）时可以施放。应使用 `difficulty < Difficulty::Normal` 判断不施放。
 
-                ## #22. 幻术师法术的施法准备音效
+                    ## #22. 幻术师法术的施法准备音效
+
+                    * *问题 *
+                    *：`IllusionerSpellGoal::
+                        startExecuting()` 未播放施法准备音效，玩家无法听到幻术师正在准备施法的提示音。
+
+                    * *解决 * *：在 `startExecuting()` 中通过 `getSpellPrepareSoundId()` 获取准备音效并播放：
+                - 失明法术：`entity.illusioner.prepare_blindness` - 镜像法术：`entity.illusioner.prepare_mirror` -
+                施法完成时播放共用音效：`entity.illusioner.cast_spell`
+
+                    ## #23. 幻术师失明法术不可重复施放同一目标
+
+                    * *问题 *
+                    *：`IllusionerBlindnessSpellGoal` 缺少对同一目标的重复施法检查，导致幻术师可能反复对同一目标施加失明效果。
+
+                    * *解决 * *：`shouldExecute()` 中检查 `target->id() ==
+        m_lastTargetId`，如果目标 ID 与上次施法目标相同则不执行。`startExecuting()` 中记录 `m_lastTargetId`。
+
+                ## #24. LlamaFollowCaravanGoal 拴绳逻辑
 
                 * *问题 *
-                *：`IllusionerSpellGoal::startExecuting()` 未播放施法准备音效，玩家无法听到幻术师正在准备施法的提示音。
+                *：`LlamaFollowCaravanGoal` 的 `shouldExecute()` 和 `tick()` 拴绳逻辑实现不完整，导致商队行为与原版不一致。
 
-                * *解决 * *：在 `startExecuting()` 中通过 `getSpellPrepareSoundId()` 获取准备音效并播放：
-            - 失明法术：`entity.illusioner.prepare_blindness` - 镜像法术：`entity.illusioner.prepare_mirror` -
-            施法完成时播放共用音效：`entity.illusioner.cast_spell`
+                * *解决 *
+                *：三个关键点：
 
-                ## #23. 幻术师失明法术不可重复施放同一目标
+                1. *
+                *`_firstIsLeashed()` 递归检查 *
+                *：沿 `caravanHead` 链向上追溯时必须检查 `isLeashed()` 状态，到达链头时返回 `head
+                     ->isLeashed()` 而非简单返回 `true`。递归深度限制为 `MAX_CARAVAN_LENGTH(8)`。
 
-                * *问题 *
-                *：`IllusionerBlindnessSpellGoal` 缺少对同一目标的重复施法检查，导致幻术师可能反复对同一目标施加失明效果。
+                 2. *
+                *`shouldExecute()` 两阶段搜索 * *： -
+            前置条件：自己未被拴绳拴住且未在商队中 - 第一阶段：寻找已在商队中但无尾部的羊驼（`isInCaravan() &&
+    !hasCaravanTail()`） - 第二阶段：若未找到，寻找被拴住且无尾部的羊驼（`isLeashed() &&
+    !hasCaravanTail()`） - 最终检查：候选羊驼自己未被拴住且链上也无被拴住的羊驼时不加入（`!candidate->isLeashed() &&
+    !_firstIsLeashed(candidate, 1)`）
 
-                * *解决 * *：`shouldExecute()` 中检查 `target->id() ==
-    m_lastTargetId`，如果目标 ID 与上次施法目标相同则不执行。`startExecuting()` 中记录 `m_lastTargetId`。
+        3. *
+        *`tick()` 栅栏拴绳早返回 * *：被拴在栅栏柱上的羊驼（`isLeashed() &&
+    leashFencePos().has_value()`）不移动跟随商队。

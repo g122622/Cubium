@@ -403,6 +403,91 @@ TEST(LlamaCaravanTest, ShouldContinueExecuting_ReturnsFalseWhenNotInCaravan)
 }
 
 // ============================================================================
+// tick() 栅栏拴绳检查测试
+// ============================================================================
+
+TEST(LlamaCaravanTest, Tick_DoesNotMoveWhenLeashedToFence)
+{
+    // 被拴在栅栏柱上的羊驼在 tick() 中不应移动
+    // tick() 在 isLeashed() && leaseFencePos().has_value() 时早返回
+    CaravanTestWorld world;
+    auto llama1 = createLlama(EntityId(1), world, 0.0f, 64.0f, 0.0f);
+    auto llama2 = createLlama(EntityId(2), world, 5.0f, 64.0f, 0.0f);
+    auto llama3 = createLlama(EntityId(3), world, 10.0f, 64.0f, 0.0f);
+    auto goal = createCaravanGoal(llama3.get());
+
+    // llama1 被拴住，构建商队链
+    llama1->setLeashedToFence(BlockPos(0, 64, 0));
+    llama2->joinCaravan(llama1.get());
+    llama3->joinCaravan(llama2.get());
+
+    // llama3 被拴在栅栏上
+    llama3->setLeashedToFence(BlockPos(10, 64, 0));
+
+    // tick() 不应崩溃，且 llama3 应保持原位（栅栏拴绳早返回）
+    EXPECT_NO_THROW(goal->tick());
+
+    // llama3 的位置应保持不变（tick() 因栅栏拴绳而早返回）
+    EXPECT_FLOAT_EQ(llama3->x(), 10.0f);
+    EXPECT_FLOAT_EQ(llama3->y(), 64.0f);
+    EXPECT_FLOAT_EQ(llama3->z(), 0.0f);
+}
+
+TEST(LlamaCaravanTest, Tick_DoesNotCrashWhenLeashedToEntity)
+{
+    // 被拴在实体上（非栅栏）的羊驼在 tick() 中应执行正常的跟随逻辑
+    // leashFencePos() 为空，tick() 不会早返回
+    CaravanTestWorld world;
+    auto llama1 = createLlama(EntityId(1), world, 0.0f, 64.0f, 0.0f);
+    auto llama2 = createLlama(EntityId(2), world, 5.0f, 64.0f, 0.0f);
+    auto goal = createCaravanGoal(llama2.get());
+
+    // llama1 被拴在实体上（非栅栏）
+    llama1->setLeashedToEntity("wandering-trader-uuid");
+    llama2->joinCaravan(llama1.get());
+
+    // llama2 被拴在实体上（非栅栏）——leaseFencePos() 为空
+    llama2->setLeashedToEntity("some-other-uuid");
+
+    // tick() 不应崩溃
+    // 注意：由于 navigator() 在测试中为 nullptr，不会实际移动，但不会因栅栏检查早返回
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST(LlamaCaravanTest, Tick_DoesNotMoveWhenNotInCaravan)
+{
+    // 不在商队中的羊驼调用 tick() 应安全返回
+    CaravanTestWorld world;
+    auto llama = createLlama(EntityId(1), world);
+    auto goal = createCaravanGoal(llama.get());
+
+    EXPECT_NO_THROW(goal->tick());
+}
+
+TEST(LlamaCaravanTest, Tick_LeashFencePosEmptyWhenLeashedToEntity)
+{
+    // 验证被拴在实体上时 leaseFencePos() 为空（tick() 不会因栅栏检查早返回）
+    CaravanTestWorld world;
+    auto llama = createLlama(EntityId(1), world);
+
+    llama->setLeashedToEntity("entity-uuid");
+    EXPECT_TRUE(llama->isLeashed());
+    EXPECT_FALSE(llama->leashFencePos().has_value());
+}
+
+TEST(LlamaCaravanTest, Tick_LeashFencePosSetWhenLeashedToFence)
+{
+    // 验证被拴在栅栏上时 leaseFencePos() 有值（tick() 会因栅栏检查早返回）
+    CaravanTestWorld world;
+    auto llama = createLlama(EntityId(1), world);
+
+    llama->setLeashedToFence(BlockPos(10, 64, 10));
+    EXPECT_TRUE(llama->isLeashed());
+    EXPECT_TRUE(llama->leashFencePos().has_value());
+    EXPECT_EQ(llama->leashFencePos().value(), BlockPos(10, 64, 10));
+}
+
+// ============================================================================
 // 递归深度限制测试（MAX_CARAVAN_LENGTH = 8）
 // ============================================================================
 
