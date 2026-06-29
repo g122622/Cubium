@@ -26,6 +26,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/NoiseChunk.hpp"
+#include "common/world/gen/surface/SurfaceCondition.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -72,6 +73,10 @@ void SurfaceRuleContext::updateXZ(i32 blockX, i32 blockZ)
     m_blockX = blockX;
     m_blockZ = blockZ;
 
+    // MC 1.21: SurfaceRules.Context.updateXZ — 列变更使 XZ 缓存和 Y 缓存均失效
+    ++m_updateCounterXZ;
+    ++m_updateCounterY;
+
     // MC 1.21: SurfaceSystem.getSurfaceDepth(int, int)
     // (int)(noise * 2.75 + 3.0 + noiseRandom.at(x, 0, z).nextDouble() * 0.25)
     if (m_surfaceDepthNoise) {
@@ -90,10 +95,39 @@ void SurfaceRuleContext::updateXZ(i32 blockX, i32 blockZ)
 void SurfaceRuleContext::updateY(
     i32 stoneDepthAbove, i32 stoneDepthBelow, i32 waterHeight, i32 blockX, i32 blockY, i32 blockZ)
 {
+    // MC 1.21: SurfaceRules.Context.updateY — 仅 Y 缓存失效，XZ 缓存跨 Y 步复用
+    ++m_updateCounterY;
+
     m_stoneDepthAbove = stoneDepthAbove;
     m_stoneDepthBelow = stoneDepthBelow;
     m_waterHeight = waterHeight;
     m_blockY = blockY;
+    // blockX/blockZ 在 updateXZ 时已设置；原版 updateY 也接收 x/z 但本实现沿用 updateXZ 的值。
+    (void)blockX;
+    (void)blockZ;
+}
+
+bool SurfaceRuleContext::cachedXZ(const SurfaceCondition* self, const LazyXZCondition& cond) const
+{
+    // MC 1.21: SurfaceRules.LazyCondition.test() — 按 lastUpdateXZ 戳比对，命中则复用结果
+    auto it = m_conditionCache.find(self);
+    if (it != m_conditionCache.end() && it->second.stamp == m_updateCounterXZ) {
+        return it->second.value;
+    }
+    const bool value = cond.compute(*this);
+    m_conditionCache[self] = {m_updateCounterXZ, value};
+    return value;
+}
+
+bool SurfaceRuleContext::cachedY(const SurfaceCondition* self, const LazyYCondition& cond) const
+{
+    auto it = m_conditionCache.find(self);
+    if (it != m_conditionCache.end() && it->second.stamp == m_updateCounterY) {
+        return it->second.value;
+    }
+    const bool value = cond.compute(*this);
+    m_conditionCache[self] = {m_updateCounterY, value};
+    return value;
 }
 
 f64 SurfaceRuleContext::surfaceSecondary() const

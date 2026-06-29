@@ -142,6 +142,17 @@ density::NoiseRouter RandomState::createRouterCopy() const
 
 noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
 {
+    // 命中路径：shared_lock 并发读
+    {
+        std::shared_lock lock(m_noiseMutex);
+        auto it = m_noiseCache.find(name);
+        if (it != m_noiseCache.end()) {
+            return *it->second;
+        }
+    }
+
+    // miss 路径：unique_lock 写入（double-check，避免重复构造）
+    std::unique_lock lock(m_noiseMutex);
     auto it = m_noiseCache.find(name);
     if (it != m_noiseCache.end()) {
         return *it->second;
@@ -165,6 +176,17 @@ noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
 
 ::mc::math::PositionalRandomFactory& RandomState::getOrCreateRandomFactory(const std::string& name)
 {
+    // 命中路径：shared_lock 并发读
+    {
+        std::shared_lock lock(m_randomFactoryMutex);
+        auto it = m_randomFactoryCache.find(name);
+        if (it != m_randomFactoryCache.end()) {
+            return *it->second;
+        }
+    }
+
+    // miss 路径：unique_lock 写入（double-check）
+    std::unique_lock lock(m_randomFactoryMutex);
     auto it = m_randomFactoryCache.find(name);
     if (it != m_randomFactoryCache.end()) {
         return *it->second;
