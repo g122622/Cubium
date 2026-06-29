@@ -97,6 +97,18 @@ public:
      */
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 获取实体内部碰撞形状
+     *
+     * 返回炼药锅外部形状与岩浆内容区域的并集。实体只有进入岩浆内容区域
+     * 才会触发 onEntityCollision（受到岩浆伤害）。
+     *
+     * 参考: net.minecraft.block.LavaCauldronBlock#getEntityInsideCollisionShape
+     * 原版: FILLED_SHAPE = Shapes.or(SHAPE, Block.column(12, 4, 15))
+     * 其中 SHAPE_INSIDE = Block.column(12, 4, 15) = box(2, 4, 2, 14, 15, 14)
+     */
+    [[nodiscard]] const CollisionShape& getEntityInsideCollisionShape(const BlockState& state) const override;
+
     // ========== 实体碰撞 ==========
 
     /**
@@ -174,9 +186,10 @@ private:
     /// 炼药锅外部形状（与普通炼药锅共享）
     CollisionShape m_outerShape;
 
-    // TODO: 当实现 getEntityInsideCollisionShape 后，添加岩浆内容碰撞形状（满填充高度 15/16）
-    // MC 原版 LavaCauldronBlock 使用 FILLED_SHAPE = Shapes.or(SHAPE, SHAPE_INSIDE)
-    // 其中 SHAPE_INSIDE = Block.column(12, 4, 15)，表示内部岩浆碰撞区域
+    /// 填充形状 = 外部形状 ∪ 岩浆内容形状（用于实体内部碰撞检测）
+    /// 参考 MC 原版: FILLED_SHAPE = Shapes.or(SHAPE, Block.column(12, 4, 15))
+    /// SHAPE_INSIDE = Block.column(12, 4, 15) = box(2, 4, 2, 14, 15, 14)（像素坐标）
+    CollisionShape m_filledShape;
 };
 
 } // namespace blocks

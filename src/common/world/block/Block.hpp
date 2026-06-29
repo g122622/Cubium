@@ -849,6 +849,21 @@ public:
     [[nodiscard]] virtual CollisionShape getFaceOcclusionShape(const BlockState& state, Direction direction) const;
 
     /**
+     * @brief 获取实体内部碰撞形状
+     *
+     * 返回用于检测实体是否在方块内部的碰撞形状。大多数方块返回完整方块形状
+     * （默认行为），这样只要实体 AABB 与方块网格重叠就会触发 onEntityCollision。
+     * 某些方块（如炼药锅、细雪）重写此方法返回更小的形状，使得只有当实体实际
+     * 进入方块的内容区域（如炼药锅内的岩浆/水）时才触发 onEntityCollision。
+     *
+     * 参考: net.minecraft.block.BlockBehaviour#getEntityInsideCollisionShape
+     *
+     * @param state 方块状态
+     * @return 实体内部碰撞形状引用
+     */
+    [[nodiscard]] virtual const CollisionShape& getEntityInsideCollisionShape(const BlockState& state) const;
+
+    /**
      * @brief 是否使用形状进行光照遮挡检测
      *
      * 如果返回 true，光照引擎会使用 getOcclusionShape() 和

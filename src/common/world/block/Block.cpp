@@ -330,6 +330,15 @@ bool Block::useShapeForLightOcclusion(const BlockState& state) const
     return false;
 }
 
+const CollisionShape& Block::getEntityInsideCollisionShape(const BlockState& state) const
+{
+    // 默认返回完整方块形状，即只要实体 AABB 与方块网格重叠就认为实体在方块内部。
+    // 炼药锅、细雪等方块重写此方法返回更精确的形状，使 onEntityCollision
+    // 只在实体实际进入方块内容区域时触发。
+    // 参考: net.minecraft.block.BlockBehaviour#getEntityInsideCollisionShape 默认返回 Shapes.block()
+    return VoxelShapes::fullCube();
+}
+
 bool Block::isAir(const BlockState& state) const
 {
     (void)state;
