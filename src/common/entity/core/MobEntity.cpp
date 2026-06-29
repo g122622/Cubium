@@ -31,9 +31,12 @@
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../item/items/special/NameTagItem.hpp"
 #include "../../item/items/special/SpawnEggItem.hpp"
+#include "../../sound/SoundEvents.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../world/IWorld.hpp"
+#include "../../world/gameevent/GameEvents.hpp"
+#include "../../world/gamerule/GameRules.hpp"
 #include "../ai/EntitySenses.hpp"
 #include "../ai/controller/JumpController.hpp"
 #include "../ai/controller/LookController.hpp"
@@ -50,6 +53,7 @@
 #include "../interfaces/IMob.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
+#include "../utils/ItemDropHelper.hpp"
 #include "EntityRegistry.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "EntityTypeIdNumber.hpp"
@@ -224,6 +228,9 @@ void MobEntity::tick()
     }
 
     // 注意：aiStep() 已在 LivingEntity::tick() 中调用，这里不需要再次调用
+
+    // 拴绳物理约束
+    tickLeash();
 }
 
 void MobEntity::updateMovementGoalFlags()
@@ -467,15 +474,60 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
     }
 
     // 3. 拴绳交互
-    //    TODO: 拴绳系统需要完整的 Leashable 接口、拴绳物理、拴绳结实体交互、
-    //    网络同步包等基础设施。以下仅实现基本的拴绳附着逻辑，
-    //    完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、
-    //    ClientboundSetEntityLinkPacket同步等）待后续实现。
     if (item != nullptr && item == Items::LEAD) {
-        // TODO: 完整的拴绳交互逻辑：
-        // - 如果实体已被当前玩家拴住，解除拴绳（掉落拴绳物品）
-        // - 如果实体可以被拴住且未被其他玩家拴住，将拴绳拴在实体上
-        // 当前暂不实现，等待 Leashable 接口完善
+        // 服务端处理拴绳逻辑
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            // 如果实体已被当前玩家拴住，解除拴绳（掉落拴绳物品）
+            if (isLeashed() && leashHolderUuid().has_value() && *leashHolderUuid() == player.uuid()) {
+                if (player.abilities().creativeMode) {
+                    // 创造模式：解除拴绳但不掉落物品
+                    clearLeash();
+                } else {
+                    // 生存模式：解除拴绳并掉落拴绳物品
+                    dropLeash();
+                }
+                m_world->gameEvent(gameevent::GameEvents::ENTITY_INTERACT,
+                    BlockPos(static_cast<i32>(std::floor(x())),
+                        static_cast<i32>(std::floor(y())),
+                        static_cast<i32>(std::floor(z()))),
+                    nullptr);
+                return ActionResultType::Success;
+            }
+
+            // 如果实体可以被拴住且未被其他玩家拴住，将拴绳拴在实体上
+            if (canBeLeashed() && isAlive()) {
+                // 检查实体当前是否被其他玩家拴住
+                if (isLeashed() && leashHolderUuid().has_value() && *leashHolderUuid() != player.uuid()) {
+                    // 已被其他玩家拴住，不允许拴
+                    return ActionResultType::Fail;
+                }
+
+                // 如果已拴在栅栏或其他实体上，先解除旧拴绳
+                if (isLeashed()) {
+                    dropLeash();
+                }
+
+                // 拴到玩家身上
+                setLeashedToEntity(player.uuid());
+                enablePersistence();
+
+                // 消耗一个拴绳物品
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                }
+
+                // 播放拴绳绑定的音效
+                if (m_world != nullptr) {
+                    playSound(SoundEvents::ENTITY_LEASH_KNOT_PLACE, 1.0f, 1.0f);
+                }
+
+                return ActionResultType::Success;
+            }
+        } else {
+            // 客户端：拴绳交互直接预测成功
+            return ActionResultType::Success;
+        }
+        return ActionResultType::Pass;
     }
 
     // 调用子类的交互逻辑
@@ -637,6 +689,103 @@ void MobEntity::clearLeash()
     m_leashFencePos = std::nullopt;
     m_leashDelayInfo.targetUuid = std::nullopt;
     m_leashDelayInfo.fencePos = std::nullopt;
+}
+
+void MobEntity::dropLeash()
+{
+    clearLeash();
+
+    // 掉落拴绳物品
+    if (m_world != nullptr && m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+        if (Items::LEAD != nullptr) {
+            ItemStack stack(*Items::LEAD, 1);
+            math::Random& rng = m_world->getRandom();
+            ItemDropHelper::spawnItemAtEntity(this, stack, 0.5f, rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+        }
+    }
+}
+
+void MobEntity::tickLeash()
+{
+    // 只在服务端且被拴住时执行
+    if (!m_isLeashed || m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 恢复延迟加载的拴绳数据
+    if (m_leashDelayInfo.targetUuid.has_value()) {
+        // TODO: 延迟绑定 - 查找目标实体并绑定
+        // 当前简化实现：如果100tick后仍无法绑定，则掉落拴绳
+        if (++m_leashDelayInfo.resolveTicks >= 100) {
+            dropLeash();
+        }
+        return;
+    }
+
+    // 获取拴绳持有者位置
+    Vector3d holderPos;
+    bool holderValid = false;
+
+    if (m_leashHolderUuid.has_value()) {
+        // 拴在实体上：查找持有者实体
+        // TODO: 通过 EntityManager 的 UUID 索引查找实体，当前简化实现使用 getEntitiesInRange
+        Vector3d centerPos(m_position.x, m_position.y, m_position.z);
+        auto entities = m_world->getEntitiesInRange(Vector3(m_position.x, m_position.y, m_position.z), 20.0f);
+        for (Entity* entity : entities) {
+            if (entity->uuid() == *m_leashHolderUuid) {
+                holderPos = Vector3d(entity->x(), entity->y(), entity->z());
+                holderValid = true;
+                break;
+            }
+        }
+    } else if (m_leashFencePos.has_value()) {
+        // 拴在栅栏上
+        holderPos = Vector3d(m_leashFencePos->x + 0.5, m_leashFencePos->y + 0.5, m_leashFencePos->z + 0.5);
+        holderValid = true;
+    }
+
+    if (!holderValid) {
+        // 无法找到持有者，掉落拴绳
+        dropLeash();
+        return;
+    }
+
+    // 计算与持有者的距离
+    Vector3d mobPos(m_position.x, m_position.y, m_position.z);
+    f64 distance = mobPos.distance(holderPos);
+
+    // 拴绳断裂距离
+    constexpr f64 LEASH_SNAP_DISTANCE = 12.0;
+    // 拴绳弹性距离
+    constexpr f64 LEASH_ELASTIC_DISTANCE = 6.0;
+
+    if (distance > LEASH_SNAP_DISTANCE) {
+        // 距离超过断裂距离，拴绳断裂
+        if (m_world != nullptr) {
+            playSound(SoundEvents::ENTITY_LEASH_KNOT_BREAK, 1.0f, 1.0f);
+        }
+        dropLeash();
+        return;
+    }
+
+    if (distance > LEASH_ELASTIC_DISTANCE) {
+        // 距离超过弹性距离，施加拉力
+        // 计算从实体指向持有者的方向
+        Vector3d direction = holderPos - mobPos;
+        f64 length = direction.length();
+        if (length > 0.001) {
+            direction = direction / length;
+        }
+
+        // 弹性拉力：距离超过弹性距离的部分作为力
+        f64 force = (distance - LEASH_ELASTIC_DISTANCE) * 0.5;
+        Vector3d deltaMovement(direction.x * force * 0.8, direction.y * force * 0.2, direction.z * force * 0.8);
+
+        // 施加拉力（添加到速度向量）
+        m_velocity.x += static_cast<f32>(deltaMovement.x);
+        m_velocity.y += static_cast<f32>(deltaMovement.y);
+        m_velocity.z += static_cast<f32>(deltaMovement.z);
+    }
 }
 
 // ============================================================================

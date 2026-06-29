@@ -23,26 +23,32 @@
 
 #pragma once
 
-/**
- * @file Packet.hpp
- * @brief 网络数据包模块统一头文件
- *
- * 包含所有数据包相关的类。
- */
+#include "common/item/core/Item.hpp"
 
-#include "CommandTreePacket.hpp"
-#include "ContainerPacketHandler.hpp"
-#include "EntityMetadataSerializer.hpp"
-#include "EntityPackets.hpp"
-#include "GameStateChangePacket.hpp"
-#include "InventoryPackets.hpp"
-#include "Packet.hpp"
-#include "PacketDeserializer.hpp"
-#include "PacketSerializer.hpp"
-#include "ParticlePacket.hpp"
-#include "ProtocolPackets.hpp"
-#include "RecipePackets.hpp"
-#include "ServerDifficultyPacket.hpp"
-#include "SetCameraPacket.hpp"
-#include "SetEntityLinkPacket.hpp"
-#include "TitlePacket.hpp"
+namespace mc::item::items {
+
+/**
+ * @brief 拴绳物品
+ *
+ * 拴绳可以用于：
+ * 1. 右键栅栏方块：将玩家手中拴住的生物绑定到栅栏柱上的拴绳结
+ * 2. 右键生物（由 MobEntity::processInitialInteract 处理）：将拴绳拴在生物身上
+ *
+ * 参考 MC Java: net.minecraft.world.item.LeadItem
+ */
+class LeadItem : public Item {
+public:
+    explicit LeadItem(ItemProperties properties);
+
+    /**
+     * @brief 在方块上使用物品
+     *
+     * 当玩家右键点击栅栏方块时，将玩家手中拴住的生物绑定到栅栏柱上的拴绳结。
+     *
+     * @param context 物品使用上下文
+     * @return 动作结果类型
+     */
+    [[nodiscard]] ActionResultType onItemUse(ItemUseContext& context) override;
+};
+
+} // namespace mc::item::items

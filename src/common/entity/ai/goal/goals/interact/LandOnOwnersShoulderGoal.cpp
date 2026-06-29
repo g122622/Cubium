@@ -125,11 +125,10 @@ void LandOnOwnersShoulderGoal::tick()
         return;
     }
 
-    // TODO: 检查是否被拴住（拴绳系统尚未完全实现）
-    // 如果实体被拴绳拴住，不能坐到肩膀上
-    // if (m_entity->isLeashed()) {
-    //     return;
-    // }
+    // 检查是否被拴住，被拴住的实体不能坐到主人肩膀上
+    if (m_entity->isLeashed()) {
+        return;
+    }
 
     // 检查碰撞箱是否与主人相交
     if (m_entity->boundingBox().intersects(m_owner->boundingBox())) {

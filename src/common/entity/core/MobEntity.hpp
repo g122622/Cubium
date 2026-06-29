@@ -69,6 +69,8 @@ struct LeashDelayInfo {
     std::optional<std::string> targetUuid;
     /// 拴绳目标为栅栏柱时，存储栅栏柱坐标
     std::optional<BlockPos> fencePos;
+    /// 延迟绑定的尝试次数（用于超时掉落拴绳）
+    i32 resolveTicks = 0;
 };
 
 /**
@@ -609,9 +611,33 @@ public:
     void setLeashedToFence(const BlockPos& pos);
 
     /**
-     * @brief 解除拴绳绑定
+     * @brief 解除拴绳绑定（不掉落物品）
+     *
+     * 清除拴绳状态但不掉落拴绳物品。
+     * 用于创造模式或拴绳因距离断裂等情况。
      */
     void clearLeash();
+
+    /**
+     * @brief 解除拴绳绑定并掉落拴绳物品
+     *
+     * 清除拴绳状态并在实体位置掉落一个拴绳物品。
+     * 用于生存模式下玩家主动解拴或拴绳因距离断裂。
+     * 如果 doEntityDrops 游戏规则为 false，则不掉落物品。
+     */
+    void dropLeash();
+
+    /**
+     * @brief 实现 tickLeash 拴绳物理
+     *
+     * 每tick执行拴绳物理约束：
+     * - 恢复延迟加载的拴绳数据
+     * - 检查拴绳双方是否存活且可交互
+     * - 距离超过断裂距离时断裂
+     * - 距离超过弹性距离时施加拉力
+     * - 近距离时让实体跟随拴绳持有者
+     */
+    void tickLeash();
 
     // ========== 持久化系统 (Persistence) ==========
 

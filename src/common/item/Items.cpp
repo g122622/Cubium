@@ -48,6 +48,7 @@
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
 #include "common/item/items/special/HoneycombItem.hpp"
+#include "common/item/items/special/LeadItem.hpp"
 #include "common/item/items/special/MilkBucketItem.hpp"
 #include "common/item/items/special/MusicDiscItem.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
@@ -2525,7 +2526,8 @@ void Items::_registerHangingItems()
     ITEM_FRAME = &registry.registerItem(ResourceLocation("minecraft:item_frame"), ItemProperties().maxStackSize(16));
 
     // 拴绳
-    LEAD = &registry.registerItem(ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(16));
+    LEAD = &registry.registerItem<item::items::LeadItem>(
+        ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(16));
 }
 
 void Items::_registerSigns()

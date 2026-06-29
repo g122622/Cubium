@@ -59,6 +59,7 @@ add_library(mc_common STATIC
     network/packet/MapDataPacket.cpp
     network/packet/SetCameraPacket.cpp
     network/packet/SetPassengersPacket.cpp
+    network/packet/SetEntityLinkPacket.cpp
     network/packet/TitlePacket.cpp
     network/packet/WorldBorderPacket.cpp
     network/packet/BossInfoPacket.cpp
@@ -519,6 +520,7 @@ add_library(mc_common STATIC
     item/items/special/SmithingTemplateItem.cpp
     item/items/special/EnchantedBookItem.cpp
     item/items/special/NameTagItem.cpp
+    item/items/special/LeadItem.cpp
     item/items/special/SaddleItem.cpp
     item/items/special/OnAStickItem.cpp
     item/items/special/StickItems.cpp

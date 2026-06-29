@@ -23,6 +23,7 @@
 
 #include "HangingEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
@@ -30,10 +31,13 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
@@ -378,6 +382,110 @@ LeashKnotEntity::LeashKnotEntity(BlockPos pos, Direction direction)
     : HangingEntity(pos, direction)
 {}
 
+LeashKnotEntity* LeashKnotEntity::getOrCreateKnot(IWorld& world, const BlockPos& pos)
+{
+    // 搜索该位置附近是否已有拴绳结实体
+    Vector3 centerPos(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
+    auto entities = world.getEntitiesInRange(centerPos, 2.0f);
+
+    for (Entity* entity : entities) {
+        auto* knot = dynamic_cast<LeashKnotEntity*>(entity);
+        if (knot != nullptr && knot->isAlive()) {
+            BlockPos knotHangingPos = knot->getHangingBlockPos();
+            if (knotHangingPos == pos) {
+                return knot;
+            }
+        }
+    }
+
+    // 创建新的拴绳结
+    auto newKnot = std::make_unique<LeashKnotEntity>(pos, HangingEntity::Direction::SOUTH);
+    auto* rawPtr = newKnot.get();
+    EntityId id = world.spawnEntity(std::move(newKnot));
+    if (id == INVALID_ENTITY_ID) {
+        return nullptr;
+    }
+    return rawPtr;
+}
+
+ActionResultType LeashKnotEntity::interact(Player& player, Hand hand)
+{
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        bool transferredToKnot = false;
+        bool transferredToPlayer = false;
+
+        // 将玩家手中拴着的生物转移到栅栏结上
+        ItemStack& heldItem = player.getHeldItem(hand);
+        if (heldItem.getItem() != nullptr && heldItem.getItem() == Items::LEAD) {
+            // 搜索被当前玩家拴住的生物
+            Vector3 centerPos(m_hangingPos.x + 0.5f, m_hangingPos.y + 0.5f, m_hangingPos.z + 0.5f);
+            auto entities = m_world->getEntitiesInRange(centerPos, 16.0f);
+
+            for (Entity* entity : entities) {
+                auto* mob = dynamic_cast<MobEntity*>(entity);
+                if (mob == nullptr || !mob->isAlive()) {
+                    continue;
+                }
+
+                if (!mob->isLeashed()) {
+                    continue;
+                }
+
+                const auto& holderUuid = mob->leashHolderUuid();
+                if (!holderUuid.has_value() || *holderUuid != player.uuid()) {
+                    continue;
+                }
+
+                // 检查距离
+                constexpr f64 MAX_LEASH_DISTANCE = 12.0;
+                Vector3d mobPos(mob->x(), mob->y(), mob->z());
+                Vector3d knotPos(m_hangingPos.x + 0.5, m_hangingPos.y + 0.5, m_hangingPos.z + 0.5);
+                f64 distance = mobPos.distance(knotPos);
+                if (distance > MAX_LEASH_DISTANCE) {
+                    continue;
+                }
+
+                if (!mob->canBeLeashed()) {
+                    continue;
+                }
+
+                // 将生物从拴在玩家身上改为拴在栅栏结上
+                mob->setLeashedToFence(m_hangingPos);
+                attachLeash(mob);
+                transferredToKnot = true;
+            }
+        }
+
+        // 如果没有转移到栅栏结，且玩家不潜行，将栅栏结上的生物取回
+        if (!transferredToKnot && !player.isSneaking()) {
+            for (auto it = m_leashedEntities.begin(); it != m_leashedEntities.end();) {
+                auto* mob = dynamic_cast<MobEntity*>(*it);
+                if (mob != nullptr && mob->isAlive() && mob->canBeLeashed()) {
+                    // 将生物从栅栏结转移到玩家身上
+                    mob->setLeashedToEntity(player.uuid());
+                    it = m_leashedEntities.erase(it);
+                    transferredToPlayer = true;
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+        if (transferredToKnot || transferredToPlayer) {
+            m_world->gameEvent(gameevent::GameEvents::BLOCK_ATTACH, m_hangingPos, nullptr);
+            playSound(SoundEvents::ENTITY_LEASH_KNOT_PLACE, 1.0f, 1.0f);
+            return ActionResultType::Success;
+        }
+    }
+
+    // 客户端直接返回成功
+    if (m_world != nullptr && m_world->isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
+}
+
 void LeashKnotEntity::tick()
 {
     HangingEntity::tick();
@@ -430,6 +538,22 @@ void LeashKnotEntity::detachLeash(Entity* entity)
     auto it = std::find(m_leashedEntities.begin(), m_leashedEntities.end(), entity);
     if (it != m_leashedEntities.end()) {
         m_leashedEntities.erase(it);
+    }
+}
+
+bool LeashKnotEntity::survives() const
+{
+    if (m_world == nullptr) {
+        return false;
+    }
+    const BlockState* state = m_world->getBlockState(m_hangingPos);
+    return state != nullptr && BlockTags::FENCES().contains(*state);
+}
+
+void LeashKnotEntity::playPlacementSound()
+{
+    if (m_world != nullptr) {
+        playSound(SoundEvents::ENTITY_LEASH_KNOT_PLACE, 1.0f, 1.0f);
     }
 }
 

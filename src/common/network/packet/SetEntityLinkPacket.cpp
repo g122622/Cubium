@@ -21,28 +21,46 @@
  *
  */
 
-#pragma once
-
-/**
- * @file Packet.hpp
- * @brief 网络数据包模块统一头文件
- *
- * 包含所有数据包相关的类。
- */
-
-#include "CommandTreePacket.hpp"
-#include "ContainerPacketHandler.hpp"
-#include "EntityMetadataSerializer.hpp"
-#include "EntityPackets.hpp"
-#include "GameStateChangePacket.hpp"
-#include "InventoryPackets.hpp"
-#include "Packet.hpp"
-#include "PacketDeserializer.hpp"
-#include "PacketSerializer.hpp"
-#include "ParticlePacket.hpp"
-#include "ProtocolPackets.hpp"
-#include "RecipePackets.hpp"
-#include "ServerDifficultyPacket.hpp"
-#include "SetCameraPacket.hpp"
 #include "SetEntityLinkPacket.hpp"
-#include "TitlePacket.hpp"
+#include "PacketSerializer.hpp"
+
+namespace mc::network {
+
+SetEntityLinkPacket::SetEntityLinkPacket()
+    : Packet(PacketType::SetEntityLink)
+{}
+
+SetEntityLinkPacket::SetEntityLinkPacket(u32 entityId, u32 linkedEntityId)
+    : Packet(PacketType::SetEntityLink)
+    , m_entityId(entityId)
+    , m_linkedEntityId(linkedEntityId)
+{}
+
+Result<std::vector<u8>> SetEntityLinkPacket::serialize() const
+{
+    PacketSerializer ser;
+    ser.writeVarInt(static_cast<i32>(m_entityId));
+    ser.writeVarInt(static_cast<i32>(m_linkedEntityId));
+    return ser.buffer();
+}
+
+Result<void> SetEntityLinkPacket::deserialize(const u8* data, size_t size)
+{
+    PacketDeserializer deser(data, size);
+
+    auto entityIdResult = deser.readVarInt();
+    if (entityIdResult.failed()) {
+        return entityIdResult.error();
+    }
+    m_entityId = static_cast<u32>(entityIdResult.value());
+
+    auto linkedIdResult = deser.readVarInt();
+    if (linkedIdResult.failed()) {
+        return linkedIdResult.error();
+    }
+    m_linkedEntityId = static_cast<u32>(linkedIdResult.value());
+
+    return Result<void>::ok();
+}
+
+} // namespace mc::network

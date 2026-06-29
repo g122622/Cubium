@@ -23,26 +23,38 @@
 
 #pragma once
 
-/**
- * @file Packet.hpp
- * @brief 网络数据包模块统一头文件
- *
- * 包含所有数据包相关的类。
- */
-
-#include "CommandTreePacket.hpp"
-#include "ContainerPacketHandler.hpp"
-#include "EntityMetadataSerializer.hpp"
-#include "EntityPackets.hpp"
-#include "GameStateChangePacket.hpp"
-#include "InventoryPackets.hpp"
 #include "Packet.hpp"
-#include "PacketDeserializer.hpp"
-#include "PacketSerializer.hpp"
-#include "ParticlePacket.hpp"
-#include "ProtocolPackets.hpp"
-#include "RecipePackets.hpp"
-#include "ServerDifficultyPacket.hpp"
-#include "SetCameraPacket.hpp"
-#include "SetEntityLinkPacket.hpp"
-#include "TitlePacket.hpp"
+#include "common/core/Types.hpp"
+
+namespace mc::network {
+
+/**
+ * @brief 设置实体拴绳链接包
+ *
+ * 服务端向客户端同步实体拴绳绑定状态。
+ * 当实体被拴绳拴住或解拴时发送此包。
+ *
+ * 协议格式：
+ * - VarInt: 被拴实体ID（源实体）
+ * - VarInt: 拴绳目标实体ID（0 表示解除拴绳）
+ */
+class SetEntityLinkPacket : public Packet {
+public:
+    SetEntityLinkPacket();
+    SetEntityLinkPacket(u32 entityId, u32 linkedEntityId);
+
+    [[nodiscard]] Result<std::vector<u8>> serialize() const override;
+    [[nodiscard]] Result<void> deserialize(const u8* data, size_t size) override;
+
+    [[nodiscard]] u32 entityId() const { return m_entityId; }
+    [[nodiscard]] u32 linkedEntityId() const { return m_linkedEntityId; }
+
+    void setEntityId(u32 entityId) { m_entityId = entityId; }
+    void setLinkedEntityId(u32 linkedEntityId) { m_linkedEntityId = linkedEntityId; }
+
+private:
+    u32 m_entityId = 0;
+    u32 m_linkedEntityId = 0;
+};
+
+} // namespace mc::network

@@ -292,6 +292,30 @@ public:
     [[nodiscard]] i32 getHeight() const override { return 1; }
 
     /**
+     * @brief 获取或创建指定栅栏位置的拴绳结
+     *
+     * 如果该位置已有拴绳结实体则复用，否则创建新的。
+     *
+     * @param world 世界实例
+     * @param pos 栅栏方块位置
+     * @return 拴绳结实体指针，失败返回 nullptr
+     */
+    static LeashKnotEntity* getOrCreateKnot(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 玩家与拴绳结交互
+     *
+     * 玩家右键拴绳结时的交互逻辑：
+     * - 玩家手持拴绳且有拴住的生物：将生物转移到栅栏结上
+     * - 玩家没有拴住的生物且不潜行：将栅栏结上的生物取回（拴到玩家身上）
+     *
+     * @param player 交互的玩家
+     * @param hand 使用的手
+     * @return 交互结果
+     */
+    ActionResultType interact(Player& player, Hand hand);
+
+    /**
      * @brief 绑定拴绳
      */
     void attachLeash(Entity* entity);
@@ -305,6 +329,18 @@ public:
      * @brief 获取所有绑定的实体
      */
     [[nodiscard]] const std::vector<Entity*>& getLeashedEntities() const { return m_leashedEntities; }
+
+    /**
+     * @brief 检查栅栏是否还在
+     *
+     * 拴绳结只存在于栅栏方块上方，如果栅栏被破坏则拴绳结也应销毁。
+     */
+    [[nodiscard]] bool survives() const;
+
+    /**
+     * @brief 播放放置音效
+     */
+    void playPlacementSound();
 
 private:
     std::vector<Entity*> m_leashedEntities;

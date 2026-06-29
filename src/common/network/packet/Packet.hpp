@@ -111,6 +111,9 @@ enum class PacketType : u16 {
     // 旁观者系统
     SetCamera = 233, // 设置摄像机实体 (S->C)，用于旁观者跟踪
 
+    // 实体拴绳链接包 (S->C)
+    SetEntityLink = 234, // 设置实体拴绳链接 (S->C)
+
     // 背包相关包 (双向)
     ContainerContent = 300,        // 容器内容同步 (S->C)
     ContainerSlot = 301,           // 单个槽位更新 (S->C)
