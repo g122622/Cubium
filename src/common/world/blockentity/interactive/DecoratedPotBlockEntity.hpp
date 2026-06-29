@@ -38,11 +38,10 @@ namespace blockentity {
 /**
  * @brief 饰纹陶罐四面图案数据
  *
- * 对应 MC Java 的 PotDecorations 记录类。
  * 存储饰纹陶罐四个面（后、左、右、前）的图案信息。
  * 每个面可以是 Blank（砖块面，默认）或某种陶片图案。
  *
- * 图案顺序与 MC Java 一致：[back, left, right, front]
+ * 图案顺序：[back, left, right, front]
  * - back:  陶罐背面（与 FACING 方向相反）
  * - left:  陶罐左面
  * - right: 陶罐右面
@@ -134,7 +133,6 @@ private:
 /**
  * @brief 饰纹陶罐方块实体
  *
- * 对应 MC Java 的 DecoratedPotBlockEntity。
  * 饰纹陶罐可以存储一个物品，并记录四面的陶片图案。
  *
  * 特点：
@@ -143,8 +141,6 @@ private:
  * - 支持红石比较器信号输出
  * - 摇晃动画（放入物品时正摇，空手交互时负摇）
  * - 可被战利品表填充（自然生成的陶罐）
- *
- * 参考: net.minecraft.world.level.block.entity.DecoratedPotBlockEntity
  */
 class DecoratedPotBlockEntity : public ContainerBlockEntity {
 public:
@@ -248,6 +244,12 @@ public:
 
     /**
      * @brief 处理客户端方块事件
+     *
+     * TODO: 依赖 IWorld::blockEvent 系统实现后，此方法才能被正确调用。
+     * 当前 IWorld 尚未提供 blockEvent 方法，因此此方法为死代码。
+     * 当 blockEvent 实现后，wobble() 方法应调用 world.blockEvent(pos, block, 1, style.ordinal())
+     * 发送事件到客户端，客户端通过此方法接收事件并设置动画起始时间。
+     *
      * @param id 事件ID（1=摇晃动画）
      * @param type 事件类型（0=Positive, 1=Negative）
      * @return 是否处理成功
@@ -272,7 +274,6 @@ private:
 /**
  * @brief 从 Item 指针获取对应的 DecoratedPotPattern
  *
- * 对应 MC Java 的 DecoratedPotPatterns.getPatternFromItem()。
  * 陶片物品映射到对应图案，砖块映射到 Blank，未知物品映射到 Blank。
  *
  * @param item 物品指针
@@ -293,7 +294,6 @@ private:
 /**
  * @brief 创建带有图案数据的饰纹陶罐物品
  *
- * 对应 MC Java 的 DecoratedPotBlockEntity.createDecoratedPotItem()。
  * 创建一个 minecraft:decorated_pot 物品，在 NBT 中存储四面图案信息。
  *
  * @param decorations 图案数据

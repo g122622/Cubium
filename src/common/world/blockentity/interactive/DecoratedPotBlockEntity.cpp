@@ -225,11 +225,15 @@ bool DecoratedPotBlockEntity::hasItem() const
 
 void DecoratedPotBlockEntity::wobble(WobbleStyle style)
 {
-    // TODO: 当 IWorld::blockEvent 实现后，应调用 world.blockEvent(pos, block, 1, style.ordinal())
-    // 以同步摇晃动画到客户端。对应 MC Java 的 DecoratedPotBlockEntity.wobble()。
-    // 当前仅服务端记录摇晃样式，客户端动画待 blockEvent 系统实现后自动生效。
     m_lastWobbleStyle = style;
-    m_wobbleStartedAtTick = 0; // 重置，待客户端事件触发时设置实际 tick
+
+    // 设置摇晃动画开始时间
+    if (m_world != nullptr) {
+        m_wobbleStartedAtTick = static_cast<i64>(m_world->getGameTime());
+    }
+
+    // TODO: 当 IWorld::blockEvent 实现后，应调用 world.blockEvent(pos, block, 1, style.ordinal())
+    // 以同步摇晃动画到客户端。当前仅服务端记录摇晃状态，客户端动画待 blockEvent 系统实现后生效。
     setChanged();
 }
 
@@ -252,7 +256,6 @@ i32 DecoratedPotBlockEntity::getComparatorSignal() const
     }
 
     // 单物品容器比较器信号计算公式
-    // 参考 MC Java: AbstractContainerMenu.getRedstoneSignalFromContainer
     const i32 count = stack.getCount();
     const i32 maxStack = stack.getMaxStackSize();
     if (maxStack == 0) {
@@ -384,11 +387,9 @@ bool DecoratedPotBlockEntity::receiveClientEvent(i32 id, i32 type)
         // type=0: Positive (放入物品时), type=1: Negative (空手交互时)
         m_lastWobbleStyle = (type == 0) ? WobbleStyle::Positive : WobbleStyle::Negative;
 
-        // 设置摇晃开始时间
-        // 注意：实际 tick 需要从世界获取，这里记录事件触发
+        // 客户端收到事件时，使用世界时间设置动画起始时刻
         if (m_world != nullptr) {
-            // 使用世界时间作为基准
-            m_wobbleStartedAtTick = 0; // 由客户端动画系统管理
+            m_wobbleStartedAtTick = static_cast<i64>(m_world->getGameTime());
         }
         setChanged();
         return true;
@@ -464,7 +465,6 @@ ItemStack createDecoratedPotItem(const PotDecorations& decorations)
     ItemStack stack(*blockItem, 1);
 
     // 将图案数据存储到物品的 BlockEntityTag 中
-    // 对应 MC Java 的 collectImplicitComponents / getComponentsMap
     nlohmann::json& tag = stack.getOrCreateTag();
     tag["BlockEntityTag"] = nlohmann::json::object();
     tag["BlockEntityTag"]["id"] = "minecraft:decorated_pot";

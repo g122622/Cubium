@@ -38,6 +38,7 @@
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "world/gameevent/GameEvents.hpp"
+#include "world/redstone/RedstoneSystem.hpp"
 
 namespace mc {
 namespace blocks {
@@ -240,7 +241,6 @@ ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
 
     if (!heldItem.isEmpty()) {
         // 手持物品：尝试向陶罐中放入1个物品
-        // 对应 MC Java 的 DecoratedPotBlock.useItemOn
 
         // 检查是否可以放入：陶罐为空，或罐内物品与手持物品相同且未达到最大堆叠
         bool canInsert = false;
@@ -282,18 +282,16 @@ ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
             // 标记方块实体已修改
             potEntity->setChanged();
 
-            // TODO: 当 IWorld::updateComparatorOutputLevel 实现后，
-            // 调用 world.updateComparatorOutputLevel(pos) 通知红石比较器更新
+            // 通知红石比较器更新信号
+            world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
 
             return ActionResultType::Success;
         }
 
         // 物品无法放入，回退到空手交互逻辑
-        // （MC Java 返回 TRY_WITH_EMPTY_HAND，我们直接执行空手逻辑）
     }
 
     // 空手交互或物品无法放入：触发负摇晃动画
-    // 对应 MC Java 的 DecoratedPotBlock.useWithoutItem
     potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Negative);
 
     // 播放插入失败音效
@@ -308,7 +306,6 @@ ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
 
 void DecoratedPotBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
 {
-    // 对应 MC Java 的 DecoratedPotBlock.playerWillDestroy
     // 如果玩家手持的物品具有 BREAKS_DECORATED_POTS 标签（剑、斧等工具），
     // 且没有 PREVENTS_DECORATED_POT_SHATTERING 附魔（如精准采集），
     // 则将陶罐设为 CRACKED 状态，使其掉落4个单独的陶片而非陶罐物品
@@ -326,7 +323,6 @@ void DecoratedPotBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const
     MC_UNUSED(state);
 
     // 方块移除时掉落陶罐内存储的物品
-    // 对应 MC Java 的 Containers.updateNeighboursAfterDestroy + 掉落罐内物品
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
         auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(entity);
@@ -350,7 +346,6 @@ ItemStack DecoratedPotBlock::getCloneItemStack(const BlockState& state, IWorld* 
     MC_UNUSED(state);
 
     // 中键选取：返回带有图案数据的陶罐物品
-    // 对应 MC Java 的 DecoratedPotBlock.getCloneItemStack
     if (world != nullptr && pos != nullptr) {
         BlockEntity* entity = world->getBlockEntity(*pos);
         if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
