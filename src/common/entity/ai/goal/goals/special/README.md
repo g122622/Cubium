@@ -21,6 +21,7 @@
 ├── EvokerGoals.hpp / cpp #唤魔者目标（尖牙攻击、召唤恼鬼、Wololo法术）
 ├── VexGoals.hpp / cpp #恼鬼目标（冲锋攻击、随机飞行、复制主人目标）
 ├── BeeGoals.hpp / cpp #蜜蜂目标（授粉、返回蜂巢、蛰刺攻击、作物生长促进）
+├── CatGoals.hpp / cpp #猫目标（躺在床上、在主人身边放松）
 ├── FoxGoals.hpp / cpp #狐狸目标（跟踪猎物、扑击、睡眠、吃浆果）
 ├── PandaGoals.hpp / cpp #熊猫目标（打滚）
 ├── SilverfishGoals.hpp / cpp #蠹虫目标（藏入石头、召唤同伴）
@@ -98,6 +99,8 @@
 ├── BeeResetAngerGoal ────────────── 蜜蜂重置愤怒（愤怒时间结束后清除愤怒状态）
 ├── ShulkerNearestAttackGoal : NearestAttackableTargetGoal 潜影贝攻击最近玩家（和平难度下禁用）
 ├── ShulkerDefenseAttackGoal : NearestAttackableTargetGoal 潜影贝防御攻击（队伍中的潜影贝攻击IMob）
+├── CatLieOnBedGoal : MoveToBlockGoal ─ 猫躺在床上（驯服猫寻找床并躺下）
+├── CatRelaxOnOwnerGoal : Goal ─ 猫在睡眠主人身边放松（看向主人→躺下→赠送礼物）
 ├── FoxPassiveGoal(抽象基类)
 │   ├── FoxFindShelterGoal ───────── 狐狸寻找庇护所
 │   ├── FoxSleepGoal ─────────────── 狐狸睡眠

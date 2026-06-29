@@ -30,6 +30,7 @@
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/passive/fish/PufferfishEntity.hpp"
 #include "common/entity/entities/passive/special/PolarBearEntity.hpp"
+#include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/passive/tamable/OcelotEntity.hpp"
 #include "common/network/packet/EntityMetadataSerializer.hpp"
 #include "common/network/packet/PacketSerializer.hpp"
@@ -273,6 +274,23 @@ void ClientEntity::syncMetadataFromDataManager()
             if (const auto* value = m_dataManager.getRaw(::mc::OcelotEntity::getTrustingParamId()); value != nullptr) {
                 const bool trusting = value->get<bool>();
                 setTrusting(trusting);
+            }
+        }
+    }
+
+    // 猫动画状态同步
+    if (m_typeId == "minecraft:cat" || m_typeId == "cat") {
+        if (m_dataManager.hasParam(::mc::CatEntity::getLyingParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::CatEntity::getLyingParamId()); value != nullptr) {
+                const bool lying = value->get<bool>();
+                setCatLieDown(lying);
+            }
+        }
+        if (m_dataManager.hasParam(::mc::CatEntity::getRelaxStateOneParamId())) {
+            if (const auto* value = m_dataManager.getRaw(::mc::CatEntity::getRelaxStateOneParamId());
+                value != nullptr) {
+                const bool relax = value->get<bool>();
+                setCatRelaxStateOne(relax);
             }
         }
     }
