@@ -382,7 +382,7 @@ LlamaFollowCaravanGoal::LlamaFollowCaravanGoal(LlamaEntity* llama, f32 speed)
 
 bool LlamaFollowCaravanGoal::shouldExecute()
 {
-    // MC Java: 如果自己被拴绳拴住或已在商队中，不能发起加入商队
+    // 如果自己被拴绳拴住或已在商队中，不能发起加入商队
     if (!m_llama || m_llama->isLeashed() || m_llama->isInCaravan()) {
         return false;
     }
@@ -400,7 +400,6 @@ bool LlamaFollowCaravanGoal::shouldExecute()
     f64 bestDistanceSq = std::numeric_limits<f64>::max();
 
     // 第一阶段：寻找已在商队中但无尾部的羊驼（商队链末尾的羊驼）
-    // MC Java: for llama1 in list: if llama1.inCaravan() && !llama1.hasCaravanTail()
     for (Entity* entity : entities) {
         entity::EntityTypeId type = entity->typeId();
         if (type != entity::EntityTypeIdNumber::LLAMA && type != entity::EntityTypeIdNumber::TRADER_LLAMA) {
@@ -422,7 +421,6 @@ bool LlamaFollowCaravanGoal::shouldExecute()
     }
 
     // 第二阶段：如果没有找到商队尾部的羊驼，寻找被拴住且无尾部的羊驼
-    // MC Java: if llama == null: for llama2 in list: if llama2.isLeashed() && !llama2.hasCaravanTail()
     if (bestCandidate == nullptr) {
         for (Entity* entity : entities) {
             entity::EntityTypeId type = entity->typeId();
@@ -445,7 +443,7 @@ bool LlamaFollowCaravanGoal::shouldExecute()
         }
     }
 
-    // 最终条件判断（对齐 MC Java 逻辑）
+    // 最终条件判断
     if (bestCandidate == nullptr) {
         return false;
     }
@@ -455,7 +453,6 @@ bool LlamaFollowCaravanGoal::shouldExecute()
         return false;
     }
 
-    // MC Java: if (!llama.isLeashed() && !this.firstIsLeashed(llama, 1)) return false;
     // 目标羊驼自己没被拴住，且沿商队链递归向上也找不到被拴住的羊驼，则商队无效
     if (!bestCandidate->isLeashed() && !_firstIsLeashed(bestCandidate, 1)) {
         return false;
@@ -525,7 +522,6 @@ void LlamaFollowCaravanGoal::tick()
         return;
     }
 
-    // MC Java: if (!(this.llama.getLeashHolder() instanceof LeashFenceKnotEntity))
     // 如果自己被拴在栅栏柱上，不移动跟随商队
     // C++ 中使用 leashFencePos() 判断：被拴在栅栏时 leashFencePos() 有值
     if (m_llama->isLeashed() && m_llama->leashFencePos().has_value()) {
@@ -573,7 +569,6 @@ void LlamaFollowCaravanGoal::tick()
 bool LlamaFollowCaravanGoal::_firstIsLeashed(const LlamaEntity* llama, i32 depth) const
 {
     // 递归检查商队链头是否被拴绳拴住
-    // 对齐 MC Java LlamaFollowCaravanGoal.firstIsLeashed()
     // 沿 caravanHead 链向上追溯，直到找到一个被拴住的羊驼（返回 true）
     // 或到达链的末端/深度超限（返回 false）
     if (depth > MAX_CARAVAN_LENGTH) {
@@ -586,9 +581,7 @@ bool LlamaFollowCaravanGoal::_firstIsLeashed(const LlamaEntity* llama, i32 depth
             return false;
         }
 
-        // MC Java: return p_479529_.getCaravanHead().isLeashed() ? true :
-        // this.firstIsLeashed(p_479529_.getCaravanHead(), ++p_25508_); 如果头领被拴住则返回
-        // true，否则继续递归检查头领的上级
+        // 如果头领被拴住则返回 true，否则继续递归检查头领的上级
         return head->isLeashed() || _firstIsLeashed(head, depth + 1);
     }
 
