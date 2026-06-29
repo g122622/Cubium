@@ -107,7 +107,9 @@
 │   ├── BrewingStandEntity(酿造台，多重继承 ISidedInventory)
 │   ├── CampfireBlockEntity(营火)
 │   ├── JukeboxEntity(唱片机)
-│   └── CrafterBlockEntity(自动合成器，9格 + 槽位锁定)
+│   ├── CrafterBlockEntity(自动合成器，9格 + 槽位锁定)
+│   ├── ShelfBlockEntity(雕纹书架)
+│   └── DecoratedPotBlockEntity(饰纹陶罐，四面图案PotDecorations、1格物品容器、摇晃动画、比较器信号)
 │
 ├── EnchantingTableEntity(附魔台)
 ├── PistonBlockEntity(活塞)

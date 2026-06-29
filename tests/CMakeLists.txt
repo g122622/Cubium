@@ -453,6 +453,7 @@ add_executable(mc_tests
     common/world/block/blocks/functional/StonecutterBlockTest.cpp
     common/world/block/blocks/functional/SmithingTableBlockTest.cpp
     common/world/block/blocks/functional/BeaconBlockTest.cpp
+    common/world/block/blocks/functional/DecoratedPotBlockTest.cpp
     common/world/block/blocks/nether/EnderChestBlockTest.cpp
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp

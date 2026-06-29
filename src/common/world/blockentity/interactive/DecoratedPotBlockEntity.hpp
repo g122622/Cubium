@@ -240,22 +240,6 @@ public:
     void saveToNBT(nbt::tags::compound_tag& tag) const override;
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
 
-    // ========== 方块事件 ==========
-
-    /**
-     * @brief 处理客户端方块事件
-     *
-     * TODO: 依赖 IWorld::blockEvent 系统实现后，此方法才能被正确调用。
-     * 当前 IWorld 尚未提供 blockEvent 方法，因此此方法为死代码。
-     * 当 blockEvent 实现后，wobble() 方法应调用 world.blockEvent(pos, block, 1, style.ordinal())
-     * 发送事件到客户端，客户端通过此方法接收事件并设置动画起始时间。
-     *
-     * @param id 事件ID（1=摇晃动画）
-     * @param type 事件类型（0=Positive, 1=Negative）
-     * @return 是否处理成功
-     */
-    bool receiveClientEvent(i32 id, i32 type);
-
     /**
      * @brief 获取朝向
      *
@@ -269,12 +253,28 @@ private:
     PotDecorations m_decorations;                          ///< 四面图案
     i64 m_wobbleStartedAtTick = 0;                         ///< 摇晃动画开始tick
     WobbleStyle m_lastWobbleStyle = WobbleStyle::Positive; ///< 最近摇晃样式
+
+    /**
+     * @brief 处理客户端方块事件
+     *
+     * TODO: 依赖 IWorld::blockEvent 系统实现后，此方法应提升为 BlockEntity 基类的虚方法，
+     * 并改为 public override。当前 IWorld 尚未提供 blockEvent 方法，因此此方法为死代码。
+     * 当 blockEvent 实现后，wobble() 方法应调用 world.blockEvent(pos, block, 1, style.ordinal())
+     * 发送事件到客户端，客户端通过此方法接收事件并设置动画起始时间。
+     *
+     * @param id 事件ID（1=摇晃动画）
+     * @param type 事件类型（0=Positive, 1=Negative）
+     * @return 是否处理成功
+     */
+    bool receiveClientEvent(i32 id, i32 type);
 };
 
 /**
  * @brief 从 Item 指针获取对应的 DecoratedPotPattern
  *
  * 陶片物品映射到对应图案，砖块映射到 Blank，未知物品映射到 Blank。
+ * TODO: 当 DecoratedPotRecipe 实现后，此函数将在合成配方中被调用，
+ * 将输入的4个陶片/砖块物品转换为对应的图案。
  *
  * @param item 物品指针
  * @return 对应的图案，如果物品不是陶片或砖块则返回 Blank
@@ -285,6 +285,8 @@ private:
  * @brief 从 DecoratedPotPattern 获取对应的 Item 指针
  *
  * Blank 图案返回砖块物品，其他图案返回对应的陶片物品。
+ * TODO: 当 DecoratedPotRecipe 实现后，此函数将在合成结果展示中被调用，
+ * 将图案反向映射为对应的陶片物品用于配方展示。
  *
  * @param pattern 图案类型
  * @return 对应的物品指针，如果找不到则返回 nullptr

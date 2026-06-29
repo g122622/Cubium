@@ -80,11 +80,12 @@
 ├── TrailsBlocks
 │   ├── ChiseledBookshelfBlock(红石比较器检测)
 │   ├── DecoratedPotBlock(IWaterLoggable, DecoratedPotBlockEntity方块实体)
-│   │   ├── onBlockActivated: 手持物品放入罐中(+1)/空手触发负摇晃动画
+│   │   ├── onBlockActivated: 手持物品放入罐中(+1，创造模式不消耗)/空手触发负摇晃动画
 │   │   ├── onBlockRemoved: 方块移除时掉落罐内存储的物品
 │   │   ├── playerWillDestroy: 预留CRACKED状态处理(待BREAKS_DECORATED_POTS标签)
 │   │   ├── getCloneItemStack: 中键选取返回带sherds数据的陶罐物品
 │   │   ├── getComparatorInputOverride: 红石比较器信号输出
+│   │   ├── onBlockActivated: 物品插入后通过RedstoneSystem通知比较器更新
 │   │   └── 摇晃动画(Positive=放入/Negative=空手)触发
 │   ├── BrushableBlock(FallingBlock子类)
 │   └── SnifferEggBlock(randomTick孵化)

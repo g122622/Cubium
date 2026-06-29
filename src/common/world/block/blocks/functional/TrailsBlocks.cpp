@@ -256,7 +256,7 @@ ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
             // 触发正摇晃动画
             potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Positive);
 
-            // 分离1个物品
+            // 分离1个物品（保留物品元数据如附魔、自定义名称等）
             ItemStack toInsert = heldItem.split(1);
 
             if (potItem.isEmpty()) {
@@ -266,6 +266,11 @@ ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
                 // 叠加到已有物品
                 potItem.grow(1);
                 potEntity->setItem(potItem);
+            }
+
+            // 创造模式不消耗手持物品
+            if (player.isCreative()) {
+                heldItem.grow(1);
             }
 
             // 播放插入音效
