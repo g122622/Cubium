@@ -29,6 +29,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+// GLM GTX 扩展（euler_angles）需要启用实验性功能宏
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/euler_angles.hpp>
+
 namespace mc::client::renderer::entity::item {
 
 /**
@@ -61,40 +65,64 @@ inline glm::vec3 computeRescaleFactors(const glm::mat3& rotMatrix)
 /**
  * @brief 构建元素旋转矩阵（含 rescale 缩放）
  *
- * 参考 MC FaceBakery.bakeQuad() 的元素旋转逻辑：
- * 1. 构建绕指定轴的旋转矩阵
- * 2. 若 rescale 为 true，计算各轴缩放因子补偿旋转投影收缩
- * 3. 组合为 T(origin) * R(可选S) * T(-origin) 的变换矩阵
+ * 支持两种旋转格式（与 MC 1.21.11 BlockElementRotation 一致）：
  *
- * @param rotation 模型元素旋转参数（origin/axis/angle/rescale）
+ * 1. 传统 axis+angle 格式（rotation.isEulerXYZ == false）：
+ *    构建绕指定轴的旋转矩阵，参考 MC SingleAxisRotation.transformation()。
+ *
+ * 2. EulerXYZ 格式（rotation.isEulerXYZ == true，MC 1.21.11 新增）：
+ *    构建 ZYX 欧拉角旋转矩阵（内在 Z→Y→X 顺序，等价于外在 X→Y→Z 顺序），
+ *    参考 MC EulerXYZRotation.transformation() 中的 rotationZYX()。
+ *
+ * 两种格式均支持 rescale 补偿。rescale 逻辑基于已构建的旋转矩阵计算各轴
+ * 缩放因子，因此对两种格式通用，无需区分。
+ *
+ * 组合变换：T(origin) * R(可选S) * T(-origin)
+ *
+ * @param rotation 模型元素旋转参数
  * @param scale 顶点缩放因子（用于将像素坐标转为世界坐标，通常为 1/16）
  * @return 旋转+平移组合矩阵，若无旋转则返回单位矩阵
  */
 inline glm::mat4 buildElementRotationMatrix(const ModelRotation& rotation, f64 scale)
 {
-    // TODO: MC 1.21.11 新增了 EulerXYZ 旋转格式（x/y/z 三轴欧拉角），
-    // 当前 ModelRotation 仅支持 axis+angle 单轴旋转格式。当资源包使用 x/y/z 字段时，
-    // 需要扩展 ModelRotation 结构体并在此处支持 ZYX 欧拉角旋转矩阵构建，
-    // 参考 MC BlockElementRotation.EulerXYZRotation.computeTransform()。
-
-    f32 angleRad = glm::radians(rotation.angle);
-    glm::vec3 axisVec;
-
-    if (rotation.axis == "x") {
-        axisVec = glm::vec3(1.0f, 0.0f, 0.0f);
-    } else if (rotation.axis == "z") {
-        axisVec = glm::vec3(0.0f, 0.0f, 1.0f);
-    } else {
-        // 默认为 Y 轴
-        axisVec = glm::vec3(0.0f, 1.0f, 0.0f);
+    // 恒等旋转直接返回单位矩阵
+    if (rotation.isIdentity()) {
+        return glm::mat4(1.0f);
     }
 
-    // 构建纯旋转矩阵
-    glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), angleRad, axisVec);
+    glm::mat4 rotMatrix;
+
+    if (rotation.isEulerXYZ) {
+        // EulerXYZ 格式：ZYX 欧拉角旋转（MC 1.21.11 新增）
+        // 参考 MC BlockElementRotation.EulerXYZRotation.transformation():
+        //   new Matrix4f().rotationZYX(zRad, yRad, xRad)
+        // glm::eulerAngleZYX 按参数顺序为 (z, y, x)，对应内在 Z→Y→X 旋转
+        const f32 xRad = glm::radians(rotation.rotX);
+        const f32 yRad = glm::radians(rotation.rotY);
+        const f32 zRad = glm::radians(rotation.rotZ);
+        rotMatrix = glm::eulerAngleZYX(zRad, yRad, xRad);
+    } else {
+        // 传统 axis+angle 格式
+        f32 angleRad = glm::radians(rotation.angle);
+        glm::vec3 axisVec;
+
+        if (rotation.axis == "x") {
+            axisVec = glm::vec3(1.0f, 0.0f, 0.0f);
+        } else if (rotation.axis == "z") {
+            axisVec = glm::vec3(0.0f, 0.0f, 1.0f);
+        } else {
+            // 默认为 Y 轴
+            axisVec = glm::vec3(0.0f, 1.0f, 0.0f);
+        }
+
+        // 构建纯旋转矩阵
+        rotMatrix = glm::rotate(glm::mat4(1.0f), angleRad, axisVec);
+    }
 
     // 若 rescale 为 true，计算各轴缩放因子并应用
     // 参考 MC BlockElementRotation.computeRescale() / scaleFactorForAxis()
-    if (rotation.rescale && rotation.angle != 0.0f) {
+    // rescale 逻辑对两种旋转格式通用，因为基于最终旋转矩阵计算
+    if (rotation.rescale && !rotation.isIdentity()) {
         glm::vec3 rescaleFactors = computeRescaleFactors(glm::mat3(rotMatrix));
 
         // 将缩放应用到旋转矩阵: rotMatrix = rotMatrix * scale(rescaleFactors)

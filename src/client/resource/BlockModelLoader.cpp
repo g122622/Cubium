@@ -779,13 +779,9 @@ ModelFaceUV BlockModelLoader::parseUV(const nlohmann::json& json)
 
 ModelRotation BlockModelLoader::parseRotation(const nlohmann::json& json)
 {
-    // TODO: MC 1.21.11 新增了 EulerXYZ 旋转格式（x/y/z 三轴欧拉角字段），
-    // 当 JSON 中包含 x/y/z 字段但缺少 axis/angle 时，应使用 ZYX 欧拉角旋转。
-    // 当前仅支持传统的 axis+angle 单轴旋转格式。
-    // 参考 MC BlockElement.java Deserializer.getRotation() 中的 EulerXYZ 分支。
-
     ModelRotation rot;
 
+    // 解析旋转中心（两种格式共用）
     if (json.contains("origin")) {
         const auto& origin = json["origin"];
         if (origin.is_array() && origin.size() >= 3) {
@@ -795,14 +791,49 @@ ModelRotation BlockModelLoader::parseRotation(const nlohmann::json& json)
         }
     }
 
-    if (json.contains("axis")) {
-        rot.axis = json["axis"].get<std::string>();
+    // 判断旋转格式：如果 JSON 中同时缺少 "axis" 和 "angle"，
+    // 则尝试使用 EulerXYZ 格式（x/y/z 三轴欧拉角）。
+    // 参考 MC BlockElement.java Deserializer.getRotation() 的格式分发逻辑。
+    const bool hasAxis = json.contains("axis");
+    const bool hasAngle = json.contains("angle");
+
+    if (!hasAxis && !hasAngle) {
+        // EulerXYZ 格式（MC 1.21.11 新增）
+        const bool hasX = json.contains("x");
+        const bool hasY = json.contains("y");
+        const bool hasZ = json.contains("z");
+
+        if (!hasX && !hasY && !hasZ) {
+            // 既没有 axis/angle 也没有 x/y/z，返回默认旋转（无旋转）
+            if (json.contains("rescale")) {
+                rot.rescale = json["rescale"].get<bool>();
+            }
+            return rot;
+        }
+
+        rot.isEulerXYZ = true;
+        rot.rotX = hasX ? json["x"].get<f32>() : 0.0f;
+        rot.rotY = hasY ? json["y"].get<f32>() : 0.0f;
+        rot.rotZ = hasZ ? json["z"].get<f32>() : 0.0f;
+        // 重置 axis+angle 的默认值，保持语义清晰
+        rot.axis = "y";
+        rot.angle = 0.0f;
+    } else {
+        // 传统 axis+angle 格式
+        if (hasAxis) {
+            rot.axis = json["axis"].get<std::string>();
+        }
+        if (hasAngle) {
+            rot.angle = json["angle"].get<f32>();
+        }
+        // 确保 EulerXYZ 字段保持默认值
+        rot.isEulerXYZ = false;
+        rot.rotX = 0.0f;
+        rot.rotY = 0.0f;
+        rot.rotZ = 0.0f;
     }
 
-    if (json.contains("angle")) {
-        rot.angle = json["angle"].get<f32>();
-    }
-
+    // rescale 字段两种格式共用，默认为 false
     if (json.contains("rescale")) {
         rot.rescale = json["rescale"].get<bool>();
     }

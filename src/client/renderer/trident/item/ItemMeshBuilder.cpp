@@ -484,8 +484,8 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         f64 y2 = element.to.y * scale;
         f64 z2 = element.to.z * scale;
 
-        // 构建元素旋转矩阵（若 angle != 0），参考 MC FaceBakery.bakeQuad()
-        bool hasRotation = element.rotation.angle != 0.0f;
+        // 构建元素旋转矩阵（若有旋转），参考 MC FaceBakery.bakeQuad()
+        bool hasRotation = !element.rotation.isIdentity();
         glm::mat4 rotationMatrix = glm::mat4(1.0f);
         if (hasRotation) {
             rotationMatrix = buildElementRotationMatrix(element.rotation, scale);

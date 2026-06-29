@@ -99,18 +99,11 @@
 
 `_buildBlockItemMesh()` 支持方块物品模型的元素旋转，参考 MC 原版 `FaceBakery.bakeQuad()` 实现：
 
-        - **旋转矩阵构建 *
-            *（`_buildElementRotationMatrix()`）：根据 `ModelRotation` 的 `origin`、`axis`、`angle` 构建组合变换 `T(
-                origin) *
-            R(axis, angle) * T(-origin)` -
-        **Rescale 补偿 * *（`_computeRescaleFactors()`）：当 `ModelRotation.rescale
-    ==
-    true` 时，计算各轴缩放因子补偿旋转投影收缩。例如 Y 轴旋转 45° 时 X
-            / Z 缩放因子为 √2 ≈ 1.414，确保旋转后的十字植物模型不会显得过窄 -
-        **法线重算 * *：旋转后通过叉积 `cross(edge1, edge2)` 重新计算面法线，与 MC 原版 `calculateFacing()` 行为一致 -
-        **当前限制 * *：仅支持单轴旋转（`axis +
-        angle` 格式），MC 1.21.11 新增的 `x / y /
-            z` 三轴欧拉角旋转格式（`EulerXYZRotation`）尚未支持，待资源包使用后实现
+- **旋转矩阵构建**（`buildElementRotationMatrix()`）：根据 `ModelRotation` 构建组合变换 `T(origin) * R * T(-origin)`，支持两种旋转格式：
+  - 传统 axis+angle 格式（`isEulerXYZ == false`）：单轴旋转
+  - EulerXYZ 格式（`isEulerXYZ == true`，MC 1.21.11 新增）：三轴 ZYX 欧拉角旋转，参考 MC `BlockElementRotation.EulerXYZRotation.transformation()`
+- **Rescale 补偿**（`computeRescaleFactors()`）：当 `ModelRotation.rescale == true` 时，计算各轴缩放因子补偿旋转投影收缩。例如 Y 轴旋转 45° 时 X/Z 缩放因子为 √2 ≈ 1.414，确保旋转后的十字植物模型不会显得过窄。对两种旋转格式均通用，因为基于最终旋转矩阵计算
+- **法线重算**：旋转后通过叉积 `cross(edge1, edge2)` 重新计算面法线，与 MC 原版 `calculateFacing()` 行为一致
 
             ## #6. UV 旋转（ModelFaceUV
                 .rotation）

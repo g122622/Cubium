@@ -546,6 +546,11 @@ TEST(ParseRotationTest, ParsesFullRotation)
     EXPECT_EQ(rot.axis, "x");
     EXPECT_FLOAT_EQ(rot.angle, -22.5f);
     EXPECT_TRUE(rot.rescale);
+    // axis+angle 格式时，EulerXYZ 字段应为默认值
+    EXPECT_FALSE(rot.isEulerXYZ);
+    EXPECT_FLOAT_EQ(rot.rotX, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotY, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotZ, 0.0f);
 }
 
 TEST(ParseRotationTest, DefaultValues)
@@ -556,6 +561,164 @@ TEST(ParseRotationTest, DefaultValues)
     EXPECT_EQ(rot.axis, "y");            // 默认 "y"
     EXPECT_FLOAT_EQ(rot.angle, 0.0f);    // 默认 0
     EXPECT_FALSE(rot.rescale);           // 默认 false
+    EXPECT_FALSE(rot.isEulerXYZ);        // 默认 axis+angle 格式
+    EXPECT_FLOAT_EQ(rot.rotX, 0.0f);     // EulerXYZ 默认 0
+    EXPECT_FLOAT_EQ(rot.rotY, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotZ, 0.0f);
+}
+
+// --- EulerXYZ 旋转格式测试（MC 1.21.11 新增）---
+
+TEST(ParseRotationTest, EulerXYZFullRotation)
+{
+    const char* json = R"({
+        "origin": [8, 8, 8],
+        "x": 45.0,
+        "y": 22.5,
+        "z": -45.0,
+        "rescale": true
+    })";
+    auto j = nlohmann::json::parse(json);
+    auto rot = BlockModelLoader::parseRotation(j);
+
+    // EulerXYZ 格式标志
+    EXPECT_TRUE(rot.isEulerXYZ);
+
+    // 旋转中心
+    EXPECT_FLOAT_EQ(rot.origin.x, 8.0f);
+    EXPECT_FLOAT_EQ(rot.origin.y, 8.0f);
+    EXPECT_FLOAT_EQ(rot.origin.z, 8.0f);
+
+    // 三轴欧拉角
+    EXPECT_FLOAT_EQ(rot.rotX, 45.0f);
+    EXPECT_FLOAT_EQ(rot.rotY, 22.5f);
+    EXPECT_FLOAT_EQ(rot.rotZ, -45.0f);
+
+    // rescale
+    EXPECT_TRUE(rot.rescale);
+
+    // axis+angle 字段应为默认值
+    EXPECT_EQ(rot.axis, "y");
+    EXPECT_FLOAT_EQ(rot.angle, 0.0f);
+}
+
+TEST(ParseRotationTest, EulerXYZPartialAxes)
+{
+    // 仅指定 x 轴旋转，y 和 z 默认为 0
+    const char* json = R"({
+        "origin": [4, 4, 4],
+        "x": 22.5
+    })";
+    auto j = nlohmann::json::parse(json);
+    auto rot = BlockModelLoader::parseRotation(j);
+
+    EXPECT_TRUE(rot.isEulerXYZ);
+    EXPECT_FLOAT_EQ(rot.rotX, 22.5f);
+    EXPECT_FLOAT_EQ(rot.rotY, 0.0f); // 默认
+    EXPECT_FLOAT_EQ(rot.rotZ, 0.0f); // 默认
+    EXPECT_FLOAT_EQ(rot.origin.x, 4.0f);
+    EXPECT_FLOAT_EQ(rot.origin.y, 4.0f);
+    EXPECT_FLOAT_EQ(rot.origin.z, 4.0f);
+    EXPECT_FALSE(rot.rescale); // 默认
+}
+
+TEST(ParseRotationTest, EulerXYZOnlyZAxis)
+{
+    // 仅指定 z 轴旋转
+    const char* json = R"({
+        "z": 90.0
+    })";
+    auto j = nlohmann::json::parse(json);
+    auto rot = BlockModelLoader::parseRotation(j);
+
+    EXPECT_TRUE(rot.isEulerXYZ);
+    EXPECT_FLOAT_EQ(rot.rotX, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotY, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotZ, 90.0f);
+}
+
+TEST(ParseRotationTest, AxisAngleTakesPrecedenceOverEulerXYZ)
+{
+    // 如果同时有 axis 和 x 字段，axis+angle 格式优先
+    const char* json = R"({
+        "origin": [8, 8, 8],
+        "axis": "x",
+        "angle": 45.0,
+        "x": 30.0,
+        "y": 15.0
+    })";
+    auto j = nlohmann::json::parse(json);
+    auto rot = BlockModelLoader::parseRotation(j);
+
+    // axis+angle 格式优先
+    EXPECT_FALSE(rot.isEulerXYZ);
+    EXPECT_EQ(rot.axis, "x");
+    EXPECT_FLOAT_EQ(rot.angle, 45.0f);
+    // EulerXYZ 字段应保持默认
+    EXPECT_FLOAT_EQ(rot.rotX, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotY, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotZ, 0.0f);
+}
+
+TEST(ParseRotationTest, AxisWithoutAngleIsAxisAngleFormat)
+{
+    // 仅有 axis 而没有 angle，仍然使用 axis+angle 格式（angle 默认 0）
+    const char* json = R"({
+        "axis": "z"
+    })";
+    auto j = nlohmann::json::parse(json);
+    auto rot = BlockModelLoader::parseRotation(j);
+
+    EXPECT_FALSE(rot.isEulerXYZ);
+    EXPECT_EQ(rot.axis, "z");
+    EXPECT_FLOAT_EQ(rot.angle, 0.0f);
+}
+
+TEST(ParseRotationTest, EmptyRotationObject)
+{
+    // 空对象：既没有 axis/angle 也没有 x/y/z，返回默认旋转
+    auto j = nlohmann::json::parse("{}");
+    auto rot = BlockModelLoader::parseRotation(j);
+
+    EXPECT_FALSE(rot.isEulerXYZ);
+    EXPECT_FLOAT_EQ(rot.angle, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotX, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotY, 0.0f);
+    EXPECT_FLOAT_EQ(rot.rotZ, 0.0f);
+    EXPECT_TRUE(rot.isIdentity());
+}
+
+TEST(ParseRotationTest, ModelRotationIsIdentityAxisAngle)
+{
+    ModelRotation rot;
+    EXPECT_TRUE(rot.isIdentity());
+
+    rot.angle = 0.0f;
+    EXPECT_TRUE(rot.isIdentity());
+
+    rot.angle = 45.0f;
+    EXPECT_FALSE(rot.isIdentity());
+}
+
+TEST(ParseRotationTest, ModelRotationIsIdentityEulerXYZ)
+{
+    ModelRotation rot;
+    rot.isEulerXYZ = true;
+    EXPECT_TRUE(rot.isIdentity()); // 0,0,0 是恒等
+
+    rot.rotX = 45.0f;
+    EXPECT_FALSE(rot.isIdentity());
+
+    rot.rotX = 0.0f;
+    rot.rotY = 22.5f;
+    EXPECT_FALSE(rot.isIdentity());
+
+    rot.rotY = 0.0f;
+    rot.rotZ = -45.0f;
+    EXPECT_FALSE(rot.isIdentity());
+
+    rot.rotZ = 0.0f;
+    EXPECT_TRUE(rot.isIdentity());
 }
 
 // --- mergeParent 测试 (BlockModelLoader) ---

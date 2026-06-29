@@ -74,12 +74,48 @@ struct ModelFace {
 
 /**
  * @brief 模型元素旋转
+ *
+ * 支持两种旋转格式（与 MC 1.21.11 BlockElementRotation 一致）：
+ *
+ * 1. 传统 axis+angle 格式（isEulerXYZ == false）：
+ *    旋转由 axis（单轴 "x"/"y"/"z"）+ angle（度数）指定。
+ *
+ * 2. EulerXYZ 格式（isEulerXYZ == true，MC 1.21.11 新增）：
+ *    旋转由 rotX/rotY/rotZ 三个欧拉角（度数）指定，
+ *    应用顺序为内在 Z-Y-X（等价于外在 X-Y-Z）。
+ *    参考 MC BlockElementRotation.EulerXYZRotation.transformation()。
+ *
+ * 当 JSON 旋转对象同时缺少 "axis" 和 "angle" 字段、
+ * 但包含 "x"/"y"/"z" 中的至少一个时，使用 EulerXYZ 格式。
  */
 struct ModelRotation {
     glm::vec3 origin{8.0f, 8.0f, 8.0f}; // 旋转中心
-    std::string axis = "y";             // x, y, z
-    f32 angle = 0.0f;                   // -45, -22.5, 0, 22.5, 45
+
+    // --- 传统 axis+angle 格式 ---
+    std::string axis = "y"; // x, y, z
+    f32 angle = 0.0f;       // -45, -22.5, 0, 22.5, 45
+
+    // --- EulerXYZ 格式（MC 1.21.11 新增）---
+    bool isEulerXYZ = false; // 是否使用 EulerXYZ 旋转格式
+    f32 rotX = 0.0f;         // 绕 X 轴旋转角度（度数）
+    f32 rotY = 0.0f;         // 绕 Y 轴旋转角度（度数）
+    f32 rotZ = 0.0f;         // 绕 Z 轴旋转角度（度数）
+
     bool rescale = false;
+
+    /**
+     * @brief 判断旋转是否为恒等变换（无旋转）
+     *
+     * 对于 axis+angle 格式，angle == 0 表示无旋转。
+     * 对于 EulerXYZ 格式，rotX/rotY/rotZ 全为 0 表示无旋转。
+     */
+    [[nodiscard]] bool isIdentity() const
+    {
+        if (isEulerXYZ) {
+            return rotX == 0.0f && rotY == 0.0f && rotZ == 0.0f;
+        }
+        return angle == 0.0f;
+    }
 };
 
 /**

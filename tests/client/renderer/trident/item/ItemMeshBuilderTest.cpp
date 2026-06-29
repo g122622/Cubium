@@ -35,6 +35,8 @@
 #include <cmath>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/euler_angles.hpp>
 
 using namespace mc::client::renderer::entity::item;
 using namespace mc::client::renderer::entity::model;
@@ -864,6 +866,290 @@ TEST(ElementRotationMathTest, BuildElementRotationMatrixZeroAngleIsIdentity)
     EXPECT_NEAR(result.x, 0.3f, 0.001f);
     EXPECT_NEAR(result.y, 0.7f, 0.001f);
     EXPECT_NEAR(result.z, 0.2f, 0.001f);
+}
+
+// ============================================================================
+// EulerXYZ 旋转矩阵测试（MC 1.21.11 新增格式）
+// ============================================================================
+
+/**
+ * @brief 验证 EulerXYZ 零角度旋转为单位矩阵
+ */
+TEST(ElementRotationMathTest, EulerXYZZeroRotationIsIdentity)
+{
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.isEulerXYZ = true;
+    rotation.rotX = 0.0f;
+    rotation.rotY = 0.0f;
+    rotation.rotZ = 0.0f;
+    rotation.rescale = false;
+
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    glm::vec4 point(0.3f, 0.7f, 0.2f, 1.0f);
+    glm::vec4 result = mat * point;
+    EXPECT_NEAR(result.x, 0.3f, 0.001f);
+    EXPECT_NEAR(result.y, 0.7f, 0.001f);
+    EXPECT_NEAR(result.z, 0.2f, 0.001f);
+}
+
+/**
+ * @brief 验证 EulerXYZ 仅 Y 轴旋转与 axis+angle Y 轴旋转等价
+ *
+ * 仅 Y 轴旋转时，EulerXYZ 和 axis+angle 应产生相同的旋转矩阵。
+ */
+TEST(ElementRotationMathTest, EulerXYZSingleAxisMatchesAxisAngle)
+{
+    const f32 angleDeg = 45.0f;
+    const f64 scale = 1.0 / 16.0;
+
+    // axis+angle 格式
+    ::mc::ModelRotation rotAxisAngle;
+    rotAxisAngle.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotAxisAngle.axis = "y";
+    rotAxisAngle.angle = angleDeg;
+    rotAxisAngle.rescale = false;
+
+    // EulerXYZ 格式（仅 Y 轴旋转）
+    ::mc::ModelRotation rotEuler;
+    rotEuler.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotEuler.isEulerXYZ = true;
+    rotEuler.rotX = 0.0f;
+    rotEuler.rotY = angleDeg;
+    rotEuler.rotZ = 0.0f;
+    rotEuler.rescale = false;
+
+    glm::mat4 matAxisAngle = buildElementRotationMatrix(rotAxisAngle, scale);
+    glm::mat4 matEuler = buildElementRotationMatrix(rotEuler, scale);
+
+    // 两个矩阵应近似相等（浮点精度差异）
+    glm::vec4 testPoint(0.5f, 0.3f, 0.1f, 1.0f);
+    glm::vec4 resultAA = matAxisAngle * testPoint;
+    glm::vec4 resultEuler = matEuler * testPoint;
+
+    EXPECT_NEAR(resultAA.x, resultEuler.x, 0.001f);
+    EXPECT_NEAR(resultAA.y, resultEuler.y, 0.001f);
+    EXPECT_NEAR(resultAA.z, resultEuler.z, 0.001f);
+}
+
+/**
+ * @brief 验证 EulerXYZ 仅 X 轴旋转与 axis+angle X 轴旋转等价
+ */
+TEST(ElementRotationMathTest, EulerXYZSingleAxisXMatchesAxisAngle)
+{
+    const f32 angleDeg = -22.5f;
+    const f64 scale = 1.0 / 16.0;
+
+    ::mc::ModelRotation rotAxisAngle;
+    rotAxisAngle.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotAxisAngle.axis = "x";
+    rotAxisAngle.angle = angleDeg;
+    rotAxisAngle.rescale = false;
+
+    ::mc::ModelRotation rotEuler;
+    rotEuler.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotEuler.isEulerXYZ = true;
+    rotEuler.rotX = angleDeg;
+    rotEuler.rotY = 0.0f;
+    rotEuler.rotZ = 0.0f;
+    rotEuler.rescale = false;
+
+    glm::mat4 matAA = buildElementRotationMatrix(rotAxisAngle, scale);
+    glm::mat4 matEuler = buildElementRotationMatrix(rotEuler, scale);
+
+    glm::vec4 testPoint(0.2f, 0.6f, 0.4f, 1.0f);
+    glm::vec4 resultAA = matAA * testPoint;
+    glm::vec4 resultEuler = matEuler * testPoint;
+
+    EXPECT_NEAR(resultAA.x, resultEuler.x, 0.001f);
+    EXPECT_NEAR(resultAA.y, resultEuler.y, 0.001f);
+    EXPECT_NEAR(resultAA.z, resultEuler.z, 0.001f);
+}
+
+/**
+ * @brief 验证 EulerXYZ 仅 Z 轴旋转与 axis+angle Z 轴旋转等价
+ */
+TEST(ElementRotationMathTest, EulerXYZSingleAxisZMatchesAxisAngle)
+{
+    const f32 angleDeg = 22.5f;
+    const f64 scale = 1.0 / 16.0;
+
+    ::mc::ModelRotation rotAxisAngle;
+    rotAxisAngle.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotAxisAngle.axis = "z";
+    rotAxisAngle.angle = angleDeg;
+    rotAxisAngle.rescale = false;
+
+    ::mc::ModelRotation rotEuler;
+    rotEuler.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotEuler.isEulerXYZ = true;
+    rotEuler.rotX = 0.0f;
+    rotEuler.rotY = 0.0f;
+    rotEuler.rotZ = angleDeg;
+    rotEuler.rescale = false;
+
+    glm::mat4 matAA = buildElementRotationMatrix(rotAxisAngle, scale);
+    glm::mat4 matEuler = buildElementRotationMatrix(rotEuler, scale);
+
+    glm::vec4 testPoint(0.5f, 0.3f, 0.1f, 1.0f);
+    glm::vec4 resultAA = matAA * testPoint;
+    glm::vec4 resultEuler = matEuler * testPoint;
+
+    EXPECT_NEAR(resultAA.x, resultEuler.x, 0.001f);
+    EXPECT_NEAR(resultAA.y, resultEuler.y, 0.001f);
+    EXPECT_NEAR(resultAA.z, resultEuler.z, 0.001f);
+}
+
+/**
+ * @brief 验证 EulerXYZ 多轴旋转（ZYX 顺序）
+ *
+ * 参考 MC EulerXYZRotation.transformation() 使用 rotationZYX(z, y, x)，
+ * 即内在 Z-Y-X 旋转顺序。验证绕 X=90° 和 Y=90° 的复合旋转
+ * 与 glm::eulerAngleZYX 一致。
+ */
+TEST(ElementRotationMathTest, EulerXYZMultiAxisRotation)
+{
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(0.0f, 0.0f, 0.0f); // 原点旋转，简化计算
+    rotation.isEulerXYZ = true;
+    rotation.rotX = 90.0f;
+    rotation.rotY = 90.0f;
+    rotation.rotZ = 0.0f;
+    rotation.rescale = false;
+
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0);
+
+    // 与 glm::eulerAngleZYX 直接计算对比
+    glm::mat4 expected = glm::eulerAngleZYX(glm::radians(0.0f), glm::radians(90.0f), glm::radians(90.0f));
+    glm::vec4 testPoint(1.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec4 result = mat * testPoint;
+    glm::vec4 expectedResult = expected * testPoint;
+
+    EXPECT_NEAR(result.x, expectedResult.x, 0.001f);
+    EXPECT_NEAR(result.y, expectedResult.y, 0.001f);
+    EXPECT_NEAR(result.z, expectedResult.z, 0.001f);
+}
+
+/**
+ * @brief 验证 EulerXYZ 旋转保持旋转中心不变
+ */
+TEST(ElementRotationMathTest, EulerXYZRotationPreservesOrigin)
+{
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.isEulerXYZ = true;
+    rotation.rotX = 45.0f;
+    rotation.rotY = 30.0f;
+    rotation.rotZ = -15.0f;
+    rotation.rescale = false;
+
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    // 旋转中心 (0.5, 0.5, 0.5) 应保持不变
+    glm::vec4 origin(0.5f, 0.5f, 0.5f, 1.0f);
+    glm::vec4 result = mat * origin;
+    EXPECT_NEAR(result.x, 0.5f, 0.001f);
+    EXPECT_NEAR(result.y, 0.5f, 0.001f);
+    EXPECT_NEAR(result.z, 0.5f, 0.001f);
+}
+
+/**
+ * @brief 验证 EulerXYZ rescale 补偿对单轴旋转与 axis+angle 一致
+ *
+ * 绕 Y 轴旋转 45° 时 X/Z 轴缩放因子应为 √2 ≈ 1.414，
+ * 无论使用 axis+angle 还是 EulerXYZ 格式，rescale 结果应相同。
+ */
+TEST(ElementRotationMathTest, EulerXYZRescaleWithSingleAxis)
+{
+    const f32 angleDeg = 45.0f;
+    const f64 scale = 1.0 / 16.0;
+
+    // axis+angle 格式 + rescale
+    ::mc::ModelRotation rotAA;
+    rotAA.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotAA.axis = "y";
+    rotAA.angle = angleDeg;
+    rotAA.rescale = true;
+
+    // EulerXYZ 格式 + rescale（仅 Y 轴旋转）
+    ::mc::ModelRotation rotEuler;
+    rotEuler.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotEuler.isEulerXYZ = true;
+    rotEuler.rotX = 0.0f;
+    rotEuler.rotY = angleDeg;
+    rotEuler.rotZ = 0.0f;
+    rotEuler.rescale = true;
+
+    glm::mat4 matAA = buildElementRotationMatrix(rotAA, scale);
+    glm::mat4 matEuler = buildElementRotationMatrix(rotEuler, scale);
+
+    // 两个矩阵应近似相等
+    glm::vec4 testPoint(0.5f, 0.3f, 0.1f, 1.0f);
+    glm::vec4 resultAA = matAA * testPoint;
+    glm::vec4 resultEuler = matEuler * testPoint;
+
+    EXPECT_NEAR(resultAA.x, resultEuler.x, 0.01f);
+    EXPECT_NEAR(resultAA.y, resultEuler.y, 0.01f);
+    EXPECT_NEAR(resultAA.z, resultEuler.z, 0.01f);
+}
+
+/**
+ * @brief 验证 EulerXYZ 多轴旋转的 rescale 补偿
+ *
+ * 多轴旋转时，rescale 补偿仍应正确工作，旋转中心保持不变。
+ */
+TEST(ElementRotationMathTest, EulerXYZRescaleMultiAxis)
+{
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.isEulerXYZ = true;
+    rotation.rotX = 45.0f;
+    rotation.rotY = 45.0f;
+    rotation.rotZ = 0.0f;
+    rotation.rescale = true;
+
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    // 旋转中心应保持不变
+    glm::vec4 origin(0.5f, 0.5f, 0.5f, 1.0f);
+    glm::vec4 result = mat * origin;
+    EXPECT_NEAR(result.x, 0.5f, 0.01f);
+    EXPECT_NEAR(result.y, 0.5f, 0.01f);
+    EXPECT_NEAR(result.z, 0.5f, 0.01f);
+
+    // rescale 后变换不应使点坍缩到旋转中心
+    glm::vec4 testPoint(0.625f, 0.5f, 0.5f, 1.0f); // (10/16, 8/16, 8/16)
+    glm::vec4 transformed = mat * testPoint;
+    float dist = glm::length(glm::vec3(transformed) - glm::vec3(origin));
+    EXPECT_GT(dist, 0.01f);
+}
+
+/**
+ * @brief 验证 ModelRotation::isIdentity() 方法对两种格式的正确性
+ */
+TEST(ElementRotationMathTest, ModelRotationIsIdentityMethod)
+{
+    // axis+angle 格式
+    ::mc::ModelRotation rotAA;
+    EXPECT_TRUE(rotAA.isIdentity()); // 默认 angle=0
+    rotAA.angle = 45.0f;
+    EXPECT_FALSE(rotAA.isIdentity());
+
+    // EulerXYZ 格式
+    ::mc::ModelRotation rotEuler;
+    rotEuler.isEulerXYZ = true;
+    EXPECT_TRUE(rotEuler.isIdentity()); // 0,0,0
+    rotEuler.rotX = 10.0f;
+    EXPECT_FALSE(rotEuler.isIdentity());
+    rotEuler.rotX = 0.0f;
+    rotEuler.rotY = 5.0f;
+    EXPECT_FALSE(rotEuler.isIdentity());
+    rotEuler.rotY = 0.0f;
+    rotEuler.rotZ = -3.0f;
+    EXPECT_FALSE(rotEuler.isIdentity());
+    rotEuler.rotZ = 0.0f;
+    EXPECT_TRUE(rotEuler.isIdentity());
 }
 
 // ============================================================================
