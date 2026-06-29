@@ -29,6 +29,7 @@
 
 namespace mc {
 
+class Entity;
 class BlockEntity;
 enum class BlockEntityType : u16;
 
@@ -98,6 +99,22 @@ public:
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
+    /**
+     * @brief 方块 tick 回调
+     *
+     * 处理 Active→Cooldown 和 Cooldown→Inactive 的状态转换。
+     * 由 scheduleBlockTick 调度触发。
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
+     * @brief 方块移除时通知邻居红石信号变化
+     *
+     * 如果移除时处于 Active 状态，需要通知邻居更新红石信号，
+     * 否则邻居可能仍认为有信号输入。
+     */
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
     [[nodiscard]] const CollisionShape& getShape(const BlockState& state) const override;
 
     [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
@@ -126,6 +143,56 @@ public:
     /// 冷却阶段持续tick数
     static constexpr i32 COOLDOWN_TICKS = 10;
 
+    // ========== 激活/失活/状态查询静态方法 ==========
+
+    /**
+     * @brief 检查幽匿感测体是否可以被激活
+     *
+     * 只有当前 Phase 为 Inactive 时才能被激活。
+     * 对齐 MC Java: SculkSensorBlock.canActivate()
+     */
+    [[nodiscard]] static bool canActivate(const BlockState& state);
+
+    /**
+     * @brief 激活幽匿感测体
+     *
+     * 设置方块状态为 Active，设置红石信号强度，调度 tick，通知邻居红石更新，
+     * 触发共振事件，发出 SCULK_SENSOR_TENDRILS_CLICKING 游戏事件和声音。
+     *
+     * @param sourceEntity 触发振动的源实体（可为nullptr）
+     * @param world 世界引用
+     * @pos 方块位置
+     * @param state 当前方块状态
+     * @param redstoneStrength 红石信号强度 (1-15)，基于振动距离计算
+     * @param frequency 振动频率 (1-15)，用于共振和比较器输出
+     */
+    static void activate(const Entity* sourceEntity,
+        IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        i32 redstoneStrength,
+        i32 frequency);
+
+    /**
+     * @brief 停用幽匿感测体（Active→Cooldown）
+     *
+     * 设置方块状态为 Cooldown，红石信号归零，调度 tick，通知邻居红石更新。
+     * 对齐 MC Java: SculkSensorBlock.deactivate()
+     */
+    static void deactivate(IWorld& world, const BlockPos& pos, const BlockState& state);
+
+    /**
+     * @brief 获取当前相位
+     */
+    [[nodiscard]] static BlockStateProperties::SculkSensorPhase getPhase(const BlockState& state);
+
+    /**
+     * @brief 获取活跃阶段的tick数（子类可覆盖）
+     *
+     * 普通感测体为30tick，校准感测体为10tick。
+     */
+    [[nodiscard]] virtual i32 getActiveTicks() const { return ACTIVE_TICKS; }
+
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
@@ -149,11 +216,20 @@ public:
 
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
+    /**
+     * @brief 校准幽匿感测体仅在非输入面方向输出红石信号
+     *
+     * FACING 方向是输入面（从该方向读取红石信号频率过滤），
+     * 红石信号只在非 FACING 方向输出。
+     */
+    [[nodiscard]] i32 getWeakPower(
+        const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept override;
+
     [[nodiscard]] const BlockState& rotate(const BlockState& state, Rotation rotation) const override;
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
-    /// 校准感测体活跃阶段更短
-    static constexpr i32 ACTIVE_TICKS = 10;
+    /// 校准感测体活跃阶段更短（10 tick）
+    [[nodiscard]] i32 getActiveTicks() const override { return ACTIVE_TICKS; }
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

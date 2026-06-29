@@ -33,7 +33,11 @@
 #include "SculkVibrationSystem.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/util/core/CoordConverter.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/sculk/SculkBlocks.hpp"
 #include "common/world/gameevent/GameEvents.hpp"
+#include "common/world/gameevent/VibrationSystem.hpp"
 #include "server/world/ServerChunkManager.hpp"
 #include "server/world/ServerWorld.hpp"
 
@@ -50,9 +54,6 @@ bool SculkSensorVibrationUser::canReceiveVibration(ServerWorld& world,
     const gameevent::GameEvent& event,
     const gameevent::GameEvent::Context& context) const
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-
     // 基本验证：事件频率不能为0
     i32 frequency = gameevent::VibrationSystem::getGameEventFrequency(event);
     if (frequency == 0) {
@@ -66,6 +67,22 @@ bool SculkSensorVibrationUser::canReceiveVibration(ServerWorld& world,
         }
     }
 
+    // 对齐 MC Java: 只有当前 Phase 为 Inactive 时才能接收振动
+    // 活跃或冷却期间不能再次被激活
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return false;
+    }
+    if (!blocks::SculkSensorBlock::canActivate(*state)) {
+        return false;
+    }
+
+    // 对齐 MC Java: 拒绝自身方块的 BLOCK_DESTROY/BLOCK_PLACE 事件
+    // （防止感测体被放置/破坏时自己激活自己）
+    if (&event == &gameevent::GameEvents::BLOCK_DESTROY || &event == &gameevent::GameEvents::BLOCK_PLACE) {
+        return false;
+    }
+
     return true;
 }
 
@@ -75,11 +92,6 @@ void SculkSensorVibrationUser::onReceiveVibration(ServerWorld& world,
     const Entity* sourceEntity,
     f32 distance)
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    MC_UNUSED(sourceEntity);
-    MC_UNUSED(distance);
-
     // 更新最后振动频率
     i32 frequency = gameevent::VibrationSystem::getGameEventFrequency(event);
     m_entity.setLastVibrationFrequency(frequency);
@@ -87,8 +99,22 @@ void SculkSensorVibrationUser::onReceiveVibration(ServerWorld& world,
     // 标记方块实体已修改（需要保存）
     m_entity.setChanged();
 
-    // TODO: 触发幽匿感测体方块状态变化（ACTIVE_PHASE）和红石信号更新
-    // 当前仅更新频率数据，方块状态变化由 SculkSensorBlock 的 tick 逻辑处理
+    // 获取当前方块状态
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    // 检查是否可以被激活（Phase 必须为 Inactive）
+    if (!blocks::SculkSensorBlock::canActivate(*state)) {
+        return;
+    }
+
+    // 根据振动距离计算红石信号强度 (1-15)
+    i32 redstoneStrength = gameevent::VibrationSystem::getRedstoneStrengthForDistance(distance, getListenerRadius());
+
+    // 激活幽匿感测体：设置 Active 状态、红石信号、调度 tick、通知邻居、触发共振
+    blocks::SculkSensorBlock::activate(sourceEntity, world, pos, *state, redstoneStrength, frequency);
 }
 
 // ============================================================================

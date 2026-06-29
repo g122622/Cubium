@@ -23,12 +23,20 @@
 
 #include "SculkBlocks.hpp"
 #include "item/context/BlockItemUseContext.hpp"
+#include "util/Direction.hpp"
 #include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
+#include "world/WorldConstants.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 #include "world/blockentity/sculk/SculkSensorBlockEntity.hpp"
 #include "world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
+#include "world/gameevent/GameEvents.hpp"
+#include "world/gameevent/VibrationSystem.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
+#include "world/tick/base/TickPriority.hpp"
+#include "world/tick/manager/TickManager.hpp"
 
 namespace mc {
 namespace blocks {
@@ -112,9 +120,19 @@ i32 SculkSensorBlock::getWeakPower(
 
 i32 SculkSensorBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
-    return state.get(BlockStateProperties::POWER_0_15());
+    // 对齐 MC Java: SculkSensorBlock.getAnalogOutputSignal()
+    // 比较器输出的是振动频率（1-15），而非红石信号强度（基于距离）
+    // 非 Active 状态时输出 0
+    if (getPhase(state) != BlockStateProperties::SculkSensorPhase::Active) {
+        return 0;
+    }
+    // 从方块实体获取最后振动频率
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::SculkSensor) {
+        auto* sensorEntity = static_cast<blockentity::SculkSensorBlockEntity*>(entity);
+        return sensorEntity->getLastVibrationFrequency();
+    }
+    return 0;
 }
 
 const CollisionShape& SculkSensorBlock::getShape(const BlockState& state) const
@@ -148,6 +166,119 @@ std::unique_ptr<BlockEntity> SculkSensorBlock::createBlockEntity(const BlockPos&
 BlockEntityType SculkSensorBlock::getBlockEntityType() const
 {
     return BlockEntityType::SculkSensor;
+}
+
+// ========== 静态方法：激活/失活/状态查询 ==========
+
+bool SculkSensorBlock::canActivate(const BlockState& state)
+{
+    return state.get(BlockStateProperties::SCULK_SENSOR_PHASE()) == BlockStateProperties::SculkSensorPhase::Inactive;
+}
+
+BlockStateProperties::SculkSensorPhase SculkSensorBlock::getPhase(const BlockState& state)
+{
+    return state.get(BlockStateProperties::SCULK_SENSOR_PHASE());
+}
+
+void SculkSensorBlock::activate(const Entity* sourceEntity,
+    IWorld& world,
+    const BlockPos& pos,
+    const BlockState& state,
+    i32 redstoneStrength,
+    i32 frequency)
+{
+    // 1. 设置方块状态：Phase -> Active, Power -> redstoneStrength
+    const BlockState* newState =
+        &state.with(BlockStateProperties::SCULK_SENSOR_PHASE(), BlockStateProperties::SculkSensorPhase::Active)
+             .with(BlockStateProperties::POWER_0_15(), redstoneStrength);
+    world.setBlockState(pos, newState, 3);
+
+    // 2. 调度 tick：ACTIVE_TICKS 后触发（通过虚方法获取，校准版为10tick）
+    Block& block = state.getBlockMutable();
+    i32 activeTicks = static_cast<const SculkSensorBlock&>(block).getActiveTicks();
+    world.tickManager().scheduleBlockTick(pos, block, activeTicks);
+
+    // 3. 通知邻居方块红石信号变化
+    world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, block);
+
+    // 4. 触发共振事件：对相邻的共振方块（如紫水晶块）发出对应频率的 RESONATE_X 事件
+    const gameevent::GameEvent* resonateEvent = gameevent::VibrationSystem::getResonanceEventByFrequency(frequency);
+    if (resonateEvent != nullptr) {
+        for (Direction dir : Directions::all()) {
+            BlockPos neighborPos = pos.offset(dir);
+            const BlockState* neighborState = world.getBlockState(neighborPos);
+            if (neighborState != nullptr && BlockTags::VIBRATION_RESONATORS().contains(*neighborState)) {
+                world.gameEvent(
+                    *resonateEvent, neighborPos, gameevent::GameEvent::Context(sourceEntity, neighborState));
+            }
+        }
+    }
+
+    // 5. 发出游戏事件（幽匿感测体触须点击声）
+    world.gameEvent(gameevent::GameEvents::SCULK_SENSOR_TENDRILS_CLICKING,
+        pos,
+        gameevent::GameEvent::Context(sourceEntity, &state));
+
+    // 6. 播放声音（非水浸状态下）
+    if (!state.get(BlockStateProperties::WATERLOGGED())) {
+        // TODO: 声音系统完善后添加 SCULK_CLICKING 声音
+        // world.playSound(ResourceLocation("minecraft", "sculk_clicking"),
+        //     sound::SoundCategory::Blocks, Vector3(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f),
+        //     1.0f, world.random().nextFloat() * 0.2f + 0.8f);
+    }
+}
+
+void SculkSensorBlock::deactivate(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 设置方块状态：Phase -> Cooldown, Power -> 0
+    const BlockState* newState =
+        &state.with(BlockStateProperties::SCULK_SENSOR_PHASE(), BlockStateProperties::SculkSensorPhase::Cooldown)
+             .with(BlockStateProperties::POWER_0_15(), 0);
+    world.setBlockState(pos, newState, 3);
+
+    // 调度 COOLDOWN_TICKS 后再 tick（Cooldown -> Inactive）
+    world.tickManager().scheduleBlockTick(pos, state.getBlock(), COOLDOWN_TICKS);
+
+    // 通知邻居红石信号变化（从有信号变为0）
+    world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, state.getBlockMutable());
+}
+
+void SculkSensorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+
+    auto phase = getPhase(state);
+
+    if (phase == BlockStateProperties::SculkSensorPhase::Active) {
+        // Active -> deactivate() -> Cooldown
+        deactivate(world, pos, state);
+    } else if (phase == BlockStateProperties::SculkSensorPhase::Cooldown) {
+        // Cooldown -> Inactive
+        const BlockState* newState =
+            &state.with(BlockStateProperties::SCULK_SENSOR_PHASE(), BlockStateProperties::SculkSensorPhase::Inactive);
+        world.setBlockState(pos, newState, 3);
+
+        // 播放 SCULK_CLICKING_STOP 声音（非水浸状态下）
+        if (!state.get(BlockStateProperties::WATERLOGGED())) {
+            // TODO: 声音系统完善后添加 SCULK_CLICKING_STOP 声音
+            // world.playSound(ResourceLocation("minecraft", "sculk_clicking_stop"),
+            //     sound::SoundCategory::Blocks, Vector3(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f),
+            //     1.0f, world.random().nextFloat() * 0.2f + 0.8f);
+        }
+    }
+    // Inactive 状态不应有 scheduled tick，忽略
+}
+
+void SculkSensorBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    // 对齐 MC Java: SculkSensorBlock.affectNeighborsAfterRemoval()
+    // 如果移除时处于 Active 状态，需要通知邻居更新红石信号
+    if (getPhase(state) == BlockStateProperties::SculkSensorPhase::Active) {
+        world::redstone::RedstoneSystem::instance().updateNeighbors(world, pos, state.getBlockMutable());
+    }
+
+    // 调用基类处理方块实体移除等
+    Block::onBlockRemoved(world, pos, state);
 }
 
 // ============================================================================
@@ -190,6 +321,19 @@ BlockState CalibratedSculkSensorBlock::getStateForPlacement(BlockItemUseContext&
     BlockState state = SculkSensorBlock::getStateForPlacement(context);
     state = state.with(BlockStateProperties::HORIZONTAL_FACING(), Directions::opposite(context.horizontalDirection()));
     return state;
+}
+
+i32 CalibratedSculkSensorBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+{
+    // 对齐 MC Java: CalibratedSculkSensorBlock.getSignal()
+    // FACING 方向是输入面（从该方向读取红石信号频率过滤），
+    // 红石信号只在非 FACING 方向输出。
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    if (side == facing) {
+        return 0;
+    }
+    return SculkSensorBlock::getWeakPower(state, world, pos, side);
 }
 
 const BlockState& CalibratedSculkSensorBlock::rotate(const BlockState& state, Rotation rotation) const
