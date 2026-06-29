@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Pools.hpp"
+#include "common/world/gen/structure/pools/Pools.hpp"
 
 namespace mc {
 namespace world {
@@ -50,7 +50,7 @@ namespace BastionPools {
  * 2. 各类型的扩展池
  * 3. 连接池（bridge, legs, walls 等）
  */
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 
 /**
  * @brief 检查是否已注册
@@ -79,7 +79,7 @@ bool isRegistered();
  * - bastion/units/rampart_plates
  */
 namespace BastionUnitsPools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 /**
@@ -96,7 +96,7 @@ void registerAll(JigsawPatternRegistry& registry);
  * - bastion/stables/connectors
  */
 namespace BastionStablesPools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 /**
@@ -114,7 +114,7 @@ void registerAll(JigsawPatternRegistry& registry);
  * - bastion/treasure/centers
  */
 namespace BastionTreasurePools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 /**
@@ -131,7 +131,7 @@ void registerAll(JigsawPatternRegistry& registry);
  * - bastion/bridge/connectors
  */
 namespace BastionBridgePools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 } // namespace pools

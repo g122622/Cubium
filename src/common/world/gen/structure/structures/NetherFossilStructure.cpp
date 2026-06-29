@@ -36,7 +36,7 @@
 #include "common/world/gen/feature/template/Template.hpp"
 #include "common/world/gen/feature/template/TemplateLoader.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
 #include <spdlog/spdlog.h>
@@ -102,8 +102,13 @@ void NetherFossilPiece::_loadTemplate()
     }
 }
 
-void NetherFossilPiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void NetherFossilPiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     if (!m_templateManager) {
         return;
@@ -181,7 +186,7 @@ std::unique_ptr<StructureStart> NetherFossilStructure::generate(
     // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
     if (!templateManager) {
-        templateManager = &jigsaw::JigsawManager::getTemplateManager();
+        templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
     }
 
     // 创建片段

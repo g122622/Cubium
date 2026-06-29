@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Pools.hpp"
+#include "common/world/gen/structure/pools/Pools.hpp"
 
 namespace mc {
 namespace world {
@@ -51,7 +51,7 @@ namespace VillagePools {
  * 2. 公共池（animals, cats, iron_golem, well_bottoms 等）
  * 3. 各生物群系特定池
  */
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 
 /**
  * @brief 注册公共模板池
@@ -64,7 +64,7 @@ void registerAll(JigsawPatternRegistry& registry);
  * - village/common/butcher_animals
  * - village/common/sheep
  */
-void registerCommonPools(JigsawPatternRegistry& registry);
+void registerCommonPools(TemplatePoolRegistry& registry);
 
 /**
  * @brief 检查是否已注册
@@ -94,35 +94,35 @@ bool isRegistered();
  * - village/plains/zombie/villagers
  */
 namespace PlainsVillagePools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 /**
  * @brief 沙漠村庄模板池
  */
 namespace DesertVillagePools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 /**
  * @brief 热带草原村庄模板池
  */
 namespace SavannaVillagePools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 /**
  * @brief 雪地村庄模板池
  */
 namespace SnowyVillagePools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 /**
  * @brief 针叶林村庄模板池
  */
 namespace TaigaVillagePools {
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 }
 
 } // namespace pools

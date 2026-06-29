@@ -29,8 +29,11 @@
 #include "../../WorldConstants.hpp"
 #include "../../block/BlockPos.hpp"
 #include "../chunk/IChunkGenerator.hpp"
-#include "../jigsaw/JigsawManager.hpp"
-#include "../jigsaw/JigsawPattern.hpp"
+#include "../jigsaw/AssemblyTypes.hpp"
+#include "../jigsaw/JigsawAssembler.hpp"
+#include "../jigsaw/JigsawJunction.hpp"
+#include "../jigsaw/JigsawPlacer.hpp"
+#include "../jigsaw/TemplatePoolRegistry.hpp"
 
 namespace {
 
@@ -70,11 +73,13 @@ public:
         mc::math::Random& rng,
         mc::i32 chunkX,
         mc::i32 chunkZ,
-        const mc::world::gen::structure::StructureBoundingBox& chunkBounds) override
+        const mc::world::gen::structure::StructureBoundingBox& chunkBounds,
+        mc::ChunkPrimer* chunk,
+        mc::IChunkGenerator* generator) override
     {
         // MC 1.21.11: 方块放置在 FEATURES 阶段通过 placeInChunk → generate 调用
         if (m_placed.piece && !m_placed.piece->isEmpty()) {
-            mc::world::gen::jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng, &chunkBounds);
+            mc::world::gen::jigsaw::JigsawPlacer::placePiece(world, m_placed, rng, &chunkBounds, chunk, generator);
         }
     }
 
@@ -128,8 +133,8 @@ bool JigsawStructure::canGenerate(IWorld& world, IChunkGenerator& generator, mat
     MC_UNUSED(world);
     MC_UNUSED(rng);
 
-    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
-    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(m_config.startPool);
+    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
+    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(m_config.startPool);
     if (!startPool || startPool->isEmpty()) {
         return false;
     }
@@ -155,8 +160,8 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 获取起始模板池
-    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
-    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(m_config.startPool);
+    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
+    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(m_config.startPool);
 
     if (!startPool || startPool->isEmpty()) {
         return start;
@@ -183,9 +188,18 @@ std::unique_ptr<StructureStart> JigsawStructure::generate(
     // 计算结构起始位置（区块中心）
     const BlockPos startPos(chunkX * CHUNK_WIDTH + CHUNK_WIDTH / 2, startY, chunkZ * CHUNK_WIDTH + CHUNK_WIDTH / 2);
 
-    // 使用 JigsawManager 组装结构，获取 PlacedPiece 列表
+    // 预解析池别名绑定（试炼密室等结构的池随机化）。
+    // 无别名时传 nullptr，JigsawAssembler 使用空查找表（恒等映射）。
+    const jigsaw::PoolAliasBindings* aliases = m_config.poolAliases.empty() ? nullptr : &m_config.poolAliases;
+
+    // 使用 JigsawAssembler 组装结构，获取 PlacedPiece 列表
     // PlacedPiece 包含 JigsawJunction 信息用于地形适配
-    auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, m_config.size, startPos, rng);
+    // maxDistanceFromCenter 用于初始化 freeShape 可放置空间（VoxelShape 空间追踪），
+    //   缺省时 JigsawAssembler 内部使用 MC 默认值 MaxDistance(80)。
+    const structure::MaxDistance* maxDistance =
+        m_config.maxDistanceFromCenter.has_value() ? &(*m_config.maxDistanceFromCenter) : nullptr;
+    auto placedPieces = jigsaw::JigsawAssembler::assemble(
+        patternRegistry, *startPool, m_config.size, startPos, rng, generator, aliases, maxDistance);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     // MC 1.21.11: 结构起点只创建片段，不写入方块

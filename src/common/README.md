@@ -398,10 +398,12 @@ src/common/
     │   │       ├── RuinedPortalStructure.hpp
     │   │       └── BuriedTreasureStructure.hpp
     │   ├── jigsaw/           # Jigsaw 拼装系统
-    │   │   ├── JigsawManager.hpp
-    │   │   ├── JigsawPiece.hpp
-    │   │   ├── JigsawPattern.hpp
-    │   │   └── JigsawJunction.hpp
+    │   │   ├── JigsawAssembler.hpp  # 组装算法
+    │   │   ├── JigsawPlacer.hpp     # 放置器
+    │   │   ├── JigsawTransform.hpp  # 坐标变换
+    │   │   ├── JigsawPiece.hpp      # 拼图块基类
+    │   │   ├── TemplatePool.hpp     # 模板池
+    │   │   └── JigsawJunction.hpp   # 连接点信息
     │   ├── placement/        # 放置修饰器
     │   │   ├── Placement.hpp
     │   │   ├── PlacementUtils.hpp

@@ -33,7 +33,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include "common/world/gen/structure/structures/WoodlandMansionStructure.hpp"
 
@@ -160,8 +160,13 @@ WoodlandMansionPiece::WoodlandMansionPiece(const std::string& templateName,
     // 边界框将在生成时根据模板大小更新
 }
 
-void WoodlandMansionPiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void WoodlandMansionPiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(chunkX);
     MC_UNUSED(chunkZ);
@@ -174,7 +179,7 @@ void WoodlandMansionPiece::generate(
     }
 
     // 获取模板
-    auto& templateManager = jigsaw::JigsawManager::getTemplateManager();
+    auto& templateManager = jigsaw::JigsawAssembler::getTemplateManager();
     const feature::template_::Template* templ =
         templateManager.getTemplate(ResourceLocation("minecraft", "woodland_mansion/" + m_templateName));
 

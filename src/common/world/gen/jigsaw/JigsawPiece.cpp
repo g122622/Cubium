@@ -3,65 +3,61 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * in the Software without restriction, including limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+ * EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "JigsawPiece.hpp"
-#include "JigsawManager.hpp"
-#include "common/resource/pack/IResourcePack.hpp"
+
+#include "JigsawAssembler.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockRegistry.hpp"
-#include "common/world/gen/feature/template/TemplateLoader.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/feature/template/Template.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
+
+#include <algorithm>
 
 namespace mc {
 namespace world {
 namespace gen {
 namespace jigsaw {
 
-// 使用 template_ 命名空间中的类型
 using feature::template_::Template;
 using feature::template_::TemplateJigsawBlockInfo;
 using feature::template_::TemplateManager;
 
-std::string EmptyJigsawPiece::s_typeName = "empty_pool_element";
-std::string SingleJigsawPiece::s_typeName = "single_pool_element";
-std::string ListJigsawPiece::s_typeName = "list_pool_element";
-std::string LegacySingleJigsawPiece::s_typeName = "legacy_single_pool_element";
-std::string FeatureJigsawPiece::s_typeName = "feature_pool_element";
-
-EmptyJigsawPiece& EmptyJigsawPiece::instance()
+std::vector<JigsawJoint> JigsawPiece::getShuffledJoints(math::Random& rng) const
 {
-    static EmptyJigsawPiece instance;
-    return instance;
-}
+    std::vector<JigsawJoint> shuffled = m_joints;
+    rng.shuffle(shuffled);
 
-std::unique_ptr<JigsawPiece> EmptyJigsawPiece::clone() const
-{
-    return std::make_unique<EmptyJigsawPiece>();
+    // 按 selectionPriority 降序稳定排序（高优先级先处理），对应 MC 1.21 的
+    // SinglePoolElement.getShuffledJigsawBlocks()：先 shuffle 再按 selectionPriority 稳定排序。
+    std::stable_sort(shuffled.begin(), shuffled.end(), [](const JigsawJoint& a, const JigsawJoint& b) {
+        return a.selectionPriority > b.selectionPriority;
+    });
+
+    return shuffled;
 }
 
 bool JigsawPiece::loadJointsFromTemplate(
     const std::string& templateName, std::vector<JigsawJoint>& joints, BlockPos& size)
 {
     ResourceLocation loc(templateName);
-    // 使用 JigsawManager 的 TemplateManager 以确保数据包集成
-    const Template* templ = JigsawManager::getTemplateManager().getTemplate(loc);
+    // 通过 JigsawAssembler 的静态 TemplateManager 访问点加载模板（确保数据包集成）
+    const Template* templ = JigsawAssembler::getTemplateManager().getTemplate(loc);
 
     if (!templ) {
         return false;
@@ -83,6 +79,9 @@ bool JigsawPiece::loadJointsFromTemplate(
         joint.targetName = jigsawInfo.targetName;
         joint.jointType = static_cast<JigsawJointType>(jigsawInfo.jointType);
         joint.projection = getPlacementBehaviour();
+        joint.sourceGroundY = jigsawInfo.pos.y; // 源地面高度 = 连接点 Y 坐标
+        joint.placementPriority = jigsawInfo.placementPriority;
+        joint.selectionPriority = jigsawInfo.selectionPriority;
 
         // 从方块状态读取 orientation
         joint.orientation = JigsawOrientation::NorthUp; // 默认值
@@ -98,54 +97,7 @@ bool JigsawPiece::loadJointsFromTemplate(
         joints.push_back(joint);
     }
 
-    // 注意：连接点不需要打乱顺序，打乱是在 JigsawManager 中选择模板池中的块时进行的
-
     return true;
-}
-
-SingleJigsawPiece::SingleJigsawPiece(const std::string& templateName,
-    JigsawPlacementBehaviour behaviour,
-    const std::optional<ResourceLocation>& processorListId)
-    : JigsawPiece(behaviour)
-    , m_templateName(templateName)
-    , m_processorListId(processorListId)
-{
-    // 尝试加载模板并填充连接点
-    loadJointsFromTemplate(templateName, m_joints, m_size);
-}
-
-LegacySingleJigsawPiece::LegacySingleJigsawPiece(const std::string& templateName,
-    JigsawPlacementBehaviour behaviour,
-    const std::optional<ResourceLocation>& processorListId)
-    : SingleJigsawPiece(templateName, behaviour, processorListId)
-{}
-
-FeatureJigsawPiece::FeatureJigsawPiece(const std::string& featureId, JigsawPlacementBehaviour behaviour)
-    : JigsawPiece(behaviour)
-    , m_featureId(featureId)
-{}
-
-ListJigsawPiece::ListJigsawPiece(JigsawPlacementBehaviour behaviour)
-    : JigsawPiece(behaviour)
-{}
-
-std::unique_ptr<JigsawPiece> ListJigsawPiece::clone() const
-{
-    auto piece = std::make_unique<ListJigsawPiece>(getPlacementBehaviour());
-    piece->setGroundLevelDelta(getGroundLevelDelta());
-    for (const auto& child : m_pieces) {
-        if (child) {
-            piece->addPiece(child->clone());
-        }
-    }
-    return piece;
-}
-
-void ListJigsawPiece::addPiece(std::unique_ptr<JigsawPiece> piece)
-{
-    if (piece) {
-        m_pieces.push_back(std::move(piece));
-    }
 }
 
 } // namespace jigsaw

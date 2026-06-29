@@ -1168,9 +1168,16 @@ add_library(mc_common STATIC
     world/gen/structure/JigsawStructure.cpp
 
     # World - Generation - Jigsaw
+    world/gen/jigsaw/JigsawAssembler.cpp
     world/gen/jigsaw/JigsawPiece.cpp
-    world/gen/jigsaw/JigsawPattern.cpp
-    world/gen/jigsaw/JigsawManager.cpp
+    world/gen/jigsaw/JigsawPlacer.cpp
+    world/gen/jigsaw/EmptyJigsawPiece.cpp
+    world/gen/jigsaw/SingleJigsawPiece.cpp
+    world/gen/jigsaw/ListJigsawPiece.cpp
+    world/gen/jigsaw/FeatureJigsawPiece.cpp
+    world/gen/jigsaw/TemplatePool.cpp
+    world/gen/jigsaw/TemplatePoolRegistry.cpp
+    world/gen/jigsaw/JigsawTransform.cpp
     world/gen/jigsaw/ProcessorListLoader.cpp
     world/gen/jigsaw/TemplatePoolLoader.cpp
     world/gen/jigsaw/ProcessorListRegistry.cpp

@@ -288,14 +288,20 @@ private:
 
 /**
  * @brief Jigsaw 连接点信息（用于结构模板）
+ *
+ * 对应 MC 1.21 StructureTemplate.JigsawBlockInfo record。
+ * selectionPriority/placementPriority 从 jigsaw 方块实体 NBT 读取
+ * （"selection_priority"/"placement_priority"，默认 0）。
  */
 struct TemplateJigsawBlockInfo {
     BlockPos pos;
     std::string name;
     std::string targetPool;
     std::string targetName;
-    i32 jointType = 0;    // 0=rollable, 1=aligned
-    u32 blockStateId = 0; // 方块状态ID，用于读取 orientation 属性
+    i32 jointType = 0;         // 0=rollable, 1=aligned
+    u32 blockStateId = 0;      // 方块状态ID，用于读取 orientation 属性
+    i32 placementPriority = 0; // 放置优先级（组装队列降序出队）
+    i32 selectionPriority = 0; // 选择优先级（同一拼图块内降序排序）
 
     TemplateJigsawBlockInfo() = default;
     TemplateJigsawBlockInfo(const BlockPos& p,
@@ -303,13 +309,17 @@ struct TemplateJigsawBlockInfo {
         const std::string& pool,
         const std::string& tgt,
         i32 joint = 0,
-        u32 stateId = 0)
+        u32 stateId = 0,
+        i32 placementPrio = 0,
+        i32 selectionPrio = 0)
         : pos(p)
         , name(n)
         , targetPool(pool)
         , targetName(tgt)
         , jointType(joint)
         , blockStateId(stateId)
+        , placementPriority(placementPrio)
+        , selectionPriority(selectionPrio)
     {}
 };
 

@@ -46,6 +46,8 @@
 #include "common/world/gen/feature/vegetation/VegetationFeatures.hpp"
 #include <spdlog/spdlog.h>
 
+#include <string_view>
+
 namespace mc {
 
 // ============================================================================
@@ -305,6 +307,14 @@ void FeatureRegistry::registerFeature(std::unique_ptr<ConfiguredFeatureBase> fea
     feature->setFeatureId(featureId);
 
     ConfiguredFeatureBase* ptr = feature.get();
+
+    // 同步写入名称映射，用于 getFeatureByName 查找（FeatureJigsawPiece::place 通过名称查地物）
+    // name() 返回不带命名空间前缀的简单名称（如 "oak_tree"），此处直接以该名称作为键
+    const char* featureName = ptr->name();
+    if (featureName != nullptr && featureName[0] != '\0') {
+        m_featuresByName[std::string(featureName)] = ptr;
+    }
+
     m_ownedFeatures.push_back(std::move(feature));
     m_featuresByStage[stageIndex].push_back(ptr);
 }
@@ -327,11 +337,29 @@ ConfiguredFeatureBase* FeatureRegistry::getFeatureById(u32 featureId) const
     return m_ownedFeatures[featureId].get();
 }
 
+ConfiguredFeatureBase* FeatureRegistry::getFeatureByName(const std::string& name) const
+{
+    // 去除可能的 "minecraft:" 命名空间前缀，使 name() 返回的简单名称与 JSON 中带前缀的名称均可匹配
+    std::string lookupName = name;
+    constexpr std::string_view MINECRAFT_PREFIX = "minecraft:";
+    if (lookupName.size() > MINECRAFT_PREFIX.size() &&
+        lookupName.compare(0, MINECRAFT_PREFIX.size(), MINECRAFT_PREFIX) == 0) {
+        lookupName.erase(0, MINECRAFT_PREFIX.size());
+    }
+
+    const auto it = m_featuresByName.find(lookupName);
+    if (it == m_featuresByName.end()) {
+        return nullptr;
+    }
+    return it->second;
+}
+
 void FeatureRegistry::clear()
 {
     m_featuresByStage.clear();
     m_featuresByStage.resize(static_cast<size_t>(DecorationStage::Count));
     m_ownedFeatures.clear();
+    m_featuresByName.clear();
 }
 
 } // namespace mc

@@ -277,8 +277,13 @@ OceanMonumentDoubleXRoom::OceanMonumentDoubleXRoom(Direction direction, OceanMon
     setRoomDefinition(room);
 }
 
-void OceanMonumentDoubleXRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentDoubleXRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -332,8 +337,13 @@ OceanMonumentDoubleXYRoom::OceanMonumentDoubleXYRoom(Direction direction, OceanM
     setRoomDefinition(room);
 }
 
-void OceanMonumentDoubleXYRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentDoubleXYRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -410,8 +420,13 @@ OceanMonumentDoubleYRoom::OceanMonumentDoubleYRoom(Direction direction, OceanMon
     setRoomDefinition(room);
 }
 
-void OceanMonumentDoubleYRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentDoubleYRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -493,8 +508,13 @@ OceanMonumentDoubleYZRoom::OceanMonumentDoubleYZRoom(Direction direction, OceanM
     setRoomDefinition(room);
 }
 
-void OceanMonumentDoubleYZRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentDoubleYZRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -572,8 +592,13 @@ OceanMonumentDoubleZRoom::OceanMonumentDoubleZRoom(Direction direction, OceanMon
     setRoomDefinition(room);
 }
 
-void OceanMonumentDoubleZRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentDoubleZRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -645,8 +670,13 @@ OceanMonumentEntryRoom::OceanMonumentEntryRoom(Direction direction, OceanMonumen
     setRoomDefinition(room);
 }
 
-void OceanMonumentEntryRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentEntryRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -683,8 +713,13 @@ OceanMonumentSimpleRoom::OceanMonumentSimpleRoom(
     setRoomDefinition(room);
 }
 
-void OceanMonumentSimpleRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentSimpleRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(chunkX);
     MC_UNUSED(chunkZ);
@@ -850,8 +885,13 @@ OceanMonumentSimpleTopRoom::OceanMonumentSimpleTopRoom(Direction direction, Ocea
     setRoomDefinition(room);
 }
 
-void OceanMonumentSimpleTopRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentSimpleTopRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(chunkX);
     MC_UNUSED(chunkZ);
@@ -901,8 +941,13 @@ OceanMonumentCoreRoom::OceanMonumentCoreRoom(Direction direction, OceanMonumentR
     setRoomDefinition(room);
 }
 
-void OceanMonumentCoreRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentCoreRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -985,8 +1030,13 @@ OceanMonumentPenthouse::OceanMonumentPenthouse(Direction direction, const Struct
     : OceanMonumentPiece(OceanMonumentPieceTypes::PENTHOUSE, direction, bounds)
 {}
 
-void OceanMonumentPenthouse::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentPenthouse::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -1035,8 +1085,13 @@ OceanMonumentWingRoom::OceanMonumentWingRoom(Direction direction, const Structur
     , m_mainDesign(design)
 {}
 
-void OceanMonumentWingRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentWingRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     MC_UNUSED(chunkX);
@@ -1327,8 +1382,13 @@ std::vector<OceanMonumentRoomDefinition*> OceanMonumentBuilding::_generateRoomGr
     return result;
 }
 
-void OceanMonumentBuilding::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void OceanMonumentBuilding::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(rng);
     fillWithBlocks(world, chunkBounds, 0, 0, 0, 57, 22, 57, s_bricksPrismarine, s_water, false);

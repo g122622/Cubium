@@ -184,7 +184,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -225,7 +227,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -262,7 +266,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -299,7 +305,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -336,7 +344,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -376,7 +386,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -413,7 +425,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -502,7 +516,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -545,7 +561,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -585,7 +603,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     [[nodiscard]] static StrongholdLibrary* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,
@@ -617,7 +637,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     void buildComponent(
         StructurePiece* component, std::vector<std::unique_ptr<StructurePiece>>& pieces, math::Random& rng) override;
@@ -645,7 +667,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     [[nodiscard]] static StrongholdCorridor* createPiece(std::vector<std::unique_ptr<StructurePiece>>& pieces,
         math::Random& rng,

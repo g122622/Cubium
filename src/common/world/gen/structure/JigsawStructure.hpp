@@ -25,8 +25,8 @@
 
 #include "../../../core/Constants.hpp"
 #include "../../../resource/ResourceLocation.hpp"
-#include "../jigsaw/JigsawPattern.hpp"
 #include "../jigsaw/PoolAliasBinding.hpp"
+#include "../jigsaw/TemplatePool.hpp"
 #include "../valueprovider/HeightProvider.hpp"
 #include "Structure.hpp"
 #include "StructureBoundingBox.hpp"
@@ -68,14 +68,30 @@ struct DimensionPadding {
 /**
  * @brief 最大距离约束
  *
- * 限制结构片段距中心的最大距离。
+ * 限制结构片段距中心的最大水平/垂直距离，用于初始化 Jigsaw 组装的可放置空间 VoxelShape。
+ * 对应 MC 1.21 的 JigsawStructure.MaxDistance(horizontal, vertical)。
+ * 单参数构造将 horizontal 与 vertical 设为相同值（对应 MC 的 MaxDistance(int) 构造器）。
  */
 struct MaxDistance {
-    i32 maxDistance = 116; ///< 最大距离（格）
+    i32 horizontal = 80; ///< 水平最大距离（格）
+    i32 vertical = 80;   ///< 垂直最大距离（格）
 
     constexpr MaxDistance() = default;
+
+    /**
+     * @brief 单值构造（horizontal = vertical = dist），对应 MC 的 MaxDistance(int)
+     */
     constexpr MaxDistance(i32 dist)
-        : maxDistance(dist)
+        : horizontal(dist)
+        , vertical(dist)
+    {}
+
+    /**
+     * @brief 双值构造，对应 MC 的 MaxDistance(int horizontal, int vertical)
+     */
+    constexpr MaxDistance(i32 horiz, i32 vert)
+        : horizontal(horiz)
+        , vertical(vert)
     {}
 };
 

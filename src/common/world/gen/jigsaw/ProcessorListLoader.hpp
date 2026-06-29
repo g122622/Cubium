@@ -47,7 +47,7 @@ namespace jigsaw {
  *
  * 从数据包加载 processor_list JSON 文件并注册到 ProcessorListRegistry。
  *
- * JSON 格式 (MC 1.21.11):
+ * JSON 格式 (MC 1.21):
  * {
  *   "processors": [
  *     { "processor_type": "minecraft:block_rot", "integrity": 0.5 },
@@ -84,6 +84,19 @@ public:
      * @return 是否成功
      */
     [[nodiscard]] static Result<void> loadFromJson(const std::string& json, const ResourceLocation& location);
+
+    /**
+     * @brief 解析内联处理器列表（JSON 数组）
+     *
+     * 模板池元素的 processors 字段可为内联数组（如 [{"processor_type": "minecraft:gravity", ...}]），
+     * 此方法解析数组中每个处理器并组装为 StructureProcessorList。
+     * 用于 TemplatePoolLoader::_parseProcessors 处理内联处理器列表场景。
+     *
+     * @param processorsArray 处理器 JSON 数组
+     * @return 处理器列表，数组为空或解析失败时返回空列表
+     */
+    [[nodiscard]] static std::unique_ptr<feature::template_::StructureProcessorList> parseInlineProcessorList(
+        const nlohmann::json& processorsArray);
 
 private:
     /**

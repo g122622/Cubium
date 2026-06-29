@@ -486,9 +486,20 @@ public:
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
      * @param chunkBounds 区块边界框
+     * @param chunk 区块数据（FeatureJigsawPiece 等需要放置配置化地物的片段使用，可为 nullptr）
+     * @param generator 区块生成器（FeatureJigsawPiece 等需要放置配置化地物的片段使用，可为 nullptr）
+     *
+     * chunk 与 generator 仅对含 FeatureJigsawPiece 的拼图结构有意义（FeatureJigsawPiece::place 需要调用
+     * ConfiguredFeatureBase::place(region, chunk, generator, rng, pos)）。其他结构片段可忽略这两个参数。
+     * 通过 placeInChunk → generate → JigsawPlacer::placePiece → JigsawPiece::place 链路传递。
      */
-    virtual void generate(
-        IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds) = 0;
+    virtual void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32 chunkX,
+        i32 chunkZ,
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) = 0;
 
     // ========== Jigsaw 结构支持 ==========
 
@@ -726,9 +737,14 @@ public:
      * @param start 结构起点
      * @param chunkX 区块 X 坐标
      * @param chunkZ 区块 Z 坐标
+     * @param generator 区块生成器（传递给含 FeatureJigsawPiece 的拼图片段用于放置配置化地物，可为 nullptr）
      */
-    virtual void placeInChunk(
-        IWorldWriter& world, ChunkPrimer& chunk, StructureStart& start, i32 chunkX, i32 chunkZ) const;
+    virtual void placeInChunk(IWorldWriter& world,
+        ChunkPrimer& chunk,
+        StructureStart& start,
+        i32 chunkX,
+        i32 chunkZ,
+        IChunkGenerator* generator = nullptr) const;
 
     /**
      * @brief 结构放置完成后的钩子

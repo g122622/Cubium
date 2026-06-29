@@ -35,7 +35,7 @@
 #include "../../feature/template/Template.hpp"
 #include "../../feature/template/TemplateLoader.hpp"
 #include "../../feature/template/TemplateManager.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
+#include "../../jigsaw/JigsawAssembler.hpp"
 #include "../StructureBoundingBox.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -123,8 +123,13 @@ void RuinedPortalPiece::_updateBoundingBox()
     m_maxZ = m_minZ + sizeZ - 1;
 }
 
-void RuinedPortalPiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void RuinedPortalPiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     if (!m_templateManager) {
         return;
@@ -411,7 +416,7 @@ std::unique_ptr<StructureStart> RuinedPortalStructure::generate(
     // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
     if (!templateManager) {
-        templateManager = &jigsaw::JigsawManager::getTemplateManager();
+        templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
     }
 
     // 创建片段

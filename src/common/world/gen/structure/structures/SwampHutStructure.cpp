@@ -124,8 +124,13 @@ SwampHutPiece::SwampHutPiece(const BlockPos& pos, feature::template_::Rotation r
     m_maxZ = pos.z + 8;
 }
 
-void SwampHutPiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void SwampHutPiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(chunkX);
     MC_UNUSED(chunkZ);

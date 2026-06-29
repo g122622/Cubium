@@ -50,8 +50,13 @@ DesertPyramidPiece::DesertPyramidPiece(const BlockPos& pos)
     , m_startPos(pos)
 {}
 
-void DesertPyramidPiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void DesertPyramidPiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     if (!getBoundingBox().intersects(chunkBounds)) {
         return;

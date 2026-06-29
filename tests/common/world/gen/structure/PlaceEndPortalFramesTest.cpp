@@ -58,7 +58,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override
+        const StructureBoundingBox& chunkBounds,
+        world::chunk::ChunkPrimer* /*chunk*/,
+        IChunkGenerator* /*generator*/) override
     {
         MC_UNUSED(world);
         MC_UNUSED(rng);

@@ -222,8 +222,13 @@ MineshaftRoom::MineshaftRoom(i32 componentType, math::Random& rng, i32 x, i32 y,
     }
 }
 
-void MineshaftRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void MineshaftRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
     const BlockState* fenceState = VanillaBlocks::getState(VanillaBlocks::OAK_LOG); // 使用原木代替栅栏
@@ -324,8 +329,13 @@ MineshaftCorridor::MineshaftCorridor(i32 componentType,
     }
 }
 
-void MineshaftCorridor::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void MineshaftCorridor::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     // 生成地板和天花板
     if (m_direction == 0 || m_direction == 1) {
@@ -571,8 +581,13 @@ MineshaftCross::MineshaftCross(
     , m_direction(direction)
 {}
 
-void MineshaftCross::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void MineshaftCross::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
 
@@ -659,8 +674,13 @@ MineshaftStairs::MineshaftStairs(
     , m_direction(direction)
 {}
 
-void MineshaftStairs::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void MineshaftStairs::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     const BlockState* planksState = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
 

@@ -188,7 +188,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -201,7 +203,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -214,7 +218,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -227,7 +233,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -240,7 +248,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -253,7 +263,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -266,7 +278,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
 private:
     i32 m_mainDesign;
@@ -282,7 +296,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -295,7 +311,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -308,7 +326,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 };
 
 /**
@@ -321,7 +341,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
 private:
     i32 m_mainDesign;
@@ -339,7 +361,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
 private:
     /**

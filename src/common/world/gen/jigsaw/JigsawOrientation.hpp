@@ -26,7 +26,6 @@
 #include "common/core/Types.hpp"
 #include "common/util/Direction.hpp"
 
-#include <array>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -67,27 +66,6 @@ enum class JigsawOrientation : u8 {
  * @brief JigsawOrientation 工具函数
  */
 namespace JigsawOrientations {
-
-inline constexpr size_t COUNT = 12;
-
-/**
- * @brief 获取所有 JigsawOrientation
- */
-inline std::array<JigsawOrientation, 12> all() noexcept
-{
-    return {JigsawOrientation::DownEast,
-        JigsawOrientation::DownNorth,
-        JigsawOrientation::DownSouth,
-        JigsawOrientation::DownWest,
-        JigsawOrientation::UpEast,
-        JigsawOrientation::UpNorth,
-        JigsawOrientation::UpSouth,
-        JigsawOrientation::UpWest,
-        JigsawOrientation::WestUp,
-        JigsawOrientation::EastUp,
-        JigsawOrientation::NorthUp,
-        JigsawOrientation::SouthUp};
-}
 
 /**
  * @brief 从 facing 和 rotation 获取 JigsawOrientation
@@ -209,22 +187,6 @@ inline Direction getRotation(JigsawOrientation orientation) noexcept
 }
 
 /**
- * @brief 从索引获取 JigsawOrientation
- */
-inline JigsawOrientation fromIndex(size_t index) noexcept
-{
-    return static_cast<JigsawOrientation>(index % COUNT);
-}
-
-/**
- * @brief 获取索引 (0-11)
- */
-inline size_t index(JigsawOrientation orientation) noexcept
-{
-    return static_cast<size_t>(orientation);
-}
-
-/**
  * @brief 从名称获取 JigsawOrientation
  *
  * @param name 名称（如 "down_east", "up_north", "north_up"）
@@ -282,37 +244,6 @@ inline std::string toString(JigsawOrientation orientation)
         default:
             return "north_up";
     }
-}
-
-/**
- * @brief 检查两个 JigsawOrientation 是否可以连接
- *
- * 连接条件：
- * 1. facing 方向必须相反
- * 2. rotation 方向必须相同（对于可旋转连接）或允许任意旋转
- *
- * @param source 源 Jigsaw 方向
- * @param target 目标 Jigsaw 方向
- * @param rollable 是否允许旋转（如果为 true，则只检查 facing 相反）
- * @return 是否可以连接
- */
-inline bool canConnect(JigsawOrientation source, JigsawOrientation target, bool rollable = true) noexcept
-{
-    Direction sourceFacing = getFacing(source);
-    Direction targetFacing = getFacing(target);
-
-    // facing 必须相反
-    if (Directions::opposite(sourceFacing) != targetFacing) {
-        return false;
-    }
-
-    // 如果允许旋转，则只需 facing 相反
-    if (rollable) {
-        return true;
-    }
-
-    // 不允许旋转时，rotation 必须相同
-    return getRotation(source) == getRotation(target);
 }
 
 /**

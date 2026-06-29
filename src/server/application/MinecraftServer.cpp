@@ -77,7 +77,7 @@
 #include "common/world/entity/EntityManager.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/ProcessorListLoader.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/lighting/LightType.hpp"
@@ -1010,10 +1010,10 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         }
     }
 
-    // 设置 JigsawManager 的 TemplateManager 数据包列表（用于加载结构模板 .nbt 文件）
+    // 设置 JigsawAssembler 的 TemplateManager 数据包列表（用于加载结构模板 .nbt 文件）
     {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::JigsawTemplateManager");
-        world::gen::jigsaw::JigsawManager::getTemplateManager().setDataPackRepository(&m_dataPackList);
+        world::gen::jigsaw::JigsawAssembler::getTemplateManager().setDataPackRepository(&m_dataPackList);
         spdlog::info("Jigsaw TemplateManager configured with data pack list");
     }
 

@@ -28,6 +28,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include <memory>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace mc {
@@ -144,6 +146,18 @@ public:
     [[nodiscard]] ConfiguredFeatureBase* getFeatureById(u32 featureId) const;
 
     /**
+     * @brief 根据特征名称获取特征
+     *
+     * 用于 FeatureJigsawPiece::place() 通过 ResourceLocation 名称（如 "minecraft:oak_tree"）
+     * 查找配置化特征。名称匹配去除 "minecraft:" 前缀后与 ConfiguredFeatureBase::name() 比较
+     * （name() 返回不带命名空间前缀的简单名称，如 "oak_tree"）。
+     *
+     * @param name 特征名称（可带或不带 "minecraft:" 前缀）
+     * @return 特征指针，如果名称未注册则返回 nullptr
+     */
+    [[nodiscard]] ConfiguredFeatureBase* getFeatureByName(const std::string& name) const;
+
+    /**
      * @brief 获取所有特征
      * @return 所有特征（按阶段组织）
      */
@@ -166,6 +180,9 @@ private:
 
     // 按阶段索引的特征指针（不拥有所有权）
     std::vector<std::vector<ConfiguredFeatureBase*>> m_featuresByStage;
+
+    // 按名称索引的特征指针（不拥有所有权），用于 getFeatureByName 查找
+    std::unordered_map<std::string, ConfiguredFeatureBase*> m_featuresByName;
 };
 
 } // namespace mc

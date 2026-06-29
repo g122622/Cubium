@@ -44,7 +44,7 @@ class DataPackRepository;
 } // namespace resource
 
 namespace world::gen::jigsaw {
-class JigsawPatternRegistry;
+class TemplatePoolRegistry;
 }
 
 namespace world::gen::structure {
@@ -83,7 +83,7 @@ public:
     /**
      * @brief 从数据包加载模板池
      *
-     * 加载数据包中的模板池 JSON 文件并注册到 JigsawPatternRegistry。
+     * 加载数据包中的模板池 JSON 文件并注册到 TemplatePoolRegistry。
      * 应在 initialize() 之后调用，或在加载世界数据包时调用。
      *
      * @param dataPackList 数据包列表

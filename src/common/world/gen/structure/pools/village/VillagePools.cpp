@@ -22,9 +22,11 @@
  */
 
 #include "VillagePools.hpp"
-#include "../../../jigsaw/JigsawPiece.hpp"
-#include "../ProcessorLists.hpp"
-#include "resource/ResourceLocation.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/world/gen/jigsaw/EmptyJigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/SingleJigsawPiece.hpp"
+#include "common/world/gen/structure/pools/ProcessorLists.hpp"
 #include <spdlog/spdlog.h>
 
 namespace mc {
@@ -34,10 +36,10 @@ namespace structure {
 namespace pools {
 
 using jigsaw::EmptyJigsawPiece;
-using jigsaw::JigsawPattern;
-using jigsaw::JigsawPatternRegistry;
 using jigsaw::JigsawPlacementBehaviour;
 using jigsaw::SingleJigsawPiece;
+using jigsaw::TemplatePool;
+using jigsaw::TemplatePoolRegistry;
 
 // 注册标志
 static bool s_registered = false;
@@ -62,17 +64,20 @@ static std::unique_ptr<SingleJigsawPiece> makeSinglePiece(
 
 /**
  * @brief 创建空元素
+ *
+ * EmptyJigsawPiece 是单例（clone 返回 nullptr），用 make_unique 创建临时实例，
+ * TemplatePool::addPiece 检测到 isEmpty() 后存入单例指针并丢弃临时对象。
  */
 static std::unique_ptr<jigsaw::JigsawPiece> makeEmptyPiece()
 {
-    return EmptyJigsawPiece::instance().clone();
+    return std::make_unique<EmptyJigsawPiece>();
 }
 
 // ============================================================================
 // VillagePools 实现
 // ============================================================================
 
-void VillagePools::registerAll(JigsawPatternRegistry& registry)
+void VillagePools::registerAll(TemplatePoolRegistry& registry)
 {
     if (s_registered) {
         return;
@@ -94,15 +99,16 @@ void VillagePools::registerAll(JigsawPatternRegistry& registry)
     spdlog::info("[VillagePools] Village template pools registered successfully");
 }
 
-void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
+void VillagePools::registerCommonPools(TemplatePoolRegistry& registry)
 {
     // ========================================================================
     // village/common/animals - 村庄动物池
     // ========================================================================
-    auto animals = std::make_unique<JigsawPattern>(
+    auto animals = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/common/animals"), ResourceLocation("minecraft", "empty"));
 
-    // 动物池需要 FeatureJigsawPiece 支持，当前使用空元素占位
+    // 动物池：FeatureJigsawPiece::place() 已实现（可放置配置化地物），
+    // 但动物生成依赖实体刷怪（非 ConfiguredFeature），此处仍用空元素占位。
     animals->addPiece(makeEmptyPiece(), 7); // cows placeholder
     animals->addPiece(makeEmptyPiece(), 7); // pigs placeholder
     for (i32 i = 0; i < 5; ++i) {
@@ -112,22 +118,22 @@ void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
         animals->addPiece(makeEmptyPiece(), 1); // sheep placeholder
     }
     animals->addPiece(makeEmptyPiece(), 5);
-    registry.registerPattern(std::move(animals));
+    registry.registerPool(std::move(animals));
 
     // ========================================================================
     // village/common/sheep - 羊池
     // ========================================================================
-    auto sheep = std::make_unique<JigsawPattern>(
+    auto sheep = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/common/sheep"), ResourceLocation("minecraft", "empty"));
 
     sheep->addPiece(makeEmptyPiece(), 1); // sheep_1 placeholder
     sheep->addPiece(makeEmptyPiece(), 1); // sheep_2 placeholder
-    registry.registerPattern(std::move(sheep));
+    registry.registerPool(std::move(sheep));
 
     // ========================================================================
     // village/common/cats - 猫池
     // ========================================================================
-    auto cats = std::make_unique<JigsawPattern>(
+    auto cats = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/common/cats"), ResourceLocation("minecraft", "empty"));
 
     // 10 种猫各 1，空元素 3
@@ -135,37 +141,37 @@ void VillagePools::registerCommonPools(JigsawPatternRegistry& registry)
         cats->addPiece(makeEmptyPiece(), 1);
     }
     cats->addPiece(makeEmptyPiece(), 3);
-    registry.registerPattern(std::move(cats));
+    registry.registerPool(std::move(cats));
 
     // ========================================================================
     // village/common/butcher_animals - 屠夫动物池
     // ========================================================================
-    auto butcherAnimals = std::make_unique<JigsawPattern>(
+    auto butcherAnimals = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/common/butcher_animals"), ResourceLocation("minecraft", "empty"));
 
     butcherAnimals->addPiece(makeEmptyPiece(), 3); // cows placeholder
     butcherAnimals->addPiece(makeEmptyPiece(), 3); // pigs placeholder
     butcherAnimals->addPiece(makeEmptyPiece(), 1); // sheep_1
     butcherAnimals->addPiece(makeEmptyPiece(), 1); // sheep_2
-    registry.registerPattern(std::move(butcherAnimals));
+    registry.registerPool(std::move(butcherAnimals));
 
     // ========================================================================
     // village/common/iron_golem - 铁傀儡池
     // ========================================================================
-    auto ironGolem = std::make_unique<JigsawPattern>(
+    auto ironGolem = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/common/iron_golem"), ResourceLocation("minecraft", "empty"));
 
     ironGolem->addPiece(makeEmptyPiece(), 1);
-    registry.registerPattern(std::move(ironGolem));
+    registry.registerPool(std::move(ironGolem));
 
     // ========================================================================
     // village/common/well_bottoms - 井底池
     // ========================================================================
-    auto wellBottoms = std::make_unique<JigsawPattern>(
+    auto wellBottoms = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/common/well_bottoms"), ResourceLocation("minecraft", "empty"));
 
     wellBottoms->addPiece(makeSinglePiece("minecraft:village/common/well_bottom", JigsawPlacementBehaviour::Rigid), 1);
-    registry.registerPattern(std::move(wellBottoms));
+    registry.registerPool(std::move(wellBottoms));
 }
 
 bool VillagePools::isRegistered()
@@ -179,12 +185,12 @@ bool VillagePools::isRegistered()
 
 namespace PlainsVillagePools {
 
-void registerAll(JigsawPatternRegistry& registry)
+void registerAll(TemplatePoolRegistry& registry)
 {
     // ========================================================================
     // village/plains/town_centers - 起始池
     // ========================================================================
-    auto townCenters = std::make_unique<JigsawPattern>(
+    auto townCenters = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/plains/town_centers"), ResourceLocation("minecraft", "empty"));
 
     // 正常村庄中心
@@ -200,13 +206,13 @@ void registerAll(JigsawPatternRegistry& registry)
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/zombie/town_centers/plains_meeting_point_2"), 1);
     townCenters->addPiece(makeSinglePiece("minecraft:village/plains/zombie/town_centers/plains_meeting_point_3"), 1);
 
-    registry.registerPattern(std::move(townCenters));
+    registry.registerPool(std::move(townCenters));
 
     // ========================================================================
     // village/plains/streets - 街道池
     // fallback: village/plains/terminators
     // ========================================================================
-    auto streets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/plains/streets"),
+    auto streets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/plains/streets"),
         ResourceLocation("minecraft", "village/plains/terminators"));
 
     // 街道模板
@@ -227,12 +233,12 @@ void registerAll(JigsawPatternRegistry& registry)
     streets->addPiece(makeSinglePiece("minecraft:village/plains/streets/crossroad_06"), 2);
     streets->addPiece(makeSinglePiece("minecraft:village/plains/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(streets));
+    registry.registerPool(std::move(streets));
 
     // ========================================================================
     // village/plains/zombie/streets - 僵尸村庄街道
     // ========================================================================
-    auto zombieStreets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/plains/zombie/streets"),
+    auto zombieStreets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/plains/zombie/streets"),
         ResourceLocation("minecraft", "village/plains/terminators"));
 
     // 与正常街道相同结构
@@ -253,12 +259,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/plains/streets/crossroad_06"), 2);
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/plains/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(zombieStreets));
+    registry.registerPool(std::move(zombieStreets));
 
     // ========================================================================
     // village/plains/houses - 房屋池
     // ========================================================================
-    auto houses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/plains/houses"),
+    auto houses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/plains/houses"),
         ResourceLocation("minecraft", "village/plains/terminators"));
 
     // 小型房屋
@@ -320,12 +326,12 @@ void registerAll(JigsawPatternRegistry& registry)
     // 空元素（控制密度）
     houses->addPiece(makeEmptyPiece(), 10);
 
-    registry.registerPattern(std::move(houses));
+    registry.registerPool(std::move(houses));
 
     // ========================================================================
     // village/plains/zombie/houses - 僵尸村庄房屋
     // ========================================================================
-    auto zombieHouses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/plains/zombie/houses"),
+    auto zombieHouses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/plains/zombie/houses"),
         ResourceLocation("minecraft", "village/plains/terminators"));
 
     // 与正常房屋结构相同，使用僵尸版本模板
@@ -365,12 +371,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/plains/zombie/houses/accessory_1"), 1);
     zombieHouses->addPiece(makeEmptyPiece(), 10);
 
-    registry.registerPattern(std::move(zombieHouses));
+    registry.registerPool(std::move(zombieHouses));
 
     // ========================================================================
     // village/plains/terminators - 终止池
     // ========================================================================
-    auto terminators = std::make_unique<JigsawPattern>(
+    auto terminators = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/plains/terminators"), ResourceLocation("minecraft", "empty"));
 
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_01"), 1);
@@ -378,23 +384,24 @@ void registerAll(JigsawPatternRegistry& registry)
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_03"), 1);
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_04"), 1);
 
-    registry.registerPattern(std::move(terminators));
+    registry.registerPool(std::move(terminators));
 
     // ========================================================================
     // village/plains/trees - 树木池
     // ========================================================================
-    auto trees = std::make_unique<JigsawPattern>(
+    auto trees = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/plains/trees"), ResourceLocation("minecraft", "empty"));
 
-    // 注：需要 FeatureJigsawPiece 支持橡树生成
+    // 注：FeatureJigsawPiece::place() 已实现（FeatureRegistry 名称映射 + 配置化地物放置），
+    // 此处仍用空元素占位；后续可替换为 makeFeaturePiece("minecraft:oak_tree") 等真实地物块。
     trees->addPiece(makeEmptyPiece(), 1); // oak_tree placeholder
 
-    registry.registerPattern(std::move(trees));
+    registry.registerPool(std::move(trees));
 
     // ========================================================================
     // village/plains/decor - 装饰池
     // ========================================================================
-    auto decor = std::make_unique<JigsawPattern>(
+    auto decor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/plains/decor"), ResourceLocation("minecraft", "empty"));
 
     decor->addPiece(makeSinglePiece("minecraft:village/plains/decor/plains_lamp_1"), 2);
@@ -403,12 +410,12 @@ void registerAll(JigsawPatternRegistry& registry)
     decor->addPiece(makeEmptyPiece(), 1); // feature placeholder
     decor->addPiece(makeEmptyPiece(), 2);
 
-    registry.registerPattern(std::move(decor));
+    registry.registerPool(std::move(decor));
 
     // ========================================================================
     // village/plains/zombie/decor - 僵尸村庄装饰池
     // ========================================================================
-    auto zombieDecor = std::make_unique<JigsawPattern>(
+    auto zombieDecor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/plains/zombie/decor"), ResourceLocation("minecraft", "empty"));
 
     zombieDecor->addPiece(makeSinglePiece("minecraft:village/plains/decor/plains_lamp_1"), 1);
@@ -417,30 +424,30 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieDecor->addPiece(makeEmptyPiece(), 1);
     zombieDecor->addPiece(makeEmptyPiece(), 2);
 
-    registry.registerPattern(std::move(zombieDecor));
+    registry.registerPool(std::move(zombieDecor));
 
     // ========================================================================
     // village/plains/villagers - 村民池
     // ========================================================================
-    auto villagers = std::make_unique<JigsawPattern>(
+    auto villagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/plains/villagers"), ResourceLocation("minecraft", "empty"));
 
     villagers->addPiece(makeEmptyPiece(), 1);  // nitwit placeholder
     villagers->addPiece(makeEmptyPiece(), 1);  // baby placeholder
     villagers->addPiece(makeEmptyPiece(), 10); // unemployed placeholder
 
-    registry.registerPattern(std::move(villagers));
+    registry.registerPool(std::move(villagers));
 
     // ========================================================================
     // village/plains/zombie/villagers - 僵尸村民池
     // ========================================================================
-    auto zombieVillagers = std::make_unique<JigsawPattern>(
+    auto zombieVillagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/plains/zombie/villagers"), ResourceLocation("minecraft", "empty"));
 
     zombieVillagers->addPiece(makeEmptyPiece(), 1);  // zombie_nitwit placeholder
     zombieVillagers->addPiece(makeEmptyPiece(), 10); // zombie_unemployed placeholder
 
-    registry.registerPattern(std::move(zombieVillagers));
+    registry.registerPool(std::move(zombieVillagers));
 }
 
 } // namespace PlainsVillagePools
@@ -451,14 +458,14 @@ void registerAll(JigsawPatternRegistry& registry)
 
 namespace DesertVillagePools {
 
-void registerAll(JigsawPatternRegistry& registry)
+void registerAll(TemplatePoolRegistry& registry)
 {
     // ========================================================================
     // village/desert/town_centers - 起始池
     // 正常村庄中心
     // 僵尸村庄中心 (zombie meeting_point: 2, 2, 1)
     // ========================================================================
-    auto townCenters = std::make_unique<JigsawPattern>(
+    auto townCenters = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/desert/town_centers"), ResourceLocation("minecraft", "empty"));
 
     // 正常村庄
@@ -471,12 +478,12 @@ void registerAll(JigsawPatternRegistry& registry)
     townCenters->addPiece(makeSinglePiece("minecraft:village/desert/zombie/town_centers/desert_meeting_point_2"), 2);
     townCenters->addPiece(makeSinglePiece("minecraft:village/desert/zombie/town_centers/desert_meeting_point_3"), 1);
 
-    registry.registerPattern(std::move(townCenters));
+    registry.registerPool(std::move(townCenters));
 
     // ========================================================================
     // village/desert/streets - 街道池
     // ========================================================================
-    auto streets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/desert/streets"),
+    auto streets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/desert/streets"),
         ResourceLocation("minecraft", "village/desert/terminators"));
 
     streets->addPiece(makeSinglePiece("minecraft:village/desert/streets/corner_01"), 3);
@@ -491,12 +498,12 @@ void registerAll(JigsawPatternRegistry& registry)
     streets->addPiece(makeSinglePiece("minecraft:village/desert/streets/square_02"), 3);
     streets->addPiece(makeSinglePiece("minecraft:village/desert/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(streets));
+    registry.registerPool(std::move(streets));
 
     // ========================================================================
     // village/desert/zombie/streets - 僵尸村庄街道
     // ========================================================================
-    auto zombieStreets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/desert/zombie/streets"),
+    auto zombieStreets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/desert/zombie/streets"),
         ResourceLocation("minecraft", "village/desert/zombie/terminators"));
 
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/desert/zombie/streets/corner_01"), 3);
@@ -511,12 +518,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/desert/zombie/streets/square_02"), 3);
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/desert/zombie/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(zombieStreets));
+    registry.registerPool(std::move(zombieStreets));
 
     // ========================================================================
     // village/desert/houses - 房屋池
     // ========================================================================
-    auto houses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/desert/houses"),
+    auto houses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/desert/houses"),
         ResourceLocation("minecraft", "village/desert/terminators"));
 
     // 小型房屋
@@ -562,12 +569,12 @@ void registerAll(JigsawPatternRegistry& registry)
     // 空元素
     houses->addPiece(makeEmptyPiece(), 5);
 
-    registry.registerPattern(std::move(houses));
+    registry.registerPool(std::move(houses));
 
     // ========================================================================
     // village/desert/zombie/houses - 僵尸村庄房屋
     // ========================================================================
-    auto zombieHouses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/desert/zombie/houses"),
+    auto zombieHouses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/desert/zombie/houses"),
         ResourceLocation("minecraft", "village/desert/zombie/terminators"));
 
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/desert/zombie/houses/desert_small_house_1"), 2);
@@ -600,34 +607,34 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/desert/houses/desert_animal_pen_2"), 2);
     zombieHouses->addPiece(makeEmptyPiece(), 5);
 
-    registry.registerPattern(std::move(zombieHouses));
+    registry.registerPool(std::move(zombieHouses));
 
     // ========================================================================
     // village/desert/terminators - 终止池
     // ========================================================================
-    auto terminators = std::make_unique<JigsawPattern>(
+    auto terminators = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/desert/terminators"), ResourceLocation("minecraft", "empty"));
 
     terminators->addPiece(makeSinglePiece("minecraft:village/desert/terminators/terminator_01"), 1);
     terminators->addPiece(makeSinglePiece("minecraft:village/desert/terminators/terminator_02"), 1);
 
-    registry.registerPattern(std::move(terminators));
+    registry.registerPool(std::move(terminators));
 
     // ========================================================================
     // village/desert/zombie/terminators - 僵尸村庄终止池
     // ========================================================================
-    auto zombieTerminators = std::make_unique<JigsawPattern>(
+    auto zombieTerminators = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/desert/zombie/terminators"), ResourceLocation("minecraft", "empty"));
 
     zombieTerminators->addPiece(makeSinglePiece("minecraft:village/desert/terminators/terminator_01"), 1);
     zombieTerminators->addPiece(makeSinglePiece("minecraft:village/desert/zombie/terminators/terminator_02"), 1);
 
-    registry.registerPattern(std::move(zombieTerminators));
+    registry.registerPool(std::move(zombieTerminators));
 
     // ========================================================================
     // village/desert/decor - 装饰池
     // ========================================================================
-    auto decor = std::make_unique<JigsawPattern>(
+    auto decor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/desert/decor"), ResourceLocation("minecraft", "empty"));
 
     decor->addPiece(makeSinglePiece("minecraft:village/desert/desert_lamp_1"), 10);
@@ -635,12 +642,12 @@ void registerAll(JigsawPatternRegistry& registry)
     decor->addPiece(makeEmptyPiece(), 4); // Features placeholder
     decor->addPiece(makeEmptyPiece(), 10);
 
-    registry.registerPattern(std::move(decor));
+    registry.registerPool(std::move(decor));
 
     // ========================================================================
     // village/desert/zombie/decor - 僵尸村庄装饰池
     // ========================================================================
-    auto zombieDecor = std::make_unique<JigsawPattern>(
+    auto zombieDecor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/desert/zombie/decor"), ResourceLocation("minecraft", "empty"));
 
     zombieDecor->addPiece(makeSinglePiece("minecraft:village/desert/desert_lamp_1"), 10);
@@ -648,30 +655,30 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieDecor->addPiece(makeEmptyPiece(), 4);
     zombieDecor->addPiece(makeEmptyPiece(), 10);
 
-    registry.registerPattern(std::move(zombieDecor));
+    registry.registerPool(std::move(zombieDecor));
 
     // ========================================================================
     // village/desert/villagers - 村民池
     // ========================================================================
-    auto villagers = std::make_unique<JigsawPattern>(
+    auto villagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/desert/villagers"), ResourceLocation("minecraft", "empty"));
 
     villagers->addPiece(makeSinglePiece("minecraft:village/desert/villagers/nitwit"), 1);
     villagers->addPiece(makeSinglePiece("minecraft:village/desert/villagers/baby"), 1);
     villagers->addPiece(makeSinglePiece("minecraft:village/desert/villagers/unemployed"), 10);
 
-    registry.registerPattern(std::move(villagers));
+    registry.registerPool(std::move(villagers));
 
     // ========================================================================
     // village/desert/zombie/villagers - 僵尸村民池
     // ========================================================================
-    auto zombieVillagers = std::make_unique<JigsawPattern>(
+    auto zombieVillagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/desert/zombie/villagers"), ResourceLocation("minecraft", "empty"));
 
     zombieVillagers->addPiece(makeSinglePiece("minecraft:village/desert/zombie/villagers/nitwit"), 1);
     zombieVillagers->addPiece(makeSinglePiece("minecraft:village/desert/zombie/villagers/unemployed"), 10);
 
-    registry.registerPattern(std::move(zombieVillagers));
+    registry.registerPool(std::move(zombieVillagers));
 }
 
 } // namespace DesertVillagePools
@@ -682,14 +689,14 @@ void registerAll(JigsawPatternRegistry& registry)
 
 namespace SavannaVillagePools {
 
-void registerAll(JigsawPatternRegistry& registry)
+void registerAll(TemplatePoolRegistry& registry)
 {
     // ========================================================================
     // village/savanna/town_centers - 起始池
     // 正常村庄
     // 僵尸: meeting_point_1: 2, meeting_point_2: 1, meeting_point_3: 3, meeting_point_4: 3
     // ========================================================================
-    auto townCenters = std::make_unique<JigsawPattern>(
+    auto townCenters = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/savanna/town_centers"), ResourceLocation("minecraft", "empty"));
 
     // 正常村庄
@@ -704,12 +711,12 @@ void registerAll(JigsawPatternRegistry& registry)
     townCenters->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/town_centers/savanna_meeting_point_3"), 3);
     townCenters->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/town_centers/savanna_meeting_point_4"), 3);
 
-    registry.registerPattern(std::move(townCenters));
+    registry.registerPool(std::move(townCenters));
 
     // ========================================================================
     // village/savanna/streets - 街道池 (TerrainMatching)
     // ========================================================================
-    auto streets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/savanna/streets"),
+    auto streets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/savanna/streets"),
         ResourceLocation("minecraft", "village/savanna/terminators"));
 
     streets->addPiece(makeSinglePiece("minecraft:village/savanna/streets/corner_01"), 2);
@@ -732,14 +739,13 @@ void registerAll(JigsawPatternRegistry& registry)
     streets->addPiece(makeSinglePiece("minecraft:village/savanna/streets/split_02"), 2);
     streets->addPiece(makeSinglePiece("minecraft:village/savanna/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(streets));
+    registry.registerPool(std::move(streets));
 
     // ========================================================================
     // village/savanna/zombie/streets - 僵尸村庄街道
     // ========================================================================
-    auto zombieStreets =
-        std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/savanna/zombie/streets"),
-            ResourceLocation("minecraft", "village/savanna/zombie/terminators"));
+    auto zombieStreets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/savanna/zombie/streets"),
+        ResourceLocation("minecraft", "village/savanna/zombie/terminators"));
 
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/streets/corner_01"), 2);
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/streets/corner_03"), 2);
@@ -761,12 +767,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/streets/split_02"), 2);
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(zombieStreets));
+    registry.registerPool(std::move(zombieStreets));
 
     // ========================================================================
     // village/savanna/houses - 房屋池
     // ========================================================================
-    auto houses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/savanna/houses"),
+    auto houses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/savanna/houses"),
         ResourceLocation("minecraft", "village/savanna/terminators"));
 
     // 小型房屋
@@ -815,12 +821,12 @@ void registerAll(JigsawPatternRegistry& registry)
     // 空元素
     houses->addPiece(makeEmptyPiece(), 5);
 
-    registry.registerPattern(std::move(houses));
+    registry.registerPool(std::move(houses));
 
     // ========================================================================
     // village/savanna/zombie/houses - 僵尸村庄房屋
     // ========================================================================
-    auto zombieHouses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/savanna/zombie/houses"),
+    auto zombieHouses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/savanna/zombie/houses"),
         ResourceLocation("minecraft", "village/savanna/zombie/terminators"));
 
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/houses/savanna_small_house_1"), 2);
@@ -856,12 +862,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/houses/savanna_animal_pen_3"), 2);
     zombieHouses->addPiece(makeEmptyPiece(), 5);
 
-    registry.registerPattern(std::move(zombieHouses));
+    registry.registerPool(std::move(zombieHouses));
 
     // ========================================================================
     // village/savanna/terminators - 终止池
     // ========================================================================
-    auto terminators = std::make_unique<JigsawPattern>(
+    auto terminators = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/savanna/terminators"), ResourceLocation("minecraft", "empty"));
 
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_01"), 1);
@@ -870,12 +876,12 @@ void registerAll(JigsawPatternRegistry& registry)
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_04"), 1);
     terminators->addPiece(makeSinglePiece("minecraft:village/savanna/terminators/terminator_05"), 1);
 
-    registry.registerPattern(std::move(terminators));
+    registry.registerPool(std::move(terminators));
 
     // ========================================================================
     // village/savanna/zombie/terminators - 僵尸村庄终止池
     // ========================================================================
-    auto zombieTerminators = std::make_unique<JigsawPattern>(
+    auto zombieTerminators = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/savanna/zombie/terminators"), ResourceLocation("minecraft", "empty"));
 
     zombieTerminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_01"), 1);
@@ -884,22 +890,22 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieTerminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_04"), 1);
     zombieTerminators->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/terminators/terminator_05"), 1);
 
-    registry.registerPattern(std::move(zombieTerminators));
+    registry.registerPool(std::move(zombieTerminators));
 
     // ========================================================================
     // village/savanna/trees - 树木池
     // ========================================================================
-    auto trees = std::make_unique<JigsawPattern>(
+    auto trees = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/savanna/trees"), ResourceLocation("minecraft", "empty"));
 
     trees->addPiece(makeEmptyPiece(), 1); // Acacia tree placeholder
 
-    registry.registerPattern(std::move(trees));
+    registry.registerPool(std::move(trees));
 
     // ========================================================================
     // village/savanna/decor - 装饰池
     // ========================================================================
-    auto decor = std::make_unique<JigsawPattern>(
+    auto decor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/savanna/decor"), ResourceLocation("minecraft", "empty"));
 
     decor->addPiece(makeSinglePiece("minecraft:village/savanna/savanna_lamp_post_01"), 4);
@@ -908,12 +914,12 @@ void registerAll(JigsawPatternRegistry& registry)
     decor->addPiece(makeEmptyPiece(), 1); // Feature placeholder
     decor->addPiece(makeEmptyPiece(), 4);
 
-    registry.registerPattern(std::move(decor));
+    registry.registerPool(std::move(decor));
 
     // ========================================================================
     // village/savanna/zombie/decor - 僵尸村庄装饰池
     // ========================================================================
-    auto zombieDecor = std::make_unique<JigsawPattern>(
+    auto zombieDecor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/savanna/zombie/decor"), ResourceLocation("minecraft", "empty"));
 
     zombieDecor->addPiece(makeSinglePiece("minecraft:village/savanna/savanna_lamp_post_01"), 4);
@@ -922,30 +928,30 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieDecor->addPiece(makeEmptyPiece(), 1);
     zombieDecor->addPiece(makeEmptyPiece(), 4);
 
-    registry.registerPattern(std::move(zombieDecor));
+    registry.registerPool(std::move(zombieDecor));
 
     // ========================================================================
     // village/savanna/villagers - 村民池
     // ========================================================================
-    auto villagers = std::make_unique<JigsawPattern>(
+    auto villagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/savanna/villagers"), ResourceLocation("minecraft", "empty"));
 
     villagers->addPiece(makeSinglePiece("minecraft:village/savanna/villagers/nitwit"), 1);
     villagers->addPiece(makeSinglePiece("minecraft:village/savanna/villagers/baby"), 1);
     villagers->addPiece(makeSinglePiece("minecraft:village/savanna/villagers/unemployed"), 10);
 
-    registry.registerPattern(std::move(villagers));
+    registry.registerPool(std::move(villagers));
 
     // ========================================================================
     // village/savanna/zombie/villagers - 僵尸村民池
     // ========================================================================
-    auto zombieVillagers = std::make_unique<JigsawPattern>(
+    auto zombieVillagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/savanna/zombie/villagers"), ResourceLocation("minecraft", "empty"));
 
     zombieVillagers->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/villagers/nitwit"), 1);
     zombieVillagers->addPiece(makeSinglePiece("minecraft:village/savanna/zombie/villagers/unemployed"), 10);
 
-    registry.registerPattern(std::move(zombieVillagers));
+    registry.registerPool(std::move(zombieVillagers));
 }
 
 } // namespace SavannaVillagePools
@@ -956,14 +962,14 @@ void registerAll(JigsawPatternRegistry& registry)
 
 namespace SnowyVillagePools {
 
-void registerAll(JigsawPatternRegistry& registry)
+void registerAll(TemplatePoolRegistry& registry)
 {
     // ========================================================================
     // village/snowy/town_centers - 起始池
     // 正常村庄中心
     // 僵尸: meeting_point_1: 2, meeting_point_2: 1, meeting_point_3: 3
     // ========================================================================
-    auto townCenters = std::make_unique<JigsawPattern>(
+    auto townCenters = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/snowy/town_centers"), ResourceLocation("minecraft", "empty"));
 
     // 正常村庄
@@ -976,12 +982,12 @@ void registerAll(JigsawPatternRegistry& registry)
     townCenters->addPiece(makeSinglePiece("minecraft:village/snowy/zombie/town_centers/snowy_meeting_point_2"), 1);
     townCenters->addPiece(makeSinglePiece("minecraft:village/snowy/zombie/town_centers/snowy_meeting_point_3"), 3);
 
-    registry.registerPattern(std::move(townCenters));
+    registry.registerPool(std::move(townCenters));
 
     // ========================================================================
     // village/snowy/streets - 街道池 (TerrainMatching)
     // ========================================================================
-    auto streets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/snowy/streets"),
+    auto streets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/snowy/streets"),
         ResourceLocation("minecraft", "village/snowy/terminators"));
 
     streets->addPiece(makeSinglePiece("minecraft:village/snowy/streets/corner_01"), 2);
@@ -1001,12 +1007,12 @@ void registerAll(JigsawPatternRegistry& registry)
     streets->addPiece(makeSinglePiece("minecraft:village/snowy/streets/crossroad_06"), 2);
     streets->addPiece(makeSinglePiece("minecraft:village/snowy/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(streets));
+    registry.registerPool(std::move(streets));
 
     // ========================================================================
     // village/snowy/zombie/streets - 僵尸村庄街道
     // ========================================================================
-    auto zombieStreets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/snowy/zombie/streets"),
+    auto zombieStreets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/snowy/zombie/streets"),
         ResourceLocation("minecraft", "village/snowy/terminators"));
 
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/snowy/zombie/streets/corner_01"), 2);
@@ -1026,12 +1032,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/snowy/zombie/streets/crossroad_06"), 2);
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/snowy/zombie/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(zombieStreets));
+    registry.registerPool(std::move(zombieStreets));
 
     // ========================================================================
     // village/snowy/houses - 房屋池
     // ========================================================================
-    auto houses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/snowy/houses"),
+    auto houses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/snowy/houses"),
         ResourceLocation("minecraft", "village/snowy/terminators"));
 
     // 小型房屋
@@ -1079,12 +1085,12 @@ void registerAll(JigsawPatternRegistry& registry)
     // 空元素
     houses->addPiece(makeEmptyPiece(), 6);
 
-    registry.registerPattern(std::move(houses));
+    registry.registerPool(std::move(houses));
 
     // ========================================================================
     // village/snowy/zombie/houses - 僵尸村庄房屋
     // ========================================================================
-    auto zombieHouses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/snowy/zombie/houses"),
+    auto zombieHouses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/snowy/zombie/houses"),
         ResourceLocation("minecraft", "village/snowy/terminators"));
 
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/snowy/zombie/houses/snowy_small_house_1"), 2);
@@ -1119,12 +1125,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/snowy/houses/snowy_animal_pen_2"), 2);
     zombieHouses->addPiece(makeEmptyPiece(), 6);
 
-    registry.registerPattern(std::move(zombieHouses));
+    registry.registerPool(std::move(zombieHouses));
 
     // ========================================================================
     // village/snowy/terminators - 终止池
     // ========================================================================
-    auto terminators = std::make_unique<JigsawPattern>(
+    auto terminators = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/snowy/terminators"), ResourceLocation("minecraft", "empty"));
 
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_01"), 1);
@@ -1132,22 +1138,22 @@ void registerAll(JigsawPatternRegistry& registry)
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_03"), 1);
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_04"), 1);
 
-    registry.registerPattern(std::move(terminators));
+    registry.registerPool(std::move(terminators));
 
     // ========================================================================
     // village/snowy/trees - 树木池
     // ========================================================================
-    auto trees = std::make_unique<JigsawPattern>(
+    auto trees = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/snowy/trees"), ResourceLocation("minecraft", "empty"));
 
     trees->addPiece(makeEmptyPiece(), 1); // Spruce tree placeholder
 
-    registry.registerPattern(std::move(trees));
+    registry.registerPool(std::move(trees));
 
     // ========================================================================
     // village/snowy/decor - 装饰池
     // ========================================================================
-    auto decor = std::make_unique<JigsawPattern>(
+    auto decor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/snowy/decor"), ResourceLocation("minecraft", "empty"));
 
     decor->addPiece(makeSinglePiece("minecraft:village/snowy/snowy_lamp_post_01"), 4);
@@ -1158,12 +1164,12 @@ void registerAll(JigsawPatternRegistry& registry)
     decor->addPiece(makeEmptyPiece(), 1); // Feature placeholder
     decor->addPiece(makeEmptyPiece(), 9);
 
-    registry.registerPattern(std::move(decor));
+    registry.registerPool(std::move(decor));
 
     // ========================================================================
     // village/snowy/zombie/decor - 僵尸村庄装饰池
     // ========================================================================
-    auto zombieDecor = std::make_unique<JigsawPattern>(
+    auto zombieDecor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/snowy/zombie/decor"), ResourceLocation("minecraft", "empty"));
 
     zombieDecor->addPiece(makeSinglePiece("minecraft:village/snowy/snowy_lamp_post_01"), 1);
@@ -1174,30 +1180,30 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieDecor->addPiece(makeEmptyPiece(), 4);
     zombieDecor->addPiece(makeEmptyPiece(), 7);
 
-    registry.registerPattern(std::move(zombieDecor));
+    registry.registerPool(std::move(zombieDecor));
 
     // ========================================================================
     // village/snowy/villagers - 村民池
     // ========================================================================
-    auto villagers = std::make_unique<JigsawPattern>(
+    auto villagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/snowy/villagers"), ResourceLocation("minecraft", "empty"));
 
     villagers->addPiece(makeSinglePiece("minecraft:village/snowy/villagers/nitwit"), 1);
     villagers->addPiece(makeSinglePiece("minecraft:village/snowy/villagers/baby"), 1);
     villagers->addPiece(makeSinglePiece("minecraft:village/snowy/villagers/unemployed"), 10);
 
-    registry.registerPattern(std::move(villagers));
+    registry.registerPool(std::move(villagers));
 
     // ========================================================================
     // village/snowy/zombie/villagers - 僵尸村民池
     // ========================================================================
-    auto zombieVillagers = std::make_unique<JigsawPattern>(
+    auto zombieVillagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/snowy/zombie/villagers"), ResourceLocation("minecraft", "empty"));
 
     zombieVillagers->addPiece(makeSinglePiece("minecraft:village/snowy/zombie/villagers/nitwit"), 1);
     zombieVillagers->addPiece(makeSinglePiece("minecraft:village/snowy/zombie/villagers/unemployed"), 10);
 
-    registry.registerPattern(std::move(zombieVillagers));
+    registry.registerPool(std::move(zombieVillagers));
 }
 
 } // namespace SnowyVillagePools
@@ -1208,14 +1214,14 @@ void registerAll(JigsawPatternRegistry& registry)
 
 namespace TaigaVillagePools {
 
-void registerAll(JigsawPatternRegistry& registry)
+void registerAll(TemplatePoolRegistry& registry)
 {
     // ========================================================================
     // village/taiga/town_centers - 起始池
     // 正常村庄
     // 僵尸: meeting_point_1: 1, meeting_point_2: 1
     // ========================================================================
-    auto townCenters = std::make_unique<JigsawPattern>(
+    auto townCenters = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/taiga/town_centers"), ResourceLocation("minecraft", "empty"));
 
     // 正常村庄 (10% mossy)
@@ -1226,12 +1232,12 @@ void registerAll(JigsawPatternRegistry& registry)
     townCenters->addPiece(makeSinglePiece("minecraft:village/taiga/zombie/town_centers/taiga_meeting_point_1"), 1);
     townCenters->addPiece(makeSinglePiece("minecraft:village/taiga/zombie/town_centers/taiga_meeting_point_2"), 1);
 
-    registry.registerPattern(std::move(townCenters));
+    registry.registerPool(std::move(townCenters));
 
     // ========================================================================
     // village/taiga/streets - 街道池 (TerrainMatching)
     // ========================================================================
-    auto streets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/taiga/streets"),
+    auto streets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/taiga/streets"),
         ResourceLocation("minecraft", "village/taiga/terminators"));
 
     streets->addPiece(makeSinglePiece("minecraft:village/taiga/streets/corner_01"), 2);
@@ -1251,12 +1257,12 @@ void registerAll(JigsawPatternRegistry& registry)
     streets->addPiece(makeSinglePiece("minecraft:village/taiga/streets/crossroad_06"), 2);
     streets->addPiece(makeSinglePiece("minecraft:village/taiga/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(streets));
+    registry.registerPool(std::move(streets));
 
     // ========================================================================
     // village/taiga/zombie/streets - 僵尸村庄街道
     // ========================================================================
-    auto zombieStreets = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/taiga/zombie/streets"),
+    auto zombieStreets = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/taiga/zombie/streets"),
         ResourceLocation("minecraft", "village/taiga/terminators"));
 
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/taiga/zombie/streets/corner_01"), 2);
@@ -1276,12 +1282,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/taiga/zombie/streets/crossroad_06"), 2);
     zombieStreets->addPiece(makeSinglePiece("minecraft:village/taiga/zombie/streets/turn_01"), 3);
 
-    registry.registerPattern(std::move(zombieStreets));
+    registry.registerPool(std::move(zombieStreets));
 
     // ========================================================================
     // village/taiga/houses - 房屋池
     // ========================================================================
-    auto houses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/taiga/houses"),
+    auto houses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/taiga/houses"),
         ResourceLocation("minecraft", "village/taiga/terminators"));
 
     // 小型房屋 (10% mossy)
@@ -1326,12 +1332,12 @@ void registerAll(JigsawPatternRegistry& registry)
     // 空元素
     houses->addPiece(makeEmptyPiece(), 6);
 
-    registry.registerPattern(std::move(houses));
+    registry.registerPool(std::move(houses));
 
     // ========================================================================
     // village/taiga/zombie/houses - 僵尸村庄房屋
     // ========================================================================
-    auto zombieHouses = std::make_unique<JigsawPattern>(ResourceLocation("minecraft", "village/taiga/zombie/houses"),
+    auto zombieHouses = std::make_unique<TemplatePool>(ResourceLocation("minecraft", "village/taiga/zombie/houses"),
         ResourceLocation("minecraft", "village/taiga/terminators"));
 
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/taiga/zombie/houses/taiga_small_house_1"), 4);
@@ -1362,12 +1368,12 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieHouses->addPiece(makeSinglePiece("minecraft:village/taiga/houses/taiga_animal_pen_1"), 2);
     zombieHouses->addPiece(makeEmptyPiece(), 6);
 
-    registry.registerPattern(std::move(zombieHouses));
+    registry.registerPool(std::move(zombieHouses));
 
     // ========================================================================
     // village/taiga/terminators - 终止池
     // ========================================================================
-    auto terminators = std::make_unique<JigsawPattern>(
+    auto terminators = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/taiga/terminators"), ResourceLocation("minecraft", "empty"));
 
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_01"), 1);
@@ -1375,12 +1381,12 @@ void registerAll(JigsawPatternRegistry& registry)
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_03"), 1);
     terminators->addPiece(makeSinglePiece("minecraft:village/plains/terminators/terminator_04"), 1);
 
-    registry.registerPattern(std::move(terminators));
+    registry.registerPool(std::move(terminators));
 
     // ========================================================================
     // village/taiga/decor - 装饰池
     // ========================================================================
-    auto decor = std::make_unique<JigsawPattern>(
+    auto decor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/taiga/decor"), ResourceLocation("minecraft", "empty"));
 
     decor->addPiece(makeSinglePiece("minecraft:village/taiga/taiga_lamp_post_1"), 10);
@@ -1397,12 +1403,12 @@ void registerAll(JigsawPatternRegistry& registry)
     decor->addPiece(makeEmptyPiece(), 1); // Feature placeholder
     decor->addPiece(makeEmptyPiece(), 4);
 
-    registry.registerPattern(std::move(decor));
+    registry.registerPool(std::move(decor));
 
     // ========================================================================
     // village/taiga/zombie/decor - 僵尸村庄装饰池
     // ========================================================================
-    auto zombieDecor = std::make_unique<JigsawPattern>(
+    auto zombieDecor = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/taiga/zombie/decor"), ResourceLocation("minecraft", "empty"));
 
     zombieDecor->addPiece(makeSinglePiece("minecraft:village/taiga/taiga_decoration_1"), 4);
@@ -1416,30 +1422,30 @@ void registerAll(JigsawPatternRegistry& registry)
     zombieDecor->addPiece(makeEmptyPiece(), 1);
     zombieDecor->addPiece(makeEmptyPiece(), 4);
 
-    registry.registerPattern(std::move(zombieDecor));
+    registry.registerPool(std::move(zombieDecor));
 
     // ========================================================================
     // village/taiga/villagers - 村民池
     // ========================================================================
-    auto villagers = std::make_unique<JigsawPattern>(
+    auto villagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/taiga/villagers"), ResourceLocation("minecraft", "empty"));
 
     villagers->addPiece(makeSinglePiece("minecraft:village/taiga/villagers/nitwit"), 1);
     villagers->addPiece(makeSinglePiece("minecraft:village/taiga/villagers/baby"), 1);
     villagers->addPiece(makeSinglePiece("minecraft:village/taiga/villagers/unemployed"), 10);
 
-    registry.registerPattern(std::move(villagers));
+    registry.registerPool(std::move(villagers));
 
     // ========================================================================
     // village/taiga/zombie/villagers - 僵尸村民池
     // ========================================================================
-    auto zombieVillagers = std::make_unique<JigsawPattern>(
+    auto zombieVillagers = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "village/taiga/zombie/villagers"), ResourceLocation("minecraft", "empty"));
 
     zombieVillagers->addPiece(makeSinglePiece("minecraft:village/taiga/zombie/villagers/nitwit"), 1);
     zombieVillagers->addPiece(makeSinglePiece("minecraft:village/taiga/zombie/villagers/unemployed"), 10);
 
-    registry.registerPattern(std::move(zombieVillagers));
+    registry.registerPool(std::move(zombieVillagers));
 }
 
 } // namespace TaigaVillagePools
