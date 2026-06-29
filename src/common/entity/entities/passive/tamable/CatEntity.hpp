@@ -154,7 +154,7 @@ public:
      */
     [[nodiscard]] f32 getLieDownAmount(f32 partialTick) const
     {
-        return math::lerp(partialTick, m_prevLieDownAmount, m_lieDownAmount);
+        return math::lerp(m_prevLieDownAmount, m_lieDownAmount, partialTick);
     }
 
     /**
@@ -164,7 +164,7 @@ public:
      */
     [[nodiscard]] f32 getLieDownAmountTail(f32 partialTick) const
     {
-        return math::lerp(partialTick, m_prevLieDownAmountTail, m_lieDownAmountTail);
+        return math::lerp(m_prevLieDownAmountTail, m_lieDownAmountTail, partialTick);
     }
 
     /**
@@ -174,7 +174,7 @@ public:
      */
     [[nodiscard]] f32 getRelaxStateOneAmount(f32 partialTick) const
     {
-        return math::lerp(partialTick, m_prevRelaxStateOneAmount, m_relaxStateOneAmount);
+        return math::lerp(m_prevRelaxStateOneAmount, m_relaxStateOneAmount, partialTick);
     }
 
     /**

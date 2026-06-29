@@ -331,7 +331,7 @@ void CatRelaxOnOwnerGoal::_giveMorningGift()
         i32 weight;
     };
     const GiftItem giftItems[] = {
-        {Items::RABBIT, 10},          // 兔子皮暂用兔子代替
+        {Items::RABBIT, 10},          // TODO: 当 Items::RABBIT_HIDE 注册后，替换为 RABBIT_HIDE（对应MC原版兔子皮）
         {Items::RABBIT_FOOT, 10},     // 兔子脚
         {Items::CHICKEN, 10},         // 生鸡肉
         {Items::FEATHER, 10},         // 羽毛
