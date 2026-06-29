@@ -904,6 +904,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/BannerEntity.cpp
     world/blockentity/interactive/BannerPattern.cpp
     world/blockentity/interactive/DecoratedPotPattern.cpp
+    world/blockentity/interactive/DecoratedPotBlockEntity.cpp
     world/blockentity/interactive/BeehiveBlockEntity.cpp
     world/blockentity/interactive/JukeboxEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp

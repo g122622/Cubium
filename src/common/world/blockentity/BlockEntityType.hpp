@@ -99,6 +99,9 @@ enum class BlockEntityType : u16 {
     SculkSensor,   ///< 幽匿感测体
     SculkShrieker, ///< 幽匿尖啸体
 
+    // 交互
+    DecoratedPot, ///< 饰纹陶罐
+
     Count ///< 类型数量
 };
 

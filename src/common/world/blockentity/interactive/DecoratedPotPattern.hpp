@@ -41,11 +41,12 @@ namespace blockentity {
  * - 饰纹陶罐方块实体的 NBT 序列化
  * - 客户端渲染纹理查找
  *
- * TODO: 待 DecoratedPotBlockEntity 实现后，需将此枚举与方块实体集成：
- * - 在 DecoratedPotBlockEntity 中存储四面的 DecoratedPotPattern（对应 MC PotDecorations）
- * - 实现 PotterySherdItem/砖块到 DecoratedPotPattern 的映射
- * - 实现 DecoratedPotRecipe（十字形合成：陶片/砖块 -> 饰纹陶罐）
- * - 在 DecoratedPotRenderer 中根据图案查找纹理资源
+ * 已在 DecoratedPotBlockEntity 中集成此枚举：
+ * - PotDecorations 类存储四面的 DecoratedPotPattern（对应 MC PotDecorations）
+ * - getPatternFromItem() 实现 PotterySherdItem/砖块到 DecoratedPotPattern 的映射
+ * - getItemFromPattern() 实现 DecoratedPotPattern 到物品的反向映射
+ * - TODO: 实现 DecoratedPotRecipe（十字形合成：陶片/砖块 -> 饰纹陶罐）
+ * - TODO: 在 DecoratedPotRenderer 中根据图案查找纹理资源
  */
 enum class DecoratedPotPattern : u8 {
     // 空白图案（砖块面）

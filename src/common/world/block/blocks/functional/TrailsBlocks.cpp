@@ -25,7 +25,10 @@
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/math/random/IRandom.hpp"
 #include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
+#include "world/blockentity/BlockEntity.hpp"
+#include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 
 namespace mc {
 namespace blocks {
@@ -176,6 +179,22 @@ const CollisionShape& DecoratedPotBlock::getShape(const BlockState& state) const
 const fluid::FluidState* DecoratedPotBlock::getFluidState(const BlockState& state) const
 {
     return waterloggable::getWaterFluidState(state);
+}
+
+std::unique_ptr<BlockEntity> DecoratedPotBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::DecoratedPotBlockEntity>(pos);
+}
+
+i32 DecoratedPotBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+    BlockEntity* be = world.getBlockEntity(pos);
+    if (be != nullptr && be->getType() == BlockEntityType::DecoratedPot) {
+        auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(be);
+        return potEntity->getComparatorSignal();
+    }
+    return 0;
 }
 
 // ============================================================================

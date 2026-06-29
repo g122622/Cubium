@@ -26,6 +26,7 @@
 #include "../../IWaterLoggable.hpp"
 #include "../FallingBlock.hpp"
 #include "../HorizontalBlock.hpp"
+#include "world/blockentity/BlockEntityType.hpp"
 
 namespace mc {
 namespace blocks {
@@ -101,6 +102,25 @@ public:
     {
         return state.get(BlockStateProperties::WATERLOGGED());
     }
+
+    // ========== 方块实体 ==========
+
+    [[nodiscard]] bool hasBlockEntity() const noexcept override { return true; }
+
+    [[nodiscard]] std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos) override;
+
+    [[nodiscard]] BlockEntityType getBlockEntityType() const noexcept { return BlockEntityType::DecoratedPot; }
+
+    // ========== 红石比较器 ==========
+
+    [[nodiscard]] bool hasComparatorInputOverride(const BlockState& state) const noexcept override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
+    [[nodiscard]] i32 getComparatorInputOverride(
+        const BlockState& state, IWorld& world, const BlockPos& pos) const override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
