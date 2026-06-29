@@ -106,9 +106,17 @@ public:
     /**
      * @brief 将触发实体解析为玩家
      *
-     * 支持直接玩家、载具乘客、投射物主人、物品主人。
+     * 对齐 MC Java: SculkShriekerBlockEntity.tryGetPlayer()
+     * 按优先级链式判断：
+     * 1. 实体本身就是玩家 -> 直接返回
+     * 2. 实体的控制乘客是玩家（骑乘载具场景）-> 返回控制乘客
+     * 3. 实体是投射物且发射者是玩家 -> 返回发射者
+     * 4. 实体是掉落物品且所有者是玩家 -> 返回所有者
+     *
+     * @param world 服务端世界（用于通过 EntityId/UUID 查找实体）
+     * @param entity 触发实体
      */
-    static Player* tryGetPlayer(const Entity* entity);
+    static Player* tryGetPlayer(ServerWorld& world, const Entity* entity);
 
     // ========== 常量 ==========
 
@@ -187,7 +195,8 @@ private:
     /**
      * @brief 尝试递增附近玩家的警告等级
      *
-     * 查找附近 16 格内的玩家，检查冷却，递增最高警告等级玩家的等级，
+     * 对齐 MC Java: WardenSpawnTracker.tryWarn()
+     * 查找附近 16 格内的玩家，检查冷却，找到最高警告等级的追踪器递增，
      * 并同步所有附近玩家的警告等级。
      *
      * @return 警告等级是否成功递增

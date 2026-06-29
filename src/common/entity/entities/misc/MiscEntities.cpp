@@ -24,6 +24,9 @@
  */
 
 #include "MiscEntities.hpp"
+
+#include <algorithm>
+
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -528,21 +531,41 @@ void TNTEntity::explode()
 
 void WardenWarningEffect::tick()
 {
-    if (m_cooldown > 0) {
-        m_cooldown--;
+    // 对齐 MC Java WardenSpawnTracker.tick()
+    // 每 12000 tick (10分钟) 未触发新警告时，警告等级自动降 1
+    if (m_ticksSinceLastWarning >= DECREASE_WARNING_LEVEL_EVERY_INTERVAL) {
+        decreaseWarning();
+        m_ticksSinceLastWarning = 0;
     } else {
-        if (m_warningLevel > 0) {
-            m_warningLevel--;
-            m_cooldown = DECREASE_INTERVAL;
-        }
+        m_ticksSinceLastWarning++;
     }
+
+    // 递减冷却计时器
+    if (m_cooldownTicks > 0) {
+        m_cooldownTicks--;
+    }
+}
+
+void WardenWarningEffect::reset()
+{
+    m_ticksSinceLastWarning = 0;
+    m_warningLevel = 0;
+    m_cooldownTicks = 0;
+}
+
+void WardenWarningEffect::setWarningLevel(i32 level)
+{
+    m_warningLevel = std::clamp(level, 0, MAX_WARNING_LEVEL);
 }
 
 void WardenWarningEffect::increaseWarning()
 {
-    if (m_warningLevel < MAX_WARNING) {
-        m_warningLevel++;
-        m_cooldown = DECREASE_INTERVAL;
+    // 对齐 MC Java WardenSpawnTracker.increaseWarningLevel()
+    // 仅在非冷却期间才递增
+    if (!onCooldown()) {
+        m_ticksSinceLastWarning = 0;
+        m_cooldownTicks = WARNING_LEVEL_INCREASE_COOLDOWN;
+        setWarningLevel(m_warningLevel + 1);
     }
 }
 
@@ -551,6 +574,15 @@ void WardenWarningEffect::decreaseWarning()
     if (m_warningLevel > 0) {
         m_warningLevel--;
     }
+}
+
+void WardenWarningEffect::copyData(const WardenWarningEffect& other)
+{
+    // 对齐 MC Java WardenSpawnTracker.copyData()
+    // 将另一个追踪器的数据同步到此追踪器
+    m_warningLevel = other.m_warningLevel;
+    m_cooldownTicks = other.m_cooldownTicks;
+    m_ticksSinceLastWarning = other.m_ticksSinceLastWarning;
 }
 
 } // namespace entity

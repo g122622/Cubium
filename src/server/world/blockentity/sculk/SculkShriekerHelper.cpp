@@ -27,7 +27,10 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/misc/MiscEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/AxisAlignedBB.hpp"
@@ -43,6 +46,8 @@
 #include "common/world/gamerule/GameRules.hpp"
 #include "server/world/ServerWorld.hpp"
 
+#include <algorithm>
+
 namespace mc::server {
 
 // ============================================================================
@@ -52,7 +57,7 @@ namespace mc::server {
 void SculkShriekerHelper::tryShriek(ServerWorld& world, const BlockPos& pos, const Entity* sourceEntity)
 {
     // 1. 尝试将触发实体解析为玩家
-    Player* player = tryGetPlayer(sourceEntity);
+    Player* player = tryGetPlayer(world, sourceEntity);
     if (player == nullptr) {
         // 没有玩家触发的振动不激活尖啸体
         return;
@@ -247,8 +252,9 @@ bool SculkShriekerHelper::_trySummonWarden(ServerWorld& world, const BlockPos& p
             // 生成到世界中
             EntityId id = world.spawnEntity(std::move(wardenEntity));
             if (id != 0) {
-                // 召唤成功，重置警告等级
-                shrieker->setWarningLevel(0);
+                // 召唤成功
+                // 注意：MC 原版中召唤监守者后不重置方块实体的 warningLevel，
+                // warningLevel 通过 WardenSpawnTracker 的自然衰减机制逐渐降低
                 shrieker->setChanged();
                 return true;
             }
@@ -290,6 +296,7 @@ void SculkShriekerHelper::_playWardenReplySound(ServerWorld& world, const BlockP
 bool SculkShriekerHelper::_hasNearbyWarden(ServerWorld& world, const BlockPos& pos)
 {
     // 在 48x48x48 范围内搜索是否存在监守者实体
+    // 对齐 MC Java: WardenSpawnTracker.hasNearbyWarden()
     Vector3 center = pos.center();
     AxisAlignedBB searchBox(center.x - WARDEN_SEARCH_RADIUS,
         center.y - WARDEN_SEARCH_RADIUS,
@@ -298,12 +305,20 @@ bool SculkShriekerHelper::_hasNearbyWarden(ServerWorld& world, const BlockPos& p
         center.y + WARDEN_SEARCH_RADIUS,
         center.z + WARDEN_SEARCH_RADIUS);
 
-    // TODO: 当 WardenEntity 实现后，使用 getEntitiesByType 查询监守者类型
-    // 当前使用 getEntitiesInAABB + 名称匹配作为简化实现
+    // 查找监守者实体类型ID，用于高效比较
+    const entity::EntityType* wardenType = entity::EntityRegistry::instance().getType("minecraft:warden");
     std::vector<Entity*> entities = world.getEntitiesInAABB(searchBox);
     for (Entity* entity : entities) {
-        if (entity != nullptr && !entity->isRemoved()) {
-            // 检查实体类型名称是否为监守者
+        if (entity == nullptr || entity->isRemoved()) {
+            continue;
+        }
+        // 优先使用 EntityType 指针比较（高效），回退到字符串类型ID比较
+        if (wardenType != nullptr) {
+            if (entity->typeId() == wardenType->id()) {
+                return true;
+            }
+        } else {
+            // 监守者实体类型尚未注册，使用字符串匹配作为回退
             if (entity->getTypeId() == "minecraft:warden") {
                 return true;
             }
@@ -362,6 +377,7 @@ void SculkShriekerHelper::_applyDarknessAround(ServerWorld& world, const BlockPo
 
 bool SculkShriekerHelper::_tryWarn(ServerWorld& world, const BlockPos& pos)
 {
+    // 对齐 MC Java: WardenSpawnTracker.tryWarn()
     // 检查附近是否已有监守者
     if (_hasNearbyWarden(world, pos)) {
         return false;
@@ -371,7 +387,7 @@ bool SculkShriekerHelper::_tryWarn(ServerWorld& world, const BlockPos& pos)
     Vector3 center = pos.center();
     std::vector<Entity*> allPlayers = world.getPlayers();
 
-    // 找出范围内的玩家
+    // 找出范围内的玩家（排除旁观者）
     std::vector<Player*> nearbyPlayers;
     for (Entity* entity : allPlayers) {
         if (entity == nullptr || entity->isRemoved()) {
@@ -392,34 +408,58 @@ bool SculkShriekerHelper::_tryWarn(ServerWorld& world, const BlockPos& pos)
         return false;
     }
 
-    // 当前项目的 WardenWarningEffect 由方块实体管理，
-    // 冷却逻辑通过方块实体的警告等级递增间隔实现。
-    // TODO: 完善冷却逻辑，当任何附近玩家 WardenWarningEffect 在冷却中时不递增
+    // 对齐 MC Java: 任何一个附近玩家在冷却中，则不递增
+    for (Player* player : nearbyPlayers) {
+        if (player->wardenWarningEffect().onCooldown()) {
+            return false;
+        }
+    }
 
-    // 递增警告等级
+    // 对齐 MC Java: 找到最高警告等级的玩家追踪器进行递增
+    Player* highestPlayer = nullptr;
+    i32 highestLevel = -1;
+    for (Player* player : nearbyPlayers) {
+        i32 level = player->wardenWarningEffect().getWarningLevel();
+        if (level > highestLevel) {
+            highestLevel = level;
+            highestPlayer = player;
+        }
+    }
+
+    if (highestPlayer == nullptr) {
+        return false;
+    }
+
+    // 递增最高等级追踪器的警告等级
+    highestPlayer->wardenWarningEffect().increaseWarning();
+
+    // 对齐 MC Java: 将递增后的数据同步到附近所有玩家的追踪器
+    for (Player* player : nearbyPlayers) {
+        if (player != highestPlayer) {
+            player->wardenWarningEffect().copyData(highestPlayer->wardenWarningEffect());
+        }
+    }
+
+    // 将警告等级同步到方块实体
     BlockEntity* be = world.getBlockEntity(pos);
     if (be == nullptr || be->getType() != BlockEntityType::SculkShrieker) {
         return false;
     }
     auto* shrieker = static_cast<blockentity::SculkShriekerBlockEntity*>(be);
-
-    i32 newLevel = shrieker->incrementWarningLevel();
+    shrieker->setWarningLevel(highestPlayer->wardenWarningEffect().getWarningLevel());
     shrieker->setChanged();
 
-    // 同步附近玩家的警告效果（通过 WardenWarningEffect）
-    for (Player* player : nearbyPlayers) {
-        player->increaseWardenWarning(pos);
-    }
-
-    return newLevel > 0;
+    return highestPlayer->wardenWarningEffect().getWarningLevel() > 0;
 }
 
 // ============================================================================
 // tryGetPlayer - 将触发实体解析为玩家
 // ============================================================================
 
-Player* SculkShriekerHelper::tryGetPlayer(const Entity* entity)
+Player* SculkShriekerHelper::tryGetPlayer(ServerWorld& world, const Entity* entity)
 {
+    // 对齐 MC Java: SculkShriekerBlockEntity.tryGetPlayer()
+    // 按优先级链式判断：直接玩家 -> 载具控制者 -> 投射物所有者 -> 物品所有者
     if (entity == nullptr) {
         return nullptr;
     }
@@ -430,17 +470,49 @@ Player* SculkShriekerHelper::tryGetPlayer(const Entity* entity)
         return const_cast<Player*>(player);
     }
 
-    // 2. 载具上的玩家
-    // TODO: 当载具系统完善后，检查 entity.getControllingPassenger()
-    // 当前跳过此检查
+    // 2. 载具上的玩家：检查实体的控制乘客是否为玩家
+    // 对齐 MC Java: entity.getControllingPassenger() instanceof ServerPlayer
+    EntityId controllingPassengerId = entity->getControllingPassenger();
+    if (controllingPassengerId != INVALID_ENTITY_ID) {
+        Entity* passenger = world.getEntity(controllingPassengerId);
+        if (passenger != nullptr) {
+            Player* passengerPlayer = dynamic_cast<Player*>(passenger);
+            if (passengerPlayer != nullptr) {
+                return passengerPlayer;
+            }
+        }
+    }
 
     // 3. 投射物的主人（如投掷的雪球、末影珍珠等）
-    // TODO: 当投射物所有者追踪完善后，检查 projectile.getOwner()
-    // 当前跳过此检查
+    // 对齐 MC Java: entity instanceof Projectile && projectile.getOwner() instanceof ServerPlayer
+    const entity::ProjectileEntity* projectile = dynamic_cast<const entity::ProjectileEntity*>(entity);
+    if (projectile != nullptr) {
+        Entity* shooter = projectile->getShooter();
+        if (shooter != nullptr) {
+            Player* shooterPlayer = dynamic_cast<Player*>(shooter);
+            if (shooterPlayer != nullptr) {
+                return shooterPlayer;
+            }
+        }
+    }
 
     // 4. 掉落物品的主人
-    // TODO: 当物品实体所有者追踪完善后，检查 itemEntity.getOwner()
-    // 当前跳过此检查
+    // 对齐 MC Java: entity instanceof ItemEntity && itementity.getOwner() instanceof ServerPlayer
+    // ItemEntity 没有直接的 getOwner() 方法返回 Entity*，但存储了 ownerUuid
+    // 需要通过 UUID 在世界中查找对应实体
+    const ItemEntity* itemEntity = dynamic_cast<const ItemEntity*>(entity);
+    if (itemEntity != nullptr) {
+        const std::string& ownerUuid = itemEntity->ownerUuid();
+        if (!ownerUuid.empty()) {
+            Entity* owner = world.getEntityByUuid(ownerUuid);
+            if (owner != nullptr) {
+                Player* ownerPlayer = dynamic_cast<Player*>(owner);
+                if (ownerPlayer != nullptr) {
+                    return ownerPlayer;
+                }
+            }
+        }
+    }
 
     return nullptr;
 }

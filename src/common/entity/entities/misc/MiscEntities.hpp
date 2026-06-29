@@ -281,34 +281,66 @@ private:
 };
 
 /**
- * @brief 寂守者警告效果
+ * @brief 监守者警告追踪器
  *
- * 寂守者检测到振动后产生的警告效果。
- * 不是实体，是效果的一种，但暂时放在这里。
+ * 对齐 MC Java 的 WardenSpawnTracker，追踪玩家在深暗之域中被
+ * 幽匿尖啸体警告的等级和冷却。
+ *
+ * 核心机制：
+ * - 警告等级范围为 0-4，每次触发时递增 1
+ * - 递增后有 200 tick (10秒) 冷却，冷却中不可再次递增
+ * - 每 12000 tick (10分钟) 未触发新警告，警告等级自动降 1
+ * - 附近所有玩家的追踪器数据通过 copyData() 保持同步
  */
 class WardenWarningEffect {
 public:
     WardenWarningEffect() = default;
     ~WardenWarningEffect() = default;
 
+    /// 每tick调用：递增计时器、冷却递减、超时自动降级
     void tick();
 
+    /// 重置所有状态为初始值
+    void reset();
+
     [[nodiscard]] i32 getWarningLevel() const { return m_warningLevel; }
+    void setWarningLevel(i32 level);
+
+    /// 递增警告等级（仅在非冷却期间生效，同时重置递减计时器和设置冷却）
     void increaseWarning();
+
+    /// 递减警告等级（由 tick() 自动调用，不暴露给外部）
     void decreaseWarning();
+
+    /// 检查是否处于冷却中（冷却期间不可递增警告等级）
+    [[nodiscard]] bool onCooldown() const { return m_cooldownTicks > 0; }
+
+    /// 从另一个追踪器复制数据（同步附近玩家警告等级）
+    void copyData(const WardenWarningEffect& other);
 
     [[nodiscard]] BlockPos getSourcePos() const { return m_sourcePos; }
     void setSourcePos(BlockPos pos) { m_sourcePos = pos; }
 
     [[nodiscard]] f32 getWarningRadius() const { return m_warningRadius; }
 
+    // ========== 常量（对齐 MC Java WardenSpawnTracker） ==========
+
+    static constexpr i32 MAX_WARNING_LEVEL = 4;
+    static constexpr f32 PLAYER_SEARCH_RADIUS = 16.0f;
+    static constexpr i32 WARNING_CHECK_DIAMETER = 48;
+    static constexpr i32 DECREASE_WARNING_LEVEL_EVERY_INTERVAL = 12000; // 10 分钟
+    static constexpr i32 WARNING_LEVEL_INCREASE_COOLDOWN = 200;         // 10 秒
+
 private:
     i32 m_warningLevel = 0;
+    i32 m_cooldownTicks = 0;
+    i32 m_ticksSinceLastWarning = 0;
     BlockPos m_sourcePos;
     f32 m_warningRadius = 10.0f;
-    i32 m_cooldown = 0;
-    static constexpr i32 MAX_WARNING = 4;
-    static constexpr i32 DECREASE_INTERVAL = 200;
+
+    // 保留旧常量名作为别名，确保向后兼容
+    static constexpr i32 MAX_WARNING = MAX_WARNING_LEVEL;
+    static constexpr i32 DECREASE_INTERVAL = DECREASE_WARNING_LEVEL_EVERY_INTERVAL;
 };
 
 // 注意: EvokerFangsEntity 和 EyeOfEnderEntity 已移至
