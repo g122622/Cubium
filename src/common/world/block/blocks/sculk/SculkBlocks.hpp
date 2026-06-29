@@ -229,7 +229,8 @@ public:
     [[nodiscard]] const BlockState& mirror(const BlockState& state, Mirror mirror) const override;
 
     /// 校准感测体活跃阶段更短（10 tick）
-    [[nodiscard]] i32 getActiveTicks() const override { return ACTIVE_TICKS; }
+    static constexpr i32 CALIBRATED_ACTIVE_TICKS = 10;
+    [[nodiscard]] i32 getActiveTicks() const override { return CALIBRATED_ACTIVE_TICKS; }
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;

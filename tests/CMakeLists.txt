@@ -500,6 +500,8 @@ add_executable(mc_tests
     common/world/block/blocks/RespawnAnchorBlockTest.cpp
     common/world/block/blocks/SpongeBlockTest.cpp
     common/world/block/blocks/OxidizableBlockTest.cpp
+    # 幽匿感测体方块测试（SculkSensor/CalibratedSculkSensor 状态、红石信号、VibrationSystem）
+    common/world/block/blocks/sculk/SculkSensorBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
     common/world/block/BlockStateMutableTest.cpp
     common/world/CanSeeSkyTest.cpp

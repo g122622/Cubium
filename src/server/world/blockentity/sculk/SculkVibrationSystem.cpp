@@ -77,10 +77,12 @@ bool SculkSensorVibrationUser::canReceiveVibration(ServerWorld& world,
         return false;
     }
 
-    // 对齐 MC Java: 拒绝自身方块的 BLOCK_DESTROY/BLOCK_PLACE 事件
-    // （防止感测体被放置/破坏时自己激活自己）
+    // 对齐 MC Java: 拒绝来自自身位置的 BLOCK_DESTROY/BLOCK_PLACE 事件
+    // （防止感测体被放置/破坏时自己激活自己，但允许来自其他位置的同类事件）
     if (&event == &gameevent::GameEvents::BLOCK_DESTROY || &event == &gameevent::GameEvents::BLOCK_PLACE) {
-        return false;
+        if (pos == m_entity.getPos()) {
+            return false;
+        }
     }
 
     return true;
@@ -102,11 +104,6 @@ void SculkSensorVibrationUser::onReceiveVibration(ServerWorld& world,
     // 获取当前方块状态
     const BlockState* state = world.getBlockState(pos);
     if (state == nullptr) {
-        return;
-    }
-
-    // 检查是否可以被激活（Phase 必须为 Inactive）
-    if (!blocks::SculkSensorBlock::canActivate(*state)) {
         return;
     }
 
