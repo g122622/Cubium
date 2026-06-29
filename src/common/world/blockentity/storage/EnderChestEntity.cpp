@@ -27,6 +27,7 @@
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
+#include "world/gameevent/GameEvents.hpp"
 
 namespace mc {
 namespace blockentity {
@@ -64,13 +65,14 @@ bool EnderChestEntity::openContainer(Player* player)
     // 末影箱内容由玩家侧末影箱背包提供，这里仅维护方块实体动画与开关计数。
     m_openCount++;
 
-    // 打开时播放音效
+    // 打开时播放音效和游戏事件
     // 当从 0 变为 1 时播放打开音效
     if (m_openCount == 1) {
         IWorld* world = player->world();
         if (world != nullptr && !world->isClientSide()) {
             world->playSound(
                 SoundEvents::BLOCK_ENDER_CHEST_OPEN, sound::SoundCategory::Blocks, m_pos.center(), 0.5f, 1.0f);
+            world->gameEvent(gameevent::GameEvents::CONTAINER_OPEN, m_pos, gameevent::GameEvent::Context::of(player));
         }
     }
 
@@ -138,10 +140,11 @@ void EnderChestEntity::tick(IWorld& world)
     // 更新动画
     updateLidAnimation(0.0f);
 
-    // 关门时播放音效
+    // 关门时播放音效和游戏事件
     // 当盖子从 >0.5 变为 <=0.5 时播放关闭音效
     if (!world.isClientSide() && prevOpenCount > 0 && m_openCount == 0 && m_prevLidAngle > 0.5f && m_lidAngle <= 0.5f) {
         world.playSound(SoundEvents::BLOCK_ENDER_CHEST_CLOSE, sound::SoundCategory::Blocks, m_pos.center(), 0.5f, 1.0f);
+        world.gameEvent(gameevent::GameEvents::CONTAINER_CLOSE, m_pos, nullptr);
     }
 }
 

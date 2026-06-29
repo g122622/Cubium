@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Guo Yi
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,11 +25,15 @@
 #include "entity/entities/player/Player.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/context/LootContext.hpp"
+#include "sound/SoundCategory.hpp"
+#include "sound/SoundEvents.hpp"
+#include "util/Direction.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/ChestBlock.hpp"
+#include "world/gameevent/GameEvents.hpp"
 #include "world/redstone/RedstoneSystem.hpp"
 #include <cmath>
 
@@ -39,12 +43,14 @@ namespace blockentity {
 // ========== 常量定义 ==========
 
 namespace {
-/// 盖子动画速度（每tick变化量）
+/// 盖子动画速度（每tick变化量），参考 MC ChestLidController
 constexpr f32 LID_OPEN_SPEED = 0.1f;
 /// 盖子动画关闭音效触发阈值
 constexpr f32 LID_CLOSE_SOUND_THRESHOLD = 0.5f;
-/// 同步间隔（ticks）
+/// 同步间隔（ticks），参考 MC ChestBlockEntity 每 200 ticks 同步一次
 constexpr i32 SYNC_INTERVAL = 200;
+/// 音效音量
+constexpr f32 CHEST_SOUND_VOLUME = 0.5f;
 } // namespace
 
 // ========== 构造函数 ==========
@@ -193,9 +199,19 @@ std::unique_ptr<DoubleSidedInventory> ChestEntity::getDoubleInventory(IWorld& wo
 
 void ChestEntity::openContainer(Player* player)
 {
-    // 基类处理观察者检查和战利品表填充
+    // 记录边沿状态：当前是否为空（0个打开者）
+    const bool wasEmpty = (m_openCount == 0);
+
+    // 基类处理观察者检查和计数增加
     LootableContainerBlockEntity::openContainer(player);
 
+    // 仅在首次打开（0->1）时触发音效和游戏事件（仅服务端）
+    if (wasEmpty && m_openCount > 0 && m_world != nullptr && !m_world->isClientSide()) {
+        _playSound(*m_world, true);
+        m_world->gameEvent(gameevent::GameEvents::CONTAINER_OPEN, m_pos, gameevent::GameEvent::Context::of(player));
+    }
+
+    // 广播状态变化（红石信号、客户端同步等）
     if (m_world != nullptr) {
         broadcastChestState(*m_world, true);
     }
@@ -203,9 +219,19 @@ void ChestEntity::openContainer(Player* player)
 
 void ChestEntity::closeContainer(Player* player)
 {
-    // 基类已处理观察者检查
+    // 记录关闭前的计数
+    const i32 prevCount = m_openCount;
+
+    // 基类处理计数减少
     ContainerBlockEntity::closeContainer(player);
 
+    // 仅在最后一个关闭者（1->0）时触发音效和游戏事件（仅服务端）
+    if (prevCount == 1 && m_openCount == 0 && m_world != nullptr && !m_world->isClientSide()) {
+        _playSound(*m_world, false);
+        m_world->gameEvent(gameevent::GameEvents::CONTAINER_CLOSE, m_pos, gameevent::GameEvent::Context::of(player));
+    }
+
+    // 广播状态变化
     if (m_world != nullptr) {
         broadcastChestState(*m_world, false);
     }
@@ -231,7 +257,7 @@ i32 ChestEntity::getComparatorSignal(IWorld& world) const
     // 如果是双箱，需要计算合并的信号
     ChestEntity* connected = getConnectedChest(world);
     if (connected != nullptr) {
-        // 添加相邻箱子的��据
+        // 添加相邻箱子的数据
         for (i32 i = 0; i < CHEST_SIZE; ++i) {
             const ItemStack& stack = connected->m_inventory.getItem(i);
             if (!stack.isEmpty()) {
@@ -263,13 +289,17 @@ void ChestEntity::tick(IWorld& world)
     // 更新同步计数器
     ++m_ticksSinceSync;
 
-    // 定期重新统计附近打开箱子的玩家数
-    // 注：原版calculatePlayersUsingSync在服务端执行，此处简化为方块状态同步
-    if (m_ticksSinceSync >= SYNC_INTERVAL) {
+    // 定期重新检查打开者数量
+    // 参考 MC ContainerOpenersCounter.recheckOpeners
+    if (m_ticksSinceSync >= RECHECK_INTERVAL) {
         m_ticksSinceSync = 0;
 
-        // 通知客户端方块实体数据更新
-        // notifyBlockUpdate 即使方块状态未改变也会触发客户端同步
+        // 如果有打开者，重新检查附近玩家是否仍在使用此容器
+        if (m_openCount > 0) {
+            _recheckOpeners(world);
+        }
+
+        // 定期通知客户端方块实体数据更新
         world.notifyBlockUpdate(m_pos);
     }
 
@@ -294,15 +324,10 @@ void ChestEntity::tick(IWorld& world)
             }
         }
 
-        // 打开音效：lidAngle从0变为正值时
-        if (prevAngle == 0.0f && m_lidAngle > 0.0f) {
-            playSound(world, true);
-        }
-
+        // 打开音效：lidAngle从0变为正值时（已在openContainer中触发，此处不再播放）
         // 关闭音效：lidAngle从>=0.5变为<0.5时
-        if (prevAngle >= LID_CLOSE_SOUND_THRESHOLD && m_lidAngle < LID_CLOSE_SOUND_THRESHOLD) {
-            playSound(world, false);
-        }
+        // 注：关闭音效已在 closeContainer 中边沿检测时触发，此处不再播放
+        MC_UNUSED(prevAngle);
     }
 
     MC_UNUSED(world);
@@ -389,8 +414,6 @@ void ChestEntity::broadcastChestState(IWorld& world, bool open)
     MC_UNUSED(open);
 
     // 通知客户端方块实体数据更新
-    // 参考 MC: ChestBlock.playSound() 中调用 level.blockEvent() 广播开合状态
-    // notifyBlockUpdate 即使方块状态未改变也会触发客户端同步
     world.notifyBlockUpdate(m_pos);
 
     const BlockState* state = world.getBlockState(m_pos);
@@ -400,11 +423,119 @@ void ChestEntity::broadcastChestState(IWorld& world, bool open)
     }
 }
 
-void ChestEntity::playSound(IWorld& world, bool open)
+// ========== 私有方法 ==========
+
+void ChestEntity::_playSound(IWorld& world, bool open)
 {
-    // 当前 IWorld 尚未提供统一音效事件接口。
-    // 先通过状态广播保持动画/红石一致，避免遗漏行为更新。
-    broadcastChestState(world, open);
+    // 仅服务端播放音效
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // 参考 MC ChestBlockEntity.playSound:
+    // LEFT 箱子不播放音效（由 RIGHT 箱子统一播放）
+    // SINGLE 箱子在方块中心播放
+    // RIGHT 箱子音效位置向 LEFT 方向偏移 0.5 格（双箱中心）
+    const BlockState* state = world.getBlockState(m_pos);
+    if (state == nullptr) {
+        return;
+    }
+
+    BlockStateProperties::ChestType chestType = state->get(BlockStateProperties::CHEST_TYPE());
+
+    // LEFT 箱子不播放音效（由 RIGHT 箱子统一在双箱中心播放）
+    if (chestType == BlockStateProperties::ChestType::Left) {
+        return;
+    }
+
+    // 计算音效位置：默认为方块中心
+    f64 soundX = static_cast<f64>(m_pos.x) + 0.5;
+    f64 soundY = static_cast<f64>(m_pos.y) + 0.5;
+    f64 soundZ = static_cast<f64>(m_pos.z) + 0.5;
+
+    // RIGHT 箱子向连接方向偏移 0.5 格，使音效在双箱中心播放
+    if (chestType == BlockStateProperties::ChestType::Right) {
+        Direction connectedDir = blocks::ChestBlock::getConnectedDirection(*state);
+        soundX += static_cast<f64>(Directions::xOffset(connectedDir)) * 0.5;
+        soundZ += static_cast<f64>(Directions::zOffset(connectedDir)) * 0.5;
+    }
+
+    // 音调随机化 0.9~1.0，参考 MC level.random.nextFloat() * 0.1F + 0.9F
+    static thread_local math::Random sSoundRng(0);
+    f32 pitch = sSoundRng.nextFloat() * 0.1f + 0.9f;
+
+    const ResourceLocation& soundEvent = open ? SoundEvents::BLOCK_CHEST_OPEN : SoundEvents::BLOCK_CHEST_CLOSE;
+    world.playSound(
+        soundEvent, sound::SoundCategory::Blocks, Vector3(soundX, soundY, soundZ), CHEST_SOUND_VOLUME, pitch);
+}
+
+void ChestEntity::_recheckOpeners(IWorld& world)
+{
+    // 参考 MC ContainerOpenersCounter.recheckOpeners
+    // 遍历附近玩家，检查哪些玩家仍在使用此容器
+
+    // 搜索范围：MAX_ACCESS_DISTANCE（8格）
+    const f32 maxDistSq = MAX_ACCESS_DISTANCE * MAX_ACCESS_DISTANCE;
+    Vector3 centerPos = m_pos.center();
+
+    i32 actualOpenCount = 0;
+
+    // 获取附近所有实体并筛选玩家
+    std::vector<Entity*> entities = world.getEntitiesInRange(centerPos, MAX_ACCESS_DISTANCE);
+    for (Entity* entity : entities) {
+        if (entity == nullptr) {
+            continue;
+        }
+
+        // 检查是否是玩家
+        auto* player = dynamic_cast<Player*>(entity);
+        if (player == nullptr) {
+            continue;
+        }
+
+        // 排除旁观者
+        if (player->isSpectator()) {
+            continue;
+        }
+
+        // 检查玩家是否在访问范围内
+        if (player->distanceSqTo(centerPos.x, centerPos.y, centerPos.z) > maxDistSq) {
+            continue;
+        }
+
+        // 检查玩家当前打开的容器菜单是否包含此箱子
+        // 参考 MC ContainerOpenersCounter.isOwnContainer
+        auto* menu = player->openContainerMenu();
+        if (menu != nullptr) {
+            // 检查菜单的容器是否就是当前箱子
+            // 对于双箱，菜单可能持有 DoubleSidedInventory
+            // TODO: 当菜单系统完善后，应检查菜单是否持有此箱子的 Inventory
+            // 当前简化检查：如果玩家在范围内且有打开的容器菜单，认为仍在使用
+            ++actualOpenCount;
+        }
+    }
+
+    // 如果计数不匹配，修正
+    if (actualOpenCount != m_openCount) {
+        const bool wasOpen = (m_openCount > 0);
+        const bool isOpen = (actualOpenCount > 0);
+
+        // 状态从关闭变为打开
+        if (isOpen && !wasOpen) {
+            _playSound(world, true);
+            world.gameEvent(gameevent::GameEvents::CONTAINER_OPEN, m_pos, nullptr);
+        }
+        // 状态从打开变为关闭
+        else if (!isOpen && wasOpen) {
+            _playSound(world, false);
+            world.gameEvent(gameevent::GameEvents::CONTAINER_CLOSE, m_pos, nullptr);
+        }
+
+        m_openCount = actualOpenCount;
+
+        // 广播状态变化
+        broadcastChestState(world, actualOpenCount > 0);
+    }
 }
 
 } // namespace blockentity

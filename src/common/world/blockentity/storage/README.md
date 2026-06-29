@@ -63,9 +63,15 @@ DoubleSidedInventory (双箱容器，非 BlockEntity，用于合并两个箱子)
 
 ## 容易踩的坑
 
-### 1. ChestEntity 双箱合并
+### 1. ChestEntity 双箱合并与开关计数
 
 两个箱子相邻放置时会自动合并为 54 格容器。使用 `getDoubleInventory()` 获取合并容器。注意：`DoubleSidedInventory` 是委托模式，操作会转发到底层两个箱子。
+
+开关计数和音效逻辑参考 MC `ContainerOpenersCounter`：
+- `openContainer()` / `closeContainer()` 在计数边沿（0↔1）时触发音效和 `CONTAINER_OPEN` / `CONTAINER_CLOSE` 游戏事件
+- 双箱音效在 RIGHT 箱子侧播放，位置偏移到双箱中心（LEFT 箱子不播放音效）
+- `tick()` 中每 5 ticks 执行 `_recheckOpeners()`，检查附近玩家是否仍在使用此容器，自动修正计数
+- `_playSound()` 中音调随机化为 0.9~1.0，音量 0.5
 
 ### 2. TrappedChestEntity 红石信号
 
