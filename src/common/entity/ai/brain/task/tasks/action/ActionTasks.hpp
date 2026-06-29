@@ -23,11 +23,13 @@
 
 #pragma once
 
-#include "../../../core/MobEntity.hpp"
-#include "../../memory/Brain.hpp"
-#include "../../memory/MemoryModuleStatus.hpp"
-#include "../../memory/MemoryModuleType.hpp"
-#include "../Task.hpp"
+#include "common/entity/ai/brain/Brain.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleStatus.hpp"
+#include "common/entity/ai/brain/memory/MemoryModuleType.hpp"
+#include "common/entity/ai/brain/task/Task.hpp"
+#include "common/entity/ai/controller/LookController.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/core/MobEntity.hpp"
 
 namespace mc {
 namespace entity {
@@ -35,6 +37,9 @@ namespace ai {
 namespace brain {
 namespace task {
 namespace action {
+
+using mc::entity::ai::brain::memory::MemoryModuleStatus;
+using mc::entity::ai::brain::memory::MemoryModuleTypes;
 
 /**
  * @brief 近战攻击任务（对应 MC MeleeAttack）
@@ -149,8 +154,11 @@ private:
      */
     static bool _isWithinMeleeAttackRange(const E* owner, const LivingEntity* target)
     {
-        f32 attackerWidth = owner->width();
-        f32 targetWidth = target->width();
+        // 使用 Entity 基类的 width()（public virtual），避免 AgeableEntity 的 protected 覆盖问题
+        const Entity& ownerEntity = *owner;
+        const Entity& targetEntity = *target;
+        f32 attackerWidth = ownerEntity.width();
+        f32 targetWidth = targetEntity.width();
         f32 reachWidth = attackerWidth * 2.0f;
         f32 attackReachSq = reachWidth * reachWidth + targetWidth;
         f64 distSq = static_cast<f64>(owner->distanceSqTo(*target));
