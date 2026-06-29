@@ -1426,6 +1426,9 @@ bool Entity::addPassenger(Entity& passenger)
     if (passenger.getVehicle() != m_id) {
         // 兼容非标准调用路径：如果 passenger 还未关联到任何载具，
         // 自动设置关联（而非抛出异常，与 MC Java 的严格检查不同）
+        // TODO: MC Java 在 passenger.getVehicle() != this 时会抛出 IllegalStateException，
+        //       此处自动关联是向下兼容行为，未来应考虑收紧为严格检查（返回 false），
+        //       以与 MC Java 保持一致并避免潜在的逻辑错误。
         if (passenger.getVehicle() == INVALID_ENTITY_ID) {
             passenger.setVehicle(m_id);
         } else {
@@ -1477,16 +1480,27 @@ bool Entity::addPassenger(Entity& passenger)
 
 void Entity::removePassenger(Entity& passenger)
 {
-    // 验证乘客是否确实骑乘此载具
-    if (passenger.getVehicle() != m_id) {
-        return;
-    }
+    // 对齐 MC Java: removePassenger 的职责是操作乘客列表。
+    // 在 MC Java 中，removePassenger 验证 passenger.getVehicle() != this
+    // （即 vehicle 引用已经被清空，由 stopRiding/removeVehicle 在调用
+    // removePassenger 之前清空），然后从 passengers 列表中移除。
+    // 我们的 C++ 实现中，dismount() 也在调用 removePassenger 之前
+    // 清空了 passenger 的 m_vehicle，所以这里不应该依赖
+    // passenger.getVehicle() 来判断是否移除。
+    //
+    // 改为直接查找并移除乘客，无论 passenger.getVehicle() 的状态如何。
+    // 这是安全的，因为 removePassenger 是内部方法，总是由 stopRiding/dismount
+    // 或 removePassengers 调用，调用者已经处理了 vehicle 引用。
 
     // 查找并移除乘客
     auto it = std::find(m_passengers.begin(), m_passengers.end(), passenger.id());
     if (it != m_passengers.end()) {
         m_passengers.erase(it);
-        passenger.setVehicle(INVALID_ENTITY_ID);
+
+        // 确保乘客的 vehicle 引用被清空（可能已被 dismount 清空）
+        if (passenger.getVehicle() == m_id) {
+            passenger.setVehicle(INVALID_ENTITY_ID);
+        }
 
         // 设置骑乘冷却（60 tick = 3秒）
         passenger.m_rideCooldown = 60;
@@ -1671,34 +1685,66 @@ const Entity* Entity::getLowestRidingEntity() const
 
 bool Entity::isRidingOrBeingRiddenBy(const Entity& other) const
 {
-    // 使用迭代方式避免递归栈溢出
+    // 双向检查骑乘关系：
+    // 1. 向下：检查 other 是否是 this 的（间接）乘客
+    // 2. 向上：检查 other 是否是 this 的（间接）载具
     if (m_world == nullptr) {
         return false;
     }
 
-    // 使用向量作为栈进行广度优先搜索
-    std::vector<EntityId> toCheck(m_passengers.begin(), m_passengers.end());
-    std::unordered_set<EntityId> visited; // 防止循环
+    // 快速路径：直接检查
+    if (m_id == other.id()) {
+        return true;
+    }
 
-    while (!toCheck.empty()) {
-        EntityId passengerId = toCheck.back();
-        toCheck.pop_back();
+    // 向下搜索：检查 other 是否是 this 的间接乘客
+    // （other 骑乘 this，或 other 骑乘 this 的某个乘客，以此类推）
+    {
+        std::vector<EntityId> toCheck(m_passengers.begin(), m_passengers.end());
+        std::unordered_set<EntityId> visited;
 
-        if (passengerId == other.id()) {
-            return true;
+        while (!toCheck.empty()) {
+            EntityId passengerId = toCheck.back();
+            toCheck.pop_back();
+
+            if (passengerId == other.id()) {
+                return true;
+            }
+
+            if (visited.count(passengerId) > 0) {
+                continue;
+            }
+            visited.insert(passengerId);
+
+            const Entity* passenger = m_world->getEntity(passengerId);
+            if (passenger != nullptr) {
+                const auto& subPassengers = passenger->getPassengers();
+                toCheck.insert(toCheck.end(), subPassengers.begin(), subPassengers.end());
+            }
         }
+    }
 
-        // 防止重复检查
-        if (visited.count(passengerId) > 0) {
-            continue;
-        }
-        visited.insert(passengerId);
+    // 向上搜索：检查 other 是否是 this 的间接载具
+    // （this 骑乘 other，或 this 的载具骑乘 other，以此类推）
+    {
+        EntityId currentVehicle = m_vehicle;
+        std::unordered_set<EntityId> visited;
 
-        // 获取乘客并检查其乘客列表
-        const Entity* passenger = m_world->getEntity(passengerId);
-        if (passenger != nullptr) {
-            const auto& subPassengers = passenger->getPassengers();
-            toCheck.insert(toCheck.end(), subPassengers.begin(), subPassengers.end());
+        while (currentVehicle != INVALID_ENTITY_ID) {
+            if (currentVehicle == other.id()) {
+                return true;
+            }
+
+            if (visited.count(currentVehicle) > 0) {
+                break; // 防止循环
+            }
+            visited.insert(currentVehicle);
+
+            const Entity* vehicleEntity = m_world->getEntity(currentVehicle);
+            if (vehicleEntity == nullptr) {
+                break;
+            }
+            currentVehicle = vehicleEntity->getVehicle();
         }
     }
 

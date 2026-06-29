@@ -516,6 +516,7 @@ add_executable(mc_tests
     entity/RidingSystemTests.cpp
     entity/PassengerSystemTests.cpp
     entity/RidingCycleDetectionTests.cpp
+    entity/RidingCycleIntegrationTests.cpp
     entity/StriderEntityTest.cpp
     entity/PigEntityTest.cpp
     entity/FlingingSupportTypesTest.cpp

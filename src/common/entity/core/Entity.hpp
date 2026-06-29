@@ -1869,7 +1869,11 @@ public:
     [[nodiscard]] const Entity* getLowestRidingEntity() const;
 
     /**
-     * @brief 递归检查是否骑乘或被骑乘指定实体
+     * @brief 检查是否与指定实体存在骑乘关系（双向）
+     *
+     * 向下搜索：other 是否是 this 的间接乘客（other 骑乘 this 或 this 的乘客）
+     * 向上搜索：other 是否是 this 的间接载具（this 骑乘 other 或 other 是 this 的载具链的一部分）
+     *
      * @param other 目标实体
      * @return 如果存在骑乘关系返回true
      */
