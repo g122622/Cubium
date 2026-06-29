@@ -491,6 +491,10 @@ const ResourceLocation BLOCK_CHAIN_HIT("minecraft:block.chain.hit");
 const ResourceLocation BLOCK_CHAIN_PLACE("minecraft:block.chain.place");
 const ResourceLocation BLOCK_CHAIN_STEP("minecraft:block.chain.step");
 
+// 幽匿感测体
+const ResourceLocation BLOCK_SCULK_SENSOR_CLICKING("minecraft:block.sculk_sensor.clicking");
+const ResourceLocation BLOCK_SCULK_SENSOR_CLICKING_STOP("minecraft:block.sculk_sensor.clicking_stop");
+
 // ============================================================================
 // 实体通用声音
 // ============================================================================

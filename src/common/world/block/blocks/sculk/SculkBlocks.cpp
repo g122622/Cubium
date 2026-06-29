@@ -23,6 +23,7 @@
 
 #include "SculkBlocks.hpp"
 #include "item/context/BlockItemUseContext.hpp"
+#include "sound/SoundEvents.hpp"
 #include "util/Direction.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
@@ -221,10 +222,11 @@ void SculkSensorBlock::activate(const Entity* sourceEntity,
 
     // 6. 播放声音（非水浸状态下）
     if (!state.get(BlockStateProperties::WATERLOGGED())) {
-        // TODO: 声音系统完善后添加 SCULK_CLICKING 声音
-        // world.playSound(ResourceLocation("minecraft", "sculk_clicking"),
-        //     sound::SoundCategory::Blocks, Vector3(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f),
-        //     1.0f, world.random().nextFloat() * 0.2f + 0.8f);
+        world.playSound(SoundEvents::BLOCK_SCULK_SENSOR_CLICKING,
+            sound::SoundCategory::Blocks,
+            pos.center(),
+            1.0f,
+            world.getRandom().nextFloat() * 0.2f + 0.8f);
     }
 }
 
@@ -260,10 +262,11 @@ void SculkSensorBlock::tick(IWorld& world, const BlockPos& pos, BlockState& stat
 
         // 播放 SCULK_CLICKING_STOP 声音（非水浸状态下）
         if (!state.get(BlockStateProperties::WATERLOGGED())) {
-            // TODO: 声音系统完善后添加 SCULK_CLICKING_STOP 声音
-            // world.playSound(ResourceLocation("minecraft", "sculk_clicking_stop"),
-            //     sound::SoundCategory::Blocks, Vector3(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f),
-            //     1.0f, world.random().nextFloat() * 0.2f + 0.8f);
+            world.playSound(SoundEvents::BLOCK_SCULK_SENSOR_CLICKING_STOP,
+                sound::SoundCategory::Blocks,
+                pos.center(),
+                1.0f,
+                world.getRandom().nextFloat() * 0.2f + 0.8f);
         }
     }
     // Inactive 状态不应有 scheduled tick，忽略

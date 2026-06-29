@@ -544,6 +544,10 @@ extern const ResourceLocation BLOCK_CHAIN_HIT;
 extern const ResourceLocation BLOCK_CHAIN_PLACE;
 extern const ResourceLocation BLOCK_CHAIN_STEP;
 
+/// 幽匿感测体
+extern const ResourceLocation BLOCK_SCULK_SENSOR_CLICKING;
+extern const ResourceLocation BLOCK_SCULK_SENSOR_CLICKING_STOP;
+
 // ============================================================================
 // 实体通用声音
 // ============================================================================
