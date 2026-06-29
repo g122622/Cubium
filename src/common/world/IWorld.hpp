@@ -775,7 +775,6 @@ public:
      * @brief 通过UUID获取实体
      *
      * 利用 EntityManager 的 UUID 索引进行 O(1) 查找，避免全量遍历。
-     * 对齐 MC Java 的 Level.getEntity(UUID) 机制。
      *
      * 默认实现返回 nullptr。
      *

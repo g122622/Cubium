@@ -100,7 +100,6 @@ public:
      * @brief 通过UUID获取实体
      *
      * 利用内部 UUID 索引进行 O(1) 查找，避免全量遍历。
-     * 对齐 MC Java 的 EntityLookup.byUuid 机制。
      *
      * @param uuid 实体UUID字符串
      * @return 实体指针，如果不存在返回nullptr
@@ -199,7 +198,7 @@ private:
     // 实体 tick/回调中可能重入查询接口，需允许同线程递归加锁。
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
-    std::unordered_map<std::string, Entity*> m_uuidToEntity; // UUID 到实体的索引，对齐 MC Java EntityLookup.byUuid
+    std::unordered_map<std::string, Entity*> m_uuidToEntity; // UUID 到实体的索引
     EntityId m_nextId = 1;
     std::vector<EntityId> m_freeIds; // 可重用的ID池
 

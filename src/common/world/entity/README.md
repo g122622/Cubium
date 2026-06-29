@@ -6,7 +6,7 @@
 
 ```
 src/common/world/entity/
-├── EntityManager.hpp    # EntityManager 类声明 - 实体管理器接口
+├── EntityManager.hpp    # EntityManager 类声明 - 实体管理器接口（含 UUID 索引）
 └── EntityManager.cpp    # EntityManager 类实现
 ```
 
@@ -33,7 +33,7 @@ src/common/world/entity/
 
 | 模块 | 路径 | 用途 |
 |------|------|------|
-| `ServerWorld` | `server/world/ServerWorld.hpp` | 服务端世界持有 EntityManager |
+| `ServerWorld` | `server/world/ServerWorld.hpp` | 服务端世界持有 EntityManager，实现 IWorld::getEntityByUuid() |
 | `ClientWorld` | `client/world/ClientWorld.hpp` | 客户端世界持有 EntityManager |
 | `EntityTracker` | `server/world/entity/EntityTracker.cpp` | 实体追踪器查询实体 |
 | `ItemPickupManager` | `server/world/entity/ItemPickupManager.cpp` | 物品拾取管理器查询实体 |
@@ -41,6 +41,12 @@ src/common/world/entity/
 | `DespawnManager` | `server/world/spawn/DespawnManager.cpp` | 消失管理器查询实体 |
 | `PacketHandler` | `server/core/PacketHandler.cpp` | 数据包处理时查询实体 |
 | 各种 Command | `server/command/commands/*.cpp` | 命令执行时查询实体 |
+| `TraderLlamaEntity` | `common/entity/entities/passive/horse/TraderLlamaEntity.cpp` | 通过 UUID 查找拴绳持有者 |
+| `EvokerFangsEntity` | `common/entity/entities/projectile/OtherProjectiles.cpp` | 通过 UUID 查找所有者 |
+| `AreaEffectCloudEntity` | `common/entity/entities/effect/EffectEntities.cpp` | 通过 UUID 查找所有者 |
+| `TrialSpawnerBlockEntity` | `common/world/blockentity/trial/TrialSpawnerBlockEntity.cpp` | 通过 UUID 追踪已生成怪物 |
+| `VaultBlockEntity` | `common/world/blockentity/trial/VaultBlockEntity.cpp` | 通过 UUID 查找玩家 |
+| `ConduitEntity` | `common/world/blockentity/processing/ConduitEntity.cpp` | 通过 UUID 恢复攻击目标 |
 
 ## 容易踩的坑
 
@@ -79,17 +85,26 @@ manager.forEachEntity([&](Entity* entity) {
 });
 ```
 
-### 4. getEntity 返回空指针
+### 4. UUID 索引一致性
 
-`getEntity()` 可能返回 `nullptr`，必须检查：
+`EntityManager` 维护两个索引：`m_entities`（EntityId → Entity）和 `m_uuidToEntity`（UUID → Entity*）。在以下场景需注意一致性：
+
+- **UUID 冲突**：添加 UUID 相同的实体时，UUID 索引会被覆盖，旧映射丢失。此时会输出 spdlog::warn 警告。
+- **空 UUID**：UUID 为空字符串的实体不会被索引，`getEntityByUuid("")` 始终返回 nullptr。
+- **移除后索引清理**：`removeEntity()` 和 `removeDeadEntities()` 会同步清理 UUID 索引，仅当映射指向当前实体时才移除（防止 UUID 冲突时误删新映射）。
+- **setUuid() 不会更新索引**：在 `addEntity()` 之后调用 `Entity::setUuid()` 不会更新 UUID 索引。NBT 反序列化时 UUID 的设置应在 `addEntity()` 之前完成，否则需重新添加实体以更新索引。
+
+### 5. getEntity/getEntityByUuid 返回空指针
+
+`getEntity()` 和 `getEntityByUuid()` 可能返回 `nullptr`，必须检查：
 
 ```cpp
-if (Entity* entity = manager.getEntity(someId)) {
+if (Entity* entity = manager.getEntityByUuid(someUuid)) {
     entity->setPosition(0, 0, 0);
 }
 ```
 
-### 5. 实体移除时机
+### 6. 实体移除时机
 
 `entity->remove()` 只是标记实体为移除状态，实体会在下一次 `tick()` 时被真正移除。如需立即移除：
 
@@ -101,6 +116,6 @@ manager.tick();    // 此后实体被移除
 manager.removeEntity(entity->id());
 ```
 
-### 6. 空间查询性能
+### 7. 空间查询性能
 
-`getEntitiesInRange()` 和 `getEntitiesInAABB()` 当前为 O(n) 遍历，大量实体时性能受限。未来可考虑空间分区优化。
+`getEntitiesInRange()` 和 `getEntitiesInAABB()` 当前为 O(n) 遍历，大量实体时性能受限。对于已知 UUID 的查找，应使用 `getEntityByUuid()` 进行 O(1) 查找。

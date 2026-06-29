@@ -128,8 +128,7 @@ public:
      * @return 拴绳持有者实体指针，未找到或未拴住返回 nullptr
      *
      * 此方法为 public 以供 AI 目标类访问。
-     * 使用 IWorld::getEntityByUuid() 进行 O(1) UUID 查找，
-     * 对齐 MC Java 的 Level.getEntity(UUID) 机制。
+     * 使用 IWorld::getEntityByUuid() 进行 O(1) UUID 查找。
      */
     [[nodiscard]] Entity* getLeashHolderEntity() const;
 

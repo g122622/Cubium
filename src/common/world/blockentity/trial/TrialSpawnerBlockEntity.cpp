@@ -805,8 +805,7 @@ void TrialSpawnerBlockEntity::updateTrackedMobs(IWorld& world)
 Entity* TrialSpawnerBlockEntity::findEntityByUuid(IWorld& world, const std::string& uuid)
 {
     // 使用 IWorld::getEntityByUuid() 进行 O(1) UUID 查找，
-    // 对齐 MC Java 的 Level.getEntity(UUID) 机制。
-    // 之前使用 getEntitiesInRange + 遍历比对 UUID，复杂度较高。
+    // 替代 getEntitiesInRange + 遍历比对 UUID 的 O(n) 模式。
     return world.getEntityByUuid(uuid);
 }
 

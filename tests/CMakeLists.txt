@@ -914,6 +914,7 @@ add_executable(mc_tests
     # 瀹炰綋鐢熸垚鍥炶皟娴嬭瘯
     server/ServerChunkManagerCallbackTest.cpp
     common/world/EntityManagerSpawnTest.cpp
+    common/world/EntityManagerUuidTest.cpp
     # 纰版挒缂撳瓨娴嬭瘯
     physics/CollisionCacheTests.cpp
     # 物理引擎测试

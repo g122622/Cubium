@@ -206,8 +206,7 @@ Entity* TraderLlamaEntity::getLeashHolderEntity() const
         return nullptr;
     }
 
-    // 使用 IWorld::getEntityByUuid() 进行 O(1) UUID 查找，
-    // 对齐 MC Java 的 Level.getEntity(UUID) 机制。
+    // 使用 IWorld::getEntityByUuid() 进行 O(1) UUID 查找
     return m_world->getEntityByUuid(*leashHolderUuid());
 }
 

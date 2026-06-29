@@ -523,8 +523,7 @@ LivingEntity* AreaEffectCloudEntity::getOwner()
     }
 
     // 缓存失效，尝试通过 UUID 在世界中重新查找
-    // 使用 IWorld::getEntityByUuid() 进行 O(1) 查找，
-    // 对齐 MC Java 的 Level.getEntity(UUID) 机制。
+    // 使用 IWorld::getEntityByUuid() 进行 O(1) 查找
     if (!m_ownerUuid.empty() && m_world != nullptr) {
         Entity* entity = m_world->getEntityByUuid(m_ownerUuid);
         if (entity != nullptr && entity->isAlive()) {

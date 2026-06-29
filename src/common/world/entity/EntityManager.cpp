@@ -51,12 +51,11 @@ EntityId EntityManager::addEntity(std::unique_ptr<Entity> entity)
         entity->setId(id);
     }
 
-    // 维护 UUID 索引：对齐 MC Java EntityLookup.add() 的 byUuid 维护逻辑
+    // 维护 UUID 索引
     const std::string& uuid = entity->uuid();
     if (!uuid.empty()) {
         if (m_uuidToEntity.find(uuid) != m_uuidToEntity.end()) {
-            // UUID 冲突：对齐 MC Java 的警告行为
-            // MC Java 在 EntityLookup.add() 中会 warn 但不阻止添加
+            // UUID 冲突：输出警告但不阻止添加
             spdlog::warn("Duplicate entity UUID {}: entity {} will override existing mapping", uuid, id);
         }
         m_uuidToEntity[uuid] = entity.get();
@@ -77,7 +76,7 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityId id)
 
     auto entity = std::move(it->second);
 
-    // 维护 UUID 索引：对齐 MC Java EntityLookup.remove() 的 byUuid 清理逻辑
+    // 维护 UUID 索引
     const std::string& uuid = entity->uuid();
     if (!uuid.empty()) {
         auto uuidIt = m_uuidToEntity.find(uuid);
