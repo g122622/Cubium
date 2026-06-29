@@ -496,3 +496,188 @@ TEST_F(LeashSystemTest, LeashDataNbtSerialization_NoLeash)
     // 应该仍然没有被拴住
     EXPECT_FALSE(mob2->isLeashed());
 }
+
+// ============================================================================
+// tickLeash 延迟绑定恢复测试
+// ============================================================================
+
+// 支持实体查找的测试世界
+class LeashEntityTestWorld final : public test::BaseTestWorld {
+public:
+    LeashEntityTestWorld()
+    {
+        Items::initialize();
+        VanillaBlocks::initialize();
+        m_gameRules.setBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS, true, nullptr);
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    void setDifficulty(Difficulty d) { m_difficulty = d; }
+
+    // 覆写 getEntityByUuid 以支持 UUID 查找
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override
+    {
+        auto it = m_uuidToEntity.find(uuid);
+        return it != m_uuidToEntity.end() ? it->second : nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override
+    {
+        auto it = m_uuidToEntity.find(uuid);
+        return it != m_uuidToEntity.end() ? it->second : nullptr;
+    }
+
+    // 注册实体到 UUID 索引
+    void registerEntity(Entity& entity) { m_uuidToEntity[entity.uuid()] = &entity; }
+
+    // 从 UUID 索引移除实体
+    void unregisterEntity(const std::string& uuid) { m_uuidToEntity.erase(uuid); }
+
+private:
+    Difficulty m_difficulty = Difficulty::Normal;
+    std::unordered_map<std::string, Entity*> m_uuidToEntity;
+};
+
+class LeashEntityTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            VanillaEntities::registerAll();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override { m_world = std::make_unique<LeashEntityTestWorld>(); }
+
+    std::unique_ptr<LeashEntityTestWorld> m_world;
+};
+
+TEST_F(LeashEntityTest, TickLeash_DelayedBindEntityResolvesWhenEntityAvailable)
+{
+    // 模拟从 NBT 加载后延迟绑定场景：拴绳目标实体尚未加载
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+
+    // 手动设置拴绳状态（模拟 NBT 加载后的延迟绑定状态）
+    pig->setLeashedToEntity(player->uuid());
+
+    // 模拟 NBT 加载后的延迟绑定状态：手动设置 delayInfo
+    // 这模拟了 readAdditionalSaveData 中设置 m_leashDelayInfo.targetUuid 的场景
+    auto& delayInfo = pig->leashDelayInfo();
+    delayInfo.targetUuid = player->uuid();
+    delayInfo.resolveTicks = 0;
+
+    // 此时 delayInfo 有值，tickLeash 应该尝试解析
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_TRUE(delayInfo.targetUuid.has_value());
+
+    // 注册玩家实体到 UUID 索引
+    m_world->registerEntity(*player);
+
+    // 调用 tickLeash，应该能通过 UUID 找到持有者实体并完成延迟绑定
+    pig->tickLeash();
+
+    // 延迟绑定应该已解析
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_FALSE(pig->leashDelayInfo().targetUuid.has_value());
+    EXPECT_EQ(pig->leashDelayInfo().resolveTicks, 0);
+}
+
+TEST_F(LeashEntityTest, TickLeash_DelayedBindEntityTimesOut)
+{
+    // 模拟从 NBT 加载后延迟绑定场景：拴绳目标实体永远不加载
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+
+    // 手动设置拴绳状态（模拟 NBT 加载后的延迟绑定状态）
+    const std::string missingUuid = "nonexistent-player-uuid";
+    pig->setLeashedToEntity(missingUuid);
+
+    auto& delayInfo = pig->leashDelayInfo();
+    delayInfo.targetUuid = missingUuid;
+    delayInfo.resolveTicks = 0;
+
+    EXPECT_TRUE(pig->isLeashed());
+
+    // 模拟 99 次 tick，不应该掉落拴绳
+    for (int i = 0; i < 99; ++i) {
+        pig->tickLeash();
+    }
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_EQ(pig->leashDelayInfo().resolveTicks, 99);
+
+    // 第 100 次 tick，应该掉落拴绳
+    pig->tickLeash();
+    EXPECT_FALSE(pig->isLeashed());
+}
+
+TEST_F(LeashEntityTest, TickLeash_UsesUuidIndexForHolderLookup)
+{
+    // 测试 tickLeash 在正常情况下使用 UUID 索引查找持有者
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+    // 设置猪的位置
+    pig->setPosition(0.0f, 64.0f, 0.0f);
+
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+    // 设置玩家位置（在拴绳范围内）
+    player->setPosition(5.0f, 64.0f, 0.0f);
+
+    // 注册玩家到 UUID 索引
+    m_world->registerEntity(*player);
+
+    // 设置拴绳
+    pig->setLeashedToEntity(player->uuid());
+    EXPECT_TRUE(pig->isLeashed());
+
+    // tickLeash 应该能通过 UUID 找到持有者并正常工作（不掉落拴绳）
+    pig->tickLeash();
+    EXPECT_TRUE(pig->isLeashed());
+}
+
+TEST_F(LeashEntityTest, TickLeash_DropsLeashWhenHolderNotFoundByUuid)
+{
+    // 测试 tickLeash 在找不到持有者时掉落拴绳
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+    pig->setPosition(0.0f, 64.0f, 0.0f);
+
+    // 设置拴绳到一个不存在的 UUID（不注册到 UUID 索引）
+    const std::string missingUuid = "nonexistent-entity-uuid";
+    pig->setLeashedToEntity(missingUuid);
+    // 清除延迟绑定信息（模拟已经完成绑定的状态）
+    pig->leashDelayInfo().targetUuid = std::nullopt;
+    pig->leashDelayInfo().fencePos = std::nullopt;
+
+    EXPECT_TRUE(pig->isLeashed());
+
+    // tickLeash 应该找不到持有者，掉落拴绳
+    pig->tickLeash();
+    EXPECT_FALSE(pig->isLeashed());
+}
+
+TEST_F(LeashEntityTest, SetLeashedToEntity_UsesUuidIndexForBroadcast)
+{
+    // 测试 setLeashedToEntity 使用 UUID 索引查找持有者进行广播
+    auto pig = std::make_unique<PigEntity>(EntityId(1));
+    pig->setWorld(m_world.get());
+
+    auto player = std::make_unique<Player>(EntityId(2), "TestPlayer");
+    player->setWorld(m_world.get());
+
+    // 注册玩家到 UUID 索引
+    m_world->registerEntity(*player);
+
+    // 设置拴绳，应该能通过 UUID 找到持有者
+    pig->setLeashedToEntity(player->uuid());
+
+    EXPECT_TRUE(pig->isLeashed());
+    EXPECT_TRUE(pig->leashHolderUuid().has_value());
+    EXPECT_EQ(pig->leashHolderUuid().value(), player->uuid());
+}

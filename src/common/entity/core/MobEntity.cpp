@@ -677,18 +677,10 @@ void MobEntity::setLeashedToEntity(const std::string& holderUuid)
 
     // 广播拴绳链接变更给客户端
     if (m_world != nullptr && !m_world->isClientSide()) {
-        // 查找持有者实体ID
-        EntityId linkedId = INVALID_ENTITY_ID;
-        Vector3 centerPos(m_position.x, m_position.y, m_position.z);
-        auto entities = m_world->getEntitiesInRange(centerPos, 20.0f);
-        for (Entity* entity : entities) {
-            if (entity->uuid() == holderUuid) {
-                linkedId = entity->id();
-                break;
-            }
-        }
-        if (linkedId != INVALID_ENTITY_ID) {
-            m_world->broadcastSetEntityLink(id(), linkedId);
+        // 通过 UUID 索引进行 O(1) 查找，替代 getEntitiesInRange 的 O(n) 遍历
+        Entity* holder = m_world->getEntityByUuid(holderUuid);
+        if (holder != nullptr) {
+            m_world->broadcastSetEntityLink(id(), holder->id());
         }
     }
 }
@@ -708,9 +700,14 @@ void MobEntity::setLeashedToFence(const BlockPos& pos)
             auto* knot = dynamic_cast<entity::LeashKnotEntity*>(entity);
             if (knot != nullptr && knot->isAlive() && knot->getHangingBlockPos() == pos) {
                 m_world->broadcastSetEntityLink(id(), knot->id());
-                break;
+                // 成功广播，清除延迟绑定信息
+                m_leashDelayInfo.fencePos = std::nullopt;
+                m_leashDelayInfo.targetUuid = std::nullopt;
+                m_leashDelayInfo.resolveTicks = 0;
+                return;
             }
         }
+        // 未找到拴绳结实体，保留 fencePos 延迟信息，tickLeash 会重试
     }
 }
 
@@ -749,12 +746,33 @@ void MobEntity::tickLeash()
         return;
     }
 
-    // 恢复延迟加载的拴绳数据
-    if (m_leashDelayInfo.targetUuid.has_value()) {
-        // TODO: 延迟绑定 - 查找目标实体并绑定
-        // 当前简化实现：如果100tick后仍无法绑定，则掉落拴绳
-        if (++m_leashDelayInfo.resolveTicks >= 100) {
-            dropLeash();
+    // 恢复延迟加载的拴绳数据（对应 MC Java 的 Leashable.restoreLeashFromSave）
+    // 当实体从 NBT 加载时，拴绳的目标可能尚未就绪，需要每 tick 尝试解析。
+    if (m_leashDelayInfo.targetUuid.has_value() || m_leashDelayInfo.fencePos.has_value()) {
+        if (m_leashDelayInfo.targetUuid.has_value()) {
+            // 拴在实体上：通过 UUID 索引进行 O(1) 查找
+            Entity* holder = m_world->getEntityByUuid(*m_leashDelayInfo.targetUuid);
+            if (holder != nullptr && holder->isAlive()) {
+                // 找到目标实体，完成延迟绑定并广播给客户端
+                m_world->broadcastSetEntityLink(id(), holder->id());
+                m_leashDelayInfo.targetUuid = std::nullopt;
+                m_leashDelayInfo.fencePos = std::nullopt;
+                m_leashDelayInfo.resolveTicks = 0;
+            } else if (++m_leashDelayInfo.resolveTicks >= 100) {
+                // 超过 100 tick 仍无法绑定，掉落拴绳（与 MC Java 一致）
+                dropLeash();
+            }
+        } else if (m_leashDelayInfo.fencePos.has_value()) {
+            // 拴在栅栏上：尝试查找或创建栅栏位置的拴绳结实体并广播给客户端
+            auto* knot = entity::LeashKnotEntity::getOrCreateKnot(*m_world, *m_leashDelayInfo.fencePos);
+            if (knot != nullptr) {
+                m_world->broadcastSetEntityLink(id(), knot->id());
+                m_leashDelayInfo.fencePos = std::nullopt;
+                m_leashDelayInfo.resolveTicks = 0;
+            } else if (++m_leashDelayInfo.resolveTicks >= 100) {
+                // 超过 100 tick 仍无法绑定，掉落拴绳
+                dropLeash();
+            }
         }
         return;
     }
@@ -764,16 +782,11 @@ void MobEntity::tickLeash()
     bool holderValid = false;
 
     if (m_leashHolderUuid.has_value()) {
-        // 拴在实体上：查找持有者实体
-        // TODO: 通过 EntityManager 的 UUID 索引查找实体，当前简化实现使用 getEntitiesInRange
-        Vector3d centerPos(m_position.x, m_position.y, m_position.z);
-        auto entities = m_world->getEntitiesInRange(Vector3(m_position.x, m_position.y, m_position.z), 20.0f);
-        for (Entity* entity : entities) {
-            if (entity->uuid() == *m_leashHolderUuid) {
-                holderPos = Vector3d(entity->x(), entity->y(), entity->z());
-                holderValid = true;
-                break;
-            }
+        // 拴在实体上：通过 UUID 索引进行 O(1) 查找，替代 getEntitiesInRange 的 O(n) 遍历
+        Entity* holder = m_world->getEntityByUuid(*m_leashHolderUuid);
+        if (holder != nullptr && holder->isAlive()) {
+            holderPos = Vector3d(holder->x(), holder->y(), holder->z());
+            holderValid = true;
         }
     } else if (m_leashFencePos.has_value()) {
         // 拴在栅栏上
@@ -1017,12 +1030,9 @@ Result<void> MobEntity::readAdditionalSaveData(const nbt::tags::compound_tag& ta
                     m_isLeashed = true;
                     m_leashHolderUuid = uuid;
                     m_leashDelayInfo.targetUuid = uuid;
-                    // TODO: 实际的拴绳绑定需要在实体加载后延迟处理，
-                    // 因为此时目标实体可能尚未加载到世界中。
-                    // 需要实现 restoreLeashFromSave() 方法，在 tick 中
-                    // 尝试通过 UUID 查找目标实体并完成实际绑定。
-                    // 当前仅存储了 UUID 但未完成实体引用绑定，
-                    // 拴绳的视觉效果和物理约束暂未生效。
+                    // 延迟绑定：目标实体可能尚未加载到世界中，
+                    // tickLeash() 会在每 tick 中尝试通过 UUID 查找目标实体
+                    // 并完成实际绑定（对应 MC Java 的 restoreLeashFromSave）。
                 }
             } else {
                 // 拴在栅栏柱上
