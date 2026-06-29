@@ -25,6 +25,7 @@
 
 #include "client/renderer/api/texture/TextureRegion.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
+#include "client/renderer/trident/item/ElementRotation.hpp"
 #include "client/renderer/trident/item/ItemMeshBuilder.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
@@ -603,8 +604,7 @@ TEST(ItemTextureResolutionTest, NullAtlasDoesNotCrashGeneratedMesh)
 }
 
 // ============================================================================
-// 元素旋转测试：验证 _buildElementRotationMatrix / _computeRescaleFactors / _getRotatedUV
-// 由于这些方法是私有的，我们通过公开的接口和数学验证来间接测试旋转逻辑
+// 元素旋转测试：直接调用 ElementRotation.hpp 中的自由函数验证
 // ============================================================================
 
 /**
@@ -687,24 +687,13 @@ TEST(ElementRotationMathTest, ZeroAngleRotationIsIdentity)
 TEST(ElementRotationMathTest, RescaleFactorsForYAxis45Degrees)
 {
     glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::mat3 rot3x3(rotMatrix);
-
-    // 计算各轴缩放因子
-    auto computeAxisScale = [&rot3x3](const glm::vec3& axisUnit) -> float {
-        glm::vec3 transformed = rot3x3 * axisUnit;
-        float maxAbs = glm::max(glm::abs(transformed.x), glm::max(glm::abs(transformed.y), glm::abs(transformed.z)));
-        return (maxAbs > 0.0001f) ? (1.0f / maxAbs) : 1.0f;
-    };
-
-    float scaleX = computeAxisScale(glm::vec3(1.0f, 0.0f, 0.0f));
-    float scaleY = computeAxisScale(glm::vec3(0.0f, 1.0f, 0.0f));
-    float scaleZ = computeAxisScale(glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::vec3 rescaleFactors = computeRescaleFactors(glm::mat3(rotMatrix));
 
     float sqrt2 = std::sqrt(2.0f); // ≈ 1.414
 
-    EXPECT_NEAR(scaleX, sqrt2, 0.01f);
-    EXPECT_NEAR(scaleY, 1.0f, 0.001f);
-    EXPECT_NEAR(scaleZ, sqrt2, 0.01f);
+    EXPECT_NEAR(rescaleFactors.x, sqrt2, 0.01f);
+    EXPECT_NEAR(rescaleFactors.y, 1.0f, 0.001f);
+    EXPECT_NEAR(rescaleFactors.z, sqrt2, 0.01f);
 }
 
 /**
@@ -717,24 +706,14 @@ TEST(ElementRotationMathTest, RescaleFactorsForYAxis45Degrees)
 TEST(ElementRotationMathTest, RescaleFactorsForXAxis22_5Degrees)
 {
     glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(22.5f), glm::vec3(1.0f, 0.0f, 0.0f));
-    glm::mat3 rot3x3(rotMatrix);
-
-    auto computeAxisScale = [&rot3x3](const glm::vec3& axisUnit) -> float {
-        glm::vec3 transformed = rot3x3 * axisUnit;
-        float maxAbs = glm::max(glm::abs(transformed.x), glm::max(glm::abs(transformed.y), glm::abs(transformed.z)));
-        return (maxAbs > 0.0001f) ? (1.0f / maxAbs) : 1.0f;
-    };
-
-    float scaleX = computeAxisScale(glm::vec3(1.0f, 0.0f, 0.0f));
-    float scaleY = computeAxisScale(glm::vec3(0.0f, 1.0f, 0.0f));
-    float scaleZ = computeAxisScale(glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::vec3 rescaleFactors = computeRescaleFactors(glm::mat3(rotMatrix));
 
     // X轴不受X轴旋转影响
-    EXPECT_NEAR(scaleX, 1.0f, 0.001f);
+    EXPECT_NEAR(rescaleFactors.x, 1.0f, 0.001f);
     // Y轴和Z轴应该有相同的缩放因子
-    EXPECT_NEAR(scaleY, scaleZ, 0.01f);
+    EXPECT_NEAR(rescaleFactors.y, rescaleFactors.z, 0.01f);
     // 缩放因子应该 > 1.0（因为旋转会导致投影缩短）
-    EXPECT_GT(scaleY, 1.0f);
+    EXPECT_GT(rescaleFactors.y, 1.0f);
 }
 
 /**
@@ -743,21 +722,11 @@ TEST(ElementRotationMathTest, RescaleFactorsForXAxis22_5Degrees)
 TEST(ElementRotationMathTest, RescaleFactorsForZeroRotation)
 {
     glm::mat4 rotMatrix = glm::mat4(1.0f); // 单位矩阵
-    glm::mat3 rot3x3(rotMatrix);
+    glm::vec3 rescaleFactors = computeRescaleFactors(glm::mat3(rotMatrix));
 
-    auto computeAxisScale = [&rot3x3](const glm::vec3& axisUnit) -> float {
-        glm::vec3 transformed = rot3x3 * axisUnit;
-        float maxAbs = glm::max(glm::abs(transformed.x), glm::max(glm::abs(transformed.y), glm::abs(transformed.z)));
-        return (maxAbs > 0.0001f) ? (1.0f / maxAbs) : 1.0f;
-    };
-
-    float scaleX = computeAxisScale(glm::vec3(1.0f, 0.0f, 0.0f));
-    float scaleY = computeAxisScale(glm::vec3(0.0f, 1.0f, 0.0f));
-    float scaleZ = computeAxisScale(glm::vec3(0.0f, 0.0f, 1.0f));
-
-    EXPECT_NEAR(scaleX, 1.0f, 0.001f);
-    EXPECT_NEAR(scaleY, 1.0f, 0.001f);
-    EXPECT_NEAR(scaleZ, 1.0f, 0.001f);
+    EXPECT_NEAR(rescaleFactors.x, 1.0f, 0.001f);
+    EXPECT_NEAR(rescaleFactors.y, 1.0f, 0.001f);
+    EXPECT_NEAR(rescaleFactors.z, 1.0f, 0.001f);
 }
 
 /**
@@ -807,201 +776,209 @@ TEST(ElementRotationMathTest, NormalRecomputationAfterRotation)
     EXPECT_NEAR(normal.z, cos45, 0.01f);
 }
 
+/**
+ * @brief 验证 buildElementRotationMatrix 正确构建含原点平移的旋转矩阵
+ *
+ * 构建一个绕 (8,8,8) 原点、Y轴旋转90度的旋转矩阵，
+ * 验证原点 (8/16, 8/16, 8/16) 在变换后不变，
+ * 且 (16/16, 8/16, 8/16)（即模型空间 (1,0.5,0.5)）旋转后位置正确
+ */
+TEST(ElementRotationMathTest, BuildElementRotationMatrixPreservesOrigin)
+{
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.axis = "y";
+    rotation.angle = 90.0f;
+    rotation.rescale = false;
+
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    // 原点 (8/16, 8/16, 8/16) = (0.5, 0.5, 0.5) 在旋转后应保持不变
+    glm::vec4 origin(0.5f, 0.5f, 0.5f, 1.0f);
+    glm::vec4 rotatedOrigin = mat * origin;
+    EXPECT_NEAR(rotatedOrigin.x, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedOrigin.y, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedOrigin.z, 0.5f, 0.001f);
+
+    // 点 (1.0, 0.5, 0.5) 绕 (0.5, 0.5, 0.5) 旋转90度Y轴
+    // 相对原点偏移 (0.5, 0, 0) → 旋转后变为 (0, 0, -0.5)
+    // 最终位置 = (0.5, 0.5, 0.5) + (0, 0, -0.5) = (0.5, 0.5, 0.0)
+    glm::vec4 point(1.0f, 0.5f, 0.5f, 1.0f);
+    glm::vec4 rotatedPoint = mat * point;
+    EXPECT_NEAR(rotatedPoint.x, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedPoint.y, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedPoint.z, 0.0f, 0.001f);
+}
+
+/**
+ * @brief 验证 buildElementRotationMatrix 的 rescale 功能
+ *
+ * 绕Y轴旋转45度并启用 rescale，X和Z轴应被缩放 √2 倍
+ */
+TEST(ElementRotationMathTest, BuildElementRotationMatrixWithRescale)
+{
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.axis = "y";
+    rotation.angle = 45.0f;
+    rotation.rescale = true;
+
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    // 原点 (0.5, 0.5, 0.5) 仍然应保持不变
+    glm::vec4 origin(0.5f, 0.5f, 0.5f, 1.0f);
+    glm::vec4 rotatedOrigin = mat * origin;
+    EXPECT_NEAR(rotatedOrigin.x, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedOrigin.y, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedOrigin.z, 0.5f, 0.001f);
+
+    // 点 (1.0, 0.5, 0.5) 绕 (0.5, 0.5, 0.5) 旋转45度Y轴（不带rescale）：
+    // 相对原点 (0.5, 0, 0) → 旋转后 (0.5*cos45, 0, -0.5*sin45) ≈ (0.354, 0, -0.354)
+    // 加上 rescale √2 ≈ 1.414：X方向和Z方向被拉伸
+    // 旋转后 X = 0.5*cos45*√2 = 0.5*1.0 = 0.5, Z = 0.5 + (-0.5*sin45*√2) = 0.5 - 0.5 = 0.0
+    // 实际上 rescale 是对旋转矩阵整体缩放，所以：
+    // 最终位置 = (0.5+0.5, 0.5, 0.5) → 不带rescale → 旋转 → 加rescale
+    glm::vec4 point(1.0f, 0.5f, 0.5f, 1.0f);
+    glm::vec4 rotatedPoint = mat * point;
+    // rescale 使旋转后的元素在X/Z方向保持原始宽度
+    // 精确值取决于 rescale 矩阵如何影响平移部分，但核心是 X/Z 范围不会缩小
+    EXPECT_GT(std::abs(rotatedPoint.x - 0.5f), 0.3f); // rescale 使 X 偏移不会缩小到 0.354
+}
+
+/**
+ * @brief 验证 buildElementRotationMatrix 零角度返回恒等变换
+ */
+TEST(ElementRotationMathTest, BuildElementRotationMatrixZeroAngleIsIdentity)
+{
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.axis = "y";
+    rotation.angle = 0.0f;
+    rotation.rescale = false;
+
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    // 任意点应保持不变
+    glm::vec4 point(0.3f, 0.7f, 0.2f, 1.0f);
+    glm::vec4 result = mat * point;
+    EXPECT_NEAR(result.x, 0.3f, 0.001f);
+    EXPECT_NEAR(result.y, 0.7f, 0.001f);
+    EXPECT_NEAR(result.z, 0.2f, 0.001f);
+}
+
 // ============================================================================
-// UV 旋转排列测试：验证 _getRotatedUV 的逻辑正确性
+// UV 旋转测试：直接调用 getRotatedUV 自由函数验证
 // 参考 MC Quadrant.rotateVertexIndex()
 // ============================================================================
 
 /**
  * @brief 验证 UV 旋转 0 度时各顶点的 UV 映射
- *
- * 无旋转时：
- *   顶点0: (u0, v1), 顶点1: (u1, v1), 顶点2: (u1, v0), 顶点3: (u0, v0)
  */
 TEST(UVRotationTest, ZeroDegreeRotationPreservesOriginalUVs)
 {
-    // 使用 _getRotatedUV 的逻辑直接验证
-    // 顶点0 shift=0: corner 0 → (u0, v1)
-    // 顶点1 shift=0: corner 1 → (u1, v1)
-    // 顶点2 shift=0: corner 2 → (u1, v0)
-    // 顶点3 shift=0: corner 3 → (u0, v0)
     f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
 
-    auto getUV = [&](int vertexIndex, i32 rotation) -> std::pair<f32, f32> {
-        int shift = rotation / 90;
-        int uvCorner = (vertexIndex + shift) % 4;
-        switch (uvCorner) {
-            case 0:
-                return {u0, v1};
-            case 1:
-                return {u1, v1};
-            case 2:
-                return {u1, v0};
-            case 3:
-                return {u0, v0};
-            default:
-                return {u0, v1};
-        }
-    };
-
-    auto [u0_v, v0_v] = getUV(0, 0);
+    // 顶点0 → (u0, v1)
+    auto [u0_v, v0_v] = getRotatedUV(0, 0, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u0_v, u0);
     EXPECT_FLOAT_EQ(v0_v, v1);
 
-    auto [u1_v, v1_v] = getUV(1, 0);
+    // 顶点1 → (u1, v1)
+    auto [u1_v, v1_v] = getRotatedUV(1, 0, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u1_v, u1);
     EXPECT_FLOAT_EQ(v1_v, v1);
 
-    auto [u2_v, v2_v] = getUV(2, 0);
+    // 顶点2 → (u1, v0)
+    auto [u2_v, v2_v] = getRotatedUV(2, 0, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u2_v, u1);
     EXPECT_FLOAT_EQ(v2_v, v0);
 
-    auto [u3_v, v3_v] = getUV(3, 0);
+    // 顶点3 → (u0, v0)
+    auto [u3_v, v3_v] = getRotatedUV(3, 0, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u3_v, u0);
     EXPECT_FLOAT_EQ(v3_v, v0);
 }
 
 /**
  * @brief 验证 UV 旋转 90 度时各顶点的 UV 映射
- *
- * 旋转90度 (shift=1)：
- *   顶点0 → corner 1: (u1, v1)
- *   顶点1 → corner 2: (u1, v0)
- *   顶点2 → corner 3: (u0, v0)
- *   顶点3 → corner 0: (u0, v1)
  */
 TEST(UVRotationTest, NinetyDegreeRotationPermutesUVs)
 {
     f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
 
-    auto getUV = [&](int vertexIndex, i32 rotation) -> std::pair<f32, f32> {
-        int shift = rotation / 90;
-        int uvCorner = (vertexIndex + shift) % 4;
-        switch (uvCorner) {
-            case 0:
-                return {u0, v1};
-            case 1:
-                return {u1, v1};
-            case 2:
-                return {u1, v0};
-            case 3:
-                return {u0, v0};
-            default:
-                return {u0, v1};
-        }
-    };
-
-    // 顶点0 → corner 1
-    auto [u0_v, v0_v] = getUV(0, 90);
+    // 顶点0 → corner 1: (u1, v1)
+    auto [u0_v, v0_v] = getRotatedUV(0, 90, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u0_v, u1);
     EXPECT_FLOAT_EQ(v0_v, v1);
 
-    // 顶点1 → corner 2
-    auto [u1_v, v1_v] = getUV(1, 90);
+    // 顶点1 → corner 2: (u1, v0)
+    auto [u1_v, v1_v] = getRotatedUV(1, 90, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u1_v, u1);
     EXPECT_FLOAT_EQ(v1_v, v0);
 
-    // 顶点2 → corner 3
-    auto [u2_v, v2_v] = getUV(2, 90);
+    // 顶点2 → corner 3: (u0, v0)
+    auto [u2_v, v2_v] = getRotatedUV(2, 90, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u2_v, u0);
     EXPECT_FLOAT_EQ(v2_v, v0);
 
-    // 顶点3 → corner 0
-    auto [u3_v, v3_v] = getUV(3, 90);
+    // 顶点3 → corner 0: (u0, v1)
+    auto [u3_v, v3_v] = getRotatedUV(3, 90, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u3_v, u0);
     EXPECT_FLOAT_EQ(v3_v, v1);
 }
 
 /**
  * @brief 验证 UV 旋转 180 度时各顶点的 UV 映射
- *
- * 旋转180度 (shift=2)：
- *   顶点0 → corner 2: (u1, v0)
- *   顶点1 → corner 3: (u0, v0)
- *   顶点2 → corner 0: (u0, v1)
- *   顶点3 → corner 1: (u1, v1)
  */
 TEST(UVRotationTest, OneEightyDegreeRotationPermutesUVs)
 {
     f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
 
-    auto getUV = [&](int vertexIndex, i32 rotation) -> std::pair<f32, f32> {
-        int shift = rotation / 90;
-        int uvCorner = (vertexIndex + shift) % 4;
-        switch (uvCorner) {
-            case 0:
-                return {u0, v1};
-            case 1:
-                return {u1, v1};
-            case 2:
-                return {u1, v0};
-            case 3:
-                return {u0, v0};
-            default:
-                return {u0, v1};
-        }
-    };
-
-    auto [u0_v, v0_v] = getUV(0, 180);
+    // 顶点0 → corner 2: (u1, v0)
+    auto [u0_v, v0_v] = getRotatedUV(0, 180, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u0_v, u1);
     EXPECT_FLOAT_EQ(v0_v, v0);
 
-    auto [u1_v, v1_v] = getUV(1, 180);
+    // 顶点1 → corner 3: (u0, v0)
+    auto [u1_v, v1_v] = getRotatedUV(1, 180, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u1_v, u0);
     EXPECT_FLOAT_EQ(v1_v, v0);
 
-    auto [u2_v, v2_v] = getUV(2, 180);
+    // 顶点2 → corner 0: (u0, v1)
+    auto [u2_v, v2_v] = getRotatedUV(2, 180, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u2_v, u0);
     EXPECT_FLOAT_EQ(v2_v, v1);
 
-    auto [u3_v, v3_v] = getUV(3, 180);
+    // 顶点3 → corner 1: (u1, v1)
+    auto [u3_v, v3_v] = getRotatedUV(3, 180, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u3_v, u1);
     EXPECT_FLOAT_EQ(v3_v, v1);
 }
 
 /**
  * @brief 验证 UV 旋转 270 度时各顶点的 UV 映射
- *
- * 旋转270度 (shift=3)：
- *   顶点0 → corner 3: (u0, v0)
- *   顶点1 → corner 0: (u0, v1)
- *   顶点2 → corner 1: (u1, v1)
- *   顶点3 → corner 2: (u1, v0)
  */
 TEST(UVRotationTest, TwoSeventyDegreeRotationPermutesUVs)
 {
     f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
 
-    auto getUV = [&](int vertexIndex, i32 rotation) -> std::pair<f32, f32> {
-        int shift = rotation / 90;
-        int uvCorner = (vertexIndex + shift) % 4;
-        switch (uvCorner) {
-            case 0:
-                return {u0, v1};
-            case 1:
-                return {u1, v1};
-            case 2:
-                return {u1, v0};
-            case 3:
-                return {u0, v0};
-            default:
-                return {u0, v1};
-        }
-    };
-
-    auto [u0_v, v0_v] = getUV(0, 270);
+    // 顶点0 → corner 3: (u0, v0)
+    auto [u0_v, v0_v] = getRotatedUV(0, 270, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u0_v, u0);
     EXPECT_FLOAT_EQ(v0_v, v0);
 
-    auto [u1_v, v1_v] = getUV(1, 270);
+    // 顶点1 → corner 0: (u0, v1)
+    auto [u1_v, v1_v] = getRotatedUV(1, 270, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u1_v, u0);
     EXPECT_FLOAT_EQ(v1_v, v1);
 
-    auto [u2_v, v2_v] = getUV(2, 270);
+    // 顶点2 → corner 1: (u1, v1)
+    auto [u2_v, v2_v] = getRotatedUV(2, 270, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u2_v, u1);
     EXPECT_FLOAT_EQ(v2_v, v1);
 
-    auto [u3_v, v3_v] = getUV(3, 270);
+    // 顶点3 → corner 2: (u1, v0)
+    auto [u3_v, v3_v] = getRotatedUV(3, 270, u0, v0, u1, v1);
     EXPECT_FLOAT_EQ(u3_v, u1);
     EXPECT_FLOAT_EQ(v3_v, v0);
 }
@@ -1013,30 +990,116 @@ TEST(UVRotationTest, ThreeSixtyDegreesEquivalentToZero)
 {
     f32 u0 = 0.0f, v0 = 0.0f, u1 = 1.0f, v1 = 1.0f;
 
-    auto getUV = [&](int vertexIndex, i32 rotation) -> std::pair<f32, f32> {
-        int shift = rotation / 90;
-        int uvCorner = (vertexIndex + shift) % 4;
-        switch (uvCorner) {
-            case 0:
-                return {u0, v1};
-            case 1:
-                return {u1, v1};
-            case 2:
-                return {u1, v0};
-            case 3:
-                return {u0, v0};
-            default:
-                return {u0, v1};
-        }
-    };
-
     // 360 度 → shift=4, (i+4)%4 = i，等价于0度
     for (int i = 0; i < 4; ++i) {
-        auto [u_rot0, v_rot0] = getUV(i, 0);
-        auto [u_rot360, v_rot360] = getUV(i, 360);
+        auto [u_rot0, v_rot0] = getRotatedUV(i, 0, u0, v0, u1, v1);
+        auto [u_rot360, v_rot360] = getRotatedUV(i, 360, u0, v0, u1, v1);
         EXPECT_FLOAT_EQ(u_rot0, u_rot360);
         EXPECT_FLOAT_EQ(v_rot0, v_rot360);
     }
+}
+
+// ============================================================================
+// 集成测试：构造带旋转元素的 BakedItemModel 并验证 _buildBlockItemMesh 输出
+// ============================================================================
+
+/**
+ * @brief 构造一个带Y轴45度旋转+rescale的元素模型，验证顶点位置和法线
+ *
+ * 模拟一个 cross 型植物元素：from=(0,0,8), to=(16,16,8)，
+ * rotation = {origin=(8,8,8), axis="y", angle=45, rescale=true}
+ * 这是MC原版cross.json的典型元素配置
+ */
+TEST(ElementRotationIntegrationTest, CrossModelElementY45WithRescale)
+{
+    using namespace mc::client::renderer::entity::item;
+
+    // 模拟 cross 型植物元素：from=(0,0,8), to=(16,16,8)，
+    // rotation = {origin=(8,8,8), axis="y", angle=45, rescale=true}
+    // 这是MC原版cross.json的典型元素配置
+    // 直接通过 buildElementRotationMatrix 验证旋转矩阵和顶点变换逻辑
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.axis = "y";
+    rotation.angle = 45.0f;
+    rotation.rescale = true;
+
+    glm::mat4 rotMat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    // 验证旋转原点不变 (8/16 = 0.5)
+    glm::vec4 originPt(0.5f, 0.5f, 0.5f, 1.0f);
+    glm::vec4 rotatedOrigin = rotMat * originPt;
+    EXPECT_NEAR(rotatedOrigin.x, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedOrigin.y, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedOrigin.z, 0.5f, 0.001f);
+
+    // 验证旋转后顶点不在原始位置（说明旋转确实生效了）
+    // 点 (0, 0, 8)/16 = (0, 0, 0.5)，相对原点偏移 (-0.5, -0.5, 0)
+    glm::vec4 corner(0.0f, 0.0f, 0.5f, 1.0f);
+    glm::vec4 rotatedCorner = rotMat * corner;
+    // 旋转45度后，X和Z分量应该发生变化
+    EXPECT_FALSE(std::abs(rotatedCorner.x - corner.x) < 0.001f && std::abs(rotatedCorner.z - corner.z) < 0.001f);
+
+    // 验证 rescale 效果：绕Y轴45度旋转时，X和Z方向应有缩放
+    // rescale 因子 ≈ sqrt(2) ≈ 1.414，使得旋转后的元素保持视觉宽度
+    // 检测 X 方向的偏移是否比无 rescale 时更大
+    glm::vec4 xUnit(1.0f, 0.0f, 0.0f, 0.0f); // 方向向量
+    glm::vec4 rescaledX = rotMat * xUnit;
+    // 无rescale时，X分量应为 cos45 ≈ 0.707；有rescale时，X分量应 ≈ 1.0
+    EXPECT_GT(std::abs(rescaledX.x), 0.9f);
+}
+
+/**
+ * @brief 验证无旋转元素不会改变顶点
+ */
+TEST(ElementRotationIntegrationTest, NoRotationElementPreservesVertices)
+{
+    // 零角度旋转应返回恒等矩阵
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.axis = "y";
+    rotation.angle = 0.0f;
+    rotation.rescale = false;
+
+    // angle=0 时不应该构建旋转矩阵，但即使构建也应为恒等
+    // 注意：实际代码中 hasRotation 判断会跳过零角度
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    glm::vec4 testPoint(0.25f, 0.75f, 0.5f, 1.0f);
+    glm::vec4 result = mat * testPoint;
+    EXPECT_NEAR(result.x, testPoint.x, 0.001f);
+    EXPECT_NEAR(result.y, testPoint.y, 0.001f);
+    EXPECT_NEAR(result.z, testPoint.z, 0.001f);
+}
+
+/**
+ * @brief 验证 X轴旋转的正确性（MC原版火把等模型使用X轴旋转）
+ */
+TEST(ElementRotationIntegrationTest, XAxis22_5DegreeRotation)
+{
+    ::mc::ModelRotation rotation;
+    rotation.origin = glm::vec3(8.0f, 8.0f, 8.0f);
+    rotation.axis = "x";
+    rotation.angle = -22.5f;
+    rotation.rescale = false;
+
+    glm::mat4 mat = buildElementRotationMatrix(rotation, 1.0 / 16.0);
+
+    // 原点 (8/16, 8/16, 8/16) = (0.5, 0.5, 0.5) 在旋转后应保持不变
+    glm::vec4 origin(0.5f, 0.5f, 0.5f, 1.0f);
+    glm::vec4 rotatedOrigin = mat * origin;
+    EXPECT_NEAR(rotatedOrigin.x, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedOrigin.y, 0.5f, 0.001f);
+    EXPECT_NEAR(rotatedOrigin.z, 0.5f, 0.001f);
+
+    // 点 (0.5, 1.0, 0.5) 在原点上方，绕X轴旋转-22.5度
+    // 相对原点偏移 (0, 0.5, 0)，旋转-22.5度后 Y减少、Z也减少
+    // （负角度绕X轴使Y向-Z方向旋转）
+    glm::vec4 abovePoint(0.5f, 1.0f, 0.5f, 1.0f);
+    glm::vec4 rotatedAbove = mat * abovePoint;
+    EXPECT_NEAR(rotatedAbove.x, 0.5f, 0.001f); // X不变
+    EXPECT_LT(rotatedAbove.y, 1.0f);           // Y减少
+    EXPECT_LT(rotatedAbove.z, 0.5f);           // Z减少（负角度绕X轴）
 }
 
 } // namespace

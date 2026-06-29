@@ -779,6 +779,11 @@ ModelFaceUV BlockModelLoader::parseUV(const nlohmann::json& json)
 
 ModelRotation BlockModelLoader::parseRotation(const nlohmann::json& json)
 {
+    // TODO: MC 1.21.11 新增了 EulerXYZ 旋转格式（x/y/z 三轴欧拉角字段），
+    // 当 JSON 中包含 x/y/z 字段但缺少 axis/angle 时，应使用 ZYX 欧拉角旋转。
+    // 当前仅支持传统的 axis+angle 单轴旋转格式。
+    // 参考 MC BlockElement.java Deserializer.getRotation() 中的 EulerXYZ 分支。
+
     ModelRotation rot;
 
     if (json.contains("origin")) {

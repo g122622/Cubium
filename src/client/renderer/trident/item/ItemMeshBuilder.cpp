@@ -488,7 +488,7 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         bool hasRotation = element.rotation.angle != 0.0f;
         glm::mat4 rotationMatrix = glm::mat4(1.0f);
         if (hasRotation) {
-            rotationMatrix = _buildElementRotationMatrix(element.rotation, scale);
+            rotationMatrix = buildElementRotationMatrix(element.rotation, scale);
         }
 
         // 为每个面生成顶点
@@ -555,7 +555,7 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
             // 添加顶点，使用UV旋转排列
             u32 faceBase = static_cast<u32>(vertices.size());
             for (int i = 0; i < 4; ++i) {
-                auto [u, v] = _getRotatedUV(i, face.uv.rotation, u0, v0, u1, v1);
+                auto [u, v] = getRotatedUV(i, face.uv.rotation, u0, v0, u1, v1);
                 vertices.push_back(
                     model::ModelVertex(corners[i].x, corners[i].y, corners[i].z, u, v, normal.x, normal.y, normal.z));
             }
@@ -681,101 +681,6 @@ void ItemMeshBuilder::_buildFallbackMesh(
     indices.push_back(baseIndex + 3);
 
     MC_UNUSED(item);
-}
-
-glm::mat4 ItemMeshBuilder::_buildElementRotationMatrix(const ::mc::ModelRotation& rotation, f64 scale)
-{
-    // 参考 MC BlockElementRotation.computeTransform()
-    // 1. 构建绕指定轴的旋转矩阵
-    // 2. 若 rescale 为 true，计算缩放因子并应用
-    // 3. 组合为 T(origin) * R(可选S) * T(-origin)
-
-    f32 angleRad = glm::radians(rotation.angle);
-    glm::vec3 axisVec;
-
-    if (rotation.axis == "x") {
-        axisVec = glm::vec3(1.0f, 0.0f, 0.0f);
-    } else if (rotation.axis == "z") {
-        axisVec = glm::vec3(0.0f, 0.0f, 1.0f);
-    } else {
-        // 默认为 Y 轴
-        axisVec = glm::vec3(0.0f, 1.0f, 0.0f);
-    }
-
-    // 构建纯旋转矩阵
-    glm::mat4 rotMatrix = glm::rotate(glm::mat4(1.0f), angleRad, axisVec);
-
-    // 若 rescale 为 true，计算各轴缩放因子并应用
-    // 参考 MC BlockElementRotation.computeRescale() / scaleFactorForAxis()
-    if (rotation.rescale && rotation.angle != 0.0f) {
-        glm::vec3 rescaleFactors = _computeRescaleFactors(glm::mat3(rotMatrix));
-
-        // 将缩放应用到旋转矩阵: rotMatrix = rotMatrix * scale(rescaleFactors)
-        glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), rescaleFactors);
-        rotMatrix = rotMatrix * scaleMatrix;
-    }
-
-    // 旋转中心：MC 原版在 JSON 解析时将 origin 除以 16 转为方块坐标系
-    // 此处顶点坐标已经乘以 scale (=1/16)，所以 origin 也需要乘以 scale
-    glm::vec3 origin(rotation.origin.x * static_cast<f32>(scale),
-        rotation.origin.y * static_cast<f32>(scale),
-        rotation.origin.z * static_cast<f32>(scale));
-
-    // 组合变换：T(origin) * rotMatrix * T(-origin)
-    glm::mat4 translateToOrigin = glm::translate(glm::mat4(1.0f), -origin);
-    glm::mat4 translateBack = glm::translate(glm::mat4(1.0f), origin);
-
-    return translateBack * rotMatrix * translateToOrigin;
-}
-
-glm::vec3 ItemMeshBuilder::_computeRescaleFactors(const glm::mat3& rotMatrix)
-{
-    // 参考 MC BlockElementRotation.scaleFactorForAxis()
-    // 对于每个坐标轴，取该轴单位向量经过旋转矩阵变换后的最大绝对分量，
-    // 其倒数即为缩放因子。这补偿了旋转导致的轴向投影收缩。
-    //
-    // 例如：Y轴旋转45度时，X单位向量 (1,0,0) 变换为 (cos45, 0, sin45)
-    // 最大绝对分量为 cos45 ≈ 0.707，缩放因子为 1/0.707 ≈ 1.414
-
-    auto computeAxisScale = [&rotMatrix](const glm::vec3& axisUnit) -> f32 {
-        glm::vec3 transformed = rotMatrix * axisUnit;
-        f32 maxAbs = glm::max(glm::abs(transformed.x), glm::max(glm::abs(transformed.y), glm::abs(transformed.z)));
-        return (maxAbs > 0.0001f) ? (1.0f / maxAbs) : 1.0f;
-    };
-
-    return glm::vec3(computeAxisScale(glm::vec3(1.0f, 0.0f, 0.0f)),
-        computeAxisScale(glm::vec3(0.0f, 1.0f, 0.0f)),
-        computeAxisScale(glm::vec3(0.0f, 0.0f, 1.0f)));
-}
-
-std::pair<f32, f32> ItemMeshBuilder::_getRotatedUV(int vertexIndex, i32 uvRotation, f32 u0, f32 v0, f32 u1, f32 v1)
-{
-    // 参考 MC Quadrant.rotateVertexIndex() / BlockElementFace.getU() / getV()
-    // UV旋转通过顶点索引排列实现：
-    // rotation 为 0/90/180/270 度，对应 shift 为 0/1/2/3
-    // 每个顶点 i 使用无旋转时顶点 (i + shift) % 4 的 UV 坐标
-    //
-    // 无旋转时各顶点的 UV 映射：
-    //   顶点0: (u0, v1)  -- 左下
-    //   顶点1: (u1, v1)  -- 右下
-    //   顶点2: (u1, v0)  -- 右上
-    //   顶点3: (u0, v0)  -- 左上
-
-    int shift = uvRotation / 90; // 0, 1, 2, 3
-    int uvCorner = (vertexIndex + shift) % 4;
-
-    switch (uvCorner) {
-        case 0:
-            return {u0, v1}; // 左下
-        case 1:
-            return {u1, v1}; // 右下
-        case 2:
-            return {u1, v0}; // 右上
-        case 3:
-            return {u0, v0}; // 左上
-        default:
-            return {u0, v1}; // 不应到达
-    }
 }
 
 void ItemMeshBuilder::_applyMatrixToVertices(std::vector<model::ModelVertex>& vertices, const glm::mat4& matrix)
