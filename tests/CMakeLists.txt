@@ -932,6 +932,8 @@ add_executable(mc_tests
     # 鐗╁搧鎷惧彇绠＄悊鍣ㄦ祴璇?    server/world/ItemPickupManagerTest.cpp
     # ServerWorld 方块实体测试
     server/world/ServerWorldBlockEntityTest.cpp
+    # 幽匿尖啸体服务端逻辑测试
+    server/world/blockentity/sculk/SculkShriekerHelperTest.cpp
     # ServerWorld 出生点朝向测试
     server/world/ServerWorldSpawnAngleTest.cpp
     # ServerWorld 命令执行回调测试

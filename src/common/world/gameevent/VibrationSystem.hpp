@@ -490,6 +490,15 @@ public:
         [[nodiscard]] virtual bool canTriggerAvoidVibration() const { return false; }
 
         /**
+         * @brief 是否为幽匿尖啸体（而非感测体）
+         *
+         * 用于 SculkVibrationManager::tickAll() 中区分感测体和尖啸体，
+         * 以便仅对尖啸体检查 SHRIEKING 结束标志。
+         * 默认返回 false（感测体），尖啸体覆写为 true。
+         */
+        [[nodiscard]] virtual bool isSculkShrieker() const { return false; }
+
+        /**
          * @brief 数据变化回调
          *
          * 当振动系统数据发生变化时调用（如选择了新振动、振动到达等），

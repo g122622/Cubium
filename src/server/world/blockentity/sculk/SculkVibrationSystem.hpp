@@ -96,6 +96,14 @@ public:
     [[nodiscard]] bool requiresAdjacentChunksToBeTicking() const override { return true; }
     [[nodiscard]] bool canTriggerAvoidVibration() const override { return true; }
 
+    /**
+     * @brief 标识此 User 为感测体（而非尖啸体）
+     *
+     * 用于 SculkVibrationManager::tickAll() 中区分感测体和尖啸体，
+     * 以便仅对尖啸体检查 SHRIEKING 结束标志。
+     */
+    [[nodiscard]] bool isSculkShrieker() const override { return false; }
+
     void onDataChanged() override { m_entity.setChanged(); }
 
 private:
@@ -141,6 +149,14 @@ public:
 
     [[nodiscard]] bool requiresAdjacentChunksToBeTicking() const override { return true; }
     [[nodiscard]] bool canTriggerAvoidVibration() const override { return false; }
+
+    /**
+     * @brief 标识此 User 为尖啸体（而非感测体）
+     *
+     * 用于 SculkVibrationManager::tickAll() 中区分感测体和尖啸体，
+     * 以便仅对尖啸体检查 SHRIEKING 结束标志。
+     */
+    [[nodiscard]] bool isSculkShrieker() const override { return true; }
 
     void onDataChanged() override { m_entity.setChanged(); }
 

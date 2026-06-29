@@ -227,8 +227,7 @@ void SculkVibrationManager::tickAll()
     // 对齐 MC Java: SculkShriekerBlock.tick() 中 SHRIEKING → false 后调用 tryRespond()
     for (auto& [pos, system] : m_vibrationSystems) {
         // 仅检查尖啸体（感测体没有 SHRIEKING 机制）
-        if (system->getVibrationUser().canTriggerAvoidVibration()) {
-            // SculkSensorVibrationUser returns true, SculkShriekerVibrationUser returns false
+        if (!system->getVibrationUser().isSculkShrieker()) {
             continue;
         }
         SculkShriekerHelper::checkShriekingFinished(*m_world, pos);

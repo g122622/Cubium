@@ -115,6 +115,49 @@ public:
      */
     static void checkShriekingFinished(ServerWorld& world, const BlockPos& pos);
 
+    /**
+     * @brief 将触发实体解析为玩家
+     *
+     * 对齐 MC Java: SculkShriekerBlockEntity.tryGetPlayer()
+     * 支持直接玩家、载具乘客、投射物主人、物品主人。
+     */
+    static Player* tryGetPlayer(const Entity* entity);
+
+    // ========== 常量 ==========
+
+    /// 尖啸体警告等级对应的声音（对齐 MC Java SOUND_BY_LEVEL 映射）
+    static constexpr const char* WARDEN_SOUND_BY_LEVEL[5] = {
+        nullptr,                                  // level 0: no sound
+        "minecraft:entity.warden.nearby_close",   // level 1
+        "minecraft:entity.warden.nearby_closer",  // level 2
+        "minecraft:entity.warden.nearby_closest", // level 3
+        "minecraft:entity.warden.listening_angry" // level 4 (warden about to spawn)
+    };
+
+    /// 检查附近监守者的搜索半径（格）
+    static constexpr f32 WARDEN_SEARCH_RADIUS = 48.0f;
+
+    /// 查找附近玩家的搜索半径（格）
+    static constexpr f32 PLAYER_SEARCH_RADIUS = 16.0f;
+
+    /// 黑暗效果的应用半径（格）
+    static constexpr f32 DARKNESS_RADIUS = 40.0f;
+
+    /// 黑暗效果持续时间（tick）
+    static constexpr i32 DARKNESS_DURATION = 260;
+
+    /// 黑暗效果应用冷却（tick）
+    static constexpr i32 DARKNESS_COOLDOWN = 200;
+
+    /// 监守者生成尝试次数
+    static constexpr i32 SUMMON_ATTEMPTS = 20;
+
+    /// 监守者生成水平偏移范围
+    static constexpr i32 SUMMON_HORIZONTAL_RANGE = 5;
+
+    /// 监守者生成垂直偏移范围
+    static constexpr i32 SUMMON_VERTICAL_RANGE = 6;
+
 private:
     /**
      * @brief 检查尖啸体是否可以响应（召唤监守者的前置条件）
@@ -169,47 +212,6 @@ private:
      * @return 警告等级是否成功递增
      */
     static bool tryWarn(ServerWorld& world, const BlockPos& pos);
-
-    /**
-     * @brief 将触发实体解析为玩家
-     *
-     * 对齐 MC Java: SculkShriekerBlockEntity.tryGetPlayer()
-     * 支持直接玩家、载具乘客、投射物主人、物品主人。
-     */
-    static Player* tryGetPlayer(const Entity* entity);
-
-    /// 尖啸体警告等级对应的声音（对齐 MC Java SOUND_BY_LEVEL 映射）
-    static constexpr const char* WARDEN_SOUND_BY_LEVEL[5] = {
-        nullptr,                                  // level 0: no sound
-        "minecraft:entity.warden.nearby_close",   // level 1
-        "minecraft:entity.warden.nearby_closer",  // level 2
-        "minecraft:entity.warden.nearby_closest", // level 3
-        "minecraft:entity.warden.listening_angry" // level 4 (warden about to spawn)
-    };
-
-    /// 检查附近监守者的搜索半径（格）
-    static constexpr f32 WARDEN_SEARCH_RADIUS = 48.0f;
-
-    /// 查找附近玩家的搜索半径（格）
-    static constexpr f32 PLAYER_SEARCH_RADIUS = 16.0f;
-
-    /// 黑暗效果的应用半径（格）
-    static constexpr f32 DARKNESS_RADIUS = 40.0f;
-
-    /// 黑暗效果持续时间（tick）
-    static constexpr i32 DARKNESS_DURATION = 260;
-
-    /// 黑暗效果应用冷却（tick）
-    static constexpr i32 DARKNESS_COOLDOWN = 200;
-
-    /// 监守者生成尝试次数
-    static constexpr i32 SUMMON_ATTEMPTS = 20;
-
-    /// 监守者生成水平偏移范围
-    static constexpr i32 SUMMON_HORIZONTAL_RANGE = 5;
-
-    /// 监守者生成垂直偏移范围
-    static constexpr i32 SUMMON_VERTICAL_RANGE = 6;
 };
 
 } // namespace server
