@@ -540,12 +540,30 @@ TEST_F(CollisionShapeCoversTest, OverlappingBoxesCover)
 TEST_F(CollisionShapeCoversTest, DiagonalComplementDoesNotCover)
 {
     // 两个对角互补的方块：Box A 覆盖 Y=[0,0.6]×Z=[0.4,1]，Box B 覆盖 Y=[0.4,1]×Z=[0,0.6]
-    // 注意：当前扫描线算法对此情况存在已知局限，会误判为覆盖
-    // 此测试记录当前行为，待迁移到 VoxelShape 系统后应改为 EXPECT_FALSE
+    // Y 轴覆盖 [0,1]、Z 轴覆盖 [0,1] 均完整，但 2D 区域 Y=[0,0.4]×Z=[0,0.4] 实际未被覆盖
+    // 使用 VoxelShape 布尔运算可以精确检测此情况
     CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.4f, 1.0f, 0.6f, 1.0f);
     shape.addBox(0.0f, 0.4f, 0.0f, 1.0f, 1.0f, 0.6f);
-    // 当前扫描线算法的局限：独立检查 Y 轴和 Z 轴覆盖会通过，但实际 2D 区域未完全覆盖
-    // 这个测试验证当前行为，后续改进后应改为 EXPECT_FALSE
+    EXPECT_FALSE(shape.coversFullBlock());
+}
+
+TEST_F(CollisionShapeCoversTest, LShapeXZDoesNotCover)
+{
+    // L 形排列：Box A 覆盖下半部分，Box B 覆盖右上角
+    // 2D 面投影中右上角被覆盖，但左上角 Y=[0.6,1]×Z=[0,0.5] 未覆盖
+    CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 1.0f);
+    shape.addBox(0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 1.0f);
+    EXPECT_FALSE(shape.coversFullBlock());
+}
+
+TEST_F(CollisionShapeCoversTest, OverlappingDiagonalCovers)
+{
+    // 两个重叠的对角方块，且重叠区域覆盖了整个单位方块
+    // Box A: X=[0,0.7] 覆盖全部 YZ
+    // Box B: X=[0.3,1] 覆盖全部 YZ
+    // 合起来覆盖 X=[0,1] 整个方块
+    CollisionShape shape = CollisionShape::box(0.0f, 0.0f, 0.0f, 0.7f, 1.0f, 1.0f);
+    shape.addBox(0.3f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
     EXPECT_TRUE(shape.coversFullBlock());
 }
 
