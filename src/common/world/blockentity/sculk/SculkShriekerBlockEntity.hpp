@@ -43,10 +43,7 @@ namespace blockentity {
  * - SculkVibrationSystem（服务端）持有 VibrationSystem::User 和 Listener
  * - SculkVibrationManager 在 ServerWorld 中管理附件的生命周期
  *
- * 警告等级和振动系统数据通过 NBT/JSON 序列化保存到存档，
- * 与 MC 原版 SculkShriekerBlockEntity 的序列化格式兼容。
- *
- * 参考: net.minecraft.block.entity.SculkShriekerBlockEntity
+ * 警告等级和振动系统数据通过 NBT/JSON 序列化保存到存档。
  */
 class SculkShriekerBlockEntity : public BlockEntity {
 public:
@@ -138,7 +135,7 @@ private:
     /// 振动系统数据
     gameevent::VibrationSystem::Data m_vibrationData;
 
-    /// 警告等级 (0-4)，对齐 MC 原版 SculkShriekerBlockEntity.warningLevel
+    /// 警告等级 (0-4)
     i32 m_warningLevel = 0;
 
     /// 尖啸结束标志（SHRIEKING 状态到期或方块被移除时设置，服务端检测后触发 tryRespond）

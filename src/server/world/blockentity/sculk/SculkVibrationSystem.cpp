@@ -209,6 +209,12 @@ void SculkVibrationManager::unregisterSculkBlockEntity(const BlockPos& pos)
     auto& system = it->second;
     auto& listener = system->getVibrationListener();
 
+    // 如果是尖啸体且尖啸已结束，在注销前先处理响应逻辑
+    // 否则注销后 tickAll 不再遍历此尖啸体，tryRespond 永远不会被调用
+    if (system->getVibrationUser().isSculkShrieker()) {
+        SculkShriekerHelper::checkShriekingFinished(*m_world, pos);
+    }
+
     // 从区块的 GameEventListenerRegistry 注销 Listener
     unregisterListenerFromChunk(pos, listener);
 
