@@ -730,7 +730,7 @@
 
                     *
                     *调用链 *
-                        *：`addPassenger()` / `startRiding()` 先检查 `couldAcceptPassenger()`，再检查 `canAddPassenger()`，两层都通过才允许骑乘。
+                        *：`startRiding()` 负责循环检测、准入检查（先 `couldAcceptPassenger()` 再 `canAddPassenger()`），然后设置 vehicle 字段并调用 `addPassenger()`。`addPassenger()` 仅操作乘客列表，不进行循环检测（对齐 MC Java）。
 
                         **子类覆写示例 **：
 

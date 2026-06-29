@@ -1779,7 +1779,17 @@ public:
     [[nodiscard]] bool isPassenger(EntityId entityId) const;
 
     /**
-     * @brief 添加乘客
+     * @brief 添加乘客到本载具
+     *
+     * 对齐 MC Java Entity.addPassenger()：仅操作乘客列表，不进行循环检测。
+     * 循环检测由 startRiding() 负责。
+     *
+     * 前置条件：passenger.getVehicle() 必须等于 this.id()，
+     * 即 passenger 必须已经通过 setVehicle() 关联到此载具。
+     * 这与 MC Java 的行为一致：startRiding 先设置 vehicle 字段，再调用 addPassenger。
+     *
+     * 不应直接调用此方法，应使用 startRiding()。
+     *
      * @param passenger 乘客实体
      * @return 是否成功添加
      */
@@ -1792,8 +1802,16 @@ public:
     void removePassenger(Entity& passenger);
 
     /**
-     * @brief 开始骑乘
-     * @param vehicle 车辆实体
+     * @brief 开始骑乘载具
+     *
+     * 对齐 MC Java Entity.startRiding(Entity, boolean, boolean)：
+     * 1. 循环检测（从载具沿 vehicle 链向上遍历）
+     * 2. 检查 couldAcceptPassenger / canBeRidden / canAddPassenger
+     * 3. 如已在骑乘则先停止
+     * 4. 设置 m_vehicle = vehicle.id()（先于 addPassenger）
+     * 5. 调用 vehicle.addPassenger(*this)
+     *
+     * @param vehicle 载具实体
      * @return 是否成功骑乘
      */
     bool startRiding(Entity& vehicle);
