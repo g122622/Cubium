@@ -107,8 +107,10 @@ private:
  * ## 设计要点
  *
  * 1. **分区粒度（coordinateShift）**：区块坐标右移 `coordinateShift` 位得到分区(section)键。
- *    `coordinateShift = 0` 时一个区块一个锁条目（最细粒度，对齐 Moonrise 默认配置）。
- *    多个区块可以共用同一个 section 锁，减少内存占用但增大锁竞争粒度。
+ *    `coordinateShift = 0` 时一个区块一个锁条目（最细粒度）；`coordinateShift = N` 时每 `(1<<N)×(1<<N)` 个区块
+ *    共用一个 section 锁，减少哈希表条目数与 `lock`/`unlock` 的 section 操作数，但增大锁竞争粒度。
+ *    调用方按场景选择：`ChunkTaskScheduler` 用 6（对齐 Moonrise `getChunkSystemLockShift()`），使
+ *    `2*maxAccessRadius` 锁只触达 1~4 个 section 而非 2025 个。
  *
  * 2. **Node 所有权**：一次 `lock` 调用创建一个 `Node`，该 Node 代表调用线程对区域内所有
  *    section 的占有。内部哈希表为 `sectionKey -> shared_ptr<Node>`。同一线程对已占有 section 的重入
@@ -122,15 +124,17 @@ private:
  * 4. **RAII**：`lock()` 返回 `LockHandle`（持有锁所有权），`LockHandle` 析构时
  *    `unlock` + 释放 `shared_ptr`。`tryLock()` 返回 `LockHandle`，失败返回空 `LockHandle`。
  *
- * ## 无锁实现（对齐 Moonrise）
+ * ## 实现（对齐 Moonrise）
  *
- * - `m_nodes`：无锁并发哈希表
- * `ConcurrentLong2ObjectHashTable<shared_ptr<Node>>`（putIfAbsent/remove(key,expected)/get）， 无 mutex。对齐 Moonrise
- * 的 `ConcurrentChainedLong2ReferenceHashTable`。
+ * - `m_nodes`：每桶 mutex 分段锁哈希表 `ConcurrentLong2ObjectHashTable<shared_ptr<Node>>`
+ *   （putIfAbsent/remove(key,expected)/get），对齐 Moonrise 的 `ConcurrentChainedLong2ReferenceHashTable`
+ *   （每桶 `synchronized(node)` 分段锁）。4096 桶，每桶独立锁，不同桶完全并行，同桶争用时阻塞睡眠。
+ *   先前版本用 `std::atomic<shared_ptr>` 无锁方案，高争用下（onChunkGenComplete 持 2025-section 锁）
+ *   逻辑删除节点堆积 + CAS 忙等导致 livelock；改回分段锁消除该问题。
  * - **等待队列**：每个 Node 自身继承 `MultiThreadedQueue<ThreadHandle*>`，作为该 Node 的等待线程队列。
  *   冲突线程把自己加入被冲突 Node 的等待队列（`park->add(currThread)`），然后 `LockSupport::park()` 阻塞。
  *   unlock 时 `node.pollOrBlockAdds()` 排空等待队列并 `LockSupport::unpark` 逐个唤醒。
- *   这套无锁协议替代了旧的 mutex+condition_variable，消除 `unlock:notify` 的 per-key notify_all 惊群。
+ *   这套无锁等待协议替代了旧的 mutex+condition_variable，消除 `unlock:notify` 的 per-key notify_all 惊群。
  *
  * ## 在区块生成中的作用
  *
@@ -220,8 +224,9 @@ public:
     /**
      * @brief 构造区域锁
      *
-     * @param coordinateShift 区块坐标右移位数，得到 section 键。0 表示一个区块一个锁条目。
-     *                        Moonrise 使用 0（区块级粒度）。负值非法。
+     * @param coordinateShift 区块坐标右移位数，得到 section 键。0 表示一个区块一个锁条目（最细粒度）；
+     *                        N>0 时每 (1<<N)×(1<<N) 个区块共用一个 section 锁。由调用方按场景选择
+     *                        （ChunkTaskScheduler 用 6，对齐 Moonrise getChunkSystemLockShift()）。负值非法。
      */
     explicit ReentrantAreaLock(i32 coordinateShift)
         : m_coordinateShift(coordinateShift)
@@ -336,7 +341,7 @@ private:
     i32 m_coordinateShift;
 
     /**
-     * @brief section 键 -> Node 的无锁并发哈希表
+     * @brief section 键 -> Node 的每桶 mutex 分段锁哈希表
      *
      * 每个被占有的 section 都映射到持有它的 Node。多个 section 可映射到同一个 Node
      * （一次区域锁覆盖多个 section 时）。Node 由 shared_ptr 管理：哈希表 + 持有线程的 LockHandle +

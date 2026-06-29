@@ -26,8 +26,17 @@
 #include "common/world/gen/surface/CaveSurface.hpp"
 #include "common/world/gen/surface/VerticalAnchor.hpp"
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
+
+namespace mc::world::gen::noise {
+class NormalNoise;
+}
+
+namespace mc::math {
+class PositionalRandomFactory;
+}
 
 namespace mc::world::gen::surface {
 
@@ -52,8 +61,37 @@ public:
     [[nodiscard]] virtual bool test(const SurfaceRuleContext& ctx) const = 0;
 };
 
+// ============================================================================
+// LazyXZCondition / LazyYCondition — MC 1.21 SurfaceRules.LazyCondition
+// ============================================================================
+// MC 1.21: XZ-only 条件（NoiseThresholdCondition/Hole/Steep）每列只求值一次，
+// Y 依赖条件（StoneDepth/Y/Water/VerticalGradient/Biome/Temperature）每 Y 步只求值一次。
+// 原版将缓存放进 per-call 的 LazyCondition 实例；本项目规则树跨线程共享，
+// 故缓存由 SurfaceRuleContext 持有（以 this 指针为 key），见 cachedXZ/cachedY。
+// 子类实现 compute()；test() 为 final，负责命中/求值/缓存。
+
+/**
+ * @brief XZ-only 条件基类：结果在当前列内缓存（updateXZ 失效）。
+ * 对应原版 SurfaceRules.LazyXZCondition。
+ */
+class LazyXZCondition : public SurfaceCondition {
+public:
+    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const final;
+    [[nodiscard]] virtual bool compute(const SurfaceRuleContext& ctx) const = 0;
+};
+
+/**
+ * @brief Y 依赖条件基类：结果在当前 Y 步内缓存（updateY/updateXZ 失效）。
+ * 对应原版 SurfaceRules.LazyYCondition。
+ */
+class LazyYCondition : public SurfaceCondition {
+public:
+    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const final;
+    [[nodiscard]] virtual bool compute(const SurfaceRuleContext& ctx) const = 0;
+};
+
 /** 石块深度检查（MC: StoneDepthCheck） */
-class StoneDepthCondition final : public SurfaceCondition {
+class StoneDepthCondition final : public LazyYCondition {
 public:
     StoneDepthCondition(i32 offset, bool addSurfaceDepth, i32 secondaryDepthRange, CaveSurface surface)
         : m_offset(offset)
@@ -62,7 +100,7 @@ public:
         , m_surface(surface)
     {}
 
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 
 private:
     i32 m_offset;
@@ -72,7 +110,7 @@ private:
 };
 
 /** Y 高度检查（MC: YCondition） */
-class YCondition final : public SurfaceCondition {
+class YCondition final : public LazyYCondition {
 public:
     YCondition(VerticalAnchor anchor, i32 surfaceDepthMultiplier, bool addStoneDepth)
         : m_anchor(anchor)
@@ -80,7 +118,7 @@ public:
         , m_addStoneDepth(addStoneDepth)
     {}
 
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 
 private:
     VerticalAnchor m_anchor;
@@ -89,7 +127,7 @@ private:
 };
 
 /** 水面检查（MC: WaterCondition） */
-class WaterCondition final : public SurfaceCondition {
+class WaterCondition final : public LazyYCondition {
 public:
     WaterCondition(i32 offset, i32 surfaceDepthMultiplier, bool addStoneDepth)
         : m_offset(offset)
@@ -97,7 +135,7 @@ public:
         , m_addStoneDepth(addStoneDepth)
     {}
 
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 
 private:
     i32 m_offset;
@@ -106,19 +144,19 @@ private:
 };
 
 /** 生物群系检查 */
-class BiomeCondition final : public SurfaceCondition {
+class BiomeCondition final : public LazyYCondition {
 public:
     explicit BiomeCondition(std::vector<BiomeId> biomes)
         : m_biomes(std::move(biomes))
     {}
 
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 
 private:
     std::vector<BiomeId> m_biomes;
 };
 
-/** NOT 条件 */
+/** NOT 条件 — 普通（非 lazy），委托给内层条件；内层若是 lazy 则自行命中其缓存 */
 class NotCondition final : public SurfaceCondition {
 public:
     explicit NotCondition(std::unique_ptr<SurfaceCondition> condition)
@@ -134,9 +172,12 @@ private:
 /**
  * @brief 噪声阈值条件（MC: NoiseThresholdConditionSource）
  *
- * MC 1.21: 存储噪声名称，在 test() 时通过 RandomState 查找缓存实例。
+ * MC 1.21: 存储噪声名称，原版在 apply(context) 时一次性解析 NormalNoise。
+ * 本项目规则树跨线程共享，无法在构造时解析（RandomState 可能尚未就绪），
+ * 改用 std::call_once 在首次 compute 时线程安全地解析并缓存 NormalNoise*。
+ * 属 XZ-only 条件（getValue(blockX, 0, blockZ) 不依赖 Y），继承 LazyXZCondition。
  */
-class NoiseThresholdCondition final : public SurfaceCondition {
+class NoiseThresholdCondition final : public LazyXZCondition {
 public:
     NoiseThresholdCondition(std::string noiseName, f64 minThreshold, f64 maxThreshold)
         : m_noiseName(std::move(noiseName))
@@ -144,21 +185,25 @@ public:
         , m_maxThreshold(maxThreshold)
     {}
 
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 
 private:
     std::string m_noiseName;
     f64 m_minThreshold;
     f64 m_maxThreshold;
+    // 首次 compute 时解析 NormalNoise* 并缓存（共享 const 对象，跨线程只读，需同步）
+    mutable std::once_flag m_resolveOnce;
+    mutable const noise::NormalNoise* m_cachedNoise = nullptr;
 };
 
 /**
  * @brief 垂直梯度条件（MC: VerticalGradientConditionSource）
  *
- * 用于基岩层等（随机梯度过渡），MC 1.21 中存储随机工厂名称，
- * 通过 RandomState 查找 PositionalRandomFactory。
+ * 用于基岩层等（随机梯度过渡），MC 1.21 中存储随机工厂名称。
+ * 与 NoiseThresholdCondition 同理用 std::call_once 缓存 PositionalRandomFactory*。
+ * 依赖 blockY（每 Y 步不同），继承 LazyYCondition。
  */
-class VerticalGradientCondition final : public SurfaceCondition {
+class VerticalGradientCondition final : public LazyYCondition {
 public:
     VerticalGradientCondition(std::string randomName, VerticalAnchor trueAtAndBelow, VerticalAnchor falseAtAndAbove)
         : m_randomName(std::move(randomName))
@@ -166,33 +211,35 @@ public:
         , m_falseAtAndAbove(falseAtAndAbove)
     {}
 
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 
 private:
     std::string m_randomName;
     VerticalAnchor m_trueAtAndBelow;
     VerticalAnchor m_falseAtAndAbove;
+    mutable std::once_flag m_resolveOnce;
+    mutable const math::PositionalRandomFactory* m_cachedFactory = nullptr;
 };
 
-/** 陡峭条件 */
-class SteepCondition final : public SurfaceCondition {
+/** 陡峭条件 — XZ-only（MC: SteepMaterialCondition） */
+class SteepCondition final : public LazyXZCondition {
 public:
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 };
 
-/** 温度条件（是否冷到可以降雪） */
-class TemperatureCondition final : public SurfaceCondition {
+/** 温度条件（是否冷到可以降雪）— Y 依赖（MC: TemperatureHelperCondition） */
+class TemperatureCondition final : public LazyYCondition {
 public:
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 };
 
-/** Hole 条件（surfaceDepth <= 0） */
-class HoleCondition final : public SurfaceCondition {
+/** Hole 条件（surfaceDepth <= 0）— XZ-only（MC: HoleCondition） */
+class HoleCondition final : public LazyXZCondition {
 public:
-    [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;
+    [[nodiscard]] bool compute(const SurfaceRuleContext& ctx) const override;
 };
 
-/** 预备表面以上条件 */
+/** 预备表面以上条件 — 普通（非 lazy）；ctx.abovePreliminarySurface() 内部已有 XZ 缓存 */
 class AbovePreliminarySurfaceCondition final : public SurfaceCondition {
 public:
     [[nodiscard]] bool test(const SurfaceRuleContext& ctx) const override;

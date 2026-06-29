@@ -17,6 +17,7 @@
  */
 
 #include "SingleChunkLifecycleManager.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include <algorithm>
@@ -85,6 +86,8 @@ ChunkPrimer* SingleChunkLifecycleManager::getChunkIfPresentUnchecked(const Chunk
 
 void SingleChunkLifecycleManager::onChunkGenComplete(const ChunkStatus& completedStatus)
 {
+    MC_TRACE_EVENT(
+        "server.chunk", "SingleChunkLifecycleManager::onChunkGenComplete", "completedStatus", completedStatus.name());
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     // Cubium ChunkPrimer 累积式：primer 是同一对象（_executeStepTask 修改同一 primer），
     // 只需推进 m_currentGenStatus，无需重存区块（对齐 Moonrise onChunkGenComplete 的 currentGenStatus 赋值）。
@@ -366,7 +369,9 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
     // Unknown 是唯一允许触发一次来源解析的状态
     if (m_sourceState == SourceState::Unknown) {
         m_sourceState = SourceState::ResolvingStorage;
-        return _buildDecisionLocked();
+        EnqueueDecision decision = _buildDecisionLocked();
+        decision.shouldResolveStorage = true;
+        return decision;
     }
 
     // 已确认存档不存在 → 走生成链路（由 ChunkTaskScheduler 调度）
@@ -477,9 +482,13 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::_build
         return decision;
     }
 
-    // 来源解析是一次性的：只有 Unknown -> ResolvingStorage 那一跳
+    // 来源解析是一次性的：Unknown→ResolvingStorage 那一跳由 submitRequest 直接置 shouldResolveStorage=true。
+    // ResolvingStorage 状态下（其他线程并发 submitRequest 见到，解析在途）返回 no-op：waiter 已加入 m_waiters，
+    // 在途线程的 noteStorageResolved→_completeReadyWaiters（存档命中）或 _scheduleGeneration（存档缺失）会唤醒。
+    // 若此处置 shouldResolveStorage=true，并发 submitRequest 会重复触发 _resolveChunkSourceSync→noteStorageResolved，
+    // 第二次 noteStorageResolved 见到非 ResolvingStorage（已被第一次推进到 LoadedFromStorage/StorageMissing）
+    // 触发 m_sourceState != ResolvingStorage 断言。
     if (m_sourceState == SourceState::ResolvingStorage) {
-        decision.shouldResolveStorage = true;
         return decision;
     }
 

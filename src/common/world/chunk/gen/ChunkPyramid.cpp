@@ -127,8 +127,6 @@ void addRequirement(std::vector<const ChunkStatus*>& deps, const ChunkStatus* st
 
 const ChunkPyramid& ChunkPyramid::generationPyramid()
 {
-    MC_TRACE_EVENT("server.chunk", "ChunkPyramid::generationPyramid");
-
     static const ChunkPyramid pyramid = []() {
         std::vector<ChunkStep> steps;
         steps.reserve(12);

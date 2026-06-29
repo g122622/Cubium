@@ -18,21 +18,40 @@
  */
 
 #include "common/world/gen/surface/SurfaceCondition.hpp"
-#include "common/world/gen/RandomState.hpp"
-#include "common/world/gen/surface/SurfaceRuleContext.hpp"
 #include "common/util/math/MathUtils.hpp"
+#include "common/util/math/random/PositionalRandomFactory.hpp"
+#include "common/world/gen/RandomState.hpp"
+#include "common/world/gen/noise/NormalNoise.hpp"
+#include "common/world/gen/surface/SurfaceRuleContext.hpp"
 
 #include <algorithm>
 #include <climits>
+#include <mutex>
 
 namespace mc::world::gen::surface {
+
+// ============================================================================
+// LazyXZCondition / LazyYCondition — MC 1.21 SurfaceRules.LazyCondition
+// test() 为 final：委托给 SurfaceRuleContext 的 per-call 缓存（key = this 指针）。
+// 命中缓存直接返回；未命中则调用子类 compute() 并写入缓存。
+// ============================================================================
+
+bool LazyXZCondition::test(const SurfaceRuleContext& ctx) const
+{
+    return ctx.cachedXZ(this, *this);
+}
+
+bool LazyYCondition::test(const SurfaceRuleContext& ctx) const
+{
+    return ctx.cachedY(this, *this);
+}
 
 // ============================================================================
 // StoneDepthCondition — MC: StoneDepthCheck
 // MC 逻辑: stoneDepth <= 1 + offset + (addSurfaceDepth ? surfaceDepth : 0) + secondaryDepthRange映射
 // ============================================================================
 
-bool StoneDepthCondition::test(const SurfaceRuleContext& ctx) const
+bool StoneDepthCondition::compute(const SurfaceRuleContext& ctx) const
 {
     const i32 stoneDepth = (m_surface == CaveSurface::Floor) ? ctx.stoneDepthAbove() : ctx.stoneDepthBelow();
     const i32 surfaceDepthOffset = m_addSurfaceDepth ? ctx.surfaceDepth() : 0;
@@ -49,7 +68,7 @@ bool StoneDepthCondition::test(const SurfaceRuleContext& ctx) const
 // MC 逻辑: blockY + (addStoneDepth ? stoneDepthAbove : 0) >= anchorY + surfaceDepth * multiplier
 // ============================================================================
 
-bool YCondition::test(const SurfaceRuleContext& ctx) const
+bool YCondition::compute(const SurfaceRuleContext& ctx) const
 {
     const i32 anchorY = m_anchor.resolveY(ctx.minY(), ctx.height());
     const i32 y = ctx.blockY() + (m_addStoneDepth ? ctx.stoneDepthAbove() : 0);
@@ -62,7 +81,7 @@ bool YCondition::test(const SurfaceRuleContext& ctx) const
 // surfaceDepth * multiplier
 // ============================================================================
 
-bool WaterCondition::test(const SurfaceRuleContext& ctx) const
+bool WaterCondition::compute(const SurfaceRuleContext& ctx) const
 {
     if (ctx.waterHeight() == INT_MIN) {
         return true;
@@ -75,29 +94,30 @@ bool WaterCondition::test(const SurfaceRuleContext& ctx) const
 // BiomeCondition
 // ============================================================================
 
-bool BiomeCondition::test(const SurfaceRuleContext& ctx) const
+bool BiomeCondition::compute(const SurfaceRuleContext& ctx) const
 {
     return std::find(m_biomes.begin(), m_biomes.end(), ctx.biome()) != m_biomes.end();
 }
 
 // ============================================================================
-// NoiseThresholdCondition — MC: NoiseThresholdConditionSource
+// NoiseThresholdCondition — MC: NoiseThresholdConditionSource (LazyXZCondition)
+// 首次 compute 时通过 std::call_once 解析 NormalNoise* 并缓存，消除热路径字符串查找。
 // ============================================================================
 
-bool NoiseThresholdCondition::test(const SurfaceRuleContext& ctx) const
+bool NoiseThresholdCondition::compute(const SurfaceRuleContext& ctx) const
 {
-    // MC 1.21: 通过 RandomState 查找噪声实例
-    auto& noise = ctx.randomState()->getOrCreateNoise(m_noiseName);
-    const f64 value = noise.getValue(static_cast<f64>(ctx.blockX()), 0.0, static_cast<f64>(ctx.blockZ()));
+    std::call_once(
+        m_resolveOnce, [this, &ctx]() { m_cachedNoise = &ctx.randomState()->getOrCreateNoise(m_noiseName); });
+    const f64 value = m_cachedNoise->getValue(static_cast<f64>(ctx.blockX()), 0.0, static_cast<f64>(ctx.blockZ()));
     return value >= m_minThreshold && value <= m_maxThreshold;
 }
 
 // ============================================================================
-// VerticalGradientCondition — MC: VerticalGradientConditionSource
-// 用于基岩层等（随机梯度过渡）
+// VerticalGradientCondition — MC: VerticalGradientConditionSource (LazyYCondition)
+// 用于基岩层等（随机梯度过渡）。首次 compute 时缓存 PositionalRandomFactory*。
 // ============================================================================
 
-bool VerticalGradientCondition::test(const SurfaceRuleContext& ctx) const
+bool VerticalGradientCondition::compute(const SurfaceRuleContext& ctx) const
 {
     const i32 trueY = m_trueAtAndBelow.resolveY(ctx.minY(), ctx.height());
     const i32 falseY = m_falseAtAndAbove.resolveY(ctx.minY(), ctx.height());
@@ -110,9 +130,10 @@ bool VerticalGradientCondition::test(const SurfaceRuleContext& ctx) const
         return false;
     }
 
+    std::call_once(m_resolveOnce,
+        [this, &ctx]() { m_cachedFactory = &ctx.randomState()->getOrCreateRandomFactory(m_randomName); });
     // MC 1.21: 使用 PositionalRandomFactory.at(x, y, z).nextFloat()
-    auto& factory = ctx.randomState()->getOrCreateRandomFactory(m_randomName);
-    auto rng = factory.at(ctx.blockX(), blockY, ctx.blockZ());
+    auto rng = m_cachedFactory->at(ctx.blockX(), blockY, ctx.blockZ());
     const f64 chance = static_cast<f64>(rng->nextFloat());
     const f64 threshold = static_cast<f64>(falseY - blockY) / static_cast<f64>(falseY - trueY);
     return chance < threshold;
@@ -122,17 +143,17 @@ bool VerticalGradientCondition::test(const SurfaceRuleContext& ctx) const
 // SteepCondition, TemperatureCondition, HoleCondition, AbovePreliminarySurfaceCondition
 // ============================================================================
 
-bool SteepCondition::test(const SurfaceRuleContext& ctx) const
+bool SteepCondition::compute(const SurfaceRuleContext& ctx) const
 {
     return ctx.steep();
 }
 
-bool TemperatureCondition::test(const SurfaceRuleContext& ctx) const
+bool TemperatureCondition::compute(const SurfaceRuleContext& ctx) const
 {
     return ctx.temperature();
 }
 
-bool HoleCondition::test(const SurfaceRuleContext& ctx) const
+bool HoleCondition::compute(const SurfaceRuleContext& ctx) const
 {
     return ctx.hole();
 }

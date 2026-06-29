@@ -129,10 +129,14 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
         // 存档命中：直接推进到 FULL，存入内存缓存。
         // toChunkData 非破坏性（返回 shared_ptr 共享同一份 ChunkData），primer 仍持有 m_data。
         // _storeChunkInMemorySync 共享所有权发布到 m_chunks，不释放 primer。
+        // _storeChunkInMemorySync 不再调用 onChunkLoaded/m_chunkLoadedCallback（它们触及主线程独占状态，
+        // 本路径在 worker 线程执行）。入队 _enqueuePostProcess 延迟到主线程 tick() 执行 onChunkLoaded +
+        // m_chunkLoadedCallback（needsPostProcess=false：存档加载不重跑 _postProcessChunk，与原行为一致）。
         auto data = primerPtr->toChunkData();
         if (data) {
             // _storeChunkInMemorySync 内部会 markLoadedFromStorageReady(FULL) + _completeReadyWaiters
             (void)m_manager._storeChunkInMemorySync(m_x, m_z, std::move(data));
+            m_manager._enqueuePostProcess(m_x, m_z, {}, /*needsPostProcess=*/false);
         }
         // 不释放 primer：保留 currentChunk 供邻居引用（与 FULL 生成路径一致）。
         // 标记 holder 完成 FULL

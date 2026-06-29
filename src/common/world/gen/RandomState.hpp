@@ -31,6 +31,7 @@
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/surface/SurfaceRules.hpp"
 #include <memory>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 
@@ -146,6 +147,13 @@ private:
 
     // MC 1.21: 位置随机工厂缓存（name → PositionalRandomFactory）
     std::unordered_map<std::string, std::unique_ptr<::mc::math::PositionalRandomFactory>> m_randomFactoryCache;
+
+    // 并发保护：buildSurface 在并行 worker 池上运行，多个区块会并发调用
+    // getOrCreateNoise/getOrCreateRandomFactory。命中路径用 shared_lock（读），
+    // miss 路径用 unique_lock（写）。SurfaceSystem 构造时预热了部分噪声名，
+    // 但规则树引用的其余噪声名（SWAMP/PACKED_ICE/...）首次访问发生在 worker 线程。
+    mutable std::shared_mutex m_noiseMutex;
+    mutable std::shared_mutex m_randomFactoryMutex;
 };
 
 } // namespace mc::world::gen

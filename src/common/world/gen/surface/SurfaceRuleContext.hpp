@@ -28,6 +28,7 @@
 #include "common/world/block/BlockState.hpp"
 #include <functional>
 #include <limits>
+#include <unordered_map>
 #include <vector>
 
 namespace mc::world::gen::density {
@@ -42,7 +43,16 @@ namespace mc::world::gen::noise {
 class NormalNoise;
 }
 
+// 前向声明：缓存的 key/value 类型。完整定义在 SurfaceCondition.hpp 中。
+// SurfaceRuleContext 与 SurfaceCondition 互相引用，这里用前向声明打破循环依赖，
+// 实现放各自的 .cpp（可 include 对方头文件）。
+// 这些前向声明位于 mc::world::gen::surface 命名空间内（见下方 namespace 块）。
+
 namespace mc::world::gen::surface {
+
+class SurfaceCondition;
+class LazyXZCondition;
+class LazyYCondition;
 
 /**
  * @brief SurfaceRules 上下文（MC 1.21 SurfaceRules.Context）
@@ -89,6 +99,18 @@ public:
 
     /** 更新 Y 相关状态（每个方块调用） */
     void updateY(i32 stoneDepthAbove, i32 stoneDepthBelow, i32 waterHeight, i32 blockX, i32 blockY, i32 blockZ);
+
+    // ========== 条件缓存（MC 1.21 SurfaceRules.LazyCondition） ==========
+    // MC 1.21: XZ-only 条件（NoiseThresholdCondition/Hole/Steep）每列只求值一次，
+    // Y 依赖条件每 Y 步只求值一次。原版将缓存放在 per-call 的 LazyCondition 实例中；
+    // 本项目规则树跨线程共享，故缓存放在 per-call 的 SurfaceRuleContext 里，
+    // 以 condition 对象的 this 指针为 key。updateXZ 使两者均失效（列变了 Y 也变），
+    // updateY 仅使 Y 缓存失效（XZ 缓存跨 Y 步复用）。
+
+    /** 查询/求值 XZ-only 条件：当前列内命中缓存则直接返回，否则调 cond.compute 并缓存。 */
+    [[nodiscard]] bool cachedXZ(const SurfaceCondition* self, const LazyXZCondition& cond) const;
+    /** 查询/求值 Y 依赖条件：当前 Y 步内命中缓存则直接返回，否则调 cond.compute 并缓存。 */
+    [[nodiscard]] bool cachedY(const SurfaceCondition* self, const LazyYCondition& cond) const;
 
     // ========== 访问器 ==========
 
@@ -147,7 +169,7 @@ private:
     const math::PositionalRandomFactory& m_positionalRandom;
 
     /// RandomState 引用，用于噪声名称查找和随机工厂查找（MC 1.21）
-    /// 非const：NoiseThresholdCondition::test() 需要通过 getOrCreateNoise() 填充缓存
+    /// NoiseThresholdCondition/VerticalGradientCondition 通过 call_once 缓存解析后的指针。
     world::gen::RandomState* m_randomState;
 
     /// 高度查询回调（用于 steep 条件）
@@ -163,10 +185,23 @@ private:
     i32 m_surfaceDepth = 0;
     BiomeId m_biome = 0;
 
+    // 条件缓存脏标记计数器（MC 1.21: SurfaceRules.Context.lastUpdateXZ/lastUpdateY）
+    // updateXZ 时两者均自增（列变 → Y 缓存失效）；updateY 时仅 m_updateCounterY 自增。
+    u64 m_updateCounterXZ = 0;
+    u64 m_updateCounterY = 0;
+
+    // per-call 条件缓存：condition 身份(this 指针) → {stamp, value}
+    // stamp 与 m_updateCounterXZ 或 m_updateCounterY 比对，命中则复用 value。
+    // SurfaceRuleContext 每次 buildSurface 新建，单线程独占，无需同步。
+    struct ConditionCacheEntry {
+        u64 stamp;
+        bool value;
+    };
+    mutable std::unordered_map<const SurfaceCondition*, ConditionCacheEntry> m_conditionCache;
+
     // 缓存
     mutable bool m_surfaceSecondaryCached = false;
     mutable f64 m_surfaceSecondaryValue = 0.0;
-    mutable i64 m_lastXZ = -1;
     mutable i64 m_lastPreliminarySurfaceCellOrigin = std::numeric_limits<i64>::min();
     mutable i64 m_lastMinSurfaceLevelXZ = std::numeric_limits<i64>::min();
     mutable i32 m_preliminarySurfaceCache[4] = {};

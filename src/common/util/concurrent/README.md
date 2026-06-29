@@ -8,7 +8,7 @@
 concurrent/
 ├── ReentrantAreaLock.hpp                # 按区块坐标分区的可重入区域锁（头文件）
 ├── ReentrantAreaLock.cpp                # 区域锁实现
-├── ConcurrentLong2ObjectHashTable.hpp   # 无锁并发哈希表（u64 key → shared_ptr<Node>）
+├── ConcurrentLong2ObjectHashTable.hpp   # 每桶 mutex 分段锁哈希表（u64 key → shared_ptr<Node>）
 ├── MultiThreadedQueue.hpp               # 无锁单链表 FIFO 队列（Node 的等待线程队列）
 ├── LockSupport.hpp                      # park/unpark 线程阻塞原语（对齐 Java LockSupport）
 └── README.md                            # 本文档
@@ -23,7 +23,7 @@ ReentrantAreaLock
        │        │
        │        └── LockHandle (持有 shared_ptr<Node>，析构 unlock + 释放引用)
        │
-       ├── ConcurrentLong2ObjectHashTable<shared_ptr<Node>>  (sectionKey → Node，无锁)
+       ├── ConcurrentLong2ObjectHashTable<shared_ptr<Node>>  (sectionKey → Node，每桶 mutex 分段锁)
        │
        ├── MultiThreadedQueue<LockSupport::ThreadHandle*>     (Node 的等待队列基类)
        │
@@ -50,12 +50,12 @@ ReentrantAreaLock
 
 ## ReentrantAreaLock 设计要点
 
-- **section 分区粒度**：区块坐标右移 `coordinateShift` 位得到 section 键，`coordinateShift = 0` 时一区块一锁条目（最细粒度，对齐 Moonrise 默认配置）。
+- **section 分区粒度**：区块坐标右移 `coordinateShift` 位得到 section 键。`coordinateShift = 0` 时一区块一锁条目（最细粒度）；`coordinateShift = N` 时每 `(1<<N)×(1<<N)` 区块共用一个 section 锁。由调用方按场景选择——`ChunkTaskScheduler` 用 6（对齐 Moonrise `getChunkSystemLockShift()`），使 `2*maxAccessRadius` 锁只触达 1~4 个 section。
 - **Node 所有权（shared_ptr）**：一次 `lock` 创建一个 `Node`（`shared_ptr` 管理），代表调用线程对区域内所有 section 的占有。`m_nodes` 哈希表、持有线程的 `LockHandle`、阻塞线程的 `park` 引用共同保活 Node，对齐 Moonrise 的 GC 语义（C++ 无 GC，用 `shared_ptr` + `enable_shared_from_this` 等价实现）。
 - **不相交不变量**：不同线程不能同时持有相交区域；相交时后到者阻塞等待。同线程重入只允许"完全被覆盖"的子区域（相交但不被覆盖触发断言）。
 - **RAII**：`lock`/`tryLock` 返回 `LockHandle`（持有 `shared_ptr<Node>`），析构时 `unlock`（移除 section + 排空等待队列 + unpark）再释放 `shared_ptr`。
 - **坐标打包**：section 键 `(sectionX, sectionZ)` 打包为 `u64`（高 32 位 Z，低 32 位 X），对齐 Moonrise `IntPairUtil.key`。
-- **无锁实现**：`m_nodes` 用 `ConcurrentLong2ObjectHashTable`（无锁 putIfAbsent/remove/get），等待队列用 per-Node 的 `MultiThreadedQueue` + `LockSupport` park/unpark，替代旧的 mutex+condition_variable，消除 `unlock:notify` 的 per-key notify_all 惊群。
+- **分段锁实现**：`m_nodes` 用 `ConcurrentLong2ObjectHashTable`（每桶 mutex 分段锁 putIfAbsent/remove/get，对齐 Moonrise `synchronized(node)`），等待队列用 per-Node 的 `MultiThreadedQueue` + `LockSupport` park/unpark，替代旧的 mutex+condition_variable，消除 `unlock:notify` 的 per-key notify_all 惊群。
 
 ## 无锁等待协议（park/unpark + MultiThreadedQueue）
 
@@ -76,7 +76,7 @@ ReentrantAreaLock
 5. **`pollOrBlockAdds` 排空无条件执行**：lock 失败回滚路径和 unlock 路径都无条件循环 `pollOrBlockAdds` + `unpark`（即使本线程未 add 任何等待者）。被 `preventAdds` 阻止的 `add` 会返回 false，阻塞线程落入退避分支不 park，由 `allowAdds`（lock 重试前）恢复入队能力。
 6. **`MultiThreadedQueue` 元素生命周期**：队列存 `ThreadHandle*` 裸指针。被 park 的线程在队列成员身份期间不会退出（park 阻塞），与 Java GC 保持 Thread 存活语义等价。`unpark` 在 `pollOrBlockAdds` 取出后立即调用，被唤醒线程在 unpark 完成前不会退出。
 7. **负坐标**：`sectionKey` 用算术右移（`i32 >> shift`），负坐标向负无穷取整，与 Java `>>` 一致，分区边界正确。
-8. **`ConcurrentLong2ObjectHashTable` 不 resize**：固定 4096 桶 + 链表。区块 section 数量有上界（活跃区块范围），无需 resize。`shared_ptr<BucketNode>` + `atomic<shared_ptr>` 链表节点解决 ABA（节点在持有引用期间不释放）。
+8. **`ConcurrentLong2ObjectHashTable` 不 resize**：固定 4096 桶 + 链表。区块 section 数量有上界（活跃区块范围），无需 resize。每桶 `std::mutex` 分段锁，物理摘除在锁内完成（无逻辑删除节点堆积、无 ABA），对齐 Moonrise `synchronized(node)`。
 
 ## 性能要点（重构动机）
 
@@ -85,10 +85,21 @@ ReentrantAreaLock
 - 全局 `std::mutex` 串行化所有 lock/tryLock/isHeldByCurrentThread/unlock。
 - `unlock` 对每个 key 逐个 `notify_all`（半径 22 → 2025 key），被唤醒的线程立刻争抢同一把 mutex，惊群效应。
 
-新实现（无锁哈希表 + per-Node 等待队列 + park/unpark）：
+中间实现（std::atomic<shared_ptr> 无锁哈希表）解决了 notify 惊群，但引入 livelock：
 
-- `unlock` 是 O(areaAffected) 的无锁 `remove` + 一次 `pollOrBlockAdds` 排空逐个 `unpark`，无 mutex、无 per-key cv、唤醒精确到 Node 局部。
+- `std::atomic<shared_ptr<BucketNode>>` 在 MSVC 下每原子操作持对象内部 mutex，高争用下竞争该 mutex。
+- `physicallyUnlink` 不重试 → 逻辑删除节点堆积 → 桶链变长 → get/putIfAbsent 遍历变慢（CPU 升高）。
+- `onChunkGenComplete` 持 2*maxAccessRadius（2025 sections）巨型锁，多 worker 并发 EMPTY 生成争用同批 section，
+  无锁方案的 CAS 重试 + 链遍历无退避导致单核 100% 忙等（livelock）。
+
+当前实现（每桶 mutex 分段锁 + per-Node 等待队列 + park/unpark）：
+
+- `m_nodes` 每桶独立 `std::mutex`（4096 桶），不同桶完全并行，同桶争用时阻塞睡眠（不占 CPU）。物理摘除在锁内完成，链表无堆积。
+- `unlock` 是 O(areaAffected) 的 `remove`（每 section 一次桶锁）+ 一次 `pollOrBlockAdds` 排空逐个 `unpark`，无 per-key cv、唤醒精确到 Node 局部。
 - 不相交区域的 lock/unlock 完全并行（不同桶、不同 Node），不被大区域 unlock 阻塞。
+- 与 Moonrise `ConcurrentChainedLong2ReferenceHashTable` 的 `synchronized(node)` 分段锁语义一致。
+
+**`coordinateShift` 是 `lock` 性能的关键调节项**：`lock(center, radius)` 的 section 操作数 = `((2*radius)>>shift + 1)²`。`ChunkTaskScheduler` 的 `2*maxAccessRadius=22` 锁在 shift=0 下触达 45²=2025 个 section（每次 `putIfAbsent` 取一次桶锁，冲突时回滚最多 2025 次 `remove` + 退避重试），是 `ReentrantAreaLock::lock` 成为 Perfetto #1 热点（10.35s/357 次）的根因。shift=6 后同一锁只触达 1~4 个 section，开销降低约 500 倍。Moonrise 用 `getChunkSystemLockShift()=6`（`SECTION_SHIFT=6`，64×64 区块/section），Cubium 对齐之。
 
 ## 测试
 

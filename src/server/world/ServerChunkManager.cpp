@@ -321,7 +321,16 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
     if (loadedChunk) {
         // 存档命中：存入内存缓存。_storeChunkInMemorySync 内部会调用
         // markLoadedFromStorageReady(FULL) + _completeReadyWaiters 唤醒等待者。
-        (void)_storeChunkInMemorySync(x, z, std::move(loadedChunk));
+        // _storeChunkInMemorySync 不再调用 onChunkLoaded/m_chunkLoadedCallback（它们触及主线程独占状态）。
+        // 本路径在主线程调用（_submitChunkRequest → _advanceChunkState → _resolveChunkSourceSync），
+        // 直接内联调用 onChunkLoaded/m_chunkLoadedCallback，无需入队延迟。
+        ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(loadedChunk));
+        if (stored && m_world) {
+            m_world->onChunkLoaded(x, z);
+        }
+        if (m_chunkLoadedCallback && stored) {
+            m_chunkLoadedCallback(x, z);
+        }
         return;
     }
 
@@ -573,13 +582,10 @@ ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord 
         _completeReadyWaiters(*lifecycleManager);
     }
 
-    if (stored && m_world) {
-        m_world->onChunkLoaded(x, z);
-    }
-
-    if (m_chunkLoadedCallback && stored) {
-        m_chunkLoadedCallback(x, z);
-    }
+    // onChunkLoaded / m_chunkLoadedCallback 不在此调用：它们触及主线程独占的世界状态
+    // （EntityManager、POI、光照、ChunkSendManager 等），_storeChunkInMemorySync 可能在 worker 线程
+    // （生成/存档加载）被调用。由调用方负责：worker 路径经 _enqueuePostProcess 延迟到主线程 tick()，
+    // 主线程路径（_resolveChunkSourceSync）直接调用。对齐 Moonrise offThreadPendingFullLoadUpdate。
 
     return stored;
 }
@@ -601,17 +607,17 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
     }
 
     ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(data));
-    if (stored && !spawnedEntities.empty()) {
-        if (m_world) {
-            m_world->spawnEntitiesFromChunkGeneration(spawnedEntities);
-        } else if (m_entitySpawnCallback) {
-            m_entitySpawnCallback(spawnedEntities);
-        }
-    }
 
-    // LevelChunk.postProcessGeneration — 处理含水层流体更新和方块形状更新
+    // spawnEntitiesFromChunkGeneration / _postProcessChunk / onChunkLoaded / m_chunkLoadedCallback 触及
+    // 主线程独占状态（ServerTickList、EntityManager、setBlockState、POI、光照），不能在 worker 线程调用。
+    // 入队后由主线程 tick() 的 _drainPendingPostProcess 出队执行（对齐 Moonrise
+    // offThreadPendingFullLoadUpdate）。_storeChunkInMemorySync 已不再调用 onChunkLoaded/callback，
+    // 故此处单个 PendingPostProcess 条目覆盖全部四项主线程工作。
     if (stored && m_world) {
-        _postProcessChunk(*stored);
+        _enqueuePostProcess(x, z, std::move(spawnedEntities), /*needsPostProcess=*/true);
+    } else if (m_entitySpawnCallback && !spawnedEntities.empty()) {
+        // 无 world（独立/测试模式）：实体生成回调不触及世界状态，直接在 worker 线程调用。
+        m_entitySpawnCallback(spawnedEntities);
     }
 
     return stored;
@@ -908,6 +914,11 @@ void ServerChunkManager::tick()
     ++m_currentTick;
     processTicketUpdatesSync();
 
+    // 出队并执行 worker 线程入队的主线程后处理任务（onChunkLoaded / m_chunkLoadedCallback /
+    // spawnEntitiesFromChunkGeneration / _postProcessChunk）。这些触及主线程独占状态
+    // （ServerTickList、EntityManager、setBlockState、POI、光照），必须在主线程执行。
+    _drainPendingPostProcess();
+
     // 增加有玩家附近的区块的居住时间（每 tick +1）
     _incrementInhabitedTime();
 
@@ -927,6 +938,54 @@ void ServerChunkManager::_incrementInhabitedTime()
         }
         return true; // 继续遍历
     });
+}
+
+void ServerChunkManager::_enqueuePostProcess(
+    ChunkCoord x, ChunkCoord z, std::vector<SpawnedEntityData>&& spawnedEntities, bool needsPostProcess)
+{
+    PendingPostProcess item;
+    item.x = x;
+    item.z = z;
+    item.spawnedEntities = std::move(spawnedEntities);
+    item.needsPostProcess = needsPostProcess;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+        m_pendingPostProcess.push_back(std::move(item));
+    }
+}
+
+void ServerChunkManager::_drainPendingPostProcess()
+{
+    std::vector<PendingPostProcess> pending;
+    {
+        std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+        pending.swap(m_pendingPostProcess);
+    }
+
+    for (auto& item : pending) {
+        // onChunkLoaded：加载区块内实体（存档恢复）+ POI 通知
+        if (m_world) {
+            m_world->onChunkLoaded(item.x, item.z);
+        }
+
+        // m_chunkLoadedCallback：光照初始化 + 区块发送等（MinecraftServer 设置）
+        if (m_chunkLoadedCallback) {
+            m_chunkLoadedCallback(item.x, item.z);
+        }
+
+        // spawnEntitiesFromChunkGeneration：区块生成产生的被动实体
+        if (!item.spawnedEntities.empty() && m_world) {
+            m_world->spawnEntitiesFromChunkGeneration(item.spawnedEntities);
+        }
+
+        // _postProcessChunk：含水层流体 tick 调度 + 方块形状更新（生成路径才需要）
+        if (item.needsPostProcess && m_world) {
+            ChunkData* chunk = tryToGetChunkInMem(item.x, item.z);
+            if (chunk != nullptr) {
+                _postProcessChunk(*chunk);
+            }
+        }
+    }
 }
 
 // ============================================================================

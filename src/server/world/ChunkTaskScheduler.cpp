@@ -53,7 +53,10 @@ ChunkTaskScheduler::ChunkTaskScheduler(ServerChunkManager& manager,
     , m_world(world)
     , m_parallelGenExecutor(parallelGenExecutor)
     , m_radiusAwareExecutor(radiusAwareExecutor)
-    , m_schedulingLockArea(0) // coordinateShift=0：一个区块一个锁条目（区块级粒度）
+    , m_schedulingLockArea(
+          6) // coordinateShift=6：对齐 Moonrise getChunkSystemLockShift()=max(regionChunkShift,SECTION_SHIFT)=6，每
+             // section 覆盖 64×64 区块。2*maxAccessRadius(22) 的锁从 shift=0 的 2025 sections 降到 1~4 sections，消除
+             // ReentrantAreaLock::lock 获取争用热点。
 {}
 
 i32 ChunkTaskScheduler::getAccessRadius(const ChunkStatus& status)
@@ -361,11 +364,16 @@ void ChunkTaskScheduler::onChunkGenComplete(SingleChunkLifecycleManager& holder,
         "completedStatus",
         completedStatus.name());
 
-    // 持有 2 * maxAccessRadius 的锁，覆盖邻居的邻居。
+    // 持有 maxAccessRadius 的锁，覆盖依赖图操作（notifyWaitingNeighbours/releaseNeighbourRefCounts
+    // 访问的邻居均在 maxAccessRadius 内）。
+    //
+    // 历史原因：曾用 2*maxAccessRadius 覆盖持锁期间递归 schedule→checkNeighbour→schedule 的邻居链
+    // （最大触达 2*maxAccessRadius）。现 rescheduleChunk 移到释放锁后执行（对齐 Moonrise needsScheduling
+    // 列表 + post-unlock schedule），持锁期间不再递归 schedule，maxAccessRadius 足够。
     // 该锁与 unloadChunkSync 互斥：worker 持锁期间修改依赖图，isSafeToUnload() 必为 false
     // （m_generationTask 在 clearGenerationTask 前非空，或 m_waitingNeighbours/m_blockingNeighbours 非空），
     // unloadChunkSync 不会在此窗口销毁 holder 或其邻居。
-    const i32 lockRadius = 2 * getMaxAccessRadius();
+    const i32 lockRadius = getMaxAccessRadius();
     auto lock = m_schedulingLockArea.lock(holder.x(), holder.z(), lockRadius);
 
     // 检测并发取消：cancelGeneration（unloadChunkSync/_onTicketLevelChanged/shutdown 路径）在任务执行期间
@@ -387,14 +395,20 @@ void ChunkTaskScheduler::onChunkGenComplete(SingleChunkLifecycleManager& holder,
         return;
     }
 
+    // 待重调度列表：持锁期间收集（notifyWaitingNeighbours 的就绪邻居 + 自推进），
+    // 释放锁后统一 rescheduleChunk。对齐 Moonrise needsScheduling 列表 + post-unlock schedule，
+    // 避免持锁期间嵌套获取邻居的 2*maxAccessRadius 锁（ReentrantAreaLock::lock 竞争的主要放大器）。
+    // target 为 requestedGenStatus() 的指针（ChunkStatus 静态单例，释放锁后仍有效）。
+    std::vector<PendingReschedule> pending;
+
     // 先通知等待者，再释放邻居引用计数。
     // 顺序至关重要：notifyWaitingNeighbours 通过 raw pointer 访问等待者 holder
     // （removeBlockingNeighbour/requestedGenStatus 等）。若先 releaseNeighbourRefCounts，
     // 邻居的 m_neighboursUsingThisChunk 归零 → isSafeToUnload() 可能为 true →
     // unloadChunkSync（持同一把调度锁等待）在 notifyWaitingNeighbours 完成前销毁邻居 holder，
-    // 造成 use-after-free。先 notify（依赖图清理 + reschedule）再 release，保证通知期间
+    // 造成 use-after-free。先 notify（依赖图清理 + 收集 pending）再 release，保证通知期间
     // 邻居引用计数 > 0，邻居不可卸载。
-    notifyWaitingNeighbours(holder, completedStatus);
+    notifyWaitingNeighbours(holder, completedStatus, pending);
 
     // 释放邻居引用计数（中心区块不再阻塞邻居卸载）
     // 注：引用计数在 scheduleStatusStep 中增加，这里对应释放
@@ -407,20 +421,34 @@ void ChunkTaskScheduler::onChunkGenComplete(SingleChunkLifecycleManager& holder,
     // 通过 rescheduleChunk 走延迟队列（同步模式下），避免在 scheduleStatusStep 邻居扫描期间重入。
     // 关闭期间（isShuttingDown）不自推进：所有 holder 已 cancelActiveWork，重调度的任务无法被取消，
     // 会导致 waitForCompletion 无限循环。
+    // isShuttingDown() 在持锁时求值（与原行为一致），收集到 pending，释放锁后 rescheduleChunk。
     if (!isShuttingDown() && !holder.hasFailedGeneration() && !holder.hasGenerationTask()) {
         MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::onChunkGenComplete_rescheduleIfNeeded");
         const ChunkStatus& target = holder.requestedGenStatus();
         if (holder.getCurrentGenStatus().isBefore(target)) {
-            rescheduleChunk(holder.x(), holder.z(), target);
+            pending.push_back({holder.x(), holder.z(), &target});
         }
     }
 
     // 达到请求目标状态时发布区块并唤醒等待者（非 FULL 路径；FULL 已由 _finalizeGeneratedChunkSync 处理）。
     // _publishGeneratedChunk 内部判断 completedStatus != FULL 且 hasCompletedStatus(requestedGenStatus) 才发布。
-    // 必须在自推进之后调用：自推进可能继续调度更高状态，但若当前已完成到 requestedGenStatus，
-    // 等待者（requestChunkSync 的 promise）应被唤醒。
+    // 保持在锁内执行：读 holder.requestedGenStatus()，与 unloadChunkSync 串行，避免 holder 在发布期间被卸载。
+    // 顺序在自推进收集之后、释放锁之前：自推进收集只读 requestedGenStatus，publish 唤醒等待者，
+    // 两者无依赖（自推进是异步 submit，publish 是同步 fulfillWaiters），顺序调整无功能影响。
     if (!holder.hasFailedGeneration()) {
         m_manager._publishGeneratedChunk(holder, completedStatus);
+    }
+
+    // 释放区域锁后再 rescheduleChunk：每项 rescheduleChunk 自己获取 2*maxAccessRadius 锁
+    // （覆盖其内部 schedule→checkNeighbour→schedule 递归的邻居链），不再嵌套在 onChunkGenComplete 的锁内。
+    // rescheduleChunk 内部 findHolder 重新查找 holder（释放锁后 holder 可能被 unload——返回 nullptr 安全返回），
+    // schedule 有 abortSignal/hasGenerationTask 守卫防 TOCTOU（释放锁后 holder 可能被 cancel/unload）。
+    lock.reset();
+    for (const auto& item : pending) {
+        if (item.target == nullptr) {
+            continue;
+        }
+        rescheduleChunk(item.x, item.z, *item.target);
     }
 }
 
@@ -476,6 +504,10 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder)
 
     const i32 lockRadius = 2 * getMaxAccessRadius();
     auto lock = m_schedulingLockArea.lock(holder.x(), holder.z(), lockRadius);
+
+    // Plan A：锁内收集待重调度的邻居到 pending，释放锁后再 rescheduleChunk
+    // （对齐 Moonrise needsScheduling + post-unlock schedule，避免持锁期间嵌套获取邻居的 2*maxAccessRadius 锁）。
+    std::vector<PendingReschedule> pending;
 
     // 1. 捕获 scheduledStatus（clearGenerationTask 会清空它），用于补偿释放邻居引用计数。
     //    若 scheduledStatus 为空（任务未真正调度或已清理），跳过引用计数释放。
@@ -536,17 +568,30 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder)
             continue;
         }
         neighbour->removeBlockingNeighbour(&holder);
-        // 邻居不再阻塞且无进行中任务且有请求目标：重新调度（关闭期间跳过）
+        // 邻居不再阻塞且无进行中任务且有请求目标：收集到 pending，释放锁后 rescheduleChunk（关闭期间跳过）。
+        // isShuttingDown 在持锁时求值（与原行为一致）。target 为 requestedGenStatus()
+        // 的指针（静态单例，释放锁后仍有效）。
         if (!isShuttingDown() && !neighbour->hasGenerationTask() && !neighbour->isWaitingForNeighbors()) {
             const ChunkStatus& target = neighbour->requestedGenStatus();
             if (neighbour->getCurrentGenStatus().isBefore(target)) {
-                rescheduleChunk(neighbour->x(), neighbour->z(), target);
+                pending.push_back({neighbour->x(), neighbour->z(), &target});
             }
         }
     }
 
     // 6. 通知请求等待者失败（promise 完成 nullptr）
     m_manager._failWaiters(holder.takeAllWaiters());
+
+    // Plan A：释放区域锁后再 rescheduleChunk，避免持锁期间嵌套获取邻居的 2*maxAccessRadius 锁。
+    // rescheduleChunk 内部 findHolder 重新查找 holder（释放锁后 holder 可能被 unload——返回 nullptr 安全返回），
+    // schedule 有 abortSignal/hasGenerationTask 守卫防 TOCTOU。
+    lock.reset();
+    for (const auto& item : pending) {
+        if (item.target == nullptr) {
+            continue;
+        }
+        rescheduleChunk(item.x, item.z, *item.target);
+    }
 }
 
 void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder, mc::server::ChunkProgressionTask* task)
@@ -564,6 +609,10 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder, m
     if (holder.generationTask() != task) {
         return;
     }
+
+    // Plan A：锁内收集待重调度的邻居到 pending，释放锁后再 rescheduleChunk
+    // （对齐 Moonrise needsScheduling + post-unlock schedule，避免持锁期间嵌套获取邻居的 2*maxAccessRadius 锁）。
+    std::vector<PendingReschedule> pending;
 
     // m_generationTask 仍指向本任务：执行与 cancelGeneration(holder) 相同的清理。
     // 复用无 task 参数版本的逻辑：clearGenerationTask + releaseNeighbourRefCounts +
@@ -611,15 +660,29 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder, m
             continue;
         }
         neighbour->removeBlockingNeighbour(&holder);
+        // 邻居不再阻塞且无进行中任务且有请求目标：收集到 pending，释放锁后 rescheduleChunk（关闭期间跳过）。
+        // isShuttingDown 在持锁时求值（与原行为一致）。target 为 requestedGenStatus()
+        // 的指针（静态单例，释放锁后仍有效）。
         if (!isShuttingDown() && !neighbour->hasGenerationTask() && !neighbour->isWaitingForNeighbors()) {
             const ChunkStatus& target = neighbour->requestedGenStatus();
             if (neighbour->getCurrentGenStatus().isBefore(target)) {
-                rescheduleChunk(neighbour->x(), neighbour->z(), target);
+                pending.push_back({neighbour->x(), neighbour->z(), &target});
             }
         }
     }
 
     m_manager._failWaiters(holder.takeAllWaiters());
+
+    // Plan A：释放区域锁后再 rescheduleChunk，避免持锁期间嵌套获取邻居的 2*maxAccessRadius 锁。
+    // rescheduleChunk 内部 findHolder 重新查找 holder（释放锁后 holder 可能被 unload——返回 nullptr 安全返回），
+    // schedule 有 abortSignal/hasGenerationTask 守卫防 TOCTOU。
+    lock.reset();
+    for (const auto& item : pending) {
+        if (item.target == nullptr) {
+            continue;
+        }
+        rescheduleChunk(item.x, item.z, *item.target);
+    }
 }
 
 // ============================================================================
@@ -627,7 +690,7 @@ void ChunkTaskScheduler::cancelGeneration(SingleChunkLifecycleManager& holder, m
 // ============================================================================
 
 void ChunkTaskScheduler::notifyWaitingNeighbours(
-    SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus)
+    SingleChunkLifecycleManager& holder, const ChunkStatus& completedStatus, std::vector<PendingReschedule>& pending)
 {
     MC_TRACE_EVENT("server.chunk", "ChunkTaskScheduler::notifyWaitingNeighbours");
 
@@ -653,16 +716,18 @@ void ChunkTaskScheduler::notifyWaitingNeighbours(
     // 清除 holder 中已满足的等待者记录
     holder.clearSatisfiedWaitingNeighbours(completedStatus);
 
-    // 第二遍：重新调度可推进的邻居
-    // 通过 rescheduleChunk 走延迟队列（同步模式下），避免在 onChunkGenComplete 持锁期间
-    // 重入 schedule（scheduleStatusStep 邻居扫描尚未完成时重入会过早重调度中心区块）。
-    // 关闭期间（isShuttingDown）不重新调度：避免无限循环。
+    // 第二遍：收集待重调度的邻居到 pending（不立即 rescheduleChunk）。
+    // 调用方（onChunkGenComplete）在释放区域锁后统一 rescheduleChunk，避免持锁期间嵌套获取
+    // 邻居的 2*maxAccessRadius 锁（ReentrantAreaLock::lock 竞争的主要放大器）。
+    // 通过 rescheduleChunk 走延迟队列（同步模式下），避免在 scheduleStatusStep 邻居扫描尚未完成时
+    // 重入会过早重调度中心区块。
+    // 关闭期间（isShuttingDown）不收集：避免无限循环。isShuttingDown() 在持锁时求值（与原行为一致）。
     for (SingleChunkLifecycleManager* neighbour : readyToSchedule) {
         if (isShuttingDown()) {
             break;
         }
         const ChunkStatus& target = neighbour->requestedGenStatus();
-        rescheduleChunk(neighbour->x(), neighbour->z(), target);
+        pending.push_back({neighbour->x(), neighbour->z(), &target});
     }
 }
 
