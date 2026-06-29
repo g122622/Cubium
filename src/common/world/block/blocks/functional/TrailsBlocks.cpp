@@ -22,11 +22,15 @@
  */
 
 #include "TrailsBlocks.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/items/block/BlockItemRegistry.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/math/random/IRandom.hpp"
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
+#include "world/block/registry/TrailsBlocks.hpp"
 #include "world/blockentity/BlockEntity.hpp"
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 
@@ -195,6 +199,63 @@ i32 DecoratedPotBlock::getComparatorInputOverride(const BlockState& state, IWorl
         return potEntity->getComparatorSignal();
     }
     return 0;
+}
+
+void DecoratedPotBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+{
+    // 对应 MC Java 的 DecoratedPotBlock.playerWillDestroy
+    // 如果玩家手持的物品具有 BREAKS_DECORATED_POTS 标签（剑、斧等工具），
+    // 且没有 PREVENTS_DECORATED_POT_SHATTERING 附魔（如精准采集），
+    // 则将陶罐设为 CRACKED 状态，使其掉落4个单独的陶片而非陶罐物品
+    //
+    // TODO: 当 BREAKS_DECORATED_POTS 物品标签和 PREVENTS_DECORATED_POT_SHATTERING 附魔标签
+    // 实现后，需要在此处添加检测逻辑。目前默认不 CRACK，即陶罐被破坏时
+    // 由战利品表系统掉落陶罐物品（保留图案数据）。
+    MC_UNUSED(player);
+
+    Block::playerWillDestroy(world, pos, state, player);
+}
+
+void DecoratedPotBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    MC_UNUSED(state);
+
+    // 方块移除时掉落陶罐内存储的物品
+    // 对应 MC Java 的 Containers.updateNeighboursAfterDestroy + 掉落罐内物品
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
+        auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(entity);
+
+        // 掉落陶罐内存储的物品（非陶罐本身，陶罐由战利品表系统处理）
+        ItemStack storedItem = potEntity->getItem();
+        if (!storedItem.isEmpty() && !world.isClientSide()) {
+            math::Random rng;
+            ItemDropHelper::spawnItemEntity(&world, storedItem, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+        }
+
+        // 清空容器以防止重复掉落
+        potEntity->setItem(ItemStack());
+    }
+
+    Block::onBlockRemoved(world, pos, state);
+}
+
+ItemStack DecoratedPotBlock::getCloneItemStack(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+
+    // 中键选取：返回带有图案数据的陶罐物品
+    // 对应 MC Java 的 DecoratedPotBlock.getCloneItemStack
+    if (world != nullptr && pos != nullptr) {
+        BlockEntity* entity = world->getBlockEntity(*pos);
+        if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
+            auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(entity);
+            return blockentity::createDecoratedPotItem(potEntity->getDecorations());
+        }
+    }
+
+    // 如果无法获取方块实体，返回默认的空陶罐物品
+    return Block::getCloneItemStack(state, world, pos);
 }
 
 // ============================================================================

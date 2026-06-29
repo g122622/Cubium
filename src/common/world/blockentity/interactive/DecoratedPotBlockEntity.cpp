@@ -486,9 +486,10 @@ ItemStack createDecoratedPotItem(const PotDecorations& decorations)
     ItemStack stack(*blockItem, 1);
 
     // 将图案数据存储到物品的 BlockEntityTag 中
-    // 对应 MC Java 的 applyImplicitComponents / getComponentsMap
+    // 对应 MC Java 的 collectImplicitComponents / getComponentsMap
     nlohmann::json& tag = stack.getOrCreateTag();
     tag["BlockEntityTag"] = nlohmann::json::object();
+    tag["BlockEntityTag"]["id"] = "minecraft:decorated_pot";
     tag["BlockEntityTag"]["sherds"] = decorations.toJson();
 
     return stack;

@@ -26,9 +26,13 @@
 #include "../../IWaterLoggable.hpp"
 #include "../FallingBlock.hpp"
 #include "../HorizontalBlock.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
 
 namespace mc {
+
+class Player;
+
 namespace blocks {
 
 /**
@@ -121,6 +125,38 @@ public:
 
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    /**
+     * @brief 玩家破坏前处理
+     *
+     * 如果玩家手持的物品具有 BREAKS_DECORATED_POTS 标签
+     * （如剑、斧等非精准采集工具），则将陶罐设为 CRACKED 状态。
+     * CRACKED 状态的陶罐被破坏时会掉落4个单独的陶片而非陶罐物品。
+     *
+     * 参考: net.minecraft.block.DecoratedPotBlock.playerWillDestroy
+     */
+    void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player) override;
+
+    /**
+     * @brief 方块移除时处理
+     *
+     * 掉落陶罐内存储的物品，并触发容器邻居更新。
+     * 陶罐物品本身由战利品表系统处理掉落。
+     *
+     * 参考: net.minecraft.block.DecoratedPotBlock.onRemove
+     */
+    void onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 中键选取物品（创造模式）
+     *
+     * 返回带有陶罐图案数据的物品堆，保留 sherds 信息。
+     * 不包含罐内存储的物品。
+     *
+     * 参考: net.minecraft.block.DecoratedPotBlock.getCloneItemStack
+     */
+    [[nodiscard]] ItemStack getCloneItemStack(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override;
 
 protected:
     void fillStateContainer(StateContainer<Block, BlockState>& container) override;
