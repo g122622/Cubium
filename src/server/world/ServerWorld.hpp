@@ -717,6 +717,8 @@ public:
     [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override;
     [[nodiscard]] Entity* getEntity(EntityId id) override;
     [[nodiscard]] const Entity* getEntity(EntityId id) const override;
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override;
+    [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override;
 
     [[nodiscard]] EntityManager& entityManager() noexcept { return m_entityManager; }
     [[nodiscard]] const EntityManager& entityManager() const noexcept { return m_entityManager; }

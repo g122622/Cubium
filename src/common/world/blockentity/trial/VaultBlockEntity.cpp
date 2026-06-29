@@ -521,13 +521,10 @@ std::vector<Player*> VaultBlockEntity::detectPlayers(IWorld& world, f32 range)
 
 Player* VaultBlockEntity::findPlayerByUuid(IWorld& world, const std::string& uuid)
 {
-    // 通过遍历所有玩家查找UUID匹配的玩家
-    auto entities = world.getPlayers();
-    for (auto* entity : entities) {
-        auto* player = dynamic_cast<Player*>(entity);
-        if (player != nullptr && player->uuid() == uuid) {
-            return player;
-        }
+    // 使用 getEntityByUuid() 进行 O(1) UUID 查找，替代遍历玩家列表
+    Entity* entity = world.getEntityByUuid(uuid);
+    if (entity != nullptr) {
+        return dynamic_cast<Player*>(entity);
     }
     return nullptr;
 }

@@ -206,18 +206,9 @@ Entity* TraderLlamaEntity::getLeashHolderEntity() const
         return nullptr;
     }
 
-    // TODO: 性能优化 - 当前使用 128 格范围全量搜索实体再逐个比较 UUID，复杂度较高。
-    // 可改为在 IWorld 中提供 getByUuid() 方法，利用 UUID 索引直接查找，避免全量遍历。
-    const std::string& uuid = *leashHolderUuid();
-
-    // 搜索附近实体（使用较大范围）
-    auto entities = m_world->getEntitiesInRange(position(), 128.0);
-    for (auto* entity : entities) {
-        if (entity->uuid() == uuid) {
-            return entity;
-        }
-    }
-    return nullptr;
+    // 使用 IWorld::getEntityByUuid() 进行 O(1) UUID 查找，
+    // 对齐 MC Java 的 Level.getEntity(UUID) 机制。
+    return m_world->getEntityByUuid(*leashHolderUuid());
 }
 
 } // namespace mc

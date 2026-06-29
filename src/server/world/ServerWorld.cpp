@@ -1813,6 +1813,16 @@ const Entity* ServerWorld::getEntity(EntityId id) const
     return m_entityManager.getEntity(id);
 }
 
+Entity* ServerWorld::getEntityByUuid(const std::string& uuid)
+{
+    return m_entityManager.getEntityByUuid(uuid);
+}
+
+const Entity* ServerWorld::getEntityByUuid(const std::string& uuid) const
+{
+    return m_entityManager.getEntityByUuid(uuid);
+}
+
 i32 ServerWorld::spawnEntitiesFromChunkGeneration(const std::vector<SpawnedEntityData>& entities)
 {
     if (entities.empty()) {

@@ -128,9 +128,8 @@ public:
      * @return 拴绳持有者实体指针，未找到或未拴住返回 nullptr
      *
      * 此方法为 public 以供 AI 目标类访问。
-     *
-     * TODO: 性能优化 - 当前使用 128 格范围全量搜索实体再逐个比较 UUID，
-     * 可改为在 IWorld 中提供 getByUuid() 方法利用 UUID 索引直接查找。
+     * 使用 IWorld::getEntityByUuid() 进行 O(1) UUID 查找，
+     * 对齐 MC Java 的 Level.getEntity(UUID) 机制。
      */
     [[nodiscard]] Entity* getLeashHolderEntity() const;
 

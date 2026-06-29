@@ -97,6 +97,25 @@ public:
     [[nodiscard]] const Entity* getEntity(EntityId id) const;
 
     /**
+     * @brief 通过UUID获取实体
+     *
+     * 利用内部 UUID 索引进行 O(1) 查找，避免全量遍历。
+     * 对齐 MC Java 的 EntityLookup.byUuid 机制。
+     *
+     * @param uuid 实体UUID字符串
+     * @return 实体指针，如果不存在返回nullptr
+     */
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid);
+    [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const;
+
+    /**
+     * @brief 检查指定UUID的实体是否已存在
+     * @param uuid 实体UUID字符串
+     * @return 是否存在
+     */
+    [[nodiscard]] bool hasEntityWithUuid(const std::string& uuid) const;
+
+    /**
      * @brief 获取碰撞箱内的所有实体
      * @param box 碰撞箱
      * @param except 排除的实体（可选）
@@ -180,6 +199,7 @@ private:
     // 实体 tick/回调中可能重入查询接口，需允许同线程递归加锁。
     mutable std::recursive_mutex m_mutex;
     std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
+    std::unordered_map<std::string, Entity*> m_uuidToEntity; // UUID 到实体的索引，对齐 MC Java EntityLookup.byUuid
     EntityId m_nextId = 1;
     std::vector<EntityId> m_freeIds; // 可重用的ID池
 

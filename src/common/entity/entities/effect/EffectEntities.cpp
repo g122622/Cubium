@@ -523,25 +523,14 @@ LivingEntity* AreaEffectCloudEntity::getOwner()
     }
 
     // 缓存失效，尝试通过 UUID 在世界中重新查找
+    // 使用 IWorld::getEntityByUuid() 进行 O(1) 查找，
+    // 对齐 MC Java 的 Level.getEntity(UUID) 机制。
     if (!m_ownerUuid.empty() && m_world != nullptr) {
-        // 获取效果云范围内所有实体，查找 UUID 匹配的 LivingEntity
-        // 使用较大的搜索范围，因为 owner 可能已离开效果云范围
-        constexpr f32 SEARCH_RANGE = 64.0f;
-        std::vector<Entity*> entities = m_world->getEntitiesInRange(m_position, SEARCH_RANGE, this);
-        for (Entity* entity : entities) {
-            if (entity != nullptr && entity->isAlive() && entity->uuid() == m_ownerUuid) {
-                LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
-                if (living != nullptr) {
-                    m_owner = living;
-                    return m_owner;
-                }
-            }
-        }
-        // 尝试在玩家列表中查找（玩家可能在范围外）
-        std::vector<Entity*> players = m_world->getPlayers();
-        for (Entity* playerEntity : players) {
-            if (playerEntity != nullptr && playerEntity->isAlive() && playerEntity->uuid() == m_ownerUuid) {
-                m_owner = static_cast<LivingEntity*>(playerEntity);
+        Entity* entity = m_world->getEntityByUuid(m_ownerUuid);
+        if (entity != nullptr && entity->isAlive()) {
+            LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+            if (living != nullptr) {
+                m_owner = living;
                 return m_owner;
             }
         }

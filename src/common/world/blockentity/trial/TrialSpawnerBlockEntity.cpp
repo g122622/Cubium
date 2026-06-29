@@ -528,13 +528,10 @@ void TrialSpawnerBlockEntity::tickEjectingReward(IWorld& world)
     // 查找玩家
     Player* player = nullptr;
     {
-        auto entities = world.getPlayers();
-        for (auto* entity : entities) {
-            auto* p = dynamic_cast<Player*>(entity);
-            if (p != nullptr && p->uuid() == playerUuid) {
-                player = p;
-                break;
-            }
+        // 使用 getEntityByUuid() 进行 O(1) UUID 查找，替代遍历玩家列表
+        Entity* entity = world.getEntityByUuid(playerUuid);
+        if (entity != nullptr) {
+            player = dynamic_cast<Player*>(entity);
         }
     }
     if (player != nullptr) {
@@ -807,17 +804,10 @@ void TrialSpawnerBlockEntity::updateTrackedMobs(IWorld& world)
 
 Entity* TrialSpawnerBlockEntity::findEntityByUuid(IWorld& world, const std::string& uuid)
 {
-    // 通过遍历范围内实体查找UUID匹配的实体
-    // 使用较大的范围以确保能找到已离开追踪范围但仍在世界中的实体
-    Vector3 center = m_pos.center();
-    auto entities = world.getEntitiesInRange(center, MAX_MOB_TRACKING_DISTANCE);
-
-    for (auto* entity : entities) {
-        if (entity->uuid() == uuid) {
-            return entity;
-        }
-    }
-    return nullptr;
+    // 使用 IWorld::getEntityByUuid() 进行 O(1) UUID 查找，
+    // 对齐 MC Java 的 Level.getEntity(UUID) 机制。
+    // 之前使用 getEntitiesInRange + 遍历比对 UUID，复杂度较高。
+    return world.getEntityByUuid(uuid);
 }
 
 i32 TrialSpawnerBlockEntity::calculateTargetTotalMobs(i32 additionalPlayers) const

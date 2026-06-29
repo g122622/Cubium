@@ -51,6 +51,17 @@ EntityId EntityManager::addEntity(std::unique_ptr<Entity> entity)
         entity->setId(id);
     }
 
+    // 维护 UUID 索引：对齐 MC Java EntityLookup.add() 的 byUuid 维护逻辑
+    const std::string& uuid = entity->uuid();
+    if (!uuid.empty()) {
+        if (m_uuidToEntity.find(uuid) != m_uuidToEntity.end()) {
+            // UUID 冲突：对齐 MC Java 的警告行为
+            // MC Java 在 EntityLookup.add() 中会 warn 但不阻止添加
+            spdlog::warn("Duplicate entity UUID {}: entity {} will override existing mapping", uuid, id);
+        }
+        m_uuidToEntity[uuid] = entity.get();
+    }
+
     m_entities[id] = std::move(entity);
     return id;
 }
@@ -65,6 +76,17 @@ std::unique_ptr<Entity> EntityManager::removeEntity(EntityId id)
     }
 
     auto entity = std::move(it->second);
+
+    // 维护 UUID 索引：对齐 MC Java EntityLookup.remove() 的 byUuid 清理逻辑
+    const std::string& uuid = entity->uuid();
+    if (!uuid.empty()) {
+        auto uuidIt = m_uuidToEntity.find(uuid);
+        // 仅当映射指向当前实体时才移除（防止移除后添加的同 UUID 实体被误删）
+        if (uuidIt != m_uuidToEntity.end() && uuidIt->second == entity.get()) {
+            m_uuidToEntity.erase(uuidIt);
+        }
+    }
+
     m_entities.erase(it);
     releaseId(id);
 
@@ -95,6 +117,26 @@ const Entity* EntityManager::getEntity(EntityId id) const
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     auto it = m_entities.find(id);
     return it != m_entities.end() ? it->second.get() : nullptr;
+}
+
+Entity* EntityManager::getEntityByUuid(const std::string& uuid)
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    auto it = m_uuidToEntity.find(uuid);
+    return it != m_uuidToEntity.end() ? it->second : nullptr;
+}
+
+const Entity* EntityManager::getEntityByUuid(const std::string& uuid) const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    auto it = m_uuidToEntity.find(uuid);
+    return it != m_uuidToEntity.end() ? it->second : nullptr;
+}
+
+bool EntityManager::hasEntityWithUuid(const std::string& uuid) const
+{
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+    return m_uuidToEntity.find(uuid) != m_uuidToEntity.end();
 }
 
 std::vector<Entity*> EntityManager::getEntitiesInAABB(const AxisAlignedBB& box, const Entity* except) const
@@ -217,6 +259,16 @@ void EntityManager::_removeDeadEntitiesInternal()
     for (auto it = m_entities.begin(); it != m_entities.end();) {
         if (it->second->isRemoved()) {
             EntityId id = it->first;
+
+            // 维护 UUID 索引
+            const std::string& uuid = it->second->uuid();
+            if (!uuid.empty()) {
+                auto uuidIt = m_uuidToEntity.find(uuid);
+                if (uuidIt != m_uuidToEntity.end() && uuidIt->second == it->second.get()) {
+                    m_uuidToEntity.erase(uuidIt);
+                }
+            }
+
             it = m_entities.erase(it);
             releaseId(id);
         } else {

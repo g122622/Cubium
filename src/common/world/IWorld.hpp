@@ -771,6 +771,28 @@ public:
         return nullptr;
     }
 
+    /**
+     * @brief 通过UUID获取实体
+     *
+     * 利用 EntityManager 的 UUID 索引进行 O(1) 查找，避免全量遍历。
+     * 对齐 MC Java 的 Level.getEntity(UUID) 机制。
+     *
+     * 默认实现返回 nullptr。
+     *
+     * @param uuid 实体UUID字符串
+     * @return 实体指针，如果不存在返回 nullptr
+     */
+    [[nodiscard]] virtual Entity* getEntityByUuid(const std::string& uuid)
+    {
+        (void)uuid;
+        return nullptr;
+    }
+    [[nodiscard]] virtual const Entity* getEntityByUuid(const std::string& uuid) const
+    {
+        (void)uuid;
+        return nullptr;
+    }
+
     // ========== 实体查询 ==========
 
     /**

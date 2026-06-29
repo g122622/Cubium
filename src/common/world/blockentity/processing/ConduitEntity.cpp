@@ -435,31 +435,33 @@ void ConduitEntity::_spawnParticles(IWorld& world)
 
 LivingEntity* ConduitEntity::_findExistingTarget(IWorld& world)
 {
-    // 在攻击范围内搜索匹配UUID的LivingEntity
-    // 不使用全局UUID查找，因为潮涌核心只能攻击范围内的目标
+    // 通过 UUID 索引查找目标实体，然后验证是否仍在攻击范围内
+    // 使用 getEntityByUuid() 进行 O(1) 查找，替代范围内全量遍历 + UUID 比对，
+    // 查找后再检查距离，确保潮涌核心只攻击范围内的目标。
 
     if (!m_targetUuid.has_value()) {
         return nullptr;
     }
 
-    const Vector3 center = m_pos.center();
-
-    const std::vector<Entity*> entities = world.getEntitiesInRange(center, ATTACK_RANGE, nullptr);
-
-    for (Entity* entity : entities) {
-        // 检查是否为 LivingEntity
-        auto* living = dynamic_cast<LivingEntity*>(entity);
-        if (living == nullptr) {
-            continue;
-        }
-
-        // 检查 UUID 是否匹配
-        if (living->uuid() == m_targetUuid.value()) {
-            return living;
-        }
+    Entity* entity = world.getEntityByUuid(m_targetUuid.value());
+    if (entity == nullptr || !entity->isAlive()) {
+        return nullptr;
     }
 
-    return nullptr;
+    // 检查是否为 LivingEntity
+    auto* living = dynamic_cast<LivingEntity*>(entity);
+    if (living == nullptr) {
+        return nullptr;
+    }
+
+    // 验证目标仍在攻击范围内
+    const Vector3 center = m_pos.center();
+    const f32 distSq = living->position().distanceSquared(center);
+    if (distSq > ATTACK_RANGE * ATTACK_RANGE) {
+        return nullptr;
+    }
+
+    return living;
 }
 
 bool ConduitEntity::load(const nlohmann::json& data)
