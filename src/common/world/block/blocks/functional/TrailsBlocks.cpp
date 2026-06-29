@@ -23,10 +23,14 @@
 
 #include "TrailsBlocks.hpp"
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
-#include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "item/context/BlockItemUseContext.hpp"
@@ -311,36 +315,76 @@ ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
 
 void DecoratedPotBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
 {
-    // 如果玩家手持的物品具有 BREAKS_DECORATED_POTS 标签（剑、斧等工具），
-    // 且没有 PREVENTS_DECORATED_POT_SHATTERING 附魔（如精准采集），
-    // 则将陶罐设为 CRACKED 状态，使其掉落4个单独的陶片而非陶罐物品
-    //
-    // TODO: 当 BREAKS_DECORATED_POTS 物品标签和 PREVENTS_DECORATED_POT_SHATTERING 附魔标签
-    // 实现后，需要在此处添加检测逻辑。目前默认不 CRACK，即陶罐被破坏时
-    // 由战利品表系统掉落陶罐物品（保留图案数据）。
-    MC_UNUSED(player);
+    // 如果玩家手持的物品具有 BREAKS_DECORATED_POTS 标签（剑、斧、镐、铲、锄、三叉戟、重锤），
+    // 且没有精准采集附魔（精准采集可阻止陶罐碎裂），
+    // 则将陶罐设为 CRACKED 状态，使其掉落4个单独的陶片而非陶罐物品。
+    if (!state.get(BlockStateProperties::CRACKED())) {
+        const ItemStack& mainHandItem = player.getMainHandItem();
+        if (!mainHandItem.isEmpty() && mainHandItem.getItem()->isIn(item::tag::ItemTags::BREAKS_DECORATED_POTS())) {
+            if (!item::enchant::EnchantmentHelper::hasSilkTouch(mainHandItem)) {
+                BlockState crackedState = state.with(BlockStateProperties::CRACKED(), true);
+                world.setBlockState(pos, &crackedState, 260);
+            }
+        }
+    }
 
     Block::playerWillDestroy(world, pos, state, player);
 }
 
+void DecoratedPotBlock::onProjectileHit(
+    IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile)
+{
+    MC_UNUSED(hitResult);
+
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // 投射物命中陶罐时，总是将陶罐设为 CRACKED 状态然后破坏。
+    // 投射物破坏的陶罐总是碎裂为陶片，不受精准采集保护。
+    auto* projEntity = dynamic_cast<entity::ProjectileEntity*>(&projectile);
+    if (projEntity != nullptr && projEntity->mayInteract(world, hitResult.blockPos())) {
+        BlockPos blockPos = hitResult.blockPos();
+        if (!state.get(BlockStateProperties::CRACKED())) {
+            BlockState crackedState = state.with(BlockStateProperties::CRACKED(), true);
+            world.setBlockState(blockPos, &crackedState, 260);
+        }
+        // 将方块设为空气以触发 onBlockRemoved（掉落陶片）和方块移除
+        world.setBlockState(blockPos, nullptr, 3);
+    }
+}
+
 void DecoratedPotBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    MC_UNUSED(state);
-
-    // 方块移除时掉落陶罐内存储的物品
     BlockEntity* entity = world.getBlockEntity(pos);
     if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
         auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(entity);
 
-        // 掉落陶罐内存储的物品（非陶罐本身，陶罐由战利品表系统处理）
-        ItemStack storedItem = potEntity->getItem();
-        if (!storedItem.isEmpty() && !world.isClientSide()) {
-            math::Random rng;
-            ItemDropHelper::spawnItemEntity(&world, storedItem, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
-        }
+        if (!world.isClientSide()) {
+            if (state.get(BlockStateProperties::CRACKED())) {
+                // 碎裂状态：掉落4个独立的陶片/砖块物品
+                const blockentity::PotDecorations& decorations = potEntity->getDecorations();
+                const auto& patterns = decorations.ordered();
+                math::Random rng;
+                for (i32 i = 0; i < 4; ++i) {
+                    const Item* sherdItem = blockentity::getItemFromPattern(patterns[static_cast<std::size_t>(i)]);
+                    if (sherdItem != nullptr) {
+                        ItemStack sherdStack(sherdItem, 1);
+                        ItemDropHelper::spawnItemEntity(&world, sherdStack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+                    }
+                }
+            } else {
+                // 非碎裂状态：掉落陶罐内存储的物品（陶罐本身由战利品表系统处理）
+                ItemStack storedItem = potEntity->getItem();
+                if (!storedItem.isEmpty()) {
+                    math::Random rng;
+                    ItemDropHelper::spawnItemEntity(&world, storedItem, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+                }
+            }
 
-        // 清空容器以防止重复掉落
-        potEntity->setItem(ItemStack());
+            // 清空容器以防止重复掉落
+            potEntity->setItem(ItemStack());
+        }
     }
 
     Block::onBlockRemoved(world, pos, state);

@@ -140,10 +140,20 @@ public:
      * @brief 玩家破坏前处理
      *
      * 如果玩家手持的物品具有 BREAKS_DECORATED_POTS 标签
-     * （如剑、斧等非精准采集工具），则将陶罐设为 CRACKED 状态。
+     * （如剑、斧等工具），且没有精准采集附魔，
+     * 则将陶罐设为 CRACKED 状态。
      * CRACKED 状态的陶罐被破坏时会掉落4个单独的陶片而非陶罐物品。
      */
     void playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player) override;
+
+    /**
+     * @brief 投射物命中处理
+     *
+     * 投射物命中陶罐时，总是将陶罐设为 CRACKED 状态然后破坏。
+     * 投射物破坏的陶罐总是碎裂为陶片，不受精准采集保护。
+     */
+    void onProjectileHit(
+        IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile) override;
 
     /**
      * @brief 方块移除时处理

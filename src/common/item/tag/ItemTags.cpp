@@ -128,6 +128,60 @@ ItemTag& ItemTags::DECORATED_POT_INGREDIENTS()
     return *tag;
 }
 
+ItemTag& ItemTags::SWORDS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "swords"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::AXES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "axes"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::PICKAXES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "pickaxes"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::SHOVELS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "shovels"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::HOES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "hoes"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::BREAKS_DECORATED_POTS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "breaks_decorated_pots"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -338,6 +392,85 @@ void ItemTags::initialize()
     ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "scrape_pottery_sherd")));
 
     allTags[ingredients->getId()] = std::move(ingredients);
+
+    // 创建 SWORDS 标签
+    // 包含所有材质的剑物品
+    auto swords = std::make_unique<ItemTag>(ResourceLocation("minecraft", "swords"), false);
+    swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wooden_sword")));
+    swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone_sword")));
+    swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_sword")));
+    swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_sword")));
+    swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_sword")));
+    swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond_sword")));
+    swords->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_sword")));
+    allTags[swords->getId()] = std::move(swords);
+
+    // 创建 AXES 标签
+    // 包含所有材质的斧物品
+    auto axes = std::make_unique<ItemTag>(ResourceLocation("minecraft", "axes"), false);
+    axes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wooden_axe")));
+    axes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone_axe")));
+    axes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_axe")));
+    axes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_axe")));
+    axes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_axe")));
+    axes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond_axe")));
+    axes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_axe")));
+    allTags[axes->getId()] = std::move(axes);
+
+    // 创建 PICKAXES 标签
+    // 包含所有材质的镐物品
+    auto pickaxes = std::make_unique<ItemTag>(ResourceLocation("minecraft", "pickaxes"), false);
+    pickaxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wooden_pickaxe")));
+    pickaxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone_pickaxe")));
+    pickaxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_pickaxe")));
+    pickaxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_pickaxe")));
+    pickaxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_pickaxe")));
+    pickaxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond_pickaxe")));
+    pickaxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_pickaxe")));
+    allTags[pickaxes->getId()] = std::move(pickaxes);
+
+    // 创建 SHOVELS 标签
+    // 包含所有材质的铲物品
+    auto shovels = std::make_unique<ItemTag>(ResourceLocation("minecraft", "shovels"), false);
+    shovels->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wooden_shovel")));
+    shovels->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone_shovel")));
+    shovels->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_shovel")));
+    shovels->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_shovel")));
+    shovels->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_shovel")));
+    shovels->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond_shovel")));
+    shovels->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_shovel")));
+    allTags[shovels->getId()] = std::move(shovels);
+
+    // 创建 HOES 标签
+    // 包含所有材质的锄物品
+    auto hoes = std::make_unique<ItemTag>(ResourceLocation("minecraft", "hoes"), false);
+    hoes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wooden_hoe")));
+    hoes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone_hoe")));
+    hoes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_hoe")));
+    hoes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_hoe")));
+    hoes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_hoe")));
+    hoes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond_hoe")));
+    hoes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_hoe")));
+    allTags[hoes->getId()] = std::move(hoes);
+
+    // 创建 BREAKS_DECORATED_POTS 标签
+    // 包含所有会破坏饰纹陶罐的物品：工具类型标签 + 三叉戟 + 重锤
+    // 手持这些物品破坏陶罐时，陶罐被设为 CRACKED 状态并掉落陶片而非完整陶罐。
+    // 精准采集附魔可阻止陶罐碎裂（PREVENTS_DECORATED_POT_SHATTERING 标签）。
+    auto breaksPots = std::make_unique<ItemTag>(ResourceLocation("minecraft", "breaks_decorated_pots"), false);
+
+    // 引用工具类型标签
+    breaksPots->addAll(SWORDS().getItemsList());
+    breaksPots->addAll(AXES().getItemsList());
+    breaksPots->addAll(PICKAXES().getItemsList());
+    breaksPots->addAll(SHOVELS().getItemsList());
+    breaksPots->addAll(HOES().getItemsList());
+
+    // 三叉戟和重锤
+    breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "trident")));
+    breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mace")));
+
+    allTags[breaksPots->getId()] = std::move(breaksPots);
 
     s_initialized = true;
 }

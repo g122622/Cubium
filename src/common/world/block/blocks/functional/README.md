@@ -81,8 +81,9 @@
 │   ├── ChiseledBookshelfBlock(红石比较器检测)
 │   ├── DecoratedPotBlock(IWaterLoggable, DecoratedPotBlockEntity方块实体)
 │   │   ├── onBlockActivated: 手持物品放入罐中(+1，创造模式不消耗)/空手触发负摇晃动画
-│   │   ├── onBlockRemoved: 方块移除时掉落罐内存储的物品
-│   │   ├── playerWillDestroy: 预留CRACKED状态处理(待BREAKS_DECORATED_POTS标签)
+│   │   ├── playerWillDestroy: 手持BREAKS_DECORATED_POTS标签物品(工具/武器)时设为CRACKED状态(精准采集附魔可阻止碎裂)
+│   │   ├── onProjectileHit: 投射物命中时总是设为CRACKED状态并破坏(不受精准采集保护)
+│   │   ├── onBlockRemoved: CRACKED状态掉落4个陶片/砖块物品；非CRACKED状态掉落罐内存储物品(陶罐物品由战利品表处理)
 │   │   ├── getCloneItemStack: 中键选取返回带sherds数据的陶罐物品
 │   │   ├── getComparatorInputOverride: 红石比较器信号输出
 │   │   ├── onBlockActivated: 物品插入后通过RedstoneSystem通知比较器更新
