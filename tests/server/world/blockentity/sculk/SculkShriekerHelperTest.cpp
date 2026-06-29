@@ -38,8 +38,12 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "server/world/blockentity/sculk/SculkShriekerHelper.hpp"
 
@@ -242,7 +246,7 @@ TEST_F(WardenWarningEffectTest, IncreaseWarning)
     EXPECT_EQ(effect.getWarningLevel(), 0);
 
     // 每次递增后会设置冷却，需要先消耗冷却才能再次递增
-    // 对齐 MC Java: WardenSpawnTracker.increaseWarningLevel()
+    // WardenSpawnTracker.increaseWarningLevel()
     effect.increaseWarning();
     EXPECT_EQ(effect.getWarningLevel(), 1);
     EXPECT_TRUE(effect.onCooldown());
@@ -459,39 +463,271 @@ TEST_F(SculkShriekerHelperConstantsTest, WardenSoundByLevel)
 // SculkShriekerHelper::tryGetPlayer 测试
 // ============================================================================
 
+/**
+ * @brief 投射物测试辅助类
+ *
+ * ProjectileEntity 的构造函数是 protected 的，
+ * 通过子类化在测试中公开构造能力。
+ */
+class TestProjectileEntity : public mc::entity::ProjectileEntity {
+public:
+    explicit TestProjectileEntity(EntityId id)
+        : ProjectileEntity(id)
+    {}
+};
+
+/**
+ * @brief tryGetPlayer 测试用的世界桩
+ *
+ * 继承 BaseTestWorld，覆写 getEntity 和 getEntityByUuid
+ * 以支持 tryGetPlayer 的载具/投射物/物品实体解析测试。
+ */
+class TryGetPlayerTestWorld : public test::BaseTestWorld {
+public:
+    TryGetPlayerTestWorld() = default;
+
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
+        auto it = m_entities.find(id);
+        return it != m_entities.end() ? it->second.get() : nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
+        auto it = m_entities.find(id);
+        return it != m_entities.end() ? it->second.get() : nullptr;
+    }
+
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override
+    {
+        auto it = m_uuidToEntity.find(uuid);
+        return it != m_uuidToEntity.end() ? it->second : nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override
+    {
+        auto it = m_uuidToEntity.find(uuid);
+        return it != m_uuidToEntity.end() ? it->second : nullptr;
+    }
+
+    /**
+     * @brief 注册一个实体到测试世界
+     *
+     * 将实体添加到 ID/UUID 映射，并设置实体的世界指针。
+     */
+    void registerEntity(std::unique_ptr<Entity> entity)
+    {
+        Entity* raw = entity.get();
+        EntityId id = raw->id();
+        std::string uuid = raw->uuid();
+        raw->setWorld(this);
+        m_uuidToEntity[uuid] = raw;
+        m_entities[id] = std::move(entity);
+    }
+
+private:
+    std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
+    std::unordered_map<std::string, Entity*> m_uuidToEntity;
+};
+
 class SculkShriekerHelperTryGetPlayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {}
+    TryGetPlayerTestWorld world;
 };
 
 TEST_F(SculkShriekerHelperTryGetPlayerTest, NullptrEntityReturnsNullptr)
 {
-    // 传入 nullptr 实体应返回 nullptr
-    // tryGetPlayer 需要一个 ServerWorld 引用，但传入 nullptr 实体时不会访问 world
-    // 使用一个 MockWorld 或空的 ServerWorld
-    // 注意：此处无法直接测试需要 ServerWorld 的方法，
-    // 改为验证对 nullptr 实体直接返回 nullptr 的逻辑
-    // 由于 tryGetPlayer 现在需要 ServerWorld& 参数，
-    // 这里测试的是直接的 dynamic_cast 逻辑（不依赖 ServerWorld 的分支）
-    // nullptr 实体在第一步就被拦截，不会访问 ServerWorld
-    // 但由于函数签名需要 ServerWorld&，单元测试中需要 Mock
-    // 暂时标记为需要集成测试
-    GTEST_SKIP() << "tryGetPlayer now requires ServerWorld& parameter; test with integration test";
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, nullptr);
+    EXPECT_EQ(result, nullptr);
 }
 
 TEST_F(SculkShriekerHelperTryGetPlayerTest, DirectPlayerReturnsPlayer)
 {
-    GTEST_SKIP() << "tryGetPlayer now requires ServerWorld& parameter; test with integration test";
+    auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
+    Player* rawPlayer = player.get();
+    world.registerEntity(std::move(player));
+
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawPlayer);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result, rawPlayer);
 }
 
 TEST_F(SculkShriekerHelperTryGetPlayerTest, NonPlayerEntityReturnsNullptr)
 {
-    GTEST_SKIP() << "tryGetPlayer now requires ServerWorld& parameter; test with integration test";
+    auto entity = std::make_unique<LivingEntity>(EntityId(2));
+    Entity* rawEntity = entity.get();
+    world.registerEntity(std::move(entity));
+
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawEntity);
+    EXPECT_EQ(result, nullptr);
 }
 
-TEST_F(SculkShriekerHelperTryGetPlayerTest, ConstPlayerReturnsMutablePlayer)
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ControllingPassengerIsPlayer)
 {
-    GTEST_SKIP() << "tryGetPlayer now requires ServerWorld& parameter; test with integration test";
+    // 创建载具实体和玩家乘客
+    auto vehicle = std::make_unique<LivingEntity>(EntityId(10));
+    auto player = std::make_unique<Player>(EntityId(11), "RiderPlayer");
+    Player* rawPlayer = player.get();
+
+    // 先注册实体到世界（startRiding 需要世界引用来查找实体）
+    Entity* rawVehicle = vehicle.get();
+    world.registerEntity(std::move(vehicle));
+    world.registerEntity(std::move(player));
+
+    // 使用 startRiding 建立骑乘关系
+    rawPlayer->startRiding(*rawVehicle);
+
+    // 通过载具实体应该能解析出控制乘客（玩家）
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawVehicle);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result, rawPlayer);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ControllingPassengerNotPlayerReturnsNullptr)
+{
+    // 创建载具实体和非玩家乘客
+    auto vehicle = std::make_unique<LivingEntity>(EntityId(20));
+    auto passenger = std::make_unique<LivingEntity>(EntityId(21));
+
+    // 先注册实体到世界
+    Entity* rawVehicle = vehicle.get();
+    Entity* rawPassenger = passenger.get();
+    world.registerEntity(std::move(vehicle));
+    world.registerEntity(std::move(passenger));
+
+    // 使用 startRiding 建立骑乘关系
+    rawPassenger->startRiding(*rawVehicle);
+
+    // 载具的非玩家乘客不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawVehicle);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithPlayerShooterReturnsPlayer)
+{
+    // 创建投射物和射手玩家
+    auto player = std::make_unique<Player>(EntityId(30), "ShooterPlayer");
+    Player* rawPlayer = player.get();
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(31));
+    Entity* rawProjectile = projectile.get();
+
+    // 先注册玩家到世界
+    world.registerEntity(std::move(player));
+    world.registerEntity(std::move(projectile));
+
+    // 设置投射物的射手为玩家
+    rawProjectile->setWorld(&world);
+    static_cast<mc::entity::ProjectileEntity*>(rawProjectile)->setShooter(rawPlayer);
+
+    // 通过投射物应该能解析出射手（玩家）
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawProjectile);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result, rawPlayer);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithNonPlayerShooterReturnsNullptr)
+{
+    // 创建投射物和非玩家射手
+    auto shooter = std::make_unique<LivingEntity>(EntityId(40));
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(41));
+    Entity* rawProjectile = projectile.get();
+
+    // 先注册射手到世界
+    Entity* rawShooter = shooter.get();
+    world.registerEntity(std::move(shooter));
+    world.registerEntity(std::move(projectile));
+
+    // 设置投射物的射手为非玩家实体
+    rawProjectile->setWorld(&world);
+    static_cast<mc::entity::ProjectileEntity*>(rawProjectile)->setShooter(rawShooter);
+
+    // 投射物的非玩家射手不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawProjectile);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithNoShooterReturnsNullptr)
+{
+    // 创建投射物（无射手）
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(50));
+    Entity* rawProjectile = projectile.get();
+    world.registerEntity(std::move(projectile));
+
+    // 投射物无射手，不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawProjectile);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithPlayerOwnerReturnsPlayer)
+{
+    // 创建物品实体和所有者玩家
+    auto player = std::make_unique<Player>(EntityId(60), "OwnerPlayer");
+    Player* rawPlayer = player.get();
+    ItemStack emptyStack;
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(61), emptyStack, 0.0f, 0.0f, 0.0f);
+    Entity* rawItemEntity = itemEntity.get();
+
+    // 先注册玩家到世界
+    world.registerEntity(std::move(player));
+    world.registerEntity(std::move(itemEntity));
+
+    // 设置物品实体的所有者为玩家
+    static_cast<ItemEntity*>(rawItemEntity)->setOwner(rawPlayer->uuid());
+
+    // 通过物品实体应该能解析出所有者（玩家）
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawItemEntity);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result, rawPlayer);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithNonPlayerOwnerReturnsNullptr)
+{
+    // 创建物品实体和非玩家所有者
+    auto owner = std::make_unique<LivingEntity>(EntityId(70));
+    owner->setUuid("non-player-owner-uuid");
+    ItemStack emptyStack;
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(71), emptyStack, 0.0f, 0.0f, 0.0f);
+    Entity* rawItemEntity = itemEntity.get();
+
+    // 先注册所有者到世界
+    world.registerEntity(std::move(owner));
+    world.registerEntity(std::move(itemEntity));
+
+    // 设置物品实体的所有者为非玩家实体
+    static_cast<ItemEntity*>(rawItemEntity)->setOwner("non-player-owner-uuid");
+
+    // 物品实体的非玩家所有者不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawItemEntity);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithNoOwnerReturnsNullptr)
+{
+    // 创建物品实体（无所有者）
+    ItemStack emptyStack;
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(80), emptyStack, 0.0f, 0.0f, 0.0f);
+    Entity* rawItemEntity = itemEntity.get();
+    world.registerEntity(std::move(itemEntity));
+
+    // 物品实体无所有者，不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawItemEntity);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithOwnerNotInWorldReturnsNullptr)
+{
+    // 创建物品实体，所有者UUID已设置但对应实体不存在于世界中
+    ItemStack emptyStack;
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(90), emptyStack, 0.0f, 0.0f, 0.0f);
+    Entity* rawItemEntity = itemEntity.get();
+    world.registerEntity(std::move(itemEntity));
+
+    // 设置一个不存在于世界中的所有者UUID
+    static_cast<ItemEntity*>(rawItemEntity)->setOwner("nonexistent-player-uuid");
+
+    // 所有者不在世界中，不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawItemEntity);
+    EXPECT_EQ(result, nullptr);
 }
 
 // ============================================================================

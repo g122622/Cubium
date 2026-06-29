@@ -296,7 +296,6 @@ void SculkShriekerHelper::_playWardenReplySound(ServerWorld& world, const BlockP
 bool SculkShriekerHelper::_hasNearbyWarden(ServerWorld& world, const BlockPos& pos)
 {
     // 在 48x48x48 范围内搜索是否存在监守者实体
-    // 对齐 MC Java: WardenSpawnTracker.hasNearbyWarden()
     Vector3 center = pos.center();
     AxisAlignedBB searchBox(center.x - WARDEN_SEARCH_RADIUS,
         center.y - WARDEN_SEARCH_RADIUS,
@@ -377,7 +376,6 @@ void SculkShriekerHelper::_applyDarknessAround(ServerWorld& world, const BlockPo
 
 bool SculkShriekerHelper::_tryWarn(ServerWorld& world, const BlockPos& pos)
 {
-    // 对齐 MC Java: WardenSpawnTracker.tryWarn()
     // 检查附近是否已有监守者
     if (_hasNearbyWarden(world, pos)) {
         return false;
@@ -408,14 +406,14 @@ bool SculkShriekerHelper::_tryWarn(ServerWorld& world, const BlockPos& pos)
         return false;
     }
 
-    // 对齐 MC Java: 任何一个附近玩家在冷却中，则不递增
+    // 任何一个附近玩家在冷却中，则不递增
     for (Player* player : nearbyPlayers) {
         if (player->wardenWarningEffect().onCooldown()) {
             return false;
         }
     }
 
-    // 对齐 MC Java: 找到最高警告等级的玩家追踪器进行递增
+    // 找到最高警告等级的玩家追踪器进行递增
     Player* highestPlayer = nullptr;
     i32 highestLevel = -1;
     for (Player* player : nearbyPlayers) {
@@ -431,9 +429,11 @@ bool SculkShriekerHelper::_tryWarn(ServerWorld& world, const BlockPos& pos)
     }
 
     // 递增最高等级追踪器的警告等级
+    // 设置触发源位置，然后递增
+    highestPlayer->wardenWarningEffect().setSourcePos(pos);
     highestPlayer->wardenWarningEffect().increaseWarning();
 
-    // 对齐 MC Java: 将递增后的数据同步到附近所有玩家的追踪器
+    // 将递增后的数据同步到附近所有玩家的追踪器
     for (Player* player : nearbyPlayers) {
         if (player != highestPlayer) {
             player->wardenWarningEffect().copyData(highestPlayer->wardenWarningEffect());
@@ -456,9 +456,8 @@ bool SculkShriekerHelper::_tryWarn(ServerWorld& world, const BlockPos& pos)
 // tryGetPlayer - 将触发实体解析为玩家
 // ============================================================================
 
-Player* SculkShriekerHelper::tryGetPlayer(ServerWorld& world, const Entity* entity)
+Player* SculkShriekerHelper::tryGetPlayer(IWorld& world, const Entity* entity)
 {
-    // 对齐 MC Java: SculkShriekerBlockEntity.tryGetPlayer()
     // 按优先级链式判断：直接玩家 -> 载具控制者 -> 投射物所有者 -> 物品所有者
     if (entity == nullptr) {
         return nullptr;
@@ -471,7 +470,6 @@ Player* SculkShriekerHelper::tryGetPlayer(ServerWorld& world, const Entity* enti
     }
 
     // 2. 载具上的玩家：检查实体的控制乘客是否为玩家
-    // 对齐 MC Java: entity.getControllingPassenger() instanceof ServerPlayer
     EntityId controllingPassengerId = entity->getControllingPassenger();
     if (controllingPassengerId != INVALID_ENTITY_ID) {
         Entity* passenger = world.getEntity(controllingPassengerId);
@@ -484,7 +482,6 @@ Player* SculkShriekerHelper::tryGetPlayer(ServerWorld& world, const Entity* enti
     }
 
     // 3. 投射物的主人（如投掷的雪球、末影珍珠等）
-    // 对齐 MC Java: entity instanceof Projectile && projectile.getOwner() instanceof ServerPlayer
     const entity::ProjectileEntity* projectile = dynamic_cast<const entity::ProjectileEntity*>(entity);
     if (projectile != nullptr) {
         Entity* shooter = projectile->getShooter();
@@ -497,7 +494,6 @@ Player* SculkShriekerHelper::tryGetPlayer(ServerWorld& world, const Entity* enti
     }
 
     // 4. 掉落物品的主人
-    // 对齐 MC Java: entity instanceof ItemEntity && itementity.getOwner() instanceof ServerPlayer
     // ItemEntity 没有直接的 getOwner() 方法返回 Entity*，但存储了 ownerUuid
     // 需要通过 UUID 在世界中查找对应实体
     const ItemEntity* itemEntity = dynamic_cast<const ItemEntity*>(entity);

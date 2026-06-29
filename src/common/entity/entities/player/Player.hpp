@@ -269,20 +269,6 @@ public:
     [[nodiscard]] const entity::WardenWarningEffect& wardenWarningEffect() const { return m_wardenWarningEffect; }
 
     /**
-     * @brief 递增监守者警告等级
-     *
-     * 当幽匿尖啸体被激活时调用，递增玩家的警告等级并设置冷却。
-     * 对齐 MC Java: WardenSpawnTracker.increaseWarningLevel()
-     *
-     * @param shriekerPos 触发警告的幽匿尖啸体位置
-     */
-    void increaseWardenWarning(const BlockPos& shriekerPos)
-    {
-        m_wardenWarningEffect.setSourcePos(shriekerPos);
-        m_wardenWarningEffect.increaseWarning();
-    }
-
-    /**
      * @brief 检查是否是生存模式
      */
     [[nodiscard]] bool isSurvival() const { return m_gameMode == GameMode::Survival; }

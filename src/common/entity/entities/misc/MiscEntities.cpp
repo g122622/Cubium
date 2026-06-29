@@ -531,7 +531,6 @@ void TNTEntity::explode()
 
 void WardenWarningEffect::tick()
 {
-    // 对齐 MC Java WardenSpawnTracker.tick()
     // 每 12000 tick (10分钟) 未触发新警告时，警告等级自动降 1
     if (m_ticksSinceLastWarning >= DECREASE_WARNING_LEVEL_EVERY_INTERVAL) {
         decreaseWarning();
@@ -560,7 +559,6 @@ void WardenWarningEffect::setWarningLevel(i32 level)
 
 void WardenWarningEffect::increaseWarning()
 {
-    // 对齐 MC Java WardenSpawnTracker.increaseWarningLevel()
     // 仅在非冷却期间才递增
     if (!onCooldown()) {
         m_ticksSinceLastWarning = 0;
@@ -578,7 +576,6 @@ void WardenWarningEffect::decreaseWarning()
 
 void WardenWarningEffect::copyData(const WardenWarningEffect& other)
 {
-    // 对齐 MC Java WardenSpawnTracker.copyData()
     // 将另一个追踪器的数据同步到此追踪器
     m_warningLevel = other.m_warningLevel;
     m_cooldownTicks = other.m_cooldownTicks;

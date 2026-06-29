@@ -283,8 +283,7 @@ private:
 /**
  * @brief 监守者警告追踪器
  *
- * 对齐 MC Java 的 WardenSpawnTracker，追踪玩家在深暗之域中被
- * 幽匿尖啸体警告的等级和冷却。
+ * 追踪玩家在深暗之域中被幽匿尖啸体警告的等级和冷却。
  *
  * 核心机制：
  * - 警告等级范围为 0-4，每次触发时递增 1
@@ -323,7 +322,7 @@ public:
 
     [[nodiscard]] f32 getWarningRadius() const { return m_warningRadius; }
 
-    // ========== 常量（对齐 MC Java WardenSpawnTracker） ==========
+    // ========== 常量 ==========
 
     static constexpr i32 MAX_WARNING_LEVEL = 4;
     static constexpr f32 PLAYER_SEARCH_RADIUS = 16.0f;
