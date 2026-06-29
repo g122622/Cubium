@@ -28,6 +28,8 @@
 #include "common/entity/ai/goal/goals/special/CatGoals.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
+#include "common/item/Items.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
@@ -295,6 +297,43 @@ TEST_F(CatGoalRegistrationTest, CatRelaxOnOwnerGoalPriority)
         }
     }
     EXPECT_TRUE(found);
+}
+
+// ==================== 晨礼后备物品列表测试 ====================
+
+class CatMorningGiftItemsTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+};
+
+TEST_F(CatMorningGiftItemsTest, FallbackGiftItems_AllNonNull)
+{
+    // CatRelaxOnOwnerGoal::_giveMorningGift 的后备物品列表中
+    // 所有 Items:: 指针必须非空，否则该物品会被跳过（权重计算时跳过 nullptr）
+    ASSERT_NE(Items::RABBIT_HIDE, nullptr) << "Items::RABBIT_HIDE 应该已注册";
+    ASSERT_NE(Items::RABBIT_FOOT, nullptr) << "Items::RABBIT_FOOT 应该已注册";
+    ASSERT_NE(Items::CHICKEN, nullptr) << "Items::CHICKEN 应该已注册";
+    ASSERT_NE(Items::FEATHER, nullptr) << "Items::FEATHER 应该已注册";
+    ASSERT_NE(Items::ROTTEN_FLESH, nullptr) << "Items::ROTTEN_FLESH 应该已注册";
+    ASSERT_NE(Items::STRING, nullptr) << "Items::STRING 应该已注册";
+    ASSERT_NE(Items::PHANTOM_MEMBRANE, nullptr) << "Items::PHANTOM_MEMBRANE 应该已注册";
+}
+
+TEST_F(CatMorningGiftItemsTest, FallbackGiftItems_HaveCorrectResourceLocations)
+{
+    // 验证 Items:: 指针指向的物品拥有正确的 ResourceLocation，
+    // 与 MC 原版 cat_morning_gift 战利品表中的物品 ID 一致
+    EXPECT_EQ(Items::RABBIT_HIDE->itemLocation(), ResourceLocation("minecraft", "rabbit_hide"));
+    EXPECT_EQ(Items::RABBIT_FOOT->itemLocation(), ResourceLocation("minecraft", "rabbit_foot"));
+    EXPECT_EQ(Items::CHICKEN->itemLocation(), ResourceLocation("minecraft", "chicken"));
+    EXPECT_EQ(Items::FEATHER->itemLocation(), ResourceLocation("minecraft", "feather"));
+    EXPECT_EQ(Items::ROTTEN_FLESH->itemLocation(), ResourceLocation("minecraft", "rotten_flesh"));
+    EXPECT_EQ(Items::STRING->itemLocation(), ResourceLocation("minecraft", "string"));
+    EXPECT_EQ(Items::PHANTOM_MEMBRANE->itemLocation(), ResourceLocation("minecraft", "phantom_membrane"));
 }
 
 } // namespace

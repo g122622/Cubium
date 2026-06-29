@@ -732,6 +732,7 @@ add_executable(mc_tests
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp
     server/command/ExecuteCommandTest.cpp
+    server/command/WardenSpawnTrackerCommandTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
@@ -2143,6 +2144,7 @@ add_executable(mc_command_tests
     server/command/SpreadAlgorithmTest.cpp
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp
+    server/command/WardenSpawnTrackerCommandTest.cpp
     server/command/ReplaceItemCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
