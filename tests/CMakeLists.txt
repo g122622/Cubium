@@ -136,6 +136,8 @@ add_executable(mc_tests
     entity/BegGoalTest.cpp
     # CatEntity 猫实体测试（驯服物品、繁殖物品、CatTemptGoal、CatAvoidPlayerGoal）
     entity/CatEntityTest.cpp
+    # CatGoals 猫AI目标测试（CatLieOnBedGoal、CatRelaxOnOwnerGoal、晨间礼物）
+    entity/CatGoalsTest.cpp
     common/entity/entities/passive/special/FoxEntityTest.cpp
     # PandaEntity 打喷嚏、性格、状态测试
     common/entity/entities/passive/special/PandaEntityTest.cpp
@@ -1595,6 +1597,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/FoxGoals.cpp
         # PandaGoals 用于熊猫打滚 AI 测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/PandaGoals.cpp
+        # CatGoals 用于猫 AI 目标测试（CatLieOnBedGoal、CatRelaxOnOwnerGoal）
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/CatGoals.cpp
         # GhastMovementController 用于恶魂飞行控制器测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/controller/GhastMovementController.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp

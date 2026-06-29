@@ -4,7 +4,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -27,6 +27,14 @@
 #include "common/entity/entities/passive/tamable/CatEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/loot/LootTable.hpp"
+#include "common/item/loot/LootTableManager.hpp"
+#include "common/item/loot/context/LootContext.hpp"
+#include "common/item/loot/context/LootContextBuilder.hpp"
+#include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/item/loot/context/LootParams.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -219,6 +227,11 @@ void CatRelaxOnOwnerGoal::tick()
 
 void CatRelaxOnOwnerGoal::resetTask()
 {
+    // 目标结束时，如果主人已充分睡眠（>= 100 tick），赠送晨间礼物
+    if (m_owner != nullptr && m_owner->isPlayerFullyAsleep()) {
+        _giveMorningGift();
+    }
+
     m_cat->setLieDown(false);
     m_cat->setRelaxStateOne(false);
     m_onBedTicks = 0;
@@ -264,17 +277,92 @@ void CatRelaxOnOwnerGoal::_giveMorningGift()
     }
 
     // 检查主人是否已充分睡眠（睡眠计时器 >= 100 tick）
-    // TODO: 当 Player::sleepTimer() 实现后，使用实际值替换此处硬编码
-    // 当前简化实现：始终赠送礼物（概率由 MORNING_GIFT_CHANCE 控制）
+    // MC 原版：主人睡眠时间足够长才赠送礼物
+    if (m_owner != nullptr && !m_owner->isPlayerFullyAsleep()) {
+        return;
+    }
+
+    // 概率检查
     if (m_cat->getRandom().nextFloat() >= MORNING_GIFT_CHANCE) {
         return;
     }
 
-    // 在猫的位置掉落礼物物品
-    // TODO: 当猫的晨间礼物战利品表实现后，使用战利品表替换硬编码物品
-    // MC 原版战利品表: minecraft:gameplay/cat_morning_gift
-    // 当前简化实现：掉落一个兔子皮或羽毛
-    // ItemDropHelper::spawnItemEntity(m_cat->world(), m_cat->position(), giftStack, ...);
+    // 尝试使用战利品表系统生成礼物
+    const loot::LootTableManager* ltm = m_cat->world()->lootTableManager();
+    if (ltm != nullptr) {
+        const loot::LootTable* table = ltm->getTable("minecraft:gameplay/cat_morning_gift");
+        if (table != nullptr) {
+            // 构建战利品上下文
+            BlockPos catPos(static_cast<i32>(std::floor(m_cat->x())),
+                static_cast<i32>(std::floor(m_cat->y())),
+                static_cast<i32>(std::floor(m_cat->z())));
+
+            auto context = loot::LootContextBuilder(*m_cat->world())
+                               .withRandom(m_cat->getRandom())
+                               .withParameter(loot::LootParams::THIS_ENTITY, static_cast<Entity*>(m_cat))
+                               .withOwnedValue(loot::LootParams::BLOCK_POS, catPos)
+                               .withLootTableResolver(
+                                   [ltm](const std::string& id) -> const loot::LootTable* { return ltm->getTable(id); })
+                               .withPredicateResolver([ltm](const std::string& id) -> const loot::LootCondition* {
+                                   return ltm->getPredicate(id);
+                               })
+                               .build(loot::LootParameterSets::gift());
+
+            if (context != nullptr) {
+                // 生成战利品并掉落
+                auto drops = table->generate(*context);
+                for (const auto& stack : drops) {
+                    if (!stack.isEmpty()) {
+                        ItemDropHelper::spawnItemAtEntity(m_cat, stack, 0.5f, m_cat->getRandom());
+                    }
+                }
+                return;
+            }
+        }
+    }
+
+    // 战利品表不可用时的后备方案：从预定义列表中随机选择礼物
+    // 对应 MC 原版 cat_morning_gift 战利品表中的物品：
+    //   rabbit_hide(10), rabbit_foot(10), chicken(10), feather(10),
+    //   rotten_flesh(10), string(10), phantom_membrane(2)
+    // 注意：rabbit_hide 当前尚未注册，暂用 rabbit 代替
+    struct GiftItem {
+        const Item* item;
+        i32 weight;
+    };
+    const GiftItem giftItems[] = {
+        {Items::RABBIT, 10},          // 兔子皮暂用兔子代替
+        {Items::RABBIT_FOOT, 10},     // 兔子脚
+        {Items::CHICKEN, 10},         // 生鸡肉
+        {Items::FEATHER, 10},         // 羽毛
+        {Items::ROTTEN_FLESH, 10},    // 腐肉
+        {Items::STRING, 10},          // 线
+        {Items::PHANTOM_MEMBRANE, 2}, // 幻翼膜
+    };
+
+    // 计算总权重
+    i32 totalWeight = 0;
+    for (const auto& gi : giftItems) {
+        if (gi.item != nullptr) {
+            totalWeight += gi.weight;
+        }
+    }
+
+    if (totalWeight > 0) {
+        i32 roll = m_cat->getRandom().nextInt(totalWeight);
+        i32 cumulative = 0;
+        for (const auto& gi : giftItems) {
+            if (gi.item == nullptr) {
+                continue;
+            }
+            cumulative += gi.weight;
+            if (roll < cumulative) {
+                ItemStack stack(gi.item, 1);
+                ItemDropHelper::spawnItemAtEntity(m_cat, stack, 0.5f, m_cat->getRandom());
+                return;
+            }
+        }
+    }
 }
 
 } // namespace mc::entity::ai::goal

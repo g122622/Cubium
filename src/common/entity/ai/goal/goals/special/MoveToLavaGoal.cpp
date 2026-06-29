@@ -33,12 +33,14 @@
 #include "../../../../core/Entity.hpp"
 #include "../../../../core/MobEntity.hpp"
 #include "../../../pathfinding/PathNavigator.hpp"
+#include "MoveToBlockGoal.hpp"
 #include <cmath>
 #include <limits>
 
 namespace mc::entity::ai::goal {
 
 using namespace MoveToBlockGoalConstants;
+using namespace MoveToLavaGoalConstants;
 
 // ============================================================================
 // MoveToBlockGoal 基类实现
