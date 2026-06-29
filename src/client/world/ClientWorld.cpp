@@ -851,10 +851,14 @@ void ClientWorld::setSpawnPoint(i32 x, i32 y, i32 z, f32 angle)
 
 // ========== 粒子接口实现 ==========
 
-void ClientWorld::addParticle(
-    renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+void ClientWorld::addParticle(::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
 {
     if (!m_particleManager) {
+        return;
+    }
+
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!m_particleManager->shouldShowParticle(type)) {
         return;
     }
 
@@ -866,13 +870,15 @@ void ClientWorld::addParticle(
     }
 }
 
-void ClientWorld::addParticle(renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const Vector3& offset,
-    u32 count)
+void ClientWorld::addParticle(
+    ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
 {
     if (!m_particleManager) {
+        return;
+    }
+
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!m_particleManager->shouldShowParticle(type)) {
         return;
     }
 
@@ -894,12 +900,15 @@ void ClientWorld::addParticle(renderer::trident::particle::ParticleTypeId type,
     }
 }
 
-void ClientWorld::addBlockParticle(renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const BlockState& blockState)
+void ClientWorld::addBlockParticle(
+    ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const BlockState& blockState)
 {
     if (!m_particleManager) {
+        return;
+    }
+
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!m_particleManager->shouldShowParticle(type)) {
         return;
     }
 
@@ -914,8 +923,9 @@ void ClientWorld::addBlockParticle(renderer::trident::particle::ParticleTypeId t
         if (particle) {
             m_particleManager->addParticle(std::move(particle));
         }
-    } else if (type == ParticleTypeId::Block || type == ParticleTypeId::Breaking ||
-        type == ParticleTypeId::FallingDust) {
+    } else if (type == ParticleTypeId::Block || type == ParticleTypeId::BlockMarker ||
+        type == ParticleTypeId::Breaking || type == ParticleTypeId::FallingDust ||
+        type == ParticleTypeId::BlockCrumble) {
         // 其他方块粒子：使用 DiggingParticle::createWithBlock
         auto particle = particles::DiggingParticle::createWithBlock(glmPos, glmVel, blockState);
         if (particle) {

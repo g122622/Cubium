@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
@@ -31,6 +30,7 @@
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -477,18 +477,17 @@ public:
 
     // 粒子生成记录
     struct ParticleInfo {
-        client::renderer::trident::particle::ParticleTypeId type;
+        particle::ParticleTypeId type;
         Vector3 pos;
         Vector3 velocity;
     };
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -576,7 +575,7 @@ TEST_F(SlimeParticleTest, ParticleType_IsItemSlime)
 {
     // 验证粒子类型是 ItemSlime
     // 参考 MC 1.16.5 SlimeEntity.tick() 使用 ParticleTypes.ITEM_SLIME
-    using namespace client::renderer::trident::particle;
+    using namespace particle;
     EXPECT_EQ(ParticleTypeId::ItemSlime, ParticleTypeId::ItemSlime);
 }
 

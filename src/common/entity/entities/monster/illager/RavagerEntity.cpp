@@ -22,7 +22,6 @@
  */
 
 #include "RavagerEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
@@ -39,6 +38,7 @@
 #include "common/entity/entities/passive/golem/IronGolemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -261,7 +261,7 @@ void RavagerEntity::_spawnStunParticles()
         static_cast<f64>(width()) * std::cos(static_cast<f64>(renderYawOffsetRad)) + (rng.nextDouble() * 0.6 - 0.3);
 
     // 生成灰色效果粒子，颜色通过 velocity 向量传递 (R, G, B)
-    worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+    worldPtr->addParticle(particle::ParticleTypeId::EntityEffect,
         Vector3(x() + offsetX, offsetY, z() + offsetZ),
         Vector3(0.498f, 0.514f, 0.573f));
 }

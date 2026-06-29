@@ -7,7 +7,7 @@
 ```
 src/common/entity/
 ├── core/                           # 核心实体框架
-│   ├── Entity.hpp/cpp              # 实体基类（含 getLootTableId() 虚方法）
+│   ├── Entity.hpp/cpp              # 实体基类（含骑乘系统、压力板触发等虚方法）
 │   ├── LivingEntity.hpp/cpp        # 生物实体基类
 │   ├── MobEntity.hpp/cpp           # AI生物基类（覆写 getLootTableId() 支持自定义 DeathLootTable）
 │   ├── CreatureEntity.hpp/cpp      # 陆地生物基类
@@ -116,6 +116,10 @@ src/common/entity/
 ├── combat/                        # 战斗系统
 │   ├── AttackContext.hpp/cpp      # 攻击上下文
 │   └── PlayerAttackHelper.hpp/cpp # 玩家攻击辅助
+│
+├── enchantment/                   # 附魔效果追踪
+│   ├── LocationEnchantmentTracker.hpp/cpp # 位置依赖附魔跟踪器
+│   └── README.md                  # 模块说明
 │
 ├── damage/                        # 伤害系统
 │   ├── DamageSource.hpp           # 伤害来源

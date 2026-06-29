@@ -23,7 +23,7 @@
 
 #include "SpellcastingIllagerEntity.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -105,14 +105,14 @@ void SpellcastingIllagerEntity::tick()
             Vector3 velocity = particleColor; // 颜色作为速度参数传递
 
             // 右侧粒子
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+            m_world->addParticle(particle::ParticleTypeId::EntityEffect,
                 Vector3(pos.x + static_cast<f64>(cosAngle) * lateralOffset,
                     pos.y + heightOffset,
                     pos.z + static_cast<f64>(sinAngle) * lateralOffset),
                 velocity);
 
             // 左侧粒子
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+            m_world->addParticle(particle::ParticleTypeId::EntityEffect,
                 Vector3(pos.x - static_cast<f64>(cosAngle) * lateralOffset,
                     pos.y + heightOffset,
                     pos.z - static_cast<f64>(sinAngle) * lateralOffset),

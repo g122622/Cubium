@@ -23,7 +23,6 @@
 
 #include "AbstractArrowEntity.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -34,6 +33,7 @@
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/potion/PotionUtils.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -94,7 +94,7 @@ void AbstractArrowEntity::tick()
             for (int j = 0; j < 4; ++j) {
                 f32 offset = 0.25f;
                 Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Bubble, pos, m_velocity);
+                m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_velocity);
             }
         }
     }
@@ -144,7 +144,7 @@ void AbstractArrowEntity::tick()
             // 粒子速度与箭矢速度相反
             Vector3 vel(-velocityX() * 0.01f, -velocityY() * 0.01f, -velocityZ() * 0.01f);
 
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Crit, pos, vel);
+            m_world->addParticle(particle::ParticleTypeId::Crit, pos, vel);
         }
     }
 }
@@ -519,7 +519,7 @@ void ArrowEntity::tick()
             Vector3 pos(x() + ox, y() + oy, z() + oz);
             Vector3 colorVel(r, g, b); // 颜色作为速度参数传递
 
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect, pos, colorVel);
+            m_world->addParticle(particle::ParticleTypeId::EntityEffect, pos, colorVel);
         }
     }
 }
@@ -590,9 +590,7 @@ void SpectralArrowEntity::tick()
     if (!m_inGround && m_world && m_world->isClientSide()) {
         // 使用 INSTANT_EFFECT 粒子
         // 粒子位置：箭矢当前位置，速度为零
-        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::InstantSpell,
-            Vector3(x(), y(), z()),
-            Vector3(0.0f, 0.0f, 0.0f));
+        m_world->addParticle(particle::ParticleTypeId::InstantSpell, Vector3(x(), y(), z()), Vector3(0.0f, 0.0f, 0.0f));
     }
 }
 

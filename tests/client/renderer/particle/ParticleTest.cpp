@@ -468,11 +468,11 @@ TEST(ParticleTypesTest, TypeValidation)
     EXPECT_TRUE(isValidParticleType(ParticleTypeId::Flame));
     EXPECT_TRUE(isValidParticleType(ParticleTypeId::Smoke));
     EXPECT_TRUE(isValidParticleType(ParticleTypeId::Heart));
-    EXPECT_TRUE(isValidParticleType(static_cast<ParticleTypeId>(127)));
+    EXPECT_TRUE(isValidParticleType(static_cast<ParticleTypeId>(123))); // 最后一个有效值 (LandingCherryLeaves)
 
     // 无效类型
     EXPECT_FALSE(isValidParticleType(ParticleTypeId::Invalid));
-    EXPECT_FALSE(isValidParticleType(static_cast<ParticleTypeId>(128)));
+    EXPECT_FALSE(isValidParticleType(static_cast<ParticleTypeId>(124))); // == Count，无效
     EXPECT_FALSE(isValidParticleType(static_cast<ParticleTypeId>(255)));
 }
 
@@ -481,22 +481,82 @@ TEST(ParticleTypesTest, TypeValidation)
  */
 TEST(ParticleTypesTest, DataRequirements)
 {
-    // 需要方块状态的类型
+    // 需要方块状态的类型（MC 协议：Block, BlockMarker, FallingDust, DustPillar, BlockCrumble）
     EXPECT_TRUE(requiresBlockState(ParticleTypeId::Block));
-    EXPECT_TRUE(requiresBlockState(ParticleTypeId::Breaking));
+    EXPECT_TRUE(requiresBlockState(ParticleTypeId::BlockMarker));
     EXPECT_TRUE(requiresBlockState(ParticleTypeId::FallingDust));
+    EXPECT_TRUE(requiresBlockState(ParticleTypeId::DustPillar));
+    EXPECT_TRUE(requiresBlockState(ParticleTypeId::BlockCrumble));
+    // 内部扩展：Breaking 也需要方块状态
+    EXPECT_TRUE(requiresBlockState(ParticleTypeId::Breaking));
 
     // 不需要方块状态的类型
     EXPECT_FALSE(requiresBlockState(ParticleTypeId::Flame));
     EXPECT_FALSE(requiresBlockState(ParticleTypeId::Smoke));
 
-    // 需要物品数据的类型
+    // 需要物品数据的类型（MC 协议：Item, ItemSlime, ItemSnowball, ItemCobweb）
     EXPECT_TRUE(requiresItemData(ParticleTypeId::Item));
     EXPECT_TRUE(requiresItemData(ParticleTypeId::ItemSlime));
+    EXPECT_TRUE(requiresItemData(ParticleTypeId::ItemSnowball));
+    EXPECT_TRUE(requiresItemData(ParticleTypeId::ItemCobweb));
 
-    // 需要红石颜色的类型
-    EXPECT_TRUE(requiresDustColor(ParticleTypeId::Redstone));
+    // 需要颜色数据的类型（MC 协议：Dust, DustColorTransition, EntityEffect, Flash, TintedLeaves）
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::Dust));
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::DustColorTransition));
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::EntityEffect));
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::Flash));
+    EXPECT_TRUE(requiresColorData(ParticleTypeId::TintedLeaves));
+
+    // 需要红石颜色的类型（Dust, DustColorTransition，内部扩展：Redstone）
     EXPECT_TRUE(requiresDustColor(ParticleTypeId::Dust));
+    EXPECT_TRUE(requiresDustColor(ParticleTypeId::DustColorTransition));
+    EXPECT_TRUE(requiresDustColor(ParticleTypeId::Redstone));
+}
+
+/**
+ * @brief 测试协议 ID 转换函数
+ */
+TEST(ParticleTypesTest, ProtocolIdConversion)
+{
+    // 协议粒子（0~114）的 toProtocolId 应返回自身
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Flame), 32);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Smoke), 60);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Block), 1);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Dust), 14);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::EntityEffect), 21);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Vibration), 48);
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Firefly), 114); // 最后一个协议粒子
+
+    // 内部扩展粒子的 toProtocolId 应映射到最接近的协议粒子
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Breaking), 1);              // → Block
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Barrier), 1);               // → Block
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Light), 1);                 // → Block
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Redstone), 14);             // → Dust
+    EXPECT_EQ(toProtocolId(ParticleTypeId::LargeExplosion), 22);       // → HugeExplosion
+    EXPECT_EQ(toProtocolId(ParticleTypeId::ItemPickup), 57);           // → Poof
+    EXPECT_EQ(toProtocolId(ParticleTypeId::DrippingCherryLeaves), 34); // → CherryLeaves
+    EXPECT_EQ(toProtocolId(ParticleTypeId::FallingCherryLeaves), 34);  // → CherryLeaves
+    EXPECT_EQ(toProtocolId(ParticleTypeId::LandingCherryLeaves), 34);  // → CherryLeaves
+
+    // 无效类型的 toProtocolId 应返回 -1
+    EXPECT_EQ(toProtocolId(ParticleTypeId::Invalid), -1);
+    EXPECT_EQ(toProtocolId(static_cast<ParticleTypeId>(200)), -1);
+
+    // fromProtocolId 应正确转换协议 ID
+    EXPECT_EQ(fromProtocolId(0), ParticleTypeId::AngryVillager);
+    EXPECT_EQ(fromProtocolId(32), ParticleTypeId::Flame);
+    EXPECT_EQ(fromProtocolId(114), ParticleTypeId::Firefly);
+
+    // fromProtocolId 对无效 ID 应返回 Invalid
+    EXPECT_EQ(fromProtocolId(-1), ParticleTypeId::Invalid);
+    EXPECT_EQ(fromProtocolId(115), ParticleTypeId::Invalid); // 内部扩展 ID 不在协议中
+    EXPECT_EQ(fromProtocolId(255), ParticleTypeId::Invalid);
+
+    // 协议粒子的 toProtocolId 和 fromProtocolId 应互为逆运算
+    for (int i = 0; i < 115; ++i) {
+        ParticleTypeId type = fromProtocolId(i);
+        EXPECT_EQ(toProtocolId(type), i) << "Round-trip failed for protocol ID " << i;
+    }
 }
 
 /**

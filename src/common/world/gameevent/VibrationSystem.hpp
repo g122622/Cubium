@@ -29,8 +29,16 @@
 #include "common/world/gameevent/PositionSource.hpp"
 
 #include <optional>
+#include <nlohmann/json_fwd.hpp>
 
 namespace mc {
+
+namespace nbt {
+namespace tags {
+struct compound_tag;
+} // namespace tags
+using CompoundTag = tags::compound_tag;
+} // namespace nbt
 
 class Entity; // 前向声明
 
@@ -66,6 +74,47 @@ struct VibrationInfo {
     VibrationInfo() = default;
 
     VibrationInfo(const GameEvent& event, f32 dist, const Vector3d& position, const Entity* entity);
+
+    // ========================================================================
+    // 序列化
+    // ========================================================================
+
+    /**
+     * @brief 保存到 NBT 复合标签
+     *
+     * NBT 结构（对齐 MC 原版 VibrationInfo.CODEC）：
+     * - "game_event": string  - 事件 ID（如 "minecraft:step"）
+     * - "distance": float     - 振动传播距离
+     * - "pos": list<double>   - 振动源位置 [x, y, z]
+     * - "source": long        - 源实体 ID（可选）
+     * - "projectile_owner": long - 弹射物拥有者实体 ID（可选）
+     *
+     * @param tag 输出 NBT 复合标签
+     */
+    void saveToNBT(nbt::CompoundTag& tag) const;
+
+    /**
+     * @brief 从 NBT 复合标签加载
+     *
+     * 如果 "game_event" 缺失或无法识别，gameEvent 将为 nullptr。
+     *
+     * @param tag 输入 NBT 复合标签
+     * @return 是否成功加载（至少包含有效的 game_event）
+     */
+    [[nodiscard]] bool loadFromNBT(const nbt::CompoundTag& tag);
+
+    /**
+     * @brief 保存到 JSON
+     * @param data 输出 JSON 对象
+     */
+    void saveToJson(nlohmann::json& data) const;
+
+    /**
+     * @brief 从 JSON 加载
+     * @param data 输入 JSON 对象
+     * @return 是否成功加载
+     */
+    [[nodiscard]] bool loadFromJson(const nlohmann::json& data);
 };
 
 /**
@@ -101,6 +150,41 @@ public:
      * @brief 重置选择器，开始新一轮选择
      */
     void startOver();
+
+    // ========================================================================
+    // 序列化
+    // ========================================================================
+
+    /**
+     * @brief 保存到 NBT 复合标签
+     *
+     * NBT 结构（对齐 MC 原版 VibrationSelector.CODEC）：
+     * - "event": compound (可选) - 候选振动信息，结构同 VibrationInfo
+     * - "tick": long - 候选振动被添加时的游戏 tick，无候选时为 -1
+     *
+     * @param tag 输出 NBT 复合标签
+     */
+    void saveToNBT(nbt::CompoundTag& tag) const;
+
+    /**
+     * @brief 从 NBT 复合标签加载
+     * @param tag 输入 NBT 复合标签
+     * @return 是否成功加载
+     */
+    [[nodiscard]] bool loadFromNBT(const nbt::CompoundTag& tag);
+
+    /**
+     * @brief 保存到 JSON
+     * @param data 输出 JSON 对象
+     */
+    void saveToJson(nlohmann::json& data) const;
+
+    /**
+     * @brief 从 JSON 加载
+     * @param data 输入 JSON 对象
+     * @return 是否成功加载
+     */
+    [[nodiscard]] bool loadFromJson(const nlohmann::json& data);
 
 private:
     /**
@@ -200,9 +284,9 @@ public:
          * @param travelTimeInTicks 传播剩余时间
          * @param reloadVibrationParticle 是否需要重发振动粒子（从存档加载时为 true）
          *
-         * TODO: 当 SculkSensorBlockEntity、SculkShriekerBlockEntity、WardenEntity、AllayEntity
-         * 实现振动系统 NBT 序列化时，应使用此构造函数（或调用 setReloadVibrationParticle(true)）
-         * 从存档数据加载 VibrationSystem.Data。参考 MC 原版：
+         * 当 SculkSensorBlockEntity、SculkShriekerBlockEntity、WardenEntity、AllayEntity
+         * 从存档数据加载 VibrationSystem.Data 时，应使用此构造函数（或调用 setReloadVibrationParticle(true)），
+         * 以便在区块重新加载后重发正在传播的振动粒子效果。参考 MC 原版：
          * - SculkSensorBlockEntity.load() → read("listener", VibrationSystem.Data.CODEC)
          * - SculkShriekerBlockEntity.load() → read("listener", VibrationSystem.Data.CODEC)
          * - Warden.load() → read("listener", VibrationSystem.Data.CODEC)
@@ -255,6 +339,53 @@ public:
          */
         [[nodiscard]] bool shouldReloadVibrationParticle() const { return m_reloadVibrationParticle; }
         void setReloadVibrationParticle(bool value) { m_reloadVibrationParticle = value; }
+
+        // ========================================================================
+        // 序列化
+        // ========================================================================
+
+        /**
+         * @brief 保存到 NBT 复合标签
+         *
+         * NBT 结构（对齐 MC 原版 VibrationSystem.Data.CODEC，键名为 "listener"）：
+         * - "event": compound (可选) - 当前正在传播的振动信息
+         * - "selector": compound     - 振动选择器
+         * - "event_delay": int       - 传播剩余时间（tick），默认 0
+         *
+         * 注意：reloadVibrationParticle 不序列化到 NBT，反序列化时始终设为 true。
+         *
+         * @param tag 输出 NBT 复合标签
+         */
+        void saveToNBT(nbt::CompoundTag& tag) const;
+
+        /**
+         * @brief 从 NBT 复合标签加载
+         *
+         * 加载后自动设置 reloadVibrationParticle = true，
+         * 以便在区块重新加载后重发振动粒子效果。
+         * 对齐 MC 原版 VibrationSystem.Data.CODEC 反序列化行为。
+         *
+         * @param tag 输入 NBT 复合标签
+         * @return 是否成功加载
+         */
+        [[nodiscard]] bool loadFromNBT(const nbt::CompoundTag& tag);
+
+        /**
+         * @brief 保存到 JSON
+         * @param data 输出 JSON 对象
+         */
+        void saveToJson(nlohmann::json& data) const;
+
+        /**
+         * @brief 从 JSON 加载
+         *
+         * 加载后自动设置 reloadVibrationParticle = true，
+         * 以便在区块重新加载后重发振动粒子效果。
+         *
+         * @param data 输入 JSON 对象
+         * @return 是否成功加载
+         */
+        [[nodiscard]] bool loadFromJson(const nlohmann::json& data);
 
     private:
         std::optional<VibrationInfo> m_currentVibration;

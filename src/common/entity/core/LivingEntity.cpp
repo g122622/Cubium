@@ -29,8 +29,11 @@
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/enchantment/enchantments/AllEnchantments.hpp"
+#include "common/item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -340,6 +343,10 @@ void LivingEntity::die(DamageSource& /*cause*/)
 
     m_deathTime = 0;
 
+    // 停用所有位置依赖的附魔效果（如灵魂疾行的速度修饰符）
+    // 避免实体死亡后属性修饰符残留
+    item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
+
     // 掉落经验
     dropExperience();
 }
@@ -349,6 +356,15 @@ void LivingEntity::onKillCommand()
     // 使用虚空伤害杀死实体，这会触发完整的死亡流程
     auto damageSource = DamageSources::outOfWorld();
     hurt(damageSource, std::numeric_limits<f32>::max());
+}
+
+void LivingEntity::remove()
+{
+    // 停用所有位置依赖的附魔效果（如灵魂疾行的速度修饰符）
+    // 防止实体被移除后属性修饰符残留
+    item::enchant::EnchantmentHelper::stopAllLocationBasedEffects(*this);
+
+    Entity::remove();
 }
 
 // ============================================================================
@@ -364,6 +380,7 @@ void LivingEntity::registerAttributes()
     m_attributes.registerAttribute(*entity::attribute::Attributes::armor());
     m_attributes.registerAttribute(*entity::attribute::Attributes::armorToughness());
     m_attributes.registerAttribute(*entity::attribute::Attributes::maxAbsorption());
+    m_attributes.registerAttribute(*entity::attribute::Attributes::movementEfficiency());
 
     // 注意：以下属性不在基类中注册：
     // - FOLLOW_RANGE: 由 MobEntity 设置默认值 16.0
@@ -381,6 +398,28 @@ f64 LivingEntity::getAttributeValue(const std::string& name, f64 defaultValue) c
 void LivingEntity::setAttributeBaseValue(const std::string& name, f64 value)
 {
     m_attributes.setBaseValue(name, value);
+}
+
+f32 LivingEntity::getBlockSpeedFactor()
+{
+    // 获取脚下方块的 speedFactor
+    f32 blockSpeedFactor = 1.0f;
+    if (m_world != nullptr) {
+        BlockPos belowPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_boundingBox.minY - 0.001f)),
+            static_cast<i32>(std::floor(m_position.z)));
+        const BlockState* state = m_world->getBlockState(belowPos);
+        if (state != nullptr) {
+            blockSpeedFactor = state->getBlock().getSpeedFactor(*state, m_world, &belowPos);
+        }
+    }
+
+    // 使用 MOVEMENT_EFFICIENCY 属性在方块 speedFactor 和 1.0 之间插值
+    // efficiency=0.0 返回原始 blockSpeedFactor，efficiency=1.0 返回 1.0（完全忽略减速）
+    f64 efficiency = getAttributeValue(entity::attribute::Attributes::MOVEMENT_EFFICIENCY, 0.0);
+    efficiency = std::clamp(efficiency, 0.0, 1.0);
+    f32 result = static_cast<f32>(blockSpeedFactor + (1.0f - blockSpeedFactor) * static_cast<f32>(efficiency));
+    return result;
 }
 
 f32 LivingEntity::getSoundPitch() const
@@ -404,6 +443,16 @@ const ItemStack& LivingEntity::getEquipment(EquipmentSlot slot) const
     return m_equipment[index];
 }
 
+ItemStack& LivingEntity::getMutableEquipment(EquipmentSlot slot)
+{
+    size_t index = static_cast<size_t>(slot);
+    if (index >= m_equipment.size()) {
+        static ItemStack empty;
+        return empty;
+    }
+    return m_equipment[index];
+}
+
 void LivingEntity::setEquipment(EquipmentSlot slot, const ItemStack& stack)
 {
     size_t index = static_cast<size_t>(slot);
@@ -417,9 +466,11 @@ void LivingEntity::onEquippedItemBroken(const Item& item, EquipmentSlot slot)
     // 广播装备破损动画给追踪玩家
     broadcastBreakEvent(slot);
 
-    // TODO: 调用 stopLocationBasedEffects() 停止基于位置的持续效果（如指南针、时钟等
-    // 基于位置的物品效果），待属性修饰符系统完善后集成。对应 MC 原版
-    // LivingEntity.onEquippedItemBroken() 中的 stopLocationBasedEffects() 调用。
+    // 停止基于位置的物品效果（移除属性修饰符）
+    // 对应 MC 原版 LivingEntity.onEquippedItemBroken() 中调用 stopLocationBasedEffects()
+    // 注意：MC 原版读取当前槽位中的物品（此时可能已被清空或替换），
+    // 这里使用传入的 item 引用获取该物品类型的属性修饰符
+    stopLocationBasedEffects(getEquipment(slot), slot);
 
     // 播放装备破损音效
     if (m_world != nullptr && !isSilent()) {
@@ -438,6 +489,127 @@ void LivingEntity::broadcastBreakEvent(EquipmentSlot slot)
         auto status = network::EntityStatusPacket::equipmentBreakStatus(slotIndex);
         m_world->broadcastEntityStatus(m_id, static_cast<u8>(status));
     }
+}
+
+bool LivingEntity::equipmentHasChanged(const ItemStack& a, const ItemStack& b)
+{
+    // 对应 MC 原版 LivingEntity.equipmentHasChanged()
+    // 使用 operator!= 比较两个物品堆（比较物品类型、数量、耐久、附魔、自定义名称等）
+    return a != b;
+}
+
+void LivingEntity::detectEquipmentUpdates()
+{
+    // 对应 MC 原版 LivingEntity.detectEquipmentUpdates()
+    // 仅在服务端执行
+    if (m_world != nullptr && m_world->isClientSide()) {
+        return;
+    }
+
+    // 首次调用时初始化装备快照
+    if (!m_lastEquipmentInitialized) {
+        for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+            m_lastEquipment[i] = getEquipment(static_cast<EquipmentSlot>(i));
+        }
+        m_lastEquipmentInitialized = true;
+        return;
+    }
+
+    // 检查每个槽位是否有变化
+    bool anyChanged = false;
+
+    for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
+        auto slot = static_cast<EquipmentSlot>(i);
+        const ItemStack& lastStack = m_lastEquipment[i];
+        const ItemStack& currentStack = getEquipment(slot);
+
+        if (equipmentHasChanged(lastStack, currentStack)) {
+            anyChanged = true;
+
+            // 移除旧物品的属性修饰符
+            // 对应 MC 原版 collectEquipmentChanges() 中对旧物品调用 stopLocationBasedEffects()
+            if (!lastStack.isEmpty()) {
+                stopLocationBasedEffects(lastStack, slot);
+            }
+        }
+    }
+
+    // 对变化槽位的新物品应用属性修饰符
+    if (anyChanged) {
+        for (u8 i = 0; i < static_cast<u8>(EquipmentSlot::Count); ++i) {
+            auto slot = static_cast<EquipmentSlot>(i);
+            const ItemStack& lastStack = m_lastEquipment[i];
+            const ItemStack& currentStack = getEquipment(slot);
+
+            if (equipmentHasChanged(lastStack, currentStack)) {
+                // 添加新物品的属性修饰符
+                // 对应 MC 原版 collectEquipmentChanges() 中的 forEachModifier + addTransientModifier
+                if (!currentStack.isEmpty()) {
+                    const Item* item = currentStack.getItem();
+                    if (item != nullptr) {
+                        item::ItemAttributeModifiers modifiers = item->getAttributeModifiers(static_cast<i32>(slot));
+                        for (const auto& entry : modifiers.getEntries()) {
+                            if (entry.equipmentSlot == static_cast<i32>(slot)) {
+                                // 先移除可能存在的同ID修饰符，再添加新的
+                                // 对应 MC 原版 removeModifier(id) + addTransientModifier()
+                                m_attributes.removeModifier(entry.attributeName, entry.modifier.id());
+                                m_attributes.addModifier(entry.attributeName, entry.modifier);
+                            }
+                        }
+                    }
+
+                    // 对新装备运行位置依赖附魔效果
+                    // 对应 MC Java 中 collectEquipmentChanges() 后调用 runLocationChangedEffects()
+                    if (m_world != nullptr && !m_world->isClientSide()) {
+                        item::enchant::EnchantmentHelper::runLocationChangedEffects(*this, currentStack, slot);
+                    }
+                }
+
+                // 更新快照
+                m_lastEquipment[i] = currentStack;
+            }
+        }
+    }
+}
+
+void LivingEntity::stopLocationBasedEffects(const ItemStack& stack, EquipmentSlot slot)
+{
+    // 对应 MC 原版 LivingEntity.stopLocationBasedEffects()
+    // 移除物品提供的属性修饰符
+    if (stack.isEmpty()) {
+        return;
+    }
+
+    const Item* item = stack.getItem();
+    if (item == nullptr) {
+        return;
+    }
+
+    // 移除该物品在该槽位提供的所有属性修饰符
+    item::ItemAttributeModifiers modifiers = item->getAttributeModifiers(static_cast<i32>(slot));
+    for (const auto& entry : modifiers.getEntries()) {
+        if (entry.equipmentSlot == static_cast<i32>(slot)) {
+            m_attributes.removeModifier(entry.attributeName, entry.modifier.id());
+        }
+    }
+
+    // 停用位置相关的附魔效果（如 Frost Walker 冰面替换、Soul Speed 速度加成等）
+    item::enchant::EnchantmentHelper::stopLocationBasedEffects(*this, stack, slot);
+}
+
+void LivingEntity::onChangedBlock()
+{
+    // 仅在服务端运行位置依赖附魔效果
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 评估位置依赖附魔效果（如冰霜行者、灵魂疾行）
+    // 当附魔的激活条件不再满足时（如灵魂沙被挖走），自动停用效果并清理属性修饰符。
+    // 此方法在两种场景下被调用：
+    // 1. 实体跨越方块边界时（tick 中检测 m_lastBlockPos 变化）
+    // 2. 周期性重新评估（每 20 tick，当有活跃位置附魔但未移动时）
+    item::enchant::EnchantmentHelper::runLocationChangedEffects(*this);
 }
 
 bool LivingEntity::hurtAndBreak(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot)
@@ -527,6 +699,29 @@ void LivingEntity::tick()
 
     // 更新效果
     m_effectManager.tick(*this);
+
+    // 检测装备更新（服务端）
+    // 对应 MC 原版 LivingEntity.tick() 中的 detectEquipmentUpdates() 调用
+    detectEquipmentUpdates();
+
+    // 检测方块位置变化（服务端），触发位置依赖的附魔效果
+    // 对应 MC Java 的 LivingEntity.baseTick() 中 lastPos != blockPosition() 检测
+    if (!m_world->isClientSide()) {
+        BlockPos currentBlockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(m_position.y)),
+            static_cast<i32>(std::floor(m_position.z)));
+        if (currentBlockPos != m_lastBlockPos) {
+            m_lastBlockPos = currentBlockPos;
+            onChangedBlock();
+        } else if (m_locationEnchantmentTracker.hasActiveEnchantments()) {
+            // 周期性重新评估位置依赖附魔效果：当实体有活跃的位置依赖附魔但未移动时，
+            // 脚下方块可能已被破坏或替换（如灵魂沙被挖走），需要重新评估附魔是否应停用。
+            // 每 20 tick（1秒）检查一次，与 MC 原版行为一致（MC 通过 tickEffects 提供周期性评估机会）。
+            if (m_ticksExisted % 20 == 0) {
+                onChangedBlock();
+            }
+        }
+    }
 
     // 更新无敌帧计时器
     if (m_hurtResistantTime > 0) {
@@ -884,6 +1079,11 @@ void LivingEntity::travel(f32 strafing, f32 vertical, f32 forward)
     if (m_onGround) {
         // 地面移动：使用滑度计算
         moveFactor = moveSpeed * 0.21600002f / (slipperiness * slipperiness * slipperiness);
+
+        // 地面移动因子需要乘以 getBlockSpeedFactor()
+        // getBlockSpeedFactor() 使用 MOVEMENT_EFFICIENCY 属性在方块 speedFactor 和 1.0 之间插值
+        // 灵魂疾行附魔设置 MOVEMENT_EFFICIENCY=1.0，使灵魂沙/土上的 speedFactor 从 0.4 插值到 1.0
+        moveFactor *= getBlockSpeedFactor();
     } else {
         // 空中移动：使用跳跃移动因子
         moveFactor = m_jumpMovementFactor;
@@ -1135,11 +1335,16 @@ void LivingEntity::applyKnockback(f32 strength, f64 ratioX, f64 ratioZ)
     }
 
     // 归一化方向向量
-    f64 length = std::sqrt(ratioX * ratioX + ratioZ * ratioZ);
-    if (length < 1.0E-7) {
-        return; // 零向量，不应用击退
+    // 如果方向向量过小（长度平方 < 1.0E-5），随机扰动方向以避免零向量
+    f64 lengthSquared = ratioX * ratioX + ratioZ * ratioZ;
+    if (lengthSquared < 1.0E-5) {
+        auto& rng = m_world->getRandom();
+        ratioX = static_cast<f64>(rng.nextFloat() - rng.nextFloat()) * 0.01;
+        ratioZ = static_cast<f64>(rng.nextFloat() - rng.nextFloat()) * 0.01;
+        lengthSquared = ratioX * ratioX + ratioZ * ratioZ;
     }
 
+    f64 length = std::sqrt(lengthSquared);
     ratioX /= length;
     ratioZ /= length;
 
@@ -1209,6 +1414,27 @@ void LivingEntity::causeExtraKnockback(Entity& target, f32 strength, const Vecto
     }
 
     // 注意：Player 子类重写此方法，添加 setSprinting(false) 和 ServerPlayer 速度修正
+}
+
+f32 LivingEntity::getKnockback(Entity& /*target*/)
+{
+    // 从 ATTACK_KNOCKBACK 属性获取基础击退值，加上击退附魔加成，然后除以 2.0
+    // 当前项目简化为直接获取击退附魔等级并计算加成
+    f32 baseKnockback = static_cast<f32>(getAttributeValue(entity::attribute::Attributes::ATTACK_KNOCKBACK, 0.0));
+
+    // 加上击退附魔加成（每级 +0.5）
+    const ItemStack& weapon = getMainHandItem();
+    if (!weapon.isEmpty()) {
+        i32 knockbackLevel =
+            item::enchant::EnchantmentHelper::getEnchantmentLevel(weapon, &item::enchant::AllEnchantments::KNOCKBACK);
+        if (knockbackLevel > 0) {
+            baseKnockback += item::enchant::KnockbackEnchantment::getKnockbackBonus(knockbackLevel);
+        }
+    }
+
+    // hurt() 中有 0.4F 的基础击退，causeExtraKnockback 的击退值来自此方法，
+    // 除以 2.0 使得总击退保持合理
+    return baseKnockback / 2.0f;
 }
 
 // ============================================================================

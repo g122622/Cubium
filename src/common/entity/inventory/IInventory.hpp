@@ -27,6 +27,7 @@
 #include <memory>
 #include <unordered_set>
 
+#include "ContainerListener.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -115,10 +116,36 @@ public:
      */
     virtual void clear() = 0;
 
+    // ========== 变更通知 ==========
+
     /**
      * @brief 标记容器已更改
+     *
+     * 子类应重写此方法以通知所有注册的 ContainerListener。
+     * 默认实现为空操作。
      */
     virtual void setChanged() {}
+
+    /**
+     * @brief 添加容器变更监听器
+     *
+     * 监听器在容器内容变更（setItem、removeItem、clear 等）时通过
+     * containerChanged() 被通知。removeItemNoUpdate 不触发通知。
+     *
+     * 参考: net.minecraft.world.SimpleContainer.addListener()
+     *
+     * @param listener 监听器指针（调用方负责确保指针生命周期有效）
+     */
+    virtual void addListener(ContainerListener* listener) { (void)listener; }
+
+    /**
+     * @brief 移除容器变更监听器
+     *
+     * 参考: net.minecraft.world.SimpleContainer.removeListener()
+     *
+     * @param listener 要移除的监听器指针
+     */
+    virtual void removeListener(ContainerListener* listener) { (void)listener; }
 
     // ========== 玩家访问控制 ==========
 

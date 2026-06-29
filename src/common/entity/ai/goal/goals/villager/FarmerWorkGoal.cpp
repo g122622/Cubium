@@ -262,15 +262,8 @@ void FarmerWorkGoal::_tryCompost()
             const BlockState* currentState = world->getBlockState(pos);
             if (!currentState) break;
 
-            // TODO attemptCompost 接口需要 Block& 非const引用，但 getBlock() 返回 const Block&。
-            // 当前使用 const_cast 是权宜之计。根本解决方案需要将 TickManager::scheduleBlockTick
-            // 及其下游模板（ScheduledTick<T>::target, ServerTickList 回调）改为接受 const Block&，
-            // 这涉及 TickManager、ITickList、ServerTickList、EmptyTickList 等多个文件的级联重构。
-            // 参考项目中 AbstractPressurePlateBlock、BigDripleafBlock、RedstoneOreBlock、
-            // MagmaBlock 等均有相同的 const_cast 问题。
-            Block& block = const_cast<Block&>(currentState->getBlock());
-            BlockState newState =
-                blocks::ComposterBlock::attemptCompost(*currentState, *world, pos, block, item->itemId());
+            BlockState newState = blocks::ComposterBlock::attemptCompost(
+                *currentState, *world, pos, currentState->getBlockMutable(), item->itemId());
 
             // 验证世界状态一致性：attemptCompost 内部调用了 world.setBlockState，
             // 此处通过重新读取确认世界状态与返回值一致
@@ -312,10 +305,7 @@ void FarmerWorkGoal::_harvestCrop(const BlockPos& pos)
     if (!state) return;
 
     // 确认是 CropBlock
-    // TODO onBlockRemoved 接口需要 Block& 非const引用，但 getBlock() 返回 const Block&。
-    // 当前使用 const_cast 是权宜之计，与 ServerWorld::setBlockState 中的用法一致。
-    // 未来应重构 Block::onBlockRemoved 为 const 正确接口。
-    Block& block = const_cast<Block&>(state->getBlock());
+    Block& block = state->getBlockMutable();
     auto* cropBlock = dynamic_cast<blocks::CropBlock*>(&block);
     if (!cropBlock) return;
 

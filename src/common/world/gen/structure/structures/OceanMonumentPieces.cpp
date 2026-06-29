@@ -6,6 +6,7 @@
 #include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <algorithm>
@@ -258,10 +259,12 @@ bool OceanMonumentPiece::spawnElderGuardian(
     entity->setPosition(worldX, worldY, worldZ);
     entity->setRotation(0.0f, 0.0f);
 
-    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
     auto* mobEntity = dynamic_cast<MobEntity*>(elder.get());
     if (mobEntity != nullptr) {
-        entity::combat::DifficultyInstance difficultyInstance(fullWorld->difficulty());
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*fullWorld,
+            BlockPos(
+                static_cast<i32>(std::floor(worldX)), static_cast<i32>(worldY), static_cast<i32>(std::floor(worldZ))));
         mobEntity->finalizeSpawn(*fullWorld, difficultyInstance, world::spawn::SpawnReason::Structure);
     }
 

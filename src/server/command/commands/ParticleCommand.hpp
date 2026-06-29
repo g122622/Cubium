@@ -28,7 +28,7 @@
 #include "server/command/ServerCommandSource.hpp"
 
 namespace mc {
-namespace client::renderer::trident::particle {
+namespace particle {
 enum class ParticleTypeId : u16;
 }
 
@@ -46,8 +46,7 @@ public:
 
 private:
     static i32 _spawnParticle(CommandContext<ServerCommandSource>& context);
-    static std::optional<client::renderer::trident::particle::ParticleTypeId> _parseParticleType(
-        const std::string& name) noexcept;
+    static std::optional<particle::ParticleTypeId> _parseParticleType(const std::string& name) noexcept;
 };
 
 } // namespace command

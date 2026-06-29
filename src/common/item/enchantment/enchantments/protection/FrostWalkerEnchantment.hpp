@@ -26,6 +26,10 @@
 #include "../../Enchantment.hpp"
 
 namespace mc {
+
+class IWorld;
+class BlockPos;
+
 namespace item {
 namespace enchant {
 
@@ -39,6 +43,11 @@ namespace enchant {
  * - I: 半径 2 格, II: 半径 3 格
  * - 最大 II 级
  * - 与深海探索者互斥
+ *
+ * 位置依赖效果:
+ * - 当实体在地面上且非骑乘状态时，在脚下水面放置霜冰
+ * - 冰霜范围 = level + 1 格
+ * - 霜冰会在一段时间后自动融化（由 FrostedIceBlock 处理）
  */
 class FrostWalkerEnchantment : public Enchantment {
 public:
@@ -84,6 +93,45 @@ public:
      * @brief 检查是否与深海探索者互斥
      */
     [[nodiscard]] bool isCompatibleWith(const Enchantment& other) const override;
+
+    /**
+     * @brief 位置依赖效果：在地面上行走时冻结水面
+     *
+     * 当实体在地面上且非骑乘状态时，在脚下的水面上放置霜冰。
+     * 冰霜行者始终处于"活跃"状态（只要在地面），不需要跟踪激活/停用。
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     * @param isActive 当前该附魔是否已经处于活跃状态
+     * @return 是否应该保持活跃状态
+     */
+    [[nodiscard]] bool onLocationChanged(
+        LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level, bool isActive) const override;
+
+    /**
+     * @brief 停用位置依赖效果（冰霜行者无需清理，提供空实现）
+     *
+     * 冰霜行者每次位置变化时重新放置霜冰，不需要在停用时移除效果。
+     * 霜冰会由 FrostedIceBlock 自行融化。
+     *
+     * @param entity 持有附魔物品的实体
+     * @param stack 附魔物品堆
+     * @param slot 装备槽位
+     * @param level 附魔等级
+     */
+    void onLocationEffectDeactivated(LivingEntity& entity, const ItemStack& stack, i32 slot, i32 level) const override;
+
+private:
+    /**
+     * @brief 在实体脚下放置霜冰
+     *
+     * @param world 世界
+     * @param center 实体所在的方块位置
+     * @param radius 冰霜半径
+     */
+    void placeFrostedIce(IWorld& world, const BlockPos& center, i32 radius) const;
 };
 
 } // namespace enchant

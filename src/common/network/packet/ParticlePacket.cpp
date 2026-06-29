@@ -25,11 +25,8 @@
 
 namespace mc::network {
 
-ParticlePacket::ParticlePacket(client::renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const Vector3& offset,
-    u32 count)
+ParticlePacket::ParticlePacket(
+    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
     : Packet(PacketType::Particle)
     , m_particleType(type)
     , m_x(pos.x)
@@ -56,8 +53,9 @@ Result<std::vector<u8>> ParticlePacket::serialize() const
 {
     PacketSerializer serializer(expectedSize());
 
-    // 写入粒子类型ID
-    serializer.writeVarInt(static_cast<i32>(m_particleType));
+    // 写入粒子类型ID（转换为 MC 协议 ID）
+    // 内部扩展粒子（115~123）不在 MC 协议中，映射为最接近的协议粒子类型
+    serializer.writeVarInt(particle::toProtocolId(m_particleType));
 
     // 写入位置 (f64)
     serializer.writeF64(m_x);
@@ -101,10 +99,11 @@ Result<void> ParticlePacket::deserialize(const u8* data, size_t size)
     if (!typeResult.success()) {
         return typeResult.error();
     }
-    m_particleType = static_cast<client::renderer::trident::particle::ParticleTypeId>(typeResult.value());
+    // 读取粒子类型ID（从 MC 协议 ID 转换为内部枚举）
+    m_particleType = particle::fromProtocolId(typeResult.value());
 
     // 验证粒子类型
-    if (!client::renderer::trident::particle::isValidParticleType(m_particleType)) {
+    if (!particle::isValidParticleType(m_particleType)) {
         return Error(ErrorCode::InvalidData, "ParticlePacket: invalid particle type");
     }
 
@@ -196,18 +195,14 @@ Result<void> ParticlePacket::deserialize(const u8* data, size_t size)
 }
 
 // static
-ParticlePacket ParticlePacket::create(client::renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const Vector3& offset,
-    u32 count)
+ParticlePacket ParticlePacket::create(
+    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
 {
     return ParticlePacket(type, pos, velocity, offset, count);
 }
 
 // static
-ParticlePacket ParticlePacket::createSingle(
-    client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+ParticlePacket ParticlePacket::createSingle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
 {
     return ParticlePacket(type, pos, velocity, Vector3(0.0f, 0.0f, 0.0f), 1);
 }
@@ -216,7 +211,7 @@ ParticlePacket ParticlePacket::createSingle(
 ParticlePacket ParticlePacket::createVibration(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks)
 {
     // 构建振动粒子包：粒子类型为 Vibration，无偏移，数量为 1
-    ParticlePacket packet(client::renderer::trident::particle::ParticleTypeId::Vibration,
+    ParticlePacket packet(particle::ParticleTypeId::Vibration,
         pos,
         Vector3(0.0f, 0.0f, 0.0f), // 无速度
         Vector3(0.0f, 0.0f, 0.0f), // 无偏移
@@ -240,7 +235,7 @@ ParticlePacket ParticlePacket::createVibration(const Vector3& pos, const Vector3
 
 bool ParticlePacket::isVibrationParticle() const noexcept
 {
-    return m_particleType == client::renderer::trident::particle::ParticleTypeId::Vibration && !m_optionalData.empty();
+    return m_particleType == particle::ParticleTypeId::Vibration && !m_optionalData.empty();
 }
 
 std::optional<Vector3d> ParticlePacket::decodeVibrationTarget() const

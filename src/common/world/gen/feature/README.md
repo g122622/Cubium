@@ -148,6 +148,10 @@ constexpr u32 myFlowerId = 9;
 - 树木：检查下方是否为泥土/耕地
 - 仙人掌：检查周围是否有实体方块
 
+### 5. getFeatureById() 查找特征
+
+`FeatureRegistry::getFeatureById(u32)` 按特征 ID 查找特征指针，ID 等于 `m_ownedFeatures` 中的索引。越界 ID 返回 `nullptr`。骨粉等运行时逻辑可通过此方法结合 `dynamic_cast<ConfiguredFlowerFeature*>` 筛选特定类型的特征。
+
 ### 5. 随机数种子
 
 特征生成使用区块种子，计算方式：

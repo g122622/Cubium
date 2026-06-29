@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
@@ -38,6 +37,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -105,7 +105,7 @@ public:
 
     // 粒子和音效数据结构
     struct ParticleInfo {
-        client::renderer::trident::particle::ParticleTypeId type;
+        particle::ParticleTypeId type;
         Vector3 pos;
         Vector3 velocity;
     };
@@ -119,13 +119,12 @@ public:
     };
 
     // 粒子生成记录
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -270,7 +269,7 @@ TEST_F(MooshroomEntityTest, OnStruckByLightning_GeneratesParticles_ClientSide)
 
     // 验证粒子类型
     for (const auto& particle : m_world.particles()) {
-        EXPECT_EQ(particle.type, client::renderer::trident::particle::ParticleTypeId::Explosion);
+        EXPECT_EQ(particle.type, particle::ParticleTypeId::Explosion);
     }
 }
 
@@ -429,7 +428,7 @@ TEST_F(MooshroomEntityTest, Shear_GeneratesExplosionParticles)
     // 验证生成了爆炸粒子（服务端）
     EXPECT_EQ(m_world.particleCount(), 20u);
     for (const auto& particle : m_world.particles()) {
-        EXPECT_EQ(particle.type, client::renderer::trident::particle::ParticleTypeId::Explosion);
+        EXPECT_EQ(particle.type, particle::ParticleTypeId::Explosion);
     }
 }
 

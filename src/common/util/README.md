@@ -71,6 +71,7 @@ util/
 │   └── README.md
 ├── AxisAlignedBB.hpp/cpp          # 轴对齐包围盒
 ├── CompressionUtils.hpp/cpp       # gzip 压缩/解压
+├── DateTimeUtils.hpp              # 日期时间格式化/解析（MC Java 版兼容格式）
 ├── Direction.hpp                  # 方向枚举及工具
 ├── LinkedHashSet.hpp              # 保持插入顺序的哈希集合
 ├── NibbleArray.hpp/cpp            # 4 位数组（光照数据）
@@ -107,6 +108,7 @@ util/
 │  RateLimiter (独立)                                               │
 │  StringUtils (独立)                                               │
 │  TimeUtils (独立)                                                 │
+│  DateTimeUtils ← TimeUtils（概念关联，无代码依赖）                 │
 │  SpecialDates (独立)                                              │
 │  UuidUtils ← Md5                                                  │
 │  CompressionUtils (依赖 zlib)                                    │
@@ -130,6 +132,7 @@ util/
 | `<random>` | 随机数基础（Mt19937Random） |
 | `nlohmann-json` | JSON 解析（ITextComponent） |
 | `zlib` | gzip 压缩/解压 |
+| `<chrono>` | 日期时间工具（DateTimeUtils） |
 
 ### 下游依赖（依赖本模块的）
 
@@ -251,3 +254,11 @@ Ray ray(origin, (target - origin).normalized());
 ### 15. MD5 仅用于兼容性
 
 MD5 已被证明不安全，**仅用于兼容性需求**（如 Minecraft 离线 UUID 生成），切勿用于密码存储或安全验证。
+
+### 16. DateTimeUtils 时区依赖
+
+`DateTimeUtils::formatDateTime()` 和 `parseDateTimeToMillis()` 依赖本地时区（与 MC Java 版的 `ZoneId.systemDefault()` 行为一致）。格式化使用 `localtime_s/localtime_r`，解析使用 `mktime`。在不同时区的机器上，同一毫秒时间戳格式化出的字符串不同，但往返一致性（format → parse）始终成立。**不要在跨时区通信中使用格式化后的字符串传输时间**，应使用毫秒时间戳（`i64`）。
+
+### 17. DateTimeUtils 与 MC Java 版兼容性
+
+`MC_DATE_FORMAT` 常量（`"%Y-%m-%d %H:%M:%S %z"`）与 MC Java 版的 `DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z")` 完全对应。成就进度（`CriterionProgress`）的 JSON 序列化使用此格式，可直接读写 Java 版存档文件。BannedPlayerList/BannedIpList 也使用此格式存储封禁时间。

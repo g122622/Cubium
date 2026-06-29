@@ -28,7 +28,7 @@
 #include "../../../../util/math/random/Random.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/BlockRegistry.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 
 namespace mc {
 namespace blocks {
@@ -120,7 +120,7 @@ bool DragonEggBlock::_teleport(IWorld& world, const BlockPos& pos, const BlockSt
                     (random.nextDouble() - 0.5) + 0.5;
 
                 // 生成传送门粒子效果
-                world.addParticle(client::renderer::trident::particle::ParticleTypeId::Portal,
+                world.addParticle(particle::ParticleTypeId::Portal,
                     Vector3(static_cast<f32>(particleX), static_cast<f32>(particleY), static_cast<f32>(particleZ)),
                     Vector3(velocityX, velocityY, velocityZ));
             }

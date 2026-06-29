@@ -334,4 +334,440 @@ void DiggingParticle::_initializeBlockTexture()
     }
 }
 
+// ============================================================================
+// BlockMarkerParticle
+// ============================================================================
+
+BlockMarkerParticle::BlockMarkerParticle(const glm::vec3& pos, const glm::vec3& velocity, const BlockState& blockState)
+    : Particle(pos, glm::vec3(0.0f)) // 标记粒子不移动，忽略速度
+    , m_blockState(blockState)
+{
+    setGravity(0.0);
+    setSize(0.5);
+    setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); // 使用纹理原色
+    setFriction(1.0);
+    setHasPhysics(false);
+    setMaxAge(DEFAULT_LIFETIME);
+
+    // 随机 UV 偏移
+    m_uvOffsetU = static_cast<f32>(m_random.nextInt(4));
+    m_uvOffsetV = static_cast<f32>(m_random.nextInt(4));
+
+    _initializeBlockTexture();
+}
+
+std::unique_ptr<Particle> BlockMarkerParticle::create(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    static const BlockState* defaultStoneState = nullptr;
+    if (!defaultStoneState) {
+        if (VanillaBlocks::STONE != nullptr) {
+            defaultStoneState = &(VanillaBlocks::STONE->defaultState());
+        }
+    }
+
+    if (defaultStoneState != nullptr) {
+        return std::make_unique<BlockMarkerParticle>(pos, velocity, *defaultStoneState);
+    }
+
+    return nullptr;
+}
+
+std::unique_ptr<Particle> BlockMarkerParticle::createWithBlock(
+    const glm::vec3& pos, const glm::vec3& velocity, const BlockState& blockState)
+{
+    return std::make_unique<BlockMarkerParticle>(pos, velocity, blockState);
+}
+
+void BlockMarkerParticle::tick(mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+
+    m_prevPosition = m_position;
+    m_prevRoll = m_roll;
+
+    m_age += 1.0f;
+    if (m_age >= m_maxAge) {
+        setExpired();
+        return;
+    }
+
+    // 标记粒子不移动，仅更新年龄和淡出
+
+    // 淡出：生命周期超过 80% 后开始淡出
+    f64 lifeRatio = m_age / m_maxAge;
+    if (lifeRatio > 0.8) {
+        m_color.a = static_cast<f32>(1.0 - (lifeRatio - 0.8) / 0.2);
+    }
+}
+
+ResourceLocation BlockMarkerParticle::getTextureLocation() const
+{
+    return m_textureLocation;
+}
+
+f64 BlockMarkerParticle::getScale(f64 /*partialTick*/) const
+{
+    return 1.0;
+}
+
+void BlockMarkerParticle::buildVertices(const glm::vec3& cameraPos,
+    f64 partialTick,
+    const ParticleTextureAtlas& /*atlas*/,
+    std::vector<ParticleVertex>& outVertices) const
+{
+    // 插值位置（标记粒子不移动，但保持一致性）
+    glm::dvec3 interpPos =
+        glm::dvec3(m_prevPosition) + (glm::dvec3(m_position) - glm::dvec3(m_prevPosition)) * partialTick;
+
+    f64 interpRoll = m_prevRoll + (m_roll - m_prevRoll) * partialTick;
+
+    // 计算 billboard 基向量
+    glm::dvec3 toCamera = glm::dvec3(cameraPos) - interpPos;
+    f64 dist = glm::length(toCamera);
+    if (dist < 0.001) {
+        return;
+    }
+    toCamera = glm::normalize(toCamera);
+
+    glm::dvec3 right = glm::cross(glm::dvec3(0.0, 1.0, 0.0), toCamera);
+    if (glm::length(right) < 0.001) {
+        right = glm::dvec3(1.0, 0.0, 0.0);
+    } else {
+        right = glm::normalize(right);
+    }
+    glm::dvec3 up = glm::cross(toCamera, right);
+
+    // 应用旋转
+    if (std::abs(interpRoll) > 0.001) {
+        f64 cosR = std::cos(interpRoll);
+        f64 sinR = std::sin(interpRoll);
+        glm::dvec3 newRight = right * cosR + up * sinR;
+        glm::dvec3 newUp = -right * sinR + up * cosR;
+        right = newRight;
+        up = newUp;
+    }
+
+    glm::vec3 interpPosF(static_cast<f32>(interpPos.x), static_cast<f32>(interpPos.y), static_cast<f32>(interpPos.z));
+    glm::vec3 rightF(static_cast<f32>(right.x), static_cast<f32>(right.y), static_cast<f32>(right.z));
+    glm::vec3 upF(static_cast<f32>(up.x), static_cast<f32>(up.y), static_cast<f32>(up.z));
+
+    f64 scale = getScale(partialTick);
+    f64 halfSize = m_size * scale * 0.5;
+    const f32 halfSizeF = static_cast<f32>(halfSize);
+
+    // 计算 UV 坐标
+    f64 u0, v0, u1, v1;
+
+    if (m_hasValidTexture) {
+        f64 regionWidth = m_textureRegion.u1 - m_textureRegion.u0;
+        f64 regionHeight = m_textureRegion.v1 - m_textureRegion.v0;
+        f64 subU0 = m_textureRegion.u0 + (regionWidth * m_uvOffsetU / 4.0);
+        f64 subV0 = m_textureRegion.v0 + (regionHeight * m_uvOffsetV / 4.0);
+        f64 subU1 = subU0 + regionWidth / 4.0;
+        f64 subV1 = subV0 + regionHeight / 4.0;
+        u0 = subU0;
+        v0 = subV0;
+        u1 = subU1;
+        v1 = subV1;
+    } else {
+        u0 = DEFAULT_U0;
+        v0 = DEFAULT_V0;
+        u1 = DEFAULT_U1;
+        v1 = DEFAULT_V1;
+    }
+
+    // 四个顶点
+    outVertices.push_back({interpPosF - rightF * halfSizeF - upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u0), static_cast<f32>(v1)),
+        m_color,
+        static_cast<f32>(m_size * scale),
+        m_color.a});
+    outVertices.push_back({interpPosF + rightF * halfSizeF - upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u1), static_cast<f32>(v1)),
+        m_color,
+        static_cast<f32>(m_size * scale),
+        m_color.a});
+    outVertices.push_back({interpPosF + rightF * halfSizeF + upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u1), static_cast<f32>(v0)),
+        m_color,
+        static_cast<f32>(m_size * scale),
+        m_color.a});
+    outVertices.push_back({interpPosF - rightF * halfSizeF + upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u0), static_cast<f32>(v0)),
+        m_color,
+        static_cast<f32>(m_size * scale),
+        m_color.a});
+}
+
+void BlockMarkerParticle::_initializeBlockTexture()
+{
+    BlockModelCache* modelCache = ChunkMesher::modelCache();
+    if (!modelCache) {
+        spdlog::warn("BlockMarkerParticle: BlockModelCache not available, using default texture");
+        m_hasValidTexture = false;
+        m_textureLocation = ResourceLocation("minecraft:block/stone");
+        return;
+    }
+
+    const BlockAppearance* appearance = modelCache->getBlockAppearance(&m_blockState);
+    if (!appearance) {
+        appearance = modelCache->getMissingAppearance();
+        if (!appearance) {
+            m_hasValidTexture = false;
+            m_textureLocation = ResourceLocation("minecraft:block/stone");
+            return;
+        }
+    }
+
+    if (appearance->hasParticleTexture) {
+        m_textureRegion = appearance->particleTexture;
+        m_textureLocation = appearance->particleTextureLocation;
+        m_hasValidTexture = true;
+    } else {
+        auto textureResult = selectRandomFaceTexture(appearance, m_random);
+        if (textureResult.has_value()) {
+            m_textureRegion = textureResult->first;
+            m_hasValidTexture = true;
+
+            const auto& faceName = textureResult->second;
+            auto locIt = appearance->faceTextureLocations.find(faceName);
+            if (locIt != appearance->faceTextureLocations.end()) {
+                m_textureLocation = locIt->second;
+            } else if (!appearance->faceTextureLocations.empty()) {
+                m_textureLocation = appearance->faceTextureLocations.begin()->second;
+            } else {
+                m_textureLocation = ResourceLocation("minecraft:block/stone");
+            }
+        } else {
+            m_hasValidTexture = false;
+            m_textureLocation = ResourceLocation("minecraft:block/stone");
+        }
+    }
+}
+
+// ============================================================================
+// BlockCrumbleParticle
+// ============================================================================
+
+BlockCrumbleParticle::BlockCrumbleParticle(
+    const glm::vec3& pos, const glm::vec3& velocity, const BlockState& blockState)
+    : Particle(pos, velocity)
+    , m_blockState(blockState)
+{
+    setGravity(DEFAULT_GRAVITY);
+    setSize(DEFAULT_SIZE * (0.5f + m_random.nextFloat() * 0.5f));
+    setColor(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); // 使用纹理原色
+    setFriction(0.92);
+    setHasPhysics(true); // 碎裂粒子有物理碰撞
+    setMaxAge(DEFAULT_LIFETIME * (0.8f + m_random.nextFloat() * 0.4f));
+
+    // 随机 UV 偏移
+    m_uvOffsetU = static_cast<f32>(m_random.nextInt(4));
+    m_uvOffsetV = static_cast<f32>(m_random.nextInt(4));
+
+    _initializeBlockTexture();
+}
+
+std::unique_ptr<Particle> BlockCrumbleParticle::create(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    static const BlockState* defaultStoneState = nullptr;
+    if (!defaultStoneState) {
+        if (VanillaBlocks::STONE != nullptr) {
+            defaultStoneState = &(VanillaBlocks::STONE->defaultState());
+        }
+    }
+
+    if (defaultStoneState != nullptr) {
+        return std::make_unique<BlockCrumbleParticle>(pos, velocity, *defaultStoneState);
+    }
+
+    return nullptr;
+}
+
+std::unique_ptr<Particle> BlockCrumbleParticle::createWithBlock(
+    const glm::vec3& pos, const glm::vec3& velocity, const BlockState& blockState)
+{
+    return std::make_unique<BlockCrumbleParticle>(pos, velocity, blockState);
+}
+
+void BlockCrumbleParticle::tick(mc::client::ClientWorld* world)
+{
+    m_prevPosition = m_position;
+
+    m_age += 1.0f;
+    if (m_age >= m_maxAge) {
+        setExpired();
+        return;
+    }
+
+    // 应用重力
+    m_velocity.y -= static_cast<f32>(m_gravity * 0.04);
+
+    // 随机旋转
+    m_roll += 0.1;
+
+    // 移动并碰撞
+    move(world, m_velocity);
+
+    // 应用阻力
+    m_velocity.x *= static_cast<f32>(m_friction);
+    m_velocity.z *= static_cast<f32>(m_friction);
+
+    // 地面摩擦
+    if (onGround()) {
+        m_velocity.x *= 0.7f;
+        m_velocity.z *= 0.7f;
+    }
+
+    // 淡出
+    f64 lifeRatio = m_age / m_maxAge;
+    if (lifeRatio > 0.7) {
+        m_color.a = static_cast<f32>(1.0 - (lifeRatio - 0.7) / 0.3);
+    }
+}
+
+ResourceLocation BlockCrumbleParticle::getTextureLocation() const
+{
+    return m_textureLocation;
+}
+
+void BlockCrumbleParticle::buildVertices(const glm::vec3& cameraPos,
+    f64 partialTick,
+    const ParticleTextureAtlas& /*atlas*/,
+    std::vector<ParticleVertex>& outVertices) const
+{
+    // 插值位置
+    glm::dvec3 interpPos =
+        glm::dvec3(m_prevPosition) + (glm::dvec3(m_position) - glm::dvec3(m_prevPosition)) * partialTick;
+
+    f64 interpRoll = m_prevRoll + (m_roll - m_prevRoll) * partialTick;
+
+    // 计算 billboard 基向量
+    glm::dvec3 toCamera = glm::dvec3(cameraPos) - interpPos;
+    f64 dist = glm::length(toCamera);
+    if (dist < 0.001) {
+        return;
+    }
+    toCamera = glm::normalize(toCamera);
+
+    glm::dvec3 right = glm::cross(glm::dvec3(0.0, 1.0, 0.0), toCamera);
+    if (glm::length(right) < 0.001) {
+        right = glm::dvec3(1.0, 0.0, 0.0);
+    } else {
+        right = glm::normalize(right);
+    }
+    glm::dvec3 up = glm::cross(toCamera, right);
+
+    // 应用旋转
+    if (std::abs(interpRoll) > 0.001) {
+        f64 cosR = std::cos(interpRoll);
+        f64 sinR = std::sin(interpRoll);
+        glm::dvec3 newRight = right * cosR + up * sinR;
+        glm::dvec3 newUp = -right * sinR + up * cosR;
+        right = newRight;
+        up = newUp;
+    }
+
+    glm::vec3 interpPosF(static_cast<f32>(interpPos.x), static_cast<f32>(interpPos.y), static_cast<f32>(interpPos.z));
+    glm::vec3 rightF(static_cast<f32>(right.x), static_cast<f32>(right.y), static_cast<f32>(right.z));
+    glm::vec3 upF(static_cast<f32>(up.x), static_cast<f32>(up.y), static_cast<f32>(up.z));
+
+    f64 scale = getScale(partialTick);
+    f64 halfSize = m_size * scale * 0.5;
+    const f32 halfSizeF = static_cast<f32>(halfSize);
+
+    // 计算 UV 坐标
+    f64 u0, v0, u1, v1;
+
+    if (m_hasValidTexture) {
+        f64 regionWidth = m_textureRegion.u1 - m_textureRegion.u0;
+        f64 regionHeight = m_textureRegion.v1 - m_textureRegion.v0;
+        f64 subU0 = m_textureRegion.u0 + (regionWidth * m_uvOffsetU / 4.0);
+        f64 subV0 = m_textureRegion.v0 + (regionHeight * m_uvOffsetV / 4.0);
+        f64 subU1 = subU0 + regionWidth / 4.0;
+        f64 subV1 = subV0 + regionHeight / 4.0;
+        u0 = subU0;
+        v0 = subV0;
+        u1 = subU1;
+        v1 = subV1;
+    } else {
+        u0 = DEFAULT_U0;
+        v0 = DEFAULT_V0;
+        u1 = DEFAULT_U1;
+        v1 = DEFAULT_V1;
+    }
+
+    // 四个顶点
+    outVertices.push_back({interpPosF - rightF * halfSizeF - upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u0), static_cast<f32>(v1)),
+        m_color,
+        static_cast<f32>(m_size * scale),
+        m_color.a});
+    outVertices.push_back({interpPosF + rightF * halfSizeF - upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u1), static_cast<f32>(v1)),
+        m_color,
+        static_cast<f32>(m_size * scale),
+        m_color.a});
+    outVertices.push_back({interpPosF + rightF * halfSizeF + upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u1), static_cast<f32>(v0)),
+        m_color,
+        static_cast<f32>(m_size * scale),
+        m_color.a});
+    outVertices.push_back({interpPosF - rightF * halfSizeF + upF * halfSizeF,
+        glm::vec2(static_cast<f32>(u0), static_cast<f32>(v0)),
+        m_color,
+        static_cast<f32>(m_size * scale),
+        m_color.a});
+}
+
+void BlockCrumbleParticle::_initializeBlockTexture()
+{
+    BlockModelCache* modelCache = ChunkMesher::modelCache();
+    if (!modelCache) {
+        spdlog::warn("BlockCrumbleParticle: BlockModelCache not available, using default texture");
+        m_hasValidTexture = false;
+        m_textureLocation = ResourceLocation("minecraft:block/stone");
+        return;
+    }
+
+    const BlockAppearance* appearance = modelCache->getBlockAppearance(&m_blockState);
+    if (!appearance) {
+        appearance = modelCache->getMissingAppearance();
+        if (!appearance) {
+            m_hasValidTexture = false;
+            m_textureLocation = ResourceLocation("minecraft:block/stone");
+            return;
+        }
+    }
+
+    if (appearance->hasParticleTexture) {
+        m_textureRegion = appearance->particleTexture;
+        m_textureLocation = appearance->particleTextureLocation;
+        m_hasValidTexture = true;
+    } else {
+        auto textureResult = selectRandomFaceTexture(appearance, m_random);
+        if (textureResult.has_value()) {
+            m_textureRegion = textureResult->first;
+            m_hasValidTexture = true;
+
+            const auto& faceName = textureResult->second;
+            auto locIt = appearance->faceTextureLocations.find(faceName);
+            if (locIt != appearance->faceTextureLocations.end()) {
+                m_textureLocation = locIt->second;
+            } else if (!appearance->faceTextureLocations.empty()) {
+                m_textureLocation = appearance->faceTextureLocations.begin()->second;
+            } else {
+                m_textureLocation = ResourceLocation("minecraft:block/stone");
+            }
+        } else {
+            m_hasValidTexture = false;
+            m_textureLocation = ResourceLocation("minecraft:block/stone");
+        }
+    }
+}
+
 } // namespace mc::client::renderer::trident::particle::particles

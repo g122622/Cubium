@@ -163,7 +163,8 @@ void FlatChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPr
         const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
         if (!structure) continue;
 
-        // 生成结构起点（间距和生物群系检查已由 StructurePlacement::isStructureChunk() 完成）
+        // 生成结构起点（生物群系兼容性已由 _hasBiomesForStructureSet 预过滤保证，
+        // FlatChunkGenerator 使用 FixedBiomeSource，所有位置生物群系相同，无需逐区块检查）
         auto start = structure->generate(*this, rng, chunkX, chunkZ);
         if (start) {
             chunk.addStructureStart(entry->structureId, std::move(start));

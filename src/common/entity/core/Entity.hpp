@@ -619,8 +619,27 @@ public:
 
     /**
      * @brief 实体是否可被碰撞或射线命中
+     *
+     * 对应 MC Java 的 isPickable()。决定实体是否拥有可交互的碰撞箱。
      */
     [[nodiscard]] virtual bool canBeCollidedWith() const { return true; }
+
+    /**
+     * @brief 实体是否可被弹射物命中
+     *
+     * 对应 MC Java 的 canBeHitByProjectile()。
+     * 默认实现为 isAlive() && canBeCollidedWith()（MC Java 中为 isAlive() && isPickable()，
+     * 本项目中 canBeCollidedWith() 对应 isPickable() 的语义）。
+     *
+     * 子类可重写此方法以改变弹射物命中行为：
+     * - Player 重写为 !isSpectator() && Entity::canBeHitByProjectile()
+     * - Interaction 实体重写为返回 false（本项目中尚未实现该实体）
+     *
+     * 与 canBeCollidedWith() 的区别：
+     * - canBeCollidedWith() 关注碰撞箱是否可交互（物理碰撞、射线命中）
+     * - canBeHitByProjectile() 关注弹射物是否可命中（综合判断存活状态和旁观者模式等）
+     */
+    [[nodiscard]] virtual bool canBeHitByProjectile() const { return isAlive() && canBeCollidedWith(); }
 
     /**
      * @brief 命中检测时额外扩张的碰撞边界
@@ -1760,7 +1779,17 @@ public:
     [[nodiscard]] bool isPassenger(EntityId entityId) const;
 
     /**
-     * @brief 添加乘客
+     * @brief 添加乘客到本载具
+     *
+     * 对齐 MC Java Entity.addPassenger()：仅操作乘客列表，不进行循环检测。
+     * 循环检测由 startRiding() 负责。
+     *
+     * 前置条件：passenger.getVehicle() 必须等于 this.id()，
+     * 即 passenger 必须已经通过 setVehicle() 关联到此载具。
+     * 这与 MC Java 的行为一致：startRiding 先设置 vehicle 字段，再调用 addPassenger。
+     *
+     * 不应直接调用此方法，应使用 startRiding()。
+     *
      * @param passenger 乘客实体
      * @return 是否成功添加
      */
@@ -1773,8 +1802,16 @@ public:
     void removePassenger(Entity& passenger);
 
     /**
-     * @brief 开始骑乘
-     * @param vehicle 车辆实体
+     * @brief 开始骑乘载具
+     *
+     * 对齐 MC Java Entity.startRiding(Entity, boolean, boolean)：
+     * 1. 循环检测（从载具沿 vehicle 链向上遍历）
+     * 2. 检查 couldAcceptPassenger / canBeRidden / canAddPassenger
+     * 3. 如已在骑乘则先停止
+     * 4. 设置 m_vehicle = vehicle.id()（先于 addPassenger）
+     * 5. 调用 vehicle.addPassenger(*this)
+     *
+     * @param vehicle 载具实体
      * @return 是否成功骑乘
      */
     bool startRiding(Entity& vehicle);
@@ -1875,13 +1912,39 @@ public:
     [[nodiscard]] virtual i32 getMaxPassengers() const { return 1; }
 
     /**
-     * @brief 检查是否可以容纳更多乘客
+     * @brief 检查此实体是否根本可以接受乘客
      *
-     * 子类可重写此方法添加额外检查（如 BoatEntity 检查是否在水下）。
-     * 默认实现只检查乘客数量限制。
+     * 对应 MC Java 的 Entity.couldAcceptPassenger()。
+     * 这是骑乘检查的"硬门槛"——在 canAddPassenger 之前检查，
+     * 如果返回 false，则无论如何都无法骑乘此实体。
+     *
+     * 默认返回 true（可以接受乘客）。
+     * 不祥物品生成器（OminousItemSpawner）等不应被骑乘的实体重写返回 false。
+     *
+     * @return 如果此实体可以接受乘客返回 true
      */
-    [[nodiscard]] virtual bool canFitPassenger() const
+    [[nodiscard]] virtual bool couldAcceptPassenger() const { return true; }
+
+    /**
+     * @brief 检查此实体是否可以添加指定乘客
+     *
+     * 对应 MC Java 的 Entity.canAddPassenger(Entity)。
+     * 这是骑乘检查的"软门槛"——在 couldAcceptPassenger 之后检查，
+     * 但可以通过强制骑乘绕过。
+     *
+     * 默认实现：检查当前乘客数量是否小于最大乘客数。
+     * MC Java 原版默认为 passengers.isEmpty()（仅限单乘客），
+     * 但本项目中 getMaxPassengers() 机制已完善，故默认实现使用
+     * passengers.size() < getMaxPassengers() 以自动适配多乘客载具。
+     * 需要额外条件（如船检查是否在水下）的子类应重写此方法。
+     * 不允许任何乘客的实体应重写 couldAcceptPassenger() 返回 false。
+     *
+     * @param passenger 待添加的乘客实体
+     * @return 如果可以添加指定乘客返回 true
+     */
+    [[nodiscard]] virtual bool canAddPassenger(const Entity& passenger) const
     {
+        (void)passenger;
         return static_cast<i32>(m_passengers.size()) < getMaxPassengers();
     }
 
@@ -2053,10 +2116,16 @@ public:
     /**
      * @brief 检查实体是否不触发压力板/绊线
      *
-     * 某些实体（如盔甲架、蝙蝠、投射物等）不会触发压力板和绊线。
+     * 对应 MC Java 的 Entity.isIgnoringBlockTriggers()。
+     * 某些实体不会触发压力板和绊线。
      * 默认返回 false（会触发）。
-     * 蝙蝠重写返回 true（蝙蝠不触发）。
-     * 盔甲架、物品实体、投射物等也应该重写返回 true。
+     *
+     * 重写返回 true 的实体：蝙蝠、盔甲架（标记模式）、
+     * 不祥物品生成器等。
+     *
+     * 注意：物品实体和投射物不重写此方法——在 MC 原版中，木质/测重
+     * 压力板可以检测所有实体（包括物品），而石质压力板通过
+     * LivingEntity 类型过滤自动排除非生物实体。
      *
      * @return 如果实体不触发压力板返回true
      */

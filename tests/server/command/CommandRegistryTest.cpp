@@ -440,8 +440,8 @@ TEST_F(CommandRegistryServerTest, ParticleCommandBroadcastsParticleAtCurrentPosi
     EXPECT_EQ(result.value(), 1);
     EXPECT_TRUE(m_server.particleBroadcastCalled());
 
-    // 验证粒子类型 - flame = 20 (ParticleTypeId::Flame)
-    EXPECT_EQ(m_server.lastParticleType(), 20u);
+    // 验证粒子类型 - flame = 32 (ParticleTypeId::Flame, MC 1.21.11 协议 ID)
+    EXPECT_EQ(m_server.lastParticleType(), 32u);
 
     // 验证位置使用命令源的位置
     EXPECT_DOUBLE_EQ(m_server.lastParticleX(), 100.0);
@@ -458,8 +458,8 @@ TEST_F(CommandRegistryServerTest, ParticleCommandBroadcastsParticleAtSpecifiedPo
     EXPECT_EQ(result.value(), 1);
     EXPECT_TRUE(m_server.particleBroadcastCalled());
 
-    // 验证粒子类型 - smoke = 21 (ParticleTypeId::Smoke)
-    EXPECT_EQ(m_server.lastParticleType(), 21u);
+    // 验证粒子类型 - smoke = 60 (ParticleTypeId::Smoke, MC 1.21.11 协议 ID)
+    EXPECT_EQ(m_server.lastParticleType(), 60u);
 
     // 验证位置使用指定位置
     EXPECT_DOUBLE_EQ(m_server.lastParticleX(), 50.5);
@@ -486,8 +486,8 @@ TEST_F(CommandRegistryServerTest, ParticleCommandAcceptsMinecraftNamespace)
     EXPECT_EQ(result.value(), 1);
     EXPECT_TRUE(m_server.particleBroadcastCalled());
 
-    // 验证粒子类型 - lava = 23 (ParticleTypeId::Lava)
-    EXPECT_EQ(m_server.lastParticleType(), 23u);
+    // 验证粒子类型 - lava = 54 (ParticleTypeId::Lava, MC 1.21.11 协议 ID)
+    EXPECT_EQ(m_server.lastParticleType(), 54u);
 }
 
 // ========== SpectateCommand 测试 ==========

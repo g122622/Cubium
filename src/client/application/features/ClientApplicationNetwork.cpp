@@ -60,12 +60,14 @@
 #include "common/world/WorldEvents.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/IGrowable.hpp"
 #include "common/world/block/blocks/cave/PointedDripstoneBlock.hpp"
 #include "common/world/block/registry/CaveBlocks.hpp"
 #include "common/world/block/registry/MudBlocks.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -809,7 +811,7 @@ void ClientApplication::setupNetworkCallbacks()
                         glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.25f, ry * 0.25f + 0.5f, rz * 0.25f);
                         glm::vec3 velocity(rx, ry + 0.2f, rz);
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Crit, particlePos, velocity, &m_world);
+                            ::mc::particle::ParticleTypeId::Crit, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -829,10 +831,7 @@ void ClientApplication::setupNetworkCallbacks()
                         glm::vec3 particlePos = entityPos + glm::vec3(rx * 0.25f, ry * 0.25f + 0.5f, rz * 0.25f);
                         glm::vec3 velocity(rx, ry + 0.2f, rz);
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::EnchantedHit,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::EnchantedHit, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -890,10 +889,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Heart,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Heart, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -913,10 +909,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Smoke,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Smoke, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -926,10 +919,7 @@ void ClientApplication::setupNetworkCallbacks()
                 if (m_world.particleManager() != nullptr) {
                     glm::vec3 heartPos = entityPos + glm::vec3(0.0f, 0.5f, 0.0f);
                     m_world.particleManager()->addPendingParticle(
-                        client::renderer::trident::particle::ParticleTypeId::Heart,
-                        heartPos,
-                        glm::vec3(0.0f, 0.0f, 0.0f),
-                        &m_world);
+                        ::mc::particle::ParticleTypeId::Heart, heartPos, glm::vec3(0.0f, 0.0f, 0.0f), &m_world);
                 }
                 break;
             }
@@ -960,10 +950,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Heart,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Heart, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -983,10 +970,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Smoke,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Smoke, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1004,10 +988,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.05f),
                             m_random.nextGaussian(0.0f, 0.05f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Portal,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Portal, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1060,10 +1041,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Heart,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Heart, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1080,10 +1058,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::AngryVillager,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::AngryVillager, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1100,10 +1075,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::HappyVillager,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::HappyVillager, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1120,10 +1092,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.02f),
                             m_random.nextGaussian(0.0f, 0.02f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Splash,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Splash, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1158,10 +1127,7 @@ void ClientApplication::setupNetworkCallbacks()
                             m_random.nextGaussian(0.0f, 0.05f) + 0.1f,
                             m_random.nextGaussian(0.0f, 0.05f));
                         m_world.particleManager()->addPendingParticle(
-                            client::renderer::trident::particle::ParticleTypeId::Breaking,
-                            particlePos,
-                            velocity,
-                            &m_world);
+                            ::mc::particle::ParticleTypeId::Breaking, particlePos, velocity, &m_world);
                     }
                 }
                 break;
@@ -1326,7 +1292,7 @@ void ClientApplication::setupNetworkCallbacks()
     };
 
     // 粒子回调
-    callbacks.onParticle = [this](client::renderer::trident::particle::ParticleTypeId type,
+    callbacks.onParticle = [this](::mc::particle::ParticleTypeId type,
                                f64 x,
                                f64 y,
                                f64 z,
@@ -1482,6 +1448,28 @@ void ClientApplication::setupNetworkCallbacks()
                     m_audioService->updateEntityRidingState(static_cast<u32>(localPlayerEntityId), false, 0);
                 }
             }
+        }
+    };
+
+    // ========== 旁观者摄像机事件 ==========
+
+    callbacks.onSetCamera = [this](u32 cameraEntityId) {
+        // 设置客户端的摄像机跟踪目标实体
+        // cameraEntityId 为本地玩家自身 ID 时表示恢复正常视角
+        const EntityId localPlayerEntityId = m_localIdentity.entityId();
+
+        if (cameraEntityId == static_cast<u32>(localPlayerEntityId)) {
+            // 恢复自身视角
+            if (m_player) {
+                m_player->setCameraEntityId(std::nullopt);
+            }
+            spdlog::info("SetCamera: reset to self (entityId={})", cameraEntityId);
+        } else {
+            // 跟踪目标实体
+            if (m_player) {
+                m_player->setCameraEntityId(static_cast<EntityId>(cameraEntityId));
+            }
+            spdlog::info("SetCamera: spectating entity {}", cameraEntityId);
         }
     };
 
@@ -1955,6 +1943,7 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         case WorldEvents::BREAK_BLOCK_EFFECTS: {
             // 方块破坏效果：根据方块状态ID获取正确的破坏音效和破坏粒子
             // data = 方块状态ID（BlockState::stateId()）
+            // 对应 MC ClientLevel.addDestroyBlockEffect / LevelEventHandler case 2001
             const BlockState* blockState = BlockRegistry::instance().getBlockState(static_cast<u32>(data));
             if (blockState && !blockState->isAir()) {
                 const BlockSoundType& soundType = blockState->getSoundType();
@@ -1968,14 +1957,53 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
                             (soundType.getVolume() + 1.0f) / 2.0f,
                             soundType.getPitch() * 0.8f)));
                 }
-                // TODO: 生成方块破碎粒子（Breaking 粒子需要方块状态纹理作为附加参数，暂不实现）
+
+                // 生成方块破碎粒子
+                // 算法对齐 MC ClientLevel.addDestroyBlockEffect：
+                // 获取方块的形状，对每个AABB按0.25格间距均匀分布粒子
+                // 标准完整方块(1x1x1)生成 4x4x4 = 64 个粒子
+                const auto& shape = blockState->getShape();
+                for (const auto& box : shape.boxes()) {
+                    const f32 d1 = std::min(1.0f, box.maxX - box.minX); // AABB宽度
+                    const f32 d2 = std::min(1.0f, box.maxY - box.minY); // AABB高度
+                    const f32 d3 = std::min(1.0f, box.maxZ - box.minZ); // AABB深度
+
+                    const i32 countX = std::max(2, static_cast<i32>(std::ceil(d1 / 0.25)));
+                    const i32 countY = std::max(2, static_cast<i32>(std::ceil(d2 / 0.25)));
+                    const i32 countZ = std::max(2, static_cast<i32>(std::ceil(d3 / 0.25)));
+
+                    for (i32 ix = 0; ix < countX; ++ix) {
+                        for (i32 iy = 0; iy < countY; ++iy) {
+                            for (i32 iz = 0; iz < countZ; ++iz) {
+                                // 归一化位置（0~1），位于网格单元中心
+                                const f32 nx = (static_cast<f32>(ix) + 0.5f) / static_cast<f32>(countX);
+                                const f32 ny = (static_cast<f32>(iy) + 0.5f) / static_cast<f32>(countY);
+                                const f32 nz = (static_cast<f32>(iz) + 0.5f) / static_cast<f32>(countZ);
+
+                                // 粒子世界位置：AABB内偏移 + 方块位置
+                                const f32 particleX = px + nx * d1 + box.minX;
+                                const f32 particleY = py + ny * d2 + box.minY;
+                                const f32 particleZ = pz + nz * d3 + box.minZ;
+
+                                // 粒子速度：从中心向外扩散
+                                const f32 vx = nx - 0.5f;
+                                const f32 vy = ny - 0.5f;
+                                const f32 vz = nz - 0.5f;
+
+                                m_world.addBlockParticle(ParticleTypeId::Breaking,
+                                    Vector3(particleX, particleY, particleZ),
+                                    Vector3(vx, vy, vz),
+                                    *blockState);
+                            }
+                        }
+                    }
+                }
             }
             break;
         }
 
         case WorldEvents::DISPENSER_SMOKE: {
             // 发射器烟雾粒子，data 为方向（Direction.getIndex()）
-            // 参考 MC Java: LevelEventHandler.shootParticles(pos, data, random, ParticleTypes.SMOKE)
             {
                 Direction dir = static_cast<Direction>(data);
                 i32 stepX = Directions::xOffset(dir);
@@ -2003,7 +2031,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
 
         case WorldEvents::MOB_SPAWNER_PARTICLES: {
             // 刷怪笼成功生成实体时爆发烟雾和火焰粒子
-            // 参考 MC: BaseSpawner.serverTick() 成功生成后调用 levelEvent(2004, pos, 0)
             // 客户端在方块中心2格范围内随机生成20个烟雾粒子和20个火焰粒子
             {
                 f32 cx = static_cast<f32>(x) + 0.5f;
@@ -2100,22 +2127,77 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         }
 
         case WorldEvents::PLANT_GROWTH_EFFECT: {
-            // 植物生长粒子与音效事件 (MC 1.21 主事件，由骨粉使用触发)
+            // 植物生长粒子与音效事件（由骨粉使用触发）
             // data 为粒子数量，0 则生成 15 个
-            // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 BonemealableBlock 类型
-            // 决定粒子分布方式，同时播放骨粉使用音效
-            // TODO: 当前简化实现使用与 BONEMEAL_PARTICLES 相同的粒子分布（方块内随机偏移），
-            // 未区分 NEIGHBOR_SPREADER 和 GROWER 两种 BonemealableBlock 类型的不同分布模式。
-            // NEIGHBOR_SPREADER（草方块等）应使用 spawnParticles 水平扩散 3 倍粒子数，
-            // GROWER（作物等）应使用 spawnParticleInBlock 自动计算方块形状高度。
-            // 待 BonemealableBlock::getType() 和 getParticlePos() 接口完善后实现精确分布。
+            // 与 BONEMEAL_PARTICLES(2005) 的区别：1505 根据 IGrowable::getBoneMealType()
+            // 决定粒子分布方式，同时播放骨粉使用音效。
             {
                 i32 count = (data == 0) ? 15 : data;
-                m_world.addParticle(ParticleTypeId::HappyVillager,
-                    Vector3(px, py, pz),
-                    Vector3(0.0f, 0.0f, 0.0f),
-                    Vector3(0.5f, 1.0f, 0.5f),
-                    static_cast<u32>(count));
+
+                // 查询位置处的方块是否为 IGrowable，根据骨粉类型决定粒子分布
+                const BlockState* blockState = m_world.getBlockState(x, y, z);
+                if (blockState != nullptr) {
+                    const Block& block = blockState->owner();
+                    const IGrowable* growable = dynamic_cast<const IGrowable*>(&block);
+
+                    if (growable != nullptr) {
+                        // 获取粒子生成位置（NEIGHBOR_SPREADER 类型在方块上方，GROWER 类型在方块自身）
+                        BlockPos particlePos = growable->getParticlePos(BlockPos(x, y, z));
+
+                        switch (growable->getBoneMealType()) {
+                            case IGrowable::BoneMealType::NEIGHBOR_SPREADER:
+                                // 邻居传播型（草方块、菌岩等）：粒子水平扩散 3 倍数量
+                                m_world.addParticle(ParticleTypeId::HappyVillager,
+                                    Vector3(static_cast<f32>(particlePos.x) + 0.5f,
+                                        static_cast<f32>(particlePos.y),
+                                        static_cast<f32>(particlePos.z) + 0.5f),
+                                    Vector3(0.0f, 0.0f, 0.0f),
+                                    Vector3(3.0f, 1.0f, 3.0f),
+                                    static_cast<u32>(count * 3));
+                                break;
+
+                            case IGrowable::BoneMealType::GROWER:
+                            default:
+                                // 自身成长型（作物、树苗等）：粒子在方块形状高度内生成
+                                // 使用方块碰撞箱的 Y 轴最大值作为垂直范围
+                                {
+                                    // 获取方块的碰撞形状高度
+                                    f32 shapeHeight = 1.0f;
+                                    const CollisionShape& shape = blockState->getShape();
+                                    if (!shape.isEmpty() && !shape.isFullBlock()) {
+                                        // 获取碰撞箱的最大 Y 值
+                                        for (const auto& box : shape.boxes()) {
+                                            if (box.maxY > shapeHeight) {
+                                                shapeHeight = box.maxY;
+                                            }
+                                        }
+                                    }
+                                    m_world.addParticle(ParticleTypeId::HappyVillager,
+                                        Vector3(static_cast<f32>(particlePos.x) + 0.5f,
+                                            static_cast<f32>(particlePos.y),
+                                            static_cast<f32>(particlePos.z) + 0.5f),
+                                        Vector3(0.0f, 0.0f, 0.0f),
+                                        Vector3(0.5f, shapeHeight, 0.5f),
+                                        static_cast<u32>(count));
+                                }
+                                break;
+                        }
+                    } else {
+                        // 非 IGrowable 方块（如水面）：使用与 NEIGHBOR_SPREADER 相同的分布
+                        m_world.addParticle(ParticleTypeId::HappyVillager,
+                            Vector3(px, py, pz),
+                            Vector3(0.0f, 0.0f, 0.0f),
+                            Vector3(3.0f, 1.0f, 3.0f),
+                            static_cast<u32>(count * 3));
+                    }
+                } else {
+                    // 方块状态不可用时，使用默认的 GROWER 分布
+                    m_world.addParticle(ParticleTypeId::HappyVillager,
+                        Vector3(px, py, pz),
+                        Vector3(0.0f, 0.0f, 0.0f),
+                        Vector3(0.5f, 1.0f, 0.5f),
+                        static_cast<u32>(count));
+                }
 
                 // 播放骨粉使用音效
                 if (m_audioService) {
@@ -2247,7 +2329,6 @@ void ClientApplication::_handleWorldEvent(i32 eventId, i32 x, i32 y, i32 z, i32 
         case WorldEvents::SHOOT_WHITE_SMOKE: {
             // 白烟粒子效果（方向性），与 DISPENSER_SMOKE(2000) 类似但为白色烟雾
             // data 为烟雾方向（Direction.getIndex()）
-            // 参考 MC Java: LevelEventHandler.shootParticles(pos, data, random, ParticleTypes.WHITE_SMOKE)
             {
                 Direction dir = static_cast<Direction>(data);
                 i32 stepX = Directions::xOffset(dir);

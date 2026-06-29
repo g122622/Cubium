@@ -31,8 +31,9 @@
 namespace mc {
 namespace item::tag {
 
-ItemTag::ItemTag(ResourceLocation id)
+ItemTag::ItemTag(ResourceLocation id, bool replace)
     : m_id(std::move(id))
+    , m_replace(replace)
 {}
 
 void ItemTag::add(const Item* item)
@@ -62,6 +63,18 @@ bool ItemTag::contains(const ItemStack& stack) const
 std::vector<const Item*> ItemTag::getItemsList() const
 {
     return std::vector<const Item*>(m_items.begin(), m_items.end());
+}
+
+void ItemTag::addAll(const std::vector<const Item*>& items)
+{
+    for (const auto* item : items) {
+        add(item);
+    }
+}
+
+void ItemTag::clear()
+{
+    m_items.clear();
 }
 
 } // namespace item::tag

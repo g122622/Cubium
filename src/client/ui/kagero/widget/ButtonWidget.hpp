@@ -39,7 +39,7 @@ namespace mc::client::ui::kagero::widget {
  * 标准按钮组件，支持：
  * - 文本显示
  * - 点击回调
- * - 悬停提示
+ * - 悬停提示（通过 Widget 基类的 setTooltip/setTooltipDelay 设置）
  * - 禁用状态
  * - 三态渲染（正常、悬停、禁用）
  *
@@ -53,6 +53,9 @@ namespace mc::client::ui::kagero::widget {
  *         // 处理点击
  *     }
  * );
+ * // 设置 Tooltip
+ * button->setTooltip("保存");
+ * button->setTooltipDelay(500); // 悬停500ms后显示
  * @endcode
  */
 class ButtonWidget : public Widget {
@@ -76,11 +79,6 @@ public:
      * @brief 点击回调类型
      */
     using OnPressCallback = std::function<void(ButtonWidget&)>;
-
-    /**
-     * @brief 提示回调类型
-     */
-    using OnTooltipCallback = std::function<void(ButtonWidget&, i32, i32)>;
 
     /**
      * @brief 默认构造函数
@@ -132,6 +130,9 @@ public:
             ctx.drawBorder(bounds(), 1.0f, border);
         }
         ctx.drawTextCentered(m_text, bounds(), getTextColor());
+
+        // 渲染 Tooltip（如果有且悬停）
+        refreshTooltip(ctx, static_cast<f32>(ctx.canvas().width()), static_cast<f32>(ctx.canvas().height()));
     }
 
     // ==================== 事件处理 ====================
@@ -181,11 +182,6 @@ public:
      * @brief 设置点击回调
      */
     void setOnPress(OnPressCallback callback) { m_onPress = std::move(callback); }
-
-    /**
-     * @brief 设置提示回调
-     */
-    void setOnTooltip(OnTooltipCallback callback) { m_onTooltip = std::move(callback); }
 
     /**
      * @brief 设置样式
@@ -241,10 +237,9 @@ protected:
      */
     virtual void playClickSound() { Widget::playUiSound("minecraft:ui.button.click"); }
 
-    std::string m_text;            ///< 按钮文本
-    OnPressCallback m_onPress;     ///< 点击回调
-    OnTooltipCallback m_onTooltip; ///< 提示回调（TODO: 尚未在paint或事件中调用，需要集成到悬停渲染逻辑中）
-    Style m_style;                 ///< 按钮样式
+    std::string m_text;        ///< 按钮文本
+    OnPressCallback m_onPress; ///< 点击回调
+    Style m_style;             ///< 按钮样式
 };
 
 /**
@@ -281,6 +276,9 @@ public:
         (void)ctx;
         // TODO: 实际渲染逻辑
         // 绑定纹理并渲染
+
+        // 渲染 Tooltip（如果有且悬停）
+        refreshTooltip(ctx, static_cast<f32>(ctx.canvas().width()), static_cast<f32>(ctx.canvas().height()));
     }
 
     /**

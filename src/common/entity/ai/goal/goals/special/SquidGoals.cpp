@@ -23,9 +23,9 @@
 
 #include "SquidGoals.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/assert/AssertMacros.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -205,7 +205,7 @@ void SquidFleeGoal::tick()
     if (m_tickCounter % BUBBLE_INTERVAL == BUBBLE_OFFSET) {
         IWorld* worldPtr = m_squid->world();
         if (worldPtr != nullptr) {
-            using namespace client::renderer::trident::particle;
+            using namespace mc::particle;
             worldPtr->addParticle(
                 ParticleTypeId::Bubble, Vector3(m_squid->x(), m_squid->y(), m_squid->z()), Vector3(0.0f, 0.0f, 0.0f));
         }

@@ -351,7 +351,8 @@ void CarvedPumpkinBlock::spawnSnowGolem(IWorld& world, const BlockPos& headPos)
 
             auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
             if (mobEntity != nullptr) {
-                entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                entity::combat::DifficultyInstance difficultyInstance =
+                    entity::combat::DifficultyInstance::at(world, below2);
                 mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
             }
 
@@ -420,7 +421,8 @@ void CarvedPumpkinBlock::spawnIronGolem(
 
             auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
             if (mobEntity != nullptr) {
-                entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                entity::combat::DifficultyInstance difficultyInstance =
+                    entity::combat::DifficultyInstance::at(world, bodyPos);
                 mobEntity->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
             }
 

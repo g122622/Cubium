@@ -43,4 +43,5 @@
 #include "ProtocolPackets.hpp"
 #include "RecipePackets.hpp"
 #include "ServerDifficultyPacket.hpp"
+#include "SetCameraPacket.hpp"
 #include "TitlePacket.hpp"

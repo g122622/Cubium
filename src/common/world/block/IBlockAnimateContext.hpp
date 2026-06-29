@@ -28,7 +28,7 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/math/Vector3.hpp"
 
-namespace mc::client::renderer::trident::particle {
+namespace mc::particle {
 enum class ParticleTypeId : u16;
 }
 
@@ -56,8 +56,7 @@ public:
      * @param pos 粒子位置
      * @param velocity 粒子速度
      */
-    virtual void addAnimateParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) = 0;
+    virtual void addAnimateParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) = 0;
 
     /**
      * @brief 播放本地音效

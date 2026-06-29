@@ -32,7 +32,7 @@
 #include "../../../attribute/Attributes.hpp"
 #include "../../../damage/DamageSource.hpp"
 #include "../../player/Player.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include <cmath>
 
 namespace mc {
@@ -116,7 +116,7 @@ void BlazeEntity::tick()
         }
 
         // 生成烟雾粒子
-        using namespace client::renderer::trident::particle;
+        using namespace particle;
         for (i32 i = 0; i < 2; ++i) {
             f32 px = static_cast<f32>(x()) + (random.nextFloat() - 0.5f) * width();
             f32 py = static_cast<f32>(y()) + random.nextFloat() * height();

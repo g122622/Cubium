@@ -30,7 +30,6 @@
  */
 
 #include "common/entity/entities/misc/OminousItemSpawnerEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
@@ -42,6 +41,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/trial/WindChargeItem.hpp"
 #include "common/item/items/weapon/ThrowableItem.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/nbt/Nbt.hpp"
@@ -118,8 +118,7 @@ public:
         m_gameEventCount++;
     }
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particleCount++;
         m_lastParticleType = type;
@@ -154,10 +153,7 @@ public:
     [[nodiscard]] const Entity* lastGameEventSourceEntity() const { return m_lastGameEventSourceEntity; }
 
     [[nodiscard]] i32 particleCount() const { return m_particleCount; }
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId lastParticleType() const
-    {
-        return m_lastParticleType;
-    }
+    [[nodiscard]] particle::ParticleTypeId lastParticleType() const { return m_lastParticleType; }
 
 private:
     std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
@@ -184,8 +180,7 @@ private:
 
     // 粒子记录
     i32 m_particleCount = 0;
-    client::renderer::trident::particle::ParticleTypeId m_lastParticleType =
-        client::renderer::trident::particle::ParticleTypeId::Invalid;
+    particle::ParticleTypeId m_lastParticleType = particle::ParticleTypeId::Invalid;
 };
 
 // ============================================================================

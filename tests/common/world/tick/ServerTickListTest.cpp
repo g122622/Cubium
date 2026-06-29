@@ -240,13 +240,13 @@ TEST(ServerTickListTest, TickRemovesEntryFromPendingSetBeforeExecution)
 
     ServerTickList<MockTickTarget> tickList(
         world,
-        [](MockTickTarget&) { return false; },
-        [](MockTickTarget&) -> const mc::ResourceLocation& {
+        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) -> const mc::ResourceLocation& {
             static const mc::ResourceLocation id("test", "mock_target");
             return id;
         },
         [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
-        [&executionCount](mc::IWorld&, const mc::BlockPos&, MockTickTarget&) { ++executionCount; });
+        [&executionCount](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) { ++executionCount; });
 
     const mc::BlockPos pos(64, 62, 87);
     tickList.setCurrentTick(20);
@@ -262,4 +262,150 @@ TEST(ServerTickListTest, TickRemovesEntryFromPendingSetBeforeExecution)
     EXPECT_FALSE(tickList.isTickPending(pos, target));
     EXPECT_EQ(tickList.pendingCount(), 0);
     EXPECT_EQ(tickList.executedThisTickCount(), 1);
+}
+
+// ============================================================================
+// const T& 接口测试
+//
+// 验证 ITickList/ServerTickList/EmptyTickList 的 const T& 接口正确工作。
+// 所有 scheduleTick/isTickScheduled/isTickPending/cancelTick 均接受 const T&。
+// ============================================================================
+
+TEST(ServerTickListTest, ConstReferenceScheduleTick)
+{
+    // 验证 scheduleTick 接受 const MockTickTarget& 参数
+    ServerTickListTestWorld world;
+    const MockTickTarget constTarget(42);
+    size_t executionCount = 0;
+
+    ServerTickList<MockTickTarget> tickList(
+        world,
+        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) -> const mc::ResourceLocation& {
+            static const mc::ResourceLocation id("test", "mock_target");
+            return id;
+        },
+        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
+        [&executionCount](mc::IWorld&, const mc::BlockPos&, const MockTickTarget& target) {
+            EXPECT_EQ(target.id, 42);
+            ++executionCount;
+        });
+
+    const mc::BlockPos pos(10, 20, 30);
+    tickList.setCurrentTick(0);
+
+    // 使用 const 引用调度 tick
+    tickList.scheduleTick(pos, constTarget, 5);
+
+    EXPECT_TRUE(tickList.isTickScheduled(pos, constTarget));
+    EXPECT_EQ(tickList.pendingCount(), 1);
+
+    tickList.tick(5, 65536);
+
+    EXPECT_EQ(executionCount, 1);
+}
+
+TEST(ServerTickListTest, ConstReferenceIsTickScheduledAndPending)
+{
+    // 验证 isTickScheduled 和 isTickPending 接受 const T& 参数
+    ServerTickListTestWorld world;
+    const MockTickTarget target(1);
+    bool callbackExecuted = false;
+
+    ServerTickList<MockTickTarget> tickList(
+        world,
+        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) -> const mc::ResourceLocation& {
+            static const mc::ResourceLocation id("test", "mock_target");
+            return id;
+        },
+        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
+        [&callbackExecuted](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) { callbackExecuted = true; });
+
+    const mc::BlockPos pos(5, 10, 15);
+    tickList.setCurrentTick(100);
+
+    tickList.scheduleTick(pos, target, 10, TickPriority::Normal);
+
+    // 刚调度时：isTickScheduled=true, isTickPending=false
+    EXPECT_TRUE(tickList.isTickScheduled(pos, target));
+    EXPECT_FALSE(tickList.isTickPending(pos, target));
+
+    // 执行到目标tick时：tick回调会执行，说明该tick确实被pending并执行了
+    tickList.tick(110, 65536);
+
+    EXPECT_TRUE(callbackExecuted);
+    EXPECT_FALSE(tickList.isTickScheduled(pos, target));
+    EXPECT_EQ(tickList.pendingCount(), 0);
+}
+
+TEST(ServerTickListTest, ConstReferenceCancelTick)
+{
+    // 验证 cancelTick 接受 const T& 参数
+    ServerTickListTestWorld world;
+    const MockTickTarget target(1);
+
+    ServerTickList<MockTickTarget> tickList(
+        world,
+        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) -> const mc::ResourceLocation& {
+            static const mc::ResourceLocation id("test", "mock_target");
+            return id;
+        },
+        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
+        [](mc::IWorld&, const mc::BlockPos&, const MockTickTarget&) {});
+
+    const mc::BlockPos pos(1, 2, 3);
+    tickList.setCurrentTick(0);
+    tickList.scheduleTick(pos, target, 10);
+
+    EXPECT_TRUE(tickList.isTickScheduled(pos, target));
+
+    EXPECT_TRUE(tickList.cancelTick(pos, target));
+    EXPECT_FALSE(tickList.isTickScheduled(pos, target));
+    EXPECT_EQ(tickList.pendingCount(), 0);
+}
+
+TEST(ServerTickListTest, TickCallbackReceivesConstReference)
+{
+    // 验证 tick 回调接收 const T& 参数，且回调内可以读取目标数据但不能修改
+    ServerTickListTestWorld world;
+    MockTickTarget target(99);
+    int capturedId = -1;
+
+    ServerTickList<MockTickTarget> tickList(
+        world,
+        [](const MockTickTarget&) { return false; },
+        [](const MockTickTarget&) -> const mc::ResourceLocation& {
+            static const mc::ResourceLocation id("test", "mock_target");
+            return id;
+        },
+        [](const mc::ResourceLocation&) -> MockTickTarget* { return nullptr; },
+        [&capturedId](mc::IWorld&, const mc::BlockPos&, const MockTickTarget& target) {
+            capturedId = target.id; // 可以读取 const 引用的数据
+        });
+
+    const mc::BlockPos pos(0, 0, 0);
+    tickList.setCurrentTick(0);
+    tickList.scheduleTick(pos, target, 1);
+    tickList.tick(1, 65536);
+
+    EXPECT_EQ(capturedId, 99);
+}
+
+TEST(EmptyTickListTest, ConstReferenceOperations)
+{
+    // 验证 EmptyTickList 的 const T& 接口
+    EmptyTickList<MockTickTarget>& tickList = EmptyTickList<MockTickTarget>::get();
+
+    const MockTickTarget constTarget(1);
+    mc::BlockPos pos(0, 0, 0);
+
+    // 所有 const T& 操作应为空操作
+    tickList.scheduleTick(pos, constTarget, 10);
+    tickList.scheduleTick(pos, constTarget, 10, TickPriority::High);
+
+    EXPECT_FALSE(tickList.isTickScheduled(pos, constTarget));
+    EXPECT_FALSE(tickList.isTickPending(pos, constTarget));
+    EXPECT_EQ(tickList.pendingCount(), 0);
 }

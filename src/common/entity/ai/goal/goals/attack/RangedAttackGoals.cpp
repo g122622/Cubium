@@ -527,13 +527,13 @@ void RangedCrossbowAttackGoal::_handleChargingState()
 
         // 设置弩为已装填状态
         if (crossbowItem) {
-            item::CrossbowItem::setCharged(const_cast<ItemStack&>(mainHand), true);
+            item::CrossbowItem::setCharged(m_mob->getMutableMainHandItem(), true);
         }
 
         // 调用装填完成回调
         if (crossbowUser) {
             crossbowUser->setChargingCrossbow(false);
-            crossbowUser->onCrossbowLoadComplete(const_cast<ItemStack&>(mainHand));
+            crossbowUser->onCrossbowLoadComplete(m_mob->getMutableMainHandItem());
         }
 
         m_crossbowState = CrossbowState::Charged;
@@ -565,7 +565,7 @@ void RangedCrossbowAttackGoal::_handleReadyToAttackState()
     }
 
     // 发射弩箭
-    ItemStack& mainHand = const_cast<ItemStack&>(m_mob->getMainHandItem());
+    ItemStack& mainHand = m_mob->getMutableMainHandItem();
     entity::ICrossbowUser* crossbowUser = dynamic_cast<entity::ICrossbowUser*>(m_mob);
 
     if (crossbowUser && _isHoldingCrossbow()) {

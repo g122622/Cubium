@@ -22,6 +22,7 @@
  */
 
 #include "AdvancementProgress.hpp"
+#include "common/util/DateTimeUtils.hpp"
 #include <chrono>
 
 namespace mc::advancement {
@@ -44,9 +45,10 @@ CriterionProgress CriterionProgress::fromJson(const nlohmann::json& json)
 {
     CriterionProgress progress;
     if (json.is_string()) {
-        // 旧格式：时间字符串 "2024-01-15 10:30:45 +0800"
-        // 简化处理，标记为已完成
-        progress.m_obtainedTime = 0;
+        // MC Java 版格式：时间字符串 "2024-06-15 14:30:00 +0800"
+        // 对应 Java 的 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z")
+        auto millis = util::DateTimeUtils::parseDateTimeToMillis(json.get<std::string>());
+        progress.m_obtainedTime = millis.value_or(0);
     } else if (json.is_object() && json.contains("obtainedTime")) {
         progress.m_obtainedTime = json["obtainedTime"].get<i64>();
     } else if (json.is_number()) {
@@ -60,7 +62,9 @@ nlohmann::json CriterionProgress::toJson() const
     if (!isObtained()) {
         return nullptr;
     }
-    return m_obtainedTime.value();
+    // 输出 MC Java 版兼容的日期时间字符串格式 "yyyy-MM-dd HH:mm:ss Z"
+    // 与 MC Java 的 AdvancementProgress.OBTAINED_TIME_FORMAT 一致
+    return util::DateTimeUtils::formatDateTime(m_obtainedTime.value());
 }
 
 // ========== AdvancementProgress ==========

@@ -26,6 +26,7 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/projectile/ThrowableEntity.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -176,7 +177,7 @@ public:
         return reference;
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId, const Vector3&, const Vector3&) override
+    void addParticle(particle::ParticleTypeId, const Vector3&, const Vector3&) override
     {
         // 测试中忽略粒子
     }

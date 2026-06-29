@@ -685,9 +685,8 @@ void ServerChunkManager::_postProcessChunk(ChunkData& chunk)
             if (blockState->isLiquid()) {
                 const auto* fluidState = blockState->getFluidState();
                 if (fluidState != nullptr && !fluidState->isEmpty()) {
-                    // scheduleFluidTick 需要 Fluid&，但 Fluid 是注册表单例，const_cast 安全
-                    auto& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
-                    m_world->tickManager().scheduleFluidTick(pos, fluid, fluidState->getFluid().getTickDelay(*m_world));
+                    const auto& fluid = fluidState->getFluid();
+                    m_world->tickManager().scheduleFluidTick(pos, fluid, fluid.getTickDelay(*m_world));
                 }
             }
 

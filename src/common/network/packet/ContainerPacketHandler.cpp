@@ -198,6 +198,8 @@ i32 getSlotCount(ContainerType type)
             return 3; // 制图台（2输入+1输出）
         case ContainerType::Stonecutter:
             return 2; // 切石机（1输入+1输出）
+        case ContainerType::Crafter:
+            return 9; // 自动合成器（3x3合成网格）
         case ContainerType::Player:
             return 46; // 玩家背包（36背包+4护甲+5合成+1结果）
         default:
@@ -256,6 +258,8 @@ const char* getDefaultTitle(ContainerType type)
             return "Cartography Table";
         case ContainerType::Stonecutter:
             return "Stonecutter";
+        case ContainerType::Crafter:
+            return "Crafter";
         case ContainerType::Player:
             return "Inventory";
         default:

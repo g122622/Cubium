@@ -226,8 +226,9 @@ void EvokerEntity::summonVex()
         vex->setLimitedLife(true);
         vex->setLifeTime(20 * (30 + rng.nextInt(90)));
 
-        // 对恼鬼调用 finalizeSpawn 进行基于难度的初始化
-        entity::combat::DifficultyInstance difficultyInstance(m_world->difficulty());
+        // 对恼鬼调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
+        entity::combat::DifficultyInstance difficultyInstance =
+            entity::combat::DifficultyInstance::at(*m_world, spawnPos);
         vex->finalizeSpawn(*m_world, difficultyInstance, world::spawn::SpawnReason::MobSummons);
 
         // 将实体添加到世界

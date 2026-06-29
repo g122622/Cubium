@@ -29,6 +29,11 @@
 #include <memory>
 
 namespace mc {
+
+namespace item {
+class ProjectileItem;
+}
+
 namespace entity {
 
 /**
@@ -118,11 +123,29 @@ public:
      */
     [[nodiscard]] PushReaction getPushReaction() const override { return PushReaction::Ignore; }
 
-    // TODO(Entity): OminousItemSpawner 覆写了以下方法，但当前 Entity 基类尚无对应虚方法：
-    //   - isIgnoringBlockTriggers() -> true  (实体不触发方块压力板等)
-    //   - canAddPassenger(Entity) -> false   (实体不可骑乘)
-    //   - couldAcceptPassenger() -> false    (实体不可被骑乘)
-    // 当 Entity 基类添加这些虚方法后，应在此处覆写。
+    /**
+     * @brief 检查实体是否不触发压力板/绊线
+     * @return true，不祥物品生成器不触发压力板和绊线
+     *
+     * 对应 MC Java 的 OminousItemSpawner.isIgnoringBlockTriggers()
+     */
+    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return true; }
+
+    /**
+     * @brief 检查此实体是否根本可以接受乘客
+     * @return false，不祥物品生成器不允许任何实体骑乘
+     *
+     * 对应 MC Java 的 OminousItemSpawner.couldAcceptPassenger()
+     */
+    [[nodiscard]] bool couldAcceptPassenger() const override { return false; }
+
+    /**
+     * @brief 检查此实体是否可以添加指定乘客
+     * @return false，不祥物品生成器不允许任何实体骑乘
+     *
+     * 对应 MC Java 的 OminousItemSpawner.canAddPassenger(Entity)
+     */
+    [[nodiscard]] bool canAddPassenger(const Entity& /*passenger*/) const override { return false; }
 
     // ========== 序列化 ==========
 
@@ -150,11 +173,16 @@ private:
 
     /**
      * @brief 生成弹射物实体
+     *
+     * 通过 ProjectileItem 接口创建弹射物，替代硬编码映射表。
+     * 通过 ProjectileItem 接口创建弹射物，替代硬编码映射表。
+     *
      * @param world 世界引用
-     * @param item 物品（用于确定弹射物类型）
+     * @param projectileItem 弹射物物品接口
+     * @param itemStack 物品堆（某些弹射物需要从中读取数据）
      * @return 生成的实体指针，失败返回 nullptr
      */
-    Entity* spawnProjectile(IWorld& world, const Item& item);
+    Entity* spawnProjectile(IWorld& world, const item::ProjectileItem& projectileItem, const ItemStack& itemStack);
 
     /**
      * @brief 生成不祥粒子效果

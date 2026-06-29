@@ -50,6 +50,10 @@
 #include <thread>
 #include <asio.hpp>
 
+namespace mc::particle {
+enum class ParticleTypeId : u16;
+}
+
 namespace mc::client {
 
 // ============================================================================
@@ -129,6 +133,9 @@ struct NetworkClientCallbacks {
     // 乘客事件
     std::function<void(u32 entityId, const std::vector<u32>& passengerIds)> onSetPassengers;
 
+    // 旁观者摄像机事件
+    std::function<void(u32 cameraEntityId)> onSetCamera;
+
     // 天气事件
     std::function<void(f32 rainStrength)> onRainStrengthChange;
     std::function<void(f32 thunderStrength)> onThunderStrengthChange;
@@ -189,7 +196,7 @@ struct NetworkClientCallbacks {
         onPlayerListUpdateDisplayName;
 
     // 粒子事件
-    std::function<void(client::renderer::trident::particle::ParticleTypeId type,
+    std::function<void(::mc::particle::ParticleTypeId type,
         f64 x,
         f64 y,
         f64 z,
@@ -409,6 +416,9 @@ private:
 
     // 乘客包处理
     void _handleSetPassengers(network::PacketDeserializer& deser);
+
+    // 旁观者摄像机包处理
+    void _handleSetCamera(network::PacketDeserializer& deser);
 
     // 重生/维度切换包处理
     void _handleRespawn(network::PacketDeserializer& deser);

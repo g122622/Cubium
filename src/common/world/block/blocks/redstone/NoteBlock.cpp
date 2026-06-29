@@ -22,7 +22,7 @@
  */
 
 #include "NoteBlock.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/property/Properties.hpp"
@@ -344,7 +344,7 @@ void NoteBlock::_playNote(IWorld& world, const BlockPos& pos, i32 instrument, i3
     // 粒子类型: NOTE
     // 位置: 方块上方中心
     // 颜色数据: note / 24.0 (用于确定粒子颜色)
-    world.addParticle(client::renderer::trident::particle::ParticleTypeId::Note,
+    world.addParticle(particle::ParticleTypeId::Note,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 1.2f, static_cast<f32>(pos.z) + 0.5f),
         Vector3(static_cast<f32>(note) / 24.0f, // 颜色数据
             0.0f,

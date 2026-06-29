@@ -96,15 +96,6 @@ public:
      * @return 是否成功生成
      */
     static bool growSeagrass(IWorld& world, const BlockPos& pos, math::IRandom& random);
-
-private:
-    /**
-     * @brief 生成快乐村民粒子效果
-     *
-     * @param world 世界
-     * @param pos 方块位置
-     */
-    static void _spawnBonemealParticles(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace item::items

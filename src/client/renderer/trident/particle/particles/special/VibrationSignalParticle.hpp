@@ -43,7 +43,8 @@ namespace mc::client::renderer::trident::particle::particles {
  * 粒子以指数缓动向目标位置飞行，飞行过程中带有轻微的正弦摆动效果，
  * 始终面向摄像机，使用半透明渲染和全亮度光照。
  *
- * 参考: net.minecraft.client.particle.VibrationSignalParticle
+ * TODO: 粒子数据管线尚未支持目标位置和到达时间数据传递，当前 create() 工厂方法使用默认值/回退行为。
+ * 待 ParticleFactory 签名扩展后，应通过 createWithTarget() 方法传递真实数据。
  */
 class VibrationSignalParticle : public Particle {
 public:

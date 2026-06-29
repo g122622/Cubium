@@ -42,6 +42,7 @@ WoodPressurePlateBlock::WoodPressurePlateBlock(const BlockProperties& properties
 i32 WoodPressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPos& pos) const
 {
     // 木压力板可以被所有实体触发（玩家、怪物、物品等）
+    // 对应 MC Java 的 PressurePlateSensitivity.EVERYTHING：使用 Entity.class 过滤
     // 有实体时输出15，无实体时输出0
 
     // 创建压力板上方的碰撞箱
@@ -55,9 +56,10 @@ i32 WoodPressurePlateBlock::calculateSignalStrength(IWorld& world, const BlockPo
     // 查询碰撞箱内的实体
     std::vector<Entity*> entities = world.getEntitiesInAABB(detectionBox, nullptr);
 
-    // 木压力板被任何实体触发
+    // 木压力板被任何实体触发，但排除不触发压力板的实体
+    // （蝙蝠、标记模式盔甲架、不祥物品生成器等）
     for (Entity* entity : entities) {
-        if (entity != nullptr) {
+        if (entity != nullptr && !entity->doesEntityNotTriggerPressurePlate()) {
             return 15; // 有实体就输出最大信号
         }
     }

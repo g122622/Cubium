@@ -40,6 +40,7 @@
 #include "../jigsaw/JigsawJunction.hpp"
 #include "../settings/NoiseSettings.hpp"
 #include "../structure/StructureManager.hpp"
+#include "../structure/StructureSet.hpp"
 #include "../surface/SurfaceRules.hpp"
 #include "IChunkGenerator.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
@@ -103,6 +104,17 @@ public:
     [[nodiscard]] world::biome::IBiomeSource* getBiomeSource() override { return m_biomeSource.get(); }
     [[nodiscard]] const world::biome::IBiomeSource* getBiomeSource() const override { return m_biomeSource.get(); }
 
+    // === 结构缓存 ===
+
+    [[nodiscard]] world::gen::structure::StructureCheck* structureCheck() override
+    {
+        return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
+    }
+    [[nodiscard]] const world::gen::structure::StructureCheck* structureCheck() const override
+    {
+        return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
+    }
+
     // === 结构地形平滑 ===
 
 private:
@@ -127,6 +139,18 @@ private:
 
     // === MC 1.21 全局流体选择器（缓存，避免每次创建）===
     world::gen::aquifer::FluidPicker m_globalFluidPicker;
+
+    /**
+     * @brief 检查结构集中的任何结构是否可能与当前维度的生物群系兼容
+     *
+     * 对齐 MC 1.21.11 ChunkGeneratorStructureState.hasBiomesForStructureSet()，
+     * 检查 BiomeSource 的 possibleBiomes 是否与结构集中任意结构的 biomeTag 有交集。
+     * 如果没有交集，则该结构集在当前维度中永远不可能生成，可以跳过。
+     *
+     * @param structureSet 结构集
+     * @return 是否可能生成
+     */
+    [[nodiscard]] bool _hasBiomesForStructureSet(const world::gen::structure::StructureSet& structureSet) const;
 
     // === 核心生成方法 ===
 

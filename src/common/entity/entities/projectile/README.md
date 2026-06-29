@@ -159,6 +159,17 @@ Entity (core/Entity.hpp)
 | 钓到鱼 | 1 |
 | 落地 | 2 |
 
+**开放水域检测**（`_checkOpenWater`）：
+对应 MC Java `FishingHook.isOpenOrWaterAround`，采用分层检测算法：
+- 以浮标为中心，检测 Y-1 到 Y+2 共 4 层的 5×5 区域
+- 每个方块分类为三种 `WaterType`：
+  - `AboveWater`：空气或睡莲方块
+  - `InsideWater`：水源方块（空碰撞箱 + 水流体标签 + source）
+  - `Invalid`：不满足以上条件的方块
+- 每层内所有方块必须属于同一类型
+- 层间过渡规则：`Invalid` 直接判定失败；`AboveWater` 前面不能有 `Invalid`；`InsideWater` 前面不能有 `AboveWater`
+- 开放水域影响钓鱼宝藏表的概率
+
 ### 6. 箭矢伤害计算
 
 箭矢伤害由两个独立方法控制：
@@ -218,6 +229,13 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
 1. **方块碰撞**：通过 `rayTraceBlocks` 检测与方块的碰撞
 2. **实体碰撞**：通过 `rayTraceEntities` 检测与实体的碰撞
 3. **碰撞处理**：调用 `onImpact`，分发到 `onEntityHit` 或 `onBlockHit`
+
+**命中过滤**（`canHitEntity`）：
+对应 MC Java `Projectile.canHitEntity`，过滤可命中的实体：
+- 不可被弹射物命中的实体（`canBeHitByProjectile()` 返回 false）不可命中
+  - `canBeHitByProjectile()` 默认为 `isAlive() && canBeCollidedWith()`（对应 MC Java 的 `isAlive() && isPickable()`）
+  - `Player` 重写为 `!isSpectator() && Entity::canBeHitByProjectile()`，旁观者不可被弹射物命中
+- 发射者未离开碰撞箱前，不能命中与发射者骑乘同一载具的实体（`isRidingSameEntity`）
 
 ### 14. EvokerFangsEntity Owner UUID 双重追踪
 

@@ -24,7 +24,7 @@
 #include "DamagingProjectileEntity.hpp"
 
 #include "ProjectileHelper.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/world/IWorld.hpp"
 
 namespace mc {
@@ -81,10 +81,10 @@ void DamagingProjectileEntity::tick()
     Entity::tick();
 }
 
-client::renderer::trident::particle::ParticleTypeId DamagingProjectileEntity::getParticleType() const
+particle::ParticleTypeId DamagingProjectileEntity::getParticleType() const
 {
     // 默认返回 SMOKE 粒子
-    return client::renderer::trident::particle::ParticleTypeId::Smoke;
+    return particle::ParticleTypeId::Smoke;
 }
 
 void DamagingProjectileEntity::spawnTrailParticles(const Vector3& position)
@@ -101,7 +101,7 @@ void DamagingProjectileEntity::spawnWaterParticles()
         for (i32 i = 0; i < 4; ++i) {
             constexpr f32 offset = 0.25f;
             Vector3 pos(x() - m_velocity.x * offset, y() - m_velocity.y * offset, z() - m_velocity.z * offset);
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Bubble, pos, m_velocity);
+            m_world->addParticle(particle::ParticleTypeId::Bubble, pos, m_velocity);
         }
     }
 }

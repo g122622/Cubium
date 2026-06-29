@@ -13,6 +13,7 @@
 ├── BrewingStandContainer.hpp / cpp #酿造台容器（3药水槽 / 材料槽 / 燃料槽）
 ├── CartographyContainer.hpp / cpp #制图台容器（地图扩展 / 锁定 / 复制）
 ├── ChestContainer.hpp / cpp #箱子容器（单箱27格 / 双箱54格）
+├── CrafterContainer.hpp / cpp #自动合成器容器（3x3合成网格 + 预览结果槽）
 ├── EnchantmentContainer.hpp / cpp #附魔台容器（物品槽 / 青金石槽）
 ├── FurnaceContainer.hpp / cpp #熔炉容器（输入 / 燃料 / 输出槽）
 ├── HopperContainer.hpp / cpp #漏斗容器（5格）
@@ -34,6 +35,7 @@
         ├── FurnaceContainer ──关联── > AbstractFurnaceEntity
         ├── EnchantmentContainer ──关联── > EnchantingTableEntity（位置）
         ├── BrewingStandContainer ──关联── > BrewingStandEntity
+        ├── CrafterContainer ──关联── > CrafterBlockEntity
         ├── AnvilContainer ──关联── > 铁砧方块位置
         ├── HopperContainer ──关联── > HopperEntity
         ├── CartographyContainer ──关联── > 制图台方块位置
@@ -135,3 +137,13 @@ if (containerId != expectedId) {
     ## #8. 熔炉输出槽经验发放
 
 `FurnaceResultSlot` 在取出物品时自动发放熔炼累积的经验。经验值向下取整后发放。
+
+## #9. 自动合成器预览结果更新
+
+`CrafterContainer::updateResult()` 通过 `RecipeManager` 查找匹配配方，使用 `CrafterBlockEntity::asCraftInput()` 构建合成输入（禁用槽位视为空），将组装结果写入 `CraftResultInventory` 预览槽位。当合成器背包内容变化（`slotsChanged`）或槽位禁用/启用状态改变（`setSlotState`）时自动调用。
+
+关键点：
+- `m_resultInventory` 类型为 `CraftResultInventory`（不是 `IInventory`），以支持 `setResultItem`/`setCraftingRecipeUsed`
+- `m_currentRecipe` 追踪当前匹配配方，`getCurrentRecipeId()` 供客户端配方解锁使用
+- 无 `CrafterBlockEntity` 时（测试场景），回退到直接从 `m_crafterInventory` 构建 `CraftingInventory`，但禁用槽位信息丢失
+- 预览结果槽位（`CrafterResultSlot`）不可交互，实际合成由红石触发 `CrafterBlock::_dispenseFrom()` 完成

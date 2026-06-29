@@ -114,10 +114,10 @@ bool SpawnEggItem::spawnEntity(IWorld& world, const BlockPos& pos, world::spawn:
     f32 z = static_cast<f32>(pos.z) + 0.5f;
     entity->setPosition(x, y, z);
 
-    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
     auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
     if (mobEntity != nullptr) {
-        entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, pos);
         mobEntity->finalizeSpawn(world, difficultyInstance, spawnReason);
     }
 

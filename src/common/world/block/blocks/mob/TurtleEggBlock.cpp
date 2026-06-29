@@ -203,8 +203,9 @@ void TurtleEggBlock::randomTick(IWorld& world, const BlockPos& pos, BlockState& 
                     static_cast<f32>(pos.z) + 0.3f);
                 turtle->setRotation(0.0f, 0.0f);
 
-                // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
-                entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+                // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
+                entity::combat::DifficultyInstance difficultyInstance =
+                    entity::combat::DifficultyInstance::at(world, pos);
                 turtle->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Natural);
 
                 // 生成到世界

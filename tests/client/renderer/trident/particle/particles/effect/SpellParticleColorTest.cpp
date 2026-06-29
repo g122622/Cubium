@@ -165,6 +165,65 @@ TEST_F(EntityEffectParticleColorTest, DirectConstruction_UsesProvidedColor)
     EXPECT_FLOAT_EQ(particle.color().g, 0.2f);
     EXPECT_FLOAT_EQ(particle.color().b, 0.6f);
     EXPECT_FLOAT_EQ(particle.color().a, 0.5f);
+    EXPECT_FALSE(particle.isAmbient());
+}
+
+TEST_F(EntityEffectParticleColorTest, DirectConstruction_AmbientMode_LowAlpha)
+{
+    // 环境模式直接构造
+    glm::vec3 pos(1.0f, 2.0f, 3.0f);
+    glm::vec3 velocity(0.0f, 0.0f, 0.0f);
+    glm::vec4 color(0.5f, 0.3f, 0.8f, 1.0f);
+
+    EntityEffectParticle particle(pos, velocity, color, true);
+
+    // 环境模式 alpha 应为 38/255 ≈ 0.149
+    EXPECT_FLOAT_EQ(particle.color().r, 0.5f);
+    EXPECT_FLOAT_EQ(particle.color().g, 0.3f);
+    EXPECT_FLOAT_EQ(particle.color().b, 0.8f);
+    EXPECT_NEAR(particle.color().a, 38.0f / 255.0f, 0.001f);
+    EXPECT_TRUE(particle.isAmbient());
+}
+
+TEST_F(EntityEffectParticleColorTest, CreateAmbient_ZeroVelocity_FallsBackToBlue)
+{
+    // 环境模式零向量速度应回退到默认蓝色 (0.5, 0.5, 1.0)
+    glm::vec3 pos(0.0f, 0.0f, 0.0f);
+    glm::vec3 velocity(0.0f, 0.0f, 0.0f);
+
+    auto particle = EntityEffectParticle::createAmbient(pos, velocity, nullptr);
+    ASSERT_NE(particle, nullptr);
+
+    const glm::vec4& color = particle->color();
+    EXPECT_FLOAT_EQ(color.r, 0.5f);
+    EXPECT_FLOAT_EQ(color.g, 0.5f);
+    EXPECT_FLOAT_EQ(color.b, 1.0f);
+    EXPECT_NEAR(color.a, 38.0f / 255.0f, 0.001f);
+
+    // 通过 dynamic_cast 验证是 EntityEffectParticle 且为环境模式
+    auto* effectParticle = dynamic_cast<EntityEffectParticle*>(particle.get());
+    ASSERT_NE(effectParticle, nullptr);
+    EXPECT_TRUE(effectParticle->isAmbient());
+}
+
+TEST_F(EntityEffectParticleColorTest, CreateAmbient_CustomColor_LowAlpha)
+{
+    // 环境模式自定义颜色，alpha 应为 38/255
+    glm::vec3 pos(0.0f, 0.0f, 0.0f);
+    glm::vec3 velocity(0.7f, 0.2f, 0.9f);
+
+    auto particle = EntityEffectParticle::createAmbient(pos, velocity, nullptr);
+    ASSERT_NE(particle, nullptr);
+
+    const glm::vec4& color = particle->color();
+    EXPECT_FLOAT_EQ(color.r, 0.7f);
+    EXPECT_FLOAT_EQ(color.g, 0.2f);
+    EXPECT_FLOAT_EQ(color.b, 0.9f);
+    EXPECT_NEAR(color.a, 38.0f / 255.0f, 0.001f);
+
+    auto* effectParticle = dynamic_cast<EntityEffectParticle*>(particle.get());
+    ASSERT_NE(effectParticle, nullptr);
+    EXPECT_TRUE(effectParticle->isAmbient());
 }
 
 TEST_F(EntityEffectParticleColorTest, Create_PositionPreserved)
@@ -342,7 +401,7 @@ TEST_F(ParticleColorConsistencyTest, EntityEffectParticle_CreateAndDirectConstru
     glm::vec3 velocity(0.3f, 0.6f, 0.9f);
 
     auto created = EntityEffectParticle::create(pos, velocity, nullptr);
-    EntityEffectParticle direct(pos, velocity, glm::vec4(0.3f, 0.6f, 0.9f, 0.5f));
+    EntityEffectParticle direct(pos, velocity, glm::vec4(0.3f, 0.6f, 0.9f, 0.5f), false);
 
     // 两者颜色应该相同（EntityEffectParticle 构造函数不做随机偏移）
     EXPECT_FLOAT_EQ(created->color().r, direct.color().r);

@@ -186,7 +186,7 @@ public:
      * @param pos 讲台位置
      * @param block 讲台方块引用
      */
-    static void updateBelow(IWorld& world, const BlockPos& pos, const Block& block);
+    static void updateBelow(IWorld& world, const BlockPos& pos, Block& block);
 
 protected:
     /// 各朝向的形状缓存

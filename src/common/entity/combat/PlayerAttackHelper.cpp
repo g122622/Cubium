@@ -27,12 +27,10 @@
 #include "../../item/enchantment/enchantments/AllEnchantments.hpp"
 #include "../../item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
 #include "../../util/math/MathUtils.hpp"
-#include "../attribute/Attributes.hpp"
 #include "../core/LivingEntity.hpp"
 #include "../effect/EffectType.hpp"
 #include "../entities/player/Player.hpp"
 #include "AttackContext.hpp"
-#include <cmath>
 
 namespace mc::entity::combat {
 
@@ -102,89 +100,8 @@ f32 PlayerAttackHelper::calculateDamage(const Player& player, f32 baseDamage, f3
     // 力量/虚弱药水效果已通过属性修改器系统自动应用到 ATTACK_DAMAGE 属性值中，
     // 不需要在此手动计算。参见 EffectAttributeModifiers 中 Strength(+3.0/级) 和 Weakness(-4.0/级) 的 Addition 操作。
 
+    (void)player;
     return damage;
-}
-
-// ========== 击退计算 ==========
-
-f32 PlayerAttackHelper::calculateKnockback(
-    const LivingEntity& attacker, const LivingEntity& target, f32 baseKnockback, bool isSprinting, i32 knockbackLevel)
-{
-    f32 knockback = baseKnockback;
-
-    // 疾跑加成
-    if (isSprinting) {
-        knockback += SPRINT_KNOCKBACK_BONUS;
-    }
-
-    // 击退附魔加成（每级 +0.5）
-    if (knockbackLevel > 0) {
-        knockback += item::enchant::KnockbackEnchantment::getKnockbackBonus(knockbackLevel);
-    }
-
-    // 目标击退抗性减伤（在 applyKnockback 中处理）
-    // 这里返回原始击退值，实际击退由目标属性决定
-
-    (void)target; // 暂时未使用，击退抗性在 applyKnockback 中处理
-    (void)attacker;
-
-    return knockback;
-}
-
-void PlayerAttackHelper::applyKnockback(LivingEntity& target, const LivingEntity& attacker, f32 strength)
-{
-    // 从攻击者位置计算击退方向
-    f64 ratioX = static_cast<f64>(attacker.position().x - target.position().x);
-    f64 ratioZ = static_cast<f64>(attacker.position().z - target.position().z);
-
-    applyKnockback(target, ratioX, ratioZ, strength);
-}
-
-void PlayerAttackHelper::applyKnockback(LivingEntity& target, f64 ratioX, f64 ratioZ, f32 strength)
-{
-    // 击退抗性降低击退强度
-    strength = static_cast<f32>(static_cast<f64>(strength) *
-        (1.0 - target.getAttributeValue(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, 0.0)));
-
-    if (strength <= 0.0f) {
-        return; // 击退被完全抗性抵消
-    }
-
-    // 归一化方向向量
-    f64 length = std::sqrt(ratioX * ratioX + ratioZ * ratioZ);
-    if (length < 1.0E-7) {
-        return; // 零向量，不应用击退
-    }
-
-    ratioX /= length;
-    ratioZ /= length;
-
-    // 计算击退速度
-    // 击退会减少当前水平速度的一半，然后加上击退向量
-    f64 knockbackX = ratioX * static_cast<f64>(strength);
-    f64 knockbackZ = ratioZ * static_cast<f64>(strength);
-
-    Vector3 velocity = target.velocity();
-
-    // Y轴速度
-    // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
-    f64 newVelocityY;
-    if (target.onGround()) {
-        // 在地面时：Y速度 = min(0.4, 当前Y速度/2 + 击退强度)
-        newVelocityY = std::min(0.4, static_cast<f64>(velocity.y) / 2.0 + static_cast<f64>(strength));
-    } else {
-        // 在空中时：保持当前Y速度
-        newVelocityY = static_cast<f64>(velocity.y);
-    }
-
-    // 设置新速度
-    // X/Z轴：当前速度的一半减去击退向量（注意方向是反的）
-    target.setVelocity(static_cast<f32>(static_cast<f64>(velocity.x) / 2.0 - knockbackX),
-        static_cast<f32>(newVelocityY),
-        static_cast<f32>(static_cast<f64>(velocity.z) / 2.0 - knockbackZ));
-
-    // 设置为空中状态
-    target.setOnGround(false);
 }
 
 // ========== 攻击冷却 ==========

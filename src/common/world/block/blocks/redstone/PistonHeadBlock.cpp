@@ -185,7 +185,7 @@ void PistonHeadBlock::neighborChanged(
         BlockPos basePos = pos.offset(Directions::opposite(facing));
         const BlockState* baseState = world.getBlockState(basePos);
         if (baseState != nullptr && !baseState->isAir()) {
-            Block& baseBlock = const_cast<Block&>(baseState->getBlock());
+            Block& baseBlock = baseState->getBlockMutable();
             baseBlock.neighborChanged(world, basePos, neighborBlock, neighborPos, isMoving);
         }
     }

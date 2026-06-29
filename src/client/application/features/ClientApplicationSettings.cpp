@@ -24,6 +24,8 @@
 #include "client/application/ClientApplication.hpp"
 
 #include "client/renderer/trident/chunk/ChunkMesher.hpp"
+#include "client/renderer/trident/core/TridentEngine.hpp"
+#include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/ui/minecraft/screens/DebugScreenWidget.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 
@@ -78,6 +80,11 @@ void ClientApplication::applySettings()
 
     // 应用生物群系颜色混合半径
     ChunkMesher::setBiomeBlendRadius(m_settings.biomeBlendRadius.get());
+
+    // 应用粒子效果模式
+    if (m_renderer && m_renderer->isParticleManagerInitialized()) {
+        m_renderer->particleManager().setParticleMode(static_cast<client::ParticleMode>(m_settings.particles.get()));
+    }
 }
 
 void ClientApplication::setupSettingCallbacks()
@@ -161,6 +168,15 @@ void ClientApplication::setupSettingCallbacks()
     m_settings.biomeBlendRadius.onChange([this](i32 value) {
         spdlog::info("Biome blend radius changed to: {} ({}x{} area)", value, value * 2 + 1, value * 2 + 1);
         ChunkMesher::setBiomeBlendRadius(value);
+    });
+
+    // 粒子效果模式变更
+    m_settings.particles.onChange([this](u8 value) {
+        auto mode = static_cast<client::ParticleMode>(value);
+        spdlog::info("Particle mode changed to: {}", static_cast<i32>(mode));
+        if (m_renderer && m_renderer->isParticleManagerInitialized()) {
+            m_renderer->particleManager().setParticleMode(mode);
+        }
     });
 
     m_settings.antiAliasing.onChange(

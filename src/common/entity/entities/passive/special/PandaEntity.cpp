@@ -39,7 +39,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/gamerule/GameRules.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 
 namespace mc {
 
@@ -363,9 +363,8 @@ void PandaEntity::_onSneezeComplete()
 
     // 使用熊猫当前运动速度作为粒子速度
     Vector3 vel = velocity();
-    m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Sneeze,
-        Vector3(particleX, particleY, particleZ),
-        Vector3(vel.x, 0.0f, vel.z));
+    m_world->addParticle(
+        particle::ParticleTypeId::Sneeze, Vector3(particleX, particleY, particleZ), Vector3(vel.x, 0.0f, vel.z));
 
     // 3. 让周围10格内的成年熊猫跳跃
     AxisAlignedBB searchBox = boundingBox().expand(10.0f, 10.0f, 10.0f);

@@ -21,7 +21,7 @@
  */
 
 #include "world/block/registry/NetherBlocks.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
@@ -157,8 +157,10 @@ void registerNetherBlocks()
     // ============================================================================
 
     // 灵魂沙
+    // speedFactor=0.4: 实体走在上面会被减速（Block.speedFactor）
+    // 配合 MOVEMENT_EFFICIENCY 属性，灵魂疾行附魔可以将减速效果抵消
     NetherBlocks::SOUL_SAND = &registry.registerBlock<SimpleBlock>(
-        ResourceLocation("minecraft:soul_sand"), BlockProperties(Material::SAND).hardness(0.5f));
+        ResourceLocation("minecraft:soul_sand"), BlockProperties(Material::SAND).hardness(0.5f).speedFactor(0.4f));
 
     // 灵魂土
     NetherBlocks::SOUL_SOIL = &registry.registerBlock<SimpleBlock>(
@@ -322,13 +324,13 @@ void registerNetherBlocks()
     // 灵魂火把 - 发光等级10，蓝色火焰
     NetherBlocks::SOUL_TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:soul_torch"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10),
-        client::renderer::trident::particle::ParticleTypeId::SoulFireFlame);
+        particle::ParticleTypeId::SoulFireFlame);
 
     // 墙上的灵魂火把
     NetherBlocks::SOUL_WALL_TORCH =
         &registry.registerBlock<blocks::WallTorchBlock>(ResourceLocation("minecraft:soul_wall_torch"),
             BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10),
-            client::renderer::trident::particle::ParticleTypeId::SoulFireFlame);
+            particle::ParticleTypeId::SoulFireFlame);
 
     // ============================================================================
     // 黑石建筑方块

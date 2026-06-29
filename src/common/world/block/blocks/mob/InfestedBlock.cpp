@@ -22,12 +22,12 @@
  */
 
 #include "InfestedBlock.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/monster/arthropod/EndermiteEntity.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockRegistry.hpp"
@@ -77,15 +77,15 @@ void InfestedBlock::spawnAfterBreak(
     silverfish->setPosition(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
     silverfish->setRotation(0.0f, 0.0f);
 
-    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化
-    entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+    // 对 MobEntity 调用 finalizeSpawn 进行基于难度的初始化（使用位置感知的区域难度）
+    entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world, pos);
     silverfish->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Event);
 
     // 生成到世界
     world.spawnEntity(std::move(silverfish));
 
     // 生成蠹虫出现的烟雾粒子效果
-    world.addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
+    world.addParticle(particle::ParticleTypeId::Poof,
         Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f),
         Vector3(0.0f, 0.0f, 0.0f));
 }

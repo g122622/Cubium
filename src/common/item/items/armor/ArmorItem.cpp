@@ -110,25 +110,32 @@ void ArmorItem::_buildAttributeModifiers()
     std::string uuid = entity::attribute::uuids::fromString(getArmorModifierUUID(m_slot));
 
     // 1. 护甲值修饰符 (generic.armor)
-    auto armorAttr = entity::attribute::Attributes::armor();
     auto armorModifier = entity::attribute::AttributeModifier(
         uuid, "Armor modifier", static_cast<f64>(getDefense()), entity::attribute::Operation::Addition);
-    m_attributeModifiers.add(armorAttr.get(), armorModifier, equipmentSlot);
+    m_attributeModifiers.add(entity::attribute::Attributes::ARMOR, armorModifier, equipmentSlot);
 
     // 2. 护甲韧性修饰符 (generic.armor_toughness)
-    auto toughnessAttr = entity::attribute::Attributes::armorToughness();
     auto toughnessModifier = entity::attribute::AttributeModifier(
         uuid, "Armor toughness", static_cast<f64>(getToughness()), entity::attribute::Operation::Addition);
-    m_attributeModifiers.add(toughnessAttr.get(), toughnessModifier, equipmentSlot);
+    m_attributeModifiers.add(entity::attribute::Attributes::ARMOR_TOUGHNESS, toughnessModifier, equipmentSlot);
 
     // 3. 击退抗性修饰符 (generic.knockback_resistance) - 仅当有击退抗性时
     f32 knockbackRes = getKnockbackResistance();
     if (knockbackRes > 0.0f) {
-        auto knockbackAttr = entity::attribute::Attributes::knockbackResistance();
         auto knockbackModifier = entity::attribute::AttributeModifier(
             uuid, "Armor knockback resistance", static_cast<f64>(knockbackRes), entity::attribute::Operation::Addition);
-        m_attributeModifiers.add(knockbackAttr.get(), knockbackModifier, equipmentSlot);
+        m_attributeModifiers.add(entity::attribute::Attributes::KNOCKBACK_RESISTANCE, knockbackModifier, equipmentSlot);
     }
+}
+
+item::ItemAttributeModifiers ArmorItem::getAttributeModifiers(i32 equipmentSlot) const
+{
+    // 只有当槽位匹配盔甲的槽位时才返回修饰符
+    // 对应 MC 原版 ArmorItem.getAttributeModifiers(EquipmentSlot)
+    if (equipmentSlot == armorSlotToEquipmentSlot(m_slot)) {
+        return m_attributeModifiers;
+    }
+    return item::ItemAttributeModifiers();
 }
 
 f32 ArmorItem::getDestroySpeed(const ItemStack& /*stack*/, const BlockState& /*state*/) const noexcept

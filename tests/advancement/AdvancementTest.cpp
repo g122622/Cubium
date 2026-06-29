@@ -286,6 +286,185 @@ TEST_F(AdvancementTest, AdvancementProgressSerialization)
     EXPECT_TRUE(progress2.getCriterion("criterion2")->isObtained());
 }
 
+// ========== CriterionProgress 日期时间格式测试 ==========
+
+TEST_F(AdvancementTest, CriterionProgressFromJsonMcJavaStringFormat)
+{
+    // MC Java 版格式：时间字符串 "2024-06-15 14:30:00 +0800"
+    // 对应 Java 的 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss Z")
+    nlohmann::json jsonStr = "2024-06-15 14:30:00 +0800";
+    auto progress = CriterionProgress::fromJson(jsonStr);
+
+    // 应正确解析为已完成状态（非 nullopt 时间戳）
+    EXPECT_TRUE(progress.isObtained());
+    EXPECT_TRUE(progress.getObtainedTime().has_value());
+
+    // 时间戳应为合理的毫秒值（2024 年的时间戳约 1.7 × 10^12 毫秒）
+    i64 timeValue = progress.getObtainedTime().value();
+    EXPECT_GT(timeValue, 1700000000000LL); // 2023 年之后
+    EXPECT_LT(timeValue, 1800000000000LL); // 2027 年之前
+}
+
+TEST_F(AdvancementTest, CriterionProgressFromJsonUtcString)
+{
+    // UTC 时间字符串
+    nlohmann::json jsonStr = "2024-01-15 10:30:00 +0000";
+    auto progress = CriterionProgress::fromJson(jsonStr);
+
+    EXPECT_TRUE(progress.isObtained());
+    EXPECT_TRUE(progress.getObtainedTime().has_value());
+
+    // 验证 UTC+0 时间戳精度
+    i64 timeValue = progress.getObtainedTime().value();
+    i64 expected = 1705314600000LL;                    // 2024-01-15T10:30:00Z
+    EXPECT_LE(std::abs(timeValue - expected), 1000LL); // 允许 1 秒误差
+}
+
+TEST_F(AdvancementTest, CriterionProgressFromJsonTimeStringTimezoneConsistency)
+{
+    // UTC 和 UTC+8 的同一时刻应解析为相同的时间戳
+    nlohmann::json utcJson = "2024-01-15 10:30:00 +0000";
+    nlohmann::json utc8Json = "2024-01-15 18:30:00 +0800";
+
+    auto utcProgress = CriterionProgress::fromJson(utcJson);
+    auto utc8Progress = CriterionProgress::fromJson(utc8Json);
+
+    ASSERT_TRUE(utcProgress.getObtainedTime().has_value());
+    ASSERT_TRUE(utc8Progress.getObtainedTime().has_value());
+
+    // 两个时间戳应相等（时区差异已补偿），允许 ±2 秒误差
+    i64 diff = std::abs(utcProgress.getObtainedTime().value() - utc8Progress.getObtainedTime().value());
+    EXPECT_LE(diff, 2000LL);
+}
+
+TEST_F(AdvancementTest, CriterionProgressFromJsonInvalidString)
+{
+    // 无效的时间字符串应标记为已完成（时间戳为 0，保持向后兼容）
+    nlohmann::json invalidJson = "not-a-date";
+    auto progress = CriterionProgress::fromJson(invalidJson);
+
+    // 解析失败时回退到时间戳 0，标记为已完成
+    EXPECT_TRUE(progress.isObtained());
+    EXPECT_TRUE(progress.getObtainedTime().has_value());
+    EXPECT_EQ(progress.getObtainedTime().value(), 0);
+}
+
+TEST_F(AdvancementTest, CriterionProgressFromJsonNumberFormat)
+{
+    // 数字格式（毫秒时间戳）：项目内部格式
+    nlohmann::json jsonNum = 1705314600000LL;
+    auto progress = CriterionProgress::fromJson(jsonNum);
+
+    EXPECT_TRUE(progress.isObtained());
+    ASSERT_TRUE(progress.getObtainedTime().has_value());
+    EXPECT_EQ(progress.getObtainedTime().value(), 1705314600000LL);
+}
+
+TEST_F(AdvancementTest, CriterionProgressFromJsonObjectFormat)
+{
+    // 对象格式：{"obtainedTime": 毫秒时间戳}
+    nlohmann::json jsonObj = {{"obtainedTime", 1705314600000LL}};
+    auto progress = CriterionProgress::fromJson(jsonObj);
+
+    EXPECT_TRUE(progress.isObtained());
+    ASSERT_TRUE(progress.getObtainedTime().has_value());
+    EXPECT_EQ(progress.getObtainedTime().value(), 1705314600000LL);
+}
+
+TEST_F(AdvancementTest, CriterionProgressFromJsonNullFormat)
+{
+    // null 格式：未完成
+    nlohmann::json jsonNull = nullptr;
+    auto progress = CriterionProgress::fromJson(jsonNull);
+
+    EXPECT_FALSE(progress.isObtained());
+    EXPECT_FALSE(progress.getObtainedTime().has_value());
+}
+
+TEST_F(AdvancementTest, CriterionProgressToJsonMcJavaStringFormat)
+{
+    // toJson 应输出 MC Java 版兼容的日期时间字符串
+    CriterionProgress progress;
+    progress.obtain();
+
+    nlohmann::json json = progress.toJson();
+
+    // 应为字符串类型（MC Java 版格式），不是数字
+    ASSERT_TRUE(json.is_string());
+
+    std::string timeStr = json.get<std::string>();
+    // 验证格式结构：yyyy-MM-dd HH:mm:ss ZZZZ
+    EXPECT_NE(timeStr.find('-'), std::string::npos); // 日期分隔符
+    EXPECT_NE(timeStr.find(':'), std::string::npos); // 时间分隔符
+    EXPECT_NE(timeStr.find(' '), std::string::npos); // 日期与时间之间的空格
+    // 时区偏移：格式为 "yyyy-MM-dd HH:mm:ss +HHMM" 或 "yyyy-MM-dd HH:mm:ss -HHMM"
+    // 位置 19 为空格，位置 20 为 '+' 或 '-'（负时区机器上为 '-'，不能断言 '+'）
+    ASSERT_GE(timeStr.size(), 25u);
+    EXPECT_EQ(timeStr[19], ' ');
+    EXPECT_TRUE(timeStr[20] == '+' || timeStr[20] == '-');
+}
+
+TEST_F(AdvancementTest, CriterionProgressRoundTripStringFormat)
+{
+    // 往返测试：toJson 输出字符串 → fromJson 解析回来
+    CriterionProgress original;
+    original.obtain();
+
+    nlohmann::json json = original.toJson();
+    auto restored = CriterionProgress::fromJson(json);
+
+    EXPECT_TRUE(restored.isObtained());
+    ASSERT_TRUE(restored.getObtainedTime().has_value());
+    ASSERT_TRUE(original.getObtainedTime().has_value());
+
+    // 往返后时间戳应一致（允许 ±1 秒误差）
+    i64 diff = std::abs(restored.getObtainedTime().value() - original.getObtainedTime().value());
+    EXPECT_LE(diff, 1000LL);
+}
+
+TEST_F(AdvancementTest, CriterionProgressUnobtainedToJson)
+{
+    // 未完成条件序列化应为 null
+    CriterionProgress progress;
+    nlohmann::json json = progress.toJson();
+
+    EXPECT_TRUE(json.is_null());
+}
+
+TEST_F(AdvancementTest, AdvancementProgressRoundTripWithDateTimeString)
+{
+    // 完整往返测试：授予条件 → 序列化 → 反序列化 → 验证
+    Advancement::Builder builder(ResourceLocation("minecraft:test/datetime_roundtrip"));
+    auto trigger = std::make_shared<ImpossibleTriggerInstance>();
+    builder.criterion("enter_nether", trigger);
+    builder.criterion("find_fortress", trigger);
+
+    auto result = builder.build();
+    ASSERT_TRUE(result.success());
+
+    auto advancementPtr = std::make_shared<Advancement>(std::move(result).value());
+    AdvancementProgress progress(advancementPtr);
+
+    progress.grantCriterion("enter_nether");
+
+    // 序列化
+    nlohmann::json json = progress.toJson();
+    EXPECT_TRUE(json.is_object());
+    EXPECT_TRUE(json.contains("criteria"));
+
+    // 条件值应为字符串（日期时间格式）
+    EXPECT_TRUE(json["criteria"]["enter_nether"].is_string());
+
+    // 反序列化
+    auto result2 = AdvancementProgress::fromJson(json, advancementPtr);
+    ASSERT_TRUE(result2.success());
+    auto progress2 = std::move(result2).value();
+
+    EXPECT_FALSE(progress2.isDone()); // 只完成了一个条件
+    EXPECT_TRUE(progress2.getCriterion("enter_nether")->isObtained());
+    EXPECT_FALSE(progress2.getCriterion("find_fortress")->isObtained());
+}
+
 // ========== AdvancementManager 测试 ==========
 
 TEST_F(AdvancementTest, ManagerRegisterGet)

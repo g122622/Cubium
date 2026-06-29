@@ -395,8 +395,7 @@ void ChestEntity::broadcastChestState(IWorld& world, bool open)
 
     const BlockState* state = world.getBlockState(m_pos);
     if (state != nullptr) {
-        const Block& sourceBlock = state->getBlock();
-        world::redstone::RedstoneSystem::instance().updateNeighbors(world, m_pos, const_cast<Block&>(sourceBlock));
+        world::redstone::RedstoneSystem::instance().updateNeighbors(world, m_pos, state->getBlockMutable());
         world::redstone::RedstoneSystem::instance().updateComparators(world, m_pos);
     }
 }

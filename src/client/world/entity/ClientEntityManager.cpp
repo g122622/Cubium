@@ -23,6 +23,8 @@
 
 #include "ClientEntityManager.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/EntitySize.hpp"
+#include "common/entity/core/EntityType.hpp"
 #include <algorithm>
 
 namespace mc::client {
@@ -42,6 +44,18 @@ ClientEntity* ClientEntityManager::spawnEntity(EntityId id, const std::string& t
     // 创建实体
     auto entity = std::make_unique<ClientEntity>(id, typeId);
     auto* ptr = entity.get();
+
+    // 从实体注册表中初始化宽度、高度和眼高
+    const auto& registry = entity::EntityRegistry::instance();
+    const entity::EntityType* type = registry.getType(typeId);
+    if (type != nullptr) {
+        const entity::EntitySize& size = type->size();
+        ptr->setWidth(size.width());
+        ptr->setHeight(size.height());
+        // 眼高默认为注册表中的值，后续 refreshEyeHeight() 会根据姿态调整
+        ptr->setEyeHeight(size.eyeHeight());
+    }
+
     m_entities[id] = std::move(entity);
 
     return ptr;
@@ -57,6 +71,12 @@ ClientEntity* ClientEntityManager::spawnLocalPlayer(EntityId entityId, PlayerId 
     // 创建本地玩家实体
     auto entity = std::make_unique<ClientEntity>(entityId, mc::entity::EntityTypes::PLAYER);
     auto* ptr = entity.get();
+
+    // 玩家实体使用标准尺寸和站立眼高
+    ptr->setWidth(0.6f);
+    ptr->setHeight(1.8f);
+    ptr->setEyeHeight(1.62f);
+
     m_entities[entityId] = std::move(entity);
 
     // 记录本地玩家信息

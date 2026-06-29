@@ -84,4 +84,65 @@ void PortalParticle::tick(mc::client::ClientWorld* world)
     }
 }
 
+// ============================================================================
+// ReversePortalParticle
+// ============================================================================
+
+ReversePortalParticle::ReversePortalParticle(const glm::vec3& pos, const glm::vec3& velocity)
+    : Particle(pos, velocity)
+    , m_startX(pos.x)
+    , m_startZ(pos.z)
+{
+    setGravity(DEFAULT_GRAVITY);
+    setSize(DEFAULT_SIZE * (0.8 + static_cast<f64>(m_random.nextFloat()) * 0.4));
+
+    // 反向传送门颜色：绿色
+    f64 green = 0.6 + static_cast<f64>(m_random.nextFloat()) * 0.4;
+    setColor(glm::vec4(0.1f, static_cast<f32>(green), 0.4f + m_random.nextFloat() * 0.2f, 0.8f));
+
+    setFriction(0.95);
+    setHasPhysics(false);
+    setMaxAge(DEFAULT_LIFETIME * (0.7 + static_cast<f64>(m_random.nextFloat()) * 0.6));
+}
+
+std::unique_ptr<Particle> ReversePortalParticle::create(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    return std::make_unique<ReversePortalParticle>(pos, velocity);
+}
+
+void ReversePortalParticle::tick(mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+
+    m_prevPosition = m_position;
+    m_prevRoll = m_roll;
+
+    m_age += 1.0;
+    if (m_age >= m_maxAge) {
+        setExpired();
+        return;
+    }
+
+    // 反向传送门粒子向下飘落，带有水平摆动
+    f64 ageRatio = m_age / m_maxAge;
+
+    // 水平摆动
+    f64 swing = std::sin(ageRatio * mc::math::PI * 4.0) * 0.05;
+    m_position.x = static_cast<f32>(m_startX + swing);
+    m_position.z = static_cast<f32>(m_startZ + std::cos(ageRatio * mc::math::PI * 4.0) * 0.05);
+
+    // 向下移动
+    m_position.y += m_velocity.y;
+
+    // 反向旋转
+    m_roll -= 0.1;
+
+    // 淡出
+    if (ageRatio > 0.5) {
+        m_color.a = static_cast<f32>(0.8 * (1.0 - (ageRatio - 0.5) * 2.0));
+    }
+}
+
 } // namespace mc::client::renderer::trident::particle::particles

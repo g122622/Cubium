@@ -26,7 +26,7 @@
 #include "../../../../core/Types.hpp"
 #include "../../../../resource/ResourceLocation.hpp"
 #include "../MonsterEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include <memory>
 #include <optional>
 
@@ -111,7 +111,7 @@ public:
      * @brief 获取着地粒子类型
      * 史莱姆返回 ITEM_SLIME，岩浆怪返回 FLAME
      */
-    [[nodiscard]] virtual client::renderer::trident::particle::ParticleTypeId getSquishParticle() const;
+    [[nodiscard]] virtual particle::ParticleTypeId getSquishParticle() const;
 
     // ========== 尺寸系统 ==========
 

@@ -200,9 +200,11 @@ style.cornerRadius = 4;
 button->setStyle(style);
 
 // 设置提示回调
-button->setOnTooltip([](ButtonWidget& btn, i32 x, i32 y) {
-    // 显示提示
-});
+button->setTooltip("保存");  // 单行提示
+// 或多行提示：
+button->setTooltip(Tooltip::create("保存", "将当前进度保存到存档"));
+// 延迟显示（毫秒）
+button->setTooltipDelay(500);
 
 // 查询状态
 i32 state = button->getRenderState();  // 0=禁用, 1=正常, 2=悬停

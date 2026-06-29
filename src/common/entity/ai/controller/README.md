@@ -12,6 +12,8 @@ controller/
 ├── FlyingMovementController.hpp/cpp # 通用飞行控制器，三维飞行移动（凋灵、鹦鹉等）
 ├── VexMovementController.hpp/cpp   # 恼鬼飞行控制器，穿墙飞行
 ├── GhastMovementController.hpp/cpp # 恶魂飞行控制器，带碰撞检测飞行
+├── PhantomMovementController.hpp/cpp # 幻翼飞行控制器，直接操控速度向量的飞行
+├── PhantomLookController.hpp       # 幻翼视线控制器（空操作，朝向由移动控制器控制）
 ├── DrownedMoveControl.hpp/cpp      # 溺尸两栖控制器，水中游泳+陆地行走
 └── README.md
 ```
@@ -36,7 +38,9 @@ controller/
 - FlyingMovementController ──继承──> MovementController
 - VexMovementController ──继承──> MovementController
 - GhastMovementController ──继承──> MovementController
+- PhantomMovementController ──继承──> MovementController
 - DrownedMoveControl ──继承──> MovementController
+- PhantomLookController ──继承──> LookController
 ```
 
 **控制器调用顺序**（在 MobEntity::tick() 中）：
@@ -63,6 +67,7 @@ controller/
   - `VexEntity` → VexMovementController
   - `GhastEntity` → GhastMovementController
   - `WitherEntity` → FlyingMovementController(this, 10, false)
+  - `PhantomEntity` → PhantomMovementController + PhantomLookController（空操作）
   - `DrownedEntity` → DrownedMoveControl
 - `PathNavigator` - 通过 MovementController 执行路径移动
 
@@ -132,7 +137,20 @@ if (auto* ctrl = m_mob->lookController()) {
 
 使用场景：VexEntity 使用前者，GhastEntity 使用后者。
 
-### 7. MovementController 到达检测
+### 8. PhantomMovementController 幻翼飞行控制器
+
+幻翼使用专用的飞行移动控制器，直接操控速度向量：
+- 水平碰撞时自动180度转向并降低速度
+- 根据 orbitOffset（移动目标点）计算目标方向
+- 平滑调整偏航角（4度/tick），接近目标方向时加速到1.8，远离时减速到0.2
+- 直接设置俯仰角为飞行方向
+- 使用20%惯性混合（速度混合比例0.2）
+- 不使用 setMoveForward/setAIMoveSpeed，直接修改 velocity
+
+PhantomLookController 是空操作（tick() 无实现），因为幻翼的朝向完全由 PhantomMovementController 控制。
+PhantomEntity::tick() 在客户端侧手动同步 bodyRotation 和 headRotation 为 yaw。
+
+### 9. MovementController 到达检测
 
 地面移动控制器使用**水平距离**检测到达（忽略 Y 轴），阈值为 0.5 格。
 飞行控制器使用 **3D 距离**检测到达，阈值为碰撞箱平均边长。

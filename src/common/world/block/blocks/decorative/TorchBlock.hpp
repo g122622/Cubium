@@ -27,7 +27,7 @@
 #include "common/physics/collision/CollisionShape.hpp"
 #include "common/world/block/Block.hpp"
 
-namespace mc::client::renderer::trident::particle {
+namespace mc::particle {
 enum class ParticleTypeId : u16;
 }
 
@@ -49,8 +49,7 @@ public:
      * @param properties 方块属性
      * @param flameParticle 火焰粒子类型（普通火把为 Flame，灵魂火把为 SoulFireFlame）
      */
-    explicit TorchBlock(
-        const BlockProperties& properties, client::renderer::trident::particle::ParticleTypeId flameParticle);
+    explicit TorchBlock(const BlockProperties& properties, particle::ParticleTypeId flameParticle);
 
     ~TorchBlock() override = default;
 
@@ -99,7 +98,7 @@ protected:
     CollisionShape m_shape;
 
     /// 火焰粒子类型
-    client::renderer::trident::particle::ParticleTypeId m_flameParticle;
+    particle::ParticleTypeId m_flameParticle;
 
 private:
     /**

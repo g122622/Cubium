@@ -77,6 +77,7 @@ enum class ContainerType : u8 {
     Smoker = 21,       // 烟熏炉
     Cartography = 22,  // 制图台
     Stonecutter = 23,  // 切石机
+    Crafter = 24,      // 自动合成器
     // 玩家背包使用特殊值
     Player = 255 // 玩家背包（特殊类型）
 };

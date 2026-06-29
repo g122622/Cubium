@@ -27,6 +27,7 @@
 #include "../src/common/world/gen/feature/ConfiguredFeature.hpp"
 #include "../src/common/world/gen/feature/DecorationStage.hpp"
 #include "../src/common/world/gen/feature/FeatureIds.hpp"
+#include "../src/common/world/gen/feature/vegetation/FlowerFeature.hpp"
 #include <array>
 #include <vector>
 #include <gtest/gtest.h>
@@ -271,4 +272,220 @@ TEST_F(FeatureRegistryTest, GetFeaturesReturnsEmptyForUnregisteredStage)
 
     const auto& features = FeatureRegistry::instance().getFeatures(DecorationStage::UndergroundOres);
     EXPECT_TRUE(features.empty());
+}
+
+TEST_F(FeatureRegistryTest, GetFeatureByIdReturnsNullptrForEmptyRegistry)
+{
+    FeatureRegistry::instance().clear();
+
+    EXPECT_EQ(FeatureRegistry::instance().getFeatureById(0), nullptr);
+    EXPECT_EQ(FeatureRegistry::instance().getFeatureById(100), nullptr);
+}
+
+TEST_F(FeatureRegistryTest, GetFeatureByIdReturnsFeatureAfterRegistration)
+{
+    FeatureRegistry::instance().clear();
+    FeatureRegistry::instance().initialize();
+
+    // 初始化后应有注册的特征，ID=0 应返回非空
+    ConfiguredFeatureBase* feature0 = FeatureRegistry::instance().getFeatureById(0);
+    ASSERT_NE(feature0, nullptr);
+    EXPECT_EQ(feature0->featureId(), 0u);
+
+    // 从 VegetalDecoration 阶段动态查找 ConfiguredFlowerFeature
+    const auto& vegFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
+    ASSERT_FALSE(vegFeatures.empty());
+
+    ConfiguredFlowerFeature* flowerFeature = nullptr;
+    for (auto* feature : vegFeatures) {
+        flowerFeature = dynamic_cast<ConfiguredFlowerFeature*>(feature);
+        if (flowerFeature != nullptr) {
+            break;
+        }
+    }
+
+    // 应至少有一个花卉特征
+    ASSERT_NE(flowerFeature, nullptr);
+
+    // 通过 getFeatureById 查找同一特征应返回相同指针
+    ConfiguredFeatureBase* lookedUp = FeatureRegistry::instance().getFeatureById(flowerFeature->featureId());
+    ASSERT_NE(lookedUp, nullptr);
+    EXPECT_EQ(lookedUp, flowerFeature);
+
+    FeatureRegistry::instance().clear();
+}
+
+TEST_F(FeatureRegistryTest, GetFeatureByIdOutOfRangeReturnsNullptr)
+{
+    FeatureRegistry::instance().clear();
+    FeatureRegistry::instance().initialize();
+
+    // 越界 ID 应返回 nullptr
+    EXPECT_EQ(FeatureRegistry::instance().getFeatureById(99999), nullptr);
+
+    FeatureRegistry::instance().clear();
+}
+
+// ============================================================================
+// BiomeGenerationSettings::getFlowerFeatureIds Tests
+// ============================================================================
+
+class BiomeGenerationSettingsFlowerTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // 确保 FeatureRegistry 已初始化（getFlowerFeatureIds 需要 dynamic_cast）
+        FeatureRegistry::instance().clear();
+        FeatureRegistry::instance().initialize();
+    }
+
+    void TearDown() override { FeatureRegistry::instance().clear(); }
+};
+
+TEST_F(BiomeGenerationSettingsFlowerTest, PlainsHasFlowerFeatures)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createPlains();
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+
+    EXPECT_FALSE(flowerIds.empty());
+
+    // 平原应有 PlainsFlowers 特征
+    bool hasPlainsFlowers = false;
+    for (u32 id : flowerIds) {
+        if (id == FlowerFeatureIds::PlainsFlowers) {
+            hasPlainsFlowers = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasPlainsFlowers);
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, ForestHasFlowerFeatures)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createForest();
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+
+    EXPECT_FALSE(flowerIds.empty());
+
+    // 森林应有 ForestFlowers 特征
+    bool hasForestFlowers = false;
+    for (u32 id : flowerIds) {
+        if (id == FlowerFeatureIds::ForestFlowers) {
+            hasForestFlowers = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasForestFlowers);
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, SwampHasFlowerFeatures)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createSwamp();
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+
+    EXPECT_FALSE(flowerIds.empty());
+
+    // 沼泽应有 SwampFlowers 特征
+    bool hasSwampFlowers = false;
+    for (u32 id : flowerIds) {
+        if (id == FlowerFeatureIds::SwampFlowers) {
+            hasSwampFlowers = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasSwampFlowers);
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, FlowerForestHasFlowerFeatures)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createFlowerForest();
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+
+    EXPECT_FALSE(flowerIds.empty());
+
+    // 繁花森林应有 FlowerForestFlowers 特征
+    bool hasFlowerForestFlowers = false;
+    for (u32 id : flowerIds) {
+        if (id == FlowerFeatureIds::FlowerForestFlowers) {
+            hasFlowerForestFlowers = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasFlowerForestFlowers);
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, DesertHasNoFlowerFeatures)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createDesert();
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+
+    // 沙漠没有花卉特征
+    EXPECT_TRUE(flowerIds.empty());
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, NetherHasNoFlowerFeatures)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createNether();
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+
+    // 下界没有花卉特征
+    EXPECT_TRUE(flowerIds.empty());
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, GetFlowerFeatureIdsIsConsistent)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createPlains();
+
+    // 第一次调用
+    const auto& flowerIds1 = settings.getFlowerFeatureIds();
+    // 第二次调用应返回同一引用
+    const auto& flowerIds2 = settings.getFlowerFeatureIds();
+
+    EXPECT_EQ(&flowerIds1, &flowerIds2);
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, ClearResetsFlowerFeatureIds)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createPlains();
+
+    // 验证初始状态有花卉特征
+    const auto& flowerIdsBefore = settings.getFlowerFeatureIds();
+    EXPECT_FALSE(flowerIdsBefore.empty());
+
+    // clear 应重置花卉特征列表
+    settings.clear();
+
+    const auto& flowerIdsAfter = settings.getFlowerFeatureIds();
+    EXPECT_TRUE(flowerIdsAfter.empty());
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, DefaultHasNoFlowerFeatures)
+{
+    BiomeGenerationSettings settings = BiomeGenerationSettings::createDefault();
+    const auto& flowerIds = settings.getFlowerFeatureIds();
+
+    // 默认设置没有花卉特征
+    EXPECT_TRUE(flowerIds.empty());
+}
+
+TEST_F(BiomeGenerationSettingsFlowerTest, FlowerFeatureConfigReturnsCorrectFlower)
+{
+    // 验证从特征注册表获取的花卉特征能正确返回花朵方块状态
+    // 花卉特征ID是VegetalDecoration阶段内的索引，直接用作阶段特征向量的下标
+    const auto& vegFeatures = FeatureRegistry::instance().getFeatures(DecorationStage::VegetalDecoration);
+
+    // 使用FlowerFeatureIds作为VegetalDecoration阶段向量的索引查找PlainsFlowers
+    ASSERT_GT(vegFeatures.size(), FlowerFeatureIds::PlainsFlowers);
+    auto* plainsFlowers = dynamic_cast<ConfiguredFlowerFeature*>(vegFeatures[FlowerFeatureIds::PlainsFlowers]);
+    ASSERT_NE(plainsFlowers, nullptr);
+
+    // 花卉列表应包含蒲公英和虞美人
+    const auto& flowers = plainsFlowers->getConfig().flowers;
+    EXPECT_GE(flowers.size(), 2u);
+
+    // 验证花朵方块状态非空
+    for (const auto* flower : flowers) {
+        ASSERT_NE(flower, nullptr);
+        EXPECT_FALSE(flower->isAir());
+    }
 }

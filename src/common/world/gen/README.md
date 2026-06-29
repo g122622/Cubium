@@ -7,7 +7,12 @@
 ```
 gen/
 ├── aquifer/                     # 含水层系统
-│   └── Aquifer.hpp/cpp          # 地下水体生成
+│   ├── Aquifer.hpp/cpp          # 含水层抽象基类（含工厂方法）
+│   ├── Aquifers.hpp             # 便捷包含头文件
+│   ├── DisabledAquifer.hpp/cpp  # 禁用含水层的空实现
+│   ├── FluidPickerFactory.hpp/cpp # 流体选择器工厂函数
+│   ├── FluidStatus.hpp/cpp      # 流体状态记录 + FluidPicker 类型别名
+│   └── NoiseBasedAquifer.hpp/cpp # 基于噪声的含水层实现
 ├── carver/                      # 雕刻器系统
 │   ├── WorldCarver.hpp/cpp      # 雕刻器基类
 │   ├── CaveCarver.hpp/cpp       # 洞穴雕刻器
@@ -31,6 +36,7 @@ gen/
 │   └── README.md
 ├── feature/                     # 特征系统
 │   ├── Feature.hpp/cpp          # 特征基类
+│   ├── FeaturePlacer.hpp/cpp    # 按需放置特征（从 ServerWorld 已加载区块构建 WorldGenRegion）
 │   ├── ConfiguredFeature.hpp/cpp # 配置化特征
 │   ├── FeatureSpread.hpp/cpp    # 特征扩散配置
 │   ├── DecorationStage.hpp      # 装饰阶段枚举
@@ -237,6 +243,12 @@ Jigsaw 模板在方块注册前加载会失败。初始化顺序：方块 → �
 ### 12. 海洋特征注册顺序
 
 `KelpFeatureIds` 和 `SeagrassFeatureIds` 按海洋温度分开，添加新海洋变体时必须保持 `FeatureRegistry::initialize()` 顺序、`BiomeGenerationSettings` 映射和海洋断言同步。
+
+### 13. FeaturePlacer 按需放置
+
+`FeaturePlacer` 用于在游戏逻辑（如树苗生长、骨粉）中按需放置特征。它从 `ServerWorld` 的已加载区块（`ChunkData*` → `IChunk*`）构建临时的 `WorldGenRegion`，使需要 `WorldGenRegion&` 的特征放置函数（如 `TreeFeature::place()`）可以在区块生成之外被调用。
+
+**注意**：按需构建的 `WorldGenRegion` 使用无步骤验证构造函数（`m_generatingStep=nullptr`），`setBlockState` 的访问窗口检查被跳过，`ensureCanWrite()` 返回 false。对于树苗生长等场景，这是可接受的——周围的区块已确认加载。此外，`WorldGenRegion` 中的 `dynamic_cast<ChunkPrimer*>` 对 `ChunkData*` 会返回 nullptr，方块实体管理和液体后处理会被跳过。
 
 ### 13. 区块生成阶段与访问范围
 

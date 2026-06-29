@@ -25,6 +25,7 @@
 
 #include "../../../../util/property/Properties.hpp"
 #include "../../Block.hpp"
+#include "../../IGrowable.hpp"
 
 namespace mc {
 
@@ -130,13 +131,46 @@ protected:
  * @brief 草方块
  *
  * 可蔓延的草方块，在光照充足时向周围泥土蔓延，
- * 在光照不足时退化成泥土。
+ * 在光照不足时退化成泥土。骨粉可以在其上方生成花朵和草。
  *
  * MC ID: minecraft:grass_block
  */
-class GrassBlock : public SpreadableSnowyDirtBlock {
+class GrassBlock : public SpreadableSnowyDirtBlock, public IGrowable {
 public:
     explicit GrassBlock(BlockProperties properties);
+
+    // ========== IGrowable 接口实现 ==========
+
+    /**
+     * @brief 检查草方块是否可以使用骨粉
+     *
+     * 草方块上方需要有空气才能使用骨粉。
+     */
+    [[nodiscard]] bool canGrow(
+        IBlockReader& world, const BlockPos& pos, const BlockState& state, bool isClientSide) const override;
+
+    /**
+     * @brief 草方块骨粉总是有效
+     */
+    [[nodiscard]] bool canUseBonemeal(
+        IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) const override;
+
+    /**
+     * @brief 使用骨粉生长
+     *
+     * 在草方块上方散布花朵和短草。从生物群系获取花列表，
+     * 不同生物群系会产生不同种类的花朵（如平原蒲公英/虞美人、
+     * 沼泽兰花、繁花森林全部花种等）。
+     * 没有花卉特征的生物群系回退到蒲公英。
+     */
+    void grow(IWorld& world, math::IRandom& random, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 草方块为邻居传播型骨粉类型
+     *
+     * 粒子在方块上方水平扩散，数量为传入值的3倍。
+     */
+    [[nodiscard]] BoneMealType getBoneMealType() const override { return BoneMealType::NEIGHBOR_SPREADER; }
 };
 
 /**
@@ -150,6 +184,11 @@ public:
 class MyceliumBlock : public SpreadableSnowyDirtBlock {
 public:
     explicit MyceliumBlock(BlockProperties properties);
+
+    void animateTick(IBlockAnimateContext& context,
+        const BlockPos& pos,
+        const BlockState& state,
+        math::IRandom& random) const override;
 };
 
 } // namespace blocks

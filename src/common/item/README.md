@@ -35,6 +35,7 @@ item/
 ├── tag/                          # 物品标签
 │   ├── ItemTag.hpp/cpp           # 物品标签类
 │   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS等）
+│   ├── ItemTagLoader.hpp/cpp     # 物品标签数据包加载器（从JSON加载标签）
 │   └── README.md
 ├── items/                        # 具体物品实现
 │   ├── food/                     # 食物物品

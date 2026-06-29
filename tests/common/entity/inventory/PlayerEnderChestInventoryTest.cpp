@@ -21,6 +21,7 @@
 
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/ContainerListener.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -274,4 +275,109 @@ TEST_F(PlayerEnderChestInventoryTest, SlotIndexStart)
 TEST_F(PlayerEnderChestInventoryTest, EnderChestSize)
 {
     EXPECT_EQ(PlayerEnderChestInventory::ENDER_CHEST_SIZE, 27);
+}
+
+// ========== ContainerListener 测试 ==========
+
+/// 测试用 ContainerListener，记录 containerChanged 调用次数和引用
+class TestContainerListener : public ContainerListener {
+public:
+    void containerChanged(IInventory& inventory) override
+    {
+        m_callCount++;
+        m_lastInventory = &inventory;
+    }
+
+    [[nodiscard]] i32 callCount() const { return m_callCount; }
+    [[nodiscard]] IInventory* lastInventory() const { return m_lastInventory; }
+    void reset()
+    {
+        m_callCount = 0;
+        m_lastInventory = nullptr;
+    }
+
+private:
+    i32 m_callCount = 0;
+    IInventory* m_lastInventory = nullptr;
+};
+
+TEST_F(PlayerEnderChestInventoryTest, AddListener_ReceivesNotifications)
+{
+    TestContainerListener listener;
+    inventory.addListener(&listener);
+
+    // setItem 应触发 containerChanged
+    inventory.setItem(0, ItemStack());
+    EXPECT_EQ(listener.callCount(), 1);
+    EXPECT_EQ(listener.lastInventory(), &inventory);
+}
+
+TEST_F(PlayerEnderChestInventoryTest, RemoveListener_StopsNotifications)
+{
+    TestContainerListener listener;
+    inventory.addListener(&listener);
+    inventory.removeListener(&listener);
+
+    inventory.setItem(0, ItemStack());
+    EXPECT_EQ(listener.callCount(), 0);
+}
+
+TEST_F(PlayerEnderChestInventoryTest, MultipleListeners_AllReceiveNotifications)
+{
+    TestContainerListener listener1;
+    TestContainerListener listener2;
+    TestContainerListener listener3;
+
+    inventory.addListener(&listener1);
+    inventory.addListener(&listener2);
+    inventory.addListener(&listener3);
+
+    inventory.setItem(0, ItemStack());
+
+    EXPECT_EQ(listener1.callCount(), 1);
+    EXPECT_EQ(listener2.callCount(), 1);
+    EXPECT_EQ(listener3.callCount(), 1);
+}
+
+TEST_F(PlayerEnderChestInventoryTest, AddListener_DuplicateIgnored)
+{
+    TestContainerListener listener;
+    inventory.addListener(&listener);
+    inventory.addListener(&listener); // 重复添加
+
+    inventory.setItem(0, ItemStack());
+    EXPECT_EQ(listener.callCount(), 1); // 只通知一次，不会重复调用
+}
+
+TEST_F(PlayerEnderChestInventoryTest, ListenerAndOnChangedCallback_BothCalled)
+{
+    ChangeCallbackCounter callback;
+    TestContainerListener listener;
+
+    inventory.setOnChanged([&callback]() { callback(); });
+    inventory.addListener(&listener);
+
+    inventory.setItem(0, ItemStack());
+
+    // 两者都应该被调用
+    EXPECT_EQ(callback.callCount(), 1);
+    EXPECT_EQ(listener.callCount(), 1);
+}
+
+TEST_F(PlayerEnderChestInventoryTest, Clear_TriggersListeners)
+{
+    TestContainerListener listener;
+    inventory.addListener(&listener);
+
+    inventory.clear();
+    EXPECT_EQ(listener.callCount(), 1);
+}
+
+TEST_F(PlayerEnderChestInventoryTest, RemoveItemNoUpdate_DoesNotTriggerListeners)
+{
+    TestContainerListener listener;
+    inventory.addListener(&listener);
+
+    inventory.removeItemNoUpdate(0);
+    EXPECT_EQ(listener.callCount(), 0);
 }

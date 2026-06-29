@@ -54,8 +54,6 @@ namespace item::items {
  */
 class ArmorItem : public Item {
 public:
-    using Item::getAttributeModifiers;
-
     /**
      * @brief 构造盔甲物品
      * @param material 盔甲材质
@@ -155,6 +153,18 @@ public:
      * @return 属性修饰符管理器
      */
     [[nodiscard]] const ItemAttributeModifiers& getAttributeModifiers() const noexcept { return m_attributeModifiers; }
+
+    /**
+     * @brief 获取指定装备槽位的属性修饰符
+     *
+     * 重写 Item::getAttributeModifiers(i32)，当槽位匹配盔甲槽位时
+     * 返回预构建的属性修饰符，否则返回空修饰符。
+     * 对应 MC 原版 ArmorItem.getAttributeModifiers(EquipmentSlot)。
+     *
+     * @param equipmentSlot 装备槽位索引
+     * @return 该槽位的属性修饰符
+     */
+    [[nodiscard]] item::ItemAttributeModifiers getAttributeModifiers(i32 equipmentSlot) const override;
 
     /**
      * @brief 检查是否为头盔

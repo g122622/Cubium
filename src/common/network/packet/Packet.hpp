@@ -102,11 +102,14 @@ enum class PacketType : u16 {
     // 命令系统
     CommandTree = 230, // 命令树同步 (S->C)
 
+    // 睡眠系统
+    Sleep = 231, // 睡眠状态同步 (S->C)
+
     // 玩家列表
     PlayerListItem = 232, // 玩家列表更新 (S->C)
 
-    // 睡眠系统
-    Sleep = 231, // 睡眠状态同步 (S->C)
+    // 旁观者系统
+    SetCamera = 233, // 设置摄像机实体 (S->C)，用于旁观者跟踪
 
     // 背包相关包 (双向)
     ContainerContent = 300,        // 容器内容同步 (S->C)

@@ -155,8 +155,19 @@ void Player::setPosition(f32 x, f32 y, f32 z)
     m_swimSoundVolume = 0.0f;
 }
 
+void Player::setCameraEntityId(std::optional<EntityId> entityId)
+{
+    if (m_cameraEntityId == entityId) {
+        return;
+    }
+    std::optional<EntityId> oldCameraId = m_cameraEntityId;
+    m_cameraEntityId = entityId;
+    onCameraEntityChanged(oldCameraId, entityId);
+}
+
 void Player::setGameMode(GameMode mode)
 {
+    const GameMode oldMode = m_gameMode;
     m_gameMode = mode;
 
     // 使用 GameModeUtils 更新能力
@@ -165,6 +176,18 @@ void Player::setGameMode(GameMode mode)
     // 切换到创造模式时重置冲量上下文（对应 MC ServerPlayerGameMode 切换游戏模式时的重置）
     if (isCreative()) {
         resetCurrentImpulseContext();
+    }
+
+    // 旁观者模式 noclip 设置
+    // 切换到旁观者模式时启用 noclip（穿透碰撞），离开旁观者模式时关闭
+    if (isSpectator()) {
+        setNoClip(true);
+    } else if (oldMode == GameMode::Spectator) {
+        setNoClip(false);
+        // 离开旁观者模式时清除旁观目标
+        // 通过 setCameraEntityId() 触发 onCameraEntityChanged()，
+        // ServerPlayer 将发送 SetCameraPacket 给客户端以同步摄像机状态
+        setCameraEntityId(std::nullopt);
     }
 
     // 同步移动速度到属性系统
@@ -725,6 +748,9 @@ void Player::_applyCachedMovementInput(f32 groundSlipperiness)
                 static_cast<f32>(
                     getAttributeValue(entity::attribute::Attributes::MOVEMENT_SPEED, m_abilities.walkSpeed)),
                 groundSlipperiness);
+            // 地面移动因子需要乘以 getBlockSpeedFactor()
+            // getBlockSpeedFactor() 使用 MOVEMENT_EFFICIENCY 属性在方块 speedFactor 和 1.0 之间插值
+            speedFactor *= getBlockSpeedFactor();
         } else {
             speedFactor = m_isSprinting ? physics::SPRINT_JUMP_MOVEMENT_FACTOR : physics::JUMP_MOVEMENT_FACTOR;
         }
@@ -1169,6 +1195,28 @@ i32 Player::armorValue() const
 const ItemStack& Player::getEquipment(EquipmentSlot slot) const
 {
     // Player 重写 getEquipment 从 PlayerInventory 获取装备
+    switch (slot) {
+        case EquipmentSlot::MainHand:
+            return m_inventory.getSelectedStackRef();
+        case EquipmentSlot::OffHand:
+            return m_inventory.getOffhandItemRef();
+        case EquipmentSlot::Head:
+            return m_inventory.getHelmetRef();
+        case EquipmentSlot::Chest:
+            return m_inventory.getChestplateRef();
+        case EquipmentSlot::Legs:
+            return m_inventory.getLeggingsRef();
+        case EquipmentSlot::Feet:
+            return m_inventory.getBootsRef();
+        default:
+            static ItemStack empty;
+            return empty;
+    }
+}
+
+ItemStack& Player::getMutableEquipment(EquipmentSlot slot)
+{
+    // Player 重写 getMutableEquipment 从 PlayerInventory 获取装备可变引用
     switch (slot) {
         case EquipmentSlot::MainHand:
             return m_inventory.getSelectedStackRef();
@@ -2047,10 +2095,11 @@ void Player::resetCooldown()
 
 void Player::attack(Entity& target)
 {
-    // 完整的玩家攻击逻辑
-
-    // 1. 检查目标是否可被攻击（创造/观察模式不能攻击）
+    // 旁观者模式下攻击实体等同于设置旁观目标
+    // setCameraEntityId() 会触发 onCameraEntityChanged()，ServerPlayer 重写该方法
+    // 以发送 SetCameraPacket 给客户端并执行传送，确保客户端同步摄像机状态
     if (isSpectator()) {
+        setCameraEntityId(target.id());
         return;
     }
 
@@ -2301,11 +2350,11 @@ void Player::attack(Entity& target)
                 // 剑 SwordItem::hitEntity() 消耗 1 点
                 // 工具 ToolItem::hitEntity() 消耗 2 点
                 // 重锤 MaceItem::hitEntity() 消耗 1 点 + 砸地攻击效果
-                item->hitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+                item->hitEntity(getMutableMainHandItem(), *livingTarget, *this);
 
                 // 调用物品的 postHitEntity 方法（伤害结算后回调）
                 // 重锤使用此回调重置攻击者的下落距离
-                item->postHitEntity(const_cast<ItemStack&>(mainHand), *livingTarget, *this);
+                item->postHitEntity(getMutableMainHandItem(), *livingTarget, *this);
 
                 // 重锤风爆附魔效果：下落攻击命中后产生风爆将攻击者弹起
                 if (isMaceSmashAttack && !mainHand.isEmpty()) {

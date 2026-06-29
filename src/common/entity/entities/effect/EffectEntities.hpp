@@ -458,6 +458,15 @@ public:
     [[nodiscard]] bool canBeCollidedWith() const override { return !m_marker; }
 
     /**
+     * @brief 检查实体是否不触发压力板/绊线
+     * @return 标记模式返回 true，否则返回 false
+     *
+     * 对应 MC Java 的 ArmorStand.isIgnoringBlockTriggers()
+     * 标记模式的盔甲架不触发压力板和绊线。
+     */
+    [[nodiscard]] bool doesEntityNotTriggerPressurePlate() const override { return m_marker; }
+
+    /**
      * @brief 检查是否有重力
      */
     [[nodiscard]] bool hasGravity() const { return m_hasGravity; }

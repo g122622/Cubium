@@ -21,7 +21,7 @@
  */
 
 #include "world/block/registry/NaturalBlocks.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
@@ -365,13 +365,13 @@ void registerNaturalBlocks()
     // 火把 - 发光等级14，生成火焰和烟雾粒子
     NaturalBlocks::TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:torch"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
-        client::renderer::trident::particle::ParticleTypeId::Flame);
+        particle::ParticleTypeId::Flame);
 
     // 墙上的火把 - 附着在墙上，根据朝向有不同碰撞箱和粒子位置
     NaturalBlocks::WALL_TORCH =
         &registry.registerBlock<blocks::WallTorchBlock>(ResourceLocation("minecraft:wall_torch"),
             BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(14),
-            client::renderer::trident::particle::ParticleTypeId::Flame);
+            particle::ParticleTypeId::Flame);
 
     // ========== 蜂巢/蜂箱 ==========
     // 蜂巢 - 自然生成于树上，材质较软

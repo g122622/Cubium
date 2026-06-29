@@ -924,7 +924,7 @@ void PointedDripstoneBlock::maybeTransferFluid(const BlockState& state, IWorld& 
         i32 delay = 50 + (tipPos.y - cauldronPos.y);
         const BlockState* cauldronState = world.getBlockState(cauldronPos);
         if (cauldronState != nullptr) {
-            world.tickManager().scheduleBlockTick(cauldronPos, const_cast<Block&>(cauldronState->getBlock()), delay);
+            world.tickManager().scheduleBlockTick(cauldronPos, cauldronState->getBlockMutable(), delay);
         }
     }
 }

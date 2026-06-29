@@ -13,6 +13,11 @@ src/common/entity/combat/
 └── README.md                    # 本文档
 ```
 
+> **注意**：PlayerAttackHelper 中的击退计算方法（`calculateKnockback`、`applyKnockback` 两个重载）已移除。
+> 击退计算统一由 `LivingEntity::getKnockback()` 和 `LivingEntity::causeExtraKnockback()` 处理。
+> Mob 攻击击退流程：`MobEntity::attackEntityAsMob()` → `getKnockback(target)` → `causeExtraKnockback(target, strength, preHurtVelocity)`。
+> 玩家攻击击退流程：`Player::attack()` → `causeExtraKnockback(target, strength, preHurtVelocity)`。
+
 ## 模块关系
 
 ```

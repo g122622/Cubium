@@ -22,7 +22,6 @@
  */
 
 #include "MinecartEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Result.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/damage/DamageSource.hpp"
@@ -36,6 +35,7 @@
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -1188,7 +1188,7 @@ void FurnaceMinecartEntity::tick()
     if (isActivated() && worldPtr != nullptr) {
         math::Random& random = worldPtr->getRandom();
         if (random.nextInt(4) == 0) {
-            using namespace client::renderer::trident::particle;
+            using namespace particle;
             worldPtr->addParticle(ParticleTypeId::LargeSmoke, Vector3(x(), y() + 0.8, z()), Vector3(0.0, 0.0, 0.0));
         }
     }
@@ -1310,7 +1310,7 @@ void TNTMinecartEntity::tick()
         if (m_fuse % 4 == 0) {
             IWorld* worldPtr = Entity::world();
             if (worldPtr) {
-                using namespace client::renderer::trident::particle;
+                using namespace particle;
                 worldPtr->addParticle(ParticleTypeId::Smoke, Vector3(x(), y() + 0.5, z()), Vector3(0.0, 0.0, 0.0));
             }
         }

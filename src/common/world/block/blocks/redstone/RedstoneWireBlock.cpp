@@ -29,9 +29,9 @@
 #include "../../../tick/manager/TickManager.hpp"
 #include "../../Block.hpp"
 #include "../../BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "ObserverBlock.hpp"
 #include "RedstoneDiodeBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -236,7 +236,8 @@ void RedstoneWireBlock::tick(IWorld& world, const BlockPos& pos, BlockState& sta
     }
 }
 
-i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+i32 RedstoneWireBlock::getWeakPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
@@ -291,7 +292,8 @@ i32 RedstoneWireBlock::getWeakPower(const BlockState& state, IWorld& world, cons
     return power;
 }
 
-i32 RedstoneWireBlock::getStrongPower(const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
+i32 RedstoneWireBlock::getStrongPower(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Direction side) const noexcept
 {
     // 红石线的 getStrongPower 委托给 getWeakPower
     // 这使得红石线可以充能相邻的实体方块
@@ -484,7 +486,7 @@ void RedstoneWireBlock::_notifyWireNeighbors(IWorld& world, const BlockPos& pos)
         const BlockState* neighborState = world.getBlockState(neighborPos);
 
         if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+            Block& neighborBlock = neighborState->getBlockMutable();
             neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
         }
     }
@@ -604,14 +606,14 @@ void RedstoneWireBlock::_notifyDiagonalNeighbors(
             BlockPos diagDownPos = neighborPos.down();
             const BlockState* diagDownState = world.getBlockState(diagDownPos);
             if (diagDownState && !diagDownState->isAir()) {
-                Block& diagBlock = const_cast<Block&>(diagDownState->getBlock());
+                Block& diagBlock = diagDownState->getBlockMutable();
                 diagBlock.neighborChanged(world, diagDownPos, *this, pos, false);
             }
 
             BlockPos diagUpPos = neighborPos.up();
             const BlockState* diagUpState = world.getBlockState(diagUpPos);
             if (diagUpState && !diagUpState->isAir()) {
-                Block& diagBlock = const_cast<Block&>(diagUpState->getBlock());
+                Block& diagBlock = diagUpState->getBlockMutable();
                 diagBlock.neighborChanged(world, diagUpPos, *this, pos, false);
             }
         }

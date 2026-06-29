@@ -23,7 +23,6 @@
 
 #include "IllusionerEntity.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/RandomWalkingGoal.hpp"
@@ -41,6 +40,7 @@
 #include "common/entity/entities/projectile/AbstractArrowEntity.hpp"
 #include "common/entity/entities/villager/AbstractVillagerEntity.hpp"
 #include "common/item/Items.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathUtils.hpp"
@@ -180,7 +180,7 @@ void IllusionerEntity::_updateIllusionLogic()
             f32 py = y() + rng.nextFloat() * height();
             f32 pz = z() + (rng.nextFloat() - 0.5f) * width() * 0.5f;
 
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Cloud,
+            m_world->addParticle(particle::ParticleTypeId::Cloud,
                 Vector3(static_cast<f64>(px), static_cast<f64>(py), static_cast<f64>(pz)),
                 Vector3(0.0, 0.0, 0.0));
         }

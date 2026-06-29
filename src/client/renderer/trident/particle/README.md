@@ -128,6 +128,13 @@ ParticleManager
 
 8. **待处理队列**：使用 `addPendingParticle()` 添加粒子，粒子会在下一帧开始时处理，避免在 tick 中途修改粒子列表。
 
+9. **粒子质量过滤**：`ParticleManager` 根据 `ParticleMode` 设置过滤粒子生成和渲染：
+   - `All`：显示所有粒子
+   - `Decreased`：约 2/3 的普通粒子通过（每帧 1/3 概率降级为 Minimal 行为），重要粒子始终显示
+   - `Minimal`：仅显示 `overrideLimiter=true` 的重要粒子，ambient 粒子被完全跳过
+   - 过滤在 `addPendingParticle()`、`ClientWorld::addParticle()` 和 `ClientWorld::addBlockParticle()` 入口处执行
+   - 通过 `shouldShowParticle(type)` 方法统一判断，使用 `ParticleTypeInfo::overrideLimiter` 标志区分重要/普通粒子
+
 9. **物理参数**：重力乘数 0.04、空气摩擦 0.98、地面摩擦 0.7，与 MC 1.16.5 一致。
 
 10. **DripParticle 状态机**：Hanging → Falling → Landed 三态，各态物理参数不同。

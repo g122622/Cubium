@@ -44,6 +44,8 @@ src/common/network/packet/
 ├── WorldBorderPacket.cpp          # 世界边界同步包实现
 ├── AdvancementPackets.hpp         # 成就系统数据包
 └── AdvancementPackets.cpp         # 成就数据包实现
+├── SetCameraPacket.hpp            # 旁观者摄像机同步包 (S2C)
+└── SetCameraPacket.cpp            # 旁观者摄像机同步包实现
 ```
 
 ## 内部模块关系
@@ -143,3 +145,12 @@ PacketModule.hpp (统一入口)
 9. **包头封装**
    - `KeepAlivePacket` 和 `DisconnectPacket` 按完整包处理（包含12字节包头）
    - 其余数据包只负责包体序列化，12字节包头由 `ConnectionManager::encapsulatePacket()` 统一添加
+
+10. **SetCameraPacket 旁观者摄像机同步**
+    - 方向：服务端→客户端 (S2C)
+    - PacketType::SetCamera = 233
+    - 字段：`u32 cameraEntityId`（VarInt 编码）
+    - 当 cameraEntityId 为玩家自身实体 ID 时表示恢复正常视角
+    - 服务端由 `ServerPlayer::_sendSetCameraPacket()` 发送
+    - 客户端由 `NetworkClient::_handleSetCamera()` 接收，通过 `onSetCamera` 回调更新 `Player::m_cameraEntityId`
+    - 对应 MC Java 的 `ClientboundSetCameraPacket`

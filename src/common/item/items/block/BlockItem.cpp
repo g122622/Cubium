@@ -133,7 +133,8 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         static_cast<void>(onBlockPlaced(pos, world, player, stack, *actualState));
 
         // 调用方块的 onBlockPlacedBy
-        // 注意：需要使用 const_cast 因为 onBlockPlacedBy 是非 const 方法
+        // 注意：m_block 是 const Block* 成员指针（非 BlockState 来源），无法使用 getBlockMutable()，
+        // 因此需要 const_cast 将其转为可变引用以调用非 const 方法 onBlockPlacedBy
         const_cast<Block&>(*m_block).onBlockPlacedBy(world, pos, *actualState);
 
         // 派发自定义方块组件回调 - onPlace

@@ -29,6 +29,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/special/BoneMealItem.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/biome/Biome.hpp"
@@ -183,11 +184,8 @@ public:
 
     [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity>) override { return ++m_lastEntityId; }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId,
-        const Vector3&,
-        const Vector3&,
-        const Vector3& = Vector3(0, 0, 0),
-        u32 = 1) override
+    void addParticle(
+        particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3& = Vector3(0, 0, 0), u32 = 1) override
     {
         // 测试中忽略粒子效果
     }

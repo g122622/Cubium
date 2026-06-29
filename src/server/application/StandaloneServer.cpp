@@ -31,6 +31,7 @@
 #include "common/entity/inventory/PlayerInventory.hpp"
 #include "common/entity/inventory/container/CartographyContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
+#include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/EnchantmentContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
@@ -45,6 +46,7 @@
 #include "common/world/blockentity/processing/AbstractFurnaceEntity.hpp"
 #include "common/world/blockentity/storage/ChestEntity.hpp"
 #include "common/world/blockentity/storage/EnderChestEntity.hpp"
+#include "common/world/blockentity/trial/CrafterBlockEntity.hpp"
 #include "common/world/chunk/base/ChunkPos.hpp"
 #include "common/world/gen/chunk/DebugChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
@@ -297,6 +299,16 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             }
             case mc::ContainerType::Cartography: {
                 result.menu = std::make_unique<mc::CartographyContainer>(containerId, playerInventory, pos, world);
+                return result;
+            }
+            case mc::ContainerType::Crafter: {
+                BlockEntity* blockEntity = world->getBlockEntity(pos);
+                if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::Crafter) {
+                    return result;
+                }
+                auto* crafter = static_cast<CrafterBlockEntity*>(blockEntity);
+                result.menu = std::make_unique<mc::CrafterContainer>(
+                    containerId, playerInventory, crafter->getInventory(), crafter);
                 return result;
             }
             case mc::ContainerType::Player:

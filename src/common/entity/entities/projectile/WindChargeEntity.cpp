@@ -39,7 +39,7 @@
 #include "common/world/block/BlockPos.hpp"
 
 // 粒子类型
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 
 namespace mc {
 namespace entity {
@@ -370,7 +370,7 @@ void WindChargeEntity::_playWindBurstSound(const Vector3& pos) const
 
 void WindChargeEntity::_spawnWindBurstParticles(const Vector3& pos) const
 {
-    using ParticleTypeId = client::renderer::trident::particle::ParticleTypeId;
+    using ParticleTypeId = particle::ParticleTypeId;
 
     // 风爆粒子：小型发射器 + 大型发射器
     // 对应 MC: ParticleTypes.GUST_EMITTER_SMALL 和 ParticleTypes.GUST_EMITTER_LARGE

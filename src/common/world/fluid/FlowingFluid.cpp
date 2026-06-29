@@ -254,7 +254,7 @@ void FlowingFluid::tick(IWorld& world, const BlockPos& pos, FluidState& state)
             if (newBlockState != nullptr) {
                 world.setBlockState(pos, newBlockState, 2);
             }
-            world.tickManager().scheduleFluidTick(pos, const_cast<Fluid&>(correctState.getFluid()), tickDelay);
+            world.tickManager().scheduleFluidTick(pos, correctState.getFluid(), tickDelay);
         }
     }
 

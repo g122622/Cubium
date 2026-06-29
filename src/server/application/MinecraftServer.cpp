@@ -48,6 +48,7 @@
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/loot/LootPredicateLoader.hpp"
 #include "common/item/loot/LootTableLoader.hpp"
+#include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
@@ -58,6 +59,7 @@
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/physics/PhysicsEngine.hpp"
 #include "common/sound/jukebox/JukeboxSongs.hpp"
@@ -92,6 +94,7 @@
 #include "server/dimension/ServerDimensionManager.hpp"
 #include "server/function/FunctionLoader.hpp"
 #include "server/mod/bedrock/addon/ServerScriptManager.hpp"
+#include "server/player/ServerPlayer.hpp"
 #include "server/sync/BlockUpdateSyncManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include "server/sync/EntitySyncManager.hpp"
@@ -384,6 +387,58 @@ void MinecraftServer::initializeCoreManagers()
         *m_timeManager,
         static_cast<GameMode>(m_settings.defaultGameMode.get()));
     m_gameModeManager = std::make_unique<core::GameModeManager>(*m_playerManager, *m_connectionManager);
+
+    // 注册游戏模式变化回调：当从旁观者模式切换到其他模式时，重置旁观目标
+    m_gameModeManager->setOnGameModeChange([this](PlayerId playerId, GameMode oldMode, GameMode newMode) {
+        if (oldMode == GameMode::Spectator && newMode != GameMode::Spectator) {
+            // 从旁观者模式切换出来时，重置旁观目标并发送 SetCameraPacket
+            // 需要找到 ServerPlayer 实体来操作
+            auto* playerData = m_playerManager->getPlayer(playerId);
+            if (playerData == nullptr) {
+                return;
+            }
+
+            // 遍历所有维度世界寻找玩家实体
+            for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
+                auto* dimension = m_dimensionManager->getDimension(dimId);
+                if (dimension == nullptr || dimension->world() == nullptr) {
+                    continue;
+                }
+                Entity* entity = dimension->world()->getEntity(static_cast<EntityId>(playerId));
+                if (entity == nullptr) {
+                    continue;
+                }
+                auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
+                if (serverPlayer != nullptr) {
+                    serverPlayer->resetCamera();
+                    // 同时更新 Player 实体的游戏模式、能力和 noclip 状态
+                    serverPlayer->setGameMode(newMode);
+                    break;
+                }
+            }
+        } else if (newMode == GameMode::Spectator) {
+            // 切换到旁观者模式时，更新 Player 实体的游戏模式和 noclip
+            auto* playerData = m_playerManager->getPlayer(playerId);
+            if (playerData == nullptr) {
+                return;
+            }
+            for (DimensionId dimId : m_dimensionManager->getDimensionIds()) {
+                auto* dimension = m_dimensionManager->getDimension(dimId);
+                if (dimension == nullptr || dimension->world() == nullptr) {
+                    continue;
+                }
+                Entity* entity = dimension->world()->getEntity(static_cast<EntityId>(playerId));
+                if (entity == nullptr) {
+                    continue;
+                }
+                auto* serverPlayer = dynamic_cast<mc::ServerPlayer*>(entity);
+                if (serverPlayer != nullptr) {
+                    serverPlayer->setGameMode(newMode);
+                    break;
+                }
+            }
+        }
+    });
     m_whitelistManager = std::make_unique<core::WhitelistManager>();
     m_bannedPlayerList = std::make_unique<core::BannedPlayerList>();
     m_bannedIpList = std::make_unique<core::BannedIpList>();
@@ -439,7 +494,7 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
                              const Vector3& position,
                              f32 volume,
                              f32 pitch) { broadcastSound(soundEventId, category, position, volume, pitch); });
-    world.setOnBroadcastParticle([this](client::renderer::trident::particle::ParticleTypeId type,
+    world.setOnBroadcastParticle([this](particle::ParticleTypeId type,
                                      const Vector3& pos,
                                      const Vector3& velocity,
                                      const Vector3& offset,
@@ -831,6 +886,17 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         item::tag::ItemTags::initialize();
     }
     spdlog::info("Item tags initialized");
+
+    // 从数据包加载物品标签（追加到或替换内置默认值）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::ItemTagLoader");
+        auto dataPackLoadResult = item::tag::ItemTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load item tags from data packs: {}", dataPackLoadResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} item tags from data packs", dataPackLoadResult.value());
+        }
+    }
 
     // 初始化发射器行为注册表
     {
@@ -2362,7 +2428,7 @@ void MinecraftServer::sendSoundToPlayer(PlayerId playerId,
 // 粒子广播
 // ============================================================================
 
-void MinecraftServer::broadcastParticleInRange(client::renderer::trident::particle::ParticleTypeId type,
+void MinecraftServer::broadcastParticleInRange(particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
@@ -2400,7 +2466,7 @@ void MinecraftServer::broadcastParticleInRange(client::renderer::trident::partic
 }
 
 void MinecraftServer::sendParticleToPlayer(PlayerId playerId,
-    client::renderer::trident::particle::ParticleTypeId type,
+    particle::ParticleTypeId type,
     const Vector3& pos,
     const Vector3& velocity,
     const Vector3& offset,
@@ -2463,7 +2529,7 @@ void MinecraftServer::broadcastParticleInRange(u32 type,
     f32 range)
 {
     // 转换为强类型枚举并调用现有的实现
-    auto particleType = static_cast<client::renderer::trident::particle::ParticleTypeId>(type);
+    auto particleType = static_cast<particle::ParticleTypeId>(type);
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
     Vector3 velocity(velocityX, velocityY, velocityZ);
     Vector3 offset(offsetX, offsetY, offsetZ);

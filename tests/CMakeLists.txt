@@ -76,6 +76,8 @@ add_executable(mc_tests
     common/item/tool/ShearsItemTest.cpp
     # ItemTags 花朵标签测试
     common/item/tag/ItemTagsTest.cpp
+    # ItemTagLoader 数据包标签加载测试
+    common/item/tag/ItemTagLoaderTest.cpp
     common/item/potion/GlassBottleItemTest.cpp
     common/item/potion/PotionUtilsTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
@@ -103,10 +105,12 @@ add_executable(mc_tests
     common/item/WoodVariantBlockItemTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp
+    common/item/core/ProjectileItemTest.cpp
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/EnchantmentCallbackTest.cpp
     common/item/enchantment/AttemptDamageItemTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
+    common/item/enchantment/LocationEnchantmentTest.cpp
     common/entity/inventory/CraftingInventoryTest.cpp
     common/entity/inventory/PlayerInventoryNbtTest.cpp
     common/entity/inventory/PlayerEnderChestInventoryTest.cpp
@@ -120,6 +124,7 @@ add_executable(mc_tests
     common/entity/inventory/container/AnvilContainerTest.cpp
     common/entity/inventory/container/LoomContainerTest.cpp
     common/entity/inventory/container/MerchantContainerTest.cpp
+    common/entity/inventory/container/CrafterContainerTest.cpp
     common/entity/entities/passive/basic/ChickenEntityTest.cpp
     common/entity/entities/passive/basic/RabbitEntityTest.cpp
     common/entity/entities/passive/basic/MooshroomEntityTest.cpp
@@ -236,6 +241,10 @@ add_executable(mc_tests
     common/entity/core/LivingEntityAbsorptionTest.cpp
     # LivingEntity 装备破损回调（onEquippedItemBroken、broadcastBreakEvent）测试
     common/entity/core/LivingEntityBreakEventTest.cpp
+    # LivingEntity 装备更新检测（detectEquipmentUpdates、stopLocationBasedEffects、equipmentHasChanged）测试
+    common/entity/core/EquipmentUpdateTest.cpp
+    # LivingEntity::getMutableEquipment() 可变装备访问测试
+    common/entity/core/MutableEquipmentTest.cpp
     # StepHeight 步高系统测试（Entity、LivingEntity、特定实体步高设置）
     common/entity/core/StepHeightTest.cpp
     # Entity::isInRain() 双位置检测和 EndermanEntity::isInWaterOrRain() 测试
@@ -263,6 +272,12 @@ add_executable(mc_tests
     common/entity/entities/vehicle/MinecartCheckRailStateTest.cpp
     # 船实体 getBoatItem() 和 dropItem() 测试
     common/entity/entities/vehicle/BoatEntityDropItemTest.cpp
+    # 船实体 getBoatGlide() 滑度采样测试
+    common/entity/entities/vehicle/BoatGlideTest.cpp
+    # 船实体陆地摩擦力减半条件测试
+    common/entity/entities/vehicle/BoatLandFrictionTest.cpp
+    # 箱子船实体测试（容器、物品、乘客、继承等）
+    common/entity/entities/vehicle/ChestBoatEntityTest.cpp
     # 实体掉落 DO_ENTITY_DROPS 游戏规则测试
     common/entity/entities/EntityDropGameRuleTest.cpp
     # 实体 dropItem 受 DO_ENTITY_DROPS 控制的集成测试
@@ -349,6 +364,8 @@ add_executable(mc_tests
     common/entity/combat/SweepAttackConditionTest.cpp
     # 疾跑击退速度修正测试
     common/entity/combat/CauseExtraKnockbackTest.cpp
+    # getKnockback 击退强度计算和 applyKnockback 零向量扰动测试
+    common/entity/combat/GetKnockbackTest.cpp
     # GameRules 游戏规则测试
     common/world/gamerule/GameRulesTest.cpp
     # PVP 游戏规则测试
@@ -424,6 +441,7 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/StainedGlassBlockTest.cpp
     common/world/block/blocks/decorative/ScaffoldingBlockTest.cpp
     common/world/block/blocks/decorative/TorchBlockTest.cpp
+    common/world/block/blocks/decorative/CampfireBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/blocks/functional/BedBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
@@ -441,6 +459,7 @@ add_executable(mc_tests
     common/world/block/blocks/IceBlockTest.cpp
     common/world/block/blocks/SnowBlockTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
+    common/world/block/blocks/nether/NyliumBlockTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp
     common/world/block/blocks/FireBlockCollisionTest.cpp
     common/world/block/blocks/FireBlockTest.cpp
@@ -465,7 +484,12 @@ add_executable(mc_tests
     common/world/block/blocks/end/ChorusPlantBlockTest.cpp
     common/world/block/blocks/end/DragonEggBlockTest.cpp
     common/world/block/BlockTagsTest.cpp
+    common/world/block/IGrowableTest.cpp
     common/world/gameevent/VibrationSystemTest.cpp
+    # VibrationSystem 序列化测试（VibrationInfo/VibrationSelector/Data 的 NBT/JSON 序列化）
+    common/world/gameevent/VibrationSystemSerializationTest.cpp
+    # 幽匿方块实体测试（SculkSensor/SculkShrieker 序列化、警告等级、频率）
+    common/world/blockentity/sculk/SculkBlockEntityTest.cpp
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp
     common/world/block/blocks/StemBlocksTest.cpp
@@ -476,7 +500,10 @@ add_executable(mc_tests
     common/world/block/blocks/RespawnAnchorBlockTest.cpp
     common/world/block/blocks/SpongeBlockTest.cpp
     common/world/block/blocks/OxidizableBlockTest.cpp
+    # 幽匿感测体方块测试（SculkSensor/CalibratedSculkSensor 状态、红石信号、VibrationSystem）
+    common/world/block/blocks/sculk/SculkSensorBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
+    common/world/block/BlockStateMutableTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp
@@ -487,6 +514,7 @@ add_executable(mc_tests
     entity/FlyingEntityTests.cpp
     entity/EntitySensesTest.cpp
     entity/RidingSystemTests.cpp
+    entity/PassengerSystemTests.cpp
     entity/StriderEntityTest.cpp
     entity/PigEntityTest.cpp
     entity/FlingingSupportTypesTest.cpp
@@ -562,6 +590,8 @@ add_executable(mc_tests
     common/entity/player/PlayerMessageTest.cpp
     common/entity/player/PlayerPermissionTest.cpp
     common/entity/player/PlayerSleepTest.cpp
+    # Player 旁观者摄像机跟踪测试
+    common/entity/player/PlayerSpectatorTest.cpp
     # Player 冲量坠落伤害免疫测试
     common/entity/player/ImpulseContextTest.cpp
     # Player NBT 序列化测试
@@ -571,6 +601,10 @@ add_executable(mc_tests
     entity/ThrowablePortalTest.cpp
     # FishingBobberEntity 钩住实体测试
     common/entity/entities/projectile/FishingBobberHookEntityTest.cpp
+    # FishingBobberEntity 开放水域检测测试
+    common/entity/entities/projectile/OpenWaterCheckTest.cpp
+    # ProjectileEntity canHitEntity 骑乘同载具测试
+    common/entity/entities/projectile/ProjectileCanHitEntityTest.cpp
     # FireworkRocketEntity 爆炸伤害测试
     common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
     # DragonFireballEntity 龙息云和粒子类型测试
@@ -751,6 +785,8 @@ add_executable(mc_tests
     network/LocalServerConnectionTest.cpp
     network/TitlePacketTest.cpp
     network/BossInfoPacketTest.cpp
+    # 旁观者摄像机同步包测试
+    network/SetCameraPacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
     common/entity/loot/LootSerializersTest.cpp
@@ -815,6 +851,7 @@ add_executable(mc_tests
     common/world/gen/feature/template/test_template.cpp
     common/world/gen/feature/template/BlockAgeProcessorTest.cpp
     common/world/gen/feature/template/test_capped_processor.cpp
+    common/world/gen/FeaturePlacerTest.cpp
     common/world/gen/valueprovider/test_int_provider_parser.cpp
     common/world/gen/structure/test_ocean_ruin_structure.cpp
     common/world/gen/structure/test_shipwreck_structure.cpp
@@ -965,6 +1002,7 @@ add_executable(mc_tests
     client/ui/kagero/widget/ListWidgetTest.cpp
     client/ui/kagero/widget/Viewport3DWidgetTest.cpp
     client/ui/kagero/widget/SlotWidgetTest.cpp
+    client/ui/kagero/widget/TooltipTest.cpp
     client/ui/kagero/KageroEngineTest.cpp
     client/ui/FontObfuscatedTest.cpp
     client/ui/minecraft/targetinfo/TargetInfoFormatterTest.cpp
@@ -986,6 +1024,7 @@ add_executable(mc_tests
     # 闄勯瓟绯荤粺娴嬭瘯
     common/item/enchantment/EnchantmentTest.cpp
     common/item/enchantment/MaceEnchantmentTest.cpp
+    common/item/enchantment/LocationEnchantmentTest.cpp
     # 鑷姩璺宠穬娴嬭瘯
     common/entity/movement/AutoJumpTest.cpp
     common/entity/player/SleepManagerTest.cpp
@@ -1014,6 +1053,8 @@ add_executable(mc_tests
     common/util/UuidUtilsTest.cpp
     # 特殊日期工具测试
     common/util/SpecialDatesTest.cpp
+    # 日期时间格式化/解析工具测试
+    common/util/DateTimeUtilsTest.cpp
     # LinkedHashSet 有序集合测试
     common/util/LinkedHashSetTest.cpp
     # NbtJsonUtils NBT-JSON转换工具测试
@@ -1039,6 +1080,8 @@ add_executable(mc_tests
     common/world/gen/chunk/ChunkGeneratorInterfaceTest.cpp
     # NoiseChunkGenerator单元测试
     common/world/gen/chunk/NoiseChunkGeneratorTest.cpp
+    # 结构生成生物群系过滤测试
+    common/world/gen/chunk/BiomeFilterTest.cpp
     # 地形常识测试
     common/world/gen/chunk/TerrainCommonSenseTest.cpp
     # 海洋水域生成复现测试
@@ -1061,6 +1104,7 @@ add_executable(mc_tests
     client/renderer/particle/WhiteSmokeParticleTest.cpp
     client/renderer/particle/ParticleManagerTest.cpp
     client/renderer/trident/particle/particles/special/NautilusParticleTest.cpp
+    client/renderer/trident/particle/particles/special/SpecialParticleTest.cpp
     client/renderer/trident/particle/particles/special/VibrationSignalParticleTest.cpp
     client/renderer/trident/particle/data/VibrationParticleDataTest.cpp
     # 粒子缩放测试
@@ -1071,6 +1115,20 @@ add_executable(mc_tests
     client/renderer/trident/particle/particles/block/DiggingParticleTest.cpp
     # DustPillarParticle 测试
     client/renderer/trident/particle/particles/block/DustPillarParticleTest.cpp
+    # 新增粒子类测试
+    client/renderer/trident/particle/particles/NewParticleTest.cpp
+    # Effect particle tests
+    client/renderer/trident/particle/particles/effect/EffectParticleTest.cpp
+    # Block particle tests
+    client/renderer/trident/particle/particles/block/BlockParticleTest.cpp
+    # Ambient particle tests
+    client/renderer/trident/particle/particles/ambient/AmbientParticleTest.cpp
+    # Mob particle tests
+    client/renderer/trident/particle/particles/mob/MobParticleTest.cpp
+    # Liquid particle tests
+    client/renderer/trident/particle/particles/liquid/LiquidParticleTest.cpp
+    # Particle tick behavior tests
+    client/renderer/trident/particle/particles/TickBehaviorTest.cpp
     # 绗竴浜虹О鎵嬮儴娓叉煋娴嬭瘯
     client/renderer/firstperson/MatrixStackTest.cpp
     client/renderer/firstperson/FirstPersonRendererTest.cpp
@@ -1173,6 +1231,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
+        # 幽匿方块实体振动系统（服务端方法）
+        ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
         ${CMAKE_SOURCE_DIR}/src/server/player/ServerPlayer.cpp
         ${CMAKE_SOURCE_DIR}/src/server/advancement/PlayerAdvancements.cpp
         # 事件系统
@@ -1409,6 +1469,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/SporeBlossomParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
@@ -1424,6 +1485,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/BubblePopParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/UnderwaterParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/CloudParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/SuspendedTownParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/DiggingParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/DustPillarParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FlameParticle.cpp
@@ -1448,8 +1510,53 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/SplashParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/weather/FishingParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/NautilusParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
+        # 粒子实现 - 环境（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/NetherSporeParticle.cpp
+        # 粒子实现 - 效果（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/AshParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/CopperFireFlameParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DamageIndicatorParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DustParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/DustPlumeParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/EggCrackParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ElderGuardianParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ElectricSparkParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FireflyParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FireworkParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/FlashParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GlowParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GustParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/GustEmitterParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/InfestedParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ItemPickupParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/LightParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/NoteParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/OmenParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SculkChargeParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SculkSoulParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/ShriekParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SmallFlameParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/SonicBoomParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/effect/TrialSpawnerParticle.cpp
+        # 粒子实现 - 生物（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/SpitParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/SquidInkParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/mob/TotemParticle.cpp
+        # 粒子实现 - 特殊（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VaultConnectionParticle.cpp
+        # 粒子实现 - 方块（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ComposterParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ItemParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/LeavesParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/ScrapeParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/block/WaxParticle.cpp
+        # 粒子实现 - 液体（新增）
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/CherryLeavesDripParticle.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/liquid/FallingNectarParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/Feature.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/FeatureSpread.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/gen/feature/ConfiguredFeature.cpp
@@ -1529,6 +1636,7 @@ target_sources(mc_tests
         # 鍚堟垚绯荤粺
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/Ingredient.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTag.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTagLoader.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/tag/ItemTags.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeType.cpp
         ${CMAKE_SOURCE_DIR}/src/common/item/crafting/RecipeManager.cpp
@@ -1712,6 +1820,7 @@ target_sources(mc_tests
         # Kagero UI Widget缁勪欢
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ContainerWidget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/ListWidget.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/widget/Widget.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/KageroEngine.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/PaintContext.cpp
         ${CMAKE_SOURCE_DIR}/src/client/ui/kagero/paint/Geometry.cpp
@@ -2071,6 +2180,8 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/GameEventDispatcher.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/DynamicGameEventListener.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/gameevent/VibrationSystemServer.cpp
+        # 幽匿方块实体振动系统（服务端方法）
+        ${CMAKE_SOURCE_DIR}/src/server/world/blockentity/sculk/SculkVibrationSystem.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/EntitySyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/BlockUpdateSyncManager.cpp
         ${CMAKE_SOURCE_DIR}/src/server/sync/ChunkSendManager.cpp

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "GameEvent.hpp"
+#include <string>
 
 namespace mc::gameevent {
 
@@ -219,6 +220,17 @@ inline const GameEvent RESONATE_12("resonate_12");
 inline const GameEvent RESONATE_13("resonate_13");
 inline const GameEvent RESONATE_14("resonate_14");
 inline const GameEvent RESONATE_15("resonate_15");
+
+/**
+ * @brief 根据事件标识符查找游戏事件
+ *
+ * 用于反序列化时将事件 ID 字符串还原为 GameEvent 指针。
+ * 查找所有已注册的 GameEvents 常量，匹配失败返回 nullptr。
+ *
+ * @param id 事件标识符（如 "block_activate"、"step"）
+ * @return 对应的 GameEvent 指针，未找到返回 nullptr
+ */
+[[nodiscard]] const GameEvent* getGameEventById(const std::string& id);
 
 } // namespace GameEvents
 

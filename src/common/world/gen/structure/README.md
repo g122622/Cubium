@@ -16,7 +16,7 @@ structure/
 ├── StructureSetLoader.cpp
 ├── StructureDefinitionLoader.hpp # 结构定义 JSON 加载器（数据包）
 ├── StructureDefinitionLoader.cpp
-├── StructureCheck.hpp        # 结构存在性检查缓存（对齐 MC StructureCheck）
+├── StructureCheck.hpp        # 结构存在性检查缓存（两层缓存：精确 + 近似，对齐 MC StructureCheck）
 ├── StructureCheck.cpp
 ├── StructureManager.hpp      # 结构管理器（注册、查询、生成协调）
 ├── StructureManager.cpp
@@ -165,7 +165,7 @@ worldgen/processor_list/*.json→ ProcessorList (方块替换处理器)
 | `world/gen/chunk/NoiseChunkGenerator` | 区块生成器在三个阶段调用结构生成 |
 | `world/gen/chunk/FlatChunkGenerator` | 超平坦区块生成器，含生物群系预过滤 |
 | `world/gen/density/Beardifier` | 结构地形平滑密度函数 |
-| `server/world/ServerWorld` | `findNearestStructure()` 使用 `findByStructure()` 查询 StructureSetRegistry |
+| `server/world/ServerWorld` | `findNearestStructure()` 使用 StructureCheck 快速跳过不含结构的区块，使用 `findByStructure()` 查询 StructureSetRegistry |
 | `server/command/commands/LocateCommand` | `/locate` 命令使用 `ResourceLocation` 别名映射 |
 | `common/entity/ai/goal/goals/special/DolphinGoals` | 海豚引导到结构使用 `ResourceLocation` |
 | `common/item/loot/functions/ExplorationMapFunction` | 探险地图使用 `ResourceLocation` 定位结构 |

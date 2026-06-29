@@ -57,6 +57,7 @@ add_library(mc_common STATIC
     network/packet/SleepPacket.cpp
     network/packet/SpawnPositionPacket.cpp
     network/packet/MapDataPacket.cpp
+    network/packet/SetCameraPacket.cpp
     network/packet/SetPassengersPacket.cpp
     network/packet/TitlePacket.cpp
     network/packet/WorldBorderPacket.cpp
@@ -87,6 +88,7 @@ add_library(mc_common STATIC
     entity/effect/EffectInstance.cpp
     entity/effect/EffectManager.cpp
     entity/effect/EffectAttributeModifiers.cpp
+    entity/enchantment/LocationEnchantmentTracker.cpp
     # Entity - Food
     entity/food/FoodStats.cpp
     # Entity - Player
@@ -193,6 +195,7 @@ add_library(mc_common STATIC
     entity/entities/monster/breeze/BreezeEntity.cpp
     # Entity - Vehicle
     entity/entities/vehicle/BoatEntity.cpp
+    entity/entities/vehicle/ChestBoatEntity.cpp
     entity/entities/vehicle/MinecartEntity.cpp
     # Entity - Hanging
     entity/entities/hanging/HangingEntity.cpp
@@ -307,6 +310,7 @@ add_library(mc_common STATIC
     entity/ai/controller/FlyingMovementController.cpp
     entity/ai/controller/VexMovementController.cpp
     entity/ai/controller/GhastMovementController.cpp
+    entity/ai/controller/PhantomMovementController.cpp
     entity/ai/controller/DrownedMoveControl.cpp
     entity/ai/goal/goals/SwimGoal.cpp
     entity/ai/goal/goals/RandomWalkingGoal.cpp
@@ -409,6 +413,7 @@ add_library(mc_common STATIC
     entity/inventory/container/EnchantmentContainer.cpp
     entity/inventory/container/CartographyContainer.cpp
     entity/inventory/container/BrewingStandContainer.cpp
+    entity/inventory/container/CrafterContainer.cpp
     entity/inventory/container/AnvilContainer.cpp
     entity/inventory/container/LoomContainer.cpp
     entity/inventory/container/MerchantContainer.cpp
@@ -421,6 +426,7 @@ add_library(mc_common STATIC
     item/core/ItemStack.cpp
     item/core/ItemRegistry.cpp
     item/core/ItemGroup.cpp
+    item/core/ProjectileItem.cpp
     item/Items.cpp
 
     # Item System - Context
@@ -447,6 +453,7 @@ add_library(mc_common STATIC
 
     # Item System - Tags
     item/tag/ItemTag.cpp
+    item/tag/ItemTagLoader.cpp
     item/tag/ItemTags.cpp
 
     # Item System - Block Items
@@ -567,6 +574,7 @@ add_library(mc_common STATIC
     item/enchantment/enchantments/protection/ThornsEnchantment.cpp
     item/enchantment/enchantments/protection/DepthStriderEnchantment.cpp
     item/enchantment/enchantments/protection/FrostWalkerEnchantment.cpp
+    item/enchantment/enchantments/special/SoulSpeedEnchantment.cpp
     item/enchantment/enchantments/weapon/DamageEnchantment.cpp
     item/enchantment/enchantments/weapon/BaneOfArthropodsEnchantment.cpp
     item/enchantment/enchantments/mace/DensityEnchantment.cpp
@@ -729,6 +737,7 @@ add_library(mc_common STATIC
     world/block/blocks/vegetation/TallGrassBlock.cpp
     world/block/blocks/vegetation/FlowerBlock.cpp
     world/block/blocks/vegetation/SaplingBlock.cpp
+    world/block/blocks/vegetation/TreeGenerators.cpp
     world/block/blocks/vegetation/MushroomBlock.cpp
     world/block/blocks/vegetation/CactusBlock.cpp
     world/block/blocks/vegetation/SugarCaneBlock.cpp
@@ -924,6 +933,11 @@ add_library(mc_common STATIC
     world/blockentity/trial/TrialSpawnerBlockEntity.cpp
     world/blockentity/trial/VaultBlockEntity.cpp
     world/blockentity/trial/CrafterBlockEntity.cpp
+
+    # World - Block Entity - Sculk
+    world/blockentity/sculk/SculkSensorBlockEntity.cpp
+    world/blockentity/sculk/SculkShriekerBlockEntity.cpp
+
     world/blockentity/spawner/MobSpawnerBlockEntity.cpp
     world/blockentity/spawner/SpawnerLogic.cpp
 
@@ -942,6 +956,7 @@ add_library(mc_common STATIC
 
     # World - Game Event System
     # Note: .cpp files that depend on server headers are in src/server/world/gameevent/
+    world/gameevent/GameEvents.cpp
     world/gameevent/VibrationSystem.cpp
 
     # World - Generation - Noise
@@ -1032,9 +1047,14 @@ add_library(mc_common STATIC
 
     # World - Generation - Aquifer
     world/gen/aquifer/Aquifer.cpp
+    world/gen/aquifer/DisabledAquifer.cpp
+    world/gen/aquifer/FluidPickerFactory.cpp
+    world/gen/aquifer/FluidStatus.cpp
+    world/gen/aquifer/NoiseBasedAquifer.cpp
 
     # World - Generation - Feature
     world/gen/feature/Feature.cpp
+    world/gen/FeaturePlacer.cpp
     world/gen/feature/FeatureSpread.cpp
     world/gen/feature/ConfiguredFeature.cpp
     world/gen/feature/FeatureSorter.cpp

@@ -576,8 +576,8 @@ BlockState Block::updateFromNeighbourShapes(const BlockState& state, IWorld& wor
         if (neighborState == nullptr) {
             continue;
         }
-        currentState = const_cast<Block&>(currentState.getBlock())
-                           .updatePostPlacement(currentState, direction, *neighborState, world, pos, neighborPos);
+        currentState = currentState.getBlockMutable().updatePostPlacement(
+            currentState, direction, *neighborState, world, pos, neighborPos);
     }
     return currentState;
 }

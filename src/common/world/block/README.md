@@ -21,7 +21,7 @@
 ├── IBeaconBeamColorProvider.hpp #信标光束颜色提供者接口
 ├── IBlockAnimateContext.hpp #方块动画 tick 上下文接口（客户端粒子 / 音效）
 ├── IBucketPickupHandler.hpp #桶提取接口
-├── IGrowable.hpp #可生长方块接口
+├── IGrowable.hpp #可生长方块接口（含 BoneMealType 枚举、getParticlePos 方法）
 ├── ILiquidContainer.hpp #液体容器接口
 ├── IWaterLoggable.hpp / cpp #含水方块接口
 ├── Material.hpp / cpp #材质系统（物理属性）
@@ -289,6 +289,18 @@ u32 stateId = state.stateId();         // 状态ID
     ## #9. 树苗和树木生成支撑方块一致性
 
 `SaplingBlock` 和 `TreeFeature` 必须就根支撑方块达成一致，否则会出现 "可以放置但不能生长"的不匹配。
+
+## #10. getBlock() vs getBlockMutable()
+
+`BlockState::getBlock()` 返回 `const Block&`，适用于只读访问。当需要调用非 const 方法（如 `tick`、`neighborChanged`、`onBlockRemoved`、`scheduleBlockTick` 等）时，使用 `getBlockMutable()` 获取 `Block&`：
+
+```cpp
+// 只读访问
+const Block& block = state->getBlock();
+
+// 需要非const引用时（如调用scheduleBlockTick、onBlockRemoved等）
+Block& block = state->getBlockMutable();
+```
 
     ## #10. 冰块融化与破坏路径分离
 

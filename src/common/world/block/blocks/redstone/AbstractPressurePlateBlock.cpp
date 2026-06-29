@@ -112,7 +112,7 @@ void AbstractPressurePlateBlock::tick(IWorld& world, const BlockPos& pos, BlockS
             BlockPos neighborPos = pos.offset(dir);
             const BlockState* neighborState = world.getBlockState(neighborPos);
             if (neighborState && !neighborState->isAir()) {
-                Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                Block& neighborBlock = neighborState->getBlockMutable();
                 neighborBlock.neighborChanged(world, neighborPos, *this, pos, false);
             }
         }

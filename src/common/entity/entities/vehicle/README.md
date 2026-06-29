@@ -6,8 +6,10 @@
 
 ```
 vehicle/
-├── BoatEntity.hpp          # 船实体定义（水上交通工具，10种木材变体，支持 hasChest 标志）
-├── BoatEntity.cpp          # 船实体实现（浮力、控制、乘客管理、箱子船掉落）
+├── BoatEntity.hpp          # 船实体定义（水上交通工具，10种木材变体）
+├── BoatEntity.cpp          # 船实体实现（浮力、控制、乘客管理）
+├── ChestBoatEntity.hpp     # 箱子船实体定义（27格容器，实现 INamedContainerProvider）
+├── ChestBoatEntity.cpp     # 箱子船实体实现（容器交互、物品掉落、NBT序列化）
 ├── MinecartEntity.hpp      # 矿车实体定义（基类 + 7种变体）
 ├── MinecartEntity.cpp      # 矿车实体实现（铁轨移动、变体逻辑）
 └── README.md               # 本文档
@@ -20,6 +22,7 @@ Entity (基类)
     │
     ├── BoatEntity
     │   └── 水上交通工具，不实现 IRideable（船不需要鞍）
+    │       └── ChestBoatEntity  # 箱子船（27格容器，实现 INamedContainerProvider，最多1名乘客）
     │
     └── AbstractMinecartEntity
         ├── RideableMinecartEntity    # 普通矿车（可乘坐）
@@ -137,7 +140,19 @@ Entity (基类)
 
 **问题**：船最多承载2名乘客，但水下状态的船不能承载乘客。
 
-**解决方案**：`canFitPassenger()` 检查 `m_status != BoatStatus::UnderWater`。
+**解决方案**：`canAddPassenger()` 覆写检查 `m_passengers.size() < MAX_PASSENGERS && m_status != BoatStatus::UnderWater`。基类 `couldAcceptPassenger()` 未覆写（返回 true），乘客准入由 `canAddPassenger()` 控制。
+
+### 8.5. 船的地面滑度采样
+
+**要点**：
+- `getBoatGlide()` 对应 MC Java `AbstractBoat.getGroundFriction()`，实现船在陆地上的摩擦力采样算法
+- 采样范围：船底碰撞箱向下扩展 0.001 格的薄碰撞盒区域
+- 搜索范围：碰撞盒各方向扩展 1 格，排除角落 4 个柱状区域
+- 跳过睡莲方块（`NaturalBlocks::LILY_PAD`），不参与滑度采样
+- 仅采样碰撞箱与船底有交集的方块
+- 返回值：所有有效方块滑度的平均值（`Block::getSlipperiness()`），无有效方块时返回 0
+- 冰（0.98）和蓝冰（0.989）提供更高的滑度，使船在冰面上滑行更远
+- `updateMotion()` 中陆地摩擦力减半的条件检查控制乘客是否为 Player（通过 `getControllingPassenger()` + `typeId() == EntityTypeIdNumber::PLAYER`）
 
 ### 9. 铁轨形状与移动
 

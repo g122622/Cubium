@@ -105,6 +105,7 @@ advancement/
 ### 本模块依赖的外部模块
 
 - `common/core/ResourceLocation.hpp` - 资源位置（成就 ID、触发器 ID）
+- `common/util/DateTimeUtils.hpp` - 日期时间格式化/解析（CriterionProgress 序列化）
 - `common/util/nbt/` - NBT 系统（NBTPredicate）
 - `common/entity/` - 实体系统（EntityPredicate、EntityFlagsPredicate、EntityEquipmentPredicate）
 - `common/entity/effect/` - 效果系统（MobEffectsPredicate）
@@ -161,3 +162,5 @@ advancement/
 14. **服务器启动加载**：`MinecraftServer::initializeRegistries()` 会在启动时通过 `AdvancementLoader::loadFromDataPackRepository()` 从数据包加载进度。`/reload` 命令也会重新加载进度。
 
 15. **AdvancementManager 是单例**：`AdvancementManager::instance()` 是全局单例，`AdvancementLoader` 通过该单例注册成就，无需构造函数注入管理器引用。
+
+16. **CriterionProgress 序列化格式兼容 MC Java 版**：`CriterionProgress::toJson()` 输出 MC Java 版兼容的日期时间字符串格式（`"yyyy-MM-dd HH:mm:ss Z"`，如 `"2024-06-15 14:30:00 +0800"`），与 Java 版 `AdvancementProgress.OBTAINED_TIME_FORMAT` 完全对应。`CriterionProgress::fromJson()` 支持三种格式：MC Java 字符串格式、数字格式（项目内部毫秒时间戳）和对象格式（`{"obtainedTime": 毫秒}`），确保与 Java 版存档的完整互操作。格式化/解析由 `common/util/DateTimeUtils.hpp` 统一提供。

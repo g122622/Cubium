@@ -43,10 +43,10 @@
 #include "../serialization/NbtHelper.hpp"
 #include "EntityRegistry.hpp"
 #include "EntityTypeIdNumber.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "spdlog/spdlog.h"
 
 #include <algorithm>
@@ -382,7 +382,7 @@ void Entity::doWaterSplashEffect()
     f32 particleY = std::floor(m_position.y) + 1.0f;
 
     // 引入粒子类型
-    using client::renderer::trident::particle::ParticleTypeId;
+    using particle::ParticleTypeId;
 
     // 生成气泡粒子 (BUBBLE)
     for (i32 i = 0; i < particleCount; ++i) {
@@ -1012,8 +1012,8 @@ void Entity::_handleLandingOnBlock()
         static_cast<i32>(std::floor(m_position.z)));
     const BlockState* state = m_world->getBlockState(landingPos);
     if (state != nullptr) {
-        // onFallenUpon 是非 const 方法，但逻辑上不会修改方块本身
-        const_cast<Block&>(state->getBlock()).onFallenUpon(*m_world, landingPos, *state, *this, m_fallDistance);
+        // onFallenUpon 是非 const 方法，需要通过 getBlockMutable() 获取可变引用
+        state->getBlockMutable().onFallenUpon(*m_world, landingPos, *state, *this, m_fallDistance);
     }
 }
 
@@ -1412,38 +1412,37 @@ bool Entity::isPassenger(EntityId entityId) const
 
 bool Entity::addPassenger(Entity& passenger)
 {
+    // 对齐 MC Java: addPassenger 不进行循环检测，仅操作乘客列表。
+    // 循环检测由 startRiding() 负责，addPassenger 验证 passenger 已正确关联到此载具。
+    // MC Java: if (p_20349_.getVehicle() != this) throw IllegalStateException
+
     // 检查是否已经是乘客
     if (isPassenger(passenger.id())) {
         return false;
     }
 
-    // 如果乘客正在骑乘其他实体，先停止
-    // 注意：调用者应该使用 startRiding() 而不是直接调用 addPassenger()
-
-    // 循环检测：防止A骑B，B骑A等循环
-    if (m_world) {
-        Entity* current = &passenger;
-        while (current != nullptr) {
-            EntityId currentVehicle = current->getVehicle();
-            if (currentVehicle == INVALID_ENTITY_ID) {
-                break;
-            }
-            if (currentVehicle == m_id) {
-                // 检测到循环：该实体已经是我们的乘客链中的一员
-                return false;
-            }
-            current = m_world->getEntity(currentVehicle);
+    // 验证 passenger 的 vehicle 已正确指向此载具
+    // （由 startRiding 在调用 addPassenger 之前设置）
+    if (passenger.getVehicle() != m_id) {
+        // 兼容非标准调用路径：如果 passenger 还未关联到任何载具，
+        // 自动设置关联（而非抛出异常，与 MC Java 的严格检查不同）
+        if (passenger.getVehicle() == INVALID_ENTITY_ID) {
+            passenger.setVehicle(m_id);
+        } else {
+            // passenger 已关联到其他载具，这是编程错误
+            // 对齐 MC Java: Use x.startRiding(y), not y.addPassenger(x)
+            return false;
         }
     }
 
-    // 检查乘客数量限制
-    if (!canFitPassenger()) {
+    // 检查是否可以接受乘客（硬门槛）
+    if (!couldAcceptPassenger()) {
         return false;
     }
 
-    // 如果乘客正在骑乘其他实体，先停止
-    if (passenger.isRiding()) {
-        passenger.stopRiding();
+    // 检查是否可以添加此特定乘客（软门槛）
+    if (!canAddPassenger(passenger)) {
+        return false;
     }
 
     // 设置乘客姿态为站立
@@ -1466,7 +1465,6 @@ bool Entity::addPassenger(Entity& passenger)
         // 其他情况：追加到末尾
         m_passengers.push_back(passenger.id());
     }
-    passenger.setVehicle(m_id);
 
     // 设置骑乘冷却
     passenger.m_rideCooldown = 60;
@@ -1499,12 +1497,28 @@ void Entity::removePassenger(Entity& passenger)
 
 bool Entity::startRiding(Entity& vehicle)
 {
-    // 不能骑乘自己
+    // 对齐 MC Java Entity.startRiding(Entity, boolean, boolean) 的逻辑顺序
+
+    // 1. 不能骑乘自己
     if (vehicle.id() == m_id) {
         return false;
     }
 
-    // 循环检测
+    // 2. 检查是否已经在骑乘此载具（避免重复骑乘）
+    if (getVehicle() == vehicle.id()) {
+        return false;
+    }
+
+    // 3. 硬门槛：检查载具是否根本可以接受乘客
+    // 对应 MC Java 的 Entity.couldAcceptPassenger()
+    if (!vehicle.couldAcceptPassenger()) {
+        return false;
+    }
+
+    // 4. 循环检测：从载具开始沿 vehicle 链向上遍历，
+    // 检查是否形成 A骑B、B骑A 的循环
+    // 对齐 MC Java: for (Entity entity = p_19966_; entity.vehicle != null; entity = entity.vehicle)
+    //                   if (entity.vehicle == this) return false;
     if (m_world) {
         Entity* current = &vehicle;
         while (current != nullptr) {
@@ -1513,39 +1527,42 @@ bool Entity::startRiding(Entity& vehicle)
                 break;
             }
             if (currentVehicle == m_id) {
-                // 检测到循环：车辆正在骑乘我们（直接或间接）
+                // 检测到循环：载具链中的某个实体正在骑乘我们
                 return false;
             }
             current = m_world->getEntity(currentVehicle);
         }
     }
 
-    // 检查是否可骑乘
-    // 注意：canBeRidden() 检查的是乘客是否可以骑乘（潜行状态、冷却等）
+    // 5. 检查是否可骑乘（潜行状态、冷却等）
+    // 对应 MC Java 的 canRide() + canAddPassenger()
     if (!canBeRidden(vehicle)) {
         return false;
     }
 
-    if (!vehicle.canFitPassenger()) {
+    // 6. 软门槛：检查载具是否可以添加此特定乘客
+    // 对应 MC Java 的 Entity.canAddPassenger(Entity)
+    if (!vehicle.canAddPassenger(*this)) {
         return false;
     }
 
-    // 如果已经在骑乘，先停止
+    // 7. 如果已经在骑乘其他载具，先停止
+    // 对齐 MC Java: if (this.isPassenger()) this.stopRiding();
     if (isRiding()) {
         stopRiding();
     }
 
-    // 设置姿态为站立
+    // 8. 设置姿态为站立
     setPose(EntityPose::Standing);
 
-    // 设置骑乘的车辆引用
+    // 9. 先设置 vehicle 引用，再调用 addPassenger
+    // 对齐 MC Java: this.vehicle = p_19966_; this.vehicle.addPassenger(this);
+    // 此顺序保证 addPassenger 内部可以验证 passenger.getVehicle() == this
     m_vehicle = vehicle.id();
 
-    // 添加到车辆的乘客列表
-    // 注意：MC中是先设置ridingEntity，再调用addPassenger
-    // addPassenger会验证ridingEntity是否正确
+    // 10. 添加到载具的乘客列表
     if (!vehicle.addPassenger(*this)) {
-        // 添加失败，清空引用
+        // 添加失败，回滚 vehicle 引用
         m_vehicle = INVALID_ENTITY_ID;
         return false;
     }

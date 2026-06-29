@@ -30,7 +30,7 @@
 #include "../../biome/BiomeGenerationSettings.hpp"
 #include "../../biome/BiomeRegistry.hpp"
 #include "../../biome/source/MultiNoiseBiomeSource.hpp"
-#include "../aquifer/Aquifer.hpp"
+#include "../aquifer/Aquifers.hpp"
 #include "../carver/CarverConfiguration.hpp"
 #include "../carver/CarvingContext.hpp"
 #include "../carver/CarvingMask.hpp"
@@ -150,6 +150,28 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
 // 结构生成
 // ============================================================================
 
+bool NoiseChunkGenerator::_hasBiomesForStructureSet(const world::gen::structure::StructureSet& structureSet) const
+{
+    // 对齐 MC 1.21.11 ChunkGeneratorStructureState.hasBiomesForStructureSet()
+    // 检查 BiomeSource 的 possibleBiomes 是否与结构集中任意结构的 biomeTag 有交集。
+    // 这是一个快速的集合交集检查，如果完全无交集则整个结构集在当前维度中不可能生成。
+    const auto& possibleBiomes = m_biomeSource->possibleBiomes();
+
+    for (const auto& entry : structureSet.entries()) {
+        const auto* structure = world::gen::structure::StructureRegistry::get(entry.structureId);
+        if (!structure) continue;
+
+        // 遍历 possibleBiomes，检查是否有任何一个存在于该结构的 biomeTag 中
+        for (BiomeId biomeId : possibleBiomes) {
+            if (structure->isValidBiome(biomeId)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkPrimer& chunk)
 {
     MC_TRACE_EVENT("world.chunk_gen", "GenerateStructureStarts", "x", chunk.x(), "z", chunk.z());
@@ -187,6 +209,12 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         }
         if (hasExistingStart) continue;
 
+        // 对齐 MC 1.21.11: 结构集快速预过滤 — 如果当前维度的 possibleBiomes
+        // 与结构集中所有结构的 biomeTag 均无交集，则跳过整个结构集
+        if (!_hasBiomesForStructureSet(structureSet)) {
+            continue;
+        }
+
         // 三步检查：1. 是否为候选区块
         if (!placement.isStructureChunk(static_cast<i64>(m_seed), chunkX, chunkZ)) {
             continue;
@@ -208,11 +236,17 @@ void NoiseChunkGenerator::generateStructureStarts(WorldGenRegion& region, ChunkP
         const auto* structure = world::gen::structure::StructureRegistry::get(entry->structureId);
         if (!structure) continue;
 
+        // 对齐 MC 1.21.11 StructurePlacement.isStructureChunk() 中的生物群系检查：
+        // 在候选区块中心位置采样噪声生物群系，检查是否匹配该结构的 biomeTag。
+        // 此处使用 getNoiseBiome()（四分坐标精度，无 Voronoi 缩放），
+        // 与 MC Java 使用 BiomeSource.getNoiseBiome(QuartPos.fromBlock()) 行为一致。
+        const BiomeId biomeAtCandidate =
+            getNoiseBiome((chunkX * world::CHUNK_WIDTH + 8) >> 2, 0, (chunkZ * world::CHUNK_WIDTH + 8) >> 2);
+        if (!structure->isValidBiome(biomeAtCandidate)) {
+            continue;
+        }
+
         // 生成结构起点
-        // TODO: 目前 isStructureChunk() 仅做间距/频率/排斥区检查，不做生物群系检查。
-        // MC 1.21.11 中 StructurePlacement.isStructureChunk() 还会检查候选位置的生物群系
-        // 是否匹配结构的 biomeTag，当前实现缺少此步骤。结构的 canGenerate() 方法内部
-        // 会做部分生物群系验证，但应在放置层面统一检查。
         auto start = structure->generate(*this, rng, chunkX, chunkZ);
         if (start) {
             chunk.addStructureStart(

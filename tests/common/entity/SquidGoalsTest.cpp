@@ -34,10 +34,10 @@
  */
 
 #include "common/entity/ai/goal/goals/special/SquidGoals.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/passive/water/SquidEntity.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/fluid/Fluid.hpp"
@@ -54,7 +54,7 @@ namespace {
  * @brief 测试记录粒子数据的结构
  */
 struct ParticleRecord {
-    client::renderer::trident::particle::ParticleTypeId type;
+    particle::ParticleTypeId type;
     Vector3 position;
     Vector3 velocity;
 };
@@ -122,17 +122,13 @@ public:
     /** 设置固体方块状态（isAir()==false 的 BlockState 指针） */
     void setSolidBlockState(const BlockState* state) { m_solidBlockState = state; }
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3&,
-        u32) override
+    void addParticle(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3&, u32) override
     {
         m_particles.push_back({type, pos, velocity});
     }
@@ -530,7 +526,7 @@ TEST_F(SquidFleeGoalWorldTest, BubbleParticle_SpawnedAtCorrectInterval)
     // tick 5: 应产生气泡
     goal->tick();
     EXPECT_GE(world->particles().size(), 1u);
-    EXPECT_EQ(world->particles().back().type, client::renderer::trident::particle::ParticleTypeId::Bubble);
+    EXPECT_EQ(world->particles().back().type, particle::ParticleTypeId::Bubble);
 
     world->clearRecords();
 
@@ -543,7 +539,7 @@ TEST_F(SquidFleeGoalWorldTest, BubbleParticle_SpawnedAtCorrectInterval)
     // tick 15: 应产生气泡
     goal->tick();
     EXPECT_GE(world->particles().size(), 1u);
-    EXPECT_EQ(world->particles().back().type, client::renderer::trident::particle::ParticleTypeId::Bubble);
+    EXPECT_EQ(world->particles().back().type, particle::ParticleTypeId::Bubble);
 }
 
 TEST_F(SquidFleeGoalWorldTest, BubbleParticle_PositionMatchesSquidPosition)
@@ -569,7 +565,7 @@ TEST_F(SquidFleeGoalWorldTest, BubbleParticle_PositionMatchesSquidPosition)
 
     ASSERT_GE(world->particles().size(), 1u);
     const auto& particle = world->particles().back();
-    EXPECT_EQ(particle.type, client::renderer::trident::particle::ParticleTypeId::Bubble);
+    EXPECT_EQ(particle.type, particle::ParticleTypeId::Bubble);
     // 粒子位置应接近鱿鱼位置
     EXPECT_FLOAT_EQ(particle.position.x, 10.0f);
     EXPECT_FLOAT_EQ(particle.position.y, 50.0f);

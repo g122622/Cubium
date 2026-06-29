@@ -202,6 +202,7 @@ EntityTypeId WIND_CHARGE = 0;
 // ============================================================================
 
 EntityTypeId BOAT = 0;
+EntityTypeId CHEST_BOAT = 0;
 EntityTypeId MINECART = 0;
 EntityTypeId CHEST_MINECART = 0;
 EntityTypeId FURNACE_MINECART = 0;
@@ -364,6 +365,7 @@ void initialize()
     FIREWORK_ROCKET = safeGetId(registry, EntityTypes::FIREWORK_ROCKET);
     WIND_CHARGE = safeGetId(registry, EntityTypes::WIND_CHARGE);
     BOAT = safeGetId(registry, EntityTypes::BOAT);
+    CHEST_BOAT = safeGetId(registry, EntityTypes::CHEST_BOAT);
     MINECART = safeGetId(registry, EntityTypes::MINECART);
     CHEST_MINECART = safeGetId(registry, EntityTypes::CHEST_MINECART);
     FURNACE_MINECART = safeGetId(registry, EntityTypes::FURNACE_MINECART);

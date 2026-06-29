@@ -48,6 +48,10 @@ add_executable(minecraft-server
     world/gameevent/GameEventDispatcher.cpp
     world/gameevent/DynamicGameEventListener.cpp
     world/gameevent/VibrationSystemServer.cpp
+
+    # 世界模块 - 幽匿方块实体（服务端方法）
+    world/blockentity/sculk/SculkVibrationSystem.cpp
+
     player/ServerPlayer.cpp
     # 成就系统
     advancement/PlayerAdvancements.cpp

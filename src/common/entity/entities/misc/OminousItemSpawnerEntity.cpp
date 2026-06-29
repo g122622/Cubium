@@ -6,42 +6,26 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * furnished to do so, substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY KIND, either express or implied,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR USE OF
+ * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "OminousItemSpawnerEntity.hpp"
 
-// TODO(ParticleTypeId): ParticleTypeId 定义在 client 层，common 层不应依赖 client。
-// 这是整个项目的既有架构问题（42+ 个 common 层文件依赖此类型），
-// 正确的做法是将 ParticleTypeId 枚举移至 common 层（如 common/particle/ParticleTypes.hpp），
-// 客户端渲染层再引用 common 层的定义。当前遵循项目既有模式暂不修改。
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
-#include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
-#include "common/entity/entities/projectile/WindChargeEntity.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/core/Item.hpp"
-#include "common/item/items/potion/LingeringPotionItem.hpp"
-#include "common/item/items/potion/SplashPotionItem.hpp"
-#include "common/item/items/potion/ThrowablePotionItem.hpp"
-#include "common/item/items/trial/WindChargeItem.hpp"
-#include "common/item/items/weapon/ThrowableItem.hpp"
-#include "common/resource/ResourceLocation.hpp"
+#include "common/item/core/ProjectileItem.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/Vector3.hpp"
@@ -201,15 +185,14 @@ void OminousItemSpawnerEntity::spawnItem()
 
     Entity* spawnedEntity = nullptr;
 
-    // 判断物品是否为弹射物类型，如果是则向下发射弹射物
-    // ThrowableItem 包括: SnowballItem, EggItem, EnderPearlItem, ExperienceBottleItem, ThrowablePotionItem
-    // WindChargeItem 是独立的弹射物物品
-    const item::ThrowableItem* throwableItem = dynamic_cast<const item::ThrowableItem*>(item);
-    const item::WindChargeItem* windChargeItem = dynamic_cast<const item::WindChargeItem*>(item);
+    // 通过 ProjectileItem 接口判断物品是否为弹射物类型，替代硬编码映射。
+    // 实现了 ProjectileItem 的物品包括：ThrowableItem（雪球/鸡蛋/末影珍珠/经验瓶/药水）、
+    // WindChargeItem（风弹）等。
+    const item::ProjectileItem* projectileItem = dynamic_cast<const item::ProjectileItem*>(item);
 
-    if (throwableItem != nullptr || windChargeItem != nullptr) {
-        // 弹射物物品：向下发射弹射物
-        spawnedEntity = spawnProjectile(*m_world, *item);
+    if (projectileItem != nullptr) {
+        // 弹射物物品：通过 ProjectileItem 接口向下发射弹射物
+        spawnedEntity = spawnProjectile(*m_world, *projectileItem, itemStack);
     } else {
         // 普通物品：创建物品实体自然掉落
         auto itemEntity = std::make_unique<ItemEntity>(
@@ -235,83 +218,42 @@ void OminousItemSpawnerEntity::spawnItem()
     m_item = ItemStack{};
 }
 
-Entity* OminousItemSpawnerEntity::spawnProjectile(IWorld& world, const Item& item)
+Entity* OminousItemSpawnerEntity::spawnProjectile(
+    IWorld& world, const item::ProjectileItem& projectileItem, const ItemStack& itemStack)
 {
-    // 弹射物发射参数：
-    // 默认 DispenseConfig: power=1.1, uncertainty=6.0
-    // ThrowablePotionItem 覆写: power=1.375, uncertainty=3.0
-    // WindChargeItem 覆写: power=1.0, uncertainty=6.6666665
-    // 方向始终为 DOWN (0, -1, 0)
+    // 通过 ProjectileItem 接口创建弹射物：
+    // 1. 从 ProjectileItem 获取发射配置
+    // 2. 方向始终为 DOWN (0, -1, 0)
+    // 3. 通过 asProjectile 创建弹射物
+    // 4. 添加到世界并设定射击参数
+    // 5. 设置 owner 为 OminousItemSpawner 自身
 
-    // 确定弹射物实体类型和发射参数
-    const item::WindChargeItem* windChargeItem = dynamic_cast<const item::WindChargeItem*>(&item);
-    const item::ThrowablePotionItem* throwablePotion = dynamic_cast<const item::ThrowablePotionItem*>(&item);
+    auto config = projectileItem.getDispenseConfig();
 
-    // 默认 DispenseConfig: power=1.1, uncertainty=6.0
-    // ThrowablePotionItem 覆写: power=1.375, uncertainty=3.0
-    // WindChargeItem 覆写: power=1.0, uncertainty=6.6666665
-    f32 power = 1.1f;
-    f32 uncertainty = 6.0f;
+    // 方向：向下 (Direction.DOWN)
+    constexpr f32 dirX = 0.0f;
+    constexpr f32 dirY = -1.0f;
+    constexpr f32 dirZ = 0.0f;
 
-    // 根据物品类型确定弹射物实体类型名称
-    std::string entityType;
-
-    if (windChargeItem != nullptr) {
-        entityType = EntityTypes::WIND_CHARGE;
-        power = 1.0f;
-        uncertainty = 6.6666665f;
-    } else if (throwablePotion != nullptr) {
-        // 药水：power=1.375, uncertainty=3.0
-        power = 1.375f;
-        uncertainty = 3.0f;
-        entityType = EntityTypes::POTION;
-    } else {
-        // TODO(ProjectileItem): 其他投掷物目前通过物品 ResourceLocation 硬编码映射到弹射物实体类型。
-        // 当 ProjectileItem 接口完善后（类似 MC Java 的 ProjectileItem.asProjectile() 和
-        // ProjectileItem.createProjectile()），应改为通过接口获取弹射物实体类型，
-        // 而非在此处维护硬编码映射表。新增投掷物物品时需要同步更新此处的映射。
-        const auto& itemId = item.itemLocation();
-        if (itemId == ResourceLocation("minecraft:snowball")) {
-            entityType = EntityTypes::SNOWBALL;
-        } else if (itemId == ResourceLocation("minecraft:egg")) {
-            entityType = EntityTypes::EGG;
-        } else if (itemId == ResourceLocation("minecraft:ender_pearl")) {
-            entityType = EntityTypes::ENDER_PEARL;
-        } else if (itemId == ResourceLocation("minecraft:experience_bottle")) {
-            entityType = EntityTypes::EXPERIENCE_BOTTLE;
-        } else {
-            // 未识别的投掷物默认使用雪球实体
-            entityType = EntityTypes::SNOWBALL;
-        }
-    }
-
-    // 通过 EntityRegistry 创建弹射物实体
-    auto& registry = EntityRegistry::instance();
-    const EntityType* type = registry.getType(entityType);
-    if (type == nullptr || !type->canSummon()) {
-        // 无法创建弹射物，回退到创建物品实体
-        return nullptr;
-    }
-
-    std::unique_ptr<Entity> entity = type->create(&world);
+    // 通过 ProjectileItem 接口创建弹射物实体
+    auto entity = projectileItem.asProjectile(world, Vector3(x(), y(), z()), itemStack, dirX, dirY, dirZ);
     if (entity == nullptr) {
         return nullptr;
     }
 
-    // 设置弹射物位置
-    entity->setPosition(x(), y(), z());
-
     // 将弹射物添加到世界（需在 shoot 之前，因为 shoot 可能访问世界引用）
-    ProjectileEntity* projectile = dynamic_cast<ProjectileEntity*>(entity.get());
+    entity::ProjectileEntity* projectile = dynamic_cast<entity::ProjectileEntity*>(entity.get());
     EntityId entityId = world.spawnEntity(std::move(entity));
     if (entityId == EntityId(0) || projectile == nullptr) {
         return nullptr;
     }
 
-    // 向下发射弹射物
-    projectile->shoot(0.0f, -1.0f, 0.0f, power, uncertainty);
-
+    // 设置发射者为自身
     projectile->setShooter(this);
+
+    // 通过 ProjectileItem 的 shoot 方法发射弹射物
+    // 注意：WindChargeItem 的 shoot() 为空操作（风弹在 asProjectile 中已设置初速度）
+    projectileItem.shoot(*projectile, dirX, dirY, dirZ, config.power, config.uncertainty);
 
     return projectile;
 }
@@ -338,9 +280,8 @@ void OminousItemSpawnerEntity::addParticles()
         f64 velY = offsetY;
         f64 velZ = offsetZ;
 
-        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::OminousSpawning,
-            Vector3(x(), y(), z()),
-            Vector3(velX, velY, velZ));
+        m_world->addParticle(
+            particle::ParticleTypeId::OminousSpawning, Vector3(x(), y(), z()), Vector3(velX, velY, velZ));
     }
 }
 

@@ -33,6 +33,7 @@
 #include "common/item/items/weapon/BowItem.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
 #include "common/item/items/weapon/TridentItem.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/border/WorldBorder.hpp"
@@ -64,11 +65,8 @@ public:
         return ++m_lastEntityId;
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId,
-        const Vector3&,
-        const Vector3&,
-        const Vector3& = Vector3(0, 0, 0),
-        u32 = 1) override
+    void addParticle(
+        particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3& = Vector3(0, 0, 0), u32 = 1) override
     {
         // 测试中忽略粒子效果
     }

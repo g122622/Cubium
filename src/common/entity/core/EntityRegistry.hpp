@@ -327,6 +327,7 @@ constexpr const char* FIREWORK_ROCKET = "minecraft:firework_rocket";
 constexpr const char* WIND_CHARGE = "minecraft:wind_charge";
 // 交通工具
 constexpr const char* BOAT = "minecraft:boat";
+constexpr const char* CHEST_BOAT = "minecraft:chest_boat";
 constexpr const char* MINECART = "minecraft:minecart";
 constexpr const char* CHEST_MINECART = "minecraft:chest_minecart";
 constexpr const char* FURNACE_MINECART = "minecraft:furnace_minecart";

@@ -6,24 +6,21 @@
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * furnished to do so, substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR USE OF
+ * OTHER DEALINGS IN THE SOFTWARE.
  *
  */
 
 #include "ThrowableItems.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
@@ -40,17 +37,26 @@ SnowballItem::SnowballItem(const ItemProperties& properties)
 {}
 
 entity::ProjectileItemEntity* SnowballItem::createProjectile(
-    IWorld& world, Player& player, const ItemStack& /*stack*/) const
+    IWorld& world, Player& player, const ItemStack& stack) const
 {
-    auto entity = std::make_unique<entity::SnowballEntity>(0);
+    auto entity = createProjectileEntity(world, stack);
+    if (entity == nullptr) {
+        return nullptr;
+    }
+
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 
-    // 返回原始指针，所有权转移到调用者
-    entity::ProjectileItemEntity* result = entity.get();
+    entity::ProjectileItemEntity* result = dynamic_cast<entity::ProjectileItemEntity*>(entity.get());
     world.spawnEntity(std::move(entity));
     return result;
+}
+
+std::unique_ptr<entity::ProjectileEntity> SnowballItem::createProjectileEntity(
+    IWorld& /*world*/, const ItemStack& /*stack*/) const
+{
+    return std::make_unique<entity::SnowballEntity>(EntityId(0));
 }
 
 // ========== EggItem ==========
@@ -59,16 +65,26 @@ EggItem::EggItem(const ItemProperties& properties)
     : ThrowableItem(properties)
 {}
 
-entity::ProjectileItemEntity* EggItem::createProjectile(IWorld& world, Player& player, const ItemStack& /*stack*/) const
+entity::ProjectileItemEntity* EggItem::createProjectile(IWorld& world, Player& player, const ItemStack& stack) const
 {
-    auto entity = std::make_unique<entity::EggEntity>(0);
+    auto entity = createProjectileEntity(world, stack);
+    if (entity == nullptr) {
+        return nullptr;
+    }
+
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 
-    entity::ProjectileItemEntity* result = entity.get();
+    entity::ProjectileItemEntity* result = dynamic_cast<entity::ProjectileItemEntity*>(entity.get());
     world.spawnEntity(std::move(entity));
     return result;
+}
+
+std::unique_ptr<entity::ProjectileEntity> EggItem::createProjectileEntity(
+    IWorld& /*world*/, const ItemStack& /*stack*/) const
+{
+    return std::make_unique<entity::EggEntity>(EntityId(0));
 }
 
 // ========== EnderPearlItem ==========
@@ -78,16 +94,26 @@ EnderPearlItem::EnderPearlItem(const ItemProperties& properties)
 {}
 
 entity::ProjectileItemEntity* EnderPearlItem::createProjectile(
-    IWorld& world, Player& player, const ItemStack& /*stack*/) const
+    IWorld& world, Player& player, const ItemStack& stack) const
 {
-    auto entity = std::make_unique<entity::EnderPearlEntity>(0);
+    auto entity = createProjectileEntity(world, stack);
+    if (entity == nullptr) {
+        return nullptr;
+    }
+
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 
-    entity::ProjectileItemEntity* result = entity.get();
+    entity::ProjectileItemEntity* result = dynamic_cast<entity::ProjectileItemEntity*>(entity.get());
     world.spawnEntity(std::move(entity));
     return result;
+}
+
+std::unique_ptr<entity::ProjectileEntity> EnderPearlItem::createProjectileEntity(
+    IWorld& /*world*/, const ItemStack& /*stack*/) const
+{
+    return std::make_unique<entity::EnderPearlEntity>(EntityId(0));
 }
 
 // ========== ExperienceBottleItem ==========
@@ -97,16 +123,26 @@ ExperienceBottleItem::ExperienceBottleItem(const ItemProperties& properties)
 {}
 
 entity::ProjectileItemEntity* ExperienceBottleItem::createProjectile(
-    IWorld& world, Player& player, const ItemStack& /*stack*/) const
+    IWorld& world, Player& player, const ItemStack& stack) const
 {
-    auto entity = std::make_unique<entity::ExperienceBottleEntity>(0);
+    auto entity = createProjectileEntity(world, stack);
+    if (entity == nullptr) {
+        return nullptr;
+    }
+
     entity->setWorld(&world);
     entity->setPosition(player.x(), player.y() + player.eyeHeight() - 0.1f, player.z());
     entity->setShooter(&player);
 
-    entity::ProjectileItemEntity* result = entity.get();
+    entity::ProjectileItemEntity* result = dynamic_cast<entity::ProjectileItemEntity*>(entity.get());
     world.spawnEntity(std::move(entity));
     return result;
+}
+
+std::unique_ptr<entity::ProjectileEntity> ExperienceBottleItem::createProjectileEntity(
+    IWorld& /*world*/, const ItemStack& /*stack*/) const
+{
+    return std::make_unique<entity::ExperienceBottleEntity>(EntityId(0));
 }
 
 } // namespace item

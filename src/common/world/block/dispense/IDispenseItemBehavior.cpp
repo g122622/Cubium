@@ -646,9 +646,9 @@ ItemStack BonemealDispenseBehavior::dispense(
     if (!applied) {
         _setSuccess(false);
     } else {
-        // 播放骨粉粒子效果
+        // 播放植物生长效果（粒子 + 音效）
         if (!world.isClientSide()) {
-            world.playEvent(world::WorldEvents::BONEMEAL_PARTICLES, targetPos, 15);
+            world.playEvent(world::WorldEvents::PLANT_GROWTH_EFFECT, targetPos, 15);
         }
     }
 

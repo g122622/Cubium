@@ -23,7 +23,6 @@
 
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
@@ -32,6 +31,7 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/monster/basic/SlimeEntity.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -341,7 +341,7 @@ TEST_F(MagmaCubeEntityTest, GetSquishParticle_ReturnsFlame)
     MagmaCubeEntity magmaCube(EntityId(1));
 
     auto particleType = magmaCube.getSquishParticle();
-    EXPECT_EQ(particleType, client::renderer::trident::particle::ParticleTypeId::Flame);
+    EXPECT_EQ(particleType, particle::ParticleTypeId::Flame);
 }
 
 TEST_F(MagmaCubeEntityTest, GetSquishParticle_ComparedToSlime)
@@ -351,9 +351,9 @@ TEST_F(MagmaCubeEntityTest, GetSquishParticle_ComparedToSlime)
     SlimeEntity slime(EntityId(2));
 
     // 岩浆怪: 火焰粒子
-    EXPECT_EQ(magmaCube.getSquishParticle(), client::renderer::trident::particle::ParticleTypeId::Flame);
+    EXPECT_EQ(magmaCube.getSquishParticle(), particle::ParticleTypeId::Flame);
     // 史莱姆: 粘液粒子
-    EXPECT_EQ(slime.getSquishParticle(), client::renderer::trident::particle::ParticleTypeId::ItemSlime);
+    EXPECT_EQ(slime.getSquishParticle(), particle::ParticleTypeId::ItemSlime);
 }
 
 // ==================== 火焰免疫测试 ====================

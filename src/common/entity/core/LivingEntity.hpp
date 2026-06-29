@@ -29,6 +29,8 @@
 #include "common/entity/damage/CombatTracker.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectManager.hpp"
+#include "common/entity/enchantment/LocationEnchantmentTracker.hpp"
+#include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/physics/PhysicsConstants.hpp"
 #include "common/resource/ResourceLocation.hpp"
@@ -194,6 +196,15 @@ public:
     virtual void die(DamageSource& cause);
 
     /**
+     * @brief 重写 Entity::remove()，在实体移除时清理位置依赖附魔效果
+     *
+     * 当实体被移除（包括死亡后被清除、卸载等场景）时，
+     * 需要停用所有活跃的位置依赖附魔效果（如灵魂疾行的速度修饰符），
+     * 防止属性修饰符残留。
+     */
+    void remove() override;
+
+    /**
      * @brief 由 /kill 命令调用
      *
      * 重写 Entity::onKillCommand()，使用虚空伤害杀死实体。
@@ -289,13 +300,40 @@ public:
      */
     void setAttributeBaseValue(const std::string& name, f64 value);
 
+    /**
+     * @brief 获取脚下方块的速度因子，考虑 MOVEMENT_EFFICIENCY 属性
+     *
+     * LivingEntity.getBlockSpeedFactor()：
+     *   finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
+     * 当 MOVEMENT_EFFICIENCY=0.0 时，使用方块原始 speedFactor
+     * 当 MOVEMENT_EFFICIENCY=1.0 时，完全忽略方块减速效果（speedFactor=1.0）
+     *
+     * 此方法用于移动物理中，在计算地面移动速度时替代方块原始 speedFactor。
+     * 灵魂疾行附魔通过为 MOVEMENT_EFFICIENCY 添加 +1.0 修饰符来抵消灵魂沙/土的减速。
+     *
+     * @return 速度因子 (0.0~1.0+)
+     */
+    [[nodiscard]] virtual f32 getBlockSpeedFactor();
+
     // ========== 装备 ==========
 
     /**
-     * @brief 获取装备
+     * @brief 获取装备（只读）
      * @param slot 装备槽位
      */
     [[nodiscard]] virtual const ItemStack& getEquipment(EquipmentSlot slot) const;
+
+    /**
+     * @brief 获取装备（可变引用）
+     *
+     * 返回指定槽位装备的可变引用，用于需要直接修改装备物品的场景
+     * （如附魔耐久消耗 hurtAndBreak、弩装填 setCharged 等）。
+     * Player 子类重写此方法以委托到 PlayerInventory。
+     *
+     * @param slot 装备槽位
+     * @return 装备物品堆的可变引用；槽位无效时返回静态空物品堆
+     */
+    [[nodiscard]] virtual ItemStack& getMutableEquipment(EquipmentSlot slot);
 
     /**
      * @brief 设置装备
@@ -325,6 +363,73 @@ public:
      * @param slot 破损的装备槽位
      */
     void broadcastBreakEvent(EquipmentSlot slot);
+
+    /**
+     * @brief 检测装备更新
+     *
+     * 每tick调用，检测装备槽位变化并同步属性修饰符。
+     * 当装备发生变化时：
+     * 1. 移除旧物品的属性修饰符
+     * 2. 添加新物品的属性修饰符
+     * 3. 同步装备数据到客户端
+     *
+     * 对应 MC 原版 LivingEntity.detectEquipmentUpdates()。
+     */
+    void detectEquipmentUpdates();
+
+    /**
+     * @brief 检查两个物品堆是否不同（用于装备变化检测）
+     *
+     * 对应 MC 原版 LivingEntity.equipmentHasChanged()。
+     *
+     * @param a 第一个物品堆
+     * @param b 第二个物品堆
+     * @return 如果两个物品堆不同返回 true
+     */
+    [[nodiscard]] static bool equipmentHasChanged(const ItemStack& a, const ItemStack& b);
+
+    /**
+     * @brief 停止基于位置的物品效果
+     *
+     * 当装备从槽位移除时调用，移除物品提供的属性修饰符，
+     * 并停用位置相关的附魔效果（如冰霜行者、灵魂疾行）。
+     * 对应 MC 原版 LivingEntity.stopLocationBasedEffects()。
+     *
+     * @param stack 物品堆
+     * @param slot 装备槽位
+     */
+    void stopLocationBasedEffects(const ItemStack& stack, EquipmentSlot slot);
+
+    /**
+     * @brief 当实体移动到新的方块位置时调用
+     *
+     * 评估位置依赖的附魔效果（如冰霜行者在水面上放置霜冰、灵魂疾行在灵魂沙上提供加速）。
+     * 当附魔的激活条件不再满足时，自动停用效果并清理属性修饰符。
+     *
+     * 调用时机：
+     * 1. 实体跨越方块边界时（tick 中检测 m_lastBlockPos 变化）
+     * 2. 周期性重新评估（每 20 tick，当有活跃位置附魔但未移动时，
+     *    处理脚下方块被破坏/替换但实体未移动的情况）
+     *
+     * 对应 MC Java 的 LivingEntity.onChangedBlock()。
+     */
+    void onChangedBlock();
+
+    /**
+     * @brief 获取位置依赖附魔效果跟踪器
+     *
+     * 用于追踪当前活跃的位置依赖附魔效果（如冰霜行者、灵魂疾行）。
+     *
+     * @return 跟踪器引用
+     */
+    [[nodiscard]] entity::LocationEnchantmentTracker& locationEnchantmentTracker()
+    {
+        return m_locationEnchantmentTracker;
+    }
+    [[nodiscard]] const entity::LocationEnchantmentTracker& locationEnchantmentTracker() const
+    {
+        return m_locationEnchantmentTracker;
+    }
 
     /**
      * @brief 将 Hand 转换为 EquipmentSlot
@@ -358,6 +463,11 @@ public:
     [[nodiscard]] const ItemStack& getMainHandItem() const { return getEquipment(EquipmentSlot::MainHand); }
 
     /**
+     * @brief 获取主手物品（可变引用）
+     */
+    [[nodiscard]] ItemStack& getMutableMainHandItem() { return getMutableEquipment(EquipmentSlot::MainHand); }
+
+    /**
      * @brief 设置主手物品
      */
     void setMainHandItem(const ItemStack& stack) { setEquipment(EquipmentSlot::MainHand, stack); }
@@ -366,6 +476,11 @@ public:
      * @brief 获取副手物品
      */
     [[nodiscard]] const ItemStack& getOffHandItem() const { return getEquipment(EquipmentSlot::OffHand); }
+
+    /**
+     * @brief 获取副手物品（可变引用）
+     */
+    [[nodiscard]] ItemStack& getMutableOffHandItem() { return getMutableEquipment(EquipmentSlot::OffHand); }
 
     /**
      * @brief 设置副手物品
@@ -572,6 +687,18 @@ public:
      * @param preHurtVelocity 目标在 hurt() 调用之前的速度（用于 ServerPlayer 速度修正）
      */
     virtual void causeExtraKnockback(Entity& target, f32 strength, const Vector3& preHurtVelocity);
+
+    /**
+     * @brief 获取攻击击退强度
+     *
+     * 对应 MC Java 的 LivingEntity.getKnockback()。
+     * 计算 ATTACK_KNOCKBACK 属性值加上击退附魔加成，然后除以 2.0。
+     * 此方法在 Mob::doHurtTarget 和 Player::attack 中用于计算 causeExtraKnockback 的击退强度。
+     *
+     * @param target 攻击目标实体（用于未来附魔修正，当前未使用）
+     * @return 击退强度值
+     */
+    [[nodiscard]] virtual f32 getKnockback(Entity& target);
 
     // ========== 渲染属性（用于客户端插值）==========
 
@@ -1135,6 +1262,21 @@ protected:
 
     // 装备
     std::array<ItemStack, static_cast<size_t>(EquipmentSlot::Count)> m_equipment;
+
+    // 上一tick的装备快照（用于检测装备变化并同步属性修饰符）
+    // 对应 MC 原版 LivingEntity.lastEquipmentItems
+    std::array<ItemStack, static_cast<size_t>(EquipmentSlot::Count)> m_lastEquipment;
+
+    // 是否已初始化上一tick装备快照
+    bool m_lastEquipmentInitialized = false;
+
+    // 上一tick的方块位置（用于检测位置变化触发位置依赖附魔效果）
+    // 对应 MC Java 的 LivingEntity.lastPos
+    BlockPos m_lastBlockPos{0, std::numeric_limits<i32>::min(), 0};
+
+    // 位置依赖附魔效果跟踪器
+    // 追踪冰霜行者、灵魂疾行等基于位置的附魔效果是否处于活跃状态
+    entity::LocationEnchantmentTracker m_locationEnchantmentTracker;
 
     // 主手偏好
     HandSide m_primaryHand = HandSide::Right; // 默认右手为主手

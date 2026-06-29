@@ -47,6 +47,7 @@
 
     ##容易踩的坑
 
+    - **装备虚方法重写**：Player 重写了 `getEquipment()`/`setEquipment()`/`getMutableEquipment()` 三个虚方法，通过 `PlayerInventory` 间接管理装备（而非基类 `m_equipment` 数组）。任何需要修改装备的代码必须使用 `getMutableEquipment()` 或 `getMutableMainHandItem()`，而非 `const_cast<ItemStack&>(getEquipment(...))`，否则对 Player 实例会修改基类 `m_equipment` 而非 `PlayerInventory`。
     - **awardCustomStat 虚方法**：`Player::
             awardCustomStat()` 是虚方法，基类空实现（不会崩溃也不会更新统计）；仅 `ServerPlayer` 重写版本实际委托给 `StatisticsManager::
                 incrementCustom()`。客户端调用安全但无效果。常量定义在 `common
@@ -198,3 +199,43 @@ Player 实现了 MC Java `Player` 中的最后死亡位置记录系统，用于�
 - 反序列化同时支持字符串维度名（`"minecraft:overworld"`）和整数维度ID（向后兼容）
 - 项目不重新创建 Player 实体（与 MC Java 的 `restoreFrom` 不同），因此无需 `restoreFrom` 逻辑
 - 同维度重生的 RespawnPacket 发送属于尚未实现的死亡重生基础设施，超出 LastDeathLocation TODO 范围
+
+---
+
+## 旁观者摄像机跟踪（Spectator Camera Tracking）
+
+Player 基类中包含旁观者模式摄像机跟踪的核心状态字段，由 `ServerPlayer` 负责完整的网络同步和每 tick 位置更新。
+
+### 核心字段
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `m_cameraEntityId` | `std::optional<EntityId>` | 旁观目标实体 ID，空值表示自身视角 |
+
+### 关键方法
+
+- `getCameraEntityId()` — 获取旁观目标实体 ID（optional）
+- `isSpectating()` — 是否正在旁观某个实体（`m_cameraEntityId.has_value()`）
+- `setCameraEntityId(std::optional<EntityId>)` — 设置/清除旁观目标，值变化时触发 `onCameraEntityChanged()` 虚方法通知
+- `onCameraEntityChanged(oldId, newId)` — 摄像机目标变更通知虚方法，基类空操作，ServerPlayer 重写以发送 SetCameraPacket 和传送
+- `isInputSneaking()` — 获取潜行输入状态（用于 ServerPlayer::tickSpectator 检测退出旁观）
+- `attack(Entity&)` 虚方法 — 旁观者模式下调用 `setCameraEntityId()` 设置旁观目标，通过 `onCameraEntityChanged()` 自动同步网络
+
+### 旁观者 noclip
+
+`Player::setGameMode()` 中：
+- 切换到旁观者模式 → `setNoClip(true)`
+- 离开旁观者模式 → `setNoClip(false)` + `setCameraEntityId(std::nullopt)`（触发 `onCameraEntityChanged()` 通知 ServerPlayer 发送 SetCameraPacket）
+
+### 数据流
+
+1. **设置旁观**：SpectateCommand / 旁观者攻击 → `setCameraEntityId()` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket + 传送到目标
+2. **每 tick 同步**：`ServerPlayer::tick()` → `tickSpectator()` → 同步位置到目标、检查有效性、潜行退出
+3. **模式切换**：`setGameMode()` 离开旁观模式时 → `setCameraEntityId(nullopt)` → `onCameraEntityChanged()` → ServerPlayer 发送 SetCameraPacket
+4. **客户端**：收到 SetCameraPacket → 设置 `m_cameraEntityId` → 渲染循环跟随目标 ClientEntity
+
+### 注意事项
+
+- `setCameraEntityId()` 内含相等性检查，值未变化时不触发 `onCameraEntityChanged()`，避免重复发包
+- `Player::attack()` 基类中旁观者路径调用 `setCameraEntityId()`，通过虚方法 `onCameraEntityChanged()` 自动触发 ServerPlayer 的网络同步，无需手动发包
+- 客户端旁观目标眼高已通过 `ClientEntity::eyeHeight()` 接口实现，根据实体类型和姿态返回正确的眼高值

@@ -301,9 +301,9 @@ IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& 
     // 首先检查方块是否实现 ISidedInventoryProvider
     // 例如堆肥桶（ComposterBlock）实现此接口
     if (blockState != nullptr) {
-        // 注意：getBlock() 返回 const Block&，但 createInventory 需要非 const
+        // getBlockMutable() 提供对 Block 的非 const 访问
         // block 本身是 final 的，不会修改 block 状态
-        Block& block = const_cast<Block&>(blockState->getBlock());
+        Block& block = blockState->getBlockMutable();
         ISidedInventoryProvider* provider = dynamic_cast<ISidedInventoryProvider*>(&block);
         if (provider != nullptr) {
             std::unique_ptr<ISidedInventory> inventory = provider->createInventory(*blockState, *world, pos);

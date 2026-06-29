@@ -176,92 +176,131 @@
 
     ## #步进高度（stepHeight）设置
     - Entity 基类默认 stepHeight = 0.0f（无步进能力） - LivingEntity 默认 stepHeight = 0.6f（可走台阶） -
-                铁傀儡、马、末影人、溺尸、劫掠兽、海龟等为 1.0f（可走完整方块） - 盔甲架为 0.0f（无法步进） -
-                骑乘时步高会动态变化（IRideable）
+            铁傀儡、马、末影人、溺尸、劫掠兽、海龟等为 1.0f（可走完整方块） - 盔甲架为 0.0f（无法步进） -
+            骑乘时步高会动态变化（IRideable）
 
-                ## #火焰系统注意事项
-                - `m_fire` 正值表示燃烧剩余 tick，负值表示火焰免疫期倒计时
-                - `igniteForSeconds(seconds)` 点燃实体指定秒数（推荐使用），内部转换为 tick
-                - `igniteForTicks(ticks)` 点燃实体指定 tick 数，仅在新值大于当前值时更新，同时清除冰冻状态
-                - `setFire(ticks)` 已弃用，请使用 igniteForTicks() 或 igniteForSeconds()
-                - `setRemainingFireTicks(ticks)` 直接设置火焰计时器值（含负值免疫期）
-                - `getRemainingFireTicks()` 获取剩余火焰 tick（含负值免疫期）
-                - `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间（Player 重写以限制创造模式）
-                - `clearFire()` 将正值火焰计时器清零，保留负值免疫期
-                - `extinguishFire()` 如果正在燃烧则播放灭火音效并调用 clearFire()
-                - `setFireImmunityCooldown()` 设置火焰免疫期（Player 为 20 tick / 1 秒，普通实体为 0）
-                - `getFireImmuneTicks()` 虚方法，返回火焰免疫期时长。基类返回 0，Player 返回 20
-                - `lavaIgnite()` 岩浆点燃：免疫火焰则跳过，否则 igniteForSeconds(15)（15 秒）
-                - `lavaHurt()` 岩浆伤害：免疫火焰则跳过，否则造成 4.0 点岩浆伤害 + 播放 GENERIC_BURN 音效
-                - `isOnFire()` 火焰免疫的实体永远不会被认为着火（m_fire > 0 && !isImmuneToFire()）
-                - 火焰免疫由 `EntityType::immuneToFire()` 标志决定，子类可重写（如 ItemEntity 检查物品是否防火）
-                - 烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
-                - 火焰免疫期机制：实体离开火焰/岩浆后获得短暂免疫期（m_fire 设为负值），防止立即被重新点燃
-                - doBlockCollisions() 末尾自动检测并设置免疫期（方块碰撞未点燃且当前不燃烧时触发）
-                - 雨中灭火会播放音效并设置免疫期
+            ## #火焰系统注意事项
+            - `m_fire` 正值表示燃烧剩余 tick，负值表示火焰免疫期倒计时
+            - `igniteForSeconds(seconds)` 点燃实体指定秒数（推荐使用），内部转换为 tick
+            - `igniteForTicks(ticks)` 点燃实体指定 tick 数，仅在新值大于当前值时更新，同时清除冰冻状态
+            - `setFire(ticks)` 已弃用，请使用 igniteForTicks() 或
+            igniteForSeconds() - `setRemainingFireTicks(ticks)` 直接设置火焰计时器值（含负值免疫期）
+            - `getRemainingFireTicks()` 获取剩余火焰 tick（含负值免疫期）
+            - `forceFireTicks(ticks)` 直接设置值，用于增减火焰时间（Player 重写以限制创造模式）
+            - `clearFire()` 将正值火焰计时器清零，保留负值免疫期 - `extinguishFire()` 如果正在燃烧则播放灭火音效并调用
+            clearFire() - `setFireImmunityCooldown()` 设置火焰免疫期（Player 为 20 tick /
+                1 秒，普通实体为 0） - `getFireImmuneTicks()` 虚方法，返回火焰免疫期时长。基类返回 0，Player 返回
+            20 - `lavaIgnite()` 岩浆点燃：免疫火焰则跳过，否则 igniteForSeconds(15)（15 秒）
+            - `lavaHurt()` 岩浆伤害：免疫火焰则跳过，否则造成 4.0 点岩浆伤害 + 播放 GENERIC_BURN 音效
+            - `isOnFire()` 火焰免疫的实体永远不会被认为着火（m_fire
+        > 0 &&
+    !isImmuneToFire()） - 火焰免疫由 `EntityType::immuneToFire()` 标志决定，子类可重写（如 ItemEntity 检查物品是否防火）
+                    - 烈焰人、恶魂、岩浆怪、猪灵系、疣猪兽、潜影贝、Boss实体免疫火焰
+                    - 火焰免疫期机制：实体离开火焰 / 岩浆后获得短暂免疫期（m_fire 设为负值），防止立即被重新点燃 -
+                    doBlockCollisions() 末尾自动检测并设置免疫期（方块碰撞未点燃且当前不燃烧时触发） -
+                    雨中灭火会播放音效并设置免疫期
 
-                ## #亡灵日光燃烧系统(burnUndead)
+                    ## #亡灵日光燃烧系统(burnUndead)
 
-                    对应 MC 原版 `Mob.burnUndead()`，统一处理亡灵生物在阳光下的燃烧逻辑。
+                        对应 MC 原版 `Mob.burnUndead()`，统一处理亡灵生物在阳光下的燃烧逻辑。
 
-                ####核心方法
+                    ####核心方法
 
-                - **`isInDaylight()`* * — 检查实体是否暴露在日光下。条件：白天（dayTime <
-            12000）、亮度 > 0.4、天空可见、不在水中且不在雨中（`isWet()`）、随机检查通过 -
-                **`sunProtectionSlot()`** — 虚方法，返回阳光防护装备槽位。默认 `EquipmentSlot::
-                        Head`（头盔），僵尸马覆写为 `EquipmentSlot::Chest`（马铠
-                    / 胸甲槽位）
-                -
-                **`burnUndead()`** — 亡灵日光燃烧主逻辑： 1. 如果不在日光下 → 直接返回
-                 2. 如果防护槽位有可损坏物品 → 物品承受耐久损耗（`setDamage()`，绕过耐久保护附魔）
-                 3. 如果防护槽位为空 → `igniteForSeconds(8)` 点燃实体 8 秒
+                    - **`isInDaylight()`* * — 检查实体是否暴露在日光下。条件：白天（dayTime <
+                12000）、亮度 > 0.4、天空可见、不在水中且不在雨中（`isWet()`）、随机检查通过 -
+                    **`sunProtectionSlot()`** — 虚方法，返回阳光防护装备槽位。默认 `EquipmentSlot::
+                            Head`（头盔），僵尸马覆写为 `EquipmentSlot::Chest`（马铠
+                        / 胸甲槽位）
+                    -
+                    **`burnUndead()`** — 亡灵日光燃烧主逻辑： 1. 如果不在日光下 → 直接返回
+                     2. 如果防护槽位有可损坏物品 → 物品承受耐久损耗（`setDamage()`，绕过耐久保护附魔）
+                     3. 如果防护槽位为空 → `igniteForSeconds(8)` 点燃实体 8 秒
 
-                 ####调用位置
+                     ####调用位置
 
-                - `MonsterEntity::handleDaylightBurning()` — 当 `m_burnsInDaylight
-        ==
-        true` 时调用 `burnUndead()`（僵尸、骷髅等） - `ZombieHorseEntity::tick()` — 僵尸马在 BURN_IN_DAYLIGHT
-            标签中，直接调用 `burnUndead()` - `PhantomEntity::tick()` — 幻翼在 BURN_IN_DAYLIGHT
-            标签中，直接调用 `burnUndead()` -
-            **注意 **：骷髅马不在 BURN_IN_DAYLIGHT 标签中，不会在阳光下燃烧
+                    - `MonsterEntity::handleDaylightBurning()` — 当 `m_burnsInDaylight
+            ==
+            true` 时调用 `burnUndead()`（僵尸、骷髅等） - `ZombieHorseEntity::tick()` — 僵尸马在 BURN_IN_DAYLIGHT
+                标签中，直接调用 `burnUndead()` - `PhantomEntity::tick()` — 幻翼在 BURN_IN_DAYLIGHT
+                标签中，直接调用 `burnUndead()` -
+                **注意 **：骷髅马不在 BURN_IN_DAYLIGHT 标签中，不会在阳光下燃烧
 
-             ####骷髅马与僵尸马的区别
+                 ####骷髅马与僵尸马的区别
 
-    | 行为 | 骷髅马 | 僵尸马 | | -- -- --| -- -- -- --| -- -- -- --| | BURN_IN_DAYLIGHT | ✗ | ✓ | | 阳光下燃烧 | ✗ | ✓ |
-    | 阳光防护槽位 | N / A | Chest（马铠） | | canBreatheUnderwater | ✓ | ✗ |
+        | 行为 | 骷髅马 | 僵尸马 | | -- -- --| -- -- -- --| -- -- -- --| | BURN_IN_DAYLIGHT | ✗ | ✓ | | 阳光下燃烧
+        | ✗ | ✓ | | 阳光防护槽位 | N / A | Chest（马铠） | | canBreatheUnderwater | ✓ | ✗ |
 
-    ####实现注意事项
+        ####实现注意事项
 
-        - `burnUndead()` 使用 `ItemStack::setDamage()` 直接增加伤害值， **绕过耐久保护附魔 **（与 MC 原版一致）
-        - `isInDaylight()` 中 `isWet()` 检查确保雨中和水中的亡灵不会燃烧
-        - 物品耐久耗尽后调用 `onEquippedItemBroken` 回调（广播装备破损动画 +
-        播放 ENTITY_ITEM_BREAK 音效）
+            - `burnUndead()` 使用 `ItemStack::setDamage()` 直接增加伤害值， **绕过耐久保护附魔 **（与 MC 原版一致）
+            - `isInDaylight()` 中 `isWet()` 检查确保雨中和水中的亡灵不会燃烧
+            - 物品耐久耗尽后调用 `onEquippedItemBroken` 回调（广播装备破损动画 +
+            播放 ENTITY_ITEM_BREAK 音效）
 
-        ## #装备损坏回调
+            ## #装备损坏回调
 
-        当装备物品耐久度耗尽时，需要调用 `onEquippedItemBroken` 回调，对应 MC 原版 `LivingEntity.onEquippedItemBroken()`。
+            当装备物品耐久度耗尽时，需要调用 `onEquippedItemBroken` 回调，对应 MC 原版 `LivingEntity
+                .onEquippedItemBroken()`。
 
-            **推荐使用 `LivingEntity::hurtAndBreak()` 静态方法 **： -
-        封装了 "保存物品指针 → 调用 attemptDamageItem → 检查是否损坏 → 触发回调"的完整流程 -
-        对应 MC 原版 `ItemStack.hurtAndBreak(int, LivingEntity, EquipmentSlot)` -
-        适用于绝大多数物品耐久损耗场景（工具攻击、方块破坏、武器射击等）
-        - 参数：`(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot)` -
-        返回值：`true` 表示物品损坏，`false` 否则
+                    **推荐使用 `LivingEntity::hurtAndBreak()` 静态方法 **： -
+            封装了 "保存物品指针 → 调用 attemptDamageItem → 检查是否损坏 → 触发回调"的完整流程 -
+            对应 MC 原版 `ItemStack.hurtAndBreak(int, LivingEntity, EquipmentSlot)` -
+            适用于绝大多数物品耐久损耗场景（工具攻击、方块破坏、武器射击等）
+            - 参数：`(ItemStack& stack, i32 amount, LivingEntity* entity, EquipmentSlot slot)` -
+            返回值：`true` 表示物品损坏，`false` 否则
 
-            **辅助方法 *
-                *： - `LivingEntity::handToEquipmentSlot(Hand)` — 将 `Hand` 枚举转换为 `EquipmentSlot`
+                **辅助方法 *
+                    *： - `LivingEntity::handToEquipmentSlot(Hand)` — 将 `Hand` 枚举转换为 `EquipmentSlot`
 
-                          **调用链 **： 1. `hurtAndBreak()` 在调用 `attemptDamageItem` 之前保存物品指针（因为损坏后
-                      ItemStack 会被清空） 2. 调用 `attemptDamageItem(amount, entity)` 处理耐久保护附魔和实际伤害
-                      3. 若物品损坏，调用 `entity->onEquippedItemBroken(item, slot)`
+                              **调用链 **： 1. `hurtAndBreak()` 在调用 `attemptDamageItem` 之前保存物品指针（因为损坏后
+                          ItemStack 会被清空） 2. 调用 `attemptDamageItem(amount, entity)` 处理耐久保护附魔和实际伤害
+                          3. 若物品损坏，调用 `entity->onEquippedItemBroken(item, slot)`
 
-                          **特殊场景 **： - `MobEntity::
-                    burnUndead()` — 使用 `setDamage()` 直接增加伤害值（绕过耐久保护附魔），手动实现回调逻辑
-        - `PlayerInventory::damageArmor()` — 使用 `hurtAndBreak()` 统一处理
+                              **特殊场景 **： - `MobEntity::
+                        burnUndead()` — 使用 `setDamage()` 直接增加伤害值（绕过耐久保护附魔），手动实现回调逻辑
+            - `PlayerInventory::damageArmor()` — 使用 `hurtAndBreak()` 统一处理
 
-            **方法实现 **： - `LivingEntity::onEquippedItemBroken()` — 广播 EntityStatus 装备破损状态码
-        + 播放 ENTITY_ITEM_BREAK 音效
-        - `ServerPlayer::onEquippedItemBroken()` — 额外更新物品损坏统计（`minecraft.broken:
+                ##装备变化检测与属性修饰符同步
+
+                LivingEntity 在每个 tick 中自动检测装备变化并同步属性修饰符，对应 MC
+                原版 `collectEquipmentChanges()` / `stopLocationBasedEffects()` 机制。
+
+                    **新增方法 **：
+
+            - **`detectEquipmentUpdates()`** — 每tick调用，检测装备变化并应用 / 移除属性修饰符
+            - 首次调用初始化装备快照 `m_lastEquipment`（不应用修饰符） -
+            后续调用比较当前装备与快照，检测变化后： 1. 对旧物品调用 `stopLocationBasedEffects()` 移除属性修饰符
+            2. 对新物品通过 `item->getAttributeModifiers(slot)` 获取修饰符并添加到 `AttributeMap` -
+            客户端世界（`isClientSide()`）跳过检测
+
+            - **`stopLocationBasedEffects(stack, slot)`** — 移除物品在指定槽位提供的属性修饰符
+            - 遍历 `item->getAttributeModifiers(slot)` 中匹配槽位的条目，逐一调用 `AttributeMap::removeModifier()` -
+              同时通过 `EnchantmentHelper::stopLocationBasedEffects()` 停用灵魂疾行、冰霜行者等位置依赖附魔效果
+
+            - **`equipmentHasChanged(a, b)`**(静态) — 比较两个 ItemStack 是否发生变化（物品类型、数量、伤害值）
+
+            - **`onEquippedItemBroken(item, slot)`**(虚方法) — 装备损坏回调，现已集成 `stopLocationBasedEffects()` 调用
+            - 在广播破损动画和音效之前，先移除损坏物品的属性修饰符 -
+            确保损坏物品不再影响实体的属性值
+
+                **新增成员变量 **：
+
+            - `m_lastEquipment` — `std::array<ItemStack, 6>` 装备快照，记录上次 tick 的装备状态
+            - `m_lastEquipmentInitialized` — `bool` 标记快照是否已初始化
+
+                    **Player 子类兼容性 **：
+
+                Player
+                重写了 `getEquipment()`/`setEquipment()`/`getMutableEquipment()` 虚方法，通过 `PlayerInventory` 间接管理装备。`detectEquipmentUpdates()` 通过虚方法调用读取装备，因此
+                Player 实例的装备快照正确反映 PlayerInventory 中的数据。快照使用 `ItemStack` 值拷贝，与底层存储无关。
+
+                    **可变装备访问**：
+
+                `getMutableEquipment(EquipmentSlot)` 返回 `ItemStack&` 可变引用，用于需要直接修改装备物品的场景（如附魔耐久消耗 `hurtAndBreak`、弩装填 `setCharged` 等）。Player 子类重写此方法以委托到 `PlayerInventory` 的可变引用访问器。便利方法 `getMutableMainHandItem()` 和 `getMutableOffHandItem()` 分别对应主手和副手槽位。所有需要修改装备的代码应使用这些方法而非 `const_cast<ItemStack&>(getEquipment(...))`。
+
+                    **方法实现 **： - `LivingEntity::onEquippedItemBroken()` — 广播 EntityStatus 装备破损状态码
+            + 播放 ENTITY_ITEM_BREAK 音效
+            - `ServerPlayer::onEquippedItemBroken()` — 额外更新物品损坏统计（`minecraft.broken:
 {
     item_id
 }
@@ -275,6 +314,38 @@
             * *客户端处理 * *： -
         收到状态码 47 - 52 时，播放 ENTITY_ITEM_BREAK 音效 +
         Breaking 粒子效果
+
+        ## #方块速度因子（getBlockSpeedFactor）
+
+        `LivingEntity::getBlockSpeedFactor()` 返回实体脚下方块的有效速度因子，考虑 `MOVEMENT_EFFICIENCY` 属性的插值效果。
+
+        ### 计算公式
+
+        ```
+        finalSpeedFactor = lerp(movementEfficiency, blockSpeedFactor, 1.0)
+        ```
+
+        即 `blockSpeedFactor + (1.0 - blockSpeedFactor) * movementEfficiency`
+
+        - 当 `movementEfficiency=0.0`（默认）：返回方块原始 `speedFactor`（灵魂沙=0.4，正常方块=1.0）
+        - 当 `movementEfficiency=1.0`：返回 1.0，完全忽略方块减速效果
+
+        ### 方块 speedFactor
+
+        大多数方块 `speedFactor=1.0`（无减速）。灵魂沙 `speedFactor=0.4`，蜂蜜块 `speedFactor=0.4`。通过 `BlockState::getSpeedFactor()` 获取。
+
+        ### 调用位置
+
+        - `LivingEntity::travel()` — 地面移动速度计算：`moveFactor *= getBlockSpeedFactor()`
+        - `Player::_applyCachedMovementInput()` — 玩家地面移动速度计算：`speedFactor *= getBlockSpeedFactor()`
+
+        ### 与灵魂疾行附魔的关系
+
+        灵魂疾行附魔通过 Addition 操作为 `MOVEMENT_EFFICIENCY` 属性添加 +1.0 修饰符，使 `getBlockSpeedFactor()` 在灵魂沙/灵魂土上返回 1.0，完全抵消减速效果。同时附魔还为 `MOVEMENT_SPEED` 添加加成。
+
+        ### 属性注册
+
+        `MOVEMENT_EFFICIENCY` 在 `LivingEntity::registerAttributes()` 中注册，所有生物实体默认拥有此属性（默认值 0.0，范围 0.0~1.0）。
 
         ## #空气供应与溺水 -
         空气值可从正数变成负数（用于溺水计时） - 当空气值降到 - 20 时重置为 0 并触发溺水伤害 -
@@ -298,89 +369,86 @@
         ## #类型标识符获取 - `typeId()` 返回 `EntityTypeIdNumber` 命名空间中的常量 - `legacyType()` 返回 `LegacyEntityType` 枚举（旧版，仅用于兼容） -
         新代码应使用 `typeId()`
 
-        ## #战利品表ID获取（getLootTableId）
+            ## #战利品表ID获取（getLootTableId）
 
         `Entity::getLootTableId()` 是虚方法，返回实体对应的战利品表资源路径（如 `"minecraft:entities/pig"`）。
 
-        **方法层次**：
-        - **`Entity::getLootTableId()`**（基类）：从 `m_typeId` 推导默认路径，格式为 `<namespace>:entities/<path>`（如 `"minecraft:pig"` → `"minecraft:entities/pig"`）。`m_typeId` 为空时返回空字符串。
-        - **`MobEntity::getLootTableId()`**（覆写）：优先返回 NBT 自定义掉落表 `m_deathLootTable`（对应 MC Java 的 `DeathLootTable` NBT 标签），为空或 nullopt 时回退到基类实现。对齐 MC Java 的 `Mob.getLootTable()`：`this.lootTable.isPresent() ? this.lootTable : super.getLootTable()`。
-        - **无战利品表实体覆写**：以下实体覆写返回空字符串，对齐 MC Java 的 `EntityType.Builder.noLootTable()`：
-          - `ProjectileEntity`（覆盖所有弹射物子类：箭矢、三叉戟、火球等）
-          - `ItemEntity`（掉落物）
-          - `ExperienceOrbEntity`（经验球）
-          - `BoatEntity`（船）
-          - `AbstractMinecartEntity`（覆盖所有矿车变体）
-          - `HangingEntity`（覆盖画、物品框、拴绳结）
-          - `AreaEffectCloudEntity`、`EnderCrystalEntity`、`LightningBoltEntity`（效果实体）
-          - `FallingBlockEntity`、`TNTEntity`（杂项实体）
-          - `FishingBobberEntity`、`EvokerFangsEntity`、`EyeOfEnderEntity`、`FireworkRocketEntity`（其他弹射物）
+            * *方法层次 * *： -
+        **`Entity::getLootTableId()`* *（基类）：从 `m_typeId` 推导默认路径，格式为 `<namespace> : entities /
+            <path>`（如 `"minecraft:pig"` → `"minecraft:entities/pig"`）。`m_typeId` 为空时返回空字符串。 -
+        **`MobEntity::getLootTableId()`*
+            *（覆写）：优先返回 NBT 自定义掉落表 `m_deathLootTable`（对应 MC Java 的 `DeathLootTable` NBT 标签），为空或
+                 nullopt 时回退到基类实现。对齐 MC Java 的 `Mob.getLootTable()`：`this.lootTable.isPresent()
+    ? this.lootTable
+    : super.getLootTable()`。 -
+            **无战利品表实体覆写 *
+                *：以下实体覆写返回空字符串，对齐 MC Java 的 `EntityType.Builder
+                     .noLootTable()`： - `ProjectileEntity`（覆盖所有弹射物子类：箭矢、三叉戟、火球等） - `ItemEntity`（掉落物） - `ExperienceOrbEntity`（经验球） - `BoatEntity`（船） - `AbstractMinecartEntity`（覆盖所有矿车变体） - `HangingEntity`（覆盖画、物品框、拴绳结） - `AreaEffectCloudEntity`、`EnderCrystalEntity`、`LightningBoltEntity`（效果实体） - `FallingBlockEntity`、`TNTEntity`（杂项实体） - `FishingBobberEntity`、`EvokerFangsEntity`、`EyeOfEnderEntity`、`FireworkRocketEntity`（其他弹射物）
 
-        **使用场景**：
-        - `/loot kill` 命令：从目标实体获取战利品表ID，生成击杀掉落物
-        - 实体死亡掉落逻辑：`MobEntity` 死亡时使用 `getLootTableId()` 查询战利品表
+                * *使用场景 * *： - `/ loot kill` 命令：从目标实体获取战利品表ID，生成击杀掉落物 -
+            实体死亡掉落逻辑：`MobEntity` 死亡时使用 `getLootTableId()` 查询战利品表
 
-        ## #ISpawnWorldReader 接口 -
-        定义在 `EntitySpawnPlacementRegistry.hpp` 中，用于生成检查的最小世界读取接口 -
-        主要方法： - `getBlockState(x, y, z)` - 获取方块状态 - `isInWorldBounds(x, y, z)` -
-        检查位置是否在世界范围内 - `getHeight(type, x, z)` - 获取高度图值 - `getBiome(x, y, z)` -
-        获取生物群系ID - `seed()` - 获取世界种子（史莱姆区块判断等确定性生成条件） - `difficulty()` -
-        获取世界难度（和平难度拒绝怪物生成） - `dayTime()` -
-        获取游戏日时间（月相计算等基于时间的生成条件） - `getMaxLocalRawBrightness(x, y, z)` -
-        获取最大原始亮度（光照等级生成条件） -
-        适配器实现：`NaturalSpawner::ServerWorldAdapter`（服务端）、`WorldGenRegionAdapter`（世界生成）
+            ## #ISpawnWorldReader 接口 -
+            定义在 `EntitySpawnPlacementRegistry.hpp` 中，用于生成检查的最小世界读取接口 -
+            主要方法： - `getBlockState(x, y, z)` - 获取方块状态 - `isInWorldBounds(x, y, z)` -
+            检查位置是否在世界范围内 - `getHeight(type, x, z)` - 获取高度图值 - `getBiome(x, y, z)` -
+            获取生物群系ID - `seed()` - 获取世界种子（史莱姆区块判断等确定性生成条件） - `difficulty()` -
+            获取世界难度（和平难度拒绝怪物生成） - `dayTime()` -
+            获取游戏日时间（月相计算等基于时间的生成条件） - `getMaxLocalRawBrightness(x, y, z)` -
+            获取最大原始亮度（光照等级生成条件） -
+            适配器实现：`NaturalSpawner::ServerWorldAdapter`（服务端）、`WorldGenRegionAdapter`（世界生成）
 
-        ## #数据参数注册 -
-        数据参数必须在 `registerData()` 中注册。所有数据参数必须通过 `EntityDataManager::createKey<T>()` 自动分配唯一
-            ID，禁止硬编码 ID 值。客户端通过 `EntityDataManager` 同步数据。
+            ## #数据参数注册 -
+            数据参数必须在 `registerData()` 中注册。所有数据参数必须通过 `EntityDataManager::createKey<
+                T>()` 自动分配唯一 ID，禁止硬编码 ID 值。客户端通过 `EntityDataManager` 同步数据。
 
-        ## #鞍与加速系统（BoostHelper） - `BoostHelper` 的加速状态不保存到 NBT（MC 1.16.5 行为） -
-        只有鞍状态会持久化 -
-        客户端通过 `syncFromDataManager()` 同步状态
+            ## #鞍与加速系统（BoostHelper） - `BoostHelper` 的加速状态不保存到 NBT（MC 1.16.5 行为） -
+            只有鞍状态会持久化 -
+            客户端通过 `syncFromDataManager()` 同步状态
 
-        ## #玩家交互 - `processInitialInteract()` -
-        处理玩家与生物的交互链，按优先级依次处理：命名牌 → 刷怪蛋 → 拴绳 → 子类交互 -
-        命名牌交互：委托 `NameTagItem::itemInteractionForEntity()`，成功后设置自定义名称并启用持久化 -
-        刷怪蛋交互：调用 `_spawnOffspringFromSpawnEgg()`，生成同类型幼体（仅 AgeableEntity 子类支持） -
-        **依赖 *
-            *：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 `Items::PIG_SPAWN_EGG`），当前
-                Items 注册表尚未注册任何刷怪蛋物品，待 `Items::registerSpawnEggs()` 实现后可通过正常游戏流程触发 -
-        拴绳交互：基本拴绳附着逻辑已实现（`setLeashedToEntity`、`setLeashedToFence`、`clearLeash`）， 完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、网络同步包等）待后续实现 - `canBeLeashed()` -
-        判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳） -
-        拴绳数据序列化：NBT 中 `Leash` 标签已实现，支持实体 UUID（UUIDMost / UUIDLeast）和栅栏柱坐标（X / Y /
-            Z）两种格式 -
-        拴绳延迟绑定：`LeashDelayInfo` 存储从 NBT
-            读取的原始数据，待目标实体加载后通过 `restoreLeashFromSave()` 完成实际绑定 - `_spawnOffspringFromSpawnEgg()` -
-        使用刷怪蛋生成幼体，类型匹配 + AgeableEntity 检查 -
-        **测试覆盖 *
-            *：核心逻辑（实体生成、物品消耗、类型匹配）的单元测试待
-                Items 注册 SpawnEggItem 后补充 - `applyPlayerInteraction()` -
-        有位置信息的交互（盔甲架装备槽） -
-        基类默认返回 `ActionResultType::Pass`
+            ## #玩家交互 - `processInitialInteract()` -
+            处理玩家与生物的交互链，按优先级依次处理：命名牌 → 刷怪蛋 → 拴绳 → 子类交互 -
+            命名牌交互：委托 `NameTagItem::itemInteractionForEntity()`，成功后设置自定义名称并启用持久化 -
+            刷怪蛋交互：调用 `_spawnOffspringFromSpawnEgg()`，生成同类型幼体（仅 AgeableEntity 子类支持） -
+            **依赖 *
+                *：此路径依赖 SpawnEggItem 在 Items 注册表中的注册（如 `Items::PIG_SPAWN_EGG`），当前
+                    Items 注册表尚未注册任何刷怪蛋物品，待 `Items::registerSpawnEggs()` 实现后可通过正常游戏流程触发 -
+            拴绳交互：基本拴绳附着逻辑已实现（`setLeashedToEntity`、`setLeashedToFence`、`clearLeash`）， 完整的拴绳系统（Leashable接口、tickLeash物理、LeashKnotEntity交互、网络同步包等）待后续实现 - `canBeLeashed()` -
+            判断生物是否可被拴绳拴住，默认实现通过 `dynamic_cast<IMob*>` 判断（敌对生物不可拴绳） -
+            拴绳数据序列化：NBT 中 `Leash` 标签已实现，支持实体 UUID（UUIDMost / UUIDLeast）和栅栏柱坐标（X / Y /
+                Z）两种格式 -
+            拴绳延迟绑定：`LeashDelayInfo` 存储从 NBT
+                读取的原始数据，待目标实体加载后通过 `restoreLeashFromSave()` 完成实际绑定 - `_spawnOffspringFromSpawnEgg()` -
+            使用刷怪蛋生成幼体，类型匹配 + AgeableEntity 检查 -
+            **测试覆盖 *
+                *：核心逻辑（实体生成、物品消耗、类型匹配）的单元测试待
+                    Items 注册 SpawnEggItem 后补充 - `applyPlayerInteraction()` -
+            有位置信息的交互（盔甲架装备槽） -
+            基类默认返回 `ActionResultType::Pass`
 
-        ## #水花溅射效果 -
-        速度因子 f1 决定水花强度和声音选择 - f1 <
-    0.25 用普通溅水声，f1 >= 0.25 用高速溅水声 -
-        观察者模式玩家不产生水花效果
+            ## #水花溅射效果 -
+            速度因子 f1 决定水花强度和声音选择 - f1 <
+        0.25 用普通溅水声，f1 >= 0.25 用高速溅水声 -
+            观察者模式玩家不产生水花效果
 
-        ## #发光效果判断 - `isGlowing()` 客户端检查数据参数标志位，服务端检查 m_glowing 字段 -
-        发光效果来源：发光药水、Entity发光标志、团队发光规则
+            ## #发光效果判断 - `isGlowing()` 客户端检查数据参数标志位，服务端检查 m_glowing 字段 -
+            发光效果来源：发光药水、Entity发光标志、团队发光规则
 
-        ## #箭矢计数与脱落 -
-        箭矢数量越多，脱落越快 - 脱落计时器公式：`20 * (30 - arrowCount)` ticks -
-        箭矢计数仅用于渲染，不影响游戏逻辑
+            ## #箭矢计数与脱落 -
+            箭矢数量越多，脱落越快 - 脱落计时器公式：`20 * (30 - arrowCount)` ticks -
+            箭矢计数仅用于渲染，不影响游戏逻辑
 
-        ## #吸收值（金苹果额外生命） -
-        使用 `absorptionAmount()` 获取吸收值，`setAbsorptionAmount(
-            f32)` 设置吸收值 - `setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内（与
-            MC 原版一致） - `maxAbsorption` 来自 `generic.max_absorption` 属性，默认值为 0.0 -
-        Player 不再需要单独定义吸收值方法，统一使用 LivingEntity 基类的实现 -
-        吸收值在 `actuallyHurt` 中通过 `setAbsorptionAmount` 消耗，确保限制逻辑生效 -
-        NBT 序列化键为 `"AbsorptionAmount"`，反序列化也使用 `setAbsorptionAmount`
+            ## #吸收值（金苹果额外生命） -
+            使用 `absorptionAmount()` 获取吸收值，`setAbsorptionAmount(
+                f32)` 设置吸收值 - `setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内（与
+                MC 原版一致） - `maxAbsorption` 来自 `generic.max_absorption` 属性，默认值为 0.0 -
+            Player 不再需要单独定义吸收值方法，统一使用 LivingEntity 基类的实现 -
+            吸收值在 `actuallyHurt` 中通过 `setAbsorptionAmount` 消耗，确保限制逻辑生效 -
+            NBT 序列化键为 `"AbsorptionAmount"`，反序列化也使用 `setAbsorptionAmount`
 
-        ## #装备掉落概率(DropChances) -
-        对应 MC 原版的 `DropChances` 记录，存储在 `m_equipmentDropChances` 数组中 -
-        索引与 `EquipmentSlot` 枚举值对应：[0] = MainHand,
+            ## #装备掉落概率(DropChances) -
+            对应 MC 原版的 `DropChances` 记录，存储在 `m_equipmentDropChances` 数组中 -
+            索引与 `EquipmentSlot` 枚举值对应：[0] = MainHand,
     [1] = OffHand, [2] = Feet, [3] = Legs, [4] = Chest,
     [5] = Head - 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5 %） -
     大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`） - `isEquipmentDropPreserved(slot)` 检查掉落概率 >
@@ -388,12 +456,15 @@
         - 保存时仅写入新格式（MC 1.21.4 +）：`drop_chances`（compound，仅包含非默认值）
         - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
 
-        ## #死亡掉落表(DeathLootTable)
-        - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/zombie"`）
-        - `m_lootTableSeed`：确定性种子，0 表示随机
+        ## #死亡掉落表(
+            DeathLootTable) - `m_deathLootTable`：可选字符串，覆盖实体类型的默认掉落表（格式如 `"minecraft:entities/"
+                                                                                                "zombi"
+                                                                                                "e"`） - `m_lootTableSeed`：确定性种子，0
+        表示随机
         - NBT 键：`DeathLootTable`（string，仅在有值时写入）、`DeathLootTableSeed`（long，仅非零时写入）
-        - 对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段
-        - 通过 `MobEntity::getLootTableId()` 虚方法统一访问：优先返回 `m_deathLootTable`，为空时回退到 `Entity::getLootTableId()`（从 typeId 推导默认路径）
+        - 对应 MC 原版 Mob 的 `lootTable` 和 `lootTableSeed` 字段 -
+        通过 `MobEntity::getLootTableId()` 虚方法统一访问：优先返回 `m_deathLootTable`，为空时回退到 `Entity::
+            getLootTableId()`（从 typeId 推导默认路径）
 
         ## #拴绳系统(Leash) - `m_isLeashed`：是否被拴绳拴住
         - `m_leashHolderUuid`：拴绳目标实体的 UUID（拴在实体上时）
@@ -543,84 +614,167 @@
     - 流程：elapsedTicks → intensity
     *= 0.997 ^ elapsedTicks → intensity = min(1.0, intensity + 0.07) → pitch = 0.5 +
     intensity *random * 1.2 → volume = 0.1 + intensity * 1.2 → playSound → lastCrystalSoundPlayTick = ticksExisted -
-    冷却：`shouldPlayAmethystStepSound()` 要求距上次播放 ≥ 20 tick -
-    这两个字段不参与 NBT 序列化，实体重载后从零开始
+            冷却：`shouldPlayAmethystStepSound()` 要求距上次播放 ≥ 20 tick -
+            这两个字段不参与 NBT 序列化，实体重载后从零开始
 
-    ## #Player::playStepSound 重写
+            ## #Player::playStepSound 重写
 
-    Player 重写 `playStepSound` 以处理水中步声：
-    - 在水中：播放游泳声 + 沉闷步声 -
-    非水中：委托给 `Entity::playStepSound`（已包含 COMBINATION / INSIDE /
-        紫水晶逻辑）
+            Player 重写 `playStepSound` 以处理水中步声：
+            - 在水中：播放游泳声 + 沉闷步声 -
+            非水中：委托给 `Entity::playStepSound`（已包含 COMBINATION / INSIDE /
+                紫水晶逻辑）
 
-        ## #容易踩的坑
+                ## #容易踩的坑
 
-    - **紫水晶铃声检查对象 * *
+            - **紫水晶铃声检查对象 * *
         ：`shouldPlayAmethystStepSound` 必须检查脚下方块（`blockState`），不是上方方块（`primaryState`）。站在紫水晶块上铺有地毯时，地毯是 COMBINATION，紫水晶是脚下方块，铃声应触发。
-    - **紫水晶铃声强度不持久化 * *
+            - **紫水晶铃声强度不持久化 * *
         ：`m_crystalSoundIntensity` 和 `m_lastCrystalSoundPlayTick` 不参与 NBT 序列化，这是 MC 原版行为。实体重载后强度从零开始重新累积。
-    -
-    **Player 不需要重复 INSIDE / COMBINATION 判断 *
-        *：Player 的 `playStepSound` 非水中情况直接调用 `Entity::playStepSound`，避免重复判断导致双重步声。
-    - **组合步声音量 * *：上方正常步声 0.15x 音量，下方沉闷步声 0.05x 音量 +
-    0.8x 音调。
+            -
+            **Player 不需要重复 INSIDE / COMBINATION 判断 *
+                *：Player 的 `playStepSound` 非水中情况直接调用 `Entity::playStepSound`，避免重复判断导致双重步声。
+            - **组合步声音量 * *：上方正常步声 0.15x 音量，下方沉闷步声 0.05x 音量 +
+            0.8x 音调。
 
-    ## #canAttackType 攻击类型判断
-    - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()` -
-    基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob
-    徒劳地试图攻击一个它们够不着的敌人
-    - 子类重写以限制攻击目标类型，例如：
-    - `IronGolemEntity::canAttackType()` — 玩家创建的铁傀儡不攻击玩家，所有铁傀儡不攻击苦力怕，其余委托基类（排除恶魂）
-    - `PhantomEntity::canAttackType()` — 返回 `true`，覆盖基类排除恶魂的限制，因为幻翼本身会飞行
-    - `BreezeEntity::canAttackType()` — 白名单模式，仅允许攻击玩家和铁傀儡
-    - 在 `TargetGoal::isSuitableTarget()` 中自动调用，所有目标选择器继承此过滤逻辑 -
-    自定义目标选择器（如 `IronGolemNearestAttackableTargetGoal`）需手动调用 `canAttackType()`
+            ## #canAttackType 攻击类型判断
+            - `canAttackType(EntityTypeId typeId)` — 对应 MC 原版 `Mob.canAttackType()` -
+            基类默认实现排除恶魂（GHAST），因为恶魂悬浮在高空，大多数近战型 Mob 无法接近，排除恶魂可以避免 Mob
+            徒劳地试图攻击一个它们够不着的敌人
+            - 子类重写以限制攻击目标类型，例如： - `IronGolemEntity::
+                  canAttackType()` — 玩家创建的铁傀儡不攻击玩家，所有铁傀儡不攻击苦力怕，其余委托基类（排除恶魂）
+            - `PhantomEntity::canAttackType()` — 返回 `true`，覆盖基类排除恶魂的限制，因为幻翼本身会飞行
+            - `BreezeEntity::canAttackType()` — 白名单模式，仅允许攻击玩家和铁傀儡
+            - 在 `TargetGoal::isSuitableTarget()` 中自动调用，所有目标选择器继承此过滤逻辑 -
+            自定义目标选择器（如 `IronGolemNearestAttackableTargetGoal`）需手动调用 `canAttackType()`
 
-    ## #setLastHurtBy 虚方法
-    - `LivingEntity::setLastHurtBy()` 现为 `virtual` 方法，允许子类在受到其他实体攻击时执行自定义逻辑 -
-    **子类覆写时必须调用基类实现 *
-        * `LivingEntity::
-            setLastHurtBy()`，否则基类的 `m_lastHurtByPlayer`、`m_lastHurtByMob`、`m_lastHurtByPlayerAtTime` 等字段不会更新，可能导致依赖这些字段的逻辑（如复仇目标选择、击退方向等）失效
-    -
-    典型覆写示例：`VillagerEntity::
-        setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
+            ## #setLastHurtBy 虚方法
+            - `LivingEntity::setLastHurtBy()` 现为 `virtual` 方法，允许子类在受到其他实体攻击时执行自定义逻辑 -
+            **子类覆写时必须调用基类实现 *
+                * `LivingEntity::
+                    setLastHurtBy()`，否则基类的 `m_lastHurtByPlayer`、`m_lastHurtByMob`、`m_lastHurtByPlayerAtTime` 等字段不会更新，可能导致依赖这些字段的逻辑（如复仇目标选择、击退方向等）失效
+            -
+            典型覆写示例：`VillagerEntity::
+                setLastHurtBy()` 在被玩家攻击时，调用基类实现后额外广播 `VillagerAngry` 粒子并添加 `MinorNegative` 流言
 
-    ## #hurtMarked 受伤标记机制
-    - `m_hurtMarked`（bool）— 瞬态标记，实体受到伤害或击退时设为 true
-    - `markHurt()` — 设置标记为 true
-    - `isHurtMarked()` — 查询标记状态
-    - `clearHurtMarked()` — 清除标记（由 EntityTracker 速度同步后调用）
-    - 用途：服务端 EntityTracker 在 tick 中检测 `isHurtMarked()`，为 true 时向所有追踪玩家发送 EntityVelocityPacket，然后清除标记；AI 目标检测（如 TradeWithPlayerGoal 检查 `isHurtMarked()` 判断是否中断交易）
-    - 字段位于 Entity 类 protected 区域，紧随 `m_invulnerable` 之后
-    - 该标记不参与 NBT 序列化，实体重载后从 false 开始
+            ## #hurtMarked 受伤标记机制
+            - `m_hurtMarked`（bool）— 瞬态标记，实体受到伤害或击退时设为 true - `markHurt()` — 设置标记为
+            true - `isHurtMarked()` — 查询标记状态
+            - `clearHurtMarked()` — 清除标记（由 EntityTracker 速度同步后调用） -
+            用途：服务端 EntityTracker 在 tick 中检测 `isHurtMarked()`，为
+            true 时向所有追踪玩家发送 EntityVelocityPacket，然后清除标记；AI 目标检测（如
+            TradeWithPlayerGoal 检查 `isHurtMarked()` 判断是否中断交易）
+            - 字段位于 Entity 类 protected 区域，紧随 `m_invulnerable` 之后 -
+            该标记不参与 NBT 序列化，实体重载后从 false 开始
 
-    ## #causeExtraKnockback 额外击退机制
+                ## #causeExtraKnockback 额外击退机制
 
-    对应 MC Java 的 `LivingEntity.causeExtraKnockback()` / `Player.causeExtraKnockback()`，用于疾跑/附魔击退的速度修正。
+                对应 MC Java 的 `LivingEntity.causeExtraKnockback()` / `Player.causeExtraKnockback()`，用于疾跑
+                /
+                附魔击退的速度修正。
 
-    ### 基类 LivingEntity::causeExtraKnockback(target, strength, preHurtVelocity)
+                ## #基类 LivingEntity::causeExtraKnockback(target, strength, preHurtVelocity)
 
-    - 当 `strength > 0` 时：基于攻击者朝向（yaw）对目标施加击退，攻击者水平速度 ×0.6 减速
-    - 注意：基类**不**调用 `setSprinting(false)`，那是 Player 子类的行为
-    - `preHurtVelocity` 参数在基类中未使用（仅 Player 子类需要）
+            - 当 `strength
+        > 0` 时：基于攻击者朝向（yaw）对目标施加击退，攻击者水平速度 ×0.6 减速
+            - 当 `strength <= 0` 时：不施加击退，攻击者也不减速
+            - 注意：基类 **不 **调用 `setSprinting(false)`，那是 Player 子类的行为
+            - `preHurtVelocity` 参数在基类中未使用（仅 Player 子类需要）
 
-    ### Player 子类重写
+            ## #Player 子类重写
 
-    - 在基类击退逻辑基础上增加 `setSprinting(false)`（疾跑停止）
-    - ServerPlayer 目标速度重复应用修复：当 `target.isHurtMarked() && targetPlayer->sendVelocityPacket()` 返回 true 时，立即清除 hurtMarked 并恢复 preHurtVelocity，避免 EntityTracker::tick() 重复发送速度包
+            - 在基类击退逻辑基础上增加 `setSprinting(false)`（疾跑停止）
+            - ServerPlayer 目标速度重复应用修复：当 `target.isHurtMarked() &&
+    targetPlayer->sendVelocityPacket()` 返回
+                true 时，立即清除 hurtMarked 并恢复 preHurtVelocity，避免 EntityTracker::tick() 重复发送速度包
 
-    ### sendVelocityPacket() 虚方法
+            ## #getKnockback 击退强度计算
 
-    - Player 基类返回 `false`（空操作）
-    - ServerPlayer 重写版本实际发送 EntityVelocityPacket 并返回 `true`
-    - 此设计避免 common 层对 server 层的依赖，通过虚方法桥接
+            `LivingEntity::getKnockback(Entity& target)` 返回攻击击退强度，计算公式为：
+            ```
+            (ATTACK_KNOCKBACK属性 + 击退附魔加成) / 2.0
+            ```
 
-    ## #setAttackTarget 虚方法
-    - `MobEntity::setAttackTarget()` 和 `MobEntity::
-        attackTarget()` 现为 `virtual` 方法，允许IAngerable实体在设置攻击目标时同步更新愤怒状态
-    -
-    **IAngerable实体统一使用MobEntity::m_attackTarget *
-        *：所有实现IAngerable接口的实体（PiglinEntity、GolemEntity、EndermanEntity、BeeEntity、PolarBearEntity、TameableEntity）不再声明独立的`m_attackTarget`成员，而是复用`MobEntity::
-            m_attackTarget` -
-    通过`MobEntity *`指针调用`setAttackTarget()`时，虚函数派发会正确到达子类的override，确保愤怒状态与攻击目标始终同步
-    - 子类override `setAttackTarget` 时应调用 `MobEntity::setAttackTarget(target)` 设置基类的 `m_attackTarget`
+            - `ATTACK_KNOCKBACK` 属性默认值为 0.0，大多数生物不注册此属性
+            - 击退附魔加成通过 `KnockbackEnchantment::getKnockbackBonus(level)` 计算（每级 +0.5）
+            - 除以 2.0 是因为 `hurt()` 中已有 0.4 的基础击退，`causeExtraKnockback` 的击退值需要减半以保持总击退合理
+            - 子类可重写此方法以定制击退行为
+
+            **调用位置**：
+            - `MobEntity::attackEntityAsMob()` — 调用 `getKnockback(target)` 获取击退强度后传给 `causeExtraKnockback()`
+            - `Player::attack()` — 直接内联计算击退强度（疾跑 + 附魔），不调用 `getKnockback()`
+
+            ## #applyKnockback 零向量随机扰动
+
+            `LivingEntity::applyKnockback(strength, ratioX, ratioZ)` 中，当方向向量过小（长度平方 < 1.0E-5）时，
+            不直接返回，而是对方向向量添加随机扰动，避免零向量导致无击退的问题。
+            扰动方式：`ratioX = (random - random) * 0.01`，`ratioZ = (random - random) * 0.01`。
+
+                ## #sendVelocityPacket() 虚方法
+
+                - Player 基类返回 `false`（空操作） - ServerPlayer 重写版本实际发送 EntityVelocityPacket 并返回 `true` -
+                此设计避免 common 层对 server 层的依赖，通过虚方法桥接
+
+                    ## #乘客系统与压力板触发
+
+                    Entity 基类提供两层乘客准入检查和压力板触发控制，对应 MC Java
+                    的 `couldAcceptPassenger()` / `canAddPassenger()` / `isIgnoringBlockTriggers()`。
+
+                    ## #乘客准入检查
+
+                -
+                **`couldAcceptPassenger()`** — 硬门槛，返回 `false` 表示该实体完全不能接受乘客。基类默认返回 `true`。 -
+                **`canAddPassenger(const Entity& passenger)`*
+                      * — 软门槛，允许基于乘客身份和当前乘客数量做细粒度判断。基类默认返回 `m_passengers.size() <
+            getMaxPassengers()`。 -
+                **`getMaxPassengers()`** — 最大乘客数量，基类默认返回 1。
+
+                    *
+                    *调用链 *
+                        *：`startRiding()` 负责循环检测、准入检查（先 `couldAcceptPassenger()` 再 `canAddPassenger()`），然后设置 vehicle 字段并调用 `addPassenger()`。`addPassenger()` 仅操作乘客列表，不进行循环检测（对齐 MC Java）。
+
+                        **子类覆写示例 **：
+
+        | 实体 | couldAcceptPassenger | canAddPassenger | getMaxPassengers | 说明 | | -- -- --|
+        -- -- -- -- -- -- -- -- -- -- -| -- -- -- -- -- -- -- -- -| -- -- -- -- -- -- -- -- --| -- -- --|
+        | Entity（基类） | true | passengers < max | 1 | 默认单乘客 | | BoatEntity | true（继承） | passengers < 2 &&
+    非水下 | — | 覆写 canAddPassenger，水下禁止乘客 | | OminousItemSpawnerEntity | **false * *|
+        **false * *| — | 完全禁止乘客 | | AbstractHorseEntity | true（继承） | passengers < max |
+        2（马类） | 覆写 getMaxPassengers |
+
+        ## #压力板触发控制
+
+            - **`doesEntityNotTriggerPressurePlate()`** — 返回 `true` 表示该实体不触发压力板。基类默认返回 `false`。
+
+                   **覆写情况 **（对应 MC Java 的 `isIgnoringBlockTriggers()`）：
+
+        | 实体 | 返回值 | 说明 | | -- -- --| -- -- -- --| -- -- --| | Entity（基类） | false | 默认触发压力板 |
+        | BatEntity | true | 蝙蝠不触发压力板 |
+        | ArmorStandEntity（marker = true） | true | 标记模式盔甲架不触发压力板 | | ArmorStandEntity（marker = false） |
+    false | 普通盔甲架触发压力板 | | OminousItemSpawnerEntity | true | 不祥物品生成器不触发压力板 |
+
+    **压力板灵敏度分类 * *：
+
+        - **石质 / 磨制黑石压力板 *
+            *（MOBS 灵敏度）：使用 `dynamic_cast<
+                LivingEntity*>` 过滤，只检测生物实体，同时排除 `doesEntityNotTriggerPressurePlate()` 返回 true 的实体。
+        -
+        **木质 / 铜 / 铁 / 金等压力板 *
+            *（EVERYTHING 灵敏度）：检测所有实体类型，但排除 `doesEntityNotTriggerPressurePlate()` 返回 true 的实体。
+        -
+        **测重压力板 *
+            *：与木质压力板相同，检测所有实体并排除不触发的实体。
+
+            注意：物品实体和投射物
+            * *不 * *覆写 `doesEntityNotTriggerPressurePlate()`。在 MC 原版中，木质 /
+            测重压力板可检测所有实体（包括物品），石质压力板通过 LivingEntity 类型过滤自动排除非生物实体。
+
+            ## #setAttackTarget 虚方法
+        - `MobEntity::setAttackTarget()` 和 `MobEntity::
+            attackTarget()` 现为 `virtual` 方法，允许IAngerable实体在设置攻击目标时同步更新愤怒状态
+        -
+        **IAngerable实体统一使用MobEntity::m_attackTarget *
+            *：所有实现IAngerable接口的实体（PiglinEntity、GolemEntity、EndermanEntity、BeeEntity、PolarBearEntity、TameableEntity）不再声明独立的`m_attackTarget`成员，而是复用`MobEntity::
+                m_attackTarget` -
+        通过`MobEntity
+            *`指针调用`setAttackTarget()`时，虚函数派发会正确到达子类的override，确保愤怒状态与攻击目标始终同步
+        - 子类override `setAttackTarget` 时应调用 `MobEntity::setAttackTarget(target)` 设置基类的 `m_attackTarget`

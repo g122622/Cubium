@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) 2026 Guo Yi
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to Use, copy, modify, merge, publish, distribute, sublicense, and or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ */
+
+#include "LightParticle.hpp"
+
+namespace mc::client::renderer::trident::particle::particles {
+
+LightParticle::LightParticle(const glm::vec3& pos, const glm::vec3& velocity)
+    : Particle(pos, velocity)
+    , m_initialSize(DEFAULT_SIZE + m_random.nextFloat() * SIZE_VARIATION)
+{
+    setGravity(DEFAULT_GRAVITY);
+    setSize(m_initialSize);
+
+    // 明亮白黄色
+    f32 b = static_cast<f32>(0.8 + m_random.nextFloat() * 0.2);
+    setColor(glm::vec4(1.0f, 1.0f, b, 1.0f));
+
+    setFriction(FRICTION);
+    setHasPhysics(false);
+    setMaxAge(DEFAULT_LIFETIME + m_random.nextFloat() * LIFETIME_VARIATION);
+}
+
+std::unique_ptr<Particle> LightParticle::create(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+    return std::make_unique<LightParticle>(pos, velocity);
+}
+
+void LightParticle::tick(mc::client::ClientWorld* world)
+{
+    MC_UNUSED(world);
+
+    m_prevPosition = m_position;
+    m_prevRoll = m_roll;
+
+    m_age += 1.0;
+    if (m_age >= m_maxAge) {
+        setExpired();
+        return;
+    }
+
+    // 随机摆动
+    m_velocity.x += (m_random.nextFloat() - 0.5f) * 0.01f;
+    m_velocity.y += 0.002f; // 轻微上升
+    m_velocity.z += (m_random.nextFloat() - 0.5f) * 0.01f;
+
+    // 摩擦衰减
+    m_velocity.x *= static_cast<f32>(m_friction);
+    m_velocity.y *= static_cast<f32>(m_friction);
+    m_velocity.z *= static_cast<f32>(m_friction);
+
+    m_position += m_velocity;
+
+    f64 lifeRatio = m_age / m_maxAge;
+
+    // 缩小：1 - lifeRatio * 0.3
+    setSize(m_initialSize * (1.0 - lifeRatio * 0.3));
+
+    // 60% 生命周期后淡出
+    if (lifeRatio > 0.6) {
+        m_color.a = static_cast<f32>(1.0 - (lifeRatio - 0.6) / 0.4);
+    }
+}
+
+f64 LightParticle::getScale(f64 partialTick) const
+{
+    MC_UNUSED(partialTick);
+    // size 已在 tick() 中更新，这里返回 1.0
+    return 1.0;
+}
+
+} // namespace mc::client::renderer::trident::particle::particles

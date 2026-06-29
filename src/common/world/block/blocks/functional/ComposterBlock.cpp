@@ -144,7 +144,7 @@ i32 ComposterBlock::getComparatorInputOverride(const BlockState& state, IWorld& 
 }
 
 BlockState ComposterBlock::attemptCompost(
-    const BlockState& state, IWorld& world, const BlockPos& pos, Block& block, u32 itemId)
+    const BlockState& state, IWorld& world, const BlockPos& pos, const Block& block, u32 itemId)
 {
 
     i32 level = getLevel(state);

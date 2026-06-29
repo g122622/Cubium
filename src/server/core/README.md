@@ -197,4 +197,4 @@ OpLevel 枚举参考 MC 1.16.5：
 
 ### 11. 载具移动速度验证（PacketHandler）
 
-`handleMoveVehicle` 中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝。
+`handleMoveVehicle` 中有速度验证防止作弊，`MAX_VEHICLE_SPEED_SQ = 100.0`，超过此速度的移动数据包会被拒绝，同时发送 `VehicleMovePacket` 校正包将客户端载具位置恢复到服务端已知位置，防止客户端与服务端脱节。

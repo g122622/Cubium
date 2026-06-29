@@ -9,7 +9,8 @@ Minecraft 1.17 +
 
 ```text gameevent /
 ├── GameEvent.hpp #游戏事件类定义（含 Context）
-├── GameEvents.hpp #所有原版游戏事件常量定义
+├── GameEvents.hpp #所有原版游戏事件常量定义 + getGameEventById() 反序列化查找函数
+├── GameEvents.cpp #getGameEventById() 实现（延迟初始化的 unordered_map 查找表）
 ├── GameEventListener.hpp #游戏事件监听器接口（含 DeliveryMode、ListenerInfo）
 ├── GameEventListenerRegistry.hpp #监听器注册表接口
 ├── GameEventListenerRegistry.cpp #EuclideanGameEventListenerRegistry 实现
@@ -56,7 +57,7 @@ Minecraft 1.17 +
         时也需重写此方法返回 `true`。 3. ** BlockTags::DAMPENS_VIBRATIONS
         必须包含地毯**：该标签不仅包含16色羊毛，还包含16色地毯方块（对齐 MC 原版 `#minecraft
     : dampens_vibrations = #minecraft : wool +
-                                        #minecraft
+#minecraft
     : wool_carpets`）。如果未来新增地毯颜色，需同步更新此标签。 4. **requiresAdjacentChunksToBeTicking 的检查逻辑**：`receiveVibration()` 中调用 `areAdjacentChunksTicking(world, listenerBlockPos)` 检查监听器位置周围 3x3 区块是否全部处于 BlockTicking 级别且已加载。注意两点：（1）检查位置是监听器位置而非振动源位置；（2）检查级别是 BlockTicking（level ≤ 32）而非 EntityTicking（level ≤ 31）。检查不通过时返回 false 但不清除当前振动，下次 tick 会重试。 5. **reloadVibrationParticle 的设置时机**：`tryReloadVibrationParticle()` 依赖 `data.shouldReloadVibrationParticle()` 标志，该标志必须从存档加载时设为 `true`。MC 原版在 `Data.CODEC` 反序列化时硬编码 `reloadVibrationParticle = true`。实现 SculkSensorBlockEntity、SculkShriekerBlockEntity、WardenEntity、AllayEntity 的 NBT 加载时，应使用 `Data(currentVibration, selector, travelTime, true)` 构造函数或调用 `setReloadVibrationParticle(true)`，否则区块重新加载后不会重发振动粒子效果。
 
       ##核心类
@@ -200,12 +201,14 @@ Minecraft 1.17 +
         游戏事件监听器按区块段存储在 `ChunkData::m_gameEventListenerRegistries` 中。
         每个段（16x16x16）有独立的 `EuclideanGameEventListenerRegistry`，当注册表为空时自动从映射中移除以节省内存。
 
-        方块实体注册
-        /
-        注销监听器的流程： 1. 方块实体创建 → 通过 `Block::getGameEventListener()` 获取监听器
-        2. 调用 `chunk.getOrCreateGameEventListenerRegistry(sectionY, world)
-            .registerListener(listener)` 3. 方块实体移除 → 调用 `registry.unregisterListener(
-                listener)` 4. 注册表为空时 → OnEmptyAction 回调自动从映射中移除
+        方块实体注册/注销监听器的流程：
+        1. 方块实体创建 → ServerWorld::setBlockEntity() 检测 SculkSensor/SculkShrieker →
+           SculkVibrationManager 创建 VibrationSystem 附件并注册 Listener
+        2. 注册到 chunk.getOrCreateGameEventListenerRegistry(sectionY, factory).registerListener(listener)
+        3. 方块实体移除 → ServerWorld::removeBlockEntity() → SculkVibrationManager 注销 Listener
+        4. 注册表为空时 → OnEmptyAction 回调自动从映射中移除
+        5. 每 tick → ServerWorld::tickBlockEntities() → SculkVibrationManager::tickAll() →
+           VibrationSystem::Ticker::tick()
 
         ##设计差异
 

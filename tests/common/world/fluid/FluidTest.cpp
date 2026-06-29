@@ -242,6 +242,38 @@ TEST(FluidRegistryTest, GetFluidByInvalidResourceLocationReturnsNull)
     EXPECT_EQ(fluid, nullptr);
 }
 
+TEST(FluidRegistryTest, FluidStateCountAfterInitialization)
+{
+    FluidRegistry& registry = FluidRegistry::instance();
+    registry.initialize();
+
+    // After initialization, fluidStateCount() should return a non-zero value
+    // that matches the actual number of registered fluid states.
+    // The registry registers 5 fluids (empty, water, flowing_water, lava, flowing_lava),
+    // each with at least one state, so the count must be >= 5.
+    size_t stateCount = registry.fluidStateCount();
+    EXPECT_GT(stateCount, 0u);
+
+    // fluidStateCount() should equal m_statesById.size(), which we can verify
+    // by checking that getFluidState returns valid pointers for all IDs < stateCount
+    // and nullptr for IDs >= stateCount.
+    for (u32 i = 0; i < static_cast<u32>(stateCount); ++i) {
+        EXPECT_NE(registry.getFluidState(i), nullptr)
+            << "getFluidState(" << i << ") should not be null when i < fluidStateCount()";
+    }
+    EXPECT_EQ(registry.getFluidState(static_cast<u32>(stateCount)), nullptr)
+        << "getFluidState(stateCount) should be null";
+}
+
+TEST(FluidRegistryTest, FluidCountAfterInitialization)
+{
+    FluidRegistry& registry = FluidRegistry::instance();
+    registry.initialize();
+
+    // The registry registers exactly 5 fluids
+    EXPECT_EQ(registry.fluidCount(), 5u);
+}
+
 // ============================================================================
 // FluidProperties Tests
 // ============================================================================

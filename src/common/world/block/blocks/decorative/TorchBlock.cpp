@@ -23,7 +23,7 @@
 
 #include "TorchBlock.hpp"
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -32,8 +32,7 @@
 namespace mc {
 namespace blocks {
 
-TorchBlock::TorchBlock(
-    const BlockProperties& properties, client::renderer::trident::particle::ParticleTypeId flameParticle)
+TorchBlock::TorchBlock(const BlockProperties& properties, particle::ParticleTypeId flameParticle)
     : Block(properties)
     , m_shape(CollisionShape::fromPixelBox(7.0f, 0.0f, 7.0f, 9.0f, 10.0f, 9.0f))
     , m_flameParticle(flameParticle)
@@ -102,8 +101,7 @@ void TorchBlock::animateTick(
     const f32 z = static_cast<f32>(pos.z) + 0.5f;
 
     // 烟雾粒子
-    context.addAnimateParticle(
-        client::renderer::trident::particle::ParticleTypeId::Smoke, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
+    context.addAnimateParticle(particle::ParticleTypeId::Smoke, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
 
     // 火焰粒子
     context.addAnimateParticle(m_flameParticle, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));

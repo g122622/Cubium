@@ -32,10 +32,9 @@
 #include "server/core/PlayerManager.hpp"
 #include "server/core/ServerPlayerData.hpp"
 
-#include <ctime>
-#include <iomanip>
+#include "common/util/DateTimeUtils.hpp"
+
 #include <regex>
-#include <sstream>
 
 namespace mc {
 namespace command {
@@ -48,19 +47,7 @@ namespace {
  */
 std::string getCurrentTimeString()
 {
-    auto now = std::chrono::system_clock::now();
-    auto now_time = std::chrono::system_clock::to_time_t(now);
-
-    std::tm tm;
-#ifdef _WIN32
-    localtime_s(&tm, &now_time);
-#else
-    localtime_r(&now_time, &tm);
-#endif
-
-    std::ostringstream ss;
-    ss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S %z");
-    return ss.str();
+    return util::DateTimeUtils::getCurrentDateTimeString();
 }
 
 /**

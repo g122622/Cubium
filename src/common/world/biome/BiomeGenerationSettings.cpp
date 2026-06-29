@@ -186,11 +186,24 @@ bool BiomeGenerationSettings::hasFeature(u32 featureId) const noexcept
     return false;
 }
 
+const std::vector<u32>& BiomeGenerationSettings::getFlowerFeatureIds() const noexcept
+{
+    return m_flowerFeatureIds;
+}
+
+void BiomeGenerationSettings::addFlowerFeature(u32 featureId)
+{
+    m_flowerFeatureIds.push_back(featureId);
+    // 花卉特征同时添加到 VegetalDecoration 阶段
+    addFeature(DecorationStage::VegetalDecoration, featureId);
+}
+
 void BiomeGenerationSettings::clear() noexcept
 {
     for (auto& features : m_featuresByStage) {
         features.clear();
     }
+    m_flowerFeatureIds.clear();
     m_carvers.clear();
 }
 
@@ -243,7 +256,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createPlains()
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::SparseOakTree);
 
     // 添加平原花卉
-    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::PlainsFlowers);
+    settings.addFlowerFeature(FlowerFeatureIds::PlainsFlowers);
 
     // 添加平原草丛
     settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::PlainsGrass);
@@ -262,7 +275,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createForest()
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
 
     // 添加森林花卉
-    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::ForestFlowers);
+    settings.addFlowerFeature(FlowerFeatureIds::ForestFlowers);
 
     // 添加森林草丛
     settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::ForestGrass);
@@ -363,7 +376,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createSwamp()
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::SparseOakTree);
 
     // 添加沼泽花卉（兰花）
-    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::SwampFlowers);
+    settings.addFlowerFeature(FlowerFeatureIds::SwampFlowers);
 
     // 添加沼泽草丛
     settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::SwampGrass);
@@ -410,7 +423,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createSwampHills()
     BiomeGenerationSettings settings = createDefault();
 
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::SparseOakTree);
-    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::SwampFlowers);
+    settings.addFlowerFeature(FlowerFeatureIds::SwampFlowers);
     settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::SwampGrass);
     settings.addFeature(DecorationStage::VegetalDecoration, SugarCaneFeatureIds::Normal);
     settings.addFeature(DecorationStage::VegetalDecoration, MushroomFeatureIds::BrownMushroom);
@@ -455,8 +468,8 @@ BiomeGenerationSettings BiomeGenerationSettings::createFlowerForest()
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::BirchTree);
 
     // 添加繁花森林花卉（最丰富的花卉）
-    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::FlowerForestFlowers);
-    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::FlowerForestFlowers);
+    settings.addFlowerFeature(FlowerFeatureIds::FlowerForestFlowers);
+    settings.addFlowerFeature(FlowerFeatureIds::FlowerForestFlowers);
 
     // 添加森林草丛
     settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::ForestGrass);
@@ -474,7 +487,7 @@ BiomeGenerationSettings BiomeGenerationSettings::createCherryGrove()
     settings.addFeature(DecorationStage::VegetalDecoration, TreeFeatureIds::CherryTree);
 
     // 添加粉色花瓣
-    settings.addFeature(DecorationStage::VegetalDecoration, FlowerFeatureIds::CherryGrovePetals);
+    settings.addFlowerFeature(FlowerFeatureIds::CherryGrovePetals);
 
     // 添加草丛
     settings.addFeature(DecorationStage::VegetalDecoration, GrassFeatureIds::PlainsGrass);

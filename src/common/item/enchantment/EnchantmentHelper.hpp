@@ -36,6 +36,9 @@ class LivingEntity;
 class Entity;
 class Player;
 
+// 前向声明（定义在 LivingEntity.hpp 中）
+enum class EquipmentSlot : u8;
+
 namespace item {
 namespace enchant {
 
@@ -426,6 +429,52 @@ public:
      * @param attacker 攻击者
      */
     static void applyThornsEnchantments(LivingEntity& user, Entity& attacker);
+
+    // ========== 位置依赖附魔效果 ==========
+
+    /**
+     * @brief 在实体移动到新方块位置时运行位置依赖的附魔效果
+     *
+     * 遍历实体所有装备的附魔，对每个附魔调用 onLocationChanged()。
+     * 当附魔从非活跃变为活跃时执行效果（如冰霜行者放置霜冰），
+     * 当附魔从活跃变为非活跃时调用 onLocationEffectDeactivated()。
+     *
+     * @param entity 实体
+     */
+    static void runLocationChangedEffects(LivingEntity& entity);
+
+    /**
+     * @brief 在实体移动到新方块位置时运行指定物品的位置依赖附魔效果
+     *
+     * 用于装备变更时对新装备运行位置检测。
+     *
+     * @param entity 实体
+     * @param stack 物品堆
+     * @param slot 装备槽位
+     */
+    static void runLocationChangedEffects(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot);
+
+    /**
+     * @brief 停止指定物品上所有位置依赖的附魔效果
+     *
+     * 当装备被移除或物品损坏时调用，停用所有活跃的位置依赖效果。
+     *
+     * 当装备被移除或物品损坏时调用，停用所有活跃的位置依赖效果。
+     *
+     * @param entity 实体
+     * @param stack 物品堆
+     * @param slot 装备槽位
+     */
+    static void stopLocationBasedEffects(LivingEntity& entity, const ItemStack& stack, EquipmentSlot slot);
+
+    /**
+     * @brief 停止实体所有装备上所有位置依赖的附魔效果
+     *
+     * 停用实体所有装备上所有位置依赖的附魔效果。
+     *
+     * @param entity 实体
+     */
+    static void stopAllLocationBasedEffects(LivingEntity& entity);
 
     // ========== 附魔生成（附魔台用） ==========
 

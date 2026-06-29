@@ -45,6 +45,7 @@
 #include "common/world/village/VillageManager.hpp"
 #include "common/world/village/raid/RaidManager.hpp"
 #include "server/world/ServerChunkManager.hpp"
+#include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "server/world/entity/EntityChunkTracker.hpp"
 #include "server/world/entity/EntityTracker.hpp"
 #include "server/world/entity/ItemPickupManager.hpp"
@@ -60,8 +61,9 @@ namespace mc {
 // 前向声明
 struct SpawnedEntityData;
 class INamedContainerProvider;
+class WorldGenRegion;
 
-namespace client::renderer::trident::particle {
+namespace particle {
 enum class ParticleTypeId : u16;
 }
 
@@ -375,6 +377,19 @@ public:
     [[nodiscard]] ServerWorld* asServerWorld() noexcept override { return this; }
     [[nodiscard]] const ServerWorld* asServerWorld() const noexcept override { return this; }
 
+    // ========== 按需特征放置 ==========
+
+    /**
+     * @brief 从已加载区块构建临时 WorldGenRegion
+     *
+     * 在指定位置周围收集 3x3 区块窗口，构建 WorldGenRegion，
+     * 用于 SaplingBlock::grow() 等按需特征放置场景。
+     *
+     * @param position 中心位置
+     * @return 创建的 WorldGenRegion，如果区块未加载则返回 nullptr
+     */
+    [[nodiscard]] std::unique_ptr<WorldGenRegion> createFeatureRegion(const BlockPos& position) override;
+
     // ========== 天气接口 (IWorld) ==========
 
     [[nodiscard]] bool isRaining() const override;
@@ -456,11 +471,8 @@ public:
      * 当服务端需要广播粒子给玩家时调用。
      * 参数：粒子类型、位置、速度、偏移、数量
      */
-    using ParticleBroadcastCallback = std::function<void(client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3& offset,
-        u32 count)>;
+    using ParticleBroadcastCallback = std::function<void(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)>;
 
     void setOnBroadcastParticle(ParticleBroadcastCallback callback) { m_onBroadcastParticle = std::move(callback); }
 
@@ -579,10 +591,9 @@ public:
 
     // ========== IWorld 接口实现 ==========
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override;
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override;
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
+    void addParticle(particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -1228,6 +1239,9 @@ private:
 
     // 游戏事件分发器
     std::unique_ptr<gameevent::GameEventDispatcher> m_gameEventDispatcher; ///< 游戏事件分发器
+
+    // 幽匿方块实体振动系统管理器
+    SculkVibrationManager m_sculkVibrationManager;
 
     // 世界边界
     world::border::WorldBorder m_worldBorder; ///< 世界边界

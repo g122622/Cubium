@@ -60,8 +60,9 @@ public:
     /**
      * @brief 构造物品标签
      * @param id 标签资源位置
+     * @param replace 是否替换已有数据包标签内容（用于数据包合并语义）
      */
-    explicit ItemTag(ResourceLocation id);
+    explicit ItemTag(ResourceLocation id, bool replace);
 
     // 默认的拷贝和移动操作
     ItemTag(const ItemTag&) = default;
@@ -80,6 +81,12 @@ public:
      * @param item 物品指针（不能为nullptr）
      */
     void add(const Item* item);
+
+    /**
+     * @brief 批量添加物品到标签
+     * @param items 物品指针列表
+     */
+    void addAll(const std::vector<const Item*>& items);
 
     /**
      * @brief 检查物品是否在标签中
@@ -105,9 +112,30 @@ public:
      */
     [[nodiscard]] std::vector<const Item*> getItemsList() const;
 
+    /**
+     * @brief 清空标签中的所有物品
+     *
+     * 用于数据包加载的 replace 语义：当数据包标签指定 replace=true 时，
+     * 先清空已有标签内容，再追加新内容。
+     */
+    void clear();
+
+    /**
+     * @brief 获取 replace 标志
+     *
+     * replace=true 表示该标签在数据包合并时应替换（而非追加）已有内容。
+     */
+    [[nodiscard]] bool isReplace() const noexcept { return m_replace; }
+
+    /**
+     * @brief 设置 replace 标志
+     */
+    void setReplace(bool replace) noexcept { m_replace = replace; }
+
 private:
     ResourceLocation m_id;
     std::unordered_set<const Item*> m_items;
+    bool m_replace = false; ///< 数据包 replace 语义标志
 };
 
 } // namespace item::tag

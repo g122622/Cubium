@@ -43,7 +43,7 @@ namespace mc::world::tick {
 template <typename T>
 struct ScheduledTick {
     BlockPos position;     ///< 方块位置
-    T* target;             ///< 目标对象指针
+    const T* target;       ///< 目标对象指针
     u64 scheduledTick;     ///< 调度执行的游戏刻
     TickPriority priority; ///< 执行优先级
     u64 tickEntryId;       ///< 唯一ID（用于排序）
@@ -66,7 +66,8 @@ struct ScheduledTick {
      * @param priority 优先级
      * @param tickEntryId 唯一ID
      */
-    ScheduledTick(const BlockPos& pos, T* target, u64 scheduledTick, TickPriority priority, u64 tickEntryId) noexcept
+    ScheduledTick(
+        const BlockPos& pos, const T* target, u64 scheduledTick, TickPriority priority, u64 tickEntryId) noexcept
         : position(pos)
         , target(target)
         , scheduledTick(scheduledTick)

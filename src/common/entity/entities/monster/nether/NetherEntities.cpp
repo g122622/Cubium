@@ -251,10 +251,10 @@ std::optional<ResourceLocation> MagmaCubeEntity::getJumpSound() const
     return SoundEvents::ENTITY_MAGMA_CUBE_JUMP;
 }
 
-client::renderer::trident::particle::ParticleTypeId MagmaCubeEntity::getSquishParticle() const
+particle::ParticleTypeId MagmaCubeEntity::getSquishParticle() const
 {
     // 岩浆怪使用火焰粒子代替史莱姆粒子
-    return client::renderer::trident::particle::ParticleTypeId::Flame;
+    return particle::ParticleTypeId::Flame;
 }
 
 void MagmaCubeEntity::registerAttributes()
@@ -313,7 +313,7 @@ void PiglinEntity::attackEntityWithRangedAttack(LivingEntity* target, f32 charge
     if (!target || !m_world) return;
 
     // 获取主手弩
-    ItemStack& crossbow = const_cast<ItemStack&>(getMainHandItem());
+    ItemStack& crossbow = getMutableMainHandItem();
     const Item* item = crossbow.getItem();
 
     // 检查是否是弩

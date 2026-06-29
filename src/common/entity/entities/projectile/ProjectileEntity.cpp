@@ -183,21 +183,16 @@ void ProjectileEntity::shootFrom(Entity& shooter, f32 pitch, f32 yaw, f32 pitchO
 
 bool ProjectileEntity::canHitEntity(const mc::Entity& target) const
 {
-    if (!target.isAlive() || target.isRemoved()) {
+    // 对应 MC Java Projectile.canHitEntity:
+    // 首先检查目标是否可被弹射物命中（综合判断存活状态、碰撞箱可交互性、旁观者模式等）
+    if (!target.canBeHitByProjectile()) {
         return false;
     }
 
-    if (!target.canBeCollidedWith()) {
-        return false;
-    }
-
+    // 发射者未离开前，不能命中与发射者骑乘同一载具的实体（包括发射者自身）
     const Entity* shooter = getShooter();
-    if (!m_leftShooter && shooter != nullptr) {
-        // 检查是否骑乘同一实体
-        // 简化检查：直接比较
-        if (shooter == &target) {
-            return false;
-        }
+    if (!m_leftShooter && shooter != nullptr && shooter->isRidingSameEntity(target)) {
+        return false;
     }
 
     return true;
@@ -233,9 +228,7 @@ void ProjectileEntity::onBlockHit(const RayTraceResult& result)
     if (m_world != nullptr && result.type == RayTraceResultType::Block) {
         const BlockState* state = m_world->getBlockState(result.blockPos);
         if (state != nullptr) {
-            // Block::onProjectileHit 是非 const 方法（方块交互可能修改世界状态），
-            // 而 BlockState::owner() 返回 const Block&，因此需要 const_cast
-            Block& block = const_cast<Block&>(state->owner());
+            Block& block = state->getBlockMutable();
             BlockRaycastResult hitResult =
                 BlockRaycastResult::hit(result.hitPosition, result.blockPos, result.face, 0.0f);
             block.onProjectileHit(*m_world, *state, hitResult, *this);

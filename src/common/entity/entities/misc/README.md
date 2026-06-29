@@ -41,9 +41,8 @@
 ├── WardenWarningEffect（独立类，非实体）
 └── OminousItemSpawnerEntity 继承 Entity
     ├── 依赖 ItemEntity 进行普通物品掉落
-    ├── 依赖 ProjectileEntity / WindChargeEntity 进行弹射物发射
-    ├── 依赖 ThrowableItem / WindChargeItem 判断物品是否为弹射物类型
-    ├── 依赖 EntityRegistry 按类型创建弹射物实体
+    ├── 依赖 ProjectileItem 接口进行弹射物创建（替代硬编码映射表）
+    ├── 依赖 ProjectileDispenseConfig 获取发射参数
     ├── 依赖 IWorld::playSound() 播放警告音效
     ├── 依赖 IWorld::playEvent() 播放世界事件（粒子效果）
     ├── 依赖 IWorld::gameEvent() 触发游戏事件（幽匿感测体检测）
@@ -129,8 +128,8 @@
 
     12. **MAX_FALL_TIME 超时处理**：FallingBlockEntity 下落超过 600 tick（30秒）后会强制放置，防止永久下落。
 
-    13. **OminousItemSpawnerEntity 弹射物映射硬编码**：`spawnProjectile()` 中通过物品 `ResourceLocation` 硬编码映射到弹射物实体类型（雪球、鸡蛋、末影珍珠等），当 `ProjectileItem` 接口完善后应改为通过接口获取弹射物实体类型。新增投掷物物品时需要同步更新此处的映射。
+    13. **OminousItemSpawnerEntity 弹射物创建已重构为 ProjectileItem 接口多态**：`spawnProjectile()` 原先通过物品 `ResourceLocation` 硬编码映射到弹射物实体类型（雪球、鸡蛋、末影珍珠等），现已改为通过 `ProjectileItem` 接口多态创建弹射物。使用 `dynamic_cast<const ProjectileItem*>(item)` 检测物品是否为弹射物类型，如果是则调用 `asProjectile()` 创建弹射物实体，并通过 `getDispenseConfig()` 获取发射参数。新增投掷物物品只需实现 `ProjectileItem` 接口即可自动被不祥物品生成器支持，无需同步更新映射表。
 
-    14. **OminousItemSpawnerEntity 缺少 Entity 基类虚方法覆写**：MC Java 的 `isIgnoringBlockTriggers()=true`、`canAddPassenger()=false`、`couldAcceptPassenger()=false` 尚未实现，因为 Entity 基类暂无这些虚方法，已在头文件中标注 TODO。
+    14. **OminousItemSpawnerEntity 虚方法覆写已完成**：MC Java 的 `isIgnoringBlockTriggers()=true`、`canAddPassenger()=false`、`couldAcceptPassenger()=false` 已全部实现。对应本项目：`doesEntityNotTriggerPressurePlate()=true`、`canAddPassenger()=false`、`couldAcceptPassenger()=false`。详见 `Entity` 基类的乘客系统和压力板触发文档。
 
-    15. **OminousItemSpawnerEntity 依赖 client 层 ParticleTypeId**：`addParticles()` 使用 `client::renderer::trident::particle::ParticleTypeId::OminousSpawning`，这是整个项目的既有架构问题（42+ 个 common 层文件依赖此类型），`ParticleTypeId` 应移至 common 层。
+    15. **OminousItemSpawnerEntity 粒子类型已迁移至 common 层**：`addParticles()` 使用 `particle::ParticleTypeId::OminousSpawning`，`ParticleTypeId` 枚举已从 `client::renderer::trident::particle` 命名空间迁移至 `mc::particle` 命名空间（`common/particle/ParticleTypes.hpp`），客户端层通过 using 别名保持向后兼容。

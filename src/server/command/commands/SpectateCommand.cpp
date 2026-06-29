@@ -26,10 +26,15 @@
 #include "common/command/CommandContext.hpp"
 #include "common/command/arguments/ArgumentType.hpp"
 #include "common/command/arguments/EntityArgument.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "server/application/IServer.hpp"
 #include "server/command/support/CommandMetadata.hpp"
+#include "server/command/support/EntityResolver.hpp"
 #include "server/command/support/PlayerResolver.hpp"
 #include "server/core/PlayerManager.hpp"
+#include "server/player/ServerPlayer.hpp"
+#include "server/world/ServerWorld.hpp"
 #include <sstream>
 
 namespace mc {
@@ -70,14 +75,14 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
     auto& source = context.getSource();
     const EntitySelector& targetSelector = context.getArgument<EntitySelector>("target");
 
-    // 解析目标实体
-    auto targetIds = support::resolvePlayerIds(source, targetSelector);
-    if (targetIds.empty()) {
+    // 解析目标实体（使用 EntityResolver 以支持任意实体，不仅仅是玩家）
+    Entity* targetEntity = support::EntityResolver::resolveSingle(source, targetSelector);
+    if (targetEntity == nullptr) {
         source.sendError("No entity matched the target selector");
         return 0;
     }
 
-    // 获取玩家（命令发送者或指定玩家）
+    // 获取旁观者（命令发送者或指定玩家）
     PlayerId spectatorId;
     if (context.hasArgument("player")) {
         const EntitySelector& playerSelector = context.getArgument<EntitySelector>("player");
@@ -95,32 +100,59 @@ i32 SpectateCommand::_startSpectating(CommandContext<ServerCommandSource>& conte
         spectatorId = source.playerId();
     }
 
-    auto spectator = source.server()->playerManager().getPlayer(spectatorId);
-    auto target = source.server()->playerManager().getPlayer(targetIds[0]);
-
-    if (!spectator) {
+    // 获取旁观者的 ServerPlayerData 和 ServerPlayer 实体
+    auto* playerData = source.server()->playerManager().getPlayer(spectatorId);
+    if (playerData == nullptr) {
         source.sendError("Spectator not found");
         return 0;
     }
 
     // 检查旁观者模式
-    if (spectator->gameMode != GameMode::Spectator) {
-        source.sendError("Player must be in spectator mode");
+    if (playerData->gameMode != GameMode::Spectator) {
+        source.sendError("Player must be in spectator mode to spectate");
+        return 0;
+    }
+
+    // 不能旁观自己
+    if (static_cast<EntityId>(spectatorId) == targetEntity->id()) {
+        source.sendError("Cannot spectate yourself");
+        return 0;
+    }
+
+    // 获取 ServerPlayer 实体以调用 setCamera
+    auto* world = source.world();
+    if (world == nullptr) {
+        source.sendError("World not available");
+        return 0;
+    }
+
+    auto* serverWorld = dynamic_cast<server::ServerWorld*>(world);
+    if (serverWorld == nullptr) {
+        source.sendError("Server world not available");
+        return 0;
+    }
+
+    Entity* spectatorEntity = serverWorld->getEntity(static_cast<EntityId>(spectatorId));
+    if (spectatorEntity == nullptr) {
+        source.sendError("Spectator entity not found");
+        return 0;
+    }
+
+    auto* serverPlayer = dynamic_cast<ServerPlayer*>(spectatorEntity);
+    if (serverPlayer == nullptr) {
+        source.sendError("Spectator is not a server player");
+        return 0;
+    }
+
+    // 设置旁观目标
+    if (!serverPlayer->setCamera(targetEntity)) {
+        source.sendError("Failed to set spectate target");
         return 0;
     }
 
     std::ostringstream ss;
-    ss << spectator->username << " is now spectating ";
-    if (target) {
-        ss << target->username;
-    } else {
-        ss << "entity " << targetIds[0];
-    }
+    ss << playerData->username << " is now spectating " << targetEntity->id();
     source.sendMessage(ss.str());
-
-    // TODO: 实现旁观者跟踪系统
-    // 1. 设置玩家的旁观目标
-    // 2. 同步给客户端
 
     return 1;
 }
@@ -147,19 +179,43 @@ i32 SpectateCommand::_stopSpectating(CommandContext<ServerCommandSource>& contex
         spectatorId = source.playerId();
     }
 
-    auto spectator = source.server()->playerManager().getPlayer(spectatorId);
-    if (!spectator) {
+    auto* playerData = source.server()->playerManager().getPlayer(spectatorId);
+    if (playerData == nullptr) {
         source.sendError("Player not found");
         return 0;
     }
 
-    std::ostringstream ss;
-    ss << spectator->username << " is no longer spectating";
-    source.sendMessage(ss.str());
+    // 获取 ServerPlayer 实体
+    auto* world = source.world();
+    if (world == nullptr) {
+        source.sendError("World not available");
+        return 0;
+    }
 
-    // TODO: 实现旁观者跟踪系统
-    // 1. 清除玩家的旁观目标
-    // 2. 同步给客户端
+    auto* serverWorld = dynamic_cast<server::ServerWorld*>(world);
+    if (serverWorld == nullptr) {
+        source.sendError("Server world not available");
+        return 0;
+    }
+
+    Entity* spectatorEntity = serverWorld->getEntity(static_cast<EntityId>(spectatorId));
+    if (spectatorEntity == nullptr) {
+        source.sendError("Player entity not found");
+        return 0;
+    }
+
+    auto* serverPlayer = dynamic_cast<ServerPlayer*>(spectatorEntity);
+    if (serverPlayer == nullptr) {
+        source.sendError("Player is not a server player");
+        return 0;
+    }
+
+    // 重置旁观目标
+    serverPlayer->resetCamera();
+
+    std::ostringstream ss;
+    ss << playerData->username << " is no longer spectating";
+    source.sendMessage(ss.str());
 
     return 1;
 }

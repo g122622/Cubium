@@ -21,7 +21,7 @@
  */
 
 #include "SporeBlossomBlock.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -87,9 +87,8 @@ void SporeBlossomBlock::animateTick(
     const f32 x = static_cast<f32>(pos.x) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
     const f32 y = static_cast<f32>(pos.y) + 0.7f;
     const f32 z = static_cast<f32>(pos.z) + 0.5f + (random.nextFloat() - 0.5f) * 0.8f;
-    context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::FallingSporeBlossom,
-        Vector3(x, y, z),
-        Vector3(0.0f, 0.0f, 0.0f));
+    context.addAnimateParticle(
+        particle::ParticleTypeId::FallingSporeBlossom, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
 
     // MC 1.21.11 对齐：spore_blossom_air 粒子在花周围尝试14次
     // 在 xz[-10,10] y[-10,0] 范围内随机选点，只在非完整碰撞箱的位置生成
@@ -102,9 +101,8 @@ void SporeBlossomBlock::animateTick(
             const f32 ppx = static_cast<f32>(px) + random.nextFloat();
             const f32 ppy = static_cast<f32>(py) + random.nextFloat();
             const f32 ppz = static_cast<f32>(pz) + random.nextFloat();
-            context.addAnimateParticle(client::renderer::trident::particle::ParticleTypeId::SporeBlossomAir,
-                Vector3(ppx, ppy, ppz),
-                Vector3(0.0f, 0.0f, 0.0f));
+            context.addAnimateParticle(
+                particle::ParticleTypeId::SporeBlossomAir, Vector3(ppx, ppy, ppz), Vector3(0.0f, 0.0f, 0.0f));
         }
     }
 }

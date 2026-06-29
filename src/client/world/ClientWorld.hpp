@@ -52,7 +52,6 @@ namespace mc::client {
 // 前向声明
 namespace renderer::trident::particle {
 class ParticleManager;
-enum class ParticleTypeId : u16;
 } // namespace renderer::trident::particle
 
 /**
@@ -315,7 +314,7 @@ public:
      * @param pos 粒子位置
      * @param velocity 粒子速度
      */
-    void addParticle(renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity);
+    void addParticle(::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity);
 
     /**
      * @brief 生成粒子（带数量和偏移）
@@ -328,7 +327,7 @@ public:
      * @param offset 随机偏移范围
      * @param count 粒子数量
      */
-    void addParticle(renderer::trident::particle::ParticleTypeId type,
+    void addParticle(::mc::particle::ParticleTypeId type,
         const Vector3& pos,
         const Vector3& velocity,
         const Vector3& offset,
@@ -345,10 +344,8 @@ public:
      * @param velocity 粒子速度
      * @param blockState 方块状态（用于粒子纹理和颜色）
      */
-    void addBlockParticle(renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const BlockState& blockState);
+    void addBlockParticle(
+        ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const BlockState& blockState);
 
     /**
      * @brief 检查是否应在指定位置生成粒子
@@ -366,8 +363,7 @@ public:
     /**
      * @brief 生成动画粒子（委托给 addParticle）
      */
-    void addAnimateParticle(
-        renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addAnimateParticle(::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         addParticle(type, pos, velocity);
     }

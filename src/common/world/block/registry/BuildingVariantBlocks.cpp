@@ -134,6 +134,9 @@ Block* BuildingVariantBlocks::STRUCTURE_BLOCK = nullptr;
 Block* BuildingVariantBlocks::STRUCTURE_VOID = nullptr;
 Block* BuildingVariantBlocks::JIGSAW = nullptr;
 Block* BuildingVariantBlocks::BARRIER = nullptr;
+Block* BuildingVariantBlocks::COMMAND_BLOCK = nullptr;
+Block* BuildingVariantBlocks::REPEATING_COMMAND_BLOCK = nullptr;
+Block* BuildingVariantBlocks::CHAIN_COMMAND_BLOCK = nullptr;
 
 // ============================================================================
 // 楼梯、台阶、墙、栅栏、门、栅栏门、活板门、染色玻璃板、特殊方块注册
@@ -467,6 +470,21 @@ void registerBuildingVariantBlocks()
     BuildingVariantBlocks::BARRIER =
         &registry.registerBlock<blocks::BarrierBlock>(ResourceLocation("minecraft:barrier"),
             BlockProperties(Material::BARRIER).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+
+    // 命令方块 - 红石触发型，需要管理员权限
+    BuildingVariantBlocks::COMMAND_BLOCK =
+        &registry.registerBlock<blocks::CommandBlock>(ResourceLocation("minecraft:command_block"),
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+
+    // 重复命令方块 - 每tick自动执行，需要管理员权限
+    BuildingVariantBlocks::REPEATING_COMMAND_BLOCK =
+        &registry.registerBlock<blocks::RepeatingCommandBlock>(ResourceLocation("minecraft:repeating_command_block"),
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
+
+    // 连锁命令方块 - 链式触发，需要管理员权限
+    BuildingVariantBlocks::CHAIN_COMMAND_BLOCK =
+        &registry.registerBlock<blocks::ChainCommandBlock>(ResourceLocation("minecraft:chain_command_block"),
+            BlockProperties(Material::ROCK).hardness(-1.0f).resistance(3600000.0f).noLootTable());
 }
 
 } // namespace block_registry

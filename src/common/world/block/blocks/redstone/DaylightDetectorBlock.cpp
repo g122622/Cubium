@@ -198,7 +198,7 @@ void DaylightDetectorBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos)
     if (!currentState) {
         return;
     }
-    const Block& block = currentState->getBlock();
+    Block& block = currentState->getBlockMutable();
 
     // 通知六个方向的相邻方块
     for (Direction dir : Directions::all()) {
@@ -206,8 +206,8 @@ void DaylightDetectorBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos)
         const BlockState* neighborState = world.getBlockState(neighborPos);
 
         if (neighborState && !neighborState->isAir()) {
-            Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
-            neighborBlock.neighborChanged(world, neighborPos, const_cast<Block&>(block), pos, false);
+            Block& neighborBlock = neighborState->getBlockMutable();
+            neighborBlock.neighborChanged(world, neighborPos, block, pos, false);
         }
     }
 }

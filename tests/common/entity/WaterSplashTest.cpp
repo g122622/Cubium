@@ -26,12 +26,12 @@
 #include <vector>
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -50,7 +50,7 @@ namespace {
  * @brief 测试记录粒子数据的结构
  */
 struct ParticleRecord {
-    client::renderer::trident::particle::ParticleTypeId type;
+    particle::ParticleTypeId type;
     Vector3 position;
     Vector3 velocity;
 };
@@ -111,17 +111,13 @@ public:
         m_sounds.push_back({soundEvent, category, position, volume, pitch});
     }
 
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_particles.push_back({type, pos, velocity});
     }
 
-    void addParticle(client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3&,
-        u32) override
+    void addParticle(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3&, u32) override
     {
         m_particles.push_back({type, pos, velocity});
     }
@@ -242,7 +238,7 @@ TEST(WaterSplashTest, DoWaterSplashEffectGeneratesParticles)
     EXPECT_FALSE(particles.empty());
 
     // 应该同时生成气泡和水溅粒子
-    using ParticleTypeId = client::renderer::trident::particle::ParticleTypeId;
+    using ParticleTypeId = particle::ParticleTypeId;
     i32 bubbleCount = 0;
     i32 splashCount = 0;
 
@@ -457,7 +453,7 @@ TEST(WaterSplashTest, ParticleVelocityInheritance)
     const auto& particles = world.particles();
     ASSERT_FALSE(particles.empty());
 
-    using ParticleTypeId = client::renderer::trident::particle::ParticleTypeId;
+    using ParticleTypeId = particle::ParticleTypeId;
 
     // 找到一个水溅粒子，检查速度
     for (const auto& p : particles) {

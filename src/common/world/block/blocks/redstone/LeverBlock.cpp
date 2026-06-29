@@ -235,21 +235,21 @@ void LeverBlock::_notifyNeighbors(IWorld& world, const BlockPos& pos, const Bloc
     }
 
     // 获取方块引用
-    const Block& thisBlock = state.getBlock();
+    Block& thisBlock = state.getBlockMutable();
 
     // 通知输出方向的方块
     BlockPos outputPos = pos.offset(outputDir);
     const BlockState* outputState = world.getBlockState(outputPos);
     if (outputState && !outputState->isAir()) {
-        Block& outputBlock = const_cast<Block&>(outputState->getBlock());
-        outputBlock.neighborChanged(world, outputPos, const_cast<Block&>(thisBlock), pos, false);
+        Block& outputBlock = outputState->getBlockMutable();
+        outputBlock.neighborChanged(world, outputPos, thisBlock, pos, false);
     }
 
     // 通过支撑方块传递信号
     const BlockState* supportState = world.getBlockState(supportPos);
     if (supportState && !supportState->isAir()) {
-        Block& supportBlock = const_cast<Block&>(supportState->getBlock());
-        supportBlock.neighborChanged(world, supportPos, const_cast<Block&>(thisBlock), pos, false);
+        Block& supportBlock = supportState->getBlockMutable();
+        supportBlock.neighborChanged(world, supportPos, thisBlock, pos, false);
     }
 }
 

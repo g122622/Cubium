@@ -22,13 +22,13 @@
  */
 
 #include "EnderDragonEntity.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/experience/ExperienceDropHandler.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -46,7 +46,7 @@ namespace mc {
 namespace entity {
 
 using namespace mc::math;
-using ParticleTypeId = client::renderer::trident::particle::ParticleTypeId;
+using ParticleTypeId = particle::ParticleTypeId;
 
 // ============================================================================
 // BossEntity

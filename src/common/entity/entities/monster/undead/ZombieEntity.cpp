@@ -304,8 +304,11 @@ void ZombieEntity::_trySpawnReinforcement(IWorld& world, LivingEntity& target)
             continue;
         }
 
-        // 初始化生成属性
-        entity::combat::DifficultyInstance difficultyInstance(world.difficulty());
+        // 初始化生成属性（使用位置感知的区域难度）
+        entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(world,
+            BlockPos(static_cast<i32>(std::floor(reinforcement->x())),
+                static_cast<i32>(reinforcement->y()),
+                static_cast<i32>(std::floor(reinforcement->z()))));
         reinforcement->finalizeSpawn(world, difficultyInstance, world::spawn::SpawnReason::Reinforcement);
 
         // 设置攻击目标
@@ -386,19 +389,18 @@ bool ZombieEntity::attackEntityAsMob(LivingEntity& target)
     if (isOnFire() && getMainHandItem().isEmpty()) {
         IWorld* worldPtr = world();
         if (worldPtr) {
-            // 获取区域难度（简化实现，直接使用难度）
-            f32 regionalDifficulty =
-                entity::combat::DifficultyHelper::getRegionalDifficultyBase(worldPtr->difficulty());
+            // 获取区域难度（使用位置感知的区域难度，与 MC 原版一致）
+            entity::combat::DifficultyInstance difficultyInstance = entity::combat::DifficultyInstance::at(*worldPtr,
+                BlockPos(static_cast<i32>(std::floor(x())), static_cast<i32>(y()), static_cast<i32>(std::floor(z()))));
+            f32 effectiveDifficulty = difficultyInstance.getEffectiveDifficulty();
 
-            // 燃烧概率 = regionalDifficulty * 0.3
-            // 区域难度 Easy=0.75, Normal=1.0, Hard=1.0
-            // 所以概率大约是 22.5%, 30%, 30%
+            // 燃烧概率 = effectiveDifficulty * 0.3
+            // 区域难度范围：Easy 0.75~1.375, Normal 1.5~3.5, Hard 2.25~6.75
+            // 基础值（新世界）：Easy 0.75, Normal 2.0, Hard 3.0
             math::Random& rng = getRandom();
-            if (rng.nextFloat() < regionalDifficulty * 0.3f) {
-                // 燃烧时间 = 2 * regionalDifficulty（秒）
-                // 区域难度 0.75 -> 1.5秒 = 30 ticks
-                // 区域难度 1.0 -> 2秒 = 40 ticks
-                f32 fireSeconds = 2.0f * regionalDifficulty;
+            if (rng.nextFloat() < effectiveDifficulty * 0.3f) {
+                // 燃烧时间 = 2 * effectiveDifficulty（秒）
+                f32 fireSeconds = 2.0f * effectiveDifficulty;
                 target.igniteForSeconds(fireSeconds);
             }
         }

@@ -44,7 +44,7 @@ ItemTag& ItemTags::registerTag(const ResourceLocation& id)
         return *it->second;
     }
 
-    auto inserted = allTags.emplace(id, std::make_unique<ItemTag>(id));
+    auto inserted = allTags.emplace(id, std::make_unique<ItemTag>(id, false));
     return *inserted.first->second;
 }
 
@@ -134,19 +134,19 @@ void ItemTags::initialize()
         return;
     }
 
-    // TODO: 当前所有物品标签的成员列表均为硬编码注册，与 MC 原版通过数据包
-    // （minecraft/tags/items/ 下的 JSON 文件）定义标签的方式不一致。待数据包
-    // 加载系统完善后，应改为从数据包动态加载标签成员列表，仅在数据包不可用时
-    // 回退到硬编码默认值。
+    // 物品标签的成员列表从数据包动态加载（ItemTagLoader），此处注册内置标签的默认值。
+    // 当数据包可用时，ItemTagLoader 会追加或替换（replace=true）这些默认值；
+    // 当数据包不可用时（如单元测试环境），这些硬编码默认值作为回退。
+    // 数据包加载路径: data/<namespace>/tags/item/<path>.json
+    // 参见 ItemTagLoader.hpp
 
     auto& allTags = tags();
 
     // 创建 FLOWERS 标签
     // 包含所有小型花朵和大型花朵
-    auto flowers = std::make_unique<ItemTag>(ResourceLocation("minecraft", "flowers"));
+    auto flowers = std::make_unique<ItemTag>(ResourceLocation("minecraft", "flowers"), false);
 
     // 小型花朵（单格）
-    // 参考: VanillaBlocks.hpp 中的定义
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dandelion")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "poppy")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_orchid")));
@@ -171,7 +171,7 @@ void ItemTags::initialize()
 
     // 创建 CARPETS 标签
     // 包含所有颜色的地毯物品
-    auto carpets = std::make_unique<ItemTag>(ResourceLocation("minecraft", "carpets"));
+    auto carpets = std::make_unique<ItemTag>(ResourceLocation("minecraft", "carpets"), false);
 
     // 16 色地毯
     carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_carpet")));
@@ -195,7 +195,7 @@ void ItemTags::initialize()
 
     // 创建 DAMPENS_VIBRATIONS 标签
     // 包含所有羊毛物品和地毯物品
-    auto dampensVibrations = std::make_unique<ItemTag>(ResourceLocation("minecraft", "dampens_vibrations"));
+    auto dampensVibrations = std::make_unique<ItemTag>(ResourceLocation("minecraft", "dampens_vibrations"), false);
 
     // 16 色羊毛物品
     dampensVibrations->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_wool")));
@@ -237,9 +237,8 @@ void ItemTags::initialize()
 
     // 创建 FIRE_RESISTANT 标签
     // 包含所有防火物品：下界合金锭、下界合金碎片、远古残骸、下界星等
-    // 在 MC Java 中，此标签通过 Item.Properties.fireResistant() 自动添加，
-    // 但我们这里显式列出所有防火物品
-    auto fireResistant = std::make_unique<ItemTag>(ResourceLocation("minecraft", "fire_resistant"));
+    // 防火物品通过此标签显式列出
+    auto fireResistant = std::make_unique<ItemTag>(ResourceLocation("minecraft", "fire_resistant"), false);
 
     // 下界合金相关物品
     fireResistant->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_ingot")));
@@ -272,8 +271,7 @@ void ItemTags::initialize()
 
     // 创建 DECORATED_POT_SHERDS 标签
     // 包含所有陶片物品（1.20 考古学陶片 + 1.21 试炼密室陶片）
-    // 对应 MC 原版标签 minecraft:decorated_pot_sherds
-    auto sherds = std::make_unique<ItemTag>(ResourceLocation("minecraft", "decorated_pot_sherds"));
+    auto sherds = std::make_unique<ItemTag>(ResourceLocation("minecraft", "decorated_pot_sherds"), false);
 
     // 1.20 考古学陶片（20种）
     sherds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "angler_pottery_sherd")));
@@ -306,8 +304,7 @@ void ItemTags::initialize()
 
     // 创建 DECORATED_POT_INGREDIENTS 标签
     // 包含所有陶片 + 砖块，用于饰纹陶罐合成配方
-    // 对应 MC 原版标签 minecraft:decorated_pot_ingredients
-    auto ingredients = std::make_unique<ItemTag>(ResourceLocation("minecraft", "decorated_pot_ingredients"));
+    auto ingredients = std::make_unique<ItemTag>(ResourceLocation("minecraft", "decorated_pot_ingredients"), false);
 
     // 砖块（作为空白面使用）
     ingredients->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brick")));

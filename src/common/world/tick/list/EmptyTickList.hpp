@@ -58,25 +58,25 @@ public:
         return instance;
     }
 
-    [[nodiscard]] bool isTickScheduled(const BlockPos& pos, T& target) const noexcept override
+    [[nodiscard]] bool isTickScheduled(const BlockPos& pos, const T& target) const noexcept override
     {
         MC_UNUSED(pos, target);
         return false;
     }
 
-    [[nodiscard]] bool isTickPending(const BlockPos& pos, T& target) const noexcept override
+    [[nodiscard]] bool isTickPending(const BlockPos& pos, const T& target) const noexcept override
     {
         MC_UNUSED(pos, target);
         return false;
     }
 
-    void scheduleTick(const BlockPos& pos, T& target, i32 delay) noexcept override
+    void scheduleTick(const BlockPos& pos, const T& target, i32 delay) noexcept override
     {
         MC_UNUSED(pos, target, delay);
         // 空操作
     }
 
-    void scheduleTick(const BlockPos& pos, T& target, i32 delay, TickPriority priority) noexcept override
+    void scheduleTick(const BlockPos& pos, const T& target, i32 delay, TickPriority priority) noexcept override
     {
         MC_UNUSED(pos, target, delay, priority);
         // 空操作

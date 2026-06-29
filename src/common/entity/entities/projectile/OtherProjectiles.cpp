@@ -31,6 +31,9 @@
 #include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../world/block/WaterLoggableHelpers.hpp"
+#include "../../../world/block/registry/NaturalBlocks.hpp"
+#include "../../../world/fluid/FluidTags.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../damage/DamageSource.hpp"
 #include "../../effect/EffectInstance.hpp"
@@ -43,13 +46,13 @@
 #include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/loot/LootTable.hpp"
 #include "common/item/loot/LootTableManager.hpp"
 #include "common/item/loot/context/LootContext.hpp"
 #include "common/item/loot/context/LootParameterSets.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -298,8 +301,9 @@ bool FishingBobberEntity::isInWater() const
 
 bool FishingBobberEntity::_checkOpenWater()
 {
-    // 检查浮标位置周围是否满足开放水域条件
-    // 需要检查 Y-1 到 Y+2 四层，每层 5x5 范围
+    // 对应 MC Java FishingHook.calculateOpenWater
+    // 检查浮标位置周围 4 层（Y-1 到 Y+2），每层 5×5 范围
+    // 水类型必须从 InsideWater → AboveWater 单调过渡，不能回退或出现 Invalid
     if (m_world == nullptr) {
         return false;
     }
@@ -308,23 +312,87 @@ bool FishingBobberEntity::_checkOpenWater()
         static_cast<i32>(std::floor(m_position.y)),
         static_cast<i32>(std::floor(m_position.z)));
 
-    // 简化实现：检查浮标周围是否有足够的水
-    // 完整实现需要检查每层的水类型
-    i32 waterCount = 0;
+    WaterType prevType = WaterType::Invalid;
+
     for (i32 dy = -1; dy <= 2; ++dy) {
-        for (i32 dx = -2; dx <= 2; ++dx) {
-            for (i32 dz = -2; dz <= 2; ++dz) {
-                BlockPos checkPos(bobberPos.x + dx, bobberPos.y + dy, bobberPos.z + dz);
-                const BlockState* state = m_world->getBlockState(checkPos);
-                if (state != nullptr && state->isLiquid()) {
-                    waterCount++;
+        BlockPos from(bobberPos.x - 2, bobberPos.y + dy, bobberPos.z - 2);
+        BlockPos to(bobberPos.x + 2, bobberPos.y + dy, bobberPos.z + 2);
+        WaterType layerType = _getOpenWaterTypeForArea(from, to);
+
+        switch (layerType) {
+            case WaterType::Invalid:
+                return false;
+            case WaterType::AboveWater:
+                // 水上方块不能出现在最底层（前一层还是 Invalid 表示第一层就是 AboveWater）
+                if (prevType == WaterType::Invalid) {
+                    return false;
+                }
+                break;
+            case WaterType::InsideWater:
+                // 水内部不能出现在水上方块之后（不能从水面再回到水下）
+                if (prevType == WaterType::AboveWater) {
+                    return false;
+                }
+                break;
+        }
+
+        prevType = layerType;
+    }
+
+    return true;
+}
+
+FishingBobberEntity::WaterType FishingBobberEntity::_getOpenWaterTypeForBlock(const BlockPos& pos) const
+{
+    // 对应 MC Java FishingHook.getOpenWaterTypeFor
+    const BlockState* blockState = m_world->getBlockState(pos);
+    if (blockState == nullptr) {
+        return WaterType::Invalid;
+    }
+
+    // 空气 → AboveWater
+    if (blockState->isAir()) {
+        return WaterType::AboveWater;
+    }
+
+    // 睡莲 → AboveWater
+    if (blockState->is(block_registry::NaturalBlocks::LILY_PAD)) {
+        return WaterType::AboveWater;
+    }
+
+    // 非空气、非睡莲：检查是否为水源方块且碰撞箱为空
+    const fluid::FluidState* fluidState = blockState->getFluidState();
+    if (fluidState != nullptr && !fluidState->isEmpty() && fluidState->getFluid().isIn(fluid::FluidTags::WATER()) &&
+        fluidState->isSource() && blockState->getCollisionShape().isEmpty()) {
+        return WaterType::InsideWater;
+    }
+
+    return WaterType::Invalid;
+}
+
+FishingBobberEntity::WaterType FishingBobberEntity::_getOpenWaterTypeForArea(
+    const BlockPos& from, const BlockPos& to) const
+{
+    // 对应 MC Java FishingHook.getOpenWaterTypeForArea
+    // 区域内所有方块必须为同一 WaterType，否则整个区域为 Invalid
+    WaterType result = WaterType::Invalid;
+    bool first = true;
+
+    for (i32 x = from.x; x <= to.x; ++x) {
+        for (i32 y = from.y; y <= to.y; ++y) {
+            for (i32 z = from.z; z <= to.z; ++z) {
+                WaterType type = _getOpenWaterTypeForBlock(BlockPos(x, y, z));
+                if (first) {
+                    result = type;
+                    first = false;
+                } else if (type != result) {
+                    return WaterType::Invalid;
                 }
             }
         }
     }
 
-    // 开放水域大约需要 75% 以上是水
-    return waterCount >= 60; // 4层 * 25格 * 0.6 = 60
+    return result;
 }
 
 void FishingBobberEntity::_catchingFish()
@@ -342,7 +410,7 @@ void FishingBobberEntity::_catchingFish()
             f32 px = x() + std::sin(angle) * radius;
             f32 py = std::floor(y()) + 1.0f;
             f32 pz = z() + std::cos(angle) * radius;
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Splash,
+            m_world->addParticle(particle::ParticleTypeId::Splash,
                 Vector3(px, py, pz),
                 Vector3(0.0f, 0.0f, 0.0f),
                 Vector3(0.1f, 0.0f, 0.1f),
@@ -367,16 +435,15 @@ void FishingBobberEntity::_catchingFish()
 
             // 15% 概率生成气泡
             if (rng.nextFloat() < 0.15f) {
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Bubble,
-                    Vector3(d0, d1 - 0.1f, d2),
-                    Vector3(sinAngle, 0.1f, cosAngle));
+                m_world->addParticle(
+                    particle::ParticleTypeId::Bubble, Vector3(d0, d1 - 0.1f, d2), Vector3(sinAngle, 0.1f, cosAngle));
             }
 
             // 钓鱼涟漪粒子
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Fishing,
+            m_world->addParticle(particle::ParticleTypeId::Fishing,
                 Vector3(d0, d1, d2),
                 Vector3(cosAngle * 0.04f, 0.01f, -sinAngle * 0.04f));
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Fishing,
+            m_world->addParticle(particle::ParticleTypeId::Fishing,
                 Vector3(d0, d1, d2),
                 Vector3(-cosAngle * 0.04f, 0.01f, sinAngle * 0.04f));
         }
@@ -409,8 +476,7 @@ void FishingBobberEntity::_spawnFishingParticles()
     if (isInWater() && m_world) {
         math::Random rng;
         if (rng.nextInt(5) == 0) {
-            m_world->addParticle(
-                client::renderer::trident::particle::ParticleTypeId::Fishing, m_position, Vector3(0.0f, 0.01f, 0.0f));
+            m_world->addParticle(particle::ParticleTypeId::Fishing, m_position, Vector3(0.0f, 0.01f, 0.0f));
         }
     }
 }
@@ -635,29 +701,27 @@ RayTraceResult FishingBobberEntity::_performRayTrace()
 
 bool FishingBobberEntity::_canHitEntity(const Entity& target) const
 {
-    // 钓鱼浮标可以命中：普通可命中实体 + 物品实体
-    // 不能命中已死亡或已移除的实体
-    if (!target.isAlive() || target.isRemoved()) {
-        return false;
-    }
-
-    // 不能命中不可碰撞的实体
-    if (!target.canBeCollidedWith()) {
-        return false;
-    }
+    // 对应 MC Java FishingHook.canHitEntity:
+    // super.canHitEntity(target) || target.isAlive() && target instanceof ItemEntity
+    // 即：普通弹射物命中逻辑 + 物品实体可被钩住
+    //
+    // 物品实体的 canBeHitByProjectile() 返回 false（因为 ItemEntity 的
+    // canBeCollidedWith() 返回 false，即 MC Java 的 isPickable() 为 false），
+    // 但钓鱼浮标需要能钩住水中的物品实体，因此需要特殊处理。
 
     // 不能命中钓鱼者自己
     if (&target == m_angler) {
         return false;
     }
 
-    // 物品实体可以被钩住
-    if (dynamic_cast<const ItemEntity*>(&target) != nullptr) {
+    // 物品实体可被钩住（绕过 canBeHitByProjectile 检查）
+    // 对应 MC Java: target.isAlive() && target instanceof ItemEntity
+    if (target.isAlive() && dynamic_cast<const ItemEntity*>(&target) != nullptr) {
         return true;
     }
 
-    // 其他实体需要满足基本碰撞条件
-    return target.canBeCollidedWith();
+    // 其他实体使用标准弹射物命中判断（包含 canBeHitByProjectile 检查）
+    return target.canBeHitByProjectile();
 }
 
 void FishingBobberEntity::_onEntityHit(const RayTraceResult& result)
@@ -1054,7 +1118,7 @@ void ShulkerBulletEntity::onBlockHit(const RayTraceResult& /*result*/)
 {
     // 命中方块时生成爆炸粒子
     if (m_world != nullptr) {
-        m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Explosion,
+        m_world->addParticle(particle::ParticleTypeId::Explosion,
             m_position,
             Vector3(0.0f, 0.0f, 0.0f), // 速度为 0
             Vector3(0.2f, 0.2f, 0.2f), // 随机偏移范围
@@ -1414,8 +1478,7 @@ void FireworkRocketEntity::tick()
         f32 vy = static_cast<f32>(-m_velocity.y * 0.5); // Y速度与火箭运动方向相反
         f32 vz = static_cast<f32>(rng.nextGaussian() * 0.05);
 
-        m_world->addParticle(
-            client::renderer::trident::particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));
+        m_world->addParticle(particle::ParticleTypeId::Firework, particlePos, Vector3(vx, vy, vz));
     }
 
     // 检查是否爆炸（lifetime = flightTime * 10 + random(6) + random(7)，简化为 flightTime * 10）
@@ -1446,16 +1509,13 @@ void FireworkRocketEntity::_explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
 
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
-                    Vector3(x() + ox, y() + oy, z() + oz),
-                    Vector3(0.0f, 0.0f, 0.0f));
+                m_world->addParticle(
+                    particle::ParticleTypeId::Poof, Vector3(x() + ox, y() + oy, z() + oz), Vector3(0.0f, 0.0f, 0.0f));
             }
         } else {
             // 有爆炸效果时，生成烟花粒子
             // 生成爆炸闪光
-            m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Flash,
-                Vector3(x(), y(), z()),
-                Vector3(0.0f, 0.0f, 0.0f));
+            m_world->addParticle(particle::ParticleTypeId::Flash, Vector3(x(), y(), z()), Vector3(0.0f, 0.0f, 0.0f));
 
             // 生成主要爆炸粒子云
             i32 particleCount = 20 + rng.nextInt(20);
@@ -1473,9 +1533,8 @@ void FireworkRocketEntity::_explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.1f;
 
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Firework,
-                    Vector3(x() + ox, y() + oy, z() + oz),
-                    Vector3(vx, vy, vz));
+                m_world->addParticle(
+                    particle::ParticleTypeId::Firework, Vector3(x() + ox, y() + oy, z() + oz), Vector3(vx, vy, vz));
             }
 
             // 生成烟雾粒子
@@ -1484,9 +1543,8 @@ void FireworkRocketEntity::_explode()
                 f32 oy = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
                 f32 oz = (rng.nextFloat() * 2.0f - 1.0f) * 0.5f;
 
-                m_world->addParticle(client::renderer::trident::particle::ParticleTypeId::Poof,
-                    Vector3(x() + ox, y() + oy, z() + oz),
-                    Vector3(0.0f, 0.02f, 0.0f));
+                m_world->addParticle(
+                    particle::ParticleTypeId::Poof, Vector3(x() + ox, y() + oy, z() + oz), Vector3(0.0f, 0.02f, 0.0f));
             }
         }
     }

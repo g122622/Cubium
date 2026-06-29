@@ -85,6 +85,8 @@ EffectEntities.hpp/cpp
 
 - 标记模式（`marker = true`）下盔甲架无碰撞箱
 - 重力默认开启，标记模式下自动禁用
+- 标记模式下 `doesEntityNotTriggerPressurePlate()` 返回 `true`，不触发压力板（对应 MC Java 的 `isIgnoringBlockTriggers()`）
+- 普通模式下 `doesEntityNotTriggerPressurePlate()` 返回 `false`，正常触发压力板
 
 ### 5. 经验球已移动
 

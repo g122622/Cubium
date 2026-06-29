@@ -168,7 +168,7 @@ public:
      * @brief 获取着地粒子类型
      * 岩浆怪使用火焰粒子
      */
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId getSquishParticle() const override;
+    [[nodiscard]] particle::ParticleTypeId getSquishParticle() const override;
 
 protected:
     void registerAttributes() override;

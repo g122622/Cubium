@@ -21,7 +21,10 @@ trial/
 ```
 Item (基类)
   ├── BreezeRodItem    — 直接继承，旋风人掉落的材料物品（可用于酿造、合成）
-  ├── WindChargeItem   — 直接继承，自行实现 onItemRightClick（投掷 + 冷却）
+  ├── WindChargeItem   — 直接继承 Item 并实现 ProjectileItem 接口，自行实现 onItemRightClick（投掷 + 冷却）
+  │     ├── asProjectile()       → 创建 WindChargeEntity 并根据方向预设初速度
+  │     ├── getDispenseConfig()  → 返回 windCharge() 配置（power=1.0, uncertainty=6.6666665）
+  │     └── shoot()              → 空操作（asProjectile 中已预设初速度）
   ├── MaceItem         — 直接继承，实现下落攻击、postHitEntity 回调
   │     ├── hitEntity()      → 砸地攻击：停止下落、播放音效、AOE击退
   │     ├── postHitEntity()  → 重置下落距离
@@ -45,6 +48,7 @@ Item (基类)
 
 **本模块依赖：**
 - `Item` / `ItemStack` / `ItemProperties` — 物品基类
+- `ProjectileItem` / `ProjectileDispenseConfig` — 弹射物物品接口（WindChargeItem 实现）
 - `WindChargeEntity` — 风弹弹射物实体
 - `CooldownTracker` — 物品冷却系统
 - `IWorld` — 世界接口（spawnEntity、playSound、getEntitiesInAABB）
@@ -56,7 +60,7 @@ Item (基类)
 
 ## 容易踩的坑
 
-1. **WindChargeItem 不继承 ThrowableItem**：风弹物品直接继承 `Item` 并自行实现 `onItemRightClick`，因为它需要冷却机制（10 tick），而 `ThrowableItem` 不支持冷却。
+1. **WindChargeItem 不继承 ThrowableItem，直接实现 ProjectileItem 接口**：风弹物品直接继承 `Item` 并实现 `ProjectileItem` 接口，自行实现 `onItemRightClick`，因为它需要冷却机制（10 tick），而 `ThrowableItem` 不支持冷却。WindChargeItem 的 `asProjectile()` 在创建弹射物时已根据方向预设初速度，因此 `shoot()` 覆写为空操作以避免覆盖已设置的速度。`getDispenseConfig()` 返回 `ProjectileDispenseConfig::windCharge()`（power=1.0, uncertainty=6.6666665）。
 
 2. **风弹实体由发射者类型区分参数**：`WindChargeEntity` 通过检查 `getShooter()` 的实体类型来区分玩家风弹（爆炸半径 1.2、击退 1.22）和旋风人风弹（爆炸半径 3.0、击退 1.0），无需两个实体类。
 

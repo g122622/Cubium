@@ -22,7 +22,7 @@
  */
 
 #include "SpawnerBlock.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/IBlockAnimateContext.hpp"
 #include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 
@@ -69,10 +69,8 @@ void SpawnerBlock::animateTick(
     f32 y = static_cast<f32>(pos.y) + random.nextFloat();
     f32 z = static_cast<f32>(pos.z) + random.nextFloat();
 
-    context.addAnimateParticle(
-        client::renderer::trident::particle::ParticleTypeId::Smoke, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
-    context.addAnimateParticle(
-        client::renderer::trident::particle::ParticleTypeId::Flame, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
+    context.addAnimateParticle(particle::ParticleTypeId::Smoke, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
+    context.addAnimateParticle(particle::ParticleTypeId::Flame, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
 }
 
 } // namespace blocks

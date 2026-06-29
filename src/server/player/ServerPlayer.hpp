@@ -28,6 +28,7 @@
 #include "common/item/crafting/RecipeBook.hpp"
 #include "common/network/connection/IServerConnection.hpp"
 #include "common/network/packet/ExperiencePackets.hpp"
+#include "common/network/packet/SetCameraPacket.hpp"
 #include "server/stats/StatisticsManager.hpp"
 #include <memory>
 #include <utility>
@@ -100,6 +101,18 @@ public:
      * @return true 如果成功发送了速度包，false 如果连接不可用
      */
     [[nodiscard]] bool sendVelocityPacket() override;
+
+    /**
+     * @brief 摄像机目标变更通知（重写 Player 基类）
+     *
+     * 当 setCameraEntityId() 导致摄像机目标实际变化时调用。
+     * ServerPlayer 重写以发送 SetCameraPacket 给客户端，
+     * 并在旁观新实体时将玩家传送到目标位置。
+     *
+     * @param oldCameraId 变更前的摄像机目标实体ID
+     * @param newCameraId 变更后的摄像机目标实体ID
+     */
+    void onCameraEntityChanged(std::optional<EntityId> oldCameraId, std::optional<EntityId> newCameraId) override;
 
     /**
      * @brief 同步经验状态到客户端。
@@ -228,6 +241,16 @@ public:
      * - 如果伤害来源是弹射物且其发射者是玩家且 canHarmPlayer 返回 false，拒绝伤害
      */
     bool hurt(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 攻击实体（重写 Player 基类）
+     *
+     * 旁观者模式下，攻击实体等同于设置旁观目标（调用 setCamera）。
+     * 非旁观者模式下，委托给 Player::attack() 执行正常攻击逻辑。
+     *
+     * @param target 目标实体
+     */
+    void attack(Entity& target) override;
 
     // ========== 类型转换 ==========
 
@@ -405,6 +428,46 @@ public:
      */
     void wakeUp();
 
+    // ========== 旁观者跟踪系统 ==========
+
+    /**
+     * @brief 每 tick 更新（重写 Player 基类）
+     *
+     * 在 Player::tick() 基础上增加旁观者位置同步逻辑。
+     */
+    void tick() override;
+
+    /**
+     * @brief 设置旁观目标实体
+     *
+     * 设置玩家的摄像机跟踪目标。当目标非空时，玩家的视角将跟随目标实体，
+     * 玩家位置每 tick 同步到目标实体位置。
+     * 传入 nullptr 表示恢复正常视角（摄像机跟踪自身）。
+     *
+     * @param target 目标实体指针，nullptr 表示恢复自身视角
+     * @return true 如果设置成功
+     */
+    bool setCamera(Entity* target);
+
+    /**
+     * @brief 重置旁观目标为自身
+     *
+     * 停止旁观任何实体，恢复到自身视角。
+     * 会在游戏模式切换离开旁观者模式时自动调用。
+     */
+    void resetCamera();
+
+    /**
+     * @brief 每 tick 更新旁观者位置
+     *
+     * 如果玩家正在旁观某个实体，将玩家位置同步到目标实体位置。
+     * 如果目标实体已死亡或移除，自动停止旁观。
+     * 如果玩家按住潜行键，自动停止旁观。
+     *
+     * 应在 ServerPlayer::tick() 或 Player::tick() 中调用。
+     */
+    void tickSpectator();
+
     // ========== 重生系统 ==========
 
     /**
@@ -473,6 +536,12 @@ private:
      * @note 当玩家连接不存在或已断开时返回 false，不抛出异常。
      */
     [[nodiscard]] bool _sendFullPacket(const std::vector<u8>& packet) const;
+
+    /**
+     * @brief 发送 SetCameraPacket 给客户端
+     * @param cameraEntityId 摄像机实体的 ID（玩家自身 ID 表示恢复正常视角）
+     */
+    void _sendSetCameraPacket(u32 cameraEntityId);
 
 private:
     network::ConnectionPtr m_connection;

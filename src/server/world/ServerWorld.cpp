@@ -28,7 +28,6 @@
 
 #include "ServerWorld.hpp"
 #include "ServerChunkManager.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/entity/core/Entity.hpp"
@@ -41,6 +40,7 @@
 #include "common/entity/serialization/EntityDeserializer.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentRegistry.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/perfetto/TraceEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/NibbleArray.hpp"
@@ -55,6 +55,9 @@
 #include "common/world/block/blocks/ice/SnowBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/sculk/SculkSensorBlockEntity.hpp"
+#include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/chunk/data/Heightmap.hpp"
 #include "common/world/chunk/data/IChunk.hpp"
@@ -64,6 +67,7 @@
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/gameevent/GameEventDispatcher.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/gen/FeaturePlacer.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
 #include "common/world/gen/structure/StructureSet.hpp"
 #include "common/world/gen/structure/placement/ConcentricRingsStructurePlacement.hpp"
@@ -76,6 +80,7 @@
 #include "server/core/TimeManager.hpp"
 #include "server/event/ServerEventBus.hpp"
 #include "server/event/events/ServerEvents.hpp"
+#include "server/world/blockentity/sculk/SculkVibrationSystem.hpp"
 #include "weather/WeatherManager.hpp"
 #include <algorithm>
 #include <array>
@@ -165,6 +170,9 @@ Result<void> ServerWorld::initialize()
 
     // 初始化游戏事件分发器
     m_gameEventDispatcher = std::make_unique<gameevent::GameEventDispatcher>(*this);
+
+    // 初始化幽匿振动系统管理器
+    m_sculkVibrationManager.setWorld(*this);
 
     // 初始化村庄和袭击管理器
     m_villageManager = std::make_unique<world::village::VillageManager>(*this);
@@ -620,7 +628,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         }
 
         if (!oldIsAir && blockTypeChanged) {
-            Block& oldBlock = const_cast<Block&>(oldState->getBlock());
+            Block& oldBlock = oldState->getBlockMutable();
             oldBlock.onBlockRemoved(*this, changedPos, *oldState);
         }
     }
@@ -638,13 +646,13 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
         }
 
         if (!newIsAir && blockTypeChanged) {
-            Block& newBlock = const_cast<Block&>(newState->getBlock());
+            Block& newBlock = newState->getBlockMutable();
             newBlock.onBlockAdded(*this, changedPos, *newState);
         }
 
         // 新方块有方块实体时创建
         if (!newIsAir && newState->getBlock().hasBlockEntity()) {
-            Block& newBlock = const_cast<Block&>(newState->getBlock());
+            Block& newBlock = newState->getBlockMutable();
             auto blockEntity = newBlock.createBlockEntity(changedPos);
             if (blockEntity != nullptr) {
                 setBlockEntity(changedPos, blockEntity.release());
@@ -660,7 +668,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
     const BlockState* sourceState = (!newIsAir) ? newState : oldState;
     Block* sourceBlock = nullptr;
     if (sourceState != nullptr && !sourceState->isAir()) {
-        sourceBlock = &const_cast<Block&>(sourceState->getBlock());
+        sourceBlock = &sourceState->getBlockMutable();
     }
 
     struct NeighborDelta {
@@ -698,7 +706,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
                     neighborPos.z);
 
                 if (neighborState != nullptr && !neighborState->isAir() && newState != nullptr) {
-                    Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                    Block& neighborBlock = neighborState->getBlockMutable();
                     const BlockState* stateBeforeUpdate = neighborState;
                     BlockState updatedStateValue = neighborBlock.updatePostPlacement(*neighborState,
                         Directions::opposite(neighbor.direction),
@@ -735,7 +743,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
                     neighborPos.z);
 
                 if (sourceBlock != nullptr && neighborState != nullptr && !neighborState->isAir()) {
-                    Block& neighborBlock = const_cast<Block&>(neighborState->getBlock());
+                    Block& neighborBlock = neighborState->getBlockMutable();
                     neighborBlock.neighborChanged(*this, neighborPos, *sourceBlock, changedPos, false);
                 }
             }
@@ -777,7 +785,7 @@ bool ServerWorld::setBlockState(i32 x, i32 y, i32 z, const BlockState* state)
             return;
         }
 
-        fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
+        const fluid::Fluid& fluid = fluidState->getFluid();
         m_tickManager->scheduleFluidTick(pos, fluid, fluid.getTickDelay(*this), world::tick::TickPriority::Normal);
     };
 
@@ -878,6 +886,20 @@ void ServerWorld::setBlockEntity(const BlockPos& pos, BlockEntity* entity)
     // 如果有旧实体，它会被自动销毁
     // 标记区块为已修改
     chunk->setDirty(true);
+
+    // 对齐 MC Java: LevelChunk.addAndRegisterBlockEntity()
+    // 检测幽匿方块实体并注册振动监听器到 GameEventListenerRegistry
+    if (entity->getType() == BlockEntityType::SculkSensor) {
+        auto* sensor = dynamic_cast<blockentity::SculkSensorBlockEntity*>(entity);
+        if (sensor != nullptr) {
+            m_sculkVibrationManager.registerSculkSensor(*sensor);
+        }
+    } else if (entity->getType() == BlockEntityType::SculkShrieker) {
+        auto* shrieker = dynamic_cast<blockentity::SculkShriekerBlockEntity*>(entity);
+        if (shrieker != nullptr) {
+            m_sculkVibrationManager.registerSculkShrieker(*shrieker);
+        }
+    }
 }
 
 void ServerWorld::removeBlockEntity(const BlockPos& pos)
@@ -902,6 +924,10 @@ void ServerWorld::removeBlockEntity(const BlockPos& pos)
     // 如果有旧实体，标记区块为已修改
     if (oldEntity) {
         chunk->setDirty(true);
+
+        // 对齐 MC Java: LevelChunk.removeBlockEntity() → removeGameEventListener()
+        // 注销幽匿方块实体的振动监听器
+        m_sculkVibrationManager.unregisterSculkBlockEntity(pos);
     }
 }
 
@@ -1068,6 +1094,10 @@ void ServerWorld::tickBlockEntities()
         }
         return true;
     });
+
+    // 对齐 MC Java: Block.getTicker() → VibrationSystem.Ticker.tick()
+    // 驱动所有已注册幽匿方块实体的振动系统 tick
+    m_sculkVibrationManager.tickAll();
 }
 
 // ============================================================================
@@ -1110,7 +1140,7 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
                 if (blockState) {
                     // 执行方块随机刻
                     if (blockState->getBlock().ticksRandomly()) {
-                        Block& block = const_cast<Block&>(blockState->getBlock());
+                        Block& block = blockState->getBlockMutable();
                         block.randomTick(*this, pos, const_cast<BlockState&>(*blockState), m_random);
 
                         // 派发自定义方块组件回调 - onRandomTick
@@ -1130,6 +1160,8 @@ void ServerWorld::tickEnvironment(i32 randomTickSpeed)
                     // 执行流体随机刻
                     const fluid::FluidState* fluidState = blockState->getFluidState();
                     if (fluidState && !fluidState->isEmpty() && fluidState->getFluid().ticksRandomly()) {
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast) — randomTick 是非 const 方法，需要
+                        // const_cast
                         fluid::Fluid& fluid = const_cast<fluid::Fluid&>(fluidState->getFluid());
                         fluid.randomTick(*this, pos, *fluidState, m_random);
                     }
@@ -1257,7 +1289,7 @@ void ServerWorld::tickPrecipitation(i32 randomTickSpeed)
                 if (precipitation != BiomeClimate::Precipitation::None) {
                     const BlockState* surfaceState = getBlockState(surfacePos.x, surfacePos.y, surfacePos.z);
                     if (surfaceState != nullptr) {
-                        Block& block = const_cast<Block&>(surfaceState->getBlock());
+                        Block& block = surfaceState->getBlockMutable();
                         block.handlePrecipitation(*this, surfacePos, precipitation);
                     }
                 }
@@ -2134,8 +2166,7 @@ std::vector<std::reference_wrapper<const BlockEntity>> ServerWorld::_collectLoad
 // 粒子接口实现
 // ============================================================================
 
-void ServerWorld::addParticle(
-    client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+void ServerWorld::addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
 {
     // 服务端不生成粒子，而是广播给附近玩家
     if (m_onBroadcastParticle) {
@@ -2143,11 +2174,8 @@ void ServerWorld::addParticle(
     }
 }
 
-void ServerWorld::addParticle(client::renderer::trident::particle::ParticleTypeId type,
-    const Vector3& pos,
-    const Vector3& velocity,
-    const Vector3& offset,
-    u32 count)
+void ServerWorld::addParticle(
+    particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
 {
     // 服务端不生成粒子，而是广播给附近玩家
     if (m_onBroadcastParticle) {
@@ -2517,8 +2545,6 @@ void ServerWorld::onSummonedEntity(PlayerId playerId, Entity* entity)
 std::optional<BlockPos> ServerWorld::findNearestStructure(
     const BlockPos& center, const ResourceLocation& structureId, i32 maxDistance, bool skipExisting)
 {
-    MC_UNUSED(skipExisting); // 当前实现不使用此参数
-
     // 通过结构 ID 查找所属的 StructureSet，获取放置规则
     auto& structureSetRegistry = world::gen::structure::StructureSetRegistry::instance();
     const world::gen::structure::StructureSet* structureSet = structureSetRegistry.findByStructure(structureId);
@@ -2528,6 +2554,14 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
 
     const auto& placement = structureSet->placement();
     i64 worldSeed = static_cast<i64>(m_config.seed);
+
+    // 获取 StructureCheck 缓存（用于快速跳过不含结构的区块）
+    world::gen::structure::StructureCheck* structureCheck = nullptr;
+    if (auto* cm = chunkManager()) {
+        if (auto* gen = cm->generator()) {
+            structureCheck = gen->structureCheck();
+        }
+    }
 
     // 将方块坐标转换为区块坐标
     i32 centerChunkX = center.x >> 4;
@@ -2574,6 +2608,37 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
                     continue;
                 }
 
+                // 对齐 MC 1.21.11 ChunkGenerator.getStructureGeneratingAt()：
+                // 使用 StructureCheck 缓存快速判断区块是否包含目标结构
+                if (structureCheck != nullptr) {
+                    const u64 chunkPosId = (static_cast<u64>(static_cast<u32>(candidate.x)) << 32) |
+                        static_cast<u64>(static_cast<u32>(candidate.z));
+                    auto result = structureCheck->checkStart(chunkPosId, structureId, skipExisting);
+
+                    if (result == world::gen::structure::StructureCheckResult::StartPresent) {
+                        // 精确缓存命中：结构存在于该区块，直接返回位置
+                        BlockPos locatePos = placement.getLocatePos(candidate);
+                        i32 posDx = locatePos.x - center.x;
+                        i32 posDz = locatePos.z - center.z;
+                        f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
+
+                        if (distSq < nearestDistSq) {
+                            nearestDistSq = distSq;
+                            nearestPos = locatePos;
+                        }
+                        continue;
+                    }
+
+                    if (result == world::gen::structure::StructureCheckResult::StartNotPresent) {
+                        // 精确缓存或近似缓存确认该区块不含目标结构，跳过
+                        continue;
+                    }
+
+                    // ChunkLoadNeeded：缓存未命中，继续执行当前逻辑（基于放置规则判断）
+                    // 将放置规则检查结果写入近似缓存，供后续查询使用
+                    structureCheck->setFeatureCheckResult(chunkPosId, true);
+                }
+
                 // 使用放置规则的定位偏移计算最终方块位置
                 BlockPos locatePos = placement.getLocatePos(candidate);
                 i32 posDx = locatePos.x - center.x;
@@ -2596,6 +2661,30 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
                 continue;
             }
 
+            // 对齐 MC 1.21.11：ConcentricRings 也使用 StructureCheck 缓存
+            if (structureCheck != nullptr) {
+                const u64 chunkPosId = (static_cast<u64>(static_cast<u32>(chunkPos.x)) << 32) |
+                    static_cast<u64>(static_cast<u32>(chunkPos.z));
+                auto result = structureCheck->checkStart(chunkPosId, structureId, skipExisting);
+
+                if (result == world::gen::structure::StructureCheckResult::StartPresent) {
+                    BlockPos locatePos = placement.getLocatePos(chunkPos);
+                    i32 posDx = locatePos.x - center.x;
+                    i32 posDz = locatePos.z - center.z;
+                    f64 distSq = static_cast<f64>(posDx * posDx + posDz * posDz);
+
+                    if (distSq < nearestDistSq) {
+                        nearestDistSq = distSq;
+                        nearestPos = locatePos;
+                    }
+                    continue;
+                }
+
+                if (result == world::gen::structure::StructureCheckResult::StartNotPresent) {
+                    continue;
+                }
+            }
+
             BlockPos locatePos = placement.getLocatePos(chunkPos);
             i32 posDx = locatePos.x - center.x;
             i32 posDz = locatePos.z - center.z;
@@ -2609,6 +2698,50 @@ std::optional<BlockPos> ServerWorld::findNearestStructure(
     }
 
     return nearestPos;
+}
+
+// ========== 按需特征放置 ==========
+
+std::unique_ptr<WorldGenRegion> ServerWorld::createFeatureRegion(const BlockPos& position)
+{
+    constexpr i32 chunkRadius = 1;
+    const ChunkCoord centerChunkX = world::toChunkCoord(position.x);
+    const ChunkCoord centerChunkZ = world::toChunkCoord(position.z);
+    const i32 diameter = 2 * chunkRadius + 1;
+
+    auto* chunkManager = this->chunkManager();
+    if (chunkManager == nullptr) {
+        return nullptr;
+    }
+
+    // 收集已加载的区块
+    std::vector<IChunk*> chunks;
+    chunks.reserve(static_cast<size_t>(diameter) * static_cast<size_t>(diameter));
+
+    for (i32 dz = -chunkRadius; dz <= chunkRadius; ++dz) {
+        for (i32 dx = -chunkRadius; dx <= chunkRadius; ++dx) {
+            const ChunkCoord cx = centerChunkX + dx;
+            const ChunkCoord cz = centerChunkZ + dz;
+
+            ChunkData* chunkData = chunkManager->tryToGetChunkInMem(cx, cz);
+            if (chunkData == nullptr) {
+                return nullptr;
+            }
+
+            // ChunkData 继承自 IChunk，可以直接作为 IChunk* 使用
+            chunks.push_back(static_cast<IChunk*>(chunkData));
+        }
+    }
+
+    // 使用 FeaturePlacer 构建 WorldGenRegion
+    auto region = world::gen::FeaturePlacer::createRegion(
+        centerChunkX, centerChunkZ, std::move(chunks), chunkRadius, this->dimension());
+
+    // 填充世界状态
+    world::gen::FeaturePlacer::populateWorldState(
+        *region, this->seed(), this->currentTick(), this->dayTime(), this->isHardcore(), this->difficulty());
+
+    return region;
 }
 
 } // namespace mc::server

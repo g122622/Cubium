@@ -49,7 +49,7 @@
 #include "../../entities/player/Player.hpp"
 #include "../../entities/projectile/AbstractFireballEntity.hpp"
 #include "../../utils/ItemDropHelper.hpp"
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <cmath>
 #include <limits>
@@ -367,7 +367,7 @@ void WitherEntity::_spawnParticles()
                 f32 headY = _getHeadY(head);
                 f32 headZ = _getHeadZ(head);
 
-                worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::Smoke,
+                worldPtr->addParticle(particle::ParticleTypeId::Smoke,
                     Vector3(headX + (getRandom().nextDouble() - 0.5) * 0.3,
                         headY + (getRandom().nextDouble() - 0.5) * 0.3,
                         headZ + (getRandom().nextDouble() - 0.5) * 0.3),
@@ -375,7 +375,7 @@ void WitherEntity::_spawnParticles()
 
                 // 充能时 1/4 概率额外 EntityEffect 粒子（黄绿色 0.7, 0.7, 0.5）
                 if (worldPtr->getRandom().nextInt(4) == 0) {
-                    worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+                    worldPtr->addParticle(particle::ParticleTypeId::EntityEffect,
                         Vector3(headX + (getRandom().nextDouble() - 0.5) * 0.6,
                             headY + (getRandom().nextDouble() - 0.5) * 0.6,
                             headZ + (getRandom().nextDouble() - 0.5) * 0.6),
@@ -389,7 +389,7 @@ void WitherEntity::_spawnParticles()
     // 颜色: (0.7, 0.7, 0.9)
     if (getInvulTime() > 0 && getInvulTime() % 8 == 0) {
         for (i32 i = 0; i < 3; ++i) {
-            worldPtr->addParticle(client::renderer::trident::particle::ParticleTypeId::EntityEffect,
+            worldPtr->addParticle(particle::ParticleTypeId::EntityEffect,
                 Vector3(x() + (getRandom().nextDouble() - 0.5) * width() * 2.0,
                     y() + getRandom().nextDouble() * height(),
                     z() + (getRandom().nextDouble() - 0.5) * width() * 2.0),

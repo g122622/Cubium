@@ -23,12 +23,12 @@
 
 #include <gtest/gtest.h>
 
-#include "client/renderer/trident/particle/ParticleTypes.hpp"
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/entity/entities/passive/special/PandaEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -89,8 +89,7 @@ public:
     }
 
     // 记录粒子生成
-    void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
+    void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity) override
     {
         m_lastParticleType = type;
         m_lastParticlePos = pos;
@@ -117,10 +116,7 @@ public:
     [[nodiscard]] i32 getParticleSpawnCount() const { return m_particleSpawnCount; }
     [[nodiscard]] i32 getSoundPlayCount() const { return m_soundPlayCount; }
     [[nodiscard]] i32 getSpawnedEntityCount() const { return static_cast<i32>(m_spawnedEntities.size()); }
-    [[nodiscard]] client::renderer::trident::particle::ParticleTypeId getLastParticleType() const
-    {
-        return m_lastParticleType;
-    }
+    [[nodiscard]] particle::ParticleTypeId getLastParticleType() const { return m_lastParticleType; }
     [[nodiscard]] const ResourceLocation& getLastSoundId() const { return m_lastSoundId; }
     [[nodiscard]] const Vector3& getLastParticlePosition() const { return m_lastParticlePos; }
     [[nodiscard]] const std::vector<std::unique_ptr<Entity>>& getSpawnedEntities() const { return m_spawnedEntities; }
@@ -133,8 +129,7 @@ private:
     // 记录调用
     i32 m_particleSpawnCount = 0;
     i32 m_soundPlayCount = 0;
-    client::renderer::trident::particle::ParticleTypeId m_lastParticleType =
-        static_cast<client::renderer::trident::particle::ParticleTypeId>(0);
+    particle::ParticleTypeId m_lastParticleType = static_cast<particle::ParticleTypeId>(0);
     ResourceLocation m_lastSoundId;
     Vector3 m_lastParticlePos;
     Vector3 m_lastParticleVelocity;
@@ -372,7 +367,7 @@ TEST_F(PandaEntitySneezeTest, SpawnsSneezeParticle)
 
     // 验证粒子被生成
     EXPECT_EQ(m_world.getParticleSpawnCount(), 1);
-    EXPECT_EQ(m_world.getLastParticleType(), client::renderer::trident::particle::ParticleTypeId::Sneeze);
+    EXPECT_EQ(m_world.getLastParticleType(), particle::ParticleTypeId::Sneeze);
 }
 
 TEST_F(PandaEntitySneezeTest, NoEffectWithoutWorld)

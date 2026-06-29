@@ -6,8 +6,9 @@
 
 ```
 inventory/
-├── IInventory.hpp                 # 背包接口（抽象基类）
+├── IInventory.hpp                 # 背包接口（抽象基类，含 addListener/removeListener）
 ├── IInventory.cpp
+├── ContainerListener.hpp          # 容器变更监听器接口（containerChanged 回调）
 ├── ISidedInventory.hpp            # 侧面背包接口，用于漏斗等定向传输
 ├── ISidedInventoryProvider.hpp    # 侧面背包提供者接口
 ├── IRecipeHolder.hpp              # 配方持有者接口
@@ -35,7 +36,8 @@ inventory/
     ├── EnchantmentContainer.hpp/cpp  # 附魔台容器（书架力量、附魔等级公式）
     ├── FurnaceContainer.hpp/cpp      # 熔炉容器
     ├── HopperContainer.hpp/cpp       # 漏斗容器
-    └── LoomContainer.hpp/cpp         # 织布机容器
+    ├── LoomContainer.hpp/cpp         # 织布机容器
+    └── CrafterContainer.hpp/cpp      # 自动合成器容器（3x3网格+预览结果，配方匹配预览）
 ```
 
 ## 内部模块关系
@@ -131,7 +133,13 @@ inventory/
 
 ### 末影箱物品栏变更通知
 
-`PlayerEnderChestInventory` 使用 `setOnChanged(std::function<void()>)` 回调机制（与 `SimpleInventory` 一致）。物品变更时 `setChanged()` 会触发回调。`ServerPlayer::setupInventoryCallback()` 中注册了回调，通过 `PlayerDataManager::markDirty()` 标记玩家数据为脏以触发自动保存。
+`PlayerEnderChestInventory` 支持两种变更通知机制：
+
+1. **ContainerListener 模式**（推荐）：通过 `addListener(ContainerListener*)` / `removeListener(ContainerListener*)` 注册/移除监听器，支持多个监听者。容器内容变更时，所有监听器的 `containerChanged(IInventory&)` 被调用。参考 MC Java 的 `SimpleContainer.addListener()` / `removeListener()`。
+
+2. **setOnChanged 回调**（兼容旧接口）：`setOnChanged(std::function<void()>)` 设置单一回调函数，在 `setChanged()` 中与 ContainerListener 一起被触发。适用于简单场景。
+
+`ServerPlayer::setupInventoryCallback()` 中通过 `setOnChanged()` 注册了回调，通过 `PlayerDataManager::markDirty()` 标记玩家数据为脏以触发自动保存。当网络同步系统就绪后，可通过 `addListener()` 注册额外的监听器实现客户端同步。
 
 ### 末影箱容器打开/关闭流程
 

@@ -103,14 +103,17 @@ namespace server {
 class ServerWorld; // 前向声明，用于asServerWorld()
 }
 
+// 前向声明，用于createFeatureRegion()
+class WorldGenRegion;
+
 namespace fluid {
 class Fluid;
 class FluidState;
 } // namespace fluid
 
-namespace client::renderer::trident::particle {
+namespace particle {
 enum class ParticleTypeId : u16;
-}
+} // namespace particle
 
 namespace gameevent {
 class GameEvent; // 前向声明
@@ -1107,8 +1110,7 @@ public:
      * @param pos 粒子位置
      * @param velocity 粒子速度
      */
-    virtual void addParticle(
-        client::renderer::trident::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
+    virtual void addParticle(particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity)
     {
         (void)type;
         (void)pos;
@@ -1126,11 +1128,8 @@ public:
      * @param offset 随机偏移范围
      * @param count 粒子数量
      */
-    virtual void addParticle(client::renderer::trident::particle::ParticleTypeId type,
-        const Vector3& pos,
-        const Vector3& velocity,
-        const Vector3& offset,
-        u32 count)
+    virtual void addParticle(
+        particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count)
     {
         (void)type;
         (void)pos;
@@ -1245,6 +1244,25 @@ public:
      */
     [[nodiscard]] virtual server::ServerWorld* asServerWorld() { return nullptr; }
     [[nodiscard]] virtual const server::ServerWorld* asServerWorld() const { return nullptr; }
+
+    // ========== 按需特征放置 ==========
+
+    /**
+     * @brief 从已加载区块构建临时 WorldGenRegion
+     *
+     * 在指定位置周围收集 3x3 区块窗口，构建 WorldGenRegion，
+     * 用于 SaplingBlock::grow() 等按需特征放置场景。
+     *
+     * 只有 ServerWorld 会返回有效的 WorldGenRegion，
+     * 客户端和其他实现返回 nullptr。
+     *
+     * @param position 中心位置
+     * @return 创建的 WorldGenRegion，如果区块未加载则返回 nullptr
+     */
+    [[nodiscard]] virtual std::unique_ptr<WorldGenRegion> createFeatureRegion(const BlockPos& /*position*/)
+    {
+        return nullptr;
+    }
 
     // ========== 村庄管理 ==========
 
