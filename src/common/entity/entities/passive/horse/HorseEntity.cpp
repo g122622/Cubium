@@ -28,10 +28,12 @@
 
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/armor/HorseArmorItem.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
 
 namespace mc {
 
@@ -244,6 +246,44 @@ bool HorseEntity::isValidArmorForSlot(const ItemStack& item) const
 
     // 使用 dynamic_cast 检查是否为 HorseArmorItem
     return dynamic_cast<const item::items::HorseArmorItem*>(itemPtr) != nullptr;
+}
+
+ActionResultType HorseEntity::interactMob(Player& player, Hand hand)
+{
+    // MC 1.21.11: Horse.mobInteract()
+    // 马在基类逻辑之前增加食物优先级和未驯服时的愤怒反应
+
+    bool isSecondaryUse = !isChild() && isTame() && player.isSneaking();
+
+    // 如果没有被骑乘且不是打开容器的场景
+    if (!isBeingRidden() && !isSecondaryUse) {
+        ItemStack& itemStack = player.getHeldItem(hand);
+        const Item* item = itemStack.getItem();
+
+        if (item != nullptr && !itemStack.isEmpty()) {
+            // 1. 手持食物时优先喂食
+            if (isFoodItem(itemStack)) {
+                bool hadEffect = handleEating(&player, itemStack);
+                if (hadEffect) {
+                    if (m_world != nullptr && m_world->isClientSide()) {
+                        return ActionResultType::Consume;
+                    }
+                    return ActionResultType::Success;
+                }
+            }
+
+            // 2. 未驯服时让马愤怒
+            if (!isTame()) {
+                makeMad();
+                return ActionResultType::Success;
+            }
+        }
+        // 交给基类处理（鞍、马铠装备和骑乘）
+        return AbstractHorseEntity::interactMob(player, hand);
+    }
+
+    // 被骑乘中或 Shift+已驯服，交给基类处理
+    return AbstractHorseEntity::interactMob(player, hand);
 }
 
 } // namespace mc

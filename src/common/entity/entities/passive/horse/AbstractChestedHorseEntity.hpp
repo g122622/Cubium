@@ -27,10 +27,14 @@
 
 namespace mc {
 
+// Forward declarations
+class Player;
+
 /**
  * @brief 可装备箱子的马类中间层
  *
  * 负责承载驴、骡和羊驼共享的箱子状态与基础库存规模计算。
+ * 当玩家手持箱子对已驯服的此类实体右键时，可以装备箱子扩展背包。
  */
 class AbstractChestedHorseEntity : public AbstractHorseEntity {
 public:
@@ -80,6 +84,37 @@ public:
 
         return 2 + 3 * getInventoryColumns();
     }
+
+    /**
+     * @brief 处理玩家交互
+     *
+     * MC 1.21.11: AbstractChestedHorse.mobInteract()
+     * 在基类逻辑之前增加箱子装备判断：
+     * - 手持食物时优先喂食
+     * - 未驯服时让马愤怒
+     * - 手持箱子且未装备箱子时装备箱子
+     * - 其余交给基类处理
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
+protected:
+    /**
+     * @brief 装备箱子
+     *
+     * MC 1.21.11: AbstractChestedHorse.equipChest()
+     * 设置箱子标志、播放音效、消耗物品、重建背包。
+     *
+     * @param player 装备箱子的玩家
+     * @param itemStack 箱子物品堆（将被修改）
+     */
+    void equipChest(Player& player, ItemStack& itemStack);
+
+    /**
+     * @brief 获取箱子装备音效
+     *
+     * 子类可覆写以提供不同的音效（驴/骡 vs 羊驼）。
+     */
+    [[nodiscard]] virtual const ResourceLocation& getChestEquipSound() const;
 
 private:
     bool m_hasChest = false;

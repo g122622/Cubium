@@ -42,8 +42,10 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/EntityPackets.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -292,36 +294,88 @@ bool AbstractHorseEntity::isTameItem(const ItemStack& itemStack) const
 
 ActionResultType AbstractHorseEntity::interactMob(Player& player, Hand hand)
 {
-    // MC 1.16.5: AbstractHorseEntity.func_230254_b_()
+    // MC 1.21.11: AbstractHorse.mobInteract()
     // 处理玩家右键点击马匹时的交互
 
-    ItemStack itemStack = player.getHeldItem(hand);
+    // 1. 如果正在被骑乘或是幼年，交给基类处理
+    if (isBeingRidden() || isChild()) {
+        return AnimalEntity::interactMob(player, hand);
+    }
+
+    // 2. 已驯服且玩家按住潜行键（Shift）时，打开马背包界面
+    if (isTame() && player.isSneaking()) {
+        openInventory(player);
+        return ActionResultType::Success;
+    }
+
+    // 3. 检查玩家手持物品
+    ItemStack& itemStack = player.getHeldItem(hand);
     const Item* item = itemStack.getItem();
 
-    // 1. 检查是否手持食物
-    if (item != nullptr && isFoodItem(itemStack)) {
-        // 调用 handleEating 处理喂食效果
-        bool hadEffect = handleEating(&player, itemStack);
-        if (hadEffect) {
-            // MC 1.16.5: 服务端返回 SUCCESS，客户端返回 CONSUME
-            if (m_world != nullptr && m_world->isClientSide()) {
-                return ActionResultType::Consume;
-            }
+    if (item != nullptr && !itemStack.isEmpty()) {
+        // 3a. 先让物品自身执行交互（如 SaddleItem 装备鞍）
+        // MC 1.21.11: itemstack.interactLivingEntity() 触发 Equippable 组件逻辑
+        // 注意: Item::itemInteractionForEntity 不是 const 方法，需要 const_cast
+        Item* mutableItem = const_cast<Item*>(item);
+        bool itemInteractResult = mutableItem->itemInteractionForEntity(itemStack, player, *this, hand);
+        if (itemInteractResult) {
+            return ActionResultType::Success;
+        }
+
+        // 3b. 如果物品可以装备到马铠/装饰槽位且当前未装备马铠，则装备
+        if (hasArmorSlot() && !hasArmor() && isValidArmorForSlot(itemStack)) {
+            equipArmor(player, itemStack);
             return ActionResultType::Success;
         }
     }
 
-    // 2. 未驯服的马可以被骑乘（驯服尝试）
-    if (!isTame()) {
-        // MC 1.16.5: 玩家尝试骑乘未驯服的马
-        // 这会触发 RunAroundLikeCrazyGoal
-        // 这里暂时返回 Pass，实际的骑乘逻辑由 processInitialInteract 的基类处理
-        return ActionResultType::Pass;
-    }
+    // 4. 让玩家骑乘马匹（包括未驯服的马也会被骑乘以触发驯服流程）
+    doPlayerRide(player);
+    return ActionResultType::Success;
+}
 
-    // 3. 已驯服的马可以装备鞍或打开背包
-    // TODO: 实现鞍装备和背包打开逻辑
-    return ActionResultType::Pass;
+void AbstractHorseEntity::openInventory(Player& player)
+{
+    // MC 1.21.11: AbstractHorse.openCustomInventoryScreen()
+    // 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        if (!isBeingRidden() || isPassenger(player.id())) {
+            if (isTame()) {
+                // TODO: 当马背包 ContainerMenu 系统实现后，在此打开马背包 GUI
+                // MC 1.21.11: player.openHorseInventory(this, this.inventory);
+                // 当前马背包 SimpleInventory 已存在（m_inventory），但尚未实现
+                // HorseContainer（类似 HorseInventoryMenu）来连接马装备栏与玩家背包。
+            }
+        }
+    }
+}
+
+void AbstractHorseEntity::equipArmor(Player& player, ItemStack& itemStack)
+{
+    // MC 1.21.11: AbstractHorse.equipBodyArmor()
+    // 将马铠/地毯装备到槽位 1（马铠/装饰槽）
+    if (hasArmorSlot() && isValidArmorForSlot(itemStack)) {
+        ItemStack armorStack(itemStack.getItem(), 1);
+        setEquipment(1, armorStack);
+        setArmor(true);
+
+        // 播放马铠装备音效
+        playSound(SoundEvents::ENTITY_HORSE_ARMOR, 1.0f, 1.0f);
+
+        // 消耗一个物品（非创造模式）
+        if (!player.isCreative()) {
+            itemStack.shrink(1);
+        }
+    }
+}
+
+void AbstractHorseEntity::doPlayerRide(Player& player)
+{
+    // MC 1.21.11: AbstractHorse.doPlayerRide()
+    // 让玩家骑乘马匹，触发驯服流程或正常骑乘
+    if (!isBeingRidden()) {
+        player.startRiding(*this);
+    }
 }
 
 f32 AbstractHorseEntity::getSpeed() const

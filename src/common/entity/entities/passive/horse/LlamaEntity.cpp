@@ -290,6 +290,11 @@ bool LlamaEntity::isFoodItem(const ItemStack& itemStack) const
     return item == Items::WHEAT || item == Items::HAY_BLOCK;
 }
 
+const ResourceLocation& LlamaEntity::getChestEquipSound() const
+{
+    return SoundEvents::ENTITY_LLAMA_CHEST;
+}
+
 std::optional<ResourceLocation> LlamaEntity::getEatSound() const
 {
     return SoundEvents::ENTITY_LLAMA_EAT;

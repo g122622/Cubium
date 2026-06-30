@@ -397,17 +397,49 @@ public:
     /**
      * @brief 处理玩家交互
      *
-     * MC 1.16.5: AbstractHorseEntity.func_230254_b_()
+     * MC 1.21.11: AbstractHorse.mobInteract()
      * 处理玩家右键点击马匹时的交互：
-     * - 手持食物时：喂食
-     * - 空手且已驯服：打开背包
-     * - 空手且未驯服：尝试骑乘
+     * - 被骑乘中/幼年：交给基类处理
+     * - 已驯服 + Shift：打开背包界面
+     * - 手持物品时：先尝试物品自身交互（如鞍），再尝试装备马铠/装饰
+     * - 空手：让玩家骑乘
      *
      * @param player 与此实体交互的玩家
      * @param hand 玩家使用的手
      * @return 交互结果类型
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
+    /**
+     * @brief 打开马的背包界面
+     *
+     * MC 1.21.11: AbstractHorse.openCustomInventoryScreen()
+     * 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服
+     *
+     * @param player 打开背包的玩家
+     */
+    virtual void openInventory(Player& player);
+
+    /**
+     * @brief 装备马铠/装饰到槽位 1
+     *
+     * MC 1.21.11: AbstractHorse.equipBodyArmor()
+     * 将物品装备到马铠/装饰槽，设置护甲状态，播放音效，消耗物品。
+     *
+     * @param player 装备物品的玩家
+     * @param itemStack 要装备的物品堆（将被修改）
+     */
+    void equipArmor(Player& player, ItemStack& itemStack);
+
+    /**
+     * @brief 让玩家骑乘马匹
+     *
+     * MC 1.21.11: AbstractHorse.doPlayerRide()
+     * 让玩家骑上马，触发 RunAroundLikeCrazyGoal（未驯服时）或正常骑乘。
+     *
+     * @param player 要骑乘的玩家
+     */
+    void doPlayerRide(Player& player);
 
     /**
      * @brief 骑乘移动处理

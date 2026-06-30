@@ -147,6 +147,17 @@ public:
     [[nodiscard]] bool isValidArmorForSlot(const ItemStack& item) const override;
 
     /**
+     * @brief 处理玩家交互
+     *
+     * MC 1.21.11: Horse.mobInteract()
+     * 在基类逻辑之前增加食物优先级和未驯服时的愤怒反应：
+     * - 手持食物时优先喂食（使用 HORSE_FOOD 标签）
+     * - 未驯服时让马愤怒（makeMad）
+     * - 其余交给基类处理
+     */
+    [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
+
+    /**
      * @brief 获取眼睛高度
      */
     [[nodiscard]] f32 eyeHeight() const override { return 1.53f; }

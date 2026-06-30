@@ -253,6 +253,13 @@ public:
     [[nodiscard]] f32 eyeHeight() const noexcept override { return 1.77f; }
 
     /**
+     * @brief 获取箱子装备音效
+     *
+     * 羊驼使用专属音效 ENTITY_LLAMA_CHEST
+     */
+    [[nodiscard]] const ResourceLocation& getChestEquipSound() const override;
+
+    /**
      * @brief 获取进食音效
      */
     [[nodiscard]] std::optional<ResourceLocation> getEatSound() const override;

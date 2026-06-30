@@ -147,6 +147,7 @@ add_library(mc_common STATIC
 
     # Entity - Passive - Horse
     entity/entities/passive/horse/AbstractHorseEntity.cpp
+    entity/entities/passive/horse/AbstractChestedHorseEntity.cpp
     entity/entities/passive/horse/HorseEntity.cpp
     entity/entities/passive/horse/DonkeyEntity.cpp
     entity/entities/passive/horse/MuleEntity.cpp
