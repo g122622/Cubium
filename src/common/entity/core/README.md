@@ -359,6 +359,11 @@
         - 仅在服务端处理空气逻辑，客户端通过 `DATA_AIR_PARAM` 元数据同步获取空气值
         - `increaseAirSupply()` 每tick恢复4点空气，上限为 `maxAir()`
         - WaterMobEntity 使用反逻辑：水中立即恢复 `maxAir()`，陆地上消耗空气
+- **水下强制下坐骑**：当乘客眼睛位置在水中（非气泡柱）且所骑乘的载具类型属于 `EntityTypeTags::DISMOUNTS_UNDERWATER` 标签时，`updateAirSupply()` 会调用 `stopRiding()` 强制乘客下坐骑
+  - 对应 MC Java 的 `if (this.isPassenger() && this.getVehicle() != null && this.getVehicle().dismountsUnderwater()) { this.stopRiding(); }`
+  - `Entity::dismountsUnderwater()` 虚方法默认实现通过 `EntityTypeTags::DISMOUNTS_UNDERWATER().contains(getTypeId())` 查询标签
+  - DISMOUNTS_UNDERWATER 标签包含：骆驼、鸡、驴、快乐恶魂、马、羊驼、骡、猪、劫掠兽、蜘蛛、炽足兽、行商羊驼、僵尸马（共13种）
+  - 船不在该标签中（船有自己的水下沉没逻辑 `m_outOfControlTicks`），矿车和玩家也不在其中
 
         ## #队伍联盟判断 -
         **`isAlliedTo(const Entity&)`* *-双向联盟检查：this 认为 other 是盟友，或 other 认为 this 是盟友 -

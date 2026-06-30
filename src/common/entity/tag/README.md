@@ -56,9 +56,28 @@ if (EntityTypeTags::IMPACT_PROJECTILES().contains(entity.getTypeId())) {
 
 - `IMPACT_PROJECTILES` — 冲击投射物（箭矢、三叉戟、火球等，可破坏陶罐等方块）
 - `ARROWS` — 箭矢（普通箭矢、光灵箭）
+- `REDIRECTABLE_PROJECTILE` — 可偏转投射物（火球、风弹等）
 - `ARTHROPOD` — 节肢动物
-- `UNDEAD` — 亡灵
+- `UNDEAD` — 亡灵（包含 SKELETONS 和 ZOMBIES 子标签）
 - `SKELETONS` — 骷髅类
 - `ZOMBIES` — 僵尸类
+- `AQUATIC` — 水生生物
+- `SENSITIVE_TO_BANE_OF_ARTHROPODS` — 节肢杀手敏感（= ARTHROPOD）
+- `SENSITIVE_TO_SMITE` — 亡灵杀手敏感（= UNDEAD）
+- `SENSITIVE_TO_IMPALING` — 穿刺敏感（= AQUATIC）
+- `ILLAGER` — 灾厄村民
 - `RAIDERS` — 袭击者
-- 以及数据包中定义的其他标签
+- `BURN_IN_DAYLIGHT` — 白天燃烧
+- `CAN_BREATHE_UNDER_WATER` — 可水下呼吸
+- `FALL_DAMAGE_IMMUNE` — 摔落伤害免疫
+- `FREEZE_IMMUNE_ENTITY_TYPES` — 冻结免疫
+- `FREEZE_HURTS_EXTRA_TYPES` — 冻结额外伤害
+- `BEEHIVE_INHABITORS` — 蜂巢居民
+- `DEFLECTS_PROJECTILES` — 可偏转投射物的实体
+- `IGNORES_POISON_AND_REGEN` — 忽略中毒和再生
+- `INVERTED_HEALING_AND_HARM` — 治疗与伤害反转
+- `IMMUNE_TO_INFESTED` — 免疫蠹虫效果
+- `IMMUNE_TO_OOZING` — 免疫渗出效果
+- `NO_ANGER_FROM_WIND_CHARGE` — 风弹不激怒
+- `DISMOUNTS_UNDERWATER` — 水下强制下坐骑（马、猪、骆驼、蜘蛛、炽足兽等陆地骑乘实体，船不在其中）
+- `POWDER_SNOW_WALKABLE_MOBS` — 细雪可行走
