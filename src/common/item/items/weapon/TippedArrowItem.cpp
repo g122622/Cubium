@@ -69,6 +69,31 @@ bool TippedArrowItem::isInfinite(const ItemStack& /*arrowStack*/, const ItemStac
     return player.isCreative();
 }
 
+std::unique_ptr<entity::ProjectileEntity> TippedArrowItem::asProjectile(IWorld& world,
+    const Vector3& position,
+    const ItemStack& stack,
+    f32 /*directionX*/,
+    f32 /*directionY*/,
+    f32 /*directionZ*/) const
+{
+    auto entity = entity::ArrowEntity::create(&world);
+    if (entity) {
+        entity->setPosition(position.x, position.y, position.z);
+        auto* arrow = dynamic_cast<entity::ArrowEntity*>(entity.get());
+        if (arrow) {
+            arrow->setPickupStatus(entity::PickupStatus::Allowed);
+            // 从 ItemStack 读取药水效果并应用到箭矢
+            auto effects = getEffects(stack);
+            if (!effects.empty()) {
+                arrow->setEffects(effects);
+                arrow->setColor(potion::PotionUtils::getColor(effects));
+            }
+        }
+    }
+    // ArrowEntity 继承自 ProjectileEntity，安全的 unique_ptr 转换
+    return std::unique_ptr<entity::ProjectileEntity>(static_cast<entity::ProjectileEntity*>(entity.release()));
+}
+
 const potion::Potion* TippedArrowItem::getPotion(const ItemStack& stack)
 {
     // 使用 PotionUtils 获取药水

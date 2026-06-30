@@ -43,6 +43,7 @@
 #include "entity/inventory/IInventory.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
+#include "item/items/weapon/ThrowableItems.hpp"
 #include "item/potion/PotionUtils.hpp"
 #include "item/potion/Potions.hpp"
 #include "network/packet/PacketSerializer.hpp"
@@ -195,21 +196,12 @@ TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForSnowball_ReturnsProjectileBe
 // ProjectileDispenseBehavior 测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, ProjectileBehavior_CreatesFactoryBasedBehavior)
+TEST_F(DispenseBehaviorTest, ProjectileBehavior_CreatesFromProjectileItem)
 {
-    // 测试工厂函数创建
-    bool factoryCalled = false;
-
-    auto factory = [&factoryCalled](
-                       IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
-        factoryCalled = true;
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(stack);
-        return nullptr; // 返回 nullptr 模拟创建失败
-    };
-
-    ProjectileDispenseBehavior behavior(factory, 1.5f, 3.0f);
+    // 测试通过 ProjectileItem 接口创建行为
+    // SnowballItem 实现了 ProjectileItem 接口
+    item::SnowballItem snowballItem(ItemProperties().maxStackSize(16));
+    ProjectileDispenseBehavior behavior(snowballItem);
 
     // 测试行为已创建
     EXPECT_TRUE(behavior.isSuccess());

@@ -36,10 +36,10 @@ Item (抽象基类)
   ├── ItemGroup (创造模式物品分组)
   │
   └── ProjectileItem (弹射物物品接口)
-        ├── ProjectileDispenseConfig (弹射物发射配置，提供 defaults()/potion()/windCharge() 三种预设)
+        ├── ProjectileDispenseConfig (弹射物发射配置，提供 defaults()/potion()/arrow()/fireCharge()/windCharge()/fireworkRocket() 六种预设)
         ├── asProjectile() → 创建弹射物实体
         ├── getDispenseConfig() → 获取发射器行为参数
-        └── shoot() → 发射弹射物（默认委托 ProjectileEntity::shoot()，风弹覆写为空操作）
+        └── shoot() → 发射弹射物（默认委托 ProjectileEntity::shoot()，风弹/火焰弹覆写为空操作）
 ```
 
 ## 上下游外部依赖关系

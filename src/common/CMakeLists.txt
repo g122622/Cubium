@@ -487,6 +487,9 @@ add_library(mc_common STATIC
     item/items/weapon/BowItem.cpp
     item/items/weapon/ArrowItem.cpp
     item/items/weapon/TippedArrowItem.cpp
+    item/items/weapon/SpectralArrowItem.cpp
+    item/items/weapon/FireChargeItem.cpp
+    item/items/weapon/FireworkRocketItem.cpp
     item/items/weapon/CrossbowItem.cpp
     item/items/weapon/TridentItem.cpp
     item/items/weapon/ShieldItem.cpp
