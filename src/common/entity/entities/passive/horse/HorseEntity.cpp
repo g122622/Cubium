@@ -166,23 +166,13 @@ void HorseEntity::tick()
 {
     AbstractHorseEntity::tick();
 
-    // 更新扬蹄计时器 - 使用基类的 STATUS_FLAG_REARING 进行网络同步
-    if (m_isRearing) {
-        --m_rearingCounter;
-        if (m_rearingCounter <= 0) {
-            m_isRearing = false;
-            setRearing(false);
-        }
-    }
-
     // 未驯服的马被骑乘时随机扬蹄（模拟不安行为）
-    // 注意：扬蹄并甩下玩家的完整逻辑在 RunAroundLikeCrazyGoal 中实现
-    if (!isTame() && isBeingRidden() && !m_isRearing) {
+    // MC 1.21.11: RunAroundLikeCrazyGoal 中的扬蹄逻辑已由 AI 目标处理，
+    // 这里仅处理未驯服马匹的随机扬蹄（1/50 概率）
+    if (!isTame() && isBeingRidden() && !isRearing()) {
         math::Random random(ticksExisted());
         if (random.nextFloat() < 0.02f) {
-            m_isRearing = true;
-            m_rearingCounter = 20;
-            setRearing(true);
+            makeHorseRear();
         }
     }
 }

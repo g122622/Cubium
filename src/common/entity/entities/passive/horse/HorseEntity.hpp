@@ -209,8 +209,6 @@ protected:
 private:
     CoatColors m_color = CoatColors::White;
     CoatTypes m_marking = CoatTypes::None;
-    i32 m_rearingCounter = 0;
-    bool m_isRearing = false;
 };
 
 } // namespace mc

@@ -108,6 +108,11 @@ public:
      */
     [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
 
+    /**
+     * @brief 骷髅马不能吃草
+     */
+    [[nodiscard]] bool canEatGrass() const override { return false; }
+
     // ========== 属性 ==========
 
     /**

@@ -104,6 +104,11 @@ public:
     [[nodiscard]] bool canBreatheUnderwater() const override { return true; }
 
     /**
+     * @brief 僵尸马不能吃草
+     */
+    [[nodiscard]] bool canEatGrass() const override { return false; }
+
+    /**
      * @brief 阳光防护装备槽位
      *
      * 僵尸马使用身体槽位（EquipmentSlot::Chest）作为阳光防护，

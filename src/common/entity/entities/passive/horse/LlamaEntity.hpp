@@ -99,6 +99,13 @@ public:
     [[nodiscard]] bool canEquipSaddle() const override { return false; }
 
     /**
+     * @brief 羊驼不能扬蹄
+     *
+     * MC 1.21.11: Llama.canPerformRearing() 返回 false
+     */
+    [[nodiscard]] bool canPerformRearing() const override { return false; }
+
+    /**
      * @brief 羊驼支持装饰槽位（地毯）
      */
     [[nodiscard]] bool hasArmorSlot() const override { return true; }

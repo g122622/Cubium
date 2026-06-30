@@ -40,12 +40,15 @@
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/serialization/EntityNbtKeys.hpp"
+#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/UuidUtils.hpp"
 #include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -56,9 +59,8 @@
 
 namespace mc {
 
-// MC 1.16.5 数据参数定义 - 必须在命名空间级别定义静态成员
+// MC 1.21.11 数据参数定义 - 必须在命名空间级别定义静态成员
 entity::DataParameter<i8> AbstractHorseEntity::STATUS_PARAM = entity::EntityDataManager::createKey<i8>();
-entity::DataParameter<i64> AbstractHorseEntity::OWNER_UUID_PARAM = entity::EntityDataManager::createKey<i64>();
 
 AbstractHorseEntity::AbstractHorseEntity(EntityId id)
     : AnimalEntity(id)
@@ -81,9 +83,8 @@ void AbstractHorseEntity::registerData()
 {
     AnimalEntity::registerData();
 
-    // MC 1.16.5 AbstractHorseEntity.registerData()
+    // MC 1.21.11 AbstractHorse.registerData()
     m_dataManager.registerParam(STATUS_PARAM, static_cast<i8>(0));
-    m_dataManager.registerParam(OWNER_UUID_PARAM, static_cast<i64>(0)); // 0 = 无主人
 }
 
 // ========== 状态标志辅助方法 ==========
@@ -394,7 +395,49 @@ void AbstractHorseEntity::tick()
     // 更新加速状态
     updateBoost();
 
-    // 更新骑乘状态
+    // MC 1.21.11 AbstractHorse.tick() 动画计数器更新
+
+    // 张嘴计数器：递增，超过 30 tick 后关闭嘴巴
+    if (m_openMouthCounter > 0 && ++m_openMouthCounter > 30) {
+        m_openMouthCounter = 0;
+        setMouthOpen(false);
+    }
+
+    // 扬蹄计数器：递减，归零时清除扬蹄状态
+    if (m_jumpRearingCounter > 0 && --m_jumpRearingCounter <= 0) {
+        clearRearing();
+    }
+
+    // 尾巴计数器：递增，超过 8 tick 后重置
+    if (m_tailCounter > 0 && ++m_tailCounter > 8) {
+        m_tailCounter = 0;
+    }
+
+    // 冲刺计数器：递增，超过 300 tick 后重置
+    if (m_sprintCounter > 0) {
+        ++m_sprintCounter;
+        if (m_sprintCounter > 300) {
+            m_sprintCounter = 0;
+        }
+    }
+
+    // MC 1.21.11: 服务端动画逻辑
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        // 吃草计数器：递增，超过 50 tick 后停止吃草
+        if (canEatGrass() && isEating()) {
+            if (++m_eatingCounter > 50) {
+                m_eatingCounter = 0;
+                setEating(false);
+            }
+        }
+
+        // 随机尾巴摆动：每 tick 1/200 概率触发
+        if (getRandom().nextInt(200) == 0) {
+            m_tailCounter = 1;
+        }
+    }
+
+    // 更新骑乘状态（包含动画插值）
     updateRiding();
 }
 
@@ -741,21 +784,19 @@ bool AbstractHorseEntity::setTamedBy(Player* player)
         return false;
     }
 
-    // MC 1.16.5: this.setOwnerUniqueId(player.getUniqueID());
+    // MC 1.21.11: this.setOwner(player);
     setOwnerUuid(player->uuid());
 
-    // MC 1.16.5: this.setHorseTamed(true);
+    // MC 1.21.11: this.setTamed(true);
     setTame(true);
 
-    // MC 1.16.5: if (player instanceof ServerPlayerEntity) {
-    //     CriteriaTriggers.TAME_ANIMAL.trigger((ServerPlayerEntity)player, this);
-    // }
+    // MC 1.21.11: CriteriaTriggers.TAME_ANIMAL.trigger((ServerPlayer)player, this);
     // 通过 IWorld 回调触发进度检测
     if (m_world != nullptr) {
         m_world->onTameAnimal(player->playerId(), this);
     }
 
-    // MC 1.16.5: this.world.setEntityState(this, (byte)7);
+    // MC 1.21.11: this.level().broadcastEntityEvent(this, (byte)7);
     // 发送实体状态包，让客户端显示爱心粒子
     if (m_world != nullptr) {
         m_world->broadcastEntityStatus(id(), static_cast<u8>(network::EntityStatusPacket::Status::TamingSucceeded));
@@ -766,12 +807,12 @@ bool AbstractHorseEntity::setTamedBy(Player* player)
 
 void AbstractHorseEntity::makeMad()
 {
-    // MC 1.16.5: if (!this.isRearing()) { this.makeHorseRear(); ... }
-    if (!isRearing()) {
+    // MC 1.21.11: makeMad()
+    // 条件：未扬蹄 && 非客户端
+    if (!isRearing() && m_world != nullptr && !m_world->isClientSide()) {
         makeHorseRear();
 
-        // MC 1.16.5: SoundEvent soundevent = this.getAngrySound();
-        // if (soundevent != null) { this.playSound(soundevent, ...); }
+        // MC 1.21.11: this.makeSound(this.getAngrySound());
         auto soundEvent = getAngrySound();
         if (soundEvent.has_value()) {
             playSound(soundEvent.value(), getSoundVolume(), getSoundPitch());
@@ -779,15 +820,37 @@ void AbstractHorseEntity::makeMad()
     }
 }
 
+void AbstractHorseEntity::openMouth()
+{
+    // MC 1.21.11: openMouth()
+    // 仅在服务端调用
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+    m_openMouthCounter = 1;
+    setMouthOpen(true);
+}
+
 void AbstractHorseEntity::makeHorseRear()
 {
-    // MC 1.16.5: if (this.canPassengerSteer() || this.isServerWorld()) {
-    //     this.jumpRearingCounter = 1;
-    //     this.setRearing(true);
-    // }
-    // 简化实现：始终允许扬蹄
-    m_jumpRearingCounter = 1;
-    setRearing(true);
+    // MC 1.21.11: standIfPossible()
+    // 条件：canPerformRearing() && (canPassengerSteer() || !isClientSide())
+    if (!canPerformRearing()) {
+        return;
+    }
+
+    if (canPassengerSteer() || (m_world != nullptr && !m_world->isClientSide())) {
+        // setStanding(20): 设置扬蹄状态，持续 20 tick
+        setRearing(true);
+        m_jumpRearingCounter = 20;
+    }
+}
+
+void AbstractHorseEntity::clearRearing()
+{
+    // MC 1.21.11: clearStanding()
+    setRearing(false);
+    m_jumpRearingCounter = 0;
 }
 
 bool AbstractHorseEntity::isRearing() const
@@ -804,38 +867,30 @@ void AbstractHorseEntity::setRearing(bool rearing)
     setHorseWatchableBoolean(STATUS_FLAG_REARING, rearing);
 }
 
-std::string AbstractHorseEntity::getOwnerUuid() const
-{
-    i64 ownerId = m_dataManager.get(OWNER_UUID_PARAM);
-    if (ownerId == 0) {
-        return "";
-    }
-    // 将 i64 转换为 UUID 字符串
-    // MC 1.16.5 使用 UUID 存储，这里我们使用简化的字符串存储
-    return std::to_string(ownerId);
-}
-
 void AbstractHorseEntity::setOwnerUuid(const std::string& uuid)
 {
-    // 将 UUID 字符串转换为 i64
-    // 简化实现：直接存储哈希值或解析数字
-    if (uuid.empty()) {
-        m_dataManager.set(OWNER_UUID_PARAM, static_cast<i64>(0));
-    } else {
-        // 尝试解析为数字
-        try {
-            i64 ownerId = std::stoll(uuid);
-            m_dataManager.set(OWNER_UUID_PARAM, ownerId);
-        }
-        catch (...) {
-            // 解析失败，使用哈希值
-            i64 hash = 0;
-            for (char c : uuid) {
-                hash = hash * 31 + c;
-            }
-            m_dataManager.set(OWNER_UUID_PARAM, hash);
-        }
+    m_ownerUuid = uuid;
+    // 同步驯服状态：有主人时自动标记为已驯服
+    if (!uuid.empty()) {
+        setTame(true);
     }
+}
+
+void AbstractHorseEntity::clearOwnerUuid()
+{
+    m_ownerUuid.clear();
+}
+
+LivingEntity* AbstractHorseEntity::getOwner() const
+{
+    if (m_ownerUuid.empty() || m_world == nullptr) {
+        return nullptr;
+    }
+    Entity* entity = m_world->getEntityByUuid(m_ownerUuid);
+    if (entity != nullptr) {
+        return dynamic_cast<LivingEntity*>(entity);
+    }
+    return nullptr;
 }
 
 // ========== 食物处理 ==========
@@ -934,9 +989,10 @@ bool AbstractHorseEntity::handleEating(Player* player, ItemStack& itemStack)
 
     // 播放进食音效和动画
     if (flag) {
-        // MC 1.16.5: this.eatingHorse()
-        // 设置进食状态（用于动画）
+        // MC 1.21.11: this.eatingHorse()
+        // 设置进食状态（用于动画）并打开嘴巴
         setEating(true);
+        openMouth();
 
         // 播放进食音效
         auto eatSound = getEatSound();
@@ -1022,6 +1078,138 @@ f64 AbstractHorseEntity::getModifiedMovementSpeed() const
     // 返回 (0.45 + rand*0.3 + rand*0.3 + rand*0.3) * 0.25，范围 0.1125-0.3375
     math::Random rng(ticksExisted());
     return (0.45 + rng.nextDouble() * 0.3 + rng.nextDouble() * 0.3 + rng.nextDouble() * 0.3) * 0.25;
+}
+
+// ========== NBT 序列化 ==========
+
+void AbstractHorseEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    AnimalEntity::addAdditionalSaveData(tag);
+
+    using namespace mc::entity::serialization;
+
+    // 主人UUID（使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式）
+    if (!m_ownerUuid.empty()) {
+        auto uuidBytes = util::uuidFromString(m_ownerUuid);
+        if (uuidBytes.size() == 16) {
+            i64 most = (static_cast<i64>(uuidBytes[0]) << 56) | (static_cast<i64>(uuidBytes[1]) << 48) |
+                (static_cast<i64>(uuidBytes[2]) << 40) | (static_cast<i64>(uuidBytes[3]) << 32) |
+                (static_cast<i64>(uuidBytes[4]) << 24) | (static_cast<i64>(uuidBytes[5]) << 16) |
+                (static_cast<i64>(uuidBytes[6]) << 8) | static_cast<i64>(uuidBytes[7]);
+
+            i64 least = (static_cast<i64>(uuidBytes[8]) << 56) | (static_cast<i64>(uuidBytes[9]) << 48) |
+                (static_cast<i64>(uuidBytes[10]) << 40) | (static_cast<i64>(uuidBytes[11]) << 32) |
+                (static_cast<i64>(uuidBytes[12]) << 24) | (static_cast<i64>(uuidBytes[13]) << 16) |
+                (static_cast<i64>(uuidBytes[14]) << 8) | static_cast<i64>(uuidBytes[15]);
+
+            tag.put(nbt_keys::HORSE_OWNER_UUID_MOST, most);
+            tag.put(nbt_keys::HORSE_OWNER_UUID_LEAST, least);
+        }
+    }
+
+    // 驯服进度
+    tag.put(nbt_keys::TEMPER, m_temper);
+
+    // 是否已驯服（NBT 中布尔值使用 i8 存储）
+    if (isTame()) {
+        tag.put("Tame", static_cast<i8>(1));
+    }
+
+    // 是否已繁殖
+    if (isBred()) {
+        tag.put("Bred", static_cast<i8>(1));
+    }
+
+    // 是否装备鞍
+    if (hasSaddle()) {
+        tag.put("Saddle", static_cast<i8>(1));
+    }
+
+    // 跳跃强度
+    tag.put(nbt_keys::HORSE_JUMP_STRENGTH, m_jumpStrength);
+
+    // 速度
+    tag.put(nbt_keys::HORSE_SPEED, m_speed);
+
+    // 生命值
+    tag.put(nbt_keys::HORSE_HEALTH, m_horseHealth);
+
+    // 吃草状态
+    if (isEating()) {
+        tag.put(nbt_keys::EATING_HAYSTACK, static_cast<i8>(1));
+    }
+}
+
+Result<void> AbstractHorseEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    MC_TRY(AnimalEntity::readAdditionalSaveData(tag));
+
+    using namespace mc::entity::serialization;
+
+    // 主人UUID（使用 OwnerUUIDMost/OwnerUUIDLeast 双 long 格式）
+    auto ownerMostVal = nbt_helper::tryGetLong(tag, nbt_keys::HORSE_OWNER_UUID_MOST);
+    auto ownerLeastVal = nbt_helper::tryGetLong(tag, nbt_keys::HORSE_OWNER_UUID_LEAST);
+    if (ownerMostVal.has_value() && ownerLeastVal.has_value()) {
+        i64 most = ownerMostVal.value();
+        i64 least = ownerLeastVal.value();
+        std::array<u8, 16> uuidBytes{};
+        for (i32 i = 7; i >= 0; --i) {
+            uuidBytes[i] = static_cast<u8>(most & 0xFF);
+            most >>= 8;
+        }
+        for (i32 i = 15; i >= 8; --i) {
+            uuidBytes[i] = static_cast<u8>(least & 0xFF);
+            least >>= 8;
+        }
+        setOwnerUuid(util::uuidToString(uuidBytes));
+    } else {
+        clearOwnerUuid();
+    }
+
+    // 驯服进度
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::TEMPER)) {
+        m_temper = *val;
+    }
+
+    // 是否已驯服
+    if (auto val = nbt_helper::tryGetBool(tag, "Tame")) {
+        setTame(*val);
+    }
+
+    // 是否已繁殖
+    if (auto val = nbt_helper::tryGetBool(tag, "Bred")) {
+        setBred(*val);
+    }
+
+    // 是否装备鞍
+    if (auto val = nbt_helper::tryGetBool(tag, "Saddle")) {
+        setSaddle(*val);
+    }
+
+    // 跳跃强度
+    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HORSE_JUMP_STRENGTH)) {
+        m_jumpStrength = *val;
+    }
+
+    // 速度
+    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HORSE_SPEED)) {
+        m_speed = *val;
+    }
+
+    // 生命值
+    if (auto val = nbt_helper::tryGetFloat(tag, nbt_keys::HORSE_HEALTH)) {
+        m_horseHealth = *val;
+    }
+
+    // 吃草状态
+    if (auto val = nbt_helper::tryGetBool(tag, nbt_keys::EATING_HAYSTACK)) {
+        setEating(*val);
+    }
+
+    // 从NBT加载后重新初始化背包
+    initHorseChest();
+
+    return Result<void>::ok();
 }
 
 } // namespace mc

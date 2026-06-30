@@ -38,6 +38,7 @@ namespace mc {
 // Forward declarations
 class Player;
 class ItemStack;
+class LivingEntity;
 
 /**
  * @brief 马类实体基类
@@ -112,6 +113,11 @@ public:
     [[nodiscard]] bool isTame() const { return m_tame; }
 
     /**
+     * @brief 检查是否有主人（非空UUID）
+     */
+    [[nodiscard]] bool hasOwner() const { return !m_ownerUuid.empty(); }
+
+    /**
      * @brief 设置驯服状态
      * @param tame 是否驯服
      */
@@ -137,9 +143,19 @@ public:
     void makeMad();
 
     /**
+     * @brief 检查是否可以执行扬蹄动画
+     *
+     * MC 1.21.11: canPerformRearing()
+     * 羊驼不扬蹄，覆写返回 false。其他马类默认返回 true。
+     */
+    [[nodiscard]] virtual bool canPerformRearing() const { return true; }
+
+    /**
      * @brief 让马后腿站立（扬蹄）
      *
-     * MC 1.16.5: makeHorseRear()
+     * MC 1.21.11: standIfPossible()
+     * 条件：canPerformRearing() && (canPassengerSteer() || !isClientSide())
+     * 持续 20 tick 后自动恢复。
      */
     void makeHorseRear();
 
@@ -154,6 +170,14 @@ public:
      * @param rearing 是否扬蹄
      */
     void setRearing(bool rearing);
+
+    /**
+     * @brief 清除扬蹄状态
+     *
+     * MC 1.21.11: clearStanding()
+     * 同时清除扬蹄标志和计数器
+     */
+    void clearRearing();
 
     /**
      * @brief 检查是否正在吃
@@ -215,13 +239,27 @@ public:
      * @brief 获取主人UUID
      * @return 主人UUID字符串，如果没有主人返回空字符串
      */
-    [[nodiscard]] std::string getOwnerUuid() const;
+    [[nodiscard]] const std::string& getOwnerUuid() const { return m_ownerUuid; }
 
     /**
      * @brief 设置主人UUID
      * @param uuid 主人UUID字符串
      */
     void setOwnerUuid(const std::string& uuid);
+
+    /**
+     * @brief 清除主人UUID
+     */
+    void clearOwnerUuid();
+
+    /**
+     * @brief 通过UUID查找主人实体
+     *
+     * 使用 IWorld::getEntityByUuid() 进行 O(1) 查找，并验证实体类型为 LivingEntity。
+     *
+     * @return 主人实体指针，如果未找到返回 nullptr
+     */
+    [[nodiscard]] LivingEntity* getOwner() const;
 
     /**
      * @brief 获取驯服进度 (0-100)
@@ -239,6 +277,23 @@ public:
      * @brief 获取最大驯服进度
      */
     [[nodiscard]] i32 getMaxTemper() const { return m_maxTemper; }
+
+    /**
+     * @brief 张开马嘴（播放进食动画）
+     *
+     * MC 1.21.11: openMouth()
+     * 仅在服务端调用，设置张嘴计数器和状态标志。
+     * 计数器会在 tick() 中递增，超过 30 tick 后自动关闭。
+     */
+    void openMouth();
+
+    /**
+     * @brief 检查是否可以吃草
+     *
+     * MC 1.21.11: canEatGrass()
+     * 大多数马类可以吃草，骷髅马和僵尸马覆写返回 false。
+     */
+    [[nodiscard]] virtual bool canEatGrass() const { return true; }
 
     /**
      * @brief 检查物品是否可用于驯服
@@ -393,6 +448,16 @@ public:
     // ========== 生命周期 ==========
 
     void tick() override;
+
+    /**
+     * @brief 序列化额外数据到 NBT
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 从 NBT 读取额外数据
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
 
     /**
      * @brief 处理玩家交互
@@ -608,21 +673,19 @@ protected:
     f32 m_prevMouthOpenness = 0.0f;
 
 private:
-    // MC 1.16.5 数据参数
-    static entity::DataParameter<i8> STATUS_PARAM;      // 使用 i8 代替 u8（DataValue 支持的类型）
-    static entity::DataParameter<i64> OWNER_UUID_PARAM; // 0 表示无主人
+    // MC 1.21.11 数据参数
+    static entity::DataParameter<i8> STATUS_PARAM; // 使用 i8 代替 u8（DataValue 支持的类型）
 
-    // MC 1.16.5 状态标志位
-    // 参考 AbstractHorseEntity.java 行128-138
-    // getHorseWatchableBoolean(int p_110233_1_) 使用位掩码检查状态
-    // isTame() 使用 getHorseWatchableBoolean(2) -> bit 1
-    // isHorseSaddled() 使用 getHorseWatchableBoolean(4) -> bit 2
+    // MC 1.21.11 状态标志位
     static constexpr i8 STATUS_FLAG_TAME = 2;        // bit 1: 已驯服
     static constexpr i8 STATUS_FLAG_SADDLE = 4;      // bit 2: 已装备鞍
     static constexpr i8 STATUS_FLAG_BRED = 8;        // bit 3: 已繁殖
     static constexpr i8 STATUS_FLAG_EATING = 16;     // bit 4: 正在吃
     static constexpr i8 STATUS_FLAG_REARING = 32;    // bit 5: 正在扬蹄
     static constexpr i8 STATUS_FLAG_MOUTH_OPEN = 64; // bit 6: 嘴张开
+
+    // 主人UUID（128位UUID字符串，与项目其他实体一致）
+    std::string m_ownerUuid;
 
     // 常量
     static constexpr f32 MIN_SPEED = 0.1127f;      // 最小速度
