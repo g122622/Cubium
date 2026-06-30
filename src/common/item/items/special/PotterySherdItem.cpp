@@ -22,7 +22,6 @@
  */
 
 #include "item/items/special/PotterySherdItem.hpp"
-#include "resource/LanguageManager.hpp"
 
 namespace mc {
 namespace item {

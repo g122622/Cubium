@@ -35,6 +35,9 @@
 #include "common/world/blockentity/interactive/BannerPattern.hpp"
 #include "common/world/blockentity/interactive/DecoratedPotPattern.hpp"
 
+// 测试辅助：使用 BaseTestWorld 提供最小化的 IWorld 实现
+#include "common/TestWorldHelper.hpp"
+
 using namespace mc;
 using namespace mc::item;
 using namespace mc::blockentity;
@@ -343,6 +346,145 @@ TEST_F(ItemTooltipTest, SmithingTemplateSlotDescriptionKeys)
     EXPECT_EQ(sentry->getBaseSlotDescription(), "item.minecraft.smithing_template.armor_trim.base_slot_description");
     EXPECT_EQ(sentry->getAdditionsSlotDescription(),
         "item.minecraft.smithing_template.armor_trim.additions_slot_description");
+}
+
+// ============================================================================
+// addInformation 集成测试 — 实际调用并验证 tooltip 输出
+// ============================================================================
+
+// 最小化的 IWorld 测试桩，继承 BaseTestWorld
+class TooltipTestWorld : public test::BaseTestWorld {};
+
+class ItemTooltipIntegrationTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() { Items::initialize(); }
+
+    TooltipTestWorld m_world;
+};
+
+TEST_F(ItemTooltipIntegrationTest, SmithingTemplateAddInformation_ArmorTrimOutputFormat)
+{
+    // 验证盔甲纹饰模板 addInformation 输出 6 行 tooltip，格式与 MC Java 一致：
+    // 0: "Smithing Template"（后缀标题，翻译键 item.minecraft.smithing_template）
+    // 1: ""（空行分隔）
+    // 2: "Applies to:"（标题，翻译键 item.minecraft.smithing_template.applies_to）
+    // 3: " Armor"（描述，翻译键 item.minecraft.smithing_template.armor_trim.applies_to，以空格开头）
+    // 4: "Ingredients:"（标题，翻译键 item.minecraft.smithing_template.ingredients）
+    // 5: " Ingots & Crystals"（描述，翻译键 item.minecraft.smithing_template.armor_trim.ingredients，以空格开头）
+    auto* sentry = dynamic_cast<SmithingTemplateItem*>(Items::SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE);
+    ASSERT_NE(sentry, nullptr);
+
+    ItemStack stack(*sentry, 1);
+    std::vector<std::string> tooltip;
+    sentry->addInformation(stack, m_world, tooltip, false);
+
+    // 未加载语言文件时，LanguageManager::get() 返回键本身
+    ASSERT_EQ(tooltip.size(), 6u) << "SmithingTemplateItem tooltip should have exactly 6 lines";
+
+    EXPECT_EQ(tooltip[0], "item.minecraft.smithing_template") << "Line 0: suffix title";
+    EXPECT_EQ(tooltip[1], "") << "Line 1: empty separator";
+    EXPECT_EQ(tooltip[2], "item.minecraft.smithing_template.applies_to") << "Line 2: applies-to title";
+    EXPECT_EQ(tooltip[3], " item.minecraft.smithing_template.armor_trim.applies_to")
+        << "Line 3: applies-to description (space-prefixed)";
+    EXPECT_EQ(tooltip[4], "item.minecraft.smithing_template.ingredients") << "Line 4: ingredients title";
+    EXPECT_EQ(tooltip[5], " item.minecraft.smithing_template.armor_trim.ingredients")
+        << "Line 5: ingredients description (space-prefixed)";
+}
+
+TEST_F(ItemTooltipIntegrationTest, SmithingTemplateAddInformation_NetheriteUpgradeOutputFormat)
+{
+    // 验证下界合金升级模板 addInformation 输出
+    auto* netherite = dynamic_cast<SmithingTemplateItem*>(Items::NETHERITE_UPGRADE_SMITHING_TEMPLATE);
+    ASSERT_NE(netherite, nullptr);
+
+    ItemStack stack(*netherite, 1);
+    std::vector<std::string> tooltip;
+    netherite->addInformation(stack, m_world, tooltip, false);
+
+    ASSERT_EQ(tooltip.size(), 6u);
+
+    EXPECT_EQ(tooltip[0], "item.minecraft.smithing_template") << "Line 0: suffix title";
+    EXPECT_EQ(tooltip[1], "") << "Line 1: empty separator";
+    EXPECT_EQ(tooltip[2], "item.minecraft.smithing_template.applies_to") << "Line 2: applies-to title";
+    EXPECT_EQ(tooltip[3], " item.minecraft.smithing_template.netherite_upgrade.applies_to")
+        << "Line 3: applies-to description (space-prefixed)";
+    EXPECT_EQ(tooltip[4], "item.minecraft.smithing_template.ingredients") << "Line 4: ingredients title";
+    EXPECT_EQ(tooltip[5], " item.minecraft.smithing_template.netherite_upgrade.ingredients")
+        << "Line 5: ingredients description (space-prefixed)";
+}
+
+TEST_F(ItemTooltipIntegrationTest, SmithingTemplateAddInformation_AllArmorTrimsSameOutput)
+{
+    // 所有盔甲纹饰模板应产生相同的 tooltip 内容（仅翻译键不同）
+    auto* sentry = dynamic_cast<SmithingTemplateItem*>(Items::SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE);
+    auto* rib = dynamic_cast<SmithingTemplateItem*>(Items::RIB_ARMOR_TRIM_SMITHING_TEMPLATE);
+    ASSERT_NE(sentry, nullptr);
+    ASSERT_NE(rib, nullptr);
+
+    ItemStack sentryStack(*sentry, 1);
+    ItemStack ribStack(*rib, 1);
+    std::vector<std::string> sentryTooltip;
+    std::vector<std::string> ribTooltip;
+
+    sentry->addInformation(sentryStack, m_world, sentryTooltip, false);
+    rib->addInformation(ribStack, m_world, ribTooltip, false);
+
+    // 所有盔甲纹饰模板共享相同的 appliesTo 和 ingredients 翻译键
+    ASSERT_EQ(sentryTooltip.size(), 6u);
+    ASSERT_EQ(ribTooltip.size(), 6u);
+    EXPECT_EQ(sentryTooltip, ribTooltip) << "All armor trim templates should produce identical tooltip";
+}
+
+TEST_F(ItemTooltipIntegrationTest, PotterySherdAddInformation_NoExtraLines)
+{
+    // MC Java 中陶片物品没有额外的 tooltip 描述行
+    // addInformation 仅调用基类（空实现），不添加任何额外行
+    auto* angler = dynamic_cast<PotterySherdItem*>(Items::ANGLER_POTTERY_SHERD);
+    ASSERT_NE(angler, nullptr);
+
+    ItemStack stack(*angler, 1);
+    std::vector<std::string> tooltip;
+    angler->addInformation(stack, m_world, tooltip, false);
+
+    // 基类 Item::addInformation 是空操作，PotterySherdItem 也不添加任何行
+    EXPECT_TRUE(tooltip.empty()) << "PotterySherdItem should not add any tooltip lines";
+}
+
+TEST_F(ItemTooltipIntegrationTest, BannerPatternItemAddInformation_DescKeyFormat)
+{
+    // BannerPatternItem::addInformation 应输出翻译键 + ".desc" 后缀
+    // 例如 creeper_banner_pattern -> "item.minecraft.banner_pattern.creeper.desc"
+    auto* creeper = dynamic_cast<BannerPatternItem*>(Items::CREEPER_BANNER_PATTERN);
+    if (creeper == nullptr) {
+        GTEST_SKIP() << "CREEPER_BANNER_PATTERN not registered";
+    }
+
+    ItemStack stack(*creeper, 1);
+    std::vector<std::string> tooltip;
+    creeper->addInformation(stack, m_world, tooltip, false);
+
+    // 未加载语言文件时，LanguageManager::get() 返回键本身
+    ASSERT_EQ(tooltip.size(), 1u) << "BannerPatternItem should add exactly 1 tooltip line";
+    EXPECT_EQ(tooltip[0], "item.minecraft.banner_pattern.creeper.desc")
+        << "Tooltip should use .desc suffix translation key";
+}
+
+TEST_F(ItemTooltipIntegrationTest, LanguageManagerFallbackInTooltip)
+{
+    // 验证 LanguageManager 未加载语言文件时的回退行为：
+    // get() 返回键本身，tooltip 中显示原始翻译键
+    auto& lang = LanguageManager::instance();
+
+    // 验证不存在的键返回键本身
+    EXPECT_EQ(lang.get("nonexistent.key.12345"), "nonexistent.key.12345");
+
+    // 验证空键返回空字符串
+    EXPECT_EQ(lang.get(""), "");
+
+    // 验证锻造模板键回退正确
+    EXPECT_EQ(lang.get("item.minecraft.smithing_template"), "item.minecraft.smithing_template");
+    EXPECT_EQ(lang.get("item.minecraft.smithing_template.armor_trim.applies_to"),
+        "item.minecraft.smithing_template.armor_trim.applies_to");
 }
 
 } // namespace
