@@ -981,6 +981,159 @@ TEST(LivingEntityTest, UpdateAirSupply_NotAlive)
     EXPECT_EQ(entity.air(), 300);
 }
 
+// 测试 shouldTakeDrowningDamage - 空气值 <= -20 时应触发溺水伤害
+TEST(LivingEntityTest, ShouldTakeDrowningDamage_BelowThreshold)
+{
+    TestLivingEntity entity;
+    entity.setAir(-20);
+    EXPECT_TRUE(entity.shouldTakeDrowningDamage());
+
+    entity.setAir(-21);
+    EXPECT_TRUE(entity.shouldTakeDrowningDamage());
+}
+
+TEST(LivingEntityTest, ShouldTakeDrowningDamage_AboveThreshold)
+{
+    TestLivingEntity entity;
+    entity.setAir(-19);
+    EXPECT_FALSE(entity.shouldTakeDrowningDamage());
+
+    entity.setAir(0);
+    EXPECT_FALSE(entity.shouldTakeDrowningDamage());
+
+    entity.setAir(300);
+    EXPECT_FALSE(entity.shouldTakeDrowningDamage());
+}
+
+// 测试 increaseAirSupply - 每tick恢复4点空气
+TEST(LivingEntityTest, IncreaseAirSupply_Normal)
+{
+    TestLivingEntity entity;
+
+    // 每tick恢复4点，上限 maxAir()
+    EXPECT_EQ(entity.increaseAirSupply(0), 4);
+    EXPECT_EQ(entity.increaseAirSupply(100), 104);
+    EXPECT_EQ(entity.increaseAirSupply(296), 300); // 接近最大值
+    EXPECT_EQ(entity.increaseAirSupply(297), 300); // 不超过最大值
+    EXPECT_EQ(entity.increaseAirSupply(300), 300); // 已经是最大值
+}
+
+TEST(LivingEntityTest, IncreaseAirSupply_NegativeAir)
+{
+    TestLivingEntity entity;
+
+    // 负数空气值也会正常恢复（每tick +4）
+    EXPECT_EQ(entity.increaseAirSupply(-10), -6); // -10 + 4 = -6
+    EXPECT_EQ(entity.increaseAirSupply(-4), 0);   // -4 + 4 = 0
+}
+
+// 测试 determineNextAir 委托给 increaseAirSupply
+TEST(LivingEntityTest, DetermineNextAir_DelegatesToIncreaseAirSupply)
+{
+    TestLivingEntity entity;
+
+    // determineNextAir 应该与 increaseAirSupply 结果一致
+    for (i32 air : {0, 100, 296, 297, 300, -10, -4}) {
+        EXPECT_EQ(entity.determineNextAir(air), entity.increaseAirSupply(air));
+    }
+}
+
+// 测试 updateAirSupply - 水下空气消耗到 -20 时触发溺水
+TEST(LivingEntityTest, UpdateAirSupply_DrowningDamage)
+{
+    MockRandomWorld world;
+    world.setInWater(true);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setInWater(true);
+    entity.setAir(-19); // 接近溺水阈值
+
+    entity.updateAirSupply();
+
+    // 空气从 -19 减少到 -20，触发 shouldTakeDrowningDamage()，空气重置为 0
+    EXPECT_EQ(entity.air(), 0);
+}
+
+// 测试 updateAirSupply - 水下呼吸效果时空气不消耗且恢复
+TEST(LivingEntityTest, UpdateAirSupply_WaterBreathingRestoresAir)
+{
+    MockRandomWorld world;
+    world.setInWater(true);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setInWater(true);
+    entity.setAir(200); // 低于最大值
+
+    // 添加水下呼吸效果
+    entity.addEffect(
+        mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::WaterBreathing, 200, 0, false, true, true));
+
+    entity.updateAirSupply();
+
+    // 有水下呼吸效果时，空气应该恢复（每tick +4）
+    EXPECT_EQ(entity.air(), 204);
+}
+
+// 测试 updateAirSupply - 潮涌能量效果时空气不消耗且恢复
+TEST(LivingEntityTest, UpdateAirSupply_ConduitPowerRestoresAir)
+{
+    MockRandomWorld world;
+    world.setInWater(true);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setInWater(true);
+    entity.setAir(200);
+
+    // 添加潮涌能量效果
+    entity.addEffect(
+        mc::entity::effect::EffectInstance(mc::entity::effect::EffectType::ConduitPower, 200, 0, false, true, true));
+
+    entity.updateAirSupply();
+
+    // 有潮涌能量效果时，空气应该恢复
+    EXPECT_EQ(entity.air(), 204);
+}
+
+// 测试 updateAirSupply - 不在水中时空气恢复（即使空气未满）
+TEST(LivingEntityTest, UpdateAirSupply_RecoveryWhenNotFull)
+{
+    MockRandomWorld world;
+    world.setInWater(false);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setAir(100);
+
+    entity.updateAirSupply();
+
+    // 不在水中时空气恢复4点
+    EXPECT_EQ(entity.air(), 104);
+}
+
+// 测试 updateAirSupply - 空气已满时不在水中不改变
+TEST(LivingEntityTest, UpdateAirSupply_FullAirNoChange)
+{
+    MockRandomWorld world;
+    world.setInWater(false);
+    world.setInLava(false);
+
+    TestLivingEntity entity;
+    entity.setWorld(&world);
+    entity.setAir(300); // 已满
+
+    entity.updateAirSupply();
+
+    // 空气已满，不改变
+    EXPECT_EQ(entity.air(), 300);
+}
+
 // ============================================================================
 // onKillCommand 测试
 // ============================================================================

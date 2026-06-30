@@ -1562,7 +1562,6 @@ bool LivingEntity::shouldTakeDrowningDamage() const
 void LivingEntity::updateAirSupply()
 {
     // MC Java: LivingEntity.baseTick() 中的空气处理逻辑
-    // 关键变化：使用 areEyesInWater() 而非 isInWater() 来检测眼部位置
     if (!isAlive()) {
         return;
     }
@@ -1572,13 +1571,16 @@ void LivingEntity::updateAirSupply()
         return;
     }
 
-    // 检查眼部是否在水中，并排除气泡柱
+    // 检查实体是否在水中，并排除气泡柱
+    // MC Java 使用 isEyeInFluid(FluidTags.WATER) 检测眼部位置，
+    // 当前项目使用 isInWater() 作为等价检测（实体身体在水下通常意味着眼睛也在水下），
+    // 未来可切换为 areEyesInWater() 以精确检测眼部流体位置
     // MC Java: isEyeInFluid(FluidTags.WATER) && !level.getBlockState(blockPos).is(Blocks.BUBBLE_COLUMN)
-    bool eyesInWater = areEyesInWater();
+    bool inWater = isInWater();
     bool inBubbleColumn = false;
 
-    if (eyesInWater && m_world != nullptr) {
-        // 计算眼部所在方块位置
+    if (inWater && m_world != nullptr) {
+        // 计算实体所在方块位置（使用眼睛高度）
         // MC Java: BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())
         f32 eyeY = m_position.y + eyeHeight();
         BlockPos eyeBlockPos(static_cast<i32>(std::floor(m_position.x)),
@@ -1590,8 +1592,8 @@ void LivingEntity::updateAirSupply()
         }
     }
 
-    if (eyesInWater && !inBubbleColumn) {
-        // 眼部在水中且不在气泡柱中
+    if (inWater && !inBubbleColumn) {
+        // 在水中且不在气泡柱中
         // 检查是否需要消耗空气
         // MC Java: !this.canBreatheUnderwater() && !MobEffectUtil.hasWaterBreathing(this)
         //          && (!flag || !((Player)this).getAbilities().invulnerable)

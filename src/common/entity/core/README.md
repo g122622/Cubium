@@ -347,10 +347,18 @@
 
         `MOVEMENT_EFFICIENCY` 在 `LivingEntity::registerAttributes()` 中注册，所有生物实体默认拥有此属性（默认值 0.0，范围 0.0~1.0）。
 
-        ## #空气供应与溺水 -
-        空气值可从正数变成负数（用于溺水计时） - 当空气值降到 - 20 时重置为 0 并触发溺水伤害 -
-        亡灵生物 `canBreatheUnderwater()` 返回 true，不会溺水 -
-        WaterMobEntity 使用反逻辑：水中恢复，陆地上消耗
+        ## #空气供应与溺水
+        - 空气值通过 `Entity::m_air` / `DATA_AIR_PARAM` 管理，默认最大值 300（15秒），子类可覆写 `maxAir()`
+        - 空气处理完全在 `LivingEntity::updateAirSupply()` 中，`Entity::baseTick()` 不包含空气逻辑（与 MC Java 一致）
+        - 使用 `isInWater()` 检测水中状态，排除气泡柱（Bubble Column）中的空气消耗
+        - 当空气值降到 -20 时，`shouldTakeDrowningDamage()` 返回 true，重置空气为 0 并触发 2.0 点溺水伤害
+        - 溺水时通过 `broadcastEntityStatus(id, 67)` 广播实体事件（客户端用于播放溺水动画/音效）
+        - 亡灵生物 `canBreatheUnderwater()` 返回 true，不会溺水
+        - 水下呼吸附魔通过 `decreaseAirSupply()` 概率性节约空气：I级50%、II级66.7%、III级75%
+        - 有水下呼吸/潮涌效果时，在水中不消耗空气且恢复空气（每tick +4）
+        - 仅在服务端处理空气逻辑，客户端通过 `DATA_AIR_PARAM` 元数据同步获取空气值
+        - `increaseAirSupply()` 每tick恢复4点空气，上限为 `maxAir()`
+        - WaterMobEntity 使用反逻辑：水中立即恢复 `maxAir()`，陆地上消耗空气
 
         ## #队伍联盟判断 -
         **`isAlliedTo(const Entity&)`* *-双向联盟检查：this 认为 other 是盟友，或 other 认为 this 是盟友 -
