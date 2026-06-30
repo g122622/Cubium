@@ -66,8 +66,9 @@ public:
     /**
      * @brief 添加物品提示信息
      *
-     * 显示陶片对应的翻译描述文本。
-     * 通过 LanguageManager 将翻译键翻译为当前语言的描述文本。
+     * MC Java 中陶片物品没有额外的 tooltip 描述行，
+     * 仅显示由 ITEM_NAME 组件提供的物品名称。
+     * 此方法保留为空实现以备将来扩展。
      */
     void addInformation(
         const ItemStack& stack, IWorld& world, std::vector<std::string>& tooltip, bool advanced) const override;

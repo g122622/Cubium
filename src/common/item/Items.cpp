@@ -3865,10 +3865,10 @@ void Items::_registerTrialChamberItems()
     NETHERITE_UPGRADE_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:netherite_upgrade_smithing_template"),
         item::SmithingTemplateType::NetheriteUpgrade,
-        "item.minecraft.smithing_template.applies_to.netherite_upgrade",
-        "item.minecraft.smithing_template.ingredients.netherite_upgrade",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.netherite_upgrade.applies_to",
+        "item.minecraft.smithing_template.netherite_upgrade.ingredients",
+        "item.minecraft.smithing_template.netherite_upgrade.base_slot_description",
+        "item.minecraft.smithing_template.netherite_upgrade.additions_slot_description",
         item::SmithingTemplateItem::netheriteUpgradeProperties());
 
     // 盔甲纹饰锻造模板 - 用于在锻造台中为盔甲添加纹饰
@@ -3876,163 +3876,163 @@ void Items::_registerTrialChamberItems()
     SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:sentry_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     VEX_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:vex_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     WILD_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:wild_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     COAST_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:coast_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     DUNE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:dune_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     WAYFINDER_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:wayfinder_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     RAISER_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:raiser_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     SHAPER_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:shaper_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     HOST_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:host_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     WARD_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:ward_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     SILENCE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:silence_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     TIDE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:tide_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     SNOUT_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:snout_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     RIB_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:rib_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     EYE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:eye_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     SPIRE_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:spire_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     FLOW_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:flow_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     BOLT_ARMOR_TRIM_SMITHING_TEMPLATE = &registry.registerItem<item::SmithingTemplateItem>(
         ResourceLocation("minecraft:bolt_armor_trim_smithing_template"),
         item::SmithingTemplateType::ArmorTrim,
-        "item.minecraft.smithing_template.applies_to.armor",
-        "item.minecraft.smithing_template.ingredients.armor",
-        "item.minecraft.smithing_template.base_slot_description",
-        "item.minecraft.smithing_template.additions_slot_description",
+        "item.minecraft.smithing_template.armor_trim.applies_to",
+        "item.minecraft.smithing_template.armor_trim.ingredients",
+        "item.minecraft.smithing_template.armor_trim.base_slot_description",
+        "item.minecraft.smithing_template.armor_trim.additions_slot_description",
         item::SmithingTemplateItem::armorTrimProperties());
 
     // ========================================================================

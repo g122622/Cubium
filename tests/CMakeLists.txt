@@ -98,6 +98,8 @@ add_executable(mc_tests
     common/item/special/MusicDiscItemTest.cpp
     # PotterySherdItem / SmithingTemplateItem 测试（陶片图案映射、锻造模板类型、注册完整性）
     common/item/special/PotterySherdAndSmithingTemplateTest.cpp
+    # 物品 addInformation tooltip 翻译测试（锻造模板格式、旗帜图案翻译键、LanguageManager回退）
+    common/item/special/ItemTooltipTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp

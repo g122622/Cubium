@@ -37,11 +37,8 @@ void PotterySherdItem::addInformation(
 {
     Item::addInformation(stack, world, tooltip, advanced);
 
-    // 通过翻译键获取陶片描述文本
-    // MC Java 中 PotterySherdItem 使用 descriptionId + ".desc" 作为翻译键
-    std::string translationKey = blockentity::DecoratedPotPatterns::getTranslationKey(m_pattern);
-    std::string descriptionKey = translationKey + ".desc";
-    tooltip.push_back(LanguageManager::instance().get(descriptionKey));
+    // MC Java 中陶片物品没有额外的 tooltip 描述行
+    // 原版 PotterySherdItem 不覆盖 appendHoverText，仅显示物品名
 }
 
 } // namespace item
