@@ -2286,12 +2286,18 @@ void Items::_registerBuckets()
         fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID),
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
-    // 细雪桶 - 装有细雪的桶，不是流体桶
-    // 参考: MC Java 的 PowderSnowBucketItem（继承自 Item，不是 BucketItem）
-    // 可用于在空炼药锅中放入细雪，或从满的细雪炼药锅中取出细雪
+    // 细雪桶 - 装有细雪的桶
+    // TODO(PowderSnowBucketItem): MC Java 中 PowderSnowBucketItem 继承自 Item（非 BucketItem），
+    // 拥有在方块上放置细雪方块（PowderSnowBlock）的特殊逻辑。
+    // 当前临时使用 BucketItem(nullptr) 注册，仅支持与炼药锅的交互（从细雪炼药锅取细雪、
+    // 向空炼药锅/细雪炼药锅倒入细雪），不支持右键方块放置细雪。
+    // 后续需要实现独立的 PowderSnowBucketItem 类，包含：
+    //   1. 右键方块放置细雪（对应 MC 的 onItemUse / place 方块逻辑）
+    //   2. 水下使用时返回 CONSUME（不允许水下放置）
+    //   3. 正确的细雪桶放置音效
     // 使用后返回空桶
     POWDER_SNOW_BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:powder_snow_bucket"),
-        nullptr, // 细雪不是流体
+        nullptr, // 细雪不是流体，BucketItem(nullptr) 仅作为空桶行为占位
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 鱼桶

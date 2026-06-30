@@ -8,7 +8,7 @@
 special/
 ├── README.md                    # 本文档
 ├── BoneMealItem.hpp/cpp         # 骨粉（加速植物生长、海草生成）
-├── BucketItem.hpp/cpp           # 桶（空桶、水桶、岩浆桶）
+├── BucketItem.hpp/cpp           # 桶（空桶、水桶、岩浆桶、细雪桶）
 ├── EnchantedBookItem.hpp/cpp    # 附魔书（存储附魔）
 ├── FishBucketItem.hpp/cpp       # 鱼桶（放置水并生成鱼）
 ├── FlintAndSteelItem.hpp/cpp    # 打火石（点火、点燃下界传送门）

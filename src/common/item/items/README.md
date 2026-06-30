@@ -35,7 +35,7 @@ items/
 │   └── ThrowablePotionItem.hpp/cpp # 投掷药水基类
 ├── special/                    # 特殊物品
 │   ├── BoneMealItem.hpp/cpp    # 骨粉（催熟、染色）
-│   ├── BucketItem.hpp/cpp      # 桶（装水、岩浆、鱼）
+│   ├── BucketItem.hpp/cpp      # 桶（装水、岩浆、细雪、鱼）
 │   ├── EnchantedBookItem.hpp/cpp # 附魔书
 │   ├── FishBucketItem.hpp/cpp  # 鱼桶（桶装鱼实体）
 │   ├── FlintAndSteelItem.hpp/cpp # 打火石

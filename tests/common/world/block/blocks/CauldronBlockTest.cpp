@@ -135,6 +135,16 @@ public:
         return it->second->is(block_registry::BuildingBlocks::LAVA_CAULDRON);
     }
 
+    /// 检查指定位置是否为细雪炼药锅
+    [[nodiscard]] bool isPowderSnowCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+    }
+
     /// 检查指定位置是否为空炼药锅
     [[nodiscard]] bool isEmptyCauldron(const BlockPos& pos) const
     {
@@ -349,23 +359,22 @@ TEST_F(CauldronPrecipTest, HandlePrecipitation_Rain_WaterCauldronAtLevel1)
 // 降水类型 - Snow（雪天）
 // ============================================================================
 
-TEST_F(CauldronPrecipTest, HandlePrecipitation_Snow_CreatesWaterCauldron)
+TEST_F(CauldronPrecipTest, HandlePrecipitation_Snow_CreatesPowderSnowCauldron)
 {
-    // 空炼药锅，雪天，10% 概率替换为水炼药锅（水位1）
-    // TODO(_powder_snow_cauldron): 当细雪炼药锅实现后，雪天应替换为 PowderSnowCauldronBlock
+    // 空炼药锅，雪天，10% 概率替换为细雪炼药锅（水位1）
     placeEmptyCauldron(0, 64, 0);
 
     bool created = false;
     for (int i = 0; i < 100; ++i) {
         placeEmptyCauldron(0, 64, 0);
         cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
-        if (world_.isWaterCauldron(BlockPos(0, 64, 0))) {
+        if (world_.isPowderSnowCauldron(BlockPos(0, 64, 0))) {
             created = true;
             break;
         }
     }
 
-    EXPECT_TRUE(created) << "Snow precipitation should eventually create water cauldron";
+    EXPECT_TRUE(created) << "Snow precipitation should eventually create powder snow cauldron";
 }
 
 // ============================================================================
@@ -402,7 +411,7 @@ TEST_F(CauldronPrecipTest, HandlePrecipitation_Snow_About10PercentChance)
         placeEmptyCauldron(0, 64, 0);
         cauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
 
-        if (world_.isWaterCauldron(BlockPos(0, 64, 0))) {
+        if (world_.isPowderSnowCauldron(BlockPos(0, 64, 0))) {
             replaceCount++;
         }
     }
@@ -565,4 +574,49 @@ TEST_F(CauldronBlockRegistryTest, WaterCauldronIsInCauldronsTag)
     const BlockState* state = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();
     ASSERT_NE(state, nullptr);
     EXPECT_TRUE(BlockTags::CAULDRONS().contains(*state));
+}
+
+// ============================================================================
+// 细雪炼药锅 (PowderSnowCauldron) 注册与基础测试
+// ============================================================================
+
+TEST_F(CauldronBlockRegistryTest, PowderSnowCauldronIsRegistered)
+{
+    EXPECT_NE(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON, nullptr);
+}
+
+TEST_F(CauldronBlockRegistryTest, PowderSnowCauldronBlockType)
+{
+    // 细雪炼药锅应为 LayeredCauldronBlock 实例
+    auto* powderSnowCauldron =
+        dynamic_cast<LayeredCauldronBlock*>(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+    EXPECT_NE(powderSnowCauldron, nullptr);
+}
+
+TEST_F(CauldronBlockRegistryTest, PowderSnowCauldronIsInCauldronsTag)
+{
+    // 细雪炼药锅应属于 #minecraft:cauldrons 标签
+    const BlockState* state = &block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON->defaultState();
+    ASSERT_NE(state, nullptr);
+    EXPECT_TRUE(BlockTags::CAULDRONS().contains(*state));
+}
+
+TEST_F(CauldronBlockRegistryTest, PowderSnowCauldronDefaultState)
+{
+    // 细雪炼药锅默认水位为1
+    const auto& state = block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON->defaultState();
+    EXPECT_EQ(LayeredCauldronBlock::getLevel(state), 1);
+    EXPECT_FALSE(LayeredCauldronBlock::isFull(state));
+}
+
+TEST_F(CauldronBlockRegistryTest, PowderSnowCauldronLevelProperty)
+{
+    // 细雪炼药锅应支持 LEVEL_1_3 属性
+    const auto& state1 = block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON->defaultState();
+    EXPECT_EQ(LayeredCauldronBlock::getLevel(state1), 1);
+
+    const BlockState* state3 = &state1.with(BlockStateProperties::LEVEL_1_3(), 3);
+    ASSERT_NE(state3, nullptr);
+    EXPECT_EQ(LayeredCauldronBlock::getLevel(*state3), 3);
+    EXPECT_TRUE(LayeredCauldronBlock::isFull(*state3));
 }
