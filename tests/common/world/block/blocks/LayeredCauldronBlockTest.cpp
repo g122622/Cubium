@@ -23,12 +23,20 @@
 
 #include "world/block/blocks/LayeredCauldronBlock.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
+#include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/items/block/BannerItem.hpp"
+#include "common/item/potion/PotionUtils.hpp"
+#include "common/item/potion/Potions.hpp"
+#include "common/sound/SoundEvents.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/biome/BiomeClimate.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -37,12 +45,14 @@
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/fluid/FluidTags.hpp"
 #include "common/world/fluid/Fluids.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
 #include "util/property/Properties.hpp"
 #include <gtest/gtest.h>
 
 #include <map>
 #include <memory>
+#include <vector>
 
 using namespace mc;
 using namespace mc::blocks;
@@ -973,4 +983,911 @@ TEST_F(LayeredCauldronDripTest, ReceiveStalactiteDrip_WaterDrip_DoesNotExceedMax
     waterCauldron_->receiveStalactiteDrip(
         world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::WATER());
     EXPECT_EQ(world_.getCauldronLevel(pos), 3);
+}
+
+// ============================================================================
+// 细雪炼药锅 (PowderSnowCauldron) 测试
+// ============================================================================
+
+/**
+ * @brief 细雪炼药锅测试用的世界桩
+ *
+ * 在 LayeredCauldronTestWorld 基础上增加细雪炼药锅判定辅助方法。
+ */
+class PowderSnowCauldronTestWorld : public test::BaseTestWorld {
+public:
+    void ensureTickManager()
+    {
+        if (!m_tickManagerPtr) {
+            m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
+        }
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_blocks.find(pos);
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const BlockPos pos(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            m_blocks.erase(pos);
+            m_ownedStates.erase(pos);
+        } else {
+            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
+            m_blocks[pos] = &it->second;
+        }
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        const_cast<PowderSnowCauldronTestWorld*>(this)->ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    void setRaining(bool raining) { m_isRaining = raining; }
+    void setThundering(bool thundering) { m_isThundering = thundering; }
+
+    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
+    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+
+    void setRandomSeed(u64 seed) { m_random.setSeed(seed); }
+
+    [[nodiscard]] i32 getCauldronLevel(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return -1;
+        }
+        return LayeredCauldronBlock::getLevel(*it->second);
+    }
+
+    [[nodiscard]] bool isEmptyCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::CAULDRON);
+    }
+
+    [[nodiscard]] bool isWaterCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::WATER_CAULDRON);
+    }
+
+    [[nodiscard]] bool isPowderSnowCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+    }
+
+    [[nodiscard]] bool isLavaCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::LAVA_CAULDRON);
+    }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, BlockState> m_ownedStates;
+    std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
+    bool m_isRaining = false;
+    bool m_isThundering = false;
+};
+
+// ============================================================================
+// 细雪炼药锅降水测试
+// ============================================================================
+
+class PowderSnowCauldronPrecipTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
+        fluid::FluidTags::initialize();
+
+        // 使用已注册的 POWDER_SNOW_CAULDRON 方块
+        powderSnowCauldron_ = dynamic_cast<LayeredCauldronBlock*>(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+        ASSERT_NE(powderSnowCauldron_, nullptr) << "POWDER_SNOW_CAULDRON should be a LayeredCauldronBlock";
+    }
+
+    /// 在指定位置放置指定水位的细雪炼药锅
+    void placePowderSnowCauldron(i32 x, i32 y, i32 z, i32 level)
+    {
+        const BlockState* state = &powderSnowCauldron_->defaultState().with(BlockStateProperties::LEVEL_1_3(), level);
+        world_.setBlockAt(BlockPos(x, y, z), state);
+    }
+
+    LayeredCauldronBlock* powderSnowCauldron_;
+    PowderSnowCauldronTestWorld world_;
+};
+
+// (1) 雪天降水增加细雪炼药锅水位
+TEST_F(PowderSnowCauldronPrecipTest, Snow_IncrementsLevelWhenNotFull)
+{
+    // 细雪炼药锅水位1，雪天，10%概率触发水位增加
+    placePowderSnowCauldron(0, 64, 0, 1);
+
+    bool levelChanged = false;
+    for (int i = 0; i < 200; ++i) {
+        i32 levelBefore = world_.getCauldronLevel(BlockPos(0, 64, 0));
+        powderSnowCauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
+        i32 levelAfter = world_.getCauldronLevel(BlockPos(0, 64, 0));
+        if (levelAfter > levelBefore) {
+            levelChanged = true;
+            break;
+        }
+    }
+
+    EXPECT_TRUE(levelChanged) << "Snow precipitation should eventually increment powder snow cauldron level";
+}
+
+// (2) 雨天降水对细雪炼药锅无影响（类型不匹配）
+TEST_F(PowderSnowCauldronPrecipTest, Rain_DoesNotAffectPowderSnowCauldron)
+{
+    // 细雪炼药锅不响应雨天降水（m_precipitationType == Snow）
+    placePowderSnowCauldron(0, 64, 0, 1);
+
+    for (int i = 0; i < 200; ++i) {
+        powderSnowCauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Rain);
+    }
+
+    // 水位不应改变
+    EXPECT_EQ(world_.getCauldronLevel(BlockPos(0, 64, 0)), 1) << "Rain should not affect powder snow cauldron";
+}
+
+// (3) 满水位细雪炼药锅雪天不增加
+TEST_F(PowderSnowCauldronPrecipTest, Snow_DoesNotExceedMaxLevel)
+{
+    // 细雪炼药锅水位3（满），雪天不应增加
+    placePowderSnowCauldron(0, 64, 0, 3);
+
+    for (int i = 0; i < 100; ++i) {
+        powderSnowCauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::Snow);
+    }
+
+    EXPECT_EQ(world_.getCauldronLevel(BlockPos(0, 64, 0)), 3) << "Full powder snow cauldron should not increase level";
+}
+
+// (4) 无降水类型不影响细雪炼药锅
+TEST_F(PowderSnowCauldronPrecipTest, NoneType_NoChange)
+{
+    placePowderSnowCauldron(0, 64, 0, 1);
+
+    powderSnowCauldron_->handlePrecipitation(world_, BlockPos(0, 64, 0), BiomeClimate::Precipitation::None);
+
+    EXPECT_EQ(world_.getCauldronLevel(BlockPos(0, 64, 0)), 1);
+}
+
+// ============================================================================
+// 细雪炼药锅实体碰撞测试（着火实体 → 细雪转水 + 降低水位）
+// ============================================================================
+
+class PowderSnowCauldronEntityCollisionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+
+        // 使用已注册的 POWDER_SNOW_CAULDRON 方块，确保 isPowderSnowCauldron() 等判定正确
+        powderSnowCauldron_ = dynamic_cast<LayeredCauldronBlock*>(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+        ASSERT_NE(powderSnowCauldron_, nullptr) << "POWDER_SNOW_CAULDRON should be a LayeredCauldronBlock";
+    }
+
+    void placePowderSnowCauldron(const BlockPos& pos, i32 level)
+    {
+        const BlockState* state = &powderSnowCauldron_->defaultState().with(BlockStateProperties::LEVEL_1_3(), level);
+        world_.setBlockAt(pos, state);
+    }
+
+    LayeredCauldronBlock* powderSnowCauldron_;
+    PowderSnowCauldronTestWorld world_;
+};
+
+// (5) 着火实体碰撞细雪炼药锅水位3 → 细雪转为水炼药锅水位2
+TEST_F(PowderSnowCauldronEntityCollisionTest, Level3_BurningEntity_ConvertsToWaterCauldronLevel2)
+{
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 3);
+    ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    LayeredCauldronTestEntity entity(EntityId(1), &world_);
+    entity.igniteForTicks(100);
+    ASSERT_TRUE(entity.isOnFire());
+
+    powderSnowCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    // 灭火成功
+    EXPECT_FALSE(entity.isOnFire()) << "Powder snow cauldron should extinguish burning entity";
+    // 细雪转为水炼药锅，水位降1级：3 → 2
+    EXPECT_TRUE(world_.isWaterCauldron(pos))
+        << "Burning entity in powder snow cauldron should convert it to water cauldron";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 2) << "Water cauldron level should be 2 (3 - 1)";
+}
+
+// (6) 着火实体碰撞细雪炼药锅水位2 → 细雪转为水炼药锅水位1
+TEST_F(PowderSnowCauldronEntityCollisionTest, Level2_BurningEntity_ConvertsToWaterCauldronLevel1)
+{
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 2);
+    ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
+
+    LayeredCauldronTestEntity entity(EntityId(1), &world_);
+    entity.igniteForTicks(100);
+
+    powderSnowCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    EXPECT_TRUE(world_.isWaterCauldron(pos));
+    EXPECT_EQ(world_.getCauldronLevel(pos), 1);
+}
+
+// (7) 着火实体碰撞细雪炼药锅水位1 → 细雪转为水炼药锅水位0（空炼药锅）
+TEST_F(PowderSnowCauldronEntityCollisionTest, Level1_BurningEntity_ConvertsToEmptyCauldron)
+{
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 1);
+    ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
+
+    LayeredCauldronTestEntity entity(EntityId(1), &world_);
+    entity.igniteForTicks(100);
+
+    powderSnowCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    // 细雪转水后水位1-1=0，替换为空炼药锅
+    EXPECT_TRUE(world_.isEmptyCauldron(pos))
+        << "Powder snow level 1 after conversion to water should become empty cauldron";
+}
+
+// (8) 非着火实体不影响细雪炼药锅
+TEST_F(PowderSnowCauldronEntityCollisionTest, NonBurningEntity_NoEffect)
+{
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 3);
+
+    LayeredCauldronTestEntity entity(EntityId(1), &world_);
+    ASSERT_FALSE(entity.isOnFire());
+
+    powderSnowCauldron_->onEntityCollision(*world_.getBlockState(pos.x, pos.y, pos.z), world_, pos, entity);
+
+    // 应该保持细雪炼药锅水位3
+    EXPECT_TRUE(world_.isPowderSnowCauldron(pos));
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3);
+}
+
+// ============================================================================
+// 细雪炼药锅滴石滴水测试（细雪炼药锅不接收滴石滴水）
+// ============================================================================
+
+class PowderSnowCauldronDripTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        fluid::FluidRegistry::instance().initialize();
+        fluid::Fluids::initialize();
+        fluid::FluidTags::initialize();
+
+        // 使用已注册的 POWDER_SNOW_CAULDRON 方块
+        powderSnowCauldron_ = dynamic_cast<LayeredCauldronBlock*>(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+        ASSERT_NE(powderSnowCauldron_, nullptr) << "POWDER_SNOW_CAULDRON should be a LayeredCauldronBlock";
+    }
+
+    LayeredCauldronBlock* powderSnowCauldron_;
+};
+
+// (9) 细雪炼药锅不接收水滴
+TEST_F(PowderSnowCauldronDripTest, CanReceiveStalactiteDrip_Water_ReturnsFalse)
+{
+    // 细雪炼药锅（Snow类型）不接收水滴（仅水炼药锅可接收）
+    EXPECT_FALSE(powderSnowCauldron_->canReceiveStalactiteDrip(*fluid::Fluids::WATER()));
+}
+
+// (10) 细雪炼药锅不接收岩浆滴
+TEST_F(PowderSnowCauldronDripTest, CanReceiveStalactiteDrip_Lava_ReturnsFalse)
+{
+    EXPECT_FALSE(powderSnowCauldron_->canReceiveStalactiteDrip(*fluid::Fluids::LAVA()));
+}
+
+// ============================================================================
+// 细雪炼药锅比较器信号测试
+// ============================================================================
+
+class PowderSnowCauldronComparatorTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+
+        // 使用已注册的 POWDER_SNOW_CAULDRON 方块
+        powderSnowCauldron_ = dynamic_cast<LayeredCauldronBlock*>(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+        ASSERT_NE(powderSnowCauldron_, nullptr) << "POWDER_SNOW_CAULDRON should be a LayeredCauldronBlock";
+    }
+
+    LayeredCauldronBlock* powderSnowCauldron_;
+    PowderSnowCauldronTestWorld world_;
+};
+
+TEST_F(PowderSnowCauldronComparatorTest, HasComparatorInputOverride)
+{
+    const auto& state = powderSnowCauldron_->defaultState();
+    EXPECT_TRUE(powderSnowCauldron_->hasComparatorInputOverride(state));
+}
+
+TEST_F(PowderSnowCauldronComparatorTest, ComparatorSignalEqualsLevel)
+{
+    for (i32 level = 1; level <= 3; ++level) {
+        const auto& state = powderSnowCauldron_->defaultState().with(BlockStateProperties::LEVEL_1_3(), level);
+        EXPECT_EQ(powderSnowCauldron_->getComparatorInputOverride(state, world_, BlockPos(0, 64, 0)), level)
+            << "Comparator output for level " << level << " should be " << level;
+    }
+}
+
+// ============================================================================
+// 炼药锅交互测试用的 Mock 世界（支持 onBlockActivated 测试）
+// ============================================================================
+
+/**
+ * @brief 炼药锅交互测试用 Mock 世界
+ *
+ * 继承 BaseTestWorld，实现 IWorld 方法，支持 Player 交互测试。
+ * 提供 playSound、gameEvent、spawnEntity 等方法的 stub 实现，
+ * 确保 onBlockActivated 不会因为缺少世界方法而崩溃。
+ */
+class CauldronInteractionTestWorld : public test::BaseTestWorld {
+public:
+    void ensureTickManager()
+    {
+        if (!m_tickManagerPtr) {
+            m_tickManagerPtr = std::make_unique<world::tick::TickManager>(*this);
+        }
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_blocks.find(pos);
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const BlockPos pos(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            m_blocks.erase(pos);
+            m_ownedStates.erase(pos);
+        } else {
+            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
+            m_blocks[pos] = &it->second;
+        }
+        return true;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
+    {
+        MC_UNUSED(flags);
+        return setBlockState(x, y, z, state);
+    }
+
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        const_cast<CauldronInteractionTestWorld*>(this)->ensureTickManager();
+        return *m_tickManagerPtr;
+    }
+
+    [[nodiscard]] bool isClientSide() const override { return m_isClientSide; }
+
+    void setClientSide(bool clientSide) { m_isClientSide = clientSide; }
+
+    void setRaining(bool raining) { m_isRaining = raining; }
+    void setThundering(bool thundering) { m_isThundering = thundering; }
+
+    [[nodiscard]] bool isRaining() const override { return m_isRaining; }
+    [[nodiscard]] bool isThundering() const override { return m_isThundering; }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+
+    void setRandomSeed(u64 seed) { m_random.setSeed(seed); }
+
+    // IWorld stub 方法
+    void playSound(const ResourceLocation& soundId,
+        sound::SoundCategory category,
+        const Vector3& pos,
+        f32 volume,
+        f32 pitch) override
+    {
+        m_soundPlayed = true;
+        m_lastSoundId = soundId;
+        MC_UNUSED(category, pos, volume, pitch);
+    }
+
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { MC_UNUSED(eventId, pos, data); }
+
+    void gameEvent(
+        const gameevent::GameEvent& event, const BlockPos& pos, const gameevent::GameEvent::Context& context) override
+    {
+        MC_UNUSED(event, pos, context);
+        m_gameEventFired = true;
+    }
+
+    [[nodiscard]] bool wasGameEventFired() const { return m_gameEventFired; }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        EntityId id = static_cast<EntityId>(m_spawnedEntities.size() + 1);
+        m_spawnedEntities.push_back(std::move(entity));
+        return id;
+    }
+
+    // 测试辅助方法
+    [[nodiscard]] bool wasSoundPlayed() const { return m_soundPlayed; }
+    [[nodiscard]] const ResourceLocation& lastSoundId() const { return m_lastSoundId; }
+    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+
+    [[nodiscard]] i32 getCauldronLevel(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return -1;
+        }
+        return LayeredCauldronBlock::getLevel(*it->second);
+    }
+
+    [[nodiscard]] bool isEmptyCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::CAULDRON);
+    }
+
+    [[nodiscard]] bool isWaterCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::WATER_CAULDRON);
+    }
+
+    [[nodiscard]] bool isPowderSnowCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+    }
+
+    [[nodiscard]] bool isLavaCauldron(const BlockPos& pos) const
+    {
+        const auto it = m_blocks.find(pos);
+        if (it == m_blocks.end() || it->second == nullptr) {
+            return false;
+        }
+        return it->second->is(block_registry::BuildingBlocks::LAVA_CAULDRON);
+    }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+    std::map<BlockPos, BlockState> m_ownedStates;
+    std::unique_ptr<world::tick::TickManager> m_tickManagerPtr;
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    bool m_isRaining = false;
+    bool m_isThundering = false;
+    bool m_isClientSide = false;
+    bool m_soundPlayed = false;
+    bool m_gameEventFired = false;
+    ResourceLocation m_lastSoundId;
+};
+
+// ============================================================================
+// 细雪炼药锅 onBlockActivated 交互测试
+// ============================================================================
+
+class PowderSnowCauldronInteractionTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        fluid::FluidRegistry::instance().initialize();
+        fluid::FluidTags::initialize();
+
+        // 使用已注册的 POWDER_SNOW_CAULDRON 方块
+        powderSnowCauldron_ = dynamic_cast<LayeredCauldronBlock*>(block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON);
+        ASSERT_NE(powderSnowCauldron_, nullptr) << "POWDER_SNOW_CAULDRON should be a LayeredCauldronBlock";
+
+        // 也获取水炼药锅引用用于转换测试
+        waterCauldron_ = dynamic_cast<LayeredCauldronBlock*>(block_registry::BuildingBlocks::WATER_CAULDRON);
+        ASSERT_NE(waterCauldron_, nullptr) << "WATER_CAULDRON should be a LayeredCauldronBlock";
+
+        world_.setClientSide(false); // 服务端才能执行交互逻辑
+    }
+
+    /// 在指定位置放置指定水位的细雪炼药锅
+    void placePowderSnowCauldron(const BlockPos& pos, i32 level)
+    {
+        const BlockState* state = &powderSnowCauldron_->defaultState().with(BlockStateProperties::LEVEL_1_3(), level);
+        world_.setBlockAt(pos, state);
+    }
+
+    /// 在指定位置放置指定水位的水炼药锅
+    void placeWaterCauldron(const BlockPos& pos, i32 level)
+    {
+        const BlockState* state = &waterCauldron_->defaultState().with(BlockStateProperties::LEVEL_1_3(), level);
+        world_.setBlockAt(pos, state);
+    }
+
+    LayeredCauldronBlock* powderSnowCauldron_;
+    LayeredCauldronBlock* waterCauldron_;
+    CauldronInteractionTestWorld world_;
+};
+
+// (1) 空桶从满细雪炼药锅取细雪 → 空炼药锅 + 细雪桶
+TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_ExtractsPowderSnowFromFullCauldron)
+{
+    if (Items::BUCKET == nullptr || Items::POWDER_SNOW_BUCKET == nullptr) {
+        GTEST_SKIP() << "BUCKET or POWDER_SNOW_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 3);
+    ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true; // 创造模式避免物品替换逻辑
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 满细雪炼药锅 + 空桶 → 空炼药锅
+    EXPECT_TRUE(world_.isEmptyCauldron(pos))
+        << "Full powder snow cauldron with empty bucket should become empty cauldron";
+    EXPECT_TRUE(world_.wasSoundPlayed());
+}
+
+// (2) 空桶从非满细雪炼药锅取细雪 → 无效果（仅满水位可取）
+TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_NonFullPowderSnowCauldron_NoEffect)
+{
+    if (Items::BUCKET == nullptr) {
+        GTEST_SKIP() << "BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 2);
+    ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    // 空桶交互总是返回 Success（MC Java 行为），但非满水位不改变方块
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 非满水位的细雪炼药锅不变
+    EXPECT_TRUE(world_.isPowderSnowCauldron(pos));
+    EXPECT_EQ(world_.getCauldronLevel(pos), 2);
+}
+
+// (3) 细雪桶向细雪炼药锅倒细雪 → 水位满至3
+TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_FillsPowderSnowCauldron)
+{
+    if (Items::POWDER_SNOW_BUCKET == nullptr) {
+        GTEST_SKIP() << "POWDER_SNOW_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 1);
+    ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
+    ASSERT_EQ(world_.getCauldronLevel(pos), 1);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::POWDER_SNOW_BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(world_.isPowderSnowCauldron(pos)) << "Should still be powder snow cauldron after filling";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3) << "Level should be 3 after filling with powder snow bucket";
+}
+
+// (4) 细雪桶对水炼药锅无效（不能向水炼药锅倒细雪）
+TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_OnWaterCauldron_NoFill)
+{
+    if (Items::POWDER_SNOW_BUCKET == nullptr) {
+        GTEST_SKIP() << "POWDER_SNOW_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placeWaterCauldron(pos, 1);
+    ASSERT_TRUE(world_.isWaterCauldron(pos));
+    ASSERT_EQ(world_.getCauldronLevel(pos), 1);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::POWDER_SNOW_BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = waterCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 水炼药锅上使用细雪桶：交互已处理但不改变方块类型（仅返回 Success）
+    EXPECT_TRUE(world_.isWaterCauldron(pos)) << "Water cauldron should not be affected by powder snow bucket";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 1) << "Water cauldron level should not change from powder snow bucket";
+}
+
+// (5) 水桶将细雪炼药锅转换为水炼药锅（水位3）
+TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_ConvertsPowderSnowToWaterCauldron)
+{
+    if (Items::WATER_BUCKET == nullptr) {
+        GTEST_SKIP() << "WATER_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 2);
+    ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::WATER_BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 细雪炼药锅 + 水桶 → 水炼药锅（水位3）
+    EXPECT_TRUE(world_.isWaterCauldron(pos)) << "Powder snow cauldron + water bucket should convert to water cauldron";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3) << "Water cauldron should be at level 3 after conversion";
+}
+
+// (6) 岩浆桶将细雪炼药锅替换为岩浆炼药锅
+TEST_F(PowderSnowCauldronInteractionTest, LavaBucket_ConvertsPowderSnowToLavaCauldron)
+{
+    if (Items::LAVA_BUCKET == nullptr) {
+        GTEST_SKIP() << "LAVA_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 2);
+    ASSERT_TRUE(world_.isPowderSnowCauldron(pos));
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::LAVA_BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(world_.isLavaCauldron(pos)) << "Powder snow cauldron + lava bucket should convert to lava cauldron";
+}
+
+// (7) 玻璃瓶对细雪炼药锅无效（细雪炼药锅不支持瓶类交互）
+TEST_F(PowderSnowCauldronInteractionTest, GlassBottle_PowderSnowCauldron_ReturnsPass)
+{
+    if (Items::GLASS_BOTTLE == nullptr) {
+        GTEST_SKIP() << "GLASS_BOTTLE not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 3);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::GLASS_BOTTLE, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    // 细雪炼药锅不支持玻璃瓶交互，应返回 Pass
+    EXPECT_EQ(result, ActionResultType::Pass) << "Glass bottle should not interact with powder snow cauldron";
+    EXPECT_TRUE(world_.isPowderSnowCauldron(pos)) << "Powder snow cauldron should be unchanged";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3);
+}
+
+// (8) 水瓶对细雪炼药锅无效
+TEST_F(PowderSnowCauldronInteractionTest, WaterBottle_PowderSnowCauldron_ReturnsPass)
+{
+    if (Items::POTION == nullptr) {
+        GTEST_SKIP() << "POTION not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 2);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    // 创建水瓶
+    ItemStack waterBottle = potion::PotionUtils::createPotionItem(potion::Potions::WATER);
+    player.getHeldItem(Hand::MainHand) = waterBottle;
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Pass) << "Water bottle should not interact with powder snow cauldron";
+    EXPECT_TRUE(world_.isPowderSnowCauldron(pos)) << "Powder snow cauldron should be unchanged";
+    EXPECT_EQ(world_.getCauldronLevel(pos), 2);
+}
+
+// (9) 空手对细雪炼药锅无交互
+TEST_F(PowderSnowCauldronInteractionTest, EmptyHand_PowderSnowCauldron_ReturnsPass)
+{
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 3);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    // 空手
+    player.getHeldItem(Hand::MainHand) = ItemStack();
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Pass);
+    EXPECT_TRUE(world_.isPowderSnowCauldron(pos));
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3);
+}
+
+// (10) 细雪桶对满细雪炼药锅无效（水位已是3）
+TEST_F(PowderSnowCauldronInteractionTest, PowderSnowBucket_FullPowderSnowCauldron_NoEffect)
+{
+    if (Items::POWDER_SNOW_BUCKET == nullptr) {
+        GTEST_SKIP() << "POWDER_SNOW_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placePowderSnowCauldron(pos, 3);
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::POWDER_SNOW_BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = powderSnowCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 满的细雪炼药锅不再增加水位
+    EXPECT_TRUE(world_.isPowderSnowCauldron(pos));
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3) << "Full powder snow cauldron should not change level";
+}
+
+// (11) 水桶对满水炼药锅无效（水位已是3）- 对照测试
+TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_FullWaterCauldron_NoEffect)
+{
+    if (Items::WATER_BUCKET == nullptr) {
+        GTEST_SKIP() << "WATER_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placeWaterCauldron(pos, 3);
+    ASSERT_TRUE(world_.isWaterCauldron(pos));
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::WATER_BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = waterCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(world_.isWaterCauldron(pos));
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3) << "Full water cauldron should not change level from water bucket";
+}
+
+// (12) 水桶对水位未满的水炼药锅装满到水位3 - 对照测试
+TEST_F(PowderSnowCauldronInteractionTest, WaterBucket_FillsWaterCauldronToLevel3)
+{
+    if (Items::WATER_BUCKET == nullptr) {
+        GTEST_SKIP() << "WATER_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placeWaterCauldron(pos, 1);
+    ASSERT_TRUE(world_.isWaterCauldron(pos));
+    ASSERT_EQ(world_.getCauldronLevel(pos), 1);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::WATER_BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = waterCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(world_.isWaterCauldron(pos));
+    EXPECT_EQ(world_.getCauldronLevel(pos), 3) << "Water bucket should fill water cauldron to level 3";
+}
+
+// (13) 空桶从满水炼药锅取水 → 空炼药锅 + 水桶 - 对照测试
+TEST_F(PowderSnowCauldronInteractionTest, EmptyBucket_ExtractsWaterFromFullWaterCauldron)
+{
+    if (Items::BUCKET == nullptr || Items::WATER_BUCKET == nullptr) {
+        GTEST_SKIP() << "BUCKET or WATER_BUCKET not registered";
+    }
+    const BlockPos pos(0, 64, 0);
+    placeWaterCauldron(pos, 3);
+    ASSERT_TRUE(world_.isWaterCauldron(pos));
+    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
+
+    Player player(EntityId(100), "TestPlayer");
+    player.setWorld(&world_);
+    player.abilities().creativeMode = true;
+    player.getHeldItem(Hand::MainHand) = ItemStack(*Items::BUCKET, 1);
+
+    const BlockState* state = world_.getBlockState(pos.x, pos.y, pos.z);
+    BlockRaycastResult hit(Vector3(0.5f, 64.5f, 0.5f), pos, Direction::Up, 1.0f);
+    ActionResultType result = waterCauldron_->onBlockActivated(*state, world_, pos, player, Hand::MainHand, hit);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(world_.isEmptyCauldron(pos)) << "Full water cauldron with empty bucket should become empty cauldron";
+    EXPECT_TRUE(world_.wasSoundPlayed());
 }
