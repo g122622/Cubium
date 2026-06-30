@@ -57,6 +57,7 @@ add_executable(minecraft-client
     renderer/trident/particle/data/ItemParticleData.cpp
     renderer/trident/particle/data/RedstoneParticleData.cpp
     renderer/trident/particle/data/VibrationParticleData.cpp
+    renderer/trident/particle/data/TrailParticleData.cpp
     # 粒子实现 - 天气
     renderer/trident/particle/particles/RainParticle.cpp
     renderer/trident/particle/particles/SnowParticle.cpp

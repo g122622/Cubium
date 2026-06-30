@@ -25,6 +25,7 @@
 
 #include "../renderer/MeshTypes.hpp"
 #include "../renderer/mesh/MeshBuildScheduler.hpp"
+#include "../renderer/trident/particle/data/ParticleData.hpp"
 #include "ClientWeather.hpp"
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
@@ -346,6 +347,22 @@ public:
      */
     void addBlockParticle(
         ::mc::particle::ParticleTypeId type, const Vector3& pos, const Vector3& velocity, const BlockState& blockState);
+
+    /**
+     * @brief 携带粒子数据生成粒子
+     *
+     * 当粒子需要额外数据（如目标位置、颜色等）时使用此方法。
+     * 粒子数据将通过数据工厂传递到对应粒子类的 createWithXxx() 方法。
+     *
+     * @param type 粒子类型
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param data 粒子数据（不可为空）
+     */
+    void addParticleWithData(::mc::particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        std::unique_ptr<renderer::trident::particle::data::ParticleData> data);
 
     /**
      * @brief 检查是否应在指定位置生成粒子

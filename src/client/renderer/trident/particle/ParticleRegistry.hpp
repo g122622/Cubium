@@ -54,6 +54,7 @@ struct ParticleTypeInfo {
     bool overrideLimiter;                 ///< 是否忽略粒子质量限制（重要粒子始终显示）
     f64 defaultLifetime;                  ///< 默认生命周期（ticks）
     bool hasPhysics;                      ///< 是否有物理碰撞
+    ParticleDataFactory dataFactory;      ///< 携带粒子数据的工厂函数（可选）
 };
 
 /**
@@ -136,6 +137,18 @@ public:
         ParticleRenderType defaultRenderType,
         bool overrideLimiter = false);
 
+    /**
+     * @brief 注册携带粒子数据的工厂函数
+     *
+     * 为已注册的粒子类型设置数据工厂函数。
+     * 数据工厂函数可以接收 ParticleData 参数，从中提取额外数据创建粒子。
+     * 当 data 为 nullptr 时，应使用默认/回退行为。
+     *
+     * @param id 粒子类型 ID
+     * @param dataFactory 携带粒子数据的工厂函数
+     */
+    void registerDataFactory(ParticleTypeId id, ParticleDataFactory dataFactory);
+
     // ========================================================================
     // 创建粒子
     // ========================================================================
@@ -167,6 +180,25 @@ public:
         const glm::vec3& pos,
         const glm::vec3& velocity,
         mc::client::ClientWorld* world = nullptr) const;
+
+    /**
+     * @brief 携带粒子数据创建粒子实例
+     *
+     * 如果该类型注册了数据工厂函数且 data 不为 nullptr，使用数据工厂创建粒子；
+     * 否则回退到普通工厂函数（忽略 data 参数）。
+     *
+     * @param id 粒子类型 ID
+     * @param pos 初始位置
+     * @param velocity 初始速度
+     * @param world 客户端世界（可选）
+     * @param data 粒子数据（可为 nullptr）
+     * @return 粒子实例，如果类型无效返回 nullptr
+     */
+    [[nodiscard]] std::unique_ptr<Particle> createParticleWithData(ParticleTypeId id,
+        const glm::vec3& pos,
+        const glm::vec3& velocity,
+        mc::client::ClientWorld* world,
+        const data::ParticleData* data) const;
 
     // ========================================================================
     // 查询

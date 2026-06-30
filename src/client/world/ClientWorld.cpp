@@ -935,6 +935,21 @@ void ClientWorld::addBlockParticle(
     // 其他粒子类型暂时不支持方块状态，忽略
 }
 
+void ClientWorld::addParticleWithData(::mc::particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    std::unique_ptr<renderer::trident::particle::data::ParticleData> data)
+{
+    if (!m_particleManager || !data) {
+        return;
+    }
+
+    glm::vec3 glmPos(pos.x, pos.y, pos.z);
+    glm::vec3 glmVel(velocity.x, velocity.y, velocity.z);
+
+    m_particleManager->addPendingParticle(type, glmPos, glmVel, this, std::move(data));
+}
+
 bool ClientWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const
 {
     // 检查粒子位置到相机的距离

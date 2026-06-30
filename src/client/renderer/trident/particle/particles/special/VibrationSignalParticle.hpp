@@ -43,8 +43,9 @@ namespace mc::client::renderer::trident::particle::particles {
  * 粒子以指数缓动向目标位置飞行，飞行过程中带有轻微的正弦摆动效果，
  * 始终面向摄像机，使用半透明渲染和全亮度光照。
  *
- * TODO: 粒子数据管线尚未支持目标位置和到达时间数据传递，当前 create() 工厂方法使用默认值/回退行为。
- * 待 ParticleFactory 签名扩展后，应通过 createWithTarget() 方法传递真实数据。
+ * 数据管线：通过 VibrationParticleData 传递目标位置和到达时间。
+ * 当无 ParticleData 时，create() 回退到默认行为（向上飞8格，8 tick）。
+ * 数据工厂已在 ParticleFactories.cpp 中注册。
  */
 class VibrationSignalParticle : public Particle {
 public:

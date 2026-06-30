@@ -336,7 +336,24 @@ void ParticleManager::addPendingParticle(
 
     // 粒子将在下一帧 tick 时处理，避免在 tick 中途修改粒子列表
     if (m_pendingParticles.size() < MAX_PARTICLES) {
-        m_pendingParticles.push_back({type, pos, velocity, world});
+        m_pendingParticles.push_back({type, pos, velocity, world, nullptr});
+    }
+}
+
+void ParticleManager::addPendingParticle(ParticleTypeId type,
+    const glm::vec3& pos,
+    const glm::vec3& velocity,
+    ClientWorld* world,
+    std::unique_ptr<data::ParticleData> data)
+{
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!shouldShowParticle(type)) {
+        return;
+    }
+
+    // 粒子将在下一帧 tick 时处理，避免在 tick 中途修改粒子列表
+    if (m_pendingParticles.size() < MAX_PARTICLES) {
+        m_pendingParticles.push_back({type, pos, velocity, world, std::move(data)});
     }
 }
 
@@ -433,8 +450,18 @@ void ParticleManager::processPendingParticles()
         }
 
         // 通过 ParticleRegistry 创建粒子
-        auto particle = ParticleRegistry::instance().createParticle(
-            pendingParticle.type, pendingParticle.position, pendingParticle.velocity, pendingParticle.world);
+        // 如果有待处理数据，使用数据感知创建方法
+        std::unique_ptr<Particle> particle;
+        if (pendingParticle.data) {
+            particle = ParticleRegistry::instance().createParticleWithData(pendingParticle.type,
+                pendingParticle.position,
+                pendingParticle.velocity,
+                pendingParticle.world,
+                pendingParticle.data.get());
+        } else {
+            particle = ParticleRegistry::instance().createParticle(
+                pendingParticle.type, pendingParticle.position, pendingParticle.velocity, pendingParticle.world);
+        }
 
         if (particle && m_particles.size() < MAX_PARTICLES) {
             m_particles.push_back(std::move(particle));

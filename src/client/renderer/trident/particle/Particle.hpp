@@ -378,4 +378,25 @@ protected:
 using ParticleFactory = std::function<std::unique_ptr<Particle>(
     const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world)>;
 
+// 前置声明
+namespace data {
+class ParticleData;
+} // namespace data
+
+/**
+ * @brief 携带粒子数据的工厂函数类型
+ *
+ * 用于创建需要额外数据的粒子实例（如振动粒子需要目标位置、轨迹粒子需要颜色等）。
+ * 当 ParticleData 不为 nullptr 时，工厂应从中提取额外参数；
+ * 当 ParticleData 为 nullptr 时，工厂应使用默认/回退行为（与 ParticleFactory 一致）。
+ *
+ * @param pos 初始位置
+ * @param velocity 初始速度
+ * @param world 客户端世界（可选）
+ * @param data 粒子数据（可为 nullptr，表示使用默认值）
+ * @return 粒子实例
+ */
+using ParticleDataFactory = std::function<std::unique_ptr<Particle>(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world, const data::ParticleData* data)>;
+
 } // namespace mc::client::renderer::trident::particle

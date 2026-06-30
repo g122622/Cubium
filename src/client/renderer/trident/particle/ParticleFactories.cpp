@@ -24,6 +24,10 @@
 #include "ParticleFactories.hpp"
 #include "ParticleTypes.hpp"
 
+// 粒子数据类型头文件
+#include "data/TrailParticleData.hpp"
+#include "data/VibrationParticleData.hpp"
+
 // 粒子类型头文件
 #include "particles/RainParticle.hpp"
 #include "particles/SnowParticle.hpp"
@@ -550,8 +554,6 @@ void registerBuiltinParticleFactories()
         true); // 忽略距离限制，确保可见
 
     // Trail: 轨迹粒子（带颜色+目标数据）
-    // TODO: 粒子数据管线尚未支持颜色+目标位置+持续时间数据传递，当前 create() 工厂方法使用默认值/回退行为。
-    // 待 ParticleFactory 签名扩展后，应通过 createWithTarget() 方法传递真实数据。
     registry.registerType(ParticleTypeId::Trail,
         "minecraft:trail",
         TrailParticle::create,
@@ -1218,6 +1220,48 @@ void registerBuiltinParticleFactories()
         20.0f,
         false,
         false);
+
+    // ========================================================================
+    // 数据工厂注册
+    //
+    // 为需要额外数据的粒子类型注册 ParticleDataFactory，
+    // 使得通过 createParticleWithData() 传入 ParticleData 时能正确创建粒子。
+    // 当 data 为 nullptr 时，回退到普通工厂（使用默认值）。
+    // ========================================================================
+
+    // 振动信号粒子：从 VibrationParticleData 提取目标位置和到达时间
+    registry.registerDataFactory(ParticleTypeId::Vibration,
+        [](const glm::vec3& pos,
+            const glm::vec3& velocity,
+            mc::client::ClientWorld* world,
+            const data::ParticleData* data) -> std::unique_ptr<Particle> {
+            if (data) {
+                auto* vibrationData = dynamic_cast<const data::VibrationParticleData*>(data);
+                if (vibrationData) {
+                    return VibrationSignalParticle::createWithTarget(
+                        pos, vibrationData->targetPosition(), vibrationData->arrivalInTicks());
+                }
+            }
+            // 回退到默认工厂（向上飞8格，8 tick）
+            return VibrationSignalParticle::create(pos, velocity, world);
+        });
+
+    // 轨迹粒子：从 TrailParticleData 提取目标位置、颜色和持续时间
+    registry.registerDataFactory(ParticleTypeId::Trail,
+        [](const glm::vec3& pos,
+            const glm::vec3& velocity,
+            mc::client::ClientWorld* world,
+            const data::ParticleData* data) -> std::unique_ptr<Particle> {
+            if (data) {
+                auto* trailData = dynamic_cast<const data::TrailParticleData*>(data);
+                if (trailData) {
+                    return TrailParticle::createWithTarget(
+                        pos, trailData->targetPosition(), trailData->color(), trailData->durationInTicks());
+                }
+            }
+            // 回退到默认工厂（velocity 作为目标偏移，白色，10 tick）
+            return TrailParticle::create(pos, velocity, world);
+        });
 }
 
 } // namespace mc::client::renderer::trident::particle

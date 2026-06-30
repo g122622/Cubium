@@ -101,6 +101,43 @@ std::unique_ptr<Particle> ParticleRegistry::createParticle(
     return createParticle(id.value(), pos, velocity, world);
 }
 
+void ParticleRegistry::registerDataFactory(ParticleTypeId id, ParticleDataFactory dataFactory)
+{
+    MC_ASSERT_RELEASE_MSG(isValidParticleType(id), "Invalid particle type ID");
+
+    auto it = m_types.find(id);
+    if (it == m_types.end()) {
+        // 类型尚未注册，无法设置数据工厂
+        return;
+    }
+
+    it->second.dataFactory = std::move(dataFactory);
+}
+
+std::unique_ptr<Particle> ParticleRegistry::createParticleWithData(ParticleTypeId id,
+    const glm::vec3& pos,
+    const glm::vec3& velocity,
+    mc::client::ClientWorld* world,
+    const data::ParticleData* data) const
+{
+    auto it = m_types.find(id);
+    if (it == m_types.end()) {
+        return nullptr;
+    }
+
+    // 如果有数据工厂且提供了数据，使用数据工厂
+    if (data && it->second.dataFactory) {
+        return it->second.dataFactory(pos, velocity, world, data);
+    }
+
+    // 回退到普通工厂
+    if (!it->second.factory) {
+        return nullptr;
+    }
+
+    return it->second.factory(pos, velocity, world);
+}
+
 std::optional<ParticleTypeId> ParticleRegistry::getTypeId(const std::string& name) const
 {
     auto it = m_nameToId.find(name);

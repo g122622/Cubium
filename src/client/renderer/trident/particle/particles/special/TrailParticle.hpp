@@ -51,6 +51,10 @@ namespace mc::client::renderer::trident::particle::particles {
  *
  * TODO: 粒子数据管线尚未支持颜色+目标位置+持续时间数据传递，当前 create() 工厂方法使用默认值/回退行为。
  * 待 ParticleFactory 签名扩展后，应通过 createWithTarget() 方法传递真实数据。
+ *
+ * 数据管线：通过 TrailParticleData 传递目标位置、颜色和持续时间。
+ * 当无 ParticleData 时，create() 回退到默认行为（velocity 作为目标偏移，白色，10 tick）。
+ * 数据工厂已在 ParticleFactories.cpp 中注册。
  */
 class TrailParticle : public Particle {
 public:

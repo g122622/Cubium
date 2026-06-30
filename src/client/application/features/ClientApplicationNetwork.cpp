@@ -30,7 +30,7 @@
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
-#include "client/renderer/trident/particle/particles/special/VibrationSignalParticle.hpp"
+#include "client/renderer/trident/particle/data/VibrationParticleData.hpp"
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
 #include "client/sound/instance/SoundInstance.hpp"
@@ -1366,12 +1366,11 @@ void ClientApplication::setupNetworkCallbacks()
             glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
             Vector3d targetPosition(targetX, targetY, targetZ);
 
-            auto particle = client::renderer::trident::particle::particles::VibrationSignalParticle::createWithTarget(
-                pos, targetPosition, arrivalInTicks);
-
-            if (particle) {
-                m_world.particleManager()->addParticle(std::move(particle));
-            }
+            // 通过粒子数据管线创建粒子
+            using namespace client::renderer::trident::particle;
+            auto vibrationData = std::make_unique<data::VibrationParticleData>(targetPosition, arrivalInTicks);
+            m_world.particleManager()->addPendingParticle(
+                particle::ParticleTypeId::Vibration, pos, glm::vec3(0.0f), &m_world, std::move(vibrationData));
         };
 
     // 玩家列表回调 - 皮肤系统集成

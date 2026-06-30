@@ -28,6 +28,7 @@
 #include "client/settings/ClientSettings.hpp"
 #include "common/core/Result.hpp"
 #include "common/util/math/frustum/Frustum.hpp"
+#include "data/ParticleData.hpp"
 #include <array>
 #include <memory>
 #include <vector>
@@ -56,10 +57,11 @@ struct ParticleUBO {
  * 用于延迟生成粒子，避免在 tick 中途修改粒子列表。
  */
 struct PendingParticle {
-    ParticleTypeId type; ///< 粒子类型
-    glm::vec3 position;  ///< 位置
-    glm::vec3 velocity;  ///< 速度
-    ClientWorld* world;  ///< 世界指针（可为空）
+    ParticleTypeId type;                      ///< 粒子类型
+    glm::vec3 position;                       ///< 位置
+    glm::vec3 velocity;                       ///< 速度
+    ClientWorld* world;                       ///< 世界指针（可为空）
+    std::unique_ptr<data::ParticleData> data; ///< 粒子数据（可为空）
 };
 
 /**
@@ -139,6 +141,24 @@ public:
      */
     void addPendingParticle(
         ParticleTypeId type, const glm::vec3& pos, const glm::vec3& velocity, ClientWorld* world = nullptr);
+
+    /**
+     * @brief 携带粒子数据添加到待处理队列
+     *
+     * 当粒子需要额外数据（如目标位置、颜色等）时使用此方法。
+     * 粒子将在下一帧开始时处理，避免在 tick 中途修改粒子列表。
+     *
+     * @param type 粒子类型
+     * @param pos 位置
+     * @param velocity 速度
+     * @param world 世界指针（可为空）
+     * @param data 粒子数据（不可为空）
+     */
+    void addPendingParticle(ParticleTypeId type,
+        const glm::vec3& pos,
+        const glm::vec3& velocity,
+        ClientWorld* world,
+        std::unique_ptr<data::ParticleData> data);
 
     /**
      * @brief 设置相机位置（用于距离裁剪）
