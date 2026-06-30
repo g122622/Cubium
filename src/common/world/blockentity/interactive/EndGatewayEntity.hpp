@@ -209,12 +209,12 @@ public:
     // ========== 方块事件 ==========
 
     /**
-     * @brief 处理客户端事件
+     * @brief 处理方块事件
      * @param id 事件 ID
      * @param type 事件类型
      * @return 是否处理成功
      */
-    bool receiveClientEvent(i32 id, i32 type);
+    [[nodiscard]] bool triggerEvent(i32 id, i32 type) override;
 
 private:
     /**

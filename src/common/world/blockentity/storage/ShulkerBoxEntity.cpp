@@ -117,6 +117,15 @@ void ShulkerBoxEntity::openContainer(Player* player)
     if (m_openCount == 1) {
         m_animationStatus = AnimationStatus::Opening;
     }
+
+    // 同步开合动画到客户端
+    if (m_world != nullptr) {
+        const BlockState* state = m_world->getBlockState(m_pos);
+        if (state != nullptr) {
+            m_world->blockEvent(m_pos, state->getBlock(), 1, m_openCount);
+        }
+    }
+
     LootableContainerBlockEntity::setChanged();
 }
 
@@ -128,7 +137,31 @@ void ShulkerBoxEntity::closeContainer(Player* player)
     if (m_openCount == 0) {
         m_animationStatus = AnimationStatus::Closing;
     }
+
+    // 同步开合动画到客户端
+    if (m_world != nullptr) {
+        const BlockState* state = m_world->getBlockState(m_pos);
+        if (state != nullptr) {
+            m_world->blockEvent(m_pos, state->getBlock(), 1, m_openCount);
+        }
+    }
+
     LootableContainerBlockEntity::setChanged();
+}
+
+bool ShulkerBoxEntity::triggerEvent(i32 id, i32 type)
+{
+    if (id == 1) {
+        m_openCount = type;
+        if (type == 0) {
+            m_animationStatus = AnimationStatus::Closing;
+        }
+        if (type == 1) {
+            m_animationStatus = AnimationStatus::Opening;
+        }
+        return true;
+    }
+    return false;
 }
 
 bool ShulkerBoxEntity::canOpen(IWorld& world) const

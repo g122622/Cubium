@@ -206,6 +206,24 @@ public:
     void tick(IWorld& world) override;
     [[nodiscard]] bool needsTick() const noexcept override { return true; }
 
+    // ========== BlockEvent 同步 ==========
+
+    /**
+     * @brief 处理方块事件（客户端同步用）
+     *
+     * 服务端通过 IWorld::blockEvent() 发送事件，客户端收到后调用此方法。
+     * 事件 id=1 用于箱子盖子开合动画：
+     * - type > 0 表示打开，设置 lidAngle 为打开状态
+     * - type == 0 表示关闭，设置 lidAngle 为关闭状态
+     *
+     * 参考: net.minecraft.tileentity.ChestTileEntity.triggerEvent
+     *
+     * @param id 事件ID（1=盖子动画）
+     * @param type 事件参数（>0=打开, 0=关闭）
+     * @return true 如果事件被处理
+     */
+    [[nodiscard]] bool triggerEvent(i32 id, i32 type) override;
+
     // ========== 序列化 ==========
 
     bool load(const nlohmann::json& data) override;

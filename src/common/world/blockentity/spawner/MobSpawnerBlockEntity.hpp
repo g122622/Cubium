@@ -65,6 +65,7 @@ public:
     void saveToNBT(nbt::CompoundTag& tag) const override;
     [[nodiscard]] bool onlyOpsCanSetNbt() const noexcept override { return true; }
     [[nodiscard]] std::unique_ptr<BlockEntity> clone() const override;
+    [[nodiscard]] bool triggerEvent(i32 id, i32 type) override;
 
     // ========== 配置接口 ==========
 

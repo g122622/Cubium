@@ -228,3 +228,27 @@
     newState` 时直接返回
     false，不触发 `m_onBlockChanged` 回调，客户端收不到更新。`notifyBlockUpdate` 即使方块状态未改变也会触发客户端同步，对应
     MC Java 的 `Level.sendBlockUpdated(pos, state, state, 3)`。
+
+## #13. 方块事件系统（blockEvent / triggerEvent）
+
+方块实体通过 `BlockEntity::triggerEvent(int id, int type)` 接收服务端广播的方块事件，用于客户端视觉效果同步（箱子开合动画、陶罐摇晃、末地折跃门冷却等）。
+
+**服务端流程：**
+1. 方块实体调用 `IWorld::blockEvent(pos, block, paramA, paramB)` 将事件入队
+2. `ServerWorld::tick()` 中处理队列，验证方块仍匹配后调用 `Block::triggerEvent()`
+3. `Block::triggerEvent()` 默认委托给 `BlockEntity::triggerEvent()`
+4. 事件执行成功后通过 `BlockEventPacket` 广播给附近客户端
+
+**客户端流程：**
+1. 收到 `BlockEventPacket` 后查找 `BlockState` 和 `Block`
+2. 调用 `Block::triggerEvent()` 触发客户端视觉效果
+
+**已实现 triggerEvent 的方块实体：**
+- `ChestEntity` — 箱子开合动画（id=1, type=打开人数）
+- `EnderChestEntity` — 末影箱开合动画（id=1, type=打开人数）
+- `ShulkerBoxEntity` — 潜影盒开合动画（id=1, type=打开人数）
+- `DecoratedPotBlockEntity` — 陶罐摇晃动画（id=1, type=摇晃样式）
+- `EndGatewayEntity` — 末地折跃门冷却（id=1, type=0）
+- `MobSpawnerBlockEntity` — 刷怪笼生成事件（id=1, type=0）
+
+**注意：** 方块实体需要在合适的时机主动调用 `world.blockEvent()` 来触发事件广播，例如箱子在 `broadcastChestState()` 中调用。

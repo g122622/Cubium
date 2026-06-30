@@ -332,6 +332,18 @@ void ChestEntity::tick(IWorld& world)
     MC_UNUSED(world);
 }
 
+// ========== BlockEvent 同步 ==========
+
+bool ChestEntity::triggerEvent(i32 id, i32 type)
+{
+    if (id == 1) {
+        // 箱子开合动画事件：type > 0 表示打开，type == 0 表示关闭
+        m_lidAngle = (type > 0) ? 1.0f : 0.0f;
+        return true;
+    }
+    return false;
+}
+
 // ========== 序列化 ==========
 
 bool ChestEntity::load(const nlohmann::json& data)
@@ -412,10 +424,16 @@ void ChestEntity::broadcastChestState(IWorld& world, bool open)
 {
     MC_UNUSED(open);
 
+    // 发送 blockEvent 通知客户端同步盖子开合动画
+    // 参考 MC ChestBlockEntity.signalOpenCount -> level.blockEvent(pos, block, 1, openCount)
+    const BlockState* state = world.getBlockState(m_pos);
+    if (state != nullptr) {
+        world.blockEvent(m_pos, state->getBlock(), 1, m_openCount);
+    }
+
     // 通知客户端方块实体数据更新
     world.notifyBlockUpdate(m_pos);
 
-    const BlockState* state = world.getBlockState(m_pos);
     if (state != nullptr) {
         world::redstone::RedstoneSystem::instance().updateNeighbors(world, m_pos, state->getBlockMutable());
         world::redstone::RedstoneSystem::instance().updateComparators(world, m_pos);

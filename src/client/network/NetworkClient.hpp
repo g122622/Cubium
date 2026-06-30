@@ -164,6 +164,9 @@ struct NetworkClientCallbacks {
     // 方块破坏动画事件
     std::function<void(EntityId breakerEntityId, i32 x, i32 y, i32 z, i8 stage)> onBlockBreakAnim;
 
+    // 方块事件（箱子开合、活塞动画等）
+    std::function<void(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId)> onBlockEvent;
+
     // 声音事件
     std::function<void(const ResourceLocation& soundEventId,
         mc::sound::SoundCategory category,
@@ -394,6 +397,9 @@ private:
 
     // 方块破坏动画包处理
     void _handleBlockBreakAnim(network::PacketDeserializer& deser);
+
+    // 方块事件包处理
+    void _handleBlockEvent(network::PacketDeserializer& deser);
 
     // 声音包处理
     void _handlePlaySound(network::PacketDeserializer& deser);

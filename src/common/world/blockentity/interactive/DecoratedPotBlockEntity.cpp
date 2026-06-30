@@ -230,10 +230,13 @@ void DecoratedPotBlockEntity::wobble(WobbleStyle style)
     // 设置摇晃动画开始时间
     if (m_world != nullptr) {
         m_wobbleStartedAtTick = static_cast<i64>(m_world->getGameTime());
+        // 通过 blockEvent 同步摇晃动画到客户端
+        const BlockState* state = m_world->getBlockState(m_pos);
+        if (state != nullptr) {
+            m_world->blockEvent(m_pos, state->getBlock(), 1, static_cast<i32>(style));
+        }
     }
 
-    // TODO: 当 IWorld::blockEvent 实现后，应调用 world.blockEvent(pos, block, 1, style.ordinal())
-    // 以同步摇晃动画到客户端。当前仅服务端记录摇晃状态，客户端动画待 blockEvent 系统实现后生效。
     setChanged();
 }
 
@@ -380,7 +383,7 @@ std::unique_ptr<BlockEntity> DecoratedPotBlockEntity::clone() const
     return cloned;
 }
 
-bool DecoratedPotBlockEntity::receiveClientEvent(i32 id, i32 type)
+bool DecoratedPotBlockEntity::triggerEvent(i32 id, i32 type)
 {
     if (id == 1) {
         // 摇晃动画事件

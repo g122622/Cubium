@@ -27,6 +27,7 @@
 #include "entity/entities/player/Player.hpp"
 #include "util/assert/AssertAll.hpp"
 #include "world/IWorld.hpp"
+#include "world/block/Block.hpp"
 #include "world/gameevent/GameEvents.hpp"
 
 namespace mc {
@@ -76,6 +77,14 @@ bool EnderChestEntity::openContainer(Player* player)
         }
     }
 
+    // 同步开合动画到客户端
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        const BlockState* state = m_world->getBlockState(m_pos);
+        if (state != nullptr) {
+            m_world->blockEvent(m_pos, state->getBlock(), 1, m_openCount);
+        }
+    }
+
     setChanged();
     return true;
 }
@@ -86,8 +95,27 @@ void EnderChestEntity::closeContainer(Player* player)
 
     if (m_openCount > 0) {
         m_openCount--;
+
+        // 同步开合动画到客户端
+        if (m_world != nullptr && !m_world->isClientSide()) {
+            const BlockState* state = m_world->getBlockState(m_pos);
+            if (state != nullptr) {
+                m_world->blockEvent(m_pos, state->getBlock(), 1, m_openCount);
+            }
+        }
+
         setChanged();
     }
+}
+
+bool EnderChestEntity::triggerEvent(i32 id, i32 type)
+{
+    if (id == 1) {
+        // 末影箱开合动画事件：type > 0 表示打开，type == 0 表示关闭
+        m_openCount = type;
+        return true;
+    }
+    return false;
 }
 
 bool EnderChestEntity::canPlayerAccess(Player* player) const

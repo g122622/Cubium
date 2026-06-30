@@ -1213,6 +1213,28 @@ void ClientApplication::setupNetworkCallbacks()
         }
     };
 
+    callbacks.onBlockEvent = [this](i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId) {
+        // 客户端收到方块事件后，查找方块并调用 Block::triggerEvent()
+        // 参考 MC Java: ClientPacketListener.handleBlockEvent() -> ClientLevel.blockEvent()
+        //
+        // 当前 ClientWorld 不继承 IWorld，且客户端尚无 BlockEntity 系统，
+        // 因此暂时仅记录事件。待 ClientWorld 实现 BlockEntity 管理后，
+        // 需通过 Block::triggerEvent() 委托给对应 BlockEntity::triggerEvent()
+        // 来处理客户端视觉效果（如箱子开合动画、陶罐摇晃等）。
+        (void)x;
+        (void)y;
+        (void)z;
+        (void)paramA;
+        (void)paramB;
+        (void)blockStateId;
+        // TODO: 客户端 BlockEntity 系统就绪后实现：
+        //   BlockPos pos(x, y, z);
+        //   const BlockState* state = m_world.getBlockState(x, y, z);
+        //   if (state != nullptr) {
+        //       state->getBlock().triggerEvent(*state, m_world, pos, paramA, paramB);
+        //   }
+    };
+
     callbacks.onPlaySound = [this](const ResourceLocation& soundEventId,
                                 mc::sound::SoundCategory category,
                                 f32 x,

@@ -24,6 +24,7 @@
 #include "NetworkClient.hpp"
 #include "common/core/Constants.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
+#include "common/network/packet/BlockEventPacket.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/network/packet/GameStateChangePacket.hpp"
@@ -781,6 +782,11 @@ void NetworkClient::_processPacket(const u8* data, size_t size)
 
         case network::PacketType::BlockBreakAnim: {
             _handleBlockBreakAnim(bodyDeser);
+            break;
+        }
+
+        case network::PacketType::BlockEvent: {
+            _handleBlockEvent(bodyDeser);
             break;
         }
 
@@ -1602,6 +1608,28 @@ void NetworkClient::_handleBlockBreakAnim(network::PacketDeserializer& deser)
     if (m_callbacks.onBlockBreakAnim) {
         m_callbacks.onBlockBreakAnim(
             packet.breakerEntityId(), packet.position().x, packet.position().y, packet.position().z, packet.stage());
+    }
+}
+
+void NetworkClient::_handleBlockEvent(network::PacketDeserializer& deser)
+{
+    const u8* data = deser.data();
+    size_t size = deser.size();
+
+    network::BlockEventPacket packet;
+    auto result = packet.deserialize(data, size);
+    if (result.failed()) {
+        spdlog::error("Failed to deserialize BlockEvent packet: {}", result.error().message());
+        return;
+    }
+
+    if (m_callbacks.onBlockEvent) {
+        m_callbacks.onBlockEvent(packet.position().x,
+            packet.position().y,
+            packet.position().z,
+            packet.paramA(),
+            packet.paramB(),
+            packet.blockStateId());
     }
 }
 

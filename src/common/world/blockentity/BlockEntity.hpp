@@ -214,6 +214,28 @@ public:
     virtual void setCustomName(const std::string& name) { MC_UNUSED(name); }
 
     /**
+     * @brief 处理客户端方块事件
+     *
+     * 当服务端调用 IWorld::blockEvent() 时，事件在服务端执行后广播到客户端。
+     * 客户端收到 BlockEventPacket 后调用此方法来触发对应的视觉/动画效果。
+     *
+     * 子类应重写此方法以处理特定的事件ID和参数。
+     * 默认实现返回 false（未处理）。
+     *
+     * 参考 MC Java: BlockEntity.triggerEvent(int, int)
+     *
+     * @param id 事件ID（含义因方块实体类型而异）
+     * @param type 事件类型/数据（含义因方块实体类型而异）
+     * @return 如果事件被成功处理返回 true
+     */
+    [[nodiscard]] virtual bool triggerEvent(i32 id, i32 type)
+    {
+        (void)id;
+        (void)type;
+        return false;
+    }
+
+    /**
      * @brief 检查方块实体是否仅允许OP玩家修改NBT数据
      *
      * 参考 MC Java: BlockEntityType.onlyOpCanSetNbt()

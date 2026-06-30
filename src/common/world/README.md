@@ -66,6 +66,9 @@ world/
 │   │   └── vegetation/         # 植被类
 │   ├── dispense/               # 发射器行为
 │   └── registry/               # 方块注册辅助
+├── blockevent/                  # 方块事件系统（服务端→客户端方块动画同步）
+│   ├── BlockEventData.hpp       # 方块事件数据结构（位置、方块类型、事件参数）
+│   └── README.md                # 方块事件系统文档
 ├── blockentity/                # 方块实体
 │   ├── core/                   # 核心方块实体
 │   ├── interactive/            # 交互类（告示牌、床等）
@@ -344,3 +347,19 @@ world/
 - `ClientWorld` 不重写这些回调，默认空实现（void 参数），不触发任何事件
 - `PlayerInteractedWithEntityTrigger` 不通过 IWorld 回调触发，而是在 `PacketHandler::handleUseEntity()` 中直接调用 `AbstractCriterionTrigger::trigger()`
 - `SummonedEntityTrigger` 当前仅在 `/summon` 命令中触发。MC Java 中还会在建造铁傀儡/雪傀儡/凋灵时触发，但当前傀儡建造代码缺少玩家上下文信息，需要重构后才能添加
+
+### 15. IWorld::blockEvent() 方块事件系统
+
+方块事件用于服务端向客户端同步方块动画和状态变化（如箱子开合、陶罐摇晃、末地折跃门冷却等）。
+
+**调用流程**：
+1. 方块实体调用 `world.blockEvent(pos, block, paramA, paramB)` 将事件入队
+2. `ServerWorld::tick()` 中 `runBlockEvents()` 处理队列，验证方块仍匹配后执行事件
+3. 执行成功后通过回调广播 `BlockEventPacket` 给附近客户端
+4. 客户端收到后调用 `Block::triggerEvent()` → `BlockEntity::triggerEvent()` 处理视觉效果
+
+**注意事项**：
+- `BlockEventData` 使用 `operator==` 和 `std::hash` 去重，必须保持一致
+- 事件参数 `paramA`/`paramB` 含义因方块类型而异
+- 区块未加载的事件会重新入队等待下次处理
+- `Block::triggerEvent()` 默认委托给 `BlockEntity::triggerEvent()`，子类可覆写

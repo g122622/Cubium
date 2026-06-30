@@ -336,6 +336,19 @@ void MobSpawnerBlockEntity::saveToNBT(nbt::CompoundTag& tag) const
     tag.value.emplace("SpawnPotentials", std::move(potentialsList));
 }
 
+bool MobSpawnerBlockEntity::triggerEvent(i32 id, i32 type)
+{
+    if (id == 1) {
+        // 刷怪笼事件：重置生成延迟，产生视觉"弹出"效果
+        // 参考 MC Java: BaseSpawner.onEventTriggered()
+        if (m_world != nullptr && m_world->isClientSide()) {
+            m_spawnDelay = m_minSpawnDelay;
+        }
+        return true;
+    }
+    return false;
+}
+
 std::unique_ptr<BlockEntity> MobSpawnerBlockEntity::clone() const
 {
     auto copy = std::make_unique<MobSpawnerBlockEntity>(m_pos);
@@ -425,6 +438,13 @@ void MobSpawnerBlockEntity::_serverTick(IWorld& world)
         // 通知客户端播放刷怪笼生成粒子效果
         // 参考 MC: BaseSpawner.serverTick() 中成功生成后调用 levelEvent(2004, pos, 0)
         world.playEvent(world::WorldEvents::MOB_SPAWNER_PARTICLES, m_pos, 0);
+
+        // 发送方块事件，使客户端重置生成延迟产生视觉"弹出"效果
+        // 参考 MC Java: BaseSpawner.serverTick() 中调用 level.blockEvent(pos, block, 1, 0)
+        const BlockState* state = world.getBlockState(m_pos);
+        if (state != nullptr) {
+            world.blockEvent(m_pos, state->getBlock(), 1, 0);
+        }
     }
 }
 

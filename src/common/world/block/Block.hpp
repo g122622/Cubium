@@ -1538,6 +1538,27 @@ public:
      */
     [[nodiscard]] virtual std::unique_ptr<BlockEntity> createBlockEntity(const BlockPos& pos);
 
+    /**
+     * @brief 处理方块事件
+     *
+     * 当服务端调用 IWorld::blockEvent() 时，事件在服务端执行后广播到客户端。
+     * 客户端收到 BlockEventPacket 后，通过 IWorld::blockEvent() 调用此方法。
+     *
+     * 对于拥有方块实体的方块，默认实现将事件委托给方块实体的 triggerEvent()。
+     * 没有方块实体的方块（如音符盒、活塞）应重写此方法以直接处理事件。
+     *
+     * 参考 MC Java: BlockBehaviour.triggerEvent()
+     *
+     * @param state 方块状态
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @param id 事件ID
+     * @param type 事件类型/数据
+     * @return 如果事件被成功处理返回 true
+     */
+    [[nodiscard]] virtual bool triggerEvent(
+        const BlockState& state, IWorld& world, const BlockPos& pos, i32 id, i32 type) const;
+
     // ========================================================================
     // 红石
     // ========================================================================

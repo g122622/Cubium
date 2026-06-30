@@ -806,6 +806,22 @@ protected:
     void broadcastBlockBreakProgressInRange(EntityId breakerId, i32 x, i32 y, i32 z, i32 progress, f32 range = 32.0f);
 
     /**
+     * @brief 广播方块事件给指定范围内的玩家
+     *
+     * 对应 MC Java 中的 ServerPlayerList.broadcast(null, x, y, z, 64.0, dimension, ClientboundBlockEventPacket)。
+     * 发送 BlockEventPacket 给 64 格范围内的玩家。
+     *
+     * @param x 方块X坐标
+     * @param y 方块Y坐标
+     * @param z 方块Z坐标
+     * @param paramA 事件参数A
+     * @param paramB 事件参数B
+     * @param blockStateId 方块状态ID
+     * @param range 广播范围（格），默认 64 格
+     */
+    void broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range = 64.0f);
+
+    /**
      * @brief 发送粒子给指定玩家
      *
      * @param playerId 玩家ID

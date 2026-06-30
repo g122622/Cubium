@@ -248,25 +248,22 @@ public:
      */
     [[nodiscard]] Direction getDirection() const;
 
-private:
-    SimpleInventory m_inventory;                           ///< 1格物品存储
-    PotDecorations m_decorations;                          ///< 四面图案
-    i64 m_wobbleStartedAtTick = 0;                         ///< 摇晃动画开始tick
-    WobbleStyle m_lastWobbleStyle = WobbleStyle::Positive; ///< 最近摇晃样式
+    // ========== 方块事件 ==========
 
     /**
-     * @brief 处理客户端方块事件
-     *
-     * TODO: 依赖 IWorld::blockEvent 系统实现后，此方法应提升为 BlockEntity 基类的虚方法，
-     * 并改为 public override。当前 IWorld 尚未提供 blockEvent 方法，因此此方法为死代码。
-     * 当 blockEvent 实现后，wobble() 方法应调用 world.blockEvent(pos, block, 1, style.ordinal())
-     * 发送事件到客户端，客户端通过此方法接收事件并设置动画起始时间。
+     * @brief 处理客户端方块事件（覆盖 BlockEntity::triggerEvent）
      *
      * @param id 事件ID（1=摇晃动画）
      * @param type 事件类型（0=Positive, 1=Negative）
      * @return 是否处理成功
      */
-    bool receiveClientEvent(i32 id, i32 type);
+    [[nodiscard]] bool triggerEvent(i32 id, i32 type) override;
+
+private:
+    SimpleInventory m_inventory;                           ///< 1格物品存储
+    PotDecorations m_decorations;                          ///< 四面图案
+    i64 m_wobbleStartedAtTick = 0;                         ///< 摇晃动画开始tick
+    WobbleStyle m_lastWobbleStyle = WobbleStyle::Positive; ///< 最近摇晃样式
 };
 
 /**

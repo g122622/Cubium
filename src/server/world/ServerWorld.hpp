@@ -30,6 +30,7 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConfig.hpp"
+#include "common/world/blockevent/BlockEventData.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/dimension/DimensionType.hpp"
@@ -255,6 +256,28 @@ private:
     void tickBlockEntities();
 
     /**
+     * @brief 处理待执行的方块事件队列
+     *
+     * 每tick调用，依次处理队列中的方块事件：
+     * 1. 如果对应区块未加载/未tick，则延迟到下tick处理
+     * 2. 验证方块类型是否匹配（方块可能已被替换）
+     * 3. 执行事件的 triggerEvent，如果返回 true 则广播给客户端
+     *
+     * 参考 MC Java: ServerLevel.runBlockEvents()
+     */
+    void runBlockEvents();
+
+    /**
+     * @brief 执行单个方块事件
+     *
+     * 验证方块是否仍匹配，匹配则调用 Block::triggerEvent()。
+     *
+     * @param event 方块事件数据
+     * @return 事件是否被成功处理
+     */
+    [[nodiscard]] bool doBlockEvent(const BlockEventData& event);
+
+    /**
      * @brief 执行环境随机刻
      *
      * 对每个已加载区块，随机选择位置执行方块和流体的随机刻。
@@ -431,6 +454,23 @@ public:
 
     void notifyBlockUpdate(const BlockPos& pos) override;
 
+    // ========== 方块事件 ==========
+
+    /**
+     * @brief 触发方块事件
+     *
+     * 将方块事件加入队列，每tick处理时验证方块是否仍匹配，
+     * 匹配则执行事件并广播给附近客户端。
+     *
+     * 参考 MC Java: ServerLevel.blockEvent(BlockPos, Block, int, int)
+     *
+     * @param pos 方块位置
+     * @param block 方块类型（用于验证方块是否仍存在）
+     * @param paramA 事件参数A
+     * @param paramB 事件参数B
+     */
+    void blockEvent(const BlockPos& pos, const Block& block, i32 paramA, i32 paramB) override;
+
     // ========== 容器打开回调 ==========
 
     using OpenContainerCallback = std::function<bool(ContainerType, const BlockPos&, Player&)>;
@@ -545,6 +585,18 @@ public:
     using WorldEventCallback = std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)>;
 
     void setOnBroadcastWorldEvent(WorldEventCallback callback) { m_onBroadcastWorldEvent = std::move(callback); }
+
+    // ========== 方块事件广播回调 ==========
+
+    /**
+     * @brief 方块事件广播回调类型
+     *
+     * 当服务端方块事件被成功执行后，广播给附近客户端。
+     * 参数：位置x/y/z、事件参数A、事件参数B、方块状态ID
+     */
+    using BlockEventCallback = std::function<void(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId)>;
+
+    void setOnBroadcastBlockEvent(BlockEventCallback callback) { m_onBroadcastBlockEvent = std::move(callback); }
 
     /**
      * @brief 方块破坏进度回调类型
@@ -1245,6 +1297,7 @@ private:
     EntityAnimationCallback m_onBroadcastEntityAnimation;
     SetEntityLinkCallback m_onBroadcastSetEntityLink;
     WorldEventCallback m_onBroadcastWorldEvent;
+    BlockEventCallback m_onBroadcastBlockEvent; ///< 方块事件广播回调
     BlockBreakProgressCallback m_onDestroyBlockProgress;
     ExplosionBroadcastCallback m_onBroadcastExplosion;
     RaidEventCallback m_onRaidEvent;           ///< 袭击事件回调
@@ -1262,6 +1315,10 @@ private:
 
     // 幽匿方块实体振动系统管理器
     SculkVibrationManager m_sculkVibrationManager;
+
+    // 方块事件队列
+    std::vector<BlockEventData> m_blockEvents;             ///< 待处理方块事件队列（去重有序）
+    std::vector<BlockEventData> m_blockEventsToReschedule; ///< 延迟到下tick处理的事件
 
     // 世界边界
     world::border::WorldBorder m_worldBorder; ///< 世界边界

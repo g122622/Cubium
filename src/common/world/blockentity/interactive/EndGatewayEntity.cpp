@@ -215,12 +215,16 @@ void EndGatewayEntity::triggerCooldown(IWorld& world)
 {
     if (!world.isClientSide()) {
         m_teleportCooldown = TRIGGER_COOLDOWN;
-        // 通知客户端播放冷却动画
+        // 通过 blockEvent 同步冷却动画到客户端
+        const BlockState* state = world.getBlockState(m_pos);
+        if (state != nullptr) {
+            world.blockEvent(m_pos, state->getBlock(), 1, 0);
+        }
         setChanged();
     }
 }
 
-bool EndGatewayEntity::receiveClientEvent(i32 id, i32 type)
+bool EndGatewayEntity::triggerEvent(i32 id, i32 type)
 {
     if (id == 1) {
         m_teleportCooldown = TRIGGER_COOLDOWN;

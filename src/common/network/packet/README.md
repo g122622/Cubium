@@ -45,7 +45,9 @@ src/common/network/packet/
 ├── AdvancementPackets.hpp         # 成就系统数据包
 └── AdvancementPackets.cpp         # 成就数据包实现
 ├── SetCameraPacket.hpp            # 旁观者摄像机同步包 (S2C)
-└── SetCameraPacket.cpp            # 旁观者摄像机同步包实现
+├── SetCameraPacket.cpp            # 旁观者摄像机同步包实现
+├── BlockEventPacket.hpp           # 方块事件同步包 (S2C)
+└── BlockEventPacket.cpp           # 方块事件同步包实现
 ```
 
 ## 内部模块关系

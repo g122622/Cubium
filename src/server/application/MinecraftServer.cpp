@@ -33,10 +33,10 @@
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
-#include "common/entity/tag/EntityTypeTagLoader.hpp"
-#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/tag/EntityTypeTagLoader.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/crafting/RecipeLoader.hpp"
 #include "common/item/crafting/RecipeManager.hpp"
@@ -54,6 +54,7 @@
 #include "common/item/tag/ItemTagLoader.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/BlockBreakAnimPacket.hpp"
+#include "common/network/packet/BlockEventPacket.hpp"
 #include "common/network/packet/CommandTreePacket.hpp"
 #include "common/network/packet/ContainerPacketHandler.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -527,6 +528,9 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
     });
     world.setOnBroadcastWorldEvent(
         [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
+    world.setOnBroadcastBlockEvent([this](i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId) {
+        broadcastBlockEventInRange(x, y, z, paramA, paramB, blockStateId);
+    });
     world.setOnDestroyBlockProgress([this](EntityId breakerId, i32 x, i32 y, i32 z, i32 progress) {
         broadcastBlockBreakProgressInRange(breakerId, x, y, z, progress);
     });
@@ -1049,8 +1053,7 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::EntityTypeTagLoader");
         auto dataPackLoadResult = EntityTypeTagLoader::loadFromDataPackRepository(m_dataPackList);
         if (dataPackLoadResult.failed()) {
-            spdlog::error("Failed to load entity type tags from data packs: {}",
-                dataPackLoadResult.error().toString());
+            spdlog::error("Failed to load entity type tags from data packs: {}", dataPackLoadResult.error().toString());
         } else {
             spdlog::info("Loaded {} entity type tags from data packs", dataPackLoadResult.value());
         }
@@ -2679,6 +2682,34 @@ void MinecraftServer::broadcastWorldEventInRange(i32 eventId, i32 x, i32 y, i32 
     }
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::WorldEvent, result.value());
+
+    f32 rangeSq = range * range;
+    Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastBlockEventInRange(i32 x, i32 y, i32 z, u8 paramA, u8 paramB, u32 blockStateId, f32 range)
+{
+    // 参考 MC Java: ServerPlayerList.broadcast(null, x, y, z, 64.0, dimension, new ClientboundBlockEventPacket)
+    network::BlockEventPacket packet =
+        network::BlockEventPacket::create(BlockPos(x, y, z), paramA, paramB, blockStateId);
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize BlockEventPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::BlockEvent, result.value());
 
     f32 rangeSq = range * range;
     Vector3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));

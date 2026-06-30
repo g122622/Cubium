@@ -91,28 +91,29 @@ enum class PacketType : u16 {
     CollectItem = 222,     // 物品拾取动画 (S->C)
     BlockBreakAnim = 223,  // 方块破坏动画 (S->C)
     SetPassengers = 224,   // 设置乘客列表 (S->C)
+    BlockEvent = 225,      // 方块事件（箱子开合、活塞动画等）(S->C)
 
     // 维度相关包
-    Respawn = 225,                // 重生/维度切换 (S->C)
-    DimensionInfo = 226,          // 维度信息 (S->C)
-    ConfirmDimensionChange = 227, // 确认维度切换 (C->S)
-    SpawnPosition = 228,          // 世界出生点 (S->C)
-    VehicleMove = 229,            // 载具移动同步 (S->C)
+    Respawn = 226,                // 重生/维度切换 (S->C)
+    DimensionInfo = 227,          // 维度信息 (S->C)
+    ConfirmDimensionChange = 228, // 确认维度切换 (C->S)
+    SpawnPosition = 229,          // 世界出生点 (S->C)
+    VehicleMove = 230,            // 载具移动同步 (S->C)
 
     // 命令系统
-    CommandTree = 230, // 命令树同步 (S->C)
+    CommandTree = 231, // 命令树同步 (S->C)
 
     // 睡眠系统
-    Sleep = 231, // 睡眠状态同步 (S->C)
+    Sleep = 232, // 睡眠状态同步 (S->C)
 
     // 玩家列表
-    PlayerListItem = 232, // 玩家列表更新 (S->C)
+    PlayerListItem = 233, // 玩家列表更新 (S->C)
 
     // 旁观者系统
-    SetCamera = 233, // 设置摄像机实体 (S->C)，用于旁观者跟踪
+    SetCamera = 234, // 设置摄像机实体 (S->C)，用于旁观者跟踪
 
     // 实体拴绳链接包 (S->C)
-    SetEntityLink = 234, // 设置实体拴绳链接 (S->C)
+    SetEntityLink = 235, // 设置实体拴绳链接 (S->C)
 
     // 背包相关包 (双向)
     ContainerContent = 300,        // 容器内容同步 (S->C)

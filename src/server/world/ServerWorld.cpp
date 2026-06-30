@@ -376,6 +376,70 @@ void ServerWorld::notifyBlockUpdate(const BlockPos& pos)
     }
 }
 
+// ============================================================================
+// 方块事件
+// ============================================================================
+
+void ServerWorld::blockEvent(const BlockPos& pos, const Block& block, i32 paramA, i32 paramB)
+{
+    // 将方块事件加入队列，每tick处理时验证方块是否仍匹配并执行
+    // 参考 MC Java: ServerLevel.blockEvent(BlockPos, Block, int, int)
+    m_blockEvents.push_back(BlockEventData{pos, &block, paramA, paramB});
+}
+
+void ServerWorld::runBlockEvents()
+{
+    // 参考 MC Java: ServerLevel.runBlockEvents()
+    m_blockEventsToReschedule.clear();
+
+    for (auto& event : m_blockEvents) {
+        // 检查区块是否已加载并处于tick状态
+        const ChunkCoord chunkX = world::toChunkCoord(event.pos.x);
+        const ChunkCoord chunkZ = world::toChunkCoord(event.pos.z);
+        if (hasChunk(chunkX, chunkZ)) {
+            if (doBlockEvent(event)) {
+                // 事件成功执行，广播给客户端
+                if (m_onBroadcastBlockEvent) {
+                    const BlockState* state = getBlockState(event.pos);
+                    u32 blockStateId = state != nullptr ? state->stateId() : 0;
+                    m_onBroadcastBlockEvent(event.pos.x,
+                        event.pos.y,
+                        event.pos.z,
+                        static_cast<u8>(event.paramA),
+                        static_cast<u8>(event.paramB),
+                        blockStateId);
+                }
+            }
+        } else {
+            // 区块未加载，延迟到下tick处理
+            m_blockEventsToReschedule.push_back(event);
+        }
+    }
+
+    // 清空已处理的事件，将需要重新调度的事件加回队列
+    m_blockEvents.clear();
+    m_blockEvents.insert(m_blockEvents.end(), m_blockEventsToReschedule.begin(), m_blockEventsToReschedule.end());
+    m_blockEventsToReschedule.clear();
+}
+
+bool ServerWorld::doBlockEvent(const BlockEventData& event)
+{
+    // 参考 MC Java: ServerLevel.doBlockEvent(BlockEventData)
+    // 验证当前位置的方块是否仍然是触发事件时的方块类型
+    const BlockState* state = getBlockState(event.pos);
+    if (state == nullptr) {
+        return false;
+    }
+
+    // 方块类型不匹配（被替换了），事件被丢弃
+    if (&state->getBlock() != event.block) {
+        return false;
+    }
+
+    // 调用 Block::triggerEvent()，默认实现委托给 BlockEntity::triggerEvent()
+    return state->getBlock().triggerEvent(*state, *this, event.pos, event.paramA, event.paramB);
+}
+
 bool ServerWorld::openContainer(ContainerType type, const BlockPos& pos, Player& player)
 {
     if (!m_onOpenContainer) {
@@ -981,6 +1045,12 @@ void ServerWorld::tick()
     if (!isDebugWorld()) {
         MC_TRACE_EVENT("server.tick", "ServerWorld::tick::BlockEntityTick");
         tickBlockEntities();
+    }
+
+    // 方块事件处理 - 箱子开合、活塞伸缩、音符盒播放等延迟事件
+    if (!isDebugWorld()) {
+        MC_TRACE_EVENT("server.tick", "ServerWorld::tick::BlockEvents");
+        runBlockEvents();
     }
 
     // 调试世界不执行随机刻

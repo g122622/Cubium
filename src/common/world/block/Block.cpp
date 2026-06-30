@@ -681,6 +681,14 @@ std::unique_ptr<BlockEntity> Block::createBlockEntity(const BlockPos& pos)
     return nullptr;
 }
 
+bool Block::triggerEvent(const BlockState& state, IWorld& world, const BlockPos& pos, i32 id, i32 type) const
+{
+    // 默认实现：如果有方块实体，委托给方块实体的 triggerEvent
+    (void)state;
+    auto* blockEntity = world.getBlockEntity(pos);
+    return blockEntity != nullptr && blockEntity->triggerEvent(id, type);
+}
+
 i32 Block::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
 {
     // 默认实现：无比较器输入覆盖

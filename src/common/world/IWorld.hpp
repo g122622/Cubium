@@ -460,6 +460,40 @@ public:
      */
     virtual void notifyBlockUpdate(const BlockPos& pos) { (void)pos; }
 
+    // ========== 方块事件 ==========
+
+    /**
+     * @brief 触发方块事件
+     *
+     * 方块事件用于服务端向客户端同步方块动画和状态变化。
+     * 服务端将事件加入队列，每tick处理时验证方块是否仍匹配，
+     * 匹配则执行事件并广播给附近客户端。
+     *
+     * 客户端收到 BlockEventPacket 后，调用 Block::triggerEvent() 处理事件，
+     * 默认实现委托给 BlockEntity::triggerEvent()。
+     *
+     * 参考 MC Java: Level.blockEvent(BlockPos, Block, int, int)
+     *
+     * 典型用途：
+     * - 箱子开合动画：blockEvent(pos, block, 1, openerCount)
+     * - 音符盒播放：blockEvent(pos, block, 0, 0)
+     * - 活塞伸缩：blockEvent(pos, block, 0/1/2, direction)
+     * - 陶罐摇晃：blockEvent(pos, block, 1, wobbleStyle)
+     * - 末地折跃门冷却：blockEvent(pos, block, 1, 0)
+     *
+     * @param pos 方块位置
+     * @param block 方块类型（用于验证方块是否仍存在）
+     * @param paramA 事件参数A（含义因方块类型而异）
+     * @param paramB 事件参数B（含义因方块类型而异）
+     */
+    virtual void blockEvent(const BlockPos& pos, const Block& block, i32 paramA, i32 paramB)
+    {
+        (void)pos;
+        (void)block;
+        (void)paramA;
+        (void)paramB;
+    }
+
     // ========== 高度查询 ==========
 
     /**

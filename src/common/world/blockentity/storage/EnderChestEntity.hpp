@@ -113,6 +113,16 @@ public:
      */
     void updateLidAnimation(f32 partialTick);
 
+    // ========== 方块事件 ==========
+
+    /**
+     * @brief 处理方块事件（客户端动画同步）
+     * @param id 事件ID（1 = 开合动画）
+     * @param type 事件参数（>0 表示打开，0 表示关闭）
+     * @return 如果事件被处理返回true
+     */
+    [[nodiscard]] bool triggerEvent(i32 id, i32 type) override;
+
     // ========== Tick 更新 ==========
 
     void tick(IWorld& world) override;

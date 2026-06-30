@@ -338,20 +338,20 @@ TEST_F(EndGatewayEntityTest, Clone_CreatesExactCopy)
 
 // ========== 客户端事件测试 ==========
 
-TEST_F(EndGatewayEntityTest, ReceiveClientEvent_Event1_SetsCooldown)
+TEST_F(EndGatewayEntityTest, TriggerEvent_Event1_SetsCooldown)
 {
     EXPECT_FALSE(gatewayEntity->isCoolingDown());
 
-    bool result = gatewayEntity->receiveClientEvent(1, 0);
+    bool result = gatewayEntity->triggerEvent(1, 0);
 
     EXPECT_TRUE(result);
     EXPECT_TRUE(gatewayEntity->isCoolingDown());
     EXPECT_EQ(gatewayEntity->getTeleportCooldown(), EndGatewayEntity::TRIGGER_COOLDOWN);
 }
 
-TEST_F(EndGatewayEntityTest, ReceiveClientEvent_UnknownEvent_ReturnsFalse)
+TEST_F(EndGatewayEntityTest, TriggerEvent_UnknownEvent_ReturnsFalse)
 {
-    bool result = gatewayEntity->receiveClientEvent(99, 0);
+    bool result = gatewayEntity->triggerEvent(99, 0);
     EXPECT_FALSE(result);
 }
 
@@ -440,7 +440,7 @@ TEST_F(EndGatewayStructureTest, TeleportCooldown_TriggersCorrectly)
     EXPECT_FALSE(entity->isCoolingDown());
     EXPECT_EQ(entity->getTeleportCooldown(), 0);
 
-    entity->receiveClientEvent(1, 0);
+    entity->triggerEvent(1, 0);
     EXPECT_TRUE(entity->isCoolingDown());
     EXPECT_EQ(entity->getTeleportCooldown(), EndGatewayEntity::TRIGGER_COOLDOWN);
 }
