@@ -22,6 +22,11 @@
  */
 
 #include "world/blockentity/interactive/SignEntity.hpp"
+#include "common/TestWorldHelper.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/util/math/Vector3.hpp"
+#include "common/world/IWorld.hpp"
 #include "util/text/StringTextComponent.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/BlockEntityType.hpp"
@@ -395,4 +400,383 @@ TEST_F(SignEntityTest, Clone_PreservesWaxedState)
     auto* signCopy = dynamic_cast<SignEntity*>(copy.get());
     ASSERT_NE(signCopy, nullptr);
     EXPECT_TRUE(signCopy->isWaxed());
+}
+
+// ========== 编辑者追踪测试 ==========
+
+TEST_F(SignEntityTest, SetAllowedPlayerEditor_SetsUuid)
+{
+    signEntity->setAllowedPlayerEditor("test-uuid-123");
+    EXPECT_EQ(signEntity->getPlayerWhoMayEdit(), "test-uuid-123");
+}
+
+TEST_F(SignEntityTest, SetAllowedPlayerEditor_ClearWithEmptyString)
+{
+    signEntity->setAllowedPlayerEditor("test-uuid-123");
+    EXPECT_EQ(signEntity->getPlayerWhoMayEdit(), "test-uuid-123");
+
+    signEntity->setAllowedPlayerEditor("");
+    EXPECT_TRUE(signEntity->getPlayerWhoMayEdit().empty());
+}
+
+TEST_F(SignEntityTest, ClearAllowedPlayerEditor_ClearsUuid)
+{
+    signEntity->setAllowedPlayerEditor("test-uuid-456");
+    EXPECT_FALSE(signEntity->getPlayerWhoMayEdit().empty());
+
+    signEntity->clearAllowedPlayerEditor();
+    EXPECT_TRUE(signEntity->getPlayerWhoMayEdit().empty());
+}
+
+TEST_F(SignEntityTest, OtherPlayerIsEditing_NoEditor_ReturnsFalse)
+{
+    // 没有编辑者时，otherPlayerIsEditing 对任何玩家都返回 false
+    Player player(EntityId(1), "TestPlayer");
+    player.setUuid("player-uuid-1");
+    EXPECT_FALSE(signEntity->otherPlayerIsEditing(player));
+}
+
+TEST_F(SignEntityTest, OtherPlayerIsEditing_SamePlayer_ReturnsFalse)
+{
+    // 当前玩家就是编辑者时，otherPlayerIsEditing 返回 false
+    Player player(EntityId(1), "TestPlayer");
+    player.setUuid("player-uuid-1");
+    signEntity->setAllowedPlayerEditor("player-uuid-1");
+    EXPECT_FALSE(signEntity->otherPlayerIsEditing(player));
+}
+
+TEST_F(SignEntityTest, OtherPlayerIsEditing_DifferentPlayer_ReturnsTrue)
+{
+    // 另一个玩家是编辑者时，otherPlayerIsEditing 返回 true
+    Player interactingPlayer(EntityId(2), "InteractingPlayer");
+    interactingPlayer.setUuid("interacting-uuid");
+    signEntity->setAllowedPlayerEditor("editor-uuid");
+    EXPECT_TRUE(signEntity->otherPlayerIsEditing(interactingPlayer));
+}
+
+TEST_F(SignEntityTest, OtherPlayerIsEditing_AfterClear_ReturnsFalse)
+{
+    Player player(EntityId(1), "TestPlayer");
+    player.setUuid("player-uuid-1");
+    signEntity->setAllowedPlayerEditor("editor-uuid");
+    EXPECT_TRUE(signEntity->otherPlayerIsEditing(player));
+
+    signEntity->clearAllowedPlayerEditor();
+    EXPECT_FALSE(signEntity->otherPlayerIsEditing(player));
+}
+
+TEST_F(SignEntityTest, NeedsTick_NoEditor_ReturnsFalse)
+{
+    // 没有编辑者时不需要 tick
+    EXPECT_FALSE(signEntity->needsTick());
+}
+
+TEST_F(SignEntityTest, NeedsTick_WithEditor_ReturnsTrue)
+{
+    // 有编辑者时需要 tick
+    signEntity->setAllowedPlayerEditor("some-uuid");
+    EXPECT_TRUE(signEntity->needsTick());
+
+    signEntity->clearAllowedPlayerEditor();
+    EXPECT_FALSE(signEntity->needsTick());
+}
+
+TEST_F(SignEntityTest, Clone_DoesNotCopyEditor)
+{
+    // 编辑者状态是运行时瞬态数据，不应被复制
+    signEntity->setLineFromLegacy(0, "Test");
+    signEntity->setAllowedPlayerEditor("editor-uuid");
+
+    auto copy = signEntity->clone();
+    auto* signCopy = dynamic_cast<SignEntity*>(copy.get());
+    ASSERT_NE(signCopy, nullptr);
+    // 编辑者 UUID 不应被复制到克隆中
+    EXPECT_TRUE(signCopy->getPlayerWhoMayEdit().empty());
+}
+
+// ========== 需要模拟 IWorld 的测试 ==========
+
+namespace {
+
+/**
+ * @brief 测试用世界存根 - 支持 getEntityByUuid 和 getBlockEntity
+ *
+ * 继承自 BaseTestWorld，添加 UUID→Entity 映射，用于测试
+ * SignEntity::playerIsTooFarAwayToEdit 和 SignEntity::tick。
+ */
+class SignEditorTestWorld final : public test::BaseTestWorld {
+public:
+    SignEditorTestWorld() = default;
+
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos& pos) override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
+    }
+
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos& pos) const override
+    {
+        auto it = m_blockEntities.find(pos);
+        return it != m_blockEntities.end() ? it->second.get() : nullptr;
+    }
+
+    void setBlockEntity(const BlockPos& pos, BlockEntity* entity) override
+    {
+        if (entity != nullptr) {
+            m_blockEntities[pos] = std::unique_ptr<BlockEntity>(entity);
+        } else {
+            m_blockEntities.erase(pos);
+        }
+    }
+
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override
+    {
+        auto it = m_uuidToEntity.find(uuid);
+        return it != m_uuidToEntity.end() ? it->second : nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override
+    {
+        auto it = m_uuidToEntity.find(uuid);
+        return it != m_uuidToEntity.end() ? it->second : nullptr;
+    }
+
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override { m_events.push_back({eventId, pos, data}); }
+
+    void playSound(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32) override
+    {
+        // 测试中忽略音效
+    }
+
+    void addParticle(
+        particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3& = Vector3(0, 0, 0), u32 = 1) override
+    {
+        // 测试中忽略粒子效果
+    }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("SignEditorTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("SignEditorTestWorld::tickManager not implemented");
+    }
+
+    /// 注册一个玩家到世界中（用于 getEntityByUuid 查找）
+    void registerPlayer(Player& player) { m_uuidToEntity[player.uuid()] = &player; }
+
+    /// 注销一个玩家（模拟离线）
+    void unregisterPlayer(const std::string& uuid) { m_uuidToEntity.erase(uuid); }
+
+private:
+    std::unordered_map<BlockPos, std::unique_ptr<BlockEntity>> m_blockEntities;
+    std::unordered_map<std::string, Entity*> m_uuidToEntity;
+
+    struct EventRecord {
+        i32 eventId;
+        BlockPos pos;
+        i32 data;
+    };
+    std::vector<EventRecord> m_events;
+};
+
+} // anonymous namespace
+
+// ========== playerIsTooFarAwayToEdit 测试 ==========
+
+class SignEntityEditorTest : public ::testing::Test {
+protected:
+    void SetUp() override { signEntity = std::make_unique<SignEntity>(BlockPos(10, 64, 20)); }
+
+    SignEditorTestWorld world;
+    std::unique_ptr<SignEntity> signEntity;
+};
+
+TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerOffline_ReturnsTrue)
+{
+    // 玩家不在世界中（UUID 查找不到），应返回 true（太远/离线）
+    EXPECT_TRUE(signEntity->playerIsTooFarAwayToEdit(world, "offline-uuid"));
+}
+
+TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerNearby_ReturnsFalse)
+{
+    // 玩家在告示牌附近（告示牌位于 10,64,20，中心为 10.5,64.5,20.5）
+    Player player(EntityId(1), "NearbyPlayer");
+    player.setUuid("nearby-uuid");
+    player.setPosition(Vector3(10.5f, 64.5f, 20.5f)); // 在告示牌中心位置
+    world.registerPlayer(player);
+
+    EXPECT_FALSE(signEntity->playerIsTooFarAwayToEdit(world, "nearby-uuid"));
+}
+
+TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerFarAway_ReturnsTrue)
+{
+    // 玩家距离告示牌很远（告示牌在 10,64,20，玩家在 100,64,20）
+    Player player(EntityId(1), "FarPlayer");
+    player.setUuid("far-uuid");
+    player.setPosition(Vector3(100.0f, 64.0f, 20.0f));
+    world.registerPlayer(player);
+
+    EXPECT_TRUE(signEntity->playerIsTooFarAwayToEdit(world, "far-uuid"));
+}
+
+TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerAtExactLimit_ReturnsFalse)
+{
+    // 玩家恰好在最大交互距离内（MAX_EDIT_DISTANCE = 8.0）
+    // 告示牌中心：(10.5, 64.5, 20.5)，玩家位于距离 < 8.0 的位置
+    Player player(EntityId(1), "LimitPlayer");
+    player.setUuid("limit-uuid");
+    player.setPosition(Vector3(10.5f, 64.5f, 25.0f)); // 距离 ≈ 4.5 < 8.0
+    world.registerPlayer(player);
+
+    EXPECT_FALSE(signEntity->playerIsTooFarAwayToEdit(world, "limit-uuid"));
+}
+
+TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerJustBeyondLimit_ReturnsTrue)
+{
+    // 玩家刚好超出最大交互距离
+    Player player(EntityId(1), "BeyondPlayer");
+    player.setUuid("beyond-uuid");
+    player.setPosition(Vector3(10.5f, 64.5f, 30.0f)); // 距离 ≈ 9.5 > 8.0
+    world.registerPlayer(player);
+
+    EXPECT_TRUE(signEntity->playerIsTooFarAwayToEdit(world, "beyond-uuid"));
+}
+
+TEST_F(SignEntityEditorTest, PlayerIsTooFarAwayToEdit_PlayerDisconnected_ReturnsTrue)
+{
+    // 玩家注册后断开连接（从 UUID 映射中移除）
+    Player player(EntityId(1), "DisconnectPlayer");
+    player.setUuid("disconnect-uuid");
+    player.setPosition(Vector3(10.5f, 64.5f, 20.5f)); // 附近
+    world.registerPlayer(player);
+
+    // 连接时应该可编辑
+    EXPECT_FALSE(signEntity->playerIsTooFarAwayToEdit(world, "disconnect-uuid"));
+
+    // 断开后应返回 true
+    world.unregisterPlayer("disconnect-uuid");
+    EXPECT_TRUE(signEntity->playerIsTooFarAwayToEdit(world, "disconnect-uuid"));
+}
+
+// ========== tick 自动清除编辑者测试 ==========
+
+TEST_F(SignEntityEditorTest, Tick_ClearsEditorWhenPlayerGoesOffline)
+{
+    // 设置编辑者
+    signEntity->setAllowedPlayerEditor("offline-uuid");
+    EXPECT_TRUE(signEntity->needsTick());
+
+    // 玩家不在线（未注册到世界），tick 应清除编辑者
+    signEntity->tick(world);
+    EXPECT_TRUE(signEntity->getPlayerWhoMayEdit().empty());
+    EXPECT_FALSE(signEntity->needsTick());
+}
+
+TEST_F(SignEntityEditorTest, Tick_ClearsEditorWhenPlayerMovesTooFar)
+{
+    // 设置编辑者（附近玩家）
+    Player player(EntityId(1), "EditorPlayer");
+    player.setUuid("editor-uuid");
+    player.setPosition(Vector3(10.5f, 64.5f, 20.5f)); // 在告示牌附近
+    world.registerPlayer(player);
+
+    signEntity->setAllowedPlayerEditor("editor-uuid");
+    EXPECT_TRUE(signEntity->needsTick());
+
+    // tick 时编辑者在附近，不应被清除
+    signEntity->tick(world);
+    EXPECT_EQ(signEntity->getPlayerWhoMayEdit(), "editor-uuid");
+
+    // 玩家走远
+    player.setPosition(Vector3(100.0f, 64.0f, 20.0f));
+
+    // tick 时编辑者超出范围，应被清除
+    signEntity->tick(world);
+    EXPECT_TRUE(signEntity->getPlayerWhoMayEdit().empty());
+    EXPECT_FALSE(signEntity->needsTick());
+}
+
+TEST_F(SignEntityEditorTest, Tick_DoesNotClearEditorWhenPlayerStaysNearby)
+{
+    // 设置编辑者（附近玩家）
+    Player player(EntityId(1), "EditorPlayer");
+    player.setUuid("editor-uuid");
+    player.setPosition(Vector3(10.5f, 64.5f, 20.5f));
+    world.registerPlayer(player);
+
+    signEntity->setAllowedPlayerEditor("editor-uuid");
+
+    // 多次 tick，编辑者一直在附近
+    for (int i = 0; i < 10; ++i) {
+        signEntity->tick(world);
+    }
+    EXPECT_EQ(signEntity->getPlayerWhoMayEdit(), "editor-uuid");
+    EXPECT_TRUE(signEntity->needsTick());
+}
+
+TEST_F(SignEntityEditorTest, Tick_ClearsEditorWhenPlayerDisconnects)
+{
+    Player player(EntityId(1), "EditorPlayer");
+    player.setUuid("editor-uuid");
+    player.setPosition(Vector3(10.5f, 64.5f, 20.5f));
+    world.registerPlayer(player);
+
+    signEntity->setAllowedPlayerEditor("editor-uuid");
+
+    // tick 时编辑者还在
+    signEntity->tick(world);
+    EXPECT_EQ(signEntity->getPlayerWhoMayEdit(), "editor-uuid");
+
+    // 玩家断开连接
+    world.unregisterPlayer("editor-uuid");
+
+    // tick 时应清除编辑者
+    signEntity->tick(world);
+    EXPECT_TRUE(signEntity->getPlayerWhoMayEdit().empty());
+    EXPECT_FALSE(signEntity->needsTick());
+}
+
+TEST_F(SignEntityEditorTest, Tick_NoEditor_DoesNothing)
+{
+    // 没有编辑者时 tick 应该无操作
+    signEntity->tick(world);
+    EXPECT_TRUE(signEntity->getPlayerWhoMayEdit().empty());
+}
+
+// ========== otherPlayerIsEditing 集成场景测试 ==========
+
+TEST_F(SignEntityEditorTest, OtherPlayerIsEditing_PlayerWithEmptyUuid)
+{
+    // 玩家 UUID 为空时，otherPlayerIsEditing 应正确处理
+    Player player(EntityId(1), "EmptyUuidPlayer");
+    // Entity 默认 UUID 为空字符串
+    signEntity->setAllowedPlayerEditor("");
+    EXPECT_FALSE(signEntity->otherPlayerIsEditing(player));
+
+    signEntity->setAllowedPlayerEditor("some-other-uuid");
+    EXPECT_TRUE(signEntity->otherPlayerIsEditing(player));
+}
+
+TEST_F(SignEntityEditorTest, OtherPlayerIsEditing_SwitchBetweenPlayers)
+{
+    Player player1(EntityId(1), "Player1");
+    player1.setUuid("uuid-1");
+    Player player2(EntityId(2), "Player2");
+    player2.setUuid("uuid-2");
+
+    // 无编辑者时，两个玩家都不被阻止
+    EXPECT_FALSE(signEntity->otherPlayerIsEditing(player1));
+    EXPECT_FALSE(signEntity->otherPlayerIsEditing(player2));
+
+    // player1 编辑中
+    signEntity->setAllowedPlayerEditor("uuid-1");
+    EXPECT_FALSE(signEntity->otherPlayerIsEditing(player1)); // 同一人
+    EXPECT_TRUE(signEntity->otherPlayerIsEditing(player2));  // 其他人
+
+    // 切换到 player2 编辑
+    signEntity->setAllowedPlayerEditor("uuid-2");
+    EXPECT_TRUE(signEntity->otherPlayerIsEditing(player1));  // 其他人
+    EXPECT_FALSE(signEntity->otherPlayerIsEditing(player2)); // 同一人
 }
