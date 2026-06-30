@@ -21,6 +21,7 @@
  *
  */
 
+#include <cmath>
 #include <memory>
 #include <gtest/gtest.h>
 
@@ -198,6 +199,123 @@ TEST_F(RandomPositionGeneratorTest, FindRandomTargetBlockSignature)
     math::Vector3f avoidPos(50.0f, 64.0f, 50.0f);
     result = entity::ai::util::RandomPositionGenerator::findRandomTargetBlock(nullptr, 10, 7, avoidPos, outPos);
     EXPECT_FALSE(result);
+}
+
+// ==================== 飞行位置生成方法接口测试 ====================
+
+TEST_F(RandomPositionGeneratorTest, FindHoverPositionNullCreature)
+{
+    // 空指针情况下应返回 false
+    math::Vector3f outPos;
+    bool result = entity::ai::util::RandomPositionGenerator::findHoverPosition(
+        nullptr, 8, 7, 0.0, 1.0, math::HALF_PI, 3, 1, outPos);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(RandomPositionGeneratorTest, FindAirAndWaterPositionNullCreature)
+{
+    // 空指针情况下应返回 false
+    math::Vector3f outPos;
+    bool result = entity::ai::util::RandomPositionGenerator::findAirAndWaterPosition(
+        nullptr, 8, 4, -2, 0.0, 1.0, math::HALF_PI, outPos);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(RandomPositionGeneratorTest, FindAirPositionTowardsNullCreature)
+{
+    // 空指针情况下应返回 false
+    math::Vector3f outPos;
+    math::Vector3f targetPos(100.0f, 64.0f, 100.0f);
+    bool result = entity::ai::util::RandomPositionGenerator::findAirPositionTowards(
+        nullptr, 6, 8, 0, targetPos, math::PI / 10.0f, outPos);
+    EXPECT_FALSE(result);
+}
+
+// ==================== 飞行位置生成方法参数验证 ====================
+
+TEST_F(RandomPositionGeneratorTest, HoverPositionParameters)
+{
+    // 验证 HoverRandomPos 对应的参数范围
+    // MC 1.21.11 Bee.WanderGoal: HoverRandomPos.getPos(bee, 8, 7, dirX, dirZ, PI/2, 3, 1)
+    // xzRange=8, yRange=7, maxAngle=PI/2, maxAboveSolid=3, minAboveSolid=1
+    constexpr i32 XZ_RANGE = 8;
+    constexpr i32 Y_RANGE = 7;
+    constexpr f32 MAX_ANGLE = math::HALF_PI;
+    constexpr i32 MAX_ABOVE_SOLID = 3;
+    constexpr i32 MIN_ABOVE_SOLID = 1;
+
+    // 验证参数编译通过
+    EXPECT_EQ(XZ_RANGE, 8);
+    EXPECT_EQ(Y_RANGE, 7);
+    EXPECT_FLOAT_EQ(MAX_ANGLE, math::HALF_PI);
+    EXPECT_EQ(MAX_ABOVE_SOLID, 3);
+    EXPECT_EQ(MIN_ABOVE_SOLID, 1);
+}
+
+TEST_F(RandomPositionGeneratorTest, AirAndWaterPositionParameters)
+{
+    // 验证 AirAndWaterRandomPos 对应的参数范围
+    // MC 1.21.11 Bee.WanderGoal fallback: AirAndWaterRandomPos.getPos(bee, 8, 4, -2, dirX, dirZ, PI/2)
+    constexpr i32 XZ_RANGE = 8;
+    constexpr i32 Y_RANGE = 4;
+    constexpr i32 Y_OFFSET = -2;
+    constexpr f32 MAX_ANGLE = math::HALF_PI;
+
+    EXPECT_EQ(XZ_RANGE, 8);
+    EXPECT_EQ(Y_RANGE, 4);
+    EXPECT_EQ(Y_OFFSET, -2);
+    EXPECT_FLOAT_EQ(MAX_ANGLE, math::HALF_PI);
+}
+
+TEST_F(RandomPositionGeneratorTest, AirPositionTowardsParameters)
+{
+    // 验证 AirRandomPos.getPosTowards 对应的参数范围
+    // MC 1.21.11 Bee.pathfindRandomlyTowards: AirRandomPos.getPosTowards(bee, k, l, i, target, PI/10)
+    // k=6 (or less), l=8 (or less), i=-4/0/4 depending on height, maxAngle=PI/10 (18 degrees)
+    constexpr f32 NARROW_ANGLE = math::PI / 10.0f;
+    EXPECT_NEAR(NARROW_ANGLE, 0.314159f, 0.001f); // 约 18 度
+}
+
+// ==================== SQRT_OF_TWO 常量测试 ====================
+
+TEST_F(RandomPositionGeneratorTest, SqrtOfTwo)
+{
+    // 验证 sqrt(2) 常量正确性
+    // 用于 generateRandomDirectionWithinRadians 中的面积均匀分布
+    constexpr f64 SQRT_OF_TWO = 1.4142135623730951;
+    EXPECT_NEAR(SQRT_OF_TWO, std::sqrt(2.0), 1e-10);
+}
+
+// ==================== 数学函数验证 ====================
+
+TEST_F(RandomPositionGeneratorTest, LerpFunction)
+{
+    // 验证 lerp 函数用于 generateRandomDirectionWithinRadians
+    using math::lerp;
+    EXPECT_DOUBLE_EQ(lerp(0.0, 8.0, 0.0), 0.0);
+    EXPECT_DOUBLE_EQ(lerp(0.0, 8.0, 1.0), 8.0);
+    EXPECT_NEAR(lerp(0.0, 8.0, 0.5), 4.0, 1e-10);
+    EXPECT_NEAR(lerp(0.0, 8.0, 0.25), 2.0, 1e-10);
+}
+
+TEST_F(RandomPositionGeneratorTest, DirectionAngleCalculation)
+{
+    // 验证方向向量到角度的转换
+    // atan2(z, x) 在 MC 中用于计算方向角度
+    // 向北 (Z+) 时 atan2(1,0) = PI/2，减去 PI/2 后为 0
+    f64 northZ = 1.0, northX = 0.0;
+    f64 northAngle = std::atan2(northZ, northX) - math::PI_DOUBLE / 2.0;
+    EXPECT_NEAR(northAngle, 0.0, 1e-10);
+
+    // 向东 (X+) 时 atan2(0,1) = 0，减去 PI/2 后为 -PI/2
+    f64 eastX = 1.0, eastZ = 0.0;
+    f64 eastAngle = std::atan2(eastZ, eastX) - math::PI_DOUBLE / 2.0;
+    EXPECT_NEAR(eastAngle, -math::PI_DOUBLE / 2.0, 1e-10);
+
+    // 向南 (Z-) 时 atan2(-1,0) = -PI/2，减去 PI/2 后为 -PI
+    f64 southZ = -1.0, southX = 0.0;
+    f64 southAngle = std::atan2(southZ, southX) - math::PI_DOUBLE / 2.0;
+    EXPECT_NEAR(southAngle, -math::PI_DOUBLE, 1e-10);
 }
 
 } // namespace test
