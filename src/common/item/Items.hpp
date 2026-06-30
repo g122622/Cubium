@@ -1209,6 +1209,17 @@ public:
     static Item* MUSIC_DISC_PRECIPICE;         // 音乐唱片 - Precipice
     static Item* MUSIC_DISC_LAVA_CHICKEN;      // 音乐唱片 - Lava Chicken
 
+    // ========================================================================
+    // 头颅物品
+    // ========================================================================
+    static Item* SKELETON_SKULL;        // 骷髅头颅
+    static Item* WITHER_SKELETON_SKULL; // 凋灵骷髅头颅
+    static Item* PLAYER_HEAD;           // 玩家头颅
+    static Item* ZOMBIE_HEAD;           // 僵尸头
+    static Item* CREEPER_HEAD;          // 苦力怕头
+    static Item* DRAGON_HEAD;           // 龙首
+    static Item* PIGLIN_HEAD;           // 猪灵头
+
 private:
     static bool s_initialized;
 
@@ -1246,6 +1257,7 @@ private:
     static void _registerDoorsFencesStairs();
     static void _registerTrialChamberItems();
     static void _registerMusicDiscs();
+    static void _registerSkulls();
 };
 
 } // namespace mc

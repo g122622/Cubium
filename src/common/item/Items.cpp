@@ -1115,6 +1115,15 @@ Item* Items::MUSIC_DISC_CREATOR_MUSIC_BOX = nullptr;
 Item* Items::MUSIC_DISC_PRECIPICE = nullptr;
 Item* Items::MUSIC_DISC_LAVA_CHICKEN = nullptr;
 
+// 头颅物品
+Item* Items::SKELETON_SKULL = nullptr;
+Item* Items::WITHER_SKELETON_SKULL = nullptr;
+Item* Items::PLAYER_HEAD = nullptr;
+Item* Items::ZOMBIE_HEAD = nullptr;
+Item* Items::CREEPER_HEAD = nullptr;
+Item* Items::DRAGON_HEAD = nullptr;
+Item* Items::PIGLIN_HEAD = nullptr;
+
 // 旗帜物品（16色）
 Item* Items::WHITE_BANNER = nullptr;
 Item* Items::ORANGE_BANNER = nullptr;
@@ -1200,6 +1209,7 @@ void Items::initialize()
     _registerDoorsFencesStairs();
     _registerTrialChamberItems(); // 试炼密室物品
     _registerMusicDiscs();        // 音乐唱片
+    _registerSkulls();            // 头颅物品
 
     // 初始化堆肥物品注册表（必须在 Items 注册完成后）
     blocks::CompostableItems::initialize();
@@ -4285,6 +4295,45 @@ void Items::_registerMusicDiscs()
             9,
             SoundEvents::MUSIC_DISC_LAVA_CHICKEN,
             ItemProperties().maxStackSize(1).rarity(ItemRarity::Common));
+}
+
+void Items::_registerSkulls()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // ========================================================================
+    // 头颅物品
+    //
+    // MC Java 中头颅物品使用 StandingAndWallBlockItem（本项目对应 WallOrFloorItem），
+    // 因为头颅可以放置在地板上或墙壁上。当前 SkullBlock / WallSkullBlock 尚未实现，
+    // 因此暂时注册为普通物品。待头颅方块实现后，应改为 WallOrFloorItem 注册，
+    // 格式如下：
+    //   PLAYER_HEAD = &registry.registerItem<WallOrFloorItem>(
+    //       ResourceLocation("minecraft:player_head"),
+    //       *VanillaBlocks::PLAYER_HEAD,
+    //       *VanillaBlocks::PLAYER_WALL_HEAD,
+    //       ItemProperties().maxStackSize(64));
+    //
+    // 参考: net.minecraft.world.item.StandingAndWallBlockItem
+    // 参考: net.minecraft.world.level.block.SkullBlock (7 种头颅类型)
+    // ========================================================================
+
+    SKELETON_SKULL =
+        &registry.registerItem(ResourceLocation("minecraft:skeleton_skull"), ItemProperties().maxStackSize(64));
+
+    WITHER_SKELETON_SKULL =
+        &registry.registerItem(ResourceLocation("minecraft:wither_skeleton_skull"), ItemProperties().maxStackSize(64));
+
+    PLAYER_HEAD = &registry.registerItem(ResourceLocation("minecraft:player_head"), ItemProperties().maxStackSize(64));
+
+    ZOMBIE_HEAD = &registry.registerItem(ResourceLocation("minecraft:zombie_head"), ItemProperties().maxStackSize(64));
+
+    CREEPER_HEAD =
+        &registry.registerItem(ResourceLocation("minecraft:creeper_head"), ItemProperties().maxStackSize(64));
+
+    DRAGON_HEAD = &registry.registerItem(ResourceLocation("minecraft:dragon_head"), ItemProperties().maxStackSize(64));
+
+    PIGLIN_HEAD = &registry.registerItem(ResourceLocation("minecraft:piglin_head"), ItemProperties().maxStackSize(64));
 }
 
 } // namespace mc
