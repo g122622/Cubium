@@ -36,6 +36,7 @@
 #include "item/loot/LootTable.hpp"
 #include "item/loot/StatePropertiesPredicate.hpp"
 #include "item/loot/conditions/LootConditions.hpp"
+#include "item/loot/conditions/MatchToolCondition.hpp"
 #include "item/loot/entries/ItemLootEntry.hpp"
 #include "item/loot/entries/LootEntry.hpp"
 #include "item/loot/functions/LootFunctions.hpp"
@@ -1165,4 +1166,90 @@ TEST_F(LootSerializersTest, RoundTrip_TableWithConditions)
     const auto& parsedEntry = parsedTable->getPools()[0]->getEntries()[0];
     EXPECT_EQ(1u, parsedEntry->getConditions().size());
     EXPECT_EQ("silk_touch", parsedEntry->getConditions()[0]->getType());
+}
+
+// ============================================================================
+// MatchTool Condition Parsing Tests (端到端集成测试)
+// ============================================================================
+
+TEST_F(LootSerializersTest, ParseCondition_MatchTool_NoPredicate)
+{
+    // 无谓词的 match_tool 条件：仅检查是否存在非空工具
+    nlohmann::json json = {{"condition", "minecraft:match_tool"}};
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("match_tool", condition->getType());
+
+    // 验证条件可以通过 dynamic_cast 转换为 MatchToolCondition
+    auto* matchTool = dynamic_cast<MatchToolCondition*>(condition.get());
+    ASSERT_NE(matchTool, nullptr);
+    EXPECT_FALSE(matchTool->getPredicate().has_value());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_MatchTool_WithItemPredicate)
+{
+    // 带物品谓词的 match_tool 条件：匹配特定物品ID
+    nlohmann::json json = {
+        {"condition", "minecraft:match_tool"}, {"predicate", {{"item", "minecraft:diamond_pickaxe"}}}};
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("match_tool", condition->getType());
+
+    auto* matchTool = dynamic_cast<MatchToolCondition*>(condition.get());
+    ASSERT_NE(matchTool, nullptr);
+    EXPECT_TRUE(matchTool->getPredicate().has_value());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_MatchTool_WithEnchantments)
+{
+    // 带附魔谓词的 match_tool 条件：匹配精准采集附魔
+    nlohmann::json json = {{"condition", "minecraft:match_tool"},
+        {"predicate", {{"enchantments", {{{"enchantment", "minecraft:silk_touch"}, {"levels", {{"min", 1}}}}}}}}};
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("match_tool", condition->getType());
+
+    auto* matchTool = dynamic_cast<MatchToolCondition*>(condition.get());
+    ASSERT_NE(matchTool, nullptr);
+    EXPECT_TRUE(matchTool->getPredicate().has_value());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_MatchTool_WithEmptyPredicate)
+{
+    // 空 predicate 对象（无任何匹配条件，等同于 isAny）
+    nlohmann::json json = {{"condition", "minecraft:match_tool"}, {"predicate", nlohmann::json::object()}};
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("match_tool", condition->getType());
+
+    auto* matchTool = dynamic_cast<MatchToolCondition*>(condition.get());
+    ASSERT_NE(matchTool, nullptr);
+    EXPECT_TRUE(matchTool->getPredicate().has_value());
+    // 空 predicate 对象解析为 isAny() == true
+    EXPECT_TRUE(matchTool->getPredicate()->isAny());
+}
+
+TEST_F(LootSerializersTest, ParseCondition_MatchTool_WithItemAndTag)
+{
+    // 带标签谓词的 match_tool 条件
+    nlohmann::json json = {
+        {"condition", "minecraft:match_tool"}, {"predicate", {{"tag", "minecraft:mineable/pickaxe"}}}};
+
+    auto result = LootSerializers::parseCondition(json);
+    ASSERT_TRUE(result.success());
+
+    auto condition = result.value();
+    EXPECT_EQ("match_tool", condition->getType());
 }
