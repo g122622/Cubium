@@ -387,6 +387,24 @@ bool OcelotAvoidPlayerGoal::shouldContinueExecuting()
     return AvoidEntityGoal::shouldContinueExecuting();
 }
 
+void OcelotAvoidPlayerGoal::startExecuting()
+{
+    // 开始逃跑时设置 fleeing 状态，用于渲染器判断冲刺动画
+    if (m_ocelot != nullptr) {
+        m_ocelot->setFleeing(true);
+    }
+    AvoidEntityGoal::startExecuting();
+}
+
+void OcelotAvoidPlayerGoal::resetTask()
+{
+    // 停止逃跑时清除 fleeing 状态
+    if (m_ocelot != nullptr) {
+        m_ocelot->setFleeing(false);
+    }
+    AvoidEntityGoal::resetTask();
+}
+
 // ==================== OcelotTemptGoal ====================
 
 OcelotTemptGoal::OcelotTemptGoal(OcelotEntity* ocelot, f64 speed, ItemPredicate itemPredicate, bool scaredByMovement)

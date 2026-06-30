@@ -54,6 +54,14 @@ void WolfRenderer::render(Entity& entity, f64 partialTicks)
 
     model.setAnimState(isSitting, isAngry, isWet, tailRotation, shakeAngle, interestedAngle);
 
+    // 在设置状态之后、设置角度之前，调用 setLivingAnimations 来根据状态调整模型部件位置
+    // WolfModel::setLivingAnimations 处理坐下/站立姿态、步态动画和抖水动画
+    f64 limbSwingForAnim = static_cast<f64>(wolf.prevLimbSwing()) +
+        (static_cast<f64>(wolf.limbSwing()) - static_cast<f64>(wolf.prevLimbSwing())) * partialTicks;
+    f64 limbSwingAmountForAnim = static_cast<f64>(wolf.prevLimbSwingAmount()) +
+        (static_cast<f64>(wolf.limbSwingAmount()) - static_cast<f64>(wolf.prevLimbSwingAmount())) * partialTicks;
+    model.setLivingAnimations(limbSwingForAnim, limbSwingAmountForAnim, partialTicks);
+
     // 设置湿状态着色
     if (isWet) {
         // 湿润时稍微变暗

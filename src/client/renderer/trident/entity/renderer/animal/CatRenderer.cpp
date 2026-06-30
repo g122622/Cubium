@@ -68,6 +68,14 @@ void CatRenderer::render(Entity& entity, f64 partialTicks)
     model.setCatAnimState(lieDownAmount, relaxStateAmount, sleepPoseAmount);
     model.setSitting(cat.isSitting());
 
+    // 在设置状态之后、设置角度之前，调用 setLivingAnimations 来根据状态调整模型部件位置
+    // CatModel::setLivingAnimations 会调用 OcelotModel::setLivingAnimations 处理蹲伏/奔跑/坐下姿态
+    f64 limbSwingForAnim = static_cast<f64>(cat.prevLimbSwing()) +
+        (static_cast<f64>(cat.limbSwing()) - static_cast<f64>(cat.prevLimbSwing())) * partialTicks;
+    f64 limbSwingAmountForAnim = static_cast<f64>(cat.prevLimbSwingAmount()) +
+        (static_cast<f64>(cat.limbSwingAmount()) - static_cast<f64>(cat.prevLimbSwingAmount())) * partialTicks;
+    model.setLivingAnimations(limbSwingForAnim, limbSwingAmountForAnim, partialTicks);
+
     // 计算动画参数 - 从 TameableEntity（继承自 AnimalEntity -> LivingEntity）获取
     f64 limbSwing = static_cast<f64>(cat.prevLimbSwing()) +
         (static_cast<f64>(cat.limbSwing()) - static_cast<f64>(cat.prevLimbSwing())) * partialTicks;

@@ -295,6 +295,8 @@ public:
 
     [[nodiscard]] bool shouldExecute() override;
     [[nodiscard]] bool shouldContinueExecuting() override;
+    void startExecuting() override;
+    void resetTask() override;
 
 private:
     OcelotEntity* m_ocelot;
