@@ -416,6 +416,9 @@ void AbstractHorseEntity::tick()
     }
 
     // 冲刺计数器：递增，超过 300 tick 后重置
+    // TODO: m_sprintCounter 的初始触发由客户端渲染/动画系统设置，
+    // MC 原版中由 HorseRenderer 等渲染器在外部设置 m_sprintCounter > 0，
+    // 服务端 tick() 仅负责递增和超时重置逻辑。待客户端渲染系统实现后补全触发逻辑。
     if (m_sprintCounter > 0) {
         ++m_sprintCounter;
         if (m_sprintCounter > 300) {
@@ -451,6 +454,7 @@ void AbstractHorseEntity::aiStep()
             // 吃草触发：未在吃草 && 未被骑乘 && 1/300 概率 && 脚下为草方块
             if (!isEating() && !hasPassengers() && getRandom().nextInt(300) == 0) {
                 // MC 1.21.11: serverlevel.getBlockState(this.blockPosition().below()).is(Blocks.GRASS_BLOCK)
+                // onPos() 返回 BlockPos(floor(x), floor(y) - 1, floor(z))，等价于 blockPosition().below()
                 const BlockState* belowState = m_world->getBlockState(onPos());
                 if (belowState != nullptr && belowState->is(VanillaBlocks::GRASS_BLOCK)) {
                     setEating(true);
