@@ -48,7 +48,8 @@ entity::AbstractArrowEntity* SpectralArrowItem::createArrow(
                 arrow->setPickupStatus(entity::PickupStatus::Allowed);
             }
         }
-        return arrow;
+        // 释放所有权，返回裸指针（调用者负责管理）
+        return static_cast<entity::AbstractArrowEntity*>(entity.release());
     }
     return nullptr;
 }
