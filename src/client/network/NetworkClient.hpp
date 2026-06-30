@@ -216,6 +216,42 @@ struct NetworkClientCallbacks {
     std::function<void(f64 x, f64 y, f64 z, f64 targetX, f64 targetY, f64 targetZ, i32 arrivalInTicks)>
         onVibrationParticle;
 
+    // 轨迹粒子回调（携带目标位置、颜色和持续时间）
+    std::function<void(f64 x, f64 y, f64 z, f64 targetX, f64 targetY, f64 targetZ, u32 color, i32 durationInTicks)>
+        onTrailParticle;
+
+    // 灰尘粒子回调（携带 ARGB 颜色和缩放）
+    std::function<void(particle::ParticleTypeId type,
+        f64 x,
+        f64 y,
+        f64 z,
+        f32 vx,
+        f32 vy,
+        f32 vz,
+        f32 ox,
+        f32 oy,
+        f32 oz,
+        u32 count,
+        u32 color,
+        f32 scale)>
+        onDustParticle;
+
+    // 颜色过渡灰尘粒子回调（携带起始颜色、目标颜色和缩放）
+    std::function<void(f64 x,
+        f64 y,
+        f64 z,
+        f32 vx,
+        f32 vy,
+        f32 vz,
+        f32 ox,
+        f32 oy,
+        f32 oz,
+        u32 count,
+        u32 fromColor,
+        u32 toColor,
+        f32 scale)>
+        onDustColorTransitionParticle;
+
     // 世界事件（音效/粒子效果）
     std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)> onWorldEvent;
 

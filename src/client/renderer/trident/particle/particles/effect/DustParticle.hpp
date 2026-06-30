@@ -39,8 +39,9 @@ namespace mc::client::renderer::trident::particle::particles {
  * 可自定义颜色的灰尘粒子，红石粒子的泛化版本。
  * 发光、无重力、静止，颜色通过顶点色应用。
  *
- * TODO: 粒子数据管线尚未支持颜色和缩放数据传递，当前 create() 工厂方法使用默认值/回退行为。
- * 待 ParticleFactory 签名扩展后，应通过 createWithColor() 方法传递真实数据。
+ * 数据管线：通过 DustParticleData 传递 ARGB 颜色和缩放数据。
+ * 当无 ParticleData 时，create() 回退到默认行为（红色，缩放 1.0）。
+ * 数据工厂已在 ParticleFactories.cpp 中注册。
  */
 class DustParticle : public Particle {
 public:
@@ -103,8 +104,9 @@ private:
  * 在生命周期内从一种颜色渐变到另一种颜色的灰尘粒子。
  * 发光、无重力、静止，颜色通过插值计算。
  *
- * TODO: 粒子数据管线尚未支持起始颜色、目标颜色和缩放数据传递，当前 create() 工厂方法使用默认值/回退行为。
- * 待 ParticleFactory 签名扩展后，应通过 createWithColors() 方法传递真实数据。
+ * 数据管线：通过 DustColorTransitionParticleData 传递起始颜色、目标颜色和缩放数据。
+ * 当无 ParticleData 时，create() 回退到默认行为（红到蓝过渡，缩放 1.0）。
+ * 数据工厂已在 ParticleFactories.cpp 中注册。
  */
 class DustColorTransitionParticle : public Particle {
 public:

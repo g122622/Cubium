@@ -30,6 +30,8 @@
 #include "client/renderer/trident/particle/ParticleManager.hpp"
 #include "client/renderer/trident/particle/ParticleRegistry.hpp"
 #include "client/renderer/trident/particle/ParticleTypes.hpp"
+#include "client/renderer/trident/particle/data/DustParticleData.hpp"
+#include "client/renderer/trident/particle/data/TrailParticleData.hpp"
 #include "client/renderer/trident/particle/data/VibrationParticleData.hpp"
 #include "client/skin/ClientSkinManager.hpp"
 #include "client/sound/AudioService.hpp"
@@ -1372,6 +1374,85 @@ void ClientApplication::setupNetworkCallbacks()
             m_world.particleManager()->addPendingParticle(
                 particle::ParticleTypeId::Vibration, pos, glm::vec3(0.0f), &m_world, std::move(vibrationData));
         };
+
+    // 轨迹粒子回调（携带目标位置、颜色和持续时间）
+    callbacks.onTrailParticle =
+        [this](f64 x, f64 y, f64 z, f64 targetX, f64 targetY, f64 targetZ, u32 color, i32 durationInTicks) {
+            if (!m_world.particleManager()) {
+                return;
+            }
+
+            // 创建轨迹粒子，从当前位置飞向目标位置
+            glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+            Vector3d targetPosition(targetX, targetY, targetZ);
+
+            // 通过粒子数据管线创建粒子
+            using namespace client::renderer::trident::particle;
+            auto trailData = std::make_unique<data::TrailParticleData>(targetPosition, color, durationInTicks);
+            m_world.particleManager()->addPendingParticle(
+                particle::ParticleTypeId::Trail, pos, glm::vec3(0.0f), &m_world, std::move(trailData));
+        };
+
+    // 灰尘粒子回调（携带 ARGB 颜色和缩放）
+    callbacks.onDustParticle = [this](::mc::particle::ParticleTypeId type,
+                                   f64 x,
+                                   f64 y,
+                                   f64 z,
+                                   f32 vx,
+                                   f32 vy,
+                                   f32 vz,
+                                   f32 ox,
+                                   f32 oy,
+                                   f32 oz,
+                                   u32 count,
+                                   u32 color,
+                                   f32 scale) {
+        if (!m_world.particleManager()) {
+            return;
+        }
+
+        // 通过粒子数据管线创建灰尘粒子
+        using namespace client::renderer::trident::particle;
+        glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        glm::vec3 velocity(vx, vy, vz);
+        glm::vec3 offset(ox, oy, oz);
+
+        auto dustData = std::make_unique<data::DustParticleData>(color, scale);
+        for (u32 i = 0; i < count; ++i) {
+            m_world.particleManager()->addPendingParticle(type, pos, velocity, &m_world, dustData->clone());
+        }
+    };
+
+    // 颜色过渡灰尘粒子回调（携带起始颜色、目标颜色和缩放）
+    callbacks.onDustColorTransitionParticle = [this](f64 x,
+                                                  f64 y,
+                                                  f64 z,
+                                                  f32 vx,
+                                                  f32 vy,
+                                                  f32 vz,
+                                                  f32 ox,
+                                                  f32 oy,
+                                                  f32 oz,
+                                                  u32 count,
+                                                  u32 fromColor,
+                                                  u32 toColor,
+                                                  f32 scale) {
+        if (!m_world.particleManager()) {
+            return;
+        }
+
+        // 通过粒子数据管线创建颜色过渡灰尘粒子
+        using namespace client::renderer::trident::particle;
+        glm::vec3 pos(static_cast<f32>(x), static_cast<f32>(y), static_cast<f32>(z));
+        glm::vec3 velocity(vx, vy, vz);
+        glm::vec3 offset(ox, oy, oz);
+
+        auto transitionData = std::make_unique<data::DustColorTransitionParticleData>(fromColor, toColor, scale);
+        for (u32 i = 0; i < count; ++i) {
+            m_world.particleManager()->addPendingParticle(
+                particle::ParticleTypeId::DustColorTransition, pos, velocity, &m_world, transitionData->clone());
+        }
+    };
 
     // 玩家列表回调 - 皮肤系统集成
     callbacks.onPlayerListAdd = [this](const std::vector<::mc::skin::PlayerListEntry>& entries) {

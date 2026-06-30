@@ -306,4 +306,329 @@ std::optional<i32> ParticlePacket::decodeVibrationArrivalInTicks() const
     return tickResult.value();
 }
 
+// static
+ParticlePacket ParticlePacket::createTrail(
+    const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks)
+{
+    // 构建轨迹粒子包：粒子类型为 Trail，无偏移，数量为 1
+    ParticlePacket packet(particle::ParticleTypeId::Trail,
+        pos,
+        Vector3(0.0f, 0.0f, 0.0f), // 无速度
+        Vector3(0.0f, 0.0f, 0.0f), // 无偏移
+        1);                        // 单个粒子
+
+    // 编码可选数据：f64 targetX, f64 targetY, f64 targetZ, i32 color(ARGB), VarInt durationInTicks
+    PacketSerializer serializer(36);
+    serializer.writeF64(targetPosition.x);
+    serializer.writeF64(targetPosition.y);
+    serializer.writeF64(targetPosition.z);
+    serializer.writeI32(static_cast<i32>(color));
+    serializer.writeVarInt(durationInTicks);
+
+    std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
+    packet.setOptionalData(std::move(data));
+
+    return packet;
+}
+
+bool ParticlePacket::isTrailParticle() const noexcept
+{
+    return m_particleType == particle::ParticleTypeId::Trail && !m_optionalData.empty();
+}
+
+std::optional<Vector3d> ParticlePacket::decodeTrailTarget() const
+{
+    if (!isTrailParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, i32 color(ARGB), VarInt durationInTicks
+    if (m_optionalData.size() < 3 * sizeof(f64)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+
+    auto xResult = deserializer.readF64();
+    if (!xResult.success()) {
+        return std::nullopt;
+    }
+
+    auto yResult = deserializer.readF64();
+    if (!yResult.success()) {
+        return std::nullopt;
+    }
+
+    auto zResult = deserializer.readF64();
+    if (!zResult.success()) {
+        return std::nullopt;
+    }
+
+    return Vector3d(xResult.value(), yResult.value(), zResult.value());
+}
+
+std::optional<u32> ParticlePacket::decodeTrailColor() const
+{
+    if (!isTrailParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, i32 color(ARGB), VarInt durationInTicks
+    // 需要至少 3*f64 + i32 = 28 字节
+    if (m_optionalData.size() < 3 * sizeof(f64) + sizeof(i32)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+
+    // 跳过 3 个 f64（targetX, targetY, targetZ）
+    auto xResult = deserializer.readF64();
+    if (!xResult.success()) {
+        return std::nullopt;
+    }
+
+    auto yResult = deserializer.readF64();
+    if (!yResult.success()) {
+        return std::nullopt;
+    }
+
+    auto zResult = deserializer.readF64();
+    if (!zResult.success()) {
+        return std::nullopt;
+    }
+
+    auto colorResult = deserializer.readI32();
+    if (!colorResult.success()) {
+        return std::nullopt;
+    }
+
+    return static_cast<u32>(colorResult.value());
+}
+
+std::optional<i32> ParticlePacket::decodeTrailDuration() const
+{
+    if (!isTrailParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, i32 color(ARGB), VarInt durationInTicks
+    // 需要至少 3*f64 + i32 = 28 字节才有 VarInt 数据
+    if (m_optionalData.size() < 3 * sizeof(f64) + sizeof(i32)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+
+    // 跳过 3 个 f64（targetX, targetY, targetZ）
+    auto xResult = deserializer.readF64();
+    if (!xResult.success()) {
+        return std::nullopt;
+    }
+
+    auto yResult = deserializer.readF64();
+    if (!yResult.success()) {
+        return std::nullopt;
+    }
+
+    auto zResult = deserializer.readF64();
+    if (!zResult.success()) {
+        return std::nullopt;
+    }
+
+    // 跳过 i32 color
+    auto colorResult = deserializer.readI32();
+    if (!colorResult.success()) {
+        return std::nullopt;
+    }
+
+    auto durationResult = deserializer.readVarInt();
+    if (!durationResult.success()) {
+        return std::nullopt;
+    }
+
+    return durationResult.value();
+}
+
+// static
+ParticlePacket ParticlePacket::createDust(particle::ParticleTypeId type,
+    const Vector3& pos,
+    const Vector3& velocity,
+    const Vector3& offset,
+    u32 count,
+    u32 color,
+    f32 scale)
+{
+    ParticlePacket packet(type, pos, velocity, offset, count);
+
+    // 编码可选数据：i32 color(ARGB), f32 scale
+    PacketSerializer serializer(8);
+    serializer.writeI32(static_cast<i32>(color));
+    serializer.writeF32(scale);
+
+    std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
+    packet.setOptionalData(std::move(data));
+
+    return packet;
+}
+
+// static
+ParticlePacket ParticlePacket::createDustColorTransition(const Vector3& pos,
+    const Vector3& velocity,
+    const Vector3& offset,
+    u32 count,
+    u32 fromColor,
+    u32 toColor,
+    f32 scale)
+{
+    ParticlePacket packet(particle::ParticleTypeId::DustColorTransition, pos, velocity, offset, count);
+
+    // 编码可选数据：i32 fromColor(ARGB), i32 toColor(ARGB), f32 scale
+    PacketSerializer serializer(12);
+    serializer.writeI32(static_cast<i32>(fromColor));
+    serializer.writeI32(static_cast<i32>(toColor));
+    serializer.writeF32(scale);
+
+    std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
+    packet.setOptionalData(std::move(data));
+
+    return packet;
+}
+
+bool ParticlePacket::isDustParticle() const noexcept
+{
+    return (m_particleType == particle::ParticleTypeId::Dust || m_particleType == particle::ParticleTypeId::Redstone) &&
+        !m_optionalData.empty();
+}
+
+std::optional<u32> ParticlePacket::decodeDustColor() const
+{
+    if (!isDustParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：i32 color(ARGB), f32 scale
+    if (m_optionalData.size() < sizeof(i32)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+    auto colorResult = deserializer.readI32();
+    if (!colorResult.success()) {
+        return std::nullopt;
+    }
+
+    return static_cast<u32>(colorResult.value());
+}
+
+std::optional<f32> ParticlePacket::decodeDustScale() const
+{
+    if (!isDustParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：i32 color(ARGB), f32 scale
+    if (m_optionalData.size() < sizeof(i32) + sizeof(f32)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+
+    // 跳过 i32 color
+    auto colorResult = deserializer.readI32();
+    if (!colorResult.success()) {
+        return std::nullopt;
+    }
+
+    auto scaleResult = deserializer.readF32();
+    if (!scaleResult.success()) {
+        return std::nullopt;
+    }
+
+    return scaleResult.value();
+}
+
+bool ParticlePacket::isDustColorTransitionParticle() const noexcept
+{
+    return m_particleType == particle::ParticleTypeId::DustColorTransition && !m_optionalData.empty();
+}
+
+std::optional<u32> ParticlePacket::decodeDustColorTransitionFromColor() const
+{
+    if (!isDustColorTransitionParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：i32 fromColor(ARGB), i32 toColor(ARGB), f32 scale
+    if (m_optionalData.size() < sizeof(i32)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+    auto colorResult = deserializer.readI32();
+    if (!colorResult.success()) {
+        return std::nullopt;
+    }
+
+    return static_cast<u32>(colorResult.value());
+}
+
+std::optional<u32> ParticlePacket::decodeDustColorTransitionToColor() const
+{
+    if (!isDustColorTransitionParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：i32 fromColor(ARGB), i32 toColor(ARGB), f32 scale
+    if (m_optionalData.size() < 2 * sizeof(i32)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+
+    // 跳过 i32 fromColor
+    auto fromResult = deserializer.readI32();
+    if (!fromResult.success()) {
+        return std::nullopt;
+    }
+
+    auto toResult = deserializer.readI32();
+    if (!toResult.success()) {
+        return std::nullopt;
+    }
+
+    return static_cast<u32>(toResult.value());
+}
+
+std::optional<f32> ParticlePacket::decodeDustColorTransitionScale() const
+{
+    if (!isDustColorTransitionParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：i32 fromColor(ARGB), i32 toColor(ARGB), f32 scale
+    if (m_optionalData.size() < 2 * sizeof(i32) + sizeof(f32)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+
+    // 跳过 i32 fromColor, i32 toColor
+    auto fromResult = deserializer.readI32();
+    if (!fromResult.success()) {
+        return std::nullopt;
+    }
+
+    auto toResult = deserializer.readI32();
+    if (!toResult.success()) {
+        return std::nullopt;
+    }
+
+    auto scaleResult = deserializer.readF32();
+    if (!scaleResult.success()) {
+        return std::nullopt;
+    }
+
+    return scaleResult.value();
+}
+
 } // namespace mc::network

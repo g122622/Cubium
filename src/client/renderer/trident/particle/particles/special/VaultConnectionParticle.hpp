@@ -49,13 +49,10 @@ namespace mc::client::renderer::trident::particle::particles {
  * - 尺寸：1.5 * 0.1 * (random*0.5+0.2)
  * - 透明度：先淡入 0→0.6，后淡出 0.6→0
  *
- * TODO: 粒子数据管线尚未支持目标位置数据传递，当前 create() 工厂方法通过 velocity 字段传递目标偏移
- * （与 MC Java 行为一致）。createWithTarget() 方法已存在，可用于显式传递目标位置，
- * 待 ParticleFactory 签名扩展后应统一通过 createWithTarget() 传递真实数据。
- *
- * 注：MC Java 中 vault_connection 是 SimpleParticleType，目标位置通过 velocity 字段传递，
- * 因此不需要 ParticleData 传递额外数据。create() 的 velocity-as-target-offset 行为
- * 与 MC 原版一致，数据管线扩展后也不会改变此行为。
+ * 数据管线：MC Java 中 vault_connection 是 SimpleParticleType，目标位置通过 velocity 字段传递，
+ * 因此不需要网络层 ParticleData 传递。create() 的 velocity-as-target-offset 行为与 MC 原版一致。
+ * 若需编程方式创建（如通过 addParticleWithData），可使用 VibrationParticleData 传递目标位置和到达时间，
+ * 数据工厂已在 ParticleFactories.cpp 中注册。
  */
 class VaultConnectionParticle : public Particle {
 public:

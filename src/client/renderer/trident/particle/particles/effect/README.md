@@ -146,6 +146,6 @@ Particle (基类，在 particle/ 目录)
 
 14. **TrialSpawnerParticle.hpp 包含两个粒子类**：`TrialSpawnerDetectionParticle`（橙黄色发光）和 `TrialSpawnerDetectionOminousParticle`（蓝色-青色发光），行为相同仅颜色和纹理不同，均使用 LIT 渲染类型。
 
-15. **DustParticle.hpp 包含两个粒子类**：`DustParticle`（可配置颜色）和 `DustColorTransitionParticle`（生命周期内颜色渐变），均使用 OPAQUE 渲染和自发光。TODO: 颜色数据管线尚未支持。
+15. **DustParticle.hpp 包含两个粒子类**：`DustParticle`（可配置颜色）和 `DustColorTransitionParticle`（生命周期内颜色渐变），均使用 OPAQUE 渲染和自发光。通过 DustParticleData 和 DustColorTransitionParticleData 传递颜色和缩放数据，数据工厂已在 ParticleFactories.cpp 中注册。
 
 16. **DamageIndicatorParticle 与 CritParticle 的区别**：两者使用相同纹理（critical_hit），但 DamageIndicatorParticle 向上弹出并减速（微弱负重力 -0.04），而 CritParticle 沿攻击方向飞行。

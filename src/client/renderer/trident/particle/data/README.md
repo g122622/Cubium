@@ -11,6 +11,7 @@ data/
 ├── ParticleData.hpp              # 粒子数据基类，定义 getType() / getTypeName() / getParameters() / clone() 接口
 ├── BasicParticleData.hpp / cpp   # 无参数粒子数据（火焰、烟雾等）
 ├── BlockParticleData.hpp / cpp   # 方块粒子数据，携带 BlockState 参数
+├── DustParticleData.hpp / cpp    # 灰尘粒子数据，携带 ARGB 颜色 + 缩放（Dust/DustColorTransition）
 ├── ItemParticleData.hpp / cpp    # 物品粒子数据，携带 ItemStack 参数
 ├── RedstoneParticleData.hpp / cpp # 红石粒子数据，携带 RGB 颜色参数
 ├── VibrationParticleData.hpp / cpp # 振动粒子数据，携带目标位置 Vector3d + 到达时间 i32
@@ -25,6 +26,8 @@ ParticleData (基类)
     ├── BasicParticleData (无参数粒子)
     ├── BlockParticleData (方块粒子，依赖 BlockState)
     ├── ItemParticleData (物品粒子，依赖 ItemStack)
+    ├── DustParticleData (灰尘粒子，携带 ARGB 颜色 + 缩放)
+    ├── DustColorTransitionParticleData (颜色过渡灰尘粒子，携带起始颜色 + 目标颜色 + 缩放)
     ├── RedstoneParticleData (红石粒子，携带 glm::vec3 颜色)
     ├── VibrationParticleData (振动粒子，携带目标位置 Vector3d + 到达时间 i32)
     └── TrailParticleData (轨迹粒子，携带目标位置 Vector3d + 颜色 u32 + 持续时间 i32)
@@ -44,6 +47,10 @@ ParticleData (基类)
 已注册数据工厂的粒子类型：
 - `Vibration`：从 `VibrationParticleData` 提取目标位置和到达时间
 - `Trail`：从 `TrailParticleData` 提取目标位置、颜色和持续时间
+- `VaultConnection`：从 `VibrationParticleData` 提取目标位置和到达时间
+- `Dust`：从 `DustParticleData` 提取 ARGB 颜色和缩放
+- `Redstone`：从 `DustParticleData` 提取 ARGB 颜色和缩放
+- `DustColorTransition`：从 `DustColorTransitionParticleData` 提取起始颜色、目标颜色和缩放
 
 ## 上下游外部依赖关系
 

@@ -25,6 +25,7 @@
 #include "ParticleTypes.hpp"
 
 // 粒子数据类型头文件
+#include "data/DustParticleData.hpp"
 #include "data/TrailParticleData.hpp"
 #include "data/VibrationParticleData.hpp"
 
@@ -1261,6 +1262,78 @@ void registerBuiltinParticleFactories()
             }
             // 回退到默认工厂（velocity 作为目标偏移，白色，10 tick）
             return TrailParticle::create(pos, velocity, world);
+        });
+
+    // 宝库连接粒子：MC Java 中 vault_connection 是 SimpleParticleType，网络层通过 velocity 字段传递目标偏移，
+    // 不需要专门的 ParticleData。但为支持编程方式创建（通过 addParticleWithData），
+    // 注册使用 VibrationParticleData 的数据工厂（targetPosition + arrivalInTicks 模式相同）。
+    registry.registerDataFactory(ParticleTypeId::VaultConnection,
+        [](const glm::vec3& pos,
+            const glm::vec3& velocity,
+            mc::client::ClientWorld* world,
+            const data::ParticleData* data) -> std::unique_ptr<Particle> {
+            if (data) {
+                auto* vibrationData = dynamic_cast<const data::VibrationParticleData*>(data);
+                if (vibrationData) {
+                    return VaultConnectionParticle::createWithTarget(
+                        pos, vibrationData->targetPosition(), vibrationData->arrivalInTicks());
+                }
+            }
+            // 回退到默认工厂（velocity 作为目标偏移，30~39 tick 随机生命周期）
+            return VaultConnectionParticle::create(pos, velocity, world);
+        });
+
+    // 灰尘粒子：从 DustParticleData 提取颜色和缩放数据
+    // Dust 和 Redstone 共享相同的数据格式（i32 color(ARGB) + f32 scale）
+    registry.registerDataFactory(ParticleTypeId::Dust,
+        [](const glm::vec3& pos,
+            const glm::vec3& velocity,
+            mc::client::ClientWorld* world,
+            const data::ParticleData* data) -> std::unique_ptr<Particle> {
+            if (data) {
+                auto* dustData = dynamic_cast<const data::DustParticleData*>(data);
+                if (dustData) {
+                    return DustParticle::createWithColor(pos, velocity, world, dustData->toRGBAVector());
+                }
+            }
+            // 回退到默认工厂（红色灰尘粒子）
+            return DustParticle::create(pos, velocity, world);
+        });
+
+    // 红石粒子：Redstone 是项目内部扩展类型，使用 DustParticleData（与 Dust 相同的 ARGB 颜色格式）
+    registry.registerDataFactory(ParticleTypeId::Redstone,
+        [](const glm::vec3& pos,
+            const glm::vec3& velocity,
+            mc::client::ClientWorld* world,
+            const data::ParticleData* data) -> std::unique_ptr<Particle> {
+            if (data) {
+                auto* dustData = dynamic_cast<const data::DustParticleData*>(data);
+                if (dustData) {
+                    return DustParticle::createWithColor(pos, velocity, world, dustData->toRGBAVector());
+                }
+            }
+            // 回退到默认工厂（红色红石粒子）
+            return RedstoneParticle::create(pos, velocity, world);
+        });
+
+    // 颜色过渡灰尘粒子：从 DustColorTransitionParticleData 提取起始颜色、目标颜色和缩放数据
+    registry.registerDataFactory(ParticleTypeId::DustColorTransition,
+        [](const glm::vec3& pos,
+            const glm::vec3& velocity,
+            mc::client::ClientWorld* world,
+            const data::ParticleData* data) -> std::unique_ptr<Particle> {
+            if (data) {
+                auto* transitionData = dynamic_cast<const data::DustColorTransitionParticleData*>(data);
+                if (transitionData) {
+                    return DustColorTransitionParticle::createWithColors(pos,
+                        velocity,
+                        world,
+                        transitionData->fromColorToRGBAVector(),
+                        transitionData->toColorToRGBAVector());
+                }
+            }
+            // 回退到默认工厂（红到蓝颜色过渡）
+            return DustColorTransitionParticle::create(pos, velocity, world);
         });
 }
 

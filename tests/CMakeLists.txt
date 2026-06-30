@@ -1499,6 +1499,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BasicParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BlockParticleData.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/DustParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/ItemParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/RedstoneParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/sprite/SimpleSprite.cpp
@@ -1537,6 +1538,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/DustParticleData.cpp
         # 粒子实现 - 环境（新增）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/NetherSporeParticle.cpp
         # 粒子实现 - 效果（新增）

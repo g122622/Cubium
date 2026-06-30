@@ -1827,6 +1827,60 @@ void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
                 packet.x(), packet.y(), packet.z(), target->x, target->y, target->z, arrivalInTicks.value());
         }
     }
+
+    // 轨迹粒子特殊处理：解码目标位置、颜色和持续时间
+    if (packet.isTrailParticle() && m_callbacks.onTrailParticle) {
+        auto target = packet.decodeTrailTarget();
+        auto color = packet.decodeTrailColor();
+        auto duration = packet.decodeTrailDuration();
+        if (target.has_value() && color.has_value() && duration.has_value()) {
+            m_callbacks.onTrailParticle(
+                packet.x(), packet.y(), packet.z(), target->x, target->y, target->z, color.value(), duration.value());
+        }
+    }
+
+    // 灰尘粒子特殊处理：解码 ARGB 颜色和缩放
+    if (packet.isDustParticle() && m_callbacks.onDustParticle) {
+        auto color = packet.decodeDustColor();
+        auto scale = packet.decodeDustScale();
+        if (color.has_value() && scale.has_value()) {
+            m_callbacks.onDustParticle(packet.particleType(),
+                packet.x(),
+                packet.y(),
+                packet.z(),
+                packet.velocityX(),
+                packet.velocityY(),
+                packet.velocityZ(),
+                packet.offsetX(),
+                packet.offsetY(),
+                packet.offsetZ(),
+                packet.count(),
+                color.value(),
+                scale.value());
+        }
+    }
+
+    // 颜色过渡灰尘粒子特殊处理：解码起始颜色、目标颜色和缩放
+    if (packet.isDustColorTransitionParticle() && m_callbacks.onDustColorTransitionParticle) {
+        auto fromColor = packet.decodeDustColorTransitionFromColor();
+        auto toColor = packet.decodeDustColorTransitionToColor();
+        auto scale = packet.decodeDustColorTransitionScale();
+        if (fromColor.has_value() && toColor.has_value() && scale.has_value()) {
+            m_callbacks.onDustColorTransitionParticle(packet.x(),
+                packet.y(),
+                packet.z(),
+                packet.velocityX(),
+                packet.velocityY(),
+                packet.velocityZ(),
+                packet.offsetX(),
+                packet.offsetY(),
+                packet.offsetZ(),
+                packet.count(),
+                fromColor.value(),
+                toColor.value(),
+                scale.value());
+        }
+    }
 }
 
 void NetworkClient::_handleMovingSound(network::PacketDeserializer& deser)

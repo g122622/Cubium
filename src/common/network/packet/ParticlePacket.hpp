@@ -57,8 +57,10 @@ namespace mc::network {
  * 可选数据格式：
  * - Block/Breaking/FallingDust: VarInt blockStateId
  * - Item/ItemSlime/ItemSnowball: ItemStack (NBT)
- * - Redstone/Dust/DustColorTransition: f32 r, f32 g, f32 b, f32 scale
+ * - Dust/Redstone: i32 color(ARGB), f32 scale
+ * - DustColorTransition: i32 fromColor(ARGB), i32 toColor(ARGB), f32 scale
  * - Vibration: f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
+ * - Trail: f64 targetX, f64 targetY, f64 targetZ, i32 color(ARGB), VarInt durationInTicks
  */
 class ParticlePacket : public Packet {
 public:
@@ -194,6 +196,22 @@ public:
      */
     static ParticlePacket createVibration(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
 
+    /**
+     * @brief 创建轨迹粒子包（带目标位置、颜色和持续时间）
+     *
+     * 轨迹粒子需要额外数据：目标位置、颜色和持续时间。
+     * 这些数据编码到 optionalData 中，客户端解码后创建 TrailParticle。
+     *
+     * 可选数据格式：f64 targetX, f64 targetY, f64 targetZ, i32 color(ARGB), VarInt durationInTicks
+     *
+     * @param pos 粒子起始位置
+     * @param targetPosition 粒子飞向的目标位置
+     * @param color 粒子颜色（ARGB 格式）
+     * @param durationInTicks 飞行持续时间（tick 数）
+     */
+    static ParticlePacket createTrail(
+        const Vector3& pos, const Vector3d& targetPosition, u32 color, i32 durationInTicks);
+
     // ========== 振动粒子数据解码 ==========
 
     /**
@@ -224,6 +242,161 @@ public:
      * @return 到达 tick 数，解码失败返回 std::nullopt
      */
     [[nodiscard]] std::optional<i32> decodeVibrationArrivalInTicks() const;
+
+    // ========== 轨迹粒子数据解码 ==========
+
+    /**
+     * @brief 检查此粒子包是否为轨迹粒子
+     *
+     * 轨迹粒子包的粒子类型为 ParticleTypeId::Trail 且含有可选数据。
+     *
+     * @return 是否为轨迹粒子
+     */
+    [[nodiscard]] bool isTrailParticle() const noexcept;
+
+    /**
+     * @brief 解码轨迹粒子目标位置
+     *
+     * 仅当 isTrailParticle() 返回 true 时有效。
+     * 从可选数据中解码目标位置。
+     *
+     * @return 目标位置，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<Vector3d> decodeTrailTarget() const;
+
+    /**
+     * @brief 解码轨迹粒子颜色
+     *
+     * 仅当 isTrailParticle() 返回 true 时有效。
+     * 从可选数据中解码 ARGB 颜色。
+     *
+     * @return ARGB 颜色，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<u32> decodeTrailColor() const;
+
+    /**
+     * @brief 解码轨迹粒子持续时间
+     *
+     * 仅当 isTrailParticle() 返回 true 时有效。
+     * 从可选数据中解码飞行持续时间（tick 数）。
+     *
+     * @return 持续时间，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<i32> decodeTrailDuration() const;
+
+    // ========== 灰尘粒子数据编解码 ==========
+
+    /**
+     * @brief 创建灰尘粒子包（带颜色和缩放）
+     *
+     * 灰尘粒子需要额外数据：颜色和缩放。
+     * 这些数据编码到 optionalData 中，客户端解码后创建 DustParticle。
+     *
+     * 可选数据格式：i32 color(ARGB), f32 scale
+     *
+     * @param type 粒子类型（Dust 或 Redstone）
+     * @param pos 位置
+     * @param velocity 速度
+     * @param offset 偏移范围
+     * @param count 粒子数量
+     * @param color 粒子颜色（ARGB 格式）
+     * @param scale 缩放因子
+     */
+    static ParticlePacket createDust(particle::ParticleTypeId type,
+        const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count,
+        u32 color,
+        f32 scale);
+
+    /**
+     * @brief 创建颜色过渡灰尘粒子包（带起始颜色、目标颜色和缩放）
+     *
+     * 颜色过渡灰尘粒子需要额外数据：起始颜色、目标颜色和缩放。
+     *
+     * 可选数据格式：i32 fromColor(ARGB), i32 toColor(ARGB), f32 scale
+     *
+     * @param pos 位置
+     * @param velocity 速度
+     * @param offset 偏移范围
+     * @param count 粒子数量
+     * @param fromColor 起始颜色（ARGB 格式）
+     * @param toColor 目标颜色（ARGB 格式）
+     * @param scale 缩放因子
+     */
+    static ParticlePacket createDustColorTransition(const Vector3& pos,
+        const Vector3& velocity,
+        const Vector3& offset,
+        u32 count,
+        u32 fromColor,
+        u32 toColor,
+        f32 scale);
+
+    /**
+     * @brief 检查此粒子包是否为灰尘粒子（Dust 或 Redstone）
+     *
+     * 灰尘粒子包的粒子类型为 Dust 或 Redstone 且含有可选数据。
+     *
+     * @return 是否为灰尘粒子
+     */
+    [[nodiscard]] bool isDustParticle() const noexcept;
+
+    /**
+     * @brief 解码灰尘粒子颜色
+     *
+     * 仅当 isDustParticle() 返回 true 时有效。
+     * 从可选数据中解码 ARGB 颜色。
+     *
+     * @return ARGB 颜色，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<u32> decodeDustColor() const;
+
+    /**
+     * @brief 解码灰尘粒子缩放
+     *
+     * 仅当 isDustParticle() 返回 true 时有效。
+     * 从可选数据中解码缩放因子。
+     *
+     * @return 缩放因子，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<f32> decodeDustScale() const;
+
+    /**
+     * @brief 检查此粒子包是否为颜色过渡灰尘粒子
+     *
+     * 颜色过渡灰尘粒子包的粒子类型为 DustColorTransition 且含有可选数据。
+     *
+     * @return 是否为颜色过渡灰尘粒子
+     */
+    [[nodiscard]] bool isDustColorTransitionParticle() const noexcept;
+
+    /**
+     * @brief 解码颜色过渡灰尘粒子起始颜色
+     *
+     * 仅当 isDustColorTransitionParticle() 返回 true 时有效。
+     *
+     * @return 起始 ARGB 颜色，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<u32> decodeDustColorTransitionFromColor() const;
+
+    /**
+     * @brief 解码颜色过渡灰尘粒子目标颜色
+     *
+     * 仅当 isDustColorTransitionParticle() 返回 true 时有效。
+     *
+     * @return 目标 ARGB 颜色，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<u32> decodeDustColorTransitionToColor() const;
+
+    /**
+     * @brief 解码颜色过渡灰尘粒子缩放
+     *
+     * 仅当 isDustColorTransitionParticle() 返回 true 时有效。
+     *
+     * @return 缩放因子，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<f32> decodeDustColorTransitionScale() const;
 
 private:
     particle::ParticleTypeId m_particleType = particle::ParticleTypeId::Invalid;
