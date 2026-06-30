@@ -35,7 +35,6 @@ namespace mc {
 
 ActionResultType AbstractChestedHorseEntity::interactMob(Player& player, Hand hand)
 {
-    // MC 1.21.11: AbstractChestedHorse.mobInteract()
     // 在基类逻辑之前增加箱子装备判断
 
     bool isSecondaryUse = !isChild() && isTame() && player.isSneaking();
@@ -79,7 +78,6 @@ ActionResultType AbstractChestedHorseEntity::interactMob(Player& player, Hand ha
 
 void AbstractChestedHorseEntity::equipChest(Player& player, ItemStack& itemStack)
 {
-    // MC 1.21.11: AbstractChestedHorse.equipChest()
     // 设置箱子标志、播放音效、消耗物品、重建背包
 
     setChest(true);

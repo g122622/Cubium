@@ -149,7 +149,6 @@ public:
     /**
      * @brief 处理玩家交互
      *
-     * MC 1.21.11: Horse.mobInteract()
      * 在基类逻辑之前增加食物优先级和未驯服时的愤怒反应：
      * - 手持食物时优先喂食（使用 HORSE_FOOD 标签）
      * - 未驯服时让马愤怒（makeMad）

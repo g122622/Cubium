@@ -397,7 +397,6 @@ public:
     /**
      * @brief 处理玩家交互
      *
-     * MC 1.21.11: AbstractHorse.mobInteract()
      * 处理玩家右键点击马匹时的交互：
      * - 被骑乘中/幼年：交给基类处理
      * - 已驯服 + Shift：打开背包界面
@@ -413,7 +412,6 @@ public:
     /**
      * @brief 打开马的背包界面
      *
-     * MC 1.21.11: AbstractHorse.openCustomInventoryScreen()
      * 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服
      *
      * @param player 打开背包的玩家
@@ -423,7 +421,6 @@ public:
     /**
      * @brief 装备马铠/装饰到槽位 1
      *
-     * MC 1.21.11: AbstractHorse.equipBodyArmor()
      * 将物品装备到马铠/装饰槽，设置护甲状态，播放音效，消耗物品。
      *
      * @param player 装备物品的玩家
@@ -434,7 +431,6 @@ public:
     /**
      * @brief 让玩家骑乘马匹
      *
-     * MC 1.21.11: AbstractHorse.doPlayerRide()
      * 让玩家骑上马，触发 RunAroundLikeCrazyGoal（未驯服时）或正常骑乘。
      *
      * @param player 要骑乘的玩家

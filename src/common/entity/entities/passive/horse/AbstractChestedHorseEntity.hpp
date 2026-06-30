@@ -88,7 +88,6 @@ public:
     /**
      * @brief 处理玩家交互
      *
-     * MC 1.21.11: AbstractChestedHorse.mobInteract()
      * 在基类逻辑之前增加箱子装备判断：
      * - 手持食物时优先喂食
      * - 未驯服时让马愤怒
@@ -101,7 +100,6 @@ protected:
     /**
      * @brief 装备箱子
      *
-     * MC 1.21.11: AbstractChestedHorse.equipChest()
      * 设置箱子标志、播放音效、消耗物品、重建背包。
      *
      * @param player 装备箱子的玩家

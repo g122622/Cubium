@@ -294,7 +294,6 @@ bool AbstractHorseEntity::isTameItem(const ItemStack& itemStack) const
 
 ActionResultType AbstractHorseEntity::interactMob(Player& player, Hand hand)
 {
-    // MC 1.21.11: AbstractHorse.mobInteract()
     // 处理玩家右键点击马匹时的交互
 
     // 1. 如果正在被骑乘或是幼年，交给基类处理
@@ -314,7 +313,6 @@ ActionResultType AbstractHorseEntity::interactMob(Player& player, Hand hand)
 
     if (item != nullptr && !itemStack.isEmpty()) {
         // 3a. 先让物品自身执行交互（如 SaddleItem 装备鞍）
-        // MC 1.21.11: itemstack.interactLivingEntity() 触发 Equippable 组件逻辑
         // 注意: Item::itemInteractionForEntity 不是 const 方法，需要 const_cast
         Item* mutableItem = const_cast<Item*>(item);
         bool itemInteractResult = mutableItem->itemInteractionForEntity(itemStack, player, *this, hand);
@@ -336,13 +334,11 @@ ActionResultType AbstractHorseEntity::interactMob(Player& player, Hand hand)
 
 void AbstractHorseEntity::openInventory(Player& player)
 {
-    // MC 1.21.11: AbstractHorse.openCustomInventoryScreen()
     // 条件：服务端 && (无骑乘者 || 骑乘者是自身) && 已驯服
     if (m_world != nullptr && !m_world->isClientSide()) {
         if (!isBeingRidden() || isPassenger(player.id())) {
             if (isTame()) {
                 // TODO: 当马背包 ContainerMenu 系统实现后，在此打开马背包 GUI
-                // MC 1.21.11: player.openHorseInventory(this, this.inventory);
                 // 当前马背包 SimpleInventory 已存在（m_inventory），但尚未实现
                 // HorseContainer（类似 HorseInventoryMenu）来连接马装备栏与玩家背包。
             }
@@ -352,7 +348,6 @@ void AbstractHorseEntity::openInventory(Player& player)
 
 void AbstractHorseEntity::equipArmor(Player& player, ItemStack& itemStack)
 {
-    // MC 1.21.11: AbstractHorse.equipBodyArmor()
     // 将马铠/地毯装备到槽位 1（马铠/装饰槽）
     if (hasArmorSlot() && isValidArmorForSlot(itemStack)) {
         ItemStack armorStack(itemStack.getItem(), 1);
@@ -371,7 +366,6 @@ void AbstractHorseEntity::equipArmor(Player& player, ItemStack& itemStack)
 
 void AbstractHorseEntity::doPlayerRide(Player& player)
 {
-    // MC 1.21.11: AbstractHorse.doPlayerRide()
     // 让玩家骑乘马匹，触发驯服流程或正常骑乘
     if (!isBeingRidden()) {
         player.startRiding(*this);

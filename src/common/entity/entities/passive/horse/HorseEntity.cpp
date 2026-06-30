@@ -250,7 +250,6 @@ bool HorseEntity::isValidArmorForSlot(const ItemStack& item) const
 
 ActionResultType HorseEntity::interactMob(Player& player, Hand hand)
 {
-    // MC 1.21.11: Horse.mobInteract()
     // 马在基类逻辑之前增加食物优先级和未驯服时的愤怒反应
 
     bool isSecondaryUse = !isChild() && isTame() && player.isSneaking();
