@@ -159,6 +159,11 @@ public:
     /// 参考: minecraft:no_anger_from_wind_charge
     static EntityTypeTag& NO_ANGER_FROM_WIND_CHARGE();
 
+    /// 水下强制下坐骑标签（骆驼、鸡、驴、马、羊驼、骡、猪、劫掠兽、蜘蛛、炽足兽、行商羊驼、僵尸马等）
+    /// 参考: minecraft:dismounts_underwater
+    /// 当载具实体类型属于此标签时，乘客在水中会被强制下坐骑
+    static EntityTypeTag& DISMOUNTS_UNDERWATER();
+
     /// 细雪可行走标签
     /// 参考: minecraft:powder_snow_walkable_mobs
     static EntityTypeTag& POWDER_SNOW_WALKABLE_MOBS();

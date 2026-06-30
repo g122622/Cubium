@@ -1852,6 +1852,18 @@ public:
     [[nodiscard]] virtual bool canBeRiddenInWater() const { return true; }
 
     /**
+     * @brief 检查此载具实体是否在水中强制乘客下坐骑
+     * @return 如果乘客在水中会被强制下坐骑返回true
+     *
+     * MC Java 中此方法委托给 EntityType 标签检查：
+     * return this.getType().is(EntityTypeTags.DISMOUNTS_UNDERWATER)
+     * 马、猪、骆驼等陆地骑乘实体返回true，船返回false。
+     * 当乘客的眼睛位置在水中且所骑乘的载具返回true时，
+     * LivingEntity::updateAirSupply() 会调用 stopRiding() 强制下坐骑。
+     */
+    [[nodiscard]] virtual bool dismountsUnderwater() const;
+
+    /**
      * @brief 检查是否与指定实体骑乘同一载具
      * @param other 其他实体
      * @return 如果骑乘同一载具返回true

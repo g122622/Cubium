@@ -454,3 +454,72 @@ TEST_F(ProjectileMayBreakTest, ImpactProjectilesTagMembers)
     EXPECT_FALSE(tag.contains(ResourceLocation("minecraft:fishing_bobber")));
     EXPECT_FALSE(tag.contains(ResourceLocation("minecraft:shulker_bullet")));
 }
+
+// ============================================================================
+// DISMOUNTS_UNDERWATER 标签测试
+// ============================================================================
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterContainsHorse)
+{
+    // 马属于水下强制下坐骑标签
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:horse")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterContainsPig)
+{
+    // 猪属于水下强制下坐骑标签
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:pig")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterContainsStrider)
+{
+    // 炽足兽属于水下强制下坐骑标签
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:strider")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterContainsSpider)
+{
+    // 蜘蛛属于水下强制下坐骑标签（蜘蛛骑士场景）
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:spider")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterContainsCamel)
+{
+    // 骆驼属于水下强制下坐骑标签
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:camel")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterContainsAllEquines)
+{
+    // 所有马科动物都属于水下强制下坐骑标签
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:horse")));
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:donkey")));
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:mule")));
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:llama")));
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:trader_llama")));
+    EXPECT_TRUE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:zombie_horse")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterDoesNotContainBoat)
+{
+    // 船不属于水下强制下坐骑标签（船有自己的水下沉没逻辑）
+    EXPECT_FALSE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:boat")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterDoesNotContainMinecart)
+{
+    // 矿车不属于水下强制下坐骑标签
+    EXPECT_FALSE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:minecart")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterDoesNotContainPlayer)
+{
+    // 玩家不属于水下强制下坐骑标签
+    EXPECT_FALSE(EntityTypeTags::DISMOUNTS_UNDERWATER().contains(ResourceLocation("minecraft:player")));
+}
+
+TEST_F(EntityTypeTagsTest, DismountsUnderwaterTagId)
+{
+    // 验证标签ID
+    EXPECT_EQ(EntityTypeTags::DISMOUNTS_UNDERWATER().getId(), ResourceLocation("minecraft:dismounts_underwater"));
+}

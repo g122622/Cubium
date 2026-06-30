@@ -324,6 +324,17 @@ EntityTypeTag& EntityTypeTags::NO_ANGER_FROM_WIND_CHARGE()
     return *tag;
 }
 
+EntityTypeTag& EntityTypeTags::DISMOUNTS_UNDERWATER()
+{
+    static EntityTypeTag* tag = nullptr;
+    if (tag == nullptr) {
+        auto t = std::make_unique<EntityTypeTag>(ResourceLocation("minecraft:dismounts_underwater"));
+        tag = t.get();
+        _getTags()[ResourceLocation("minecraft:dismounts_underwater")] = std::move(t);
+    }
+    return *tag;
+}
+
 EntityTypeTag& EntityTypeTags::POWDER_SNOW_WALKABLE_MOBS()
 {
     static EntityTypeTag* tag = nullptr;
@@ -371,6 +382,7 @@ void EntityTypeTags::initialize()
     IMMUNE_TO_INFESTED();
     IMMUNE_TO_OOZING();
     NO_ANGER_FROM_WIND_CHARGE();
+    DISMOUNTS_UNDERWATER();
     POWDER_SNOW_WALKABLE_MOBS();
 
     // ========== 硬编码默认标签成员 ==========
@@ -620,6 +632,25 @@ void EntityTypeTags::initialize()
     // 风弹不激怒
     NO_ANGER_FROM_WIND_CHARGE().addAll({
         ResourceLocation("minecraft:breeze"),
+    });
+
+    // 水下强制下坐骑
+    // 参考 MC Java EntityTypeTagsProvider 第 103-118 行
+    // 这些实体在水中会强制乘客下坐骑（船不在其中，船有自己的水下沉没逻辑）
+    DISMOUNTS_UNDERWATER().addAll({
+        ResourceLocation("minecraft:camel"),
+        ResourceLocation("minecraft:chicken"),
+        ResourceLocation("minecraft:donkey"),
+        ResourceLocation("minecraft:happy_ghast"),
+        ResourceLocation("minecraft:horse"),
+        ResourceLocation("minecraft:llama"),
+        ResourceLocation("minecraft:mule"),
+        ResourceLocation("minecraft:pig"),
+        ResourceLocation("minecraft:ravager"),
+        ResourceLocation("minecraft:spider"),
+        ResourceLocation("minecraft:strider"),
+        ResourceLocation("minecraft:trader_llama"),
+        ResourceLocation("minecraft:zombie_horse"),
     });
 
     // 细雪可行走

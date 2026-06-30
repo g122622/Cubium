@@ -1632,8 +1632,17 @@ void LivingEntity::updateAirSupply()
 
         // 水下骑乘强制下坐骑检测
         // MC Java: if (this.isPassenger() && this.getVehicle() != null && this.getVehicle().dismountsUnderwater())
-        // 当前项目尚未实现 dismountsUnderwater()，跳过此逻辑
-        // TODO: 当坐骑系统完善后，添加水下坐骑强制下坐骑逻辑
+        // 当乘客眼睛位置在水中时，如果所骑乘的载具类型属于 dismounts_underwater 标签，
+        // 则强制乘客下坐骑。马、猪、骆驼等陆地骑乘实体会强制下坐骑，船则不会。
+        if (isRiding()) {
+            EntityId vehicleId = getVehicle();
+            if (vehicleId != INVALID_ENTITY_ID && m_world != nullptr) {
+                Entity* vehicle = m_world->getEntity(vehicleId);
+                if (vehicle != nullptr && vehicle->dismountsUnderwater()) {
+                    stopRiding();
+                }
+            }
+        }
     } else if (air() < maxAir()) {
         // 不在水中（或空气未满），恢复空气
         // MC Java: else if (this.getAirSupply() < this.getMaxAirSupply()) { setAirSupply(increaseAirSupply) }

@@ -41,6 +41,7 @@
 #include "../entities/player/Player.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
+#include "../tag/EntityTypeTags.hpp"
 #include "EntityRegistry.hpp"
 #include "EntityTypeIdNumber.hpp"
 #include "common/mod/bedrock/addon/component/BlockComponentEvents.hpp"
@@ -1640,6 +1641,15 @@ bool Entity::canBeRidden(const Entity& vehicle) const
     MC_UNUSED(vehicle);
     // 默认检查：不在潜行状态 + 骑乘冷却为0
     return !isSneaking() && m_rideCooldown <= 0;
+}
+
+bool Entity::dismountsUnderwater() const
+{
+    // MC Java: return this.getType().is(EntityTypeTags.DISMOUNTS_UNDERWATER)
+    // 通过实体类型标签判断此载具是否在水中强制乘客下坐骑。
+    // 马、猪、骆驼等陆地骑乘实体返回 true，船不在标签中返回 false。
+    // 数据包中的 dismounts_underwater.json 定义了完整的实体列表。
+    return EntityTypeTags::DISMOUNTS_UNDERWATER().contains(getTypeId());
 }
 
 bool Entity::isRidingSameEntity(const Entity& other) const
