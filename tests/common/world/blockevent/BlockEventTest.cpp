@@ -314,3 +314,109 @@ TEST(MobSpawnerBlockEntityTriggerEventTest, UnknownEvent_ReturnsFalse)
     bool result = spawner.triggerEvent(99, 0);
     EXPECT_FALSE(result);
 }
+
+// ============================================================================
+// BlockEventPacket 序列化往返测试
+// ============================================================================
+
+TEST(BlockEventPacketTest, SerializeDeserialize_RoundTrip)
+{
+    // 创建一个包，序列化后再反序列化，验证字段一致
+    auto original = network::BlockEventPacket::create(BlockPos(100, -64, 200), 1, 3, 12345);
+
+    // 序列化
+    auto serializeResult = original.serialize();
+    ASSERT_TRUE(serializeResult.success());
+    const auto& data = serializeResult.value();
+
+    // 反序列化
+    network::BlockEventPacket deserialized;
+    auto deserializeResult = deserialized.deserialize(data.data(), data.size());
+    ASSERT_TRUE(deserializeResult.success());
+
+    // 验证字段
+    EXPECT_EQ(deserialized.position().x, 100);
+    EXPECT_EQ(deserialized.position().y, -64);
+    EXPECT_EQ(deserialized.position().z, 200);
+    EXPECT_EQ(deserialized.paramA(), 1);
+    EXPECT_EQ(deserialized.paramB(), 3);
+    EXPECT_EQ(deserialized.blockStateId(), 12345u);
+}
+
+TEST(BlockEventPacketTest, SerializeDeserialize_LargeValues)
+{
+    // 测试边界值和大值
+    auto original = network::BlockEventPacket::create(BlockPos(30000000, 319, -30000000), 255, 255, 0xFFFFFFFF);
+
+    auto serializeResult = original.serialize();
+    ASSERT_TRUE(serializeResult.success());
+    const auto& data = serializeResult.value();
+
+    network::BlockEventPacket deserialized;
+    auto deserializeResult = deserialized.deserialize(data.data(), data.size());
+    ASSERT_TRUE(deserializeResult.success());
+
+    EXPECT_EQ(deserialized.position().x, 30000000);
+    EXPECT_EQ(deserialized.position().y, 319);
+    EXPECT_EQ(deserialized.position().z, -30000000);
+    EXPECT_EQ(deserialized.paramA(), 255);
+    EXPECT_EQ(deserialized.paramB(), 255);
+    EXPECT_EQ(deserialized.blockStateId(), 0xFFFFFFFFu);
+}
+
+TEST(BlockEventPacketTest, Deserialize_InsufficientData_ReturnsError)
+{
+    // 数据不足时应返回错误
+    network::BlockEventPacket deserialized;
+    u8 smallData[] = {0x01, 0x02, 0x03}; // 远不够
+    auto result = deserialized.deserialize(smallData, sizeof(smallData));
+    EXPECT_FALSE(result.success());
+}
+
+// ============================================================================
+// Block::triggerEvent 默认委托测试
+// ============================================================================
+
+namespace {
+/// 测试用 IWorld 子类，用于验证 Block::triggerEvent 默认行为
+class BlockEventTestWorld : public test::BaseTestWorld {
+public:
+    BlockEventTestWorld() = default;
+};
+} // namespace
+
+TEST(BlockTriggerEventTest, DefaultImplementation_ReturnsFalseWithoutBlockEntity)
+{
+    // Block::triggerEvent 的默认实现委托给 BlockEntity::triggerEvent()
+    // 当 getBlockEntity() 返回 nullptr 时（无方块实体），应返回 false
+    // 这通过 BlockEventTestWorld 的默认 getBlockEntity 返回 nullptr 来验证
+    BlockEventTestWorld world;
+    const Block* stoneBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
+    if (stoneBlock == nullptr) {
+        GTEST_SKIP() << "Stone block not registered";
+    }
+
+    // 获取 stone 的默认 BlockState
+    const BlockState& state = stoneBlock->defaultState();
+
+    // Block::triggerEvent 在无 BlockEntity 时返回 false
+    BlockPos pos(0, 0, 0);
+    bool result = stoneBlock->triggerEvent(state, world, pos, 1, 0);
+    EXPECT_FALSE(result);
+}
+
+TEST(BlockTriggerEventTest, DefaultImplementation_UnknownEvent_ReturnsFalse)
+{
+    BlockEventTestWorld world;
+    const Block* stoneBlock = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
+    if (stoneBlock == nullptr) {
+        GTEST_SKIP() << "Stone block not registered";
+    }
+
+    const BlockState& state = stoneBlock->defaultState();
+
+    BlockPos pos(0, 0, 0);
+    // 即使事件 ID 不是 1，默认实现也返回 false（无 BlockEntity）
+    bool result = stoneBlock->triggerEvent(state, world, pos, 99, 99);
+    EXPECT_FALSE(result);
+}

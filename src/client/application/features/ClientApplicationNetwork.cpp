@@ -1217,22 +1217,28 @@ void ClientApplication::setupNetworkCallbacks()
         // 客户端收到方块事件后，查找方块并调用 Block::triggerEvent()
         // 参考 MC Java: ClientPacketListener.handleBlockEvent() -> ClientLevel.blockEvent()
         //
-        // 当前 ClientWorld 不继承 IWorld，且客户端尚无 BlockEntity 系统，
-        // 因此暂时仅记录事件。待 ClientWorld 实现 BlockEntity 管理后，
-        // 需通过 Block::triggerEvent() 委托给对应 BlockEntity::triggerEvent()
-        // 来处理客户端视觉效果（如箱子开合动画、陶罐摇晃等）。
+        // 当前 ClientWorld 不继承 IWorld（无法作为 IWorld& 传入 triggerEvent），
+        // 且客户端尚无 BlockEntity 系统（getBlockEntity() 返回 nullptr），
+        // 因此暂时仅记录事件。待以下两项完成后实现：
+        //
+        // 1. ClientWorld 继承 IWorld 或提供等效的 getBlockEntity() 接口
+        // 2. 客户端 BlockEntity 渲染系统就绪（ChestEntity/EnderChestEntity/
+        //    ShulkerBoxEntity 盖子动画、DecoratedPotBlockEntity 摇晃动画、
+        //    EndGatewayEntity 冷却视觉效果、MobSpawnerBlockEntity 生成粒子、
+        //    活塞伸缩动画等）
+        //
+        // 届时实现逻辑：
+        //   BlockPos pos(x, y, z);
+        //   const BlockState* state = m_world.getBlockState(x, y, z);
+        //   if (state != nullptr) {
+        //       state->getBlock().triggerEvent(*state, m_world, pos, paramA, paramB);
+        //   }
         (void)x;
         (void)y;
         (void)z;
         (void)paramA;
         (void)paramB;
         (void)blockStateId;
-        // TODO: 客户端 BlockEntity 系统就绪后实现：
-        //   BlockPos pos(x, y, z);
-        //   const BlockState* state = m_world.getBlockState(x, y, z);
-        //   if (state != nullptr) {
-        //       state->getBlock().triggerEvent(*state, m_world, pos, paramA, paramB);
-        //   }
     };
 
     callbacks.onPlaySound = [this](const ResourceLocation& soundEventId,
