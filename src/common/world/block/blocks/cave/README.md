@@ -34,7 +34,7 @@ Block
 ├── MossBlock → Block, IGrowable
 ├── SporeBlossomBlock → Block
 ├── HangingRootsBlock → Block
-├── PowderSnowBlock → Block
+├── PowderSnowBlock → Block, IBucketPickupHandler
 ├── RootedDirtBlock → Block
 ├── AzaleaBlock → BushBlock, IGrowable
 ├── AmethystBlock → Block

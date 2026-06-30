@@ -144,6 +144,16 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                         ItemStack pickedStack(pickedItem, 1);
                         player->inventory().add(pickedStack);
                     }
+                } else if (player != nullptr) {
+                    // 创造模式下仍需触发事件，但不需要给物品
+                    ItemStack pickedStack(pickedItem, 1);
+                    world.onFilledBucket(player->id(), pickedStack);
+                }
+
+                // 非创造模式下触发事件
+                if (player != nullptr && !player->isCreative()) {
+                    ItemStack pickedStack(pickedItem, 1);
+                    world.onFilledBucket(player->id(), pickedStack);
                 }
 
                 return ActionResultType::Success;
