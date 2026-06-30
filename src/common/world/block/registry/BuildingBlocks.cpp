@@ -30,6 +30,7 @@
 #include "world/block/blocks/EnchantingTableBlock.hpp"
 #include "world/block/blocks/FallingBlock.hpp"
 #include "world/block/blocks/LavaCauldronBlock.hpp"
+#include "world/block/blocks/LayeredCauldronBlock.hpp"
 #include "world/block/blocks/LiquidBlock.hpp"
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/ShulkerBoxBlock.hpp"
@@ -76,6 +77,7 @@ Block* BuildingBlocks::WET_SPONGE = nullptr;
 // 功能方块
 Block* BuildingBlocks::CRAFTING_TABLE = nullptr;
 Block* BuildingBlocks::CAULDRON = nullptr;
+Block* BuildingBlocks::WATER_CAULDRON = nullptr;
 Block* BuildingBlocks::LAVA_CAULDRON = nullptr;
 Block* BuildingBlocks::ENCHANTING_TABLE = nullptr;
 Block* BuildingBlocks::CHEST = nullptr;
@@ -179,9 +181,17 @@ void registerBuildingBlocks()
         &registry.registerBlock<blocks::CraftingTableBlock>(ResourceLocation("minecraft:crafting_table"),
             BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).flammable().ignitedByLava());
 
-    // 炼药锅
+    // 炼药锅（空）
     BuildingBlocks::CAULDRON = &registry.registerBlock<blocks::CauldronBlock>(ResourceLocation("minecraft:cauldron"),
         BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid());
+
+    // 水炼药锅（分层，水位1-3）
+    // 对应 MC 原版 LayeredCauldronBlock (WATER_CAULDRON)
+    // 降水类型为 Rain，表示水炼药锅只在雨天被降水填充
+    BuildingBlocks::WATER_CAULDRON =
+        &registry.registerBlock<blocks::LayeredCauldronBlock>(ResourceLocation("minecraft:water_cauldron"),
+            BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid(),
+            world::biome::BiomeClimate::Precipitation::Rain);
 
     // 岩浆炼药锅 - 始终满的炼药锅，发光等级15，实体进入受岩浆伤害
     // 参考: net.minecraft.world.level.block.LavaCauldronBlock

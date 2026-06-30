@@ -26,6 +26,7 @@
 #include "common/util/property/Properties.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
+#include "common/world/block/blocks/LayeredCauldronBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -127,7 +128,6 @@ TEST_F(LavaCauldronBlockTest, GetCollisionShape_ReturnsValidShape)
 TEST_F(LavaCauldronBlockTest, GetEntityInsideCollisionShape_ReturnsFilledShape)
 {
     // 岩浆炼药锅返回填充形状（外部形状 ∪ 岩浆内容区域）
-    // 参考 MC 原版: LavaCauldronBlock.getEntityInsideCollisionShape() 返回 FILLED_SHAPE
     const auto& state = lavaCauldron_->defaultState();
     const auto& entityInsideShape = lavaCauldron_->getEntityInsideCollisionShape(state);
     EXPECT_FALSE(entityInsideShape.isEmpty()) << "Lava cauldron entity inside shape should not be empty";
@@ -213,228 +213,6 @@ TEST_F(LavaCauldronBlockRegistryTest, CauldronIsInCauldronsTag)
 }
 
 // ============================================================================
-// CauldronBlock 滴石滴水测试
-// ============================================================================
-
-class CauldronDripTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-        fluid::FluidRegistry::instance().initialize();
-        fluid::FluidTags::initialize();
-    }
-};
-
-TEST_F(CauldronDripTest, CanReceiveStalactiteDrip_Water_ReturnsTrue)
-{
-    // 空炼药锅可以接收水滴水
-    EXPECT_TRUE(CauldronBlock::canReceiveStalactiteDrip(*fluid::Fluids::WATER()));
-}
-
-TEST_F(CauldronDripTest, CanReceiveStalactiteDrip_Lava_ReturnsTrue)
-{
-    // 空炼药锅可以接收岩浆滴水
-    EXPECT_TRUE(CauldronBlock::canReceiveStalactiteDrip(*fluid::Fluids::LAVA()));
-}
-
-TEST_F(CauldronDripTest, IsEmpty_Level0_ReturnsTrue)
-{
-    auto cauldron = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
-    const auto& state = cauldron->defaultState();
-    // 默认水位为0，空炼药锅
-    EXPECT_TRUE(CauldronBlock::isEmpty(state));
-}
-
-TEST_F(CauldronDripTest, IsFull_Level3_ReturnsTrue)
-{
-    auto cauldron = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
-    const auto& state = cauldron->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
-    EXPECT_TRUE(CauldronBlock::isFull(state));
-}
-
-TEST_F(CauldronDripTest, IsEmpty_Level1To3_ReturnsFalse)
-{
-    auto cauldron = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
-    for (i32 level = 1; level <= 3; ++level) {
-        const auto& state = cauldron->defaultState().with(BlockStateProperties::LEVEL_0_3(), level);
-        EXPECT_FALSE(CauldronBlock::isEmpty(state)) << "Level " << level << " should not be empty";
-    }
-}
-
-TEST_F(CauldronDripTest, IsFull_Level0To2_ReturnsFalse)
-{
-    auto cauldron = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
-    for (i32 level = 0; level <= 2; ++level) {
-        const auto& state = cauldron->defaultState().with(BlockStateProperties::LEVEL_0_3(), level);
-        EXPECT_FALSE(CauldronBlock::isFull(state)) << "Level " << level << " should not be full";
-    }
-}
-
-// ============================================================================
-// CauldronBlock::receiveStalactiteDrip 集成测试
-// ============================================================================
-
-class CauldronDripTestWorld : public test::BaseTestWorld {
-public:
-    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
-    {
-        const BlockPos pos(x, y, z);
-        const auto it = m_blocks.find(pos);
-        if (it != m_blocks.end()) {
-            return it->second;
-        }
-        return nullptr;
-    }
-
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
-    {
-        const BlockPos pos(x, y, z);
-        if (state == nullptr || state->isAir()) {
-            m_blocks.erase(pos);
-            m_ownedStates.erase(pos);
-        } else {
-            auto [it, inserted] = m_ownedStates.insert_or_assign(pos, *state);
-            m_blocks[pos] = &it->second;
-        }
-        return true;
-    }
-
-    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state, i32 flags) override
-    {
-        MC_UNUSED(flags);
-        return setBlockState(x, y, z, state);
-    }
-
-    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return true; }
-
-    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
-
-    [[nodiscard]] i32 getCauldronLevel(const BlockPos& pos) const
-    {
-        const auto it = m_blocks.find(pos);
-        if (it == m_blocks.end() || it->second == nullptr) {
-            return -1;
-        }
-        return CauldronBlock::getLevel(*it->second);
-    }
-
-    [[nodiscard]] bool isLavaCauldron(const BlockPos& pos) const
-    {
-        const auto it = m_blocks.find(pos);
-        if (it == m_blocks.end() || it->second == nullptr) {
-            return false;
-        }
-        return it->second->is(block_registry::BuildingBlocks::LAVA_CAULDRON);
-    }
-
-private:
-    std::map<BlockPos, const BlockState*> m_blocks;
-    std::map<BlockPos, BlockState> m_ownedStates;
-};
-
-class CauldronReceiveDripTest : public ::testing::Test {
-protected:
-    void SetUp() override
-    {
-        VanillaBlocks::initialize();
-        fluid::FluidRegistry::instance().initialize();
-        fluid::FluidTags::initialize();
-
-        cauldron_ = std::make_unique<CauldronBlock>(BlockProperties(Material::ROCK).hardness(2.0f).resistance(2.0f));
-    }
-
-    std::unique_ptr<CauldronBlock> cauldron_;
-    CauldronDripTestWorld world_;
-};
-
-TEST_F(CauldronReceiveDripTest, WaterDrip_IncrementsLevelBy1)
-{
-    // TODO: 此测试因 CauldronDripTestWorld 的 setBlockState 中
-    // BlockState 复制语义与手动创建的 CauldronBlock 不兼容而崩溃。
-    // 需要使用注册的 VanillaBlocks::CAULDRON 而非手动创建的实例。
-    // 暂时禁用，待修复测试基础设施后重新启用。
-    GTEST_SKIP() << "Test disabled: CauldronDripTestWorld incompatible with manually-created CauldronBlock";
-
-    // 水滴水：每次增加1级水位
-    const BlockPos pos(0, 64, 0);
-    const auto& state0 = cauldron_->defaultState(); // 水位0
-    world_.setBlockAt(pos, &state0);
-    ASSERT_EQ(world_.getCauldronLevel(pos), 0);
-
-    // 第一次水滴：0 → 1
-    CauldronBlock::receiveStalactiteDrip(
-        world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::WATER());
-    EXPECT_EQ(world_.getCauldronLevel(pos), 1);
-
-    // 第二次水滴：1 → 2
-    const auto* state1 = world_.getBlockState(pos.x, pos.y, pos.z);
-    ASSERT_NE(state1, nullptr);
-    CauldronBlock::receiveStalactiteDrip(world_, pos, *state1, *fluid::Fluids::WATER());
-    EXPECT_EQ(world_.getCauldronLevel(pos), 2);
-
-    // 第三次水滴：2 → 3
-    const auto* state2 = world_.getBlockState(pos.x, pos.y, pos.z);
-    ASSERT_NE(state2, nullptr);
-    CauldronBlock::receiveStalactiteDrip(world_, pos, *state2, *fluid::Fluids::WATER());
-    EXPECT_EQ(world_.getCauldronLevel(pos), 3);
-}
-
-TEST_F(CauldronReceiveDripTest, WaterDrip_DoesNotExceedMaxLevel)
-{
-    // TODO: 同 WaterDrip_IncrementsLevelBy1 的原因，暂时禁用
-    GTEST_SKIP() << "Test disabled: CauldronDripTestWorld incompatible with manually-created CauldronBlock";
-
-    // 满炼药锅不应再增加水位
-    const BlockPos pos(0, 64, 0);
-    const auto& state3 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 3);
-    world_.setBlockAt(pos, &state3);
-    ASSERT_EQ(world_.getCauldronLevel(pos), 3);
-
-    // 已满，不应增加
-    CauldronBlock::receiveStalactiteDrip(
-        world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::WATER());
-    EXPECT_EQ(world_.getCauldronLevel(pos), 3);
-}
-
-TEST_F(CauldronReceiveDripTest, LavaDrip_ReplacesWithLavaCauldron)
-{
-    // TODO: 同 WaterDrip_IncrementsLevelBy1 的原因，暂时禁用
-    GTEST_SKIP() << "Test disabled: CauldronDripTestWorld incompatible with manually-created CauldronBlock";
-
-    // 岩浆滴水：空炼药锅 → 岩浆炼药锅
-    const BlockPos pos(0, 64, 0);
-    const auto& state0 = cauldron_->defaultState();
-    world_.setBlockAt(pos, &state0);
-    ASSERT_EQ(world_.getCauldronLevel(pos), 0);
-
-    CauldronBlock::receiveStalactiteDrip(
-        world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::LAVA());
-
-    // 应该替换为岩浆炼药锅
-    EXPECT_TRUE(world_.isLavaCauldron(pos));
-}
-
-TEST_F(CauldronReceiveDripTest, LavaDrip_OnNonEmptyCauldron_ReplacesWithLavaCauldron)
-{
-    // TODO: 同 WaterDrip_IncrementsLevelBy1 的原因，暂时禁用
-    GTEST_SKIP() << "Test disabled: CauldronDripTestWorld incompatible with manually-created CauldronBlock";
-
-    // 岩浆滴水：即使有水的炼药锅，也会替换为岩浆炼药锅
-    // 注意：MC原版中非空炼药锅不会接收到岩浆滴水（findFillableCauldronBelow 过滤），
-    // 但 receiveStalactiteDrip 本身不做此检查
-    const BlockPos pos(0, 64, 0);
-    const auto& state1 = cauldron_->defaultState().with(BlockStateProperties::LEVEL_0_3(), 1);
-    world_.setBlockAt(pos, &state1);
-
-    CauldronBlock::receiveStalactiteDrip(
-        world_, pos, *world_.getBlockState(pos.x, pos.y, pos.z), *fluid::Fluids::LAVA());
-
-    // 应该替换为岩浆炼药锅
-    EXPECT_TRUE(world_.isLavaCauldron(pos));
-}
-
-// ============================================================================
 // LavaCauldronBlock vs CauldronBlock 交互逻辑测试
 // ============================================================================
 
@@ -484,6 +262,14 @@ TEST_F(CauldronLavaInteractionTest, LavaCauldronAndCauldronAreBothCauldrons)
     EXPECT_TRUE(BlockTags::CAULDRONS().contains(*lavaCauldronState));
 }
 
+TEST_F(CauldronLavaInteractionTest, WaterCauldronIsAlsoInCauldronsTag)
+{
+    // 水炼药锅也应属于 cauldrons 标签
+    const BlockState* waterCauldronState = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();
+    ASSERT_NE(waterCauldronState, nullptr);
+    EXPECT_TRUE(BlockTags::CAULDRONS().contains(*waterCauldronState));
+}
+
 TEST_F(CauldronLavaInteractionTest, LavaCauldronIsAlwaysFull)
 {
     // 岩浆炼药锅始终满（无水位属性）
@@ -491,10 +277,18 @@ TEST_F(CauldronLavaInteractionTest, LavaCauldronIsAlwaysFull)
     EXPECT_TRUE(LavaCauldronBlock::isFull(state));
 }
 
-TEST_F(CauldronLavaInteractionTest, CauldronDefaultIsEmpty)
+TEST_F(CauldronLavaInteractionTest, EmptyCauldronDefaultIsEmpty)
 {
-    // 空炼药锅默认水位为0
+    // 空炼药锅始终为空
     const auto& state = block_registry::BuildingBlocks::CAULDRON->defaultState();
     EXPECT_TRUE(CauldronBlock::isEmpty(state));
     EXPECT_FALSE(CauldronBlock::isFull(state));
+}
+
+TEST_F(CauldronLavaInteractionTest, WaterCauldronDefaultLevel)
+{
+    // 水炼药锅默认水位为1（LEVEL_1_3 的最小值）
+    const auto& state = block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();
+    EXPECT_EQ(LayeredCauldronBlock::getLevel(state), 1);
+    EXPECT_FALSE(LayeredCauldronBlock::isFull(state));
 }

@@ -757,10 +757,26 @@ public:
 
     /**
      * @brief 炼药锅水位 (0-3)
+     *
+     * 用于旧版空炼药锅 CauldronBlock（保留兼容性）。
+     * 新代码应优先使用 LEVEL_1_3 配合 LayeredCauldronBlock。
      */
     static const IntegerProperty& LEVEL_0_3()
     {
         static auto prop = IntegerProperty::create("level", 0, 3);
+        return *prop;
+    }
+
+    /**
+     * @brief 分层炼药锅水位 (1-3)
+     *
+     * 对应 MC 原版 BlockStateProperties.LEVEL_CAULDRON (IntegerProperty, 1-3)。
+     * LayeredCauldronBlock 使用此属性：水位1=最低，水位3=满。
+     * 当水位降至0时，方块应替换为空炼药锅 (CauldronBlock)。
+     */
+    static const IntegerProperty& LEVEL_1_3()
+    {
+        static auto prop = IntegerProperty::create("level", 1, 3);
         return *prop;
     }
 

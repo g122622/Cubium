@@ -291,8 +291,10 @@ void PathNavigator::_trimPath()
         BlockPos pos(point->x(), point->y(), point->z());
         const BlockState* state = world->getBlockState(pos);
 
-        // 检查是否为炼药锅
-        if (state != nullptr && state->is(VanillaBlocks::CAULDRON)) {
+        // 检查是否为炼药锅（空炼药锅、水炼药锅、岩浆炼药锅均需路径上移）
+        if (state != nullptr &&
+            (state->is(VanillaBlocks::CAULDRON) || state->is(VanillaBlocks::WATER_CAULDRON) ||
+                state->is(VanillaBlocks::LAVA_CAULDRON))) {
             // 炼药锅是一个凹陷的方块，实体在里面时需要将路径点上移
             PathPoint newPoint = point->cloneMove(point->x(), point->y() + 1, point->z());
             m_path->setPoint(i, newPoint);

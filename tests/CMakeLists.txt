@@ -430,6 +430,7 @@ add_executable(mc_tests
     common/world/block/blocks/TrapDoorBlockTest.cpp
     common/world/block/blocks/BlockSoundTest.cpp
     common/world/block/blocks/CauldronBlockTest.cpp
+    common/world/block/blocks/LayeredCauldronBlockTest.cpp
     common/world/block/blocks/LavaCauldronBlockTest.cpp
     common/world/block/blocks/LightningRodBlockTest.cpp
     common/world/block/blocks/LecternBlockTest.cpp

@@ -28,8 +28,9 @@
 #include "common/item/potion/PotionUtils.hpp"
 #include "common/item/potion/Potions.hpp"
 #include "common/util/math/ray/Raycast.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
+#include "common/world/block/blocks/LayeredCauldronBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/Fluid.hpp"
 
 namespace {
@@ -43,8 +44,15 @@ namespace {
 [[nodiscard]] bool canFillFromCauldron(const mc::IWorld& world, const mc::BlockPos& pos)
 {
     const mc::BlockState* state = world.getBlockState(pos);
-    return state != nullptr && state->is(mc::VanillaBlocks::CAULDRON) &&
-        mc::blocks::CauldronBlock::getLevel(*state) > 0;
+    if (state == nullptr) {
+        return false;
+    }
+    // 水炼药锅（LayeredCauldronBlock）始终有水（水位1-3），可取水
+    if (state->is(mc::VanillaBlocks::WATER_CAULDRON)) {
+        return true;
+    }
+    // 空炼药锅不可取水（没有水位属性）
+    return false;
 }
 
 [[nodiscard]] bool hasBottleFillTarget(const mc::IWorld& world, const mc::Ray& ray, mc::f32 maxDistance)
@@ -90,8 +98,8 @@ ItemActionResult GlassBottleItem::onItemRightClick(IWorld& world, Player& player
 
     if (hit.isHit()) {
         const BlockState* hitState = world.getBlockState(hit.blockPos());
-        if (hitState != nullptr && hitState->is(VanillaBlocks::CAULDRON) &&
-            blocks::CauldronBlock::getLevel(*hitState) > 0) {
+        // 水炼药锅（LayeredCauldronBlock）可取水
+        if (hitState != nullptr && hitState->is(VanillaBlocks::WATER_CAULDRON)) {
             return ItemActionResult::consume(mc::potion::PotionUtils::createPotionItem(mc::potion::Potions::WATER));
         }
     }

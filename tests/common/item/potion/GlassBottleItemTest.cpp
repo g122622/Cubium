@@ -32,8 +32,8 @@
 #include "common/item/potion/Potions.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/blocks/LayeredCauldronBlock.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/tick/manager/TickManager.hpp"
@@ -110,11 +110,12 @@ TEST_F(GlassBottleItemTest, OnItemRightClick_OnWaterSource_ReturnsWaterBottle)
     EXPECT_TRUE(::mc::potion::PotionUtils::isWaterBottle(result.getResult()));
 }
 
-TEST_F(GlassBottleItemTest, OnItemRightClick_OnFilledCauldron_ReturnsWaterBottle)
+TEST_F(GlassBottleItemTest, OnItemRightClick_OnWaterCauldron_ReturnsWaterBottle)
 {
-    const BlockState filledCauldron =
-        VanillaBlocks::CAULDRON->defaultState().with(BlockStateProperties::LEVEL_0_3(), 2);
-    m_world.setBlockState(0, 65, 3, &filledCauldron);
+    // 水炼药锅（LayeredCauldronBlock，水位2）可以用玻璃瓶取水
+    const BlockState waterCauldron =
+        VanillaBlocks::WATER_CAULDRON->defaultState().with(BlockStateProperties::LEVEL_1_3(), 2);
+    m_world.setBlockState(0, 65, 3, &waterCauldron);
 
     item::GlassBottleItem item(ItemProperties().maxStackSize(64));
     Player player(1, "BottleTester");

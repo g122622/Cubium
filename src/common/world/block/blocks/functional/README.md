@@ -171,12 +171,9 @@
       - `ChiseledBookshelfBlock`
     : 输出基于书籍数量
 
-      ## #9. CauldronBlock 水位限制
+      ## #9. CauldronBlock 三层架构
 
-      水位范围是0
-      -
-      3（`LEVEL_0_3`），不是0 -
-      15。雨天自动填充需通过 `randomTick` 实现。
+      炼药锅系统分为三类方块：CauldronBlock（空，无水位属性）、LayeredCauldronBlock（水/细雪，`LEVEL_1_3` 属性 1-3）、LavaCauldronBlock（岩浆，始终满）。水位变化通过方块替换实现（空→水/岩浆，水→空）。
 
           ## #10. AnvilBlock 碰撞箱 X
           /

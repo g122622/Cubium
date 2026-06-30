@@ -668,6 +668,7 @@ add_library(mc_common STATIC
     world/block/blocks/HorizontalBlock.cpp
     world/block/blocks/LiquidBlock.cpp
     world/block/blocks/CauldronBlock.cpp
+    world/block/blocks/LayeredCauldronBlock.cpp
     world/block/blocks/LavaCauldronBlock.cpp
     world/block/blocks/EnchantingTableBlock.cpp
     world/block/blocks/BookshelfBlock.cpp

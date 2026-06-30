@@ -39,6 +39,7 @@
 #include "common/world/block/WaterLoggableHelpers.hpp"
 #include "common/world/block/blocks/CauldronBlock.hpp"
 #include "common/world/block/blocks/LavaCauldronBlock.hpp"
+#include "common/world/block/blocks/LayeredCauldronBlock.hpp"
 #include "common/world/block/registry/BuildingBlocks.hpp"
 #include "common/world/block/registry/MudBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -562,16 +563,19 @@ std::optional<BlockPos> PointedDripstoneBlock::findFillableCauldronBelow(
         // 参考 MC 原版：使用 instanceof AbstractCauldronBlock && canReceiveStalactiteDrip(fluid)
         const Block& block = state->getBlock();
         bool isCauldron = (&block == block_registry::BuildingBlocks::CAULDRON);
+        bool isWaterCauldron = (&block == block_registry::BuildingBlocks::WATER_CAULDRON);
         bool isLavaCauldron = (&block == block_registry::BuildingBlocks::LAVA_CAULDRON);
 
-        if (isCauldron || isLavaCauldron) {
+        if (isCauldron || isWaterCauldron || isLavaCauldron) {
             // 检查该炼药锅是否可以接收指定流体的滴水
             if (isCauldron && CauldronBlock::canReceiveStalactiteDrip(fluid)) {
-                // 水可以滴入未满的炼药锅；岩浆可以滴入空的炼药锅
-                if (fluid.isIn(fluid::FluidTags::WATER()) && !CauldronBlock::isFull(*state)) {
-                    return mutablePos.toImmutable();
-                }
-                if (fluid.isIn(fluid::FluidTags::LAVA()) && CauldronBlock::isEmpty(*state)) {
+                // 空炼药锅可以接收任何流体（水和岩浆）
+                return mutablePos.toImmutable();
+            }
+            if (isWaterCauldron) {
+                // 水炼药锅：检查 canReceiveStalactiteDrip（仅水炼药锅可接收水滴）
+                auto* waterCauldron = static_cast<const blocks::LayeredCauldronBlock*>(&block);
+                if (waterCauldron->canReceiveStalactiteDrip(fluid) && !blocks::LayeredCauldronBlock::isFull(*state)) {
                     return mutablePos.toImmutable();
                 }
             }
