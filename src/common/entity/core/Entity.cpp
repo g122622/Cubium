@@ -644,6 +644,11 @@ void Entity::baseTick()
         m_rideCooldown--;
     }
 
+    // 更新环境状态（包括水中/岩浆/眼睛流体等状态）
+    // MC Java: Entity.baseTick() 中在火焰处理之前调用 updateInWaterStateAndDoFluidPushing() + updateFluidOnEyes()
+    // 此处将 updateEnvironmentState() 移至火焰处理之前，与 MC 原版时序一致
+    updateEnvironmentState();
+
     // 处理着火
     // MC Java: Entity.baseTick() 火焰处理逻辑
     // 正值 m_fire = 燃烧剩余 tick，负值 = 火焰免疫期倒计时
@@ -679,23 +684,10 @@ void Entity::baseTick()
         m_fallDistance *= 0.5f;
     }
 
-    // 处理空气值（简化版本）
-    // 注意：LivingEntity 子类会在 updateAirSupply() 中实现完整的溺水逻辑
-    // 非 LivingEntity 实体（如物品实体）使用此简化版本
-    if (isInWater() || isInLava()) {
-        if (!m_invulnerable) {
-            setAir(m_air - 1);
-            if (m_air <= -20) {
-                setAir(0);
-                // 非 LivingEntity 实体不处理溺水伤害
-            }
-        }
-    } else {
-        setAir(maxAir());
-    }
-
-    // 更新环境状态
-    updateEnvironmentState();
+    // MC Java: Entity.baseTick() 不包含空气值处理逻辑
+    // 空气值处理完全由 LivingEntity::updateAirSupply() 负责
+    // 非 LivingEntity 实体（如 ItemEntity）不使用 Entity 层的空气处理
+    // ItemEntity 的水中物理行为在自身的 _applyWaterPhysics() 中独立处理
 
     // 重新探测地面状态，避免实体在脚下方块被移除后仍然沿用旧的 onGround 缓存。
     checkOnGround();

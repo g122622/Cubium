@@ -148,9 +148,6 @@ protected:
 private:
     // 水状态追踪（用于 onEnterWater/onLeaveWater 回调）
     bool m_wasInWater = false;
-
-    // 溺水伤害量
-    static constexpr f32 DROWN_DAMAGE_AMOUNT = 1.0f;
 };
 
 } // namespace mc

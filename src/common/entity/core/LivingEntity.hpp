@@ -550,6 +550,9 @@ public:
      * @brief 减少空气供应
      *
      * 考虑水下呼吸附魔的概率性空气节约。
+     * MC Java: LivingEntity.decreaseAirSupply()
+     * 附魔概率：每级有 level/(level+1) 的概率不消耗空气
+     *  - I级: 50%, II级: 66.7%, III级: 75%
      *
      * @param currentAir 当前空气量
      * @return 减少后的空气量
@@ -557,17 +560,48 @@ public:
     [[nodiscard]] i32 decreaseAirSupply(i32 currentAir);
 
     /**
+     * @brief 增加空气供应（恢复空气）
+     *
+     * 每tick恢复4点空气，上限为 maxAir()。
+     * MC Java: LivingEntity.increaseAirSupply()
+     *
+     * @param currentAir 当前空气量
+     * @return 恢复后的空气量
+     */
+    [[nodiscard]] i32 increaseAirSupply(i32 currentAir) const;
+
+    /**
      * @brief 计算下一个空气值（恢复空气）
      *
+     * @deprecated 使用 increaseAirSupply() 代替，与 MC Java 方法名对齐
      * @param currentAir 当前空气量
      * @return 恢复后的空气量
      */
     [[nodiscard]] i32 determineNextAir(i32 currentAir) const;
 
     /**
+     * @brief 是否应该受到溺水伤害
+     *
+     * 当空气值降到 -20 或以下时触发溺水伤害。
+     * 子类可以覆写此方法来修改溺水判定条件。
+     * MC Java: LivingEntity.shouldTakeDrowningDamage()
+     *
+     * @return 如果应该受到溺水伤害返回 true
+     */
+    [[nodiscard]] virtual bool shouldTakeDrowningDamage() const;
+
+    /**
      * @brief 更新空气供应和溺水伤害
      *
      * 每tick调用，处理空气消耗和溺水伤害。
+     * MC Java: LivingEntity.baseTick() 中的空气处理逻辑
+     *
+     * 检测条件：
+     * - 使用 areEyesInWater() 检测眼部位置是否在水中（而非 isInWater()）
+     * - 排除气泡柱中的空气消耗
+     * - 考虑水下呼吸效果、潮涌能量效果、亡灵生物天生水下呼吸
+     * - 考虑玩家无敌模式
+     * - 水下骑乘时检查坐骑是否应强制下坐骑
      */
     virtual void updateAirSupply();
 
@@ -1354,9 +1388,6 @@ protected:
     Hand m_activeHand = Hand::MainHand; // 正在使用的手
     ItemStack m_activeItem;             // 正在使用的物品堆
     i32 m_activeItemUseCount = 0;       // 剩余使用时间（ticks）
-
-    // 溺水伤害计时器
-    i32 m_drownDamageTimer = 0; // 溺水伤害间隔计时器
 
     // 三叉戟激流攻击状态
     i32 m_spinAttackDuration = 0; // 激流攻击剩余持续时间（ticks）

@@ -109,8 +109,8 @@ void WaterMobEntity::registerAttributes()
 
 void WaterMobEntity::updateAirSupply()
 {
-    // 水生生物在水中恢复空气，在陆地/岩浆中消耗空气
-    // 与普通生物相反
+    // MC Java: WaterAnimal.baseTick() -> handleAirSupply()
+    // 水生生物的反逻辑：在水中恢复空气，在陆地上消耗空气
     if (!isAlive()) {
         return;
     }
@@ -126,20 +126,28 @@ void WaterMobEntity::updateAirSupply()
     m_wasInWater = inWater;
 
     if (inWater) {
-        // 在水中，恢复空气（水生生物在水中立即恢复空气）
+        // 在水中，立即恢复空气到最大值
+        // MC Java: this.setAirSupply(300) -- 即 maxAirSupply
         setAir(maxAir());
     } else {
         // 不在水中，消耗空气（水生生物在陆地窒息）
+        // MC Java: this.setAirSupply(airSupply - 1)
         i32 newAir = air() - 1;
         setAir(newAir);
 
-        // 空气耗尽到 -20 时触发窒息伤害
-        if (air() <= -20) {
+        // 空气耗尽时触发窒息伤害
+        // MC Java: if (this.shouldTakeDrowningDamage()) { setAirSupply(0); hurtServer(drown, 2.0F) }
+        if (shouldTakeDrowningDamage()) {
             setAir(0);
 
-            // 窒息伤害
+            // 广播溺水实体事件
+            if (m_world != nullptr) {
+                m_world->broadcastEntityStatus(id(), static_cast<u8>(67));
+            }
+
+            // 窒息伤害量 2.0F（与 MC Java WaterAnimal.handleAirSupply 一致）
             EnvironmentalDamage drownSource = DamageSources::drown();
-            hurt(drownSource, DROWN_DAMAGE_AMOUNT);
+            hurt(drownSource, physics::DROWN_DAMAGE_AMOUNT);
         }
     }
 }

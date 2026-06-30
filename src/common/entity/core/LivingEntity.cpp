@@ -46,6 +46,7 @@
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockSoundType.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -1522,12 +1523,13 @@ void LivingEntity::updateActiveItem()
 i32 LivingEntity::decreaseAirSupply(i32 currentAir)
 {
     // 水下呼吸附魔有概率不消耗空气
+    // MC Java: LivingEntity.decreaseAirSupply()
+    // 附魔概率：每级有 level/(level+1) 的概率不消耗空气
+    // I级: 50%, II级: 66.7%, III级: 75%
     const ItemStack& helmet = getEquipment(EquipmentSlot::Head);
     i32 respirationLevel = item::enchant::EnchantmentHelper::getRespirationLevel(helmet);
 
     if (respirationLevel > 0 && m_world != nullptr) {
-        // 水下呼吸附魔: 每级有 level/(level+1) 的概率不消耗空气
-        // I级: 50%, II级: 66.7%, III级: 75%
         math::Random& random = m_world->getRandom();
         if (random.nextInt(respirationLevel + 1) > 0) {
             return currentAir; // 附魔生效，不消耗空气
@@ -1537,52 +1539,103 @@ i32 LivingEntity::decreaseAirSupply(i32 currentAir)
     return currentAir - 1;
 }
 
+i32 LivingEntity::increaseAirSupply(i32 currentAir) const
+{
+    // 每tick恢复4点空气，上限为 maxAir()
+    // MC Java: LivingEntity.increaseAirSupply()
+    return std::min(currentAir + 4, maxAir());
+}
+
 i32 LivingEntity::determineNextAir(i32 currentAir) const
 {
-    // 每tick恢复4点空气
-    return std::min(currentAir + 4, maxAir());
+    // 委托给 increaseAirSupply()
+    return increaseAirSupply(currentAir);
+}
+
+bool LivingEntity::shouldTakeDrowningDamage() const
+{
+    // MC Java: LivingEntity.shouldTakeDrowningDamage()
+    // 当空气值降到 -20 或以下时触发溺水伤害
+    return air() <= -20;
 }
 
 void LivingEntity::updateAirSupply()
 {
+    // MC Java: LivingEntity.baseTick() 中的空气处理逻辑
+    // 关键变化：使用 areEyesInWater() 而非 isInWater() 来检测眼部位置
     if (!isAlive()) {
         return;
     }
 
-    bool inWater = isInWater();
-    bool inLava = isInLava();
+    // 仅在服务端处理空气逻辑（MC Java 仅在 ServerLevel 中处理）
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
 
-    // 检查是否能水下呼吸
-    // - 水下呼吸效果 (WaterBreathing)
-    // - 潮涌能量效果 (ConduitPower)
-    // - 亡灵生物天生可以水下呼吸
-    bool canBreathe = canBreatheUnderwater() || hasEffect(entity::effect::EffectType::WaterBreathing) ||
-        hasEffect(entity::effect::EffectType::ConduitPower);
+    // 检查眼部是否在水中，并排除气泡柱
+    // MC Java: isEyeInFluid(FluidTags.WATER) && !level.getBlockState(blockPos).is(Blocks.BUBBLE_COLUMN)
+    bool eyesInWater = areEyesInWater();
+    bool inBubbleColumn = false;
 
-    if ((inWater || inLava) && !canBreathe) {
-        // 在水或岩浆中且不能呼吸
-        i32 newAir = decreaseAirSupply(air());
-        setAir(newAir);
+    if (eyesInWater && m_world != nullptr) {
+        // 计算眼部所在方块位置
+        // MC Java: BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())
+        f32 eyeY = m_position.y + eyeHeight();
+        BlockPos eyeBlockPos(static_cast<i32>(std::floor(m_position.x)),
+            static_cast<i32>(std::floor(eyeY)),
+            static_cast<i32>(std::floor(m_position.z)));
+        const BlockState* eyeState = m_world->getBlockState(eyeBlockPos);
+        if (eyeState != nullptr && eyeState->is(VanillaBlocks::BUBBLE_COLUMN)) {
+            inBubbleColumn = true;
+        }
+    }
 
-        // 空气耗尽到 -20 时触发溺水伤害
-        if (air() <= -20) {
-            setAir(0);
+    if (eyesInWater && !inBubbleColumn) {
+        // 眼部在水中且不在气泡柱中
+        // 检查是否需要消耗空气
+        // MC Java: !this.canBreatheUnderwater() && !MobEffectUtil.hasWaterBreathing(this)
+        //          && (!flag || !((Player)this).getAbilities().invulnerable)
+        // 其中 flag = (this instanceof Player)
+        bool canBreathe = canBreatheUnderwater() || hasEffect(entity::effect::EffectType::WaterBreathing) ||
+            hasEffect(entity::effect::EffectType::ConduitPower);
 
-            // 溺水伤害计时器
-            m_drownDamageTimer++;
-            if (m_drownDamageTimer >= physics::DROWN_DAMAGE_INTERVAL) {
-                m_drownDamageTimer = 0;
+        // 玩家的无敌模式检查由 Player::updateAirSupply() 在调用基类之前处理
+        // 此处仅检查非玩家实体的呼吸条件
+
+        if (!canBreathe) {
+            // 需要消耗空气
+            i32 newAir = decreaseAirSupply(air());
+            setAir(newAir);
+
+            // 溺水伤害判定
+            // MC Java: if (this.shouldTakeDrowningDamage()) { setAirSupply(0); broadcastEntityEvent(67);
+            // hurtServer(drown, 2.0F) }
+            if (shouldTakeDrowningDamage()) {
+                setAir(0);
+
+                // 广播溺水实体事件（客户端用于播放溺水动画/音效）
+                // MC Java: serverlevel.broadcastEntityEvent(this, (byte)67)
+                m_world->broadcastEntityStatus(id(), static_cast<u8>(67));
 
                 // 造成溺水伤害
                 EnvironmentalDamage drownSource = DamageSources::drown();
                 hurt(drownSource, physics::DROWN_DAMAGE_AMOUNT);
             }
+        } else if (air() < maxAir()) {
+            // 可以在水下呼吸且空气未满时恢复空气
+            // MC Java: MobEffectUtil.shouldEffectsRefillAirsupply(this) 检查
+            // 当有水下呼吸或潮涌效果时恢复空气
+            setAir(increaseAirSupply(air()));
         }
-    } else {
-        // 不在水中或可以呼吸，恢复空气
-        i32 newAir = determineNextAir(air());
-        setAir(newAir);
-        m_drownDamageTimer = 0;
+
+        // 水下骑乘强制下坐骑检测
+        // MC Java: if (this.isPassenger() && this.getVehicle() != null && this.getVehicle().dismountsUnderwater())
+        // 当前项目尚未实现 dismountsUnderwater()，跳过此逻辑
+        // TODO: 当坐骑系统完善后，添加水下坐骑强制下坐骑逻辑
+    } else if (air() < maxAir()) {
+        // 不在水中（或空气未满），恢复空气
+        // MC Java: else if (this.getAirSupply() < this.getMaxAirSupply()) { setAirSupply(increaseAirSupply) }
+        setAir(increaseAirSupply(air()));
     }
 }
 
