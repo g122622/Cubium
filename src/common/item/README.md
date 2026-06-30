@@ -364,3 +364,11 @@ item/
 调用链：`ItemEntity::hurt()` → `ItemStack::canBeHurtBy(source)` → `Item::isIn(ItemTags::FIRE_RESISTANT()) && source.isFire()`
 
 与此相关的还有 `ItemEntity::isImmuneToFire()` 重写，它检查物品是否防火来决定物品实体的火焰免疫性。
+
+### 16. 头颅物品注册
+
+头颅物品（骷髅头颅、凋灵骷髅头颅、玩家头颅、僵尸头、苦力怕头、龙首、猪灵头）注册在 `Items::_registerSkulls()` 中。
+
+当前注册为普通 `Item`（最大堆叠 64），因为 `SkullBlock` / `WallSkullBlock` 尚未实现。MC Java 中头颅使用 `StandingAndWallBlockItem`（本项目对应 `WallOrFloorItem`），可放置在地板或墙壁上。待方块系统完善后应升级为 `WallOrFloorItem` 注册。
+
+`FillPlayerHeadFunction` 使用 `Items::PLAYER_HEAD` 进行物品类型检查（引用相等性比较），与 MC Java 的 `stack.is(Items.PLAYER_HEAD)` 行为一致。只有玩家头颅物品会被填充玩家档案（SkullOwner），其他头颅类型不受影响。

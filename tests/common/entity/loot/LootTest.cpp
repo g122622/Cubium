@@ -800,13 +800,12 @@ TEST_F(LootTest, FillPlayerHeadFunction_NoPlayerInContext)
     math::Random rng(12345);
     LootContext context(m_world, rng);
 
-    // 不设置玩家，只设置钻石物品
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+    // 不设置玩家，使用玩家头颅物品
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    ItemStack stack(*Items::PLAYER_HEAD, 1);
     ItemStack result = func.apply(stack, context);
 
-    // 没有 SkullOwner 标签
+    // 没有玩家信息，不应写入 SkullOwner 标签
     EXPECT_FALSE(result.hasTag() && result.getTag()->contains("SkullOwner"));
 }
 
@@ -821,9 +820,8 @@ TEST_F(LootTest, FillPlayerHeadFunction_KillerPlayerWithUUID)
     player.setUuid("550e8400-e29b-41d4-a716-446655440000");
     context.set(LootParams::KILLER_PLAYER, &player);
 
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    ItemStack stack(*Items::PLAYER_HEAD, 1);
     ItemStack result = func.apply(stack, context);
 
     // 检查 SkullOwner 标签
@@ -850,9 +848,8 @@ TEST_F(LootTest, FillPlayerHeadFunction_KillerPlayerNoUUID)
     Player player(EntityId(1), "AutoUUIDPlayer");
     context.set(LootParams::KILLER_PLAYER, &player);
 
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    ItemStack stack(*Items::PLAYER_HEAD, 1);
     ItemStack result = func.apply(stack, context);
 
     // Entity 构造函数自动生成了 UUID，所以 SkullOwner 会被写入
@@ -879,9 +876,8 @@ TEST_F(LootTest, FillPlayerHeadFunction_SourceThis)
     Entity* entity = &player; // 显式转换为 Entity*
     context.set(LootParams::THIS_ENTITY, entity);
 
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    ItemStack stack(*Items::PLAYER_HEAD, 1);
     ItemStack result = func.apply(stack, context);
 
     // 检查 SkullOwner 标签
@@ -907,9 +903,8 @@ TEST_F(LootTest, FillPlayerHeadFunction_SourceKiller)
     Entity* entity = &player; // 显式转换为 Entity*
     context.set(LootParams::KILLER_ENTITY, entity);
 
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    ItemStack stack(*Items::PLAYER_HEAD, 1);
     ItemStack result = func.apply(stack, context);
 
     // 检查 SkullOwner 标签
@@ -932,9 +927,8 @@ TEST_F(LootTest, FillPlayerHeadFunction_SourceKillerNonPlayer)
     Entity zombie(EntityId(4));
     context.set(LootParams::KILLER_ENTITY, &zombie);
 
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    ItemStack stack(*Items::PLAYER_HEAD, 1);
     ItemStack result = func.apply(stack, context);
 
     // 非玩家实体不应写入 SkullOwner
@@ -953,9 +947,8 @@ TEST_F(LootTest, FillPlayerHeadFunction_SourceBlockEntity)
     BlockEntity* blockEntity = &chest; // 显式转换为 BlockEntity*
     context.set(LootParams::BLOCK_ENTITY, blockEntity);
 
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    ItemStack stack(*Items::PLAYER_HEAD, 1);
     ItemStack result = func.apply(stack, context);
 
     // BlockEntity 不应写入 SkullOwner
@@ -973,9 +966,8 @@ TEST_F(LootTest, FillPlayerHeadFunction_OverwritesExistingSkullOwner)
     player.setUuid("00000000-0000-0000-0000-000000000001");
     context.set(LootParams::KILLER_PLAYER, &player);
 
-    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
-    ASSERT_NE(diamond, nullptr);
-    ItemStack stack(*diamond, 1);
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    ItemStack stack(*Items::PLAYER_HEAD, 1);
 
     // 设置已有的 SkullOwner
     nlohmann::json& tag = stack.getOrCreateTag();
@@ -993,6 +985,114 @@ TEST_F(LootTest, FillPlayerHeadFunction_OverwritesExistingSkullOwner)
     const auto& skullOwner = (*resultTag)["SkullOwner"];
     EXPECT_TRUE(skullOwner.is_object());
     EXPECT_EQ("NewOwner", skullOwner["Name"].get<std::string>());
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_NonPlayerHeadItemUnchanged)
+{
+    // 非玩家头颅物品应被原样返回，不写入 SkullOwner
+    // 参考 MC Java: FillPlayerHead.run() 中 stack.is(Items.PLAYER_HEAD) 检查
+    FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    // 创建玩家
+    Player player(EntityId(1), "Steve");
+    player.setUuid("550e8400-e29b-41d4-a716-446655440000");
+    context.set(LootParams::KILLER_PLAYER, &player);
+
+    // 使用钻石物品（非玩家头颅），函数应原样返回不修改
+    const Item* diamond = ItemRegistry::instance().getItem(ResourceLocation("minecraft:diamond"));
+    ASSERT_NE(diamond, nullptr);
+    ItemStack stack(*diamond, 1);
+    ItemStack result = func.apply(stack, context);
+
+    // 钻石物品不应写入 SkullOwner 标签
+    EXPECT_FALSE(result.hasTag() && result.getTag()->contains("SkullOwner"));
+}
+
+TEST_F(LootTest, FillPlayerHeadFunction_OtherSkullItemsUnchanged)
+{
+    // 其他头颅物品（骷髅头颅、僵尸头等）也不应被 fill_player_head 修改，
+    // 只有 PLAYER_HEAD 才应被修改
+    FillPlayerHeadFunction func(CopyNameFunction::Source::KillerPlayer);
+    math::Random rng(12345);
+    LootContext context(m_world, rng);
+
+    Player player(EntityId(1), "Steve");
+    player.setUuid("550e8400-e29b-41d4-a716-446655440000");
+    context.set(LootParams::KILLER_PLAYER, &player);
+
+    // 骷髅头颅不应被修改
+    ASSERT_NE(Items::SKELETON_SKULL, nullptr);
+    ItemStack skeletonStack(*Items::SKELETON_SKULL, 1);
+    ItemStack result = func.apply(skeletonStack, context);
+    EXPECT_FALSE(result.hasTag() && result.getTag()->contains("SkullOwner"));
+
+    // 凋灵骷髅头颅不应被修改
+    ASSERT_NE(Items::WITHER_SKELETON_SKULL, nullptr);
+    ItemStack witherStack(*Items::WITHER_SKELETON_SKULL, 1);
+    result = func.apply(witherStack, context);
+    EXPECT_FALSE(result.hasTag() && result.getTag()->contains("SkullOwner"));
+
+    // 僵尸头不应被修改
+    ASSERT_NE(Items::ZOMBIE_HEAD, nullptr);
+    ItemStack zombieStack(*Items::ZOMBIE_HEAD, 1);
+    result = func.apply(zombieStack, context);
+    EXPECT_FALSE(result.hasTag() && result.getTag()->contains("SkullOwner"));
+}
+
+TEST_F(LootTest, SkullItems_Registration)
+{
+    // 验证所有 7 种头颅物品已正确注册
+    ASSERT_NE(Items::SKELETON_SKULL, nullptr);
+    EXPECT_EQ("minecraft:skeleton_skull", Items::SKELETON_SKULL->itemLocation().toString());
+
+    ASSERT_NE(Items::WITHER_SKELETON_SKULL, nullptr);
+    EXPECT_EQ("minecraft:wither_skeleton_skull", Items::WITHER_SKELETON_SKULL->itemLocation().toString());
+
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    EXPECT_EQ("minecraft:player_head", Items::PLAYER_HEAD->itemLocation().toString());
+
+    ASSERT_NE(Items::ZOMBIE_HEAD, nullptr);
+    EXPECT_EQ("minecraft:zombie_head", Items::ZOMBIE_HEAD->itemLocation().toString());
+
+    ASSERT_NE(Items::CREEPER_HEAD, nullptr);
+    EXPECT_EQ("minecraft:creeper_head", Items::CREEPER_HEAD->itemLocation().toString());
+
+    ASSERT_NE(Items::DRAGON_HEAD, nullptr);
+    EXPECT_EQ("minecraft:dragon_head", Items::DRAGON_HEAD->itemLocation().toString());
+
+    ASSERT_NE(Items::PIGLIN_HEAD, nullptr);
+    EXPECT_EQ("minecraft:piglin_head", Items::PIGLIN_HEAD->itemLocation().toString());
+}
+
+TEST_F(LootTest, SkullItems_MaxStackSize)
+{
+    // 头颅物品最大堆叠数为 64（与 MC Java 一致）
+    ASSERT_NE(Items::PLAYER_HEAD, nullptr);
+    EXPECT_EQ(64, Items::PLAYER_HEAD->maxStackSize());
+
+    ASSERT_NE(Items::SKELETON_SKULL, nullptr);
+    EXPECT_EQ(64, Items::SKELETON_SKULL->maxStackSize());
+
+    ASSERT_NE(Items::WITHER_SKELETON_SKULL, nullptr);
+    EXPECT_EQ(64, Items::WITHER_SKELETON_SKULL->maxStackSize());
+}
+
+TEST_F(LootTest, SkullItems_RegistryLookup)
+{
+    // 验证头颅物品可通过 ItemRegistry 通过 ResourceLocation 查找
+    auto* playerHead = ItemRegistry::instance().getItem(ResourceLocation("minecraft:player_head"));
+    ASSERT_NE(playerHead, nullptr);
+    EXPECT_EQ(playerHead, Items::PLAYER_HEAD);
+
+    auto* skeletonSkull = ItemRegistry::instance().getItem(ResourceLocation("minecraft:skeleton_skull"));
+    ASSERT_NE(skeletonSkull, nullptr);
+    EXPECT_EQ(skeletonSkull, Items::SKELETON_SKULL);
+
+    auto* witherSkull = ItemRegistry::instance().getItem(ResourceLocation("minecraft:wither_skeleton_skull"));
+    ASSERT_NE(witherSkull, nullptr);
+    EXPECT_EQ(witherSkull, Items::WITHER_SKELETON_SKULL);
 }
 
 TEST_F(LootTest, SetAttributesFunction_Creation)

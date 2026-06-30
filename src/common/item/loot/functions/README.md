@@ -60,3 +60,7 @@ loot/LootFunctionBuilder      # 通过工厂方法创建函数实例
 ### ExplorationMapFunction 的 apply() 要求 BLOCK_POS
 
 `apply()` 方法需要 `LootParams::BLOCK_POS` 参数来确定搜索起始位置。如果上下文中没有方块位置（例如从实体掉落而非宝箱），函数会原样返回物品，不执行搜索。
+
+### FillPlayerHeadFunction 仅对玩家头颅物品生效
+
+`FillPlayerHeadFunction::apply()` 首先检查物品是否为 `Items::PLAYER_HEAD`（引用相等性比较，与 MC Java 的 `stack.is(Items.PLAYER_HEAD)` 一致）。非玩家头颅物品（如骷髅头颅、凋灵骷髅头颅等）会被直接跳过，不写入 SkullOwner 标签。此检查依赖 `Items::PLAYER_HEAD` 在 `Items::initialize()` 中完成注册。

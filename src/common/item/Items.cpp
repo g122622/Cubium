@@ -4306,7 +4306,7 @@ void Items::_registerSkulls()
     //
     // MC Java 中头颅物品使用 StandingAndWallBlockItem（本项目对应 WallOrFloorItem），
     // 因为头颅可以放置在地板上或墙壁上。当前 SkullBlock / WallSkullBlock 尚未实现，
-    // 因此暂时注册为普通物品。待头颅方块实现后，应改为 WallOrFloorItem 注册，
+    // TODO: 待 SkullBlock/WallSkullBlock 实现后，升级为 WallOrFloorItem 注册，
     // 格式如下：
     //   PLAYER_HEAD = &registry.registerItem<WallOrFloorItem>(
     //       ResourceLocation("minecraft:player_head"),
