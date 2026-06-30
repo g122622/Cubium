@@ -22,6 +22,7 @@
  */
 
 #include "Player.hpp"
+#include "../../../core/Constants.hpp"
 #include "../../../item/armor/ArmorMaterial.hpp"
 #include "../../../item/core/ActionResult.hpp"
 #include "../../../item/enchantment/EnchantmentHelper.hpp"
@@ -33,9 +34,12 @@
 #include "../../../network/packet/EntityPackets.hpp"
 #include "../../../physics/PhysicsConstants.hpp"
 #include "../../../physics/PhysicsEngine.hpp"
+#include "../../../sound/SoundCategory.hpp"
 #include "../../../sound/SoundEvents.hpp"
+#include "../../../util/AxisAlignedBB.hpp"
 #include "../../../util/math/MathUtils.hpp"
 #include "../../../util/math/random/Random.hpp"
+#include "../../../util/math/ray/Raycast.hpp"
 #include "../../../world/IWorld.hpp"
 #include "../../../world/block/Block.hpp"
 #include "../../../world/block/BlockSoundType.hpp"
@@ -59,6 +63,7 @@
 #include "GameModeUtils.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
+#include "common/particle/ParticleTypes.hpp"
 #include "common/scoreboard/core/Team.hpp"
 #include "spdlog/spdlog.h"
 
@@ -1681,6 +1686,177 @@ void Player::onExplosionHit(Entity* cause)
     setIgnoreFallDamageFromCurrentImpulse(isWindCharge);
 }
 
+void Player::_applyWindBurstEffect(i32 windBurstLevel)
+{
+    // 风爆附魔效果：在重锤砸地攻击命中后触发 TRIGGER 爆炸
+    // 参考 MC Java 的 ExplodeEffect + Level.ExplosionInteraction.TRIGGER
+    // 不造成伤害、不破坏方块，仅施加定向击退、播放音效和粒子
+
+    if (m_world == nullptr) {
+        return;
+    }
+
+    // 爆炸参数（对应 MC WindBurstEnchantment 注册数据）
+    const f32 radius = item::enchant::WindBurstEnchantment::getExplosionInteractionRange(); // 3.5
+    const f32 knockbackMultiplier =
+        item::enchant::WindBurstEnchantment::getExplosionKnockbackMultiplier(windBurstLevel);
+    const f32 entityRangeMultiplier = game::explosion::ENTITY_RANGE_MULTIPLIER; // 2.0
+
+    // 爆炸中心 = 玩家位置（MC Java: affected=ATTACKER, offset=Vec3.ZERO）
+    const Vector3 burstPos = position();
+    const f32 range = radius * entityRangeMultiplier;
+
+    // 搜索范围内的所有实体
+    AxisAlignedBB searchBox(burstPos.x - range,
+        burstPos.y - range,
+        burstPos.z - range,
+        burstPos.x + range,
+        burstPos.y + range,
+        burstPos.z + range);
+    std::vector<Entity*> entities = m_world->getEntitiesInAABB(searchBox, this);
+
+    for (Entity* entity : entities) {
+        if (entity == nullptr || entity->isRemoved()) {
+            continue;
+        }
+
+        // 免疫爆炸的实体不受击退
+        if (entity->isImmuneToExplosions()) {
+            continue;
+        }
+
+        // 计算方向和距离
+        Vector3 entityPos = entity->position();
+        f32 dx = entityPos.x - burstPos.x;
+        f32 dy = entityPos.y - burstPos.y;
+        f32 dz = entityPos.z - burstPos.z;
+        f32 distanceSq = dx * dx + dy * dy + dz * dz;
+        f32 distance = std::sqrt(distanceSq);
+        f32 distanceRatio = distance / range;
+
+        // 超出范围
+        if (distanceRatio > 1.0f) {
+            continue;
+        }
+
+        // 归一化方向向量
+        if (distance < 0.001f) {
+            // 实体在爆炸中心，随机方向
+            dx = m_world->getRandom().nextFloat() * 2.0f - 1.0f;
+            dy = m_world->getRandom().nextFloat() * 2.0f - 1.0f;
+            dz = m_world->getRandom().nextFloat() * 2.0f - 1.0f;
+            distance = std::sqrt(dx * dx + dy * dy + dz * dz);
+        }
+        dx /= distance;
+        dy /= distance;
+        dz /= distance;
+
+        // 计算视线遮挡密度
+        f32 density = _calculateWindBurstSeenPercent(entity->boundingBox(), burstPos);
+
+        // 击退冲击力 = (1 - 距离比) * 密度
+        f32 impact = (1.0f - distanceRatio) * density;
+
+        // 爆炸保护减免击退
+        f32 knockbackResistance = 0.0f;
+        LivingEntity* living = dynamic_cast<LivingEntity*>(entity);
+        if (living != nullptr) {
+            i32 blastProtection = item::enchant::EnchantmentHelper::getTotalArmorProtection(
+                living->getArmorSlots(), DamageFlags::EXPLOSION);
+            if (blastProtection > 0) {
+                knockbackResistance = static_cast<f32>(blastProtection) * 0.15f;
+            }
+        }
+
+        f32 finalImpact = impact * knockbackMultiplier * (1.0f - knockbackResistance);
+        if (finalImpact <= 0.0f) {
+            continue;
+        }
+
+        // 应用击退速度
+        entity->addVelocity(dx * finalImpact, dy * finalImpact, dz * finalImpact);
+        entity->markHurt();
+
+        // 玩家特殊处理：旁观者和创造模式飞行者不受击退
+        Player* player = dynamic_cast<Player*>(entity);
+        if (player != nullptr) {
+            if (entity::GameModeUtils::isSpectator(player->gameMode())) {
+                continue;
+            }
+            const PlayerAbilities& abilities = player->abilities();
+            if (entity::GameModeUtils::isCreative(player->gameMode()) && abilities.flying) {
+                continue;
+            }
+        }
+
+        // 通知实体被爆炸击中（用于冲量坠落伤害免疫等机制）
+        // 注意：风爆附魔的爆炸源为 null（attributeToUser=false），与 MC Java 行为一致
+        entity->onExplosionHit(nullptr);
+    }
+
+    // 风爆附魔扩展冲量宽限期（对应 MC ApplyEntityImpulse 效果）
+    applyPostImpulseGraceTime(10);
+
+    // 播放风爆音效
+    m_world->playSound(SoundEvents::ENTITY_WIND_CHARGE_WIND_BURST, sound::SoundCategory::Blocks, burstPos, 1.0f, 1.0f);
+
+    // 生成风爆粒子
+    m_world->addParticle(particle::ParticleTypeId::GustEmitterSmall, burstPos, Vector3(0.0f, 0.0f, 0.0f));
+    m_world->addParticle(particle::ParticleTypeId::GustEmitterLarge, burstPos, Vector3(0.0f, 0.0f, 0.0f));
+}
+
+f32 Player::_calculateWindBurstSeenPercent(const AxisAlignedBB& entityBox, const Vector3& center) const
+{
+    // 参考 MC Explosion.getBlockDensity / WindChargeEntity._calculateSeenPercent
+    // 在实体碰撞箱内均匀采样点，射线检测是否有方块遮挡爆炸中心
+
+    if (m_world == nullptr) {
+        return 1.0f;
+    }
+
+    f32 dx = (entityBox.maxX - entityBox.minX) * 2.0f + 1.0f;
+    f32 dy = (entityBox.maxY - entityBox.minY) * 2.0f + 1.0f;
+    f32 dz = (entityBox.maxZ - entityBox.minZ) * 2.0f + 1.0f;
+    f32 stepX = 1.0f / dx;
+    f32 stepY = 1.0f / dy;
+    f32 stepZ = 1.0f / dz;
+
+    // 居中采样点偏移
+    f32 offsetX = (1.0f - std::floor(1.0f / stepX) * stepX) * 0.5f;
+    f32 offsetZ = (1.0f - std::floor(1.0f / stepZ) * stepZ) * 0.5f;
+
+    if (stepX <= 0.0f || stepY <= 0.0f || stepZ <= 0.0f) {
+        return 0.0f;
+    }
+
+    i32 visible = 0;
+    i32 total = 0;
+
+    for (f32 fx = 0.0f; fx <= 1.0f; fx += stepX) {
+        for (f32 fy = 0.0f; fy <= 1.0f; fy += stepY) {
+            for (f32 fz = 0.0f; fz <= 1.0f; fz += stepZ) {
+                Vector3 samplePoint(entityBox.minX + fx * (entityBox.maxX - entityBox.minX) + offsetX,
+                    entityBox.minY + fy * (entityBox.maxY - entityBox.minY),
+                    entityBox.minZ + fz * (entityBox.maxZ - entityBox.minZ) + offsetZ);
+
+                // 射线从采样点指向爆炸中心
+                Ray ray(
+                    samplePoint, Vector3(center.x - samplePoint.x, center.y - samplePoint.y, center.z - samplePoint.z));
+                f32 rayDistance = (center - samplePoint).length();
+                RaycastContext context(ray, rayDistance);
+
+                BlockRaycastResult result = raycastBlocks(context, *m_world);
+                if (result.isMiss()) {
+                    ++visible;
+                }
+                ++total;
+            }
+        }
+    }
+
+    return total > 0 ? static_cast<f32>(visible) / static_cast<f32>(total) : 0.0f;
+}
+
 // ============================================================================
 // 受伤/死亡声音
 // ============================================================================
@@ -2363,14 +2539,7 @@ void Player::attack(Entity& target)
                 if (isMaceSmashAttack && !mainHand.isEmpty()) {
                     i32 windBurstLevel = item::enchant::EnchantmentHelper::getWindBurstLevel(mainHand);
                     if (windBurstLevel > 0) {
-                        // TODO: 应使用爆炸系统（ExplodeEffect/TRIGGER类型爆炸）实现风爆效果，
-                        // 包括对周围实体的击退、粒子效果等。当前简化实现仅施加向上速度。
-                        f32 burstPower =
-                            item::enchant::WindBurstEnchantment::getExplosionKnockbackMultiplier(windBurstLevel);
-                        addVelocity(0.0f, burstPower * 0.5f, 0.0f);
-
-                        // 风爆附魔扩展冲量宽限期（对应 MC ApplyEntityImpulse 效果）
-                        applyPostImpulseGraceTime(10);
+                        _applyWindBurstEffect(windBurstLevel);
                     }
                 }
 

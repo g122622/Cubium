@@ -1800,6 +1800,31 @@ private:
      */
     [[nodiscard]] bool _canFitPose(EntityPose pose) const;
 
+    /**
+     * @brief 应用风爆附魔效果
+     *
+     * 在重锤砸地攻击命中后，根据风爆附魔等级创建风爆效果。
+     * 风爆会对爆炸范围内的实体施加定向击退（含爆炸保护减免），
+     * 并播放风爆音效和粒子效果。不造成伤害，不破坏方块。
+     *
+     * 对应 MC Java 的 ExplodeEffect + TRIGGER 爆炸模式。
+     *
+     * @param windBurstLevel 风爆附魔等级（1-3）
+     */
+    void _applyWindBurstEffect(i32 windBurstLevel);
+
+    /**
+     * @brief 计算风爆爆炸中心到实体碰撞箱的视线遮挡比例
+     *
+     * 在实体碰撞箱内均匀采样点，射线检测是否有方块遮挡爆炸中心。
+     * 返回值 0.0 表示完全遮挡，1.0 表示完全可见。
+     *
+     * @param entityBox 实体碰撞箱
+     * @param center 爆炸中心位置
+     * @return 遮挡比例 (0.0 - 1.0)
+     */
+    [[nodiscard]] f32 _calculateWindBurstSeenPercent(const AxisAlignedBB& entityBox, const Vector3& center) const;
+
     std::string m_username;
     PlayerId m_playerId = 0;
     GameMode m_gameMode = GameMode::Survival;
