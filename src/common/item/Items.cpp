@@ -446,6 +446,7 @@ Item* Items::WARPED_FUNGUS_ON_A_STICK = nullptr;
 Item* Items::BUCKET = nullptr;
 Item* Items::WATER_BUCKET = nullptr;
 Item* Items::LAVA_BUCKET = nullptr;
+Item* Items::POWDER_SNOW_BUCKET = nullptr;
 Item* Items::COD_BUCKET = nullptr;
 Item* Items::SALMON_BUCKET = nullptr;
 Item* Items::PUFFERFISH_BUCKET = nullptr;
@@ -2283,6 +2284,14 @@ void Items::_registerBuckets()
     // 岩浆桶作为燃料使用后返回空桶
     LAVA_BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:lava_bucket"),
         fluid::FluidRegistry::instance().getFluid(fluid::FluidRegistry::LAVA_ID),
+        ItemProperties().maxStackSize(1).containerItem(BUCKET));
+
+    // 细雪桶 - 装有细雪的桶，不是流体桶
+    // 参考: MC Java 的 PowderSnowBucketItem（继承自 Item，不是 BucketItem）
+    // 可用于在空炼药锅中放入细雪，或从满的细雪炼药锅中取出细雪
+    // 使用后返回空桶
+    POWDER_SNOW_BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:powder_snow_bucket"),
+        nullptr, // 细雪不是流体
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 鱼桶

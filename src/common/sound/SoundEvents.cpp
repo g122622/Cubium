@@ -1326,9 +1326,11 @@ const ResourceLocation ITEM_ELYTRA_FLYING("minecraft:item.elytra.flying");
 const ResourceLocation ITEM_BUCKET_EMPTY("minecraft:item.bucket.empty");
 const ResourceLocation ITEM_BUCKET_EMPTY_FISH("minecraft:item.bucket.empty_fish");
 const ResourceLocation ITEM_BUCKET_EMPTY_LAVA("minecraft:item.bucket.empty_lava");
+const ResourceLocation ITEM_BUCKET_EMPTY_POWDER_SNOW("minecraft:item.bucket.empty_powder_snow");
 const ResourceLocation ITEM_BUCKET_FILL("minecraft:item.bucket.fill");
 const ResourceLocation ITEM_BUCKET_FILL_FISH("minecraft:item.bucket.fill_fish");
 const ResourceLocation ITEM_BUCKET_FILL_LAVA("minecraft:item.bucket.fill_lava");
+const ResourceLocation ITEM_BUCKET_FILL_POWDER_SNOW("minecraft:item.bucket.fill_powder_snow");
 
 // 工具
 const ResourceLocation ITEM_AXE_STRIP("minecraft:item.axe.strip");

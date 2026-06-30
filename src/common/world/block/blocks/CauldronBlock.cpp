@@ -88,7 +88,7 @@ void CauldronBlock::neighborChanged(
 void CauldronBlock::handlePrecipitation(
     IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation)
 {
-    // 空炼药锅在雨天/雪天接收降水后替换为 WaterCauldronBlock (LayeredCauldronBlock)
+    // 空炼药锅在雨天/雪天接收降水后替换为对应的炼药锅变体
     // 确定降水触发概率：雨天 5%，雪天 10%
     f32 chance = 0.0f;
     if (precipitation == world::biome::BiomeClimate::Precipitation::Rain) {
@@ -106,11 +106,20 @@ void CauldronBlock::handlePrecipitation(
         return;
     }
 
-    // 替换为水炼药锅（水位1）
-    // TODO(_powder_snow_cauldron): 当细雪炼药锅实现后，雪天应替换为 PowderSnowCauldronBlock
-    const BlockState* waterCauldronState = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();
-    world.setBlockState(pos, waterCauldronState, 3);
-    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, waterCauldronState);
+    // 根据降水类型替换为对应的分层炼药锅（水位1）
+    // 参考: MC CauldronBlock.handlePrecipitation
+    if (precipitation == world::biome::BiomeClimate::Precipitation::Rain) {
+        // 雨天 → 水炼药锅
+        const BlockState* waterCauldronState = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();
+        world.setBlockState(pos, waterCauldronState, 3);
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, waterCauldronState);
+    } else if (precipitation == world::biome::BiomeClimate::Precipitation::Snow) {
+        // 雪天 → 细雪炼药锅
+        const BlockState* powderSnowCauldronState =
+            &block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON->defaultState();
+        world.setBlockState(pos, powderSnowCauldronState, 3);
+        world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, powderSnowCauldronState);
+    }
 }
 
 // ========== 交互 ==========
@@ -265,6 +274,40 @@ ActionResultType CauldronBlock::_handleBucketInteraction(
 
             // 触发 FLUID_PLACE 游戏事件
             world.gameEvent(gameevent::GameEvents::FLUID_PLACE, pos, lavaCauldronState);
+
+            // 非创造模式：替换为空桶
+            if (!player.abilities().creativeMode) {
+                heldItem.shrink(1);
+                if (heldItem.isEmpty()) {
+                    heldItem = ItemStack(Items::BUCKET, 1);
+                    player.inventory().setChanged();
+                } else {
+                    ItemStack emptyBucket(Items::BUCKET, 1);
+                    player.inventory().add(emptyBucket);
+                    if (!emptyBucket.isEmpty()) {
+                        ItemDropHelper::spawnItemAtEntity(&player, emptyBucket, 0.5f, world.getRandom());
+                    }
+                }
+            }
+        }
+        return ActionResultType::Success;
+    }
+
+    // 细雪桶：空炼药锅 → 细雪炼药锅（水位3）
+    // 参考: MC CauldronInteraction.fillPowderSnowInteraction
+    if (item == Items::POWDER_SNOW_BUCKET) {
+        if (!world.isClientSide()) {
+            const BlockState* powderSnowCauldronState =
+                &block_registry::BuildingBlocks::POWDER_SNOW_CAULDRON->defaultState().with(
+                    BlockStateProperties::LEVEL_1_3(), 3);
+            world.setBlockState(pos, powderSnowCauldronState, 3);
+            world.playSound(SoundEvents::ITEM_BUCKET_EMPTY_POWDER_SNOW,
+                sound::SoundCategory::Blocks,
+                Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                1.0f,
+                1.0f);
+
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, powderSnowCauldronState);
 
             // 非创造模式：替换为空桶
             if (!player.abilities().creativeMode) {

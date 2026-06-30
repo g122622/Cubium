@@ -56,12 +56,13 @@ namespace blocks {
  * 交互（空炼药锅）：
  * - 水桶 → 替换为 WaterCauldronBlock（水位3）
  * - 岩浆桶 → 替换为 LavaCauldronBlock
+ * - 细雪桶 → 替换为 PowderSnowCauldronBlock（水位3）
  * - 水瓶（水瓶药水）→ 替换为 WaterCauldronBlock（水位1）
  * - 空桶 / 玻璃瓶 / 其他 → Pass（空炼药锅无法取水/清洗）
  *
  * 降水处理：
  * - 雨天：5% 概率替换为 WaterCauldronBlock（水位1）
- * - 雪天：10% 概率替换为 PowderSnowCauldronBlock（水位1，待实现）
+ * - 雪天：10% 概率替换为 PowderSnowCauldronBlock（水位1）
  *
  * 滴石填充：
  * - 水滴 → 替换为 WaterCauldronBlock（水位1）
@@ -94,8 +95,7 @@ public:
      * @brief 降水处理
      *
      * 雨天：5% 概率替换为 WaterCauldronBlock（水位1）
-     * 雪天：10% 概率替换为 WaterCauldronBlock（水位1）
-     *   TODO(_powder_snow_cauldron): 当细雪炼药锅实现后，雪天应替换为 PowderSnowCauldronBlock
+     * 雪天：10% 概率替换为 PowderSnowCauldronBlock（水位1）
      */
     void handlePrecipitation(
         IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation) override;

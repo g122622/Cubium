@@ -44,6 +44,7 @@ struct BuildingBlocks {
     static Block* CAULDRON;
     static Block* WATER_CAULDRON;
     static Block* LAVA_CAULDRON;
+    static Block* POWDER_SNOW_CAULDRON;
     static Block* ENCHANTING_TABLE;
     static Block* CHEST;
     static Block* TRAPPED_CHEST;

@@ -1464,9 +1464,11 @@ extern const ResourceLocation ITEM_ELYTRA_FLYING;
 extern const ResourceLocation ITEM_BUCKET_EMPTY;
 extern const ResourceLocation ITEM_BUCKET_EMPTY_FISH;
 extern const ResourceLocation ITEM_BUCKET_EMPTY_LAVA;
+extern const ResourceLocation ITEM_BUCKET_EMPTY_POWDER_SNOW;
 extern const ResourceLocation ITEM_BUCKET_FILL;
 extern const ResourceLocation ITEM_BUCKET_FILL_FISH;
 extern const ResourceLocation ITEM_BUCKET_FILL_LAVA;
+extern const ResourceLocation ITEM_BUCKET_FILL_POWDER_SNOW;
 
 /// 工具
 extern const ResourceLocation ITEM_AXE_STRIP;

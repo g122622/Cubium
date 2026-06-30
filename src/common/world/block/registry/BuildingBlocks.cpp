@@ -79,6 +79,7 @@ Block* BuildingBlocks::CRAFTING_TABLE = nullptr;
 Block* BuildingBlocks::CAULDRON = nullptr;
 Block* BuildingBlocks::WATER_CAULDRON = nullptr;
 Block* BuildingBlocks::LAVA_CAULDRON = nullptr;
+Block* BuildingBlocks::POWDER_SNOW_CAULDRON = nullptr;
 Block* BuildingBlocks::ENCHANTING_TABLE = nullptr;
 Block* BuildingBlocks::CHEST = nullptr;
 Block* BuildingBlocks::TRAPPED_CHEST = nullptr;
@@ -198,6 +199,15 @@ void registerBuildingBlocks()
     BuildingBlocks::LAVA_CAULDRON =
         &registry.registerBlock<blocks::LavaCauldronBlock>(ResourceLocation("minecraft:lava_cauldron"),
             BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid().lightLevel(15));
+
+    // 细雪炼药锅（分层，水位1-3）
+    // 对应 MC 原版 LayeredCauldronBlock (POWDER_SNOW_CAULDRON)
+    // 降水类型为 Snow，表示细雪炼药锅只在雪天被降水填充
+    // 实体着火进入时会将细雪炼药锅转换为水炼药锅
+    BuildingBlocks::POWDER_SNOW_CAULDRON =
+        &registry.registerBlock<blocks::LayeredCauldronBlock>(ResourceLocation("minecraft:powder_snow_cauldron"),
+            BlockProperties(Material::IRON).hardness(2.0f).resistance(2.0f).notSolid(),
+            world::biome::BiomeClimate::Precipitation::Snow);
 
     // 附魔台
     BuildingBlocks::ENCHANTING_TABLE =

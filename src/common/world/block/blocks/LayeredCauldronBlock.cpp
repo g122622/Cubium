@@ -253,11 +253,20 @@ void LayeredCauldronBlock::onEntityCollision(
     if (entity.isOnFire() && entity.mayInteract(world, pos)) {
         entity.clearFire();
         if (!world.isClientSide()) {
-            // TODO(_powder_snow_cauldron): 当细雪炼药锅实现后，
-            // 如果 m_precipitationType == Snow，灭火时先将细雪炼药锅转换为水炼药锅
-            // （保持相同水位），然后降低水位。
-            // 当前仅支持水炼药锅，直接降低水位即可。
-            lowerFillLevel(world, pos, state);
+            // 参考: MC LayeredCauldronBlock.handleEntityOnFireInside
+            // 细雪炼药锅：着火实体进入时，先将细雪炼药锅转换为水炼药锅（保持相同水位），
+            // 然后通过 lowerFillLevel 降低水位1级。
+            // 水炼药锅：直接降低水位。
+            if (m_precipitationType == world::biome::BiomeClimate::Precipitation::Snow) {
+                // 构造水炼药锅状态（保持相同水位），直接传给 lowerFillLevel 处理
+                i32 level = getLevel(state);
+                BlockState waterCauldronState = block_registry::BuildingBlocks::WATER_CAULDRON->defaultState().with(
+                    BlockStateProperties::LEVEL_1_3(), level);
+                lowerFillLevel(world, pos, waterCauldronState);
+            } else {
+                // 水炼药锅：直接降低水位
+                lowerFillLevel(world, pos, state);
+            }
         }
     }
 }
@@ -361,10 +370,56 @@ ActionResultType LayeredCauldronBlock::_handleBucketInteraction(
 
     i32 currentLevel = getLevel(state);
 
+    // 细雪桶：向炼药锅倒入细雪（水位→3），仅对空炼药锅和细雪炼药锅有效
+    // 参考: MC CauldronInteraction.fillPowderSnowInteraction
+    if (item == Items::POWDER_SNOW_BUCKET) {
+        if (currentLevel < 3 && !world.isClientSide()) {
+            // 细雪桶倒入后：如果当前是细雪炼药锅，增加水位到3；
+            // 如果当前是水炼药锅，细雪桶交互无效（不能向水炼药锅倒细雪）
+            // 参考: MC Java - fillPowderSnowInteraction 仅在 POWDER_SNOW 和 EMPTY 交互图中有注册
+            if (m_precipitationType == world::biome::BiomeClimate::Precipitation::Snow) {
+                setLevel(world, pos, state, 3);
+                world.playSound(SoundEvents::ITEM_BUCKET_EMPTY_POWDER_SNOW,
+                    sound::SoundCategory::Blocks,
+                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                    1.0f,
+                    1.0f);
+
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                    if (heldItem.isEmpty()) {
+                        heldItem = ItemStack(Items::BUCKET, 1);
+                        player.inventory().setChanged();
+                    } else {
+                        ItemStack emptyBucket(Items::BUCKET, 1);
+                        player.inventory().add(emptyBucket);
+                        if (!emptyBucket.isEmpty()) {
+                            ItemDropHelper::spawnItemAtEntity(&player, emptyBucket, 0.5f, world.getRandom());
+                        }
+                    }
+                }
+            }
+            // 水炼药锅（Rain 类型）：细雪桶对水炼药锅无效，不做任何操作
+        }
+        // 细雪桶交互已处理（成功或无效），不再传递给后续处理
+        return ActionResultType::Success;
+    }
+
     // 水桶：装满到水位3（如果未满）
+    // 仅对水炼药锅有效；细雪炼药锅上使用水桶会替换为水炼药锅（水位3）
+    // 参考: MC CauldronInteraction.fillWaterInteraction
     if (item == Items::WATER_BUCKET) {
         if (currentLevel < 3 && !world.isClientSide()) {
-            setLevel(world, pos, state, 3);
+            if (m_precipitationType == world::biome::BiomeClimate::Precipitation::Snow) {
+                // 细雪炼药锅上使用水桶：替换为水炼药锅（水位3）
+                const BlockState* waterCauldronState =
+                    &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState().with(
+                        BlockStateProperties::LEVEL_1_3(), 3);
+                world.setBlockState(pos, waterCauldronState, 3);
+            } else {
+                // 水炼药锅：装满到水位3
+                setLevel(world, pos, state, 3);
+            }
             world.playSound(SoundEvents::ITEM_BUCKET_EMPTY,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
@@ -388,29 +443,86 @@ ActionResultType LayeredCauldronBlock::_handleBucketInteraction(
         return ActionResultType::Success;
     }
 
-    // 空桶：从满的炼药锅取水（仅水位3时可用）
+    // 空桶：从炼药锅取水/取细雪
     if (item == Items::BUCKET) {
         if (currentLevel == 3 && !world.isClientSide()) {
-            // 取水后替换为空炼药锅
-            const BlockState* cauldronState = &block_registry::BuildingBlocks::CAULDRON->defaultState();
-            world.setBlockState(pos, cauldronState, 3);
-            world.playSound(SoundEvents::ITEM_BUCKET_FILL,
+            if (m_precipitationType == world::biome::BiomeClimate::Precipitation::Snow) {
+                // 细雪炼药锅（满）：取出细雪桶，替换为空炼药锅
+                // 参考: MC POWDER_SNOW 交互图中的 BUCKET 条目
+                const BlockState* cauldronState = &block_registry::BuildingBlocks::CAULDRON->defaultState();
+                world.setBlockState(pos, cauldronState, 3);
+                world.playSound(SoundEvents::ITEM_BUCKET_FILL_POWDER_SNOW,
+                    sound::SoundCategory::Blocks,
+                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                    1.0f,
+                    1.0f);
+                world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, cauldronState);
+
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                    if (heldItem.isEmpty()) {
+                        heldItem = ItemStack(Items::POWDER_SNOW_BUCKET, 1);
+                        player.inventory().setChanged();
+                    } else {
+                        ItemStack powderSnowBucket(Items::POWDER_SNOW_BUCKET, 1);
+                        player.inventory().add(powderSnowBucket);
+                        if (!powderSnowBucket.isEmpty()) {
+                            ItemDropHelper::spawnItemAtEntity(&player, powderSnowBucket, 0.5f, world.getRandom());
+                        }
+                    }
+                }
+            } else {
+                // 水炼药锅（满）：取出水桶，替换为空炼药锅
+                const BlockState* cauldronState = &block_registry::BuildingBlocks::CAULDRON->defaultState();
+                world.setBlockState(pos, cauldronState, 3);
+                world.playSound(SoundEvents::ITEM_BUCKET_FILL,
+                    sound::SoundCategory::Blocks,
+                    Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
+                    1.0f,
+                    1.0f);
+                world.gameEvent(gameevent::GameEvents::FLUID_PICKUP, pos, cauldronState);
+
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                    if (heldItem.isEmpty()) {
+                        heldItem = ItemStack(Items::WATER_BUCKET, 1);
+                        player.inventory().setChanged();
+                    } else {
+                        ItemStack waterBucket(Items::WATER_BUCKET, 1);
+                        player.inventory().add(waterBucket);
+                        if (!waterBucket.isEmpty()) {
+                            ItemDropHelper::spawnItemAtEntity(&player, waterBucket, 0.5f, world.getRandom());
+                        }
+                    }
+                }
+            }
+        }
+        return ActionResultType::Success;
+    }
+
+    // 岩浆桶：替换为岩浆炼药锅（所有类型炼药锅通用）
+    // 参考: MC addDefaultInteractions 中所有交互图都注册了 LAVA_BUCKET
+    if (item == Items::LAVA_BUCKET) {
+        if (!world.isClientSide()) {
+            const BlockState* lavaCauldronState = &block_registry::BuildingBlocks::LAVA_CAULDRON->defaultState();
+            world.setBlockState(pos, lavaCauldronState, 3);
+            world.playSound(SoundEvents::ITEM_BUCKET_EMPTY_LAVA,
                 sound::SoundCategory::Blocks,
                 Vector3(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f),
                 1.0f,
                 1.0f);
-            world.gameEvent(gameevent::GameEvents::FLUID_PICKUP, pos, cauldronState);
+            world.gameEvent(gameevent::GameEvents::FLUID_PLACE, pos, lavaCauldronState);
 
             if (!player.abilities().creativeMode) {
                 heldItem.shrink(1);
                 if (heldItem.isEmpty()) {
-                    heldItem = ItemStack(Items::WATER_BUCKET, 1);
+                    heldItem = ItemStack(Items::BUCKET, 1);
                     player.inventory().setChanged();
                 } else {
-                    ItemStack waterBucket(Items::WATER_BUCKET, 1);
-                    player.inventory().add(waterBucket);
-                    if (!waterBucket.isEmpty()) {
-                        ItemDropHelper::spawnItemAtEntity(&player, waterBucket, 0.5f, world.getRandom());
+                    ItemStack emptyBucket(Items::BUCKET, 1);
+                    player.inventory().add(emptyBucket);
+                    if (!emptyBucket.isEmpty()) {
+                        ItemDropHelper::spawnItemAtEntity(&player, emptyBucket, 0.5f, world.getRandom());
                     }
                 }
             }
@@ -426,6 +538,13 @@ ActionResultType LayeredCauldronBlock::_handleBottleInteraction(
 {
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
+        return ActionResultType::Pass;
+    }
+
+    // 细雪炼药锅不支持玻璃瓶和水药瓶交互
+    // 参考: MC Java POWDER_SNOW 交互图中没有注册 GLASS_BOTTLE 和 POTION
+    // 只有水炼药锅（Rain 类型）支持瓶类交互
+    if (m_precipitationType == world::biome::BiomeClimate::Precipitation::Snow) {
         return ActionResultType::Pass;
     }
 
@@ -499,6 +618,12 @@ ActionResultType LayeredCauldronBlock::_handleLeatherArmorCleaning(
 {
     MC_UNUSED(player);
 
+    // 细雪炼药锅不支持皮革盔甲清洗
+    // 参考: MC Java POWDER_SNOW 交互图中没有注册皮革盔甲清洗
+    if (m_precipitationType == world::biome::BiomeClimate::Precipitation::Snow) {
+        return ActionResultType::Pass;
+    }
+
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
         return ActionResultType::Pass;
@@ -530,6 +655,12 @@ ActionResultType LayeredCauldronBlock::_handleBannerCleaning(
     IWorld& world, const BlockPos& pos, const BlockState& state, Player& player, ItemStack& heldItem)
 {
     MC_UNUSED(player);
+
+    // 细雪炼药锅不支持旗帜清洗
+    // 参考: MC Java POWDER_SNOW 交互图中没有注册旗帜清洗
+    if (m_precipitationType == world::biome::BiomeClimate::Precipitation::Snow) {
+        return ActionResultType::Pass;
+    }
 
     const Item* item = heldItem.getItem();
     if (item == nullptr) {
