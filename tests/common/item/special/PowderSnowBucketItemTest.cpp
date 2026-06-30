@@ -34,6 +34,7 @@
 #include "common/world/fluid/FluidRegistry.hpp"
 
 namespace mc {
+using item::PowderSnowBucketItem;
 namespace {
 
 // ============================================================================
@@ -283,7 +284,7 @@ TEST_F(PowderSnowBucketItemTest, EmptyContentsPlacesPowderSnowOnAir)
     // 验证方块已变为细雪
     const BlockState* stateAfter = m_world->getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(stateAfter, nullptr);
-    EXPECT_EQ(stateAfter->blockId(), VanillaBlocks::POWDER_SNOW->id())
+    EXPECT_EQ(stateAfter->blockId(), VanillaBlocks::POWDER_SNOW->blockId())
         << "Block should be PowderSnow after emptyContents";
 }
 
@@ -306,7 +307,7 @@ TEST_F(PowderSnowBucketItemTest, EmptyContentsFailsOnNonAirBlock)
     // 验证方块仍然是石头
     const BlockState* stateAfter = m_world->getBlockState(pos.x, pos.y, pos.z);
     ASSERT_NE(stateAfter, nullptr);
-    EXPECT_EQ(stateAfter->blockId(), VanillaBlocks::STONE->id()) << "Block should still be stone";
+    EXPECT_EQ(stateAfter->blockId(), VanillaBlocks::STONE->blockId()) << "Block should still be stone";
 }
 
 TEST_F(PowderSnowBucketItemTest, EmptyContentsPlaysSound)
