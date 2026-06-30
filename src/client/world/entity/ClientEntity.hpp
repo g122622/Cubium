@@ -665,6 +665,20 @@ public:
     [[nodiscard]] bool isTrusting() const { return m_trusting; }
     void setTrusting(bool trusting) { m_trusting = trusting; }
 
+    // ========== 猫动画状态 ==========
+
+    /**
+     * @brief 猫是否躺下
+     */
+    [[nodiscard]] bool isCatLieDown() const { return m_catLieDown; }
+    void setCatLieDown(bool lying) { m_catLieDown = lying; }
+
+    /**
+     * @brief 猫是否处于放松状态（看向睡眠主人）
+     */
+    [[nodiscard]] bool isCatRelaxStateOne() const { return m_catRelaxStateOne; }
+    void setCatRelaxStateOne(bool relax) { m_catRelaxStateOne = relax; }
+
     // ========== 装备（用于层渲染） ==========
 
     /**
@@ -935,6 +949,10 @@ private:
 
     // 豹猫信任状态
     bool m_trusting = false;
+
+    // 猫动画状态
+    bool m_catLieDown = false;       ///< 猫躺下状态
+    bool m_catRelaxStateOne = false; ///< 猫放松状态
 
     // 装备（用于层渲染）
     std::unique_ptr<ItemStack> m_mainHandItem;

@@ -10,7 +10,7 @@ tag/
 ├── ItemTag.cpp           # 物品标签实现
 ├── ItemTagLoader.hpp     # 物品标签 JSON 加载器（数据包加载）
 ├── ItemTagLoader.cpp     # 物品标签加载器实现
-├── ItemTags.hpp          # 物品标签注册表（FLOWERS、CARPETS、DAMPENS_VIBRATIONS、FIRE_RESISTANT 等）
+├── ItemTags.hpp          # 物品标签注册表（FLOWERS、CARPETS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、SWORDS、AXES、PICKAXES、SHOVELS、HOES、BREAKS_DECORATED_POTS 等）
 ├── ItemTags.cpp          # 内置标签初始化（硬编码默认值）
 └── README.md             # 本文件
 ```

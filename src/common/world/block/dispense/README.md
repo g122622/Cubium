@@ -18,7 +18,8 @@ dispense/
 ```
 DispenseItemBehaviorRegistry
     ├── 持有并管理所有 IDispenseItemBehavior 实例
-    └── 提供 registerBehavior/getBehavior 接口
+    ├── 提供 registerBehavior/getBehavior 接口
+    └── 提供 registerProjectileBehavior 便利方法（自动检测 ProjectileItem 接口）
 
 IDispenseItemBehavior (接口)
     └── DefaultDispenseItemBehavior (基类：物品投掷)
@@ -28,9 +29,30 @@ IDispenseItemBehavior (接口)
         │   ├── FlintAndSteelDispenseBehavior (点火/点燃/引燃TNT，消耗耐久；tntExplodes=false时点燃失败)
         │   ├── BonemealDispenseBehavior (骨粉催熟/水中海草，消耗数量)
         │   └── TNTDispenseBehavior (TNT物品发射，检查tntExplodes规则后生成点燃的TNT实体)
-        ├── ProjectileDispenseBehavior (投掷物发射)
+        ├── ProjectileDispenseBehavior (投掷物发射，通过 ProjectileItem 接口多态创建弹射物)
         └── BoatDispenseBehavior (放置船)
 ```
+
+### ProjectileDispenseBehavior 与 ProjectileItem 接口
+
+`ProjectileDispenseBehavior` 通过 `ProjectileItem` 接口多态地创建和发射弹射物，
+与 MC Java 的 `ProjectileDispenseBehavior` 设计一致。构造函数接收 `const ProjectileItem&`，
+在 `dispense()` 中依次调用：
+
+1. `getDispenseConfig()` — 获取发射参数（power、uncertainty）
+2. `asProjectile()` — 创建弹射物实体
+3. `shoot()` — 设置初速度（某些弹射物如火焰弹覆盖为空操作）
+
+已实现 `ProjectileItem` 接口的物品类：
+- `ArrowItem`（普通箭）、`SpectralArrowItem`（光灵箭）、`TippedArrowItem`（药水箭）
+- `ThrowableItem`（雪球、鸡蛋、末影珍珠、附魔之瓶）
+- `ThrowablePotionItem`（喷溅药水、滞留药水）
+- `FireChargeItem`（火焰弹，shoot() 为空操作）
+- `WindChargeItem`（风弹，shoot() 为空操作）
+- `FireworkRocketItem`（烟花火箭）
+
+注册时使用 `registerProjectileBehavior(*Items::XXX)` 即可自动通过
+`dynamic_cast<const ProjectileItem*>` 检测接口并创建行为。
 
 ## 上下游依赖关系
 
@@ -83,7 +105,7 @@ IDispenseItemBehavior (接口)
 
 2. **速度计算使用高斯扰动**：默认速度参数 `speed=6.0` 不是直接速度，而是用于高斯扰动计算 `gaussian() * 0.0075 * speed`，实际速度由方向偏移和 `baseVelocity` 决定。
 
-3. **ProjectileDispenseBehavior 的工厂函数可能返回 nullptr**：需要在 `dispense()` 中处理创建失败的情况，回退到默认行为。
+3. **ProjectileDispenseBehavior 通过 ProjectileItem 接口创建弹射物**：构造函数接收 `const ProjectileItem&`，在 `dispense()` 中调用 `asProjectile()` 创建实体，然后调用 `shoot()` 设置速度。如果 `asProjectile()` 返回 nullptr，则回退到默认投掷行为。火焰弹和风弹覆盖 `shoot()` 为空操作，因为它们在 `asProjectile()` 中已通过 `setAcceleration()` 设置加速度。
 
 4. **BoatDispenseBehavior 需要检测水体**：不仅检测目标位置，还要检测目标位置下方是否有水，若无水则回退到默认投掷行为。
 

@@ -33,6 +33,7 @@
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/interact/TameableGoals.hpp"
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
+#include "common/entity/ai/goal/goals/special/CatGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -49,12 +50,21 @@
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 
+#include <cmath>
 #include <unordered_map>
 
 namespace mc {
+
+// ============================================================================
+// 静态成员初始化
+// ============================================================================
+
+entity::DataParameter<bool> CatEntity::DATA_LYING_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<bool> CatEntity::DATA_RELAX_STATE_ONE_PARAM = entity::EntityDataManager::createKey<bool>();
 
 // ============================================================================
 // CatTemptGoal 实现
@@ -199,7 +209,10 @@ void CatEntity::registerGoals()
     // 优先级 2: 繁殖（驯服后且成体）
     m_goalSelector.addGoal(2, new entity::ai::goal::BreedGoal(this, 0.8));
 
-    // 优先级 3: 食物诱惑（生鱼用于驯服）
+    // 优先级 3: 在主人身边放松（驯服后，主人睡觉时）
+    m_goalSelector.addGoal(3, new entity::ai::goal::CatRelaxOnOwnerGoal(this, TEMPT_SPEED));
+
+    // 优先级 4: 食物诱惑（生鱼用于驯服）
     // 注意：scaredByMovement = true，猫会被玩家快速移动吓跑
     m_temptGoal = new CatTemptGoal(
         this,
@@ -215,11 +228,14 @@ void CatEntity::registerGoals()
     // 初始时根据驯服状态添加
     _setupTamedAI();
 
-    // 优先级 5: 跟随父母（幼体行为）
-    m_goalSelector.addGoal(5, new entity::ai::goal::FollowParentGoal(this, 1.0));
+    // 优先级 5: 躺在床上（驯服后）
+    m_goalSelector.addGoal(5, new entity::ai::goal::CatLieOnBedGoal(this, 1.1));
 
-    // 优先级 6: 跟随主人（驯服后）
-    m_goalSelector.addGoal(6, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 5.0f, 10.0f, 32.0f));
+    // 优先级 6: 跟随父母（幼体行为）
+    m_goalSelector.addGoal(6, new entity::ai::goal::FollowParentGoal(this, 1.0));
+
+    // 优先级 7: 跟随主人（驯服后）
+    m_goalSelector.addGoal(7, new entity::ai::goal::FollowOwnerGoal(this, 1.0, 5.0f, 10.0f, 32.0f));
 
     // 优先级 10: 避水随机漫步
     m_goalSelector.addGoal(10, new entity::ai::goal::WaterAvoidingRandomWalkingGoal(this, 0.8, 1.0000001E-5f));
@@ -275,6 +291,85 @@ void CatEntity::registerAttributes()
     // 猫的属性
     m_attributes.setBaseValue(entity::attribute::Attributes::MAX_HEALTH, 10.0);
     m_attributes.setBaseValue(entity::attribute::Attributes::MOVEMENT_SPEED, 0.3);
+}
+
+void CatEntity::registerData()
+{
+    // 先调用父类方法注册基础数据参数
+    TameableEntity::registerData();
+
+    // 注册猫特有的数据参数
+    m_dataManager.registerParam(DATA_LYING_PARAM, false);
+    m_dataManager.registerParam(DATA_RELAX_STATE_ONE_PARAM, false);
+}
+
+void CatEntity::tick()
+{
+    // 调用父类 tick
+    TameableEntity::tick();
+
+    // 更新躺下/放松动画
+    _handleLieDown();
+}
+
+void CatEntity::_updateLieDownAmount()
+{
+    // 保存上一 tick 的值（用于插值）
+    m_prevLieDownAmount = m_lieDownAmount;
+    m_prevLieDownAmountTail = m_lieDownAmountTail;
+
+    if (isLieDown()) {
+        m_lieDownAmount = std::min(m_lieDownAmount + LIE_DOWN_AMOUNT_INCREASE, 1.0f);
+        m_lieDownAmountTail = std::min(m_lieDownAmountTail + LIE_DOWN_TAIL_INCREASE, 1.0f);
+    } else {
+        m_lieDownAmount = std::max(m_lieDownAmount - LIE_DOWN_AMOUNT_DECREASE, 0.0f);
+        m_lieDownAmountTail = std::max(m_lieDownAmountTail - LIE_DOWN_TAIL_DECREASE, 0.0f);
+    }
+}
+
+void CatEntity::_updateRelaxStateOneAmount()
+{
+    // 保存上一 tick 的值（用于插值）
+    m_prevRelaxStateOneAmount = m_relaxStateOneAmount;
+
+    if (isRelaxStateOne()) {
+        m_relaxStateOneAmount = std::min(m_relaxStateOneAmount + RELAX_AMOUNT_INCREASE, 1.0f);
+    } else {
+        m_relaxStateOneAmount = std::max(m_relaxStateOneAmount - RELAX_AMOUNT_DECREASE, 0.0f);
+    }
+}
+
+void CatEntity::_handleLieDown()
+{
+    // 躺下或放松时播放呼噜声
+    if ((isLieDown() || isRelaxStateOne()) && ticksExisted() % 5 == 0) {
+        playSound(
+            SoundEvents::ENTITY_CAT_PURR, 1.0f, 0.6f + 0.4f * (getRandom().nextFloat() - getRandom().nextFloat()));
+    }
+
+    // 更新动画进度
+    _updateLieDownAmount();
+    _updateRelaxStateOneAmount();
+
+    // 检查是否躺在睡眠玩家上方
+    m_lyingOnTopOfSleepingPlayer = false;
+    if (isLieDown() && m_world != nullptr) {
+        // 搜索附近2格内的睡眠玩家
+        BlockPos catBlockPos(
+            static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
+        AxisAlignedBB searchBox = boundingBox().grow(2.0f);
+        auto entities = m_world->getEntitiesInAABB(searchBox);
+        for (auto* entity : entities) {
+            if (entity == nullptr) {
+                continue;
+            }
+            auto* player = dynamic_cast<Player*>(entity);
+            if (player != nullptr && player->isSleeping()) {
+                m_lyingOnTopOfSleepingPlayer = true;
+                break;
+            }
+        }
+    }
 }
 
 void CatEntity::onTamed(bool tamed)

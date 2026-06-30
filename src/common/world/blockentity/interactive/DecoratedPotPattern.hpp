@@ -33,7 +33,7 @@ namespace blockentity {
  * @brief 饰纹陶罐图案枚举
  *
  * 定义饰纹陶罐每一面可能显示的图案类型。
- * MC 1.20+ 共有 23 种陶片图案 + 1 种空白（砖块）图案。
+ * 共有 23 种陶片图案 + 1 种空白（砖块）图案。
  * 每种图案对应一个陶片物品，砖块则作为空白面的替代品。
  *
  * 图案 ID 用于：
@@ -41,11 +41,10 @@ namespace blockentity {
  * - 饰纹陶罐方块实体的 NBT 序列化
  * - 客户端渲染纹理查找
  *
- * TODO: 待 DecoratedPotBlockEntity 实现后，需将此枚举与方块实体集成：
- * - 在 DecoratedPotBlockEntity 中存储四面的 DecoratedPotPattern（对应 MC PotDecorations）
- * - 实现 PotterySherdItem/砖块到 DecoratedPotPattern 的映射
- * - 实现 DecoratedPotRecipe（十字形合成：陶片/砖块 -> 饰纹陶罐）
- * - 在 DecoratedPotRenderer 中根据图案查找纹理资源
+ * 已在 DecoratedPotBlockEntity 中集成此枚举：
+ * - PotDecorations 类存储四面的 DecoratedPotPattern（对应 MC PotDecorations）
+ * - getPatternFromItem() 实现 PotterySherdItem/砖块到 DecoratedPotPattern 的映射
+ * - getItemFromPattern() 实现 DecoratedPotPattern 到物品的反向映射
  */
 enum class DecoratedPotPattern : u8 {
     // 空白图案（砖块面）

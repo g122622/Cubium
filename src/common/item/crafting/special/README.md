@@ -24,6 +24,8 @@ src/common/item/crafting/special/
 ├── ShieldDecorationRecipe.cpp
 ├── TippedArrowRecipe.hpp       # 药水箭配方（滞留药水+箭）
 ├── TippedArrowRecipe.cpp
+├── DecoratedPotRecipe.hpp      # 饰纹陶罐配方（十字形：陶片/砖块→陶罐）
+├── DecoratedPotRecipe.cpp
 └── README.md
 ```
 
@@ -50,10 +52,10 @@ src/common/item/crafting/special/
         │                      │                      │
         │                      │                      │
         ▼                      ▼                      ▼
-┌───────────────────┐  ┌───────────────────┐
-│ShieldDecoration   │  │ TippedArrowRecipe │
-│     Recipe        │  │                   │
-└───────────────────┘  └───────────────────┘
+┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
+│ShieldDecoration   │  │ TippedArrowRecipe │  │DecoratedPotRecipe │
+│     Recipe        │  │                   │  │                   │
+└───────────────────┘  └───────────────────┘  └───────────────────┘
 ```
 
 所有特殊配方类都继承自 `SpecialRecipe` 基类，基类提供：
@@ -70,7 +72,9 @@ src/common/item/crafting/special/
 | `item/core/Item.hpp` | 物品类型判断 |
 | `item/core/ItemStack.hpp` | 物品堆操作、NBT 数据 |
 | `item/Items.hpp` | 物品静态引用 |
+| `item/tag/ItemTags.hpp` | 物品标签（DecoratedPotRecipe 使用 DECORATED_POT_INGREDIENTS） |
 | `entity/inventory/CraftingInventory.hpp` | 合成容器接口 |
+| `world/blockentity/interactive/DecoratedPotBlockEntity.hpp` | 饰纹陶罐图案与物品创建（DecoratedPotRecipe） |
 | `util/color/DyeColor.hpp` | 染料颜色枚举（BannerDuplicateRecipe） |
 
 **下游依赖（使用本模块的模块）**:
@@ -99,3 +103,5 @@ src/common/item/crafting/special/
 7. **旗帜图案层数限制**：`BannerDuplicateRecipe` 要求源旗帜图案不超过 6 层。
 
 8. **盾牌装饰前置条件**：`ShieldDecorationRecipe` 要求盾牌无现有图案（无 BlockEntityTag）。
+
+9. **饰纹陶罐十字形匹配**：`DecoratedPotRecipe` 要求 3x3 网格，十字形四个位置（上、左、右、下）必须是 `DECORATED_POT_INGREDIENTS` 标签中的物品，其余五个位置必须为空。物品到图案的映射通过 `getPatternFromItem()` 完成。

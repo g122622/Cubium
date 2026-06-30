@@ -23,6 +23,7 @@
 
 #include "HangingEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/item/ItemEntity.hpp"
@@ -30,11 +31,15 @@
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/redstone/RedstoneSystem.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -286,6 +291,49 @@ void ItemFrameEntity::tick()
     // ItemStack 是值类型，不需要检查存活状态
 }
 
+ActionResultType ItemFrameEntity::processInitialInteract(Player& player, Hand hand)
+{
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        ItemStack& heldItem = player.getHeldItem(hand);
+
+        if (m_displayedItem.isEmpty()) {
+            // 展示框为空：放入玩家手中的物品
+            if (!heldItem.isEmpty()) {
+                setDisplayedItem(heldItem, true);
+                if (!player.abilities().creativeMode) {
+                    heldItem.shrink(1);
+                }
+                m_world->gameEvent(
+                    gameevent::GameEvents::BLOCK_CHANGE, m_hangingPos, gameevent::GameEvent::Context::of(&player));
+                return ActionResultType::Success;
+            }
+        } else if (player.isSneaking()) {
+            // 潜行+右键有物品的展示框：取出物品
+            if (m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::DO_ENTITY_DROPS)) {
+                math::Random& rng = m_world->getRandom();
+                ItemDropHelper::spawnItemEntity(m_world, m_displayedItem, x(), y(), z(), rng);
+            }
+            setDisplayedItem(ItemStack(), true);
+            m_world->gameEvent(
+                gameevent::GameEvents::BLOCK_CHANGE, m_hangingPos, gameevent::GameEvent::Context::of(&player));
+            return ActionResultType::Success;
+        } else {
+            // 右键有物品的展示框（不潜行）：旋转物品
+            setItemRotation(m_rotation + 1, true);
+            m_world->gameEvent(
+                gameevent::GameEvents::BLOCK_CHANGE, m_hangingPos, gameevent::GameEvent::Context::of(&player));
+            return ActionResultType::Success;
+        }
+    }
+
+    // 客户端直接返回成功
+    if (m_world != nullptr && m_world->isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
+}
+
 void ItemFrameEntity::dropItem()
 {
     // 检查游戏规则 doEntityDrops
@@ -308,9 +356,17 @@ void ItemFrameEntity::dropItem()
 
     // 无论 doEntityDrops 是否为 true，都清空展示物品
     m_displayedItem = ItemStack();
+
+    // 展示框内容变化，通知红石比较器更新
+    notifyComparatorUpdate();
+
+    // 触发方块变化游戏事件（幽匿感测体等可感知）
+    if (m_world != nullptr) {
+        m_world->gameEvent(gameevent::GameEvents::BLOCK_CHANGE, m_hangingPos, nullptr);
+    }
 }
 
-void ItemFrameEntity::setDisplayedItem(const ItemStack& stack)
+void ItemFrameEntity::setDisplayedItem(const ItemStack& stack, bool updateComparator)
 {
     if (!stack.isEmpty()) {
         // 复制物品堆并设置数量为1
@@ -321,21 +377,38 @@ void ItemFrameEntity::setDisplayedItem(const ItemStack& stack)
     }
     // 旋转重置为0
     m_rotation = 0;
+
+    if (updateComparator) {
+        notifyComparatorUpdate();
+    }
 }
 
-void ItemFrameEntity::setItemRotation(i32 rotation)
+void ItemFrameEntity::setItemRotation(i32 rotation, bool updateComparator)
 {
     // 旋转值限制在 0-7 范围内
     m_rotation = rotation % 8;
     if (m_rotation < 0) {
         m_rotation += 8;
     }
+
+    if (updateComparator) {
+        notifyComparatorUpdate();
+    }
 }
 
 void ItemFrameEntity::rotateItem()
 {
     // 右键交互时旋转物品
-    m_rotation = (m_rotation + 1) % 8;
+    setItemRotation(m_rotation + 1, true);
+}
+
+void ItemFrameEntity::notifyComparatorUpdate()
+{
+    // 通知悬挂位置周围的红石比较器重新计算输入信号
+    // 物品展示框的内容变化（放入/取出/旋转物品）会影响比较器输出
+    if (m_world != nullptr) {
+        world::redstone::RedstoneSystem::instance().updateComparators(*m_world, m_hangingPos);
+    }
 }
 
 i32 ItemFrameEntity::getAnalogOutput() const
@@ -378,9 +451,136 @@ LeashKnotEntity::LeashKnotEntity(BlockPos pos, Direction direction)
     : HangingEntity(pos, direction)
 {}
 
+LeashKnotEntity* LeashKnotEntity::getOrCreateKnot(IWorld& world, const BlockPos& pos)
+{
+    // 搜索该位置附近是否已有拴绳结实体
+    Vector3 centerPos(pos.x + 0.5f, pos.y + 0.5f, pos.z + 0.5f);
+    auto entities = world.getEntitiesInRange(centerPos, 2.0f);
+
+    for (Entity* entity : entities) {
+        auto* knot = dynamic_cast<LeashKnotEntity*>(entity);
+        if (knot != nullptr && knot->isAlive()) {
+            BlockPos knotHangingPos = knot->getHangingBlockPos();
+            if (knotHangingPos == pos) {
+                return knot;
+            }
+        }
+    }
+
+    // 创建新的拴绳结
+    auto newKnot = std::make_unique<LeashKnotEntity>(pos, HangingEntity::Direction::SOUTH);
+    auto* rawPtr = newKnot.get();
+    EntityId id = world.spawnEntity(std::move(newKnot));
+    if (id == INVALID_ENTITY_ID) {
+        return nullptr;
+    }
+
+    // 播放放置音效
+    rawPtr->playPlacementSound();
+    return rawPtr;
+}
+
+ActionResultType LeashKnotEntity::interact(Player& player, Hand hand)
+{
+    if (m_world != nullptr && !m_world->isClientSide()) {
+        bool transferredToKnot = false;
+        bool transferredToPlayer = false;
+
+        // 将玩家手中拴着的生物转移到栅栏结上
+        ItemStack& heldItem = player.getHeldItem(hand);
+        if (heldItem.getItem() != nullptr && heldItem.getItem() == Items::LEAD) {
+            // 搜索被当前玩家拴住的生物
+            Vector3 centerPos(m_hangingPos.x + 0.5f, m_hangingPos.y + 0.5f, m_hangingPos.z + 0.5f);
+            auto entities = m_world->getEntitiesInRange(centerPos, 16.0f);
+
+            for (Entity* entity : entities) {
+                auto* mob = dynamic_cast<MobEntity*>(entity);
+                if (mob == nullptr || !mob->isAlive()) {
+                    continue;
+                }
+
+                if (!mob->isLeashed()) {
+                    continue;
+                }
+
+                const auto& holderUuid = mob->leashHolderUuid();
+                if (!holderUuid.has_value() || *holderUuid != player.uuid()) {
+                    continue;
+                }
+
+                // 检查距离
+                constexpr f64 MAX_LEASH_DISTANCE = 12.0;
+                Vector3d mobPos(mob->x(), mob->y(), mob->z());
+                Vector3d knotPos(m_hangingPos.x + 0.5, m_hangingPos.y + 0.5, m_hangingPos.z + 0.5);
+                f64 distance = mobPos.distance(knotPos);
+                if (distance > MAX_LEASH_DISTANCE) {
+                    continue;
+                }
+
+                if (!mob->canBeLeashed()) {
+                    continue;
+                }
+
+                // 将生物从拴在玩家身上改为拴在栅栏结上
+                mob->setLeashedToFence(m_hangingPos);
+                attachLeash(mob);
+                transferredToKnot = true;
+            }
+        }
+
+        // 如果没有转移到栅栏结，且玩家不潜行，将栅栏结上的生物取回
+        if (!transferredToKnot && !player.isSneaking()) {
+            for (auto it = m_leashedEntities.begin(); it != m_leashedEntities.end();) {
+                auto* mob = dynamic_cast<MobEntity*>(*it);
+                if (mob != nullptr && mob->isAlive() && mob->canBeLeashed()) {
+                    // 将生物从栅栏结转移到玩家身上
+                    mob->setLeashedToEntity(player.uuid());
+                    it = m_leashedEntities.erase(it);
+                    transferredToPlayer = true;
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+        if (transferredToKnot || transferredToPlayer) {
+            m_world->gameEvent(gameevent::GameEvents::BLOCK_ATTACH, m_hangingPos, nullptr);
+            playSound(SoundEvents::ENTITY_LEASH_KNOT_PLACE, 1.0f, 1.0f);
+            return ActionResultType::Success;
+        }
+    }
+
+    // 客户端直接返回成功
+    if (m_world != nullptr && m_world->isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    return ActionResultType::Pass;
+}
+
+ActionResultType LeashKnotEntity::processInitialInteract(Player& player, Hand hand)
+{
+    return interact(player, hand);
+}
+
 void LeashKnotEntity::tick()
 {
     HangingEntity::tick();
+
+    // 检查栅栏方块是否仍然存在，如果栅栏被破坏则拴绳结也应销毁
+    if (!survives()) {
+        // 将绑定的生物释放回自由状态（不掉落拴绳，因为栅栏被破坏时应掉落）
+        for (Entity* entity : m_leashedEntities) {
+            auto* mob = dynamic_cast<MobEntity*>(entity);
+            if (mob != nullptr && mob->isAlive()) {
+                mob->dropLeash();
+            }
+        }
+        m_leashedEntities.clear();
+        dropItem();
+        remove();
+        return;
+    }
 
     // 检查绑定的实体
     for (auto it = m_leashedEntities.begin(); it != m_leashedEntities.end();) {
@@ -430,6 +630,22 @@ void LeashKnotEntity::detachLeash(Entity* entity)
     auto it = std::find(m_leashedEntities.begin(), m_leashedEntities.end(), entity);
     if (it != m_leashedEntities.end()) {
         m_leashedEntities.erase(it);
+    }
+}
+
+bool LeashKnotEntity::survives() const
+{
+    if (m_world == nullptr) {
+        return false;
+    }
+    const BlockState* state = m_world->getBlockState(m_hangingPos);
+    return state != nullptr && BlockTags::FENCES().contains(*state);
+}
+
+void LeashKnotEntity::playPlacementSound()
+{
+    if (m_world != nullptr) {
+        playSound(SoundEvents::ENTITY_LEASH_KNOT_PLACE, 1.0f, 1.0f);
     }
 }
 

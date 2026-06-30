@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "ElementRotation.hpp"
 #include "client/renderer/trident/entity/model/core/ModelRenderer.hpp"
 #include "client/resource/BlockModelLoader.hpp"
 #include "common/core/Types.hpp"

@@ -6,11 +6,14 @@
 
 ```
 weapon/
-├── ArrowItem.hpp/cpp           # 普通箭矢物品，用于弓和弩的弹药
+├── ArrowItem.hpp/cpp           # 普通箭矢物品，实现 ProjectileItem 接口
 ├── BowItem.hpp/cpp             # 弓物品，可蓄力远程武器
 ├── CrossbowItem.hpp/cpp        # 弩物品，可预装填的远程武器
+├── FireChargeItem.hpp/cpp      # 火焰弹物品，实现 ProjectileItem 接口
+├── FireworkRocketItem.hpp/cpp  # 烟花火箭物品，实现 ProjectileItem 接口
 ├── FishingRodItem.hpp/cpp      # 钓鱼竿物品
 ├── ShieldItem.hpp/cpp          # 盾牌物品，格挡攻击（框架实现）
+├── SpectralArrowItem.hpp/cpp   # 光灵箭物品，继承 ArrowItem
 ├── ThrowableItem.hpp/cpp       # 投掷物品基类（实现 ProjectileItem 接口）
 ├── ThrowableItems.hpp/cpp      # 具体投掷物品（雪球/鸡蛋/末影珍珠/经验瓶）
 ├── TippedArrowItem.hpp/cpp     # 药水箭物品，带药水效果的箭矢
@@ -30,8 +33,17 @@ ThrowableItem (基类，实现 ProjectileItem 接口)
 │   └── 子类需实现 createProjectileEntity()
 └── [ThrowablePotionItem → 见 items/potion/ 模块]
 
-ArrowItem (基类)
-└── TippedArrowItem (继承 ArrowItem)
+ArrowItem (基类，实现 ProjectileItem 接口)
+├── SpectralArrowItem（光灵箭，覆写 asProjectile 创建 SpectralArrowEntity）
+└── TippedArrowItem（药水箭，覆写 asProjectile 应用药水效果）
+
+FireChargeItem (实现 ProjectileItem 接口)
+└── getDispenseConfig() → fireCharge()（power=1.0, uncertainty=6.0）
+└── shoot() 为空操作，asProjectile 中设置加速度
+
+FireworkRocketItem (实现 ProjectileItem 接口)
+└── getDispenseConfig() → fireworkRocket()（power=0.5, uncertainty=1.0）
+└── asProjectile 中设置 FireworkRocketEntity 的烟花数据
 
 BowItem ──────→ AbstractArrowEntity (创建箭矢实体)
 CrossbowItem ─→ AbstractArrowEntity / FireworkRocketEntity
@@ -45,7 +57,7 @@ FishingRodItem → FishingBobberEntity
 - `item/core/` - Item 基类、ItemStack、ActionResult、UseAction、ProjectileItem 接口、ProjectileDispenseConfig
 - `item/tag/ItemTags.hpp` - ARROWS 标签（箭矢检测）
 - `item/enchantment/EnchantmentHelper.hpp` - 附魔查询
-- `entity/projectile/` - AbstractArrowEntity、TridentEntity、FishingBobberEntity、ProjectileItemEntity
+- `entity/projectile/` - AbstractArrowEntity、TridentEntity、FishingBobberEntity、ProjectileItemEntity、SmallFireballEntity、FireworkRocketEntity
 - `entity/Entity.hpp` - LivingEntity、Player
 - `entity/effect/` - EffectInstance（药水箭）
 - `potion/Potion.hpp` - 药水系统（药水箭）
@@ -54,6 +66,7 @@ FishingRodItem → FishingBobberEntity
 
 **被依赖：**
 - `item/Items.hpp` - 注册所有武器物品
+- `world/block/dispense/DispenseItemBehaviorRegistry.cpp` - 通过 ProjectileItem 接口注册发射行为
 - `entity/player/PlayerInventory.hpp` - 弹药查找
 - `entity/player/Player.hpp` - fishingBobber 字段（钓鱼浮标）
 - `tests/common/item/weapon/` - 武器物品测试
@@ -72,21 +85,17 @@ BowItem 通过 `arrow->applyBowEnchantments(shooter)` 将附魔效果委托给 A
 
 弩使用 `Charged` 布尔值存储装填状态，使用 `ChargedProjectiles` 数组存储已装填的弹丸。发射后需要清除这些标签，否则会残留旧数据。
 
-### 3. 三叉戟激流条件
+### 4. 三叉戟激流条件
 
 激流附魔只有在玩家潮湿（水中或雨中）时才能触发投掷。`_isWet()` 方法检测玩家是否在水中或雨中。不在水中时，有激流附魔的三叉戟无法投掷。
 
-### 4. 药水箭不受益于无限附魔
+### 5. ProjectileItem 接口与发射器行为
 
-MC 1.16.5 中，药水箭（TippedArrowItem）总是返回 `isInfinite() = false`，即使玩家拥有无限附魔也会消耗箭矢。只有普通箭受益于无限附魔。
+实现了 `ProjectileItem` 接口的物品（ArrowItem、ThrowableItem、FireChargeItem、WindChargeItem、FireworkRocketItem）会自动被 `DispenseItemBehaviorRegistry::registerProjectileBehavior()` 注册到发射器行为注册表中，无需手动编写 lambda 工厂函数。新增投掷物物品时只需实现 ProjectileItem 接口并在 `initDefaultBehaviors()` 中调用 `registerProjectileBehavior()` 即可。
 
-### 5. 钓鱼竿不重写 getUseDuration/getUseAction
+### 6. FireChargeItem 的 shoot() 为空操作
 
-钓鱼竿是即时使用物品，不重写 `getUseDuration()`（默认返回 0）和 `getUseAction()`（默认返回 NONE）。这与弓/弩/三叉戟不同，它们都有使用动画。
-
-### 6. 盾牌格挡逻辑未完全实现
-
-ShieldItem 目前只有框架实现：`getUseDuration()` 返回 72000，`getUseAction()` 返回 `UseAction::Block`。格挡伤害计算、斧头破盾机制、盾牌修复等功能待完善。
+FireChargeItem 的 `shoot()` 方法被覆写为空操作，因为火焰弹在 `asProjectile()` 中已通过 `setAcceleration()` 设置了加速度。DamagingProjectileEntity 的 tick() 方法每帧将加速度叠加到速度上，如果再调用 shoot() 设置速度会导致速度叠加错误。
 
 ### 7. 投掷物品速度参数
 

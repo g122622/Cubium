@@ -75,6 +75,26 @@ public:
         const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const override;
 
     /**
+     * @brief 创建弹射物实体（发射器使用）
+     *
+     * 重写以在箭矢上应用药水效果。
+     *
+     * @param world 世界引用
+     * @param position 生成位置
+     * @param stack 物品堆（读取药水效果）
+     * @param directionX 发射方向 X 分量
+     * @param directionY 发射方向 Y 分量
+     * @param directionZ 发射方向 Z 分量
+     * @return 创建的弹射物实体
+     */
+    [[nodiscard]] std::unique_ptr<entity::ProjectileEntity> asProjectile(IWorld& world,
+        const Vector3& position,
+        const ItemStack& stack,
+        f32 directionX,
+        f32 directionY,
+        f32 directionZ) const override;
+
+    /**
      * @brief 获取药水类型
      * @param stack 物品堆
      * @return 药水指针，无效返回 nullptr

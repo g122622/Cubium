@@ -382,9 +382,8 @@ LlamaFollowCaravanGoal::LlamaFollowCaravanGoal(LlamaEntity* llama, f32 speed)
 
 bool LlamaFollowCaravanGoal::shouldExecute()
 {
-    // 注意: 当前实现暂时不支持拴绳功能（拴绳系统待实现）
-    // 当前逻辑: 只加入已有商队链的羊驼
-    if (!m_llama || m_llama->isInCaravan()) {
+    // 如果自己被拴绳拴住或已在商队中，不能发起加入商队
+    if (!m_llama || m_llama->isLeashed() || m_llama->isInCaravan()) {
         return false;
     }
 
@@ -393,15 +392,15 @@ bool LlamaFollowCaravanGoal::shouldExecute()
         return false;
     }
 
-    // 搜索附近的羊驼
+    // 搜索附近的羊驼（9 格半径，4 格高度）
     AxisAlignedBB searchBox = m_llama->boundingBox().expand(SEARCH_RADIUS, SEARCH_HEIGHT, SEARCH_RADIUS);
     std::vector<Entity*> entities = world->getEntitiesInAABB(searchBox, m_llama);
 
     LlamaEntity* bestCandidate = nullptr;
     f64 bestDistanceSq = std::numeric_limits<f64>::max();
 
+    // 第一阶段：寻找已在商队中但无尾部的羊驼（商队链末尾的羊驼）
     for (Entity* entity : entities) {
-        // 只检查羊驼类型（普通羊驼和流浪商人羊驼）
         entity::EntityTypeId type = entity->typeId();
         if (type != entity::EntityTypeIdNumber::LLAMA && type != entity::EntityTypeIdNumber::TRADER_LLAMA) {
             continue;
@@ -412,13 +411,34 @@ bool LlamaFollowCaravanGoal::shouldExecute()
             continue;
         }
 
-        f64 distSq = m_llama->distanceSqTo(*otherLlama);
-
-        // 优先级1: 已在商队中但无尾部的羊驼（商队中间/末尾）
         if (otherLlama->isInCaravan() && !otherLlama->hasCaravanTail()) {
+            f64 distSq = m_llama->distanceSqTo(*otherLlama);
             if (distSq < bestDistanceSq) {
                 bestDistanceSq = distSq;
                 bestCandidate = otherLlama;
+            }
+        }
+    }
+
+    // 第二阶段：如果没有找到商队尾部的羊驼，寻找被拴住且无尾部的羊驼
+    if (bestCandidate == nullptr) {
+        for (Entity* entity : entities) {
+            entity::EntityTypeId type = entity->typeId();
+            if (type != entity::EntityTypeIdNumber::LLAMA && type != entity::EntityTypeIdNumber::TRADER_LLAMA) {
+                continue;
+            }
+
+            LlamaEntity* otherLlama = static_cast<LlamaEntity*>(entity);
+            if (!otherLlama->isAlive()) {
+                continue;
+            }
+
+            if (otherLlama->isLeashed() && !otherLlama->hasCaravanTail()) {
+                f64 distSq = m_llama->distanceSqTo(*otherLlama);
+                if (distSq < bestDistanceSq) {
+                    bestDistanceSq = distSq;
+                    bestCandidate = otherLlama;
+                }
             }
         }
     }
@@ -428,13 +448,13 @@ bool LlamaFollowCaravanGoal::shouldExecute()
         return false;
     }
 
-    // 距离太近不加入
+    // 距离太近不加入（< 2 格）
     if (bestDistanceSq < MIN_JOIN_DISTANCE_SQ) {
         return false;
     }
 
-    // 检查商队长度
-    if (!_firstIsLeashed(bestCandidate, 1)) {
+    // 目标羊驼自己没被拴住，且沿商队链递归向上也找不到被拴住的羊驼，则商队无效
+    if (!bestCandidate->isLeashed() && !_firstIsLeashed(bestCandidate, 1)) {
         return false;
     }
 
@@ -502,7 +522,11 @@ void LlamaFollowCaravanGoal::tick()
         return;
     }
 
-    // TODO: 如果被拴在拴绳桩上，不移动（需要拴绳系统支持）
+    // 如果自己被拴在栅栏柱上，不移动跟随商队
+    // C++ 中使用 leashFencePos() 判断：被拴在栅栏时 leashFencePos() 有值
+    if (m_llama->isLeashed() && m_llama->leashFencePos().has_value()) {
+        return;
+    }
 
     LlamaEntity* head = m_llama->getCaravanHead();
     if (!head) {
@@ -544,10 +568,9 @@ void LlamaFollowCaravanGoal::tick()
 
 bool LlamaFollowCaravanGoal::_firstIsLeashed(const LlamaEntity* llama, i32 depth) const
 {
-    // 递归检查商队头领是否被拴绳拴住
-    // 最大递归深度为 8（商队最多 8 只羊驼）
-    // TODO: 当前实现暂不支持拴绳功能，简化为检查商队链长度
-
+    // 递归检查商队链头是否被拴绳拴住
+    // 沿 caravanHead 链向上追溯，直到找到一个被拴住的羊驼（返回 true）
+    // 或到达链的末端/深度超限（返回 false）
     if (depth > MAX_CARAVAN_LENGTH) {
         return false;
     }
@@ -558,13 +581,12 @@ bool LlamaFollowCaravanGoal::_firstIsLeashed(const LlamaEntity* llama, i32 depth
             return false;
         }
 
-        // 简化实现：只要商队链长度不超过最大值就返回 true
-        return _firstIsLeashed(head, depth + 1);
+        // 如果头领被拴住则返回 true，否则继续递归检查头领的上级
+        return head->isLeashed() || _firstIsLeashed(head, depth + 1);
     }
 
-    // 如果是商队链的头部（没有头领），返回 true
-    // 这允许任何羊驼成为商队头领
-    return true;
+    // 不在商队中（到达链的末端），且自身没被拴住，返回 false
+    return false;
 }
 
 // ============================================================================

@@ -69,6 +69,8 @@ struct LeashDelayInfo {
     std::optional<std::string> targetUuid;
     /// 拴绳目标为栅栏柱时，存储栅栏柱坐标
     std::optional<BlockPos> fencePos;
+    /// 延迟绑定的尝试次数（用于超时掉落拴绳）
+    i32 resolveTicks = 0;
 };
 
 /**
@@ -609,9 +611,33 @@ public:
     void setLeashedToFence(const BlockPos& pos);
 
     /**
-     * @brief 解除拴绳绑定
+     * @brief 解除拴绳绑定（不掉落物品）
+     *
+     * 清除拴绳状态但不掉落拴绳物品。
+     * 用于创造模式或拴绳因距离断裂等情况。
      */
     void clearLeash();
+
+    /**
+     * @brief 解除拴绳绑定并掉落拴绳物品
+     *
+     * 清除拴绳状态并在实体位置掉落一个拴绳物品。
+     * 用于生存模式下玩家主动解拴或拴绳因距离断裂。
+     * 如果 doEntityDrops 游戏规则为 false，则不掉落物品。
+     */
+    void dropLeash();
+
+    /**
+     * @brief 实现 tickLeash 拴绳物理
+     *
+     * 每tick执行拴绳物理约束：
+     * - 恢复延迟加载的拴绳数据
+     * - 检查拴绳双方是否存活且可交互
+     * - 距离超过断裂距离时断裂
+     * - 距离超过弹性距离时施加拉力
+     * - 近距离时让实体跟随拴绳持有者
+     */
+    void tickLeash();
 
     // ========== 持久化系统 (Persistence) ==========
 
@@ -736,6 +762,26 @@ public:
     [[nodiscard]] virtual bool canAttackType(entity::EntityTypeId typeId) const;
 
     // ========== 攻击 ==========
+
+    /**
+     * @brief 检查实体是否可以使用非近战武器
+     *
+     * 当实体手持指定物品时，返回 true 表示该物品被视为远程武器，
+     * 近战攻击任务将跳过攻击以允许远程攻击任务接管。
+     *
+     * 默认实现返回 false（大多数生物不使用远程武器）。
+     * 骷髅类实体重写此方法以检查弓等远程武器。
+     *
+     * 对应 MC 原版 Mob.canUseNonMeleeWeapon(ItemStack)。
+     *
+     * @param stack 要检查的物品堆
+     * @return 如果该物品是远程武器且应使用远程攻击则返回 true
+     */
+    [[nodiscard]] virtual bool canUseNonMeleeWeapon(const ItemStack& stack) const
+    {
+        (void)stack;
+        return false;
+    }
 
     /**
      * @brief 作为生物攻击实体

@@ -48,6 +48,7 @@
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
 #include "common/item/items/special/HoneycombItem.hpp"
+#include "common/item/items/special/LeadItem.hpp"
 #include "common/item/items/special/MilkBucketItem.hpp"
 #include "common/item/items/special/MusicDiscItem.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
@@ -72,8 +73,11 @@
 #include "common/item/items/weapon/ArrowItem.hpp"
 #include "common/item/items/weapon/BowItem.hpp"
 #include "common/item/items/weapon/CrossbowItem.hpp"
+#include "common/item/items/weapon/FireChargeItem.hpp"
+#include "common/item/items/weapon/FireworkRocketItem.hpp"
 #include "common/item/items/weapon/FishingRodItem.hpp"
 #include "common/item/items/weapon/ShieldItem.hpp"
+#include "common/item/items/weapon/SpectralArrowItem.hpp"
 #include "common/item/items/weapon/ThrowableItem.hpp"
 #include "common/item/items/weapon/ThrowableItems.hpp"
 #include "common/item/items/weapon/TippedArrowItem.hpp"
@@ -321,6 +325,7 @@ Item* Items::STRING = nullptr;
 Item* Items::FEATHER = nullptr;
 Item* Items::GUNPOWDER = nullptr;
 Item* Items::LEATHER = nullptr;
+Item* Items::RABBIT_HIDE = nullptr;
 Item* Items::SLIME_BALL = nullptr;
 Item* Items::EGG = nullptr;
 Item* Items::SNOWBALL = nullptr;
@@ -1917,6 +1922,8 @@ void Items::_registerMisc()
 
     LEATHER = &registry.registerItem(ResourceLocation("minecraft:leather"), ItemProperties().maxStackSize(64));
 
+    RABBIT_HIDE = &registry.registerItem(ResourceLocation("minecraft:rabbit_hide"), ItemProperties().maxStackSize(64));
+
     SLIME_BALL = &registry.registerItem(ResourceLocation("minecraft:slime_ball"), ItemProperties().maxStackSize(64));
 
     // EGG 已在 registerThrowableItems() 中注册为 EggItem
@@ -1949,13 +1956,14 @@ void Items::_registerMisc()
     NETHER_STAR = &registry.registerItem(
         ResourceLocation("minecraft:nether_star"), ItemProperties().maxStackSize(64).rarity(ItemRarity::Uncommon));
 
-    FIRE_CHARGE = &registry.registerItem(ResourceLocation("minecraft:fire_charge"), ItemProperties().maxStackSize(64));
+    FIRE_CHARGE = &registry.registerItem<item::FireChargeItem>(
+        ResourceLocation("minecraft:fire_charge"), ItemProperties().maxStackSize(64));
 
     FIREWORK_STAR =
         &registry.registerItem(ResourceLocation("minecraft:firework_star"), ItemProperties().maxStackSize(64));
 
-    FIREWORK_ROCKET =
-        &registry.registerItem(ResourceLocation("minecraft:firework_rocket"), ItemProperties().maxStackSize(64));
+    FIREWORK_ROCKET = &registry.registerItem<item::FireworkRocketItem>(
+        ResourceLocation("minecraft:firework_rocket"), ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerDyes()
@@ -2184,7 +2192,7 @@ void Items::_registerWeapons()
 
     // 光灵箭 - 带发光效果（仅创造模式）
     // 参考: new SpectralArrowItem(new Item.Properties().maxStackSize(64))
-    SPECTRAL_ARROW = &registry.registerItem<item::ArrowItem>(
+    SPECTRAL_ARROW = &registry.registerItem<item::SpectralArrowItem>(
         ResourceLocation("minecraft:spectral_arrow"), ItemProperties().maxStackSize(64));
 
     // 药水箭 - 带药水效果
@@ -2525,7 +2533,8 @@ void Items::_registerHangingItems()
     ITEM_FRAME = &registry.registerItem(ResourceLocation("minecraft:item_frame"), ItemProperties().maxStackSize(16));
 
     // 拴绳
-    LEAD = &registry.registerItem(ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(16));
+    LEAD = &registry.registerItem<item::items::LeadItem>(
+        ResourceLocation("minecraft:lead"), ItemProperties().maxStackSize(16));
 }
 
 void Items::_registerSigns()

@@ -124,6 +124,36 @@ TEST_F(LavaCauldronBlockTest, GetCollisionShape_ReturnsValidShape)
     EXPECT_FALSE(shape.isEmpty());
 }
 
+TEST_F(LavaCauldronBlockTest, GetEntityInsideCollisionShape_ReturnsFilledShape)
+{
+    // 岩浆炼药锅返回填充形状（外部形状 ∪ 岩浆内容区域）
+    // 参考 MC 原版: LavaCauldronBlock.getEntityInsideCollisionShape() 返回 FILLED_SHAPE
+    const auto& state = lavaCauldron_->defaultState();
+    const auto& entityInsideShape = lavaCauldron_->getEntityInsideCollisionShape(state);
+    EXPECT_FALSE(entityInsideShape.isEmpty()) << "Lava cauldron entity inside shape should not be empty";
+    EXPECT_FALSE(entityInsideShape.isFullBlock()) << "Lava cauldron entity inside shape should not be full block";
+}
+
+TEST_F(LavaCauldronBlockTest, GetEntityInsideCollisionShape_HasMoreBoxesThanOuterShape)
+{
+    // 填充形状 = 外部形状 ∪ 岩浆内容，碰撞箱数量应比外部形状多
+    const auto& state = lavaCauldron_->defaultState();
+    const auto& outerShape = lavaCauldron_->getShape(state);
+    const auto& entityInsideShape = lavaCauldron_->getEntityInsideCollisionShape(state);
+    EXPECT_GT(entityInsideShape.boxCount(), outerShape.boxCount())
+        << "Filled shape should have more boxes than outer shape (outer + lava inside)";
+}
+
+TEST_F(LavaCauldronBlockTest, GetCollisionShape_IsSameAsOuterShape)
+{
+    // 碰撞形状仅为外部结构，不包含岩浆内容
+    const auto& state = lavaCauldron_->defaultState();
+    const auto& collisionShape = lavaCauldron_->getCollisionShape(state);
+    const auto& outerShape = lavaCauldron_->getShape(state);
+    // 碰撞形状和渲染形状的碰撞箱数量应相同
+    EXPECT_EQ(collisionShape.boxCount(), outerShape.boxCount());
+}
+
 TEST_F(LavaCauldronBlockTest, OnEntityCollision_ApplicableToLivingEntity)
 {
     // 验证 onEntityCollision 方法存在且可调用

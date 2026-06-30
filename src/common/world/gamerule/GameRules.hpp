@@ -157,6 +157,10 @@ extern const BooleanGameRuleKey DO_TILE_DROPS;
 /// 实体是否掉落物品（矿车等）
 extern const BooleanGameRuleKey DO_ENTITY_DROPS;
 
+/// 投射物是否可以破坏方块（如箭矢破坏陶罐、紫颂花等）
+/// 参考 MC Java 的 projectilesCanBreakBlocks 游戏规则，默认 true
+extern const BooleanGameRuleKey PROJECTILES_CAN_BREAK_BLOCKS;
+
 // ============================================================================
 // 更新相关 (Updates)
 // ============================================================================

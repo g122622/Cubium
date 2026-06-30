@@ -2218,6 +2218,13 @@ void ServerWorld::broadcastEntityAnimation(EntityId entityId, u8 animation)
     }
 }
 
+void ServerWorld::broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId)
+{
+    if (m_onBroadcastSetEntityLink) {
+        m_onBroadcastSetEntityLink(entityId, linkedEntityId);
+    }
+}
+
 // ============================================================================
 // 爆炸
 // ============================================================================

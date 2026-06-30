@@ -30,7 +30,7 @@
 #include "../../GoalFlag.hpp"
 #include "../MeleeAttackGoal.hpp"
 #include "../attack/RangedAttackGoals.hpp"
-#include "../special/MoveToLavaGoal.hpp"
+#include "../special/MoveToBlockGoal.hpp"
 
 namespace mc {
 

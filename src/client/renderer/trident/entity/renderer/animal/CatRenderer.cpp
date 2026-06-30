@@ -60,9 +60,12 @@ void CatRenderer::render(Entity& entity, f64 partialTicks)
     bool isChild = cat.isChild();
     auto& model = isChild ? m_modelBaby : m_model;
 
-    // 设置状态
-    // TODO: 从 CatEntity 读取猫动画状态（躺下、放松、睡眠等），目前暂未实现
-    model.setCatAnimState(0.0f, 0.0f, 0.0f);
+    // 设置猫特有动画状态
+    f32 lieDownAmount = cat.getLieDownAmount(static_cast<f32>(partialTicks));
+    f32 relaxStateAmount = cat.getRelaxStateOneAmount(static_cast<f32>(partialTicks));
+    // sleepPoseAmount 使用 lieDownAmount：当猫完全躺下且在睡眠玩家上方时，应用睡眠姿势
+    f32 sleepPoseAmount = (cat.isLieDown() && cat.isLyingOnTopOfSleepingPlayer()) ? lieDownAmount : 0.0f;
+    model.setCatAnimState(lieDownAmount, relaxStateAmount, sleepPoseAmount);
     model.setSitting(cat.isSitting());
 
     // 计算动画参数 - 从 TameableEntity（继承自 AnimalEntity -> LivingEntity）获取

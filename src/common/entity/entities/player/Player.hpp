@@ -262,25 +262,10 @@ public:
     /**
      * @brief 获取监守者警告效果
      *
-     * 对齐 MC Java: ServerPlayer.getWardenSpawnTracker()
      * 用于追踪玩家在深暗之域中被幽匿尖啸体警告的等级和冷却。
      */
     [[nodiscard]] entity::WardenWarningEffect& wardenWarningEffect() { return m_wardenWarningEffect; }
     [[nodiscard]] const entity::WardenWarningEffect& wardenWarningEffect() const { return m_wardenWarningEffect; }
-
-    /**
-     * @brief 递增监守者警告等级
-     *
-     * 当幽匿尖啸体被激活时调用，递增玩家的警告等级并设置冷却。
-     * 对齐 MC Java: WardenSpawnTracker.increaseWarningLevel()
-     *
-     * @param shriekerPos 触发警告的幽匿尖啸体位置
-     */
-    void increaseWardenWarning(const BlockPos& shriekerPos)
-    {
-        m_wardenWarningEffect.setSourcePos(shriekerPos);
-        m_wardenWarningEffect.increaseWarning();
-    }
 
     /**
      * @brief 检查是否是生存模式
@@ -1916,7 +1901,6 @@ private:
     std::optional<EntityId> m_cameraEntityId;
 
     // 幽匿尖啸体警告追踪系统
-    // 对齐 MC Java: ServerPlayer.wardenSpawnTracker (WardenSpawnTracker)
     // 记录玩家在深暗之域中被幽匿尖啸体警告的等级和冷却时间
     entity::WardenWarningEffect m_wardenWarningEffect;
 };

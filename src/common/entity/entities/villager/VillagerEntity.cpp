@@ -27,6 +27,7 @@
 #include "common/entity/ai/brain/schedule/Activity.hpp"
 #include "common/entity/ai/brain/schedule/Schedule.hpp"
 #include "common/entity/ai/brain/sensor/Sensors.hpp"
+#include "common/entity/ai/brain/task/tasks/action/ActionTasks.hpp"     // AttackTask
 #include "common/entity/ai/brain/task/tasks/interact/InteractTasks.hpp" // 用于 Brain 任务注册
 #include "common/entity/ai/brain/task/tasks/movement/MovementTasks.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
@@ -315,6 +316,7 @@ void VillagerEntity::initializeBrain()
     m_brain->registerMemory(MemoryModuleTypes::CANT_REACH_WALK_TARGET_SINCE);
     m_brain->registerMemory(MemoryModuleTypes::HIDING_PLACE);
     m_brain->registerMemory(MemoryModuleTypes::ATTACK_TARGET);
+    m_brain->registerMemory(MemoryModuleTypes::ATTACK_COOLING_DOWN);
     m_brain->registerMemory(MemoryModuleTypes::INTERACTION_TARGET);
 
     // 门交互任务所需的记忆模块
@@ -341,6 +343,7 @@ void VillagerEntity::initializeBrain()
     // 注册核心移动任务 - 所有活动都使用
     using namespace ai::brain::task::movement;
     using namespace ai::brain::task::interact;
+    using namespace ai::brain::task::action;
     using TaskPtr = std::unique_ptr<ai::brain::task::Task<VillagerEntity>>;
 
     // 辅助函数：从 unique_ptr 列表构建 vector
@@ -434,10 +437,11 @@ void VillagerEntity::initializeBrain()
         {},
         {});
 
-    // PRE_RAID / RAID / FIGHT 活动：追逐攻击目标、移动到目标
+    // PRE_RAID / RAID / FIGHT 活动：追逐攻击目标、近战攻击、移动到目标
     m_brain->registerActivity(ai::brain::schedule::Activity::FIGHT,
         0,
         makeTasks(std::make_unique<ChaseTask<VillagerEntity>>(1.0f, 2.0f),
+            std::make_unique<AttackTask<VillagerEntity>>(20),
             std::make_unique<MoveToTargetTask<VillagerEntity>>()),
         {{MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
         {});
@@ -445,6 +449,7 @@ void VillagerEntity::initializeBrain()
     m_brain->registerActivity(ai::brain::schedule::Activity::RAID,
         0,
         makeTasks(std::make_unique<ChaseTask<VillagerEntity>>(1.0f, 2.0f),
+            std::make_unique<AttackTask<VillagerEntity>>(20),
             std::make_unique<MoveToTargetTask<VillagerEntity>>()),
         {{MemoryModuleTypes::ATTACK_TARGET, MemoryModuleStatus::VALUE_PRESENT}},
         {});

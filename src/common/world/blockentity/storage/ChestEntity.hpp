@@ -67,11 +67,27 @@ namespace blockentity {
  * - 继承自 LootableContainerBlockEntity
  * - 结构生成时设置 lootTable 和 lootTableSeed
  * - 玩家首次打开时自动填充物品
+ *
+ * 开关计数:
+ * - 参考 MC ContainerOpenersCounter，每 RECHECK_INTERVAL ticks 重新检查
+ *   附近玩家是否仍在使用此容器，自动修正计数
+ * - 音效在计数从0变为1（打开）或从1变为0（关闭）时触发
+ * - 双箱音效在 RIGHT 箱子侧播放（位于双箱中心位置）
+ * - CONTAINER_OPEN/CONTAINER_CLOSE 游戏事件在计数变化时触发
  */
 class ChestEntity : public LootableContainerBlockEntity {
 public:
     /// 箱子容量（27格）
     static constexpr i32 CHEST_SIZE = 27;
+
+    /// 重新检查打开者的间隔（ticks），参考 MC ContainerOpenersCounter.CHECK_TICK_DELAY
+    static constexpr i32 RECHECK_INTERVAL = 5;
+
+    /// 客户端完整同步间隔（ticks），参考 MC 每 200 ticks 同步一次
+    static constexpr i32 SYNC_INTERVAL = 200;
+
+    /// 玩家访问最大距离（8格），参考 MC isUsableByPlayer 默认距离
+    static constexpr f32 MAX_ACCESS_DISTANCE = 8.0f;
 
     // ========== 构造函数 ==========
 
@@ -201,19 +217,41 @@ protected:
 
     /**
      * @brief 广播打开/关闭事件
+     *
+     * 通知客户端方块实体数据更新，并更新红石邻居和比较器。
+     * 参考 MC ChestBlockEntity.signalOpenCount
+     *
      * @param world 世界引用
      * @param open true=打开, false=关闭
      */
     void broadcastChestState(IWorld& world, bool open);
 
+private:
     /**
-     * @brief 播放音效
+     * @brief 播放开/关音效
+     *
+     * 参考 MC ChestBlockEntity.playSound：
+     * - LEFT 箱子不播放音效（由 RIGHT 箱子统一播放）
+     * - SINGLE 箱子在方块中心播放
+     * - RIGHT 箱子音效位置向 LEFT 方向偏移 0.5 格（双箱中心）
+     * - 音量 0.5，音调随机 0.9~1.0
+     *
      * @param world 世界引用
      * @param open true=打开音效, false=关闭音效
      */
-    void playSound(IWorld& world, bool open);
+    void _playSound(IWorld& world, bool open);
 
-private:
+    /**
+     * @brief 重新检查打开者数量
+     *
+     * 参考 MC ContainerOpenersCounter.recheckOpeners：
+     * 遍历附近玩家，检查哪些玩家仍在使用此容器，
+     * 修正 m_openCount 使其与实际打开者数量一致。
+     *
+     * @param world 世界引用
+     */
+    void _recheckOpeners(IWorld& world);
+
     SimpleInventory m_inventory; ///< 27格物品存储
     f32 m_lidAngle = 0.0f;       ///< 当前盖子角度 (0-1)
     f32 m_prevLidAngle = 0.0f;   ///< 上一帧盖子角度

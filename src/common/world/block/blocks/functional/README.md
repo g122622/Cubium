@@ -79,7 +79,15 @@
 │   └── 充能系统
 ├── TrailsBlocks
 │   ├── ChiseledBookshelfBlock(红石比较器检测)
-│   ├── DecoratedPotBlock(IWaterLoggable)
+│   ├── DecoratedPotBlock(IWaterLoggable, DecoratedPotBlockEntity方块实体)
+│   │   ├── onBlockActivated: 手持物品放入罐中(+1，创造模式不消耗)/空手触发负摇晃动画
+│   │   ├── playerWillDestroy: 手持BREAKS_DECORATED_POTS标签物品(工具/武器)时设为CRACKED状态(精准采集附魔可阻止碎裂)
+│   │   ├── onProjectileHit: 投射物命中时总是设为CRACKED状态并破坏(不受精准采集保护)
+│   │   ├── onBlockRemoved: CRACKED状态掉落4个陶片/砖块物品；非CRACKED状态掉落罐内存储物品(陶罐物品由战利品表处理)
+│   │   ├── getCloneItemStack: 中键选取返回带sherds数据的陶罐物品
+│   │   ├── getComparatorInputOverride: 红石比较器信号输出
+│   │   ├── onBlockActivated: 物品插入后通过RedstoneSystem通知比较器更新
+│   │   └── 摇晃动画(Positive=放入/Negative=空手)触发
 │   ├── BrushableBlock(FallingBlock子类)
 │   └── SnifferEggBlock(randomTick孵化)
 └── 其他工作站方块

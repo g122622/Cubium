@@ -479,6 +479,9 @@ const ResourceLocation BLOCK_SHELF_TAKE_ITEM("minecraft:block.shelf.take_item");
 const ResourceLocation BLOCK_SHELF_SINGLE_SWAP("minecraft:block.shelf.single_swap");
 const ResourceLocation BLOCK_SHELF_MULTI_SWAP("minecraft:block.shelf.multi_swap");
 
+const ResourceLocation BLOCK_DECORATED_POT_INSERT("minecraft:block.decorated_pot.insert");
+const ResourceLocation BLOCK_DECORATED_POT_INSERT_FAIL("minecraft:block.decorated_pot.insert_fail");
+
 const ResourceLocation BLOCK_LANTERN_BREAK("minecraft:block.lantern.break");
 const ResourceLocation BLOCK_LANTERN_FALL("minecraft:block.lantern.fall");
 const ResourceLocation BLOCK_LANTERN_HIT("minecraft:block.lantern.hit");

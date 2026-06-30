@@ -64,11 +64,36 @@ struct ProjectileDispenseConfig {
     static ProjectileDispenseConfig potion() { return {.power = 1.375f, .uncertainty = 3.0f}; }
 
     /**
+     * @brief 构建箭矢配置
+     *
+     * 与默认配置相同（power=1.1, uncertainty=6.0）。
+     * 箭矢发射参数与大多数投掷物一致。
+     */
+    static ProjectileDispenseConfig arrow() { return {.power = 1.1f, .uncertainty = 6.0f}; }
+
+    /**
+     * @brief 构建火焰弹配置
+     *
+     * power = 1.0（较慢），uncertainty = 6.0
+     * 火焰弹不需要设置初速度（shoot() 为空操作），
+     * 在 asProjectile() 中通过 setAcceleration 直接设置加速度。
+     */
+    static ProjectileDispenseConfig fireCharge() { return {.power = 1.0f, .uncertainty = 6.0f}; }
+
+    /**
      * @brief 构建风弹配置
      *
      * power = 1.0, uncertainty = 6.6666665
      */
     static ProjectileDispenseConfig windCharge() { return {.power = 1.0f, .uncertainty = 6.6666665f}; }
+
+    /**
+     * @brief 构建烟花火箭配置
+     *
+     * power = 0.5（较慢），uncertainty = 1.0（较精确）
+     * 烟花火箭速度较慢且散布较小，保证近似垂直上升。
+     */
+    static ProjectileDispenseConfig fireworkRocket() { return {.power = 0.5f, .uncertainty = 1.0f}; }
 };
 
 /**
@@ -80,8 +105,10 @@ struct ProjectileDispenseConfig {
  *
  * 实现类：
  * - ThrowableItem（雪球、鸡蛋、末影珍珠、附魔之瓶、药水等）
+ * - ArrowItem（普通箭、药水箭、光灵箭）
+ * - FireChargeItem（火焰弹）
  * - WindChargeItem（风弹）
- * - 未来可扩展：FireChargeItem（火焰弹）等
+ * - FireworkRocketItem（烟花火箭）
  *
  * 使用方式：
  * @code

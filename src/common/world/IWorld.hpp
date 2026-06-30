@@ -1391,6 +1391,23 @@ public:
         (void)animation;
     }
 
+    // ========== 实体拴绳链接广播 ==========
+
+    /**
+     * @brief 广播实体拴绳链接变更事件
+     *
+     * 向所有追踪该实体的玩家发送 SetEntityLinkPacket，
+     * 用于客户端拴绳绳索的渲染同步。
+     *
+     * @param entityId 被拴实体的ID
+     * @param linkedEntityId 拴绳持有者实体ID（0 表示解除拴绳）
+     */
+    virtual void broadcastSetEntityLink(EntityId entityId, EntityId linkedEntityId)
+    {
+        (void)entityId;
+        (void)linkedEntityId;
+    }
+
     // ========== 睡眠系统 ==========
 
     /**

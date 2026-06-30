@@ -23,43 +23,19 @@
 
 #pragma once
 
-#include "../../../../../core/Types.hpp"
-#include "../../../../../util/math/Vector3.hpp"
-#include "../../../../../world/block/BlockPos.hpp"
-#include "../../Goal.hpp"
-#include "../../GoalFlag.hpp"
+#include "MoveToBlockGoal.hpp"
 
 namespace mc {
 
-// 前向声明
 class CreatureEntity;
-class IWorld;
 
 namespace entity::ai::goal {
 
 // ============================================================================
-// 常量定义
+// MoveToBlockGoal 常量（熔岩相关）
 // ============================================================================
 
-namespace MoveToBlockGoalConstants {
-
-/// 执行延迟基础值（tick）
-constexpr i32 RUN_DELAY_BASE = 200;
-
-/// 执行延迟随机范围（tick）
-constexpr i32 RUN_DELAY_RANGE = 200;
-
-/// 最大超时时间（tick）
-constexpr i32 MAX_TIMEOUT = 1200;
-
-/// 最大停留时间基础值（tick）
-constexpr i32 MAX_STAY_BASE = 1200;
-
-/// 最大停留时间随机范围（tick）
-constexpr i32 MAX_STAY_RANGE = 1200;
-
-/// 默认重新导航间隔（tick）
-constexpr i32 DEFAULT_MOVE_INTERVAL = 40;
+namespace MoveToLavaGoalConstants {
 
 /// 熔岩目标重新导航间隔（tick）
 constexpr i32 LAVA_MOVE_INTERVAL = 20;
@@ -70,103 +46,11 @@ constexpr i32 LAVA_SEARCH_LENGTH = 8;
 /// 熔岩目标垂直搜索范围
 constexpr i32 LAVA_VERTICAL_SEARCH_RANGE = 2;
 
-} // namespace MoveToBlockGoalConstants
+} // namespace MoveToLavaGoalConstants
 
 // ============================================================================
-// 类定义
+// MoveToLavaGoal
 // ============================================================================
-
-/**
- * @brief 移动到方块目标基类
- *
- * 抽象基类，提供在范围内搜索特定方块并导航移动的功能。
- * 子类只需实现 shouldMoveTo() 方法来定义目标方块条件。
- */
-class MoveToBlockGoal : public Goal {
-public:
-    /**
-     * @brief 构造函数
-     * @param creature 拥有此目标的生物
-     * @param speed 移动速度倍率
-     * @param searchLength 水平搜索半径
-     */
-    MoveToBlockGoal(CreatureEntity* creature, f64 speed, i32 searchLength);
-
-    /**
-     * @brief 构造函数（完整版）
-     * @param creature 拥有此目标的生物
-     * @param speed 移动速度倍率
-     * @param searchLength 水平搜索半径
-     * @param verticalSearchRange 垂直搜索范围
-     */
-    MoveToBlockGoal(CreatureEntity* creature, f64 speed, i32 searchLength, i32 verticalSearchRange);
-
-    ~MoveToBlockGoal() override = default;
-
-    [[nodiscard]] bool shouldExecute() override;
-    [[nodiscard]] bool shouldContinueExecuting() override;
-    void startExecuting() override;
-    void resetTask() override;
-    void tick() override;
-
-    /**
-     * @brief 是否应该重新导航
-     * 默认每 40 tick 检查一次
-     */
-    [[nodiscard]] virtual bool shouldMove() const;
-
-    /**
-     * @brief 获取目标位置（默认为方块上方）
-     */
-    [[nodiscard]] virtual BlockPos getTargetPosition() const;
-
-    /**
-     * @brief 获取到达目标的距离阈值（平方）
-     */
-    [[nodiscard]] virtual f64 getTargetDistanceSq() const;
-
-protected:
-    CreatureEntity* m_creature;
-    f64 m_movementSpeed;
-    i32 m_runDelay = 0;          // 执行延迟 (tick)
-    i32 m_timeoutCounter = 0;    // 超时计数器
-    i32 m_maxStayTicks = 0;      // 最大停留时间
-    BlockPos m_destinationBlock; // 目标方块位置
-    bool m_isAboveDestination = false;
-    i32 m_searchLength;            // 水平搜索半径
-    i32 m_verticalSearchRange;     // 垂直搜索范围
-    i32 m_verticalSearchStart = 0; // Y轴搜索起始偏移
-
-    /**
-     * @brief 获取随机执行延迟
-     * 200 + random(200) = 200-400 tick
-     */
-    [[nodiscard]] i32 getRunDelay();
-
-    /**
-     * @brief 移动到目标位置
-     */
-    void moveToTarget();
-
-    /**
-     * @brief 检查是否在目标距离内
-     */
-    [[nodiscard]] bool isWithinDistance(const BlockPos& pos, f64 distSq) const;
-
-    /**
-     * @brief 搜索目标方块
-     * 使用螺旋搜索算法
-     */
-    [[nodiscard]] bool searchForDestination();
-
-    /**
-     * @brief 检查目标方块是否符合条件（子类实现）
-     * @param world 世界引用
-     * @param pos 方块位置
-     * @return 如果该方块是有效目标返回 true
-     */
-    [[nodiscard]] virtual bool shouldMoveTo(IWorld* world, const BlockPos& pos) = 0;
-};
 
 /**
  * @brief 移动到熔岩目标

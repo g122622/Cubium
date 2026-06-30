@@ -26,6 +26,7 @@
 #include "world/blockentity/CraftingTableEntity.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
 #include "world/blockentity/interactive/BeehiveBlockEntity.hpp"
+#include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/interactive/DropperBlockEntity.hpp"
 #include "world/blockentity/interactive/EnchantingTableEntity.hpp"
@@ -192,6 +193,10 @@ void BlockEntityRegistry::registerBuiltinTypes()
     // 注册幽匿尖啸体方块实体
     registerType(BlockEntityType::SculkShrieker,
         [](const BlockPos& pos) { return std::make_unique<blockentity::SculkShriekerBlockEntity>(pos); });
+
+    // 注册饰纹陶罐方块实体
+    registerType(BlockEntityType::DecoratedPot,
+        [](const BlockPos& pos) { return std::make_unique<blockentity::DecoratedPotBlockEntity>(pos); });
 }
 
 std::unique_ptr<BlockEntity> BlockEntityRegistry::create(BlockEntityType type, const BlockPos& pos) const

@@ -191,14 +191,25 @@ public:
     void tick() override;
     void dropItem() override;
 
+    /**
+     * @brief 处理玩家与物品展示框的交互
+     *
+     * 当玩家右键点击物品展示框时：
+     * - 空手/有物品时空展示框：放入物品
+     * - 空手时有物品的展示框：旋转物品
+     * - 潜行时有物品的展示框：取出物品
+     */
+    ActionResultType processInitialInteract(Player& player, Hand hand) override;
+
     [[nodiscard]] i32 getWidth() const override { return 1; }
     [[nodiscard]] i32 getHeight() const override { return 1; }
 
     /**
      * @brief 设置展示的物品
      * @param stack 要展示的物品堆
+     * @param updateComparator 是否通知红石比较器更新（NBT加载时传false，交互时传true）
      */
-    void setDisplayedItem(const ItemStack& stack);
+    void setDisplayedItem(const ItemStack& stack, bool updateComparator = true);
 
     /**
      * @brief 获取展示的物品堆
@@ -214,8 +225,9 @@ public:
     /**
      * @brief 设置物品旋转
      * @param rotation 0-7（每45度一个位置）
+     * @param updateComparator 是否通知红石比较器更新（NBT加载时传false，交互时传true）
      */
-    void setItemRotation(i32 rotation);
+    void setItemRotation(i32 rotation, bool updateComparator = true);
 
     /**
      * @brief 获取物品旋转值
@@ -227,6 +239,14 @@ public:
      * @brief 旋转物品（右键交互时调用）
      */
     void rotateItem();
+
+    /**
+     * @brief 通知悬挂位置周围的红石比较器重新计算输入信号
+     *
+     * 当物品展示框的内容变化（放入/取出/旋转物品）时调用，
+     * 使相邻的红石比较器能够感知到信号变化并更新状态。
+     */
+    void notifyComparatorUpdate();
 
     /**
      * @brief 获取红石比较器模拟输出信号
@@ -288,8 +308,39 @@ public:
     void tick() override;
     void dropItem() override;
 
+    /**
+     * @brief 处理玩家与拴绳结的交互
+     *
+     * 当玩家右键点击拴绳结时，委派给 interact() 方法处理拴绳转移逻辑。
+     */
+    ActionResultType processInitialInteract(Player& player, Hand hand) override;
+
     [[nodiscard]] i32 getWidth() const override { return 1; }
     [[nodiscard]] i32 getHeight() const override { return 1; }
+
+    /**
+     * @brief 获取或创建指定栅栏位置的拴绳结
+     *
+     * 如果该位置已有拴绳结实体则复用，否则创建新的。
+     *
+     * @param world 世界实例
+     * @param pos 栅栏方块位置
+     * @return 拴绳结实体指针，失败返回 nullptr
+     */
+    static LeashKnotEntity* getOrCreateKnot(IWorld& world, const BlockPos& pos);
+
+    /**
+     * @brief 玩家与拴绳结交互
+     *
+     * 玩家右键拴绳结时的交互逻辑：
+     * - 玩家手持拴绳且有拴住的生物：将生物转移到栅栏结上
+     * - 玩家没有拴住的生物且不潜行：将栅栏结上的生物取回（拴到玩家身上）
+     *
+     * @param player 交互的玩家
+     * @param hand 使用的手
+     * @return 交互结果
+     */
+    ActionResultType interact(Player& player, Hand hand);
 
     /**
      * @brief 绑定拴绳
@@ -305,6 +356,18 @@ public:
      * @brief 获取所有绑定的实体
      */
     [[nodiscard]] const std::vector<Entity*>& getLeashedEntities() const { return m_leashedEntities; }
+
+    /**
+     * @brief 检查栅栏是否还在
+     *
+     * 拴绳结只存在于栅栏方块上方，如果栅栏被破坏则拴绳结也应销毁。
+     */
+    [[nodiscard]] bool survives() const;
+
+    /**
+     * @brief 播放放置音效
+     */
+    void playPlacementSound();
 
 private:
     std::vector<Entity*> m_leashedEntities;

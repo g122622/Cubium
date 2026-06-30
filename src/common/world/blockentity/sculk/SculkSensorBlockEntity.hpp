@@ -102,7 +102,6 @@ private:
     gameevent::VibrationSystem::Data m_vibrationData;
 
     /// 最后接收的振动频率（0-15），用于红石信号输出
-    /// 对齐 MC 原版 SculkSensorBlockEntity.lastVibrationFrequency
     i32 m_lastVibrationFrequency = 0;
 };
 

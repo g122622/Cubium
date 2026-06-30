@@ -521,12 +521,20 @@
 
         ## #doBlockCollisions() — 遍历碰撞箱内所有方块
 
-        遍历实体碰撞箱覆盖的所有方块，对每个非空气方块调用：
-        1. `Block::onEntityCollision()` — 方块对实体的碰撞回调（仙人掌伤害、蜘蛛网减速等）
-        2. `Entity::onInsideBlock()` — 实体 "在方块内部"的回调（传送门检测等） 3. 自定义方块组件 `onEntity` 事件派发
+        遍历实体碰撞箱覆盖的所有方块，对每个非空气方块进行**形状感知检测**：
+
+        1. 获取方块的 `getEntityInsideCollisionShape()` 返回形状
+        2. 如果形状为 `fullCube()`（快速路径），视为实体在方块内部
+        3. 如果形状非空，检查实体 AABB 与方块形状（偏移到世界坐标后）是否相交
+        4. 相交时调用：
+           - `Block::onEntityCollision()` — 方块对实体的碰撞回调（仙人掌伤害、蜘蛛网减速、炼药锅灭火等）
+           - `Entity::onInsideBlock()` — 实体"在方块内部"的回调（传送门检测等）
+           - 自定义方块组件 `onEntity` 事件派发
 
         对应 MC 原版 `Entity.checkInsideBlocks()`，由 `LivingEntity.aiStep()` 中的
     `applyEffectsFromBlocks()` 调用。
+
+        * *形状感知检测 * *：使用 `getEntityInsideCollisionShape()` 而非简单 AABB-vs-网格位置判断，确保空心方块（如炼药锅）只在实体实际进入内容区域时触发 `onEntityCollision`。大多数方块返回 `fullCube()`，走快速路径无额外开销。炼药锅返回外部壁∪内容区域的填充形状，岩浆炼药锅返回外部壁∪岩浆内容形状。
 
         * *调用位置 * *： - `LivingEntity::aiStep()` — 在 `travel()` 之后调用，所有 LivingEntity 子类自动继承
     - `Entity::moveWithCollision()` noClip 路径 — 即使 noClip = true 也要触发碰撞
@@ -538,7 +546,7 @@
     | 对 LivingEntity 造成 1.0 伤害 | | WebBlock | onEntityCollision | 水平速度 ×0.25，垂直速度 ×0.05 |
     | SweetBerryBushBlock | onEntityCollision | 伤害 + 减速（非潜行时） | | BubbleColumnBlock | onEntityCollision
     | 上推 / 下拉 Y 速度，重置摔落距离 | | NetherPortalBlock | onEntityCollision | 设置传送门状态 | | FireBlock
-    | onEntityCollision | 点燃实体 | | HoneyBlock | onEntityCollision | 水平速度 ×0.4，下滑减速 |
+    | onEntityCollision | 点燃实体 | | HoneyBlock | onEntityCollision | 水平速度 ×0.4，下滑减速 | | CauldronBlock | onEntityCollision | 灭火并降低水位（有水时） | | LavaCauldronBlock | onEntityCollision | 基类行为：点燃+岩浆伤害（始终满） |
 
     ## #doBlockCollisionsAfterMove() — 移动后触发的方块回调
 

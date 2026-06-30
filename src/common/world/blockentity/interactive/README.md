@@ -8,6 +8,7 @@
 ├── BannerEntity.hpp / cpp #旗帜方块实体（图案存储、最多6层）
 ├── BannerPattern.hpp / cpp #旗帜图案类型定义
 ├── DecoratedPotPattern.hpp / cpp #饰纹陶罐图案类型定义（24种图案：Blank+20考古学+3试炼密室）
+├── DecoratedPotBlockEntity.hpp / cpp #饰纹陶罐方块实体（四面图案PotDecorations、1格物品容器、摇晃动画、比较器信号）
 ├── BeehiveBlockEntity.hpp / cpp #蜂巢方块实体（蜜蜂存储、蜂蜜等级管理）
 ├── DispenserBlockEntity.hpp / cpp #发射器方块实体基类（9格存储、战利品表填充）
 ├── DropperBlockEntity.hpp / cpp #投掷器方块实体（继承DispenserBlockEntity）

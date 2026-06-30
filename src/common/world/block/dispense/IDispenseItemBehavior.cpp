@@ -34,6 +34,7 @@
 #include "../../../entity/entities/vehicle/BoatEntity.hpp"
 #include "../../../entity/inventory/IInventory.hpp"
 #include "../../../item/Items.hpp"
+#include "../../../item/core/ProjectileItem.hpp"
 #include "../../../item/items/special/BoneMealItem.hpp"
 #include "../../../item/items/special/BucketItem.hpp"
 #include "../../../item/items/special/FlintAndSteelItem.hpp"
@@ -282,13 +283,8 @@ void OptionalDispenseItemBehavior::_spawnParticles(IWorld& world, const BlockPos
 // ProjectileDispenseBehavior
 // ============================================================================
 
-ProjectileDispenseBehavior::ProjectileDispenseBehavior(
-    std::function<std::unique_ptr<mc::Entity>(IWorld&, const Vector3&, const ItemStack&)> createProjectile,
-    f32 velocity,
-    f32 inaccuracy)
-    : m_createProjectile(std::move(createProjectile))
-    , m_velocity(velocity)
-    , m_inaccuracy(inaccuracy)
+ProjectileDispenseBehavior::ProjectileDispenseBehavior(const item::ProjectileItem& projectileItem)
+    : m_projectileItem(projectileItem)
 {}
 
 ItemStack ProjectileDispenseBehavior::dispense(
@@ -301,29 +297,25 @@ ItemStack ProjectileDispenseBehavior::dispense(
     // 计算发射位置
     Vector3 dispensePos = getDispensePosition(pos, direction);
 
-    // 创建投掷物实体
-    std::unique_ptr<mc::Entity> projectile = m_createProjectile(world, dispensePos, stack);
+    // 从 ProjectileItem 接口获取发射配置
+    auto config = m_projectileItem.getDispenseConfig();
+    f32 dirX = static_cast<f32>(Directions::xOffset(direction));
+    f32 dirY = static_cast<f32>(Directions::yOffset(direction));
+    f32 dirZ = static_cast<f32>(Directions::zOffset(direction));
+
+    // 通过 ProjectileItem 接口创建弹射物实体
+    std::unique_ptr<entity::ProjectileEntity> projectile =
+        m_projectileItem.asProjectile(world, dispensePos, stack, dirX, dirY + 0.1f, dirZ);
     if (!projectile) {
         // 创建失败，使用默认行为
         return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
     }
 
-    // 设置投掷物的位置
+    // 设置弹射物位置
     projectile->setPosition(dispensePos.x, dispensePos.y, dispensePos.z);
 
-    // 转换为 ProjectileEntity 指针
-    entity::ProjectileEntity* projectileEntity = dynamic_cast<entity::ProjectileEntity*>(projectile.get());
-    if (!projectileEntity) {
-        // 不是投掷物，使用默认行为
-        return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
-    }
-
-    // 设置发射方向和速度，Y方向额外+0.1使投掷物稍向上
-    projectileEntity->shoot(static_cast<f32>(Directions::xOffset(direction)),
-        static_cast<f32>(Directions::yOffset(direction)) + 0.1f,
-        static_cast<f32>(Directions::zOffset(direction)),
-        m_velocity,
-        m_inaccuracy);
+    // 通过 ProjectileItem 接口发射弹射物
+    m_projectileItem.shoot(*projectile, dirX, dirY + 0.1f, dirZ, config.power, config.uncertainty);
 
     // 添加到世界
     world.spawnEntity(std::move(projectile));

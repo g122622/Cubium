@@ -474,11 +474,6 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         return;
     }
 
-    // TODO: 元素旋转（ModelRotation）尚未处理。当 element.rotation.angle != 0 时，
-    // 顶点位置需要绕旋转轴旋转。当前实现仅支持无旋转的元素，对于带旋转的元素
-    // （如活塞臂、楼梯转角等）会渲染不正确。需要参考 MC 的 FaceBakery.bakeQuad()
-    // 实现旋转矩阵应用到元素顶点。
-
     f64 scale = ITEM_SCALE;
 
     for (const auto& element : model.elements) {
@@ -488,6 +483,13 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
         f64 x2 = element.to.x * scale;
         f64 y2 = element.to.y * scale;
         f64 z2 = element.to.z * scale;
+
+        // 构建元素旋转矩阵（若有旋转），参考 MC FaceBakery.bakeQuad()
+        bool hasRotation = !element.rotation.isIdentity();
+        glm::mat4 rotationMatrix = glm::mat4(1.0f);
+        if (hasRotation) {
+            rotationMatrix = buildElementRotationMatrix(element.rotation, scale);
+        }
 
         // 为每个面生成顶点
         for (const auto& [dir, face] : element.faces) {
@@ -534,16 +536,29 @@ void ItemMeshBuilder::_buildBlockItemMesh(const resource::BakedItemModel& model,
                     continue;
             }
 
-            // 添加顶点
+            // 应用元素旋转到顶点位置
+            if (hasRotation) {
+                for (auto& corner : corners) {
+                    glm::vec4 pos(corner, 1.0f);
+                    pos = rotationMatrix * pos;
+                    corner = glm::vec3(pos);
+                }
+            }
+
+            // 旋转后重算法线（参考 MC FaceBakery.calculateFacing()）
+            if (hasRotation) {
+                glm::vec3 edge1 = corners[1] - corners[0];
+                glm::vec3 edge2 = corners[2] - corners[0];
+                normal = glm::normalize(glm::cross(edge1, edge2));
+            }
+
+            // 添加顶点，使用UV旋转排列
             u32 faceBase = static_cast<u32>(vertices.size());
-            vertices.push_back(
-                model::ModelVertex(corners[0].x, corners[0].y, corners[0].z, u0, v1, normal.x, normal.y, normal.z));
-            vertices.push_back(
-                model::ModelVertex(corners[1].x, corners[1].y, corners[1].z, u1, v1, normal.x, normal.y, normal.z));
-            vertices.push_back(
-                model::ModelVertex(corners[2].x, corners[2].y, corners[2].z, u1, v0, normal.x, normal.y, normal.z));
-            vertices.push_back(
-                model::ModelVertex(corners[3].x, corners[3].y, corners[3].z, u0, v0, normal.x, normal.y, normal.z));
+            for (int i = 0; i < 4; ++i) {
+                auto [u, v] = getRotatedUV(i, face.uv.rotation, u0, v0, u1, v1);
+                vertices.push_back(
+                    model::ModelVertex(corners[i].x, corners[i].y, corners[i].z, u, v, normal.x, normal.y, normal.z));
+            }
 
             // 添加索引
             indices.push_back(faceBase + 0);

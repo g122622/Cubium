@@ -669,3 +669,23 @@ Block& block = state->getBlockMutable();
 
 ### WALL_POST_OVERRIDE 标签
 `BlockTags::WALL_POST_OVERRIDE()` 包含放置在墙上时强制显示墙柱的方块：火把、灵魂火把、红石火把、绊线、告示牌（站立/墙面所有变体）、旗帜（站立/墙面所有颜色）、压力板（木质/石质/铜质/金质/铁质所有变体）。用于 WallBlock 的 `_shouldRaisePost()` 判断——当直线 Tall 墙上方有 WALL_POST_OVERRIDE 标签方块时，强制升起墙柱（UP=true）。
+
+                    ## #34. getEntityInsideCollisionShape 实体内部碰撞形状
+
+`Block::getEntityInsideCollisionShape(const BlockState&)` 是虚方法，返回方块用于实体内部碰撞检测的形状。对应 MC 原版 `BlockBehaviour.getEntityInsideCollisionShape()`。
+
+**默认行为**：基类返回 `VoxelShapes::fullCube()`（完整方块），与 MC 原版 `Shapes.block()` 一致。大多数方块不需要重写此方法。
+
+**重写方块**：
+| 方块 | 返回形状 | 说明 |
+|------|----------|------|
+| CauldronBlock | 水位0: `fullCube()`; 水位1-3: `m_filledShapes[level-1]` | 空炼药锅返回完整方块（继承默认），有水时返回外部形状∪内容区域 |
+| LavaCauldronBlock | `m_filledShape` | 外部形状∪岩浆内容区域，始终满 |
+
+**与 getCollisionShape 的区别**：
+- `getCollisionShape()`：物理碰撞形状（实体推动、站立），炼药锅返回仅外部壁的形状
+- `getEntityInsideCollisionShape()`：实体内部检测形状，决定实体何时被视为"在方块内部"以触发 `onEntityCollision` 回调
+
+**调用位置**：`Entity::doBlockCollisions()` 使用此形状替代简单 AABB-vs-网格位置检测，实现形状感知的实体碰撞检测。只有实体 AABB 与方块的 `getEntityInsideCollisionShape` 返回形状相交时，才会调用 `onEntityCollision`。
+
+**重要**：空炼药锅（水位0）返回 `fullCube()` 是 MC 原版行为——`AbstractCauldronBlock` 不重写 `getEntityInsideCollisionShape`，因此继承 `Shapes.block()`。这意味着实体只要在空炼药锅的方块格子内就会触发 `onEntityCollision`，但 `CauldronBlock::onEntityCollision` 内部检查水位为0时直接返回，所以空炼药锅不会灭火。

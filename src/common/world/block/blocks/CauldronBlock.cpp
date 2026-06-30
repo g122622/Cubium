@@ -91,28 +91,43 @@ CauldronBlock::CauldronBlock(const BlockProperties& properties)
     m_outerShape = CollisionShape::combine(m_outerShape, eastWall, CollisionShape::CombineOp::OR);
 
     // 内容形状（水位）
-    // 水从底部3像素开始，最高到顶部边缘
-    // 0: 空
-    // 1: 1/3满 (高度约3像素)
-    // 2: 2/3满 (高度约6像素)
-    // 3: 满 (高度约9像素)
-    f32 innerMinY = 3.0f / 16.0f;
-    f32 innerMaxX1 = 2.0f / 16.0f;
-    f32 innerMaxX2 = 14.0f / 16.0f;
-    f32 innerMaxZ1 = 2.0f / 16.0f;
-    f32 innerMaxZ2 = 14.0f / 16.0f;
+    // 参考 MC 原版 LayeredCauldronBlock:
+    //   BASE_CONTENT_HEIGHT = 6, HEIGHT_PER_LEVEL = 3
+    //   getPixelContentHeight(level) = 6.0 + level * 3.0
+    //   水位1: 6 + 1*3 = 9像素  (0.5625)
+    //   水位2: 6 + 2*3 = 12像素 (0.75)
+    //   水位3: 6 + 3*3 = 15像素 (0.9375)
+    //
+    // 内部区域: x=2..14, z=2..14 (12像素宽), y从4像素(=3/16)开始
+    // Block.column(12, 4, contentHeight) = box(2, 4, 2, 14, contentHeight, 14)
+    constexpr f32 innerMinY = 4.0f / 16.0f;
+    constexpr f32 innerX1 = 2.0f / 16.0f;
+    constexpr f32 innerX2 = 14.0f / 16.0f;
+    constexpr f32 innerZ1 = 2.0f / 16.0f;
+    constexpr f32 innerZ2 = 14.0f / 16.0f;
 
     // 水位0：空
     m_contentShapes[0] = VoxelShapes::empty();
 
-    // 水位1：约3像素高
-    m_contentShapes[1] = VoxelShapes::cube(innerMaxX1, innerMinY, innerMaxZ1, innerMaxX2, innerMinY + 0.2f, innerMaxZ2);
+    // 水位1：9像素高 (6 + 1*3 = 9, 即 9/16 = 0.5625)
+    constexpr f32 contentHeight1 = 9.0f / 16.0f;
+    m_contentShapes[1] = VoxelShapes::cube(innerX1, innerMinY, innerZ1, innerX2, contentHeight1, innerZ2);
 
-    // 水位2：约6像素高
-    m_contentShapes[2] = VoxelShapes::cube(innerMaxX1, innerMinY, innerMaxZ1, innerMaxX2, innerMinY + 0.4f, innerMaxZ2);
+    // 水位2：12像素高 (6 + 2*3 = 12, 即 12/16 = 0.75)
+    constexpr f32 contentHeight2 = 12.0f / 16.0f;
+    m_contentShapes[2] = VoxelShapes::cube(innerX1, innerMinY, innerZ1, innerX2, contentHeight2, innerZ2);
 
-    // 水位3：约9像素高
-    m_contentShapes[3] = VoxelShapes::cube(innerMaxX1, innerMinY, innerMaxZ1, innerMaxX2, innerMinY + 0.6f, innerMaxZ2);
+    // 水位3：15像素高 (6 + 3*3 = 15, 即 15/16 = 0.9375)
+    constexpr f32 contentHeight3 = 15.0f / 16.0f;
+    m_contentShapes[3] = VoxelShapes::cube(innerX1, innerMinY, innerZ1, innerX2, contentHeight3, innerZ2);
+
+    // 填充形状（外部形状 ∪ 内容形状），用于实体内部碰撞检测
+    // 参考 MC 原版: LayeredCauldronBlock.FILLED_SHAPES[level - 1]
+    //   FILLED_SHAPES[i] = Shapes.or(SHAPE, Block.column(12, 4, contentHeight))
+    for (i32 i = 0; i < 3; ++i) {
+        m_filledShapes[i] =
+            CollisionShape::combine(m_outerShape, m_contentShapes[i + 1], CollisionShape::CombineOp::OR);
+    }
 }
 
 // ========== 放置和更新 ==========
@@ -236,6 +251,41 @@ const CollisionShape& CauldronBlock::getContentShape(i32 level) const
         return VoxelShapes::empty();
     }
     return m_contentShapes[static_cast<size_t>(level)];
+}
+
+const CollisionShape& CauldronBlock::getEntityInsideCollisionShape(const BlockState& state) const
+{
+    i32 level = getLevel(state);
+    if (level <= 0) {
+        // 空炼药锅：继承默认行为，返回完整方块形状
+        // MC 原版中空炼药锅 (CauldronBlock) 继承 AbstractCauldronBlock 的默认行为，
+        // 即 getEntityInsideCollisionShape 返回 Shapes.block()
+        return VoxelShapes::fullCube();
+    }
+    // 有水时返回与水位对应的填充形状
+    // 参考 MC 原版: LayeredCauldronBlock.FILLED_SHAPES[level - 1]
+    return m_filledShapes[static_cast<size_t>(level - 1)];
+}
+
+// ========== 实体碰撞 ==========
+
+void CauldronBlock::onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    i32 level = getLevel(state);
+    if (level <= 0) {
+        // 空炼药锅，无实体碰撞效果
+        return;
+    }
+
+    // 有水的炼药锅：着火的实体会被灭火，同时水位降低1级
+    // 参考 MC 原版: LayeredCauldronBlock#entityInside
+    if (entity.isOnFire() && entity.mayInteract(world, pos)) {
+        // 灭火并降低水位
+        entity.clearFire();
+        if (!world.isClientSide()) {
+            setLevel(world, pos, state, level - 1);
+        }
+    }
 }
 
 // ========== 红石 ==========

@@ -12,12 +12,11 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -33,6 +32,7 @@ namespace item {
 
 ArrowItem::ArrowItem(const ItemProperties& properties)
     : Item(properties)
+    , ProjectileItem()
 {}
 
 entity::AbstractArrowEntity* ArrowItem::createArrow(IWorld& world, const ItemStack& stack, LivingEntity& shooter) const
@@ -66,6 +66,31 @@ bool ArrowItem::isInfinite(const ItemStack& arrowStack, const ItemStack& bowStac
     // 光灵箭和药水箭需要子类重写此方法返回false
     (void)arrowStack; // 普通箭不检查物品堆类型
     return true;
+}
+
+std::unique_ptr<entity::ProjectileEntity> ArrowItem::asProjectile(IWorld& world,
+    const Vector3& position,
+    const ItemStack& /*stack*/,
+    f32 /*directionX*/,
+    f32 /*directionY*/,
+    f32 /*directionZ*/) const
+{
+    auto entity = entity::ArrowEntity::create(&world);
+    if (entity) {
+        entity->setPosition(position.x, position.y, position.z);
+        // 发射器发射的箭矢允许被玩家拾取
+        auto* arrow = dynamic_cast<entity::ArrowEntity*>(entity.get());
+        if (arrow) {
+            arrow->setPickupStatus(entity::PickupStatus::Allowed);
+        }
+    }
+    // ArrowEntity 继承自 ProjectileEntity，安全的 unique_ptr 转换
+    return std::unique_ptr<entity::ProjectileEntity>(static_cast<entity::ProjectileEntity*>(entity.release()));
+}
+
+ProjectileDispenseConfig ArrowItem::getDispenseConfig() const
+{
+    return ProjectileDispenseConfig::arrow();
 }
 
 } // namespace item

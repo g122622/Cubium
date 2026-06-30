@@ -77,6 +77,6 @@ static const CollisionShape& getBottomShape() {
 
 `getFaceShape(Direction)` 用于光照系统判断光线是否穿过相邻方块边界。边界检查使用 `EPSILON = 1.0e-7f` 容差（单精度浮点）。如果形状未延伸到指定面的边界，返回空形状。
 
-### 6. coversFullBlock 的扫描线算法局限
+### 6. coversFullBlock 使用 VoxelShape 布尔运算
 
-`coversFullBlock()` 使用扫描线算法检查所有碰撞箱的并集是否覆盖 [0,1]×[0,1] 区域。当前实现对每个 X 区间独立检查 Y 轴和 Z 轴的一维覆盖，对于多碰撞箱 L 形对角互补情形可能误判为完全覆盖。MC 原版使用 VoxelShape 布尔运算精确判断，未来应迁移到 VoxelShape 系统实现。实际场景中方块碰撞箱极少出现这种 L 形互补排列，此简化足够正确。
+`coversFullBlock()` 通过将 `CollisionShape` 转换为 `VoxelShape`，使用 `Shapes::joinIsNotEmpty(Shapes::block(), voxelShape, BooleanOps::NotSame())` 精确判断。与 MC Java 的 `Block.isShapeFullBlock` 一致，对任意复杂形状（包括 L 形对角互补排列）均能正确判断。

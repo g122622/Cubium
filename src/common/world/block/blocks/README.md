@@ -64,11 +64,13 @@ classDiagram
         +BlockProperties properties
         +getShape() CollisionShape
         +getCollisionShape() CollisionShape
+        +getEntityInsideCollisionShape() CollisionShape
         +isAir() bool
         +isSolid() bool
         +isOpaque() bool
         +tick()
         +neighborChanged()
+        +onEntityCollision()
     }
 
     class AirBlock {
@@ -190,9 +192,15 @@ DoorBlock 使用 `HALF` 属性区分上下半部分，操作时需要同时处�
 
 CauldronBlock 没有方块实体，使用 `LEVEL_0_3` 属性存储水位（0-3）。交互操作直接修改方块状态，不需要额外实体数据。滴石滴水通过 `tick()` → `_receiveDripFromStalactiteTip()` → `receiveStalactiteDrip()` 链路填充炼药锅。
 
+**实体碰撞行为**：CauldronBlock 重写了 `onEntityCollision()` 和 `getEntityInsideCollisionShape()`：
+- `onEntityCollision()`：着火实体进入有水的炼药锅时灭火并降低1级水位（水位0不执行任何操作）。参考 MC 原版 `LayeredCauldronBlock.entityInside`。
+- `getEntityInsideCollisionShape()`：水位0返回 `fullCube()`（继承默认），水位1-3返回外部形状∪内容区域的填充形状 `m_filledShapes[level-1]`。参考 MC 原版 `LayeredCauldronBlock.FILLED_SHAPES[level-1]`。
+
 ### 7.1 岩浆炼药锅始终满
 
 LavaCauldronBlock 没有 LEVEL 属性，始终满。空桶可提取岩浆（替换为空炼药锅），岩浆桶右键无效果。实体进入时受到岩浆伤害并点燃。滴石滴水机制中，岩浆炼药锅不可接收滴水（`canReceiveStalactiteDrip` 返回 false）。
+
+**实体碰撞行为**：LavaCauldronBlock 重写了 `getEntityInsideCollisionShape()` 返回 `m_filledShape`（外部形状∪岩浆内容区域），使实体进入岩浆炼药锅内部时触发 `onEntityCollision` 回调。`onEntityCollision` 由基类 Block 提供（点燃实体+岩浆伤害），LavaCauldronBlock 不重写此方法。
 
 ### 8. TrappedChestBlock 红石信号与双箱支持
 

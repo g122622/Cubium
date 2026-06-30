@@ -33,6 +33,8 @@
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/tag/EntityTypeTagLoader.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/item/Items.hpp"
@@ -40,6 +42,7 @@
 #include "common/item/crafting/RecipeManager.hpp"
 #include "common/item/crafting/special/ArmorDyeRecipe.hpp"
 #include "common/item/crafting/special/BookCloningRecipe.hpp"
+#include "common/item/crafting/special/DecoratedPotRecipe.hpp"
 #include "common/item/crafting/special/MapCloningRecipe.hpp"
 #include "common/item/crafting/special/MapExtendingRecipe.hpp"
 #include "common/item/crafting/special/RepairItemRecipe.hpp"
@@ -58,6 +61,7 @@
 #include "common/network/packet/InventoryPackets.hpp"
 #include "common/network/packet/ProtocolPackets.hpp"
 #include "common/network/packet/ServerDifficultyPacket.hpp"
+#include "common/network/packet/SetEntityLinkPacket.hpp"
 #include "common/network/packet/SpawnPositionPacket.hpp"
 #include "common/particle/ParticleTypes.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -515,6 +519,12 @@ void MinecraftServer::attachWorldBindings(ServerWorld& world)
             broadcastEntityAnimationInRange(entityId, animation, entity->position());
         }
     });
+    world.setOnBroadcastSetEntityLink([this, &world](EntityId entityId, EntityId linkedEntityId) {
+        Entity* entity = world.getEntity(entityId);
+        if (entity != nullptr) {
+            broadcastSetEntityLinkInRange(entityId, linkedEntityId, entity->position());
+        }
+    });
     world.setOnBroadcastWorldEvent(
         [this](i32 eventId, i32 x, i32 y, i32 z, i32 data) { broadcastWorldEventInRange(eventId, x, y, z, data); });
     world.setOnDestroyBlockProgress([this](EntityId breakerId, i32 x, i32 y, i32 z, i32 progress) {
@@ -838,7 +848,11 @@ void MinecraftServer::registerSpecialRecipes()
     RecipeManager::instance().registerRecipe(
         std::make_unique<TippedArrowRecipe>(ResourceLocation("minecraft", "tipped_arrow")));
 
-    spdlog::info("Special recipes registered (6 recipes)");
+    // 注册饰纹陶罐配方
+    RecipeManager::instance().registerRecipe(
+        std::make_unique<DecoratedPotRecipe>(ResourceLocation("minecraft", "decorated_pot")));
+
+    spdlog::info("Special recipes registered (7 recipes)");
 }
 
 void MinecraftServer::initializeRegistries(bool registerEntities)
@@ -1021,6 +1035,25 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     if (registerEntities) {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Entities");
         entity::VanillaEntities::registerAll();
+    }
+
+    // 初始化实体类型标签（必须在所有实体类型注册后）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::EntityTypeTags");
+        EntityTypeTags::initialize();
+    }
+    spdlog::info("Entity type tags initialized");
+
+    // 从数据包加载实体类型标签（追加到或替换内置默认值）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::EntityTypeTagLoader");
+        auto dataPackLoadResult = EntityTypeTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load entity type tags from data packs: {}",
+                dataPackLoadResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} entity type tags from data packs", dataPackLoadResult.value());
+        }
     }
 
     // 初始化预定义日程（村民AI行为日程）
@@ -2577,6 +2610,32 @@ void MinecraftServer::broadcastEntityAnimationInRange(EntityId entityId, u8 anim
     }
 
     auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::EntityAnimation, result.value());
+
+    f32 rangeSq = range * range;
+    m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {
+        if (!player.loggedIn || !player.hasConnection()) {
+            return;
+        }
+
+        f32 distSq = math::distanceSq(player.x, player.y, player.z, pos.x, pos.y, pos.z);
+        if (distSq <= rangeSq) {
+            sendPacketToPlayer(player.playerId, fullPacket.data(), fullPacket.size());
+        }
+    });
+}
+
+void MinecraftServer::broadcastSetEntityLinkInRange(
+    EntityId entityId, EntityId linkedEntityId, const Vector3& pos, f32 range)
+{
+    network::SetEntityLinkPacket packet(static_cast<u32>(entityId), static_cast<u32>(linkedEntityId));
+
+    auto result = packet.serialize();
+    if (result.failed()) {
+        spdlog::error("Failed to serialize SetEntityLinkPacket: {}", result.error().message());
+        return;
+    }
+
+    auto fullPacket = core::ConnectionManager::encapsulatePacket(network::PacketType::SetEntityLink, result.value());
 
     f32 rangeSq = range * range;
     m_playerManager->forEachPlayer([this, &pos, rangeSq, &fullPacket](ServerPlayerData& player) {

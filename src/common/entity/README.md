@@ -24,7 +24,13 @@ src/common/entity/
 │   ├── DataParameter.hpp           # 数据参数定义
 │   ├── MoverType.hpp               # 移动类型枚举
 │   ├── BoostHelper.hpp             # 加速辅助类（鞍和加速状态管理）
-│   └── VanillaEntities.hpp         # 原版实体注册
+│   ├── VanillaEntities.hpp         # 原版实体注册
+│
+├── tag/                            # 实体类型标签
+│   ├── EntityTypeTag.hpp/cpp       # 实体类型标签类
+│   ├── EntityTypeTags.hpp/cpp      # 内置标签集合（IMPACT_PROJECTILES 等）
+│   ├── EntityTypeTagLoader.hpp/cpp # 数据包 JSON 加载器
+│   └── README.md                   # 标签模块说明
 │
 ├── utils/                          # 非模板实体工具
 │   ├── ItemDropHelper.hpp/cpp      # 物品掉落工具类（统一随机速度、生成物品实体）

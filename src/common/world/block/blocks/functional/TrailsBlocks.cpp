@@ -22,10 +22,27 @@
  */
 
 #include "TrailsBlocks.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/core/Item.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
+#include "common/item/tag/ItemTags.hpp"
+#include "common/sound/SoundCategory.hpp"
+#include "common/sound/SoundEvents.hpp"
 #include "item/context/BlockItemUseContext.hpp"
 #include "util/math/random/IRandom.hpp"
 #include "util/property/Properties.hpp"
+#include "world/IWorld.hpp"
 #include "world/block/WaterLoggableHelpers.hpp"
+#include "world/block/registry/TrailsBlocks.hpp"
+#include "world/blockentity/BlockEntity.hpp"
+#include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
+#include "world/gameevent/GameEvents.hpp"
+#include "world/redstone/RedstoneSystem.hpp"
 
 namespace mc {
 namespace blocks {
@@ -176,6 +193,220 @@ const CollisionShape& DecoratedPotBlock::getShape(const BlockState& state) const
 const fluid::FluidState* DecoratedPotBlock::getFluidState(const BlockState& state) const
 {
     return waterloggable::getWaterFluidState(state);
+}
+
+std::unique_ptr<BlockEntity> DecoratedPotBlock::createBlockEntity(const BlockPos& pos)
+{
+    return std::make_unique<blockentity::DecoratedPotBlockEntity>(pos);
+}
+
+i32 DecoratedPotBlock::getComparatorInputOverride(const BlockState& state, IWorld& world, const BlockPos& pos) const
+{
+    MC_UNUSED(state);
+    BlockEntity* be = world.getBlockEntity(pos);
+    if (be != nullptr && be->getType() == BlockEntityType::DecoratedPot) {
+        auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(be);
+        return potEntity->getComparatorSignal();
+    }
+    return 0;
+}
+
+ActionResultType DecoratedPotBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(state);
+    MC_UNUSED(hit);
+
+    // 副手不处理
+    if (hand == Hand::OffHand) {
+        return ActionResultType::Pass;
+    }
+
+    // 获取方块实体
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity == nullptr || blockEntity->getType() != BlockEntityType::DecoratedPot) {
+        return ActionResultType::Pass;
+    }
+    auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(blockEntity);
+
+    // 客户端：直接返回成功以播放动画
+    if (world.isClientSide()) {
+        ItemStack heldItem = player.getHeldItem(hand);
+        return heldItem.isEmpty() ? ActionResultType::Success : ActionResultType::Success;
+    }
+
+    // === 服务端逻辑 ===
+    ItemStack& heldItem = player.getHeldItem(hand);
+    ItemStack potItem = potEntity->getItem();
+
+    if (!heldItem.isEmpty()) {
+        // 手持物品：尝试向陶罐中放入1个物品
+
+        // 检查是否可以放入：陶罐为空，或罐内物品与手持物品相同且未达到最大堆叠
+        bool canInsert = false;
+        if (potItem.isEmpty()) {
+            // 陶罐为空，可以放入
+            canInsert = true;
+        } else if (potItem.canMergeWith(heldItem) && potItem.getCount() < potItem.getMaxStackSize()) {
+            // 罐内物品与手持物品相同且未满，可以叠加
+            canInsert = true;
+        }
+
+        if (canInsert) {
+            // 触发正摇晃动画
+            potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Positive);
+
+            // 分离1个物品（保留物品元数据如附魔、自定义名称等）
+            ItemStack toInsert = heldItem.split(1);
+
+            if (potItem.isEmpty()) {
+                // 陶罐为空，直接设置
+                potEntity->setItem(toInsert);
+            } else {
+                // 叠加到已有物品
+                potItem.grow(1);
+                potEntity->setItem(potItem);
+            }
+
+            // 创造模式不消耗手持物品
+            if (player.isCreative()) {
+                heldItem.grow(1);
+            }
+
+            // 播放插入音效
+            // 音高随填充程度变化：0.7 + 0.5 * (count / maxStackSize)
+            ItemStack newItem = potEntity->getItem();
+            f32 pitch =
+                0.7f + 0.5f * (static_cast<f32>(newItem.getCount()) / static_cast<f32>(newItem.getMaxStackSize()));
+            world.playSound(
+                SoundEvents::BLOCK_DECORATED_POT_INSERT, sound::SoundCategory::Blocks, pos.center(), 1.0f, pitch);
+
+            // 触发方块变化游戏事件
+            world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
+
+            // 标记方块实体已修改
+            potEntity->setChanged();
+
+            // 通知红石比较器更新信号
+            world::redstone::RedstoneSystem::instance().updateComparators(world, pos);
+
+            return ActionResultType::Success;
+        }
+
+        // 物品无法放入，回退到空手交互逻辑
+    }
+
+    // 空手交互或物品无法放入：触发负摇晃动画
+    potEntity->wobble(blockentity::DecoratedPotBlockEntity::WobbleStyle::Negative);
+
+    // 播放插入失败音效
+    world.playSound(
+        SoundEvents::BLOCK_DECORATED_POT_INSERT_FAIL, sound::SoundCategory::Blocks, pos.center(), 1.0f, 1.0f);
+
+    // 触发方块变化游戏事件
+    world.gameEvent(gameevent::GameEvents::BLOCK_CHANGE, pos, &state);
+
+    return ActionResultType::Success;
+}
+
+void DecoratedPotBlock::playerWillDestroy(IWorld& world, const BlockPos& pos, const BlockState& state, Player& player)
+{
+    // 如果玩家手持的物品具有 BREAKS_DECORATED_POTS 标签（剑、斧、镐、铲、锄、三叉戟、重锤），
+    // 且没有精准采集附魔（精准采集可阻止陶罐碎裂），
+    // 则将陶罐设为 CRACKED 状态，使其掉落4个单独的陶片而非陶罐物品。
+    if (!state.get(BlockStateProperties::CRACKED())) {
+        const ItemStack& mainHandItem = player.getMainHandItem();
+        if (!mainHandItem.isEmpty() && mainHandItem.getItem()->isIn(item::tag::ItemTags::BREAKS_DECORATED_POTS())) {
+            if (!item::enchant::EnchantmentHelper::hasSilkTouch(mainHandItem)) {
+                BlockState crackedState = state.with(BlockStateProperties::CRACKED(), true);
+                world.setBlockState(pos, &crackedState, 260);
+            }
+        }
+    }
+
+    Block::playerWillDestroy(world, pos, state, player);
+}
+
+void DecoratedPotBlock::onProjectileHit(
+    IWorld& world, const BlockState& state, const BlockRaycastResult& hitResult, Entity& projectile)
+{
+    MC_UNUSED(hitResult);
+
+    if (world.isClientSide()) {
+        return;
+    }
+
+    // MC Java: DecoratedPotBlock.onProjectileHit
+    // 条件: projectile.mayInteract(serverlevel, blockpos) && projectile.mayBreak(serverlevel)
+    // mayBreak 检查投射物是否属于 #minecraft:impact_projectiles 标签
+    // 且 PROJECTILES_CAN_BREAK_BLOCKS 游戏规则为 true
+    auto* projEntity = dynamic_cast<entity::ProjectileEntity*>(&projectile);
+    if (projEntity != nullptr && projEntity->mayInteract(world, hitResult.blockPos()) && projEntity->mayBreak(world)) {
+        BlockPos blockPos = hitResult.blockPos();
+        if (!state.get(BlockStateProperties::CRACKED())) {
+            BlockState crackedState = state.with(BlockStateProperties::CRACKED(), true);
+            world.setBlockState(blockPos, &crackedState, 260);
+        }
+        // 将方块设为空气以触发 onBlockRemoved（掉落陶片）和方块移除
+        world.setBlockState(blockPos, nullptr, 3);
+    }
+}
+
+void DecoratedPotBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    BlockEntity* entity = world.getBlockEntity(pos);
+    if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
+        auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(entity);
+
+        if (!world.isClientSide()) {
+            if (state.get(BlockStateProperties::CRACKED())) {
+                // 碎裂状态：掉落4个独立的陶片/砖块物品
+                const blockentity::PotDecorations& decorations = potEntity->getDecorations();
+                const auto& patterns = decorations.ordered();
+                math::Random rng;
+                for (i32 i = 0; i < 4; ++i) {
+                    const Item* sherdItem = blockentity::getItemFromPattern(patterns[static_cast<std::size_t>(i)]);
+                    if (sherdItem != nullptr) {
+                        ItemStack sherdStack(sherdItem, 1);
+                        ItemDropHelper::spawnItemEntity(&world, sherdStack, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+                    }
+                }
+            } else {
+                // 非碎裂状态：掉落陶罐内存储的物品（陶罐本身由战利品表系统处理）
+                ItemStack storedItem = potEntity->getItem();
+                if (!storedItem.isEmpty()) {
+                    math::Random rng;
+                    ItemDropHelper::spawnItemEntity(&world, storedItem, pos.x + 0.5, pos.y + 0.5, pos.z + 0.5, rng);
+                }
+            }
+
+            // 清空容器以防止重复掉落
+            potEntity->setItem(ItemStack());
+        }
+    }
+
+    Block::onBlockRemoved(world, pos, state);
+}
+
+ItemStack DecoratedPotBlock::getCloneItemStack(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(state);
+
+    // 中键选取：返回带有图案数据的陶罐物品
+    if (world != nullptr && pos != nullptr) {
+        BlockEntity* entity = world->getBlockEntity(*pos);
+        if (entity != nullptr && entity->getType() == BlockEntityType::DecoratedPot) {
+            auto* potEntity = static_cast<blockentity::DecoratedPotBlockEntity*>(entity);
+            return blockentity::createDecoratedPotItem(potEntity->getDecorations());
+        }
+    }
+
+    // 如果无法获取方块实体，返回默认的空陶罐物品
+    return Block::getCloneItemStack(state, world, pos);
 }
 
 // ============================================================================

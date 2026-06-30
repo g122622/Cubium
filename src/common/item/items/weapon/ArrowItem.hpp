@@ -12,12 +12,12 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  *
  */
 
@@ -26,6 +26,7 @@
 #include "common/core/Types.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/core/ProjectileItem.hpp"
 
 namespace mc {
 
@@ -44,13 +45,14 @@ namespace item {
  * @brief 箭矢物品
  *
  * 用于弓和弩的弹药物品。可以堆叠（最大64个）。
+ * 实现 ProjectileItem 接口以支持发射器自动注册弹射物发射行为。
  *
  * 箭矢类型:
  * - 普通箭 (Arrow): 标准箭矢
  * - 药水箭 (Tipped Arrow): 带药水效果的箭矢
  * - 光灵箭 (Spectral Arrow): 带发光效果的箭矢（仅创造模式可获得）
  */
-class ArrowItem : public Item {
+class ArrowItem : public Item, public ProjectileItem {
 public:
     /**
      * @brief 构造函数
@@ -92,6 +94,37 @@ public:
      * @return 是否无限（不被消耗）
      */
     [[nodiscard]] virtual bool isInfinite(const ItemStack& arrowStack, const ItemStack& bowStack, Player& player) const;
+
+    // ============================================================================
+    // ProjectileItem 接口实现
+    // ============================================================================
+
+    /**
+     * @brief 创建弹射物实体（发射器/生成器使用）
+     *
+     * 创建 ArrowEntity 并设置可拾取状态。
+     * 子类 TippedArrowItem 重写此方法以应用药水效果。
+     *
+     * @param world 世界引用
+     * @param position 生成位置
+     * @param stack 物品堆
+     * @param directionX 发射方向 X 分量
+     * @param directionY 发射方向 Y 分量
+     * @param directionZ 发射方向 Z 分量
+     * @return 创建的弹射物实体
+     */
+    [[nodiscard]] std::unique_ptr<entity::ProjectileEntity> asProjectile(IWorld& world,
+        const Vector3& position,
+        const ItemStack& stack,
+        f32 directionX,
+        f32 directionY,
+        f32 directionZ) const override;
+
+    /**
+     * @brief 获取发射器配置
+     * @return 箭矢配置（power=1.1, uncertainty=6.0）
+     */
+    [[nodiscard]] ProjectileDispenseConfig getDispenseConfig() const override;
 };
 
 } // namespace item

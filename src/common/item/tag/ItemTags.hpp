@@ -92,6 +92,55 @@ public:
     static ItemTag& DECORATED_POT_INGREDIENTS();
 
     /**
+     * @brief 剑标签
+     *
+     * 包含所有材质的剑物品。
+     * 对应 MC 原版标签 minecraft:swords。
+     */
+    static ItemTag& SWORDS();
+
+    /**
+     * @brief 斧标签
+     *
+     * 包含所有材质的斧物品。
+     * 对应 MC 原版标签 minecraft:axes。
+     */
+    static ItemTag& AXES();
+
+    /**
+     * @brief 镐标签
+     *
+     * 包含所有材质的镐物品。
+     * 对应 MC 原版标签 minecraft:pickaxes。
+     */
+    static ItemTag& PICKAXES();
+
+    /**
+     * @brief 铲标签
+     *
+     * 包含所有材质的铲物品。
+     * 对应 MC 原版标签 minecraft:shovels。
+     */
+    static ItemTag& SHOVELS();
+
+    /**
+     * @brief 锄标签
+     *
+     * 包含所有材质的锄物品。
+     * 对应 MC 原版标签 minecraft:hoes。
+     */
+    static ItemTag& HOES();
+
+    /**
+     * @brief 破坏饰纹陶罐标签
+     *
+     * 包含所有会破坏饰纹陶罐的物品（剑、斧、镐、铲、锄 + 三叉戟 + 重锤）。
+     * 手持这些物品破坏陶罐时，陶罐会被设为 CRACKED 状态并掉落陶片而非完整陶罐。
+     * 对应 MC 原版标签 minecraft:breaks_decorated_pots。
+     */
+    static ItemTag& BREAKS_DECORATED_POTS();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

@@ -27,6 +27,8 @@
 #include "common/core/Types.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
+#include "common/entity/core/DataParameter.hpp"
+#include "common/entity/core/EntityDataManager.hpp"
 #include "common/util/color/DyeColor.hpp"
 
 #include <memory>
@@ -122,6 +124,75 @@ public:
      * @brief 随机设置皮肤类型
      */
     void setRandomCatType();
+
+    // ========== 动画状态 ==========
+
+    /**
+     * @brief 是否躺下（在床上或主人身边）
+     */
+    [[nodiscard]] bool isLieDown() const { return m_dataManager.get<bool>(DATA_LYING_PARAM); }
+
+    /**
+     * @brief 设置躺下状态
+     */
+    void setLieDown(bool lying) { m_dataManager.set(DATA_LYING_PARAM, lying); }
+
+    /**
+     * @brief 是否处于放松状态（看向睡眠主人）
+     */
+    [[nodiscard]] bool isRelaxStateOne() const { return m_dataManager.get<bool>(DATA_RELAX_STATE_ONE_PARAM); }
+
+    /**
+     * @brief 设置放松状态
+     */
+    void setRelaxStateOne(bool relax) { m_dataManager.set(DATA_RELAX_STATE_ONE_PARAM, relax); }
+
+    /**
+     * @brief 获取躺下动画进度（插值后）
+     * @param partialTick 部分刻（用于插值）
+     * @return 躺下动画进度 (0-1)
+     */
+    [[nodiscard]] f32 getLieDownAmount(f32 partialTick) const
+    {
+        return math::lerp(m_prevLieDownAmount, m_lieDownAmount, partialTick);
+    }
+
+    /**
+     * @brief 获取躺下尾巴动画进度（插值后）
+     * @param partialTick 部分刻（用于插值）
+     * @return 躺下尾巴动画进度 (0-1)
+     */
+    [[nodiscard]] f32 getLieDownAmountTail(f32 partialTick) const
+    {
+        return math::lerp(m_prevLieDownAmountTail, m_lieDownAmountTail, partialTick);
+    }
+
+    /**
+     * @brief 获取放松状态动画进度（插值后）
+     * @param partialTick 部分刻（用于插值）
+     * @return 放松状态动画进度 (0-1)
+     */
+    [[nodiscard]] f32 getRelaxStateOneAmount(f32 partialTick) const
+    {
+        return math::lerp(m_prevRelaxStateOneAmount, m_relaxStateOneAmount, partialTick);
+    }
+
+    /**
+     * @brief 是否躺在睡眠玩家上方
+     */
+    [[nodiscard]] bool isLyingOnTopOfSleepingPlayer() const { return m_lyingOnTopOfSleepingPlayer; }
+
+    // ========== 数据同步参数 ==========
+
+    /**
+     * @brief 获取躺下状态参数 ID（用于客户端元数据同步）
+     */
+    [[nodiscard]] static u16 getLyingParamId() { return DATA_LYING_PARAM.id(); }
+
+    /**
+     * @brief 获取放松状态参数 ID（用于客户端元数据同步）
+     */
+    [[nodiscard]] static u16 getRelaxStateOneParamId() { return DATA_RELAX_STATE_ONE_PARAM.id(); }
 
     // ========== 交互 ==========
 
@@ -246,6 +317,12 @@ protected:
     // ========== 属性注册 ==========
     void registerAttributes() override;
 
+    // ========== 数据同步 ==========
+    void registerData() override;
+
+    // ========== Tick ==========
+    void tick() override;
+
     // ========== 尺寸 ==========
 
     [[nodiscard]] f32 getBaseWidth() const override { return 0.6f; }
@@ -293,6 +370,15 @@ private:
         CatEntity* m_cat;
     };
 
+    // ========== 数据同步参数 ==========
+    static entity::DataParameter<bool> DATA_LYING_PARAM;
+    static entity::DataParameter<bool> DATA_RELAX_STATE_ONE_PARAM;
+
+    // ========== 动画状态更新 ==========
+    void _updateLieDownAmount();
+    void _updateRelaxStateOneAmount();
+    void _handleLieDown();
+
     /**
      * @brief 设置驯服后的 AI
      *
@@ -335,6 +421,15 @@ private:
     CatAvoidPlayerGoal* m_avoidPlayerGoal = nullptr;
     CatTemptGoal* m_temptGoal = nullptr;
 
+    // ========== 躺下/放松动画插值 ==========
+    f32 m_lieDownAmount = 0.0f;                ///< 当前躺下动画进度 (0-1)
+    f32 m_prevLieDownAmount = 0.0f;            ///< 上一 tick 的躺下动画进度
+    f32 m_lieDownAmountTail = 0.0f;            ///< 当前躺下尾巴动画进度 (0-1)
+    f32 m_prevLieDownAmountTail = 0.0f;        ///< 上一 tick 的躺下尾巴动画进度
+    f32 m_relaxStateOneAmount = 0.0f;          ///< 当前放松状态动画进度 (0-1)
+    f32 m_prevRelaxStateOneAmount = 0.0f;      ///< 上一 tick 的放松状态动画进度
+    bool m_lyingOnTopOfSleepingPlayer = false; ///< 是否躺在睡眠玩家上方
+
     // 常量
     static constexpr i32 GIFT_INTERVAL = 24000; // 礼物间隔（1200秒 = 20分钟）
 
@@ -346,6 +441,14 @@ private:
 
     // 猫的食物治疗量（生鳕鱼/生鲑鱼的饥饿值为 2，治疗量 = 饥饿值）
     static constexpr f32 FOOD_HEAL_AMOUNT = 2.0f;
+
+    // 躺下/放松动画速率常量
+    static constexpr f32 LIE_DOWN_AMOUNT_INCREASE = 0.15f; ///< 躺下动画增长速率
+    static constexpr f32 LIE_DOWN_AMOUNT_DECREASE = 0.22f; ///< 躺下动画衰减速率
+    static constexpr f32 LIE_DOWN_TAIL_INCREASE = 0.08f;   ///< 尾巴动画增长速率
+    static constexpr f32 LIE_DOWN_TAIL_DECREASE = 0.13f;   ///< 尾巴动画衰减速率
+    static constexpr f32 RELAX_AMOUNT_INCREASE = 0.1f;     ///< 放松动画增长速率
+    static constexpr f32 RELAX_AMOUNT_DECREASE = 0.13f;    ///< 放松动画衰减速率
 };
 
 } // namespace mc

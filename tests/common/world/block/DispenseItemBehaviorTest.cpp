@@ -43,6 +43,12 @@
 #include "entity/inventory/IInventory.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemStack.hpp"
+#include "item/core/ProjectileItem.hpp"
+#include "item/items/weapon/ArrowItem.hpp"
+#include "item/items/weapon/FireChargeItem.hpp"
+#include "item/items/weapon/FireworkRocketItem.hpp"
+#include "item/items/weapon/SpectralArrowItem.hpp"
+#include "item/items/weapon/ThrowableItems.hpp"
 #include "item/potion/PotionUtils.hpp"
 #include "item/potion/Potions.hpp"
 #include "network/packet/PacketSerializer.hpp"
@@ -195,24 +201,191 @@ TEST_F(DispenseBehaviorTest, Registry_GetBehaviorForSnowball_ReturnsProjectileBe
 // ProjectileDispenseBehavior 测试
 // ============================================================================
 
-TEST_F(DispenseBehaviorTest, ProjectileBehavior_CreatesFactoryBasedBehavior)
+TEST_F(DispenseBehaviorTest, ProjectileBehavior_CreatesFromProjectileItem)
 {
-    // 测试工厂函数创建
-    bool factoryCalled = false;
-
-    auto factory = [&factoryCalled](
-                       IWorld& world, const Vector3& pos, const ItemStack& stack) -> std::unique_ptr<mc::Entity> {
-        factoryCalled = true;
-        MC_UNUSED(world);
-        MC_UNUSED(pos);
-        MC_UNUSED(stack);
-        return nullptr; // 返回 nullptr 模拟创建失败
-    };
-
-    ProjectileDispenseBehavior behavior(factory, 1.5f, 3.0f);
+    // 测试通过 ProjectileItem 接口创建行为
+    // SnowballItem 实现了 ProjectileItem 接口
+    item::SnowballItem snowballItem(ItemProperties().maxStackSize(16));
+    ProjectileDispenseBehavior behavior(snowballItem);
 
     // 测试行为已创建
     EXPECT_TRUE(behavior.isSuccess());
+}
+
+// ============================================================================
+// ProjectileItem 各子类的 asProjectile / getDispenseConfig 测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, ArrowItem_GetDispenseConfig_ReturnsArrowConfig)
+{
+    // ArrowItem 的 getDispenseConfig 应返回 arrow() 预设（power=1.1, uncertainty=6.0）
+    if (Items::ARROW == nullptr) {
+        GTEST_SKIP() << "ARROW item not initialized";
+    }
+
+    const auto* projectileItem = dynamic_cast<const item::ProjectileItem*>(Items::ARROW);
+    ASSERT_NE(projectileItem, nullptr);
+
+    auto config = projectileItem->getDispenseConfig();
+    EXPECT_FLOAT_EQ(config.power, 1.1f);
+    EXPECT_FLOAT_EQ(config.uncertainty, 6.0f);
+}
+
+TEST_F(DispenseBehaviorTest, SpectralArrowItem_GetDispenseConfig_ReturnsArrowConfig)
+{
+    // SpectralArrowItem 继承 ArrowItem 的 getDispenseConfig
+    if (Items::SPECTRAL_ARROW == nullptr) {
+        GTEST_SKIP() << "SPECTRAL_ARROW item not initialized";
+    }
+
+    const auto* projectileItem = dynamic_cast<const item::ProjectileItem*>(Items::SPECTRAL_ARROW);
+    ASSERT_NE(projectileItem, nullptr);
+
+    auto config = projectileItem->getDispenseConfig();
+    EXPECT_FLOAT_EQ(config.power, 1.1f);
+    EXPECT_FLOAT_EQ(config.uncertainty, 6.0f);
+}
+
+TEST_F(DispenseBehaviorTest, FireChargeItem_GetDispenseConfig_ReturnsFireChargeConfig)
+{
+    // FireChargeItem 的 getDispenseConfig 应返回 fireCharge() 预设（power=1.0, uncertainty=6.0）
+    if (Items::FIRE_CHARGE == nullptr) {
+        GTEST_SKIP() << "FIRE_CHARGE item not initialized";
+    }
+
+    const auto* projectileItem = dynamic_cast<const item::ProjectileItem*>(Items::FIRE_CHARGE);
+    ASSERT_NE(projectileItem, nullptr);
+
+    auto config = projectileItem->getDispenseConfig();
+    EXPECT_FLOAT_EQ(config.power, 1.0f);
+    EXPECT_FLOAT_EQ(config.uncertainty, 6.0f);
+}
+
+TEST_F(DispenseBehaviorTest, FireworkRocketItem_GetDispenseConfig_ReturnsFireworkRocketConfig)
+{
+    // FireworkRocketItem 的 getDispenseConfig 应返回 fireworkRocket() 预设（power=0.5, uncertainty=1.0）
+    if (Items::FIREWORK_ROCKET == nullptr) {
+        GTEST_SKIP() << "FIREWORK_ROCKET item not initialized";
+    }
+
+    const auto* projectileItem = dynamic_cast<const item::ProjectileItem*>(Items::FIREWORK_ROCKET);
+    ASSERT_NE(projectileItem, nullptr);
+
+    auto config = projectileItem->getDispenseConfig();
+    EXPECT_FLOAT_EQ(config.power, 0.5f);
+    EXPECT_FLOAT_EQ(config.uncertainty, 1.0f);
+}
+
+TEST_F(DispenseBehaviorTest, SnowballItem_GetDispenseConfig_ReturnsDefaultConfig)
+{
+    // SnowballItem 使用默认配置（power=1.1, uncertainty=6.0）
+    item::SnowballItem snowballItem(ItemProperties().maxStackSize(16));
+
+    auto config = snowballItem.getDispenseConfig();
+    EXPECT_FLOAT_EQ(config.power, 1.1f);
+    EXPECT_FLOAT_EQ(config.uncertainty, 6.0f);
+}
+
+TEST_F(DispenseBehaviorTest, TippedArrowItem_ImplementsProjectileItem)
+{
+    // 验证 TippedArrowItem 实现了 ProjectileItem 接口
+    if (Items::TIPPED_ARROW == nullptr) {
+        GTEST_SKIP() << "TIPPED_ARROW item not initialized";
+    }
+
+    const auto* projectileItem = dynamic_cast<const item::ProjectileItem*>(Items::TIPPED_ARROW);
+    ASSERT_NE(projectileItem, nullptr);
+
+    // TippedArrowItem 继承 ArrowItem 的配置
+    auto config = projectileItem->getDispenseConfig();
+    EXPECT_FLOAT_EQ(config.power, 1.1f);
+    EXPECT_FLOAT_EQ(config.uncertainty, 6.0f);
+}
+
+// ============================================================================
+// registerProjectileBehavior 边界测试
+// ============================================================================
+
+TEST_F(DispenseBehaviorTest, RegisterProjectileBehavior_NonProjectileItem_DoesNotRegister)
+{
+    // registerProjectileBehavior 对非 ProjectileItem 物品应不注册任何行为
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    // DIAMOND 不实现 ProjectileItem 接口
+    if (Items::DIAMOND == nullptr) {
+        GTEST_SKIP() << "DIAMOND item not initialized";
+    }
+
+    // 先确保没有注册过 minecraft:diamond 行为
+    std::string diamondId = Items::DIAMOND->itemLocation().toString();
+    // 清理可能存在的旧注册（不应存在）
+    bool hadBefore = registry.hasBehavior(diamondId);
+
+    // 尝试注册非 ProjectileItem 物品
+    registry.registerProjectileBehavior(*Items::DIAMOND);
+
+    // 行为不应该被注册
+    if (!hadBefore) {
+        EXPECT_FALSE(registry.hasBehavior(diamondId));
+    }
+}
+
+TEST_F(DispenseBehaviorTest, RegisterProjectileBehavior_ProjectileItem_RegistersCorrectly)
+{
+    // registerProjectileBehavior 对 ProjectileItem 物品应正确注册行为
+    DispenseItemBehaviorRegistry& registry = DispenseItemBehaviorRegistry::instance();
+
+    if (Items::SNOWBALL == nullptr) {
+        GTEST_SKIP() << "SNOWBALL item not initialized";
+    }
+
+    std::string snowballId = Items::SNOWBALL->itemLocation().toString();
+
+    // 使用 registerProjectileBehavior 注册
+    registry.registerProjectileBehavior(*Items::SNOWBALL);
+
+    // 行为应该已注册
+    EXPECT_TRUE(registry.hasBehavior(snowballId));
+
+    // 注册的行为应该可以 dynamic_cast 到 ProjectileDispenseBehavior
+    IDispenseItemBehavior* behavior = registry.getBehavior(snowballId);
+    ASSERT_NE(behavior, nullptr);
+    auto* projBehavior = dynamic_cast<ProjectileDispenseBehavior*>(behavior);
+    EXPECT_NE(projBehavior, nullptr);
+}
+
+TEST_F(DispenseBehaviorTest, AllProjectileItems_ImplementProjectileItemInterface)
+{
+    // 验证所有需要发射器行为的物品都实现了 ProjectileItem 接口
+    // 这是通过 dynamic_cast 检测的，registerProjectileBehavior 依赖此接口
+
+    struct ItemCheck {
+        const Item* item;
+        const char* name;
+    };
+
+    ItemCheck projectileItems[] = {
+        {Items::ARROW, "ARROW"},
+        {Items::SPECTRAL_ARROW, "SPECTRAL_ARROW"},
+        {Items::TIPPED_ARROW, "TIPPED_ARROW"},
+        {Items::SNOWBALL, "SNOWBALL"},
+        {Items::EGG, "EGG"},
+        {Items::ENDER_PEARL, "ENDER_PEARL"},
+        {Items::EXPERIENCE_BOTTLE, "EXPERIENCE_BOTTLE"},
+        {Items::SPLASH_POTION, "SPLASH_POTION"},
+        {Items::LINGERING_POTION, "LINGERING_POTION"},
+        {Items::FIRE_CHARGE, "FIRE_CHARGE"},
+        {Items::WIND_CHARGE, "WIND_CHARGE"},
+        {Items::FIREWORK_ROCKET, "FIREWORK_ROCKET"},
+    };
+
+    for (const auto& check : projectileItems) {
+        if (check.item == nullptr) {
+            continue;
+        }
+        const auto* projectileItem = dynamic_cast<const item::ProjectileItem*>(check.item);
+        EXPECT_NE(projectileItem, nullptr) << check.name << " should implement ProjectileItem interface";
+    }
 }
 
 // ============================================================================

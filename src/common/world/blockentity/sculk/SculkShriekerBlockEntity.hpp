@@ -96,16 +96,6 @@ public:
     void setWarningLevel(i32 level) { m_warningLevel = level; }
 
     /**
-     * @brief 递增警告等级
-     *
-     * 每次振动到达时调用，警告等级最大为 MAX_WARNING_LEVEL。
-     * 达到阈值时会触发监守者召唤逻辑。
-     *
-     * @return 递增后的警告等级
-     */
-    i32 incrementWarningLevel();
-
-    /**
      * @brief 检查是否可以召唤监守者
      *
      * 当警告等级达到阈值（4级）且满足其他条件时返回 true。

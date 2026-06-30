@@ -8,7 +8,7 @@
 ├── TameableEntity.hpp / cpp #可驯服实体基类（IAngerable 接口、getTeam重写、wantsToAttack虚方法）
 ├── ShoulderRidingEntity.hpp #肩膀乘坐实体基类（鹦鹉专用）
 ├── WolfEntity.hpp / cpp #狼（骨头驯服、攻击保护、wantsToAttack过滤）
-├── CatEntity.hpp / cpp #猫（生鱼驯服、11种皮肤、项圈染色、interactMob交互）
+├── CatEntity.hpp / cpp #猫（生鱼驯服、11种皮肤、项圈染色、躺下 / 放松动画、晨间礼物、interactMob交互）
 ├── OcelotEntity.hpp / cpp #豹猫（信任机制、丛林生物）
 └── ParrotEntity.hpp /
         cpp #鹦鹉（种子驯服、可站肩膀、不可繁殖）
@@ -108,11 +108,33 @@
         **非主人无法交互 * *：已驯服的猫只有主人可以交互，非主人交互直接传递给父类 -
         **驯服成功广播 * *：`broadcastEntityStatus(TamingSucceeded / TamingFailed)` 发送心形 / 烟雾粒子
         - ** 项圈染色**：默认红色，支持 17 种染料物品映射（16 种标准染料 + 骨粉 = 白色 + 墨囊 = 黑色等） -
-    **食物治疗量 * *：生鳕鱼 / 生鲑鱼治疗 2.0 生命值 - **目标选择器 * *：猫的目标选择器已注册以下目标：
-    - 优先级 1 : `NonTamedTargetGoal<RabbitEntity>` — 攻击兔子（未驯服时） -
+        **食物治疗量 * *：生鳕鱼 / 生鲑鱼治疗 2.0 生命值 - **目标选择器 * *：猫的目标选择器已注册以下目标：
+        - 优先级 1 : `NonTamedTargetGoal<RabbitEntity>` — 攻击兔子（未驯服时） -
     优先级 1 : `NonTamedTargetGoal<TurtleEntity>` — 攻击幼年海龟（未驯服时，仅陆地上的幼体）
 
     ## #TameableEntity NBT 序列化
     -
     **Sitting * *(byte / bool)-是否坐下 - **OwnerUUID * *(string)-主人 UUID - **AngerTime * *(i32)-愤怒剩余时间 -
-    **CatEntity 额外字段 * *：CatType(i32) 猫皮肤类型、CollarColor(i32) 项圈颜色（默认红色时省略）
+    **CatEntity 额外字段 *
+        *：CatType(i32) 猫皮肤类型、CollarColor(i32) 项圈颜色（默认红色时省略）
+
+        ## #猫的动画状态系统
+    -
+    **DataParameter 同步 * *：`DATA_LYING_PARAM`(bool)和 `DATA_RELAX_STATE_ONE_PARAM`(bool)通过数据管理器同步到客户端 -
+    **动画插值 *
+        *：`lieDownAmount`/`lieDownAmountTail`/`relaxStateOneAmount` 使用前后 tick 值和 partialTick 进行平滑插值
+    -
+    **动画速率常量 * *：躺下 ±0.15 / +0.22、尾巴 ±0.08 /−0.13、放松 ±0.1 /−0.13（与 MC 1.21.11 一致） -
+    **客户端同步 * *：ClientEntity 通过 `isCatLieDown()`/`isCatRelaxStateOne()` 读取同步状态 -
+    **呼噜声 * *：躺下或放松时每 5 tick 播放 `ENTITY_CAT_PURR` -
+    **睡眠检测 *
+        *：`_handleLieDown()` 检测附近 2 格内是否有睡眠玩家，设置 `m_lyingOnTopOfSleepingPlayer`
+
+        ## #猫的 AI 目标（CatGoals）
+    -
+    **CatLieOnBedGoal * *（优先级 5）：驯服猫寻找床并躺下，继承自 MoveToBlockGoal -
+    **CatRelaxOnOwnerGoal * *（优先级 3）：驯服猫在睡眠主人身边放松→躺下→赠送晨间礼物 -
+    **晨间礼物流程 * *：主人醒来时（`isPlayerFullyAsleep()` &&
+    睡眠计时器 >= 100 tick），70 % 概率掉落礼物 -
+            **礼物物品 * *：优先使用战利品表 `minecraft : gameplay / cat_morning_gift`，战利品表不可用时使用后备物品列表
+            - **目标结束 * *：`resetTask()` 中检查主人是否充分睡眠后赠送礼物，然后清除所有状态

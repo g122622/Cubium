@@ -27,8 +27,16 @@ Entity (core/Entity.hpp)
 
 **子类实现**：
 - `PaintingEntity`：画作尺寸由 `PAINTING_TYPES` 静态数组定义
-- `ItemFrameEntity`：存储 `ItemStack`，支持旋转（0-7），提供 `getAnalogOutput()` 红石信号
-- `LeashKnotEntity`：管理 `m_leashedEntities` 向量，无绑定时自动消失
+- `ItemFrameEntity`：
+  - 存储 `ItemStack`，支持旋转（0-7），提供 `getAnalogOutput()` 红石信号
+  - `processInitialInteract()`：处理玩家右键交互（放入/旋转/取出物品），每次操作后触发 `notifyComparatorUpdate()` 和 `gameEvent(BLOCK_CHANGE)`
+  - `setDisplayedItem(stack, updateComparator=true)`：设置展示物品并重置旋转。`updateComparator` 为 true 时通知红石比较器更新（交互时传 true，NBT 加载时传 false）
+  - `setItemRotation(rotation, updateComparator=true)`：设置旋转值（0-7）。`updateComparator` 为 true 时通知红石比较器更新（交互时传 true，NBT 加载时传 false）
+  - `rotateItem()`：旋转物品，委托给 `setItemRotation(m_rotation + 1, true)`
+  - `notifyComparatorUpdate()`：通知悬挂位置周围的红石比较器重新计算输入信号，调用 `RedstoneSystem::updateComparators()`
+  - `dropItem()`：掉落物品展示框本身和内含物品，清空展示物品，触发 `notifyComparatorUpdate()` 和 `gameEvent(BLOCK_CHANGE)`
+  - `getAnalogOutput()`：返回红石信号强度（无物品=0，有物品=rotation%8+1）
+- `LeashKnotEntity`：管理 `m_leashedEntities` 向量，无绑定时自动消失，覆写 `processInitialInteract()` 处理拴绳转移，`tick()` 中检查栅栏存活和绑定实体存活
 
 ## 上下游外部依赖关系
 
@@ -41,7 +49,9 @@ Entity (core/Entity.hpp)
 - `common/util/math/random/Random.hpp` - 随机数
 - `common/world/IWorld.hpp` - 世界接口
 - `common/world/block/Block.hpp` - 方块检测（hasEnoughSolidSide）
+- `common/world/gameevent/GameEvents.hpp` - 游戏事件（BLOCK_CHANGE、BLOCK_ATTACH）
 - `common/world/gamerule/GameRules.hpp` - 游戏规则（DO_ENTITY_DROPS）
+- `common/world/redstone/RedstoneSystem.hpp` - 红石系统（updateComparators）
 
 **被谁依赖**：
 - `common/entity/core/VanillaEntities.hpp` - 实体类型注册
@@ -60,17 +70,32 @@ Entity (core/Entity.hpp)
 
 ### 3. LeashKnotEntity 生命周期
 
-LeashKnotEntity 在 `tick()` 中检查绑定的实体列表，当列表为空时自动调用 `dropItem()` 和 `remove()`。不要忘记维护 `m_leashedEntities` 列表。
+LeashKnotEntity 在 `tick()` 中执行两项检查：
+1. **栅栏存活检查**：调用 `survives()` 验证栅栏方块是否仍然存在。如果栅栏被破坏，释放所有绑定的生物并销毁拴绳结。
+2. **绑定实体检查**：遍历 `m_leashedEntities`，移除已死亡的实体。当列表为空时自动调用 `dropItem()` 和 `remove()`。
 
-### 4. PaintingEntity 尺寸与碰撞箱
+### 4. LeashKnotEntity 交互
+
+LeashKnotEntity 覆写了 `processInitialInteract()` 以处理玩家右键交互：
+- 玩家手持拴绳且有被拴住的生物 → 将生物转移到栅栏结上
+- 玩家不潜行且栅栏结上有绑定生物 → 将生物取回拴到玩家身上
+
+### 5. ItemFrameEntity 交互
+
+ItemFrameEntity 覆写了 `processInitialInteract()` 以处理玩家右键交互：
+- 空展示框 + 玩家手持物品 → 放入物品
+- 有物品的展示框 + 玩家潜行 → 取出物品
+- 有物品的展示框 + 玩家不潜行 → 旋转物品
+
+### 6. PaintingEntity 尺寸与碰撞箱
 
 画作的碰撞箱需要根据 `getWidth()` / `getHeight()` 动态计算，不同尺寸的画作占用不同的方块空间。
 
-### 5. ItemFrameEntity 红石信号
+### 7. ItemFrameEntity 红石信号
 
 `getAnalogOutput()` 返回 `rotation % 8 + 1`（有物品时范围 1-8），无物品返回 0。红石比较器检测时需检查朝向是否一致。
 
-### 6. 游戏规则 doEntityDrops 对悬挂实体掉落的影响
+### 8. 游戏规则 doEntityDrops 对悬挂实体掉落的影响
 
 **问题**：所有悬挂实体的 `dropItem()` 方法都受 `GameRuleKeys::DO_ENTITY_DROPS` 游戏规则控制。
 
@@ -80,3 +105,15 @@ LeashKnotEntity 在 `tick()` 中检查绑定的实体列表，当列表为空时
 - `LeashKnotEntity::dropItem()`：当 `DO_ENTITY_DROPS` 为 false 时直接返回，不产生拴绳物品掉落
 
 参考 MC 1.21.11：`Painting.dropItem()`、`ItemFrame.dropItem()`、`Leashable.tickLeash()` 中的 `ENTITY_DROPS` 检查
+
+### 9. ItemFrameEntity 的 updateComparator 参数
+
+**问题**：`setDisplayedItem()` 和 `setItemRotation()` 都有 `updateComparator` 参数，控制是否触发红石比较器更新。
+
+**要点**：
+- 交互操作（玩家右键放入/取出/旋转物品）应传 `true`，以通知红石比较器更新
+- NBT 加载时应传 `false`，避免加载过程中触发不必要的更新
+- `dropItem()` 内部无条件调用 `notifyComparatorUpdate()`，因为物品展示框被破坏时必须通知比较器
+- `rotateItem()` 委托给 `setItemRotation(m_rotation + 1, true)`，始终触发更新
+
+参考 MC 1.21.11：`ItemFrame.setItem(ItemStack, boolean)` 和 `ItemFrame.setRotation(int, boolean)` 中的 `boolean` 参数

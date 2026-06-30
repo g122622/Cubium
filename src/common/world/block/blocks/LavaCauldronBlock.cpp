@@ -66,9 +66,14 @@ LavaCauldronBlock::LavaCauldronBlock(const BlockProperties& properties)
     m_outerShape = CollisionShape::combine(m_outerShape, westWall, CollisionShape::CombineOp::OR);
     m_outerShape = CollisionShape::combine(m_outerShape, eastWall, CollisionShape::CombineOp::OR);
 
-    // TODO: 当实现 getEntityInsideCollisionShape 后，添加岩浆内容碰撞形状
-    // MC 原版 LavaCauldronBlock 使用 FILLED_SHAPE = Shapes.or(SHAPE, SHAPE_INSIDE)
-    // 其中 SHAPE_INSIDE = Block.column(12, 4, 15)，内部岩浆碰撞区域
+    // 岩浆内容形状：Block.column(12, 4, 15) = box(2, 4, 2, 14, 15, 14)
+    // 内部 12x12 区域从 y=4 像素到 y=15 像素（几乎填满，仅顶部留 1 像素空隙）
+    // 参考 MC 原版: LavaCauldronBlock.SHAPE_INSIDE = Block.column(12.0, 4.0, 15.0)
+    CollisionShape lavaInside = CollisionShape::fromPixelBox(2.0f, 4.0f, 2.0f, 14.0f, 15.0f, 14.0f);
+
+    // 填充形状 = 外部形状 ∪ 岩浆内容
+    // 参考 MC 原版: LavaCauldronBlock.FILLED_SHAPE = Shapes.or(SHAPE, SHAPE_INSIDE)
+    m_filledShape = CollisionShape::combine(m_outerShape, lavaInside, CollisionShape::CombineOp::OR);
 }
 
 // ========== 交互 ==========
@@ -140,9 +145,17 @@ const CollisionShape& LavaCauldronBlock::getShape(const BlockState& state) const
 const CollisionShape& LavaCauldronBlock::getCollisionShape(const BlockState& state) const
 {
     MC_UNUSED(state);
-    // 与普通炼药锅相同，碰撞形状仅为外部结构
-    // TODO: 当实现 getEntityInsideCollisionShape 后，岩浆内容区域应通过该方法返回
+    // 碰撞形状仅为外部结构（与普通炼药锅相同）
     return m_outerShape;
+}
+
+const CollisionShape& LavaCauldronBlock::getEntityInsideCollisionShape(const BlockState& state) const
+{
+    MC_UNUSED(state);
+    // 实体内部碰撞形状包含岩浆内容区域
+    // 实体只有进入岩浆内容区域才会触发 onEntityCollision
+    // 参考 MC 原版: LavaCauldronBlock 返回 FILLED_SHAPE
+    return m_filledShape;
 }
 
 // ========== 实体碰撞 ==========

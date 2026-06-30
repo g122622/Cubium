@@ -59,6 +59,7 @@ add_library(mc_common STATIC
     network/packet/MapDataPacket.cpp
     network/packet/SetCameraPacket.cpp
     network/packet/SetPassengersPacket.cpp
+    network/packet/SetEntityLinkPacket.cpp
     network/packet/TitlePacket.cpp
     network/packet/WorldBorderPacket.cpp
     network/packet/BossInfoPacket.cpp
@@ -79,6 +80,9 @@ add_library(mc_common STATIC
     entity/core/CreatureEntity.cpp
     entity/core/AgeableEntity.cpp
     entity/core/FlyingEntity.cpp
+    entity/tag/EntityTypeTag.cpp
+    entity/tag/EntityTypeTags.cpp
+    entity/tag/EntityTypeTagLoader.cpp
     # Entity - Serialization
     entity/serialization/EntityDeserializer.cpp
     entity/serialization/EquipmentSlotNames.cpp
@@ -361,6 +365,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/special/TurtleGoals.cpp
     entity/ai/goal/goals/special/WanderingTraderGoals.cpp
     entity/ai/goal/goals/special/BeeGoals.cpp
+    entity/ai/goal/goals/special/CatGoals.cpp
     entity/ai/goal/goals/special/FoxGoals.cpp
     entity/ai/goal/goals/special/PandaGoals.cpp
     entity/ai/goal/goals/special/MoveToLavaGoal.cpp
@@ -485,6 +490,9 @@ add_library(mc_common STATIC
     item/items/weapon/BowItem.cpp
     item/items/weapon/ArrowItem.cpp
     item/items/weapon/TippedArrowItem.cpp
+    item/items/weapon/SpectralArrowItem.cpp
+    item/items/weapon/FireChargeItem.cpp
+    item/items/weapon/FireworkRocketItem.cpp
     item/items/weapon/CrossbowItem.cpp
     item/items/weapon/TridentItem.cpp
     item/items/weapon/ShieldItem.cpp
@@ -518,6 +526,7 @@ add_library(mc_common STATIC
     item/items/special/SmithingTemplateItem.cpp
     item/items/special/EnchantedBookItem.cpp
     item/items/special/NameTagItem.cpp
+    item/items/special/LeadItem.cpp
     item/items/special/SaddleItem.cpp
     item/items/special/OnAStickItem.cpp
     item/items/special/StickItems.cpp
@@ -561,6 +570,7 @@ add_library(mc_common STATIC
     item/crafting/special/TippedArrowRecipe.cpp
     item/crafting/special/BannerDuplicateRecipe.cpp
     item/crafting/special/ShieldDecorationRecipe.cpp
+    item/crafting/special/DecoratedPotRecipe.cpp
 
     # Item - Enchantment System
     item/enchantment/Enchantment.cpp
@@ -904,6 +914,7 @@ add_library(mc_common STATIC
     world/blockentity/interactive/BannerEntity.cpp
     world/blockentity/interactive/BannerPattern.cpp
     world/blockentity/interactive/DecoratedPotPattern.cpp
+    world/blockentity/interactive/DecoratedPotBlockEntity.cpp
     world/blockentity/interactive/BeehiveBlockEntity.cpp
     world/blockentity/interactive/JukeboxEntity.cpp
     world/blockentity/interactive/LecternEntity.cpp
@@ -1314,6 +1325,7 @@ add_library(mc_common STATIC
     # Physics
     physics/PhysicsEngine.cpp
     physics/CollisionCache.cpp
+    physics/collision/CollisionShape.cpp
     # physics/collision/BlockCollision.cpp  # 已移除 - 使用新的方块系统
     physics/shape/DiscreteVoxelShape.cpp
     physics/shape/VoxelShape.cpp

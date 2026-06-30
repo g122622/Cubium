@@ -40,9 +40,8 @@ namespace blocks {
  *
  * ## 使用示例
  * ```cpp
- * // 注册发射行为
- * DispenseItemBehaviorRegistry::registerBehavior(Items::ARROW,
- *     std::make_unique<ProjectileDispenseBehavior>(ProjectileType::Arrow));
+ * // 注册弹射物发射行为（通过 ProjectileItem 接口自动获取配置）
+ * DispenseItemBehaviorRegistry::instance().registerProjectileBehavior(*Items::ARROW);
  *
  * // 获取发射行为
  * IDispenseItemBehavior* behavior = DispenseItemBehaviorRegistry::getBehavior(stack);
@@ -125,6 +124,17 @@ public:
      * 应在游戏启动时调用。
      */
     void initDefaultBehaviors();
+
+    /**
+     * @brief 为实现了 ProjectileItem 接口的物品注册弹射物发射行为
+     *
+     * 自动通过 dynamic_cast 检查物品是否实现了 ProjectileItem 接口，
+     * 如果是则创建 ProjectileDispenseBehavior 并注册。
+     * 参考 MC Java 的 DispenserBlock.registerProjectileBehavior()。
+     *
+     * @param item 物品引用
+     */
+    void registerProjectileBehavior(const Item& item);
 
 private:
     DispenseItemBehaviorRegistry();

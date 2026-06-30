@@ -72,6 +72,7 @@ add_executable(mc_tests
     common/item/crafting/RecipeSerializersTest.cpp
     common/item/crafting/BannerDuplicateRecipeTest.cpp
     common/item/crafting/ShieldDecorationRecipeTest.cpp
+    common/item/crafting/DecoratedPotRecipeTest.cpp
     common/item/tool/ToolTests.cpp
     common/item/tool/ShearsItemTest.cpp
     # ItemTags 花朵标签测试
@@ -136,6 +137,8 @@ add_executable(mc_tests
     entity/BegGoalTest.cpp
     # CatEntity 猫实体测试（驯服物品、繁殖物品、CatTemptGoal、CatAvoidPlayerGoal）
     entity/CatEntityTest.cpp
+    # CatGoals 猫AI目标测试（CatLieOnBedGoal、CatRelaxOnOwnerGoal、晨间礼物）
+    entity/CatGoalsTest.cpp
     common/entity/entities/passive/special/FoxEntityTest.cpp
     # PandaEntity 打喷嚏、性格、状态测试
     common/entity/entities/passive/special/PandaEntityTest.cpp
@@ -350,6 +353,8 @@ add_executable(mc_tests
     common/entity/combat/MobEntityEquipmentTest.cpp
     # MobEntity 交互测试（processInitialInteract、canBeLeashed、_spawnOffspringFromSpawnEgg）
     common/entity/core/MobEntityInteractTest.cpp
+    # 拴绳系统测试（拴绳状态、交互、LeashKnotEntity、ItemFrameEntity、NBT序列化）
+    common/entity/core/LeashSystemTest.cpp
     # Entity 持久化随机数生成器测试（getRandom() 返回引用、独立 RNG、状态连续性、const 可调用性）
     common/entity/core/EntityRandomTest.cpp
     # MobEntity 序列化测试（掉落概率、死亡掉落表、拴绳数据 NBT 序列化）
@@ -415,6 +420,8 @@ add_executable(mc_tests
     common/world/blockentity/CrafterBlockEntityTest.cpp
     # ShelfBlockEntity 书架方块实体测试（比较器信号、物品交换、序列化、克隆）
     common/world/blockentity/ShelfBlockEntityTest.cpp
+    # DecoratedPotBlockEntity 饰纹陶罐方块实体测试（图案序列化、物品存取、比较器信号、克隆）
+    common/world/blockentity/DecoratedPotBlockEntityTest.cpp
     # MobSpawnerBlockEntity 刷怪笼方块实体测试（生成逻辑、玩家检测、延迟重置、序列化、克隆）
     common/world/blockentity/MobSpawnerBlockEntityTest.cpp
     common/world/block/blocks/DoorBlockTest.cpp
@@ -451,6 +458,7 @@ add_executable(mc_tests
     common/world/block/blocks/functional/StonecutterBlockTest.cpp
     common/world/block/blocks/functional/SmithingTableBlockTest.cpp
     common/world/block/blocks/functional/BeaconBlockTest.cpp
+    common/world/block/blocks/functional/DecoratedPotBlockTest.cpp
     common/world/block/blocks/nether/EnderChestBlockTest.cpp
     common/world/block/WaterLoggableTest.cpp
     common/world/block/blocks/HopperBlockTest.cpp
@@ -511,6 +519,8 @@ add_executable(mc_tests
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp
+    # EntityTypeTags 实体类型标签测试
+    common/entity/tag/EntityTypeTagsTest.cpp
     entity/FlyingEntityTests.cpp
     entity/EntitySensesTest.cpp
     entity/RidingSystemTests.cpp
@@ -569,6 +579,8 @@ add_executable(mc_tests
     entity/BrainScheduleTests.cpp
     entity/BrainMovementTaskTests.cpp
     entity/BrainInteractTaskTests.cpp
+    entity/BrainActionTaskTests.cpp
+    entity/BrainActionTaskNewTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
     entity/FishSupportTypesTest.cpp
@@ -578,6 +590,7 @@ add_executable(mc_tests
     entity/HorseBreedingTest.cpp
     entity/HorseJumpBoostTest.cpp
     entity/HorseAiGoalsTest.cpp
+    entity/LlamaFollowCaravanGoalTest.cpp
     common/entity/entities/passive/horse/HorseCanEquipTest.cpp
     common/entity/entities/passive/horse/SkeletonHorseEntityTest.cpp
     # 骷髅马陷阱触发集成测试（triggerTrap 完整流程、困难模式额外骷髅马）
@@ -724,6 +737,7 @@ add_executable(mc_tests
     server/command/SpreadPlayersCommandTest.cpp
     server/command/SpreadAlgorithmTest.cpp
     server/command/ExecuteCommandTest.cpp
+    server/command/WardenSpawnTrackerCommandTest.cpp
     server/world/player/ServerPlayerEntityManagerTest.cpp
     client/world/player/LocalPlayerIdentityTest.cpp
     client/world/player/ClientPlayerPredictorTest.cpp
@@ -1352,6 +1366,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WardenSpawnTrackerCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WorldBorderCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScoreboardCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp
@@ -1592,6 +1607,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/FoxGoals.cpp
         # PandaGoals 用于熊猫打滚 AI 测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/PandaGoals.cpp
+        # CatGoals 用于猫 AI 目标测试（CatLieOnBedGoal、CatRelaxOnOwnerGoal）
+        ${CMAKE_SOURCE_DIR}/src/common/entity/ai/goal/goals/special/CatGoals.cpp
         # GhastMovementController 用于恶魂飞行控制器测试
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/controller/GhastMovementController.cpp
         ${CMAKE_SOURCE_DIR}/src/common/entity/ai/brain/sensor/Sensors.cpp
@@ -2132,6 +2149,7 @@ add_executable(mc_command_tests
     server/command/SpreadAlgorithmTest.cpp
     server/command/TeamCommandTest.cpp
     server/command/TriggerCommandTest.cpp
+    server/command/WardenSpawnTrackerCommandTest.cpp
     server/command/ReplaceItemCommandTest.cpp
     common/command/arguments/BlockStateArgumentTest.cpp
     common/command/arguments/EntityArgumentTest.cpp
@@ -2259,6 +2277,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TagCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TeamCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/TriggerCommand.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/command/commands/WardenSpawnTrackerCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/WorldBorderCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/ScoreboardCommand.cpp
         ${CMAKE_SOURCE_DIR}/src/server/command/commands/AttributeCommand.cpp

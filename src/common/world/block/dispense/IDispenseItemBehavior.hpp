@@ -44,6 +44,10 @@ namespace fluid {
 class Fluid;
 }
 
+namespace item {
+class ProjectileItem;
+}
+
 namespace blocks {
 
 /**
@@ -280,30 +284,21 @@ private:
 };
 
 /**
- * @brief 投掷物发射行为基类
+ * @brief 投掷物发射行为
  *
- * 用于发射投掷物（箭矢、雪球、鸡蛋等）。
- * 通过工厂函数创建具体的投掷物实体。
+ * 通过 ProjectileItem 接口创建并发射投掷物。
+ * 当物品实现了 ProjectileItem 接口时，发射器自动使用此类进行发射，
+ * 无需为每种投掷物单独编写 lambda 工厂函数。
+ *
+ * 参考: net.minecraft.core.dispenser.ProjectileDispenseBehavior
  */
 class ProjectileDispenseBehavior : public DefaultDispenseItemBehavior {
 public:
     /**
-     * @brief 投掷物创建函数类型
-     *
-     * @param world 世界引用
-     * @param pos 发射位置
-     * @param stack 物品堆（可能包含药水效果等信息）
-     * @return 创建的投掷物实体
-     */
-    using ProjectileFactory = std::function<std::unique_ptr<mc::Entity>(IWorld&, const Vector3&, const ItemStack&)>;
-
-    /**
      * @brief 构造函数
-     * @param createProjectile 投掷物创建工厂函数
-     * @param velocity 发射速度（默认1.1，与MC一致）
-     * @param inaccuracy 发射偏差（默认6.0，与MC一致）
+     * @param item 实现了 ProjectileItem 接口的物品引用
      */
-    explicit ProjectileDispenseBehavior(ProjectileFactory createProjectile, f32 velocity = 1.1f, f32 inaccuracy = 6.0f);
+    explicit ProjectileDispenseBehavior(const item::ProjectileItem& projectileItem);
 
     ItemStack dispense(IWorld& world,
         const BlockPos& pos,
@@ -311,23 +306,8 @@ public:
         ItemStack& stack,
         IInventory* dispenserInventory) override;
 
-protected:
-    /**
-     * @brief 获取发射速度
-     * @return 发射速度
-     */
-    [[nodiscard]] f32 getVelocity() const { return m_velocity; }
-
-    /**
-     * @brief 获取发射偏差
-     * @return 发射偏差
-     */
-    [[nodiscard]] f32 getInaccuracy() const { return m_inaccuracy; }
-
 private:
-    ProjectileFactory m_createProjectile;
-    f32 m_velocity;
-    f32 m_inaccuracy;
+    const item::ProjectileItem& m_projectileItem;
 };
 
 /**

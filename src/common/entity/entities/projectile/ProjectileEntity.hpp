@@ -35,6 +35,7 @@ namespace mc {
 // 前向声明
 class LivingEntity;
 class Player;
+class EntityTypeTag;
 
 namespace entity {
 
@@ -126,6 +127,20 @@ public:
      * @return 如果允许交互返回 true
      */
     [[nodiscard]] bool mayInteract(IWorld& world, const BlockPos& pos) const override;
+
+    /**
+     * @brief 检查投射物是否可以破坏方块
+     *
+     * 当投射物的实体类型属于 #minecraft:impact_projectiles 标签
+     * 且 PROJECTILES_CAN_BREAK_BLOCKS 游戏规则为 true 时返回 true。
+     * 这是陶罐、紫颂花等方块被投射物命中时的额外检查条件。
+     *
+     * 对应 MC Java 的 Projectile.mayBreak(ServerLevel)。
+     *
+     * @param world 世界引用
+     * @return 如果投射物可以破坏方块返回 true
+     */
+    [[nodiscard]] bool mayBreak(IWorld& world) const;
 
     /**
      * @brief 获取发射者

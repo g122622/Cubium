@@ -101,6 +101,7 @@ struct RuleRegistry {
         registerBoolean("doMobLoot", GameRuleCategory::Drops, true);
         registerBoolean("doTileDrops", GameRuleCategory::Drops, true);
         registerBoolean("doEntityDrops", GameRuleCategory::Drops, true);
+        registerBoolean("projectilesCanBreakBlocks", GameRuleCategory::Drops, true);
 
         // 更新相关
         registerBoolean("doFireTick", GameRuleCategory::Updates, true);
@@ -198,6 +199,7 @@ const BooleanGameRuleKey DO_WARDEN_SPAWNING("doWardenSpawning", GameRuleCategory
 const BooleanGameRuleKey DO_MOB_LOOT("doMobLoot", GameRuleCategory::Drops);
 const BooleanGameRuleKey DO_TILE_DROPS("doTileDrops", GameRuleCategory::Drops);
 const BooleanGameRuleKey DO_ENTITY_DROPS("doEntityDrops", GameRuleCategory::Drops);
+const BooleanGameRuleKey PROJECTILES_CAN_BREAK_BLOCKS("projectilesCanBreakBlocks", GameRuleCategory::Drops);
 
 // 更新相关
 const BooleanGameRuleKey DO_FIRE_TICK("doFireTick", GameRuleCategory::Updates);

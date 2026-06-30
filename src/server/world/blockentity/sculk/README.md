@@ -115,5 +115,4 @@ SculkShriekerHelper::tryRespond():
 
 ## 待实现
 
-- tryGetPlayer() 中载具乘客、投射物主人、物品主人解析（依赖未来子系统完善）
 - _trySummonWarden() 中监守者实体类型未注册时的优雅跳过（依赖 WardenEntity 实现）

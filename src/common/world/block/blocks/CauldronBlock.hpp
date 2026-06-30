@@ -150,11 +150,37 @@ public:
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
 
     /**
+     * @brief 获取实体内部碰撞形状
+     *
+     * 返回炼药锅外部形状与水位内容区域的并集。实体只有进入内容区域
+     * 才会触发 onEntityCollision（如灭火）。
+     * 空炼药锅（水位0）返回完整方块形状，因为 MC 原版空炼药锅的
+     * getEntityInsideCollisionShape 继承默认行为返回 Shapes.block()。
+     * 有水时返回与水位对应的内容填充形状。
+     *
+     * 参考: net.minecraft.block.LayeredCauldronBlock#getEntityInsideCollisionShape
+     * 原版使用 FILLED_SHAPES[level - 1]，其中 level 范围 1-3
+     */
+    [[nodiscard]] const CollisionShape& getEntityInsideCollisionShape(const BlockState& state) const override;
+
+    /**
      * @brief 获取内部形状（用于水位渲染）
      * @param level 水位 (0-3)
      * @return 形状引用
      */
     [[nodiscard]] const CollisionShape& getContentShape(i32 level) const;
+
+    // ========== 实体碰撞 ==========
+
+    /**
+     * @brief 实体进入水炼药锅时灭火并降低水位
+     *
+     * 当着火的实体进入有水的炼药锅时，实体会被灭火，同时水位降低 1 级。
+     * 空炼药锅（水位0）不执行任何操作。
+     *
+     * 参考: net.minecraft.block.LayeredCauldronBlock#entityInside
+     */
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
     // ========== 红石 ==========
 
@@ -316,8 +342,13 @@ private:
     /// 炼药锅外部形状
     CollisionShape m_outerShape;
 
-    /// 不同水位的内容形状
+    /// 不同水位的内容形状（用于渲染）
     std::array<CollisionShape, 4> m_contentShapes;
+
+    /// 不同水位的填充形状（外部形状 ∪ 内容形状，用于实体内部碰撞检测）
+    /// 参考 MC 原版: LayeredCauldronBlock.FILLED_SHAPES[level - 1]
+    /// 索引 0 = 水位1, 索引 1 = 水位2, 索引 2 = 水位3
+    std::array<CollisionShape, 3> m_filledShapes;
 };
 
 } // namespace blocks

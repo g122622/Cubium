@@ -38,8 +38,12 @@
 
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/entities/item/ItemEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileEntity.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/world/blockentity/sculk/SculkShriekerBlockEntity.hpp"
 #include "server/world/blockentity/sculk/SculkShriekerHelper.hpp"
 
@@ -96,10 +100,8 @@ TEST_F(SculkShriekerBlockEntityShriekTest, ShriekingFinishedWithMaxWarningLevel)
 {
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    // 递增到最大警告等级
-    for (i32 i = 0; i < 4; ++i) {
-        entity->incrementWarningLevel();
-    }
+    // 设置到最大警告等级
+    entity->setWarningLevel(4);
     EXPECT_TRUE(entity->canSummonWarden());
 
     // 设置 shriekingFinished（模拟尖啸结束）
@@ -114,9 +116,7 @@ TEST_F(SculkShriekerBlockEntityShriekTest, WarningLevelResetAfterTryShriek)
     // 此测试验证 BlockEntity 的 setWarningLevel(0) 行为
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    entity->incrementWarningLevel();
-    entity->incrementWarningLevel();
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(3);
     EXPECT_EQ(entity->getWarningLevel(), 3);
 
     // 模拟 tryShriek 的重置操作
@@ -131,7 +131,7 @@ TEST_F(SculkShriekerBlockEntityShriekTest, JsonSerialization_WithShriekingFinish
     // 但 warningLevel 和 vibrationData 需要序列化
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(1);
     entity->setShriekingFinished(true);
 
     nlohmann::json data;
@@ -149,7 +149,7 @@ TEST_F(SculkShriekerBlockEntityShriekTest, ShriekingFinishedNotPersistedAcrossLo
 {
     // shriekingFinished 不应从存档中恢复（每次加载默认为 false）
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(1);
     entity->setShriekingFinished(true);
 
     nlohmann::json data;
@@ -179,16 +179,16 @@ TEST_F(SculkShriekerBlockEntityWarningTest, CanSummonWardenAtLevel4Only)
 
     EXPECT_FALSE(entity->canSummonWarden()); // level 0
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(1);
     EXPECT_FALSE(entity->canSummonWarden()); // level 1
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(2);
     EXPECT_FALSE(entity->canSummonWarden()); // level 2
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(3);
     EXPECT_FALSE(entity->canSummonWarden()); // level 3
 
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(4);
     EXPECT_TRUE(entity->canSummonWarden()); // level 4
 }
 
@@ -196,10 +196,8 @@ TEST_F(SculkShriekerBlockEntityWarningTest, WarningLevelDoesNotExceedMax)
 {
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    // 递增超过最大值
-    for (i32 i = 0; i < 10; ++i) {
-        entity->incrementWarningLevel();
-    }
+    // 设置到最大等级
+    entity->setWarningLevel(4);
     EXPECT_EQ(entity->getWarningLevel(), 4);
     EXPECT_TRUE(entity->canSummonWarden());
 }
@@ -241,32 +239,47 @@ TEST_F(WardenWarningEffectTest, IncreaseWarning)
 {
     EXPECT_EQ(effect.getWarningLevel(), 0);
 
+    // 每次递增后会设置冷却，需要先消耗冷却才能再次递增
+    // WardenSpawnTracker.increaseWarningLevel()
+    effect.increaseWarning();
+    EXPECT_EQ(effect.getWarningLevel(), 1);
+    EXPECT_TRUE(effect.onCooldown());
+
+    // 冷却期间递增无效
     effect.increaseWarning();
     EXPECT_EQ(effect.getWarningLevel(), 1);
 
+    // 消耗冷却（WARNING_LEVEL_INCREASE_COOLDOWN = 200 tick）
+    for (i32 i = 0; i < 200; ++i) {
+        effect.tick();
+    }
+    EXPECT_FALSE(effect.onCooldown());
+
     effect.increaseWarning();
     EXPECT_EQ(effect.getWarningLevel(), 2);
-
-    effect.increaseWarning();
-    EXPECT_EQ(effect.getWarningLevel(), 3);
-
-    effect.increaseWarning();
-    EXPECT_EQ(effect.getWarningLevel(), 4);
 }
 
 TEST_F(WardenWarningEffectTest, IncreaseWarningCappedAt4)
 {
-    for (i32 i = 0; i < 8; ++i) {
+    // 递增到最大值 4，每次递增后需要消耗冷却
+    for (i32 i = 0; i < 4; ++i) {
         effect.increaseWarning();
+        // 消耗冷却
+        for (i32 j = 0; j < 200; ++j) {
+            effect.tick();
+        }
     }
+    EXPECT_EQ(effect.getWarningLevel(), 4);
+
+    // 超过最大值不会继续递增
+    effect.increaseWarning();
     EXPECT_EQ(effect.getWarningLevel(), 4);
 }
 
 TEST_F(WardenWarningEffectTest, DecreaseWarning)
 {
-    effect.increaseWarning();
-    effect.increaseWarning();
-    effect.increaseWarning();
+    // 使用 setWarningLevel 直接设置（跳过冷却）
+    effect.setWarningLevel(3);
     EXPECT_EQ(effect.getWarningLevel(), 3);
 
     effect.decreaseWarning();
@@ -290,15 +303,14 @@ TEST_F(WardenWarningEffectTest, SetSourcePos)
     EXPECT_EQ(effect.getSourcePos(), shriekerPos);
 }
 
-TEST_F(WardenWarningEffectTest, TickDecreasesAfterCooldown)
+TEST_F(WardenWarningEffectTest, TickDecreasesAfterLongTime)
 {
-    // 递增警告等级（这会设置冷却）
+    // 递增警告等级（这会设置冷却和重置递减计时器）
     effect.increaseWarning();
     EXPECT_EQ(effect.getWarningLevel(), 1);
 
     // 冷却期间 tick 不应递减
-    // WardenWarningEffect 内部 DECREASE_INTERVAL = 200
-    // 我们只验证前几个 tick 不会立即递减
+    // 冷却为 WARNING_LEVEL_INCREASE_COOLDOWN = 200 tick
     for (i32 i = 0; i < 100; ++i) {
         effect.tick();
     }
@@ -311,11 +323,61 @@ TEST_F(WardenWarningEffectTest, TickEventuallyDecreasesTo0)
     EXPECT_EQ(effect.getWarningLevel(), 1);
 
     // 模拟足够多的 tick 让警告等级递减到 0
-    // DECREASE_INTERVAL = 200 tick, 加上 1 个冷却周期 + 递减周期
-    for (i32 i = 0; i < 500; ++i) {
+    // DECREASE_WARNING_LEVEL_EVERY_INTERVAL = 12000 tick (10 分钟)
+    // 加上冷却期 200 tick
+    for (i32 i = 0; i < 13000; ++i) {
         effect.tick();
     }
     EXPECT_EQ(effect.getWarningLevel(), 0);
+}
+
+TEST_F(WardenWarningEffectTest, CooldownPreventsIncrease)
+{
+    // 递增后处于冷却中，再次递增应无效
+    effect.increaseWarning();
+    EXPECT_EQ(effect.getWarningLevel(), 1);
+    EXPECT_TRUE(effect.onCooldown());
+
+    // 冷却中递增不生效
+    effect.increaseWarning();
+    EXPECT_EQ(effect.getWarningLevel(), 1);
+
+    // 消耗冷却
+    for (i32 i = 0; i < 200; ++i) {
+        effect.tick();
+    }
+    EXPECT_FALSE(effect.onCooldown());
+
+    // 冷却结束后可以递增
+    effect.increaseWarning();
+    EXPECT_EQ(effect.getWarningLevel(), 2);
+}
+
+TEST_F(WardenWarningEffectTest, CopyData)
+{
+    // 设置一个追踪器的状态
+    effect.increaseWarning();
+    // 消耗冷却后再次递增
+    for (i32 i = 0; i < 200; ++i) {
+        effect.tick();
+    }
+    effect.increaseWarning();
+    EXPECT_EQ(effect.getWarningLevel(), 2);
+
+    // 创建另一个追踪器并复制数据
+    entity::WardenWarningEffect other;
+    other.copyData(effect);
+    EXPECT_EQ(other.getWarningLevel(), 2);
+}
+
+TEST_F(WardenWarningEffectTest, Reset)
+{
+    effect.increaseWarning();
+    EXPECT_EQ(effect.getWarningLevel(), 1);
+
+    effect.reset();
+    EXPECT_EQ(effect.getWarningLevel(), 0);
+    EXPECT_FALSE(effect.onCooldown());
 }
 
 TEST_F(WardenWarningEffectTest, WarningRadius)
@@ -395,46 +457,271 @@ TEST_F(SculkShriekerHelperConstantsTest, WardenSoundByLevel)
 // SculkShriekerHelper::tryGetPlayer 测试
 // ============================================================================
 
+/**
+ * @brief 投射物测试辅助类
+ *
+ * ProjectileEntity 的构造函数是 protected 的，
+ * 通过子类化在测试中公开构造能力。
+ */
+class TestProjectileEntity : public mc::entity::ProjectileEntity {
+public:
+    explicit TestProjectileEntity(EntityId id)
+        : ProjectileEntity(id)
+    {}
+};
+
+/**
+ * @brief tryGetPlayer 测试用的世界桩
+ *
+ * 继承 BaseTestWorld，覆写 getEntity 和 getEntityByUuid
+ * 以支持 tryGetPlayer 的载具/投射物/物品实体解析测试。
+ */
+class TryGetPlayerTestWorld : public test::BaseTestWorld {
+public:
+    TryGetPlayerTestWorld() = default;
+
+    [[nodiscard]] Entity* getEntity(EntityId id) override
+    {
+        auto it = m_entities.find(id);
+        return it != m_entities.end() ? it->second.get() : nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntity(EntityId id) const override
+    {
+        auto it = m_entities.find(id);
+        return it != m_entities.end() ? it->second.get() : nullptr;
+    }
+
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override
+    {
+        auto it = m_uuidToEntity.find(uuid);
+        return it != m_uuidToEntity.end() ? it->second : nullptr;
+    }
+
+    [[nodiscard]] const Entity* getEntityByUuid(const std::string& uuid) const override
+    {
+        auto it = m_uuidToEntity.find(uuid);
+        return it != m_uuidToEntity.end() ? it->second : nullptr;
+    }
+
+    /**
+     * @brief 注册一个实体到测试世界
+     *
+     * 将实体添加到 ID/UUID 映射，并设置实体的世界指针。
+     */
+    void registerEntity(std::unique_ptr<Entity> entity)
+    {
+        Entity* raw = entity.get();
+        EntityId id = raw->id();
+        std::string uuid = raw->uuid();
+        raw->setWorld(this);
+        m_uuidToEntity[uuid] = raw;
+        m_entities[id] = std::move(entity);
+    }
+
+private:
+    std::unordered_map<EntityId, std::unique_ptr<Entity>> m_entities;
+    std::unordered_map<std::string, Entity*> m_uuidToEntity;
+};
+
 class SculkShriekerHelperTryGetPlayerTest : public ::testing::Test {
 protected:
-    void SetUp() override {}
+    TryGetPlayerTestWorld world;
 };
 
 TEST_F(SculkShriekerHelperTryGetPlayerTest, NullptrEntityReturnsNullptr)
 {
-    // 传入 nullptr 实体应返回 nullptr
-    Player* result = SculkShriekerHelper::tryGetPlayer(nullptr);
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, nullptr);
     EXPECT_EQ(result, nullptr);
 }
 
 TEST_F(SculkShriekerHelperTryGetPlayerTest, DirectPlayerReturnsPlayer)
 {
-    // 直接传入玩家实体应返回该玩家
     auto player = std::make_unique<Player>(EntityId(1), "TestPlayer");
-    Player* result = SculkShriekerHelper::tryGetPlayer(player.get());
+    Player* rawPlayer = player.get();
+    world.registerEntity(std::move(player));
+
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawPlayer);
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result, player.get());
+    EXPECT_EQ(result, rawPlayer);
 }
 
 TEST_F(SculkShriekerHelperTryGetPlayerTest, NonPlayerEntityReturnsNullptr)
 {
-    // 传入非玩家实体应返回 nullptr
-    // 当前 tryGetPlayer 仅支持直接玩家解析
-    // 投射物、载具、掉落物的主人解析为 TODO
-    // 使用 LivingEntity 作为非玩家实体
     auto entity = std::make_unique<LivingEntity>(EntityId(2));
-    Player* result = SculkShriekerHelper::tryGetPlayer(entity.get());
+    Entity* rawEntity = entity.get();
+    world.registerEntity(std::move(entity));
+
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawEntity);
     EXPECT_EQ(result, nullptr);
 }
 
-TEST_F(SculkShriekerHelperTryGetPlayerTest, ConstPlayerReturnsMutablePlayer)
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ControllingPassengerIsPlayer)
 {
-    // 传入 const Player* 应返回可变 Player*
-    auto player = std::make_unique<Player>(EntityId(3), "ConstPlayer");
-    const Player* constPlayer = player.get();
-    Player* result = SculkShriekerHelper::tryGetPlayer(constPlayer);
+    // 创建载具实体和玩家乘客
+    auto vehicle = std::make_unique<LivingEntity>(EntityId(10));
+    auto player = std::make_unique<Player>(EntityId(11), "RiderPlayer");
+    Player* rawPlayer = player.get();
+
+    // 先注册实体到世界（startRiding 需要世界引用来查找实体）
+    Entity* rawVehicle = vehicle.get();
+    world.registerEntity(std::move(vehicle));
+    world.registerEntity(std::move(player));
+
+    // 使用 startRiding 建立骑乘关系
+    rawPlayer->startRiding(*rawVehicle);
+
+    // 通过载具实体应该能解析出控制乘客（玩家）
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawVehicle);
     ASSERT_NE(result, nullptr);
-    EXPECT_EQ(result, player.get());
+    EXPECT_EQ(result, rawPlayer);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ControllingPassengerNotPlayerReturnsNullptr)
+{
+    // 创建载具实体和非玩家乘客
+    auto vehicle = std::make_unique<LivingEntity>(EntityId(20));
+    auto passenger = std::make_unique<LivingEntity>(EntityId(21));
+
+    // 先注册实体到世界
+    Entity* rawVehicle = vehicle.get();
+    Entity* rawPassenger = passenger.get();
+    world.registerEntity(std::move(vehicle));
+    world.registerEntity(std::move(passenger));
+
+    // 使用 startRiding 建立骑乘关系
+    rawPassenger->startRiding(*rawVehicle);
+
+    // 载具的非玩家乘客不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawVehicle);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithPlayerShooterReturnsPlayer)
+{
+    // 创建投射物和射手玩家
+    auto player = std::make_unique<Player>(EntityId(30), "ShooterPlayer");
+    Player* rawPlayer = player.get();
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(31));
+    Entity* rawProjectile = projectile.get();
+
+    // 先注册玩家到世界
+    world.registerEntity(std::move(player));
+    world.registerEntity(std::move(projectile));
+
+    // 设置投射物的射手为玩家
+    rawProjectile->setWorld(&world);
+    static_cast<mc::entity::ProjectileEntity*>(rawProjectile)->setShooter(rawPlayer);
+
+    // 通过投射物应该能解析出射手（玩家）
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawProjectile);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result, rawPlayer);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithNonPlayerShooterReturnsNullptr)
+{
+    // 创建投射物和非玩家射手
+    auto shooter = std::make_unique<LivingEntity>(EntityId(40));
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(41));
+    Entity* rawProjectile = projectile.get();
+
+    // 先注册射手到世界
+    Entity* rawShooter = shooter.get();
+    world.registerEntity(std::move(shooter));
+    world.registerEntity(std::move(projectile));
+
+    // 设置投射物的射手为非玩家实体
+    rawProjectile->setWorld(&world);
+    static_cast<mc::entity::ProjectileEntity*>(rawProjectile)->setShooter(rawShooter);
+
+    // 投射物的非玩家射手不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawProjectile);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ProjectileWithNoShooterReturnsNullptr)
+{
+    // 创建投射物（无射手）
+    auto projectile = std::make_unique<TestProjectileEntity>(EntityId(50));
+    Entity* rawProjectile = projectile.get();
+    world.registerEntity(std::move(projectile));
+
+    // 投射物无射手，不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawProjectile);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithPlayerOwnerReturnsPlayer)
+{
+    // 创建物品实体和所有者玩家
+    auto player = std::make_unique<Player>(EntityId(60), "OwnerPlayer");
+    Player* rawPlayer = player.get();
+    ItemStack emptyStack;
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(61), emptyStack, 0.0f, 0.0f, 0.0f);
+    Entity* rawItemEntity = itemEntity.get();
+
+    // 先注册玩家到世界
+    world.registerEntity(std::move(player));
+    world.registerEntity(std::move(itemEntity));
+
+    // 设置物品实体的所有者为玩家
+    static_cast<ItemEntity*>(rawItemEntity)->setOwner(rawPlayer->uuid());
+
+    // 通过物品实体应该能解析出所有者（玩家）
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawItemEntity);
+    ASSERT_NE(result, nullptr);
+    EXPECT_EQ(result, rawPlayer);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithNonPlayerOwnerReturnsNullptr)
+{
+    // 创建物品实体和非玩家所有者
+    auto owner = std::make_unique<LivingEntity>(EntityId(70));
+    owner->setUuid("non-player-owner-uuid");
+    ItemStack emptyStack;
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(71), emptyStack, 0.0f, 0.0f, 0.0f);
+    Entity* rawItemEntity = itemEntity.get();
+
+    // 先注册所有者到世界
+    world.registerEntity(std::move(owner));
+    world.registerEntity(std::move(itemEntity));
+
+    // 设置物品实体的所有者为非玩家实体
+    static_cast<ItemEntity*>(rawItemEntity)->setOwner("non-player-owner-uuid");
+
+    // 物品实体的非玩家所有者不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawItemEntity);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithNoOwnerReturnsNullptr)
+{
+    // 创建物品实体（无所有者）
+    ItemStack emptyStack;
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(80), emptyStack, 0.0f, 0.0f, 0.0f);
+    Entity* rawItemEntity = itemEntity.get();
+    world.registerEntity(std::move(itemEntity));
+
+    // 物品实体无所有者，不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawItemEntity);
+    EXPECT_EQ(result, nullptr);
+}
+
+TEST_F(SculkShriekerHelperTryGetPlayerTest, ItemEntityWithOwnerNotInWorldReturnsNullptr)
+{
+    // 创建物品实体，所有者UUID已设置但对应实体不存在于世界中
+    ItemStack emptyStack;
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(90), emptyStack, 0.0f, 0.0f, 0.0f);
+    Entity* rawItemEntity = itemEntity.get();
+    world.registerEntity(std::move(itemEntity));
+
+    // 设置一个不存在于世界中的所有者UUID
+    static_cast<ItemEntity*>(rawItemEntity)->setOwner("nonexistent-player-uuid");
+
+    // 所有者不在世界中，不应解析出玩家
+    Player* result = SculkShriekerHelper::tryGetPlayer(world, rawItemEntity);
+    EXPECT_EQ(result, nullptr);
 }
 
 // ============================================================================
@@ -469,14 +756,8 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, FullShriekCycle)
     entity->setWarningLevel(0);
     EXPECT_EQ(entity->getWarningLevel(), 0);
 
-    // 模拟 4 次 tryWarn 递增
-    entity->incrementWarningLevel(); // level 1
-    EXPECT_EQ(entity->getWarningLevel(), 1);
-    EXPECT_FALSE(entity->canSummonWarden());
-
-    entity->incrementWarningLevel(); // level 2
-    entity->incrementWarningLevel(); // level 3
-    entity->incrementWarningLevel(); // level 4
+    // 模拟 tryWarn 将警告等级设为 4
+    entity->setWarningLevel(4);
     EXPECT_EQ(entity->getWarningLevel(), 4);
     EXPECT_TRUE(entity->canSummonWarden());
 
@@ -502,7 +783,7 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, MultipleShrieksBeforeRespond)
 
     // 第一次 tryShriek
     entity->setWarningLevel(0);
-    entity->incrementWarningLevel(); // level 1
+    entity->setWarningLevel(1); // 模拟 tryWarn 设置
     EXPECT_FALSE(entity->canSummonWarden());
 
     // 模拟尖啸结束并响应（不会召唤监守者，但会播放声音）
@@ -511,7 +792,7 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, MultipleShrieksBeforeRespond)
 
     // 第二次 tryShriek（重置再递增）
     entity->setWarningLevel(0);
-    entity->incrementWarningLevel(); // level 1
+    entity->setWarningLevel(1); // 模拟 tryWarn 设置
     EXPECT_FALSE(entity->canSummonWarden());
 }
 
@@ -520,9 +801,7 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, WarningLevelPersistence)
     // 验证警告等级在序列化/反序列化后保留
     auto entity = std::make_unique<SculkShriekerBlockEntity>(pos_);
 
-    entity->incrementWarningLevel();
-    entity->incrementWarningLevel();
-    entity->incrementWarningLevel();
+    entity->setWarningLevel(3);
 
     nlohmann::json data;
     entity->save(data);
@@ -531,8 +810,8 @@ TEST_F(SculkShriekerBlockEntityScenarioTest, WarningLevelPersistence)
     ASSERT_TRUE(loaded->load(data));
     EXPECT_EQ(loaded->getWarningLevel(), 3);
 
-    // 继续递增到 4
-    loaded->incrementWarningLevel();
+    // 继续设置到 4
+    loaded->setWarningLevel(4);
     EXPECT_TRUE(loaded->canSummonWarden());
 }
 

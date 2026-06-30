@@ -565,7 +565,6 @@ void Player::tick()
     m_cooldownTracker.tick();
 
     // 更新监守者警告效果（每 tick 递减冷却，冷却归零后递减警告等级）
-    // 对齐 MC Java: WardenSpawnTracker.tick()
     m_wardenWarningEffect.tick();
 
     // 世界边界伤害检测

@@ -1232,26 +1232,43 @@ void Entity::doBlockCollisions()
                 BlockPos pos(x, y, z);
                 const BlockState* blockState = m_world->getBlockState(pos);
                 if (blockState != nullptr && !blockState->isAir()) {
-                    // 调用方块的实体碰撞回调
                     const Block& block = blockState->getBlock();
-                    block.onEntityCollision(*blockState, *m_world, pos, *this);
 
-                    // 派发自定义方块组件回调 - onEntity
-                    auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
-                    std::string typeId = block.blockLocation().toString();
-                    if (blockReg.hasEntityCallback(typeId)) {
-                        mc::mod::bedrock::addon::BlockComponentEntityEvent event;
-                        event.blockTypeId = typeId;
-                        event.blockX = pos.x;
-                        event.blockY = pos.y;
-                        event.blockZ = pos.z;
-                        event.dimensionId = m_world->dimension();
-                        event.entitySourceId = id();
-                        blockReg.dispatchEntity(typeId, event);
+                    // 参考 MC Java: Entity.checkInsideBlocks() 使用 getEntityInsideCollisionShape
+                    // 检查实体 AABB 是否与方块的实体内部碰撞形状重叠。
+                    // 大多数方块返回完整方块形状（快速路径），特殊方块如炼药锅
+                    // 返回更精确的形状，只有实体进入内容区域时才触发 onEntityCollision。
+                    const CollisionShape& insideShape = block.getEntityInsideCollisionShape(*blockState);
+                    bool isInsideBlock = false;
+                    if (insideShape.isFullBlock()) {
+                        // 快速路径：完整方块形状，AABB 与方块网格重叠即视为在方块内部
+                        isInsideBlock = true;
+                    } else if (!insideShape.isEmpty()) {
+                        // 精确路径：使用形状的 AABB 进行相交检测
+                        isInsideBlock = insideShape.intersects(m_boundingBox, pos.x, pos.y, pos.z);
                     }
 
-                    // 调用实体的"在方块内部"回调
-                    onInsideBlock(*blockState);
+                    if (isInsideBlock) {
+                        // 调用方块的实体碰撞回调
+                        block.onEntityCollision(*blockState, *m_world, pos, *this);
+
+                        // 派发自定义方块组件回调 - onEntity
+                        auto& blockReg = mc::mod::bedrock::addon::BlockComponentRegistry::instance();
+                        std::string typeId = block.blockLocation().toString();
+                        if (blockReg.hasEntityCallback(typeId)) {
+                            mc::mod::bedrock::addon::BlockComponentEntityEvent event;
+                            event.blockTypeId = typeId;
+                            event.blockX = pos.x;
+                            event.blockY = pos.y;
+                            event.blockZ = pos.z;
+                            event.dimensionId = m_world->dimension();
+                            event.entitySourceId = id();
+                            blockReg.dispatchEntity(typeId, event);
+                        }
+
+                        // 调用实体的"在方块内部"回调
+                        onInsideBlock(*blockState);
+                    }
                 }
             }
         }
