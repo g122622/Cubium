@@ -49,10 +49,10 @@ namespace mc::client::renderer::trident::particle::particles {
  * - 尺寸：1.5 * 0.1 * (random*0.5+0.2)
  * - 透明度：先淡入 0→0.6，后淡出 0.6→0
  *
- * 数据管线：MC Java 中 vault_connection 是 SimpleParticleType，目标位置通过 velocity 字段传递，
- * 因此不需要网络层 ParticleData 传递。create() 的 velocity-as-target-offset 行为与 MC 原版一致。
- * 若需编程方式创建（如通过 addParticleWithData），可使用 VibrationParticleData 传递目标位置和到达时间，
- * 数据工厂已在 ParticleFactories.cpp 中注册。
+ * 数据管线：MC Java 中 vault_connection 是 SimpleParticleType，速度参数即为目标偏移
+ * （targetPos = spawnPos + velocity），因此标准 create() 工厂方法已满足网络层需求
+ * （velocity 字段传递目标偏移）。编程方式创建（如通过 addParticleWithData）可使用
+ * VibrationParticleData 传递目标位置和到达时间，数据工厂已在 ParticleFactories.cpp 中注册。
  */
 class VaultConnectionParticle : public Particle {
 public:
