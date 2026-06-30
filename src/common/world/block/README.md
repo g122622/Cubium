@@ -20,7 +20,7 @@
 ├── HarvestTool.hpp #挖掘工具类型定义
 ├── IBeaconBeamColorProvider.hpp #信标光束颜色提供者接口
 ├── IBlockAnimateContext.hpp #方块动画 tick 上下文接口（客户端粒子 / 音效）
-├── IBucketPickupHandler.hpp #桶提取接口
+├── IBucketPickupHandler.hpp #桶提取接口（支持 pickupFluid 流体拾取和 pickupItem 非流体拾取双路径）
 ├── IGrowable.hpp #可生长方块接口（含 BoneMealType 枚举、getParticlePos 方法）
 ├── ILiquidContainer.hpp #液体容器接口
 ├── IWaterLoggable.hpp / cpp #含水方块接口
@@ -689,3 +689,19 @@ Block& block = state->getBlockMutable();
 **调用位置**：`Entity::doBlockCollisions()` 使用此形状替代简单 AABB-vs-网格位置检测，实现形状感知的实体碰撞检测。只有实体 AABB 与方块的 `getEntityInsideCollisionShape` 返回形状相交时，才会调用 `onEntityCollision`。
 
 **重要**：空炼药锅（水位0）返回 `fullCube()` 是 MC 原版行为——`AbstractCauldronBlock` 不重写 `getEntityInsideCollisionShape`，因此继承 `Shapes.block()`。这意味着实体只要在空炼药锅的方块格子内就会触发 `onEntityCollision`，但 `CauldronBlock::onEntityCollision` 内部检查水位为0时直接返回，所以空炼药锅不会灭火。
+
+## #35. IBucketPickupHandler 双路径拾取（pickupFluid / pickupItem）
+
+`IBucketPickupHandler` 接口支持两种拾取路径：
+
+1. **流体拾取（pickupFluid）**：流体方块（水、岩浆）重写此方法返回对应的 `Fluid*`，空桶拾取后获得满桶物品（水桶/岩浆桶）。`BucketItem::onItemUse` 的空桶路径优先尝试此方法。
+
+2. **非流体拾取（pickupItem）**：非流体方块（如细雪 PowderSnowBlock）重写此方法返回对应的 `const Item*`（如 `Items::POWDER_SNOW_BUCKET`），空桶拾取后获得细雪桶。当 `pickupFluid()` 返回 nullptr 时，`BucketItem::onItemUse` 会继续尝试 `pickupItem()`。默认实现返回 nullptr。
+
+3. **拾取音效（getPickupSound）**：非流体方块可重写此方法返回拾取时播放的音效（如细雪返回 `SoundEvents::ITEM_BUCKET_FILL_POWDER_SNOW`）。流体方块使用 `BucketItem` 中硬编码的 `ITEM_BUCKET_FILL` 音效，无需重写此方法。默认实现返回 nullptr。
+
+**实现规则**：
+- 流体方块只需实现 `pickupFluid()`，`pickupItem()` 和 `getPickupSound()` 保持默认即可
+- 非流体方块只需实现 `pickupItem()` 和 `getPickupSound()`，`pickupFluid()` 返回 nullptr
+- `BucketItem::onItemUse` 的空桶路径先尝试 `pickupFluid()`，失败后再尝试 `pickupItem()`
+- `EmptyBucketDispenseBehavior` 同样遵循此双路径逻辑

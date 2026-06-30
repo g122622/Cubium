@@ -25,7 +25,8 @@ IDispenseItemBehavior (接口)
     └── DefaultDispenseItemBehavior (基类：物品投掷)
         ├── OptionalDispenseItemBehavior (可能失败的行为基类)
         │   ├── BucketDispenseBehavior (放置流体，成功后替换为空桶)
-        │   ├── EmptyBucketDispenseBehavior (收集流体，成功后替换为满桶)
+        │   ├── EmptyBucketDispenseBehavior (收集流体或非流体方块，成功后替换为满桶/细雪桶)
+        │   ├── PowderSnowBucketDispenseBehavior (放置细雪方块，成功后替换为空桶)
         │   ├── FlintAndSteelDispenseBehavior (点火/点燃/引燃TNT，消耗耐久；tntExplodes=false时点燃失败)
         │   ├── BonemealDispenseBehavior (骨粉催熟/水中海草，消耗数量)
         │   └── TNTDispenseBehavior (TNT物品发射，检查tntExplodes规则后生成点燃的TNT实体)
@@ -128,3 +129,7 @@ IDispenseItemBehavior (接口)
 10. **TNTDispenseBehavior 受 tntExplodes 游戏规则控制**：当 `tntExplodes=false` 时，发射器不会发射 TNT 物品（行为失败，播放失败音效）。这与 MC Java 一致——TNT 物品在发射器中受游戏规则限制。TNTDispenseBehavior 继承自 `DefaultDispenseItemBehavior`（非 OptionalDispenseItemBehavior），因为失败时不消耗物品。
 
 11. **FlintAndSteelDispenseBehavior 点燃 TNT 时检查 ignite() 返回值**：打火石发射器尝试点燃 TNT 方块时，若 `tntExplodes=false`，`ignite()` 返回 `false`，发射器设置 `_setSuccess(false)` 并播放失败音效，不消耗打火石耐久。
+
+12. **EmptyBucketDispenseBehavior 支持非流体拾取路径**：空桶发射器行为先尝试 `IBucketPickupHandler::pickupFluid()`（拾取水/岩浆等流体），如果返回 nullptr 则继续尝试 `IBucketPickupHandler::pickupItem()`（拾取细雪等非流体方块）。`pickupItem()` 返回的物品（如 `Items::POWDER_SNOW_BUCKET`）作为替换物品写回发射器。`getPickupSound()` 提供拾取音效覆盖。
+
+13. **PowderSnowBucketDispenseBehavior 细雪桶发射器行为**：细雪桶（`minecraft:powder_snow_bucket`）的发射器行为，调用 `PowderSnowBucketItem::emptyContents()` 在目标位置放置细雪方块。成功后通过 `consumeWithRemainder` 将空桶写回发射器。对应 MC Java 的 `DispensibleContainerItem` 接口在发射器中的行为。

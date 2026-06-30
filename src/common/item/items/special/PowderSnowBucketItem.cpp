@@ -51,6 +51,13 @@ ActionResultType PowderSnowBucketItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Success;
     }
 
+    // 水下使用时返回 Consume（不允许水下放置）
+    // 对应 MC Java 的 SolidBucketItem 继承 BlockItem，水下放置失败后
+    // 通过 CONSUMABLE 数据组件返回 CONSUME 的涌现行为
+    if (player != nullptr && player->isInWater()) {
+        return ActionResultType::Consume;
+    }
+
     // 计算放置位置（点击面的另一侧）
     BlockPos targetPos = context.blockPos().offset(context.face());
 
