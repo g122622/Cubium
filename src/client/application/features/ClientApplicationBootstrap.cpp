@@ -46,6 +46,7 @@
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
 #include "common/item/tag/ItemTags.hpp"
@@ -89,6 +90,13 @@ void ClientApplication::initializeCoreRegistries()
         MC_TRACE_EVENT("client.initialization", "RegisterVanillaEntities");
         entity::VanillaEntities::registerAll();
         spdlog::info("Entity types registered");
+    }
+
+    // 初始化实体类型标签（必须在所有实体类型注册后）
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeEntityTypeTags");
+        EntityTypeTags::initialize();
+        spdlog::info("Entity type tags initialized");
     }
 
     // 初始化方块物品注册表

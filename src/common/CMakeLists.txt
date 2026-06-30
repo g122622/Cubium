@@ -80,6 +80,9 @@ add_library(mc_common STATIC
     entity/core/CreatureEntity.cpp
     entity/core/AgeableEntity.cpp
     entity/core/FlyingEntity.cpp
+    entity/tag/EntityTypeTag.cpp
+    entity/tag/EntityTypeTags.cpp
+    entity/tag/EntityTypeTagLoader.cpp
     # Entity - Serialization
     entity/serialization/EntityDeserializer.cpp
     entity/serialization/EquipmentSlotNames.cpp

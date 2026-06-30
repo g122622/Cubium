@@ -36,6 +36,7 @@ namespace mc {
 
 // 前向声明
 class Entity;
+class EntityTypeTag;
 class IWorld;
 
 namespace entity {
@@ -342,6 +343,16 @@ public:
      * @brief 检查是否有效
      */
     [[nodiscard]] bool isValid() const { return m_factory != nullptr; }
+
+    /**
+     * @brief 检查此实体类型是否属于指定标签
+     *
+     * 通过实体类型名称匹配标签中的成员。
+     *
+     * @param tag 实体类型标签
+     * @return 如果此实体类型在标签中返回 true
+     */
+    [[nodiscard]] bool isIn(const EntityTypeTag& tag) const;
 
     /**
      * @brief 比较操作符

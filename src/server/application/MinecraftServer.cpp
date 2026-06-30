@@ -33,6 +33,8 @@
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/tag/EntityTypeTagLoader.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/item/Items.hpp"
@@ -1033,6 +1035,25 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
     if (registerEntities) {
         MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::Entities");
         entity::VanillaEntities::registerAll();
+    }
+
+    // 初始化实体类型标签（必须在所有实体类型注册后）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::EntityTypeTags");
+        EntityTypeTags::initialize();
+    }
+    spdlog::info("Entity type tags initialized");
+
+    // 从数据包加载实体类型标签（追加到或替换内置默认值）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::EntityTypeTagLoader");
+        auto dataPackLoadResult = EntityTypeTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load entity type tags from data packs: {}",
+                dataPackLoadResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} entity type tags from data packs", dataPackLoadResult.value());
+        }
     }
 
     // 初始化预定义日程（村民AI行为日程）

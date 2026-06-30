@@ -25,7 +25,9 @@
 
 #include "ProjectileHelper.hpp"
 #include "common/core/BlockRaycastResult.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -213,6 +215,23 @@ bool ProjectileEntity::mayInteract(IWorld& world, const BlockPos& pos) const
     }
     // 无主投掷物（如发射器发射的）：允许交互
     return true;
+}
+
+bool ProjectileEntity::mayBreak(IWorld& world) const
+{
+    // 对应 MC Java 的 Projectile.mayBreak(ServerLevel):
+    // return this.getType().is(EntityTypeTags.IMPACT_PROJECTILES)
+    //     && p_376471_.getGameRules().get(GameRules.PROJECTILES_CAN_BREAK_BLOCKS);
+
+    // 检查投射物实体类型是否属于 impact_projectiles 标签
+    const std::string typeId = getTypeId();
+    const entity::EntityType* type = entity::EntityRegistry::instance().getType(typeId);
+    if (type == nullptr || !EntityTypeTags::IMPACT_PROJECTILES().contains(*type)) {
+        return false;
+    }
+
+    // 检查游戏规则
+    return world.getGameRules().getBoolean(world::gamerule::GameRuleKeys::PROJECTILES_CAN_BREAK_BLOCKS);
 }
 
 void ProjectileEntity::onEntityHit(const RayTraceResult& result)

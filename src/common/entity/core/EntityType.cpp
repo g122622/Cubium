@@ -23,6 +23,7 @@
 
 #include "EntityType.hpp"
 #include "Entity.hpp"
+#include "common/entity/tag/EntityTypeTag.hpp"
 
 namespace mc {
 namespace entity {
@@ -40,6 +41,11 @@ std::unique_ptr<Entity> EntityType::create(IWorld* world) const
         entity->setTypeId(m_name);
     }
     return entity;
+}
+
+bool EntityType::isIn(const EntityTypeTag& tag) const
+{
+    return tag.contains(*this);
 }
 
 } // namespace entity
