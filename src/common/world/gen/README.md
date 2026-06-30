@@ -56,11 +56,29 @@ gen/
 │   │   ├── foliage/             # 树叶放置器（9种）
 │   │   └── trunk/               # 树干放置器（多种）
 │   └── vegetation/              # 植被特征（花卉、草丛、蘑菇）
-├── jigsaw/                      # Jigsaw 结构组装系统
-│   ├── JigsawManager.hpp/cpp    # BFS 组装算法
-│   ├── JigsawPattern.hpp/cpp    # 模板池
-│   ├── JigsawPiece.hpp/cpp      # 拼图块
-│   └── JigsawJunction.hpp       # 连接点信息
+├── jigsaw/                      # Jigsaw 结构组装系统（详见 jigsaw/README.md）
+│   ├── JigsawAssembler.hpp/cpp  # 组装算法（优先级队列/PoolAliasBinding/VoxelShape 空间追踪）
+│   ├── JigsawPlacer.hpp/cpp     # 放置器（virtual place() 多态分发 + 回退方块）
+│   ├── JigsawTransform.hpp/cpp  # 坐标/连接点变换、边界框计算
+│   ├── JigsawPiece.hpp/cpp      # 拼图块基类（virtual place()）
+│   ├── SingleJigsawPiece.hpp/cpp # 单模板拼图块 + LegacySingleJigsawPiece
+│   ├── ListJigsawPiece.hpp/cpp  # 列表拼图块（递归放置子块）
+│   ├── FeatureJigsawPiece.hpp/cpp # 地物拼图块（调用 ConfiguredFeature）
+│   ├── EmptyJigsawPiece.hpp/cpp # 空拼图块
+│   ├── TemplatePool.hpp/cpp     # 模板池（权重随机选择）
+│   ├── TemplatePoolRegistry.hpp/cpp # 模板池注册表
+│   ├── TemplatePoolLoader.hpp/cpp # 模板池 JSON 加载器
+│   ├── AssemblyTypes.hpp        # PlacedPiece + PendingJoint
+│   ├── JigsawTypes.hpp          # 枚举 + JigsawJoint + MaxDistance
+│   ├── JigsawMatcher.hpp        # 连接点匹配工具
+│   ├── JigsawOrientation.hpp    # Jigsaw 方向枚举
+│   ├── JigsawJunction.hpp       # 连接点交叉数据结构
+│   ├── SequencedPriorityIterator.hpp # 按 placementPriority 降序迭代器
+│   ├── PoolAliasBinding.hpp/cpp # 池别名绑定
+│   ├── PoolAliasLookup.hpp      # 池别名预解析查找表
+│   ├── ProcessorListRegistry.hpp/cpp # 处理器列表注册表
+│   ├── ProcessorListLoader.hpp/cpp # 处理器列表 JSON 加载器
+│   └── JigsawLoaderUtils.hpp    # 加载器共用工具
 ├── noise/                       # MC 1.18+ 噪声生成器
 │   ├── PerlinNoise.hpp/cpp      # 多倍频 Perlin 噪声
 │   ├── NormalNoise.hpp/cpp      # 双 Perlin 噪声（地形生成核心）

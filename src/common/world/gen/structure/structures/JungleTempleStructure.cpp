@@ -69,8 +69,13 @@ JungleTemplePiece::JungleTemplePiece(const BlockPos& pos)
     , m_startPos(pos)
 {}
 
-void JungleTemplePiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void JungleTemplePiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     if (!getBoundingBox().intersects(chunkBounds)) {
         return;

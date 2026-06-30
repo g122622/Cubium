@@ -30,9 +30,10 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
-#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/JigsawPlacer.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "common/world/gen/structure/StructureBoundingBox.hpp"
 #include <cmath>
 
@@ -70,9 +71,15 @@ public:
         , m_junctions(m_placed.junctions)
     {}
 
-    void generate(IWorldWriter& world, math::Random& rng, i32, i32, const StructureBoundingBox& chunkBounds) override
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32,
+        i32,
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk,
+        IChunkGenerator* generator) override
     {
-        jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng, &chunkBounds);
+        jigsaw::JigsawPlacer::placePiece(world, m_placed, rng, &chunkBounds, chunk, generator);
     }
 
     [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
@@ -104,8 +111,13 @@ FortressFallbackPiece::FortressFallbackPiece(const BlockPos& pos)
     , m_startPos(pos)
 {}
 
-void FortressFallbackPiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void FortressFallbackPiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     if (!getBoundingBox().intersects(chunkBounds)) {
         return;
@@ -388,7 +400,6 @@ bool FortressStructure::canGenerate(
 std::unique_ptr<StructureStart> FortressStructure::generate(
     IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 计算起始位置
@@ -402,12 +413,13 @@ std::unique_ptr<StructureStart> FortressStructure::generate(
 
     // 使用 Jigsaw 系统生成要塞
     ResourceLocation startPoolLocation("minecraft", "nether_fortress/start");
-    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
-    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
+    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
+    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(startPoolLocation);
 
     if (startPool && !startPool->isEmpty()) {
         // 使用 Jigsaw 系统组装
-        auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, 10, startPos, rng);
+        auto placedPieces =
+            jigsaw::JigsawAssembler::assemble(patternRegistry, *startPool, 10, startPos, rng, generator);
 
         // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
         for (auto& placed : placedPieces) {

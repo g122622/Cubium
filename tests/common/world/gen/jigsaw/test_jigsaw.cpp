@@ -30,10 +30,17 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorldWriter.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/jigsaw/AssemblyTypes.hpp"
+#include "common/world/gen/jigsaw/EmptyJigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include "common/world/gen/jigsaw/JigsawJunction.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
-#include "common/world/gen/jigsaw/JigsawPattern.hpp"
 #include "common/world/gen/jigsaw/JigsawPiece.hpp"
+#include "common/world/gen/jigsaw/JigsawPlacer.hpp"
+#include "common/world/gen/jigsaw/JigsawTransform.hpp"
+#include "common/world/gen/jigsaw/ListJigsawPiece.hpp"
+#include "common/world/gen/jigsaw/SingleJigsawPiece.hpp"
+#include "common/world/gen/jigsaw/TemplatePool.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include <gtest/gtest.h>
 
 #include <vector>
@@ -70,11 +77,11 @@ public:
 } // namespace
 
 /**
- * @brief 测试 JigsawPattern 权重随机选择
+ * @brief 测试 TemplatePool 权重随机选择
  */
-TEST(JigsawPatternTest, WeightedRandomSelection)
+TEST(TemplatePoolTest, WeightedRandomSelection)
 {
-    JigsawPattern pattern(ResourceLocation("minecraft", "test_pool"), ResourceLocation("minecraft", "empty"));
+    TemplatePool pattern(ResourceLocation("minecraft", "test_pool"), ResourceLocation("minecraft", "empty"));
 
     // 添加权重为 1, 2, 3 的拼图块
     pattern.addPiece(std::make_unique<SingleJigsawPiece>("piece_a"), 1);
@@ -82,7 +89,7 @@ TEST(JigsawPatternTest, WeightedRandomSelection)
     pattern.addPiece(std::make_unique<SingleJigsawPiece>("piece_c"), 3);
 
     // 验证总数量 (1 + 2 + 3 = 6)
-    EXPECT_EQ(pattern.getNumberOfPieces(), 6u);
+    EXPECT_EQ(pattern.getTotalWeight(), 6u);
 
     // 统计随机选择分布
     std::map<std::string, int> counts;
@@ -104,11 +111,11 @@ TEST(JigsawPatternTest, WeightedRandomSelection)
 }
 
 /**
- * @brief 测试 JigsawPattern::getShuffledPieces
+ * @brief 测试 TemplatePool::getShuffledPieces
  */
-TEST(JigsawPatternTest, GetShuffledPieces)
+TEST(TemplatePoolTest, GetShuffledPieces)
 {
-    JigsawPattern pattern(ResourceLocation("minecraft", "test_pool"), ResourceLocation("minecraft", "empty"));
+    TemplatePool pattern(ResourceLocation("minecraft", "test_pool"), ResourceLocation("minecraft", "empty"));
 
     // 添加 5 个拼图块（权重各为 1）
     pattern.addPiece(std::make_unique<SingleJigsawPiece>("piece_0"), 1);
@@ -154,14 +161,14 @@ TEST(JigsawPatternTest, GetShuffledPieces)
 }
 
 /**
- * @brief 测试 JigsawPattern 空池
+ * @brief 测试 TemplatePool 空池
  */
-TEST(JigsawPatternTest, EmptyPool)
+TEST(TemplatePoolTest, EmptyPool)
 {
-    JigsawPattern pattern(ResourceLocation("minecraft", "empty"), ResourceLocation("minecraft", "empty"));
+    TemplatePool pattern(ResourceLocation("minecraft", "empty"), ResourceLocation("minecraft", "empty"));
 
     EXPECT_TRUE(pattern.isEmpty());
-    EXPECT_EQ(pattern.getNumberOfPieces(), 0u);
+    EXPECT_EQ(pattern.getTotalWeight(), 0u);
 
     Random rng(12345);
     EXPECT_EQ(pattern.getRandomPiece(rng), nullptr);
@@ -275,28 +282,28 @@ TEST(JigsawJunctionTest, Equality)
 }
 
 /**
- * @brief 测试 JigsawPatternRegistry
+ * @brief 测试 TemplatePoolRegistry
  */
-TEST(JigsawPatternRegistryTest, RegisterAndGet)
+TEST(TemplatePoolRegistryTest, RegisterAndGet)
 {
-    JigsawPatternRegistry& registry = JigsawPatternRegistry::instance();
+    TemplatePoolRegistry& registry = TemplatePoolRegistry::instance();
     registry.clear();
 
     // 创建并注册模式
-    auto pattern = std::make_unique<JigsawPattern>(
+    auto pattern = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "test_pattern"), ResourceLocation("minecraft", "empty"));
     pattern->addPiece(std::make_unique<SingleJigsawPiece>("test_piece"), 1);
 
-    registry.registerPattern(std::move(pattern));
+    registry.registerPool(std::move(pattern));
 
     // 验证注册成功
-    const JigsawPattern* retrieved = registry.getPattern(ResourceLocation("minecraft", "test_pattern"));
+    const TemplatePool* retrieved = registry.getPool(ResourceLocation("minecraft", "test_pattern"));
     EXPECT_TRUE(retrieved != nullptr);
     EXPECT_FALSE(retrieved->isEmpty());
-    EXPECT_EQ(retrieved->getNumberOfPieces(), 1u);
+    EXPECT_EQ(retrieved->getTotalWeight(), 1u);
 
     // 验证获取不存在的模式
-    const JigsawPattern* notFound = registry.getPattern(ResourceLocation("minecraft", "nonexistent"));
+    const TemplatePool* notFound = registry.getPool(ResourceLocation("minecraft", "nonexistent"));
     EXPECT_EQ(notFound, nullptr);
 
     // 清理
@@ -304,46 +311,15 @@ TEST(JigsawPatternRegistryTest, RegisterAndGet)
 }
 
 /**
- * @brief 测试 JigsawManager 坐标旋转
+ * @brief 测试 JigsawTransform 边界框计算
  */
-TEST(JigsawManagerTest, CoordinateRotation)
-{
-    // 测试 0 度旋转
-    BlockPos pos(10, 5, 20);
-    BlockPos rotated0 = JigsawManager::rotatePosition(pos, Rotation::None);
-    EXPECT_EQ(rotated0.x, pos.x);
-    EXPECT_EQ(rotated0.y, pos.y);
-    EXPECT_EQ(rotated0.z, pos.z);
-
-    // 测试 90 度旋转
-    BlockPos rotated90 = JigsawManager::rotatePosition(pos, Rotation::Clockwise90);
-    EXPECT_EQ(rotated90.x, -pos.z); // -20
-    EXPECT_EQ(rotated90.y, pos.y);  // 5
-    EXPECT_EQ(rotated90.z, pos.x);  // 10
-
-    // 测试 180 度旋转
-    BlockPos rotated180 = JigsawManager::rotatePosition(pos, Rotation::Clockwise180);
-    EXPECT_EQ(rotated180.x, -pos.x); // -10
-    EXPECT_EQ(rotated180.y, pos.y);  // 5
-    EXPECT_EQ(rotated180.z, -pos.z); // -20
-
-    // 测试 270 度旋转
-    BlockPos rotated270 = JigsawManager::rotatePosition(pos, Rotation::CounterClockwise90);
-    EXPECT_EQ(rotated270.x, pos.z);  // 20
-    EXPECT_EQ(rotated270.y, pos.y);  // 5
-    EXPECT_EQ(rotated270.z, -pos.x); // -10
-}
-
-/**
- * @brief 测试 JigsawManager 边界框计算
- */
-TEST(JigsawManagerTest, BoundingBoxCalculation)
+TEST(JigsawTransformTest, BoundingBoxCalculation)
 {
     SingleJigsawPiece piece("test_piece");
     piece.setSize(BlockPos(10, 8, 12));
 
     BlockPos pos(100, 50, 200);
-    auto box = JigsawManager::calculateBoundingBox(piece, pos, Rotation::None);
+    auto box = JigsawTransform::calculateBoundingBox(piece, pos, Rotation::None);
 
     EXPECT_EQ(box.minX(), 100);
     EXPECT_EQ(box.minY(), 50);
@@ -353,37 +329,7 @@ TEST(JigsawManagerTest, BoundingBoxCalculation)
     EXPECT_EQ(box.maxZ(), 211); // 200 + 12 - 1
 }
 
-/**
- * @brief 测试 JigsawManager 边界框重叠检测
- */
-TEST(JigsawManagerTest, BoundingBoxOverlap)
-{
-    std::vector<PlacedPiece> placedPieces;
-
-    // 创建已放置的块
-    auto piece1 = std::make_unique<SingleJigsawPiece>("piece1");
-    piece1->setSize(BlockPos(10, 10, 10));
-
-    PlacedPiece placed1;
-    placed1.piece = std::move(piece1);
-    placed1.position = BlockPos(0, 0, 0);
-    placed1.boundingBox = mc::world::gen::structure::StructureBoundingBox(0, 0, 0, 9, 9, 9);
-    placedPieces.push_back(std::move(placed1));
-
-    // 测试重叠的边界框
-    mc::world::gen::structure::StructureBoundingBox overlapping(5, 5, 5, 15, 15, 15);
-    EXPECT_TRUE(JigsawManager::boxesIntersect(placedPieces, overlapping));
-
-    // 测试不重叠的边界框
-    mc::world::gen::structure::StructureBoundingBox nonOverlapping(10, 10, 10, 20, 20, 20);
-    EXPECT_FALSE(JigsawManager::boxesIntersect(placedPieces, nonOverlapping));
-
-    // 测试相邻但不重叠
-    mc::world::gen::structure::StructureBoundingBox adjacent(10, 0, 0, 20, 9, 9);
-    EXPECT_FALSE(JigsawManager::boxesIntersect(placedPieces, adjacent));
-}
-
-TEST(JigsawManagerTest, FallbackPlacementRespectsChunkBounds)
+TEST(JigsawPlacerTest, FallbackPlacementRespectsChunkBounds)
 {
     VanillaBlocks::initialize();
 
@@ -399,7 +345,7 @@ TEST(JigsawManagerTest, FallbackPlacementRespectsChunkBounds)
     Random rng(12345);
     mc::world::gen::structure::StructureBoundingBox bounds(10, 64, 10, 12, 66, 12);
 
-    JigsawManager::placePieceRecursive(world, placed, rng, &bounds);
+    JigsawPlacer::placePiece(world, placed, rng, &bounds);
 
     EXPECT_TRUE(world.writes.empty());
 }

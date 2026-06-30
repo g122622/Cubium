@@ -37,7 +37,7 @@
 #include "common/world/gen/feature/template/Template.hpp"
 #include "common/world/gen/feature/template/TemplateLoader.hpp"
 #include "common/world/gen/feature/template/TemplateManager.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
 #include <algorithm>
 
 namespace mc::world::gen::structure {
@@ -157,8 +157,13 @@ void OceanRuinPiece::_loadTemplate()
     }
 }
 
-void OceanRuinPiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void OceanRuinPiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     if (!m_templateManager) {
         return;
@@ -242,7 +247,7 @@ std::unique_ptr<StructureStart> OceanRuinStructure::generate(
     // 获取模板管理器
     feature::template_::TemplateManager* templateManager = m_templateManager;
     if (!templateManager) {
-        templateManager = &jigsaw::JigsawManager::getTemplateManager();
+        templateManager = &jigsaw::JigsawAssembler::getTemplateManager();
     }
 
     // 确定是否生成大型废墟

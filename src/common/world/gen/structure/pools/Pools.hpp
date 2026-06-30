@@ -24,7 +24,8 @@
 #pragma once
 
 #include "ProcessorLists.hpp"
-#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/TemplatePool.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 
 namespace mc {
 namespace world {
@@ -32,9 +33,9 @@ namespace gen {
 namespace structure {
 namespace pools {
 
-using jigsaw::JigsawPattern;
-using jigsaw::JigsawPatternRegistry;
 using jigsaw::JigsawPlacementBehaviour;
+using jigsaw::TemplatePool;
+using jigsaw::TemplatePoolRegistry;
 
 /**
  * @brief 模板池统一注册入口
@@ -78,7 +79,7 @@ bool isInitialized();
  *
  * 用于模板池的 fallback 终止链。
  */
-void registerEmptyPool(JigsawPatternRegistry& registry);
+void registerEmptyPool(TemplatePoolRegistry& registry);
 
 } // namespace Pools
 

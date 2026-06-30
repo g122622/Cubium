@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "JigsawPiece.hpp"
+#include "JigsawTypes.hpp"
+#include "common/core/Types.hpp"
 
 namespace mc {
 namespace world {
@@ -74,8 +74,7 @@ public:
     /**
      * @brief 相等比较运算符
      *
-     * 注意：比较时不包含 m_sourceGroundY，因为 MC 1.16.5 中 Junction 的相等性判断
-     * 仅基于 X、Z 坐标、高度偏移和放置行为。
+     * 比较时不包含 m_sourceGroundY，仅基于 X、Z 坐标、高度偏移和放置行为。
      */
     bool operator==(const JigsawJunction& other) const noexcept
     {

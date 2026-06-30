@@ -480,6 +480,16 @@ TemplateJigsawBlockInfo TemplateLoader::_parseJigsawBlock(
         info.jointType = (joint == "aligned") ? 1 : 0;
     }
 
+    // 读取优先级（对应 MC 1.21 JigsawBlockEntity NBT 的 placement_priority/selection_priority，默认 0）
+    // placement_priority: 该连接点生成的子拼图块在组装队列中的出队优先级（降序）
+    // selection_priority: 同一拼图块内连接点的处理顺序（降序）
+    if (nbt->value.count("placement_priority") != 0) {
+        info.placementPriority = dynamic_cast<const nbt::IntTag&>(*nbt->value.at("placement_priority")).value;
+    }
+    if (nbt->value.count("selection_priority") != 0) {
+        info.selectionPriority = dynamic_cast<const nbt::IntTag&>(*nbt->value.at("selection_priority")).value;
+    }
+
     return info;
 }
 

@@ -3,27 +3,21 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * in the Software without restriction, including limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software, and to the permitted persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+ * EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #include "PoolAliasBinding.hpp"
-
-#include "../../../util/math/random/Random.hpp"
 
 namespace mc {
 namespace world {
@@ -62,17 +56,13 @@ ResourceLocation RandomPoolAliasBinding::resolve(math::Random& rng) const
     return m_targets.back().pool;
 }
 
-// ========== RandomGroupPoolAliasBinding ==========
-
-ResourceLocation RandomGroupPoolAliasBinding::resolve(math::Random& rng) const
+void RandomPoolAliasBinding::forEachResolved(math::Random& rng, const Resolver& callback) const
 {
-    // 先选一个组，再从组内解析
-    auto resolved = resolveGroup(rng);
-    if (resolved.empty()) {
-        return m_alias;
-    }
-    return resolved.front().second;
+    // 对应 MC 1.21 RandomPoolAlias.forEachResolved：按权重随机选一个 target，输出 (alias, target)
+    callback(m_alias, resolve(rng));
 }
+
+// ========== RandomGroupPoolAliasBinding ==========
 
 std::unique_ptr<PoolAliasBinding> RandomGroupPoolAliasBinding::clone() const
 {
@@ -89,11 +79,12 @@ std::unique_ptr<PoolAliasBinding> RandomGroupPoolAliasBinding::clone() const
     return std::make_unique<RandomGroupPoolAliasBinding>(m_alias, std::move(clonedGroups));
 }
 
-std::vector<std::pair<ResourceLocation, ResourceLocation>> RandomGroupPoolAliasBinding::resolveGroup(
-    math::Random& rng) const
+void RandomGroupPoolAliasBinding::forEachResolved(math::Random& rng, const Resolver& callback) const
 {
+    // 对应 MC 1.21 RandomGroupPoolAlias.forEachResolved：
+    // 按组权重随机选一个组，然后解析组内所有绑定，每个绑定通过 callback 输出 (alias, target)
     if (m_groups.empty()) {
-        return {};
+        return;
     }
 
     // 计算总权重
@@ -103,7 +94,7 @@ std::vector<std::pair<ResourceLocation, ResourceLocation>> RandomGroupPoolAliasB
     }
 
     if (totalWeight <= 0) {
-        return {};
+        return;
     }
 
     // 按权重选择一个组
@@ -119,13 +110,9 @@ std::vector<std::pair<ResourceLocation, ResourceLocation>> RandomGroupPoolAliasB
     }
 
     // 解析组内所有绑定
-    std::vector<std::pair<ResourceLocation, ResourceLocation>> result;
-    result.reserve(selectedGroup->bindings.size());
     for (const auto& binding : selectedGroup->bindings) {
-        ResourceLocation resolved = binding->resolve(rng);
-        result.emplace_back(binding->alias(), std::move(resolved));
+        binding->forEachResolved(rng, callback);
     }
-    return result;
 }
 
 // ========== PoolAliasBindings ==========
@@ -137,31 +124,11 @@ void PoolAliasBindings::addBinding(std::unique_ptr<PoolAliasBinding> binding)
     }
 }
 
-ResourceLocation PoolAliasBindings::resolve(const ResourceLocation& alias, math::Random& rng) const
+void PoolAliasBindings::forEachResolved(math::Random& rng, const PoolAliasBinding::Resolver& callback) const
 {
     for (const auto& binding : m_bindings) {
-        if (binding->alias() == alias) {
-            return binding->resolve(rng);
-        }
+        binding->forEachResolved(rng, callback);
     }
-    return alias;
-}
-
-std::vector<std::pair<ResourceLocation, ResourceLocation>> PoolAliasBindings::resolveAllGroups(math::Random& rng) const
-{
-    std::vector<std::pair<ResourceLocation, ResourceLocation>> result;
-    for (const auto& binding : m_bindings) {
-        if (auto* groupBinding = dynamic_cast<const RandomGroupPoolAliasBinding*>(binding.get())) {
-            auto groupResult = groupBinding->resolveGroup(rng);
-            for (auto& pair : groupResult) {
-                result.push_back(std::move(pair));
-            }
-        } else {
-            ResourceLocation resolved = binding->resolve(rng);
-            result.emplace_back(binding->alias(), std::move(resolved));
-        }
-    }
-    return result;
 }
 
 } // namespace jigsaw

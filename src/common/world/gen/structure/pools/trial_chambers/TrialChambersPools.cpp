@@ -32,7 +32,7 @@ namespace gen {
 namespace structure {
 namespace pools {
 
-void TrialChambersPools::registerAll(jigsaw::JigsawPatternRegistry& registry)
+void TrialChambersPools::registerAll(jigsaw::TemplatePoolRegistry& registry)
 {
     MC_UNUSED(registry);
 

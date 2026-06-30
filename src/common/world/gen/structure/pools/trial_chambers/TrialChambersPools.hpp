@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 
 namespace mc {
 namespace world {
@@ -64,7 +64,7 @@ public:
      * 在 Pools::initialize() 中调用。
      * 主要注册铜灯降级处理器，因为模板池本身从数据包加载。
      */
-    static void registerAll(jigsaw::JigsawPatternRegistry& registry);
+    static void registerAll(jigsaw::TemplatePoolRegistry& registry);
 };
 
 } // namespace pools

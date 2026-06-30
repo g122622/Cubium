@@ -27,7 +27,7 @@
  */
 
 #include "common/resource/ResourceLocation.hpp"
-#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/TemplatePool.hpp"
 #include "common/world/gen/jigsaw/TemplatePoolLoader.hpp"
 #include <gtest/gtest.h>
 
@@ -60,7 +60,7 @@ TEST(TemplatePoolLoaderTest, LoadSimplePoolFromJson)
     auto pattern = std::move(result.value());
 
     ASSERT_NE(pattern, nullptr);
-    EXPECT_EQ(pattern->getNumberOfPieces(), 1u);
+    EXPECT_EQ(pattern->getTotalWeight(), 1u);
 }
 
 /**
@@ -68,28 +68,19 @@ TEST(TemplatePoolLoaderTest, LoadSimplePoolFromJson)
  */
 TEST(TemplatePoolLoaderTest, LoadFromJsonObject)
 {
-    nlohmann::json jsonObj = {
-        {"name", "minecraft:test/object_pool"},
+    nlohmann::json jsonObj = {{"name", "minecraft:test/object_pool"},
         {"fallback", "minecraft:empty"},
-        {"elements", nlohmann::json::array({
-            {
-                {"weight", 2},
-                {"element", {
-                    {"element_type", "minecraft:single_pool_element"},
-                    {"location", "minecraft:test/template_a"},
-                    {"projection", "rigid"}
-                }}
-            },
-            {
-                {"weight", 3},
-                {"element", {
-                    {"element_type", "minecraft:single_pool_element"},
-                    {"location", "minecraft:test/template_b"},
-                    {"projection", "terrain_matching"}
-                }}
-            }
-        })}
-    };
+        {"elements",
+            nlohmann::json::array({{{"weight", 2},
+                                       {"element",
+                                           {{"element_type", "minecraft:single_pool_element"},
+                                               {"location", "minecraft:test/template_a"},
+                                               {"projection", "rigid"}}}},
+                {{"weight", 3},
+                    {"element",
+                        {{"element_type", "minecraft:single_pool_element"},
+                            {"location", "minecraft:test/template_b"},
+                            {"projection", "terrain_matching"}}}}})}};
 
     auto result = TemplatePoolLoader::loadFromJson(jsonObj, ResourceLocation("minecraft", "test/object_pool"));
 
@@ -98,7 +89,7 @@ TEST(TemplatePoolLoaderTest, LoadFromJsonObject)
 
     ASSERT_NE(pattern, nullptr);
     // 权重 2 + 3 = 5
-    EXPECT_EQ(pattern->getNumberOfPieces(), 5u);
+    EXPECT_EQ(pattern->getTotalWeight(), 5u);
 }
 
 /**
@@ -127,7 +118,7 @@ TEST(TemplatePoolLoaderTest, LoadWithTerrainMatchingProjection)
     auto pattern = std::move(result.value());
 
     ASSERT_NE(pattern, nullptr);
-    EXPECT_EQ(pattern->getNumberOfPieces(), 1u);
+    EXPECT_EQ(pattern->getTotalWeight(), 1u);
 }
 
 /**
@@ -154,7 +145,7 @@ TEST(TemplatePoolLoaderTest, LoadEmptyPoolElement)
     auto pattern = std::move(result.value());
 
     ASSERT_NE(pattern, nullptr);
-    EXPECT_EQ(pattern->getNumberOfPieces(), 1u);
+    EXPECT_EQ(pattern->getTotalWeight(), 1u);
 }
 
 /**
@@ -194,7 +185,7 @@ TEST(TemplatePoolLoaderTest, LoadListPoolElement)
     auto pattern = std::move(result.value());
 
     ASSERT_NE(pattern, nullptr);
-    EXPECT_EQ(pattern->getNumberOfPieces(), 1u);
+    EXPECT_EQ(pattern->getTotalWeight(), 1u);
 }
 
 /**
@@ -240,7 +231,7 @@ TEST(TemplatePoolLoaderTest, LoadMultipleElements)
 
     ASSERT_NE(pattern, nullptr);
     // 权重 1 + 2 + 3 = 6
-    EXPECT_EQ(pattern->getNumberOfPieces(), 6u);
+    EXPECT_EQ(pattern->getTotalWeight(), 6u);
 }
 
 /**
@@ -297,7 +288,7 @@ TEST(TemplatePoolLoaderTest, DefaultProjectionIsRigid)
     auto pattern = std::move(result.value());
 
     ASSERT_NE(pattern, nullptr);
-    EXPECT_EQ(pattern->getNumberOfPieces(), 1u);
+    EXPECT_EQ(pattern->getTotalWeight(), 1u);
 }
 
 /**
@@ -326,7 +317,7 @@ TEST(TemplatePoolLoaderTest, DefaultWeightIsOne)
 
     ASSERT_NE(pattern, nullptr);
     // 默认权重 1
-    EXPECT_EQ(pattern->getNumberOfPieces(), 1u);
+    EXPECT_EQ(pattern->getTotalWeight(), 1u);
 }
 
 /**
@@ -354,5 +345,5 @@ TEST(TemplatePoolLoaderTest, DefaultFallbackIsEmpty)
     auto pattern = std::move(result.value());
 
     ASSERT_NE(pattern, nullptr);
-    EXPECT_EQ(pattern->getNumberOfPieces(), 1u);
+    EXPECT_EQ(pattern->getTotalWeight(), 1u);
 }

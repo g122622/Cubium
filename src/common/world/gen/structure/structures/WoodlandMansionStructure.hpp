@@ -83,7 +83,9 @@ public:
         math::Random& rng,
         i32 chunkX,
         i32 chunkZ,
-        const StructureBoundingBox& chunkBounds) override;
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk = nullptr,
+        IChunkGenerator* generator = nullptr) override;
 
     [[nodiscard]] const std::string& templateName() const { return m_templateName; }
     [[nodiscard]] feature::template_::Rotation rotation() const { return m_rotation; }

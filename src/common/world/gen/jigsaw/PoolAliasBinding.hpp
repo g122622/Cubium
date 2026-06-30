@@ -3,30 +3,28 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * in the Software without restriction, including limitation the rights to use, copy, modify, merge,
+ * publish, distribute, sublicense, and/or sell copies of the Software, and to permitted persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
  *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+ * LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+ * EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
 #pragma once
 
-#include "../../../core/Types.hpp"
-#include "../../../resource/ResourceLocation.hpp"
-#include "../../../util/math/random/Random.hpp"
+#include "common/core/Types.hpp"
+#include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/random/Random.hpp"
+#include <functional>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace mc {
@@ -43,20 +41,34 @@ namespace jigsaw {
  * 典型用途：试炼密室中的刷怪笼类型随机化。
  * 模板池中引用 "spawner/contents/melee" 等虚拟名，
  * 组装时通过别名绑定随机替换为 "spawner/melee/zombie" 等实际池。
+ *
+ * 对应 MC 1.21 net.minecraft.world.level.levelgen.structure.pools.alias.PoolAliasBinding。
+ * 子类实现 forEachResolved(rng, callback)：一次性解析所有 alias→target 映射，
+ * 由 PoolAliasLookup::create 在组装开始时调用，生成不可变映射表。
  */
 class PoolAliasBinding {
 public:
+    /// 别名→目标映射回调（BiConsumer<alias, target>）
+    using Resolver = std::function<void(const ResourceLocation&, const ResourceLocation&)>;
+
     virtual ~PoolAliasBinding() = default;
 
     /**
-     * @brief 根据随机数解析别名，返回实际模板池
-     * @param rng 随机数生成器
-     * @return 实际模板池的 ResourceLocation，如果没有匹配返回空
+     * @brief 一次性解析本绑定，通过 callback 输出所有 alias→target 映射
+     *
+     * DirectPoolAliasBinding 输出 1 个映射；RandomPoolAliasBinding 输出 1 个（按权重随机选）；
+     * RandomGroupPoolAliasBinding 选定一个组后输出组内所有绑定的映射。
+     * callback 可能被调用 0 次或多次。
+     *
+     * @param rng 随机数生成器（用于随机/随机组绑定的解析）
+     * @param callback 接收 (alias, target) 对
      */
-    [[nodiscard]] virtual ResourceLocation resolve(math::Random& rng) const = 0;
+    virtual void forEachResolved(math::Random& rng, const Resolver& callback) const = 0;
 
     /**
      * @brief 获取别名的虚拟池名
+     *
+     * RandomGroupPoolAliasBinding 无单一别名（组内各绑定各有别名），返回其组标识名（仅用于调试）。
      * @return 虚拟池名
      */
     [[nodiscard]] virtual const ResourceLocation& alias() const = 0;
@@ -65,6 +77,36 @@ public:
      * @brief 克隆此别名绑定
      */
     [[nodiscard]] virtual std::unique_ptr<PoolAliasBinding> clone() const = 0;
+};
+
+/**
+ * @brief 直接池别名绑定（一对一映射）
+ *
+ * 对应 MC 1.21 DirectPoolAlias。alias 固定映射到 target，无随机性。
+ */
+class DirectPoolAliasBinding final : public PoolAliasBinding {
+public:
+    DirectPoolAliasBinding(ResourceLocation aliasName, ResourceLocation targetName)
+        : m_alias(std::move(aliasName))
+        , m_target(std::move(targetName))
+    {}
+
+    void forEachResolved(math::Random& /*rng*/, const Resolver& callback) const override
+    {
+        callback(m_alias, m_target);
+    }
+
+    [[nodiscard]] const ResourceLocation& alias() const override { return m_alias; }
+    [[nodiscard]] const ResourceLocation& target() const noexcept { return m_target; }
+
+    [[nodiscard]] std::unique_ptr<PoolAliasBinding> clone() const override
+    {
+        return std::make_unique<DirectPoolAliasBinding>(m_alias, m_target);
+    }
+
+private:
+    ResourceLocation m_alias;
+    ResourceLocation m_target;
 };
 
 /**
@@ -98,7 +140,8 @@ public:
         , m_targets(std::move(targets))
     {}
 
-    [[nodiscard]] ResourceLocation resolve(math::Random& rng) const override;
+    void forEachResolved(math::Random& rng, const Resolver& callback) const override;
+
     [[nodiscard]] const ResourceLocation& alias() const override { return m_alias; }
     [[nodiscard]] std::unique_ptr<PoolAliasBinding> clone() const override
     {
@@ -110,6 +153,13 @@ public:
      */
     [[nodiscard]] const std::vector<WeightedTarget>& targets() const noexcept { return m_targets; }
 
+    /**
+     * @brief 按权重随机解析为单个目标池（仅供 forEachResolved 内部及旧调用点使用）
+     * @param rng 随机数生成器
+     * @return 实际目标池；候选为空时返回 alias 自身
+     */
+    [[nodiscard]] ResourceLocation resolve(math::Random& rng) const;
+
 private:
     ResourceLocation m_alias;
     std::vector<WeightedTarget> m_targets;
@@ -118,8 +168,8 @@ private:
 /**
  * @brief 随机组池别名绑定
  *
- * 从多个组中随机选择一组，然后使用该组内的所有别名绑定。
- * 同一组内的所有别名绑定共享同一个随机种子。
+ * 从多个组中随机选择一组，然后解析该组内所有别名绑定。
+ * 同一组内的所有别名绑定共享同一个随机选择结果（一次性解析）。
  *
  * 示例（试炼密室刷怪笼组）：
  *   组1：melee=zombie, small_melee=slime, ranged=skeleton
@@ -140,7 +190,7 @@ public:
 
     /**
      * @brief 构造随机组池别名绑定
-     * @param aliasName 虚拟池名（用于标识此组绑定）
+     * @param aliasName 组标识名（仅用于调试，组内各绑定各有自己的 alias）
      * @param groups 候选组列表
      */
     RandomGroupPoolAliasBinding(ResourceLocation aliasName, std::vector<AliasGroup> groups)
@@ -148,7 +198,8 @@ public:
         , m_groups(std::move(groups))
     {}
 
-    [[nodiscard]] ResourceLocation resolve(math::Random& rng) const override;
+    void forEachResolved(math::Random& rng, const Resolver& callback) const override;
+
     [[nodiscard]] const ResourceLocation& alias() const override { return m_alias; }
     [[nodiscard]] std::unique_ptr<PoolAliasBinding> clone() const override;
 
@@ -156,13 +207,6 @@ public:
      * @brief 获取所有候选组
      */
     [[nodiscard]] const std::vector<AliasGroup>& groups() const noexcept { return m_groups; }
-
-    /**
-     * @brief 解析整个组，返回组内所有绑定的映射
-     * @param rng 随机数生成器
-     * @return 从虚拟池名到实际池名的映射
-     */
-    [[nodiscard]] std::vector<std::pair<ResourceLocation, ResourceLocation>> resolveGroup(math::Random& rng) const;
 
 private:
     ResourceLocation m_alias;
@@ -172,8 +216,8 @@ private:
 /**
  * @brief 池别名绑定集合
  *
- * 管理一组池别名绑定，在 Jigsaw 组装时应用。
- * 当遇到虚拟池名时，查询此集合获取实际池名。
+ * 管理一组池别名绑定，在 Jigsaw 组装开始时通过 PoolAliasLookup::create 解析为
+ * 不可变映射表，组装过程中通过 lookup(alias) 查询实际池名。
  */
 class PoolAliasBindings {
 public:
@@ -184,24 +228,21 @@ public:
     void addBinding(std::unique_ptr<PoolAliasBinding> binding);
 
     /**
-     * @brief 解析虚拟池名
-     * @param alias 虚拟池名
+     * @brief 一次性解析所有绑定为 alias→target 映射
      * @param rng 随机数生成器
-     * @return 实际池名，如果未找到别名则返回原始名称
+     * @param callback 接收每个 (alias, target) 对
      */
-    [[nodiscard]] ResourceLocation resolve(const ResourceLocation& alias, math::Random& rng) const;
-
-    /**
-     * @brief 解析所有随机组绑定，展开为平铺的别名映射
-     * @param rng 随机数生成器
-     * @return 从虚拟池名到实际池名的映射
-     */
-    [[nodiscard]] std::vector<std::pair<ResourceLocation, ResourceLocation>> resolveAllGroups(math::Random& rng) const;
+    void forEachResolved(math::Random& rng, const PoolAliasBinding::Resolver& callback) const;
 
     /**
      * @brief 是否为空
      */
     [[nodiscard]] bool empty() const noexcept { return m_bindings.empty(); }
+
+    /**
+     * @brief 获取所有绑定（只读）
+     */
+    [[nodiscard]] const std::vector<std::unique_ptr<PoolAliasBinding>>& bindings() const noexcept { return m_bindings; }
 
 private:
     std::vector<std::unique_ptr<PoolAliasBinding>> m_bindings;

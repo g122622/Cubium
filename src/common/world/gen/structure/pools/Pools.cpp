@@ -48,7 +48,7 @@ void Pools::initialize()
     ProcessorLists::initialize();
 
     // 2. 获取模板池注册表
-    auto& registry = JigsawPatternRegistry::instance();
+    auto& registry = TemplatePoolRegistry::instance();
 
     // 3. 注册空模板池
     registerEmptyPool(registry);
@@ -73,14 +73,14 @@ bool Pools::isInitialized()
     return s_initialized;
 }
 
-void Pools::registerEmptyPool(JigsawPatternRegistry& registry)
+void Pools::registerEmptyPool(TemplatePoolRegistry& registry)
 {
     // 空模板池，用于终止 Jigsaw 链
-    auto emptyPool = std::make_unique<JigsawPattern>(
+    auto emptyPool = std::make_unique<TemplatePool>(
         ResourceLocation("minecraft", "empty"), ResourceLocation("minecraft", "empty") // fallback 指向自己
     );
 
-    registry.registerPattern(std::move(emptyPool));
+    registry.registerPool(std::move(emptyPool));
 }
 
 } // namespace pools

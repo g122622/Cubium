@@ -30,8 +30,9 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
-#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
+#include "common/world/gen/jigsaw/JigsawPlacer.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 
 namespace mc {
 namespace world {
@@ -68,9 +69,15 @@ public:
         , m_junctions(m_placed.junctions)
     {}
 
-    void generate(IWorldWriter& world, math::Random& rng, i32, i32, const StructureBoundingBox& chunkBounds) override
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32,
+        i32,
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk,
+        IChunkGenerator* generator) override
     {
-        jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng, &chunkBounds);
+        jigsaw::JigsawPlacer::placePiece(world, m_placed, rng, &chunkBounds, chunk, generator);
     }
 
     [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
@@ -131,7 +138,6 @@ bool BastionRemnantStructure::canGenerate(
 std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
     IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 随机选择堡垒类型
@@ -155,8 +161,8 @@ std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
     ResourceLocation startPoolLocation(BASTION_START_POOLS[selectedIndex]);
 
     // 获取起始模板池
-    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
-    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
+    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
+    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(startPoolLocation);
 
     if (!startPool || startPool->isEmpty()) {
         return start;
@@ -167,8 +173,8 @@ std::unique_ptr<StructureStart> BastionRemnantStructure::generate(
 
     BlockPos startPos(chunkX * world::CHUNK_WIDTH + 8, startY, chunkZ * world::CHUNK_WIDTH + 8);
 
-    // 使用 JigsawManager 组装堡垒结构，maxDepth = 7
-    auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, 7, startPos, rng);
+    // 使用 JigsawAssembler 组装堡垒结构，maxDepth = 7
+    auto placedPieces = jigsaw::JigsawAssembler::assemble(patternRegistry, *startPool, 7, startPos, rng, generator);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     for (auto& placed : placedPieces) {

@@ -93,7 +93,7 @@ TemplateLoader ──加载──> Template ──缓存──> TemplateManager
 
 ### 下游依赖（依赖本模块的外部模块）
 
-- `mc::world::gen::jigsaw` - JigsawManager、JigsawPiece 使用模板放置拼图块
+- `mc::world::gen::jigsaw` - JigsawAssembler/JigsawPlacer、JigsawPiece 使用模板放置拼图块
 - `mc::world::gen::structure::structures` - 各种结构（村庄、堡垒遗迹、沉船等）使用模板
 
 ## 容易踩的坑

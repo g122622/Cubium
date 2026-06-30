@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "../Pools.hpp"
+#include "common/world/gen/structure/pools/Pools.hpp"
 
 namespace mc {
 namespace world {
@@ -50,7 +50,7 @@ namespace PillagerOutpostPools {
  * 2. 塔楼扩展池
  * 3. 外围特征池
  */
-void registerAll(JigsawPatternRegistry& registry);
+void registerAll(TemplatePoolRegistry& registry);
 
 /**
  * @brief 检查是否已注册

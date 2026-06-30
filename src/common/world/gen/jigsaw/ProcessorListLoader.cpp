@@ -23,6 +23,7 @@
 
 #include "ProcessorListLoader.hpp"
 
+#include "JigsawLoaderUtils.hpp"
 #include "common/resource/PackType.hpp"
 #include "common/resource/pack/IResourcePack.hpp"
 #include "common/resource/repository/DataPackRepository.hpp"
@@ -151,11 +152,7 @@ std::unique_ptr<RuleTest> parseRuleTest(const nlohmann::json& predicateObj)
     }
 
     std::string predicateType = predicateObj["predicate_type"].get<std::string>();
-
-    // 移除 minecraft: 前缀
-    if (predicateType.size() > 10 && predicateType.substr(0, 10) == "minecraft:") {
-        predicateType = predicateType.substr(10);
-    }
+    predicateType = stripMinecraftPrefix(predicateType);
 
     if (predicateType == "always_true") {
         return std::make_unique<AlwaysTrueRuleTest>();
@@ -241,11 +238,7 @@ std::unique_ptr<feature::template_::PosRuleTest> _parsePosRuleTest(const nlohman
     }
 
     std::string predicateType = predicateObj["predicate_type"].get<std::string>();
-
-    // 移除 minecraft: 前缀
-    if (predicateType.size() > 10 && predicateType.substr(0, 10) == "minecraft:") {
-        predicateType = predicateType.substr(10);
-    }
+    predicateType = stripMinecraftPrefix(predicateType);
 
     if (predicateType == "always_true") {
         return std::make_unique<AlwaysTruePosRuleTest>();
@@ -475,6 +468,25 @@ Result<void> ProcessorListLoader::_loadFromJsonObj(const nlohmann::json& jsonObj
     return Result<void>::ok();
 }
 
+std::unique_ptr<StructureProcessorList> ProcessorListLoader::parseInlineProcessorList(
+    const nlohmann::json& processorsArray)
+{
+    auto processorList = std::make_unique<StructureProcessorList>();
+
+    if (!processorsArray.is_array()) {
+        return processorList; // 空列表
+    }
+
+    for (const auto& processorObj : processorsArray) {
+        auto processor = _parseProcessor(processorObj);
+        if (processor) {
+            processorList->addProcessor(std::move(processor));
+        }
+    }
+
+    return processorList;
+}
+
 std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProcessor(const nlohmann::json& processorObj)
 {
     if (!processorObj.contains("processor_type") || !processorObj["processor_type"].is_string()) {
@@ -483,11 +495,7 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProcessor(const n
     }
 
     std::string type = processorObj["processor_type"].get<std::string>();
-
-    // 移除命名空间前缀
-    if (type.size() > 10 && type.substr(0, 10) == "minecraft:") {
-        type = type.substr(10);
-    }
+    type = stripMinecraftPrefix(type);
 
     // 根据类型分发解析
     if (type == "block_ignore") {
@@ -572,10 +580,7 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseGravityProcessor(
     // JSON: { "processor_type": "minecraft:gravity", "heightmap": "WORLD_SURFACE_WG" }
     i32 heightmapType = 0; // 默认 WORLD_SURFACE_WG
     if (processorObj.contains("heightmap") && processorObj["heightmap"].is_string()) {
-        std::string heightmap = processorObj["heightmap"].get<std::string>();
-        if (heightmap.size() > 10 && heightmap.substr(0, 10) == "minecraft:") {
-            heightmap = heightmap.substr(10);
-        }
+        std::string heightmap = stripMinecraftPrefix(processorObj["heightmap"].get<std::string>());
 
         if (heightmap == "WORLD_SURFACE_WG" || heightmap == "world_surface_wg") {
             heightmapType = 0;
@@ -691,10 +696,11 @@ std::unique_ptr<StructureProcessor> ProcessorListLoader::_parseProtectedBlocksPr
 {
     // protected_blocks 处理器：保护指定标签的方块不被结构覆盖
     // JSON: { "processor_type": "minecraft:protected_blocks", "value": "#minecraft:features_cannot_replace" }
-    // 目前标签系统尚未完全支持 protected_blocks 逻辑，
-    // 但此处理器在原版中用于防止结构替换被保护的方块（如刷怪笼），
-    // 使用 Nop 作为占位不会影响结构生成正确性（只是不保护方块，生成后不会有功能问题）
-    spdlog::info("protected_blocks processor: tag-based protection not yet implemented, using nop processor");
+    // TODO(jigsaw-refactor): 标签系统尚未完全支持 protected_blocks 逻辑。
+    //   原版中此处理器用于防止结构替换被保护的方块（如刷怪笼、基岩等），此处使用 Nop 占位
+    //   （生成结果功能完整，只是不保护方块）。后续接入 BlockTag 系统后补全。
+    //   参考: MC 1.21 net.minecraft.world.level.levelgen.structure.processor.ProtectedBlocksProcessor
+    spdlog::warn("protected_blocks processor: tag-based protection not yet implemented, using nop processor");
     return std::make_unique<NopStructureProcessor>();
 }
 

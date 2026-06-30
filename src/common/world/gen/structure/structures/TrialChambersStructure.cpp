@@ -31,8 +31,9 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
-#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
+#include "common/world/gen/jigsaw/JigsawPlacer.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include "common/world/gen/valueprovider/HeightProvider.hpp"
 
 namespace mc {
@@ -62,9 +63,15 @@ public:
         , m_junctions(m_placed.junctions)
     {}
 
-    void generate(IWorldWriter& world, math::Random& rng, i32, i32, const StructureBoundingBox& chunkBounds) override
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32,
+        i32,
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk,
+        IChunkGenerator* generator) override
     {
-        jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng, &chunkBounds);
+        jigsaw::JigsawPlacer::placePiece(world, m_placed, rng, &chunkBounds, chunk, generator);
     }
 
     [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
@@ -169,8 +176,8 @@ bool TrialChambersStructure::canGenerate(
     MC_UNUSED(world);
     MC_UNUSED(rng);
 
-    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
-    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(m_config.startPool);
+    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
+    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(m_config.startPool);
     if (!startPool || startPool->isEmpty()) {
         return false;
     }
@@ -183,12 +190,11 @@ bool TrialChambersStructure::canGenerate(
 std::unique_ptr<StructureStart> TrialChambersStructure::generate(
     IChunkGenerator& generator, math::Random& rng, i32 chunkX, i32 chunkZ) const
 {
-    MC_UNUSED(generator);
     auto start = std::make_unique<StructureStart>(chunkX, chunkZ);
 
     // 获取起始模板池
-    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
-    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(m_config.startPool);
+    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
+    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(m_config.startPool);
 
     if (!startPool || startPool->isEmpty()) {
         return start;
@@ -206,13 +212,17 @@ std::unique_ptr<StructureStart> TrialChambersStructure::generate(
 
     const BlockPos startPos(chunkX * CHUNK_WIDTH + 8, startY, chunkZ * CHUNK_WIDTH + 8);
 
-    // TODO(trial_chambers): 应用池别名绑定到 JigsawManager::assemble
-    // 当前 JigsawManager::assemble 尚不支持池别名参数，
-    // 需要在组装前解析别名并替换模板池引用
-    // auto resolvedAliases = m_config.poolAliases.resolveAllGroups(rng);
+    // 预解析池别名绑定（试炼密室刷怪笼类型随机化）。
+    // JigsawAssembler::assemble 内部用 PoolAliasLookup 一次性解析所有别名为不可变映射，
+    // 组装时将虚拟池名（如 spawner/contents/melee）替换为实际池名（如 spawner/melee/zombie）。
+    const jigsaw::PoolAliasBindings* aliases = m_config.poolAliases.empty() ? nullptr : &m_config.poolAliases;
 
-    // 使用 JigsawManager 组装试炼密室结构，maxDepth = 20
-    auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, m_config.size, startPos, rng);
+    // 使用 JigsawAssembler 组装试炼密室结构，maxDepth = 20
+    // 转发 maxDistanceFromCenter（配置为 116）用于初始化 freeShape 可放置空间。
+    const structure::MaxDistance* maxDistance =
+        m_config.maxDistanceFromCenter.has_value() ? &(*m_config.maxDistanceFromCenter) : nullptr;
+    auto placedPieces = jigsaw::JigsawAssembler::assemble(
+        patternRegistry, *startPool, m_config.size, startPos, rng, generator, aliases, maxDistance);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     for (auto& placed : placedPieces) {

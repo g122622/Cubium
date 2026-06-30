@@ -173,6 +173,17 @@ public:
      */
     [[nodiscard]] AxisAlignedBB shrink(f32 amount) const noexcept { return expand(-amount, -amount, -amount); }
 
+    /**
+     * @brief 均匀收缩AABB（MC 命名，等价于 shrink）
+     *
+     * 对应 MC 1.21 的 AABB.deflate(double)。Jigsaw 空间追踪中用于将新拼图块的 AABB
+     * 收缩 0.25 格后与 freeShape 做交集检测，避免相邻块被误判为重叠。
+     *
+     * @param amount 各方向收缩量
+     * @return 收缩后的 AABB
+     */
+    [[nodiscard]] AxisAlignedBB deflate(f32 amount) const noexcept { return expand(-amount, -amount, -amount); }
+
     // ========== MC碰撞检测核心算法 ==========
 
     /**

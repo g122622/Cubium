@@ -42,15 +42,15 @@ namespace world {
 namespace gen {
 namespace jigsaw {
 
-class JigsawPattern;
-class JigsawPatternRegistry;
+class TemplatePool;
+class TemplatePoolRegistry;
 
 /**
  * @brief 模板池 JSON 加载器
  *
  * 从数据包加载 Jigsaw 模板池 JSON 文件。
  *
- * JSON 格式 (MC 1.16.5):
+ * JSON 格式 (MC 1.21):
  * {
  *   "name": "minecraft:village/plains/town_centers",
  *   "fallback": "minecraft:village/plains/terminators",
@@ -94,7 +94,7 @@ public:
      * @param location 模板池资源位置
      * @return 加载的模板池，或错误信息
      */
-    [[nodiscard]] static Result<std::unique_ptr<JigsawPattern>> loadFromJson(
+    [[nodiscard]] static Result<std::unique_ptr<TemplatePool>> loadFromJson(
         const std::string& json, const ResourceLocation& location);
 
     /**
@@ -104,12 +104,13 @@ public:
      * @param location 模板池资源位置
      * @return 加载的模板池，或错误信息
      */
-    [[nodiscard]] static Result<std::unique_ptr<JigsawPattern>> loadFromJson(
+    [[nodiscard]] static Result<std::unique_ptr<TemplatePool>> loadFromJson(
         const nlohmann::json& jsonObj, const ResourceLocation& location);
 
     // ============================================================================
     // 私有方法
     // ============================================================================
+private:
     /**
      * @brief 解析单个元素
      *
@@ -160,13 +161,24 @@ public:
      *
      * processors 字段可以是：
      * - 字符串："minecraft:mossify_10_percent"（处理器列表引用）
-     * - 对象：{"processors": []}（内联空列表）
-     * - 数组：[]（内联空列表）
+     * - 对象：{"processors": [...]}（内联处理器列表）
+     * - 数组：[...]（内联处理器列表）
+     *
+     * 内联处理器列表通过 ProcessorListLoader::parseInlineProcessorList 解析后注册到
+     * ProcessorListRegistry，返回合成资源位置供 SingleJigsawPiece 查找。
      *
      * @param elementObj 包含 processors 字段的 JSON 对象
      * @return 处理器列表资源位置，无处理器则返回 nullopt
      */
     static std::optional<ResourceLocation> _parseProcessors(const nlohmann::json& elementObj);
+
+    /**
+     * @brief 解析内联处理器数组并注册到 ProcessorListRegistry
+     *
+     * @param processorsArray 处理器 JSON 数组
+     * @return 合成资源位置（inline_processor_list_<序号>）；空数组返回 minecraft:empty
+     */
+    static std::optional<ResourceLocation> _registerInlineProcessors(const nlohmann::json& processorsArray);
 
     /**
      * @brief 解析投影类型

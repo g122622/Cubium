@@ -48,8 +48,13 @@ bool BuriedTreasurePiece::_isInBounds(i32 x, i32 y, i32 z, const StructureBoundi
     return chunkBounds.contains(x, y, z);
 }
 
-void BuriedTreasurePiece::generate(
-    IWorldWriter& world, math::Random& rng, i32 /*chunkX*/, i32 /*chunkZ*/, const StructureBoundingBox& chunkBounds)
+void BuriedTreasurePiece::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 /*chunkX*/,
+    i32 /*chunkZ*/,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     const BlockState* goldState = VanillaBlocks::getState(VanillaBlocks::GOLD_BLOCK);
     const BlockState* sandState = VanillaBlocks::getState(VanillaBlocks::SAND);

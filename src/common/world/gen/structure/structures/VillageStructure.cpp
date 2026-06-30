@@ -31,8 +31,9 @@
 #include "common/world/biome/BiomeTags.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gen/jigsaw/JigsawManager.hpp"
-#include "common/world/gen/jigsaw/JigsawPattern.hpp"
+#include "common/world/gen/jigsaw/JigsawAssembler.hpp"
+#include "common/world/gen/jigsaw/JigsawPlacer.hpp"
+#include "common/world/gen/jigsaw/TemplatePoolRegistry.hpp"
 #include <spdlog/spdlog.h>
 
 #include <algorithm>
@@ -73,9 +74,15 @@ public:
         , m_junctions(m_placed.junctions)
     {}
 
-    void generate(IWorldWriter& world, math::Random& rng, i32, i32, const StructureBoundingBox& chunkBounds) override
+    void generate(IWorldWriter& world,
+        math::Random& rng,
+        i32,
+        i32,
+        const StructureBoundingBox& chunkBounds,
+        ChunkPrimer* chunk,
+        IChunkGenerator* generator) override
     {
-        jigsaw::JigsawManager::placePieceRecursive(world, m_placed, rng, &chunkBounds);
+        jigsaw::JigsawPlacer::placePiece(world, m_placed, rng, &chunkBounds, chunk, generator);
     }
 
     [[nodiscard]] i32 getGroundLevelDelta() const override { return m_groundLevelDelta; }
@@ -171,8 +178,8 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
 
     // 获取起始模板池
     ResourceLocation startPoolLocation = getStartPool(m_config.type);
-    auto& patternRegistry = jigsaw::JigsawPatternRegistry::instance();
-    const jigsaw::JigsawPattern* startPool = patternRegistry.getPattern(startPoolLocation);
+    auto& patternRegistry = jigsaw::TemplatePoolRegistry::instance();
+    const jigsaw::TemplatePool* startPool = patternRegistry.getPool(startPoolLocation);
 
     if (!startPool || startPool->isEmpty()) {
         return start;
@@ -186,9 +193,10 @@ std::unique_ptr<StructureStart> VillageStructure::generate(
 
     BlockPos startPos(startX, startY, startZ);
 
-    // 使用 JigsawManager 组装村庄结构
+    // 使用 JigsawAssembler 组装村庄结构
     // 组装获取 PlacedPiece 列表，包含 JigsawJunction 信息用于地形适配
-    auto placedPieces = jigsaw::JigsawManager::assemble(patternRegistry, *startPool, m_config.size, startPos, rng);
+    auto placedPieces =
+        jigsaw::JigsawAssembler::assemble(patternRegistry, *startPool, m_config.size, startPos, rng, generator);
 
     // 为每个 PlacedPiece 创建适配器并添加到 StructureStart
     // 这样 NoiseChunkGenerator::collectStructureData 可以收集 Junction 信息

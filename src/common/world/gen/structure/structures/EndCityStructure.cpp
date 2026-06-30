@@ -30,7 +30,7 @@
 #include "../../../block/BlockPos.hpp"
 #include "../../chunk/IChunkGenerator.hpp"
 #include "../../feature/template/TemplateManager.hpp"
-#include "../../jigsaw/JigsawManager.hpp"
+#include "../../jigsaw/JigsawAssembler.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <algorithm>
 
@@ -126,7 +126,7 @@ std::unique_ptr<StructureStart> EndCityStructure::generate(
     std::vector<std::unique_ptr<StructurePiece>> pieces;
 
     // 获取模板管理器
-    auto& templateManager = jigsaw::JigsawManager::getTemplateManager();
+    auto& templateManager = jigsaw::JigsawAssembler::getTemplateManager();
 
     // 启动房屋塔生成
     startHouseTower(templateManager, BlockPos(x, y, z), rotation, pieces, rng);
@@ -199,8 +199,13 @@ CityTemplate::CityTemplate(
     }
 }
 
-void CityTemplate::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void CityTemplate::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     MC_UNUSED(chunkX);
     MC_UNUSED(chunkZ);
@@ -212,7 +217,7 @@ void CityTemplate::generate(
     }
 
     // 获取模板
-    auto& templateManager = jigsaw::JigsawManager::getTemplateManager();
+    auto& templateManager = jigsaw::JigsawAssembler::getTemplateManager();
     const feature::template_::Template* templ =
         templateManager.getTemplate(ResourceLocation("minecraft", "end_city/" + m_templateName));
 

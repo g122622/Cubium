@@ -323,8 +323,13 @@ StrongholdStraight::StrongholdStraight(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdStraight::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdStraight::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
 
@@ -424,8 +429,13 @@ StrongholdPrison::StrongholdPrison(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdPrison::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdPrison::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
@@ -497,8 +507,13 @@ StrongholdLeftTurn::StrongholdLeftTurn(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdLeftTurn::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdLeftTurn::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
@@ -573,8 +588,13 @@ StrongholdRightTurn::StrongholdRightTurn(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdRightTurn::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdRightTurn::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
@@ -650,8 +670,13 @@ StrongholdRoomCrossing::StrongholdRoomCrossing(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdRoomCrossing::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdRoomCrossing::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
@@ -758,8 +783,13 @@ StrongholdStairsStraight::StrongholdStairsStraight(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdStairsStraight::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdStairsStraight::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* cobblestoneStairs = VanillaBlocks::getState(VanillaBlocks::COBBLESTONE_STAIRS);
@@ -835,8 +865,13 @@ StrongholdStairs::StrongholdStairs(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdStairs::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdStairs::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
@@ -952,8 +987,13 @@ StrongholdCrossing::StrongholdCrossing(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdCrossing::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdCrossing::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);
@@ -1066,8 +1106,13 @@ StrongholdChestCorridor::StrongholdChestCorridor(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdChestCorridor::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdChestCorridor::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
@@ -1148,8 +1193,13 @@ StrongholdLibrary::StrongholdLibrary(i32 componentType,
     setEntryDoor(getRandomDoor(rng));
 }
 
-void StrongholdLibrary::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdLibrary::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* oakPlanks = VanillaBlocks::getState(VanillaBlocks::OAK_PLANKS);
@@ -1236,8 +1286,13 @@ StrongholdPortalRoom::StrongholdPortalRoom(
     setCoordBaseMode(direction);
 }
 
-void StrongholdPortalRoom::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdPortalRoom::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     StrongholdStonesSelector selector;
     const BlockState* lava = VanillaBlocks::getState(VanillaBlocks::LAVA);
@@ -1368,8 +1423,13 @@ StrongholdCorridor::StrongholdCorridor(
     setCoordBaseMode(direction);
 }
 
-void StrongholdCorridor::generate(
-    IWorldWriter& world, math::Random& rng, i32 chunkX, i32 chunkZ, const StructureBoundingBox& chunkBounds)
+void StrongholdCorridor::generate(IWorldWriter& world,
+    math::Random& rng,
+    i32 chunkX,
+    i32 chunkZ,
+    const StructureBoundingBox& chunkBounds,
+    ChunkPrimer* /*chunk*/,
+    IChunkGenerator* /*generator*/)
 {
     const BlockState* stoneBricks = VanillaBlocks::getState(VanillaBlocks::STONE_BRICKS);
     const BlockState* air = VanillaBlocks::getState(VanillaBlocks::AIR);

@@ -660,8 +660,12 @@ std::unique_ptr<StructureStart> Structure::generate(
     return std::make_unique<StructureStart>(chunkX, chunkZ);
 }
 
-void Structure::placeInChunk(
-    IWorldWriter& world, ChunkPrimer& chunk, StructureStart& start, i32 chunkX, i32 chunkZ) const
+void Structure::placeInChunk(IWorldWriter& world,
+    ChunkPrimer& chunk,
+    StructureStart& start,
+    i32 chunkX,
+    i32 chunkZ,
+    IChunkGenerator* generator) const
 {
     StructureBoundingBox chunkBounds = StructureBoundingBox::fromChunk(chunkX, chunkZ);
 
@@ -670,7 +674,7 @@ void Structure::placeInChunk(
 
     for (const auto& piece : start.pieces()) {
         if (piece->intersectsChunk(chunkX, chunkZ)) {
-            piece->generate(world, rng, chunkX, chunkZ, chunkBounds);
+            piece->generate(world, rng, chunkX, chunkZ, chunkBounds, &chunk, generator);
         }
     }
 }
