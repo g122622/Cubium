@@ -519,6 +519,8 @@ add_executable(mc_tests
     common/command/test_command_dispatcher.cpp
     entity/EntityCoreTests.cpp
     entity/EntityTagsTests.cpp
+    # EntityTypeTags 实体类型标签测试
+    common/entity/tag/EntityTypeTagsTest.cpp
     entity/FlyingEntityTests.cpp
     entity/EntitySensesTest.cpp
     entity/RidingSystemTests.cpp
