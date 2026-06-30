@@ -22,9 +22,23 @@
  */
 
 #include "item/items/special/SmithingTemplateItem.hpp"
+#include "resource/LanguageManager.hpp"
 
 namespace mc {
 namespace item {
+
+// ============================================================================
+// 翻译键常量
+// ============================================================================
+
+namespace {
+
+// 标题行翻译键（灰色）
+constexpr const char* SMITHING_TEMPLATE_KEY = "item.minecraft.smithing_template";
+constexpr const char* APPLIES_TO_TITLE_KEY = "item.minecraft.smithing_template.applies_to";
+constexpr const char* INGREDIENTS_TITLE_KEY = "item.minecraft.smithing_template.ingredients";
+
+} // namespace
 
 SmithingTemplateItem::SmithingTemplateItem(SmithingTemplateType type,
     const std::string& appliesTo,
@@ -45,9 +59,28 @@ void SmithingTemplateItem::addInformation(
 {
     Item::addInformation(stack, world, tooltip, advanced);
 
-    // 显示"适用于"和"材料"提示
-    tooltip.push_back(m_appliesTo);
-    tooltip.push_back(m_ingredients);
+    auto& lang = LanguageManager::instance();
+
+    // 1. "Smithing Template" 后缀标题（灰色）
+    tooltip.push_back(lang.get(SMITHING_TEMPLATE_KEY));
+
+    // 2. 空行分隔
+    tooltip.emplace_back("");
+
+    // 3. "Applies to:" 标题（灰色）
+    tooltip.push_back(lang.get(APPLIES_TO_TITLE_KEY));
+
+    // 4. 具体适用描述（蓝色），如 "Armor" 或 "Diamond Equipment"
+    //    MC Java 中标题与描述之间有空格，此处将翻译后的标题与描述拼接为单行
+    std::string appliesToText = lang.get(m_appliesTo);
+    tooltip.push_back(" " + appliesToText);
+
+    // 5. "Ingredients:" 标题（灰色）
+    tooltip.push_back(lang.get(INGREDIENTS_TITLE_KEY));
+
+    // 6. 具体材料描述（蓝色），如 "Ingots & Crystals" 或 "Netherite Ingot"
+    std::string ingredientsText = lang.get(m_ingredients);
+    tooltip.push_back(" " + ingredientsText);
 }
 
 ItemProperties SmithingTemplateItem::armorTrimProperties()

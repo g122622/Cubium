@@ -22,7 +22,7 @@
  */
 
 #include "item/items/special/PotterySherdItem.hpp"
-#include "util/text/TranslationTextComponent.hpp"
+#include "resource/LanguageManager.hpp"
 
 namespace mc {
 namespace item {
@@ -37,9 +37,11 @@ void PotterySherdItem::addInformation(
 {
     Item::addInformation(stack, world, tooltip, advanced);
 
-    // 显示陶片对应的翻译名称
+    // 通过翻译键获取陶片描述文本
+    // MC Java 中 PotterySherdItem 使用 descriptionId + ".desc" 作为翻译键
     std::string translationKey = blockentity::DecoratedPotPatterns::getTranslationKey(m_pattern);
-    tooltip.push_back(translationKey);
+    std::string descriptionKey = translationKey + ".desc";
+    tooltip.push_back(LanguageManager::instance().get(descriptionKey));
 }
 
 } // namespace item

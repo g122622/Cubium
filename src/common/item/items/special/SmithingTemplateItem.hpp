@@ -58,6 +58,14 @@ enum class SmithingTemplateType : u8 {
  * - 需要什么材料（ingredients）：提示文本说明附加材料槽需要什么
  * - 基础槽空位图标路径
  * - 附加材料槽空位图标路径
+ *
+ * tooltip 显示格式（对应 MC Java SmithingTemplateItem.appendHoverText）：
+ * 1. "Smithing Template"（灰色标题，翻译键 item.minecraft.smithing_template）
+ * 2. 空行
+ * 3. "Applies to:"（灰色标题，翻译键 item.minecraft.smithing_template.applies_to）
+ * 4. " Armor"（蓝色描述，翻译键 item.minecraft.smithing_template.armor_trim.applies_to 等）
+ * 5. "Ingredients:"（灰色标题，翻译键 item.minecraft.smithing_template.ingredients）
+ * 6. " Ingots & Crystals"（蓝色描述，翻译键 item.minecraft.smithing_template.armor_trim.ingredients 等）
  */
 class SmithingTemplateItem : public Item {
 public:
@@ -107,10 +115,16 @@ public:
     /**
      * @brief 添加物品提示信息
      *
-     * 显示"适用于"和"材料"提示。
+     * 按顺序显示以下行：
+     * 1. "Smithing Template" 灰色标题
+     * 2. 空行
+     * 3. "Applies to:" 灰色标题
+     * 4. 具体适用描述（如 "Armor"）
+     * 5. "Ingredients:" 灰色标题
+     * 6. 具体材料描述（如 "Ingots & Crystals"）
      *
-     * TODO: 当前直接输出翻译键字符串作为占位，待翻译系统完善后
-     * 应改为使用 ITextComponent 构建格式化的翻译文本。
+     * 所有文本通过 LanguageManager 从翻译键翻译后显示。
+     *
      * TODO: 待锻造台配方系统（SmithingTransformRecipe / SmithingTrimRecipe）集成后，
      * 此类应与 TrimPattern 注册表关联，并提供空槽位图标路径用于客户端锻造台界面渲染。
      */

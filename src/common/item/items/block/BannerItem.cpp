@@ -23,8 +23,7 @@
 
 #include "item/items/block/BannerItem.hpp"
 #include "item/core/ItemStack.hpp"
-#include "util/text/ITextComponent.hpp"
-#include "util/text/TranslationTextComponent.hpp"
+#include "resource/LanguageManager.hpp"
 #include "world/block/blocks/decorative/BannerBlock.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
 
@@ -96,7 +95,7 @@ void BannerItem::addInformation(
             std::string translationKey =
                 "block.minecraft.banner." + blockentity::BannerPatterns::getFileName(patternType) + "." + colorName;
 
-            tooltip.push_back(translationKey);
+            tooltip.push_back(LanguageManager::instance().get(translationKey));
         }
         ++count;
     }

@@ -82,6 +82,6 @@ special/
 11. **HoneycombItem::getWaxedOff 供 AxeItem 使用**：AxeItem 除蜡逻辑调用此静态方法，无需实例化 HoneycombItem
 12. **HoneycombItem 告示牌涂蜡路径**：`onItemUse()` 先检测告示牌 SignEntity 再检测铜块。`AbstractSignBlock::onBlockActivated()` 也实现了涂蜡交互（检测蜜脾手持物品），两条路径互为补充
 13. **PotterySherdItem 关联 DecoratedPotPattern**：每个陶片物品持有 DecoratedPotPattern 枚举值，该枚举与 MC 原版 DecoratedPotPattern 一一对应。待 DecoratedPotBlockEntity 实现后需建立陶片物品到图案的双向映射
-14. **SmithingTemplateItem 提示文本为翻译键占位**：appliesTo/ingredients/baseSlotDescription/additionsSlotDescription 字段当前存储翻译键字符串，待翻译系统完善后应改为 ITextComponent
-15. **SmithingTemplateItem 与锻造台配方系统**：此类当前仅提供物品标识和提示信息，待 TrimPattern 注册表和 SmithingTrimRecipe/SmithingTransformRecipe 实现后需进行集成
+14. **SmithingTemplateItem tooltip 通过 LanguageManager 翻译**：appliesTo/ingredients/baseSlotDescription/additionsSlotDescription 字段存储翻译键，addInformation() 通过 LanguageManager::get() 翻译后显示。tooltip 格式完整复刻 MC Java（后缀标题、空行、标题+描述）。baseSlotDescription/additionsSlotDescription 用于锻造台界面，尚未集成
+15. **SmithingTemplateItem 与锻造台配方系统**：此类当前仅提供物品标识和提示信息，待 TrimPattern 注册表和 SmithingTrimRecipe/SmithingTransformRecipe 实现后需进行集成。空槽位图标路径（baseSlotEmptyIcons/additionalSlotEmptyIcons）尚未添加
 16. **LeadItem 拴绳交互流程**：`onItemUse()` 只对栅栏方块生效（`BlockTags::FENCES()`），搜索半径16格内被当前玩家拴住的生物（`mob->leashHolderUuid() == player->uuid()`），通过 `LeashKnotEntity::getOrCreateKnot()` 创建/复用拴绳结，调用 `mob->setLeashedToFence()` 转移绑定。玩家右键生物拴住/解除拴绳的逻辑在 `MobEntity::processInitialInteract()` 中

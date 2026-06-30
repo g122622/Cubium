@@ -22,7 +22,7 @@
  */
 
 #include "item/items/BannerPatternItem.hpp"
-#include "util/text/TranslationTextComponent.hpp"
+#include "resource/LanguageManager.hpp"
 
 namespace mc {
 namespace item {
@@ -37,9 +37,11 @@ void BannerPatternItem::addInformation(
 {
     Item::addInformation(stack, world, tooltip, advanced);
 
-    // 显示图案翻译名称
+    // 显示图案的翻译描述文本
+    // MC Java 中 BannerPatternItem 使用 descriptionId + ".desc" 作为翻译键
     std::string translationKey = "item.minecraft.banner_pattern." + blockentity::BannerPatterns::getFileName(m_pattern);
-    tooltip.push_back(translationKey);
+    std::string descriptionKey = translationKey + ".desc";
+    tooltip.push_back(LanguageManager::instance().get(descriptionKey));
 }
 
 } // namespace item
