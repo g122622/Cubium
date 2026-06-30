@@ -36,8 +36,8 @@ data/
 ```
 
 - `IDataAccessor`：数据访问器的抽象接口，定义 getData/mergeData 等方法
-- `BlockDataAccessor`：方块实体数据访问，通过 `IWorld::getBlockEntity()` 获取 BlockEntity
-- `EntityDataAccessor`：实体数据访问，直接持有 Entity 指针
+- `BlockDataAccessor`：方块实体数据访问，通过 `IWorld::getBlockEntity()` 获取 BlockEntity，使用 `saveToNBT()`/`loadFromNBT()` 进行原生 NBT 序列化/反序列化
+- `EntityDataAccessor`：实体数据访问，直接持有 Entity 指针，使用 `writeToNBT()`/`readFromNBT()` 进行原生 NBT 序列化/反序列化
 - `StorageDataAccessor`：命令存储数据访问，通过 `CommandStorage` 管理持久化数据
 - `CommandStorage`：独立的存储管理类，被 `StorageDataAccessor` 使用
 
@@ -50,14 +50,9 @@ data/
 - `common/resource/ResourceLocation.hpp` - 资源位置标识符
 - `common/util/nbt/Nbt.hpp` - NBT 标签系统
 - `common/world/block/BlockPos.hpp` - 方块位置
-- `common/world/IWorld.hpp` - 世界接口（用于获取 BlockEntity）
-- `common/world/blockentity/BlockEntity.hpp` - 方块实体基类
-- `common/entity/core/Entity.hpp` - 实体基类
-- `common/entity/core/LivingEntity.hpp` - 生物实体（用于生命值、吸收值、药水效果等数据）
-- `common/entity/effect/EffectInstance.hpp` - 效果实例（NBT 序列化）
-- `common/entity/effect/EffectManager.hpp` - 效果管理器（获取/操作效果列表）
-- `common/entity/serialization/EntityNbtKeys.hpp` - 实体 NBT 键名常量
-- `common/entity/serialization/NbtHelper.hpp` - NBT 安全读取工具
+- `common/world/IWorld.hpp` - 世界接口（用于获取 BlockEntity 和通知方块更新）
+- `common/world/blockentity/BlockEntity.hpp` - 方块实体基类（saveToNBT/loadFromNBT）
+- `common/entity/core/Entity.hpp` - 实体基类（writeToNBT/readFromNBT）
 - `common/entity/entities/player/Player.hpp` - 玩家实体（用于判断是否为玩家）
 
 ### 下游依赖（依赖本模块的外部模块）
@@ -66,22 +61,24 @@ data/
 
 ## 容易踩的坑
 
-1. **玩家数据保护**：`EntityDataAccessor::mergeData()` 会检查是否为玩家实体，玩家数据不允许直接修改，会抛出 `CommandException`。这是 MC 1.16.5 的行为。
+1. **玩家数据保护**：`EntityDataAccessor::mergeData()` 会检查是否为玩家实体，玩家数据不允许直接修改，会抛出 `CommandException`。这是 MC 原版的行为。
 
 2. **方块实体检测**：`BlockDataAccessor::getData()` 和 `mergeData()` 会检测 `m_blockEntity` 是否为空，不存在则抛出异常。调用前应使用 `isValid()` 检查。
 
-3. **JSON 转换精度损失**：`BlockDataAccessor` 使用 JSON 作为中间格式（BlockEntity 的 save/load 接口），JSON 与 NBT 之间的转换可能存在精度损失，特别是浮点数。
+3. **UUID 保护**：`EntityDataAccessor::mergeData()` 在加载 NBT 数据后会恢复实体的 UUID，防止 `/data merge` 命令意外修改实体 UUID。这与 MC Java 的 `EntityDataAccessor.setData()` 行为一致。
 
-4. **存储持久化**：`CommandStorage` 的数据需要显式调用 `save()` 和 `load()` 进行持久化，不会自动保存。服务器关闭前必须调用 `save()`。
+4. **合并语义**：所有访问器的 `mergeData()` 实现「获取当前数据 → 合并传入数据 → 重新加载」的三步语义。传入数据的每个键值对会覆盖当前数据中的对应键，未出现在传入数据中的键保持不变。这与 MC Java 的 `DataCommands.mergeData()` 行为一致。
 
-5. **存储深拷贝**：`CommandStorage::get()` 返回的是深拷贝，修改返回值不会影响存储中的数据，必须通过 `set()` 或 `mergeData()` 写回。
+5. **存储持久化**：`CommandStorage` 的数据需要显式调用 `save()` 和 `load()` 进行持久化，不会自动保存。服务器关闭前必须调用 `save()`。
 
-6. **统一存储实例**：`CommandStorage` 由 `IServer::commandStorage()` 管理，通过 `server->commandStorage()` 获取。不要使用局部 `static CommandStorage`，否则不同 storage 子命令的数据互不共享。
+6. **存储深拷贝**：`CommandStorage::get()` 返回的是深拷贝，修改返回值不会影响存储中的数据，必须通过 `set()` 或 `mergeData()` 写回。
 
-7. **LivingEntity 药水效果**：`EntityDataAccessor` 序列化 `ActiveEffects` NBT 键（compound_list_tag），使用 `EffectInstance::toNbt()`/`fromNbt()` 与 `LivingEntity` 存档格式完全一致。`mergeData` 会先 `removeAllEffects()` 再逐个 `addEffect()`，因此属性修改器会正确应用。
+7. **统一存储实例**：`CommandStorage` 由 `IServer::commandStorage()` 管理，通过 `server->commandStorage()` 获取。不要使用局部 `static CommandStorage`，否则不同 storage 子命令的数据互不共享。
 
-8. **LivingEntity 吸收值**：`EntityDataAccessor` 通过 `LivingEntity::absorptionAmount()` 和 `setAbsorptionAmount()` 读写 `"AbsorptionAmount"` NBT 键。`setAbsorptionAmount` 会将值限制在 `[0, maxAbsorption]` 范围内，因此合并 NBT 数据时不需要额外的值域检查。
+8. **BlockEntity NBT 完整性**：`BlockDataAccessor` 使用 `saveToNBT()`/`loadFromNBT()` 原生 NBT 序列化，可获取/设置方块实体的全部数据。如果某个 BlockEntity 子类未实现 `saveToNBT()`/`loadFromNBT()`，则只有基类的 id/x/y/z 字段会被处理。确保需要通过 `/data` 命令访问的 BlockEntity 子类已正确实现这两个方法。
+
+9. **BlockEntity 方块更新**：`BlockDataAccessor::mergeData()` 在数据合并后会调用 `IWorld::notifyBlockUpdate()` 通知客户端方块更新，确保客户端与服务端状态同步。
 
 ## 参考
 
-MC 1.16.5: `net.minecraft.command.data.DataAccessor` 及其实现类
+MC 1.21.11: `net.minecraft.server.commands.data.DataAccessor` 及其实现类

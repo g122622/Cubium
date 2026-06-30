@@ -1832,19 +1832,25 @@ Result<void> LivingEntity::readAdditionalSaveData(const nbt::tags::compound_tag&
         }
     }
 
+    // Attributes - 属性列表
+    // 参考 MC Java: 属性必须在效果之前加载，因为效果 NBT 中的修改器已作为 permanentModifiers
+    // 保存在属性 NBT 中。readAttributeMap 会先清除旧修改器再从 NBT 加载，确保属性状态与存档一致。
+    nbt_helper::readAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
+
     // ActiveEffects - 药水效果列表
+    // 参考 MC Java: LivingEntity.readAdditionalSaveData()
+    // 效果在属性之后加载。效果直接填入效果列表，不通过 addEffect()（不会重新应用属性修改器），
+    // 因为效果修改器已经作为 permanentModifiers 保存在属性 NBT 中。
+    // 先移除所有旧效果（含属性修改器），然后直接填充效果列表。
     if (auto* effectsList = nbt_helper::tryGetList(tag, nbt_keys::ACTIVE_EFFECTS)) {
         if (effectsList->element_id() == nbt::TagId::Compound) {
+            removeAllEffects();
             auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*effectsList);
-            m_effectManager.getAllEffects().clear();
             for (const auto& effectTag : compoundList.value) {
                 m_effectManager.getAllEffects().push_back(entity::effect::EffectInstance::fromNbt(effectTag));
             }
         }
     }
-
-    // Attributes - 属性列表
-    nbt_helper::readAttributeMap(tag, nbt_keys::ATTRIBUTES, m_attributes);
 
     // Equipment - MC 1.21.11 新格式：从 "equipment" 复合标签读取装备
     // 参考: net.minecraft.world.entity.LivingEntity.readAdditionalSaveData()

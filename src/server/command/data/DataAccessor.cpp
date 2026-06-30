@@ -23,12 +23,7 @@
 
 #include "DataAccessor.hpp"
 #include "common/entity/core/Entity.hpp"
-#include "common/entity/core/LivingEntity.hpp"
-#include "common/entity/effect/EffectInstance.hpp"
-#include "common/entity/effect/EffectManager.hpp"
 #include "common/entity/entities/player/Player.hpp"
-#include "common/entity/serialization/EntityNbtKeys.hpp"
-#include "common/entity/serialization/NbtHelper.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
@@ -36,9 +31,6 @@
 
 // Bring operator<< for nbt::tags::tag into scope for ADL
 using mc::nbt::operator<<;
-
-// NBT 键名常量简写
-using namespace mc::entity::serialization;
 
 namespace mc {
 namespace command {
@@ -57,8 +49,6 @@ BlockDataAccessor::BlockDataAccessor(IWorld* world, const BlockPos& pos)
 
 std::unique_ptr<nbt::tags::compound_tag> BlockDataAccessor::getData() const
 {
-    auto compound = std::make_unique<nbt::tags::compound_tag>();
-
     if (m_blockEntity == nullptr) {
         throw CommandException(CommandErrorType::NbtPathNotFound,
             "No block entity at position " + std::to_string(m_pos.x) + ", " + std::to_string(m_pos.y) + ", " +
@@ -66,45 +56,9 @@ std::unique_ptr<nbt::tags::compound_tag> BlockDataAccessor::getData() const
             0);
     }
 
-    // 保存方块实体数据到 NBT
-    // BlockEntity 使用 JSON 格式，需要转换
-    nlohmann::json jsonData;
-    m_blockEntity->save(jsonData);
-
-    // 将 JSON 转换为 NBT
-    // 注意：这是简化的转换，可能需要更完整的实现
-    compound->put("id", jsonData.value("id", ""));
-    compound->put("x", jsonData.value("x", m_pos.x));
-    compound->put("y", jsonData.value("y", m_pos.y));
-    compound->put("z", jsonData.value("z", m_pos.z));
-
-    // 保存其他数据
-    if (jsonData.contains("Items")) {
-        // 容器物品列表
-        auto itemsArray = std::make_unique<nbt::tags::compound_list_tag>();
-        for (const auto& item : jsonData["Items"]) {
-            nbt::tags::compound_tag itemCompound;
-            itemCompound.put("Slot", static_cast<i8>(item.value("Slot", 0)));
-            itemCompound.put("id", item.value("id", ""));
-            itemCompound.put("Count", static_cast<i8>(item.value("Count", 1)));
-            itemsArray->value.push_back(std::move(itemCompound));
-        }
-        compound->value["Items"] = std::move(itemsArray);
-    }
-
-    // 保存自定义名称
-    if (jsonData.contains("CustomName")) {
-        compound->put("CustomName", jsonData["CustomName"].get<std::string>());
-    }
-
-    // 保存锁
-    if (jsonData.contains("Lock")) {
-        compound->put("Lock", jsonData["Lock"].get<std::string>());
-    }
-
-    // 存储 JSON 原始数据作为 "jsonData" 字段（临时方案）
-    compound->put("_jsonData", jsonData.dump());
-
+    // 使用 BlockEntity 原生 NBT 序列化，获取完整数据
+    auto compound = std::make_unique<nbt::tags::compound_tag>();
+    m_blockEntity->saveToNBT(*compound);
     return compound;
 }
 
@@ -117,59 +71,23 @@ void BlockDataAccessor::mergeData(const nbt::tags::compound_tag& data)
             0);
     }
 
-    // 从 NBT 转换为 JSON 并加载到方块实体
-    nlohmann::json jsonData;
+    // 获取当前完整数据
+    nbt::tags::compound_tag current;
+    m_blockEntity->saveToNBT(current);
 
-    // 如果有原始 JSON 数据，先加载它
-    auto jsonIt = data.value.find("_jsonData");
-    if (jsonIt != data.value.end() && jsonIt->second->id() == nbt::TagId::String) {
-        std::string jsonStr = dynamic_cast<const nbt::tags::string_tag&>(*jsonIt->second).value;
-        try {
-            jsonData = nlohmann::json::parse(jsonStr);
-        }
-        catch (...) {
-            jsonData = nlohmann::json::object();
-        }
-    }
-
-    // 合并 NBT 数据到 JSON
+    // 合并：将传入数据的每个键值对覆盖到当前数据中
     for (const auto& [key, value] : data.value) {
-        if (key == "_jsonData" || key == "x" || key == "y" || key == "z") {
-            continue; // 跳过特殊字段和坐标
-        }
-
-        // 根据 NBT 类型转换
-        switch (value->id()) {
-            case nbt::TagId::Byte:
-                jsonData[key] = dynamic_cast<const nbt::tags::byte_tag&>(*value).value != 0;
-                break;
-            case nbt::TagId::Short:
-                jsonData[key] = dynamic_cast<const nbt::tags::short_tag&>(*value).value;
-                break;
-            case nbt::TagId::Int:
-                jsonData[key] = dynamic_cast<const nbt::tags::int_tag&>(*value).value;
-                break;
-            case nbt::TagId::Long:
-                jsonData[key] = dynamic_cast<const nbt::tags::long_tag&>(*value).value;
-                break;
-            case nbt::TagId::Float:
-                jsonData[key] = dynamic_cast<const nbt::tags::float_tag&>(*value).value;
-                break;
-            case nbt::TagId::Double:
-                jsonData[key] = dynamic_cast<const nbt::tags::double_tag&>(*value).value;
-                break;
-            case nbt::TagId::String:
-                jsonData[key] = dynamic_cast<const nbt::tags::string_tag&>(*value).value;
-                break;
-            default:
-                // 其他类型暂不处理
-                break;
-        }
+        current.value[key] = value->copy();
     }
 
-    // 加载到方块实体
-    m_blockEntity->load(jsonData);
+    // 使用 BlockEntity 原生 NBT 反序列化加载合并后的数据
+    m_blockEntity->loadFromNBT(current);
     m_blockEntity->setChanged();
+
+    // 通知客户端方块更新
+    if (m_world != nullptr) {
+        m_world->notifyBlockUpdate(m_pos);
+    }
 }
 
 std::string BlockDataAccessor::getDisplayName() const
@@ -220,54 +138,10 @@ std::unique_ptr<nbt::tags::compound_tag> EntityDataAccessor::getData() const
         throw CommandException(CommandErrorType::NbtPathNotFound, "Entity not found", 0);
     }
 
+    // 使用 Entity 原生 NBT 序列化，获取完整数据
+    // 参考 MC Java: NbtPredicate.getEntityTagToCompare(entity) -> entity.saveWithoutId()
     auto compound = std::make_unique<nbt::tags::compound_tag>();
-
-    // 基本实体数据
-    compound->put("id", m_entity->getTypeId());
-    compound->put("CustomName", m_entity->customNameText());
-
-    // 位置和旋转
-    auto pos = m_entity->position();
-    {
-        nbt::tags::double_list_tag posList;
-        posList.value.push_back(pos.x);
-        posList.value.push_back(pos.y);
-        posList.value.push_back(pos.z);
-        compound->value["Pos"] = std::make_unique<nbt::tags::double_list_tag>(std::move(posList));
-    }
-
-    // UUID
-    compound->put("UUID", m_entity->uuid());
-
-    // 标签
-    const auto& tags = m_entity->getTags();
-    if (!tags.empty()) {
-        auto tagsList = std::make_unique<nbt::tags::string_list_tag>();
-        for (const auto& tag : tags) {
-            tagsList->value.push_back(tag);
-        }
-        compound->value["Tags"] = std::move(tagsList);
-    }
-
-    // 生物特有数据
-    auto* livingEntity = dynamic_cast<const LivingEntity*>(m_entity);
-    if (livingEntity != nullptr) {
-        compound->put("Health", livingEntity->health());
-        compound->put("AbsorptionAmount", livingEntity->absorptionAmount());
-
-        // 药水效果
-        const auto& effects = livingEntity->effectManager().getAllEffects();
-        if (!effects.empty()) {
-            auto effectsList = std::make_unique<nbt::tags::compound_list_tag>();
-            for (const auto& effect : effects) {
-                nbt::tags::compound_tag effectTag;
-                effect.toNbt(effectTag);
-                effectsList->value.push_back(std::move(effectTag));
-            }
-            compound->value.emplace(nbt_keys::ACTIVE_EFFECTS, std::move(effectsList));
-        }
-    }
-
+    m_entity->writeToNBT(*compound);
     return compound;
 }
 
@@ -282,55 +156,28 @@ void EntityDataAccessor::mergeData(const nbt::tags::compound_tag& data)
         throw CommandException(CommandErrorType::NbtPathInvalidType, "Cannot modify player data directly", 0);
     }
 
-    // 合并数据
-    auto it = data.value.find("CustomName");
-    if (it != data.value.end() && it->second->id() == nbt::TagId::String) {
-        m_entity->setCustomName(dynamic_cast<const nbt::tags::string_tag&>(*it->second).value);
+    // 参考 MC Java: EntityDataAccessor.setData()
+    // 1. 保存当前 UUID（加载 NBT 会覆盖 UUID，需要恢复）
+    auto savedUuid = m_entity->uuid();
+
+    // 2. 获取当前完整数据
+    nbt::tags::compound_tag current;
+    m_entity->writeToNBT(current);
+
+    // 3. 合并：将传入数据的每个键值对覆盖到当前数据中
+    for (const auto& [key, value] : data.value) {
+        current.value[key] = value->copy();
     }
 
-    it = data.value.find("Tags");
-    if (it != data.value.end() && it->second->id() == nbt::TagId::List) {
-        auto* list = dynamic_cast<const nbt::tags::list_tag*>(it->second.get());
-        if (list != nullptr && list->element_id() == nbt::TagId::String) {
-            m_entity->clearTags();
-            for (u64 i = 0; i < list->size(); ++i) {
-                auto tag = (*list)[i];
-                if (tag && tag->id() == nbt::TagId::String) {
-                    m_entity->addTag(dynamic_cast<const nbt::tags::string_tag&>(*tag).value);
-                }
-            }
-        }
+    // 4. 使用 Entity 原生 NBT 反序列化加载合并后的数据
+    auto result = m_entity->readFromNBT(current);
+    if (!result.success()) {
+        throw CommandException(
+            CommandErrorType::NbtPathInvalidType, "Failed to load entity data: " + result.error().message(), 0);
     }
 
-    // 生物特有数据
-    auto* livingEntity = dynamic_cast<LivingEntity*>(m_entity);
-    if (livingEntity != nullptr) {
-        it = data.value.find("Health");
-        if (it != data.value.end() && it->second->id() == nbt::TagId::Float) {
-            livingEntity->setHealth(dynamic_cast<const nbt::tags::float_tag&>(*it->second).value);
-        }
-
-        it = data.value.find("AbsorptionAmount");
-        if (it != data.value.end() && it->second->id() == nbt::TagId::Float) {
-            livingEntity->setAbsorptionAmount(dynamic_cast<const nbt::tags::float_tag&>(*it->second).value);
-        }
-
-        // 药水效果
-        it = data.value.find(nbt_keys::ACTIVE_EFFECTS);
-        if (it != data.value.end() && it->second->id() == nbt::TagId::List) {
-            auto* list = dynamic_cast<const nbt::tags::list_tag*>(it->second.get());
-            if (list != nullptr && list->element_id() == nbt::TagId::Compound) {
-                auto& compoundList = dynamic_cast<const nbt::tags::compound_list_tag&>(*list);
-                // 先移除所有现有效果
-                livingEntity->removeAllEffects();
-                // 添加 NBT 中的效果
-                for (const auto& effectTag : compoundList.value) {
-                    auto effect = entity::effect::EffectInstance::fromNbt(effectTag);
-                    livingEntity->addEffect(std::move(effect));
-                }
-            }
-        }
-    }
+    // 5. 恢复 UUID（UUID 不应被 /data 命令修改）
+    m_entity->setUuid(savedUuid);
 }
 
 std::string EntityDataAccessor::getDisplayName() const

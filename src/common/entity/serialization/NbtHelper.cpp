@@ -327,6 +327,12 @@ void readAttributeMap(
             continue;
         }
 
+        // 清除已有的修改器，然后从 NBT 重新加载。
+        // 参考 MC Java: AttributeInstance.apply() 在设置新值前会先清除所有修改器。
+        // 这确保反序列化时不会出现修改器重复叠加（例如效果系统已应用的修改器
+        // 和 NBT 中保存的修改器同时存在）。
+        instance->clearModifiers();
+
         // 读取基础值
         if (auto baseOpt = tryGetDouble(attrTag, nbt_keys::ATTR_BASE)) {
             instance->setBaseValue(*baseOpt);
