@@ -50,7 +50,6 @@ CauldronBlock::CauldronBlock(const BlockProperties& properties)
     : Block(properties)
 {
     // 空炼药锅没有水位属性，不需要额外的状态属性
-    // 对应 MC 原版: CauldronBlock 不持有 LEVEL 属性
     auto container = StateContainer<Block, BlockState>::Builder(*this).create(
         [](const Block& block,
             std::vector<size_t> values,
@@ -89,7 +88,6 @@ void CauldronBlock::neighborChanged(
 void CauldronBlock::handlePrecipitation(
     IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation)
 {
-    // 参考 MC 原版: CauldronBlock#handlePrecipitation
     // 空炼药锅在雨天/雪天接收降水后替换为 WaterCauldronBlock (LayeredCauldronBlock)
     // 确定降水触发概率：雨天 5%，雪天 10%
     f32 chance = 0.0f;
@@ -164,7 +162,6 @@ const CollisionShape& CauldronBlock::getEntityInsideCollisionShape(const BlockSt
 {
     MC_UNUSED(state);
     // 空炼药锅返回完整方块形状
-    // 参考 MC 原版: AbstractCauldronBlock 继承 Block 的默认 getEntityInsideCollisionShape
     // 返回 Shapes.block()（完整方块）
     return VoxelShapes::fullCube();
 }
@@ -301,7 +298,6 @@ ActionResultType CauldronBlock::_handleBottleInteraction(
     }
 
     // 水瓶（水瓶药水）：空炼药锅 → 水炼药锅（水位1）
-    // 参考 MC 原版: CauldronInteraction.EMPTY 中 waterBottleInteraction
     if (item == Items::POTION && potion::PotionUtils::isWaterBottle(heldItem)) {
         if (!world.isClientSide()) {
             const BlockState* waterCauldronState = &block_registry::BuildingBlocks::WATER_CAULDRON->defaultState();

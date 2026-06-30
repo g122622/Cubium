@@ -431,6 +431,19 @@ u32 BedrockChunkReader::_mapBlockState(
         return 0;
     }
 
+    // 数据迁移：旧版基岩版世界中 minecraft:cauldron 有 level 属性（0-3），
+    // level >= 1 时应映射为 minecraft:water_cauldron
+    if (blockName == "minecraft:cauldron") {
+        auto levelIt = states.find("level");
+        if (levelIt != states.end() && levelIt->second != "0") {
+            Block* waterCauldronBlock =
+                BlockRegistry::instance().getBlock(ResourceLocation("minecraft:water_cauldron"));
+            if (waterCauldronBlock) {
+                block = waterCauldronBlock;
+            }
+        }
+    }
+
     const BlockState* state = &block->defaultState();
     if (!states.empty()) {
         const auto& container = block->stateContainer();

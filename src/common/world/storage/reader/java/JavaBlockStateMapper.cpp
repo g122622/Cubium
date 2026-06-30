@@ -49,6 +49,19 @@ u32 JavaBlockStateMapper::mapBlockState(const PaletteEntry& entry)
         return 0;
     }
 
+    // 数据迁移：旧版 Java 世界中 minecraft:cauldron 有 level 属性（0-3），
+    // level >= 1 时应映射为 minecraft:water_cauldron
+    if (entry.blockName == "minecraft:cauldron") {
+        auto levelIt = entry.properties.find("level");
+        if (levelIt != entry.properties.end() && levelIt->second != "0") {
+            ResourceLocation waterCauldronLocation("minecraft:water_cauldron");
+            Block* waterCauldronBlock = BlockRegistry::instance().getBlock(waterCauldronLocation);
+            if (waterCauldronBlock) {
+                block = waterCauldronBlock;
+            }
+        }
+    }
+
     // 获取默认状态
     const BlockState* state = &block->defaultState();
 

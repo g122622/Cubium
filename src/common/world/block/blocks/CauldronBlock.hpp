@@ -47,7 +47,7 @@ namespace blocks {
 /**
  * @brief 空炼药锅方块
  *
- * 对应 MC 原版 CauldronBlock（空炼药锅），不持有水位。
+ * 空炼药锅方块，不持有水位。
  * 当接收到水时（降水、水桶、水瓶、滴石滴水等），替换为 WaterCauldronBlock (LayeredCauldronBlock)。
  * 当接收到岩浆时（岩浆桶、滴石岩浆滴），替换为 LavaCauldronBlock。
  *
@@ -96,8 +96,6 @@ public:
      * 雨天：5% 概率替换为 WaterCauldronBlock（水位1）
      * 雪天：10% 概率替换为 WaterCauldronBlock（水位1）
      *   TODO(_powder_snow_cauldron): 当细雪炼药锅实现后，雪天应替换为 PowderSnowCauldronBlock
-     *
-     * 参考: net.minecraft.block.CauldronBlock#handlePrecipitation
      */
     void handlePrecipitation(
         IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation) override;
@@ -111,8 +109,6 @@ public:
      * - 水桶 → 替换为 WaterCauldronBlock（水位3）
      * - 岩浆桶 → 替换为 LavaCauldronBlock
      * - 水瓶 → 替换为 WaterCauldronBlock（水位1）
-     *
-     * 参考: net.minecraft.block.CauldronBlock + CauldronInteraction.EMPTY
      */
     [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
         IWorld& world,
@@ -136,8 +132,7 @@ public:
     /**
      * @brief 获取实体内部碰撞形状
      *
-     * 空炼药锅返回完整方块形状，与 MC 原版一致。
-     * 参考: net.minecraft.block.AbstractCauldronBlock#getEntityInsideCollisionShape
+     * 空炼药锅返回完整方块形状。
      */
     [[nodiscard]] const CollisionShape& getEntityInsideCollisionShape(const BlockState& state) const override;
 

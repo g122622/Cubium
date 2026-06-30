@@ -54,7 +54,7 @@ LayeredCauldronBlock::LayeredCauldronBlock(
     : Block(properties)
     , m_precipitationType(precipitationType)
 {
-    // 创建状态容器，水位属性范围 1-3（对应 MC 原版 LEVEL_CAULDRON）
+    // 创建状态容器，水位属性范围 1-3
     auto container =
         StateContainer<Block, BlockState>::Builder(*this)
             .add(BlockStateProperties::LEVEL_1_3())
@@ -85,7 +85,6 @@ LayeredCauldronBlock::LayeredCauldronBlock(
     m_outerShape = CollisionShape::combine(m_outerShape, eastWall, CollisionShape::CombineOp::OR);
 
     // 内容形状（水位 1-3）
-    // 参考 MC 原版 LayeredCauldronBlock:
     //   BASE_CONTENT_HEIGHT = 6, HEIGHT_PER_LEVEL = 3
     //   getContentHeight(level) = (6 + level * 3) / 16.0
     //   水位1: 6 + 1*3 = 9像素  (9/16 = 0.5625)
@@ -110,7 +109,6 @@ LayeredCauldronBlock::LayeredCauldronBlock(
     m_contentShapes[2] = VoxelShapes::cube(innerX1, innerMinY, innerZ1, innerX2, contentHeight3, innerZ2);
 
     // 填充形状（外部形状 ∪ 内容形状），用于实体内部碰撞检测
-    // 参考 MC 原版: LayeredCauldronBlock.FILLED_SHAPES[level - 1]
     for (i32 i = 0; i < 3; ++i) {
         m_filledShapes[i] = CollisionShape::combine(m_outerShape, m_contentShapes[i], CollisionShape::CombineOp::OR);
     }
@@ -132,7 +130,6 @@ void LayeredCauldronBlock::handlePrecipitation(
     IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation)
 {
     // 仅当降水类型与炼药锅类型匹配时才处理
-    // 参考 MC 原版: LayeredCauldronBlock#handlePrecipitation
     if (precipitation != m_precipitationType) {
         return;
     }
@@ -165,7 +162,6 @@ void LayeredCauldronBlock::handlePrecipitation(
     }
 
     // 增加水位（使用 cycle 语义：level + 1，但不超过3）
-    // MC 原版使用 state.cycle(LEVEL)
     i32 level = getLevel(*currentState);
     if (level < 3) {
         BlockState newState = currentState->with(BlockStateProperties::LEVEL_1_3(), level + 1);
@@ -254,14 +250,12 @@ void LayeredCauldronBlock::onEntityCollision(
     const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
 {
     // 着火的实体会被灭火，同时水位降低1级
-    // 参考 MC 原版: LayeredCauldronBlock#entityInside
     if (entity.isOnFire() && entity.mayInteract(world, pos)) {
         entity.clearFire();
         if (!world.isClientSide()) {
             // TODO(_powder_snow_cauldron): 当细雪炼药锅实现后，
             // 如果 m_precipitationType == Snow，灭火时先将细雪炼药锅转换为水炼药锅
             // （保持相同水位），然后降低水位。
-            // 参考 MC 原版: handleEntityOnFireInside 先替换为 WATER_CAULDRON 再 lowerFillLevel。
             // 当前仅支持水炼药锅，直接降低水位即可。
             lowerFillLevel(world, pos, state);
         }
@@ -299,7 +293,6 @@ void LayeredCauldronBlock::setLevel(IWorld& world, const BlockPos& pos, const Bl
 
 void LayeredCauldronBlock::lowerFillLevel(IWorld& world, const BlockPos& pos, const BlockState& state)
 {
-    // 参考 MC 原版: LayeredCauldronBlock#lowerFillLevel
     i32 level = getLevel(state);
     if (level <= 1) {
         // 水位降至0，替换为空炼药锅
@@ -338,8 +331,6 @@ void LayeredCauldronBlock::tick(IWorld& world, const BlockPos& pos, BlockState& 
 bool LayeredCauldronBlock::canReceiveStalactiteDrip(const fluid::Fluid& fluid) const
 {
     // 仅水炼药锅可接收水滴，且水位未满时
-    // 参考 MC 原版: LayeredCauldronBlock#canReceiveStalactiteDrip
-    //   return fluid == Fluids.WATER && this.precipitationType == Biome.Precipitation.RAIN;
     // 注：此方法在静态上下文中被调用时需要额外检查水位，但此处仅检查流体类型和降水类型
     return fluid.isIn(fluid::FluidTags::WATER()) &&
         m_precipitationType == world::biome::BiomeClimate::Precipitation::Rain;
@@ -349,7 +340,6 @@ void LayeredCauldronBlock::receiveStalactiteDrip(
     IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid)
 {
     // 水滴：增加1级水位（如果未满）
-    // 参考 MC 原版: LayeredCauldronBlock#receiveStalactiteDrip
     if (fluid.isIn(fluid::FluidTags::WATER()) && !isFull(state)) {
         i32 level = getLevel(state);
         BlockState newState = state.with(BlockStateProperties::LEVEL_1_3(), level + 1);
@@ -399,7 +389,6 @@ ActionResultType LayeredCauldronBlock::_handleBucketInteraction(
     }
 
     // 空桶：从满的炼药锅取水（仅水位3时可用）
-    // 参考 MC 原版: CauldronInteraction.WATER 中 emptyBucket 仅在 isFull 时可用
     if (item == Items::BUCKET) {
         if (currentLevel == 3 && !world.isClientSide()) {
             // 取水后替换为空炼药锅

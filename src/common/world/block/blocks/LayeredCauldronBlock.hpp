@@ -47,7 +47,7 @@ namespace blocks {
 /**
  * @brief 分层炼药锅方块（水炼药锅 / 细雪炼药锅）
  *
- * 对应 MC 原版 LayeredCauldronBlock，表示含有水位（或细雪位）的炼药锅。
+ * 分层炼药锅方块（水炼药锅 / 细雪炼药锅），表示含有水位（或细雪位）的炼药锅。
  * 当水位降至0时，方块应替换为空炼药锅 (CauldronBlock)。
  *
  * 状态属性：
@@ -104,8 +104,6 @@ public:
      * 当降水类型与炼药锅类型匹配且有未满水位时，有概率增加水位。
      * - 雨天（水炼药锅）：5% 概率
      * - 雪天（细雪炼药锅）：10% 概率
-     *
-     * 参考: net.minecraft.block.LayeredCauldronBlock#handlePrecipitation
      */
     void handlePrecipitation(
         IWorld& world, const BlockPos& pos, world::biome::BiomeClimate::Precipitation precipitation) override;
@@ -146,7 +144,6 @@ public:
      * @brief 获取实体内部碰撞形状
      *
      * 返回炼药锅外部形状与水位内容区域的并集。
-     * 参考 MC 原版: LayeredCauldronBlock.FILLED_SHAPES[level - 1]
      */
     [[nodiscard]] const CollisionShape& getEntityInsideCollisionShape(const BlockState& state) const override;
 
@@ -165,8 +162,6 @@ public:
      * 当着火的实体进入分层炼药锅时，实体会被灭火，同时水位降低 1 级。
      * 如果水位降至0，替换为空炼药锅。
      * 对于细雪炼药锅，灭火时先转换为水炼药锅（保持相同水位），然后降低水位。
-     *
-     * 参考: net.minecraft.block.LayeredCauldronBlock#entityInside
      */
     void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 
@@ -208,8 +203,6 @@ public:
     /**
      * @brief 降低水位1级，水位降至0时替换为空炼药锅
      *
-     * 参考: net.minecraft.block.LayeredCauldronBlock#lowerFillLevel
-     *
      * @param world 世界
      * @param pos 方块位置
      * @param state 当前方块状态
@@ -237,8 +230,6 @@ public:
      *
      * 仅水炼药锅（precipitationType==Rain）可接收水滴，且水位未满时。
      * 细雪炼药锅不接收滴水。
-     *
-     * 参考: net.minecraft.block.LayeredCauldronBlock#canReceiveStalactiteDrip
      */
     [[nodiscard]] bool canReceiveStalactiteDrip(const fluid::Fluid& fluid) const;
 
@@ -246,8 +237,6 @@ public:
      * @brief 接收滴石滴水填充
      *
      * 水滴增加1级水位（如果未满）。
-     *
-     * 参考: net.minecraft.block.LayeredCauldronBlock#receiveStalactiteDrip
      */
     void receiveStalactiteDrip(IWorld& world, const BlockPos& pos, const BlockState& state, const fluid::Fluid& fluid);
 
@@ -297,7 +286,6 @@ private:
     std::array<CollisionShape, 3> m_contentShapes;
 
     /// 不同水位的填充形状（外部形状 ∪ 内容形状，用于实体内部碰撞检测）
-    /// 参考 MC 原版: LayeredCauldronBlock.FILLED_SHAPES[level - 1]
     std::array<CollisionShape, 3> m_filledShapes;
 };
 
