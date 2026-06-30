@@ -142,13 +142,24 @@ public:
 
     /**
      * @brief 是否正在逃跑
+     *
+     * 逃跑状态通过 DataParameter 同步到客户端，用于渲染器判断冲刺动画。
      */
-    [[nodiscard]] bool isFleeing() const { return m_fleeing; }
+    [[nodiscard]] bool isFleeing() const { return m_dataManager.get<bool>(DATA_FLEEING_PARAM); }
 
     /**
      * @brief 设置逃跑状态
+     *
+     * 由 OcelotAvoidPlayerGoal 在开始/停止逃跑时调用。
      */
-    void setFleeing(bool fleeing) { m_fleeing = fleeing; }
+    void setFleeing(bool fleeing) { m_dataManager.set(DATA_FLEEING_PARAM, fleeing); }
+
+    /**
+     * @brief 获取逃跑状态数据参数 ID
+     *
+     * 用于客户端从元数据中读取逃跑状态。
+     */
+    [[nodiscard]] static u16 getFleeingParamId() { return DATA_FLEEING_PARAM.id(); }
 
     // ========== 类型 ==========
 
@@ -234,12 +245,10 @@ protected:
 private:
     // ========== 数据同步 ==========
     static entity::DataParameter<bool> DATA_TRUSTING_PARAM;
+    static entity::DataParameter<bool> DATA_FLEEING_PARAM;
 
     // 信任状态
     u64 m_trustingPlayerId = 0;
-
-    // 逃跑状态
-    bool m_fleeing = false;
 
     // 类型
     OcelotType m_ocelotType = OcelotType::Wild;

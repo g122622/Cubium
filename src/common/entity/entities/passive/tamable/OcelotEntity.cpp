@@ -60,6 +60,7 @@ namespace mc {
 
 // ==================== 静态成员初始化 ====================
 entity::DataParameter<bool> OcelotEntity::DATA_TRUSTING_PARAM = entity::EntityDataManager::createKey<bool>();
+entity::DataParameter<bool> OcelotEntity::DATA_FLEEING_PARAM = entity::EntityDataManager::createKey<bool>();
 
 // ==================== OcelotEntity ====================
 
@@ -132,7 +133,7 @@ void OcelotEntity::tick()
 
     // 如果已建立信任，停止逃跑
     if (isTrusting()) {
-        m_fleeing = false;
+        setFleeing(false);
     }
 }
 
@@ -278,6 +279,9 @@ void OcelotEntity::registerData()
 
     // 注册信任状态数据参数，用于客户端-服务端同步
     m_dataManager.registerParam(DATA_TRUSTING_PARAM, false);
+
+    // 注册逃跑状态数据参数，用于客户端渲染器判断冲刺动画
+    m_dataManager.registerParam(DATA_FLEEING_PARAM, false);
 }
 
 void OcelotEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
