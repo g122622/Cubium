@@ -25,7 +25,8 @@ loot/
 │   ├── RandomChanceWithLuckCondition.hpp/cpp  # minecraft:random_chance_with_looting
 │   ├── ReferenceCondition.hpp/cpp             # minecraft:reference（引用命名谓词）
 │   ├── BlockStateCondition.hpp/cpp            # minecraft:block_state_property
-│   ├── ToolTypeCondition.hpp/cpp              # minecraft:match_tool
+│   ├── ToolTypeCondition.hpp/cpp              # 内部工具类型条件（基于 HarvestTool）
+│   ├── MatchToolCondition.hpp/cpp             # minecraft:match_tool（使用 ItemPredicate 完整匹配工具）
 │   ├── FortuneCondition.hpp/cpp               # minecraft:fortune（时运加成）
 │   ├── SilkTouchCondition.hpp/cpp             # minecraft:silk_touch
 │   ├── SurvivesExplosionCondition.hpp/cpp     # minecraft:survives_explosion

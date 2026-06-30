@@ -33,8 +33,14 @@ namespace loot {
 /**
  * @brief 工具类型条件
  *
- * 检查使用的工具是否为指定类型。
- * 用于需要特定工具才能获得掉落的情况。
+ * 检查使用的工具是否为指定类型（基于 HarvestTool 常量）。
+ * 用于内部工具类型快速匹配场景。
+ *
+ * 注意：此条件类不再对应 minecraft:match_tool JSON 条件类型。
+ * minecraft:match_tool 条件现在由 MatchToolCondition 处理，
+ * 使用完整的 ItemPredicate 进行匹配。
+ *
+ * @see MatchToolCondition 完整的 match_tool 条件实现
  */
 class ToolTypeCondition : public LootCondition {
 public:
@@ -46,7 +52,7 @@ public:
 
     [[nodiscard]] bool test(LootContext& context) const override;
     [[nodiscard]] std::unique_ptr<LootCondition> clone() const noexcept override;
-    [[nodiscard]] std::string getType() const noexcept override { return "match_tool"; }
+    [[nodiscard]] std::string getType() const noexcept override { return "tool_type"; }
 
     [[nodiscard]] u8 getToolType() const noexcept { return m_toolType; }
 

@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/core/Types.hpp"
 #include "common/item/loot/StatePropertiesPredicate.hpp"
@@ -49,6 +50,7 @@ class AndCondition;
 class OrCondition;
 class BlockStateCondition;
 class ToolTypeCondition;
+class MatchToolCondition;
 class SurvivesExplosionCondition;
 class KilledByPlayerCondition;
 class EntityScoresCondition;
@@ -138,8 +140,23 @@ public:
     /**
      * @brief 创建工具类型条件
      * @param toolType 工具类型
+     * @deprecated 使用 matchTool() 代替，支持完整的 ItemPredicate 匹配
      */
     [[nodiscard]] static std::unique_ptr<LootCondition> toolType(u8 toolType);
+
+    /**
+     * @brief 创建工具匹配条件（minecraft:match_tool）
+     *
+     * 使用 ItemPredicate 对工具物品进行完整匹配，支持：
+     * - 物品ID/标签匹配
+     * - 数量、耐久范围匹配
+     * - 附魔匹配
+     * - NBT数据匹配
+     *
+     * @param predicate 物品谓词，nullopt 表示仅检查是否存在工具
+     */
+    [[nodiscard]] static std::unique_ptr<LootCondition> matchTool(
+        std::optional<advancement::ItemPredicate> predicate = std::nullopt);
 
     // ========== 新增条件工厂方法 ==========
 

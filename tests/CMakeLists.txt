@@ -824,6 +824,7 @@ add_executable(mc_tests
     network/SetCameraPacketTest.cpp
     common/entity/loot/LootTest.cpp
     common/entity/loot/LootConditionTest.cpp
+    common/entity/loot/MatchToolConditionTest.cpp
     common/entity/loot/LootSerializersTest.cpp
     common/entity/loot/LootTableLoaderTest.cpp
     common/entity/loot/LootJsonIntegrationTest.cpp

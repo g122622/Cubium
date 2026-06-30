@@ -30,6 +30,7 @@
 #include "common/item/loot/conditions/FortuneCondition.hpp"
 #include "common/item/loot/conditions/KilledByPlayerCondition.hpp"
 #include "common/item/loot/conditions/LocationCheckCondition.hpp"
+#include "common/item/loot/conditions/MatchToolCondition.hpp"
 #include "common/item/loot/conditions/NotCondition.hpp"
 #include "common/item/loot/conditions/OrCondition.hpp"
 #include "common/item/loot/conditions/RandomChanceCondition.hpp"
@@ -98,6 +99,14 @@ std::unique_ptr<LootCondition> LootConditionBuilder::blockState(
 std::unique_ptr<LootCondition> LootConditionBuilder::toolType(u8 toolType)
 {
     return std::make_unique<ToolTypeCondition>(toolType);
+}
+
+std::unique_ptr<LootCondition> LootConditionBuilder::matchTool(std::optional<advancement::ItemPredicate> predicate)
+{
+    if (predicate.has_value()) {
+        return std::make_unique<MatchToolCondition>(std::move(predicate.value()));
+    }
+    return std::make_unique<MatchToolCondition>();
 }
 
 // ============================================================================

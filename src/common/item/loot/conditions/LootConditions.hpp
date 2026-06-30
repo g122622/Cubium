@@ -37,6 +37,7 @@
 #include "common/item/loot/conditions/LocationCheckCondition.hpp"
 #include "common/item/loot/conditions/LootCondition.hpp"
 #include "common/item/loot/conditions/LootConditionBuilder.hpp"
+#include "common/item/loot/conditions/MatchToolCondition.hpp"
 #include "common/item/loot/conditions/NotCondition.hpp"
 #include "common/item/loot/conditions/OrCondition.hpp"
 #include "common/item/loot/conditions/RandomChanceCondition.hpp"

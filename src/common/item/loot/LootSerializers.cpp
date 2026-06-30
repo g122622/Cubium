@@ -24,6 +24,7 @@
 #include "LootSerializers.hpp"
 #include "StatePropertiesPredicate.hpp"
 #include "common/advancement/trigger/conditions/EntityPredicate.hpp"
+#include "common/advancement/trigger/conditions/ItemPredicate.hpp"
 #include "common/advancement/trigger/conditions/LocationPredicate.hpp"
 #include "common/item/loot/entries/LootEntries.hpp"
 #include <sstream>
@@ -538,29 +539,22 @@ Result<std::unique_ptr<LootCondition>> LootSerializers::_parseBlockStateProperty
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::_parseMatchToolCondition(const nlohmann::json& json)
 {
-    // match_tool 检查工具是否匹配
-    // 简化实现：只解析基本的工具类型
+    // match_tool 条件：使用 ItemPredicate 对工具物品进行完整匹配
+    // 对应 MC Java: MatchTool，支持 predicate 中的物品ID、标签、数量、耐久、附魔、NBT等匹配
     if (!json.contains("predicate")) {
-        // 无谓词时，返回默认的工具类型条件
-        return castToBase<ToolTypeCondition, LootCondition>(std::make_unique<ToolTypeCondition>(0));
+        // 无谓词时，仅检查上下文中是否存在非空工具（ItemStack）
+        return castToBase<MatchToolCondition, LootCondition>(std::make_unique<MatchToolCondition>());
     }
 
     const auto& predicate = json["predicate"];
-
-    // 检查是否有 enchantments 字段来判断是否有精准采集
-    if (predicate.contains("enchantments") && predicate["enchantments"].is_array()) {
-        for (const auto& ench : predicate["enchantments"]) {
-            if (ench.contains("enchantment") && ench["enchantment"].is_string()) {
-                std::string enchId = ench["enchantment"].get<std::string>();
-                if (enchId == "minecraft:silk_touch" || enchId == "silk_touch") {
-                    return castToBase<SilkTouchCondition, LootCondition>(std::make_unique<SilkTouchCondition>());
-                }
-            }
-        }
+    auto predResult = advancement::ItemPredicate::fromJson(predicate);
+    if (!predResult.success()) {
+        // 解析失败时回退到匹配任意工具的条件
+        return castToBase<MatchToolCondition, LootCondition>(std::make_unique<MatchToolCondition>());
     }
 
-    // 默认返回一个匹配任何工具的条件
-    return castToBase<ToolTypeCondition, LootCondition>(std::make_unique<ToolTypeCondition>(0));
+    return castToBase<MatchToolCondition, LootCondition>(
+        std::make_unique<MatchToolCondition>(std::move(predResult.value())));
 }
 
 Result<std::unique_ptr<LootCondition>> LootSerializers::_parseKilledByPlayerCondition(const nlohmann::json& /*json*/)
