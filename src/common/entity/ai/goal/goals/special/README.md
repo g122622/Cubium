@@ -350,13 +350,16 @@ if (targetPlayer != nullptr && (targetPlayer->isCreative() || targetPlayer->isSp
             /
             旁观模式的玩家。
 
-            ## #19. 蜜蜂漫游目标的智能位置生成
+            ## #19. 蜜蜂漫游目标和导航的智能位置生成
 
                 **解决**：`BeeWanderGoal` 使用 MC 1.21.11 对应的空中位置算法生成飞行位置：
         - 主策略：`RandomPositionGenerator::findHoverPosition()` 对应 `HoverRandomPos.getPos`，在固体方块上方1~3格范围内选择悬停位置，确保有足够空气空间
         - 备选策略：`RandomPositionGenerator::findAirAndWaterPosition()` 对应 `AirAndWaterRandomPos.getPos`，向上移出固体方块即可
         - 方向偏好：离蜂巢超过阈值时飞回蜂巢方向，否则使用朝向；阈值计算对应 MC 的 `getWanderThreshold()`
         - `WaterAvoidingRandomFlyingGoal` 同样使用 `findHoverPosition` + `findAirAndWaterPosition` 替代原来的 `findRandomTargetBlock`
+        - `BeeEntity::pathfindRandomlyTowards()` 对应 MC 1.21.11 的 `Bee.pathfindRandomlyTowards()`，使用 `findAirPositionTowards` 在目标方向18度锥形内生成随机空中航点，产生蜜蜂漂移飞行效果；被 `BeeFindHiveGoal`（远距离时）和 `BeeFindFlowerGoal` 调用
+        - `BeeEntity::pathfindDirectlyTowards()` 对应 MC 1.21.11 的 `BeeGoToHiveGoal.pathfindDirectlyTowards()`，近距离（16格内）精确导航，用于 `BeeFindHiveGoal`
+        - `BeeFindHiveGoal` 和 `BeeFindFlowerGoal` 的 `_isTooFar` 距离阈值从32格修正为48格（对应 MC 的 `isTooFarAway` → `!closerThan(48)`）
 
             ## #20. 幻术师法术 CASTING_TIME 必须为 20
 

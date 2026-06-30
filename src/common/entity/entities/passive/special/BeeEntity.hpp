@@ -367,6 +367,37 @@ public:
      */
     [[nodiscard]] i32 getUnderWaterTimer() const { return m_underWaterTimer; }
 
+    // ========== 导航辅助 ==========
+
+    /**
+     * @brief 随机朝向目标位置寻路飞行
+     *
+     * 对应 MC 1.21.11 Bee.pathfindRandomlyTowards()。
+     * 不直接飞向目标，而是在目标方向 PI/10 弧度锥形范围内选择随机空中航点，
+     * 产生蜜蜂特有的漂移飞行效果。
+     *
+     * 算法：
+     * 1. 计算到目标的曼哈顿距离，近距离时缩小搜索范围
+     * 2. 根据Y轴高度差计算垂直偏移（上2格→+4，下2格→-4）
+     * 3. 使用 AirRandomPos.getPosTowards 生成目标方向18度锥形内的随机空中位置
+     * 4. 设置导航器寻路并降低寻路开销
+     *
+     * @param targetPos 目标方块位置（蜂巢或花朵）
+     * @return 是否成功生成并开始导航到航点
+     */
+    [[nodiscard]] bool pathfindRandomlyTowards(const BlockPos& targetPos);
+
+    /**
+     * @brief 直接朝向目标位置寻路
+     *
+     * 对应 MC 1.21.11 BeeGoToHiveGoal.pathfindDirectlyTowards()。
+     * 近距离（16格内）使用精确导航，设置高寻路开销以确保路径可达。
+     *
+     * @param targetPos 目标方块位置
+     * @return 是否找到可达路径
+     */
+    [[nodiscard]] bool pathfindDirectlyTowards(const BlockPos& targetPos);
+
     // ========== 授粉系统 ==========
 
     /**

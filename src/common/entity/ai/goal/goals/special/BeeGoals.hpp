@@ -266,6 +266,9 @@ public:
     [[nodiscard]] std::string getTypeName() const override { return "BeeFindFlowerGoal"; }
 
 private:
+    /// 检查花朵是否太远（超过48格）
+    [[nodiscard]] bool _isTooFar(const BlockPos& pos) const;
+
     i32 m_ticks = 0; ///< 计时器
 
     static constexpr i32 MAX_NAVIGATION_TIME = 600;            ///< 最大导航时间

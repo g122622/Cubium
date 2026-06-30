@@ -31,6 +31,8 @@
 #include "common/entity/ai/goal/goals/SwimGoal.hpp"
 #include "common/entity/ai/goal/goals/TemptGoal.hpp"
 #include "common/entity/ai/goal/goals/special/BeeGoals.hpp"
+#include "common/entity/ai/pathfinding/PathNavigator.hpp"
+#include "common/entity/ai/util/RandomPositionGenerator.hpp"
 #include "common/entity/attribute/Attributes.hpp"
 #include "common/entity/core/EntityDataManager.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
@@ -38,6 +40,7 @@
 #include "common/item/core/Item.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockTags.hpp"
@@ -493,6 +496,80 @@ void BeeEntity::dropHive()
     m_hivePos = BlockPos::zero();
     m_hasHive = false;
     m_stayOutOfHiveCountdown = 200; // 10秒冷却
+}
+
+// ============================================================================
+// 导航辅助
+// ============================================================================
+
+bool BeeEntity::pathfindRandomlyTowards(const BlockPos& targetPos)
+{
+    // 对应 MC 1.21.11 Bee.pathfindRandomlyTowards()
+    // 将目标位置转换为底部中心坐标
+    f64 targetX = static_cast<f64>(targetPos.x) + 0.5;
+    f64 targetY = static_cast<f64>(targetPos.y);
+    f64 targetZ = static_cast<f64>(targetPos.z) + 0.5;
+
+    // 计算Y轴高度差偏移
+    math::Vector3f beePos = position();
+    i32 yDiff = static_cast<i32>(targetY - beePos.y);
+    i32 yOffset = 0;
+    if (yDiff > 2) {
+        yOffset = 4;
+    } else if (yDiff < -2) {
+        yOffset = -4;
+    }
+
+    // 计算搜索范围：近距离时缩小范围
+    // 对应 MC 的 i1 = distManhattan, if (i1 < 15) { k = i1/2; l = i1/2; }
+    i32 k = 6; // xzRange
+    i32 l = 8; // yRange
+    i32 manhattanDist =
+        static_cast<i32>(std::abs(beePos.x - targetX) + std::abs(beePos.y - targetY) + std::abs(beePos.z - targetZ));
+    if (manhattanDist < 15) {
+        k = manhattanDist / 2;
+        l = manhattanDist / 2;
+    }
+
+    // 使用 AirRandomPos.getPosTowards 生成目标方向 PI/10 (18度) 锥形内的随机空中位置
+    math::Vector3f targetVec(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
+    math::Vector3f airPos;
+    if (entity::ai::util::RandomPositionGenerator::findAirPositionTowards(
+            this, k, l, yOffset, targetVec, math::PI / 10.0f, airPos)) {
+        if (auto* nav = navigator()) {
+            // MC 1.21.11: navigation.setMaxVisitedNodesMultiplier(0.5F)
+            // 降低寻路开销，蜜蜂飞行路径相对简单
+            nav->setMaxDistance(50); // 降低最大搜索距离作为寻路开销的近似优化
+            return nav->moveTo(airPos.x, airPos.y, airPos.z, 1.0);
+        }
+    }
+
+    return false;
+}
+
+bool BeeEntity::pathfindDirectlyTowards(const BlockPos& targetPos)
+{
+    // 对应 MC 1.21.11 BeeGoToHiveGoal.pathfindDirectlyTowards()
+    // 近距离（16格内）使用精确导航
+    // MC: int i = closerThan(pos, 3) ? 1 : 2; navigation.setMaxVisitedNodesMultiplier(10.0F);
+    // 使用距离决定速度倍率：3格内用1.0，否则用2.0
+    math::Vector3f beePos = position();
+    f64 dx = beePos.x - (static_cast<f64>(targetPos.x) + 0.5);
+    f64 dy = beePos.y - static_cast<f64>(targetPos.y);
+    f64 dz = beePos.z - (static_cast<f64>(targetPos.z) + 0.5);
+    f64 distSq = dx * dx + dy * dy + dz * dz;
+
+    f64 speed = distSq < 9.0 ? 1.0 : 2.0;
+
+    if (auto* nav = navigator()) {
+        nav->setMaxDistance(200); // 提高最大搜索距离以模拟 MC 的 maxVisitedNodesMultiplier(10.0F)
+        bool hasPath = nav->moveTo(static_cast<f64>(targetPos.x) + 0.5,
+            static_cast<f64>(targetPos.y) + 0.5,
+            static_cast<f64>(targetPos.z) + 0.5,
+            speed);
+        return hasPath && nav->hasPath();
+    }
+    return false;
 }
 
 } // namespace mc

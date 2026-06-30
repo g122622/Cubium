@@ -550,41 +550,50 @@ void BeeFindHiveGoal::tick()
 
     ++m_ticks;
 
-    // 超时检查
+    // 对应 MC 1.21.11 BeeGoToHiveGoal.tick()
+    // 超时检查：2400 tick（120秒）仍未到达则放弃并拉黑蜂巢
     if (m_ticks > MAX_NAVIGATION_TIME) {
-        // 放弃当前蜂巢
+        // 放弃当前蜂巢并加入黑名单
         m_possibleHives.push_back(m_bee->getHivePos());
         m_bee->setHivePos(BlockPos::zero());
         m_bee->setHasHive(false);
         return;
     }
 
-    // 导航到蜂巢
     BlockPos hivePos = m_bee->getHivePos();
-    math::Vector3 beePos = m_bee->position();
 
     if (auto* nav = m_bee->navigator()) {
-        if (nav->noPath()) {
-            // 没有路径
-            f64 distSq =
-                (beePos.x - hivePos.x) * (beePos.x - hivePos.x) + (beePos.z - hivePos.z) * (beePos.z - hivePos.z);
+        if (!nav->isInProgress()) {
+            // 没有路径时的逻辑
+            // 对应 MC: !closerThan(hivePos, 16) → 远距离使用 pathfindRandomlyTowards
+            math::Vector3 beePos = m_bee->position();
+            f64 dx = beePos.x - (static_cast<f64>(hivePos.x) + 0.5);
+            f64 dz = beePos.z - (static_cast<f64>(hivePos.z) + 0.5);
+            f64 distSqXZ = dx * dx + dz * dz;
 
-            if (distSq > 256.0) { // 16格
-                // 太远了，放弃
+            if (distSqXZ > 256.0) { // 超过16格
                 if (_isTooFar(hivePos)) {
+                    // 太远了（超过48格），放弃蜂巢
                     resetTask();
                 } else {
-                    // 尝试导航
-                    (void)nav->moveTo(hivePos.x + 0.5, hivePos.y + 0.5, hivePos.z + 0.5, 1.0);
+                    // 使用 pathfindRandomlyTowards 漂移飞行
+                    (void)m_bee->pathfindRandomlyTowards(hivePos);
                 }
             } else {
-                // 尝试更精确的导航
-                (void)nav->moveTo(hivePos.x + 0.5, hivePos.y + 0.5, hivePos.z + 0.5, 1.0);
-
-                // 检查是否卡住
-                ++m_stuckCounter;
-                if (m_stuckCounter > STUCK_THRESHOLD) {
-                    resetTask();
+                // 近距离（16格内）：使用精确导航
+                bool foundPath = m_bee->pathfindDirectlyTowards(hivePos);
+                if (!foundPath) {
+                    // 无法找到路径，放弃蜂巢
+                    m_possibleHives.push_back(m_bee->getHivePos());
+                    m_bee->setHivePos(BlockPos::zero());
+                    m_bee->setHasHive(false);
+                } else {
+                    // 卡住检测：如果多次导航到同一路径仍未到达，可能卡住了
+                    ++m_stuckCounter;
+                    if (m_stuckCounter > STUCK_THRESHOLD) {
+                        m_bee->dropHive();
+                        m_stuckCounter = 0;
+                    }
                 }
             }
         } else {
@@ -604,9 +613,13 @@ bool BeeFindHiveGoal::_isCloseEnough(const BlockPos& pos) const
 
 bool BeeFindHiveGoal::_isTooFar(const BlockPos& pos) const
 {
+    // 对应 MC 1.21.11 Bee.isTooFarAway() → !closerThan(pos, 48)
+    // 使用方块中心距离的平方与 48² = 2304 比较
     math::Vector3 beePos = m_bee->position();
-    f64 distSq = (beePos.x - pos.x) * (beePos.x - pos.x) + (beePos.z - pos.z) * (beePos.z - pos.z);
-    return distSq > 1024.0; // 32格距离平方
+    f64 dx = beePos.x - (static_cast<f64>(pos.x) + 0.5);
+    f64 dy = beePos.y - static_cast<f64>(pos.y);
+    f64 dz = beePos.z - (static_cast<f64>(pos.z) + 0.5);
+    return (dx * dx + dy * dy + dz * dz) > 2304.0; // 48格距离平方
 }
 
 bool BeeFindHiveGoal::isPossibleHive(const BlockPos& pos) const
@@ -684,29 +697,39 @@ void BeeFindFlowerGoal::tick()
 
     ++m_ticks;
 
-    // 超时检查
+    // 对应 MC 1.21.11 BeeGoToKnownFlowerGoal.tick()
+    // 超时检查：2400 tick（120秒）仍未到达则放弃花朵
     if (m_ticks > MAX_NAVIGATION_TIME) {
         m_bee->setFlowerPos(BlockPos::zero());
+        m_bee->setHasHive(m_bee->hasHive()); // 保持蜂巢状态
         return;
     }
 
-    // 导航到花朵
     BlockPos flowerPos = m_bee->getFlowerPos();
 
     if (auto* nav = m_bee->navigator()) {
-        if (nav->noPath()) {
-            // 检查是否太远
-            math::Vector3 beePos = m_bee->position();
-            f64 distSq = (beePos.x - flowerPos.x) * (beePos.x - flowerPos.x) +
-                (beePos.z - flowerPos.z) * (beePos.z - flowerPos.z);
-
-            if (distSq > 1024.0) { // 32格
+        if (!nav->isInProgress()) {
+            // 检查是否太远（对应 MC: isTooFarAway → !closerThan(48)）
+            if (_isTooFar(flowerPos)) {
                 m_bee->setFlowerPos(BlockPos::zero());
+                m_bee->setHasHive(m_bee->hasHive()); // 保持蜂巢状态
             } else {
-                (void)nav->moveTo(flowerPos.x + 0.5, flowerPos.y + 0.5, flowerPos.z + 0.5, 1.0);
+                // 使用 pathfindRandomlyTowards 漂移飞行
+                (void)m_bee->pathfindRandomlyTowards(flowerPos);
             }
         }
     }
+}
+
+bool BeeFindFlowerGoal::_isTooFar(const BlockPos& pos) const
+{
+    // 对应 MC 1.21.11 Bee.isTooFarAway() → !closerThan(pos, 48)
+    // 使用方块中心距离的平方与 48² = 2304 比较
+    math::Vector3 beePos = m_bee->position();
+    f64 dx = beePos.x - (static_cast<f64>(pos.x) + 0.5);
+    f64 dy = beePos.y - static_cast<f64>(pos.y);
+    f64 dz = beePos.z - (static_cast<f64>(pos.z) + 0.5);
+    return (dx * dx + dy * dy + dz * dz) > 2304.0; // 48格距离平方
 }
 
 // ============================================================================
