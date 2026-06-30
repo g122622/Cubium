@@ -833,3 +833,194 @@ TEST_F(ChestBoatVsNormalBoatTest, ChestBoat_HasContainer_NormalBoat_DoesNot)
     auto* normalProvider = dynamic_cast<INamedContainerProvider*>(&normalBoat);
     EXPECT_EQ(normalProvider, nullptr) << "BoatEntity should not implement INamedContainerProvider";
 }
+
+// ============================================================================
+// 战利品表接口测试
+// ============================================================================
+
+class ChestBoatLootTableTest : public ::testing::Test {
+protected:
+    void SetUp() override { Items::initialize(); }
+};
+
+TEST_F(ChestBoatLootTableTest, DefaultState_NoLootTable)
+{
+    ChestBoatEntity chestBoat;
+
+    // 默认状态下没有战利品表
+    EXPECT_FALSE(chestBoat.hasLootTable());
+    EXPECT_TRUE(chestBoat.getLootTable().empty());
+    EXPECT_EQ(chestBoat.getLootTableSeed(), 0L);
+}
+
+TEST_F(ChestBoatLootTableTest, SetLootTable_SetsValuesCorrectly)
+{
+    ChestBoatEntity chestBoat;
+
+    chestBoat.setLootTable("minecraft:chests/village_armorer", 42L);
+
+    EXPECT_TRUE(chestBoat.hasLootTable());
+    EXPECT_EQ(chestBoat.getLootTable(), "minecraft:chests/village_armorer");
+    EXPECT_EQ(chestBoat.getLootTableSeed(), 42L);
+}
+
+TEST_F(ChestBoatLootTableTest, SetLootTable_ZeroSeed)
+{
+    ChestBoatEntity chestBoat;
+
+    chestBoat.setLootTable("minecraft:chests/spawn_bonus_chest", 0L);
+
+    EXPECT_TRUE(chestBoat.hasLootTable());
+    EXPECT_EQ(chestBoat.getLootTable(), "minecraft:chests/spawn_bonus_chest");
+    EXPECT_EQ(chestBoat.getLootTableSeed(), 0L);
+}
+
+TEST_F(ChestBoatLootTableTest, SetLootTable_IsInventoryEmptyReturnsFalse)
+{
+    ChestBoatEntity chestBoat;
+
+    // 设置战利品表后，isInventoryEmpty() 应返回 false（容器可能有物品）
+    chestBoat.setLootTable("minecraft:chests/simple_dungeon", 123L);
+    EXPECT_FALSE(chestBoat.isInventoryEmpty());
+
+    // 但底层 SimpleInventory 实际为空（战利品表尚未解包）
+    EXPECT_TRUE(chestBoat.getInventory()->isEmpty());
+}
+
+TEST_F(ChestBoatLootTableTest, SetLootTable_NbtRoundTrip)
+{
+    ChestBoatEntity original(BoatEntity::Type::OAK);
+    original.setLootTable("minecraft:chests/abandoned_mineshaft", 999L);
+
+    auto tag = saveToNbt(original);
+    auto loaded = loadFromNbt(*tag, BoatEntity::Type::OAK);
+
+    EXPECT_TRUE(loaded->hasLootTable());
+    EXPECT_EQ(loaded->getLootTable(), "minecraft:chests/abandoned_mineshaft");
+    EXPECT_EQ(loaded->getLootTableSeed(), 999L);
+}
+
+TEST_F(ChestBoatLootTableTest, LootTableSupersedesItemsInNbt)
+{
+    // 有战利品表时，NBT 不应保存物品
+    ChestBoatEntity original(BoatEntity::Type::OAK);
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    original.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 5));
+    original.setLootTable("minecraft:chests/shipwreck_treasure", 77L);
+
+    auto tag = saveToNbt(original);
+
+    // 有战利品表且未解包时，NBT 应保存 LootTable 而非 Items
+    auto lootTableOpt = nbt_helper::tryGetString(*tag, nbt_keys::LOOT_TABLE);
+    ASSERT_TRUE(lootTableOpt.has_value());
+    EXPECT_EQ(*lootTableOpt, "minecraft:chests/shipwreck_treasure");
+
+    auto seedOpt = nbt_helper::tryGetLong(*tag, nbt_keys::LOOT_TABLE_SEED);
+    ASSERT_TRUE(seedOpt.has_value());
+    EXPECT_EQ(*seedOpt, 77L);
+
+    // Items 不应存在（有战利品表时不保存物品）
+    auto* itemsList = nbt_helper::tryGetList(*tag, nbt_keys::ITEMS);
+    EXPECT_EQ(itemsList, nullptr) << "Items should not be present when LootTable is set";
+}
+
+TEST_F(ChestBoatLootTableTest, NoLootTable_ItemsSavedInNbt)
+{
+    // 没有战利品表时，NBT 应保存物品
+    ChestBoatEntity original(BoatEntity::Type::OAK);
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+    original.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 3));
+
+    auto tag = saveToNbt(original);
+
+    // 没有战利品表时，应保存 Items
+    auto* itemsList = nbt_helper::tryGetList(*tag, nbt_keys::ITEMS);
+    ASSERT_NE(itemsList, nullptr) << "Items should be present when no LootTable is set";
+
+    // LootTable 不应存在
+    auto lootTableOpt = nbt_helper::tryGetString(*tag, nbt_keys::LOOT_TABLE);
+    EXPECT_FALSE(lootTableOpt.has_value()) << "LootTable should not be present when no loot table is set";
+}
+
+TEST_F(ChestBoatLootTableTest, UnpackLootTable_NoWorld_NoEffect)
+{
+    ChestBoatEntity chestBoat;
+    chestBoat.setLootTable("minecraft:chests/simple_dungeon", 42L);
+
+    // 没有世界环境（m_world == nullptr），unpackLootTable 应为空操作
+    chestBoat.unpackLootTable(nullptr);
+
+    // 战利品表仍存在（因为无法解包）
+    EXPECT_TRUE(chestBoat.hasLootTable());
+    EXPECT_EQ(chestBoat.getLootTable(), "minecraft:chests/simple_dungeon");
+}
+
+TEST_F(ChestBoatLootTableTest, UnpackLootTable_EmptyLootTable_NoEffect)
+{
+    ChestBoatEntity chestBoat;
+
+    // 没有设置战利品表，unpackLootTable 应为空操作
+    chestBoat.unpackLootTable(nullptr);
+
+    EXPECT_FALSE(chestBoat.hasLootTable());
+    EXPECT_TRUE(chestBoat.isInventoryEmpty());
+}
+
+TEST_F(ChestBoatLootTableTest, RemoveInventoryItemNoUpdate_BasicOperation)
+{
+    ChestBoatEntity chestBoat;
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 5));
+
+    // 移除物品（不触发通知）
+    ItemStack removed = chestBoat.removeInventoryItemNoUpdate(0);
+    EXPECT_EQ(removed.getCount(), 5);
+    EXPECT_TRUE(chestBoat.getInventoryItem(0).isEmpty());
+}
+
+TEST_F(ChestBoatLootTableTest, RemoveInventoryItemNoUpdate_EmptySlotReturnsEmpty)
+{
+    ChestBoatEntity chestBoat;
+
+    ItemStack removed = chestBoat.removeInventoryItemNoUpdate(0);
+    EXPECT_TRUE(removed.isEmpty());
+}
+
+TEST_F(ChestBoatLootTableTest, ClearInventory_ResetsEmptyState)
+{
+    ChestBoatEntity chestBoat;
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 1));
+    chestBoat.setInventoryItem(5, ItemStack(*Items::OAK_BOAT, 3));
+
+    EXPECT_FALSE(chestBoat.isInventoryEmpty());
+
+    chestBoat.clearInventory();
+
+    EXPECT_TRUE(chestBoat.isInventoryEmpty());
+    EXPECT_TRUE(chestBoat.getInventoryItem(0).isEmpty());
+    EXPECT_TRUE(chestBoat.getInventoryItem(5).isEmpty());
+}
+
+TEST_F(ChestBoatLootTableTest, SetLootTableThenClearInventory_LootTableStillSet)
+{
+    ChestBoatEntity chestBoat;
+    ASSERT_NE(Items::OAK_BOAT, nullptr);
+
+    // 设置物品和战利品表
+    chestBoat.setInventoryItem(0, ItemStack(*Items::OAK_BOAT, 2));
+    chestBoat.setLootTable("minecraft:chests/village_weaponsmith", 100L);
+
+    // 战利品表存在时，isInventoryEmpty 返回 false
+    EXPECT_FALSE(chestBoat.isInventoryEmpty());
+    EXPECT_TRUE(chestBoat.hasLootTable());
+
+    // clearInventory 会触发懒解包（空操作，因为没有 LootTableManager），
+    // 然后清空容器
+    chestBoat.clearInventory();
+
+    // 清空后容器为空，但战利品表仍然存在
+    EXPECT_TRUE(chestBoat.getInventory()->isEmpty());
+}

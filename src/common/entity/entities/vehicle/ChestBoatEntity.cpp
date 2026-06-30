@@ -284,7 +284,6 @@ Result<void> ChestBoatEntity::readAdditionalSaveData(const nbt::tags::compound_t
 
 std::unique_ptr<AbstractContainerMenu> ChestBoatEntity::createMenu(i32 containerId, Player& player)
 {
-    // 参考 MC Java: AbstractChestBoat.createMenu()
     // 如果有未解包的战利品表且玩家是旁观者，不允许打开
     // （防止旁观者触发战利品生成）
     if (!m_lootTable.empty() && !m_lootFilled && player.isSpectator()) {
@@ -293,7 +292,6 @@ std::unique_ptr<AbstractContainerMenu> ChestBoatEntity::createMenu(i32 container
 
     // 在创建菜单前解包战利品表
     // 这确保玩家首次打开容器时，物品从战利品表生成
-    // 参考 MC Java: AbstractChestBoat.createMenu() -> this.unpackLootTable(player)
     unpackLootTable(&player);
 
     // 创建3行9列的箱子容器菜单
@@ -322,8 +320,7 @@ i32 ChestBoatEntity::getContainerSize() const
 bool ChestBoatEntity::isInventoryEmpty()
 {
     // 如果有未解包的战利品表，容器可能有物品，返回 false
-    // 参考 MC Java: ContainerEntity.isChestVehicleEmpty() 不触发解包，
-    // 但如果 lootTable 非空，isEmpty 返回 false
+    // 不触发解包，但如果 lootTable 非空，isEmpty 返回 false
     if (!m_lootTable.empty() && !m_lootFilled) {
         return false;
     }
@@ -333,7 +330,6 @@ bool ChestBoatEntity::isInventoryEmpty()
 ItemStack ChestBoatEntity::getInventoryItem(i32 slot)
 {
     // 懒解包：访问物品前确保战利品表已填充
-    // 参考 MC Java: ContainerEntity.getChestVehicleItem() 在访问前调用 unpackChestVehicleLootTable(null)
     unpackLootTable(nullptr);
     return m_inventory->getItem(slot);
 }
@@ -355,7 +351,6 @@ ItemStack ChestBoatEntity::removeInventoryItem(i32 slot, i32 count)
 ItemStack ChestBoatEntity::removeInventoryItemNoUpdate(i32 slot)
 {
     // 懒解包：移除物品前确保战利品表已填充
-    // 参考 MC Java: ContainerEntity.removeChestVehicleItemNoUpdate()
     unpackLootTable(nullptr);
     return m_inventory->removeItemNoUpdate(slot);
 }
@@ -363,7 +358,6 @@ ItemStack ChestBoatEntity::removeInventoryItemNoUpdate(i32 slot)
 void ChestBoatEntity::clearInventory()
 {
     // 清空前先解包战利品表，确保物品已生成后再清空
-    // 参考 MC Java: ContainerEntity.clearChestVehicleContent() 在清空前调用 unpack
     unpackLootTable(nullptr);
     m_inventory->clear();
 }
@@ -397,7 +391,6 @@ void ChestBoatEntity::setLootTable(const std::string& lootTable, i64 seed)
 void ChestBoatEntity::unpackLootTable(Player* player)
 {
     // 如果没有战利品表或已填充，不执行
-    // 参考 MC Java: ContainerEntity.unpackChestVehicleLootTable()
     if (m_lootTable.empty() || m_lootFilled) {
         return;
     }
@@ -424,7 +417,6 @@ void ChestBoatEntity::unpackLootTable(Player* player)
     }
 
     // 在填充之前清除战利品表标记，防止递归
-    // 参考 MC Java: this.setContainerLootTable(null) 在 fill 之前调用
     m_lootTable.clear();
     m_lootFilled = true;
 
@@ -435,7 +427,6 @@ void ChestBoatEntity::unpackLootTable(Player* player)
     }
 
     // 创建战利品上下文
-    // 参考 MC Java: ContainerEntity.unpackChestVehicleLootTable()
     // 使用 CHEST 参数集，包含实体位置参数
     loot::LootContextBuilder builder(*m_world);
 
@@ -447,7 +438,6 @@ void ChestBoatEntity::unpackLootTable(Player* player)
     }
 
     // 设置位置参数（使用实体位置转换为 BlockPos）
-    // 参考 MC Java: LootContextParams.ORIGIN = this.position()
     // 当前项目使用 BLOCK_POS 代替 ORIGIN
     BlockPos entityPos(
         static_cast<i32>(std::floor(x())), static_cast<i32>(std::floor(y())), static_cast<i32>(std::floor(z())));
@@ -530,8 +520,6 @@ void ChestBoatEntity::dropInventoryContents()
     }
 
     // 掉落前先解包战利品表，确保所有物品已生成
-    // 参考 MC Java: ContainerEntity.chestVehicleDestroyed() 在掉落前调用 clearChestVehicleContent()
-    // 而 clearChestVehicleContent() 内部会调用 unpackChestVehicleLootTable(null)
     unpackLootTable(nullptr);
 
     math::Random& rng = worldPtr->getRandom();

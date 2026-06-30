@@ -8,8 +8,8 @@
 vehicle/
 ├── BoatEntity.hpp          # 船实体定义（水上交通工具，10种木材变体）
 ├── BoatEntity.cpp          # 船实体实现（浮力、控制、乘客管理）
-├── ChestBoatEntity.hpp     # 箱子船实体定义（27格容器，实现 INamedContainerProvider）
-├── ChestBoatEntity.cpp     # 箱子船实体实现（容器交互、物品掉落、NBT序列化）
+├── ChestBoatEntity.hpp     # 箱子船实体定义（27格容器，INamedContainerProvider，战利品表延迟填充）
+├── ChestBoatEntity.cpp     # 箱子船实体实现（容器交互、战利品表解包、物品掉落、NBT序列化）
 ├── MinecartEntity.hpp      # 矿车实体定义（基类 + 7种变体）
 ├── MinecartEntity.cpp      # 矿车实体实现（铁轨移动、变体逻辑）
 └── README.md               # 本文档
@@ -22,7 +22,7 @@ Entity (基类)
     │
     ├── BoatEntity
     │   └── 水上交通工具，不实现 IRideable（船不需要鞍）
-    │       └── ChestBoatEntity  # 箱子船（27格容器，实现 INamedContainerProvider，最多1名乘客）
+    │       └── ChestBoatEntity  # 箱子船（27格容器，实现 INamedContainerProvider，最多1名乘客，支持战利品表延迟填充）
     │
     └── AbstractMinecartEntity
         ├── RideableMinecartEntity    # 普通矿车（可乘坐）
@@ -209,3 +209,15 @@ Entity (基类)
 - 刷怪笼矿车**无比较器输出**（`getComparatorOutput()` 返回默认值 0）
 
 参考 MC 1.21.11：`MinecartSpawner`
+
+### 14. 箱子船战利品表延迟填充（ChestBoatEntity LootTable）
+
+**要点**：
+- 箱子船支持战利品表延迟填充：结构生成时设置 `setLootTable(id, seed)`，玩家首次打开容器时解包生成物品
+- 对应 MC Java 的 `ContainerEntity.unpackChestVehicleLootTable()` 模式
+- **懒解包**：`getInventoryItem()`、`setInventoryItem()`、`removeInventoryItem()`、`removeInventoryItemNoUpdate()`、`clearInventory()` 等容器访问方法会在操作前调用 `unpackLootTable(nullptr)` 确保物品已生成
+- **旁观者守卫**：`createMenu()` 中，若玩家为旁观者且存在未解包战利品表，返回 `nullptr`（防止旁观者触发战利品生成）
+- **NBT 序列化**：有未解包战利品表时只保存 `LootTable`/`LootTableSeed`，不保存 `Items`；已解包后保存 `Items`，不保存战利品表引用
+- **`isInventoryEmpty()`**：有未解包战利品表时返回 `false`（容器可能有物品，但尚未填充），`m_lootFilled` 标志追踪解包状态
+- **`unpackLootTable(Player*)`**：从 `LootTableManager` 获取战利品表，使用 `LootParameterSets::chest()` 构建 `LootContext`，支持玩家幸运值和 `THIS_ENTITY` 参数，生成物品后按堆叠优先填充空槽位
+- **掉落**：`dropInventoryContents()` 和 `remove()` 在掉落前调用 `unpackLootTable(nullptr)` 确保物品已生成

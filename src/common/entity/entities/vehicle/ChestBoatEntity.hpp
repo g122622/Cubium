@@ -139,8 +139,6 @@ public:
      * 如果玩家是旁观者模式且容器有未解包的战利品表，返回 nullptr。
      * 如果有未解包的战利品表，在创建菜单前先解包填充到容器中。
      *
-     * 参考 MC Java: AbstractChestBoat.createMenu()
-     *
      * @param containerId 容器ID（由服务端分配）
      * @param player 打开容器的玩家
      * @return 创建的容器菜单，旁观者模式下有未解包战利品表时返回 nullptr
@@ -189,7 +187,6 @@ public:
      *
      * 如果有未解包的战利品表，从 LootTableManager 解析并填充到容器中。
      * 填充完成后清除战利品表引用，防止重复填充。
-     * 参考 MC Java: ContainerEntity.unpackChestVehicleLootTable()
      *
      * @param player 触发填充的玩家（可为 nullptr，用于懒解包场景）
      */
@@ -234,7 +231,6 @@ public:
      * @brief 从槽位移除物品（不触发通知）
      *
      * 访问前会触发战利品表懒解包（无玩家参数）。
-     * 参考 MC Java: ContainerEntity.removeChestVehicleItemNoUpdate()
      */
     ItemStack removeInventoryItemNoUpdate(i32 slot);
 
