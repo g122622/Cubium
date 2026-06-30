@@ -487,6 +487,83 @@ TEST_F(WolfEntityTestFixture, TailAngle_AngryWolf)
 }
 
 // ============================================================================
+// 尾巴角度回归测试（WolfModel 尾巴角度修复）
+//
+// WolfModel::setAngles() 曾经错误地使用 ageInTicks（帧计数器，无界递增值）
+// 作为尾巴旋转角度，导致尾巴在帧数累积后旋转到不可预期的极端角度。
+// 修复后使用 m_tailRotation（由 WolfEntity::getTailAngle() 计算，有界值）。
+//
+// 以下测试验证 WolfEntity::getTailAngle() 返回的值始终在合理范围内，
+// 确保 WolfModel 接收到的尾巴角度是有界的。
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, TailAngle_BoundedRange_NonAngryWolf)
+{
+    // 非愤怒狼的尾巴角度应该始终在 [TAIL_ANGLE_UNHEALTHY, TAIL_ANGLE_HEALTHY] 范围内
+    // TAIL_ANGLE_UNHEALTHY ≈ -0.175 (约 -10°)
+    // TAIL_ANGLE_HEALTHY ≈ 0.698 (约 40°)
+    // 这与 ageInTicks（可无限增长）不同，是有界的
+    WolfEntity wolf(EntityId(0));
+    wolf.setAngry(false);
+
+    // 满血
+    wolf.setHealth(wolf.maxHealth());
+    f32 tailAngle = wolf.getTailAngle();
+    EXPECT_GT(tailAngle, -1.0f); // 不应出现极端负值
+    EXPECT_LT(tailAngle, 2.0f);  // 不应出现极端正值
+
+    // 半血
+    wolf.setHealth(wolf.maxHealth() / 2.0f);
+    tailAngle = wolf.getTailAngle();
+    EXPECT_GT(tailAngle, -1.0f);
+    EXPECT_LT(tailAngle, 2.0f);
+
+    // 低血量
+    wolf.setHealth(1.0f);
+    tailAngle = wolf.getTailAngle();
+    EXPECT_GT(tailAngle, -1.0f);
+    EXPECT_LT(tailAngle, 2.0f);
+}
+
+TEST_F(WolfEntityTestFixture, TailAngle_NeverEqualToAgeInTicks)
+{
+    // 回归测试：确保 getTailAngle() 不会返回类似 ageInTicks 的无界值
+    // ageInTicks 是帧计数器，随时间无限增长，而 getTailAngle() 应该是
+    // 基于生命值/愤怒状态的有界值
+    WolfEntity wolf(EntityId(0));
+    wolf.setAngry(false);
+    wolf.setHealth(wolf.maxHealth());
+
+    // 多次 tick 后尾巴角度仍然有界（不像 ageInTicks 那样增长）
+    f32 prevAngle = wolf.getTailAngle();
+    for (int i = 0; i < 1000; ++i) {
+        // 模拟 tick（不实际调用 tick 以避免副作用）
+        wolf.setHealth(wolf.maxHealth() - static_cast<f32>(i % 20));
+        f32 angle = wolf.getTailAngle();
+        // 角度必须始终在合理范围内，不能随时间增长到极端值
+        EXPECT_GT(angle, -1.0f) << "Tail angle went too negative at iteration " << i;
+        EXPECT_LT(angle, 2.0f) << "Tail angle went too positive at iteration " << i;
+    }
+}
+
+TEST_F(WolfEntityTestFixture, TailAngle_HealthyVsUnhealthyGradient)
+{
+    // 满血狼尾巴角度应该高于低血量狼
+    // 验证尾巴角度与生命值成正比（健康=高尾巴，不健康=低尾巴）
+    WolfEntity wolf(EntityId(0));
+    wolf.setAngry(false);
+
+    wolf.setHealth(wolf.maxHealth());
+    f32 healthyAngle = wolf.getTailAngle();
+
+    wolf.setHealth(1.0f);
+    f32 unhealthyAngle = wolf.getTailAngle();
+
+    // 健康狼尾巴角度应该高于不健康狼
+    EXPECT_GT(healthyAngle, unhealthyAngle);
+}
+
+// ============================================================================
 // 兴趣状态测试
 // ============================================================================
 

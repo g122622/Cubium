@@ -276,12 +276,8 @@ void ClientEntity::syncMetadataFromDataManager()
                 setTrusting(trusting);
             }
         }
-        if (m_dataManager.hasParam(::mc::OcelotEntity::getFleeingParamId())) {
-            if (const auto* value = m_dataManager.getRaw(::mc::OcelotEntity::getFleeingParamId()); value != nullptr) {
-                const bool fleeing = value->get<bool>();
-                setOcelotFleeing(fleeing);
-            }
-        }
+        // 注意：豹猫逃跑状态（isFleeing）通过 OcelotEntity::DATA_FLEEING_PARAM 同步，
+        // 渲染器直接从 OcelotEntity::isFleeing() 读取，无需在 ClientEntity 中维护副本
     }
 
     // 猫动画状态同步

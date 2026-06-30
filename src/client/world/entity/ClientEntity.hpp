@@ -665,16 +665,6 @@ public:
     [[nodiscard]] bool isTrusting() const { return m_trusting; }
     void setTrusting(bool trusting) { m_trusting = trusting; }
 
-    // ========== 豹猫逃跑状态 ==========
-
-    /**
-     * @brief 是否正在逃跑（豹猫特有）
-     *
-     * 逃跑状态通过 DataParameter 同步到客户端，用于渲染器判断冲刺动画。
-     */
-    [[nodiscard]] bool isOcelotFleeing() const { return m_ocelotFleeing; }
-    void setOcelotFleeing(bool fleeing) { m_ocelotFleeing = fleeing; }
-
     // ========== 猫动画状态 ==========
 
     /**
@@ -959,9 +949,6 @@ private:
 
     // 豹猫信任状态
     bool m_trusting = false;
-
-    // 豹猫逃跑状态
-    bool m_ocelotFleeing = false;
 
     // 猫动画状态
     bool m_catLieDown = false;       ///< 猫躺下状态

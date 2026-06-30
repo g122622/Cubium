@@ -830,6 +830,109 @@ TEST_F(OcelotEntityTestFixture, DataParameter_SyncsStateChanges)
     EXPECT_TRUE(ocelot.isTrusting());
 }
 
+TEST_F(OcelotEntityTestFixture, DataParameter_FleeingParamId_IsValid)
+{
+    // DATA_FLEEING_PARAM 的 ID 应该是有效的（非零或合理值）
+    u16 paramId = OcelotEntity::getFleeingParamId();
+    // 参数 ID 由 EntityDataManager::createKey 自动分配，应该大于 0
+    EXPECT_GT(paramId, 0u);
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_Fleeing_ReadsFromDataManager)
+{
+    // isFleeing() 应该从 DataManager 读取而非成员变量
+    OcelotEntity ocelot(EntityId(0));
+    EXPECT_FALSE(ocelot.isFleeing());
+
+    ocelot.setFleeing(true);
+    EXPECT_TRUE(ocelot.isFleeing());
+
+    // 通过 DataManager 直接读取验证
+    auto& dataManager = ocelot.dataManager();
+    u16 paramId = OcelotEntity::getFleeingParamId();
+    EXPECT_TRUE(dataManager.hasParam(paramId));
+    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_TRUE(storedValue);
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_Fleeing_WritesToDataManager)
+{
+    OcelotEntity ocelot(EntityId(0));
+    auto& dataManager = ocelot.dataManager();
+    u16 paramId = OcelotEntity::getFleeingParamId();
+
+    // 设置逃跑状态
+    ocelot.setFleeing(true);
+
+    // 验证 DataManager 中的值
+    bool storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_TRUE(storedValue);
+
+    // 设置为非逃跑
+    ocelot.setFleeing(false);
+    storedValue = dataManager.get<bool>(entity::DataParameter<bool>(paramId));
+    EXPECT_FALSE(storedValue);
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_Fleeing_DirtyFlagOnChange)
+{
+    OcelotEntity ocelot(EntityId(0));
+    auto& dataManager = ocelot.dataManager();
+
+    // 初始状态不应有脏数据
+    dataManager.clearDirty();
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置逃跑状态应该标记为脏数据
+    ocelot.setFleeing(true);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+
+    // 清除脏标记后设置相同值不应标记为脏
+    dataManager.clearDirty();
+    ocelot.setFleeing(true);
+    EXPECT_FALSE(dataManager.hasDirtyData());
+
+    // 设置不同值应该标记为脏
+    ocelot.setFleeing(false);
+    EXPECT_TRUE(dataManager.hasDirtyData());
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_Fleeing_SyncsStateChanges)
+{
+    // 验证多次状态变更正确同步
+    OcelotEntity ocelot(EntityId(0));
+
+    EXPECT_FALSE(ocelot.isFleeing());
+
+    ocelot.setFleeing(true);
+    EXPECT_TRUE(ocelot.isFleeing());
+
+    ocelot.setFleeing(false);
+    EXPECT_FALSE(ocelot.isFleeing());
+
+    ocelot.setFleeing(true);
+    EXPECT_TRUE(ocelot.isFleeing());
+}
+
+TEST_F(OcelotEntityTestFixture, DataParameter_TrustingAndFleeing_IndependentParams)
+{
+    // 信任和逃跑状态是独立的 DataParameter，修改一个不应影响另一个
+    OcelotEntity ocelot(EntityId(0));
+
+    ocelot.setTrusting(true);
+    ocelot.setFleeing(true);
+    EXPECT_TRUE(ocelot.isTrusting());
+    EXPECT_TRUE(ocelot.isFleeing());
+
+    ocelot.setFleeing(false);
+    EXPECT_TRUE(ocelot.isTrusting()); // 信任状态不受影响
+    EXPECT_FALSE(ocelot.isFleeing());
+
+    ocelot.setTrusting(false);
+    EXPECT_FALSE(ocelot.isTrusting()); // 信任状态改变
+    EXPECT_FALSE(ocelot.isFleeing());  // 逃跑状态不受影响
+}
+
 // ============================================================================
 // NBT 序列化测试
 // ============================================================================
