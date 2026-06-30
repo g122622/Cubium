@@ -537,9 +537,12 @@ bool BeeEntity::pathfindRandomlyTowards(const BlockPos& targetPos)
     if (entity::ai::util::RandomPositionGenerator::findAirPositionTowards(
             this, k, l, yOffset, targetVec, math::PI / 10.0f, airPos)) {
         if (auto* nav = navigator()) {
-            // MC 1.21.11: navigation.setMaxVisitedNodesMultiplier(0.5F)
-            // 降低寻路开销，蜜蜂飞行路径相对简单
-            nav->setMaxDistance(50); // 降低最大搜索距离作为寻路开销的近似优化
+            // TODO: PathNavigator 目前缺少 setMaxVisitedNodesMultiplier 方法，
+            // MC 1.21.11 使用 navigation.setMaxVisitedNodesMultiplier(0.5F) 来降低寻路开销。
+            // 当前使用 setMaxDistance(50) 作为近似替代，但语义不同：
+            // setMaxVisitedNodesMultiplier 控制的是寻路器可访问的节点数倍率，
+            // 而 setMaxDistance 控制的是最大搜索距离。待实现 setMaxVisitedNodesMultiplier 后替换。
+            nav->setMaxDistance(50);
             return nav->moveTo(airPos.x, airPos.y, airPos.z, 1.0);
         }
     }
@@ -562,7 +565,13 @@ bool BeeEntity::pathfindDirectlyTowards(const BlockPos& targetPos)
     f64 speed = distSq < 9.0 ? 1.0 : 2.0;
 
     if (auto* nav = navigator()) {
-        nav->setMaxDistance(200); // 提高最大搜索距离以模拟 MC 的 maxVisitedNodesMultiplier(10.0F)
+        // TODO: PathNavigator 目前缺少 setMaxVisitedNodesMultiplier 方法，
+        // MC 1.21.11 使用 navigation.setMaxVisitedNodesMultiplier(10.0F) 来提高寻路精度。
+        // 当前使用 setMaxDistance(200) 作为近似替代，但语义不同：
+        // setMaxVisitedNodesMultiplier(10.0F) 表示将寻路器可访问节点数扩大10倍，
+        // 确保近距离精确导航时路径可达；而 setMaxDistance 控制最大搜索距离。
+        // 待实现 setMaxVisitedNodesMultiplier 后替换。
+        nav->setMaxDistance(200);
         bool hasPath = nav->moveTo(static_cast<f64>(targetPos.x) + 0.5,
             static_cast<f64>(targetPos.y) + 0.5,
             static_cast<f64>(targetPos.z) + 0.5,

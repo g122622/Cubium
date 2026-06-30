@@ -1698,4 +1698,118 @@ TEST_F(BeeWeatherTest, Beehive_ReleasePreventedDuringThunder)
 }
 
 } // namespace
+
+// ============================================================================
+// 导航方法接口测试
+// ============================================================================
+
+/**
+ * @brief 导航方法测试夹具
+ *
+ * 测试 BeeEntity::pathfindRandomlyTowards 和 pathfindDirectlyTowards 的基本接口行为。
+ * 由于这些方法需要完整的世界和导航器支持，仅测试边界条件。
+ */
+class BeeNavigationTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+        Items::initialize();
+        BlockItemRegistry::instance().initializeVanillaBlockItems();
+        item::tag::ItemTags::initialize();
+    }
+
+    BeeTestWorld m_world;
+};
+
+TEST_F(BeeNavigationTest, PathfindRandomlyTowards_NoWorld_ReturnsFalse)
+{
+    BeeEntity bee(EntityId(1));
+    // 没有设置世界，navigator() 返回 nullptr
+    EXPECT_FALSE(bee.pathfindRandomlyTowards(BlockPos(10, 64, 20)));
+}
+
+TEST_F(BeeNavigationTest, PathfindDirectlyTowards_NoWorld_ReturnsFalse)
+{
+    BeeEntity bee(EntityId(1));
+    // 没有设置世界，navigator() 返回 nullptr
+    EXPECT_FALSE(bee.pathfindDirectlyTowards(BlockPos(10, 64, 20)));
+}
+
+TEST_F(BeeNavigationTest, PathfindRandomlyTowards_SamePositionAsTarget)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+
+    // 目标位置与蜜蜂当前位置相同，曼哈顿距离为0，搜索范围 k=0, l=0
+    // 应该返回 false（搜索范围太小无法生成有效位置）
+    // 注意：由于导航器可能未完整初始化，这里主要验证不会崩溃
+    (void)bee.pathfindRandomlyTowards(BlockPos(10, 64, 20));
+}
+
+TEST_F(BeeNavigationTest, PathfindDirectlyTowards_SamePositionAsTarget)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(10.5f, 64.0f, 20.5f);
+
+    // 目标位置与蜜蜂当前位置相同，距离 < 3格，speed = 1.0
+    // 主要验证不会崩溃
+    (void)bee.pathfindDirectlyTowards(BlockPos(10, 64, 20));
+}
+
+TEST_F(BeeNavigationTest, PathfindRandomlyTowards_FarTarget)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(0.0f, 64.0f, 0.0f);
+
+    // 目标位置远离蜜蜂，曼哈顿距离 > 15，搜索范围 k=6, l=8
+    // 主要验证不会崩溃
+    (void)bee.pathfindRandomlyTowards(BlockPos(100, 64, 100));
+}
+
+TEST_F(BeeNavigationTest, PathfindDirectlyTowards_FarTarget)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(0.0f, 64.0f, 0.0f);
+
+    // 目标位置远离蜜蜂，距离 > 3格，speed = 2.0
+    // 主要验证不会崩溃
+    (void)bee.pathfindDirectlyTowards(BlockPos(100, 64, 100));
+}
+
+TEST_F(BeeNavigationTest, PathfindRandomlyTowards_AboveTarget)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(50.0f, 80.0f, 50.0f);
+
+    // 目标在蜜蜂下方，yOffset 应为 +4
+    (void)bee.pathfindRandomlyTowards(BlockPos(50, 64, 50));
+}
+
+TEST_F(BeeNavigationTest, PathfindRandomlyTowards_BelowTarget)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(50.0f, 64.0f, 50.0f);
+
+    // 目标在蜜蜂上方，yOffset 应为 -4
+    (void)bee.pathfindRandomlyTowards(BlockPos(50, 80, 50));
+}
+
+TEST_F(BeeNavigationTest, PathfindRandomlyTowards_NearTarget)
+{
+    BeeEntity bee(EntityId(1));
+    bee.setWorld(&m_world);
+    bee.setPosition(50.0f, 64.0f, 50.0f);
+
+    // 目标较近，曼哈顿距离 < 15，搜索范围应缩小
+    (void)bee.pathfindRandomlyTowards(BlockPos(55, 66, 53));
+}
+
 } // namespace mc
