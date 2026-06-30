@@ -358,13 +358,30 @@ private:
 };
 
 /**
- * @brief 空桶发射行为（收集流体）
+ * @brief 空桶发射行为（收集流体或非流体内容物）
  *
- * 从世界中收集流体到桶中。
+ * 从世界中收集流体（水、岩浆）或非流体内容物（细雪）到桶中。
  */
 class EmptyBucketDispenseBehavior : public OptionalDispenseItemBehavior {
 public:
     EmptyBucketDispenseBehavior() = default;
+
+    ItemStack dispense(IWorld& world,
+        const BlockPos& pos,
+        const BlockState& state,
+        ItemStack& stack,
+        IInventory* dispenserInventory) override;
+};
+
+/**
+ * @brief 细雪桶发射行为（放置细雪方块）
+ *
+ * 将细雪桶中的细雪放置到世界中，成功后返回空桶。
+ * 对应 MC Java 中 DispensibleContainerItem 的发射器行为。
+ */
+class PowderSnowBucketDispenseBehavior : public OptionalDispenseItemBehavior {
+public:
+    PowderSnowBucketDispenseBehavior() = default;
 
     ItemStack dispense(IWorld& world,
         const BlockPos& pos,

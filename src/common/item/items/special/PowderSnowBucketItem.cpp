@@ -92,7 +92,9 @@ bool PowderSnowBucketItem::emptyContents(Player* player, IWorld& world, const Bl
     world.setBlockState(pos, powderSnowState, 3);
 
     // 触发方块放置游戏事件
-    world.gameEvent(gameevent::GameEvents::BLOCK_PLACE, pos, player);
+    world.gameEvent(gameevent::GameEvents::BLOCK_PLACE,
+        pos,
+        gameevent::GameEvent::Context(static_cast<const Entity*>(player), powderSnowState));
 
     // 播放细雪桶倒空音效
     Vector3 soundPos(static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);

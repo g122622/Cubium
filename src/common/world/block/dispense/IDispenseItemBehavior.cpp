@@ -38,6 +38,7 @@
 #include "../../../item/items/special/BoneMealItem.hpp"
 #include "../../../item/items/special/BucketItem.hpp"
 #include "../../../item/items/special/FlintAndSteelItem.hpp"
+#include "../../../item/items/special/PowderSnowBucketItem.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
 #include "../../../util/math/Vector3.hpp"
@@ -517,7 +518,7 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
         if (targetBlock != nullptr) {
             auto* pickupHandler = dynamic_cast<IBucketPickupHandler*>(targetBlock);
             if (pickupHandler != nullptr) {
-                // 尝试拾取流体
+                // 首先尝试拾取流体（水、岩浆等）
                 fluid::Fluid* pickedFluid = pickupHandler->pickupFluid(world, targetPos, *targetState);
                 if (pickedFluid != nullptr) {
                     // 成功拾取流体，获取对应满桶
@@ -532,11 +533,64 @@ ItemStack EmptyBucketDispenseBehavior::dispense(
                         return consumeWithRemainder(world, pos, state, stack, replacement, dispenserInventory);
                     }
                 }
+
+                // 如果流体拾取返回 nullptr，尝试非流体拾取（细雪等）
+                const Item* pickedItem = pickupHandler->pickupItem(world, targetPos, *targetState);
+                if (pickedItem != nullptr) {
+                    // 播放拾取音效（使用方块指定的音效或默认音效）
+                    const ResourceLocation* pickupSound = pickupHandler->getPickupSound(world, targetPos, *targetState);
+                    if (pickupSound != nullptr) {
+                        Vector3 soundPos(static_cast<f32>(targetPos.x) + 0.5f,
+                            static_cast<f32>(targetPos.y) + 0.5f,
+                            static_cast<f32>(targetPos.z) + 0.5f);
+                        world.playSound(*pickupSound, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
+                    }
+
+                    _setSuccess(true);
+                    _playSound(world, pos);
+                    _spawnParticles(world, pos, direction);
+
+                    // 消耗一个空桶，尝试将拾取到的物品桶放回发射器库存
+                    ItemStack replacement = pickedItem->getDefaultInstance();
+                    return consumeWithRemainder(world, pos, state, stack, replacement, dispenserInventory);
+                }
             }
         }
     }
 
     // 目标不是可拾取流体的方块，回退到默认投掷行为
+    _setSuccess(false);
+    return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
+}
+
+// ============================================================================
+// PowderSnowBucketDispenseBehavior
+// ============================================================================
+
+ItemStack PowderSnowBucketDispenseBehavior::dispense(
+    IWorld& world, const BlockPos& pos, const BlockState& state, ItemStack& stack, IInventory* dispenserInventory)
+{
+    // 获取发射方向和目标位置
+    Direction direction = state.get(BlockStateProperties::FACING());
+    BlockPos targetPos = pos.offset(direction);
+
+    // 获取 PowderSnowBucketItem 并调用 emptyContents 放置细雪
+    const auto* powderSnowBucket = dynamic_cast<const item::PowderSnowBucketItem*>(stack.getItem());
+    if (powderSnowBucket != nullptr && powderSnowBucket->emptyContents(nullptr, world, targetPos)) {
+        // 成功放置细雪，消耗细雪桶并返回空桶
+        _setSuccess(true);
+        _playSound(world, pos);
+        _spawnParticles(world, pos, direction);
+
+        // 消耗一个细雪桶，尝试将空桶放回发射器库存
+        ItemStack replacement;
+        if (Items::BUCKET != nullptr) {
+            replacement = Items::BUCKET->getDefaultInstance();
+        }
+        return consumeWithRemainder(world, pos, state, stack, replacement, dispenserInventory);
+    }
+
+    // 放置失败，回退到默认投掷行为
     _setSuccess(false);
     return DefaultDispenseItemBehavior::dispense(world, pos, state, stack, dispenserInventory);
 }

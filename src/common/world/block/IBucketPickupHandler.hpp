@@ -22,6 +22,7 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/assert/AssertMacros.hpp"
 
 namespace mc {
 

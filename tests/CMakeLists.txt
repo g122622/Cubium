@@ -52,7 +52,7 @@ find_package(GTest CONFIG REQUIRED) find_package(asio CONFIG REQUIRED) find_pack
 #WindChargeItem 风弹物品测试（投掷、冷却、消耗）
                 common /
             item / WindChargeItemTest.cpp common / item / special / BucketItemTest.cpp common / item / special /
-            FishBucketItemTest.cpp common / item / special / BoneMealItemTest.cpp common / item / special /
+            FishBucketItemTest.cpp common / item / special / BoneMealItemTest.cpp common / item / special / PowderSnowBucketItemTest.cpp common / item / special /
             HoneycombItemTest.cpp common / item / special / WaxIntegrationTest.cpp common / item / special /
             OnAStickItemTest.cpp
 #MusicDiscItem 音乐唱片测试（比较器信号、isMusicDisc、声音事件ID）
