@@ -470,6 +470,71 @@ TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_TrustingChanged_UpdatesBehavior)
 }
 
 // ============================================================================
+// OcelotAvoidPlayerGoal fleeing 状态测试
+// ============================================================================
+
+TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_StartExecuting_SetsFleeing)
+{
+    // startExecuting() 应该设置 fleeing 状态为 true
+    OcelotEntity ocelot(EntityId(0));
+    ocelot.setTrusting(false);
+
+    EXPECT_FALSE(ocelot.isFleeing());
+
+    entity::ai::goal::OcelotAvoidPlayerGoal goal(&ocelot, 16.0f, 0.8, 1.33);
+    goal.startExecuting();
+
+    EXPECT_TRUE(ocelot.isFleeing());
+}
+
+TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_ResetTask_ClearsFleeing)
+{
+    // resetTask() 应该清除 fleeing 状态
+    OcelotEntity ocelot(EntityId(0));
+    ocelot.setTrusting(false);
+
+    entity::ai::goal::OcelotAvoidPlayerGoal goal(&ocelot, 16.0f, 0.8, 1.33);
+
+    // 先设置 fleeing 状态
+    ocelot.setFleeing(true);
+    EXPECT_TRUE(ocelot.isFleeing());
+
+    // resetTask 应该清除 fleeing 状态
+    goal.resetTask();
+    EXPECT_FALSE(ocelot.isFleeing());
+}
+
+TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_StartAndReset_FleeingLifecycle)
+{
+    // 测试 fleeing 状态的完整生命周期：开始逃跑 -> 逃跑中 -> 停止逃跑
+    OcelotEntity ocelot(EntityId(0));
+    ocelot.setTrusting(false);
+
+    entity::ai::goal::OcelotAvoidPlayerGoal goal(&ocelot, 16.0f, 0.8, 1.33);
+
+    // 初始状态：未逃跑
+    EXPECT_FALSE(ocelot.isFleeing());
+
+    // 开始逃跑
+    goal.startExecuting();
+    EXPECT_TRUE(ocelot.isFleeing());
+
+    // 停止逃跑
+    goal.resetTask();
+    EXPECT_FALSE(ocelot.isFleeing());
+}
+
+TEST_F(OcelotEntityTestFixture, AvoidPlayerGoal_StartExecuting_NullOcelot_DoesNotCrash)
+{
+    // 空指针安全性测试：m_ocelot 为 null 时不应崩溃
+    entity::ai::goal::OcelotAvoidPlayerGoal goal(nullptr, 16.0f, 0.8, 1.33);
+
+    // startExecuting 和 resetTask 不应崩溃
+    goal.startExecuting();
+    goal.resetTask();
+}
+
+// ============================================================================
 // OcelotTemptGoal 测试
 // ============================================================================
 

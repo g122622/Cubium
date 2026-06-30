@@ -52,3 +52,5 @@ animal/
 4. **HorseModel 变体**：同一模型支持马、驴、骡、骷髅马、僵尸马，通过纹理路径区分，需要在 `getEntityTexture()` 中根据实体类型返回正确的纹理。
 
 5. **阴影大小不同**：不同动物的阴影大小不同，需要在构造函数中设置 `m_shadowSize`。例如：鸡/兔子/蝙蝠为 0.3，猪/牛/羊/鱿鱼/马为 0.7。
+
+6. **自行管理渲染的渲染器必须调用 `setLivingAnimations()`**：CatRenderer、OcelotRenderer、WolfRenderer 等直接继承 `EntityRenderer` 的渲染器，需要自行管理模型动画。调用顺序必须是：(1) 设置模型状态（如 `setCrouching`、`setSprinting`、`setAnimState`、`setCatAnimState`）→ (2) 调用 `model.setLivingAnimations()` 根据状态调整模型部件位置 → (3) 调用 `model.setAngles()` 设置具体角度 → (4) 调用 `model.render()` 渲染。如果跳过步骤(2)，模型的蹲伏/坐下/奔跑等姿态调整不会生效。使用 `LivingRenderer` 模板的渲染器（如 PigRenderer）不需要手动调用，模板方法会自动处理。

@@ -105,7 +105,7 @@ private:
     bool m_isSitting = false;
     bool m_isAngry = false;
     bool m_isWet = false;      // TODO: 湿润状态暂未用于动画逻辑，待实现抖水动画细节
-    f32 m_tailRotation = 0.0f; // TODO: 尾巴旋转角度暂未用于动画逻辑，待接入
+    f32 m_tailRotation = 0.0f; // 尾巴旋转角度，由 WolfRenderer 通过 getTailAngle() 传入
     f32 m_shakeAngle = 0.0f;
     f32 m_interestedAngle = 0.0f;
 

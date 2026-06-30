@@ -199,8 +199,8 @@ void WolfModel::setAngles(
     m_head->setRotateAngleX(mc::math::toRadians(static_cast<f32>(headPitch)));
     m_head->setRotateAngleY(mc::math::toRadians(static_cast<f32>(netHeadYaw)));
 
-    // 尾巴角度（ageInTicks 用于尾巴上下摆动）
-    m_tail->setRotateAngleX(static_cast<f32>(ageInTicks));
+    // 尾巴角度（根据狼的驯服状态和生命值计算，由 WolfRenderer 传入）
+    m_tail->setRotateAngleX(m_tailRotation);
 }
 
 void WolfModel::setAnimState(
