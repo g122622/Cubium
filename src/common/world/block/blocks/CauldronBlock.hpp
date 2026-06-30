@@ -136,6 +136,18 @@ public:
      */
     [[nodiscard]] const CollisionShape& getEntityInsideCollisionShape(const BlockState& state) const override;
 
+    /**
+     * @brief 空炼药锅需要形状遮挡检测
+     *
+     * 炼药锅内部为空心结构，需要使用形状进行光照遮挡计算，
+     * 否则光线会穿过炼药锅壁导致不正确的光照效果。
+     */
+    [[nodiscard]] bool useShapeForLightOcclusion(const BlockState& state) const override
+    {
+        MC_UNUSED(state);
+        return true;
+    }
+
     // ========== 静态工具方法 ==========
 
     /**
