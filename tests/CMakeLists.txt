@@ -2143,6 +2143,7 @@ add_executable(mc_command_tests
     server/command/CommandRegistryTest.cpp
     server/command/LocateCommandTest.cpp
     server/command/CommandStorageTest.cpp
+    server/command/BlockDataAccessorTest.cpp
     server/command/EntityDataAccessorEffectTest.cpp
     server/command/PlayerResolverTest.cpp
     server/command/EntityResolverTest.cpp
