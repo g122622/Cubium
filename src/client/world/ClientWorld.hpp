@@ -354,6 +354,10 @@ public:
      * 当粒子需要额外数据（如目标位置、颜色等）时使用此方法。
      * 粒子数据将通过数据工厂传递到对应粒子类的 createWithXxx() 方法。
      *
+     * 供游戏逻辑（方块动画、命令系统等）编程式调用。网络层粒子回调
+     * 使用 ParticleManager::addPendingParticle() 直接传递，因为网络
+     * 数据包的粒子数据已在此处解码完成。
+     *
      * @param type 粒子类型
      * @param pos 粒子位置
      * @param velocity 粒子速度

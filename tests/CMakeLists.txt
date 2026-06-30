@@ -797,6 +797,8 @@ add_executable(mc_tests
     network/EntityPacketsTest.cpp
     network/ParticlePacketTest.cpp
     network/ParticlePacketVibrationTest.cpp
+    network/ParticlePacketTrailTest.cpp
+    network/ParticlePacketDustTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
@@ -1129,6 +1131,7 @@ add_executable(mc_tests
     client/renderer/trident/particle/particles/special/SpecialParticleTest.cpp
     client/renderer/trident/particle/particles/special/VibrationSignalParticleTest.cpp
     client/renderer/trident/particle/data/VibrationParticleDataTest.cpp
+    client/renderer/trident/particle/data/DustParticleDataTest.cpp
     # 粒子缩放测试
     client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
     # SpellParticle 颜色提取测试
@@ -1496,6 +1499,8 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/TrailParticleData.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/DustParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BasicParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BlockParticleData.cpp
@@ -1538,6 +1543,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/TrailParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/special/VibrationSignalParticle.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/VibrationParticleData.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/TrailParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/DustParticleData.cpp
         # 粒子实现 - 环境（新增）
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/particles/ambient/NetherSporeParticle.cpp
