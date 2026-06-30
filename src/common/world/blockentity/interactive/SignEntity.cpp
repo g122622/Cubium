@@ -132,9 +132,37 @@ void SignEntity::setEditable(bool editable)
     }
 }
 
-void SignEntity::setEditor(Player* player)
+void SignEntity::setAllowedPlayerEditor(const std::string& uuid)
 {
-    m_editor = player;
+    m_playerWhoMayEdit = uuid;
+    // 编辑者状态是运行时瞬态数据，不需要调用 setChanged()
+    // （不需要保存到磁盘，因为编辑锁在服务器重启后会自动清除）
+}
+
+bool SignEntity::otherPlayerIsEditing(const Player& player) const
+{
+    // 对应 MC Java 的 SignBlock.otherPlayerIsEditingSign()
+    // 当 playerWhoMayEdit 已设置且与当前交互玩家不同时返回 true
+    return !m_playerWhoMayEdit.empty() && m_playerWhoMayEdit != player.uuid();
+}
+
+bool SignEntity::playerIsTooFarAwayToEdit(IWorld& world, const std::string& uuid) const
+{
+    // 对应 MC Java 的 SignBlockEntity.playerIsTooFarAwayToEdit()
+    // 1. 如果找不到该 UUID 对应的玩家（已离线），返回 true
+    // 2. 如果玩家距离告示牌超过 MAX_EDIT_DISTANCE，返回 true
+    Entity* entity = world.getEntityByUuid(uuid);
+    if (entity == nullptr) {
+        return true;
+    }
+    Player* player = dynamic_cast<Player*>(entity);
+    if (player == nullptr) {
+        return true;
+    }
+    // 计算玩家到告示牌的距离
+    Vector3 signCenter = m_pos.center();
+    f32 distSq = player->position().distanceSquared(signCenter);
+    return distSq > MAX_EDIT_DISTANCE * MAX_EDIT_DISTANCE;
 }
 
 void SignEntity::setTextColor(i32 color)
@@ -165,8 +193,13 @@ bool SignEntity::setWaxed(bool waxed)
 
 void SignEntity::tick(IWorld& world)
 {
-    MC_UNUSED(world);
-    // 告示牌不需要 tick 更新
+    // 对应 MC Java 的 SignBlockEntity.tick()
+    // 定期检查编辑者是否距离过远或已离线，如果是则清除编辑锁
+    if (!m_playerWhoMayEdit.empty()) {
+        if (playerIsTooFarAwayToEdit(world, m_playerWhoMayEdit)) {
+            m_playerWhoMayEdit.clear();
+        }
+    }
 }
 
 bool SignEntity::_validateText(const text::ITextComponent& text)

@@ -52,6 +52,8 @@ public:
     static constexpr i32 LINE_COUNT = 4;
     /// 每行最大字符数（纯文本）
     static constexpr i32 MAX_LINE_LENGTH = 15;
+    /// 编辑者最大交互距离（MC Java 默认交互距离 + 4.0 格余量）
+    static constexpr f32 MAX_EDIT_DISTANCE = 4.0f + 4.0f;
 
     // ========== 构造函数 ==========
 
@@ -130,17 +132,62 @@ public:
      */
     void setEditable(bool editable);
 
-    /**
-     * @brief 获取编辑者
-     * @return 编辑者玩家指针，如果没有返回 nullptr
-     */
-    [[nodiscard]] Player* getEditor() const { return m_editor; }
+    // ========== 编辑者追踪 ==========
+    // 参考 MC Java 的 SignBlockEntity.playerWhoMayEdit 机制：
+    // 当玩家打开告示牌编辑器时，设置其 UUID 为允许编辑者；
+    // 其他玩家在此期间无法涂蜡或编辑该告示牌。
+    // tick() 中定期检查编辑者是否距离过远或已离线，自动清除编辑锁。
 
     /**
-     * @brief 设置编辑者
-     * @param player 玩家
+     * @brief 检查是否有其他玩家正在编辑此告示牌
+     *
+     * 对应 MC Java 的 SignBlock.otherPlayerIsEditingSign()。
+     * 当 playerWhoMayEdit 已设置且与当前交互玩家不同时返回 true。
+     *
+     * @param player 当前交互的玩家
+     * @return 如果另一玩家正在编辑返回 true
      */
-    void setEditor(Player* player);
+    [[nodiscard]] bool otherPlayerIsEditing(const Player& player) const;
+
+    /**
+     * @brief 获取当前允许编辑的玩家 UUID
+     *
+     * 对应 MC Java 的 SignBlockEntity.getPlayerWhoMayEdit()。
+     * 返回空字符串表示没有玩家正在编辑。
+     *
+     * @return 编辑者 UUID，空字符串表示无编辑者
+     */
+    [[nodiscard]] const std::string& getPlayerWhoMayEdit() const { return m_playerWhoMayEdit; }
+
+    /**
+     * @brief 设置允许编辑的玩家
+     *
+     * 对应 MC Java 的 SignBlockEntity.setAllowedPlayerEditor()。
+     * 当玩家打开告示牌编辑器时调用，将 UUID 记录为当前编辑者。
+     * 传入空字符串清除编辑锁。
+     *
+     * @param uuid 玩家 UUID，空字符串表示清除编辑者
+     */
+    void setAllowedPlayerEditor(const std::string& uuid);
+
+    /**
+     * @brief 清除当前编辑者
+     *
+     * 便捷方法，等价于 setAllowedPlayerEditor("")。
+     */
+    void clearAllowedPlayerEditor() { setAllowedPlayerEditor(""); }
+
+    /**
+     * @brief 检查编辑者是否距离过远或已离线
+     *
+     * 对应 MC Java 的 SignBlockEntity.playerIsTooFarAwayToEdit()。
+     * 当编辑者不在交互范围内（标准交互距离 + 4.0 格）或已离线时返回 true。
+     *
+     * @param world 世界引用
+     * @param uuid 编辑者 UUID
+     * @return 如果编辑者无法继续编辑返回 true
+     */
+    [[nodiscard]] bool playerIsTooFarAwayToEdit(IWorld& world, const std::string& uuid) const;
 
     // ========== 颜色 ==========
 
@@ -214,8 +261,25 @@ public:
 
     // ========== Tick 更新 ==========
 
+    /**
+     * @brief 每刻更新
+     *
+     * 检查当前编辑者是否距离过远或已离线，如果是则清除编辑锁。
+     * 对应 MC Java 的 SignBlockEntity.tick()。
+     *
+     * @param world 世界引用
+     */
     void tick(IWorld& world) override;
-    [[nodiscard]] bool needsTick() const noexcept override { return false; }
+
+    /**
+     * @brief 是否需要 tick 更新
+     *
+     * 仅当有玩家正在编辑时需要 tick，以便定期检查编辑者是否离线或走远。
+     * 无编辑者时不需要 tick，避免性能开销。
+     *
+     * @return 如果有编辑者返回 true
+     */
+    [[nodiscard]] bool needsTick() const noexcept override { return !m_playerWhoMayEdit.empty(); }
 
     // ========== 序列化 ==========
 
@@ -243,10 +307,10 @@ private:
 
     std::array<std::unique_ptr<text::ITextComponent>, LINE_COUNT> m_lines; ///< 4行富文本
     bool m_editable = true;                                                ///< 是否可编辑
-    Player* m_editor = nullptr;                                            ///< 当前编辑者
-    i32 m_textColor = 0;                                                   ///< 文本颜色（DyeColor 值）
-    bool m_glowing = false;                                                ///< 是否发光
-    bool m_waxed = false;                                                  ///< 是否已涂蜡（涂蜡后不可编辑）
+    std::string m_playerWhoMayEdit; ///< 当前允许编辑的玩家 UUID（空字符串表示无编辑者）
+    i32 m_textColor = 0;            ///< 文本颜色（DyeColor 值）
+    bool m_glowing = false;         ///< 是否发光
+    bool m_waxed = false;           ///< 是否已涂蜡（涂蜡后不可编辑）
 };
 
 } // namespace blockentity

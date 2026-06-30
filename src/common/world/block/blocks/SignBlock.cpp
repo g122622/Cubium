@@ -98,8 +98,11 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
     // 检查玩家手持物品是否为蜜脾（涂蜡交互）
     ItemStack& heldItem = player.getHeldItem(hand);
     if (!heldItem.isEmpty() && heldItem.getItem() == Items::HONEYCOMB) {
-        // TODO: 当多人编辑系统完善后添加 otherPlayerIsEditing 检查，
-        //       如果另一玩家正在编辑告示牌，应阻止涂蜡并返回 TRY_WITH_EMPTY_HAND
+        // 如果另一玩家正在编辑告示牌，阻止涂蜡交互
+        // 对应 MC Java SignBlock.useItemOn() 中的 otherPlayerIsEditingSign() 检查
+        if (signEntity->otherPlayerIsEditing(player)) {
+            return ActionResultType::Consume;
+        }
         // 涂蜡：如果告示牌未涂蜡，则设置涂蜡状态
         if (!signEntity->isWaxed()) {
             if (signEntity->setWaxed(true)) {
@@ -136,6 +139,20 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
 
     // 执行告示牌上的命令
     signEntity->executeCommand(world, player);
+
+    // 如果另一玩家正在编辑告示牌，不允许打开编辑器
+    // 对应 MC Java SignBlock.useWithoutItem() 中的 otherPlayerIsEditingSign() 检查
+    // 注意：命令执行（click_events）不受编辑锁影响，即使其他玩家正在编辑也应正常执行
+    if (signEntity->otherPlayerIsEditing(player)) {
+        return ActionResultType::Pass;
+    }
+
+    // TODO: 当告示牌编辑 UI 实现后，在此处添加：
+    //   1. 检查玩家是否有建造权限（player.mayBuild()）
+    //   2. 检查告示牌文本是否可编辑（hasEditableText）
+    //   3. 调用 signEntity->setAllowedPlayerEditor(player.uuid()) 设置编辑锁
+    //   4. 打开告示牌编辑界面
+
     return ActionResultType::Success;
 }
 

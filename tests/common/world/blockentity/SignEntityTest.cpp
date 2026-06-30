@@ -180,9 +180,9 @@ TEST_F(SignEntityTest, SetEditable_ChangesState)
     EXPECT_TRUE(signEntity->isEditable());
 }
 
-TEST_F(SignEntityTest, Editor_InitiallyNullptr)
+TEST_F(SignEntityTest, PlayerWhoMayEdit_InitiallyEmpty)
 {
-    EXPECT_EQ(signEntity->getEditor(), nullptr);
+    EXPECT_TRUE(signEntity->getPlayerWhoMayEdit().empty());
 }
 
 TEST_F(SignEntityTest, TextColor_InitiallyZero)

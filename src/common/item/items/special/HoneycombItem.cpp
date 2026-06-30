@@ -52,6 +52,12 @@ ActionResultType HoneycombItem::onItemUse(ItemUseContext& context)
     BlockEntity* blockEntity = world.getBlockEntity(pos);
     if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::Sign) {
         auto* signEntity = static_cast<blockentity::SignEntity*>(blockEntity);
+        // 如果另一玩家正在编辑告示牌，阻止涂蜡交互
+        // 对应 MC Java SignBlock.useItemOn() 中的 otherPlayerIsEditingSign() 检查
+        Player* player = context.getPlayer();
+        if (player != nullptr && signEntity->otherPlayerIsEditing(*player)) {
+            return ActionResultType::Consume;
+        }
         if (!signEntity->isWaxed()) {
             if (signEntity->setWaxed(true)) {
                 // 播放涂蜡粒子与音效
