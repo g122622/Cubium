@@ -4,7 +4,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to Use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -12,11 +12,8 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO ANY KIND, WHETHER
+ * ARISING FROM, IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  *
  */
@@ -24,6 +21,7 @@
 #pragma once
 
 #include "../../Block.hpp"
+#include "../../IBucketPickupHandler.hpp"
 
 namespace mc {
 namespace blocks {
@@ -33,16 +31,45 @@ namespace blocks {
  *
  * 一种类似雪的方块，实体陷入其中会缓慢移动。
  * 没有碰撞箱，玩家和生物可以穿过。
+ * 空桶可以从细雪方块中提取细雪，返回细雪桶。
  *
  * 参考: net.minecraft.block.PowderSnowBlock
  */
-class PowderSnowBlock : public Block {
+class PowderSnowBlock : public Block, public IBucketPickupHandler {
 public:
     explicit PowderSnowBlock(const BlockProperties& properties);
 
     ~PowderSnowBlock() override = default;
 
     [[nodiscard]] const CollisionShape& getCollisionShape(const BlockState& state) const override;
+
+    /**
+     * @brief 从细雪方块中取出流体
+     *
+     * 细雪不是流体，此方法始终返回 nullptr。
+     * 使用 pickupItem 代替。
+     */
+    [[nodiscard]] fluid::Fluid* pickupFluid(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 从细雪方块中提取细雪，返回细雪桶物品
+     *
+     * 将细雪方块替换为空气，并返回细雪桶物品。
+     *
+     * @param world 世界
+     * @param pos 方块位置
+     * @param state 当前方块状态
+     * @return 细雪桶物品指针，如果无法拾取则返回 nullptr
+     */
+    [[nodiscard]] const Item* pickupItem(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 获取从细雪方块拾取时播放的音效
+     *
+     * 返回 ITEM_BUCKET_FILL_POWDER_SNOW 音效。
+     */
+    [[nodiscard]] const ResourceLocation* getPickupSound(
+        IWorld& world, const BlockPos& pos, const BlockState& state) override;
 };
 
 } // namespace blocks

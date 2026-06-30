@@ -8,7 +8,7 @@
 special/
 ├── README.md                    # 本文档
 ├── BoneMealItem.hpp/cpp         # 骨粉（加速植物生长、海草生成）
-├── BucketItem.hpp/cpp           # 桶（空桶、水桶、岩浆桶、细雪桶）
+├── BucketItem.hpp/cpp           # 桶（空桶、水桶、岩浆桶）
 ├── EnchantedBookItem.hpp/cpp    # 附魔书（存储附魔）
 ├── FishBucketItem.hpp/cpp       # 鱼桶（放置水并生成鱼）
 ├── FlintAndSteelItem.hpp/cpp    # 打火石（点火、点燃下界传送门）
@@ -19,6 +19,7 @@ special/
 ├── NameTagItem.hpp/cpp          # 命名牌（给生物命名、持久化）
 ├── OnAStickItem.hpp/cpp         # 钓竿类物品基类（控制可骑乘实体）
 ├── PotterySherdItem.hpp/cpp     # 陶片（饰纹陶罐合成材料，关联DecoratedPotPattern枚举）
+├── PowderSnowBucketItem.hpp/cpp # 细雪桶（放置细雪方块、使用后返回空桶）
 ├── SaddleItem.hpp/cpp           # 鞍（装备可骑乘实体）
 ├── SmithingTemplateItem.hpp/cpp # 锻造模板（盔甲纹饰/下界合金升级，锻造台配方模板）
 ├── SpawnEggItem.hpp/cpp         # 生成蛋（右键生成实体）

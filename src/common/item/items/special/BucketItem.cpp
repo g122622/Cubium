@@ -29,6 +29,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/Item.hpp"
 #include "common/item/core/ItemRegistry.hpp"
 #include "common/item/core/ItemStack.hpp"
 #include "common/sound/SoundCategory.hpp"
@@ -84,6 +85,7 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
         // 检查方块是否实现了 IBucketPickupHandler
         auto* pickupHandler = dynamic_cast<IBucketPickupHandler*>(block);
         if (pickupHandler != nullptr) {
+            // 首先尝试流体拾取（水、岩浆等）
             fluid::Fluid* pickedFluid = pickupHandler->pickupFluid(world, pos, *blockState);
             if (pickedFluid != nullptr) {
                 // 播放取水音效
@@ -103,7 +105,6 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                     }
                 } else if (player != nullptr) {
                     // 创造模式下仍需触发事件，但不需要给物品
-                    // 触发填充桶事件（进度系统）
                     BucketItem* filledBucket = getFilledBucket(*pickedFluid);
                     if (filledBucket != nullptr) {
                         ItemStack filledStack = filledBucket->getDefaultInstance();
@@ -117,6 +118,31 @@ ActionResultType BucketItem::onItemUse(ItemUseContext& context)
                     if (filledBucket != nullptr) {
                         ItemStack filledStack = filledBucket->getDefaultInstance();
                         world.onFilledBucket(player->id(), filledStack);
+                    }
+                }
+
+                return ActionResultType::Success;
+            }
+
+            // 如果流体拾取返回 nullptr，尝试非流体拾取（细雪等）
+            const Item* pickedItem = pickupHandler->pickupItem(world, pos, *blockState);
+            if (pickedItem != nullptr) {
+                // 播放拾取音效（使用方块指定的音效或默认音效）
+                Vector3 soundPos(
+                    static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y) + 0.5f, static_cast<f32>(pos.z) + 0.5f);
+                const ResourceLocation* pickupSound = pickupHandler->getPickupSound(world, pos, *blockState);
+                if (pickupSound != nullptr) {
+                    world.playSound(*pickupSound, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
+                } else {
+                    world.playSound(SoundEvents::ITEM_BUCKET_FILL, sound::SoundCategory::Blocks, soundPos, 1.0f, 1.0f);
+                }
+
+                // 非创造模式下替换物品
+                if (player == nullptr || !player->isCreative()) {
+                    stack.shrink(1);
+                    if (player != nullptr) {
+                        ItemStack pickedStack(pickedItem, 1);
+                        player->inventory().add(pickedStack);
                     }
                 }
 

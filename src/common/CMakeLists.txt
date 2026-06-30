@@ -524,6 +524,7 @@ add_library(mc_common STATIC
     item/items/special/MilkBucketItem.cpp
     item/items/special/MusicDiscItem.cpp
     item/items/special/PotterySherdItem.cpp
+    item/items/special/PowderSnowBucketItem.cpp
     item/items/special/SmithingTemplateItem.cpp
     item/items/special/EnchantedBookItem.cpp
     item/items/special/NameTagItem.cpp

@@ -53,6 +53,7 @@
 #include "common/item/items/special/MusicDiscItem.hpp"
 #include "common/item/items/special/NameTagItem.hpp"
 #include "common/item/items/special/PotterySherdItem.hpp"
+#include "common/item/items/special/PowderSnowBucketItem.hpp"
 #include "common/item/items/special/SaddleItem.hpp"
 #include "common/item/items/special/SmithingTemplateItem.hpp"
 #include "common/item/items/special/StickItems.hpp"
@@ -2287,18 +2288,12 @@ void Items::_registerBuckets()
         ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 细雪桶 - 装有细雪的桶
-    // TODO(PowderSnowBucketItem): MC Java 中 PowderSnowBucketItem 继承自 Item（非 BucketItem），
-    // 拥有在方块上放置细雪方块（PowderSnowBlock）的特殊逻辑。
-    // 当前临时使用 BucketItem(nullptr) 注册，仅支持与炼药锅的交互（从细雪炼药锅取细雪、
-    // 向空炼药锅/细雪炼药锅倒入细雪），不支持右键方块放置细雪。
-    // 后续需要实现独立的 PowderSnowBucketItem 类，包含：
-    //   1. 右键方块放置细雪（对应 MC 的 onItemUse / place 方块逻辑）
-    //   2. 水下使用时返回 CONSUME（不允许水下放置）
-    //   3. 正确的细雪桶放置音效
-    // 使用后返回空桶
-    POWDER_SNOW_BUCKET = &registry.registerItem<BucketItem>(ResourceLocation("minecraft:powder_snow_bucket"),
-        nullptr, // 细雪不是流体，BucketItem(nullptr) 仅作为空桶行为占位
-        ItemProperties().maxStackSize(1).containerItem(BUCKET));
+    // 细雪不是流体，因此使用独立的 PowderSnowBucketItem（继承自 Item，非 BucketItem）。
+    // 右键方块放置 PowderSnowBlock，使用后返回空桶。
+    // 与炼药锅的交互由炼药锅自身的 onBlockActivated 处理。
+    // 空桶从细雪方块舀取细雪由 PowderSnowBlock 实现 IBucketPickupHandler 接口处理。
+    POWDER_SNOW_BUCKET = &registry.registerItem<item::PowderSnowBucketItem>(
+        ResourceLocation("minecraft:powder_snow_bucket"), ItemProperties().maxStackSize(1).containerItem(BUCKET));
 
     // 鱼桶
     // 鳕鱼桶 - 可以装鳕鱼的水桶，使用后返回空桶
