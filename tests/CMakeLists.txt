@@ -383,6 +383,8 @@ add_executable(mc_tests
     common/world/lighting/InternalLightUtilsTest.cpp
     common/world/LightLevelTest.cpp
     common/world/blockentity/BlockEntityTest.cpp
+    # BlockEvent 方块事件系统测试（BlockEventData、BlockEventPacket、triggerEvent）
+    common/world/blockevent/BlockEventTest.cpp
     common/world/blockentity/ChestEntityTest.cpp
     common/world/blockentity/FurnaceEntityTest.cpp
     common/world/blockentity/HopperEntityTest.cpp
