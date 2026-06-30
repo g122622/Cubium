@@ -701,7 +701,6 @@ void BeeFindFlowerGoal::tick()
     // 超时检查：2400 tick（120秒）仍未到达则放弃花朵
     if (m_ticks > MAX_NAVIGATION_TIME) {
         m_bee->setFlowerPos(BlockPos::zero());
-        m_bee->setHasHive(m_bee->hasHive()); // 保持蜂巢状态
         return;
     }
 
@@ -712,7 +711,6 @@ void BeeFindFlowerGoal::tick()
             // 检查是否太远（对应 MC: isTooFarAway → !closerThan(48)）
             if (_isTooFar(flowerPos)) {
                 m_bee->setFlowerPos(BlockPos::zero());
-                m_bee->setHasHive(m_bee->hasHive()); // 保持蜂巢状态
             } else {
                 // 使用 pathfindRandomlyTowards 漂移飞行
                 (void)m_bee->pathfindRandomlyTowards(flowerPos);
