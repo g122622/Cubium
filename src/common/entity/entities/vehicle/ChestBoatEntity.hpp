@@ -35,6 +35,10 @@ class AbstractContainerMenu;
 class PlayerInventory;
 class DamageSource;
 
+namespace loot {
+class LootTableManager;
+}
+
 namespace entity {
 
 /**
@@ -132,11 +136,14 @@ public:
      * @brief 创建箱子容器菜单
      *
      * 创建3行9列的通用容器菜单。
-     * 如果玩家是旁观者模式且容器有战利品表，返回 nullptr。
+     * 如果玩家是旁观者模式且容器有未解包的战利品表，返回 nullptr。
+     * 如果有未解包的战利品表，在创建菜单前先解包填充到容器中。
+     *
+     * 参考 MC Java: AbstractChestBoat.createMenu()
      *
      * @param containerId 容器ID（由服务端分配）
      * @param player 打开容器的玩家
-     * @return 创建的容器菜单
+     * @return 创建的容器菜单，旁观者模式下有未解包战利品表时返回 nullptr
      */
     [[nodiscard]] std::unique_ptr<AbstractContainerMenu> createMenu(i32 containerId, Player& player) override;
 
@@ -145,6 +152,48 @@ public:
      * @return 容器翻译键 "container.chestBoat"
      */
     [[nodiscard]] std::string getDisplayName() const override;
+
+    // ========== 战利品表接口 ==========
+
+    /**
+     * @brief 检查是否有未解包的战利品表
+     * @return 如果有未解包的战利品表返回 true
+     */
+    [[nodiscard]] bool hasLootTable() const noexcept { return !m_lootTable.empty(); }
+
+    /**
+     * @brief 获取战利品表ID
+     * @return 战利品表资源位置字符串
+     */
+    [[nodiscard]] const std::string& getLootTable() const noexcept { return m_lootTable; }
+
+    /**
+     * @brief 获取战利品表种子
+     * @return 种子值
+     */
+    [[nodiscard]] i64 getLootTableSeed() const noexcept { return m_lootTableSeed; }
+
+    /**
+     * @brief 设置战利品表
+     *
+     * 结构生成时调用此方法设置战利品表。
+     * 玩家首次访问容器时，物品将从战利品表生成。
+     *
+     * @param lootTable 战利品表资源位置
+     * @param seed 随机种子
+     */
+    void setLootTable(const std::string& lootTable, i64 seed);
+
+    /**
+     * @brief 解包战利品表
+     *
+     * 如果有未解包的战利品表，从 LootTableManager 解析并填充到容器中。
+     * 填充完成后清除战利品表引用，防止重复填充。
+     * 参考 MC Java: ContainerEntity.unpackChestVehicleLootTable()
+     *
+     * @param player 触发填充的玩家（可为 nullptr，用于懒解包场景）
+     */
+    void unpackLootTable(Player* player);
 
     // ========== IInventory 代理方法 ==========
 
@@ -155,26 +204,44 @@ public:
 
     /**
      * @brief 检查容器是否为空
+     *
+     * 如果有未解包的战利品表，返回 false（容器可能有物品）。
      */
-    [[nodiscard]] bool isInventoryEmpty() const;
+    [[nodiscard]] bool isInventoryEmpty();
 
     /**
      * @brief 获取指定槽位的物品
+     *
+     * 访问前会触发战利品表懒解包（无玩家参数）。
      */
-    [[nodiscard]] ItemStack getInventoryItem(i32 slot) const;
+    [[nodiscard]] ItemStack getInventoryItem(i32 slot);
 
     /**
      * @brief 设置指定槽位的物品
+     *
+     * 访问前会触发战利品表懒解包（无玩家参数）。
      */
     void setInventoryItem(i32 slot, const ItemStack& stack);
 
     /**
      * @brief 从槽位移除指定数量的物品
+     *
+     * 访问前会触发战利品表懒解包（无玩家参数）。
      */
     ItemStack removeInventoryItem(i32 slot, i32 count);
 
     /**
+     * @brief 从槽位移除物品（不触发通知）
+     *
+     * 访问前会触发战利品表懒解包（无玩家参数）。
+     * 参考 MC Java: ContainerEntity.removeChestVehicleItemNoUpdate()
+     */
+    ItemStack removeInventoryItemNoUpdate(i32 slot);
+
+    /**
      * @brief 清空容器
+     *
+     * 清空前会触发战利品表懒解包（无玩家参数），确保物品已生成。
      */
     void clearInventory();
 
@@ -199,6 +266,9 @@ private:
 
     /// 战利品表种子
     i64 m_lootTableSeed = 0L;
+
+    /// 战利品表是否已解包填充
+    bool m_lootFilled = false;
 
     /**
      * @brief 掉落容器内的所有物品

@@ -722,8 +722,18 @@ TEST_F(ChestBoatNbtTest, NbtKeys_LootTableSupersedesItems)
     // 反序列化
     auto loaded = loadFromNbt(tag, BoatEntity::Type::OAK);
 
-    // 战利品表存在时，容器应被清空（不读取物品）
-    EXPECT_TRUE(loaded->isInventoryEmpty());
+    // 战利品表存在但未解包时，hasLootTable 应为 true
+    EXPECT_TRUE(loaded->hasLootTable());
+    EXPECT_EQ(loaded->getLootTable(), "minecraft:chests/spawn_bonus_chest");
+
+    // 战利品表存在但未解包时，isInventoryEmpty() 返回 false
+    // （因为容器可能有战利品表生成的物品，但尚未填充）
+    // 参考 MC Java: ContainerEntity.isChestVehicleEmpty() 在 lootTable 非空时返回 false
+    EXPECT_FALSE(loaded->isInventoryEmpty());
+
+    // 实际库存槽位为空（因为物品数据未被读取，战利品表尚未解包）
+    // 直接检查底层 SimpleInventory 而非 isInventoryEmpty()
+    EXPECT_TRUE(loaded->getInventory()->isEmpty());
 }
 
 TEST_F(ChestBoatNbtTest, EmptyNbt_PreservesDefaults)
