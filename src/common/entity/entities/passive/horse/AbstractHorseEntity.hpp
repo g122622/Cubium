@@ -450,6 +450,18 @@ public:
     void tick() override;
 
     /**
+     * @brief AI 步进更新
+     *
+     * MC 1.21.11 AbstractHorse.aiStep()
+     * 服务端逻辑：
+     * - 随机尾巴摆动（1/200 概率）
+     * - 自然恢复（1/900 概率，死亡时间为 0 时）
+     * - 吃草触发（1/300 概率，未骑乘、脚下为草方块）
+     * - 吃草计数器（超过 50 tick 停止吃草）
+     */
+    void aiStep() override;
+
+    /**
      * @brief 序列化额外数据到 NBT
      */
     void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;

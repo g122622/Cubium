@@ -53,6 +53,8 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/core/SimpleInventory.hpp"
 #include <algorithm>
 #include <cmath>
@@ -421,24 +423,47 @@ void AbstractHorseEntity::tick()
         }
     }
 
-    // MC 1.21.11: 服务端动画逻辑
-    if (m_world != nullptr && !m_world->isClientSide()) {
-        // 吃草计数器：递增，超过 50 tick 后停止吃草
-        if (canEatGrass() && isEating()) {
-            if (++m_eatingCounter > 50) {
+    // 更新骑乘状态（包含动画插值）
+    updateRiding();
+}
+
+void AbstractHorseEntity::aiStep()
+{
+    // MC 1.21.11 AbstractHorse.aiStep()
+
+    // 随机尾巴摆动：每 tick 1/200 概率触发
+    if (getRandom().nextInt(200) == 0) {
+        m_tailCounter = 1;
+    }
+
+    // 调用父类 aiStep()
+    AnimalEntity::aiStep();
+
+    // 服务端逻辑
+    if (m_world != nullptr && !m_world->isClientSide() && isAlive()) {
+        // 自然恢复：每 tick 1/900 概率，且未在死亡过程中
+        if (getRandom().nextInt(900) == 0 && deathTime() == 0) {
+            heal(1.0f);
+        }
+
+        // 吃草逻辑
+        if (canEatGrass()) {
+            // 吃草触发：未在吃草 && 未被骑乘 && 1/300 概率 && 脚下为草方块
+            if (!isEating() && !hasPassengers() && getRandom().nextInt(300) == 0) {
+                // MC 1.21.11: serverlevel.getBlockState(this.blockPosition().below()).is(Blocks.GRASS_BLOCK)
+                const BlockState* belowState = m_world->getBlockState(onPos());
+                if (belowState != nullptr && belowState->is(VanillaBlocks::GRASS_BLOCK)) {
+                    setEating(true);
+                }
+            }
+
+            // 吃草计数器：递增，超过 50 tick 后停止吃草
+            if (isEating() && ++m_eatingCounter > 50) {
                 m_eatingCounter = 0;
                 setEating(false);
             }
         }
-
-        // 随机尾巴摆动：每 tick 1/200 概率触发
-        if (getRandom().nextInt(200) == 0) {
-            m_tailCounter = 1;
-        }
     }
-
-    // 更新骑乘状态（包含动画插值）
-    updateRiding();
 }
 
 void AbstractHorseEntity::travel(f32 strafing, f32 vertical, f32 forward)

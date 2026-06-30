@@ -1,4 +1,4 @@
-# 马类实体模块
+#马类实体模块
 
 包含所有马类实体的实现。
 
@@ -97,6 +97,15 @@ AnimalEntity
 | `getChestEquipSound()` | AbstractChestedHorseEntity | 获取箱子装备音效（子类可覆写） |
 | `interactMob()` | AbstractChestedHorseEntity | 箱子马交互覆写 |
 | `interactMob()` | HorseEntity | 马交互覆写（食物优先+未驯服愤怒） |
+| `canPerformRearing()` | AbstractHorseEntity | 是否可扬蹄（默认 true，LlamaEntity 覆写返回 false） |
+| `makeHorseRear()` | AbstractHorseEntity | 扬蹄（MC 1.21.11 standIfPossible，含条件检查） |
+| `clearRearing()` | AbstractHorseEntity | 清除扬蹄状态和计数器（MC 1.21.11 clearStanding） |
+| `openMouth()` | AbstractHorseEntity | 张开嘴巴（仅服务端，30 tick 后自动关闭） |
+| `canEatGrass()` | AbstractHorseEntity | 是否可吃草（默认 true，骷髅马/僵尸马覆写返回 false） |
+| `hasOwner()` | AbstractHorseEntity | 检查是否有主人（UUID 非空） |
+| `getOwner()` | AbstractHorseEntity | 通过 UUID 查找主人 LivingEntity |
+| `clearOwnerUuid()` | AbstractHorseEntity | 清除主人 UUID |
+| `aiStep()` | AbstractHorseEntity | AI 步进（尾巴触发、自然恢复、吃草触发/计数器） |
 
 ## 上下游外部依赖关系
 
@@ -207,6 +216,57 @@ AnimalEntity
 - bit 6(64)：嘴张开
 
 使用 `getHorseWatchableBoolean()` 和 `setHorseWatchableBoolean()` 操作，不要直接操作位。
+
+### #12. 动画计数器系统
+
+MC 1.21.11 的 `AbstractHorse.tick()` 和 `aiStep()` 管理以下动画计数器：
+
+| 计数器 | 字段 | 触发 | 行为 |
+|--------|------|------|------|
+| 张嘴计数器 | `m_openMouthCounter` | `openMouth()` | 从 1 递增，>30 时关闭嘴巴 |
+| 扬蹄计数器 | `m_jumpRearingCounter` | `makeHorseRear()` 设为 20 | 递减，≤0 时清除扬蹄 |
+| 尾巴计数器 | `m_tailCounter` | `aiStep()` 中 1/200 概率 | 从 1 递增，>8 时重置 |
+| 冲刺计数器 | `m_sprintCounter` | 由渲染/动画系统外部触发 | 递增，>300 时重置 |
+| 吃草计数器 | `m_eatingCounter` | `aiStep()` 中吃草条件满足时 | 递增，>50 时停止吃草 |
+
+吃草触发条件（在 `aiStep()` 中，仅服务端）：
+1. `canEatGrass()` 返回 true（骷髅马/僵尸马返回 false）
+2. 未在吃草 (`!isEating()`)
+3. 未被骑乘 (`!hasPassengers()`)
+4. 1/300 概率
+5. 脚下方块为草方块 (`VanillaBlocks::GRASS_BLOCK`)
+
+自然恢复（在 `aiStep()` 中，仅服务端）：
+- 每tick 1/900 概率，且死亡时间 `deathTime() == 0`，恢复 1.0 生命值
+
+扬蹄条件检查（MC 1.21.11 `standIfPossible()`）：
+- `canPerformRearing()` 必须为 true（羊驼和骆驼返回 false）
+- `canPassengerSteer() || !isClientSide()` 必须为 true
+
+愤怒条件检查（MC 1.21.11 `makeMad()`）：
+- 未在扬蹄 (`!isRearing()`)
+- 非客户端 (`!isClientSide()`)
+
+### #13. NBT 序列化
+
+`AbstractHorseEntity` 实现了 `addAdditionalSaveData()` / `readAdditionalSaveData()`，序列化以下字段：
+
+| NBT 键 | 类型 | 字段 | 说明 |
+|--------|------|------|------|
+| `OwnerUUIDMost` | i64 | `m_ownerUuid` | 主人 UUID 高 64 位 |
+| `OwnerUUIDLeast` | i64 | `m_ownerUuid` | 主人 UUID 低 64 位 |
+| `Temper` | i32 | `m_temper` | 驯服进度 |
+| `Tame` | i8(bool) | `m_tame` | 是否已驯服 |
+| `Bred` | i8(bool) | bred 标志 | 是否已繁殖 |
+| `Saddle` | i8(bool) | `m_saddled` | 是否装备鞍 |
+| `JumpStrength` | f32 | `m_jumpStrength` | 跳跃强度 |
+| `Speed` | f32 | `m_speed` | 移动速度 |
+| `HorseHealth` | f32 | `m_horseHealth` | 生命值 |
+| `EatingHaystack` | i8(bool) | eating 标志 | 是否在吃草 |
+
+UUID 存储使用 `OwnerUUIDMost`/`OwnerUUIDLeast` 双 long 格式（与 MC 原版兼容），
+通过 `util::uuidFromString()` / `util::uuidToString()` 进行字符串与字节转换。
+布尔值以 i8(0/1) 存储，读取时使用 `nbt_helper::tryGetBool()`。
 
 ### #12. 马的 AI 目标优先级
 
