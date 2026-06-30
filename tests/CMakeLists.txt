@@ -578,6 +578,7 @@ add_executable(mc_tests
     entity/BrainMovementTaskTests.cpp
     entity/BrainInteractTaskTests.cpp
     entity/BrainActionTaskTests.cpp
+    entity/BrainActionTaskNewTests.cpp
     entity/SensorTests.cpp
     entity/DamagingProjectileSupportTypesTest.cpp
     entity/FishSupportTypesTest.cpp

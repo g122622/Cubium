@@ -187,6 +187,10 @@ private:
  * 控制动物繁殖行为。当动物处于发情状态（isInLove）时，
  * 从可见实体中寻找同类发情伴侣，走向对方并在足够近时繁殖后代。
  *
+ * TODO: 当 AnimalEntity 集成 Brain 系统后，需在对应实体的 initializeBrain() 中
+ * 注册此任务和配套传感器（如扩展 BabySensor 以写入 BREED_TARGET）。
+ * 当前仅 VillagerEntity 拥有 brain()，动物实体仍使用 Goal 系统的 BreedGoal。
+ *
  * 记忆模块要求：
  * - VISIBLE_MOBS (VALUE_PRESENT): 必须有可见实体列表以寻找伴侣
  * - BREED_TARGET (VALUE_ABSENT): 尚未有繁殖目标
@@ -195,7 +199,7 @@ private:
  *
  * 流程：
  * 1. shouldExecute：检查 isInLove，从 VISIBLE_MOBS 中寻找可交配的伴侣
- * 2. startExecuting：设置 BREED_TARGET 记忆，互相注视，计算繁殖时间
+ * 2. startExecuting：设置 BREED_TARGET 记忆，注视伴侣，计算繁殖时间
  * 3. updateTask：持续走向伴侣，到达繁殖距离且时间到后生成后代
  * 4. resetTask：清除导航和繁殖目标记忆
  *
@@ -560,6 +564,9 @@ private:
  * 当实体拥有 PLAY_DEAD_TICKS 记忆时，进入被动状态：
  * 设置 PACIFIED 记忆（阻止攻击行为）、清除 ATTACK_TARGET、清除导航路径。
  * PLAY_DEAD_TICKS 由外部系统（如受到伤害时）设置，本任务响应并执行装死逻辑。
+ *
+ * TODO: 当美西螈（AxolotlEntity）等实体集成 Brain 系统后，需在对应实体的
+ * initializeBrain() 中注册此任务。当前这些实体仍使用 Goal 系统。
  *
  * 记忆模块要求：
  * - PLAY_DEAD_TICKS (VALUE_PRESENT): 必须有装死计时器
