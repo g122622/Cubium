@@ -27,6 +27,7 @@
 #include "../../../world/IWorld.hpp"
 #include "../../../world/WorldConstants.hpp"
 #include "../../../world/block/Block.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include "../../../world/fluid/Fluid.hpp"
 #include "../../core/CreatureEntity.hpp"
 #include "../../core/MobEntity.hpp"
@@ -519,6 +520,355 @@ bool RandomPositionGenerator::findBestPosition(
     }
 
     return false;
+}
+
+// ==================== 飞行位置生成方法实现 ====================
+
+bool RandomPositionGenerator::findHoverPosition(CreatureEntity* creature,
+    i32 xzRange,
+    i32 yRange,
+    f64 xDir,
+    f64 zDir,
+    f32 maxAngle,
+    i32 maxAboveSolid,
+    i32 minAboveSolid,
+    Vector3& outPos)
+{
+    if (!creature) return false;
+    IWorld* world = creature->world();
+    if (!world) return false;
+
+    const bool restricted = isMobRestricted(creature, static_cast<f64>(xzRange));
+    const i32 maxY = world->getMaxBuildHeight();
+
+    // 最佳位置选择：尝试10次，选择评分最高的
+    Vector3 bestPos;
+    f32 bestScore = -10000.0f;
+    bool found = false;
+
+    for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
+        // 1. 在方向角度范围内生成随机偏移
+        auto offsetOpt = generateRandomDirectionWithinRadians(
+            creature->getRandom(), 0.0, static_cast<f64>(xzRange), yRange, 0, xDir, zDir, static_cast<f64>(maxAngle));
+        if (!offsetOpt.has_value()) {
+            continue;
+        }
+
+        // 2. 转换为世界坐标（含家区域约束）
+        BlockPos worldPos =
+            generatePosTowardDirection(creature, static_cast<f64>(xzRange), restricted, offsetOpt.value());
+
+        // 3. 检查建造高度和家区域约束
+        if (isOutsideBuildHeight(creature, worldPos)) {
+            continue;
+        }
+        if (restricted && !creature->isWithinHomeDistanceFromPosition(worldPos)) {
+            continue;
+        }
+
+        // 4. 检查导航目标稳定性：目标下方的方块不应是空气
+        BlockPos belowPos(worldPos.x, worldPos.y - 1, worldPos.z);
+        const BlockState* belowState = world->getBlockState(belowPos);
+        if (belowState != nullptr && belowState->isAir()) {
+            continue;
+        }
+
+        // 5. 向上移动到固体方块上方 minAboveSolid~maxAboveSolid 格
+        math::Random& rng = creature->getRandom();
+        i32 aboveSolidAmount = rng.nextInt(maxAboveSolid - minAboveSolid + 1) + minAboveSolid;
+        worldPos = moveUpToAboveSolid(
+            worldPos, aboveSolidAmount, maxY, [&creature](const BlockPos& p) { return isSolidAt(creature, p); });
+
+        // 6. 检查不在水中且无寻路惩罚
+        if (isWaterAt(creature, worldPos) || hasPathfindingMalus(creature, worldPos)) {
+            continue;
+        }
+
+        // 7. 计算评分
+        f32 score = creature->getPathWeight(
+            static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
+        if (score > bestScore) {
+            bestScore = score;
+            bestPos = Vector3(
+                static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
+            found = true;
+        }
+    }
+
+    if (found) {
+        outPos = bestPos;
+        return true;
+    }
+    return false;
+}
+
+bool RandomPositionGenerator::findAirAndWaterPosition(
+    CreatureEntity* creature, i32 xzRange, i32 yRange, i32 yOffset, f64 xDir, f64 zDir, f32 maxAngle, Vector3& outPos)
+{
+    if (!creature) return false;
+    IWorld* world = creature->world();
+    if (!world) return false;
+
+    const bool restricted = isMobRestricted(creature, static_cast<f64>(xzRange));
+    const i32 maxY = world->getMaxBuildHeight();
+
+    // 最佳位置选择：尝试10次，选择评分最高的
+    Vector3 bestPos;
+    f32 bestScore = -10000.0f;
+    bool found = false;
+
+    for (i32 attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
+        // 1. 在方向角度范围内生成随机偏移
+        auto offsetOpt = generateRandomDirectionWithinRadians(creature->getRandom(),
+            0.0,
+            static_cast<f64>(xzRange),
+            yRange,
+            yOffset,
+            xDir,
+            zDir,
+            static_cast<f64>(maxAngle));
+        if (!offsetOpt.has_value()) {
+            continue;
+        }
+
+        // 2. 转换为世界坐标（含家区域约束）
+        BlockPos worldPos =
+            generatePosTowardDirection(creature, static_cast<f64>(xzRange), restricted, offsetOpt.value());
+
+        // 3. 检查建造高度和家区域约束
+        if (isOutsideBuildHeight(creature, worldPos)) {
+            continue;
+        }
+        if (restricted && !creature->isWithinHomeDistanceFromPosition(worldPos)) {
+            continue;
+        }
+
+        // 4. 向上移出固体方块
+        worldPos = moveUpOutOfSolid(worldPos, maxY, [&creature](const BlockPos& p) { return isSolidAt(creature, p); });
+
+        // 5. 检查无寻路惩罚
+        if (hasPathfindingMalus(creature, worldPos)) {
+            continue;
+        }
+
+        // 6. 计算评分
+        f32 score = creature->getPathWeight(
+            static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
+        if (score > bestScore) {
+            bestScore = score;
+            bestPos = Vector3(
+                static_cast<f32>(worldPos.x) + 0.5f, static_cast<f32>(worldPos.y), static_cast<f32>(worldPos.z) + 0.5f);
+            found = true;
+        }
+    }
+
+    if (found) {
+        outPos = bestPos;
+        return true;
+    }
+    return false;
+}
+
+bool RandomPositionGenerator::findAirPositionTowards(CreatureEntity* creature,
+    i32 xzRange,
+    i32 yRange,
+    i32 yOffset,
+    const Vector3& targetPos,
+    f32 maxAngle,
+    Vector3& outPos)
+{
+    if (!creature) return false;
+
+    // 计算从实体到目标的方向向量
+    Vector3 dirVec = targetPos - creature->position();
+    f64 xDir = static_cast<f64>(dirVec.x);
+    f64 zDir = static_cast<f64>(dirVec.z);
+
+    // 先尝试 AirRandomPos（排除水中位置）
+    if (findAirAndWaterPosition(creature, xzRange, yRange, yOffset, xDir, zDir, maxAngle, outPos)) {
+        // 额外检查：不在水中
+        BlockPos posBlock(static_cast<i32>(outPos.x), static_cast<i32>(outPos.y), static_cast<i32>(outPos.z));
+        if (!isWaterAt(creature, posBlock)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ==================== 飞行位置生成辅助方法实现 ====================
+
+std::optional<BlockPos> RandomPositionGenerator::generateRandomDirectionWithinRadians(
+    math::Random& rng, f64 minRange, f64 maxRange, i32 verticalRange, i32 yOffset, f64 xDir, f64 zDir, f64 maxAngle)
+{
+    // 计算基础角度：从方向向量计算角度，减去PI/2使0度对应正前方
+    f64 baseAngle = std::atan2(zDir, xDir) - (math::PI_DOUBLE / 2.0);
+
+    // 在基础角度附近随机偏移，偏移范围在 [-maxAngle, +maxAngle]
+    f64 angleOffset = (2.0 * rng.nextDouble() - 1.0) * maxAngle;
+    f64 actualAngle = baseAngle + angleOffset;
+
+    // 使用 sqrt 分布生成距离，确保均匀覆盖面积
+    f64 distance = math::lerp(std::sqrt(rng.nextDouble()), minRange, maxRange) * SQRT_OF_TWO;
+
+    // 从角度和距离计算水平偏移
+    f64 offsetX = -distance * std::sin(actualAngle);
+    f64 offsetZ = distance * std::cos(actualAngle);
+
+    // 检查水平偏移是否超出范围
+    if (std::abs(offsetX) > maxRange || std::abs(offsetZ) > maxRange) {
+        return std::nullopt;
+    }
+
+    // 随机垂直偏移
+    i32 offsetY = rng.nextInt(2 * verticalRange + 1) - verticalRange + yOffset;
+
+    return BlockPos(static_cast<i32>(std::floor(offsetX)), offsetY, static_cast<i32>(std::floor(offsetZ)));
+}
+
+BlockPos RandomPositionGenerator::generatePosTowardDirection(
+    CreatureEntity* creature, f64 range, bool isRestricted, const BlockPos& offset)
+{
+    math::Random& rng = creature->getRandom();
+
+    f64 offsetX = static_cast<f64>(offset.x);
+    f64 offsetZ = static_cast<f64>(offset.z);
+
+    // 如果实体有家区域约束，将位置拉向家方向
+    if (isRestricted && range > 1.0) {
+        BlockPos homePos = creature->homePosition();
+        if (creature->x() > static_cast<f64>(homePos.x)) {
+            offsetX -= rng.nextDouble() * range / 2.0;
+        } else {
+            offsetX += rng.nextDouble() * range / 2.0;
+        }
+        if (creature->z() > static_cast<f64>(homePos.z)) {
+            offsetZ -= rng.nextDouble() * range / 2.0;
+        } else {
+            offsetZ += rng.nextDouble() * range / 2.0;
+        }
+    }
+
+    // 加上实体当前位置
+    return BlockPos(static_cast<i32>(std::floor(offsetX + creature->x())),
+        offset.y + static_cast<i32>(std::floor(creature->y())),
+        static_cast<i32>(std::floor(offsetZ + creature->z())));
+}
+
+BlockPos RandomPositionGenerator::moveUpOutOfSolid(
+    const BlockPos& pos, i32 maxY, const std::function<bool(const BlockPos&)>& isSolid)
+{
+    // 如果起始位置不是固体，直接返回
+    if (!isSolid(pos)) {
+        return pos;
+    }
+
+    // 向上移动直到找到非固体方块或到达 maxY
+    i32 x = pos.x;
+    i32 y = pos.y + 1;
+    i32 z = pos.z;
+
+    while (y <= maxY) {
+        BlockPos current(x, y, z);
+        if (!isSolid(current)) {
+            return current;
+        }
+        ++y;
+    }
+
+    // 如果到达 maxY 仍在固体中，返回 maxY 位置
+    return BlockPos(x, maxY, z);
+}
+
+BlockPos RandomPositionGenerator::moveUpToAboveSolid(
+    const BlockPos& pos, i32 aboveSolidAmount, i32 maxY, const std::function<bool(const BlockPos&)>& isSolid)
+{
+    MC_ASSERT_RELEASE(aboveSolidAmount >= 0);
+
+    // 如果起始位置不是固体，直接返回
+    if (!isSolid(pos)) {
+        return pos;
+    }
+
+    // 第一阶段：向上移动直到离开固体方块
+    i32 x = pos.x;
+    i32 y = pos.y + 1;
+    i32 z = pos.z;
+
+    while (y <= maxY && isSolid(BlockPos(x, y, z))) {
+        ++y;
+    }
+
+    // 记录第一个非固体方块的 Y 坐标
+    i32 firstAirY = y;
+
+    // 第二阶段：继续向上移动 aboveSolidAmount 格
+    for (i32 i = 0; i < aboveSolidAmount && y <= maxY; ++i) {
+        ++y;
+        if (isSolid(BlockPos(x, y, z))) {
+            // 遇到固体方块，回退一格
+            --y;
+            break;
+        }
+    }
+
+    return BlockPos(x, y, z);
+}
+
+bool RandomPositionGenerator::isSolidAt(CreatureEntity* creature, const BlockPos& pos)
+{
+    IWorld* world = creature->world();
+    if (!world) return false;
+
+    const BlockState* state = world->getBlockState(pos);
+    return state != nullptr && state->isSolid();
+}
+
+bool RandomPositionGenerator::isWaterAt(CreatureEntity* creature, const BlockPos& pos)
+{
+    IWorld* world = creature->world();
+    if (!world) return false;
+
+    return world->isWaterAt(pos.x, pos.y, pos.z);
+}
+
+bool RandomPositionGenerator::hasPathfindingMalus(CreatureEntity* creature, const BlockPos& pos)
+{
+    // 检查实体在该位置的寻路惩罚值是否非零
+    // 对应 MC 的 GoalUtils.hasMalus：检查路径类型的惩罚值
+    f32 pathWeight = creature->getPathWeight(
+        static_cast<f32>(pos.x) + 0.5f, static_cast<f32>(pos.y), static_cast<f32>(pos.z) + 0.5f);
+    // getPathWeight 对于危险位置（岩浆等）返回负值或很低的值
+    // 对于蜜蜂等飞行实体，空气位置返回较高值
+    // 惩罚值非零意味着该位置不理想
+    // 使用与 calculatePositionScore 类似的逻辑：岩浆位置视为有惩罚
+    IWorld* world = creature->world();
+    if (world && (world->isLavaAt(pos.x, pos.y, pos.z) || world->isLavaAt(pos.x, pos.y - 1, pos.z))) {
+        return true;
+    }
+    return false;
+}
+
+bool RandomPositionGenerator::isMobRestricted(CreatureEntity* creature, f64 range)
+{
+    if (!creature->hasHome()) {
+        return false;
+    }
+    BlockPos home = creature->homePosition();
+    f64 dx = creature->x() - static_cast<f64>(home.x);
+    f64 dy = creature->y() - static_cast<f64>(home.y);
+    f64 dz = creature->z() - static_cast<f64>(home.z);
+    f64 distSq = dx * dx + dy * dy + dz * dz;
+    f64 homeRadius = static_cast<f64>(creature->maximumHomeDistance());
+    f64 threshold = homeRadius + range + 1.0;
+    return distSq < threshold * threshold;
+}
+
+bool RandomPositionGenerator::isOutsideBuildHeight(CreatureEntity* creature, const BlockPos& pos)
+{
+    IWorld* world = creature->world();
+    if (!world) return true;
+    return pos.y < world->getMinBuildHeight() || pos.y >= world->getMaxBuildHeight();
 }
 
 } // namespace mc::entity::ai::util

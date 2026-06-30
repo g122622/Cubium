@@ -25,6 +25,8 @@
 
 #include "../../../core/Types.hpp"
 #include "../../../util/math/Vector3.hpp"
+#include "../../../util/math/random/Random.hpp"
+#include "../../../world/block/BlockPos.hpp"
 #include <functional>
 #include <optional>
 
@@ -33,7 +35,6 @@ namespace mc {
 // 前向声明
 class CreatureEntity;
 class LivingEntity;
-class BlockPos;
 class IWorld;
 
 namespace entity::ai::util {
@@ -187,6 +188,94 @@ public:
     static bool findRandomTargetBlockTowards(
         CreatureEntity* creature, i32 xzRange, i32 yRange, const Vector3& targetPos, Vector3& outPos);
 
+    // ==================== 飞行位置生成方法 ====================
+
+    /**
+     * @brief 生成悬停位置（在固体方块上方指定高度范围内）
+     *
+     * 对应 MC 1.21.11 的 HoverRandomPos.getPos。
+     * 生成一个随机的空中位置，确保该位置在固体方块上方 minAboveSolid~maxAboveSolid 格范围内。
+     * 用于蜜蜂、鹦鹉等飞行实体的悬停漫游目标选择。
+     *
+     * 算法流程：
+     * 1. 在指定方向的角度范围内生成随机方向偏移
+     * 2. 将偏移转换为世界坐标，并检查是否在可行范围内
+     * 3. 将位置向上移动到固体方块上方指定高度
+     * 4. 排除在水中或有寻路惩罚的位置
+     * 5. 从10次尝试中选择评分最高的位置
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param xDir 方向向量的X分量（归一化）
+     * @param zDir 方向向量的Z分量（归一化）
+     * @param maxAngle 最大角度偏移（弧度，PI/2 表示左右各90度）
+     * @param maxAboveSolid 固体方块上方最大格数
+     * @param minAboveSolid 固体方块上方最小格数
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findHoverPosition(CreatureEntity* creature,
+        i32 xzRange,
+        i32 yRange,
+        f64 xDir,
+        f64 zDir,
+        f32 maxAngle,
+        i32 maxAboveSolid,
+        i32 minAboveSolid,
+        Vector3& outPos);
+
+    /**
+     * @brief 生成空中或水中位置
+     *
+     * 对应 MC 1.21.11 的 AirAndWaterRandomPos.getPos。
+     * 生成一个随机的空中位置，如果起始位置在固体方块内部，则向上移出固体方块。
+     * 不排除水中位置（与 findAirPositionTowards 不同）。
+     * 用于蜜蜂等飞行实体的悬停位置回退选择。
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param yOffset Y轴额外偏移
+     * @param xDir 方向向量的X分量（归一化）
+     * @param zDir 方向向量的Z分量（归一化）
+     * @param maxAngle 最大角度偏移（弧度）
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findAirAndWaterPosition(CreatureEntity* creature,
+        i32 xzRange,
+        i32 yRange,
+        i32 yOffset,
+        f64 xDir,
+        f64 zDir,
+        f32 maxAngle,
+        Vector3& outPos);
+
+    /**
+     * @brief 生成朝向目标的空中位置
+     *
+     * 对应 MC 1.21.11 的 AirRandomPos.getPosTowards。
+     * 生成一个朝向目标方向的随机空中位置，排除水中位置。
+     * 用于蜜蜂飞向蜂巢/花朵时的中间导航点选择。
+     *
+     * @param creature 生物实体
+     * @param xzRange 水平搜索范围（格）
+     * @param yRange 垂直搜索范围（格）
+     * @param yOffset Y轴额外偏移
+     * @param targetPos 目标位置
+     * @param maxAngle 最大角度偏移（弧度，PI/10 表示左右各9度）
+     * @param[out] outPos 输出位置
+     * @return 是否找到有效位置
+     */
+    static bool findAirPositionTowards(CreatureEntity* creature,
+        i32 xzRange,
+        i32 yRange,
+        i32 yOffset,
+        const Vector3& targetPos,
+        f32 maxAngle,
+        Vector3& outPos);
+
     // ==================== 辅助方法 ====================
 
     /**
@@ -226,9 +315,106 @@ public:
 
 private:
     // 常量
-    static constexpr i32 MAX_ATTEMPTS = 10;       // 最大尝试次数
-    static constexpr i32 MAX_GROUND_SEARCH = 10;  // 地面搜索最大高度差
-    static constexpr f32 MIN_DISTANCE_SQ = 2.25f; // 最小距离平方（1.5格）
+    static constexpr i32 MAX_ATTEMPTS = 10;                // 最大尝试次数
+    static constexpr i32 MAX_GROUND_SEARCH = 10;           // 地面搜索最大高度差
+    static constexpr f32 MIN_DISTANCE_SQ = 2.25f;          // 最小距离平方（1.5格）
+    static constexpr f64 SQRT_OF_TWO = 1.4142135623730951; // sqrt(2)
+
+    /**
+     * @brief 在指定角度范围内生成随机方向偏移
+     *
+     * 对应 MC 的 RandomPos.generateRandomDirectionWithinRadians。
+     * 生成一个在 [xDir, zDir] 方向的 maxAngle 弧度范围内的随机方向偏移。
+     * 距离使用 sqrt 分布以实现均匀的面积覆盖。
+     *
+     * @param rng 随机数生成器
+     * @param minRange 最小距离（通常为0）
+     * @param maxRange 最大水平距离
+     * @param verticalRange 垂直偏移范围
+     * @param yOffset 固定Y偏移
+     * @param xDir 方向向量X分量
+     * @param zDir 方向向量Z分量
+     * @param maxAngle 最大角度偏移（弧度）
+     * @return 随机偏移的 BlockPos，如果超出范围则返回 nullopt
+     */
+    static std::optional<BlockPos> generateRandomDirectionWithinRadians(math::Random& rng,
+        f64 minRange,
+        f64 maxRange,
+        i32 verticalRange,
+        i32 yOffset,
+        f64 xDir,
+        f64 zDir,
+        f64 maxAngle);
+
+    /**
+     * @brief 将随机偏移转换为世界坐标并施加家区域约束
+     *
+     * 对应 MC 的 RandomPos.generateRandomPosTowardDirection。
+     * 将相对偏移加上实体当前位置，若实体有家区域则将位置拉向家区域。
+     *
+     * @param creature 生物实体
+     * @param range 搜索范围（用于家区域偏移计算）
+     * @param isRestricted 是否受家区域约束
+     * @param offset 相对偏移
+     * @return 绝对世界坐标的 BlockPos
+     */
+    static BlockPos generatePosTowardDirection(
+        CreatureEntity* creature, f64 range, bool isRestricted, const BlockPos& offset);
+
+    /**
+     * @brief 将位置向上移出固体方块
+     *
+     * 对应 MC 的 RandomPos.moveUpOutOfSolid。
+     * 如果起始位置在固体方块内，向上移动直到找到非固体方块或到达 maxY。
+     *
+     * @param pos 起始位置
+     * @param maxY 世界最大Y坐标
+     * @param isSolid 判断方块是否固体的谓词
+     * @return 移动后的位置
+     */
+    static BlockPos moveUpOutOfSolid(
+        const BlockPos& pos, i32 maxY, const std::function<bool(const BlockPos&)>& isSolid);
+
+    /**
+     * @brief 将位置向上移到固体方块上方指定高度
+     *
+     * 对应 MC 的 RandomPos.moveUpToAboveSolid。
+     * 如果起始位置在固体方块内，先向上移出固体，然后继续向上移动 aboveSolidAmount 格。
+     * 如果在额外上升过程中遇到固体方块，则回退一格。
+     *
+     * @param pos 起始位置
+     * @param aboveSolidAmount 需要在固体方块上方的格数
+     * @param maxY 世界最大Y坐标
+     * @param isSolid 判断方块是否固体的谓词
+     * @return 移动后的位置
+     */
+    static BlockPos moveUpToAboveSolid(
+        const BlockPos& pos, i32 aboveSolidAmount, i32 maxY, const std::function<bool(const BlockPos&)>& isSolid);
+
+    /**
+     * @brief 检查方块位置是否为固体
+     */
+    static bool isSolidAt(CreatureEntity* creature, const BlockPos& pos);
+
+    /**
+     * @brief 检查方块位置是否为水
+     */
+    static bool isWaterAt(CreatureEntity* creature, const BlockPos& pos);
+
+    /**
+     * @brief 检查位置是否有寻路惩罚
+     */
+    static bool hasPathfindingMalus(CreatureEntity* creature, const BlockPos& pos);
+
+    /**
+     * @brief 检查实体是否受家区域约束
+     */
+    static bool isMobRestricted(CreatureEntity* creature, f64 range);
+
+    /**
+     * @brief 检查位置是否超出建造高度
+     */
+    static bool isOutsideBuildHeight(CreatureEntity* creature, const BlockPos& pos);
 
     /**
      * @brief 生成随机偏移

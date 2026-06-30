@@ -329,12 +329,13 @@ private:
 
     BeeEntity* m_bee;
 
-    static constexpr f32 WANDER_RANGE = 8.0f;          ///< 漫游范围（回退时使用）
-    static constexpr f32 WANDER_HEIGHT = 7.0f;         ///< 漫游高度范围（回退时使用）
-    static constexpr i32 XZ_RANGE = 8;                 ///< RandomPositionGenerator 水平搜索范围
-    static constexpr i32 Y_RANGE = 7;                  ///< RandomPositionGenerator 垂直搜索范围
-    static constexpr f32 HIVE_RETURN_DISTANCE = 22.0f; ///< 触发返回蜂巢的距离
-    static constexpr i32 WANDER_CHANCE = 10;           ///< 漫游概率倒数
+    static constexpr f32 WANDER_RANGE = 8.0f;    ///< 漫游范围（回退时使用）
+    static constexpr f32 WANDER_HEIGHT = 7.0f;   ///< 漫游高度范围（回退时使用）
+    static constexpr i32 XZ_RANGE = 8;           ///< HoverRandomPos 水平搜索范围
+    static constexpr i32 Y_RANGE = 7;            ///< HoverRandomPos 垂直搜索范围
+    static constexpr i32 Y_RANGE_FALLBACK = 4;   ///< AirAndWaterRandomPos 垂直搜索范围（备选策略）
+    static constexpr i32 Y_OFFSET_FALLBACK = -2; ///< AirAndWaterRandomPos Y轴偏移（备选策略）
+    static constexpr i32 WANDER_CHANCE = 10;     ///< 漫游概率倒数
 };
 
 // ============================================================================

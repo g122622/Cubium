@@ -27,6 +27,7 @@
 #include "common/entity/ai/util/RandomPositionGenerator.hpp"
 #include "common/entity/core/CreatureEntity.hpp"
 #include "common/util/assert/AssertMacros.hpp"
+#include "common/util/math/MathConstants.hpp"
 #include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -119,16 +120,42 @@ void WaterAvoidingRandomFlyingGoal::tick()
 
 bool WaterAvoidingRandomFlyingGoal::getRandomPosition()
 {
-    // 尝试多次找到不在水中的位置
+    // 对应 MC 1.21.11 WaterAvoidingRandomFlyingGoal.getPosition()
+    // 使用实体朝向作为飞行方向
+    f32 yaw = m_creature->yaw() * math::DEG_TO_RAD;
+    f64 dirX = -std::sin(static_cast<f64>(yaw));
+    f64 dirZ = std::cos(static_cast<f64>(yaw));
+
+    // 主策略：HoverRandomPos（在固体方块上方悬停）
+    Vector3 targetPos;
+    if (util::RandomPositionGenerator::findHoverPosition(
+            m_creature, XZ_RANGE, Y_RANGE_HOVER, dirX, dirZ, math::HALF_PI, 3, 1, targetPos)) {
+        if (!isInWaterOrLava(targetPos.x, targetPos.y, targetPos.z)) {
+            m_targetX = targetPos.x;
+            m_targetY = targetPos.y;
+            m_targetZ = targetPos.z;
+            return true;
+        }
+    }
+
+    // 备选策略：AirAndWaterRandomPos（在空中选择位置）
+    if (util::RandomPositionGenerator::findAirAndWaterPosition(
+            m_creature, XZ_RANGE, Y_RANGE_FALLBACK, Y_OFFSET_FALLBACK, dirX, dirZ, math::HALF_PI, targetPos)) {
+        if (!isInWaterOrLava(targetPos.x, targetPos.y, targetPos.z)) {
+            m_targetX = targetPos.x;
+            m_targetY = targetPos.y;
+            m_targetZ = targetPos.z;
+            return true;
+        }
+    }
+
+    // 最终回退：使用简单的随机飞行目标搜索
     for (i32 attempt = 0; attempt < 10; ++attempt) {
-        // 使用 RandomPositionGenerator 获取随机位置
-        Vector3 targetPos;
         if (!util::RandomPositionGenerator::findRandomTargetBlock(
-                m_creature, XZ_RANGE, Y_RANGE, std::nullopt, targetPos)) {
+                m_creature, XZ_RANGE, Y_RANGE_FALLBACK, std::nullopt, targetPos)) {
             continue;
         }
 
-        // 检查位置是否在水或岩浆中
         if (isInWaterOrLava(targetPos.x, targetPos.y, targetPos.z)) {
             continue;
         }

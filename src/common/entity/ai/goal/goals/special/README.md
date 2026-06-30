@@ -352,14 +352,11 @@ if (targetPlayer != nullptr && (targetPlayer->isCreative() || targetPlayer->isSp
 
             ## #19. 蜜蜂漫游目标的智能位置生成
 
-                ** 问题**：蜜蜂漫游使用简单随机偏移，导致飞行路径不自然，且远离蜂巢时不会回飞。
-
-                    ** 解决**：`BeeWanderGoal` 使用 `RandomPositionGenerator` 生成飞行位置：
-        - 在蜂巢附近（ <
-    22格）：使用 `RandomPositionGenerator::getLandBasedPos()` 随机漫游 - 远离蜂巢时：生成偏向蜂巢方向的飞行目标
-        - `_isValidLocation()` 检查目标位置下方是否有实心方块（避免飞入虚空） -
-        **注意**：当前 `findAirTarget` 使用 `RandomPositionGenerator::getLandBasedPos()` 近似实现，MC
-            原版蜜蜂使用专用的空中位置搜索算法，未来应替换为更精确的实现（已留 TODO）
+                **解决**：`BeeWanderGoal` 使用 MC 1.21.11 对应的空中位置算法生成飞行位置：
+        - 主策略：`RandomPositionGenerator::findHoverPosition()` 对应 `HoverRandomPos.getPos`，在固体方块上方1~3格范围内选择悬停位置，确保有足够空气空间
+        - 备选策略：`RandomPositionGenerator::findAirAndWaterPosition()` 对应 `AirAndWaterRandomPos.getPos`，向上移出固体方块即可
+        - 方向偏好：离蜂巢超过阈值时飞回蜂巢方向，否则使用朝向；阈值计算对应 MC 的 `getWanderThreshold()`
+        - `WaterAvoidingRandomFlyingGoal` 同样使用 `findHoverPosition` + `findAirAndWaterPosition` 替代原来的 `findRandomTargetBlock`
 
             ## #20. 幻术师法术 CASTING_TIME 必须为 20
 

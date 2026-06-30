@@ -939,63 +939,70 @@ math::Vector3f BeeWanderGoal::_getRandomLocation()
         return math::Vector3f(static_cast<f32>(m_bee->x()), static_cast<f32>(m_bee->y()), static_cast<f32>(m_bee->z()));
     }
 
-    // 确定飞行方向偏好：如果离蜂巢太远则飞回蜂巢方向，否则使用朝向
-    math::Vector3f directionBias(0.0f, 0.0f, 0.0f);
+    // 对应 MC 1.21.11 Bee.WanderGoal.findPos()
+    // 方向选择：如果离蜂巢太远则飞回蜂巢方向，否则使用朝向
+    f64 dirX = 0.0;
+    f64 dirZ = 0.0;
 
     if (m_bee->hasHive()) {
         BlockPos hivePos = m_bee->getHivePos();
-        f64 distSq =
-            (m_bee->x() - hivePos.x) * (m_bee->x() - hivePos.x) + (m_bee->z() - hivePos.z) * (m_bee->z() - hivePos.z);
+        f64 dx = m_bee->x() - static_cast<f64>(hivePos.x);
+        f64 dz = m_bee->z() - static_cast<f64>(hivePos.z);
+        f64 distSq = dx * dx + dz * dz;
 
-        if (distSq > static_cast<f64>(HIVE_RETURN_DISTANCE * HIVE_RETURN_DISTANCE)) {
-            // 飞回蜂巢方向
-            directionBias = math::Vector3f(
-                static_cast<f32>(hivePos.x + 0.5 - m_bee->x()), 0.0f, static_cast<f32>(hivePos.z + 0.5 - m_bee->z()));
-            f32 len = directionBias.length();
-            if (len > 0.001f) {
-                directionBias = directionBias / len;
+        // 对应 MC 1.21.11 Bee.WanderGoal.getWanderThreshold()
+        // 有蜂巢/花朵时阈值=24格，无时阈值=32格
+        i32 wanderThreshold = m_bee->hasFlower() ? 24 : 32;
+        f64 thresholdSq = static_cast<f64>(wanderThreshold * wanderThreshold);
+
+        if (distSq > thresholdSq) {
+            // 飞回蜂巢方向（归一化）
+            f64 hiveCenterX = static_cast<f64>(hivePos.x) + 0.5;
+            f64 hiveCenterZ = static_cast<f64>(hivePos.z) + 0.5;
+            f64 toHiveX = hiveCenterX - m_bee->x();
+            f64 toHiveZ = hiveCenterZ - m_bee->z();
+            f64 len = std::sqrt(toHiveX * toHiveX + toHiveZ * toHiveZ);
+            if (len > 0.001) {
+                dirX = toHiveX / len;
+                dirZ = toHiveZ / len;
             }
         }
     }
 
-    if (directionBias.lengthSquared() < 0.01f) {
+    if (dirX * dirX + dirZ * dirZ < 0.01) {
         // 使用蜜蜂朝向作为飞行方向
         f32 yaw = m_bee->yaw() * math::DEG_TO_RAD;
-        directionBias = math::Vector3f(-std::sin(yaw), 0.0f, std::cos(yaw));
+        dirX = -std::sin(yaw);
+        dirZ = std::cos(yaw);
     }
 
-    // 蜜蜂是飞行实体，使用 findRandomTargetBlock（不要求可行走，适合飞行目标）
-    // 参考 MC 的 Bee.WanderGoal.getRandomLocation()
-    // TODO: MC 1.16.5 使用 RandomPositionGenerator.findAirTarget，MC 1.21.11 使用 HoverRandomPos.getPos，
-    // 两者都确保目标位置在固体方块上方且有足够的空气空间。当前使用 findRandomTargetBlock 作为近似，
-    // 待实现 findAirTarget / HoverRandomPos 后替换，以实现更精确的空中悬停目标选择。
+    // 主策略：使用 HoverRandomPos 算法
+    // 在固体方块上方 1~3 格范围内选择悬停位置，确保有足够空气空间
+    // 对应 MC 1.21.11 HoverRandomPos.getPos(bee, 8, 7, dirX, dirZ, PI/2, 3, 1)
     {
-        math::Vector3f targetPos;
-        bool found = false;
-
-        // 如果有方向偏好，优先向该方向搜索
-        if (directionBias.lengthSquared() > 0.01f) {
-            math::Vector3f searchTarget = m_bee->position() + directionBias * static_cast<f32>(XZ_RANGE);
-            found = ai::util::RandomPositionGenerator::findRandomTargetBlockTowards(
-                m_bee, XZ_RANGE, Y_RANGE, searchTarget, targetPos);
-        }
-
-        // 如果方向搜索失败，尝试无方向搜索
-        if (!found) {
-            found = ai::util::RandomPositionGenerator::findRandomTargetBlock(
-                m_bee, XZ_RANGE, Y_RANGE, std::nullopt, targetPos);
-        }
-
-        if (found) {
-            return targetPos;
+        Vector3 targetPos;
+        if (ai::util::RandomPositionGenerator::findHoverPosition(
+                m_bee, XZ_RANGE, Y_RANGE, dirX, dirZ, math::HALF_PI, 3, 1, targetPos)) {
+            return math::Vector3f(targetPos.x, targetPos.y, targetPos.z);
         }
     }
 
-    // 回退：使用简化随机位置
+    // 备选策略：使用 AirAndWaterRandomPos 算法
+    // 在空中选择位置（仅移出固体方块，不要求在固体上方特定高度）
+    // 对应 MC 1.21.11 AirAndWaterRandomPos.getPos(bee, 8, 4, -2, dirX, dirZ, PI/2)
+    {
+        Vector3 targetPos;
+        if (ai::util::RandomPositionGenerator::findAirAndWaterPosition(
+                m_bee, XZ_RANGE, Y_RANGE_FALLBACK, Y_OFFSET_FALLBACK, dirX, dirZ, math::HALF_PI, targetPos)) {
+            return math::Vector3f(targetPos.x, targetPos.y, targetPos.z);
+        }
+    }
+
+    // 最终回退：简单随机偏移
     math::Random& rng = world->getRandom();
-    f64 targetX = m_bee->x() + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + directionBias.x * WANDER_RANGE;
+    f64 targetX = m_bee->x() + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + dirX * WANDER_RANGE;
     f64 targetY = m_bee->y() + (rng.nextDouble() * WANDER_HEIGHT * 2 - WANDER_HEIGHT);
-    f64 targetZ = m_bee->z() + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + directionBias.z * WANDER_RANGE;
+    f64 targetZ = m_bee->z() + (rng.nextDouble() * WANDER_RANGE * 2 - WANDER_RANGE) + dirZ * WANDER_RANGE;
 
     return math::Vector3f(static_cast<f32>(targetX), static_cast<f32>(targetY), static_cast<f32>(targetZ));
 }

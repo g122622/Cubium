@@ -71,3 +71,19 @@ util/
 **问题**：`findRandomTargetTowards` 的 targetPos 是零向量时方向偏好无效。
 
 **注意**：传入零向量或非常短的向量会被视为无方向偏好，等同于 `findRandomTarget`。
+
+### 6. 飞行位置生成方法的选择
+
+**问题**：混淆三种飞行位置方法导致飞行行为不自然。
+
+**区别**：
+- `findHoverPosition` - 对应 MC HoverRandomPos，确保位置在固体方块上方1~3格，适合蜜蜂、鹦鹉等悬停实体
+- `findAirAndWaterPosition` - 对应 MC AirAndWaterRandomPos，仅移出固体方块，适合作为回退方案
+- `findAirPositionTowards` - 对应 MC AirRandomPos，朝向目标方向的空中位置，排除水中位置，适合蜜蜂飞向蜂巢/花朵
+- `findRandomTargetBlock` - 不检查是否在固体上方，是最简单的飞行位置选择，效果最差
+
+### 7. 零向量方向参数
+
+**问题**：`findHoverPosition` 和 `findAirAndWaterPosition` 的 xDir/zDir 为零向量时，角度计算结果不确定。
+
+**注意**：调用者应确保方向向量非零（如使用实体朝向作为方向），否则行为不可预测。

@@ -95,9 +95,11 @@ protected:
     bool m_isRunning = false;
 
     // 常量
-    static constexpr i32 MAX_TIMEOUT = 600; // 最大飞行时间（30秒）
-    static constexpr i32 XZ_RANGE = 8;      // 水平搜索范围
-    static constexpr i32 Y_RANGE = 4;       // 垂直搜索范围
+    static constexpr i32 MAX_TIMEOUT = 600;      // 最大飞行时间（30秒）
+    static constexpr i32 XZ_RANGE = 8;           // 水平搜索范围
+    static constexpr i32 Y_RANGE_HOVER = 7;      ///< HoverRandomPos 垂直搜索范围
+    static constexpr i32 Y_RANGE_FALLBACK = 4;   ///< AirAndWaterRandomPos 垂直搜索范围（备选策略）
+    static constexpr i32 Y_OFFSET_FALLBACK = -2; ///< AirAndWaterRandomPos Y轴偏移（备选策略）
 };
 
 } // namespace entity::ai::goal
