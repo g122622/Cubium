@@ -200,8 +200,10 @@ public:
 
     /**
      * @brief 检查是否是观察者模式
+     *
+     * 重写 Entity::isSpectator()，返回实际的旁观者模式状态。
      */
-    [[nodiscard]] bool isSpectator() const { return entity::GameModeUtils::isSpectator(m_gameMode); }
+    [[nodiscard]] bool isSpectator() const override { return entity::GameModeUtils::isSpectator(m_gameMode); }
 
     /**
      * @brief 弹射物是否可命中此玩家

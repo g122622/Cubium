@@ -1807,11 +1807,11 @@ void Player::_applyWindBurstEffect(i32 windBurstLevel)
         // 玩家特殊处理：旁观者和创造模式飞行者不受击退
         Player* player = dynamic_cast<Player*>(entity);
         if (player != nullptr) {
-            if (entity::GameModeUtils::isSpectator(player->gameMode())) {
+            if (player->isSpectator()) {
                 continue;
             }
             const PlayerAbilities& abilities = player->abilities();
-            if (entity::GameModeUtils::isCreative(player->gameMode()) && abilities.flying) {
+            if (player->isCreative() && abilities.flying) {
                 continue;
             }
         }
@@ -2037,7 +2037,7 @@ void Player::updatePose()
     EntityPose targetPose = EntityPose::Standing;
 
     // 检查是否是旁观者模式
-    bool isSpectatorMode = entity::GameModeUtils::isSpectator(m_gameMode);
+    bool isSpectatorMode = isSpectator();
     // 检查是否正在骑乘
     bool isRidingVehicle = isRiding();
 

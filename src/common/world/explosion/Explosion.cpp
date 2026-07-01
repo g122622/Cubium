@@ -27,7 +27,6 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/misc/MiscEntities.hpp"
-#include "common/entity/entities/player/GameModeUtils.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
@@ -363,12 +362,12 @@ void Explosion::_calculateAffectedEntities()
             Player* player = dynamic_cast<Player*>(entity);
             if (player) {
                 // 观察者模式不受击退
-                if (entity::GameModeUtils::isSpectator(player->gameMode())) {
+                if (player->isSpectator()) {
                     continue;
                 }
                 // 创造模式飞行中不受击退
                 const PlayerAbilities& abilities = player->abilities();
-                if (entity::GameModeUtils::isCreative(player->gameMode()) && abilities.flying) {
+                if (player->isCreative() && abilities.flying) {
                     continue;
                 }
                 m_playerKnockback[player->id()] = Vector3(dx * impact, dy * impact, dz * impact);

@@ -2206,6 +2206,17 @@ public:
     [[nodiscard]] virtual bool isSneaking() const { return false; }
 
     /**
+     * @brief 检查实体是否处于旁观者模式
+     *
+     * 基类默认返回 false。Player 类重写此方法返回实际的旁观者模式状态。
+     * 旁观者模式下的实体不可被弹射物命中、不可冰冻、不可被推挤等。
+     * 参考: net.minecraft.world.entity.Entity.isSpectator()
+     *
+     * @return 如果实体处于旁观者模式返回 true
+     */
+    [[nodiscard]] virtual bool isSpectator() const { return false; }
+
+    /**
      * @brief 检查实体是否小心行走（潜行状态）
      *
      * 小心行走的实体不会触发 onEntityWalk 回调。
