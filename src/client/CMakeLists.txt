@@ -422,6 +422,7 @@ add_executable(minecraft-client
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
+    ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/SingleChunkLifecycleManager.cpp
     ${CMAKE_SOURCE_DIR}/src/server/world/spawn/SpawnConditions.cpp

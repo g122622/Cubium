@@ -30,6 +30,7 @@ add_executable(minecraft-server
     world/ServerWorld.cpp
     world/ChunkTaskScheduler.cpp
     world/ChunkProgressionTask.cpp
+    world/ChunkLightingProvider.cpp
     world/ServerChunkManager.cpp
     world/SingleChunkLifecycleManager.cpp
     world/drop/BlockDropHandler.cpp

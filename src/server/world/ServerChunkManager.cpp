@@ -22,6 +22,7 @@
  */
 
 #include "ServerChunkManager.hpp"
+#include "ChunkLightingProvider.hpp"
 #include "ChunkTaskScheduler.hpp"
 #include "ServerWorld.hpp"
 #include "common/perfetto/TraceEvents.hpp"
@@ -29,10 +30,12 @@
 #include "common/world/WorldConstants.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/chunk/base/SectionPos.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/Fluid.hpp"
+#include "common/world/lighting/manager/WorldLightManager.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
 #include "server/sync/ChunkSendManager.hpp"
 #include <algorithm>
@@ -525,9 +528,46 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
         chunk.primeHeightmaps(HeightmapFlag::POST_FEATURES);
         m_generator->placeFeatures(region, chunk);
     } else if (status == ChunkStatuses::INITIALIZE_LIGHT) {
-        chunk.initializeLightSources();
+        // INITIALIZE_LIGHT 为空操作。
+        // 光源收集由 BlockStarLightEngine::_getSources 在 LIGHT 阶段完成，
+        // initializeLightSources 写入的 ChunkSection nibble 不被 StarLight 引擎读取（冗余）。
     } else if (status == ChunkStatuses::LIGHT) {
-        // 光照传播由光照引擎异步处理，此处标记状态
+        // 在 worker 线程执行光照计算（LIGHT 阶段管线内完成，区块推进到 SPAWN 前光照就绪）。
+        // 光照针对 primer 底层 ChunkData（ChunkPrimer 未重写光照 nibble 接口）。
+        // markLightChanged 由 ChunkLightingProvider 吞掉（区块尚未发布，网络回写无效且非线程安全）；
+        // light() 已通过 setNibbles 将结果写入 ChunkData 的 SWMRNibbleArray。
+        ServerWorld* world = m_world;
+        WorldLightManager* lightManager = (world != nullptr) ? world->lightManager() : nullptr;
+        if (lightManager == nullptr) {
+            return;
+        }
+
+        ChunkData* chunkData = chunk.getChunkData();
+        const ChunkCoord chunkX = chunk.x();
+        const ChunkCoord chunkZ = chunk.z();
+
+        // 计算空区块段标记，更新空映射与区块段状态（与 LightSyncManager::initializeChunkLighting 的 else 分支一致）。
+        // updateEmptinessMap / updateSectionStatus / lightChunk 均经 WorldLightManager::m_mutex 串行化，
+        // 保证 worker 线程与主线程 tick/checkBlock 不并发修改引擎状态。
+        const ChunkSection* const* sections = chunkData->getSections();
+        constexpr i32 sectionCount = world::CHUNK_SECTIONS;
+        for (i32 sectionY = 0; sectionY < sectionCount; ++sectionY) {
+            const ChunkSection* section = (sections != nullptr) ? sections[static_cast<size_t>(sectionY)] : nullptr;
+            const bool isEmpty = (section == nullptr || section->isEmpty());
+            SectionPos sectionPos(chunkX, world::sectionIndexToCoord(sectionY), chunkZ);
+            lightManager->updateSectionStatus(sectionPos, isEmpty);
+        }
+
+        // 更新方块光引擎空映射（经 WorldLightManager 加锁；仅方块光有空映射）
+        lightManager->updateEmptinessMap(chunkX, chunkZ, chunkData);
+
+        // 构造光照提供者：中心+半径1邻居经 WorldGenRegion 取 ChunkPrimer 底层 ChunkData，
+        // 半径2邻居 fallback 到 ServerWorld::getChunkForLight。
+        ChunkLightingProvider provider(*world, region, chunkX, chunkZ);
+
+        chunkData->setLightCorrect(false);
+        lightManager->lightChunk(&provider, chunkData, /*needsEdgeChecks=*/true);
+        chunkData->setLightCorrect(true);
     } else if (status == ChunkStatuses::SPAWN) {
         std::vector<SpawnedEntityData> entities;
         m_generator->spawnInitialMobs(region, chunk, entities);

@@ -1091,6 +1091,12 @@ void MinecraftServer::setupWorldCallbacks()
         }
 
         // 设置区块加载回调 - 当区块加载/生成完成时触发
+        // 注：onChunkLoaded（加载区块内实体）由调用方负责，不在此回调内调用：
+        //   - 存档加载路径：ServerChunkManager::_resolveChunkSourceSync 在 m_chunkLoadedCallback 之前
+        //     已直接调用 m_world->onChunkLoaded。
+        //   - 生成路径：ServerChunkManager::_drainPendingPostProcess 在 m_chunkLoadedCallback 之前
+        //     已直接调用 m_world->onChunkLoaded。
+        //   此回调仅做光照初始化与区块发送，重复调用 onChunkLoaded 会导致实体重复生成。
         world->chunkManager()->setChunkLoadedCallback([this, serverDim, world](ChunkCoord x, ChunkCoord z) {
             // 初始化区块光照
             if (auto* ls = serverDim->lightSyncManager()) {
@@ -1100,8 +1106,6 @@ void MinecraftServer::setupWorldCallbacks()
             if (auto* cs = serverDim->chunkSendManager()) {
                 cs->sendChunkToTrackingPlayers(x, z);
             }
-            // 从存储恢复区块内实体
-            world->onChunkLoaded(x, z);
         });
 
         // 设置区块卸载回调 - 当区块即将卸载时触发

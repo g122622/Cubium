@@ -344,15 +344,17 @@ std::vector<BlockPos> BlockStarLightEngine::_getSources(StarLightLightingProvide
 i32 BlockStarLightEngine::_getLightEmission(
     StarLightLightingProvider* lightAccess, const BlockState* state, i32 x, i32 y, i32 z) const
 {
+    MC_UNUSED(lightAccess);
+    MC_UNUSED(x);
+    MC_UNUSED(y);
+    MC_UNUSED(z);
+
     if (state == nullptr) {
         return 0;
     }
-    // 如果区块列未启用，方块不产生光照
-    i64 columnPos = (static_cast<i64>(x >> world::CHUNK_SHIFT) & 0x3FFFFFLL) << 42 |
-        (static_cast<i64>(z >> world::CHUNK_SHIFT) & 0x3FFFFFLL) << 20;
-    if (!isColumnEnabled(columnPos)) {
-        return 0;
-    }
+    // 方块光源始终按方块自身亮度发射，不受区块列启用状态门控。
+    // column-enable 仅用于天空光（SkyStarLightEngine::initNibble 控制未遮挡列填 15），
+    // 不应门控方块光——否则初始光照时 enableLightSources 尚未调用，所有方块光源发光为 0。
     return state->getBlock().getLightLevel(*state) & m_emittedLightMask;
 }
 
