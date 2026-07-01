@@ -189,6 +189,13 @@ void ServerChunkManager::shutdown()
 
     std::lock_guard<std::mutex> lock(m_chunksMutex);
     m_chunks.clear();
+
+    // 清理后处理队列与去重标记，避免 shutdown 后残留状态影响下次 initialize
+    {
+        std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
+        m_pendingPostProcess.clear();
+        m_postProcessedChunks.clear();
+    }
 }
 
 // ============================================================================
@@ -329,10 +336,20 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
         // 直接内联调用 onChunkLoaded/m_chunkLoadedCallback，无需入队延迟。
         ChunkData* stored = _storeChunkInMemorySync(x, z, std::move(loadedChunk));
         if (stored && m_world) {
-            m_world->onChunkLoaded(x, z);
-        }
-        if (m_chunkLoadedCallback && stored) {
-            m_chunkLoadedCallback(x, z);
+            // 去重：若 worker 存档加载路径（ChunkProgressionTask::executeEmptyLoad）已入队
+            // _enqueuePostProcess 并由 _drainPendingPostProcess 处理，则跳过，避免重复执行。
+            const u64 key = posToKey(x, z);
+            bool alreadyProcessed;
+            {
+                std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+                alreadyProcessed = !m_postProcessedChunks.insert(key).second;
+            }
+            if (!alreadyProcessed) {
+                m_world->onChunkLoaded(x, z);
+                if (m_chunkLoadedCallback) {
+                    m_chunkLoadedCallback(x, z);
+                }
+            }
         }
         return;
     }
@@ -459,9 +476,9 @@ void ServerChunkManager::_onTicketLevelChanged(ChunkCoord x, ChunkCoord z, i32 o
 
     // 票据级别降至卸载阈值以下：标记卸载意图，由 _checkChunkUnloading 安全卸载。
     //
-    // 对齐 Moonrise processTicketLevelUpdate + isSafeToUnload 语义：
-    //   - Moonrise 在 newUnloaded 时调用 cancelGenTask 取消生成任务，但 holder 仅在
-    //     isSafeToUnload（totalNeighboursUsingThisChunk==0 且无依赖图）时才真正卸载。
+    // 语义：
+    //   - 标记卸载意图时取消生成任务，但 holder 仅在 isSafeToUnload
+    //     （totalNeighboursUsingThisChunk==0 且无依赖图）时才真正卸载。
     //     被其他 holder 当作邻居使用或正在生成中的 holder 不会被取消/卸载，
     //     其生成由邻居的 checkNeighbour 按需驱动，完成后 _checkChunkUnloading 卸载。
     //
@@ -625,7 +642,7 @@ ChunkData* ServerChunkManager::_storeChunkInMemorySync(ChunkCoord x, ChunkCoord 
     // onChunkLoaded / m_chunkLoadedCallback 不在此调用：它们触及主线程独占的世界状态
     // （EntityManager、POI、光照、ChunkSendManager 等），_storeChunkInMemorySync 可能在 worker 线程
     // （生成/存档加载）被调用。由调用方负责：worker 路径经 _enqueuePostProcess 延迟到主线程 tick()，
-    // 主线程路径（_resolveChunkSourceSync）直接调用。对齐 Moonrise offThreadPendingFullLoadUpdate。
+    // 主线程路径（_resolveChunkSourceSync）直接调用。
 
     return stored;
 }
@@ -640,7 +657,7 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
     }
 
     // toChunkData 非破坏性：返回 shared_ptr 共享同一份 ChunkData，primer 仍持有 m_data。
-    // 对齐 Moonrise：FULL 完成后 currentChunk（primer）仍存活供邻居引用，直到 holder 卸载。
+    // FULL 完成后 currentChunk（primer）仍存活供邻居引用，直到 holder 卸载。
     std::shared_ptr<ChunkData> data = primer.toChunkData();
     if (!data) {
         return nullptr;
@@ -650,8 +667,8 @@ ChunkData* ServerChunkManager::_finalizeGeneratedChunkSync(ChunkCoord x, ChunkCo
 
     // spawnEntitiesFromChunkGeneration / _postProcessChunk / onChunkLoaded / m_chunkLoadedCallback 触及
     // 主线程独占状态（ServerTickList、EntityManager、setBlockState、POI、光照），不能在 worker 线程调用。
-    // 入队后由主线程 tick() 的 _drainPendingPostProcess 出队执行（对齐 Moonrise
-    // offThreadPendingFullLoadUpdate）。_storeChunkInMemorySync 已不再调用 onChunkLoaded/callback，
+    // 入队后由主线程 tick() 的 _drainPendingPostProcess 出队执行（worker 线程入队、主线程出队）。
+    // _storeChunkInMemorySync 已不再调用 onChunkLoaded/callback，
     // 故此处单个 PendingPostProcess 条目覆盖全部四项主线程工作。
     if (stored && m_world) {
         _enqueuePostProcess(x, z, std::move(spawnedEntities), /*needsPostProcess=*/true);
@@ -832,6 +849,9 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
         // holder 已不存在（可能被并发 unload 或从未创建），仅清理 m_chunks
         std::lock_guard<std::mutex> lock(m_chunksMutex);
         m_chunks.erase(key);
+        // 清理后处理去重标记，使重新加载可重新执行 onChunkLoaded/callback/postProcess
+        std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
+        m_postProcessedChunks.erase(key);
         return;
     }
 
@@ -844,7 +864,7 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
         // 重新调度被解除阻塞的邻居、通知请求等待者失败。
         // 清理后 isSafeToUnload 应返回 true（依赖图空、无生成任务）。
         // 唯一例外：m_neighboursUsingThisChunk > 0（其他 holder 的任务正在使用本 holder 作为邻居），
-        // 此时跳过卸载，下个 tick 重试（对齐 Moonrise isSafeToUnload 的 neighbours_generating 检查）。
+        // 此时跳过卸载，下个 tick 重试（isSafeToUnload 的 neighbours_generating 检查）。
         m_taskScheduler->cancelGeneration(*lifecycleManager);
         lifecycleManager->cancelActiveWork();
 
@@ -894,6 +914,12 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
     {
         std::lock_guard<std::mutex> lock(m_chunksMutex);
         m_chunks.erase(key);
+    }
+
+    // 清理后处理去重标记，使重新加载可重新执行 onChunkLoaded/callback/postProcess
+    {
+        std::lock_guard<std::mutex> ppLock(m_pendingPostProcessMutex);
+        m_postProcessedChunks.erase(key);
     }
 }
 
@@ -1002,7 +1028,23 @@ void ServerChunkManager::_drainPendingPostProcess()
         pending.swap(m_pendingPostProcess);
     }
 
+    // TODO: 当前后处理在 FULL-complete 时触发；Moonrise 在 BLOCK_TICKING（onChunkTicking）阶段触发。
+    // 待引入 FullChunkStatus 状态机（onChunkBorder/onChunkTicking/onChunkEntityTicking + ticking-chunk
+    // 列表）后对齐触发时机。当前 Cubium 无该状态机，FULL-complete 是唯一合理触发点。
     for (auto& item : pending) {
+        const u64 key = posToKey(item.x, item.z);
+
+        // 去重：同一区块的 onChunkLoaded/callback/spawn/postProcess 至多执行一次。
+        // 重复入队（worker 存档加载入队 + 主线程存档解析直接调用竞态，或同一区块多次入队）
+        // 的条目被丢弃，避免实体重复生成、区块重复发送、光照重复初始化。
+        // 卸载时移除 key（unloadChunkSync），使重新加载可重新执行后处理。
+        {
+            std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
+            if (!m_postProcessedChunks.insert(key).second) {
+                continue; // 已处理，丢弃重复项（spawnedEntities 随 item 析构，不 spawn）
+            }
+        }
+
         // onChunkLoaded：加载区块内实体（存档恢复）+ POI 通知
         if (m_world) {
             m_world->onChunkLoaded(item.x, item.z);
@@ -1019,10 +1061,12 @@ void ServerChunkManager::_drainPendingPostProcess()
         }
 
         // _postProcessChunk：含水层流体 tick 调度 + 方块形状更新（生成路径才需要）
+        // isPostProcessingDone 双重保护：即使 needsPostProcess 重复入队，也只执行一次。
         if (item.needsPostProcess && m_world) {
             ChunkData* chunk = tryToGetChunkInMem(item.x, item.z);
-            if (chunk != nullptr) {
+            if (chunk != nullptr && !chunk->isPostProcessingDone()) {
                 _postProcessChunk(*chunk);
+                chunk->setPostProcessingDone(true);
             }
         }
     }

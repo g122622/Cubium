@@ -85,7 +85,7 @@ void ChunkProgressionTask::onCancel()
 {
     // 任务被取消（abortSignal）：清理依赖图并通知等待者，但不 markFailed。
     // 取消是正常操作（holder 卸载/票据级别下降），不是生成失败——holder 可被重新创建并重新生成。
-    // 对齐 Moonrise onChunkGenComplete(newChunk=null) 的取消路径（不 markFailed，清理依赖图）。
+    // 取消路径不 markFailed，仅清理依赖图。
     //
     // 传递 this 调用任务身份感知的 cancelGeneration(holder, task)：仅当 holder.m_generationTask 仍指向
     // 本任务时才清理。避免旧任务 A 的 onCancel 在新任务 B 已 setGenerationTask(B) 后误清 B 的依赖图
@@ -132,6 +132,8 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
         // _storeChunkInMemorySync 不再调用 onChunkLoaded/m_chunkLoadedCallback（它们触及主线程独占状态，
         // 本路径在 worker 线程执行）。入队 _enqueuePostProcess 延迟到主线程 tick() 执行 onChunkLoaded +
         // m_chunkLoadedCallback（needsPostProcess=false：存档加载不重跑 _postProcessChunk，与原行为一致）。
+        // 去重：_drainPendingPostProcess 通过 m_postProcessedChunks 保证 onChunkLoaded/callback 至多执行一次，
+        // 即使主线程存档解析路径（_resolveChunkSourceSync）与本 worker 入队并发，也只执行一次。
         auto data = primerPtr->toChunkData();
         if (data) {
             // _storeChunkInMemorySync 内部会 markLoadedFromStorageReady(FULL) + _completeReadyWaiters
@@ -237,7 +239,7 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
     // FULL 完成时：转换为 ChunkData 存入内存缓存（含实体生成、后处理）
     // _finalizeGeneratedChunkSync 内部调用 primer.toChunkData()（非破坏性，返回 shared_ptr 共享同一份
     // ChunkData）+ _storeChunkInMemorySync（共享所有权）+ spawnEntitiesFromChunkGeneration + _postProcessChunk。
-    // 不释放 primer：对齐 Moonrise，FULL 后 currentChunk（primer）仍存活供邻居引用（STRUCTURE_REFERENCES/
+    // 不释放 primer：FULL 后 currentChunk（primer）仍存活供邻居引用（STRUCTURE_REFERENCES/
     // LIGHT 等状态可能并发读取已 FULL 的邻居），直到 holder 卸载（isSafeToUnload）才随 holder 析构。
     if (*m_toStatus == ChunkStatuses::FULL) {
         (void)m_manager._finalizeGeneratedChunkSync(m_x, m_z, *primer);

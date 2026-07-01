@@ -335,6 +335,26 @@ public:
      */
     void clearAllPostProcessing();
 
+    /**
+     * @brief 后处理是否已完成
+     *
+     * 标记 _postProcessChunk 是否已对该区块执行过。保证 onChunkLoaded / 区块加载回调 /
+     * 实体生成 / _postProcessChunk 至多执行一次，防止重复入队或 worker/主线程路径竞态
+     * 导致实体重复生成、区块重复发送、光照重复初始化。
+     *
+     * 不持久化：存档区块后处理位置为空且 needsPostProcess=false，重新加载后为 false 安全。
+     *
+     * @return 是否已完成后处理
+     */
+    [[nodiscard]] bool isPostProcessingDone() const noexcept { return m_postProcessingDone; }
+
+    /**
+     * @brief 设置后处理完成标志
+     *
+     * @param done 是否已完成后处理
+     */
+    void setPostProcessingDone(bool done) noexcept { m_postProcessingDone = done; }
+
     // ========================================================================
     // 游戏事件监听器注册表（按区块段）
     // ========================================================================
@@ -445,6 +465,10 @@ private:
     // 后处理位置（按区块段索引存储）
     // 每个短整型编码段内本地坐标：bits[3:0]=x, bits[7:4]=y, bits[11:8]=z
     std::array<std::vector<u16>, mc::world::CHUNK_SECTIONS> m_postProcessingSections;
+
+    // 后处理是否已完成（_postProcessChunk 执行后置 true）。保证主线程后处理至多执行一次。
+    // 不持久化：存档区块后处理位置为空且 needsPostProcess=false，重新加载后为 false 安全。
+    bool m_postProcessingDone = false;
 
     // 游戏事件监听器注册表（按段Y坐标索引，惰性创建）
     // 当注册表为空时自动从映射中移除，节省内存
