@@ -29,6 +29,7 @@
 #include "util/property/Properties.hpp"
 #include "world/IWorld.hpp"
 #include "world/block/Block.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/block/blocks/HopperBlock.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
 #include <algorithm>
@@ -262,16 +263,16 @@ bool HopperEntity::pullItems(IHopper& hopper)
     }
 
     // MC Java: 当上方没有容器时，检查上方的方块是否阻挡漏斗吸取
-    // 如果漏斗对齐网格（方块漏斗，非矿车漏斗）且上方方块的向下碰撞面为完整方块，
+    // 如果漏斗对齐网格（方块漏斗，非矿车漏斗）且上方方块向下碰撞面为完整方块，
+    // 且上方方块不在 DOES_NOT_BLOCK_HOPPERS 标签中（如蜂巢/蜂箱，碰撞形状为完整方块但漏斗应能交互），
     // 则物品无法穿过该方块被漏斗吸取
-    // TODO: 当 BlockTags::DOES_NOT_BLOCK_HOPPERS 标签注册后，
-    //       还需检查上方方块是否在该标签中（如树叶等不完全阻挡漏斗的方块）
     IWorld* world = hopper.getWorld();
     if (world != nullptr && hopper.isGridAligned()) {
         BlockPos posAbove = hopper.getHopperPos().up();
         const BlockState* stateAbove = world->getBlockState(posAbove);
-        if (stateAbove != nullptr && stateAbove->isFaceFull(Direction::Down)) {
-            // 上方方块的向下碰撞面为完整方块，阻挡漏斗吸取物品实体
+        if (stateAbove != nullptr && stateAbove->isFaceFull(Direction::Down) &&
+            !BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(*stateAbove)) {
+            // 上方方块的向下碰撞面为完整方块且不在漏斗豁免标签中，阻挡漏斗吸取物品实体
             return false;
         }
     }

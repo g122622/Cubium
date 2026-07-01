@@ -388,6 +388,15 @@ BlockTag& BlockTags::BEEHIVES()
     return *tag;
 }
 
+BlockTag& BlockTags::DOES_NOT_BLOCK_HOPPERS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "does_not_block_hoppers"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::BEE_GROWABLES()
 {
     static BlockTag* tag = nullptr;
@@ -1286,6 +1295,15 @@ void BlockTags::initialize()
     auto beehives = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beehives"));
     beehives->addAll({ResourceLocation("minecraft", "beehive"), ResourceLocation("minecraft", "bee_nest")});
     tags[beehives->getId()] = std::move(beehives);
+
+    // 创建 DOES_NOT_BLOCK_HOPPERS 标签（漏斗不阻挡方块）
+    // MC 1.21.11: BlockTags.DOES_NOT_BLOCK_HOPPERS
+    // 即使碰撞形状为完整方块，漏斗仍可从中吸取物品的方块。
+    // MC Java 中此标签引用 BEEHIVES 标签，包含蜂巢(bee_nest)和蜂箱(beehive)。
+    // 蜂巢/蜂箱碰撞形状为完整方块，但漏斗应能与之交互（吸取蜂蜜瓶/空瓶）。
+    auto doesNotBlockHoppers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "does_not_block_hoppers"));
+    doesNotBlockHoppers->addAll({ResourceLocation("minecraft", "beehive"), ResourceLocation("minecraft", "bee_nest")});
+    tags[doesNotBlockHoppers->getId()] = std::move(doesNotBlockHoppers);
 
     // 创建 BEE_GROWABLES 标签（蜜蜂可授粉作物）
     auto beeGrowables = std::make_unique<BlockTag>(ResourceLocation("minecraft", "bee_growables"));

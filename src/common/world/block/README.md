@@ -12,7 +12,7 @@
 ├── BlockRegistry.hpp / cpp #方块注册表（单例）
 ├── BlockSoundType.hpp / cpp #方块声音类型定义
 ├── BlockTags.hpp /
-    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS
+    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS、DOES_NOT_BLOCK_HOPPERS
         等）
 ├── FireInfoRegistry.hpp /
     cpp #火焰信息注册表（燃烧 / 蔓延属性）
@@ -669,6 +669,9 @@ Block& block = state->getBlockMutable();
 
 ### WALL_POST_OVERRIDE 标签
 `BlockTags::WALL_POST_OVERRIDE()` 包含放置在墙上时强制显示墙柱的方块：火把、灵魂火把、红石火把、绊线、告示牌（站立/墙面所有变体）、旗帜（站立/墙面所有颜色）、压力板（木质/石质/铜质/金质/铁质所有变体）。用于 WallBlock 的 `_shouldRaisePost()` 判断——当直线 Tall 墙上方有 WALL_POST_OVERRIDE 标签方块时，强制升起墙柱（UP=true）。
+
+### DOES_NOT_BLOCK_HOPPERS 标签
+`BlockTags::DOES_NOT_BLOCK_HOPPERS()` 包含蜂巢(bee_nest)和蜂箱(beehive)，即与 BEEHIVES 标签相同的方块。用于 `HopperEntity::pullItems()` 中的漏斗吸取判断——即使上方方块碰撞形状为完整方块（`isFaceFull(Direction::Down)` 为 true），若该方块在此标签中，漏斗仍可吸取上方物品实体。这允许漏斗与蜂巢/蜂箱交互（吸取蜂蜜瓶/空瓶）。
 
                     ## #34. getEntityInsideCollisionShape 实体内部碰撞形状
 

@@ -242,6 +242,15 @@ public:
     /// MC 1.21.11: BlockTags.PIGLIN_REPELLENTS
     static BlockTag& PIGLIN_REPELLENTS();
 
+    // ========== 漏斗标签 ==========
+
+    /// 漏斗不阻挡标签
+    /// 漏斗上方为此标签中的方块时，即使碰撞形状为完整方块，漏斗仍可吸取上方物品实体。
+    /// MC Java 中仅包含 BEEHIVES 标签（蜂巢 bee_nest、蜂箱 beehive），
+    /// 因为蜂巢/蜂箱虽碰撞形状为完整方块，但漏斗应能从中吸取蜂蜜瓶/空瓶。
+    /// MC 1.21.11: BlockTags.DOES_NOT_BLOCK_HOPPERS
+    static BlockTag& DOES_NOT_BLOCK_HOPPERS();
+
     // ========== 蜜蜂相关标签 ==========
 
     /// 小花朵标签（蒲公英、虞美人等）
