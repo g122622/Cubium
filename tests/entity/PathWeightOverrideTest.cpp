@@ -42,6 +42,8 @@
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/blocks/mob/InfestedBlock.hpp"
 #include "common/world/block/registry/BaseBlocks.hpp"
 #include "common/world/block/registry/NaturalBlocks.hpp"
@@ -672,8 +674,122 @@ TEST_F(HoglinPathWeightTest, CrimsonNyliumOverridesDarknessPreference)
 }
 
 // ============================================================================
-// TurtleEntity::getPathWeight 测试
+// PiglinEntity::getPathWeight 测试
 // ============================================================================
+
+class PiglinPathWeightTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+    }
+    PathWeightOverrideTestWorld world;
+};
+
+TEST_F(PiglinPathWeightTest, RepelledByLitSoulCampfire)
+{
+    // MC 1.21.11 PiglinSpecificSensor.isValidRepellent:
+    // 点燃的灵魂营火属于 PIGLIN_REPELLENTS 标签，应排斥猪灵
+    const BlockState& litSoulCampfire = block_registry::NetherBlocks::SOUL_CAMPFIRE->defaultState();
+    ASSERT_TRUE(blocks::CampfireBlock::isLitCampfire(litSoulCampfire));
+    world.setBlockStateAt(0, 64, 0, &litSoulCampfire);
+
+    PiglinEntity piglin(EntityId(90));
+    piglin.setWorld(&world);
+    f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, -1.0f);
+}
+
+TEST_F(PiglinPathWeightTest, NotRepelledByUnlitSoulCampfire)
+{
+    // MC 1.21.11 PiglinSpecificSensor.isValidRepellent:
+    // 未点燃的灵魂营火不应排斥猪灵
+    const BlockState& unlitSoulCampfire =
+        block_registry::NetherBlocks::SOUL_CAMPFIRE->defaultState().with(BlockStateProperties::LIT(), false);
+    ASSERT_FALSE(blocks::CampfireBlock::isLitCampfire(unlitSoulCampfire));
+    world.setBlockStateAt(0, 64, 0, &unlitSoulCampfire);
+
+    PiglinEntity piglin(EntityId(90));
+    piglin.setWorld(&world);
+    f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    // 未点燃的灵魂营火不排斥，应返回 CreatureEntity 默认值 0.0f
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
+
+TEST_F(PiglinPathWeightTest, RepelledBySoulFire)
+{
+    // 灵魂火属于 PIGLIN_REPELLENTS 标签，应排斥猪灵
+    world.setBlockStateAt(0, 64, 0, &block_registry::NetherBlocks::SOUL_FIRE->defaultState());
+
+    PiglinEntity piglin(EntityId(90));
+    piglin.setWorld(&world);
+    f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, -1.0f);
+}
+
+TEST_F(PiglinPathWeightTest, RepelledByWarpedFungus)
+{
+    // 诡异菌属于 PIGLIN_REPELLENTS 标签，应排斥猪灵
+    world.setBlockStateAt(0, 64, 0, &block_registry::NetherBlocks::WARPED_FUNGUS->defaultState());
+
+    PiglinEntity piglin(EntityId(90));
+    piglin.setWorld(&world);
+    f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, -1.0f);
+}
+
+TEST_F(PiglinPathWeightTest, NotRepelledByRegularCampfire)
+{
+    // 普通营火不属于 PIGLIN_REPELLENTS 标签，不应排斥猪灵
+    world.setBlockStateAt(0, 64, 0, &block_registry::NetherBlocks::CAMPFIRE->defaultState());
+
+    PiglinEntity piglin(EntityId(90));
+    piglin.setWorld(&world);
+    f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
+
+TEST_F(PiglinPathWeightTest, NotRepelledWhenNoRepellentsNearby)
+{
+    // 附近没有排斥物时返回默认值 0.0f
+    PiglinEntity piglin(EntityId(90));
+    piglin.setWorld(&world);
+    f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
+
+TEST_F(PiglinPathWeightTest, ReturnsZeroWhenNoWorld)
+{
+    // 没有世界时返回 0.0f
+    PiglinEntity piglin(EntityId(90));
+    EXPECT_FLOAT_EQ(piglin.getPathWeight(0.0f, 64.0f, 0.0f), 0.0f);
+}
+
+TEST_F(PiglinPathWeightTest, RepelledBySoulCampfireAtDetectionRange)
+{
+    // 检测范围为水平 8 格、垂直 4 格
+    // 在水平范围边缘（8格）放置点燃的灵魂营火，应排斥猪灵
+    const BlockState& litSoulCampfire = block_registry::NetherBlocks::SOUL_CAMPFIRE->defaultState();
+    world.setBlockStateAt(8, 64, 0, &litSoulCampfire);
+
+    PiglinEntity piglin(EntityId(90));
+    piglin.setWorld(&world);
+    f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, -1.0f);
+}
+
+TEST_F(PiglinPathWeightTest, NotRepelledBySoulCampfireBeyondDetectionRange)
+{
+    // 在水平范围外（9格）放置点燃的灵魂营火，不应排斥猪灵
+    const BlockState& litSoulCampfire = block_registry::NetherBlocks::SOUL_CAMPFIRE->defaultState();
+    world.setBlockStateAt(9, 64, 0, &litSoulCampfire);
+
+    PiglinEntity piglin(EntityId(90));
+    piglin.setWorld(&world);
+    f32 weight = piglin.getPathWeight(0.0f, 64.0f, 0.0f);
+    EXPECT_FLOAT_EQ(weight, 0.0f);
+}
 
 class TurtlePathWeightTest : public ::testing::Test {
 protected:
