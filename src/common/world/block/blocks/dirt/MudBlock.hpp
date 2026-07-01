@@ -54,6 +54,9 @@ public:
      */
     [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
+    // TODO: 实现 getShadeBrightness() 返回 0.2F（MC 原版 MudBlock 返回 0.2F，
+    // 比默认值 1.0F 暗），待 Block 基类添加此虚方法后重写
+
 private:
     /// 14/16格高的碰撞形状
     CollisionShape m_collisionShape;

@@ -116,6 +116,7 @@ add_executable(mc_tests
     common/item/PolishedBlackstoneItemRegistrationTest.cpp
     common/item/RawOreItemRegistrationTest.cpp
     common/item/AnvilLightningRodItemRegistrationTest.cpp
+    common/item/MudCaveMangroveItemRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp
     common/item/core/ProjectileItemTest.cpp
@@ -512,6 +513,7 @@ add_executable(mc_tests
     common/world/block/UpdateFromNeighbourShapesTest.cpp
     common/world/block/blocks/PlantTypeTest.cpp
     common/world/block/blocks/MushroomBlockTest.cpp
+    common/world/block/blocks/dirt/MudBlockTest.cpp
     common/world/block/blocks/cave/GlowLichenBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp
