@@ -103,13 +103,18 @@ HoglinEntity、ZoglinEntity 和 PiglinEntity 均拥有 `isBaby()` 方法来管�
 否则通过 `Entity*` 基类指针多态调用 `isChild()` 时将始终返回 `false`，
 导致依赖 `isChild()` 的游戏逻辑（如幼年实体不激怒玩家、幼年碰撞箱缩放等）行为异常。
 
-### 8. HoglinEntity 寻路权重
+### 8. HoglinEntity 寻路权重与驱避物检测
 
 HoglinEntity 重写了 `getPathWeight(f32 x, f32 y, f32 z)` 方法：
 - 站在绯红菌岩（Crimson Nylium）上时返回 `10.0f`，偏好在该方块上生成和移动；
+- 位置附近 8×4×8 范围内存在驱避物方块时返回 `-1.0f`，拒绝前往该区域；
 - 其他方块返回 `0.0f`。
-目前缺少 HoglinSpecificSensor + Brain 系统来检测驱避物（如诡异菌）的接近，
-该部分以 TODO 形式留待后续实现。
+
+驱避物方块由 `BlockTags::HOGLIN_REPELLENTS` 标签定义，包含：
+诡异菌(warped_fungus)、诡异菌岩(warped_nylium)、下界传送门(nether_portal)、重生锚(respawn_anchor)。
+
+对应 MC 1.21.11 的 `HoglinSpecificSensor.findNearestRepellent` 逻辑，
+本项目采用在 `getPathWeight()` 中直接扫描方块的方式实现（因 HoglinEntity 使用 Goal 系统而非 Brain 系统）。
 
 ### 9. ZoglinEntity canAttackType 类型过滤
 
