@@ -146,8 +146,11 @@ INACTIVE → WAITING_FOR_PLAYERS → ACTIVE → WAITING_FOR_REWARD_EJECTION
    - 刷怪笼转为不祥模式，怪物数量增加
 
 5. **怪物生成**（`spawnMob`）：
-   - TODO: 完整的实体生成逻辑需要 EntityRegistry 支持配置驱动的实体类型池
-   - 当前仅更新计数器
+   - 从 `Config::spawnPotentials` 加权随机选择实体类型
+   - 在 spawnRange 范围内寻找无碰撞的生成位置（最多 20 次尝试）
+   - 通过 EntityRegistry 创建实体，设置位置、旋转、持久化标记
+   - 生成后追踪实体 UUID，播放试炼刷怪笼粒子效果
+   - 缓存下次生成实体类型（`m_nextSpawnEntityId`）
 
 ### 配置
 
@@ -159,6 +162,7 @@ INACTIVE → WAITING_FOR_PLAYERS → ACTIVE → WAITING_FOR_REWARD_EJECTION
 | detectionRange | 14.0 | 14.0 | 14.0 | 14.0 | 14.0 |
 | spawnRange | 4.0 | 4.0 | 4.0 | 4.0 | 4.0 |
 | cooldownTicks | 36000 | 36000 | 36000 | 36000 | 36000 |
+| spawnPotentials | breeze(1) | zombie(1), husk(1), spider(1) | silverfish(2), cave_spider(2), slime(1) | skeleton(1), stray(1), bogged(1) | skeleton(1), stray(1), bogged(1) |
 
 ### 常量
 
