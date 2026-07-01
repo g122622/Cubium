@@ -464,8 +464,11 @@
             索引与 `EquipmentSlot` 枚举值对应：[0] = MainHand,
     [1] = OffHand, [2] = Feet, [3] = Legs, [4] = Chest,
     [5] = Head - 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5 %） -
-    大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`） - `isEquipmentDropPreserved(slot)` 检查掉落概率 >
-    1.0 - `setGuaranteedDrop(slot)` 设置掉落概率为 2.0（保整掉落） - NBT 序列化格式：
+    大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`） - `isEquipmentDropPreserved(slot)` 检查掉落概率 > 1.0
+    - `setGuaranteedDrop(slot)` 设置掉落概率为 2.0（保整掉落）
+    - `dropPreservedEquipment(predicate)` 遍历装备槽位，根据谓词和保留状态处理装备（用于实体转化场景）
+    - `dropPreservedEquipment()` 无谓词版本，所有装备都参与掉落/保留判断
+    - NBT 序列化格式：
         - 保存时仅写入新格式（MC 1.21.4 +）：`drop_chances`（compound，仅包含非默认值）
         - 读取时优先使用新格式，然后回退到旧格式（`HandDropChances` float[2] + `ArmorDropChances` float[4]）以兼容旧存档
 

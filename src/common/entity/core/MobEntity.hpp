@@ -29,9 +29,11 @@
 #include "../combat/DifficultyInstance.hpp"
 #include "EntitySpawnPlacementRegistry.hpp"
 #include "LivingEntity.hpp"
+#include <functional>
 #include <memory>
 #include <optional>
 #include <variant>
+#include <vector>
 
 namespace mc {
 
@@ -806,6 +808,35 @@ public:
      * 重写 LivingEntity::dropExperience()，在死亡时生成经验球。
      */
     void dropExperience() override;
+
+    /**
+     * @brief 掉落保留装备并返回保留的槽位集合
+     *
+     * 遍历所有装备槽位，根据掉落概率和谓词条件处理装备：
+     * - 如果装备为空，跳过
+     * - 如果装备不满足谓词条件（如绑定诅咒），保留在实体上并记录槽位
+     * - 如果装备满足谓词条件且槽位为保留状态（掉落概率 > 1.0），在实体位置掉落该物品
+     * - 如果装备满足谓词条件但非保留状态，物品静默消失
+     *
+     * 对应 MC Java 的 Mob.dropPreservedEquipment(ServerLevel, Predicate<ItemStack>)。
+     * 用于实体转化场景（如僵尸村民治愈），控制哪些装备被保留、掉落或丢弃。
+     *
+     * @param predicate 谓词函数，返回 true 表示物品可以被处理（掉落或丢弃），
+     *                  返回 false 表示物品应保留在实体上（如绑定诅咒物品）
+     * @return 保留在实体上的装备槽位集合（谓词返回 false 的槽位）
+     */
+    [[nodiscard]] std::vector<EquipmentSlot> dropPreservedEquipment(
+        const std::function<bool(const ItemStack&)>& predicate);
+
+    /**
+     * @brief 掉落所有保留装备（无谓词过滤版本）
+     *
+     * 等效于 dropPreservedEquipment([](const ItemStack&) { return true; })。
+     * 所有装备都参与掉落/保留判断，仅根据掉落概率决定行为。
+     *
+     * @return 保留在实体上的装备槽位集合（此版本始终为空，因为谓词总是返回 true）
+     */
+    [[nodiscard]] std::vector<EquipmentSlot> dropPreservedEquipment();
 
     // ========== 玩家交互 ==========
 

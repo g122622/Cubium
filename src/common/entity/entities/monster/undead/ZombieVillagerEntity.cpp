@@ -36,7 +36,6 @@
 #include "../../../core/LivingEntity.hpp"
 #include "../../../effect/EffectInstance.hpp"
 #include "../../../effect/EffectType.hpp"
-#include "../../../utils/ItemDropHelper.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include <memory>
 #include <spdlog/spdlog.h>
@@ -267,35 +266,36 @@ void ZombieVillagerEntity::finishConverting()
     // 继承村民数据
     villager->setVillagerData(m_villagerData);
 
-    // 处理装备
-    math::Random rng(ticksExisted());
+    // 处理装备（对应 MC Java 的 ZombieVillager.finishConversion 中的 dropPreservedEquipment 逻辑）
+    //
+    // MC Java 的逻辑：
+    // 1. 调用 dropPreservedEquipment()，谓词为 "没有绑定诅咒的物品"
+    // 2. 不满足谓词的物品（有绑定诅咒）→ 保留在实体上，其槽位被返回
+    // 3. 满足谓词且保留的物品（掉落概率 > 1.0）→ 掉落在地上
+    // 4. 满足谓词但不保留的物品（默认 8.5% 掉落概率）→ 静默消失
+    // 5. 对返回的槽位中的物品（绑定诅咒物品），转移到新实体
+    //
+    // 然后清空原实体的所有装备（防止死亡时重复掉落）
 
-    for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
-        EquipmentSlot slot = static_cast<EquipmentSlot>(i);
+    // 谓词：物品没有绑定诅咒 → 可以被处理（掉落或消失）
+    auto noBindingCurse = [](const ItemStack& stack) -> bool {
+        return !item::enchant::EnchantmentHelper::hasBindingCurse(stack);
+    };
+
+    // 掉落保留装备，获取需要转移到新实体的槽位（绑定诅咒物品的槽位）
+    std::vector<EquipmentSlot> preservedSlots = dropPreservedEquipment(noBindingCurse);
+
+    // 将绑定诅咒的装备转移到村民的对应槽位
+    for (EquipmentSlot slot : preservedSlots) {
         const ItemStack& equipment = getEquipment(slot);
-
-        if (equipment.isEmpty()) {
-            continue;
-        }
-
-        // 检查绑定诅咒
-        bool hasBindingCurse = item::enchant::EnchantmentHelper::hasBindingCurse(equipment);
-
-        if (hasBindingCurse) {
-            // 绑定诅咒的装备转移到村民的对应槽位
+        if (!equipment.isEmpty()) {
             villager->setEquipment(slot, equipment);
-        } else {
-            // 其他装备根据掉落概率丢弃
-            // 简化实现：直接丢弃所有非绑定装备
-            ItemDropHelper::spawnItemAtEntity(this,
-                equipment,
-                0.5f, // Y offset
-                rng,
-                ItemDropHelper::DEFAULT_PICKUP_DELAY);
         }
     }
 
-    // 清空僵尸村民的装备（防止重复掉落）
+    // 清空僵尸村民的所有装备（防止重复掉落）
+    // 注意：dropPreservedEquipment 已经清空了保留状态的槽位，
+    // 这里清空剩余的（绑定诅咒和非保留非空槽位）
     for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
         setEquipment(static_cast<EquipmentSlot>(i), ItemStack());
     }

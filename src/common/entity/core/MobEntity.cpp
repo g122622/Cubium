@@ -265,6 +265,44 @@ void MobEntity::dropExperience()
     }
 }
 
+std::vector<EquipmentSlot> MobEntity::dropPreservedEquipment(const std::function<bool(const ItemStack&)>& predicate)
+{
+    std::vector<EquipmentSlot> preservedSlots;
+
+    for (size_t i = 0; i < static_cast<size_t>(EquipmentSlot::Count); ++i) {
+        EquipmentSlot slot = static_cast<EquipmentSlot>(i);
+        const ItemStack& equipment = getEquipment(slot);
+
+        if (equipment.isEmpty()) {
+            continue;
+        }
+
+        if (!predicate(equipment)) {
+            // 谓词返回 false：物品不满足条件（如绑定诅咒），保留在实体上
+            // 记录此槽位以便调用者后续处理（如转移到新实体）
+            preservedSlots.push_back(slot);
+        } else if (isEquipmentDropPreserved(slot)) {
+            // 谓词返回 true 且掉落概率 > 1.0（保留状态）：在实体位置掉落该物品
+            // 对应 MC Java 的 spawnAtLocation()
+            if (m_world != nullptr) {
+                math::Random& rng = getRandom();
+                ItemDropHelper::spawnItemAtEntity(this, equipment, 0.0f, rng, ItemDropHelper::DEFAULT_PICKUP_DELAY);
+            }
+            // 清空该槽位，防止重复掉落
+            setEquipment(slot, ItemStack());
+        }
+        // 谓词返回 true 且非保留状态（默认 8.5%）：物品静默消失，不做任何处理
+        // 对应 MC Java 中 dropPreservedEquipment 不处理非保留装备的行为
+    }
+
+    return preservedSlots;
+}
+
+std::vector<EquipmentSlot> MobEntity::dropPreservedEquipment()
+{
+    return dropPreservedEquipment([](const ItemStack&) { return true; });
+}
+
 bool MobEntity::isInDaylight() const
 {
     // 检查条件：
