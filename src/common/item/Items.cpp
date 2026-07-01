@@ -215,6 +215,13 @@ Item* Items::STONE_SHOVEL = nullptr;
 Item* Items::STONE_HOE = nullptr;
 Item* Items::STONE_SWORD = nullptr;
 
+// 铜工具（MC 1.21.11 新增）
+Item* Items::COPPER_PICKAXE = nullptr;
+Item* Items::COPPER_AXE = nullptr;
+Item* Items::COPPER_SHOVEL = nullptr;
+Item* Items::COPPER_HOE = nullptr;
+Item* Items::COPPER_SWORD = nullptr;
+
 // 木工具
 Item* Items::WOODEN_PICKAXE = nullptr;
 Item* Items::WOODEN_AXE = nullptr;
@@ -1452,6 +1459,39 @@ void Items::_registerTools()
         item::tier::ItemTiers::STONE(), // tier
         3,                              // attackDamage
         -2.4f,                          // attackSpeed
+        ItemProperties());
+
+    // ========================================================================
+    // 铜工具（MC 1.21.11 新增）
+    // ========================================================================
+    COPPER_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:copper_pickaxe"),
+        item::tier::ItemTiers::COPPER(), // tier
+        2,                               // attackDamage
+        -2.8f,                           // attackSpeed
+        ItemProperties());
+
+    COPPER_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:copper_axe"),
+        item::tier::ItemTiers::COPPER(), // tier
+        8.0f,                            // attackDamage
+        -3.2f,                           // attackSpeed
+        ItemProperties());
+
+    COPPER_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:copper_shovel"),
+        item::tier::ItemTiers::COPPER(), // tier
+        2.5f,                            // attackDamage
+        -3.0f,                           // attackSpeed
+        ItemProperties());
+
+    COPPER_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:copper_hoe"),
+        item::tier::ItemTiers::COPPER(), // tier
+        0,                               // attackDamage
+        -2.0f,                           // attackSpeed
+        ItemProperties());
+
+    COPPER_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:copper_sword"),
+        item::tier::ItemTiers::COPPER(), // tier
+        4,                               // attackDamage
+        -2.4f,                           // attackSpeed
         ItemProperties());
 
     // ========================================================================

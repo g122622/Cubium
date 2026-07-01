@@ -14,7 +14,7 @@
 - 数据包物品标签文件数：**198**
 - 标签引用的去重叶子物品数：**882**
 - Cubium 已注册物品数（源码扫描）：**858**
-- 标签引用但未实现的物品数：**363**
+- 标签引用但未实现的物品数：**358**
 - 完全无法解析（标签内全部叶子物品均未实现）的标签数：**21**
 - 部分缺失（至少一个叶子物品未实现）的标签数：**50**
 
@@ -68,7 +68,7 @@
 | `minecraft:bee_food` | 11 |
 | `minecraft:bookshelf_books` | 1 |
 | `minecraft:chicken_food` | 2 |
-| `minecraft:cluster_max_harvestables` | 1 |
+| `minecraft:cluster_max_harvestables` | 0 |
 | `minecraft:coal_ores` | 1 |
 | `minecraft:compasses` | 1 |
 | `minecraft:copper_ores` | 1 |
@@ -172,21 +172,21 @@
 - `minecraft:white_candle`
 - `minecraft:yellow_candle`
 
-### Copper（55）
+### Copper（50）
 
 
-- `minecraft:copper_axe`
+- `minecraft:copper_axe ✅ 已完成`
 - `minecraft:copper_bars`
 - `minecraft:copper_block`
 - `minecraft:copper_chain`
 - `minecraft:copper_chest`
 - `minecraft:copper_golem_statue`
-- `minecraft:copper_hoe`
+- `minecraft:copper_hoe ✅ 已完成`
 - `minecraft:copper_lantern`
-- `minecraft:copper_pickaxe`
-- `minecraft:copper_shovel`
+- `minecraft:copper_pickaxe ✅ 已完成`
+- `minecraft:copper_shovel ✅ 已完成`
 - `minecraft:copper_spear`
-- `minecraft:copper_sword`
+- `minecraft:copper_sword ✅ 已完成`
 - `minecraft:deepslate_copper_ore ✅ 已完成`
 - `minecraft:exposed_copper`
 - `minecraft:exposed_copper_bars`
@@ -812,7 +812,7 @@
 未实现项：
 
 
-- `minecraft:copper_axe`
+- `minecraft:copper_axe ✅ 已完成`
 
 ### `minecraft:bars`
 
@@ -870,7 +870,7 @@
 未实现项：
 
 
-- `minecraft:copper_pickaxe`
+- `minecraft:copper_pickaxe ✅ 已完成`
 
 ### `minecraft:coal_ores`
 
@@ -994,7 +994,7 @@
 未实现项：
 
 
-- `minecraft:copper_hoe`
+- `minecraft:copper_hoe ✅ 已完成`
 
 ### `minecraft:iron_ores`
 
@@ -1075,7 +1075,7 @@
 未实现项：
 
 
-- `minecraft:copper_pickaxe`
+- `minecraft:copper_pickaxe ✅ 已完成`
 
 ### `minecraft:piglin_loved`
 
@@ -1145,7 +1145,7 @@
 未实现项：
 
 
-- `minecraft:copper_shovel`
+- `minecraft:copper_shovel ✅ 已完成`
 
 ### `minecraft:shulker_boxes`
 
@@ -1300,7 +1300,7 @@
 未实现项：
 
 
-- `minecraft:copper_sword`
+- `minecraft:copper_sword ✅ 已完成`
 
 ### `minecraft:trapdoors`
 
