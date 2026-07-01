@@ -51,6 +51,12 @@ public:
 
     /**
      * @brief 泥巴不可被路径寻找通过
+     *
+     * 泥巴碰撞箱比完整方块矮（14/16格高），导致默认的 allowsMovement
+     * 会返回 true（非完整碰撞箱方块默认允许路径寻找通过）。因此必须
+     * 显式重写返回 false，防止实体将泥巴视为可通过的路径。
+     *
+     * 参考: net.minecraft.block.MudBlock#isPathfindable
      */
     [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 

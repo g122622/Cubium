@@ -12,7 +12,7 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -43,6 +43,10 @@ bool MudBlock::allowsMovement(const BlockState& state, IBlockReader& world, cons
     MC_UNUSED(world);
     MC_UNUSED(pos);
     // 泥巴不可被路径寻找通过（MC 原版 MudBlock.isPathfindable 返回 false）
+    // 注意：此重写不是冗余的。泥巴碰撞箱比完整方块矮（14/16格高），
+    // 导致 isCollisionShapeFullBlock() 返回 false，默认的 allowsMovement
+    // 会对非完整碰撞箱方块返回 true（允许路径寻找通过）。因此泥巴必须
+    // 显式重写返回 false，以防止实体将泥巴视为可通过的路径。
     return false;
 }
 

@@ -111,6 +111,60 @@ TEST_F(MudBlockTest, CollisionShapeHeightIs14Over16)
     EXPECT_FLOAT_EQ(box.maxZ, 1.0f);
 }
 
+TEST_F(MudBlockTest, CollisionShapeFullBoundaryConditions)
+{
+    // 验证泥巴碰撞箱的完整边界条件
+    const Block* mud = VanillaBlocks::MUD;
+    ASSERT_NE(mud, nullptr);
+
+    const BlockState& state = mud->defaultState();
+    const CollisionShape& shape = mud->getCollisionShape(state);
+    const AxisAlignedBB& box = shape.boxes().front();
+
+    // X/Z 方向应为完整方块范围 [0, 1]
+    EXPECT_FLOAT_EQ(box.minX, 0.0f) << "Mud collision shape should start at minX=0";
+    EXPECT_FLOAT_EQ(box.maxX, 1.0f) << "Mud collision shape should end at maxX=1";
+    EXPECT_FLOAT_EQ(box.minZ, 0.0f) << "Mud collision shape should start at minZ=0";
+    EXPECT_FLOAT_EQ(box.maxZ, 1.0f) << "Mud collision shape should end at maxZ=1";
+
+    // Y 方向底部对齐方块底部
+    EXPECT_FLOAT_EQ(box.minY, 0.0f) << "Mud collision shape should start at minY=0";
+
+    // Y 方向顶部为 14/16（0.875），低于完整方块的 1.0
+    EXPECT_FLOAT_EQ(box.maxY, 0.875f) << "Mud collision shape should end at maxY=14/16=0.875";
+}
+
+TEST_F(MudBlockTest, CollisionShapeShorterThanDirt)
+{
+    // 泥巴的碰撞箱应比普通泥土（DIRT）矮
+    // MC 原版中泥巴碰撞箱为 column(16, 0, 14)，而普通泥土为完整方块
+    const Block* mud = VanillaBlocks::MUD;
+    const Block* dirt = VanillaBlocks::DIRT;
+    ASSERT_NE(mud, nullptr);
+    ASSERT_NE(dirt, nullptr);
+
+    const BlockState& mudState = mud->defaultState();
+    const BlockState& dirtState = dirt->defaultState();
+
+    const CollisionShape& mudShape = mud->getCollisionShape(mudState);
+    const CollisionShape& dirtShape = dirt->getCollisionShape(dirtState);
+
+    ASSERT_EQ(mudShape.boxCount(), 1u);
+    ASSERT_EQ(dirtShape.boxCount(), 1u);
+
+    const AxisAlignedBB& mudBox = mudShape.boxes().front();
+    const AxisAlignedBB& dirtBox = dirtShape.boxes().front();
+
+    // 泥巴的 maxY 应小于泥土的 maxY
+    EXPECT_LT(mudBox.maxY, dirtBox.maxY) << "Mud collision shape should be shorter than dirt collision shape";
+
+    // 泥土的碰撞箱应为完整方块（maxY = 1.0）
+    EXPECT_FLOAT_EQ(dirtBox.maxY, 1.0f) << "Dirt should have full block collision shape";
+
+    // 泥巴的 maxY 应为 0.875 (14/16)
+    EXPECT_FLOAT_EQ(mudBox.maxY, 0.875f) << "Mud should have 14/16 height collision shape";
+}
+
 TEST_F(MudBlockTest, CollisionShapeMaxYIsLessThanFullBlock)
 {
     // 碰撞箱高度应小于完整方块（1.0）
@@ -131,6 +185,12 @@ TEST_F(MudBlockTest, CollisionShapeMaxYIsLessThanFullBlock)
 TEST_F(MudBlockTest, AllowsMovementReturnsFalse)
 {
     // 泥巴不可被路径寻找通过（MC 原版 MudBlock.isPathfindable 返回 false）
+    //
+    // 注意：此重写不是冗余的。泥巴碰撞箱比完整方块矮（14/16格高），
+    // 导致 isCollisionShapeFullBlock() 返回 false。默认的 allowsMovement 实现
+    // 对非完整碰撞箱方块返回 true（允许路径寻找通过），因此泥巴必须显式
+    // 重写返回 false，以防止实体将泥巴视为可通过的路径。
+    // 相比之下，普通泥土（DIRT）有完整碰撞箱，默认实现已返回 false。
     const Block* mud = VanillaBlocks::MUD;
     ASSERT_NE(mud, nullptr);
 
@@ -139,6 +199,27 @@ TEST_F(MudBlockTest, AllowsMovementReturnsFalse)
     BlockPos pos(0, 0, 0);
 
     EXPECT_FALSE(mud->allowsMovement(state, world, pos)) << "Mud should not allow movement/pathfinding through it";
+}
+
+TEST_F(MudBlockTest, AllowsMovementSameAsDirtDespiteShorterCollisionShape)
+{
+    // 泥巴和泥土的 allowsMovement 行为应一致（都返回 false），
+    // 尽管泥巴的碰撞箱比泥土矮。
+    // MC 原版中两者 isPathfindable 均返回 false，但实现方式不同：
+    // - 泥土：碰撞箱为完整方块，默认 isPathfindable 返回 false
+    // - 泥巴：碰撞箱不是完整方块，默认会返回 true，需显式重写为 false
+    const Block* mud = VanillaBlocks::MUD;
+    const Block* dirt = VanillaBlocks::DIRT;
+    ASSERT_NE(mud, nullptr);
+    ASSERT_NE(dirt, nullptr);
+
+    MudBlockTestWorld world;
+    const BlockState& mudState = mud->defaultState();
+    const BlockState& dirtState = dirt->defaultState();
+    BlockPos pos(0, 0, 0);
+
+    EXPECT_FALSE(mud->allowsMovement(mudState, world, pos));
+    EXPECT_FALSE(dirt->allowsMovement(dirtState, world, pos));
 }
 
 // ============================================================================
