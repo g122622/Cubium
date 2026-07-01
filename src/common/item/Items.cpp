@@ -142,6 +142,9 @@ Item* Items::IRON_INGOT = nullptr;
 Item* Items::COPPER_INGOT = nullptr;
 Item* Items::NETHERITE_INGOT = nullptr;
 Item* Items::NETHERITE_SCRAP = nullptr;
+Item* Items::BRICK = nullptr;
+Item* Items::RESIN_BRICK = nullptr;
+Item* Items::AMETHYST_SHARD = nullptr;
 
 // 宝石碎片
 Item* Items::DIAMOND_SHARD = nullptr;
@@ -169,6 +172,16 @@ Item* Items::COPPER_ORE = nullptr;
 Item* Items::NETHER_QUARTZ_ORE = nullptr;
 Item* Items::NETHER_GOLD_ORE = nullptr;
 Item* Items::ANCIENT_DEBRIS = nullptr;
+
+// 深板岩矿物原矿
+Item* Items::DEEPSLATE_COAL_ORE = nullptr;
+Item* Items::DEEPSLATE_IRON_ORE = nullptr;
+Item* Items::DEEPSLATE_COPPER_ORE = nullptr;
+Item* Items::DEEPSLATE_GOLD_ORE = nullptr;
+Item* Items::DEEPSLATE_DIAMOND_ORE = nullptr;
+Item* Items::DEEPSLATE_LAPIS_ORE = nullptr;
+Item* Items::DEEPSLATE_EMERALD_ORE = nullptr;
+Item* Items::DEEPSLATE_REDSTONE_ORE = nullptr;
 
 // 钻石工具
 Item* Items::DIAMOND_PICKAXE = nullptr;
@@ -1242,6 +1255,16 @@ void Items::_registerMaterials()
     NETHERITE_SCRAP =
         &registry.registerItem(ResourceLocation("minecraft:netherite_scrap"), ItemProperties().maxStackSize(64));
 
+    // 砖（合成材料）
+    BRICK = &registry.registerItem(ResourceLocation("minecraft:brick"), ItemProperties().maxStackSize(64));
+
+    // 树脂砖（合成材料）
+    RESIN_BRICK = &registry.registerItem(ResourceLocation("minecraft:resin_brick"), ItemProperties().maxStackSize(64));
+
+    // 紫水晶碎片
+    AMETHYST_SHARD =
+        &registry.registerItem(ResourceLocation("minecraft:amethyst_shard"), ItemProperties().maxStackSize(64));
+
     // 煤炭
     COAL = &registry.registerItem(ResourceLocation("minecraft:coal"), ItemProperties().maxStackSize(64));
 
@@ -1272,6 +1295,24 @@ void Items::_registerMaterials()
         &registerBlockBackedItem(registry, VanillaBlocks::LAPIS_ORE, "lapis_ore", ItemProperties().maxStackSize(64));
     REDSTONE_ORE = &registerBlockBackedItem(
         registry, VanillaBlocks::REDSTONE_ORE, "redstone_ore", ItemProperties().maxStackSize(64));
+
+    // 深板岩矿物原矿
+    DEEPSLATE_COAL_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_COAL_ORE, "deepslate_coal_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_IRON_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_IRON_ORE, "deepslate_iron_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_COPPER_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_COPPER_ORE, "deepslate_copper_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_GOLD_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_GOLD_ORE, "deepslate_gold_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_DIAMOND_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_DIAMOND_ORE, "deepslate_diamond_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_LAPIS_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_LAPIS_ORE, "deepslate_lapis_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_EMERALD_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_EMERALD_ORE, "deepslate_emerald_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_REDSTONE_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_REDSTONE_ORE, "deepslate_redstone_ore", ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerTools()

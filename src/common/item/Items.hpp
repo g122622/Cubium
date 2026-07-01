@@ -60,6 +60,9 @@ public:
     static Item* COPPER_INGOT;
     static Item* NETHERITE_INGOT;
     static Item* NETHERITE_SCRAP;
+    static Item* BRICK;          // 砖（合成材料）
+    static Item* RESIN_BRICK;    // 树脂砖（合成材料）
+    static Item* AMETHYST_SHARD; // 紫水晶碎片
 
     // ========================================================================
     // 宝石碎片
@@ -95,6 +98,18 @@ public:
     static Item* NETHER_QUARTZ_ORE;
     static Item* NETHER_GOLD_ORE;
     static Item* ANCIENT_DEBRIS;
+
+    // ========================================================================
+    // 深板岩矿物原矿
+    // ========================================================================
+    static Item* DEEPSLATE_COAL_ORE;
+    static Item* DEEPSLATE_IRON_ORE;
+    static Item* DEEPSLATE_COPPER_ORE;
+    static Item* DEEPSLATE_GOLD_ORE;
+    static Item* DEEPSLATE_DIAMOND_ORE;
+    static Item* DEEPSLATE_LAPIS_ORE;
+    static Item* DEEPSLATE_EMERALD_ORE;
+    static Item* DEEPSLATE_REDSTONE_ORE;
 
     // ========================================================================
     // 工具 - 钻石

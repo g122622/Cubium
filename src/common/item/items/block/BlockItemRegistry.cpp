@@ -339,6 +339,73 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::WARPED_NYLIUM, "warped_nylium");
     registerSimpleBlock(VanillaBlocks::SHROOMLIGHT, "shroomlight");
 
+    // 深板岩方块 (1.17+)
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE, "deepslate");
+    registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE, "cobbled_deepslate");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DEEPSLATE, "polished_deepslate");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_BRICKS, "deepslate_bricks");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_TILES, "deepslate_tiles");
+    registerSimpleBlock(VanillaBlocks::CHISELED_DEEPSLATE, "chiseled_deepslate");
+    registerSimpleBlock(VanillaBlocks::CRACKED_DEEPSLATE_BRICKS, "cracked_deepslate_bricks");
+    registerSimpleBlock(VanillaBlocks::CRACKED_DEEPSLATE_TILES, "cracked_deepslate_tiles");
+    registerSimpleBlock(VanillaBlocks::REINFORCED_DEEPSLATE, "reinforced_deepslate");
+    registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE_STAIRS, "cobbled_deepslate_stairs");
+    registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE_SLAB, "cobbled_deepslate_slab");
+    registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE_WALL, "cobbled_deepslate_wall");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DEEPSLATE_STAIRS, "polished_deepslate_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DEEPSLATE_SLAB, "polished_deepslate_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DEEPSLATE_WALL, "polished_deepslate_wall");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_BRICK_STAIRS, "deepslate_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_BRICK_SLAB, "deepslate_brick_slab");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_BRICK_WALL, "deepslate_brick_wall");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_TILE_STAIRS, "deepslate_tile_stairs");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_TILE_SLAB, "deepslate_tile_slab");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_TILE_WALL, "deepslate_tile_wall");
+    registerSimpleBlock(VanillaBlocks::INFESTED_DEEPSLATE, "infested_deepslate");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_BASALT, "smooth_basalt");
+
+    // 凝灰岩方块 (1.17+)
+    registerSimpleBlock(VanillaBlocks::TUFF, "tuff");
+    registerSimpleBlock(VanillaBlocks::POLISHED_TUFF, "polished_tuff");
+    registerSimpleBlock(VanillaBlocks::TUFF_BRICKS, "tuff_bricks");
+    registerSimpleBlock(VanillaBlocks::CHISELED_TUFF, "chiseled_tuff");
+    registerSimpleBlock(VanillaBlocks::CHISELED_TUFF_BRICKS, "chiseled_tuff_bricks");
+    registerSimpleBlock(VanillaBlocks::TUFF_STAIRS, "tuff_stairs");
+    registerSimpleBlock(VanillaBlocks::TUFF_SLAB, "tuff_slab");
+    registerSimpleBlock(VanillaBlocks::TUFF_WALL, "tuff_wall");
+    registerSimpleBlock(VanillaBlocks::POLISHED_TUFF_STAIRS, "polished_tuff_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_TUFF_SLAB, "polished_tuff_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_TUFF_WALL, "polished_tuff_wall");
+    registerSimpleBlock(VanillaBlocks::TUFF_BRICK_STAIRS, "tuff_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::TUFF_BRICK_SLAB, "tuff_brick_slab");
+    registerSimpleBlock(VanillaBlocks::TUFF_BRICK_WALL, "tuff_brick_wall");
+
+    // 树脂方块 (1.21+)
+    registerSimpleBlock(VanillaBlocks::RESIN_CLUMP, "resin_clump");
+    registerSimpleBlock(VanillaBlocks::RESIN_BLOCK, "resin_block");
+    registerSimpleBlock(VanillaBlocks::RESIN_BRICKS, "resin_bricks");
+    registerSimpleBlock(VanillaBlocks::CHISELED_RESIN_BRICKS, "chiseled_resin_bricks");
+    registerSimpleBlock(VanillaBlocks::RESIN_BRICK_STAIRS, "resin_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::RESIN_BRICK_SLAB, "resin_brick_slab");
+    registerSimpleBlock(VanillaBlocks::RESIN_BRICK_WALL, "resin_brick_wall");
+
+    // 苍白橡木原木与木材 (1.21+)
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_LOG, "pale_oak_log");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_WOOD, "pale_oak_wood");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_PALE_OAK_LOG, "stripped_pale_oak_log");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_PALE_OAK_WOOD, "stripped_pale_oak_wood");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_PLANKS, "pale_oak_planks");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_LEAVES, "pale_oak_leaves");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_SAPLING, "pale_oak_sapling");
+
+    // 苍白花园自然方块 (1.21+)
+    registerSimpleBlock(VanillaBlocks::PALE_MOSS_BLOCK, "pale_moss_block");
+    registerSimpleBlock(VanillaBlocks::PALE_MOSS_CARPET, "pale_moss_carpet");
+    registerSimpleBlock(VanillaBlocks::PALE_HANGING_MOSS, "pale_hanging_moss");
+    registerSimpleBlock(VanillaBlocks::OPEN_EYEBLOSSOM, "open_eyeblossom");
+    registerSimpleBlock(VanillaBlocks::CLOSED_EYEBLOSSOM, "closed_eyeblossom");
+    registerSimpleBlock(VanillaBlocks::CREAKING_HEART, "creaking_heart");
+
     // 自然方块扩展
     registerSimpleBlock(VanillaBlocks::CLAY, "clay");
     registerSimpleBlock(VanillaBlocks::MYCELIUM, "mycelium");
@@ -394,6 +461,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 铜矿 (1.17+)
     registerSimpleBlock(VanillaBlocks::COPPER_ORE, "copper_ore");
+
+    // 深板岩矿石 (1.17+)
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_COAL_ORE, "deepslate_coal_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_IRON_ORE, "deepslate_iron_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_COPPER_ORE, "deepslate_copper_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_GOLD_ORE, "deepslate_gold_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_DIAMOND_ORE, "deepslate_diamond_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_LAPIS_ORE, "deepslate_lapis_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_EMERALD_ORE, "deepslate_emerald_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_REDSTONE_ORE, "deepslate_redstone_ore");
 
     // 玻璃
     registerSimpleBlock(VanillaBlocks::GLASS, "glass");

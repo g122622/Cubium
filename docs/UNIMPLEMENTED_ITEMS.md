@@ -188,7 +188,7 @@
 - `minecraft:copper_shovel`
 - `minecraft:copper_spear`
 - `minecraft:copper_sword`
-- `minecraft:deepslate_copper_ore`
+- `minecraft:deepslate_copper_ore ✅ 已完成`
 - `minecraft:exposed_copper`
 - `minecraft:exposed_copper_bars`
 - `minecraft:exposed_copper_chain`
@@ -269,7 +269,7 @@
 - `minecraft:cherry_leaves`
 - `minecraft:flowering_azalea_leaves`
 - `minecraft:mangrove_leaves`
-- `minecraft:pale_oak_leaves`
+- `minecraft:pale_oak_leaves ✅ 已完成`
 
 ### Logs / Wood / Stems（12）
 
@@ -278,14 +278,14 @@
 - `minecraft:cherry_wood`
 - `minecraft:mangrove_log`
 - `minecraft:mangrove_wood`
-- `minecraft:pale_oak_log`
-- `minecraft:pale_oak_wood`
+- `minecraft:pale_oak_log ✅ 已完成`
+- `minecraft:pale_oak_wood ✅ 已完成`
 - `minecraft:stripped_cherry_log`
 - `minecraft:stripped_cherry_wood`
 - `minecraft:stripped_mangrove_log`
 - `minecraft:stripped_mangrove_wood`
-- `minecraft:stripped_pale_oak_log`
-- `minecraft:stripped_pale_oak_wood`
+- `minecraft:stripped_pale_oak_log ✅ 已完成`
+- `minecraft:stripped_pale_oak_wood ✅ 已完成`
 
 ### Planks（6）
 
@@ -294,14 +294,14 @@
 - `minecraft:cherry_planks`
 - `minecraft:crimson_planks`
 - `minecraft:mangrove_planks`
-- `minecraft:pale_oak_planks`
+- `minecraft:pale_oak_planks ✅ 已完成`
 - `minecraft:warped_planks`
 
 ### Saplings（2）
 
 
 - `minecraft:cherry_sapling`
-- `minecraft:pale_oak_sapling`
+- `minecraft:pale_oak_sapling ✅ 已完成`
 
 ### Shulker Boxes（16）
 
@@ -329,13 +329,13 @@
 - `minecraft:andesite_slab`
 - `minecraft:blackstone_slab`
 - `minecraft:brick_slab`
-- `minecraft:cobbled_deepslate_slab`
+- `minecraft:cobbled_deepslate_slab ✅ 已完成`
 - `minecraft:crimson_slab`
 - `minecraft:cut_copper_slab`
 - `minecraft:cut_red_sandstone_slab`
 - `minecraft:cut_sandstone_slab`
-- `minecraft:deepslate_brick_slab`
-- `minecraft:deepslate_tile_slab`
+- `minecraft:deepslate_brick_slab ✅ 已完成`
+- `minecraft:deepslate_tile_slab ✅ 已完成`
 - `minecraft:diorite_slab`
 - `minecraft:end_stone_brick_slab`
 - `minecraft:exposed_cut_copper_slab`
@@ -348,20 +348,20 @@
 - `minecraft:polished_andesite_slab`
 - `minecraft:polished_blackstone_brick_slab`
 - `minecraft:polished_blackstone_slab`
-- `minecraft:polished_deepslate_slab`
+- `minecraft:polished_deepslate_slab ✅ 已完成`
 - `minecraft:polished_diorite_slab`
 - `minecraft:polished_granite_slab`
-- `minecraft:polished_tuff_slab`
+- `minecraft:polished_tuff_slab ✅ 已完成`
 - `minecraft:purpur_slab`
 - `minecraft:quartz_slab`
 - `minecraft:red_nether_brick_slab`
 - `minecraft:red_sandstone_slab`
-- `minecraft:resin_brick_slab`
+- `minecraft:resin_brick_slab ✅ 已完成`
 - `minecraft:smooth_quartz_slab`
 - `minecraft:smooth_red_sandstone_slab`
 - `minecraft:smooth_stone_slab`
-- `minecraft:tuff_brick_slab`
-- `minecraft:tuff_slab`
+- `minecraft:tuff_brick_slab ✅ 已完成`
+- `minecraft:tuff_slab ✅ 已完成`
 - `minecraft:warped_slab`
 - `minecraft:waxed_cut_copper_slab`
 - `minecraft:waxed_exposed_cut_copper_slab`
@@ -375,11 +375,11 @@
 - `minecraft:andesite_stairs`
 - `minecraft:blackstone_stairs`
 - `minecraft:brick_stairs`
-- `minecraft:cobbled_deepslate_stairs`
+- `minecraft:cobbled_deepslate_stairs ✅ 已完成`
 - `minecraft:crimson_stairs`
 - `minecraft:cut_copper_stairs`
-- `minecraft:deepslate_brick_stairs`
-- `minecraft:deepslate_tile_stairs`
+- `minecraft:deepslate_brick_stairs ✅ 已完成`
+- `minecraft:deepslate_tile_stairs ✅ 已完成`
 - `minecraft:diorite_stairs`
 - `minecraft:end_stone_brick_stairs`
 - `minecraft:exposed_cut_copper_stairs`
@@ -391,19 +391,19 @@
 - `minecraft:polished_andesite_stairs`
 - `minecraft:polished_blackstone_brick_stairs`
 - `minecraft:polished_blackstone_stairs`
-- `minecraft:polished_deepslate_stairs`
+- `minecraft:polished_deepslate_stairs ✅ 已完成`
 - `minecraft:polished_diorite_stairs`
 - `minecraft:polished_granite_stairs`
-- `minecraft:polished_tuff_stairs`
+- `minecraft:polished_tuff_stairs ✅ 已完成`
 - `minecraft:purpur_stairs`
 - `minecraft:quartz_stairs`
 - `minecraft:red_nether_brick_stairs`
 - `minecraft:red_sandstone_stairs`
-- `minecraft:resin_brick_stairs`
+- `minecraft:resin_brick_stairs ✅ 已完成`
 - `minecraft:smooth_quartz_stairs`
 - `minecraft:smooth_red_sandstone_stairs`
-- `minecraft:tuff_brick_stairs`
-- `minecraft:tuff_stairs`
+- `minecraft:tuff_brick_stairs ✅ 已完成`
+- `minecraft:tuff_stairs ✅ 已完成`
 - `minecraft:warped_stairs`
 - `minecraft:waxed_cut_copper_stairs`
 - `minecraft:waxed_exposed_cut_copper_stairs`
@@ -441,9 +441,9 @@
 - `minecraft:andesite_wall`
 - `minecraft:blackstone_wall`
 - `minecraft:brick_wall`
-- `minecraft:cobbled_deepslate_wall`
-- `minecraft:deepslate_brick_wall`
-- `minecraft:deepslate_tile_wall`
+- `minecraft:cobbled_deepslate_wall ✅ 已完成`
+- `minecraft:deepslate_brick_wall ✅ 已完成`
+- `minecraft:deepslate_tile_wall ✅ 已完成`
 - `minecraft:diorite_wall`
 - `minecraft:end_stone_brick_wall`
 - `minecraft:granite_wall`
@@ -452,21 +452,21 @@
 - `minecraft:nether_brick_wall`
 - `minecraft:polished_blackstone_brick_wall`
 - `minecraft:polished_blackstone_wall`
-- `minecraft:polished_deepslate_wall`
-- `minecraft:polished_tuff_wall`
+- `minecraft:polished_deepslate_wall ✅ 已完成`
+- `minecraft:polished_tuff_wall ✅ 已完成`
 - `minecraft:prismarine_wall`
 - `minecraft:red_nether_brick_wall`
 - `minecraft:red_sandstone_wall`
-- `minecraft:resin_brick_wall`
+- `minecraft:resin_brick_wall ✅ 已完成`
 - `minecraft:sandstone_wall`
-- `minecraft:tuff_brick_wall`
-- `minecraft:tuff_wall`
+- `minecraft:tuff_brick_wall ✅ 已完成`
+- `minecraft:tuff_wall ✅ 已完成`
 
 ### Other（95）
 
 
 - `minecraft:acacia_shelf`
-- `minecraft:amethyst_shard`
+- `minecraft:amethyst_shard ✅ 已完成`
 - `minecraft:anvil`
 - `minecraft:armadillo_scute`
 - `minecraft:azalea`
@@ -479,7 +479,7 @@
 - `minecraft:blue_bundle`
 - `minecraft:blue_egg`
 - `minecraft:blue_harness`
-- `minecraft:brick`
+- `minecraft:brick ✅ 已完成`
 - `minecraft:brown_bundle`
 - `minecraft:brown_egg`
 - `minecraft:brown_harness`
@@ -487,19 +487,19 @@
 - `minecraft:bundle`
 - `minecraft:cherry_shelf`
 - `minecraft:chipped_anvil`
-- `minecraft:cobbled_deepslate`
+- `minecraft:cobbled_deepslate ✅ 已完成`
 - `minecraft:crimson_shelf`
 - `minecraft:cyan_bundle`
 - `minecraft:cyan_harness`
 - `minecraft:damaged_anvil`
 - `minecraft:dark_oak_shelf`
-- `minecraft:deepslate_coal_ore`
-- `minecraft:deepslate_diamond_ore`
-- `minecraft:deepslate_emerald_ore`
-- `minecraft:deepslate_gold_ore`
-- `minecraft:deepslate_iron_ore`
-- `minecraft:deepslate_lapis_ore`
-- `minecraft:deepslate_redstone_ore`
+- `minecraft:deepslate_coal_ore ✅ 已完成`
+- `minecraft:deepslate_diamond_ore ✅ 已完成`
+- `minecraft:deepslate_emerald_ore ✅ 已完成`
+- `minecraft:deepslate_gold_ore ✅ 已完成`
+- `minecraft:deepslate_iron_ore ✅ 已完成`
+- `minecraft:deepslate_lapis_ore ✅ 已完成`
+- `minecraft:deepslate_redstone_ore ✅ 已完成`
 - `minecraft:exposed_lightning_rod`
 - `minecraft:flowering_azalea`
 - `minecraft:gilded_blackstone`
@@ -528,7 +528,7 @@
 - `minecraft:orange_bundle`
 - `minecraft:orange_harness`
 - `minecraft:oxidized_lightning_rod`
-- `minecraft:pale_moss_block`
+- `minecraft:pale_moss_block ✅ 已完成`
 - `minecraft:pale_oak_shelf`
 - `minecraft:pink_bundle`
 - `minecraft:pink_harness`
@@ -541,7 +541,7 @@
 - `minecraft:recovery_compass`
 - `minecraft:red_bundle`
 - `minecraft:red_harness`
-- `minecraft:resin_brick`
+- `minecraft:resin_brick ✅ 已完成`
 - `minecraft:rooted_dirt`
 - `minecraft:spore_blossom`
 - `minecraft:spruce_shelf`
@@ -702,12 +702,12 @@
 ### `minecraft:decorated_pot_ingredients`
 
 
-- `minecraft:brick`
+- `minecraft:brick ✅ 已完成`
 
 ### `minecraft:duplicates_allays`
 
 
-- `minecraft:amethyst_shard`
+- `minecraft:amethyst_shard ✅ 已完成`
 
 ### `minecraft:fences`
 
@@ -757,10 +757,10 @@
 ### `minecraft:pale_oak_logs`
 
 
-- `minecraft:pale_oak_log`
-- `minecraft:pale_oak_wood`
-- `minecraft:stripped_pale_oak_log`
-- `minecraft:stripped_pale_oak_wood`
+- `minecraft:pale_oak_log ✅ 已完成`
+- `minecraft:pale_oak_wood ✅ 已完成`
+- `minecraft:stripped_pale_oak_log ✅ 已完成`
+- `minecraft:stripped_pale_oak_wood ✅ 已完成`
 
 ### `minecraft:repairs_turtle_helmet`
 
@@ -879,7 +879,7 @@
 未实现项：
 
 
-- `minecraft:deepslate_coal_ore`
+- `minecraft:deepslate_coal_ore ✅ 已完成`
 
 ### `minecraft:compasses`
 
@@ -895,7 +895,7 @@
 未实现项：
 
 
-- `minecraft:deepslate_copper_ore`
+- `minecraft:deepslate_copper_ore ✅ 已完成`
 
 ### `minecraft:diamond_ores`
 
@@ -903,7 +903,7 @@
 未实现项：
 
 
-- `minecraft:deepslate_diamond_ore`
+- `minecraft:deepslate_diamond_ore ✅ 已完成`
 
 ### `minecraft:dirt`
 
@@ -914,7 +914,7 @@
 - `minecraft:moss_block`
 - `minecraft:mud`
 - `minecraft:muddy_mangrove_roots`
-- `minecraft:pale_moss_block`
+- `minecraft:pale_moss_block ✅ 已完成`
 - `minecraft:rooted_dirt`
 
 ### `minecraft:doors`
@@ -955,7 +955,7 @@
 未实现项：
 
 
-- `minecraft:deepslate_emerald_ore`
+- `minecraft:deepslate_emerald_ore ✅ 已完成`
 
 ### `minecraft:enchantable/durability`
 
@@ -987,7 +987,7 @@
 未实现项：
 
 
-- `minecraft:deepslate_gold_ore`
+- `minecraft:deepslate_gold_ore ✅ 已完成`
 
 ### `minecraft:hoes`
 
@@ -1003,7 +1003,7 @@
 未实现项：
 
 
-- `minecraft:deepslate_iron_ore`
+- `minecraft:deepslate_iron_ore ✅ 已完成`
 
 ### `minecraft:lanterns`
 
@@ -1026,7 +1026,7 @@
 未实现项：
 
 
-- `minecraft:deepslate_lapis_ore`
+- `minecraft:deepslate_lapis_ore ✅ 已完成`
 
 ### `minecraft:leaves`
 
@@ -1038,7 +1038,7 @@
 - `minecraft:cherry_leaves`
 - `minecraft:flowering_azalea_leaves`
 - `minecraft:mangrove_leaves`
-- `minecraft:pale_oak_leaves`
+- `minecraft:pale_oak_leaves ✅ 已完成`
 
 ### `minecraft:non_flammable_wood`
 
@@ -1109,7 +1109,7 @@
 - `minecraft:cherry_planks`
 - `minecraft:crimson_planks`
 - `minecraft:mangrove_planks`
-- `minecraft:pale_oak_planks`
+- `minecraft:pale_oak_planks ✅ 已完成`
 - `minecraft:warped_planks`
 
 ### `minecraft:redstone_ores`
@@ -1118,7 +1118,7 @@
 未实现项：
 
 
-- `minecraft:deepslate_redstone_ore`
+- `minecraft:deepslate_redstone_ore ✅ 已完成`
 
 ### `minecraft:sand`
 
@@ -1138,7 +1138,7 @@
 - `minecraft:cherry_sapling`
 - `minecraft:flowering_azalea`
 - `minecraft:mangrove_propagule`
-- `minecraft:pale_oak_sapling`
+- `minecraft:pale_oak_sapling ✅ 已完成`
 
 ### `minecraft:shovels`
 
@@ -1180,12 +1180,12 @@
 - `minecraft:andesite_slab`
 - `minecraft:blackstone_slab`
 - `minecraft:brick_slab`
-- `minecraft:cobbled_deepslate_slab`
+- `minecraft:cobbled_deepslate_slab ✅ 已完成`
 - `minecraft:cut_copper_slab`
 - `minecraft:cut_red_sandstone_slab`
 - `minecraft:cut_sandstone_slab`
-- `minecraft:deepslate_brick_slab`
-- `minecraft:deepslate_tile_slab`
+- `minecraft:deepslate_brick_slab ✅ 已完成`
+- `minecraft:deepslate_tile_slab ✅ 已完成`
 - `minecraft:diorite_slab`
 - `minecraft:end_stone_brick_slab`
 - `minecraft:exposed_cut_copper_slab`
@@ -1198,20 +1198,20 @@
 - `minecraft:polished_andesite_slab`
 - `minecraft:polished_blackstone_brick_slab`
 - `minecraft:polished_blackstone_slab`
-- `minecraft:polished_deepslate_slab`
+- `minecraft:polished_deepslate_slab ✅ 已完成`
 - `minecraft:polished_diorite_slab`
 - `minecraft:polished_granite_slab`
-- `minecraft:polished_tuff_slab`
+- `minecraft:polished_tuff_slab ✅ 已完成`
 - `minecraft:purpur_slab`
 - `minecraft:quartz_slab`
 - `minecraft:red_nether_brick_slab`
 - `minecraft:red_sandstone_slab`
-- `minecraft:resin_brick_slab`
+- `minecraft:resin_brick_slab ✅ 已完成`
 - `minecraft:smooth_quartz_slab`
 - `minecraft:smooth_red_sandstone_slab`
 - `minecraft:smooth_stone_slab`
-- `minecraft:tuff_brick_slab`
-- `minecraft:tuff_slab`
+- `minecraft:tuff_brick_slab ✅ 已完成`
+- `minecraft:tuff_slab ✅ 已完成`
 - `minecraft:waxed_cut_copper_slab`
 - `minecraft:waxed_exposed_cut_copper_slab`
 - `minecraft:waxed_oxidized_cut_copper_slab`
@@ -1237,10 +1237,10 @@
 - `minecraft:andesite_stairs`
 - `minecraft:blackstone_stairs`
 - `minecraft:brick_stairs`
-- `minecraft:cobbled_deepslate_stairs`
+- `minecraft:cobbled_deepslate_stairs ✅ 已完成`
 - `minecraft:cut_copper_stairs`
-- `minecraft:deepslate_brick_stairs`
-- `minecraft:deepslate_tile_stairs`
+- `minecraft:deepslate_brick_stairs ✅ 已完成`
+- `minecraft:deepslate_tile_stairs ✅ 已完成`
 - `minecraft:diorite_stairs`
 - `minecraft:end_stone_brick_stairs`
 - `minecraft:exposed_cut_copper_stairs`
@@ -1252,19 +1252,19 @@
 - `minecraft:polished_andesite_stairs`
 - `minecraft:polished_blackstone_brick_stairs`
 - `minecraft:polished_blackstone_stairs`
-- `minecraft:polished_deepslate_stairs`
+- `minecraft:polished_deepslate_stairs ✅ 已完成`
 - `minecraft:polished_diorite_stairs`
 - `minecraft:polished_granite_stairs`
-- `minecraft:polished_tuff_stairs`
+- `minecraft:polished_tuff_stairs ✅ 已完成`
 - `minecraft:purpur_stairs`
 - `minecraft:quartz_stairs`
 - `minecraft:red_nether_brick_stairs`
 - `minecraft:red_sandstone_stairs`
-- `minecraft:resin_brick_stairs`
+- `minecraft:resin_brick_stairs ✅ 已完成`
 - `minecraft:smooth_quartz_stairs`
 - `minecraft:smooth_red_sandstone_stairs`
-- `minecraft:tuff_brick_stairs`
-- `minecraft:tuff_stairs`
+- `minecraft:tuff_brick_stairs ✅ 已完成`
+- `minecraft:tuff_stairs ✅ 已完成`
 - `minecraft:waxed_cut_copper_stairs`
 - `minecraft:waxed_exposed_cut_copper_stairs`
 - `minecraft:waxed_oxidized_cut_copper_stairs`
@@ -1285,7 +1285,7 @@
 未实现项：
 
 
-- `minecraft:cobbled_deepslate`
+- `minecraft:cobbled_deepslate ✅ 已完成`
 
 ### `minecraft:stone_tool_materials`
 
@@ -1293,7 +1293,7 @@
 未实现项：
 
 
-- `minecraft:cobbled_deepslate`
+- `minecraft:cobbled_deepslate ✅ 已完成`
 
 ### `minecraft:swords`
 
@@ -1324,8 +1324,8 @@
 未实现项：
 
 
-- `minecraft:amethyst_shard`
-- `minecraft:resin_brick`
+- `minecraft:amethyst_shard ✅ 已完成`
+- `minecraft:resin_brick ✅ 已完成`
 
 ### `minecraft:villager_plantable_seeds`
 
@@ -1345,9 +1345,9 @@
 - `minecraft:andesite_wall`
 - `minecraft:blackstone_wall`
 - `minecraft:brick_wall`
-- `minecraft:cobbled_deepslate_wall`
-- `minecraft:deepslate_brick_wall`
-- `minecraft:deepslate_tile_wall`
+- `minecraft:cobbled_deepslate_wall ✅ 已完成`
+- `minecraft:deepslate_brick_wall ✅ 已完成`
+- `minecraft:deepslate_tile_wall ✅ 已完成`
 - `minecraft:diorite_wall`
 - `minecraft:end_stone_brick_wall`
 - `minecraft:granite_wall`
@@ -1356,15 +1356,15 @@
 - `minecraft:nether_brick_wall`
 - `minecraft:polished_blackstone_brick_wall`
 - `minecraft:polished_blackstone_wall`
-- `minecraft:polished_deepslate_wall`
-- `minecraft:polished_tuff_wall`
+- `minecraft:polished_deepslate_wall ✅ 已完成`
+- `minecraft:polished_tuff_wall ✅ 已完成`
 - `minecraft:prismarine_wall`
 - `minecraft:red_nether_brick_wall`
 - `minecraft:red_sandstone_wall`
-- `minecraft:resin_brick_wall`
+- `minecraft:resin_brick_wall ✅ 已完成`
 - `minecraft:sandstone_wall`
-- `minecraft:tuff_brick_wall`
-- `minecraft:tuff_wall`
+- `minecraft:tuff_brick_wall ✅ 已完成`
+- `minecraft:tuff_wall ✅ 已完成`
 
 ### `minecraft:wooden_doors`
 
