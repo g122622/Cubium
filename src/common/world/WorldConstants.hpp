@@ -232,6 +232,12 @@ inline i32 sectionIndexToCoord(i32 sectionIndex) noexcept
  * @brief 将段坐标（MIN_SECTION_Y..MAX_SECTION_Y）转换为段索引（0..CHUNK_SECTIONS-1）
  * @param sectionCoord 段坐标
  * @return 段索引
+ *
+ * TODO: 此函数硬编码使用 MIN_BUILD_HEIGHT 计算偏移，对下界（minHeight=0）等非主世界维度
+ * 会导致段索引计算错误。例如下界 section Y=0 映射到索引 4 而非 0。当前 ChunkData 的
+ * m_sections 数组固定为 CHUNK_SECTIONS=24 大小，架构上假定主世界的段分布。
+ * 完整修复需要：(1) ChunkData 支持维度感知的段偏移 (2) ChunkSection 索引计算使用维度特定的 minHeight
+ * 参考 DimensionType::fromId(dimension).minHeight() 获取正确的维度最小高度。
  */
 inline i32 sectionCoordToIndex(i32 sectionCoord) noexcept
 {
