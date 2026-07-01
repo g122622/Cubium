@@ -89,5 +89,13 @@ JavaWorldReader
 ### 高度图格式
 
 - Java 版使用 9 位编码每个高度值（支持 -512 到 2047 范围）
-- 解包后需要加上 `MIN_BUILD_HEIGHT` 偏移
+- 解包后需要加上维度感知的高度偏移（主世界 -64，下界 0，末地 -64）
 - 高度图类型：`WORLD_SURFACE`、`OCEAN_FLOOR`、`MOTION_BLOCKING`、`MOTION_BLOCKING_NO_LEAVES`、`LIGHT_BLOCKING`
+
+### 维度特定处理
+
+- `JavaColumnReader` 接收 `DimensionId` 参数，通过 `DimensionType::fromId()` 获取维度属性
+- Section Y 范围校验：根据维度的 `minHeight/maxHeight` 过滤越界 section（主世界 -4~19，下界 0~7）
+- 天空光照门控：非天空光照维度（下界、末地）跳过 `SkyLight` 数据加载
+- 高度图偏移：使用维度感知的 `minHeight` 而非全局 `MIN_BUILD_HEIGHT`
+- 生物群系 section 基准：使用维度感知的 `minHeight` 计算旧版 3D 生物群系的 baseSectionY

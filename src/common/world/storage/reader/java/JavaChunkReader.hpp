@@ -75,8 +75,13 @@ public:
 
     /**
      * @brief 从 NBT compound 读取一个 Section
+     * @param sectionNbt Section 的 NBT 数据
+     * @param chunk 目标区块数据
+     * @param sectionY Section 的 Y 坐标
+     * @param hasSkyLight 该维度是否有天空光照
      */
-    Result<void> readSection(const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY);
+    Result<void> readSection(
+        const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool hasSkyLight);
 
     /**
      * @brief 读取高度图
@@ -288,12 +293,16 @@ private:
     /**
      * @brief 读取方块状态调色板和数据
      */
-    Result<void> readBlockStates(const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY);
+    Result<void> readBlockStates(
+        const nbt::tags::compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool hasSkyLight);
 
     /**
      * @brief 读取光照数据
+     * @param sectionNbt Section 的 NBT 数据
+     * @param section 目标区块段
+     * @param hasSkyLight 该维度是否有天空光照，若无则跳过天空光照数据
      */
-    void readLightData(const nbt::tags::compound_tag& sectionNbt, ChunkSection& section);
+    void readLightData(const nbt::tags::compound_tag& sectionNbt, ChunkSection& section, bool hasSkyLight);
 
     JavaBlockStateMapper& m_blockMapper;
     JavaBiomeMapper& m_biomeMapper;

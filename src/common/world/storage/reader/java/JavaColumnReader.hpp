@@ -27,6 +27,7 @@
 #include "common/core/Result.hpp"
 #include "common/core/Types.hpp"
 #include "common/world/chunk/data/ChunkData.hpp"
+#include "common/world/dimension/DimensionType.hpp"
 #include <optional>
 #include <set>
 #include <vector>
@@ -51,9 +52,14 @@ public:
         const std::vector<u8>& nbtData, ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
 private:
-    [[nodiscard]] Result<void> _readSections(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
-    [[nodiscard]] Result<void> _readBiomes(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
-    void _readHeightmaps(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
+    [[nodiscard]] Result<void> _readSections(const nbt::tags::compound_tag& columnNbt,
+        ChunkData& chunk,
+        i32 dimMinHeight,
+        i32 dimMaxHeight,
+        bool dimHasSkyLight);
+    [[nodiscard]] Result<void> _readBiomes(
+        const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight);
+    void _readHeightmaps(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk, i32 heightOffset);
     void _readEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
     void _readBlockEntities(const nbt::tags::compound_tag& columnNbt, ChunkData& chunk);
 
