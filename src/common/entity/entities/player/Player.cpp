@@ -1542,6 +1542,33 @@ bool Player::hurt(DamageSource& source, f32 amount)
     return LivingEntity::hurt(source, amount);
 }
 
+bool Player::isInvulnerableTo(DamageSource& source) const
+{
+    // 先检查基类的免疫判断
+    if (LivingEntity::isInvulnerableTo(source)) {
+        return true;
+    }
+
+    // 玩家专属游戏规则检查：特定伤害类型可被对应游戏规则禁用
+    if (m_world != nullptr) {
+        const auto& rules = m_world->getGameRules();
+        if (source.isDrown() && !rules.getBoolean(world::gamerule::GameRuleKeys::DROWNING_DAMAGE)) {
+            return true;
+        }
+        if (source.isFall() && !rules.getBoolean(world::gamerule::GameRuleKeys::FALL_DAMAGE)) {
+            return true;
+        }
+        if (source.isFire() && !rules.getBoolean(world::gamerule::GameRuleKeys::FIRE_DAMAGE)) {
+            return true;
+        }
+        if (source.isFreezing() && !rules.getBoolean(world::gamerule::GameRuleKeys::FREEZE_DAMAGE)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool Player::canHarmPlayer(const Player& target) const
 {
     // 获取攻击者（本玩家）的队伍

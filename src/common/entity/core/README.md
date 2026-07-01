@@ -395,7 +395,7 @@
 
 1. **冰冻计时器递减**：不在细雪中或不可冰冻时，每 tick -2（解冻速度是冰冻速度的两倍）
 2. **冰冻减速修饰符更新**：先 `removeFrost()` 移除旧修饰符，再 `tryAddFrost()` 添加新修饰符
-3. **冰冻伤害**：每 40 tick 且完全冰冻且可冰冻时，造成 1.0 冰冻伤害（受 `freezeDamage` 游戏规则控制）
+3. **冰冻伤害**：每 40 tick 且完全冰冻且可冰冻时，造成 1.0 冰冻伤害。非玩家实体始终受到冰冻伤害，玩家通过 `Player::isInvulnerableTo()` 检查 `FREEZE_DAMAGE` 游戏规则
 
 #### 冰冻减速修饰符
 
@@ -407,7 +407,6 @@
 #### 冰冻额外伤害
 
 - 在 `actuallyHurt()` 中：冰冻伤害源（`source.isFreezing()`）+ `EntityTypeTags::FREEZE_HURTS_EXTRA_TYPES` 标签中的实体，伤害 ×5
-- 对应 MC Java `LivingEntity.hurtServer()` 中的 `IS_FREEZING + FREEZE_HURTS_EXTRA_TYPES` 检查
 - 额外伤害标签包含：烈焰人（blaze）、岩浆怪（magma_cube）、炽足兽（strider）
 
 ### 冰冻免疫标签
@@ -423,12 +422,11 @@
 - `DamageType::Freeze` — 冰冻伤害，绕过护甲（`bypassesArmor()` 返回 true）
 - `DamageSources::freeze()` — 创建冰冻伤害源
 - 死亡消息键：`"death.attack.freeze"`
-- 受 `FREEZE_DAMAGE` 游戏规则控制（默认 true），在 `tickFreeze()` 中检查
+- `FREEZE_DAMAGE` 游戏规则仅影响玩家（`Player::isInvulnerableTo()` 检查），非玩家实体始终受到冰冻伤害
 
 ### 点燃时清除冰冻
 
 - `igniteForSeconds()` / `igniteForTicks()` — 点燃时自动调用 `clearFreeze()` 清除冰冻状态
-- 对应 MC Java 的 `Entity.setSecondsOnFire()` 中 `this.clearFreeze()` 调用
 
 ### NBT 序列化
 

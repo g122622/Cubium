@@ -51,7 +51,6 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
-#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -957,13 +956,8 @@ void LivingEntity::tickFreeze()
     tryAddFrost();
 
     // 每 40 tick（2 秒），如果完全冰冻且可冰冻，造成 1.0 冰冻伤害
+    // 非玩家实体始终受到冰冻伤害，玩家通过 isInvulnerableTo() 检查 FREEZE_DAMAGE 游戏规则
     if (ticksExisted() % FREEZE_HURT_FREQUENCY == 0 && isFullyFrozen() && canFreeze()) {
-        // 对于 LivingEntity，在造成伤害前检查游戏规则
-        if (m_world != nullptr && !m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::FREEZE_DAMAGE)) {
-            // freezeDamage 游戏规则关闭，跳过冰冻伤害
-            return;
-        }
-
         auto freezeSource = DamageSources::freeze();
 
         // 5倍伤害乘数在 actuallyHurt() 中处理，此处始终传入 1.0 伤害
