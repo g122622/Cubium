@@ -124,12 +124,14 @@ std::vector<u32> JavaChunkReader::unpackPaddedLongArray(const std::vector<i64>& 
     return result;
 }
 
-Result<void> JavaChunkReader::readSection(const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY)
+Result<void> JavaChunkReader::readSection(
+    const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool hasSkyLight)
 {
-    return readBlockStates(sectionNbt, chunk, sectionY);
+    return readBlockStates(sectionNbt, chunk, sectionY, hasSkyLight);
 }
 
-Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY)
+Result<void> JavaChunkReader::readBlockStates(
+    const compound_tag& sectionNbt, ChunkData& chunk, i32 sectionY, bool hasSkyLight)
 {
     // 检查是否有方块状态数据
     if (sectionNbt.value.count("block_states") == 0 && sectionNbt.value.count("Palette") == 0) {
@@ -243,7 +245,7 @@ Result<void> JavaChunkReader::readBlockStates(const compound_tag& sectionNbt, Ch
     }
 
     // 读取光照数据
-    readLightData(sectionNbt, *section);
+    readLightData(sectionNbt, *section, hasSkyLight);
 
     return {};
 }
@@ -257,7 +259,7 @@ void JavaChunkReader::readHeightmaps(const compound_tag& levelNbt, ChunkData& ch
     // 暂时跳过，不阻塞区块加载
 }
 
-void JavaChunkReader::readLightData(const compound_tag& sectionNbt, ChunkSection& section)
+void JavaChunkReader::readLightData(const compound_tag& sectionNbt, ChunkSection& section, bool hasSkyLight)
 {
     auto applyNibble = [&section](const bytearray_tag& bytes, bool isSky) {
         if (bytes.value.size() < NibbleArray::BYTE_SIZE) {
@@ -279,7 +281,9 @@ void JavaChunkReader::readLightData(const compound_tag& sectionNbt, ChunkSection
         }
     };
 
-    if (sectionNbt.value.count("SkyLight") != 0) {
+    // 只在有天空光照的维度（主世界）中加载天空光照数据
+    // 对应 MC Java SerializableChunkData.read() 中的 hasSkyLight 门控
+    if (hasSkyLight && sectionNbt.value.count("SkyLight") != 0) {
         applyNibble(sectionNbt.get<bytearray_tag>("SkyLight"), true);
     }
     if (sectionNbt.value.count("BlockLight") != 0) {

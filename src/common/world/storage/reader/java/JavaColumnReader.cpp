@@ -89,12 +89,11 @@ std::optional<BlockPos> readBlockEntityPos(const compound_tag& tag)
         static_cast<i32>(tag.get<int_tag>("z")));
 }
 
-void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_tag& packedHeights)
+void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_tag& packedHeights, i32 heightOffset)
 {
     // Java版高度图使用9位编码每个高度值（支持-512到2047的范围）
     constexpr i32 BITS_PER_ENTRY = 9;
     constexpr i32 ENTRY_COUNT = world::CHUNK_WIDTH * world::CHUNK_WIDTH;
-    constexpr i32 HEIGHT_OFFSET = world::MIN_BUILD_HEIGHT;
 
     auto unpacked = JavaChunkReader::unpackLongArray(packedHeights.value, BITS_PER_ENTRY, ENTRY_COUNT, true);
     std::array<BlockCoord, Heightmap::SIZE> heights{};
@@ -104,7 +103,7 @@ void applyHeightmapArray(ChunkData& chunk, HeightmapType type, const longarray_t
             const i32 encoded = (index < static_cast<i32>(unpacked.size()))
                 ? static_cast<i32>(unpacked[static_cast<size_t>(index)])
                 : 0;
-            heights[static_cast<size_t>(index)] = static_cast<BlockCoord>(encoded + HEIGHT_OFFSET);
+            heights[static_cast<size_t>(index)] = static_cast<BlockCoord>(encoded + heightOffset);
         }
     }
 
@@ -176,15 +175,21 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
         }
     }
 
+    // 获取维度类型，用于维度特定的区块处理
+    const DimensionType dimType = DimensionType::fromId(dimension);
+    const i32 dimMinHeight = dimType.minHeight();
+    const i32 dimMaxHeight = dimType.maxHeight();
+    const bool dimHasSkyLight = dimType.hasSkyLight();
+
     ChunkData chunk(x, z);
-    auto biomesResult = _readBiomes(columnNbt, chunk);
+    auto biomesResult = _readBiomes(columnNbt, chunk, dimMinHeight);
     if (biomesResult.failed()) {
         return biomesResult.error();
     }
-    _readHeightmaps(columnNbt, chunk);
+    _readHeightmaps(columnNbt, chunk, dimMinHeight);
     _readEntities(columnNbt, chunk);
     _readBlockEntities(columnNbt, chunk);
-    auto sectionsResult = _readSections(columnNbt, chunk);
+    auto sectionsResult = _readSections(columnNbt, chunk, dimMinHeight, dimMaxHeight, dimHasSkyLight);
     if (sectionsResult.failed()) {
         return sectionsResult.error();
     }
@@ -197,15 +202,14 @@ Result<std::optional<ChunkData>> JavaColumnReader::readColumn(
         }
     }
 
-    // TODO: dimension 参数目前未使用，未来可能用于维度特定的区块处理
-    MC_UNUSED(dimension);
     chunk.setLoaded(true);
     chunk.setFullyGenerated(true);
     chunk.setDirty(false);
     return std::optional<ChunkData>(std::move(chunk));
 }
 
-Result<void> JavaColumnReader::_readSections(const compound_tag& columnNbt, ChunkData& chunk)
+Result<void> JavaColumnReader::_readSections(
+    const compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight, i32 dimMaxHeight, bool dimHasSkyLight)
 {
     const list_tag* sections = getList(columnNbt, "Sections");
     if (sections == nullptr) {
@@ -214,6 +218,9 @@ Result<void> JavaColumnReader::_readSections(const compound_tag& columnNbt, Chun
     if (sections == nullptr) {
         return {};
     }
+
+    const i32 minSectionY = dimMinHeight / world::CHUNK_SECTION_HEIGHT;
+    const i32 maxSectionY = (dimMaxHeight - 1) / world::CHUNK_SECTION_HEIGHT;
 
     for (size_t i = 0; i < sections->size(); ++i) {
         const auto entry = (*sections)[i];
@@ -232,7 +239,12 @@ Result<void> JavaColumnReader::_readSections(const compound_tag& columnNbt, Chun
             continue;
         }
 
-        auto result = m_chunkReader.readSection(*sectionNbt, chunk, sectionY);
+        // 跳过超出维度合法范围的 section（对应 MC Java SerializableChunkData.parse 中的 section Y 校验）
+        if (sectionY < minSectionY || sectionY > maxSectionY) {
+            continue;
+        }
+
+        auto result = m_chunkReader.readSection(*sectionNbt, chunk, sectionY, dimHasSkyLight);
         if (result.failed()) {
             spdlog::warn("JavaColumnReader: Failed to read section {} for chunk ({}, {}): {}",
                 sectionY,
@@ -245,7 +257,7 @@ Result<void> JavaColumnReader::_readSections(const compound_tag& columnNbt, Chun
     return {};
 }
 
-Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkData& chunk)
+Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkData& chunk, i32 dimMinHeight)
 {
     // 生物群系采样参数：Java 版每 4x4x4 方块区域共享一个生物群系
     constexpr i32 BIOME_SAMPLE_STRIDE = 4;
@@ -329,7 +341,7 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
         return {};
     }
 
-    const i32 baseSectionY = world::MIN_BUILD_HEIGHT / world::CHUNK_SECTION_HEIGHT;
+    const i32 baseSectionY = dimMinHeight / world::CHUNK_SECTION_HEIGHT;
     BiomeContainer biomeContainer;
     // 1024 = 4x4x4 生物群系采样 * 16 个区块段（旧版 3D 生物群系格式，仅覆盖下半部分）
     constexpr i32 JAVA_BIOME_3D_ARRAY_SIZE = 1024;
@@ -384,7 +396,7 @@ Result<void> JavaColumnReader::_readBiomes(const compound_tag& columnNbt, ChunkD
     return {};
 }
 
-void JavaColumnReader::_readHeightmaps(const compound_tag& columnNbt, ChunkData& chunk)
+void JavaColumnReader::_readHeightmaps(const compound_tag& columnNbt, ChunkData& chunk, i32 heightOffset)
 {
     const compound_tag* heightmaps = getCompound(columnNbt, "Heightmaps");
     if (heightmaps != nullptr) {
@@ -408,7 +420,7 @@ void JavaColumnReader::_readHeightmaps(const compound_tag& columnNbt, ChunkData&
                 continue;
             }
 
-            applyHeightmapArray(chunk, type, dynamic_cast<const longarray_tag&>(*value));
+            applyHeightmapArray(chunk, type, dynamic_cast<const longarray_tag&>(*value), heightOffset);
         }
         return;
     }
