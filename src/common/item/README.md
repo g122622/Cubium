@@ -358,7 +358,29 @@ item/
 
 已实现：`BucketItem`（对牛挤奶）、`ShearsItem`（剪羊毛/雪傀儡/哞菇）、`NameTagItem`（对实体命名）。
 
-### 15. 物品伤害源判断 canBeHurtBy
+### 15. MC 1.21+ 数据包目录命名兼容
+
+**问题**：MC 1.21+ 数据包使用单数目录名（`loot_table/`、`recipe/`、`predicate/`、`function/`），而旧版使用复数（`loot_tables/`、`recipes/`、`predicates/`、`functions/`）。加载器必须同时支持两种形式。
+
+**解决方案**：所有资源加载器（`LootTableLoader`、`RecipeLoader`、`LootPredicateLoader`、`FunctionLoader`）的路径过滤和 ID 推导逻辑均已更新，同时匹配单数和复数目录名。`ItemTagLoader` 不受影响（使用 `listResourceStacks` 精确定位 `tags/item/` 目录，不做路径子串匹配）。
+
+### 16. MC 1.21+ 配方 JSON 格式兼容
+
+**问题**：MC 1.21+ 配方 JSON 格式有两项重大变更：`ingredient` 字段支持字符串格式（如 `"minecraft:raw_iron"`），`result` 字段使用 `"id"` 替代 `"item"`。
+
+**解决方案**：`RecipeSerializers::parseIngredient()` 现在支持字符串格式（自动转为 `{"item": "..."}` 对象格式解析），`parseResult()` 同时支持 `"id"` 和 `"item"` 字段（`"item"` 优先以保持向后兼容）。`RecipeLoader` 也支持从 `recipe/` 和 `recipes/` 两种目录加载。
+
+### 17. 粗矿物品注册（Raw Ore Items）
+
+**新增物品**：`RAW_IRON`、`RAW_COPPER`、`RAW_GOLD`（粗矿物品）及其对应方块物品 `RAW_IRON_BLOCK`、`RAW_COPPER_BLOCK`、`RAW_GOLD_BLOCK`。
+
+- 粗矿物品注册在 `Items::_registerMaterials()` 中，使用 `registry.registerItem()`
+- 粗矿块物品使用 `registerBlockBackedItem()` 绑定到对应 `VanillaBlocks` 方块
+- 方块映射在 `BlockItemRegistry::initializeVanillaBlockItems()` 中通过 `registerSimpleBlock()` 完成
+- `SCUTE` 重命名为 `TURTLE_SCUTE`（ID 从 `minecraft:scute` 更改为 `minecraft:turtle_scute`，MC 1.20.5+ 变更）
+- 数据包中的战利品表、配方、标签文件已存在，加载器修复后可正常加载
+
+### 18. 物品伤害源判断 canBeHurtBy
 
 `ItemStack::canBeHurtBy(const DamageSource&)` 方法判断物品堆是否能被指定伤害源伤害。防火物品（`FIRE_RESISTANT` 标签，如下界合金物品、下界星）不会被火焰和岩浆伤害源摧毁。
 

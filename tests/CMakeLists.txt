@@ -69,6 +69,7 @@ add_executable(mc_tests
     common/item/crafting/ShapedRecipeTest.cpp
     common/item/crafting/ShapelessRecipeTest.cpp
     common/item/crafting/RecipeLoaderTest.cpp
+    common/item/crafting/RecipeFormatTest.cpp
     common/item/crafting/RecipeSerializersTest.cpp
     common/item/crafting/BannerDuplicateRecipeTest.cpp
     common/item/crafting/ShieldDecorationRecipeTest.cpp
@@ -113,6 +114,7 @@ add_executable(mc_tests
     common/item/WoodVariantBlockItemTest.cpp
     common/item/DeepslateItemRegistrationTest.cpp
     common/item/PolishedBlackstoneItemRegistrationTest.cpp
+    common/item/RawOreItemRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp
     common/item/core/ProjectileItemTest.cpp

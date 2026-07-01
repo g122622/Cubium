@@ -187,3 +187,14 @@ src/common/item/crafting/
     - `getMatchingStacks()` 仅返回显式指定的物品堆，不包含标签解析后的物品
     - `getAllMatchingItems()` 返回包含标签解析物品的完整列表（延迟解析）
     - 需要完整物品列表时（如 `merge()`）应使用 `getAllMatchingItems()`
+
+15. **MC 1.21+ 配方 JSON 格式兼容**
+    - **字符串 ingredient**：MC 1.21+ 中 `ingredient` 字段支持直接使用字符串（如 `"minecraft:raw_iron"`），而非必须为对象（如 `{"item": "minecraft:raw_iron"}`）。`RecipeSerializers::parseIngredient()` 现在同时支持字符串、对象和数组三种格式。
+    - **result 中的 id 字段**：MC 1.21+ 中 `result` 使用 `"id"` 替代 `"item"`。`RecipeSerializers::parseResult()` 同时支持两种字段名，当两者同时存在时 `"item"` 优先（向后兼容）。
+    - **key 中的字符串 ingredient**：MC 1.21+ 中 `crafting_shaped` 配方的 `key` 值也支持字符串格式。
+    - **ingredients 中的字符串元素**：MC 1.21+ 中 `crafting_shapeless` 配方的 `ingredients` 数组元素支持字符串格式。
+
+16. **MC 1.21+ 数据包目录命名**
+    - MC 1.21+ 数据包使用单数目录名 `recipe/`，旧版使用复数 `recipes/`。
+    - `RecipeLoader` 的路径过滤和 `pathToRecipeId()` 同时支持两种目录名，确保兼容性。
+    - 测试用例覆盖：`RecipeFormatTest` 测试了所有 MC 1.21+ 格式的解析正确性。

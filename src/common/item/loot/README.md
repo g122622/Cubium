@@ -201,3 +201,12 @@ ReferenceCondition::test(context)
 1. 检查提供的参数中是否包含参数集不允许的参数（`unexpectedParams`）
 2. 检查是否缺少参数集必需的参数（`missingParams`）
 验证失败时不会中断构建，而是通过 `spdlog::warn` 记录缺失/多余的参数信息，便于调试。
+
+### 6. MC 1.21+ 数据包目录命名兼容
+
+MC 1.21+ 数据包使用单数目录名（`loot_table/`、`predicate/`），而旧版使用复数（`loot_tables/`、`predicates/`）。
+
+- **LootTableLoader**：路径过滤和 `pathToLootTableId()` 同时匹配 `loot_table/` 和 `loot_tables/`，确保兼容两种目录命名。
+- **LootPredicateLoader**：路径过滤和 `pathToLootPredicateId()` 同时匹配 `predicate/` 和 `predicates/`。
+- **ItemTagLoader**：不受影响，使用 `listResourceStacks(namespace + "/tags/item")` 精确定位目录，不做路径子串匹配。
+- **FunctionLoader**：同样已修复，同时匹配 `function/` 和 `functions/`。
