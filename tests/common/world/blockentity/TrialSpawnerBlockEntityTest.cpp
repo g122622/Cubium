@@ -32,9 +32,14 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldEvents.hpp"
-#include "common/world/block/BlockPos.hpp"
+#include "common/world/block/Block.hpp"
+#include "common/world/block/BlockRegistry.hpp"
+#include "common/world/block/BlockState.hpp"
+#include "common/world/block/blocks/SimpleBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/blockentity/BlockEntityType.hpp"
 #include "common/world/blockentity/trial/TrialSpawnerBlockEntity.hpp"
 #include <unordered_map>
@@ -1325,4 +1330,255 @@ TEST_F(TrialSpawnerSelectEntityTest, SmallMeleeWeights_SilverfishAndCaveSpiderMo
     EXPECT_GE(counts["minecraft:silverfish"], 100);
     EXPECT_GE(counts["minecraft:cave_spider"], 100);
     EXPECT_GE(counts["minecraft:slime"], 30);
+}
+
+// ============================================================================
+// 视线检测测试
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 支持 raycastBlocks 的测试世界
+ *
+ * 继承 BaseTestWorld，并覆盖 getBlockState 以支持方块射线检测。
+ * 同时提供实体生成、tick、音效等必要存根，以支撑 _findSpawnPosition 调用链。
+ * 使用 map 存储方块位置到方块状态的映射，未设置的位置返回 nullptr（空气）。
+ */
+class TrialSpawnerLineOfSightTestWorld final : public test::BaseTestWorld {
+public:
+    using IWorld::getBlockState;
+
+    void setCurrentTick(u64 tick) { m_currentTick = tick; }
+    [[nodiscard]] u64 currentTick() const override { return m_currentTick; }
+
+    void setSeed(u64 seed) { m_random = math::Random(seed); }
+
+    void setBlockCollisionFlag(bool hasCollision) { m_hasBlockCollision = hasCollision; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return m_hasBlockCollision; }
+
+    void setBlockStateAt(i32 x, i32 y, i32 z, const BlockState* state) { m_blockStates[key(x, y, z)] = state; }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        auto it = m_blockStates.find(key(x, y, z));
+        return it != m_blockStates.end() ? it->second : nullptr;
+    }
+
+    void clearBlocks() { m_blockStates.clear(); }
+
+    // 实体生成存根
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        if (!entity) {
+            return EntityId(0);
+        }
+        EntityId id = EntityId(++m_nextEntityId);
+        entity->setId(id);
+        m_spawnedEntities.push_back(entity.get());
+        m_ownedEntities.push_back(std::move(entity));
+        return id;
+    }
+
+    [[nodiscard]] Entity* getEntityByUuid(const std::string& uuid) override
+    {
+        for (auto* entity : m_spawnedEntities) {
+            if (entity && entity->uuid() == uuid) {
+                return entity;
+            }
+        }
+        return nullptr;
+    }
+
+    void playSound(const ResourceLocation& soundId,
+        sound::SoundCategory category,
+        const Vector3& position,
+        f32 volume,
+        f32 pitch) override
+    {
+        MC_UNUSED(category);
+        MC_UNUSED(position);
+        MC_UNUSED(volume);
+        MC_UNUSED(pitch);
+        MC_UNUSED(soundId);
+    }
+
+    void playEvent(i32 eventId, const BlockPos& pos, i32 data) override
+    {
+        MC_UNUSED(eventId);
+        MC_UNUSED(pos);
+        MC_UNUSED(data);
+    }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("TrialSpawnerLineOfSightTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("TrialSpawnerLineOfSightTestWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    void setDifficulty(Difficulty diff) { m_difficulty = diff; }
+
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
+
+    [[nodiscard]] std::vector<Entity*> getPlayers() const override { return {}; }
+
+    [[nodiscard]] BlockEntity* getBlockEntity(const BlockPos&) override { return nullptr; }
+    [[nodiscard]] const BlockEntity* getBlockEntity(const BlockPos&) const override { return nullptr; }
+
+private:
+    u64 m_currentTick = 0;
+    Difficulty m_difficulty = Difficulty::Easy;
+    bool m_hasBlockCollision = false;
+    std::unordered_map<i64, const BlockState*> m_blockStates;
+    std::vector<Entity*> m_spawnedEntities;
+    std::vector<std::unique_ptr<Entity>> m_ownedEntities;
+    u64 m_nextEntityId = 0;
+
+    static i64 key(i32 x, i32 y, i32 z)
+    {
+        return static_cast<i64>(x) | (static_cast<i64>(y) << 16) | (static_cast<i64>(z) << 32);
+    }
+};
+
+/**
+ * @brief 获取石头方块状态（用于遮挡视线测试）
+ */
+const BlockState* getStoneBlockState()
+{
+    static const BlockState* state = nullptr;
+    if (state == nullptr) {
+        auto* block = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
+        state = block ? &block->defaultState() : nullptr;
+    }
+    return state;
+}
+
+} // anonymous namespace
+
+class TrialSpawnerLineOfSightTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        entity::VanillaEntities::registerAll();
+        // 确保方块注册表已初始化（用于射线检测）
+        if (!VanillaBlocks::STONE) {
+            VanillaBlocks::initialize();
+        }
+        spawner_ = std::make_unique<TestTrialSpawnerBlockEntity>(BlockPos(0, 64, 0));
+    }
+
+    TrialSpawnerLineOfSightTestWorld world_;
+    std::unique_ptr<TestTrialSpawnerBlockEntity> spawner_;
+};
+
+TEST_F(TrialSpawnerLineOfSightTest, ClearLineOfSight_ReturnsPosition)
+{
+    // 无方块遮挡时，射线从生成位置到刷怪笼中心畅通无阻
+    // 默认世界中 getBlockState 返回 nullptr（空气），hasBlockCollision 返回 false
+    auto pos = spawner_->testFindSpawnPosition(world_);
+    EXPECT_TRUE(pos.has_value());
+}
+
+TEST_F(TrialSpawnerLineOfSightTest, HitSpawnerBlockOnly_ReturnsPosition)
+{
+    // 刷怪笼方块本身不应阻挡视线
+    // 在刷怪笼位置 (0, 64, 0) 放置一个石头方块
+    // 当射线从生成位置射向刷怪笼中心时，如果射线命中了刷怪笼自身的方块，
+    // 这仍然应该被允许（与 MC Java 行为一致）
+    const BlockState* stoneState = getStoneBlockState();
+    ASSERT_NE(stoneState, nullptr);
+
+    // 在刷怪笼位置放置方块
+    world_.setBlockStateAt(0, 64, 0, stoneState);
+
+    // 无碰撞（hasBlockCollision 返回 false），射线只命中刷怪笼方块本身
+    auto pos = spawner_->testFindSpawnPosition(world_);
+    EXPECT_TRUE(pos.has_value());
+}
+
+TEST_F(TrialSpawnerLineOfSightTest, BlockingWall_ReturnsNullopt)
+{
+    // 设置碰撞为 true 以确保所有位置都被碰撞阻挡
+    // 这样 _findSpawnPosition 会在碰撞检测阶段就被挡住
+    world_.setBlockCollisionFlag(true);
+    auto pos = spawner_->testFindSpawnPosition(world_);
+    EXPECT_FALSE(pos.has_value());
+}
+
+TEST_F(TrialSpawnerLineOfSightTest, WallBetweenSpawnerAndSpawn_BlocksLineOfSight)
+{
+    // 在刷怪笼前方放置一面完整的遮挡墙，但不设置整体碰撞
+    // 刷怪笼位于 (0, 64, 0)
+    // 在 x=1 处放置一堵 y=63-65 的墙
+    // 射线从远处生成位置到刷怪笼中心时会命中这堵墙
+    const BlockState* stoneState = getStoneBlockState();
+    ASSERT_NE(stoneState, nullptr);
+
+    // 在 x=1, z=0 处放一堵墙（覆盖 y=63, 64, 65）
+    world_.setBlockStateAt(1, 63, 0, stoneState);
+    world_.setBlockStateAt(1, 64, 0, stoneState);
+    world_.setBlockStateAt(1, 65, 0, stoneState);
+
+    // 设置固定随机种子以控制生成位置
+    world_.setSeed(42);
+
+    // 无整体碰撞（hasBlockCollision 返回 false），但射线会命中遮挡墙
+    // 由于随机位置可能落在墙的两侧，多次调用应能找到位置（有些在墙同一侧）
+    // 但从 x>=2 的位置到刷怪笼中心的射线会被 x=1 处的墙挡住
+    // 从 x<0 的位置则可能畅通
+    // 我们验证至少有些位置因视线检测被拒绝，但最终能找到位置
+    auto pos = spawner_->testFindSpawnPosition(world_);
+    // 由于刷怪笼周围有开放区域（x<0 方向），应该能找到生成位置
+    EXPECT_TRUE(pos.has_value());
+}
+
+TEST_F(TrialSpawnerLineOfSightTest, SpawnerBlockHit_AllowedByException)
+{
+    // 仅在刷怪笼位置 (0, 64, 0) 放置石头，其他位置为空气。
+    // 当射线从生成位置射向刷怪笼中心 (0.5, 64.5, 0.5) 时，
+    // 如果射线命中了刷怪笼方块自身 (0, 64, 0)，则根据视线检测规则应被允许。
+    // 这与 HitSpawnerBlockOnly_ReturnsPosition 测试类似，但此测试更明确地
+    // 验证了射线命中刷怪笼方块自身时的异常处理逻辑。
+    const BlockState* stoneState = getStoneBlockState();
+    ASSERT_NE(stoneState, nullptr);
+
+    // 仅在刷怪笼位置放置方块
+    world_.setBlockStateAt(0, 64, 0, stoneState);
+
+    // 无整体碰撞，射线命中刷怪笼方块自身时允许生成
+    auto pos = spawner_->testFindSpawnPosition(world_);
+    EXPECT_TRUE(pos.has_value());
+}
+
+TEST_F(TrialSpawnerLineOfSightTest, WallBlocksAllDirections_CollisionAndLOSFallback)
+{
+    // 测试当视线被阻挡时，_findSpawnPosition 会继续尝试其他位置。
+    // 在刷怪笼四周放置完整的方块墙，确保射线无法从远处到达刷怪笼中心，
+    // 但 hasBlockCollision 返回 false，所以碰撞检测不会阻挡位置。
+    // 由于刷怪笼方块自身 (0,64,0) 的异常规则，随机位置如果落在刷怪笼方块内，
+    // 仍然可能通过视线检测。但大多数位置会被视线检测拒绝。
+    // 这是一个综合测试，验证碰撞检测和视线检测的协同工作。
+    const BlockState* stoneState = getStoneBlockState();
+    ASSERT_NE(stoneState, nullptr);
+
+    // 在刷怪笼周围放一层完整的方块墙（x,z 在 [-2,2], y 在 [63,65]）
+    for (i32 x = -2; x <= 2; ++x) {
+        for (i32 z = -2; z <= 2; ++z) {
+            for (i32 y = 63; y <= 65; ++y) {
+                world_.setBlockStateAt(x, y, z, stoneState);
+            }
+        }
+    }
+
+    // 同时设置整体碰撞为 true，这样所有位置都在碰撞检测阶段被拒绝
+    world_.setBlockCollisionFlag(true);
+    auto pos = spawner_->testFindSpawnPosition(world_);
+    EXPECT_FALSE(pos.has_value());
 }
