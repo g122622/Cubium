@@ -117,8 +117,9 @@ static void resolveTagEntry(const RawTagEntry& entry,
         // 防止循环引用
         if (visitedTags.count(tagRefLocation) > 0) {
             if (entry.required) {
-                spdlog::warn(
-                    "ItemTagLoader: 循环标签引用 '{}' (required), 跳过 (标签: {})", entry.id, tagLocation.toString());
+                spdlog::warn("ItemTagLoader: circular tag reference '{}' (required), skipping (tag: {})",
+                    entry.id,
+                    tagLocation.toString());
             }
             return;
         }
@@ -132,7 +133,7 @@ static void resolveTagEntry(const RawTagEntry& entry,
             }
         } else {
             if (entry.required) {
-                spdlog::warn("ItemTagLoader: 引用的标签 '{}' 未找到 (required), 跳过 (标签: {})",
+                spdlog::warn("ItemTagLoader: referenced tag '{}' not found (required), skipping (tag: {})",
                     entry.id,
                     tagLocation.toString());
             }
@@ -145,8 +146,9 @@ static void resolveTagEntry(const RawTagEntry& entry,
             items.push_back(item);
         } else {
             if (entry.required) {
-                spdlog::warn(
-                    "ItemTagLoader: 未知的物品 '{}' (required), 跳过 (标签: {})", entry.id, tagLocation.toString());
+                spdlog::warn("ItemTagLoader: unknown item '{}' (required), skipping (tag: {})",
+                    entry.id,
+                    tagLocation.toString());
             }
             // required=false 时静默跳过
         }
@@ -178,7 +180,7 @@ static Result<RawTagData> parseJsonRaw(const std::string& json, const ResourceLo
 
         // 解析 values 数组
         if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "物品标签缺少 'values' 数组");
+            return Error(ErrorCode::InvalidData, "Item tag missing 'values' array");
         }
 
         for (const auto& value : jsonObj["values"]) {
@@ -189,13 +191,15 @@ static Result<RawTagData> parseJsonRaw(const std::string& json, const ResourceLo
             } else if (value.is_object()) {
                 // 对象格式: {"id":"minecraft:diamond","required":false}
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("ItemTagLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", location.toString());
+                    spdlog::warn(
+                        "ItemTagLoader: object entry in tag '{}' missing 'id' field, skipping", location.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
-                    spdlog::warn("ItemTagLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", location.toString());
+                    spdlog::warn(
+                        "ItemTagLoader: object entry 'id' in tag '{}' is empty, skipping", location.toString());
                     continue;
                 }
 
@@ -207,17 +211,18 @@ static Result<RawTagData> parseJsonRaw(const std::string& json, const ResourceLo
 
                 rawData.entries.push_back({id, required});
             } else {
-                spdlog::warn("ItemTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
+                spdlog::warn(
+                    "ItemTagLoader: value in tag '{}' is not a string or object, skipping", location.toString());
             }
         }
 
         return rawData;
     }
     catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());
     }
 }
 
@@ -251,7 +256,7 @@ static void resolveAndFillTag(const ResourceLocation& location, const MergedTagD
     tag.addAll(items);
 
     if (items.empty()) {
-        spdlog::info("ItemTagLoader: 标签 '{}' 没有解析到有效的物品", location.toString());
+        spdlog::info("ItemTagLoader: tag '{}' resolved no valid items", location.toString());
     }
 }
 
@@ -285,7 +290,7 @@ static void resolveTagWithDependencies(const ResourceLocation& location,
 
     // 检测循环依赖：如果标签在 resolving 集合中，说明存在循环引用
     if (resolving.count(location) > 0) {
-        spdlog::warn("ItemTagLoader: 检测到循环标签依赖 '{}', 跳过", location.toString());
+        spdlog::warn("ItemTagLoader: circular tag dependency detected '{}', skipping", location.toString());
         return;
     }
 
@@ -383,7 +388,7 @@ Result<size_t> ItemTagLoader::loadFromDataPackRepository(const resource::DataPac
                 // 第一阶段：仅解析 JSON 结构，不解析引用
                 auto parseResult = parseJsonRaw(version.content, location);
                 if (!parseResult.success()) {
-                    spdlog::warn("ItemTagLoader: 无法解析标签 {} (来自数据包 {}): {}",
+                    spdlog::warn("ItemTagLoader: failed to parse tag {} (from datapack {}): {}",
                         location.toString(),
                         version.packName,
                         parseResult.error().message());
@@ -433,7 +438,7 @@ Result<size_t> ItemTagLoader::loadFromDataPackRepository(const resource::DataPac
     }
 
     if (loadedCount > 0) {
-        spdlog::info("ItemTagLoader: 从数据包加载了 {} 个物品标签", loadedCount);
+        spdlog::info("ItemTagLoader: loaded {} item tags from datapacks", loadedCount);
     }
 
     return loadedCount;
@@ -469,14 +474,15 @@ Result<size_t> ItemTagLoader::loadFromResourcePack(const resource::IResourcePack
             // 读取 JSON 内容
             auto readResult = pack.readTextResource(resource::PackType::ServerData, resourcePath);
             if (!readResult.success()) {
-                spdlog::warn("ItemTagLoader: 无法读取标签文件: {}", resourcePath);
+                spdlog::warn("ItemTagLoader: failed to read tag file: {}", resourcePath);
                 continue;
             }
 
             // 第一阶段：仅解析 JSON 结构，不解析引用
             auto parseResult = parseJsonRaw(readResult.value(), location);
             if (!parseResult.success()) {
-                spdlog::warn("ItemTagLoader: 无法解析标签 {}: {}", location.toString(), parseResult.error().message());
+                spdlog::warn(
+                    "ItemTagLoader: failed to parse tag {}: {}", location.toString(), parseResult.error().message());
                 continue;
             }
 
@@ -535,7 +541,7 @@ Result<std::unique_ptr<ItemTag>> ItemTagLoader::loadFromJson(const std::string& 
 
         // 解析 values 数组
         if (!jsonObj.contains("values") || !jsonObj["values"].is_array()) {
-            return Error(ErrorCode::InvalidData, "物品标签缺少 'values' 数组");
+            return Error(ErrorCode::InvalidData, "Item tag missing 'values' array");
         }
 
         std::vector<const Item*> items;
@@ -553,13 +559,15 @@ Result<std::unique_ptr<ItemTag>> ItemTagLoader::loadFromJson(const std::string& 
                 // 对象格式: {"id":"minecraft:diamond","required":false}
                 // 支持 required 语义
                 if (!value.contains("id") || !value["id"].is_string()) {
-                    spdlog::warn("ItemTagLoader: 标签 '{}' 中的对象格式条目缺少 'id' 字段, 跳过", location.toString());
+                    spdlog::warn(
+                        "ItemTagLoader: object entry in tag '{}' missing 'id' field, skipping", location.toString());
                     continue;
                 }
 
                 std::string id = value["id"].get<std::string>();
                 if (id.empty()) {
-                    spdlog::warn("ItemTagLoader: 标签 '{}' 中的对象格式条目 'id' 为空, 跳过", location.toString());
+                    spdlog::warn(
+                        "ItemTagLoader: object entry 'id' in tag '{}' is empty, skipping", location.toString());
                     continue;
                 }
 
@@ -572,7 +580,8 @@ Result<std::unique_ptr<ItemTag>> ItemTagLoader::loadFromJson(const std::string& 
                 RawTagEntry rawEntry{id, required};
                 resolveTagEntry(rawEntry, items, visitedTags, location);
             } else {
-                spdlog::warn("ItemTagLoader: 标签 '{}' 中的值不是字符串或对象, 跳过", location.toString());
+                spdlog::warn(
+                    "ItemTagLoader: value in tag '{}' is not a string or object, skipping", location.toString());
             }
         }
 
@@ -580,16 +589,16 @@ Result<std::unique_ptr<ItemTag>> ItemTagLoader::loadFromJson(const std::string& 
         tag->addAll(items);
 
         if (items.empty()) {
-            spdlog::info("ItemTagLoader: 标签 '{}' 没有解析到有效的物品", location.toString());
+            spdlog::info("ItemTagLoader: tag '{}' resolved no valid items", location.toString());
         }
 
         return tag;
     }
     catch (const nlohmann::json::parse_error& e) {
-        return Error(ErrorCode::InvalidData, std::string("JSON 解析错误: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("JSON parse error: ") + e.what());
     }
     catch (const std::exception& e) {
-        return Error(ErrorCode::InvalidData, std::string("解析 JSON 失败: ") + e.what());
+        return Error(ErrorCode::InvalidData, std::string("Failed to parse JSON: ") + e.what());
     }
 }
 
