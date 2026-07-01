@@ -78,14 +78,10 @@ bool AvoidBlockGoal::shouldExecute()
         return false;
     }
 
-    // 检查路径是否存在
+    // 仅检查导航器可用性，不启动导航
+    // 实际的路径计算和导航在 startExecuting() 中统一启动
     auto* nav = m_creature->navigator();
-    if (!nav) {
-        return false;
-    }
-
-    // 尝试找到到逃跑位置的路径
-    return nav->moveTo(m_escapeX, m_escapeY, m_escapeZ, 0.0);
+    return nav != nullptr;
 }
 
 bool AvoidBlockGoal::shouldContinueExecuting()
@@ -124,6 +120,8 @@ void AvoidBlockGoal::startExecuting()
 {
     if (m_creature) {
         if (auto* nav = m_creature->navigator()) {
+            // 以指定速度启动导航到逃跑位置
+            // 如果路径计算失败（无法到达），shouldContinueExecuting 会在下一 tick 检测到
             static_cast<void>(nav->moveTo(m_escapeX, m_escapeY, m_escapeZ, m_speed));
         }
     }

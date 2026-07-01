@@ -11,6 +11,7 @@ goal/
 ├── PrioritizedGoal.hpp       # 带优先级的目标包装器
 └── goals/                    # 具体目标实现
     ├── AvoidEntityGoal.hpp/cpp   # 避开实体目标
+    ├── AvoidBlockGoal.hpp/cpp   # 避开方块目标（主动远离指定标签的方块，如排斥物）
     ├── BreedGoal.hpp/cpp         # 繁殖目标
     ├── EatGrassGoal.hpp/cpp      # 吃草目标（羊等草食动物）
     ├── FollowParentGoal.hpp/cpp  # 跟随父母目标
@@ -234,3 +235,35 @@ LookAtGoal 支持通过 `TypeFilter<T>{}` 或自定义谓词过滤目标类型�
 | 适用动物 | 狼 | 牛、猪、羊等 |
 | 互斥标志 | `Look` | `Move`, `Look` |
 | 驯服物品支持 | 已驯服动物对驯服物品乞求 | 不检查驯服状态 |
+
+### 16. AvoidBlockGoal 方块回避目标
+
+`AvoidBlockGoal` 使生物主动远离指定标签的方块，对应 MC 1.21.11 的 `SetWalkTargetAwayFrom.pos(NEAREST_REPELLENT)` 行为。
+
+**核心逻辑**：
+1. `shouldExecute()`：扫描附近区域寻找匹配标签的排斥方块，找到后使用 `RandomPositionGenerator` 计算远离该方块的位置
+2. `shouldContinueExecuting()`：检查是否仍在排斥范围内、导航路径是否完成
+3. `tick()`：导航完成后若仍靠近排斥方块，尝试重新计算逃跑位置
+
+**使用场景**：
+- 疣猪兽远离 `HOGLIN_REPELLENTS` 方块（诡异菌、诡异菌岩、下界传送门、重生锚）
+- 猪灵远离 `PIGLIN_REPELLENTS` 方块（灵魂火、灵魂火把、灵魂灯笼、灵魂营火、诡异菌）
+
+**BlockValidator 回调**：某些方块需要额外状态检查（如灵魂营火需点燃才排斥猪灵），通过 `BlockValidator` 函数实现：
+
+```cpp
+// 带验证函数的构造
+m_goalSelector.addGoal(4,
+    std::make_unique<AvoidBlockGoal>(
+        this, BlockTags::PIGLIN_REPELLENTS(), 1.0, 8, 4,
+        [](const BlockState& state) {
+            if (state.is(block_registry::NetherBlocks::SOUL_CAMPFIRE)) {
+                return blocks::CampfireBlock::isLitCampfire(state);
+            }
+            return true;
+        }));
+```
+
+**与 `getPathWeight()` 的协同**：`AvoidBlockGoal` 提供主动逃跑行为，而 `getPathWeight()` 返回 `-1.0f` 阻止寻路穿过排斥区域。两者共同实现了 MC 原版 `isPosNearNearestRepellent` + `SetWalkTargetAwayFrom` 的完整行为。
+
+**互斥标志**：`GoalFlag::Move`（与 `AvoidEntityGoal`、`FleeSunGoal` 等一致）
