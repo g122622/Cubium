@@ -23,7 +23,11 @@
 
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "entity/entities/player/Player.hpp"
 #include "entity/inventory/ContainerListener.hpp"
+#include "entity/inventory/ContainerTypes.hpp"
+#include "entity/inventory/PlayerInventory.hpp"
+#include "entity/inventory/container/ChestContainer.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "sound/SoundCategory.hpp"
@@ -31,6 +35,7 @@
 #include "world/IWorld.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
+#include "world/blockentity/storage/DoubleSidedInventory.hpp"
 #include "world/blockentity/storage/TrappedChestEntity.hpp"
 #include "world/gameevent/GameEvents.hpp"
 #include <gtest/gtest.h>
@@ -1215,4 +1220,313 @@ TEST_F(ChestEntityTickTest, Tick_NoAnimationWhenAlreadyClosed)
         chest_->tick(world_);
     }
     EXPECT_FLOAT_EQ(chest_->getLidAngle(), 0.0f);
+}
+
+// ========== _isOwnContainer 容器归属检查测试 ==========
+
+/// @brief _isOwnContainer 测试夹具
+/// 设置箱子和玩家，通过 ChestTestWorld 注入玩家实体来测试 _recheckOpeners 逻辑
+class ChestEntityOwnContainerTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        Items::initialize();
+        chest_ = std::make_unique<ChestEntity>(BlockPos(0, 64, 0));
+        chest_->setWorld(&world_);
+    }
+
+    ChestTestWorld world_;
+    std::unique_ptr<ChestEntity> chest_;
+};
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerWithChestMenu_CountsAsOpener)
+{
+    // 场景：玩家打开了此箱子的 ChestContainer，_recheckOpeners 应将其计为打开者
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(0.5f, 64.5f, 0.5f); // 箱子附近
+
+    auto playerInventory = std::make_unique<PlayerInventory>(player.get());
+
+    // 创建指向此箱子背包容器的 ChestContainer
+    auto container =
+        ChestContainer::createSingle(ContainerId(1), playerInventory.get(), chest_->getInventory(), chest_.get());
+
+    // 设置玩家打开的容器菜单
+    player->setOpenContainerMenu(container.get());
+
+    // 将玩家注入世界的实体列表
+    world_.setEntitiesInRange({player.get()});
+
+    // 先手动设置 openCount = 1
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    // Tick 5 次触发 _recheckOpeners
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 玩家打开的是此箱子的菜单，openCount 应保持为 1
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerWithOtherContainer_CountsAsClosed)
+{
+    // 场景：玩家打开了熔炉等其他容器的菜单（非 ChestContainer），
+    // _recheckOpeners 不应将其计为此箱子的打开者
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(0.5f, 64.5f, 0.5f); // 箱子附近
+
+    auto playerInventory = std::make_unique<PlayerInventory>(player.get());
+
+    // 创建一个独立的 27 格背包（模拟熔炉/酿造台等非箱子容器）
+    auto otherInventory = std::make_unique<SimpleInventory>(27);
+
+    // 创建一个指向 OTHER 背包的 ChestContainer（模拟另一个箱子）
+    // 玩家的菜单打开的是另一个箱子的背包，不是此箱子
+    auto otherContainer = ChestContainer::createSingle(ContainerId(2), playerInventory.get(), otherInventory.get());
+
+    player->setOpenContainerMenu(otherContainer.get());
+    world_.setEntitiesInRange({player.get()});
+
+    // 手动设置 openCount = 1
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    // Tick 5 次触发 _recheckOpeners
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 玩家打开的是其他容器的菜单，openCount 应被修正为 0
+    EXPECT_EQ(chest_->getOpenCount(), 0);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerWithNoMenu_CountsAsClosed)
+{
+    // 场景：玩家在箱子附近但没有打开任何容器菜单，
+    // _recheckOpeners 不应将其计为打开者
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(0.5f, 64.5f, 0.5f); // 箱子附近
+
+    // 玩家没有设置 openContainerMenu（默认 nullptr）
+    world_.setEntitiesInRange({player.get()});
+
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 玩家没有打开菜单，openCount 应被修正为 0
+    EXPECT_EQ(chest_->getOpenCount(), 0);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_SpectatorPlayer_NotCounted)
+{
+    // 场景：旁观者玩家即使打开了此箱子的菜单也不应被计入
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(0.5f, 64.5f, 0.5f);
+    player->setGameMode(GameMode::Spectator);
+
+    auto playerInventory = std::make_unique<PlayerInventory>(player.get());
+    auto container =
+        ChestContainer::createSingle(ContainerId(1), playerInventory.get(), chest_->getInventory(), chest_.get());
+
+    player->setOpenContainerMenu(container.get());
+    world_.setEntitiesInRange({player.get()});
+
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 旁观者不应被计入
+    EXPECT_EQ(chest_->getOpenCount(), 0);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerOutOfRange_NotCounted)
+{
+    // 场景：玩家打开了此箱子的菜单但走远了（超过 MAX_ACCESS_DISTANCE=8格），
+    // _recheckOpeners 不应将其计为打开者
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(50.0f, 64.5f, 50.0f); // 远离箱子
+
+    auto playerInventory = std::make_unique<PlayerInventory>(player.get());
+    auto container =
+        ChestContainer::createSingle(ContainerId(1), playerInventory.get(), chest_->getInventory(), chest_.get());
+
+    player->setOpenContainerMenu(container.get());
+    world_.setEntitiesInRange({player.get()});
+
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 玩家超出范围，openCount 应被修正为 0
+    EXPECT_EQ(chest_->getOpenCount(), 0);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_PlayerClosesMenu_CountsAsClosed)
+{
+    // 场景：玩家打开箱子后关闭菜单，_recheckOpeners 应检测到并修正计数
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(0.5f, 64.5f, 0.5f);
+
+    auto playerInventory = std::make_unique<PlayerInventory>(player.get());
+    auto container =
+        ChestContainer::createSingle(ContainerId(1), playerInventory.get(), chest_->getInventory(), chest_.get());
+
+    player->setOpenContainerMenu(container.get());
+    world_.setEntitiesInRange({player.get()});
+
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    // 玩家关闭菜单
+    player->clearOpenContainerMenu();
+
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 玩家已关闭菜单，openCount 应被修正为 0
+    EXPECT_EQ(chest_->getOpenCount(), 0);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_DoubleChest_PlayerOpensDoubleChest)
+{
+    // 场景：双箱合并场景，玩家打开双箱容器，两个箱子都应检测到玩家
+    // 测试当前箱子：ChestContainer 的底层容器是 DoubleSidedInventory，
+    // _isOwnContainer 应通过 isPartOfLargeChest 检测到此箱子是双箱的一部分
+
+    // 创建第二个箱子（模拟相邻箱子）
+    auto chestB = std::make_unique<ChestEntity>(BlockPos(1, 64, 0));
+    chestB->setWorld(&world_);
+
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(0.5f, 64.5f, 0.5f);
+
+    auto playerInventory = std::make_unique<PlayerInventory>(player.get());
+
+    // 创建双箱容器
+    auto doubleInv = std::make_unique<DoubleSidedInventory>(chest_->getInventory(), chestB->getInventory());
+    auto container = ChestContainer::createDouble(
+        ContainerId(1), playerInventory.get(), doubleInv.get(), chest_.get(), chestB.get());
+
+    player->setOpenContainerMenu(container.get());
+    world_.setEntitiesInRange({player.get()});
+
+    // 模拟箱子 A 有 1 个打开者
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    // Tick 5 次触发 _recheckOpeners
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 玩家打开的双箱容器包含此箱子的背包容器，openCount 应保持为 1
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_MultiplePlayers_OnlyChestUsersCounted)
+{
+    // 场景：两个玩家在箱子附近，一个打开了此箱子，一个打开了其他容器
+    auto playerA = std::make_unique<Player>(1, "PlayerA");
+    playerA->setPosition(0.5f, 64.5f, 0.5f);
+
+    auto playerB = std::make_unique<Player>(2, "PlayerB");
+    playerB->setPosition(1.5f, 64.5f, 0.5f);
+
+    auto inventoryA = std::make_unique<PlayerInventory>(playerA.get());
+    auto inventoryB = std::make_unique<PlayerInventory>(playerB.get());
+
+    // PlayerA 打开此箱子
+    auto containerA =
+        ChestContainer::createSingle(ContainerId(1), inventoryA.get(), chest_->getInventory(), chest_.get());
+    playerA->setOpenContainerMenu(containerA.get());
+
+    // PlayerB 打开另一个容器的菜单（非此箱子）
+    auto otherInventory = std::make_unique<SimpleInventory>(27);
+    auto containerB = ChestContainer::createSingle(ContainerId(2), inventoryB.get(), otherInventory.get());
+    playerB->setOpenContainerMenu(containerB.get());
+
+    world_.setEntitiesInRange({playerA.get(), playerB.get()});
+
+    // 设置初始 openCount = 2（模拟两个人都打开了）
+    chest_->openContainer(nullptr);
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 2);
+
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 只有 PlayerA 打开了此箱子，openCount 应被修正为 1
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_SameInventoryPointer_SingleChest)
+{
+    // 场景：验证单箱场景下指针比较的正确性
+    // ChestContainer 持有的 getChestInventory() 应等于 &chest_->m_inventory
+    // 但因为 m_inventory 是 private，我们通过 getInventory() 验证
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(0.5f, 64.5f, 0.5f);
+
+    auto playerInventory = std::make_unique<PlayerInventory>(player.get());
+
+    // 通过 createSingle(ChestEntity*) 创建容器
+    auto container =
+        ChestContainer::createSingle(ContainerId(1), playerInventory.get(), chest_->getInventory(), chest_.get());
+
+    // 验证 ChestContainer::getChestInventory() 返回的就是 ChestEntity::getInventory()
+    EXPECT_EQ(container->getChestInventory(), chest_->getInventory());
+
+    player->setOpenContainerMenu(container.get());
+    world_.setEntitiesInRange({player.get()});
+
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+}
+
+TEST_F(ChestEntityOwnContainerTest, Recheck_OtherChestInventory_NotCounted)
+{
+    // 场景：玩家打开了另一个箱子（不同位置）的菜单，不应被计为此箱子的打开者
+    auto otherChest = std::make_unique<ChestEntity>(BlockPos(100, 64, 100));
+
+    auto player = std::make_unique<Player>(1, "TestPlayer");
+    player->setPosition(0.5f, 64.5f, 0.5f); // 在当前箱子附近
+
+    auto playerInventory = std::make_unique<PlayerInventory>(player.get());
+
+    // 创建指向其他箱子的 ChestContainer
+    auto otherContainer = ChestContainer::createSingle(
+        ContainerId(1), playerInventory.get(), otherChest->getInventory(), otherChest.get());
+
+    player->setOpenContainerMenu(otherContainer.get());
+    world_.setEntitiesInRange({player.get()});
+
+    chest_->openContainer(nullptr);
+    EXPECT_EQ(chest_->getOpenCount(), 1);
+
+    for (int i = 0; i < ChestEntity::RECHECK_INTERVAL; ++i) {
+        chest_->tick(world_);
+    }
+
+    // 玩家打开的是其他箱子的菜单，openCount 应被修正为 0
+    EXPECT_EQ(chest_->getOpenCount(), 0);
 }
