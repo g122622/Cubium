@@ -991,3 +991,59 @@ TEST_F(BlockTagsTest, PiglinRepellentsDoesNotContainLantern)
     // 普通灯笼不是猪灵排斥物（只有灵魂灯笼才是）
     EXPECT_FALSE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "lantern")));
 }
+
+// ========== DOES_NOT_BLOCK_HOPPERS 标签测试 ==========
+
+TEST_F(BlockTagsTest, DoesNotBlockHoppers_ContainsBeehive)
+{
+    EXPECT_TRUE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(ResourceLocation("minecraft", "beehive")));
+}
+
+TEST_F(BlockTagsTest, DoesNotBlockHoppers_ContainsBeeNest)
+{
+    EXPECT_TRUE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(ResourceLocation("minecraft", "bee_nest")));
+}
+
+TEST_F(BlockTagsTest, DoesNotBlockHoppers_DoesNotContainStone)
+{
+    // 石头不在漏斗豁免标签中，应阻挡漏斗
+    EXPECT_FALSE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, DoesNotBlockHoppers_DoesNotContainDirt)
+{
+    EXPECT_FALSE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(ResourceLocation("minecraft", "dirt")));
+}
+
+TEST_F(BlockTagsTest, DoesNotBlockHoppers_IdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::DOES_NOT_BLOCK_HOPPERS().getId(), ResourceLocation("minecraft", "does_not_block_hoppers"));
+}
+
+TEST_F(BlockTagsTest, DoesNotBlockHoppers_ContainsBeehiveBlockState)
+{
+    // 验证使用 BlockState 引用检查也正确工作
+    const Block* beehive = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "beehive"));
+    if (!beehive) {
+        GTEST_SKIP() << "beehive block not registered";
+    }
+    EXPECT_TRUE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(beehive->defaultState()));
+}
+
+TEST_F(BlockTagsTest, DoesNotBlockHoppers_ContainsBeeNestBlockState)
+{
+    const Block* beeNest = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "bee_nest"));
+    if (!beeNest) {
+        GTEST_SKIP() << "bee_nest block not registered";
+    }
+    EXPECT_TRUE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(beeNest->defaultState()));
+}
+
+TEST_F(BlockTagsTest, DoesNotBlockHoppers_StoneBlockStateNotInTag)
+{
+    const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
+    if (!stone) {
+        GTEST_SKIP() << "stone block not registered";
+    }
+    EXPECT_FALSE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(stone->defaultState()));
+}

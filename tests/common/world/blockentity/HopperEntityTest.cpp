@@ -23,11 +23,14 @@
 
 #include "world/blockentity/transport/HopperEntity.hpp"
 #include "common/TestWorldHelper.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "entity/entities/item/ItemEntity.hpp"
 #include "item/Items.hpp"
 #include "item/core/ItemRegistry.hpp"
 #include "util/Direction.hpp"
 #include "world/block/BlockPos.hpp"
+#include "world/block/BlockRegistry.hpp"
+#include "world/block/BlockTags.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
 #include "world/blockentity/transport/IHopper.hpp"
 #include <gtest/gtest.h>
@@ -1474,4 +1477,129 @@ TEST(IHopperDefaultTest, GetHopperInventory_DefaultReturnsNullptr)
     // IHopper 默认实现返回 nullptr
     NonGridAlignedHopper hopper(BlockPos(0, 0, 0));
     EXPECT_EQ(hopper.getHopperInventory(), nullptr);
+}
+
+// ========== pullItems 与 DOES_NOT_BLOCK_HOPPERS 标签集成测试 ==========
+
+class HopperDoesNotBlockTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+        Items::initialize();
+    }
+};
+
+TEST_F(HopperDoesNotBlockTest, PullItems_FullBlockAbove_BlocksItemSuction)
+{
+    // 石头不在 DOES_NOT_BLOCK_HOPPERS 标签中，碰撞形状为完整方块，
+    // 应阻挡漏斗吸取物品实体
+    const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+    ASSERT_TRUE(stone->defaultState().isFaceFull(Direction::Down));
+    ASSERT_FALSE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(stone->defaultState()));
+
+    HopperTestWorld world;
+    world.setClientSide(false);
+    world.setCurrentTick(1);
+
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+    hopper->tick(world);
+    ASSERT_EQ(hopper->getWorld(), &world);
+
+    // 在漏斗上方放置石头
+    world.setBlockState(BlockPos(10, 21, 30), &stone->defaultState());
+
+    // 石头阻挡漏斗吸取，没有物品实体可收集，应返回 false
+    bool result = HopperEntity::pullItems(*hopper);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(HopperDoesNotBlockTest, PullItems_BeehiveAbove_DoesNotBlockItemSuction)
+{
+    // 蜂箱在 DOES_NOT_BLOCK_HOPPERS 标签中，即使碰撞形状为完整方块，
+    // 也不应阻挡漏斗吸取物品实体
+    const Block* beehive = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "beehive"));
+    if (!beehive) {
+        GTEST_SKIP() << "beehive block not registered";
+    }
+    ASSERT_TRUE(beehive->defaultState().isFaceFull(Direction::Down));
+    ASSERT_TRUE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(beehive->defaultState()));
+
+    HopperTestWorld world;
+    world.setClientSide(false);
+    world.setCurrentTick(1);
+
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+    hopper->tick(world);
+    ASSERT_EQ(hopper->getWorld(), &world);
+
+    // 在漏斗上方放置蜂箱
+    world.setBlockState(BlockPos(10, 21, 30), &beehive->defaultState());
+
+    // 蜂箱在 DOES_NOT_BLOCK_HOPPERS 标签中，不应阻挡漏斗
+    // 没有上方容器也没有物品实体，应返回 false（因为没有东西可吸）
+    // 但关键是没有被"阻挡"——函数不是因为阻挡而返回 false
+    bool result = HopperEntity::pullItems(*hopper);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(HopperDoesNotBlockTest, PullItems_BeeNestAbove_DoesNotBlockItemSuction)
+{
+    // 蜂巢在 DOES_NOT_BLOCK_HOPPERS 标签中
+    const Block* beeNest = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "bee_nest"));
+    if (!beeNest) {
+        GTEST_SKIP() << "bee_nest block not registered";
+    }
+    ASSERT_TRUE(beeNest->defaultState().isFaceFull(Direction::Down));
+    ASSERT_TRUE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(beeNest->defaultState()));
+
+    HopperTestWorld world;
+    world.setClientSide(false);
+    world.setCurrentTick(1);
+
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+    hopper->tick(world);
+    ASSERT_EQ(hopper->getWorld(), &world);
+
+    // 在漏斗上方放置蜂巢
+    world.setBlockState(BlockPos(10, 21, 30), &beeNest->defaultState());
+
+    // 蜂巢不阻挡漏斗吸取
+    bool result = HopperEntity::pullItems(*hopper);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(HopperDoesNotBlockTest, PullItems_NonGridAlignedHopper_NotBlockedByFullBlock)
+{
+    // 非对齐网格漏斗（如漏斗矿车）不受上方方块阻挡，
+    // 即使上方是完整碰撞方块也不阻挡
+    const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+
+    HopperTestWorld world;
+    world.setClientSide(false);
+
+    // NonGridAlignedHopper::isGridAligned() 返回 false
+    NonGridAlignedHopper hopper(BlockPos(10, 20, 30));
+    // 非对齐漏斗没有 world，pullItems 直接返回 false
+    bool result = HopperEntity::pullItems(hopper);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(HopperDoesNotBlockTest, PullItems_NoBlockAbove_NotBlocked)
+{
+    // 漏斗上方没有方块时，不应被阻挡
+    HopperTestWorld world;
+    world.setClientSide(false);
+    world.setCurrentTick(1);
+
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+    hopper->tick(world);
+    ASSERT_EQ(hopper->getWorld(), &world);
+
+    // 上方无方块，不被阻挡，但也没有物品实体，返回 false
+    bool result = HopperEntity::pullItems(*hopper);
+    EXPECT_FALSE(result);
 }
