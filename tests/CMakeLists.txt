@@ -454,6 +454,7 @@ add_executable(mc_tests
     server/world/ServerWorldPersistenceTest.cpp
     common/world/storage/WorldNameSanitizerTest.cpp
     common/world/storage/JavaChunkReaderTest.cpp
+    common/world/storage/JavaColumnReaderTest.cpp
     common/world/block/blocks/EnchantingTableBlockTest.cpp
     common/world/block/blocks/ChestBlockTest.cpp
     # ShelfBlock 书架方块测试（侧链连接、红石充能、比较器信号、旋转镜像）
@@ -1222,6 +1223,7 @@ add_executable(mc_tests
     common/world/storage/SaveFormatDetectorTest.cpp
     common/world/storage/RegionFileTest.cpp
     common/world/storage/JavaChunkReaderTest.cpp
+    common/world/storage/JavaColumnReaderTest.cpp
     common/world/storage/BedrockChunkReaderTest.cpp
     # 村庄系统测试
     common/world/village/VillageTest.cpp
@@ -1475,6 +1477,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/backend/BedrockLDBBackend.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/RegionFile.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaChunkReader.cpp
+        ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaColumnReader.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaBlockStateMapper.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaBiomeMapper.cpp
         ${CMAKE_SOURCE_DIR}/src/common/world/storage/reader/java/JavaLevelDatReader.cpp
