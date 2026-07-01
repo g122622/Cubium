@@ -995,22 +995,54 @@ void ClientApplication::setupNetworkCallbacks()
                 }
                 break;
             }
+            // 状态 4: 铁傀儡攻击动画（举臂）或疣猪兽/僵尸疣兽攻击动画（甩头）
+            // MC 原版中铁傀儡和疣猪兽/僵尸疣兽共用状态码 4，客户端按实体类型区分
+            // HoglinAttack 和 IronGolemAttack 的值都是 4，只需写一个 case
             case static_cast<u8>(EntityStatusPacket::Status::IronGolemAttack): {
-                // 状态 4: 铁傀儡攻击动画（举臂）+ 攻击音效
                 if (entity != nullptr) {
-                    entity->setIronGolemAttackTimer(10);
-                    entity->setIronGolemArmsRaised(true);
+                    const std::string& typeId = entity->typeId();
+                    if (typeId == "minecraft:hoglin" || typeId == "hoglin" || typeId == "minecraft:zoglin" ||
+                        typeId == "zoglin") {
+                        // 疣猪兽/僵尸疣兽攻击动画
+                        entity->setFlingAnimationTicks(10);
+                    } else {
+                        // 铁傀儡攻击动画
+                        entity->setIronGolemAttackTimer(10);
+                        entity->setIronGolemArmsRaised(true);
+                    }
                 }
-                // 播放铁傀儡攻击音效
-                if (m_audioService) {
-                    auto sound = sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_IRON_GOLEM_ATTACK,
-                        mc::sound::SoundCategory::Neutral,
-                        entityPos.x,
-                        entityPos.y,
-                        entityPos.z,
-                        1.0f,
-                        1.0f);
-                    m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+                // 播放攻击音效：根据实体类型选择不同音效
+                if (m_audioService && entity != nullptr) {
+                    const std::string& typeId = entity->typeId();
+                    if (typeId == "minecraft:hoglin" || typeId == "hoglin") {
+                        auto sound = sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_HOGLIN_ATTACK,
+                            mc::sound::SoundCategory::Hostile,
+                            entityPos.x,
+                            entityPos.y,
+                            entityPos.z,
+                            1.0f,
+                            1.0f);
+                        m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+                    } else if (typeId == "minecraft:zoglin" || typeId == "zoglin") {
+                        auto sound = sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_ZOGLIN_ATTACK,
+                            mc::sound::SoundCategory::Hostile,
+                            entityPos.x,
+                            entityPos.y,
+                            entityPos.z,
+                            1.0f,
+                            1.0f);
+                        m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+                    } else {
+                        // 铁傀儡攻击音效
+                        auto sound = sound::SoundInstance::createLocated(mc::SoundEvents::ENTITY_IRON_GOLEM_ATTACK,
+                            mc::sound::SoundCategory::Neutral,
+                            entityPos.x,
+                            entityPos.y,
+                            entityPos.z,
+                            1.0f,
+                            1.0f);
+                        m_audioService->play(std::make_unique<sound::SoundInstance>(std::move(sound)));
+                    }
                 }
                 break;
             }

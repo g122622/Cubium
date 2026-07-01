@@ -23,6 +23,7 @@
 
 #include "NetherModels.hpp"
 #include "common/util/math/MathConstants.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include <cmath>
 
@@ -541,16 +542,34 @@ void BoarModel::render(f64 scale)
 
 void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale)
 {
-    // 獠牙动画
+    // 獠牙动画（对应 MC HoglinModel 中耳朵的 walkAnimationSpeed * sin(walkAnimationPos) 动画）
     f32 tuskSwing = static_cast<f32>(limbSwingAmount * std::sin(limbSwing));
     m_leftTusk->setRotateAngleZ(-0.6981317f - tuskSwing);
     m_rightTusk->setRotateAngleZ(0.6981317f + tuskSwing);
 
-    // 头部旋转
+    // 头部 Y 旋转（偏航）
     m_head->setRotateAngleY(static_cast<f32>(netHeadYaw * mc::math::PI_DOUBLE / 180.0));
-    // TODO: 头部 X 旋转应根据 headPitch 在 0.87266463 和 -0.34906584 之间插值
-    // 当前简化版本：保持基础角度
-    m_head->setRotateAngleX(0.87266463f);
+
+    // 头部 X 旋转：攻击动画插值
+    // 对应 MC 原版 HoglinModel.setupAnim():
+    //   float f2 = 1.0F - Mth.abs(10 - 2 * attackAnimationRemainingTicks) / 10.0F;
+    //   this.head.xRot = Mth.lerp(f2, DEFAULT_HEAD_X_ROT, ATTACK_HEAD_X_ROT_END);
+    // f2 形成三角形曲线：0->1->0，攻击动画中间(tick=5)时 f2=1.0（完全低头）
+    f32 f2 = 1.0f -
+        std::abs(ATTACK_ANIMATION_DURATION - 2 * m_attackAnimationTicks) / static_cast<f32>(ATTACK_ANIMATION_DURATION);
+    f32 headXRot = mc::math::lerp(DEFAULT_HEAD_X_ROT, ATTACK_HEAD_X_ROT_END, f2);
+    m_head->setRotateAngleX(headXRot);
+
+    // 幼体攻击时头部额外下移（对应 MC HoglinModel: if (isBaby) { this.head.y += f2 * 2.5F; }）
+    // 注意：AgeableModel 已通过 setChild() 处理缩放，这里仅处理攻击动画的额外偏移
+    // 由于 setRotationPoint 在每帧调用前不会重置，攻击偏移需要在下次调用时回退
+    // 这里在攻击时调整头部 Y 旋转点
+    if (isChild() && f2 > 0.0f) {
+        // 头部旋转点原始 Y = 2.0，攻击时额外下移 f2 * 2.5
+        m_head->setRotationPoint(m_head->rotationPointX(), 2.0f + f2 * 2.5f, m_head->rotationPointZ());
+    } else {
+        m_head->setRotationPoint(m_head->rotationPointX(), 2.0f, m_head->rotationPointZ());
+    }
 
     // 腿部动画
     f32 legSwing = static_cast<f32>(std::cos(limbSwing) * 1.2 * limbSwingAmount);
@@ -561,6 +580,7 @@ void BoarModel::setAngles(f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f6
     m_leftBackLeg->setRotateAngleX(m_rightFrontLeg->rotateAngleX());
 
     (void)ageInTicks;
+    (void)headPitch;
     (void)scale;
 }
 

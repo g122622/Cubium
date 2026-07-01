@@ -147,7 +147,9 @@ private:
 /**
  * @brief 疣猪模型
  *
- * 继承自 AgeableModel，支持幼体/成年体
+ * 继承自 AgeableModel，支持幼体/成年体。
+ * 攻击动画期间头部 X 旋转从 DEFAULT_HEAD_X_ROT(0.87266463) 插值到
+ * ATTACK_HEAD_X_ROT_END(-PI/9 ≈ -0.34906584)，形成甩头效果。
  */
 class BoarModel : public ::mc::client::renderer::entity::model::AgeableModel {
 public:
@@ -158,12 +160,31 @@ public:
     void setAngles(
         f64 limbSwing, f64 limbSwingAmount, f64 ageInTicks, f64 netHeadYaw, f64 headPitch, f64 scale) override;
 
+    /**
+     * @brief 设置撞飞攻击动画剩余 tick
+     *
+     * 对应 MC 原版 HoglinBase.getAttackAnimationRemainingTicks()。
+     * 收到 HoglinAttack 状态包时设为 10，每tick递减，0表示动画结束。
+     * 攻击动画期间头部 X 旋转从 DEFAULT_HEAD_X_ROT 插值到 ATTACK_HEAD_X_ROT_END。
+     *
+     * @param ticks 剩余 tick 数（0 = 无攻击动画）
+     */
+    void setAttackAnimationTicks(i32 ticks) { m_attackAnimationTicks = ticks; }
+
 protected:
     std::vector<std::shared_ptr<ModelRenderer>> getHeadParts() const override;
     std::vector<std::shared_ptr<ModelRenderer>> getBodyParts() const override;
 
 private:
     void _setupParts();
+
+    // 攻击动画常量（对应 MC 原版 HoglinModel）
+    static constexpr f32 DEFAULT_HEAD_X_ROT = 0.87266463f;     // 头部默认 X 旋转（约 50 度）
+    static constexpr f32 ATTACK_HEAD_X_ROT_END = -0.34906584f; // 攻击时头部 X 旋转终点（-PI/9 ≈ -20 度）
+    static constexpr i32 ATTACK_ANIMATION_DURATION = 10;       // 攻击动画持续 tick 数
+
+    // 攻击动画状态
+    i32 m_attackAnimationTicks = 0;
 
     // 头部部件
     std::shared_ptr<ModelRenderer> m_head;      // 头部

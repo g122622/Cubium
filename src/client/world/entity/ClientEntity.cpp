@@ -444,6 +444,11 @@ void ClientEntity::tick()
             m_ironGolemArmsRaised = false;
         }
     }
+
+    // 更新疣猪兽/僵尸疣兽撞飞攻击动画计时器
+    if (m_flingAnimationTicks > 0) {
+        --m_flingAnimationTicks;
+    }
 }
 
 void ClientEntity::updateStandingAnimation()

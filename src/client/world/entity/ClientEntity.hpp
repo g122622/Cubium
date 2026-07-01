@@ -858,6 +858,25 @@ public:
      */
     void setIronGolemHoldingRose(bool holding) { m_ironGolemHoldingRose = holding; }
 
+    // ========== 疣猪兽/僵尸疣兽攻击动画 ==========
+
+    /**
+     * @brief 获取撞飞攻击动画剩余 tick
+     * 疣猪兽/僵尸疣兽甩头攻击动画，收到 HoglinAttack 状态包时设为 10，
+     * 每tick递减，为0时动画结束。
+     * 对应 MC 原版 HoglinBase.getAttackAnimationRemainingTicks()。
+     *
+     * 数据流：ClientApplicationNetwork.onEntityStatus(HoglinAttack)
+     * → setFlingAnimationTicks(10) → ClientEntity.tick() 递减 → AnimationContext → BoarModel
+     */
+    [[nodiscard]] i32 flingAnimationTicks() const { return m_flingAnimationTicks; }
+
+    /**
+     * @brief 设置撞飞攻击动画剩余 tick
+     * @param ticks 剩余 tick 数（原版为 10 ticks）
+     */
+    void setFlingAnimationTicks(i32 ticks) { m_flingAnimationTicks = ticks; }
+
 private:
     // 基本信息
     EntityId m_id;
@@ -982,6 +1001,9 @@ private:
     i32 m_ironGolemAttackTimer = 0;      // 攻击动画计时器（收到 IronGolemAttack 时设为 10）
     bool m_ironGolemArmsRaised = false;  // 是否举起手臂
     bool m_ironGolemHoldingRose = false; // 是否手持罂粟花
+
+    // 疣猪兽/僵尸疣兽攻击动画
+    i32 m_flingAnimationTicks = 0; // 撞飞攻击动画计时器（收到 HoglinAttack 时设为 10）
 
     // 追踪位置系统（用于披风摆动）
     f64 m_chasingPosX = 0.0;

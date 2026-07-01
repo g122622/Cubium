@@ -29,6 +29,7 @@
 #include "client/renderer/trident/entity/model/animal/PolarBearModel.hpp"
 #include "client/renderer/trident/entity/model/aquatic/PufferfishModel.hpp"
 #include "client/renderer/trident/entity/model/core/ModelFactory.hpp"
+#include "client/renderer/trident/entity/model/nether/NetherModels.hpp"
 #include "client/renderer/trident/entity/pipeline/EntityTextureAtlas.hpp"
 #include "client/renderer/trident/entity/renderer/RendererRegistration.hpp"
 #include "client/renderer/trident/entity/renderer/projectile/ExperienceOrbRenderer.hpp"
@@ -920,6 +921,13 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
         context.eatAnimationTimer = 0;
     }
 
+    // 撞飞攻击动画计时器（疣猪兽/僵尸疣兽的甩头攻击动画）
+    if (typeId == "minecraft:hoglin" || typeId == "hoglin" || typeId == "minecraft:zoglin" || typeId == "zoglin") {
+        context.attackAnimationTicks = entity.flingAnimationTicks();
+    } else {
+        context.attackAnimationTicks = 0;
+    }
+
     // 计算哈希
     context.computeHash();
 
@@ -947,6 +955,15 @@ std::unique_ptr<model::EntityModel> EntityRendererManager::_createModelForEntity
             if (sheepModel != nullptr) {
                 sheepModel->setEatAnimationTimer(context.eatAnimationTimer);
                 sheepModel->setLivingAnimations(context.limbSwing, context.limbSwingAmount, context.partialTicks);
+            }
+        }
+
+        // 疣猪兽/僵尸疣兽攻击动画（甩头）
+        if (normalizedId == "hoglin" || normalizedId == "minecraft:hoglin" || normalizedId == "zoglin" ||
+            normalizedId == "minecraft:zoglin") {
+            auto* boarModel = dynamic_cast<model::nether::BoarModel*>(model.get());
+            if (boarModel != nullptr) {
+                boarModel->setAttackAnimationTicks(context.attackAnimationTicks);
             }
         }
 

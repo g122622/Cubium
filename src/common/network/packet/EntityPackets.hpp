@@ -498,8 +498,11 @@ public:
 
         // 铁傀儡状态
         IronGolemAttack = 4,    // 铁傀儡攻击动画（举臂）+ 播放攻击音效
-        IronGolemHoldRose = 11, // 铁傀儡开始手持罂粟花
+        IronGolemHoldRose = 11, // 铁儡开始手持罂粟花
         IronGolemStopRose = 34, // 铁傀儡停止手持罂粟花
+
+        // 疣猪兽/僵尸疣兽状态（MC 原版中铁傀儡和疣猪兽共用状态码 4，客户端按实体类型区分）
+        HoglinAttack = 4, // 疣猪兽/僵尸疣兽攻击动画（甩头）+ 播放攻击音效
 
         // 装备破损状态
         EquipmentBreakMainHand = 47, // 主手装备破损动画 + 音效
@@ -553,13 +556,20 @@ public:
         // EquipmentSlot: MainHand=0, OffHand=1, Feet=2, Legs=3, Chest=4, Head=5
         // EntityStatus:  47=MainHand, 48=OffHand, 49=Head, 50=Chest, 51=Legs, 52=Feet
         switch (slotIndex) {
-        case 0: return Status::EquipmentBreakMainHand;
-        case 1: return Status::EquipmentBreakOffHand;
-        case 5: return Status::EquipmentBreakHead;
-        case 4: return Status::EquipmentBreakChest;
-        case 3: return Status::EquipmentBreakLegs;
-        case 2: return Status::EquipmentBreakFeet;
-        default: return Status::EquipmentBreakMainHand;
+            case 0:
+                return Status::EquipmentBreakMainHand;
+            case 1:
+                return Status::EquipmentBreakOffHand;
+            case 5:
+                return Status::EquipmentBreakHead;
+            case 4:
+                return Status::EquipmentBreakChest;
+            case 3:
+                return Status::EquipmentBreakLegs;
+            case 2:
+                return Status::EquipmentBreakFeet;
+            default:
+                return Status::EquipmentBreakMainHand;
         }
     }
 

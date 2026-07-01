@@ -159,6 +159,18 @@ struct AnimationContext {
      */
     i32 eatAnimationTimer = 0;
 
+    /**
+     * @brief 撞飞攻击动画剩余 tick
+     *
+     * 疣猪兽/僵尸疣兽甩头攻击动画计时器。
+     * 收到 HoglinAttack(4) 状态包时设为 10，每tick递减，0表示动画结束。
+     * 对应 MC 原版 HoglinBase.getAttackAnimationRemainingTicks()。
+     *
+     * 在 EntityRendererManager 中传递给 BoarModel::setAttackAnimationTicks()，
+     * 由 BoarModel 根据计时器值计算头部 X 旋转插值（甩头动画）。
+     */
+    i32 attackAnimationTicks = 0;
+
     // ========== 方法 ==========
 
     /**
