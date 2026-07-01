@@ -876,3 +876,118 @@ TEST_F(BlockTagsTest, IsExceptionForConnection_CobblestoneIsNot)
     }
     EXPECT_FALSE(Block::isExceptionForConnection(VanillaBlocks::COBBLESTONE->defaultState()));
 }
+
+// ============================================================================
+// HOGLIN_REPELLENTS 标签测试（疣猪兽排斥物）
+// ============================================================================
+
+TEST_F(BlockTagsTest, HoglinRepellentsIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::HOGLIN_REPELLENTS().getId(), ResourceLocation("minecraft", "hoglin_repellents"));
+}
+
+TEST_F(BlockTagsTest, HoglinRepellentsContainsWarpedFungus)
+{
+    EXPECT_TRUE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "warped_fungus")));
+}
+
+TEST_F(BlockTagsTest, HoglinRepellentsContainsWarpedNylium)
+{
+    EXPECT_TRUE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "warped_nylium")));
+}
+
+TEST_F(BlockTagsTest, HoglinRepellentsContainsNetherPortal)
+{
+    EXPECT_TRUE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "nether_portal")));
+}
+
+TEST_F(BlockTagsTest, HoglinRepellentsContainsRespawnAnchor)
+{
+    EXPECT_TRUE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "respawn_anchor")));
+}
+
+TEST_F(BlockTagsTest, HoglinRepellentsDoesNotContainCrimsonFungus)
+{
+    // 绯红菌不是疣猪兽排斥物
+    EXPECT_FALSE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "crimson_fungus")));
+}
+
+TEST_F(BlockTagsTest, HoglinRepellentsDoesNotContainCrimsonNylium)
+{
+    // 绯红菌岩不是疣猪兽排斥物（疣猪兽偏好绯红菌岩）
+    EXPECT_FALSE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "crimson_nylium")));
+}
+
+TEST_F(BlockTagsTest, HoglinRepellentsDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+// ============================================================================
+// PIGLIN_REPELLENTS 标签测试（猪灵排斥物）
+// ============================================================================
+
+TEST_F(BlockTagsTest, PiglinRepellentsIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::PIGLIN_REPELLENTS().getId(), ResourceLocation("minecraft", "piglin_repellents"));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsContainsSoulFire)
+{
+    EXPECT_TRUE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "soul_fire")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsContainsSoulTorch)
+{
+    EXPECT_TRUE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "soul_torch")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsContainsSoulWallTorch)
+{
+    EXPECT_TRUE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "soul_wall_torch")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsContainsSoulLantern)
+{
+    EXPECT_TRUE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "soul_lantern")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsContainsSoulCampfire)
+{
+    EXPECT_TRUE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "soul_campfire")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsContainsWarpedFungus)
+{
+    // 诡异菌同时是猪灵和疣猪兽的排斥物
+    EXPECT_TRUE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "warped_fungus")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsDoesNotContainSoulSand)
+{
+    // 灵魂沙不是猪灵排斥物
+    EXPECT_FALSE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "soul_sand")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsDoesNotContainSoulSoil)
+{
+    // 灵魂土不是猪灵排斥物
+    EXPECT_FALSE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "soul_soil")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsDoesNotContainCampfire)
+{
+    // 普通营火不是猪灵排斥物（只有灵魂营火才是）
+    EXPECT_FALSE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "campfire")));
+}
+
+TEST_F(BlockTagsTest, PiglinRepellentsDoesNotContainLantern)
+{
+    // 普通灯笼不是猪灵排斥物（只有灵魂灯笼才是）
+    EXPECT_FALSE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "lantern")));
+}

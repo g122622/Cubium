@@ -536,6 +536,64 @@ void PiglinEntity::tick()
     }
 }
 
+// ========== 猪灵寻路权重 ==========
+
+f32 PiglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
+{
+    // 对应 MC 1.21.11: Piglin.getWalkTargetValue
+    //   PiglinAi.isNearRepellent(piglin, pos) 检查附近是否有 PIGLIN_REPELLENTS 方块
+    //   如果有排斥物，返回 -1.0F（拒绝前往）
+    //
+    // MC 原版通过 Brain 系统的 PiglinSpecificSensor 定期扫描附近排斥物并缓存到
+    // NEAREST_REPELLENT 记忆模块中，然后 isNearRepellent 检查缓存的位置。
+    // 当前项目 PiglinEntity 尚未集成 Brain 系统，
+    // 因此采用与 HoglinEntity::getPathWeight 相同的直接扫描方案。
+    //
+    // TODO: 集成 Brain/Sensor 系统后，迁移为 PiglinSpecificSensor + NEAREST_REPELLENT 记忆模块方案，
+    //       同时需要处理灵魂营火的点燃状态检查（PiglinSpecificSensor.isValidRepellent）
+
+    const IWorld* worldPtr = world();
+    if (worldPtr == nullptr) {
+        return 0.0f;
+    }
+
+    // 排斥物近距离检查
+    // MC 1.21.11 BlockTags.PIGLIN_REPELLENTS 包含:
+    //   - 灵魂火 (soul_fire)
+    //   - 灵魂火把 (soul_torch)
+    //   - 灵魂墙火把 (soul_wall_torch)
+    //   - 灵魂灯笼 (soul_lantern)
+    //   - 灵魂营火 (soul_campfire，需点燃，当前标签层面无法区分点燃状态)
+    //   - 诡异菌 (warped_fungus)
+    // TODO: 花盆系统实现后需在标签中添加 potted_warped_fungus（盆栽诡异菌）
+    //
+    // 搜索范围: 水平 8 格，垂直 4 格
+    // 对应 MC 原版: PiglinSpecificSensor.REPELLENT_DETECTION_RANGE_HORIZONTAL = 8,
+    //              PiglinSpecificSensor.REPELLENT_DETECTION_RANGE_VERTICAL = 4
+    static constexpr i32 REPELLENT_RANGE_H = 8;
+    static constexpr i32 REPELLENT_RANGE_V = 4;
+
+    const BlockTag& piglinRepellents = BlockTags::PIGLIN_REPELLENTS();
+    const i32 bx = static_cast<i32>(x);
+    const i32 by = static_cast<i32>(y);
+    const i32 bz = static_cast<i32>(z);
+
+    for (i32 dx = -REPELLENT_RANGE_H; dx <= REPELLENT_RANGE_H; ++dx) {
+        for (i32 dy = -REPELLENT_RANGE_V; dy <= REPELLENT_RANGE_V; ++dy) {
+            for (i32 dz = -REPELLENT_RANGE_H; dz <= REPELLENT_RANGE_H; ++dz) {
+                const BlockState* state = worldPtr->getBlockState(bx + dx, by + dy, bz + dz);
+                if (state != nullptr && piglinRepellents.contains(*state)) {
+                    // TODO: 灵魂营火需要额外检查点燃状态（CampfireBlock.isLitCampfire），
+                    //       当前标签层面无法区分点燃/未点燃的营火，未点燃的灵魂营火不应排斥猪灵
+                    return -1.0f;
+                }
+            }
+        }
+    }
+
+    return CreatureEntity::getPathWeight(x, y, z);
+}
+
 // PiglinBruteEntity
 std::unique_ptr<Entity> PiglinBruteEntity::create(IWorld* world)
 {
@@ -766,7 +824,8 @@ f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     //   - 诡异菌岩 (warped_nylium)
     //   - 下界传送门 (nether_portal)
     //   - 重生锚 (respawn_anchor)
-    //   - 盆栽诡异菌 (potted_warped_fungus) — 当前项目花盆系统未实现，暂不包含
+    // TODO: 花盆系统实现后需在标签中添加 potted_warped_fungus（盆栽诡异菌），
+    //       此处扫描会自动包含新标签成员
     //
     // 搜索范围: 水平 8 格，垂直 4 格
     // 对应 MC 原版: HoglinSpecificSensor.REPELLENT_DETECTION_RANGE_HORIZONTAL = 8,
