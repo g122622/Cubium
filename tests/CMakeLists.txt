@@ -121,6 +121,7 @@ add_executable(mc_tests
     common/entity/inventory/PlayerInventoryNbtTest.cpp
     common/entity/inventory/PlayerEnderChestInventoryTest.cpp
     common/entity/inventory/IRecipeHolderTest.cpp
+    common/entity/inventory/InventoryRefTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp

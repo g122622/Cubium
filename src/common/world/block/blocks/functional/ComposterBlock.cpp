@@ -518,6 +518,7 @@ ItemStack ComposterBlock::OutputContainer::removeItem(i32 slot, i32 count)
     if (m_item.isEmpty()) {
         m_item = ItemStack::EMPTY;
     }
+    setChanged();
     return result;
 }
 
@@ -534,6 +535,7 @@ ItemStack ComposterBlock::OutputContainer::removeItemNoUpdate(i32 slot)
 void ComposterBlock::OutputContainer::clear()
 {
     m_item = ItemStack::EMPTY;
+    setChanged();
 }
 
 void ComposterBlock::OutputContainer::setChanged()
