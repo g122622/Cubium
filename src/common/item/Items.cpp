@@ -147,6 +147,11 @@ Item* Items::BRICK = nullptr;
 Item* Items::RESIN_BRICK = nullptr;
 Item* Items::AMETHYST_SHARD = nullptr;
 
+// 粗矿（Raw Ore）
+Item* Items::RAW_IRON = nullptr;
+Item* Items::RAW_COPPER = nullptr;
+Item* Items::RAW_GOLD = nullptr;
+
 // 宝石碎片
 Item* Items::DIAMOND_SHARD = nullptr;
 Item* Items::EMERALD_SHARD = nullptr;
@@ -183,6 +188,11 @@ Item* Items::DEEPSLATE_DIAMOND_ORE = nullptr;
 Item* Items::DEEPSLATE_LAPIS_ORE = nullptr;
 Item* Items::DEEPSLATE_EMERALD_ORE = nullptr;
 Item* Items::DEEPSLATE_REDSTONE_ORE = nullptr;
+
+// 粗矿块（Raw Ore Block）
+Item* Items::RAW_IRON_BLOCK = nullptr;
+Item* Items::RAW_COPPER_BLOCK = nullptr;
+Item* Items::RAW_GOLD_BLOCK = nullptr;
 
 // 钻石工具
 Item* Items::DIAMOND_PICKAXE = nullptr;
@@ -407,7 +417,7 @@ Item* Items::CRIMSON_FUNGUS = nullptr;
 Item* Items::WARPED_FUNGUS = nullptr;
 
 // 水域更新材料
-Item* Items::SCUTE = nullptr;
+Item* Items::TURTLE_SCUTE = nullptr;
 Item* Items::ARMADILLO_SCUTE = nullptr;
 Item* Items::HEART_OF_THE_SEA = nullptr;
 Item* Items::NAUTILUS_SHELL = nullptr;
@@ -1272,6 +1282,14 @@ void Items::_registerMaterials()
     AMETHYST_SHARD =
         &registry.registerItem(ResourceLocation("minecraft:amethyst_shard"), ItemProperties().maxStackSize(64));
 
+    // 粗矿（Raw Ore）- 铁矿石/铜矿石/金矿石的掉落物
+    // 参考: net.minecraft.item.Items.RAW_IRON / RAW_COPPER / RAW_GOLD
+    RAW_IRON = &registry.registerItem(ResourceLocation("minecraft:raw_iron"), ItemProperties().maxStackSize(64));
+
+    RAW_COPPER = &registry.registerItem(ResourceLocation("minecraft:raw_copper"), ItemProperties().maxStackSize(64));
+
+    RAW_GOLD = &registry.registerItem(ResourceLocation("minecraft:raw_gold"), ItemProperties().maxStackSize(64));
+
     // 煤炭
     COAL = &registry.registerItem(ResourceLocation("minecraft:coal"), ItemProperties().maxStackSize(64));
 
@@ -1320,6 +1338,17 @@ void Items::_registerMaterials()
         registry, VanillaBlocks::DEEPSLATE_EMERALD_ORE, "deepslate_emerald_ore", ItemProperties().maxStackSize(64));
     DEEPSLATE_REDSTONE_ORE = &registerBlockBackedItem(
         registry, VanillaBlocks::DEEPSLATE_REDSTONE_ORE, "deepslate_redstone_ore", ItemProperties().maxStackSize(64));
+
+    // 粗矿块（Raw Ore Block）
+    // 参考: net.minecraft.item.Items.RAW_IRON_BLOCK / RAW_COPPER_BLOCK / RAW_GOLD_BLOCK
+    RAW_IRON_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::RAW_IRON_BLOCK, "raw_iron_block", ItemProperties().maxStackSize(64));
+
+    RAW_COPPER_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::RAW_COPPER_BLOCK, "raw_copper_block", ItemProperties().maxStackSize(64));
+
+    RAW_GOLD_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::RAW_GOLD_BLOCK, "raw_gold_block", ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerTools()
@@ -2126,9 +2155,11 @@ void Items::_registerAquaticMaterials()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 鳞甲 - 海龟掉落，用于合成海龟壳
+    // 海龟鳞甲 - 海龟长大时掉落，用于合成海龟壳
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
-    SCUTE = &registry.registerItem(ResourceLocation("minecraft:scute"), ItemProperties().maxStackSize(64));
+    // 注意: MC 1.20.5+ 将 scute 重命名为 turtle_scute
+    TURTLE_SCUTE =
+        &registry.registerItem(ResourceLocation("minecraft:turtle_scute"), ItemProperties().maxStackSize(64));
 
     // 犰狳鳞甲 - 刷犰狳获得，用于合成狼铠
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))

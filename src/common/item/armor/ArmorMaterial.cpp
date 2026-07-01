@@ -314,7 +314,7 @@ sound::SoundEvent TurtleArmorMaterial::getEquipSound() const
 
 crafting::Ingredient TurtleArmorMaterial::getRepairMaterial() const
 {
-    return crafting::Ingredient::fromItem(Items::SCUTE);
+    return crafting::Ingredient::fromItem(Items::TURTLE_SCUTE);
 }
 
 // ============================================================================

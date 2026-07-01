@@ -195,6 +195,11 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::REDSTONE_BLOCK, "redstone_block");
     registerSimpleBlock(VanillaBlocks::NETHERITE_BLOCK, "netherite_block");
 
+    // 粗矿块
+    registerSimpleBlock(VanillaBlocks::RAW_IRON_BLOCK, "raw_iron_block");
+    registerSimpleBlock(VanillaBlocks::RAW_COPPER_BLOCK, "raw_copper_block");
+    registerSimpleBlock(VanillaBlocks::RAW_GOLD_BLOCK, "raw_gold_block");
+
     // 建筑方块
     registerSimpleBlock(VanillaBlocks::BRICKS, "bricks");
     registerSimpleBlock(VanillaBlocks::MOSSY_COBBLESTONE, "mossy_cobblestone");

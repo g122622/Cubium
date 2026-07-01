@@ -535,8 +535,8 @@
 - `minecraft:pitcher_pod`
 - `minecraft:purple_bundle`
 - `minecraft:purple_harness`
-- `minecraft:raw_gold`
-- `minecraft:raw_gold_block`
+- `minecraft:raw_gold ✅ 已完成`
+- `minecraft:raw_gold_block ✅ 已完成`
 - `minecraft:recovery_compass`
 - `minecraft:red_bundle`
 - `minecraft:red_harness`
@@ -547,7 +547,7 @@
 - `minecraft:stripped_bamboo_block`
 - `minecraft:suspicious_sand`
 - `minecraft:torchflower_seeds`
-- `minecraft:turtle_scute`
+- `minecraft:turtle_scute ✅ 已完成`
 - `minecraft:warped_shelf`
 - `minecraft:waxed_exposed_lightning_rod`
 - `minecraft:waxed_lightning_rod`
@@ -764,7 +764,7 @@
 ### `minecraft:repairs_turtle_helmet`
 
 
-- `minecraft:turtle_scute`
+- `minecraft:turtle_scute ✅ 已完成`
 
 ### `minecraft:repairs_wolf_armor`
 
@@ -1087,8 +1087,8 @@
 - `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:golden_nautilus_armor`
 - `minecraft:golden_spear`
-- `minecraft:raw_gold`
-- `minecraft:raw_gold_block`
+- `minecraft:raw_gold ✅ 已完成`
+- `minecraft:raw_gold_block ✅ 已完成`
 
 ### `minecraft:piglin_preferred_weapons`
 
