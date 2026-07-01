@@ -692,7 +692,6 @@ void Entity::baseTick()
     // MC Java: Entity.baseTick() 中在火焰处理之后重置 isInPowderSnow
     // 实际的冰冻 tick 递增由 PowderSnowBlock::onEntityCollision() 处理
     // 实际的冰冻 tick 递减和伤害在 LivingEntity 中处理
-    m_wasInPowderSnow = m_isInPowderSnow;
     m_isInPowderSnow = false;
 
     // MC Java: Entity.baseTick() 不包含空气值处理逻辑
@@ -2533,6 +2532,10 @@ bool Entity::canFreeze() const
     // 基类实现：检查实体类型是否不在冰冻免疫标签中
     // 对应 MC Java 的 Entity.canFreeze()
     // 免疫实体类型：流浪者、北极熊、雪傀儡、凋灵
+    // 安全检查：如果 EntityTypeTags 尚未初始化，默认允许冰冻
+    if (!EntityTypeTags::isInitialized()) {
+        return true;
+    }
     return !EntityTypeTags::FREEZE_IMMUNE_ENTITY_TYPES().contains(getTypeId());
 }
 

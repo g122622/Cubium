@@ -2471,7 +2471,6 @@ protected:
     // 冰冻状态
     i32 m_ticksFrozen = 0;         ///< 冰冻计时器（正值=冰冻进度，达到 getTicksRequiredToFreeze() 时完全冰冻）
     bool m_isInPowderSnow = false; ///< 当前 tick 是否处于细雪中（每帧重置，由 PowderSnowBlock::onEntityCollision 设置）
-    bool m_wasInPowderSnow = false; ///< 上一 tick 是否处于细雪中
 
     // 攀爬追踪（用于摔落死亡消息）
     std::optional<BlockPos> m_lastClimbPos; // 最后攀爬位置

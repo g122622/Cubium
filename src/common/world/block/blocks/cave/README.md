@@ -135,3 +135,17 @@ BigDripleafBlock 完整实现了红石信号交互：`neighborChanged` 和 `tick
 ### #9. CaveVinesBlock/CaveVinesPlantBlock 的中键选取和收获
 
 洞穴藤蔓的中键选取（`getCloneItemStack`）返回的是 `GLOW_BERRIES` 物品而非方块物品，因为原版MC中玩家中键点击洞穴藤蔓获得的是发光浆果。右键收获时掉落1个发光浆果并播放 `BLOCK_CAVE_VINES_PICK_BERRIES` 音效。骨粉效果是设置 `BERRIES=true`（不是生长），`setBlockState` 标志位为2。
+
+### #10. PowderSnowBlock 冰冻交互
+
+`PowderSnowBlock::onEntityCollision()` 是冰冻系统的入口点，对应 MC Java 的 `PowderSnowBlock.entityInside()`：
+
+1. **设置细雪状态**：`entity.setIsInPowderSnow(true)` — 此状态在 `Entity::baseTick()` 中每帧重置为 false，由碰撞检测期间设置
+2. **递增冰冻计时器**：如果 `entity.canFreeze()` 为 true，`ticksFrozen` 递增 1（上限 `getTicksRequiredToFreeze()` = 140 ticks）
+3. **设置运动减速乘数**：`entity.setMotionMultiplier(Vector3(0.9, 0.9, 0.9))` — 实体在细雪中移动减速
+
+**碰撞检测触发路径**：`LivingEntity::aiStep()` → `doBlockCollisions()` → 对每个碰撞方块调用 `getEntityInsideCollisionShape()` → AABB 相交检测 → `onEntityCollision()`
+
+**碰撞形状**：`PowderSnowBlock::getCollisionShape()` 返回 `VoxelShapes::empty()`（无碰撞箱，实体可陷入），`getEntityInsideCollisionShape()` 使用默认的 `fullCube()`，确保 `onEntityCollision()` 被正确调用。
+
+**冰冻计时器递减和伤害**：由 `LivingEntity::tickFreeze()` 处理，不在 `PowderSnowBlock` 中。详见 `entity/core/README.md` 中的冰冻系统文档。

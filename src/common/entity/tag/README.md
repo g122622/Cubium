@@ -81,3 +81,10 @@ if (EntityTypeTags::IMPACT_PROJECTILES().contains(entity.getTypeId())) {
 - `NO_ANGER_FROM_WIND_CHARGE` — 风弹不激怒
 - `DISMOUNTS_UNDERWATER` — 水下强制下坐骑（马、猪、骆驼、蜘蛛、炽足兽等陆地骑乘实体，船不在其中）
 - `POWDER_SNOW_WALKABLE_MOBS` — 细雪可行走
+
+## 安全检查
+
+`EntityTypeTags::isInitialized()` 提供标签系统初始化状态查询，用于在标签未初始化时避免访问空数据：
+
+- `Entity::canFreeze()` — 检查 `FREEZE_IMMUNE_ENTITY_TYPES` 前，先检查 `EntityTypeTags::isInitialized()`，未初始化时默认允许冰冻
+- `LivingEntity::canFreeze()` — 检查 `ItemTags::FREEZE_IMMUNE_WEARABLES` 前，先检查 `ItemTags::isInitialized()`，未初始化时跳过皮革护甲检查

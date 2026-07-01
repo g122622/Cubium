@@ -51,6 +51,7 @@
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockSoundType.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gamerule/GameRules.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -961,16 +962,19 @@ void LivingEntity::tickFreeze()
 
     // 每 40 tick（2 秒），如果完全冰冻且可冰冻，造成 1.0 冰冻伤害
     if (ticksExisted() % FREEZE_HURT_FREQUENCY == 0 && isFullyFrozen() && canFreeze()) {
-        auto freezeSource = DamageSources::freeze();
-
-        // 冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）受到5倍冰冻伤害
-        // 对应 MC Java 的 LivingEntity.actuallyHurt() 中的冻结额外伤害逻辑
-        f32 damageAmount = 1.0f;
-        if (EntityTypeTags::FREEZE_HURTS_EXTRA_TYPES().contains(getTypeId())) {
-            damageAmount = 5.0f;
+        // MC Java: Player 重写 isInvulnerableTo() 检查 freezeDamage 游戏规则
+        // 对于 LivingEntity，在造成伤害前检查游戏规则
+        if (m_world != nullptr && !m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::FREEZE_DAMAGE)) {
+            // freezeDamage 游戏规则关闭，跳过冰冻伤害
+            return;
         }
 
-        hurt(freezeSource, damageAmount);
+        auto freezeSource = DamageSources::freeze();
+
+        // MC Java: hurtServer 中对 FREEZE_HURTS_EXTRA_TYPES 实体的5倍伤害乘数
+        // 在 actuallyHurt() 中处理，此处始终传入 1.0 伤害
+        // 对应 MC Java: this.hurtServer(serverlevel, this.damageSources().freeze(), 1.0F);
+        hurt(freezeSource, 1.0f);
     }
 }
 

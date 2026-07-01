@@ -177,6 +177,12 @@ public:
     static void initialize();
 
     /**
+     * @brief 检查标签系统是否已初始化
+     * 在 canFreeze() 等方法中用于安全检查，避免在初始化前访问标签数据。
+     */
+    [[nodiscard]] static bool isInitialized() { return s_initialized; }
+
+    /**
      * @brief 根据ID获取标签
      * @param id 标签资源位置
      * @return 标签指针，如果不存在返回 nullptr
