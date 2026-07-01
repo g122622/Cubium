@@ -35,6 +35,7 @@
 #include <future>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace mc::server {
@@ -42,6 +43,9 @@ namespace mc::server {
 class ServerWorld;
 class ChunkTaskScheduler;
 class ChunkProgressionTask;
+
+// 前向声明：测试类需访问 ServerChunkManager 私有成员（_enqueuePostProcess）以验证去重逻辑。
+class ServerChunkManagerPostProcessTest;
 
 namespace sync {
 class ChunkSendManager;
@@ -679,7 +683,8 @@ private:
      *
      * 由 ChunkProgressionTask 在 FULL 完成时调用：primer.toChunkData（非破坏性，返回 shared_ptr 共享
      * 同一份 ChunkData）+ _storeChunkInMemorySync（共享所有权重载）+ spawnEntitiesFromChunkGeneration
-     * + _postProcessChunk。primer 仍持有同一份 ChunkData 供邻居引用（对齐 Moonrise currentChunk 生命周期）。
+     * + _postProcessChunk。primer 仍持有同一份 ChunkData 供邻居引用（FULL 完成后 primer 不释放，
+     * 邻居生成任务仍可引用其 ChunkData，直到 holder 卸载）。
      *
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
@@ -709,6 +714,9 @@ private:
      *
      * 遍历区块的后处理位置，对流体方块调度流体 tick，
      * 对需要形状更新的方块执行 updateFromNeighbourShapes。
+     *
+     * 调用方负责通过 ChunkData::isPostProcessingDone() 保证至多执行一次；
+     * 执行完毕后置 ChunkData::setPostProcessingDone(true)。
      *
      * @param chunk 已完成的区块数据
      */
@@ -769,11 +777,13 @@ private:
     /**
      * @brief 入队主线程后处理任务（worker 线程调用）
      *
-     * 对齐 Moonrise offThreadPendingFullLoadUpdate：worker 线程在 FULL 完成/存档加载时
-     * 不能直接调用主线程独占的世界状态（onChunkLoaded / m_chunkLoadedCallback /
-     * spawnEntitiesFromChunkGeneration / _postProcessChunk 触及 ServerTickList、EntityManager、
-     * setBlockState、POI、光照等，均非线程安全）。入队后由主线程 tick() 的
-     * _drainPendingPostProcess 出队执行。
+     * worker 线程在 FULL 完成/存档加载时不能直接调用主线程独占的世界状态
+     * （onChunkLoaded / m_chunkLoadedCallback / spawnEntitiesFromChunkGeneration /
+     * _postProcessChunk 触及 ServerTickList、EntityManager、setBlockState、POI、光照等，
+     * 均非线程安全）。入队后由主线程 tick() 的 _drainPendingPostProcess 出队执行。
+     *
+     * 去重：_drainPendingPostProcess 通过 m_postProcessedChunks 保证同一区块的
+     * onChunkLoaded/callback/spawn/postProcess 至多执行一次，重复入队条目会被丢弃。
      *
      * @param x 区块 X 坐标
      * @param z 区块 Z 坐标
@@ -788,6 +798,10 @@ private:
      *
      * 在 tick() 中调用。依次执行 onChunkLoaded / m_chunkLoadedCallback /
      * spawnEntitiesFromChunkGeneration / _postProcessChunk，全部在主线程完成。
+     *
+     * 通过 m_postProcessedChunks 去重：同一区块的上述四项至多执行一次。
+     * 重复入队（worker 存档加载入队 + 主线程存档解析直接调用竞态，或同一区块多次入队）
+     * 的条目被丢弃，避免实体重复生成、区块重复发送、光照重复初始化。
      */
     void _drainPendingPostProcess();
 
@@ -813,7 +827,7 @@ private:
     mutable std::mutex m_chunksMutex;
 
     /**
-     * @brief 主线程后处理队列（对齐 Moonrise offThreadPendingFullLoadUpdate）
+     * @brief 主线程后处理队列
      *
      * worker 线程在 FULL 完成（_finalizeGeneratedChunkSync）或存档加载（executeEmptyLoad）时
      * 入队，主线程 tick() 出队执行。onChunkLoaded / m_chunkLoadedCallback /
@@ -831,7 +845,20 @@ private:
     std::vector<PendingPostProcess> m_pendingPostProcess;
 
     /**
-     * @brief 区块生成调度核心（对齐 Moonrise ChunkTaskScheduler）
+     * @brief 已完成主线程后处理的区块 key 集合
+     *
+     * 防止同一区块因重复入队或 worker/主线程路径竞态而多次执行后处理（实体重复生成、
+     * 区块重复发送、光照重复初始化）。_drainPendingPostProcess 与 _resolveChunkSourceSync
+     * 在执行 onChunkLoaded/callback/spawn/postProcess 前查插此集合；命中则跳过。
+     * unloadChunkSync 移除对应 key，使重新加载可重新执行后处理。
+     *
+     * 线程安全：由 m_pendingPostProcessMutex 保护（_drainPendingPostProcess / _resolveChunkSourceSync /
+     * unloadChunkSync / shutdown 均持锁访问）。
+     */
+    std::unordered_set<u64> m_postProcessedChunks;
+
+    /**
+     * @brief 区块生成调度核心
      *
      * 持有 ReentrantAreaLock 保证 schedule/checkNeighbour/onChunkGenComplete 的原子性。
      * nullptr 表示无 worker 池（独立/测试模式），ChunkTaskScheduler 内部在线执行任务。
@@ -846,6 +873,8 @@ private:
     u64 m_lastUnloadCheckTick = 0;
 
     static constexpr u32 UNLOAD_CHECK_INTERVAL_TICKS = 20;
+
+    friend class ServerChunkManagerPostProcessTest;
 };
 
 } // namespace mc::server

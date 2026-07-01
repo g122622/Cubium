@@ -957,6 +957,8 @@ add_executable(mc_tests
     common/util/math/FrustumTest.cpp
     # 瀹炰綋鐢熸垚鍥炶皟娴嬭瘯
     server/ServerChunkManagerCallbackTest.cpp
+    # ServerChunkManager 后处理去重测试（m_postProcessedChunks / isPostProcessingDone）
+    server/ServerChunkManagerPostProcessTest.cpp
     # StructureReferences 并发竞争测试
     server/StructureReferencesRaceTest.cpp
     common/world/EntityManagerSpawnTest.cpp

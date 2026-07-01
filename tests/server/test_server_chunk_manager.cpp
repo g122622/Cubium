@@ -68,6 +68,11 @@ protected:
             mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
         m_manager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
         m_manager->setWorkerPool(m_workerPool.get());
+
+        // 设置区块加载回调计数器：每个区块完成主线程后处理（onChunkLoaded + callback）时 +1。
+        // 用于验证去重：同一区块的 callback 至多触发一次（m_postProcessedChunks 保证）。
+        m_manager->setChunkLoadedCallback(
+            [this](ChunkCoord, ChunkCoord) { m_chunkLoadedCallCount.fetch_add(1, std::memory_order_relaxed); });
     }
 
     void TearDown() override
@@ -80,6 +85,10 @@ protected:
     std::unique_ptr<mc::util::ServerWorkerPool> m_workerPool;
     std::unique_ptr<ServerWorld> m_world;
     std::unique_ptr<ServerChunkManager> m_manager;
+    // 原子计数器：ConcurrentGenerateAndUnloadRace 在非主线程调用 tick()，_drainPendingPostProcess
+    // 可能从该线程触发 m_chunkLoadedCallback，故需原子访问避免数据竞争。
+    std::atomic<int> m_chunkLoadedCallCount{
+        0}; ///< 区块加载回调触发次数（主线程后处理 _drainPendingPostProcess 期间累加）
 };
 
 // ============================================================================
@@ -624,6 +633,97 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
 
     // 清理：移除玩家并 shutdown
     m_manager->removePlayer(1);
+    m_manager->shutdown();
+    m_workerPool->shutdown();
+}
+
+// ============================================================================
+// 后处理去重测试
+//
+// 验证 ServerChunkManager 的主线程后处理去重（m_postProcessedChunks +
+// ChunkData::isPostProcessingDone）保证同一区块的 onChunkLoaded / m_chunkLoadedCallback /
+// spawnEntitiesFromChunkGeneration / _postProcessChunk 至多执行一次。
+// ============================================================================
+
+TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_AfterGeneration)
+{
+    m_workerPool->start();
+    m_manager->initialize();
+
+    // 同步生成区块：worker 线程 _finalizeGeneratedChunkSync 入队 PendingPostProcess，
+    // 但 _drainPendingPostProcess 仅在 tick() 中执行，故生成完成后 isPostProcessingDone 仍为 false。
+    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+    EXPECT_FALSE(chunk->isPostProcessingDone()) << "postProcess 应在 tick() drain 之前未执行";
+
+    // tick 触发 _drainPendingPostProcess：执行 _postProcessChunk 并置 isPostProcessingDone=true。
+    m_manager->tick();
+
+    EXPECT_TRUE(chunk->isPostProcessingDone()) << "postProcess 应在 tick() drain 之后完成";
+    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order_acquire), 1) << "区块加载回调应恰好触发一次";
+
+    m_manager->shutdown();
+    m_workerPool->shutdown();
+}
+
+TEST_F(ServerChunkManagerTest, OnChunkLoadedOnce_GenerationPath)
+{
+    m_workerPool->start();
+    m_manager->initialize();
+
+    m_manager->getChunkSync(0, 0);
+    m_manager->tick();
+
+    // 多次 tick 不应重复触发后处理（m_postProcessedChunks 去重）。
+    m_manager->tick();
+    m_manager->tick();
+
+    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order_acquire), 1) << "多次 tick 不应重复触发区块加载回调";
+
+    m_manager->shutdown();
+    m_workerPool->shutdown();
+}
+
+TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
+{
+    m_workerPool->start();
+    m_manager->initialize();
+
+    m_manager->getChunkSync(0, 0);
+    m_manager->tick();
+    ASSERT_EQ(m_chunkLoadedCallCount.load(std::memory_order_acquire), 1);
+
+    // 卸载：unloadChunkSync 清除 m_postProcessedChunks 中的 key，移除 m_chunks 中的区块。
+    m_manager->unloadChunkSync(0, 0);
+    EXPECT_FALSE(m_manager->hasChunkInMem(0, 0));
+
+    // 重新生成：新 ChunkData 的 isPostProcessingDone 为 false（不持久化），
+    // 重新入队 PendingPostProcess，tick 后应再次触发回调（计数 +1）。
+    m_manager->getChunkSync(0, 0);
+    m_manager->tick();
+
+    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order_acquire), 2)
+        << "卸载后重新加载应重新执行后处理（m_postProcessedChunks 已清除 key）";
+
+    m_manager->shutdown();
+    m_workerPool->shutdown();
+}
+
+TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_NotSetBeforeTick)
+{
+    m_workerPool->start();
+    m_manager->initialize();
+
+    ChunkData* chunk = m_manager->getChunkSync(0, 0);
+    ASSERT_NE(chunk, nullptr);
+
+    // tick 之前：区块已生成（在 m_chunks 中），但后处理尚未 drain。
+    EXPECT_TRUE(m_manager->hasChunkInMem(0, 0));
+    EXPECT_FALSE(chunk->isPostProcessingDone()) << "tick 之前 postProcess 不应执行";
+
+    m_manager->tick();
+    EXPECT_TRUE(chunk->isPostProcessingDone()) << "tick 之后 postProcess 应完成";
+
     m_manager->shutdown();
     m_workerPool->shutdown();
 }
