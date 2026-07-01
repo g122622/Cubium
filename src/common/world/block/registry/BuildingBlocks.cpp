@@ -124,6 +124,7 @@ Block* BuildingBlocks::INFESTED_CHISELED_STONE_BRICKS = nullptr;
 Block* BuildingBlocks::QUARTZ_BLOCK = nullptr;
 Block* BuildingBlocks::CHISELED_QUARTZ_BLOCK = nullptr;
 Block* BuildingBlocks::QUARTZ_PILLAR = nullptr;
+Block* BuildingBlocks::SMOOTH_QUARTZ = nullptr;
 
 // 海晶系列
 Block* BuildingBlocks::PRISMARINE = nullptr;
@@ -374,6 +375,10 @@ void registerBuildingBlocks()
     // 石英柱 - 有轴属性
     BuildingBlocks::QUARTZ_PILLAR =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:quartz_pillar"), quartzProps);
+
+    // 平滑石英
+    BuildingBlocks::SMOOTH_QUARTZ = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_quartz"),
+        BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // ========== 海晶系列 ==========
     BlockProperties prismarineProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);

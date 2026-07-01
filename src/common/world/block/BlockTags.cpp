@@ -2394,6 +2394,7 @@ void BlockTags::initialize()
         // 石质楼梯
         ResourceLocation("minecraft", "stone_stairs"),
         ResourceLocation("minecraft", "cobblestone_stairs"),
+        ResourceLocation("minecraft", "mossy_cobblestone_stairs"),
         ResourceLocation("minecraft", "stone_brick_stairs"),
         ResourceLocation("minecraft", "mossy_stone_brick_stairs"),
         ResourceLocation("minecraft", "sandstone_stairs"),
@@ -2462,11 +2463,14 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "warped_slab"),
         // 石质台阶
         ResourceLocation("minecraft", "stone_slab"),
+        ResourceLocation("minecraft", "smooth_stone_slab"),
         ResourceLocation("minecraft", "cobblestone_slab"),
+        ResourceLocation("minecraft", "mossy_cobblestone_slab"),
         ResourceLocation("minecraft", "stone_brick_slab"),
         ResourceLocation("minecraft", "mossy_stone_brick_slab"),
         ResourceLocation("minecraft", "sandstone_slab"),
         ResourceLocation("minecraft", "smooth_sandstone_slab"),
+        ResourceLocation("minecraft", "cut_sandstone_slab"),
         ResourceLocation("minecraft", "granite_slab"),
         ResourceLocation("minecraft", "polished_granite_slab"),
         ResourceLocation("minecraft", "diorite_slab"),
@@ -2485,6 +2489,7 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "end_stone_brick_slab"),
         ResourceLocation("minecraft", "red_sandstone_slab"),
         ResourceLocation("minecraft", "smooth_red_sandstone_slab"),
+        ResourceLocation("minecraft", "cut_red_sandstone_slab"),
         // 深板岩台阶
         ResourceLocation("minecraft", "cobbled_deepslate_slab"),
         ResourceLocation("minecraft", "polished_deepslate_slab"),

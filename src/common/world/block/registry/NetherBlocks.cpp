@@ -118,9 +118,20 @@ Block* NetherBlocks::POLISHED_BLACKSTONE_WALL = nullptr;
 Block* NetherBlocks::GILDED_BLACKSTONE = nullptr;
 
 // 下界砖扩展
+Block* NetherBlocks::NETHER_BRICKS = nullptr;
+Block* NetherBlocks::RED_NETHER_BRICKS = nullptr;
 Block* NetherBlocks::CHISELED_NETHER_BRICKS = nullptr;
 Block* NetherBlocks::CRACKED_NETHER_BRICKS = nullptr;
 Block* NetherBlocks::NETHER_BRICK_FENCE = nullptr;
+Block* NetherBlocks::NETHER_BRICK_STAIRS = nullptr;
+Block* NetherBlocks::NETHER_BRICK_SLAB = nullptr;
+Block* NetherBlocks::NETHER_BRICK_WALL = nullptr;
+Block* NetherBlocks::RED_NETHER_BRICK_STAIRS = nullptr;
+Block* NetherBlocks::RED_NETHER_BRICK_SLAB = nullptr;
+Block* NetherBlocks::RED_NETHER_BRICK_WALL = nullptr;
+Block* NetherBlocks::END_STONE_BRICK_STAIRS = nullptr;
+Block* NetherBlocks::END_STONE_BRICK_SLAB = nullptr;
+Block* NetherBlocks::END_STONE_BRICK_WALL = nullptr;
 
 // 磁石
 Block* NetherBlocks::LODESTONE = nullptr;
@@ -463,6 +474,23 @@ void registerNetherBlocks()
     // 下界砖扩展
     // ============================================================================
 
+    // 下界砖
+    NetherBlocks::NETHER_BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_bricks"),
+        BlockProperties(Material::ROCK)
+            .hardness(2.0f)
+            .resistance(6.0f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool());
+
+    // 红色下界砖
+    NetherBlocks::RED_NETHER_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_nether_bricks"),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
     // 雕纹下界砖
     NetherBlocks::CHISELED_NETHER_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_nether_bricks"),
@@ -490,6 +518,60 @@ void registerNetherBlocks()
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .requiresTool());
+
+    // 下界砖楼梯、台阶、墙
+    BlockProperties netherBrickVariantProps = BlockProperties(Material::ROCK)
+                                                  .hardness(2.0f)
+                                                  .resistance(6.0f)
+                                                  .harvestTool(HarvestTool::Pickaxe)
+                                                  .requiresTool();
+
+    NetherBlocks::NETHER_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:nether_brick_stairs"),
+            NetherBlocks::NETHER_BRICKS->defaultState(),
+            netherBrickVariantProps);
+
+    NetherBlocks::NETHER_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:nether_brick_slab"), netherBrickVariantProps);
+
+    NetherBlocks::NETHER_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
+        ResourceLocation("minecraft:nether_brick_wall"), netherBrickVariantProps);
+
+    // 红色下界砖楼梯、台阶、墙
+    BlockProperties redNetherBrickVariantProps = BlockProperties(Material::ROCK)
+                                                     .hardness(2.0f)
+                                                     .resistance(6.0f)
+                                                     .harvestTool(HarvestTool::Pickaxe)
+                                                     .requiresTool();
+
+    NetherBlocks::RED_NETHER_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:red_nether_brick_stairs"),
+            NetherBlocks::RED_NETHER_BRICKS->defaultState(),
+            redNetherBrickVariantProps);
+
+    NetherBlocks::RED_NETHER_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:red_nether_brick_slab"), redNetherBrickVariantProps);
+
+    NetherBlocks::RED_NETHER_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
+        ResourceLocation("minecraft:red_nether_brick_wall"), redNetherBrickVariantProps);
+
+    // 末地石砖楼梯、台阶、墙
+    BlockProperties endStoneBrickVariantProps = BlockProperties(Material::ROCK)
+                                                    .hardness(3.0f)
+                                                    .resistance(9.0f)
+                                                    .harvestTool(HarvestTool::Pickaxe)
+                                                    .requiresTool();
+
+    NetherBlocks::END_STONE_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:end_stone_brick_stairs"),
+            NetherBlocks::END_STONE_BRICKS->defaultState(),
+            endStoneBrickVariantProps);
+
+    NetherBlocks::END_STONE_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:end_stone_brick_slab"), endStoneBrickVariantProps);
+
+    NetherBlocks::END_STONE_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
+        ResourceLocation("minecraft:end_stone_brick_wall"), endStoneBrickVariantProps);
 
     // ============================================================================
     // 磁石

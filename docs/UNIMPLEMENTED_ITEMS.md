@@ -325,90 +325,90 @@
 ### Slabs（42）
 
 
-- `minecraft:andesite_slab`
-- `minecraft:blackstone_slab`
-- `minecraft:brick_slab`
+- `minecraft:andesite_slab ✅ 已完成`
+- `minecraft:blackstone_slab ✅ 已完成`
+- `minecraft:brick_slab ✅ 已完成`
 - `minecraft:cobbled_deepslate_slab ✅ 已完成`
 - `minecraft:crimson_slab`
-- `minecraft:cut_copper_slab`
-- `minecraft:cut_red_sandstone_slab`
-- `minecraft:cut_sandstone_slab`
+- `minecraft:cut_copper_slab ✅ 已完成`
+- `minecraft:cut_red_sandstone_slab ✅ 已完成`
+- `minecraft:cut_sandstone_slab ✅ 已完成`
 - `minecraft:deepslate_brick_slab ✅ 已完成`
 - `minecraft:deepslate_tile_slab ✅ 已完成`
-- `minecraft:diorite_slab`
-- `minecraft:end_stone_brick_slab`
-- `minecraft:exposed_cut_copper_slab`
-- `minecraft:granite_slab`
-- `minecraft:mossy_cobblestone_slab`
-- `minecraft:mud_brick_slab`
-- `minecraft:nether_brick_slab`
-- `minecraft:oxidized_cut_copper_slab`
-- `minecraft:petrified_oak_slab`
-- `minecraft:polished_andesite_slab`
-- `minecraft:polished_blackstone_brick_slab`
-- `minecraft:polished_blackstone_slab`
+- `minecraft:diorite_slab ✅ 已完成`
+- `minecraft:end_stone_brick_slab ✅ 已完成`
+- `minecraft:exposed_cut_copper_slab ✅ 已完成`
+- `minecraft:granite_slab ✅ 已完成`
+- `minecraft:mossy_cobblestone_slab ✅ 已完成`
+- `minecraft:mud_brick_slab ✅ 已完成`
+- `minecraft:nether_brick_slab ✅ 已完成`
+- `minecraft:oxidized_cut_copper_slab ✅ 已完成`
+- `minecraft:petrified_oak_slab ✅ 已完成`
+- `minecraft:polished_andesite_slab ✅ 已完成`
+- `minecraft:polished_blackstone_brick_slab ✅ 已完成`
+- `minecraft:polished_blackstone_slab ✅ 已完成`
 - `minecraft:polished_deepslate_slab ✅ 已完成`
-- `minecraft:polished_diorite_slab`
-- `minecraft:polished_granite_slab`
+- `minecraft:polished_diorite_slab ✅ 已完成`
+- `minecraft:polished_granite_slab ✅ 已完成`
 - `minecraft:polished_tuff_slab ✅ 已完成`
-- `minecraft:purpur_slab`
-- `minecraft:quartz_slab`
-- `minecraft:red_nether_brick_slab`
-- `minecraft:red_sandstone_slab`
+- `minecraft:purpur_slab ✅ 已完成`
+- `minecraft:quartz_slab ✅ 已完成`
+- `minecraft:red_nether_brick_slab ✅ 已完成`
+- `minecraft:red_sandstone_slab ✅ 已完成`
 - `minecraft:resin_brick_slab ✅ 已完成`
-- `minecraft:smooth_quartz_slab`
-- `minecraft:smooth_red_sandstone_slab`
-- `minecraft:smooth_stone_slab`
+- `minecraft:smooth_quartz_slab ✅ 已完成`
+- `minecraft:smooth_red_sandstone_slab ✅ 已完成`
+- `minecraft:smooth_stone_slab ✅ 已完成`
 - `minecraft:tuff_brick_slab ✅ 已完成`
 - `minecraft:tuff_slab ✅ 已完成`
 - `minecraft:warped_slab`
-- `minecraft:waxed_cut_copper_slab`
-- `minecraft:waxed_exposed_cut_copper_slab`
-- `minecraft:waxed_oxidized_cut_copper_slab`
-- `minecraft:waxed_weathered_cut_copper_slab`
-- `minecraft:weathered_cut_copper_slab`
+- `minecraft:waxed_cut_copper_slab ✅ 已完成`
+- `minecraft:waxed_exposed_cut_copper_slab ✅ 已完成`
+- `minecraft:waxed_oxidized_cut_copper_slab ✅ 已完成`
+- `minecraft:waxed_weathered_cut_copper_slab ✅ 已完成`
+- `minecraft:weathered_cut_copper_slab ✅ 已完成`
 
 ### Stairs（38）
 
 
-- `minecraft:andesite_stairs`
-- `minecraft:blackstone_stairs`
-- `minecraft:brick_stairs`
+- `minecraft:andesite_stairs ✅ 已完成`
+- `minecraft:blackstone_stairs ✅ 已完成`
+- `minecraft:brick_stairs ✅ 已完成`
 - `minecraft:cobbled_deepslate_stairs ✅ 已完成`
 - `minecraft:crimson_stairs`
-- `minecraft:cut_copper_stairs`
+- `minecraft:cut_copper_stairs ✅ 已完成`
 - `minecraft:deepslate_brick_stairs ✅ 已完成`
 - `minecraft:deepslate_tile_stairs ✅ 已完成`
-- `minecraft:diorite_stairs`
-- `minecraft:end_stone_brick_stairs`
-- `minecraft:exposed_cut_copper_stairs`
-- `minecraft:granite_stairs`
-- `minecraft:mossy_cobblestone_stairs`
-- `minecraft:mud_brick_stairs`
-- `minecraft:nether_brick_stairs`
-- `minecraft:oxidized_cut_copper_stairs`
-- `minecraft:polished_andesite_stairs`
-- `minecraft:polished_blackstone_brick_stairs`
-- `minecraft:polished_blackstone_stairs`
+- `minecraft:diorite_stairs ✅ 已完成`
+- `minecraft:end_stone_brick_stairs ✅ 已完成`
+- `minecraft:exposed_cut_copper_stairs ✅ 已完成`
+- `minecraft:granite_stairs ✅ 已完成`
+- `minecraft:mossy_cobblestone_stairs ✅ 已完成`
+- `minecraft:mud_brick_stairs ✅ 已完成`
+- `minecraft:nether_brick_stairs ✅ 已完成`
+- `minecraft:oxidized_cut_copper_stairs ✅ 已完成`
+- `minecraft:polished_andesite_stairs ✅ 已完成`
+- `minecraft:polished_blackstone_brick_stairs ✅ 已完成`
+- `minecraft:polished_blackstone_stairs ✅ 已完成`
 - `minecraft:polished_deepslate_stairs ✅ 已完成`
-- `minecraft:polished_diorite_stairs`
-- `minecraft:polished_granite_stairs`
+- `minecraft:polished_diorite_stairs ✅ 已完成`
+- `minecraft:polished_granite_stairs ✅ 已完成`
 - `minecraft:polished_tuff_stairs ✅ 已完成`
-- `minecraft:purpur_stairs`
-- `minecraft:quartz_stairs`
-- `minecraft:red_nether_brick_stairs`
-- `minecraft:red_sandstone_stairs`
+- `minecraft:purpur_stairs ✅ 已完成`
+- `minecraft:quartz_stairs ✅ 已完成`
+- `minecraft:red_nether_brick_stairs ✅ 已完成`
+- `minecraft:red_sandstone_stairs ✅ 已完成`
 - `minecraft:resin_brick_stairs ✅ 已完成`
-- `minecraft:smooth_quartz_stairs`
-- `minecraft:smooth_red_sandstone_stairs`
+- `minecraft:smooth_quartz_stairs ✅ 已完成`
+- `minecraft:smooth_red_sandstone_stairs ✅ 已完成`
 - `minecraft:tuff_brick_stairs ✅ 已完成`
 - `minecraft:tuff_stairs ✅ 已完成`
 - `minecraft:warped_stairs`
-- `minecraft:waxed_cut_copper_stairs`
-- `minecraft:waxed_exposed_cut_copper_stairs`
-- `minecraft:waxed_oxidized_cut_copper_stairs`
-- `minecraft:waxed_weathered_cut_copper_stairs`
-- `minecraft:weathered_cut_copper_stairs`
+- `minecraft:waxed_cut_copper_stairs ✅ 已完成`
+- `minecraft:waxed_exposed_cut_copper_stairs ✅ 已完成`
+- `minecraft:waxed_oxidized_cut_copper_stairs ✅ 已完成`
+- `minecraft:waxed_weathered_cut_copper_stairs ✅ 已完成`
+- `minecraft:weathered_cut_copper_stairs ✅ 已完成`
 
 ### Tools / Weapons（6）
 
@@ -437,27 +437,27 @@
 ### Walls（23）
 
 
-- `minecraft:andesite_wall`
-- `minecraft:blackstone_wall`
-- `minecraft:brick_wall`
+- `minecraft:andesite_wall ✅ 已完成`
+- `minecraft:blackstone_wall ✅ 已完成`
+- `minecraft:brick_wall ✅ 已完成`
 - `minecraft:cobbled_deepslate_wall ✅ 已完成`
 - `minecraft:deepslate_brick_wall ✅ 已完成`
 - `minecraft:deepslate_tile_wall ✅ 已完成`
-- `minecraft:diorite_wall`
-- `minecraft:end_stone_brick_wall`
-- `minecraft:granite_wall`
-- `minecraft:mossy_cobblestone_wall`
-- `minecraft:mud_brick_wall`
-- `minecraft:nether_brick_wall`
-- `minecraft:polished_blackstone_brick_wall`
-- `minecraft:polished_blackstone_wall`
+- `minecraft:diorite_wall ✅ 已完成`
+- `minecraft:end_stone_brick_wall ✅ 已完成`
+- `minecraft:granite_wall ✅ 已完成`
+- `minecraft:mossy_cobblestone_wall ✅ 已完成`
+- `minecraft:mud_brick_wall ✅ 已完成`
+- `minecraft:nether_brick_wall ✅ 已完成`
+- `minecraft:polished_blackstone_brick_wall ✅ 已完成`
+- `minecraft:polished_blackstone_wall ✅ 已完成`
 - `minecraft:polished_deepslate_wall ✅ 已完成`
 - `minecraft:polished_tuff_wall ✅ 已完成`
-- `minecraft:prismarine_wall`
-- `minecraft:red_nether_brick_wall`
-- `minecraft:red_sandstone_wall`
+- `minecraft:prismarine_wall ✅ 已完成`
+- `minecraft:red_nether_brick_wall ✅ 已完成`
+- `minecraft:red_sandstone_wall ✅ 已完成`
 - `minecraft:resin_brick_wall ✅ 已完成`
-- `minecraft:sandstone_wall`
+- `minecraft:sandstone_wall ✅ 已完成`
 - `minecraft:tuff_brick_wall ✅ 已完成`
 - `minecraft:tuff_wall ✅ 已完成`
 
@@ -1176,46 +1176,46 @@
 未实现项：
 
 
-- `minecraft:andesite_slab`
-- `minecraft:blackstone_slab`
-- `minecraft:brick_slab`
+- `minecraft:andesite_slab ✅ 已完成`
+- `minecraft:blackstone_slab ✅ 已完成`
+- `minecraft:brick_slab ✅ 已完成`
 - `minecraft:cobbled_deepslate_slab ✅ 已完成`
-- `minecraft:cut_copper_slab`
-- `minecraft:cut_red_sandstone_slab`
-- `minecraft:cut_sandstone_slab`
+- `minecraft:cut_copper_slab ✅ 已完成`
+- `minecraft:cut_red_sandstone_slab ✅ 已完成`
+- `minecraft:cut_sandstone_slab ✅ 已完成`
 - `minecraft:deepslate_brick_slab ✅ 已完成`
 - `minecraft:deepslate_tile_slab ✅ 已完成`
-- `minecraft:diorite_slab`
-- `minecraft:end_stone_brick_slab`
-- `minecraft:exposed_cut_copper_slab`
-- `minecraft:granite_slab`
-- `minecraft:mossy_cobblestone_slab`
-- `minecraft:mud_brick_slab`
-- `minecraft:nether_brick_slab`
-- `minecraft:oxidized_cut_copper_slab`
-- `minecraft:petrified_oak_slab`
-- `minecraft:polished_andesite_slab`
-- `minecraft:polished_blackstone_brick_slab`
-- `minecraft:polished_blackstone_slab`
+- `minecraft:diorite_slab ✅ 已完成`
+- `minecraft:end_stone_brick_slab ✅ 已完成`
+- `minecraft:exposed_cut_copper_slab ✅ 已完成`
+- `minecraft:granite_slab ✅ 已完成`
+- `minecraft:mossy_cobblestone_slab ✅ 已完成`
+- `minecraft:mud_brick_slab ✅ 已完成`
+- `minecraft:nether_brick_slab ✅ 已完成`
+- `minecraft:oxidized_cut_copper_slab ✅ 已完成`
+- `minecraft:petrified_oak_slab ✅ 已完成`
+- `minecraft:polished_andesite_slab ✅ 已完成`
+- `minecraft:polished_blackstone_brick_slab ✅ 已完成`
+- `minecraft:polished_blackstone_slab ✅ 已完成`
 - `minecraft:polished_deepslate_slab ✅ 已完成`
-- `minecraft:polished_diorite_slab`
-- `minecraft:polished_granite_slab`
+- `minecraft:polished_diorite_slab ✅ 已完成`
+- `minecraft:polished_granite_slab ✅ 已完成`
 - `minecraft:polished_tuff_slab ✅ 已完成`
-- `minecraft:purpur_slab`
-- `minecraft:quartz_slab`
-- `minecraft:red_nether_brick_slab`
-- `minecraft:red_sandstone_slab`
+- `minecraft:purpur_slab ✅ 已完成`
+- `minecraft:quartz_slab ✅ 已完成`
+- `minecraft:red_nether_brick_slab ✅ 已完成`
+- `minecraft:red_sandstone_slab ✅ 已完成`
 - `minecraft:resin_brick_slab ✅ 已完成`
-- `minecraft:smooth_quartz_slab`
-- `minecraft:smooth_red_sandstone_slab`
-- `minecraft:smooth_stone_slab`
+- `minecraft:smooth_quartz_slab ✅ 已完成`
+- `minecraft:smooth_red_sandstone_slab ✅ 已完成`
+- `minecraft:smooth_stone_slab ✅ 已完成`
 - `minecraft:tuff_brick_slab ✅ 已完成`
 - `minecraft:tuff_slab ✅ 已完成`
-- `minecraft:waxed_cut_copper_slab`
-- `minecraft:waxed_exposed_cut_copper_slab`
-- `minecraft:waxed_oxidized_cut_copper_slab`
-- `minecraft:waxed_weathered_cut_copper_slab`
-- `minecraft:weathered_cut_copper_slab`
+- `minecraft:waxed_cut_copper_slab ✅ 已完成`
+- `minecraft:waxed_exposed_cut_copper_slab ✅ 已完成`
+- `minecraft:waxed_oxidized_cut_copper_slab ✅ 已完成`
+- `minecraft:waxed_weathered_cut_copper_slab ✅ 已完成`
+- `minecraft:weathered_cut_copper_slab ✅ 已完成`
 
 ### `minecraft:small_flowers`
 
@@ -1233,42 +1233,42 @@
 未实现项：
 
 
-- `minecraft:andesite_stairs`
-- `minecraft:blackstone_stairs`
-- `minecraft:brick_stairs`
+- `minecraft:andesite_stairs ✅ 已完成`
+- `minecraft:blackstone_stairs ✅ 已完成`
+- `minecraft:brick_stairs ✅ 已完成`
 - `minecraft:cobbled_deepslate_stairs ✅ 已完成`
-- `minecraft:cut_copper_stairs`
+- `minecraft:cut_copper_stairs ✅ 已完成`
 - `minecraft:deepslate_brick_stairs ✅ 已完成`
 - `minecraft:deepslate_tile_stairs ✅ 已完成`
-- `minecraft:diorite_stairs`
-- `minecraft:end_stone_brick_stairs`
-- `minecraft:exposed_cut_copper_stairs`
-- `minecraft:granite_stairs`
-- `minecraft:mossy_cobblestone_stairs`
-- `minecraft:mud_brick_stairs`
-- `minecraft:nether_brick_stairs`
-- `minecraft:oxidized_cut_copper_stairs`
-- `minecraft:polished_andesite_stairs`
-- `minecraft:polished_blackstone_brick_stairs`
-- `minecraft:polished_blackstone_stairs`
+- `minecraft:diorite_stairs ✅ 已完成`
+- `minecraft:end_stone_brick_stairs ✅ 已完成`
+- `minecraft:exposed_cut_copper_stairs ✅ 已完成`
+- `minecraft:granite_stairs ✅ 已完成`
+- `minecraft:mossy_cobblestone_stairs ✅ 已完成`
+- `minecraft:mud_brick_stairs ✅ 已完成`
+- `minecraft:nether_brick_stairs ✅ 已完成`
+- `minecraft:oxidized_cut_copper_stairs ✅ 已完成`
+- `minecraft:polished_andesite_stairs ✅ 已完成`
+- `minecraft:polished_blackstone_brick_stairs ✅ 已完成`
+- `minecraft:polished_blackstone_stairs ✅ 已完成`
 - `minecraft:polished_deepslate_stairs ✅ 已完成`
-- `minecraft:polished_diorite_stairs`
-- `minecraft:polished_granite_stairs`
+- `minecraft:polished_diorite_stairs ✅ 已完成`
+- `minecraft:polished_granite_stairs ✅ 已完成`
 - `minecraft:polished_tuff_stairs ✅ 已完成`
-- `minecraft:purpur_stairs`
-- `minecraft:quartz_stairs`
-- `minecraft:red_nether_brick_stairs`
-- `minecraft:red_sandstone_stairs`
+- `minecraft:purpur_stairs ✅ 已完成`
+- `minecraft:quartz_stairs ✅ 已完成`
+- `minecraft:red_nether_brick_stairs ✅ 已完成`
+- `minecraft:red_sandstone_stairs ✅ 已完成`
 - `minecraft:resin_brick_stairs ✅ 已完成`
-- `minecraft:smooth_quartz_stairs`
-- `minecraft:smooth_red_sandstone_stairs`
+- `minecraft:smooth_quartz_stairs ✅ 已完成`
+- `minecraft:smooth_red_sandstone_stairs ✅ 已完成`
 - `minecraft:tuff_brick_stairs ✅ 已完成`
 - `minecraft:tuff_stairs ✅ 已完成`
-- `minecraft:waxed_cut_copper_stairs`
-- `minecraft:waxed_exposed_cut_copper_stairs`
-- `minecraft:waxed_oxidized_cut_copper_stairs`
-- `minecraft:waxed_weathered_cut_copper_stairs`
-- `minecraft:weathered_cut_copper_stairs`
+- `minecraft:waxed_cut_copper_stairs ✅ 已完成`
+- `minecraft:waxed_exposed_cut_copper_stairs ✅ 已完成`
+- `minecraft:waxed_oxidized_cut_copper_stairs ✅ 已完成`
+- `minecraft:waxed_weathered_cut_copper_stairs ✅ 已完成`
+- `minecraft:weathered_cut_copper_stairs ✅ 已完成`
 
 ### `minecraft:stone_buttons`
 
@@ -1341,27 +1341,27 @@
 未实现项：
 
 
-- `minecraft:andesite_wall`
-- `minecraft:blackstone_wall`
-- `minecraft:brick_wall`
+- `minecraft:andesite_wall ✅ 已完成`
+- `minecraft:blackstone_wall ✅ 已完成`
+- `minecraft:brick_wall ✅ 已完成`
 - `minecraft:cobbled_deepslate_wall ✅ 已完成`
 - `minecraft:deepslate_brick_wall ✅ 已完成`
 - `minecraft:deepslate_tile_wall ✅ 已完成`
-- `minecraft:diorite_wall`
-- `minecraft:end_stone_brick_wall`
-- `minecraft:granite_wall`
-- `minecraft:mossy_cobblestone_wall`
-- `minecraft:mud_brick_wall`
-- `minecraft:nether_brick_wall`
-- `minecraft:polished_blackstone_brick_wall`
-- `minecraft:polished_blackstone_wall`
+- `minecraft:diorite_wall ✅ 已完成`
+- `minecraft:end_stone_brick_wall ✅ 已完成`
+- `minecraft:granite_wall ✅ 已完成`
+- `minecraft:mossy_cobblestone_wall ✅ 已完成`
+- `minecraft:mud_brick_wall ✅ 已完成`
+- `minecraft:nether_brick_wall ✅ 已完成`
+- `minecraft:polished_blackstone_brick_wall ✅ 已完成`
+- `minecraft:polished_blackstone_wall ✅ 已完成`
 - `minecraft:polished_deepslate_wall ✅ 已完成`
 - `minecraft:polished_tuff_wall ✅ 已完成`
-- `minecraft:prismarine_wall`
-- `minecraft:red_nether_brick_wall`
-- `minecraft:red_sandstone_wall`
+- `minecraft:prismarine_wall ✅ 已完成`
+- `minecraft:red_nether_brick_wall ✅ 已完成`
+- `minecraft:red_sandstone_wall ✅ 已完成`
 - `minecraft:resin_brick_wall ✅ 已完成`
-- `minecraft:sandstone_wall`
+- `minecraft:sandstone_wall ✅ 已完成`
 - `minecraft:tuff_brick_wall ✅ 已完成`
 - `minecraft:tuff_wall ✅ 已完成`
 
