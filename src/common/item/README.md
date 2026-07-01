@@ -23,7 +23,7 @@ item/
 │   └── README.md
 ├── tier/                         # 工具材质等级
 │   ├── IItemTier.hpp             # 材质接口（耐久、效率、伤害等）
-│   ├── ItemTiers.hpp/cpp         # 原版材质（木、石、铁、金、钻石、下界合金）
+│   ├── ItemTiers.hpp/cpp         # 原版材质（木、石、铜、铁、金、钻石、下界合金）
 │   └── README.md
 ├── attribute/                    # 物品属性修饰符
 │   ├── ItemAttributeModifiers.hpp/cpp  # 物品属性修饰符管理
