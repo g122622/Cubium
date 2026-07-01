@@ -60,7 +60,9 @@ FlatChunkGenerator::FlatChunkGenerator(u64 seed, FlatLevelGeneratorSettings sett
     _initGenerationRegistries();
 }
 
-FlatChunkGenerator::~FlatChunkGenerator()
+FlatChunkGenerator::~FlatChunkGenerator() = default;
+
+void FlatChunkGenerator::clearStructureCache()
 {
     if (m_structureManager) {
         m_structureManager->clearCache();

@@ -61,3 +61,4 @@ server/dimension/
 8. **刷怪管理器是维度级的**: NaturalSpawner 和 DespawnManager 由各 `ServerDimension` 独立持有，tick 时根据维度类型决定是否执行（仅主世界和下界有 hostile 刷怪，仅主世界有 passive 刷怪）
 9. **初始化顺序**: `ServerDimension::initialize()` 中同步管理器的创建必须在 `ServerWorld::initialize()` 之后，因为同步管理器依赖 `ServerChunkManager` 和 `WorldLightManager`
 10. **共享存储**: 三个维度共享同一个 `SingleLevelStorageManager`，不会重复打开同一个世界目录
+11. **关闭顺序**: `ServerDimension::shutdown()` 必须在世界销毁前显式调用 `IChunkGenerator::clearStructureCache()` 清理结构检查缓存，对齐 MC 1.21.11 中 ServerLevel 卸载时立即清理 StructureCheck 的行为，而非等到生成器析构时才清理

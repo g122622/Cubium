@@ -96,6 +96,13 @@ void ServerDimension::shutdown()
         return;
     }
 
+    // 在世界销毁之前显式清理结构生成缓存。
+    // 对齐 MC 1.21.11 中 ServerLevel 卸载时立即清理 StructureCheck 的行为，
+    // 而非等到生成器析构时才清理，避免维度卸载后缓存数据仍驻留内存。
+    if (m_world != nullptr && m_world->chunkManager() != nullptr && m_world->chunkManager()->generator() != nullptr) {
+        m_world->chunkManager()->generator()->clearStructureCache();
+    }
+
     // 清理同步管理器（必须在世界之前释放）
     m_lightSyncManager.reset();
     m_blockUpdateSyncManager.reset();

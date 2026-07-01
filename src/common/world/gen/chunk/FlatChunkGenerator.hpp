@@ -95,6 +95,14 @@ public:
         return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
     }
 
+    /**
+     * @brief 清理结构生成缓存
+     *
+     * 释放 StructureCheck 中的缓存数据。
+     * 在维度卸载时由 ServerDimension::shutdown() 显式调用。
+     */
+    void clearStructureCache() override;
+
     [[nodiscard]] i32 getGenDepth() const override { return world::CHUNK_HEIGHT; }
     [[nodiscard]] i32 getMinY() const override { return 0; }
     i32 seaLevel() const override { return -63; }

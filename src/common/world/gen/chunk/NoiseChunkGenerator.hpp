@@ -115,6 +115,16 @@ public:
         return m_structureManager ? &m_structureManager->structureCheck() : nullptr;
     }
 
+    /**
+     * @brief 清理结构生成缓存
+     *
+     * 释放 StructureCheck 中的缓存数据（m_loadedChunks 和 m_featureChecks）。
+     * 在维度卸载时由 ServerDimension::shutdown() 显式调用，
+     * 而非等到生成器析构时才清理，对齐 MC 1.21.11 中 ServerLevel 卸载时
+     * 立即清理 StructureCheck 的行为。
+     */
+    void clearStructureCache() override;
+
     // === 结构地形平滑 ===
 
 private:

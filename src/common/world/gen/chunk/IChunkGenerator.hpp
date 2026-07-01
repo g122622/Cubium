@@ -234,6 +234,16 @@ public:
     [[nodiscard]] virtual world::gen::structure::StructureCheck* structureCheck() { return nullptr; }
     [[nodiscard]] virtual const world::gen::structure::StructureCheck* structureCheck() const { return nullptr; }
 
+    /**
+     * @brief 清理结构生成缓存
+     *
+     * 在维度卸载时显式调用，释放 StructureCheck 中的缓存数据。
+     * 对齐 MC 1.21.11 中 ServerLevel 卸载时立即清理 StructureCheck 的行为。
+     * 默认实现为空操作（不支持的生成器类型）。
+     * NoiseChunkGenerator 和 FlatChunkGenerator 会重写此方法。
+     */
+    virtual void clearStructureCache() {}
+
     // === 结构查找与生物生成 ===
 
     /**

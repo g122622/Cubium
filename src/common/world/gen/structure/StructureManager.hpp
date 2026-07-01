@@ -153,12 +153,10 @@ public:
     /**
      * @brief 清理所有结构检查缓存
      *
-     * 清空 StructureCheck 的精确缓存（m_loadedChunks）。
-     * 当前在 NoiseChunkGenerator 析构时自动调用。
-     *
-     * TODO: 后续在维度热重载场景中，需在维度卸载前显式调用此方法
-     * （而非等到生成器析构），对齐 MC 1.21.11 中 ServerLevel 卸载时
-     * 立即清理 StructureCheck 的行为。
+     * 清空 StructureCheck 的精确缓存（m_loadedChunks）和近似缓存（m_featureChecks）。
+     * 在维度卸载时由 IChunkGenerator::clearStructureCache() 显式调用，
+     * 通过 ServerDimension::shutdown() -> ServerWorld -> ServerChunkManager -> IChunkGenerator
+     * 的调用链触发，对齐 MC 1.21.11 中 ServerLevel 卸载时立即清理 StructureCheck 的行为。
      */
     void clearCache();
 
