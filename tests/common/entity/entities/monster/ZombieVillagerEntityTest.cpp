@@ -32,6 +32,10 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/monster/undead/ZombieVillagerEntity.hpp"
 #include "common/entity/entities/villager/VillagerEntity.hpp"
+#include "common/entity/utils/ItemDropHelper.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
+#include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
@@ -348,6 +352,215 @@ TEST_F(ZombieVillagerEntityTest, SoundEvents)
     auto step = m_zombieVillager->getStepSound();
     EXPECT_TRUE(step.has_value());
     EXPECT_EQ(step.value(), SoundEvents::ENTITY_ZOMBIE_VILLAGER_STEP);
+}
+
+// ============================================================================
+// 治愈时装备处理测试（dropPreservedEquipment 逻辑）
+// ============================================================================
+
+/**
+ * @brief 装备处理测试用的世界实现
+ *
+ * 需要支持物品注册和实体生成
+ */
+class ZombieVillagerEquipmentTestWorld final : public test::BaseTestWorld {
+public:
+    ZombieVillagerEquipmentTestWorld() { Items::initialize(); }
+
+    [[nodiscard]] Difficulty difficulty() const override { return m_difficulty; }
+    void setDifficulty(Difficulty d) { m_difficulty = d; }
+
+    EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        m_spawnedEntities.push_back(std::move(entity));
+        return static_cast<EntityId>(m_spawnedEntities.size() + 100);
+    }
+
+    [[nodiscard]] size_t spawnedEntityCount() const { return m_spawnedEntities.size(); }
+
+    // 获取最后生成的实体（作为 VillagerEntity）
+    Entity* lastSpawnedEntity() { return m_spawnedEntities.empty() ? nullptr : m_spawnedEntities.back().get(); }
+
+private:
+    std::vector<std::unique_ptr<Entity>> m_spawnedEntities;
+    Difficulty m_difficulty = Difficulty::Normal;
+};
+
+/**
+ * @brief 治愈时装备处理测试夹具
+ */
+class ZombieVillagerEquipmentTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        static bool s_initialized = false;
+        if (!s_initialized) {
+            Items::initialize();
+            VanillaBlocks::initialize();
+            s_initialized = true;
+        }
+    }
+
+    void SetUp() override
+    {
+        m_world = std::make_unique<ZombieVillagerEquipmentTestWorld>();
+        m_zombieVillager = std::make_unique<ZombieVillagerEntity>(EntityId(1));
+        m_zombieVillager->setWorld(m_world.get());
+        m_zombieVillager->setPosition(0.0, 64.0, 0.0);
+    }
+
+    std::unique_ptr<ZombieVillagerEquipmentTestWorld> m_world;
+    std::unique_ptr<ZombieVillagerEntity> m_zombieVillager;
+};
+
+TEST_F(ZombieVillagerEquipmentTest, FinishConverting_BindingCurseEquipmentTransferredToVillager)
+{
+    // 绑定诅咒装备应转移到村民
+    ItemStack cursedHelmet(Items::IRON_HELMET, 1);
+    cursedHelmet.addEnchantment("minecraft:binding_curse", 1);
+    m_zombieVillager->setEquipment(EquipmentSlot::Head, cursedHelmet);
+
+    m_zombieVillager->setConversionStarterUuid("test-player");
+    m_zombieVillager->finishConverting();
+
+    // 应生成了一个村民实体
+    ASSERT_EQ(m_world->spawnedEntityCount(), 1u);
+
+    // 获取村民
+    Entity* spawned = m_world->lastSpawnedEntity();
+    ASSERT_NE(spawned, nullptr);
+
+    auto* villager = dynamic_cast<entity::VillagerEntity*>(spawned);
+    ASSERT_NE(villager, nullptr);
+
+    // 绑定诅咒的头盔应转移到村民
+    const ItemStack& helmet = villager->getEquipment(EquipmentSlot::Head);
+    EXPECT_FALSE(helmet.isEmpty());
+    EXPECT_TRUE(item::enchant::EnchantmentHelper::hasBindingCurse(helmet));
+}
+
+TEST_F(ZombieVillagerEquipmentTest, FinishConverting_PreservedEquipmentDroppedOnGround)
+{
+    // 保留装备（掉落概率 > 1.0）应掉落在地上
+    ItemStack sword(Items::IRON_SWORD, 1);
+    m_zombieVillager->setEquipment(EquipmentSlot::MainHand, sword);
+    m_zombieVillager->setGuaranteedDrop(EquipmentSlot::MainHand);
+
+    m_zombieVillager->finishConverting();
+
+    // 应生成了一个村民实体 + 一个物品实体（主手剑）
+    ASSERT_GE(m_world->spawnedEntityCount(), 1u);
+
+    // 获取村民
+    Entity* spawned = m_world->lastSpawnedEntity();
+    ASSERT_NE(spawned, nullptr);
+
+    auto* villager = dynamic_cast<entity::VillagerEntity*>(spawned);
+    ASSERT_NE(villager, nullptr);
+
+    // 村民主手应为空（保留的剑掉落在地上，不转移给村民）
+    EXPECT_TRUE(villager->getEquipment(EquipmentSlot::MainHand).isEmpty());
+}
+
+TEST_F(ZombieVillagerEquipmentTest, FinishConverting_NonPreservedEquipmentSilentlyDisappears)
+{
+    // 默认掉落概率（0.085）的装备应静默消失
+    ItemStack chestplate(Items::IRON_CHESTPLATE, 1);
+    m_zombieVillager->setEquipment(EquipmentSlot::Chest, chestplate);
+
+    // 确认默认掉落概率
+    EXPECT_FLOAT_EQ(m_zombieVillager->getEquipmentDropChance(EquipmentSlot::Chest), 0.085f);
+
+    size_t entityCountBefore = m_world->spawnedEntityCount();
+    m_zombieVillager->finishConverting();
+
+    // 仅生成村民，不应有额外的物品实体
+    EXPECT_EQ(m_world->spawnedEntityCount(), entityCountBefore + 1);
+
+    // 村民胸甲应为空
+    Entity* spawned = m_world->lastSpawnedEntity();
+    ASSERT_NE(spawned, nullptr);
+    auto* villager = dynamic_cast<entity::VillagerEntity*>(spawned);
+    ASSERT_NE(villager, nullptr);
+    EXPECT_TRUE(villager->getEquipment(EquipmentSlot::Chest).isEmpty());
+}
+
+TEST_F(ZombieVillagerEquipmentTest, FinishConverting_EmptySlotsNoEffect)
+{
+    // 没有装备的槽位不应影响治愈
+    m_zombieVillager->finishConverting();
+
+    ASSERT_EQ(m_world->spawnedEntityCount(), 1u);
+    Entity* spawned = m_world->lastSpawnedEntity();
+    ASSERT_NE(spawned, nullptr);
+
+    auto* villager = dynamic_cast<entity::VillagerEntity*>(spawned);
+    ASSERT_NE(villager, nullptr);
+
+    // 村民不应有任何装备
+    for (i32 i = 0; i < static_cast<i32>(EquipmentSlot::Count); ++i) {
+        EXPECT_TRUE(villager->getEquipment(static_cast<EquipmentSlot>(i)).isEmpty())
+            << "Slot " << i << " should be empty";
+    }
+}
+
+TEST_F(ZombieVillagerEquipmentTest, FinishConverting_MixedEquipmentHandlesAllCorrectly)
+{
+    // 混合装备场景：绑定诅咒 + 保留 + 非保留 + 空
+    ItemStack cursedHelmet(Items::IRON_HELMET, 1);
+    cursedHelmet.addEnchantment("minecraft:binding_curse", 1);
+    m_zombieVillager->setEquipment(EquipmentSlot::Head, cursedHelmet);
+
+    ItemStack preservedSword(Items::IRON_SWORD, 1);
+    m_zombieVillager->setEquipment(EquipmentSlot::MainHand, preservedSword);
+    m_zombieVillager->setGuaranteedDrop(EquipmentSlot::MainHand);
+
+    ItemStack normalBoots(Items::IRON_BOOTS, 1);
+    m_zombieVillager->setEquipment(EquipmentSlot::Feet, normalBoots);
+
+    // OffHand, Legs, Chest 为空
+
+    m_zombieVillager->finishConverting();
+
+    Entity* spawned = m_world->lastSpawnedEntity();
+    ASSERT_NE(spawned, nullptr);
+
+    auto* villager = dynamic_cast<entity::VillagerEntity*>(spawned);
+    ASSERT_NE(villager, nullptr);
+
+    // 绑定诅咒头盔转移到村民
+    EXPECT_FALSE(villager->getEquipment(EquipmentSlot::Head).isEmpty());
+    EXPECT_TRUE(item::enchant::EnchantmentHelper::hasBindingCurse(villager->getEquipment(EquipmentSlot::Head)));
+
+    // 保留剑掉落在地上，村民不应持有
+    EXPECT_TRUE(villager->getEquipment(EquipmentSlot::MainHand).isEmpty());
+
+    // 非保留靴子静默消失，村民不应持有
+    EXPECT_TRUE(villager->getEquipment(EquipmentSlot::Feet).isEmpty());
+
+    // 空槽位仍为空
+    EXPECT_TRUE(villager->getEquipment(EquipmentSlot::OffHand).isEmpty());
+    EXPECT_TRUE(villager->getEquipment(EquipmentSlot::Legs).isEmpty());
+    EXPECT_TRUE(villager->getEquipment(EquipmentSlot::Chest).isEmpty());
+}
+
+TEST_F(ZombieVillagerEquipmentTest, FinishConverting_DropChanceZeroNotTransferredOrDropped)
+{
+    // 掉落概率为 0 的装备（如万圣节南瓜头）不应被转移也不应掉落
+    ItemStack pumpkin(Items::CARVED_PUMPKIN, 1);
+    m_zombieVillager->setEquipment(EquipmentSlot::Head, pumpkin);
+    m_zombieVillager->setEquipmentDropChance(EquipmentSlot::Head, 0.0f);
+
+    m_zombieVillager->finishConverting();
+
+    Entity* spawned = m_world->lastSpawnedEntity();
+    ASSERT_NE(spawned, nullptr);
+
+    auto* villager = dynamic_cast<entity::VillagerEntity*>(spawned);
+    ASSERT_NE(villager, nullptr);
+
+    // 南瓜头不应转移给村民
+    EXPECT_TRUE(villager->getEquipment(EquipmentSlot::Head).isEmpty());
 }
 
 } // namespace
