@@ -262,6 +262,11 @@ ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player)
         if (!moveItemToRange(slotStack, ANVIL_SLOTS, getSlotCount() - 1, true)) {
             return ItemStack();
         }
+        // TODO: 铁砧损坏机制尚未实现。MC 原版在玩家从输出槽取出结果时有 12% 概率
+        // 使铁砧降级（anvil → chipped_anvil → damaged_anvil → 消失）。
+        // 非创造模式下，应调用 AnvilBlock::damageAnvil() 并替换或移除铁砧方块，
+        // 同时播放对应音效（1030=使用/降级，1029=完全损坏）。
+        // 需要访问 m_world 和 m_position 来执行 setBlockState 和 playEvent。
     } else if (slotIndex == SLOT_INPUT_1 || slotIndex == SLOT_INPUT_2) {
         // 从输入槽移动到玩家背包
         if (!moveItemToRange(slotStack, ANVIL_SLOTS, getSlotCount() - 1, false)) {
