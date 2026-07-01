@@ -1244,7 +1244,8 @@ void BlockTags::initialize()
     // 猪灵在这些方块附近会逃跑
     // 包含: 灵魂火(soul_fire)、灵魂火把(soul_torch)、灵魂墙火把(soul_wall_torch)、
     //       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)、诡异菌(warped_fungus)
-    // 注意: 灵魂营火的点燃状态检查需要在实体逻辑中单独处理（PiglinSpecificSensor.isValidRepellent）
+    // 注意: 灵魂营火的点燃状态检查已在 PiglinEntity::getPathWeight 中实现
+    //       （对应 MC 原版 PiglinSpecificSensor.isValidRepellent 逻辑）
     // TODO: 花盆系统实现后需添加 potted_warped_fungus（盆栽诡异菌）到此标签
     auto piglinRepellents = std::make_unique<BlockTag>(ResourceLocation("minecraft", "piglin_repellents"));
     piglinRepellents->addAll({ResourceLocation("minecraft", "soul_fire"),

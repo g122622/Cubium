@@ -54,6 +54,7 @@
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/BlockTags.hpp"
+#include "common/world/block/blocks/decorative/CampfireBlock.hpp"
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include <cmath>
 
@@ -549,8 +550,7 @@ f32 PiglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     // 当前项目 PiglinEntity 尚未集成 Brain 系统，
     // 因此采用与 HoglinEntity::getPathWeight 相同的直接扫描方案。
     //
-    // TODO: 集成 Brain/Sensor 系统后，迁移为 PiglinSpecificSensor + NEAREST_REPELLENT 记忆模块方案，
-    //       同时需要处理灵魂营火的点燃状态检查（PiglinSpecificSensor.isValidRepellent）
+    // TODO: 集成 Brain/Sensor 系统后，迁移为 PiglinSpecificSensor + NEAREST_REPELLENT 记忆模块方案
 
     const IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
@@ -563,7 +563,7 @@ f32 PiglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     //   - 灵魂火把 (soul_torch)
     //   - 灵魂墙火把 (soul_wall_torch)
     //   - 灵魂灯笼 (soul_lantern)
-    //   - 灵魂营火 (soul_campfire，需点燃，当前标签层面无法区分点燃状态)
+    //   - 灵魂营火 (soul_campfire，需点燃，通过 CampfireBlock::isLitCampfire 额外检查)
     //   - 诡异菌 (warped_fungus)
     // TODO: 花盆系统实现后需在标签中添加 potted_warped_fungus（盆栽诡异菌）
     //
@@ -583,8 +583,13 @@ f32 PiglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
             for (i32 dz = -REPELLENT_RANGE_H; dz <= REPELLENT_RANGE_H; ++dz) {
                 const BlockState* state = worldPtr->getBlockState(bx + dx, by + dy, bz + dz);
                 if (state != nullptr && piglinRepellents.contains(*state)) {
-                    // TODO: 灵魂营火需要额外检查点燃状态（CampfireBlock.isLitCampfire），
-                    //       当前标签层面无法区分点燃/未点燃的营火，未点燃的灵魂营火不应排斥猪灵
+                    // MC 1.21.11: PiglinSpecificSensor.isValidRepellent
+                    // 灵魂营火需要额外检查点燃状态，未点燃的灵魂营火不应排斥猪灵
+                    if (state->is(block_registry::NetherBlocks::SOUL_CAMPFIRE)) {
+                        if (!blocks::CampfireBlock::isLitCampfire(*state)) {
+                            continue; // 未点燃的灵魂营火不排斥猪灵
+                        }
+                    }
                     return -1.0f;
                 }
             }
