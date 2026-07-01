@@ -165,6 +165,7 @@ Result<void> ClientApplication::initialize(const ClientLaunchParams& params)
     } else if (logLevel == "error") {
         spdlog::set_level(spdlog::level::err);
     } else {
+        spdlog::warn("Unknown log level '{}', defaulting to 'info'", logLevel);
         spdlog::set_level(spdlog::level::info);
     }
 
