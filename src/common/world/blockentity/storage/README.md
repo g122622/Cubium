@@ -70,7 +70,8 @@ DoubleSidedInventory (双箱容器，非 BlockEntity，用于合并两个箱子)
 开关计数和音效逻辑参考 MC `ContainerOpenersCounter`：
 - `openContainer()` / `closeContainer()` 在计数边沿（0↔1）时触发音效和 `CONTAINER_OPEN` / `CONTAINER_CLOSE` 游戏事件
 - 双箱音效在 RIGHT 箱子侧播放，位置偏移到双箱中心（LEFT 箱子不播放音效）
-- `tick()` 中每 5 ticks 执行 `_recheckOpeners()`，检查附近玩家是否仍在使用此容器，自动修正计数
+- `tick()` 中每 5 ticks 执行 `_recheckOpeners()`，通过 `_isOwnContainer()` 检查玩家打开的菜单是否真正持有此箱子的背包容器（含双箱合并场景），自动修正计数
+- `_isOwnContainer()` 参考 MC `ChestBlockEntity.isOwnContainer`：对单箱检查 `getChestInventory() == &m_inventory`，对双箱检查 `DoubleSidedInventory::isPartOfLargeChest(&m_inventory)`
 - `_playSound()` 中音调随机化为 0.9~1.0，音量 0.5
 
 ### 2. TrappedChestEntity 红石信号
