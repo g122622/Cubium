@@ -77,6 +77,7 @@ enum class DamageType : u8 {
     SweetBerryBush,    // 甜浆果丛
     Stalagmite,        // 石笋摔落伤害（踩在朝上的滴石尖端上）
     FallingStalactite, // 坠落钟乳石伤害（钟乳石掉落砸中实体）
+    Freeze,            // 冰冻伤害（细雪冰冻）
 
     // 实体伤害
     MobAttack,       // 生物攻击
@@ -251,6 +252,15 @@ public:
      */
     [[nodiscard]] bool isSweetBerryBush() const { return type() == DamageType::SweetBerryBush; }
 
+    /**
+     * @brief 是否是冰冻伤害
+     *
+     * 对应 MC Java 的 DamageTypeTags.IS_FREEZING。
+     * 冰冻伤害对冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）造成5倍伤害。
+     * 玩家的冰冻伤害可通过 freeze_damage 游戏规则禁用。
+     */
+    [[nodiscard]] bool isFreezing() const { return type() == DamageType::Freeze; }
+
 protected:
     DamageSource() = default;
 };
@@ -290,7 +300,7 @@ public:
             m_type == DamageType::Fall || m_type == DamageType::FlyIntoWall || m_type == DamageType::InWall ||
             m_type == DamageType::Cramming || m_type == DamageType::Generic || m_type == DamageType::Magic ||
             m_type == DamageType::Wither || m_type == DamageType::DragonBreath || m_type == DamageType::WindBurst ||
-            m_type == DamageType::Stalagmite;
+            m_type == DamageType::Stalagmite || m_type == DamageType::Freeze;
     }
 
     [[nodiscard]] bool bypassesInvulnerability() const override { return m_type == DamageType::OutOfWorld; }
@@ -365,6 +375,8 @@ public:
                 return "death.attack.stalagmite";
             case DamageType::FallingStalactite:
                 return "death.attack.fallingStalactite";
+            case DamageType::Freeze:
+                return "death.attack.freeze";
             case DamageType::WindBurst:
                 return "death.attack.windBurst";
             case DamageType::MaceSmash:
@@ -848,6 +860,12 @@ inline EntityDamageSource lightningBolt(Entity* lightning)
 inline EnvironmentalDamage sweetBerryBush()
 {
     return EnvironmentalDamage(DamageType::SweetBerryBush);
+}
+
+/** 创建冰冻伤害（细雪冰冻） */
+inline EnvironmentalDamage freeze()
+{
+    return EnvironmentalDamage(DamageType::Freeze);
 }
 
 /**

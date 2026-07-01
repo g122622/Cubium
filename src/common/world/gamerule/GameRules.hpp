@@ -100,6 +100,9 @@ extern const BooleanGameRuleKey FALL_DAMAGE;
 /// 是否火焰受伤
 extern const BooleanGameRuleKey FIRE_DAMAGE;
 
+/// 是否冰冻受伤
+extern const BooleanGameRuleKey FREEZE_DAMAGE;
+
 /// 是否限制合成
 extern const BooleanGameRuleKey DO_LIMITED_CRAFTING;
 

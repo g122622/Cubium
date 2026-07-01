@@ -141,12 +141,33 @@ public:
     static ItemTag& BREAKS_DECORATED_POTS();
 
     /**
+     * @brief 冰冻免疫穿戴物标签
+     *
+     * 包含所有可以使穿戴者免疫冰冻效果的物品。
+     * 穿戴任意一件皮革护甲即可免疫细雪冰冻。
+     * 对应 MC 原版标签 minecraft:freeze_immune_wearables。
+     *
+     * 包含：皮革头盔、皮革胸甲、皮革护腿、皮革靴子、皮革马铠
+     */
+    static ItemTag& FREEZE_IMMUNE_WEARABLES();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。
      * 注册所有花朵物品到 FLOWERS 标签。
      */
     static void initialize();
+
+    /**
+     * @brief 检查物品标签系统是否已初始化
+     *
+     * 在初始化之前调用标签访问方法会导致未定义行为。
+     * 可用于安全检查避免在初始化前访问标签。
+     *
+     * @return 是否已初始化
+     */
+    [[nodiscard]] static bool isInitialized() { return s_initialized; }
 
     /**
      * @brief 注册或获取指定ID的标签。

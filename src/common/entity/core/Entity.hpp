@@ -1291,10 +1291,119 @@ public:
      * @brief 清除冰冻状态
      *
      * 当实体被点燃时调用，清除冰冻效果。
-     * 子类（如 LivingEntity）可重写以实现完整的冰冻清除逻辑。
-     * TODO: 当冰冻系统（powder snow 等）实现后，LivingEntity 需要重写此方法清除冰冻状态。
+     * 基类实现将冰冻计时器重置为 0。
+     * LivingEntity 重写此方法以额外移除冰冻减速修饰符。
+     * 对应 MC Java 的 Entity.clearFreeze()。
      */
-    virtual void clearFreeze() {}
+    virtual void clearFreeze() { m_ticksFrozen = 0; }
+
+    /**
+     * @brief 获取冰冻计时器值
+     *
+     * 返回实体当前累积的冰冻 tick 数。
+     * 当实体处于细雪方块中时每 tick +1，不在细雪中时每 tick -2。
+     * 值达到 getTicksRequiredToFreeze() 时实体完全冰冻。
+     * 对应 MC Java 的 Entity.getTicksFrozen()。
+     *
+     * @return 冰冻计时器值
+     */
+    [[nodiscard]] i32 getTicksFrozen() const { return m_ticksFrozen; }
+
+    /**
+     * @brief 设置冰冻计时器值
+     *
+     * 同时同步到数据管理器用于客户端同步。
+     * 对应 MC Java 的 Entity.setTicksFrozen()。
+     *
+     * @param ticks 冰冻计时器值
+     */
+    void setTicksFrozen(i32 ticks)
+    {
+        m_ticksFrozen = ticks;
+        m_dataManager.set(DATA_TICKS_FROZEN_PARAM, ticks);
+    }
+
+    /**
+     * @brief 获取完全冰冻所需的 tick 数
+     *
+     * 默认值为 140 tick（7 秒）。
+     * 对应 MC Java 的 Entity.getTicksRequiredToFreeze()。
+     *
+     * @return 完全冰冻所需的 tick 数
+     */
+    [[nodiscard]] virtual i32 getTicksRequiredToFreeze() const { return BASE_TICKS_REQUIRED_TO_FREEZE; }
+
+    /**
+     * @brief 获取冰冻百分比（0.0 ~ 1.0）
+     *
+     * 用于渲染冰冻动画效果和计算冰冻减速修饰符。
+     * 对应 MC Java 的 Entity.getPercentFrozen()。
+     *
+     * @return 冰冻百分比
+     */
+    [[nodiscard]] f32 getPercentFrozen() const
+    {
+        const i32 required = getTicksRequiredToFreeze();
+        return static_cast<f32>(std::min(m_ticksFrozen, required)) / static_cast<f32>(required);
+    }
+
+    /**
+     * @brief 检查实体是否完全冰冻
+     *
+     * 当冰冻计时器达到 getTicksRequiredToFreeze() 时返回 true。
+     * 完全冰冻的实体每 40 tick 受到 1.0 冰冻伤害。
+     * 对应 MC Java 的 Entity.isFullyFrozen()。
+     *
+     * @return 是否完全冰冻
+     */
+    [[nodiscard]] bool isFullyFrozen() const { return m_ticksFrozen >= getTicksRequiredToFreeze(); }
+
+    /**
+     * @brief 检查实体是否正在冰冻中
+     *
+     * 当冰冻计时器 > 0 时返回 true。
+     * 对应 MC Java 的 Entity.isFreezing()。
+     *
+     * @return 是否正在冰冻
+     */
+    [[nodiscard]] bool isFreezing() const { return m_ticksFrozen > 0; }
+
+    /**
+     * @brief 检查实体是否可以冰冻
+     *
+     * 检查实体类型是否不在冰冻免疫标签中。
+     * LivingEntity 重写此方法以额外检查皮革护甲。
+     * 对应 MC Java 的 Entity.canFreeze()。
+     *
+     * @return 是否可以冰冻
+     */
+    [[nodiscard]] virtual bool canFreeze() const;
+
+    /**
+     * @brief 设置实体是否处于细雪中
+     *
+     * 每帧在 baseTick() 开始时重置为 false，
+     * 由细雪方块的 onEntityCollision() 设置为 true。
+     * 对应 MC Java 的 Entity.setIsInPowderSnow()。
+     *
+     * @param inPowderSnow 是否在细雪中
+     */
+    void setIsInPowderSnow(bool inPowderSnow) { m_isInPowderSnow = inPowderSnow; }
+
+    /**
+     * @brief 检查实体是否处于细雪中
+     *
+     * 对应 MC Java 的 Entity.isInPowderSnow 字段。
+     *
+     * @return 是否在细雪中
+     */
+    [[nodiscard]] bool isInPowderSnow() const { return m_isInPowderSnow; }
+
+    /** @brief 冰冻所需的基础 tick 数（140 tick = 7 秒） */
+    static constexpr i32 BASE_TICKS_REQUIRED_TO_FREEZE = 140;
+
+    /** @brief 完全冰冻时伤害频率（40 tick = 2 秒） */
+    static constexpr i32 FREEZE_HURT_FREQUENCY = 40;
 
     /**
      * @brief 获取火焰免疫期时长（tick）
@@ -2347,6 +2456,7 @@ protected:
     static entity::DataParameter<bool> DATA_SILENT_PARAM;
     static entity::DataParameter<bool> DATA_NO_GRAVITY_PARAM;
     static entity::DataParameter<i8> DATA_POSE_PARAM;
+    static entity::DataParameter<i32> DATA_TICKS_FROZEN_PARAM;
 
     // 环境状态
     bool m_inWater = false;
@@ -2357,6 +2467,11 @@ protected:
     f32 m_waterHeight = 0.0f;   // 水浸入高度（0.0-1.0）
     f32 m_lavaHeight = 0.0f;    // 岩浆浸入高度（0.0-1.0）
     i32 m_fire = 0;             // 剩余着火时间（tick），正值=燃烧，负值=火焰免疫期倒计时
+
+    // 冰冻状态
+    i32 m_ticksFrozen = 0;         ///< 冰冻计时器（正值=冰冻进度，达到 getTicksRequiredToFreeze() 时完全冰冻）
+    bool m_isInPowderSnow = false; ///< 当前 tick 是否处于细雪中（每帧重置，由 PowderSnowBlock::onEntityCollision 设置）
+    bool m_wasInPowderSnow = false; ///< 上一 tick 是否处于细雪中
 
     // 攀爬追踪（用于摔落死亡消息）
     std::optional<BlockPos> m_lastClimbPos; // 最后攀爬位置

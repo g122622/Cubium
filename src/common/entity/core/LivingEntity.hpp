@@ -1149,6 +1149,63 @@ public:
      */
     virtual void tickDeath();
 
+    // ========== 冰冻系统 ==========
+
+    /**
+     * @brief 清除冰冻状态
+     *
+     * 重写 Entity::clearFreeze()，将冰冻计时器重置为 0
+     * 并移除冰冻减速属性修饰符。
+     * 当实体被点燃时调用。
+     * 对应 MC Java 的 LivingEntity.clearFreeze()。
+     */
+    void clearFreeze() override;
+
+    /**
+     * @brief 检查实体是否可以冰冻
+     *
+     * 重写 Entity::canFreeze()，在基类检查的基础上
+     * 额外检查皮革护甲（任意一件皮革护甲即可免疫冰冻）
+     * 和旁观模式。
+     * 对应 MC Java 的 LivingEntity.canFreeze()。
+     *
+     * @return 是否可以冰冻
+     */
+    [[nodiscard]] bool canFreeze() const override;
+
+    /**
+     * @brief 冰冻刻更新
+     *
+     * 在 LivingEntity::tick() 中调用，处理冰冻计时器递减和冰冻伤害。
+     * 对应 MC Java 的 LivingEntity.baseTick() 中 "freezing" 段。
+     *
+     * 逻辑：
+     * - 如果不在细雪中或不可冰冻，冰冻计时器每 tick -2（解冻速度是冰冻速度的两倍）
+     * - 移除旧的冰冻减速修饰符，然后根据当前冰冻百分比重新添加
+     * - 每 40 tick（2 秒），如果完全冰冻且可冰冻，造成 1.0 冰冻伤害
+     * - 对冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）造成5倍伤害
+     */
+    void tickFreeze();
+
+    /**
+     * @brief 移除冰冻减速属性修饰符
+     *
+     * 对应 MC Java 的 LivingEntity.removeFrost()。
+     */
+    void removeFrost();
+
+    /**
+     * @brief 根据冰冻百分比添加减速属性修饰符
+     *
+     * 当冰冻计时器 > 0 且脚下方块不是空气时，
+     * 添加移动速度修饰符：-0.05 * getPercentFrozen()。
+     * 对应 MC Java 的 LivingEntity.tryAddFrost()。
+     */
+    void tryAddFrost();
+
+    /** @brief 冰冻减速修饰符 UUID（对应 MC Java 的 SPEED_MODIFIER_POWDER_SNOW_ID） */
+    static constexpr const char* SPEED_MODIFIER_POWDER_SNOW_UUID = "1e7a5c3c-6f4a-4b6b-8c3d-5e2f1a0b9c8d";
+
     // ========== 摔落伤害 ==========
 
     /**

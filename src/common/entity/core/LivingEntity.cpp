@@ -24,16 +24,20 @@
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/attribute/AttributeModifier.hpp"
+#include "common/entity/attribute/AttributeModifierUUIDs.hpp"
 #include "common/entity/combat/CombatRules.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/serialization/EntityNbtKeys.hpp"
 #include "common/entity/serialization/EquipmentSlotNames.hpp"
 #include "common/entity/serialization/NbtHelper.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/attribute/ItemAttributeModifiers.hpp"
 #include "common/item/core/Item.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
 #include "common/item/enchantment/enchantments/AllEnchantments.hpp"
 #include "common/item/enchantment/enchantments/weapon/KnockbackEnchantment.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentEvents.hpp"
 #include "common/mod/bedrock/addon/component/ItemComponentRegistry.hpp"
 #include "common/network/packet/EntityPackets.hpp"
@@ -183,6 +187,12 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     if (canBlockDamageSource(source)) {
         damageShield(amount);
         return; // 格挡成功，不造成伤害
+    }
+
+    // 1.5 冰冻额外伤害：冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）受到5倍冰冻伤害
+    // 对应 MC Java 的 LivingEntity.actuallyHurt() 中 IS_FREEZING + FREEZE_HURTS_EXTRA_TYPES 检查
+    if (source.isFreezing() && EntityTypeTags::FREEZE_HURTS_EXTRA_TYPES().contains(getTypeId())) {
+        amount *= 5.0f;
     }
 
     // 2. 护甲减伤（如果伤害不绕过护甲）
@@ -757,6 +767,10 @@ void LivingEntity::tick()
     // 更新生命值
     tickHealth();
 
+    // 更新冰冻状态
+    // 对应 MC Java 的 LivingEntity.baseTick() 中的 "freezing" 段
+    tickFreeze();
+
     // 更新空气供应和溺水
     updateAirSupply();
 
@@ -891,6 +905,115 @@ void LivingEntity::tickDeath()
     if (m_deathTime >= 20) {
         remove(); // 移除实体
     }
+}
+
+// ============================================================================
+// 冰冻系统
+// ============================================================================
+
+void LivingEntity::clearFreeze()
+{
+    // 重置冰冻计时器
+    setTicksFrozen(0);
+    // 移除冰冻减速修饰符
+    removeFrost();
+}
+
+bool LivingEntity::canFreeze() const
+{
+    // 旁观者不能被冰冻
+    // TODO: 当旁观模式实现后，添加 isSpectator() 检查
+
+    // 检查皮革护甲：任意一件皮革护甲即可免疫冰冻
+    // 对应 MC Java 的 LivingEntity.canFreeze()
+    // 皮革护甲包括：皮革头盔、皮革胸甲、皮革护腿、皮革靴子、皮革马铠
+    if (item::tag::ItemTags::isInitialized()) {
+        const auto& freezeImmuneTag = item::tag::ItemTags::FREEZE_IMMUNE_WEARABLES();
+        for (const ItemStack* slot : getArmorSlots()) {
+            if (slot != nullptr && !slot->isEmpty() && slot->getItem() != nullptr) {
+                if (freezeImmuneTag.contains(*slot)) {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // 委托给基类检查实体类型标签
+    return Entity::canFreeze();
+}
+
+void LivingEntity::tickFreeze()
+{
+    // 仅在服务端执行
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // MC Java: LivingEntity.baseTick() 中的 "freezing" 段
+    // 如果不在细雪中或不可冰冻，冰冻计时器每 tick -2（解冻速度是冰冻速度的两倍）
+    if (!isInPowderSnow() || !canFreeze()) {
+        setTicksFrozen(std::max(0, getTicksFrozen() - 2));
+    }
+
+    // 移除旧的冰冻减速修饰符，然后根据当前冰冻百分比重新添加
+    removeFrost();
+    tryAddFrost();
+
+    // 每 40 tick（2 秒），如果完全冰冻且可冰冻，造成 1.0 冰冻伤害
+    if (ticksExisted() % FREEZE_HURT_FREQUENCY == 0 && isFullyFrozen() && canFreeze()) {
+        auto freezeSource = DamageSources::freeze();
+
+        // 冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）受到5倍冰冻伤害
+        // 对应 MC Java 的 LivingEntity.actuallyHurt() 中的冻结额外伤害逻辑
+        f32 damageAmount = 1.0f;
+        if (EntityTypeTags::FREEZE_HURTS_EXTRA_TYPES().contains(getTypeId())) {
+            damageAmount = 5.0f;
+        }
+
+        hurt(freezeSource, damageAmount);
+    }
+}
+
+void LivingEntity::removeFrost()
+{
+    // 移除冰冻减速修饰符
+    // 对应 MC Java 的 LivingEntity.removeFrost()
+    auto* speedAttr = m_attributes.getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
+    if (speedAttr != nullptr) {
+        speedAttr->removeModifier(SPEED_MODIFIER_POWDER_SNOW_UUID);
+    }
+}
+
+void LivingEntity::tryAddFrost()
+{
+    // 如果冰冻计时器 > 0 且脚下方块不是空气，添加减速修饰符
+    // 对应 MC Java 的 LivingEntity.tryAddFrost()
+    if (getTicksFrozen() <= 0) {
+        return;
+    }
+
+    // 检查脚下方块是否为空气
+    if (m_world != nullptr) {
+        const BlockPos belowPos = onPos();
+        const BlockState* belowState = m_world->getBlockState(belowPos);
+        if (belowState == nullptr || belowState->isAir()) {
+            return;
+        }
+    }
+
+    auto* speedAttr = m_attributes.getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
+    if (speedAttr == nullptr) {
+        return;
+    }
+
+    // 冰冻减速修饰符：-0.05 * 冰冻百分比
+    // 完全冰冻时减少 0.05 移动速度（基础速度 0.1，减速50%）
+    const f32 frostAmount = -0.05f * getPercentFrozen();
+    entity::attribute::AttributeModifier modifier(SPEED_MODIFIER_POWDER_SNOW_UUID,
+        "powder_snow",
+        static_cast<f64>(frostAmount),
+        entity::attribute::Operation::Addition);
+    speedAttr->addModifier(modifier);
 }
 
 // ============================================================================

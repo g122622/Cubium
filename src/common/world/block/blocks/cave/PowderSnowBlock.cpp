@@ -20,8 +20,12 @@
 
 #include "PowderSnowBlock.hpp"
 
+#include "common/entity/core/Entity.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
+#include "common/physics/PhysicsConstants.hpp"
 #include "common/sound/SoundEvents.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockState.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -69,6 +73,34 @@ const ResourceLocation* PowderSnowBlock::getPickupSound(IWorld& world, const Blo
     MC_UNUSED(pos);
     MC_UNUSED(state);
     return &SoundEvents::ITEM_BUCKET_FILL_POWDER_SNOW;
+}
+
+void PowderSnowBlock::onEntityCollision(
+    const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const
+{
+    MC_UNUSED(state);
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+
+    // 对应 MC Java 的 InsideBlockEffectType.FREEZE 效果
+
+    // 1. 设置实体处于细雪中的标志
+    // MC Java: entity.setIsInPowderSnow(true)
+    entity.setIsInPowderSnow(true);
+
+    // 2. 如果实体可以冰冻，增加冰冻计时器
+    // MC Java: if (entity.canFreeze()) { entity.setTicksFrozen(Math.min(entity.getTicksRequiredToFreeze(),
+    // entity.getTicksFrozen() + 1)); }
+    if (entity.canFreeze()) {
+        const i32 current = entity.getTicksFrozen();
+        const i32 max = entity.getTicksRequiredToFreeze();
+        entity.setTicksFrozen(std::min(max, current + 1));
+    }
+
+    // 3. 设置运动减速乘数，使实体在细雪中缓慢移动
+    // 细雪的减速效果：XZ 轴 0.9，Y 轴 0.9
+    // 参考 MC Java 的 PowderSnowBlock.canEntityWalkOnTop() 中的运动乘数
+    entity.setMotionMultiplier(Vector3(0.9, 0.9, 0.9));
 }
 
 } // namespace blocks

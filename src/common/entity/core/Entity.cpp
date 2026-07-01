@@ -70,6 +70,7 @@ entity::DataParameter<bool> Entity::DATA_CUSTOM_NAME_VISIBLE_PARAM = entity::Ent
 entity::DataParameter<bool> Entity::DATA_SILENT_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<bool> Entity::DATA_NO_GRAVITY_PARAM = entity::EntityDataManager::createKey<bool>();
 entity::DataParameter<i8> Entity::DATA_POSE_PARAM = entity::EntityDataManager::createKey<i8>();
+entity::DataParameter<i32> Entity::DATA_TICKS_FROZEN_PARAM = entity::EntityDataManager::createKey<i32>();
 
 // ============================================================================
 // Entity 实现
@@ -103,6 +104,7 @@ void Entity::registerData()
     m_dataManager.registerParam(DATA_SILENT_PARAM, false);
     m_dataManager.registerParam(DATA_NO_GRAVITY_PARAM, false);
     m_dataManager.registerParam(DATA_POSE_PARAM, static_cast<i8>(EntityPose::Standing));
+    m_dataManager.registerParam(DATA_TICKS_FROZEN_PARAM, static_cast<i32>(0));
 }
 
 entity::EntitySize Entity::getDimensions(EntityPose pose) const
@@ -686,6 +688,13 @@ void Entity::baseTick()
         m_fallDistance *= 0.5f;
     }
 
+    // 冰冻状态处理
+    // MC Java: Entity.baseTick() 中在火焰处理之后重置 isInPowderSnow
+    // 实际的冰冻 tick 递增由 PowderSnowBlock::onEntityCollision() 处理
+    // 实际的冰冻 tick 递减和伤害在 LivingEntity 中处理
+    m_wasInPowderSnow = m_isInPowderSnow;
+    m_isInPowderSnow = false;
+
     // MC Java: Entity.baseTick() 不包含空气值处理逻辑
     // 空气值处理完全由 LivingEntity::updateAirSupply() 负责
     // 非 LivingEntity 实体（如 ItemEntity）不使用 Entity 层的空气处理
@@ -930,6 +939,7 @@ void Entity::syncMetadataFromDataManager()
 {
     m_flags = static_cast<EntityFlags>(static_cast<u8>(m_dataManager.get<i8>(DATA_FLAGS_PARAM)));
     m_air = m_dataManager.get<i32>(DATA_AIR_PARAM);
+    m_ticksFrozen = m_dataManager.get<i32>(DATA_TICKS_FROZEN_PARAM);
     // 从数据管理器同步名称（纯文本）
     {
         const std::string& nameText = m_dataManager.get<std::string>(DATA_CUSTOM_NAME_PARAM);
@@ -2354,6 +2364,11 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     // 传送门冷却
     tag.put(nbt_keys::PORTAL_COOLDOWN, m_portalCooldown);
 
+    // 冰冻计时器（仅当 > 0 时保存，与 MC Java 一致）
+    if (m_ticksFrozen > 0) {
+        tag.put(nbt_keys::TICKS_FROZEN, m_ticksFrozen);
+    }
+
     // UUID (UUIDMost/UUIDLeast)
     nbt_helper::putUuid(tag, m_uuid);
 
@@ -2445,6 +2460,12 @@ Result<void> Entity::readFromNBT(const nbt::tags::compound_tag& tag)
         m_portalCooldown = *val;
     }
 
+    // 冰冻计时器
+    if (auto val = nbt_helper::tryGetInt(tag, nbt_keys::TICKS_FROZEN)) {
+        m_ticksFrozen = *val;
+        m_dataManager.set(DATA_TICKS_FROZEN_PARAM, m_ticksFrozen);
+    }
+
     // UUID
     std::string uuid = nbt_helper::getUuid(tag);
     if (!uuid.empty()) {
@@ -2505,6 +2526,14 @@ Result<void> Entity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
     // 默认空实现，子类按需重写
     (void)tag;
     return Result<void>::ok();
+}
+
+bool Entity::canFreeze() const
+{
+    // 基类实现：检查实体类型是否不在冰冻免疫标签中
+    // 对应 MC Java 的 Entity.canFreeze()
+    // 免疫实体类型：流浪者、北极熊、雪傀儡、凋灵
+    return !EntityTypeTags::FREEZE_IMMUNE_ENTITY_TYPES().contains(getTypeId());
 }
 
 } // namespace mc

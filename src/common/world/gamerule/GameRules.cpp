@@ -81,6 +81,7 @@ struct RuleRegistry {
         registerBoolean("drowningDamage", GameRuleCategory::Player, true);
         registerBoolean("fallDamage", GameRuleCategory::Player, true);
         registerBoolean("fireDamage", GameRuleCategory::Player, true);
+        registerBoolean("freezeDamage", GameRuleCategory::Player, true);
         registerBoolean("doLimitedCrafting", GameRuleCategory::Player, false);
         registerBoolean("pvp", GameRuleCategory::Player, true);
 
@@ -178,6 +179,7 @@ const BooleanGameRuleKey DO_IMMEDIATE_RESPAWN("doImmediateRespawn", GameRuleCate
 const BooleanGameRuleKey DROWNING_DAMAGE("drowningDamage", GameRuleCategory::Player);
 const BooleanGameRuleKey FALL_DAMAGE("fallDamage", GameRuleCategory::Player);
 const BooleanGameRuleKey FIRE_DAMAGE("fireDamage", GameRuleCategory::Player);
+const BooleanGameRuleKey FREEZE_DAMAGE("freezeDamage", GameRuleCategory::Player);
 const BooleanGameRuleKey DO_LIMITED_CRAFTING("doLimitedCrafting", GameRuleCategory::Player);
 const BooleanGameRuleKey PVP("pvp", GameRuleCategory::Player);
 

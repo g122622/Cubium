@@ -70,6 +70,23 @@ public:
      */
     [[nodiscard]] const ResourceLocation* getPickupSound(
         IWorld& world, const BlockPos& pos, const BlockState& state) override;
+
+    /**
+     * @brief 实体与细雪方块碰撞时的处理
+     *
+     * 当实体进入细雪方块时：
+     * - 设置实体的 isInPowderSnow 标志
+     * - 如果实体可以冰冻，增加冰冻计时器（+1/tick，上限为 getTicksRequiredToFreeze()）
+     * - 设置运动减速乘数（0.9, 0.9, 0.9），使实体在细雪中缓慢移动
+     *
+     * 对应 MC Java 的 PowderSnowBlock.entityInside() + InsideBlockEffectType.FREEZE。
+     *
+     * @param state 方块状态
+     * @param world 世界
+     * @param pos 方块位置
+     * @param entity 实体
+     */
+    void onEntityCollision(const BlockState& state, IWorld& world, const BlockPos& pos, Entity& entity) const override;
 };
 
 } // namespace blocks

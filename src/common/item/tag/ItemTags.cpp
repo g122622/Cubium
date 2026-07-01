@@ -182,6 +182,15 @@ ItemTag& ItemTags::BREAKS_DECORATED_POTS()
     return *tag;
 }
 
+ItemTag& ItemTags::FREEZE_IMMUNE_WEARABLES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "freeze_immune_wearables"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -471,6 +480,22 @@ void ItemTags::initialize()
     breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mace")));
 
     allTags[breaksPots->getId()] = std::move(breaksPots);
+
+    // 创建 FREEZE_IMMUNE_WEARABLES 标签
+    // 包含所有使穿戴者免疫冰冻效果的物品。
+    // 对应 MC 原版标签 minecraft:freeze_immune_wearables。
+    // 穿戴任意一件皮革护甲即可免疫细雪冰冻。
+    auto freezeImmuneWearables =
+        std::make_unique<ItemTag>(ResourceLocation("minecraft", "freeze_immune_wearables"), false);
+
+    // 皮革护甲
+    freezeImmuneWearables->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_helmet")));
+    freezeImmuneWearables->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_chestplate")));
+    freezeImmuneWearables->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_leggings")));
+    freezeImmuneWearables->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_boots")));
+    freezeImmuneWearables->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_horse_armor")));
+
+    allTags[freezeImmuneWearables->getId()] = std::move(freezeImmuneWearables);
 
     s_initialized = true;
 }

@@ -44,6 +44,7 @@ constexpr const char* ROTATION = "Rotation";
 constexpr const char* FALL_DISTANCE = "FallDistance";
 constexpr const char* FIRE = "Fire";
 constexpr const char* AIR = "Air";
+constexpr const char* TICKS_FROZEN = "TicksFrozen";
 constexpr const char* ON_GROUND = "OnGround";
 constexpr const char* INVULNERABLE = "Invulnerable";
 constexpr const char* PORTAL_COOLDOWN = "PortalCooldown";
