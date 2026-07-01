@@ -27,7 +27,14 @@
 
 namespace mc::entity::ai::pathfinding {
 
-Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 maxDistance)
+Path PathFinder::findPath(i32 startX,
+    i32 startY,
+    i32 startZ,
+    i32 targetX,
+    i32 targetY,
+    i32 targetZ,
+    i32 maxDistance,
+    float visitedNodesMultiplier)
 {
     // 清除上次搜索的缓存
     if (m_nodeProcessor) {
@@ -66,12 +73,19 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 t
     // 将起点加入开放列表
     m_openSet.insert(startNode);
 
+    // 计算实际最大搜索节点数：基础值 * 倍率
+    // 对应 MC Java 的 int j = (int)(this.maxVisitedNodes * maxVisitedNodesMultiplier)
+    i32 effectiveMaxNodes = static_cast<i32>(static_cast<float>(m_maxNodes) * visitedNodesMultiplier);
+    if (effectiveMaxNodes < 1) {
+        effectiveMaxNodes = 1;
+    }
+
     // A* 搜索
     i32 searchedNodes = 0;
     const PathPoint* bestNode = nullptr;
     f32 bestDistance = std::numeric_limits<f32>::max();
 
-    while (!m_openSet.empty() && searchedNodes < m_maxNodes) {
+    while (!m_openSet.empty() && searchedNodes < effectiveMaxNodes) {
         // 取出代价最小的节点
         PathPoint* current = m_openSet.pop();
         if (!current) {
@@ -153,7 +167,8 @@ Path PathFinder::findPath(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 t
     return Path();
 }
 
-Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range)
+Path PathFinder::findPathToRange(
+    i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range, float visitedNodesMultiplier)
 {
     // 与基本寻路相同，但到达范围内任意点即成功
     if (m_nodeProcessor) {
@@ -187,9 +202,15 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX
 
     m_openSet.insert(startNode);
 
+    // 计算实际最大搜索节点数：基础值 * 倍率
+    i32 effectiveMaxNodes = static_cast<i32>(static_cast<float>(m_maxNodes) * visitedNodesMultiplier);
+    if (effectiveMaxNodes < 1) {
+        effectiveMaxNodes = 1;
+    }
+
     i32 searchedNodes = 0;
 
-    while (!m_openSet.empty() && searchedNodes < m_maxNodes) {
+    while (!m_openSet.empty() && searchedNodes < effectiveMaxNodes) {
         PathPoint* current = m_openSet.pop();
         if (!current) {
             break;
@@ -248,8 +269,12 @@ Path PathFinder::findPathToRange(i32 startX, i32 startY, i32 startZ, i32 targetX
     return Path();
 }
 
-Path PathFinder::findPathToClosest(
-    i32 startX, i32 startY, i32 startZ, const std::vector<TargetPoint>& targets, i32 maxDistance)
+Path PathFinder::findPathToClosest(i32 startX,
+    i32 startY,
+    i32 startZ,
+    const std::vector<TargetPoint>& targets,
+    i32 maxDistance,
+    float visitedNodesMultiplier)
 {
     // 多目标寻路 - 对每个目标点设置标志，搜索时只需到达任意一个目标
 
@@ -299,11 +324,17 @@ Path PathFinder::findPathToClosest(
 
     m_openSet.insert(startNode);
 
+    // 计算实际最大搜索节点数：基础值 * 倍率
+    i32 effectiveMaxNodes = static_cast<i32>(static_cast<float>(m_maxNodes) * visitedNodesMultiplier);
+    if (effectiveMaxNodes < 1) {
+        effectiveMaxNodes = 1;
+    }
+
     i32 searchedNodes = 0;
     const PathPoint* bestNode = nullptr;
     f32 bestDistance = std::numeric_limits<f32>::max();
 
-    while (!m_openSet.empty() && searchedNodes < m_maxNodes) {
+    while (!m_openSet.empty() && searchedNodes < effectiveMaxNodes) {
         PathPoint* current = m_openSet.pop();
         if (!current) {
             break;

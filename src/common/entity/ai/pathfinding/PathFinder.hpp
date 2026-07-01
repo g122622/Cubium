@@ -122,10 +122,17 @@ public:
      * @param targetY 终点Y
      * @param targetZ 终点Z
      * @param maxDistance 最大搜索距离
+     * @param visitedNodesMultiplier 已访问节点数倍率（默认1.0F），与 m_maxNodes 相乘得到实际搜索节点上限
      * @return 找到的路径，如果找不到返回空路径
      */
-    [[nodiscard]] Path findPath(
-        i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 maxDistance);
+    [[nodiscard]] Path findPath(i32 startX,
+        i32 startY,
+        i32 startZ,
+        i32 targetX,
+        i32 targetY,
+        i32 targetZ,
+        i32 maxDistance,
+        float visitedNodesMultiplier = 1.0f);
 
     /**
      * @brief 寻找到目标范围的路径
@@ -136,10 +143,17 @@ public:
      * @param targetY 目标中心Y
      * @param targetZ 目标中心Z
      * @param range 目标范围（到达范围内任意点即成功）
+     * @param visitedNodesMultiplier 已访问节点数倍率（默认1.0F）
      * @return 找到的路径
      */
-    [[nodiscard]] Path findPathToRange(
-        i32 startX, i32 startY, i32 startZ, i32 targetX, i32 targetY, i32 targetZ, i32 range);
+    [[nodiscard]] Path findPathToRange(i32 startX,
+        i32 startY,
+        i32 startZ,
+        i32 targetX,
+        i32 targetY,
+        i32 targetZ,
+        i32 range,
+        float visitedNodesMultiplier = 1.0f);
 
     // ========== 多目标寻路 ==========
 
@@ -163,10 +177,15 @@ public:
      * @param startZ 起点Z
      * @param targets 目标点列表
      * @param maxDistance 最大搜索距离
+     * @param visitedNodesMultiplier 已访问节点数倍率（默认1.0F）
      * @return 找到的路径
      */
-    [[nodiscard]] Path findPathToClosest(
-        i32 startX, i32 startY, i32 startZ, const std::vector<TargetPoint>& targets, i32 maxDistance);
+    [[nodiscard]] Path findPathToClosest(i32 startX,
+        i32 startY,
+        i32 startZ,
+        const std::vector<TargetPoint>& targets,
+        i32 maxDistance,
+        float visitedNodesMultiplier = 1.0f);
 
     // ========== 调试 ==========
 

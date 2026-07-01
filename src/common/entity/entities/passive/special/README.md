@@ -70,7 +70,7 @@ AnimalEntity (passive/basic/AnimalEntity.hpp)
 8. **导航方法**：`pathfindRandomlyTowards()` 和 `pathfindDirectlyTowards()` 实现了蜜蜂特有的漂移飞行导航：
    - `pathfindRandomlyTowards()` 对应 MC 的 `Bee.pathfindRandomlyTowards()`，在目标方向 18 度锥形内生成随机空中航点（使用 `findAirPositionTowards`），近距离时自动缩小搜索范围，产生蜜蜂漂移飞行效果。被 `BeeFindHiveGoal`（远距离）和 `BeeFindFlowerGoal` 调用。
    - `pathfindDirectlyTowards()` 对应 MC 的 `BeeGoToHiveGoal.pathfindDirectlyTowards()`，近距离（16 格内）精确导航到蜂巢，3 格内用 1 倍速度否则 2 倍速度。被 `BeeFindHiveGoal` 调用。
-   - **注意**：当前使用 `PathNavigator::setMaxDistance()` 替代 MC 的 `setMaxVisitedNodesMultiplier()`，语义不完全一致，待 PathNavigator 实现后者后替换。
+   - **注意**：`PathNavigator` 已实现 `setMaxVisitedNodesMultiplier()` / `resetMaxVisitedNodesMultiplier()`，蜜蜂导航方法已正确使用：`pathfindRandomlyTowards()` 设置 0.5F（降低寻路开销），`pathfindDirectlyTowards()` 设置 10.0F（提高寻路精度），Goal 的 resetTask() 中重置为 1.0F。
 
 ### FoxEntity 狐狸
 1. **信任机制非 TameableEntity**：狐狸使用独立的信任系统（最多信任 2 个玩家），不继承 TameableEntity。

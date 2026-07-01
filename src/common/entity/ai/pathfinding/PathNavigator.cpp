@@ -78,8 +78,8 @@ bool PathNavigator::moveTo(f64 x, f64 y, f64 z, f64 speed)
     i32 targetYi = floorTo<i32>(y);
     i32 targetZi = floorTo<i32>(z);
 
-    m_path = std::make_unique<Path>(
-        m_pathFinder->findPath(startX, startY, startZ, targetXi, targetYi, targetZi, m_maxDistance));
+    m_path = std::make_unique<Path>(m_pathFinder->findPath(
+        startX, startY, startZ, targetXi, targetYi, targetZi, m_maxDistance, m_maxVisitedNodesMultiplier));
 
     _trimPath();
 
@@ -109,8 +109,8 @@ bool PathNavigator::moveToRange(f64 x, f64 y, f64 z, f32 range, f64 speed)
     i32 targetYi = floorTo<i32>(y);
     i32 targetZi = floorTo<i32>(z);
 
-    m_path = std::make_unique<Path>(
-        m_pathFinder->findPathToRange(startX, startY, startZ, targetXi, targetYi, targetZi, static_cast<i32>(range)));
+    m_path = std::make_unique<Path>(m_pathFinder->findPathToRange(
+        startX, startY, startZ, targetXi, targetYi, targetZi, static_cast<i32>(range), m_maxVisitedNodesMultiplier));
 
     _trimPath();
 

@@ -611,4 +611,29 @@ TEST(PathNavigatorBasicTest, DoorPropertyGettersSetters)
     EXPECT_TRUE(navigator.canEnterDoors());
 }
 
+/**
+ * @brief 测试 PathNavigator::setMaxVisitedNodesMultiplier / resetMaxVisitedNodesMultiplier
+ *
+ * 验证 maxVisitedNodesMultiplier 的默认值、设置和重置。
+ */
+TEST(PathNavigatorBasicTest, MaxVisitedNodesMultiplier)
+{
+    PathNavigator navigator(nullptr);
+
+    // 默认值应为 1.0F
+    EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 1.0f);
+
+    // 设置为 0.5F（蜜蜂漂移飞行时降低寻路开销）
+    navigator.setMaxVisitedNodesMultiplier(0.5f);
+    EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 0.5f);
+
+    // 设置为 10.0F（蜜蜂精确导航时提高寻路精度）
+    navigator.setMaxVisitedNodesMultiplier(10.0f);
+    EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 10.0f);
+
+    // 重置为默认值 1.0F
+    navigator.resetMaxVisitedNodesMultiplier();
+    EXPECT_FLOAT_EQ(navigator.getMaxVisitedNodesMultiplier(), 1.0f);
+}
+
 } // anonymous namespace

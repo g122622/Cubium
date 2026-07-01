@@ -90,6 +90,18 @@ FlaggedPathPoint（多目标寻路辅助类，独立使用）
 
 `setMaxSearchDistance(1000)` 或 `setMaxNodes(50000)` 会导致性能问题甚至内存爆炸。推荐值：距离 100，节点 2000。
 
+### 6.5. maxVisitedNodesMultiplier 已访问节点倍率
+
+`PathNavigator::setMaxVisitedNodesMultiplier(float)` 对应 MC Java 的 `PathNavigation.setMaxVisitedNodesMultiplier()`。
+此倍率与 PathFinder 的 `m_maxNodes`（默认 2000）相乘，得到实际 A* 搜索节点上限：
+- 默认值 `1.0F`：正常搜索上限为 2000 个节点
+- `0.5F`：搜索上限减半为 1000 个节点（蜜蜂漂移飞行时降低寻路开销）
+- `10.0F`：搜索上限扩大 10 倍为 20000 个节点（蜜蜂精确导航时提高寻路精度）
+
+`resetMaxVisitedNodesMultiplier()` 将倍率重置为默认值 1.0F，通常在 AI Goal 的 `resetTask()` 中调用，确保倍率不会影响后续不相关的寻路请求。
+
+**注意**：此倍率仅影响下一次 `moveTo()` 调用中的寻路搜索，不会持久修改 PathFinder 的 `m_maxNodes` 基础值。
+
 ### 7. 对角线移动被阻挡
 
 对角线移动需要两个相邻方向都可通行。WalkNodeProcessor 会自动检查，但如果自定义处理器需注意此逻辑。

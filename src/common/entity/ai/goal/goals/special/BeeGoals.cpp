@@ -540,6 +540,10 @@ void BeeFindHiveGoal::startExecuting()
 void BeeFindHiveGoal::resetTask()
 {
     m_bee->dropHive();
+    // MC 1.21.11: BeeGoToHiveGoal.stop() 中重置 maxVisitedNodesMultiplier 为默认值 1.0F
+    if (auto* nav = m_bee->navigator()) {
+        nav->resetMaxVisitedNodesMultiplier();
+    }
 }
 
 void BeeFindHiveGoal::tick()
@@ -687,6 +691,10 @@ void BeeFindFlowerGoal::startExecuting()
 void BeeFindFlowerGoal::resetTask()
 {
     m_bee->setFlowerPos(BlockPos::zero());
+    // MC 1.21.11: BeeGoToKnownFlowerGoal.stop() 中重置 maxVisitedNodesMultiplier 为默认值 1.0F
+    if (auto* nav = m_bee->navigator()) {
+        nav->resetMaxVisitedNodesMultiplier();
+    }
 }
 
 void BeeFindFlowerGoal::tick()

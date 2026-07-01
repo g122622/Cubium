@@ -162,6 +162,33 @@ public:
     void setMaxDistance(i32 distance) noexcept { m_maxDistance = distance; }
 
     /**
+     * @brief 设置已访问节点数倍率
+     *
+     * 对应 MC Java 的 PathNavigation.setMaxVisitedNodesMultiplier()。
+     * 此倍率与 PathFinder 的 maxNodes 相乘，得到实际搜索节点上限。
+     * 例如：0.5F 表示搜索量减半（降低精度但提高性能），
+     *       10.0F 表示搜索量扩大10倍（提高精度确保路径可达）。
+     * 默认值为 1.0F。
+     *
+     * @param multiplier 倍率，必须为正数
+     */
+    void setMaxVisitedNodesMultiplier(float multiplier) noexcept { m_maxVisitedNodesMultiplier = multiplier; }
+
+    /**
+     * @brief 重置已访问节点数倍率为默认值（1.0F）
+     *
+     * 对应 MC Java 的 PathNavigation.resetMaxVisitedNodesMultiplier()。
+     * 通常在 AI Goal 的 stop() 或 resetTask() 中调用，
+     * 确保倍率不会影响后续不相关的寻路请求。
+     */
+    void resetMaxVisitedNodesMultiplier() noexcept { m_maxVisitedNodesMultiplier = 1.0f; }
+
+    /**
+     * @brief 获取已访问节点数倍率
+     */
+    [[nodiscard]] float getMaxVisitedNodesMultiplier() const noexcept { return m_maxVisitedNodesMultiplier; }
+
+    /**
      * @brief 设置重试间隔
      */
     void setRetryInterval(i32 interval) noexcept { m_retryInterval = interval; }
@@ -248,6 +275,7 @@ protected:
     f64 m_targetY = 0.0;
     f64 m_targetZ = 0.0;
     i32 m_maxDistance = 100;
+    float m_maxVisitedNodesMultiplier = 1.0f; ///< 已访问节点数倍率，对应 MC Java 的 maxVisitedNodesMultiplier
     i32 m_retryInterval = 20;
     i32 m_retryTimer = 0;
     i32 m_ticksSinceLastPath = 0;
