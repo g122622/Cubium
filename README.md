@@ -4,6 +4,8 @@
 
 ![Lines of Code](https://raw.githubusercontent.com/g122622/Cubium/image-data/badge.svg)
 
+![](./docs/screenshot.png)
+
 现代 Minecraft 第三方完整实现，使用 C++20 和 Vulkan 渲染，采用客户端-服务端架构。
 
 ## 项目总览
