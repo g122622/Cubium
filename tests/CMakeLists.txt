@@ -100,6 +100,8 @@ add_executable(mc_tests
     common/item/special/PotterySherdAndSmithingTemplateTest.cpp
     # 物品 addInformation tooltip 翻译测试（锻造模板格式、旗帜图案翻译键、LanguageManager回退）
     common/item/special/ItemTooltipTest.cpp
+    # BrushItem 刷子物品测试（属性、onUseTick触发时机、非玩家实体停止使用、粒子生成）
+    common/item/special/BrushItemTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp

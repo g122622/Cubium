@@ -1603,16 +1603,28 @@ void LivingEntity::updateActiveItem()
     m_activeItemUseCount--;
 
     // 计算已使用的tick数（1-based）
-    const Item* item = m_activeItem.getItem();
-    if (!m_activeItem.isEmpty() && item != nullptr) {
-        i32 totalDuration = item->getUseDuration(m_activeItem);
-        i32 elapsedTicks = totalDuration - m_activeItemUseCount;
-        const_cast<Item*>(item)->onUseTick(m_activeItem, *m_world, *this, elapsedTicks);
+    if (!m_activeItem.isEmpty()) {
+        const Item* item = m_activeItem.getItem();
+        if (item != nullptr) {
+            i32 totalDuration = item->getUseDuration(m_activeItem);
+            i32 elapsedTicks = totalDuration - m_activeItemUseCount;
+            // 注意：const_cast 是安全的，因为 Items 在注册后是不可变的
+            const_cast<Item*>(item)->onUseTick(m_activeItem, *m_world, *this, elapsedTicks);
+        }
+    }
+
+    // onUseTick 内部可能调用 stopActiveHand()（如 BrushItem 中非玩家实体分支），
+    // 此时 m_activeItemUseCount 会被重置为 0，m_activeItem 会被清空，
+    // 需要检查是否仍在使用物品，避免后续 onItemUseFinish 被错误调用。
+    // 参考 MC 原版 LivingEntity.tick() 中的类似检查。
+    if (!isUsingItem()) {
+        return;
     }
 
     // 检查是否完成使用
     if (m_activeItemUseCount <= 0) {
         // 使用完成
+        const Item* item = m_activeItem.getItem();
         if (!m_activeItem.isEmpty() && item != nullptr) {
             // 注意：const_cast 是安全的，因为 Items 在注册后是不可变的
             ItemStack result = const_cast<Item*>(item)->onItemUseFinish(m_activeItem, *m_world, *this);
