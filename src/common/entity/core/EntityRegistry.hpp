@@ -268,6 +268,7 @@ constexpr const char* ELDER_GUARDIAN = "minecraft:elder_guardian";
 constexpr const char* HUSK = "minecraft:husk";
 constexpr const char* DROWNED = "minecraft:drowned";
 constexpr const char* STRAY = "minecraft:stray";
+constexpr const char* BOGGED = "minecraft:bogged";
 constexpr const char* WITHER_SKELETON = "minecraft:wither_skeleton";
 constexpr const char* PHANTOM = "minecraft:phantom";
 constexpr const char* ZOMBIE_VILLAGER = "minecraft:zombie_villager";
