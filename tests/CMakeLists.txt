@@ -112,6 +112,7 @@ add_executable(mc_tests
     common/item/GameMasterBlockItemTest.cpp
     common/item/WoodVariantBlockItemTest.cpp
     common/item/DeepslateItemRegistrationTest.cpp
+    common/item/PolishedBlackstoneItemRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp
     common/item/core/ProjectileItemTest.cpp
