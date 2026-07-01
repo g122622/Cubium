@@ -534,6 +534,7 @@ add_executable(mc_tests
     common/world/block/blocks/OxidizableBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
     common/world/block/BlockStateMutableTest.cpp
+    common/world/block/BuildingVariantRegistrationTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp

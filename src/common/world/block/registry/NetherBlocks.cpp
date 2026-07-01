@@ -555,6 +555,11 @@ void registerNetherBlocks()
     NetherBlocks::RED_NETHER_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
         ResourceLocation("minecraft:red_nether_brick_wall"), redNetherBrickVariantProps);
 
+    // 末地石砖
+    NetherBlocks::END_STONE_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone_bricks"),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f));
+
     // 末地石砖楼梯、台阶、墙
     BlockProperties endStoneBrickVariantProps = BlockProperties(Material::ROCK)
                                                     .hardness(3.0f)
@@ -608,12 +613,6 @@ void registerNetherBlocks()
     // ============================================================================
     // 末地方块注册
     // ============================================================================
-
-    // 末地石砖属性
-    BlockProperties endStoneBrickProps = BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f);
-
-    NetherBlocks::END_STONE_BRICKS =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone_bricks"), endStoneBrickProps);
 
     // 末地烛 - 发光14级
     NetherBlocks::END_ROD = &registry.registerBlock<SimpleBlock>(
