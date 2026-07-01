@@ -22,7 +22,10 @@
  */
 
 #include "TrialSpawnerBlockEntity.hpp"
+#include "common/entity/combat/DifficultyInstance.hpp"
 #include "common/entity/core/Entity.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
+#include "common/entity/core/MobEntity.hpp"
 #include "common/entity/effect/EffectInstance.hpp"
 #include "common/entity/effect/EffectType.hpp"
 #include "common/entity/entities/player/Player.hpp"
@@ -36,7 +39,11 @@
 #include "common/item/loot/context/LootParams.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
+#include "common/util/AxisAlignedBB.hpp"
+#include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
+#include "common/world/WorldConstants.hpp"
+#include "common/world/WorldEvents.hpp"
 
 namespace mc {
 
@@ -54,6 +61,9 @@ TrialSpawnerBlockEntity::Config TrialSpawnerBlockEntity::getBreezeConfig()
     config.keyLootTable = ResourceLocation("minecraft", "spawners/trial_chamber/key");
     config.ominousSupplyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/consumables");
     config.ominousKeyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/key");
+    config.spawnPotentials = {
+        {ResourceLocation("minecraft", "breeze"), 1},
+    };
     return config;
 }
 
@@ -67,6 +77,11 @@ TrialSpawnerBlockEntity::Config TrialSpawnerBlockEntity::getMeleeConfig()
     config.keyLootTable = ResourceLocation("minecraft", "spawners/trial_chamber/key");
     config.ominousSupplyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/consumables");
     config.ominousKeyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/key");
+    config.spawnPotentials = {
+        {ResourceLocation("minecraft", "zombie"), 1},
+        {ResourceLocation("minecraft", "husk"), 1},
+        {ResourceLocation("minecraft", "spider"), 1},
+    };
     return config;
 }
 
@@ -80,6 +95,11 @@ TrialSpawnerBlockEntity::Config TrialSpawnerBlockEntity::getSmallMeleeConfig()
     config.keyLootTable = ResourceLocation("minecraft", "spawners/trial_chamber/key");
     config.ominousSupplyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/consumables");
     config.ominousKeyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/key");
+    config.spawnPotentials = {
+        {ResourceLocation("minecraft", "silverfish"), 2},
+        {ResourceLocation("minecraft", "cave_spider"), 2},
+        {ResourceLocation("minecraft", "slime"), 1},
+    };
     return config;
 }
 
@@ -93,6 +113,11 @@ TrialSpawnerBlockEntity::Config TrialSpawnerBlockEntity::getRangedConfig()
     config.keyLootTable = ResourceLocation("minecraft", "spawners/trial_chamber/key");
     config.ominousSupplyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/consumables");
     config.ominousKeyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/key");
+    config.spawnPotentials = {
+        {ResourceLocation("minecraft", "skeleton"), 1},
+        {ResourceLocation("minecraft", "stray"), 1},
+        {ResourceLocation("minecraft", "bogged"), 1},
+    };
     return config;
 }
 
@@ -101,11 +126,16 @@ TrialSpawnerBlockEntity::Config TrialSpawnerBlockEntity::getSlowRangedConfig()
     Config config;
     config.baseTotalMobs = 6;
     config.baseSimultaneousMobs = 3;
-    config.ticksBetweenSpawn = 80; // 低频率
+    config.ticksBetweenSpawn = 80;
     config.supplyLootTable = ResourceLocation("minecraft", "spawners/trial_chamber/consumables");
     config.keyLootTable = ResourceLocation("minecraft", "spawners/trial_chamber/key");
     config.ominousSupplyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/consumables");
     config.ominousKeyLootTable = ResourceLocation("minecraft", "spawners/ominous/trial_chamber/key");
+    config.spawnPotentials = {
+        {ResourceLocation("minecraft", "skeleton"), 1},
+        {ResourceLocation("minecraft", "stray"), 1},
+        {ResourceLocation("minecraft", "bogged"), 1},
+    };
     return config;
 }
 
@@ -596,21 +626,188 @@ void TrialSpawnerBlockEntity::tickCooldown(IWorld& world)
 // 生成和奖励逻辑
 // ============================================================================
 
+// ============================================================================
+// 生成逻辑辅助方法
+// ============================================================================
+
+const ResourceLocation* TrialSpawnerBlockEntity::_selectNextEntity(IWorld& world)
+{
+    // 如果有缓存的下次生成实体，直接使用
+    if (!m_nextSpawnEntityId.path().empty()) {
+        return &m_nextSpawnEntityId;
+    }
+
+    // 从生成潜力列表中加权随机选择
+    const auto& potentials = m_config.spawnPotentials;
+    if (potentials.empty()) {
+        return nullptr;
+    }
+
+    // 计算总权重
+    i32 totalWeight = 0;
+    for (const auto& entry : potentials) {
+        totalWeight += entry.weight;
+    }
+
+    if (totalWeight <= 0) {
+        return nullptr;
+    }
+
+    // 加权随机选择
+    i32 roll = world.getRandom().nextInt(totalWeight);
+    i32 cumulative = 0;
+    for (const auto& entry : potentials) {
+        cumulative += entry.weight;
+        if (roll < cumulative) {
+            m_nextSpawnEntityId = entry.entityId;
+            return &m_nextSpawnEntityId;
+        }
+    }
+
+    // 不应到达此处，但以防万一返回最后一个
+    m_nextSpawnEntityId = potentials.back().entityId;
+    return &m_nextSpawnEntityId;
+}
+
+std::optional<Vector3> TrialSpawnerBlockEntity::_findSpawnPosition(IWorld& world)
+{
+    // 参考 MC Java TrialSpawner.spawnMob()：在 spawnRange 范围内随机选择位置
+    // X: [pos.x + 0.5 - spawnRange, pos.x + 0.5 + spawnRange]
+    // Y: pos.y + {-1, 0, +1}
+    // Z: [pos.z + 0.5 - spawnRange, pos.z + 0.5 + spawnRange]
+    // 然后检查碰撞
+
+    math::Random& rng = world.getRandom();
+    i32 spawnRange = static_cast<i32>(m_config.spawnRange);
+
+    // 最多尝试 20 次寻找合适的位置（对应 MC Java 的 SpawnEggItem/SpawnerLogic 最大尝试次数）
+    constexpr i32 MAX_SPAWN_ATTEMPTS = 20;
+
+    for (i32 attempt = 0; attempt < MAX_SPAWN_ATTEMPTS; ++attempt) {
+        // 随机偏移位置
+        f32 x = static_cast<f32>(m_pos.x) + 0.5f + static_cast<f32>(rng.nextInt(spawnRange * 2 + 1) - spawnRange);
+        i32 yOff = rng.nextInt(3) - 1; // -1, 0, +1
+        f32 y = static_cast<f32>(m_pos.y + yOff);
+        f32 z = static_cast<f32>(m_pos.z) + 0.5f + static_cast<f32>(rng.nextInt(spawnRange * 2 + 1) - spawnRange);
+
+        Vector3 spawnPos(x, y, z);
+
+        // 检查碰撞：生成位置处不能有方块碰撞
+        // 使用典型生物碰撞箱大小（宽0.6 高1.8）进行碰撞检测
+        constexpr f32 ENTITY_HALF_WIDTH = 0.3f;
+        constexpr f32 ENTITY_HEIGHT = 1.8f;
+        AxisAlignedBB spawnBox(x - ENTITY_HALF_WIDTH,
+            y,
+            z - ENTITY_HALF_WIDTH,
+            x + ENTITY_HALF_WIDTH,
+            y + ENTITY_HEIGHT,
+            z + ENTITY_HALF_WIDTH);
+
+        if (world.hasBlockCollision(spawnBox)) {
+            continue;
+        }
+
+        // 位置有效
+        return spawnPos;
+    }
+
+    // 所有尝试都未找到合适位置
+    return std::nullopt;
+}
+
 void TrialSpawnerBlockEntity::spawnMob(IWorld& world)
 {
-    // TODO(trial_chambers): 完整的怪物生成逻辑需要以下支持：
-    // 1. 从配置或数据包读取可生成的实体类型池（spawnPotentials）
-    // 2. 从实体类型池中随机选择实体类型
-    // 3. 在spawnRange范围内寻找合适的生成位置（碰撞检测、视线检测）
-    // 4. 通过EntityRegistry创建实体
-    // 5. 设置实体位置、旋转、持久化标记
-    // 6. 生成实体并添加到世界
-    // 7. 播放生成音效和粒子效果
-    //
-    // 当前简化实现：仅更新计数器，实际的实体生成需要EntityRegistry完善后实现
+    // 1. 选择要生成的实体类型
+    const ResourceLocation* entityId = _selectNextEntity(world);
+    if (entityId == nullptr) {
+        return;
+    }
 
+    // 2. 查找实体类型
+    const entity::EntityType* entityType = entity::EntityRegistry::instance().getType(entityId->toString());
+    if (entityType == nullptr || !entityType->canSummon()) {
+        // 实体类型未注册或不可生成，清除缓存后放弃
+        m_nextSpawnEntityId = ResourceLocation();
+        return;
+    }
+
+    // 3. 寻找合适的生成位置
+    auto spawnPosOpt = _findSpawnPosition(world);
+    if (!spawnPosOpt.has_value()) {
+        // 没有找到合适的位置，不消耗本次生成机会
+        return;
+    }
+    Vector3 spawnPos = spawnPosOpt.value();
+    BlockPos spawnBlockPos(static_cast<i32>(std::floor(spawnPos.x)),
+        static_cast<i32>(std::floor(spawnPos.y)),
+        static_cast<i32>(std::floor(spawnPos.z)));
+
+    // 4. 创建实体
+    auto entity = entityType->create(&world);
+    if (entity == nullptr) {
+        m_nextSpawnEntityId = ResourceLocation();
+        return;
+    }
+
+    // 5. 设置位置和旋转
+    f32 yaw = world.getRandom().nextFloat() * 360.0f;
+    entity->setPosition(spawnPos);
+    entity->setRotation(yaw, 0.0f);
+
+    // 6. 对 MobEntity 进行初始化
+    auto* mobEntity = dynamic_cast<MobEntity*>(entity.get());
+    if (mobEntity != nullptr) {
+        // 设置区域难度并初始化
+        entity::combat::DifficultyInstance difficulty = entity::combat::DifficultyInstance::at(world, spawnBlockPos);
+        mobEntity->finalizeSpawn(world, difficulty, world::spawn::SpawnReason::Spawner);
+
+        // 试炼刷怪笼生成的怪物不会自然消失
+        mobEntity->enablePersistence();
+    }
+
+    // 7. 记录 UUID（必须在 spawnEntity 之前，因为 spawnEntity 会转移所有权）
+    std::string entityUuid = entity->uuid();
+
+    // 8. 添加实体到世界
+    EntityId id = world.spawnEntity(std::move(entity));
+    if (id == INVALID_ENTITY_ID) {
+        // 生成失败
+        m_nextSpawnEntityId = ResourceLocation();
+        return;
+    }
+
+    // 9. 追踪生成的怪物
+    m_trackedMobs.insert(entityUuid);
     m_spawnedMobsCount++;
     m_currentMobsCount++;
+
+    // 10. 为下次生成随机选择新的实体类型
+    m_nextSpawnEntityId = ResourceLocation();
+    if (!m_config.spawnPotentials.empty()) {
+        i32 totalWeight = 0;
+        for (const auto& entry : m_config.spawnPotentials) {
+            totalWeight += entry.weight;
+        }
+        if (totalWeight > 0) {
+            i32 roll = world.getRandom().nextInt(totalWeight);
+            i32 cumulative = 0;
+            for (const auto& entry : m_config.spawnPotentials) {
+                cumulative += entry.weight;
+                if (roll < cumulative) {
+                    m_nextSpawnEntityId = entry.entityId;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 11. 播放生成效果
+    // 参考 MC Java: levelEvent(3011, spawnerPos, flameParticle) + levelEvent(3012, mobPos, flameParticle)
+    // flameParticle: 0=普通(FLAME), 1=不祥(SOUL_FIRE_FLAME)
+    i32 flameParticle = m_ominous ? 1 : 0;
+    world.playEvent(world::WorldEvents::TRIAL_SPAWNER_SPAWN, m_pos, flameParticle);
+    world.playEvent(world::WorldEvents::TRIAL_SPAWNER_SPAWN_MOB_AT, spawnBlockPos, flameParticle);
+
     setChanged();
 }
 

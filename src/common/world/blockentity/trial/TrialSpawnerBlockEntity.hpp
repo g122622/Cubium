@@ -25,7 +25,9 @@
 
 #include "common/core/Types.hpp"
 #include "common/resource/ResourceLocation.hpp"
+#include "common/util/math/Vector3.hpp"
 #include "common/world/blockentity/BlockEntity.hpp"
+#include <optional>
 #include <unordered_set>
 #include <vector>
 
@@ -33,6 +35,19 @@ namespace mc {
 
 class Player;
 class Entity;
+
+/**
+ * @brief 生成潜力条目
+ *
+ * 描述试炼刷怪笼可以生成的一种实体类型及其权重。
+ * 对应 MC Java 的 SpawnData + WeightedEntry。
+ */
+struct TrialSpawnPotential {
+    /// 实体类型 ID（如 "minecraft:breeze"）
+    ResourceLocation entityId;
+    /// 权重（默认 1）
+    i32 weight = 1;
+};
 
 /**
  * @brief 试炼刷怪笼方块实体
@@ -104,6 +119,8 @@ public:
         ResourceLocation ominousSupplyLootTable;
         /// 不祥钥匙战利品表
         ResourceLocation ominousKeyLootTable;
+        /// 生成潜力列表（可生成的实体类型及权重）
+        std::vector<TrialSpawnPotential> spawnPotentials;
     };
 
     /**
@@ -264,6 +281,24 @@ private:
      */
     [[nodiscard]] bool isReadyToSpawnNextMob(IWorld& world, i32 additionalPlayers) const;
 
+    // ========== 生成逻辑辅助方法 ==========
+
+    /**
+     * @brief 从生成潜力列表中随机选择一个实体类型
+     *
+     * 使用加权随机选择算法。如果列表为空返回 nullptr。
+     * 选中后自动缓存到 m_nextSpawnEntityId，下次生成时直接使用缓存。
+     */
+    [[nodiscard]] const ResourceLocation* _selectNextEntity(IWorld& world);
+
+    /**
+     * @brief 在刷怪笼附近寻找合适的生成位置
+     *
+     * 在 spawnRange 范围内随机选择位置，进行碰撞检测和视线检测。
+     * 返回生成位置的中心坐标；如果找不到合适位置返回 std::nullopt。
+     */
+    [[nodiscard]] std::optional<Vector3> _findSpawnPosition(IWorld& world);
+
     // ========== 数据成员 ==========
 
     /// 当前状态
@@ -289,6 +324,9 @@ private:
 
     /// 上次奖励弹出tick
     i64 m_lastEjectionTick = 0;
+
+    /// 缓存的下一个生成实体类型ID（对应 MC Java 的 nextSpawnData）
+    ResourceLocation m_nextSpawnEntityId;
 
     /// 已追踪的玩家UUID
     std::unordered_set<std::string> m_trackedPlayers;
