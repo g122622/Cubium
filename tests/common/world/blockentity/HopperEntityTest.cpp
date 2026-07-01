@@ -1488,13 +1488,16 @@ protected:
         VanillaBlocks::initialize();
         BlockTags::initialize();
         Items::initialize();
+        m_diamond = ensureHopperTestItem("diamond");
     }
+
+    Item* m_diamond = nullptr;
 };
 
-TEST_F(HopperDoesNotBlockTest, PullItems_FullBlockAbove_BlocksItemSuction)
+TEST_F(HopperDoesNotBlockTest, PullItems_StoneAboveWithItemEntity_BlocksSuction)
 {
     // 石头不在 DOES_NOT_BLOCK_HOPPERS 标签中，碰撞形状为完整方块，
-    // 应阻挡漏斗吸取物品实体
+    // 即使上方有物品实体，漏斗也无法吸取（被阻挡）
     const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
     ASSERT_TRUE(stone->defaultState().isFaceFull(Direction::Down));
@@ -1511,15 +1514,22 @@ TEST_F(HopperDoesNotBlockTest, PullItems_FullBlockAbove_BlocksItemSuction)
     // 在漏斗上方放置石头
     world.setBlockState(BlockPos(10, 21, 30), &stone->defaultState());
 
-    // 石头阻挡漏斗吸取，没有物品实体可收集，应返回 false
+    // 在漏斗收集区域放置物品实体
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    world.setEntitiesInAABB({itemEntity.get()});
+
+    // 石头阻挡漏斗吸取，即使有物品实体也返回 false
     bool result = HopperEntity::pullItems(*hopper);
     EXPECT_FALSE(result);
+
+    // 物品实体仍然存活（未被吸取）
+    EXPECT_TRUE(itemEntity->isAlive());
 }
 
-TEST_F(HopperDoesNotBlockTest, PullItems_BeehiveAbove_DoesNotBlockItemSuction)
+TEST_F(HopperDoesNotBlockTest, PullItems_BeehiveAboveWithItemEntity_AllowsSuction)
 {
     // 蜂箱在 DOES_NOT_BLOCK_HOPPERS 标签中，即使碰撞形状为完整方块，
-    // 也不应阻挡漏斗吸取物品实体
+    // 漏斗仍可吸取上方物品实体
     const Block* beehive = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "beehive"));
     if (!beehive) {
         GTEST_SKIP() << "beehive block not registered";
@@ -1538,16 +1548,25 @@ TEST_F(HopperDoesNotBlockTest, PullItems_BeehiveAbove_DoesNotBlockItemSuction)
     // 在漏斗上方放置蜂箱
     world.setBlockState(BlockPos(10, 21, 30), &beehive->defaultState());
 
-    // 蜂箱在 DOES_NOT_BLOCK_HOPPERS 标签中，不应阻挡漏斗
-    // 没有上方容器也没有物品实体，应返回 false（因为没有东西可吸）
-    // 但关键是没有被"阻挡"——函数不是因为阻挡而返回 false
+    // 在漏斗收集区域放置物品实体
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    world.setEntitiesInAABB({itemEntity.get()});
+
+    // 蜂箱不阻挡漏斗，物品实体应被成功吸取
     bool result = HopperEntity::pullItems(*hopper);
-    EXPECT_FALSE(result);
+    EXPECT_TRUE(result);
+
+    // 物品实体已被移除（被吸取）
+    EXPECT_FALSE(itemEntity->isAlive());
+
+    // 漏斗背包中应有物品
+    EXPECT_FALSE(hopper->isEmpty());
 }
 
-TEST_F(HopperDoesNotBlockTest, PullItems_BeeNestAbove_DoesNotBlockItemSuction)
+TEST_F(HopperDoesNotBlockTest, PullItems_BeeNestAboveWithItemEntity_AllowsSuction)
 {
-    // 蜂巢在 DOES_NOT_BLOCK_HOPPERS 标签中
+    // 蜂巢在 DOES_NOT_BLOCK_HOPPERS 标签中，即使碰撞形状为完整方块，
+    // 漏斗仍可吸取上方物品实体
     const Block* beeNest = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "bee_nest"));
     if (!beeNest) {
         GTEST_SKIP() << "bee_nest block not registered";
@@ -1566,9 +1585,46 @@ TEST_F(HopperDoesNotBlockTest, PullItems_BeeNestAbove_DoesNotBlockItemSuction)
     // 在漏斗上方放置蜂巢
     world.setBlockState(BlockPos(10, 21, 30), &beeNest->defaultState());
 
-    // 蜂巢不阻挡漏斗吸取
+    // 在漏斗收集区域放置物品实体
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    world.setEntitiesInAABB({itemEntity.get()});
+
+    // 蜂巢不阻挡漏斗，物品实体应被成功吸取
     bool result = HopperEntity::pullItems(*hopper);
-    EXPECT_FALSE(result);
+    EXPECT_TRUE(result);
+
+    // 物品实体已被移除（被吸取）
+    EXPECT_FALSE(itemEntity->isAlive());
+
+    // 漏斗背包中应有物品
+    EXPECT_FALSE(hopper->isEmpty());
+}
+
+TEST_F(HopperDoesNotBlockTest, PullItems_NoBlockAboveWithItemEntity_AllowsSuction)
+{
+    // 漏斗上方没有方块时，物品实体可被正常吸取
+    HopperTestWorld world;
+    world.setClientSide(false);
+    world.setCurrentTick(1);
+
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+    hopper->tick(world);
+    ASSERT_EQ(hopper->getWorld(), &world);
+
+    // 上方无方块
+    // 在漏斗收集区域放置物品实体
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    world.setEntitiesInAABB({itemEntity.get()});
+
+    // 无阻挡，物品实体应被成功吸取
+    bool result = HopperEntity::pullItems(*hopper);
+    EXPECT_TRUE(result);
+
+    // 物品实体已被移除
+    EXPECT_FALSE(itemEntity->isAlive());
+
+    // 漏斗背包中应有物品
+    EXPECT_FALSE(hopper->isEmpty());
 }
 
 TEST_F(HopperDoesNotBlockTest, PullItems_NonGridAlignedHopper_NotBlockedByFullBlock)
@@ -1578,19 +1634,19 @@ TEST_F(HopperDoesNotBlockTest, PullItems_NonGridAlignedHopper_NotBlockedByFullBl
     const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
     ASSERT_NE(stone, nullptr);
 
-    HopperTestWorld world;
-    world.setClientSide(false);
-
     // NonGridAlignedHopper::isGridAligned() 返回 false
-    NonGridAlignedHopper hopper(BlockPos(10, 20, 30));
     // 非对齐漏斗没有 world，pullItems 直接返回 false
+    NonGridAlignedHopper hopper(BlockPos(10, 20, 30));
     bool result = HopperEntity::pullItems(hopper);
     EXPECT_FALSE(result);
 }
 
-TEST_F(HopperDoesNotBlockTest, PullItems_NoBlockAbove_NotBlocked)
+TEST_F(HopperDoesNotBlockTest, PullItems_StoneAboveNoItem_ReturnsFalse)
 {
-    // 漏斗上方没有方块时，不应被阻挡
+    // 石头阻挡漏斗，且没有物品实体时返回 false
+    const Block* stone = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+
     HopperTestWorld world;
     world.setClientSide(false);
     world.setCurrentTick(1);
@@ -1599,7 +1655,34 @@ TEST_F(HopperDoesNotBlockTest, PullItems_NoBlockAbove_NotBlocked)
     hopper->tick(world);
     ASSERT_EQ(hopper->getWorld(), &world);
 
-    // 上方无方块，不被阻挡，但也没有物品实体，返回 false
+    // 在漏斗上方放置石头
+    world.setBlockState(BlockPos(10, 21, 30), &stone->defaultState());
+
+    // 没有物品实体，石头阻挡，返回 false
+    bool result = HopperEntity::pullItems(*hopper);
+    EXPECT_FALSE(result);
+}
+
+TEST_F(HopperDoesNotBlockTest, PullItems_BeehiveAboveNoItem_ReturnsFalse)
+{
+    // 蜂箱不阻挡漏斗，但没有物品实体时也返回 false（没有东西可吸）
+    const Block* beehive = BlockRegistry::instance().getBlock(ResourceLocation("minecraft", "beehive"));
+    if (!beehive) {
+        GTEST_SKIP() << "beehive block not registered";
+    }
+
+    HopperTestWorld world;
+    world.setClientSide(false);
+    world.setCurrentTick(1);
+
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+    hopper->tick(world);
+    ASSERT_EQ(hopper->getWorld(), &world);
+
+    // 在漏斗上方放置蜂箱
+    world.setBlockState(BlockPos(10, 21, 30), &beehive->defaultState());
+
+    // 没有物品实体，即使不被阻挡也返回 false（没有东西可吸）
     bool result = HopperEntity::pullItems(*hopper);
     EXPECT_FALSE(result);
 }
