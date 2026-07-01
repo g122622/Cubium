@@ -127,8 +127,8 @@ PiglinEntity 重写了 `getPathWeight(f32 x, f32 y, f32 z)` 方法：
 灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire)、诡异菌(warped_fungus)。
 
 与 HoglinEntity 类似，采用直接扫描方案而非 Brain/Sensor 系统。
-TODO: 灵魂营火需要额外检查点燃状态（MC 原版 PiglinSpecificSensor.isValidRepellent 中 CampfireBlock.isLitCampfire 检查），
-当前标签层面无法区分点燃/未点燃的营火。
+灵魂营火的点燃状态检查已在 PiglinEntity::getPathWeight 和 AvoidBlockGoal 中实现
+（对应 MC 原版 PiglinSpecificSensor.isValidRepellent 中 CampfireBlock.isLitCampfire 检查）。
 
 ### 9. ZoglinEntity canAttackType 类型过滤
 

@@ -25,6 +25,7 @@
 #include "common/entity/ai/controller/GhastMovementController.hpp"
 #include "common/entity/ai/goal/GoalFlag.hpp"
 #include "common/entity/ai/goal/GoalSelector.hpp"
+#include "common/entity/ai/goal/goals/AvoidBlockGoal.hpp"
 #include "common/entity/ai/goal/goals/AvoidEntityGoal.hpp"
 #include "common/entity/ai/goal/goals/LookAtGoal.hpp"
 #include "common/entity/ai/goal/goals/MeleeAttackGoal.hpp"
@@ -424,6 +425,21 @@ void PiglinEntity::registerGoals()
                     type == entity::EntityTypeIdNumber::ZOGLIN;
             })));
 
+    // 优先级 4: 避开排斥方块（猪灵害怕灵魂火、灵魂火把、灵魂灯笼、灵魂营火、诡异菌等）
+    // 对应 MC 1.21.11: PiglinAi 中 SetWalkTargetAwayFrom.pos(NEAREST_REPELLENT, 1.0F, 8, false)
+    // 原版通过 Brain/Sensor 系统实现，当前使用 Goal 系统等效替代
+    // 注意：灵魂营火需要额外检查点燃状态，未点燃的灵魂营火不排斥猪灵
+    m_goalSelector.addGoal(4,
+        std::make_unique<entity::ai::goal::AvoidBlockGoal>(
+            this, BlockTags::PIGLIN_REPELLENTS(), 1.0, 8, 4, [](const BlockState& state) {
+                // MC 1.21.11: PiglinSpecificSensor.isValidRepellent
+                // 灵魂营火需要额外检查点燃状态，未点燃的灵魂营火不应排斥猪灵
+                if (state.is(block_registry::NetherBlocks::SOUL_CAMPFIRE)) {
+                    return blocks::CampfireBlock::isLitCampfire(state);
+                }
+                return true;
+            }));
+
     // 优先级 7: 避开水随机行走
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
 
@@ -565,7 +581,13 @@ f32 PiglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     //   - 灵魂灯笼 (soul_lantern)
     //   - 灵魂营火 (soul_campfire，需点燃，通过 CampfireBlock::isLitCampfire 额外检查)
     //   - 诡异菌 (warped_fungus)
-    // TODO: 花盆系统实现后需在标签中添加 potted_warped_fungus（盆栽诡异菌）
+    // 注意：MC 1.21.11 中 potted_warped_fungus 不在 PIGLIN_REPELLENTS 中，
+    //       仅在 HOGLIN_REPELLENTS 中，此处无需添加
+    //
+    // 注意：此 getPathWeight 与 AvoidBlockGoal（优先级4）协同工作：
+    //   - getPathWeight 返回 -1.0 阻止寻路穿过排斥区域
+    //   - AvoidBlockGoal 主动使实体远离排斥方块
+    //   两者共同实现了 MC 原版 isNearRepellent + SetWalkTargetAwayFrom 的行为
     //
     // 搜索范围: 水平 8 格，垂直 4 格
     // 对应 MC 原版: PiglinSpecificSensor.REPELLENT_DETECTION_RANGE_HORIZONTAL = 8,
@@ -763,8 +785,11 @@ void HoglinEntity::registerGoals()
         m_goalSelector.addGoal(2, std::make_unique<entity::ai::goal::MeleeAttackGoal>(this, 1.0, true));
     }
 
-    // 优先级 5: 避开传送门（疣猪兽害怕传送门）
-    // TODO: 实现 AvoidPortalGoal 当传送门系统完善后
+    // 优先级 5: 避开排斥方块（疣猪兽害怕诡异菌、诡异菌岩、下界传送门、重生锚等）
+    // 对应 MC 1.21.11: HoglinAi 中 SetWalkTargetAwayFrom.pos(NEAREST_REPELLENT, 1.0F, 8, true)
+    // 原版通过 Brain/Sensor 系统实现，当前使用 Goal 系统等效替代
+    m_goalSelector.addGoal(
+        5, std::make_unique<entity::ai::goal::AvoidBlockGoal>(this, BlockTags::HOGLIN_REPELLENTS(), 1.0, 8, 4));
 
     // 优先级 7: 避开水随机行走
     m_goalSelector.addGoal(7, std::make_unique<entity::ai::goal::WaterAvoidingRandomWalkingGoal>(this, 1.0));
@@ -829,8 +854,13 @@ f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     //   - 诡异菌岩 (warped_nylium)
     //   - 下界传送门 (nether_portal)
     //   - 重生锚 (respawn_anchor)
-    // TODO: 花盆系统实现后需在标签中添加 potted_warped_fungus（盆栽诡异菌），
-    //       此处扫描会自动包含新标签成员
+    // TODO: 花盆系统实现后需在 HOGLIN_REPELLENTS 标签中添加 potted_warped_fungus（盆栽诡异菌），
+    //       此处扫描和 AvoidBlockGoal 会自动包含新标签成员
+    //
+    // 注意：此 getPathWeight 与 AvoidBlockGoal（优先级5）协同工作：
+    //   - getPathWeight 返回 -1.0 阻止寻路穿过排斥区域
+    //   - AvoidBlockGoal 主动使实体远离排斥方块
+    //   两者共同实现了 MC 原版 isPosNearNearestRepellent + SetWalkTargetAwayFrom 的行为
     //
     // 搜索范围: 水平 8 格，垂直 4 格
     // 对应 MC 原版: HoglinSpecificSensor.REPELLENT_DETECTION_RANGE_HORIZONTAL = 8,

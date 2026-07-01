@@ -329,6 +329,7 @@ add_library(mc_common STATIC
     entity/ai/goal/goals/FollowParentGoal.cpp
     entity/ai/goal/goals/MeleeAttackGoal.cpp
     entity/ai/goal/goals/AvoidEntityGoal.cpp
+    entity/ai/goal/goals/AvoidBlockGoal.cpp
     entity/ai/goal/goals/RandomSwimmingGoal.cpp
     entity/ai/goal/goals/FishSwimGoal.cpp
     entity/ai/goal/goals/FindWaterGoal.cpp
