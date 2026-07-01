@@ -557,3 +557,44 @@ TEST_F(EntityFreezeIntegrationTest, IsFreezing_AnyPositiveValue)
     entity.setTicksFrozen(140);
     EXPECT_TRUE(entity.isFreezing());
 }
+
+// ============================================================================
+// isSpectator 与 canFreeze 集成测试
+// ============================================================================
+
+TEST_F(EntityFreezeIntegrationTest, CanFreeze_SpectatorPlayerCannotFreeze)
+{
+    // 旁观者模式的玩家不能被冰冻
+    TestPlayer player(&m_world);
+
+    // 默认生存模式，可以冰冻
+    EXPECT_TRUE(player.canFreeze());
+
+    // 切换到旁观者模式
+    player.setGameMode(GameMode::Spectator);
+    EXPECT_TRUE(player.isSpectator());
+    EXPECT_FALSE(player.canFreeze());
+
+    // 切换回生存模式，可以冰冻
+    player.setGameMode(GameMode::Survival);
+    EXPECT_FALSE(player.isSpectator());
+    EXPECT_TRUE(player.canFreeze());
+}
+
+TEST_F(EntityFreezeIntegrationTest, CanFreeze_CreativePlayerCanFreeze)
+{
+    // 创造模式的玩家可以被冰冻（MC 原版行为）
+    TestPlayer player(&m_world);
+
+    player.setGameMode(GameMode::Creative);
+    EXPECT_FALSE(player.isSpectator());
+    EXPECT_TRUE(player.canFreeze());
+}
+
+TEST_F(EntityFreezeIntegrationTest, CanFreeze_NonPlayerEntityDefaultNotSpectator)
+{
+    // 非 Player 实体的 isSpectator() 默认返回 false，可以冰冻
+    TestLivingEntity entity(EntityId(1), &m_world);
+    EXPECT_FALSE(entity.isSpectator());
+    EXPECT_TRUE(entity.canFreeze());
+}

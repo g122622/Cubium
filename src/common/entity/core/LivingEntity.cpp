@@ -920,7 +920,9 @@ void LivingEntity::clearFreeze()
 bool LivingEntity::canFreeze() const
 {
     // 旁观者不能被冰冻
-    // TODO: 当旁观模式实现后，添加 isSpectator() 检查
+    if (isSpectator()) {
+        return false;
+    }
 
     // 检查皮革护甲：任意一件皮革护甲即可免疫冰冻
     // 皮革护甲包括：皮革头盔、皮革胸甲、皮革护腿、皮革靴子、皮革马铠
