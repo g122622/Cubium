@@ -629,6 +629,7 @@ Item* Items::BASALT = nullptr;
 Item* Items::POLISHED_BASALT = nullptr;
 Item* Items::BLACKSTONE = nullptr;
 Item* Items::POLISHED_BLACKSTONE = nullptr;
+Item* Items::GILDED_BLACKSTONE = nullptr;
 Item* Items::CRYING_OBSIDIAN = nullptr;
 Item* Items::MAGMA = nullptr;
 Item* Items::NETHER_WART_BLOCK = nullptr;
@@ -883,6 +884,7 @@ Item* Items::MANGROVE_BUTTON = nullptr;
 Item* Items::CHERRY_BUTTON = nullptr;
 Item* Items::BAMBOO_BUTTON = nullptr;
 Item* Items::PALE_OAK_BUTTON = nullptr;
+Item* Items::POLISHED_BLACKSTONE_BUTTON = nullptr;
 Item* Items::STONE_PRESSURE_PLATE = nullptr;
 Item* Items::OAK_PRESSURE_PLATE = nullptr;
 Item* Items::SPRUCE_PRESSURE_PLATE = nullptr;
@@ -896,6 +898,7 @@ Item* Items::MANGROVE_PRESSURE_PLATE = nullptr;
 Item* Items::CHERRY_PRESSURE_PLATE = nullptr;
 Item* Items::BAMBOO_PRESSURE_PLATE = nullptr;
 Item* Items::PALE_OAK_PRESSURE_PLATE = nullptr;
+Item* Items::POLISHED_BLACKSTONE_PRESSURE_PLATE = nullptr;
 Item* Items::LIGHT_WEIGHTED_PRESSURE_PLATE = nullptr;
 Item* Items::HEAVY_WEIGHTED_PRESSURE_PLATE = nullptr;
 Item* Items::DAYLIGHT_DETECTOR = nullptr;
@@ -3014,6 +3017,8 @@ void Items::_registerBuildingBlocks()
         &registerBlockBackedItem(registry, VanillaBlocks::BLACKSTONE, "blackstone", ItemProperties().maxStackSize(64));
     POLISHED_BLACKSTONE = &registerBlockBackedItem(
         registry, VanillaBlocks::POLISHED_BLACKSTONE, "polished_blackstone", ItemProperties().maxStackSize(64));
+    GILDED_BLACKSTONE = &registerBlockBackedItem(
+        registry, VanillaBlocks::GILDED_BLACKSTONE, "gilded_blackstone", ItemProperties().maxStackSize(64));
     CRYING_OBSIDIAN = &registerBlockBackedItem(
         registry, VanillaBlocks::CRYING_OBSIDIAN, "crying_obsidian", ItemProperties().maxStackSize(64));
     MAGMA = &registerBlockBackedItem(registry, VanillaBlocks::MAGMA, "magma_block", ItemProperties().maxStackSize(64));
@@ -3586,6 +3591,10 @@ void Items::_registerRedstone()
         registry, VanillaBlocks::BAMBOO_BUTTON, "bamboo_button", ItemProperties().maxStackSize(64));
     PALE_OAK_BUTTON = &registerBlockBackedItem(
         registry, VanillaBlocks::PALE_OAK_BUTTON, "pale_oak_button", ItemProperties().maxStackSize(64));
+    POLISHED_BLACKSTONE_BUTTON = &registerBlockBackedItem(registry,
+        VanillaBlocks::POLISHED_BLACKSTONE_BUTTON,
+        "polished_blackstone_button",
+        ItemProperties().maxStackSize(64));
     STONE_PRESSURE_PLATE = &registerBlockBackedItem(
         registry, VanillaBlocks::STONE_PRESSURE_PLATE, "stone_pressure_plate", ItemProperties().maxStackSize(64));
     OAK_PRESSURE_PLATE = &registerBlockBackedItem(
@@ -3612,6 +3621,10 @@ void Items::_registerRedstone()
         registry, VanillaBlocks::BAMBOO_PRESSURE_PLATE, "bamboo_pressure_plate", ItemProperties().maxStackSize(64));
     PALE_OAK_PRESSURE_PLATE = &registerBlockBackedItem(
         registry, VanillaBlocks::PALE_OAK_PRESSURE_PLATE, "pale_oak_pressure_plate", ItemProperties().maxStackSize(64));
+    POLISHED_BLACKSTONE_PRESSURE_PLATE = &registerBlockBackedItem(registry,
+        VanillaBlocks::POLISHED_BLACKSTONE_PRESSURE_PLATE,
+        "polished_blackstone_pressure_plate",
+        ItemProperties().maxStackSize(64));
     LIGHT_WEIGHTED_PRESSURE_PLATE = &registerBlockBackedItem(registry,
         VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE,
         "light_weighted_pressure_plate",

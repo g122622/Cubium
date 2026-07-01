@@ -327,6 +327,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::POLISHED_BASALT, "polished_basalt");
     registerSimpleBlock(VanillaBlocks::BLACKSTONE, "blackstone");
     registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE, "polished_blackstone");
+    registerSimpleBlock(VanillaBlocks::GILDED_BLACKSTONE, "gilded_blackstone");
     registerSimpleBlock(VanillaBlocks::CRYING_OBSIDIAN, "crying_obsidian");
     registerSimpleBlock(VanillaBlocks::MAGMA, "magma_block");
     registerSimpleBlock(VanillaBlocks::NETHER_WART_BLOCK, "nether_wart_block");
@@ -820,6 +821,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_BUTTON, "cherry_button");
     registerSimpleBlock(VanillaBlocks::BAMBOO_BUTTON, "bamboo_button");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_BUTTON, "pale_oak_button");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_BUTTON, "polished_blackstone_button");
     registerSimpleBlock(VanillaBlocks::STONE_PRESSURE_PLATE, "stone_pressure_plate");
     registerSimpleBlock(VanillaBlocks::OAK_PRESSURE_PLATE, "oak_pressure_plate");
     registerSimpleBlock(VanillaBlocks::SPRUCE_PRESSURE_PLATE, "spruce_pressure_plate");
@@ -833,6 +835,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_PRESSURE_PLATE, "cherry_pressure_plate");
     registerSimpleBlock(VanillaBlocks::BAMBOO_PRESSURE_PLATE, "bamboo_pressure_plate");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_PRESSURE_PLATE, "pale_oak_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_PRESSURE_PLATE, "polished_blackstone_pressure_plate");
     registerSimpleBlock(VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE, "light_weighted_pressure_plate");
     registerSimpleBlock(VanillaBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE, "heavy_weighted_pressure_plate");
     registerSimpleBlock(VanillaBlocks::DAYLIGHT_DETECTOR, "daylight_detector");

@@ -666,6 +666,7 @@ public:
     static Item* POLISHED_BASALT;         // 磨制玄武岩
     static Item* BLACKSTONE;              // 黑石
     static Item* POLISHED_BLACKSTONE;     // 磨制黑石
+    static Item* GILDED_BLACKSTONE;       // 镶金黑石
     static Item* CRYING_OBSIDIAN;         // 哭泣的黑曜石
     static Item* MAGMA;                   // 岩浆块
     static Item* NETHER_WART_BLOCK;       // 地狱疣块
@@ -927,50 +928,52 @@ public:
     // 红石方块
     // ========================================================================
     // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
-    static Item* REDSTONE_TORCH;                // 红石火把
-    static Item* REDSTONE_LAMP;                 // 红石灯
-    static Item* REDSTONE_REPEATER;             // 红石中继器
-    static Item* REDSTONE_COMPARATOR;           // 红石比较器
-    static Item* OBSERVER;                      // 观察者
-    static Item* LEVER;                         // 拉杆
-    static Item* STONE_BUTTON;                  // 石头按钮
-    static Item* OAK_BUTTON;                    // 橡木按钮
-    static Item* SPRUCE_BUTTON;                 // 云杉木按钮
-    static Item* BIRCH_BUTTON;                  // 白桦木按钮
-    static Item* JUNGLE_BUTTON;                 // 丛林木按钮
-    static Item* ACACIA_BUTTON;                 // 金合欢木按钮
-    static Item* DARK_OAK_BUTTON;               // 深色橡木按钮
-    static Item* CRIMSON_BUTTON;                // 绯红木按钮
-    static Item* WARPED_BUTTON;                 // 诡异木按钮
-    static Item* MANGROVE_BUTTON;               // 红树木按钮
-    static Item* CHERRY_BUTTON;                 // 樱花木按钮
-    static Item* BAMBOO_BUTTON;                 // 竹木按钮
-    static Item* PALE_OAK_BUTTON;               // 苍白橡木按钮
-    static Item* STONE_PRESSURE_PLATE;          // 石头压力板
-    static Item* OAK_PRESSURE_PLATE;            // 橡木压力板
-    static Item* SPRUCE_PRESSURE_PLATE;         // 云杉木压力板
-    static Item* BIRCH_PRESSURE_PLATE;          // 白桦木压力板
-    static Item* JUNGLE_PRESSURE_PLATE;         // 丛林木压力板
-    static Item* ACACIA_PRESSURE_PLATE;         // 金合欢木压力板
-    static Item* DARK_OAK_PRESSURE_PLATE;       // 深色橡木压力板
-    static Item* CRIMSON_PRESSURE_PLATE;        // 绯红木压力板
-    static Item* WARPED_PRESSURE_PLATE;         // 诡异木压力板
-    static Item* MANGROVE_PRESSURE_PLATE;       // 红树木压力板
-    static Item* CHERRY_PRESSURE_PLATE;         // 樱花木压力板
-    static Item* BAMBOO_PRESSURE_PLATE;         // 竹木压力板
-    static Item* PALE_OAK_PRESSURE_PLATE;       // 苍白橡木压力板
-    static Item* LIGHT_WEIGHTED_PRESSURE_PLATE; // 轻质测重压力板
-    static Item* HEAVY_WEIGHTED_PRESSURE_PLATE; // 重质测重压力板
-    static Item* DAYLIGHT_DETECTOR;             // 阳光探测器
-    static Item* PISTON;                        // 活塞
-    static Item* STICKY_PISTON;                 // 粘性活塞
-    static Item* DISPENSER;                     // 发射器
-    static Item* DROPPER;                       // 投掷器
-    static Item* NOTE_BLOCK;                    // 音符盒
-    static Item* TNT;                           // TNT
-    static Item* TARGET;                        // 标靶
-    static Item* TRIPWIRE;                      // 绊线
-    static Item* TRIPWIRE_HOOK;                 // 绊线钩
+    static Item* REDSTONE_TORCH;                     // 红石火把
+    static Item* REDSTONE_LAMP;                      // 红石灯
+    static Item* REDSTONE_REPEATER;                  // 红石中继器
+    static Item* REDSTONE_COMPARATOR;                // 红石比较器
+    static Item* OBSERVER;                           // 观察者
+    static Item* LEVER;                              // 拉杆
+    static Item* STONE_BUTTON;                       // 石头按钮
+    static Item* OAK_BUTTON;                         // 橡木按钮
+    static Item* SPRUCE_BUTTON;                      // 云杉木按钮
+    static Item* BIRCH_BUTTON;                       // 白桦木按钮
+    static Item* JUNGLE_BUTTON;                      // 丛林木按钮
+    static Item* ACACIA_BUTTON;                      // 金合欢木按钮
+    static Item* DARK_OAK_BUTTON;                    // 深色橡木按钮
+    static Item* CRIMSON_BUTTON;                     // 绯红木按钮
+    static Item* WARPED_BUTTON;                      // 诡异木按钮
+    static Item* MANGROVE_BUTTON;                    // 红树木按钮
+    static Item* CHERRY_BUTTON;                      // 樱花木按钮
+    static Item* BAMBOO_BUTTON;                      // 竹木按钮
+    static Item* PALE_OAK_BUTTON;                    // 苍白橡木按钮
+    static Item* POLISHED_BLACKSTONE_BUTTON;         // 磨制黑石按钮
+    static Item* STONE_PRESSURE_PLATE;               // 石头压力板
+    static Item* OAK_PRESSURE_PLATE;                 // 橡木压力板
+    static Item* SPRUCE_PRESSURE_PLATE;              // 云杉木压力板
+    static Item* BIRCH_PRESSURE_PLATE;               // 白桦木压力板
+    static Item* JUNGLE_PRESSURE_PLATE;              // 丛林木压力板
+    static Item* ACACIA_PRESSURE_PLATE;              // 金合欢木压力板
+    static Item* DARK_OAK_PRESSURE_PLATE;            // 深色橡木压力板
+    static Item* CRIMSON_PRESSURE_PLATE;             // 绯红木压力板
+    static Item* WARPED_PRESSURE_PLATE;              // 诡异木压力板
+    static Item* MANGROVE_PRESSURE_PLATE;            // 红树木压力板
+    static Item* CHERRY_PRESSURE_PLATE;              // 樱花木压力板
+    static Item* BAMBOO_PRESSURE_PLATE;              // 竹木压力板
+    static Item* PALE_OAK_PRESSURE_PLATE;            // 苍白橡木压力板
+    static Item* POLISHED_BLACKSTONE_PRESSURE_PLATE; // 磨制黑石压力板
+    static Item* LIGHT_WEIGHTED_PRESSURE_PLATE;      // 轻质测重压力板
+    static Item* HEAVY_WEIGHTED_PRESSURE_PLATE;      // 重质测重压力板
+    static Item* DAYLIGHT_DETECTOR;                  // 阳光探测器
+    static Item* PISTON;                             // 活塞
+    static Item* STICKY_PISTON;                      // 粘性活塞
+    static Item* DISPENSER;                          // 发射器
+    static Item* DROPPER;                            // 投掷器
+    static Item* NOTE_BLOCK;                         // 音符盒
+    static Item* TNT;                                // TNT
+    static Item* TARGET;                             // 标靶
+    static Item* TRIPWIRE;                           // 绊线
+    static Item* TRIPWIRE_HOOK;                      // 绊线钩
 
     // ========================================================================
     // 铁轨

@@ -149,7 +149,7 @@
 ### Buttons（1）
 
 
-- `minecraft:polished_blackstone_button`
+- `minecraft:polished_blackstone_button ✅ 已完成`
 
 ### Candles（17）
 
@@ -501,7 +501,7 @@
 - `minecraft:deepslate_redstone_ore ✅ 已完成`
 - `minecraft:exposed_lightning_rod`
 - `minecraft:flowering_azalea`
-- `minecraft:gilded_blackstone`
+- `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:gray_bundle`
 - `minecraft:gray_harness`
 - `minecraft:green_bundle`
@@ -1084,7 +1084,7 @@
 
 
 - `minecraft:bell`
-- `minecraft:gilded_blackstone`
+- `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:golden_nautilus_armor`
 - `minecraft:golden_spear`
 - `minecraft:raw_gold`
@@ -1276,7 +1276,7 @@
 未实现项：
 
 
-- `minecraft:polished_blackstone_button`
+- `minecraft:polished_blackstone_button ✅ 已完成`
 
 ### `minecraft:stone_crafting_materials`
 
