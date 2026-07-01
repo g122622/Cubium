@@ -8,6 +8,8 @@
 inventory/
 ├── IInventory.hpp                 # 背包接口（抽象基类，含 addListener/removeListener）
 ├── IInventory.cpp
+├── InventoryRef.hpp               # 背包引用类型（管理可能拥有的背包指针，解决 ISidedInventoryProvider 生命周期）
+├── InventoryRef.cpp
 ├── ContainerListener.hpp          # 容器变更监听器接口（containerChanged 回调）
 ├── ISidedInventory.hpp            # 侧面背包接口，用于漏斗等定向传输
 ├── ISidedInventoryProvider.hpp    # 侧面背包提供者接口

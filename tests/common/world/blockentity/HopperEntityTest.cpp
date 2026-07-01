@@ -893,15 +893,15 @@ TEST_F(IHopperTest, GetOutputPosition_DefaultDirectionDown)
 
 TEST_F(HopperEntityTest, GetInventoryAtPosition_NullWorld_ReturnsNullptr)
 {
-    IInventory* result = HopperEntity::getInventoryAtPosition(nullptr, BlockPos(10, 20, 30));
-    EXPECT_EQ(result, nullptr);
+    InventoryRef result = HopperEntity::getInventoryAtPosition(nullptr, BlockPos(10, 20, 30));
+    EXPECT_EQ(result.get(), nullptr);
 }
 
 TEST_F(HopperEntityTest, GetInventoryAtPosition_NoBlockEntity_ReturnsNullptr)
 {
     HopperTestWorld world;
-    IInventory* result = HopperEntity::getInventoryAtPosition(&world, BlockPos(10, 20, 30));
-    EXPECT_EQ(result, nullptr);
+    InventoryRef result = HopperEntity::getInventoryAtPosition(&world, BlockPos(10, 20, 30));
+    EXPECT_EQ(result.get(), nullptr);
 }
 
 TEST_F(HopperEntityTest, GetInventoryAtPosition_BlockEntityWithoutIInheritance_ReturnsNullptr)
@@ -914,9 +914,9 @@ TEST_F(HopperEntityTest, GetInventoryAtPosition_BlockEntityWithoutIInheritance_R
     auto container = std::make_unique<HopperEntity>(BlockPos(10, 21, 30));
     world.setBlockEntity(BlockPos(10, 21, 30), container.get());
 
-    IInventory* result = HopperEntity::getInventoryAtPosition(&world, BlockPos(10, 21, 30));
+    InventoryRef result = HopperEntity::getInventoryAtPosition(&world, BlockPos(10, 21, 30));
     // dynamic_cast<IInventory*>(blockEntity) 对 HopperEntity 返回 nullptr
-    EXPECT_EQ(result, nullptr);
+    EXPECT_EQ(result.get(), nullptr);
 
     (void)container.release(); // 避免双重释放
 }
@@ -925,9 +925,9 @@ TEST_F(HopperEntityTest, GetInventoryAtPosition_BlockEntityWithoutIInheritance_R
 
 TEST_F(HopperEntityTest, GetSourceInventory_NoWorld_ReturnsNullptr)
 {
-    // 漏斗没有设置世界时，getSourceInventory 返回 nullptr
-    IInventory* result = HopperEntity::getSourceInventory(*hopper_);
-    EXPECT_EQ(result, nullptr);
+    // 漏斗没有设置世界时，getSourceInventory 返回空引用
+    InventoryRef result = HopperEntity::getSourceInventory(*hopper_);
+    EXPECT_EQ(result.get(), nullptr);
 }
 
 // ========== 静态方法 _isInventoryFull / _isInventoryEmpty 测试 ==========

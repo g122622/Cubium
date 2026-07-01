@@ -410,6 +410,7 @@ add_library(mc_common STATIC
     entity/ai/util/PiglinAi.cpp
     entity/ai/util/RandomPositionGenerator.cpp
     entity/inventory/IInventory.cpp
+    entity/inventory/InventoryRef.cpp
     entity/inventory/Slot.cpp
     entity/inventory/PlayerInventory.cpp
     entity/inventory/PlayerEnderChestInventory.cpp

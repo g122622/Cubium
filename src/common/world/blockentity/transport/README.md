@@ -78,9 +78,9 @@ MC Java 中漏斗捕获物品不检查 `pickupDelay`（只有玩家拾取才检�
 
 `IHopper::getCollectionArea()` 返回 MC Java 的 `SUCK_AABB`（由 `Block.column(16.0, 11.0, 32.0)` 定义），从漏斗碗口顶部（Y=11/16）向上延伸到两格高度，水平覆盖完整方块区域。
 
-### 8. ISidedInventoryProvider 内存泄漏
+### 8. ISidedInventoryProvider 内存管理
 
-`getInventoryAtPosition()` 中通过 `ISidedInventoryProvider::createInventory()` 创建的 `unique_ptr` 被 `.release()` 转为原始指针返回，调用方无法释放。目前仅 ComposterBlock 使用此路径，泄漏量较小。
+`getInventoryAtPosition()` 返回 `InventoryRef`（而非原始指针），用于正确管理 `ISidedInventoryProvider` 动态创建的背包的生命周期。当容器来自 `ISidedInventoryProvider`（如堆肥桶）时，`InventoryRef` 拥有所有权并在析构时自动释放；当容器来自方块实体或实体时，`InventoryRef` 仅为非拥有引用。
 
 ### 9. IHopper 获取背包方式
 

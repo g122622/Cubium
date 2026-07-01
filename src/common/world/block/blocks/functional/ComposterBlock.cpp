@@ -297,5 +297,295 @@ ActionResultType ComposterBlock::onBlockActivated(const BlockState& state,
     return ActionResultType::Success;
 }
 
+// ========== ISidedInventoryProvider 接口 ==========
+
+std::unique_ptr<ISidedInventory> ComposterBlock::createInventory(
+    const BlockState& state, IWorld& world, const BlockPos& pos)
+{
+    i32 level = getLevel(state);
+    if (level == 8) {
+        return std::make_unique<OutputContainer>(state, world, pos);
+    } else if (level < 7) {
+        return std::make_unique<InputContainer>(state, world, pos);
+    } else {
+        // 等级 7：正在转变中，不允许任何交互
+        return std::make_unique<EmptyContainer>();
+    }
+}
+
+// ========== EmptyContainer 实现 ==========
+
+ItemStack ComposterBlock::EmptyContainer::getItem(i32 slot) const
+{
+    MC_UNUSED(slot);
+    return ItemStack::EMPTY;
+}
+
+void ComposterBlock::EmptyContainer::setItem(i32 slot, const ItemStack& stack)
+{
+    MC_UNUSED(slot);
+    MC_UNUSED(stack);
+}
+
+ItemStack ComposterBlock::EmptyContainer::removeItem(i32 slot, i32 count)
+{
+    MC_UNUSED(slot);
+    MC_UNUSED(count);
+    return ItemStack::EMPTY;
+}
+
+ItemStack ComposterBlock::EmptyContainer::removeItemNoUpdate(i32 slot)
+{
+    MC_UNUSED(slot);
+    return ItemStack::EMPTY;
+}
+
+std::vector<i32> ComposterBlock::EmptyContainer::getSlotsForFace(Direction side) const
+{
+    MC_UNUSED(side);
+    return {};
+}
+
+bool ComposterBlock::EmptyContainer::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
+    MC_UNUSED(slot);
+    MC_UNUSED(stack);
+    MC_UNUSED(direction);
+    return false;
+}
+
+bool ComposterBlock::EmptyContainer::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
+    MC_UNUSED(slot);
+    MC_UNUSED(stack);
+    MC_UNUSED(direction);
+    return false;
+}
+
+void ComposterBlock::EmptyContainer::serialize(network::PacketSerializer& ser) const
+{
+    MC_UNUSED(ser);
+}
+
+// ========== InputContainer 实现 ==========
+
+ComposterBlock::InputContainer::InputContainer(const BlockState& state, IWorld& world, const BlockPos& pos)
+    : m_state(state)
+    , m_world(world)
+    , m_pos(pos)
+{}
+
+bool ComposterBlock::InputContainer::isEmpty() const noexcept
+{
+    return m_item.isEmpty();
+}
+
+ItemStack ComposterBlock::InputContainer::getItem(i32 slot) const
+{
+    MC_UNUSED(slot);
+    return m_item;
+}
+
+void ComposterBlock::InputContainer::setItem(i32 slot, const ItemStack& stack)
+{
+    MC_UNUSED(slot);
+    m_item = stack;
+    setChanged();
+}
+
+ItemStack ComposterBlock::InputContainer::removeItem(i32 slot, i32 count)
+{
+    MC_UNUSED(slot);
+    MC_UNUSED(count);
+    // 输入容器不允许提取
+    return ItemStack::EMPTY;
+}
+
+ItemStack ComposterBlock::InputContainer::removeItemNoUpdate(i32 slot)
+{
+    MC_UNUSED(slot);
+    return ItemStack::EMPTY;
+}
+
+void ComposterBlock::InputContainer::clear()
+{
+    m_item = ItemStack::EMPTY;
+}
+
+void ComposterBlock::InputContainer::setChanged()
+{
+    if (m_changed) {
+        return;
+    }
+
+    // 当物品被放入槽位时，自动执行堆肥逻辑
+    if (!m_item.isEmpty()) {
+        m_changed = true;
+        const Item* item = m_item.getItem();
+        if (item != nullptr) {
+            attemptCompost(m_state, m_world, m_pos, m_state.getBlock(), static_cast<u32>(item->itemId()));
+        }
+        // 处理完毕后清空槽位
+        m_item = ItemStack::EMPTY;
+    }
+}
+
+bool ComposterBlock::InputContainer::canPlaceItem(i32 slot, const ItemStack& stack) const
+{
+    MC_UNUSED(slot);
+    // 仅当未处理过且物品可堆肥时允许放入
+    if (m_changed) {
+        return false;
+    }
+    const Item* item = stack.getItem();
+    return item != nullptr && CompostableItems::isCompostable(item);
+}
+
+std::vector<i32> ComposterBlock::InputContainer::getSlotsForFace(Direction side) const
+{
+    // 仅允许从上方访问槽位 0
+    if (side == Direction::Up) {
+        return {0};
+    }
+    return {};
+}
+
+bool ComposterBlock::InputContainer::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
+    MC_UNUSED(slot);
+    // 仅允许从上方插入可堆肥物品，且未处理过
+    if (m_changed || direction != Direction::Up) {
+        return false;
+    }
+    const Item* item = stack.getItem();
+    return item != nullptr && CompostableItems::isCompostable(item);
+}
+
+bool ComposterBlock::InputContainer::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
+    MC_UNUSED(slot);
+    MC_UNUSED(stack);
+    MC_UNUSED(direction);
+    // 输入容器不允许提取
+    return false;
+}
+
+void ComposterBlock::InputContainer::serialize(network::PacketSerializer& ser) const
+{
+    MC_UNUSED(ser);
+}
+
+// ========== OutputContainer 实现 ==========
+
+ComposterBlock::OutputContainer::OutputContainer(const BlockState& state, IWorld& world, const BlockPos& pos)
+    : m_state(state)
+    , m_world(world)
+    , m_pos(pos)
+{
+    // 初始化为 1 个骨粉
+    if (Items::BONE_MEAL != nullptr) {
+        m_item = ItemStack(Items::BONE_MEAL, 1);
+    }
+}
+
+bool ComposterBlock::OutputContainer::isEmpty() const noexcept
+{
+    return m_item.isEmpty();
+}
+
+ItemStack ComposterBlock::OutputContainer::getItem(i32 slot) const
+{
+    MC_UNUSED(slot);
+    return m_item;
+}
+
+void ComposterBlock::OutputContainer::setItem(i32 slot, const ItemStack& stack)
+{
+    MC_UNUSED(slot);
+    m_item = stack;
+    setChanged();
+}
+
+ItemStack ComposterBlock::OutputContainer::removeItem(i32 slot, i32 count)
+{
+    if (slot != 0 || m_item.isEmpty()) {
+        return ItemStack::EMPTY;
+    }
+    i32 toRemove = std::min(count, m_item.getCount());
+    ItemStack result = m_item.copy();
+    result.setCount(toRemove);
+    m_item.shrink(toRemove);
+    if (m_item.isEmpty()) {
+        m_item = ItemStack::EMPTY;
+    }
+    return result;
+}
+
+ItemStack ComposterBlock::OutputContainer::removeItemNoUpdate(i32 slot)
+{
+    if (slot != 0) {
+        return ItemStack::EMPTY;
+    }
+    ItemStack result = std::move(m_item);
+    m_item = ItemStack::EMPTY;
+    return result;
+}
+
+void ComposterBlock::OutputContainer::clear()
+{
+    m_item = ItemStack::EMPTY;
+}
+
+void ComposterBlock::OutputContainer::setChanged()
+{
+    if (m_changed) {
+        return;
+    }
+
+    // 当骨粉被取出时，清空堆肥桶并重置为等级 0
+    if (m_item.isEmpty()) {
+        m_changed = true;
+        BlockState stateCopy = m_state;
+        empty(m_world, m_pos, stateCopy);
+    }
+}
+
+std::vector<i32> ComposterBlock::OutputContainer::getSlotsForFace(Direction side) const
+{
+    // 仅允许从下方访问槽位 0
+    if (side == Direction::Down) {
+        return {0};
+    }
+    return {};
+}
+
+bool ComposterBlock::OutputContainer::canInsertItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
+    MC_UNUSED(slot);
+    MC_UNUSED(stack);
+    MC_UNUSED(direction);
+    // 输出容器不允许插入
+    return false;
+}
+
+bool ComposterBlock::OutputContainer::canExtractItem(i32 slot, const ItemStack& stack, Direction direction) const
+{
+    MC_UNUSED(slot);
+    // 仅允许从下方提取骨粉，且未处理过
+    if (m_changed || direction != Direction::Down) {
+        return false;
+    }
+    // 检查提取的物品是否为骨粉
+    if (Items::BONE_MEAL != nullptr && stack.getItem() == Items::BONE_MEAL) {
+        return true;
+    }
+    return false;
+}
+
+void ComposterBlock::OutputContainer::serialize(network::PacketSerializer& ser) const
+{
+    MC_UNUSED(ser);
+}
+
 } // namespace blocks
 } // namespace mc

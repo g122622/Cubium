@@ -217,7 +217,8 @@ Direction HopperEntity::getOutputDirection() const
 bool HopperEntity::pullItems(IHopper& hopper)
 {
     // 尝试从上方容器拉取物品
-    IInventory* sourceInventory = getSourceInventory(hopper);
+    InventoryRef sourceInventoryRef = getSourceInventory(hopper);
+    IInventory* sourceInventory = sourceInventoryRef.get();
 
     if (sourceInventory != nullptr) {
         // 检查源容器是否为漏斗自身，避免自循环
@@ -323,10 +324,10 @@ bool HopperEntity::captureItem(IInventory* inventory, ItemEntity* itemEntity)
     return false;
 }
 
-IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& pos)
+InventoryRef HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& pos)
 {
     if (world == nullptr) {
-        return nullptr;
+        return InventoryRef();
     }
 
     // 获取方块状态
@@ -342,13 +343,8 @@ IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& 
         if (provider != nullptr) {
             std::unique_ptr<ISidedInventory> inventory = provider->createInventory(*blockState, *world, pos);
             if (inventory != nullptr) {
-                // TODO: 此处返回原始指针存在内存泄漏风险。
-                // ISidedInventoryProvider::createInventory() 返回 unique_ptr，
-                // 但调用方通过原始指针使用后无法释放。
-                // 完整修复需要将 getInventoryAtPosition 返回类型改为 unique_ptr
-                // 或使用 shared_ptr，但涉及较大范围重构。
-                // 当前仅 ComposterBlock 使用此路径，泄漏量较小。
-                return inventory.release();
+                // InventoryRef 拥有所有权，析构时自动释放
+                return InventoryRef(std::move(inventory));
             }
         }
     }
@@ -358,7 +354,8 @@ IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& 
     if (blockEntity != nullptr) {
         IInventory* inventory = dynamic_cast<IInventory*>(blockEntity);
         if (inventory != nullptr) {
-            return inventory;
+            // 非拥有引用，方块实体管理生命周期
+            return InventoryRef(inventory);
         }
     }
 
@@ -378,14 +375,15 @@ IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& 
 
         IInventory* inventory = dynamic_cast<IInventory*>(entity);
         if (inventory != nullptr) {
-            return inventory;
+            // 非拥有引用，实体管理生命周期
+            return InventoryRef(inventory);
         }
     }
 
-    return nullptr;
+    return InventoryRef();
 }
 
-IInventory* HopperEntity::getSourceInventory(IHopper& hopper)
+InventoryRef HopperEntity::getSourceInventory(IHopper& hopper)
 {
     // 获取漏斗上方一格的位置
     BlockPos pos = hopper.getHopperPos().up();
@@ -494,7 +492,8 @@ bool HopperEntity::_updateHopper(std::function<bool()> pullFunc)
 bool HopperEntity::_transferItemsOut()
 {
     // 获取输出目标容器
-    IInventory* targetInventory = _getInventoryForHopperTransfer();
+    InventoryRef targetInventoryRef = _getInventoryForHopperTransfer();
+    IInventory* targetInventory = targetInventoryRef.get();
     if (targetInventory == nullptr) {
         return false;
     }
@@ -540,10 +539,10 @@ bool HopperEntity::_transferItemsOut()
     return false;
 }
 
-IInventory* HopperEntity::_getInventoryForHopperTransfer()
+InventoryRef HopperEntity::_getInventoryForHopperTransfer()
 {
     if (m_world == nullptr) {
-        return nullptr;
+        return InventoryRef();
     }
 
     // 获取漏斗输出方向对应的方块位置
