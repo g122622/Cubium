@@ -14,9 +14,9 @@
 - 数据包物品标签文件数：**198**
 - 标签引用的去重叶子物品数：**882**
 - Cubium 已注册物品数（源码扫描）：**858**
-- 标签引用但未实现的物品数：**358**
+- 标签引用但未实现的物品数：**353**
 - 完全无法解析（标签内全部叶子物品均未实现）的标签数：**21**
-- 部分缺失（至少一个叶子物品未实现）的标签数：**50**
+- 部分缺失（至少一个叶子物品未实现）的标签数：**43**
 
 ## 注册物品来源
 
@@ -63,12 +63,10 @@
 
 | 标签 | 未实现叶子物品数 |
 | --- | --- |
-| `minecraft:axes` | 1 |
 | `minecraft:bars` | 8 |
 | `minecraft:bee_food` | 11 |
 | `minecraft:bookshelf_books` | 1 |
 | `minecraft:chicken_food` | 2 |
-| `minecraft:cluster_max_harvestables` | 0 |
 | `minecraft:coal_ores` | 1 |
 | `minecraft:compasses` | 1 |
 | `minecraft:copper_ores` | 1 |
@@ -78,32 +76,24 @@
 | `minecraft:dyeable` | 1 |
 | `minecraft:eggs` | 2 |
 | `minecraft:emerald_ores` | 1 |
-| `minecraft:enchantable/durability` | 1 |
 | `minecraft:flowers` | 9 |
 | `minecraft:gold_ores` | 1 |
-| `minecraft:hoes` | 1 |
 | `minecraft:iron_ores` | 1 |
 | `minecraft:lanterns` | 8 |
 | `minecraft:lapis_ores` | 1 |
 | `minecraft:leaves` | 5 |
 | `minecraft:non_flammable_wood` | 14 |
 | `minecraft:parrot_food` | 2 |
-| `minecraft:pickaxes` | 1 |
 | `minecraft:piglin_loved` | 6 |
 | `minecraft:piglin_preferred_weapons` | 1 |
 | `minecraft:planks` | 6 |
 | `minecraft:redstone_ores` | 1 |
 | `minecraft:sand` | 1 |
 | `minecraft:saplings` | 5 |
-| `minecraft:shovels` | 1 |
 | `minecraft:shulker_boxes` | 16 |
 | `minecraft:slabs` | 40 |
 | `minecraft:small_flowers` | 3 |
 | `minecraft:stairs` | 36 |
-| `minecraft:stone_buttons` | 1 |
-| `minecraft:stone_crafting_materials` | 1 |
-| `minecraft:stone_tool_materials` | 1 |
-| `minecraft:swords` | 1 |
 | `minecraft:trapdoors` | 8 |
 | `minecraft:trim_materials` | 2 |
 | `minecraft:villager_plantable_seeds` | 2 |
@@ -806,14 +796,6 @@
 ## 附录：部分缺失标签的逐项明细
 
 
-### `minecraft:axes`
-
-
-未实现项：
-
-
-- `minecraft:copper_axe ✅ 已完成`
-
 ### `minecraft:bars`
 
 
@@ -863,14 +845,6 @@
 
 - `minecraft:pitcher_pod`
 - `minecraft:torchflower_seeds`
-
-### `minecraft:cluster_max_harvestables`
-
-
-未实现项：
-
-
-- `minecraft:copper_pickaxe ✅ 已完成`
 
 ### `minecraft:coal_ores`
 
@@ -956,14 +930,6 @@
 
 - `minecraft:deepslate_emerald_ore ✅ 已完成`
 
-### `minecraft:enchantable/durability`
-
-
-未实现项：
-
-
-- `minecraft:brush ✅ 已完成`
-
 ### `minecraft:flowers`
 
 
@@ -987,14 +953,6 @@
 
 
 - `minecraft:deepslate_gold_ore ✅ 已完成`
-
-### `minecraft:hoes`
-
-
-未实现项：
-
-
-- `minecraft:copper_hoe ✅ 已完成`
 
 ### `minecraft:iron_ores`
 
@@ -1069,14 +1027,6 @@
 - `minecraft:pitcher_pod`
 - `minecraft:torchflower_seeds`
 
-### `minecraft:pickaxes`
-
-
-未实现项：
-
-
-- `minecraft:copper_pickaxe ✅ 已完成`
-
 ### `minecraft:piglin_loved`
 
 
@@ -1138,14 +1088,6 @@
 - `minecraft:flowering_azalea`
 - `minecraft:mangrove_propagule`
 - `minecraft:pale_oak_sapling ✅ 已完成`
-
-### `minecraft:shovels`
-
-
-未实现项：
-
-
-- `minecraft:copper_shovel ✅ 已完成`
 
 ### `minecraft:shulker_boxes`
 
@@ -1269,38 +1211,6 @@
 - `minecraft:waxed_oxidized_cut_copper_stairs ✅ 已完成`
 - `minecraft:waxed_weathered_cut_copper_stairs ✅ 已完成`
 - `minecraft:weathered_cut_copper_stairs ✅ 已完成`
-
-### `minecraft:stone_buttons`
-
-
-未实现项：
-
-
-- `minecraft:polished_blackstone_button ✅ 已完成`
-
-### `minecraft:stone_crafting_materials`
-
-
-未实现项：
-
-
-- `minecraft:cobbled_deepslate ✅ 已完成`
-
-### `minecraft:stone_tool_materials`
-
-
-未实现项：
-
-
-- `minecraft:cobbled_deepslate ✅ 已完成`
-
-### `minecraft:swords`
-
-
-未实现项：
-
-
-- `minecraft:copper_sword ✅ 已完成`
 
 ### `minecraft:trapdoors`
 
