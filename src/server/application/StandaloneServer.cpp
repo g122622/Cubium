@@ -29,6 +29,7 @@
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/inventory/PlayerEnderChestInventory.hpp"
 #include "common/entity/inventory/PlayerInventory.hpp"
+#include "common/entity/inventory/container/AnvilContainer.hpp"
 #include "common/entity/inventory/container/CartographyContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/CrafterContainer.hpp"
@@ -295,6 +296,10 @@ Result<void> StandaloneServer::initialize(const StandaloneServerParams& params)
             }
             case mc::ContainerType::Enchantment: {
                 result.menu = std::make_unique<mc::EnchantmentContainer>(containerId, playerInventory, pos, world);
+                return result;
+            }
+            case mc::ContainerType::Anvil: {
+                result.menu = std::make_unique<mc::AnvilContainer>(containerId, playerInventory, pos, world);
                 return result;
             }
             case mc::ContainerType::Cartography: {

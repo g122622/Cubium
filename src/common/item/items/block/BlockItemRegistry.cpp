@@ -286,6 +286,38 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHEST, "chest");
     registerSimpleBlock(VanillaBlocks::TRAPPED_CHEST, "trapped_chest");
 
+    // 铁砧（最大堆叠数为1）
+    {
+        auto registerAnvilBlock = [this](Block* block, const std::string& name) {
+            if (block == nullptr) {
+                spdlog::warn("Block '{}' is null, skipping", name);
+                return;
+            }
+            const ResourceLocation& blockLoc = block->blockLocation();
+            ResourceLocation itemLoc(blockLoc.namespace_(), blockLoc.path());
+            BlockItem* registeredItem = nullptr;
+            Item* existingItem = ItemRegistry::instance().getItem(itemLoc);
+            if (existingItem != nullptr) {
+                registeredItem = dynamic_cast<BlockItem*>(existingItem);
+                if (registeredItem == nullptr) {
+                    spdlog::warn("Item '{}' already exists but is not a BlockItem, skipping", itemLoc.toString());
+                    return;
+                }
+            } else {
+                registeredItem = &ItemRegistry::instance().registerItem<BlockItem>(
+                    itemLoc, *block, ItemProperties().maxStackSize(1));
+            }
+            u32 blockId = block->blockId();
+            ItemId itemId = registeredItem->itemId();
+            m_blockToItem[blockId] = registeredItem;
+            m_itemToBlock[itemId] = block;
+            m_itemIdToBlockItem[itemId] = registeredItem;
+        };
+        registerAnvilBlock(VanillaBlocks::ANVIL, "anvil");
+        registerAnvilBlock(VanillaBlocks::CHIPPED_ANVIL, "chipped_anvil");
+        registerAnvilBlock(VanillaBlocks::DAMAGED_ANVIL, "damaged_anvil");
+    }
+
     // 石砖系列
     registerSimpleBlock(VanillaBlocks::STONE_BRICKS, "stone_bricks");
     registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICKS, "mossy_stone_bricks");
@@ -812,6 +844,17 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "redstone_repeater");
     registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "redstone_comparator");
     registerSimpleBlock(VanillaBlocks::OBSERVER, "observer");
+
+    // 避雷针（含氧化和涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::LIGHTNING_ROD, "lightning_rod");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_LIGHTNING_ROD, "exposed_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_LIGHTNING_ROD, "weathered_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_LIGHTNING_ROD, "oxidized_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WAXED_LIGHTNING_ROD, "waxed_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD, "waxed_exposed_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD, "waxed_weathered_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD, "waxed_oxidized_lightning_rod");
+
     registerSimpleBlock(VanillaBlocks::LEVER, "lever");
     registerSimpleBlock(VanillaBlocks::STONE_BUTTON, "stone_button");
     registerSimpleBlock(VanillaBlocks::OAK_BUTTON, "oak_button");

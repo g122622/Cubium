@@ -14,8 +14,8 @@
 - 数据包物品标签文件数：**198**
 - 标签引用的去重叶子物品数：**882**
 - Cubium 已注册物品数（源码扫描）：**858**
-- 标签引用但未实现的物品数：**353**
-- 完全无法解析（标签内全部叶子物品均未实现）的标签数：**21**
+- 标签引用但未实现的物品数：**342**
+- 完全无法解析（标签内全部叶子物品均未实现）的标签数：**19**
 - 部分缺失（至少一个叶子物品未实现）的标签数：**43**
 
 ## 注册物品来源
@@ -36,7 +36,7 @@
 
 | 标签 | 未实现的叶子物品数 |
 | --- | --- |
-| `minecraft:anvil` | 3 |
+| `minecraft:anvil` | 3 ✅ 已完成 |
 | `minecraft:bamboo_blocks` | 2 |
 | `minecraft:beds` | 16 |
 | `minecraft:bundles` | 17 |
@@ -49,7 +49,7 @@
 | `minecraft:decorated_pot_ingredients` | 1 |
 | `minecraft:duplicates_allays` | 1 |
 | `minecraft:harnesses` | 16 |
-| `minecraft:lightning_rods` | 8 |
+| `minecraft:lightning_rods` | 8 ✅ 已完成 |
 | `minecraft:mangrove_logs` | 4 |
 | `minecraft:pale_oak_logs` | 4 |
 | `minecraft:repairs_turtle_helmet` | 1 |
@@ -107,16 +107,14 @@
 ## 未实现物品完整清单（按分类）
 
 
-共 **364** 项。物品 id 形如 `minecraft:anvil`。
+共 **353** 项。物品 id 形如 `minecraft:anvil`。
 
 
 ### Armor（2）
 
 
 - `minecraft:golden_nautilus_armor`
-- `minecraft:wolf_armor`
-
-### Beds（16）
+- `minecraft:wolf_armor`### Beds（16）
 
 
 - `minecraft:black_bed`
@@ -559,9 +557,9 @@
 ### `minecraft:anvil`
 
 
-- `minecraft:anvil`
-- `minecraft:chipped_anvil`
-- `minecraft:damaged_anvil`
+- `minecraft:anvil ✅ 已完成`
+- `minecraft:chipped_anvil ✅ 已完成`
+- `minecraft:damaged_anvil ✅ 已完成`
 
 ### `minecraft:bamboo_blocks`
 
@@ -726,14 +724,14 @@
 ### `minecraft:lightning_rods`
 
 
-- `minecraft:exposed_lightning_rod`
-- `minecraft:lightning_rod`
-- `minecraft:oxidized_lightning_rod`
-- `minecraft:waxed_exposed_lightning_rod`
-- `minecraft:waxed_lightning_rod`
-- `minecraft:waxed_oxidized_lightning_rod`
-- `minecraft:waxed_weathered_lightning_rod`
-- `minecraft:weathered_lightning_rod`
+- `minecraft:exposed_lightning_rod ✅ 已完成`
+- `minecraft:lightning_rod ✅ 已完成`
+- `minecraft:oxidized_lightning_rod ✅ 已完成`
+- `minecraft:waxed_exposed_lightning_rod ✅ 已完成`
+- `minecraft:waxed_lightning_rod ✅ 已完成`
+- `minecraft:waxed_oxidized_lightning_rod ✅ 已完成`
+- `minecraft:waxed_weathered_lightning_rod ✅ 已完成`
+- `minecraft:weathered_lightning_rod ✅ 已完成`
 
 ### `minecraft:mangrove_logs`
 
