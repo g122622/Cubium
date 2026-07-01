@@ -116,6 +116,20 @@ HoglinEntity 重写了 `getPathWeight(f32 x, f32 y, f32 z)` 方法：
 对应 MC 1.21.11 的 `HoglinSpecificSensor.findNearestRepellent` 逻辑，
 本项目采用在 `getPathWeight()` 中直接扫描方块的方式实现（因 HoglinEntity 使用 Goal 系统而非 Brain 系统）。
 
+### 8.1 PiglinEntity 寻路权重与驱避物检测
+
+PiglinEntity 重写了 `getPathWeight(f32 x, f32 y, f32 z)` 方法：
+- 位置附近 8×4×8 范围内存在驱避物方块时返回 `-1.0f`，拒绝前往该区域；
+- 其他位置返回父类 `CreatureEntity::getPathWeight()` 的默认值。
+
+驱避物方块由 `BlockTags::PIGLIN_REPELLENTS` 标签定义，包含：
+灵魂火(soul_fire)、灵魂火把(soul_torch)、灵魂墙火把(soul_wall_torch)、
+灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire)、诡异菌(warped_fungus)。
+
+与 HoglinEntity 类似，采用直接扫描方案而非 Brain/Sensor 系统。
+TODO: 灵魂营火需要额外检查点燃状态（MC 原版 PiglinSpecificSensor.isValidRepellent 中 CampfireBlock.isLitCampfire 检查），
+当前标签层面无法区分点燃/未点燃的营火。
+
 ### 9. ZoglinEntity canAttackType 类型过滤
 
 ZoglinEntity 重写了 `MobEntity::canAttackType()`，对应 MC 原版 `Zoglin.isTargetable` 的类型过滤部分：

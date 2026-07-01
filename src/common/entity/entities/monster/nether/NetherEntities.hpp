@@ -269,6 +269,16 @@ public:
 
     void tick() override;
 
+    // ========== 寻路权重 ==========
+
+    /**
+     * @brief 获取猪灵在指定位置的寻路权重
+     *
+     * 猪灵排斥物（PIGLIN_REPELLENTS）附近返回 -1.0f，
+     * 其他位置返回父类默认值。
+     */
+    [[nodiscard]] f32 getPathWeight(f32 x, f32 y, f32 z) const override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;

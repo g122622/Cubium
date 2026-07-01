@@ -1231,7 +1231,7 @@ void BlockTags::initialize()
     // MC 1.21.11: BlockTags.HOGLIN_REPELLENTS
     // 疣猪兽在这些方块附近会逃跑，getPathWeight 返回 -1.0
     // 包含: 诡异菌(warped_fungus)、诡异菌岩(warped_nylium)、下界传送门(nether_portal)、重生锚(respawn_anchor)
-    // 注意: MC 原版还包含 potted_warped_fungus，但当前项目花盆系统尚未实现
+    // TODO: 花盆系统实现后需添加 potted_warped_fungus（盆栽诡异菌）到此标签
     auto hoglinRepellents = std::make_unique<BlockTag>(ResourceLocation("minecraft", "hoglin_repellents"));
     hoglinRepellents->addAll({ResourceLocation("minecraft", "warped_fungus"),
         ResourceLocation("minecraft", "warped_nylium"),
@@ -1244,7 +1244,8 @@ void BlockTags::initialize()
     // 猪灵在这些方块附近会逃跑
     // 包含: 灵魂火(soul_fire)、灵魂火把(soul_torch)、灵魂墙火把(soul_wall_torch)、
     //       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)、诡异菌(warped_fungus)
-    // 注意: 灵魂营火的点燃状态检查需要在实体逻辑中单独处理，此处仅按标签判断
+    // 注意: 灵魂营火的点燃状态检查需要在实体逻辑中单独处理（PiglinSpecificSensor.isValidRepellent）
+    // TODO: 花盆系统实现后需添加 potted_warped_fungus（盆栽诡异菌）到此标签
     auto piglinRepellents = std::make_unique<BlockTag>(ResourceLocation("minecraft", "piglin_repellents"));
     piglinRepellents->addAll({ResourceLocation("minecraft", "soul_fire"),
         ResourceLocation("minecraft", "soul_torch"),
