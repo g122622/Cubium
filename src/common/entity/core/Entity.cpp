@@ -26,6 +26,7 @@
 #include "../../physics/PhysicsEngine.hpp"
 #include "../../resource/ResourceLocation.hpp"
 #include "../../sound/SoundEvents.hpp"
+#include "../../util/assert/AssertMacros.hpp"
 #include "../../util/math/MathUtils.hpp"
 #include "../../util/math/random/Random.hpp"
 #include "../../util/math/ray/Raycast.hpp"
@@ -1425,6 +1426,9 @@ bool Entity::addPassenger(Entity& passenger)
     // addPassenger 不进行循环检测，仅操作乘客列表。
     // 循环检测由 startRiding() 负责，addPassenger 验证 passenger 已正确关联到此载具。
     // 前置条件：passenger.getVehicle() 应该已经指向 this（由 startRiding 在调用前设置）
+    // 对齐 MC Java：当 passenger.getVehicle() != this 时抛出 IllegalStateException，
+    // 因为 addPassenger 必须通过 startRiding 调用，而 startRiding 会在调用 addPassenger
+    // 之前设置 passenger.vehicle = this。直接调用 addPassenger 是编程错误。
 
     // 检查是否已经是乘客
     if (isPassenger(passenger.id())) {
@@ -1433,19 +1437,19 @@ bool Entity::addPassenger(Entity& passenger)
 
     // 验证 passenger 的 vehicle 已正确指向此载具
     // （由 startRiding 在调用 addPassenger 之前设置）
+    // 对齐 MC Java Entity.addPassenger: passenger.getVehicle() != this 时抛出 IllegalStateException。
+    // C++ 中使用 Debug 断言 + 日志 + 返回 false 的方式对齐此行为，
+    // 而非直接终止程序（保持可恢复性）。
     if (passenger.getVehicle() != m_id) {
-        // 兼容非标准调用路径：如果 passenger 还未关联到任何载具，
-        // 自动设置关联（而非抛出异常，与 MC Java 的严格检查不同）
-        // TODO: MC Java 在 passenger.getVehicle() != this 时会抛出 IllegalStateException，
-        //       此处自动关联是向下兼容行为，未来应考虑收紧为严格检查（返回 false），
-        //       以与 MC Java 保持一致并避免潜在的逻辑错误。
-        if (passenger.getVehicle() == INVALID_ENTITY_ID) {
-            passenger.setVehicle(m_id);
-        } else {
-            // passenger 已关联到其他载具，这是编程错误
-            // 应使用 x.startRiding(y) 而非 y.addPassenger(x)
-            return false;
-        }
+        MC_ASSERT_MSG(passenger.getVehicle() == m_id,
+            "Entity::addPassenger: passenger's vehicle must already point to this entity. "
+            "Use passenger.startRiding(vehicle) instead of vehicle.addPassenger(passenger).");
+        spdlog::error("Entity::addPassenger: passenger (id={}) vehicle (id={}) does not match "
+                      "expected vehicle (id={}). Use startRiding() instead.",
+            passenger.id(),
+            static_cast<i32>(passenger.getVehicle()),
+            m_id);
+        return false;
     }
 
     // 检查是否可以接受乘客（硬门槛）
@@ -1493,18 +1497,28 @@ void Entity::removePassenger(Entity& passenger)
     // removePassenger 的职责是操作乘客列表。
     // dismount() 在调用 removePassenger 之前已经清空了 passenger 的 m_vehicle，
     // 然后从 passengers 列表中移除。
-    //
-    // 改为直接查找并移除乘客，无论 passenger.getVehicle() 的状态如何。
-    // 这是安全的，因为 removePassenger 是内部方法，总是由 stopRiding/dismount
-    // 或 removePassengers 调用，调用者已经处理了 vehicle 引用。
+    // 对齐 MC Java Entity.removePassenger: passenger.getVehicle() == this 时抛出
+    // IllegalStateException，因为 stopRiding/dismount 会先清空 m_vehicle 再调用
+    // removePassenger。如果 vehicle 链接仍指向 this，说明调用顺序错误。
 
     // 查找并移除乘客
     auto it = std::find(m_passengers.begin(), m_passengers.end(), passenger.id());
     if (it != m_passengers.end()) {
         m_passengers.erase(it);
 
-        // 确保乘客的 vehicle 引用被清空（可能已被 dismount 清空）
+        // 验证 passenger 的 vehicle 引用已被 dismount 清空
+        // 对齐 MC Java Entity.removePassenger: 如果 vehicle 仍指向 this，
+        // 说明调用者未通过 stopRiding/dismount 正确下骑。
+        // C++ 中使用 Debug 断言 + 安全清空 + 日志的方式对齐此行为。
         if (passenger.getVehicle() == m_id) {
+            MC_ASSERT_MSG(passenger.getVehicle() != m_id,
+                "Entity::removePassenger: passenger's vehicle should have been cleared by "
+                "stopRiding/dismount before calling removePassenger. "
+                "Use passenger.stopRiding() instead of vehicle.removePassenger(passenger).");
+            spdlog::warn("Entity::removePassenger: passenger (id={}) vehicle still points to "
+                         "this entity (id={}). Auto-clearing. Use stopRiding() instead.",
+                passenger.id(),
+                m_id);
             passenger.setVehicle(INVALID_ENTITY_ID);
         }
 

@@ -175,21 +175,25 @@ TEST(RidingCycleDetectionTest, AddPassenger_PassengerAlreadyBoundToOtherVehicle_
     EXPECT_EQ(rider.getVehicle(), vehicle1.id());
 }
 
-TEST(RidingCycleDetectionTest, AddPassenger_NoVehicleSet_AutoAssociates)
+TEST(RidingCycleDetectionTest, AddPassenger_NoVehicleSet_Fails_StrictCheck)
 {
-    // 如果 passenger 的 vehicle 为 INVALID（未关联到任何载具），
-    // addPassenger 应该自动设置关联
+    // 对齐 MC Java: addPassenger 要求 passenger 的 vehicle 必须已经指向当前载具。
+    // 如果 vehicle 未设置（INVALID_ENTITY_ID），说明调用者没有通过 startRiding 正确设置关联，
+    // 这是编程错误，addPassenger 应该拒绝。
+    // 这与 MC Java 的 IllegalStateException 行为一致：必须通过 startRiding 设置关联，
+    // 而不能直接调用 addPassenger。
     Entity vehicle(EntityId(1));
     Entity rider(EntityId(2));
 
     // rider 未骑乘任何实体
     EXPECT_EQ(rider.getVehicle(), INVALID_ENTITY_ID);
 
-    // 直接调用 addPassenger（非标准调用路径）
-    EXPECT_TRUE(vehicle.addPassenger(rider));
+    // 直接调用 addPassenger（非标准调用路径）应该失败
+    // 对齐 MC Java: passenger.getVehicle() != this 时抛出 IllegalStateException
+    EXPECT_FALSE(vehicle.addPassenger(rider));
 
-    // rider 应该在 vehicle 的乘客列表中
-    EXPECT_TRUE(vehicle.isPassenger(rider.id()));
+    // rider 不应该在 vehicle 的乘客列表中
+    EXPECT_FALSE(vehicle.isPassenger(rider.id()));
 }
 
 TEST(RidingCycleDetectionTest, AddPassenger_AlreadyAPassenger_Fails)

@@ -1787,6 +1787,8 @@ public:
      * 前置条件：passenger.getVehicle() 必须等于 this.id()，
      * 即 passenger 必须已经通过 setVehicle() 关联到此载具。
      * 这与 MC Java 的行为一致：startRiding 先设置 vehicle 字段，再调用 addPassenger。
+     * 如果 passenger.getVehicle() != this.id()，则触发断言并返回 false，
+     * 对齐 MC Java 的 IllegalStateException 行为。
      *
      * 不应直接调用此方法，应使用 startRiding()。
      *
@@ -1797,6 +1799,12 @@ public:
 
     /**
      * @brief 移除乘客
+     *
+     * 从乘客列表中移除指定实体。调用者应先清空 passenger 的 vehicle 引用
+     * （通过 stopRiding/dismount），然后再调用此方法。
+     * 对齐 MC Java：如果 passenger.getVehicle() 仍指向 this，
+     * 说明调用顺序错误，会触发断言。
+     *
      * @param passenger 乘客实体
      */
     void removePassenger(Entity& passenger);

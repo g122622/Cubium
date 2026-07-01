@@ -771,18 +771,18 @@
 
                     ### addPassenger() 添加乘客
 
-                    - 验证 `passenger.getVehicle() == m_id`（前置检查）
-                    - 若 `passenger.getVehicle() == INVALID_ENTITY_ID`，自动关联（兼容路径，MC Java 会抛 IllegalStateException）
-                    - 若 `passenger.getVehicle()` 指向其他载具，返回 false
+                    - 验证 `passenger.getVehicle() == m_id`（前置检查，对齐 MC Java）
+                    - 若 `passenger.getVehicle() != m_id`，触发 `MC_ASSERT_RELEASE_MSG` 断言并返回 false
+                      （MC Java 抛出 IllegalStateException，C++ 项目使用断言对齐此行为）
                     - 检查 `couldAcceptPassenger()` 和 `canAddPassenger()`
                     - 将 passenger 添加到乘客列表（服务端玩家插入头部）
                     - 设置骑乘冷却 `rideCooldown = 60`
 
                     ### removePassenger() 移除乘客
 
-                    - 按 passenger id 在乘客列表中查找并移除（不依赖 `passenger.getVehicle()` 判断）
-                    - `dismount()` 先清空 passenger 的 `m_vehicle`，再调用 `removePassenger()`
-                    - 如果 passenger 的 `m_vehicle` 仍指向本载具（非标准调用路径），清空为 `INVALID_ENTITY_ID`
+                    - 按 passenger id 在乘客列表中查找并移除
+                    - 验证 `passenger.getVehicle() != m_id`（对齐 MC Java：stopRiding 先清空 vehicle 再调用 removePassenger）
+                    - 若 `passenger.getVehicle()` 仍指向本载具，触发断言（调用顺序错误）
                     - 设置骑乘冷却 `rideCooldown = 60`
 
                     ### isRidingOrBeingRiddenBy() 双向骑乘关系检查
