@@ -762,6 +762,14 @@ public:
      */
     [[nodiscard]] bool isGridAligned() const override { return false; }
 
+    /**
+     * @brief 获取漏斗矿车的物品背包
+     * @return 背包指针
+     *
+     * 实现 IHopper::getHopperInventory()，返回矿车内部背包。
+     */
+    [[nodiscard]] IInventory* getHopperInventory() override { return getInventory(); }
+
     // ========== IInventory 代理方法 ==========
 
     [[nodiscard]] i32 getContainerSize() const;

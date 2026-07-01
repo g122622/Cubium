@@ -81,3 +81,7 @@ MC Java 中漏斗捕获物品不检查 `pickupDelay`（只有玩家拾取才检�
 ### 8. ISidedInventoryProvider 内存泄漏
 
 `getInventoryAtPosition()` 中通过 `ISidedInventoryProvider::createInventory()` 创建的 `unique_ptr` 被 `.release()` 转为原始指针返回，调用方无法释放。目前仅 ComposterBlock 使用此路径，泄漏量较小。
+
+### 9. IHopper 获取背包方式
+
+`IHopper` 实现者（HopperEntity、HopperMinecartEntity）不继承 `IInventory`，而是通过组合方式持有 `SimpleInventory`。因此，`pullItems()` 和 `_pullItemFromSlot()` 中不能使用 `dynamic_cast<IInventory*>(&hopper)` 获取漏斗背包（会返回 nullptr）。必须通过 `IHopper::getHopperInventory()` 虚方法获取。此方法在 IHopper 接口中定义，默认返回 nullptr，由子类覆写返回实际背包指针。

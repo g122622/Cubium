@@ -220,7 +220,7 @@ bool HopperEntity::pullItems(IHopper& hopper)
 
     if (sourceInventory != nullptr) {
         // 检查源容器是否为漏斗自身，避免自循环
-        IInventory* hopperInventory = dynamic_cast<IInventory*>(&hopper);
+        IInventory* hopperInventory = hopper.getHopperInventory();
         if (sourceInventory == hopperInventory) {
             return false;
         }
@@ -280,7 +280,7 @@ bool HopperEntity::pullItems(IHopper& hopper)
     std::vector<ItemEntity*> items = getCaptureItems(hopper);
     for (ItemEntity* item : items) {
         // 获取漏斗的背包
-        IInventory* hopperInventory = dynamic_cast<IInventory*>(&hopper);
+        IInventory* hopperInventory = hopper.getHopperInventory();
         if (captureItem(hopperInventory, item)) {
             return true;
         }
@@ -636,7 +636,7 @@ bool HopperEntity::_pullItemFromSlot(IHopper& hopper, IInventory* inventory, i32
     ItemStack extracted = inventory->removeItem(slotIndex, 1);
 
     // 尝试插入漏斗
-    IInventory* hopperInventory = dynamic_cast<IInventory*>(&hopper);
+    IInventory* hopperInventory = hopper.getHopperInventory();
     if (hopperInventory == nullptr) {
         // 恢复物品
         inventory->setItem(slotIndex, stackCopy);

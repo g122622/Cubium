@@ -124,6 +124,15 @@ public:
      */
     [[nodiscard]] Direction getOutputDirection() const override;
 
+    /**
+     * @brief 获取漏斗的物品背包
+     * @return 背包指针
+     *
+     * 实现 IHopper::getHopperInventory()，返回内部 SimpleInventory。
+     * 用于 pullItems/captureItem 中获取漏斗的背包指针。
+     */
+    [[nodiscard]] IInventory* getHopperInventory() override { return &m_inventory; }
+
     // ========== 漏斗特定方法 ==========
 
     /**

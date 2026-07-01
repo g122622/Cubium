@@ -29,6 +29,10 @@
 #include "world/block/BlockPos.hpp"
 
 namespace mc {
+
+// 前向声明
+class IInventory;
+
 namespace blockentity {
 
 /**
@@ -87,6 +91,18 @@ public:
      * 且上方方块碰撞形状为完整方块时，漏斗不会吸取物品实体。
      */
     [[nodiscard]] virtual bool isGridAligned() const { return true; }
+
+    /**
+     * @brief 获取漏斗的物品背包
+     * @return 背包指针，如果没有返回nullptr
+     *
+     * IHopper 的实现者必须提供此方法以返回物品存储容器。
+     * HopperEntity 返回其内部 SimpleInventory，
+     * HopperMinecartEntity 返回其矿车背包。
+     * 用于 pullItems/captureItem 中获取漏斗的背包指针，
+     * 替代 dynamic_cast<IInventory*>(&hopper)（因 HopperEntity 不继承 IInventory）。
+     */
+    [[nodiscard]] virtual IInventory* getHopperInventory() { return nullptr; }
 
     // ========== 静态工具方法 ==========
 

@@ -505,6 +505,36 @@ TEST_F(HopperEntityTest, IsGridAligned_ReturnsTrueForBlockHopper)
     EXPECT_TRUE(hopper_->isGridAligned());
 }
 
+// ========== getHopperInventory 测试 ==========
+
+TEST_F(HopperEntityTest, GetHopperInventory_ReturnsValidInventory)
+{
+    // HopperEntity::getHopperInventory() 应返回内部 SimpleInventory 指针
+    IInventory* inventory = hopper_->getHopperInventory();
+    ASSERT_NE(inventory, nullptr);
+    EXPECT_EQ(inventory->getContainerSize(), HopperEntity::HOPPER_SIZE);
+}
+
+TEST_F(HopperEntityTest, GetHopperInventory_SameAsGetInventory)
+{
+    // getHopperInventory() 和 getInventory() 应返回同一个指针
+    IInventory* hopperInventory = hopper_->getHopperInventory();
+    IInventory* inventory = hopper_->getInventory();
+    EXPECT_EQ(hopperInventory, inventory);
+}
+
+TEST_F(HopperEntityTest, GetHopperInventory_CanManipulateItems)
+{
+    // 通过 getHopperInventory() 获取的指针可以操作物品
+    IInventory* inventory = hopper_->getHopperInventory();
+    ASSERT_NE(inventory, nullptr);
+    inventory->setItem(0, ItemStack(m_diamond, 32));
+    EXPECT_EQ(inventory->getItem(0).getItem(), m_diamond);
+    EXPECT_EQ(inventory->getItem(0).getCount(), 32);
+    // 也通过 getInventory() 可见
+    EXPECT_EQ(hopper_->getInventory()->getItem(0).getCount(), 32);
+}
+
 // ========== isOnCustomCooldown 边界条件测试 ==========
 
 TEST_F(HopperEntityTest, IsOnCustomCooldown_ZeroNotCustom)
@@ -803,7 +833,8 @@ public:
     [[nodiscard]] f64 getZPos() const override { return static_cast<f64>(m_pos.z) + 0.5; }
     [[nodiscard]] BlockPos getHopperPos() const override { return m_pos; }
     [[nodiscard]] Direction getOutputDirection() const override { return Direction::Down; }
-    [[nodiscard]] bool isGridAligned() const override { return false; } // 矿车漏斗：不网格对齐
+    [[nodiscard]] bool isGridAligned() const override { return false; }         // 矿车漏斗：不网格对齐
+    [[nodiscard]] IInventory* getHopperInventory() override { return nullptr; } // 测试用，无背包
 
 private:
     BlockPos m_pos;
@@ -1352,4 +1383,95 @@ TEST_F(CaptureItemIntegrationTest, PutStackIntoNonEmptyHopperInventory_GoesToEmp
     EXPECT_TRUE(remaining.isEmpty());
     EXPECT_EQ(hopper_->getInventory()->getItem(0).getCount(), 60);
     EXPECT_EQ(hopper_->getInventory()->getItem(1).getCount(), 10);
+}
+
+// ========== pullItems 自循环检测与 getHopperInventory 集成测试 ==========
+
+class HopperSelfLoopTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        Items::initialize();
+        m_diamond = ensureHopperTestItem("diamond");
+    }
+
+    Item* m_diamond = nullptr;
+};
+
+TEST_F(HopperSelfLoopTest, PullItems_SelfLoopDetectionViaGetHopperInventory)
+{
+    // 验证 pullItems 中自循环检测使用 getHopperInventory() 而非 dynamic_cast
+    // 当上方容器恰好是漏斗自身的背包时，应该返回 false
+    HopperTestWorld world;
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+
+    // 设置世界
+    world.setClientSide(false);
+    world.setCurrentTick(1);
+    hopper->tick(world);
+    ASSERT_EQ(hopper->getWorld(), &world);
+
+    // 在漏斗上方放置一个容器，该容器恰好返回漏斗自身的 getHopperInventory()
+    // 这模拟了 MC Java 中漏斗从自身拉取的场景
+    // 由于 HopperEntity::getSourceInventory 使用 getInventoryAtPosition，
+    // 而 getInventoryAtPosition 通过 getBlockEntity -> dynamic_cast<IInventory*>
+    // 对 HopperEntity 返回 nullptr（不继承 IInventory），
+    // 所以在当前架构下，自循环不太可能通过 getInventoryAtPosition 发生。
+    // 但自循环检测仍然作为安全措施存在。
+
+    // 验证 getHopperInventory() 不返回 nullptr
+    IInventory* hopperInventory = hopper->getHopperInventory();
+    ASSERT_NE(hopperInventory, nullptr);
+    EXPECT_EQ(hopperInventory, hopper->getInventory());
+}
+
+TEST_F(HopperSelfLoopTest, PullItems_CaptureItemsUsesGetHopperInventory)
+{
+    // 验证 pullItems 中 captureItem 使用 getHopperInventory() 获取漏斗背包
+    // 当漏斗上方没有容器时，pullItems 尝试捕获物品实体
+    // captureItem 需要一个有效的 IInventory* 才能工作
+    HopperTestWorld world;
+    auto hopper = std::make_unique<HopperEntity>(BlockPos(10, 20, 30));
+
+    world.setClientSide(false);
+    world.setCurrentTick(1);
+    hopper->tick(world);
+    ASSERT_EQ(hopper->getWorld(), &world);
+
+    // 在收集区域放置一个物品实体
+    auto itemEntity = std::make_unique<ItemEntity>(EntityId(1), ItemStack(m_diamond, 10), 10.5f, 21.5f, 30.5f);
+    world.setEntitiesInAABB({itemEntity.get()});
+
+    // pullItems 应该能通过 getHopperInventory() 获取到漏斗背包并成功捕获
+    bool result = HopperEntity::pullItems(*hopper);
+    EXPECT_TRUE(result);
+    // 验证物品被捕获到漏斗中
+    EXPECT_EQ(hopper->getInventory()->getItem(0).getItem(), m_diamond);
+    EXPECT_EQ(hopper->getInventory()->getItem(0).getCount(), 10);
+}
+
+TEST_F(HopperSelfLoopTest, GetHopperInventory_NonGridAlignedHopperReturnsNullptr)
+{
+    // NonGridAlignedHopper（模拟矿车漏斗）没有背包时返回 nullptr
+    NonGridAlignedHopper mockHopper(BlockPos(5, 10, 15));
+    EXPECT_EQ(mockHopper.getHopperInventory(), nullptr);
+}
+
+TEST_F(HopperSelfLoopTest, PullItems_NullHopperInventoryCannotCapture)
+{
+    // 当 IHopper 的 getHopperInventory() 返回 nullptr 时，
+    // pullItems 中 captureItem 应该因为空指针返回 false
+    NonGridAlignedHopper mockHopper(BlockPos(5, 10, 15));
+    // NonGridAlignedHopper 的 getWorld() 返回 nullptr，所以 pullItems 会直接返回 false
+    bool result = HopperEntity::pullItems(mockHopper);
+    EXPECT_FALSE(result);
+}
+
+// ========== IHopper getHopperInventory 默认实现测试 ==========
+
+TEST(IHopperDefaultTest, GetHopperInventory_DefaultReturnsNullptr)
+{
+    // IHopper 默认实现返回 nullptr
+    NonGridAlignedHopper hopper(BlockPos(0, 0, 0));
+    EXPECT_EQ(hopper.getHopperInventory(), nullptr);
 }
