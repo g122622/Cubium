@@ -707,7 +707,11 @@ std::optional<Vector3> TrialSpawnerBlockEntity::_findSpawnPosition(IWorld& world
             continue;
         }
 
-        // 位置有效
+        // TODO: MC Java 原版使用 ClipContext.VISUAL 进行视线追踪（从生成位置到刷怪笼中心），
+        // 只有射线未被打断或命中刷怪笼方块本身时才允许生成。当前实现仅做了碰撞检测，
+        // 未做视线检测。待项目中实现射线追踪系统后应补充此检测，
+        // 参考 MC Java TrialSpawner.inLineOfSight()。
+
         return spawnPos;
     }
 

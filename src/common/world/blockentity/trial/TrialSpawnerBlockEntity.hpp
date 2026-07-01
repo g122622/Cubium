@@ -348,6 +348,9 @@ private:
 
     /// 当前正在弹出奖励的玩家UUID列表（用于EjectingReward状态逐个弹出）
     std::vector<std::string> m_detectedPlayerUuids;
+
+    // 测试子类需要访问私有方法
+    friend class TestTrialSpawnerBlockEntity;
 };
 
 } // namespace mc

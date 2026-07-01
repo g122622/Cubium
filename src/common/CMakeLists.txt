@@ -162,6 +162,7 @@ add_library(mc_common STATIC
     # Entity - Monster (undead)
     entity/entities/monster/undead/ZombieEntity.cpp
     entity/entities/monster/undead/AbstractSkeletonEntity.cpp
+    entity/entities/monster/undead/BoggedEntity.cpp
     entity/entities/monster/undead/SkeletonEntity.cpp
     entity/entities/monster/undead/HuskEntity.cpp
     entity/entities/monster/undead/DrownedEntity.cpp

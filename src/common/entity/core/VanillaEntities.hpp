@@ -55,6 +55,7 @@
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
 #include "common/entity/entities/monster/ocean/ElderGuardianEntity.hpp"
 #include "common/entity/entities/monster/ocean/GuardianEntity.hpp"
+#include "common/entity/entities/monster/undead/BoggedEntity.hpp"
 #include "common/entity/entities/monster/undead/DrownedEntity.hpp"
 #include "common/entity/entities/monster/undead/HuskEntity.hpp"
 #include "common/entity/entities/monster/undead/SkeletonEntity.hpp"
@@ -518,6 +519,15 @@ private:
         // 流浪者
         registry.registerType(EntityTypes::STRAY,
             EntityType::Builder(&StrayEntity::create, EntityClassification::Monster)
+                .size(0.6f, 1.99f)
+                .trackingRange(8)
+                .updateInterval(3)
+                .canSummon(true)
+                .build());
+
+        // 沼骸骨
+        registry.registerType(EntityTypes::BOGGED,
+            EntityType::Builder(&BoggedEntity::create, EntityClassification::Monster)
                 .size(0.6f, 1.99f)
                 .trackingRange(8)
                 .updateInterval(3)
