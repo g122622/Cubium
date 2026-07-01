@@ -56,10 +56,11 @@ Result<FunctionLoader::LoadResult> FunctionLoader::loadFromDataPackRepository(
         return listResult.error();
     }
 
-    // 过滤出包含 "/functions/" 的路径
+    // 过滤出包含 "/functions/" 或 "/function/" 的路径（MC 1.21+ 使用单数形式）
     std::vector<std::string> functionResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/functions/") == std::string::npos && path.find("functions/") == std::string::npos) {
+        if (path.find("/functions/") == std::string::npos && path.find("functions/") == std::string::npos &&
+            path.find("/function/") == std::string::npos && path.find("function/") == std::string::npos) {
             continue;
         }
         functionResources.push_back(path);
@@ -591,12 +592,20 @@ std::string FunctionLoader::pathToFunctionId(const std::string& filePath) const
     // 将路径转为通用格式（正斜杠）
     std::string genericPath = path.generic_string();
 
-    // 查找 "functions/" 的位置
+    // 查找 "functions/" 或 "function/" 的位置（MC 1.21+ 使用单数形式）
     Size functionsPos = genericPath.find("/functions/");
     Size functionsTokenSize = std::string("/functions/").size();
     if (functionsPos == std::string::npos) {
         functionsPos = genericPath.find("functions/");
         functionsTokenSize = std::string("functions/").size();
+    }
+    if (functionsPos == std::string::npos) {
+        functionsPos = genericPath.find("/function/");
+        functionsTokenSize = std::string("/function/").size();
+    }
+    if (functionsPos == std::string::npos) {
+        functionsPos = genericPath.find("function/");
+        functionsTokenSize = std::string("function/").size();
     }
 
     if (functionsPos != std::string::npos) {

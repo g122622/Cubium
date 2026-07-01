@@ -100,7 +100,8 @@ Result<RecipeLoader::LoadResult> RecipeLoader::loadFromDataPackRepository(
 
     std::vector<std::string> recipeResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/recipes/") == std::string::npos && path.find("recipes/") == std::string::npos) {
+        if (path.find("/recipes/") == std::string::npos && path.find("recipes/") == std::string::npos &&
+            path.find("/recipe/") == std::string::npos && path.find("recipe/") == std::string::npos) {
             continue;
         }
         recipeResources.push_back(path);
@@ -309,21 +310,22 @@ ResourceLocation RecipeLoader::pathToRecipeId(const std::string& filePath) const
     std::string namespace_ = "minecraft"; // 默认命名空间
     std::string recipePath = filename;
 
-    // 查找 "recipes" 目录
+    // 查找 "recipes" 或 "recipe" 目录（MC 1.21+ 使用单数形式 recipe/）
     fs::path current = path.parent_path();
-    while (!current.empty() && current.filename() != "recipes") {
+    while (!current.empty() && current.filename() != "recipes" && current.filename() != "recipe") {
         current = current.parent_path();
     }
 
     if (!current.empty()) {
-        // 找到recipes目录，检查上一级是否是data
-        current = current.parent_path(); // 上一级
+        // 找到recipes/recipe目录，记录实际目录名
+        fs::path recipesDirName = current.filename(); // "recipes" 或 "recipe"
+        current = current.parent_path();              // 上一级
         if (!current.empty() && current.filename() != "data") {
             namespace_ = current.filename().string();
         }
 
         // 重建配方路径（包含子目录）
-        fs::path recipesDir = current / namespace_ / "recipes";
+        fs::path recipesDir = current / namespace_ / recipesDirName;
         fs::path relative = fs::relative(path, recipesDir);
         recipePath = relative.stem().string();
 

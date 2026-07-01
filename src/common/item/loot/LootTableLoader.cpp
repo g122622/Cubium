@@ -62,7 +62,8 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromResourcePacks(
 
     std::vector<std::string> lootTableResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos) {
+        if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos &&
+            path.find("/loot_table/") == std::string::npos && path.find("loot_table/") == std::string::npos) {
             continue;
         }
         lootTableResources.push_back(path);
@@ -116,7 +117,8 @@ Result<LootTableLoader::LoadResult> LootTableLoader::loadFromDataPackRepository(
 
     std::vector<std::string> lootTableResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos) {
+        if (path.find("/loot_tables/") == std::string::npos && path.find("loot_tables/") == std::string::npos &&
+            path.find("/loot_table/") == std::string::npos && path.find("loot_table/") == std::string::npos) {
             continue;
         }
         lootTableResources.push_back(path);
@@ -259,8 +261,9 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
     fs::path path(filePath);
 
     // 从文件路径中提取相对路径部分：
-    // 查找 "loot_tables" 目录，然后向上找到 namespace
+    // 查找 "loot_tables" 或 "loot_table" 目录，然后向上找到 namespace
     // 新格式（相对于 data/ 根目录）：<namespace>/loot_tables/<category>/<name>.json
+    // MC 1.21+ 单数格式：<namespace>/loot_table/<category>/<name>.json
     // 旧格式（包含 data/ 前缀）：data/<namespace>/loot_tables/<category>/<name>.json
     std::string namespaceStr = "minecraft";
     std::string relativePath;
@@ -268,12 +271,20 @@ std::string LootTableLoader::pathToLootTableId(const std::string& filePath) cons
     // 将路径转为通用格式（正斜杠）
     std::string genericPath = path.generic_string();
 
-    // 查找 "loot_tables" 的位置
+    // 查找 "loot_tables" 或 "loot_table" 的位置（优先复数形式）
     Size lootTablesPos = genericPath.find("/loot_tables/");
     Size lootTablesTokenSize = std::string("/loot_tables/").size();
     if (lootTablesPos == std::string::npos) {
         lootTablesPos = genericPath.find("loot_tables/");
         lootTablesTokenSize = std::string("loot_tables/").size();
+    }
+    if (lootTablesPos == std::string::npos) {
+        lootTablesPos = genericPath.find("/loot_table/");
+        lootTablesTokenSize = std::string("/loot_table/").size();
+    }
+    if (lootTablesPos == std::string::npos) {
+        lootTablesPos = genericPath.find("loot_table/");
+        lootTablesTokenSize = std::string("loot_table/").size();
     }
 
     if (lootTablesPos != std::string::npos) {

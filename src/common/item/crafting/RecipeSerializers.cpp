@@ -460,9 +460,23 @@ Result<Ingredient> RecipeSerializers::parseIngredient(const nlohmann::json& json
         return Ingredient::merge(ingredients);
     }
 
+    // MC 1.21+ 字符串形式：直接物品ID（如 "minecraft:raw_iron"）
+    if (json.is_string()) {
+        std::string itemId = json.get<std::string>();
+        ResourceLocation loc(itemId);
+
+        Item* item = ItemRegistry::instance().getItem(loc);
+        if (!item) {
+            // 物品未注册时返回空原料
+            return Ingredient();
+        }
+
+        return Ingredient::fromItem(*item);
+    }
+
     // 对象形式
     if (!json.is_object()) {
-        return Error(ErrorCode::ResourceParseError, "Ingredient must be an object or array");
+        return Error(ErrorCode::ResourceParseError, "Ingredient must be a string, object, or array");
     }
 
     // 物品标签
@@ -512,11 +526,15 @@ Result<ItemStack> RecipeSerializers::parseResult(const nlohmann::json& json)
         return Error(ErrorCode::ResourceParseError, "Result must be a string or object");
     }
 
-    if (!json.contains("item") || !json["item"].is_string()) {
-        return Error(ErrorCode::ResourceParseError, "Result missing 'item' field");
+    // MC 1.21+ 使用 "id" 字段，旧格式使用 "item" 字段
+    std::string itemId;
+    if (json.contains("item") && json["item"].is_string()) {
+        itemId = json["item"].get<std::string>();
+    } else if (json.contains("id") && json["id"].is_string()) {
+        itemId = json["id"].get<std::string>();
+    } else {
+        return Error(ErrorCode::ResourceParseError, "Result missing 'item' or 'id' field");
     }
-
-    std::string itemId = json["item"].get<std::string>();
     ResourceLocation loc(itemId);
 
     Item* item = ItemRegistry::instance().getItem(loc);
