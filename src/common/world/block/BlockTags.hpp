@@ -225,6 +225,21 @@ public:
     /// 炽足兽在这些方块上不会感到寒冷
     static BlockTag& STRIDER_WARM_BLOCKS();
 
+    // ========== 疣猪兽/猪灵排斥物标签 ==========
+
+    /// 疣猪兽排斥物标签
+    /// 疣猪兽在这些方块附近会逃跑，getPathWeight 返回 -1.0
+    /// 包含: 诡异菌(warped_fungus)、诡异菌岩(warped_nylium)、下界传送门(nether_portal)、重生锚(respawn_anchor)
+    /// MC 1.21.11: BlockTags.HOGLIN_REPELLENTS
+    static BlockTag& HOGLIN_REPELLENTS();
+
+    /// 猪灵排斥物标签
+    /// 猪灵在这些方块附近会逃跑
+    /// 包含: 灵魂火(soul_fire)、灵魂火把(soul_torch)、灵魂墙火把(soul_wall_torch)、
+    ///       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)、诡异菌(warped_fungus)
+    /// MC 1.21.11: BlockTags.PIGLIN_REPELLENTS
+    static BlockTag& PIGLIN_REPELLENTS();
+
     // ========== 蜜蜂相关标签 ==========
 
     /// 小花朵标签（蒲公英、虞美人等）

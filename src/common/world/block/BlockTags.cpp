@@ -343,6 +343,24 @@ BlockTag& BlockTags::STRIDER_WARM_BLOCKS()
     return *tag;
 }
 
+BlockTag& BlockTags::HOGLIN_REPELLENTS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "hoglin_repellents"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::PIGLIN_REPELLENTS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "piglin_repellents"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::SMALL_FLOWERS()
 {
     static BlockTag* tag = nullptr;
@@ -1208,6 +1226,33 @@ void BlockTags::initialize()
     auto striderWarmBlocks = std::make_unique<BlockTag>(ResourceLocation("minecraft", "strider_warm_blocks"));
     striderWarmBlocks->addAll({ResourceLocation("minecraft", "lava")});
     tags[striderWarmBlocks->getId()] = std::move(striderWarmBlocks);
+
+    // 创建 HOGLIN_REPELLENTS 标签（疣猪兽排斥物）
+    // MC 1.21.11: BlockTags.HOGLIN_REPELLENTS
+    // 疣猪兽在这些方块附近会逃跑，getPathWeight 返回 -1.0
+    // 包含: 诡异菌(warped_fungus)、诡异菌岩(warped_nylium)、下界传送门(nether_portal)、重生锚(respawn_anchor)
+    // 注意: MC 原版还包含 potted_warped_fungus，但当前项目花盆系统尚未实现
+    auto hoglinRepellents = std::make_unique<BlockTag>(ResourceLocation("minecraft", "hoglin_repellents"));
+    hoglinRepellents->addAll({ResourceLocation("minecraft", "warped_fungus"),
+        ResourceLocation("minecraft", "warped_nylium"),
+        ResourceLocation("minecraft", "nether_portal"),
+        ResourceLocation("minecraft", "respawn_anchor")});
+    tags[hoglinRepellents->getId()] = std::move(hoglinRepellents);
+
+    // 创建 PIGLIN_REPELLENTS 标签（猪灵排斥物）
+    // MC 1.21.11: BlockTags.PIGLIN_REPELLENTS
+    // 猪灵在这些方块附近会逃跑
+    // 包含: 灵魂火(soul_fire)、灵魂火把(soul_torch)、灵魂墙火把(soul_wall_torch)、
+    //       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)、诡异菌(warped_fungus)
+    // 注意: 灵魂营火的点燃状态检查需要在实体逻辑中单独处理，此处仅按标签判断
+    auto piglinRepellents = std::make_unique<BlockTag>(ResourceLocation("minecraft", "piglin_repellents"));
+    piglinRepellents->addAll({ResourceLocation("minecraft", "soul_fire"),
+        ResourceLocation("minecraft", "soul_torch"),
+        ResourceLocation("minecraft", "soul_wall_torch"),
+        ResourceLocation("minecraft", "soul_lantern"),
+        ResourceLocation("minecraft", "soul_campfire"),
+        ResourceLocation("minecraft", "warped_fungus")});
+    tags[piglinRepellents->getId()] = std::move(piglinRepellents);
 
     // 创建 SMALL_FLOWERS 标签（小花朵）
     auto smallFlowers = std::make_unique<BlockTag>(ResourceLocation("minecraft", "small_flowers"));

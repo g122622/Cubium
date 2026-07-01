@@ -53,6 +53,7 @@
 #include "common/util/math/MathUtils.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include <cmath>
 
@@ -744,20 +745,52 @@ void HoglinEntity::registerAttributes()
 
 f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
 {
-    // 对应 MC Hoglin.getWalkTargetValue:
+    // 对应 MC 1.21.11: Hoglin.getWalkTargetValue
     //   if (HoglinAi.isPosNearNearestRepellent(this, pos)) return -1.0F;
     //   return level.getBlockState(pos.below()).is(Blocks.CRIMSON_NYLIUM) ? 10.0F : 0.0F;
+    //
+    // MC 原版通过 Brain 系统的 HoglinSpecificSensor 定期扫描附近排斥物并缓存到
+    // NEAREST_REPELLENT 记忆模块中，然后 isPosNearNearestRepellent 检查缓存的排斥物
+    // 位置是否在 8 格范围内。当前项目 HoglinEntity 尚未集成 Brain 系统，
+    // 因此采用直接扫描方案：每次调用时搜索当前位置周围水平 8 格、垂直 4 格范围内的排斥物方块。
+    // 这与 MC 原版 HoglinSpecificSensor.findNearestRepellent 的搜索范围一致。
+
     const IWorld* worldPtr = world();
     if (worldPtr == nullptr) {
         return 0.0f;
     }
 
-    // TODO: 排斥物近距离检查（诡异菌、诡异菌岩、下界传送门）需要 HoglinSpecificSensor
-    // 通过 Brain 系统的 NEAREST_REPELLENT 记忆模块实现，待 Brain 系统集成后补充。
-    // MC 原版使用 HoglinAi.isPosNearNearestRepellent 检查位置是否在8格内有排斥物，
-    // 有则返回 -1.0f。
+    // 排斥物近距离检查
+    // MC 1.21.11 BlockTags.HOGLIN_REPELLENTS 包含:
+    //   - 诡异菌 (warped_fungus)
+    //   - 诡异菌岩 (warped_nylium)
+    //   - 下界传送门 (nether_portal)
+    //   - 重生锚 (respawn_anchor)
+    //   - 盆栽诡异菌 (potted_warped_fungus) — 当前项目花盆系统未实现，暂不包含
+    //
+    // 搜索范围: 水平 8 格，垂直 4 格
+    // 对应 MC 原版: HoglinSpecificSensor.REPELLENT_DETECTION_RANGE_HORIZONTAL = 8,
+    //              HoglinSpecificSensor.REPELLENT_DETECTION_RANGE_VERTICAL = 4
+    static constexpr i32 REPELLENT_RANGE_H = 8;
+    static constexpr i32 REPELLENT_RANGE_V = 4;
 
-    // 偏好绯红菌岩：站在绯红菌岩上返回 10.0f，否则返回 0.0f
+    const BlockTag& hoglinRepellents = BlockTags::HOGLIN_REPELLENTS();
+    const i32 bx = static_cast<i32>(x);
+    const i32 by = static_cast<i32>(y);
+    const i32 bz = static_cast<i32>(z);
+
+    for (i32 dx = -REPELLENT_RANGE_H; dx <= REPELLENT_RANGE_H; ++dx) {
+        for (i32 dy = -REPELLENT_RANGE_V; dy <= REPELLENT_RANGE_V; ++dy) {
+            for (i32 dz = -REPELLENT_RANGE_H; dz <= REPELLENT_RANGE_H; ++dz) {
+                const BlockState* state = worldPtr->getBlockState(bx + dx, by + dy, bz + dz);
+                if (state != nullptr && hoglinRepellents.contains(*state)) {
+                    return -1.0f;
+                }
+            }
+        }
+    }
+
+    // 偏好绯红菌岩：站在绯红菌岩上返回 10.0f
     BlockPos posBelow(static_cast<i32>(x), static_cast<i32>(y) - 1, static_cast<i32>(z));
     const BlockState* groundBlock = worldPtr->getBlockState(posBelow);
     if (groundBlock != nullptr && groundBlock->is(block_registry::NetherBlocks::CRIMSON_NYLIUM)) {
