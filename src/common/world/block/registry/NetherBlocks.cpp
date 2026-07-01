@@ -655,7 +655,6 @@ void registerNetherBlocks()
     // 末影箱 - 发光7级
     // 右键打开末影箱界面（物品存储在玩家数据中），记录统计 OPEN_ENDERCHEST。
     // 方块上方有红石导体时无法打开。支持含水放置和水平朝向。
-    // 参考 MC Java: EnderChestBlock.onBlockActivated() → player.openMenu() + player.awardStat(Stats.OPEN_ENDERCHEST)
     NetherBlocks::ENDER_CHEST =
         &registry.registerBlock<blocks::EnderChestBlock>(ResourceLocation("minecraft:ender_chest"),
             BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7).notSolid());
