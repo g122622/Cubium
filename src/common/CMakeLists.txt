@@ -691,6 +691,7 @@ add_library(mc_common STATIC
 
     # World - Block - Dirt
     world/block/blocks/dirt/SpreadableSnowyDirtBlock.cpp
+    world/block/blocks/dirt/MudBlock.cpp
     world/block/blocks/DoorBlock.cpp
     world/block/blocks/FenceGateBlock.cpp
 

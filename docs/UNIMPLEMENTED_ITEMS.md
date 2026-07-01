@@ -252,9 +252,9 @@
 ### Leaves（5）
 
 
-- `minecraft:azalea_leaves`
+- `minecraft:azalea_leaves ✅ 已完成`
 - `minecraft:cherry_leaves`
-- `minecraft:flowering_azalea_leaves`
+- `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_leaves`
 - `minecraft:pale_oak_leaves ✅ 已完成`
 
@@ -456,7 +456,7 @@
 - `minecraft:amethyst_shard ✅ 已完成`
 - `minecraft:anvil`
 - `minecraft:armadillo_scute ✅ 已完成`
-- `minecraft:azalea`
+- `minecraft:azalea ✅ 已完成`
 - `minecraft:bamboo_block`
 - `minecraft:bamboo_shelf`
 - `minecraft:bell`
@@ -488,7 +488,7 @@
 - `minecraft:deepslate_lapis_ore ✅ 已完成`
 - `minecraft:deepslate_redstone_ore ✅ 已完成`
 - `minecraft:exposed_lightning_rod`
-- `minecraft:flowering_azalea`
+- `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:gray_bundle`
 - `minecraft:gray_harness`
@@ -508,9 +508,9 @@
 - `minecraft:magenta_harness`
 - `minecraft:mangrove_propagule`
 - `minecraft:mangrove_shelf`
-- `minecraft:moss_block`
-- `minecraft:mud`
-- `minecraft:muddy_mangrove_roots`
+- `minecraft:moss_block ✅ 已完成`
+- `minecraft:mud ✅ 已完成`
+- `minecraft:muddy_mangrove_roots ✅ 已完成`
 - `minecraft:oak_shelf`
 - `minecraft:orange_bundle`
 - `minecraft:orange_harness`
@@ -529,7 +529,7 @@
 - `minecraft:red_bundle`
 - `minecraft:red_harness`
 - `minecraft:resin_brick ✅ 已完成`
-- `minecraft:rooted_dirt`
+- `minecraft:rooted_dirt ✅ 已完成`
 - `minecraft:spore_blossom`
 - `minecraft:spruce_shelf`
 - `minecraft:stripped_bamboo_block`
@@ -817,8 +817,8 @@
 
 - `minecraft:cactus_flower`
 - `minecraft:cherry_leaves`
-- `minecraft:flowering_azalea`
-- `minecraft:flowering_azalea_leaves`
+- `minecraft:flowering_azalea ✅ 已完成`
+- `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_propagule`
 - `minecraft:open_eyeblossom`
 - `minecraft:pink_petals`
@@ -882,11 +882,11 @@
 未实现项：
 
 
-- `minecraft:moss_block`
-- `minecraft:mud`
-- `minecraft:muddy_mangrove_roots`
+- `minecraft:moss_block ✅ 已完成`
+- `minecraft:mud ✅ 已完成`
+- `minecraft:muddy_mangrove_roots ✅ 已完成`
 - `minecraft:pale_moss_block ✅ 已完成`
-- `minecraft:rooted_dirt`
+- `minecraft:rooted_dirt ✅ 已完成`
 
 ### `minecraft:doors`
 
@@ -936,8 +936,8 @@
 
 - `minecraft:cactus_flower`
 - `minecraft:cherry_leaves`
-- `minecraft:flowering_azalea`
-- `minecraft:flowering_azalea_leaves`
+- `minecraft:flowering_azalea ✅ 已完成`
+- `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_propagule`
 - `minecraft:pink_petals`
 - `minecraft:pitcher_plant`
@@ -989,9 +989,9 @@
 未实现项：
 
 
-- `minecraft:azalea_leaves`
+- `minecraft:azalea_leaves ✅ 已完成`
 - `minecraft:cherry_leaves`
-- `minecraft:flowering_azalea_leaves`
+- `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_leaves`
 - `minecraft:pale_oak_leaves ✅ 已完成`
 
@@ -1081,9 +1081,9 @@
 未实现项：
 
 
-- `minecraft:azalea`
+- `minecraft:azalea ✅ 已完成`
 - `minecraft:cherry_sapling`
-- `minecraft:flowering_azalea`
+- `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:mangrove_propagule`
 - `minecraft:pale_oak_sapling ✅ 已完成`
 

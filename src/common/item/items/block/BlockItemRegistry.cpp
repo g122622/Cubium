@@ -447,6 +447,35 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CLOSED_EYEBLOSSOM, "closed_eyeblossom");
     registerSimpleBlock(VanillaBlocks::CREAKING_HEART, "creaking_heart");
 
+    // 洞穴方块 (1.17+)
+    registerSimpleBlock(VanillaBlocks::MOSS_BLOCK, "moss_block");
+    registerSimpleBlock(VanillaBlocks::MOSS_CARPET, "moss_carpet");
+    registerSimpleBlock(VanillaBlocks::ROOTED_DIRT, "rooted_dirt");
+    registerSimpleBlock(VanillaBlocks::HANGING_ROOTS, "hanging_roots");
+    registerSimpleBlock(VanillaBlocks::AZALEA, "azalea");
+    registerSimpleBlock(VanillaBlocks::FLOWERING_AZALEA, "flowering_azalea");
+    registerSimpleBlock(VanillaBlocks::AZALEA_LEAVES, "azalea_leaves");
+    registerSimpleBlock(VanillaBlocks::FLOWERING_AZALEA_LEAVES, "flowering_azalea_leaves");
+
+    // 泥巴系列方块 (1.19+)
+    registerSimpleBlock(VanillaBlocks::MUD, "mud");
+    registerSimpleBlock(VanillaBlocks::PACKED_MUD, "packed_mud");
+    registerSimpleBlock(VanillaBlocks::MUD_BRICKS, "mud_bricks");
+    registerSimpleBlock(VanillaBlocks::MUD_BRICK_STAIRS, "mud_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::MUD_BRICK_SLAB, "mud_brick_slab");
+    registerSimpleBlock(VanillaBlocks::MUD_BRICK_WALL, "mud_brick_wall");
+
+    // 红树林基础方块 (1.19+)
+    registerSimpleBlock(VanillaBlocks::MANGROVE_LOG, "mangrove_log");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_WOOD, "mangrove_wood");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_MANGROVE_LOG, "stripped_mangrove_log");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_MANGROVE_WOOD, "stripped_mangrove_wood");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_PLANKS, "mangrove_planks");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_LEAVES, "mangrove_leaves");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_PROPAGULE, "mangrove_propagule");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_ROOTS, "mangrove_roots");
+    registerSimpleBlock(VanillaBlocks::MUDDY_MANGROVE_ROOTS, "muddy_mangrove_roots");
+
     // 自然方块扩展
     registerSimpleBlock(VanillaBlocks::CLAY, "clay");
     registerSimpleBlock(VanillaBlocks::MYCELIUM, "mycelium");
