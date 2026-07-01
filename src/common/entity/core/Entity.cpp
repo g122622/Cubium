@@ -689,13 +689,11 @@ void Entity::baseTick()
     }
 
     // 冰冻状态处理
-    // MC Java: Entity.baseTick() 中在火焰处理之后重置 isInPowderSnow
+    // 在火焰处理之后重置 isInPowderSnow
     // 实际的冰冻 tick 递增由 PowderSnowBlock::onEntityCollision() 处理
     // 实际的冰冻 tick 递减和伤害在 LivingEntity 中处理
-    m_wasInPowderSnow = m_isInPowderSnow;
     m_isInPowderSnow = false;
 
-    // MC Java: Entity.baseTick() 不包含空气值处理逻辑
     // 空气值处理完全由 LivingEntity::updateAirSupply() 负责
     // 非 LivingEntity 实体（如 ItemEntity）不使用 Entity 层的空气处理
     // ItemEntity 的水中物理行为在自身的 _applyWaterPhysics() 中独立处理
@@ -2364,7 +2362,7 @@ void Entity::writeToNBT(nbt::tags::compound_tag& tag) const
     // 传送门冷却
     tag.put(nbt_keys::PORTAL_COOLDOWN, m_portalCooldown);
 
-    // 冰冻计时器（仅当 > 0 时保存，与 MC Java 一致）
+    // 冰冻计时器（仅当 > 0 时保存）
     if (m_ticksFrozen > 0) {
         tag.put(nbt_keys::TICKS_FROZEN, m_ticksFrozen);
     }
@@ -2531,8 +2529,11 @@ Result<void> Entity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
 bool Entity::canFreeze() const
 {
     // 基类实现：检查实体类型是否不在冰冻免疫标签中
-    // 对应 MC Java 的 Entity.canFreeze()
     // 免疫实体类型：流浪者、北极熊、雪傀儡、凋灵
+    // 安全检查：如果 EntityTypeTags 尚未初始化，默认允许冰冻
+    if (!EntityTypeTags::isInitialized()) {
+        return true;
+    }
     return !EntityTypeTags::FREEZE_IMMUNE_ENTITY_TYPES().contains(getTypeId());
 }
 

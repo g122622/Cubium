@@ -129,6 +129,7 @@ if (entry.timestamp() < currentTime) { ... }
 **特别说明**：新增的伤害类型及其语义：
 - `Stalagmite`：石笋摔落伤害（踩在朝上的滴石尖端上），属于环境伤害，`isFall()` 返回 `true`（受摔落保护附魔减免），`bypassesArmor()` 返回 `true`（无视护甲）
 - `FallingStalactite`：坠落钟乳石伤害（钟乳石从上方掉落砸中实体），属于实体伤害，由 `FallingBlockEntity` 使用
+- `Freeze`：冰冻伤害（细雪冰冻），属于环境伤害，`isFreezing()` 返回 `true`，`bypassesArmor()` 返回 `true`（无视护甲），受 `FREEZE_DAMAGE` 游戏规则控制，对 `FREEZE_HURTS_EXTRA_TYPES` 标签中的实体（烈焰人、岩浆怪、炽足兽）造成5倍伤害
 
 ### 7. DamageFlags 标志位
 

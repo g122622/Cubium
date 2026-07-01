@@ -56,6 +56,7 @@ GameRules.hpp (容器类)
   - `entity/entities/passive/special/PandaEntity` - 熊猫掉落检查 doMobLoot
   - `entity/entities/player/Player` - 玩家自然回血检查 naturalRegeneration
   - `entity/entities/player/Player` - PvP 保护检查 pvp（canHarmPlayer）
+  - `entity/core/LivingEntity` - 冰冻伤害检查 freezeDamage（tickFreeze 中检查是否造成冰冻伤害）
   - `server/player/ServerPlayer` - 服务端玩家受伤检查 pvp
   - `entity/entities/passive/tamable/WolfEntity` - 驯服狼 PvP 保护检查 pvp（wantsToAttack）
   - `entity/entities/vehicle/MinecartEntity` - TNT 矿车引爆和爆炸检查 tntExplodes；铁轨最大速度读取 max_minecart_speed

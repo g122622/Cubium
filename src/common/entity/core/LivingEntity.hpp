@@ -1157,7 +1157,6 @@ public:
      * 重写 Entity::clearFreeze()，将冰冻计时器重置为 0
      * 并移除冰冻减速属性修饰符。
      * 当实体被点燃时调用。
-     * 对应 MC Java 的 LivingEntity.clearFreeze()。
      */
     void clearFreeze() override;
 
@@ -1167,7 +1166,6 @@ public:
      * 重写 Entity::canFreeze()，在基类检查的基础上
      * 额外检查皮革护甲（任意一件皮革护甲即可免疫冰冻）
      * 和旁观模式。
-     * 对应 MC Java 的 LivingEntity.canFreeze()。
      *
      * @return 是否可以冰冻
      */
@@ -1177,7 +1175,6 @@ public:
      * @brief 冰冻刻更新
      *
      * 在 LivingEntity::tick() 中调用，处理冰冻计时器递减和冰冻伤害。
-     * 对应 MC Java 的 LivingEntity.baseTick() 中 "freezing" 段。
      *
      * 逻辑：
      * - 如果不在细雪中或不可冰冻，冰冻计时器每 tick -2（解冻速度是冰冻速度的两倍）
@@ -1189,8 +1186,6 @@ public:
 
     /**
      * @brief 移除冰冻减速属性修饰符
-     *
-     * 对应 MC Java 的 LivingEntity.removeFrost()。
      */
     void removeFrost();
 
@@ -1199,11 +1194,10 @@ public:
      *
      * 当冰冻计时器 > 0 且脚下方块不是空气时，
      * 添加移动速度修饰符：-0.05 * getPercentFrozen()。
-     * 对应 MC Java 的 LivingEntity.tryAddFrost()。
      */
     void tryAddFrost();
 
-    /** @brief 冰冻减速修饰符 UUID（对应 MC Java 的 SPEED_MODIFIER_POWDER_SNOW_ID） */
+    /** @brief 冰冻减速修饰符 UUID */
     static constexpr const char* SPEED_MODIFIER_POWDER_SNOW_UUID = "1e7a5c3c-6f4a-4b6b-8c3d-5e2f1a0b9c8d";
 
     // ========== 摔落伤害 ==========

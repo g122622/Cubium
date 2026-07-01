@@ -1042,6 +1042,17 @@ public:
     bool hurt(DamageSource& source, f32 amount) override;
 
     /**
+     * @brief 检查玩家是否对指定伤害类型免疫
+     *
+     * 在基类检查的基础上，额外检查玩家专属游戏规则：
+     * - 溺水伤害 + DROWNING_DAMAGE 关闭 → 免疫
+     * - 摔落伤害 + FALL_DAMAGE 关闭 → 免疫
+     * - 火焰伤害 + FIRE_DAMAGE 关闭 → 免疫
+     * - 冰冻伤害 + FREEZE_DAMAGE 关闭 → 免疫
+     */
+    [[nodiscard]] bool isInvulnerableTo(DamageSource& source) const override;
+
+    /**
      * @brief 判断本玩家是否可以对目标玩家造成伤害
      *
      * 基础实现检查队伍友伤规则：

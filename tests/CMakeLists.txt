@@ -278,6 +278,10 @@ add_executable(mc_tests
     common/entity/interfaces/IRideableTest.cpp
     # DamageSource isExplosion() 和 isFire() 测试
     common/entity/damage/DamageSourceExplosionTest.cpp
+    # 冰冻系统测试（DamageType::Freeze、冰冻状态计算、冰冻标签、冰冻游戏规则）
+    common/entity/core/EntityFreezeTest.cpp
+    # 冰冻系统集成测试（tickFreeze、clearFreeze、canFreeze、Player::isInvulnerableTo）
+    common/entity/core/EntityFreezeIntegrationTest.cpp
     # 矿车 dropItem() 伤害源检测测试
     common/entity/entities/vehicle/MinecartDropItemTest.cpp
     # 矿车 _checkRailState() 铁轨形状提取测试

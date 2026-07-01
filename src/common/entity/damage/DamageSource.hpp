@@ -255,7 +255,6 @@ public:
     /**
      * @brief 是否是冰冻伤害
      *
-     * 对应 MC Java 的 DamageTypeTags.IS_FREEZING。
      * 冰冻伤害对冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）造成5倍伤害。
      * 玩家的冰冻伤害可通过 freeze_damage 游戏规则禁用。
      */
@@ -962,7 +961,7 @@ inline IndirectEntityDamageSource windBurst(Entity* windCharge, Entity* shooter,
  * @brief 创建重锤砸地攻击伤害
  *
  * 当重锤下落攻击（Smash Attack）触发时使用此伤害类型。
- * 对应 MC 的 DamageTypes.MACE_SMASH，exhaustion 系数为 0.1。
+ * exhaustion 系数为 0.1。
  *
  * @param attacker 攻击者（玩家）
  */

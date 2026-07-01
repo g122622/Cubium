@@ -365,6 +365,93 @@
   - DISMOUNTS_UNDERWATER 标签包含：骆驼、鸡、驴、快乐恶魂、马、羊驼、骡、猪、劫掠兽、蜘蛛、炽足兽、行商羊驼、僵尸马（共13种）
   - 船不在该标签中（船有自己的水下沉没逻辑 `m_outOfControlTicks`），矿车和玩家也不在其中
 
+## #冰冻系统（Freeze System）
+
+对应 MC Java 的粉末雪冰冻机制（`Entity.ticksFrozen` / `LivingEntity.tickFreeze`），包含冰冻计时器、冰冻伤害、冰冻减速修饰符、冰冻免疫等完整逻辑。
+
+### 核心常量
+
+- `BASE_TICKS_REQUIRED_TO_FREEZE = 140` — 完全冰冻所需 tick 数（7 秒）
+- `FREEZE_HURT_FREQUENCY = 40` — 冰冻伤害触发频率（每 40 tick / 2 秒一次）
+
+### Entity 层冰冻状态
+
+- `m_ticksFrozen`（i32）— 冰冻计时器，正值表示冰冻进度，达到 `getTicksRequiredToFreeze()` 时完全冰冻
+- `m_isInPowderSnow`（bool）— 当前 tick 是否处于细雪中，每帧由 `baseTick()` 重置为 false，由 `PowderSnowBlock::onEntityCollision()` 设置为 true
+- `DATA_TICKS_FROZEN_PARAM` — 客户端同步数据参数，冰冻进度用于渲染冰冻视觉效果
+- `clearFreeze()` — 虚方法，基类重置 `m_ticksFrozen = 0`，LivingEntity 重写版本额外移除冰冻减速修饰符
+- `canFreeze()` — 虚方法，基类检查 `EntityTypeTags::FREEZE_IMMUNE_ENTITY_TYPES`（安全检查：标签未初始化时默认允许冰冻），LivingEntity 重写版本额外检查 `ItemTags::FREEZE_IMMUNE_WEARABLES`（皮革护甲）
+- `getPercentFrozen()` — 返回 `min(m_ticksFrozen, required) / required`，值域 [0.0, 1.0]
+- `isFullyFrozen()` — `m_ticksFrozen >= getTicksRequiredToFreeze()`
+- `isFreezing()` — `m_ticksFrozen > 0`
+- `setTicksFrozen(i32)` / `getTicksFrozen()` — 冰冻计时器存取
+- `setIsInPowderSnow(bool)` / `isInPowderSnow()` — 细雪状态存取
+
+### LivingEntity 冰冻逻辑
+
+#### tickFreeze() — 每帧冰冻 tick 处理
+
+对应 MC Java `LivingEntity.baseTick()` 中的 "freezing" 段，在 `LivingEntity::tick()` 中 `tickHealth()` 之后调用：
+
+1. **冰冻计时器递减**：不在细雪中或不可冰冻时，每 tick -2（解冻速度是冰冻速度的两倍）
+2. **冰冻减速修饰符更新**：先 `removeFrost()` 移除旧修饰符，再 `tryAddFrost()` 添加新修饰符
+3. **冰冻伤害**：每 40 tick 且完全冰冻且可冰冻时，造成 1.0 冰冻伤害。非玩家实体始终受到冰冻伤害，玩家通过 `Player::isInvulnerableTo()` 检查 `FREEZE_DAMAGE` 游戏规则
+
+#### 冰冻减速修饰符
+
+- UUID：`SPEED_MODIFIER_POWDER_SNOW_UUID = "1e7a5c3c-6f4a-4b6b-8c3d-5e2f1a0b9c8d"`
+- 操作：`Operation::Addition`，值 = `-0.05 * getPercentFrozen()`
+- 完全冰冻时减少 0.05 移动速度（基础速度 0.1，减速 50%）
+- 仅在 `ticksFrozen > 0` 且脚下方块非空气时添加（`tryAddFrost()` 检查 `onPos()` 方块状态）
+
+#### 冰冻额外伤害
+
+- 在 `actuallyHurt()` 中：冰冻伤害源（`source.isFreezing()`）+ `EntityTypeTags::FREEZE_HURTS_EXTRA_TYPES` 标签中的实体，伤害 ×5
+- 额外伤害标签包含：烈焰人（blaze）、岩浆怪（magma_cube）、炽足兽（strider）
+
+### 冰冻免疫标签
+
+| 标签 | 实体 | 效果 |
+|------|------|------|
+| `FREEZE_IMMUNE_ENTITY_TYPES` | 流浪者（stray）、北极熊（polar_bear）、雪傀儡（snow_golem）、凋灵（wither） | `canFreeze()` 返回 false，冰冻计时器不递增且不受伤 |
+| `FREEZE_HURTS_EXTRA_TYPES` | 烈焰人（blaze）、岩浆怪（magma_cube）、炽足兽（strider） | 冰冻伤害 ×5 |
+| `FREEZE_IMMUNE_WEARABLES` | 皮革头盔、皮革胸甲、皮革护腿、皮革靴子、皮革马铠 | 任意一件皮革护甲使 `LivingEntity::canFreeze()` 返回 false |
+
+### 冰冻伤害类型
+
+- `DamageType::Freeze` — 冰冻伤害，绕过护甲（`bypassesArmor()` 返回 true）
+- `DamageSources::freeze()` — 创建冰冻伤害源
+- 死亡消息键：`"death.attack.freeze"`
+- `FREEZE_DAMAGE` 游戏规则仅影响玩家（`Player::isInvulnerableTo()` 检查），非玩家实体始终受到冰冻伤害
+
+### 点燃时清除冰冻
+
+- `igniteForSeconds()` / `igniteForTicks()` — 点燃时自动调用 `clearFreeze()` 清除冰冻状态
+
+### NBT 序列化
+
+- 冰冻计时器键：`"TicksFrozen"`（EntityNbtKeys::TICKS_FROZEN），仅当值 > 0 时写入，读取时使用 `tryGetInt` 容错
+- 冰冻计时器通过 `DATA_TICKS_FROZEN_PARAM` 同步到客户端
+
+### 与方块系统的交互
+
+`PowderSnowBlock::onEntityCollision()` 负责冰冻计时器的递增：
+1. 设置实体 `setIsInPowderSnow(true)`
+2. 如果 `canFreeze()` 为 true，递增 `ticksFrozen`（上限 `getTicksRequiredToFreeze()`）
+3. 设置运动减速乘数 `Vector3(0.9, 0.9, 0.9)`
+
+冰冻计时器的递减和伤害处理由 `LivingEntity::tickFreeze()` 负责，递增由 `PowderSnowBlock::onEntityCollision()` 负责。
+
+### 测试覆盖
+
+- `tests/common/entity/core/EntityFreezeTest.cpp` — 冰冻系统完整单元测试
+  - Entity 层冰冻状态（getTicksFrozen/setTicksFrozen, getPercentFrozen, isFullyFrozen, isFreezing, canFreeze, isInPowderSnow, clearFreeze）
+  - LivingEntity 层冰冻逻辑（tickFreeze 递减/伤害/修饰符, removeFrost, tryAddFrost, clearFreeze）
+  - DamageSource::Freeze 伤害类型和 isFreezing() 检测
+  - FREEZE_DAMAGE 游戏规则对冰冻伤害的控制
+  - 冰冻减速修饰符（SPEED_MODIFIER_POWDER_SNOW_UUID）
+  - baseTick 中 isInPowderSnow 重置逻辑
+
         ## #队伍联盟判断 -
         **`isAlliedTo(const Entity&)`* *-双向联盟检查：this 认为 other 是盟友，或 other 认为 this 是盟友 -
         **`isAlliedTo(const scoreboard::Team*)`* *-队伍级联盟检查（虚方法，TameableEntity 重写以继承主人队伍） -
