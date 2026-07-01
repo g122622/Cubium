@@ -209,6 +209,33 @@ public:
     void lightChunk(const IChunk* chunk, bool needsEdgeChecks = true);
 
     /**
+     * @brief 照亮区块（使用指定 provider）
+     *
+     * 与上面的 lightChunk 等价，但使用调用方传入的 provider 而非 m_provider。
+     * 用于 LIGHT 生成阶段在 worker 线程执行光照：传入 ChunkLightingProvider
+     * （no-op markLightChanged，半径2邻居经 getChunkForLight fallback），
+     * 避免触碰主线程独占状态（ServerWorld::markLightChanged 的网络回调等）。
+     *
+     * @param provider 光照提供者（区块/方块状态访问 + markLightChanged 回调）
+     * @param chunk 要照亮的目标区块
+     * @param needsEdgeChecks 是否需要检查边缘
+     */
+    void lightChunk(StarLightLightingProvider* provider, const IChunk* chunk, bool needsEdgeChecks);
+
+    /**
+     * @brief 更新方块光引擎的空区块段映射（线程安全，持 m_mutex）
+     *
+     * 对齐 LightSyncManager::initializeChunkLighting 调用 BlockStarLightEngine::updateEmptinessMap，
+     * 但经 WorldLightManager 加锁，保证 LIGHT 阶段 worker 线程与主线程 tick/checkBlock 串行。
+     * 仅方块光引擎有空映射（SkyStarLightEngine 无），故只调用 m_blockLight。
+     *
+     * @param chunkX 区块X坐标
+     * @param chunkZ 区块Z坐标
+     * @param chunk 区块数据（读取各区块段空状态）
+     */
+    void updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk);
+
+    /**
      * @brief 强制加载区块光照数据
      *
      * 用于已正确光照的区块，只需要重新加载光照数据到缓存，

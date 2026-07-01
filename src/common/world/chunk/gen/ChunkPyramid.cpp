@@ -21,9 +21,9 @@
  */
 
 #include "common/world/chunk/gen/ChunkPyramid.hpp"
+#include "common/perfetto/TraceEvents.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/chunk/load/ChunkLoadLevel.hpp"
-#include "common/perfetto/TraceEvents.hpp"
 #include <algorithm>
 #include <array>
 
@@ -258,6 +258,10 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
 
         // === LIGHT ===
         // directDeps = [INITIALIZE_LIGHT, INITIALIZE_LIGHT]
+        // blockStateWriteRadius=2：光照在 LIGHT 阶段于 worker 线程执行（_executeStepTask
+        // LIGHT 分支经 WorldLightManager::lightChunk 写半径2邻居的 nibble），走 m_radiusAwareExecutor
+        // （5×5 写区互斥）保证并发光照任务不重叠写 nibble。neighbourReadRadius 仍由 accumulatedRadius
+        // 决定为 1（半径2邻居经 ChunkLightingProvider::getChunkForLight fallback 到 ServerWorld::getChunkForLight）。
         {
             const ChunkStep& parent = steps.back();
             std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
@@ -267,7 +271,7 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
             steps.emplace_back(&ChunkStatuses::LIGHT,
                 ChunkDependencies(std::vector<const ChunkStatus*>(directDeps)),
                 ChunkDependencies(std::move(accumulated)),
-                -1);
+                2);
         }
 
         // === SPAWN ===
@@ -298,7 +302,7 @@ const ChunkPyramid& ChunkPyramid::generationPyramid()
         }
 
         // 构建 byRadius[] 查找表：每个步骤预计算 getRequiredStatusAtRadius 用的状态表。
-        // 对齐 Moonrise ChunkStepMixin.init。必须在所有步骤构建完成后进行（依赖 parent 链）。
+        // 必须在所有步骤构建完成后进行（依赖 parent 链）。
         for (ChunkStep& step : steps) {
             step.buildRequiredStatusByRadius(ChunkStatuses::EMPTY);
         }
@@ -433,6 +437,10 @@ const ChunkPyramid& ChunkPyramid::loadingPyramid()
         // === LIGHT ===
         // 加载路径：光照传播，依赖 INITIALIZE_LIGHT(1)
         // directDeps = [INITIALIZE_LIGHT, INITIALIZE_LIGHT]
+        // 加载金字塔为死代码（loadingPyramid() 仅被测试引用，生产调度路径用 generationPyramid()）：
+        // 存档命中经 executeEmptyLoad 直接跳 FULL，不经 LIGHT；存档缺失走 executeStatusStep 也用
+        // generationPyramid()。故此处 blockStateWriteRadius 维持 -1，保持加载路径“不写方块”语义，
+        // 不破坏 LoadingPyramidAllWriteRadiusNegative 测试。LIGHT 的实际路由由生成金字塔决定。
         {
             const ChunkStep& parent = steps.back();
             std::vector<const ChunkStatus*> directDeps = {parent.targetStatus()};
@@ -472,7 +480,7 @@ const ChunkPyramid& ChunkPyramid::loadingPyramid()
         }
 
         // 构建 byRadius[] 查找表：每个步骤预计算 getRequiredStatusAtRadius 用的状态表。
-        // 对齐 Moonrise ChunkStepMixin.init。必须在所有步骤构建完成后进行（依赖 parent 链）。
+        // 必须在所有步骤构建完成后进行（依赖 parent 链）。
         for (ChunkStep& step : steps) {
             step.buildRequiredStatusByRadius(ChunkStatuses::EMPTY);
         }

@@ -350,6 +350,11 @@ void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks)
 
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
+    // 先启用区块光源列，再执行光照计算。
+    // BlockStarLightEngine::_getSources 收集光源、_getLightEmission 读取亮度，若列未启用则光源不发光。
+    // 必须在 light() 之前 enableLightSources，否则初始光照期间所有方块光源发光为 0。
+    enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
+
     // 执行天空光照计算
     if (m_skyLight != nullptr) {
         m_skyLight->light(m_provider, chunk, needsEdgeChecks);
@@ -359,9 +364,6 @@ void WorldLightManager::lightChunk(const IChunk* chunk, bool needsEdgeChecks)
     if (m_blockLight != nullptr) {
         m_blockLight->light(m_provider, chunk, needsEdgeChecks);
     }
-
-    // 启用区块光源
-    enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
 }
 
 void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ)
@@ -377,6 +379,53 @@ void WorldLightManager::checkChunkEdges(i32 chunkX, i32 chunkZ)
 
     if (m_blockLight != nullptr) {
         m_blockLight->StarLightEngine::checkChunkEdges(m_provider, chunkX, chunkZ);
+    }
+}
+
+// ============================================================================
+// 区块光照初始化（指定 provider 重载，用于 LIGHT 阶段 worker 线程）
+// ============================================================================
+
+void WorldLightManager::lightChunk(StarLightLightingProvider* provider, const IChunk* chunk, bool needsEdgeChecks)
+{
+    if (chunk == nullptr) {
+        return;
+    }
+
+    MC_TRACE_EVENT("server.lighting",
+        "WorldLightManager::lightChunk(provider)",
+        "chunk",
+        fmt::format("({}, {})", chunk->x(), chunk->z()),
+        "needsEdgeChecks",
+        needsEdgeChecks);
+
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    // 先启用区块光源列，再执行光照计算（与 lightChunk(chunk) 重载一致，详见 Bug A 修复说明）
+    enableLightSources(ChunkPos(chunk->x(), chunk->z()), true);
+
+    if (m_skyLight != nullptr) {
+        m_skyLight->light(provider, chunk, needsEdgeChecks);
+    }
+
+    if (m_blockLight != nullptr) {
+        m_blockLight->light(provider, chunk, needsEdgeChecks);
+    }
+}
+
+// ============================================================================
+// 空区块段映射（线程安全）
+// ============================================================================
+
+void WorldLightManager::updateEmptinessMap(i32 chunkX, i32 chunkZ, const ChunkData* chunk)
+{
+    MC_TRACE_EVENT(
+        "server.lighting", "WorldLightManager::updateEmptinessMap", "chunk", fmt::format("({}, {})", chunkX, chunkZ));
+
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
+
+    if (m_blockLight != nullptr) {
+        m_blockLight->updateEmptinessMap(chunkX, chunkZ, chunk);
     }
 }
 

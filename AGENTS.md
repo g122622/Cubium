@@ -39,6 +39,7 @@ clang-format -i src\common\xxx\Foo.hpp
 ```
 
 可能出现找不到clang-format的情况，此时需要手动指定路径。（我的vs安装在D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\Llvm\）
+只允许格式化.cpp和.hpp文件，其他文件严禁通过上述命令格式化。
 
 【重要】不允许让子代理执行编译命令，因为多个子代理执行编译命令会导致构建系统出现大量严重问题甚至锁死，必须由你来执行编译命令！
 

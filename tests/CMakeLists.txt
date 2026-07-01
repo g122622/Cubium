@@ -1269,6 +1269,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp
@@ -2220,6 +2221,7 @@ target_sources(mc_command_tests
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerWorld.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkTaskScheduler.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ChunkProgressionTask.cpp
+        ${CMAKE_SOURCE_DIR}/src/server/world/ChunkLightingProvider.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/thread/ServerWorkerPool.cpp
         ${CMAKE_SOURCE_DIR}/src/common/util/concurrent/ReentrantAreaLock.cpp
         ${CMAKE_SOURCE_DIR}/src/server/world/ServerChunkManager.cpp

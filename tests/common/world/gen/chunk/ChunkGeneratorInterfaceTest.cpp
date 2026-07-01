@@ -236,6 +236,17 @@ TEST_F(BaseChunkGeneratorTest, ChunkStep_FeaturesWriteRadius)
     EXPECT_GT(step.blockStateWriteRadius(), 0);
 }
 
+TEST_F(BaseChunkGeneratorTest, ChunkStep_LightWriteRadius)
+{
+    // LIGHT 步骤的写入半径应为 2：光照在 LIGHT 阶段于 worker 线程执行，
+    // 经 WorldLightManager::lightChunk 写半径2邻居的 nibble，走 m_radiusAwareExecutor（5×5 写区互斥）。
+    // neighbourReadRadius 仍为 1（accumulatedRadius），半径2邻居经 ChunkLightingProvider fallback 自取。
+    const ChunkStep& step = ChunkPyramid::generationPyramid().getStepTo(ChunkStatuses::LIGHT);
+    EXPECT_EQ(step.blockStateWriteRadius(), 2);
+    // 邻居读取半径仍为 1（直接依赖仅 INITIALIZE_LIGHT(1)）
+    EXPECT_EQ(step.neighbourReadRadius(), 1);
+}
+
 TEST_F(BaseChunkGeneratorTest, ChunkStep_EmptyWriteRadius)
 {
     // EMPTY 步骤不应该写任何方块
