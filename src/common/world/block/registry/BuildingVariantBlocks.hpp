@@ -96,11 +96,8 @@ struct BuildingVariantBlocks {
     static Block* QUARTZ_WALL;
     static Block* PURPUR_WALL;
     static Block* GRANITE_WALL;
-    static Block* POLISHED_GRANITE_WALL;
     static Block* DIORITE_WALL;
-    static Block* POLISHED_DIORITE_WALL;
     static Block* ANDESITE_WALL;
-    static Block* POLISHED_ANDESITE_WALL;
 
     // 栅栏
     static Block* OAK_FENCE;

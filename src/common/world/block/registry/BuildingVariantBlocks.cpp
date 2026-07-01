@@ -109,11 +109,8 @@ Block* BuildingVariantBlocks::RED_SANDSTONE_WALL = nullptr;
 Block* BuildingVariantBlocks::QUARTZ_WALL = nullptr;
 Block* BuildingVariantBlocks::PURPUR_WALL = nullptr;
 Block* BuildingVariantBlocks::GRANITE_WALL = nullptr;
-Block* BuildingVariantBlocks::POLISHED_GRANITE_WALL = nullptr;
 Block* BuildingVariantBlocks::DIORITE_WALL = nullptr;
-Block* BuildingVariantBlocks::POLISHED_DIORITE_WALL = nullptr;
 Block* BuildingVariantBlocks::ANDESITE_WALL = nullptr;
-Block* BuildingVariantBlocks::POLISHED_ANDESITE_WALL = nullptr;
 
 // 栅栏
 Block* BuildingVariantBlocks::OAK_FENCE = nullptr;
@@ -538,29 +535,14 @@ void registerBuildingVariantBlocks()
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:granite_wall"),
             BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
-    // 磨制花岗岩墙
-    BuildingVariantBlocks::POLISHED_GRANITE_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:polished_granite_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
-
     // 闪长岩墙
     BuildingVariantBlocks::DIORITE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:diorite_wall"),
             BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
-    // 磨制闪长岩墙
-    BuildingVariantBlocks::POLISHED_DIORITE_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:polished_diorite_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
-
     // 安山岩墙
     BuildingVariantBlocks::ANDESITE_WALL =
         &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:andesite_wall"),
-            BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
-
-    // 磨制安山岩墙
-    BuildingVariantBlocks::POLISHED_ANDESITE_WALL =
-        &registry.registerBlock<blocks::WallBlock>(ResourceLocation("minecraft:polished_andesite_wall"),
             BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // ========== 栅栏 ==========

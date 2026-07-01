@@ -134,11 +134,8 @@ TEST_F(BuildingVariantRegistrationTest, Walls_PointersNotNull)
     ASSERT_NE(VanillaBlocks::RED_NETHER_BRICK_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::END_STONE_BRICK_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::GRANITE_WALL, nullptr);
-    ASSERT_NE(VanillaBlocks::POLISHED_GRANITE_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::DIORITE_WALL, nullptr);
-    ASSERT_NE(VanillaBlocks::POLISHED_DIORITE_WALL, nullptr);
     ASSERT_NE(VanillaBlocks::ANDESITE_WALL, nullptr);
-    ASSERT_NE(VanillaBlocks::POLISHED_ANDESITE_WALL, nullptr);
 }
 
 // ========== 基础方块指针验证 ==========
@@ -306,11 +303,8 @@ TEST_F(BuildingVariantRegistrationTest, Walls_HaveBlockItems)
         "red_nether_brick_wall",
         "end_stone_brick_wall",
         "granite_wall",
-        "polished_granite_wall",
         "diorite_wall",
-        "polished_diorite_wall",
         "andesite_wall",
-        "polished_andesite_wall",
     };
     for (const char* name : wallNames) {
         auto* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));

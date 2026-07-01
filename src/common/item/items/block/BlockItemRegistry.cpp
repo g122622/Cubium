@@ -740,11 +740,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RED_NETHER_BRICK_WALL, "red_nether_brick_wall");
     registerSimpleBlock(VanillaBlocks::END_STONE_BRICK_WALL, "end_stone_brick_wall");
     registerSimpleBlock(VanillaBlocks::GRANITE_WALL, "granite_wall");
-    registerSimpleBlock(VanillaBlocks::POLISHED_GRANITE_WALL, "polished_granite_wall");
     registerSimpleBlock(VanillaBlocks::DIORITE_WALL, "diorite_wall");
-    registerSimpleBlock(VanillaBlocks::POLISHED_DIORITE_WALL, "polished_diorite_wall");
     registerSimpleBlock(VanillaBlocks::ANDESITE_WALL, "andesite_wall");
-    registerSimpleBlock(VanillaBlocks::POLISHED_ANDESITE_WALL, "polished_andesite_wall");
 
     // 栅栏
     registerSimpleBlock(VanillaBlocks::OAK_FENCE, "oak_fence");
