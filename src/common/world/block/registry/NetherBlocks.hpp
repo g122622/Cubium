@@ -91,6 +91,7 @@ struct NetherBlocks {
     // 下界砖扩展
     static Block* CHISELED_NETHER_BRICKS;
     static Block* CRACKED_NETHER_BRICKS;
+    static Block* NETHER_BRICK_FENCE;
 
     // 磁石
     static Block* LODESTONE;

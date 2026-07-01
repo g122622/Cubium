@@ -1002,6 +1002,7 @@ public:
     static Item* CHERRY_FENCE;        // 樱花木栅栏
     static Item* PALE_OAK_FENCE;      // 苍白橡木栅栏
     static Item* BAMBOO_FENCE;        // 竹木栅栏
+    static Item* NETHER_BRICK_FENCE;  // 下界砖栅栏
     static Item* OAK_FENCE_GATE;      // 橡木栅栏门
     static Item* SPRUCE_FENCE_GATE;   // 云杉木栅栏门
     static Item* BIRCH_FENCE_GATE;    // 白桦木栅栏门

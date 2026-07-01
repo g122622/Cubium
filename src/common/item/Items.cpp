@@ -934,6 +934,7 @@ Item* Items::MANGROVE_FENCE = nullptr;
 Item* Items::CHERRY_FENCE = nullptr;
 Item* Items::PALE_OAK_FENCE = nullptr;
 Item* Items::BAMBOO_FENCE = nullptr;
+Item* Items::NETHER_BRICK_FENCE = nullptr;
 Item* Items::OAK_FENCE_GATE = nullptr;
 Item* Items::SPRUCE_FENCE_GATE = nullptr;
 Item* Items::BIRCH_FENCE_GATE = nullptr;
@@ -3734,6 +3735,8 @@ void Items::_registerDoorsFencesStairs()
         registry, VanillaBlocks::PALE_OAK_FENCE, "pale_oak_fence", ItemProperties().maxStackSize(64));
     BAMBOO_FENCE = &registerBlockBackedItem(
         registry, VanillaBlocks::BAMBOO_FENCE, "bamboo_fence", ItemProperties().maxStackSize(64));
+    NETHER_BRICK_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::NETHER_BRICK_FENCE, "nether_brick_fence", ItemProperties().maxStackSize(64));
 
     // 栅栏门
     OAK_FENCE_GATE = &registerBlockBackedItem(

@@ -702,6 +702,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_FENCE, "cherry_fence");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_FENCE, "pale_oak_fence");
     registerSimpleBlock(VanillaBlocks::BAMBOO_FENCE, "bamboo_fence");
+    registerSimpleBlock(VanillaBlocks::NETHER_BRICK_FENCE, "nether_brick_fence");
     registerSimpleBlock(VanillaBlocks::OAK_FENCE_GATE, "oak_fence_gate");
     registerSimpleBlock(VanillaBlocks::SPRUCE_FENCE_GATE, "spruce_fence_gate");
     registerSimpleBlock(VanillaBlocks::BIRCH_FENCE_GATE, "birch_fence_gate");

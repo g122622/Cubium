@@ -28,6 +28,7 @@
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "world/block/blocks/building/FenceBlock.hpp"
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
@@ -119,6 +120,7 @@ Block* NetherBlocks::GILDED_BLACKSTONE = nullptr;
 // 下界砖扩展
 Block* NetherBlocks::CHISELED_NETHER_BRICKS = nullptr;
 Block* NetherBlocks::CRACKED_NETHER_BRICKS = nullptr;
+Block* NetherBlocks::NETHER_BRICK_FENCE = nullptr;
 
 // 磁石
 Block* NetherBlocks::LODESTONE = nullptr;
@@ -473,6 +475,16 @@ void registerNetherBlocks()
     // 裂纹下界砖
     NetherBlocks::CRACKED_NETHER_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cracked_nether_bricks"),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 下界砖栅栏 - 使用 FenceBlock，与木质栅栏同类但材质为石头，不可燃
+    // 只能与下界砖栅栏互连（不能与木质栅栏连接），通过 FENCES/WOODEN_FENCES 标签区分
+    NetherBlocks::NETHER_BRICK_FENCE =
+        &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:nether_brick_fence"),
             BlockProperties(Material::ROCK)
                 .hardness(2.0f)
                 .resistance(6.0f)

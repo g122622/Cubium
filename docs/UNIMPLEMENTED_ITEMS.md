@@ -14,8 +14,8 @@
 - 数据包物品标签文件数：**198**
 - 标签引用的去重叶子物品数：**882**
 - Cubium 已注册物品数（源码扫描）：**858**
-- 标签引用但未实现的物品数：**364**
-- 完全无法解析（标签内全部叶子物品均未实现）的标签数：**22**
+- 标签引用但未实现的物品数：**363**
+- 完全无法解析（标签内全部叶子物品均未实现）的标签数：**21**
 - 部分缺失（至少一个叶子物品未实现）的标签数：**50**
 
 ## 注册物品来源
@@ -48,7 +48,6 @@
 | `minecraft:copper_golem_statues` | 8 |
 | `minecraft:decorated_pot_ingredients` | 1 |
 | `minecraft:duplicates_allays` | 1 |
-| `minecraft:fences` | 1 |
 | `minecraft:harnesses` | 16 |
 | `minecraft:lightning_rods` | 8 |
 | `minecraft:mangrove_logs` | 4 |
@@ -250,7 +249,7 @@
 
 
 - `minecraft:crimson_fence`
-- `minecraft:nether_brick_fence`
+- `minecraft:nether_brick_fence ✅ 已完成`
 - `minecraft:warped_fence`
 
 ### Flowers / Small Flowers（5）
@@ -712,7 +711,7 @@
 ### `minecraft:fences`
 
 
-- `minecraft:nether_brick_fence`
+- `minecraft:nether_brick_fence ✅ 已完成`
 
 ### `minecraft:harnesses`
 
