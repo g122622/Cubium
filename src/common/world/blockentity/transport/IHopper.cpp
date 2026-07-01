@@ -30,35 +30,23 @@ namespace blockentity {
 
 AxisAlignedBB IHopper::getCollectionArea(const IHopper& hopper)
 {
-    // 收集区域包括两部分:
-    // 1. 漏斗内部碗状区域 (2, 11, 2) -> (14, 16, 14)
-    // 2. 上方一格方块区域 (0, 16, 0) -> (16, 32, 16)
-    //
-    // 在世界坐标中，相对于漏斗位置
+    // MC Java: SUCK_AABB = Block.column(16.0, 11.0, 32.0)
+    // column(16.0, 16.0, 11.0, 32.0) -> box(0, 11, 0, 16, 32, 16) -> box(0, 11/16, 0, 1, 2, 1)
+    // 在方块局部坐标中: Y 从 11/16 (0.6875) 到 2，X/Z 从 0 到 1
+    // 使用 getLevelX/Y/Z 转换为世界坐标:
+    //   方块漏斗: getLevelX = blockX + 0.5, move 偏移 -0.5, 所以 X 范围 = [blockX, blockX + 1]
+    //   同理 Z 范围 = [blockZ, blockZ + 1]
+    //   Y: blockY + 0.5 + (0.6875 - 0.5) = blockY + 0.6875 到 blockY + 0.5 + (2 - 0.5) = blockY + 2
+
     f64 x = hopper.getXPos();
     f64 y = hopper.getYPos();
     f64 z = hopper.getZPos();
 
-    // 合并两个区域的AABB
-    // 碗状区域: (x-0.5+2/16, y-0.5+11/16, z-0.5+2/16) -> (x-0.5+14/16, y-0.5+1, z-0.5+14/16)
-    // 上方区域: (x-0.5, y-0.5+1, z-0.5) -> (x+0.5, y-0.5+2, z+0.5)
-    //
-    // 简化：使用合并后的区域
-    // X: [x - 0.5 + 2/16, x + 0.5 + 2/16] = [x - 6/16, x + 10/16]
-    // 但实际上应该覆盖:
-    // - 碗内部: (2/16, 11/16, 2/16) 到 (14/16, 1, 14/16)
-    // - 上方: (0, 1, 0) 到 (1, 2, 1)
-    //
-    // Minecraft的COLLECTION_AREA使用VoxelShapes.or()合并两个形状
-    // 我们这里返回合并后的简化AABB
-
-    // 使用最简单的实现：上方一格完整区域
-    // 因为碗状区域在方块内部，物品主要从上方进入
     return AxisAlignedBB(static_cast<f32>(x - 0.5),
-        static_cast<f32>(y - 0.5 + 11.0 / 16.0), // 碗底部
+        static_cast<f32>(y - 0.5 + 11.0 / 16.0), // 碗口顶部 Y = blockY + 0.6875
         static_cast<f32>(z - 0.5),
         static_cast<f32>(x + 0.5),
-        static_cast<f32>(y + 1.5), // 上方一格顶部
+        static_cast<f32>(y + 1.5), // 上方一格顶部 Y = blockY + 2
         static_cast<f32>(z + 0.5));
 }
 

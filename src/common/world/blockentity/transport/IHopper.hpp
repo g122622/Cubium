@@ -78,6 +78,16 @@ public:
      */
     [[nodiscard]] virtual Direction getOutputDirection() const { return Direction::Down; }
 
+    /**
+     * @brief 漏斗是否对齐网格
+     * @return 方块漏斗返回true，漏斗矿车返回false
+     *
+     * MC Java 的 Hopper.isGridAligned()：方块漏斗返回 true，
+     * 漏斗矿车返回 false。影响物品吸取逻辑：当 isGridAligned() 为 true
+     * 且上方方块碰撞形状为完整方块时，漏斗不会吸取物品实体。
+     */
+    [[nodiscard]] virtual bool isGridAligned() const { return true; }
+
     // ========== 静态工具方法 ==========
 
     /**
@@ -85,9 +95,10 @@ public:
      * @param hopper 漏斗
      * @return 收集区域的AABB
      *
-     * 收集区域包括:
-     * - 漏斗内部碗状区域 (2, 11, 2) -> (14, 16, 14)
-     * - 上方一格方块区域 (0, 16, 0) -> (16, 32, 16)
+     * MC Java 的 SUCK_AABB 由 Block.column(16.0, 11.0, 32.0) 定义，
+     * 转换后为方块局部坐标 (0, 11/16, 0) -> (1, 2, 1)，
+     * 即从漏斗碗口顶部（Y=11/16）向上延伸一整格。
+     * 世界坐标下为 (blockX, blockY + 0.6875, blockZ) -> (blockX + 1, blockY + 2, blockZ + 1)。
      */
     [[nodiscard]] static AxisAlignedBB getCollectionArea(const IHopper& hopper);
 

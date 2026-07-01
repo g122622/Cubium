@@ -168,16 +168,16 @@ TEST_F(HopperEntityTest, TransferCooldown_ConstantsAreCorrect)
     EXPECT_EQ(HopperEntity::TRANSFER_COOLDOWN_CHAIN, 7);
 }
 
-TEST_F(HopperEntityTest, MayTransfer_ReturnsFalseForNormalCooldown)
+TEST_F(HopperEntityTest, IsOnCustomCooldown_ReturnsFalseForNormalCooldown)
 {
     hopper_->setTransferCooldown(8);
-    EXPECT_FALSE(hopper_->mayTransfer());
+    EXPECT_FALSE(hopper_->isOnCustomCooldown());
 }
 
-TEST_F(HopperEntityTest, MayTransfer_ReturnsTrueForAboveNormalCooldown)
+TEST_F(HopperEntityTest, IsOnCustomCooldown_ReturnsTrueForAboveNormalCooldown)
 {
     hopper_->setTransferCooldown(9);
-    EXPECT_TRUE(hopper_->mayTransfer());
+    EXPECT_TRUE(hopper_->isOnCustomCooldown());
 }
 
 // ========== IHopper 接口测试 ==========

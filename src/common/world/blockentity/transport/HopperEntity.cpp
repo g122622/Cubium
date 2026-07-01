@@ -76,14 +76,15 @@ HopperEntity::HopperEntity(const BlockPos& pos)
 
 void HopperEntity::tick(IWorld& world)
 {
+    // 只在服务端执行传输逻辑
+    if (world.isClientSide()) {
+        return;
+    }
+
     // 只在第一次 tick 时设置 world 指针
     if (m_world == nullptr) {
         m_world = &world;
     }
-
-    // 客户端不执行传输逻辑
-    // 注意：IWorld 没有 isClientSide() 方法，这里假设服务端执行
-    // 实际使用时需要检查 world.isClientSide()
 
     // 减少冷却
     if (m_transferCooldown > 0) {
@@ -218,6 +219,12 @@ bool HopperEntity::pullItems(IHopper& hopper)
     IInventory* sourceInventory = getSourceInventory(hopper);
 
     if (sourceInventory != nullptr) {
+        // 检查源容器是否为漏斗自身，避免自循环
+        IInventory* hopperInventory = dynamic_cast<IInventory*>(&hopper);
+        if (sourceInventory == hopperInventory) {
+            return false;
+        }
+
         // 从容器拉取
         Direction direction = Direction::Down;
 
@@ -254,13 +261,26 @@ bool HopperEntity::pullItems(IHopper& hopper)
         return false;
     }
 
+    // MC Java: 当上方没有容器时，检查上方的方块是否阻挡漏斗吸取
+    // 如果漏斗对齐网格（方块漏斗，非矿车漏斗）且上方方块的向下碰撞面为完整方块，
+    // 则物品无法穿过该方块被漏斗吸取
+    // TODO: 当 BlockTags::DOES_NOT_BLOCK_HOPPERS 标签注册后，
+    //       还需检查上方方块是否在该标签中（如树叶等不完全阻挡漏斗的方块）
+    IWorld* world = hopper.getWorld();
+    if (world != nullptr && hopper.isGridAligned()) {
+        BlockPos posAbove = hopper.getHopperPos().up();
+        const BlockState* stateAbove = world->getBlockState(posAbove);
+        if (stateAbove != nullptr && stateAbove->isFaceFull(Direction::Down)) {
+            // 上方方块的向下碰撞面为完整方块，阻挡漏斗吸取物品实体
+            return false;
+        }
+    }
+
     // 尝试从物品实体拉取
     std::vector<ItemEntity*> items = getCaptureItems(hopper);
     for (ItemEntity* item : items) {
         // 获取漏斗的背包
-        IInventory* hopperInventory = nullptr;
-        // 通过 dynamic_cast 获取 IInventory 接口
-        hopperInventory = dynamic_cast<IInventory*>(&hopper);
+        IInventory* hopperInventory = dynamic_cast<IInventory*>(&hopper);
         if (captureItem(hopperInventory, item)) {
             return true;
         }
@@ -275,18 +295,31 @@ bool HopperEntity::captureItem(IInventory* inventory, ItemEntity* itemEntity)
         return false;
     }
 
+    // 漏斗不检查物品的 pickupDelay，与 MC Java 一致
+    // MC Java: HopperBlockEntity.addItem(Container, ItemEntity) 不检查 pickupDelay，
+    // 只有玩家拾取才检查 pickupDelay
+    if (!itemEntity->isAlive()) {
+        return false;
+    }
+
     ItemStack stack = itemEntity->getItemStack().copy();
+    i32 originalCount = stack.getCount();
     ItemStack remaining = putStackInInventoryAllSlots(nullptr, inventory, stack, Direction::None);
 
     if (remaining.isEmpty()) {
         // 物品完全被捕获，移除实体
         itemEntity->remove();
         return true;
-    } else {
-        // 部分物品被捕获，更新实体物品数量
-        itemEntity->setItemStack(remaining);
-        return false;
     }
+
+    // 部分物品被捕获，更新实体物品数量
+    if (remaining.getCount() != originalCount) {
+        itemEntity->setItemStack(remaining);
+        return true;
+    }
+
+    // 没有任何物品被捕获
+    return false;
 }
 
 IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& pos)
@@ -308,8 +341,12 @@ IInventory* HopperEntity::getInventoryAtPosition(IWorld* world, const BlockPos& 
         if (provider != nullptr) {
             std::unique_ptr<ISidedInventory> inventory = provider->createInventory(*blockState, *world, pos);
             if (inventory != nullptr) {
-                // 注意：这里返回原始指针，调用者需要注意生命周期
-                // 当前实现假设 inventory 的生命周期由调用者管理
+                // TODO: 此处返回原始指针存在内存泄漏风险。
+                // ISidedInventoryProvider::createInventory() 返回 unique_ptr，
+                // 但调用方通过原始指针使用后无法释放。
+                // 完整修复需要将 getInventoryAtPosition 返回类型改为 unique_ptr
+                // 或使用 shared_ptr，但涉及较大范围重构。
+                // 当前仅 ComposterBlock 使用此路径，泄漏量较小。
                 return inventory.release();
             }
         }
@@ -370,12 +407,12 @@ std::vector<ItemEntity*> HopperEntity::getCaptureItems(IHopper& hopper)
     std::vector<Entity*> entities = world->getEntitiesInAABB(collectionArea, nullptr);
 
     // 过滤出物品实体
+    // MC Java: getItemsAtAndAbove 使用 EntitySelector.ENTITY_STILL_ALIVE 过滤，
+    // 仅检查 isAlive()，不检查 pickupDelay。漏斗可以吸取任何存活状态的物品实体。
     for (Entity* entity : entities) {
         if (entity != nullptr) {
-            // 检查是否为 ItemEntity
-            // 使用 dynamic_cast 安全检查
             ItemEntity* itemEntity = dynamic_cast<ItemEntity*>(entity);
-            if (itemEntity != nullptr && itemEntity->canBePickedUp()) {
+            if (itemEntity != nullptr && itemEntity->isAlive()) {
                 result.push_back(itemEntity);
             }
         }
@@ -458,6 +495,11 @@ bool HopperEntity::_transferItemsOut()
     // 获取输出目标容器
     IInventory* targetInventory = _getInventoryForHopperTransfer();
     if (targetInventory == nullptr) {
+        return false;
+    }
+
+    // 检查目标容器是否为漏斗自身，避免自循环
+    if (targetInventory == &m_inventory) {
         return false;
     }
 
@@ -661,7 +703,7 @@ ItemStack HopperEntity::_insertStack(
         // 减少冷却时间，但需要检查游戏时间
         if (wasEmpty && destination != nullptr) {
             HopperEntity* targetHopper = dynamic_cast<HopperEntity*>(destination);
-            if (targetHopper != nullptr && !targetHopper->mayTransfer()) {
+            if (targetHopper != nullptr && !targetHopper->isOnCustomCooldown()) {
                 i32 cooldownReduction = 0;
                 // 检查源是否也是漏斗
                 if (source != nullptr) {

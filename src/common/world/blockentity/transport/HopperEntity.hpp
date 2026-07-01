@@ -157,13 +157,14 @@ public:
     [[nodiscard]] bool isOnTransferCooldown() const { return m_transferCooldown > 0; }
 
     /**
-     * @brief 检查是否可以传输
-     * @return 如果冷却时间超过正常值返回true
+     * @brief 检查是否处于自定义冷却中（冷却时间超过正常传输冷却）
+     * @return 如果冷却时间超过8 tick返回true
      *
-     * 用于漏斗链优化：当物品从一个漏斗传输到另一个漏斗时，
-     * 目标漏斗的冷却时间会减少1 tick（7 tick而非8 tick）
+     * 用于漏斗链优化：当漏斗通过自定义方式设置了超过 8 tick 的冷却时，
+     * isOnCustomCooldown() 返回 true，跳过链式冷却缩减。
+     * MC Java 中 isOnCustomCooldown() = cooldownTime > MOVE_ITEM_SPEED(8)。
      */
-    [[nodiscard]] bool mayTransfer() const { return m_transferCooldown > TRANSFER_COOLDOWN; }
+    [[nodiscard]] bool isOnCustomCooldown() const { return m_transferCooldown > TRANSFER_COOLDOWN; }
 
     /**
      * @brief 处理实体碰撞

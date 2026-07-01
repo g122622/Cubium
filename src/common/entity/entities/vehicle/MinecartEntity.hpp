@@ -755,6 +755,13 @@ public:
     }
     [[nodiscard]] Direction getOutputDirection() const override { return Direction::Down; }
 
+    /**
+     * @brief 漏斗矿车不与网格对齐
+     * MC Java 中 HopperMinecart.isGridAligned() 返回 false，
+     * 因此漏斗矿车不会因为上方方块的碰撞形状而跳过物品吸取。
+     */
+    [[nodiscard]] bool isGridAligned() const override { return false; }
+
     // ========== IInventory 代理方法 ==========
 
     [[nodiscard]] i32 getContainerSize() const;
