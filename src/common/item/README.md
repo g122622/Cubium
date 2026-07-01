@@ -62,6 +62,7 @@ item/
 │   │   ├── BlockItem.hpp/cpp     # 方块物品基类
 │   │   ├── WallOrFloorItem.hpp/cpp  # 墙壁/地板物品（告示牌、旗帜等）
 │   │   ├── BannerItem.hpp/cpp    # 旗帜物品
+│   │   ├── GameMasterBlockItem.hpp/cpp  # 管理员方块物品（命令方块、结构方块等）
 │   │   └── BlockItemRegistry.hpp/cpp  # 方块物品注册表
 │   ├── weapon/                   # 武器物品
 │   │   ├── BowItem.hpp/cpp       # 弓

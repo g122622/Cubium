@@ -17,6 +17,7 @@ items/
 │   ├── BannerItem.hpp/cpp      # 旗帜物品
 │   ├── BlockItem.hpp/cpp       # 方块物品基类（放置逻辑、NBT数据传递）
 │   ├── BlockItemRegistry.hpp/cpp # 方块物品注册表
+│   ├── GameMasterBlockItem.hpp/cpp # 管理员方块物品（命令方块、结构方块等）
 │   └── WallOrFloorItem.hpp/cpp # 墙上/地面放置物品（按钮、压力板等）
 ├── food/                       # 食物物品
 │   ├── ChorusFruitItem.hpp/cpp # 紫颂果（传送效果）
