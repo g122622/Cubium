@@ -41,6 +41,7 @@
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/AxisAlignedBB.hpp"
 #include "common/util/math/random/Random.hpp"
+#include "common/util/math/ray/Raycast.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "common/world/WorldEvents.hpp"
@@ -707,10 +708,26 @@ std::optional<Vector3> TrialSpawnerBlockEntity::_findSpawnPosition(IWorld& world
             continue;
         }
 
-        // TODO: MC Java 原版使用 ClipContext.VISUAL 进行视线追踪（从生成位置到刷怪笼中心），
-        // 只有射线未被打断或命中刷怪笼方块本身时才允许生成。当前实现仅做了碰撞检测，
-        // 未做视线检测。待项目中实现射线追踪系统后应补充此检测，
-        // 参考 MC Java TrialSpawner.inLineOfSight()。
+        // 视线检测：从生成位置向刷怪笼中心发射射线，
+        // 如果射线未命中任何方块（视线畅通），或仅命中刷怪笼方块本身，则允许生成。
+        // 参考 MC Java TrialSpawner.inLineOfSight()：
+        //   使用 ClipContext.VISUAL 进行视线追踪，raycastBlocks 使用 getShape()
+        //   （等效于 MC 的 VISUAL 模式，因为大多数方块的视觉形状等于碰撞形状），
+        //   且自动跳过空气和液体，对应 MC 的 ClipContext.Fluid.NONE。
+        Vector3 spawnerCenter = m_pos.center();
+        Vector3 delta = spawnerCenter - spawnPos;
+        f32 distance = delta.length();
+        Vector3 direction = delta.normalized();
+
+        Ray ray(spawnPos, direction);
+        RaycastContext context(ray, distance);
+        BlockRaycastResult result = raycastBlocks(context, world);
+
+        // 视线不通过的条件：射线命中了非刷怪笼方块的某个方块
+        bool lineOfSight = result.isMiss() || result.blockPos() == m_pos;
+        if (!lineOfSight) {
+            continue;
+        }
 
         return spawnPos;
     }
