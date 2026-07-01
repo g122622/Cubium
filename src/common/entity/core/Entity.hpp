@@ -1236,7 +1236,7 @@ public:
      *
      * 将秒数转换为 tick 数（1 秒 = 20 tick），然后调用 igniteForTicks()。
      * 仅在新燃烧时间大于当前剩余时间时才会更新，不会覆盖免疫期。
-     * 同时清除冰冻状态（对应 MC Java 的 clearFreeze）。
+     * 同时清除冰冻状态。
      *
      * @param seconds 燃烧时间（秒）
      */
@@ -1247,7 +1247,7 @@ public:
      *
      * 仅在新燃烧时间大于当前剩余时间时才会更新。
      * 如果当前处于火焰免疫期（m_fire < 0），只有新值大于当前负值时才会覆盖。
-     * 同时清除冰冻状态（对应 MC Java 的 clearFreeze）。
+     * 同时清除冰冻状态。
      *
      * @param ticks 燃烧时间（tick）
      */
@@ -1293,7 +1293,6 @@ public:
      * 当实体被点燃时调用，清除冰冻效果。
      * 基类实现将冰冻计时器重置为 0。
      * LivingEntity 重写此方法以额外移除冰冻减速修饰符。
-     * 对应 MC Java 的 Entity.clearFreeze()。
      */
     virtual void clearFreeze() { m_ticksFrozen = 0; }
 
@@ -1303,7 +1302,6 @@ public:
      * 返回实体当前累积的冰冻 tick 数。
      * 当实体处于细雪方块中时每 tick +1，不在细雪中时每 tick -2。
      * 值达到 getTicksRequiredToFreeze() 时实体完全冰冻。
-     * 对应 MC Java 的 Entity.getTicksFrozen()。
      *
      * @return 冰冻计时器值
      */
@@ -1313,7 +1311,6 @@ public:
      * @brief 设置冰冻计时器值
      *
      * 同时同步到数据管理器用于客户端同步。
-     * 对应 MC Java 的 Entity.setTicksFrozen()。
      *
      * @param ticks 冰冻计时器值
      */
@@ -1327,7 +1324,6 @@ public:
      * @brief 获取完全冰冻所需的 tick 数
      *
      * 默认值为 140 tick（7 秒）。
-     * 对应 MC Java 的 Entity.getTicksRequiredToFreeze()。
      *
      * @return 完全冰冻所需的 tick 数
      */
@@ -1337,7 +1333,6 @@ public:
      * @brief 获取冰冻百分比（0.0 ~ 1.0）
      *
      * 用于渲染冰冻动画效果和计算冰冻减速修饰符。
-     * 对应 MC Java 的 Entity.getPercentFrozen()。
      *
      * @return 冰冻百分比
      */
@@ -1352,7 +1347,6 @@ public:
      *
      * 当冰冻计时器达到 getTicksRequiredToFreeze() 时返回 true。
      * 完全冰冻的实体每 40 tick 受到 1.0 冰冻伤害。
-     * 对应 MC Java 的 Entity.isFullyFrozen()。
      *
      * @return 是否完全冰冻
      */
@@ -1362,7 +1356,6 @@ public:
      * @brief 检查实体是否正在冰冻中
      *
      * 当冰冻计时器 > 0 时返回 true。
-     * 对应 MC Java 的 Entity.isFreezing()。
      *
      * @return 是否正在冰冻
      */
@@ -1373,7 +1366,6 @@ public:
      *
      * 检查实体类型是否不在冰冻免疫标签中。
      * LivingEntity 重写此方法以额外检查皮革护甲。
-     * 对应 MC Java 的 Entity.canFreeze()。
      *
      * @return 是否可以冰冻
      */
@@ -1384,7 +1376,6 @@ public:
      *
      * 每帧在 baseTick() 开始时重置为 false，
      * 由细雪方块的 onEntityCollision() 设置为 true。
-     * 对应 MC Java 的 Entity.setIsInPowderSnow()。
      *
      * @param inPowderSnow 是否在细雪中
      */
@@ -1392,8 +1383,6 @@ public:
 
     /**
      * @brief 检查实体是否处于细雪中
-     *
-     * 对应 MC Java 的 Entity.isInPowderSnow 字段。
      *
      * @return 是否在细雪中
      */

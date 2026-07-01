@@ -191,7 +191,6 @@ void LivingEntity::actuallyHurt(DamageSource& source, f32 amount)
     }
 
     // 1.5 冰冻额外伤害：冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）受到5倍冰冻伤害
-    // 对应 MC Java 的 LivingEntity.actuallyHurt() 中 IS_FREEZING + FREEZE_HURTS_EXTRA_TYPES 检查
     if (source.isFreezing() && EntityTypeTags::FREEZE_HURTS_EXTRA_TYPES().contains(getTypeId())) {
         amount *= 5.0f;
     }
@@ -769,7 +768,6 @@ void LivingEntity::tick()
     tickHealth();
 
     // 更新冰冻状态
-    // 对应 MC Java 的 LivingEntity.baseTick() 中的 "freezing" 段
     tickFreeze();
 
     // 更新空气供应和溺水
@@ -926,7 +924,6 @@ bool LivingEntity::canFreeze() const
     // TODO: 当旁观模式实现后，添加 isSpectator() 检查
 
     // 检查皮革护甲：任意一件皮革护甲即可免疫冰冻
-    // 对应 MC Java 的 LivingEntity.canFreeze()
     // 皮革护甲包括：皮革头盔、皮革胸甲、皮革护腿、皮革靴子、皮革马铠
     if (item::tag::ItemTags::isInitialized()) {
         const auto& freezeImmuneTag = item::tag::ItemTags::FREEZE_IMMUNE_WEARABLES();
@@ -950,7 +947,6 @@ void LivingEntity::tickFreeze()
         return;
     }
 
-    // MC Java: LivingEntity.baseTick() 中的 "freezing" 段
     // 如果不在细雪中或不可冰冻，冰冻计时器每 tick -2（解冻速度是冰冻速度的两倍）
     if (!isInPowderSnow() || !canFreeze()) {
         setTicksFrozen(std::max(0, getTicksFrozen() - 2));
@@ -962,7 +958,6 @@ void LivingEntity::tickFreeze()
 
     // 每 40 tick（2 秒），如果完全冰冻且可冰冻，造成 1.0 冰冻伤害
     if (ticksExisted() % FREEZE_HURT_FREQUENCY == 0 && isFullyFrozen() && canFreeze()) {
-        // MC Java: Player 重写 isInvulnerableTo() 检查 freezeDamage 游戏规则
         // 对于 LivingEntity，在造成伤害前检查游戏规则
         if (m_world != nullptr && !m_world->getGameRules().getBoolean(world::gamerule::GameRuleKeys::FREEZE_DAMAGE)) {
             // freezeDamage 游戏规则关闭，跳过冰冻伤害
@@ -971,9 +966,7 @@ void LivingEntity::tickFreeze()
 
         auto freezeSource = DamageSources::freeze();
 
-        // MC Java: hurtServer 中对 FREEZE_HURTS_EXTRA_TYPES 实体的5倍伤害乘数
-        // 在 actuallyHurt() 中处理，此处始终传入 1.0 伤害
-        // 对应 MC Java: this.hurtServer(serverlevel, this.damageSources().freeze(), 1.0F);
+        // 5倍伤害乘数在 actuallyHurt() 中处理，此处始终传入 1.0 伤害
         hurt(freezeSource, 1.0f);
     }
 }
@@ -981,7 +974,6 @@ void LivingEntity::tickFreeze()
 void LivingEntity::removeFrost()
 {
     // 移除冰冻减速修饰符
-    // 对应 MC Java 的 LivingEntity.removeFrost()
     auto* speedAttr = m_attributes.getInstance(entity::attribute::Attributes::MOVEMENT_SPEED);
     if (speedAttr != nullptr) {
         speedAttr->removeModifier(SPEED_MODIFIER_POWDER_SNOW_UUID);
@@ -991,7 +983,6 @@ void LivingEntity::removeFrost()
 void LivingEntity::tryAddFrost()
 {
     // 如果冰冻计时器 > 0 且脚下方块不是空气，添加减速修饰符
-    // 对应 MC Java 的 LivingEntity.tryAddFrost()
     if (getTicksFrozen() <= 0) {
         return;
     }

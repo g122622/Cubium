@@ -395,7 +395,6 @@ void EntityTypeTags::initialize()
     });
 
     // 冲击投射物标签（包含 #minecraft:arrows 子标签）
-    // 参考 MC Java EntityTypeTagsProvider 第 40-53 行
     IMPACT_PROJECTILES().addAll({
         // #minecraft:arrows 子标签的成员（展开引用）
         ResourceLocation("minecraft:arrow"),
@@ -635,7 +634,6 @@ void EntityTypeTags::initialize()
     });
 
     // 水下强制下坐骑
-    // 参考 MC Java EntityTypeTagsProvider 第 103-118 行
     // 这些实体在水中会强制乘客下坐骑（船不在其中，船有自己的水下沉没逻辑）
     DISMOUNTS_UNDERWATER().addAll({
         ResourceLocation("minecraft:camel"),
