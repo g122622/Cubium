@@ -479,6 +479,22 @@ public:
     virtual void onPlayerStoppedUsing(ItemStack& stack, IWorld& world, LivingEntity& entity, i32 timeLeft);
 
     /**
+     * @brief 物品使用过程中每tick调用
+     *
+     * 当玩家持续使用物品时，每tick调用一次。
+     * 用于实现刷子等需要逐tick更新状态的物品。
+     *
+     * 对应 MC 原版的 Item.onUseTick()。
+     * elapsedTicks 为从开始使用到当前已过的tick数（1-based）。
+     *
+     * @param stack 物品堆
+     * @param world 世界引用
+     * @param entity 使用实体
+     * @param elapsedTicks 已使用的tick数（从1开始）
+     */
+    virtual void onUseTick(ItemStack& /*stack*/, IWorld& /*world*/, LivingEntity& /*entity*/, i32 /*elapsedTicks*/) {}
+
+    /**
      * @brief 获取使用动作类型
      *
      * 用于客户端播放正确的动画。

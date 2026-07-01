@@ -467,7 +467,7 @@
 - `minecraft:acacia_shelf`
 - `minecraft:amethyst_shard ✅ 已完成`
 - `minecraft:anvil`
-- `minecraft:armadillo_scute`
+- `minecraft:armadillo_scute ✅ 已完成`
 - `minecraft:azalea`
 - `minecraft:bamboo_block`
 - `minecraft:bamboo_shelf`
@@ -482,7 +482,7 @@
 - `minecraft:brown_bundle`
 - `minecraft:brown_egg`
 - `minecraft:brown_harness`
-- `minecraft:brush`
+- `minecraft:brush ✅ 已完成`
 - `minecraft:bundle`
 - `minecraft:cherry_shelf`
 - `minecraft:chipped_anvil`
@@ -769,7 +769,7 @@
 ### `minecraft:repairs_wolf_armor`
 
 
-- `minecraft:armadillo_scute`
+- `minecraft:armadillo_scute ✅ 已完成`
 
 ### `minecraft:sniffer_food`
 
@@ -962,7 +962,7 @@
 未实现项：
 
 
-- `minecraft:brush`
+- `minecraft:brush ✅ 已完成`
 
 ### `minecraft:flowers`
 

@@ -479,6 +479,9 @@ void ItemTags::initialize()
     breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "trident")));
     breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mace")));
 
+    // 刷子 - 刷扫也会碎裂陶罐
+    breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brush")));
+
     allTags[breaksPots->getId()] = std::move(breaksPots);
 
     // 创建 FREEZE_IMMUNE_WEARABLES 标签

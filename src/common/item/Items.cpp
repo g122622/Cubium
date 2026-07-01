@@ -43,6 +43,7 @@
 #include "common/item/items/potion/PotionItem.hpp"
 #include "common/item/items/potion/SplashPotionItem.hpp"
 #include "common/item/items/special/BoneMealItem.hpp"
+#include "common/item/items/special/BrushItem.hpp"
 #include "common/item/items/special/BucketItem.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
@@ -332,6 +333,7 @@ Item* Items::BOWL = nullptr;
 Item* Items::FLINT = nullptr;
 Item* Items::FLINT_AND_STEEL = nullptr;
 Item* Items::SHEARS = nullptr;
+Item* Items::BRUSH = nullptr;
 Item* Items::HONEYCOMB = nullptr;
 Item* Items::NAME_TAG = nullptr;
 Item* Items::SADDLE = nullptr;
@@ -406,6 +408,7 @@ Item* Items::WARPED_FUNGUS = nullptr;
 
 // 水域更新材料
 Item* Items::SCUTE = nullptr;
+Item* Items::ARMADILLO_SCUTE = nullptr;
 Item* Items::HEART_OF_THE_SEA = nullptr;
 Item* Items::NAUTILUS_SHELL = nullptr;
 Item* Items::PHANTOM_MEMBRANE = nullptr;
@@ -1956,6 +1959,12 @@ void Items::_registerMisc()
     SHEARS = &registry.registerItem<item::tool::ShearsItem>(
         ResourceLocation("minecraft:shears"), ItemProperties().maxDamage(238));
 
+    // 刷子 - 考古学工具，用于刷可疑方块和犰狳
+    // 耐久度 64，附魔能力 1（仅耐久/经验修补/消失诅咒）
+    // 参考: net.minecraft.world.item.BrushItem
+    BRUSH = &registry.registerItem<item::BrushItem>(
+        ResourceLocation("minecraft:brush"), ItemProperties().maxDamage(item::BrushItem::MAX_DURABILITY));
+
     // 蜜脾 - 右键铜方块涂蜡，阻止氧化
     HONEYCOMB = &registry.registerItem<item::items::HoneycombItem>(
         ResourceLocation("minecraft:honeycomb"), ItemProperties().maxStackSize(64));
@@ -2117,6 +2126,11 @@ void Items::_registerAquaticMaterials()
     // 鳞甲 - 海龟掉落，用于合成海龟壳
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
     SCUTE = &registry.registerItem(ResourceLocation("minecraft:scute"), ItemProperties().maxStackSize(64));
+
+    // 犰狳鳞甲 - 刷犰狳获得，用于合成狼铠
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    ARMADILLO_SCUTE =
+        &registry.registerItem(ResourceLocation("minecraft:armadillo_scute"), ItemProperties().maxStackSize(64));
 
     // 海洋之心 - 宝藏物品，用于合成潮涌核心
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS).rarity(Rarity.UNCOMMON))

@@ -321,6 +321,7 @@ public:
     static Item* FLINT;
     static Item* FLINT_AND_STEEL;
     static Item* SHEARS;    // 剪刀
+    static Item* BRUSH;     // 刷子（考古学工具）
     static Item* HONEYCOMB; // 蜜脾
     static Item* NAME_TAG;  // 命名牌
     static Item* SADDLE;    // 鞍
@@ -404,6 +405,7 @@ public:
     // 水域更新材料
     // ========================================================================
     static Item* SCUTE;            // 鳞甲 - 海龟掉落
+    static Item* ARMADILLO_SCUTE;  // 犰狳鳞甲 - 刷犰狳获得
     static Item* HEART_OF_THE_SEA; // 海洋之心 - 宝藏物品
     static Item* NAUTILUS_SHELL;   // 鹦鹉螺壳 - 溺尸掉落/钓鱼
     static Item* PHANTOM_MEMBRANE; // 幻翼膜 - 幻翼掉落
