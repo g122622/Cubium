@@ -525,6 +525,7 @@ add_executable(mc_tests
     common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp
     common/world/block/blocks/cave/PointedDripstoneBlockTest.cpp
     common/world/block/blocks/pale_garden/PaleHangingMossBlockTest.cpp
+    common/world/block/blocks/garden/GardenFlowerTest.cpp
     common/world/block/blocks/end/ChorusPlantBlockTest.cpp
     common/world/block/blocks/end/DragonEggBlockTest.cpp
     common/world/block/BlockTagsTest.cpp

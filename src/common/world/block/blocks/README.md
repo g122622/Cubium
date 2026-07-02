@@ -38,9 +38,14 @@ blocks/
 ├── building/                    # 建筑方块子目录（楼梯、台阶、墙、栅栏等）
 │   └── README.md
 ├── agricultural/                # 农业方块子目录（农作物、农田等）
+├── cave/                        # 洞穴方块子目录
+├── copper/                      # 铜方块子目录
 ├── coral/                       # 珊瑚方块子目录
 ├── decorative/                  # 装饰方块子目录
+├── dirt/                        # 泥土方块子目录
 ├── functional/                  # 功能方块子目录
+├── garden/                      # 花园觉醒方块子目录（仙人掌花等）
+├── growing_plant/               # 生长植物子目录
 ├── ice/                         # 冰方块子目录
 ├── mob/                         # 生物相关方块子目录
 ├── nether/                      # 下界方块子目录
@@ -55,6 +60,7 @@ blocks/
 - 末地方块详情请参阅 [end/README.md](end/README.md)
 - 建筑方块详情请参阅 [building/README.md](building/README.md)
 - 特殊方块详情请参阅 [special/README.md](special/README.md)
+- 花园觉醒方块详情请参阅 [garden/README.md](garden/README.md)
 
 ## 内部模块关系
 
