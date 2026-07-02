@@ -160,6 +160,14 @@ public:
     static ItemTag& CHAINS();
 
     /**
+     * @brief 栏杆物品标签
+     *
+     * 包含铁栏杆和所有铜栏杆物品（含氧化和涂蜡变种）。
+     * 对应 MC 原版标签 minecraft:bars。
+     */
+    static ItemTag& BARS();
+
+    /**
      * @brief 木门物品标签
      *
      * 包含所有木门物品（橡木、云杉、白桦、丛林、金合欢、深色橡木、苍白橡木、

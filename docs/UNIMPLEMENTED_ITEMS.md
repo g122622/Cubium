@@ -63,7 +63,7 @@
 
 | 标签 | 未实现叶子物品数 |
 | --- | --- |
-| `minecraft:bars` | 8 |
+| `minecraft:bars` | 8 ✅ 已完成 |
 | `minecraft:bee_food` | 11 |
 | `minecraft:bookshelf_books` | 1 |
 | `minecraft:chicken_food` | 2 |
@@ -164,7 +164,7 @@
 
 
 - `minecraft:copper_axe ✅ 已完成`
-- `minecraft:copper_bars`
+- `minecraft:copper_bars ✅ 已完成`
 - `minecraft:copper_block ✅ 已完成`
 - `minecraft:copper_chain ✅ 已完成`
 - `minecraft:copper_chest`
@@ -177,43 +177,43 @@
 - `minecraft:copper_sword ✅ 已完成`
 - `minecraft:deepslate_copper_ore ✅ 已完成`
 - `minecraft:exposed_copper ✅ 已完成`
-- `minecraft:exposed_copper_bars`
+- `minecraft:exposed_copper_bars ✅ 已完成`
 - `minecraft:exposed_copper_chain ✅ 已完成`
 - `minecraft:exposed_copper_chest`
 - `minecraft:exposed_copper_golem_statue`
 - `minecraft:exposed_copper_lantern ✅ 已完成`
 - `minecraft:oxidized_copper ✅ 已完成`
-- `minecraft:oxidized_copper_bars`
+- `minecraft:oxidized_copper_bars ✅ 已完成`
 - `minecraft:oxidized_copper_chain ✅ 已完成`
 - `minecraft:oxidized_copper_chest`
 - `minecraft:oxidized_copper_golem_statue`
 - `minecraft:oxidized_copper_lantern ✅ 已完成`
-- `minecraft:waxed_copper_bars`
+- `minecraft:waxed_copper_bars ✅ 已完成`
 - `minecraft:waxed_copper_block ✅ 已完成`
 - `minecraft:waxed_copper_chain ✅ 已完成`
 - `minecraft:waxed_copper_chest`
 - `minecraft:waxed_copper_golem_statue`
 - `minecraft:waxed_copper_lantern ✅ 已完成`
 - `minecraft:waxed_exposed_copper ✅ 已完成`
-- `minecraft:waxed_exposed_copper_bars`
+- `minecraft:waxed_exposed_copper_bars ✅ 已完成`
 - `minecraft:waxed_exposed_copper_chain ✅ 已完成`
 - `minecraft:waxed_exposed_copper_chest`
 - `minecraft:waxed_exposed_copper_golem_statue`
 - `minecraft:waxed_exposed_copper_lantern ✅ 已完成`
 - `minecraft:waxed_oxidized_copper ✅ 已完成`
-- `minecraft:waxed_oxidized_copper_bars`
+- `minecraft:waxed_oxidized_copper_bars ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_chain ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_chest`
 - `minecraft:waxed_oxidized_copper_golem_statue`
 - `minecraft:waxed_oxidized_copper_lantern ✅ 已完成`
 - `minecraft:waxed_weathered_copper ✅ 已完成`
-- `minecraft:waxed_weathered_copper_bars`
+- `minecraft:waxed_weathered_copper_bars ✅ 已完成`
 - `minecraft:waxed_weathered_copper_chain ✅ 已完成`
 - `minecraft:waxed_weathered_copper_chest`
 - `minecraft:waxed_weathered_copper_golem_statue`
 - `minecraft:waxed_weathered_copper_lantern ✅ 已完成`
 - `minecraft:weathered_copper ✅ 已完成`
-- `minecraft:weathered_copper_bars`
+- `minecraft:weathered_copper_bars ✅ 已完成`
 - `minecraft:weathered_copper_chain ✅ 已完成`
 - `minecraft:weathered_copper_chest`
 - `minecraft:weathered_copper_golem_statue`
@@ -799,14 +799,14 @@
 未实现项：
 
 
-- `minecraft:copper_bars`
-- `minecraft:exposed_copper_bars`
-- `minecraft:oxidized_copper_bars`
-- `minecraft:waxed_copper_bars`
-- `minecraft:waxed_exposed_copper_bars`
-- `minecraft:waxed_oxidized_copper_bars`
-- `minecraft:waxed_weathered_copper_bars`
-- `minecraft:weathered_copper_bars`
+- `minecraft:copper_bars ✅ 已完成`
+- `minecraft:exposed_copper_bars ✅ 已完成`
+- `minecraft:oxidized_copper_bars ✅ 已完成`
+- `minecraft:waxed_copper_bars ✅ 已完成`
+- `minecraft:waxed_exposed_copper_bars ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_bars ✅ 已完成`
+- `minecraft:waxed_weathered_copper_bars ✅ 已完成`
+- `minecraft:weathered_copper_bars ✅ 已完成`
 
 ### `minecraft:bee_food`
 

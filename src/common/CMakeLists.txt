@@ -828,6 +828,7 @@ add_library(mc_common STATIC
     world/block/blocks/copper/CopperBulbBlock.cpp
     world/block/blocks/copper/IOxidizableBlock.cpp
     world/block/blocks/copper/WeatheringCopperBlock.cpp
+    world/block/blocks/copper/WeatheringCopperBarsBlock.cpp
     world/block/blocks/copper/WeatheringCopperChainBlock.cpp
     world/block/blocks/copper/WeatheringCopperDoorBlock.cpp
     world/block/blocks/copper/WeatheringCopperGrateBlock.cpp

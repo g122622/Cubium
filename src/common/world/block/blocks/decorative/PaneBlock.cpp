@@ -212,6 +212,14 @@ bool PaneBlock::shouldConnectTo(
         return true;
     }
 
+    // BARS 标签方块（铜栏杆等）也互相连接
+    // 参考: net.minecraft.block.IronBarsBlock 中 instanceof IronBarsBlock 的检查，
+    // MC Java 中 WeatheringCopperBarsBlock extends IronBarsBlock，因此所有栏杆自动互连。
+    // 在本项目中通过 BARS 标签实现相同的互连逻辑。
+    if (BlockTags::BARS().contains(neighborBlock)) {
+        return true;
+    }
+
     // 墙总是连接
     if (WallBlock::isWall(neighborState)) {
         return true;

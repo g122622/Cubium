@@ -795,6 +795,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::SCAFFOLDING, "scaffolding");
     registerSimpleBlock(VanillaBlocks::IRON_BARS, "iron_bars");
 
+    // 铜栏杆（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_BARS, "copper_bars");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_BARS, "exposed_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_BARS, "weathered_copper_bars");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_BARS, "oxidized_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_BARS, "waxed_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_BARS, "waxed_exposed_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_BARS, "waxed_weathered_copper_bars");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_BARS, "waxed_oxidized_copper_bars");
+
     // 铜格栅（8 种氧化/涂蜡变种）
     registerSimpleBlock(VanillaBlocks::COPPER_GRATE, "copper_grate");
     registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_GRATE, "exposed_copper_grate");

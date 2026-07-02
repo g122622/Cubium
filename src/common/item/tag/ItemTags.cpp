@@ -200,6 +200,15 @@ ItemTag& ItemTags::CHAINS()
     return *tag;
 }
 
+ItemTag& ItemTags::BARS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "bars"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::WOODEN_DOORS()
 {
     static ItemTag* tag = nullptr;
@@ -577,6 +586,21 @@ void ItemTags::initialize()
     chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_chain")));
     chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_chain")));
     allTags[chains->getId()] = std::move(chains);
+
+    // 创建 BARS 标签
+    // 包含铁栏杆和所有铜栏杆物品（含氧化和涂蜡变种）
+    // 参考: datapacks/Vanilla/data/minecraft/tags/item/bars.json
+    auto bars = std::make_unique<ItemTag>(ResourceLocation("minecraft", "bars"), false);
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_bars")));
+    bars->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_bars")));
+    allTags[bars->getId()] = std::move(bars);
 
     // 创建 WOODEN_DOORS 标签
     // 包含所有木门物品（绯红木和诡异木门为不可燃木材门）

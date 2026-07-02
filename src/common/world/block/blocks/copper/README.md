@@ -11,6 +11,7 @@ IOxidizableBlock (接口)
 ├── WeatheringCopperBlock (铜方块基类)
 │   ├── WeatheringCopperGrateBlock (铜格栅)
 │   ├── WeatheringCopperChainBlock (铜锁链)
+│   ├── WeatheringCopperBarsBlock (铜栏杆)
 │   ├── WeatheringCopperLanternBlock (铜灯笼)
 │   └── CopperBulbBlock (铜灯)
 ├── WeatheringCopperStairBlock (铜楼梯)
@@ -67,7 +68,7 @@ Copper ← ExposedCopper ← WeatheredCopper ← OxidizedCopper
 反向链在 `CopperBlocks.cpp` 注册时通过 `setPreviousOxidationBlock()` 设置，覆盖全部 12 种铜变体：
 - 铜方块、切制铜、切制铜楼梯、切制铜台阶
 - 铜门、铜活板门、铜格栅、铜灯
-- 铜锁链、凿纹铜、铜灯笼
+- 铜锁链、铜栏杆、凿纹铜、铜灯笼
 - 避雷针（MC 1.21+ 新增氧化变种）
 
 斧头刮削交互（`AxeItem::onItemUse`）通过 `IOxidizableBlock::getPreviousOxidationBlock()` 访问反向链，将铜方块降级到上一氧化等级（如 Exposed → Unaffected），并播放 SCRAPE 粒子效果。
@@ -92,6 +93,7 @@ Copper ← ExposedCopper ← WeatheredCopper ← OxidizedCopper
 | `WeatheringCopperTrapDoorBlock.hpp/cpp` | 可氧化铜活板门 |
 | `WeatheringCopperGrateBlock.hpp/cpp` | 可氧化铜格栅（含水） |
 | `WeatheringCopperChainBlock.hpp/cpp` | 可氧化铜锁链（含水，轴向放置） |
+| `WeatheringCopperBarsBlock.hpp/cpp` | 可氧化铜栏杆（含水，四方向连接，BARS标签） |
 | `WeatheringCopperLanternBlock.hpp/cpp` | 可氧化铜灯笼（含水，悬挂/站立） |
 | `CopperBulbBlock.hpp/cpp` | 铜灯（红石控制，LIT/POWERED 状态） |
 | `WeatheringLightningRodBlock.hpp/cpp` | 可氧化避雷针（方向性，红石信号输出，闪电吸引，含水支持） |
