@@ -40,7 +40,7 @@
 | `minecraft:bamboo_blocks` | 2 |
 | `minecraft:beds` | 16 ✅ 已完成 |
 | `minecraft:bundles` | 17 |
-| `minecraft:candles` | 17 |
+| `minecraft:candles` | 17 ✅ 已完成 |
 | `minecraft:chains` | 9 ✅ 已完成 |
 | `minecraft:cherry_logs` | 4 |
 | `minecraft:copper` | 8 |
@@ -139,26 +139,26 @@
 
 - `minecraft:polished_blackstone_button ✅ 已完成`
 
-### Candles（17）
+### Candles（17） ✅ 已完成
 
 
-- `minecraft:black_candle`
-- `minecraft:blue_candle`
-- `minecraft:brown_candle`
-- `minecraft:candle`
-- `minecraft:cyan_candle`
-- `minecraft:gray_candle`
-- `minecraft:green_candle`
-- `minecraft:light_blue_candle`
-- `minecraft:light_gray_candle`
-- `minecraft:lime_candle`
-- `minecraft:magenta_candle`
-- `minecraft:orange_candle`
-- `minecraft:pink_candle`
-- `minecraft:purple_candle`
-- `minecraft:red_candle`
-- `minecraft:white_candle`
-- `minecraft:yellow_candle`
+- `minecraft:black_candle ✅ 已完成`
+- `minecraft:blue_candle ✅ 已完成`
+- `minecraft:brown_candle ✅ 已完成`
+- `minecraft:candle ✅ 已完成`
+- `minecraft:cyan_candle ✅ 已完成`
+- `minecraft:gray_candle ✅ 已完成`
+- `minecraft:green_candle ✅ 已完成`
+- `minecraft:light_blue_candle ✅ 已完成`
+- `minecraft:light_gray_candle ✅ 已完成`
+- `minecraft:lime_candle ✅ 已完成`
+- `minecraft:magenta_candle ✅ 已完成`
+- `minecraft:orange_candle ✅ 已完成`
+- `minecraft:pink_candle ✅ 已完成`
+- `minecraft:purple_candle ✅ 已完成`
+- `minecraft:red_candle ✅ 已完成`
+- `minecraft:white_candle ✅ 已完成`
+- `minecraft:yellow_candle ✅ 已完成`
 
 ### Copper（50）
 

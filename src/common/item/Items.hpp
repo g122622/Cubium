@@ -1003,6 +1003,23 @@ public:
     static Item* CAMPFIRE;          // 营火
     static Item* SOUL_CAMPFIRE;     // 灵魂营火
     static Item* JACK_O_LANTERN;    // 南瓜灯
+    static Item* CANDLE;            // 蜡烛
+    static Item* WHITE_CANDLE;      // 白色蜡烛
+    static Item* ORANGE_CANDLE;     // 橙色蜡烛
+    static Item* MAGENTA_CANDLE;    // 品红色蜡烛
+    static Item* LIGHT_BLUE_CANDLE; // 淡蓝色蜡烛
+    static Item* YELLOW_CANDLE;     // 黄色蜡烛
+    static Item* LIME_CANDLE;       // 黄绿色蜡烛
+    static Item* PINK_CANDLE;       // 粉色蜡烛
+    static Item* GRAY_CANDLE;       // 灰色蜡烛
+    static Item* LIGHT_GRAY_CANDLE; // 淡灰色蜡烛
+    static Item* CYAN_CANDLE;       // 青色蜡烛
+    static Item* PURPLE_CANDLE;     // 紫色蜡烛
+    static Item* BLUE_CANDLE;       // 蓝色蜡烛
+    static Item* BROWN_CANDLE;      // 棕色蜡烛
+    static Item* GREEN_CANDLE;      // 绿色蜡烛
+    static Item* RED_CANDLE;        // 红色蜡烛
+    static Item* BLACK_CANDLE;      // 黑色蜡烛
     static Item* CONDUIT;           // 潮涌核心
     static Item* LOOM;              // 织布机
     static Item* BARREL;            // 木桶

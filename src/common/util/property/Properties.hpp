@@ -941,6 +941,17 @@ public:
     }
 
     /**
+     * @brief 蜡烛数量属性 (1-4)
+     *
+     * 用于 CandleBlock，表示方块中蜡烛的数量。
+     */
+    static const IntegerProperty& CANDLES()
+    {
+        static auto prop = IntegerProperty::create("candles", 1, 4);
+        return *prop;
+    }
+
+    /**
      * @brief 孵化阶段属性 (0-2)
      */
     static const IntegerProperty& HATCH_0_2()

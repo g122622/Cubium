@@ -802,6 +802,44 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CAMPFIRE, "campfire");
     registerSimpleBlock(VanillaBlocks::SOUL_CAMPFIRE, "soul_campfire");
     registerSimpleBlock(VanillaBlocks::JACK_O_LANTERN, "jack_o_lantern");
+
+    // 蜡烛
+    registerSimpleBlock(VanillaBlocks::CANDLE, "candle");
+    registerSimpleBlock(VanillaBlocks::WHITE_CANDLE, "white_candle");
+    registerSimpleBlock(VanillaBlocks::ORANGE_CANDLE, "orange_candle");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_CANDLE, "magenta_candle");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_CANDLE, "light_blue_candle");
+    registerSimpleBlock(VanillaBlocks::YELLOW_CANDLE, "yellow_candle");
+    registerSimpleBlock(VanillaBlocks::LIME_CANDLE, "lime_candle");
+    registerSimpleBlock(VanillaBlocks::PINK_CANDLE, "pink_candle");
+    registerSimpleBlock(VanillaBlocks::GRAY_CANDLE, "gray_candle");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_CANDLE, "light_gray_candle");
+    registerSimpleBlock(VanillaBlocks::CYAN_CANDLE, "cyan_candle");
+    registerSimpleBlock(VanillaBlocks::PURPLE_CANDLE, "purple_candle");
+    registerSimpleBlock(VanillaBlocks::BLUE_CANDLE, "blue_candle");
+    registerSimpleBlock(VanillaBlocks::BROWN_CANDLE, "brown_candle");
+    registerSimpleBlock(VanillaBlocks::GREEN_CANDLE, "green_candle");
+    registerSimpleBlock(VanillaBlocks::RED_CANDLE, "red_candle");
+    registerSimpleBlock(VanillaBlocks::BLACK_CANDLE, "black_candle");
+
+    // 蜡烛蛋糕
+    registerSimpleBlock(VanillaBlocks::CANDLE_CAKE, "candle_cake");
+    registerSimpleBlock(VanillaBlocks::WHITE_CANDLE_CAKE, "white_candle_cake");
+    registerSimpleBlock(VanillaBlocks::ORANGE_CANDLE_CAKE, "orange_candle_cake");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_CANDLE_CAKE, "magenta_candle_cake");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_CANDLE_CAKE, "light_blue_candle_cake");
+    registerSimpleBlock(VanillaBlocks::YELLOW_CANDLE_CAKE, "yellow_candle_cake");
+    registerSimpleBlock(VanillaBlocks::LIME_CANDLE_CAKE, "lime_candle_cake");
+    registerSimpleBlock(VanillaBlocks::PINK_CANDLE_CAKE, "pink_candle_cake");
+    registerSimpleBlock(VanillaBlocks::GRAY_CANDLE_CAKE, "gray_candle_cake");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_CANDLE_CAKE, "light_gray_candle_cake");
+    registerSimpleBlock(VanillaBlocks::CYAN_CANDLE_CAKE, "cyan_candle_cake");
+    registerSimpleBlock(VanillaBlocks::PURPLE_CANDLE_CAKE, "purple_candle_cake");
+    registerSimpleBlock(VanillaBlocks::BLUE_CANDLE_CAKE, "blue_candle_cake");
+    registerSimpleBlock(VanillaBlocks::BROWN_CANDLE_CAKE, "brown_candle_cake");
+    registerSimpleBlock(VanillaBlocks::GREEN_CANDLE_CAKE, "green_candle_cake");
+    registerSimpleBlock(VanillaBlocks::RED_CANDLE_CAKE, "red_candle_cake");
+    registerSimpleBlock(VanillaBlocks::BLACK_CANDLE_CAKE, "black_candle_cake");
     registerSimpleBlock(VanillaBlocks::TARGET, "target");
     registerSimpleBlock(VanillaBlocks::NOTE_BLOCK, "note_block");
     registerSimpleBlock(VanillaBlocks::DRAGON_EGG, "dragon_egg");

@@ -175,6 +175,19 @@ public:
     /// 2. CampfireBlock::isSmokeyPos() — 判断蜂巢下方是否有营火（烟雾信号）
     static BlockTag& CAMPFIRES();
 
+    /// 蜡烛标签
+    /// 包含所有蜡烛方块（普通蜡烛 + 16种染色蜡烛）
+    /// 运行时消费场景：
+    /// 1. AbstractCandleBlock::isLit() — 判断是否为点燃的蜡烛
+    /// 2. CandleBlock::canLight() — 判断是否可点燃
+    static BlockTag& CANDLES();
+
+    /// 蜡烛蛋糕标签
+    /// 包含所有蜡烛蛋糕方块（普通蜡烛蛋糕 + 16种染色蜡烛蛋糕）
+    /// 运行时消费场景：
+    /// 1. AbstractCandleBlock::isLit() — 判断是否为点燃的蜡烛蛋糕
+    static BlockTag& CANDLE_CAKES();
+
     /// 羊毛标签
     static BlockTag& WOOL();
 

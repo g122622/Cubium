@@ -1203,6 +1203,15 @@ const BlockSoundType SHELF(ResourceLocation("minecraft:block.shelf.break"),
     1.0f,
     1.0f);
 
+// 蜡烛
+const BlockSoundType CANDLE(ResourceLocation("minecraft:block.candle.break"),
+    ResourceLocation("minecraft:block.candle.step"),
+    ResourceLocation("minecraft:block.candle.place"),
+    ResourceLocation("minecraft:block.candle.hit"),
+    ResourceLocation("minecraft:block.candle.fall"),
+    1.0f,
+    1.0f);
+
 void initialize()
 {
     // 静态初始化已在全局对象构造时完成

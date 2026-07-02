@@ -669,6 +669,7 @@ add_library(mc_common STATIC
     world/block/registry/PaleGardenBlocks.cpp
     world/block/registry/GardenBlocks.cpp
     world/block/registry/ShelfBlocks.cpp
+    world/block/registry/CandleBlocks.cpp
     world/block/IWaterLoggable.cpp
     world/block/blocks/AirBlock.cpp
     world/block/blocks/SimpleBlock.cpp
@@ -726,6 +727,7 @@ add_library(mc_common STATIC
     world/block/blocks/functional/ComposterBlock.cpp
     world/block/blocks/functional/CompostableItems.cpp
     world/block/blocks/functional/CakeBlock.cpp
+    world/block/blocks/functional/CandleCakeBlock.cpp
     world/block/blocks/functional/BeaconBlock.cpp
     world/block/blocks/functional/BarrelBlock.cpp
     world/block/blocks/functional/LecternBlock.cpp
@@ -753,6 +755,8 @@ add_library(mc_common STATIC
     world/block/blocks/decorative/FlowerPotBlock.cpp
     world/block/blocks/decorative/ScaffoldingBlock.cpp
     world/block/blocks/decorative/CampfireBlock.cpp
+    world/block/blocks/decorative/AbstractCandleBlock.cpp
+    world/block/blocks/decorative/CandleBlock.cpp
     world/block/blocks/decorative/StainedGlassBlock.cpp
     world/block/blocks/decorative/BannerBlock.cpp
     world/block/blocks/decorative/TorchBlock.cpp

@@ -429,6 +429,14 @@ extern const ResourceLocation BLOCK_ANVIL_USE;
 extern const ResourceLocation BLOCK_CAMPFIRE_CRACKLE;
 extern const ResourceLocation BLOCK_CAMPFIRE_EXTINGUISH;
 
+/// 蜡烛
+extern const ResourceLocation BLOCK_CANDLE_AMBIENT;
+extern const ResourceLocation BLOCK_CANDLE_BREAK;
+extern const ResourceLocation BLOCK_CANDLE_EXTINGUISH;
+extern const ResourceLocation BLOCK_CANDLE_HIT;
+extern const ResourceLocation BLOCK_CANDLE_PLACE;
+extern const ResourceLocation BLOCK_CANDLE_STEP;
+
 /// 蜂箱
 extern const ResourceLocation BLOCK_BEEHIVE_DRIP;
 extern const ResourceLocation BLOCK_BEEHIVE_ENTER;

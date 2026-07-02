@@ -235,6 +235,24 @@ BlockTag& BlockTags::CAMPFIRES()
     return *tag;
 }
 
+BlockTag& BlockTags::CANDLES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "candles"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::CANDLE_CAKES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "candle_cakes"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WOOL()
 {
     static BlockTag* tag = nullptr;
@@ -1143,6 +1161,48 @@ void BlockTags::initialize()
     auto campfires = std::make_unique<BlockTag>(ResourceLocation("minecraft", "campfires"));
     campfires->addAll({ResourceLocation("minecraft", "campfire"), ResourceLocation("minecraft", "soul_campfire")});
     tags[campfires->getId()] = std::move(campfires);
+
+    // 创建 CANDLES 标签（所有蜡烛方块）
+    auto candles = std::make_unique<BlockTag>(ResourceLocation("minecraft", "candles"));
+    candles->addAll({ResourceLocation("minecraft", "candle"),
+        ResourceLocation("minecraft", "white_candle"),
+        ResourceLocation("minecraft", "orange_candle"),
+        ResourceLocation("minecraft", "magenta_candle"),
+        ResourceLocation("minecraft", "light_blue_candle"),
+        ResourceLocation("minecraft", "yellow_candle"),
+        ResourceLocation("minecraft", "lime_candle"),
+        ResourceLocation("minecraft", "pink_candle"),
+        ResourceLocation("minecraft", "gray_candle"),
+        ResourceLocation("minecraft", "light_gray_candle"),
+        ResourceLocation("minecraft", "cyan_candle"),
+        ResourceLocation("minecraft", "purple_candle"),
+        ResourceLocation("minecraft", "blue_candle"),
+        ResourceLocation("minecraft", "brown_candle"),
+        ResourceLocation("minecraft", "green_candle"),
+        ResourceLocation("minecraft", "red_candle"),
+        ResourceLocation("minecraft", "black_candle")});
+    tags[candles->getId()] = std::move(candles);
+
+    // 创建 CANDLE_CAKES 标签（所有蜡烛蛋糕方块）
+    auto candleCakes = std::make_unique<BlockTag>(ResourceLocation("minecraft", "candle_cakes"));
+    candleCakes->addAll({ResourceLocation("minecraft", "candle_cake"),
+        ResourceLocation("minecraft", "white_candle_cake"),
+        ResourceLocation("minecraft", "orange_candle_cake"),
+        ResourceLocation("minecraft", "magenta_candle_cake"),
+        ResourceLocation("minecraft", "light_blue_candle_cake"),
+        ResourceLocation("minecraft", "yellow_candle_cake"),
+        ResourceLocation("minecraft", "lime_candle_cake"),
+        ResourceLocation("minecraft", "pink_candle_cake"),
+        ResourceLocation("minecraft", "gray_candle_cake"),
+        ResourceLocation("minecraft", "light_gray_candle_cake"),
+        ResourceLocation("minecraft", "cyan_candle_cake"),
+        ResourceLocation("minecraft", "purple_candle_cake"),
+        ResourceLocation("minecraft", "blue_candle_cake"),
+        ResourceLocation("minecraft", "brown_candle_cake"),
+        ResourceLocation("minecraft", "green_candle_cake"),
+        ResourceLocation("minecraft", "red_candle_cake"),
+        ResourceLocation("minecraft", "black_candle_cake")});
+    tags[candleCakes->getId()] = std::move(candleCakes);
 
     // 创建 WOOL 标签
     auto wool = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wool"));

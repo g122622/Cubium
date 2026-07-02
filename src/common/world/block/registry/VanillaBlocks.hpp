@@ -27,6 +27,7 @@
 #include "world/block/registry/BaseBlocks.hpp"
 #include "world/block/registry/BuildingBlocks.hpp"
 #include "world/block/registry/BuildingVariantBlocks.hpp"
+#include "world/block/registry/CandleBlocks.hpp"
 #include "world/block/registry/CaveBlocks.hpp"
 #include "world/block/registry/CherryBlocks.hpp"
 #include "world/block/registry/ColoredBlocks.hpp"
@@ -63,6 +64,7 @@ class VanillaBlocks : public block_registry::AgriculturalBlocks,
                       public block_registry::BaseBlocks,
                       public block_registry::BuildingBlocks,
                       public block_registry::BuildingVariantBlocks,
+                      public block_registry::CandleBlocks,
                       public block_registry::CaveBlocks,
                       public block_registry::CherryBlocks,
                       public block_registry::ColoredBlocks,

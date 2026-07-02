@@ -394,6 +394,14 @@ const ResourceLocation BLOCK_ANVIL_USE("minecraft:block.anvil.use");
 const ResourceLocation BLOCK_CAMPFIRE_CRACKLE("minecraft:block.campfire.crackle");
 const ResourceLocation BLOCK_CAMPFIRE_EXTINGUISH("minecraft:block.campfire.extinguish");
 
+// 蜡烛
+const ResourceLocation BLOCK_CANDLE_AMBIENT("minecraft:block.candle.ambient");
+const ResourceLocation BLOCK_CANDLE_BREAK("minecraft:block.candle.break");
+const ResourceLocation BLOCK_CANDLE_EXTINGUISH("minecraft:block.candle.extinguish");
+const ResourceLocation BLOCK_CANDLE_HIT("minecraft:block.candle.hit");
+const ResourceLocation BLOCK_CANDLE_PLACE("minecraft:block.candle.place");
+const ResourceLocation BLOCK_CANDLE_STEP("minecraft:block.candle.step");
+
 const ResourceLocation BLOCK_BEEHIVE_DRIP("minecraft:block.beehive.drip");
 const ResourceLocation BLOCK_BEEHIVE_DROP("minecraft:block.beehive.drop");
 const ResourceLocation BLOCK_BEEHIVE_ENTER("minecraft:block.beehive.enter");
