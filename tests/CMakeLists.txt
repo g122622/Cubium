@@ -121,6 +121,7 @@ add_executable(mc_tests
     common/item/CopperDoorTrapdoorItemRegistrationTest.cpp
     common/item/MiscBlockItemRegistrationTest.cpp
     common/item/MudCaveMangroveItemRegistrationTest.cpp
+    common/item/ShelfItemRegistrationTest.cpp
     common/item/TrailsItemsRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp

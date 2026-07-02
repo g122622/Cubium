@@ -136,6 +136,13 @@ Item* Items::DARK_OAK_PLANKS = nullptr;
 Item* Items::BAMBOO_PLANKS = nullptr;
 Item* Items::BAMBOO_MOSAIC = nullptr;
 
+// 其他木板变体
+Item* Items::CRIMSON_PLANKS = nullptr;
+Item* Items::WARPED_PLANKS = nullptr;
+Item* Items::MANGROVE_PLANKS = nullptr;
+Item* Items::CHERRY_PLANKS = nullptr;
+Item* Items::PALE_OAK_PLANKS = nullptr;
+
 // 石头
 Item* Items::STONE = nullptr;
 Item* Items::COBBLESTONE = nullptr;
@@ -2074,6 +2081,18 @@ void Items::_registerMisc()
         registry, VanillaBlocks::BAMBOO_PLANKS, "bamboo_planks", ItemProperties().maxStackSize(64));
     BAMBOO_MOSAIC = &registerBlockBackedItem(
         registry, VanillaBlocks::BAMBOO_MOSAIC, "bamboo_mosaic", ItemProperties().maxStackSize(64));
+
+    // 其他木板变体
+    CRIMSON_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_PLANKS, "crimson_planks", ItemProperties().maxStackSize(64));
+    WARPED_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_PLANKS, "warped_planks", ItemProperties().maxStackSize(64));
+    MANGROVE_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_PLANKS, "mangrove_planks", ItemProperties().maxStackSize(64));
+    CHERRY_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_PLANKS, "cherry_planks", ItemProperties().maxStackSize(64));
+    PALE_OAK_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_PLANKS, "pale_oak_planks", ItemProperties().maxStackSize(64));
 
     // 石头
     STONE = &registerBlockBackedItem(registry, VanillaBlocks::STONE, "stone", ItemProperties().maxStackSize(64));

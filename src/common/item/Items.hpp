@@ -331,6 +331,13 @@ public:
     static Item* BAMBOO_PLANKS; // 竹木板
     static Item* BAMBOO_MOSAIC; // 竹木马赛克
 
+    // 其他木板变体
+    static Item* CRIMSON_PLANKS;  // 绯红木板
+    static Item* WARPED_PLANKS;   // 诡异木板
+    static Item* MANGROVE_PLANKS; // 红树木板
+    static Item* CHERRY_PLANKS;   // 樱花木板
+    static Item* PALE_OAK_PLANKS; // 苍白橡木木板
+
     // ========================================================================
     // 木棍、骨头和碗
     // ========================================================================

@@ -891,3 +891,68 @@ TEST_F(ItemTagsTest, NonFlammableWoodTagIdIsCorrect)
 {
     EXPECT_EQ(item::tag::ItemTags::NON_FLAMMABLE_WOOD().getId(), ResourceLocation("minecraft", "non_flammable_wood"));
 }
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsCrimsonShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsWarpedShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodDoesNotContainOakShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+// ============================================================================
+// WOODEN_SHELVES 标签测试
+// 参考: net.minecraft.tags.ItemTags.WOODEN_SHELVES
+// ============================================================================
+
+TEST_F(ItemTagsTest, WoodenShelvesContainsOakShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_SHELVES()));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesContainsCrimsonShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_SHELVES()));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesContainsWarpedShelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_SHELVES()));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesDoesNotContainBookshelf)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bookshelf"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::WOODEN_SHELVES()));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::WOODEN_SHELVES().getId(), ResourceLocation("minecraft", "wooden_shelves"));
+}
+
+TEST_F(ItemTagsTest, WoodenShelvesContainsAll12Shelves)
+{
+    const auto& items = item::tag::ItemTags::WOODEN_SHELVES().getItems();
+    EXPECT_EQ(items.size(), 12u);
+}
