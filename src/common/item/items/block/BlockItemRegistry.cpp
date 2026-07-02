@@ -440,6 +440,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RESIN_BRICK_SLAB, "resin_brick_slab");
     registerSimpleBlock(VanillaBlocks::RESIN_BRICK_WALL, "resin_brick_wall");
 
+    // 樱花原木与木材 (1.20+)
+    registerSimpleBlock(VanillaBlocks::CHERRY_LOG, "cherry_log");
+    registerSimpleBlock(VanillaBlocks::CHERRY_WOOD, "cherry_wood");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_CHERRY_LOG, "stripped_cherry_log");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_CHERRY_WOOD, "stripped_cherry_wood");
+    registerSimpleBlock(VanillaBlocks::CHERRY_PLANKS, "cherry_planks");
+    registerSimpleBlock(VanillaBlocks::CHERRY_LEAVES, "cherry_leaves");
+    registerSimpleBlock(VanillaBlocks::CHERRY_SAPLING, "cherry_sapling");
+
     // 苍白橡木原木与木材 (1.21+)
     registerSimpleBlock(VanillaBlocks::PALE_OAK_LOG, "pale_oak_log");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_WOOD, "pale_oak_wood");

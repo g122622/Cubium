@@ -230,6 +230,30 @@ std::unordered_set<const Block*> AxeItem::_initializeEffectiveBlocks()
     if (VanillaBlocks::STRIPPED_CRIMSON_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_CRIMSON_HYPHAE);
     if (VanillaBlocks::STRIPPED_WARPED_HYPHAE) blocks.insert(VanillaBlocks::STRIPPED_WARPED_HYPHAE);
 
+    // 樱花木质方块 (1.20+)
+    if (VanillaBlocks::CHERRY_LOG) blocks.insert(VanillaBlocks::CHERRY_LOG);
+    if (VanillaBlocks::CHERRY_WOOD) blocks.insert(VanillaBlocks::CHERRY_WOOD);
+    if (VanillaBlocks::STRIPPED_CHERRY_LOG) blocks.insert(VanillaBlocks::STRIPPED_CHERRY_LOG);
+    if (VanillaBlocks::STRIPPED_CHERRY_WOOD) blocks.insert(VanillaBlocks::STRIPPED_CHERRY_WOOD);
+    if (VanillaBlocks::CHERRY_PLANKS) blocks.insert(VanillaBlocks::CHERRY_PLANKS);
+    if (VanillaBlocks::CHERRY_LEAVES) blocks.insert(VanillaBlocks::CHERRY_LEAVES);
+
+    // 红树木质方块 (1.19+)
+    if (VanillaBlocks::MANGROVE_LOG) blocks.insert(VanillaBlocks::MANGROVE_LOG);
+    if (VanillaBlocks::MANGROVE_WOOD) blocks.insert(VanillaBlocks::MANGROVE_WOOD);
+    if (VanillaBlocks::STRIPPED_MANGROVE_LOG) blocks.insert(VanillaBlocks::STRIPPED_MANGROVE_LOG);
+    if (VanillaBlocks::STRIPPED_MANGROVE_WOOD) blocks.insert(VanillaBlocks::STRIPPED_MANGROVE_WOOD);
+    if (VanillaBlocks::MANGROVE_PLANKS) blocks.insert(VanillaBlocks::MANGROVE_PLANKS);
+    if (VanillaBlocks::MANGROVE_LEAVES) blocks.insert(VanillaBlocks::MANGROVE_LEAVES);
+
+    // 苍白橡木质方块 (1.21+)
+    if (VanillaBlocks::PALE_OAK_LOG) blocks.insert(VanillaBlocks::PALE_OAK_LOG);
+    if (VanillaBlocks::PALE_OAK_WOOD) blocks.insert(VanillaBlocks::PALE_OAK_WOOD);
+    if (VanillaBlocks::STRIPPED_PALE_OAK_LOG) blocks.insert(VanillaBlocks::STRIPPED_PALE_OAK_LOG);
+    if (VanillaBlocks::STRIPPED_PALE_OAK_WOOD) blocks.insert(VanillaBlocks::STRIPPED_PALE_OAK_WOOD);
+    if (VanillaBlocks::PALE_OAK_PLANKS) blocks.insert(VanillaBlocks::PALE_OAK_PLANKS);
+    if (VanillaBlocks::PALE_OAK_LEAVES) blocks.insert(VanillaBlocks::PALE_OAK_LEAVES);
+
     // 梯子和脚手架（斧可以有效挖掘）
     if (VanillaBlocks::LADDER) blocks.insert(VanillaBlocks::LADDER);
     if (VanillaBlocks::SCAFFOLDING) blocks.insert(VanillaBlocks::SCAFFOLDING);
@@ -301,6 +325,24 @@ std::unordered_map<const Block*, const Block*>& AxeItem::_getStrippingMap()
             m[VanillaBlocks::WARPED_STEM] = VanillaBlocks::STRIPPED_WARPED_STEM;
         if (VanillaBlocks::WARPED_HYPHAE && VanillaBlocks::STRIPPED_WARPED_HYPHAE)
             m[VanillaBlocks::WARPED_HYPHAE] = VanillaBlocks::STRIPPED_WARPED_HYPHAE;
+
+        // 樱花木 (1.20+)
+        if (VanillaBlocks::CHERRY_LOG && VanillaBlocks::STRIPPED_CHERRY_LOG)
+            m[VanillaBlocks::CHERRY_LOG] = VanillaBlocks::STRIPPED_CHERRY_LOG;
+        if (VanillaBlocks::CHERRY_WOOD && VanillaBlocks::STRIPPED_CHERRY_WOOD)
+            m[VanillaBlocks::CHERRY_WOOD] = VanillaBlocks::STRIPPED_CHERRY_WOOD;
+
+        // 红树木 (1.19+)
+        if (VanillaBlocks::MANGROVE_LOG && VanillaBlocks::STRIPPED_MANGROVE_LOG)
+            m[VanillaBlocks::MANGROVE_LOG] = VanillaBlocks::STRIPPED_MANGROVE_LOG;
+        if (VanillaBlocks::MANGROVE_WOOD && VanillaBlocks::STRIPPED_MANGROVE_WOOD)
+            m[VanillaBlocks::MANGROVE_WOOD] = VanillaBlocks::STRIPPED_MANGROVE_WOOD;
+
+        // 苍白橡木 (1.21+)
+        if (VanillaBlocks::PALE_OAK_LOG && VanillaBlocks::STRIPPED_PALE_OAK_LOG)
+            m[VanillaBlocks::PALE_OAK_LOG] = VanillaBlocks::STRIPPED_PALE_OAK_LOG;
+        if (VanillaBlocks::PALE_OAK_WOOD && VanillaBlocks::STRIPPED_PALE_OAK_WOOD)
+            m[VanillaBlocks::PALE_OAK_WOOD] = VanillaBlocks::STRIPPED_PALE_OAK_WOOD;
 
         return m;
     }();

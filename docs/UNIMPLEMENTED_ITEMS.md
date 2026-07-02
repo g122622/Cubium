@@ -253,7 +253,7 @@
 
 
 - `minecraft:azalea_leaves ✅ 已完成`
-- `minecraft:cherry_leaves`
+- `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_leaves`
 - `minecraft:pale_oak_leaves ✅ 已完成`
@@ -261,14 +261,14 @@
 ### Logs / Wood / Stems（12）
 
 
-- `minecraft:cherry_log`
-- `minecraft:cherry_wood`
+- `minecraft:cherry_log ✅ 已完成`
+- `minecraft:cherry_wood ✅ 已完成`
 - `minecraft:mangrove_log`
 - `minecraft:mangrove_wood`
 - `minecraft:pale_oak_log ✅ 已完成`
 - `minecraft:pale_oak_wood ✅ 已完成`
-- `minecraft:stripped_cherry_log`
-- `minecraft:stripped_cherry_wood`
+- `minecraft:stripped_cherry_log ✅ 已完成`
+- `minecraft:stripped_cherry_wood ✅ 已完成`
 - `minecraft:stripped_mangrove_log`
 - `minecraft:stripped_mangrove_wood`
 - `minecraft:stripped_pale_oak_log ✅ 已完成`
@@ -278,7 +278,7 @@
 
 
 - `minecraft:bamboo_planks`
-- `minecraft:cherry_planks`
+- `minecraft:cherry_planks ✅ 已完成`
 - `minecraft:crimson_planks ✅ 已完成`
 - `minecraft:mangrove_planks`
 - `minecraft:pale_oak_planks ✅ 已完成`
@@ -287,7 +287,7 @@
 ### Saplings（2）
 
 
-- `minecraft:cherry_sapling`
+- `minecraft:cherry_sapling ✅ 已完成`
 - `minecraft:pale_oak_sapling ✅ 已完成`
 
 ### Shulker Boxes（16）
@@ -641,13 +641,13 @@
 - `minecraft:waxed_weathered_copper_chain ✅ 已完成`
 - `minecraft:weathered_copper_chain ✅ 已完成`
 
-### `minecraft:cherry_logs`
+### `minecraft:cherry_logs` ✅ 已完成
 
 
-- `minecraft:cherry_log`
-- `minecraft:cherry_wood`
-- `minecraft:stripped_cherry_log`
-- `minecraft:stripped_cherry_wood`
+- `minecraft:cherry_log ✅ 已完成`
+- `minecraft:cherry_wood ✅ 已完成`
+- `minecraft:stripped_cherry_log ✅ 已完成`
+- `minecraft:stripped_cherry_wood ✅ 已完成`
 
 ### `minecraft:copper`
 
@@ -815,7 +815,7 @@
 
 
 - `minecraft:cactus_flower`
-- `minecraft:cherry_leaves`
+- `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_propagule`
@@ -934,7 +934,7 @@
 
 
 - `minecraft:cactus_flower`
-- `minecraft:cherry_leaves`
+- `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_propagule`
@@ -989,7 +989,7 @@
 
 
 - `minecraft:azalea_leaves ✅ 已完成`
-- `minecraft:cherry_leaves`
+- `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_leaves`
 - `minecraft:pale_oak_leaves ✅ 已完成`
@@ -1052,7 +1052,7 @@
 
 
 - `minecraft:bamboo_planks`
-- `minecraft:cherry_planks`
+- `minecraft:cherry_planks ✅ 已完成`
 - `minecraft:crimson_planks`
 - `minecraft:mangrove_planks`
 - `minecraft:pale_oak_planks ✅ 已完成`
@@ -1081,7 +1081,7 @@
 
 
 - `minecraft:azalea ✅ 已完成`
-- `minecraft:cherry_sapling`
+- `minecraft:cherry_sapling ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:mangrove_propagule`
 - `minecraft:pale_oak_sapling ✅ 已完成`
