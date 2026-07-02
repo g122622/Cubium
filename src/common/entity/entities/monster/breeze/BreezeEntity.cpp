@@ -29,11 +29,14 @@
 #include "common/entity/ai/goal/goals/special/BreezeGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/player/Player.hpp"
+#include "common/entity/entities/projectile/ProjectileDeflection.hpp"
 #include "common/entity/entities/projectile/ProjectileEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
+#include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/entity/utils/ItemDropHelper.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/enchantment/EnchantmentHelper.hpp"
@@ -123,13 +126,25 @@ bool BreezeEntity::canAttackType(entity::EntityTypeId typeId) const
     return typeId == entity::EntityTypeIdNumber::PLAYER || typeId == entity::EntityTypeIdNumber::IRON_GOLEM;
 }
 
-bool BreezeEntity::shouldDeflectProjectile(const entity::ProjectileEntity& projectile) const
+ProjectileDeflection BreezeEntity::deflection(const entity::ProjectileEntity& projectile) const
 {
-    // 风弹不应被偏转
+    // MC Java: Breeze.deflection(Projectile)
+    // 旋风人不偏转风弹（包括旋风人风弹和玩家风弹）
     if (dynamic_cast<const entity::WindChargeEntity*>(&projectile) != nullptr) {
-        return false;
+        return ProjectileDeflection::None;
     }
-    return true;
+
+    // 其他投射物：如果旋风人实体类型属于 DEFLECTS_PROJECTILES 标签，则反向偏转并播放音效
+    if (EntityTypeTags::DEFLECTS_PROJECTILES().contains(getTypeId())) {
+        // 播放旋风人偏转音效
+        if (m_world != nullptr) {
+            m_world->playSound(
+                SoundEvents::ENTITY_BREEZE_DEFLECT, sound::SoundCategory::Hostile, position(), 1.0f, 1.0f);
+        }
+        return ProjectileDeflection::Reverse;
+    }
+
+    return ProjectileDeflection::None;
 }
 
 void BreezeEntity::shootWindCharge()

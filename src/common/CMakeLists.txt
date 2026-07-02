@@ -225,6 +225,7 @@ add_library(mc_common STATIC
     # Entity - Projectile (entity files have deep API dependencies - need systematic refactoring)
     entity/entities/projectile/ProjectileHelper.cpp
     entity/entities/projectile/ProjectileEntity.cpp
+    entity/entities/projectile/ProjectileDeflection.cpp
     entity/entities/projectile/DamagingProjectileEntity.cpp
     entity/entities/projectile/ThrowableEntity.cpp
     entity/entities/projectile/AbstractArrowEntity.cpp

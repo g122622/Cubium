@@ -25,6 +25,7 @@
 
 #include "common/entity/core/Entity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/entities/projectile/ProjectileDeflection.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/block/BlockPos.hpp"
@@ -223,8 +224,37 @@ public:
     /**
      * @brief 处理碰撞
      * @param result 碰撞结果
+     *
+     * 当命中实体时，先检查该实体是否偏转弹射物（Entity::deflection），
+     * 如果被偏转则不调用 onEntityHit，而是反转弹射物方向。
      */
     virtual void onImpact(const RayTraceResult& result);
+
+    // ========== 偏转 ==========
+
+    /**
+     * @brief 应用偏转到弹射物
+     *
+     * 根据偏转类型修改弹射物的速度和旋转，并将偏转者设为新的发射者。
+     * 同时记录 lastDeflectedBy 以防止同一实体连续偏转。
+     *
+     * 对应 MC Java 的 Projectile.deflect()。
+     *
+     * @param deflection 偏转类型
+     * @param deflector 偏转者实体
+     * @param wasPlayerDeflect 是否为玩家偏转（用于盾牌等场景）
+     * @return 偏转是否成功
+     */
+    bool deflect(ProjectileDeflection deflection, Entity& deflector, bool wasPlayerDeflect = false);
+
+    /**
+     * @brief 偏转后的回调
+     *
+     * 子类可重写以在偏转后执行额外逻辑（如清除嵌入状态等）。
+     *
+     * @param wasPlayerDeflect 是否为玩家偏转
+     */
+    virtual void onDeflection(bool wasPlayerDeflect) { (void)wasPlayerDeflect; }
 
     // ========== 物理 ==========
 
@@ -290,6 +320,9 @@ protected:
     EntityId m_shooterEntityId = INVALID_ENTITY_ID; // 发射者实体ID
     bool m_leftShooter = false;                     // 是否已离开发射者
     bool m_noGravity = false;                       // 是否不受重力
+
+    /// 上一个偏转此弹射物的实体ID，防止同一实体连续偏转
+    EntityId m_lastDeflectedById = INVALID_ENTITY_ID;
 };
 
 } // namespace entity

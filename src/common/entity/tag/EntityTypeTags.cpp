@@ -589,6 +589,7 @@ void EntityTypeTags::initialize()
     // 偏转投射物
     DEFLECTS_PROJECTILES().addAll({
         ResourceLocation("minecraft:shulker"),
+        ResourceLocation("minecraft:breeze"),
     });
 
     // 忽略中毒和再生

@@ -34,6 +34,7 @@
 #include "../../util/nbt/Nbt.hpp"
 #include "../../util/text/ITextComponent.hpp"
 #include "../../world/block/BlockPos.hpp"
+#include "../entities/projectile/ProjectileDeflection.hpp"
 #include "EntityDataManager.hpp"
 #include "EntityPose.hpp"
 #include "EntitySize.hpp"
@@ -299,6 +300,12 @@ public:
     [[nodiscard]] f32 pitch() const { return m_pitch; }
     [[nodiscard]] f32 prevYaw() const { return m_prevYaw; }
     [[nodiscard]] f32 prevPitch() const { return m_prevPitch; }
+
+    /// 设置偏航角（不更新 prevYaw，用于偏转等场景）
+    void setYaw(f32 yaw) { m_yaw = yaw; }
+
+    /// 设置上一tick偏航角
+    void setPrevYaw(f32 prevYaw) { m_prevYaw = prevYaw; }
 
     // ========== 速度 ==========
 
@@ -640,6 +647,25 @@ public:
      * - canBeHitByProjectile() 关注弹射物是否可命中（综合判断存活状态和旁观者模式等）
      */
     [[nodiscard]] virtual bool canBeHitByProjectile() const { return isAlive() && canBeCollidedWith(); }
+
+    /**
+     * @brief 获取此实体对指定弹射物的偏转类型
+     *
+     * 对应 MC Java 的 Entity.deflection(Projectile)。
+     * 当弹射物命中此实体时，在调用 onEntityHit 之前先检查此方法。
+     * 如果返回非 None 的偏转类型，弹射物将被偏转而不是命中实体。
+     *
+     * 默认实现检查实体类型是否属于 #minecraft:deflects_projectiles 标签：
+     * - 属于标签时返回 Reverse（反向偏转）
+     * - 不属于标签时返回 None（不偏转）
+     *
+     * 子类可重写此方法以自定义偏转行为：
+     * - BreezeEntity 重写以排除风弹的偏转
+     *
+     * @param projectile 正在命中的弹射物
+     * @return 偏转类型
+     */
+    [[nodiscard]] virtual ProjectileDeflection deflection(const entity::ProjectileEntity& projectile) const;
 
     /**
      * @brief 命中检测时额外扩张的碰撞边界

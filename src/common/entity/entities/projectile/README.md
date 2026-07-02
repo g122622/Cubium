@@ -6,7 +6,8 @@
 
 ```
 projectile/
-├── ProjectileEntity.hpp/cpp       # 投掷物基类（发射、飞行、碰撞检测）
+├── ProjectileEntity.hpp/cpp       # 投掷物基类（发射、飞行、碰撞检测、偏转）
+├── ProjectileDeflection.hpp/cpp   # 弹射物偏转类型与逻辑（None/Reverse/AimDeflect/MomentumDeflect）
 ├── ThrowableEntity.hpp/cpp        # 可投掷物品基类（雪球、鸡蛋等）
 ├── AbstractArrowEntity.hpp/cpp    # 抽象箭矢基类 + ArrowEntity, SpectralArrowEntity
 ├── AbstractFireballEntity.hpp/cpp # 抽象火球基类 + FireballEntity, SmallFireballEntity, DragonFireballEntity, WitherSkullEntity
@@ -237,7 +238,33 @@ f32 g = rng.nextGaussian(0.0, 1.0); // 正态分布
   - `Player` 重写为 `!isSpectator() && Entity::canBeHitByProjectile()`，旁观者不可被弹射物命中
 - 发射者未离开碰撞箱前，不能命中与发射者骑乘同一载具的实体（`isRidingSameEntity`）
 
-### 14. EvokerFangsEntity Owner UUID 双重追踪
+### 14. 弹射物偏转系统
+
+弹射物命中实体时，在调用 `onEntityHit()` 之前先检查 `Entity::deflection()`：
+- 如果返回非 `None` 的偏转类型，弹射物被偏转（改变方向和发射者），**不触发 onEntityHit**
+- 如果返回 `None`，正常处理命中
+
+**偏转类型**（对应 MC Java 的 `ProjectileDeflection`）：
+| 类型 | 行为 | 用途 |
+|------|------|------|
+| `None` | 不偏转 | 默认 |
+| `Reverse` | 速度 ×(-0.5)，随机偏航170~190° | 潜影贝、旋风人 |
+| `AimDeflect` | 速度设为偏转者视线方向 | 玩家攻击可重定向弹射物 |
+| `MomentumDeflect` | 速度设为偏转者移动方向 | 特定场景 |
+
+**偏转流程**（`ProjectileEntity::onImpact`）：
+1. 命中实体时调用 `hitEntity->deflection(*this)`
+2. 如果偏转类型非 None 且偏转者不是上一个偏转者，调用 `deflect()`
+3. `deflect()` 调用 `applyProjectileDeflection()` 修改速度/旋转/发射者
+4. 记录 `m_lastDeflectedById` 防止同一实体连续偏转
+5. 不调用 `onEntityHit()`，弹射物继续飞行
+
+**旋风人偏转规则**（`BreezeEntity::deflection()`）：
+- 风弹（`WindChargeEntity`）→ `None`（不偏转自己发射的弹）
+- 其他投射物 → `Reverse`（反向偏转 + 播放 `ENTITY_BREEZE_DEFLECT` 音效）
+- 前提：旋风人实体类型属于 `#minecraft:deflects_projectiles` 标签
+
+### 15. EvokerFangsEntity Owner UUID 双重追踪
 
 EvokerFangsEntity 使用双重追踪模式（缓存指针 + UUID）追踪 owner 实体，参考 AreaEffectCloudEntity 的模式：
 

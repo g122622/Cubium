@@ -633,6 +633,9 @@ extern const ResourceLocation ENTITY_BREEZE_LAND;
 /// 旋风人滑行
 extern const ResourceLocation ENTITY_BREEZE_SLIDE;
 
+/// 旋风人偏转投射物
+extern const ResourceLocation ENTITY_BREEZE_DEFLECT;
+
 // ============================================================================
 // 重锤声音
 // ============================================================================
