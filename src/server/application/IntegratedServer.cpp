@@ -347,9 +347,9 @@ void IntegratedServer::_mainLoop()
     f32 smoothedTickTimeMs = 0.0f;
 
     // 更新目标每tick毫秒数
-    m_debugStats.targetMsPerTick.store(static_cast<f32>(tickDuration.count()), std::memory_order_relaxed);
+    m_debugStats.targetMsPerTick.store(static_cast<f32>(tickDuration.count()), std::memory_order::relaxed);
 
-    while (m_running.load(std::memory_order_acquire)) {
+    while (m_running.load(std::memory_order::acquire)) {
         MC_TRACE_EVENT("server.tick", "MainLoopIteration");
 
         auto startTime = clock::now();
@@ -367,7 +367,7 @@ void IntegratedServer::_mainLoop()
         }
 
         // 更新调试统计（原子写入，客户端线程可安全读取）
-        m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order_relaxed);
+        m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order::relaxed);
 
         // 更新强制区块计数（从主维度获取）
         if (m_dimensionManager != nullptr) {
@@ -376,7 +376,7 @@ void IntegratedServer::_mainLoop()
                     if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
                         const auto& ticketManager = chunkMgr->ticketManager();
                         m_debugStats.forcedChunkCount.store(
-                            static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order_relaxed);
+                            static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order::relaxed);
                     }
                 }
             }

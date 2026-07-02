@@ -253,7 +253,7 @@ bool SingleChunkLifecycleManager::isSafeToUnload() const
     // 此处持 m_mutex 读取保证与依赖图操作（addWaitingNeighbour/removeBlockingNeighbour）的可见性。
     // 注意：最终卸载一致性由 unloadChunkSync 持调度锁重新检查 isSafeToUnload 保证
     // （见 ServerChunkManager::unloadChunkSync）。
-    return m_neighboursUsingThisChunk.load(std::memory_order_acquire) == 0 && m_generationTask == nullptr &&
+    return m_neighboursUsingThisChunk.load(std::memory_order::acquire) == 0 && m_generationTask == nullptr &&
         !hasFailedGeneration() && m_blockingNeighbours.empty() && m_waitingNeighbours.empty();
 }
 
@@ -352,7 +352,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::submit
     // 首次进入或取消后重新进入时，分配新的 generation 与取消令牌。
     // 若 m_abortSignal 为 true（已被 cancelActiveWork 取消），分配新的 false 令牌，
     // 使重新请求的任务不被旧取消标志影响。
-    if (!m_abortSignal || m_abortSignal->load(std::memory_order_acquire)) {
+    if (!m_abortSignal || m_abortSignal->load(std::memory_order::acquire)) {
         ++m_requestGeneration;
         m_abortSignal = std::make_shared<std::atomic<bool>>(false);
     }
@@ -405,7 +405,7 @@ SingleChunkLifecycleManager::EnqueueDecision SingleChunkLifecycleManager::cancel
     // 避免"cancelActiveWork 清空 abortSignal 后自重调度提交不可取消任务"的竞态。
     // 重新请求（submitRequest）时若发现 m_abortSignal 为 true，会分配新的 false 令牌。
     if (m_abortSignal) {
-        m_abortSignal->store(true, std::memory_order_release);
+        m_abortSignal->store(true, std::memory_order::release);
     }
     ++m_requestGeneration;
     m_generationTask = nullptr;
@@ -458,7 +458,7 @@ bool SingleChunkLifecycleManager::reviveForScheduling()
     std::lock_guard<std::recursive_mutex> lock(m_mutex);
     // 仅当处于取消态（abortSignal 为 true）时复活：分配新的 false 令牌。
     // 与 submitRequest 的令牌重置逻辑一致（见 submitRequest 第 352-355 行）。
-    if (m_abortSignal && m_abortSignal->load(std::memory_order_acquire)) {
+    if (m_abortSignal && m_abortSignal->load(std::memory_order::acquire)) {
         ++m_requestGeneration;
         m_abortSignal = std::make_shared<std::atomic<bool>>(false);
         return true;

@@ -59,7 +59,7 @@ public:
     /**
      * @brief 检查线程是否正在运行
      */
-    [[nodiscard]] bool isRunning() const noexcept { return m_running.load(std::memory_order_acquire); }
+    [[nodiscard]] bool isRunning() const noexcept { return m_running.load(std::memory_order::acquire); }
 
 private:
     /**

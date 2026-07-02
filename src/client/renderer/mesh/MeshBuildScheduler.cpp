@@ -491,7 +491,7 @@ void MeshBuildScheduler::_removeTaskImmediately(u64 taskId)
 void MeshBuildScheduler::_requestCancellation(ScheduledTask& task)
 {
     if (task.abortSignal) {
-        task.abortSignal->store(true, std::memory_order_release);
+        task.abortSignal->store(true, std::memory_order::release);
     }
 
     if (!task.cancellationRequested) {

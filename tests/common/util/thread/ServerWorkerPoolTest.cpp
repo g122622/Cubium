@@ -47,7 +47,7 @@ public:
 
     bool execute(const std::atomic<bool>& abortSignal) override
     {
-        if (abortSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order::acquire)) {
             return false;
         }
         m_executed = true;
@@ -78,7 +78,7 @@ public:
 
     bool execute(const std::atomic<bool>& abortSignal) override
     {
-        if (abortSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order::acquire)) {
             return false;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));

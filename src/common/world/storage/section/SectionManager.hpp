@@ -136,10 +136,12 @@ public:
      *
      * @param key Section标识
      * @param priority 任务优先级
+     * @param abortSignal 取消令牌，传入后任务可被取消；为 nullptr 时内部创建不可取消令牌
      * @return 未来的Section数据快照
      */
-    std::future<Result<std::shared_ptr<const SectionData>>> loadSectionAsync(
-        const SectionKey& key, util::TaskPriority priority = util::TaskPriority::Normal);
+    std::future<Result<std::shared_ptr<const SectionData>>> loadSectionAsync(const SectionKey& key,
+        util::TaskPriority priority = util::TaskPriority::Normal,
+        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
 
     /**
      * @brief 批量加载Section
@@ -151,6 +153,25 @@ public:
      * @return 与输入顺序一致的加载结果列表
      */
     Result<std::vector<std::shared_ptr<const SectionData>>> loadSectionsSync(const std::vector<SectionKey>& keys);
+
+    /**
+     * @brief 异步批量加载Section
+     *
+     * 缓存命中的 Section 在调用线程同步取出（持 m_cache 短锁），未命中的 Section
+     * 通过 StorageTask 提交到 ServerIO 线程池执行一次 _loadFromDatabaseBatch 批量读取。
+     * 适用于区块加载主路径的异步化：RocksDB I/O 在 ServerIO 线程完成，不阻塞主线程。
+     *
+     * 若未注入 StorageTaskManager（测试/独立模式），降级为同步 loadSectionsSync。
+     *
+     * @param keys Section标识列表
+     * @param priority 任务优先级
+     * @param abortSignal 取消令牌，传入后任务执行前/执行中可取消
+     * @return 未来的批量加载结果（与输入顺序一致）
+     */
+    std::future<Result<std::vector<std::shared_ptr<const SectionData>>>> loadSectionsAsync(
+        const std::vector<SectionKey>& keys,
+        util::TaskPriority priority = util::TaskPriority::Normal,
+        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
 
     // ========================================================================
     // Section保存

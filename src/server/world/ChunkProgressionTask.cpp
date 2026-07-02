@@ -69,7 +69,7 @@ ChunkProgressionTask::ChunkProgressionTask(ChunkTaskScheduler& scheduler,
 
 bool ChunkProgressionTask::execute(const std::atomic<bool>& abortSignal)
 {
-    if (abortSignal.load(std::memory_order_acquire)) {
+    if (abortSignal.load(std::memory_order::acquire)) {
         return false;
     }
 
@@ -107,7 +107,7 @@ std::string ChunkProgressionTask::description() const
 
 bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal)
 {
-    if (abortSignal.load(std::memory_order_acquire)) {
+    if (abortSignal.load(std::memory_order::acquire)) {
         return false;
     }
 
@@ -116,39 +116,36 @@ bool ChunkProgressionTask::executeEmptyLoad(const std::atomic<bool>& abortSignal
     }
     mc::world::chunk::SingleChunkLifecycleManager& holder = *m_holder;
 
-    // 尝试从存档加载
-    std::unique_ptr<ChunkData> loadedData = m_manager._tryToLoadChunkFromStorageSync(m_x, m_z);
+    // 异步存档加载路径（_resolveChunkSourceSync → loadChunkAsyncCallback → _onChunkLoadComplete）
+    // 已在主线程 tick() 完成 sourceState 推进：存档命中→Ready(FULL)（不走生成），存档缺失→StorageMissing
+    // （_advanceChunkState→_scheduleGeneration 调度本 EMPTY 任务）。因此 executeEmptyLoad 运行时
+    // sourceState 应为 StorageMissing。
+    //
+    // sourceState 守卫：
+    // - ResolvingStorage：异步加载尚未完成（不应发生，调度在 _onChunkLoadComplete 之后），返回 false 等待。
+    // - LoadedFromStorage/Ready：存档命中已被 _onChunkLoadComplete 处理（存入内存+markLoadedFromStorageReady），
+    //   不应进入生成。防御性检查内存缓存，命中则直接完成，避免重复 I/O。
+    // - StorageMissing：新建空 Primer，SCLM 接管所有权。
+    const auto sourceState = holder.sourceState();
+    if (sourceState == mc::world::chunk::SingleChunkLifecycleManager::SourceState::ResolvingStorage) {
+        // 异步加载未完成：本任务不应在此状态运行。返回 false，调度器会重试或由 holder 取消。
+        return false;
+    }
 
-    if (loadedData != nullptr) {
-        // 存档命中：从 ChunkData 构造 ChunkPrimer，状态为 FULL（已完成生成）
-        // ChunkPrimer(ChunkData) 构造函数设置 m_chunkStatus = FULL
-        auto primer = std::make_unique<ChunkPrimer>(std::move(loadedData));
-        ChunkPrimer* primerPtr = primer.get();
-        holder.setCurrentChunk(std::move(primer));
-
-        // 存档命中：直接推进到 FULL，存入内存缓存。
-        // toChunkData 非破坏性（返回 shared_ptr 共享同一份 ChunkData），primer 仍持有 m_data。
-        // _storeChunkInMemorySync 共享所有权发布到 m_chunks，不释放 primer。
-        // _storeChunkInMemorySync 不再调用 onChunkLoaded/m_chunkLoadedCallback（它们触及主线程独占状态，
-        // 本路径在 worker 线程执行）。入队 _enqueuePostProcess 延迟到主线程 tick() 执行 onChunkLoaded +
-        // m_chunkLoadedCallback（needsPostProcess=false：存档加载不重跑 _postProcessChunk，与原行为一致）。
-        // 去重：_drainPendingPostProcess 通过 m_postProcessedChunks 保证 onChunkLoaded/callback 至多执行一次，
-        // 即使主线程存档解析路径（_resolveChunkSourceSync）与本 worker 入队并发，也只执行一次。
-        auto data = primerPtr->toChunkData();
-        if (data) {
-            // _storeChunkInMemorySync 内部会 markLoadedFromStorageReady(FULL) + _completeReadyWaiters
-            (void)m_manager._storeChunkInMemorySync(m_x, m_z, std::move(data));
-            m_manager._enqueuePostProcess(m_x, m_z, {}, /*needsPostProcess=*/false);
-        }
-        // 不释放 primer：保留 currentChunk 供邻居引用（与 FULL 生成路径一致）。
-        // 标记 holder 完成 FULL
+    if (sourceState == mc::world::chunk::SingleChunkLifecycleManager::SourceState::LoadedFromStorage ||
+        sourceState == mc::world::chunk::SingleChunkLifecycleManager::SourceState::Ready) {
+        // 防御分支：异步路径（_onChunkLoadComplete）已把 ChunkData 存入内存缓存并 markLoadedFromStorageReady(FULL)。
+        // 此状态不应进入生成调度（currentGenStatus=FULL >= requestedGenStatus，schedule 不会创建 EMPTY 任务）。
+        // 若极端竞态下仍进入，直接完成 FULL（chunk 已在内存），解除调度器等待。
+        // ChunkData 不可拷贝（copy ctor deleted），不构造 primer；onChunkGenComplete 仅推进 currentGenStatus（已是
+        // FULL）。
         holder.completeStatusTo(ChunkStatuses::FULL);
         holder.markLoadedFromStorageReady();
         m_scheduler.onChunkGenComplete(holder, ChunkStatuses::FULL);
         return true;
     }
 
-    // 存档缺失：新建空 Primer，SCLM 接管所有权
+    // 存档缺失（StorageMissing）或 Unknown（极端：sourceState 未推进）：新建空 Primer，SCLM 接管所有权
     auto primer = std::make_unique<ChunkPrimer>(m_x, m_z);
     holder.setCurrentChunk(std::move(primer));
 
@@ -174,7 +171,7 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
         [flow = ::perfetto::Flow::ProcessScoped(ChunkPos(m_x, m_z).toId())](
             ::perfetto::EventContext ctx) { flow(ctx); });
 
-    if (abortSignal.load(std::memory_order_acquire)) {
+    if (abortSignal.load(std::memory_order::acquire)) {
         return false;
     }
 
@@ -190,7 +187,7 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
             m_x,
             m_z,
             m_toStatus->name(),
-            abortSignal.load(std::memory_order_acquire));
+            abortSignal.load(std::memory_order::acquire));
         return false;
     }
 
@@ -228,7 +225,7 @@ bool ChunkProgressionTask::executeStatusStep(const std::atomic<bool>& abortSigna
     // 执行生成步骤（调用 IChunkGenerator 的对应方法）
     m_manager._executeStepTask(*primer, *m_toStatus, region);
 
-    if (abortSignal.load(std::memory_order_acquire)) {
+    if (abortSignal.load(std::memory_order::acquire)) {
         return false;
     }
 

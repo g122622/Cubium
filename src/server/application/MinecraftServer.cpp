@@ -564,6 +564,7 @@ Result<void> MinecraftServer::initializeSharedStorage(const GameDirectory& gameD
     }
     m_storage = storageResult.value();
     m_storage->setIoWorkerPool(&m_ioWorkerPool);
+    m_storage->setComputeWorkerPool(&m_computationWorkerPool);
     spdlog::info("World storage opened at {}", m_storage->worldPath().string());
 
     world::storage::AutoSaveConfig saveConfig;

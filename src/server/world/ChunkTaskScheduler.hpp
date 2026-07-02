@@ -209,9 +209,9 @@ public:
      * 因为关闭时所有 holder 的 abortSignal 已失效，重调度的任务无法被取消。
      * ServerChunkManager::shutdown 在 cancelActiveWork 之前调用此方法。
      */
-    void setShuttingDown() { m_shuttingDown.store(true, std::memory_order_release); }
+    void setShuttingDown() { m_shuttingDown.store(true, std::memory_order::release); }
 
-    [[nodiscard]] bool isShuttingDown() const { return m_shuttingDown.load(std::memory_order_acquire); }
+    [[nodiscard]] bool isShuttingDown() const { return m_shuttingDown.load(std::memory_order::acquire); }
 
     /**
      * @brief 访问半径（= step.accumulatedRadius()），用于区域锁范围

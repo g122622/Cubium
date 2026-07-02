@@ -72,7 +72,7 @@ protected:
         // 设置区块加载回调计数器：每个区块完成主线程后处理（onChunkLoaded + callback）时 +1。
         // 用于验证去重：同一区块的 callback 至多触发一次（m_postProcessedChunks 保证）。
         m_manager->setChunkLoadedCallback(
-            [this](ChunkCoord, ChunkCoord) { m_chunkLoadedCallCount.fetch_add(1, std::memory_order_relaxed); });
+            [this](ChunkCoord, ChunkCoord) { m_chunkLoadedCallCount.fetch_add(1, std::memory_order::relaxed); });
     }
 
     void TearDown() override
@@ -503,7 +503,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
         int lastPending = -1;
         int noProgressSamples = 0; // 连续 pending 未下降的 5 秒采样数（6 次=30 秒=死锁）
         bool dumpedStuck = false;
-        for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order_acquire); ++sec) {
+        for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             // 每 5 秒输出一次状态快照，观察 pending/running/holder 计数趋势
             if (sec % 10 == 0) {
@@ -548,7 +548,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
                 }
             }
         }
-        if (!stop.load(std::memory_order_acquire)) {
+        if (!stop.load(std::memory_order::acquire)) {
             spdlog::info("[watchdog] 测试 stall 超过 {}s，强制 abort 以定位死锁。pendingTaskCount={}, "
                          "runningTaskCount={}, holders={}",
                 STALL_THRESHOLD_SECONDS,
@@ -569,7 +569,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
     constexpr double MOVE_RADIUS_CHUNKS = 6.0;
     std::thread mover([&]() {
         try {
-            for (int i = 0; i < MOVE_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+            for (int i = 0; i < MOVE_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
                 const double angle = (i % 32) * (3.14159265358979 / 16.0);
                 const double radius = MOVE_RADIUS_CHUNKS * 16.0;
                 const double wx = std::cos(angle) * radius;
@@ -580,7 +580,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
             }
         }
         catch (...) {
-            crashFlag.store(1, std::memory_order_release);
+            crashFlag.store(1, std::memory_order::release);
         }
     });
 
@@ -594,7 +594,7 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
         try {
             std::vector<std::future<ChunkData*>> inflight;
             inflight.reserve(MAX_INFLIGHT + 1);
-            for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+            for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
                 const int x = (i * 7) % 24 - 12;
                 const int z = (i * 13) % 24 - 12;
                 auto future = m_manager->getChunkAsync(x, z, &ChunkStatuses::FULL);
@@ -618,17 +618,17 @@ TEST_F(ServerChunkManagerTest, ConcurrentGenerateAndUnloadRace)
             }
         }
         catch (...) {
-            crashFlag.store(2, std::memory_order_release);
+            crashFlag.store(2, std::memory_order::release);
         }
     });
 
     mover.join();
     generator.join();
-    stop.store(true, std::memory_order_release);
+    stop.store(true, std::memory_order::release);
     watchdog.join();
 
     // 若任何线程捕获到异常，标记失败
-    EXPECT_EQ(crashFlag.load(std::memory_order_acquire), 0)
+    EXPECT_EQ(crashFlag.load(std::memory_order::acquire), 0)
         << "Concurrent generate/unload test detected an exception in worker thread";
 
     // 清理：移除玩家并 shutdown
@@ -660,7 +660,7 @@ TEST_F(ServerChunkManagerTest, PostProcessDoneFlag_AfterGeneration)
     m_manager->tick();
 
     EXPECT_TRUE(chunk->isPostProcessingDone()) << "postProcess 应在 tick() drain 之后完成";
-    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order_acquire), 1) << "区块加载回调应恰好触发一次";
+    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 1) << "区块加载回调应恰好触发一次";
 
     m_manager->shutdown();
     m_workerPool->shutdown();
@@ -678,7 +678,7 @@ TEST_F(ServerChunkManagerTest, OnChunkLoadedOnce_GenerationPath)
     m_manager->tick();
     m_manager->tick();
 
-    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order_acquire), 1) << "多次 tick 不应重复触发区块加载回调";
+    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 1) << "多次 tick 不应重复触发区块加载回调";
 
     m_manager->shutdown();
     m_workerPool->shutdown();
@@ -691,7 +691,7 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
 
     m_manager->getChunkSync(0, 0);
     m_manager->tick();
-    ASSERT_EQ(m_chunkLoadedCallCount.load(std::memory_order_acquire), 1);
+    ASSERT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 1);
 
     // 卸载：unloadChunkSync 清除 m_postProcessedChunks 中的 key，移除 m_chunks 中的区块。
     m_manager->unloadChunkSync(0, 0);
@@ -702,7 +702,7 @@ TEST_F(ServerChunkManagerTest, UnloadClearsPostProcessedFlag)
     m_manager->getChunkSync(0, 0);
     m_manager->tick();
 
-    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order_acquire), 2)
+    EXPECT_EQ(m_chunkLoadedCallCount.load(std::memory_order::acquire), 2)
         << "卸载后重新加载应重新执行后处理（m_postProcessedChunks 已清除 key）";
 
     m_manager->shutdown();

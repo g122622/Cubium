@@ -185,7 +185,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     std::thread watchdog([&]() {
         int lastPending = -1;
         int noProgressSamples = 0;
-        for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order_acquire); ++sec) {
+        for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             if (sec % 10 == 0) {
                 const size_t pending = m_workerPool->pendingTaskCount();
@@ -208,7 +208,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                 }
             }
         }
-        if (!stop.load(std::memory_order_acquire)) {
+        if (!stop.load(std::memory_order::acquire)) {
             spdlog::info("[watchdog] stall > {}s, abort", STALL_THRESHOLD_SECONDS);
             std::abort();
         }
@@ -221,7 +221,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     constexpr double FAR_RADIUS_CHUNKS = 48.0; // 远离原点的传送距离（区块单位）
     std::thread teleporter([&]() {
         try {
-            for (int i = 0; i < TELEPORT_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+            for (int i = 0; i < TELEPORT_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
                 // 交替远点与原点附近，每次都驱动 ticket 更新 + 卸载检查
                 if (i % 2 == 0) {
                     const double angle = (i * 0.3) * 3.14159265358979;
@@ -242,7 +242,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
             }
         }
         catch (...) {
-            crashFlag.store(3, std::memory_order_release);
+            crashFlag.store(3, std::memory_order::release);
         }
     });
 
@@ -262,7 +262,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
             try {
                 std::vector<std::future<ChunkData*>> inflight;
                 inflight.reserve(MAX_INFLIGHT + 1);
-                for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+                for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
                     // 围绕原点的伪随机区块，混入远点，使生成与卸载区重叠
                     const int base = (tid * 17 + i * 7) % 40 - 20;
                     const int x = base + ((i * 5) % 8);
@@ -282,7 +282,7 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
                 }
             }
             catch (...) {
-                crashFlag.store(4, std::memory_order_release);
+                crashFlag.store(4, std::memory_order::release);
             }
         });
     }
@@ -291,12 +291,12 @@ TEST_F(StructureReferencesRaceTest, TeleportUnloadDuringStructureReferences_0x50
     for (auto& g : generators) {
         g.join();
     }
-    stop.store(true, std::memory_order_release);
+    stop.store(true, std::memory_order::release);
     watchdog.join();
 
     // crashFlag 非 0 表示 generator/teleporter 线程捕获到异常（worker 线程的 ACCESS_VIOLATION
     // 会直接进程终止，不进入 catch；此处仅捕获逻辑层异常）。
-    EXPECT_EQ(crashFlag.load(std::memory_order_acquire), 0) << "teleporter/generator thread caught an exception";
+    EXPECT_EQ(crashFlag.load(std::memory_order::acquire), 0) << "teleporter/generator thread caught an exception";
 
     m_manager->removePlayer(1);
     m_manager->shutdown();
@@ -324,7 +324,7 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
     std::thread watchdog([&]() {
         int lastPending = -1;
         int noProgressSamples = 0;
-        for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order_acquire); ++sec) {
+        for (int sec = 0; sec < STALL_THRESHOLD_SECONDS * 2 && !stop.load(std::memory_order::acquire); ++sec) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             if (sec % 10 == 0) {
                 const size_t pending = m_workerPool->pendingTaskCount();
@@ -347,7 +347,7 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
                 }
             }
         }
-        if (!stop.load(std::memory_order_acquire)) {
+        if (!stop.load(std::memory_order::acquire)) {
             spdlog::info("[watchdog] stall > {}s, abort", STALL_THRESHOLD_SECONDS);
             std::abort();
         }
@@ -358,7 +358,7 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
     constexpr double MOVE_RADIUS_CHUNKS = 10.0;
     std::thread mover([&]() {
         try {
-            for (int i = 0; i < MOVE_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+            for (int i = 0; i < MOVE_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
                 const double angle = (i % 32) * (3.14159265358979 / 16.0);
                 const double radius = MOVE_RADIUS_CHUNKS * 16.0;
                 const double wx = std::cos(angle) * radius;
@@ -369,7 +369,7 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
             }
         }
         catch (...) {
-            crashFlag.store(1, std::memory_order_release);
+            crashFlag.store(1, std::memory_order::release);
         }
     });
 
@@ -380,7 +380,7 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
         try {
             std::vector<std::future<ChunkData*>> inflight;
             inflight.reserve(MAX_INFLIGHT + 1);
-            for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order_acquire); ++i) {
+            for (int i = 0; i < GEN_ITERATIONS && !stop.load(std::memory_order::acquire); ++i) {
                 const int x = (i * 7) % 32 - 16;
                 const int z = (i * 13) % 32 - 16;
                 auto future = m_manager->getChunkAsync(x, z, &ChunkStatuses::FULL);
@@ -401,16 +401,16 @@ TEST_F(StructureReferencesRaceTest, MovePlayerAndGenerate_RaceRepro)
             }
         }
         catch (...) {
-            crashFlag.store(2, std::memory_order_release);
+            crashFlag.store(2, std::memory_order::release);
         }
     });
 
     mover.join();
     generator.join();
-    stop.store(true, std::memory_order_release);
+    stop.store(true, std::memory_order::release);
     watchdog.join();
 
-    EXPECT_EQ(crashFlag.load(std::memory_order_acquire), 0)
+    EXPECT_EQ(crashFlag.load(std::memory_order::acquire), 0)
         << "Concurrent generate/move test detected an exception in worker thread";
 
     m_manager->removePlayer(1);

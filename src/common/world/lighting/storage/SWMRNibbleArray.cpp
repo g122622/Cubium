@@ -165,7 +165,7 @@ void SWMRNibbleArray::setFull()
     // 与 Moonrise 一致：当 storageUpdating 为空或不是 dirty 时，分配新数组
     if (m_storageUpdating == nullptr || !m_updatingDirty) {
         // 检查更新侧和可见侧是否共享同一块内存
-        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
         bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
 
         if (sharedWithVisible && m_storageUpdating != nullptr) {
@@ -173,7 +173,7 @@ void SWMRNibbleArray::setFull()
             auto newStorage = _allocateBytes();
             m_storageUpdating = std::move(newStorage);
             // 更新可见侧指向新存储
-            m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
+            m_storageVisible.store(m_storageUpdating.get(), std::memory_order::release);
         } else {
             m_storageUpdating = _allocateBytes();
         }
@@ -192,7 +192,7 @@ void SWMRNibbleArray::setZero()
     // 与 Moonrise 一致：当 storageUpdating 为空或不是 dirty 时，分配新数组
     if (m_storageUpdating == nullptr || !m_updatingDirty) {
         // 检查更新侧和可见侧是否共享同一块内存
-        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
         bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
 
         if (sharedWithVisible && m_storageUpdating != nullptr) {
@@ -200,7 +200,7 @@ void SWMRNibbleArray::setZero()
             auto newStorage = _allocateBytes();
             m_storageUpdating = std::move(newStorage);
             // 更新可见侧指向新存储
-            m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
+            m_storageVisible.store(m_storageUpdating.get(), std::memory_order::release);
         } else {
             m_storageUpdating = _allocateBytes();
         }
@@ -301,7 +301,7 @@ u8 SWMRNibbleArray::getVisible(i32 x, i32 y, i32 z) const
 
 u8 SWMRNibbleArray::getVisible(i32 index) const
 {
-    auto* storage = m_storageVisible.load(std::memory_order_acquire);
+    auto* storage = m_storageVisible.load(std::memory_order::acquire);
     if (storage == nullptr || m_stateVisible.load() == State::Null) {
         return 0;
     }
@@ -323,8 +323,8 @@ bool SWMRNibbleArray::updateVisible()
     // 同步更新 - SWMR 模式：与 Moonrise 一致
     if (m_stateUpdating == State::Null || m_stateUpdating == State::Uninit) {
         // 对于 Null/Uninit 状态，可见侧也应该没有存储
-        auto* oldVisible = m_storageVisible.load(std::memory_order_acquire);
-        m_storageVisible.store(nullptr, std::memory_order_release);
+        auto* oldVisible = m_storageVisible.load(std::memory_order::acquire);
+        m_storageVisible.store(nullptr, std::memory_order::release);
         if (oldVisible != nullptr && oldVisible != m_storageUpdating.get()) {
             _freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>>(oldVisible));
         }
@@ -334,13 +334,13 @@ bool SWMRNibbleArray::updateVisible()
         }
     } else {
         // Init 或 Hidden 状态：需要同步数据到可见侧
-        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
 
         if (currentVisible == nullptr) {
             // 可见侧为空，复制更新侧数据
             auto newStorage = std::make_unique<std::array<u8, ARRAY_SIZE>>();
             *newStorage = *m_storageUpdating;
-            m_storageVisible.store(newStorage.get(), std::memory_order_release);
+            m_storageVisible.store(newStorage.get(), std::memory_order::release);
             m_storageUpdating = std::move(newStorage);
         } else {
             // 可见侧已有存储，如果更新侧和可见侧不同则复制数据
@@ -354,7 +354,7 @@ bool SWMRNibbleArray::updateVisible()
     }
 
     m_updatingDirty = false;
-    m_stateVisible.store(m_stateUpdating, std::memory_order_release);
+    m_stateVisible.store(m_stateUpdating, std::memory_order::release);
 
     return true;
 }
@@ -376,7 +376,7 @@ void SWMRNibbleArray::extrudeLower(const SWMRNibbleArray& other)
 
     if (!m_updatingDirty) {
         // 检查更新侧和可见侧是否共享同一块内存
-        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
         bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
 
         if (m_storageUpdating != nullptr) {
@@ -384,7 +384,7 @@ void SWMRNibbleArray::extrudeLower(const SWMRNibbleArray& other)
                 // 如果与可见侧共享内存，需要先创建新存储
                 auto newStorage = _allocateBytes();
                 m_storageUpdating = std::move(newStorage);
-                m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
+                m_storageVisible.store(m_storageUpdating.get(), std::memory_order::release);
             } else {
                 m_storageUpdating = _allocateBytes();
             }
@@ -498,7 +498,7 @@ void SWMRNibbleArray::_ensureWritable()
         std::fill(m_storageUpdating->begin(), m_storageUpdating->end(), 0);
     } else {
         // 检查更新侧和可见侧是否共享同一块内存
-        auto* currentVisible = m_storageVisible.load(std::memory_order_acquire);
+        auto* currentVisible = m_storageVisible.load(std::memory_order::acquire);
         bool sharedWithVisible = (m_storageUpdating.get() == currentVisible);
 
         // 写时复制：创建新数组并复制数据
@@ -515,7 +515,7 @@ void SWMRNibbleArray::_ensureWritable()
             // 正确做法：先让更新侧指向新存储，同时让可见侧也指向新存储
             // 然后旧内存由析构函数处理（只在可见侧 != 更新侧 时释放）
             m_storageUpdating = std::move(newStorage);
-            m_storageVisible.store(m_storageUpdating.get(), std::memory_order_release);
+            m_storageVisible.store(m_storageUpdating.get(), std::memory_order::release);
             // 此时 m_stateUpdating == m_stateVisible，所以 isDirty() == false
             // 但我们需要标记为 dirty 以便后续 updateVisible() 能正确工作
         } else {

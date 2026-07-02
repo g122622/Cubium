@@ -355,12 +355,12 @@ public:
     /**
      * @brief 增加邻居引用计数（有邻居正在使用我的快照生成）
      */
-    void addNeighbourUsingChunk() { m_neighboursUsingThisChunk.fetch_add(1, std::memory_order_acq_rel); }
+    void addNeighbourUsingChunk() { m_neighboursUsingThisChunk.fetch_add(1, std::memory_order::acq_rel); }
 
     /**
      * @brief 减少邻居引用计数
      */
-    void removeNeighbourUsingChunk() { m_neighboursUsingThisChunk.fetch_sub(1, std::memory_order_acq_rel); }
+    void removeNeighbourUsingChunk() { m_neighboursUsingThisChunk.fetch_sub(1, std::memory_order::acq_rel); }
 
     /**
      * @brief 是否安全卸载（无邻居引用、无进行中任务）
@@ -372,13 +372,13 @@ public:
      */
     [[nodiscard]] i32 neighboursUsingThisChunkCount() const
     {
-        return m_neighboursUsingThisChunk.load(std::memory_order_acquire);
+        return m_neighboursUsingThisChunk.load(std::memory_order::acquire);
     }
 
     // === 票据与玩家追踪 ===
 
-    [[nodiscard]] i32 level() const { return m_level.load(std::memory_order_acquire); }
-    void setLevel(i32 level) { m_level.store(level, std::memory_order_release); }
+    [[nodiscard]] i32 level() const { return m_level.load(std::memory_order::acquire); }
+    void setLevel(i32 level) { m_level.store(level, std::memory_order::release); }
     [[nodiscard]] bool shouldLoad() const { return level() <= static_cast<i32>(ChunkLoadLevel::Border); }
 
     [[nodiscard]] SourceState sourceState() const;

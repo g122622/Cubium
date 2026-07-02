@@ -49,12 +49,12 @@ i32 MeshWorkerPool::_getOptimalThreadCount()
 
 void MeshWorkerPool::start()
 {
-    if (m_running.exchange(true, std::memory_order_acq_rel)) {
+    if (m_running.exchange(true, std::memory_order::acq_rel)) {
         return;
     }
 
-    m_runningTaskCount.store(0, std::memory_order_release);
-    m_stop.store(false, std::memory_order_release);
+    m_runningTaskCount.store(0, std::memory_order::release);
+    m_stop.store(false, std::memory_order::release);
 
     m_workers.reserve(m_threadCount);
     for (i32 i = 0; i < m_threadCount; ++i) {
@@ -66,11 +66,11 @@ void MeshWorkerPool::start()
 
 void MeshWorkerPool::shutdown()
 {
-    if (!m_running.exchange(false, std::memory_order_acq_rel)) {
+    if (!m_running.exchange(false, std::memory_order::acq_rel)) {
         return;
     }
 
-    m_stop.store(true, std::memory_order_release);
+    m_stop.store(true, std::memory_order::release);
     m_condition.notify_all();
 
     for (auto& worker : m_workers) {
@@ -94,14 +94,14 @@ void MeshWorkerPool::shutdown()
         }
     }
 
-    m_runningTaskCount.store(0, std::memory_order_release);
+    m_runningTaskCount.store(0, std::memory_order::release);
 
     spdlog::info("MeshWorkerPool shutdown complete");
 }
 
 bool MeshWorkerPool::isRunning() const
 {
-    return m_running.load(std::memory_order_acquire);
+    return m_running.load(std::memory_order::acquire);
 }
 
 void MeshWorkerPool::submit(MeshWorkerTask task)
@@ -160,7 +160,7 @@ size_t MeshWorkerPool::queuedTaskCount() const
 
 size_t MeshWorkerPool::runningTaskCount() const
 {
-    return m_runningTaskCount.load(std::memory_order_acquire);
+    return m_runningTaskCount.load(std::memory_order::acquire);
 }
 
 size_t MeshWorkerPool::completedTaskCount() const
@@ -171,7 +171,7 @@ size_t MeshWorkerPool::completedTaskCount() const
 
 bool MeshWorkerPool::_isCancelled(const MeshWorkerTask& task)
 {
-    return task.abortSignal && task.abortSignal->load(std::memory_order_acquire);
+    return task.abortSignal && task.abortSignal->load(std::memory_order::acquire);
 }
 
 void MeshWorkerPool::_workerLoop(i32 workerId)
@@ -185,9 +185,9 @@ void MeshWorkerPool::_workerLoop(i32 workerId)
         {
             std::unique_lock<std::mutex> lock(m_queueMutex);
 
-            m_condition.wait(lock, [this] { return !m_taskQueue.empty() || m_stop.load(std::memory_order_acquire); });
+            m_condition.wait(lock, [this] { return !m_taskQueue.empty() || m_stop.load(std::memory_order::acquire); });
 
-            if (m_stop.load(std::memory_order_acquire) && m_taskQueue.empty()) {
+            if (m_stop.load(std::memory_order::acquire) && m_taskQueue.empty()) {
                 break;
             }
 
@@ -200,9 +200,9 @@ void MeshWorkerPool::_workerLoop(i32 workerId)
             task = std::move(internalTask.task);
         }
 
-        m_runningTaskCount.fetch_add(1, std::memory_order_acq_rel);
+        m_runningTaskCount.fetch_add(1, std::memory_order::acq_rel);
         _executeTask(task);
-        m_runningTaskCount.fetch_sub(1, std::memory_order_acq_rel);
+        m_runningTaskCount.fetch_sub(1, std::memory_order::acq_rel);
     }
 }
 

@@ -85,7 +85,7 @@ bool execute(const std::atomic<bool>& abortSignal) override {
 
     // ✅ 正确：定期检查
     for (auto& item : items) {
-        if (abortSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order::acquire)) {
             return false;  // 被取消
         }
         process(item);

@@ -697,7 +697,7 @@ void OpenALBackend::shutdown()
     }
 
     // 重置状态
-    m_activeSourceCount.store(0, std::memory_order_relaxed);
+    m_activeSourceCount.store(0, std::memory_order::relaxed);
     m_maxSources = ::mc::sound::MAX_CONCURRENT_SOUNDS;
     m_initialized = false;
     spdlog::info("[OpenALBackend] Shutdown complete");
@@ -855,10 +855,10 @@ Result<std::unique_ptr<IAudioSource>> OpenALBackend::createSource()
     AudioSourceId id = m_nextSourceId++;
 
     // 递增活跃源计数
-    m_activeSourceCount.fetch_add(1, std::memory_order_relaxed);
+    m_activeSourceCount.fetch_add(1, std::memory_order::relaxed);
 
     // 创建源销毁回调，当源被销毁时递减活跃源计数
-    auto onDestroy = [this]() { m_activeSourceCount.fetch_sub(1, std::memory_order_relaxed); };
+    auto onDestroy = [this]() { m_activeSourceCount.fetch_sub(1, std::memory_order::relaxed); };
 
     std::unique_ptr<IAudioSource> audioSource = std::make_unique<OpenALSource>(id, source, std::move(onDestroy));
     return audioSource;
@@ -870,13 +870,13 @@ u32 OpenALBackend::getAvailableSources() const noexcept
         return 0;
     }
 
-    u32 active = m_activeSourceCount.load(std::memory_order_relaxed);
+    u32 active = m_activeSourceCount.load(std::memory_order::relaxed);
     return active >= m_maxSources ? 0 : m_maxSources - active;
 }
 
 u32 OpenALBackend::getActiveSourceCount() const noexcept
 {
-    return m_activeSourceCount.load(std::memory_order_relaxed);
+    return m_activeSourceCount.load(std::memory_order::relaxed);
 }
 
 void OpenALBackend::process()
@@ -912,7 +912,7 @@ std::string OpenALBackend::getDebugString() const
         result += fmt::format("Buffers: {}\n", m_buffers.size());
     }
 
-    u32 activeSources = m_activeSourceCount.load(std::memory_order_relaxed);
+    u32 activeSources = m_activeSourceCount.load(std::memory_order::relaxed);
     result += fmt::format("Sources: {}/{}\n", activeSources, m_maxSources);
     result += fmt::format(
         "Listener position: ({}, {}, {})\n", m_listenerPosition.x, m_listenerPosition.y, m_listenerPosition.z);

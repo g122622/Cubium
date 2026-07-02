@@ -148,7 +148,7 @@ TEST_F(MeshWorkerPoolTest, PreCancelledTaskReturnsCancelledResult)
     pool.start();
 
     MeshWorkerTask task = makeTask(2, 3);
-    task.abortSignal->store(true, std::memory_order_release);
+    task.abortSignal->store(true, std::memory_order::release);
 
     pool.submit(std::move(task));
     waitUntilCompletedAtLeast(pool, 1);

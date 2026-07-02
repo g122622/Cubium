@@ -133,4 +133,50 @@ public:
  */
 using TaskCallback = std::function<void(bool success, ITask* task)>;
 
+/**
+ * @brief 通用 lambda 任务包装器
+ *
+ * 把任意 `bool(const std::atomic<bool>&)` 可调用对象包装为 ITask，
+ * 用于向 ServerWorkerPool 提交一次性计算任务（如反序列化、组装）。
+ * 与 StorageTask 不同，FunctionTask 不绑定存储键、不限定 traceCategory，
+ * 适用于任意线程池（ServerCompute 等）。
+ *
+ * execute 返回 executor 的返回值；onCancel 为空（协作取消由 abortSignal 完成）。
+ */
+class FunctionTask : public ITask {
+public:
+    using Executor = std::function<bool(const std::atomic<bool>&)>;
+
+    /**
+     * @param type 任务类型（用于追踪）
+     * @param description 任务描述（用于日志/追踪）
+     * @param executor 任务体，接收 abortSignal，返回 true=成功 false=失败/取消
+     * @param traceCategory Perfetto 追踪类别（默认 "worker_pool"）
+     */
+    FunctionTask(TaskType type, std::string description, Executor executor, const char* traceCategory = "worker_pool")
+        : m_type(type)
+        , m_description(std::move(description))
+        , m_traceCategory(traceCategory)
+        , m_executor(std::move(executor))
+    {}
+
+    bool execute(const std::atomic<bool>& abortSignal) override
+    {
+        if (!m_executor) {
+            return false;
+        }
+        return m_executor(abortSignal);
+    }
+
+    TaskType type() const override { return m_type; }
+    std::string description() const override { return m_description; }
+    const char* traceCategory() const override { return m_traceCategory; }
+
+private:
+    TaskType m_type;
+    std::string m_description;
+    const char* m_traceCategory;
+    Executor m_executor;
+};
+
 } // namespace mc::util

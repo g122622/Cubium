@@ -583,7 +583,7 @@ void StandaloneServer::_mainLoop()
 
     // 更新目标每tick毫秒数
     m_debugStats.targetMsPerTick.store(
-        static_cast<f32>(std::chrono::duration<f32, std::milli>(tickDuration).count()), std::memory_order_relaxed);
+        static_cast<f32>(std::chrono::duration<f32, std::milli>(tickDuration).count()), std::memory_order::relaxed);
 
     spdlog::info("Server is now running!");
     spdlog::info("Connect with port: {}", m_settings.serverPort.get());
@@ -614,7 +614,7 @@ void StandaloneServer::_mainLoop()
             } else {
                 smoothedTickTimeMs = smoothedTickTimeMs * (1.0f - SMOOTH_FACTOR) + tickTimeMs * SMOOTH_FACTOR;
             }
-            m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order_relaxed);
+            m_debugStats.smoothedTickTimeMs.store(smoothedTickTimeMs, std::memory_order::relaxed);
 
             // 更新强制区块计数
             if (m_dimensionManager != nullptr) {
@@ -623,7 +623,7 @@ void StandaloneServer::_mainLoop()
                         if (auto* chunkMgr = world->chunkManager(); chunkMgr != nullptr) {
                             const auto& ticketManager = chunkMgr->ticketManager();
                             m_debugStats.forcedChunkCount.store(
-                                static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order_relaxed);
+                                static_cast<i32>(ticketManager.getForcedChunks().size()), std::memory_order::relaxed);
                         }
                     }
                 }

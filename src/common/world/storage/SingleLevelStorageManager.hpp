@@ -37,8 +37,12 @@
 #include "world/storage/section/SectionManager.hpp"
 #include "world/storage/snapshot/BackupManager.hpp"
 #include "world/storage/task/StorageTaskManager.hpp"
+#include <atomic>
 #include <filesystem>
+#include <functional>
+#include <future>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <unordered_map>
 
@@ -171,6 +175,53 @@ public:
     [[nodiscard]] Result<std::optional<ChunkData>> loadChunk(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
     /**
+     * @brief 异步读取完整区块（Moonrise 式异步 I/O）
+     *
+     * Native 格式：两路并行提交到 ServerIO 线程池——
+     *   路径 A：区块 section 数据（SectionManager::loadSectionsAsync，24 个 section 批量读取）
+     *   路径 B：方块实体（BlockEntityStorageManager::loadBlockEntitiesInChunk）
+     * 两路 I/O 完成后在调用方线程（通常 Compute 池）组装 ChunkData。
+     * 外来格式（JavaAnvil/BedrockLDB）：在 ServerIO worker 内加 m_foreignReadMutex 串行同步执行 m_backend->loadChunk。
+     *
+     * 与 loadChunk 的区别：loadChunk 在调用线程同步阻塞；loadChunkAsync 立即返回 future，
+     * I/O 在 ServerIO 池完成，不阻塞主线程。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param dimension 目标维度
+     * @param abortSignal 取消令牌，传入后任务执行前/执行中可取消
+     * @return 未来的区块数据，若区块不存在返回空 optional
+     */
+    std::future<Result<std::optional<ChunkData>>> loadChunkAsync(
+        ChunkCoord x, ChunkCoord z, DimensionId dimension, std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
+
+    /**
+     * @brief 异步读取完整区块（回调版本）
+     *
+     * 与 loadChunkAsync（future 版）功能相同，但完成时通过 callback 回传结果，而非返回 future。
+     * 回调签名为 (x, z, dimension, result)，result 为加载结果。
+     *
+     * 线程语义（Native 格式）：两路 I/O（section + blockEntity）在 ServerIO 线程并行读取，
+     * 最后完成的一路把反序列化组装（SectionCodec::toChunkSection + biomes + 合并）投递到 ServerCompute
+     * 线程池（m_computeWorkerPool），completion 在 ServerCompute 线程调用。无 Compute 池（测试/独立模式）
+     * 时降级为在 ServerIO worker 内联组装并调用 completion。
+     * 外来格式：completion 在 ServerIO worker 线程调用（m_foreignReadMutex 串行化）。
+     *
+     * 调用方负责在回调中将结果投递回主线程（如通过 ServerChunkManager 的 _pendingLoadCompletes 队列）。
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param dimension 目标维度
+     * @param callback 完成回调（Native: ServerCompute 线程；外来格式: ServerIO 线程；无池降级: 调用线程）
+     * @param abortSignal 取消令牌，传播到 ServerIO StorageTask 与 ServerCompute FunctionTask
+     */
+    void loadChunkAsyncCallback(ChunkCoord x,
+        ChunkCoord z,
+        DimensionId dimension,
+        std::function<void(ChunkCoord, ChunkCoord, DimensionId, Result<std::optional<ChunkData>>)> callback,
+        std::shared_ptr<std::atomic<bool>> abortSignal = nullptr);
+
+    /**
      * @brief 读取玩家存档数据
      * @param uuid 玩家 UUID；基岩本地玩家可传 `~local_player`
      * @return 玩家数据，不存在返回空 optional
@@ -261,6 +312,17 @@ public:
      * @param workerPool IO 线程池指针
      */
     void setIoWorkerPool(util::ServerWorkerPool* workerPool);
+
+    /**
+     * @brief 注入反序列化线程池（ServerCompute）
+     *
+     * loadChunkAsync 的反序列化阶段（SectionCodec::toChunkSection + biomes 组装 + ChunkData 合并）
+     * 在此线程池执行，与 IO 线程池分离（对齐 Moonrise ProcessOffMainTask 跑在 loadExecutor）。
+     * 未注入时降级为在 IO worker 内联执行反序列化。
+     *
+     * @param workerPool 反序列化线程池指针，可为 nullptr（降级内联）
+     */
+    void setComputeWorkerPool(util::ServerWorkerPool* workerPool) { m_computeWorkerPool = workerPool; }
 
     /**
      * @brief 获取玩家数据管理器
@@ -432,6 +494,14 @@ private:
     Result<void> _openNativeFormat(const std::filesystem::path& worldPath);
     Result<void> _openForeignFormat(const std::filesystem::path& worldPath);
 
+    /// loadChunkAsync 的核心实现：完成回调在 ServerIO worker 线程调用。
+    /// future 版与 callback 版均委托到此。
+    void _loadChunkAsyncCore(ChunkCoord x,
+        ChunkCoord z,
+        DimensionId dimension,
+        std::shared_ptr<std::atomic<bool>> abortSignal,
+        std::function<void(Result<std::optional<ChunkData>>)> completion);
+
 private:
     std::unique_ptr<RocksDBDatabase> m_db;
     std::optional<WorldSessionLock> m_sessionLock;
@@ -445,6 +515,10 @@ private:
     util::ServerWorkerPool* m_ioWorkerPool = nullptr;
     std::unique_ptr<StorageTaskManager> m_taskManager;
 
+    /// 反序列化线程池（ServerCompute）。loadChunkAsync 的 SectionCodec::toChunkSection +
+    /// biomes 组装 + ChunkData 合并阶段在此池执行。nullptr 时降级为 IO worker 内联。
+    util::ServerWorkerPool* m_computeWorkerPool = nullptr;
+
     mutable std::mutex m_sectionManagersMutex;
     std::unordered_map<DimensionId, std::unique_ptr<SectionManager>> m_sectionManagers;
 
@@ -452,6 +526,10 @@ private:
 
     SingleLevelStorageConfig m_config;
     std::filesystem::path m_worldPath;
+
+    /// 外来格式（JavaAnvil/BedrockLDB）读取互斥锁。
+    /// 外来格式后端非线程安全，loadChunkAsync 在 ServerIO worker 内加此锁串行化。
+    mutable std::mutex m_foreignReadMutex;
 
     [[nodiscard]] RocksDBDatabase* _database() { return m_db.get(); }
     [[nodiscard]] const RocksDBDatabase* _database() const { return m_db.get(); }

@@ -126,7 +126,7 @@ ChunkProgressionTask* ChunkTaskScheduler::schedule(
     // 此守卫仅作为防御：若因竞态（submitRequest 复位令牌后、schedule 持锁前另一线程 cancelActiveWork
     // 置位）到达此处，返回 nullptr 安全跳过——该 holder 的 waiters 已被 _onTicketLevelChanged/
     // unloadChunkSync 的 _failWaiters(takeAllWaiters()) 失败通知，不会泄漏。
-    if (auto sig = holder.abortSignal(); sig && sig->load(std::memory_order_acquire)) {
+    if (auto sig = holder.abortSignal(); sig && sig->load(std::memory_order::acquire)) {
         return nullptr;
     }
 

@@ -46,12 +46,12 @@ MemoryTraceThread::~MemoryTraceThread()
 
 void MemoryTraceThread::start()
 {
-    if (m_running.load(std::memory_order_acquire)) {
+    if (m_running.load(std::memory_order::acquire)) {
         return;
     }
 
-    m_stop.store(false, std::memory_order_release);
-    m_running.store(true, std::memory_order_release);
+    m_stop.store(false, std::memory_order::release);
+    m_running.store(true, std::memory_order::release);
     m_thread = std::thread(&MemoryTraceThread::run, this);
 
     spdlog::info("Memory trace thread started (100 Hz sampling)");
@@ -59,17 +59,17 @@ void MemoryTraceThread::start()
 
 void MemoryTraceThread::stop()
 {
-    if (!m_running.load(std::memory_order_acquire)) {
+    if (!m_running.load(std::memory_order::acquire)) {
         return;
     }
 
-    m_stop.store(true, std::memory_order_release);
+    m_stop.store(true, std::memory_order::release);
 
     if (m_thread.joinable()) {
         m_thread.join();
     }
 
-    m_running.store(false, std::memory_order_release);
+    m_running.store(false, std::memory_order::release);
     spdlog::info("Memory trace thread stopped");
 }
 
@@ -80,7 +80,7 @@ void MemoryTraceThread::run()
     MC_TRACE_SET_THREAD_NAME("MemoryTrace");
 #endif
 
-    while (!m_stop.load(std::memory_order_acquire)) {
+    while (!m_stop.load(std::memory_order::acquire)) {
 #if MC_ENABLE_TRACING
         // 采样内存并写入追踪
         const i64 memoryMB = static_cast<i64>(util::PlatformInfo::getProcessMemoryMB());

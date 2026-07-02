@@ -59,8 +59,8 @@ struct ConcurrencyTracker {
     {
         std::lock_guard<std::mutex> lock(mutex);
         int cur = ++concurrent;
-        if (cur > maxConcurrent.load(std::memory_order_relaxed)) {
-            maxConcurrent.store(cur, std::memory_order_relaxed);
+        if (cur > maxConcurrent.load(std::memory_order::relaxed)) {
+            maxConcurrent.store(cur, std::memory_order::relaxed);
         }
     }
 
@@ -87,7 +87,7 @@ public:
 
     bool execute(const std::atomic<bool>& abortSignal) override
     {
-        if (abortSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order::acquire)) {
             return false;
         }
         m_tracker.enter();
@@ -136,7 +136,7 @@ public:
 
     bool execute(const std::atomic<bool>& abortSignal) override
     {
-        if (abortSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order::acquire)) {
             return false;
         }
         m_tracker.enter();
@@ -160,12 +160,12 @@ bool waitForMaxConcurrent(ConcurrencyTracker& tracker, int expected, std::chrono
 {
     auto deadline = std::chrono::steady_clock::now() + timeout;
     while (std::chrono::steady_clock::now() < deadline) {
-        if (tracker.maxConcurrent.load(std::memory_order_relaxed) >= expected) {
+        if (tracker.maxConcurrent.load(std::memory_order::relaxed) >= expected) {
             return true;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
-    return tracker.maxConcurrent.load(std::memory_order_relaxed) >= expected;
+    return tracker.maxConcurrent.load(std::memory_order::relaxed) >= expected;
 }
 
 } // namespace
@@ -481,7 +481,7 @@ TEST(ServerWorkerPoolAreaMutexTest, MultipleTasksSameAreaAllComplete)
 
         bool execute(const std::atomic<bool>& abortSignal) override
         {
-            if (abortSignal.load(std::memory_order_acquire)) {
+            if (abortSignal.load(std::memory_order::acquire)) {
                 return false;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));

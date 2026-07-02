@@ -106,7 +106,7 @@ public:
     /**
      * @brief 获取当前更新深度
      */
-    [[nodiscard]] i32 depth() const noexcept { return m_depth.load(std::memory_order_relaxed); }
+    [[nodiscard]] i32 depth() const noexcept { return m_depth.load(std::memory_order::relaxed); }
 
     /**
      * @brief 清空所有状态

@@ -64,15 +64,15 @@ class MultiThreadedQueue {
 public:
     MultiThreadedQueue()
         : m_head(new LinkedNode(E{}, nullptr))
-        , m_tail(m_head.load(std::memory_order_relaxed))
+        , m_tail(m_head.load(std::memory_order::relaxed))
     {}
 
     ~MultiThreadedQueue()
     {
         // 析构：从头遍历释放所有 LinkedNode（含死结节点）
-        LinkedNode* curr = m_head.load(std::memory_order_acquire);
+        LinkedNode* curr = m_head.load(std::memory_order::acquire);
         while (curr != nullptr) {
-            LinkedNode* nextRaw = curr->m_next.load(std::memory_order_acquire);
+            LinkedNode* nextRaw = curr->m_next.load(std::memory_order::acquire);
             LinkedNode* next = (nextRaw == curr) ? nullptr : nextRaw; // 死结（自环）→ 停止
             delete curr;
             curr = next;
@@ -123,13 +123,13 @@ public:
     bool preventAdds()
     {
         auto* deadEnd = new LinkedNode(E{}, nullptr);
-        deadEnd->m_next.store(deadEnd, std::memory_order_relaxed); // 自环
+        deadEnd->m_next.store(deadEnd, std::memory_order::relaxed); // 自环
         if (!appendListInternal(deadEnd, deadEnd)) {
             delete deadEnd;
             return false;
         }
         // 尝试更新 tail 到 deadEnd，便于 allowAdds 找到
-        m_tail.store(deadEnd, std::memory_order_release);
+        m_tail.store(deadEnd, std::memory_order::release);
         return true;
     }
 
@@ -141,11 +141,11 @@ public:
      */
     void allowAdds()
     {
-        LinkedNode* tail = m_tail.load(std::memory_order_relaxed);
+        LinkedNode* tail = m_tail.load(std::memory_order::relaxed);
         // 沿 next 链找到真正的尾（tail 可能 stale）
         // 对齐 Moonrise: while (tail != (tail = tail.getNextPlain())) {}
         while (true) {
-            LinkedNode* next = tail->m_next.load(std::memory_order_relaxed);
+            LinkedNode* next = tail->m_next.load(std::memory_order::relaxed);
             if (next == tail || next == nullptr) {
                 break;
             }
@@ -153,7 +153,7 @@ public:
         }
         // tail 此时指向死结节点（next 自环）或正常尾（next==null，未阻止）
         // 置 null 解除阻止（若已是 null 无害）
-        tail->m_next.store(nullptr, std::memory_order_seq_cst);
+        tail->m_next.store(nullptr, std::memory_order::seq_cst);
     }
 
     /**
@@ -169,9 +169,9 @@ public:
     E pollOrBlockAdds()
     {
         int failures = 0;
-        for (LinkedNode *head = m_head.load(std::memory_order_acquire), *curr = head;;) {
-            E currentVal = curr->m_element.load(std::memory_order_relaxed);
-            LinkedNode* next = curr->m_next.load(std::memory_order_acquire);
+        for (LinkedNode *head = m_head.load(std::memory_order::acquire), *curr = head;;) {
+            E currentVal = curr->m_element.load(std::memory_order::relaxed);
+            LinkedNode* next = curr->m_next.load(std::memory_order::acquire);
 
             if (next == curr) {
                 return nullptr; // 队列已 add-blocked
@@ -183,27 +183,27 @@ public:
 
             if (currentVal != E{}) {
                 // 原子取走：exchange(null)，若原值为 null 说明被其他 poll 抢先
-                E oldVal = curr->m_element.exchange(E{}, std::memory_order_seq_cst);
+                E oldVal = curr->m_element.exchange(E{}, std::memory_order::seq_cst);
                 if (oldVal == E{}) {
                     // 被抢先，重试
                     ++failures;
                     continue;
                 }
                 // 成功取走，更新 head
-                if (m_head.load(std::memory_order_acquire) == head) {
-                    m_head.store((next != nullptr) ? next : curr, std::memory_order_release);
+                if (m_head.load(std::memory_order::acquire) == head) {
+                    m_head.store((next != nullptr) ? next : curr, std::memory_order::release);
                 }
                 return oldVal;
             }
 
             if (next == nullptr) {
                 // 队列为空，尝试 CAS 阻止入队：把 next 从 null 置为 curr（自环）
-                if (curr != head && m_head.load(std::memory_order_acquire) == head) {
-                    m_head.store(curr, std::memory_order_release);
+                if (curr != head && m_head.load(std::memory_order::acquire) == head) {
+                    m_head.store(curr, std::memory_order::release);
                 }
                 LinkedNode* expected = nullptr;
                 if (curr->m_next.compare_exchange_strong(
-                        expected, curr, std::memory_order_seq_cst, std::memory_order_relaxed)) {
+                        expected, curr, std::memory_order::seq_cst, std::memory_order::relaxed)) {
                     return nullptr; // 成功阻止入队
                 }
                 // CAS 失败（有 add），重试
@@ -218,7 +218,7 @@ public:
             } else {
                 // 尝试更新 head
                 LinkedNode* oldHead = head;
-                head = m_head.load(std::memory_order_acquire);
+                head = m_head.load(std::memory_order::acquire);
                 if (oldHead == head) {
                     curr = next;
                 } else {
@@ -233,8 +233,8 @@ public:
      */
     [[nodiscard]] bool isAddBlocked() const
     {
-        for (LinkedNode* tail = m_tail.load(std::memory_order_acquire);;) {
-            LinkedNode* next = tail->m_next.load(std::memory_order_acquire);
+        for (LinkedNode* tail = m_tail.load(std::memory_order::acquire);;) {
+            LinkedNode* next = tail->m_next.load(std::memory_order::acquire);
             if (next == nullptr) {
                 return false;
             }
@@ -299,10 +299,10 @@ private:
     bool appendListInternal(LinkedNode* headNode, LinkedNode* tailNode)
     {
         int failures = 0;
-        LinkedNode* currTail = m_tail.load(std::memory_order_acquire);
+        LinkedNode* currTail = m_tail.load(std::memory_order::acquire);
         LinkedNode* curr = currTail;
         for (;;) {
-            LinkedNode* next = curr->m_next.load(std::memory_order_acquire);
+            LinkedNode* next = curr->m_next.load(std::memory_order::acquire);
 
             if (next == curr) {
                 // add-blocked
@@ -317,10 +317,10 @@ private:
                 // CAS 追加到尾
                 LinkedNode* expected = nullptr;
                 if (curr->m_next.compare_exchange_strong(
-                        expected, headNode, std::memory_order_seq_cst, std::memory_order_relaxed)) {
+                        expected, headNode, std::memory_order::seq_cst, std::memory_order::relaxed)) {
                     // 追加成功，更新 tail（CAS 避免设置 stale tail）
-                    if (m_tail.load(std::memory_order_acquire) == currTail) {
-                        m_tail.store(tailNode, std::memory_order_release);
+                    if (m_tail.load(std::memory_order::acquire) == currTail) {
+                        m_tail.store(tailNode, std::memory_order::release);
                     }
                     return true;
                 }
@@ -336,7 +336,7 @@ private:
             } else {
                 // 尝试更新到 tail
                 LinkedNode* oldCurrTail = currTail;
-                currTail = m_tail.load(std::memory_order_acquire);
+                currTail = m_tail.load(std::memory_order::acquire);
                 if (oldCurrTail == currTail) {
                     curr = next;
                 } else {
@@ -355,10 +355,10 @@ private:
     bool forceAppendList(LinkedNode* headNode, LinkedNode* tailNode)
     {
         int failures = 0;
-        LinkedNode* currTail = m_tail.load(std::memory_order_acquire);
+        LinkedNode* currTail = m_tail.load(std::memory_order::acquire);
         LinkedNode* curr = currTail;
         for (;;) {
-            LinkedNode* next = curr->m_next.load(std::memory_order_acquire);
+            LinkedNode* next = curr->m_next.load(std::memory_order::acquire);
 
             for (int i = 0; i < failures; ++i) {
                 backoff();
@@ -368,10 +368,10 @@ private:
                 // next==null：正常追加；next==curr：死结，强制解除并追加
                 LinkedNode* expected = next;
                 if (curr->m_next.compare_exchange_strong(
-                        expected, headNode, std::memory_order_seq_cst, std::memory_order_relaxed)) {
+                        expected, headNode, std::memory_order::seq_cst, std::memory_order::relaxed)) {
                     // 追加成功，更新 tail
-                    if (m_tail.load(std::memory_order_acquire) == currTail) {
-                        m_tail.store(tailNode, std::memory_order_release);
+                    if (m_tail.load(std::memory_order::acquire) == currTail) {
+                        m_tail.store(tailNode, std::memory_order::release);
                     }
                     return next != curr; // true=之前允许（next==null），false=之前阻止（next==curr）
                 }
@@ -385,7 +385,7 @@ private:
                 curr = next;
             } else {
                 LinkedNode* oldCurrTail = currTail;
-                currTail = m_tail.load(std::memory_order_acquire);
+                currTail = m_tail.load(std::memory_order::acquire);
                 if (oldCurrTail == currTail) {
                     curr = next;
                 } else {

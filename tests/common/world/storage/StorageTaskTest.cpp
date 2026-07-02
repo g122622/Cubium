@@ -37,7 +37,7 @@ TEST(StorageTaskTest, CreateAndExecuteLoadTask)
     std::atomic<bool> executed{false};
 
     auto task = StorageTask::createLoadTask(key, [&executed](const std::atomic<bool>& abortSignal) {
-        executed.store(!abortSignal.load(std::memory_order_acquire), std::memory_order_release);
+        executed.store(!abortSignal.load(std::memory_order::acquire), std::memory_order::release);
         return true;
     });
 
@@ -48,7 +48,7 @@ TEST(StorageTaskTest, CreateAndExecuteLoadTask)
 
     std::atomic<bool> abortSignal{false};
     EXPECT_TRUE(task->execute(abortSignal));
-    EXPECT_TRUE(executed.load(std::memory_order_acquire));
+    EXPECT_TRUE(executed.load(std::memory_order::acquire));
 }
 
 TEST(StorageTaskTest, CreateAndExecuteSaveTask)
@@ -57,7 +57,7 @@ TEST(StorageTaskTest, CreateAndExecuteSaveTask)
     std::atomic<bool> executed{false};
 
     auto task = StorageTask::createSaveTask(key, true, [&executed](const std::atomic<bool>& abortSignal) {
-        executed.store(!abortSignal.load(std::memory_order_acquire), std::memory_order_release);
+        executed.store(!abortSignal.load(std::memory_order::acquire), std::memory_order::release);
         return true;
     });
 
@@ -67,7 +67,7 @@ TEST(StorageTaskTest, CreateAndExecuteSaveTask)
 
     std::atomic<bool> abortSignal{false};
     EXPECT_TRUE(task->execute(abortSignal));
-    EXPECT_TRUE(executed.load(std::memory_order_acquire));
+    EXPECT_TRUE(executed.load(std::memory_order::acquire));
 }
 
 TEST(StorageTaskTest, TaskManagerSubmitsToPool)
@@ -80,21 +80,21 @@ TEST(StorageTaskTest, TaskManagerSubmitsToPool)
     std::atomic<bool> success{false};
 
     auto task = StorageTask::createFlushTask(0, 1, [&completed](const std::atomic<bool>& abortSignal) {
-        completed.store(!abortSignal.load(std::memory_order_acquire), std::memory_order_release);
+        completed.store(!abortSignal.load(std::memory_order::acquire), std::memory_order::release);
         return true;
     });
 
     auto taskId = manager.submit(
         std::move(task),
         util::TaskPriority::Normal,
-        [&success](bool taskSuccess, util::ITask*) { success.store(taskSuccess, std::memory_order_release); },
+        [&success](bool taskSuccess, util::ITask*) { success.store(taskSuccess, std::memory_order::release); },
         std::make_shared<std::atomic<bool>>(false));
 
     ASSERT_NE(taskId, 0u);
     pool.waitForCompletion();
 
-    EXPECT_TRUE(completed.load(std::memory_order_acquire));
-    EXPECT_TRUE(success.load(std::memory_order_acquire));
+    EXPECT_TRUE(completed.load(std::memory_order::acquire));
+    EXPECT_TRUE(success.load(std::memory_order::acquire));
     pool.shutdown();
 }
 

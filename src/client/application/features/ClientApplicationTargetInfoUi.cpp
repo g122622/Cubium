@@ -69,9 +69,9 @@ void ClientApplication::updateTargetInfoUi()
         // 从集成服务器更新调试统计信息（原子读取，线程安全）
         if (m_integratedServer != nullptr) {
             const auto& stats = m_integratedServer->debugStats();
-            debugWidget->setServerTickTimeMs(stats.smoothedTickTimeMs.load(std::memory_order_relaxed));
-            debugWidget->setServerTargetMsPerTick(stats.targetMsPerTick.load(std::memory_order_relaxed));
-            debugWidget->setForcedChunkCount(stats.forcedChunkCount.load(std::memory_order_relaxed));
+            debugWidget->setServerTickTimeMs(stats.smoothedTickTimeMs.load(std::memory_order::relaxed));
+            debugWidget->setServerTargetMsPerTick(stats.targetMsPerTick.load(std::memory_order::relaxed));
+            debugWidget->setForcedChunkCount(stats.forcedChunkCount.load(std::memory_order::relaxed));
         }
     }
 }

@@ -100,7 +100,7 @@ public:
          */
         void unpark()
         {
-            if (m_permit.exchange(1, std::memory_order_seq_cst) == 1) {
+            if (m_permit.exchange(1, std::memory_order::seq_cst) == 1) {
                 return; // 已有 permit，无需 notify
             }
             {
@@ -203,7 +203,7 @@ private:
         std::shared_ptr<ThreadHandle> handle = currentThread();
 
         // 快速路径：permit 为 1 则立即消费返回
-        if (handle->m_permit.exchange(0, std::memory_order_seq_cst) == 1) {
+        if (handle->m_permit.exchange(0, std::memory_order::seq_cst) == 1) {
             return;
         }
 
@@ -211,11 +211,11 @@ private:
         std::unique_lock<std::mutex> guard(handle->m_mutex);
         // 持锁后再次检查 permit，避免 unpark 在我们 exchange(0) 与 lock 之间置 1 丢失
         // （exchange(0) 看到 0，unpark exchange(1) 置 1，我们持锁后再检查看到 1 → 消费返回）
-        while (handle->m_permit.load(std::memory_order_seq_cst) == 0) {
+        while (handle->m_permit.load(std::memory_order::seq_cst) == 0) {
             if (nanos != nullptr) {
                 if (handle->m_cv.wait_for(guard, std::chrono::nanoseconds(*nanos)) == std::cv_status::timeout) {
                     // 超时：消费可能刚到的 permit（避免 unpark 后的超时丢失 permit）
-                    handle->m_permit.store(0, std::memory_order_seq_cst);
+                    handle->m_permit.store(0, std::memory_order::seq_cst);
                     return;
                 }
             } else {
@@ -223,7 +223,7 @@ private:
             }
         }
         // permit 为 1，消费之
-        handle->m_permit.store(0, std::memory_order_seq_cst);
+        handle->m_permit.store(0, std::memory_order::seq_cst);
     }
 
     /**

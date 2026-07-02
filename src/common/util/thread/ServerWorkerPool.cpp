@@ -57,11 +57,11 @@ i32 ServerWorkerPool::getOptimalThreadCount()
 
 void ServerWorkerPool::start()
 {
-    if (m_running.exchange(true, std::memory_order_acq_rel)) {
+    if (m_running.exchange(true, std::memory_order::acq_rel)) {
         return; // 已经在运行
     }
 
-    m_stop.store(false, std::memory_order_release);
+    m_stop.store(false, std::memory_order::release);
 
     // 创建工作线程
     m_workers.reserve(m_threadCount);
@@ -74,11 +74,11 @@ void ServerWorkerPool::start()
 
 void ServerWorkerPool::shutdown()
 {
-    if (!m_running.exchange(false, std::memory_order_acq_rel)) {
+    if (!m_running.exchange(false, std::memory_order::acq_rel)) {
         return; // 已经停止
     }
 
-    m_stop.store(true, std::memory_order_release);
+    m_stop.store(true, std::memory_order::release);
 
     // 唤醒所有等待的线程
     m_condition.notify_all();
@@ -122,14 +122,14 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
         return 0;
     }
 
-    if (!m_running.load(std::memory_order_acquire)) {
+    if (!m_running.load(std::memory_order::acquire)) {
         if (callback) {
             callback(false, nullptr);
         }
         return 0;
     }
 
-    const u64 taskId = m_nextTaskId.fetch_add(1, std::memory_order_relaxed);
+    const u64 taskId = m_nextTaskId.fetch_add(1, std::memory_order::relaxed);
     const u64 timestamp = static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count());
 
     auto internalTask = std::make_unique<InternalTask>();
@@ -164,14 +164,14 @@ u64 ServerWorkerPool::submit(std::unique_ptr<ITask> task,
         return 0;
     }
 
-    if (!m_running.load(std::memory_order_acquire)) {
+    if (!m_running.load(std::memory_order::acquire)) {
         if (callback) {
             callback(false, nullptr);
         }
         return 0;
     }
 
-    const u64 taskId = m_nextTaskId.fetch_add(1, std::memory_order_relaxed);
+    const u64 taskId = m_nextTaskId.fetch_add(1, std::memory_order::relaxed);
     const u64 timestamp = static_cast<u64>(std::chrono::steady_clock::now().time_since_epoch().count());
 
     auto internalTask = std::make_unique<InternalTask>();
@@ -231,7 +231,7 @@ bool ServerWorkerPool::cancel(u64 taskId)
         if (task && task->id == taskId) {
             // 找到任务，设置取消标志
             if (task->abortSignal) {
-                task->abortSignal->store(true, std::memory_order_release);
+                task->abortSignal->store(true, std::memory_order::release);
             }
             if (task->callback) {
                 task->callback(false, task->task.get());
@@ -296,7 +296,7 @@ size_t ServerWorkerPool::pendingTaskCount() const
 
 size_t ServerWorkerPool::runningTaskCount() const
 {
-    return m_runningTaskCount.load(std::memory_order_acquire);
+    return m_runningTaskCount.load(std::memory_order::acquire);
 }
 
 void ServerWorkerPool::debugDumpState()
@@ -322,7 +322,7 @@ void ServerWorkerPool::debugDumpState()
             } else {
                 ++nonAreaCount;
             }
-            if (t->abortSignal && t->abortSignal->load(std::memory_order_acquire)) {
+            if (t->abortSignal && t->abortSignal->load(std::memory_order::acquire)) {
                 ++cancelledCount;
             }
         }
@@ -342,7 +342,7 @@ void ServerWorkerPool::debugDumpState()
         nonAreaCount,
         cancelledCount,
         runningRegionsCount,
-        m_runningTaskCount.load(std::memory_order_acquire));
+        m_runningTaskCount.load(std::memory_order::acquire));
     for (const auto& [wr, cnt] : writeRadiusHistogram) {
         spdlog::info("[workerPool-debug]   writeRadius={} count={}", wr, cnt);
     }
@@ -392,9 +392,9 @@ void ServerWorkerPool::workerThread(i32 workerId)
             std::unique_lock<std::mutex> lock(m_queueMutex);
 
             // 等待任务或停止信号
-            m_condition.wait(lock, [this] { return !m_taskQueue.empty() || m_stop.load(std::memory_order_acquire); });
+            m_condition.wait(lock, [this] { return !m_taskQueue.empty() || m_stop.load(std::memory_order::acquire); });
 
-            if (m_taskQueue.empty() && m_stop.load(std::memory_order_acquire)) {
+            if (m_taskQueue.empty() && m_stop.load(std::memory_order::acquire)) {
                 return;
             }
 
@@ -521,7 +521,7 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         return;
     }
 
-    m_runningTaskCount.fetch_add(1, std::memory_order_relaxed);
+    m_runningTaskCount.fetch_add(1, std::memory_order::relaxed);
 
     // 保存原始任务指针用于回调
     ITask* taskPtr = task->task.get();
@@ -564,7 +564,7 @@ void ServerWorkerPool::executeTask(std::shared_ptr<InternalTask> task)
         success = false;
     }
 
-    m_runningTaskCount.fetch_sub(1, std::memory_order_relaxed);
+    m_runningTaskCount.fetch_sub(1, std::memory_order::relaxed);
 
     // 回调
     if (task->callback) {
@@ -586,7 +586,7 @@ bool ServerWorkerPool::isTaskCancelled(const InternalTask& task)
     if (!task.abortSignal) {
         return false;
     }
-    return task.abortSignal->load(std::memory_order_acquire);
+    return task.abortSignal->load(std::memory_order::acquire);
 }
 
 // ============================================================================

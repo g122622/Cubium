@@ -551,7 +551,7 @@ void ChunkMesher::generateMesh(
 
     outMesh.clear();
 
-    if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+    if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
         return;
     }
 
@@ -561,7 +561,7 @@ void ChunkMesher::generateMesh(
 
     // 遍历所有区块段
     for (i32 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
-        if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+        if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
             outMesh.clear();
             return;
         }
@@ -578,7 +578,7 @@ void ChunkMesher::generateSplitMesh(const ChunkData& chunk,
     const ChunkData* neighbors[6],
     const std::atomic<bool>* abortSignal)
 {
-    if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+    if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
         outSolidMesh.clear();
         outTransparentMesh.clear();
         return;
@@ -590,7 +590,7 @@ void ChunkMesher::generateSplitMesh(const ChunkData& chunk,
         generateMesh(chunk, outSolidMesh, neighbors, abortSignal);
     }
 
-    if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+    if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
         outSolidMesh.clear();
         outTransparentMesh.clear();
         return;
@@ -611,7 +611,7 @@ void ChunkMesher::generateSectionMesh(const ChunkData& chunk,
 {
     MC_TRACE_CHUNK_MESH_EVENT("GenerateSectionMesh", "phase", "section");
 
-    if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+    if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
         return;
     }
 
@@ -1674,7 +1674,7 @@ void ChunkMesher::_simpleMeshSection(const ChunkData& chunk,
         return;
     }
 
-    if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+    if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
         outMesh.clear();
         return;
     }
@@ -1727,14 +1727,14 @@ void ChunkMesher::_simpleMeshSection(const ChunkData& chunk,
 
     // 遍历段内所有方块
     for (i32 y = 0; y < SIZE; ++y) {
-        if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+        if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
             outMesh.clear();
             return;
         }
 
         for (i32 z = 0; z < SIZE; ++z) {
             for (i32 x = 0; x < SIZE; ++x) {
-                if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+                if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
                     outMesh.clear();
                     return;
                 }
@@ -1904,14 +1904,14 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
 
     // 贪婪合并无法正确表达交叉植物与非完整体素方块，回退到逐方块路径保证几何正确。
     for (i32 y = 0; y < SIZE; ++y) {
-        if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+        if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
             outMesh.clear();
             return;
         }
 
         for (i32 z = 0; z < SIZE; ++z) {
             for (i32 x = 0; x < SIZE; ++x) {
-                if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+                if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
                     outMesh.clear();
                     return;
                 }
@@ -2258,7 +2258,7 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
     std::vector<bool> visited(static_cast<size_t>(MASK_WIDTH * MASK_HEIGHT), false);
 
     for (size_t faceIdx = 0; faceIdx < 6; ++faceIdx) {
-        if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+        if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
             outMesh.clear();
             return;
         }
@@ -2266,14 +2266,14 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
         const Face face = static_cast<Face>(faceIdx);
 
         for (i32 d = 0; d < SIZE; ++d) {
-            if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+            if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
                 outMesh.clear();
                 return;
             }
 
             for (i32 v = 0; v < MASK_HEIGHT; ++v) {
                 for (i32 u = 0; u < MASK_WIDTH; ++u) {
-                    if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+                    if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
                         outMesh.clear();
                         return;
                     }
@@ -2313,7 +2313,7 @@ void ChunkMesher::_greedyMeshSection(const ChunkData& chunk,
 
             for (i32 v = 0; v < MASK_HEIGHT; ++v) {
                 for (i32 u = 0; u < MASK_WIDTH; ++u) {
-                    if (abortSignal && abortSignal->load(std::memory_order_acquire)) {
+                    if (abortSignal && abortSignal->load(std::memory_order::acquire)) {
                         outMesh.clear();
                         return;
                     }

@@ -108,7 +108,7 @@ public:
     /**
      * @brief 检查是否正在运行
      */
-    [[nodiscard]] bool isRunning() const { return m_running.load(std::memory_order_acquire); }
+    [[nodiscard]] bool isRunning() const { return m_running.load(std::memory_order::acquire); }
 
     // ============================================================================
     // 任务提交

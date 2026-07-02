@@ -78,7 +78,7 @@ Result<std::shared_ptr<const SectionData>> SectionManager::loadSectionSync(const
 }
 
 std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSectionAsync(
-    const SectionKey& key, util::TaskPriority priority)
+    const SectionKey& key, util::TaskPriority priority, std::shared_ptr<std::atomic<bool>> abortSignal)
 {
     MC_TRACE_EVENT("storage.section",
         "SectionManager::loadSectionAsync",
@@ -93,7 +93,7 @@ std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSect
     auto future = promise->get_future();
 
     auto executor = [this, key, promise](const std::atomic<bool>& abortSignal) {
-        if (abortSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order::acquire)) {
             promise->set_value(Error(ErrorCode::InvalidState, "Load section task cancelled"));
             return false;
         }
@@ -108,7 +108,88 @@ std::future<Result<std::shared_ptr<const SectionData>>> SectionManager::loadSect
     }
 
     auto task = StorageTask::createLoadTask(key, std::move(executor));
-    m_taskManager->submit(std::move(task), priority, nullptr, std::make_shared<std::atomic<bool>>(false));
+    // 使用外部 abortSignal（可取消）或内部不可取消令牌
+    auto signal = abortSignal ? std::move(abortSignal) : std::make_shared<std::atomic<bool>>(false);
+    m_taskManager->submit(std::move(task), priority, nullptr, std::move(signal));
+    return future;
+}
+
+std::future<Result<std::vector<std::shared_ptr<const SectionData>>>> SectionManager::loadSectionsAsync(
+    const std::vector<SectionKey>& keys, util::TaskPriority priority, std::shared_ptr<std::atomic<bool>> abortSignal)
+{
+    MC_TRACE_EVENT("storage.section", "SectionManager::loadSectionsAsync", "count", keys.size());
+
+    auto promise = std::make_shared<std::promise<Result<std::vector<std::shared_ptr<const SectionData>>>>>();
+    auto future = promise->get_future();
+
+    // 阶段1：缓存命中部分在调用线程同步取出（持 m_cache 短锁），收集未命中 key
+    std::vector<std::shared_ptr<const SectionData>> results(keys.size());
+    std::vector<SectionKey> missedKeys;
+    std::vector<size_t> missedIndexes;
+    missedKeys.reserve(keys.size());
+    missedIndexes.reserve(keys.size());
+
+    for (size_t i = 0; i < keys.size(); ++i) {
+        const auto& key = keys[i];
+        if (key.dimension != m_dimension) {
+            promise->set_value(Error(ErrorCode::InvalidArgument,
+                fmt::format("Dimension mismatch: expected {}, got {}",
+                    static_cast<i32>(m_dimension),
+                    static_cast<i32>(key.dimension))));
+            return future;
+        }
+
+        auto cached = m_cache.get(key);
+        if (cached) {
+            results[i] = std::static_pointer_cast<const SectionData>(cached);
+            continue;
+        }
+
+        missedKeys.push_back(key);
+        missedIndexes.push_back(i);
+    }
+
+    // 全部命中缓存：直接完成
+    if (missedKeys.empty()) {
+        promise->set_value(std::move(results));
+        return future;
+    }
+
+    // 阶段2：未命中部分提交到 ServerIO 线程池批量读取，executor 内合并缓存命中与未命中结果
+    auto _mergeExecutor = [this,
+                             missedKeys = std::move(missedKeys),
+                             missedIndexes = std::move(missedIndexes),
+                             results = std::move(results),
+                             promise](const std::atomic<bool>& abortSig) mutable {
+        if (abortSig.load(std::memory_order::acquire)) {
+            promise->set_value(Error(ErrorCode::InvalidState, "Load sections batch task cancelled"));
+            return false;
+        }
+        auto batchResult = _loadFromDatabaseBatch(missedKeys);
+        if (batchResult.failed()) {
+            promise->set_value(batchResult.error());
+            return true;
+        }
+        const auto& missedResults = batchResult.value();
+        for (size_t i = 0; i < missedResults.size(); ++i) {
+            results[missedIndexes[i]] = missedResults[i];
+        }
+        promise->set_value(std::move(results));
+        return true;
+    };
+
+    if (!m_taskManager) {
+        // 无线程池（测试/独立模式）：同步降级直接执行 executor
+        std::atomic<bool> dummySig{false};
+        _mergeExecutor(dummySig);
+        return future;
+    }
+
+    // 提交到 ServerIO 线程池（descKey 仅用于 StorageTask 描述，取首个未命中 key）
+    SectionKey descKey = missedKeys.front();
+    auto mergeTask = StorageTask::createLoadTask(descKey, std::move(_mergeExecutor));
+    auto signal = abortSignal ? std::move(abortSignal) : std::make_shared<std::atomic<bool>>(false);
+    m_taskManager->submit(std::move(mergeTask), priority, nullptr, std::move(signal));
     return future;
 }
 
@@ -220,7 +301,7 @@ std::future<Result<void>> SectionManager::saveSectionAsync(
     auto future = promise->get_future();
 
     auto executor = [this, key, data, promise](const std::atomic<bool>& abortSignal) {
-        if (abortSignal.load(std::memory_order_acquire)) {
+        if (abortSignal.load(std::memory_order::acquire)) {
             promise->set_value(Error(ErrorCode::InvalidState, "Save section task cancelled"));
             return false;
         }

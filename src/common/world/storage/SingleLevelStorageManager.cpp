@@ -22,6 +22,7 @@
  */
 
 #include "SingleLevelStorageManager.hpp"
+#include "common/util/thread/ITask.hpp"
 #include "common/world/WorldConstants.hpp"
 #include "perfetto/TraceEvents.hpp"
 #include "scoreboard/storage/ScoreboardDataManager.hpp"
@@ -63,6 +64,9 @@ SingleLevelStorageManager::SingleLevelStorageManager(SingleLevelStorageManager&&
 
     m_ioWorkerPool = other.m_ioWorkerPool;
     other.m_ioWorkerPool = nullptr;
+
+    m_computeWorkerPool = other.m_computeWorkerPool;
+    other.m_computeWorkerPool = nullptr;
 }
 
 SingleLevelStorageManager& SingleLevelStorageManager::operator=(SingleLevelStorageManager&& other) noexcept
@@ -88,6 +92,9 @@ SingleLevelStorageManager& SingleLevelStorageManager::operator=(SingleLevelStora
 
         m_ioWorkerPool = other.m_ioWorkerPool;
         other.m_ioWorkerPool = nullptr;
+
+        m_computeWorkerPool = other.m_computeWorkerPool;
+        other.m_computeWorkerPool = nullptr;
     }
     return *this;
 }
@@ -501,6 +508,285 @@ Result<std::optional<ChunkData>> SingleLevelStorageManager::loadChunk(ChunkCoord
     chunk.setFullyGenerated(true);
     chunk.setDirty(false);
     return std::optional<ChunkData>(std::move(chunk));
+}
+
+std::future<Result<std::optional<ChunkData>>> SingleLevelStorageManager::loadChunkAsync(
+    ChunkCoord x, ChunkCoord z, DimensionId dimension, std::shared_ptr<std::atomic<bool>> abortSignal)
+{
+    auto promise = std::make_shared<std::promise<Result<std::optional<ChunkData>>>>();
+    auto future = promise->get_future();
+    _loadChunkAsyncCore(x, z, dimension, std::move(abortSignal), [promise](Result<std::optional<ChunkData>> result) {
+        promise->set_value(std::move(result));
+    });
+    return future;
+}
+
+void SingleLevelStorageManager::loadChunkAsyncCallback(ChunkCoord x,
+    ChunkCoord z,
+    DimensionId dimension,
+    std::function<void(ChunkCoord, ChunkCoord, DimensionId, Result<std::optional<ChunkData>>)> callback,
+    std::shared_ptr<std::atomic<bool>> abortSignal)
+{
+    _loadChunkAsyncCore(x,
+        z,
+        dimension,
+        std::move(abortSignal),
+        [x, z, dimension, cb = std::move(callback)](Result<std::optional<ChunkData>> result) {
+            if (cb) {
+                cb(x, z, dimension, std::move(result));
+            }
+        });
+}
+
+void SingleLevelStorageManager::_loadChunkAsyncCore(ChunkCoord x,
+    ChunkCoord z,
+    DimensionId dimension,
+    std::shared_ptr<std::atomic<bool>> abortSignal,
+    std::function<void(Result<std::optional<ChunkData>>)> completion)
+{
+    if (!completion) {
+        return;
+    }
+
+    if (!isOpen()) {
+        completion(Error(ErrorCode::InvalidState, "Storage not open"));
+        return;
+    }
+
+    // 外来格式：在 ServerIO worker 内加锁同步执行 m_backend->loadChunk（外来后端非线程安全）
+    if (m_backend) {
+        if (!m_taskManager) {
+            // 无线程池：同步降级
+            std::lock_guard<std::mutex> lock(m_foreignReadMutex);
+            completion(m_backend->loadChunk(x, z, dimension));
+            return;
+        }
+        auto executor = [this, x, z, dimension, completion](const std::atomic<bool>& abortSig) {
+            if (abortSig.load(std::memory_order::acquire)) {
+                completion(Error(ErrorCode::InvalidState, "Load chunk (foreign) cancelled"));
+                return false;
+            }
+            std::lock_guard<std::mutex> lock(m_foreignReadMutex);
+            completion(m_backend->loadChunk(x, z, dimension));
+            return true;
+        };
+        SectionKey descKey{x, z, 0, dimension};
+        auto task = StorageTask::createLoadTask(descKey, std::move(executor));
+        auto signal = abortSignal ? std::move(abortSignal) : std::make_shared<std::atomic<bool>>(false);
+        m_taskManager->submit(std::move(task), util::TaskPriority::Normal, nullptr, std::move(signal));
+        return;
+    }
+
+    // Native 格式：无 taskManager 时同步降级
+    if (!m_taskManager) {
+        completion(loadChunk(x, z, dimension));
+        return;
+    }
+
+    // Native 格式有 taskManager：两路并行 I/O，均在 ServerIO 线程执行同步读取。
+    // 路径 A：section 数据（SectionManager::loadSectionsSync，线程安全）
+    // 路径 B：方块实体（BlockEntityStorageManager::loadBlockEntitiesInChunk，RocksDB 迭代器线程安全）
+    // 两路写入共享 AsyncLoadState，最后完成的一路组装 ChunkData 并调用 completion。
+    auto& sectionManager = _sectionManager(dimension);
+
+    std::vector<SectionKey> keys;
+    keys.reserve(world::CHUNK_SECTIONS);
+    for (i8 sectionY = 0; sectionY < world::CHUNK_SECTIONS; ++sectionY) {
+        keys.emplace_back(x, z, static_cast<i8>(world::sectionIndexToCoord(sectionY)), dimension);
+    }
+
+    struct AsyncLoadState {
+        std::atomic<int> pending;
+        std::mutex mutex;
+        Result<std::vector<std::shared_ptr<const SectionData>>> sectionResult{
+            Error(ErrorCode::Unknown, "uninitialized")};
+        bool sectionReady = false;
+        Result<std::vector<std::unique_ptr<BlockEntity>>> blockEntityResult{Error(ErrorCode::Unknown, "uninitialized")};
+        bool blockEntityReady = false;
+        std::function<void(Result<std::optional<ChunkData>>)> completion;
+        ChunkCoord x;
+        ChunkCoord z;
+        DimensionId dimension;
+        std::vector<SectionKey> keys;
+        SectionManager* sectionManager;
+        BlockEntityStorageManager* blockEntityStorage;
+    };
+
+    // pending 初始值：路径 A 必有，路径 B 仅在有 blockEntityStorage 时 +1
+    int initialPending = m_blockEntityStorage ? 2 : 1;
+    auto state = std::make_shared<AsyncLoadState>();
+    state->pending.store(initialPending, std::memory_order::relaxed);
+    state->completion = std::move(completion);
+    state->x = x;
+    state->z = z;
+    state->dimension = dimension;
+    state->keys = keys;
+    state->sectionManager = &sectionManager;
+    state->blockEntityStorage = m_blockEntityStorage.get();
+
+    // 组装函数：两路都完成后调用，组装 ChunkData 并调用 completion。调用方持 state->mutex。
+    auto _assemble = [state]() {
+        Result<std::optional<ChunkData>> result = [&]() -> Result<std::optional<ChunkData>> {
+            if (state->sectionResult.failed()) {
+                return state->sectionResult.error();
+            }
+            const auto& sections = state->sectionResult.value();
+
+            ChunkData chunk(state->x, state->z);
+            bool hasAnySection = false;
+            bool hasBiomes = false;
+            BiomeContainer biomeContainer;
+
+            for (size_t i = 0; i < sections.size(); ++i) {
+                const auto& sectionData = sections[i];
+                if (!sectionData) {
+                    continue;
+                }
+
+                if (sectionData->biomes.size() == SectionData::BIOME_COUNT) {
+                    const i32 biomeSectionIndex = world::sectionCoordToIndex(static_cast<i32>(state->keys[i].sectionY));
+                    if (biomeSectionIndex >= 0 && biomeSectionIndex < BiomeContainer::SECTION_COUNT) {
+                        for (i32 biomeY = 0; biomeY < BiomeContainer::VERT_SIZE; ++biomeY) {
+                            for (i32 biomeZ = 0; biomeZ < BiomeContainer::HORIZ_SIZE; ++biomeZ) {
+                                for (i32 biomeX = 0; biomeX < BiomeContainer::HORIZ_SIZE; ++biomeX) {
+                                    const size_t biomeIndex = static_cast<size_t>(
+                                        biomeY * BiomeContainer::HORIZ_SIZE * BiomeContainer::HORIZ_SIZE +
+                                        biomeZ * BiomeContainer::HORIZ_SIZE + biomeX);
+                                    biomeContainer.setBiome(
+                                        biomeSectionIndex, biomeX, biomeY, biomeZ, sectionData->biomes[biomeIndex]);
+                                }
+                            }
+                        }
+                        hasBiomes = true;
+                    }
+                }
+
+                const i32 sectionIndex = world::sectionCoordToIndex(static_cast<i32>(state->keys[i].sectionY));
+                if (sectionIndex < 0 || sectionIndex >= world::CHUNK_SECTIONS) {
+                    return Error(ErrorCode::ChunkCorrupted,
+                        fmt::format("Section coord {} maps outside chunk section range [0, {})",
+                            static_cast<i32>(state->keys[i].sectionY),
+                            world::CHUNK_SECTIONS));
+                }
+
+                ChunkSection* section = chunk.createSection(sectionIndex);
+                MC_ASSERT_RELEASE(section != nullptr);
+                auto applyResult = SectionCodec::toChunkSection(*sectionData, *section);
+                if (applyResult.failed()) {
+                    return applyResult.error();
+                }
+
+                hasAnySection = true;
+            }
+
+            if (!hasAnySection) {
+                return std::optional<ChunkData>{};
+            }
+
+            if (hasBiomes) {
+                chunk.setBiomes(std::move(biomeContainer));
+            }
+
+            // 路径 B 结果：方块实体（失败不影响区块加载，与同步 loadChunk 行为一致）
+            if (state->blockEntityReady && state->blockEntityResult.success()) {
+                for (auto& blockEntity : state->blockEntityResult.value()) {
+                    if (blockEntity != nullptr) {
+                        chunk.setBlockEntity(blockEntity->getPos(), std::move(blockEntity));
+                    }
+                }
+            }
+
+            chunk.setLoaded(true);
+            chunk.setFullyGenerated(true);
+            chunk.setDirty(false);
+            return std::optional<ChunkData>(std::move(chunk));
+        }();
+
+        state->completion(std::move(result));
+    };
+
+    // 完成检查：减少 pending 计数，归零者把组装（反序列化）投递到 ServerCompute 线程池。
+    // 反序列化（SectionCodec::toChunkSection × 24 + biomes 组装）是 CPU 密集型，放在 ServerCompute
+    // 与 ServerIO 读盘分离（对齐 Moonrise ProcessOffMainTask 跑在 loadExecutor）。
+    // 无 Compute 池（测试/独立模式）时降级为在 ServerIO worker 内联组装。
+    // abortSignal 透传给 Compute 任务，使 SCLM 取消能中断组装阶段。
+    auto checkComplete = [this, state, _assemble, abortSignal]() {
+        if (state->pending.fetch_sub(1, std::memory_order::acq_rel) != 1) {
+            return;
+        }
+        // 两路 I/O 均完成，组装阶段投递到 ServerCompute。
+        auto runAssemble = [state, _assemble](const std::atomic<bool>& /*abortSig*/) {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            _assemble();
+            return true;
+        };
+        if (m_computeWorkerPool != nullptr) {
+            auto computeTask = std::make_unique<util::FunctionTask>(util::TaskType::ChunkLoad,
+                fmt::format("ChunkLoadAssemble({},{})", state->x, state->z),
+                std::move(runAssemble),
+                "server.chunk");
+            m_computeWorkerPool->submit(std::move(computeTask),
+                /*callback=*/nullptr,
+                util::TaskPriority::Normal,
+                abortSignal);
+        } else {
+            // 降级：无 Compute 池，在当前线程（ServerIO worker 或测试线程）内联组装。
+            std::atomic<bool> dummySig{false};
+            runAssemble(dummySig);
+        }
+    };
+
+    // 路径 A：section 数据。提交 StorageTask 到 ServerIO，内部同步调 loadSectionsSync。
+    auto sectionExecutor = [state, keys = std::move(keys), checkComplete](const std::atomic<bool>& abortSig) {
+        if (abortSig.load(std::memory_order::acquire)) {
+            {
+                std::lock_guard<std::mutex> lock(state->mutex);
+                state->sectionResult = Error(ErrorCode::InvalidState, "Load sections cancelled");
+                state->sectionReady = true;
+            }
+            checkComplete();
+            return false;
+        }
+        auto secResult = state->sectionManager->loadSectionsSync(keys);
+        {
+            std::lock_guard<std::mutex> lock(state->mutex);
+            state->sectionResult = std::move(secResult);
+            state->sectionReady = true;
+        }
+        checkComplete();
+        return true;
+    };
+    SectionKey sectionDescKey{x, z, 0, dimension};
+    auto sectionTask = StorageTask::createLoadTask(sectionDescKey, std::move(sectionExecutor));
+    auto sectionSignal = abortSignal ? abortSignal : std::make_shared<std::atomic<bool>>(false);
+    m_taskManager->submit(std::move(sectionTask), util::TaskPriority::Normal, nullptr, sectionSignal);
+
+    // 路径 B：方块实体（仅有 blockEntityStorage 时）。
+    if (m_blockEntityStorage) {
+        auto beExecutor = [state, checkComplete](const std::atomic<bool>& abortSig) {
+            if (abortSig.load(std::memory_order::acquire)) {
+                {
+                    std::lock_guard<std::mutex> lock(state->mutex);
+                    state->blockEntityResult = Error(ErrorCode::InvalidState, "Load block entities cancelled");
+                    state->blockEntityReady = true;
+                }
+                checkComplete();
+                return false;
+            }
+            auto beResult = state->blockEntityStorage->loadBlockEntitiesInChunk(state->x, state->z, state->dimension);
+            {
+                std::lock_guard<std::mutex> lock(state->mutex);
+                state->blockEntityResult = std::move(beResult);
+                state->blockEntityReady = true;
+            }
+            checkComplete();
+            return true;
+        };
+        SectionKey beDescKey{x, z, 0, dimension};
+        auto beTask = StorageTask::createLoadTask(beDescKey, std::move(beExecutor));
+        // 路径 B 共享同一 abortSignal（共享 ptr）
+        m_taskManager->submit(std::move(beTask), util::TaskPriority::Normal, nullptr, abortSignal);
+    }
 }
 
 Result<std::optional<PlayerSaveData>> SingleLevelStorageManager::loadPlayer(const std::string& uuid)

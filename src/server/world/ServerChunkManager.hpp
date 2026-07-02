@@ -34,6 +34,8 @@
 #include <functional>
 #include <future>
 #include <memory>
+#include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -82,8 +84,8 @@ struct ChunkStepDependencyInfo {
 class ServerChunkManager {
 public:
     // ChunkTaskScheduler 和 ChunkProgressionTask 需要访问私有方法
-    // （_executeStepTask / _finalizeGeneratedChunkSync / _tryToLoadChunkFromStorageSync /
-    //  _storeChunkInMemorySync / _getOrCreateLifecycleManager / _findLifecycleManager /
+    // （_executeStepTask / _finalizeGeneratedChunkSync / _storeChunkInMemorySync /
+    //  _getOrCreateLifecycleManager / _findLifecycleManager /
     //  _failWaiters / _completeReadyWaiters）以驱动区块生成
     friend class ChunkTaskScheduler;
     friend class ChunkProgressionTask;
@@ -611,11 +613,48 @@ private:
         const mc::world::chunk::SingleChunkLifecycleManager::EnqueueDecision& decision);
 
     /**
-     * @brief 执行一次存档来源解析
+     * @brief 执行一次存档来源解析（异步）
      *
-     * @param lifecycleManager 目标区块的生命周期管理器
+     * 把存档读取（loadChunkAsyncCallback）投递到存储层（ServerIO 读盘 + ServerCompute 反序列化），
+     * 立即返回不阻塞主线程。完成后回调在 ServerCompute 线程把结果入队 m_pendingLoadCompletes，
+     * 主线程 tick() 的 _drainPendingLoadCompletes 出队执行 _onChunkLoadComplete（noteStorageResolved +
+     * _storeChunkInMemorySync + _enqueuePostProcess / _advanceChunkState）。
+     *
+     * 异步期间 SCLM 处于 ResolvingStorage，并发 submitRequest 走 no-op（不重复触发解析）。
+     * abortSignal 由 SCLM 提供，unloadChunkSync 的 cancelActiveWork 会置位取消异步加载。
+     *
+     * @param lifecycleManager 目标区块的生命周期管理器（必须处于 ResolvingStorage）
      */
     void _resolveChunkSourceSync(mc::world::chunk::SingleChunkLifecycleManager& lifecycleManager);
+
+    /**
+     * @brief 异步存档加载完成回调（主线程执行）
+     *
+     * 在 _drainPendingLoadCompletes 中出队调用。处理：
+     * - 校验 SCLM 仍存活且为同一实例（异步期间可能被 unload 重建）
+     * - 存档命中：_storeChunkInMemorySync + markLoadedFromStorageReady(FULL) + _completeReadyWaiters
+     *   + _enqueuePostProcess（onChunkLoaded/callback 延迟到主线程，needsPostProcess=false）
+     * - 存档缺失：noteStorageResolved(false) + _advanceChunkState（走 StorageMissing→生成链路）
+     * - 从 m_pendingLoadTasks 移除追踪条目
+     *
+     * @param x 区块 X 坐标
+     * @param z 区块 Z 坐标
+     * @param dimension 维度
+     * @param result 加载结果（成功含 ChunkData，失败/不存在为空/错误）
+     * @param lifecycleHolder 异步发起时持有的 SCLM 共享指针，用于实例一致性校验
+     */
+    void _onChunkLoadComplete(ChunkCoord x,
+        ChunkCoord z,
+        mc::DimensionId dimension,
+        mc::Result<std::optional<mc::ChunkData>> result,
+        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder);
+
+    /**
+     * @brief 出队并执行异步存档加载完成回调（仅主线程调用）
+     *
+     * 在 tick() 中调用，把 worker 线程入队的 m_pendingLoadCompletes 逐个交给 _onChunkLoadComplete。
+     */
+    void _drainPendingLoadCompletes();
 
     /**
      * @brief 在调度锁保护下推进区块生成调度
@@ -753,15 +792,6 @@ private:
     void _saveChunkSectionsSync(const ChunkData& chunk);
 
     /**
-     * @brief 从存档同步加载一个区块
-     *
-     * @param x 区块 X 坐标
-     * @param z 区块 Z 坐标
-     * @return 若存在则返回区块数据，否则返回 nullptr
-     */
-    [[nodiscard]] std::unique_ptr<ChunkData> _tryToLoadChunkFromStorageSync(ChunkCoord x, ChunkCoord z);
-
-    /**
      * @brief 检查并卸载无需求区块
      */
     void _checkChunkUnloading();
@@ -858,6 +888,42 @@ private:
     std::unordered_set<u64> m_postProcessedChunks;
 
     /**
+     * @brief 异步存档加载完成队列（worker→主线程回传）
+     *
+     * _resolveChunkSourceSync 在主线程发起异步加载（loadChunkAsyncCallback），
+     * 完成回调在 ServerCompute 线程执行（存储层 _assemble 阶段），把结果入队到此队列。
+     * 主线程 tick() 的 _drainPendingLoadCompletes 出队交给 _onChunkLoadComplete 处理。
+     *
+     * 线程安全：由 m_pendingLoadCompletesMutex 保护（ServerCompute 线程入队、主线程出队）。
+     */
+    struct PendingLoadComplete {
+        ChunkCoord x = 0;
+        ChunkCoord z = 0;
+        mc::DimensionId dimension{};
+        // Result 不可默认构造（Result() = delete），用 Error 占位以允许 PendingLoadComplete 默认构造。
+        mc::Result<std::optional<mc::ChunkData>> result = mc::Error(mc::ErrorCode::Unknown, "");
+        std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager> lifecycleHolder;
+    };
+    std::mutex m_pendingLoadCompletesMutex;
+    std::vector<PendingLoadComplete> m_pendingLoadCompletes;
+
+    /**
+     * @brief 进行中的异步存档加载追踪表
+     *
+     * key = posToKey(x, z)，value = 异步加载发起时持有的 SCLM 共享指针。
+     * 用途：
+     * - _onChunkLoadComplete 通过实例一致性校验防止异步期间 SCLM 被 unload 重建后的误用
+     * - unloadChunkSync 取消进行中的异步加载（置 abortSignal；条目在 _onChunkLoadComplete 中移除）
+     *
+     * 线程安全：由 m_pendingLoadTasksMutex 保护（_resolveChunkSourceSync 主线程写、
+     * _onChunkLoadComplete 主线程读写、unloadChunkSync 主线程读写）。
+     * 注：_onChunkLoadComplete 与 _drainPendingLoadCompletes 均在主线程 tick() 串行调用，
+     * 故追踪表的读写实际上单线程；abortSignal 由 SCLM 持有，unloadChunkSync→cancelActiveWork 置位。
+     */
+    std::mutex m_pendingLoadTasksMutex;
+    std::unordered_map<u64, std::shared_ptr<mc::world::chunk::SingleChunkLifecycleManager>> m_pendingLoadTasks;
+
+    /**
      * @brief 区块生成调度核心
      *
      * 持有 ReentrantAreaLock 保证 schedule/checkNeighbour/onChunkGenComplete 的原子性。
@@ -868,6 +934,17 @@ private:
     mc::world::chunk::ChunkLoadTicketManager m_ticketManager;
     sync::ChunkSendManager* m_chunkSendManager = nullptr;
     util::ServerWorkerPool* m_workerPool = nullptr;
+
+    /// 关闭标志。shutdown() 置位后，异步存档加载完成回调（ServerCompute 线程）不再入队
+    /// m_pendingLoadCompletes，避免 ServerChunkManager 析构后回调访问悬空 this。
+    ///
+    /// 生命周期保证：生产环境 StandaloneServer/IntegratedServer 的 stop() 先调 stopCore()
+    /// （m_computationWorkerPool.shutdown() + m_ioWorkerPool.shutdown() 均 join 线程，排空在途任务），
+    /// 再调 shutdownManagers()（析构 ServerChunkManager）。因此 completion 回调（跑在 ServerCompute）
+    /// 在析构前已由 waitForCompletion 排空，不会悬空。
+    /// 此标志为 destructor 未经 stopCore 的异常/测试路径的防御性保护：shutdown() 在析构前置位，
+    /// 回调检测到后立即 return 不触及 this 成员。
+    std::atomic<bool> m_shuttingDown{false};
 
     u64 m_currentTick = 0;
     u64 m_lastUnloadCheckTick = 0;
