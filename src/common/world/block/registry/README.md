@@ -21,7 +21,7 @@ registry/
 ├── MangroveBlocks.hpp/.cpp      # 红树林系列
 ├── MudBlocks.hpp/.cpp           # 泥土系列
 ├── NaturalBlocks.hpp/.cpp       # 自然方块：冰变种、粘液、珊瑚、海洋方块、仙人掌、蜂巢/蜂箱等
-├── NetherBlocks.hpp/.cpp        # 下界方块、末地方块、下界扩展植物
+├── NetherBlocks.hpp/.cpp        # 下界方块、末地方块、下界扩展植物、绯红/诡异木板及衍生方块
 ├── PaleGardenBlocks.hpp/.cpp    # 苍白花园系列
 ├── RedstoneBlocks.hpp/.cpp      # 红石方块、铁轨方块
 ├── SculkBlocks.hpp/.cpp         # 幽匿系列
@@ -87,6 +87,8 @@ VanillaBlocks
 NETHER_BRICKS → NETHER_BRICK_STAIRS / NETHER_BRICK_SLAB / NETHER_BRICK_WALL
 RED_NETHER_BRICKS → RED_NETHER_BRICK_STAIRS / RED_NETHER_BRICK_SLAB / RED_NETHER_BRICK_WALL
 END_STONE_BRICKS → END_STONE_BRICK_STAIRS / END_STONE_BRICK_SLAB / END_STONE_BRICK_WALL
+CRIMSON_PLANKS → CRIMSON_STAIRS（StairsBlock 引用木板 defaultState）
+WARPED_PLANKS → WARPED_STAIRS（StairsBlock 引用木板 defaultState）
 ```
 
 违反此顺序将导致 `StairsBlock` 构造时访问空指针（`nullptr->defaultState()`），引发 SEH 异常崩溃。
