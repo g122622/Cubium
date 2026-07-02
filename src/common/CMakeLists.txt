@@ -717,6 +717,7 @@ add_library(mc_common STATIC
     world/block/blocks/agricultural/MelonPumpkinBlocks.cpp
     world/block/blocks/agricultural/StemBlock.cpp
     world/block/blocks/agricultural/TorchflowerCropBlock.cpp
+    world/block/blocks/agricultural/PitcherCropBlock.cpp
 
     # World - Block - Functional
     world/block/blocks/functional/BedBlock.cpp
