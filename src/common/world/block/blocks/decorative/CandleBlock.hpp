@@ -179,9 +179,17 @@ public:
     /**
      * @brief 方块 tick
      *
-     * 含水时自动熄灭蜡烛（由 updatePostPlacement 调度水流 tick 触发）。
+     * 含水时自动熄灭蜡烛。
+     * 通过 ticksRandomly() 使随机刻系统调用此方法。
      */
     void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
+    /**
+     * @brief 是否响应随机刻
+     *
+     * 蜡烛需要响应随机刻以检测含水状态并熄灭。
+     */
+    [[nodiscard]] bool ticksRandomly() const noexcept override { return true; }
 
     // ========== 渲染属性 ==========
 

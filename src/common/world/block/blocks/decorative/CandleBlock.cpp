@@ -233,21 +233,24 @@ ActionResultType CandleBlock::onBlockActivated(const BlockState& state,
 {
     MC_UNUSED(hit);
 
-    // 客户端直接返回成功
-    if (world.isClientSide()) {
-        return ActionResultType::Success;
-    }
+    const ItemStack& heldItem = player.getHeldItem(hand);
 
     // 空手 + 可以建造 + 蜡烛已点燃 → 熄灭
     // 参考 MC Java: CandleBlock.useItemOn — 空手点击点燃的蜡烛时熄灭
-    const ItemStack& heldItem = player.getHeldItem(hand);
     if (heldItem.isEmpty() && isLit(state)) {
+        // TODO: 需要检查 player.mayBuild() (即玩家是否有建造权限)
+        //       目前 mayBuild() 在 Player 中尚未实现
+        if (world.isClientSide()) {
+            return ActionResultType::Success;
+        }
         BlockState mutableState = state;
         extinguish(world, pos, mutableState, &player);
         return ActionResultType::Success;
     }
 
-    // 其他情况（如打火石/火焰弹点燃）由物品自身处理
+    // 其他情况（如打火石/火焰弹点燃）由物品自身的 onItemUse 处理
+    // FlintAndSteelItem 已支持含 LIT 属性方块的点燃，并会检查 WATERLOGGED 属性
+    // TODO: FireChargeItem 尚未实现 onItemUse 方法，无法点燃蜡烛方块
     return ActionResultType::Pass;
 }
 
@@ -257,7 +260,7 @@ void CandleBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, ma
 {
     MC_UNUSED(random);
 
-    // 含水时自动熄灭（由 updatePostPlacement 中 scheduleWaterTick 触发）
+    // 含水时自动熄灭（通过 ticksRandomly() 注册随机刻，由随机刻系统触发此 tick）
     if (state.get(BlockStateProperties::WATERLOGGED()) && isLit(state)) {
         extinguish(world, pos, state, nullptr);
     }

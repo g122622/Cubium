@@ -93,8 +93,6 @@ void AbstractCandleBlock::onProjectileHit(
 void AbstractCandleBlock::animateTick(
     IBlockAnimateContext& context, const BlockPos& pos, const BlockState& state, math::IRandom& random) const
 {
-    MC_UNUSED(random);
-
     if (isLit(state)) {
         auto offsets = getParticleOffsets(state);
         for (const auto& offset : offsets) {
@@ -102,9 +100,23 @@ void AbstractCandleBlock::animateTick(
             f32 y = static_cast<f32>(pos.y) + offset.y;
             f32 z = static_cast<f32>(pos.z) + offset.z;
 
-            // 烟雾粒子
-            context.addAnimateParticle(particle::ParticleTypeId::Smoke, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
-            // 火焰粒子
+            // 烟雾粒子（随机生成，约30%概率）
+            f32 randVal = random.nextFloat();
+            if (randVal < 0.3f) {
+                context.addAnimateParticle(
+                    particle::ParticleTypeId::Smoke, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
+
+                // 蜡烛噼啪声（约17%概率，即总体约5%的概率/tick）
+                if (randVal < 0.17f) {
+                    context.playLocalSound(SoundEvents::BLOCK_CANDLE_AMBIENT,
+                        sound::SoundCategory::Blocks,
+                        Vector3(x, y, z),
+                        1.0f + random.nextFloat(),
+                        random.nextFloat() * 0.7f + 0.3f);
+                }
+            }
+
+            // 火焰粒子（始终生成）
             context.addAnimateParticle(
                 particle::ParticleTypeId::SmallFlame, Vector3(x, y, z), Vector3(0.0f, 0.0f, 0.0f));
         }

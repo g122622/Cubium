@@ -27,6 +27,11 @@
 namespace mc {
 namespace item {
 
+// TODO: FireChargeItem 需要实现 onItemUse 方法来处理方块点燃逻辑，
+//       参考 FlintAndSteelItem。当方块包含 LIT 属性且未点燃时（含 WATERLOGGED 属性时还需检查未含水），
+//       应设置 LIT=true 并消耗一个火焰弹。目前火焰弹只能作为发射器弹射物使用，
+//       无法像 MC 原版那样右键点燃蜡烛、营火等方块。
+
 FireChargeItem::FireChargeItem(const ItemProperties& properties)
     : Item(properties)
     , ProjectileItem()

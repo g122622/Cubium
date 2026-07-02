@@ -149,23 +149,21 @@ ActionResultType CandleCakeBlock::onBlockActivated(const BlockState& state,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-    // 客户端直接返回成功
-    if (world.isClientSide()) {
-        // TODO: 客户端应检查玩家能否进食后返回 Success 或 Consume
-        return ActionResultType::Success;
-    }
-
     const ItemStack& heldItem = player.getHeldItem(hand);
 
     // 如果手持打火石或火焰弹，返回 Pass 让物品自身处理点燃逻辑
     // 参考 MC Java: CandleCakeBlock.useItemOn 对打火石/火焰弹返回 PASS
-    // TODO: 当 FlintAndSteelItem/FireChargeItem 实现完整后，需要在此处检查物品类型
-    // 目前通过检查 canLight 条件来间接判断：如果方块可被点燃且手持物品可点燃，则返回 Pass
+    // TODO: 当 FlintAndSteelItem/FireChargeItem 实现完整的 useOn 方法后，
+    //       需要在此处检查 heldItem 是否为打火石或火焰弹物品，若是则返回 Pass
+    //       目前打火石的 onItemUse 会自动处理含 LIT 属性方块的点燃
 
     // 空手点击蜡烛部分（上半部 y > 0.5）且已点燃 → 熄灭
     if (heldItem.isEmpty() && isLit(state)) {
         f32 hitY = hit.hitPosition().y - static_cast<f32>(pos.y);
         if (hitY > 0.5f) {
+            if (world.isClientSide()) {
+                return ActionResultType::Success;
+            }
             BlockState mutableState = state;
             extinguish(world, pos, mutableState, &player);
             return ActionResultType::Success;
@@ -179,10 +177,15 @@ ActionResultType CandleCakeBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Pass;
     }
 
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
     // 玩家进食蛋糕（+2 饥饿值, 0.1 饱和度）
     // TODO: 调用 Player 的食物系统方法补充饥饿值
-    // player.getFoodData().eat(2, 0.1f);
-    // player.awardStat(Stats::EAT_CAKE_SLICE);
+    //       当前食物系统尚未完全实现，待 FoodData.eat(2, 0.1f) 可用后补充
+    //       player.getFoodData().eat(2, 0.1f);
+    //       player.awardStat(Stats::EAT_CAKE_SLICE);
 
     // 将蜡烛蛋糕替换为一片已被咬的普通蛋糕
     // 参考 MC Java: CakeBlock.eat 使用 BITES=0 的蛋糕状态，第一口后变为 BITES=1
