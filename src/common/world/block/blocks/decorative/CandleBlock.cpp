@@ -249,8 +249,7 @@ ActionResultType CandleBlock::onBlockActivated(const BlockState& state,
     }
 
     // 其他情况（如打火石/火焰弹点燃）由物品自身的 onItemUse 处理
-    // FlintAndSteelItem 已支持含 LIT 属性方块的点燃，并会检查 WATERLOGGED 属性
-    // TODO: FireChargeItem 尚未实现 onItemUse 方法，无法点燃蜡烛方块
+    // FlintAndSteelItem 和 FireChargeItem 均支持含 LIT 属性方块的点燃，并会检查 WATERLOGGED 属性
     return ActionResultType::Pass;
 }
 

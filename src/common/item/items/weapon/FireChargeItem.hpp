@@ -40,14 +40,13 @@ namespace item {
 /**
  * @brief 火焰弹物品
  *
- * 可由玩家右键发射或由发射器发射的火焰弹。
+ * 可由玩家右键使用或由发射器发射的火焰弹。
  * 发射时创建 SmallFireballEntity 实体。
+ * 右键使用时可点燃方块（营火、蜡烛等）或在合适位置放置火焰。
  *
  * 实现 ProjectileItem 接口以支持发射器自动注册弹射物发射行为。
  * 与 WindChargeItem 类似，火焰弹在 asProjectile() 中直接设置加速度，
  * shoot() 为空操作。
- *
- * 参考 MC 1.16.5 FireChargeItem
  */
 class FireChargeItem : public Item, public ProjectileItem {
 public:
@@ -64,6 +63,17 @@ public:
     FireChargeItem& operator=(const FireChargeItem&) = delete;
     FireChargeItem(FireChargeItem&&) = delete;
     FireChargeItem& operator=(FireChargeItem&&) = delete;
+
+    /**
+     * @brief 在方块上使用物品
+     *
+     * 功能：
+     * 1. 如果点击的方块可以点燃（如未点燃的营火、蜡烛、蜡烛蛋糕），点燃它
+     * 2. 否则，在点击面的相邻位置放置火焰（普通火或灵魂火）
+     *
+     * 与打火石不同，火焰弹消耗物品数量（shrink(1)）而非耐久度。
+     */
+    ActionResultType onItemUse(ItemUseContext& context) override;
 
     // ============================================================================
     // ProjectileItem 接口实现
@@ -101,6 +111,14 @@ public:
         f32 directionZ,
         f32 power,
         f32 uncertainty) const override;
+
+private:
+    /**
+     * @brief 播放火焰弹使用音效
+     * @param world 世界引用
+     * @param pos 音效位置
+     */
+    static void playUseSound(IWorld& world, const BlockPos& pos);
 };
 
 } // namespace item

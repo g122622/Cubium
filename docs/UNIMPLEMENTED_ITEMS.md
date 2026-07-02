@@ -454,7 +454,7 @@
 
 - `minecraft:acacia_shelf ✅ 已完成`
 - `minecraft:amethyst_shard ✅ 已完成`
-- `minecraft:anvil`
+- `minecraft:anvil ✅ 已完成`
 - `minecraft:armadillo_scute ✅ 已完成`
 - `minecraft:azalea ✅ 已完成`
 - `minecraft:bamboo_block ✅ 已完成`
@@ -472,12 +472,12 @@
 - `minecraft:brush ✅ 已完成`
 - `minecraft:bundle`
 - `minecraft:cherry_shelf ✅ 已完成`
-- `minecraft:chipped_anvil`
+- `minecraft:chipped_anvil ✅ 已完成`
 - `minecraft:cobbled_deepslate ✅ 已完成`
 - `minecraft:crimson_shelf ✅ 已完成`
 - `minecraft:cyan_bundle`
 - `minecraft:cyan_harness`
-- `minecraft:damaged_anvil`
+- `minecraft:damaged_anvil ✅ 已完成`
 - `minecraft:dark_oak_shelf ✅ 已完成`
 - `minecraft:deepslate_coal_ore ✅ 已完成`
 - `minecraft:deepslate_diamond_ore ✅ 已完成`
@@ -486,7 +486,7 @@
 - `minecraft:deepslate_iron_ore ✅ 已完成`
 - `minecraft:deepslate_lapis_ore ✅ 已完成`
 - `minecraft:deepslate_redstone_ore ✅ 已完成`
-- `minecraft:exposed_lightning_rod`
+- `minecraft:exposed_lightning_rod ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:gray_bundle`
@@ -500,7 +500,7 @@
 - `minecraft:light_blue_harness`
 - `minecraft:light_gray_bundle`
 - `minecraft:light_gray_harness`
-- `minecraft:lightning_rod`
+- `minecraft:lightning_rod ✅ 已完成`
 - `minecraft:lime_bundle`
 - `minecraft:lime_harness`
 - `minecraft:magenta_bundle`
@@ -513,8 +513,7 @@
 - `minecraft:oak_shelf ✅ 已完成`
 - `minecraft:orange_bundle`
 - `minecraft:orange_harness`
-- `minecraft:oxidized_lightning_rod`
-- `minecraft:pale_moss_block ✅ 已完成`
+- `minecraft:oxidized_lightning_rod ✅ 已完成`- `minecraft:pale_moss_block ✅ 已完成`
 - `minecraft:pale_oak_shelf ✅ 已完成`
 - `minecraft:pink_bundle`
 - `minecraft:pink_harness`
@@ -536,11 +535,11 @@
 - `minecraft:torchflower_seeds ✅ 已完成`
 - `minecraft:turtle_scute ✅ 已完成`
 - `minecraft:warped_shelf ✅ 已完成`
-- `minecraft:waxed_exposed_lightning_rod`
-- `minecraft:waxed_lightning_rod`
-- `minecraft:waxed_oxidized_lightning_rod`
-- `minecraft:waxed_weathered_lightning_rod`
-- `minecraft:weathered_lightning_rod`
+- `minecraft:waxed_exposed_lightning_rod ✅ 已完成`
+- `minecraft:waxed_lightning_rod ✅ 已完成`
+- `minecraft:waxed_oxidized_lightning_rod ✅ 已完成`
+- `minecraft:waxed_weathered_lightning_rod ✅ 已完成`
+- `minecraft:weathered_lightning_rod ✅ 已完成`
 - `minecraft:white_bundle`
 - `minecraft:white_harness`
 - `minecraft:wildflowers ✅ 已完成`
