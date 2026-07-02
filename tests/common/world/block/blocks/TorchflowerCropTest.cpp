@@ -143,15 +143,15 @@ TEST_F(TorchflowerCropTest, WithAge3_ReturnsTorchflowerBlockState)
 }
 
 // ============================================================================
-// Bonemeal 行为测试
+// 随机刻测试
 // ============================================================================
 
-TEST_F(TorchflowerCropTest, GetBonemealAgeIncrease_Returns1)
+TEST_F(TorchflowerCropTest, TicksRandomly_ReturnsTrue)
 {
-    // 火把花骨粉每次只增加 1 个生长阶段（不像小麦那样增加 2-5）
-    // TorchflowerCropBlock::getBonemealAgeIncrease() 总是返回 1
-    // 该方法需要 IWorld 引用，无法在单元测试中直接调用
-    // 集成测试中会验证骨粉逻辑的完整性
+    // 验证 TorchflowerCropBlock 响应随机刻，确保 randomTick() 会被调用
+    // 这是作物生长逻辑的前提条件，否则 randomTick 中的生长代码将成为孤岛
+    TorchflowerCropBlock block(BlockProperties(Material::PLANT).hardness(0.0f).noCollision().notSolid());
+    EXPECT_TRUE(block.ticksRandomly()) << "TorchflowerCropBlock should tick randomly for growth";
 }
 
 // ============================================================================
