@@ -236,9 +236,9 @@
 ### Fences / Fence Gates（3）
 
 
-- `minecraft:crimson_fence`
+- `minecraft:crimson_fence ✅ 已完成`
 - `minecraft:nether_brick_fence ✅ 已完成`
-- `minecraft:warped_fence`
+- `minecraft:warped_fence ✅ 已完成`
 
 ### Flowers / Small Flowers（5）
 
@@ -279,10 +279,10 @@
 
 - `minecraft:bamboo_planks`
 - `minecraft:cherry_planks`
-- `minecraft:crimson_planks`
+- `minecraft:crimson_planks ✅ 已完成`
 - `minecraft:mangrove_planks`
 - `minecraft:pale_oak_planks ✅ 已完成`
-- `minecraft:warped_planks`
+- `minecraft:warped_planks ✅ 已完成`
 
 ### Saplings（2）
 
@@ -317,7 +317,7 @@
 - `minecraft:blackstone_slab ✅ 已完成`
 - `minecraft:brick_slab ✅ 已完成`
 - `minecraft:cobbled_deepslate_slab ✅ 已完成`
-- `minecraft:crimson_slab`
+- `minecraft:crimson_slab ✅ 已完成`
 - `minecraft:cut_copper_slab ✅ 已完成`
 - `minecraft:cut_red_sandstone_slab ✅ 已完成`
 - `minecraft:cut_sandstone_slab ✅ 已完成`
@@ -349,7 +349,7 @@
 - `minecraft:smooth_stone_slab ✅ 已完成`
 - `minecraft:tuff_brick_slab ✅ 已完成`
 - `minecraft:tuff_slab ✅ 已完成`
-- `minecraft:warped_slab`
+- `minecraft:warped_slab ✅ 已完成`
 - `minecraft:waxed_cut_copper_slab ✅ 已完成`
 - `minecraft:waxed_exposed_cut_copper_slab ✅ 已完成`
 - `minecraft:waxed_oxidized_cut_copper_slab ✅ 已完成`
@@ -363,7 +363,7 @@
 - `minecraft:blackstone_stairs ✅ 已完成`
 - `minecraft:brick_stairs ✅ 已完成`
 - `minecraft:cobbled_deepslate_stairs ✅ 已完成`
-- `minecraft:crimson_stairs`
+- `minecraft:crimson_stairs ✅ 已完成`
 - `minecraft:cut_copper_stairs ✅ 已完成`
 - `minecraft:deepslate_brick_stairs ✅ 已完成`
 - `minecraft:deepslate_tile_stairs ✅ 已完成`
@@ -391,7 +391,7 @@
 - `minecraft:smooth_red_sandstone_stairs ✅ 已完成`
 - `minecraft:tuff_brick_stairs ✅ 已完成`
 - `minecraft:tuff_stairs ✅ 已完成`
-- `minecraft:warped_stairs`
+- `minecraft:warped_stairs ✅ 已完成`
 - `minecraft:waxed_cut_copper_stairs ✅ 已完成`
 - `minecraft:waxed_exposed_cut_copper_stairs ✅ 已完成`
 - `minecraft:waxed_oxidized_cut_copper_stairs ✅ 已完成`

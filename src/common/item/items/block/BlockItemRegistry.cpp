@@ -380,6 +380,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::WARPED_NYLIUM, "warped_nylium");
     registerSimpleBlock(VanillaBlocks::SHROOMLIGHT, "shroomlight");
 
+    // 绯红/诡异木板及衍生方块
+    registerSimpleBlock(VanillaBlocks::CRIMSON_PLANKS, "crimson_planks");
+    registerSimpleBlock(VanillaBlocks::WARPED_PLANKS, "warped_planks");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_STAIRS, "crimson_stairs");
+    registerSimpleBlock(VanillaBlocks::WARPED_STAIRS, "warped_stairs");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_SLAB, "crimson_slab");
+    registerSimpleBlock(VanillaBlocks::WARPED_SLAB, "warped_slab");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_FENCE, "crimson_fence");
+    registerSimpleBlock(VanillaBlocks::WARPED_FENCE, "warped_fence");
+
     // 深板岩方块 (1.17+)
     registerSimpleBlock(VanillaBlocks::DEEPSLATE, "deepslate");
     registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE, "cobbled_deepslate");

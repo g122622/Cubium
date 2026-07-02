@@ -493,6 +493,15 @@ const BlockSoundType STEM(ResourceLocation("minecraft:block.stem.break"),
     1.0f,
     1.0f);
 
+// 下界木 - 绯红/诡异木板、楼梯、台阶、栅栏等使用
+const BlockSoundType NETHER_WOOD(ResourceLocation("minecraft:block.nether_wood.break"),
+    ResourceLocation("minecraft:block.nether_wood.step"),
+    ResourceLocation("minecraft:block.nether_wood.place"),
+    ResourceLocation("minecraft:block.nether_wood.hit"),
+    ResourceLocation("minecraft:block.nether_wood.fall"),
+    1.0f,
+    1.0f);
+
 // 藤蔓 - 藤蔓声音
 const BlockSoundType VINE(ResourceLocation("minecraft:block.vine.break"),
     ResourceLocation("minecraft:block.vine.step"),

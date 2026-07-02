@@ -98,6 +98,16 @@ Block* NetherBlocks::CRIMSON_ROOTS = nullptr;
 Block* NetherBlocks::WARPED_ROOTS = nullptr;
 Block* NetherBlocks::NETHER_SPROUTS = nullptr;
 
+// 下界木板及衍生方块
+Block* NetherBlocks::CRIMSON_PLANKS = nullptr;
+Block* NetherBlocks::WARPED_PLANKS = nullptr;
+Block* NetherBlocks::CRIMSON_STAIRS = nullptr;
+Block* NetherBlocks::WARPED_STAIRS = nullptr;
+Block* NetherBlocks::CRIMSON_SLAB = nullptr;
+Block* NetherBlocks::WARPED_SLAB = nullptr;
+Block* NetherBlocks::CRIMSON_FENCE = nullptr;
+Block* NetherBlocks::WARPED_FENCE = nullptr;
+
 // 灵魂火把
 Block* NetherBlocks::SOUL_TORCH = nullptr;
 Block* NetherBlocks::SOUL_WALL_TORCH = nullptr;
@@ -333,6 +343,47 @@ void registerNetherBlocks()
                 .noCollision()
                 .notSolid()
                 .soundType(BlockSoundTypes::NETHER_SPROUT));
+
+    // ============================================================================
+    // 下界木板及衍生方块
+    // ============================================================================
+
+    // 绯红木板 - 下界木材，不可燃，不免疫岩浆点燃
+    NetherBlocks::CRIMSON_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crimson_planks"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 诡异木板 - 下界木材，不可燃，不免疫岩浆点燃
+    NetherBlocks::WARPED_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:warped_planks"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 绯红楼梯
+    NetherBlocks::CRIMSON_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:crimson_stairs"),
+        NetherBlocks::CRIMSON_PLANKS->defaultState(),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 诡异楼梯
+    NetherBlocks::WARPED_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:warped_stairs"),
+        NetherBlocks::WARPED_PLANKS->defaultState(),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 绯红台阶
+    NetherBlocks::CRIMSON_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:crimson_slab"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 诡异台阶
+    NetherBlocks::WARPED_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:warped_slab"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 绯红栅栏 - 木质栅栏，可与所有木质栅栏和栅栏门连接
+    NetherBlocks::CRIMSON_FENCE = &registry.registerBlock<blocks::FenceBlock>(
+        ResourceLocation("minecraft:crimson_fence"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 诡异栅栏 - 木质栅栏，可与所有木质栅栏和栅栏门连接
+    NetherBlocks::WARPED_FENCE = &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:warped_fence"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
 
     // 灵魂火把 - 发光等级10，蓝色火焰
     NetherBlocks::SOUL_TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:soul_torch"),

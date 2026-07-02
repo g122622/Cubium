@@ -69,6 +69,16 @@ struct NetherBlocks {
     static Block* WARPED_ROOTS;
     static Block* NETHER_SPROUTS;
 
+    // 下界木板及衍生方块
+    static Block* CRIMSON_PLANKS;
+    static Block* WARPED_PLANKS;
+    static Block* CRIMSON_STAIRS;
+    static Block* WARPED_STAIRS;
+    static Block* CRIMSON_SLAB;
+    static Block* WARPED_SLAB;
+    static Block* CRIMSON_FENCE;
+    static Block* WARPED_FENCE;
+
     // 灵魂火把
     static Block* SOUL_TORCH;
     static Block* SOUL_WALL_TORCH;
