@@ -232,12 +232,17 @@ void ItemTags::initialize()
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lily_of_the_valley")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cornflower")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wither_rose")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower")));
 
     // 大型花朵（双格）
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "sunflower")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lilac")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "rose_bush")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "peony")));
+
+    // 其他花朵（非传统小型/大型）
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spore_blossom")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_petals")));
 
     allTags[flowers->getId()] = std::move(flowers);
 
