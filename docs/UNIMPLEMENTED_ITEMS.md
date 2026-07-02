@@ -1066,13 +1066,13 @@
 
 - `minecraft:deepslate_redstone_ore ✅ 已完成`
 
-### `minecraft:sand`
+### `minecraft:sand` ✅ 已完成
 
 
 未实现项：
 
 
-- `minecraft:suspicious_sand`
+- `minecraft:suspicious_sand ✅ 已完成`
 
 ### `minecraft:saplings`
 

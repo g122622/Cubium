@@ -580,7 +580,8 @@ f32 PiglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     //   - 灵魂墙火把 (soul_wall_torch)
     //   - 灵魂灯笼 (soul_lantern)
     //   - 灵魂营火 (soul_campfire，需点燃，通过 CampfireBlock::isLitCampfire 额外检查)
-    //   - 诡异菌 (warped_fungus)
+    // 注意：MC 1.21.11 中 warped_fungus 不在 PIGLIN_REPELLENTS 中，
+    //       仅存在于 HOGLIN_REPELLENTS 中
     // 注意：MC 1.21.11 中 potted_warped_fungus 不在 PIGLIN_REPELLENTS 中，
     //       仅在 HOGLIN_REPELLENTS 中，此处无需添加
     //
@@ -851,7 +852,6 @@ f32 HoglinEntity::getPathWeight(f32 x, f32 y, f32 z) const
     // 排斥物近距离检查
     // MC 1.21.11 BlockTags.HOGLIN_REPELLENTS 包含:
     //   - 诡异菌 (warped_fungus)
-    //   - 诡异菌岩 (warped_nylium)
     //   - 下界传送门 (nether_portal)
     //   - 重生锚 (respawn_anchor)
     // TODO: 花盆系统实现后需在 HOGLIN_REPELLENTS 标签中添加 potted_warped_fungus（盆栽诡异菌），

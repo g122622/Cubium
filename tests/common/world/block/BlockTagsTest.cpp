@@ -140,9 +140,10 @@ TEST_F(BlockTagsTest, DirtContainsPodzol)
     EXPECT_TRUE(BlockTags::DIRT().contains(*VanillaBlocks::PODZOL));
 }
 
-TEST_F(BlockTagsTest, DirtContainsFarmland)
+TEST_F(BlockTagsTest, DirtDoesNotContainFarmland)
 {
-    EXPECT_TRUE(BlockTags::DIRT().contains(*VanillaBlocks::FARMLAND));
+    // MC 1.21.11 中 farmland 不在 dirt 标签中
+    EXPECT_FALSE(BlockTags::DIRT().contains(*VanillaBlocks::FARMLAND));
 }
 
 TEST_F(BlockTagsTest, SandContainsSand)
@@ -153,6 +154,18 @@ TEST_F(BlockTagsTest, SandContainsSand)
 TEST_F(BlockTagsTest, SandContainsRedSand)
 {
     EXPECT_TRUE(BlockTags::SAND().contains(*VanillaBlocks::RED_SAND));
+}
+
+TEST_F(BlockTagsTest, SandContainsSuspiciousSand)
+{
+    // MC 1.21.11: suspicious_sand 在 sand 标签中
+    EXPECT_TRUE(BlockTags::SAND().contains(ResourceLocation("minecraft", "suspicious_sand")));
+}
+
+TEST_F(BlockTagsTest, SandDoesNotContainSoulSand)
+{
+    // MC 1.21.11: soul_sand 不在 sand 标签中（soul_sand 属于 soul_fire_base_blocks）
+    EXPECT_FALSE(BlockTags::SAND().contains(ResourceLocation("minecraft", "soul_sand")));
 }
 
 TEST_F(BlockTagsTest, SoulFireBaseBlocksContainsSoulSand)
@@ -892,9 +905,10 @@ TEST_F(BlockTagsTest, HoglinRepellentsContainsWarpedFungus)
     EXPECT_TRUE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "warped_fungus")));
 }
 
-TEST_F(BlockTagsTest, HoglinRepellentsContainsWarpedNylium)
+TEST_F(BlockTagsTest, HoglinRepellentsDoesNotContainWarpedNylium)
 {
-    EXPECT_TRUE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "warped_nylium")));
+    // MC 1.21.11 中 warped_nylium 不在 HOGLIN_REPELLENTS 标签中
+    EXPECT_FALSE(BlockTags::HOGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "warped_nylium")));
 }
 
 TEST_F(BlockTagsTest, HoglinRepellentsContainsNetherPortal)
@@ -958,10 +972,10 @@ TEST_F(BlockTagsTest, PiglinRepellentsContainsSoulCampfire)
     EXPECT_TRUE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "soul_campfire")));
 }
 
-TEST_F(BlockTagsTest, PiglinRepellentsContainsWarpedFungus)
+TEST_F(BlockTagsTest, PiglinRepellentsDoesNotContainWarpedFungus)
 {
-    // 诡异菌同时是猪灵和疣猪兽的排斥物
-    EXPECT_TRUE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "warped_fungus")));
+    // MC 1.21.11 中 warped_fungus 不在 PIGLIN_REPELLENTS 标签中，仅存在于 HOGLIN_REPELLENTS
+    EXPECT_FALSE(BlockTags::PIGLIN_REPELLENTS().contains(ResourceLocation("minecraft", "warped_fungus")));
 }
 
 TEST_F(BlockTagsTest, PiglinRepellentsDoesNotContainSoulSand)
@@ -1335,4 +1349,98 @@ TEST_F(BlockTagsTest, NonFlammableWoodDoesNotContainIronDoor)
 TEST_F(BlockTagsTest, NonFlammableWoodTagIdIsCorrect)
 {
     EXPECT_EQ(BlockTags::NON_FLAMMABLE_WOOD().getId(), ResourceLocation("minecraft", "non_flammable_wood"));
+}
+
+// ========== FLOWERS 标签测试 ==========
+
+TEST_F(BlockTagsTest, FlowersTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::FLOWERS().getId(), ResourceLocation("minecraft", "flowers"));
+}
+
+TEST_F(BlockTagsTest, FlowersContainsSmallFlowers)
+{
+    // 小花朵应包含在 flowers 标签中
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "dandelion")));
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "poppy")));
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "wither_rose")));
+}
+
+TEST_F(BlockTagsTest, FlowersContainsTallFlowers)
+{
+    // 高花朵应包含在 flowers 标签中
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "sunflower")));
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "lilac")));
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "pitcher_plant")));
+}
+
+TEST_F(BlockTagsTest, FlowersContainsSpecialFlowers)
+{
+    // 其他花类方块应包含在 flowers 标签中
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "flowering_azalea")));
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "chorus_flower")));
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "spore_blossom")));
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "cactus_flower")));
+    EXPECT_TRUE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "wildflowers")));
+}
+
+TEST_F(BlockTagsTest, FlowersDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::FLOWERS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+// ========== SAPLINGS 标签测试 ==========
+
+TEST_F(BlockTagsTest, SaplingsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::SAPLINGS().getId(), ResourceLocation("minecraft", "saplings"));
+}
+
+TEST_F(BlockTagsTest, SaplingsContainsBasicSaplings)
+{
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "oak_sapling")));
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "spruce_sapling")));
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "birch_sapling")));
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "jungle_sapling")));
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "acacia_sapling")));
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "dark_oak_sapling")));
+}
+
+TEST_F(BlockTagsTest, SaplingsContainsNewSaplings)
+{
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "cherry_sapling")));
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "pale_oak_sapling")));
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "mangrove_propagule")));
+}
+
+TEST_F(BlockTagsTest, SaplingsContainsAzalea)
+{
+    // 杜鹃花丛在 MC 中属于 saplings 标签
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "azalea")));
+    EXPECT_TRUE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "flowering_azalea")));
+}
+
+TEST_F(BlockTagsTest, SaplingsDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::SAPLINGS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+// ========== LIGHTNING_RODS 更新测试 ==========
+
+TEST_F(BlockTagsTest, LightningRodsContainsOxidizedVariants)
+{
+    // MC 1.21.11: lightning_rods 标签包含所有氧化变种
+    EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "lightning_rod")));
+    EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "exposed_lightning_rod")));
+    EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "weathered_lightning_rod")));
+    EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "oxidized_lightning_rod")));
+}
+
+TEST_F(BlockTagsTest, LightningRodsContainsWaxedVariants)
+{
+    // MC 1.21.11: lightning_rods 标签包含所有涂蜡变种
+    EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "waxed_lightning_rod")));
+    EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "waxed_exposed_lightning_rod")));
+    EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "waxed_weathered_lightning_rod")));
+    EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "waxed_oxidized_lightning_rod")));
 }

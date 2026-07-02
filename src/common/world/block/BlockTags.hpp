@@ -229,7 +229,7 @@ public:
 
     /// 疣猪兽排斥物标签
     /// 疣猪兽在这些方块附近会逃跑，getPathWeight 返回 -1.0
-    /// 包含: 诡异菌(warped_fungus)、诡异菌岩(warped_nylium)、下界传送门(nether_portal)、重生锚(respawn_anchor)
+    /// 包含: 诡异菌(warped_fungus)、下界传送门(nether_portal)、重生锚(respawn_anchor)
     /// TODO: 花盆系统实现后需添加 potted_warped_fungus（盆栽诡异菌）到本标签
     /// MC 1.21.11: BlockTags.HOGLIN_REPELLENTS
     static BlockTag& HOGLIN_REPELLENTS();
@@ -237,8 +237,8 @@ public:
     /// 猪灵排斥物标签
     /// 猪灵在这些方块附近会逃跑
     /// 包含: 灵魂火(soul_fire)、灵魂火把(soul_torch)、灵魂墙火把(soul_wall_torch)、
-    ///       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)、诡异菌(warped_fungus)
-    /// 注意：MC 1.21.11 中 potted_warped_fungus 不在 PIGLIN_REPELLENTS 中，无需添加
+    ///       灵魂灯笼(soul_lantern)、灵魂营火(soul_campfire，需点燃)
+    /// 注意: MC 1.21.11 中 warped_fungus 不在 PIGLIN_REPELLENTS 中，仅存在于 HOGLIN_REPELLENTS
     /// MC 1.21.11: BlockTags.PIGLIN_REPELLENTS
     static BlockTag& PIGLIN_REPELLENTS();
 
@@ -259,7 +259,16 @@ public:
 
     /// 高花朵标签（向日葵、丁香等）
     /// 蜜蜂可以采集这些花朵
+    /// 注意: MC 1.21.2+ 已移除 tall_flowers 标签，高花朵直接包含在 FLOWERS 标签中
     static BlockTag& TALL_FLOWERS();
+
+    /// 花朵标签（所有花朵，包含小花朵、高花朵和其他花类方块）
+    /// MC 1.21.11: BlockTags.FLOWERS
+    static BlockTag& FLOWERS();
+
+    /// 树苗标签（所有树苗，包含杜鹃花丛和红树胎生苗）
+    /// MC 1.21.11: BlockTags.SAPLINGS
+    static BlockTag& SAPLINGS();
 
     /// 蜂巢/蜂箱标签
     /// 蜜蜂可以进入的方块
