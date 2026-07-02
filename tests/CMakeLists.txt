@@ -659,6 +659,8 @@ add_executable(mc_tests
     common/entity/entities/projectile/OpenWaterCheckTest.cpp
     # ProjectileEntity canHitEntity 骑乘同载具测试
     common/entity/entities/projectile/ProjectileCanHitEntityTest.cpp
+    # ProjectileDeflection 弹射物偏转系统测试
+    common/entity/entities/projectile/ProjectileDeflectionTest.cpp
     # FireworkRocketEntity 爆炸伤害测试
     common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
     # DragonFireballEntity 龙息云和粒子类型测试
