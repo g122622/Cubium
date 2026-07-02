@@ -84,7 +84,7 @@ DoubleSidedInventory (双箱容器，非 BlockEntity，用于合并两个箱子)
 
 ### 4. ShulkerBoxEntity 防递归嵌套
 
-`canInsertItem()` 会检查物品是否为潜影盒，防止潜影盒放入另一个潜影盒。这是通过检查物品类型实现的。
+`canInsertItem()` 会检查物品是否为潜影盒，防止潜影盒放入另一个潜影盒。这是通过检查物品类型实现的。16色潜影盒物品和无色潜影盒物品均属于 `ItemTags::SHULKER_BOXES()` 标签，`canInsertItem()` 通过该标签统一判断，确保所有颜色变体均被阻止嵌套。
 
 ### 5. ShulkerBoxEntity 动画状态
 

@@ -58,7 +58,7 @@
     ├── EnchantingTableBlock.hpp / cpp #附魔台方块
     ├── SignBlock.hpp / cpp #告示牌方块
     ├── HangingSignBlock.hpp / cpp #悬挂告示牌
-    ├── ShulkerBoxBlock.hpp / cpp #潜影盒方块
+    ├── ShulkerBoxBlock.hpp / cpp #潜影盒方块（16色+无色变体，27格存储，防递归嵌套）
     ├── LightningRodBlock.hpp / cpp #避雷针方块
     ├── DirectionalBlock.hpp / cpp #有朝向的方块基类
     ├── HorizontalBlock.hpp / cpp #水平朝向方块基类

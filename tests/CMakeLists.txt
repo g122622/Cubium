@@ -434,6 +434,8 @@ add_executable(mc_tests
     common/world/blockentity/CampfireBlockEntityTest.cpp
     # ShulkerBoxEntity 潜影盒测试（动画状态、比较器信号、防递归嵌套）
     common/world/blockentity/ShulkerBoxEntityTest.cpp
+    # ShulkerBoxBlock 16色潜影盒方块测试（注册、颜色、isShulkerBox、标签）
+    common/world/block/blocks/ShulkerBoxBlockTest.cpp
     # CommandBlockEntity 命令方块实体测试（命令执行、红石触发、连锁执行、条件检测）
     common/world/blockentity/CommandBlockEntityTest.cpp
     # BannerEntity 旗帜方块实体测试（图案存储、底色、自定义名称、NBT序列化）

@@ -34,7 +34,7 @@ item/
 │   └── README.md
 ├── tag/                          # 物品标签
 │   ├── ItemTag.hpp/cpp           # 物品标签类
-│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、CHAINS、BARS、WOODEN_SHELVES等）
+│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、CHAINS、BARS、WOODEN_SHELVES、SHULKER_BOXES等）
 │   ├── ItemTagLoader.hpp/cpp     # 物品标签数据包加载器（从JSON加载标签）
 │   └── README.md
 ├── items/                        # 具体物品实现

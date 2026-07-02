@@ -1018,3 +1018,68 @@ TEST_F(ItemTagsTest, BedsTagContains16Items)
     const auto& items = item::tag::ItemTags::BEDS().getItems();
     EXPECT_EQ(items.size(), 16u);
 }
+
+// ============================================================================
+// SHULKER_BOXES 标签测试
+// 参考: net.minecraft.tags.ItemTags.SHULKER_BOXES
+// ============================================================================
+
+TEST_F(ItemTagsTest, ShulkerBoxesContainsUncoloredShulkerBox)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "shulker_box"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::SHULKER_BOXES()));
+}
+
+TEST_F(ItemTagsTest, ShulkerBoxesContainsAll16ColoredVariants)
+{
+    // minecraft:shulker_boxes 标签应包含全部 16 色潜影盒物品
+    const char* shulkerBoxNames[] = {"white_shulker_box",
+        "orange_shulker_box",
+        "magenta_shulker_box",
+        "light_blue_shulker_box",
+        "yellow_shulker_box",
+        "lime_shulker_box",
+        "pink_shulker_box",
+        "gray_shulker_box",
+        "light_gray_shulker_box",
+        "cyan_shulker_box",
+        "purple_shulker_box",
+        "blue_shulker_box",
+        "brown_shulker_box",
+        "green_shulker_box",
+        "red_shulker_box",
+        "black_shulker_box"};
+
+    for (const char* name : shulkerBoxNames) {
+        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+        ASSERT_NE(item, nullptr) << "Item minecraft:" << name << " should be registered";
+        EXPECT_TRUE(item->isIn(item::tag::ItemTags::SHULKER_BOXES()))
+            << "minecraft:" << name << " should be in shulker_boxes tag";
+    }
+}
+
+TEST_F(ItemTagsTest, ShulkerBoxesDoesNotContainNonShulkerBoxItems)
+{
+    // 潜影盒标签不应包含非潜影盒物品
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+    EXPECT_FALSE(stone->isIn(item::tag::ItemTags::SHULKER_BOXES()));
+
+    Item* chest = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "chest"));
+    if (chest != nullptr) {
+        EXPECT_FALSE(chest->isIn(item::tag::ItemTags::SHULKER_BOXES()));
+    }
+}
+
+TEST_F(ItemTagsTest, ShulkerBoxesTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::SHULKER_BOXES().getId(), ResourceLocation("minecraft", "shulker_boxes"));
+}
+
+TEST_F(ItemTagsTest, ShulkerBoxesTagContains17Items)
+{
+    // 无色潜影盒 + 16 色潜影盒 = 17 个物品
+    const auto& items = item::tag::ItemTags::SHULKER_BOXES().getItems();
+    EXPECT_EQ(items.size(), 17u);
+}

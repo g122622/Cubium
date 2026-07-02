@@ -227,6 +227,15 @@ public:
     static ItemTag& WOODEN_SHELVES();
 
     /**
+     * @brief 潜影盒物品标签
+     *
+     * 包含无色潜影盒和 16 色潜影盒物品。
+     * 用于判断物品是否为潜影盒（防止嵌套放置）。
+     * 对应 MC 原版标签 minecraft:shulker_boxes。
+     */
+    static ItemTag& SHULKER_BOXES();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

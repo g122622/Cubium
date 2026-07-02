@@ -15,7 +15,7 @@ blocks/
 ├── ChestBlock.hpp/cpp           # 箱子方块（27格存储，支持双箱合并）
 ├── TrappedChestBlock.hpp/cpp    # 陷阱箱方块（红石信号输出，重写createBlockEntity返回TrappedChestEntity）
 ├── HopperBlock.hpp/cpp          # 漏斗方块（物品自动传输）
-├── ShulkerBoxBlock.hpp/cpp      # 潜影盒方块（27格存储，防递归嵌套）
+├── ShulkerBoxBlock.hpp/cpp      # 潜影盒方块（16色+无色变体，27格存储，防递归嵌套，DyeColor参数化）
 ├── AbstractFurnaceBlock.hpp     # 熔炉方块基类（FACING + LIT 属性）
 ├── FurnaceBlock.hpp/cpp         # 普通熔炉方块
 ├── BlastFurnaceBlock.hpp/cpp    # 高炉方块（冶炼速度2x）

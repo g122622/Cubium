@@ -263,6 +263,15 @@ ItemTag& ItemTags::NON_FLAMMABLE_WOOD()
     return *tag;
 }
 
+ItemTag& ItemTags::SHULKER_BOXES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "shulker_boxes"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::WOODEN_SHELVES()
 {
     static ItemTag* tag = nullptr;
@@ -760,6 +769,35 @@ void ItemTags::initialize()
     woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf")));
     woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf")));
     allTags[woodenShelves->getId()] = std::move(woodenShelves);
+
+    // 创建 SHULKER_BOXES 标签
+    // 包含无色潜影盒和 16 色潜影盒物品
+    // 用于判断物品是否为潜影盒（防止嵌套放置）
+    // 对应 MC 原版标签 minecraft:shulker_boxes
+    auto shulkerBoxes = std::make_unique<ItemTag>(ResourceLocation("minecraft", "shulker_boxes"), false);
+
+    // 无色潜影盒
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "shulker_box")));
+
+    // 16 色潜影盒
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_shulker_box")));
+    shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_shulker_box")));
+
+    allTags[shulkerBoxes->getId()] = std::move(shulkerBoxes);
 
     s_initialized = true;
 }
