@@ -86,12 +86,15 @@ bool BlockItemUseContext::_canReplace(const BlockPos& pos) const
     // 获取当前方块状态
     const BlockState* state = m_world.getBlockState(pos);
 
-    // 可替换方块（空气、花草、水、岩浆等）
-    if (state == nullptr || state->canBeReplaced()) {
+    // 空位置视为可替换
+    if (state == nullptr) {
         return true;
     }
 
-    return false;
+    // 调用方块的 isReplaceable 虚方法进行上下文感知的替换判断
+    // 这允许方块实现自定义替换逻辑（如花瓣床堆叠、台阶合并为双层）
+    // 默认实现返回 BlockProperties::replaceable() 标志值
+    return state->getBlock().isReplaceable(*state, *this);
 }
 
 bool BlockItemUseContext::canPlace() const

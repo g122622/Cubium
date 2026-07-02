@@ -100,7 +100,7 @@ bool SlabBlock::isValidPosition(const BlockState& state, IBlockReader& world, co
     return true;
 }
 
-bool SlabBlock::isReplaceable(const BlockState& state, BlockItemUseContext& context) const
+bool SlabBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
 {
 
     // 参考: net.minecraft.block.SlabBlock#isReplaceable

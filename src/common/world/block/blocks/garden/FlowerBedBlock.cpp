@@ -82,34 +82,31 @@ BlockState FlowerBedBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState().with(FACING(), oppositeFacing).with(AMOUNT(), 1);
 }
 
-// TODO: 当前放置系统（BlockItemUseContext::_canReplace / BlockItem::canPlace）仅检查
-// BlockState::canBeReplaced()（即 BlockProperties::replaceable() 标志），不会调用此虚方法。
-// 这意味着：1) isReplaceable() 的潜行/物品类型检查在放置路径中不会被触发；
-// 2) .replaceable() 标志使花瓣床可被任意可放置方块替换（而非仅同类型物品）。
-// 要完全复刻MC Java行为，需修改 BlockItemUseContext::_canReplace 和 BlockItem::canPlace
-// 以调用 Block::isReplaceable(state, context) 替代 BlockState::canBeReplaced()。
-// SlabBlock::isReplaceable 存在同样问题。
-bool FlowerBedBlock::isReplaceable(const BlockState& state, BlockItemUseContext& context) const
+bool FlowerBedBlock::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
 {
-    // 玩家潜行时不替换（正常放置新方块）
+    // 参考 MC Java: SegmentableBlock.canBeReplaced
+    // 条件1：玩家未潜行
     Player* player = context.getPlayer();
     if (player != nullptr && player->isSneaking()) {
-        return false;
+        // 潜行时不堆叠，但仍然可被其他方块替换（回退到基类行为）
+        return BushBlock::isReplaceable(state, context);
     }
 
-    // 手持物品必须是此方块对应的物品
+    // 条件2：手持物品必须是此方块对应的物品
     const ItemStack& heldItem = context.getItemStack();
     if (heldItem.isEmpty()) {
-        return false;
+        // 空手不能堆叠，但仍然可被其他方块替换
+        return BushBlock::isReplaceable(state, context);
     }
 
-    // 通过 BlockItemRegistry 检查手持物品是否为此方块的 BlockItem
+    // 条件3：通过 BlockItemRegistry 检查手持物品是否为此方块的 BlockItem
     const BlockItem* blockItem = BlockItemRegistry::instance().getBlockItem(*this);
     if (blockItem == nullptr || heldItem.getItem() != blockItem) {
-        return false;
+        // 手持非同类型物品不能堆叠，但仍然可被其他方块替换
+        return BushBlock::isReplaceable(state, context);
     }
 
-    // 当前 AMOUNT < 4 时允许堆叠替换
+    // 条件4：当前 AMOUNT < 4 时允许堆叠替换
     return state.get(AMOUNT()) < 4;
 }
 

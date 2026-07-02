@@ -109,7 +109,7 @@ public:
      *
      * 当玩家未潜行、手持同类型物品且 AMOUNT < 4 时返回 true。
      */
-    [[nodiscard]] bool isReplaceable(const BlockState& state, BlockItemUseContext& context) const override;
+    [[nodiscard]] bool isReplaceable(const BlockState& state, const BlockItemUseContext& context) const override;
 
     // ========== 旋转/镜像 ==========
 

@@ -1471,13 +1471,14 @@ public:
      * 当玩家使用物品点击方块时调用，判断是否可以替换该方块。
      * 默认实现返回 BlockProperties::isReplaceable() 的值。
      *
-     * 子类可重写此方法实现特殊替换逻辑，如台阶可被同类型台阶替换形成双层台阶。
+     * 子类可重写此方法实现特殊替换逻辑，如台阶可被同类型台阶替换形成双层台阶，
+     * 花瓣床可被同类型花瓣床堆叠（AMOUNT+1）。
      *
      * @param state 当前方块状态
-     * @param context 物品使用上下文
+     * @param context 物品使用上下文（只读）
      * @return 如果方块可被替换返回true
      */
-    [[nodiscard]] virtual bool isReplaceable(const BlockState& state, BlockItemUseContext& context) const;
+    [[nodiscard]] virtual bool isReplaceable(const BlockState& state, const BlockItemUseContext& context) const;
 
     /**
      * @brief 检查方块是否可以支撑植物

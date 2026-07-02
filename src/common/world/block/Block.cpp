@@ -610,7 +610,7 @@ bool Block::isValidPosition(const BlockState& state, IBlockReader& world, const 
     return true;
 }
 
-bool Block::isReplaceable(const BlockState& state, BlockItemUseContext& context) const
+bool Block::isReplaceable(const BlockState& state, const BlockItemUseContext& context) const
 {
     // 默认实现：使用 BlockProperties 的 isReplaceable 值
     (void)context;
