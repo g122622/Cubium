@@ -193,6 +193,17 @@ private:
      */
     [[nodiscard]] static i32 _getNewRepairCost(i32 oldRepairCost);
 
+    /**
+     * @brief 铁砧损坏判定
+     *
+     * 非创造模式下，从输出槽取出结果时有 12% 概率使铁砧降级：
+     * anvil → chipped_anvil → damaged_anvil → 消失。
+     * 创造模式玩家不会触发铁砧损坏。
+     *
+     * @param player 取出物品的玩家，用于判断游戏模式
+     */
+    void _damageAnvilIfNecessary(Player& player);
+
 private:
     std::unique_ptr<IInventory> m_anvilInventory; ///< 铁砧背包
     BlockPos m_position;                          ///< 铁砧位置

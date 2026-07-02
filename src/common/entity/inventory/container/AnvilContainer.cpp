@@ -33,6 +33,12 @@
 #include "item/enchantment/EnchantmentRegistry.hpp"
 #include "network/packet/PacketSerializer.hpp"
 #include "util/assert/AssertAll.hpp"
+#include "util/math/random/Random.hpp"
+#include "world/IWorld.hpp"
+#include "world/WorldConstants.hpp"
+#include "world/WorldEvents.hpp"
+#include "world/block/BlockTags.hpp"
+#include "world/block/blocks/functional/AnvilBlock.hpp"
 #include <algorithm>
 
 namespace mc {
@@ -247,7 +253,6 @@ void AnvilContainer::removed(Player& player)
 
 ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player)
 {
-    (void)player;
 
     Slot* slot = getSlot(slotIndex);
     if (!slot || slot->isEmpty()) {
@@ -262,11 +267,9 @@ ItemStack AnvilContainer::quickMoveStack(i32 slotIndex, Player& player)
         if (!moveItemToRange(slotStack, ANVIL_SLOTS, getSlotCount() - 1, true)) {
             return ItemStack();
         }
-        // TODO: 铁砧损坏机制尚未实现。MC 原版在玩家从输出槽取出结果时有 12% 概率
-        // 使铁砧降级（anvil → chipped_anvil → damaged_anvil → 消失）。
-        // 非创造模式下，应调用 AnvilBlock::damageAnvil() 并替换或移除铁砧方块，
-        // 同时播放对应音效（1030=使用/降级，1029=完全损坏）。
-        // 需要访问 m_world 和 m_position 来执行 setBlockState 和 playEvent。
+
+        // 铁砧损坏机制：非创造模式下，从输出槽取出结果时有 12% 概率使铁砧降级
+        _damageAnvilIfNecessary(player);
     } else if (slotIndex == SLOT_INPUT_1 || slotIndex == SLOT_INPUT_2) {
         // 从输入槽移动到玩家背包
         if (!moveItemToRange(slotStack, ANVIL_SLOTS, getSlotCount() - 1, false)) {
@@ -579,6 +582,54 @@ bool AnvilContainer::isPlayerCreative() const
     }
     Player* player = m_playerInventory->getPlayer();
     return player != nullptr && player->isCreative();
+}
+
+void AnvilContainer::_damageAnvilIfNecessary(Player& player)
+{
+    // 铁砧损坏逻辑仅在服务端执行
+    if (m_world == nullptr || m_world->isClientSide()) {
+        return;
+    }
+
+    // 创造模式玩家不会触发铁砧损坏，但仍需播放使用音效
+    if (player.isCreative()) {
+        m_world->playEvent(world::WorldEvents::ANVIL_USE_SOUND, m_position, 0);
+        return;
+    }
+
+    // 获取铁砧当前位置的方块状态
+    const BlockState* currentState = m_world->getBlockState(m_position);
+    if (currentState == nullptr) {
+        return;
+    }
+
+    // 确认当前方块确实是铁砧（通过 BlockTags 判断）
+    if (!BlockTags::ANVIL().contains(currentState->getBlock())) {
+        return;
+    }
+
+    // 12% 概率触发损坏
+    math::Random& rng = m_world->getRandom();
+    if (rng.nextFloat() < 0.12f) {
+        // 调用 damageAnvil 获取降级后的方块状态
+        const BlockState* damagedState = blocks::AnvilBlock::damageAnvil(*currentState);
+        if (damagedState != nullptr) {
+            // 降级成功：替换为损坏等级更高的铁砧
+            m_world->setBlockState(m_position, damagedState, 3);
+        } else {
+            // 完全损坏：移除铁砧方块（设为空气）
+            m_world->setBlockState(m_position, nullptr, 3);
+        }
+        // 完全损坏播放 1029 (ANVIL_DESTROYED_SOUND)，降级播放 1030 (ANVIL_USE_SOUND)
+        if (damagedState == nullptr) {
+            m_world->playEvent(world::WorldEvents::ANVIL_DESTROYED_SOUND, m_position, 0);
+        } else {
+            m_world->playEvent(world::WorldEvents::ANVIL_USE_SOUND, m_position, 0);
+        }
+    } else {
+        // 未触发损坏，播放使用音效
+        m_world->playEvent(world::WorldEvents::ANVIL_USE_SOUND, m_position, 0);
+    }
 }
 
 } // namespace mc
