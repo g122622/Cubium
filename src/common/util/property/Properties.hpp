@@ -930,6 +930,17 @@ public:
     }
 
     /**
+     * @brief 花瓣数量属性 (1-4)
+     *
+     * 用于 FlowerBedBlock（粉红色花瓣、野花），表示方块中花瓣的数量。
+     */
+    static const IntegerProperty& FLOWER_AMOUNT()
+    {
+        static auto prop = IntegerProperty::create("flower_amount", 1, 4);
+        return *prop;
+    }
+
+    /**
      * @brief 孵化阶段属性 (0-2)
      */
     static const IntegerProperty& HATCH_0_2()

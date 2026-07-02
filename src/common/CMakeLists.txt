@@ -777,6 +777,7 @@ add_library(mc_common STATIC
 
     # World - Block - Garden Awakening
     world/block/blocks/garden/CactusFlowerBlock.cpp
+    world/block/blocks/garden/FlowerBedBlock.cpp
 
     # World - Block - Pale Garden
     world/block/blocks/pale_garden/CreakingHeartBlock.cpp

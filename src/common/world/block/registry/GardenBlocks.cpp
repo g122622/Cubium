@@ -26,6 +26,7 @@
 #include "world/block/Material.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/garden/CactusFlowerBlock.hpp"
+#include "world/block/blocks/garden/FlowerBedBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -57,21 +58,19 @@ void registerGardenBlocks()
     // 野花和枯叶
     // ============================================================================
 
-    // 野花 - 地面装饰花（使用与粉红色花瓣相同的音效类型）
-    // TODO: 当前注册为 SimpleBlock 占位，需要升级为 FlowerBedBlock 实现：
-    //   - FACING 属性（水平朝向）和 AMOUNT 属性（1-4 花朵数量）
-    //   - 可堆叠放置（右键已有野花方块增加 AMOUNT，最多4）
-    //   - 骨粉催熟（增加 AMOUNT 或弹出物品）
-    //   - 段落化掉落（根据 AMOUNT 值掉落对应数量）
-    //   - 旋转/镜像支持
-    //   参考 MC 原版 FlowerBedBlock（与粉红色花瓣共享同一方块类型）
-    GardenBlocks::WILDFLOWERS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:wildflowers"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::PINK_PETALS));
+    // 野花 - 地面装饰花，可堆叠放置（1-4朵），骨粉催熟
+    // 使用 FlowerBedBlock 实现：FACING 属性（水平朝向）+ AMOUNT 属性（1-4 花朵数量）
+    // 与粉红色花瓣（PINK_PETALS）共享同一方块类型 FlowerBedBlock
+    // replaceable 标志允许同类型物品堆叠放置（isReplaceable 重写会检查物品类型）
+    GardenBlocks::WILDFLOWERS =
+        &registry.registerBlock<blocks::FlowerBedBlock>(ResourceLocation("minecraft:wildflowers"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .replaceable()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::PINK_PETALS));
 
     // 枯叶 - 地面装饰
     GardenBlocks::LEAF_LITTER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:leaf_litter"),

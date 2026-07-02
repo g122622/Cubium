@@ -29,6 +29,7 @@
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/agricultural/TorchflowerCropBlock.hpp"
 #include "world/block/blocks/functional/TrailsBlocks.hpp"
+#include "world/block/blocks/garden/FlowerBedBlock.hpp"
 #include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
 #include "world/block/blocks/vegetation/FlowerBlock.hpp"
 
@@ -125,9 +126,16 @@ void registerTrailsBlocks()
     // 粉红色花瓣
     // ============================================================================
 
-    // 粉红色花瓣 - 樱花林生物群系的装饰植物
-    TrailsBlocks::PINK_PETALS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pink_petals"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::PINK_PETALS));
+    // 粉红色花瓣 - 樱花林生物群系的装饰花，可堆叠放置（1-4朵），骨粉催熟
+    // 使用 FlowerBedBlock 实现，与野花（WILDFLOWERS）共享同一方块类型
+    // replaceable 标志允许同类型物品堆叠放置（isReplaceable 重写会检查物品类型）
+    TrailsBlocks::PINK_PETALS =
+        &registry.registerBlock<blocks::FlowerBedBlock>(ResourceLocation("minecraft:pink_petals"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .replaceable()
+                .soundType(BlockSoundTypes::PINK_PETALS));
 
     // ============================================================================
     // 火把花
