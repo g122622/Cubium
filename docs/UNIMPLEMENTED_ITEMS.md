@@ -54,7 +54,7 @@
 | `minecraft:pale_oak_logs` | 4 |
 | `minecraft:repairs_turtle_helmet` | 1 |
 | `minecraft:repairs_wolf_armor` | 1 |
-| `minecraft:sniffer_food` | 1 |
+| `minecraft:sniffer_food` | 1 ✅ 已完成 |
 | `minecraft:spears` | 7 |
 | `minecraft:wooden_shelves` | 12 |
 
@@ -246,8 +246,8 @@
 - `minecraft:cactus_flower`
 - `minecraft:closed_eyeblossom`
 - `minecraft:open_eyeblossom`
-- `minecraft:pitcher_plant`
-- `minecraft:torchflower`
+- `minecraft:pitcher_plant ✅ 已完成`
+- `minecraft:torchflower ✅ 已完成`
 
 ### Leaves（5）
 
@@ -464,11 +464,10 @@
 - `minecraft:black_bundle`
 - `minecraft:black_harness`
 - `minecraft:blue_bundle`
-- `minecraft:blue_egg`
-- `minecraft:blue_harness`
+- `minecraft:blue_egg ✅ 已完成`
 - `minecraft:brick ✅ 已完成`
 - `minecraft:brown_bundle`
-- `minecraft:brown_egg`
+- `minecraft:brown_egg ✅ 已完成`
 - `minecraft:brown_harness`
 - `minecraft:brush ✅ 已完成`
 - `minecraft:bundle`
@@ -496,7 +495,7 @@
 - `minecraft:green_harness`
 - `minecraft:iron_chain`
 - `minecraft:jungle_shelf`
-- `minecraft:knowledge_book`
+- `minecraft:knowledge_book ✅ 已完成`
 - `minecraft:light_blue_bundle`
 - `minecraft:light_blue_harness`
 - `minecraft:light_gray_bundle`
@@ -520,12 +519,12 @@
 - `minecraft:pink_bundle`
 - `minecraft:pink_harness`
 - `minecraft:pink_petals`
-- `minecraft:pitcher_pod`
+- `minecraft:pitcher_pod ✅ 已完成`
 - `minecraft:purple_bundle`
 - `minecraft:purple_harness`
 - `minecraft:raw_gold ✅ 已完成`
 - `minecraft:raw_gold_block ✅ 已完成`
-- `minecraft:recovery_compass`
+- `minecraft:recovery_compass ✅ 已完成`
 - `minecraft:red_bundle`
 - `minecraft:red_harness`
 - `minecraft:resin_brick ✅ 已完成`
@@ -534,7 +533,7 @@
 - `minecraft:spruce_shelf`
 - `minecraft:stripped_bamboo_block`
 - `minecraft:suspicious_sand`
-- `minecraft:torchflower_seeds`
+- `minecraft:torchflower_seeds ✅ 已完成`
 - `minecraft:turtle_scute ✅ 已完成`
 - `minecraft:warped_shelf`
 - `minecraft:waxed_exposed_lightning_rod`
@@ -762,7 +761,7 @@
 ### `minecraft:sniffer_food`
 
 
-- `minecraft:torchflower_seeds`
+- `minecraft:torchflower_seeds ✅ 已完成`
 
 ### `minecraft:spears`
 
@@ -822,9 +821,9 @@
 - `minecraft:mangrove_propagule`
 - `minecraft:open_eyeblossom`
 - `minecraft:pink_petals`
-- `minecraft:pitcher_plant`
+- `minecraft:pitcher_plant ✅ 已完成`
 - `minecraft:spore_blossom`
-- `minecraft:torchflower`
+- `minecraft:torchflower ✅ 已完成`
 - `minecraft:wildflowers`
 
 ### `minecraft:bookshelf_books`
@@ -833,7 +832,7 @@
 未实现项：
 
 
-- `minecraft:knowledge_book`
+- `minecraft:knowledge_book ✅ 已完成`
 
 ### `minecraft:chicken_food`
 
@@ -841,8 +840,8 @@
 未实现项：
 
 
-- `minecraft:pitcher_pod`
-- `minecraft:torchflower_seeds`
+- `minecraft:pitcher_pod ✅ 已完成`
+- `minecraft:torchflower_seeds ✅ 已完成`
 
 ### `minecraft:coal_ores`
 
@@ -858,7 +857,7 @@
 未实现项：
 
 
-- `minecraft:recovery_compass`
+- `minecraft:recovery_compass ✅ 已完成`
 
 ### `minecraft:copper_ores`
 
@@ -917,8 +916,8 @@
 未实现项：
 
 
-- `minecraft:blue_egg`
-- `minecraft:brown_egg`
+- `minecraft:blue_egg ✅ 已完成`
+- `minecraft:brown_egg ✅ 已完成`
 
 ### `minecraft:emerald_ores`
 
@@ -940,7 +939,7 @@
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_propagule`
 - `minecraft:pink_petals`
-- `minecraft:pitcher_plant`
+- `minecraft:pitcher_plant ✅ 已完成`
 - `minecraft:spore_blossom`
 - `minecraft:wildflowers`
 
@@ -1022,8 +1021,8 @@
 未实现项：
 
 
-- `minecraft:pitcher_pod`
-- `minecraft:torchflower_seeds`
+- `minecraft:pitcher_pod ✅ 已完成`
+- `minecraft:torchflower_seeds ✅ 已完成`
 
 ### `minecraft:piglin_loved`
 
@@ -1165,7 +1164,7 @@
 
 - `minecraft:closed_eyeblossom`
 - `minecraft:open_eyeblossom`
-- `minecraft:torchflower`
+- `minecraft:torchflower ✅ 已完成`
 
 ### `minecraft:stairs`
 
@@ -1240,8 +1239,8 @@
 未实现项：
 
 
-- `minecraft:pitcher_pod`
-- `minecraft:torchflower_seeds`
+- `minecraft:pitcher_pod ✅ 已完成`
+- `minecraft:torchflower_seeds ✅ 已完成`
 
 ### `minecraft:walls`
 

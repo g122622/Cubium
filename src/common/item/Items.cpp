@@ -49,6 +49,7 @@
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
 #include "common/item/items/special/HoneycombItem.hpp"
+#include "common/item/items/special/KnowledgeBookItem.hpp"
 #include "common/item/items/special/LeadItem.hpp"
 #include "common/item/items/special/MilkBucketItem.hpp"
 #include "common/item/items/special/MusicDiscItem.hpp"
@@ -361,8 +362,11 @@ Item* Items::LEATHER = nullptr;
 Item* Items::RABBIT_HIDE = nullptr;
 Item* Items::SLIME_BALL = nullptr;
 Item* Items::EGG = nullptr;
+Item* Items::BLUE_EGG = nullptr;
+Item* Items::BROWN_EGG = nullptr;
 Item* Items::SNOWBALL = nullptr;
 Item* Items::COMPASS = nullptr;
+Item* Items::RECOVERY_COMPASS = nullptr;
 Item* Items::CLOCK = nullptr;
 Item* Items::MAP = nullptr;
 Item* Items::FILLED_MAP = nullptr;
@@ -402,6 +406,8 @@ Item* Items::WHEAT_SEEDS = nullptr;
 Item* Items::PUMPKIN_SEEDS = nullptr;
 Item* Items::MELON_SEEDS = nullptr;
 Item* Items::BEETROOT_SEEDS = nullptr;
+Item* Items::TORCHFLOWER_SEEDS = nullptr;
+Item* Items::PITCHER_POD = nullptr;
 
 // 农产品
 Item* Items::WHEAT = nullptr;
@@ -495,6 +501,7 @@ Item* Items::BOOK = nullptr;
 Item* Items::ENCHANTED_BOOK = nullptr;
 Item* Items::WRITABLE_BOOK = nullptr;
 Item* Items::WRITTEN_BOOK = nullptr;
+Item* Items::KNOWLEDGE_BOOK = nullptr;
 
 // ============================================================================
 // 海绵
@@ -727,6 +734,8 @@ Item* Items::ROSE_BUSH = nullptr;
 Item* Items::PEONY = nullptr;
 Item* Items::CORNFLOWER = nullptr;
 Item* Items::WITHER_ROSE = nullptr;
+Item* Items::TORCHFLOWER = nullptr;
+Item* Items::PITCHER_PLANT = nullptr;
 Item* Items::BROWN_MUSHROOM = nullptr;
 Item* Items::RED_MUSHROOM = nullptr;
 Item* Items::BROWN_MUSHROOM_BLOCK = nullptr;
@@ -2063,7 +2072,19 @@ void Items::_registerMisc()
 
     // EGG 已在 registerThrowableItems() 中注册为 EggItem
 
+    // 蓝蛋 - 寒带鸡变种产蛋，与白蛋行为相同
+    BLUE_EGG = &registry.registerItem<item::EggItem>(
+        ResourceLocation("minecraft:blue_egg"), ItemProperties().maxStackSize(16));
+
+    // 棕蛋 - 暖色鸡变种产蛋，与白蛋行为相同
+    BROWN_EGG = &registry.registerItem<item::EggItem>(
+        ResourceLocation("minecraft:brown_egg"), ItemProperties().maxStackSize(16));
+
     COMPASS = &registry.registerItem(ResourceLocation("minecraft:compass"), ItemProperties().maxStackSize(64));
+
+    // 追溯指南针 - 指向玩家上次死亡位置，8个回响碎片围绕1个指南针合成
+    RECOVERY_COMPASS =
+        &registry.registerItem(ResourceLocation("minecraft:recovery_compass"), ItemProperties().maxStackSize(1));
 
     CLOCK = &registry.registerItem(ResourceLocation("minecraft:clock"), ItemProperties().maxStackSize(64));
 
@@ -2155,6 +2176,13 @@ void Items::_registerSeeds()
 
     BEETROOT_SEEDS =
         &registry.registerItem(ResourceLocation("minecraft:beetroot_seeds"), ItemProperties().maxStackSize(64));
+
+    // 火把花种子 - 嗅探兽挖掘获得，右键耕地种植火把花作物
+    TORCHFLOWER_SEEDS =
+        &registry.registerItem(ResourceLocation("minecraft:torchflower_seeds"), ItemProperties().maxStackSize(64));
+
+    // 瓶草荚果 - 嗅探兽挖掘获得，右键耕地种植瓶草作物
+    PITCHER_POD = &registry.registerItem(ResourceLocation("minecraft:pitcher_pod"), ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerCrops()
@@ -2486,6 +2514,10 @@ void Items::_registerBooks()
     // 成书 - 已完成的书
     WRITTEN_BOOK =
         &registry.registerItem(ResourceLocation("minecraft:written_book"), ItemProperties().maxStackSize(16));
+
+    // 知识之书 - 右键使用时解锁NBT中存储的配方列表
+    KNOWLEDGE_BOOK = &registry.registerItem<item::items::KnowledgeBookItem>(
+        ResourceLocation("minecraft:knowledge_book"), ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerSponges()
@@ -3605,6 +3637,15 @@ void Items::_registerVegetation()
         &registerBlockBackedItem(registry, VanillaBlocks::CORNFLOWER, "cornflower", ItemProperties().maxStackSize(64));
     WITHER_ROSE = &registerBlockBackedItem(
         registry, VanillaBlocks::WITHER_ROSE, "wither_rose", ItemProperties().maxStackSize(64));
+
+    // 火把花 - 嗅探兽挖掘种子种植后长成的花朵
+    TORCHFLOWER = &registerBlockBackedItem(
+        registry, VanillaBlocks::TORCHFLOWER, "torchflower", ItemProperties().maxStackSize(64));
+
+    // 瓶草 - 嗅探兽挖掘荚果种植后长成的双层花朵
+    PITCHER_PLANT = &registerBlockBackedItem(
+        registry, VanillaBlocks::PITCHER_PLANT, "pitcher_plant", ItemProperties().maxStackSize(64));
+
     BROWN_MUSHROOM = &registerBlockBackedItem(
         registry, VanillaBlocks::BROWN_MUSHROOM, "brown_mushroom", ItemProperties().maxStackSize(64));
     RED_MUSHROOM = &registerBlockBackedItem(

@@ -355,8 +355,11 @@ public:
     static Item* RABBIT_HIDE; // 兔子皮 - 可合成皮革
     static Item* SLIME_BALL;
     static Item* EGG;
-    static Item* SNOWBALL; // 雪球
+    static Item* BLUE_EGG;  // 蓝蛋 - 寒带鸡变种产蛋
+    static Item* BROWN_EGG; // 棕蛋 - 暖色鸡变种产蛋
+    static Item* SNOWBALL;  // 雪球
     static Item* COMPASS;
+    static Item* RECOVERY_COMPASS; // 追溯指南针 - 指向玩家上次死亡位置
     static Item* CLOCK;
     static Item* MAP;        // 空地图
     static Item* FILLED_MAP; // 已填充地图
@@ -399,6 +402,8 @@ public:
     static Item* PUMPKIN_SEEDS;
     static Item* MELON_SEEDS;
     static Item* BEETROOT_SEEDS;
+    static Item* TORCHFLOWER_SEEDS; // 火把花种子 - 嗅探兽食物
+    static Item* PITCHER_POD;       // 瓶草荚果 - 可种植瓶草
 
     // ========================================================================
     // 农产品
@@ -498,6 +503,7 @@ public:
     static Item* ENCHANTED_BOOK; // 附魔书
     static Item* WRITABLE_BOOK;  // 书与笔
     static Item* WRITTEN_BOOK;   // 成书
+    static Item* KNOWLEDGE_BOOK; // 知识之书 - 右键解锁配方
 
     // ========================================================================
     // 海绵
@@ -778,6 +784,8 @@ public:
     static Item* PEONY;                // 牡丹
     static Item* CORNFLOWER;           // 矢车菊
     static Item* WITHER_ROSE;          // 凋零玫瑰
+    static Item* TORCHFLOWER;          // 火把花
+    static Item* PITCHER_PLANT;        // 瓶草
     static Item* BROWN_MUSHROOM;       // 棕色蘑菇
     static Item* RED_MUSHROOM;         // 红色蘑菇
     static Item* BROWN_MUSHROOM_BLOCK; // 棕色蘑菇方块

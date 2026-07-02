@@ -526,6 +526,7 @@ add_library(mc_common STATIC
     item/items/special/FishBucketItem.cpp
     item/items/special/FlintAndSteelItem.cpp
     item/items/special/HoneycombItem.cpp
+    item/items/special/KnowledgeBookItem.cpp
     item/items/special/MilkBucketItem.cpp
     item/items/special/MusicDiscItem.cpp
     item/items/special/PotterySherdItem.cpp
