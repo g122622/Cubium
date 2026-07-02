@@ -99,6 +99,11 @@ public:
      * @brief 获取放置状态（返回默认状态 AGE=0, HALF=Lower）
      *
      * 瓶草作物只能通过种子放置，初始为下半部分、年龄 0。
+     *
+     * 注意：此方法重写 Block::getStateForPlacement(BlockItemUseContext&)，
+     * 但 SeedsItem 的放置路径通过 BlockItem::getStateForPlacement 返回 defaultState()，
+     * 由于 defaultState() 已经是 AGE=0, HALF=Lower，功能上无影响。
+     * 若将来需要根据放置上下文返回不同状态，需同步修改 BlockItem 放置路径。
      */
     [[nodiscard]] BlockState getStateForPlacement(BlockItemUseContext& context) override;
 
@@ -183,11 +188,18 @@ public:
 
     /**
      * @brief 获取作物物品（成熟时掉落瓶草植物）
+     *
+     * TODO: 目前此方法未被任何代码路径调用。PitcherCropBlock 继承自 DoublePlantBlock
+     * 而非 CropBlock，FarmerWorkGoal 通过 dynamic_cast<CropBlock*> 访问 getCropItem/getSeedItem，
+     * 无法识别 PitcherCropBlock。掉落由战利品表驱动（minecraft:blocks/pitcher_crop），
+     * 但村民收获场景需要后续在 FarmerWorkGoal 中添加对 PitcherCropBlock 的支持。
      */
     [[nodiscard]] u32 getCropItem() const;
 
     /**
      * @brief 获取种子物品（瓶草荚果）
+     *
+     * TODO: 同 getCropItem 的说明，当前未被调用，需要 FarmerWorkGoal 支持。
      */
     [[nodiscard]] u32 getSeedItem() const;
 
