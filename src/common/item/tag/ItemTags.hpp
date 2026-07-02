@@ -58,6 +58,13 @@ public:
     static ItemTag& CARPETS();
 
     /**
+     * @brief 床物品标签
+     *
+     * 包含所有颜色的床物品。
+     */
+    static ItemTag& BEDS();
+
+    /**
      * @brief 减振物品标签
      *
      * 包含所有羊毛物品和地毯物品。

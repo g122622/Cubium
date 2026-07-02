@@ -139,6 +139,24 @@ struct ColoredBlocks {
     static Block* RED_TERRACOTTA;
     static Block* BLACK_TERRACOTTA;
     static Block* TERRACOTTA;
+
+    // 床 (16色)
+    static Block* WHITE_BED;
+    static Block* ORANGE_BED;
+    static Block* MAGENTA_BED;
+    static Block* LIGHT_BLUE_BED;
+    static Block* YELLOW_BED;
+    static Block* LIME_BED;
+    static Block* PINK_BED;
+    static Block* GRAY_BED;
+    static Block* LIGHT_GRAY_BED;
+    static Block* CYAN_BED;
+    static Block* PURPLE_BED;
+    static Block* BLUE_BED;
+    static Block* BROWN_BED;
+    static Block* GREEN_BED;
+    static Block* RED_BED;
+    static Block* BLACK_BED;
 };
 
 void registerColoredBlocks();

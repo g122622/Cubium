@@ -185,6 +185,12 @@ public:
     /// 3. 羊驼装备判定（MC 1.21+ 使用 Equippable 数据组件，非标签判断）— 已在 LlamaEntity::isValidArmorForSlot 中使用
     static BlockTag& WOOL_CARPETS();
 
+    /// 床标签（所有颜色的床方块）
+    /// 运行时消费场景：
+    /// 1. 村民睡眠目标判定 — 已在 VillagerEntity/GoToBedGoal 中消费
+    /// 2. 猫咪坐上方块判定 — 已在 CatGoals 中消费
+    static BlockTag& BEDS();
+
     /// 木质栅栏标签（所有木质栅栏，不含下界砖栅栏）
     static BlockTag& WOODEN_FENCES();
 

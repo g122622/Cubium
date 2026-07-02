@@ -32,6 +32,7 @@
 #include <gtest/gtest.h>
 
 #include "common/util/Direction.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
 #include "common/world/IWorld.hpp"
@@ -179,7 +180,8 @@ protected:
     void SetUp() override
     {
         // 创建白色床方块
-        bed_ = std::make_unique<BedBlock>(0, BlockProperties(Material::WOOL).hardness(0.2f).resistance(0.2f));
+        bed_ = std::make_unique<BedBlock>(
+            DyeColor::White, BlockProperties(Material::WOOL).hardness(0.2f).resistance(0.2f));
     }
 
     std::unique_ptr<BedBlock> bed_;
@@ -227,7 +229,8 @@ class BedBlockConnectedDirectionTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bed_ = std::make_unique<BedBlock>(0, BlockProperties(Material::WOOL).hardness(0.2f).resistance(0.2f));
+        bed_ = std::make_unique<BedBlock>(
+            DyeColor::White, BlockProperties(Material::WOOL).hardness(0.2f).resistance(0.2f));
     }
 
     std::unique_ptr<BedBlock> bed_;
@@ -275,7 +278,8 @@ class BedBlockStandUpTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        bed_ = std::make_unique<BedBlock>(0, BlockProperties(Material::WOOL).hardness(0.2f).resistance(0.2f));
+        bed_ = std::make_unique<BedBlock>(
+            DyeColor::White, BlockProperties(Material::WOOL).hardness(0.2f).resistance(0.2f));
     }
 
     std::unique_ptr<BedBlock> bed_;

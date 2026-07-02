@@ -38,7 +38,7 @@
 | --- | --- |
 | `minecraft:anvil` | 3 ✅ 已完成 |
 | `minecraft:bamboo_blocks` | 2 |
-| `minecraft:beds` | 16 |
+| `minecraft:beds` | 16 ✅ 已完成 |
 | `minecraft:bundles` | 17 |
 | `minecraft:candles` | 17 |
 | `minecraft:chains` | 9 ✅ 已完成 |
@@ -117,22 +117,22 @@
 - `minecraft:wolf_armor`### Beds（16）
 
 
-- `minecraft:black_bed`
-- `minecraft:blue_bed`
-- `minecraft:brown_bed`
-- `minecraft:cyan_bed`
-- `minecraft:gray_bed`
-- `minecraft:green_bed`
-- `minecraft:light_blue_bed`
-- `minecraft:light_gray_bed`
-- `minecraft:lime_bed`
-- `minecraft:magenta_bed`
-- `minecraft:orange_bed`
-- `minecraft:pink_bed`
-- `minecraft:purple_bed`
-- `minecraft:red_bed`
-- `minecraft:white_bed`
-- `minecraft:yellow_bed`
+- `minecraft:black_bed ✅ 已完成`
+- `minecraft:blue_bed ✅ 已完成`
+- `minecraft:brown_bed ✅ 已完成`
+- `minecraft:cyan_bed ✅ 已完成`
+- `minecraft:gray_bed ✅ 已完成`
+- `minecraft:green_bed ✅ 已完成`
+- `minecraft:light_blue_bed ✅ 已完成`
+- `minecraft:light_gray_bed ✅ 已完成`
+- `minecraft:lime_bed ✅ 已完成`
+- `minecraft:magenta_bed ✅ 已完成`
+- `minecraft:orange_bed ✅ 已完成`
+- `minecraft:pink_bed ✅ 已完成`
+- `minecraft:purple_bed ✅ 已完成`
+- `minecraft:red_bed ✅ 已完成`
+- `minecraft:white_bed ✅ 已完成`
+- `minecraft:yellow_bed ✅ 已完成`
 
 ### Buttons（1）
 
@@ -566,25 +566,25 @@
 - `minecraft:bamboo_block ✅ 已完成`
 - `minecraft:stripped_bamboo_block ✅ 已完成`
 
-### `minecraft:beds`
+### `minecraft:beds` ✅ 已完成
 
 
-- `minecraft:black_bed`
-- `minecraft:blue_bed`
-- `minecraft:brown_bed`
-- `minecraft:cyan_bed`
-- `minecraft:gray_bed`
-- `minecraft:green_bed`
-- `minecraft:light_blue_bed`
-- `minecraft:light_gray_bed`
-- `minecraft:lime_bed`
-- `minecraft:magenta_bed`
-- `minecraft:orange_bed`
-- `minecraft:pink_bed`
-- `minecraft:purple_bed`
-- `minecraft:red_bed`
-- `minecraft:white_bed`
-- `minecraft:yellow_bed`
+- `minecraft:black_bed ✅ 已完成`
+- `minecraft:blue_bed ✅ 已完成`
+- `minecraft:brown_bed ✅ 已完成`
+- `minecraft:cyan_bed ✅ 已完成`
+- `minecraft:gray_bed ✅ 已完成`
+- `minecraft:green_bed ✅ 已完成`
+- `minecraft:light_blue_bed ✅ 已完成`
+- `minecraft:light_gray_bed ✅ 已完成`
+- `minecraft:lime_bed ✅ 已完成`
+- `minecraft:magenta_bed ✅ 已完成`
+- `minecraft:orange_bed ✅ 已完成`
+- `minecraft:pink_bed ✅ 已完成`
+- `minecraft:purple_bed ✅ 已完成`
+- `minecraft:red_bed ✅ 已完成`
+- `minecraft:white_bed ✅ 已完成`
+- `minecraft:yellow_bed ✅ 已完成`
 
 ### `minecraft:bundles`
 

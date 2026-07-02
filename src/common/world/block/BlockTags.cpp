@@ -253,6 +253,15 @@ BlockTag& BlockTags::WOOL_CARPETS()
     return *tag;
 }
 
+BlockTag& BlockTags::BEDS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "beds"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::WOODEN_FENCES()
 {
     static BlockTag* tag = nullptr;
@@ -1175,6 +1184,26 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "red_carpet"),
         ResourceLocation("minecraft", "black_carpet")});
     tags[woolCarpets->getId()] = std::move(woolCarpets);
+
+    // 创建 BEDS 标签（所有颜色的床方块）
+    auto beds = std::make_unique<BlockTag>(ResourceLocation("minecraft", "beds"));
+    beds->addAll({ResourceLocation("minecraft", "white_bed"),
+        ResourceLocation("minecraft", "orange_bed"),
+        ResourceLocation("minecraft", "magenta_bed"),
+        ResourceLocation("minecraft", "light_blue_bed"),
+        ResourceLocation("minecraft", "yellow_bed"),
+        ResourceLocation("minecraft", "lime_bed"),
+        ResourceLocation("minecraft", "pink_bed"),
+        ResourceLocation("minecraft", "gray_bed"),
+        ResourceLocation("minecraft", "light_gray_bed"),
+        ResourceLocation("minecraft", "cyan_bed"),
+        ResourceLocation("minecraft", "purple_bed"),
+        ResourceLocation("minecraft", "blue_bed"),
+        ResourceLocation("minecraft", "brown_bed"),
+        ResourceLocation("minecraft", "green_bed"),
+        ResourceLocation("minecraft", "red_bed"),
+        ResourceLocation("minecraft", "black_bed")});
+    tags[beds->getId()] = std::move(beds);
 
     // 创建 WOODEN_FENCES 标签（所有木质栅栏，不含下界砖栅栏）
     auto woodenFences = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_fences"));

@@ -92,6 +92,15 @@ ItemTag& ItemTags::CARPETS()
     return *tag;
 }
 
+ItemTag& ItemTags::BEDS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "beds"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::DAMPENS_VIBRATIONS()
 {
     static ItemTag* tag = nullptr;
@@ -336,6 +345,26 @@ void ItemTags::initialize()
     carpets->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_carpet")));
 
     allTags[carpets->getId()] = std::move(carpets);
+
+    // 创建 BEDS 标签（所有颜色的床物品）
+    auto beds = std::make_unique<ItemTag>(ResourceLocation("minecraft", "beds"), false);
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "orange_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "magenta_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_blue_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "yellow_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lime_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gray_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_gray_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cyan_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "purple_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "blue_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brown_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "green_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "red_bed")));
+    beds->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_bed")));
+    allTags[beds->getId()] = std::move(beds);
 
     // 创建 DAMPENS_VIBRATIONS 标签
     // 包含所有羊毛物品和地毯物品

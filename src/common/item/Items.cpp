@@ -31,6 +31,7 @@
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/items/armor/HorseArmorItem.hpp"
 #include "common/item/items/block/BannerItem.hpp"
+#include "common/item/items/block/BedItem.hpp"
 #include "common/item/items/block/BlockItem.hpp"
 #include "common/item/items/block/SeedsItem.hpp"
 #include "common/item/items/block/WallOrFloorItem.hpp"
@@ -794,6 +795,24 @@ Item* Items::GREEN_WOOL = nullptr;
 Item* Items::RED_WOOL = nullptr;
 Item* Items::BLACK_WOOL = nullptr;
 
+// 床 (16色)
+Item* Items::WHITE_BED = nullptr;
+Item* Items::ORANGE_BED = nullptr;
+Item* Items::MAGENTA_BED = nullptr;
+Item* Items::LIGHT_BLUE_BED = nullptr;
+Item* Items::YELLOW_BED = nullptr;
+Item* Items::LIME_BED = nullptr;
+Item* Items::PINK_BED = nullptr;
+Item* Items::GRAY_BED = nullptr;
+Item* Items::LIGHT_GRAY_BED = nullptr;
+Item* Items::CYAN_BED = nullptr;
+Item* Items::PURPLE_BED = nullptr;
+Item* Items::BLUE_BED = nullptr;
+Item* Items::BROWN_BED = nullptr;
+Item* Items::GREEN_BED = nullptr;
+Item* Items::RED_BED = nullptr;
+Item* Items::BLACK_BED = nullptr;
+
 // 地毯 (16色)
 Item* Items::WHITE_CARPET = nullptr;
 Item* Items::ORANGE_CARPET = nullptr;
@@ -1300,6 +1319,7 @@ void Items::initialize()
     _registerSigns();        // 告示牌物品
     _registerBanners();      // 旗帜和图案物品
     _registerBuildingBlocks();
+    _registerBeds();
     _registerWool();
     _registerCarpets();
     _registerStainedGlass();
@@ -3491,6 +3511,46 @@ void Items::_registerBuildingBlocks()
         registry, VanillaBlocks::CHISELED_QUARTZ_BLOCK, "chiseled_quartz_block", ItemProperties().maxStackSize(64));
     QUARTZ_PILLAR = &registerBlockBackedItem(
         registry, VanillaBlocks::QUARTZ_PILLAR, "quartz_pillar", ItemProperties().maxStackSize(64));
+}
+
+void Items::_registerBeds()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // 床使用 BedItem（自定义 BlockItem 子类），以支持根据朝向放置脚部方块
+    // BedBlock::onBlockPlacedBy 会在脚部放置后自动放置头部方块
+    WHITE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:white_bed"), *VanillaBlocks::WHITE_BED, ItemProperties().maxStackSize(1));
+    ORANGE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:orange_bed"), *VanillaBlocks::ORANGE_BED, ItemProperties().maxStackSize(1));
+    MAGENTA_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:magenta_bed"), *VanillaBlocks::MAGENTA_BED, ItemProperties().maxStackSize(1));
+    LIGHT_BLUE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:light_blue_bed"), *VanillaBlocks::LIGHT_BLUE_BED, ItemProperties().maxStackSize(1));
+    YELLOW_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:yellow_bed"), *VanillaBlocks::YELLOW_BED, ItemProperties().maxStackSize(1));
+    LIME_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:lime_bed"), *VanillaBlocks::LIME_BED, ItemProperties().maxStackSize(1));
+    PINK_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:pink_bed"), *VanillaBlocks::PINK_BED, ItemProperties().maxStackSize(1));
+    GRAY_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:gray_bed"), *VanillaBlocks::GRAY_BED, ItemProperties().maxStackSize(1));
+    LIGHT_GRAY_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:light_gray_bed"), *VanillaBlocks::LIGHT_GRAY_BED, ItemProperties().maxStackSize(1));
+    CYAN_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:cyan_bed"), *VanillaBlocks::CYAN_BED, ItemProperties().maxStackSize(1));
+    PURPLE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:purple_bed"), *VanillaBlocks::PURPLE_BED, ItemProperties().maxStackSize(1));
+    BLUE_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:blue_bed"), *VanillaBlocks::BLUE_BED, ItemProperties().maxStackSize(1));
+    BROWN_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:brown_bed"), *VanillaBlocks::BROWN_BED, ItemProperties().maxStackSize(1));
+    GREEN_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:green_bed"), *VanillaBlocks::GREEN_BED, ItemProperties().maxStackSize(1));
+    RED_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:red_bed"), *VanillaBlocks::RED_BED, ItemProperties().maxStackSize(1));
+    BLACK_BED = &registry.registerItem<BedItem>(
+        ResourceLocation("minecraft:black_bed"), *VanillaBlocks::BLACK_BED, ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerWool()

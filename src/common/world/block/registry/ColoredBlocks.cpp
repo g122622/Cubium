@@ -21,11 +21,13 @@
  */
 
 #include "world/block/registry/ColoredBlocks.hpp"
+#include "common/util/color/DyeColor.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/blocks/ConcretePowderBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/decorative/CarpetBlock.hpp"
 #include "world/block/blocks/decorative/StainedGlassBlock.hpp"
+#include "world/block/blocks/functional/BedBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -138,6 +140,24 @@ Block* ColoredBlocks::GREEN_TERRACOTTA = nullptr;
 Block* ColoredBlocks::RED_TERRACOTTA = nullptr;
 Block* ColoredBlocks::BLACK_TERRACOTTA = nullptr;
 Block* ColoredBlocks::TERRACOTTA = nullptr;
+
+// 床 (16色)
+Block* ColoredBlocks::WHITE_BED = nullptr;
+Block* ColoredBlocks::ORANGE_BED = nullptr;
+Block* ColoredBlocks::MAGENTA_BED = nullptr;
+Block* ColoredBlocks::LIGHT_BLUE_BED = nullptr;
+Block* ColoredBlocks::YELLOW_BED = nullptr;
+Block* ColoredBlocks::LIME_BED = nullptr;
+Block* ColoredBlocks::PINK_BED = nullptr;
+Block* ColoredBlocks::GRAY_BED = nullptr;
+Block* ColoredBlocks::LIGHT_GRAY_BED = nullptr;
+Block* ColoredBlocks::CYAN_BED = nullptr;
+Block* ColoredBlocks::PURPLE_BED = nullptr;
+Block* ColoredBlocks::BLUE_BED = nullptr;
+Block* ColoredBlocks::BROWN_BED = nullptr;
+Block* ColoredBlocks::GREEN_BED = nullptr;
+Block* ColoredBlocks::RED_BED = nullptr;
+Block* ColoredBlocks::BLACK_BED = nullptr;
 
 void registerColoredBlocks()
 {
@@ -362,6 +382,43 @@ void registerColoredBlocks()
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_terracotta"), terracottaProps);
     ColoredBlocks::BLACK_TERRACOTTA =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:black_terracotta"), terracottaProps);
+
+    // ========== 床注册 (16色) ==========
+    // 床：羊毛材质，硬度0.2，不阻挡光线，可被 lava 点燃，被活塞推动时销毁
+    BlockProperties bedProps = BlockProperties(Material::WOOL).hardness(0.2f).notSolid().ignitedByLava();
+
+    ColoredBlocks::WHITE_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:white_bed"), DyeColor::White, bedProps);
+    ColoredBlocks::ORANGE_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:orange_bed"), DyeColor::Orange, bedProps);
+    ColoredBlocks::MAGENTA_BED = &registry.registerBlock<blocks::BedBlock>(
+        ResourceLocation("minecraft:magenta_bed"), DyeColor::Magenta, bedProps);
+    ColoredBlocks::LIGHT_BLUE_BED = &registry.registerBlock<blocks::BedBlock>(
+        ResourceLocation("minecraft:light_blue_bed"), DyeColor::LightBlue, bedProps);
+    ColoredBlocks::YELLOW_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:yellow_bed"), DyeColor::Yellow, bedProps);
+    ColoredBlocks::LIME_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:lime_bed"), DyeColor::Lime, bedProps);
+    ColoredBlocks::PINK_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:pink_bed"), DyeColor::Pink, bedProps);
+    ColoredBlocks::GRAY_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:gray_bed"), DyeColor::Gray, bedProps);
+    ColoredBlocks::LIGHT_GRAY_BED = &registry.registerBlock<blocks::BedBlock>(
+        ResourceLocation("minecraft:light_gray_bed"), DyeColor::LightGray, bedProps);
+    ColoredBlocks::CYAN_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:cyan_bed"), DyeColor::Cyan, bedProps);
+    ColoredBlocks::PURPLE_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:purple_bed"), DyeColor::Purple, bedProps);
+    ColoredBlocks::BLUE_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:blue_bed"), DyeColor::Blue, bedProps);
+    ColoredBlocks::BROWN_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:brown_bed"), DyeColor::Brown, bedProps);
+    ColoredBlocks::GREEN_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:green_bed"), DyeColor::Green, bedProps);
+    ColoredBlocks::RED_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:red_bed"), DyeColor::Red, bedProps);
+    ColoredBlocks::BLACK_BED =
+        &registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:black_bed"), DyeColor::Black, bedProps);
 }
 
 } // namespace block_registry

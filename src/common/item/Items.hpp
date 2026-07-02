@@ -850,6 +850,26 @@ public:
     static Item* BLACK_WOOL;
 
     // ========================================================================
+    // 床 (16色)
+    // ========================================================================
+    static Item* WHITE_BED;
+    static Item* ORANGE_BED;
+    static Item* MAGENTA_BED;
+    static Item* LIGHT_BLUE_BED;
+    static Item* YELLOW_BED;
+    static Item* LIME_BED;
+    static Item* PINK_BED;
+    static Item* GRAY_BED;
+    static Item* LIGHT_GRAY_BED;
+    static Item* CYAN_BED;
+    static Item* PURPLE_BED;
+    static Item* BLUE_BED;
+    static Item* BROWN_BED;
+    static Item* GREEN_BED;
+    static Item* RED_BED;
+    static Item* BLACK_BED;
+
+    // ========================================================================
     // 地毯 (16色)
     // ========================================================================
     static Item* WHITE_CARPET;
@@ -1357,6 +1377,7 @@ private:
     static void _registerSigns();
     static void _registerBanners();
     static void _registerBuildingBlocks();
+    static void _registerBeds();
     static void _registerWool();
     static void _registerCarpets();
     static void _registerStainedGlass();

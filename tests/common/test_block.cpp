@@ -24,6 +24,7 @@
 #include "../src/common/entity/core/Entity.hpp"
 #include "../src/common/item/context/BlockItemUseContext.hpp"
 #include "../src/common/item/core/ItemStack.hpp"
+#include "../src/common/util/color/DyeColor.hpp"
 #include "../src/common/util/math/Vector3.hpp"
 #include "../src/common/util/math/random/Random.hpp"
 #include "../src/common/util/property/Properties.hpp"
@@ -1385,7 +1386,7 @@ TEST(FunctionalBlockBehaviorTest, BedUpdatePostPlacementReturnsAirWhenPartnerIsM
 
     ASSERT_NE(VanillaBlocks::AIR, nullptr);
 
-    blocks::BedBlock bed(0, BlockProperties(Material::WOOL).hardness(0.2f).notSolid());
+    blocks::BedBlock bed(DyeColor::White, BlockProperties(Material::WOOL).hardness(0.2f).notSolid());
 
     BlockRulesTestWorld world;
     const BlockPos bedPos(26, 64, 26);
