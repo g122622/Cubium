@@ -1139,3 +1139,200 @@ TEST_F(BlockTagsTest, ChainsTagContainsCopperChainBlockPointer)
     }
     EXPECT_TRUE(BlockTags::CHAINS().contains(*block_registry::CopperBlocks::COPPER_CHAIN));
 }
+
+// ============================================================================
+// WOODEN_DOORS 标签测试
+// 参考: net.minecraft.tags.BlockTags.WOODEN_DOORS
+// ============================================================================
+
+TEST_F(BlockTagsTest, WoodenDoorsContainsOakDoor)
+{
+    EXPECT_TRUE(BlockTags::WOODEN_DOORS().contains(ResourceLocation("minecraft", "oak_door")));
+}
+
+TEST_F(BlockTagsTest, WoodenDoorsContainsCrimsonDoor)
+{
+    EXPECT_TRUE(BlockTags::WOODEN_DOORS().contains(ResourceLocation("minecraft", "crimson_door")));
+}
+
+TEST_F(BlockTagsTest, WoodenDoorsContainsWarpedDoor)
+{
+    EXPECT_TRUE(BlockTags::WOODEN_DOORS().contains(ResourceLocation("minecraft", "warped_door")));
+}
+
+TEST_F(BlockTagsTest, WoodenDoorsDoesNotContainIronDoor)
+{
+    EXPECT_FALSE(BlockTags::WOODEN_DOORS().contains(ResourceLocation("minecraft", "iron_door")));
+}
+
+TEST_F(BlockTagsTest, WoodenDoorsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::WOODEN_DOORS().getId(), ResourceLocation("minecraft", "wooden_doors"));
+}
+
+TEST_F(BlockTagsTest, WoodenDoorsContainsAll12Doors)
+{
+    const auto& blockIds = BlockTags::WOODEN_DOORS().getBlockIds();
+    EXPECT_EQ(blockIds.size(), 12u);
+}
+
+// ============================================================================
+// DOORS 标签测试
+// 参考: net.minecraft.tags.BlockTags.DOORS
+// ============================================================================
+
+TEST_F(BlockTagsTest, DoorsContainsOakDoor)
+{
+    EXPECT_TRUE(BlockTags::DOORS().contains(ResourceLocation("minecraft", "oak_door")));
+}
+
+TEST_F(BlockTagsTest, DoorsContainsIronDoor)
+{
+    EXPECT_TRUE(BlockTags::DOORS().contains(ResourceLocation("minecraft", "iron_door")));
+}
+
+TEST_F(BlockTagsTest, DoorsContainsCrimsonDoor)
+{
+    EXPECT_TRUE(BlockTags::DOORS().contains(ResourceLocation("minecraft", "crimson_door")));
+}
+
+TEST_F(BlockTagsTest, DoorsContainsCopperDoor)
+{
+    EXPECT_TRUE(BlockTags::DOORS().contains(ResourceLocation("minecraft", "copper_door")));
+}
+
+TEST_F(BlockTagsTest, DoorsDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::DOORS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, DoorsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::DOORS().getId(), ResourceLocation("minecraft", "doors"));
+}
+
+// ============================================================================
+// WOODEN_TRAPDOORS 标签测试
+// 参考: net.minecraft.tags.BlockTags.WOODEN_TRAPDOORS
+// ============================================================================
+
+TEST_F(BlockTagsTest, WoodenTrapdoorsContainsOakTrapdoor)
+{
+    EXPECT_TRUE(BlockTags::WOODEN_TRAPDOORS().contains(ResourceLocation("minecraft", "oak_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, WoodenTrapdoorsContainsCrimsonTrapdoor)
+{
+    EXPECT_TRUE(BlockTags::WOODEN_TRAPDOORS().contains(ResourceLocation("minecraft", "crimson_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, WoodenTrapdoorsContainsWarpedTrapdoor)
+{
+    EXPECT_TRUE(BlockTags::WOODEN_TRAPDOORS().contains(ResourceLocation("minecraft", "warped_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, WoodenTrapdoorsDoesNotContainIronTrapdoor)
+{
+    EXPECT_FALSE(BlockTags::WOODEN_TRAPDOORS().contains(ResourceLocation("minecraft", "iron_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, WoodenTrapdoorsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::WOODEN_TRAPDOORS().getId(), ResourceLocation("minecraft", "wooden_trapdoors"));
+}
+
+TEST_F(BlockTagsTest, WoodenTrapdoorsContainsAll12Trapdoors)
+{
+    const auto& blockIds = BlockTags::WOODEN_TRAPDOORS().getBlockIds();
+    EXPECT_EQ(blockIds.size(), 12u);
+}
+
+// ============================================================================
+// TRAPDOORS 标签测试
+// 参考: net.minecraft.tags.BlockTags.TRAPDOORS
+// ============================================================================
+
+TEST_F(BlockTagsTest, TrapdoorsContainsOakTrapdoor)
+{
+    EXPECT_TRUE(BlockTags::TRAPDOORS().contains(ResourceLocation("minecraft", "oak_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, TrapdoorsContainsIronTrapdoor)
+{
+    EXPECT_TRUE(BlockTags::TRAPDOORS().contains(ResourceLocation("minecraft", "iron_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, TrapdoorsContainsWarpedTrapdoor)
+{
+    EXPECT_TRUE(BlockTags::TRAPDOORS().contains(ResourceLocation("minecraft", "warped_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, TrapdoorsContainsCopperTrapdoor)
+{
+    EXPECT_TRUE(BlockTags::TRAPDOORS().contains(ResourceLocation("minecraft", "copper_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, TrapdoorsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::TRAPDOORS().getId(), ResourceLocation("minecraft", "trapdoors"));
+}
+
+// ============================================================================
+// NON_FLAMMABLE_WOOD 标签测试
+// 参考: net.minecraft.tags.BlockTags.NON_FLAMMABLE_WOOD
+// ============================================================================
+
+TEST_F(BlockTagsTest, NonFlammableWoodContainsCrimsonStem)
+{
+    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "crimson_stem")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodContainsWarpedPlanks)
+{
+    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "warped_planks")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodContainsCrimsonDoor)
+{
+    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "crimson_door")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodContainsWarpedTrapdoor)
+{
+    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "warped_trapdoor")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodContainsCrimsonHyphae)
+{
+    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "crimson_hyphae")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodContainsStrippedWarpedHyphae)
+{
+    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "stripped_warped_hyphae")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodContainsCrimsonShelf)
+{
+    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "crimson_shelf")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodContainsWarpedShelf)
+{
+    EXPECT_TRUE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "warped_shelf")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodDoesNotContainOakPlanks)
+{
+    EXPECT_FALSE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "oak_planks")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodDoesNotContainIronDoor)
+{
+    EXPECT_FALSE(BlockTags::NON_FLAMMABLE_WOOD().contains(ResourceLocation("minecraft", "iron_door")));
+}
+
+TEST_F(BlockTagsTest, NonFlammableWoodTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::NON_FLAMMABLE_WOOD().getId(), ResourceLocation("minecraft", "non_flammable_wood"));
+}

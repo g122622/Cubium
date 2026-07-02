@@ -534,3 +534,228 @@ TEST_F(ItemTagsTest, IronChainIsInChainsTag)
     ASSERT_NE(ironChain, nullptr);
     EXPECT_TRUE(ironChain->isIn(item::tag::ItemTags::CHAINS()));
 }
+
+// ============================================================================
+// WOODEN_DOORS 标签测试
+// 参考: net.minecraft.tags.ItemTags.WOODEN_DOORS
+// ============================================================================
+
+TEST_F(ItemTagsTest, WoodenDoorsContainsOakDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_DOORS()));
+}
+
+TEST_F(ItemTagsTest, WoodenDoorsContainsCrimsonDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_DOORS()));
+}
+
+TEST_F(ItemTagsTest, WoodenDoorsContainsWarpedDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_DOORS()));
+}
+
+TEST_F(ItemTagsTest, WoodenDoorsDoesNotContainIronDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::WOODEN_DOORS()));
+}
+
+TEST_F(ItemTagsTest, WoodenDoorsTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::WOODEN_DOORS().getId(), ResourceLocation("minecraft", "wooden_doors"));
+}
+
+TEST_F(ItemTagsTest, WoodenDoorsContainsAll12Doors)
+{
+    // 12种木门: oak, spruce, birch, jungle, acacia, dark_oak, mangrove, cherry, bamboo, pale_oak, crimson, warped
+    const auto& items = item::tag::ItemTags::WOODEN_DOORS().getItems();
+    EXPECT_EQ(items.size(), 12u);
+}
+
+// ============================================================================
+// DOORS 标签测试
+// 参考: net.minecraft.tags.ItemTags.DOORS
+// ============================================================================
+
+TEST_F(ItemTagsTest, DoorsContainsOakDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsIronDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsCrimsonDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsDoesNotContainStone)
+{
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+    EXPECT_FALSE(stone->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::DOORS().getId(), ResourceLocation("minecraft", "doors"));
+}
+
+// ============================================================================
+// WOODEN_TRAPDOORS 标签测试
+// 参考: net.minecraft.tags.ItemTags.WOODEN_TRAPDOORS
+// ============================================================================
+
+TEST_F(ItemTagsTest, WoodenTrapdoorsContainsOakTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, WoodenTrapdoorsContainsCrimsonTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, WoodenTrapdoorsContainsWarpedTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::WOODEN_TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, WoodenTrapdoorsDoesNotContainIronTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::WOODEN_TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, WoodenTrapdoorsTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::WOODEN_TRAPDOORS().getId(), ResourceLocation("minecraft", "wooden_trapdoors"));
+}
+
+TEST_F(ItemTagsTest, WoodenTrapdoorsContainsAll12Trapdoors)
+{
+    // 12种木活板门: oak, spruce, birch, jungle, acacia, dark_oak, mangrove, cherry, bamboo, pale_oak, crimson, warped
+    const auto& items = item::tag::ItemTags::WOODEN_TRAPDOORS().getItems();
+    EXPECT_EQ(items.size(), 12u);
+}
+
+// ============================================================================
+// TRAPDOORS 标签测试
+// 参考: net.minecraft.tags.ItemTags.TRAPDOORS
+// ============================================================================
+
+TEST_F(ItemTagsTest, TrapdoorsContainsOakTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsIronTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWarpedTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::TRAPDOORS().getId(), ResourceLocation("minecraft", "trapdoors"));
+}
+
+// ============================================================================
+// NON_FLAMMABLE_WOOD 标签测试
+// 参考: net.minecraft.tags.ItemTags.NON_FLAMMABLE_WOOD
+// ============================================================================
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsCrimsonStem)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_stem"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsWarpedPlanks)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_planks"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsCrimsonDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsWarpedTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsCrimsonSign)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_sign"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodContainsWarpedHangingSign)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_hanging_sign"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodDoesNotContainOakPlanks)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_planks"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodDoesNotContainIronDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::NON_FLAMMABLE_WOOD()));
+}
+
+TEST_F(ItemTagsTest, NonFlammableWoodTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::NON_FLAMMABLE_WOOD().getId(), ResourceLocation("minecraft", "non_flammable_wood"));
+}

@@ -627,7 +627,7 @@ void ItemTags::initialize()
     // 创建 NON_FLAMMABLE_WOOD 标签
     // 包含所有不可燃烧的木材物品（绯红木和诡异木系列）
     // 绯红木和诡异木系列物品不会燃烧，对应 MC 原版标签 minecraft:non_flammable_wood
-    // TODO: 绯红/诡异木告示牌、悬挂告示牌、书架注册后需添加到此标签
+    // TODO: 绯红/诡异木书架注册后需添加到此标签
     auto nonFlammableWood = std::make_unique<ItemTag>(ResourceLocation("minecraft", "non_flammable_wood"), false);
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_stem")));
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stripped_crimson_stem")));
