@@ -82,6 +82,13 @@ BlockState FlowerBedBlock::getStateForPlacement(BlockItemUseContext& context)
     return defaultState().with(FACING(), oppositeFacing).with(AMOUNT(), 1);
 }
 
+// TODO: 当前放置系统（BlockItemUseContext::_canReplace / BlockItem::canPlace）仅检查
+// BlockState::canBeReplaced()（即 BlockProperties::replaceable() 标志），不会调用此虚方法。
+// 这意味着：1) isReplaceable() 的潜行/物品类型检查在放置路径中不会被触发；
+// 2) .replaceable() 标志使花瓣床可被任意可放置方块替换（而非仅同类型物品）。
+// 要完全复刻MC Java行为，需修改 BlockItemUseContext::_canReplace 和 BlockItem::canPlace
+// 以调用 Block::isReplaceable(state, context) 替代 BlockState::canBeReplaced()。
+// SlabBlock::isReplaceable 存在同样问题。
 bool FlowerBedBlock::isReplaceable(const BlockState& state, BlockItemUseContext& context) const
 {
     // 玩家潜行时不替换（正常放置新方块）

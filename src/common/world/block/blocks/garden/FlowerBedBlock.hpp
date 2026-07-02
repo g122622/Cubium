@@ -63,6 +63,10 @@ namespace blocks {
  *
  * MC ID: minecraft:flower_bed（粉红色花瓣和野花共享此方块类型）
  *
+ * TODO: 野花（wildflowers）的地物生成尚未实现。MC Java中野花通过
+ * WildflowerFeature在世界生成时放置，初始AMOUNT为1-4随机。
+ * 需要在世界生成feature模块中添加对应的ConfiguredFeature和PlacedFeature。
+ *
  * 参考: net.minecraft.block.FlowerBedBlock
  */
 class FlowerBedBlock : public BushBlock, public IGrowable {
