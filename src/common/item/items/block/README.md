@@ -63,3 +63,5 @@
          initialize()` 中的 `registerBlockBackedItem` 注册了物品（如按钮、压力板、门、栅栏等），`registerSimpleBlock` 会检测到已有物品并复用之，不会重复注册
     -
     **锁链物品注册**：MC 1.21+ 将 `minecraft:chain` 重命名为 `minecraft:iron_chain`。铁锁链通过 `registerBlockBackedItem` 在 `Items::initialize()` 中注册，铜锁链8个变种通过 `registerSimpleBlock` 在 `BlockItemRegistry::initializeVanillaBlockItems()` 中注册。所有锁链物品均属于 `ItemTags::CHAINS()` 标签
+    -
+    **铜方块物品注册**：铜方块（8个氧化/涂蜡变种×7类=56个）全部通过 `registerSimpleBlock` 在 `BlockItemRegistry::initializeVanillaBlockItems()` 中注册，包括铜块、切制铜、切制铜楼梯/台阶、铜格栅、铜灯、凿制铜、铜灯笼。铜门/铜活板门/铜锁链/避雷针在此前已注册。铜格栅（copper_grate）和铜栅栏（copper_bars）是两个不同的方块，后者尚未实现
