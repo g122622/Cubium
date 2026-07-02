@@ -12,7 +12,7 @@ decorative/
 ├── GlazedTerracottaBlock.hpp/cpp # 釉面陶瓦（可旋转、不可被活塞拉动）
 ├── FlowerPotBlock.hpp/cpp      # 花盆（可容纳植物内容）
 ├── LanternBlock.hpp/cpp        # 灯笼（悬挂/站立、含水支持）
-├── ChainBlock.hpp/cpp          # 锁链（轴向放置、含水支持）
+├── ChainBlock.hpp/cpp          # 锁链（轴向放置、含水支持，MC 1.21+ 注册为 iron_chain）
 ├── LadderBlock.hpp/cpp         # 梯子（攀爬、需背面支撑）
 ├── ScaffoldingBlock.hpp/cpp    # 脚手架（攀爬、距离支撑计算、含水支持）
 ├── CampfireBlock.hpp/cpp       # 营火（烹饪、光照、信号火、含水支持）

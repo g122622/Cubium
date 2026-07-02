@@ -430,3 +430,107 @@ TEST_F(ItemTagsTest, FireResistantTagIdIsCorrect)
 {
     EXPECT_EQ(item::tag::ItemTags::FIRE_RESISTANT().getId(), ResourceLocation("minecraft", "fire_resistant"));
 }
+
+// ============================================================================
+// CHAINS 标签测试 - 铁锁链和铜锁链物品
+// 参考: net.minecraft.tags.ItemTags.CHAINS
+// ============================================================================
+
+TEST_F(ItemTagsTest, ChainsContainsIronChain)
+{
+    Item* ironChain = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_chain"));
+    ASSERT_NE(ironChain, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(ironChain));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsCopperChain)
+{
+    Item* copperChain = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_chain"));
+    ASSERT_NE(copperChain, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(copperChain));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsExposedCopperChain)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_chain"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(item));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsWeatheredCopperChain)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_chain"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(item));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsOxidizedCopperChain)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_chain"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(item));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsWaxedCopperChain)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_chain"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(item));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsWaxedExposedCopperChain)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_chain"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(item));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsWaxedWeatheredCopperChain)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_chain"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(item));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsWaxedOxidizedCopperChain)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_chain"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item::tag::ItemTags::CHAINS().contains(item));
+}
+
+TEST_F(ItemTagsTest, ChainsTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::CHAINS().getId(), ResourceLocation("minecraft", "chains"));
+}
+
+TEST_F(ItemTagsTest, ChainsContainsAllNineItems)
+{
+    // CHAINS 标签应包含铁锁链 + 4个铜锁链氧化变种 + 4个涂蜡铜锁链变种 = 9项
+    const auto& items = item::tag::ItemTags::CHAINS().getItems();
+    EXPECT_EQ(items.size(), 9u);
+}
+
+TEST_F(ItemTagsTest, ChainsDoesNotContainIronBars)
+{
+    // 铁栏杆不属于锁链标签
+    Item* ironBars = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_bars"));
+    ASSERT_NE(ironBars, nullptr);
+    EXPECT_FALSE(item::tag::ItemTags::CHAINS().contains(ironBars));
+}
+
+TEST_F(ItemTagsTest, ChainsDoesNotContainIronIngot)
+{
+    // 铁锭不属于锁链标签
+    Item* ironIngot = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_ingot"));
+    ASSERT_NE(ironIngot, nullptr);
+    EXPECT_FALSE(item::tag::ItemTags::CHAINS().contains(ironIngot));
+}
+
+TEST_F(ItemTagsTest, IronChainIsInChainsTag)
+{
+    // 使用 Item::isIn() 方法检查
+    Item* ironChain = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_chain"));
+    ASSERT_NE(ironChain, nullptr);
+    EXPECT_TRUE(ironChain->isIn(item::tag::ItemTags::CHAINS()));
+}

@@ -116,6 +116,7 @@ add_executable(mc_tests
     common/item/PolishedBlackstoneItemRegistrationTest.cpp
     common/item/RawOreItemRegistrationTest.cpp
     common/item/AnvilLightningRodItemRegistrationTest.cpp
+    common/item/ChainItemRegistrationTest.cpp
     common/item/MudCaveMangroveItemRegistrationTest.cpp
     common/item/TrailsItemsRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp

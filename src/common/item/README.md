@@ -34,7 +34,7 @@ item/
 │   └── README.md
 ├── tag/                          # 物品标签
 │   ├── ItemTag.hpp/cpp           # 物品标签类
-│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS等）
+│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、CHAINS等）
 │   ├── ItemTagLoader.hpp/cpp     # 物品标签数据包加载器（从JSON加载标签）
 │   └── README.md
 ├── items/                        # 具体物品实现
@@ -396,3 +396,21 @@ item/
 当前注册为普通 `Item`（最大堆叠 64），因为 `SkullBlock` / `WallSkullBlock` 尚未实现。MC Java 中头颅使用 `StandingAndWallBlockItem`（本项目对应 `WallOrFloorItem`），可放置在地板或墙壁上。待方块系统完善后应升级为 `WallOrFloorItem` 注册。
 
 `FillPlayerHeadFunction` 使用 `Items::PLAYER_HEAD` 进行物品类型检查（引用相等性比较），与 MC Java 的 `stack.is(Items.PLAYER_HEAD)` 行为一致。只有玩家头颅物品会被填充玩家档案（SkullOwner），其他头颅类型不受影响。
+
+### 19. 锁链物品注册与 CHAINS 标签
+
+MC 1.21+ 将原 `minecraft:chain` 重命名为 `minecraft:iron_chain`，与铜锁链命名风格统一。所有铜锁链变体（4个氧化变种 + 4个涂蜡变种）均已注册为 BlockItem。
+
+**物品注册**：
+- 铁锁链：`Items::CHAIN`，注册为 `minecraft:iron_chain`（BlockItem，堆叠64）
+- 铜锁链：8个变种均通过 `BlockItemRegistry::initializeVanillaBlockItems()` 注册
+
+**CHAINS 标签**：
+- `BlockTags::CHAINS()` 包含铁锁链 + 8个铜锁链方块 = 9项
+- `ItemTags::CHAINS()` 包含铁锁链 + 8个铜锁链物品 = 9项
+- 对应 MC 原版标签 `minecraft:chains`
+
+**铜锁链涂蜡/刮蜡集成**：
+- `WeatheringCopperChainBlock` 继承 `IOxidizableBlock`，支持斧头刮蜡/除锈
+- `HoneycombItem::WAXABLES_MAP` 包含铜锁链的涂蜡映射（未涂蜡→涂蜡）
+- 与其他铜方块（铜块、铜栏杆、铜门等）使用相同的铜氧化机制

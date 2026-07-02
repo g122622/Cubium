@@ -12,7 +12,7 @@
 ├── BlockRegistry.hpp / cpp #方块注册表（单例）
 ├── BlockSoundType.hpp / cpp #方块声音类型定义
 ├── BlockTags.hpp /
-    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS、DOES_NOT_BLOCK_HOPPERS
+    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS、DOES_NOT_BLOCK_HOPPERS、CHAINS
         等）
 ├── FireInfoRegistry.hpp /
     cpp #火焰信息注册表（燃烧 / 蔓延属性）
@@ -672,6 +672,11 @@ Block& block = state->getBlockMutable();
 
 ### DOES_NOT_BLOCK_HOPPERS 标签
 `BlockTags::DOES_NOT_BLOCK_HOPPERS()` 包含蜂巢(bee_nest)和蜂箱(beehive)，即与 BEEHIVES 标签相同的方块。用于 `HopperEntity::pullItems()` 中的漏斗吸取判断——即使上方方块碰撞形状为完整方块（`isFaceFull(Direction::Down)` 为 true），若该方块在此标签中，漏斗仍可吸取上方物品实体。这允许漏斗与蜂巢/蜂箱交互（吸取蜂蜜瓶/空瓶）。
+
+### CHAINS 标签
+`BlockTags::CHAINS()` 包含铁锁链（iron_chain）和所有铜锁链变体（copper_chain、exposed_copper_chain、weathered_copper_chain、oxidized_copper_chain 及其涂蜡变种），共9种方块。对应 MC 原版标签 `minecraft:chains`。用于锁链方块的分组判断（如攀爬检测、连接形状等）。
+
+**注意**：MC 1.21+ 将原 `minecraft:chain` 方块重命名为 `minecraft:iron_chain`，与铜锁链命名风格统一。
 
                     ## #34. getEntityInsideCollisionShape 实体内部碰撞形状
 

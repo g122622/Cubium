@@ -61,3 +61,5 @@
     -
     **`registerSimpleBlock` 与已注册物品**：如果某方块已通过 `Items::
          initialize()` 中的 `registerBlockBackedItem` 注册了物品（如按钮、压力板、门、栅栏等），`registerSimpleBlock` 会检测到已有物品并复用之，不会重复注册
+    -
+    **锁链物品注册**：MC 1.21+ 将 `minecraft:chain` 重命名为 `minecraft:iron_chain`。铁锁链通过 `registerBlockBackedItem` 在 `Items::initialize()` 中注册，铜锁链8个变种通过 `registerSimpleBlock` 在 `BlockItemRegistry::initializeVanillaBlockItems()` 中注册。所有锁链物品均属于 `ItemTags::CHAINS()` 标签
