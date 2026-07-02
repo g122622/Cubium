@@ -94,9 +94,9 @@ DoubleSidedInventory (双箱容器，非 BlockEntity，用于合并两个箱子)
 
 木桶不能像箱子一样合并为双箱，每个木桶都是独立的 27 格容器。
 
-### 7. 战利品表填充时机
+### 7. 战利品表延迟填充机制
 
-继承自 `LootableContainerBlockEntity`，`isEmpty()` 和 `openContainer()` 会自动触发填充。只有 ServerWorld 的 `lootTableManager()` 返回有效指针。
+继承自 `LootableContainerBlockEntity`，`isEmpty()`、`clearContainer()` 和 `openContainer()` 会自动触发 `_unpackLootTable()`。ShulkerBoxEntity 的 IInventory 方法（`getItem`/`setItem`/`removeItem`/`removeItemNoUpdate`/`clear`）也会在操作前调用 `_unpackLootTable(nullptr)`。只有 ServerWorld 的 `lootTableManager()` 返回有效指针。
 
 ### 8. DoubleSidedInventory 非拥有指针
 
