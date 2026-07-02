@@ -618,6 +618,138 @@ TEST_F(ItemTagsTest, DoorsTagIdIsCorrect)
     EXPECT_EQ(item::tag::ItemTags::DOORS().getId(), ResourceLocation("minecraft", "doors"));
 }
 
+// ========== 铜门在 DOORS 标签中 ==========
+
+TEST_F(ItemTagsTest, DoorsContainsCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsExposedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWeatheredCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsOxidizedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWaxedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWaxedExposedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWaxedWeatheredCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, DoorsContainsWaxedOxidizedCopperDoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::DOORS()));
+}
+
+TEST_F(ItemTagsTest, CopperDoorsNotInWoodenDoors)
+{
+    // 铜门不应属于 WOODEN_DOORS 标签
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_door"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::WOODEN_DOORS()));
+}
+
+// ========== 铜活板门在 TRAPDOORS 标签中 ==========
+
+TEST_F(ItemTagsTest, TrapdoorsContainsCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsExposedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWeatheredCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsOxidizedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWaxedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWaxedExposedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWaxedWeatheredCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, TrapdoorsContainsWaxedOxidizedCopperTrapdoor)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::TRAPDOORS()));
+}
+
+TEST_F(ItemTagsTest, CopperTrapdoorsNotInWoodenTrapdoors)
+{
+    // 铜活板门不应属于 WOODEN_TRAPDOORS 标签
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_trapdoor"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_FALSE(item->isIn(item::tag::ItemTags::WOODEN_TRAPDOORS()));
+}
+
 // ============================================================================
 // WOODEN_TRAPDOORS 标签测试
 // 参考: net.minecraft.tags.ItemTags.WOODEN_TRAPDOORS

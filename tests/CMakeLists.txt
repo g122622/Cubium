@@ -118,6 +118,8 @@ add_executable(mc_tests
     common/item/AnvilLightningRodItemRegistrationTest.cpp
     common/item/CaveAndNetherItemRegistrationTest.cpp
     common/item/ChainItemRegistrationTest.cpp
+    common/item/CopperDoorTrapdoorItemRegistrationTest.cpp
+    common/item/MiscBlockItemRegistrationTest.cpp
     common/item/MudCaveMangroveItemRegistrationTest.cpp
     common/item/TrailsItemsRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
