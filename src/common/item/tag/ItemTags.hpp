@@ -160,6 +160,49 @@ public:
     static ItemTag& CHAINS();
 
     /**
+     * @brief 木门物品标签
+     *
+     * 包含所有木门物品（橡木、云杉、白桦、丛林、金合欢、深色橡木、苍白橡木、
+     * 绯红木、诡异木、红树木、竹木、樱花木）。
+     * 对应 MC 原版标签 minecraft:wooden_doors。
+     */
+    static ItemTag& WOODEN_DOORS();
+
+    /**
+     * @brief 门物品标签
+     *
+     * 包含所有门物品（木门 + 铁门 + 铜门及其变种）。
+     * 对应 MC 原版标签 minecraft:doors。
+     */
+    static ItemTag& DOORS();
+
+    /**
+     * @brief 木活板门物品标签
+     *
+     * 包含所有木活板门物品（橡木、云杉、白桦、丛林、金合欢、深色橡木、苍白橡木、
+     * 绯红木、诡异木、红树木、竹木、樱花木）。
+     * 对应 MC 原版标签 minecraft:wooden_trapdoors。
+     */
+    static ItemTag& WOODEN_TRAPDOORS();
+
+    /**
+     * @brief 活板门物品标签
+     *
+     * 包含所有活板门物品（木活板门 + 铁活板门 + 铜活板门及其变种）。
+     * 对应 MC 原版标签 minecraft:trapdoors。
+     */
+    static ItemTag& TRAPDOORS();
+
+    /**
+     * @brief 不可燃木材物品标签
+     *
+     * 包含所有不可燃烧的木材物品（绯红木和诡异木系列的木板、台阶、楼梯、
+     * 栅栏、栅栏门、门、活板门、按钮、压力板、告示牌等）。
+     * 对应 MC 原版标签 minecraft:non_flammable_wood。
+     */
+    static ItemTag& NON_FLAMMABLE_WOOD();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

@@ -929,6 +929,51 @@ BlockTag& BlockTags::CAULDRONS()
     return *tag;
 }
 
+BlockTag& BlockTags::WOODEN_DOORS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_doors"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::DOORS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "doors"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::WOODEN_TRAPDOORS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_trapdoors"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::TRAPDOORS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "trapdoors"));
+    }
+    return *tag;
+}
+
+BlockTag& BlockTags::NON_FLAMMABLE_WOOD()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "non_flammable_wood"));
+    }
+    return *tag;
+}
+
 void BlockTags::initialize()
 {
     if (s_initialized) {
@@ -991,14 +1036,18 @@ void BlockTags::initialize()
 
     // 创建 CRIMSON_STEMS 标签
     auto crimsonStems = std::make_unique<BlockTag>(ResourceLocation("minecraft", "crimson_stems"));
-    crimsonStems->addAll(
-        {ResourceLocation("minecraft", "crimson_stem"), ResourceLocation("minecraft", "stripped_crimson_stem")});
+    crimsonStems->addAll({ResourceLocation("minecraft", "crimson_stem"),
+        ResourceLocation("minecraft", "stripped_crimson_stem"),
+        ResourceLocation("minecraft", "crimson_hyphae"),
+        ResourceLocation("minecraft", "stripped_crimson_hyphae")});
     tags[crimsonStems->getId()] = std::move(crimsonStems);
 
     // 创建 WARPED_STEMS 标签
     auto warpedStems = std::make_unique<BlockTag>(ResourceLocation("minecraft", "warped_stems"));
-    warpedStems->addAll(
-        {ResourceLocation("minecraft", "warped_stem"), ResourceLocation("minecraft", "stripped_warped_stem")});
+    warpedStems->addAll({ResourceLocation("minecraft", "warped_stem"),
+        ResourceLocation("minecraft", "stripped_warped_stem"),
+        ResourceLocation("minecraft", "warped_hyphae"),
+        ResourceLocation("minecraft", "stripped_warped_hyphae")});
     tags[warpedStems->getId()] = std::move(warpedStems);
 
     // 创建 LEAVES 标签
@@ -2733,6 +2782,144 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "lava_cauldron"),
         ResourceLocation("minecraft", "powder_snow_cauldron")});
     tags[cauldrons->getId()] = std::move(cauldrons);
+
+    // 创建 WOODEN_DOORS 标签（所有木门方块）
+    // 参考: net.minecraft.tags.BlockTags.WOODEN_DOORS
+    auto woodenDoors = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_doors"));
+    woodenDoors->addAll({ResourceLocation("minecraft", "oak_door"),
+        ResourceLocation("minecraft", "spruce_door"),
+        ResourceLocation("minecraft", "birch_door"),
+        ResourceLocation("minecraft", "jungle_door"),
+        ResourceLocation("minecraft", "acacia_door"),
+        ResourceLocation("minecraft", "dark_oak_door"),
+        ResourceLocation("minecraft", "mangrove_door"),
+        ResourceLocation("minecraft", "cherry_door"),
+        ResourceLocation("minecraft", "bamboo_door"),
+        ResourceLocation("minecraft", "pale_oak_door"),
+        ResourceLocation("minecraft", "crimson_door"),
+        ResourceLocation("minecraft", "warped_door")});
+    tags[woodenDoors->getId()] = std::move(woodenDoors);
+
+    // 创建 DOORS 标签（所有门方块）
+    // 参考: net.minecraft.tags.BlockTags.DOORS
+    // 包含所有木门 + 铁门 + 铜门（含氧化和涂蜡变种）
+    auto doors = std::make_unique<BlockTag>(ResourceLocation("minecraft", "doors"));
+    doors->addAll({// 木质门
+        ResourceLocation("minecraft", "oak_door"),
+        ResourceLocation("minecraft", "spruce_door"),
+        ResourceLocation("minecraft", "birch_door"),
+        ResourceLocation("minecraft", "jungle_door"),
+        ResourceLocation("minecraft", "acacia_door"),
+        ResourceLocation("minecraft", "dark_oak_door"),
+        ResourceLocation("minecraft", "mangrove_door"),
+        ResourceLocation("minecraft", "cherry_door"),
+        ResourceLocation("minecraft", "bamboo_door"),
+        ResourceLocation("minecraft", "pale_oak_door"),
+        ResourceLocation("minecraft", "crimson_door"),
+        ResourceLocation("minecraft", "warped_door"),
+        // 铁门
+        ResourceLocation("minecraft", "iron_door"),
+        // 铜门（含氧化和涂蜡变种）
+        ResourceLocation("minecraft", "copper_door"),
+        ResourceLocation("minecraft", "exposed_copper_door"),
+        ResourceLocation("minecraft", "weathered_copper_door"),
+        ResourceLocation("minecraft", "oxidized_copper_door"),
+        ResourceLocation("minecraft", "waxed_copper_door"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_door"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_door"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_door")});
+    tags[doors->getId()] = std::move(doors);
+
+    // 创建 WOODEN_TRAPDOORS 标签（所有木活板门方块）
+    // 参考: net.minecraft.tags.BlockTags.WOODEN_TRAPDOORS
+    auto woodenTrapdoors = std::make_unique<BlockTag>(ResourceLocation("minecraft", "wooden_trapdoors"));
+    woodenTrapdoors->addAll({ResourceLocation("minecraft", "oak_trapdoor"),
+        ResourceLocation("minecraft", "spruce_trapdoor"),
+        ResourceLocation("minecraft", "birch_trapdoor"),
+        ResourceLocation("minecraft", "jungle_trapdoor"),
+        ResourceLocation("minecraft", "acacia_trapdoor"),
+        ResourceLocation("minecraft", "dark_oak_trapdoor"),
+        ResourceLocation("minecraft", "mangrove_trapdoor"),
+        ResourceLocation("minecraft", "cherry_trapdoor"),
+        ResourceLocation("minecraft", "bamboo_trapdoor"),
+        ResourceLocation("minecraft", "pale_oak_trapdoor"),
+        ResourceLocation("minecraft", "crimson_trapdoor"),
+        ResourceLocation("minecraft", "warped_trapdoor")});
+    tags[woodenTrapdoors->getId()] = std::move(woodenTrapdoors);
+
+    // 创建 TRAPDOORS 标签（所有活板门方块）
+    // 参考: net.minecraft.tags.BlockTags.TRAPDOORS
+    // 包含所有木活板门 + 铁活板门 + 铜活板门（含氧化和涂蜡变种）
+    auto trapdoors = std::make_unique<BlockTag>(ResourceLocation("minecraft", "trapdoors"));
+    trapdoors->addAll({// 木质活板门
+        ResourceLocation("minecraft", "oak_trapdoor"),
+        ResourceLocation("minecraft", "spruce_trapdoor"),
+        ResourceLocation("minecraft", "birch_trapdoor"),
+        ResourceLocation("minecraft", "jungle_trapdoor"),
+        ResourceLocation("minecraft", "acacia_trapdoor"),
+        ResourceLocation("minecraft", "dark_oak_trapdoor"),
+        ResourceLocation("minecraft", "mangrove_trapdoor"),
+        ResourceLocation("minecraft", "cherry_trapdoor"),
+        ResourceLocation("minecraft", "bamboo_trapdoor"),
+        ResourceLocation("minecraft", "pale_oak_trapdoor"),
+        ResourceLocation("minecraft", "crimson_trapdoor"),
+        ResourceLocation("minecraft", "warped_trapdoor"),
+        // 铁活板门
+        ResourceLocation("minecraft", "iron_trapdoor"),
+        // 铜活板门（含氧化和涂蜡变种）
+        ResourceLocation("minecraft", "copper_trapdoor"),
+        ResourceLocation("minecraft", "exposed_copper_trapdoor"),
+        ResourceLocation("minecraft", "weathered_copper_trapdoor"),
+        ResourceLocation("minecraft", "oxidized_copper_trapdoor"),
+        ResourceLocation("minecraft", "waxed_copper_trapdoor"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_trapdoor"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_trapdoor"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_trapdoor")});
+    tags[trapdoors->getId()] = std::move(trapdoors);
+
+    // 创建 NON_FLAMMABLE_WOOD 标签（不可燃木材方块）
+    // 参考: net.minecraft.tags.BlockTags.NON_FLAMMABLE_WOOD
+    // 包含绯红木和诡异木系列的所有方块
+    auto nonFlammableWood = std::make_unique<BlockTag>(ResourceLocation("minecraft", "non_flammable_wood"));
+    nonFlammableWood->addAll({// 绯红木系列
+        ResourceLocation("minecraft", "crimson_stem"),
+        ResourceLocation("minecraft", "stripped_crimson_stem"),
+        ResourceLocation("minecraft", "crimson_hyphae"),
+        ResourceLocation("minecraft", "stripped_crimson_hyphae"),
+        ResourceLocation("minecraft", "crimson_planks"),
+        ResourceLocation("minecraft", "crimson_slab"),
+        ResourceLocation("minecraft", "crimson_stairs"),
+        ResourceLocation("minecraft", "crimson_fence"),
+        ResourceLocation("minecraft", "crimson_fence_gate"),
+        ResourceLocation("minecraft", "crimson_door"),
+        ResourceLocation("minecraft", "crimson_trapdoor"),
+        ResourceLocation("minecraft", "crimson_button"),
+        ResourceLocation("minecraft", "crimson_pressure_plate"),
+        ResourceLocation("minecraft", "crimson_sign"),
+        ResourceLocation("minecraft", "crimson_wall_sign"),
+        ResourceLocation("minecraft", "crimson_hanging_sign"),
+        ResourceLocation("minecraft", "crimson_wall_hanging_sign"),
+        ResourceLocation("minecraft", "crimson_shelf"),
+        // 诡异木系列
+        ResourceLocation("minecraft", "warped_stem"),
+        ResourceLocation("minecraft", "stripped_warped_stem"),
+        ResourceLocation("minecraft", "warped_hyphae"),
+        ResourceLocation("minecraft", "stripped_warped_hyphae"),
+        ResourceLocation("minecraft", "warped_planks"),
+        ResourceLocation("minecraft", "warped_slab"),
+        ResourceLocation("minecraft", "warped_stairs"),
+        ResourceLocation("minecraft", "warped_fence"),
+        ResourceLocation("minecraft", "warped_fence_gate"),
+        ResourceLocation("minecraft", "warped_door"),
+        ResourceLocation("minecraft", "warped_trapdoor"),
+        ResourceLocation("minecraft", "warped_button"),
+        ResourceLocation("minecraft", "warped_pressure_plate"),
+        ResourceLocation("minecraft", "warped_sign"),
+        ResourceLocation("minecraft", "warped_wall_sign"),
+        ResourceLocation("minecraft", "warped_hanging_sign"),
+        ResourceLocation("minecraft", "warped_wall_hanging_sign"),
+        ResourceLocation("minecraft", "warped_shelf")});
+    tags[nonFlammableWood->getId()] = std::move(nonFlammableWood);
 
     s_initialized = true;
 }
