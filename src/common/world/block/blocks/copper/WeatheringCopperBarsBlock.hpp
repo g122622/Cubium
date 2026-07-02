@@ -94,6 +94,17 @@ public:
         return true;
     }
 
+    /**
+     * @brief 判断与邻居方块之间的面是否应该跳过渲染
+     *
+     * 铜栏杆与铁栏杆或其他铜栏杆变体相邻时，如果双方都有对应方向的连接属性，
+     * 则跳过连接面渲染，避免出现多余的内侧面。
+     *
+     * 参考: net.minecraft.world.level.block.IronBarsBlock#skipRendering
+     */
+    [[nodiscard]] bool skipRendering(
+        const BlockState& selfState, const BlockState& neighborState, Direction direction) const override;
+
     // ========== IWaterLoggable 接口实现 ==========
 
     /**
@@ -129,6 +140,11 @@ protected:
      * @brief 计算形状索引
      */
     [[nodiscard]] static size_t getShapeIndex(bool north, bool east, bool south, bool west) noexcept;
+
+    /**
+     * @brief 将方向映射到对应的布尔属性（NORTH/SOUTH/EAST/WEST）
+     */
+    [[nodiscard]] static const BooleanProperty& _directionToProperty(Direction direction) noexcept;
 
     /// 中心柱形状
     CollisionShape m_centerShape;
@@ -193,6 +209,17 @@ public:
         return true;
     }
 
+    /**
+     * @brief 判断与邻居方块之间的面是否应该跳过渲染
+     *
+     * 涂蜡铜栏杆与铁栏杆或其他铜栏杆变体相邻时，如果双方都有对应方向的连接属性，
+     * 则跳过连接面渲染，避免出现多余的内侧面。
+     *
+     * 参考: net.minecraft.world.level.block.IronBarsBlock#skipRendering
+     */
+    [[nodiscard]] bool skipRendering(
+        const BlockState& selfState, const BlockState& neighborState, Direction direction) const override;
+
     // ========== IWaterLoggable 接口实现 ==========
 
     /**
@@ -228,6 +255,11 @@ protected:
      * @brief 计算形状索引
      */
     [[nodiscard]] static size_t getShapeIndex(bool north, bool east, bool south, bool west) noexcept;
+
+    /**
+     * @brief 将方向映射到对应的布尔属性（NORTH/SOUTH/EAST/WEST）
+     */
+    [[nodiscard]] static const BooleanProperty& _directionToProperty(Direction direction) noexcept;
 
     /// 中心柱形状
     CollisionShape m_centerShape;

@@ -186,6 +186,54 @@ const fluid::FluidState* PaneBlock::getFluidState(const BlockState& state) const
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
+bool PaneBlock::skipRendering(const BlockState& selfState, const BlockState& neighborState, Direction direction) const
+{
+    const Block& neighborBlock = neighborState.getBlock();
+
+    // 同类方块（同一 Block 实例，如两个铁栏杆或两个相同颜色的玻璃板）
+    if (&neighborBlock == this) {
+        // 垂直方向：始终跳过面渲染
+        if (!Directions::isHorizontal(direction)) {
+            return true;
+        }
+        // 水平方向：仅当双方都有对应方向的连接属性时跳过
+        if (connectsTo(selfState, direction) &&
+            neighborState.get(_directionToProperty(Directions::opposite(direction)))) {
+            return true;
+        }
+    }
+
+    // 双方都属于 BARS 标签（如铁栏杆↔铜栏杆）且邻居有对应方向的反向连接属性
+    // 注意：BARS 标签检查仅对水平方向有效，因为铁栏杆/铜栏杆只有 NSEW 属性
+    if (Directions::isHorizontal(direction) && BlockTags::BARS().contains(neighborBlock) &&
+        BlockTags::BARS().contains(*this) &&
+        neighborState.hasProperty(_directionToProperty(Directions::opposite(direction)))) {
+        // 水平方向：仅当双方都有对应方向的连接属性时跳过
+        if (connectsTo(selfState, direction) &&
+            neighborState.get(_directionToProperty(Directions::opposite(direction)))) {
+            return true;
+        }
+    }
+
+    return Block::skipRendering(selfState, neighborState, direction);
+}
+
+const BooleanProperty& PaneBlock::_directionToProperty(Direction direction) noexcept
+{
+    switch (direction) {
+        case Direction::North:
+            return BlockStateProperties::NORTH();
+        case Direction::South:
+            return BlockStateProperties::SOUTH();
+        case Direction::West:
+            return BlockStateProperties::WEST();
+        case Direction::East:
+            return BlockStateProperties::EAST();
+        default:
+            MC_ASSERT_RELEASE(false);
+    }
+}
+
 bool PaneBlock::connectsTo(const BlockState& state, Direction facing) noexcept
 {
     if (facing == Direction::North) {

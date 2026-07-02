@@ -41,10 +41,7 @@ namespace blocks {
  * - 根据相邻方块自动连接
  * - 四个方向的布尔属性
  * - 支持水logged状态
- *
- * TODO: 实现 skipRendering 逻辑，当两个 BARS 标签方块水平相邻且互相连接时，
- * 跳过它们之间的面渲染。当前 ChunkMesher 仅按 blockId 相同判断，
- * 导致铁栏杆和铜栏杆之间的多余面被渲染。
+ * - 同类方块或BARS标签方块之间互相连接时跳过连接面渲染
  */
 class PaneBlock : public Block, public IWaterLoggable {
 public:
@@ -97,6 +94,19 @@ public:
     }
 
     /**
+     * @brief 判断与邻居方块之间的面是否应该跳过渲染
+     *
+     * 实现逻辑：
+     * - 同类方块（同一 Block 实例）之间：垂直方向始终跳过，水平方向仅当双方都连接时跳过
+     * - BARS 标签方块之间（如铁栏杆↔铜栏杆）：同上，垂直方向始终跳过，
+     *   水平方向仅当双方都有对应方向的连接属性时跳过
+     *
+     * 参考: net.minecraft.world.level.block.IronBarsBlock#skipRendering
+     */
+    [[nodiscard]] bool skipRendering(
+        const BlockState& selfState, const BlockState& neighborState, Direction direction) const override;
+
+    /**
      * @brief 获取流体状态
      */
     [[nodiscard]] const fluid::FluidState* getFluidState(const BlockState& state) const override;
@@ -137,6 +147,11 @@ protected:
      * @brief 计算形状索引
      */
     [[nodiscard]] static size_t getShapeIndex(bool north, bool east, bool south, bool west) noexcept;
+
+    /**
+     * @brief 将方向映射到对应的布尔属性（NORTH/SOUTH/EAST/WEST）
+     */
+    [[nodiscard]] static const BooleanProperty& _directionToProperty(Direction direction) noexcept;
 
     /// 中心柱形状
     CollisionShape m_centerShape;

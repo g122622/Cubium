@@ -197,6 +197,39 @@ const fluid::FluidState* WeatheringCopperBarsBlock::getFluidState(const BlockSta
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
+bool WeatheringCopperBarsBlock::skipRendering(
+    const BlockState& selfState, const BlockState& neighborState, Direction direction) const
+{
+    const Block& neighborBlock = neighborState.getBlock();
+
+    // 同类方块（同一 Block 实例）
+    if (&neighborBlock == this) {
+        // 垂直方向：始终跳过面渲染
+        if (!Directions::isHorizontal(direction)) {
+            return true;
+        }
+        // 水平方向：仅当双方都有对应方向的连接属性时跳过
+        if (connectsTo(selfState, direction) &&
+            neighborState.get(_directionToProperty(Directions::opposite(direction)))) {
+            return true;
+        }
+    }
+
+    // 双方都属于 BARS 标签（如铁栏杆↔铜栏杆）且邻居有对应方向的反向连接属性
+    // 注意：BARS 标签检查仅对水平方向有效，因为栏杆只有 NSEW 属性
+    if (Directions::isHorizontal(direction) && BlockTags::BARS().contains(neighborBlock) &&
+        BlockTags::BARS().contains(*this) &&
+        neighborState.hasProperty(_directionToProperty(Directions::opposite(direction)))) {
+        // 水平方向：仅当双方都有对应方向的连接属性时跳过
+        if (connectsTo(selfState, direction) &&
+            neighborState.get(_directionToProperty(Directions::opposite(direction)))) {
+            return true;
+        }
+    }
+
+    return Block::skipRendering(selfState, neighborState, direction);
+}
+
 bool WeatheringCopperBarsBlock::connectsTo(const BlockState& state, Direction facing) noexcept
 {
     if (facing == Direction::North) {
@@ -241,6 +274,22 @@ size_t WeatheringCopperBarsBlock::getShapeIndex(bool north, bool east, bool sout
 {
     return static_cast<size_t>(north) | (static_cast<size_t>(east) << 1U) | (static_cast<size_t>(south) << 2U) |
         (static_cast<size_t>(west) << 3U);
+}
+
+const BooleanProperty& WeatheringCopperBarsBlock::_directionToProperty(Direction direction) noexcept
+{
+    switch (direction) {
+        case Direction::North:
+            return BlockStateProperties::NORTH();
+        case Direction::South:
+            return BlockStateProperties::SOUTH();
+        case Direction::West:
+            return BlockStateProperties::WEST();
+        case Direction::East:
+            return BlockStateProperties::EAST();
+        default:
+            MC_ASSERT_RELEASE(false);
+    }
 }
 
 // ========== WaxedCopperBarsBlock ==========
@@ -402,6 +451,39 @@ const fluid::FluidState* WaxedCopperBarsBlock::getFluidState(const BlockState& s
     return waterState != nullptr ? waterState : Block::getFluidState(state);
 }
 
+bool WaxedCopperBarsBlock::skipRendering(
+    const BlockState& selfState, const BlockState& neighborState, Direction direction) const
+{
+    const Block& neighborBlock = neighborState.getBlock();
+
+    // 同类方块（同一 Block 实例）
+    if (&neighborBlock == this) {
+        // 垂直方向：始终跳过面渲染
+        if (!Directions::isHorizontal(direction)) {
+            return true;
+        }
+        // 水平方向：仅当双方都有对应方向的连接属性时跳过
+        if (connectsTo(selfState, direction) &&
+            neighborState.get(_directionToProperty(Directions::opposite(direction)))) {
+            return true;
+        }
+    }
+
+    // 双方都属于 BARS 标签（如铁栏杆↔铜栏杆）且邻居有对应方向的反向连接属性
+    // 注意：BARS 标签检查仅对水平方向有效，因为栏杆只有 NSEW 属性
+    if (Directions::isHorizontal(direction) && BlockTags::BARS().contains(neighborBlock) &&
+        BlockTags::BARS().contains(*this) &&
+        neighborState.hasProperty(_directionToProperty(Directions::opposite(direction)))) {
+        // 水平方向：仅当双方都有对应方向的连接属性时跳过
+        if (connectsTo(selfState, direction) &&
+            neighborState.get(_directionToProperty(Directions::opposite(direction)))) {
+            return true;
+        }
+    }
+
+    return Block::skipRendering(selfState, neighborState, direction);
+}
+
 bool WaxedCopperBarsBlock::connectsTo(const BlockState& state, Direction facing) noexcept
 {
     if (facing == Direction::North) {
@@ -446,6 +528,22 @@ size_t WaxedCopperBarsBlock::getShapeIndex(bool north, bool east, bool south, bo
 {
     return static_cast<size_t>(north) | (static_cast<size_t>(east) << 1U) | (static_cast<size_t>(south) << 2U) |
         (static_cast<size_t>(west) << 3U);
+}
+
+const BooleanProperty& WaxedCopperBarsBlock::_directionToProperty(Direction direction) noexcept
+{
+    switch (direction) {
+        case Direction::North:
+            return BlockStateProperties::NORTH();
+        case Direction::South:
+            return BlockStateProperties::SOUTH();
+        case Direction::West:
+            return BlockStateProperties::WEST();
+        case Direction::East:
+            return BlockStateProperties::EAST();
+        default:
+            MC_ASSERT_RELEASE(false);
+    }
 }
 
 } // namespace blocks

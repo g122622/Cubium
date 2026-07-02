@@ -902,6 +902,23 @@ public:
     [[nodiscard]] virtual bool useShapeForLightOcclusion(const BlockState& state) const;
 
     /**
+     * @brief 判断当前方块与邻居方块之间的面是否应该跳过渲染
+     *
+     * 当两个相邻方块之间的面不需要渲染时返回 true（面被剔除），
+     * 返回 false 时该面需要正常渲染。
+     *
+     * 默认实现返回 false（始终渲染面），子类可以重写此方法实现
+     * 特殊的渲染剔除逻辑（如铁栏杆、铜栏杆之间的连接面剔除）。
+     *
+     * @param selfState 当前方块的方块状态
+     * @param neighborState 邻居方块的方块状态
+     * @param direction 从当前方块指向邻居方块的方向
+     * @return 如果应该跳过渲染返回 true，否则返回 false
+     */
+    [[nodiscard]] virtual bool skipRendering(
+        const BlockState& selfState, const BlockState& neighborState, Direction direction) const;
+
+    /**
      * @brief 是否为空气
      * @param state 方块状态
      */

@@ -330,6 +330,15 @@ bool Block::useShapeForLightOcclusion(const BlockState& state) const
     return false;
 }
 
+bool Block::skipRendering(const BlockState& selfState, const BlockState& neighborState, Direction direction) const
+{
+    MC_UNUSED(selfState);
+    MC_UNUSED(neighborState);
+    MC_UNUSED(direction);
+    // 默认不跳过渲染，子类可重写此方法实现特殊的面剔除逻辑
+    return false;
+}
+
 const CollisionShape& Block::getEntityInsideCollisionShape(const BlockState& state) const
 {
     // 默认返回完整方块形状，即只要实体 AABB 与方块网格重叠就认为实体在方块内部。
