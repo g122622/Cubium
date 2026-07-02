@@ -105,6 +105,8 @@ void CompostableItems::_registerChance30()
     _registerCompostable(Items::PUMPKIN_SEEDS, 0.3f);
     _registerCompostable(Items::MELON_SEEDS, 0.3f);
     _registerCompostable(Items::BEETROOT_SEEDS, 0.3f);
+    _registerCompostable(Items::TORCHFLOWER_SEEDS, 0.3f);
+    _registerCompostable(Items::PITCHER_POD, 0.3f);
 
     // 海洋植物
     _registerCompostable(Items::DRIED_KELP, 0.3f);
@@ -207,15 +209,17 @@ void CompostableItems::_registerChance65()
     _registerCompostable(Items::CORNFLOWER, 0.65f);
     _registerCompostable(Items::LILY_OF_THE_VALLEY, 0.65f);
     _registerCompostable(Items::WITHER_ROSE, 0.65f);
-
-    // 蕨
-    _registerCompostable(Items::FERN, 0.65f);
+    _registerCompostable(Items::TORCHFLOWER, 0.65f);
 
     // 大型花朵
     _registerCompostable(Items::SUNFLOWER, 0.65f);
     _registerCompostable(Items::LILAC, 0.65f);
     _registerCompostable(Items::ROSE_BUSH, 0.65f);
     _registerCompostable(Items::PEONY, 0.65f);
+    _registerCompostable(Items::PITCHER_PLANT, 0.65f);
+
+    // 蕨
+    _registerCompostable(Items::FERN, 0.65f);
 
     // 大型蕨
     _registerCompostable(Items::LARGE_FERN, 0.65f);

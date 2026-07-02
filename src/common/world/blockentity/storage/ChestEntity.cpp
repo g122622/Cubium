@@ -23,6 +23,7 @@
 
 #include "world/blockentity/storage/ChestEntity.hpp"
 #include "entity/entities/player/Player.hpp"
+#include "entity/inventory/container/ChestContainer.hpp"
 #include "item/loot/LootTable.hpp"
 #include "item/loot/context/LootContext.hpp"
 #include "sound/SoundCategory.hpp"
@@ -521,16 +522,11 @@ void ChestEntity::_recheckOpeners(IWorld& world)
         }
 
         // 检查玩家当前打开的容器菜单是否包含此箱子
-        // 参考 MC ContainerOpenersCounter.isOwnContainer:
-        //   MC 会检查 player.containerMenu 是否持有此 Container（包括 DoubleSidedInventory 的情况）
-        //   即: player.containerMenu.getContainer() == this 或
-        //       (player.containerMenu.getContainer() instanceof DoubleInventory &&
-        //        ((DoubleInventory)player.containerMenu.getContainer()).contains(this))
-        // TODO: 当 ContainerMenu 系统实现后，需验证菜单持有的容器是否为当前箱子（含双箱合并场景），
-        //       而非仅检查 player.openContainerMenu() != nullptr。
-        //       当前简化：只要玩家在范围内且有打开的容器菜单，即认为仍在使用此容器。
-        auto* menu = player->openContainerMenu();
-        if (menu != nullptr) {
+        // 参考 MC ChestBlockEntity.isOwnContainer:
+        //   1. 玩家的 containerMenu 必须是 ChestMenu（对应本项目的 ChestContainer）
+        //   2. ChestMenu 持有的底层容器（getContainer()）必须是此箱子的 m_inventory
+        //   3. 对于双箱情况，底层容器是 DoubleSidedInventory，需检查 isPartOfLargeChest
+        if (_isOwnContainer(*player)) {
             ++actualOpenCount;
         }
     }
@@ -556,6 +552,46 @@ void ChestEntity::_recheckOpeners(IWorld& world)
         // 广播状态变化
         broadcastChestState(world, actualOpenCount > 0);
     }
+}
+
+bool ChestEntity::_isOwnContainer(const Player& player) const
+{
+    // 参考 MC ChestBlockEntity.isOwnContainer:
+    //   if (!(player.containerMenu instanceof ChestMenu)) return false;
+    //   Container container = ((ChestMenu)player.containerMenu).getContainer();
+    //   return container == ChestBlockEntity.this
+    //       || container instanceof CompoundContainer
+    //          && ((CompoundContainer)container).contains(ChestBlockEntity.this);
+
+    const auto* menu = player.openContainerMenu();
+    if (menu == nullptr) {
+        return false;
+    }
+
+    // 检查菜单是否是 ChestContainer
+    const auto* chestContainer = dynamic_cast<const ChestContainer*>(menu);
+    if (chestContainer == nullptr) {
+        return false;
+    }
+
+    // 获取 ChestContainer 持有的底层容器
+    const IInventory* containerInventory = chestContainer->getChestInventory();
+    if (containerInventory == nullptr) {
+        return false;
+    }
+
+    // 单箱情况：底层容器直接是此箱子的 m_inventory
+    if (containerInventory == &m_inventory) {
+        return true;
+    }
+
+    // 双箱情况：底层容器是 DoubleSidedInventory，检查此箱子的 m_inventory 是否是其一部分
+    const auto* doubleInv = dynamic_cast<const DoubleSidedInventory*>(containerInventory);
+    if (doubleInv != nullptr) {
+        return doubleInv->isPartOfLargeChest(&m_inventory);
+    }
+
+    return false;
 }
 
 } // namespace blockentity

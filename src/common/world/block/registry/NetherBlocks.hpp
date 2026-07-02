@@ -69,6 +69,16 @@ struct NetherBlocks {
     static Block* WARPED_ROOTS;
     static Block* NETHER_SPROUTS;
 
+    // 下界木板及衍生方块
+    static Block* CRIMSON_PLANKS;
+    static Block* WARPED_PLANKS;
+    static Block* CRIMSON_STAIRS;
+    static Block* WARPED_STAIRS;
+    static Block* CRIMSON_SLAB;
+    static Block* WARPED_SLAB;
+    static Block* CRIMSON_FENCE;
+    static Block* WARPED_FENCE;
+
     // 灵魂火把
     static Block* SOUL_TORCH;
     static Block* SOUL_WALL_TORCH;
@@ -89,8 +99,24 @@ struct NetherBlocks {
     static Block* GILDED_BLACKSTONE;
 
     // 下界砖扩展
+    static Block* NETHER_BRICKS;
+    static Block* RED_NETHER_BRICKS;
     static Block* CHISELED_NETHER_BRICKS;
     static Block* CRACKED_NETHER_BRICKS;
+    static Block* NETHER_BRICK_FENCE;
+
+    // 下界砖楼梯、台阶、墙
+    static Block* NETHER_BRICK_STAIRS;
+    static Block* NETHER_BRICK_SLAB;
+    static Block* NETHER_BRICK_WALL;
+    static Block* RED_NETHER_BRICK_STAIRS;
+    static Block* RED_NETHER_BRICK_SLAB;
+    static Block* RED_NETHER_BRICK_WALL;
+
+    // 末地石砖建筑方块
+    static Block* END_STONE_BRICK_STAIRS;
+    static Block* END_STONE_BRICK_SLAB;
+    static Block* END_STONE_BRICK_WALL;
 
     // 磁石
     static Block* LODESTONE;

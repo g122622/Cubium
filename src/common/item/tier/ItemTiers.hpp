@@ -45,6 +45,7 @@ namespace tier {
  * |-----------|---------|------|-------|------|--------|
  * | WOOD      | 0       | 59   | 2.0   | 0.0  | 15     |
  * | STONE     | 1       | 131  | 4.0   | 1.0  | 5      |
+ * | COPPER    | 1       | 190  | 5.0   | 1.0  | 13     |
  * | IRON      | 2       | 250  | 6.0   | 2.0  | 14     |
  * | DIAMOND   | 3       | 1561 | 8.0   | 3.0  | 10     |
  * | GOLD      | 0       | 32   | 12.0  | 0.0  | 22     |
@@ -71,6 +72,8 @@ public:
     [[nodiscard]] static const IItemTier& WOOD() { return *s_wood; }
     /** 石制工具层级 */
     [[nodiscard]] static const IItemTier& STONE() { return *s_stone; }
+    /** 铜制工具层级 */
+    [[nodiscard]] static const IItemTier& COPPER() { return *s_copper; }
     /** 铁制工具层级 */
     [[nodiscard]] static const IItemTier& IRON() { return *s_iron; }
     /** 钻石工具层级 */
@@ -86,6 +89,7 @@ private:
     // 内部存储
     static std::unique_ptr<IItemTier> s_wood;
     static std::unique_ptr<IItemTier> s_stone;
+    static std::unique_ptr<IItemTier> s_copper;
     static std::unique_ptr<IItemTier> s_iron;
     static std::unique_ptr<IItemTier> s_diamond;
     static std::unique_ptr<IItemTier> s_gold;

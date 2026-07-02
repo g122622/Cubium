@@ -6,7 +6,7 @@
 src/common/item/tier/
 ├── IItemTier.hpp      # 工具层级接口定义
 ├── IItemTier.cpp      # 空实现文件（接口无实现）
-├── ItemTiers.hpp      # 原版层级定义（静态工厂类）
+├── ItemTiers.hpp      # 原版层级定义（静态工厂类，含7个层级）
 └── ItemTiers.cpp      # 原版层级实现（含内部 ItemTierImpl 类）
 ```
 
@@ -25,7 +25,7 @@ src/common/item/tier/
          │ 由其创建
          ▼
 ┌─────────────────┐
-│  ItemTiers.hpp  │  ←── 静态工厂类，持有六个 IItemTier 实例
+│  ItemTiers.hpp  │  ←── 静态工厂类，持有七个 IItemTier 实例
 └─────────────────┘
 ```
 

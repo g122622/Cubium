@@ -225,6 +225,7 @@ add_library(mc_common STATIC
     # Entity - Projectile (entity files have deep API dependencies - need systematic refactoring)
     entity/entities/projectile/ProjectileHelper.cpp
     entity/entities/projectile/ProjectileEntity.cpp
+    entity/entities/projectile/ProjectileDeflection.cpp
     entity/entities/projectile/DamagingProjectileEntity.cpp
     entity/entities/projectile/ThrowableEntity.cpp
     entity/entities/projectile/AbstractArrowEntity.cpp
@@ -410,6 +411,7 @@ add_library(mc_common STATIC
     entity/ai/util/PiglinAi.cpp
     entity/ai/util/RandomPositionGenerator.cpp
     entity/inventory/IInventory.cpp
+    entity/inventory/InventoryRef.cpp
     entity/inventory/Slot.cpp
     entity/inventory/PlayerInventory.cpp
     entity/inventory/PlayerEnderChestInventory.cpp
@@ -525,6 +527,7 @@ add_library(mc_common STATIC
     item/items/special/FishBucketItem.cpp
     item/items/special/FlintAndSteelItem.cpp
     item/items/special/HoneycombItem.cpp
+    item/items/special/KnowledgeBookItem.cpp
     item/items/special/MilkBucketItem.cpp
     item/items/special/MusicDiscItem.cpp
     item/items/special/PotterySherdItem.cpp
@@ -537,6 +540,7 @@ add_library(mc_common STATIC
     item/items/special/OnAStickItem.cpp
     item/items/special/StickItems.cpp
     item/items/special/SpawnEggItem.cpp
+    item/items/special/BrushItem.cpp
 
     # Item - Trial Items
     item/items/trial/BreezeRodItem.cpp
@@ -689,6 +693,7 @@ add_library(mc_common STATIC
 
     # World - Block - Dirt
     world/block/blocks/dirt/SpreadableSnowyDirtBlock.cpp
+    world/block/blocks/dirt/MudBlock.cpp
     world/block/blocks/DoorBlock.cpp
     world/block/blocks/FenceGateBlock.cpp
 
@@ -710,6 +715,7 @@ add_library(mc_common STATIC
     world/block/blocks/agricultural/FarmlandBlock.cpp
     world/block/blocks/agricultural/MelonPumpkinBlocks.cpp
     world/block/blocks/agricultural/StemBlock.cpp
+    world/block/blocks/agricultural/TorchflowerCropBlock.cpp
 
     # World - Block - Functional
     world/block/blocks/functional/BedBlock.cpp

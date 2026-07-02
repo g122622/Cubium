@@ -188,7 +188,7 @@ TEST_F(ItemTest, ArmorMaterialsUseVanillaSoundsAndRepairItems)
         {&item::armor::ArmorMaterials::IRON, "minecraft:item.armor.equip_iron", Items::IRON_INGOT},
         {&item::armor::ArmorMaterials::GOLD, "minecraft:item.armor.equip_gold", Items::GOLD_INGOT},
         {&item::armor::ArmorMaterials::DIAMOND, "minecraft:item.armor.equip_diamond", Items::DIAMOND},
-        {&item::armor::ArmorMaterials::TURTLE, "minecraft:item.armor.equip_turtle", Items::SCUTE},
+        {&item::armor::ArmorMaterials::TURTLE, "minecraft:item.armor.equip_turtle", Items::TURTLE_SCUTE},
         {&item::armor::ArmorMaterials::NETHERITE, "minecraft:item.armor.equip_netherite", Items::NETHERITE_INGOT},
     }};
 

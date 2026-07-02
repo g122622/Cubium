@@ -447,9 +447,9 @@ TEST(BlockEntityTodoTest, HopperGetInventoryAtPositionEntityFallbackWithoutInven
     DummyWorld world;
     world.setEntitiesInAabbResult({static_cast<Entity*>(nullptr)});
 
-    IInventory* found = blockentity::HopperEntity::getInventoryAtPosition(&world, BlockPos(1, 2, 3));
+    InventoryRef found = blockentity::HopperEntity::getInventoryAtPosition(&world, BlockPos(1, 2, 3));
 
-    EXPECT_EQ(found, nullptr);
+    EXPECT_EQ(found.get(), nullptr);
 }
 
 TEST(BlockEntityTodoTest, PistonMovesCollidedEntitiesAlongFacingDirection)

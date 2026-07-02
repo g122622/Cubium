@@ -24,6 +24,7 @@
 #pragma once
 
 #include "entity/inventory/IInventory.hpp"
+#include "entity/inventory/InventoryRef.hpp"
 #include "util/Direction.hpp"
 #include "world/blockentity/core/LockableBlockEntity.hpp"
 #include "world/blockentity/core/SimpleInventory.hpp"
@@ -205,16 +206,21 @@ public:
      * @brief 获取指定位置的容器
      * @param world 世界
      * @param pos 位置
-     * @return 容器指针，如果没有返回nullptr
+     * @return 背包引用，如果没有返回空引用
+     *
+     * 返回 InventoryRef 而非原始指针，以正确管理 ISidedInventoryProvider
+     * 动态创建的背包的生命周期。当容器来自 ISidedInventoryProvider
+     * （如堆肥桶）时，InventoryRef 拥有所有权并在析构时自动释放；
+     * 当容器来自方块实体或实体时，InventoryRef 仅为非拥有引用。
      */
-    [[nodiscard]] static IInventory* getInventoryAtPosition(IWorld* world, const BlockPos& pos);
+    [[nodiscard]] static InventoryRef getInventoryAtPosition(IWorld* world, const BlockPos& pos);
 
     /**
      * @brief 获取漏斗源容器（上方一格）
      * @param hopper 漏斗
-     * @return 容器指针，如果没有返回nullptr
+     * @return 背包引用，如果没有返回空引用
      */
-    [[nodiscard]] static IInventory* getSourceInventory(IHopper& hopper);
+    [[nodiscard]] static InventoryRef getSourceInventory(IHopper& hopper);
 
     /**
      * @brief 获取漏斗收集区域内的物品实体
@@ -250,9 +256,9 @@ private:
 
     /**
      * @brief 获取漏斗输出的目标容器
-     * @return 容器指针，如果没有返回nullptr
+     * @return 背包引用，如果没有返回空引用
      */
-    [[nodiscard]] IInventory* _getInventoryForHopperTransfer();
+    [[nodiscard]] InventoryRef _getInventoryForHopperTransfer();
 
     /**
      * @brief 检查容器是否已满

@@ -195,6 +195,11 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::REDSTONE_BLOCK, "redstone_block");
     registerSimpleBlock(VanillaBlocks::NETHERITE_BLOCK, "netherite_block");
 
+    // 粗矿块
+    registerSimpleBlock(VanillaBlocks::RAW_IRON_BLOCK, "raw_iron_block");
+    registerSimpleBlock(VanillaBlocks::RAW_COPPER_BLOCK, "raw_copper_block");
+    registerSimpleBlock(VanillaBlocks::RAW_GOLD_BLOCK, "raw_gold_block");
+
     // 建筑方块
     registerSimpleBlock(VanillaBlocks::BRICKS, "bricks");
     registerSimpleBlock(VanillaBlocks::MOSSY_COBBLESTONE, "mossy_cobblestone");
@@ -281,6 +286,38 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHEST, "chest");
     registerSimpleBlock(VanillaBlocks::TRAPPED_CHEST, "trapped_chest");
 
+    // 铁砧（最大堆叠数为1）
+    {
+        auto registerAnvilBlock = [this](Block* block, const std::string& name) {
+            if (block == nullptr) {
+                spdlog::warn("Block '{}' is null, skipping", name);
+                return;
+            }
+            const ResourceLocation& blockLoc = block->blockLocation();
+            ResourceLocation itemLoc(blockLoc.namespace_(), blockLoc.path());
+            BlockItem* registeredItem = nullptr;
+            Item* existingItem = ItemRegistry::instance().getItem(itemLoc);
+            if (existingItem != nullptr) {
+                registeredItem = dynamic_cast<BlockItem*>(existingItem);
+                if (registeredItem == nullptr) {
+                    spdlog::warn("Item '{}' already exists but is not a BlockItem, skipping", itemLoc.toString());
+                    return;
+                }
+            } else {
+                registeredItem = &ItemRegistry::instance().registerItem<BlockItem>(
+                    itemLoc, *block, ItemProperties().maxStackSize(1));
+            }
+            u32 blockId = block->blockId();
+            ItemId itemId = registeredItem->itemId();
+            m_blockToItem[blockId] = registeredItem;
+            m_itemToBlock[itemId] = block;
+            m_itemIdToBlockItem[itemId] = registeredItem;
+        };
+        registerAnvilBlock(VanillaBlocks::ANVIL, "anvil");
+        registerAnvilBlock(VanillaBlocks::CHIPPED_ANVIL, "chipped_anvil");
+        registerAnvilBlock(VanillaBlocks::DAMAGED_ANVIL, "damaged_anvil");
+    }
+
     // 石砖系列
     registerSimpleBlock(VanillaBlocks::STONE_BRICKS, "stone_bricks");
     registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICKS, "mossy_stone_bricks");
@@ -297,6 +334,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 石英系列
     registerSimpleBlock(VanillaBlocks::QUARTZ_BLOCK, "quartz_block");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_QUARTZ, "smooth_quartz");
     registerSimpleBlock(VanillaBlocks::CHISELED_QUARTZ_BLOCK, "chiseled_quartz_block");
     registerSimpleBlock(VanillaBlocks::QUARTZ_PILLAR, "quartz_pillar");
 
@@ -318,12 +356,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::HAY_BLOCK, "hay_block");
 
     // 下界方块
+    registerSimpleBlock(VanillaBlocks::NETHER_BRICKS, "nether_bricks");
+    registerSimpleBlock(VanillaBlocks::RED_NETHER_BRICKS, "red_nether_bricks");
     registerSimpleBlock(VanillaBlocks::SOUL_SAND, "soul_sand");
     registerSimpleBlock(VanillaBlocks::SOUL_SOIL, "soul_soil");
     registerSimpleBlock(VanillaBlocks::BASALT, "basalt");
     registerSimpleBlock(VanillaBlocks::POLISHED_BASALT, "polished_basalt");
     registerSimpleBlock(VanillaBlocks::BLACKSTONE, "blackstone");
     registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE, "polished_blackstone");
+    registerSimpleBlock(VanillaBlocks::GILDED_BLACKSTONE, "gilded_blackstone");
     registerSimpleBlock(VanillaBlocks::CRYING_OBSIDIAN, "crying_obsidian");
     registerSimpleBlock(VanillaBlocks::MAGMA, "magma_block");
     registerSimpleBlock(VanillaBlocks::NETHER_WART_BLOCK, "nether_wart_block");
@@ -338,6 +379,122 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CRIMSON_NYLIUM, "crimson_nylium");
     registerSimpleBlock(VanillaBlocks::WARPED_NYLIUM, "warped_nylium");
     registerSimpleBlock(VanillaBlocks::SHROOMLIGHT, "shroomlight");
+
+    // 绯红/诡异木板及衍生方块
+    registerSimpleBlock(VanillaBlocks::CRIMSON_PLANKS, "crimson_planks");
+    registerSimpleBlock(VanillaBlocks::WARPED_PLANKS, "warped_planks");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_STAIRS, "crimson_stairs");
+    registerSimpleBlock(VanillaBlocks::WARPED_STAIRS, "warped_stairs");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_SLAB, "crimson_slab");
+    registerSimpleBlock(VanillaBlocks::WARPED_SLAB, "warped_slab");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_FENCE, "crimson_fence");
+    registerSimpleBlock(VanillaBlocks::WARPED_FENCE, "warped_fence");
+
+    // 深板岩方块 (1.17+)
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE, "deepslate");
+    registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE, "cobbled_deepslate");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DEEPSLATE, "polished_deepslate");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_BRICKS, "deepslate_bricks");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_TILES, "deepslate_tiles");
+    registerSimpleBlock(VanillaBlocks::CHISELED_DEEPSLATE, "chiseled_deepslate");
+    registerSimpleBlock(VanillaBlocks::CRACKED_DEEPSLATE_BRICKS, "cracked_deepslate_bricks");
+    registerSimpleBlock(VanillaBlocks::CRACKED_DEEPSLATE_TILES, "cracked_deepslate_tiles");
+    registerSimpleBlock(VanillaBlocks::REINFORCED_DEEPSLATE, "reinforced_deepslate");
+    registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE_STAIRS, "cobbled_deepslate_stairs");
+    registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE_SLAB, "cobbled_deepslate_slab");
+    registerSimpleBlock(VanillaBlocks::COBBLED_DEEPSLATE_WALL, "cobbled_deepslate_wall");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DEEPSLATE_STAIRS, "polished_deepslate_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DEEPSLATE_SLAB, "polished_deepslate_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DEEPSLATE_WALL, "polished_deepslate_wall");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_BRICK_STAIRS, "deepslate_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_BRICK_SLAB, "deepslate_brick_slab");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_BRICK_WALL, "deepslate_brick_wall");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_TILE_STAIRS, "deepslate_tile_stairs");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_TILE_SLAB, "deepslate_tile_slab");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_TILE_WALL, "deepslate_tile_wall");
+    registerSimpleBlock(VanillaBlocks::INFESTED_DEEPSLATE, "infested_deepslate");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_BASALT, "smooth_basalt");
+
+    // 凝灰岩方块 (1.17+)
+    registerSimpleBlock(VanillaBlocks::TUFF, "tuff");
+    registerSimpleBlock(VanillaBlocks::POLISHED_TUFF, "polished_tuff");
+    registerSimpleBlock(VanillaBlocks::TUFF_BRICKS, "tuff_bricks");
+    registerSimpleBlock(VanillaBlocks::CHISELED_TUFF, "chiseled_tuff");
+    registerSimpleBlock(VanillaBlocks::CHISELED_TUFF_BRICKS, "chiseled_tuff_bricks");
+    registerSimpleBlock(VanillaBlocks::TUFF_STAIRS, "tuff_stairs");
+    registerSimpleBlock(VanillaBlocks::TUFF_SLAB, "tuff_slab");
+    registerSimpleBlock(VanillaBlocks::TUFF_WALL, "tuff_wall");
+    registerSimpleBlock(VanillaBlocks::POLISHED_TUFF_STAIRS, "polished_tuff_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_TUFF_SLAB, "polished_tuff_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_TUFF_WALL, "polished_tuff_wall");
+    registerSimpleBlock(VanillaBlocks::TUFF_BRICK_STAIRS, "tuff_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::TUFF_BRICK_SLAB, "tuff_brick_slab");
+    registerSimpleBlock(VanillaBlocks::TUFF_BRICK_WALL, "tuff_brick_wall");
+
+    // 树脂方块 (1.21+)
+    registerSimpleBlock(VanillaBlocks::RESIN_CLUMP, "resin_clump");
+    registerSimpleBlock(VanillaBlocks::RESIN_BLOCK, "resin_block");
+    registerSimpleBlock(VanillaBlocks::RESIN_BRICKS, "resin_bricks");
+    registerSimpleBlock(VanillaBlocks::CHISELED_RESIN_BRICKS, "chiseled_resin_bricks");
+    registerSimpleBlock(VanillaBlocks::RESIN_BRICK_STAIRS, "resin_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::RESIN_BRICK_SLAB, "resin_brick_slab");
+    registerSimpleBlock(VanillaBlocks::RESIN_BRICK_WALL, "resin_brick_wall");
+
+    // 樱花原木与木材 (1.20+)
+    registerSimpleBlock(VanillaBlocks::CHERRY_LOG, "cherry_log");
+    registerSimpleBlock(VanillaBlocks::CHERRY_WOOD, "cherry_wood");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_CHERRY_LOG, "stripped_cherry_log");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_CHERRY_WOOD, "stripped_cherry_wood");
+    registerSimpleBlock(VanillaBlocks::CHERRY_PLANKS, "cherry_planks");
+    registerSimpleBlock(VanillaBlocks::CHERRY_LEAVES, "cherry_leaves");
+    registerSimpleBlock(VanillaBlocks::CHERRY_SAPLING, "cherry_sapling");
+
+    // 苍白橡木原木与木材 (1.21+)
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_LOG, "pale_oak_log");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_WOOD, "pale_oak_wood");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_PALE_OAK_LOG, "stripped_pale_oak_log");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_PALE_OAK_WOOD, "stripped_pale_oak_wood");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_PLANKS, "pale_oak_planks");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_LEAVES, "pale_oak_leaves");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_SAPLING, "pale_oak_sapling");
+
+    // 苍白花园自然方块 (1.21+)
+    registerSimpleBlock(VanillaBlocks::PALE_MOSS_BLOCK, "pale_moss_block");
+    registerSimpleBlock(VanillaBlocks::PALE_MOSS_CARPET, "pale_moss_carpet");
+    registerSimpleBlock(VanillaBlocks::PALE_HANGING_MOSS, "pale_hanging_moss");
+    registerSimpleBlock(VanillaBlocks::OPEN_EYEBLOSSOM, "open_eyeblossom");
+    registerSimpleBlock(VanillaBlocks::CLOSED_EYEBLOSSOM, "closed_eyeblossom");
+    registerSimpleBlock(VanillaBlocks::CREAKING_HEART, "creaking_heart");
+
+    // 洞穴方块 (1.17+)
+    registerSimpleBlock(VanillaBlocks::MOSS_BLOCK, "moss_block");
+    registerSimpleBlock(VanillaBlocks::MOSS_CARPET, "moss_carpet");
+    registerSimpleBlock(VanillaBlocks::ROOTED_DIRT, "rooted_dirt");
+    registerSimpleBlock(VanillaBlocks::HANGING_ROOTS, "hanging_roots");
+    registerSimpleBlock(VanillaBlocks::AZALEA, "azalea");
+    registerSimpleBlock(VanillaBlocks::FLOWERING_AZALEA, "flowering_azalea");
+    registerSimpleBlock(VanillaBlocks::AZALEA_LEAVES, "azalea_leaves");
+    registerSimpleBlock(VanillaBlocks::FLOWERING_AZALEA_LEAVES, "flowering_azalea_leaves");
+    registerSimpleBlock(VanillaBlocks::SPORE_BLOSSOM, "spore_blossom");
+
+    // 泥巴系列方块 (1.19+)
+    registerSimpleBlock(VanillaBlocks::MUD, "mud");
+    registerSimpleBlock(VanillaBlocks::PACKED_MUD, "packed_mud");
+    registerSimpleBlock(VanillaBlocks::MUD_BRICKS, "mud_bricks");
+    registerSimpleBlock(VanillaBlocks::MUD_BRICK_STAIRS, "mud_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::MUD_BRICK_SLAB, "mud_brick_slab");
+    registerSimpleBlock(VanillaBlocks::MUD_BRICK_WALL, "mud_brick_wall");
+
+    // 红树林基础方块 (1.19+)
+    registerSimpleBlock(VanillaBlocks::MANGROVE_LOG, "mangrove_log");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_WOOD, "mangrove_wood");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_MANGROVE_LOG, "stripped_mangrove_log");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_MANGROVE_WOOD, "stripped_mangrove_wood");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_PLANKS, "mangrove_planks");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_LEAVES, "mangrove_leaves");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_PROPAGULE, "mangrove_propagule");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_ROOTS, "mangrove_roots");
+    registerSimpleBlock(VanillaBlocks::MUDDY_MANGROVE_ROOTS, "muddy_mangrove_roots");
 
     // 自然方块扩展
     registerSimpleBlock(VanillaBlocks::CLAY, "clay");
@@ -394,6 +551,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
 
     // 铜矿 (1.17+)
     registerSimpleBlock(VanillaBlocks::COPPER_ORE, "copper_ore");
+
+    // 深板岩矿石 (1.17+)
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_COAL_ORE, "deepslate_coal_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_IRON_ORE, "deepslate_iron_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_COPPER_ORE, "deepslate_copper_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_GOLD_ORE, "deepslate_gold_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_DIAMOND_ORE, "deepslate_diamond_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_LAPIS_ORE, "deepslate_lapis_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_EMERALD_ORE, "deepslate_emerald_ore");
+    registerSimpleBlock(VanillaBlocks::DEEPSLATE_REDSTONE_ORE, "deepslate_redstone_ore");
 
     // 玻璃
     registerSimpleBlock(VanillaBlocks::GLASS, "glass");
@@ -522,6 +689,9 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::LILY_OF_THE_VALLEY, "lily_of_the_valley");
     registerSimpleBlock(VanillaBlocks::CORNFLOWER, "cornflower");
     registerSimpleBlock(VanillaBlocks::WITHER_ROSE, "wither_rose");
+    registerSimpleBlock(VanillaBlocks::TORCHFLOWER, "torchflower");
+    registerSimpleBlock(VanillaBlocks::PITCHER_PLANT, "pitcher_plant");
+    registerSimpleBlock(VanillaBlocks::PINK_PETALS, "pink_petals");
     registerSimpleBlock(VanillaBlocks::SUNFLOWER, "sunflower");
     registerSimpleBlock(VanillaBlocks::LILAC, "lilac");
     registerSimpleBlock(VanillaBlocks::ROSE_BUSH, "rose_bush");
@@ -560,7 +730,17 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CARVED_PUMPKIN, "carved_pumpkin");
     registerSimpleBlock(VanillaBlocks::END_ROD, "end_rod");
     registerSimpleBlock(VanillaBlocks::RESPAWN_ANCHOR, "respawn_anchor");
-    registerSimpleBlock(VanillaBlocks::CHAIN, "chain");
+    registerSimpleBlock(VanillaBlocks::CHAIN, "iron_chain");
+
+    // 铜锁链（含氧化和涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_CHAIN, "copper_chain");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_CHAIN, "exposed_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_CHAIN, "weathered_copper_chain");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_CHAIN, "oxidized_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_CHAIN, "waxed_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_CHAIN, "waxed_exposed_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_CHAIN, "waxed_weathered_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_CHAIN, "waxed_oxidized_copper_chain");
     registerSimpleBlock(VanillaBlocks::LADDER, "ladder");
     registerSimpleBlock(VanillaBlocks::SCAFFOLDING, "scaffolding");
     registerSimpleBlock(VanillaBlocks::IRON_BARS, "iron_bars");
@@ -586,6 +766,22 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::DARK_PRISMARINE_STAIRS, "dark_prismarine_stairs");
     registerSimpleBlock(VanillaBlocks::STONE_BRICK_STAIRS, "stone_brick_stairs");
     registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICK_STAIRS, "mossy_stone_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::GRANITE_STAIRS, "granite_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_GRANITE_STAIRS, "polished_granite_stairs");
+    registerSimpleBlock(VanillaBlocks::DIORITE_STAIRS, "diorite_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DIORITE_STAIRS, "polished_diorite_stairs");
+    registerSimpleBlock(VanillaBlocks::ANDESITE_STAIRS, "andesite_stairs");
+    registerSimpleBlock(VanillaBlocks::POLISHED_ANDESITE_STAIRS, "polished_andesite_stairs");
+    registerSimpleBlock(VanillaBlocks::BRICK_STAIRS, "brick_stairs");
+    registerSimpleBlock(VanillaBlocks::MOSSY_COBBLESTONE_STAIRS, "mossy_cobblestone_stairs");
+    registerSimpleBlock(VanillaBlocks::NETHER_BRICK_STAIRS, "nether_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::RED_NETHER_BRICK_STAIRS, "red_nether_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::END_STONE_BRICK_STAIRS, "end_stone_brick_stairs");
+    registerSimpleBlock(VanillaBlocks::QUARTZ_STAIRS, "quartz_stairs");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_QUARTZ_STAIRS, "smooth_quartz_stairs");
+    registerSimpleBlock(VanillaBlocks::PURPUR_STAIRS, "purpur_stairs");
+    registerSimpleBlock(VanillaBlocks::RED_SANDSTONE_STAIRS, "red_sandstone_stairs");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_RED_SANDSTONE_STAIRS, "smooth_red_sandstone_stairs");
 
     // 台阶
     registerSimpleBlock(VanillaBlocks::OAK_SLAB, "oak_slab");
@@ -608,11 +804,44 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::DARK_PRISMARINE_SLAB, "dark_prismarine_slab");
     registerSimpleBlock(VanillaBlocks::STONE_BRICK_SLAB, "stone_brick_slab");
     registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICK_SLAB, "mossy_stone_brick_slab");
+    registerSimpleBlock(VanillaBlocks::GRANITE_SLAB, "granite_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_GRANITE_SLAB, "polished_granite_slab");
+    registerSimpleBlock(VanillaBlocks::DIORITE_SLAB, "diorite_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_DIORITE_SLAB, "polished_diorite_slab");
+    registerSimpleBlock(VanillaBlocks::ANDESITE_SLAB, "andesite_slab");
+    registerSimpleBlock(VanillaBlocks::POLISHED_ANDESITE_SLAB, "polished_andesite_slab");
+    registerSimpleBlock(VanillaBlocks::BRICK_SLAB, "brick_slab");
+    registerSimpleBlock(VanillaBlocks::MOSSY_COBBLESTONE_SLAB, "mossy_cobblestone_slab");
+    registerSimpleBlock(VanillaBlocks::NETHER_BRICK_SLAB, "nether_brick_slab");
+    registerSimpleBlock(VanillaBlocks::RED_NETHER_BRICK_SLAB, "red_nether_brick_slab");
+    registerSimpleBlock(VanillaBlocks::END_STONE_BRICK_SLAB, "end_stone_brick_slab");
+    registerSimpleBlock(VanillaBlocks::QUARTZ_SLAB, "quartz_slab");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_QUARTZ_SLAB, "smooth_quartz_slab");
+    registerSimpleBlock(VanillaBlocks::PURPUR_SLAB, "purpur_slab");
+    registerSimpleBlock(VanillaBlocks::RED_SANDSTONE_SLAB, "red_sandstone_slab");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_RED_SANDSTONE_SLAB, "smooth_red_sandstone_slab");
+    registerSimpleBlock(VanillaBlocks::CUT_SANDSTONE_SLAB, "cut_sandstone_slab");
+    registerSimpleBlock(VanillaBlocks::CUT_RED_SANDSTONE_SLAB, "cut_red_sandstone_slab");
+    registerSimpleBlock(VanillaBlocks::SMOOTH_STONE_SLAB, "smooth_stone_slab");
+    registerSimpleBlock(VanillaBlocks::PETRIFIED_OAK_SLAB, "petrified_oak_slab");
 
     // 墙
     registerSimpleBlock(VanillaBlocks::COBBLESTONE_WALL, "cobblestone_wall");
+    registerSimpleBlock(VanillaBlocks::MOSSY_COBBLESTONE_WALL, "mossy_cobblestone_wall");
     registerSimpleBlock(VanillaBlocks::STONE_BRICK_WALL, "stone_brick_wall");
     registerSimpleBlock(VanillaBlocks::MOSSY_STONE_BRICK_WALL, "mossy_stone_brick_wall");
+    registerSimpleBlock(VanillaBlocks::BRICK_WALL, "brick_wall");
+    registerSimpleBlock(VanillaBlocks::PRISMARINE_WALL, "prismarine_wall");
+    registerSimpleBlock(VanillaBlocks::SANDSTONE_WALL, "sandstone_wall");
+    registerSimpleBlock(VanillaBlocks::RED_SANDSTONE_WALL, "red_sandstone_wall");
+    registerSimpleBlock(VanillaBlocks::QUARTZ_WALL, "quartz_wall");
+    registerSimpleBlock(VanillaBlocks::PURPUR_WALL, "purpur_wall");
+    registerSimpleBlock(VanillaBlocks::NETHER_BRICK_WALL, "nether_brick_wall");
+    registerSimpleBlock(VanillaBlocks::RED_NETHER_BRICK_WALL, "red_nether_brick_wall");
+    registerSimpleBlock(VanillaBlocks::END_STONE_BRICK_WALL, "end_stone_brick_wall");
+    registerSimpleBlock(VanillaBlocks::GRANITE_WALL, "granite_wall");
+    registerSimpleBlock(VanillaBlocks::DIORITE_WALL, "diorite_wall");
+    registerSimpleBlock(VanillaBlocks::ANDESITE_WALL, "andesite_wall");
 
     // 栅栏
     registerSimpleBlock(VanillaBlocks::OAK_FENCE, "oak_fence");
@@ -625,6 +854,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_FENCE, "cherry_fence");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_FENCE, "pale_oak_fence");
     registerSimpleBlock(VanillaBlocks::BAMBOO_FENCE, "bamboo_fence");
+    registerSimpleBlock(VanillaBlocks::NETHER_BRICK_FENCE, "nether_brick_fence");
     registerSimpleBlock(VanillaBlocks::OAK_FENCE_GATE, "oak_fence_gate");
     registerSimpleBlock(VanillaBlocks::SPRUCE_FENCE_GATE, "spruce_fence_gate");
     registerSimpleBlock(VanillaBlocks::BIRCH_FENCE_GATE, "birch_fence_gate");
@@ -649,6 +879,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_DOOR, "cherry_door");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_DOOR, "pale_oak_door");
     registerSimpleBlock(VanillaBlocks::BAMBOO_DOOR, "bamboo_door");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_DOOR, "crimson_door");
+    registerSimpleBlock(VanillaBlocks::WARPED_DOOR, "warped_door");
     registerSimpleBlock(VanillaBlocks::IRON_DOOR, "iron_door");
     registerSimpleBlock(VanillaBlocks::OAK_TRAPDOOR, "oak_trapdoor");
     registerSimpleBlock(VanillaBlocks::SPRUCE_TRAPDOOR, "spruce_trapdoor");
@@ -660,6 +892,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_TRAPDOOR, "cherry_trapdoor");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_TRAPDOOR, "pale_oak_trapdoor");
     registerSimpleBlock(VanillaBlocks::BAMBOO_TRAPDOOR, "bamboo_trapdoor");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_TRAPDOOR, "crimson_trapdoor");
+    registerSimpleBlock(VanillaBlocks::WARPED_TRAPDOOR, "warped_trapdoor");
     registerSimpleBlock(VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor");
 
     // 红石方块
@@ -676,6 +910,17 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::REDSTONE_REPEATER, "redstone_repeater");
     registerSimpleBlock(VanillaBlocks::REDSTONE_COMPARATOR, "redstone_comparator");
     registerSimpleBlock(VanillaBlocks::OBSERVER, "observer");
+
+    // 避雷针（含氧化和涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::LIGHTNING_ROD, "lightning_rod");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_LIGHTNING_ROD, "exposed_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_LIGHTNING_ROD, "weathered_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_LIGHTNING_ROD, "oxidized_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WAXED_LIGHTNING_ROD, "waxed_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD, "waxed_exposed_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD, "waxed_weathered_lightning_rod");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD, "waxed_oxidized_lightning_rod");
+
     registerSimpleBlock(VanillaBlocks::LEVER, "lever");
     registerSimpleBlock(VanillaBlocks::STONE_BUTTON, "stone_button");
     registerSimpleBlock(VanillaBlocks::OAK_BUTTON, "oak_button");
@@ -690,6 +935,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_BUTTON, "cherry_button");
     registerSimpleBlock(VanillaBlocks::BAMBOO_BUTTON, "bamboo_button");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_BUTTON, "pale_oak_button");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_BUTTON, "polished_blackstone_button");
     registerSimpleBlock(VanillaBlocks::STONE_PRESSURE_PLATE, "stone_pressure_plate");
     registerSimpleBlock(VanillaBlocks::OAK_PRESSURE_PLATE, "oak_pressure_plate");
     registerSimpleBlock(VanillaBlocks::SPRUCE_PRESSURE_PLATE, "spruce_pressure_plate");
@@ -703,6 +949,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_PRESSURE_PLATE, "cherry_pressure_plate");
     registerSimpleBlock(VanillaBlocks::BAMBOO_PRESSURE_PLATE, "bamboo_pressure_plate");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_PRESSURE_PLATE, "pale_oak_pressure_plate");
+    registerSimpleBlock(VanillaBlocks::POLISHED_BLACKSTONE_PRESSURE_PLATE, "polished_blackstone_pressure_plate");
     registerSimpleBlock(VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE, "light_weighted_pressure_plate");
     registerSimpleBlock(VanillaBlocks::HEAVY_WEIGHTED_PRESSURE_PLATE, "heavy_weighted_pressure_plate");
     registerSimpleBlock(VanillaBlocks::DAYLIGHT_DETECTOR, "daylight_detector");

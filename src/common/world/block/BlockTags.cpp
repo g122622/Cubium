@@ -893,6 +893,15 @@ BlockTag& BlockTags::BARS()
     return *tag;
 }
 
+BlockTag& BlockTags::CHAINS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "chains"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::SHULKER_BOXES()
 {
     static BlockTag* tag = nullptr;
@@ -2394,6 +2403,7 @@ void BlockTags::initialize()
         // 石质楼梯
         ResourceLocation("minecraft", "stone_stairs"),
         ResourceLocation("minecraft", "cobblestone_stairs"),
+        ResourceLocation("minecraft", "mossy_cobblestone_stairs"),
         ResourceLocation("minecraft", "stone_brick_stairs"),
         ResourceLocation("minecraft", "mossy_stone_brick_stairs"),
         ResourceLocation("minecraft", "sandstone_stairs"),
@@ -2462,11 +2472,14 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "warped_slab"),
         // 石质台阶
         ResourceLocation("minecraft", "stone_slab"),
+        ResourceLocation("minecraft", "smooth_stone_slab"),
         ResourceLocation("minecraft", "cobblestone_slab"),
+        ResourceLocation("minecraft", "mossy_cobblestone_slab"),
         ResourceLocation("minecraft", "stone_brick_slab"),
         ResourceLocation("minecraft", "mossy_stone_brick_slab"),
         ResourceLocation("minecraft", "sandstone_slab"),
         ResourceLocation("minecraft", "smooth_sandstone_slab"),
+        ResourceLocation("minecraft", "cut_sandstone_slab"),
         ResourceLocation("minecraft", "granite_slab"),
         ResourceLocation("minecraft", "polished_granite_slab"),
         ResourceLocation("minecraft", "diorite_slab"),
@@ -2485,6 +2498,7 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "end_stone_brick_slab"),
         ResourceLocation("minecraft", "red_sandstone_slab"),
         ResourceLocation("minecraft", "smooth_red_sandstone_slab"),
+        ResourceLocation("minecraft", "cut_red_sandstone_slab"),
         // 深板岩台阶
         ResourceLocation("minecraft", "cobbled_deepslate_slab"),
         ResourceLocation("minecraft", "polished_deepslate_slab"),
@@ -2585,6 +2599,20 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "oxidized_copper_bars"),
         ResourceLocation("minecraft", "waxed_oxidized_copper_bars")});
     tags[bars->getId()] = std::move(bars);
+
+    // 创建 CHAINS 标签（铁锁链和铜锁链，含氧化和涂蜡变种）
+    // 参考: datapacks/Vanilla/data/minecraft/tags/block/chains.json
+    auto chains = std::make_unique<BlockTag>(ResourceLocation("minecraft", "chains"));
+    chains->addAll({ResourceLocation("minecraft", "iron_chain"),
+        ResourceLocation("minecraft", "copper_chain"),
+        ResourceLocation("minecraft", "waxed_copper_chain"),
+        ResourceLocation("minecraft", "exposed_copper_chain"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_chain"),
+        ResourceLocation("minecraft", "weathered_copper_chain"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_chain"),
+        ResourceLocation("minecraft", "oxidized_copper_chain"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_chain")});
+    tags[chains->getId()] = std::move(chains);
 
     // 创建 SHULKER_BOXES 标签（所有潜影盒变体，用于连接例外判断）
     auto shulkerBoxes = std::make_unique<BlockTag>(ResourceLocation("minecraft", "shulker_boxes"));

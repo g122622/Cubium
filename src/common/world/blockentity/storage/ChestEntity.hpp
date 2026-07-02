@@ -270,6 +270,19 @@ private:
      */
     void _recheckOpeners(IWorld& world);
 
+    /**
+     * @brief 检查玩家当前打开的容器菜单是否持有此箱子
+     *
+     * 参考 MC ChestBlockEntity.isOwnContainer：
+     * - 单箱情况：ChestContainer 的底层容器直接是此箱子的 m_inventory
+     * - 双箱情况：ChestContainer 的底层容器是 DoubleSidedInventory，
+     *   通过 isPartOfLargeChest 检查此箱子是否是双箱的一部分
+     *
+     * @param player 要检查的玩家
+     * @return 如果玩家打开的是此箱子（含双箱场景）返回 true
+     */
+    [[nodiscard]] bool _isOwnContainer(const Player& player) const;
+
     SimpleInventory m_inventory; ///< 27格物品存储
     f32 m_lidAngle = 0.0f;       ///< 当前盖子角度 (0-1)
     f32 m_prevLidAngle = 0.0f;   ///< 上一帧盖子角度

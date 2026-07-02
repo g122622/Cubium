@@ -305,6 +305,9 @@ extern const BlockSoundType CROP;
 // 菌柄（下界木质）
 extern const BlockSoundType STEM;
 
+// 下界木（绯红/诡异木板、楼梯、台阶、栅栏等）
+extern const BlockSoundType NETHER_WOOD;
+
 // 藤蔓
 extern const BlockSoundType VINE;
 

@@ -60,7 +60,8 @@ Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromResourcePac
 
     std::vector<std::string> predicateResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/predicates/") == std::string::npos && path.find("predicates/") == std::string::npos) {
+        if (path.find("/predicates/") == std::string::npos && path.find("predicates/") == std::string::npos &&
+            path.find("/predicate/") == std::string::npos && path.find("predicate/") == std::string::npos) {
             continue;
         }
         predicateResources.push_back(path);
@@ -114,7 +115,8 @@ Result<LootPredicateLoader::LoadResult> LootPredicateLoader::loadFromDataPackRep
 
     std::vector<std::string> predicateResources;
     for (const auto& path : listResult.value()) {
-        if (path.find("/predicates/") == std::string::npos && path.find("predicates/") == std::string::npos) {
+        if (path.find("/predicates/") == std::string::npos && path.find("predicates/") == std::string::npos &&
+            path.find("/predicate/") == std::string::npos && path.find("predicate/") == std::string::npos) {
             continue;
         }
         predicateResources.push_back(path);
@@ -261,12 +263,20 @@ std::string LootPredicateLoader::pathToPredicateId(const std::string& filePath) 
     // 将路径转为通用格式（正斜杠）
     std::string genericPath = path.generic_string();
 
-    // 查找 "predicates" 目录的位置
+    // 查找 "predicates" 或 "predicate" 目录的位置（MC 1.21+ 使用单数形式）
     Size predicatesPos = genericPath.find("/predicates/");
     Size predicatesTokenSize = std::string("/predicates/").size();
     if (predicatesPos == std::string::npos) {
         predicatesPos = genericPath.find("predicates/");
         predicatesTokenSize = std::string("predicates/").size();
+    }
+    if (predicatesPos == std::string::npos) {
+        predicatesPos = genericPath.find("/predicate/");
+        predicatesTokenSize = std::string("/predicate/").size();
+    }
+    if (predicatesPos == std::string::npos) {
+        predicatesPos = genericPath.find("predicate/");
+        predicatesTokenSize = std::string("predicate/").size();
     }
 
     if (predicatesPos != std::string::npos) {

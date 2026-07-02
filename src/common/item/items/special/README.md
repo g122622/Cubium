@@ -8,6 +8,7 @@
 special/
 ├── README.md                    # 本文档
 ├── BoneMealItem.hpp/cpp         # 骨粉（加速植物生长、海草生成）
+├── BrushItem.hpp/cpp            # 刷子（考古学工具，刷可疑方块和犰狳）
 ├── BucketItem.hpp/cpp           # 桶（空桶、水桶、岩浆桶）
 ├── EnchantedBookItem.hpp/cpp    # 附魔书（存储附魔）
 ├── FishBucketItem.hpp/cpp       # 鱼桶（放置水并生成鱼）
@@ -15,6 +16,7 @@ special/
 ├── HoneycombItem.hpp/cpp        # 蜜脾（涂蜡铜方块、涂蜡告示牌阻止文字修改）
 ├── MilkBucketItem.hpp/cpp       # 牛奶桶（清除药水效果）
 ├── MusicDiscItem.hpp/cpp        # 音乐唱片（放入唱片机播放，比较器信号1-15）
+├── KnowledgeBookItem.hpp/cpp   # 知识之书（右键解锁配方列表，NBT存储recipes数组）
 ├── LeadItem.hpp/cpp             # 拴绳（绑定生物到栅栏、玩家右键生物拴住/解除）
 ├── NameTagItem.hpp/cpp          # 命名牌（给生物命名、持久化）
 ├── OnAStickItem.hpp/cpp         # 钓竿类物品基类（控制可骑乘实体）

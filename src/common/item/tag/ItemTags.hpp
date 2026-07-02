@@ -152,6 +152,14 @@ public:
     static ItemTag& FREEZE_IMMUNE_WEARABLES();
 
     /**
+     * @brief 锁链物品标签
+     *
+     * 包含铁锁链和所有铜锁链物品（含氧化和涂蜡变种）。
+     * 对应 MC 原版标签 minecraft:chains。
+     */
+    static ItemTag& CHAINS();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

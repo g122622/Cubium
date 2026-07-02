@@ -462,6 +462,10 @@ public:
     /// 栏杆方块标签（铁栏杆等，用于墙壁和玻璃板连接判断）
     static BlockTag& BARS();
 
+    /// 锁链方块标签（铁锁链和铜锁链，含氧化和涂蜡变种）
+    /// 参考: net.minecraft.tags.BlockTags.CHAINS
+    static BlockTag& CHAINS();
+
     /// 潜影盒标签（所有潜影盒变体，用于连接例外判断）
     static BlockTag& SHULKER_BOXES();
 

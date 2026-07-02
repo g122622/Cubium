@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/CopperBlocks.hpp"
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "world/block/Block.hpp"
@@ -1046,4 +1047,95 @@ TEST_F(BlockTagsTest, DoesNotBlockHoppers_StoneBlockStateNotInTag)
         GTEST_SKIP() << "stone block not registered";
     }
     EXPECT_FALSE(BlockTags::DOES_NOT_BLOCK_HOPPERS().contains(stone->defaultState()));
+}
+
+// ============================================================================
+// CHAINS 标签测试（铁锁链和铜锁链）
+// 参考: net.minecraft.tags.BlockTags.CHAINS
+// ============================================================================
+
+TEST_F(BlockTagsTest, ChainsTagContainsIronChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "iron_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsCopperChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "copper_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsExposedCopperChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "exposed_copper_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsWeatheredCopperChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "weathered_copper_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsOxidizedCopperChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "oxidized_copper_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsWaxedCopperChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "waxed_copper_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsWaxedExposedCopperChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "waxed_exposed_copper_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsWaxedWeatheredCopperChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "waxed_weathered_copper_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsWaxedOxidizedCopperChain)
+{
+    EXPECT_TRUE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "waxed_oxidized_copper_chain")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagIdIsCorrect)
+{
+    EXPECT_EQ(BlockTags::CHAINS().getId(), ResourceLocation("minecraft", "chains"));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsAllNineVariants)
+{
+    // CHAINS 标签应包含铁锁链 + 4个铜锁链氧化变种 + 4个涂蜡铜锁链变种 = 9项
+    const auto& blockIds = BlockTags::CHAINS().getBlockIds();
+    EXPECT_EQ(blockIds.size(), 9u);
+}
+
+TEST_F(BlockTagsTest, ChainsTagDoesNotContainIronBars)
+{
+    // 铁栏杆不属于锁链标签
+    EXPECT_FALSE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "iron_bars")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagDoesNotContainStone)
+{
+    EXPECT_FALSE(BlockTags::CHAINS().contains(ResourceLocation("minecraft", "stone")));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsIronChainBlockPointer)
+{
+    // 通过 Block* 指针检查
+    if (!VanillaBlocks::CHAIN) {
+        GTEST_SKIP() << "CHAIN block not registered";
+    }
+    EXPECT_TRUE(BlockTags::CHAINS().contains(*VanillaBlocks::CHAIN));
+}
+
+TEST_F(BlockTagsTest, ChainsTagContainsCopperChainBlockPointer)
+{
+    // 通过 Block* 指针检查
+    if (!block_registry::CopperBlocks::COPPER_CHAIN) {
+        GTEST_SKIP() << "COPPER_CHAIN block not registered";
+    }
+    EXPECT_TRUE(BlockTags::CHAINS().contains(*block_registry::CopperBlocks::COPPER_CHAIN));
 }

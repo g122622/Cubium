@@ -538,6 +538,7 @@ const ResourceLocation ENTITY_BREEZE_CHARGE("minecraft:entity.breeze.charge");
 const ResourceLocation ENTITY_BREEZE_JUMP("minecraft:entity.breeze.jump");
 const ResourceLocation ENTITY_BREEZE_LAND("minecraft:entity.breeze.land");
 const ResourceLocation ENTITY_BREEZE_SLIDE("minecraft:entity.breeze.slide");
+const ResourceLocation ENTITY_BREEZE_DEFLECT("minecraft:entity.breeze.deflect");
 
 // ============================================================================
 // 重锤声音

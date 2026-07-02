@@ -22,12 +22,15 @@
  */
 
 #include "world/block/registry/TrailsBlocks.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/agricultural/TorchflowerCropBlock.hpp"
 #include "world/block/blocks/functional/TrailsBlocks.hpp"
 #include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
+#include "world/block/blocks/vegetation/FlowerBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -114,9 +117,9 @@ void registerTrailsBlocks()
     // ============================================================================
 
     // 监守者蛋 - 可孵化出嗅探兽生物，HATCH属性(0-2)
-    TrailsBlocks::SNIFFER_EGG = &registry.registerBlock<blocks::SnifferEggBlock>(
-        ResourceLocation("minecraft:sniffer_egg"),
-        BlockProperties(Material::EARTH).hardness(0.5f).resistance(0.5f).soundType(BlockSoundTypes::SNIFFER_EGG));
+    TrailsBlocks::SNIFFER_EGG =
+        &registry.registerBlock<blocks::SnifferEggBlock>(ResourceLocation("minecraft:sniffer_egg"),
+            BlockProperties(Material::EARTH).hardness(0.5f).resistance(0.5f).soundType(BlockSoundTypes::SNIFFER_EGG));
 
     // ============================================================================
     // 粉红色花瓣
@@ -130,9 +133,14 @@ void registerTrailsBlocks()
     // 火把花
     // ============================================================================
 
-    // 火把花 - 由嗅探兽发现的古代植物
-    TrailsBlocks::TORCHFLOWER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torchflower"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::GRASS));
+    // 火把花 - 小型花朵，可放置在泥土/草方块等上，可用于制作可疑炖菜（夜视效果）
+    // 骨粉可催熟火把花作物为火把花；无支撑方块时自动掉落
+    // TODO: 花盆系统完善后，需注册 potted_torchflower 方块（FlowerPotBlock 内含火炬花）
+    //       并将其添加到 BlockTags::FLOWER_POTS 和相关标签中
+    TrailsBlocks::TORCHFLOWER = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:torchflower"),
+        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::TORCHFLOWER),
+        static_cast<u32>(entity::effect::EffectType::NightVision),
+        8);
 
     // ============================================================================
     // 瓶草
@@ -147,12 +155,20 @@ void registerTrailsBlocks()
     // 作物方块
     // ============================================================================
 
-    // 火把花作物 - 火把花的作物形态
+    // 火把花作物 - 2个生长阶段（AGE_0_1），成熟后继续生长变为火把花方块
+    // 随机刻有1/3概率跳过；骨粉每次增加1个阶段；只能放置在耕地上
     TrailsBlocks::TORCHFLOWER_CROP =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torchflower_crop"),
+        &registry.registerBlock<blocks::TorchflowerCropBlock>(ResourceLocation("minecraft:torchflower_crop"),
             BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).soundType(BlockSoundTypes::CROP));
 
-    // 瓶草作物 - 瓶草的作物形态
+    // TODO: 瓶草作物当前注册为SimpleBlock占位，需要升级为专用的PitcherCropBlock。
+    // PitcherCropBlock需实现：1) AGE_0_4整数属性（5个生长阶段）和HALF属性（上半/下半）；
+    // 2) AGE>=3时方块变为双层（上半+下半），需要DoublePlantBlock类似的半块管理；
+    // 3) 随机刻生长逻辑（与普通作物不同，需要更长时间）；
+    // 4) 骨粉可催熟；5) 掉落：未成熟时掉落瓶草荚果，成熟时可能额外掉落瓶草荚果；
+    // 6) 只能放置在耕地上；7) 形状随AGE变化（AGE<3为单层作物，AGE>=3为双层）；
+    // 8) 瓶草荚果(pitcher_pod)为种子物品，右键耕地放置此作物方块。
+    // MC Java中PitcherCropBlock有完整实现可参考。
     TrailsBlocks::PITCHER_CROP = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:pitcher_crop"),
         BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).soundType(BlockSoundTypes::CROP));
 }

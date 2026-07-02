@@ -191,6 +191,15 @@ ItemTag& ItemTags::FREEZE_IMMUNE_WEARABLES()
     return *tag;
 }
 
+ItemTag& ItemTags::CHAINS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "chains"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -223,12 +232,17 @@ void ItemTags::initialize()
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lily_of_the_valley")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cornflower")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wither_rose")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "torchflower")));
 
     // 大型花朵（双格）
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "sunflower")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "lilac")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "rose_bush")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "peony")));
+
+    // 其他花朵（非传统小型/大型）
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spore_blossom")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_petals")));
 
     allTags[flowers->getId()] = std::move(flowers);
 
@@ -479,6 +493,9 @@ void ItemTags::initialize()
     breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "trident")));
     breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mace")));
 
+    // 刷子 - 刷扫也会碎裂陶罐
+    breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brush")));
+
     allTags[breaksPots->getId()] = std::move(breaksPots);
 
     // 创建 FREEZE_IMMUNE_WEARABLES 标签
@@ -496,6 +513,21 @@ void ItemTags::initialize()
     freezeImmuneWearables->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_horse_armor")));
 
     allTags[freezeImmuneWearables->getId()] = std::move(freezeImmuneWearables);
+
+    // 创建 CHAINS 标签
+    // 包含铁锁链和所有铜锁链物品（含氧化和涂蜡变种）
+    // 参考: datapacks/Vanilla/data/minecraft/tags/item/chains.json
+    auto chains = std::make_unique<ItemTag>(ResourceLocation("minecraft", "chains"), false);
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_chain")));
+    allTags[chains->getId()] = std::move(chains);
 
     s_initialized = true;
 }

@@ -1647,7 +1647,8 @@ void HopperMinecartEntity::_transferItemsOut()
 
     // 获取下方容器
     BlockPos belowPos = getHopperPos().offset(Direction::Down);
-    IInventory* targetInventory = blockentity::HopperEntity::getInventoryAtPosition(worldPtr, belowPos);
+    InventoryRef targetInventoryRef = blockentity::HopperEntity::getInventoryAtPosition(worldPtr, belowPos);
+    IInventory* targetInventory = targetInventoryRef.get();
 
     if (!targetInventory) {
         return;

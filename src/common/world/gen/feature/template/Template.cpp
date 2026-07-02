@@ -1696,7 +1696,7 @@ BlackstoneReplacementProcessor::BlackstoneReplacementProcessor()
     u32 chiseledStoneBricks = getBlockId("minecraft:chiseled_stone_bricks");
     u32 chiseledPolishedBlackstone = getBlockId("minecraft:chiseled_polished_blackstone");
     u32 ironBars = getBlockId("minecraft:iron_bars");
-    u32 chain = getBlockId("minecraft:chain");
+    u32 chain = getBlockId("minecraft:iron_chain");
 
     // 基础方块替换
     if (cobblestone && blackstone) {

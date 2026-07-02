@@ -105,6 +105,8 @@ void DispenseItemBehaviorRegistry::initDefaultBehaviors()
     // --- 投掷物品 ---
     registerProjectileBehavior(*Items::SNOWBALL);
     registerProjectileBehavior(*Items::EGG);
+    registerProjectileBehavior(*Items::BLUE_EGG);
+    registerProjectileBehavior(*Items::BROWN_EGG);
     registerProjectileBehavior(*Items::ENDER_PEARL);
     registerProjectileBehavior(*Items::EXPERIENCE_BOTTLE);
     registerProjectileBehavior(*Items::SPLASH_POTION);

@@ -11,7 +11,7 @@
 ├── BrewingStandBlock.hpp / cpp #酿造台（药水酿造，3瓶槽位）
 ├── CauldronBlock.hpp / cpp #炼药锅（储水、物品清洗，4级水位）
 ├── CompostableItems.hpp / cpp #可堆肥物品注册表（ ~66种物品概率表）
-├── ComposterBlock.hpp / cpp #堆肥桶（8层填充，产出骨粉，碰撞形状为外壁拼接：底板+四面墙壁）
+├── ComposterBlock.hpp / cpp #堆肥桶（8层填充，产出骨粉，碰撞形状为外壁拼接：底板+四面墙壁，ISidedInventoryProvider支持漏斗自动化交互）
 ├── CakeBlock.hpp / cpp #蛋糕（可食用，7片）
 ├── BeaconBlock.hpp / cpp #信标（增益效果，金字塔基座）
 ├── BarrelBlock.hpp / cpp #木桶（存储容器，6方向放置）
@@ -56,6 +56,10 @@
 │   └── 物品交互
 ├── ComposterBlock
 │   ├── CompostableItems(可堆肥物品注册表)
+│   ├── ISidedInventoryProvider(漏斗自动化交互)
+│   │   ├── InputContainer(等级0-6：仅允许从上方输入可堆肥物品)
+│   │   ├── EmptyContainer(等级7：不允许任何交互，等待20tick转变)
+│   │   └── OutputContainer(等级8：仅允许从下方提取骨粉)
 │   ├── TickManager(tick调度)
 │   └── ItemDropHelper(物品掉落)
 ├── CakeBlock
@@ -118,7 +122,7 @@
         在下界 /
             末地使用会爆炸（爆炸强度5.0）
 
-            ## #2. ComposterBlock 堆肥延迟与碰撞形状
+            ## #2. ComposterBlock 堆肥延迟、碰撞形状与漏斗交互
 
             等级7→8的转换需要20 tick延迟，通过 `TickManager` 调度。不要在 `onBlockActivated` 中直接产出骨粉。
 
@@ -127,6 +131,17 @@
             - `getCollisionShape()` 始终返回等级0的外壁形状（SHAPES[0]）
             - 碰撞形状不是完整方块，等级0时底板高2像素 + 四面墙壁
             - 形状使用 `CollisionShape::combine(OR)` 手动拼接，因为 `CombineOp::NOT` 尚未实现
+
+            漏斗自动化交互（ISidedInventoryProvider）：
+            - ComposterBlock 实现了 `ISidedInventoryProvider` 接口，允许漏斗自动与堆肥桶交互
+            - `createInventory()` 根据等级返回不同的内部容器：
+              - 等级 0-6: `InputContainer`（1槽位，仅允许从 Direction::Up 输入可堆肥物品）
+              - 等级 7: `EmptyContainer`（0槽位，不允许任何交互，等待20tick转变）
+              - 等级 8: `OutputContainer`（1槽位骨粉，仅允许从 Direction::Down 提取）
+            - `InputContainer::setChanged()` 在物品放入后自动调用 `ComposterBlock::attemptCompost()` 处理堆肥
+            - `OutputContainer::setChanged()` 在骨粉被提取后自动调用 `ComposterBlock::empty()` 重置堆肥桶
+            - 漏斗通过 `HopperEntity::getInventoryAtPosition()` 检测 ISidedInventoryProvider，创建拥有型 InventoryRef
+            - 与 BlockEntity 路径不同，ISidedInventoryProvider 返回的容器是临时的，每次交互都重新创建
 
             ## #3. GrindstoneBlock 附着面
 

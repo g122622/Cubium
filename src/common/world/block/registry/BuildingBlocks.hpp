@@ -89,6 +89,7 @@ struct BuildingBlocks {
     static Block* QUARTZ_BLOCK;
     static Block* CHISELED_QUARTZ_BLOCK;
     static Block* QUARTZ_PILLAR;
+    static Block* SMOOTH_QUARTZ;
 
     // 海晶系列
     static Block* PRISMARINE;

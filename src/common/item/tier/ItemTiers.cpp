@@ -79,6 +79,7 @@ private:
 bool ItemTiers::s_initialized = false;
 std::unique_ptr<IItemTier> ItemTiers::s_wood;
 std::unique_ptr<IItemTier> ItemTiers::s_stone;
+std::unique_ptr<IItemTier> ItemTiers::s_copper;
 std::unique_ptr<IItemTier> ItemTiers::s_iron;
 std::unique_ptr<IItemTier> ItemTiers::s_diamond;
 std::unique_ptr<IItemTier> ItemTiers::s_gold;
@@ -130,6 +131,16 @@ void ItemTiers::initialize()
             5,                                        // enchantability
             stoneRepair);
     }
+
+    // 铜制工具 - 使用铜锭修复
+    // 铜工具挖掘等级与石制相同（1），但耐久度和效率更高
+    static crafting::Ingredient copperRepair = crafting::Ingredient::fromItems({Items::COPPER_INGOT});
+    s_copper = std::make_unique<ItemTierImpl>(190, // maxUses - 介于石制和铁制之间
+        5.0f,                                      // efficiency - 介于石制和铁制之间
+        1.0f,                                      // attackDamage - 与石制相同
+        1,                                         // harvestLevel - 与石制相同
+        13,                                        // enchantability - 介于石制和铁制之间
+        copperRepair);
 
     // 铁制工具 - 使用铁锭修复
     static crafting::Ingredient ironRepair = crafting::Ingredient::fromItems({Items::IRON_INGOT});

@@ -43,11 +43,13 @@
 #include "common/item/items/potion/PotionItem.hpp"
 #include "common/item/items/potion/SplashPotionItem.hpp"
 #include "common/item/items/special/BoneMealItem.hpp"
+#include "common/item/items/special/BrushItem.hpp"
 #include "common/item/items/special/BucketItem.hpp"
 #include "common/item/items/special/EnchantedBookItem.hpp"
 #include "common/item/items/special/FishBucketItem.hpp"
 #include "common/item/items/special/FlintAndSteelItem.hpp"
 #include "common/item/items/special/HoneycombItem.hpp"
+#include "common/item/items/special/KnowledgeBookItem.hpp"
 #include "common/item/items/special/LeadItem.hpp"
 #include "common/item/items/special/MilkBucketItem.hpp"
 #include "common/item/items/special/MusicDiscItem.hpp"
@@ -142,6 +144,14 @@ Item* Items::IRON_INGOT = nullptr;
 Item* Items::COPPER_INGOT = nullptr;
 Item* Items::NETHERITE_INGOT = nullptr;
 Item* Items::NETHERITE_SCRAP = nullptr;
+Item* Items::BRICK = nullptr;
+Item* Items::RESIN_BRICK = nullptr;
+Item* Items::AMETHYST_SHARD = nullptr;
+
+// 粗矿（Raw Ore）
+Item* Items::RAW_IRON = nullptr;
+Item* Items::RAW_COPPER = nullptr;
+Item* Items::RAW_GOLD = nullptr;
 
 // 宝石碎片
 Item* Items::DIAMOND_SHARD = nullptr;
@@ -170,6 +180,21 @@ Item* Items::NETHER_QUARTZ_ORE = nullptr;
 Item* Items::NETHER_GOLD_ORE = nullptr;
 Item* Items::ANCIENT_DEBRIS = nullptr;
 
+// 深板岩矿物原矿
+Item* Items::DEEPSLATE_COAL_ORE = nullptr;
+Item* Items::DEEPSLATE_IRON_ORE = nullptr;
+Item* Items::DEEPSLATE_COPPER_ORE = nullptr;
+Item* Items::DEEPSLATE_GOLD_ORE = nullptr;
+Item* Items::DEEPSLATE_DIAMOND_ORE = nullptr;
+Item* Items::DEEPSLATE_LAPIS_ORE = nullptr;
+Item* Items::DEEPSLATE_EMERALD_ORE = nullptr;
+Item* Items::DEEPSLATE_REDSTONE_ORE = nullptr;
+
+// 粗矿块（Raw Ore Block）
+Item* Items::RAW_IRON_BLOCK = nullptr;
+Item* Items::RAW_COPPER_BLOCK = nullptr;
+Item* Items::RAW_GOLD_BLOCK = nullptr;
+
 // 钻石工具
 Item* Items::DIAMOND_PICKAXE = nullptr;
 Item* Items::DIAMOND_AXE = nullptr;
@@ -190,6 +215,13 @@ Item* Items::STONE_AXE = nullptr;
 Item* Items::STONE_SHOVEL = nullptr;
 Item* Items::STONE_HOE = nullptr;
 Item* Items::STONE_SWORD = nullptr;
+
+// 铜工具（MC 1.21.11 新增）
+Item* Items::COPPER_PICKAXE = nullptr;
+Item* Items::COPPER_AXE = nullptr;
+Item* Items::COPPER_SHOVEL = nullptr;
+Item* Items::COPPER_HOE = nullptr;
+Item* Items::COPPER_SWORD = nullptr;
 
 // 木工具
 Item* Items::WOODEN_PICKAXE = nullptr;
@@ -319,6 +351,7 @@ Item* Items::BOWL = nullptr;
 Item* Items::FLINT = nullptr;
 Item* Items::FLINT_AND_STEEL = nullptr;
 Item* Items::SHEARS = nullptr;
+Item* Items::BRUSH = nullptr;
 Item* Items::HONEYCOMB = nullptr;
 Item* Items::NAME_TAG = nullptr;
 Item* Items::SADDLE = nullptr;
@@ -329,8 +362,11 @@ Item* Items::LEATHER = nullptr;
 Item* Items::RABBIT_HIDE = nullptr;
 Item* Items::SLIME_BALL = nullptr;
 Item* Items::EGG = nullptr;
+Item* Items::BLUE_EGG = nullptr;
+Item* Items::BROWN_EGG = nullptr;
 Item* Items::SNOWBALL = nullptr;
 Item* Items::COMPASS = nullptr;
+Item* Items::RECOVERY_COMPASS = nullptr;
 Item* Items::CLOCK = nullptr;
 Item* Items::MAP = nullptr;
 Item* Items::FILLED_MAP = nullptr;
@@ -370,6 +406,8 @@ Item* Items::WHEAT_SEEDS = nullptr;
 Item* Items::PUMPKIN_SEEDS = nullptr;
 Item* Items::MELON_SEEDS = nullptr;
 Item* Items::BEETROOT_SEEDS = nullptr;
+Item* Items::TORCHFLOWER_SEEDS = nullptr;
+Item* Items::PITCHER_POD = nullptr;
 
 // 农产品
 Item* Items::WHEAT = nullptr;
@@ -392,7 +430,8 @@ Item* Items::CRIMSON_FUNGUS = nullptr;
 Item* Items::WARPED_FUNGUS = nullptr;
 
 // 水域更新材料
-Item* Items::SCUTE = nullptr;
+Item* Items::TURTLE_SCUTE = nullptr;
+Item* Items::ARMADILLO_SCUTE = nullptr;
 Item* Items::HEART_OF_THE_SEA = nullptr;
 Item* Items::NAUTILUS_SHELL = nullptr;
 Item* Items::PHANTOM_MEMBRANE = nullptr;
@@ -462,6 +501,7 @@ Item* Items::BOOK = nullptr;
 Item* Items::ENCHANTED_BOOK = nullptr;
 Item* Items::WRITABLE_BOOK = nullptr;
 Item* Items::WRITTEN_BOOK = nullptr;
+Item* Items::KNOWLEDGE_BOOK = nullptr;
 
 // ============================================================================
 // 海绵
@@ -613,6 +653,7 @@ Item* Items::BASALT = nullptr;
 Item* Items::POLISHED_BASALT = nullptr;
 Item* Items::BLACKSTONE = nullptr;
 Item* Items::POLISHED_BLACKSTONE = nullptr;
+Item* Items::GILDED_BLACKSTONE = nullptr;
 Item* Items::CRYING_OBSIDIAN = nullptr;
 Item* Items::MAGMA = nullptr;
 Item* Items::NETHER_WART_BLOCK = nullptr;
@@ -693,6 +734,8 @@ Item* Items::ROSE_BUSH = nullptr;
 Item* Items::PEONY = nullptr;
 Item* Items::CORNFLOWER = nullptr;
 Item* Items::WITHER_ROSE = nullptr;
+Item* Items::TORCHFLOWER = nullptr;
+Item* Items::PITCHER_PLANT = nullptr;
 Item* Items::BROWN_MUSHROOM = nullptr;
 Item* Items::RED_MUSHROOM = nullptr;
 Item* Items::BROWN_MUSHROOM_BLOCK = nullptr;
@@ -867,6 +910,7 @@ Item* Items::MANGROVE_BUTTON = nullptr;
 Item* Items::CHERRY_BUTTON = nullptr;
 Item* Items::BAMBOO_BUTTON = nullptr;
 Item* Items::PALE_OAK_BUTTON = nullptr;
+Item* Items::POLISHED_BLACKSTONE_BUTTON = nullptr;
 Item* Items::STONE_PRESSURE_PLATE = nullptr;
 Item* Items::OAK_PRESSURE_PLATE = nullptr;
 Item* Items::SPRUCE_PRESSURE_PLATE = nullptr;
@@ -880,6 +924,7 @@ Item* Items::MANGROVE_PRESSURE_PLATE = nullptr;
 Item* Items::CHERRY_PRESSURE_PLATE = nullptr;
 Item* Items::BAMBOO_PRESSURE_PLATE = nullptr;
 Item* Items::PALE_OAK_PRESSURE_PLATE = nullptr;
+Item* Items::POLISHED_BLACKSTONE_PRESSURE_PLATE = nullptr;
 Item* Items::LIGHT_WEIGHTED_PRESSURE_PLATE = nullptr;
 Item* Items::HEAVY_WEIGHTED_PRESSURE_PLATE = nullptr;
 Item* Items::DAYLIGHT_DETECTOR = nullptr;
@@ -910,6 +955,8 @@ Item* Items::MANGROVE_DOOR = nullptr;
 Item* Items::CHERRY_DOOR = nullptr;
 Item* Items::PALE_OAK_DOOR = nullptr;
 Item* Items::BAMBOO_DOOR = nullptr;
+Item* Items::CRIMSON_DOOR = nullptr;
+Item* Items::WARPED_DOOR = nullptr;
 Item* Items::IRON_DOOR = nullptr;
 Item* Items::OAK_FENCE = nullptr;
 Item* Items::SPRUCE_FENCE = nullptr;
@@ -921,6 +968,7 @@ Item* Items::MANGROVE_FENCE = nullptr;
 Item* Items::CHERRY_FENCE = nullptr;
 Item* Items::PALE_OAK_FENCE = nullptr;
 Item* Items::BAMBOO_FENCE = nullptr;
+Item* Items::NETHER_BRICK_FENCE = nullptr;
 Item* Items::OAK_FENCE_GATE = nullptr;
 Item* Items::SPRUCE_FENCE_GATE = nullptr;
 Item* Items::BIRCH_FENCE_GATE = nullptr;
@@ -941,6 +989,8 @@ Item* Items::MANGROVE_TRAPDOOR = nullptr;
 Item* Items::CHERRY_TRAPDOOR = nullptr;
 Item* Items::PALE_OAK_TRAPDOOR = nullptr;
 Item* Items::BAMBOO_TRAPDOOR = nullptr;
+Item* Items::CRIMSON_TRAPDOOR = nullptr;
+Item* Items::WARPED_TRAPDOOR = nullptr;
 Item* Items::IRON_TRAPDOOR = nullptr;
 
 // 楼梯、台阶、墙
@@ -1242,6 +1292,24 @@ void Items::_registerMaterials()
     NETHERITE_SCRAP =
         &registry.registerItem(ResourceLocation("minecraft:netherite_scrap"), ItemProperties().maxStackSize(64));
 
+    // 砖（合成材料）
+    BRICK = &registry.registerItem(ResourceLocation("minecraft:brick"), ItemProperties().maxStackSize(64));
+
+    // 树脂砖（合成材料）
+    RESIN_BRICK = &registry.registerItem(ResourceLocation("minecraft:resin_brick"), ItemProperties().maxStackSize(64));
+
+    // 紫水晶碎片
+    AMETHYST_SHARD =
+        &registry.registerItem(ResourceLocation("minecraft:amethyst_shard"), ItemProperties().maxStackSize(64));
+
+    // 粗矿（Raw Ore）- 铁矿石/铜矿石/金矿石的掉落物
+    // 参考: net.minecraft.item.Items.RAW_IRON / RAW_COPPER / RAW_GOLD
+    RAW_IRON = &registry.registerItem(ResourceLocation("minecraft:raw_iron"), ItemProperties().maxStackSize(64));
+
+    RAW_COPPER = &registry.registerItem(ResourceLocation("minecraft:raw_copper"), ItemProperties().maxStackSize(64));
+
+    RAW_GOLD = &registry.registerItem(ResourceLocation("minecraft:raw_gold"), ItemProperties().maxStackSize(64));
+
     // 煤炭
     COAL = &registry.registerItem(ResourceLocation("minecraft:coal"), ItemProperties().maxStackSize(64));
 
@@ -1272,6 +1340,35 @@ void Items::_registerMaterials()
         &registerBlockBackedItem(registry, VanillaBlocks::LAPIS_ORE, "lapis_ore", ItemProperties().maxStackSize(64));
     REDSTONE_ORE = &registerBlockBackedItem(
         registry, VanillaBlocks::REDSTONE_ORE, "redstone_ore", ItemProperties().maxStackSize(64));
+
+    // 深板岩矿物原矿
+    DEEPSLATE_COAL_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_COAL_ORE, "deepslate_coal_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_IRON_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_IRON_ORE, "deepslate_iron_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_COPPER_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_COPPER_ORE, "deepslate_copper_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_GOLD_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_GOLD_ORE, "deepslate_gold_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_DIAMOND_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_DIAMOND_ORE, "deepslate_diamond_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_LAPIS_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_LAPIS_ORE, "deepslate_lapis_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_EMERALD_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_EMERALD_ORE, "deepslate_emerald_ore", ItemProperties().maxStackSize(64));
+    DEEPSLATE_REDSTONE_ORE = &registerBlockBackedItem(
+        registry, VanillaBlocks::DEEPSLATE_REDSTONE_ORE, "deepslate_redstone_ore", ItemProperties().maxStackSize(64));
+
+    // 粗矿块（Raw Ore Block）
+    // 参考: net.minecraft.item.Items.RAW_IRON_BLOCK / RAW_COPPER_BLOCK / RAW_GOLD_BLOCK
+    RAW_IRON_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::RAW_IRON_BLOCK, "raw_iron_block", ItemProperties().maxStackSize(64));
+
+    RAW_COPPER_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::RAW_COPPER_BLOCK, "raw_copper_block", ItemProperties().maxStackSize(64));
+
+    RAW_GOLD_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::RAW_GOLD_BLOCK, "raw_gold_block", ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerTools()
@@ -1375,6 +1472,39 @@ void Items::_registerTools()
         item::tier::ItemTiers::STONE(), // tier
         3,                              // attackDamage
         -2.4f,                          // attackSpeed
+        ItemProperties());
+
+    // ========================================================================
+    // 铜工具（MC 1.21.11 新增）
+    // ========================================================================
+    COPPER_PICKAXE = &registry.registerItem<item::tool::PickaxeItem>(ResourceLocation("minecraft:copper_pickaxe"),
+        item::tier::ItemTiers::COPPER(), // tier
+        2,                               // attackDamage
+        -2.8f,                           // attackSpeed
+        ItemProperties());
+
+    COPPER_AXE = &registry.registerItem<item::tool::AxeItem>(ResourceLocation("minecraft:copper_axe"),
+        item::tier::ItemTiers::COPPER(), // tier
+        8.0f,                            // attackDamage
+        -3.2f,                           // attackSpeed
+        ItemProperties());
+
+    COPPER_SHOVEL = &registry.registerItem<item::tool::ShovelItem>(ResourceLocation("minecraft:copper_shovel"),
+        item::tier::ItemTiers::COPPER(), // tier
+        2.5f,                            // attackDamage
+        -3.0f,                           // attackSpeed
+        ItemProperties());
+
+    COPPER_HOE = &registry.registerItem<item::tool::HoeItem>(ResourceLocation("minecraft:copper_hoe"),
+        item::tier::ItemTiers::COPPER(), // tier
+        0,                               // attackDamage
+        -2.0f,                           // attackSpeed
+        ItemProperties());
+
+    COPPER_SWORD = &registry.registerItem<item::tool::SwordItem>(ResourceLocation("minecraft:copper_sword"),
+        item::tier::ItemTiers::COPPER(), // tier
+        4,                               // attackDamage
+        -2.4f,                           // attackSpeed
         ItemProperties());
 
     // ========================================================================
@@ -1914,6 +2044,12 @@ void Items::_registerMisc()
     SHEARS = &registry.registerItem<item::tool::ShearsItem>(
         ResourceLocation("minecraft:shears"), ItemProperties().maxDamage(238));
 
+    // 刷子 - 考古学工具，用于刷可疑方块和犰狳
+    // 耐久度 64，附魔能力 1（仅耐久/经验修补/消失诅咒）
+    // 参考: net.minecraft.world.item.BrushItem
+    BRUSH = &registry.registerItem<item::BrushItem>(
+        ResourceLocation("minecraft:brush"), ItemProperties().maxDamage(item::BrushItem::MAX_DURABILITY));
+
     // 蜜脾 - 右键铜方块涂蜡，阻止氧化
     HONEYCOMB = &registry.registerItem<item::items::HoneycombItem>(
         ResourceLocation("minecraft:honeycomb"), ItemProperties().maxStackSize(64));
@@ -1940,7 +2076,19 @@ void Items::_registerMisc()
 
     // EGG 已在 registerThrowableItems() 中注册为 EggItem
 
+    // 蓝蛋 - 寒带鸡变种产蛋，与白蛋行为相同
+    BLUE_EGG = &registry.registerItem<item::EggItem>(
+        ResourceLocation("minecraft:blue_egg"), ItemProperties().maxStackSize(16));
+
+    // 棕蛋 - 暖色鸡变种产蛋，与白蛋行为相同
+    BROWN_EGG = &registry.registerItem<item::EggItem>(
+        ResourceLocation("minecraft:brown_egg"), ItemProperties().maxStackSize(16));
+
     COMPASS = &registry.registerItem(ResourceLocation("minecraft:compass"), ItemProperties().maxStackSize(64));
+
+    // 追溯指南针 - 指向玩家上次死亡位置，8个回响碎片围绕1个指南针合成
+    RECOVERY_COMPASS =
+        &registry.registerItem(ResourceLocation("minecraft:recovery_compass"), ItemProperties().maxStackSize(1));
 
     CLOCK = &registry.registerItem(ResourceLocation("minecraft:clock"), ItemProperties().maxStackSize(64));
 
@@ -2023,6 +2171,17 @@ void Items::_registerSeeds()
 {
     auto& registry = ItemRegistry::instance();
 
+    // TODO: 所有种子物品当前注册为普通Item，缺少在耕地上右键种植作物方块的交互行为。
+    // 需要创建 SeedsItem 子类，重写 onItemUse() 在耕地上放置对应作物方块。
+    // MC Java 中种子物品继承 ItemNameBlockItem（BlockItem 子类），右键使用时放置作物方块。
+    // 种子与作物的映射关系：
+    //   WHEAT_SEEDS -> WheatBlock (minecraft:wheat)
+    //   PUMPKIN_SEEDS -> PumpkinStemBlock (minecraft:pumpkin_stem)
+    //   MELON_SEEDS -> MelonStemBlock (minecraft:melon_stem)
+    //   BEETROOT_SEEDS -> BeetrootBlock (minecraft:beetroots)
+    //   TORCHFLOWER_SEEDS -> TorchflowerCropBlock (minecraft:torchflower_crop)
+    //   PITCHER_POD -> PitcherCropBlock (minecraft:pitcher_crop)
+
     WHEAT_SEEDS = &registry.registerItem(ResourceLocation("minecraft:wheat_seeds"), ItemProperties().maxStackSize(64));
 
     PUMPKIN_SEEDS =
@@ -2032,6 +2191,13 @@ void Items::_registerSeeds()
 
     BEETROOT_SEEDS =
         &registry.registerItem(ResourceLocation("minecraft:beetroot_seeds"), ItemProperties().maxStackSize(64));
+
+    // 火把花种子 - 嗅探兽挖掘获得，右键耕地种植火把花作物
+    TORCHFLOWER_SEEDS =
+        &registry.registerItem(ResourceLocation("minecraft:torchflower_seeds"), ItemProperties().maxStackSize(64));
+
+    // 瓶草荚果 - 嗅探兽挖掘获得，右键耕地种植瓶草作物
+    PITCHER_POD = &registry.registerItem(ResourceLocation("minecraft:pitcher_pod"), ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerCrops()
@@ -2072,9 +2238,16 @@ void Items::_registerAquaticMaterials()
 {
     auto& registry = ItemRegistry::instance();
 
-    // 鳞甲 - 海龟掉落，用于合成海龟壳
+    // 海龟鳞甲 - 海龟长大时掉落，用于合成海龟壳
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
-    SCUTE = &registry.registerItem(ResourceLocation("minecraft:scute"), ItemProperties().maxStackSize(64));
+    // 注意: MC 1.20.5+ 将 scute 重命名为 turtle_scute
+    TURTLE_SCUTE =
+        &registry.registerItem(ResourceLocation("minecraft:turtle_scute"), ItemProperties().maxStackSize(64));
+
+    // 犰狳鳞甲 - 刷犰狳获得，用于合成狼铠
+    // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS))
+    ARMADILLO_SCUTE =
+        &registry.registerItem(ResourceLocation("minecraft:armadillo_scute"), ItemProperties().maxStackSize(64));
 
     // 海洋之心 - 宝藏物品，用于合成潮涌核心
     // 参考: new Item(new Item.Properties().group(ItemGroup.MATERIALS).rarity(Rarity.UNCOMMON))
@@ -2356,6 +2529,10 @@ void Items::_registerBooks()
     // 成书 - 已完成的书
     WRITTEN_BOOK =
         &registry.registerItem(ResourceLocation("minecraft:written_book"), ItemProperties().maxStackSize(16));
+
+    // 知识之书 - 右键使用时解锁NBT中存储的配方列表
+    KNOWLEDGE_BOOK = &registry.registerItem<item::items::KnowledgeBookItem>(
+        ResourceLocation("minecraft:knowledge_book"), ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerSponges()
@@ -2958,6 +3135,8 @@ void Items::_registerBuildingBlocks()
         &registerBlockBackedItem(registry, VanillaBlocks::BLACKSTONE, "blackstone", ItemProperties().maxStackSize(64));
     POLISHED_BLACKSTONE = &registerBlockBackedItem(
         registry, VanillaBlocks::POLISHED_BLACKSTONE, "polished_blackstone", ItemProperties().maxStackSize(64));
+    GILDED_BLACKSTONE = &registerBlockBackedItem(
+        registry, VanillaBlocks::GILDED_BLACKSTONE, "gilded_blackstone", ItemProperties().maxStackSize(64));
     CRYING_OBSIDIAN = &registerBlockBackedItem(
         registry, VanillaBlocks::CRYING_OBSIDIAN, "crying_obsidian", ItemProperties().maxStackSize(64));
     MAGMA = &registerBlockBackedItem(registry, VanillaBlocks::MAGMA, "magma_block", ItemProperties().maxStackSize(64));
@@ -3112,7 +3291,7 @@ void Items::_registerBuildingBlocks()
     LADDER = &registerBlockBackedItem(registry, VanillaBlocks::LADDER, "ladder", ItemProperties().maxStackSize(64));
     SCAFFOLDING = &registerBlockBackedItem(
         registry, VanillaBlocks::SCAFFOLDING, "scaffolding", ItemProperties().maxStackSize(64));
-    CHAIN = &registerBlockBackedItem(registry, VanillaBlocks::CHAIN, "chain", ItemProperties().maxStackSize(64));
+    CHAIN = &registerBlockBackedItem(registry, VanillaBlocks::CHAIN, "iron_chain", ItemProperties().maxStackSize(64));
     IRON_BARS =
         &registerBlockBackedItem(registry, VanillaBlocks::IRON_BARS, "iron_bars", ItemProperties().maxStackSize(64));
     GLASS_PANE =
@@ -3473,6 +3652,15 @@ void Items::_registerVegetation()
         &registerBlockBackedItem(registry, VanillaBlocks::CORNFLOWER, "cornflower", ItemProperties().maxStackSize(64));
     WITHER_ROSE = &registerBlockBackedItem(
         registry, VanillaBlocks::WITHER_ROSE, "wither_rose", ItemProperties().maxStackSize(64));
+
+    // 火把花 - 嗅探兽挖掘种子种植后长成的花朵
+    TORCHFLOWER = &registerBlockBackedItem(
+        registry, VanillaBlocks::TORCHFLOWER, "torchflower", ItemProperties().maxStackSize(64));
+
+    // 瓶草 - 嗅探兽挖掘荚果种植后长成的双层花朵
+    PITCHER_PLANT = &registerBlockBackedItem(
+        registry, VanillaBlocks::PITCHER_PLANT, "pitcher_plant", ItemProperties().maxStackSize(64));
+
     BROWN_MUSHROOM = &registerBlockBackedItem(
         registry, VanillaBlocks::BROWN_MUSHROOM, "brown_mushroom", ItemProperties().maxStackSize(64));
     RED_MUSHROOM = &registerBlockBackedItem(
@@ -3530,6 +3718,10 @@ void Items::_registerRedstone()
         registry, VanillaBlocks::BAMBOO_BUTTON, "bamboo_button", ItemProperties().maxStackSize(64));
     PALE_OAK_BUTTON = &registerBlockBackedItem(
         registry, VanillaBlocks::PALE_OAK_BUTTON, "pale_oak_button", ItemProperties().maxStackSize(64));
+    POLISHED_BLACKSTONE_BUTTON = &registerBlockBackedItem(registry,
+        VanillaBlocks::POLISHED_BLACKSTONE_BUTTON,
+        "polished_blackstone_button",
+        ItemProperties().maxStackSize(64));
     STONE_PRESSURE_PLATE = &registerBlockBackedItem(
         registry, VanillaBlocks::STONE_PRESSURE_PLATE, "stone_pressure_plate", ItemProperties().maxStackSize(64));
     OAK_PRESSURE_PLATE = &registerBlockBackedItem(
@@ -3556,6 +3748,10 @@ void Items::_registerRedstone()
         registry, VanillaBlocks::BAMBOO_PRESSURE_PLATE, "bamboo_pressure_plate", ItemProperties().maxStackSize(64));
     PALE_OAK_PRESSURE_PLATE = &registerBlockBackedItem(
         registry, VanillaBlocks::PALE_OAK_PRESSURE_PLATE, "pale_oak_pressure_plate", ItemProperties().maxStackSize(64));
+    POLISHED_BLACKSTONE_PRESSURE_PLATE = &registerBlockBackedItem(registry,
+        VanillaBlocks::POLISHED_BLACKSTONE_PRESSURE_PLATE,
+        "polished_blackstone_pressure_plate",
+        ItemProperties().maxStackSize(64));
     LIGHT_WEIGHTED_PRESSURE_PLATE = &registerBlockBackedItem(registry,
         VanillaBlocks::LIGHT_WEIGHTED_PRESSURE_PLATE,
         "light_weighted_pressure_plate",
@@ -3669,6 +3865,10 @@ void Items::_registerDoorsFencesStairs()
         registry, VanillaBlocks::PALE_OAK_DOOR, "pale_oak_door", ItemProperties().maxStackSize(64));
     BAMBOO_DOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::BAMBOO_DOOR, "bamboo_door", ItemProperties().maxStackSize(64));
+    CRIMSON_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_DOOR, "crimson_door", ItemProperties().maxStackSize(64));
+    WARPED_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_DOOR, "warped_door", ItemProperties().maxStackSize(64));
     IRON_DOOR =
         &registerBlockBackedItem(registry, VanillaBlocks::IRON_DOOR, "iron_door", ItemProperties().maxStackSize(64));
 
@@ -3693,6 +3893,8 @@ void Items::_registerDoorsFencesStairs()
         registry, VanillaBlocks::PALE_OAK_FENCE, "pale_oak_fence", ItemProperties().maxStackSize(64));
     BAMBOO_FENCE = &registerBlockBackedItem(
         registry, VanillaBlocks::BAMBOO_FENCE, "bamboo_fence", ItemProperties().maxStackSize(64));
+    NETHER_BRICK_FENCE = &registerBlockBackedItem(
+        registry, VanillaBlocks::NETHER_BRICK_FENCE, "nether_brick_fence", ItemProperties().maxStackSize(64));
 
     // 栅栏门
     OAK_FENCE_GATE = &registerBlockBackedItem(
@@ -3737,6 +3939,10 @@ void Items::_registerDoorsFencesStairs()
         registry, VanillaBlocks::PALE_OAK_TRAPDOOR, "pale_oak_trapdoor", ItemProperties().maxStackSize(64));
     BAMBOO_TRAPDOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::BAMBOO_TRAPDOOR, "bamboo_trapdoor", ItemProperties().maxStackSize(64));
+    CRIMSON_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_TRAPDOOR, "crimson_trapdoor", ItemProperties().maxStackSize(64));
+    WARPED_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_TRAPDOOR, "warped_trapdoor", ItemProperties().maxStackSize(64));
     IRON_TRAPDOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor", ItemProperties().maxStackSize(64));
 

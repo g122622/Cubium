@@ -21,6 +21,7 @@
  *
  */
 
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "item/Items.hpp"
 #include "item/core/Item.hpp"
 #include "item/core/ItemStack.hpp"
@@ -33,7 +34,6 @@
 #include "item/tier/ItemTiers.hpp"
 #include "world/block/Block.hpp"
 #include "world/block/BlockRegistry.hpp"
-#include "common/world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
 using namespace mc;
@@ -762,4 +762,216 @@ TEST_F(ToolHarvestTest, AxeEffectiveOnWarpedButton)
     const BlockState& state = button->defaultState();
     f32 speed = axe->getDestroySpeed(stack, state);
     EXPECT_FLOAT_EQ(speed, 8.0f) << "Diamond axe should be effective on WARPED_BUTTON";
+}
+
+// ============================================================================
+// Copper Tier Tests
+// ============================================================================
+
+TEST_F(ItemTierTest, CopperTierValues)
+{
+    const auto& tier = ItemTiers::COPPER();
+    EXPECT_EQ(tier.getMaxUses(), 190);
+    EXPECT_FLOAT_EQ(tier.getEfficiency(), 5.0f);
+    EXPECT_FLOAT_EQ(tier.getAttackDamage(), 1.0f);
+    EXPECT_EQ(tier.getHarvestLevel(), 1);
+    EXPECT_EQ(tier.getEnchantability(), 13);
+}
+
+// ============================================================================
+// Copper Tool Item Tests
+// ============================================================================
+
+TEST_F(ToolItemTest, CopperPickaxeDurability)
+{
+    auto* pickaxe = Items::COPPER_PICKAXE;
+    ASSERT_NE(pickaxe, nullptr);
+    EXPECT_EQ(pickaxe->maxDamage(), 190);
+}
+
+TEST_F(ToolItemTest, CopperAxeDurability)
+{
+    auto* axe = Items::COPPER_AXE;
+    ASSERT_NE(axe, nullptr);
+    EXPECT_EQ(axe->maxDamage(), 190);
+}
+
+TEST_F(ToolItemTest, CopperShovelDurability)
+{
+    auto* shovel = Items::COPPER_SHOVEL;
+    ASSERT_NE(shovel, nullptr);
+    EXPECT_EQ(shovel->maxDamage(), 190);
+}
+
+TEST_F(ToolItemTest, CopperHoeDurability)
+{
+    auto* hoe = Items::COPPER_HOE;
+    ASSERT_NE(hoe, nullptr);
+    EXPECT_EQ(hoe->maxDamage(), 190);
+}
+
+TEST_F(ToolItemTest, CopperSwordDurability)
+{
+    auto* sword = Items::COPPER_SWORD;
+    ASSERT_NE(sword, nullptr);
+    EXPECT_EQ(sword->maxDamage(), 190);
+}
+
+TEST_F(ToolItemTest, CopperPickaxeEnchantability)
+{
+    auto* pickaxe = Items::COPPER_PICKAXE;
+    ASSERT_NE(pickaxe, nullptr);
+    EXPECT_EQ(pickaxe->getItemEnchantability(), 13);
+}
+
+TEST_F(ToolItemTest, CopperSwordEnchantability)
+{
+    auto* sword = Items::COPPER_SWORD;
+    ASSERT_NE(sword, nullptr);
+    EXPECT_EQ(sword->getItemEnchantability(), 13);
+}
+
+TEST_F(ToolItemTest, CopperPickaxeIsRegistered)
+{
+    auto* pickaxe = Items::COPPER_PICKAXE;
+    ASSERT_NE(pickaxe, nullptr);
+    EXPECT_EQ(pickaxe->itemLocation().path(), "copper_pickaxe");
+}
+
+TEST_F(ToolItemTest, CopperAxeIsRegistered)
+{
+    auto* axe = Items::COPPER_AXE;
+    ASSERT_NE(axe, nullptr);
+    EXPECT_EQ(axe->itemLocation().path(), "copper_axe");
+}
+
+TEST_F(ToolItemTest, CopperShovelIsRegistered)
+{
+    auto* shovel = Items::COPPER_SHOVEL;
+    ASSERT_NE(shovel, nullptr);
+    EXPECT_EQ(shovel->itemLocation().path(), "copper_shovel");
+}
+
+TEST_F(ToolItemTest, CopperHoeIsRegistered)
+{
+    auto* hoe = Items::COPPER_HOE;
+    ASSERT_NE(hoe, nullptr);
+    EXPECT_EQ(hoe->itemLocation().path(), "copper_hoe");
+}
+
+TEST_F(ToolItemTest, CopperSwordIsRegistered)
+{
+    auto* sword = Items::COPPER_SWORD;
+    ASSERT_NE(sword, nullptr);
+    EXPECT_EQ(sword->itemLocation().path(), "copper_sword");
+}
+
+TEST_F(ToolHarvestTest, CopperPickaxeSpeedOnStone)
+{
+    auto* pickaxe = Items::COPPER_PICKAXE;
+    ASSERT_NE(pickaxe, nullptr);
+
+    ItemStack stack(*pickaxe, 1);
+    auto* stone = VanillaBlocks::STONE;
+    ASSERT_NE(stone, nullptr);
+
+    const BlockState& state = stone->defaultState();
+    f32 speed = pickaxe->getDestroySpeed(stack, state);
+    EXPECT_FLOAT_EQ(speed, 5.0f);
+}
+
+// ============================================================================
+// Copper Tool Boundary Tests
+// ============================================================================
+
+TEST_F(ToolItemTest, CopperPickaxeAttackDamageAndSpeed)
+{
+    auto* pickaxe = Items::COPPER_PICKAXE;
+    ASSERT_NE(pickaxe, nullptr);
+    // 铜镐: 基础伤害2 + 层级加成1.0 = 总伤害3.0, 攻击速度-2.8
+    auto* toolItem = static_cast<item::tool::ToolItem*>(pickaxe);
+    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 3.0f);
+    EXPECT_FLOAT_EQ(toolItem->getAttackSpeed(), -2.8f);
+}
+
+TEST_F(ToolItemTest, CopperAxeAttackDamageAndSpeed)
+{
+    auto* axe = Items::COPPER_AXE;
+    ASSERT_NE(axe, nullptr);
+    // 铜斧: 基础伤害8.0 + 层级加成1.0 = 总伤害9.0, 攻击速度-3.2
+    auto* toolItem = static_cast<item::tool::ToolItem*>(axe);
+    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 9.0f);
+    EXPECT_FLOAT_EQ(toolItem->getAttackSpeed(), -3.2f);
+}
+
+TEST_F(ToolItemTest, CopperShovelAttackDamageAndSpeed)
+{
+    auto* shovel = Items::COPPER_SHOVEL;
+    ASSERT_NE(shovel, nullptr);
+    // 铜铲: 基础伤害2.5 + 层级加成1.0 = 总伤害3.5, 攻击速度-3.0
+    auto* toolItem = static_cast<item::tool::ToolItem*>(shovel);
+    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 3.5f);
+    EXPECT_FLOAT_EQ(toolItem->getAttackSpeed(), -3.0f);
+}
+
+TEST_F(ToolItemTest, CopperHoeAttackDamageAndSpeed)
+{
+    auto* hoe = Items::COPPER_HOE;
+    ASSERT_NE(hoe, nullptr);
+    // 铜锄: 基础伤害0 + 层级加成1.0 = 总伤害1.0, 攻击速度-2.0
+    auto* toolItem = static_cast<item::tool::ToolItem*>(hoe);
+    EXPECT_FLOAT_EQ(toolItem->getAttackDamage(), 1.0f);
+    EXPECT_FLOAT_EQ(toolItem->getAttackSpeed(), -2.0f);
+}
+
+TEST_F(ToolItemTest, CopperSwordAttackDamageAndSpeed)
+{
+    auto* sword = Items::COPPER_SWORD;
+    ASSERT_NE(sword, nullptr);
+    // 铜剑: 基础伤害4 + 层级加成1.0 = 总伤害5.0, 攻击速度-2.4
+    auto* swordItem = static_cast<item::tool::SwordItem*>(sword);
+    EXPECT_FLOAT_EQ(swordItem->getAttackDamage(), 5.0f);
+    EXPECT_FLOAT_EQ(swordItem->getAttackSpeed(), -2.4f);
+}
+
+TEST_F(ToolItemTest, CopperToolRepairMaterial)
+{
+    // 铜制工具应该可以用铜锭修复
+    auto* pickaxe = Items::COPPER_PICKAXE;
+    ASSERT_NE(pickaxe, nullptr);
+
+    ItemStack toRepair(*pickaxe, 1);
+    toRepair.setDamage(50); // 模拟已损耗
+
+    ItemStack repairMaterial(*Items::COPPER_INGOT, 1);
+    EXPECT_TRUE(pickaxe->getIsRepairable(toRepair, repairMaterial));
+
+    // 铁锭不应该能修复铜制工具
+    ItemStack ironMaterial(*Items::IRON_INGOT, 1);
+    EXPECT_FALSE(pickaxe->getIsRepairable(toRepair, ironMaterial));
+}
+
+TEST_F(ToolItemTest, CopperToolHarvestLevelSameAsStone)
+{
+    // 铜制工具的挖掘等级与石制相同（1），不能挖掘需要铁级工具的方块
+    const auto& copperTier = ItemTiers::COPPER();
+    const auto& stoneTier = ItemTiers::STONE();
+    EXPECT_EQ(copperTier.getHarvestLevel(), stoneTier.getHarvestLevel());
+
+    // 但铜制工具的效率高于石制
+    EXPECT_GT(copperTier.getEfficiency(), stoneTier.getEfficiency());
+
+    // 铜制工具的耐久高于石制
+    EXPECT_GT(copperTier.getMaxUses(), stoneTier.getMaxUses());
+}
+
+TEST_F(ToolItemTest, CopperToolEnchantabilityBetweenStoneAndIron)
+{
+    // 铜制工具的附魔值13，介于石制(5)和铁制(14)之间
+    const auto& copperTier = ItemTiers::COPPER();
+    const auto& stoneTier = ItemTiers::STONE();
+    const auto& ironTier = ItemTiers::IRON();
+    EXPECT_GT(copperTier.getEnchantability(), stoneTier.getEnchantability());
+    EXPECT_LT(copperTier.getEnchantability(), ironTier.getEnchantability());
+    EXPECT_EQ(copperTier.getEnchantability(), 13);
 }

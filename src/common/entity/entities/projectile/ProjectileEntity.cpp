@@ -257,6 +257,22 @@ void ProjectileEntity::onBlockHit(const RayTraceResult& result)
 
 void ProjectileEntity::onImpact(const RayTraceResult& result)
 {
+    if (result.type == RayTraceResultType::Entity && result.hitEntity != nullptr) {
+        // 命中实体时，先检查该实体是否偏转弹射物
+        // 对应 MC Java 的 Projectile.hitTargetOrDeflectSelf()
+        const ProjectileDeflection deflection = result.hitEntity->deflection(*this);
+        if (deflection != ProjectileDeflection::None) {
+            // 防止同一实体连续偏转
+            if (result.hitEntity->id() != m_lastDeflectedById) {
+                if (deflect(deflection, *result.hitEntity, false)) {
+                    m_lastDeflectedById = result.hitEntity->id();
+                }
+            }
+            // 被偏转后不调用 onEntityHit，直接返回
+            return;
+        }
+    }
+
     switch (result.type) {
         case RayTraceResultType::Entity:
             onEntityHit(result);
@@ -284,6 +300,23 @@ bool ProjectileEntity::checkLeftShooter()
 
     // 检查投掷物是否已离开发射者的碰撞箱
     return !boundingBox().intersects(shooter->boundingBox());
+}
+
+bool ProjectileEntity::deflect(ProjectileDeflection deflection, Entity& deflector, bool wasPlayerDeflect)
+{
+    if (deflection == ProjectileDeflection::None) {
+        return false;
+    }
+
+    // 应用偏转效果
+    if (!applyProjectileDeflection(deflection, *this, deflector)) {
+        return false;
+    }
+
+    // 偏转后回调
+    onDeflection(wasPlayerDeflect);
+
+    return true;
 }
 
 RayTraceResult ProjectileEntity::performRayTrace()

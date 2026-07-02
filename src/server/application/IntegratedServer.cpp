@@ -26,6 +26,7 @@
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/AbstractContainerMenu.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
+#include "common/entity/inventory/container/AnvilContainer.hpp"
 #include "common/entity/inventory/container/ChestContainer.hpp"
 #include "common/entity/inventory/container/CrafterContainer.hpp"
 #include "common/entity/inventory/container/FurnaceContainer.hpp"
@@ -866,6 +867,16 @@ bool IntegratedServer::_openContainerMenu(ContainerType type, const BlockPos& po
             m_openInventoryOwner.reset();
             menu = std::make_unique<mc::CrafterContainer>(
                 containerId, &m_clientInventory, crafter->getInventory(), crafter);
+            break;
+        }
+        case ContainerType::Anvil: {
+            auto* playerDim = m_dimensionManager->getPlayerDimensionWorld(m_clientPlayerId);
+            auto* playerWorld = playerDim ? playerDim->world() : nullptr;
+            if (playerWorld == nullptr) {
+                return false;
+            }
+
+            menu = std::make_unique<mc::AnvilContainer>(containerId, &m_clientInventory, pos, playerWorld);
             break;
         }
         case ContainerType::Player:

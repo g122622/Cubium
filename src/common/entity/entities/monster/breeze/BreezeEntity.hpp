@@ -24,6 +24,7 @@
 #pragma once
 
 #include "common/entity/entities/monster/MonsterEntity.hpp"
+#include "common/entity/entities/projectile/ProjectileDeflection.hpp"
 #include <memory>
 
 namespace mc {
@@ -147,24 +148,20 @@ public:
      */
     [[nodiscard]] bool canAttackType(entity::EntityTypeId typeId) const override;
 
+    /**
+     * @brief 获取此旋风人对指定弹射物的偏转类型
+     *
+     * 重写 Entity::deflection()。
+     * 旋风人偏转除风弹外的所有投射物，并播放偏转音效。
+     * 风弹（包括旋风人风弹和玩家风弹）不被偏转。
+     *
+     * 对应 MC Java 的 Breeze.deflection(Projectile)。
+     */
+    [[nodiscard]] ProjectileDeflection deflection(const entity::ProjectileEntity& projectile) const override;
+
 protected:
     void registerGoals() override;
     void registerAttributes() override;
-
-    /**
-     * @brief 弹射物偏转
-     *
-     * 旋风人弹开除风弹外的所有投射物。
-     * TODO(trial_chambers): 实现弹射物偏转逻辑，需要在Entity/MobEntity基类中添加虚方法
-     */
-    // bool canProjectileDeflect() const override { return true; }
-
-    /**
-     * @brief 判断投射物是否可被偏转
-     * @param projectile 投射物实体
-     * @return 风弹返回false（不偏转），其他返回true
-     */
-    bool shouldDeflectProjectile(const entity::ProjectileEntity& projectile) const;
 
     // ========== AI 状态查询与设置 ==========
 

@@ -82,8 +82,11 @@ public:
 
     /**
      * @brief 创建指定年龄的状态
+     *
+     * 子类可重写此方法以自定义年龄转换逻辑（如 TorchflowerCropBlock
+     * 在 age >= getMaxAge() 时返回火把花方块状态）。
      */
-    [[nodiscard]] const BlockState& withAge(i32 age) const;
+    [[nodiscard]] virtual const BlockState& withAge(i32 age) const;
 
     /**
      * @brief 是否为最大年龄

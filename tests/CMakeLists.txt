@@ -69,6 +69,7 @@ add_executable(mc_tests
     common/item/crafting/ShapedRecipeTest.cpp
     common/item/crafting/ShapelessRecipeTest.cpp
     common/item/crafting/RecipeLoaderTest.cpp
+    common/item/crafting/RecipeFormatTest.cpp
     common/item/crafting/RecipeSerializersTest.cpp
     common/item/crafting/BannerDuplicateRecipeTest.cpp
     common/item/crafting/ShieldDecorationRecipeTest.cpp
@@ -100,6 +101,8 @@ add_executable(mc_tests
     common/item/special/PotterySherdAndSmithingTemplateTest.cpp
     # 物品 addInformation tooltip 翻译测试（锻造模板格式、旗帜图案翻译键、LanguageManager回退）
     common/item/special/ItemTooltipTest.cpp
+    # BrushItem 刷子物品测试（属性、onUseTick触发时机、非玩家实体停止使用、粒子生成）
+    common/item/special/BrushItemTest.cpp
     common/world/map/MaterialColorTest.cpp
     common/world/map/MapDataTest.cpp
     common/item/food/ChorusFruitItemTest.cpp
@@ -109,6 +112,14 @@ add_executable(mc_tests
     common/item/BlockItemNbtTest.cpp
     common/item/GameMasterBlockItemTest.cpp
     common/item/WoodVariantBlockItemTest.cpp
+    common/item/DeepslateItemRegistrationTest.cpp
+    common/item/PolishedBlackstoneItemRegistrationTest.cpp
+    common/item/RawOreItemRegistrationTest.cpp
+    common/item/AnvilLightningRodItemRegistrationTest.cpp
+    common/item/CaveAndNetherItemRegistrationTest.cpp
+    common/item/ChainItemRegistrationTest.cpp
+    common/item/MudCaveMangroveItemRegistrationTest.cpp
+    common/item/TrailsItemsRegistrationTest.cpp
     common/item/core/AdventureModePredicateTest.cpp
     common/item/core/AdventureModeIntegrationTest.cpp
     common/item/core/ProjectileItemTest.cpp
@@ -121,6 +132,7 @@ add_executable(mc_tests
     common/entity/inventory/PlayerInventoryNbtTest.cpp
     common/entity/inventory/PlayerEnderChestInventoryTest.cpp
     common/entity/inventory/IRecipeHolderTest.cpp
+    common/entity/inventory/InventoryRefTest.cpp
     common/entity/inventory/container/ChestContainerTest.cpp
     common/entity/inventory/container/HopperContainerTest.cpp
     common/entity/inventory/container/FurnaceContainerTest.cpp
@@ -488,6 +500,7 @@ add_executable(mc_tests
     common/world/block/blocks/SnowBlockTest.cpp
     common/world/block/blocks/SpreadableSnowyDirtBlockTest.cpp
     common/world/block/blocks/nether/NyliumBlockTest.cpp
+    common/world/block/blocks/nether/NetherWoodBlocksTest.cpp
     common/world/block/blocks/SoulFireBlockTest.cpp
     common/world/block/blocks/FireBlockCollisionTest.cpp
     common/world/block/blocks/FireBlockTest.cpp
@@ -504,6 +517,7 @@ add_executable(mc_tests
     common/world/block/UpdateFromNeighbourShapesTest.cpp
     common/world/block/blocks/PlantTypeTest.cpp
     common/world/block/blocks/MushroomBlockTest.cpp
+    common/world/block/blocks/dirt/MudBlockTest.cpp
     common/world/block/blocks/cave/GlowLichenBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafBlockTest.cpp
     common/world/block/blocks/cave/BigDripleafStemBlockTest.cpp
@@ -522,6 +536,7 @@ add_executable(mc_tests
     common/world/block/blocks/sculk/SculkSensorBlockTest.cpp
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp
+    common/world/block/blocks/TorchflowerCropTest.cpp
     common/world/block/blocks/StemBlocksTest.cpp
     common/world/block/blocks/StemGrowthLogicTest.cpp
     common/world/block/blocks/TryGrowFruitTest.cpp
@@ -532,6 +547,7 @@ add_executable(mc_tests
     common/world/block/blocks/OxidizableBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
     common/world/block/BlockStateMutableTest.cpp
+    common/world/block/BuildingVariantRegistrationTest.cpp
     common/world/CanSeeSkyTest.cpp
     common/world/IWorldContainsAnyLiquidTest.cpp
     common/world/EndTeleporterTest.cpp
@@ -647,6 +663,8 @@ add_executable(mc_tests
     common/entity/entities/projectile/OpenWaterCheckTest.cpp
     # ProjectileEntity canHitEntity 骑乘同载具测试
     common/entity/entities/projectile/ProjectileCanHitEntityTest.cpp
+    # ProjectileDeflection 弹射物偏转系统测试
+    common/entity/entities/projectile/ProjectileDeflectionTest.cpp
     # FireworkRocketEntity 爆炸伤害测试
     common/entity/entities/projectile/FireworkRocketExplosionTest.cpp
     # DragonFireballEntity 龙息云和粒子类型测试

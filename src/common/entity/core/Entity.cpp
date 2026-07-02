@@ -40,6 +40,8 @@
 #include "../../world/fluid/Fluid.hpp"
 #include "../damage/DamageSource.hpp"
 #include "../entities/player/Player.hpp"
+#include "../entities/projectile/ProjectileDeflection.hpp"
+#include "../entities/projectile/ProjectileEntity.hpp"
 #include "../serialization/EntityNbtKeys.hpp"
 #include "../serialization/NbtHelper.hpp"
 #include "../tag/EntityTypeTags.hpp"
@@ -1672,6 +1674,15 @@ bool Entity::dismountsUnderwater() const
     // 马、猪、骆驼等陆地骑乘实体返回 true，船不在标签中返回 false。
     // 数据包中的 dismounts_underwater.json 定义了完整的实体列表。
     return EntityTypeTags::DISMOUNTS_UNDERWATER().contains(getTypeId());
+}
+
+ProjectileDeflection Entity::deflection(const entity::ProjectileEntity& /*projectile*/) const
+{
+    // MC Java: Entity.deflection(Projectile)
+    // 默认实现：如果实体类型属于 #minecraft:deflects_projectiles 标签则返回 Reverse，否则返回 None。
+    // 子类可重写以自定义偏转行为（如 BreezeEntity 排除风弹）。
+    return EntityTypeTags::DEFLECTS_PROJECTILES().contains(getTypeId()) ? ProjectileDeflection::Reverse
+                                                                        : ProjectileDeflection::None;
 }
 
 bool Entity::isRidingSameEntity(const Entity& other) const

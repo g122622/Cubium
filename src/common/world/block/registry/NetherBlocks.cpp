@@ -28,6 +28,7 @@
 #include "world/block/blocks/RotatedPillarBlock.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
 #include "world/block/blocks/agricultural/MelonPumpkinBlocks.hpp"
+#include "world/block/blocks/building/FenceBlock.hpp"
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
@@ -97,6 +98,16 @@ Block* NetherBlocks::CRIMSON_ROOTS = nullptr;
 Block* NetherBlocks::WARPED_ROOTS = nullptr;
 Block* NetherBlocks::NETHER_SPROUTS = nullptr;
 
+// 下界木板及衍生方块
+Block* NetherBlocks::CRIMSON_PLANKS = nullptr;
+Block* NetherBlocks::WARPED_PLANKS = nullptr;
+Block* NetherBlocks::CRIMSON_STAIRS = nullptr;
+Block* NetherBlocks::WARPED_STAIRS = nullptr;
+Block* NetherBlocks::CRIMSON_SLAB = nullptr;
+Block* NetherBlocks::WARPED_SLAB = nullptr;
+Block* NetherBlocks::CRIMSON_FENCE = nullptr;
+Block* NetherBlocks::WARPED_FENCE = nullptr;
+
 // 灵魂火把
 Block* NetherBlocks::SOUL_TORCH = nullptr;
 Block* NetherBlocks::SOUL_WALL_TORCH = nullptr;
@@ -117,8 +128,20 @@ Block* NetherBlocks::POLISHED_BLACKSTONE_WALL = nullptr;
 Block* NetherBlocks::GILDED_BLACKSTONE = nullptr;
 
 // 下界砖扩展
+Block* NetherBlocks::NETHER_BRICKS = nullptr;
+Block* NetherBlocks::RED_NETHER_BRICKS = nullptr;
 Block* NetherBlocks::CHISELED_NETHER_BRICKS = nullptr;
 Block* NetherBlocks::CRACKED_NETHER_BRICKS = nullptr;
+Block* NetherBlocks::NETHER_BRICK_FENCE = nullptr;
+Block* NetherBlocks::NETHER_BRICK_STAIRS = nullptr;
+Block* NetherBlocks::NETHER_BRICK_SLAB = nullptr;
+Block* NetherBlocks::NETHER_BRICK_WALL = nullptr;
+Block* NetherBlocks::RED_NETHER_BRICK_STAIRS = nullptr;
+Block* NetherBlocks::RED_NETHER_BRICK_SLAB = nullptr;
+Block* NetherBlocks::RED_NETHER_BRICK_WALL = nullptr;
+Block* NetherBlocks::END_STONE_BRICK_STAIRS = nullptr;
+Block* NetherBlocks::END_STONE_BRICK_SLAB = nullptr;
+Block* NetherBlocks::END_STONE_BRICK_WALL = nullptr;
 
 // 磁石
 Block* NetherBlocks::LODESTONE = nullptr;
@@ -321,6 +344,47 @@ void registerNetherBlocks()
                 .notSolid()
                 .soundType(BlockSoundTypes::NETHER_SPROUT));
 
+    // ============================================================================
+    // 下界木板及衍生方块
+    // ============================================================================
+
+    // 绯红木板 - 下界木材，不可燃，不免疫岩浆点燃
+    NetherBlocks::CRIMSON_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:crimson_planks"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 诡异木板 - 下界木材，不可燃，不免疫岩浆点燃
+    NetherBlocks::WARPED_PLANKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:warped_planks"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 绯红楼梯
+    NetherBlocks::CRIMSON_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:crimson_stairs"),
+        NetherBlocks::CRIMSON_PLANKS->defaultState(),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 诡异楼梯
+    NetherBlocks::WARPED_STAIRS = &registry.registerBlock<blocks::StairsBlock>(
+        ResourceLocation("minecraft:warped_stairs"),
+        NetherBlocks::WARPED_PLANKS->defaultState(),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 绯红台阶
+    NetherBlocks::CRIMSON_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:crimson_slab"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 诡异台阶
+    NetherBlocks::WARPED_SLAB = &registry.registerBlock<blocks::SlabBlock>(ResourceLocation("minecraft:warped_slab"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 绯红栅栏 - 木质栅栏，可与所有木质栅栏和栅栏门连接
+    NetherBlocks::CRIMSON_FENCE = &registry.registerBlock<blocks::FenceBlock>(
+        ResourceLocation("minecraft:crimson_fence"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
+    // 诡异栅栏 - 木质栅栏，可与所有木质栅栏和栅栏门连接
+    NetherBlocks::WARPED_FENCE = &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:warped_fence"),
+        BlockProperties(Material::NETHER_WOOD).hardness(2.0f).resistance(3.0f).soundType(BlockSoundTypes::NETHER_WOOD));
+
     // 灵魂火把 - 发光等级10，蓝色火焰
     NetherBlocks::SOUL_TORCH = &registry.registerBlock<blocks::TorchBlock>(ResourceLocation("minecraft:soul_torch"),
         BlockProperties(Material::DECORATION).noCollision().notSolid().lightLevel(10),
@@ -461,6 +525,23 @@ void registerNetherBlocks()
     // 下界砖扩展
     // ============================================================================
 
+    // 下界砖
+    NetherBlocks::NETHER_BRICKS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:nether_bricks"),
+        BlockProperties(Material::ROCK)
+            .hardness(2.0f)
+            .resistance(6.0f)
+            .harvestTool(HarvestTool::Pickaxe)
+            .requiresTool());
+
+    // 红色下界砖
+    NetherBlocks::RED_NETHER_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:red_nether_bricks"),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
     // 雕纹下界砖
     NetherBlocks::CHISELED_NETHER_BRICKS =
         &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:chiseled_nether_bricks"),
@@ -478,6 +559,75 @@ void registerNetherBlocks()
                 .resistance(6.0f)
                 .harvestTool(HarvestTool::Pickaxe)
                 .requiresTool());
+
+    // 下界砖栅栏 - 使用 FenceBlock，与木质栅栏同类但材质为石头，不可燃
+    // 只能与下界砖栅栏互连（不能与木质栅栏连接），通过 FENCES/WOODEN_FENCES 标签区分
+    NetherBlocks::NETHER_BRICK_FENCE =
+        &registry.registerBlock<blocks::FenceBlock>(ResourceLocation("minecraft:nether_brick_fence"),
+            BlockProperties(Material::ROCK)
+                .hardness(2.0f)
+                .resistance(6.0f)
+                .harvestTool(HarvestTool::Pickaxe)
+                .requiresTool());
+
+    // 下界砖楼梯、台阶、墙
+    BlockProperties netherBrickVariantProps = BlockProperties(Material::ROCK)
+                                                  .hardness(2.0f)
+                                                  .resistance(6.0f)
+                                                  .harvestTool(HarvestTool::Pickaxe)
+                                                  .requiresTool();
+
+    NetherBlocks::NETHER_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:nether_brick_stairs"),
+            NetherBlocks::NETHER_BRICKS->defaultState(),
+            netherBrickVariantProps);
+
+    NetherBlocks::NETHER_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:nether_brick_slab"), netherBrickVariantProps);
+
+    NetherBlocks::NETHER_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
+        ResourceLocation("minecraft:nether_brick_wall"), netherBrickVariantProps);
+
+    // 红色下界砖楼梯、台阶、墙
+    BlockProperties redNetherBrickVariantProps = BlockProperties(Material::ROCK)
+                                                     .hardness(2.0f)
+                                                     .resistance(6.0f)
+                                                     .harvestTool(HarvestTool::Pickaxe)
+                                                     .requiresTool();
+
+    NetherBlocks::RED_NETHER_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:red_nether_brick_stairs"),
+            NetherBlocks::RED_NETHER_BRICKS->defaultState(),
+            redNetherBrickVariantProps);
+
+    NetherBlocks::RED_NETHER_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:red_nether_brick_slab"), redNetherBrickVariantProps);
+
+    NetherBlocks::RED_NETHER_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
+        ResourceLocation("minecraft:red_nether_brick_wall"), redNetherBrickVariantProps);
+
+    // 末地石砖
+    NetherBlocks::END_STONE_BRICKS =
+        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone_bricks"),
+            BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f));
+
+    // 末地石砖楼梯、台阶、墙
+    BlockProperties endStoneBrickVariantProps = BlockProperties(Material::ROCK)
+                                                    .hardness(3.0f)
+                                                    .resistance(9.0f)
+                                                    .harvestTool(HarvestTool::Pickaxe)
+                                                    .requiresTool();
+
+    NetherBlocks::END_STONE_BRICK_STAIRS =
+        &registry.registerBlock<blocks::StairsBlock>(ResourceLocation("minecraft:end_stone_brick_stairs"),
+            NetherBlocks::END_STONE_BRICKS->defaultState(),
+            endStoneBrickVariantProps);
+
+    NetherBlocks::END_STONE_BRICK_SLAB = &registry.registerBlock<blocks::SlabBlock>(
+        ResourceLocation("minecraft:end_stone_brick_slab"), endStoneBrickVariantProps);
+
+    NetherBlocks::END_STONE_BRICK_WALL = &registry.registerBlock<blocks::WallBlock>(
+        ResourceLocation("minecraft:end_stone_brick_wall"), endStoneBrickVariantProps);
 
     // ============================================================================
     // 磁石
@@ -514,12 +664,6 @@ void registerNetherBlocks()
     // ============================================================================
     // 末地方块注册
     // ============================================================================
-
-    // 末地石砖属性
-    BlockProperties endStoneBrickProps = BlockProperties(Material::ROCK).hardness(3.0f).resistance(9.0f);
-
-    NetherBlocks::END_STONE_BRICKS =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:end_stone_bricks"), endStoneBrickProps);
 
     // 末地烛 - 发光14级
     NetherBlocks::END_ROD = &registry.registerBlock<SimpleBlock>(
@@ -562,7 +706,6 @@ void registerNetherBlocks()
     // 末影箱 - 发光7级
     // 右键打开末影箱界面（物品存储在玩家数据中），记录统计 OPEN_ENDERCHEST。
     // 方块上方有红石导体时无法打开。支持含水放置和水平朝向。
-    // 参考 MC Java: EnderChestBlock.onBlockActivated() → player.openMenu() + player.awardStat(Stats.OPEN_ENDERCHEST)
     NetherBlocks::ENDER_CHEST =
         &registry.registerBlock<blocks::EnderChestBlock>(ResourceLocation("minecraft:ender_chest"),
             BlockProperties(Material::ROCK).hardness(22.5f).resistance(600.0f).lightLevel(7).notSolid());

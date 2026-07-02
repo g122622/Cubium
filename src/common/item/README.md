@@ -23,7 +23,7 @@ item/
 │   └── README.md
 ├── tier/                         # 工具材质等级
 │   ├── IItemTier.hpp             # 材质接口（耐久、效率、伤害等）
-│   ├── ItemTiers.hpp/cpp         # 原版材质（木、石、铁、金、钻石、下界合金）
+│   ├── ItemTiers.hpp/cpp         # 原版材质（木、石、铜、铁、金、钻石、下界合金）
 │   └── README.md
 ├── attribute/                    # 物品属性修饰符
 │   ├── ItemAttributeModifiers.hpp/cpp  # 物品属性修饰符管理
@@ -34,7 +34,7 @@ item/
 │   └── README.md
 ├── tag/                          # 物品标签
 │   ├── ItemTag.hpp/cpp           # 物品标签类
-│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS等）
+│   ├── ItemTags.hpp/cpp          # 物品标签注册表（FLOWERS、DAMPENS_VIBRATIONS、FIRE_RESISTANT、CHAINS等）
 │   ├── ItemTagLoader.hpp/cpp     # 物品标签数据包加载器（从JSON加载标签）
 │   └── README.md
 ├── items/                        # 具体物品实现
@@ -62,6 +62,7 @@ item/
 │   │   ├── BlockItem.hpp/cpp     # 方块物品基类
 │   │   ├── WallOrFloorItem.hpp/cpp  # 墙壁/地板物品（告示牌、旗帜等）
 │   │   ├── BannerItem.hpp/cpp    # 旗帜物品
+│   │   ├── GameMasterBlockItem.hpp/cpp  # 管理员方块物品（命令方块、结构方块等）
 │   │   └── BlockItemRegistry.hpp/cpp  # 方块物品注册表
 │   ├── weapon/                   # 武器物品
 │   │   ├── BowItem.hpp/cpp       # 弓
@@ -86,6 +87,7 @@ item/
 │   │   ├── HoneycombItem.hpp/cpp  # 蜜脾（涂蜡铜方块、除蜡映射）
 │   │   ├── FishingRodItem.hpp/cpp  # 钓鱼竿
 │   │   ├── EnchantedBookItem.hpp/cpp  # 附魔书
+│   │   ├── KnowledgeBookItem.hpp/cpp  # 知识之书（右键解锁配方列表）
 │   │   ├── NameTagItem.hpp/cpp   # 命名牌
 │   │   └── ...                   # 其他特殊物品
 │   ├── bucket/                   # 桶类物品
@@ -357,7 +359,29 @@ item/
 
 已实现：`BucketItem`（对牛挤奶）、`ShearsItem`（剪羊毛/雪傀儡/哞菇）、`NameTagItem`（对实体命名）。
 
-### 15. 物品伤害源判断 canBeHurtBy
+### 15. MC 1.21+ 数据包目录命名兼容
+
+**问题**：MC 1.21+ 数据包使用单数目录名（`loot_table/`、`recipe/`、`predicate/`、`function/`），而旧版使用复数（`loot_tables/`、`recipes/`、`predicates/`、`functions/`）。加载器必须同时支持两种形式。
+
+**解决方案**：所有资源加载器（`LootTableLoader`、`RecipeLoader`、`LootPredicateLoader`、`FunctionLoader`）的路径过滤和 ID 推导逻辑均已更新，同时匹配单数和复数目录名。`ItemTagLoader` 不受影响（使用 `listResourceStacks` 精确定位 `tags/item/` 目录，不做路径子串匹配）。
+
+### 16. MC 1.21+ 配方 JSON 格式兼容
+
+**问题**：MC 1.21+ 配方 JSON 格式有两项重大变更：`ingredient` 字段支持字符串格式（如 `"minecraft:raw_iron"`），`result` 字段使用 `"id"` 替代 `"item"`。
+
+**解决方案**：`RecipeSerializers::parseIngredient()` 现在支持字符串格式（自动转为 `{"item": "..."}` 对象格式解析），`parseResult()` 同时支持 `"id"` 和 `"item"` 字段（`"item"` 优先以保持向后兼容）。`RecipeLoader` 也支持从 `recipe/` 和 `recipes/` 两种目录加载。
+
+### 17. 粗矿物品注册（Raw Ore Items）
+
+**新增物品**：`RAW_IRON`、`RAW_COPPER`、`RAW_GOLD`（粗矿物品）及其对应方块物品 `RAW_IRON_BLOCK`、`RAW_COPPER_BLOCK`、`RAW_GOLD_BLOCK`。
+
+- 粗矿物品注册在 `Items::_registerMaterials()` 中，使用 `registry.registerItem()`
+- 粗矿块物品使用 `registerBlockBackedItem()` 绑定到对应 `VanillaBlocks` 方块
+- 方块映射在 `BlockItemRegistry::initializeVanillaBlockItems()` 中通过 `registerSimpleBlock()` 完成
+- `SCUTE` 重命名为 `TURTLE_SCUTE`（ID 从 `minecraft:scute` 更改为 `minecraft:turtle_scute`，MC 1.20.5+ 变更）
+- 数据包中的战利品表、配方、标签文件已存在，加载器修复后可正常加载
+
+### 18. 物品伤害源判断 canBeHurtBy
 
 `ItemStack::canBeHurtBy(const DamageSource&)` 方法判断物品堆是否能被指定伤害源伤害。防火物品（`FIRE_RESISTANT` 标签，如下界合金物品、下界星）不会被火焰和岩浆伤害源摧毁。
 
@@ -372,3 +396,21 @@ item/
 当前注册为普通 `Item`（最大堆叠 64），因为 `SkullBlock` / `WallSkullBlock` 尚未实现。MC Java 中头颅使用 `StandingAndWallBlockItem`（本项目对应 `WallOrFloorItem`），可放置在地板或墙壁上。待方块系统完善后应升级为 `WallOrFloorItem` 注册。
 
 `FillPlayerHeadFunction` 使用 `Items::PLAYER_HEAD` 进行物品类型检查（引用相等性比较），与 MC Java 的 `stack.is(Items.PLAYER_HEAD)` 行为一致。只有玩家头颅物品会被填充玩家档案（SkullOwner），其他头颅类型不受影响。
+
+### 19. 锁链物品注册与 CHAINS 标签
+
+MC 1.21+ 将原 `minecraft:chain` 重命名为 `minecraft:iron_chain`，与铜锁链命名风格统一。所有铜锁链变体（4个氧化变种 + 4个涂蜡变种）均已注册为 BlockItem。
+
+**物品注册**：
+- 铁锁链：`Items::CHAIN`，注册为 `minecraft:iron_chain`（BlockItem，堆叠64）
+- 铜锁链：8个变种均通过 `BlockItemRegistry::initializeVanillaBlockItems()` 注册
+
+**CHAINS 标签**：
+- `BlockTags::CHAINS()` 包含铁锁链 + 8个铜锁链方块 = 9项
+- `ItemTags::CHAINS()` 包含铁锁链 + 8个铜锁链物品 = 9项
+- 对应 MC 原版标签 `minecraft:chains`
+
+**铜锁链涂蜡/刮蜡集成**：
+- `WeatheringCopperChainBlock` 继承 `IOxidizableBlock`，支持斧头刮蜡/除锈
+- `HoneycombItem::WAXABLES_MAP` 包含铜锁链的涂蜡映射（未涂蜡→涂蜡）
+- 与其他铜方块（铜块、铜栏杆、铜门等）使用相同的铜氧化机制

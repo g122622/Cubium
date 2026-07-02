@@ -42,6 +42,19 @@ struct BuildingVariantBlocks {
     static Block* COBBLESTONE_STAIRS;
     static Block* SANDSTONE_STAIRS;
     static Block* SMOOTH_SANDSTONE_STAIRS;
+    static Block* GRANITE_STAIRS;
+    static Block* POLISHED_GRANITE_STAIRS;
+    static Block* DIORITE_STAIRS;
+    static Block* POLISHED_DIORITE_STAIRS;
+    static Block* ANDESITE_STAIRS;
+    static Block* POLISHED_ANDESITE_STAIRS;
+    static Block* BRICK_STAIRS;
+    static Block* MOSSY_COBBLESTONE_STAIRS;
+    static Block* QUARTZ_STAIRS;
+    static Block* SMOOTH_QUARTZ_STAIRS;
+    static Block* PURPUR_STAIRS;
+    static Block* RED_SANDSTONE_STAIRS;
+    static Block* SMOOTH_RED_SANDSTONE_STAIRS;
 
     // 台阶
     static Block* OAK_SLAB;
@@ -54,10 +67,37 @@ struct BuildingVariantBlocks {
     static Block* COBBLESTONE_SLAB;
     static Block* SANDSTONE_SLAB;
     static Block* SMOOTH_SANDSTONE_SLAB;
+    static Block* GRANITE_SLAB;
+    static Block* POLISHED_GRANITE_SLAB;
+    static Block* DIORITE_SLAB;
+    static Block* POLISHED_DIORITE_SLAB;
+    static Block* ANDESITE_SLAB;
+    static Block* POLISHED_ANDESITE_SLAB;
+    static Block* BRICK_SLAB;
+    static Block* MOSSY_COBBLESTONE_SLAB;
+    static Block* QUARTZ_SLAB;
+    static Block* SMOOTH_QUARTZ_SLAB;
+    static Block* PURPUR_SLAB;
+    static Block* RED_SANDSTONE_SLAB;
+    static Block* SMOOTH_RED_SANDSTONE_SLAB;
+    static Block* CUT_SANDSTONE_SLAB;
+    static Block* CUT_RED_SANDSTONE_SLAB;
+    static Block* SMOOTH_STONE_SLAB;
+    static Block* PETRIFIED_OAK_SLAB;
 
     // 墙
     static Block* COBBLESTONE_WALL;
     static Block* STONE_BRICK_WALL;
+    static Block* MOSSY_COBBLESTONE_WALL;
+    static Block* BRICK_WALL;
+    static Block* PRISMARINE_WALL;
+    static Block* SANDSTONE_WALL;
+    static Block* RED_SANDSTONE_WALL;
+    static Block* QUARTZ_WALL;
+    static Block* PURPUR_WALL;
+    static Block* GRANITE_WALL;
+    static Block* DIORITE_WALL;
+    static Block* ANDESITE_WALL;
 
     // 栅栏
     static Block* OAK_FENCE;

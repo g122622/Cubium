@@ -28,6 +28,7 @@
 #include "world/block/blocks/building/SlabBlock.hpp"
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/WallBlock.hpp"
+#include "world/block/blocks/dirt/MudBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -49,8 +50,8 @@ void registerMudBlocks()
     // ============================================================================
 
     // 泥巴属性 - EARTH材质, 锹有效, 硬度0.5, 抗性0.5
-    // 泥巴是一种慢速方块，玩家和生物在上面行走会变慢
-    MudBlocks::MUD = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:mud"),
+    // 泥巴碰撞箱略矮（14/16格高），实体走在上面会略微下沉，且不可被路径寻找通过
+    MudBlocks::MUD = &registry.registerBlock<blocks::MudBlock>(ResourceLocation("minecraft:mud"),
         BlockProperties(Material::EARTH)
             .hardness(0.5f)
             .resistance(0.5f)

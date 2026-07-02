@@ -21,7 +21,7 @@ registry/
 ├── MangroveBlocks.hpp/.cpp      # 红树林系列
 ├── MudBlocks.hpp/.cpp           # 泥土系列
 ├── NaturalBlocks.hpp/.cpp       # 自然方块：冰变种、粘液、珊瑚、海洋方块、仙人掌、蜂巢/蜂箱等
-├── NetherBlocks.hpp/.cpp        # 下界方块、末地方块、下界扩展植物
+├── NetherBlocks.hpp/.cpp        # 下界方块、末地方块、下界扩展植物、绯红/诡异木板及衍生方块
 ├── PaleGardenBlocks.hpp/.cpp    # 苍白花园系列
 ├── RedstoneBlocks.hpp/.cpp      # 红石方块、铁轨方块
 ├── SculkBlocks.hpp/.cpp         # 幽匿系列
@@ -78,6 +78,20 @@ VanillaBlocks
 - `registerBaseBlocks()` 必须最先调用（AIR、WATER、LAVA 等基础方块被后续引用）
 - `registerBuildingBlocks()` 在 `registerBuildingVariantBlocks()` 之前（楼梯/台阶引用原方块）
 - `BlockTags::initialize()` 必须在所有方块注册后调用
+
+#### NetherBlocks 内部初始化顺序
+
+`registerNetherBlocks()` 内部同样有严格的顺序依赖。基础方块必须在其楼梯/台阶/墙变体之前注册，因为 `StairsBlock` 构造时需要引用基础方块的 `defaultState()`：
+
+```
+NETHER_BRICKS → NETHER_BRICK_STAIRS / NETHER_BRICK_SLAB / NETHER_BRICK_WALL
+RED_NETHER_BRICKS → RED_NETHER_BRICK_STAIRS / RED_NETHER_BRICK_SLAB / RED_NETHER_BRICK_WALL
+END_STONE_BRICKS → END_STONE_BRICK_STAIRS / END_STONE_BRICK_SLAB / END_STONE_BRICK_WALL
+CRIMSON_PLANKS → CRIMSON_STAIRS（StairsBlock 引用木板 defaultState）
+WARPED_PLANKS → WARPED_STAIRS（StairsBlock 引用木板 defaultState）
+```
+
+违反此顺序将导致 `StairsBlock` 构造时访问空指针（`nullptr->defaultState()`），引发 SEH 异常崩溃。
 
 ### 2. 静态指针初始化
 

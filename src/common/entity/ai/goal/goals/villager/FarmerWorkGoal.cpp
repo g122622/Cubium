@@ -400,6 +400,7 @@ const Block* FarmerWorkGoal::_getCropBlockForSeed(const Item* seedItem)
     //   胡萝卜   → minecraft:carrots
     //   马铃薯   → minecraft:potatoes
     //   甜菜种子 → minecraft:beetroots
+    //   火把花种子 → minecraft:torchflower_crop
     // 使用 VanillaBlocks 静态引用直接映射，避免运行时 ResourceLocation 查找
     if (seedItem == Items::WHEAT_SEEDS) {
         return VanillaBlocks::WHEAT;
@@ -409,6 +410,8 @@ const Block* FarmerWorkGoal::_getCropBlockForSeed(const Item* seedItem)
         return VanillaBlocks::POTATOES;
     } else if (seedItem == Items::BEETROOT_SEEDS) {
         return VanillaBlocks::BEETROOTS;
+    } else if (seedItem == Items::TORCHFLOWER_SEEDS) {
+        return VanillaBlocks::TORCHFLOWER_CROP;
     }
 
     return nullptr;

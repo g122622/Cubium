@@ -124,6 +124,7 @@ Block* BuildingBlocks::INFESTED_CHISELED_STONE_BRICKS = nullptr;
 Block* BuildingBlocks::QUARTZ_BLOCK = nullptr;
 Block* BuildingBlocks::CHISELED_QUARTZ_BLOCK = nullptr;
 Block* BuildingBlocks::QUARTZ_PILLAR = nullptr;
+Block* BuildingBlocks::SMOOTH_QUARTZ = nullptr;
 
 // 海晶系列
 Block* BuildingBlocks::PRISMARINE = nullptr;
@@ -222,8 +223,8 @@ void registerBuildingBlocks()
     BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
         BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable().ignitedByLava());
 
-    // 锁链 - 含水方块
-    BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:chain"),
+    // 锁链 - 含水方块 (MC 1.21+ 重命名为 iron_chain)
+    BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:iron_chain"),
         BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid());
 
     // 脚手架 - 含水方块
@@ -374,6 +375,10 @@ void registerBuildingBlocks()
     // 石英柱 - 有轴属性
     BuildingBlocks::QUARTZ_PILLAR =
         &registry.registerBlock<RotatedPillarBlock>(ResourceLocation("minecraft:quartz_pillar"), quartzProps);
+
+    // 平滑石英
+    BuildingBlocks::SMOOTH_QUARTZ = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:smooth_quartz"),
+        BlockProperties(Material::ROCK).hardness(2.0f).resistance(6.0f).harvestTool(HarvestTool::Pickaxe));
 
     // ========== 海晶系列 ==========
     BlockProperties prismarineProps = BlockProperties(Material::ROCK).hardness(1.5f).resistance(6.0f);

@@ -1,20 +1,21 @@
 # 泥土方块模块 (Dirt Blocks)
 
-泥土方块模块提供各种泥土类方块的实现，主要是可蔓延的雪覆盖泥土基类及其子类。
+泥土方块模块提供各种泥土类方块的实现，主要是可蔓延的雪覆盖泥土基类、泥巴方块及其子类。
 
 ## 目录结构
 
 ```
 dirt/
 ├── README.md                        # 本文档
-├── SpreadableSnowyDirtBlock.hpp     # 可蔓延泥土基类定义（草方块、菌丝的基类）
-└── SpreadableSnowyDirtBlock.cpp     # 可蔓延泥土基类实现
+├── MudBlock.hpp/cpp                 # 泥巴方块（碰撞箱略矮，14/16格高，不可路径寻找）
+└── SpreadableSnowyDirtBlock.hpp/cpp # 可蔓延泥土基类定义（草方块、菌丝的基类）
 ```
 
 ## 内部模块关系
 
 ```
 Block
+├── MudBlock                          # 泥巴方块（碰撞箱14/16格高，不可路径寻找）
 └── SpreadableSnowyDirtBlock         # 可蔓延的雪覆盖泥土基类（带 SNOWY 属性）
     ├── GrassBlock                   # 草方块（蔓延和退化机制）
     └── MyceliumBlock                # 菌丝方块（蔓延和退化机制）
@@ -67,7 +68,11 @@ Block
 
 ## 容易踩的坑
 
-### 1. SNOWY 属性更新时机
+### 1. MudBlock 碰撞箱略矮
+
+泥巴的碰撞箱只有 14/16 格高（而非完整方块的 16/16），实体走在上面会略微下沉。但方块支持形状和视觉遮挡形状仍为完整方块，这意味着其他方块可以放在泥巴上方而不悬空。
+
+### 2. SNOWY 属性更新时机
 
 SNOWY 属性有三个更新时机，逻辑各有不同：
 - **放置时**：检查 SNOW_BLOCK 或 SNOW（任意层数）
