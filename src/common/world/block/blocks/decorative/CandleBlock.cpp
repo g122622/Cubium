@@ -25,6 +25,7 @@
 
 #include "../../../../entity/entities/player/Player.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../item/core/ActionResult.hpp"
 #include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
@@ -218,6 +219,47 @@ std::vector<Vector3f> CandleBlock::getParticleOffsets(const BlockState& state) c
         default:
             // 防御性默认值
             return {{0.5f, 0.5f, 0.5f}};
+    }
+}
+
+// ========== 交互 ==========
+
+ActionResultType CandleBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    MC_UNUSED(hit);
+
+    // 客户端直接返回成功
+    if (world.isClientSide()) {
+        return ActionResultType::Success;
+    }
+
+    // 空手 + 可以建造 + 蜡烛已点燃 → 熄灭
+    // 参考 MC Java: CandleBlock.useItemOn — 空手点击点燃的蜡烛时熄灭
+    const ItemStack& heldItem = player.getHeldItem(hand);
+    if (heldItem.isEmpty() && isLit(state)) {
+        BlockState mutableState = state;
+        extinguish(world, pos, mutableState, &player);
+        return ActionResultType::Success;
+    }
+
+    // 其他情况（如打火石/火焰弹点燃）由物品自身处理
+    return ActionResultType::Pass;
+}
+
+// ========== Tick ==========
+
+void CandleBlock::tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random)
+{
+    MC_UNUSED(random);
+
+    // 含水时自动熄灭（由 updatePostPlacement 中 scheduleWaterTick 触发）
+    if (state.get(BlockStateProperties::WATERLOGGED()) && isLit(state)) {
+        extinguish(world, pos, state, nullptr);
     }
 }
 

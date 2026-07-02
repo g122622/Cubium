@@ -53,11 +53,17 @@ ActionResultType FlintAndSteelItem::onItemUse(ItemUseContext& context)
         return ActionResultType::Fail;
     }
 
-    // 检查是否可以点燃营火
-    // 参考: CampfireBlock.canBeLit(blockstate)
+    // 检查是否可以点燃方块（营火、蜡烛等）
+    // 参考: CampfireBlock.canBeLit / CandleBlock.canLight / CandleCakeBlock.canLight
     if (blockStatePtr->hasProperty(BlockStateProperties::LIT())) {
         if (!blockStatePtr->get(BlockStateProperties::LIT())) {
-            // 点燃营火
+            // 含水方块不可点燃（如含水蜡烛）
+            if (blockStatePtr->hasProperty(BlockStateProperties::WATERLOGGED()) &&
+                blockStatePtr->get(BlockStateProperties::WATERLOGGED())) {
+                return ActionResultType::Fail;
+            }
+
+            // 点燃方块
             BlockState newState = blockStatePtr->with(BlockStateProperties::LIT(), true);
             world.setBlockState(blockPos, &newState, 11);
 

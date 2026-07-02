@@ -23,10 +23,15 @@
 
 #include "CandleCakeBlock.hpp"
 
+#include "../../../../entity/entities/player/Player.hpp"
+#include "../../../../item/core/ActionResult.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../../util/assert/AssertAll.hpp"
 #include "../../../IWorld.hpp"
+#include "../../Block.hpp"
 #include "../../BlockRegistry.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 
 namespace mc {
 namespace blocks {
@@ -133,6 +138,82 @@ i32 CandleCakeBlock::getComparatorInputOverride(const BlockState& state, IWorld&
     MC_UNUSED(pos);
     // 蜡烛蛋糕始终输出满信号（类似完整蛋糕）
     return 14;
+}
+
+// ========== 交互 ==========
+
+ActionResultType CandleCakeBlock::onBlockActivated(const BlockState& state,
+    IWorld& world,
+    const BlockPos& pos,
+    Player& player,
+    Hand hand,
+    const BlockRaycastResult& hit)
+{
+    // 客户端直接返回成功
+    if (world.isClientSide()) {
+        // TODO: 客户端应检查玩家能否进食后返回 Success 或 Consume
+        return ActionResultType::Success;
+    }
+
+    const ItemStack& heldItem = player.getHeldItem(hand);
+
+    // 如果手持打火石或火焰弹，返回 Pass 让物品自身处理点燃逻辑
+    // 参考 MC Java: CandleCakeBlock.useItemOn 对打火石/火焰弹返回 PASS
+    // TODO: 当 FlintAndSteelItem/FireChargeItem 实现完整后，需要在此处检查物品类型
+    // 目前通过检查 canLight 条件来间接判断：如果方块可被点燃且手持物品可点燃，则返回 Pass
+
+    // 空手点击蜡烛部分（上半部 y > 0.5）且已点燃 → 熄灭
+    if (heldItem.isEmpty() && isLit(state)) {
+        f32 hitY = hit.hitPosition().y - static_cast<f32>(pos.y);
+        if (hitY > 0.5f) {
+            BlockState mutableState = state;
+            extinguish(world, pos, mutableState, &player);
+            return ActionResultType::Success;
+        }
+    }
+
+    // 其他情况：吃蛋糕
+    // 参考 MC Java: CandleCakeBlock.useWithoutItem 调用 CakeBlock.eat 后掉落蜡烛
+    // 如果玩家无法进食则返回 Pass
+    if (!player.canEat(false)) {
+        return ActionResultType::Pass;
+    }
+
+    // 玩家进食蛋糕（+2 饥饿值, 0.1 饱和度）
+    // TODO: 调用 Player 的食物系统方法补充饥饿值
+    // player.getFoodData().eat(2, 0.1f);
+    // player.awardStat(Stats::EAT_CAKE_SLICE);
+
+    // 将蜡烛蛋糕替换为一片已被咬的普通蛋糕
+    // 参考 MC Java: CakeBlock.eat 使用 BITES=0 的蛋糕状态，第一口后变为 BITES=1
+    Block* cakeBlock = VanillaBlocks::CAKE;
+    if (cakeBlock != nullptr) {
+        const BlockState& cakeState = cakeBlock->getDefaultState();
+        if (cakeState.hasProperty(BlockStateProperties::BITES_0_6())) {
+            BlockState bittenState = cakeState.with(BlockStateProperties::BITES_0_6(), 1);
+            world.setBlockState(pos, &bittenState, 3);
+        } else {
+            world.setBlockState(pos, &cakeState, 3);
+        }
+    } else {
+        // 如果蛋糕方块不可用，直接移除方块
+        if (auto* airState = BlockRegistry::instance().airState()) {
+            world.setBlockState(pos, airState, 3);
+        }
+    }
+
+    // 掉落蜡烛物品
+    Block::dropResources(world, pos, state);
+
+    return ActionResultType::Success;
+}
+
+// ========== 静态工具方法 ==========
+
+bool CandleCakeBlock::canLight(const BlockState& state)
+{
+    // 蜡烛蛋糕没有 WATERLOGGED 属性，只需检查 LIT
+    return state.hasProperty(BlockStateProperties::LIT()) && !state.get(BlockStateProperties::LIT());
 }
 
 } // namespace blocks

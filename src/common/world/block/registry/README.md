@@ -12,6 +12,7 @@ registry/
 ├── BuildingBlocks.hpp/.cpp      # 建筑、功能、含水、石砖、虫蚀、石英、海晶、紫珀、骨块等
 ├── BuildingVariantBlocks.hpp/.cpp # 楼梯、台阶、墙、栅栏、门、栅栏门、活板门、染色玻璃板、特殊方块
 ├── BambooBlocks.hpp/.cpp        # 竹子方块系列
+├── CandleBlocks.hpp/.cpp        # 蜡烛方块系列（17色蜡烛+17色蜡烛蛋糕，CandleBlock + CandleCakeBlock）
 ├── CaveBlocks.hpp/.cpp          # 洞穴方块（紫水晶、滴水石、苔藓等）
 ├── CherryBlocks.hpp/.cpp        # 樱花木系列
 ├── ColoredBlocks.hpp/.cpp       # 染色方块：羊毛、地毯、染色玻璃、混凝土、陶瓦、床（16色BedBlock）、潜影盒（16色ShulkerBoxBlock+无色）
@@ -77,6 +78,7 @@ VanillaBlocks
 `VanillaBlocks::initialize()` 调用顺序有依赖关系，不可随意调整：
 - `registerBaseBlocks()` 必须最先调用（AIR、WATER、LAVA 等基础方块被后续引用）
 - `registerBuildingBlocks()` 在 `registerBuildingVariantBlocks()` 之前（楼梯/台阶引用原方块）
+- `registerCandleBlocks()` 中蜡烛方块必须先于蜡烛蛋糕方块注册（CandleCakeBlock 构造函数需要引用对应 CandleBlock 实例作为 `candleBlock` 参数）
 - `BlockTags::initialize()` 必须在所有方块注册后调用
 
 #### NetherBlocks 内部初始化顺序
@@ -122,3 +124,18 @@ void foo() {
 ### 5. BlockTags 初始化时机
 
 `BlockTags::initialize()` 在 `VanillaBlocks::initialize()` 末尾调用，方块标签查询必须在之后进行。
+
+### 6. CandleBlocks 注册顺序
+
+`registerCandleBlocks()` 内部有严格的注册顺序依赖：17个蜡烛方块（CandleBlock）必须先于17个蜡烛蛋糕方块（CandleCakeBlock）注册，因为 CandleCakeBlock 构造函数的第二个参数是对应的蜡烛方块指针：
+
+```
+CANDLE → CANDLE_CAKE（CandleCakeBlock 引用 CandleBlocks::CANDLE）
+WHITE_CANDLE → WHITE_CANDLE_CAKE
+...（16色同理）
+```
+
+蜡烛方块属性：`Material::DECORATION, noCollision, notSolid, BlockSoundTypes::CANDLE, hardness=0.1, resistance=0.1`
+蜡烛蛋糕属性：`Material::CAKE, notSolid, BlockSoundTypes::CLOTH, hardness=0.5, resistance=0.5`
+
+标签：蜡烛属于 `CANDLES` 标签，蜡烛蛋糕属于 `CANDLE_CAKES` 标签。

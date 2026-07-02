@@ -32,6 +32,8 @@ namespace mc {
 class IWorld;
 class IBlockReader;
 class BlockItemUseContext;
+class Player;
+class BlockRaycastResult;
 
 namespace blocks {
 
@@ -109,6 +111,35 @@ public:
 
     [[nodiscard]] i32 getComparatorInputOverride(
         const BlockState& state, IWorld& world, const BlockPos& pos) const override;
+
+    // ========== 交互 ==========
+
+    /**
+     * @brief 玩家右键交互
+     *
+     * - 空手点击蜡烛部分（上半部）且已点燃 → 熄灭
+     * - 其他情况 → 吃蛋糕，转化为一片普通蛋糕并掉落蜡烛物品
+     *
+     * 点燃（打火石/火焰弹）由物品自身处理，返回 Pass 让物品处理。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    // ========== 静态工具方法 ==========
+
+    /**
+     * @brief 检查蜡烛蛋糕是否可以被点燃
+     *
+     * 检查方块状态是否包含 LIT 属性且未点燃。
+     *
+     * @param state 方块状态
+     * @return 是否可点燃
+     */
+    [[nodiscard]] static bool canLight(const BlockState& state);
 
     // ========== 关联蜡烛 ==========
 

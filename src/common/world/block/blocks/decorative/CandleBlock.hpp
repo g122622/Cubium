@@ -159,6 +159,30 @@ public:
      */
     [[nodiscard]] std::vector<Vector3f> getParticleOffsets(const BlockState& state) const override;
 
+    // ========== 交互 ==========
+
+    /**
+     * @brief 玩家右键交互
+     *
+     * 空手右键点燃的蜡烛可熄灭。
+     * 点燃（打火石/火焰弹）由物品自身处理，不在此覆写中处理。
+     */
+    [[nodiscard]] ActionResultType onBlockActivated(const BlockState& state,
+        IWorld& world,
+        const BlockPos& pos,
+        Player& player,
+        Hand hand,
+        const BlockRaycastResult& hit) override;
+
+    // ========== Tick ==========
+
+    /**
+     * @brief 方块 tick
+     *
+     * 含水时自动熄灭蜡烛（由 updatePostPlacement 调度水流 tick 触发）。
+     */
+    void tick(IWorld& world, const BlockPos& pos, BlockState& state, math::IRandom& random) override;
+
     // ========== 渲染属性 ==========
 
     [[nodiscard]] bool isOpaque(const BlockState& state) const override
