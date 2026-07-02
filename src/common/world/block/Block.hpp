@@ -652,9 +652,31 @@ public:
     }
 
     /**
-     * @brief 获取光照透明度 (0-15)
+     * @brief 获取方块光照透明度 (0-15)
      */
     [[nodiscard]] i32 opacity() const noexcept { return m_opacity; }
+
+    /**
+     * @brief 获取方块的遮光亮度
+     *
+     * 返回方块在环境光遮蔽计算中的亮度贡献。默认实现基于碰撞形状：
+     * - 碰撞形状为完整方块时返回 0.2F（产生 AO 阴影）
+     * - 否则返回 1.0F（不产生额外阴影）
+     *
+     * 子类可重写以实现特殊的遮光行为：
+     * - MudBlock/SoulSandBlock: 碰撞形状不完整但仍需阴影，返回 0.2F
+     * - SnowLayerBlock: 满层(8)返回 0.2F，其他返回 1.0F
+     * - BarrierBlock/StructureVoidBlock: 不可见方块，返回 1.0F
+     *
+     * @param state 方块状态
+     * @param world 世界（可选，用于上下文感知）
+     * @param pos 位置（可选）
+     * @return 遮光亮度 (0.0F-1.0F)
+     *
+     * 参考: net.minecraft.block.AbstractBlock.AbstractBlockState#getShadeBrightness
+     */
+    [[nodiscard]] virtual f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const;
 
     /**
      * @brief 获取地图颜色

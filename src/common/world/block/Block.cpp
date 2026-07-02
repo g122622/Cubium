@@ -359,6 +359,16 @@ bool Block::isOpaque(const BlockState& state) const
     return m_material->isOpaque();
 }
 
+f32 Block::getShadeBrightness(const BlockState& state, IWorld* world, const BlockPos* pos) const
+{
+    MC_UNUSED(world);
+    MC_UNUSED(pos);
+    // 默认实现与 MC 原版一致：
+    // 碰撞形状为完整方块时返回 0.2F（产生 AO 阴影），否则返回 1.0F。
+    // 子类可重写以实现特殊行为（如 MudBlock 碰撞形状不完整但仍需阴影）。
+    return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
+}
+
 i32 Block::getOpacity(const BlockState& state, IWorld* world, const BlockPos* pos) const
 {
     (void)world;

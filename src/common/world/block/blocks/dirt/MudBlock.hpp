@@ -60,8 +60,22 @@ public:
      */
     [[nodiscard]] bool allowsMovement(const BlockState& state, IBlockReader& world, const BlockPos& pos) const override;
 
-    // TODO: 实现 getShadeBrightness() 返回 0.2F（MC 原版 MudBlock 返回 0.2F，
-    // 比默认值 1.0F 暗），待 Block 基类添加此虚方法后重写
+    /**
+     * @brief 获取遮光亮度
+     *
+     * 泥巴虽然碰撞形状不完整（14/16高），但视觉上应产生AO阴影，
+     * 因此返回 0.2F 而非默认的基于碰撞形状的判断值。
+     *
+     * 参考: net.minecraft.block.MudBlock#getShadeBrightness
+     */
+    [[nodiscard]] f32 getShadeBrightness(
+        const BlockState& state, IWorld* world = nullptr, const BlockPos* pos = nullptr) const override
+    {
+        MC_UNUSED(state);
+        MC_UNUSED(world);
+        MC_UNUSED(pos);
+        return 0.2f;
+    }
 
 private:
     /// 14/16格高的碰撞形状

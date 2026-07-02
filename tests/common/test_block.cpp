@@ -41,6 +41,7 @@
 #include "../src/common/world/block/blocks/coral/CoralBlock.hpp"
 #include "../src/common/world/block/blocks/functional/BedBlock.hpp"
 #include "../src/common/world/block/blocks/functional/CakeBlock.hpp"
+#include "../src/common/world/block/blocks/ice/SnowBlock.hpp"
 #include "../src/common/world/block/blocks/vegetation/SugarCaneBlock.hpp"
 #include "../src/common/world/block/registry/VanillaBlocks.hpp"
 #include "../src/common/world/border/WorldBorder.hpp"
@@ -1856,4 +1857,85 @@ TEST(BlockStateCanBeReplacedTest, PortalAndStructureVoidAreNotReplacedByFluid)
     // 结构空位：Material::STRUCTURE_VOID 是 replaceable=true 且非固体
     // 所以 canBeReplacedByFluid()=true，但 FlowingFluid::isBlocked() 黑名单返回 true
     // 这与门/告示牌的情况类似：canBeReplacedByFluid() 与 isBlocked() 是两个层面的判断
+}
+
+// ============================================================================
+// getShadeBrightness 测试
+// ============================================================================
+
+TEST(GetShadeBrightnessTest, DefaultOpaqueBlockReturns02)
+{
+    VanillaBlocks::initialize();
+
+    // 石头是不透明实心方块，默认 getShadeBrightness 应返回 0.2F
+    const auto& stoneState = VanillaBlocks::STONE->defaultState();
+    EXPECT_FLOAT_EQ(stoneState.getShadeBrightness(), 0.2f);
+    EXPECT_FLOAT_EQ(stoneState.getAmbientOcclusionLightValue(), 0.2f);
+
+    // 通过 Block 虚方法调用也应返回 0.2F
+    EXPECT_FLOAT_EQ(VanillaBlocks::STONE->getShadeBrightness(stoneState), 0.2f);
+}
+
+TEST(GetShadeBrightnessTest, DefaultTransparentBlockReturns10)
+{
+    VanillaBlocks::initialize();
+
+    // 玻璃是非固体透明方块，默认 getShadeBrightness 应返回 1.0F
+    const auto& glassState = VanillaBlocks::GLASS->defaultState();
+    EXPECT_FLOAT_EQ(glassState.getShadeBrightness(), 1.0f);
+    EXPECT_FLOAT_EQ(glassState.getAmbientOcclusionLightValue(), 1.0f);
+
+    // 屏障方块 isOpaque 返回 false，也应返回 1.0F
+    const auto& barrierState = VanillaBlocks::BARRIER->defaultState();
+    EXPECT_FLOAT_EQ(barrierState.getShadeBrightness(), 1.0f);
+    EXPECT_FLOAT_EQ(barrierState.getAmbientOcclusionLightValue(), 1.0f);
+}
+
+TEST(GetShadeBrightnessTest, MudBlockReturns02)
+{
+    VanillaBlocks::initialize();
+
+    // 泥巴碰撞形状不完整（14/16高），但重写 getShadeBrightness 返回 0.2F
+    const auto& mudState = VanillaBlocks::MUD->defaultState();
+    EXPECT_FLOAT_EQ(mudState.getShadeBrightness(), 0.2f);
+    EXPECT_FLOAT_EQ(mudState.getAmbientOcclusionLightValue(), 0.2f);
+}
+
+TEST(GetShadeBrightnessTest, SnowBlockLayerDependent)
+{
+    VanillaBlocks::initialize();
+
+    // 满层(8层)雪应返回 0.2F
+    const auto& snowFullState = VanillaBlocks::SNOW->defaultState().with(blocks::SnowBlock::LAYERS(), 8);
+    EXPECT_FLOAT_EQ(snowFullState.getShadeBrightness(), 0.2f);
+    EXPECT_FLOAT_EQ(snowFullState.getAmbientOcclusionLightValue(), 0.2f);
+
+    // 非满层(1层)雪应返回 1.0F
+    const auto& snowPartialState = VanillaBlocks::SNOW->defaultState().with(blocks::SnowBlock::LAYERS(), 1);
+    EXPECT_FLOAT_EQ(snowPartialState.getShadeBrightness(), 1.0f);
+    EXPECT_FLOAT_EQ(snowPartialState.getAmbientOcclusionLightValue(), 1.0f);
+
+    // 中间层(4层)也应返回 1.0F
+    const auto& snowMidState = VanillaBlocks::SNOW->defaultState().with(blocks::SnowBlock::LAYERS(), 4);
+    EXPECT_FLOAT_EQ(snowMidState.getShadeBrightness(), 1.0f);
+}
+
+TEST(GetShadeBrightnessTest, StructureVoidReturns10)
+{
+    VanillaBlocks::initialize();
+
+    // 结构空位 isOpaque 返回 false，应返回 1.0F
+    const auto& voidState = VanillaBlocks::STRUCTURE_VOID->defaultState();
+    EXPECT_FLOAT_EQ(voidState.getShadeBrightness(), 1.0f);
+    EXPECT_FLOAT_EQ(voidState.getAmbientOcclusionLightValue(), 1.0f);
+}
+
+TEST(GetShadeBrightnessTest, LeafBlockReturns10)
+{
+    VanillaBlocks::initialize();
+
+    // 树叶方块是非不透明方块，应返回 1.0F
+    const auto& leafState = VanillaBlocks::OAK_LEAVES->defaultState();
+    EXPECT_FLOAT_EQ(leafState.getShadeBrightness(), 1.0f);
+    EXPECT_FLOAT_EQ(leafState.getAmbientOcclusionLightValue(), 1.0f);
 }
