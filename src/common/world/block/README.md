@@ -728,3 +728,32 @@ Block& block = state->getBlockMutable();
 - 非流体方块只需实现 `pickupItem()` 和 `getPickupSound()`，`pickupFluid()` 返回 nullptr
 - `BucketItem::onItemUse` 的空桶路径先尝试 `pickupFluid()`，失败后再尝试 `pickupItem()`
 - `EmptyBucketDispenseBehavior` 同样遵循此双路径逻辑
+
+## #36. getShadeBrightness 遮光亮度与 AO 阴影
+
+`Block::getShadeBrightness(const BlockState&, IWorld*, const BlockPos*)` 是虚方法，返回方块的遮光亮度值（0.0~1.0），决定方块在环境光遮蔽（Ambient Occlusion）渲染中的阴影程度。对应 MC Java 的 `BlockBehaviour.getShadeBrightness()`。
+
+**默认行为**：
+```cpp
+// Block::getShadeBrightness 默认实现
+return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
+```
+- `0.2f`（有AO阴影）：碰撞形状完整且不透明的方块（如石头、泥土）
+- `1.0f`（无AO阴影）：碰撞形状不完整或透明的方块（如玻璃、楼梯、台阶）
+
+**便捷方法**：`BlockState::getShadeBrightness()` 委托到 `Block::getShadeBrightness()`，`BlockState::getAmbientOcclusionLightValue()` 进一步委托到 `getShadeBrightness()`。
+
+**与 AmbientOcclusionCalculator 的集成**：渲染管线中 `AmbientOcclusionCalculator` 调用 `state->getAmbientOcclusionLightValue()` 获取每个方块的遮光亮度，用于计算 AO 顶点颜色。遮光亮度越低（接近0.2），方块边缘阴影越深；遮光亮度为1.0时，方块不产生AO阴影。
+
+**已重写的方块**：
+
+| 方块 | 返回值 | 原因 |
+|------|--------|------|
+| MudBlock | 0.2f | 碰撞形状不完整（14/16格高），但视觉上应产生AO阴影 |
+| SnowBlock | 8层→0.2f, 其他→1.0f | 满层(8层)视觉等价于完整方块产生阴影，低层不产生阴影 |
+| BarrierBlock | 1.0f | 不可见方块，不应影响AO计算 |
+
+**添加新重写的注意事项**：
+- 如果方块碰撞形状不完整但视觉上应产生阴影（如 MudBlock），需要显式重写返回 0.2f
+- 如果方块有完整碰撞形状但不应产生阴影（如 BarrierBlock），需要显式重写返回 1.0f
+- 默认行为基于 `hasOpaqueCollisionShape()`（即 `isOpaque && material().blocksMovement()`），大部分方块无需重写
