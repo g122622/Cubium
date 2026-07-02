@@ -86,7 +86,7 @@
 | `minecraft:parrot_food` | 2 |
 | `minecraft:piglin_loved` | 6 |
 | `minecraft:piglin_preferred_weapons` | 1 |
-| `minecraft:planks` | 5 |
+| `minecraft:planks` | 6 ✅ 已完成 |
 | `minecraft:redstone_ores` | 1 |
 | `minecraft:sand` | 1 |
 | `minecraft:saplings` | 5 |
@@ -452,15 +452,15 @@
 ### Other（95）
 
 
-- `minecraft:acacia_shelf`
+- `minecraft:acacia_shelf ✅ 已完成`
 - `minecraft:amethyst_shard ✅ 已完成`
 - `minecraft:anvil`
 - `minecraft:armadillo_scute ✅ 已完成`
 - `minecraft:azalea ✅ 已完成`
 - `minecraft:bamboo_block ✅ 已完成`
-- `minecraft:bamboo_shelf`
+- `minecraft:bamboo_shelf ✅ 已完成`
 - `minecraft:bell ✅ 已完成`
-- `minecraft:birch_shelf`
+- `minecraft:birch_shelf ✅ 已完成`
 - `minecraft:black_bundle`
 - `minecraft:black_harness`
 - `minecraft:blue_bundle`
@@ -471,14 +471,14 @@
 - `minecraft:brown_harness`
 - `minecraft:brush ✅ 已完成`
 - `minecraft:bundle`
-- `minecraft:cherry_shelf`
+- `minecraft:cherry_shelf ✅ 已完成`
 - `minecraft:chipped_anvil`
 - `minecraft:cobbled_deepslate ✅ 已完成`
-- `minecraft:crimson_shelf`
+- `minecraft:crimson_shelf ✅ 已完成`
 - `minecraft:cyan_bundle`
 - `minecraft:cyan_harness`
 - `minecraft:damaged_anvil`
-- `minecraft:dark_oak_shelf`
+- `minecraft:dark_oak_shelf ✅ 已完成`
 - `minecraft:deepslate_coal_ore ✅ 已完成`
 - `minecraft:deepslate_diamond_ore ✅ 已完成`
 - `minecraft:deepslate_emerald_ore ✅ 已完成`
@@ -494,7 +494,7 @@
 - `minecraft:green_bundle`
 - `minecraft:green_harness`
 - `minecraft:iron_chain ✅ 已完成`
-- `minecraft:jungle_shelf`
+- `minecraft:jungle_shelf ✅ 已完成`
 - `minecraft:knowledge_book ✅ 已完成`
 - `minecraft:light_blue_bundle`
 - `minecraft:light_blue_harness`
@@ -506,16 +506,16 @@
 - `minecraft:magenta_bundle`
 - `minecraft:magenta_harness`
 - `minecraft:mangrove_propagule ✅ 已完成`
-- `minecraft:mangrove_shelf`
+- `minecraft:mangrove_shelf ✅ 已完成`
 - `minecraft:moss_block ✅ 已完成`
 - `minecraft:mud ✅ 已完成`
 - `minecraft:muddy_mangrove_roots ✅ 已完成`
-- `minecraft:oak_shelf`
+- `minecraft:oak_shelf ✅ 已完成`
 - `minecraft:orange_bundle`
 - `minecraft:orange_harness`
 - `minecraft:oxidized_lightning_rod`
 - `minecraft:pale_moss_block ✅ 已完成`
-- `minecraft:pale_oak_shelf`
+- `minecraft:pale_oak_shelf ✅ 已完成`
 - `minecraft:pink_bundle`
 - `minecraft:pink_harness`
 - `minecraft:pink_petals ✅ 已完成`
@@ -530,12 +530,12 @@
 - `minecraft:resin_brick ✅ 已完成`
 - `minecraft:rooted_dirt ✅ 已完成`
 - `minecraft:spore_blossom ✅ 已完成`
-- `minecraft:spruce_shelf`
+- `minecraft:spruce_shelf ✅ 已完成`
 - `minecraft:stripped_bamboo_block ✅ 已完成`
 - `minecraft:suspicious_sand ✅ 已完成`
 - `minecraft:torchflower_seeds ✅ 已完成`
 - `minecraft:turtle_scute ✅ 已完成`
-- `minecraft:warped_shelf`
+- `minecraft:warped_shelf ✅ 已完成`
 - `minecraft:waxed_exposed_lightning_rod`
 - `minecraft:waxed_lightning_rod`
 - `minecraft:waxed_oxidized_lightning_rod`
@@ -1051,7 +1051,7 @@
 未实现项：
 
 
-- `minecraft:bamboo_planks`
+- `minecraft:bamboo_planks ✅ 已完成`
 - `minecraft:cherry_planks ✅ 已完成`
 - `minecraft:crimson_planks ✅ 已完成`
 - `minecraft:mangrove_planks ✅ 已完成`
