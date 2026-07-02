@@ -648,6 +648,21 @@ public:
     static Item* TERRACOTTA;  // 陶瓦
     static Item* BRICKS;      // 砖块
     static Item* BOOKSHELF;   // 书架
+
+    // 木质书架变体（1.21.4+）
+    static Item* OAK_SHELF;      // 橡木书架
+    static Item* SPRUCE_SHELF;   // 云杉木书架
+    static Item* BIRCH_SHELF;    // 白桦木书架
+    static Item* JUNGLE_SHELF;   // 丛林木书架
+    static Item* ACACIA_SHELF;   // 金合欢木书架
+    static Item* DARK_OAK_SHELF; // 深色橡木书架
+    static Item* MANGROVE_SHELF; // 红树木书架
+    static Item* CHERRY_SHELF;   // 樱花木书架
+    static Item* PALE_OAK_SHELF; // 苍白橡木书架
+    static Item* BAMBOO_SHELF;   // 竹木书架
+    static Item* CRIMSON_SHELF;  // 绯红木书架
+    static Item* WARPED_SHELF;   // 诡异木书架
+
     static Item* BONE_BLOCK;  // 骨块
     static Item* SLIME_BLOCK; // 史莱姆块
     static Item* HONEY_BLOCK; // 蜂蜜块

@@ -236,6 +236,20 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::BRICKS, "bricks");
     registerSimpleBlock(VanillaBlocks::MOSSY_COBBLESTONE, "mossy_cobblestone");
     registerSimpleBlock(VanillaBlocks::BOOKSHELF, "bookshelf");
+
+    // 木质书架变体（1.21.4+）
+    registerSimpleBlock(VanillaBlocks::OAK_SHELF, "oak_shelf");
+    registerSimpleBlock(VanillaBlocks::SPRUCE_SHELF, "spruce_shelf");
+    registerSimpleBlock(VanillaBlocks::BIRCH_SHELF, "birch_shelf");
+    registerSimpleBlock(VanillaBlocks::JUNGLE_SHELF, "jungle_shelf");
+    registerSimpleBlock(VanillaBlocks::ACACIA_SHELF, "acacia_shelf");
+    registerSimpleBlock(VanillaBlocks::DARK_OAK_SHELF, "dark_oak_shelf");
+    registerSimpleBlock(VanillaBlocks::MANGROVE_SHELF, "mangrove_shelf");
+    registerSimpleBlock(VanillaBlocks::CHERRY_SHELF, "cherry_shelf");
+    registerSimpleBlock(VanillaBlocks::PALE_OAK_SHELF, "pale_oak_shelf");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_SHELF, "bamboo_shelf");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_SHELF, "crimson_shelf");
+    registerSimpleBlock(VanillaBlocks::WARPED_SHELF, "warped_shelf");
     registerSimpleBlock(VanillaBlocks::OBSIDIAN, "obsidian");
 
     // 木板变种

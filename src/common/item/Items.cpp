@@ -611,6 +611,21 @@ Item* Items::SNOW_BLOCK = nullptr;
 Item* Items::TERRACOTTA = nullptr;
 Item* Items::BRICKS = nullptr;
 Item* Items::BOOKSHELF = nullptr;
+
+// 木质书架变体（1.21.4+）
+Item* Items::OAK_SHELF = nullptr;
+Item* Items::SPRUCE_SHELF = nullptr;
+Item* Items::BIRCH_SHELF = nullptr;
+Item* Items::JUNGLE_SHELF = nullptr;
+Item* Items::ACACIA_SHELF = nullptr;
+Item* Items::DARK_OAK_SHELF = nullptr;
+Item* Items::MANGROVE_SHELF = nullptr;
+Item* Items::CHERRY_SHELF = nullptr;
+Item* Items::PALE_OAK_SHELF = nullptr;
+Item* Items::BAMBOO_SHELF = nullptr;
+Item* Items::CRIMSON_SHELF = nullptr;
+Item* Items::WARPED_SHELF = nullptr;
+
 Item* Items::BONE_BLOCK = nullptr;
 Item* Items::SLIME_BLOCK = nullptr;
 Item* Items::HONEY_BLOCK = nullptr;
@@ -3099,6 +3114,32 @@ void Items::_registerBuildingBlocks()
     BRICKS = &registerBlockBackedItem(registry, VanillaBlocks::BRICKS, "bricks", ItemProperties().maxStackSize(64));
     BOOKSHELF =
         &registerBlockBackedItem(registry, VanillaBlocks::BOOKSHELF, "bookshelf", ItemProperties().maxStackSize(64));
+
+    // 木质书架变体（1.21.4+）
+    OAK_SHELF =
+        &registerBlockBackedItem(registry, VanillaBlocks::OAK_SHELF, "oak_shelf", ItemProperties().maxStackSize(64));
+    SPRUCE_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::SPRUCE_SHELF, "spruce_shelf", ItemProperties().maxStackSize(64));
+    BIRCH_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::BIRCH_SHELF, "birch_shelf", ItemProperties().maxStackSize(64));
+    JUNGLE_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::JUNGLE_SHELF, "jungle_shelf", ItemProperties().maxStackSize(64));
+    ACACIA_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::ACACIA_SHELF, "acacia_shelf", ItemProperties().maxStackSize(64));
+    DARK_OAK_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::DARK_OAK_SHELF, "dark_oak_shelf", ItemProperties().maxStackSize(64));
+    MANGROVE_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::MANGROVE_SHELF, "mangrove_shelf", ItemProperties().maxStackSize(64));
+    CHERRY_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::CHERRY_SHELF, "cherry_shelf", ItemProperties().maxStackSize(64));
+    PALE_OAK_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::PALE_OAK_SHELF, "pale_oak_shelf", ItemProperties().maxStackSize(64));
+    BAMBOO_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_SHELF, "bamboo_shelf", ItemProperties().maxStackSize(64));
+    CRIMSON_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_SHELF, "crimson_shelf", ItemProperties().maxStackSize(64));
+    WARPED_SHELF = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_SHELF, "warped_shelf", ItemProperties().maxStackSize(64));
     BONE_BLOCK =
         &registerBlockBackedItem(registry, VanillaBlocks::BONE_BLOCK, "bone_block", ItemProperties().maxStackSize(64));
     SLIME_BLOCK = &registerBlockBackedItem(

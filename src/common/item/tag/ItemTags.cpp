@@ -254,6 +254,15 @@ ItemTag& ItemTags::NON_FLAMMABLE_WOOD()
     return *tag;
 }
 
+ItemTag& ItemTags::WOODEN_SHELVES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_shelves"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -671,7 +680,6 @@ void ItemTags::initialize()
     // 创建 NON_FLAMMABLE_WOOD 标签
     // 包含所有不可燃烧的木材物品（绯红木和诡异木系列）
     // 绯红木和诡异木系列物品不会燃烧，对应 MC 原版标签 minecraft:non_flammable_wood
-    // TODO: 绯红/诡异木书架注册后需添加到此标签
     auto nonFlammableWood = std::make_unique<ItemTag>(ResourceLocation("minecraft", "non_flammable_wood"), false);
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_stem")));
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stripped_crimson_stem")));
@@ -703,7 +711,26 @@ void ItemTags::initialize()
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_sign")));
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_hanging_sign")));
     nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_hanging_sign")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf")));
     allTags[nonFlammableWood->getId()] = std::move(nonFlammableWood);
+
+    // 创建 WOODEN_SHELVES 标签
+    // 包含所有木质书架物品，对应 MC 原版标签 minecraft:wooden_shelves
+    auto woodenShelves = std::make_unique<ItemTag>(ResourceLocation("minecraft", "wooden_shelves"), false);
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spruce_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "birch_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "jungle_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "acacia_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dark_oak_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mangrove_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cherry_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pale_oak_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bamboo_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_shelf")));
+    woodenShelves->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_shelf")));
+    allTags[woodenShelves->getId()] = std::move(woodenShelves);
 
     s_initialized = true;
 }

@@ -205,10 +205,19 @@ public:
      * @brief 不可燃木材物品标签
      *
      * 包含所有不可燃烧的木材物品（绯红木和诡异木系列的木板、台阶、楼梯、
-     * 栅栏、栅栏门、门、活板门、按钮、压力板、告示牌等）。
+     * 栅栏、栅栏门、门、活板门、按钮、压力板、告示牌、书架等）。
      * 对应 MC 原版标签 minecraft:non_flammable_wood。
      */
     static ItemTag& NON_FLAMMABLE_WOOD();
+
+    /**
+     * @brief 木质书架物品标签
+     *
+     * 包含所有木质书架物品（橡木、云杉、白桦、丛林、金合欢、深色橡木、
+     * 红树木、樱花木、苍白橡木、竹木、绯红木、诡异木）。
+     * 对应 MC 原版标签 minecraft:wooden_shelves。
+     */
+    static ItemTag& WOODEN_SHELVES();
 
     /**
      * @brief 初始化所有内置物品标签

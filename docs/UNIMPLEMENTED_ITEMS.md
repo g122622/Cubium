@@ -56,7 +56,7 @@
 | `minecraft:repairs_wolf_armor` | 1 |
 | `minecraft:sniffer_food` | 1 ✅ 已完成 |
 | `minecraft:spears` | 7 |
-| `minecraft:wooden_shelves` | 12 |
+| `minecraft:wooden_shelves` | 12 ✅ 已完成 |
 
 ## 部分缺失的标签（至少一个叶子物品未实现）
 
@@ -82,11 +82,11 @@
 | `minecraft:lanterns` | 8 |
 | `minecraft:lapis_ores` | 1 |
 | `minecraft:leaves` | 5 |
-| `minecraft:non_flammable_wood` | 14 |
+| `minecraft:non_flammable_wood` | 14 ✅ 已完成 |
 | `minecraft:parrot_food` | 2 |
 | `minecraft:piglin_loved` | 6 |
 | `minecraft:piglin_preferred_weapons` | 1 |
-| `minecraft:planks` | 6 |
+| `minecraft:planks` | 5 |
 | `minecraft:redstone_ores` | 1 |
 | `minecraft:sand` | 1 |
 | `minecraft:saplings` | 5 |
@@ -280,7 +280,7 @@
 - `minecraft:bamboo_planks ✅ 已完成`
 - `minecraft:cherry_planks ✅ 已完成`
 - `minecraft:crimson_planks ✅ 已完成`
-- `minecraft:mangrove_planks`
+- `minecraft:mangrove_planks ✅ 已完成`
 - `minecraft:pale_oak_planks ✅ 已完成`
 - `minecraft:warped_planks ✅ 已完成`
 
@@ -777,18 +777,18 @@
 ### `minecraft:wooden_shelves`
 
 
-- `minecraft:acacia_shelf`
-- `minecraft:bamboo_shelf`
-- `minecraft:birch_shelf`
-- `minecraft:cherry_shelf`
-- `minecraft:crimson_shelf`
-- `minecraft:dark_oak_shelf`
-- `minecraft:jungle_shelf`
-- `minecraft:mangrove_shelf`
-- `minecraft:oak_shelf`
-- `minecraft:pale_oak_shelf`
-- `minecraft:spruce_shelf`
-- `minecraft:warped_shelf`
+- `minecraft:acacia_shelf ✅ 已完成`
+- `minecraft:bamboo_shelf ✅ 已完成`
+- `minecraft:birch_shelf ✅ 已完成`
+- `minecraft:cherry_shelf ✅ 已完成`
+- `minecraft:crimson_shelf ✅ 已完成`
+- `minecraft:dark_oak_shelf ✅ 已完成`
+- `minecraft:jungle_shelf ✅ 已完成`
+- `minecraft:mangrove_shelf ✅ 已完成`
+- `minecraft:oak_shelf ✅ 已完成`
+- `minecraft:pale_oak_shelf ✅ 已完成`
+- `minecraft:spruce_shelf ✅ 已完成`
+- `minecraft:warped_shelf ✅ 已完成`
 
 ## 附录：部分缺失标签的逐项明细
 
@@ -1003,14 +1003,14 @@
 - `minecraft:crimson_door ✅ 已完成`
 - `minecraft:crimson_fence ✅ 已完成`
 - `minecraft:crimson_planks ✅ 已完成`
-- `minecraft:crimson_shelf`
+- `minecraft:crimson_shelf ✅ 已完成`
 - `minecraft:crimson_slab ✅ 已完成`
 - `minecraft:crimson_stairs ✅ 已完成`
 - `minecraft:crimson_trapdoor ✅ 已完成`
 - `minecraft:warped_door ✅ 已完成`
 - `minecraft:warped_fence ✅ 已完成`
 - `minecraft:warped_planks ✅ 已完成`
-- `minecraft:warped_shelf`
+- `minecraft:warped_shelf ✅ 已完成`
 - `minecraft:warped_slab ✅ 已完成`
 - `minecraft:warped_stairs ✅ 已完成`
 - `minecraft:warped_trapdoor ✅ 已完成`
