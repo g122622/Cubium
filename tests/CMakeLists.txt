@@ -79,6 +79,8 @@ add_executable(mc_tests
     common/item/tool/ShearsItemTest.cpp
     # ItemTags 花朵标签测试
     common/item/tag/ItemTagsTest.cpp
+    # BedItem 床物品放置测试
+    common/item/BedItemTest.cpp
     # ItemTagLoader 数据包标签加载测试
     common/item/tag/ItemTagLoaderTest.cpp
     common/item/potion/GlassBottleItemTest.cpp

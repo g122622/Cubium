@@ -14,7 +14,7 @@ registry/
 ├── BambooBlocks.hpp/.cpp        # 竹子方块系列
 ├── CaveBlocks.hpp/.cpp          # 洞穴方块（紫水晶、滴水石、苔藓等）
 ├── CherryBlocks.hpp/.cpp        # 樱花木系列
-├── ColoredBlocks.hpp/.cpp       # 染色方块：羊毛、地毯、染色玻璃、混凝土、陶瓦
+├── ColoredBlocks.hpp/.cpp       # 染色方块：羊毛、地毯、染色玻璃、混凝土、陶瓦、床（16色BedBlock）
 ├── CopperBlocks.hpp/.cpp        # 铜方块系列（含氧化阶段）
 ├── DeepslateBlocks.hpp/.cpp     # 深板岩系列
 ├── GardenBlocks.hpp/.cpp        # 花园方块

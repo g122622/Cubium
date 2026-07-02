@@ -23,6 +23,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/world/block/registry/ColoredBlocks.hpp"
 #include "common/world/block/registry/CopperBlocks.hpp"
 #include "common/world/block/registry/NetherBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
@@ -1443,4 +1444,42 @@ TEST_F(BlockTagsTest, LightningRodsContainsWaxedVariants)
     EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "waxed_exposed_lightning_rod")));
     EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "waxed_weathered_lightning_rod")));
     EXPECT_TRUE(BlockTags::LIGHTNING_RODS().contains(ResourceLocation("minecraft", "waxed_oxidized_lightning_rod")));
+}
+
+// ============================================================================
+// BEDS 标签测试
+// ============================================================================
+
+TEST_F(BlockTagsTest, BedsTagContainsAllColors)
+{
+    // minecraft:beds 标签应包含全部 16 色床方块
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::WHITE_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::ORANGE_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::MAGENTA_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::LIGHT_BLUE_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::YELLOW_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::LIME_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::PINK_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::GRAY_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::LIGHT_GRAY_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::CYAN_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::PURPLE_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::BLUE_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::BROWN_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::GREEN_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::RED_BED));
+    EXPECT_TRUE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::BLACK_BED));
+}
+
+TEST_F(BlockTagsTest, BedsTagDoesNotContainNonBedBlocks)
+{
+    // 床标签不应包含非床方块
+    EXPECT_FALSE(BlockTags::BEDS().contains(*VanillaBlocks::STONE));
+    EXPECT_FALSE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::WHITE_WOOL));
+    EXPECT_FALSE(BlockTags::BEDS().contains(*block_registry::ColoredBlocks::WHITE_CARPET));
+}
+
+TEST_F(BlockTagsTest, BedsTagId)
+{
+    EXPECT_EQ(BlockTags::BEDS().getId(), ResourceLocation("minecraft", "beds"));
 }

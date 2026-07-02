@@ -37,7 +37,7 @@
 │   ├── BaseBlocks.hpp / cpp #基础方块、矿石、矿物、原木、木板
 │   ├── BuildingBlocks.hpp / cpp #建筑、功能方块、石砖、石英、海晶
 │   ├── BuildingVariantBlocks.hpp / cpp #楼梯 / 台阶 / 墙 / 门 / 栅栏门 / 活板门
-│   ├── ColoredBlocks.hpp / cpp #染色方块（羊毛、地毯、玻璃、混凝土）
+│   ├── ColoredBlocks.hpp / cpp #染色方块（羊毛、地毯、玻璃、混凝土、床）
 │   ├── NaturalBlocks.hpp / cpp #自然方块（冰变种、珊瑚、海洋方块）
 │   ├── NetherBlocks.hpp / cpp #下界方块、末地方块
 │   ├── RedstoneBlocks.hpp / cpp #红石方块、铁轨方块
@@ -757,3 +757,17 @@ return state.hasOpaqueCollisionShape() ? 0.2f : 1.0f;
 - 如果方块碰撞形状不完整但视觉上应产生阴影（如 MudBlock），需要显式重写返回 0.2f
 - 如果方块有完整碰撞形状但不应产生阴影（如 BarrierBlock），需要显式重写返回 1.0f
 - 默认行为基于 `hasOpaqueCollisionShape()`（即 `isOpaque && material().blocksMovement()`），大部分方块无需重写
+
+## #37. ColoredBlocks 床方块注册
+
+16色床方块在 `ColoredBlocks.hpp/.cpp` 中注册，使用 `blocks::BedBlock` 类并传入 `DyeColor` 参数。每种颜色对应一个独立的 `BedBlock` 实例（white_bed、orange_bed、...、black_bed）。
+
+**注册方式**：`registry.registerBlock<blocks::BedBlock>(ResourceLocation("minecraft:xxx_bed"), DyeColor::Xxx, bedProps)`
+
+**方块属性**：`Material::WOOL`，硬度 0.2，`notSolid()`（不阻挡光线），`ignitedByLava()`（可被岩浆点燃）
+
+**状态属性**：`HORIZONTAL_FACING`（朝向）、`BED_PART`（HEAD/FOOT 部分）、`OCCUPIED`（占用状态）
+
+**物品注册**：床物品使用自定义 `BedItem` 子类（非 `registerSimpleBlock`），在 `Items::_registerBeds()` 中通过 `registerItem<BedItem>()` 注册，最大堆叠数为 1。`BedItem` 重写 `getStateForPlacement()` 检查头部位置可替换性，`BedBlock::onBlockPlacedBy()` 在脚部放置后自动放置头部方块。
+
+**注意**：床的双方块结构（HEAD/FOOT）要求放置和破坏时同时处理两个方块位置，详见 `functional/README.md` 中的 BedBlock 文档。

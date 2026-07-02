@@ -31,6 +31,7 @@
 
 #include <gtest/gtest.h>
 
+#include "common/entity/entities/player/Player.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -41,6 +42,7 @@
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/Material.hpp"
 #include "common/world/block/blocks/functional/BedBlock.hpp"
+#include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/border/WorldBorder.hpp"
 #include "common/world/fluid/Fluid.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
@@ -440,6 +442,278 @@ TEST_F(DirectionIsFacingAngleTest, SouthFacingYaw45)
     EXPECT_TRUE(Directions::isFacingAngle(Direction::South, 45.0f));
     // 但不朝东
     EXPECT_FALSE(Directions::isFacingAngle(Direction::East, 45.0f));
+}
+
+// ========== onBlockPlacedBy 测试 ==========
+
+class BedBlockPlacedByTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // playerWillDestroy 需要 airState，所以必须初始化方块注册表
+        VanillaBlocks::initialize();
+
+        bed_ = std::make_unique<BedBlock>(
+            DyeColor::White, BlockProperties(Material::WOOL).hardness(0.2f).resistance(0.2f));
+    }
+
+    void TearDown() override { bed_.reset(); }
+
+    std::unique_ptr<BedBlock> bed_;
+    BedBlockTestWorld world;
+};
+
+TEST_F(BedBlockPlacedByTest, PlacesHeadBlockAtFacingOffset)
+{
+    // 放置脚部朝南 → 床头应出现在 (5, 64, 6)
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    world.setBlockAt(BlockPos(5, 64, 5), &footState);
+
+    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState);
+
+    // 检查头部位置 (5, 64, 6) 是否被设为 Head
+    const BlockState* headState = world.getBlockState(5, 64, 6);
+    ASSERT_NE(headState, nullptr);
+    EXPECT_TRUE(headState->hasProperty(BlockStateProperties::BED_PART()));
+    EXPECT_EQ(headState->get(BlockStateProperties::BED_PART()), BlockStateProperties::BedPart::Head);
+    EXPECT_EQ(headState->get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
+}
+
+TEST_F(BedBlockPlacedByTest, PlacesHeadBlockNorthFacing)
+{
+    // 放置脚部朝北 → 床头应出现在 (5, 64, 4)
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::North)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    world.setBlockAt(BlockPos(5, 64, 5), &footState);
+
+    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState);
+
+    const BlockState* headState = world.getBlockState(5, 64, 4);
+    ASSERT_NE(headState, nullptr);
+    EXPECT_EQ(headState->get(BlockStateProperties::BED_PART()), BlockStateProperties::BedPart::Head);
+    EXPECT_EQ(headState->get(BlockStateProperties::HORIZONTAL_FACING()), Direction::North);
+}
+
+TEST_F(BedBlockPlacedByTest, PlacesHeadBlockEastFacing)
+{
+    // 放置脚部朝东 → 床头应出现在 (6, 64, 5)
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::East)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    world.setBlockAt(BlockPos(5, 64, 5), &footState);
+
+    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState);
+
+    const BlockState* headState = world.getBlockState(6, 64, 5);
+    ASSERT_NE(headState, nullptr);
+    EXPECT_EQ(headState->get(BlockStateProperties::BED_PART()), BlockStateProperties::BedPart::Head);
+}
+
+TEST_F(BedBlockPlacedByTest, PlacesHeadBlockWestFacing)
+{
+    // 放置脚部朝西 → 床头应出现在 (4, 64, 5)
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::West)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    world.setBlockAt(BlockPos(5, 64, 5), &footState);
+
+    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState);
+
+    const BlockState* headState = world.getBlockState(4, 64, 5);
+    ASSERT_NE(headState, nullptr);
+    EXPECT_EQ(headState->get(BlockStateProperties::BED_PART()), BlockStateProperties::BedPart::Head);
+}
+
+TEST_F(BedBlockPlacedByTest, HeadBlockPreservesFacingDirection)
+{
+    // 朝南脚部的头部也应朝南
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    world.setBlockAt(BlockPos(0, 64, 0), &footState);
+
+    bed_->onBlockPlacedBy(world, BlockPos(0, 64, 0), footState);
+
+    const BlockState* headState = world.getBlockState(0, 64, 1);
+    ASSERT_NE(headState, nullptr);
+    EXPECT_EQ(headState->get(BlockStateProperties::HORIZONTAL_FACING()), Direction::South);
+}
+
+// ========== playerWillDestroy 测试 ==========
+
+class BedBlockDestroyTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        // playerWillDestroy 需要 BlockRegistry::airState()，所以必须初始化
+        VanillaBlocks::initialize();
+
+        bed_ = std::make_unique<BedBlock>(
+            DyeColor::White, BlockProperties(Material::WOOL).hardness(0.2f).resistance(0.2f));
+    }
+
+    void TearDown() override { bed_.reset(); }
+
+    std::unique_ptr<BedBlock> bed_;
+    BedBlockTestWorld world;
+};
+
+TEST_F(BedBlockDestroyTest, CreativeModeDestroysHeadWhenFootBroken)
+{
+    // 创造模式：破坏脚部时，头部应被设为空气
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+    ASSERT_TRUE(player.isCreative());
+
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    const BlockState& headState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+
+    // 放置脚部在 (0, 64, 0)，头部在 (0, 64, 1)
+    world.setBlockAt(BlockPos(0, 64, 0), &footState);
+    world.setBlockAt(BlockPos(0, 64, 1), &headState);
+
+    // 破坏脚部
+    bed_->playerWillDestroy(world, BlockPos(0, 64, 0), footState, player);
+
+    // 头部应已被设为空气
+    const BlockState* headAfter = world.getBlockState(0, 64, 1);
+    EXPECT_TRUE(headAfter == nullptr || headAfter->isAir());
+}
+
+TEST_F(BedBlockDestroyTest, SurvivalModeDoesNotDestroyHeadWhenFootBroken)
+{
+    // 生存模式：破坏脚部时，头部不应被移除
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Survival);
+    ASSERT_FALSE(player.isCreative());
+
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    const BlockState& headState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+
+    world.setBlockAt(BlockPos(0, 64, 0), &footState);
+    world.setBlockAt(BlockPos(0, 64, 1), &headState);
+
+    bed_->playerWillDestroy(world, BlockPos(0, 64, 0), footState, player);
+
+    // 头部应仍然存在
+    const BlockState* headAfter = world.getBlockState(0, 64, 1);
+    ASSERT_NE(headAfter, nullptr);
+    EXPECT_EQ(headAfter->get(BlockStateProperties::BED_PART()), BlockStateProperties::BedPart::Head);
+}
+
+TEST_F(BedBlockDestroyTest, DestroyingHeadDoesNotAffectFoot)
+{
+    // 破坏头部不应影响脚部（即使创造模式）
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    const BlockState& headState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+
+    world.setBlockAt(BlockPos(0, 64, 0), &footState);
+    world.setBlockAt(BlockPos(0, 64, 1), &headState);
+
+    // 破坏头部
+    bed_->playerWillDestroy(world, BlockPos(0, 64, 1), headState, player);
+
+    // 脚部应不受影响
+    const BlockState* footAfter = world.getBlockState(0, 64, 0);
+    ASSERT_NE(footAfter, nullptr);
+    EXPECT_EQ(footAfter->get(BlockStateProperties::BED_PART()), BlockStateProperties::BedPart::Foot);
+}
+
+TEST_F(BedBlockDestroyTest, CreativeModeDoesNotRemoveHeadIfNoHeadPresent)
+{
+    // 创造模式破坏脚部但头部位置没有床头方块 → 不应崩溃
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+
+    world.setBlockAt(BlockPos(0, 64, 0), &footState);
+    // 不放头部
+
+    EXPECT_NO_THROW(bed_->playerWillDestroy(world, BlockPos(0, 64, 0), footState, player));
+}
+
+TEST_F(BedBlockDestroyTest, CreativeModeDestroysHeadAllDirections)
+{
+    // 验证四个方向的创造模式破坏均正确移除头部
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Creative);
+
+    struct TestCase {
+        Direction facing;
+        BlockPos footPos;
+        BlockPos headPos;
+    };
+
+    TestCase cases[] = {
+        {Direction::North, BlockPos(5, 64, 5), BlockPos(5, 64, 4)},
+        {Direction::South, BlockPos(5, 64, 5), BlockPos(5, 64, 6)},
+        {Direction::East, BlockPos(5, 64, 5), BlockPos(6, 64, 5)},
+        {Direction::West, BlockPos(5, 64, 5), BlockPos(4, 64, 5)},
+    };
+
+    for (const auto& tc : cases) {
+        BedBlockTestWorld dirWorld;
+        const BlockState& foot = bed_->defaultState()
+                                     .with(BlockStateProperties::HORIZONTAL_FACING(), tc.facing)
+                                     .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+        const BlockState& head = bed_->defaultState()
+                                     .with(BlockStateProperties::HORIZONTAL_FACING(), tc.facing)
+                                     .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+
+        dirWorld.setBlockAt(tc.footPos, &foot);
+        dirWorld.setBlockAt(tc.headPos, &head);
+
+        bed_->playerWillDestroy(dirWorld, tc.footPos, foot, player);
+
+        const BlockState* headAfter = dirWorld.getBlockState(tc.headPos.x, tc.headPos.y, tc.headPos.z);
+        EXPECT_TRUE(headAfter == nullptr || headAfter->isAir())
+            << "Head should be removed for direction " << static_cast<int>(tc.facing);
+    }
+}
+
+TEST_F(BedBlockDestroyTest, AdventureModeDoesNotDestroyHead)
+{
+    // 冒险模式也不应自动移除头部
+    Player player(EntityId(1), "TestPlayer");
+    player.setGameMode(GameMode::Adventure);
+    ASSERT_FALSE(player.isCreative());
+
+    const BlockState& footState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
+    const BlockState& headState = bed_->defaultState()
+                                      .with(BlockStateProperties::HORIZONTAL_FACING(), Direction::South)
+                                      .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+
+    world.setBlockAt(BlockPos(0, 64, 0), &footState);
+    world.setBlockAt(BlockPos(0, 64, 1), &headState);
+
+    bed_->playerWillDestroy(world, BlockPos(0, 64, 0), footState, player);
+
+    const BlockState* headAfter = world.getBlockState(0, 64, 1);
+    ASSERT_NE(headAfter, nullptr);
+    EXPECT_EQ(headAfter->get(BlockStateProperties::BED_PART()), BlockStateProperties::BedPart::Head);
 }
 
 } // namespace

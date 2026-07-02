@@ -956,3 +956,65 @@ TEST_F(ItemTagsTest, WoodenShelvesContainsAll12Shelves)
     const auto& items = item::tag::ItemTags::WOODEN_SHELVES().getItems();
     EXPECT_EQ(items.size(), 12u);
 }
+
+// ============================================================================
+// BEDS 标签测试
+// ============================================================================
+
+TEST_F(ItemTagsTest, BedsContainsWhiteBed)
+{
+    Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_bed"));
+    ASSERT_NE(item, nullptr);
+    EXPECT_TRUE(item->isIn(item::tag::ItemTags::BEDS()));
+}
+
+TEST_F(ItemTagsTest, BedsContainsAll16Colors)
+{
+    // minecraft:beds 标签应包含全部 16 色床物品
+    const char* bedNames[] = {"white_bed",
+        "orange_bed",
+        "magenta_bed",
+        "light_blue_bed",
+        "yellow_bed",
+        "lime_bed",
+        "pink_bed",
+        "gray_bed",
+        "light_gray_bed",
+        "cyan_bed",
+        "purple_bed",
+        "blue_bed",
+        "brown_bed",
+        "green_bed",
+        "red_bed",
+        "black_bed"};
+
+    for (const char* name : bedNames) {
+        Item* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
+        ASSERT_NE(item, nullptr) << "Item minecraft:" << name << " should be registered";
+        EXPECT_TRUE(item->isIn(item::tag::ItemTags::BEDS())) << "minecraft:" << name << " should be in beds tag";
+    }
+}
+
+TEST_F(ItemTagsTest, BedsDoesNotContainNonBedItems)
+{
+    // 床标签不应包含非床物品
+    Item* stone = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone"));
+    ASSERT_NE(stone, nullptr);
+    EXPECT_FALSE(stone->isIn(item::tag::ItemTags::BEDS()));
+
+    Item* whiteWool = ItemRegistry::instance().getItem(ResourceLocation("minecraft", "white_wool"));
+    if (whiteWool != nullptr) {
+        EXPECT_FALSE(whiteWool->isIn(item::tag::ItemTags::BEDS()));
+    }
+}
+
+TEST_F(ItemTagsTest, BedsTagIdIsCorrect)
+{
+    EXPECT_EQ(item::tag::ItemTags::BEDS().getId(), ResourceLocation("minecraft", "beds"));
+}
+
+TEST_F(ItemTagsTest, BedsTagContains16Items)
+{
+    const auto& items = item::tag::ItemTags::BEDS().getItems();
+    EXPECT_EQ(items.size(), 16u);
+}

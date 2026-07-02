@@ -114,13 +114,44 @@
 
     ##容易踩的坑
 
-        ## #1. BedBlock 双方块结构
+        ## #1. BedBlock 双方块结构与关键方法
 
-        床头和床脚是两个独立的方块，放置时需要正确处理 `BED_PART` 属性。睡眠前需要检查：
-        - 床是否被占用（`OCCUPIED` 属性） - 玩家距离床是否超过3格（水平） / 2格（垂直） - 床上方空间是否被阻挡
-        - 周围是否有怪物（非创造模式） -
-        在下界 /
-            末地使用会爆炸（爆炸强度5.0）
+床头和床脚是两个独立的方块，放置时需要正确处理 `BED_PART` 属性。构造函数接收 `DyeColor` 参数，16色床在 `ColoredBlocks` 中注册。
+
+### onBlockPlacedBy（自动放置 HEAD 半部）
+
+玩家放置床时，`BedItem.getStateForPlacement()` 返回 FOOT 部分的状态，然后 `BedBlock::onBlockPlacedBy()` 在脚部前方自动放置 HEAD 部分方块：
+
+```cpp
+void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+{
+    Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
+    BlockPos headPos = pos.offset(facing);
+    BlockState headState = state.with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
+    world.setBlockState(headPos, &headState, 3);
+}
+```
+
+### playerWillDestroy（创造模式移除 HEAD）
+
+创造模式玩家破坏 FOOT 部分时，`playerWillDestroy()` 同时移除 HEAD 部分方块（防止产生掉落物）。生存模式下 HEAD 部分的移除和掉落物由 `onBlockRemoved` 处理。
+
+### getStateForPlacement（检查头部位置可替换性）
+
+`BedBlock::getStateForPlacement()` 检查头部位置是否可替换（`canBeReplaced()`），如果头部位置不可替换则返回默认状态（放置将失败）。`BedItem::getStateForPlacement()` 做同样的检查，但如果头部不可替换则返回 `nullptr`（直接阻止放置）。
+
+### DyeColor 参数
+
+每种颜色的床是独立的 `BedBlock` 实例，构造时传入 `DyeColor` 枚举值。颜色存储在 `m_color` 成员中，可通过 `getColor()` 获取。16色床在 `ColoredBlocks` 中注册，物品在 `Items::_registerBeds()` 中使用 `BedItem` 注册。
+
+### 其他注意事项
+
+睡眠前需要检查：
+- 床是否被占用（`OCCUPIED` 属性）
+- 玩家距离床是否超过3格（水平）/2格（垂直）
+- 床上方空间是否被阻挡
+- 周围是否有怪物（非创造模式）
+- 在下界/末地使用会爆炸（爆炸强度5.0）
 
             ## #2. ComposterBlock 堆肥延迟、碰撞形状与漏斗交互
 

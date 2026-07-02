@@ -39,8 +39,9 @@ const BlockState* BedItem::getStateForPlacement(const BlockItemUseContext& conte
     BlockPos headPos = context.placementPos().offset(facing);
 
     // 检查头部位置是否可替换（空气、花草等 canBeReplaced=true 的方块）
+    // 注意：getBlockState 在未设置位置返回 nullptr，等同于空气，可以被替换
     const BlockState* headState = context.getWorld().getBlockState(headPos);
-    if (headState == nullptr || !headState->canBeReplaced()) {
+    if (headState != nullptr && !headState->canBeReplaced()) {
         return nullptr;
     }
 

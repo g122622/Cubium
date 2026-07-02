@@ -7,6 +7,7 @@
 ```
 block/
 ├── BannerItem.hpp/cpp           # 旗帜物品
+├── BedItem.hpp/cpp              # 床物品（重写 getStateForPlacement 检查头部位置可替换性）
 ├── BlockItem.hpp/cpp            # 方块物品基类（放置逻辑、NBT数据传递）
 ├── BlockItemRegistry.hpp/cpp    # 方块物品注册表
 ├── GameMasterBlockItem.hpp/cpp  # 游戏管理员方块物品（权限限制放置）
@@ -20,6 +21,7 @@ block/
 Item(基类，item/core/)
   └── BlockItem(方块物品基类)
         ├── BannerItem(旗帜)
+        ├── BedItem(床，重写 getStateForPlacement 检查头部位置)
         ├── GameMasterBlockItem(管理员方块，限制放置权限)
         ├── SeedsItem(种子物品，关联作物方块)
         └── WallOrFloorItem(墙上/地面放置)
@@ -66,3 +68,4 @@ GameMasterBlockItem 职责：
 - **锁链物品注册**：MC 1.21+ 将 `minecraft:chain` 重命名为 `minecraft:iron_chain`。铁锁链通过 `registerBlockBackedItem` 在 `Items::initialize()` 中注册，铜锁链8个变种通过 `registerSimpleBlock` 在 `BlockItemRegistry::initializeVanillaBlockItems()` 中注册。所有锁链物品均属于 `ItemTags::CHAINS()` 标签
 - **木质书架物品注册**：MC 1.21.4+ 新增12种木质书架变体（oak/spruce/birch/jungle/acacia/dark_oak/mangrove/cherry/pale_oak/bamboo/crimson/warped_shelf）。所有书架物品通过 `registerBlockBackedItem` 在 `Items::_registerBlockItems()` 中注册，`BlockItemRegistry` 通过 `registerSimpleBlock` 建立方块→物品映射。下界木质书架（crimson/warped）属于 `ItemTags::NON_FLAMMABLE_WOOD()` 和 `BlockTags::NON_FLAMMABLE_WOOD()` 标签但仍有 `ignitedByLava()` 属性（与MC原版一致：不可被火焰点燃但可被岩浆点燃）。所有12种书架物品属于 `ItemTags::WOODEN_SHELVES()` 标签，对应方块属于 `BlockTags::WOODEN_SHELVES()` 标签
 - **铜方块物品注册**：铜方块（8个氧化/涂蜡变种×7类=56个）全部通过 `registerSimpleBlock` 在 `BlockItemRegistry::initializeVanillaBlockItems()` 中注册，包括铜块、切制铜、切制铜楼梯/台阶、铜格栅、铜灯、凿制铜、铜灯笼。铜门/铜活板门/铜锁链/避雷针在此前已注册。铜格栅（copper_grate）和铜栅栏（copper_bars）是两个不同的方块，后者尚未实现
+- **床物品注册**：16色床物品使用自定义 `BedItem` 子类注册（非 `registerSimpleBlock`），在 `Items::_registerBeds()` 中通过 `registerItem<BedItem>()` 注册。`BedItem` 重写 `getStateForPlacement()` 检查头部位置可替换性：若 `placementPos.offset(facing)` 处方块不可替换则返回 `nullptr` 阻止放置，否则返回带正确 `HORIZONTAL_FACING` 的 FOOT 状态。放置后 `BedBlock::onBlockPlacedBy()` 自动在脚部前方放置 HEAD 方块，完成双格结构。床物品最大堆叠数为 1。`BlockItemRegistry` 不需要为床调用 `registerSimpleBlock`，因为床物品已在 `Items::_registerBeds()` 中注册
