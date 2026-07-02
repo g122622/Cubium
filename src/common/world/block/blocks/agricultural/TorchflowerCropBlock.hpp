@@ -80,11 +80,10 @@ public:
     /**
      * @brief 创建指定年龄的状态
      *
-     * 重写以处理 age=2 时返回火把花方块状态。
+     * 重写以处理 age>=2 时返回火把花方块状态。
      * age=0 和 age=1 返回自身的作物状态，age>=2 返回火把花方块状态。
-     * 注意：CropBlock::withAge() 不是虚方法，此方法隐藏了基类版本。
      */
-    [[nodiscard]] const BlockState& withAge(i32 age) const;
+    [[nodiscard]] const BlockState& withAge(i32 age) const override;
 
     // ========== 生长逻辑 ==========
 

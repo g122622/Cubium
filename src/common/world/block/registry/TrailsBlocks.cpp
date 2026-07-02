@@ -135,6 +135,8 @@ void registerTrailsBlocks()
 
     // 火把花 - 小型花朵，可放置在泥土/草方块等上，可用于制作可疑炖菜（夜视效果）
     // 骨粉可催熟火把花作物为火把花；无支撑方块时自动掉落
+    // TODO: 花盆系统完善后，需注册 potted_torchflower 方块（FlowerPotBlock 内含火炬花）
+    //       并将其添加到 BlockTags::FLOWER_POTS 和相关标签中
     TrailsBlocks::TORCHFLOWER = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:torchflower"),
         BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::TORCHFLOWER),
         static_cast<u32>(entity::effect::EffectType::NightVision),

@@ -534,6 +534,7 @@ add_executable(mc_tests
     common/world/block/blocks/sculk/SculkSensorBlockTest.cpp
     common/entity/EntityMotionMultiplierTest.cpp
     common/world/block/blocks/CropBlocksTest.cpp
+    common/world/block/blocks/TorchflowerCropTest.cpp
     common/world/block/blocks/StemBlocksTest.cpp
     common/world/block/blocks/StemGrowthLogicTest.cpp
     common/world/block/blocks/TryGrowFruitTest.cpp
