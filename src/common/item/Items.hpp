@@ -1027,6 +1027,8 @@ public:
     static Item* CHERRY_DOOR;         // 樱花木门
     static Item* PALE_OAK_DOOR;       // 苍白橡木门
     static Item* BAMBOO_DOOR;         // 竹木门
+    static Item* CRIMSON_DOOR;        // 绯红木门
+    static Item* WARPED_DOOR;         // 诡异木门
     static Item* IRON_DOOR;           // 铁门
     static Item* OAK_FENCE;           // 橡木栅栏
     static Item* SPRUCE_FENCE;        // 云杉木栅栏
@@ -1059,6 +1061,8 @@ public:
     static Item* CHERRY_TRAPDOOR;     // 樱花木活板门
     static Item* PALE_OAK_TRAPDOOR;   // 苍白橡木活板门
     static Item* BAMBOO_TRAPDOOR;     // 竹木活板门
+    static Item* CRIMSON_TRAPDOOR;    // 绯红木活板门
+    static Item* WARPED_TRAPDOOR;     // 诡异木活板门
     static Item* IRON_TRAPDOOR;       // 铁活板门
 
     // ========================================================================

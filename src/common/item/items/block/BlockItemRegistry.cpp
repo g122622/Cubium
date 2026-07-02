@@ -475,6 +475,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::FLOWERING_AZALEA, "flowering_azalea");
     registerSimpleBlock(VanillaBlocks::AZALEA_LEAVES, "azalea_leaves");
     registerSimpleBlock(VanillaBlocks::FLOWERING_AZALEA_LEAVES, "flowering_azalea_leaves");
+    registerSimpleBlock(VanillaBlocks::SPORE_BLOSSOM, "spore_blossom");
 
     // 泥巴系列方块 (1.19+)
     registerSimpleBlock(VanillaBlocks::MUD, "mud");
@@ -690,6 +691,7 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::WITHER_ROSE, "wither_rose");
     registerSimpleBlock(VanillaBlocks::TORCHFLOWER, "torchflower");
     registerSimpleBlock(VanillaBlocks::PITCHER_PLANT, "pitcher_plant");
+    registerSimpleBlock(VanillaBlocks::PINK_PETALS, "pink_petals");
     registerSimpleBlock(VanillaBlocks::SUNFLOWER, "sunflower");
     registerSimpleBlock(VanillaBlocks::LILAC, "lilac");
     registerSimpleBlock(VanillaBlocks::ROSE_BUSH, "rose_bush");
@@ -877,6 +879,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_DOOR, "cherry_door");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_DOOR, "pale_oak_door");
     registerSimpleBlock(VanillaBlocks::BAMBOO_DOOR, "bamboo_door");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_DOOR, "crimson_door");
+    registerSimpleBlock(VanillaBlocks::WARPED_DOOR, "warped_door");
     registerSimpleBlock(VanillaBlocks::IRON_DOOR, "iron_door");
     registerSimpleBlock(VanillaBlocks::OAK_TRAPDOOR, "oak_trapdoor");
     registerSimpleBlock(VanillaBlocks::SPRUCE_TRAPDOOR, "spruce_trapdoor");
@@ -888,6 +892,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CHERRY_TRAPDOOR, "cherry_trapdoor");
     registerSimpleBlock(VanillaBlocks::PALE_OAK_TRAPDOOR, "pale_oak_trapdoor");
     registerSimpleBlock(VanillaBlocks::BAMBOO_TRAPDOOR, "bamboo_trapdoor");
+    registerSimpleBlock(VanillaBlocks::CRIMSON_TRAPDOOR, "crimson_trapdoor");
+    registerSimpleBlock(VanillaBlocks::WARPED_TRAPDOOR, "warped_trapdoor");
     registerSimpleBlock(VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor");
 
     // 红石方块

@@ -955,6 +955,8 @@ Item* Items::MANGROVE_DOOR = nullptr;
 Item* Items::CHERRY_DOOR = nullptr;
 Item* Items::PALE_OAK_DOOR = nullptr;
 Item* Items::BAMBOO_DOOR = nullptr;
+Item* Items::CRIMSON_DOOR = nullptr;
+Item* Items::WARPED_DOOR = nullptr;
 Item* Items::IRON_DOOR = nullptr;
 Item* Items::OAK_FENCE = nullptr;
 Item* Items::SPRUCE_FENCE = nullptr;
@@ -987,6 +989,8 @@ Item* Items::MANGROVE_TRAPDOOR = nullptr;
 Item* Items::CHERRY_TRAPDOOR = nullptr;
 Item* Items::PALE_OAK_TRAPDOOR = nullptr;
 Item* Items::BAMBOO_TRAPDOOR = nullptr;
+Item* Items::CRIMSON_TRAPDOOR = nullptr;
+Item* Items::WARPED_TRAPDOOR = nullptr;
 Item* Items::IRON_TRAPDOOR = nullptr;
 
 // 楼梯、台阶、墙
@@ -3861,6 +3865,10 @@ void Items::_registerDoorsFencesStairs()
         registry, VanillaBlocks::PALE_OAK_DOOR, "pale_oak_door", ItemProperties().maxStackSize(64));
     BAMBOO_DOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::BAMBOO_DOOR, "bamboo_door", ItemProperties().maxStackSize(64));
+    CRIMSON_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_DOOR, "crimson_door", ItemProperties().maxStackSize(64));
+    WARPED_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_DOOR, "warped_door", ItemProperties().maxStackSize(64));
     IRON_DOOR =
         &registerBlockBackedItem(registry, VanillaBlocks::IRON_DOOR, "iron_door", ItemProperties().maxStackSize(64));
 
@@ -3931,6 +3939,10 @@ void Items::_registerDoorsFencesStairs()
         registry, VanillaBlocks::PALE_OAK_TRAPDOOR, "pale_oak_trapdoor", ItemProperties().maxStackSize(64));
     BAMBOO_TRAPDOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::BAMBOO_TRAPDOOR, "bamboo_trapdoor", ItemProperties().maxStackSize(64));
+    CRIMSON_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::CRIMSON_TRAPDOOR, "crimson_trapdoor", ItemProperties().maxStackSize(64));
+    WARPED_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::WARPED_TRAPDOOR, "warped_trapdoor", ItemProperties().maxStackSize(64));
     IRON_TRAPDOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor", ItemProperties().maxStackSize(64));
 

@@ -223,10 +223,10 @@
 
 
 - `minecraft:copper_door`
-- `minecraft:crimson_door`
+- `minecraft:crimson_door ✅ 已完成`
 - `minecraft:exposed_copper_door`
 - `minecraft:oxidized_copper_door`
-- `minecraft:warped_door`
+- `minecraft:warped_door ✅ 已完成`
 - `minecraft:waxed_copper_door`
 - `minecraft:waxed_exposed_copper_door`
 - `minecraft:waxed_oxidized_copper_door`
@@ -255,7 +255,7 @@
 - `minecraft:azalea_leaves ✅ 已完成`
 - `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
-- `minecraft:mangrove_leaves`
+- `minecraft:mangrove_leaves ✅ 已完成`
 - `minecraft:pale_oak_leaves ✅ 已完成`
 
 ### Logs / Wood / Stems（12）
@@ -263,14 +263,14 @@
 
 - `minecraft:cherry_log ✅ 已完成`
 - `minecraft:cherry_wood ✅ 已完成`
-- `minecraft:mangrove_log`
-- `minecraft:mangrove_wood`
+- `minecraft:mangrove_log ✅ 已完成`
+- `minecraft:mangrove_wood ✅ 已完成`
 - `minecraft:pale_oak_log ✅ 已完成`
 - `minecraft:pale_oak_wood ✅ 已完成`
 - `minecraft:stripped_cherry_log ✅ 已完成`
 - `minecraft:stripped_cherry_wood ✅ 已完成`
-- `minecraft:stripped_mangrove_log`
-- `minecraft:stripped_mangrove_wood`
+- `minecraft:stripped_mangrove_log ✅ 已完成`
+- `minecraft:stripped_mangrove_wood ✅ 已完成`
 - `minecraft:stripped_pale_oak_log ✅ 已完成`
 - `minecraft:stripped_pale_oak_wood ✅ 已完成`
 
@@ -412,10 +412,10 @@
 
 
 - `minecraft:copper_trapdoor`
-- `minecraft:crimson_trapdoor`
+- `minecraft:crimson_trapdoor ✅ 已完成`
 - `minecraft:exposed_copper_trapdoor`
 - `minecraft:oxidized_copper_trapdoor`
-- `minecraft:warped_trapdoor`
+- `minecraft:warped_trapdoor ✅ 已完成`
 - `minecraft:waxed_copper_trapdoor`
 - `minecraft:waxed_exposed_copper_trapdoor`
 - `minecraft:waxed_oxidized_copper_trapdoor`
@@ -505,7 +505,7 @@
 - `minecraft:lime_harness`
 - `minecraft:magenta_bundle`
 - `minecraft:magenta_harness`
-- `minecraft:mangrove_propagule`
+- `minecraft:mangrove_propagule ✅ 已完成`
 - `minecraft:mangrove_shelf`
 - `minecraft:moss_block ✅ 已完成`
 - `minecraft:mud ✅ 已完成`
@@ -518,7 +518,7 @@
 - `minecraft:pale_oak_shelf`
 - `minecraft:pink_bundle`
 - `minecraft:pink_harness`
-- `minecraft:pink_petals`
+- `minecraft:pink_petals ✅ 已完成`
 - `minecraft:pitcher_pod ✅ 已完成`
 - `minecraft:purple_bundle`
 - `minecraft:purple_harness`
@@ -529,7 +529,7 @@
 - `minecraft:red_harness`
 - `minecraft:resin_brick ✅ 已完成`
 - `minecraft:rooted_dirt ✅ 已完成`
-- `minecraft:spore_blossom`
+- `minecraft:spore_blossom ✅ 已完成`
 - `minecraft:spruce_shelf`
 - `minecraft:stripped_bamboo_block`
 - `minecraft:suspicious_sand`
@@ -735,10 +735,10 @@
 ### `minecraft:mangrove_logs`
 
 
-- `minecraft:mangrove_log`
-- `minecraft:mangrove_wood`
-- `minecraft:stripped_mangrove_log`
-- `minecraft:stripped_mangrove_wood`
+- `minecraft:mangrove_log ✅ 已完成`
+- `minecraft:mangrove_wood ✅ 已完成`
+- `minecraft:stripped_mangrove_log ✅ 已完成`
+- `minecraft:stripped_mangrove_wood ✅ 已完成`
 
 ### `minecraft:pale_oak_logs`
 
@@ -818,11 +818,11 @@
 - `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
-- `minecraft:mangrove_propagule`
+- `minecraft:mangrove_propagule ✅ 已完成`
 - `minecraft:open_eyeblossom`
-- `minecraft:pink_petals`
+- `minecraft:pink_petals ✅ 已完成`
 - `minecraft:pitcher_plant ✅ 已完成`
-- `minecraft:spore_blossom`
+- `minecraft:spore_blossom ✅ 已完成`
 - `minecraft:torchflower ✅ 已完成`
 - `minecraft:wildflowers`
 
@@ -937,10 +937,10 @@
 - `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
-- `minecraft:mangrove_propagule`
-- `minecraft:pink_petals`
+- `minecraft:mangrove_propagule ✅ 已完成`
+- `minecraft:pink_petals ✅ 已完成`
 - `minecraft:pitcher_plant ✅ 已完成`
-- `minecraft:spore_blossom`
+- `minecraft:spore_blossom ✅ 已完成`
 - `minecraft:wildflowers`
 
 ### `minecraft:gold_ores`
@@ -991,7 +991,7 @@
 - `minecraft:azalea_leaves ✅ 已完成`
 - `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
-- `minecraft:mangrove_leaves`
+- `minecraft:mangrove_leaves ✅ 已完成`
 - `minecraft:pale_oak_leaves ✅ 已完成`
 
 ### `minecraft:non_flammable_wood`
@@ -1000,20 +1000,20 @@
 未实现项：
 
 
-- `minecraft:crimson_door`
-- `minecraft:crimson_fence`
-- `minecraft:crimson_planks`
+- `minecraft:crimson_door ✅ 已完成`
+- `minecraft:crimson_fence ✅ 已完成`
+- `minecraft:crimson_planks ✅ 已完成`
 - `minecraft:crimson_shelf`
-- `minecraft:crimson_slab`
-- `minecraft:crimson_stairs`
-- `minecraft:crimson_trapdoor`
-- `minecraft:warped_door`
-- `minecraft:warped_fence`
-- `minecraft:warped_planks`
+- `minecraft:crimson_slab ✅ 已完成`
+- `minecraft:crimson_stairs ✅ 已完成`
+- `minecraft:crimson_trapdoor ✅ 已完成`
+- `minecraft:warped_door ✅ 已完成`
+- `minecraft:warped_fence ✅ 已完成`
+- `minecraft:warped_planks ✅ 已完成`
 - `minecraft:warped_shelf`
-- `minecraft:warped_slab`
-- `minecraft:warped_stairs`
-- `minecraft:warped_trapdoor`
+- `minecraft:warped_slab ✅ 已完成`
+- `minecraft:warped_stairs ✅ 已完成`
+- `minecraft:warped_trapdoor ✅ 已完成`
 
 ### `minecraft:parrot_food`
 
@@ -1053,10 +1053,10 @@
 
 - `minecraft:bamboo_planks`
 - `minecraft:cherry_planks ✅ 已完成`
-- `minecraft:crimson_planks`
-- `minecraft:mangrove_planks`
+- `minecraft:crimson_planks ✅ 已完成`
+- `minecraft:mangrove_planks ✅ 已完成`
 - `minecraft:pale_oak_planks ✅ 已完成`
-- `minecraft:warped_planks`
+- `minecraft:warped_planks ✅ 已完成`
 
 ### `minecraft:redstone_ores`
 
@@ -1083,7 +1083,7 @@
 - `minecraft:azalea ✅ 已完成`
 - `minecraft:cherry_sapling ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
-- `minecraft:mangrove_propagule`
+- `minecraft:mangrove_propagule ✅ 已完成`
 - `minecraft:pale_oak_sapling ✅ 已完成`
 
 ### `minecraft:shulker_boxes`
@@ -1278,8 +1278,8 @@
 未实现项：
 
 
-- `minecraft:crimson_door`
-- `minecraft:warped_door`
+- `minecraft:crimson_door ✅ 已完成`
+- `minecraft:warped_door ✅ 已完成`
 
 ### `minecraft:wooden_fences`
 
@@ -1287,8 +1287,8 @@
 未实现项：
 
 
-- `minecraft:crimson_fence`
-- `minecraft:warped_fence`
+- `minecraft:crimson_fence ✅ 已完成`
+- `minecraft:warped_fence ✅ 已完成`
 
 ### `minecraft:wooden_slabs`
 
@@ -1296,8 +1296,8 @@
 未实现项：
 
 
-- `minecraft:crimson_slab`
-- `minecraft:warped_slab`
+- `minecraft:crimson_slab ✅ 已完成`
+- `minecraft:warped_slab ✅ 已完成`
 
 ### `minecraft:wooden_stairs`
 
@@ -1305,8 +1305,8 @@
 未实现项：
 
 
-- `minecraft:crimson_stairs`
-- `minecraft:warped_stairs`
+- `minecraft:crimson_stairs ✅ 已完成`
+- `minecraft:warped_stairs ✅ 已完成`
 
 ### `minecraft:wooden_trapdoors`
 
@@ -1314,5 +1314,5 @@
 未实现项：
 
 
-- `minecraft:crimson_trapdoor`
-- `minecraft:warped_trapdoor`
+- `minecraft:crimson_trapdoor ✅ 已完成`
+- `minecraft:warped_trapdoor ✅ 已完成`
