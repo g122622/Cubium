@@ -3287,7 +3287,7 @@ void Items::_registerBuildingBlocks()
     LADDER = &registerBlockBackedItem(registry, VanillaBlocks::LADDER, "ladder", ItemProperties().maxStackSize(64));
     SCAFFOLDING = &registerBlockBackedItem(
         registry, VanillaBlocks::SCAFFOLDING, "scaffolding", ItemProperties().maxStackSize(64));
-    CHAIN = &registerBlockBackedItem(registry, VanillaBlocks::CHAIN, "chain", ItemProperties().maxStackSize(64));
+    CHAIN = &registerBlockBackedItem(registry, VanillaBlocks::CHAIN, "iron_chain", ItemProperties().maxStackSize(64));
     IRON_BARS =
         &registerBlockBackedItem(registry, VanillaBlocks::IRON_BARS, "iron_bars", ItemProperties().maxStackSize(64));
     GLASS_PANE =

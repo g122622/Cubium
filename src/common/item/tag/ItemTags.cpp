@@ -191,6 +191,15 @@ ItemTag& ItemTags::FREEZE_IMMUNE_WEARABLES()
     return *tag;
 }
 
+ItemTag& ItemTags::CHAINS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "chains"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -499,6 +508,21 @@ void ItemTags::initialize()
     freezeImmuneWearables->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_horse_armor")));
 
     allTags[freezeImmuneWearables->getId()] = std::move(freezeImmuneWearables);
+
+    // 创建 CHAINS 标签
+    // 包含铁锁链和所有铜锁链物品（含氧化和涂蜡变种）
+    // 参考: datapacks/Vanilla/data/minecraft/tags/item/chains.json
+    auto chains = std::make_unique<ItemTag>(ResourceLocation("minecraft", "chains"), false);
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_chain")));
+    chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_chain")));
+    allTags[chains->getId()] = std::move(chains);
 
     s_initialized = true;
 }

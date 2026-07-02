@@ -719,7 +719,17 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CARVED_PUMPKIN, "carved_pumpkin");
     registerSimpleBlock(VanillaBlocks::END_ROD, "end_rod");
     registerSimpleBlock(VanillaBlocks::RESPAWN_ANCHOR, "respawn_anchor");
-    registerSimpleBlock(VanillaBlocks::CHAIN, "chain");
+    registerSimpleBlock(VanillaBlocks::CHAIN, "iron_chain");
+
+    // 铜锁链（含氧化和涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_CHAIN, "copper_chain");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_CHAIN, "exposed_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_CHAIN, "weathered_copper_chain");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_CHAIN, "oxidized_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_CHAIN, "waxed_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_CHAIN, "waxed_exposed_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_CHAIN, "waxed_weathered_copper_chain");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_CHAIN, "waxed_oxidized_copper_chain");
     registerSimpleBlock(VanillaBlocks::LADDER, "ladder");
     registerSimpleBlock(VanillaBlocks::SCAFFOLDING, "scaffolding");
     registerSimpleBlock(VanillaBlocks::IRON_BARS, "iron_bars");

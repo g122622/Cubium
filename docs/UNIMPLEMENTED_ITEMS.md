@@ -41,7 +41,7 @@
 | `minecraft:beds` | 16 |
 | `minecraft:bundles` | 17 |
 | `minecraft:candles` | 17 |
-| `minecraft:chains` | 9 |
+| `minecraft:chains` | 9 ✅ 已完成 |
 | `minecraft:cherry_logs` | 4 |
 | `minecraft:copper` | 8 |
 | `minecraft:copper_chests` | 8 |
@@ -166,7 +166,7 @@
 - `minecraft:copper_axe ✅ 已完成`
 - `minecraft:copper_bars`
 - `minecraft:copper_block`
-- `minecraft:copper_chain`
+- `minecraft:copper_chain ✅ 已完成`
 - `minecraft:copper_chest`
 - `minecraft:copper_golem_statue`
 - `minecraft:copper_hoe ✅ 已完成`
@@ -178,43 +178,43 @@
 - `minecraft:deepslate_copper_ore ✅ 已完成`
 - `minecraft:exposed_copper`
 - `minecraft:exposed_copper_bars`
-- `minecraft:exposed_copper_chain`
+- `minecraft:exposed_copper_chain ✅ 已完成`
 - `minecraft:exposed_copper_chest`
 - `minecraft:exposed_copper_golem_statue`
 - `minecraft:exposed_copper_lantern`
 - `minecraft:oxidized_copper`
 - `minecraft:oxidized_copper_bars`
-- `minecraft:oxidized_copper_chain`
+- `minecraft:oxidized_copper_chain ✅ 已完成`
 - `minecraft:oxidized_copper_chest`
 - `minecraft:oxidized_copper_golem_statue`
 - `minecraft:oxidized_copper_lantern`
 - `minecraft:waxed_copper_bars`
 - `minecraft:waxed_copper_block`
-- `minecraft:waxed_copper_chain`
+- `minecraft:waxed_copper_chain ✅ 已完成`
 - `minecraft:waxed_copper_chest`
 - `minecraft:waxed_copper_golem_statue`
 - `minecraft:waxed_copper_lantern`
 - `minecraft:waxed_exposed_copper`
 - `minecraft:waxed_exposed_copper_bars`
-- `minecraft:waxed_exposed_copper_chain`
+- `minecraft:waxed_exposed_copper_chain ✅ 已完成`
 - `minecraft:waxed_exposed_copper_chest`
 - `minecraft:waxed_exposed_copper_golem_statue`
 - `minecraft:waxed_exposed_copper_lantern`
 - `minecraft:waxed_oxidized_copper`
 - `minecraft:waxed_oxidized_copper_bars`
-- `minecraft:waxed_oxidized_copper_chain`
+- `minecraft:waxed_oxidized_copper_chain ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_chest`
 - `minecraft:waxed_oxidized_copper_golem_statue`
 - `minecraft:waxed_oxidized_copper_lantern`
 - `minecraft:waxed_weathered_copper`
 - `minecraft:waxed_weathered_copper_bars`
-- `minecraft:waxed_weathered_copper_chain`
+- `minecraft:waxed_weathered_copper_chain ✅ 已完成`
 - `minecraft:waxed_weathered_copper_chest`
 - `minecraft:waxed_weathered_copper_golem_statue`
 - `minecraft:waxed_weathered_copper_lantern`
 - `minecraft:weathered_copper`
 - `minecraft:weathered_copper_bars`
-- `minecraft:weathered_copper_chain`
+- `minecraft:weathered_copper_chain ✅ 已完成`
 - `minecraft:weathered_copper_chest`
 - `minecraft:weathered_copper_golem_statue`
 - `minecraft:weathered_copper_lantern`
@@ -493,7 +493,7 @@
 - `minecraft:gray_harness`
 - `minecraft:green_bundle`
 - `minecraft:green_harness`
-- `minecraft:iron_chain`
+- `minecraft:iron_chain ✅ 已完成`
 - `minecraft:jungle_shelf`
 - `minecraft:knowledge_book ✅ 已完成`
 - `minecraft:light_blue_bundle`
@@ -628,18 +628,18 @@
 - `minecraft:white_candle`
 - `minecraft:yellow_candle`
 
-### `minecraft:chains`
+### `minecraft:chains` ✅ 已完成
 
 
-- `minecraft:copper_chain`
-- `minecraft:exposed_copper_chain`
-- `minecraft:iron_chain`
-- `minecraft:oxidized_copper_chain`
-- `minecraft:waxed_copper_chain`
-- `minecraft:waxed_exposed_copper_chain`
-- `minecraft:waxed_oxidized_copper_chain`
-- `minecraft:waxed_weathered_copper_chain`
-- `minecraft:weathered_copper_chain`
+- `minecraft:copper_chain ✅ 已完成`
+- `minecraft:exposed_copper_chain ✅ 已完成`
+- `minecraft:iron_chain ✅ 已完成`
+- `minecraft:oxidized_copper_chain ✅ 已完成`
+- `minecraft:waxed_copper_chain ✅ 已完成`
+- `minecraft:waxed_exposed_copper_chain ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_chain ✅ 已完成`
+- `minecraft:waxed_weathered_copper_chain ✅ 已完成`
+- `minecraft:weathered_copper_chain ✅ 已完成`
 
 ### `minecraft:cherry_logs`
 

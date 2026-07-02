@@ -223,8 +223,8 @@ void registerBuildingBlocks()
     BuildingBlocks::LADDER = &registry.registerBlock<blocks::LadderBlock>(ResourceLocation("minecraft:ladder"),
         BlockProperties(Material::WOOD).hardness(0.4f).notSolid().flammable().ignitedByLava());
 
-    // 锁链 - 含水方块
-    BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:chain"),
+    // 锁链 - 含水方块 (MC 1.21+ 重命名为 iron_chain)
+    BuildingBlocks::CHAIN = &registry.registerBlock<blocks::ChainBlock>(ResourceLocation("minecraft:iron_chain"),
         BlockProperties(Material::IRON).hardness(5.0f).resistance(5.0f).notSolid());
 
     // 脚手架 - 含水方块

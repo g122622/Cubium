@@ -893,6 +893,15 @@ BlockTag& BlockTags::BARS()
     return *tag;
 }
 
+BlockTag& BlockTags::CHAINS()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "chains"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::SHULKER_BOXES()
 {
     static BlockTag* tag = nullptr;
@@ -2590,6 +2599,20 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "oxidized_copper_bars"),
         ResourceLocation("minecraft", "waxed_oxidized_copper_bars")});
     tags[bars->getId()] = std::move(bars);
+
+    // 创建 CHAINS 标签（铁锁链和铜锁链，含氧化和涂蜡变种）
+    // 参考: datapacks/Vanilla/data/minecraft/tags/block/chains.json
+    auto chains = std::make_unique<BlockTag>(ResourceLocation("minecraft", "chains"));
+    chains->addAll({ResourceLocation("minecraft", "iron_chain"),
+        ResourceLocation("minecraft", "copper_chain"),
+        ResourceLocation("minecraft", "waxed_copper_chain"),
+        ResourceLocation("minecraft", "exposed_copper_chain"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_chain"),
+        ResourceLocation("minecraft", "weathered_copper_chain"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_chain"),
+        ResourceLocation("minecraft", "oxidized_copper_chain"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_chain")});
+    tags[chains->getId()] = std::move(chains);
 
     // 创建 SHULKER_BOXES 标签（所有潜影盒变体，用于连接例外判断）
     auto shulkerBoxes = std::make_unique<BlockTag>(ResourceLocation("minecraft", "shulker_boxes"));
