@@ -28,7 +28,81 @@
 #include "world/block/registry/VanillaBlocks.hpp"
 #include <gtest/gtest.h>
 
+#include "common/TestWorldHelper.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/entity/inventory/CraftingInventory.hpp"
+#include "common/item/crafting/IRecipe.hpp"
+#include "common/item/crafting/Ingredient.hpp"
+#include "common/item/crafting/RecipeManager.hpp"
+#include "common/world/IWorld.hpp"
+
 using namespace mc;
+
+namespace {
+
+// ============================================================================
+// 测试用世界 - 暴露BaseTestWorld的受保护构造函数
+// ============================================================================
+
+class KnowledgeBookTestWorld : public test::BaseTestWorld {
+public:
+    KnowledgeBookTestWorld() = default;
+};
+
+// ============================================================================
+// 测试用 Player - 追踪 unlockRecipe 调用
+// ============================================================================
+
+class KnowledgeBookTestPlayer : public Player {
+public:
+    explicit KnowledgeBookTestPlayer(IWorld* world = nullptr)
+        : Player(EntityId(1), "TestPlayer")
+    {
+        registerAttributes();
+        setHealth(maxHealth());
+        if (world != nullptr) {
+            setWorld(world);
+        }
+    }
+
+    void unlockRecipe(const ResourceLocation& recipeId) override { m_unlockedRecipes.push_back(recipeId); }
+
+    [[nodiscard]] const std::vector<ResourceLocation>& unlockedRecipes() const { return m_unlockedRecipes; }
+    [[nodiscard]] i32 unlockedRecipeCount() const { return static_cast<i32>(m_unlockedRecipes.size()); }
+    void clearUnlockedRecipes() { m_unlockedRecipes.clear(); }
+
+private:
+    std::vector<ResourceLocation> m_unlockedRecipes;
+};
+
+// ============================================================================
+// 测试用配方 - 用于向RecipeManager注册测试配方
+// ============================================================================
+
+class TestRecipe : public crafting::CraftingRecipe {
+public:
+    explicit TestRecipe(const ResourceLocation& id)
+        : m_id(id)
+    {}
+
+    [[nodiscard]] bool matches(const CraftingInventory& /*inventory*/) const override { return true; }
+    [[nodiscard]] ItemStack assemble(const CraftingInventory& /*inventory*/) const override { return ItemStack(); }
+    [[nodiscard]] ItemStack getResultItem() const override { return ItemStack(); }
+    [[nodiscard]] std::vector<ItemStack> getRemainingItems(const CraftingInventory& inventory) const override
+    {
+        return crafting::RecipeUtils::getDefaultRemainingItems(inventory);
+    }
+    [[nodiscard]] const std::vector<crafting::Ingredient>& getIngredients() const override { return m_ingredients; }
+    [[nodiscard]] ResourceLocation getId() const override { return m_id; }
+    [[nodiscard]] crafting::RecipeType getType() const override { return crafting::RecipeType::ShapelessCrafting; }
+
+private:
+    ResourceLocation m_id;
+    std::vector<crafting::Ingredient> m_ingredients;
+};
+
+} // anonymous namespace
 
 // ============================================================================
 // Trails & Tales 物品注册测试（火把花种子、瓶草荚果、蓝蛋、棕蛋、
@@ -284,4 +358,158 @@ TEST_F(TrailsItemsRegistrationTest, AllTrailsItems_RegistryLookup)
         auto* item = ItemRegistry::instance().getItem(ResourceLocation("minecraft", name));
         EXPECT_NE(item, nullptr) << "Missing Trails & Tales item: minecraft:" << name;
     }
+}
+
+// ============================================================================
+// KnowledgeBookItem 行为测试
+// ============================================================================
+
+class KnowledgeBookItemBehaviorTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+
+    void SetUp() override
+    {
+        m_world = std::make_unique<KnowledgeBookTestWorld>();
+        m_player = std::make_unique<KnowledgeBookTestPlayer>(m_world.get());
+    }
+
+    void TearDown() override { crafting::RecipeManager::instance().clear(); }
+
+    std::unique_ptr<KnowledgeBookTestWorld> m_world;
+    std::unique_ptr<KnowledgeBookTestPlayer> m_player;
+};
+
+TEST_F(KnowledgeBookItemBehaviorTest, NoTag_ReturnsFail)
+{
+    // 知识之书没有NBT标签时应返回失败
+    ItemStack stack(Items::KNOWLEDGE_BOOK, 1);
+    m_player->inventory().getSelectedStackRef() = stack;
+
+    auto result = Items::KNOWLEDGE_BOOK->onItemRightClick(*m_world, *m_player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isFail());
+    EXPECT_EQ(m_player->unlockedRecipeCount(), 0);
+}
+
+TEST_F(KnowledgeBookItemBehaviorTest, EmptyRecipesArray_ReturnsFail)
+{
+    // NBT中recipes为空数组时应返回失败
+    ItemStack stack(Items::KNOWLEDGE_BOOK, 1);
+    stack.getOrCreateTag()["recipes"] = nlohmann::json::array();
+    m_player->inventory().getSelectedStackRef() = stack;
+
+    auto result = Items::KNOWLEDGE_BOOK->onItemRightClick(*m_world, *m_player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isFail());
+    EXPECT_EQ(m_player->unlockedRecipeCount(), 0);
+}
+
+TEST_F(KnowledgeBookItemBehaviorTest, InvalidRecipesFormat_ReturnsFail)
+{
+    // recipes字段不是数组时应返回失败
+    ItemStack stack(Items::KNOWLEDGE_BOOK, 1);
+    stack.getOrCreateTag()["recipes"] = "not_an_array";
+    m_player->inventory().getSelectedStackRef() = stack;
+
+    auto result = Items::KNOWLEDGE_BOOK->onItemRightClick(*m_world, *m_player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isFail());
+    EXPECT_EQ(m_player->unlockedRecipeCount(), 0);
+}
+
+TEST_F(KnowledgeBookItemBehaviorTest, NonStringRecipeEntries_Skipped)
+{
+    // 数组中的非字符串条目应被跳过
+    ItemStack stack(Items::KNOWLEDGE_BOOK, 1);
+    stack.getOrCreateTag()["recipes"] = nlohmann::json::array({42, true, 3.14});
+    m_player->inventory().getSelectedStackRef() = stack;
+
+    auto result = Items::KNOWLEDGE_BOOK->onItemRightClick(*m_world, *m_player, Hand::MainHand);
+
+    // 所有条目都不是字符串，因此没有有效的配方，应返回失败
+    EXPECT_TRUE(result.isFail());
+    EXPECT_EQ(m_player->unlockedRecipeCount(), 0);
+}
+
+TEST_F(KnowledgeBookItemBehaviorTest, UnknownRecipeId_SkippedAndNoUnlock)
+{
+    // 未知配方ID应被跳过，不触发unlockRecipe
+    ItemStack stack(Items::KNOWLEDGE_BOOK, 1);
+    stack.getOrCreateTag()["recipes"] = nlohmann::json::array({"minecraft:nonexistent_recipe"});
+    m_player->inventory().getSelectedStackRef() = stack;
+
+    auto result = Items::KNOWLEDGE_BOOK->onItemRightClick(*m_world, *m_player, Hand::MainHand);
+
+    // 未知配方被跳过后无有效配方，应返回失败
+    EXPECT_TRUE(result.isFail());
+    EXPECT_EQ(m_player->unlockedRecipeCount(), 0);
+}
+
+TEST_F(KnowledgeBookItemBehaviorTest, ValidRecipes_UnlocksAndSucceeds)
+{
+    // 知识之书包含有效配方时应解锁配方并返回成功
+    // 注册一个测试配方以使RecipeManager::hasRecipe返回true
+    ResourceLocation testRecipeId("minecraft", "test_knowledge_book_recipe");
+    auto recipe = std::make_unique<TestRecipe>(testRecipeId);
+    crafting::RecipeManager::instance().registerRecipe(std::move(recipe));
+
+    ItemStack stack(Items::KNOWLEDGE_BOOK, 2);
+    stack.getOrCreateTag()["recipes"] = nlohmann::json::array({testRecipeId.toString()});
+    m_player->inventory().getSelectedStackRef() = stack;
+
+    auto result = Items::KNOWLEDGE_BOOK->onItemRightClick(*m_world, *m_player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isSuccess());
+    EXPECT_EQ(m_player->unlockedRecipeCount(), 1);
+    EXPECT_EQ(m_player->unlockedRecipes()[0], testRecipeId);
+
+    // 生存模式下物品应被消耗一个
+    EXPECT_EQ(m_player->inventory().getSelectedStack().getCount(), 1);
+}
+
+TEST_F(KnowledgeBookItemBehaviorTest, MixedValidAndInvalidRecipes_OnlyUnlocksValid)
+{
+    // 混合有效和无效配方时只解锁有效配方
+    ResourceLocation validRecipe1("minecraft", "test_kb_recipe_valid1");
+    ResourceLocation validRecipe2("minecraft", "test_kb_recipe_valid2");
+    crafting::RecipeManager::instance().registerRecipe(std::make_unique<TestRecipe>(validRecipe1));
+    crafting::RecipeManager::instance().registerRecipe(std::make_unique<TestRecipe>(validRecipe2));
+
+    ItemStack stack(Items::KNOWLEDGE_BOOK, 1);
+    stack.getOrCreateTag()["recipes"] =
+        nlohmann::json::array({validRecipe1.toString(), "minecraft:invalid_recipe", 42, validRecipe2.toString()});
+    m_player->inventory().getSelectedStackRef() = stack;
+
+    auto result = Items::KNOWLEDGE_BOOK->onItemRightClick(*m_world, *m_player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isSuccess());
+    EXPECT_EQ(m_player->unlockedRecipeCount(), 2);
+    EXPECT_EQ(m_player->unlockedRecipes()[0], validRecipe1);
+    EXPECT_EQ(m_player->unlockedRecipes()[1], validRecipe2);
+}
+
+TEST_F(KnowledgeBookItemBehaviorTest, CreativeMode_DoesNotConsumeItem)
+{
+    // 创造模式下不应消耗物品
+    ResourceLocation testRecipe("minecraft", "test_kb_creative_recipe");
+    crafting::RecipeManager::instance().registerRecipe(std::make_unique<TestRecipe>(testRecipe));
+
+    // 设置为创造模式
+    m_player->setGameMode(GameMode::Creative);
+
+    ItemStack stack(Items::KNOWLEDGE_BOOK, 1);
+    stack.getOrCreateTag()["recipes"] = nlohmann::json::array({testRecipe.toString()});
+    m_player->inventory().getSelectedStackRef() = stack;
+
+    auto result = Items::KNOWLEDGE_BOOK->onItemRightClick(*m_world, *m_player, Hand::MainHand);
+
+    EXPECT_TRUE(result.isSuccess());
+    EXPECT_EQ(m_player->unlockedRecipeCount(), 1);
+    // 创造模式下物品不应被消耗
+    EXPECT_EQ(m_player->inventory().getSelectedStack().getCount(), 1);
 }

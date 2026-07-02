@@ -87,6 +87,7 @@ item/
 │   │   ├── HoneycombItem.hpp/cpp  # 蜜脾（涂蜡铜方块、除蜡映射）
 │   │   ├── FishingRodItem.hpp/cpp  # 钓鱼竿
 │   │   ├── EnchantedBookItem.hpp/cpp  # 附魔书
+│   │   ├── KnowledgeBookItem.hpp/cpp  # 知识之书（右键解锁配方列表）
 │   │   ├── NameTagItem.hpp/cpp   # 命名牌
 │   │   └── ...                   # 其他特殊物品
 │   ├── bucket/                   # 桶类物品
