@@ -31,10 +31,13 @@
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/resource/ResourceLocation.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/Vector3.hpp"
 #include "common/world/IWorld.hpp"
 #include "common/world/block/BlockPos.hpp"
+#include "common/world/blockentity/BlockEntityType.hpp"
+#include "common/world/blockentity/spawner/MobSpawnerBlockEntity.hpp"
 
 namespace mc {
 namespace item {
@@ -51,17 +54,33 @@ ActionResultType SpawnEggItem::onItemUse(ItemUseContext& context)
 {
     IWorld& world = context.getWorld();
     BlockPos pos = context.getBlockPos();
-    Direction face = context.getFace();
 
-    // 检查是否在客户端
+    // 客户端直接预测成功
     if (world.isClientSide()) {
         return ActionResultType::Success;
     }
 
-    // 计算生成位置 (方块面偏移)
+    // 如果点击的方块是刷怪笼，设置刷怪笼的实体类型而非生成生物
+    BlockEntity* blockEntity = world.getBlockEntity(pos);
+    if (blockEntity != nullptr && blockEntity->getType() == BlockEntityType::MobSpawner) {
+        auto* spawner = static_cast<blockentity::MobSpawnerBlockEntity*>(blockEntity);
+        ResourceLocation entityId(m_entityType.name());
+        math::Random& rng = world.getRandom();
+        spawner->setEntityId(entityId, rng);
+
+        // 非创造模式下消耗刷怪蛋
+        Player* player = context.getPlayer();
+        if (player && !player->isCreative()) {
+            context.getItemStackMut().shrink(1);
+        }
+        return ActionResultType::Success;
+    }
+
+    // 常规路径：在方块面上方生成实体
+    Direction face = context.getFace();
     BlockPos spawnPos = pos.offset(face);
 
-    // 检查位置是否有效
+    // 检查位置是否可替换
     const BlockState* state = world.getBlockState(spawnPos);
     if (state != nullptr && !state->canBeReplaced()) {
         return ActionResultType::Fail;

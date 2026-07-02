@@ -374,12 +374,20 @@ void MobSpawnerBlockEntity::setEntityId(const ResourceLocation& entityId, math::
     m_nextEntityId = entityId;
 
     // 如果没有生成候选列表，添加一个默认条目
+    // 参考 MC Java: BaseSpawner.setEntityId() 只修改 nextSpawnData，
+    // spawnPotentials 在 load() 时从 NBT 加载。此处保持候选列表与当前实体一致。
     if (m_spawnPotentials.empty()) {
         m_spawnPotentials.push_back({entityId, 1});
     }
 
-    // 重置延迟
-    _delay(rng);
+    // 重置延迟（不调用 _delay，因为 _delay 会从 spawnPotentials 中随机选择，
+    // 可能覆盖刚设置的 nextEntityId）
+    if (m_maxSpawnDelay <= m_minSpawnDelay) {
+        m_spawnDelay = m_minSpawnDelay;
+    } else {
+        m_spawnDelay = m_minSpawnDelay + rng.nextInt(m_maxSpawnDelay - m_minSpawnDelay);
+    }
+
     setChanged();
 }
 

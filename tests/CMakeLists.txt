@@ -450,6 +450,8 @@ add_executable(mc_tests
     common/world/blockentity/ShelfBlockEntityTest.cpp
     # MobSpawnerBlockEntity 刷怪笼方块实体测试（生成逻辑、玩家检测、延迟重置、序列化、克隆）
     common/world/blockentity/MobSpawnerBlockEntityTest.cpp
+    # SpawnerBlock + SpawnEggItem 刷怪笼与刷怪蛋交互测试
+    common/world/block/blocks/mob/SpawnerBlockSpawnEggTest.cpp
     # DecoratedPotBlockEntity 饰纹陶罐方块实体测试
     common/world/blockentity/DecoratedPotBlockEntityTest.cpp
     # SculkBlockEntity 幽匿方块实体测试
