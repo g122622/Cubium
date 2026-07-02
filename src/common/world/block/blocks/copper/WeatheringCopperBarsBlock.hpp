@@ -42,8 +42,6 @@ namespace blocks {
  * - 支持含水
  * - 具有铜氧化特性
  * - 与铁栏杆和其他铜栏杆变体互相连接
- *
- * 参考: net.minecraft.block.WeatheringCopperBarsBlock (MC 1.21+)
  */
 class WeatheringCopperBarsBlock : public WeatheringCopperBlock, public IWaterLoggable {
 public:
@@ -144,8 +142,6 @@ protected:
  * @brief 涂蜡铜栏杆方块
  *
  * 涂蜡后的铜栏杆不会氧化，支持含水，与其他栏杆方块互相连接。
- *
- * 参考: net.minecraft.block.WaxedCopperBarsBlock (MC 1.21+)
  */
 class WaxedCopperBarsBlock : public WaxedCopperBlock, public IWaterLoggable {
 public:

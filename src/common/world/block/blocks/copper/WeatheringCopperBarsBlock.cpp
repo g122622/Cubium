@@ -214,7 +214,6 @@ bool WeatheringCopperBarsBlock::connectsTo(const BlockState& state, Direction fa
 bool WeatheringCopperBarsBlock::shouldConnectTo(
     IWorld& world, const BlockPos& pos, const BlockState& neighborState, Direction direction) const
 {
-    // 参考: net.minecraft.block.IronBarsBlock#attachsTo
     const Block& neighborBlock = neighborState.getBlock();
     const Direction oppositeDirection = Directions::opposite(direction);
 
@@ -223,10 +222,7 @@ bool WeatheringCopperBarsBlock::shouldConnectTo(
         return true;
     }
 
-    // 其他铜栏杆方块也连接（通过 BARS 标签判断）
-    // 在 MC Java 中，WeatheringCopperBarsBlock extends IronBarsBlock，
-    // 所以所有栏杆子类通过 instanceof 检查互相连接。
-    // 在本项目中，我们通过 BARS 标签实现相同的逻辑。
+    // BARS 标签方块（铜栏杆等）也互相连接
     if (BlockTags::BARS().contains(neighborBlock)) {
         return true;
     }
@@ -423,7 +419,6 @@ bool WaxedCopperBarsBlock::connectsTo(const BlockState& state, Direction facing)
 bool WaxedCopperBarsBlock::shouldConnectTo(
     IWorld& world, const BlockPos& pos, const BlockState& neighborState, Direction direction) const
 {
-    // 参考: net.minecraft.block.IronBarsBlock#attachsTo
     const Block& neighborBlock = neighborState.getBlock();
     const Direction oppositeDirection = Directions::opposite(direction);
 

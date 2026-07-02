@@ -203,7 +203,6 @@ bool PaneBlock::connectsTo(const BlockState& state, Direction facing) noexcept
 bool PaneBlock::shouldConnectTo(
     IWorld& world, const BlockPos& pos, const BlockState& neighborState, Direction direction) const
 {
-    // 参考: net.minecraft.block.IronBarsBlock#attachsTo
     const Block& neighborBlock = neighborState.getBlock();
     const Direction oppositeDirection = Directions::opposite(direction);
 
@@ -213,9 +212,6 @@ bool PaneBlock::shouldConnectTo(
     }
 
     // BARS 标签方块（铜栏杆等）也互相连接
-    // 参考: net.minecraft.block.IronBarsBlock 中 instanceof IronBarsBlock 的检查，
-    // MC Java 中 WeatheringCopperBarsBlock extends IronBarsBlock，因此所有栏杆自动互连。
-    // 在本项目中通过 BARS 标签实现相同的互连逻辑。
     if (BlockTags::BARS().contains(neighborBlock)) {
         return true;
     }

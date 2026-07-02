@@ -41,6 +41,10 @@ namespace blocks {
  * - 根据相邻方块自动连接
  * - 四个方向的布尔属性
  * - 支持水logged状态
+ *
+ * TODO: 实现 skipRendering 逻辑，当两个 BARS 标签方块水平相邻且互相连接时，
+ * 跳过它们之间的面渲染。当前 ChunkMesher 仅按 blockId 相同判断，
+ * 导致铁栏杆和铜栏杆之间的多余面被渲染。
  */
 class PaneBlock : public Block, public IWaterLoggable {
 public:
