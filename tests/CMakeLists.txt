@@ -487,10 +487,14 @@ add_executable(mc_tests
     common/world/block/blocks/decorative/TorchBlockTest.cpp
     # CampfireBlock 营火方块测试
     common/world/block/blocks/decorative/CampfireBlockTest.cpp
+    # CandleBlock 蜡烛方块测试
+    common/world/block/blocks/decorative/CandleBlockTest.cpp
     common/world/block/blocks/functional/BellBlockTest.cpp
     common/world/block/blocks/functional/BedBlockTest.cpp
     common/world/block/blocks/functional/GrindstoneBlockTest.cpp
     common/world/block/blocks/functional/ComposterBlockTest.cpp
+    # CandleCakeBlock 蜡烛蛋糕方块测试
+    common/world/block/blocks/functional/CandleCakeBlockTest.cpp
     common/world/block/blocks/functional/AnvilBlockTest.cpp
     common/world/block/blocks/functional/CraftingTableBlockTest.cpp
     common/world/block/blocks/functional/StonecutterBlockTest.cpp
