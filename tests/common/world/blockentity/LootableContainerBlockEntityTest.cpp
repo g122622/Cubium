@@ -8,8 +8,8 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice shall be included in all copies or substantial
- * portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -33,6 +33,7 @@
 #include "item/loot/context/LootContextBuilder.hpp"
 #include "item/loot/context/LootParameterSets.hpp"
 #include "item/loot/context/LootParams.hpp"
+#include "item/loot/entries/ItemLootEntry.hpp"
 #include "world/block/BlockPos.hpp"
 #include "world/blockentity/storage/BarrelEntity.hpp"
 #include "world/blockentity/storage/ChestEntity.hpp"
@@ -54,6 +55,38 @@ Item* ensureTestItem(const char* path)
         return existing;
     }
     return &registry.registerItem(id, ItemProperties().maxStackSize(64));
+}
+
+/**
+ * @brief 创建简单的测试战利品表（包含单个物品）
+ *
+ * @param manager 战利品表管理器
+ * @param tableId 战利品表ID（如 "minecraft:chests/test"）
+ * @param itemId 物品ID（如 "minecraft:diamond"）
+ * @param count 生成数量
+ */
+void registerSimpleLootTable(
+    loot::LootTableManager& manager, const std::string& tableId, const std::string& itemId, i32 count)
+{
+    auto table = std::make_unique<loot::LootTable>();
+    auto pool = std::make_unique<loot::LootPool>();
+    pool->setRolls(loot::RandomValueRange(static_cast<f32>(count), static_cast<f32>(count)));
+    auto entry = std::make_unique<loot::ItemLootEntry>(itemId, loot::RandomValueRange(1.0f, 1.0f), 1, 0);
+    pool->addEntry(std::move(entry));
+    table->addPool(std::move(pool));
+    manager.registerTable(tableId, std::move(table));
+}
+
+/**
+ * @brief 创建空的测试战利品表（没有条目）
+ *
+ * @param manager 战利品表管理器
+ * @param tableId 战利品表ID
+ */
+void registerEmptyLootTable(loot::LootTableManager& manager, const std::string& tableId)
+{
+    auto table = std::make_unique<loot::LootTable>();
+    manager.registerTable(tableId, std::move(table));
 }
 
 /**
@@ -81,6 +114,10 @@ public:
 
 /**
  * @brief 测试用世界，支持 LootTableManager
+ *
+ * 默认 lootTableManager() 返回内部空管理器。
+ * 可通过 setLootTableManager() 注入自定义管理器（用于测试战利品填充）。
+ * 可通过 setNoLootTableManager() 模拟客户端场景（lootTableManager() 返回 nullptr）。
  */
 class LootableTestWorld final : public test::BaseTestWorld {
 public:
@@ -89,10 +126,21 @@ public:
     [[nodiscard]] const BlockState* getBlockState(i32, i32, i32) const override { return nullptr; }
     [[nodiscard]] bool isWithinWorldBounds(i32, i32, i32) const override { return true; }
 
-    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override { return &m_lootTableManager; }
+    [[nodiscard]] const loot::LootTableManager* lootTableManager() const override
+    {
+        if (m_noManager) {
+            return nullptr;
+        }
+        return m_customManager != nullptr ? m_customManager : &m_lootTableManager;
+    }
+
+    void setLootTableManager(loot::LootTableManager* manager) { m_customManager = manager; }
+    void setNoLootTableManager() { m_noManager = true; }
 
 private:
     loot::LootTableManager m_lootTableManager;
+    loot::LootTableManager* m_customManager = nullptr;
+    bool m_noManager = false;
 };
 
 } // namespace
@@ -386,9 +434,7 @@ TEST_F(LootableContainerFillLootTest, FillWithNullPlayer_NoLuckNoEntity)
     // 当 player 为 nullptr 时，不应设置幸运值和 THIS_ENTITY
     // 设置一个空的战利品表（没有条目），验证填充不会崩溃
     loot::LootTableManager manager;
-    auto emptyTable = std::make_unique<loot::LootTable>();
-    emptyTable->setId("minecraft:chests/test_empty");
-    manager.registerTable("minecraft:chests/test_empty", std::move(emptyTable));
+    registerEmptyLootTable(manager, "minecraft:chests/test_empty");
 
     entity_->setLootTable(ResourceLocation("minecraft", "chests/test_empty"), 42);
 
@@ -404,9 +450,7 @@ TEST_F(LootableContainerFillLootTest, FillWithPlayer_LuckAndEntitySet)
     // 验证玩家幸运值和 THIS_ENTITY 被传入 LootContext
     // 通过使用一个自定义的战利品表来验证上下文
     loot::LootTableManager manager;
-    auto emptyTable = std::make_unique<loot::LootTable>();
-    emptyTable->setId("minecraft:chests/test_luck");
-    manager.registerTable("minecraft:chests/test_luck", std::move(emptyTable));
+    registerEmptyLootTable(manager, "minecraft:chests/test_luck");
 
     entity_->setLootTable(ResourceLocation("minecraft", "chests/test_luck"), 42);
 
@@ -423,9 +467,7 @@ TEST_F(LootableContainerFillLootTest, FillWithSpectatorPlayer_StillFillsWhenCall
     // fillWithLootFromTable 不做观察者检查（那是 openContainer/canOpen 的责任）
     // 直接调用 fillWithLootFromTable 即使观察者也应填充
     loot::LootTableManager manager;
-    auto emptyTable = std::make_unique<loot::LootTable>();
-    emptyTable->setId("minecraft:chests/test_spectator");
-    manager.registerTable("minecraft:chests/test_spectator", std::move(emptyTable));
+    registerEmptyLootTable(manager, "minecraft:chests/test_spectator");
 
     entity_->setLootTable(ResourceLocation("minecraft", "chests/test_spectator"), 42);
 
@@ -442,9 +484,7 @@ TEST_F(LootableContainerFillLootTest, FillAlreadyFilled_DoesNotRefill)
 {
     // 已填充的容器不会再次填充
     loot::LootTableManager manager;
-    auto emptyTable = std::make_unique<loot::LootTable>();
-    emptyTable->setId("minecraft:chests/test_double");
-    manager.registerTable("minecraft:chests/test_double", std::move(emptyTable));
+    registerEmptyLootTable(manager, "minecraft:chests/test_double");
 
     entity_->setLootTable(ResourceLocation("minecraft", "chests/test_double"), 42);
 
@@ -523,4 +563,217 @@ TEST_F(LockableCanOpenVirtualTest, CanOpenVirtualDispatch_WorksWithLootablePoint
 
     LootableContainerBlockEntity* lootable = chest_.get();
     EXPECT_FALSE(lootable->canOpen(&spectator, ItemStack()));
+}
+
+// ========== _unpackLootTable 延迟填充测试 ==========
+
+class UnpackLootTableTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        Items::initialize();
+        entity_ = std::make_unique<TestLootableEntity>(BlockPos(10, 20, 30));
+        entity_->setWorld(&world_);
+        m_diamond = ensureTestItem("diamond");
+        m_ironIngot = ensureTestItem("iron_ingot");
+    }
+
+    LootableTestWorld world_;
+    std::unique_ptr<TestLootableEntity> entity_;
+    Item* m_diamond = nullptr;
+    Item* m_ironIngot = nullptr;
+};
+
+TEST_F(UnpackLootTableTest, IsEmpty_WithNoLootTable_ReturnsTrueWhenInventoryEmpty)
+{
+    // 没有战利品表的空容器，isEmpty 返回 true
+    EXPECT_TRUE(entity_->isEmpty());
+}
+
+TEST_F(UnpackLootTableTest, IsEmpty_WithNoLootTable_ReturnsFalseWhenInventoryHasItems)
+{
+    // 没有战利品表但有物品的容器，isEmpty 返回 false
+    entity_->m_inventory.setItem(0, ItemStack(m_diamond, 1));
+    EXPECT_FALSE(entity_->isEmpty());
+}
+
+TEST_F(UnpackLootTableTest, IsEmpty_WithLootTable_TriggersFillBeforeCheck)
+{
+    // 设置战利品表后，isEmpty 应触发 _unpackLootTable 填充战利品
+    // 创建一个包含钻石的战利品表
+    loot::LootTableManager manager;
+    registerSimpleLootTable(manager, "minecraft:chests/test_isempty", "minecraft:diamond", 1);
+
+    world_.setLootTableManager(&manager);
+
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/test_isempty"), 42);
+
+    // 战利品表未填充时，isEmpty 应触发填充然后返回 false（容器有物品）
+    EXPECT_TRUE(entity_->hasLootTable());
+    EXPECT_FALSE(entity_->isEmpty());
+
+    // 填充后战利品表标记被清除
+    EXPECT_FALSE(entity_->hasLootTable());
+
+    // 容器中应该有钻石
+    bool hasDiamond = false;
+    for (i32 i = 0; i < entity_->m_inventory.getContainerSize(); ++i) {
+        ItemStack stack = entity_->m_inventory.getItem(i);
+        if (!stack.isEmpty() && stack.getItem() == m_diamond) {
+            hasDiamond = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(hasDiamond);
+}
+
+TEST_F(UnpackLootTableTest, IsEmpty_WithEmptyLootTable_ReturnsTrueAfterFill)
+{
+    // 空的战利品表（没有条目），填充后容器仍为空，isEmpty 返回 true
+    loot::LootTableManager manager;
+    registerEmptyLootTable(manager, "minecraft:chests/test_empty_fill");
+
+    world_.setLootTableManager(&manager);
+
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/test_empty_fill"), 42);
+    EXPECT_TRUE(entity_->hasLootTable());
+
+    // 空战利品表填充后，容器仍为空
+    EXPECT_TRUE(entity_->isEmpty());
+
+    // 战利品表标记被清除
+    EXPECT_FALSE(entity_->hasLootTable());
+}
+
+TEST_F(UnpackLootTableTest, IsEmpty_NoWorld_DoesNotFill)
+{
+    // 没有世界引用时，_unpackLootTable 不应填充
+    auto entityNoWorld = std::make_unique<TestLootableEntity>(BlockPos(5, 10, 15));
+    // 不设置 setWorld，m_world 为 nullptr
+
+    entityNoWorld->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 42);
+    EXPECT_TRUE(entityNoWorld->hasLootTable());
+
+    // isEmpty 应跳过填充（无世界），直接检查容器（空）返回 true
+    // _unpackLootTable 无世界时跳过，然后 isEmpty 委托基类
+    // 基类检查：getInventory()->isEmpty() → m_inventory.isEmpty() → true（空容器）
+    EXPECT_TRUE(entityNoWorld->isEmpty());
+
+    // 战利品表标记仍在（因为无法填充）
+    EXPECT_TRUE(entityNoWorld->hasLootTable());
+}
+
+TEST_F(UnpackLootTableTest, IsEmpty_NoLootTableManager_DoesNotFill)
+{
+    // 有世界但 LootTableManager 为 nullptr（客户端场景）
+    // 使用 setNoLootTableManager() 模拟客户端
+    world_.setNoLootTableManager();
+
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 42);
+    EXPECT_TRUE(entity_->hasLootTable());
+
+    // _unpackLootTable 检查 lootTableManager == nullptr，跳过填充
+    // 然后委托基类检查：空容器 → true
+    EXPECT_TRUE(entity_->isEmpty());
+
+    // 战利品表标记仍在
+    EXPECT_TRUE(entity_->hasLootTable());
+}
+
+TEST_F(UnpackLootTableTest, IsEmpty_SecondCallDoesNotRefill)
+{
+    // 第二次调用 isEmpty 不应重新填充（幂等性）
+    loot::LootTableManager manager;
+    registerSimpleLootTable(manager, "minecraft:chests/test_idempotent", "minecraft:diamond", 1);
+
+    world_.setLootTableManager(&manager);
+
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/test_idempotent"), 42);
+
+    // 第一次调用：触发填充
+    EXPECT_FALSE(entity_->isEmpty());
+    EXPECT_FALSE(entity_->hasLootTable());
+
+    // 第二次调用：不应重新填充（hasLootTable 为 false，_unpackLootTable 直接返回）
+    EXPECT_FALSE(entity_->isEmpty());
+}
+
+TEST_F(UnpackLootTableTest, ClearContainer_WithLootTable_TriggersFillBeforeClear)
+{
+    // clearContainer 在清空前应触发 _unpackLootTable
+    // 验证填充后清空：战利品被正确生成然后被清除
+    loot::LootTableManager manager;
+    registerSimpleLootTable(manager, "minecraft:chests/test_clear", "minecraft:iron_ingot", 2);
+
+    world_.setLootTableManager(&manager);
+
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/test_clear"), 42);
+
+    // 清空前触发填充，然后清空
+    entity_->clearContainer();
+
+    // 战利品表标记被清除（填充已发生）
+    EXPECT_FALSE(entity_->hasLootTable());
+
+    // 容器为空（清空后）
+    EXPECT_TRUE(entity_->isEmpty());
+}
+
+TEST_F(UnpackLootTableTest, FillWithLootFromTable_DistributesItemsToSlots)
+{
+    // 验证战利品正确分配到容器槽位
+    loot::LootTableManager manager;
+    registerSimpleLootTable(manager, "minecraft:chests/test_distribute", "minecraft:diamond", 3);
+
+    world_.setLootTableManager(&manager);
+
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/test_distribute"), 123);
+
+    // 触发填充
+    EXPECT_FALSE(entity_->isEmpty());
+
+    // 验证容器中有 3 个钻石（可能在不同槽位或合并）
+    i32 totalDiamonds = 0;
+    for (i32 i = 0; i < entity_->m_inventory.getContainerSize(); ++i) {
+        ItemStack stack = entity_->m_inventory.getItem(i);
+        if (!stack.isEmpty() && stack.getItem() == m_diamond) {
+            totalDiamonds += stack.getCount();
+        }
+    }
+    EXPECT_EQ(totalDiamonds, 3);
+}
+
+TEST_F(UnpackLootTableTest, SetLootTable_SetsNeedFillFlag)
+{
+    // setLootTable 正确设置标记
+    EXPECT_FALSE(entity_->hasLootTable());
+    EXPECT_FALSE(entity_->needsLootFill());
+
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/simple_dungeon"), 42);
+
+    EXPECT_TRUE(entity_->hasLootTable());
+    EXPECT_TRUE(entity_->needsLootFill());
+    EXPECT_EQ(entity_->getLootTableSeed(), 42);
+}
+
+TEST_F(UnpackLootTableTest, SetLootTable_ResetsFillFlag)
+{
+    // 如果先填充后再次 setLootTable，应重置填充标记
+    loot::LootTableManager manager;
+    registerEmptyLootTable(manager, "minecraft:chests/test_reset");
+
+    world_.setLootTableManager(&manager);
+
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/test_reset"), 42);
+    EXPECT_TRUE(entity_->hasLootTable());
+
+    // 填充
+    EXPECT_TRUE(entity_->isEmpty());       // 触发 _unpackLootTable
+    EXPECT_FALSE(entity_->hasLootTable()); // 填充后标记清除
+
+    // 再次设置战利品表
+    entity_->setLootTable(ResourceLocation("minecraft", "chests/test_reset"), 99);
+    EXPECT_TRUE(entity_->hasLootTable());
+    EXPECT_TRUE(entity_->needsLootFill());
+    EXPECT_EQ(entity_->getLootTableSeed(), 99);
 }
