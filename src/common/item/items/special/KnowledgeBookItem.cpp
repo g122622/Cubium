@@ -42,7 +42,7 @@ KnowledgeBookItem::KnowledgeBookItem(ItemProperties properties)
 
 ItemActionResult KnowledgeBookItem::onItemRightClick(IWorld& world, Player& player, Hand hand)
 {
-    // 仅在服务端执行
+    // 仅在服务端执行配方解锁逻辑
     if (world.isClientSide()) {
         return ItemActionResult::success(player.getHeldItem(hand));
     }
@@ -66,7 +66,7 @@ ItemActionResult KnowledgeBookItem::onItemRightClick(IWorld& world, Player& play
         return ItemActionResult::fail(heldStack);
     }
 
-    // 解析配方ID列表
+    // 解析并验证配方ID列表
     std::vector<ResourceLocation> recipes;
     recipes.reserve(recipesArray.size());
 
@@ -95,11 +95,12 @@ ItemActionResult KnowledgeBookItem::onItemRightClick(IWorld& world, Player& play
         heldStack.shrink(1);
     }
 
-    // TODO: 需要通过 ServerPlayer::unlockRecipes() 解锁配方给玩家。
-    // 当前 IWorld 和 Player 接口不直接暴露配方解锁功能，
-    // 需要添加 Player::unlockRecipes() 虚方法并在 ServerPlayer 中重写，
-    // 或通过其他服务端机制触发。
-    // 配方列表已解析并验证，此处仅消耗物品。
+    // 通过 Player::unlockRecipe 虚方法解锁配方
+    // ServerPlayer 重写了此方法以实际解锁配方并触发成就
+    // 客户端 Player 的默认实现为空操作
+    for (const auto& recipeId : recipes) {
+        player.unlockRecipe(recipeId);
+    }
 
     return ItemActionResult::success(heldStack);
 }

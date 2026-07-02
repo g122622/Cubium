@@ -2167,6 +2167,17 @@ void Items::_registerSeeds()
 {
     auto& registry = ItemRegistry::instance();
 
+    // TODO: 所有种子物品当前注册为普通Item，缺少在耕地上右键种植作物方块的交互行为。
+    // 需要创建 SeedsItem 子类，重写 onItemUse() 在耕地上放置对应作物方块。
+    // MC Java 中种子物品继承 ItemNameBlockItem（BlockItem 子类），右键使用时放置作物方块。
+    // 种子与作物的映射关系：
+    //   WHEAT_SEEDS -> WheatBlock (minecraft:wheat)
+    //   PUMPKIN_SEEDS -> PumpkinStemBlock (minecraft:pumpkin_stem)
+    //   MELON_SEEDS -> MelonStemBlock (minecraft:melon_stem)
+    //   BEETROOT_SEEDS -> BeetrootBlock (minecraft:beetroots)
+    //   TORCHFLOWER_SEEDS -> TorchflowerCropBlock (minecraft:torchflower_crop)
+    //   PITCHER_POD -> PitcherCropBlock (minecraft:pitcher_crop)
+
     WHEAT_SEEDS = &registry.registerItem(ResourceLocation("minecraft:wheat_seeds"), ItemProperties().maxStackSize(64));
 
     PUMPKIN_SEEDS =
