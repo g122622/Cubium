@@ -290,25 +290,25 @@
 - `minecraft:cherry_sapling ✅ 已完成`
 - `minecraft:pale_oak_sapling ✅ 已完成`
 
-### Shulker Boxes（16）
+### Shulker Boxes（16） ✅ 已完成
 
 
-- `minecraft:black_shulker_box`
-- `minecraft:blue_shulker_box`
-- `minecraft:brown_shulker_box`
-- `minecraft:cyan_shulker_box`
-- `minecraft:gray_shulker_box`
-- `minecraft:green_shulker_box`
-- `minecraft:light_blue_shulker_box`
-- `minecraft:light_gray_shulker_box`
-- `minecraft:lime_shulker_box`
-- `minecraft:magenta_shulker_box`
-- `minecraft:orange_shulker_box`
-- `minecraft:pink_shulker_box`
-- `minecraft:purple_shulker_box`
-- `minecraft:red_shulker_box`
-- `minecraft:white_shulker_box`
-- `minecraft:yellow_shulker_box`
+- `minecraft:black_shulker_box ✅ 已完成`
+- `minecraft:blue_shulker_box ✅ 已完成`
+- `minecraft:brown_shulker_box ✅ 已完成`
+- `minecraft:cyan_shulker_box ✅ 已完成`
+- `minecraft:gray_shulker_box ✅ 已完成`
+- `minecraft:green_shulker_box ✅ 已完成`
+- `minecraft:light_blue_shulker_box ✅ 已完成`
+- `minecraft:light_gray_shulker_box ✅ 已完成`
+- `minecraft:lime_shulker_box ✅ 已完成`
+- `minecraft:magenta_shulker_box ✅ 已完成`
+- `minecraft:orange_shulker_box ✅ 已完成`
+- `minecraft:pink_shulker_box ✅ 已完成`
+- `minecraft:purple_shulker_box ✅ 已完成`
+- `minecraft:red_shulker_box ✅ 已完成`
+- `minecraft:white_shulker_box ✅ 已完成`
+- `minecraft:yellow_shulker_box ✅ 已完成`
 
 ### Slabs（42）
 
@@ -1086,28 +1086,28 @@
 - `minecraft:mangrove_propagule ✅ 已完成`
 - `minecraft:pale_oak_sapling ✅ 已完成`
 
-### `minecraft:shulker_boxes`
+### `minecraft:shulker_boxes` ✅ 已完成
 
 
 未实现项：
 
 
-- `minecraft:black_shulker_box`
-- `minecraft:blue_shulker_box`
-- `minecraft:brown_shulker_box`
-- `minecraft:cyan_shulker_box`
-- `minecraft:gray_shulker_box`
-- `minecraft:green_shulker_box`
-- `minecraft:light_blue_shulker_box`
-- `minecraft:light_gray_shulker_box`
-- `minecraft:lime_shulker_box`
-- `minecraft:magenta_shulker_box`
-- `minecraft:orange_shulker_box`
-- `minecraft:pink_shulker_box`
-- `minecraft:purple_shulker_box`
-- `minecraft:red_shulker_box`
-- `minecraft:white_shulker_box`
-- `minecraft:yellow_shulker_box`
+- `minecraft:black_shulker_box ✅ 已完成`
+- `minecraft:blue_shulker_box ✅ 已完成`
+- `minecraft:brown_shulker_box ✅ 已完成`
+- `minecraft:cyan_shulker_box ✅ 已完成`
+- `minecraft:gray_shulker_box ✅ 已完成`
+- `minecraft:green_shulker_box ✅ 已完成`
+- `minecraft:light_blue_shulker_box ✅ 已完成`
+- `minecraft:light_gray_shulker_box ✅ 已完成`
+- `minecraft:lime_shulker_box ✅ 已完成`
+- `minecraft:magenta_shulker_box ✅ 已完成`
+- `minecraft:orange_shulker_box ✅ 已完成`
+- `minecraft:pink_shulker_box ✅ 已完成`
+- `minecraft:purple_shulker_box ✅ 已完成`
+- `minecraft:red_shulker_box ✅ 已完成`
+- `minecraft:white_shulker_box ✅ 已完成`
+- `minecraft:yellow_shulker_box ✅ 已完成`
 
 ### `minecraft:slabs`
 

@@ -972,14 +972,31 @@ public:
     // ========================================================================
     // 功能方块
     // ========================================================================
-    static Item* CRAFTING_TABLE;    // 合成台
-    static Item* CHEST;             // 箱子
-    static Item* TRAPPED_CHEST;     // 陷阱箱
-    static Item* BREWING_STAND;     // 酿造台
-    static Item* ENCHANTING_TABLE;  // 附魔台
-    static Item* CAULDRON;          // 炼药锅
-    static Item* ENDER_CHEST;       // 末影箱
-    static Item* SHULKER_BOX;       // 潜影盒
+    static Item* CRAFTING_TABLE;   // 合成台
+    static Item* CHEST;            // 箱子
+    static Item* TRAPPED_CHEST;    // 陷阱箱
+    static Item* BREWING_STAND;    // 酿造台
+    static Item* ENCHANTING_TABLE; // 附魔台
+    static Item* CAULDRON;         // 炼药锅
+    static Item* ENDER_CHEST;      // 末影箱
+    static Item* SHULKER_BOX;      // 潜影盒
+    // 潜影盒 (16色)
+    static Item* WHITE_SHULKER_BOX;
+    static Item* ORANGE_SHULKER_BOX;
+    static Item* MAGENTA_SHULKER_BOX;
+    static Item* LIGHT_BLUE_SHULKER_BOX;
+    static Item* YELLOW_SHULKER_BOX;
+    static Item* LIME_SHULKER_BOX;
+    static Item* PINK_SHULKER_BOX;
+    static Item* GRAY_SHULKER_BOX;
+    static Item* LIGHT_GRAY_SHULKER_BOX;
+    static Item* CYAN_SHULKER_BOX;
+    static Item* PURPLE_SHULKER_BOX;
+    static Item* BLUE_SHULKER_BOX;
+    static Item* BROWN_SHULKER_BOX;
+    static Item* GREEN_SHULKER_BOX;
+    static Item* RED_SHULKER_BOX;
+    static Item* BLACK_SHULKER_BOX;
     static Item* BEACON;            // 信标
     static Item* LANTERN;           // 灯笼
     static Item* SOUL_LANTERN;      // 灵魂灯笼
@@ -1378,6 +1395,7 @@ private:
     static void _registerBanners();
     static void _registerBuildingBlocks();
     static void _registerBeds();
+    static void _registerShulkerBoxes();
     static void _registerWool();
     static void _registerCarpets();
     static void _registerStainedGlass();

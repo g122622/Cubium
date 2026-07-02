@@ -244,9 +244,10 @@ void registerBuildingBlocks()
         &registry.registerBlock<blocks::TrappedChestBlock>(ResourceLocation("minecraft:trapped_chest"),
             BlockProperties(Material::WOOD).hardness(2.5f).resistance(2.5f).notSolid().flammable().ignitedByLava());
 
-    // 潜影盒
+    // 潜影盒（无色变体）
     BuildingBlocks::SHULKER_BOX =
         &registry.registerBlock<blocks::ShulkerBoxBlock>(ResourceLocation("minecraft:shulker_box"),
+            std::nullopt,
             BlockProperties(Material::WOOD).hardness(2.0f).resistance(2.0f).notSolid());
 
     // 织布机

@@ -912,6 +912,22 @@ Item* Items::ENCHANTING_TABLE = nullptr;
 Item* Items::CAULDRON = nullptr;
 Item* Items::ENDER_CHEST = nullptr;
 Item* Items::SHULKER_BOX = nullptr;
+Item* Items::WHITE_SHULKER_BOX = nullptr;
+Item* Items::ORANGE_SHULKER_BOX = nullptr;
+Item* Items::MAGENTA_SHULKER_BOX = nullptr;
+Item* Items::LIGHT_BLUE_SHULKER_BOX = nullptr;
+Item* Items::YELLOW_SHULKER_BOX = nullptr;
+Item* Items::LIME_SHULKER_BOX = nullptr;
+Item* Items::PINK_SHULKER_BOX = nullptr;
+Item* Items::GRAY_SHULKER_BOX = nullptr;
+Item* Items::LIGHT_GRAY_SHULKER_BOX = nullptr;
+Item* Items::CYAN_SHULKER_BOX = nullptr;
+Item* Items::PURPLE_SHULKER_BOX = nullptr;
+Item* Items::BLUE_SHULKER_BOX = nullptr;
+Item* Items::BROWN_SHULKER_BOX = nullptr;
+Item* Items::GREEN_SHULKER_BOX = nullptr;
+Item* Items::RED_SHULKER_BOX = nullptr;
+Item* Items::BLACK_SHULKER_BOX = nullptr;
 Item* Items::BEACON = nullptr;
 Item* Items::LANTERN = nullptr;
 Item* Items::SOUL_LANTERN = nullptr;
@@ -1320,6 +1336,7 @@ void Items::initialize()
     _registerBanners();      // 旗帜和图案物品
     _registerBuildingBlocks();
     _registerBeds();
+    _registerShulkerBoxes();
     _registerWool();
     _registerCarpets();
     _registerStainedGlass();
@@ -3395,8 +3412,8 @@ void Items::_registerBuildingBlocks()
         &registerBlockBackedItem(registry, VanillaBlocks::CAULDRON, "cauldron", ItemProperties().maxStackSize(64));
     ENDER_CHEST = &registerBlockBackedItem(
         registry, VanillaBlocks::ENDER_CHEST, "ender_chest", ItemProperties().maxStackSize(64));
-    SHULKER_BOX = &registerBlockBackedItem(
-        registry, VanillaBlocks::SHULKER_BOX, "shulker_box", ItemProperties().maxStackSize(64));
+    SHULKER_BOX =
+        &registerBlockBackedItem(registry, VanillaBlocks::SHULKER_BOX, "shulker_box", ItemProperties().maxStackSize(1));
     BEACON = &registerBlockBackedItem(registry, VanillaBlocks::BEACON, "beacon", ItemProperties().maxStackSize(64));
     LANTERN = &registerBlockBackedItem(registry, VanillaBlocks::LANTERN, "lantern", ItemProperties().maxStackSize(64));
     SOUL_LANTERN = &registerBlockBackedItem(
@@ -3551,6 +3568,45 @@ void Items::_registerBeds()
         ResourceLocation("minecraft:red_bed"), *VanillaBlocks::RED_BED, ItemProperties().maxStackSize(1));
     BLACK_BED = &registry.registerItem<BedItem>(
         ResourceLocation("minecraft:black_bed"), *VanillaBlocks::BLACK_BED, ItemProperties().maxStackSize(1));
+}
+
+void Items::_registerShulkerBoxes()
+{
+    auto& registry = ItemRegistry::instance();
+
+    // 潜影盒使用普通 BlockItem，堆叠上限为1（包含物品时不能堆叠）
+    WHITE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::WHITE_SHULKER_BOX, "white_shulker_box", ItemProperties().maxStackSize(1));
+    ORANGE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::ORANGE_SHULKER_BOX, "orange_shulker_box", ItemProperties().maxStackSize(1));
+    MAGENTA_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::MAGENTA_SHULKER_BOX, "magenta_shulker_box", ItemProperties().maxStackSize(1));
+    LIGHT_BLUE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::LIGHT_BLUE_SHULKER_BOX, "light_blue_shulker_box", ItemProperties().maxStackSize(1));
+    YELLOW_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::YELLOW_SHULKER_BOX, "yellow_shulker_box", ItemProperties().maxStackSize(1));
+    LIME_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::LIME_SHULKER_BOX, "lime_shulker_box", ItemProperties().maxStackSize(1));
+    PINK_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::PINK_SHULKER_BOX, "pink_shulker_box", ItemProperties().maxStackSize(1));
+    GRAY_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::GRAY_SHULKER_BOX, "gray_shulker_box", ItemProperties().maxStackSize(1));
+    LIGHT_GRAY_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::LIGHT_GRAY_SHULKER_BOX, "light_gray_shulker_box", ItemProperties().maxStackSize(1));
+    CYAN_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::CYAN_SHULKER_BOX, "cyan_shulker_box", ItemProperties().maxStackSize(1));
+    PURPLE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::PURPLE_SHULKER_BOX, "purple_shulker_box", ItemProperties().maxStackSize(1));
+    BLUE_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::BLUE_SHULKER_BOX, "blue_shulker_box", ItemProperties().maxStackSize(1));
+    BROWN_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::BROWN_SHULKER_BOX, "brown_shulker_box", ItemProperties().maxStackSize(1));
+    GREEN_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::GREEN_SHULKER_BOX, "green_shulker_box", ItemProperties().maxStackSize(1));
+    RED_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::RED_SHULKER_BOX, "red_shulker_box", ItemProperties().maxStackSize(1));
+    BLACK_SHULKER_BOX = &registerBlockBackedItem(
+        registry, VanillaBlocks::BLACK_SHULKER_BOX, "black_shulker_box", ItemProperties().maxStackSize(1));
 }
 
 void Items::_registerWool()

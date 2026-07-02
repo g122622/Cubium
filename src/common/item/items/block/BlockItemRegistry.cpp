@@ -770,6 +770,23 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::BREWING_STAND, "brewing_stand");
     registerSimpleBlock(VanillaBlocks::ENDER_CHEST, "ender_chest");
     registerSimpleBlock(VanillaBlocks::SHULKER_BOX, "shulker_box");
+    // 潜影盒 (16色)
+    registerSimpleBlock(VanillaBlocks::WHITE_SHULKER_BOX, "white_shulker_box");
+    registerSimpleBlock(VanillaBlocks::ORANGE_SHULKER_BOX, "orange_shulker_box");
+    registerSimpleBlock(VanillaBlocks::MAGENTA_SHULKER_BOX, "magenta_shulker_box");
+    registerSimpleBlock(VanillaBlocks::LIGHT_BLUE_SHULKER_BOX, "light_blue_shulker_box");
+    registerSimpleBlock(VanillaBlocks::YELLOW_SHULKER_BOX, "yellow_shulker_box");
+    registerSimpleBlock(VanillaBlocks::LIME_SHULKER_BOX, "lime_shulker_box");
+    registerSimpleBlock(VanillaBlocks::PINK_SHULKER_BOX, "pink_shulker_box");
+    registerSimpleBlock(VanillaBlocks::GRAY_SHULKER_BOX, "gray_shulker_box");
+    registerSimpleBlock(VanillaBlocks::LIGHT_GRAY_SHULKER_BOX, "light_gray_shulker_box");
+    registerSimpleBlock(VanillaBlocks::CYAN_SHULKER_BOX, "cyan_shulker_box");
+    registerSimpleBlock(VanillaBlocks::PURPLE_SHULKER_BOX, "purple_shulker_box");
+    registerSimpleBlock(VanillaBlocks::BLUE_SHULKER_BOX, "blue_shulker_box");
+    registerSimpleBlock(VanillaBlocks::BROWN_SHULKER_BOX, "brown_shulker_box");
+    registerSimpleBlock(VanillaBlocks::GREEN_SHULKER_BOX, "green_shulker_box");
+    registerSimpleBlock(VanillaBlocks::RED_SHULKER_BOX, "red_shulker_box");
+    registerSimpleBlock(VanillaBlocks::BLACK_SHULKER_BOX, "black_shulker_box");
     registerSimpleBlock(VanillaBlocks::LANTERN, "lantern");
     registerSimpleBlock(VanillaBlocks::SOUL_LANTERN, "soul_lantern");
 
