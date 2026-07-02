@@ -79,6 +79,7 @@ special/
 6. **BoneMealItem 水下使用**：需检查目标位置是否为完整水源方块（流体等级==8）
 7. **SpawnEggItem 实体类型不可拷贝**：`EntityType` 的拷贝构造函数是 deleted 的，`getEntityType()` 返回 `const EntityType&`（引用），构造函数参数按值传递后需用 `std::move` 初始化成员
 8. **SpawnEggItem 命名空间**：`spawnEntity()` 方法中的 `SpawnReason` 属于 `world::spawn` 命名空间，非 `entity` 命名空间
+9. **SpawnEggItem 刷怪笼分支**：`onItemUse()` 在常规生成逻辑之前先检测点击的方块是否为 `MobSpawnerBlockEntity`，若是则设置刷怪笼的实体类型而非生成生物。此分支与 `SpawnerBlock::onBlockActivated()` 中的刷怪蛋检测逻辑配合，确保无论交互入口如何（方块优先回调或物品回调），刷怪蛋都能正确设置刷怪笼实体类型。非创造模式下消耗 1 个刷怪蛋
 9. **MusicDiscItem 信号强度**：比较器输出范围[1, 15]，构造函数有 `MC_ASSERT_RELEASE_MSG` 断言。JukeboxBlock::onBlockActivated() 通过 `isMusicDisc()` 识别唱片，JukeboxEntity::getComparatorSignal() 通过 `dynamic_cast<MusicDiscItem*>` 获取信号强度
 10. **HoneycombItem 涂蜡映射使用 "construct on first use" 模式**：`getWaxablesMap()` 和 `getWaxOffMap()` 是函数局部静态变量，首次调用时初始化。必须确保 `VanillaBlocks` 已初始化后再调用，否则所有铜方块指针为 nullptr，映射表将为空
 11. **HoneycombItem::getWaxedOff 供 AxeItem 使用**：AxeItem 除蜡逻辑调用此静态方法，无需实例化 HoneycombItem
