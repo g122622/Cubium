@@ -316,12 +316,20 @@ public:
     static Item* ACACIA_LOG;
     static Item* DARK_OAK_LOG;
 
+    // 竹木原木（1.20 竹木系列）
+    static Item* BAMBOO_BLOCK;          // 竹木块
+    static Item* STRIPPED_BAMBOO_BLOCK; // 去皮竹木块
+
     static Item* OAK_PLANKS;
     static Item* SPRUCE_PLANKS;
     static Item* BIRCH_PLANKS;
     static Item* JUNGLE_PLANKS;
     static Item* ACACIA_PLANKS;
     static Item* DARK_OAK_PLANKS;
+
+    // 竹木木板和马赛克（1.20 竹木系列）
+    static Item* BAMBOO_PLANKS; // 竹木板
+    static Item* BAMBOO_MOSAIC; // 竹木马赛克
 
     // ========================================================================
     // 木棍、骨头和碗
@@ -343,11 +351,14 @@ public:
     // ========================================================================
     static Item* FLINT;
     static Item* FLINT_AND_STEEL;
-    static Item* SHEARS;    // 剪刀
-    static Item* BRUSH;     // 刷子（考古学工具）
-    static Item* HONEYCOMB; // 蜜脾
-    static Item* NAME_TAG;  // 命名牌
-    static Item* SADDLE;    // 鞍
+    static Item* SHEARS;            // 剪刀
+    static Item* BRUSH;             // 刷子（考古学工具）
+    static Item* HONEYCOMB;         // 蜜脾
+    static Item* BELL;              // 钟
+    static Item* SUSPICIOUS_SAND;   // 可疑的沙子
+    static Item* SUSPICIOUS_GRAVEL; // 可疑的沙砾
+    static Item* NAME_TAG;          // 命名牌
+    static Item* SADDLE;            // 鞍
     static Item* STRING;
     static Item* FEATHER;
     static Item* GUNPOWDER;
@@ -1017,53 +1028,71 @@ public:
     // ========================================================================
     // 门、栅栏、活板门
     // ========================================================================
-    static Item* OAK_DOOR;            // 橡木门
-    static Item* SPRUCE_DOOR;         // 云杉木门
-    static Item* BIRCH_DOOR;          // 白桦木门
-    static Item* JUNGLE_DOOR;         // 丛林木门
-    static Item* ACACIA_DOOR;         // 金合欢木门
-    static Item* DARK_OAK_DOOR;       // 深色橡木门
-    static Item* MANGROVE_DOOR;       // 红树木门
-    static Item* CHERRY_DOOR;         // 樱花木门
-    static Item* PALE_OAK_DOOR;       // 苍白橡木门
-    static Item* BAMBOO_DOOR;         // 竹木门
-    static Item* CRIMSON_DOOR;        // 绯红木门
-    static Item* WARPED_DOOR;         // 诡异木门
-    static Item* IRON_DOOR;           // 铁门
-    static Item* OAK_FENCE;           // 橡木栅栏
-    static Item* SPRUCE_FENCE;        // 云杉木栅栏
-    static Item* BIRCH_FENCE;         // 白桦木栅栏
-    static Item* JUNGLE_FENCE;        // 丛林木栅栏
-    static Item* ACACIA_FENCE;        // 金合欢木栅栏
-    static Item* DARK_OAK_FENCE;      // 深色橡木栅栏
-    static Item* MANGROVE_FENCE;      // 红树木栅栏
-    static Item* CHERRY_FENCE;        // 樱花木栅栏
-    static Item* PALE_OAK_FENCE;      // 苍白橡木栅栏
-    static Item* BAMBOO_FENCE;        // 竹木栅栏
-    static Item* NETHER_BRICK_FENCE;  // 下界砖栅栏
-    static Item* OAK_FENCE_GATE;      // 橡木栅栏门
-    static Item* SPRUCE_FENCE_GATE;   // 云杉木栅栏门
-    static Item* BIRCH_FENCE_GATE;    // 白桦木栅栏门
-    static Item* JUNGLE_FENCE_GATE;   // 丛林木栅栏门
-    static Item* ACACIA_FENCE_GATE;   // 金合欢木栅栏门
-    static Item* DARK_OAK_FENCE_GATE; // 深色橡木栅栏门
-    static Item* MANGROVE_FENCE_GATE; // 红树木栅栏门
-    static Item* CHERRY_FENCE_GATE;   // 樱花木栅栏门
-    static Item* PALE_OAK_FENCE_GATE; // 苍白橡木栅栏门
-    static Item* BAMBOO_FENCE_GATE;   // 竹木栅栏门
-    static Item* OAK_TRAPDOOR;        // 橡木活板门
-    static Item* SPRUCE_TRAPDOOR;     // 云杉木活板门
-    static Item* BIRCH_TRAPDOOR;      // 白桦木活板门
-    static Item* JUNGLE_TRAPDOOR;     // 丛林木活板门
-    static Item* ACACIA_TRAPDOOR;     // 金合欢木活板门
-    static Item* DARK_OAK_TRAPDOOR;   // 深色橡木活板门
-    static Item* MANGROVE_TRAPDOOR;   // 红树木活板门
-    static Item* CHERRY_TRAPDOOR;     // 樱花木活板门
-    static Item* PALE_OAK_TRAPDOOR;   // 苍白橡木活板门
-    static Item* BAMBOO_TRAPDOOR;     // 竹木活板门
-    static Item* CRIMSON_TRAPDOOR;    // 绯红木活板门
-    static Item* WARPED_TRAPDOOR;     // 诡异木活板门
-    static Item* IRON_TRAPDOOR;       // 铁活板门
+    static Item* OAK_DOOR;      // 橡木门
+    static Item* SPRUCE_DOOR;   // 云杉木门
+    static Item* BIRCH_DOOR;    // 白桦木门
+    static Item* JUNGLE_DOOR;   // 丛林木门
+    static Item* ACACIA_DOOR;   // 金合欢木门
+    static Item* DARK_OAK_DOOR; // 深色橡木门
+    static Item* MANGROVE_DOOR; // 红树木门
+    static Item* CHERRY_DOOR;   // 樱花木门
+    static Item* PALE_OAK_DOOR; // 苍白橡木门
+    static Item* BAMBOO_DOOR;   // 竹木门
+    static Item* CRIMSON_DOOR;  // 绯红木门
+    static Item* WARPED_DOOR;   // 诡异木门
+    static Item* IRON_DOOR;     // 铁门
+    // 铜门（8 种氧化/涂蜡变种）
+    static Item* COPPER_DOOR;                 // 铜门
+    static Item* EXPOSED_COPPER_DOOR;         // 斑驳铜门
+    static Item* WEATHERED_COPPER_DOOR;       // 锈蚀铜门
+    static Item* OXIDIZED_COPPER_DOOR;        // 氧化铜门
+    static Item* WAXED_COPPER_DOOR;           // 涂蜡铜门
+    static Item* WAXED_EXPOSED_COPPER_DOOR;   // 涂蜡斑驳铜门
+    static Item* WAXED_WEATHERED_COPPER_DOOR; // 涂蜡锈蚀铜门
+    static Item* WAXED_OXIDIZED_COPPER_DOOR;  // 涂蜡氧化铜门
+    static Item* OAK_FENCE;                   // 橡木栅栏
+    static Item* SPRUCE_FENCE;                // 云杉木栅栏
+    static Item* BIRCH_FENCE;                 // 白桦木栅栏
+    static Item* JUNGLE_FENCE;                // 丛林木栅栏
+    static Item* ACACIA_FENCE;                // 金合欢木栅栏
+    static Item* DARK_OAK_FENCE;              // 深色橡木栅栏
+    static Item* MANGROVE_FENCE;              // 红树木栅栏
+    static Item* CHERRY_FENCE;                // 樱花木栅栏
+    static Item* PALE_OAK_FENCE;              // 苍白橡木栅栏
+    static Item* BAMBOO_FENCE;                // 竹木栅栏
+    static Item* NETHER_BRICK_FENCE;          // 下界砖栅栏
+    static Item* OAK_FENCE_GATE;              // 橡木栅栏门
+    static Item* SPRUCE_FENCE_GATE;           // 云杉木栅栏门
+    static Item* BIRCH_FENCE_GATE;            // 白桦木栅栏门
+    static Item* JUNGLE_FENCE_GATE;           // 丛林木栅栏门
+    static Item* ACACIA_FENCE_GATE;           // 金合欢木栅栏门
+    static Item* DARK_OAK_FENCE_GATE;         // 深色橡木栅栏门
+    static Item* MANGROVE_FENCE_GATE;         // 红树木栅栏门
+    static Item* CHERRY_FENCE_GATE;           // 樱花木栅栏门
+    static Item* PALE_OAK_FENCE_GATE;         // 苍白橡木栅栏门
+    static Item* BAMBOO_FENCE_GATE;           // 竹木栅栏门
+    static Item* OAK_TRAPDOOR;                // 橡木活板门
+    static Item* SPRUCE_TRAPDOOR;             // 云杉木活板门
+    static Item* BIRCH_TRAPDOOR;              // 白桦木活板门
+    static Item* JUNGLE_TRAPDOOR;             // 丛林木活板门
+    static Item* ACACIA_TRAPDOOR;             // 金合欢木活板门
+    static Item* DARK_OAK_TRAPDOOR;           // 深色橡木活板门
+    static Item* MANGROVE_TRAPDOOR;           // 红树木活板门
+    static Item* CHERRY_TRAPDOOR;             // 樱花木活板门
+    static Item* PALE_OAK_TRAPDOOR;           // 苍白橡木活板门
+    static Item* BAMBOO_TRAPDOOR;             // 竹木活板门
+    static Item* CRIMSON_TRAPDOOR;            // 绯红木活板门
+    static Item* WARPED_TRAPDOOR;             // 诡异木活板门
+    static Item* IRON_TRAPDOOR;               // 铁活板门
+    // 铜活板门（8 种氧化/涂蜡变种）
+    static Item* COPPER_TRAPDOOR;                 // 铜活板门
+    static Item* EXPOSED_COPPER_TRAPDOOR;         // 斑驳铜活板门
+    static Item* WEATHERED_COPPER_TRAPDOOR;       // 锈蚀铜活板门
+    static Item* OXIDIZED_COPPER_TRAPDOOR;        // 氧化铜活板门
+    static Item* WAXED_COPPER_TRAPDOOR;           // 涂蜡铜活板门
+    static Item* WAXED_EXPOSED_COPPER_TRAPDOOR;   // 涂蜡斑驳铜活板门
+    static Item* WAXED_WEATHERED_COPPER_TRAPDOOR; // 涂蜡锈蚀铜活板门
+    static Item* WAXED_OXIDIZED_COPPER_TRAPDOOR;  // 涂蜡氧化铜活板门
 
     // ========================================================================
     // 楼梯、台阶、墙

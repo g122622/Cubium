@@ -222,16 +222,16 @@
 ### Doors（10）
 
 
-- `minecraft:copper_door`
+- `minecraft:copper_door ✅ 已完成`
 - `minecraft:crimson_door ✅ 已完成`
-- `minecraft:exposed_copper_door`
-- `minecraft:oxidized_copper_door`
+- `minecraft:exposed_copper_door ✅ 已完成`
+- `minecraft:oxidized_copper_door ✅ 已完成`
 - `minecraft:warped_door ✅ 已完成`
-- `minecraft:waxed_copper_door`
-- `minecraft:waxed_exposed_copper_door`
-- `minecraft:waxed_oxidized_copper_door`
-- `minecraft:waxed_weathered_copper_door`
-- `minecraft:weathered_copper_door`
+- `minecraft:waxed_copper_door ✅ 已完成`
+- `minecraft:waxed_exposed_copper_door ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_door ✅ 已完成`
+- `minecraft:waxed_weathered_copper_door ✅ 已完成`
+- `minecraft:weathered_copper_door ✅ 已完成`
 
 ### Fences / Fence Gates（3）
 
@@ -277,7 +277,7 @@
 ### Planks（6）
 
 
-- `minecraft:bamboo_planks`
+- `minecraft:bamboo_planks ✅ 已完成`
 - `minecraft:cherry_planks ✅ 已完成`
 - `minecraft:crimson_planks ✅ 已完成`
 - `minecraft:mangrove_planks`
@@ -411,16 +411,16 @@
 ### Trapdoors（10）
 
 
-- `minecraft:copper_trapdoor`
+- `minecraft:copper_trapdoor ✅ 已完成`
 - `minecraft:crimson_trapdoor ✅ 已完成`
-- `minecraft:exposed_copper_trapdoor`
-- `minecraft:oxidized_copper_trapdoor`
+- `minecraft:exposed_copper_trapdoor ✅ 已完成`
+- `minecraft:oxidized_copper_trapdoor ✅ 已完成`
 - `minecraft:warped_trapdoor ✅ 已完成`
-- `minecraft:waxed_copper_trapdoor`
-- `minecraft:waxed_exposed_copper_trapdoor`
-- `minecraft:waxed_oxidized_copper_trapdoor`
-- `minecraft:waxed_weathered_copper_trapdoor`
-- `minecraft:weathered_copper_trapdoor`
+- `minecraft:waxed_copper_trapdoor ✅ 已完成`
+- `minecraft:waxed_exposed_copper_trapdoor ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_trapdoor ✅ 已完成`
+- `minecraft:waxed_weathered_copper_trapdoor ✅ 已完成`
+- `minecraft:weathered_copper_trapdoor ✅ 已完成`
 
 ### Walls（23）
 
@@ -457,9 +457,9 @@
 - `minecraft:anvil`
 - `minecraft:armadillo_scute ✅ 已完成`
 - `minecraft:azalea ✅ 已完成`
-- `minecraft:bamboo_block`
+- `minecraft:bamboo_block ✅ 已完成`
 - `minecraft:bamboo_shelf`
-- `minecraft:bell`
+- `minecraft:bell ✅ 已完成`
 - `minecraft:birch_shelf`
 - `minecraft:black_bundle`
 - `minecraft:black_harness`
@@ -531,8 +531,8 @@
 - `minecraft:rooted_dirt ✅ 已完成`
 - `minecraft:spore_blossom ✅ 已完成`
 - `minecraft:spruce_shelf`
-- `minecraft:stripped_bamboo_block`
-- `minecraft:suspicious_sand`
+- `minecraft:stripped_bamboo_block ✅ 已完成`
+- `minecraft:suspicious_sand ✅ 已完成`
 - `minecraft:torchflower_seeds ✅ 已完成`
 - `minecraft:turtle_scute ✅ 已完成`
 - `minecraft:warped_shelf`
@@ -563,8 +563,8 @@
 ### `minecraft:bamboo_blocks`
 
 
-- `minecraft:bamboo_block`
-- `minecraft:stripped_bamboo_block`
+- `minecraft:bamboo_block ✅ 已完成`
+- `minecraft:stripped_bamboo_block ✅ 已完成`
 
 ### `minecraft:beds`
 
@@ -893,14 +893,14 @@
 未实现项：
 
 
-- `minecraft:copper_door`
-- `minecraft:exposed_copper_door`
-- `minecraft:oxidized_copper_door`
-- `minecraft:waxed_copper_door`
-- `minecraft:waxed_exposed_copper_door`
-- `minecraft:waxed_oxidized_copper_door`
-- `minecraft:waxed_weathered_copper_door`
-- `minecraft:weathered_copper_door`
+- `minecraft:copper_door ✅ 已完成`
+- `minecraft:exposed_copper_door ✅ 已完成`
+- `minecraft:oxidized_copper_door ✅ 已完成`
+- `minecraft:waxed_copper_door ✅ 已完成`
+- `minecraft:waxed_exposed_copper_door ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_door ✅ 已完成`
+- `minecraft:waxed_weathered_copper_door ✅ 已完成`
+- `minecraft:weathered_copper_door ✅ 已完成`
 
 ### `minecraft:dyeable`
 
@@ -1215,14 +1215,14 @@
 未实现项：
 
 
-- `minecraft:copper_trapdoor`
-- `minecraft:exposed_copper_trapdoor`
-- `minecraft:oxidized_copper_trapdoor`
-- `minecraft:waxed_copper_trapdoor`
-- `minecraft:waxed_exposed_copper_trapdoor`
-- `minecraft:waxed_oxidized_copper_trapdoor`
-- `minecraft:waxed_weathered_copper_trapdoor`
-- `minecraft:weathered_copper_trapdoor`
+- `minecraft:copper_trapdoor ✅ 已完成`
+- `minecraft:exposed_copper_trapdoor ✅ 已完成`
+- `minecraft:oxidized_copper_trapdoor ✅ 已完成`
+- `minecraft:waxed_copper_trapdoor ✅ 已完成`
+- `minecraft:waxed_exposed_copper_trapdoor ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_trapdoor ✅ 已完成`
+- `minecraft:waxed_weathered_copper_trapdoor ✅ 已完成`
+- `minecraft:weathered_copper_trapdoor ✅ 已完成`
 
 ### `minecraft:trim_materials`
 

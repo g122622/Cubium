@@ -592,11 +592,19 @@ void ItemTags::initialize()
     allTags[woodenDoors->getId()] = std::move(woodenDoors);
 
     // 创建 DOORS 标签
-    // 包含所有门物品（木门 + 铁门）
-    // TODO: 铜门及其变种注册后需添加到此标签
+    // 包含所有门物品（木门 + 铁门 + 铜门）
     auto doors = std::make_unique<ItemTag>(ResourceLocation("minecraft", "doors"), false);
     doors->addAll(WOODEN_DOORS().getItemsList());
     doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_door")));
+    // 铜门（8 种氧化/涂蜡变种）
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_door")));
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_door")));
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_door")));
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_door")));
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_door")));
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_door")));
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_door")));
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_door")));
     allTags[doors->getId()] = std::move(doors);
 
     // 创建 WOODEN_TRAPDOORS 标签
@@ -617,11 +625,19 @@ void ItemTags::initialize()
     allTags[woodenTrapdoors->getId()] = std::move(woodenTrapdoors);
 
     // 创建 TRAPDOORS 标签
-    // 包含所有活板门物品（木活板门 + 铁活板门）
-    // TODO: 铜活板门及其变种注册后需添加到此标签
+    // 包含所有活板门物品（木活板门 + 铁活板门 + 铜活板门）
     auto trapdoors = std::make_unique<ItemTag>(ResourceLocation("minecraft", "trapdoors"), false);
     trapdoors->addAll(WOODEN_TRAPDOORS().getItemsList());
     trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_trapdoor")));
+    // 铜活板门（8 种氧化/涂蜡变种）
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_trapdoor")));
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_trapdoor")));
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_trapdoor")));
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_trapdoor")));
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_trapdoor")));
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_trapdoor")));
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_trapdoor")));
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_trapdoor")));
     allTags[trapdoors->getId()] = std::move(trapdoors);
 
     // 创建 NON_FLAMMABLE_WOOD 标签

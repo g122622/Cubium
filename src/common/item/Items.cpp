@@ -123,6 +123,8 @@ Item* Items::BIRCH_LOG = nullptr;
 Item* Items::JUNGLE_LOG = nullptr;
 Item* Items::ACACIA_LOG = nullptr;
 Item* Items::DARK_OAK_LOG = nullptr;
+Item* Items::BAMBOO_BLOCK = nullptr;
+Item* Items::STRIPPED_BAMBOO_BLOCK = nullptr;
 
 Item* Items::OAK_PLANKS = nullptr;
 Item* Items::SPRUCE_PLANKS = nullptr;
@@ -130,6 +132,8 @@ Item* Items::BIRCH_PLANKS = nullptr;
 Item* Items::JUNGLE_PLANKS = nullptr;
 Item* Items::ACACIA_PLANKS = nullptr;
 Item* Items::DARK_OAK_PLANKS = nullptr;
+Item* Items::BAMBOO_PLANKS = nullptr;
+Item* Items::BAMBOO_MOSAIC = nullptr;
 
 // 石头
 Item* Items::STONE = nullptr;
@@ -353,6 +357,9 @@ Item* Items::FLINT_AND_STEEL = nullptr;
 Item* Items::SHEARS = nullptr;
 Item* Items::BRUSH = nullptr;
 Item* Items::HONEYCOMB = nullptr;
+Item* Items::BELL = nullptr;
+Item* Items::SUSPICIOUS_SAND = nullptr;
+Item* Items::SUSPICIOUS_GRAVEL = nullptr;
 Item* Items::NAME_TAG = nullptr;
 Item* Items::SADDLE = nullptr;
 Item* Items::STRING = nullptr;
@@ -958,6 +965,15 @@ Item* Items::BAMBOO_DOOR = nullptr;
 Item* Items::CRIMSON_DOOR = nullptr;
 Item* Items::WARPED_DOOR = nullptr;
 Item* Items::IRON_DOOR = nullptr;
+// 铜门
+Item* Items::COPPER_DOOR = nullptr;
+Item* Items::EXPOSED_COPPER_DOOR = nullptr;
+Item* Items::WEATHERED_COPPER_DOOR = nullptr;
+Item* Items::OXIDIZED_COPPER_DOOR = nullptr;
+Item* Items::WAXED_COPPER_DOOR = nullptr;
+Item* Items::WAXED_EXPOSED_COPPER_DOOR = nullptr;
+Item* Items::WAXED_WEATHERED_COPPER_DOOR = nullptr;
+Item* Items::WAXED_OXIDIZED_COPPER_DOOR = nullptr;
 Item* Items::OAK_FENCE = nullptr;
 Item* Items::SPRUCE_FENCE = nullptr;
 Item* Items::BIRCH_FENCE = nullptr;
@@ -992,6 +1008,15 @@ Item* Items::BAMBOO_TRAPDOOR = nullptr;
 Item* Items::CRIMSON_TRAPDOOR = nullptr;
 Item* Items::WARPED_TRAPDOOR = nullptr;
 Item* Items::IRON_TRAPDOOR = nullptr;
+// 铜活板门
+Item* Items::COPPER_TRAPDOOR = nullptr;
+Item* Items::EXPOSED_COPPER_TRAPDOOR = nullptr;
+Item* Items::WEATHERED_COPPER_TRAPDOOR = nullptr;
+Item* Items::OXIDIZED_COPPER_TRAPDOOR = nullptr;
+Item* Items::WAXED_COPPER_TRAPDOOR = nullptr;
+Item* Items::WAXED_EXPOSED_COPPER_TRAPDOOR = nullptr;
+Item* Items::WAXED_WEATHERED_COPPER_TRAPDOOR = nullptr;
+Item* Items::WAXED_OXIDIZED_COPPER_TRAPDOOR = nullptr;
 
 // 楼梯、台阶、墙
 Item* Items::OAK_STAIRS = nullptr;
@@ -2005,6 +2030,12 @@ void Items::_registerMisc()
     DARK_OAK_LOG = &registerBlockBackedItem(
         registry, VanillaBlocks::DARK_OAK_LOG, "dark_oak_log", ItemProperties().maxStackSize(64));
 
+    // 竹木原木
+    BAMBOO_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_BLOCK, "bamboo_block", ItemProperties().maxStackSize(64));
+    STRIPPED_BAMBOO_BLOCK = &registerBlockBackedItem(
+        registry, VanillaBlocks::STRIPPED_BAMBOO_BLOCK, "stripped_bamboo_block", ItemProperties().maxStackSize(64));
+
     OAK_PLANKS =
         &registerBlockBackedItem(registry, VanillaBlocks::OAK_PLANKS, "oak_planks", ItemProperties().maxStackSize(64));
     SPRUCE_PLANKS = &registerBlockBackedItem(
@@ -2017,6 +2048,12 @@ void Items::_registerMisc()
         registry, VanillaBlocks::ACACIA_PLANKS, "acacia_planks", ItemProperties().maxStackSize(64));
     DARK_OAK_PLANKS = &registerBlockBackedItem(
         registry, VanillaBlocks::DARK_OAK_PLANKS, "dark_oak_planks", ItemProperties().maxStackSize(64));
+
+    // 竹木木板和马赛克
+    BAMBOO_PLANKS = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_PLANKS, "bamboo_planks", ItemProperties().maxStackSize(64));
+    BAMBOO_MOSAIC = &registerBlockBackedItem(
+        registry, VanillaBlocks::BAMBOO_MOSAIC, "bamboo_mosaic", ItemProperties().maxStackSize(64));
 
     // 石头
     STONE = &registerBlockBackedItem(registry, VanillaBlocks::STONE, "stone", ItemProperties().maxStackSize(64));
@@ -2053,6 +2090,15 @@ void Items::_registerMisc()
     // 蜜脾 - 右键铜方块涂蜡，阻止氧化
     HONEYCOMB = &registry.registerItem<item::items::HoneycombItem>(
         ResourceLocation("minecraft:honeycomb"), ItemProperties().maxStackSize(64));
+
+    // 钟 - 可敲响的功能方块
+    BELL = &registerBlockBackedItem(registry, VanillaBlocks::BELL, "bell", ItemProperties().maxStackSize(64));
+
+    // 可疑的沙子/沙砾 - 考古学方块
+    SUSPICIOUS_SAND = &registerBlockBackedItem(
+        registry, VanillaBlocks::SUSPICIOUS_SAND, "suspicious_sand", ItemProperties().maxStackSize(64));
+    SUSPICIOUS_GRAVEL = &registerBlockBackedItem(
+        registry, VanillaBlocks::SUSPICIOUS_GRAVEL, "suspicious_gravel", ItemProperties().maxStackSize(64));
 
     // 命名牌 - 给生物命名，使其持久化
     NAME_TAG = &registry.registerItem<item::items::NameTagItem>(
@@ -3872,6 +3918,30 @@ void Items::_registerDoorsFencesStairs()
     IRON_DOOR =
         &registerBlockBackedItem(registry, VanillaBlocks::IRON_DOOR, "iron_door", ItemProperties().maxStackSize(64));
 
+    // 铜门（8 种氧化/涂蜡变种）
+    COPPER_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::COPPER_DOOR, "copper_door", ItemProperties().maxStackSize(64));
+    EXPOSED_COPPER_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::EXPOSED_COPPER_DOOR, "exposed_copper_door", ItemProperties().maxStackSize(64));
+    WEATHERED_COPPER_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::WEATHERED_COPPER_DOOR, "weathered_copper_door", ItemProperties().maxStackSize(64));
+    OXIDIZED_COPPER_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::OXIDIZED_COPPER_DOOR, "oxidized_copper_door", ItemProperties().maxStackSize(64));
+    WAXED_COPPER_DOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::WAXED_COPPER_DOOR, "waxed_copper_door", ItemProperties().maxStackSize(64));
+    WAXED_EXPOSED_COPPER_DOOR = &registerBlockBackedItem(registry,
+        VanillaBlocks::WAXED_EXPOSED_COPPER_DOOR,
+        "waxed_exposed_copper_door",
+        ItemProperties().maxStackSize(64));
+    WAXED_WEATHERED_COPPER_DOOR = &registerBlockBackedItem(registry,
+        VanillaBlocks::WAXED_WEATHERED_COPPER_DOOR,
+        "waxed_weathered_copper_door",
+        ItemProperties().maxStackSize(64));
+    WAXED_OXIDIZED_COPPER_DOOR = &registerBlockBackedItem(registry,
+        VanillaBlocks::WAXED_OXIDIZED_COPPER_DOOR,
+        "waxed_oxidized_copper_door",
+        ItemProperties().maxStackSize(64));
+
     // 栅栏
     OAK_FENCE =
         &registerBlockBackedItem(registry, VanillaBlocks::OAK_FENCE, "oak_fence", ItemProperties().maxStackSize(64));
@@ -3945,6 +4015,34 @@ void Items::_registerDoorsFencesStairs()
         registry, VanillaBlocks::WARPED_TRAPDOOR, "warped_trapdoor", ItemProperties().maxStackSize(64));
     IRON_TRAPDOOR = &registerBlockBackedItem(
         registry, VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor", ItemProperties().maxStackSize(64));
+
+    // 铜活板门（8 种氧化/涂蜡变种）
+    COPPER_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::COPPER_TRAPDOOR, "copper_trapdoor", ItemProperties().maxStackSize(64));
+    EXPOSED_COPPER_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::EXPOSED_COPPER_TRAPDOOR, "exposed_copper_trapdoor", ItemProperties().maxStackSize(64));
+    WEATHERED_COPPER_TRAPDOOR = &registerBlockBackedItem(registry,
+        VanillaBlocks::WEATHERED_COPPER_TRAPDOOR,
+        "weathered_copper_trapdoor",
+        ItemProperties().maxStackSize(64));
+    OXIDIZED_COPPER_TRAPDOOR = &registerBlockBackedItem(registry,
+        VanillaBlocks::OXIDIZED_COPPER_TRAPDOOR,
+        "oxidized_copper_trapdoor",
+        ItemProperties().maxStackSize(64));
+    WAXED_COPPER_TRAPDOOR = &registerBlockBackedItem(
+        registry, VanillaBlocks::WAXED_COPPER_TRAPDOOR, "waxed_copper_trapdoor", ItemProperties().maxStackSize(64));
+    WAXED_EXPOSED_COPPER_TRAPDOOR = &registerBlockBackedItem(registry,
+        VanillaBlocks::WAXED_EXPOSED_COPPER_TRAPDOOR,
+        "waxed_exposed_copper_trapdoor",
+        ItemProperties().maxStackSize(64));
+    WAXED_WEATHERED_COPPER_TRAPDOOR = &registerBlockBackedItem(registry,
+        VanillaBlocks::WAXED_WEATHERED_COPPER_TRAPDOOR,
+        "waxed_weathered_copper_trapdoor",
+        ItemProperties().maxStackSize(64));
+    WAXED_OXIDIZED_COPPER_TRAPDOOR = &registerBlockBackedItem(registry,
+        VanillaBlocks::WAXED_OXIDIZED_COPPER_TRAPDOOR,
+        "waxed_oxidized_copper_trapdoor",
+        ItemProperties().maxStackSize(64));
 
     // 楼梯、台阶、墙
     OAK_STAIRS =

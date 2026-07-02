@@ -152,7 +152,9 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::OAK_PLANKS, "oak_planks");
     registerSimpleBlock(VanillaBlocks::BEDROCK, "bedrock");
     registerSimpleBlock(VanillaBlocks::SAND, "sand");
+    registerSimpleBlock(VanillaBlocks::SUSPICIOUS_SAND, "suspicious_sand");
     registerSimpleBlock(VanillaBlocks::GRAVEL, "gravel");
+    registerSimpleBlock(VanillaBlocks::SUSPICIOUS_GRAVEL, "suspicious_gravel");
 
     // 石头变种
     registerSimpleBlock(VanillaBlocks::GRANITE, "granite");
@@ -212,6 +214,8 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::JUNGLE_PLANKS, "jungle_planks");
     registerSimpleBlock(VanillaBlocks::ACACIA_PLANKS, "acacia_planks");
     registerSimpleBlock(VanillaBlocks::DARK_OAK_PLANKS, "dark_oak_planks");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_PLANKS, "bamboo_planks");
+    registerSimpleBlock(VanillaBlocks::BAMBOO_MOSAIC, "bamboo_mosaic");
 
     // 原木
     registerSimpleBlock(VanillaBlocks::OAK_LOG, "oak_log");
@@ -220,6 +224,10 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::JUNGLE_LOG, "jungle_log");
     registerSimpleBlock(VanillaBlocks::ACACIA_LOG, "acacia_log");
     registerSimpleBlock(VanillaBlocks::DARK_OAK_LOG, "dark_oak_log");
+
+    // 竹木原木
+    registerSimpleBlock(VanillaBlocks::BAMBOO_BLOCK, "bamboo_block");
+    registerSimpleBlock(VanillaBlocks::STRIPPED_BAMBOO_BLOCK, "stripped_bamboo_block");
 
     // 树叶
     registerSimpleBlock(VanillaBlocks::OAK_LEAVES, "oak_leaves");
@@ -882,6 +890,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CRIMSON_DOOR, "crimson_door");
     registerSimpleBlock(VanillaBlocks::WARPED_DOOR, "warped_door");
     registerSimpleBlock(VanillaBlocks::IRON_DOOR, "iron_door");
+    // 铜门（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_DOOR, "copper_door");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_DOOR, "exposed_copper_door");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_DOOR, "weathered_copper_door");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_DOOR, "oxidized_copper_door");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_DOOR, "waxed_copper_door");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_DOOR, "waxed_exposed_copper_door");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_DOOR, "waxed_weathered_copper_door");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_DOOR, "waxed_oxidized_copper_door");
     registerSimpleBlock(VanillaBlocks::OAK_TRAPDOOR, "oak_trapdoor");
     registerSimpleBlock(VanillaBlocks::SPRUCE_TRAPDOOR, "spruce_trapdoor");
     registerSimpleBlock(VanillaBlocks::BIRCH_TRAPDOOR, "birch_trapdoor");
@@ -895,6 +912,15 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CRIMSON_TRAPDOOR, "crimson_trapdoor");
     registerSimpleBlock(VanillaBlocks::WARPED_TRAPDOOR, "warped_trapdoor");
     registerSimpleBlock(VanillaBlocks::IRON_TRAPDOOR, "iron_trapdoor");
+    // 铜活板门（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_TRAPDOOR, "copper_trapdoor");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_TRAPDOOR, "exposed_copper_trapdoor");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_TRAPDOOR, "weathered_copper_trapdoor");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_TRAPDOOR, "oxidized_copper_trapdoor");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_TRAPDOOR, "waxed_copper_trapdoor");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_TRAPDOOR, "waxed_exposed_copper_trapdoor");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_TRAPDOOR, "waxed_weathered_copper_trapdoor");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_TRAPDOOR, "waxed_oxidized_copper_trapdoor");
 
     // 红石方块
     // 注意：REDSTONE_WIRE 没有独立物品，红石粉物品（REDSTONE）放在地上时变成 REDSTONE_WIRE 方块
@@ -920,6 +946,9 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_LIGHTNING_ROD, "waxed_exposed_lightning_rod");
     registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD, "waxed_weathered_lightning_rod");
     registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD, "waxed_oxidized_lightning_rod");
+
+    // 钟
+    registerSimpleBlock(VanillaBlocks::BELL, "bell");
 
     registerSimpleBlock(VanillaBlocks::LEVER, "lever");
     registerSimpleBlock(VanillaBlocks::STONE_BUTTON, "stone_button");
