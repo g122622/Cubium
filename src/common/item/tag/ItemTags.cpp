@@ -288,6 +288,10 @@ void ItemTags::initialize()
     // 其他花朵（非传统小型/大型）
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spore_blossom")));
     flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pink_petals")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cactus_flower")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wildflowers")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "open_eyeblossom")));
+    flowers->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "closed_eyeblossom")));
 
     allTags[flowers->getId()] = std::move(flowers);
 

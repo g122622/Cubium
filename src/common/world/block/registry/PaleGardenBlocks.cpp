@@ -300,7 +300,7 @@ void registerPaleGardenBlocks()
     // 眼眸花
     // ============================================================================
 
-    // 开放的眼眸花 - 发光等级1，迷之炖菜效果：饱和 0.35秒（瞬间效果）
+    // 开放的眼眸花 - 发光等级1，迷之炖菜效果：失明 11秒
     PaleGardenBlocks::OPEN_EYEBLOSSOM =
         &registry.registerBlock<blocks::EyeblossomBlock>(ResourceLocation("minecraft:open_eyeblossom"),
             BlockProperties(Material::PLANT)
@@ -308,12 +308,12 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::GRASS),
+                .soundType(BlockSoundTypes::EYEBLOSSOM),
             true,
-            static_cast<u32>(entity::effect::EffectType::Saturation),
-            0);
+            static_cast<u32>(entity::effect::EffectType::Blindness),
+            11);
 
-    // 闭合的眼眸花，迷之炖菜效果：饱和 0.35秒（瞬间效果）
+    // 闭合的眼眸花，迷之炖菜效果：反胃 7秒
     PaleGardenBlocks::CLOSED_EYEBLOSSOM =
         &registry.registerBlock<blocks::EyeblossomBlock>(ResourceLocation("minecraft:closed_eyeblossom"),
             BlockProperties(Material::PLANT)
@@ -321,10 +321,10 @@ void registerPaleGardenBlocks()
                 .notSolid()
                 .hardness(0.0f)
                 .resistance(0.0f)
-                .soundType(BlockSoundTypes::GRASS),
+                .soundType(BlockSoundTypes::EYEBLOSSOM),
             false,
-            static_cast<u32>(entity::effect::EffectType::Saturation),
-            0);
+            static_cast<u32>(entity::effect::EffectType::Nausea),
+            7);
 
     // ============================================================================
     // 树脂系列

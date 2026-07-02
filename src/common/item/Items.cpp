@@ -743,6 +743,10 @@ Item* Items::CORNFLOWER = nullptr;
 Item* Items::WITHER_ROSE = nullptr;
 Item* Items::TORCHFLOWER = nullptr;
 Item* Items::PITCHER_PLANT = nullptr;
+Item* Items::CACTUS_FLOWER = nullptr;
+Item* Items::WILDFLOWERS = nullptr;
+Item* Items::OPEN_EYEBLOSSOM = nullptr;
+Item* Items::CLOSED_EYEBLOSSOM = nullptr;
 Item* Items::BROWN_MUSHROOM = nullptr;
 Item* Items::RED_MUSHROOM = nullptr;
 Item* Items::BROWN_MUSHROOM_BLOCK = nullptr;
@@ -3706,6 +3710,22 @@ void Items::_registerVegetation()
     // 瓶草 - 嗅探兽挖掘荚果种植后长成的双层花朵
     PITCHER_PLANT = &registerBlockBackedItem(
         registry, VanillaBlocks::PITCHER_PLANT, "pitcher_plant", ItemProperties().maxStackSize(64));
+
+    // 仙人掌花 - 生长在仙人掌上的花
+    CACTUS_FLOWER = &registerBlockBackedItem(
+        registry, VanillaBlocks::CACTUS_FLOWER, "cactus_flower", ItemProperties().maxStackSize(64));
+
+    // 野花 - 地面装饰花，可堆叠放置
+    WILDFLOWERS = &registerBlockBackedItem(
+        registry, VanillaBlocks::WILDFLOWERS, "wildflowers", ItemProperties().maxStackSize(64));
+
+    // 开放的眼眸花 - 苍白花园发光花朵
+    OPEN_EYEBLOSSOM = &registerBlockBackedItem(
+        registry, VanillaBlocks::OPEN_EYEBLOSSOM, "open_eyeblossom", ItemProperties().maxStackSize(64));
+
+    // 闭合的眼眸花 - 苍白花园花朵
+    CLOSED_EYEBLOSSOM = &registerBlockBackedItem(
+        registry, VanillaBlocks::CLOSED_EYEBLOSSOM, "closed_eyeblossom", ItemProperties().maxStackSize(64));
 
     BROWN_MUSHROOM = &registerBlockBackedItem(
         registry, VanillaBlocks::BROWN_MUSHROOM, "brown_mushroom", ItemProperties().maxStackSize(64));

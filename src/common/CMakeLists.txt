@@ -774,6 +774,9 @@ add_library(mc_common STATIC
     world/block/blocks/mangrove/MangrovePropaguleBlock.cpp
     world/block/blocks/mangrove/MangroveRootsBlock.cpp
 
+    # World - Block - Garden Awakening
+    world/block/blocks/garden/CactusFlowerBlock.cpp
+
     # World - Block - Pale Garden
     world/block/blocks/pale_garden/CreakingHeartBlock.cpp
     world/block/blocks/pale_garden/EyeblossomBlock.cpp

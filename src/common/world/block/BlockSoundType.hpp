@@ -479,6 +479,9 @@ extern const BlockSoundType RESIN_BRICKS;
 extern const BlockSoundType HEAVY_CORE;
 extern const BlockSoundType EYEBLOSSOM;
 
+// 1.21.4+ 花园觉醒
+extern const BlockSoundType CACTUS_FLOWER;
+
 // 书架（1.21.4+ 新增的各种木质书架）
 extern const BlockSoundType SHELF;
 

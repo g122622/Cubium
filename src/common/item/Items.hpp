@@ -797,6 +797,10 @@ public:
     static Item* WITHER_ROSE;          // 凋零玫瑰
     static Item* TORCHFLOWER;          // 火把花
     static Item* PITCHER_PLANT;        // 瓶草
+    static Item* CACTUS_FLOWER;        // 仙人掌花
+    static Item* WILDFLOWERS;          // 野花
+    static Item* OPEN_EYEBLOSSOM;      // 开放的眼眸花
+    static Item* CLOSED_EYEBLOSSOM;    // 闭合的眼眸花
     static Item* BROWN_MUSHROOM;       // 棕色蘑菇
     static Item* RED_MUSHROOM;         // 红色蘑菇
     static Item* BROWN_MUSHROOM_BLOCK; // 棕色蘑菇方块

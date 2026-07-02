@@ -1185,6 +1185,15 @@ const BlockSoundType EYEBLOSSOM(ResourceLocation("minecraft:block.eyeblossom.bre
     1.0f,
     1.0f);
 
+// 1.21.4+ 花园觉醒
+const BlockSoundType CACTUS_FLOWER(ResourceLocation("minecraft:block.cactus_flower.break"),
+    ResourceLocation("minecraft:block.cactus_flower.step"),
+    ResourceLocation("minecraft:block.cactus_flower.place"),
+    ResourceLocation("minecraft:block.cactus_flower.hit"),
+    ResourceLocation("minecraft:block.cactus_flower.fall"),
+    1.0f,
+    1.0f);
+
 // 书架（1.21.4+ 新增的各种木质书架）
 const BlockSoundType SHELF(ResourceLocation("minecraft:block.shelf.break"),
     ResourceLocation("minecraft:block.shelf.step"),

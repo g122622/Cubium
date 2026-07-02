@@ -25,6 +25,7 @@
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/Material.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/garden/CactusFlowerBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -56,14 +57,14 @@ void registerGardenBlocks()
     // 野花和枯叶
     // ============================================================================
 
-    // 野花 - 地面装饰花
+    // 野花 - 地面装饰花（使用与粉红色花瓣相同的音效类型）
     GardenBlocks::WILDFLOWERS = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:wildflowers"),
         BlockProperties(Material::PLANT)
             .noCollision()
             .notSolid()
             .hardness(0.0f)
             .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS));
+            .soundType(BlockSoundTypes::PINK_PETALS));
 
     // 枯叶 - 地面装饰
     GardenBlocks::LEAF_LITTER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:leaf_litter"),
@@ -100,14 +101,15 @@ void registerGardenBlocks()
     // 仙人掌花
     // ============================================================================
 
-    // 仙人掌花 - 生长在仙人掌上的花
-    GardenBlocks::CACTUS_FLOWER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:cactus_flower"),
-        BlockProperties(Material::PLANT)
-            .noCollision()
-            .notSolid()
-            .hardness(0.0f)
-            .resistance(0.0f)
-            .soundType(BlockSoundTypes::GRASS));
+    // 仙人掌花 - 生长在仙人掌上的花，可放置在仙人掌/耕地/实心顶面上
+    GardenBlocks::CACTUS_FLOWER =
+        &registry.registerBlock<blocks::CactusFlowerBlock>(ResourceLocation("minecraft:cactus_flower"),
+            BlockProperties(Material::PLANT)
+                .noCollision()
+                .notSolid()
+                .hardness(0.0f)
+                .resistance(0.0f)
+                .soundType(BlockSoundTypes::CACTUS_FLOWER));
 
     // ============================================================================
     // 萤火虫灌木

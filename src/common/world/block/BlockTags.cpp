@@ -1574,7 +1574,10 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "torchflower"),
         // 1.21.2 睁眼花和闭眼花
         ResourceLocation("minecraft", "open_eyeblossom"),
-        ResourceLocation("minecraft", "closed_eyeblossom")});
+        ResourceLocation("minecraft", "closed_eyeblossom"),
+        // 1.21.4 仙人掌花和野花
+        ResourceLocation("minecraft", "cactus_flower"),
+        ResourceLocation("minecraft", "wildflowers")});
 
     // 更新 BEE_GROWABLES 标签，添加 1.20 火把花
     BlockTag& beeGrowablesTag = *tags.at(ResourceLocation("minecraft", "bee_growables"));
@@ -2189,6 +2192,8 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "torchflower"),
         ResourceLocation("minecraft", "open_eyeblossom"),
         ResourceLocation("minecraft", "closed_eyeblossom"),
+        ResourceLocation("minecraft", "cactus_flower"),
+        ResourceLocation("minecraft", "wildflowers"),
         // 苍白苔藓地毯
         ResourceLocation("minecraft", "pale_moss_carpet"),
         // 植物

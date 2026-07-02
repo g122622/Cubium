@@ -243,9 +243,9 @@
 ### Flowers / Small Flowers（5）
 
 
-- `minecraft:cactus_flower`
-- `minecraft:closed_eyeblossom`
-- `minecraft:open_eyeblossom`
+- `minecraft:cactus_flower ✅ 已完成`
+- `minecraft:closed_eyeblossom ✅ 已完成`
+- `minecraft:open_eyeblossom ✅ 已完成`
 - `minecraft:pitcher_plant ✅ 已完成`
 - `minecraft:torchflower ✅ 已完成`
 
@@ -543,7 +543,7 @@
 - `minecraft:weathered_lightning_rod`
 - `minecraft:white_bundle`
 - `minecraft:white_harness`
-- `minecraft:wildflowers`
+- `minecraft:wildflowers ✅ 已完成`
 - `minecraft:yellow_bundle`
 - `minecraft:yellow_harness`
 
@@ -814,17 +814,17 @@
 未实现项：
 
 
-- `minecraft:cactus_flower`
+- `minecraft:cactus_flower ✅ 已完成`
 - `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
 - `minecraft:mangrove_propagule ✅ 已完成`
-- `minecraft:open_eyeblossom`
+- `minecraft:open_eyeblossom ✅ 已完成`
 - `minecraft:pink_petals ✅ 已完成`
 - `minecraft:pitcher_plant ✅ 已完成`
 - `minecraft:spore_blossom ✅ 已完成`
 - `minecraft:torchflower ✅ 已完成`
-- `minecraft:wildflowers`
+- `minecraft:wildflowers ✅ 已完成`
 
 ### `minecraft:bookshelf_books`
 
@@ -933,7 +933,7 @@
 未实现项：
 
 
-- `minecraft:cactus_flower`
+- `minecraft:cactus_flower ✅ 已完成`
 - `minecraft:cherry_leaves ✅ 已完成`
 - `minecraft:flowering_azalea ✅ 已完成`
 - `minecraft:flowering_azalea_leaves ✅ 已完成`
@@ -941,7 +941,7 @@
 - `minecraft:pink_petals ✅ 已完成`
 - `minecraft:pitcher_plant ✅ 已完成`
 - `minecraft:spore_blossom ✅ 已完成`
-- `minecraft:wildflowers`
+- `minecraft:wildflowers ✅ 已完成`
 
 ### `minecraft:gold_ores`
 
@@ -1162,8 +1162,8 @@
 未实现项：
 
 
-- `minecraft:closed_eyeblossom`
-- `minecraft:open_eyeblossom`
+- `minecraft:closed_eyeblossom ✅ 已完成`
+- `minecraft:open_eyeblossom ✅ 已完成`
 - `minecraft:torchflower ✅ 已完成`
 
 ### `minecraft:stairs`
