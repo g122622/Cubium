@@ -32,6 +32,7 @@
 #include "common/item/items/armor/HorseArmorItem.hpp"
 #include "common/item/items/block/BannerItem.hpp"
 #include "common/item/items/block/BlockItem.hpp"
+#include "common/item/items/block/SeedsItem.hpp"
 #include "common/item/items/block/WallOrFloorItem.hpp"
 #include "common/item/items/food/ChorusFruitItem.hpp"
 #include "common/item/items/food/FoodItem.hpp"
@@ -2221,33 +2222,38 @@ void Items::_registerSeeds()
 {
     auto& registry = ItemRegistry::instance();
 
-    // TODO: 所有种子物品当前注册为普通Item，缺少在耕地上右键种植作物方块的交互行为。
-    // 需要创建 SeedsItem 子类，重写 onItemUse() 在耕地上放置对应作物方块。
-    // MC Java 中种子物品继承 ItemNameBlockItem（BlockItem 子类），右键使用时放置作物方块。
-    // 种子与作物的映射关系：
-    //   WHEAT_SEEDS -> WheatBlock (minecraft:wheat)
-    //   PUMPKIN_SEEDS -> PumpkinStemBlock (minecraft:pumpkin_stem)
-    //   MELON_SEEDS -> MelonStemBlock (minecraft:melon_stem)
-    //   BEETROOT_SEEDS -> BeetrootBlock (minecraft:beetroots)
+    // 种子物品注册为 SeedsItem（BlockItem 子类），右键耕地时通过 BlockItem::tryPlace()
+    // 放置对应的作物方块。作物方块的 isValidPosition() 会检查耕地和光照条件，
+    // 因此种子只能在合法位置种植。
+    //
+    // 种子与作物方块的映射关系：
+    //   WHEAT_SEEDS       -> WheatBlock (minecraft:wheat)
+    //   PUMPKIN_SEEDS     -> PumpkinStemBlock (minecraft:pumpkin_stem)
+    //   MELON_SEEDS       -> MelonStemBlock (minecraft:melon_stem)
+    //   BEETROOT_SEEDS    -> BeetrootBlock (minecraft:beetroots)
     //   TORCHFLOWER_SEEDS -> TorchflowerCropBlock (minecraft:torchflower_crop)
-    //   PITCHER_POD -> PitcherCropBlock (minecraft:pitcher_crop)
+    //   PITCHER_POD       -> PitcherCropBlock (minecraft:pitcher_crop)
 
-    WHEAT_SEEDS = &registry.registerItem(ResourceLocation("minecraft:wheat_seeds"), ItemProperties().maxStackSize(64));
+    WHEAT_SEEDS = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:wheat_seeds"), *VanillaBlocks::WHEAT, ItemProperties().maxStackSize(64));
 
-    PUMPKIN_SEEDS =
-        &registry.registerItem(ResourceLocation("minecraft:pumpkin_seeds"), ItemProperties().maxStackSize(64));
+    PUMPKIN_SEEDS = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:pumpkin_seeds"), *VanillaBlocks::PUMPKIN_STEM, ItemProperties().maxStackSize(64));
 
-    MELON_SEEDS = &registry.registerItem(ResourceLocation("minecraft:melon_seeds"), ItemProperties().maxStackSize(64));
+    MELON_SEEDS = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:melon_seeds"), *VanillaBlocks::MELON_STEM, ItemProperties().maxStackSize(64));
 
-    BEETROOT_SEEDS =
-        &registry.registerItem(ResourceLocation("minecraft:beetroot_seeds"), ItemProperties().maxStackSize(64));
+    BEETROOT_SEEDS = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:beetroot_seeds"), *VanillaBlocks::BEETROOTS, ItemProperties().maxStackSize(64));
 
     // 火把花种子 - 嗅探兽挖掘获得，右键耕地种植火把花作物
-    TORCHFLOWER_SEEDS =
-        &registry.registerItem(ResourceLocation("minecraft:torchflower_seeds"), ItemProperties().maxStackSize(64));
+    TORCHFLOWER_SEEDS = &registry.registerItem<item::items::SeedsItem>(ResourceLocation("minecraft:torchflower_seeds"),
+        *VanillaBlocks::TORCHFLOWER_CROP,
+        ItemProperties().maxStackSize(64));
 
     // 瓶草荚果 - 嗅探兽挖掘获得，右键耕地种植瓶草作物
-    PITCHER_POD = &registry.registerItem(ResourceLocation("minecraft:pitcher_pod"), ItemProperties().maxStackSize(64));
+    PITCHER_POD = &registry.registerItem<item::items::SeedsItem>(
+        ResourceLocation("minecraft:pitcher_pod"), *VanillaBlocks::PITCHER_CROP, ItemProperties().maxStackSize(64));
 }
 
 void Items::_registerCrops()

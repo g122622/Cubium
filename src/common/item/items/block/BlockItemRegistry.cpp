@@ -1094,16 +1094,33 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     // 耕地
     registerSimpleBlock(VanillaBlocks::FARMLAND, "farmland");
 
-    // 农作物方块不需要注册 BlockItem：
-    // - 小麦 (minecraft:wheat) 与普通物品 Items::WHEAT 同名，registerSimpleBlock 会因
-    //   Items::WHEAT 已存在且非 BlockItem 而跳过注册并打印警告。
-    // - 胡萝卜/马铃薯/甜菜根方块名与物品名不同（carrots/carrot, potatoes/potato, beetroots/beetroot），
-    //   虽然能注册成功但创建的 BlockItem 无实际用途——作物方块不能由物品直接放置，
-    //   它们只能通过种子（WheatSeedsItem、BeetrootSeedsItem 等）种植。
-    //   种子到作物方块的映射由 FarmerWorkGoal::_getCropBlockForSeed() 通过 VanillaBlocks
-    //   直接引用实现，不依赖 BlockItemRegistry。
+    // 农作物方块的 BlockItem 注册：
+    // 种子物品现在注册为 SeedsItem（BlockItem 子类），关联到对应的作物方块。
+    // 例如 WHEAT_SEEDS 关联到 minecraft:wheat 方块，PUMPKIN_SEEDS 关联到 minecraft:pumpkin_stem 方块。
+    // SeedsItem 在 Items::_registerSeeds() 中通过 registerItem<SeedsItem>() 注册，
+    // 此处需要建立作物方块到种子物品的映射，以便通过方块查找对应的物品。
     //
-    // 因此不调用 registerSimpleBlock，避免 WHEAT 同名冲突警告和无用 BlockItem 注册。
+    // 注意：Items::WHEAT 是普通物品（minecraft:wheat），不是 BlockItem，与 WHEAT_SEEDS 无关。
+    // Items::WHEAT 的注册在 _registerCrops() 中，其物品 ID 与小麦方块 ID 同名但类型不同。
+    // registerSimpleBlock 会检测到 Items::WHEAT 已存在且非 BlockItem 而跳过注册，这是正确行为。
+    // 胡萝卜/马铃薯的物品注册同理——它们是食物，不是 BlockItem。
+    {
+        auto registerSeedBlockItem = [this](Block* cropBlock, Item* seedItem) {
+            if (cropBlock == nullptr || seedItem == nullptr) {
+                return;
+            }
+            auto* seedBlockItem = dynamic_cast<BlockItem*>(seedItem);
+            if (seedBlockItem != nullptr) {
+                registerBlockItem(*cropBlock, *seedBlockItem);
+            }
+        };
+        registerSeedBlockItem(VanillaBlocks::WHEAT, Items::WHEAT_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::PUMPKIN_STEM, Items::PUMPKIN_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::MELON_STEM, Items::MELON_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::BEETROOTS, Items::BEETROOT_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::TORCHFLOWER_CROP, Items::TORCHFLOWER_SEEDS);
+        registerSeedBlockItem(VanillaBlocks::PITCHER_CROP, Items::PITCHER_POD);
+    }
 
     // 可可豆方块：minecraft:cocoa 方块与 minecraft:cocoa_beans 物品名称不同，
     // Items::COCOA_BEANS 已在 Items.cpp 中通过 registerBlockBackedItem 注册为 BlockItem
