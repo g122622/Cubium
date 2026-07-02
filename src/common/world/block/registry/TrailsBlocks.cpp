@@ -22,12 +22,15 @@
  */
 
 #include "world/block/registry/TrailsBlocks.hpp"
+#include "common/entity/effect/EffectType.hpp"
 #include "world/block/BlockRegistry.hpp"
 #include "world/block/BlockSoundType.hpp"
 #include "world/block/HarvestTool.hpp"
 #include "world/block/blocks/SimpleBlock.hpp"
+#include "world/block/blocks/agricultural/TorchflowerCropBlock.hpp"
 #include "world/block/blocks/functional/TrailsBlocks.hpp"
 #include "world/block/blocks/vegetation/DoublePlantBlock.hpp"
+#include "world/block/blocks/vegetation/FlowerBlock.hpp"
 
 namespace mc {
 namespace block_registry {
@@ -130,12 +133,12 @@ void registerTrailsBlocks()
     // 火把花
     // ============================================================================
 
-    // TODO: 火把花当前注册为SimpleBlock占位，需要升级为FlowerBlock。
-    // FlowerBlock应实现：1) 只能放置在泥土/草方块等上方；2) 骨粉可催熟为火把花作物；
-    // 3) 无支撑方块时自动掉落；4) 可放入花盆。
-    // MC Java中TorchflowerBlock继承FlowerBlock，重写isBonemealTarget()/growCrops()。
-    TrailsBlocks::TORCHFLOWER = &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torchflower"),
-        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::GRASS));
+    // 火把花 - 小型花朵，可放置在泥土/草方块等上，可用于制作可疑炖菜（夜视效果）
+    // 骨粉可催熟火把花作物为火把花；无支撑方块时自动掉落
+    TrailsBlocks::TORCHFLOWER = &registry.registerBlock<blocks::FlowerBlock>(ResourceLocation("minecraft:torchflower"),
+        BlockProperties(Material::PLANT).noCollision().notSolid().soundType(BlockSoundTypes::TORCHFLOWER),
+        static_cast<u32>(entity::effect::EffectType::NightVision),
+        8);
 
     // ============================================================================
     // 瓶草
@@ -150,14 +153,10 @@ void registerTrailsBlocks()
     // 作物方块
     // ============================================================================
 
-    // TODO: 火把花作物当前注册为SimpleBlock占位，需要升级为CropBlock子类。
-    // TorchflowerCropBlock需实现：1) AGE_0_1整数属性（2个生长阶段：幼苗和成熟）；
-    // 2) 成熟(AGE=1)时右键收获火把花物品并重置为AGE=0；3) 随机刻不会自然生长（仅骨粉催熟）；
-    // 4) 骨粉催熟直接跳到AGE=1；5) 掉落：未成熟时掉落火把花种子，成熟时掉落火把花+火把花种子；
-    // 6) 只能放置在耕地上；7) 形状随AGE变化（幼苗小/成熟大）。
-    // MC Java中TorchflowerBlock/CropBlock有完整实现可参考。
+    // 火把花作物 - 2个生长阶段（AGE_0_1），成熟后继续生长变为火把花方块
+    // 随机刻有1/3概率跳过；骨粉每次增加1个阶段；只能放置在耕地上
     TrailsBlocks::TORCHFLOWER_CROP =
-        &registry.registerBlock<SimpleBlock>(ResourceLocation("minecraft:torchflower_crop"),
+        &registry.registerBlock<blocks::TorchflowerCropBlock>(ResourceLocation("minecraft:torchflower_crop"),
             BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).soundType(BlockSoundTypes::CROP));
 
     // TODO: 瓶草作物当前注册为SimpleBlock占位，需要升级为专用的PitcherCropBlock。
