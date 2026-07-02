@@ -93,7 +93,7 @@ Copper ← ExposedCopper ← WeatheredCopper ← OxidizedCopper
 | `WeatheringCopperTrapDoorBlock.hpp/cpp` | 可氧化铜活板门 |
 | `WeatheringCopperGrateBlock.hpp/cpp` | 可氧化铜格栅（含水） |
 | `WeatheringCopperChainBlock.hpp/cpp` | 可氧化铜锁链（含水，轴向放置） |
-| `WeatheringCopperBarsBlock.hpp/cpp` | 可氧化铜栏杆（含水，四方向连接，BARS标签） |
+| `WeatheringCopperBarsBlock.hpp/cpp` | 可氧化铜栏杆（含水，四方向连接，BARS标签，skipRendering面剔除） |
 | `WeatheringCopperLanternBlock.hpp/cpp` | 可氧化铜灯笼（含水，悬挂/站立） |
 | `CopperBulbBlock.hpp/cpp` | 铜灯（红石控制，LIT/POWERED 状态） |
 | `WeatheringLightningRodBlock.hpp/cpp` | 可氧化避雷针（方向性，红石信号输出，闪电吸引，含水支持） |

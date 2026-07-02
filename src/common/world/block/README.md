@@ -662,7 +662,10 @@ Block& block = state->getBlockMutable();
                     ## #33. BlockTags 新增标签说明
 
 ### BARS 标签
-`BlockTags::BARS()` 包含铁栏杆（`iron_bars`），用于 WallBlock 的 `_getWallHeight()` 判断——铁栏杆与墙连接时返回 `WallHeight::Low`（低连接）。
+`BlockTags::BARS()` 包含铁栏杆（`iron_bars`）和铜栏杆变体，用于：
+- WallBlock 的 `_getWallHeight()` 判断——铁栏杆与墙连接时返回 `WallHeight::Low`（低连接）
+- PaneBlock / WeatheringCopperBarsBlock / WaxedCopperBarsBlock 的 `shouldConnectTo()` 连接判定
+- 上述三个类的 `skipRendering()` 面剔除——BARS 标签方块之间水平双向连接时跳过内侧面渲染
 
 ### SHULKER_BOXES 标签
 `BlockTags::SHULKER_BOXES()` 包含所有潜影盒变体（无色 + 16色），用于 `Block::isExceptionForConnection()` 判断——潜影盒虽然是固体，但不应与栅栏、墙、玻璃板建立连接。

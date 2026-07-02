@@ -6,7 +6,7 @@
 
 ```
 decorative/
-├── PaneBlock.hpp/cpp           # 玻璃板/铁栏杆基类（连接逻辑、含水支持）
+├── PaneBlock.hpp/cpp           # 玻璃板/铁栏杆基类（连接逻辑、含水支持、skipRendering面剔除）
 ├── StainedGlassBlock.hpp/cpp   # 染色玻璃（信标光束颜色提供者）
 ├── CarpetBlock.hpp/cpp         # 地毯（单层高度、需支撑）
 ├── GlazedTerracottaBlock.hpp/cpp # 釉面陶瓦（可旋转、不可被活塞拉动）
@@ -48,7 +48,7 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 └─────────────┘
 ```
 
-- **PaneBlock**: 玻璃板/铁栏杆共享连接逻辑，形状按4位连接掩码缓存为16种组合
+- **PaneBlock**: 玻璃板/铁栏杆共享连接逻辑，形状按4位连接掩码缓存为16种组合；重写 `skipRendering` 实现同类方块和 BARS 标签方块之间的面剔除
 - **BannerBlock**: 抽象基类 `AbstractBannerBlock` 派生 `StandingBannerBlock`（16方向旋转）和 `WallBannerBlock`（4方向水平朝向）
 - **CampfireBlock**: 派生 `SoulCampfireBlock`（灵魂营火，光照10 vs 普通15）
 - **TorchBlock/WallTorchBlock**: 继承关系，WallTorchBlock 继承 TorchBlock 添加 HORIZONTAL_FACING 属性；普通火把用 Flame 粒子，灵魂火把用 SoulFireFlame 粒子
@@ -93,9 +93,10 @@ IWaterLoggable        IBeaconBeamColorProvider   (无接口)
 - **坑**: 站立式旗帜根据玩家yaw计算旋转值：`floor((180 + yaw) * 16 / 360 + 0.5) & 15`
 - **解**: 不是简单的yaw/22.5，需要正确的四舍五入和取模
 
-### PaneBlock 连接判定
+### PaneBlock 连接判定与面剔除
 - **坑**: 连接判定不仅检查同类Pane，还要检查墙方块和有实体面的方块
 - **解**: 使用 `shouldConnectTo()` 方法统一处理连接逻辑
+- **面剔除**: `skipRendering()` 实现 BARS 标签方块间的面剔除逻辑——同类方块垂直方向始终跳过，水平方向仅双方都连接时跳过；不同 BARS 方块（如铁栏杆↔铜栏杆）水平方向双向连接时跳过
 
 ### LanternBlock 支撑检测
 - **坑**: 悬挂状态检查上方方块的实体底面，站立状态检查下方方块的实体顶面
