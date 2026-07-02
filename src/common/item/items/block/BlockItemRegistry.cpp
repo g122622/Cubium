@@ -202,6 +202,36 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::RAW_COPPER_BLOCK, "raw_copper_block");
     registerSimpleBlock(VanillaBlocks::RAW_GOLD_BLOCK, "raw_gold_block");
 
+    // 铜块（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_BLOCK, "copper_block");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER, "exposed_copper");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER, "weathered_copper");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER, "oxidized_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_BLOCK, "waxed_copper_block");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER, "waxed_exposed_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER, "waxed_weathered_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER, "waxed_oxidized_copper");
+
+    // 切制铜（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::CUT_COPPER, "cut_copper");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_CUT_COPPER, "exposed_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_CUT_COPPER, "weathered_cut_copper");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_CUT_COPPER, "oxidized_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_CUT_COPPER, "waxed_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_CUT_COPPER, "waxed_exposed_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_CUT_COPPER, "waxed_weathered_cut_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER, "waxed_oxidized_cut_copper");
+
+    // 凿制铜（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::CHISELED_COPPER, "chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_CHISELED_COPPER, "exposed_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_CHISELED_COPPER, "weathered_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_CHISELED_COPPER, "oxidized_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_CHISELED_COPPER, "waxed_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_CHISELED_COPPER, "waxed_exposed_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_CHISELED_COPPER, "waxed_weathered_chiseled_copper");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_CHISELED_COPPER, "waxed_oxidized_chiseled_copper");
+
     // 建筑方块
     registerSimpleBlock(VanillaBlocks::BRICKS, "bricks");
     registerSimpleBlock(VanillaBlocks::MOSSY_COBBLESTONE, "mossy_cobblestone");
@@ -726,6 +756,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::SHULKER_BOX, "shulker_box");
     registerSimpleBlock(VanillaBlocks::LANTERN, "lantern");
     registerSimpleBlock(VanillaBlocks::SOUL_LANTERN, "soul_lantern");
+
+    // 铜灯笼（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_LANTERN, "copper_lantern");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_LANTERN, "exposed_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_LANTERN, "weathered_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_LANTERN, "oxidized_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_LANTERN, "waxed_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_LANTERN, "waxed_exposed_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_LANTERN, "waxed_weathered_copper_lantern");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_LANTERN, "waxed_oxidized_copper_lantern");
     registerSimpleBlock(VanillaBlocks::CAMPFIRE, "campfire");
     registerSimpleBlock(VanillaBlocks::SOUL_CAMPFIRE, "soul_campfire");
     registerSimpleBlock(VanillaBlocks::JACK_O_LANTERN, "jack_o_lantern");
@@ -752,6 +792,26 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::LADDER, "ladder");
     registerSimpleBlock(VanillaBlocks::SCAFFOLDING, "scaffolding");
     registerSimpleBlock(VanillaBlocks::IRON_BARS, "iron_bars");
+
+    // 铜格栅（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_GRATE, "copper_grate");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_GRATE, "exposed_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_GRATE, "weathered_copper_grate");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_GRATE, "oxidized_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_GRATE, "waxed_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_GRATE, "waxed_exposed_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_GRATE, "waxed_weathered_copper_grate");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_GRATE, "waxed_oxidized_copper_grate");
+
+    // 铜灯（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_BULB, "copper_bulb");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_BULB, "exposed_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_BULB, "weathered_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_BULB, "oxidized_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_BULB, "waxed_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_BULB, "waxed_exposed_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_BULB, "waxed_weathered_copper_bulb");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_BULB, "waxed_oxidized_copper_bulb");
 
     // 楼梯
     registerSimpleBlock(VanillaBlocks::OAK_STAIRS, "oak_stairs");
@@ -790,6 +850,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::PURPUR_STAIRS, "purpur_stairs");
     registerSimpleBlock(VanillaBlocks::RED_SANDSTONE_STAIRS, "red_sandstone_stairs");
     registerSimpleBlock(VanillaBlocks::SMOOTH_RED_SANDSTONE_STAIRS, "smooth_red_sandstone_stairs");
+
+    // 切制铜楼梯（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::CUT_COPPER_STAIRS, "cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_CUT_COPPER_STAIRS, "exposed_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_CUT_COPPER_STAIRS, "weathered_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_CUT_COPPER_STAIRS, "oxidized_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WAXED_CUT_COPPER_STAIRS, "waxed_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_STAIRS, "waxed_exposed_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_STAIRS, "waxed_weathered_cut_copper_stairs");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_STAIRS, "waxed_oxidized_cut_copper_stairs");
 
     // 台阶
     registerSimpleBlock(VanillaBlocks::OAK_SLAB, "oak_slab");
@@ -832,6 +902,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::CUT_RED_SANDSTONE_SLAB, "cut_red_sandstone_slab");
     registerSimpleBlock(VanillaBlocks::SMOOTH_STONE_SLAB, "smooth_stone_slab");
     registerSimpleBlock(VanillaBlocks::PETRIFIED_OAK_SLAB, "petrified_oak_slab");
+
+    // 切制铜台阶（8 种氧化/涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::CUT_COPPER_SLAB, "cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_CUT_COPPER_SLAB, "exposed_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_CUT_COPPER_SLAB, "weathered_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_CUT_COPPER_SLAB, "oxidized_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WAXED_CUT_COPPER_SLAB, "waxed_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_CUT_COPPER_SLAB, "waxed_exposed_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_CUT_COPPER_SLAB, "waxed_weathered_cut_copper_slab");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_CUT_COPPER_SLAB, "waxed_oxidized_cut_copper_slab");
 
     // 墙
     registerSimpleBlock(VanillaBlocks::COBBLESTONE_WALL, "cobblestone_wall");

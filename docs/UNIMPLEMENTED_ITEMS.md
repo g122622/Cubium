@@ -165,59 +165,59 @@
 
 - `minecraft:copper_axe ✅ 已完成`
 - `minecraft:copper_bars`
-- `minecraft:copper_block`
+- `minecraft:copper_block ✅ 已完成`
 - `minecraft:copper_chain ✅ 已完成`
 - `minecraft:copper_chest`
 - `minecraft:copper_golem_statue`
 - `minecraft:copper_hoe ✅ 已完成`
-- `minecraft:copper_lantern`
+- `minecraft:copper_lantern ✅ 已完成`
 - `minecraft:copper_pickaxe ✅ 已完成`
 - `minecraft:copper_shovel ✅ 已完成`
 - `minecraft:copper_spear`
 - `minecraft:copper_sword ✅ 已完成`
 - `minecraft:deepslate_copper_ore ✅ 已完成`
-- `minecraft:exposed_copper`
+- `minecraft:exposed_copper ✅ 已完成`
 - `minecraft:exposed_copper_bars`
 - `minecraft:exposed_copper_chain ✅ 已完成`
 - `minecraft:exposed_copper_chest`
 - `minecraft:exposed_copper_golem_statue`
-- `minecraft:exposed_copper_lantern`
-- `minecraft:oxidized_copper`
+- `minecraft:exposed_copper_lantern ✅ 已完成`
+- `minecraft:oxidized_copper ✅ 已完成`
 - `minecraft:oxidized_copper_bars`
 - `minecraft:oxidized_copper_chain ✅ 已完成`
 - `minecraft:oxidized_copper_chest`
 - `minecraft:oxidized_copper_golem_statue`
-- `minecraft:oxidized_copper_lantern`
+- `minecraft:oxidized_copper_lantern ✅ 已完成`
 - `minecraft:waxed_copper_bars`
-- `minecraft:waxed_copper_block`
+- `minecraft:waxed_copper_block ✅ 已完成`
 - `minecraft:waxed_copper_chain ✅ 已完成`
 - `minecraft:waxed_copper_chest`
 - `minecraft:waxed_copper_golem_statue`
-- `minecraft:waxed_copper_lantern`
-- `minecraft:waxed_exposed_copper`
+- `minecraft:waxed_copper_lantern ✅ 已完成`
+- `minecraft:waxed_exposed_copper ✅ 已完成`
 - `minecraft:waxed_exposed_copper_bars`
 - `minecraft:waxed_exposed_copper_chain ✅ 已完成`
 - `minecraft:waxed_exposed_copper_chest`
 - `minecraft:waxed_exposed_copper_golem_statue`
-- `minecraft:waxed_exposed_copper_lantern`
-- `minecraft:waxed_oxidized_copper`
+- `minecraft:waxed_exposed_copper_lantern ✅ 已完成`
+- `minecraft:waxed_oxidized_copper ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_bars`
 - `minecraft:waxed_oxidized_copper_chain ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_chest`
 - `minecraft:waxed_oxidized_copper_golem_statue`
-- `minecraft:waxed_oxidized_copper_lantern`
-- `minecraft:waxed_weathered_copper`
+- `minecraft:waxed_oxidized_copper_lantern ✅ 已完成`
+- `minecraft:waxed_weathered_copper ✅ 已完成`
 - `minecraft:waxed_weathered_copper_bars`
 - `minecraft:waxed_weathered_copper_chain ✅ 已完成`
 - `minecraft:waxed_weathered_copper_chest`
 - `minecraft:waxed_weathered_copper_golem_statue`
-- `minecraft:waxed_weathered_copper_lantern`
-- `minecraft:weathered_copper`
+- `minecraft:waxed_weathered_copper_lantern ✅ 已完成`
+- `minecraft:weathered_copper ✅ 已完成`
 - `minecraft:weathered_copper_bars`
 - `minecraft:weathered_copper_chain ✅ 已完成`
 - `minecraft:weathered_copper_chest`
 - `minecraft:weathered_copper_golem_statue`
-- `minecraft:weathered_copper_lantern`
+- `minecraft:weathered_copper_lantern ✅ 已完成`
 
 ### Doors（10）
 
@@ -652,14 +652,14 @@
 ### `minecraft:copper`
 
 
-- `minecraft:copper_block`
-- `minecraft:exposed_copper`
-- `minecraft:oxidized_copper`
-- `minecraft:waxed_copper_block`
-- `minecraft:waxed_exposed_copper`
-- `minecraft:waxed_oxidized_copper`
-- `minecraft:waxed_weathered_copper`
-- `minecraft:weathered_copper`
+- `minecraft:copper_block ✅ 已完成`
+- `minecraft:exposed_copper ✅ 已完成`
+- `minecraft:oxidized_copper ✅ 已完成`
+- `minecraft:waxed_copper_block ✅ 已完成`
+- `minecraft:waxed_exposed_copper ✅ 已完成`
+- `minecraft:waxed_oxidized_copper ✅ 已完成`
+- `minecraft:waxed_weathered_copper ✅ 已完成`
+- `minecraft:weathered_copper ✅ 已完成`
 
 ### `minecraft:copper_chests`
 
@@ -965,14 +965,14 @@
 未实现项：
 
 
-- `minecraft:copper_lantern`
-- `minecraft:exposed_copper_lantern`
-- `minecraft:oxidized_copper_lantern`
-- `minecraft:waxed_copper_lantern`
-- `minecraft:waxed_exposed_copper_lantern`
-- `minecraft:waxed_oxidized_copper_lantern`
-- `minecraft:waxed_weathered_copper_lantern`
-- `minecraft:weathered_copper_lantern`
+- `minecraft:copper_lantern ✅ 已完成`
+- `minecraft:exposed_copper_lantern ✅ 已完成`
+- `minecraft:oxidized_copper_lantern ✅ 已完成`
+- `minecraft:waxed_copper_lantern ✅ 已完成`
+- `minecraft:waxed_exposed_copper_lantern ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_lantern ✅ 已完成`
+- `minecraft:waxed_weathered_copper_lantern ✅ 已完成`
+- `minecraft:weathered_copper_lantern ✅ 已完成`
 
 ### `minecraft:lapis_ores`
 
