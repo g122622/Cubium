@@ -200,6 +200,51 @@ ItemTag& ItemTags::CHAINS()
     return *tag;
 }
 
+ItemTag& ItemTags::WOODEN_DOORS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_doors"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::DOORS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "doors"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::WOODEN_TRAPDOORS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "wooden_trapdoors"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::TRAPDOORS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "trapdoors"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::NON_FLAMMABLE_WOOD()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "non_flammable_wood"));
+    }
+    return *tag;
+}
+
 void ItemTags::initialize()
 {
     if (s_initialized) {
@@ -528,6 +573,93 @@ void ItemTags::initialize()
     chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_chain")));
     chains->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_chain")));
     allTags[chains->getId()] = std::move(chains);
+
+    // 创建 WOODEN_DOORS 标签
+    // 包含所有木门物品（绯红木和诡异木门为不可燃木材门）
+    auto woodenDoors = std::make_unique<ItemTag>(ResourceLocation("minecraft", "wooden_doors"), false);
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spruce_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "birch_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "jungle_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "acacia_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dark_oak_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mangrove_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cherry_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pale_oak_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bamboo_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_door")));
+    woodenDoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_door")));
+    allTags[woodenDoors->getId()] = std::move(woodenDoors);
+
+    // 创建 DOORS 标签
+    // 包含所有门物品（木门 + 铁门）
+    // TODO: 铜门及其变种注册后需添加到此标签
+    auto doors = std::make_unique<ItemTag>(ResourceLocation("minecraft", "doors"), false);
+    doors->addAll(WOODEN_DOORS().getItemsList());
+    doors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_door")));
+    allTags[doors->getId()] = std::move(doors);
+
+    // 创建 WOODEN_TRAPDOORS 标签
+    // 包含所有木活板门物品（绯红木和诡异木活板门为不可燃木材活板门）
+    auto woodenTrapdoors = std::make_unique<ItemTag>(ResourceLocation("minecraft", "wooden_trapdoors"), false);
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oak_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "spruce_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "birch_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "jungle_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "acacia_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "dark_oak_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mangrove_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "cherry_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "pale_oak_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bamboo_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_trapdoor")));
+    woodenTrapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_trapdoor")));
+    allTags[woodenTrapdoors->getId()] = std::move(woodenTrapdoors);
+
+    // 创建 TRAPDOORS 标签
+    // 包含所有活板门物品（木活板门 + 铁活板门）
+    // TODO: 铜活板门及其变种注册后需添加到此标签
+    auto trapdoors = std::make_unique<ItemTag>(ResourceLocation("minecraft", "trapdoors"), false);
+    trapdoors->addAll(WOODEN_TRAPDOORS().getItemsList());
+    trapdoors->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_trapdoor")));
+    allTags[trapdoors->getId()] = std::move(trapdoors);
+
+    // 创建 NON_FLAMMABLE_WOOD 标签
+    // 包含所有不可燃烧的木材物品（绯红木和诡异木系列）
+    // 绯红木和诡异木系列物品不会燃烧，对应 MC 原版标签 minecraft:non_flammable_wood
+    // TODO: 绯红/诡异木书架注册后需添加到此标签
+    auto nonFlammableWood = std::make_unique<ItemTag>(ResourceLocation("minecraft", "non_flammable_wood"), false);
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_stem")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stripped_crimson_stem")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_hyphae")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stripped_crimson_hyphae")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_stem")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stripped_warped_stem")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_hyphae")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stripped_warped_hyphae")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_planks")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_planks")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_slab")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_slab")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_stairs")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_stairs")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_fence")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_fence")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_fence_gate")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_fence_gate")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_door")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_door")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_trapdoor")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_trapdoor")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_button")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_button")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_pressure_plate")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_pressure_plate")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_sign")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_sign")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "crimson_hanging_sign")));
+    nonFlammableWood->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "warped_hanging_sign")));
+    allTags[nonFlammableWood->getId()] = std::move(nonFlammableWood);
 
     s_initialized = true;
 }

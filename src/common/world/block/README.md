@@ -12,7 +12,7 @@
 ├── BlockRegistry.hpp / cpp #方块注册表（单例）
 ├── BlockSoundType.hpp / cpp #方块声音类型定义
 ├── BlockTags.hpp /
-    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS、DOES_NOT_BLOCK_HOPPERS、CHAINS
+    cpp #方块标签系统（分组判断，含 WITHER_IMMUNE、DRAGON_IMMUNE、DRAGON_TRANSPARENT、MUSHROOM_GROW_BLOCK、OCCLUDES_VIBRATION_SIGNALS、DAMPENS_VIBRATIONS、STAIRS、SLABS、WALLS、BARS、SHULKER_BOXES、WALL_POST_OVERRIDE、COMBINATION_STEP_SOUND_BLOCKS、INSIDE_STEP_SOUND_BLOCKS、CAMPFIRES、GUARDED_BY_PIGLINS、HOGLIN_REPELLENTS、PIGLIN_REPELLENTS、DOES_NOT_BLOCK_HOPPERS、CHAINS、WOODEN_DOORS、DOORS、WOODEN_TRAPDOORS、TRAPDOORS、NON_FLAMMABLE_WOOD
         等）
 ├── FireInfoRegistry.hpp /
     cpp #火焰信息注册表（燃烧 / 蔓延属性）
@@ -677,6 +677,21 @@ Block& block = state->getBlockMutable();
 `BlockTags::CHAINS()` 包含铁锁链（iron_chain）和所有铜锁链变体（copper_chain、exposed_copper_chain、weathered_copper_chain、oxidized_copper_chain 及其涂蜡变种），共9种方块。对应 MC 原版标签 `minecraft:chains`。用于锁链方块的分组判断（如攀爬检测、连接形状等）。
 
 **注意**：MC 1.21+ 将原 `minecraft:chain` 方块重命名为 `minecraft:iron_chain`，与铜锁链命名风格统一。
+
+### WOODEN_DOORS 标签
+`BlockTags::WOODEN_DOORS()` 包含所有12种木门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、红树木、樱花木、竹木、苍白橡木、绯红木、诡异木）。对应 MC 原版标签 `minecraft:wooden_doors`。用于区分木门和其他材质门（铁门、铜门），影响红石信号判定、僵尸破门等游戏逻辑。
+
+### DOORS 标签
+`BlockTags::DOORS()` 包含所有门方块：12种木门 + 铁门 + 8种铜门（含氧化和涂蜡变种），共21种方块。对应 MC 原版标签 `minecraft:doors`。用于通用的门方块判断逻辑。
+
+### WOODEN_TRAPDOORS 标签
+`BlockTags::WOODEN_TRAPDOORS()` 包含所有12种木活板门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、红树木、樱花木、竹木、苍白橡木、绯红木、诡异木）。对应 MC 原版标签 `minecraft:wooden_trapdoors`。用于区分木活板门和其他材质活板门（铁活板门、铜活板门），影响红石信号判定等游戏逻辑。
+
+### TRAPDOORS 标签
+`BlockTags::TRAPDOORS()` 包含所有活板门方块：12种木活板门 + 铁活板门 + 8种铜活板门（含氧化和涂蜡变种），共21种方块。对应 MC 原版标签 `minecraft:trapdoors`。用于通用的活板门方块判断逻辑。
+
+### NON_FLAMMABLE_WOOD 标签
+`BlockTags::NON_FLAMMABLE_WOOD()` 包含所有不可燃烧的木材方块（绯红木和诡异木系列），包括原木/菌柄、去皮原木/去皮菌柄、菌丝体/去皮菌丝体、木板、台阶、楼梯、栅栏、栅栏门、门、活板门、按钮、压力板、告示牌、墙面告示牌、悬挂告示牌、墙面悬挂告示牌、书架等，共34种方块。对应 MC 原版标签 `minecraft:non_flammable_wood`。用于火灾蔓延判定——标签内的方块不会被火焰点燃或烧毁。
 
                     ## #34. getEntityInsideCollisionShape 实体内部碰撞形状
 

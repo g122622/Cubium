@@ -476,6 +476,34 @@ public:
     /// 参考: net.minecraft.tags.BlockTags.CAULDRONS
     static BlockTag& CAULDRONS();
 
+    /// 木门方块标签（所有木门方块）
+    /// 包含所有材质的木门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、苍白橡木、
+    /// 绯红木、诡异木、红树木、竹木、樱花木）。
+    /// 参考: net.minecraft.tags.BlockTags.WOODEN_DOORS
+    static BlockTag& WOODEN_DOORS();
+
+    /// 门方块标签（所有门方块）
+    /// 包含所有木门 + 铁门 + 铜门（含氧化和涂蜡变种）。
+    /// 参考: net.minecraft.tags.BlockTags.DOORS
+    static BlockTag& DOORS();
+
+    /// 木活板门方块标签（所有木活板门方块）
+    /// 包含所有材质的木活板门方块（橡木、云杉、白桦、丛林、金合欢、深色橡木、苍白橡木、
+    /// 绯红木、诡异木、红树木、竹木、樱花木）。
+    /// 参考: net.minecraft.tags.BlockTags.WOODEN_TRAPDOORS
+    static BlockTag& WOODEN_TRAPDOORS();
+
+    /// 活板门方块标签（所有活板门方块）
+    /// 包含所有木活板门 + 铁活板门 + 铜活板门（含氧化和涂蜡变种）。
+    /// 参考: net.minecraft.tags.BlockTags.TRAPDOORS
+    static BlockTag& TRAPDOORS();
+
+    /// 不可燃木材方块标签（所有不可燃烧的木材方块）
+    /// 包含绯红木和诡异木系列的所有方块（原木、菌柄、木板、台阶、楼梯、
+    /// 栅栏、栅栏门、门、活板门、按钮、压力板、告示牌等）。
+    /// 参考: net.minecraft.tags.BlockTags.NON_FLAMMABLE_WOOD
+    static BlockTag& NON_FLAMMABLE_WOOD();
+
     /**
      * @brief 初始化所有内置标签
      *
