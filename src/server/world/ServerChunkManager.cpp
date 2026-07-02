@@ -264,6 +264,17 @@ ChunkData* ServerChunkManager::requestChunkSync(ChunkCoord x, ChunkCoord z, cons
     auto promise = std::make_shared<std::promise<ChunkData*>>();
     auto future = promise->get_future();
     _submitChunkRequest(x, z, targetStatus, {}, promise);
+
+    // 异步存档加载路径（_resolveChunkSourceSync → loadChunkAsyncCallback）把完成回调入队
+    // m_pendingLoadCompletes，需主线程 _drainPendingLoadCompletes 出队处理（_onChunkLoadComplete
+    // 存档命中→_completeReadyWaiters fulfill promise）。requestChunkSync 在主线程阻塞等待期间
+    // 主动 pump 该队列，否则存档命中时 promise 永不 fulfill（主线程卡在 future.get 不进 tick()）。
+    // 仅 pump m_pendingLoadCompletes：_onChunkLoadComplete 内联调 onChunkLoaded/callback，不依赖
+    // _drainPendingPostProcess；生成路径 onChunkGenComplete 在 worker 线程直接 fulfill promise。
+    // 此方法仅可在主线程调用（worker 线程请用 requestChunkAsync）。
+    while (future.wait_for(std::chrono::milliseconds(1)) != std::future_status::ready) {
+        _drainPendingLoadCompletes();
+    }
     return future.get();
 }
 
