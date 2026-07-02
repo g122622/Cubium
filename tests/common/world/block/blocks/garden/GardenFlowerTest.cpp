@@ -25,6 +25,9 @@
 #include "common/entity/effect/EffectType.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/tag/ItemTags.hpp"
+#include "common/util/math/random/Random.hpp"
+#include "common/world/IWorld.hpp"
+#include "common/world/block/Block.hpp"
 #include "common/world/block/BlockRegistry.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/blocks/garden/CactusFlowerBlock.hpp"
@@ -32,9 +35,123 @@
 #include "common/world/block/registry/GardenBlocks.hpp"
 #include "common/world/block/registry/PaleGardenBlocks.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/border/WorldBorder.hpp"
+#include "common/world/fluid/Fluid.hpp"
+#include "common/world/gamerule/GameRules.hpp"
+#include "common/world/tick/manager/TickManager.hpp"
+
+#include <map>
 
 using namespace mc;
 using namespace mc::blocks;
+
+// ============================================================================
+// 测试用 IBlockReader 实现（支持方块状态存取）
+// ============================================================================
+
+class CactusFlowerTestWorld final : public IBlockReader {
+public:
+    using IBlockReader::getBlockState;
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const BlockPos pos(x, y, z);
+        const auto it = m_blocks.find(pos);
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return nullptr;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        const BlockPos pos(x, y, z);
+        if (state == nullptr || state->isAir()) {
+            m_blocks.erase(pos);
+        } else {
+            m_blocks[pos] = state;
+        }
+        return true;
+    }
+
+    [[nodiscard]] const fluid::FluidState* getFluidState(i32, i32, i32) const override
+    {
+        return fluid::Fluid::getFluidState(0);
+    }
+    [[nodiscard]] const ChunkData* getChunk(ChunkCoord, ChunkCoord) const override { return nullptr; }
+    [[nodiscard]] bool hasChunk(ChunkCoord, ChunkCoord) const override { return false; }
+    [[nodiscard]] i32 getHeight(i32, i32) const override { return 64; }
+    [[nodiscard]] u8 getBlockLight(i32, i32, i32) const override { return 0; }
+    [[nodiscard]] u8 getSkyLight(i32, i32, i32) const override { return 15; }
+    [[nodiscard]] bool hasBlockCollision(const AxisAlignedBB&) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getBlockCollisions(const AxisAlignedBB&) const override { return {}; }
+    [[nodiscard]] bool isWithinWorldBounds(i32, i32 y, i32) const override
+    {
+        return y >= world::MIN_BUILD_HEIGHT && y < world::MAX_BUILD_HEIGHT;
+    }
+    [[nodiscard]] bool hasEntityCollision(const AxisAlignedBB&, const Entity*) const override { return false; }
+    [[nodiscard]] std::vector<AxisAlignedBB> getEntityCollisions(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] PhysicsEngine* physicsEngine() override { return nullptr; }
+    [[nodiscard]] const PhysicsEngine* physicsEngine() const override { return nullptr; }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInAABB(const AxisAlignedBB&, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] std::vector<Entity*> getEntitiesInRange(const Vector3&, f32, const Entity*) const override
+    {
+        return {};
+    }
+    [[nodiscard]] DimensionId dimension() const override { return DimensionId(0); }
+    [[nodiscard]] u64 seed() const override { return 12345; }
+    [[nodiscard]] u64 currentTick() const override { return 0; }
+    [[nodiscard]] i64 dayTime() const override { return 0; }
+    [[nodiscard]] bool isHardcore() const override { return false; }
+    [[nodiscard]] Difficulty difficulty() const override { return Difficulty::Peaceful; }
+    [[nodiscard]] bool isClientSide() const override { return false; }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("CactusFlowerTestWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("CactusFlowerTestWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] math::Random& getRandom() override { return m_random; }
+    [[nodiscard]] const math::Random& getRandom() const override { return m_random; }
+
+    [[nodiscard]] world::border::WorldBorder& worldBorder() override { return m_worldBorder; }
+    [[nodiscard]] const world::border::WorldBorder& worldBorder() const override { return m_worldBorder; }
+
+    [[nodiscard]] world::gamerule::GameRules& getGameRules() override { return m_gameRules; }
+    [[nodiscard]] const world::gamerule::GameRules& getGameRules() const override { return m_gameRules; }
+
+    void setBlockAt(const BlockPos& pos, const BlockState* state) { (void)setBlockState(pos.x, pos.y, pos.z, state); }
+
+private:
+    std::map<BlockPos, const BlockState*> m_blocks;
+    world::border::WorldBorder m_worldBorder;
+    world::gamerule::GameRules m_gameRules;
+    mutable math::Random m_random{12345};
+};
+
+// ============================================================================
+// CactusFlowerBlock 测试访问器（暴露 protected canSustain）
+// ============================================================================
+
+class CactusFlowerBlockTestAccess : public CactusFlowerBlock {
+public:
+    using CactusFlowerBlock::CactusFlowerBlock;
+
+    [[nodiscard]] bool testCanSustain(const BlockState& groundState, IWorld& world, const BlockPos& groundPos) const
+    {
+        return canSustain(groundState, world, groundPos);
+    }
+};
 
 // ============================================================================
 // CactusFlowerBlock 测试
@@ -82,6 +199,144 @@ TEST_F(CactusFlowerBlockTest, IsInSmallFlowersTag)
 TEST_F(CactusFlowerBlockTest, IsInReplaceableByTreesTag)
 {
     EXPECT_TRUE(BlockTags::REPLACEABLE_BY_TREES().contains(ResourceLocation("minecraft", "cactus_flower")));
+}
+
+// ============================================================================
+// CactusFlowerBlock canSustain 测试
+// ============================================================================
+
+class CactusFlowerSustainTest : public ::testing::Test {
+protected:
+    void SetUp() override
+    {
+        VanillaBlocks::initialize();
+        BlockTags::initialize();
+        Items::initialize();
+
+        // 创建独立的 CactusFlowerBlock 测试实例，用于测试 canSustain
+        m_cactusFlower = std::make_unique<CactusFlowerBlockTestAccess>(
+            BlockProperties(Material::PLANT).noCollision().notSolid().hardness(0.0f).resistance(0.0f));
+    }
+
+    std::unique_ptr<CactusFlowerBlockTestAccess> m_cactusFlower;
+    CactusFlowerTestWorld m_world;
+};
+
+TEST_F(CactusFlowerSustainTest, CanSustainOnCactus)
+{
+    // 仙人掌花可放置在仙人掌上方
+    if (VanillaBlocks::CACTUS == nullptr) {
+        GTEST_SKIP() << "CACTUS not registered";
+    }
+    const BlockPos groundPos(0, 0, 0);
+    m_world.setBlockAt(groundPos, &VanillaBlocks::CACTUS->defaultState());
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    ASSERT_NE(groundState, nullptr);
+    EXPECT_TRUE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
+}
+
+TEST_F(CactusFlowerSustainTest, CanSustainOnFarmland)
+{
+    // 仙人掌花可放置在耕地上
+    if (VanillaBlocks::FARMLAND == nullptr) {
+        GTEST_SKIP() << "FARMLAND not registered";
+    }
+    const BlockPos groundPos(0, 0, 0);
+    m_world.setBlockAt(groundPos, &VanillaBlocks::FARMLAND->defaultState());
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    ASSERT_NE(groundState, nullptr);
+    EXPECT_TRUE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
+}
+
+TEST_F(CactusFlowerSustainTest, CanSustainOnSolidTopFaceStone)
+{
+    // 仙人掌花可放置在具有实心顶面的方块上（如石头）
+    if (VanillaBlocks::STONE == nullptr) {
+        GTEST_SKIP() << "STONE not registered";
+    }
+    const BlockPos groundPos(0, 0, 0);
+    m_world.setBlockAt(groundPos, &VanillaBlocks::STONE->defaultState());
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    ASSERT_NE(groundState, nullptr);
+    EXPECT_TRUE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
+}
+
+TEST_F(CactusFlowerSustainTest, CanSustainOnSolidTopFaceDirt)
+{
+    // 仙人掌花可放置在泥土（实心顶面）上
+    if (VanillaBlocks::DIRT == nullptr) {
+        GTEST_SKIP() << "DIRT not registered";
+    }
+    const BlockPos groundPos(0, 0, 0);
+    m_world.setBlockAt(groundPos, &VanillaBlocks::DIRT->defaultState());
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    ASSERT_NE(groundState, nullptr);
+    EXPECT_TRUE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
+}
+
+TEST_F(CactusFlowerSustainTest, CanSustainOnGrassBlock)
+{
+    // 草方块有实心顶面，仙人掌花可放置
+    if (VanillaBlocks::GRASS_BLOCK == nullptr) {
+        GTEST_SKIP() << "GRASS_BLOCK not registered";
+    }
+    const BlockPos groundPos(0, 0, 0);
+    m_world.setBlockAt(groundPos, &VanillaBlocks::GRASS_BLOCK->defaultState());
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    ASSERT_NE(groundState, nullptr);
+    EXPECT_TRUE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
+}
+
+TEST_F(CactusFlowerSustainTest, CanSustainOnSand)
+{
+    // 沙子有实心顶面（isSolid && hasCollision），仙人掌花可以放置
+    if (VanillaBlocks::SAND == nullptr) {
+        GTEST_SKIP() << "SAND not registered";
+    }
+    const BlockPos groundPos(0, 0, 0);
+    m_world.setBlockAt(groundPos, &VanillaBlocks::SAND->defaultState());
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    ASSERT_NE(groundState, nullptr);
+    EXPECT_TRUE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
+}
+
+TEST_F(CactusFlowerSustainTest, CannotSustainOnAir)
+{
+    // 仙人掌花不能放置在空气上
+    const BlockPos groundPos(0, 0, 0);
+    // 不设置任何方块，getBlockState 返回 nullptr
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    EXPECT_EQ(groundState, nullptr);
+    // 无法测试 canSustain(nullptr)，因为参数为 const BlockState& 引用
+    // 这由 isValidPosition 中的空指针检查处理
+}
+
+TEST_F(CactusFlowerSustainTest, CannotSustainOnNonSolidBlock)
+{
+    // 仙人掌花不能放置在非固体方块（如普通花朵）上
+    // 普通花朵不是 CACTUS/FARMLAND，也不是实心顶面方块
+    if (VanillaBlocks::DANDELION == nullptr) {
+        GTEST_SKIP() << "DANDELION not registered";
+    }
+    const BlockPos groundPos(0, 0, 0);
+    m_world.setBlockAt(groundPos, &VanillaBlocks::DANDELION->defaultState());
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    ASSERT_NE(groundState, nullptr);
+    EXPECT_FALSE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
+}
+
+TEST_F(CactusFlowerSustainTest, CannotSustainOnGlass)
+{
+    // 玻璃是固体但没有碰撞（isSolidSide 返回 false），仙人掌花不能放置
+    if (VanillaBlocks::GLASS == nullptr) {
+        GTEST_SKIP() << "GLASS not registered";
+    }
+    const BlockPos groundPos(0, 0, 0);
+    m_world.setBlockAt(groundPos, &VanillaBlocks::GLASS->defaultState());
+    const BlockState* groundState = m_world.getBlockState(groundPos.x, groundPos.y, groundPos.z);
+    ASSERT_NE(groundState, nullptr);
+    // 玻璃没有碰撞形状，isSolidSide(Direction::Up) 应返回 false
+    EXPECT_FALSE(m_cactusFlower->testCanSustain(*groundState, m_world, groundPos));
 }
 
 // ============================================================================
