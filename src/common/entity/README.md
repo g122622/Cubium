@@ -128,9 +128,13 @@ src/common/entity/
 │   └── README.md                  # 模块说明
 │
 ├── damage/                        # 伤害系统
-│   ├── DamageSource.hpp           # 伤害来源
+│   ├── DamageSource.hpp           # 伤害来源（含 DamageType 枚举和 DamageSource::is(DamageTypeTag)）
 │   ├── CombatEntry.hpp/cpp        # 战斗记录条目
-│   └── CombatTracker.hpp/cpp      # 战斗追踪器
+│   ├── CombatTracker.hpp/cpp      # 战斗追踪器
+│   └── tag/                       # 伤害类型标签系统（DamageTypeTags）
+│       ├── DamageTypeTag.hpp/cpp       # 标签类 + DamageTypeNames 映射
+│       ├── DamageTypeTags.hpp/cpp      # 34 个内置标签注册表
+│       └── DamageTypeTagLoader.hpp/cpp # 数据包 JSON 加载器
 │
 ├── inventory/                     # 背包系统
 │   ├── IInventory.hpp             # 背包接口

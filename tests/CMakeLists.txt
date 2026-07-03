@@ -217,6 +217,8 @@ add_executable(mc_tests
     common/entity/attribute/AttributeRegistryTest.cpp
     # EntityTypeTag 实体类型标签测试
     common/entity/tag/EntityTypeTagsTest.cpp
+    # DamageTypeTag 伤害类型标签测试（含 DamageSource::is() 和加载器测试）
+    common/entity/damage/DamageTypeTagsTest.cpp
     common/entity/entities/monster/EndermiteEntityTest.cpp
     # SpiderEntity AI 目标、光照敏感、中毒攻击测试
     entity/SpiderEntityTest.cpp

@@ -98,7 +98,8 @@ void WindChargeEntity::onEntityHit(const RayTraceResult& result)
 
     auto* living = dynamic_cast<LivingEntity*>(result.hitEntity);
     if (living != nullptr) {
-        // 风弹造成1点风爆伤害（绕过护甲）
+        // 风弹造成1点风爆伤害
+        // 与 MC 1.21.11 一致：风爆伤害不绕过护甲（不在 DamageTypeTags::BYPASSES_ARMOR 中）
         // 对应 MC: DamageSources.windCharge(this, target)
         Entity* shooter = getShooter();
         bool isPlayer = shooter != nullptr && shooter->typeId() == entity::EntityTypeIdNumber::PLAYER;

@@ -28,6 +28,7 @@
 #include "common/core/Types.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/damage/DamageSource.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
@@ -187,6 +188,8 @@ protected:
         VanillaBlocks::initialize();
         Items::initialize();
         item::tag::ItemTags::initialize();
+        // 初始化伤害类型标签（狼铠吸收判定依赖 BYPASSES_WOLF_ARMOR 标签）
+        DamageTypeTags::initialize();
     }
 
     WolfTestWorld m_world;
@@ -1748,7 +1751,8 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_WithWolfArmor_WolfHealthUnchanged)
 
 TEST_F(WolfEntityTestFixture, ActuallyHurt_WithWolfArmor_BypassesArmor_DamagesWolf)
 {
-    // 穿戴狼铠的狼受到绕过护甲伤害时，狼扣血，狼铠耐久不变
+    // 穿戴狼铠的狼受到绕过狼铠伤害时，狼扣血，狼铠耐久不变
+    // MC 1.21.11: BYPASSES_WOLF_ARMOR 标签包含 drown（溺水），狼铠不吸收溺水伤害
     WolfTestWorld world;
     WolfEntity wolf(EntityId(1));
     wolf.setWorld(&world);
@@ -1762,12 +1766,12 @@ TEST_F(WolfEntityTestFixture, ActuallyHurt_WithWolfArmor_BypassesArmor_DamagesWo
     f32 healthBefore = wolf.health();
     i32 armorDamageBefore = wolf.getBodyArmorItem().getDamage();
 
-    // 创建绕过护甲的伤害源（摔落伤害绕过护甲）
-    EnvironmentalDamage fallDamage(DamageType::Fall);
+    // 创建绕过狼铠的伤害源（溺水伤害在 BYPASSES_WOLF_ARMOR 标签中）
+    EnvironmentalDamage drownDamage(DamageType::Drown);
 
-    wolf.actuallyHurt(fallDamage, 3.0f);
+    wolf.actuallyHurt(drownDamage, 3.0f);
 
-    // 狼扣血（摔落伤害绕过护甲，不被狼铠吸收）
+    // 狼扣血（溺水伤害绕过狼铠，不被狼铠吸收）
     EXPECT_LT(wolf.health(), healthBefore);
 
     // 狼铠耐久不变

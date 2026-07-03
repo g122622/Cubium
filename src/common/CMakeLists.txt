@@ -85,6 +85,9 @@ add_library(mc_common STATIC
     entity/tag/EntityTypeTag.cpp
     entity/tag/EntityTypeTags.cpp
     entity/tag/EntityTypeTagLoader.cpp
+    entity/damage/tag/DamageTypeTag.cpp
+    entity/damage/tag/DamageTypeTags.cpp
+    entity/damage/tag/DamageTypeTagLoader.cpp
     # Entity - Serialization
     entity/serialization/EntityDeserializer.cpp
     entity/serialization/EquipmentSlotNames.cpp

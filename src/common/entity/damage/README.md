@@ -1,6 +1,7 @@
 # Damage 模块
 
 战斗伤害追踪系统，负责记录和管理实体受到的伤害事件，用于生成死亡消息和统计战斗数据。
+同时包含伤害类型标签（DamageTypeTags）系统，用于将伤害类型分组以支持狼铠吸收判定、伤害分类等。
 
 ## 目录结构
 
@@ -10,7 +11,14 @@ src/common/entity/damage/
 ├── CombatEntry.hpp       # 战斗条目（记录单次伤害事件）
 ├── CombatEntry.cpp       # 战斗条目实现
 ├── CombatTracker.hpp     # 战斗追踪器（记录战斗历史，生成死亡消息）
-└── CombatTracker.cpp     # 战斗追踪器实现
+├── CombatTracker.cpp     # 战斗追踪器实现
+└── tag/                  # 伤害类型标签系统
+    ├── DamageTypeTag.hpp       # 伤害类型标签（包含 DamageType 集合）
+    ├── DamageTypeTag.cpp       # 伤害类型标签实现 + DamageTypeNames 映射 + DamageSource::is()
+    ├── DamageTypeTags.hpp      # 内置伤害类型标签集合（34 个 MC 1.21.11 标签）
+    ├── DamageTypeTags.cpp      # 标签注册表 + 硬编码默认值
+    ├── DamageTypeTagLoader.hpp # 数据包 JSON 加载器（两阶段加载）
+    └── DamageTypeTagLoader.cpp # 加载器实现
 ```
 
 ## 内部模块关系
@@ -136,3 +144,61 @@ if (entry.timestamp() < currentTime) { ... }
 **问题**：保护附魔使用 `DamageFlags` 命名空间中的标志位（FIRE, FALL, EXPLOSION, PROJECTILE）进行伤害减免计算。
 
 **解决**：新增伤害类型时需确认是否应设置对应标志位。
+
+## 伤害类型标签系统（DamageTypeTags）
+
+对应 MC 1.21.11 的 `net.minecraft.tags.DamageTypeTags`，提供 34 个内置伤害类型标签，用于狼铠吸收判定、伤害分类、AI 行为等。
+
+### 核心组件
+
+- **DamageTypeTag**：标签类，内部使用 `std::unordered_set<DamageType>` 存储成员（基于枚举，类型安全且性能高）
+- **DamageTypeNames**：DamageType 枚举与 MC 资源位置名（如 `"minecraft:drown"`）的双向映射，供数据包加载使用
+- **DamageTypeTags**：标签注册表，提供 34 个静态访问器（如 `BYPASSES_WOLF_ARMOR()`）
+- **DamageTypeTagLoader**：两阶段 JSON 加载器，路径 `data/<namespace>/tags/damage_type/`
+
+### 用法示例
+
+```cpp
+// 判断伤害源是否绕过狼铠（核心消费点：WolfEntity::_canArmorAbsorb）
+if (source.is(DamageTypeTags::BYPASSES_WOLF_ARMOR())) {
+    // 该伤害绕过狼铠吸收
+}
+
+// 判断伤害源是否为火焰伤害
+if (source.is(DamageTypeTags::IS_FIRE())) {
+    // 应用火焰相关逻辑
+}
+
+// 直接检查标签是否包含某伤害类型
+if (DamageTypeTags::BYPASSES_ARMOR().contains(DamageType::Fall)) {
+    // 摔落伤害绕过护甲
+}
+```
+
+### 关键标签说明
+
+| 标签 | 用途 |
+|------|------|
+| `BYPASSES_WOLF_ARMOR` | 狼铠吸收判定（WolfEntity::_canArmorAbsorb） |
+| `BYPASSES_ARMOR` | 护甲减免判定 |
+| `BYPASSES_INVULNERABILITY` | 无敌穿透（虚空、/kill） |
+| `BYPASSES_SHIELD` | 盾牌格挡判定 |
+| `IS_FIRE` / `IS_FALL` / `IS_EXPLOSION` / `IS_FREEZING` / `IS_DROWNING` / `IS_LIGHTNING` / `IS_PROJECTILE` / `IS_PLAYER_ATTACK` | 伤害分类 |
+| `PANIC_CAUSES` / `PANIC_ENVIRONMENTAL_CAUSES` | 生物恐慌触发 |
+| `WITCH_RESISTANT_TO` / `WITHER_IMMUNE_TO` | 特殊生物抗性 |
+| `DAMAGES_HELMET` | 头盔损坏判定 |
+
+### 初始化流程
+
+1. `DamageTypeTags::initialize()` — 注册 34 个内置标签并填充硬编码默认值（与 MC 1.21.11 Vanilla 数据包一致）
+2. `DamageTypeTagLoader::loadFromDataPackRepository()` — 从数据包加载自定义标签，追加或替换默认值
+
+服务端在 `MinecraftServer::initializeRegistries()` 中调用，客户端在 `ClientApplication::initializeCoreRegistries()` 中调用。
+
+### 新增伤害类型时的注意事项
+
+1. 在 `DamageSource.hpp` 的 `DamageType` 枚举中添加新值
+2. 在 `DamageTypeTag.cpp` 的 `DamageTypeNames::kEntries` 数组中添加资源位置映射
+3. 在 `EnvironmentalDamage::deathMessageKey()` 或 `EntityDamageSource::deathMessageKey()` 中添加对应翻译键
+4. 确认 `bypassesArmor()`、`isFire()`、`isMagic()`、`isExplosion()` 等方法是否需要更新
+5. 在 `DamageTypeTags::initialize()` 中将新类型添加到相关标签

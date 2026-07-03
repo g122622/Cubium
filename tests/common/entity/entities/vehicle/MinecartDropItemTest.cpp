@@ -352,7 +352,7 @@ TEST_F(AbstractMinecartDropTest, AllDamageTypes_CorrectClassification)
         {DamageType::OutOfWorld, false, false, "OutOfWorld"},
         {DamageType::Magic, false, false, "Magic"},
         {DamageType::Wither, false, false, "Wither"},
-        {DamageType::Anvil, false, false, "Anvil"},
+        {DamageType::FallingAnvil, false, false, "FallingAnvil"},
         {DamageType::FallingBlock, false, false, "FallingBlock"},
         {DamageType::DragonBreath, false, false, "DragonBreath"},
         {DamageType::Fireworks, false, false, "Fireworks"}};

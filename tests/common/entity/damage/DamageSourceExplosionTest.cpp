@@ -270,7 +270,7 @@ TEST_F(DamageSourceExplosionTest, AllDamageTypes_HaveCorrectClassification)
         DamageType::Generic,
         DamageType::Magic,
         DamageType::Wither,
-        DamageType::Anvil,
+        DamageType::FallingAnvil,
         DamageType::FallingBlock,
         DamageType::DragonBreath,
         DamageType::Fireworks};

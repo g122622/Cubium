@@ -46,6 +46,7 @@
 #include "client/ui/minecraft/widgets/TitleWidget.hpp"
 #include "client/ui/screen/ScreenManager.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/tag/EntityTypeTags.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/items/block/BlockItemRegistry.hpp"
@@ -97,6 +98,13 @@ void ClientApplication::initializeCoreRegistries()
         MC_TRACE_EVENT("client.initialization", "InitializeEntityTypeTags");
         EntityTypeTags::initialize();
         spdlog::info("Entity type tags initialized");
+    }
+
+    // 初始化伤害类型标签（用于狼铠吸收判定、伤害分类等，客户端预测也需要）
+    {
+        MC_TRACE_EVENT("client.initialization", "InitializeDamageTypeTags");
+        DamageTypeTags::initialize();
+        spdlog::info("Damage type tags initialized");
     }
 
     // 初始化方块物品注册表

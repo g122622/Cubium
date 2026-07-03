@@ -32,6 +32,7 @@ namespace mc {
 // 前向声明
 class Entity;
 class LivingEntity;
+class DamageTypeTag;
 
 // ============================================================================
 // 保护附魔伤害类型标志位
@@ -51,53 +52,60 @@ constexpr u32 PROJECTILE = 0x10; // 弹射物: Arrow, Trident, MobProjectile, Fi
  */
 enum class DamageType : u8 {
     // 环境伤害
-    InFire,       // 在火焰中
-    OnFire,       // 燃烧
-    Lava,         // 岩浆
-    HotFloor,     // 岩浆块
-    Drown,        // 溺水
-    Starve,       // 饥饿
-    Cactus,       // 仙人掌
-    Fall,         // 摔落
-    FlyIntoWall,  // 撞墙（鞘翅飞行）
-    OutOfWorld,   // 虚空
-    Generic,      // 通用伤害
-    Magic,        // 魔法伤害
-    Wither,       // 凋零
-    Anvil,        // 铁砧
-    FallingBlock, // 坠落方块
-    DragonBreath, // 龙息
-    Fireworks,    // 烟花
-
-    // 新增环境伤害类型
+    InFire,            // 在火焰中
+    Campfire,          // 营火
+    LightningBolt,     // 闪电
+    OnFire,            // 燃烧
+    Lava,              // 岩浆
+    HotFloor,          // 岩浆块
     InWall,            // 窒息（在方块内）
     Cramming,          // 拥挤伤害（实体过多）
+    Drown,             // 溺水
+    Starve,            // 饥饿
+    Cactus,            // 仙人掌
+    Fall,              // 摔落
+    EnderPearl,        // 末影珍珠摔落伤害
+    FlyIntoWall,       // 撞墙（鞘翅飞行）
+    OutOfWorld,        // 虚空
+    Generic,           // 通用伤害
+    Magic,             // 魔法伤害
+    Wither,            // 凋零
+    DragonBreath,      // 龙息
     Dryout,            // 干涸伤害（鱼离开水）
-    LightningBolt,     // 闪电
     SweetBerryBush,    // 甜浆果丛
-    Stalagmite,        // 石笋摔落伤害（踩在朝上的滴石尖端上）
-    FallingStalactite, // 坠落钟乳石伤害（钟乳石掉落砸中实体）
     Freeze,            // 冰冻伤害（细雪冰冻）
+    Stalagmite,        // 石笋摔落伤害（踩在朝上的滴石尖端上）
+    FallingBlock,      // 坠落方块
+    FallingAnvil,      // 坠落铁砧
+    FallingStalactite, // 坠落钟乳石伤害（钟乳石掉落砸中实体）
 
     // 实体伤害
-    MobAttack,       // 生物攻击
-    PlayerAttack,    // 玩家攻击
-    Arrow,           // 箭矢
-    Trident,         // 三叉戟
-    MobProjectile,   // 生物投射物
-    Fireball,        // 火球
-    Thorns,          // 荆棘
-    Explosion,       // 爆炸
-    ExplosionPlayer, // 玩家爆炸
+    Sting,                // 蜜蜂蛰刺
+    MobAttack,            // 生物攻击
+    MobAttackNoAggro,     // 生物攻击（不激怒）
+    PlayerAttack,         // 玩家攻击
+    Spear,                // 三叉戟（矛）近战攻击
+    Arrow,                // 箭矢
+    Trident,              // 三叉戟（投射物）
+    MobProjectile,        // 生物投射物
+    Spit,                 // 羊驼喷吐
+    Fireworks,            // 烟花
+    UnattributedFireball, // 无归属火球（无射击者）
+    Fireball,             // 火球
+    WitherSkull,          // 凋灵之首
+    Thrown,               // 投掷物（雪球、鸡蛋、末影珍珠等通用投掷伤害）
+    IndirectMagic,        // 间接魔法伤害（药水等）
+    Thorns,               // 荆棘
+    Explosion,            // 爆炸
+    ExplosionPlayer,      // 玩家爆炸
+    SonicBoom,            // 守卫者音爆攻击
+    BadRespawnPoint,      // 床重生爆炸（"-intentional_game_design"）
+    WindBurst,            // 风弹风爆
+    MaceSmash,            // 重锤下落攻击
 
-    // 新增实体伤害类型
-    Sting, // 蜜蜂蛰刺
-
-    // 风爆伤害
-    WindBurst, // 风弹风爆
-
-    // 重锤砸地攻击伤害
-    MaceSmash, // 重锤下落攻击
+    // 边界与通用击杀
+    OutsideBorder, // 世界边界外伤害
+    GenericKill,   // 通用击杀（/kill 命令）
 };
 
 /**
@@ -221,10 +229,12 @@ public:
 
     /**
      * @brief 是否是摔落伤害
+     * 与 MC 1.21.11 DamageTypeTags.IS_FALL 标签保持一致：
+     * fall, ender_pearl, stalagmite
      */
     [[nodiscard]] bool isFall() const
     {
-        return type() == DamageType::Fall || type() == DamageType::FlyIntoWall || type() == DamageType::Stalagmite;
+        return type() == DamageType::Fall || type() == DamageType::EnderPearl || type() == DamageType::Stalagmite;
     }
 
     /**
@@ -258,7 +268,18 @@ public:
      * 冰冻伤害对冻结额外伤害标签中的实体（烈焰人、岩浆怪、炽足兽）造成5倍伤害。
      * 玩家的冰冻伤害可通过 freeze_damage 游戏规则禁用。
      */
-    [[nodiscard]] bool isFreezing() const { return type() == DamageType::Freeze; }
+    [[nodiscard]] virtual bool isFreezing() const { return type() == DamageType::Freeze; }
+
+    /**
+     * @brief 检查伤害类型是否属于指定标签
+     *
+     * 对应 MC 1.21.11 的 DamageSource.is(DamageTypeTag) 方法。
+     * 例如 source.is(DamageTypeTags::BYPASSES_WOLF_ARMOR()) 判断伤害是否绕过狼铠。
+     *
+     * @param tag 伤害类型标签
+     * @return 是否在标签中
+     */
+    [[nodiscard]] bool is(const DamageTypeTag& tag) const;
 
 protected:
     DamageSource() = default;
@@ -295,29 +316,54 @@ public:
 
     [[nodiscard]] bool bypassesArmor() const override
     {
+        // 与 MC 1.21.11 DamageTypeTags.BYPASSES_ARMOR 标签保持一致：
+        // on_fire, in_wall, cramming, drown, fly_into_wall, generic, wither,
+        // dragon_breath, starve, fall, ender_pearl, freeze, stalagmite,
+        // magic, indirect_magic, out_of_world, generic_kill, sonic_boom, outside_border
+        // 注：indirect_magic 由 IndirectEntityDamageSource 通过 setBypassesArmor() 处理
         return m_type == DamageType::OutOfWorld || m_type == DamageType::Starve || m_type == DamageType::Drown ||
             m_type == DamageType::Fall || m_type == DamageType::FlyIntoWall || m_type == DamageType::InWall ||
             m_type == DamageType::Cramming || m_type == DamageType::Generic || m_type == DamageType::Magic ||
-            m_type == DamageType::Wither || m_type == DamageType::DragonBreath || m_type == DamageType::WindBurst ||
-            m_type == DamageType::Stalagmite || m_type == DamageType::Freeze;
+            m_type == DamageType::Wither || m_type == DamageType::DragonBreath || m_type == DamageType::Stalagmite ||
+            m_type == DamageType::Freeze || m_type == DamageType::EnderPearl || m_type == DamageType::IndirectMagic ||
+            m_type == DamageType::GenericKill || m_type == DamageType::SonicBoom || m_type == DamageType::OutsideBorder;
     }
 
-    [[nodiscard]] bool bypassesInvulnerability() const override { return m_type == DamageType::OutOfWorld; }
+    [[nodiscard]] bool bypassesInvulnerability() const override
+    {
+        // 与 MC 1.21.11 DamageTypeTags.BYPASSES_INVULNERABILITY 标签保持一致：
+        // out_of_world, generic_kill
+        return m_type == DamageType::OutOfWorld || m_type == DamageType::GenericKill;
+    }
 
     [[nodiscard]] bool canDamageCreative() const override { return m_type == DamageType::OutOfWorld; }
 
     [[nodiscard]] bool isFire() const override
     {
-        return m_type == DamageType::InFire || m_type == DamageType::OnFire || m_type == DamageType::Lava ||
-            m_type == DamageType::HotFloor;
+        // 与 MC 1.21.11 DamageTypeTags.IS_FIRE 标签保持一致：
+        // in_fire, campfire, on_fire, lava, hot_floor, unattributed_fireball, fireball
+        // 注：fireball 和 unattributed_fireball 通常通过 EntityDamageSource/IndirectEntityDamageSource
+        // 创建（由各自的 isFire() 覆写处理），但为保持一致性，
+        // EnvironmentalDamage 也对这两种类型返回 true
+        return m_type == DamageType::InFire || m_type == DamageType::Campfire || m_type == DamageType::OnFire ||
+            m_type == DamageType::Lava || m_type == DamageType::HotFloor || m_type == DamageType::Fireball ||
+            m_type == DamageType::UnattributedFireball;
     }
 
-    [[nodiscard]] bool isMagic() const override { return m_type == DamageType::Magic || m_type == DamageType::Wither; }
+    [[nodiscard]] bool isMagic() const override
+    {
+        return m_type == DamageType::Magic || m_type == DamageType::Wither || m_type == DamageType::IndirectMagic;
+    }
 
     [[nodiscard]] bool isExplosion() const override
     {
-        return m_type == DamageType::Explosion || m_type == DamageType::ExplosionPlayer;
+        // 与 MC 1.21.11 DamageTypeTags.IS_EXPLOSION 标签保持一致：
+        // fireworks, explosion, player_explosion, bad_respawn_point
+        return m_type == DamageType::Explosion || m_type == DamageType::ExplosionPlayer ||
+            m_type == DamageType::BadRespawnPoint;
     }
+
+    [[nodiscard]] bool isFreezing() const override { return m_type == DamageType::Freeze; }
 
     [[nodiscard]] f32 hungerDamage() const override { return m_hungerDamage; }
 
@@ -328,12 +374,20 @@ public:
         switch (m_type) {
             case DamageType::InFire:
                 return "death.attack.inFire";
+            case DamageType::Campfire:
+                return "death.attack.inFire";
+            case DamageType::LightningBolt:
+                return "death.attack.lightningBolt";
             case DamageType::OnFire:
                 return "death.attack.onFire";
             case DamageType::Lava:
                 return "death.attack.lava";
             case DamageType::HotFloor:
                 return "death.attack.hotFloor";
+            case DamageType::InWall:
+                return "death.attack.inWall";
+            case DamageType::Cramming:
+                return "death.attack.cramming";
             case DamageType::Drown:
                 return "death.attack.drown";
             case DamageType::Starve:
@@ -341,6 +395,8 @@ public:
             case DamageType::Cactus:
                 return "death.attack.cactus";
             case DamageType::Fall:
+                return "death.attack.fall";
+            case DamageType::EnderPearl:
                 return "death.attack.fall";
             case DamageType::FlyIntoWall:
                 return "death.attack.flyIntoWall";
@@ -352,34 +408,54 @@ public:
                 return "death.attack.magic";
             case DamageType::Wither:
                 return "death.attack.wither";
-            case DamageType::Anvil:
-                return "death.attack.anvil";
-            case DamageType::FallingBlock:
-                return "death.attack.fallingBlock";
             case DamageType::DragonBreath:
                 return "death.attack.dragonBreath";
-            case DamageType::Fireworks:
-                return "death.attack.fireworks";
-            case DamageType::InWall:
-                return "death.attack.inWall";
-            case DamageType::Cramming:
-                return "death.attack.cramming";
             case DamageType::Dryout:
                 return "death.attack.dryout";
-            case DamageType::LightningBolt:
-                return "death.attack.lightningBolt";
             case DamageType::SweetBerryBush:
                 return "death.attack.sweetBerryBush";
-            case DamageType::Stalagmite:
-                return "death.attack.stalagmite";
-            case DamageType::FallingStalactite:
-                return "death.attack.fallingStalactite";
             case DamageType::Freeze:
                 return "death.attack.freeze";
+            case DamageType::Stalagmite:
+                return "death.attack.stalagmite";
+            case DamageType::FallingBlock:
+                return "death.attack.fallingBlock";
+            case DamageType::FallingAnvil:
+                return "death.attack.anvil";
+            case DamageType::FallingStalactite:
+                return "death.attack.fallingStalactite";
             case DamageType::WindBurst:
                 return "death.attack.windBurst";
             case DamageType::MaceSmash:
                 return "death.attack.mace_smash";
+            case DamageType::SonicBoom:
+                return "death.attack.sonic_boom";
+            case DamageType::BadRespawnPoint:
+                return "death.attack.badRespawnPoint";
+            case DamageType::OutsideBorder:
+                return "death.attack.outsideBorder";
+            case DamageType::GenericKill:
+                return "death.attack.genericKill";
+            // 实体伤害类型的死亡消息键由 EntityDamageSource/IndirectEntityDamageSource 处理
+            case DamageType::Sting:
+            case DamageType::MobAttack:
+            case DamageType::MobAttackNoAggro:
+            case DamageType::PlayerAttack:
+            case DamageType::Spear:
+            case DamageType::Arrow:
+            case DamageType::Trident:
+            case DamageType::MobProjectile:
+            case DamageType::Spit:
+            case DamageType::Fireworks:
+            case DamageType::UnattributedFireball:
+            case DamageType::Fireball:
+            case DamageType::WitherSkull:
+            case DamageType::Thrown:
+            case DamageType::IndirectMagic:
+            case DamageType::Thorns:
+            case DamageType::Explosion:
+            case DamageType::ExplosionPlayer:
+                return "death.attack.generic";
             default:
                 return "death.attack.generic";
         }
@@ -491,6 +567,7 @@ public:
     {
         switch (m_type) {
             case DamageType::MobAttack:
+            case DamageType::MobAttackNoAggro:
                 return "death.attack.mob";
             case DamageType::PlayerAttack:
                 return "death.attack.player";
@@ -499,9 +576,15 @@ public:
             case DamageType::Trident:
                 return "death.attack.trident";
             case DamageType::MobProjectile:
+            case DamageType::Spit:
                 return "death.attack.mobProjectile";
             case DamageType::Fireball:
+            case DamageType::UnattributedFireball:
                 return "death.attack.fireball";
+            case DamageType::WitherSkull:
+                return "death.attack.witherSkull";
+            case DamageType::Thrown:
+                return "death.attack.thrown";
             case DamageType::Thorns:
                 return "death.attack.thorns";
             case DamageType::Explosion:
@@ -510,6 +593,14 @@ public:
                 return "death.attack.explosion.player";
             case DamageType::Sting:
                 return "death.attack.sting";
+            case DamageType::Spear:
+                return "death.attack.spear";
+            case DamageType::SonicBoom:
+                return "death.attack.sonic_boom";
+            case DamageType::BadRespawnPoint:
+                return "death.attack.badRespawnPoint";
+            case DamageType::Fireworks:
+                return "death.attack.fireworks";
             case DamageType::LightningBolt:
                 return "death.attack.lightningBolt";
             default:
@@ -568,7 +659,13 @@ public:
      */
     [[nodiscard]] Entity* getTrueSource() const override { return m_source; }
 
-    [[nodiscard]] bool isFire() const override { return m_isFire; }
+    [[nodiscard]] bool isFire() const override
+    {
+        // 与 MC 1.21.11 DamageTypeTags.IS_FIRE 标签保持一致：
+        // fireball 和 unattributed_fireball 始终是火焰伤害
+        // m_isFire 标志允许其他类型（如 ExplosionPlayer 通过 setFireDamage）标记为火焰
+        return m_isFire || m_type == DamageType::Fireball || m_type == DamageType::UnattributedFireball;
+    }
 
     [[nodiscard]] bool isProjectile() const override { return m_isProjectile; }
 
@@ -646,7 +743,18 @@ public:
             case DamageType::Trident:
                 return "death.attack.trident.item";
             case DamageType::Fireball:
+            case DamageType::UnattributedFireball:
                 return "death.attack.fireball.item";
+            case DamageType::WitherSkull:
+                return "death.attack.witherSkull.item";
+            case DamageType::Thrown:
+                return "death.attack.thrown.item";
+            case DamageType::IndirectMagic:
+                return "death.attack.indirectMagic";
+            case DamageType::SonicBoom:
+                return "death.attack.sonic_boom.item";
+            case DamageType::BadRespawnPoint:
+                return "death.attack.badRespawnPoint.link";
             default:
                 return "death.attack.generic";
         }
@@ -876,10 +984,16 @@ inline EntityDamageSource sting(Entity* bee)
     return EntityDamageSource(DamageType::Sting, bee).setDifficultyScaled();
 }
 
-/** 创建铁砧伤害 */
+/** 创建坠落铁砧伤害 */
 inline EnvironmentalDamage anvil()
 {
-    return EnvironmentalDamage(DamageType::Anvil);
+    return EnvironmentalDamage(DamageType::FallingAnvil);
+}
+
+/** 创建坠落铁砧伤害（与 anvil() 同义，对齐 MC 1.21.11 命名） */
+inline EnvironmentalDamage fallingAnvil()
+{
+    return EnvironmentalDamage(DamageType::FallingAnvil);
 }
 
 /** 创建坠落方块伤害 */
@@ -940,13 +1054,14 @@ inline IndirectEntityDamageSource fireball(Entity* fireball, Entity* shooter, bo
  */
 inline IndirectEntityDamageSource indirectMagic(Entity* source, Entity* caster)
 {
-    return IndirectEntityDamageSource(DamageType::Magic, caster, source).setBypassesArmor().setMagicDamage();
+    return IndirectEntityDamageSource(DamageType::IndirectMagic, caster, source).setBypassesArmor().setMagicDamage();
 }
 
 /**
  * @brief 创建风爆伤害
- * 风弹命中实体时造成的伤害，绕过护甲。
+ * 风弹命中实体时造成的伤害。
  * 风爆伤害由风弹弹射物间接造成，需要追踪发射者。
+ * 与 MC 1.21.11 一致：风爆伤害不绕过护甲（不在 DamageTypeTags::BYPASSES_ARMOR 中）。
  *
  * @param windCharge 风弹弹射物实体
  * @param shooter 发射者（玩家或旋风人），可能为空
@@ -954,7 +1069,7 @@ inline IndirectEntityDamageSource indirectMagic(Entity* source, Entity* caster)
  */
 inline IndirectEntityDamageSource windBurst(Entity* windCharge, Entity* shooter, bool isPlayer = false)
 {
-    return IndirectEntityDamageSource(DamageType::WindBurst, shooter, windCharge, isPlayer).setBypassesArmor();
+    return IndirectEntityDamageSource(DamageType::WindBurst, shooter, windCharge, isPlayer);
 }
 
 /**
@@ -968,6 +1083,105 @@ inline IndirectEntityDamageSource windBurst(Entity* windCharge, Entity* shooter,
 inline EntityDamageSource maceSmash(Entity* attacker)
 {
     return EntityDamageSource(DamageType::MaceSmash, attacker);
+}
+
+// ============================================================================
+// 新增伤害源工厂函数（对齐 MC 1.21.11 DamageTypes 注册表）
+// ============================================================================
+
+/** 创建营火伤害（属于火焰伤害） */
+inline EnvironmentalDamage campfire()
+{
+    return EnvironmentalDamage(DamageType::Campfire);
+}
+
+/** 创建末影珍珠摔落伤害（属于摔落伤害，绕过护甲） */
+inline EnvironmentalDamage enderPearl()
+{
+    return EnvironmentalDamage(DamageType::EnderPearl);
+}
+
+/**
+ * @brief 创建生物攻击伤害（不激怒目标）
+ * 用于铁傀儡等生物的攻击，不会激怒目标生物
+ */
+inline EntityDamageSource mobAttackNoAggro(Entity* mob)
+{
+    return EntityDamageSource(DamageType::MobAttackNoAggro, mob);
+}
+
+/**
+ * @brief 创建矛（三叉戟近战）伤害
+ * 三叉戟近战攻击使用此伤害类型，受难度缩放
+ */
+inline EntityDamageSource spear(Entity* attacker)
+{
+    return EntityDamageSource(DamageType::Spear, attacker).setDifficultyScaled();
+}
+
+/**
+ * @brief 创建羊驼喷吐伤害
+ * 羊驼喷吐物命中实体时造成的间接伤害，受难度缩放
+ */
+inline IndirectEntityDamageSource spit(Entity* spitEntity, Entity* shooter)
+{
+    return IndirectEntityDamageSource(DamageType::Spit, shooter, spitEntity).setProjectile().setDifficultyScaled();
+}
+
+/**
+ * @brief 创建无归属火球伤害
+ * 用于无射击者的火球（如恶魂火球被偏转后）造成的伤害
+ */
+inline IndirectEntityDamageSource unattributedFireball(Entity* fireball, Entity* shooter, bool isPlayer = false)
+{
+    return IndirectEntityDamageSource(DamageType::UnattributedFireball, shooter, fireball, isPlayer)
+        .setProjectile()
+        .setFireDamage();
+}
+
+/**
+ * @brief 创建凋灵之首伤害
+ * 凋灵发射的凋灵之首命中实体时造成的伤害
+ */
+inline IndirectEntityDamageSource witherSkull(Entity* skull, Entity* shooter)
+{
+    return IndirectEntityDamageSource(DamageType::WitherSkull, shooter, skull).setProjectile();
+}
+
+/**
+ * @brief 创建通用投掷伤害
+ * 雪球、鸡蛋、末影珍珠等通用投掷物命中实体时造成的伤害（通常为0）
+ */
+inline IndirectEntityDamageSource thrown(Entity* projectile, Entity* thrower)
+{
+    return IndirectEntityDamageSource(DamageType::Thrown, thrower, projectile).setProjectile();
+}
+
+/**
+ * @brief 创建音爆伤害
+ * 守卫者音爆攻击造成的伤害，绕过护甲和附魔
+ */
+inline IndirectEntityDamageSource sonicBoom(Entity* guardian, Entity* target)
+{
+    return IndirectEntityDamageSource(DamageType::SonicBoom, guardian, target).setBypassesArmor();
+}
+
+/** 创建床重生爆炸伤害（在下界或末地使用床时） */
+inline EnvironmentalDamage badRespawnPoint()
+{
+    return EnvironmentalDamage(DamageType::BadRespawnPoint);
+}
+
+/** 创建世界边界外伤害 */
+inline EnvironmentalDamage outsideBorder()
+{
+    return EnvironmentalDamage(DamageType::OutsideBorder);
+}
+
+/** 创建通用击杀伤害（/kill 命令使用，绕过无敌） */
+inline EnvironmentalDamage genericKill()
+{
+    return EnvironmentalDamage(DamageType::GenericKill);
 }
 
 } // namespace DamageSources

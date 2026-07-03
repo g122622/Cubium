@@ -33,6 +33,8 @@
 #include "common/entity/core/EntitySpawnPlacementRegistry.hpp"
 #include "common/entity/core/MobEntity.hpp"
 #include "common/entity/core/VanillaEntities.hpp"
+#include "common/entity/damage/tag/DamageTypeTagLoader.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/player/Player.hpp"
 #include "common/entity/inventory/CreativeInventory.hpp"
 #include "common/entity/tag/EntityTypeTagLoader.hpp"
@@ -1057,6 +1059,24 @@ void MinecraftServer::initializeRegistries(bool registerEntities)
             spdlog::error("Failed to load entity type tags from data packs: {}", dataPackLoadResult.error().toString());
         } else {
             spdlog::info("Loaded {} entity type tags from data packs", dataPackLoadResult.value());
+        }
+    }
+
+    // 初始化伤害类型标签（用于狼铠吸收判定、伤害分类等）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::DamageTypeTags");
+        DamageTypeTags::initialize();
+    }
+    spdlog::info("Damage type tags initialized");
+
+    // 从数据包加载伤害类型标签（追加到或替换内置默认值）
+    {
+        MC_TRACE_EVENT("server.initialization", "MinecraftServer::initializeRegistries::DamageTypeTagLoader");
+        auto dataPackLoadResult = DamageTypeTagLoader::loadFromDataPackRepository(m_dataPackList);
+        if (dataPackLoadResult.failed()) {
+            spdlog::error("Failed to load damage type tags from data packs: {}", dataPackLoadResult.error().toString());
+        } else {
+            spdlog::info("Loaded {} damage type tags from data packs", dataPackLoadResult.value());
         }
     }
 

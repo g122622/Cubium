@@ -41,6 +41,7 @@
 #include "common/entity/core/Crackiness.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/tag/DamageTypeTags.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/monster/basic/CreeperEntity.hpp"
 #include "common/entity/entities/monster/nether/NetherEntities.hpp"
@@ -460,17 +461,14 @@ bool WolfEntity::_canArmorAbsorb(const DamageSource& source) const
 {
     // 狼铠吸收伤害的条件：
     // 1. 身体槽位装备了狼铠
-    // 2. 伤害源不绕过护甲
+    // 2. 伤害源不在 DamageTypeTags::BYPASSES_WOLF_ARMOR 标签中
+    // 与 MC 1.21.11 Wolf.canArmorAbsorb 一致：
+    //   return this.getBodyArmorItem().is(Items.WOLF_ARMOR) && !p_406249_.is(DamageTypeTags.BYPASSES_WOLF_ARMOR);
     const ItemStack& bodyArmor = getEquipment(EquipmentSlot::Body);
     if (bodyArmor.isEmpty() || bodyArmor.getItem() != Items::WOLF_ARMOR) {
         return false;
     }
-    // TODO: 当前使用 source.bypassesArmor() 作为 DamageTypeTags::BYPASSES_WOLF_ARMOR 的近似判断。
-    // MC 1.21.11 中狼铠使用独立的 DamageTypeTags::BYPASSES_WOLF_ARMOR 标签来判断哪些伤害绕过狼铠，
-    // 与通用 bypassesArmor() 不完全一致（例如窒息、拥挤等伤害在 MC 中不绕过狼铠）。
-    // 待 DamageTypeTags 标签系统实现后，应改用 source.is(DamageTypeTags::BYPASSES_WOLF_ARMOR) 判断。
-    // 参考: net.minecraft.world.item.WolfArmorItem.WolfArmorBodyArmorApplicator
-    if (source.bypassesArmor()) {
+    if (source.is(DamageTypeTags::BYPASSES_WOLF_ARMOR())) {
         return false;
     }
     return true;
