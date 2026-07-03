@@ -92,6 +92,8 @@ add_executable(mc_tests
     common/item/WindChargeItemTest.cpp
     # WolfArmorItem / NautilusArmorItem / ArmadilloScuteArmorMaterial 测试
     common/item/WolfAndNautilusArmorTest.cpp
+    # ArmorSlot::Body / ArmorMaterial / ArmorItem::isBodyArmor 测试
+    common/item/ArmorMaterialTest.cpp
     common/item/special/BucketItemTest.cpp
     common/item/special/FishBucketItemTest.cpp
     common/item/special/BoneMealItemTest.cpp
