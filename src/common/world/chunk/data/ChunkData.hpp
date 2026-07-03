@@ -410,11 +410,12 @@ private:
     // 区块段指针数组（用于 getSections() 接口，mutable 允许 const 方法更新）
     mutable std::array<const ChunkSection*, mc::world::CHUNK_SECTIONS> m_sectionPtrs{};
 
-    // 高度图 (最高方块Y坐标)
-    std::array<BlockCoord, mc::world::CHUNK_WIDTH * mc::world::CHUNK_WIDTH> m_heightMap;
+    // 高度图 (按 HeightmapType 枚举索引，O(1) 访问；WorldSurface 槽位作为快速查询缓存)
+    std::array<Heightmap, HEIGHTMAP_TYPE_COUNT> m_heightmaps;
 
-    // 高度图 (IChunk 接口)
-    std::unordered_map<HeightmapType, Heightmap> m_heightmaps;
+    // 标记对应类型的高度图槽位是否已被显式填充（updateHeightmap 或反序列化）。
+    // 未填充的类型在 getTopBlockY 查询时回退到 WorldSurface 槽位。
+    std::array<bool, HEIGHTMAP_TYPE_COUNT> m_heightmapInitialized{};
 
     // 生物群系采样数据
     BiomeContainer m_biomes;
@@ -479,6 +480,9 @@ private:
      * @brief 初始化 Nibble 指针数组
      */
     void _ensureNibblePtrs() const;
+
+    // 按枚举顺序为 m_heightmaps 每个槽位设置正确的 HeightmapType
+    void _initHeightmaps();
 };
 
 // ============================================================================

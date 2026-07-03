@@ -667,7 +667,8 @@ private:
      * 在 _drainPendingLoadCompletes 中出队调用。处理：
      * - 校验 SCLM 仍存活且为同一实例（异步期间可能被 unload 重建）
      * - 存档命中：_storeChunkInMemorySync + markLoadedFromStorageReady(FULL) + _completeReadyWaiters
-     *   + _enqueuePostProcess（onChunkLoaded/callback 延迟到主线程，needsPostProcess=false）
+     *   + 直接调用 onChunkLoaded/m_chunkLoadedCallback（主线程路径，不走 _enqueuePostProcess；
+     *     由 m_postProcessedChunks 去重，防止重复执行）
      * - 存档缺失：noteStorageResolved(false) + _advanceChunkState（走 StorageMissing→生成链路）
      * - 从 m_pendingLoadTasks 移除追踪条目（owner 校验），扇出 attachedWaiters（命中→Ready，缺失→生成）
      * - owner 已 unload（ownerAlive=false）：跳过 owner 推进，扇出 attachedWaiters 走生成路径
@@ -1016,6 +1017,21 @@ private:
     /// 每 tick 卸载预算上限（对齐 Moonrise ChunkHolderManager.processUnloads）
     /// 防止单 tick 卸载过多区块造成卡顿
     static constexpr i32 MAX_UNLOADS_PER_TICK = 200;
+
+    /// 主线程后处理队列软上限。
+    ///
+    /// 该队列每 tick 由 _drainPendingPostProcess 完全排空（强上界保证），且每个区块每生命周期最多
+    /// 入队一次（m_postProcessedChunks 去重）。正常情况下队列长度 ≤ worker 池并发完成的区块数，
+    /// 远低于此上限。当主 tick 卡顿导致 worker 在两次排空之间堆积时，超过阈值仅记录警告日志，
+    /// 不拒绝入队（拒绝会丢失已生成区块的实体/后处理，导致状态机停滞），排空语义不变。
+    static constexpr size_t PENDING_POST_PROCESS_WARN_THRESHOLD = 256;
+
+    /// 异步存档加载完成队列软上限。
+    ///
+    /// 每项持有完整 ChunkData（~600KB）与 lifecycleHolder，每 tick 由 _drainPendingLoadCompletes
+    /// 完全排空。每区块最多一个在途加载（m_pendingLoadTasks 去重），正常积压受限于视距内待加载
+    /// 区块数。超过阈值记录警告（暴露主 tick 跟不上加载速率的病态积压），不拒绝入队，排空语义不变。
+    static constexpr size_t PENDING_LOAD_COMPLETES_WARN_THRESHOLD = 256;
 
     /// 加载区块软上限（0 = 不限制）
     /// 当 m_chunks + m_lifecycleManagers 总数超过此值时，按最远票级强制卸载

@@ -460,9 +460,14 @@ std::unique_ptr<std::array<u8, SWMRNibbleArray::ARRAY_SIZE>> SWMRNibbleArray::_a
 
 void SWMRNibbleArray::_freeBytes(std::unique_ptr<std::array<u8, ARRAY_SIZE>> bytes)
 {
-    if (bytes != nullptr) {
-        s_bytePool.push_back(std::move(bytes));
+    if (bytes == nullptr) {
+        return;
     }
+    // 容量上限：超出直接归还堆，防止单线程池因跨线程交接积累的缓冲区而无界膨胀。
+    if (s_bytePool.size() >= POOL_CAPACITY_PER_THREAD) {
+        return; // unique_ptr 析构归还堆
+    }
+    s_bytePool.push_back(std::move(bytes));
 }
 
 bool SWMRNibbleArray::_isAllZero(const std::array<u8, ARRAY_SIZE>& data)

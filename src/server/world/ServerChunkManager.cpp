@@ -417,6 +417,11 @@ void ServerChunkManager::_resolveChunkSourceSync(SingleChunkLifecycleManager& li
             {
                 std::lock_guard<std::mutex> lock(self->m_pendingLoadCompletesMutex);
                 self->m_pendingLoadCompletes.push_back(std::move(item));
+                if (self->m_pendingLoadCompletes.size() > PENDING_LOAD_COMPLETES_WARN_THRESHOLD) {
+                    spdlog::warn("Pending load-completes backlog reached {} (threshold {}); main tick may be lagging",
+                        self->m_pendingLoadCompletes.size(),
+                        PENDING_LOAD_COMPLETES_WARN_THRESHOLD);
+                }
             }
         },
         abortSignal,
@@ -1278,6 +1283,11 @@ void ServerChunkManager::_enqueuePostProcess(
     {
         std::lock_guard<std::mutex> lock(m_pendingPostProcessMutex);
         m_pendingPostProcess.push_back(std::move(item));
+        if (m_pendingPostProcess.size() > PENDING_POST_PROCESS_WARN_THRESHOLD) {
+            spdlog::warn("Pending post-process backlog reached {} (threshold {}); main tick may be lagging",
+                m_pendingPostProcess.size(),
+                PENDING_POST_PROCESS_WARN_THRESHOLD);
+        }
     }
 }
 

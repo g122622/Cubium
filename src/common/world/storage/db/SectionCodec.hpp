@@ -326,15 +326,19 @@ public:
     [[nodiscard]] static Result<std::vector<u8>> compress(const u8* data, size_t size, i32 compressionLevel = 3);
 
     /**
-     * @brief 解压缩数据
+     * @brief 解压缩数据到调用方提供的缓冲区
+     *
+     * 不分配新内存：直接写入 out（调用方保证 out 容量 ≥ expectedSize）。
+     * 反序列化热路径用 thread_local 暂存缓冲区复用，避免每区块 24 次 16KB 堆分配。
      *
      * @param compressedData 压缩数据
      * @param compressedSize 压缩数据大小
+     * @param out 输出缓冲区（容量必须 ≥ expectedSize）
      * @param expectedSize 预期解压缩大小
-     * @return 解压缩后的数据
+     * @return 成功返回 ok；失败返回 DecompressionFailed
      */
-    [[nodiscard]] static Result<std::vector<u8>> decompress(
-        const u8* compressedData, size_t compressedSize, size_t expectedSize);
+    [[nodiscard]] static Result<void> decompressInto(
+        const u8* compressedData, size_t compressedSize, u8* out, size_t expectedSize);
 
     // ========================================================================
     // 常量

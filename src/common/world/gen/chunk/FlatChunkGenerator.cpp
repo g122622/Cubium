@@ -563,6 +563,8 @@ i32 FlatChunkGenerator::getHeight(i32 x, i32 z, HeightmapType type) const
                 case HeightmapType::LightBlocking:
                     isOpaque = state->owner().isSolid(*state) && state->getOpacity() > 0;
                     break;
+                default:
+                    break;
             }
             if (isOpaque) {
                 return minY + i + 1;

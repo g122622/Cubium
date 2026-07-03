@@ -64,6 +64,15 @@ BlockCoord Heightmap::getHeight(BlockCoord x, BlockCoord z) const
     return m_heights[static_cast<size_t>(index)];
 }
 
+void Heightmap::setHeight(BlockCoord x, BlockCoord z, BlockCoord height)
+{
+    if (x < 0 || x >= mc::world::CHUNK_WIDTH || z < 0 || z >= mc::world::CHUNK_WIDTH) {
+        return;
+    }
+    const i32 index = z * mc::world::CHUNK_WIDTH + x;
+    m_heights[static_cast<size_t>(index)] = height;
+}
+
 void Heightmap::setData(const std::array<BlockCoord, SIZE>& data)
 {
     m_heights = data;

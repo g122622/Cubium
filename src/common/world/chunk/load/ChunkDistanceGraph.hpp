@@ -163,7 +163,7 @@ private:
     void _enqueueUpdate(ChunkCoord x, ChunkCoord z);
 
     /// 传播级别到相邻区块
-    void _propagateToNeighbors(ChunkCoord x, ChunkCoord z, i32 level, bool isDecreasing);
+    void _propagateToNeighbors(ChunkCoord x, ChunkCoord z);
 
     /// 区块级别映射
     std::unordered_map<u64, i32> m_levels;
