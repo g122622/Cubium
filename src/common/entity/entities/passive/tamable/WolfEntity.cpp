@@ -465,7 +465,11 @@ bool WolfEntity::_canArmorAbsorb(const DamageSource& source) const
     if (bodyArmor.isEmpty() || bodyArmor.getItem() != Items::WOLF_ARMOR) {
         return false;
     }
-    // 绕过护甲的伤害源（饥饿、跌落、溺水等）不触发狼铠吸收
+    // TODO: 当前使用 source.bypassesArmor() 作为 DamageTypeTags::BYPASSES_WOLF_ARMOR 的近似判断。
+    // MC 1.21.11 中狼铠使用独立的 DamageTypeTags::BYPASSES_WOLF_ARMOR 标签来判断哪些伤害绕过狼铠，
+    // 与通用 bypassesArmor() 不完全一致（例如窒息、拥挤等伤害在 MC 中不绕过狼铠）。
+    // 待 DamageTypeTags 标签系统实现后，应改用 source.is(DamageTypeTags::BYPASSES_WOLF_ARMOR) 判断。
+    // 参考: net.minecraft.world.item.WolfArmorItem.WolfArmorBodyArmorApplicator
     if (source.bypassesArmor()) {
         return false;
     }
@@ -625,11 +629,15 @@ void WolfEntity::actuallyHurt(DamageSource& source, f32 amount)
     i32 armorDamage = static_cast<i32>(std::ceil(amount));
     bool armorBroken = LivingEntity::hurtAndBreak(bodyArmor, armorDamage, this, EquipmentSlot::Body);
 
-    // 狼铠破损时播放破损音效
-    // 参考: MC 1.21.11 WolfArmorItem 的 BREAK_SOUND 组件
     if (armorBroken) {
+        // 狼铠破损时播放破损音效（取代普通受损音效）
+        // 参考: MC 1.21.11 WolfArmorItem 的 BREAK_SOUND 组件
         playSound(SoundEvents::ENTITY_WOLF_ARMOR_BREAK, 1.0f, 1.0f);
     } else {
+        // 狼铠受损但未破损：播放狼铠受损音效（getHurtSound 返回 ENTITY_WOLF_ARMOR_DAMAGE）
+        // 参考: MC 1.21.11 Wolf.getHurtSound() 在狼铠吸收时返回 wolf_armor.damage
+        playHurtSound(source);
+
         // 检查受损后的裂纹等级，等级变化时播放裂纹音效
         auto crackAfter = entity::Crackiness::WOLF_ARMOR.byDamage(bodyArmor.getDamage(), bodyArmor.getMaxDamage());
         if (crackBefore != crackAfter) {

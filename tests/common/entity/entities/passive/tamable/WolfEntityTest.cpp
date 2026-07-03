@@ -26,10 +26,14 @@
 #include "common/TestWorldHelper.hpp"
 #include "common/core/Constants.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/LivingEntity.hpp"
+#include "common/entity/damage/DamageSource.hpp"
 #include "common/entity/entities/passive/tamable/WolfEntity.hpp"
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/items/armor/WolfArmorItem.hpp"
 #include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
@@ -85,6 +89,8 @@ public:
         m_spawnedEntities.push_back(std::move(entity));
         return static_cast<EntityId>(m_spawnedEntities.size());
     }
+
+    [[nodiscard]] i32 getSpawnedEntityCount() const { return static_cast<i32>(m_spawnedEntities.size()); }
 
     // TickManager interface (stubbed for tests)
     [[nodiscard]] world::tick::TickManager& tickManager() override
@@ -1697,6 +1703,548 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairRequiresSitting)
 
     // 站着的狼不会触发修复，损伤不变
     EXPECT_EQ(wolf.getBodyArmorItem().getDamage(), damageBefore);
+}
+
+// ============================================================================
+// 狼铠伤害吸收测试（WolfEntity::actuallyHurt）
+//
+// 穿戴狼铠且伤害源不绕过护甲时，伤害由狼铠耐久吸收，狼不扣血。
+// 参考: net.minecraft.world.entity.animal.wolf.Wolf.actuallyHurt()
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, ActuallyHurt_WithWolfArmor_WolfHealthUnchanged)
+{
+    // 穿戴狼铠的狼受到非绕过护甲伤害时，狼生命值不变，狼铠耐久降低
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth()); // 满血
+
+    // 装备狼铠（耐久 64）
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+    EXPECT_FALSE(wolf.getBodyArmorItem().isDamaged()); // 初始无损伤
+    EXPECT_EQ(wolf.getBodyArmorItem().getMaxDamage(), 64);
+
+    f32 healthBefore = wolf.health();
+    i32 armorDamageBefore = wolf.getBodyArmorItem().getDamage();
+
+    // 创建非绕过护甲的伤害源（生物攻击不绕过护甲）
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    world.resetSoundTracking();
+    wolf.actuallyHurt(damageSource, 5.0f);
+
+    // 狼不扣血（狼铠吸收伤害）
+    EXPECT_FLOAT_EQ(wolf.health(), healthBefore);
+
+    // 狼铠耐久降低（向上取整：5 点伤害 → 5 点耐久损伤）
+    i32 armorDamageAfter = wolf.getBodyArmorItem().getDamage();
+    EXPECT_GT(armorDamageAfter, armorDamageBefore);
+    EXPECT_EQ(armorDamageAfter - armorDamageBefore, 5);
+}
+
+TEST_F(WolfEntityTestFixture, ActuallyHurt_WithWolfArmor_BypassesArmor_DamagesWolf)
+{
+    // 穿戴狼铠的狼受到绕过护甲伤害时，狼扣血，狼铠耐久不变
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth());
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+
+    f32 healthBefore = wolf.health();
+    i32 armorDamageBefore = wolf.getBodyArmorItem().getDamage();
+
+    // 创建绕过护甲的伤害源（摔落伤害绕过护甲）
+    EnvironmentalDamage fallDamage(DamageType::Fall);
+
+    wolf.actuallyHurt(fallDamage, 3.0f);
+
+    // 狼扣血（摔落伤害绕过护甲，不被狼铠吸收）
+    EXPECT_LT(wolf.health(), healthBefore);
+
+    // 狼铠耐久不变
+    EXPECT_EQ(wolf.getBodyArmorItem().getDamage(), armorDamageBefore);
+}
+
+TEST_F(WolfEntityTestFixture, ActuallyHurt_WithoutWolfArmor_WolfTakesDamage)
+{
+    // 未穿戴狼铠的狼受到伤害时，正常扣血
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth());
+
+    EXPECT_FALSE(wolf.isWearingBodyArmor());
+
+    f32 healthBefore = wolf.health();
+
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+    wolf.actuallyHurt(damageSource, 4.0f);
+
+    // 狼扣血（无狼铠吸收）
+    EXPECT_LT(wolf.health(), healthBefore);
+}
+
+TEST_F(WolfEntityTestFixture, ActuallyHurt_ArmorAbsorption_PlaysDamageSound)
+{
+    // 狼铠吸收伤害时播放 ENTITY_WOLF_ARMOR_DAMAGE 音效
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth());
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    world.resetSoundTracking();
+    // 通过 hurt() 触发 getHurtSound → ENTITY_WOLF_ARMOR_DAMAGE
+    wolf.hurt(damageSource, 5.0f);
+
+    // 应该播放了狼铠受损音效（getHurtSound 返回 ENTITY_WOLF_ARMOR_DAMAGE）
+    EXPECT_GT(world.getSoundPlayCount(), 0);
+}
+
+// ============================================================================
+// 狼铠破损测试（耐久降至 0 触发 ENTITY_WOLF_ARMOR_BREAK 音效和槽位清空）
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, ActuallyHurt_ArmorBreak_PlaysBreakSoundAndClearsSlot)
+{
+    // 狼铠耐久降至 0 时播放 ENTITY_WOLF_ARMOR_BREAK 音效，且槽位清空
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth());
+
+    // 装备狼铠，并设置耐久接近破损
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+    wolf.getMutableEquipment(EquipmentSlot::Body).setDamage(60); // 60/64 已受损，剩余 4 点耐久
+
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+
+    f32 healthBefore = wolf.health();
+
+    // 造成 5 点伤害（向上取整 5），狼铠耐久恰好降到 0 → 破损
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    world.resetSoundTracking();
+    wolf.actuallyHurt(damageSource, 5.0f);
+
+    // 狼不扣血（狼铠吸收了伤害）
+    EXPECT_FLOAT_EQ(wolf.health(), healthBefore);
+
+    // 槽位已清空（狼铠破损后 ItemStack 被清空）
+    EXPECT_FALSE(wolf.isWearingBodyArmor());
+    EXPECT_TRUE(wolf.getBodyArmorItem().isEmpty());
+
+    // 应该播放了 ENTITY_WOLF_ARMOR_BREAK 音效
+    EXPECT_GT(world.getSoundPlayCount(), 0);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_WOLF_ARMOR_BREAK);
+}
+
+TEST_F(WolfEntityTestFixture, ActuallyHurt_ArmorNotBroken_NoBreakSound)
+{
+    // 狼铠耐久未降至 0 时不播放破损音效，槽位仍装备狼铠
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth());
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+    wolf.getMutableEquipment(EquipmentSlot::Body).setDamage(10); // 10/64，剩余 54 点耐久
+
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    world.resetSoundTracking();
+    wolf.actuallyHurt(damageSource, 5.0f);
+
+    // 狼铠未破损，槽位仍装备
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+    EXPECT_FALSE(wolf.getBodyArmorItem().isEmpty());
+
+    // 不应该播放 ENTITY_WOLF_ARMOR_BREAK 音效
+    // 可能在低耐久时播放了 ENTITY_WOLF_ARMOR_CRACK，但不应是 BREAK
+    if (world.getSoundPlayCount() > 0) {
+        EXPECT_NE(world.getLastSoundId(), SoundEvents::ENTITY_WOLF_ARMOR_BREAK);
+    }
+}
+
+// ============================================================================
+// 狼铠裂纹等级变化测试
+//
+// 当狼铠受损导致裂纹等级提升时（None→Low, Low→Medium, Medium→High），
+// 播放 ENTITY_WOLF_ARMOR_CRACK 音效。
+// 裂纹阈值（Crackiness::WOLF_ARMOR）：剩余 < 95% → Low, < 69% → Medium, < 32% → High
+// 狼铠耐久 64：95% 阈值对应损伤 4（64*0.05=3.2，损伤 4 时剩余 60/64=93.75% < 95% → Low）
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, ActuallyHurt_CrackLevelChange_PlaysCrackSound)
+{
+    // 狼铠从无裂纹（None）受损到 Low 裂纹时，播放 ENTITY_WOLF_ARMOR_CRACK 音效
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setHealth(wolf.maxHealth());
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+    // 初始损伤 0 → 100% 剩余 → None
+
+    // 造成 5 点伤害 → 损伤变为 5 → 剩余 59/64 ≈ 92.2% < 95% → Low
+    // 裂纹等级从 None → Low，应播放 CRACK 音效
+    EntityDamageSource damageSource(DamageType::MobAttack, nullptr);
+
+    world.resetSoundTracking();
+    wolf.actuallyHurt(damageSource, 5.0f);
+
+    // 应该播放了 ENTITY_WOLF_ARMOR_CRACK 音效
+    EXPECT_GT(world.getSoundPlayCount(), 0);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ENTITY_WOLF_ARMOR_CRACK);
+
+    // 狼铠未破损（耐久 59/64）
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+    EXPECT_FALSE(wolf.getBodyArmorItem().isEmpty());
+}
+
+// ============================================================================
+// 剪刀剪切狼铠集成测试（MobEntity::processInitialInteract 剪刀分支）
+//
+// 玩家手持剪刀 + 已装备狼铠 + 主人 + 非潜行 → 剪下狼铠
+// 剪刀耐久 -1，狼铠掉落为物品实体，播放 ITEM_ARMOR_UNEQUIP_WOLF 音效
+// 参考: net.minecraft.world.entity.Entity.interact() 剪刀分支
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, ProcessInitialInteract_OwnerWithShears_ShearsWolfArmor)
+{
+    // 主人手持剪刀右键已装备狼铠的狼 → 剪下狼铠
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    // 装备狼铠
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL); // 主人
+    player.abilities().creativeMode = false;
+
+    // 手持剪刀
+    ItemStack shearsStack(Items::SHEARS, 1);
+    player.inventory().setItem(0, shearsStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 shearsDamageBefore = player.inventory().getItem(0).getDamage();
+
+    world.resetSoundTracking();
+    i32 spawnedBefore = world.getSpawnedEntityCount();
+    ActionResultType result = wolf.processInitialInteract(player, Hand::MainHand);
+
+    // 返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 狼铠槽位已清空
+    EXPECT_FALSE(wolf.isWearingBodyArmor());
+    EXPECT_TRUE(wolf.getBodyArmorItem().isEmpty());
+
+    // 剪刀耐久 -1
+    i32 shearsDamageAfter = player.inventory().getItem(0).getDamage();
+    EXPECT_EQ(shearsDamageAfter - shearsDamageBefore, 1);
+
+    // 应该掉落了一个物品实体（狼铠）
+    EXPECT_EQ(world.getSpawnedEntityCount() - spawnedBefore, 1);
+
+    // 应该播放了 ITEM_ARMOR_UNEQUIP_WOLF 音效
+    EXPECT_GT(world.getSoundPlayCount(), 0);
+    EXPECT_EQ(world.getLastSoundId(), SoundEvents::ITEM_ARMOR_UNEQUIP_WOLF);
+}
+
+TEST_F(WolfEntityTestFixture, ProcessInitialInteract_NonOwnerWithShears_DoesNotShear)
+{
+    // 非主人手持剪刀不能剪下狼铠（WolfEntity::canShearEquipment 仅允许主人剪切）
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+
+    Player stranger(EntityId(2), "Stranger");
+    stranger.setPlayerId(99999ULL); // 非主人
+
+    ItemStack shearsStack(Items::SHEARS, 1);
+    stranger.inventory().setItem(0, shearsStack);
+    stranger.inventory().setSelectedSlot(0);
+
+    i32 spawnedBefore = world.getSpawnedEntityCount();
+    ActionResultType result = wolf.processInitialInteract(stranger, Hand::MainHand);
+
+    // 非主人不能剪切，狼铠仍在
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+    // 不应该掉落物品
+    EXPECT_EQ(world.getSpawnedEntityCount(), spawnedBefore);
+}
+
+TEST_F(WolfEntityTestFixture, ProcessInitialInteract_Shears_NoArmor_NoEffect)
+{
+    // 手持剪刀但狼未装备狼铠时，剪刀分支不触发，进入 interactMob
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    EXPECT_FALSE(wolf.isWearingBodyArmor());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+
+    ItemStack shearsStack(Items::SHEARS, 1);
+    player.inventory().setItem(0, shearsStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 shearsDamageBefore = player.inventory().getItem(0).getDamage();
+    i32 spawnedBefore = world.getSpawnedEntityCount();
+
+    wolf.processInitialInteract(player, Hand::MainHand);
+
+    // 剪刀耐久不变（剪刀分支未触发）
+    EXPECT_EQ(player.inventory().getItem(0).getDamage(), shearsDamageBefore);
+    // 不掉落物品
+    EXPECT_EQ(world.getSpawnedEntityCount(), spawnedBefore);
+}
+
+TEST_F(WolfEntityTestFixture, ProcessInitialInteract_SneakingWithShears_DoesNotShear)
+{
+    // 玩家潜行时手持剪刀不触发剪切（与 MC 1.21.11 一致）
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setWorld(&world);
+    player.setPlayerId(12345ULL);
+    player.setSneaking(true); // 潜行状态
+
+    ItemStack shearsStack(Items::SHEARS, 1);
+    player.inventory().setItem(0, shearsStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 shearsDamageBefore = player.inventory().getItem(0).getDamage();
+    i32 spawnedBefore = world.getSpawnedEntityCount();
+
+    wolf.processInitialInteract(player, Hand::MainHand);
+
+    // 潜行时不剪切，狼铠仍在
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+    EXPECT_EQ(player.inventory().getItem(0).getDamage(), shearsDamageBefore);
+    EXPECT_EQ(world.getSpawnedEntityCount(), spawnedBefore);
+}
+
+// ============================================================================
+// 狼铠染色交互测试（WolfEntity::interactMob 染色分支）
+//
+// 主人手持染料 + 已装备狼铠 → 改变狼铠颜色（与当前颜色混合）
+// 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 染色分支
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_ChangesArmorColor)
+{
+    // 主人手持染料 + 已装备狼铠 → 改变狼铠颜色
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    // 装备狼铠
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+
+    // 验证初始颜色为默认色（犰狳鳞甲棕色 0xA06540）
+    const auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(wolf.getBodyArmorItem().getItem());
+    ASSERT_NE(dyeableArmor, nullptr);
+    u32 initialColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
+    EXPECT_EQ(initialColor, 0xA06540);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL); // 主人
+    player.abilities().creativeMode = false;
+
+    // 手持红色染料
+    ItemStack redDyeStack(Items::RED_DYE, 10);
+    player.inventory().setItem(0, redDyeStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    // 返回 Success
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 狼铠颜色应该发生变化（与红色混合）
+    u32 newColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
+    EXPECT_NE(newColor, initialColor);
+
+    // 物品应该消耗
+    i32 countAfter = player.inventory().getItem(0).getCount();
+    EXPECT_EQ(countAfter, 9);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_NonOwner_NoColorChange)
+{
+    // 非主人手持染料 + 已装备狼铠 → 不改变狼铠颜色
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+
+    const auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(wolf.getBodyArmorItem().getItem());
+    ASSERT_NE(dyeableArmor, nullptr);
+    u32 initialColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
+
+    Player stranger(EntityId(2), "Stranger");
+    stranger.setPlayerId(99999ULL); // 非主人
+    stranger.abilities().creativeMode = false;
+
+    ItemStack redDyeStack(Items::RED_DYE, 10);
+    stranger.inventory().setItem(0, redDyeStack);
+    stranger.inventory().setSelectedSlot(0);
+
+    wolf.interactMob(stranger, Hand::MainHand);
+
+    // 狼铠颜色不变
+    u32 colorAfter = dyeableArmor->getColor(wolf.getBodyArmorItem());
+    EXPECT_EQ(colorAfter, initialColor);
+
+    // 物品不消耗
+    EXPECT_EQ(stranger.inventory().getItem(0).getCount(), 10);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_DyeOnArmor_MixesColors)
+{
+    // 多次染色应该混合颜色（与当前颜色取 RGB 平均值）
+    // 狼铠默认颜色为犰狳鳞甲棕色 0xA06540 = (160, 101, 64)
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+
+    const auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(wolf.getBodyArmorItem().getItem());
+    ASSERT_NE(dyeableArmor, nullptr);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = true; // 创造模式不消耗物品
+
+    // 验证初始颜色为默认色（犰狳鳞甲棕色 0xA06540）
+    u32 initialColor = dyeableArmor->getColor(wolf.getBodyArmorItem());
+    EXPECT_EQ(initialColor, 0xA06540);
+
+    // 第一次染色：白色染料 0xFFFFFF
+    // 混合后：((160+255)/2, (101+255)/2, (64+255)/2) = (207, 178, 159)
+    ItemStack whiteDyeStack(Items::WHITE_DYE, 10);
+    player.inventory().setItem(0, whiteDyeStack);
+    player.inventory().setSelectedSlot(0);
+    wolf.interactMob(player, Hand::MainHand);
+    u32 colorAfterWhite = dyeableArmor->getColor(wolf.getBodyArmorItem());
+    EXPECT_NE(colorAfterWhite, initialColor);
+
+    u32 expectedAfterWhiteR = (0xA0 + 0xFF) / 2; // 207
+    u32 expectedAfterWhiteG = (0x65 + 0xFF) / 2; // 178
+    u32 expectedAfterWhiteB = (0x40 + 0xFF) / 2; // 159
+    EXPECT_EQ((colorAfterWhite >> 16) & 0xFF, expectedAfterWhiteR);
+    EXPECT_EQ((colorAfterWhite >> 8) & 0xFF, expectedAfterWhiteG);
+    EXPECT_EQ(colorAfterWhite & 0xFF, expectedAfterWhiteB);
+
+    // 第二次染色：黑色染料 0x191919
+    // 混合后：((207+25)/2, (178+25)/2, (159+25)/2) = (116, 101, 92)
+    ItemStack blackDyeStack(Items::INK_SAC, 10);
+    player.inventory().setItem(0, blackDyeStack);
+    wolf.interactMob(player, Hand::MainHand);
+    u32 colorAfterBlack = dyeableArmor->getColor(wolf.getBodyArmorItem());
+
+    // 两次染色后颜色应该不同
+    EXPECT_NE(colorAfterWhite, colorAfterBlack);
+
+    u32 expectedAfterBlackR = (expectedAfterWhiteR + 0x19) / 2; // 116
+    u32 expectedAfterBlackG = (expectedAfterWhiteG + 0x19) / 2; // 101
+    u32 expectedAfterBlackB = (expectedAfterWhiteB + 0x19) / 2; // 92
+    EXPECT_EQ((colorAfterBlack >> 16) & 0xFF, expectedAfterBlackR);
+    EXPECT_EQ((colorAfterBlack >> 8) & 0xFF, expectedAfterBlackG);
+    EXPECT_EQ(colorAfterBlack & 0xFF, expectedAfterBlackB);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NoArmor_DyeChangesCollarOnly)
+{
+    // 未装备狼铠时，染料仅改变颈圈颜色（不进入狼铠染色分支）
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Red); // 默认红色颈圈
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+
+    ItemStack blueDyeStack(Items::LAPIS_LAZULI_DYE, 10);
+    player.inventory().setItem(0, blueDyeStack);
+    player.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 颈圈变为蓝色
+    EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue);
 }
 
 } // namespace

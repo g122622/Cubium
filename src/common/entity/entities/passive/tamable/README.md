@@ -92,11 +92,11 @@
 
         **狼铠剪切 * *（`MobEntity::processInitialInteract` 剪刀分支）：主人手持剪刀 + `canShearEquipment()` 返回 true + 已装备狼铠 → `attemptToShearEquipment()` 剪下狼铠掉落为物品实体，剪刀耐久 -1，播放 `ITEM_ARMOR_UNEQUIP_WOLF` 音效，触发 `SHEAR` 游戏事件。`WolfEntity::canShearEquipment()` 重写为仅主人可剪切。
 
-        **狼铠伤害吸收 * *（`WolfEntity::actuallyHurt`）：穿戴狼铠且伤害源不绕过护甲（`!source.bypassesArmor()`）时，伤害由狼铠耐久吸收（`LivingEntity::hurtAndBreak`，向上取整），狼不扣血。裂纹等级变化时播放 `ENTITY_WOLF_ARMOR_CRACK`，狼铠破损时播放 `ENTITY_WOLF_ARMOR_BREAK`。
+        **狼铠伤害吸收 * *（`WolfEntity::actuallyHurt`）：穿戴狼铠且伤害源不绕过护甲（`!source.bypassesArmor()`）时，伤害由狼铠耐久吸收（`LivingEntity::hurtAndBreak`，向上取整），狼不扣血。狼铠未破损时播放 `ENTITY_WOLF_ARMOR_DAMAGE`（通过 `getHurtSound` 返回值），裂纹等级变化时追加播放 `ENTITY_WOLF_ARMOR_CRACK`；狼铠破损时播放 `ENTITY_WOLF_ARMOR_BREAK`（取代受损音效）。
 
         **裂纹程度 * *（`Crackiness::WOLF_ARMOR`）：剩余耐久 < 95% → Low，< 69% → Medium，< 32% → High。用于音效触发，渲染层待实现。
 
-        **音效**：`ITEM_ARMOR_EQUIP_WOLF`（装备）、`ITEM_ARMOR_UNEQUIP_WOLF`（剪切卸下）、`ENTITY_WOLF_ARMOR_DAMAGE`（狼铠吸收伤害时受伤音效）、`ENTITY_WOLF_ARMOR_CRACK`（裂纹等级提升）、`ENTITY_WOLF_ARMOR_REPAIR`（修复）、`ENTITY_WOLF_ARMOR_BREAK`（破损）。
+        **音效**：`ITEM_ARMOR_EQUIP_WOLF`（装备）、`ITEM_ARMOR_UNEQUIP_WOLF`（剪切卸下）、`ENTITY_WOLF_ARMOR_DAMAGE`（狼铠吸收伤害时受伤音效，狼未破损时播放）、`ENTITY_WOLF_ARMOR_CRACK`（裂纹等级提升）、`ENTITY_WOLF_ARMOR_REPAIR`（修复）、`ENTITY_WOLF_ARMOR_BREAK`（破损，取代 DAMAGE）。
 
         **Crackiness 类**（`src/common/entity/core/Crackiness.hpp`）：通用裂纹追踪器，`byFraction`/`byDamage` 方法根据剩余耐久比例返回裂纹等级。`GOLEM`（铁傀儡）和 `WOLF_ARMOR`（狼铠）为静态常量。
 
