@@ -25,6 +25,7 @@
 #include "common/entity/player/SleepManager.hpp"
 #include "common/entity/player/SleepResult.hpp"
 #include "common/item/context/BlockItemUseContext.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/resource/ResourceLocation.hpp"
 #include "common/sound/SoundCategory.hpp"
 #include "common/util/Direction.hpp"
@@ -411,8 +412,10 @@ ActionResultType BedBlock::onBlockActivated(const BlockState& state,
     }
 }
 
-void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
 {
+    MC_UNUSED(stack);
+
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockPos headPos = pos.offset(facing);
 

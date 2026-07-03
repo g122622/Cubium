@@ -25,6 +25,7 @@
 #include "../../../core/Constants.hpp"
 #include "../../../entity/entities/player/Player.hpp"
 #include "../../../item/context/BlockItemUseContext.hpp"
+#include "../../../item/core/ItemStack.hpp"
 #include "../../../sound/SoundCategory.hpp"
 #include "../../../sound/SoundEvents.hpp"
 #include "../../../util/Direction.hpp"
@@ -97,8 +98,10 @@ BlockState DoorBlock::getStateForPlacement(BlockItemUseContext& context)
         .with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Lower);
 }
 
-void DoorBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+void DoorBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
 {
+    MC_UNUSED(stack);
+
     BlockPos abovePos = pos.up();
     BlockState upperState =
         state.with(BlockStateProperties::DOUBLE_BLOCK_HALF(), BlockStateProperties::DoubleBlockHalf::Upper);

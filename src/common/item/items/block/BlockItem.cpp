@@ -135,7 +135,7 @@ ActionResultType BlockItem::tryPlace(BlockItemUseContext& context) const
         // 调用方块的 onBlockPlacedBy
         // 注意：m_block 是 const Block* 成员指针（非 BlockState 来源），无法使用 getBlockMutable()，
         // 因此需要 const_cast 将其转为可变引用以调用非 const 方法 onBlockPlacedBy
-        const_cast<Block&>(*m_block).onBlockPlacedBy(world, pos, *actualState);
+        const_cast<Block&>(*m_block).onBlockPlacedBy(world, pos, *actualState, stack);
 
         // 派发自定义方块组件回调 - onPlace
         if (blockCompReg.hasPlaceCallback(blockTypeId)) {

@@ -32,6 +32,7 @@
 #include <gtest/gtest.h>
 
 #include "common/entity/entities/player/Player.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include "common/util/math/random/Random.hpp"
@@ -471,7 +472,7 @@ TEST_F(BedBlockPlacedByTest, PlacesHeadBlockAtFacingOffset)
                                       .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
     world.setBlockAt(BlockPos(5, 64, 5), &footState);
 
-    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState);
+    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState, ItemStack{});
 
     // 检查头部位置 (5, 64, 6) 是否被设为 Head
     const BlockState* headState = world.getBlockState(5, 64, 6);
@@ -489,7 +490,7 @@ TEST_F(BedBlockPlacedByTest, PlacesHeadBlockNorthFacing)
                                       .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
     world.setBlockAt(BlockPos(5, 64, 5), &footState);
 
-    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState);
+    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState, ItemStack{});
 
     const BlockState* headState = world.getBlockState(5, 64, 4);
     ASSERT_NE(headState, nullptr);
@@ -505,7 +506,7 @@ TEST_F(BedBlockPlacedByTest, PlacesHeadBlockEastFacing)
                                       .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
     world.setBlockAt(BlockPos(5, 64, 5), &footState);
 
-    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState);
+    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState, ItemStack{});
 
     const BlockState* headState = world.getBlockState(6, 64, 5);
     ASSERT_NE(headState, nullptr);
@@ -520,7 +521,7 @@ TEST_F(BedBlockPlacedByTest, PlacesHeadBlockWestFacing)
                                       .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
     world.setBlockAt(BlockPos(5, 64, 5), &footState);
 
-    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState);
+    bed_->onBlockPlacedBy(world, BlockPos(5, 64, 5), footState, ItemStack{});
 
     const BlockState* headState = world.getBlockState(4, 64, 5);
     ASSERT_NE(headState, nullptr);
@@ -535,7 +536,7 @@ TEST_F(BedBlockPlacedByTest, HeadBlockPreservesFacingDirection)
                                       .with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Foot);
     world.setBlockAt(BlockPos(0, 64, 0), &footState);
 
-    bed_->onBlockPlacedBy(world, BlockPos(0, 64, 0), footState);
+    bed_->onBlockPlacedBy(world, BlockPos(0, 64, 0), footState, ItemStack{});
 
     const BlockState* headState = world.getBlockState(0, 64, 1);
     ASSERT_NE(headState, nullptr);

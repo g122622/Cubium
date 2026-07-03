@@ -571,12 +571,13 @@ BlockState Block::getStateForPlacement(BlockItemUseContext& context)
     return defaultState();
 }
 
-void Block::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+void Block::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
 {
     // 默认实现：空操作
     (void)world;
     (void)pos;
     (void)state;
+    (void)stack;
 }
 
 BlockState Block::updatePostPlacement(const BlockState& state,

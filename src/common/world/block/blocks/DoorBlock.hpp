@@ -85,8 +85,9 @@ public:
      * @param world 世界
      * @param pos 方块位置
      * @param state 方块状态
+     * @param stack 放置该方块的物品堆（可能携带自定义名称等组件）
      */
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
 
     /**
      * @brief 邻居方块更新

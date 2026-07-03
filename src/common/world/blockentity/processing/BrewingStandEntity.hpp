@@ -196,6 +196,26 @@ public:
     void tick(IWorld& world) override;
     [[nodiscard]] bool needsTick() const noexcept override { return true; }
 
+    // ========== 自定义名称 ==========
+
+    /**
+     * @brief 获取自定义名称
+     * @return 自定义名称（空字符串表示无自定义名称）
+     */
+    [[nodiscard]] std::string getCustomName() const override { return m_customName; }
+
+    /**
+     * @brief 设置自定义名称
+     * @param name 自定义名称（空字符串清除自定义名称）
+     */
+    void setCustomName(const std::string& name) override
+    {
+        if (m_customName != name) {
+            m_customName = name;
+            setChanged();
+        }
+    }
+
     // ========== 序列化 ==========
 
     bool load(const nlohmann::json& data) override;
@@ -231,6 +251,7 @@ private:
     i32 m_fuel = 0;              ///< 燃料等级 (0-20)
     bool m_lastBrewing = false;  ///< 上一帧是否在酿造
     ItemStack m_ingredientCache; ///< 材料缓存（用于检测材料变化）
+    std::string m_customName;    ///< 自定义名称（铁砧重命名后由放置物品传递）
 };
 
 } // namespace blockentity

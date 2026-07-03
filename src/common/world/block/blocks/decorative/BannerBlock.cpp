@@ -23,6 +23,7 @@
 
 #include "BannerBlock.hpp"
 #include "../../../../item/context/BlockItemUseContext.hpp"
+#include "../../../../item/core/ItemStack.hpp"
 #include "../../../../util/Direction.hpp"
 #include "../../../IWorld.hpp"
 #include "../../../block/WaterLoggableHelpers.hpp"
@@ -46,11 +47,13 @@ std::unique_ptr<BlockEntity> AbstractBannerBlock::createBlockEntity(const BlockP
     return entity;
 }
 
-void AbstractBannerBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+void AbstractBannerBlock::onBlockPlacedBy(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
 {
     MC_UNUSED(world);
     MC_UNUSED(pos);
     MC_UNUSED(state);
+    MC_UNUSED(stack);
     // 图案数据和自定义名称通过 BannerItem 的放置逻辑和方块实体NBT加载处理
 }
 

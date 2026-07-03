@@ -1442,14 +1442,17 @@ public:
     /**
      * @brief 方块放置后的处理
      *
-     * 在方块被玩家放置后调用。
+     * 在方块被玩家放置后调用，携带放置用的物品堆，便于方块从物品读取数据
+     * （例如铁砧重命名后的自定义名称、物品 BlockEntityTag 等）。
+     *
      * 默认实现为空。
      *
      * @param world 世界
      * @param pos 方块位置
      * @param state 方块状态
+     * @param stack 放置该方块所用的物品堆（始终非空，数量尚未扣除）
      */
-    virtual void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state);
+    virtual void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack);
 
     /**
      * @brief 方块更新后处理

@@ -150,3 +150,24 @@
     ## #12. 酿造台材料槽提取限制
 
 `canExtractItem()` 对材料槽（槽位 3）只允许提取玻璃瓶，其他物品不能提取。
+
+    ## #13. 酿造台自定义名称（铁砧重命名传递）
+
+`BrewingStandEntity` 重写 `getCustomName()` / `setCustomName()` 维护独立的 `m_customName` 字段，对应 MC Java `BaseContainerBlockEntity` 的 `customName` 字段。序列化由 `ContainerBlockEntity::load/save` 自动处理 `CustomName` JSON 字段，无需本类额外编码。
+
+放置时由 `BrewingStandBlock::onBlockPlacedBy()` 从放置物品继承自定义名称（对应 MC Java `BaseContainerBlockEntity.applyImplicitComponents` 机制）：
+
+```cpp
+void BrewingStandBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
+{
+    if (stack.hasCustomName()) {
+        BlockEntity* entity = world.getBlockEntity(pos);
+        if (entity != nullptr && entity->getType() == BlockEntityType::BrewingStand) {
+            auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
+            brewingStand->setCustomName(stack.getCustomName());
+        }
+    }
+}
+```
+
+`clone()` 同步拷贝 `m_customName`，确保方块实体复制时自定义名称不丢失。

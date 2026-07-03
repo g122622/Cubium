@@ -140,8 +140,12 @@ public:
      * @brief 方块放置后回调
      *
      * 设置方块实体（酿造台方块实体在createBlockEntity中创建）。
+     * 当放置物品携带自定义名称时（铁砧重命名后），将该名称传递给方块实体。
+     *
+     * 对应 MC Java 的 BaseContainerBlockEntity.applyImplicitComponents 机制：
+     * 物品通过 setPlacedBy 传递给方块实体，自定义名称通过 Component 引用拷贝。
      */
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
 
     /**
      * @brief 方块移除时回调

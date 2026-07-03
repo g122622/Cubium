@@ -86,8 +86,10 @@ public:
      * @brief 方块放置后回调
      *
      * 检查方块实体是否需要从物品数据加载。
+     *
+     * @param stack 放置该方块的物品堆（可能携带自定义名称等组件）
      */
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
 
     // ========== 渲染属性 ==========
 

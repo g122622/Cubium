@@ -131,14 +131,18 @@
 玩家放置床时，`BedItem.getStateForPlacement()` 返回 FOOT 部分的状态，然后 `BedBlock::onBlockPlacedBy()` 在脚部前方自动放置 HEAD 部分方块：
 
 ```cpp
-void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+void BedBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
 {
+    MC_UNUSED(stack);
+
     Direction facing = state.get(BlockStateProperties::HORIZONTAL_FACING());
     BlockPos headPos = pos.offset(facing);
     BlockState headState = state.with(BlockStateProperties::BED_PART(), BlockStateProperties::BedPart::Head);
     world.setBlockState(headPos, &headState, 3);
 }
 ```
+
+`onBlockPlacedBy` 的 `stack` 参数携带放置该方块的物品堆，便于方块实体从物品继承自定义名称等组件（参考 MC Java 的 `BaseContainerBlockEntity.applyImplicitComponents`）。床方块当前不使用此参数，但保留以便未来扩展。
 
 ### playerWillDestroy（创造模式移除 HEAD）
 

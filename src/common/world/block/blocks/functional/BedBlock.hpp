@@ -170,8 +170,10 @@ public:
      * @brief 方块放置后处理
      *
      * 在脚部放置后，自动放置头部方块。
+     *
+     * @param stack 放置该方块的物品堆（可能携带自定义名称等组件）
      */
-    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state) override;
+    void onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack) override;
 
     /**
      * @brief 玩家破坏方块前的处理

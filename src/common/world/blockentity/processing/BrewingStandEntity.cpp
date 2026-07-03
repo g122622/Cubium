@@ -279,6 +279,7 @@ std::unique_ptr<BlockEntity> BrewingStandEntity::clone() const
     clone->m_brewTime = m_brewTime;
     clone->m_fuel = m_fuel;
     clone->m_lastBrewing = m_lastBrewing;
+    clone->m_customName = m_customName;
     for (i32 slot = 0; slot < TOTAL_SLOTS; ++slot) {
         const ItemStack stack = m_inventory.getItem(slot);
         if (!stack.isEmpty()) {

@@ -136,15 +136,24 @@ ActionResultType BrewingStandBlock::onBlockActivated(const BlockState& state,
     return ActionResultType::Pass;
 }
 
-void BrewingStandBlock::onBlockPlacedBy(IWorld& world, const BlockPos& pos, const BlockState& state)
+void BrewingStandBlock::onBlockPlacedBy(
+    IWorld& world, const BlockPos& pos, const BlockState& state, const ItemStack& stack)
 {
     MC_UNUSED(state);
 
-    // 方块实体在createBlockEntity中创建
-    // 注意：自定义名称需要在放置时从物品获取，但当前项目架构不支持在onBlockPlacedBy中访问放置物品
-    // TODO: 当架构支持后，实现从放置物品获取自定义名称
-    MC_UNUSED(world);
-    MC_UNUSED(pos);
+    // 从放置物品继承自定义名称（对应 MC Java BaseContainerBlockEntity.applyImplicitComponents）
+    // 铁砧重命名后的物品 hasCustomName() 为 true，将名称传递给方块实体。
+    // 参考 MC 1.21.11 BrewingStandBlockEntity.setPlacedBy（经由 BaseContainerBlockEntity）：
+    //   if (stack.hasCustomHoverName()) {
+    //       blockEntity.setCustomName(stack.getHoverName());
+    //   }
+    if (stack.hasCustomName()) {
+        BlockEntity* entity = world.getBlockEntity(pos);
+        if (entity != nullptr && entity->getType() == BlockEntityType::BrewingStand) {
+            auto* brewingStand = static_cast<blockentity::BrewingStandEntity*>(entity);
+            brewingStand->setCustomName(stack.getCustomName());
+        }
+    }
 }
 
 void BrewingStandBlock::onBlockRemoved(IWorld& world, const BlockPos& pos, const BlockState& state)
