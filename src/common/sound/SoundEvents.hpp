@@ -563,6 +563,9 @@ extern const ResourceLocation BLOCK_SCULK_SENSOR_CLICKING_STOP;
 /// 幽匿尖啸体
 extern const ResourceLocation BLOCK_SCULK_SHRIEKER_SHRIEK;
 
+/// 铜傀儡雕像（铜傀儡变雕像音效，玩家右键切换姿态时播放）
+extern const ResourceLocation BLOCK_COPPER_GOLEM_BECOME_STATUE;
+
 /// 监守者
 extern const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSE;
 extern const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSER;

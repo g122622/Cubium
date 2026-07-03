@@ -1108,6 +1108,16 @@ void BlockItemRegistry::initializeVanillaBlockItems()
     registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_LIGHTNING_ROD, "waxed_weathered_lightning_rod");
     registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD, "waxed_oxidized_lightning_rod");
 
+    // 铜傀儡雕像（1.21.11，含氧化和涂蜡变种）
+    registerSimpleBlock(VanillaBlocks::COPPER_GOLEM_STATUE, "copper_golem_statue");
+    registerSimpleBlock(VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE, "exposed_copper_golem_statue");
+    registerSimpleBlock(VanillaBlocks::WEATHERED_COPPER_GOLEM_STATUE, "weathered_copper_golem_statue");
+    registerSimpleBlock(VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE, "oxidized_copper_golem_statue");
+    registerSimpleBlock(VanillaBlocks::WAXED_COPPER_GOLEM_STATUE, "waxed_copper_golem_statue");
+    registerSimpleBlock(VanillaBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE, "waxed_exposed_copper_golem_statue");
+    registerSimpleBlock(VanillaBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE, "waxed_weathered_copper_golem_statue");
+    registerSimpleBlock(VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE, "waxed_oxidized_copper_golem_statue");
+
     // 钟
     registerSimpleBlock(VanillaBlocks::BELL, "bell");
 

@@ -168,7 +168,7 @@
 - `minecraft:copper_block ✅ 已完成`
 - `minecraft:copper_chain ✅ 已完成`
 - `minecraft:copper_chest`
-- `minecraft:copper_golem_statue`
+- `minecraft:copper_golem_statue ✅ 已完成`
 - `minecraft:copper_hoe ✅ 已完成`
 - `minecraft:copper_lantern ✅ 已完成`
 - `minecraft:copper_pickaxe ✅ 已完成`
@@ -180,43 +180,43 @@
 - `minecraft:exposed_copper_bars ✅ 已完成`
 - `minecraft:exposed_copper_chain ✅ 已完成`
 - `minecraft:exposed_copper_chest`
-- `minecraft:exposed_copper_golem_statue`
+- `minecraft:exposed_copper_golem_statue ✅ 已完成`
 - `minecraft:exposed_copper_lantern ✅ 已完成`
 - `minecraft:oxidized_copper ✅ 已完成`
 - `minecraft:oxidized_copper_bars ✅ 已完成`
 - `minecraft:oxidized_copper_chain ✅ 已完成`
 - `minecraft:oxidized_copper_chest`
-- `minecraft:oxidized_copper_golem_statue`
+- `minecraft:oxidized_copper_golem_statue ✅ 已完成`
 - `minecraft:oxidized_copper_lantern ✅ 已完成`
 - `minecraft:waxed_copper_bars ✅ 已完成`
 - `minecraft:waxed_copper_block ✅ 已完成`
 - `minecraft:waxed_copper_chain ✅ 已完成`
 - `minecraft:waxed_copper_chest`
-- `minecraft:waxed_copper_golem_statue`
+- `minecraft:waxed_copper_golem_statue ✅ 已完成`
 - `minecraft:waxed_copper_lantern ✅ 已完成`
 - `minecraft:waxed_exposed_copper ✅ 已完成`
 - `minecraft:waxed_exposed_copper_bars ✅ 已完成`
 - `minecraft:waxed_exposed_copper_chain ✅ 已完成`
 - `minecraft:waxed_exposed_copper_chest`
-- `minecraft:waxed_exposed_copper_golem_statue`
+- `minecraft:waxed_exposed_copper_golem_statue ✅ 已完成`
 - `minecraft:waxed_exposed_copper_lantern ✅ 已完成`
 - `minecraft:waxed_oxidized_copper ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_bars ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_chain ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_chest`
-- `minecraft:waxed_oxidized_copper_golem_statue`
+- `minecraft:waxed_oxidized_copper_golem_statue ✅ 已完成`
 - `minecraft:waxed_oxidized_copper_lantern ✅ 已完成`
 - `minecraft:waxed_weathered_copper ✅ 已完成`
 - `minecraft:waxed_weathered_copper_bars ✅ 已完成`
 - `minecraft:waxed_weathered_copper_chain ✅ 已完成`
 - `minecraft:waxed_weathered_copper_chest`
-- `minecraft:waxed_weathered_copper_golem_statue`
+- `minecraft:waxed_weathered_copper_golem_statue ✅ 已完成`
 - `minecraft:waxed_weathered_copper_lantern ✅ 已完成`
 - `minecraft:weathered_copper ✅ 已完成`
 - `minecraft:weathered_copper_bars ✅ 已完成`
 - `minecraft:weathered_copper_chain ✅ 已完成`
 - `minecraft:weathered_copper_chest`
-- `minecraft:weathered_copper_golem_statue`
+- `minecraft:weathered_copper_golem_statue ✅ 已完成`
 - `minecraft:weathered_copper_lantern ✅ 已完成`
 
 ### Doors（10）
@@ -675,14 +675,14 @@
 ### `minecraft:copper_golem_statues`
 
 
-- `minecraft:copper_golem_statue`
-- `minecraft:exposed_copper_golem_statue`
-- `minecraft:oxidized_copper_golem_statue`
-- `minecraft:waxed_copper_golem_statue`
-- `minecraft:waxed_exposed_copper_golem_statue`
-- `minecraft:waxed_oxidized_copper_golem_statue`
-- `minecraft:waxed_weathered_copper_golem_statue`
-- `minecraft:weathered_copper_golem_statue`
+- `minecraft:copper_golem_statue ✅ 已完成`
+- `minecraft:exposed_copper_golem_statue ✅ 已完成`
+- `minecraft:oxidized_copper_golem_statue ✅ 已完成`
+- `minecraft:waxed_copper_golem_statue ✅ 已完成`
+- `minecraft:waxed_exposed_copper_golem_statue ✅ 已完成`
+- `minecraft:waxed_oxidized_copper_golem_statue ✅ 已完成`
+- `minecraft:waxed_weathered_copper_golem_statue ✅ 已完成`
+- `minecraft:weathered_copper_golem_statue ✅ 已完成`
 
 ### `minecraft:decorated_pot_ingredients`
 

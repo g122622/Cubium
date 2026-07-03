@@ -1592,6 +1592,37 @@ public:
     }
 
     // ========================================================================
+    // 铜傀儡雕像姿态属性 (1.21.11+)
+    // ========================================================================
+
+    /**
+     * @brief 铜傀儡雕像姿态枚举
+     *
+     * MC 1.21.11+: net.minecraft.world.level.block.CopperGolemStatueBlock.Pose
+     * 表示铜傀儡雕像的姿态，玩家右键点击可循环切换。
+     */
+    enum class CopperGolemPose : u8 {
+        Standing = 0, ///< 站立
+        Sitting = 1,  ///< 坐下
+        Running = 2,  ///< 奔跑
+        Star = 3      ///< 倒地（五角星形）
+    };
+
+    /**
+     * @brief 铜傀儡雕像姿态属性
+     *
+     * 对应 MC 原版 BlockStateProperties.COPPER_GOLEM_POSE。
+     * 用于 CopperGolemStatueBlock 系列，玩家右键点击雕像时循环切换姿态。
+     * 比较器模拟输出 = pose.ordinal() + 1 (1-4)。
+     */
+    static const EnumProperty<CopperGolemPose>& COPPER_GOLEM_POSE()
+    {
+        static auto prop = EnumProperty<CopperGolemPose>::create("copper_golem_pose",
+            {CopperGolemPose::Standing, CopperGolemPose::Sitting, CopperGolemPose::Running, CopperGolemPose::Star});
+        return *prop;
+    }
+
+    // ========================================================================
     // 1.17-1.21 新增布尔属性
     // ========================================================================
 
@@ -1957,4 +1988,14 @@ template <>
 struct mc::EnumProperty<mc::BlockStateProperties::SideChainPart>::Traits {
     static std::string toString(const mc::BlockStateProperties::SideChainPart& value);
     static std::optional<mc::BlockStateProperties::SideChainPart> fromName(std::string_view name);
+};
+
+// ============================================================================
+// CopperGolemPose 枚举特征特化 (1.21.11+)
+// ============================================================================
+
+template <>
+struct mc::EnumProperty<mc::BlockStateProperties::CopperGolemPose>::Traits {
+    static std::string toString(const mc::BlockStateProperties::CopperGolemPose& value);
+    static std::optional<mc::BlockStateProperties::CopperGolemPose> fromName(std::string_view name);
 };

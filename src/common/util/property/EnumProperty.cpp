@@ -929,4 +929,40 @@ std::optional<BlockStateProperties::SideChainPart> EnumProperty<BlockStateProper
     return std::nullopt;
 }
 
+// ============================================================================
+// CopperGolemPose Traits 实现 (1.21.11+)
+// ============================================================================
+
+std::string EnumProperty<BlockStateProperties::CopperGolemPose>::Traits::toString(
+    const BlockStateProperties::CopperGolemPose& value)
+{
+    switch (value) {
+        case BlockStateProperties::CopperGolemPose::Standing:
+            return "standing";
+        case BlockStateProperties::CopperGolemPose::Sitting:
+            return "sitting";
+        case BlockStateProperties::CopperGolemPose::Running:
+            return "running";
+        case BlockStateProperties::CopperGolemPose::Star:
+            return "star";
+        default:
+            return "standing";
+    }
+}
+
+std::optional<BlockStateProperties::CopperGolemPose>
+EnumProperty<BlockStateProperties::CopperGolemPose>::Traits::fromName(std::string_view name)
+{
+    if (name == "standing") {
+        return BlockStateProperties::CopperGolemPose::Standing;
+    } else if (name == "sitting") {
+        return BlockStateProperties::CopperGolemPose::Sitting;
+    } else if (name == "running") {
+        return BlockStateProperties::CopperGolemPose::Running;
+    } else if (name == "star") {
+        return BlockStateProperties::CopperGolemPose::Star;
+    }
+    return std::nullopt;
+}
+
 } // namespace mc

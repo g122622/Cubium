@@ -19,6 +19,7 @@
 ├── LecternEntity.hpp / cpp #讲台方块实体（书本展示、翻页红石脉冲、比较器信号）
 ├── PistonBlockEntity.hpp / cpp #活塞方块实体（方块移动动画）
 ├── ShelfBlockEntity.hpp / cpp #书架方块实体（3槽位物品存储、比较器3位二进制信号、侧链连接）
+├── CopperGolemStatueBlockEntity.hpp #铜傀儡雕像方块实体（CUSTOM_NAME 存储、removeStatue 接口；TODO: CopperGolem 实体生成）
 ├── SignEntity.hpp /
         cpp #告示牌方块实体（富文本存储、点击事件、涂蜡保护）
 └── README.md

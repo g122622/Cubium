@@ -843,6 +843,7 @@ add_library(mc_common STATIC
 
     # World - Block - Copper
     world/block/blocks/copper/CopperBulbBlock.cpp
+    world/block/blocks/copper/CopperGolemStatueBlock.cpp
     world/block/blocks/copper/IOxidizableBlock.cpp
     world/block/blocks/copper/WeatheringCopperBlock.cpp
     world/block/blocks/copper/WeatheringCopperBarsBlock.cpp

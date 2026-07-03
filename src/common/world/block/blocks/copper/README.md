@@ -97,6 +97,7 @@ Copper ← ExposedCopper ← WeatheredCopper ← OxidizedCopper
 | `WeatheringCopperLanternBlock.hpp/cpp` | 可氧化铜灯笼（含水，悬挂/站立） |
 | `CopperBulbBlock.hpp/cpp` | 铜灯（红石控制，LIT/POWERED 状态） |
 | `WeatheringLightningRodBlock.hpp/cpp` | 可氧化避雷针（方向性，红石信号输出，闪电吸引，含水支持） |
+| `CopperGolemStatueBlock.hpp/cpp` | 铜傀儡雕像（1.21.11，4 种姿态，比较器输出 1-4，方块实体保存 CUSTOM_NAME） |
 
 ### 避雷针氧化系统（MC 1.21+）
 
@@ -109,3 +110,29 @@ MC 1.21 为避雷针新增了氧化变种。避雷针的氧化架构与其他铜
 氧化链：`lightning_rod → exposed_lightning_rod → weathered_lightning_rod → oxidized_lightning_rod`
 
 `WeatheringLightningRodBlock` 在构造函数中重建状态容器，添加 `OXIDATION` 属性到 `LightningRodBlock` 的 `FACING`、`POWERED`、`WATERLOGGED` 之上。涂蜡版本 `WaxedLightningRodBlock` 保持与基础 `LightningRodBlock` 相同的状态属性，不添加 `OXIDATION`。
+
+### 铜傀儡雕像系统（MC 1.21.11）
+
+铜傀儡雕像（`copper_golem_statue`）是 1.21.11 引入的装饰性方块，共 8 个变体（4 氧化等级 + 4 涂蜡）。它的架构与避雷针类似：
+
+- **基础 `copper_golem_statue`**：使用 `CopperGolemStatueBlock`（不实现 `IOxidizableBlock`），处于氧化链的 Unaffected 位置但不参与氧化 tick
+- **`exposed_copper_golem_statue` / `weathered_copper_golem_statue` / `oxidized_copper_golem_statue`**：使用 `WeatheringCopperGolemStatueBlock`（继承 `CopperGolemStatueBlock` + `IOxidizableBlock`），可随机 tick 氧化
+- **涂蜡变种**：使用 `CopperGolemStatueBlock`（不氧化），与基础类相同但通过 `HoneycombItem` 涂蜡映射关联
+
+**状态属性：**
+- `HORIZONTAL_FACING`：朝向（北南东西，与玩家朝向相反）
+- `COPPER_GOLEM_POSE`：姿态（Standing/Sitting/Running/Star，玩家右键循环切换）
+- `WATERLOGGED`：是否含水
+- `OXIDATION`：氧化等级（仅 `WeatheringCopperGolemStatueBlock`）
+
+**核心行为：**
+- 右键点击：持有斧头时返回 PASS（委托 `AxeItem::onItemUse` 处理刮削/除蜡）；否则循环切换 POSE 并播放 `BLOCK_COPPER_GOLEM_BECOME_STATUE` 音效
+- 比较器输出：`POSE.ordinal() + 1`（范围 1-4）
+- 碰撞形状：圆柱形 `box(3, 0, 3, 13, 14, 13)`（直径 10 像素，高度 14 像素），对应 MC Java `Block.column(10.0, 0.0, 14.0)`
+- 方块实体：`CopperGolemStatueBlockEntity`，保存 `CUSTOM_NAME` 组件（用于铜傀儡转化时保留名称）
+
+**TODO：** 斧头敲击 Unaffected 等级雕像生成铜傀儡的逻辑尚未实现，因为本项目当前没有 `CopperGolem` 实体。待实体实现后，在 `CopperGolemStatueBlockEntity::removeStatue()` 中完成生成逻辑，并在 `WeatheringCopperGolemStatueBlock::onBlockActivated` 中调用。
+
+氧化链：`copper_golem_statue → exposed_copper_golem_statue → weathered_copper_golem_statue → oxidized_copper_golem_statue`
+
+涂蜡映射（4 组）通过 `HoneycombItem::_buildWaxablesMap()` 注册，斧头除蜡通过 `HoneycombItem::getWaxedOff()` 自动反向查找。

@@ -509,6 +509,9 @@ const ResourceLocation BLOCK_SCULK_SENSOR_CLICKING_STOP("minecraft:block.sculk_s
 // 幽匿尖啸体
 const ResourceLocation BLOCK_SCULK_SHRIEKER_SHRIEK("minecraft:block.sculk_shrieker.shriek");
 
+// 铜傀儡雕像（玩家右键切换姿态时播放的音效）
+const ResourceLocation BLOCK_COPPER_GOLEM_BECOME_STATUE("minecraft:block.copper_golem.become_statue");
+
 // 监守者
 const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSE("minecraft:entity.warden.nearby_close");
 const ResourceLocation ENTITY_WARDEN_NEARBY_CLOSER("minecraft:entity.warden.nearby_closer");

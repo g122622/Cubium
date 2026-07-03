@@ -102,6 +102,9 @@ enum class BlockEntityType : u16 {
     // 交互
     DecoratedPot, ///< 饰纹陶罐
 
+    // 1.21.11 铜傀儡雕像
+    CopperGolemStatue, ///< 铜傀儡雕像
+
     Count ///< 类型数量
 };
 

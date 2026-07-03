@@ -32,6 +32,7 @@
 #include "world/block/blocks/building/StairsBlock.hpp"
 #include "world/block/blocks/building/TrapDoorBlock.hpp"
 #include "world/block/blocks/copper/CopperBulbBlock.hpp"
+#include "world/block/blocks/copper/CopperGolemStatueBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperBarsBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperBlock.hpp"
 #include "world/block/blocks/copper/WeatheringCopperChainBlock.hpp"
@@ -201,6 +202,18 @@ Block* CopperBlocks::WAXED_LIGHTNING_ROD = nullptr;
 Block* CopperBlocks::WAXED_EXPOSED_LIGHTNING_ROD = nullptr;
 Block* CopperBlocks::WAXED_WEATHERED_LIGHTNING_ROD = nullptr;
 Block* CopperBlocks::WAXED_OXIDIZED_LIGHTNING_ROD = nullptr;
+
+// ============================================================================
+// 1.21.11 铜傀儡雕像（8个）
+// ============================================================================
+Block* CopperBlocks::COPPER_GOLEM_STATUE = nullptr;
+Block* CopperBlocks::EXPOSED_COPPER_GOLEM_STATUE = nullptr;
+Block* CopperBlocks::WEATHERED_COPPER_GOLEM_STATUE = nullptr;
+Block* CopperBlocks::OXIDIZED_COPPER_GOLEM_STATUE = nullptr;
+Block* CopperBlocks::WAXED_COPPER_GOLEM_STATUE = nullptr;
+Block* CopperBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE = nullptr;
+Block* CopperBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE = nullptr;
+Block* CopperBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE = nullptr;
 
 // ============================================================================
 // 粗矿块
@@ -963,6 +976,77 @@ void registerCopperBlocks()
             .harvestTool(HarvestTool::Pickaxe)
             .harvestLevel(2)
             .requiresTool());
+
+    // ============================================================================
+    // 1.21.11 铜傀儡雕像（8个）
+    // 铜傀儡雕像是一种装饰性方块，具有 4 种姿态（Standing/Sitting/Running/Star），
+    // 玩家右键点击循环切换姿态，红石比较器输出 POSE.ordinal()+1 (1-4)。
+    // 拥有方块实体（CopperGolemStatueBlockEntity）用于保存 CUSTOM_NAME 组件。
+    //
+    // 类层次结构（与 MC Java 一致）：
+    // - CopperGolemStatueBlock：基础类（Unaffected 等级 + 涂蜡变种）
+    //   不实现 IOxidizableBlock，不参与随机 tick
+    // - WeatheringCopperGolemStatueBlock：继承 CopperGolemStatueBlock + IOxidizableBlock
+    //   用于 Exposed/Weathered/Oxidized 等级，会在随机 tick 中尝试氧化
+    //
+    // 氧化链：copper_golem_statue -> exposed_copper_golem_statue ->
+    //         weathered_copper_golem_statue -> oxidized_copper_golem_statue
+    // ============================================================================
+    BlockProperties copperGolemStatueProps = BlockProperties(Material::IRON)
+                                                 .hardness(3.0f)
+                                                 .resistance(6.0f)
+                                                 .harvestTool(HarvestTool::Pickaxe)
+                                                 .requiresTool()
+                                                 .soundType(BlockSoundTypes::COPPER);
+
+    // 基础铜傀儡雕像（Unaffected 等级，不氧化但处于氧化链最低位）
+    auto* copperGolemStatue = &registry.registerBlock<blocks::CopperGolemStatueBlock>(
+        ResourceLocation("minecraft:copper_golem_statue"), copperGolemStatueProps);
+
+    // 可氧化铜傀儡雕像变种（Exposed/Weathered/Oxidized）
+    auto* exposedCopperGolemStatue = &registry.registerBlock<blocks::WeatheringCopperGolemStatueBlock>(
+        ResourceLocation("minecraft:exposed_copper_golem_statue"),
+        copperGolemStatueProps,
+        BlockStateProperties::OxidationLevel::Exposed);
+    auto* weatheredCopperGolemStatue = &registry.registerBlock<blocks::WeatheringCopperGolemStatueBlock>(
+        ResourceLocation("minecraft:weathered_copper_golem_statue"),
+        copperGolemStatueProps,
+        BlockStateProperties::OxidationLevel::Weathered);
+    auto* oxidizedCopperGolemStatue = &registry.registerBlock<blocks::WeatheringCopperGolemStatueBlock>(
+        ResourceLocation("minecraft:oxidized_copper_golem_statue"),
+        copperGolemStatueProps,
+        BlockStateProperties::OxidationLevel::Oxidized);
+
+    // 设置氧化链：copper_golem_statue -> exposed -> weathered -> oxidized
+    // 注意：基础 copper_golem_statue 是 CopperGolemStatueBlock（不实现 IOxidizableBlock），
+    // 所以它没有 setNextOxidationBlock 方法。氧化链从 exposed 开始：
+    exposedCopperGolemStatue->setNextOxidationBlock(weatheredCopperGolemStatue);
+    weatheredCopperGolemStatue->setNextOxidationBlock(oxidizedCopperGolemStatue);
+    // oxidized 的 m_nextOxidationBlock 保持 nullptr（最高等级）
+
+    // 设置反向氧化链（用于斧头刮削）
+    exposedCopperGolemStatue->setPreviousOxidationBlock(copperGolemStatue);
+    weatheredCopperGolemStatue->setPreviousOxidationBlock(exposedCopperGolemStatue);
+    oxidizedCopperGolemStatue->setPreviousOxidationBlock(weatheredCopperGolemStatue);
+    // copper_golem_statue 的 m_previousOxidationBlock 保持 nullptr（最低等级）
+
+    CopperBlocks::COPPER_GOLEM_STATUE = copperGolemStatue;
+    CopperBlocks::EXPOSED_COPPER_GOLEM_STATUE = exposedCopperGolemStatue;
+    CopperBlocks::WEATHERED_COPPER_GOLEM_STATUE = weatheredCopperGolemStatue;
+    CopperBlocks::OXIDIZED_COPPER_GOLEM_STATUE = oxidizedCopperGolemStatue;
+
+    // 涂蜡铜傀儡雕像变种（不氧化）
+    CopperBlocks::WAXED_COPPER_GOLEM_STATUE = &registry.registerBlock<blocks::CopperGolemStatueBlock>(
+        ResourceLocation("minecraft:waxed_copper_golem_statue"), copperGolemStatueProps);
+
+    CopperBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE = &registry.registerBlock<blocks::CopperGolemStatueBlock>(
+        ResourceLocation("minecraft:waxed_exposed_copper_golem_statue"), copperGolemStatueProps);
+
+    CopperBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE = &registry.registerBlock<blocks::CopperGolemStatueBlock>(
+        ResourceLocation("minecraft:waxed_weathered_copper_golem_statue"), copperGolemStatueProps);
+
+    CopperBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE = &registry.registerBlock<blocks::CopperGolemStatueBlock>(
+        ResourceLocation("minecraft:waxed_oxidized_copper_golem_statue"), copperGolemStatueProps);
 }
 
 } // namespace block_registry

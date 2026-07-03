@@ -271,6 +271,16 @@ std::unordered_map<const Block*, const Block*> HoneycombItem::_buildWaxablesMap(
     if (VanillaBlocks::OXIDIZED_LIGHTNING_ROD && VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD)
         m[VanillaBlocks::OXIDIZED_LIGHTNING_ROD] = VanillaBlocks::WAXED_OXIDIZED_LIGHTNING_ROD;
 
+    // 铜傀儡雕像（MC 1.21.11）
+    if (VanillaBlocks::COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_COPPER_GOLEM_STATUE)
+        m[VanillaBlocks::COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_COPPER_GOLEM_STATUE;
+    if (VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE)
+        m[VanillaBlocks::EXPOSED_COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_EXPOSED_COPPER_GOLEM_STATUE;
+    if (VanillaBlocks::WEATHERED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE)
+        m[VanillaBlocks::WEATHERED_COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_WEATHERED_COPPER_GOLEM_STATUE;
+    if (VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE && VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE)
+        m[VanillaBlocks::OXIDIZED_COPPER_GOLEM_STATUE] = VanillaBlocks::WAXED_OXIDIZED_COPPER_GOLEM_STATUE;
+
     return m;
 }
 
