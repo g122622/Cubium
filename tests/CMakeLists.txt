@@ -880,6 +880,8 @@ add_executable(mc_tests
     network/ParticlePacketDustTest.cpp
     # TrailParticleData 粒子数据包测试
     network/ParticlePacketTrailTest.cpp
+    # EntityEffect 粒子数据包测试
+    network/ParticlePacketEntityEffectTest.cpp
     network/ExplosionPacketTest.cpp
     network/WorldEventPacketTest.cpp
     network/SpawnPositionPacketTest.cpp
@@ -1223,6 +1225,8 @@ add_executable(mc_tests
     client/renderer/trident/particle/data/DustParticleDataTest.cpp
     # TrailParticleData 粒子数据测试
     client/renderer/trident/particle/data/TrailParticleDataTest.cpp
+    # EntityEffectParticleData 粒子数据测试
+    client/renderer/trident/particle/data/EntityEffectParticleDataTest.cpp
     # 粒子缩放测试
     client/renderer/trident/particle/particles/effect/ParticleScalingTest.cpp
     # SpellParticle 颜色提取测试
@@ -1597,6 +1601,7 @@ target_sources(mc_tests
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/ParticleTextureAtlas.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BasicParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/DustParticleData.cpp
+        ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/EntityEffectParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/TrailParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/BlockParticleData.cpp
         ${CMAKE_SOURCE_DIR}/src/client/renderer/trident/particle/data/ItemParticleData.cpp

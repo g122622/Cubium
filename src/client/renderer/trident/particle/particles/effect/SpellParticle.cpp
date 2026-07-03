@@ -217,6 +217,14 @@ std::unique_ptr<Particle> EntityEffectParticle::createAmbient(
     return std::make_unique<EntityEffectParticle>(pos, velocity, glm::vec4(r, g, b, 1.0f), true);
 }
 
+std::unique_ptr<Particle> EntityEffectParticle::createWithColor(
+    const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world, const glm::vec4& color)
+{
+    MC_UNUSED(world);
+    // 直接使用传入的 RGBA 颜色构造粒子（来自粒子数据管线的 EntityEffectParticleData）
+    return std::make_unique<EntityEffectParticle>(pos, velocity, color, false);
+}
+
 void EntityEffectParticle::tick(mc::client::ClientWorld* world)
 {
     MC_UNUSED(world);

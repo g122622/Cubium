@@ -31,6 +31,7 @@
 #include "../renderer/trident/particle/ParticleManager.hpp"
 #include "../renderer/trident/particle/ParticleRegistry.hpp"
 #include "../renderer/trident/particle/ParticleTypes.hpp"
+#include "../renderer/trident/particle/data/EntityEffectParticleData.hpp"
 #include "../renderer/trident/particle/particles/block/DiggingParticle.hpp"
 #include "../renderer/trident/particle/particles/block/DustPillarParticle.hpp"
 #include "common/core/Constants.hpp"
@@ -948,6 +949,38 @@ void ClientWorld::addParticleWithData(::mc::particle::ParticleTypeId type,
     glm::vec3 glmVel(velocity.x, velocity.y, velocity.z);
 
     m_particleManager->addPendingParticle(type, glmPos, glmVel, this, std::move(data));
+}
+
+void ClientWorld::addEntityEffectParticle(
+    const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color)
+{
+    if (!m_particleManager) {
+        return;
+    }
+
+    // 粒子质量过滤：根据 ParticleMode 设置决定是否接受该粒子
+    if (!m_particleManager->shouldShowParticle(::mc::particle::ParticleTypeId::EntityEffect)) {
+        return;
+    }
+
+    // 通过粒子数据管线创建带颜色的 EntityEffect 粒子
+    // 对应 MC Java 的 ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, color)
+    using namespace renderer::trident::particle;
+
+    glm::vec3 glmPos(pos.x, pos.y, pos.z);
+    glm::vec3 glmVel(velocity.x, velocity.y, velocity.z);
+
+    math::Random rng;
+    for (u32 i = 0; i < count; ++i) {
+        // 在偏移范围内随机分布粒子位置（与 addParticle(count) 行为一致）
+        glm::vec3 particlePos(pos.x + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.x : 0.0f),
+            pos.y + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.y : 0.0f),
+            pos.z + (i > 0 ? (rng.nextFloat() * 2.0f - 1.0f) * offset.z : 0.0f));
+
+        auto effectData = std::make_unique<data::EntityEffectParticleData>(color);
+        m_particleManager->addPendingParticle(
+            ParticleTypeId::EntityEffect, particlePos, glmVel, this, std::move(effectData));
+    }
 }
 
 bool ClientWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const

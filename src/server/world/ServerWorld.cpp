@@ -2268,6 +2268,15 @@ void ServerWorld::addVibrationParticle(const Vector3& pos, const Vector3d& targe
     }
 }
 
+void ServerWorld::addEntityEffectParticle(
+    const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color)
+{
+    // 服务端不生成粒子，而是广播带颜色的 EntityEffect 粒子给附近玩家
+    if (m_onBroadcastEntityEffectParticle) {
+        m_onBroadcastEntityEffectParticle(pos, velocity, offset, count, color);
+    }
+}
+
 bool ServerWorld::shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance) const
 {
     // 服务端总是返回 true，广播系统会根据玩家距离决定是否发送

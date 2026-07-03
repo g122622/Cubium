@@ -61,6 +61,7 @@ namespace mc::network {
  * - DustColorTransition: i32 fromColor(ARGB), i32 toColor(ARGB), f32 scale
  * - Vibration: f64 targetX, f64 targetY, f64 targetZ, VarInt arrivalInTicks
  * - Trail: f64 targetX, f64 targetY, f64 targetZ, i32 color(ARGB), VarInt durationInTicks
+ * - EntityEffect: i32 color(ARGB)
  */
 class ParticlePacket : public Packet {
 public:
@@ -397,6 +398,44 @@ public:
      * @return 缩放因子，解码失败返回 std::nullopt
      */
     [[nodiscard]] std::optional<f32> decodeDustColorTransitionScale() const;
+
+    // ========== 实体效果粒子数据编解码 ==========
+
+    /**
+     * @brief 创建实体效果粒子包（带颜色）
+     *
+     * 实体效果粒子需要额外数据：ARGB 颜色。
+     * 这些数据编码到 optionalData 中，客户端解码后创建 EntityEffectParticle。
+     *
+     * 可选数据格式：i32 color(ARGB)
+     *
+     * @param pos 位置
+     * @param velocity 速度
+     * @param offset 偏移范围
+     * @param count 粒子数量
+     * @param color 粒子颜色（ARGB 格式）
+     */
+    static ParticlePacket createEntityEffect(
+        const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color);
+
+    /**
+     * @brief 检查此粒子包是否为实体效果粒子
+     *
+     * 实体效果粒子包的粒子类型为 EntityEffect 且含有可选数据。
+     *
+     * @return 是否为实体效果粒子
+     */
+    [[nodiscard]] bool isEntityEffectParticle() const noexcept;
+
+    /**
+     * @brief 解码实体效果粒子颜色
+     *
+     * 仅当 isEntityEffectParticle() 返回 true 时有效。
+     * 从可选数据中解码 ARGB 颜色。
+     *
+     * @return ARGB 颜色，解码失败返回 std::nullopt
+     */
+    [[nodiscard]] std::optional<u32> decodeEntityEffectColor() const;
 
 private:
     particle::ParticleTypeId m_particleType = particle::ParticleTypeId::Invalid;

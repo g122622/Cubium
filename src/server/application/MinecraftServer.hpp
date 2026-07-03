@@ -881,6 +881,21 @@ protected:
     void broadcastVibrationParticleInRange(
         const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks, f32 range = 256.0f);
 
+    /**
+     * @brief 广播带颜色的 EntityEffect 粒子给范围内玩家
+     *
+     * 用于 BellBlockEntity 共振等需要携带 ARGB 颜色的场景。
+     *
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param offset 随机偏移范围
+     * @param count 粒子数量
+     * @param color 粒子颜色（ARGB 格式）
+     * @param range 广播范围（格），默认 256 格
+     */
+    void broadcastEntityEffectParticleInRange(
+        const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color, f32 range = 256.0f);
+
     // ========== 爆炸广播方法 ==========
 
     /**

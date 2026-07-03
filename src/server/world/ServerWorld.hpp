@@ -531,6 +531,20 @@ public:
         m_onBroadcastVibrationParticle = std::move(callback);
     }
 
+    /**
+     * @brief 实体效果粒子广播回调类型
+     *
+     * 当服务端需要广播带颜色的 EntityEffect 粒子给玩家时调用。
+     * 参数：位置、速度、偏移、数量、ARGB 颜色
+     */
+    using EntityEffectParticleBroadcastCallback =
+        std::function<void(const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color)>;
+
+    void setOnBroadcastEntityEffectParticle(EntityEffectParticleBroadcastCallback callback)
+    {
+        m_onBroadcastEntityEffectParticle = std::move(callback);
+    }
+
     // ========== 实体状态广播回调 ==========
 
     /**
@@ -677,6 +691,21 @@ public:
      * @param arrivalInTicks 到达目标的 tick 数
      */
     void addVibrationParticle(const Vector3& pos, const Vector3d& targetPosition, i32 arrivalInTicks);
+
+    /**
+     * @brief 添加带颜色的实体效果粒子
+     *
+     * 与普通 addParticle 不同，EntityEffect 粒子需要携带 ARGB 颜色信息。
+     * 用于 BellBlockEntity 共振、药水效果等场景。
+     *
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param offset 随机偏移范围
+     * @param count 粒子数量
+     * @param color 粒子颜色（ARGB 格式）
+     */
+    void addEntityEffectParticle(
+        const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color) override;
 
     [[nodiscard]] bool shouldSpawnParticleAt(const Vector3& pos, f32 maxDistance = 256.0f) const override;
 
@@ -1293,6 +1322,7 @@ private:
     std::function<void(const ResourceLocation&, sound::SoundCategory, const Vector3&, f32, f32)> m_onPlaySound;
     ParticleBroadcastCallback m_onBroadcastParticle;
     VibrationParticleBroadcastCallback m_onBroadcastVibrationParticle;
+    EntityEffectParticleBroadcastCallback m_onBroadcastEntityEffectParticle;
     EntityStatusCallback m_onBroadcastEntityStatus;
     EntityAnimationCallback m_onBroadcastEntityAnimation;
     SetEntityLinkCallback m_onBroadcastSetEntityLink;

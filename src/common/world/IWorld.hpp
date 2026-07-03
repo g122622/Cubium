@@ -1194,6 +1194,29 @@ public:
     }
 
     /**
+     * @brief 生成带颜色的实体效果粒子
+     *
+     * 用于 BellBlockEntity 等需要携带 ARGB 颜色的 EntityEffect 粒子场景。
+     * 服务端：广播给附近玩家（携带颜色数据）
+     * 客户端：默认回退到普通 addParticle（忽略颜色）
+     *
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param offset 随机偏移范围
+     * @param count 粒子数量
+     * @param color 粒子颜色（ARGB 格式，如 0xFFFF0000 为红色）
+     */
+    virtual void addEntityEffectParticle(
+        const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color)
+    {
+        (void)pos;
+        (void)velocity;
+        (void)offset;
+        (void)count;
+        (void)color;
+    }
+
+    /**
      * @brief 检查是否应在指定位置生成粒子
      *
      * 用于距离裁剪，避免在玩家视野外生成粒子。

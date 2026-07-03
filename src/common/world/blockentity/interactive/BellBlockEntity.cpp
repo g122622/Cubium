@@ -319,13 +319,18 @@ void BellBlockEntity::_makeRaidersGlow(IWorld& world)
 
 void BellBlockEntity::_showBellParticles(IWorld& world)
 {
-    // TODO: 粒子系统简化——当前使用 Witch 粒子近似 MC 原版的
-    // ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, color)。
-    // MC 原版在共振到期时对每个范围内的灾厄村民发射带颜色（16700985 起始，
-    // 每个粒子颜色递增 5）的 ENTITY_EFFECT 粒子。本项目目前不支持带颜色的
-    // 粒子选项（ColorParticleOption 等价物尚未实现），故用 Witch 粒子近似。
-    // 待 ColorParticleOption / 带颜色粒子系统实现后，需替换此处为
-    // ParticleTypeId::EntityEffect 并附加颜色数据，同时移除本 TODO。
+    // 对应 MC Java 原版 BellBlockEntity.showBellParticles：
+    //   MutableInt mutableint = new MutableInt(16700985);
+    //   int i = nearbyEntities.filter(closerThan 48).count();
+    //   for each raider within range:
+    //       int j = Mth.clamp((i - 21) / -2, 3, 15);
+    //       double d1 = pos.x + 0.5 + (1/dist) * (entity.x - pos.x);
+    //       double d2 = pos.z + 0.5 + (1/dist) * (entity.z - pos.z);
+    //       for (int k = 0; k < j; k++) {
+    //           int l = mutableint.addAndGet(5);
+    //           world.addParticle(ColorParticleOption.create(ENTITY_EFFECT, l),
+    //                             d1, pos.y + 0.5, d2, 0, 0, 0);
+    //       }
     const Vector3 center = m_pos.center();
     const f32 highlightRadiusSq = HIGHLIGHT_RAIDERS_RADIUS * HIGHLIGHT_RAIDERS_RADIUS;
 
@@ -360,6 +365,9 @@ void BellBlockEntity::_showBellParticles(IWorld& world)
     // 粒子数量（参考 MC 原版 j = Mth.clamp((i - 21) / -2, 3, 15)）
     const i32 particleCount = std::max(3, std::min(15, (nearbyCount - 21) / -2));
 
+    // 颜色计数器：初始 16700985，每个粒子发射前递增 5（对应 MC 原版 MutableInt.addAndGet(5)）
+    i32 colorCounter = 16700985;
+
     for (LivingEntity* living : m_nearbyEntities) {
         if (living == nullptr || !_isRaiderWithinRange(*living)) {
             continue;
@@ -376,11 +384,16 @@ void BellBlockEntity::_showBellParticles(IWorld& world)
         // 计算粒子发射位置（参考 MC 原版公式）
         const f32 d1 = static_cast<f32>(m_pos.x) + 0.5f + (1.0f / dist) * dx;
         const f32 d2 = static_cast<f32>(m_pos.z) + 0.5f + (1.0f / dist) * dz;
+        const Vector3 particlePos(d1, static_cast<f32>(m_pos.y) + 0.5f, d2);
 
+        // 为每个粒子生成递增颜色（addAndGet 语义：先加后返回）
         for (i32 k = 0; k < particleCount; ++k) {
-            world.addParticle(particle::ParticleTypeId::Witch,
-                Vector3(d1, static_cast<f32>(m_pos.y) + 0.5f, d2),
-                Vector3(0.0f, 0.0f, 0.0f));
+            colorCounter += 5;
+            const u32 color = static_cast<u32>(colorCounter);
+            // 通过 IWorld::addEntityEffectParticle 走粒子数据管线
+            // 客户端：经 ClientWorld 创建带 EntityEffectParticleData 的粒子
+            // 服务端：经 ServerWorld 广播给附近玩家
+            world.addEntityEffectParticle(particlePos, Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 0.0f), 1, color);
         }
     }
 }

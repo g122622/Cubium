@@ -26,6 +26,7 @@
 
 // 粒子数据类型头文件
 #include "data/DustParticleData.hpp"
+#include "data/EntityEffectParticleData.hpp"
 #include "data/TrailParticleData.hpp"
 #include "data/VibrationParticleData.hpp"
 
@@ -1334,6 +1335,23 @@ void registerBuiltinParticleFactories()
             }
             // 回退到默认工厂（红到蓝颜色过渡）
             return DustColorTransitionParticle::create(pos, velocity, world);
+        });
+
+    // 实体效果粒子：从 EntityEffectParticleData 提取 ARGB 颜色数据
+    // 对应 MC Java 的 ColorParticleOption(ENTITY_EFFECT)
+    registry.registerDataFactory(ParticleTypeId::EntityEffect,
+        [](const glm::vec3& pos,
+            const glm::vec3& velocity,
+            mc::client::ClientWorld* world,
+            const data::ParticleData* data) -> std::unique_ptr<Particle> {
+            if (data) {
+                auto* effectData = dynamic_cast<const data::EntityEffectParticleData*>(data);
+                if (effectData) {
+                    return EntityEffectParticle::createWithColor(pos, velocity, world, effectData->toRGBAVector());
+                }
+            }
+            // 回退到默认工厂（紫色药水效果粒子）
+            return EntityEffectParticle::create(pos, velocity, world);
         });
 }
 

@@ -1881,6 +1881,24 @@ void NetworkClient::_handleParticle(network::PacketDeserializer& deser)
                 scale.value());
         }
     }
+
+    // 实体效果粒子特殊处理：解码 ARGB 颜色
+    if (packet.isEntityEffectParticle() && m_callbacks.onEntityEffectParticle) {
+        auto color = packet.decodeEntityEffectColor();
+        if (color.has_value()) {
+            m_callbacks.onEntityEffectParticle(packet.x(),
+                packet.y(),
+                packet.z(),
+                packet.velocityX(),
+                packet.velocityY(),
+                packet.velocityZ(),
+                packet.offsetX(),
+                packet.offsetY(),
+                packet.offsetZ(),
+                packet.count(),
+                color.value());
+        }
+    }
 }
 
 void NetworkClient::_handleMovingSound(network::PacketDeserializer& deser)

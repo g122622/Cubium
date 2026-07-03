@@ -140,6 +140,21 @@ public:
     static std::unique_ptr<Particle> createAmbient(
         const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world);
 
+    /**
+     * @brief 从 RGBA 颜色创建实体效果粒子
+     *
+     * 用于粒子数据管线（EntityEffectParticleData）。直接使用 RGBA 颜色向量构造，
+     * 不再从 velocity 中解码颜色。
+     *
+     * @param pos 初始位置
+     * @param velocity 初始速度
+     * @param world 客户端世界（未使用，保留以匹配工厂签名）
+     * @param color 粒子颜色（RGBA，每个分量 0.0-1.0）
+     * @return 粒子实例
+     */
+    static std::unique_ptr<Particle> createWithColor(
+        const glm::vec3& pos, const glm::vec3& velocity, mc::client::ClientWorld* world, const glm::vec4& color);
+
     void tick(mc::client::ClientWorld* world) override;
 
     [[nodiscard]] ParticleRenderType getRenderType() const override

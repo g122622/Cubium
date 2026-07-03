@@ -212,6 +212,19 @@ BellBlockEntity 将 MC Java 的 `serverTick` 与 `clientTick` 合并为单一 `t
 
 搜索后，仅服务端对 32 格内的村民（`VillagerEntity`）写入 `HEARD_BELL_TIME` 记忆（值为当前 `getGameTime()`），触发村民"躲藏"行为。村民通过 `dynamic_cast` 筛选，非村民实体忽略。
 
-## #16. BellBlockEntity 粒子系统的简化
+## #16. BellBlockEntity 粒子系统（EntityEffect 带颜色粒子）
 
-`_showBellParticles` 当前使用 `ParticleTypeId::Witch` 粒子近似 MC 原版的 `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, color)`。这是因为本项目目前不支持带颜色的粒子选项（`ColorParticleOption` 等价物尚未实现）。粒子数量公式 `clamp((nearbyCount - 21) / -2, 3, 15)` 与 MC 原版一致，其中 `nearbyCount` 是 48 格内的所有附近实体数量（而非仅灾厄村民）。待带颜色粒子系统实现后需替换此处实现（见代码中的 TODO 注释）。
+`_showBellParticles` 对应 MC 原版的 `showBellParticles`，通过 `IWorld::addEntityEffectParticle` 发射带 ARGB 颜色的 `EntityEffect` 粒子，对应 MC Java 的 `ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, color)`。
+
+### 颜色递增序列
+- 初始颜色计数器：`16700985`
+- 每次发射粒子前：`colorCounter += 5`（对应 MC `MutableInt.addAndGet(5)`）
+- 颜色通过 `EntityEffectParticleData`（仅 ARGB，无 scale）携带
+
+### 粒子数量公式
+`particleCount = clamp((nearbyCount - 21) / -2, 3, 15)`，其中 `nearbyCount` 是 48 格内的所有附近实体数量（而非仅灾厄村民）。
+
+### 数据管线
+1. **客户端**：`IWorld::addEntityEffectParticle` → `ClientWorld::addEntityEffectParticle` → 创建 `EntityEffectParticleData` → `ParticleManager::addPendingParticle` → 数据工厂 `EntityEffectParticle::createWithColor`
+2. **服务端**（虽 `_showBellParticles` 仅在客户端调用，但 `addEntityEffectParticle` 接口可被其他场景复用）：`ServerWorld::addEntityEffectParticle` → `m_onBroadcastEntityEffectParticle` 回调 → `MinecraftServer::broadcastEntityEffectParticleInRange` → `ParticlePacket::createEntityEffect` 发送给范围内玩家
+3. **客户端接收**：`NetworkClient::_handleParticle` → `isEntityEffectParticle` 分支 → `onEntityEffectParticle` 回调 → `ClientApplicationNetwork` 创建 `EntityEffectParticleData` → `ParticleManager::addPendingParticle`

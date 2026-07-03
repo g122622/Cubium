@@ -330,12 +330,32 @@ public:
     [[nodiscard]] const std::vector<ParticleCall>& particleCalls() const { return m_particleCalls; }
     void clearParticleCalls() { m_particleCalls.clear(); }
 
+    /// 记录 addEntityEffectParticle 调用（BellBlockEntity 使用此接口发射带颜色的 EntityEffect 粒子）
+    struct EntityEffectParticleCall {
+        Vector3 pos;
+        Vector3 velocity;
+        Vector3 offset;
+        u32 count;
+        u32 color;
+    };
+    void addEntityEffectParticle(
+        const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color) override
+    {
+        m_entityEffectParticleCalls.push_back({pos, velocity, offset, count, color});
+    }
+    [[nodiscard]] const std::vector<EntityEffectParticleCall>& entityEffectParticleCalls() const
+    {
+        return m_entityEffectParticleCalls;
+    }
+    void clearEntityEffectParticleCalls() { m_entityEffectParticleCalls.clear(); }
+
 private:
     u64 m_currentTick = 0;
     bool m_clientSide = false;
     std::vector<LivingEntity*> m_entities;
     std::vector<SoundCall> m_soundCalls;
     std::vector<ParticleCall> m_particleCalls;
+    std::vector<EntityEffectParticleCall> m_entityEffectParticleCalls;
 };
 
 } // namespace
@@ -621,6 +641,7 @@ TEST_F(BellBlockEntityTickTest, Tick_ClientEmitsParticlesOnResonationEnd)
     bell_->setWorld(world_.get());
     world_->setClientSide(true); // 客户端
     world_->clearParticleCalls();
+    world_->clearEntityEffectParticleCalls();
 
     bell_->triggerEvent(1, static_cast<i32>(Direction::North));
 
@@ -630,10 +651,11 @@ TEST_F(BellBlockEntityTickTest, Tick_ClientEmitsParticlesOnResonationEnd)
         world_->setCurrentTick(100 + i);
         bell_->tick(*world_);
     }
-    // 客户端共振到期后应发射粒子
-    EXPECT_FALSE(world_->particleCalls().empty());
-    // 粒子类型应为 Witch（当前简化实现）
-    EXPECT_EQ(world_->particleCalls().front().type, particle::ParticleTypeId::Witch);
+    // 客户端共振到期后应通过 addEntityEffectParticle 发射带颜色的 EntityEffect 粒子
+    // （对应 MC 原版 BellBlockEntity.showBellParticles 使用 ColorParticleOption.create(ENTITY_EFFECT, color)）
+    EXPECT_FALSE(world_->entityEffectParticleCalls().empty());
+    // 颜色计数器初始 16700985，每个粒子发射前先加 5（addAndGet 语义），故首个粒子颜色为 16700990
+    EXPECT_EQ(world_->entityEffectParticleCalls().front().color, 16700990u);
 }
 
 TEST_F(BellBlockEntityTickTest, Tick_ClientNoParticlesWithoutRaiders)
@@ -642,6 +664,7 @@ TEST_F(BellBlockEntityTickTest, Tick_ClientNoParticlesWithoutRaiders)
     world_->setEntities({});
     world_->setClientSide(true);
     world_->clearParticleCalls();
+    world_->clearEntityEffectParticleCalls();
 
     bell_->triggerEvent(1, static_cast<i32>(Direction::North));
 
@@ -653,6 +676,7 @@ TEST_F(BellBlockEntityTickTest, Tick_ClientNoParticlesWithoutRaiders)
     }
     // 无灾厄村民则不触发共振，因此不发射粒子
     EXPECT_TRUE(world_->particleCalls().empty());
+    EXPECT_TRUE(world_->entityEffectParticleCalls().empty());
 }
 
 // ========== _updateEntities 实体搜索节流测试 ==========

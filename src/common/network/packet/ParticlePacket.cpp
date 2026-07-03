@@ -631,4 +631,45 @@ std::optional<f32> ParticlePacket::decodeDustColorTransitionScale() const
     return scaleResult.value();
 }
 
+// static
+ParticlePacket ParticlePacket::createEntityEffect(
+    const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color)
+{
+    ParticlePacket packet(particle::ParticleTypeId::EntityEffect, pos, velocity, offset, count);
+
+    // 编码可选数据：i32 color(ARGB)
+    PacketSerializer serializer(4);
+    serializer.writeI32(static_cast<i32>(color));
+
+    std::vector<u8> data(serializer.data(), serializer.data() + serializer.size());
+    packet.setOptionalData(std::move(data));
+
+    return packet;
+}
+
+bool ParticlePacket::isEntityEffectParticle() const noexcept
+{
+    return m_particleType == particle::ParticleTypeId::EntityEffect && !m_optionalData.empty();
+}
+
+std::optional<u32> ParticlePacket::decodeEntityEffectColor() const
+{
+    if (!isEntityEffectParticle()) {
+        return std::nullopt;
+    }
+
+    // 可选数据格式：i32 color(ARGB)
+    if (m_optionalData.size() < sizeof(i32)) {
+        return std::nullopt;
+    }
+
+    PacketDeserializer deserializer(m_optionalData.data(), m_optionalData.size());
+    auto colorResult = deserializer.readI32();
+    if (!colorResult.success()) {
+        return std::nullopt;
+    }
+
+    return static_cast<u32>(colorResult.value());
+}
+
 } // namespace mc::network

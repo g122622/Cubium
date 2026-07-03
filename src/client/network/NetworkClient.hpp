@@ -252,6 +252,10 @@ struct NetworkClientCallbacks {
         f32 scale)>
         onDustColorTransitionParticle;
 
+    // 实体效果粒子回调（携带 ARGB 颜色）
+    std::function<void(f64 x, f64 y, f64 z, f32 vx, f32 vy, f32 vz, f32 ox, f32 oy, f32 oz, u32 count, u32 color)>
+        onEntityEffectParticle;
+
     // 世界事件（音效/粒子效果）
     std::function<void(i32 eventId, i32 x, i32 y, i32 z, i32 data)> onWorldEvent;
 

@@ -55,6 +55,7 @@ add_executable(minecraft-client
     renderer/trident/particle/data/BasicParticleData.cpp
     renderer/trident/particle/data/BlockParticleData.cpp
     renderer/trident/particle/data/DustParticleData.cpp
+    renderer/trident/particle/data/EntityEffectParticleData.cpp
     renderer/trident/particle/data/ItemParticleData.cpp
     renderer/trident/particle/data/RedstoneParticleData.cpp
     renderer/trident/particle/data/VibrationParticleData.cpp

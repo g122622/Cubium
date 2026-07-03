@@ -369,6 +369,21 @@ public:
         std::unique_ptr<renderer::trident::particle::data::ParticleData> data);
 
     /**
+     * @brief 生成带颜色的实体效果粒子
+     *
+     * 客户端实现：直接通过粒子数据管线创建 EntityEffect 粒子。
+     * 服务端对应实现会广播给附近玩家，客户端收到后走相同的数据管线。
+     *
+     * @param pos 粒子位置
+     * @param velocity 粒子速度
+     * @param offset 随机偏移范围（客户端在偏移范围内随机分布粒子）
+     * @param count 粒子数量
+     * @param color 粒子颜色（ARGB 格式）
+     */
+    void addEntityEffectParticle(
+        const Vector3& pos, const Vector3& velocity, const Vector3& offset, u32 count, u32 color);
+
+    /**
      * @brief 检查是否应在指定位置生成粒子
      *
      * 用于距离裁剪，避免在玩家视野外生成粒子。
