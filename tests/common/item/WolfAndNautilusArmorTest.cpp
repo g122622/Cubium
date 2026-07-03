@@ -227,6 +227,59 @@ TEST_F(WolfAndNautilusArmorTest, NetheriteNautilusArmorItem_HasRareRarity)
 }
 
 // ============================================================================
+// NautilusArmorItem 护甲值来源契约测试
+// 鹦鹉螺铠甲护甲值应从 ArmorMaterial::getDefense(ArmorSlot::Body) 推导，
+// 与 MC 1.21.11 Item.Properties.nautilusArmor(ArmorMaterial) 通过
+// ArmorMaterial.createAttributes(ArmorType.BODY) 取护甲值的语义一致。
+// ============================================================================
+
+TEST_F(WolfAndNautilusArmorTest, CopperNautilusArmorItem_ArmorValueMatchesMaterialBodyDefense)
+{
+    // 铜鹦鹉螺铠甲护甲值应等于 CopperArmorMaterial::getDefense(ArmorSlot::Body)
+    ASSERT_NE(Items::COPPER_NAUTILUS_ARMOR, nullptr);
+    auto* nautilus = dynamic_cast<NautilusArmorItem*>(Items::COPPER_NAUTILUS_ARMOR);
+    ASSERT_NE(nautilus, nullptr);
+    EXPECT_EQ(nautilus->getArmorValue(), ArmorMaterials::COPPER.getDefense(ArmorSlot::Body));
+    EXPECT_EQ(&nautilus->getMaterial(), &ArmorMaterials::COPPER);
+}
+
+TEST_F(WolfAndNautilusArmorTest, IronNautilusArmorItem_ArmorValueMatchesMaterialBodyDefense)
+{
+    ASSERT_NE(Items::IRON_NAUTILUS_ARMOR, nullptr);
+    auto* nautilus = dynamic_cast<NautilusArmorItem*>(Items::IRON_NAUTILUS_ARMOR);
+    ASSERT_NE(nautilus, nullptr);
+    EXPECT_EQ(nautilus->getArmorValue(), ArmorMaterials::IRON.getDefense(ArmorSlot::Body));
+    EXPECT_EQ(&nautilus->getMaterial(), &ArmorMaterials::IRON);
+}
+
+TEST_F(WolfAndNautilusArmorTest, GoldenNautilusArmorItem_ArmorValueMatchesMaterialBodyDefense)
+{
+    ASSERT_NE(Items::GOLDEN_NAUTILUS_ARMOR, nullptr);
+    auto* nautilus = dynamic_cast<NautilusArmorItem*>(Items::GOLDEN_NAUTILUS_ARMOR);
+    ASSERT_NE(nautilus, nullptr);
+    EXPECT_EQ(nautilus->getArmorValue(), ArmorMaterials::GOLD.getDefense(ArmorSlot::Body));
+    EXPECT_EQ(&nautilus->getMaterial(), &ArmorMaterials::GOLD);
+}
+
+TEST_F(WolfAndNautilusArmorTest, DiamondNautilusArmorItem_ArmorValueMatchesMaterialBodyDefense)
+{
+    ASSERT_NE(Items::DIAMOND_NAUTILUS_ARMOR, nullptr);
+    auto* nautilus = dynamic_cast<NautilusArmorItem*>(Items::DIAMOND_NAUTILUS_ARMOR);
+    ASSERT_NE(nautilus, nullptr);
+    EXPECT_EQ(nautilus->getArmorValue(), ArmorMaterials::DIAMOND.getDefense(ArmorSlot::Body));
+    EXPECT_EQ(&nautilus->getMaterial(), &ArmorMaterials::DIAMOND);
+}
+
+TEST_F(WolfAndNautilusArmorTest, NetheriteNautilusArmorItem_ArmorValueMatchesMaterialBodyDefense)
+{
+    ASSERT_NE(Items::NETHERITE_NAUTILUS_ARMOR, nullptr);
+    auto* nautilus = dynamic_cast<NautilusArmorItem*>(Items::NETHERITE_NAUTILUS_ARMOR);
+    ASSERT_NE(nautilus, nullptr);
+    EXPECT_EQ(nautilus->getArmorValue(), ArmorMaterials::NETHERITE.getDefense(ArmorSlot::Body));
+    EXPECT_EQ(&nautilus->getMaterial(), &ArmorMaterials::NETHERITE);
+}
+
+// ============================================================================
 // ItemTags 测试
 // ============================================================================
 

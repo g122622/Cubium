@@ -1972,39 +1972,34 @@ void Items::_registerArmor()
     // ========================================================================
     // 鹦鹉螺铠甲 - MC 1.21.11 新增
     // 用于装备鹦鹉螺类实体，不可损坏，无耐久度
-    // 护甲值与马铠一致：铜=4, 铁=5, 金=7, 钻石=11, 下界合金=19
-    // TODO: 当前 ArmorSlot 枚举缺少 Body 槽位，鹦鹉螺铠甲护甲值通过构造函数显式传入，
-    //       待 ArmorSlot::Body 添加后可从材质防御表中统一获取
-    // 参考: net.minecraft.item.NautilusArmorItem
+    // 护甲值由材质的 Body 槽位防御值提供（与 MC 1.21.11 Item.Properties.nautilusArmor
+    // 通过 ArmorMaterial.createAttributes(ArmorType.BODY) 取护甲值的语义一致）：
+    // 铜=4, 铁=5, 金=7, 钻石=11, 下界合金=19
+    // 参考: net.minecraft.world.item.Item.Properties.nautilusArmor(ArmorMaterial) (MC 1.21.11)
     // ========================================================================
     // 铜鹦鹉螺铠甲 - +4 护甲
-    COPPER_NAUTILUS_ARMOR =
-        &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:copper_nautilus_armor"),
-            ItemProperties().maxStackSize(1),
-            ArmorMaterials::COPPER,
-            4);
+    COPPER_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
+        ResourceLocation("minecraft:copper_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::COPPER);
 
     // 铁鹦鹉螺铠甲 - +5 护甲
     IRON_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
-        ResourceLocation("minecraft:iron_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::IRON, 5);
+        ResourceLocation("minecraft:iron_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::IRON);
 
     // 金鹦鹉螺铠甲 - +7 护甲
     GOLDEN_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
-        ResourceLocation("minecraft:golden_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::GOLD, 7);
+        ResourceLocation("minecraft:golden_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::GOLD);
 
     // 钻石鹦鹉螺铠甲 - +11 护甲
     DIAMOND_NAUTILUS_ARMOR =
         &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:diamond_nautilus_armor"),
             ItemProperties().maxStackSize(1),
-            ArmorMaterials::DIAMOND,
-            11);
+            ArmorMaterials::DIAMOND);
 
     // 下界合金鹦鹉螺铠甲 - +19 护甲，防火
     NETHERITE_NAUTILUS_ARMOR =
         &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:netherite_nautilus_armor"),
             ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),
-            ArmorMaterials::NETHERITE,
-            19);
+            ArmorMaterials::NETHERITE);
 }
 
 void Items::_registerFood()

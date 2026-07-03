@@ -26,10 +26,11 @@
 namespace mc {
 namespace item::items {
 
-NautilusArmorItem::NautilusArmorItem(
-    const ItemProperties& properties, const armor::ArmorMaterial& material, i32 armorValue)
+NautilusArmorItem::NautilusArmorItem(const ItemProperties& properties, const armor::ArmorMaterial& material)
     : Item(properties)
-    , m_armorValue(armorValue)
+    // 护甲值由材质的 Body 槽位防御值提供（与 MC 1.21.11 Item.Properties.nautilusArmor
+    // 通过 ArmorMaterial.createAttributes(ArmorType.BODY) 取护甲值的语义一致）
+    , m_armorValue(material.getDefense(armor::ArmorSlot::Body))
     , m_equipSound(material.getEquipSound())
     , m_material(material)
 {}
