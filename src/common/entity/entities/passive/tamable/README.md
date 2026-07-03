@@ -82,6 +82,24 @@
         **驯服前后属性变化 *
             *：驯服后生命值 8→20，攻击力 2→4
 
+            ## #狼铠系统（WolfEntity + MobEntity + Crackiness）
+
+        **狼铠装备 * *（`WolfEntity::interactMob` 优先级2）：主人右键狼 + 手持狼铠 + 未装备 + 非幼年 → 装备狼铠到 Body 槽位，播放 `ITEM_ARMOR_EQUIP_WOLF` 音效。调用 `MobEntity::setBodyArmorItem()` 自动设置保整掉落和持久化。
+
+        **狼铠修复 * *（`WolfEntity::interactMob` 优先级3）：主人右键坐下的狼 + 手持犰狳鳞甲（`ItemTags::REPAIRS_WOLF_ARMOR`）+ 狼铠已受损 → 恢复 12.5% 最大耐久（`ARMOR_REPAIR_UNIT = 0.125F`），播放 `ENTITY_WOLF_ARMOR_REPAIR` 音效。
+
+        **狼铠染色 * *（`WolfEntity::interactMob` 优先级4）：主人右键狼 + 手持染料 + 已装备狼铠 → 将当前颜色与染料颜色混合（`mixArmorColors` 取 RGB 平均值），调用 `DyeableArmorItem::setColor()` 写入 NBT。清除颜色：手持狼铠右键炼药锅（`LayeredCauldronBlock::_handleLeatherArmorCleaning`，继承自 `DyeableArmorItem` 自动支持）。
+
+        **狼铠剪切 * *（`MobEntity::processInitialInteract` 剪刀分支）：主人手持剪刀 + `canShearEquipment()` 返回 true + 已装备狼铠 → `attemptToShearEquipment()` 剪下狼铠掉落为物品实体，剪刀耐久 -1，播放 `ITEM_ARMOR_UNEQUIP_WOLF` 音效，触发 `SHEAR` 游戏事件。`WolfEntity::canShearEquipment()` 重写为仅主人可剪切。
+
+        **狼铠伤害吸收 * *（`WolfEntity::actuallyHurt`）：穿戴狼铠且伤害源不绕过护甲（`!source.bypassesArmor()`）时，伤害由狼铠耐久吸收（`LivingEntity::hurtAndBreak`，向上取整），狼不扣血。裂纹等级变化时播放 `ENTITY_WOLF_ARMOR_CRACK`，狼铠破损时播放 `ENTITY_WOLF_ARMOR_BREAK`。
+
+        **裂纹程度 * *（`Crackiness::WOLF_ARMOR`）：剩余耐久 < 95% → Low，< 69% → Medium，< 32% → High。用于音效触发，渲染层待实现。
+
+        **音效**：`ITEM_ARMOR_EQUIP_WOLF`（装备）、`ITEM_ARMOR_UNEQUIP_WOLF`（剪切卸下）、`ENTITY_WOLF_ARMOR_DAMAGE`（狼铠吸收伤害时受伤音效）、`ENTITY_WOLF_ARMOR_CRACK`（裂纹等级提升）、`ENTITY_WOLF_ARMOR_REPAIR`（修复）、`ENTITY_WOLF_ARMOR_BREAK`（破损）。
+
+        **Crackiness 类**（`src/common/entity/core/Crackiness.hpp`）：通用裂纹追踪器，`byFraction`/`byDamage` 方法根据剩余耐久比例返回裂纹等级。`GOLEM`（铁傀儡）和 `WOLF_ARMOR`（狼铠）为静态常量。
+
             ## #动态 AI 移除
         - **猫驯服后移除躲避行为 * *：`setupTamedAI()` 中移除 `CatAvoidPlayerGoal` -
         **豹猫信任后移除躲避行为 *

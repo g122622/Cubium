@@ -561,6 +561,29 @@ public:
      */
     [[nodiscard]] virtual bool canShearEquipment(const Player& player) const;
 
+    /**
+     * @brief 尝试用剪刀剪下实体身上的装备
+     *
+     * 当玩家手持剪刀右键实体时，如果实体穿着可剪切的装备（如狼铠），
+     * 则将装备从实体身上剪下并掉落为物品实体。
+     * 参考: net.minecraft.world.entity.Entity.attemptToShearEquipment()
+     *
+     * 流程：
+     * 1. 遍历所有装备槽位
+     * 2. 找到第一个有装备的槽位
+     * 3. 剪刀耐久 -1
+     * 4. 将装备从槽位移除（设为空堆）
+     * 5. 在实体位置生成物品掉落
+     * 6. 播放剪切音效
+     * 7. 触发 SHEAR 游戏事件
+     *
+     * @param player 剪切的玩家
+     * @param hand 玩家使用的手
+     * @param shears 剪刀物品堆
+     * @return 如果成功剪切了装备返回 true
+     */
+    bool attemptToShearEquipment(Player& player, Hand hand, ItemStack& shears);
+
     // ========== 掉落表 (DeathLootTable) ==========
 
     /**

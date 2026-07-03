@@ -569,6 +569,23 @@ ActionResultType MobEntity::processInitialInteract(Player& player, Hand hand)
         return ActionResultType::Pass;
     }
 
+    // 4. 剪刀剪切装备（如狼铠）
+    //    参考: net.minecraft.world.entity.Entity.interact() 中的剪刀分支
+    //    条件：手持剪刀 + canShearEquipment + 玩家未蹲下 + 身体护甲非空
+    //    在 interactMob 之前处理，与 MC 原版一致
+    if (item != nullptr && item == Items::SHEARS && !player.isSneaking()) {
+        if (canShearEquipment(player) && isWearingBodyArmor()) {
+            if (m_world != nullptr && !m_world->isClientSide()) {
+                if (attemptToShearEquipment(player, hand, heldItem)) {
+                    return ActionResultType::Success;
+                }
+            } else {
+                // 客户端预测成功
+                return ActionResultType::Success;
+            }
+        }
+    }
+
     // 调用子类的交互逻辑
     ActionResultType result = interactMob(player, hand);
     if (result == ActionResultType::Success || result == ActionResultType::Consume) {
@@ -703,6 +720,45 @@ void MobEntity::setBodyArmorItem(const ItemStack& stack)
 bool MobEntity::canShearEquipment(const Player& /*player*/) const
 {
     return !isRiding();
+}
+
+bool MobEntity::attemptToShearEquipment(Player& player, Hand hand, ItemStack& shears)
+{
+    // 遍历所有装备槽位，找到第一个有装备的槽位
+    // 参考: net.minecraft.world.entity.Entity.attemptToShearEquipment()
+    // MC 1.21.11 中通过 Equippable.canBeSheared() 判断，本项目通过 Body 槽位有装备判断
+    // （目前只有狼铠可被剪切，马铠等后续可扩展）
+    const ItemStack& bodyArmor = getEquipment(EquipmentSlot::Body);
+    if (bodyArmor.isEmpty()) {
+        return false;
+    }
+
+    // 剪刀耐久 -1
+    LivingEntity::hurtAndBreak(
+        shears, 1, &player, hand == Hand::MainHand ? EquipmentSlot::MainHand : EquipmentSlot::OffHand);
+
+    // 取出身体护甲并清空槽位
+    ItemStack droppedArmor = bodyArmor;
+    setEquipment(EquipmentSlot::Body, ItemStack{});
+
+    // 在实体位置生成掉落物
+    if (m_world != nullptr) {
+        ItemDropHelper::spawnItemAtEntity(this, droppedArmor, 0.5f, m_world->getRandom());
+    }
+
+    // 触发 SHEAR 游戏事件
+    if (m_world != nullptr) {
+        m_world->gameEvent(gameevent::GameEvents::SHEAR,
+            BlockPos(static_cast<i32>(std::floor(x())),
+                static_cast<i32>(std::floor(y())),
+                static_cast<i32>(std::floor(z()))),
+            nullptr);
+    }
+
+    // 播放剪切音效（狼铠使用 ARMOR_UNEQUIP_WOLF 音效）
+    playSound(SoundEvents::ITEM_ARMOR_UNEQUIP_WOLF, 1.0f, 1.0f);
+
+    return true;
 }
 
 std::string MobEntity::getLootTableId() const

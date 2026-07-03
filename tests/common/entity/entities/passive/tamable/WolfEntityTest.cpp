@@ -30,6 +30,7 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
@@ -179,6 +180,7 @@ protected:
     {
         VanillaBlocks::initialize();
         Items::initialize();
+        item::tag::ItemTags::initialize();
     }
 
     WolfTestWorld m_world;
@@ -1492,6 +1494,209 @@ TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_HealAndDyeSeparateInteractio
     ActionResultType result2 = wolf.interactMob(player, Hand::MainHand);
     EXPECT_EQ(result2, ActionResultType::Success);
     EXPECT_EQ(wolf.getCollarColor(), DyeColor::Blue); // 变为蓝色
+}
+
+// ============================================================================
+// 狼铠装备交互测试
+// ============================================================================
+
+TEST_F(WolfEntityTestFixture, CanShearEquipment_OwnerCanShear)
+{
+    // 主人可以剪切狼铠
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+
+    EXPECT_TRUE(wolf.canShearEquipment(player));
+}
+
+TEST_F(WolfEntityTestFixture, CanShearEquipment_NonOwnerCannotShear)
+{
+    // 非主人不能剪切狼铠
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    Player stranger(EntityId(2), "Stranger");
+    stranger.setPlayerId(99999ULL);
+
+    EXPECT_FALSE(wolf.canShearEquipment(stranger));
+}
+
+TEST_F(WolfEntityTestFixture, BodyArmor_GetAndSet)
+{
+    // 测试 MobEntity 身体护甲便捷方法
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+
+    // 初始状态：未穿戴身体护甲
+    EXPECT_TRUE(wolf.getBodyArmorItem().isEmpty());
+    EXPECT_FALSE(wolf.isWearingBodyArmor());
+
+    // 装备狼铠
+    ItemStack wolfArmor(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmor);
+
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+    EXPECT_EQ(wolf.getBodyArmorItem().getItem(), Items::WOLF_ARMOR);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_EquipWolfArmor)
+{
+    // 主人右键驯服的狼 + 手持狼铠 → 装备狼铠
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    player.inventory().setItem(0, wolfArmorStack);
+    player.inventory().setSelectedSlot(0);
+
+    EXPECT_FALSE(wolf.isWearingBodyArmor());
+
+    world.resetSoundTracking();
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+    EXPECT_EQ(wolf.getBodyArmorItem().getItem(), Items::WOLF_ARMOR);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_NonOwnerCannotEquipArmor)
+{
+    // 非主人不能装备狼铠
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    Player stranger(EntityId(2), "Stranger");
+    stranger.setPlayerId(99999ULL);
+
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    stranger.inventory().setItem(0, wolfArmorStack);
+    stranger.inventory().setSelectedSlot(0);
+
+    ActionResultType result = wolf.interactMob(stranger, Hand::MainHand);
+    EXPECT_FALSE(wolf.isWearingBodyArmor());
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_AlreadyEquippedCannotEquipAgain)
+{
+    // 已装备狼铠时不能再装备
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+
+    // 先装备狼铠
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+    EXPECT_TRUE(wolf.isWearingBodyArmor());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+
+    ItemStack anotherArmorStack(Items::WOLF_ARMOR, 1);
+    player.inventory().setItem(0, anotherArmorStack);
+    player.inventory().setSelectedSlot(0);
+
+    // 再次交互不会装备第二个狼铠，而是走其他交互逻辑
+    wolf.interactMob(player, Hand::MainHand);
+    // 仍然只有一个狼铠
+    EXPECT_EQ(wolf.getBodyArmorItem().getCount(), 1);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairWolfArmor)
+{
+    // 主人右键坐下的狼 + 手持犰狳鳞甲 + 狼铠已受损 → 修复狼铠
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setSitting(true);
+
+    // 装备受损的狼铠
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+    // 设置耐久损伤
+    wolf.getMutableEquipment(EquipmentSlot::Body).setDamage(32);
+    EXPECT_TRUE(wolf.getBodyArmorItem().isDamaged());
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+    player.abilities().creativeMode = false;
+
+    // 手持犰狳鳞甲
+    ItemStack scuteStack(Items::ARMADILLO_SCUTE, 10);
+    player.inventory().setItem(0, scuteStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 damageBefore = wolf.getBodyArmorItem().getDamage();
+
+    world.resetSoundTracking();
+    ActionResultType result = wolf.interactMob(player, Hand::MainHand);
+
+    EXPECT_EQ(result, ActionResultType::Success);
+    // 修复后耐久损伤应该减少
+    EXPECT_LT(wolf.getBodyArmorItem().getDamage(), damageBefore);
+    // 非创造模式下消耗物品
+    EXPECT_EQ(player.inventory().getItem(0).getCount(), 9);
+}
+
+TEST_F(WolfEntityTestFixture, InteractMob_TamedWolf_RepairRequiresSitting)
+{
+    // 狼铠修复需要狼坐下
+    WolfTestWorld world;
+    WolfEntity wolf(EntityId(1));
+    wolf.setWorld(&world);
+    wolf.setTypeId("minecraft:wolf");
+    wolf.setTamed(true);
+    wolf.setOwnerId(12345ULL);
+    wolf.setSitting(false); // 站着的狼
+
+    // 装备受损的狼铠
+    ItemStack wolfArmorStack(Items::WOLF_ARMOR, 1);
+    wolf.setBodyArmorItem(wolfArmorStack);
+    wolf.getMutableEquipment(EquipmentSlot::Body).setDamage(32);
+
+    Player player(EntityId(2), "TestPlayer");
+    player.setPlayerId(12345ULL);
+
+    ItemStack scuteStack(Items::ARMADILLO_SCUTE, 10);
+    player.inventory().setItem(0, scuteStack);
+    player.inventory().setSelectedSlot(0);
+
+    i32 damageBefore = wolf.getBodyArmorItem().getDamage();
+    wolf.interactMob(player, Hand::MainHand);
+
+    // 站着的狼不会触发修复，损伤不变
+    EXPECT_EQ(wolf.getBodyArmorItem().getDamage(), damageBefore);
 }
 
 } // namespace

@@ -623,13 +623,19 @@ void WolfEntity::actuallyHurt(DamageSource& source, f32 amount)
 
     // 狼铠耐久降低（向上取整）
     i32 armorDamage = static_cast<i32>(std::ceil(amount));
-    LivingEntity::hurtAndBreak(bodyArmor, armorDamage, this, EquipmentSlot::Body);
+    bool armorBroken = LivingEntity::hurtAndBreak(bodyArmor, armorDamage, this, EquipmentSlot::Body);
 
-    // 检查受损后的裂纹等级，等级变化时播放裂纹音效和粒子
-    auto crackAfter = entity::Crackiness::WOLF_ARMOR.byDamage(bodyArmor.getDamage(), bodyArmor.getMaxDamage());
-    if (crackBefore != crackAfter) {
-        // 播放裂纹音效
-        playSound(SoundEvents::ENTITY_WOLF_ARMOR_CRACK, 1.0f, 1.0f);
+    // 狼铠破损时播放破损音效
+    // 参考: MC 1.21.11 WolfArmorItem 的 BREAK_SOUND 组件
+    if (armorBroken) {
+        playSound(SoundEvents::ENTITY_WOLF_ARMOR_BREAK, 1.0f, 1.0f);
+    } else {
+        // 检查受损后的裂纹等级，等级变化时播放裂纹音效
+        auto crackAfter = entity::Crackiness::WOLF_ARMOR.byDamage(bodyArmor.getDamage(), bodyArmor.getMaxDamage());
+        if (crackBefore != crackAfter) {
+            // 播放裂纹音效
+            playSound(SoundEvents::ENTITY_WOLF_ARMOR_CRACK, 1.0f, 1.0f);
+        }
     }
 
     // 狼铠吸收伤害时，狼不扣血
