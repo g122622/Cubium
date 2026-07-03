@@ -38,6 +38,7 @@
 #include "common/entity/ai/goal/goals/movement/MovementGoals.hpp"
 #include "common/entity/ai/goal/goals/target/TargetGoals.hpp"
 #include "common/entity/attribute/Attributes.hpp"
+#include "common/entity/core/Crackiness.hpp"
 #include "common/entity/core/EntityRegistry.hpp"
 #include "common/entity/core/LivingEntity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
@@ -53,9 +54,12 @@
 #include "common/item/Items.hpp"
 #include "common/item/core/ActionResult.hpp"
 #include "common/item/core/ItemStack.hpp"
+#include "common/item/items/armor/DyeableArmorItem.hpp"
+#include "common/item/tag/ItemTags.hpp"
 #include "common/network/packet/EntityPackets.hpp"
 #include "common/sound/SoundEvents.hpp"
 #include "common/util/color/DyeColor.hpp"
+#include "common/util/math/MathUtils.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/world/IWorld.hpp"
 
@@ -106,6 +110,69 @@ bool WolfEntity::isFoodItem(const ItemStack& itemStack) const
     return isBreedingItem(itemStack);
 }
 
+namespace {
+/// 染料颜色对应的 RGB 值
+/// 参考: net.minecraft.world.item.DyeItem 中各染料的 textColor
+[[nodiscard]] u32 dyeColorToRGB(DyeColor color)
+{
+    switch (color) {
+        case DyeColor::White:
+            return 0xFFFFFF;
+        case DyeColor::Orange:
+            return 0xD87F33;
+        case DyeColor::Magenta:
+            return 0xB24CD8;
+        case DyeColor::LightBlue:
+            return 0x6699D8;
+        case DyeColor::Yellow:
+            return 0xE5E533;
+        case DyeColor::Lime:
+            return 0x7FCC19;
+        case DyeColor::Pink:
+            return 0xF27FA5;
+        case DyeColor::Gray:
+            return 0x4C4C4C;
+        case DyeColor::LightGray:
+            return 0x999999;
+        case DyeColor::Cyan:
+            return 0x4C7F99;
+        case DyeColor::Purple:
+            return 0x7F3FB2;
+        case DyeColor::Blue:
+            return 0x334CB2;
+        case DyeColor::Brown:
+            return 0x664C33;
+        case DyeColor::Green:
+            return 0x667F33;
+        case DyeColor::Red:
+            return 0x993333;
+        case DyeColor::Black:
+            return 0x191919;
+        default:
+            return 0xFFFFFF;
+    }
+}
+
+/// 混合两种颜色（取各 RGB 分量的平均值）
+/// 参考: ArmorDyeRecipe::_mixColors
+[[nodiscard]] u32 mixArmorColors(u32 color1, u32 color2)
+{
+    i32 r1 = static_cast<i32>((color1 >> 16) & 0xFF);
+    i32 g1 = static_cast<i32>((color1 >> 8) & 0xFF);
+    i32 b1 = static_cast<i32>(color1 & 0xFF);
+
+    i32 r2 = static_cast<i32>((color2 >> 16) & 0xFF);
+    i32 g2 = static_cast<i32>((color2 >> 8) & 0xFF);
+    i32 b2 = static_cast<i32>(color2 & 0xFF);
+
+    i32 r = (r1 + r2) / 2;
+    i32 g = (g1 + g2) / 2;
+    i32 b = (b1 + b2) / 2;
+
+    return (0xFF << 24) | (static_cast<u32>(r) << 16) | (static_cast<u32>(g) << 8) | static_cast<u32>(b);
+}
+} // namespace
+
 // ========== 交互 ==========
 
 ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
@@ -138,7 +205,70 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
             return ActionResultType::Success;
         }
 
-        // 优先级2: 颈圈染色（染料 + 主人）
+        // 优先级2: 狼铠装备（狼铠 + 未装备 + 主人 + 非幼年）
+        // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 装备分支
+        if (item != nullptr && item == Items::WOLF_ARMOR && !isWearingBodyArmor() && isOwner(player.playerId()) &&
+            !isChild()) {
+            // 装备狼铠：复制一份（数量1）放入身体槽位
+            ItemStack armorStack = itemStack.split(1);
+            setBodyArmorItem(armorStack);
+
+            // 播放装备音效
+            playSound(SoundEvents::ITEM_ARMOR_EQUIP_WOLF, 1.0f, 1.0f);
+
+            return ActionResultType::Success;
+        }
+
+        // 优先级3: 狼铠修复（犰狳鳞甲 + 坐下 + 已装备 + 狼铠受损 + 主人）
+        // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 修复分支
+        if (isSitting() && isWearingBodyArmor() && isOwner(player.playerId())) {
+            ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
+            if (!bodyArmor.isEmpty() && bodyArmor.getItem() == Items::WOLF_ARMOR && bodyArmor.isDamaged()) {
+                // 检查手持物品是否为犰狳鳞甲（或属于 REPAIRS_WOLF_ARMOR 标签）
+                if (item != nullptr && item::tag::ItemTags::REPAIRS_WOLF_ARMOR().contains(itemStack)) {
+                    // 消耗1个修复物品（非创造模式）
+                    if (!player.abilities().creativeMode) {
+                        itemStack.shrink(1);
+                    }
+
+                    // 播放修复音效
+                    playSound(SoundEvents::ENTITY_WOLF_ARMOR_REPAIR, 1.0f, 1.0f);
+
+                    // 修复狼铠耐久：恢复 maxDamage * 0.125 的耐久值
+                    i32 maxDamage = bodyArmor.getMaxDamage();
+                    i32 repairAmount = static_cast<i32>(static_cast<f32>(maxDamage) * ARMOR_REPAIR_UNIT);
+                    i32 newDamage = std::max(0, bodyArmor.getDamage() - repairAmount);
+                    bodyArmor.setDamage(newDamage);
+
+                    return ActionResultType::Success;
+                }
+            }
+        }
+
+        // 优先级4: 狼铠染色（染料 + 已装备可染色狼铠 + 主人）
+        // 参考: net.minecraft.world.entity.animal.wolf.Wolf.mobInteract() 染色分支
+        if (item != nullptr && isWearingBodyArmor() && isOwner(player.playerId())) {
+            ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
+            if (!bodyArmor.isEmpty() && bodyArmor.getItem() == Items::WOLF_ARMOR) {
+                auto dyeColor = _getDyeColorFromItem(item);
+                if (dyeColor.has_value()) {
+                    auto* dyeableArmor = dynamic_cast<const item::items::DyeableArmorItem*>(bodyArmor.getItem());
+                    if (dyeableArmor != nullptr) {
+                        // 合成新颜色：当前颜色与染料颜色混合
+                        u32 currentColor = dyeableArmor->getColor(bodyArmor);
+                        u32 dyeRGB = dyeColorToRGB(dyeColor.value());
+                        u32 newColor = mixArmorColors(currentColor, dyeRGB);
+                        item::items::DyeableArmorItem::setColor(bodyArmor, newColor);
+                        if (!player.abilities().creativeMode) {
+                            itemStack.shrink(1);
+                        }
+                        return ActionResultType::Success;
+                    }
+                }
+            }
+        }
+
+        // 优先级5: 颈圈染色（染料 + 主人）
         auto dyeColor = _getDyeColorFromItem(item);
         if (dyeColor.has_value() && isOwner(player.playerId())) {
             if (dyeColor.value() != m_collarColor) {
@@ -150,7 +280,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
             return ActionResultType::Success;
         }
 
-        // 优先级3: 繁殖/成长（食物 + 满血）
+        // 优先级6: 繁殖/成长（食物 + 满血）
         // 对应 MC 原版 Animal.mobInteract() 的逻辑
         if (isBreedingItem(itemStack)) {
             if (isChild()) {
@@ -192,7 +322,7 @@ ActionResultType WolfEntity::interactMob(Player& player, Hand hand)
             }
         }
 
-        // 优先级4: 坐下/站起切换（主人 + 非特殊物品）
+        // 优先级7: 坐下/站起切换（主人 + 非特殊物品）
         if (isOwner(player.playerId())) {
             setSitting(!isSitting());
             clearNavigation();
@@ -326,6 +456,22 @@ std::optional<DyeColor> WolfEntity::_getDyeColorFromItem(const Item* item)
     return std::nullopt;
 }
 
+bool WolfEntity::_canArmorAbsorb(const DamageSource& source) const
+{
+    // 狼铠吸收伤害的条件：
+    // 1. 身体槽位装备了狼铠
+    // 2. 伤害源不绕过护甲
+    const ItemStack& bodyArmor = getEquipment(EquipmentSlot::Body);
+    if (bodyArmor.isEmpty() || bodyArmor.getItem() != Items::WOLF_ARMOR) {
+        return false;
+    }
+    // 绕过护甲的伤害源（饥饿、跌落、溺水等）不触发狼铠吸收
+    if (source.bypassesArmor()) {
+        return false;
+    }
+    return true;
+}
+
 bool WolfEntity::wantsToAttack(const LivingEntity& target, const LivingEntity* owner) const
 {
     // 苦力怕、恶魂：永远不攻击（MC 使用 instanceof，此处使用 dynamic_cast）
@@ -436,9 +582,72 @@ std::optional<ResourceLocation> WolfEntity::getAmbientSound() const
     return makeSoundEventId("ambient");
 }
 
-std::optional<ResourceLocation> WolfEntity::getHurtSound(DamageSource& /*source*/) const
+std::optional<ResourceLocation> WolfEntity::getHurtSound(DamageSource& source) const
 {
+    // 穿戴狼铠且伤害由狼铠吸收时，播放狼铠受伤音效
+    if (_canArmorAbsorb(source)) {
+        return SoundEvents::ENTITY_WOLF_ARMOR_DAMAGE;
+    }
     return makeSoundEventId("hurt");
+}
+
+bool WolfEntity::canShearEquipment(const Player& player) const
+{
+    // 狼只允许主人剪切狼铠
+    // 参考: net.minecraft.world.entity.animal.wolf.Wolf.canShearEquipment()
+    return isOwner(player.playerId());
+}
+
+void WolfEntity::actuallyHurt(DamageSource& source, f32 amount)
+{
+    // 狼铠伤害吸收逻辑
+    // 参考: net.minecraft.world.entity.animal.wolf.Wolf.actuallyHurt()
+    if (!_canArmorAbsorb(source)) {
+        // 狼铠不吸收此伤害，走父类正常受伤流程
+        TameableEntity::actuallyHurt(source, amount);
+        return;
+    }
+
+    // 狼铠吸收伤害：狼不扣血，狼铠耐久降低
+    ItemStack& bodyArmor = getMutableEquipment(EquipmentSlot::Body);
+    if (bodyArmor.isEmpty() || !bodyArmor.isDamageable()) {
+        // 无狼铠或狼铠不可损坏，走父类正常受伤流程
+        TameableEntity::actuallyHurt(source, amount);
+        return;
+    }
+
+    // 记录受损前的裂纹等级
+    i32 damageBefore = bodyArmor.getDamage();
+    i32 maxDamage = bodyArmor.getMaxDamage();
+    auto crackBefore = entity::Crackiness::WOLF_ARMOR.byDamage(damageBefore, maxDamage);
+
+    // 狼铠耐久降低（向上取整）
+    i32 armorDamage = static_cast<i32>(std::ceil(amount));
+    LivingEntity::hurtAndBreak(bodyArmor, armorDamage, this, EquipmentSlot::Body);
+
+    // 检查受损后的裂纹等级，等级变化时播放裂纹音效和粒子
+    auto crackAfter = entity::Crackiness::WOLF_ARMOR.byDamage(bodyArmor.getDamage(), bodyArmor.getMaxDamage());
+    if (crackBefore != crackAfter) {
+        // 播放裂纹音效
+        playSound(SoundEvents::ENTITY_WOLF_ARMOR_CRACK, 1.0f, 1.0f);
+    }
+
+    // 狼铠吸收伤害时，狼不扣血
+}
+
+void WolfEntity::damageArmor(DamageSource& source, f32 amount)
+{
+    // 当狼未穿戴狼铠或伤害绕过护甲时，走父类默认逻辑（空实现）
+    // 当狼穿戴狼铠且伤害不绕过护甲时，伤害已在 actuallyHurt 中由狼铠吸收，
+    // 此处不再额外调用 doHurtEquipment（避免双重耐久损耗）
+    // 参考: net.minecraft.world.entity.animal.wolf.Wolf.hurtArmor() 调用 doHurtEquipment
+    // 在 MC 1.21.11 中，Wolf.hurtArmor 始终调用 doHurtEquipment，但 actuallyHurt 在
+    // canArmorAbsorb 时会跳过 super.actuallyHurt（不再触发 damageArmor）。
+    // 本项目的 LivingEntity::actuallyHurt 在 !bypassesArmor 时调用 damageArmor，
+    // 而 actuallyHurt 已被重写并在 canArmorAbsorb 时直接返回，不会调用 damageArmor。
+    // 因此 damageArmor 仅在无狼铠或绕过护甲时被调用，此时不做任何处理。
+    (void)source;
+    (void)amount;
 }
 
 std::optional<ResourceLocation> WolfEntity::getDeathSound() const

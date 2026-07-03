@@ -25,6 +25,7 @@
 
 #include "TameableEntity.hpp"
 #include "common/core/Types.hpp"
+#include "common/entity/core/Crackiness.hpp"
 #include "common/util/color/DyeColor.hpp"
 #include <memory>
 
@@ -47,6 +48,15 @@ class ItemStack;
  * - 攻击目标：保护主人
  * - 尾巴角度：表示生命值和心情
  * - 颈圈颜色：驯服后可染色
+ * - 狼铠：驯服后可装备狼铠，提供伤害吸收
+ *
+ * 狼铠交互逻辑（MC 1.21.11）：
+ * - 装备：主人右键狼 + 手持狼铠 + 未装备 + 非幼年 → 装备狼铠
+ * - 修复：主人右键坐下的狼 + 犰狳鳞甲 + 狼铠已受损 → 修复 12.5% 耐久
+ * - 染色：主人右键狼 + 手持染料 + 已装备可染色狼铠 → 改变狼铠颜色
+ * - 剪切：主人右键狼 + 手持剪刀 + 已装备狼铠 → 剪下狼铠
+ * - 伤害吸收：穿戴狼铠时，非绕过护甲的伤害由狼铠吸收，狼不受伤
+ * - 裂纹：狼铠受损到不同阈值时播放裂纹音效和粒子
  */
 class WolfEntity : public TameableEntity {
 public:
@@ -80,9 +90,12 @@ public:
      * 交互逻辑（按优先级）：
      * 1. 未驯服 + 骨头 → 尝试驯服（1/3概率）
      * 2. 已驯服 + 食物 + 未满血 → 喂食治疗
-     * 3. 已驯服 + 染料 + 是主人 → 改变颈圈颜色
-     * 4. 已驯服 + 调用父类（处理繁殖/成长）
-     * 5. 已驯服 + 是主人 + 父类未处理 → 切换坐下/站起
+     * 3. 已驯服 + 狼铠 + 可装备 + 主人 + 非幼年 → 装备狼铠
+     * 4. 已驯服 + 犰狳鳞甲 + 坐下 + 狼铠受损 + 主人 → 修复狼铠
+     * 5. 已驯服 + 染料 + 已装备狼铠 + 主人 → 染色狼铠
+     * 6. 已驯服 + 染料 + 颈圈 → 改变颈圈颜色
+     * 7. 已驯服 + 调用父类（处理繁殖/成长）
+     * 8. 已驯服 + 主人 + 父类未处理 → 切换坐下/站起
      */
     [[nodiscard]] ActionResultType interactMob(Player& player, Hand hand) override;
 
@@ -121,6 +134,52 @@ public:
      * @return true 如果此狼愿意攻击该目标
      */
     [[nodiscard]] bool wantsToAttack(const LivingEntity& target, const LivingEntity* owner) const override;
+
+    // ========== 狼铠 ==========
+
+    /**
+     * @brief 检查玩家是否可以剪切实体装备
+     *
+     * 狼只允许主人剪切狼铠。
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.canShearEquipment()
+     *
+     * @param player 尝试剪切的玩家
+     * @return 如果是主人返回 true
+     */
+    [[nodiscard]] bool canShearEquipment(const Player& player) const override;
+
+    /**
+     * @brief 实际受伤处理（狼铠伤害吸收）
+     *
+     * 当狼穿戴狼铠且伤害源不绕过护甲时，伤害由狼铠吸收（狼不扣血）。
+     * 狼铠受损时检查裂纹等级变化，等级变化时播放裂纹音效和粒子。
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.actuallyHurt()
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     */
+    void actuallyHurt(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 盔甲受损回调
+     *
+     * 狼穿戴狼铠时，将伤害传递给狼铠。
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.hurtArmor()
+     *
+     * @param source 伤害来源
+     * @param amount 伤害量
+     */
+    void damageArmor(DamageSource& source, f32 amount) override;
+
+    /**
+     * @brief 获取受伤声音
+     *
+     * 穿戴狼铠且伤害由狼铠吸收时，播放狼铠受伤音效而非普通狼受伤音效。
+     *
+     * @param source 伤害来源
+     * @return 声音事件资源位置
+     */
+    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
 
     // ========== 繁殖 ==========
 
@@ -208,11 +267,6 @@ protected:
     [[nodiscard]] std::optional<ResourceLocation> getAmbientSound() const override;
 
     /**
-     * @brief 获取受伤声音
-     */
-    [[nodiscard]] std::optional<ResourceLocation> getHurtSound(DamageSource& source) const override;
-
-    /**
      * @brief 获取死亡声音
      */
     [[nodiscard]] std::optional<ResourceLocation> getDeathSound() const override;
@@ -243,6 +297,7 @@ private:
     // 常量
     static constexpr f32 TAIL_ANGLE_HEALTHY = 0.698f;    // 健康时尾巴角度（弧度）
     static constexpr f32 TAIL_ANGLE_UNHEALTHY = -0.175f; // 不健康时尾巴角度（弧度）
+    static constexpr f32 ARMOR_REPAIR_UNIT = 0.125F;     // 狼铠修复单位（12.5%最大耐久）
 
     // 声音状态
     bool m_wasInWater = false;
@@ -276,6 +331,17 @@ private:
      * @return 对应的 DyeColor，如果不是染料返回 std::nullopt
      */
     [[nodiscard]] static std::optional<DyeColor> _getDyeColorFromItem(const Item* item);
+
+    /**
+     * @brief 检查狼铠是否可以吸收此伤害
+     *
+     * 条件：穿戴狼铠 且 伤害源不绕过护甲
+     * 参考: net.minecraft.world.entity.animal.wolf.Wolf.canArmorAbsorb()
+     *
+     * @param source 伤害来源
+     * @return 如果狼铠可以吸收此伤害返回 true
+     */
+    [[nodiscard]] bool _canArmorAbsorb(const DamageSource& source) const;
 };
 
 } // namespace mc

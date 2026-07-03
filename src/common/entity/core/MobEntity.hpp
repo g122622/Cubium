@@ -514,6 +514,53 @@ public:
      */
     [[nodiscard]] bool isEquipmentDropPreserved(EquipmentSlot slot) const;
 
+    // ========== 身体护甲 (Body Armor) ==========
+
+    /**
+     * @brief 获取身体护甲槽位的物品堆
+     *
+     * 用于狼铠、鹦鹉螺铠甲、马铠等非玩家实体的身体护甲。
+     * 参考: net.minecraft.world.entity.Mob.getBodyArmorItem()
+     *
+     * @return 身体护甲槽位的物品堆引用
+     */
+    [[nodiscard]] const ItemStack& getBodyArmorItem() const { return getEquipment(EquipmentSlot::Body); }
+
+    /**
+     * @brief 检查是否穿戴了身体护甲
+     *
+     * 检查 Body 槽位是否有有效（非空）的护甲物品。
+     * 参考: net.minecraft.world.entity.Mob.isWearingBodyArmor()
+     *
+     * @return 如果穿戴了身体护甲返回 true
+     */
+    [[nodiscard]] bool isWearingBodyArmor() const { return !getEquipment(EquipmentSlot::Body).isEmpty(); }
+
+    /**
+     * @brief 设置身体护甲槽位的物品
+     *
+     * 同时设置该槽位为保整掉落（确保死亡时掉落护甲），
+     * 并启用实体持久化（防止穿戴护甲的实体自然消失）。
+     * 参考: net.minecraft.world.entity.Mob.setBodyArmorItem()
+     *
+     * @param stack 要装备的物品堆
+     */
+    void setBodyArmorItem(const ItemStack& stack);
+
+    // ========== 剪切装备 (Shear Equipment) ==========
+
+    /**
+     * @brief 检查玩家是否可以剪切实体的装备
+     *
+     * 默认行为：实体未被骑乘时允许剪切。
+     * 子类可重写此方法添加额外条件（如狼仅允许主人剪切）。
+     * 参考: net.minecraft.world.entity.Mob.canShearEquipment()
+     *
+     * @param player 尝试剪切的玩家
+     * @return 如果允许剪切返回 true
+     */
+    [[nodiscard]] virtual bool canShearEquipment(const Player& player) const;
+
     // ========== 掉落表 (DeathLootTable) ==========
 
     /**

@@ -822,6 +822,12 @@ extern const ResourceLocation ENTITY_WOLF_SHAKE;
 extern const ResourceLocation ENTITY_WOLF_STEP;
 extern const ResourceLocation ENTITY_WOLF_WHINE;
 
+/// 狼铠音效
+extern const ResourceLocation ENTITY_WOLF_ARMOR_BREAK;
+extern const ResourceLocation ENTITY_WOLF_ARMOR_CRACK;
+extern const ResourceLocation ENTITY_WOLF_ARMOR_DAMAGE;
+extern const ResourceLocation ENTITY_WOLF_ARMOR_REPAIR;
+
 /// 兔子
 extern const ResourceLocation ENTITY_RABBIT_AMBIENT;
 extern const ResourceLocation ENTITY_RABBIT_ATTACK;
@@ -1467,6 +1473,8 @@ extern const ResourceLocation ITEM_ARMOR_EQUIP_IRON;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_LEATHER;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_NETHERITE;
 extern const ResourceLocation ITEM_ARMOR_EQUIP_TURTLE;
+extern const ResourceLocation ITEM_ARMOR_EQUIP_WOLF;
+extern const ResourceLocation ITEM_ARMOR_UNEQUIP_WOLF;
 
 /// 鞘翅
 extern const ResourceLocation ITEM_ELYTRA_FLYING;

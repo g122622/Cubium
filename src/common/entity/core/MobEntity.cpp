@@ -693,6 +693,18 @@ bool MobEntity::isEquipmentDropPreserved(EquipmentSlot slot) const
     return getEquipmentDropChance(slot) > 1.0f;
 }
 
+void MobEntity::setBodyArmorItem(const ItemStack& stack)
+{
+    setEquipment(EquipmentSlot::Body, stack);
+    setGuaranteedDrop(EquipmentSlot::Body);
+    enablePersistence();
+}
+
+bool MobEntity::canShearEquipment(const Player& /*player*/) const
+{
+    return !isRiding();
+}
+
 std::string MobEntity::getLootTableId() const
 {
     // NBT 覆盖优先：如果实体从存档加载了自定义掉落表，使用它

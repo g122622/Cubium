@@ -117,7 +117,20 @@ ResourceLocation WolfRenderer::getEntityTexture(const WolfEntity& entity) const
 
 void WolfRenderer::_setupLayers()
 {
-    // TODO: 添加狼项圈层 - 待层渲染器系统完善后实现
+    // TODO: 狼渲染层系统待完善后注册以下层：
+    // 1. WolfCollarLayer - 项圈层（已实现，待注册）
+    // 2. WolfArmorLayer - 狼铠层（待实现，需要狼铠纹理资源和裂纹覆盖纹理）
+    //
+    // 狼铠渲染需要以下纹理资源（MC 1.21.11）：
+    // - textures/entity/wolf/wolf_armor.png （狼铠基础纹理）
+    // - textures/entity/wolf/wolf_armor_crackiness_low.png
+    // - textures/entity/wolf/wolf_armor_crackiness_medium.png
+    // - textures/entity/wolf/wolf_armor_crackiness_high.png
+    //
+    // 渲染逻辑参考 net.minecraft.client.renderer.entity.layers.WolfArmorLayer:
+    // - 检查实体是否穿戴狼铠（getBodyArmorItem 非空且为 WolfArmorItem）
+    // - 使用 WolfModel 渲染狼铠模型
+    // - 根据 Crackiness::WOLF_ARMOR 裂纹等级渲染裂纹覆盖纹理
 }
 
 } // namespace mc::client::renderer::entity::renderer::animal

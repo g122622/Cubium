@@ -81,6 +81,7 @@ add_library(mc_common STATIC
     entity/core/CreatureEntity.cpp
     entity/core/AgeableEntity.cpp
     entity/core/FlyingEntity.cpp
+    entity/core/Crackiness.cpp
     entity/tag/EntityTypeTag.cpp
     entity/tag/EntityTypeTags.cpp
     entity/tag/EntityTypeTagLoader.cpp

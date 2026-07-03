@@ -682,6 +682,12 @@ const ResourceLocation ENTITY_WOLF_SHAKE("minecraft:entity.wolf.shake");
 const ResourceLocation ENTITY_WOLF_STEP("minecraft:entity.wolf.step");
 const ResourceLocation ENTITY_WOLF_WHINE("minecraft:entity.wolf.whine");
 
+/// 狼铠音效
+const ResourceLocation ENTITY_WOLF_ARMOR_BREAK("minecraft:item.wolf_armor.break");
+const ResourceLocation ENTITY_WOLF_ARMOR_CRACK("minecraft:item.wolf_armor.crack");
+const ResourceLocation ENTITY_WOLF_ARMOR_DAMAGE("minecraft:item.wolf_armor.damage");
+const ResourceLocation ENTITY_WOLF_ARMOR_REPAIR("minecraft:item.wolf_armor.repair");
+
 // 兔子
 const ResourceLocation ENTITY_RABBIT_AMBIENT("minecraft:entity.rabbit.ambient");
 const ResourceLocation ENTITY_RABBIT_ATTACK("minecraft:entity.rabbit.attack");
@@ -1327,6 +1333,8 @@ const ResourceLocation ITEM_ARMOR_EQUIP_IRON("minecraft:item.armor.equip_iron");
 const ResourceLocation ITEM_ARMOR_EQUIP_LEATHER("minecraft:item.armor.equip_leather");
 const ResourceLocation ITEM_ARMOR_EQUIP_NETHERITE("minecraft:item.armor.equip_netherite");
 const ResourceLocation ITEM_ARMOR_EQUIP_TURTLE("minecraft:item.armor.equip_turtle");
+const ResourceLocation ITEM_ARMOR_EQUIP_WOLF("minecraft:item.armor.equip_wolf");
+const ResourceLocation ITEM_ARMOR_UNEQUIP_WOLF("minecraft:item.armor.unequip_wolf");
 
 // 鞘翅
 const ResourceLocation ITEM_ELYTRA_FLYING("minecraft:item.elytra.flying");
