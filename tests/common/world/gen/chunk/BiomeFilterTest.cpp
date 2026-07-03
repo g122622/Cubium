@@ -40,6 +40,7 @@
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/chunk/gen/ChunkStatus.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/structure/StructureManager.hpp"
@@ -81,7 +82,9 @@ TEST_F(BiomeFilterTest, NetherStructureSet_SkippedInOverworldBiome)
     // 主世界生物群系源不应生成下界结构集（nether_complexes）
     // FixedBiomeSource 只返回 Plains，与下界结构的 biomeTag 无交集
     auto biomeSource = std::make_unique<world::biome::source::FixedBiomeSource>(0LL, Biomes::Plains);
-    NoiseChunkGenerator gen(0ULL, DimensionSettings::overworld(), std::move(biomeSource));
+    auto settings = DimensionSettings::overworld();
+    auto randomState = world::gen::RandomState::create(settings, 0ULL);
+    NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 查找下界结构集
     const auto* netherComplexSet = world::gen::structure::StructureSetRegistry::instance().get(
@@ -135,7 +138,9 @@ TEST_F(BiomeFilterTest, StructureWithNullBiomeTag_TreatedAsIncompatible)
     // biomeTag() 返回 nullptr 的结构应被视为不兼容任何生物群系
     // isValidBiome 在 biomeTag() 为 nullptr 时返回 false
     auto biomeSource = std::make_unique<world::biome::source::FixedBiomeSource>(0LL, Biomes::Plains);
-    NoiseChunkGenerator gen(0ULL, DimensionSettings::overworld(), std::move(biomeSource));
+    auto settings = DimensionSettings::overworld();
+    auto randomState = world::gen::RandomState::create(settings, 0ULL);
+    NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 遍历所有注册结构，验证 isValidBiome 不会崩溃
     const auto& allSets = world::gen::structure::StructureSetRegistry::instance().getAll();
@@ -165,7 +170,9 @@ TEST_F(BiomeFilterTest, PossibleBiomes_ContainsOverworldBiomes)
 TEST_F(BiomeFilterTest, MultiNoiseBiomeSource_ContainsManyOverworldBiomes)
 {
     // MultiNoiseBiomeSource::createOverworld 的 possibleBiomes 应包含大量主世界生物群系
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(12345ULL, false);
+    auto settings = DimensionSettings::overworld();
+    auto randomState = world::gen::RandomState::create(settings, 12345ULL);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
     const auto& possibleBiomes = biomeSource->possibleBiomes();
 
     // 主世界应该有大量生物群系
@@ -190,8 +197,10 @@ TEST_F(BiomeFilterTest, MultiNoiseBiomeSource_ContainsManyOverworldBiomes)
 TEST_F(BiomeFilterTest, GenerateStructureStarts_NetherBiomeSource_NetherStructuresAllowed)
 {
     // 使用下界生物群系创建生成器，下界结构应被允许
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(0ULL);
-    NoiseChunkGenerator gen(0ULL, DimensionSettings::nether(), std::move(biomeSource));
+    auto settings = DimensionSettings::nether();
+    auto randomState = world::gen::RandomState::create(settings, 0ULL);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(*randomState);
+    NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 查找下界结构集
     const auto* netherComplexSet = world::gen::structure::StructureSetRegistry::instance().get(
@@ -248,7 +257,9 @@ TEST_F(BiomeFilterTest, GetNoiseBiome_ReturnsConsistentBiomeAtChunkCenter)
 {
     // 验证 getNoiseBiome 在同一位置返回一致的生物群系
     auto biomeSource = std::make_unique<world::biome::source::FixedBiomeSource>(0LL, Biomes::Plains);
-    NoiseChunkGenerator gen(0ULL, DimensionSettings::overworld(), std::move(biomeSource));
+    auto settings = DimensionSettings::overworld();
+    auto randomState = world::gen::RandomState::create(settings, 0ULL);
+    NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // FixedBiomeSource 在任何位置都应返回 Plains
     for (i32 chunkX = -5; chunkX <= 5; ++chunkX) {

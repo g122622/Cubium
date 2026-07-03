@@ -23,6 +23,7 @@
 
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/carver/CanyonCarver.hpp"
 #include "common/world/gen/carver/CarverConfiguration.hpp"
 #include "common/world/gen/carver/CarvingContext.hpp"
@@ -190,7 +191,9 @@ protected:
         carver = std::make_unique<CaveCarver>();
         chunk = std::make_unique<ChunkPrimer>(0, 0);
         mask = std::make_unique<CarvingMask>(0, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
-        biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false);
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, 12345);
+        biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
         context = std::make_unique<CarvingContext>(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
         config = ConfiguredCarvers::createOverworldCaveConfig(&BlockTags::OVERWORLD_CARVER_REPLACEABLES());
     }
@@ -248,7 +251,9 @@ protected:
         carver = std::make_unique<CanyonCarver>();
         chunk = std::make_unique<ChunkPrimer>(0, 0);
         mask = std::make_unique<CarvingMask>(0, 0, world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT);
-        biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false);
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, 12345);
+        biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
         context = std::make_unique<CarvingContext>(world::MIN_BUILD_HEIGHT, world::CHUNK_HEIGHT, nullptr);
         config = ConfiguredCarvers::createOverworldCanyonConfig(&BlockTags::OVERWORLD_CARVER_REPLACEABLES());
     }

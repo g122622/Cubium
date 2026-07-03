@@ -31,6 +31,7 @@
  */
 
 #include "common/world/gen/density/DensityFunctions.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
 #include "common/world/gen/density/CaveDensityFunctions.hpp"
 #include "common/world/gen/density/TerrainProvider.hpp"
@@ -46,6 +47,18 @@ using namespace mc::world::gen::density;
 // ============================================================================
 
 namespace {
+/**
+ * 创建测试用 RandomState（overworld + 固定种子）
+ *
+ * factory::noise 等叶子工厂现需 const RandomState& 首参以共享噪声缓存。
+ * 测试中每个 factory 调用独立构造一个临时 RandomState 即可——factory 内部
+ * 仅依据 derivedSeed 与参数构造噪声实例，与历史裸 seed 调用语义完全等价。
+ */
+std::unique_ptr<world::gen::RandomState> makeRs()
+{
+    return world::gen::RandomState::create(DimensionSettings::overworld(), 42ULL);
+}
+
 /**
  * 创建返回恒定值的密度函数，minValue = maxValue = value
  */
@@ -347,7 +360,7 @@ TEST(DensityFunctionsMappedNoiseTest, BoundsFromValueLessThanToValue)
     // MC 1.21: minValue = midpoint - |halfAmplitude| * innerMaxNoise
     //          maxValue = midpoint + |halfAmplitude| * innerMaxNoise
     // 因此：minValue + maxValue = 2 * midpoint, 且 maxValue > minValue
-    auto noise = factory::mappedNoise(42, -8, {1.0}, 1.0, 1.0, 0.0, 1.0);
+    auto noise = factory::mappedNoise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0, 0.0, 1.0);
     const f64 midpoint = (0.0 + 1.0) * 0.5; // 0.5
     // 验证对称性：minValue + maxValue = 2 * midpoint
     EXPECT_NEAR(noise->minValue() + noise->maxValue(), 2.0 * midpoint, 1e-10);
@@ -364,7 +377,7 @@ TEST(DensityFunctionsMappedNoiseTest, BoundsFromValueGreaterThanToValue)
     // MC 1.21: minValue = midpoint - |halfAmplitude| * innerMaxNoise
     //          maxValue = midpoint + |halfAmplitude| * innerMaxNoise
     // 即使 fromValue > toValue（halfAmplitude 为负），bounds 仍然关于 midpoint 对称
-    auto noise = factory::mappedNoise(42, -8, {1.0}, 2.0, 1.0, -0.6, -1.3);
+    auto noise = factory::mappedNoise(*makeRs(), 42, -8, {1.0}, 2.0, 1.0, -0.6, -1.3);
     const f64 midpoint = (-0.6 + -1.3) * 0.5; // -0.95
     // 验证对称性：minValue + maxValue = 2 * midpoint
     EXPECT_NEAR(noise->minValue() + noise->maxValue(), 2.0 * midpoint, 1e-10);
@@ -378,7 +391,7 @@ TEST(DensityFunctionsMappedNoiseTest, BoundsFromValueGreaterThanToValue)
 TEST(DensityFunctionsMappedNoiseTest, BoundsEqualFromToValue)
 {
     // fromValue == toValue: halfAmplitude = 0, bounds = midpoint
-    auto noise = factory::mappedNoise(42, -8, {1.0}, 1.0, 1.0, 5.0, 5.0);
+    auto noise = factory::mappedNoise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0, 5.0, 5.0);
     EXPECT_DOUBLE_EQ(noise->minValue(), 5.0);
     EXPECT_DOUBLE_EQ(noise->maxValue(), 5.0);
 }
@@ -391,7 +404,8 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, Type1_MinValueIsZero)
 {
     // MC 1.21: Type1 minValue = 0.0（因为 compute 使用了 abs）
     auto input = constantFunc(0.5);
-    auto sampler = factory::weirdScaledSampler(std::move(input), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
+    auto sampler =
+        factory::weirdScaledSampler(std::move(input), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
     EXPECT_DOUBLE_EQ(sampler->minValue(), 0.0);
 }
 
@@ -399,7 +413,8 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, Type2_MinValueIsZero)
 {
     // MC 1.21: Type2 minValue = 0.0（因为 compute 使用了 abs）
     auto input = constantFunc(0.5);
-    auto sampler = factory::weirdScaledSampler(std::move(input), 42, -7, {1.0}, WeirdScaledSamplerType::Type2);
+    auto sampler =
+        factory::weirdScaledSampler(std::move(input), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type2);
     EXPECT_DOUBLE_EQ(sampler->minValue(), 0.0);
 }
 
@@ -407,7 +422,8 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, Type1_MaxValueIsMaxRarityTimesNoise
 {
     // MC 1.21: Type1 maxValue = 2.0 * noise.maxValue()
     auto input = constantFunc(0.5);
-    auto sampler = factory::weirdScaledSampler(std::move(input), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
+    auto sampler =
+        factory::weirdScaledSampler(std::move(input), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
     // Type1 maxRarity = 2.0
     // maxValue = 2.0 * noise.maxValue()
     EXPECT_GT(sampler->maxValue(), 0.0);
@@ -420,8 +436,10 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, Type2_MaxValueGreaterThanType1)
     // 相同噪声参数下，Type2 的 maxValue 应大于 Type1
     auto input1 = constantFunc(0.5);
     auto input2 = constantFunc(0.5);
-    auto sampler1 = factory::weirdScaledSampler(std::move(input1), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
-    auto sampler2 = factory::weirdScaledSampler(std::move(input2), 42, -7, {1.0}, WeirdScaledSamplerType::Type2);
+    auto sampler1 =
+        factory::weirdScaledSampler(std::move(input1), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
+    auto sampler2 =
+        factory::weirdScaledSampler(std::move(input2), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type2);
     EXPECT_GT(sampler2->maxValue(), sampler1->maxValue());
 }
 
@@ -431,7 +449,8 @@ TEST(DensityFunctionsWeirdScaledSamplerTest, RarityMapping_Type1)
     // 通过 compute 间接测试
     // 在高 rarity 下，噪声采样范围更小，值更大
     auto input = constantFunc(0.75); // 最高 rarity = 2.0
-    auto sampler = factory::weirdScaledSampler(std::move(input), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
+    auto sampler =
+        factory::weirdScaledSampler(std::move(input), *makeRs(), 42, -7, {1.0}, WeirdScaledSamplerType::Type1);
     f64 result = sampler->compute(100, 100, 100);
     EXPECT_GE(result, 0.0); // 结果非负（因为 abs）
 }
@@ -597,7 +616,7 @@ TEST(DensityFunctionsShiftNoiseTest, ShiftA_CoordinateOrder)
 {
     // ShiftA: noise(x*0.25, 0, z*0.25) * 4
     // 测试 x 和 z 不对称性
-    auto shiftA = factory::shiftA(42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftA = factory::shiftA(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
     // 两次 compute 结果应确定性
     f64 v1 = shiftA->compute(100, 0, 200);
     f64 v2 = shiftA->compute(100, 0, 200);
@@ -610,7 +629,7 @@ TEST(DensityFunctionsShiftNoiseTest, ShiftA_CoordinateOrder)
 TEST(DensityFunctionsShiftNoiseTest, ShiftB_CoordinateSwap)
 {
     // ShiftB: noise(z*0.25, x*0.25, 0) * 4（x 和 z 交换）
-    auto shiftB = factory::shiftB(42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftB = factory::shiftB(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
     f64 v1 = shiftB->compute(100, 0, 200);
     f64 v2 = shiftB->compute(100, 0, 200);
     EXPECT_DOUBLE_EQ(v1, v2);
@@ -618,7 +637,7 @@ TEST(DensityFunctionsShiftNoiseTest, ShiftB_CoordinateSwap)
 
 TEST(DensityFunctionsShiftNoiseTest, MinMaxValues)
 {
-    auto shiftA = factory::shiftA(42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftA = factory::shiftA(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
     EXPECT_DOUBLE_EQ(shiftA->minValue(), -shiftA->maxValue()); // 对称
     EXPECT_GT(shiftA->maxValue(), 0.0);
 }
@@ -640,7 +659,7 @@ TEST(DensityFunctionsCache2DTest, CachesResult)
 TEST(DensityFunctionsCache2DTest, DifferentXZ_Recalculates)
 {
     // 使用依赖于 XZ 坐标的噪声函数来测试 Cache2D 缓存失效
-    auto input = factory::noise(42, -8, {1.0}, 1.0, 1.0);
+    auto input = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
     auto cache = factory::cache2D(std::move(input));
     f64 v1 = cache->compute(10, 0, 20);
     f64 v2 = cache->compute(30, 0, 40); // 不同 XZ
@@ -665,7 +684,7 @@ TEST(DensityFunctionsFlatCacheTest, CachesAtQuartResolution)
 {
     // FlatCache 在 quart 坐标级别缓存（floorDiv(block, 4)）
     // 使用依赖于 XZ 坐标的噪声函数来验证缓存行为
-    auto input = factory::noise(42, -8, {1.0}, 1.0, 1.0);
+    auto input = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
     auto cache = factory::flatCache(std::move(input));
     // 相同 quart 坐标应返回缓存值
     f64 v1 = cache->compute(0, 0, 0);
@@ -980,14 +999,14 @@ TEST(DensityFunctionsEndIslandsTest, OriginValue)
 
 TEST(DensityFunctionsNoiseDensityTest, Deterministic)
 {
-    auto noise1 = factory::noise(42, -8, {1.0}, 1.0, 1.0);
-    auto noise2 = factory::noise(42, -8, {1.0}, 1.0, 1.0);
+    auto noise1 = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
+    auto noise2 = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
     EXPECT_DOUBLE_EQ(noise1->compute(100, 50, 200), noise2->compute(100, 50, 200));
 }
 
 TEST(DensityFunctionsNoiseDensityTest, SymmetricMinMax)
 {
-    auto noise = factory::noise(42, -8, {1.0}, 1.0, 1.0);
+    auto noise = factory::noise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0);
     EXPECT_DOUBLE_EQ(noise->minValue(), -noise->maxValue());
 }
 
@@ -999,7 +1018,7 @@ TEST(DensityFunctionsMappedNoiseTest, ComputeMatchesFormula)
 {
     // compute = fromValue + noise * (toValue - fromValue)
     // 当 fromValue == toValue 时，结果恒等于 fromValue
-    auto noise = factory::mappedNoise(42, -8, {1.0}, 1.0, 1.0, 5.0, 5.0);
+    auto noise = factory::mappedNoise(*makeRs(), 42, -8, {1.0}, 1.0, 1.0, 5.0, 5.0);
     EXPECT_DOUBLE_EQ(noise->compute(0, 0, 0), 5.0);
     EXPECT_DOUBLE_EQ(noise->compute(100, 50, 200), 5.0);
     EXPECT_DOUBLE_EQ(noise->minValue(), 5.0);
@@ -1012,11 +1031,11 @@ TEST(DensityFunctionsMappedNoiseTest, ComputeMatchesFormula)
 
 TEST(DensityFunctionsShiftedNoiseTest, MinMaxValues)
 {
-    auto shiftX = factory::shiftA(42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shiftY = factory::shift(42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shiftZ = factory::shiftB(42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shifted =
-        factory::shiftedNoise(42, -8, {1.0}, 0.25, 0.125, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
+    auto shiftX = factory::shiftA(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftY = factory::shift(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftZ = factory::shiftB(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shifted = factory::shiftedNoise(
+        *makeRs(), 42, -8, {1.0}, 0.25, 0.125, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
     EXPECT_DOUBLE_EQ(shifted->minValue(), -shifted->maxValue());
     EXPECT_GT(shifted->maxValue(), 0.0);
 }
@@ -1203,47 +1222,47 @@ TEST(CaveDensityFunctionsTest, Base3DNoiseParameters)
 
 TEST(CaveDensityFunctionsBuilderTest, Spaghetti2dProducesNonNull)
 {
-    auto result = CaveDensityFunctions::spaghetti2d(42);
+    auto result = CaveDensityFunctions::spaghetti2d(*makeRs(), 42);
     ASSERT_NE(result, nullptr);
     EXPECT_LT(result->minValue(), result->maxValue());
 }
 
 TEST(CaveDensityFunctionsBuilderTest, SpaghettiRoughnessProducesNonNull)
 {
-    auto result = CaveDensityFunctions::spaghettiRoughness(42);
+    auto result = CaveDensityFunctions::spaghettiRoughness(*makeRs(), 42);
     ASSERT_NE(result, nullptr);
     EXPECT_LT(result->minValue(), result->maxValue());
 }
 
 TEST(CaveDensityFunctionsBuilderTest, EntrancesProducesNonNull)
 {
-    auto result = CaveDensityFunctions::entrances(42);
+    auto result = CaveDensityFunctions::entrances(*makeRs(), 42);
     ASSERT_NE(result, nullptr);
     // entrances 结果范围应在 [-1, 1] 附近（因 clamp）
 }
 
 TEST(CaveDensityFunctionsBuilderTest, NoodleProducesNonNull)
 {
-    auto result = CaveDensityFunctions::noodle(42, -60, 320);
+    auto result = CaveDensityFunctions::noodle(*makeRs(), 42, -60, 320);
     ASSERT_NE(result, nullptr);
 }
 
 TEST(CaveDensityFunctionsBuilderTest, PillarsProducesNonNull)
 {
-    auto result = CaveDensityFunctions::pillars(42);
+    auto result = CaveDensityFunctions::pillars(*makeRs(), 42);
     ASSERT_NE(result, nullptr);
 }
 
 TEST(CaveDensityFunctionsBuilderTest, UndergroundProducesNonNull)
 {
-    auto result = CaveDensityFunctions::underground(42, -60, 320);
+    auto result = CaveDensityFunctions::underground(*makeRs(), 42, -60, 320);
     ASSERT_NE(result, nullptr);
 }
 
 TEST(CaveDensityFunctionsBuilderTest, Spaghetti2dDeterministic)
 {
-    auto r1 = CaveDensityFunctions::spaghetti2d(42);
-    auto r2 = CaveDensityFunctions::spaghetti2d(42);
+    auto r1 = CaveDensityFunctions::spaghetti2d(*makeRs(), 42);
+    auto r2 = CaveDensityFunctions::spaghetti2d(*makeRs(), 42);
     EXPECT_DOUBLE_EQ(r1->compute(100, 50, 200), r2->compute(100, 50, 200));
 }
 
@@ -1251,8 +1270,8 @@ TEST(CaveDensityFunctionsBuilderTest, DifferentSeedsDifferentResults)
 {
     // pillars 使用 cacheOnce(mul(add(mul(pillarNoise, 2.0), pillarRareness), cube(pillarThickness)))
     // 输出范围更广，不太可能在不同种子下产生完全相同的值
-    auto r1 = CaveDensityFunctions::pillars(42);
-    auto r2 = CaveDensityFunctions::pillars(123);
+    auto r1 = CaveDensityFunctions::pillars(*makeRs(), 42);
+    auto r2 = CaveDensityFunctions::pillars(*makeRs(), 123);
     bool anyDifferent = false;
     for (i32 x = 0; x < 500; x += 73) {
         for (i32 z = 0; z < 500; z += 97) {
@@ -1600,11 +1619,11 @@ TEST(DensityFunctionsInvertTest, SmallRange)
 
 TEST(DensityFunctionsShiftedNoiseTest, ComputeDeterministic)
 {
-    auto shiftX = factory::shiftA(42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shiftY = factory::shift(42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shiftZ = factory::shiftB(42, -3, {1.0, 1.0, 1.0, 0.0});
-    auto shifted =
-        factory::shiftedNoise(42, -8, {1.0}, 0.25, 0.125, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
+    auto shiftX = factory::shiftA(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftY = factory::shift(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shiftZ = factory::shiftB(*makeRs(), 42, -3, {1.0, 1.0, 1.0, 0.0});
+    auto shifted = factory::shiftedNoise(
+        *makeRs(), 42, -8, {1.0}, 0.25, 0.125, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
     f64 v1 = shifted->compute(100, 50, 200);
     f64 v2 = shifted->compute(100, 50, 200);
     EXPECT_DOUBLE_EQ(v1, v2);
@@ -1840,11 +1859,14 @@ TEST(SplineWithBlendingTest, NoiseGradientDensityWithSplineWithBlending)
     auto continents = std::make_shared<mc::world::gen::density::CubicSpline>(
         std::shared_ptr<DensityFunction>(factory::constant(0.5).release()), std::move(points));
     auto erosion = std::make_shared<mc::world::gen::density::CubicSpline>(
-        std::shared_ptr<DensityFunction>(factory::constant(0.0).release()), std::vector<mc::world::gen::density::SplinePoint>{{-1.0, 1.0, 0.0}, {1.0, 1.0, 0.0}});
+        std::shared_ptr<DensityFunction>(factory::constant(0.0).release()),
+        std::vector<mc::world::gen::density::SplinePoint>{{-1.0, 1.0, 0.0}, {1.0, 1.0, 0.0}});
     auto ridgesPV = std::make_shared<mc::world::gen::density::CubicSpline>(
-        std::shared_ptr<DensityFunction>(factory::constant(0.0).release()), std::vector<mc::world::gen::density::SplinePoint>{{-1.0, 1.0, 0.0}, {1.0, 1.0, 0.0}});
+        std::shared_ptr<DensityFunction>(factory::constant(0.0).release()),
+        std::vector<mc::world::gen::density::SplinePoint>{{-1.0, 1.0, 0.0}, {1.0, 1.0, 0.0}});
     auto weirdness = std::make_shared<mc::world::gen::density::CubicSpline>(
-        std::shared_ptr<DensityFunction>(factory::constant(0.0).release()), std::vector<mc::world::gen::density::SplinePoint>{{-1.0, 1.0, 0.0}, {1.0, 1.0, 0.0}});
+        std::shared_ptr<DensityFunction>(factory::constant(0.0).release()),
+        std::vector<mc::world::gen::density::SplinePoint>{{-1.0, 1.0, 0.0}, {1.0, 1.0, 0.0}});
 
     auto factorSpline = TerrainProvider::overworldFactor(continents, erosion, weirdness, ridgesPV);
     auto factor = TerrainProvider::splineWithBlending(std::move(factorSpline), factory::constant(10.0));

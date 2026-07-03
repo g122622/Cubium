@@ -729,11 +729,17 @@ void ServerChunkManager::_executeStepTask(ChunkPrimer& chunk, const ChunkStatus&
         m_generator->buildSurface(region, chunk);
     } else if (status == ChunkStatuses::CARVERS) {
         m_generator->applyCarvers(region, chunk);
+        // CARVERS 之后释放不再需要的生成态数据
+        // m_noiseChunk（最后在 applyCarvers 中读取）、m_carvingMask（仅 applyCarvers 使用）
+        chunk.releaseGenOnlyData(status);
     } else if (status == ChunkStatuses::FEATURES) {
         // 在特性放置前 prime POST_FEATURES 高度图
         // CARVERS 完成后方块数据已就绪，但 POST_FEATURES 高度图尚未创建
         chunk.primeHeightmaps(HeightmapFlag::POST_FEATURES);
         m_generator->placeFeatures(region, chunk);
+        // FEATURES 之后释放不再需要的生成态数据
+        // m_structureReferences（最后在 placeFeatures 中读取）
+        chunk.releaseGenOnlyData(status);
     } else if (status == ChunkStatuses::INITIALIZE_LIGHT) {
         // INITIALIZE_LIGHT 为空操作。
         // 光源收集由 BlockStarLightEngine::_getSources 在 LIGHT 阶段完成，
@@ -1134,7 +1140,16 @@ void ServerChunkManager::unloadChunkSync(ChunkCoord x, ChunkCoord z)
 
 void ServerChunkManager::_checkChunkUnloading()
 {
+    // 候选区块：可卸载的（shouldLoad=false 且无追踪玩家且 isSafeToUnload）
     std::vector<u64> toUnload;
+
+    // 软上限强制卸载候选池：仍加载（shouldLoad=true）的区块及其 level。
+    // level 越高 = 越远 = 越应优先卸载。仅当 m_maxLoadedChunks > 0 时收集。
+    // pair: {level, key}，升序排序后从末尾（最大 level）取。
+    std::vector<std::pair<i32, u64>> forcedCandidates;
+
+    const bool enforceSoftCap = m_maxLoadedChunks > 0;
+    size_t loadedCount = 0;
 
     {
         std::lock_guard<std::mutex> lock(m_lifecycleManagersMutex);
@@ -1143,16 +1158,48 @@ void ServerChunkManager::_checkChunkUnloading()
                 continue;
             }
 
+            // 票级高于 Border（shouldLoad=false）且无追踪玩家且可安全卸载 → 常规卸载候选
             if (!lifecycleManager->shouldLoad() && !m_ticketManager.hasTrackingPlayers(key) &&
                 lifecycleManager->isSafeToUnload()) {
                 toUnload.push_back(key);
+                continue;
+            }
+
+            // 软上限统计：所有仍加载（shouldLoad=true）的区块计入强制卸载候选池。
+            // 超限时按 level 降序（最远优先）强制卸载。
+            if (enforceSoftCap && lifecycleManager->shouldLoad()) {
+                forcedCandidates.emplace_back(lifecycleManager->level(), key);
+                ++loadedCount;
             }
         }
     }
 
+    // 1) 常规卸载：受每 tick 预算限制，平滑卸载尖峰（对齐 Moonrise processUnloads）
+    i32 unloadBudget = MAX_UNLOADS_PER_TICK;
     for (u64 key : toUnload) {
+        if (unloadBudget <= 0) {
+            break;
+        }
         auto chunkId = ChunkId::fromId(key);
         unloadChunkSync(chunkId.x, chunkId.z);
+        --unloadBudget;
+    }
+
+    // 2) 软上限强制卸载：加载区块数超过 m_maxLoadedChunks 时，按最远优先强制卸载。
+    //    forcedCandidates 升序排序后从末尾（最大 level = 最远）取，直到不再超限或预算耗尽。
+    //    强制卸载也消耗同一预算，避免与常规卸载叠加造成单 tick 尖峰。
+    if (enforceSoftCap && loadedCount > static_cast<size_t>(m_maxLoadedChunks)) {
+        std::sort(forcedCandidates.begin(), forcedCandidates.end());
+        const size_t excess = loadedCount - static_cast<size_t>(m_maxLoadedChunks);
+        size_t unloaded = 0;
+        for (auto it = forcedCandidates.rbegin();
+            it != forcedCandidates.rend() && unloaded < excess && unloadBudget > 0;
+            ++it) {
+            auto chunkId = ChunkId::fromId(it->second);
+            unloadChunkSync(chunkId.x, chunkId.z);
+            ++unloaded;
+            --unloadBudget;
+        }
     }
 }
 

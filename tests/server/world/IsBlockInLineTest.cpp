@@ -26,6 +26,7 @@
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/BlockTags.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
@@ -48,9 +49,11 @@ protected:
     static std::unique_ptr<ServerWorld> createTestWorld(const ServerWorldConfig& config)
     {
         auto world = std::make_unique<ServerWorld>(config);
-        auto generator = std::make_unique<NoiseChunkGenerator>(config.seed,
-            DimensionSettings::overworld(),
-            mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
+        auto settings = DimensionSettings::overworld();
+        auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
         auto chunkManager = std::make_unique<ServerChunkManager>(*world, std::move(generator));
         world->setChunkManager(std::move(chunkManager));
         return world;

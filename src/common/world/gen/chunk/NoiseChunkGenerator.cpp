@@ -36,7 +36,6 @@
 #include "../carver/CarvingMask.hpp"
 #include "../carver/WorldCarver.hpp"
 #include "../density/Beardifier.hpp"
-#include "../density/NoiseRouterData.hpp"
 #include "../density/OreVeinifier.hpp"
 #include "../feature/ConfiguredFeature.hpp"
 #include "../feature/FeatureSorter.hpp"
@@ -62,9 +61,11 @@ namespace mc {
 // NoiseChunkGenerator 实现
 // ============================================================================
 
-NoiseChunkGenerator::NoiseChunkGenerator(
-    u64 seed, DimensionSettings settings, std::unique_ptr<world::biome::IBiomeSource> biomeSource)
-    : BaseChunkGenerator(seed, std::move(settings))
+NoiseChunkGenerator::NoiseChunkGenerator(DimensionSettings settings,
+    std::unique_ptr<world::biome::IBiomeSource> biomeSource,
+    std::shared_ptr<world::gen::RandomState> randomState)
+    : BaseChunkGenerator(randomState->worldSeed(), std::move(settings))
+    , m_randomState(std::move(randomState))
     , m_biomeSource(std::move(biomeSource))
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::constructor");
@@ -73,6 +74,7 @@ NoiseChunkGenerator::NoiseChunkGenerator(
     BiomeRegistry::instance().initialize();
 
     MC_ASSERT_RELEASE(m_biomeSource != nullptr);
+    MC_ASSERT_RELEASE(m_randomState != nullptr);
 
     // MC 1.21: 创建 BiomeManager（Voronoi 缩放生物群系查询）
     // obfuscateSeed 使用 SHA-256 哈希世界种子，防止玩家通过生物群系模式逆向种子
@@ -115,8 +117,7 @@ void NoiseChunkGenerator::_initDensityFunctionPipeline()
 {
     MC_TRACE_EVENT("server.initialization", "NoiseChunkGenerator::initDensityFunctionPipeline");
 
-    // 创建 RandomState，统一持有 NoiseRouter、SurfaceSystem、随机工厂等
-    m_randomState = world::gen::RandomState::create(m_settings, static_cast<u64>(m_seed));
+    // RandomState 由外部构造并注入（与生物群系源共享同一缓存），此处不再内部创建。
 
     // MC 1.21: 从 NoiseSettings 读取 cell 大小，而非硬编码
     // cellWidth = sizeHorizontal * 4, cellHeight = sizeVertical * 4

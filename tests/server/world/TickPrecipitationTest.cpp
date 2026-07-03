@@ -27,6 +27,7 @@
 #include "common/world/chunk/data/ChunkData.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
 #include "common/world/gamerule/GameRules.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "server/world/ServerChunkManager.hpp"
@@ -56,9 +57,11 @@ protected:
         config.seed = 42;
 
         m_world = std::make_unique<ServerWorld>(config);
-        auto generator = std::make_unique<NoiseChunkGenerator>(config.seed,
-            DimensionSettings::overworld(),
-            world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
         auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
         m_world->setChunkManager(std::move(chunkManager));
 

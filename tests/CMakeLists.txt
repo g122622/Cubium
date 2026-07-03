@@ -1270,6 +1270,8 @@ add_executable(mc_tests
     common/util/text/TextComponentTest.cpp
     # 存储系统测试
     common/world/storage/SectionCodecTest.cpp
+    # 调色板容器单元测试
+    common/world/chunk/data/PalettedContainerTest.cpp
     common/world/storage/SingleLevelStorageManagerTest.cpp
     common/world/storage/GlobalStorageManagerTest.cpp
     common/world/storage/SaveFormatDetectorTest.cpp

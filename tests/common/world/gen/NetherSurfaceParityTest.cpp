@@ -27,6 +27,7 @@
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/IChunkGenerator.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
@@ -76,9 +77,10 @@ TEST_F(NetherSurfaceTest, NetherUsesNoiseChunkGenerator)
     // 验证下界可以使用 NoiseChunkGenerator + NetherBiomeBuilder 创建
     const u64 seed = 246813579ULL;
     DimensionSettings settings = DimensionSettings::nether();
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(seed);
+    auto randomState = world::gen::RandomState::create(settings, seed);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(*randomState);
 
-    NoiseChunkGenerator generator(seed, std::move(settings), std::move(biomeSource));
+    NoiseChunkGenerator generator(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     // 验证生成器可以正确创建（不应崩溃）
     // 下界维度高度为 0-128，seaLevel=32（MC 1.21.11）

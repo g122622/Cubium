@@ -71,11 +71,13 @@ class NoiseChunkGenerator : public BaseChunkGenerator {
 public:
     /**
      * @brief 构造噪声区块生成器（带生物群系源）
-     * @param seed 世界种子
      * @param settings 维度设置
      * @param biomeSource 生物群系源
+     * @param randomState 世界随机状态（与生物群系源共享同一缓存，持有 NoiseRouter/SurfaceSystem 等）
      */
-    NoiseChunkGenerator(u64 seed, DimensionSettings settings, std::unique_ptr<world::biome::IBiomeSource> biomeSource);
+    NoiseChunkGenerator(DimensionSettings settings,
+        std::unique_ptr<world::biome::IBiomeSource> biomeSource,
+        std::shared_ptr<world::gen::RandomState> randomState);
 
     ~NoiseChunkGenerator() override;
 
@@ -129,9 +131,10 @@ public:
 
 private:
     // === MC 1.21 密度函数管线 ===
-    std::unique_ptr<world::gen::RandomState> m_randomState; ///< 随机状态（持有 NoiseRouter、SurfaceSystem 等）
-    i32 m_cellWidth = 4;                                    ///< X/Z 方向 cell 宽度（主世界=4, 末地=8）
-    i32 m_cellHeight = 8;                                   ///< Y 方向 cell 高度（主世界=8, 末地=4）
+    std::shared_ptr<world::gen::RandomState>
+        m_randomState;    ///< 随机状态（与生物群系源共享，持有 NoiseRouter、SurfaceSystem 等）
+    i32 m_cellWidth = 4;  ///< X/Z 方向 cell 宽度（主世界=4, 末地=8）
+    i32 m_cellHeight = 8; ///< Y 方向 cell 高度（主世界=8, 末地=4）
 
     // === 生物群系 ===
     std::unique_ptr<world::biome::IBiomeSource> m_biomeSource;

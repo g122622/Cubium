@@ -44,6 +44,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
 
@@ -80,9 +81,11 @@ protected:
         constexpr i32 radius = 1;
         constexpr i32 diameter = radius * 2 + 1;
 
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
         result->generator =
-            std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::overworld(), std::move(biomeSource));
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
         std::vector<IChunk*> chunkPtrs;
         for (i32 dz = -radius; dz <= radius; ++dz) {
@@ -203,7 +206,7 @@ TEST_F(ChunkXAxisHeightTest, XAxis_HeightDiagnostic_Seed42_Chunk00)
 
     // 断言：两半的高度差不应超过 40 格（正常地形在 16 格宽度内不会出现 200 格落差）
     EXPECT_LT(heightDiff, 40.0) << "X-axis height asymmetry detected! Left mean=" << leftMean
-                                 << " Right mean=" << rightMean << " Diff=" << heightDiff;
+                                << " Right mean=" << rightMean << " Diff=" << heightDiff;
 }
 
 // ============================================================================
@@ -271,9 +274,8 @@ TEST_F(ChunkXAxisHeightTest, XAxis_HeightConsistent_MultiSeed)
         double rightMean = mean(rightHeights);
         double heightDiff = std::abs(rightMean - leftMean);
 
-        EXPECT_LT(heightDiff, 40.0) << "X-axis height asymmetry for seed=" << seed
-                                     << ": left_mean=" << leftMean << " right_mean=" << rightMean
-                                     << " diff=" << heightDiff;
+        EXPECT_LT(heightDiff, 40.0) << "X-axis height asymmetry for seed=" << seed << ": left_mean=" << leftMean
+                                    << " right_mean=" << rightMean << " diff=" << heightDiff;
     }
 }
 
@@ -302,8 +304,8 @@ TEST_F(ChunkXAxisHeightTest, XAxis_HeightConsistent_MultiChunkPosition)
         double heightDiff = std::abs(rightMean - leftMean);
 
         EXPECT_LT(heightDiff, 40.0) << "X-axis height asymmetry at chunk (" << pos[0] << "," << pos[1]
-                                     << "): left_mean=" << leftMean << " right_mean=" << rightMean
-                                     << " diff=" << heightDiff;
+                                    << "): left_mean=" << leftMean << " right_mean=" << rightMean
+                                    << " diff=" << heightDiff;
     }
 }
 
@@ -342,7 +344,7 @@ TEST_F(ChunkXAxisHeightTest, XAxis_HeightSmoothTransition_AcrossColumns)
 
     double jumpRatio = static_cast<double>(largeJumps) / static_cast<double>(totalChecks);
     EXPECT_LT(jumpRatio, 0.10) << "Too many large height jumps across X columns: " << largeJumps << "/" << totalChecks
-                                << " (" << (jumpRatio * 100.0) << "%)";
+                               << " (" << (jumpRatio * 100.0) << "%)";
 
     // x=7→x=8 边界处不应出现特别多的跳跃（如果 bug 存在，这里会有大量跳跃）
     EXPECT_LT(boundaryJumps, 8) << "Too many height jumps at x=7→x=8 boundary: " << boundaryJumps << "/16";
@@ -359,8 +361,10 @@ TEST_F(ChunkXAxisHeightTest, XAxis_GetHeightAPIDiagnostic)
     // 如果 getHeight 也出现不对称，说明噪声计算本身有问题
     // 如果 getHeight 对称但区块生成不对称，说明区块生成管线有问题
     u64 seed = 42ULL;
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
-    NoiseChunkGenerator gen(seed, DimensionSettings::overworld(), std::move(biomeSource));
+    auto settings = DimensionSettings::overworld();
+    auto randomState = world::gen::RandomState::create(settings, seed);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    NoiseChunkGenerator gen(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     std::vector<i32> leftHeights, rightHeights;
 
@@ -393,7 +397,7 @@ TEST_F(ChunkXAxisHeightTest, XAxis_GetHeightAPIDiagnostic)
     }
 
     EXPECT_LT(heightDiff, 40.0) << "getHeight() also shows X-axis asymmetry! Left mean=" << leftMean
-                                 << " Right mean=" << rightMean << " Diff=" << heightDiff;
+                                << " Right mean=" << rightMean << " Diff=" << heightDiff;
 }
 
 // ============================================================================
@@ -428,8 +432,8 @@ TEST_F(ChunkXAxisHeightTest, XAxis_CellLevelDiagnostic)
         double s = stddev(cellHeights[i]);
         i32 mn = *std::min_element(cellHeights[i].begin(), cellHeights[i].end());
         i32 mx = *std::max_element(cellHeights[i].begin(), cellHeights[i].end());
-        std::cout << "  Cell " << i << " (x=" << (i * 4) << "~" << (i * 4 + 3)
-                  << "): mean=" << m << " stddev=" << s << " min=" << mn << " max=" << mx << std::endl;
+        std::cout << "  Cell " << i << " (x=" << (i * 4) << "~" << (i * 4 + 3) << "): mean=" << m << " stddev=" << s
+                  << " min=" << mn << " max=" << mx << std::endl;
     }
 
     // 相邻 cell 之间的高度差不应超过 40 格
@@ -439,7 +443,7 @@ TEST_F(ChunkXAxisHeightTest, XAxis_CellLevelDiagnostic)
         }
         double diff = std::abs(mean(cellHeights[i + 1]) - mean(cellHeights[i]));
         EXPECT_LT(diff, 40.0) << "Adjacent cell height difference too large between cell " << i << " and " << (i + 1)
-                               << ": diff=" << diff;
+                              << ": diff=" << diff;
     }
 }
 
@@ -490,9 +494,8 @@ TEST_F(ChunkXAxisHeightTest, XAxis_PerColumnDiffAnalysis)
     // x=7→8 的差不应超过其他对的 5 倍（如果 bug 存在，这个比值会非常大）
     if (otherPairAvg > 0.01) {
         double ratio = x78Diff / otherPairAvg;
-        EXPECT_LT(ratio, 5.0) << "x=7->8 height jump is " << ratio
-                               << "x larger than average adjacent column diff. "
-                               << "This indicates a cell boundary issue at x=8.";
+        EXPECT_LT(ratio, 5.0) << "x=7->8 height jump is " << ratio << "x larger than average adjacent column diff. "
+                              << "This indicates a cell boundary issue at x=8.";
     }
 }
 

@@ -36,6 +36,10 @@
 #include <variant>
 #include <vector>
 
+namespace mc::world::gen {
+class RandomState;
+} // namespace mc::world::gen
+
 namespace mc::world::gen::density {
 
 // ============================================================================
@@ -530,7 +534,7 @@ private:
  */
 class MappedNoise final : public DensityFunction {
 public:
-    MappedNoise(std::unique_ptr<noise::NormalNoise> noise, f64 xzScale, f64 yScale, f64 fromValue, f64 toValue)
+    MappedNoise(std::shared_ptr<const noise::NormalNoise> noise, f64 xzScale, f64 yScale, f64 fromValue, f64 toValue)
         : m_noise(std::move(noise))
         , m_xzScale(xzScale)
         , m_yScale(yScale)
@@ -560,10 +564,15 @@ public:
     [[nodiscard]] f64 minValue() const override { return m_minValue; }
     [[nodiscard]] f64 maxValue() const override { return m_maxValue; }
 
-    DENSITY_FUNCTION_MAP_ALL_LEAF(MappedNoise, m_noise->clone(), m_xzScale, m_yScale, m_fromValue, m_toValue)
+    // NormalNoise::getValue 是 const 无 mutable，mapAll 前后语义等价，
+    // 因此共享 m_noise（不再 clone），仅重建叶子壳子。详见 RandomState::getOrCreateRouterNoise。
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        return visitor.apply(std::make_unique<MappedNoise>(m_noise, m_xzScale, m_yScale, m_fromValue, m_toValue));
+    }
 
 private:
-    std::unique_ptr<noise::NormalNoise> m_noise;
+    std::shared_ptr<const noise::NormalNoise> m_noise;
     f64 m_xzScale;
     f64 m_yScale;
     f64 m_fromValue;
@@ -579,7 +588,7 @@ private:
  */
 class NoiseDensity final : public DensityFunction {
 public:
-    NoiseDensity(std::unique_ptr<noise::NormalNoise> noise, f64 xzScale, f64 yScale)
+    NoiseDensity(std::shared_ptr<const noise::NormalNoise> noise, f64 xzScale, f64 yScale)
         : m_noise(std::move(noise))
         , m_xzScale(xzScale)
         , m_yScale(yScale)
@@ -601,10 +610,15 @@ public:
     [[nodiscard]] f64 xzScale() const { return m_xzScale; }
     [[nodiscard]] f64 yScale() const { return m_yScale; }
 
-    DENSITY_FUNCTION_MAP_ALL_LEAF(NoiseDensity, m_noise->clone(), m_xzScale, m_yScale)
+    // NormalNoise::getValue 是 const 无 mutable，mapAll 前后语义等价，
+    // 因此共享 m_noise（不再 clone），仅重建叶子壳子。详见 RandomState::getOrCreateRouterNoise。
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        return visitor.apply(std::make_unique<NoiseDensity>(m_noise, m_xzScale, m_yScale));
+    }
 
 private:
-    std::unique_ptr<noise::NormalNoise> m_noise;
+    std::shared_ptr<const noise::NormalNoise> m_noise;
     f64 m_xzScale;
     f64 m_yScale;
     f64 m_minValue;
@@ -623,7 +637,7 @@ private:
  */
 class ShiftedNoise final : public DensityFunction {
 public:
-    ShiftedNoise(std::unique_ptr<noise::NormalNoise> noise,
+    ShiftedNoise(std::shared_ptr<const noise::NormalNoise> noise,
         f64 xzScale,
         f64 yScale,
         std::unique_ptr<DensityFunction> shiftX,
@@ -657,17 +671,19 @@ public:
     [[nodiscard]] const DensityFunction& shiftY() const { return *m_shiftY; }
     [[nodiscard]] const DensityFunction& shiftZ() const { return *m_shiftZ; }
 
+    // m_noise 共享（NormalNoise const 无 mutable，mapAll 前后等价，不再 clone）；
+    // m_shiftX/Y/Z 是复合子函数，仍递归 mapAll 重建（与原语义一致）。
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
         auto newShiftX = m_shiftX->mapAll(visitor);
         auto newShiftY = m_shiftY->mapAll(visitor);
         auto newShiftZ = m_shiftZ->mapAll(visitor);
         return visitor.apply(std::make_unique<ShiftedNoise>(
-            m_noise->clone(), m_xzScale, m_yScale, std::move(newShiftX), std::move(newShiftY), std::move(newShiftZ)));
+            m_noise, m_xzScale, m_yScale, std::move(newShiftX), std::move(newShiftY), std::move(newShiftZ)));
     }
 
 private:
-    std::unique_ptr<noise::NormalNoise> m_noise;
+    std::shared_ptr<const noise::NormalNoise> m_noise;
     f64 m_xzScale;
     f64 m_yScale;
     std::unique_ptr<DensityFunction> m_shiftX;
@@ -697,7 +713,7 @@ enum class ShiftType : u8 { ShiftA, ShiftB, Shift };
  */
 class ShiftNoise final : public DensityFunction {
 public:
-    ShiftNoise(std::unique_ptr<noise::NormalNoise> noise, ShiftType type)
+    ShiftNoise(std::shared_ptr<const noise::NormalNoise> noise, ShiftType type)
         : m_noise(std::move(noise))
         , m_type(type)
         , m_minValue(-m_noise->maxValue() * 4.0)
@@ -727,10 +743,14 @@ public:
     [[nodiscard]] ShiftType type() const { return m_type; }
     [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
 
-    DENSITY_FUNCTION_MAP_ALL_LEAF(ShiftNoise, m_noise->clone(), m_type)
+    // NormalNoise const 无 mutable，mapAll 前后等价，共享 m_noise 不再 clone。
+    [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
+    {
+        return visitor.apply(std::make_unique<ShiftNoise>(m_noise, m_type));
+    }
 
 private:
-    std::unique_ptr<noise::NormalNoise> m_noise;
+    std::shared_ptr<const noise::NormalNoise> m_noise;
     ShiftType m_type;
     f64 m_minValue;
     f64 m_maxValue;
@@ -1107,8 +1127,9 @@ enum class WeirdScaledSamplerType : u8 { Type1, Type2 };
  */
 class WeirdScaledSampler final : public DensityFunction {
 public:
-    WeirdScaledSampler(
-        std::unique_ptr<DensityFunction> input, std::unique_ptr<noise::NormalNoise> noise, WeirdScaledSamplerType type)
+    WeirdScaledSampler(std::unique_ptr<DensityFunction> input,
+        std::shared_ptr<const noise::NormalNoise> noise,
+        WeirdScaledSamplerType type)
         : m_input(std::move(input))
         , m_noise(std::move(noise))
         , m_type(type)
@@ -1133,15 +1154,17 @@ public:
     [[nodiscard]] const noise::NormalNoise& noise() const { return *m_noise; }
     [[nodiscard]] WeirdScaledSamplerType type() const { return m_type; }
 
+    // m_noise 共享（const 无 mutable，mapAll 前后等价，不再 clone）；
+    // m_input 仍递归 mapAll 重建。
     [[nodiscard]] std::unique_ptr<DensityFunction> mapAll(Visitor& visitor) const override
     {
         auto newInput = m_input->mapAll(visitor);
-        return visitor.apply(std::make_unique<WeirdScaledSampler>(std::move(newInput), m_noise->clone(), m_type));
+        return visitor.apply(std::make_unique<WeirdScaledSampler>(std::move(newInput), m_noise, m_type));
     }
 
 private:
     std::unique_ptr<DensityFunction> m_input;
-    std::unique_ptr<noise::NormalNoise> m_noise;
+    std::shared_ptr<const noise::NormalNoise> m_noise;
     WeirdScaledSamplerType m_type;
     f64 m_minValue = 0.0;
     f64 m_maxValue = 0.0;
@@ -1418,14 +1441,21 @@ namespace factory {
 
 /**
  * @brief 创建噪声密度函数
+ *
+ * 从 RandomState 的派生种子缓存获取 NormalNoise，跨区块复用，
+ * 避免每区块 createRouterCopy 时重建 PerlinNoise 倍频置换表。
+ * derivedSeed 通常是 worldSeed ^ 噪声常量。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> noise(
-    u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale);
+    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale);
 
 /**
  * @brief 创建带偏移的噪声密度函数
+ *
+ * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise(u64 seed,
+[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise(const RandomState& rs,
+    u64 derivedSeed,
     i32 firstOctave,
     std::vector<f64> amplitudes,
     f64 xzScale,
@@ -1438,12 +1468,13 @@ namespace factory {
  * @brief 创建 2D 带偏移噪声（yScale=0, shiftY=zero）
  *
  * MC 1.21 的气候参数（temperature, vegetation, continents, erosion, ridges）
- * 均使用此函数。
+ * 均使用此函数。从 RandomState 缓存获取 NormalNoise，跨区块复用。
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise2d(std::unique_ptr<DensityFunction> shiftX,
+[[nodiscard]] std::unique_ptr<DensityFunction> shiftedNoise2d(const RandomState& rs,
+    std::unique_ptr<DensityFunction> shiftX,
     std::unique_ptr<DensityFunction> shiftZ,
     f64 xzScale,
-    u64 seed,
+    u64 derivedSeed,
     i32 firstOctave,
     std::vector<f64> amplitudes);
 
@@ -1459,18 +1490,27 @@ namespace factory {
 
 /**
  * @brief 创建 ShiftA 偏移噪声
+ *
+ * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftA(u64 seed, i32 firstOctave, std::vector<f64> amplitudes);
+[[nodiscard]] std::unique_ptr<DensityFunction> shiftA(
+    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes);
 
 /**
  * @brief 创建 ShiftB 偏移噪声
+ *
+ * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> shiftB(u64 seed, i32 firstOctave, std::vector<f64> amplitudes);
+[[nodiscard]] std::unique_ptr<DensityFunction> shiftB(
+    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes);
 
 /**
  * @brief 创建 Shift 偏移噪声
+ *
+ * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> shift(u64 seed, i32 firstOctave, std::vector<f64> amplitudes);
+[[nodiscard]] std::unique_ptr<DensityFunction> shift(
+    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes);
 
 /**
  * @brief 创建 RangeChoice 条件选择
@@ -1538,9 +1578,12 @@ namespace factory {
 
 /**
  * @brief 创建奇异缩放采样器
+ *
+ * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
  */
 [[nodiscard]] std::unique_ptr<DensityFunction> weirdScaledSampler(std::unique_ptr<DensityFunction> input,
-    u64 seed,
+    const RandomState& rs,
+    u64 derivedSeed,
     i32 firstOctave,
     std::vector<f64> amplitudes,
     WeirdScaledSamplerType type);
@@ -1549,9 +1592,16 @@ namespace factory {
  * @brief 创建带输出重映射的噪声密度函数
  *
  * compute = fromValue + noise(x*xzScale, y*yScale, z*xzScale) * (toValue - fromValue)
+ * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
  */
-[[nodiscard]] std::unique_ptr<DensityFunction> mappedNoise(
-    u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale, f64 fromValue, f64 toValue);
+[[nodiscard]] std::unique_ptr<DensityFunction> mappedNoise(const RandomState& rs,
+    u64 derivedSeed,
+    i32 firstOctave,
+    std::vector<f64> amplitudes,
+    f64 xzScale,
+    f64 yScale,
+    f64 fromValue,
+    f64 toValue);
 
 /**
  * @brief 创建末地岛屿密度函数

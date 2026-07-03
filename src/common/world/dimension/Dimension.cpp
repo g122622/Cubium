@@ -25,6 +25,7 @@
 #include "../../core/Constants.hpp"
 #include "../biome/source/EndBiomeSource.hpp"
 #include "../biome/source/MultiNoiseBiomeSource.hpp"
+#include "../gen/RandomState.hpp"
 #include "../gen/chunk/NoiseChunkGenerator.hpp"
 #include "../gen/settings/DimensionSettings.hpp"
 #include "DimensionManager.hpp"
@@ -59,10 +60,12 @@ std::unique_ptr<Dimension> Dimension::createOverworld(u64 seed)
 {
     DimensionType dimType = DimensionType::overworld();
 
-    // 创建主世界生物群系源（3D 多噪声）
+    // 先构造 RandomState，再由生物群系源与生成器共享同一噪声缓存。
     auto settings = DimensionSettings::overworld();
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
-    auto generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
+    auto randomState = world::gen::RandomState::create(settings, seed);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+    auto generator =
+        std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     auto dimension = std::make_unique<Dimension>(0, // DimensionId::Overworld
         std::move(dimType),
@@ -78,10 +81,12 @@ std::unique_ptr<Dimension> Dimension::createNether(u64 seed)
 {
     DimensionType dimType = DimensionType::nether();
 
-    // 下界使用 NoiseChunkGenerator + MultiNoiseBiomeSource
+    // 下界使用 NoiseChunkGenerator + MultiNoiseBiomeSource，共享 RandomState
     auto settings = DimensionSettings::nether();
-    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(seed);
-    auto generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
+    auto randomState = world::gen::RandomState::create(settings, seed);
+    auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(*randomState);
+    auto generator =
+        std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     auto dimension = std::make_unique<Dimension>(DimensionManager::NETHER, std::move(dimType), std::move(generator));
 
@@ -95,10 +100,12 @@ std::unique_ptr<Dimension> Dimension::createTheEnd(u64 seed)
 {
     DimensionType dimType = DimensionType::theEnd();
 
-    // 末地使用 NoiseChunkGenerator + EndBiomeSource
+    // 末地使用 NoiseChunkGenerator + EndBiomeSource，共享 RandomState
     auto settings = DimensionSettings::end();
-    auto biomeSource = std::make_unique<world::biome::source::EndBiomeSource>(seed);
-    auto generator = std::make_unique<NoiseChunkGenerator>(seed, std::move(settings), std::move(biomeSource));
+    auto randomState = world::gen::RandomState::create(settings, seed);
+    auto biomeSource = std::make_unique<world::biome::source::EndBiomeSource>(*randomState);
+    auto generator =
+        std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
     auto dimension = std::make_unique<Dimension>(DimensionManager::THE_END, std::move(dimType), std::move(generator));
 

@@ -26,6 +26,7 @@
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/noise/NormalNoise.hpp"
 #include "common/world/gen/noise/PerlinNoise.hpp"
@@ -62,8 +63,12 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceDeterminism)
     const u64 seed = 12345;
 
     // 创建两个生物群系源
-    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
-    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+    auto settings1 = DimensionSettings::overworld();
+    auto randomState1 = mc::world::gen::RandomState::create(settings1, seed);
+    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState1, false);
+    auto settings2 = DimensionSettings::overworld();
+    auto randomState2 = mc::world::gen::RandomState::create(settings2, seed);
+    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false);
 
     // 在相同坐标采样，结果应相同
     for (int i = 0; i < 100; ++i) {
@@ -83,7 +88,9 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceDeterminism)
 TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceNoiseBatchMatchesScalarSampling)
 {
     const u64 seed = 24680;
-    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+    auto settings = DimensionSettings::overworld();
+    auto randomState = mc::world::gen::RandomState::create(settings, seed);
+    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
 
     constexpr i32 startNoiseX = -40;
     constexpr i32 startNoiseZ = 28;
@@ -109,7 +116,9 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceNoiseBatchMatchesScalarSamp
 TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceContainerMatchesNoiseGrid)
 {
     const u64 seed = 13579;
-    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+    auto settings = DimensionSettings::overworld();
+    auto randomState = mc::world::gen::RandomState::create(settings, seed);
+    auto source = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
 
     constexpr ChunkCoord chunkX = 3;
     constexpr ChunkCoord chunkZ = -2;
@@ -368,8 +377,12 @@ TEST_F(WorldGenDeterminismTest, MultiNoiseBiomeSourceMultipleSamples)
     const u64 seed = 98765;
 
     // 使用相同种子创建两个生物群系源
-    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
-    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+    auto settings1 = DimensionSettings::overworld();
+    auto randomState1 = mc::world::gen::RandomState::create(settings1, seed);
+    auto source1 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState1, false);
+    auto settings2 = DimensionSettings::overworld();
+    auto randomState2 = mc::world::gen::RandomState::create(settings2, seed);
+    auto source2 = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState2, false);
 
     // 采样多个点
     for (int i = 0; i < 50; ++i) {
@@ -395,8 +408,9 @@ TEST_F(WorldGenDeterminismTest, OverworldTerrainHasTallReliefInSampleWindow)
 
     for (u64 seed : seeds) {
         DimensionSettings settings = DimensionSettings::overworld();
-        NoiseChunkGenerator generator(
-            seed, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false));
+        auto randomState = mc::world::gen::RandomState::create(settings, seed);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        NoiseChunkGenerator generator(std::move(settings), std::move(biomeSource), std::move(randomState));
 
         for (i32 z = -512; z <= 512; z += 32) {
             for (i32 x = -512; x <= 512; x += 32) {

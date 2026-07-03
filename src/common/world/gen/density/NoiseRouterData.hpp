@@ -25,6 +25,10 @@
 #include "common/world/gen/density/NoiseRouter.hpp"
 #include <memory>
 
+namespace mc::world::gen {
+class RandomState;
+} // namespace mc::world::gen
+
 namespace mc::world::gen::density {
 
 /**
@@ -35,7 +39,7 @@ namespace mc::world::gen::density {
  *
  * 使用方法：
  * @code
- * auto router = NoiseRouterData::overworld(seed, false);
+ * auto router = NoiseRouterData::overworld(rs, seed, false);
  * climate::Sampler sampler = router.createClimateSampler();
  * @endcode
  */
@@ -43,25 +47,40 @@ class NoiseRouterData {
 public:
     /**
      * @brief 创建主世界噪声路由器
+     *
+     * 从 RandomState 的派生种子缓存获取 NormalNoise，跨区块复用，
+     * 避免每区块 createRouterCopy 时重建 PerlinNoise 倍频置换表。
+     * 叶子密度函数（NoiseDensity/ShiftedNoise/MappedNoise 等）通过 shared_ptr 共享底层噪声。
+     *
+     * @param rs 世界随机状态（提供噪声缓存）
      * @param seed 世界种子
      * @param largeBiomes 是否使用大型生物群系预设
      * @return 配置好的 NoiseRouter
      */
-    [[nodiscard]] static NoiseRouter overworld(u64 seed, bool largeBiomes);
+    [[nodiscard]] static NoiseRouter overworld(const RandomState& rs, u64 seed, bool largeBiomes);
 
     /**
      * @brief 创建下界噪声路由器
+     *
+     * temperature/vegetation 的 shift 叶子从 RandomState 缓存获取，BlendedNoise 仍按 seed 重建。
+     *
+     * @param rs 世界随机状态（提供噪声缓存）
      * @param seed 世界种子
      * @return 配置好的 NoiseRouter
      */
-    [[nodiscard]] static NoiseRouter nether(u64 seed);
+    [[nodiscard]] static NoiseRouter nether(const RandomState& rs, u64 seed);
 
     /**
      * @brief 创建末地噪声路由器
+     *
+     * 末地路径仅使用 BlendedNoise 和 EndIslands，无 NormalNoise 叶子，
+     * rs 仅用于 API 统一。
+     *
+     * @param rs 世界随机状态（未使用，仅 API 统一）
      * @param seed 世界种子
      * @return 配置好的 NoiseRouter
      */
-    [[nodiscard]] static NoiseRouter end(u64 seed);
+    [[nodiscard]] static NoiseRouter end(const RandomState& rs, u64 seed);
 
     // ========== 噪声参数常量 ==========
 
@@ -107,10 +126,9 @@ public:
 
 private:
     /**
-     * @brief 创建主世界的气候密度函数
-     * @param seed 种子
-     * @param largeBiomes 大型生物群系
-     * @return 6 个气候密度函数（temperature, vegetation, continents, erosion, depth, ridges）
+     * @brief 主世界气候密度函数集合
+     *
+     * 包含 6 个气候密度函数：temperature, vegetation, continents, erosion, depth, ridges。
      */
     struct ClimateFunctions {
         std::unique_ptr<DensityFunction> temperature;
@@ -121,7 +139,17 @@ private:
         std::unique_ptr<DensityFunction> ridges;
     };
 
-    [[nodiscard]] static ClimateFunctions createOverworldClimate(u64 seed, bool largeBiomes);
+    /**
+     * @brief 创建主世界的气候密度函数
+     *
+     * 从 RandomState 缓存获取 NormalNoise，shift 叶子跨区块共享。
+     *
+     * @param rs 世界随机状态（提供噪声缓存）
+     * @param seed 世界种子
+     * @param largeBiomes 大型生物群系
+     * @return 6 个气候密度函数
+     */
+    [[nodiscard]] static ClimateFunctions createOverworldClimate(const RandomState& rs, u64 seed, bool largeBiomes);
 
     /**
      * @brief 创建 peaksAndValleys 变换
@@ -175,7 +203,19 @@ private:
      * 只设置 temperature/vegetation 为 shiftedNoise2d，
      * 其余通道为 constant(0.0)，finalDensity 经过 postProcess。
      */
-    [[nodiscard]] static NoiseRouter noNewCaves(u64 seed, std::unique_ptr<DensityFunction> finalDensity);
+    /**
+     * @brief 创建 noNewCaves 路由器
+     *
+     * MC 1.21: 用于下界和末地的简单路由器，
+     * 只设置 temperature/vegetation 为 shiftedNoise2d（从 RandomState 缓存获取 NormalNoise），
+     * 其余通道为 constant(0.0)，finalDensity 经过 postProcess。
+     *
+     * @param rs 世界随机状态（提供噪声缓存）
+     * @param seed 世界种子
+     * @param finalDensity 经 postProcess 包装的最终密度函数
+     */
+    [[nodiscard]] static NoiseRouter noNewCaves(
+        const RandomState& rs, u64 seed, std::unique_ptr<DensityFunction> finalDensity);
 };
 
 } // namespace mc::world::gen::density

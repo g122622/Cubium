@@ -488,6 +488,24 @@ public:
     [[nodiscard]] std::shared_ptr<ChunkData> toChunkData();
 
     /**
+     * @brief 释放已完成阶段不再需要的生成态数据，降低区块驻留内存
+     *
+     * 对齐 Moonrise 的阶段性释放策略。在对应生成阶段完成后由 ServerChunkManager 调用。
+     *
+     * 释放规则（基于对 NoiseChunkGenerator 各阶段数据消费的审计）：
+     *   - CARVERS 之后：m_noiseChunk（最后在 applyCarvers 中读取）、m_carvingMask（仅 applyCarvers 使用）
+     *   - FEATURES 之后：m_structureReferences（最后在 placeFeatures 中读取）、
+     *                     m_postProcessingSections（已由 toChunkData 转移到 ChunkData，但 FEATURES 阶段
+     *                     markPosForPostprocessing 仍会写入；FEATURES 完成后不再有写入）
+     *   - m_structureStarts 不释放：邻居在 STRUCTURE_REFERENCES/FEATURES/NOISE 阶段通过
+     *                     getIntersectingStructures/getStructureStart 读取，必须存活到 holder 卸载
+     *   - m_lightPositions 不释放：恒为空（addLightPosition/getLightPositions 在生产代码中无调用）
+     *
+     * @param afterStatus 刚完成的 ChunkStatus
+     */
+    void releaseGenOnlyData(const ChunkStatus& afterStatus);
+
+    /**
      * @brief 获取底层 ChunkData（如果存在）
      */
     [[nodiscard]] ChunkData* getChunkData() noexcept { return m_data.get(); }

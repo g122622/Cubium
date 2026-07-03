@@ -39,6 +39,7 @@
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
 
@@ -67,9 +68,11 @@ protected:
         constexpr i32 radius = 1;
         constexpr i32 diameter = radius * 2 + 1;
 
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
         result->generator =
-            std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::overworld(), std::move(biomeSource));
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
         std::vector<IChunk*> chunkPtrs;
         for (i32 dz = -radius; dz <= radius; ++dz) {
@@ -120,9 +123,13 @@ TEST_F(DensityColumnTest, DensityColumnAtX4VsX12)
         const f64 deltaX = static_cast<f64>(testX - alignedX) / static_cast<f64>(cellWidth);
 
         auto routerCopy = randomState->createRouterCopy();
-        auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(
-            std::move(routerCopy), cellWidth, cellHeight, cellCountY,
-            alignedX, startY, 0,
+        auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+            cellWidth,
+            cellHeight,
+            cellCountY,
+            alignedX,
+            startY,
+            0,
             std::make_unique<world::gen::density::BeardifierMarker>(),
             1);
 
@@ -131,8 +138,7 @@ TEST_F(DensityColumnTest, DensityColumnAtX4VsX12)
             std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
             fillers.push_back(std::make_unique<world::gen::density::DisabledAquiferFiller>(
                 VanillaBlocks::getState(VanillaBlocks::WATER), 63));
-            noiseChunk->setBlockStateRule(
-                std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
+            noiseChunk->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
         }
 
         noiseChunk->initializeForFirstCellX();
@@ -180,9 +186,13 @@ TEST_F(DensityColumnTest, CellBoundaryDensityTest)
     auto randomState = world::gen::RandomState::create(DimensionSettings::overworld(), seed);
     auto routerCopy = randomState->createRouterCopy();
 
-    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(
-        std::move(routerCopy), cellWidth, cellHeight, cellCountY,
-        0, startY, 0,
+    auto noiseChunk = std::make_unique<world::gen::density::NoiseChunk>(std::move(routerCopy),
+        cellWidth,
+        cellHeight,
+        cellCountY,
+        0,
+        startY,
+        0,
         std::make_unique<world::gen::density::BeardifierMarker>(),
         4);
 
@@ -190,8 +200,7 @@ TEST_F(DensityColumnTest, CellBoundaryDensityTest)
         std::vector<std::unique_ptr<world::gen::density::BlockStateFiller>> fillers;
         fillers.push_back(std::make_unique<world::gen::density::DisabledAquiferFiller>(
             VanillaBlocks::getState(VanillaBlocks::WATER), 63));
-        noiseChunk->setBlockStateRule(
-            std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
+        noiseChunk->setBlockStateRule(std::make_unique<world::gen::density::MaterialRuleList>(std::move(fillers)));
     }
 
     const auto& cellConfig = noiseChunk->cellConfig();
@@ -206,20 +215,17 @@ TEST_F(DensityColumnTest, CellBoundaryDensityTest)
         noiseChunk->advanceCellX(cellX);
 
         for (i32 cellZ = 0; cellZ < cellConfig.cellCountXZ; ++cellZ) {
-            if (cellZ != 0)
-                continue; // 只看 z=0 的 cell
+            if (cellZ != 0) continue; // 只看 z=0 的 cell
 
             for (i32 cellY = cellConfig.cellCountY - 1; cellY >= 0; --cellY) {
                 const i32 cellStartY = (noiseChunk->firstCellY() + cellY) * cellHeight;
-                if (cellStartY + cellHeight < 60 || cellStartY > 70)
-                    continue;
+                if (cellStartY + cellHeight < 60 || cellStartY > 70) continue;
 
                 noiseChunk->selectCellXYZ(cellX, cellY, cellZ);
 
                 for (i32 inCellY = cellHeight - 1; inCellY >= 0; --inCellY) {
                     const i32 blockY = cellStartY + inCellY;
-                    if (blockY != 64)
-                        continue;
+                    if (blockY != 64) continue;
 
                     const f64 yLerp = static_cast<f64>(inCellY) / static_cast<f64>(cellHeight);
                     noiseChunk->updateForY(blockY, yLerp);

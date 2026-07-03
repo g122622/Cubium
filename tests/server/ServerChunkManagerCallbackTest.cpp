@@ -25,6 +25,7 @@
 #include "common/util/thread/ServerWorkerPool.hpp"
 #include "common/world/biome/source/MultiNoiseBiomeSource.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/gen/spawn/WorldGenSpawner.hpp"
@@ -60,8 +61,10 @@ protected:
 
         // 创建区块生成器
         auto settings = mc::DimensionSettings::overworld();
+        auto randomState = mc::world::gen::RandomState::create(settings, 12345);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
         auto generator = std::make_unique<mc::NoiseChunkGenerator>(
-            12345, std::move(settings), mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(12345, false));
+            std::move(settings), std::move(biomeSource), std::move(randomState));
 
         // 创建区块管理器（不关联 ServerWorld）
         m_manager = std::make_unique<ServerChunkManager>(std::move(generator));

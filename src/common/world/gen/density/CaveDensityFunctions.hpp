@@ -26,6 +26,10 @@
 #include "common/world/gen/density/TerrainProvider.hpp"
 #include <memory>
 
+namespace mc::world::gen {
+class RandomState;
+} // namespace mc::world::gen
+
 namespace mc::world::gen::density {
 
 /**
@@ -46,43 +50,51 @@ public:
     /**
      * @brief 构建 spaghetti_2d 密度函数
      *
-     * MC 1.21: 组合 SPAGHETTI_2D_MODULATOR, SPAGHETTI_2D 噪声和 Y 梯度
+     * MC 1.21: 组合 SPAGHETTI_2D_MODULATOR, SPAGHETTI_2D 噪声和 Y 梯度。
+     * 从 RandomState 的派生种子缓存获取 NormalNoise，跨区块复用。
      */
-    [[nodiscard]] static std::unique_ptr<DensityFunction> spaghetti2d(u64 seed);
+    [[nodiscard]] static std::unique_ptr<DensityFunction> spaghetti2d(const RandomState& rs, u64 seed);
 
     /**
      * @brief 构建 spaghetti_roughness 密度函数
+     *
+     * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
      */
-    [[nodiscard]] static std::unique_ptr<DensityFunction> spaghettiRoughness(u64 seed);
+    [[nodiscard]] static std::unique_ptr<DensityFunction> spaghettiRoughness(const RandomState& rs, u64 seed);
 
     /**
      * @brief 构建 entrances 密度函数
      *
-     * MC 1.21: min(entranceTerm, add(roughness, spag3d))
+     * MC 1.21: min(entranceTerm, add(roughness, spag3d))。
+     * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
      */
-    [[nodiscard]] static std::unique_ptr<DensityFunction> entrances(u64 seed);
+    [[nodiscard]] static std::unique_ptr<DensityFunction> entrances(const RandomState& rs, u64 seed);
 
     /**
      * @brief 构建 noodle 密度函数
      *
-     * MC 1.21: rangeChoice(noodleToggle, -1e6, 0, constant(64), add(noodleThickness, noodleRidge))
+     * MC 1.21: rangeChoice(noodleToggle, -1e6, 0, constant(64), add(noodleThickness, noodleRidge))。
+     * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
      */
-    [[nodiscard]] static std::unique_ptr<DensityFunction> noodle(u64 seed, i32 minY, i32 maxY);
+    [[nodiscard]] static std::unique_ptr<DensityFunction> noodle(const RandomState& rs, u64 seed, i32 minY, i32 maxY);
 
     /**
      * @brief 构建 pillars 密度函数
      *
-     * MC 1.21: cacheOnce(mul(add(mul(pillarNoise, 2.0), pillarRareness), cube(pillarThickness)))
+     * MC 1.21: cacheOnce(mul(add(mul(pillarNoise, 2.0), pillarRareness), cube(pillarThickness)))。
+     * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
      */
-    [[nodiscard]] static std::unique_ptr<DensityFunction> pillars(u64 seed);
+    [[nodiscard]] static std::unique_ptr<DensityFunction> pillars(const RandomState& rs, u64 seed);
 
     /**
      * @brief 构建 underground 密度函数
      *
      * MC 1.21: max(min(min(caveDensity, entrances), add(spaghetti2d, roughness)),
-     *              rangeChoice(pillars, -1e6, 0.03, constant(-1e6), pillars))
+     *              rangeChoice(pillars, -1e6, 0.03, constant(-1e6), pillars))。
+     * 从 RandomState 缓存获取 NormalNoise，跨区块复用。
      */
-    [[nodiscard]] static std::unique_ptr<DensityFunction> underground(u64 seed, i32 minY, i32 maxY);
+    [[nodiscard]] static std::unique_ptr<DensityFunction> underground(
+        const RandomState& rs, u64 seed, i32 minY, i32 maxY);
 
     // ========== 噪声参数常量 ==========
 

@@ -39,13 +39,15 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
     auto state = std::unique_ptr<RandomState>(new RandomState(worldSeed, settings));
 
     // 创建 NoiseRouter（根据维度类型选择预设）
+    // 三个预设均从本 RandomState 的派生种子缓存获取 NormalNoise，叶子密度函数跨区块共享。
     switch (settings.dimensionKind) {
         case DimensionKind::End:
         case DimensionKind::FloatingIslands:
-            state->m_router = std::make_unique<density::NoiseRouter>(density::NoiseRouterData::end(worldSeed));
+            state->m_router = std::make_unique<density::NoiseRouter>(density::NoiseRouterData::end(*state, worldSeed));
             break;
         case DimensionKind::Nether:
-            state->m_router = std::make_unique<density::NoiseRouter>(density::NoiseRouterData::nether(worldSeed));
+            state->m_router =
+                std::make_unique<density::NoiseRouter>(density::NoiseRouterData::nether(*state, worldSeed));
             break;
         case DimensionKind::Overworld:
         case DimensionKind::LargeBiomes:
@@ -54,7 +56,7 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
         case DimensionKind::Flat:
         default:
             state->m_router = std::make_unique<density::NoiseRouter>(
-                density::NoiseRouterData::overworld(worldSeed, settings.largeBiomes));
+                density::NoiseRouterData::overworld(*state, worldSeed, settings.largeBiomes));
             break;
     }
 
@@ -122,21 +124,21 @@ std::unique_ptr<RandomState> RandomState::create(const DimensionSettings& settin
 
 density::NoiseRouter RandomState::createRouterCopy() const
 {
-    // 使用相同种子和设置重新创建路由器
-    // 每个 NoiseChunk 需要自己的路由器副本，因为 mapAll() 会修改密度函数树
+    // 每个 NoiseChunk 需要自己的路由器副本，因为 mapAll() 会修改密度函数树。
+    // 但底层 NormalNoise 实例通过本 RandomState 的缓存共享，不再每区块重建 PerlinNoise 倍频置换表。
     switch (m_settings.dimensionKind) {
         case DimensionKind::End:
         case DimensionKind::FloatingIslands:
-            return density::NoiseRouterData::end(m_worldSeed);
+            return density::NoiseRouterData::end(*this, m_worldSeed);
         case DimensionKind::Nether:
-            return density::NoiseRouterData::nether(m_worldSeed);
+            return density::NoiseRouterData::nether(*this, m_worldSeed);
         case DimensionKind::Overworld:
         case DimensionKind::LargeBiomes:
         case DimensionKind::Amplified:
         case DimensionKind::Caves:
         case DimensionKind::Flat:
         default:
-            return density::NoiseRouterData::overworld(m_worldSeed, m_settings.largeBiomes);
+            return density::NoiseRouterData::overworld(*this, m_worldSeed, m_settings.largeBiomes);
     }
 }
 
@@ -199,6 +201,32 @@ noise::NormalNoise& RandomState::getOrCreateNoise(const std::string& name)
     auto& ref = *factory;
     m_randomFactoryCache.emplace(name, std::move(factory));
     return ref;
+}
+
+std::shared_ptr<const noise::NormalNoise> RandomState::getOrCreateRouterNoise(
+    u64 derivedSeed, i32 firstOctave, const std::vector<f64>& amplitudes) const
+{
+    // 命中路径：shared_lock 并发读
+    {
+        std::shared_lock lock(m_routerNoiseMutex);
+        auto it = m_routerNoiseCache.find(derivedSeed);
+        if (it != m_routerNoiseCache.end()) {
+            return it->second;
+        }
+    }
+
+    // miss 路径：unique_lock 写入（double-check，避免重复构造）
+    std::unique_lock lock(m_routerNoiseMutex);
+    auto it = m_routerNoiseCache.find(derivedSeed);
+    if (it != m_routerNoiseCache.end()) {
+        return it->second;
+    }
+
+    // NormalNoise 由 derivedSeed 确定性构造（NormalNoise.hpp:59 构造函数），
+    // 同 derivedSeed + firstOctave + amplitudes 产生逐 bit 等价的实例，可安全共享。
+    auto noise = std::make_shared<const noise::NormalNoise>(derivedSeed, firstOctave, amplitudes);
+    m_routerNoiseCache.emplace(derivedSeed, noise);
+    return noise;
 }
 
 } // namespace mc::world::gen

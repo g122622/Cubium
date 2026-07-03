@@ -38,6 +38,7 @@
 #include "common/world/block/registry/VanillaBlocks.hpp"
 #include "common/world/chunk/data/ChunkPrimer.hpp"
 #include "common/world/fluid/FluidRegistry.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/density/Beardifier.hpp"
 
@@ -80,9 +81,11 @@ protected:
         auto result = std::make_unique<GeneratedChunk>();
         const i32 diameter = radius * 2 + 1;
 
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(seed, false);
+        auto settings = DimensionSettings::overworld();
+        auto randomState = world::gen::RandomState::create(settings, seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
         result->generator =
-            std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::overworld(), std::move(biomeSource));
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
         std::vector<IChunk*> chunkPtrs;
         for (i32 dz = -radius; dz <= radius; ++dz) {
@@ -119,9 +122,11 @@ protected:
         const i32 radius = 1;
         const i32 diameter = radius * 2 + 1;
 
-        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(seed);
+        auto settings = DimensionSettings::nether();
+        auto randomState = world::gen::RandomState::create(settings, seed);
+        auto biomeSource = world::biome::source::MultiNoiseBiomeSource::createNether(*randomState);
         result->generator =
-            std::make_unique<NoiseChunkGenerator>(seed, DimensionSettings::nether(), std::move(biomeSource));
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
 
         std::vector<IChunk*> chunkPtrs;
         for (i32 dz = -radius; dz <= radius; ++dz) {

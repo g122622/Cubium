@@ -23,6 +23,7 @@
 #include "common/world/gen/density/DensityFunctions.hpp"
 #include "common/util/assert/AssertAll.hpp"
 #include "common/util/math/random/JavaLegacyRandom.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include <cmath>
 
 namespace mc::world::gen::density {
@@ -318,13 +319,16 @@ std::unique_ptr<DensityFunction> max(std::unique_ptr<DensityFunction> arg1, std:
     return std::make_unique<TwoArgument>(std::move(arg1), std::move(arg2), TwoArgumentType::Max);
 }
 
-std::unique_ptr<DensityFunction> noise(u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale)
+std::unique_ptr<DensityFunction> noise(
+    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale)
 {
-    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    // 共享路径：从 RandomState 缓存获取 NormalNoise，跨区块复用，避免重建 PerlinNoise 倍频置换表。
+    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
     return std::make_unique<NoiseDensity>(std::move(normalNoise), xzScale, yScale);
 }
 
-std::unique_ptr<DensityFunction> shiftedNoise(u64 seed,
+std::unique_ptr<DensityFunction> shiftedNoise(const RandomState& rs,
+    u64 derivedSeed,
     i32 firstOctave,
     std::vector<f64> amplitudes,
     f64 xzScale,
@@ -333,19 +337,20 @@ std::unique_ptr<DensityFunction> shiftedNoise(u64 seed,
     std::unique_ptr<DensityFunction> shiftY,
     std::unique_ptr<DensityFunction> shiftZ)
 {
-    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
     return std::make_unique<ShiftedNoise>(
         std::move(normalNoise), xzScale, yScale, std::move(shiftX), std::move(shiftY), std::move(shiftZ));
 }
 
-std::unique_ptr<DensityFunction> shiftedNoise2d(std::unique_ptr<DensityFunction> shiftX,
+std::unique_ptr<DensityFunction> shiftedNoise2d(const RandomState& rs,
+    std::unique_ptr<DensityFunction> shiftX,
     std::unique_ptr<DensityFunction> shiftZ,
     f64 xzScale,
-    u64 seed,
+    u64 derivedSeed,
     i32 firstOctave,
     std::vector<f64> amplitudes)
 {
-    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
     auto zero = factory::constant(0.0);
     return std::make_unique<ShiftedNoise>(
         std::move(normalNoise), xzScale, 0.0, std::move(shiftX), std::move(zero), std::move(shiftZ));
@@ -358,21 +363,24 @@ std::unique_ptr<DensityFunction> lerp(std::unique_ptr<DensityFunction> delta,
     return std::make_unique<Lerp>(std::move(delta), std::move(start), std::move(end));
 }
 
-std::unique_ptr<DensityFunction> shiftA(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
+std::unique_ptr<DensityFunction> shiftA(
+    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes)
 {
-    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
     return std::make_unique<ShiftNoise>(std::move(normalNoise), ShiftType::ShiftA);
 }
 
-std::unique_ptr<DensityFunction> shiftB(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
+std::unique_ptr<DensityFunction> shiftB(
+    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes)
 {
-    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
     return std::make_unique<ShiftNoise>(std::move(normalNoise), ShiftType::ShiftB);
 }
 
-std::unique_ptr<DensityFunction> shift(u64 seed, i32 firstOctave, std::vector<f64> amplitudes)
+std::unique_ptr<DensityFunction> shift(
+    const RandomState& rs, u64 derivedSeed, i32 firstOctave, std::vector<f64> amplitudes)
 {
-    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
     return std::make_unique<ShiftNoise>(std::move(normalNoise), ShiftType::Shift);
 }
 
@@ -428,12 +436,13 @@ std::unique_ptr<DensityFunction> cacheAllInCell(std::unique_ptr<DensityFunction>
 }
 
 std::unique_ptr<DensityFunction> weirdScaledSampler(std::unique_ptr<DensityFunction> input,
-    u64 seed,
+    const RandomState& rs,
+    u64 derivedSeed,
     i32 firstOctave,
     std::vector<f64> amplitudes,
     WeirdScaledSamplerType type)
 {
-    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
     return std::make_unique<WeirdScaledSampler>(std::move(input), std::move(normalNoise), type);
 }
 
@@ -448,10 +457,16 @@ std::unique_ptr<DensityFunction> blendedNoise(
     return std::make_unique<BlendedNoise>(seed, xzScale, yScale, xzFactor, yFactor, smearScaleMultiplier);
 }
 
-std::unique_ptr<DensityFunction> mappedNoise(
-    u64 seed, i32 firstOctave, std::vector<f64> amplitudes, f64 xzScale, f64 yScale, f64 fromValue, f64 toValue)
+std::unique_ptr<DensityFunction> mappedNoise(const RandomState& rs,
+    u64 derivedSeed,
+    i32 firstOctave,
+    std::vector<f64> amplitudes,
+    f64 xzScale,
+    f64 yScale,
+    f64 fromValue,
+    f64 toValue)
 {
-    auto normalNoise = std::make_unique<noise::NormalNoise>(seed, firstOctave, std::move(amplitudes));
+    auto normalNoise = rs.getOrCreateRouterNoise(derivedSeed, firstOctave, amplitudes);
     return std::make_unique<MappedNoise>(std::move(normalNoise), xzScale, yScale, fromValue, toValue);
 }
 

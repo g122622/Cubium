@@ -33,6 +33,7 @@
 #include "common/world/gameevent/GameEvents.hpp"
 #include "common/world/gameevent/PositionSource.hpp"
 #include "common/world/gameevent/VibrationSystem.hpp"
+#include "common/world/gen/RandomState.hpp"
 #include "common/world/gen/chunk/NoiseChunkGenerator.hpp"
 #include "common/world/gen/settings/DimensionSettings.hpp"
 #include "common/world/storage/SingleLevelStorageManager.hpp"
@@ -184,9 +185,11 @@ protected:
         m_world = std::make_unique<ServerWorld>(config);
         m_world->setSharedStorage(&m_storage);
 
-        auto generator = std::make_unique<NoiseChunkGenerator>(config.seed,
-            DimensionSettings::overworld(),
-            mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(config.seed, false));
+        auto settings = DimensionSettings::overworld();
+        auto randomState = mc::world::gen::RandomState::create(settings, config.seed);
+        auto biomeSource = mc::world::biome::source::MultiNoiseBiomeSource::createOverworld(*randomState, false);
+        auto generator =
+            std::make_unique<NoiseChunkGenerator>(std::move(settings), std::move(biomeSource), std::move(randomState));
         auto chunkManager = std::make_unique<ServerChunkManager>(*m_world, std::move(generator));
         m_world->setChunkManager(std::move(chunkManager));
 
