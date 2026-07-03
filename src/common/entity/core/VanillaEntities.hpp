@@ -28,6 +28,7 @@
 #include "common/entity/core/EntityType.hpp"
 #include "common/entity/core/EntityTypeIdNumber.hpp"
 #include "common/entity/entities/boss/EnderDragonEntity.hpp"
+#include "common/entity/entities/boss/WardenEntity.hpp"
 #include "common/entity/entities/boss/WitherEntity.hpp"
 #include "common/entity/entities/effect/EffectEntities.hpp"
 #include "common/entity/entities/hanging/HangingEntity.hpp"
@@ -635,6 +636,19 @@ private:
                 .trackingRange(10)
                 .updateInterval(3)
                 .immuneToFire()
+                .canSummon(true)
+                .build());
+
+        // 监守者
+        // MC 1.21.11 Warden.getDefaultDimensions(): 宽 0.9f, 高 2.9f
+        // trackingRange: 16 (默认), updateInterval: 3 (默认)
+        // 不免疫火焰（监守者可被岩浆点燃）
+        // canSummon(true): 允许通过 SculkShrieker 召唤
+        registry.registerType(EntityTypes::WARDEN,
+            EntityType::Builder(&WardenEntity::create, EntityClassification::Monster)
+                .size(0.9f, 2.9f)
+                .trackingRange(16)
+                .updateInterval(3)
                 .canSummon(true)
                 .build());
 

@@ -202,8 +202,8 @@ bool SculkShriekerHelper::_trySummonWarden(ServerWorld& world, const BlockPos& p
     // 查找监守者实体类型
     const entity::EntityType* wardenType = entity::EntityRegistry::instance().getType("minecraft:warden");
     if (wardenType == nullptr || !wardenType->canSummon()) {
-        // TODO: 监守者实体类型尚未注册，当前无法召唤监守者
-        // 当 WardenEntity 实现后，此分支将不再触发
+        // 监守者实体类型应已注册（WardenEntity）。
+        // 此处保留防御性回退，仅在实体注册表被异常清空或注册失败时触发。
         return false;
     }
 

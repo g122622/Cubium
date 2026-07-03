@@ -159,6 +159,7 @@ EntityTypeId BREEZE = 0;
 
 EntityTypeId ENDER_DRAGON = 0;
 EntityTypeId WITHER = 0;
+EntityTypeId WARDEN = 0;
 
 // ============================================================================
 // 村民
@@ -335,6 +336,7 @@ void initialize()
     // Boss
     ENDER_DRAGON = safeGetId(registry, EntityTypes::ENDER_DRAGON);
     WITHER = safeGetId(registry, EntityTypes::WITHER);
+    WARDEN = safeGetId(registry, EntityTypes::WARDEN);
 
     // 村民
     VILLAGER = safeGetId(registry, EntityTypes::VILLAGER);

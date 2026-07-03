@@ -222,6 +222,7 @@ add_library(mc_common STATIC
     entity/entities/misc/OminousItemSpawnerEntity.cpp
     # Entity - Boss
     entity/entities/boss/EnderDragonEntity.cpp
+    entity/entities/boss/WardenEntity.cpp
     entity/entities/boss/WitherEntity.cpp
     # Entity - Villager
     entity/entities/villager/AbstractVillagerEntity.cpp

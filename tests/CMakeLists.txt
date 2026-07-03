@@ -629,6 +629,7 @@ add_executable(mc_tests
     # PatrolGoal 测试
     common/entity/ai/goal/PatrolGoalTest.cpp
     common/entity/entities/boss/WitherEntityTest.cpp
+    common/entity/entities/boss/WardenEntityTest.cpp
     # EnderDragonEntity 末影龙测试
     entity/EnderDragonEntityTest.cpp
     # EndermanEntity 受伤后瞬移逻辑测试

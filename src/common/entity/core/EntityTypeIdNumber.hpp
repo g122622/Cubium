@@ -153,6 +153,7 @@ extern EntityTypeId BREEZE;
 
 extern EntityTypeId ENDER_DRAGON;
 extern EntityTypeId WITHER;
+extern EntityTypeId WARDEN;
 
 // ============================================================================
 // 村民

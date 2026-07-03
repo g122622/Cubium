@@ -7,6 +7,7 @@
 ```
 boss/
 ├── EnderDragonEntity.hpp/cpp  # 末影龙 + EnderDragonPartEntity + BossEntity基类
+├── WardenEntity.hpp/cpp       # 监守者（来自1.19荒野更新，由SculkShrieker召唤）
 ├── WitherEntity.hpp/cpp       # 凋灵 + WitherDoNothingGoal + WitherRandomFlyGoal
 └── README.md                  # 本文档
 ```
@@ -39,6 +40,7 @@ boss/
 **继承层次**：
 - `Entity` → `LivingEntity` → `MobEntity` → `BossEntity` → `EnderDragonEntity`
 - `Entity` → `LivingEntity` → `MobEntity` (+ `IRangedAttackMob`) → `WitherEntity`
+- `Entity` → `LivingEntity` → `MobEntity` → `CreatureEntity` → `MonsterEntity` → `WardenEntity`
 - `Entity` → `EnderDragonPartEntity`（独立的龙部件实体）
 
 ## 上下游外部依赖关系
@@ -163,3 +165,60 @@ MC 原版中末影龙只接受两种伤害：
 - MC 1.16.5 `EnderDragonPartEntity`
 - MC 1.16.5 `WitherEntity`
 - MC 1.16.5 `DragonPhaseManager`
+- MC 1.21.11 `net.minecraft.world.entity.monster.warden.Warden`
+- MC 1.21.11 `net.minecraft.world.entity.monster.warden.WardenAi`
+
+## 15. 监守者（WardenEntity）实现状态
+
+监守者出自 Minecraft 1.19 "荒野更新"，由 `SculkShriekerBlockEntity` 在警告等级达到 4 时召唤。
+本实现为 **最小可召唤版本**，仅满足 `SculkShriekerHelper._trySummonWarden()` 的契约：
+
+- `EntityRegistry.getType("minecraft:warden")` 返回非空
+- `EntityType::canSummon()` 返回 true
+- `EntityType::create(&world)` 返回有效的 `WardenEntity` 实例
+
+### 已实现
+
+| 特性 | 来源 |
+|------|------|
+| 实体类型注册（`minecraft:warden`）| `VanillaEntities.hpp` |
+| 尺寸 0.9×2.9，眼睛高度 2.4 | MC 1.21.11 `Warden.getDefaultDimensions` |
+| 属性：HP 500 / 速度 0.3 / 击退抗性 1.0 / 攻击击退 1.5 / 攻击 30 / 跟随 24 | MC 1.21.11 `Warden.createAttributes` |
+| 免疫溺水、凋零伤害 | MC 1.21.11 `Warden.isInvulnerableTo` 简化版 |
+| 摔落免疫 | MC 1.21.11 `Warden` 摸索阶段免疫的延伸 |
+| `dampensVibrations()` 返回 true | MC 1.21.11 `Warden.dampensVibrations` |
+| `isNonBoss()` 返回 false（与 WitherEntity 一致，避免触发自然生成限制）| 项目沿用 |
+| `preventDespawn()` 返回 true（永不自然消失）| MC 1.21.11 `Warden.removeWhenFarAway` |
+| `isDespawnPeaceful()` 返回 true（和平难度消失）| `MonsterEntity` 默认 |
+| AI: SwimGoal / MeleeAttackGoal / WaterAvoidingRandomWalkingGoal / LookAtGoal / LookRandomlyGoal | 基础怪物行为 |
+| AI: HurtByTargetGoal / NearestAttackableTargetGoal\<Player\> | 基础敌对行为 |
+| 经验值 5 | MC 1.21.11 `Warden.xpReward = 5` |
+| 不在阳光下燃烧 | `setBurnsInDaylight(false)` |
+
+### 未实现（已留有显式 TODO 注释）
+
+| 子系统 | 阻塞原因 |
+|--------|----------|
+| `VibrationSystem`（振动感知）| 需先实现 `game_event` 总线与 `VibrationSystem.User/Data/Listener` |
+| `AngerManagement`（怒气管理）| 需 Brain 系统与 `MemoryModuleType` |
+| `SonicBoom`（音爆远程攻击）| 需远程攻击目标 + 音爆粒子/伤害实现 |
+| `Pose::EMERGING` / `Pose::DIGGING`（钻地动画与姿态免疫）| 需 Pose 系统扩展 |
+| `Roar` / `Sniff` 动画 | 需 AnimationState 系统 |
+| `Darkness` 周期性效果（每 6 秒给附近玩家施加黑暗）| 需 `MobEffectUtil.addEffectToPlayersAround` |
+| 心跳音效（根据怒气调整频率）| 需 AngerLevel 概念 |
+| 触碰怒气（实体触碰监守者增加怒气，20 tick 冷却）| 需 Brain 记忆模块 |
+| `WardenAi` 完整行为系统 | 需 Brain + Behavior 系统全套基建 |
+| 怒气等级环境音效切换 | 需 AngerLevel 概念 |
+| 脚步声音效 `WARDEN_STEP` | 当前 `SoundEvents.hpp` 未预定义 |
+
+### 召唤入口
+
+`SculkShriekerHelper::_trySummonWarden(ServerWorld&, const BlockPos&)` 是监守者的唯一召唤入口，
+对应 MC 1.21.11 `SculkShriekerBlockEntity.trySummonWarden`。召唤前置条件：
+
+1. `SculkShriekerBlockEntity.canSummonWarden()` 返回 true（警告等级 ≥ 4 且冷却结束）
+2. 附近 48 格内无其他监守者
+3. 找到有效的生成位置（下方方块有完整上表面，生成位和上方为空气）
+
+召唤成功后，监守者位置设为 `(checkPos.x + 0.5, checkPos.y, checkPos.z + 0.5)`，
+旋转角为随机方向（0–360°），跳过生成规则检查（监守者为特殊召唤）。

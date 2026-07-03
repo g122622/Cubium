@@ -298,6 +298,7 @@ constexpr const char* BREEZE = "minecraft:breeze";
 // Boss
 constexpr const char* ENDER_DRAGON = "minecraft:ender_dragon";
 constexpr const char* WITHER = "minecraft:wither";
+constexpr const char* WARDEN = "minecraft:warden";
 // 村民
 constexpr const char* VILLAGER = "minecraft:villager";
 constexpr const char* WANDERING_TRADER = "minecraft:wandering_trader";
