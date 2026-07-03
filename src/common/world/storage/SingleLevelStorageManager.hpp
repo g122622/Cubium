@@ -53,6 +53,10 @@ namespace mc::scoreboard {
 class ScoreboardDataManager;
 }
 
+namespace mc::server {
+class ServerChunkManager;
+}
+
 namespace mc::world::storage {
 
 struct AutoSaveConfig;
@@ -226,6 +230,31 @@ public:
         DimensionId dimension,
         std::function<void(ChunkCoord, ChunkCoord, DimensionId, Result<std::optional<ChunkData>>)> callback,
         std::shared_ptr<std::atomic<bool>> abortSignal = nullptr,
+        util::TaskPriority priority = util::TaskPriority::Normal);
+
+    /**
+     * @brief 异步保存完整区块（回调版本）
+     *
+     * 与 saveChunk 的区别：saveChunk 在调用线程同步阻塞；saveChunkAsyncCallback 立即返回，
+     * 序列化（SectionCodec::fromChunkSection × 24 + biomes）+ 写盘（saveSectionSync × 24 +
+     * 方块实体）在 ServerIO 线程执行，不阻塞主线程。完成时通过 callback 回传结果。
+     *
+     * 线程语义：Native 格式下整个保存（序列化+写盘）作为单个 StorageTask 投递到 ServerIO 池，
+     * callback 在 ServerIO 线程调用。无 taskManager（测试/独立模式）时降级为当前线程同步执行。
+     * 外来格式：saveChunk 对外来后端为只读空操作，直接在调用线程同步完成。
+     *
+     * 调用方负责在回调中把结果投递回主线程（如通过 ServerChunkManager 的 _pendingUnloadFinishes 队列）。
+     * 区块数据以 shared_ptr<const ChunkData> 共享，避免 600KB 深拷贝；保存期间区块不得被修改
+     * （由上层卸载流程保证：卸载候选已 isSafeToUnload，无 worker/主线程写者）。
+     *
+     * @param chunk 区块数据（共享所有权，保存期间不可变）
+     * @param dimension 目标维度
+     * @param callback 完成回调（ServerIO 线程；无池降级时为调用线程）
+     * @param priority 任务优先级，传播到 ServerIO 线程池任务
+     */
+    void saveChunkAsyncCallback(std::shared_ptr<const ChunkData> chunk,
+        DimensionId dimension,
+        std::function<void(ChunkCoord, ChunkCoord, Result<void>)> callback,
         util::TaskPriority priority = util::TaskPriority::Normal);
 
     /**
@@ -492,6 +521,8 @@ public:
      */
     [[nodiscard]] bool isForeignFormat() const { return m_backend != nullptr; }
 
+    friend class mc::server::ServerChunkManager;
+
 private:
     SectionManager& _sectionManager(DimensionId dimension);
     const SectionManager& _sectionManager(DimensionId dimension) const;
@@ -511,6 +542,20 @@ private:
         std::shared_ptr<std::atomic<bool>> abortSignal,
         std::function<void(Result<std::optional<ChunkData>>)> completion,
         util::TaskPriority priority = util::TaskPriority::Normal);
+
+    /// 注册一个进行中的区块卸载保存（saveChunkAsyncCallback 调用）。
+    /// 返回该保存的完成 promise（shared_ptr），由调用方持有并在保存完成时 set_value()。
+    /// 后续对同一区块的 loadChunkAsync 在读盘前会 _waitPendingChunkSave 等待此 promise，
+    /// 确保读到保存后的新数据（对齐 Moonrise GenericDataLoadTask 等待 UnloadTask）。
+    std::shared_ptr<std::promise<void>> _registerPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension);
+
+    /// 等待指定区块的进行中卸载保存完成（若存在）。在 ServerIO 线程调用，不阻塞主线程。
+    /// 条目清理由 _removePendingChunkSave 在 ServerChunkManager stage3（保存完成）调用。
+    void _waitPendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension);
+
+    /// 移除指定区块的进行中卸载保存条目（保存完成后由 ServerChunkManager stage3 调用）。
+    /// 仅在 ServerChunkManager 保证该区块保存已完成且无新保存启动时调用（主线程 stage3）。
+    void _removePendingChunkSave(ChunkCoord x, ChunkCoord z, DimensionId dimension);
 
 private:
     std::unique_ptr<RocksDBDatabase> m_db;
@@ -540,6 +585,14 @@ private:
     /// 外来格式（JavaAnvil/BedrockLDB）读取互斥锁。
     /// 外来格式后端非线程安全，loadChunkAsync 在 ServerIO worker 内加此锁串行化。
     mutable std::mutex m_foreignReadMutex;
+
+    /// 进行中的区块卸载保存追踪表（对齐 Moonrise NewChunkHolder.chunkDataUnload）。
+    /// key = 区块描述 SectionKey{x, z, 0, dimension}，value = 完成信号 shared_future。
+    /// saveChunkAsyncCallback 注册条目（_registerPendingChunkSave 返回 promise，ServerIO 保存任务完成时 set_value）；
+    /// loadChunkAsync 的 section 读取路径在读盘前 _waitPendingChunkSave 等待，确保读到保存后的新数据。
+    /// 线程安全：由 m_pendingChunkSavesMutex 保护（主线程注册、ServerIO 等待）。
+    mutable std::mutex m_pendingChunkSavesMutex;
+    std::unordered_map<SectionKey, std::shared_future<void>, SectionKey::Hash> m_pendingChunkSaves;
 
     [[nodiscard]] RocksDBDatabase* _database() { return m_db.get(); }
     [[nodiscard]] const RocksDBDatabase* _database() const { return m_db.get(); }
