@@ -241,3 +241,58 @@ TEST_F(BrewingStandEntityTest, GetSlotsForFace_Side_ReturnsBottleAndFuelSlots)
     EXPECT_EQ(slots[2], 2);
     EXPECT_EQ(slots[3], BrewingStandEntity::FUEL_SLOT);
 }
+
+// ========== 自定义名称测试 ==========
+
+TEST_F(BrewingStandEntityTest, CustomName_DefaultEmpty)
+{
+    EXPECT_TRUE(brewingStand_->getCustomName().empty());
+}
+
+TEST_F(BrewingStandEntityTest, CustomName_SetAndGet)
+{
+    brewingStand_->setCustomName("My Stand");
+    EXPECT_EQ(brewingStand_->getCustomName(), "My Stand");
+}
+
+TEST_F(BrewingStandEntityTest, CustomName_MarksChanged)
+{
+    EXPECT_FALSE(brewingStand_->isChanged());
+    brewingStand_->setCustomName("Named");
+    EXPECT_TRUE(brewingStand_->isChanged());
+}
+
+TEST_F(BrewingStandEntityTest, CustomName_SerializeRoundTrip)
+{
+    brewingStand_->setCustomName("Persisted Stand");
+
+    nlohmann::json data;
+    brewingStand_->save(data);
+
+    ASSERT_TRUE(data.contains("CustomName"));
+    EXPECT_EQ(data["CustomName"].get<std::string>(), "Persisted Stand");
+
+    BrewingStandEntity loaded(BlockPos(0, 0, 0));
+    ASSERT_TRUE(loaded.load(data));
+    EXPECT_EQ(loaded.getCustomName(), "Persisted Stand");
+}
+
+TEST_F(BrewingStandEntityTest, CustomName_EmptyNotSerialized)
+{
+    nlohmann::json data;
+    brewingStand_->save(data);
+
+    EXPECT_FALSE(data.contains("CustomName"));
+}
+
+TEST_F(BrewingStandEntityTest, CustomName_CloneCopies)
+{
+    brewingStand_->setCustomName("Clone Source");
+
+    std::unique_ptr<BlockEntity> copy = brewingStand_->clone();
+    ASSERT_NE(copy, nullptr);
+
+    auto* brewingCopy = dynamic_cast<BrewingStandEntity*>(copy.get());
+    ASSERT_NE(brewingCopy, nullptr);
+    EXPECT_EQ(brewingCopy->getCustomName(), "Clone Source");
+}

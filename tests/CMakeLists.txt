@@ -510,6 +510,8 @@ add_executable(mc_tests
     common/world/block/blocks/functional/StonecutterBlockTest.cpp
     common/world/block/blocks/functional/SmithingTableBlockTest.cpp
     common/world/block/blocks/functional/BeaconBlockTest.cpp
+    # BrewingStandBlock 酿造台方块测试（onBlockPlacedBy 自定义名称传递）
+    common/world/block/blocks/functional/BrewingStandBlockTest.cpp
     # DecoratedPotBlock 饰纹陶罐方块测试
     common/world/block/blocks/functional/DecoratedPotBlockTest.cpp
     # LayeredCauldronBlock 水炼药锅方块测试
