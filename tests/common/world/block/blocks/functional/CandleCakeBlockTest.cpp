@@ -42,9 +42,15 @@
 #include <gtest/gtest.h>
 
 #include "common/TestWorldHelper.hpp"
+#include "common/core/BlockRaycastResult.hpp"
+#include "common/core/Types.hpp"
+#include "common/entity/entities/player/Player.hpp"
+#include "common/item/Items.hpp"
+#include "common/item/core/ItemStack.hpp"
 #include "common/util/Direction.hpp"
 #include "common/util/math/random/Random.hpp"
 #include "common/util/property/Properties.hpp"
+#include "common/world/IWorld.hpp"
 #include "common/world/block/Block.hpp"
 #include "common/world/block/BlockPos.hpp"
 #include "common/world/block/Material.hpp"
@@ -628,4 +634,268 @@ TEST_F(CandleCakeBlockTest, IsLit_Lit_ReturnsTrue)
 {
     const BlockState& state = candleCake_->defaultState().with(BlockStateProperties::LIT(), true);
     EXPECT_TRUE(AbstractCandleBlock::isLit(state));
+}
+
+// ============================================================================
+// onBlockActivated 食物喂养测试
+// ============================================================================
+
+namespace {
+
+/**
+ * @brief 支持 playSound 和 Player 交互的蜡烛蛋糕测试世界
+ */
+class CandleCakeInteractionWorld final : public test::BaseTestWorld {
+public:
+    CandleCakeInteractionWorld()
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+        m_airState = &VanillaBlocks::AIR->defaultState();
+    }
+
+    /// 存储 BlockState 的副本并返回稳定指针
+    const BlockState* storeBlockState(const BlockState& state)
+    {
+        m_storedStates.push_back(std::make_unique<BlockState>(state));
+        return m_storedStates.back().get();
+    }
+
+    void setBlockDirectly(const BlockPos& pos, const BlockState* state)
+    {
+        m_blocks[packPos(pos.x, pos.y, pos.z)] = state;
+    }
+
+    [[nodiscard]] const BlockState* getBlockState(i32 x, i32 y, i32 z) const override
+    {
+        const auto it = m_blocks.find(packPos(x, y, z));
+        if (it != m_blocks.end()) {
+            return it->second;
+        }
+        return m_airState;
+    }
+
+    bool setBlockState(i32 x, i32 y, i32 z, const BlockState* state) override
+    {
+        if (state == nullptr) {
+            m_blocks.erase(packPos(x, y, z));
+        } else {
+            // 存储副本，避免悬空指针
+            m_ownedStates[packPos(x, y, z)] = std::make_unique<BlockState>(*state);
+            m_blocks[packPos(x, y, z)] = m_ownedStates[packPos(x, y, z)].get();
+        }
+        return true;
+    }
+
+    bool setBlockStateCopy(const BlockPos& pos, const BlockState& state)
+    {
+        const BlockState* stored = storeBlockState(state);
+        return setBlockState(pos.x, pos.y, pos.z, stored);
+    }
+
+    void playSound(const ResourceLocation& sound,
+        sound::SoundCategory category,
+        const Vector3& pos,
+        f32 volume,
+        f32 pitch) override
+    {
+        m_sounds.push_back({sound, category, pos, volume, pitch});
+    }
+
+    [[nodiscard]] EntityId spawnEntity(std::unique_ptr<Entity> entity) override
+    {
+        (void)entity;
+        return ++m_lastEntityId;
+    }
+
+    void addParticle(
+        particle::ParticleTypeId, const Vector3&, const Vector3&, const Vector3& = Vector3(0, 0, 0), u32 = 1) override
+    {
+        // 测试中忽略粒子效果
+    }
+
+    [[nodiscard]] world::tick::TickManager& tickManager() override
+    {
+        throw std::runtime_error("CandleCakeInteractionWorld::tickManager not implemented");
+    }
+    [[nodiscard]] const world::tick::TickManager& tickManager() const override
+    {
+        throw std::runtime_error("CandleCakeInteractionWorld::tickManager not implemented");
+    }
+
+    [[nodiscard]] u64 seed() const override { return m_seed; }
+    [[nodiscard]] bool isRaining() const override { return false; }
+
+    void setSeed(u64 seed) { m_seed = seed; }
+
+    struct SoundRecord {
+        ResourceLocation sound;
+        sound::SoundCategory category;
+        Vector3 pos;
+        f32 volume;
+        f32 pitch;
+    };
+
+    [[nodiscard]] const std::vector<SoundRecord>& sounds() const { return m_sounds; }
+    void clearSounds() { m_sounds.clear(); }
+
+private:
+    static i64 packPos(i32 x, i32 y, i32 z)
+    {
+        return (static_cast<i64>(x) & 0x3FFFFFF) | ((static_cast<i64>(y) & 0xFFF) << 26) |
+            ((static_cast<i64>(z) & 0x3FFFFFF) << 38);
+    }
+
+    std::unordered_map<i64, const BlockState*> m_blocks;
+    std::unordered_map<i64, std::unique_ptr<BlockState>> m_ownedStates;
+    std::vector<std::unique_ptr<BlockState>> m_storedStates;
+    std::vector<SoundRecord> m_sounds;
+    const BlockState* m_airState;
+    EntityId m_lastEntityId = 0;
+    u64 m_seed = 12345;
+};
+
+} // anonymous namespace
+
+class CandleCakeBlockInteractionTest : public ::testing::Test {
+protected:
+    static void SetUpTestSuite()
+    {
+        VanillaBlocks::initialize();
+        Items::initialize();
+    }
+
+    CandleCakeInteractionWorld m_world;
+};
+
+TEST_F(CandleCakeBlockInteractionTest, EatCake_IncreasesFoodLevel)
+{
+    // 放置蜡烛蛋糕
+    ASSERT_NE(CandleBlocks::CANDLE_CAKE, nullptr);
+    auto* cakeBlock = dynamic_cast<CandleCakeBlock*>(CandleBlocks::CANDLE_CAKE);
+    ASSERT_NE(cakeBlock, nullptr);
+
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    m_world.setBlockDirectly(BlockPos(5, 9, 5), &solidBlock.defaultState());
+
+    const BlockState* cakeState = m_world.storeBlockState(cakeBlock->defaultState());
+    m_world.setBlockDirectly(BlockPos(5, 10, 5), cakeState);
+
+    // 创建生存模式玩家（默认饥饿值20，canEat=false）
+    // 需要降低饥饿值才能 canEat
+    Player player(EntityId(1), "TestPlayer");
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Survival);
+    player.foodStats().setFoodLevel(18); // 低于20，canEat(true) 返回 true
+
+    // 点击蛋糕下半部分（y <= 0.5）→ 不触发熄灭，触发吃蛋糕
+    // hitPosition = BlockPos(5,10,5) + y=0.3 → hitY = 0.3 < 0.5 → 不熄灭
+    BlockRaycastResult hitResult =
+        BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
+
+    const BlockState& state = cakeBlock->defaultState();
+    ActionResultType result =
+        cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+
+    // 应该成功吃蛋糕
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 验证饥饿值增加了 2
+    EXPECT_EQ(player.foodStats().foodLevel(), 20); // 18 + 2 = 20
+}
+
+TEST_F(CandleCakeBlockInteractionTest, EatCake_FullHunger_ReturnsPass)
+{
+    // 放置蜡烛蛋糕
+    ASSERT_NE(CandleBlocks::CANDLE_CAKE, nullptr);
+    auto* cakeBlock = dynamic_cast<CandleCakeBlock*>(CandleBlocks::CANDLE_CAKE);
+    ASSERT_NE(cakeBlock, nullptr);
+
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    m_world.setBlockDirectly(BlockPos(5, 9, 5), &solidBlock.defaultState());
+
+    const BlockState* cakeState = m_world.storeBlockState(cakeBlock->defaultState());
+    m_world.setBlockDirectly(BlockPos(5, 10, 5), cakeState);
+
+    // 创建满饥饿值的生存模式玩家 → canEat(false) 返回 false
+    Player player(EntityId(2), "TestPlayer2");
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Survival);
+    // 默认 foodLevel=20，canEat(false) = false
+
+    BlockRaycastResult hitResult =
+        BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
+
+    const BlockState& state = cakeBlock->defaultState();
+    ActionResultType result =
+        cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+
+    // 满饥饿值 → Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
+}
+
+TEST_F(CandleCakeBlockInteractionTest, ExtinguishLitCandle_EmptyHandUpperHalf)
+{
+    // 放置已点燃的蜡烛蛋糕
+    ASSERT_NE(CandleBlocks::CANDLE_CAKE, nullptr);
+    auto* cakeBlock = dynamic_cast<CandleCakeBlock*>(CandleBlocks::CANDLE_CAKE);
+    ASSERT_NE(cakeBlock, nullptr);
+
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    m_world.setBlockDirectly(BlockPos(5, 9, 5), &solidBlock.defaultState());
+
+    const BlockState* litState =
+        m_world.storeBlockState(cakeBlock->defaultState().with(BlockStateProperties::LIT(), true));
+    m_world.setBlockDirectly(BlockPos(5, 10, 5), litState);
+
+    // 创建生存模式玩家
+    Player player(EntityId(3), "TestPlayer3");
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Survival);
+
+    // 点击蜡烛上半部分（y > 0.5）→ 熄灭
+    // hitPosition = BlockPos(5,10,5) + y=0.7 → hitY = 0.7 > 0.5 → 熄灭
+    BlockRaycastResult hitResult =
+        BlockRaycastResult::hit(Vector3(5.5f, 10.7f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
+
+    const BlockState& state = cakeBlock->defaultState().with(BlockStateProperties::LIT(), true);
+    ActionResultType result =
+        cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+
+    // 应该成功熄灭
+    EXPECT_EQ(result, ActionResultType::Success);
+
+    // 验证蜡烛蛋糕被熄灭
+    const BlockState* afterState = m_world.getBlockState(5, 10, 5);
+    ASSERT_NE(afterState, nullptr);
+    EXPECT_FALSE(afterState->get(BlockStateProperties::LIT()));
+}
+
+TEST_F(CandleCakeBlockInteractionTest, CreativeMode_CannotEatCake)
+{
+    // 放置蜡烛蛋糕
+    ASSERT_NE(CandleBlocks::CANDLE_CAKE, nullptr);
+    auto* cakeBlock = dynamic_cast<CandleCakeBlock*>(CandleBlocks::CANDLE_CAKE);
+    ASSERT_NE(cakeBlock, nullptr);
+
+    TestSolidBlock solidBlock(BlockProperties(Material::ROCK).hardness(1.5f));
+    m_world.setBlockDirectly(BlockPos(5, 9, 5), &solidBlock.defaultState());
+
+    const BlockState* cakeState = m_world.storeBlockState(cakeBlock->defaultState());
+    m_world.setBlockDirectly(BlockPos(5, 10, 5), cakeState);
+
+    // 创建创造模式玩家 → canEat(false) 返回 false
+    Player player(EntityId(4), "TestPlayer4");
+    player.setWorld(&m_world);
+    player.setGameMode(GameMode::Creative);
+
+    BlockRaycastResult hitResult =
+        BlockRaycastResult::hit(Vector3(5.5f, 10.3f, 5.5f), BlockPos(5, 10, 5), Direction::Up, 1.0f);
+
+    const BlockState& state = cakeBlock->defaultState();
+    ActionResultType result =
+        cakeBlock->onBlockActivated(state, m_world, BlockPos(5, 10, 5), player, Hand::MainHand, hitResult);
+
+    // 创造模式不能吃蛋糕 → Pass
+    EXPECT_EQ(result, ActionResultType::Pass);
 }

@@ -97,6 +97,12 @@ BowItem 通过 `arrow->applyBowEnchantments(shooter)` 将附魔效果委托给 A
 
 FireChargeItem 的 `shoot()` 方法被覆写为空操作，因为火焰弹在 `asProjectile()` 中已通过 `setAcceleration()` 设置了加速度。DamagingProjectileEntity 的 tick() 方法每帧将加速度叠加到速度上，如果再调用 shoot() 设置速度会导致速度叠加错误。
 
+FireChargeItem 同时实现了 `onItemUse()` 方法，支持玩家右键使用火焰弹：
+- 点燃含 `LIT` 属性的未点燃方块（如营火、蜡烛等），含水方块不可点燃
+- 否则在点击面的相邻空气位置放置火焰（普通火或灵魂火，取决于下方方块是否在 `SOUL_FIRE_BASE_BLOCKS` 标签中）
+- 使用后消耗一个火焰弹（创造模式不消耗）
+- 播放 `ITEM_FIRECHARGE_USE` 音效
+
 ### 7. 投掷物品速度参数
 
 `ThrowableItem` 的 `getThrowVelocity()` 默认返回 1.5f，`getThrowInaccuracy()` 默认返回 0.0f。子类可以重写这些方法调整投掷参数。

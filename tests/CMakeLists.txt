@@ -85,6 +85,7 @@ add_executable(mc_tests
     common/item/tag/ItemTagLoaderTest.cpp
     common/item/potion/GlassBottleItemTest.cpp
     common/item/potion/PotionUtilsTest.cpp
+    common/item/weapon/FireChargeItemTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
     common/item/weapon/WeaponItemTest.cpp
     # WindChargeItem 风弹物品测试（投掷、冷却、消耗）

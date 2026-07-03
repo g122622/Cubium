@@ -99,6 +99,7 @@
 │   ├── 关联蜡烛方块（m_candleBlock，食用蛋糕后放置对应蜡烛）
 │   ├── LIT 属性（仅点燃状态，无 CANDLES/BUITES）
 │   ├── onBlockActivated: 空手点击上半部熄灭 / 其他情况吃蛋糕→转为 CakeBlock + 掉落蜡烛物品
+│   ├── 食用蛋糕增加饥饿值（foodStats().addStats(2, 0.1f)），与 MC Java 一致
 │   ├── 比较器输出固定14（hasComparatorInputOverride）
 │   └── 亮度固定3（单根蜡烛）
 └── 其他工作站方块
