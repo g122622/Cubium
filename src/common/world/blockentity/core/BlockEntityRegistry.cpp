@@ -26,6 +26,7 @@
 #include "world/blockentity/CraftingTableEntity.hpp"
 #include "world/blockentity/interactive/BannerEntity.hpp"
 #include "world/blockentity/interactive/BeehiveBlockEntity.hpp"
+#include "world/blockentity/interactive/BellBlockEntity.hpp"
 #include "world/blockentity/interactive/DecoratedPotBlockEntity.hpp"
 #include "world/blockentity/interactive/DispenserBlockEntity.hpp"
 #include "world/blockentity/interactive/DropperBlockEntity.hpp"
@@ -164,6 +165,9 @@ void BlockEntityRegistry::registerBuiltinTypes()
 
     // 注册唱片机方块实体
     registerType(BlockEntityType::Jukebox, [](const BlockPos& pos) { return std::make_unique<JukeboxEntity>(pos); });
+
+    // 注册钟方块实体
+    registerType(BlockEntityType::Bell, [](const BlockPos& pos) { return std::make_unique<BellBlockEntity>(pos); });
 
     // 注册书架方块实体
     registerType(BlockEntityType::Shelf, [](const BlockPos& pos) { return std::make_unique<ShelfBlockEntity>(pos); });

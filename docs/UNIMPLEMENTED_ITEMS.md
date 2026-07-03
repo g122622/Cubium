@@ -1029,7 +1029,7 @@
 未实现项：
 
 
-- `minecraft:bell`
+- `minecraft:bell ✅ 已完成`
 - `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:golden_nautilus_armor ✅ 已完成`
 - `minecraft:golden_spear ✅ 已完成`

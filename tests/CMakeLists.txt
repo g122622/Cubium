@@ -452,6 +452,8 @@ add_executable(mc_tests
     common/world/blockentity/BannerEntityTest.cpp
     # JukeboxEntity 唱片机方块实体测试（播放/停止、比较器信号、序列化、tick）
     common/world/blockentity/JukeboxEntityTest.cpp
+    # BellBlockEntity 钟方块实体测试（敲击触发、摇晃/共振状态机、方向、序列化、克隆）
+    common/world/blockentity/BellBlockEntityTest.cpp
     # BannerPattern 旗帜图案工具类测试（hashname、文件名、图案物品判断）
     common/world/blockentity/BannerPatternTest.cpp
     # VaultBlockEntity 宝库方块实体测试（状态机、钥匙插入、战利品弹出、玩家检测）
