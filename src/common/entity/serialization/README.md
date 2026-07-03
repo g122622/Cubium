@@ -187,6 +187,7 @@ tag.put("uuid", "...");          // 应该是 "UUID"
 | `Legs` | `"legs"` |
 | `Chest` | `"chest"` |
 | `Head` | `"head"` |
+| `Body` | `"body"` |
 
 ### 使用场景
 

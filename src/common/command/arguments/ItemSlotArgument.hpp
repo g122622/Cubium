@@ -136,9 +136,9 @@ public:
      *
      * 将 MC 装备编号映射到 EquipmentSlot 枚举索引：
      * 98=MainHand(0), 99=OffHand(1), 100=Head(5), 101=Chest(4),
-     * 102=Legs(3), 103=Feet(2), 105=Body(等价于Chest但用于非玩家)
+     * 102=Legs(3), 103=Feet(2), 105=Body(6)
      *
-     * @return EquipmentSlot 索引 (0-5)，如果不是装备槽位返回 -1
+     * @return EquipmentSlot 索引 (0-6)，如果不是装备槽位返回 -1
      */
     [[nodiscard]] i32 toEquipmentSlotIndex() const noexcept
     {
@@ -156,7 +156,7 @@ public:
             case 103:
                 return 2; // Feet
             case 105:
-                return 4; // Body (maps to Chest for non-player entities)
+                return 6; // Body (EquipmentSlot::Body, 非玩家实体护甲槽位)
             default:
                 return -1;
         }
@@ -172,7 +172,7 @@ public:
      * 101 (armor.chest)    -> 37 (ARMOR_CHEST)
      * 102 (armor.legs)     -> 38 (ARMOR_LEGS)
      * 103 (armor.feet)     -> 39 (ARMOR_FEET)
-     * 105 (armor.body)     -> 37 (ARMOR_CHEST, 非玩家装备映射)
+     * 105 (armor.body)     -> -1 (玩家无 Body 槽位，仅非玩家实体使用)
      *
      * 对于非装备槽位 (0-40)，直接返回自身索引。
      *
@@ -198,7 +198,7 @@ public:
             case 103:
                 return 39; // armor.feet -> ARMOR_FEET
             case 105:
-                return 37; // armor.body -> ARMOR_CHEST (非玩家映射)
+                return -1; // armor.body -> 玩家无 Body 槽位（仅非玩家实体使用）
             default:
                 return -1;
         }

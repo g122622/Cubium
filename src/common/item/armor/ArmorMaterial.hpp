@@ -42,18 +42,17 @@ namespace item::armor {
 /**
  * @brief 盔甲槽位枚举
  *
- * 定义盔甲的四个装备槽位。
- * 参考: net.minecraft.inventory.EquipmentSlotType
+ * 定义盔甲的装备槽位。
+ * Head/Chest/Legs/Feet 用于玩家护甲（对应 EquipmentSlot::Head/Chest/Legs/Feet）。
+ * Body 用于非玩家实体护甲（狼铠、鹦鹉螺铠甲、马铠），对应 EquipmentSlot::Body。
+ * 参考: net.minecraft.world.entity.EquipmentSlot 和 net.minecraft.world.item.equipment.ArmorType
  */
 enum class ArmorSlot : u8 {
     Head = 0,  ///< 头盔
     Chest = 1, ///< 胸甲
     Legs = 2,  ///< 护腿
     Feet = 3,  ///< 靴子
-    // TODO: 添加 Body 槽位（用于狼铠和鹦鹉螺铠甲的实体护甲装备槽）
-    // MC Java 中 Body 槽位用于非玩家实体（马铠、狼铠、鹦鹉螺铠甲）的装备，
-    // 狼铠 Body 槽位防御值 11，鹦鹉螺铠甲 Body 槽位防御值随材质变化。
-    // 添加后需同步更新各 ArmorMaterial 的 getDefense() 和 getDurability() 实现。
+    Body = 4,  ///< 身体护甲（狼铠、鹦鹉螺铠甲、马铠等非玩家实体护甲）
 };
 
 /**
@@ -164,9 +163,13 @@ public:
     [[nodiscard]] static i32 getDurabilityMultiplier(ArmorSlot slot);
 
     /**
-     * @brief 将ArmorSlot转换为EquipmentSlot
+     * @brief 将ArmorSlot转换为EquipmentSlot索引
+     *
+     * Head/Chest/Legs/Feet 映射到对应的玩家装备槽位索引。
+     * Body 映射到 EquipmentSlot::Body（非玩家实体护甲槽位）。
+     *
      * @param slot 盔甲槽位
-     * @return 装备槽位索引 (0-3对应头、胸、腿、脚)
+     * @return 装备槽位索引（对应 EquipmentSlot 枚举值的底层整数值）
      */
     [[nodiscard]] static i32 toEquipmentSlotIndex(ArmorSlot slot);
 
@@ -178,6 +181,8 @@ public:
      * 使用 MC 1.21+ 的 equipment 纹理路径格式：
      * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/<assetId>.png
      * - 护腿: textures/entity/equipment/humanoid_leggings/<assetId>.png
+     * - 身体护甲（Body）: textures/entity/equipment/humanoid/<assetId>.png
+     *   （动物护甲纹理由实体渲染层单独处理，此处仅返回基础路径）
      *
      * @param assetId 材质资产ID（来自 ArmorMaterial::getAssetId()）
      * @param slot 盔甲槽位
@@ -192,6 +197,7 @@ public:
      * 覆盖层纹理路径格式：
      * - 头盔/胸甲/靴子: textures/entity/equipment/humanoid/leather_overlay.png
      * - 护腿: textures/entity/equipment/humanoid_leggings/leather_overlay.png
+     * - 身体护甲（Body）: textures/entity/equipment/humanoid/leather_overlay.png
      *
      * @param slot 盔甲槽位
      * @return 覆盖层纹理资源路径
@@ -356,7 +362,7 @@ public:
  *
  * 用于狼铠（WolfArmor），MC 1.20.5+ 新增。
  * - 耐久度因子: 4
- * - BODY槽位防御值: 11（仅用于狼铠，其他槽位无实际意义）
+ * - BODY槽位防御值: 11（狼铠专用，其他槽位不实际使用）
  * - 附魔能力: 10
  * - 韧性: 0
  * - 击退抗性: 0

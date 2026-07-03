@@ -33,12 +33,13 @@ namespace item::items {
  *
  * 用于装备狼（Wolf）的护甲，可染色、可修复。
  * 使用犰狳鳞甲（armadillo_scute）修复，耐久度64点。
+ * 防御值 11（Body 槽位），耐久度 4 * 16 = 64。
  *
  * 狼铠的装备和修复交互逻辑在狼实体侧处理，
  * 此类仅负责物品本身的基础属性和染色功能。
  *
  * TODO: 实体侧集成 - 需要在 WolfEntity 中添加：
- * - Body 装备槽位（用于装备狼铠）
+ * - Body 装备槽位（用于装备狼铠，EquipmentSlot::Body 已就绪）
  * - 右键对狼使用狼铠的装备交互逻辑
  * - 犰狳鳞甲右键修复狼铠的交互逻辑
  * - 狼铠耐久消耗逻辑（狼受伤时消耗耐久）
@@ -53,7 +54,7 @@ public:
     /**
      * @brief 构造狼铠
      * @param material 盔甲材质（ArmadilloScuteArmorMaterial）
-     * @param slot 盔甲槽位
+     * @param slot 盔甲槽位（应为 ArmorSlot::Body）
      * @param properties 物品属性
      */
     WolfArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot, ItemProperties properties);
@@ -67,23 +68,9 @@ public:
      */
     [[nodiscard]] u32 getDefaultColor() const override { return DEFAULT_COLOR; }
 
-    /**
-     * @brief 获取防御值
-     *
-     * 狼铠使用 Body 槽位防御值 11，而非材质 Chest 槽位防御值 6。
-     * 重写 ArmorItem::getDefense() 以返回正确的狼铠防御值。
-     * TODO: 待 ArmorSlot::Body 槽位添加后，可通过材质防御表统一获取。
-     *
-     * @return 狼铠防御值 11
-     */
-    [[nodiscard]] i32 getDefense() const noexcept override { return BODY_DEFENSE; }
-
 private:
     /// 狼铠默认颜色（犰狳鳞甲棕色）
     static constexpr u32 DEFAULT_COLOR = 0xA06540;
-
-    /// 狼铠 Body 槽位防御值（MC 1.21.11: wolf_armor defense = 11）
-    static constexpr i32 BODY_DEFENSE = 11;
 };
 
 } // namespace item::items

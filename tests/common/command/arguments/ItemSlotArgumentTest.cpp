@@ -213,8 +213,8 @@ TEST_F(ItemSlotTest, ToPlayerInventorySlot_EquipmentMapping)
     // armor.feet -> ARMOR_FEET (39)
     EXPECT_EQ(ItemSlot(103).toPlayerInventorySlot(), 39);
 
-    // armor.body -> ARMOR_CHEST (37, 非玩家映射)
-    EXPECT_EQ(ItemSlot(105).toPlayerInventorySlot(), 37);
+    // armor.body -> -1 (玩家无 Body 槽位，仅非玩家实体使用)
+    EXPECT_EQ(ItemSlot(105).toPlayerInventorySlot(), -1);
 }
 
 TEST_F(ItemSlotTest, ToPlayerInventorySlot_InvalidSlots)
@@ -233,7 +233,7 @@ TEST_F(ItemSlotTest, ToEquipmentSlotIndex)
     EXPECT_EQ(ItemSlot(101).toEquipmentSlotIndex(), 4); // Chest
     EXPECT_EQ(ItemSlot(102).toEquipmentSlotIndex(), 3); // Legs
     EXPECT_EQ(ItemSlot(103).toEquipmentSlotIndex(), 2); // Feet
-    EXPECT_EQ(ItemSlot(105).toEquipmentSlotIndex(), 4); // Body (maps to Chest)
+    EXPECT_EQ(ItemSlot(105).toEquipmentSlotIndex(), 6); // Body (EquipmentSlot::Body)
     // 非装备槽位
     EXPECT_EQ(ItemSlot(0).toEquipmentSlotIndex(), -1);
     EXPECT_EQ(ItemSlot(104).toEquipmentSlotIndex(), -1);

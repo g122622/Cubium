@@ -36,18 +36,18 @@ namespace item::items {
  * 用于装备鹦鹉螺类实体（Nautilus, ZombieNautilus）的护甲。
  * 鹦鹉螺铠甲没有耐久度，不会损坏，不支持染色。
  * 有五种材质：铜、铁、金、钻石、下界合金。
- * 护甲值通过构造函数显式传入，不从 ArmorMaterial::getDefense() 推导，
- * 因为当前 ArmorSlot 枚举缺少 Body 槽位。
  *
  * 与马铠（HorseArmorItem）类似，鹦鹉螺铠甲是一种简单的护甲物品，
- * 不继承自 ArmorItem，因为它不参与玩家的盔甲装备系统。
+ * 不继承自 ArmorItem，因为它不参与玩家的盔甲装备系统、不可破坏、
+ * 且护甲值由构造函数显式传入（与 MC 1.21.11 NautilusArmorItem 一致）。
+ * ArmorSlot::Body 现已存在，但 NautilusArmorItem 保持独立设计以与
+ * HorseArmorItem 保持一致，并避免引入耐久度、修复、属性修饰符等盔甲系统概念。
  *
  * TODO: 实体侧集成 - 需要在 NautilusEntity/ZombieNautilusEntity 中添加：
- * - Body 装备槽位（用于装备鹦鹉螺铠甲）
+ * - Body 装备槽位（EquipmentSlot::Body 已就绪，用于装备鹦鹉螺铠甲）
  * - 右键对鹦鹉螺使用铠甲的装备交互逻辑
  * - 鹦鹉螺铠甲渲染层（显示铠甲模型）
  * - 下界合金鹦鹉螺铠甲的防火效果（通过 FIRE_RESISTANT 标签实现）
- * - 待 ArmorSlot::Body 添加后，可将护甲值改为从材质防御表获取
  *
  * 参考: net.minecraft.item.NautilusArmorItem (MC 1.21.11)
  */

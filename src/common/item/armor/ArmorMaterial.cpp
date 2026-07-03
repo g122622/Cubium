@@ -44,6 +44,8 @@ i32 ArmorMaterial::getDurabilityMultiplier(ArmorSlot slot)
             return 15;
         case ArmorSlot::Feet:
             return 13;
+        case ArmorSlot::Body:
+            return 16; // 与 Chest 相同（MC 1.21.11 ArmorType.BODY unitDurability=16）
         default:
             return 11;
     }
@@ -51,7 +53,26 @@ i32 ArmorMaterial::getDurabilityMultiplier(ArmorSlot slot)
 
 i32 ArmorMaterial::toEquipmentSlotIndex(ArmorSlot slot)
 {
-    return static_cast<i32>(slot);
+    // ArmorSlot 与 EquipmentSlot 的映射：
+    // Head=0 -> EquipmentSlot::Head=5
+    // Chest=1 -> EquipmentSlot::Chest=4
+    // Legs=2 -> EquipmentSlot::Legs=3
+    // Feet=3 -> EquipmentSlot::Feet=2
+    // Body=4 -> EquipmentSlot::Body=6
+    switch (slot) {
+        case ArmorSlot::Head:
+            return static_cast<i32>(EquipmentSlot::Head);
+        case ArmorSlot::Chest:
+            return static_cast<i32>(EquipmentSlot::Chest);
+        case ArmorSlot::Legs:
+            return static_cast<i32>(EquipmentSlot::Legs);
+        case ArmorSlot::Feet:
+            return static_cast<i32>(EquipmentSlot::Feet);
+        case ArmorSlot::Body:
+            return static_cast<i32>(EquipmentSlot::Body);
+        default:
+            return static_cast<i32>(EquipmentSlot::Head);
+    }
 }
 
 ResourceLocation ArmorMaterial::getArmorTexturePath(const std::string& assetId, ArmorSlot slot)
@@ -91,6 +112,8 @@ i32 LeatherArmorMaterial::getDefense(ArmorSlot slot) const
             return 2;
         case ArmorSlot::Feet:
             return 1;
+        case ArmorSlot::Body:
+            return 3; // MC 1.21.11 ArmorMaterials.LEATHER defense.body=3
         default:
             return 0;
     }
@@ -127,6 +150,8 @@ i32 ChainArmorMaterial::getDefense(ArmorSlot slot) const
             return 4;
         case ArmorSlot::Feet:
             return 1;
+        case ArmorSlot::Body:
+            return 4; // MC 1.21.11 ArmorMaterials.CHAINMAIL defense.body=4
         default:
             return 0;
     }
@@ -154,7 +179,7 @@ i32 CopperArmorMaterial::getDurability(ArmorSlot slot) const
 
 i32 CopperArmorMaterial::getDefense(ArmorSlot slot) const
 {
-    // MC 1.21.11 原版防御值：头盔=2, 胸甲=4, 护腿=3, 靴子=1
+    // MC 1.21.11 原版防御值：头盔=2, 胸甲=4, 护腿=3, 靴子=1, 身体=4
     switch (slot) {
         case ArmorSlot::Head:
             return 2;
@@ -164,6 +189,8 @@ i32 CopperArmorMaterial::getDefense(ArmorSlot slot) const
             return 3;
         case ArmorSlot::Feet:
             return 1;
+        case ArmorSlot::Body:
+            return 4;
         default:
             return 0;
     }
@@ -200,6 +227,8 @@ i32 IronArmorMaterial::getDefense(ArmorSlot slot) const
             return 5;
         case ArmorSlot::Feet:
             return 2;
+        case ArmorSlot::Body:
+            return 5; // MC 1.21.11 ArmorMaterials.IRON defense.body=5
         default:
             return 0;
     }
@@ -236,6 +265,8 @@ i32 GoldArmorMaterial::getDefense(ArmorSlot slot) const
             return 3;
         case ArmorSlot::Feet:
             return 1;
+        case ArmorSlot::Body:
+            return 7; // MC 1.21.11 ArmorMaterials.GOLD defense.body=7
         default:
             return 0;
     }
@@ -272,6 +303,8 @@ i32 DiamondArmorMaterial::getDefense(ArmorSlot slot) const
             return 6;
         case ArmorSlot::Feet:
             return 3;
+        case ArmorSlot::Body:
+            return 11; // MC 1.21.11 ArmorMaterials.DIAMOND defense.body=11
         default:
             return 0;
     }
@@ -302,6 +335,8 @@ i32 TurtleArmorMaterial::getDefense(ArmorSlot slot) const
     switch (slot) {
         case ArmorSlot::Head:
             return 2;
+        case ArmorSlot::Body:
+            return 5; // MC 1.21.11 ArmorMaterials.TURTLE_SCUTE defense.body=5
         default:
             return 0; // 海龟壳只有头盔
     }
@@ -338,6 +373,8 @@ i32 NetheriteArmorMaterial::getDefense(ArmorSlot slot) const
             return 6;
         case ArmorSlot::Feet:
             return 3;
+        case ArmorSlot::Body:
+            return 19; // MC 1.21.11 ArmorMaterials.NETHERITE defense.body=19
         default:
             return 0;
     }
@@ -368,7 +405,7 @@ i32 ArmadilloScuteArmorMaterial::getDefense(ArmorSlot slot) const
 {
     // MC 1.21.11: ARMADILLO_SCUTE 材质防御值
     // HEAD=3, CHEST=6, LEGS=8, FEET=3, BODY=11
-    // 狼铠仅使用 BODY 槽位的 11 防御值，其他槽位理论上不使用
+    // 狼铠仅使用 BODY 槽位的 11 防御值，其他槽位不实际使用
     switch (slot) {
         case ArmorSlot::Head:
             return 3;
@@ -378,6 +415,8 @@ i32 ArmadilloScuteArmorMaterial::getDefense(ArmorSlot slot) const
             return 8;
         case ArmorSlot::Feet:
             return 3;
+        case ArmorSlot::Body:
+            return 11;
         default:
             return 0;
     }

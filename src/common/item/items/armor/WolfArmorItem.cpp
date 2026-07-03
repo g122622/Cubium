@@ -29,11 +29,9 @@ namespace item::items {
 WolfArmorItem::WolfArmorItem(const armor::ArmorMaterial& material, armor::ArmorSlot slot, ItemProperties properties)
     : DyeableArmorItem(material, slot, std::move(properties))
 {
-    // ArmorItem 基类构造函数中 _buildAttributeModifiers(getDefense()) 使用
-    // ArmorItem::getDefense() 返回材质 Chest 槽位的防御值（6），
-    // 但狼铠的 Body 槽位防御值应为 11。
-    // 此处使用正确的防御值重建属性修饰符。
-    _buildAttributeModifiers(getDefense());
+    // ArmorItem 基类构造函数中 _buildAttributeModifiers(getDefense()) 已正确使用
+    // ArmadilloScuteArmorMaterial::getDefense(ArmorSlot::Body) 返回 11（MC 1.21.11 wolf_armor defense = 11）
+    // 无需在此重建属性修饰符
 }
 
 } // namespace item::items

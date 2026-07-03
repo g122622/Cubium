@@ -40,7 +40,7 @@ namespace uuids {
 
 // ============================================================================
 // 装备槽位 UUID
-// 数组索引顺序: FEET(0), LEGS(1), CHEST(2), HEAD(3)
+// 数组索引顺序: FEET(0), LEGS(1), CHEST(2), HEAD(3), BODY(4)
 // ============================================================================
 
 /// 靴子护甲修饰器 UUID (FEET - 索引0)
@@ -54,6 +54,9 @@ constexpr const char* ARMOR_MODIFIER_UUID_CHEST = "9F3D476D-C118-4544-8365-64846
 
 /// 头盔护甲修饰器 UUID (HEAD - 索引3)
 constexpr const char* ARMOR_MODIFIER_UUID_HEAD = "2AD3F246-FEE1-4E67-B886-69FD380BB150";
+
+/// 身体护甲修饰器 UUID (BODY - 索引4，用于狼铠、鹦鹉螺铠甲、马铠等非玩家实体护甲)
+constexpr const char* ARMOR_MODIFIER_UUID_BODY = "5C71D5E3-3F4A-4E2D-9A8B-7E1F4D6C2A93";
 
 // ============================================================================
 // 武器 UUID

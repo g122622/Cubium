@@ -1961,13 +1961,13 @@ void Items::_registerArmor()
 
     // ========================================================================
     // 狼铠 - MC 1.20.5+ 新增
-    // 使用犰狳鳞甲材质，可染色，64点耐久，防御值11
+    // 使用犰狳鳞甲材质，可染色，64点耐久，防御值11（Body槽位）
     // 参考: net.minecraft.item.WolfArmorItem
     // ========================================================================
     WOLF_ARMOR = &registry.registerItem<item::items::WolfArmorItem>(ResourceLocation("minecraft:wolf_armor"),
         ArmorMaterials::ARMADILLO_SCUTE,
-        item::armor::ArmorSlot::Chest,
-        ItemProperties().maxDamage(ArmorMaterials::ARMADILLO_SCUTE.getDurability(item::armor::ArmorSlot::Chest)));
+        item::armor::ArmorSlot::Body,
+        ItemProperties().maxDamage(ArmorMaterials::ARMADILLO_SCUTE.getDurability(item::armor::ArmorSlot::Body)));
 
     // ========================================================================
     // 鹦鹉螺铠甲 - MC 1.21.11 新增

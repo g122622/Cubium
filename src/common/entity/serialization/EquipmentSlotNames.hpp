@@ -39,7 +39,7 @@ namespace entity::serialization::EquipmentSlotNames {
 
 /**
  * @brief 将 NBT 键名转换为 EquipmentSlot
- * @param name 键名（如 "mainhand", "offhand", "feet", "legs", "chest", "head"）
+ * @param name 键名（如 "mainhand", "offhand", "feet", "legs", "chest", "head", "body"）
  * @return 对应的 EquipmentSlot，无效名称返回 std::nullopt
  */
 [[nodiscard]] std::optional<EquipmentSlot> fromName(const std::string_view name) noexcept;

@@ -186,6 +186,11 @@ public:
      */
     [[nodiscard]] bool isBoots() const noexcept { return m_slot == armor::ArmorSlot::Feet; }
 
+    /**
+     * @brief 检查是否为身体护甲（非玩家实体护甲，如狼铠、鹦鹉螺铠甲、马铠）
+     */
+    [[nodiscard]] bool isBodyArmor() const noexcept { return m_slot == armor::ArmorSlot::Body; }
+
     // ========== 静态辅助方法 ==========
 
     /**

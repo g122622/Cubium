@@ -41,7 +41,8 @@ namespace {
 /**
  * @brief 获取盔甲槽位对应的装备槽位
  *
- * ArmorSlot (Head/Chest/Legs/Feet) 映射到 EquipmentSlot (Head/Chest/Legs/Feet)
+ * ArmorSlot (Head/Chest/Legs/Feet/Body) 映射到 EquipmentSlot (Head/Chest/Legs/Feet/Body)
+ * Body 槽位对应 EquipmentSlot::Body，用于非玩家实体护甲（狼铠、鹦鹉螺铠甲、马铠）。
  */
 [[nodiscard]] i32 armorSlotToEquipmentSlot(armor::ArmorSlot slot) noexcept
 {
@@ -54,6 +55,8 @@ namespace {
             return static_cast<i32>(EquipmentSlot::Chest);
         case armor::ArmorSlot::Head:
             return static_cast<i32>(EquipmentSlot::Head);
+        case armor::ArmorSlot::Body:
+            return static_cast<i32>(EquipmentSlot::Body);
         default:
             return static_cast<i32>(EquipmentSlot::Head);
     }
@@ -73,6 +76,8 @@ namespace {
             return entity::attribute::uuids::ARMOR_MODIFIER_UUID_CHEST;
         case armor::ArmorSlot::Head:
             return entity::attribute::uuids::ARMOR_MODIFIER_UUID_HEAD;
+        case armor::ArmorSlot::Body:
+            return entity::attribute::uuids::ARMOR_MODIFIER_UUID_BODY;
         default:
             return entity::attribute::uuids::ARMOR_MODIFIER_UUID_HEAD;
     }
@@ -89,6 +94,8 @@ namespace {
             return entity.getEquipment(EquipmentSlot::Chest);
         case armor::ArmorSlot::Head:
             return entity.getEquipment(EquipmentSlot::Head);
+        case armor::ArmorSlot::Body:
+            return entity.getEquipment(EquipmentSlot::Body);
         default:
             return entity.getEquipment(EquipmentSlot::Head);
     }
@@ -182,6 +189,12 @@ ItemActionResult ArmorItem::onItemRightClick(IWorld& world, Player& player, Hand
             }
             inventory.setBoots(heldStack);
             break;
+        case armor::ArmorSlot::Body:
+            // Body 槽位用于非玩家实体护甲（狼铠、鹦鹉螺铠甲、马铠），
+            // 玩家无法直接装备，装备逻辑由实体侧（WolfEntity/NautilusEntity/AbstractHorseEntity）处理
+            return ItemActionResult::pass(heldStack);
+        default:
+            return ItemActionResult::pass(heldStack);
     }
 
     heldStack = ItemStack();

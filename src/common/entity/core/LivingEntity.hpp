@@ -47,7 +47,10 @@ class World;
 /**
  * @brief 装备槽位
  *
- * 定义实体可穿戴的装备槽位
+ * 定义实体可穿戴的装备槽位。
+ * Head/Chest/Legs/Feet 为玩家护甲槽位（与 ArmorSlot 一一对应）。
+ * Body 为非玩家实体护甲槽位（狼铠、鹦鹉螺铠甲、马铠等动物护甲）。
+ * 参考: net.minecraft.world.entity.EquipmentSlot
  */
 enum class EquipmentSlot : u8 {
     MainHand = 0, // 主手
@@ -56,7 +59,8 @@ enum class EquipmentSlot : u8 {
     Legs = 3,     // 护腿
     Chest = 4,    // 胸甲
     Head = 5,     // 头盔
-    Count = 6     // 槽位数量
+    Body = 6,     // 身体护甲（非玩家实体专用，如狼铠、鹦鹉螺铠甲、马铠）
+    Count = 7     // 槽位数量
 };
 
 /**

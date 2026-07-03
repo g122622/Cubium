@@ -550,7 +550,7 @@
             对应 MC 原版的 `DropChances` 记录，存储在 `m_equipmentDropChances` 数组中 -
             索引与 `EquipmentSlot` 枚举值对应：[0] = MainHand,
     [1] = OffHand, [2] = Feet, [3] = Legs, [4] = Chest,
-    [5] = Head - 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5 %） -
+    [5] = Head, [6] = Body - 默认值为 `DEFAULT_EQUIPMENT_DROP_CHANCE = 0.085f`（8.5 %） -
     大于 1.0 的值表示物品被保留（`PRESERVE_ITEM_DROP_CHANCE = 2.0f`） - `isEquipmentDropPreserved(slot)` 检查掉落概率 > 1.0
     - `setGuaranteedDrop(slot)` 设置掉落概率为 2.0（保整掉落）
     - `dropPreservedEquipment(predicate)` 遍历装备槽位，根据谓词和保留状态处理装备（用于实体转化场景）
