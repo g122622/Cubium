@@ -667,6 +667,8 @@ add_executable(mc_tests
     common/entity/player/CooldownTrackerTest.cpp
     common/entity/player/PlayerMessageTest.cpp
     common/entity/player/PlayerPermissionTest.cpp
+    # Player 建造权限测试（mayBuild/mayUseItemAt/blockActionRestricted）
+    common/entity/player/PlayerBuildPermissionTest.cpp
     common/entity/player/PlayerSleepTest.cpp
     # Player 旁观者摄像机跟踪测试
     common/entity/player/PlayerSpectatorTest.cpp

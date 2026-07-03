@@ -295,3 +295,7 @@ if (!redstone.isUpdating(pos)) {
 
 - **updateDir**：客户端（`isClientSide() == true`）直接返回原状态，不执行 RailState 计算
 - **neighborChanged**：客户端跳过邻居更新处理，避免铁轨形状在客户端与服务端不同步
+
+## #23. 红石交互方块的建造权限检查
+
+红石比较器（RedstoneComparatorBlock）、红石中继器（RedstoneRepeaterBlock）和红石线（RedstoneWireBlock）的 `onBlockActivated` 方法中，已集成 `Player::mayBuild()` 权限检查。当玩家不具备建造权限时（冒险/旁观模式或 `allowEdit=false`），这些方块不会响应右键交互（返回 `ActionResultType::Pass`）。这与 MC Java 中对应方块的 `mayBuild()` 检查逻辑一致。

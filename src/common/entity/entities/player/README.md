@@ -23,7 +23,7 @@
     - `NetworkClient` 和玩家序列化逻辑负责把服务器传来的传送、位置和状态同步到本地玩家。
     - 服务端玩家管理由 `server / world / player / ServerPlayerEntityManager` 负责。
     - 客户端本地玩家身份由 `client / world / player / LocalPlayerIdentity` 管理。
-    - `GameModeUtils` 负责把游戏模式转换为玩家能力，避免重复实现。
+    - `GameModeUtils` 负责把游戏模式转换为玩家能力，避免重复实现。提供 `getAbilitiesForGameMode()`（能力映射）、`isBlockPlacingRestricted()`（冒险/旁观模式放置限制）等工具方法。
     - `CooldownTracker`（位于 `entity / player /`）管理物品冷却，供 `Player` 持有。
 
         ##上下游外部依赖关系
@@ -88,11 +88,14 @@
         4）独立于游戏模式存储，`setGameMode()` 会重置 `m_abilities` 但不会重置 `m_permissionLevel`。`canUseGameMasterBlocks()` 要求同时满足 `creativeMode` 和 `permissionLevel
     >= 2`。 - ** 权限等级网络同步**：服务端 `/ op`/`/ deop` 后会通过 `EntityStatusPacket`（status byte = 24 +
             level）通知客户端权限等级变更，客户端收到后在 `ClientApplicationNetwork` 的 `onEntityStatus` 回调中更新本地玩家的 `m_permissionLevel`。 -
-            **冒险模式mayInteract检查双手 *
+            **冒险模式mayInteract检查双手**
                 *：`Player::mayInteract()` 在冒险模式下会同时检查主手和副手物品的 CanPlaceOn
                  标签，任一只手的物品匹配即允许交互。参考 MC Java 的 `Player
                      .mayUseItemAt()`，该方法是逐手检查而非合并检查——服务端在处理交互包时，会根据包中指定的
                  InteractionHand 来决定检查哪只手的物品。
+            -
+            **建造权限与冒险模式限制**
+                *：`Player::mayBuild()` 直接返回 `m_abilities.allowEdit`，对应 MC Java 的 `Player.mayBuild()`。生存/创造模式默认 `allowEdit=true`，冒险/旁观模式默认 `allowEdit=false`。`Player::mayUseItemAt(world, pos, facing, itemStack)` 先检查 `mayBuild()`，若为 false 则检查物品的 CanPlaceOn 标签是否匹配 pos 对面（opposite(facing)）的方块。`Player::blockActionRestricted(world, pos)` 先检查 `isBlockPlacingRestricted(gameMode)`，再检查旁观者、`mayBuild()`，最后检查主手物品的 CanDestroy 标签。`GameModeUtils::isBlockPlacingRestricted()` 在冒险/旁观模式下返回 true。这些方法已在 `BlockInteractionManager` 中集成：`handleBlockPlacement` 使用 `mayUseItemAt()`，`_canBreakBlock` 使用 `blockActionRestricted()`。
             -
             **重锤下落攻击流程 *
                 *：`Player::attack()` 中在计算附魔伤害前检测重锤下落攻击（`MaceItem::

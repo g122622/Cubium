@@ -285,18 +285,10 @@ Result<BlockPlacementResult> BlockInteractionManager::handleBlockPlacement(
         return Error(ErrorCode::PermissionDenied, "Cannot place blocks in spectator mode");
     }
 
-    // 冒险模式：检查手持物品的 CanPlaceOn 标签
-    if (playerData->gameMode == GameMode::Adventure) {
-        if (!heldItem.isEmpty() && heldItem.hasCanPlaceOn()) {
-            const BlockState* targetState = world->getBlockState(pos);
-            if (targetState == nullptr || !heldItem.canPlaceOnBlockInAdventureMode(*world, pos, *targetState)) {
-                return Error(
-                    ErrorCode::PermissionDenied, "Cannot place block in adventure mode: CanPlaceOn restriction");
-            }
-        } else {
-            // 冒险模式下没有 CanPlaceOn 标签的物品不能放置方块
-            return Error(ErrorCode::PermissionDenied, "Cannot place blocks in adventure mode without CanPlaceOn tag");
-        }
+    // 检查建造权限和冒险模式 CanPlaceOn 限制
+    Player* player = _getPlayerEntity(playerId, *world);
+    if (player != nullptr && !player->mayUseItemAt(*world, pos, face, heldItem)) {
+        return Error(ErrorCode::PermissionDenied, "Cannot place block: mayUseItemAt check failed");
     }
 
     // 获取物品对应的方块物品
@@ -640,27 +632,19 @@ bool BlockInteractionManager::_canBreakBlock(
         return false;
     }
 
+    Player* player = _getPlayerEntity(playerId, world);
+
     // 游戏管理员方块需要 canUseGameMasterBlocks() 权限才能破坏
     const Block& block = state->getBlock();
     if (block.isGameMaster()) {
-        Player* player = _getPlayerEntity(playerId, world);
         if (player == nullptr || !player->canUseGameMasterBlocks()) {
             return false;
         }
     }
 
-    // 冒险模式：检查手持物品的 CanDestroy 标签
-    auto* playerData = _validatePlayer(playerId);
-    if (playerData && playerData->gameMode == GameMode::Adventure) {
-        ItemStack heldItem = _getHeldTool(playerId);
-        if (!heldItem.isEmpty() && heldItem.hasCanDestroy()) {
-            if (!heldItem.canBreakBlockInAdventureMode(world, pos, *state)) {
-                return false;
-            }
-        } else {
-            // 冒险模式下没有 CanDestroy 标签的物品不能破坏方块
-            return false;
-        }
+    // 检查方块操作权限（旁观模式、冒险模式 CanDestroy 限制）
+    if (player != nullptr && player->blockActionRestricted(world, pos)) {
+        return false;
     }
 
     return _canInteract(playerId, pos);
