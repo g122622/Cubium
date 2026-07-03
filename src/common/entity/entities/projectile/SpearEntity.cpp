@@ -29,14 +29,30 @@
 #include "../../core/EntityTypeIdNumber.hpp"
 #include "../../core/LivingEntity.hpp"
 #include "../../entities/player/Player.hpp"
+#include "../../serialization/EntityNbtKeys.hpp"
+#include "../../serialization/NbtHelper.hpp"
 #include "../../utils/ItemDropHelper.hpp"
 #include "ProjectileHelper.hpp"
+#include "common/core/Result.hpp"
 #include "common/particle/ParticleTypes.hpp"
+#include "common/util/nbt/Nbt.hpp"
 
 namespace mc {
 namespace entity {
 
 namespace {
+
+// ========== NBT 键名常量 ==========
+// 参考 MC 1.21.11 AbstractArrow.addAdditionalSaveData() / ThrownTrident.addAdditionalSaveData()
+// 注意：键名沿用 MC 1.16.5/1.21.11 的大小写规范，以保持与原版存档兼容。
+
+constexpr const char* NBT_KEY_PICKUP = "pickup";            // 拾取状态（byte）
+constexpr const char* NBT_KEY_DAMAGE = "damage";            // 基础伤害（float）
+constexpr const char* NBT_KEY_IN_GROUND = "inGround";       // 是否插在方块中（byte/bool）
+constexpr const char* NBT_KEY_CRIT = "crit";                // 是否暴击（byte/bool）
+constexpr const char* NBT_KEY_PIERCE_LEVEL = "PierceLevel"; // 穿透等级（byte）
+constexpr const char* NBT_KEY_DEALT_DAMAGE = "DealtDamage"; // 是否已造成伤害（byte/bool）
+constexpr const char* NBT_KEY_KNOCKBACK = "knockback";      // 击退强度（int）
 
 // 辅助函数：基于实体ID和tick创建随机数生成器
 math::Random createRandomFromEntity(const Entity& entity)
@@ -188,6 +204,104 @@ bool SpearEntity::onPlayerPickup(Player& player)
 
     remove();
     return true;
+}
+
+// ============================================================================
+// NBT 序列化
+// ============================================================================
+
+void SpearEntity::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
+{
+    // 先调用基类实现（Entity 基类，AbstractArrowEntity 未重写）
+    Entity::addAdditionalSaveData(tag);
+
+    using namespace serialization::nbt_helper;
+
+    // 长矛物品堆（参考 ItemEntity::addAdditionalSaveData 的 ItemStack 写入模式）
+    // 键名沿用 MC 1.21.11 AbstractArrow 的 "item" 键
+    nbt::tags::compound_tag itemTag;
+    m_spearStack.toNbt(itemTag);
+    tag.value.emplace(serialization::nbt_keys::ITEM, std::make_unique<nbt::tags::compound_tag>(std::move(itemTag)));
+
+    // 拾取状态（byte：0=Disallowed, 1=Allowed, 2=CreativeOnly）
+    tag.put(NBT_KEY_PICKUP, static_cast<i8>(m_pickupStatus));
+
+    // 基础伤害（float）
+    tag.put(NBT_KEY_DAMAGE, m_damage);
+
+    // 是否插在方块中（bool，底层 byte）
+    tag.put(NBT_KEY_IN_GROUND, static_cast<i8>(m_inGround ? 1 : 0));
+
+    // 是否暴击（bool，底层 byte）
+    tag.put(NBT_KEY_CRIT, static_cast<i8>(m_critical ? 1 : 0));
+
+    // 穿透等级（byte）
+    tag.put(NBT_KEY_PIERCE_LEVEL, static_cast<i8>(m_pierceLevel));
+
+    // 是否已造成伤害（bool，底层 byte）—— 参考 ThrownTrident 的 "DealtDamage" 键
+    tag.put(NBT_KEY_DEALT_DAMAGE, static_cast<i8>(m_dealtDamage ? 1 : 0));
+
+    // 击退强度（int）
+    tag.put(NBT_KEY_KNOCKBACK, m_knockbackStrength);
+}
+
+Result<void> SpearEntity::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
+{
+    // 先调用基类实现，用 MC_TRY 传播错误
+    MC_TRY(Entity::readAdditionalSaveData(tag));
+
+    using namespace serialization::nbt_helper;
+
+    // 长矛物品堆
+    const nbt::tags::compound_tag* itemTag = tryGetCompound(tag, serialization::nbt_keys::ITEM);
+    if (itemTag != nullptr) {
+        auto stackResult = ItemStack::fromNbt(*itemTag);
+        if (stackResult.success()) {
+            m_spearStack = stackResult.value();
+        }
+        // 反序列化失败时保留默认空堆，避免存档损坏导致崩溃
+    }
+
+    // 拾取状态
+    if (auto val = tryGetByte(tag, NBT_KEY_PICKUP)) {
+        // 防御性 clamp，避免存档数据越界
+        i8 v = *val;
+        if (v >= static_cast<i8>(PickupStatus::Disallowed) && v <= static_cast<i8>(PickupStatus::CreativeOnly)) {
+            m_pickupStatus = static_cast<PickupStatus>(v);
+        }
+    }
+
+    // 基础伤害
+    if (auto val = tryGetFloat(tag, NBT_KEY_DAMAGE)) {
+        m_damage = *val;
+    }
+
+    // 是否插在方块中
+    if (auto val = tryGetBool(tag, NBT_KEY_IN_GROUND)) {
+        m_inGround = *val;
+    }
+
+    // 是否暴击
+    if (auto val = tryGetBool(tag, NBT_KEY_CRIT)) {
+        m_critical = *val;
+    }
+
+    // 穿透等级
+    if (auto val = tryGetByte(tag, NBT_KEY_PIERCE_LEVEL)) {
+        m_pierceLevel = static_cast<u8>(*val);
+    }
+
+    // 是否已造成伤害
+    if (auto val = tryGetBool(tag, NBT_KEY_DEALT_DAMAGE)) {
+        m_dealtDamage = *val;
+    }
+
+    // 击退强度
+    if (auto val = tryGetInt(tag, NBT_KEY_KNOCKBACK)) {
+        m_knockbackStrength = *val;
+    }
+
+    return Result<void>::ok();
 }
 
 } // namespace entity

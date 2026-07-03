@@ -96,6 +96,24 @@ public:
      */
     bool onPlayerPickup(Player& player) override;
 
+    // ========== NBT 序列化 ==========
+
+    /**
+     * @brief 序列化长矛实体特有数据到 NBT
+     *
+     * 持久化长矛物品堆、拾取状态、伤害值、已造成伤害标志等。
+     * 参考 MC 1.21.11 AbstractArrow.addAdditionalSaveData() 与 ThrownTrident.addAdditionalSaveData()。
+     */
+    void addAdditionalSaveData(nbt::tags::compound_tag& tag) const override;
+
+    /**
+     * @brief 从 NBT 反序列化长矛实体特有数据
+     *
+     * 恢复长矛物品堆和各项状态。
+     * 参考 MC 1.21.11 AbstractArrow.readAdditionalSaveData() 与 ThrownTrident.readAdditionalSaveData()。
+     */
+    Result<void> readAdditionalSaveData(const nbt::tags::compound_tag& tag) override;
+
 protected:
     /**
      * @brief 长矛命中实体时的处理
