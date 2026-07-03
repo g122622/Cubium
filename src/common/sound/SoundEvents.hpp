@@ -1541,6 +1541,11 @@ extern const ResourceLocation ITEM_TRIDENT_HIT_GROUND;
 extern const ResourceLocation ITEM_TRIDENT_RETURN;
 extern const ResourceLocation ITEM_TRIDENT_THUNDER;
 
+/// 长矛
+extern const ResourceLocation ITEM_SPEAR_THROW;
+extern const ResourceLocation ITEM_SPEAR_HIT;
+extern const ResourceLocation ITEM_SPEAR_HIT_GROUND;
+
 /// 盾牌
 extern const ResourceLocation ITEM_SHIELD_BLOCK;
 extern const ResourceLocation ITEM_SHIELD_BREAK;

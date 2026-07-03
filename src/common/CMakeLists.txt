@@ -236,6 +236,7 @@ add_library(mc_common STATIC
     entity/entities/projectile/AbstractFireballEntity.cpp
     entity/entities/projectile/ProjectileItemEntity.cpp
     entity/entities/projectile/TridentEntity.cpp
+    entity/entities/projectile/SpearEntity.cpp
     entity/entities/projectile/OtherProjectiles.cpp
     entity/entities/projectile/WindChargeEntity.cpp
     # Entity - Movement
@@ -510,6 +511,7 @@ add_library(mc_common STATIC
     item/items/weapon/FireworkRocketItem.cpp
     item/items/weapon/CrossbowItem.cpp
     item/items/weapon/TridentItem.cpp
+    item/items/weapon/SpearItem.cpp
     item/items/weapon/ShieldItem.cpp
     item/items/weapon/ThrowableItem.cpp
     item/items/weapon/ThrowableItems.cpp

@@ -84,6 +84,7 @@
 #include "common/item/items/weapon/FireworkRocketItem.hpp"
 #include "common/item/items/weapon/FishingRodItem.hpp"
 #include "common/item/items/weapon/ShieldItem.hpp"
+#include "common/item/items/weapon/SpearItem.hpp"
 #include "common/item/items/weapon/SpectralArrowItem.hpp"
 #include "common/item/items/weapon/ThrowableItem.hpp"
 #include "common/item/items/weapon/ThrowableItems.hpp"
@@ -501,6 +502,17 @@ Item* Items::CROSSBOW = nullptr;
 Item* Items::TRIDENT = nullptr;
 Item* Items::SHIELD = nullptr;
 Item* Items::FISHING_ROD = nullptr;
+
+// ============================================================================
+// 长矛 - 按材质分层
+// ============================================================================
+Item* Items::WOODEN_SPEAR = nullptr;
+Item* Items::STONE_SPEAR = nullptr;
+Item* Items::COPPER_SPEAR = nullptr;
+Item* Items::IRON_SPEAR = nullptr;
+Item* Items::GOLDEN_SPEAR = nullptr;
+Item* Items::DIAMOND_SPEAR = nullptr;
+Item* Items::NETHERITE_SPEAR = nullptr;
 
 // ============================================================================
 // 骑乘控制物品
@@ -2621,6 +2633,64 @@ void Items::_registerWeapons()
     WARPED_FUNGUS_ON_A_STICK =
         &registry.registerItem<item::WarpedFungusOnAStickItem>(ResourceLocation("minecraft:warped_fungus_on_a_stick"),
             ItemProperties().maxDamage(item::WarpedFungusOnAStickItem::MAX_DAMAGE));
+
+    // ========================================================================
+    // 长矛 - 按材质分层（木/石/铜/铁/金/钻石/下界合金）
+    // 长矛是近战和远程相结合的武器：
+    // - 近战攻击伤害 = 基础值(3) + 层级加成（与剑一致）
+    // - 攻击速度: -2.9（长杆武器，比剑慢）
+    // - 投掷伤害: 8.0（固定，与三叉戟一致）
+    // - 耐久消耗: 近战 1 / 破坏方块 2 / 投掷 1
+    // ========================================================================
+
+    // 木长矛
+    WOODEN_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:wooden_spear"),
+        item::tier::ItemTiers::WOOD(), // tier
+        3,                             // attackDamage（基础值）
+        -2.9f,                         // attackSpeed
+        ItemProperties().rarity(ItemRarity::Common));
+
+    // 石长矛
+    STONE_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:stone_spear"),
+        item::tier::ItemTiers::STONE(),
+        3,
+        -2.9f,
+        ItemProperties().rarity(ItemRarity::Common));
+
+    // 铜长矛
+    COPPER_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:copper_spear"),
+        item::tier::ItemTiers::COPPER(),
+        3,
+        -2.9f,
+        ItemProperties().rarity(ItemRarity::Common));
+
+    // 铁长矛
+    IRON_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:iron_spear"),
+        item::tier::ItemTiers::IRON(),
+        3,
+        -2.9f,
+        ItemProperties().rarity(ItemRarity::Common));
+
+    // 金长矛
+    GOLDEN_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:golden_spear"),
+        item::tier::ItemTiers::GOLD(),
+        3,
+        -2.9f,
+        ItemProperties().rarity(ItemRarity::Common));
+
+    // 钻石长矛
+    DIAMOND_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:diamond_spear"),
+        item::tier::ItemTiers::DIAMOND(),
+        3,
+        -2.9f,
+        ItemProperties().rarity(ItemRarity::Common));
+
+    // 下界合金长矛
+    NETHERITE_SPEAR = &registry.registerItem<item::SpearItem>(ResourceLocation("minecraft:netherite_spear"),
+        item::tier::ItemTiers::NETHERITE(),
+        3,
+        -2.9f,
+        ItemProperties().rarity(ItemRarity::Rare));
 }
 
 void Items::_registerThrowables()

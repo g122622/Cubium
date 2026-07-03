@@ -182,6 +182,15 @@ ItemTag& ItemTags::HOES()
     return *tag;
 }
 
+ItemTag& ItemTags::SPEARS()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "spears"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::BREAKS_DECORATED_POTS()
 {
     static ItemTag* tag = nullptr;
@@ -617,6 +626,19 @@ void ItemTags::initialize()
     hoes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_hoe")));
     allTags[hoes->getId()] = std::move(hoes);
 
+    // 创建 SPEARS 标签
+    // 包含所有材质的长矛物品（木/石/铜/铁/金/钻石/下界合金）
+    // 对应 MC 原版标签 minecraft:spears
+    auto spears = std::make_unique<ItemTag>(ResourceLocation("minecraft", "spears"), false);
+    spears->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wooden_spear")));
+    spears->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "stone_spear")));
+    spears->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_spear")));
+    spears->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "iron_spear")));
+    spears->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_spear")));
+    spears->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "diamond_spear")));
+    spears->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "netherite_spear")));
+    allTags[spears->getId()] = std::move(spears);
+
     // 创建 BREAKS_DECORATED_POTS 标签
     // 包含所有会破坏饰纹陶罐的物品：工具类型标签 + 三叉戟 + 重锤
     // 手持这些物品破坏陶罐时，陶罐被设为 CRACKED 状态并掉落陶片而非完整陶罐。
@@ -633,6 +655,9 @@ void ItemTags::initialize()
     // 三叉戟和重锤
     breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "trident")));
     breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "mace")));
+
+    // 长矛（按材质分层）
+    breaksPots->addAll(SPEARS().getItemsList());
 
     // 刷子 - 刷扫也会碎裂陶罐
     breaksPots->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "brush")));
@@ -893,6 +918,8 @@ void ItemTags::initialize()
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_shovel")));
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_axe")));
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_hoe")));
+    // 金长矛
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_spear")));
     // 粗金
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "raw_gold")));
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "raw_gold_block")));

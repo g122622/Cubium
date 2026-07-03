@@ -310,6 +310,7 @@ constexpr const char* EXPERIENCE_ORB = "minecraft:experience_orb";
 constexpr const char* ARROW = "minecraft:arrow";
 constexpr const char* SPECTRAL_ARROW = "minecraft:spectral_arrow";
 constexpr const char* TRIDENT = "minecraft:trident";
+constexpr const char* SPEAR = "minecraft:spear";
 constexpr const char* SNOWBALL = "minecraft:snowball";
 constexpr const char* EGG = "minecraft:egg";
 constexpr const char* ENDER_PEARL = "minecraft:ender_pearl";

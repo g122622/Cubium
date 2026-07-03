@@ -1401,6 +1401,11 @@ const ResourceLocation ITEM_TRIDENT_HIT_GROUND("minecraft:item.trident.hit_groun
 const ResourceLocation ITEM_TRIDENT_RETURN("minecraft:item.trident.return");
 const ResourceLocation ITEM_TRIDENT_THUNDER("minecraft:item.trident.thunder");
 
+// 长矛
+const ResourceLocation ITEM_SPEAR_THROW("minecraft:item.spear.use");
+const ResourceLocation ITEM_SPEAR_HIT("minecraft:item.spear.hit");
+const ResourceLocation ITEM_SPEAR_HIT_GROUND("minecraft:item.spear.hit_ground");
+
 // 盾牌
 const ResourceLocation ITEM_SHIELD_BLOCK("minecraft:item.shield.block");
 const ResourceLocation ITEM_SHIELD_BREAK("minecraft:item.shield.break");

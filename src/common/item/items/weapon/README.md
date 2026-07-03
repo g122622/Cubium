@@ -13,6 +13,7 @@ weapon/
 ├── FireworkRocketItem.hpp/cpp  # 烟花火箭物品，实现 ProjectileItem 接口
 ├── FishingRodItem.hpp/cpp      # 钓鱼竿物品
 ├── ShieldItem.hpp/cpp          # 盾牌物品，格挡攻击（框架实现）
+├── SpearItem.hpp/cpp           # 长矛物品，按材质分层，近战与投掷结合
 ├── SpectralArrowItem.hpp/cpp   # 光灵箭物品，继承 ArrowItem
 ├── ThrowableItem.hpp/cpp       # 投掷物品基类（实现 ProjectileItem 接口）
 ├── ThrowableItems.hpp/cpp      # 具体投掷物品（雪球/鸡蛋/末影珍珠/经验瓶）
@@ -48,6 +49,7 @@ FireworkRocketItem (实现 ProjectileItem 接口)
 BowItem ──────→ AbstractArrowEntity (创建箭矢实体)
 CrossbowItem ─→ AbstractArrowEntity / FireworkRocketEntity
 TridentItem ──→ TridentEntity
+SpearItem ────→ SpearEntity
 FishingRodItem → FishingBobberEntity
 ```
 
@@ -119,3 +121,12 @@ FireChargeItem 同时实现了 `onItemUse()` 方法，支持玩家右键使用�
 ### 9. ExperienceBottleItem 的发射器配置
 
 `ExperienceBottleItem` 覆写 `getDispenseConfig()` 返回 `ProjectileDispenseConfig::potion()`（power=1.375, uncertainty=3.0），与药水投掷物使用相同的发射器参数。这是因为它和药水一样需要更精确的发射轨迹。
+
+### 10. SpearItem 与 TridentItem 的区别
+
+长矛（SpearItem）和三叉戟（TridentItem）都是近战+投掷结合的武器，但有重要区别：
+- **分层 vs 单一**：SpearItem 继承 TieredItem，按材质分层（木/石/铜/铁/金/钻石/下界合金），近战伤害随层级变化；TridentItem 是单一物品，固定 8 伤害。
+- **附魔支持**：TridentItem 支持忠诚/激流/引雷/穿刺；SpearItem 不支持这些附魔（数据包未将 spears 加入 trident 可附魔标签），长矛专属附魔 Lunge 暂未实现。
+- **投掷伤害**：长矛投掷伤害固定 8.0（与三叉戟一致），不随层级变化。
+- **投掷实体**：长矛使用 SpearEntity（不支持忠诚返回），三叉戟使用 TridentEntity（支持忠诚返回）。
+- **耐久消耗**：长矛近战消耗 1，破坏方块消耗 2（与剑一致）；三叉戟近战消耗 1，破坏方块消耗 2。

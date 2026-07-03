@@ -106,6 +106,7 @@
 #include "common/entity/entities/projectile/AbstractFireballEntity.hpp"
 #include "common/entity/entities/projectile/OtherProjectiles.hpp"
 #include "common/entity/entities/projectile/ProjectileItemEntity.hpp"
+#include "common/entity/entities/projectile/SpearEntity.hpp"
 #include "common/entity/entities/projectile/TridentEntity.hpp"
 #include "common/entity/entities/projectile/WindChargeEntity.hpp"
 #include "common/entity/entities/vehicle/BoatEntity.hpp"
@@ -920,6 +921,14 @@ private:
         // 三叉戟
         registry.registerType(EntityTypes::TRIDENT,
             EntityType::Builder(&TridentEntity::create, EntityClassification::Misc)
+                .size(0.5f, 0.5f)
+                .trackingRange(8)
+                .updateInterval(1)
+                .build());
+
+        // 长矛（玩家投掷的可回收投掷武器）
+        registry.registerType(EntityTypes::SPEAR,
+            EntityType::Builder(&SpearEntity::create, EntityClassification::Misc)
                 .size(0.5f, 0.5f)
                 .trackingRange(8)
                 .updateInterval(1)

@@ -13,7 +13,8 @@ projectile/
 ├── AbstractFireballEntity.hpp/cpp # 抽象火球基类 + FireballEntity, SmallFireballEntity, DragonFireballEntity, WitherSkullEntity
 ├── DamagingProjectileEntity.hpp/cpp # 带加速度的投掷物基类（火球类公共层）
 ├── ProjectileItemEntity.hpp/cpp   # 投掷物品基类 + SnowballEntity, EggEntity, EnderPearlEntity, PotionEntity, ExperienceBottleEntity
-├── TridentEntity.hpp/cpp          # 三叉戟实体
+├── TridentEntity.hpp/cpp          # 三叉戟实体（支持忠诚返回/激流/引雷）
+├── SpearEntity.hpp/cpp            # 长矛投掷实体（可回收，不支持忠诚返回）
 ├── WindChargeEntity.hpp/cpp       # 风弹实体
 ├── ProjectileHelper.hpp/cpp       # 投掷物辅助工具（朝向更新、移动搜索盒、最近实体命中检测）
 ├── OtherProjectiles.hpp/cpp       # 其他投掷物（LlamaSpitEntity, FishingBobberEntity, ShulkerBulletEntity, EvokerFangsEntity, EyeOfEnderEntity, FireworkRocketEntity）
@@ -40,8 +41,9 @@ Entity (core/Entity.hpp)
 │   │       └── WitherSkullEntity # 凋灵之首
 │   ├── AbstractArrowEntity       # 抽象箭矢基类
 │   │   ├── ArrowEntity           # 普通箭矢
-│   │   └── SpectralArrowEntity   # 光灵箭
-│   ├── TridentEntity             # 三叉戟
+│   │   ├── SpectralArrowEntity   # 光灵箭
+│   │   ├── TridentEntity         # 三叉戟（支持忠诚返回）
+│   │   └── SpearEntity           # 长矛（可回收，不支持忠诚返回）
 │   ├── WindChargeEntity          # 风弹
 │   ├── LlamaSpitEntity           # 羊驼唾液
 │   ├── ShulkerBulletEntity       # 潜影贝子弹

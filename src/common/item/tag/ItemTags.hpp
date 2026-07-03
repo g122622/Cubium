@@ -139,6 +139,14 @@ public:
     static ItemTag& HOES();
 
     /**
+     * @brief 长矛标签
+     *
+     * 包含所有材质的长矛物品（木/石/铜/铁/金/钻石/下界合金）。
+     * 对应 MC 原版标签 minecraft:spears。
+     */
+    static ItemTag& SPEARS();
+
+    /**
      * @brief 破坏饰纹陶罐标签
      *
      * 包含所有会破坏饰纹陶罐的物品（剑、斧、镐、铲、锄 + 三叉戟 + 重锤）。

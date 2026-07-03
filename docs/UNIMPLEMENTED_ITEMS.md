@@ -55,7 +55,7 @@
 | `minecraft:repairs_turtle_helmet` | 1 |
 | `minecraft:repairs_wolf_armor` | 1 |
 | `minecraft:sniffer_food` | 1 ✅ 已完成 |
-| `minecraft:spears` | 7 |
+| `minecraft:spears` | 7 ✅ 已完成 |
 | `minecraft:wooden_shelves` | 12 ✅ 已完成 |
 
 ## 部分缺失的标签（至少一个叶子物品未实现）
@@ -173,7 +173,7 @@
 - `minecraft:copper_lantern ✅ 已完成`
 - `minecraft:copper_pickaxe ✅ 已完成`
 - `minecraft:copper_shovel ✅ 已完成`
-- `minecraft:copper_spear`
+- `minecraft:copper_spear ✅ 已完成`
 - `minecraft:copper_sword ✅ 已完成`
 - `minecraft:deepslate_copper_ore ✅ 已完成`
 - `minecraft:exposed_copper ✅ 已完成`
@@ -401,12 +401,12 @@
 ### Tools / Weapons（6）
 
 
-- `minecraft:diamond_spear`
-- `minecraft:golden_spear`
-- `minecraft:iron_spear`
-- `minecraft:netherite_spear`
-- `minecraft:stone_spear`
-- `minecraft:wooden_spear`
+- `minecraft:diamond_spear ✅ 已完成`
+- `minecraft:golden_spear ✅ 已完成`
+- `minecraft:iron_spear ✅ 已完成`
+- `minecraft:netherite_spear ✅ 已完成`
+- `minecraft:stone_spear ✅ 已完成`
+- `minecraft:wooden_spear ✅ 已完成`
 
 ### Trapdoors（10）
 
@@ -765,13 +765,13 @@
 ### `minecraft:spears`
 
 
-- `minecraft:copper_spear`
-- `minecraft:diamond_spear`
-- `minecraft:golden_spear`
-- `minecraft:iron_spear`
-- `minecraft:netherite_spear`
-- `minecraft:stone_spear`
-- `minecraft:wooden_spear`
+- `minecraft:copper_spear ✅ 已完成`
+- `minecraft:diamond_spear ✅ 已完成`
+- `minecraft:golden_spear ✅ 已完成`
+- `minecraft:iron_spear ✅ 已完成`
+- `minecraft:netherite_spear ✅ 已完成`
+- `minecraft:stone_spear ✅ 已完成`
+- `minecraft:wooden_spear ✅ 已完成`
 
 ### `minecraft:wooden_shelves`
 
@@ -1032,7 +1032,7 @@
 - `minecraft:bell`
 - `minecraft:gilded_blackstone ✅ 已完成`
 - `minecraft:golden_nautilus_armor ✅ 已完成`
-- `minecraft:golden_spear`
+- `minecraft:golden_spear ✅ 已完成`
 - `minecraft:raw_gold ✅ 已完成`
 - `minecraft:raw_gold_block ✅ 已完成`
 
@@ -1042,7 +1042,7 @@
 未实现项：
 
 
-- `minecraft:golden_spear`
+- `minecraft:golden_spear ✅ 已完成`
 
 ### `minecraft:planks`
 

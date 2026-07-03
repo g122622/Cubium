@@ -88,6 +88,7 @@ add_executable(mc_tests
     common/item/weapon/FireChargeItemTest.cpp
     common/item/weapon/ThrowableItemTest.cpp
     common/item/weapon/WeaponItemTest.cpp
+    common/item/weapon/SpearItemTest.cpp
     # WindChargeItem 风弹物品测试（投掷、冷却、消耗）
     common/item/WindChargeItemTest.cpp
     # WolfArmorItem / NautilusArmorItem / ArmadilloScuteArmorMaterial 测试

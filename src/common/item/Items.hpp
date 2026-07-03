@@ -509,6 +509,17 @@ public:
     static Item* FISHING_ROD;    // 钓鱼竿
 
     // ========================================================================
+    // 长矛 - 按材质分层（木/石/铜/铁/金/钻石/下界合金）
+    // ========================================================================
+    static Item* WOODEN_SPEAR;    // 木长矛
+    static Item* STONE_SPEAR;     // 石长矛
+    static Item* COPPER_SPEAR;    // 铜长矛
+    static Item* IRON_SPEAR;      // 铁长矛
+    static Item* GOLDEN_SPEAR;    // 金长矛
+    static Item* DIAMOND_SPEAR;   // 钻石长矛
+    static Item* NETHERITE_SPEAR; // 下界合金长矛
+
+    // ========================================================================
     // 骑乘控制物品
     // ========================================================================
     static Item* CARROT_ON_A_STICK;        // 胡萝卜钓竿 - 控制猪

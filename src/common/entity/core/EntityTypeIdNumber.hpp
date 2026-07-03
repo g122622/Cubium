@@ -177,6 +177,7 @@ extern EntityTypeId EXPERIENCE_ORB;
 extern EntityTypeId ARROW;
 extern EntityTypeId SPECTRAL_ARROW;
 extern EntityTypeId TRIDENT;
+extern EntityTypeId SPEAR;
 extern EntityTypeId SNOWBALL;
 extern EntityTypeId EGG;
 extern EntityTypeId ENDER_PEARL;

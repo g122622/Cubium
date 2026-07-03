@@ -183,6 +183,7 @@ EntityTypeId EXPERIENCE_ORB = 0;
 EntityTypeId ARROW = 0;
 EntityTypeId SPECTRAL_ARROW = 0;
 EntityTypeId TRIDENT = 0;
+EntityTypeId SPEAR = 0;
 EntityTypeId SNOWBALL = 0;
 EntityTypeId EGG = 0;
 EntityTypeId ENDER_PEARL = 0;
@@ -348,6 +349,7 @@ void initialize()
     ARROW = safeGetId(registry, EntityTypes::ARROW);
     SPECTRAL_ARROW = safeGetId(registry, EntityTypes::SPECTRAL_ARROW);
     TRIDENT = safeGetId(registry, EntityTypes::TRIDENT);
+    SPEAR = safeGetId(registry, EntityTypes::SPEAR);
     SNOWBALL = safeGetId(registry, EntityTypes::SNOWBALL);
     EGG = safeGetId(registry, EntityTypes::EGG);
     ENDER_PEARL = safeGetId(registry, EntityTypes::ENDER_PEARL);
