@@ -134,10 +134,13 @@ ActionResultType RedstoneRepeaterBlock::onBlockActivated(const BlockState& state
     Hand hand,
     const BlockRaycastResult& hit)
 {
-
-    MC_UNUSED(player);
     MC_UNUSED(hand);
     MC_UNUSED(hit);
+
+    // 冒险/旁观模式下无建造权限时，禁止切换中继器延迟
+    if (!player.mayBuild()) {
+        return ActionResultType::Pass;
+    }
 
     // 右键点击中继器可以在 1-4 档延迟之间循环切换
     // 只有未被锁定的中继器才能调整延迟

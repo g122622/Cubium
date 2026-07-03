@@ -289,10 +289,13 @@ ActionResultType RedstoneComparatorBlock::onBlockActivated(const BlockState& sta
     Hand hand,
     const BlockRaycastResult& hit)
 {
-
-    MC_UNUSED(player);
     MC_UNUSED(hand);
     MC_UNUSED(hit);
+
+    // 冒险/旁观模式下无建造权限时，禁止切换比较器模式
+    if (!player.mayBuild()) {
+        return ActionResultType::Pass;
+    }
 
     // 右键点击比较器可以在比较模式和减法模式之间切换
     ComparatorMode currentMode = getMode(state);

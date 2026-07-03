@@ -89,6 +89,11 @@ bool GameModeUtils::canEdit(GameMode mode)
     return mode != GameMode::Adventure && mode != GameMode::Spectator;
 }
 
+bool GameModeUtils::isBlockPlacingRestricted(GameMode mode)
+{
+    return mode == GameMode::Adventure || mode == GameMode::Spectator;
+}
+
 bool GameModeUtils::isCreative(GameMode mode)
 {
     return mode == GameMode::Creative;

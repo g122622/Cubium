@@ -147,11 +147,15 @@ ActionResultType AbstractSignBlock::onBlockActivated(const BlockState& state,
         return ActionResultType::Pass;
     }
 
+    // 检查玩家是否有建造权限
+    if (!player.mayBuild()) {
+        return ActionResultType::Pass;
+    }
+
     // TODO: 当告示牌编辑 UI 实现后，在此处添加：
-    //   1. 检查玩家是否有建造权限（player.mayBuild()）
-    //   2. 检查告示牌文本是否可编辑（hasEditableText）
-    //   3. 调用 signEntity->setAllowedPlayerEditor(player.uuid()) 设置编辑锁
-    //   4. 打开告示牌编辑界面
+    //   1. 检查告示牌文本是否可编辑（hasEditableText）
+    //   2. 调用 signEntity->setAllowedPlayerEditor(player.uuid()) 设置编辑锁
+    //   3. 打开告示牌编辑界面
 
     return ActionResultType::Success;
 }

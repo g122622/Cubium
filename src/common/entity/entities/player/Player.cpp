@@ -241,6 +241,60 @@ bool Player::mayInteract(IWorld& world, const BlockPos& pos) const
     return false;
 }
 
+bool Player::mayUseItemAt(IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& itemStack) const
+{
+    // 有建造权限时直接允许
+    if (m_abilities.allowEdit) {
+        return true;
+    }
+
+    // 无建造权限（冒险/旁观模式）：检查物品的 CanPlaceOn 标签
+    // 参考 MC Java Player.mayUseItemAt：
+    // 检查目标方块对面的方块是否在物品的 CanPlaceOn 列表中
+    const BlockPos adjacentPos = pos.offset(Directions::opposite(facing));
+    const BlockState* adjacentState = world.getBlockState(adjacentPos);
+    if (adjacentState == nullptr || adjacentState->isAir()) {
+        return false;
+    }
+
+    if (!itemStack.isEmpty() && itemStack.hasCanPlaceOn()) {
+        return itemStack.canPlaceOnBlockInAdventureMode(world, adjacentPos, *adjacentState);
+    }
+
+    return false;
+}
+
+bool Player::blockActionRestricted(IWorld& world, const BlockPos& pos) const
+{
+    // 非冒险/旁观模式：不限制
+    if (!entity::GameModeUtils::isBlockPlacingRestricted(m_gameMode)) {
+        return false;
+    }
+
+    // 旁观模式：完全限制
+    if (isSpectator()) {
+        return true;
+    }
+
+    // 有建造权限时不限制
+    if (m_abilities.allowEdit) {
+        return false;
+    }
+
+    // 冒险模式无建造权限：检查主手物品的 CanDestroy 标签
+    const ItemStack& mainHand = getHeldItem(Hand::MainHand);
+    if (mainHand.isEmpty()) {
+        return true;
+    }
+
+    const BlockState* state = world.getBlockState(pos);
+    if (state == nullptr) {
+        return true;
+    }
+
+    return !mainHand.canBreakBlockInAdventureMode(world, pos, *state);
+}
+
 // ============================================================================
 // 生命值管理（覆盖 LivingEntity 方法）
 // ============================================================================
@@ -2902,6 +2956,8 @@ void Player::addAdditionalSaveData(nbt::tags::compound_tag& tag) const
         abilities->put(ABILITIES_INVULNERABLE, static_cast<i8>(m_abilities.invulnerable ? 1 : 0));
         abilities->put(ABILITIES_FLYING, static_cast<i8>(m_abilities.flying ? 1 : 0));
         abilities->put(ABILITIES_MAY_FLY, static_cast<i8>(m_abilities.canFly ? 1 : 0));
+        abilities->put(ABILITIES_INSTABUILD, static_cast<i8>(m_abilities.creativeMode ? 1 : 0));
+        abilities->put(ABILITIES_MAY_BUILD, static_cast<i8>(m_abilities.allowEdit ? 1 : 0));
         abilities->put(ABILITIES_FLY_SPEED, m_abilities.flySpeed);
         abilities->put(ABILITIES_WALK_SPEED, m_abilities.walkSpeed);
         tag.value.emplace(ABILITIES, std::move(abilities));
@@ -3024,6 +3080,12 @@ Result<void> Player::readAdditionalSaveData(const nbt::tags::compound_tag& tag)
         }
         if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_MAY_FLY)) {
             m_abilities.canFly = *val;
+        }
+        if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_INSTABUILD)) {
+            m_abilities.creativeMode = *val;
+        }
+        if (auto val = nbt_helper::tryGetBool(*abilities, ABILITIES_MAY_BUILD)) {
+            m_abilities.allowEdit = *val;
         }
         if (auto val = nbt_helper::tryGetFloat(*abilities, ABILITIES_FLY_SPEED)) {
             m_abilities.flySpeed = *val;

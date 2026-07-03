@@ -58,6 +58,8 @@ class AbstractContainerMenu;
 class ItemEntity;
 class DamageSource;
 
+enum class Direction : u8;
+
 namespace scoreboard {
 class Scoreboard;
 }
@@ -336,6 +338,46 @@ public:
      * @return 如果玩家可以使用游戏管理员方块则返回 true
      */
     [[nodiscard]] bool canUseGameMasterBlocks() const { return m_abilities.creativeMode && m_permissionLevel >= 2; }
+
+    /**
+     * @brief 检查玩家是否有建造权限
+     *
+     * 对应 MC Java 的 Player.mayBuild()。返回 abilities.allowEdit 标志。
+     * 生存模式和创造模式下为 true，冒险模式和旁观者模式下为 false。
+     * 用于控制玩家是否可以执行建造相关操作（如空手熄灭蜡烛、编辑告示牌、切换红石元件状态等）。
+     *
+     * @return 如果玩家有建造权限返回 true
+     */
+    [[nodiscard]] bool mayBuild() const { return m_abilities.allowEdit; }
+
+    /**
+     * @brief 检查玩家是否可以在指定位置使用物品
+     *
+     * 对应 MC Java 的 Player.mayUseItemAt(BlockPos, Direction, ItemStack)。
+     * 如果玩家有建造权限则直接允许；否则检查物品的 CanPlaceOn 标签。
+     *
+     * @param world 世界引用
+     * @param pos 目标方块位置
+     * @param facing 交互方向
+     * @param itemStack 要使用的物品
+     * @return 如果允许使用物品返回 true
+     */
+    [[nodiscard]] bool mayUseItemAt(
+        IWorld& world, const BlockPos& pos, Direction facing, const ItemStack& itemStack) const;
+
+    /**
+     * @brief 检查玩家对方块的操作是否受限制
+     *
+     * 对应 MC Java 的 Player.blockActionRestricted(Level, BlockPos, GameType)。
+     * 在冒险模式和旁观者模式下，玩家的方块操作受限。
+     * 如果玩家有建造权限（mayBuild），则操作不受限。
+     * 冒险模式下还需检查主手物品的 CanDestroy 标签。
+     *
+     * @param world 世界引用
+     * @param pos 方块位置
+     * @return 如果方块操作受限返回 true
+     */
+    [[nodiscard]] bool blockActionRestricted(IWorld& world, const BlockPos& pos) const;
 
     // 维度
     [[nodiscard]] DimensionId dimension() const { return m_dimension; }

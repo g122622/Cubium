@@ -502,13 +502,15 @@ ActionResultType RedstoneWireBlock::onBlockActivated(const BlockState& state,
     Hand hand,
     const BlockRaycastResult& hit)
 {
-
-    MC_UNUSED(player);
     MC_UNUSED(hand);
     MC_UNUSED(hit);
 
+    // 冒险/旁观模式下无建造权限时，禁止切换红石线连接模式
+    if (!player.mayBuild()) {
+        return ActionResultType::Pass;
+    }
+
     // 右键点击可以在十字连接和点状连接之间切换
-    // 只有当玩家可以编辑时才允许切换
     // 检查是否是十字连接或点状连接模式
     bool isCross = _isCrossConnection(state);
     bool isDot = _isDotConnection(state);

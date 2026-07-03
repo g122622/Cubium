@@ -51,6 +51,11 @@ namespace GameModeUtils {
 /// 冒险模式和旁观者模式不允许编辑
 [[nodiscard]] bool canEdit(GameMode mode);
 
+/// 检查游戏模式是否限制方块放置
+/// 对应 MC Java 的 GameType.isBlockPlacingRestricted()
+/// 冒险模式和旁观者模式返回 true，生存和创造模式返回 false
+[[nodiscard]] bool isBlockPlacingRestricted(GameMode mode);
+
 [[nodiscard]] bool isCreative(GameMode mode);
 [[nodiscard]] bool isSurvival(GameMode mode);
 [[nodiscard]] bool isAdventure(GameMode mode);

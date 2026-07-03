@@ -236,10 +236,7 @@ ActionResultType CandleBlock::onBlockActivated(const BlockState& state,
     const ItemStack& heldItem = player.getHeldItem(hand);
 
     // 空手 + 可以建造 + 蜡烛已点燃 → 熄灭
-    // 参考 MC Java: CandleBlock.useItemOn — 空手点击点燃的蜡烛时熄灭
-    if (heldItem.isEmpty() && isLit(state)) {
-        // TODO: 需要检查 player.mayBuild() (即玩家是否有建造权限)
-        //       目前 mayBuild() 在 Player 中尚未实现
+    if (heldItem.isEmpty() && player.mayBuild() && isLit(state)) {
         if (world.isClientSide()) {
             return ActionResultType::Success;
         }
