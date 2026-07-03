@@ -261,6 +261,14 @@ public:
     static ItemTag& DYEABLE();
 
     /**
+     * @brief 铜傀儡雕像物品标签
+     *
+     * 包含所有 8 个铜傀儡雕像物品变体（未涂蜡/涂蜡 × 4 个氧化等级）。
+     * 对应 MC 原版标签 minecraft:copper_golem_statues (MC 1.21.11)。
+     */
+    static ItemTag& COPPER_GOLEM_STATUES();
+
+    /**
      * @brief 金矿石物品标签
      *
      * 包含所有金矿石物品（金矿石、下界金矿石、深板岩金矿石）。

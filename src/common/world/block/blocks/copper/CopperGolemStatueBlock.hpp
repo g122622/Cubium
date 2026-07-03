@@ -188,13 +188,7 @@ public:
         return state.get(BlockStateProperties::WATERLOGGED());
     }
 
-protected:
-    /**
-     * @brief 填充状态容器
-     *
-     * 状态在构造函数中通过 Builder 创建，此处为空实现。
-     */
-    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
+    // ========== 姿态工具 ==========
 
     /**
      * @brief 循环切换到下一个姿态
@@ -203,6 +197,14 @@ protected:
      */
     [[nodiscard]] static BlockStateProperties::CopperGolemPose getNextPose(
         BlockStateProperties::CopperGolemPose current) noexcept;
+
+protected:
+    /**
+     * @brief 填充状态容器
+     *
+     * 状态在构造函数中通过 Builder 创建，此处为空实现。
+     */
+    void fillStateContainer(StateContainer<Block, BlockState>& container) override;
 
     /**
      * @brief 播放变雕像音效并触发 BLOCK_CHANGE 游戏事件

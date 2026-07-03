@@ -603,6 +603,15 @@ BlockTag& BlockTags::COPPER()
     return *tag;
 }
 
+BlockTag& BlockTags::COPPER_GOLEM_STATUES()
+{
+    static BlockTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "copper_golem_statues"));
+    }
+    return *tag;
+}
+
 BlockTag& BlockTags::LIGHTNING_RODS()
 {
     static BlockTag* tag = nullptr;
@@ -2048,8 +2057,32 @@ void BlockTags::initialize()
         ResourceLocation("minecraft", "waxed_copper_trapdoor"),
         ResourceLocation("minecraft", "waxed_exposed_copper_trapdoor"),
         ResourceLocation("minecraft", "waxed_weathered_copper_trapdoor"),
-        ResourceLocation("minecraft", "waxed_oxidized_copper_trapdoor")});
+        ResourceLocation("minecraft", "waxed_oxidized_copper_trapdoor"),
+        // 铜傀儡雕像（8 个变体）：MC 1.21.11 中通过 #copper_golem_statues 标签加入 #copper
+        ResourceLocation("minecraft", "copper_golem_statue"),
+        ResourceLocation("minecraft", "exposed_copper_golem_statue"),
+        ResourceLocation("minecraft", "weathered_copper_golem_statue"),
+        ResourceLocation("minecraft", "oxidized_copper_golem_statue"),
+        ResourceLocation("minecraft", "waxed_copper_golem_statue"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_golem_statue"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_golem_statue"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue")});
     tags[copper->getId()] = std::move(copper);
+
+    // 铜傀儡雕像标签（8 个变体）
+    // 参考: net.minecraft.tags.BlockTags.COPPER_GOLEM_STATUES (MC 1.21.11)
+    // 用于 CopperGolemStatueBlock.shouldChangedStateKeepBlockEntity 判断：
+    // 当斧头刮削/去蜡导致方块状态变化时，保留方块实体（CUSTOM_NAME 等数据不丢失）
+    auto copperGolemStatues = std::make_unique<BlockTag>(ResourceLocation("minecraft", "copper_golem_statues"));
+    copperGolemStatues->addAll({ResourceLocation("minecraft", "copper_golem_statue"),
+        ResourceLocation("minecraft", "exposed_copper_golem_statue"),
+        ResourceLocation("minecraft", "weathered_copper_golem_statue"),
+        ResourceLocation("minecraft", "oxidized_copper_golem_statue"),
+        ResourceLocation("minecraft", "waxed_copper_golem_statue"),
+        ResourceLocation("minecraft", "waxed_exposed_copper_golem_statue"),
+        ResourceLocation("minecraft", "waxed_weathered_copper_golem_statue"),
+        ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue")});
+    tags[copperGolemStatues->getId()] = std::move(copperGolemStatues);
 
     // 避雷针标签（包含所有氧化和涂蜡变种）
     auto lightningRods = std::make_unique<BlockTag>(ResourceLocation("minecraft", "lightning_rods"));

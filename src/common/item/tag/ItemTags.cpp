@@ -308,6 +308,15 @@ ItemTag& ItemTags::GOLD_ORES()
     return *tag;
 }
 
+ItemTag& ItemTags::COPPER_GOLEM_STATUES()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "copper_golem_statues"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::PIGLIN_LOVED()
 {
     static ItemTag* tag = nullptr;
@@ -928,6 +937,27 @@ void ItemTags::initialize()
     // 镶金黑石
     piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gilded_blackstone")));
     allTags[piglinLoved->getId()] = std::move(piglinLoved);
+
+    // 创建 COPPER_GOLEM_STATUES 标签
+    // 包含所有 8 个铜傀儡雕像物品变体（未涂蜡/涂蜡 × 4 个氧化等级）。
+    // 对应 MC 原版标签 minecraft:copper_golem_statues (MC 1.21.11)。
+    auto copperGolemStatues = std::make_unique<ItemTag>(ResourceLocation("minecraft", "copper_golem_statues"), false);
+    copperGolemStatues->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "copper_golem_statue")));
+    copperGolemStatues->add(
+        ItemRegistry::instance().getItem(ResourceLocation("minecraft", "exposed_copper_golem_statue")));
+    copperGolemStatues->add(
+        ItemRegistry::instance().getItem(ResourceLocation("minecraft", "weathered_copper_golem_statue")));
+    copperGolemStatues->add(
+        ItemRegistry::instance().getItem(ResourceLocation("minecraft", "oxidized_copper_golem_statue")));
+    copperGolemStatues->add(
+        ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_copper_golem_statue")));
+    copperGolemStatues->add(
+        ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_exposed_copper_golem_statue")));
+    copperGolemStatues->add(
+        ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_weathered_copper_golem_statue")));
+    copperGolemStatues->add(
+        ItemRegistry::instance().getItem(ResourceLocation("minecraft", "waxed_oxidized_copper_golem_statue")));
+    allTags[copperGolemStatues->getId()] = std::move(copperGolemStatues);
 
     s_initialized = true;
 }

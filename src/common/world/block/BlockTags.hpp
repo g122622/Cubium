@@ -359,6 +359,11 @@ public:
     /// 铜块标签（所有铜质方块，含氧化和涂蜡变种）
     static BlockTag& COPPER();
 
+    /// 铜傀儡雕像标签（所有 8 个变体：未涂蜡/涂蜡 × 4 个氧化等级）
+    /// 参考: net.minecraft.tags.BlockTags.COPPER_GOLEM_STATUES (MC 1.21.11)
+    /// 用于 shouldChangedStateKeepBlockEntity 判断：斧头刮削/去蜡时保留方块实体
+    static BlockTag& COPPER_GOLEM_STATUES();
+
     /// 避雷针标签
     static BlockTag& LIGHTNING_RODS();
 

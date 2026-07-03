@@ -576,6 +576,7 @@ add_executable(mc_tests
     common/world/block/blocks/SpongeBlockTest.cpp
     common/world/block/blocks/OxidizableBlockTest.cpp
     common/world/block/blocks/copper/CopperBarsBlockTest.cpp
+    common/world/block/blocks/copper/CopperGolemStatueBlockTest.cpp
     common/world/block/CompostableItemsTest.cpp
     common/world/block/BlockStateMutableTest.cpp
     common/world/block/BuildingVariantRegistrationTest.cpp
