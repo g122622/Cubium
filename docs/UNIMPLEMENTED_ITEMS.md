@@ -113,8 +113,8 @@
 ### Armor（2）
 
 
-- `minecraft:golden_nautilus_armor`
-- `minecraft:wolf_armor`### Beds（16）
+- `minecraft:golden_nautilus_armor ✅ 已完成`
+- `minecraft:wolf_armor ✅ 已完成`### Beds（16）
 
 
 - `minecraft:black_bed ✅ 已完成`
@@ -907,7 +907,7 @@
 未实现项：
 
 
-- `minecraft:wolf_armor`
+- `minecraft:wolf_armor ✅ 已完成`
 
 ### `minecraft:eggs`
 
@@ -1031,7 +1031,7 @@
 
 - `minecraft:bell`
 - `minecraft:gilded_blackstone ✅ 已完成`
-- `minecraft:golden_nautilus_armor`
+- `minecraft:golden_nautilus_armor ✅ 已完成`
 - `minecraft:golden_spear`
 - `minecraft:raw_gold ✅ 已完成`
 - `minecraft:raw_gold_block ✅ 已完成`

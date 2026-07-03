@@ -459,6 +459,8 @@ add_library(mc_common STATIC
     item/items/armor/DyeableArmorItem.cpp
     item/items/armor/ElytraItem.cpp
     item/items/armor/HorseArmorItem.cpp
+    item/items/armor/NautilusArmorItem.cpp
+    item/items/armor/WolfArmorItem.cpp
 
     # Item System - Attributes
     item/attribute/ItemAttributeModifiers.cpp

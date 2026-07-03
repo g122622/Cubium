@@ -236,6 +236,32 @@ public:
     static ItemTag& SHULKER_BOXES();
 
     /**
+     * @brief 修复狼铠材料标签
+     *
+     * 包含可用于修复狼铠的物品（犰狳鳞甲）。
+     * 对应 MC 原版标签 minecraft:repairs_wolf_armor。
+     */
+    static ItemTag& REPAIRS_WOLF_ARMOR();
+
+    /**
+     * @brief 可染色物品标签
+     *
+     * 包含所有可以使用染料染色的物品。
+     * 皮革盔甲、皮革马铠和狼铠可通过染色配方改变颜色。
+     * 对应 MC 原版标签 minecraft:dyeable。
+     */
+    static ItemTag& DYEABLE();
+
+    /**
+     * @brief 猪灵喜爱物品标签
+     *
+     * 包含猪灵会捡起和欣赏的所有物品。
+     * 金相关物品、钟、金鹦鹉螺铠甲等。
+     * 对应 MC 原版标签 minecraft:piglin_loved。
+     */
+    static ItemTag& PIGLIN_LOVED();
+
+    /**
      * @brief 初始化所有内置物品标签
      *
      * 必须在 ItemRegistry 初始化之后调用。

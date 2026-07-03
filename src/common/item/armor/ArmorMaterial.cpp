@@ -354,6 +354,46 @@ crafting::Ingredient NetheriteArmorMaterial::getRepairMaterial() const
 }
 
 // ============================================================================
+// ArmadilloScuteArmorMaterial（犰狳鳞甲材质 - 狼铠）
+// ============================================================================
+
+i32 ArmadilloScuteArmorMaterial::getDurability(ArmorSlot slot) const
+{
+    // 基础耐久度: 4
+    // 狼铠使用 BODY 槽位，耐久度 = 4 * 16 = 64
+    return 4 * getDurabilityMultiplier(slot);
+}
+
+i32 ArmadilloScuteArmorMaterial::getDefense(ArmorSlot slot) const
+{
+    // MC 1.21.11: ARMADILLO_SCUTE 材质防御值
+    // HEAD=3, CHEST=6, LEGS=8, FEET=3, BODY=11
+    // 狼铠仅使用 BODY 槽位的 11 防御值，其他槽位理论上不使用
+    switch (slot) {
+        case ArmorSlot::Head:
+            return 3;
+        case ArmorSlot::Chest:
+            return 6;
+        case ArmorSlot::Legs:
+            return 8;
+        case ArmorSlot::Feet:
+            return 3;
+        default:
+            return 0;
+    }
+}
+
+sound::SoundEvent ArmadilloScuteArmorMaterial::getEquipSound() const
+{
+    return sound::SoundEvent(ResourceLocation("minecraft:item.armor.equip_wolf"));
+}
+
+crafting::Ingredient ArmadilloScuteArmorMaterial::getRepairMaterial() const
+{
+    return crafting::Ingredient::fromItem(Items::ARMADILLO_SCUTE);
+}
+
+// ============================================================================
 // 材质全局实例
 // ============================================================================
 
@@ -367,6 +407,7 @@ const GoldArmorMaterial GOLD;
 const DiamondArmorMaterial DIAMOND;
 const TurtleArmorMaterial TURTLE;
 const NetheriteArmorMaterial NETHERITE;
+const ArmadilloScuteArmorMaterial ARMADILLO_SCUTE;
 
 void initialize()
 {

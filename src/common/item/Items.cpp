@@ -30,6 +30,8 @@
 #include "common/item/items/armor/ArmorItem.hpp"
 #include "common/item/items/armor/DyeableArmorItem.hpp"
 #include "common/item/items/armor/HorseArmorItem.hpp"
+#include "common/item/items/armor/NautilusArmorItem.hpp"
+#include "common/item/items/armor/WolfArmorItem.hpp"
 #include "common/item/items/block/BannerItem.hpp"
 #include "common/item/items/block/BedItem.hpp"
 #include "common/item/items/block/BlockItem.hpp"
@@ -309,6 +311,16 @@ Item* Items::IRON_HORSE_ARMOR = nullptr;
 Item* Items::GOLDEN_HORSE_ARMOR = nullptr;
 Item* Items::DIAMOND_HORSE_ARMOR = nullptr;
 Item* Items::NETHERITE_HORSE_ARMOR = nullptr;
+
+// 狼铠
+Item* Items::WOLF_ARMOR = nullptr;
+
+// 鹦鹉螺铠甲
+Item* Items::COPPER_NAUTILUS_ARMOR = nullptr;
+Item* Items::IRON_NAUTILUS_ARMOR = nullptr;
+Item* Items::GOLDEN_NAUTILUS_ARMOR = nullptr;
+Item* Items::DIAMOND_NAUTILUS_ARMOR = nullptr;
+Item* Items::NETHERITE_NAUTILUS_ARMOR = nullptr;
 
 // 食物
 Item* Items::APPLE = nullptr;
@@ -1946,6 +1958,45 @@ void Items::_registerArmor()
             ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),
             19,
             ResourceLocation("minecraft", "textures/entity/horse/armor/horse_armor_netherite.png"));
+
+    // ========================================================================
+    // 狼铠 - MC 1.20.5+ 新增
+    // 使用犰狳鳞甲材质，可染色，64点耐久，防御值11
+    // 参考: net.minecraft.item.WolfArmorItem
+    // ========================================================================
+    WOLF_ARMOR = &registry.registerItem<item::items::WolfArmorItem>(ResourceLocation("minecraft:wolf_armor"),
+        ArmorMaterials::ARMADILLO_SCUTE,
+        item::armor::ArmorSlot::Chest,
+        ItemProperties().maxDamage(ArmorMaterials::ARMADILLO_SCUTE.getDurability(item::armor::ArmorSlot::Chest)));
+
+    // ========================================================================
+    // 鹦鹉螺铠甲 - MC 1.21.11 新增
+    // 用于装备鹦鹉螺类实体，不可损坏，无耐久度
+    // 参考: net.minecraft.item.NautilusArmorItem
+    // ========================================================================
+    // 铜鹦鹉螺铠甲 - +4 护甲
+    COPPER_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
+        ResourceLocation("minecraft:copper_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::COPPER);
+
+    // 铁鹦鹉螺铠甲 - +5 护甲
+    IRON_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
+        ResourceLocation("minecraft:iron_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::IRON);
+
+    // 金鹦鹉螺铠甲 - +7 护甲
+    GOLDEN_NAUTILUS_ARMOR = &registry.registerItem<item::items::NautilusArmorItem>(
+        ResourceLocation("minecraft:golden_nautilus_armor"), ItemProperties().maxStackSize(1), ArmorMaterials::GOLD);
+
+    // 钻石鹦鹉螺铠甲 - +11 护甲
+    DIAMOND_NAUTILUS_ARMOR =
+        &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:diamond_nautilus_armor"),
+            ItemProperties().maxStackSize(1),
+            ArmorMaterials::DIAMOND);
+
+    // 下界合金鹦鹉螺铠甲 - +19 护甲，防火
+    NETHERITE_NAUTILUS_ARMOR =
+        &registry.registerItem<item::items::NautilusArmorItem>(ResourceLocation("minecraft:netherite_nautilus_armor"),
+            ItemProperties().maxStackSize(1).rarity(ItemRarity::Rare),
+            ArmorMaterials::NETHERITE);
 }
 
 void Items::_registerFood()

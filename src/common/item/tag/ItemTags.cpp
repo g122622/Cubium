@@ -272,6 +272,33 @@ ItemTag& ItemTags::SHULKER_BOXES()
     return *tag;
 }
 
+ItemTag& ItemTags::REPAIRS_WOLF_ARMOR()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "repairs_wolf_armor"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::DYEABLE()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "dyeable"));
+    }
+    return *tag;
+}
+
+ItemTag& ItemTags::PIGLIN_LOVED()
+{
+    static ItemTag* tag = nullptr;
+    if (tag == nullptr) {
+        tag = getTag(ResourceLocation("minecraft", "piglin_loved"));
+    }
+    return *tag;
+}
+
 ItemTag& ItemTags::WOODEN_SHELVES()
 {
     static ItemTag* tag = nullptr;
@@ -798,6 +825,61 @@ void ItemTags::initialize()
     shulkerBoxes->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "black_shulker_box")));
 
     allTags[shulkerBoxes->getId()] = std::move(shulkerBoxes);
+
+    // 创建 REPAIRS_WOLF_ARMOR 标签
+    // 包含可用于修复狼铠的物品（犰狳鳞甲）。
+    // 对应 MC 原版标签 minecraft:repairs_wolf_armor。
+    auto repairsWolfArmor = std::make_unique<ItemTag>(ResourceLocation("minecraft", "repairs_wolf_armor"), false);
+    repairsWolfArmor->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "armadillo_scute")));
+    allTags[repairsWolfArmor->getId()] = std::move(repairsWolfArmor);
+
+    // 创建 DYEABLE 标签
+    // 包含所有可以使用染料染色的物品。
+    // 皮革盔甲、皮革马铠和狼铠可通过染色配方改变颜色。
+    // 对应 MC 原版标签 minecraft:dyeable。
+    auto dyeable = std::make_unique<ItemTag>(ResourceLocation("minecraft", "dyeable"), false);
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_helmet")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_chestplate")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_leggings")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_boots")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "leather_horse_armor")));
+    dyeable->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "wolf_armor")));
+    allTags[dyeable->getId()] = std::move(dyeable);
+
+    // 创建 PIGLIN_LOVED 标签
+    // 包含猪灵会捡起和欣赏的所有物品。
+    // 对应 MC 原版标签 minecraft:piglin_loved。
+    auto piglinLoved = std::make_unique<ItemTag>(ResourceLocation("minecraft", "piglin_loved"), false);
+    // 金相关物品
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gold_block")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gilded_blackstone")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "light_weighted_pressure_plate")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "gold_ingot")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "bell")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "clock")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_carrot")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "glistering_melon_slice")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_apple")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "enchanted_golden_apple")));
+    // 金盔甲
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_helmet")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_chestplate")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_leggings")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_boots")));
+    // 金马铠
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_horse_armor")));
+    // 金鹦鹉螺铠甲
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_nautilus_armor")));
+    // 金工具和武器
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_sword")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_pickaxe")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_shovel")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_axe")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "golden_hoe")));
+    // 粗金
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "raw_gold")));
+    piglinLoved->add(ItemRegistry::instance().getItem(ResourceLocation("minecraft", "raw_gold_block")));
+    allTags[piglinLoved->getId()] = std::move(piglinLoved);
 
     s_initialized = true;
 }
